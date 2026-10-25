@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas"></meta>
+<style>
+@font-face{font-family:"Be Vietnam Pro";font-weight:400;font-display:swap;src:url("public/fonts/be-vietnam-pro-400.woff2") format("woff2")}
+@font-face{font-family:"Be Vietnam Pro";font-weight:500;font-display:swap;src:url("public/fonts/be-vietnam-pro-500.woff2") format("woff2")}
+@font-face{font-family:"Be Vietnam Pro";font-weight:600;font-display:swap;src:url("public/fonts/be-vietnam-pro-600.woff2") format("woff2")}
+body{margin:0;background:#e4e9f0}
+a{color:#0c4a6e}
+a:hover{color:#082f49}
+</style>
+</helmet>
+<section data-screen-label="Lượt 2" style="padding:56px 56px 0;font-family:'Be Vietnam Pro',system-ui,sans-serif;color:#0f172a;display:flex;flex-direction:column;gap:40px">
+  <header style="max-width:1100px">
+    <div style="font-size:14px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:#475569">Island Booking System · Lượt 2</div>
+    <h1 style="margin:4px 0 8px;font-size:36px;font-weight:500;color:#0c4a6e">Chỉnh theo góp ý: 1a → <a href="#2a">2a</a>, 1c → <a href="#2b">2b</a></h1>
+    <p style="margin:0;font-size:17px;line-height:1.6;color:#475569;text-wrap:pretty">Khung trang, màu, cỡ chữ giữ nguyên. Lượt 1 (ba khổ, bốn trạng thái) ở bên dưới vẫn đúng cho phần không đổi.</p>
+  </header>
+  <div style="display:flex;flex-wrap:wrap;gap:56px;align-items:flex-start">
+
+    <div id="2a" style="display:flex;flex-direction:column;gap:20px;padding:32px;background:#f8fafc;border-radius:18px">
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <span style="padding:4px 12px;font-size:18px;font-weight:600;color:#fff;background:#0c4a6e;border-radius:8px">2a</span>
+        <span style="font-size:26px;font-weight:500;color:#0c4a6e">Sổ công nợ — bản chỉnh từ 1a</span>
+      </div>
+      <ul style="margin:0;padding-left:20px;max-width:1100px;font-size:16px;line-height:1.7;color:#475569">
+        <li>Chân ngăn chi tiết là phép tính thật: Đang giữ a + b = X · Công ty nợ c + d = Y · X − Y = Số dư; có trạng thái lệch.</li>
+        <li>Đơn của một bên tách hai nhóm có tổng phụ; đơn huỷ còn cọc ghi "Đã huỷ — cọc còn giữ" ngay ở dòng.</li>
+        <li>Sắp xếp, "Xem thêm 50 bên", "Xem thêm" đơn khi quá 30; trạng thái đang tìm và không tìm thấy.</li>
+        <li>Màn chỉ có một ô tìm theo tên bên; ô tìm chung vẫn ở góc phải thanh trên, cách xa ô này. iPhone gộp hai cảnh báo thành một dòng mỏng.</li>
+      </ul>
+      <div style="display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start">
+        <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:14px;font-weight:500;color:#475569">Máy tính · có dữ liệu, mở Đại Lý A</span><dc-import name="So Cong No v2" device="desktop" state="data" open-party="dla" hint-size="1280px,800px" style="width:1280px;height:800px;border-radius:12px;overflow:hidden;box-shadow:0 16px 48px rgba(15,23,42,.18)"></dc-import></div>
+        <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:14px;font-weight:500;color:#475569">iPhone · có dữ liệu</span><dc-import name="So Cong No v2" device="phone" state="data" open-party="none" hint-size="375px,812px" style="width:375px;height:812px;border-radius:32px;overflow:hidden;box-shadow:0 16px 48px rgba(15,23,42,.18)"></dc-import></div>
+        <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:14px;font-weight:500;color:#475569">iPhone · chi tiết An Bán (hai nhóm, đơn huỷ còn cọc)</span><dc-import name="So Cong No v2" device="phone" state="data" open-party="an" hint-size="375px,812px" style="width:375px;height:812px;border-radius:32px;overflow:hidden;box-shadow:0 16px 48px rgba(15,23,42,.18)"></dc-import></div>
+      </div>
+      <div style="font-size:18px;font-weight:500;color:#0c4a6e;margin-top:8px">Trạng thái mới</div>
+      <div style="display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start">
+        <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:14px;font-weight:500;color:#475569">Máy tính · hiếm: tổng đơn lệch số dư 10.000 ₫</span><dc-import name="So Cong No v2" device="desktop" state="data" open-party="dla" mismatch="{{ true }}" hint-size="1280px,800px" style="width:1280px;height:800px;border-radius:12px;overflow:hidden;box-shadow:0 16px 48px rgba(15,23,42,.18)"></dc-import></div>
+        <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:14px;font-weight:500;color:#475569">iPhone · hiếm: lệch 10.000 ₫</span><dc-import name="So Cong No v2" device="phone" state="data" open-party="dla" mismatch="{{ true }}" hint-size="375px,812px" style="width:375px;height:812px;border-radius:32px;overflow:hidden;box-shadow:0 16px 48px rgba(15,23,42,.18)"></dc-import></div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start">
+        <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:14px;font-weight:500;color:#475569">Máy tính · danh sách dài 236 bên, bên có 61 đơn</span><dc-import name="So Cong No v2" device="desktop" state="data" many="{{ true }}" open-party="hontre" hint-size="1280px,800px" style="width:1280px;height:800px;border-radius:12px;overflow:hidden;box-shadow:0 16px 48px rgba(15,23,42,.18)"></dc-import></div>
+        <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:14px;font-weight:500;color:#475569">iPhone · danh sách dài (cuộn xuống: Xem thêm 50 bên)</span><dc-import name="So Cong No v2" device="phone" state="data" many="{{ true }}" open-party="none" hint-size="375px,812px" style="width:375px;height:812px;border-radius:32px;overflow:hidden;box-shadow:0 16px 48px rgba(15,23,42,.18)"></dc-import></div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start">
+        <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:14px;font-weight:500;color:#475569">iPhone · đang tìm</span><dc-import name="So Cong No v2" device="phone" state="data" searching="{{ true }}" q="Hư" open-party="none" hint-size="375px,812px" style="width:375px;height:812px;border-radius:32px;overflow:hidden;box-shadow:0 16px 48px rgba(15,23,42,.18)"></dc-import></div>
+        <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:14px;font-weight:500;color:#475569">iPhone · không tìm thấy</span><dc-import name="So Cong No v2" device="phone" state="data" q="Minh Tâm" open-party="none" hint-size="375px,812px" style="width:375px;height:812px;border-radius:32px;overflow:hidden;box-shadow:0 16px 48px rgba(15,23,42,.18)"></dc-import></div>
+        <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:14px;font-weight:500;color:#475569">iPhone · kiểm: tên 40 ký tự, 1.250.000.000 ₫</span><dc-import name="So Cong No v2" device="phone" state="data" stress="{{ true }}" open-party="none" hint-size="375px,812px" style="width:375px;height:812px;border-radius:32px;overflow:hidden;box-shadow:0 16px 48px rgba(15,23,42,.18)"></dc-import></div>
+        <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:14px;font-weight:500;color:#475569">iPhone · kiểm: chi tiết bên tên dài</span><dc-import name="So Cong No v2" device="phone" state="data" stress="{{ true }}" open-party="long" hint-size="375px,812px" style="width:375px;height:812px;border-radius:32px;overflow:hidden;box-shadow:0 16px 48px rgba(15,23,42,.18)"></dc-import></div>
+      </div>
+    </div>
+
+    <div id="2b" style="display:flex;flex-direction:column;gap:20px;padding:32px;background:#f8fafc;border-radius:18px">
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <span style="padding:4px 12px;font-size:18px;font-weight:600;color:#fff;background:#0c4a6e;border-radius:8px">2b</span>
+        <span style="font-size:26px;font-weight:500;color:#0c4a6e">Sổ của tôi — bản chỉnh từ 1c</span>
+      </div>
+      <ul style="margin:0;padding-left:20px;max-width:1100px;font-size:16px;line-height:1.7;color:#475569">
+        <li>Tháng 9 cuối kỳ 1.200.000 ₫ = tháng 10 đầu kỳ (ghi rõ dưới từng dòng). Tháng 10: 1.200.000 + 1.840.000 − 1.200.000 đã quyết toán ngày 03/10 = 1.840.000 ₫.</li>
+        <li>Bấm tên tháng mở bảng chọn tháng/năm; tháng đã khoá ghi "Đã khoá ngày 05/10".</li>
+        <li>Dưới "Cách tính" có câu giải nghĩa thường ngày; nút (i) ở "Giảm giá bạn chịu" và "Đã quyết toán"; khoản chờ xác nhận nằm ở dòng riêng, nhãn "chưa tính".</li>
+        <li>Xem tháng cũ thì có dòng nối với số tới hôm nay. Không thêm số nào ngoài danh sách được phép.</li>
+      </ul>
+      <div style="display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start">
+        <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:14px;font-weight:500;color:#475569">iPhone · có dữ liệu, TD-1001 mở</span><dc-import name="So Cua Toi v2" device="phone" state="data" expanded="TD-1001" hint-size="375px,812px" style="width:375px;height:812px;border-radius:32px;overflow:hidden;box-shadow:0 16px 48px rgba(15,23,42,.18)"></dc-import></div>
+        <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:14px;font-weight:500;color:#475569">Máy tính · có dữ liệu, (i) "Giảm giá bạn chịu" đang mở</span><dc-import name="So Cua Toi v2" device="desktop" state="data" expanded="TD-1001" info="TD-1001-giam" hint-size="1280px,800px" style="width:1280px;height:800px;border-radius:12px;overflow:hidden;box-shadow:0 16px 48px rgba(15,23,42,.18)"></dc-import></div>
+      </div>
+      <div style="font-size:18px;font-weight:500;color:#0c4a6e;margin-top:8px">Trạng thái mới</div>
+      <div style="display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start">
+        <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:14px;font-weight:500;color:#475569">iPhone · đang xem tháng 9 (đã khoá)</span><dc-import name="So Cua Toi v2" device="phone" state="data" month="09" expanded="TD-0921" hint-size="375px,812px" style="width:375px;height:812px;border-radius:32px;overflow:hidden;box-shadow:0 16px 48px rgba(15,23,42,.18)"></dc-import></div>
+        <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:14px;font-weight:500;color:#475569">iPhone · bảng chọn tháng đang mở</span><dc-import name="So Cua Toi v2" device="phone" state="data" picker="{{ true }}" expanded="none" hint-size="375px,812px" style="width:375px;height:812px;border-radius:32px;overflow:hidden;box-shadow:0 16px 48px rgba(15,23,42,.18)"></dc-import></div>
+        <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:14px;font-weight:500;color:#475569">iPhone · đơn chưa giao, có khoản chờ xác nhận</span><dc-import name="So Cua Toi v2" device="phone" state="data" expanded="TD-1004" hint-size="375px,812px" style="width:375px;height:812px;border-radius:32px;overflow:hidden;box-shadow:0 16px 48px rgba(15,23,42,.18)"></dc-import></div>
+        <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:14px;font-weight:500;color:#475569">Máy tính · đang xem tháng 9</span><dc-import name="So Cua Toi v2" device="desktop" state="data" month="09" expanded="TD-0921" info="TD-0921-qt" hint-size="1280px,800px" style="width:1280px;height:800px;border-radius:12px;overflow:hidden;box-shadow:0 16px 48px rgba(15,23,42,.18)"></dc-import></div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start">
+        <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:14px;font-weight:500;color:#475569">iPhone · Tour Đảo còn phải trả bạn</span><dc-import name="So Cua Toi v2" device="phone" state="data" hero="receive" expanded="TD-1002" hint-size="375px,812px" style="width:375px;height:812px;border-radius:32px;overflow:hidden;box-shadow:0 16px 48px rgba(15,23,42,.18)"></dc-import></div>
+        <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:14px;font-weight:500;color:#475569">iPhone · không còn nợ nhau</span><dc-import name="So Cua Toi v2" device="phone" state="data" hero="settled" expanded="TD-1001" hint-size="375px,812px" style="width:375px;height:812px;border-radius:32px;overflow:hidden;box-shadow:0 16px 48px rgba(15,23,42,.18)"></dc-import></div>
+        <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:14px;font-weight:500;color:#475569">iPhone · kiểm: 1.250.000.000 ₫</span><dc-import name="So Cua Toi v2" device="phone" state="data" hero="big" expanded="TD-1001" hint-size="375px,812px" style="width:375px;height:812px;border-radius:32px;overflow:hidden;box-shadow:0 16px 48px rgba(15,23,42,.18)"></dc-import></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section data-screen-label="Lượt 1" style="padding:56px;font-family:'Be Vietnam Pro',system-ui,sans-serif;color:#0f172a;display:flex;flex-direction:column;gap:40px">
+  <header style="max-width:980px">
+    <div style="font-size:14px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:#475569">Island Booking System · Lượt 1</div>
+    <h1 style="margin:4px 0 8px;font-size:36px;font-weight:500;color:#0c4a6e">Sổ công nợ (Kế toán) và Sổ của tôi (Đối tác)</h1>
+    <p style="margin:0;font-size:17px;line-height:1.6;color:#475569;text-wrap:pretty">Khung trang, thanh bên, thanh tab, màu, cỡ chữ lấy đúng từ mã nguồn hiện có. Mỗi khung bấm được: chọn bên, lọc, tìm, mở/đóng đơn, đổi tháng. Chủ đã chọn <a href="#1a">1a</a> và <a href="#1c">1c</a>; bản chỉnh ở <a href="#2a">2a</a>, <a href="#2b">2b</a>.</p>
+  </header>
+
+  <div style="display:flex;flex-wrap:wrap;gap:56px;align-items:flex-start">
+
+    <div id="1a" style="display:flex;flex-direction:column;gap:20px;padding:32px;background:#f8fafc;border-radius:18px">
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <span style="padding:4px 12px;font-size:18px;font-weight:600;color:#fff;background:#0c4a6e;border-radius:8px">1a</span>
+        <span style="font-size:26px;font-weight:500;color:#0c4a6e">Sổ công nợ — danh sách + ngăn chi tiết bên phải</span>
+        <span style="padding:2px 12px;font-size:14px;font-weight:500;color:#166534;background:#dcfce7;border-radius:999px">Khuyến nghị</span>
+      </div>
+      <p style="margin:0;max-width:1100px;font-size:16px;line-height:1.6;color:#475569;text-wrap:pretty">Một danh sách xếp theo số tiền lớn nhất, lọc nhanh Đang giữ / Công ty nợ. Trên máy tính, ngăn chi tiết mở bên phải nên Kế toán vẫn thấy cả danh sách khi đối chiếu từng bên; dòng chân ngăn luôn cho thấy cộng các đơn = số dư. Trên iPhone và máy tính bảng, chi tiết là trang con. Vị trí menu: nhóm "Tiền" ở thanh bên (cạnh Điều chỉnh công nợ, Khoá sổ tháng); trên iPhone là một tab riêng của Kế toán.</p>
+      <div style="display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start">
+        <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:14px;font-weight:500;color:#475569">Máy tính 1280 · có dữ liệu, đang mở Đại Lý A</span><dc-import name="So Cong No" device="desktop" layout="A" state="data" open-party="dla" hint-size="1280px,800px" style="width:1280px;height:800px;border-radius:12px;overflow:hidden;box-shadow:0 16px 48px rgba(15,23,42,.18)"></dc-import></div>
+        <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:14px;font-weight:500;color:#475569">iPhone 375 · danh sách</span><dc-import name="So Cong No" device="phone" layout="A" state="data" open-party="none" hint-size="375px,812px" style="width:375px;height:812px;border-radius:32px;overflow:hidden;box-shadow:0 16px 48px rgba(15,23,42,.18)"></dc-import></div>
+        <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:14px;font-weight:500;color:#475569">iPhone 375 · trang con chi tiết bên</span><dc-import name="So Cong No" device="phone" layout="A" state="data" open-party="dla" hint-size="375px,812px" style="width:375px;height:812px;border-radius:32px;overflow:hidden;box-shadow:0 16px 48px rgba(15,23,42,.18)"></dc-import></div>
+        <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:14px;font-weight:500;color:#475569">Máy tính bảng 834 · danh sách</span><dc-import name="So Cong No" device="tablet" layout="A" state="data" open-party="none" hint-size="834px,1112px" style="width:834px;height:1112px;border-radius:20px;overflow:hidden;box-shadow:0 16px 48px rgba(15,23,42,.18)"></dc-import></div>
+        <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:14px;font-weight:500;color:#475569">Máy tính bảng 834 · chi tiết Hương</span><dc-import name="So Cong No" device="tablet" layout="A" state="data" open-party="huong" hint-size="834px,1112px" style="width:834px;height:1112px;border-radius:20px;overflow:hidden;box-shadow:0 16px 48px rgba(15,23,42,.18)"></dc-import></div>
+      </div>
+      <div style="font-size:18px;font-weight:500;color:#0c4a6e;margin-top:8px">Trạng thái: đang tải · rỗng · lỗi tải</div>
+      <div style="display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start">
+        <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:14px;font-weight:500;color:#475569">iPhone · đang tải</span><dc-import name="So Cong No" device="phone" state="loading" hint-size="375px,812px" style="width:375px;height:812px;border-radius:32px;overflow:hidden;box-shadow:0 16px 48px rgba(15,23,42,.18)"></dc-import></div>
+        <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:14px;font-weight:500;color:#475569">iPhone · rỗng</span><dc-import name="So Cong No" device="phone" state="empty" hint-size="375px,812px" style="width:375px;height:812px;border-radius:32px;overflow:hidden;box-shadow:0 16px 48px rgba(15,23,42,.18)"></dc-import></div>
+        <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:14px;font-weight:500;color:#475569">iPhone · lỗi tải</span><dc-import name="So Cong No" device="phone" state="error" hint-size="375px,812px" style="width:375px;height:812px;border-radius:32px;overflow:hidden;box-shadow:0 16px 48px rgba(15,23,42,.18)"></dc-import></div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start">
+        <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:14px;font-weight:500;color:#475569">Máy tính · đang tải</span><dc-import name="So Cong No" device="desktop" state="loading" hint-size="1280px,800px" style="width:1280px;height:800px;border-radius:12px;overflow:hidden;box-shadow:0 16px 48px rgba(15,23,42,.18)"></dc-import></div>
+        <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:14px;font-weight:500;color:#475569">Máy tính · rỗng</span><dc-import name="So Cong No" device="desktop" state="empty" hint-size="1280px,800px" style="width:1280px;height:800px;border-radius:12px;overflow:hidden;box-shadow:0 16px 48px rgba(15,23,42,.18)"></dc-import></div>
+        <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:14px;font-weight:500;color:#475569">Máy tính · lỗi tải</span><dc-import name="So Cong No" device="desktop" state="error" hint-size="1280px,800px" style="width:1280px;height:800px;border-radius:12px;overflow:hidden;box-shadow:0 16px 48px rgba(15,23,42,.18)"></dc-import></div>
+      </div>
+    </div>
+
+    <div id="1c" style="display:flex;flex-direction:column;gap:20px;padding:32px;background:#f8fafc;border-radius:18px">
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <span style="padding:4px 12px;font-size:18px;font-weight:600;color:#fff;background:#0c4a6e;border-radius:8px">1c</span>
+        <span style="font-size:26px;font-weight:500;color:#0c4a6e">Sổ của tôi — bảng kê theo tháng, mở đơn ra phép tính</span>
+        <span style="padding:2px 12px;font-size:14px;font-weight:500;color:#166534;background:#dcfce7;border-radius:999px">Khuyến nghị</span>
+      </div>
+      <p style="margin:0;max-width:1100px;font-size:16px;line-height:1.6;color:#475569;text-wrap:pretty">Tháng đọc như một phép cộng (Đầu kỳ + Phát sinh = Cuối kỳ), đổi tháng bằng hai mũi tên. Mở một đơn, phần "Cách tính" đi từ "Bạn đã thu" tới kết quả, phần "Để đối chiếu" giữ các số còn lại — trả lời thẳng câu "vì sao" mà không thêm số nào ngoài danh sách được phép. Vị trí menu: mục "Sổ của tôi" ở thanh bên của Đối tác; trên iPhone là tab cạnh "Tạo đơn".</p>
+      <div style="display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start">
+        <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:14px;font-weight:500;color:#475569">iPhone · Bạn còn phải trả · TD-1001 đang mở</span><dc-import name="So Cua Toi" device="phone" layout="B" state="data" hero="owe" expanded="TD-1001" hint-size="375px,812px" style="width:375px;height:812px;border-radius:32px;overflow:hidden;box-shadow:0 16px 48px rgba(15,23,42,.18)"></dc-import></div>
+        <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:14px;font-weight:500;color:#475569">iPhone · Tour Đảo còn phải trả bạn</span><dc-import name="So Cua Toi" device="phone" layout="B" state="data" hero="receive" expanded="TD-1002" hint-size="375px,812px" style="width:375px;height:812px;border-radius:32px;overflow:hidden;box-shadow:0 16px 48px rgba(15,23,42,.18)"></dc-import></div>
+        <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:14px;font-weight:500;color:#475569">iPhone · Không còn nợ nhau</span><dc-import name="So Cua Toi" device="phone" layout="B" state="data" hero="settled" expanded="TD-1001" hint-size="375px,812px" style="width:375px;height:812px;border-radius:32px;overflow:hidden;box-shadow:0 16px 48px rgba(15,23,42,.18)"></dc-import></div>
+        <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:14px;font-weight:500;color:#475569">Máy tính bảng 834</span><dc-import name="So Cua Toi" device="tablet" layout="B" state="data" expanded="TD-1002" hint-size="834px,1112px" style="width:834px;height:1112px;border-radius:20px;overflow:hidden;box-shadow:0 16px 48px rgba(15,23,42,.18)"></dc-import></div>
+        <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:14px;font-weight:500;color:#475569">Máy tính 1280</span><dc-import name="So Cua Toi" device="desktop" layout="B" state="data" expanded="TD-1001" hint-size="1280px,800px" style="width:1280px;height:800px;border-radius:12px;overflow:hidden;box-shadow:0 16px 48px rgba(15,23,42,.18)"></dc-import></div>
+      </div>
+      <div style="font-size:18px;font-weight:500;color:#0c4a6e;margin-top:8px">Trạng thái: đang tải · rỗng · lỗi tải</div>
+      <div style="display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start">
+        <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:14px;font-weight:500;color:#475569">iPhone · đang tải</span><dc-import name="So Cua Toi" device="phone" state="loading" hint-size="375px,812px" style="width:375px;height:812px;border-radius:32px;overflow:hidden;box-shadow:0 16px 48px rgba(15,23,42,.18)"></dc-import></div>
+        <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:14px;font-weight:500;color:#475569">iPhone · rỗng</span><dc-import name="So Cua Toi" device="phone" state="empty" hint-size="375px,812px" style="width:375px;height:812px;border-radius:32px;overflow:hidden;box-shadow:0 16px 48px rgba(15,23,42,.18)"></dc-import></div>
+        <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:14px;font-weight:500;color:#475569">iPhone · lỗi tải</span><dc-import name="So Cua Toi" device="phone" state="error" hint-size="375px,812px" style="width:375px;height:812px;border-radius:32px;overflow:hidden;box-shadow:0 16px 48px rgba(15,23,42,.18)"></dc-import></div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start">
+        <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:14px;font-weight:500;color:#475569">Máy tính · đang tải</span><dc-import name="So Cua Toi" device="desktop" state="loading" hint-size="1280px,800px" style="width:1280px;height:800px;border-radius:12px;overflow:hidden;box-shadow:0 16px 48px rgba(15,23,42,.18)"></dc-import></div>
+        <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:14px;font-weight:500;color:#475569">Máy tính · rỗng</span><dc-import name="So Cua Toi" device="desktop" state="empty" hint-size="1280px,800px" style="width:1280px;height:800px;border-radius:12px;overflow:hidden;box-shadow:0 16px 48px rgba(15,23,42,.18)"></dc-import></div>
+        <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:14px;font-weight:500;color:#475569">Máy tính · lỗi tải</span><dc-import name="So Cua Toi" device="desktop" state="error" hint-size="1280px,800px" style="width:1280px;height:800px;border-radius:12px;overflow:hidden;box-shadow:0 16px 48px rgba(15,23,42,.18)"></dc-import></div>
+      </div>
+    </div>
+
+      </div>
+</section>
+</x-dc>
+</body>
+</html>

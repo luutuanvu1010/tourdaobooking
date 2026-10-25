@@ -1,0 +1,12 @@
+:root{
+--td-red-900:#4A0F18;--td-red-700:#6E1824;--td-red-600:#8B1E2D;--td-red-500:#A62B3B;--td-red-100:#F6E3E5;--td-red-50:#FBF2F3;
+--td-gold-600:#C98F00;--td-gold-500:#F5B400;--td-gold-100:#FDF0C8;
+--td-blue-700:#0B6FA0;--td-blue-500:#1FA3E0;--td-blue-100:#DDF1FB;
+--td-green-600:#1E7B4A;--td-green-100:#DCF2E5;--td-amber-700:#8A5A00;--td-amber-100:#FFEFC2;--td-crimson-600:#C0262D;--td-crimson-100:#FBE1E2;
+--td-gray-900:#1F1A1B;--td-gray-700:#4A4345;--td-gray-500:#7A7173;--td-gray-300:#CFC8C9;--td-gray-200:#E4DEDF;--td-gray-100:#F1EDEE;--td-gray-50:#F8F6F6;--td-white:#fff;
+--color-brand:var(--td-red-600);--color-brand-hover:var(--td-red-700);--color-accent:var(--td-gold-500);--color-info:var(--td-blue-500);
+--text-1:var(--td-gray-900);--text-2:var(--td-gray-700);--text-3:var(--td-gray-500);--text-on-brand:#fff;--text-link:var(--td-blue-700);
+--surface-app:var(--td-gray-50);--surface-card:var(--td-white);--surface-sunken:var(--td-gray-100);--surface-shell:var(--td-red-900);--surface-row-hover:var(--td-red-50);--surface-row-selected:var(--td-blue-100);
+--border-1:var(--td-gray-200);--border-2:var(--td-gray-300);--focus-ring:var(--td-blue-500);
+--status-success-fg:var(--td-green-600);--status-success-bg:var(--td-green-100);--status-warning-fg:var(--td-amber-700);--status-warning-bg:var(--td-amber-100);--status-error-fg:var(--td-crimson-600);--status-error-bg:var(--td-crimson-100);--status-info-fg:var(--td-blue-700);--status-info-bg:var(--td-blue-100);
+}

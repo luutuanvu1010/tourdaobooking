@@ -4,7 +4,7 @@
 // Mỗi route hỏi `can()` với ô của MATRIX TRƯỚC khi đọc thân / ghi (cổng router chỉ lọc thô — ADR-0019). Bảng tin (ADR-0022, ADR-0025 đ8): route ghi dưới
 // /api/orders/* báo `baoThayDoi` ĐÚNG MỘT lần, chỉ ở nhánh thành công, sau khi lô ghi xong (hàng rào src/bang-tin-guard.test.ts phủ tệp này).
 import type {
-  CocDemResponse, CocDoiChieuResponse, CocListResponse, KySoResponse, LedgerBalancesResponse, NhapKeToanResponse, OrderPaymentsResponse, ReceiptDto, SoCongNoResponse, SoCuaToiResponse,
+  CocDemResponse, CocDoiChieuResponse, CocListResponse, KySoResponse, LedgerBalancesResponse, NhapKeToanResponse, OrderPaymentsResponse, ReceiptDto, SoCongNoBenResponse, SoCongNoResponse, SoCuaToiResponse,
   TaoYeuCauDieuChinhResponse, UnpaidSummaryResponse, YeuCauDieuChinhListResponse,
 } from "../../shared/contracts";
 import { UUID_RE, error, json, kemLocation, readJson, trangDon } from "../../shared/http";
@@ -21,7 +21,7 @@ import { accountingEnteredAmong, earliestLedgerMonth, orderOwners, receiptsOfOrd
 import { daTraTheoThuCho } from "./rules";
 import { cocChoBienNhan, cocCuaDon, danhSachCoc, demCoc, doiChieuCoc, ghiChiHoan, ghiChuyen, ghiDuyet, ghiHoanNgoai, ghiHuyDuyet, xacNhanHoanNgoai } from "./coc";
 import {
-  daGiao, ghiDieuChinh, ghiHoanKhach, ghiLanThu, ghiQuyetToan, hoanThanh, kySoResponse, soCongNo, soCuaToi, tienCuaDon, tienNhieuDon, toReceiptRow, xacNhanBenKia, xacNhanCongTyNhan, type NguoiGoi,
+  daGiao, ghiDieuChinh, ghiHoanKhach, ghiLanThu, ghiQuyetToan, hoanThanh, kySoResponse, soCongNo, soCongNoBen, soCuaToi, tienCuaDon, tienNhieuDon, toReceiptRow, xacNhanBenKia, xacNhanCongTyNhan, type NguoiGoi,
 } from "./service";
 import { ghiThayLanThu } from "./thay-lan-thu";
 
@@ -323,6 +323,18 @@ export const billingModule: AppModule = {
     route("GET", "/api/ledger", "office", async ({ env, staff }) => {
       if (!can(staff, "ledger.view")) return FORBIDDEN_VIEW();
       return json((await soCongNo(env.DB)) satisfies SoCongNoResponse);
+    }),
+
+    // Chi tiết MỘT bên của màn «Sổ công nợ» (bản vẽ 2a; kế hoạch 2026-10-24 P1): CÙNG ô với danh sách — `ledger.view` không ngữ cảnh (Kế toán, Toàn quyền). Chỉ đọc.
+    // Mã bên lạ (không phải dạng mã hồ sơ) ⇒ 404 trước khi chạm CSDL; bên không có dòng sổ ⇒ 404.
+    route("GET", "/api/ledger/ben/:partyId", "office", async ({ env, params, staff }) => {
+      if (!can(staff, "ledger.view")) return FORBIDDEN_VIEW();
+      // Khuôn các route sổ khác (R-P18): tài khoản giữ quyền Đối tác (kể cả lai) không đọc sổ chi tiết của bên khác — chi tiết có hoa hồng / giá vốn từng đơn.
+      if (holdsPartner(staff)) return error(403, "forbidden", "Tài khoản có quyền Đối tác không xem được sổ công nợ của các bên.");
+      const partyId = params.partyId ?? "";
+      if (!/^[A-Za-z0-9-]{1,80}$/.test(partyId)) return error(404, "not_found", "Không tìm thấy bên này trong sổ.");
+      const r = await soCongNoBen(env.DB, partyId);
+      return r ? json(r satisfies SoCongNoBenResponse) : error(404, "not_found", "Không tìm thấy bên này trong sổ.");
     }),
 
     // ---- Cọc đơn huỷ — danh sách / đối chiếu / ô đếm cho Kế toán (ADR-0089 đ5 nhắc, đ9c, đ11, đ16): ô `ledger.view` KHÔNG ngữ cảnh (= any — Kế toán,

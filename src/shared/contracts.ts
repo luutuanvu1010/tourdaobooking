@@ -2318,9 +2318,39 @@ export interface SoCuaToiResponse {
 /** `GET /api/ledger` (Kế toán, Toàn quyền): số dư từng bên với công ty, khoản "Công ty thu" chờ xác nhận, khoản thu chưa rõ người thu. */
 export interface SoCongNoResponse {
   soDu: { partyId: string; ten: string; dangGiu: number }[];
+  /** Tổng các số dư DƯƠNG (các bên đang giữ tiền của công ty) và tổng độ lớn các số dư ÂM (công ty đang nợ) — tính ở máy chủ cho ba ô tổng của màn «Sổ công nợ». */
+  tongDangGiu: number;
+  tongCongTyNo: number;
   /** Khoản chờ xác nhận — `loai` / `benKia` như `CocListResponse.doiChieu` (ADR-0132). */
   choXacNhan: { receiptId: string; orderId: string; maDon: string | null; soTien: number; ngay: string; nguoiKhai: string; loai: "cong_ty" | "ben_dat" | "nha_cung_cap"; benKia: string | null }[];
   chuaRo: { receiptId: string; orderId: string; maDon: string | null; soTien: number; ngay: string }[];
+}
+
+/** Một đơn trong chi tiết một bên của màn «Sổ công nợ» — `soTien` luôn DƯƠNG, dấu nói bằng nhóm chứa nó; đơn cộng ra 0 không có mặt. */
+export interface SoCongNoDonDto {
+  /** null = dòng sổ không gắn đơn. */
+  orderId: string | null;
+  maDon: string | null;
+  /** Nhãn tiếng Việt (`trangThaiHienThi`; đơn huỷ còn tiền bên này giữ: «Đã huỷ — cọc còn giữ»). */
+  trangThai: string;
+  /** Ngày phát sinh của dòng sổ gần nhất trên đơn (YYYY-MM-DD) — KHÔNG phải ngày đi (billing không đọc được ngày đi qua view công bố). */
+  ngayGanNhat: string;
+  soTien: number;
+  /** Đơn đã huỷ (trang tô màu dòng theo cờ này, không dò chữ nhãn). */
+  daHuy: boolean;
+}
+/**
+ * `GET /api/ledger/ben/:partyId` (Kế toán, Toàn quyền — màn «Sổ công nợ» bản vẽ 2a): chi tiết một bên. MỌI số tính ở máy chủ. `soDu` đọc từ view số dư (cùng nguồn
+ * `SoCongNoResponse.soDu`); hai nhóm cộng từ từng dòng sổ (nguồn thứ hai) ⇒ `lech = soDu − congCacDon` khác 0 là dấu hiệu sổ có lỗi (màn hiện «Lệch …»).
+ */
+export interface SoCongNoBenResponse {
+  partyId: string;
+  ten: string;
+  soDu: number;
+  dangGiu: { don: SoCongNoDonDto[]; tong: number };
+  congTyNo: { don: SoCongNoDonDto[]; tong: number };
+  congCacDon: number;
+  lech: number;
 }
 
 /**

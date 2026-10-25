@@ -28,6 +28,7 @@ export const GOI_CHINH = {
   chinhSachDieuPhoi: "GET /api/van-chuyen/moc-ra-lenh", // ADR-0128 Q1: route mốc mở cho cả Quản trị lẫn Toàn quyền; Toàn quyền còn đọc thêm chính sách đầy đủ
   lyDoDieuPhoi: "GET /api/van-chuyen/ly-do",
   khoaThang: "GET /api/ledger/ky",
+  soCongNo: "GET /api/ledger",
   dieuChinhCongNo: "GET /api/ledger/adjustment-requests",
   hoaHong: "GET /api/pricing/hoa-hong",
   nguoiBan: "GET /api/pricing/cung-ung",

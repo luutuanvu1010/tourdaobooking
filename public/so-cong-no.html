@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"><meta name="robots" content="noindex"><meta name="theme-color" content="#ffffff"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><link rel="stylesheet" href="/giao-dien.css"><title>Sổ công nợ — Island Booking System</title></head>
+<body data-title="Sổ công nợ" data-back="/account">
+<header id="topbar"></header>
+<main class="scn-main">
+  <!-- Sổ công nợ theo đối tác (kế hoạch docs/superpowers/plans/2026-10-24-so-cong-no-doi-tac-ke-hoach-thi-cong.md P1; bản vẽ docs/design/so-cong-no-2026-10-25/ bản 2a). Chỉ Kế toán, Toàn quyền
+       (ô ledger.view không ngữ cảnh). CHỈ ĐỌC. web/so-cong-no.ts dựng nội dung; mọi số do máy chủ tính. -->
+  <h1>Sổ công nợ</h1>
+  <p class="muted">Mỗi bên còn bao nhiêu tiền chưa nộp về công ty, hoặc công ty còn nợ bên đó bao nhiêu. Bấm một bên để đối chiếu từng đơn. <a href="/khoa-thang">Khoá sổ tháng ›</a></p>
+  <div id="error" class="alert" role="alert" hidden></div>
+  <div id="scn-noi-dung" hidden>
+    <div id="scn-canh-bao"></div>
+    <div id="scn-tong" class="scn-tong"></div>
+    <div class="scn-khung">
+      <section id="scn-ds-khu" class="card scn-ds-khu" aria-labelledby="scn-ds-tieu-de">
+        <h2 id="scn-ds-tieu-de" class="visually-hidden">Danh sách các bên</h2>
+        <div class="scn-cong-cu">
+          <label class="scn-tim"><span class="visually-hidden">Tìm theo tên bên</span><input id="scn-tim" type="search" placeholder="Tìm theo tên bên" autocomplete="off"></label>
+          <label class="scn-xep"><span class="muted">Xếp</span><select id="scn-xep"></select></label>
+        </div>
+        <div id="scn-loc" class="scn-loc" role="group" aria-label="Lọc nhanh"></div>
+        <div id="scn-ds" aria-live="polite"></div>
+      </section>
+      <section id="scn-ct-khu" class="card scn-ct-khu" aria-live="polite"></section>
+    </div>
+  </div>
+</main>
+<script type="module" src="/js/so-cong-no.js"></script>
+</body></html>

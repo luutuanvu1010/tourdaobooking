@@ -95,6 +95,8 @@ export const TRANG = {
   lyDoDieuPhoi: { duong: "/ly-do-dieu-phoi", hien: (s) => quanLyXe(s) && can(s, "admin.manage") },
   // Khoá sổ tháng (sổ đại lý đợt 1 Task 12): ô ledger.view không ngữ cảnh — Kế toán, Toàn quyền.
   khoaThang: { duong: "/khoa-thang", hien: (s) => can(s, "ledger.view") },
+  // Sổ công nợ theo đối tác (kế hoạch 2026-10-24 P1; bản vẽ 2a): CÙNG ô với route GET /api/ledger — ledger.view không ngữ cảnh (Kế toán, Toàn quyền). Chỉ đọc.
+  soCongNo: { duong: "/so-cong-no", hien: (s) => can(s, "ledger.view") },
   // Điều chỉnh công nợ cần người thứ hai duyệt (ADR-0115 đợt 1): xem danh sách = ô gửi (`ledger.write`) HOẶC ô duyệt (`ledger.adjust.approve`; Quản trị chỉ thấy yêu cầu chờ duyệt).
   dieuChinhCongNo: { duong: "/dieu-chinh-cong-no", hien: (s) => (can(s, "ledger.write") || can(s, "ledger.adjust.approve")) && !holdsPartner(s) }, // R-P18: máy chủ chặn tài khoản giữ quyền Đối tác
   // Bảng mức hoa hồng và điều khoản người bán (sổ đại lý đợt 1 Task 10): ô partner.commission.view / supply.terms.view không ngữ cảnh. Bảy route `pricing` chặn THÊM tài khoản giữ quyền
@@ -173,7 +175,8 @@ export const THANH_BEN = [
   // Kiểm số 15/10: hai trang có cùng điều kiện hiện trên mọi tập quyền (tập lệch: 0) nên gộp được.
   { nhom: "VẬN CHUYỂN", trang: "bangGiaXe", nhan: "Giá & chi phí", bieuTuong: "money", gom: ["bangGiaXe", "bangKeXe"] },
   { nhom: "TIỀN", trang: "dieuChinhCongNo", nhan: "Điều chỉnh công nợ", bieuTuong: "money" },
-  { nhom: "TIỀN", trang: "khoaThang", nhan: "Khoá sổ tháng", bieuTuong: "lock" },
+  // Sổ công nợ (25/10) gộp với Khoá sổ tháng — cùng điều kiện hiện (ledger.view không ngữ cảnh); giữ trần 10 mục hiện sẵn của Toàn quyền. Trang Sổ công nợ có lối sang Khoá sổ tháng.
+  { nhom: "TIỀN", trang: "soCongNo", nhan: "Sổ công nợ & khoá sổ", bieuTuong: "lock", gom: ["soCongNo", "khoaThang"] },
   { nhom: "THIẾT LẬP", trang: "hoaHong", nhan: "Hoa hồng đối tác" },
   { nhom: "THIẾT LẬP", trang: "nguoiBan", nhan: "Người bán dịch vụ" },
   { nhom: "THIẾT LẬP", trang: "chupBu", nhan: "Chụp bù mức" },
@@ -256,6 +259,7 @@ export const TRANG_TOI = [
   { phan: "van-chuyen", trang: "loaiGiayToXe", nhan: "Loại giấy tờ xe" },
   { phan: "van-chuyen", trang: "chinhSachDieuPhoi", nhan: "Chính sách điều phối" },
   { phan: "van-chuyen", trang: "lyDoDieuPhoi", nhan: "Lý do điều phối" },
+  { phan: "sau", trang: "soCongNo", nhan: "Sổ công nợ" },
   { phan: "sau", trang: "khoaThang", nhan: "Khoá sổ tháng" },
   { phan: "sau", trang: "dieuChinhCongNo", nhan: "Điều chỉnh công nợ" },
   { phan: "sau", trang: "hoaHong", nhan: "Hoa hồng đối tác" },

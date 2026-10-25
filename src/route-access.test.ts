@@ -183,6 +183,7 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "GET", path: "/api/ledger/unpaid-summary", access: "orders" }, // order.view + money.view không ngữ cảnh (khuôn Trang chủ)
   { method: "GET", path: "/api/ledger/mine", access: "staff" }, // ledger.view own — HDV không qua cổng office
   { method: "GET", path: "/api/ledger", access: "office" }, // ledger.view any
+  { method: "GET", path: "/api/ledger/ben/:partyId", access: "office" }, // ledger.view any — chi tiết một bên của màn Sổ công nợ (kế hoạch 2026-10-24 P1), chỉ đọc
   { method: "POST", path: "/api/ledger/company-receipts/:receiptId/confirm", access: "office" }, // ledger.write
   { method: "POST", path: "/api/ledger/counterparty-receipts/:receiptId/confirm", access: "office" }, // ledger.write — «Bên kia đã nhận» (ADR-0132 điều 2)
   { method: "POST", path: "/api/ledger/settlements", access: "office" }, // ledger.write
@@ -507,7 +508,7 @@ test("MODULES liệt kê ĐỦ mọi thư mục module có khai `...Module: AppM
   assert.deepEqual(routedDirs, listed, "có thư mục module khai AppModule nhưng chưa có trong MODULES của bài kiểm route-access này — thêm vào MODULES và SNAPSHOT");
 });
 
-test("mức truy cập của 372 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
+test("mức truy cập của 373 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
   const actual = await collectRealRoutes();
   // deepEqual TRƯỚC: khi có route mới/bị xoá, thông báo của nó chỉ ra ĐÚNG route lệch — hai assert.equal độ dài bên dưới chỉ để phòng hờ
   // (không bao giờ tự chạy tới nếu deepEqual đã trượt) và tài liệu hoá con số 86 để đối chiếu nhanh bằng mắt.
@@ -621,6 +622,7 @@ test("mức truy cập của 372 route hiện có khớp ảnh chụp đã duy�
   // 2026-10-23 (ADR-0030 điều 1, nút Từ chối): + POST /api/orders/:id/handler-refuse (orders; dispatch.refuse) = 364.
   // 2026-10-23 (ADR-0032, hạn mức Từ chối): + GET /api/dispatch/han-muc-tu-choi, POST …/chinh-sach, POST …/dat-lai (admin), GET /api/orders/:id/han-muc-tu-choi,
   // GET /api/orders/:id/tu-choi-truoc (orders) = 370. ADR-0138 (24/10): +2 POST /api/pricing/ho-so/:id/muc-rieng, /api/pricing/muc-rieng/:id/ket-thuc (office) = 372.
-  assert.equal(actual.length, 372, "số route thực tế lệch 372 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 372, "SNAPSHOT phải có đúng 372 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // 2026-10-25 (Sổ công nợ P1, kế hoạch 2026-10-24): + GET /api/ledger/ben/:partyId (office, ledger.view any) = 373.
+  assert.equal(actual.length, 373, "số route thực tế lệch 373 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 373, "SNAPSHOT phải có đúng 373 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

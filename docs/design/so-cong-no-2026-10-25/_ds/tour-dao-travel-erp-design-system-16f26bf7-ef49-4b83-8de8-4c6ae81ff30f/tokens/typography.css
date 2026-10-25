@@ -1,0 +1,9 @@
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+:root{--font-sans:'Be Vietnam Pro',system-ui,sans-serif;--font-serif:'Times New Roman',Times,serif;--font-mono:'JetBrains Mono',ui-monospace,monospace;
+--fs-xs:11px;--fs-sm:12px;--fs-md:14px;--fs-lg:16px;--fs-xl:20px;--fs-2xl:24px;--fs-3xl:32px;--fs-4xl:48px;
+--lh-tight:1.25; /* @kind other */--lh-base:1.5; /* @kind other */--fw-regular:400; /* @kind other */
+--fw-medium:500; /* @kind other */
+--fw-semibold:600; /* @kind other */
+--fw-bold:700; /* @kind other */}
+body{font-family:var(--font-sans);font-size:var(--fs-md);line-height:var(--lh-base);color:var(--text-1);background:var(--surface-app)}
+a{color:var(--text-link);text-decoration:none}a:hover{color:var(--td-red-600);text-decoration:underline}

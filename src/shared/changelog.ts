@@ -12,6 +12,15 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Màn Sổ công nợ (P1 của docs/superpowers/plans/2026-10-24-so-cong-no-doi-tac-ke-hoach-thi-cong.md; bản vẽ 2a). Thêm route chỉ đọc GET /api/ledger/ben/:partyId. KHÔNG migration.
+    version: "2.30",
+    date: "2026-10-25",
+    items: [
+      { kind: "moi", text: "Màn mới «Sổ công nợ» cho Kế toán: ai còn giữ tiền chưa nộp về công ty, công ty còn nợ ai bao nhiêu; bấm một bên để xem từng đơn." },
+      { kind: "doi", text: "Thanh bên: «Sổ công nợ» và «Khoá sổ tháng» gộp chung một mục «Sổ công nợ & khoá sổ» ở nhóm Tiền; hai trang có dải chuyển qua lại." },
+    ],
+  },
+  {
     // Góp ý màn Hỗ trợ (kế hoạch docs/superpowers/specs/2026-10-24-phan-tich-gop-y-ho-tro-ke-hoach.md): YC-0013, 0015, 0016, 0018, 0020; ADR-0138, ADR-0139. Migration 0118.
     version: "2.29",
     date: "2026-10-25",

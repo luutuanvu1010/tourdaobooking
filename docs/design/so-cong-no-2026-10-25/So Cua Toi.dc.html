@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+@font-face{font-family:"Be Vietnam Pro";font-weight:400;font-display:swap;src:url("public/fonts/be-vietnam-pro-400.woff2") format("woff2")}
+@font-face{font-family:"Be Vietnam Pro";font-weight:500;font-display:swap;src:url("public/fonts/be-vietnam-pro-500.woff2") format("woff2")}
+@font-face{font-family:"Be Vietnam Pro";font-weight:600;font-display:swap;src:url("public/fonts/be-vietnam-pro-600.woff2") format("woff2")}
+body{margin:0}
+a{color:#0c4a6e}
+a:hover{color:#082f49}
+</style>
+</helmet>
+<div style="width:100%;height:100%;display:flex;position:relative;overflow:hidden;background:#f2f5f9;color:#0f172a;font-family:'Be Vietnam Pro',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;font-size:16px;line-height:1.5;font-variant-numeric:tabular-nums">
+
+  <sc-if value="{{ notPhone }}" hint-placeholder-val="{{ true }}">
+    <nav aria-label="Điều hướng chính" style="width:248px;flex:none;display:flex;flex-direction:column;height:100%;background:#f2f5f9;border-right:1px solid #e1e7ef">
+      <a href="#" style="display:flex;align-items:center;gap:8px;padding:16px;color:#0c4a6e;text-decoration:none;border-bottom:1px solid #e1e7ef">
+        <img src="public/icons/logo-96.png" alt="" width="30" height="30" style="border-radius:999px;display:block"></img>
+        <span style="font-size:17.6px;font-weight:500;line-height:1.25">Island Booking <span style="font-weight:400">System</span></span>
+      </a>
+      <div style="display:flex;flex-direction:column;gap:24px;padding:16px 12px;overflow-y:auto;min-height:0">
+        <div style="display:flex;flex-direction:column;gap:2px">
+          <a href="#" style="display:flex;align-items:center;justify-content:center;gap:8px;min-height:40px;margin-bottom:8px;padding:8px 16px;font-size:15px;font-weight:500;color:#f8fafc;text-decoration:none;background:#c0392b;border-radius:8px;box-shadow:0 1px 2px rgba(150,39,26,.18),0 4px 12px rgba(192,57,43,.22)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg>Tạo đơn</a>
+          <a href="#" style="display:flex;align-items:center;gap:12px;min-height:40px;padding:8px 12px;font-size:14px;font-weight:500;color:#475569;text-decoration:none;border-radius:8px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"></rect><path d="M9 9h6M9 13h6M9 17h3"></path></svg><span style="flex:1">Đơn hàng</span></a>
+          <a href="#" aria-current="page" style="display:flex;align-items:center;gap:12px;min-height:40px;padding:8px 12px;font-size:14px;font-weight:500;color:#0c4a6e;background:#dcebf6;box-shadow:inset 3px 0 0 #0891b2;text-decoration:none;border-radius:8px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="9" width="15" height="9" rx="1.5"></rect><rect x="7" y="6" width="15" height="9" rx="1.5"></rect><circle cx="14.5" cy="10.5" r="2"></circle></svg><span style="flex:1">Sổ của tôi</span><span style="padding:1px 8px;font-size:12px;font-weight:500;color:#5a4109;background:#fbe3b3;border-radius:999px">Mới</span></a>
+        </div>
+      </div>
+      <div style="margin-top:auto;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;column-gap:8px;row-gap:4px;padding:8px 12px;border-top:1px solid #e1e7ef">
+        <div style="grid-column:1 / -1;display:flex;flex-direction:column;gap:2px">
+          <a href="#" style="display:flex;align-items:center;gap:12px;min-height:36px;padding:4px 12px;font-size:14px;font-weight:500;color:#475569;text-decoration:none;border-radius:8px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 3.5-6 8-6s8 2 8 6"></path></svg>Của tôi</a>
+          <a href="#" style="display:flex;align-items:center;gap:12px;min-height:36px;padding:4px 12px;font-size:14px;font-weight:500;color:#475569;text-decoration:none;border-radius:8px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 5.5h15v10.5H9.5l-5 4V5.5z"></path><path d="M8.5 9.5h7M8.5 12.5h4.5"></path></svg>Hỗ trợ</a>
+          <a href="#" style="display:flex;align-items:center;gap:12px;min-height:36px;padding:4px 12px;font-size:14px;font-weight:500;color:#475569;text-decoration:none;border-radius:8px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"></circle><path d="M9.6 9.6a2.5 2.5 0 0 1 4.8 1c0 1.7-2.4 2.2-2.4 3.6"></path><path d="M12 17v.01"></path></svg>Trợ giúp</a>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;margin-top:8px;padding:8px 4px 0;border-top:1px solid #e1e7ef;min-width:0">
+          <span style="flex:none;display:flex;align-items:center;justify-content:center;width:36px;height:36px;font-size:12px;font-weight:500;color:#5a4109;background:#f5a623;border-radius:999px">ĐA</span>
+          <span style="display:flex;flex-direction:column;min-width:0"><span style="font-size:14px;font-weight:500;color:#0c4a6e">Đại Lý A</span><span style="font-size:13px;color:#475569">Đối tác</span></span>
+        </div>
+        <button type="button" style="align-self:end;min-height:36px;padding:4px 8px;font:inherit;font-size:14px;font-weight:500;color:#475569;background:none;border:0;border-radius:8px;cursor:pointer">Đăng xuất</button>
+      </div>
+    </nav>
+  </sc-if>
+
+  <div style="flex:1;min-width:0;display:flex;flex-direction:column;height:100%">
+    <sc-if value="{{ notPhone }}" hint-placeholder-val="{{ true }}">
+      <header style="flex:none;display:flex;align-items:center;gap:16px;min-height:60px;padding:0 16px 0 24px;background:#ffffff;border-bottom:1px solid #e1e7ef">
+        <span style="font-size:14px;font-weight:500;color:#0c4a6e">Sổ của tôi</span>
+        <a href="#" style="margin-left:auto;display:inline-flex;align-items:center;min-height:44px;padding:0 18px;font-weight:500;color:#fff;text-decoration:none;background:#c0392b;border-radius:8px">Tạo đơn</a>
+        <button type="button" aria-label="Thông báo" style="display:flex;align-items:center;justify-content:center;width:44px;height:44px;flex:none;color:#0c4a6e;background:none;border:0;border-radius:8px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg></button>
+      </header>
+    </sc-if>
+    <sc-if value="{{ isPhone }}" hint-placeholder-val="{{ false }}">
+      <header style="flex:none;display:flex;align-items:center;gap:12px;padding:44px 16px 8px;min-height:60px;background:#ffffff;box-shadow:inset 0 -1px 0 #e1e7ef">
+        <span style="flex:1;min-width:0;font-size:18px;font-weight:500;color:#0c4a6e">Sổ của tôi</span>
+        <button type="button" aria-label="Thông báo" style="display:flex;align-items:center;justify-content:center;width:44px;height:44px;flex:none;color:#0c4a6e;background:none;border:0"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg></button>
+        <span aria-hidden="true" style="display:flex;align-items:center;justify-content:center;flex:none;width:30px;height:30px;font-size:12px;font-weight:500;color:#5a4109;background:#f5a623;border-radius:999px">ĐA</span>
+      </header>
+    </sc-if>
+
+    <div style="flex:1;min-height:0;overflow-y:auto">
+      <div style="max-width:1000px;padding:{{ pad }};box-sizing:border-box;display:flex;flex-direction:column;gap:16px">
+
+        <sc-if value="{{ notPhone }}" hint-placeholder-val="{{ true }}">
+          <div>
+            <h1 style="margin:0 0 4px;font-size:24px;font-weight:500;letter-spacing:-0.01em;color:#0c4a6e">Sổ của tôi</h1>
+            <p style="margin:0;font-size:14.4px;color:#475569">Bạn và Tour Đảo còn nợ nhau bao nhiêu, vì sao — theo từng đơn.</p>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ showError }}" hint-placeholder-val="{{ false }}">
+          <div role="alert" style="display:flex;align-items:flex-start;flex-wrap:wrap;gap:12px;padding:12px 16px;color:#8e0e2b;background:#fde9ee;border:1px solid #f1c3cf;border-radius:12px">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;margin-top:1px"><path d="M12 4l9 16H3L12 4z"></path><path d="M12 10v4M12 17v.01"></path></svg>
+            <div style="flex:1;min-width:180px"><div style="font-weight:500">Không tải được sổ của bạn</div><div style="font-size:14px">Kiểm tra Wi-Fi hoặc 4G rồi thử lại.</div></div>
+            <button type="button" style="flex:none;min-height:44px;padding:0 18px;font:inherit;font-weight:500;color:#8e0e2b;background:#fff;border:1px solid #8e0e2b;border-radius:8px;cursor:pointer">Thử lại</button>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ showLoading }}" hint-placeholder-val="{{ false }}">
+          <div aria-busy="true" style="display:flex;flex-direction:column;gap:12px">
+            <div style="height:112px;background:#fff;border:1px solid #e1e7ef;border-radius:12px;display:flex;flex-direction:column;justify-content:center;gap:10px;padding:0 20px"><div style="width:55%;height:14px;background:#e1e7ef;border-radius:6px"></div><div style="width:40%;height:24px;background:#e1e7ef;border-radius:6px"></div></div>
+            <div style="font-size:14px;color:#475569">Đang tải sổ của bạn…</div>
+            <div style="display:flex;gap:8px"><div style="width:120px;height:44px;background:#e1e7ef;border-radius:999px"></div><div style="width:120px;height:44px;background:#fff;border:1px solid #e1e7ef;border-radius:999px"></div><div style="width:120px;height:44px;background:#fff;border:1px solid #e1e7ef;border-radius:999px"></div></div>
+            <sc-for list="{{ skel }}" as="s" hint-placeholder-count="3">
+              <div style="height:76px;background:#fff;border:1px solid #e1e7ef;border-radius:12px;display:flex;align-items:center;gap:12px;padding:0 16px"><div style="flex:1;display:flex;flex-direction:column;gap:8px"><div style="width:35%;height:12px;background:#e1e7ef;border-radius:6px"></div><div style="width:50%;height:10px;background:#f2f5f9;border-radius:6px"></div></div><div style="width:90px;height:14px;background:#e1e7ef;border-radius:6px"></div></div>
+            </sc-for>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ showMain }}" hint-placeholder-val="{{ true }}">
+          <section aria-label="Tổng" style="display:flex;align-items:center;gap:16px;padding:20px;background:#fff;border-radius:12px;box-shadow:0 0 0 1px rgba(15,23,42,.05),0 1px 2px rgba(15,23,42,.04),0 3px 10px rgba(15,23,42,.05)">
+            <span aria-hidden="true" style="flex:none;display:flex;align-items:center;justify-content:center;width:52px;height:52px;border-radius:999px;color:{{ hero.fg }};background:{{ hero.bg }}">
+              <sc-if value="{{ hero.isOwe }}" hint-placeholder-val="{{ true }}"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"></path></svg></sc-if>
+              <sc-if value="{{ hero.isRecv }}" hint-placeholder-val="{{ false }}"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg></sc-if>
+              <sc-if value="{{ hero.isZero }}" hint-placeholder-val="{{ false }}"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="m8 12 3 3 5-6"></path></svg></sc-if>
+            </span>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:{{ heroLeadSize }};font-weight:500;color:#0f172a;text-wrap:pretty">{{ hero.lead }}</div>
+              <sc-if value="{{ hero.hasAmt }}" hint-placeholder-val="{{ true }}">
+                <div style="font-size:{{ heroAmtSize }};font-weight:600;line-height:1.15;color:{{ hero.fg }};white-space:nowrap">{{ hero.amt }}</div>
+              </sc-if>
+              <div style="margin-top:4px;font-size:13px;color:#475569">{{ hero.sub }}</div>
+            </div>
+          </section>
+
+          <sc-if value="{{ isA }}" hint-placeholder-val="{{ true }}">
+            <section aria-label="Theo tháng" style="display:flex;flex-direction:column;gap:10px">
+              <div role="tablist" aria-label="Chọn tháng" style="display:flex;gap:8px;overflow-x:auto;padding-bottom:2px">
+                <sc-for list="{{ months }}" as="m" hint-placeholder-count="3">
+                  <button type="button" role="tab" aria-selected="{{ m.on }}" onClick="{{ m.onClick }}" style="flex:none;display:flex;align-items:center;gap:6px;min-height:44px;padding:0 16px;font:inherit;font-size:15px;font-weight:500;color:#0c4a6e;background:{{ m.bg }};border:1px solid {{ m.border }};border-radius:999px;cursor:pointer;white-space:nowrap">Tháng {{ m.label }}<sc-if value="{{ m.locked }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;align-items:center;gap:3px;padding:0 8px;font-size:12px;color:#475569;background:#f2f5f9;border-radius:999px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>Đã khoá</span></sc-if></button>
+                </sc-for>
+              </div>
+              <div style="display:grid;grid-template-columns:{{ sumCols }};background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 0 0 1px rgba(15,23,42,.05),0 1px 2px rgba(15,23,42,.04),0 3px 10px rgba(15,23,42,.05)">
+                <sc-for list="{{ mon.cells }}" as="c" hint-placeholder-count="3">
+                  <div style="display:flex;flex-direction:{{ cellDir }};justify-content:space-between;gap:2px 12px;padding:12px 16px;border-top:{{ c.bt }};border-left:{{ c.bl }}">
+                    <span style="font-size:13px;color:#475569">{{ c.label }}</span>
+                    <span style="font-size:16px;font-weight:500;color:{{ c.fg }};white-space:nowrap">{{ c.text }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </section>
+          </sc-if>
+
+          <sc-if value="{{ isB }}" hint-placeholder-val="{{ false }}">
+            <section aria-label="Theo tháng" style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 0 0 1px rgba(15,23,42,.05),0 1px 2px rgba(15,23,42,.04),0 3px 10px rgba(15,23,42,.05)">
+              <div style="display:flex;align-items:center;gap:4px;padding:6px;border-bottom:1px solid #e1e7ef">
+                <button type="button" aria-label="Tháng trước" onClick="{{ prevMonth }}" disabled="{{ noPrev }}" style="display:flex;align-items:center;justify-content:center;width:44px;height:44px;color:#0c4a6e;background:none;border:0;border-radius:8px;cursor:pointer"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg></button>
+                <div style="flex:1;display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap">
+                  <span style="font-size:17px;font-weight:500;color:#0c4a6e">Tháng {{ mon.label }}</span>
+                  <sc-if value="{{ mon.locked }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;align-items:center;gap:4px;padding:1px 10px;font-size:12.8px;font-weight:500;color:#475569;background:#f2f5f9;border-radius:999px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>Đã khoá</span></sc-if>
+                </div>
+                <button type="button" aria-label="Tháng sau" onClick="{{ nextMonth }}" disabled="{{ noNext }}" style="display:flex;align-items:center;justify-content:center;width:44px;height:44px;color:#0c4a6e;background:none;border:0;border-radius:8px;cursor:pointer"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"></path></svg></button>
+              </div>
+              <div style="display:flex;flex-direction:column;padding:4px 16px 8px">
+                <sc-for list="{{ mon.cells }}" as="c" hint-placeholder-count="3">
+                  <div style="display:grid;grid-template-columns:20px minmax(0,1fr) auto;align-items:baseline;gap:8px;padding:8px 0;border-top:{{ c.btB }}">
+                    <span style="font-size:18px;font-weight:500;color:#475569;text-align:center">{{ c.op }}</span>
+                    <span style="font-size:15px;color:#475569">{{ c.label }}</span>
+                    <span style="font-size:{{ c.size }};font-weight:{{ c.w }};color:{{ c.fg }};white-space:nowrap">{{ c.text }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </section>
+          </sc-if>
+
+          <div style="display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:4px 12px">
+            <h2 style="margin:0;font-size:17.6px;font-weight:500;color:#0c4a6e">Đơn trong tháng {{ mon.label }} <span style="font-size:14px;font-weight:400;color:#475569">· {{ mon.count }}</span></h2>
+            <span style="font-size:13px;color:#475569">Muốn ghi khoản đã thu? <a href="#" style="font-weight:500">Vào đơn</a></span>
+          </div>
+
+          <sc-if value="{{ mon.empty }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:32px 24px;text-align:center;background:#fff;border-radius:12px;box-shadow:0 0 0 1px rgba(15,23,42,.05),0 1px 2px rgba(15,23,42,.04),0 3px 10px rgba(15,23,42,.05)">
+              <span style="display:flex;color:#0c4a6e"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"></rect><path d="M9 9h6M9 13h6M9 17h3"></path></svg></span>
+              <div style="font-size:18px;font-weight:500">Tháng {{ mon.label }} chưa có đơn nào</div>
+              <div style="font-size:15px;color:#475569">Đơn bạn đặt sẽ hiện ở đây kèm số tiền từng đơn.</div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ tableHead }}" hint-placeholder-val="{{ true }}">
+            <div style="display:grid;grid-template-columns:100px 104px 120px minmax(0,1fr) minmax(0,1fr) minmax(170px,1.2fr) 24px;gap:12px;padding:0 16px;font-size:12px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:#475569">
+              <span>Mã đơn</span><span>Ngày đi</span><span>Trạng thái</span><span style="text-align:right">Giá bán lẻ</span><span style="text-align:right">Hoa hồng của bạn</span><span style="text-align:right">Kết quả</span><span></span>
+            </div>
+          </sc-if>
+
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <sc-for list="{{ mon.orders }}" as="o" hint-placeholder-count="3">
+              <div style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:{{ o.shadow }}">
+                <button type="button" aria-expanded="{{ o.open }}" onClick="{{ o.toggle }}" style="display:block;width:100%;padding:0;font:inherit;text-align:left;color:#0f172a;background:none;border:0;cursor:pointer">
+                  <sc-if value="{{ cardHead }}" hint-placeholder-val="{{ false }}">
+                    <div style="display:grid;grid-template-columns:minmax(0,1fr) auto 20px;align-items:center;gap:4px 10px;min-height:76px;padding:12px 16px;box-sizing:border-box">
+                      <span style="min-width:0">
+                        <span style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span style="font-weight:500;color:#0c4a6e">{{ o.ma }}</span><span style="padding:0 8px;font-size:12px;font-weight:500;color:{{ o.ttFg }};background:{{ o.ttBg }};border-radius:999px">{{ o.tt }}</span></span>
+                        <span style="display:block;font-size:13px;color:#475569">Đi {{ o.di }}</span>
+                      </span>
+                      <span style="text-align:right"><span style="display:block;font-size:12px;color:{{ o.fg }}">{{ o.who }}</span><span style="display:block;font-weight:600;color:{{ o.fg }};white-space:nowrap">{{ o.amt }}</span></span>
+                      <span style="display:flex;color:#475569;transform:{{ o.rot }}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg></span>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ tableHead }}" hint-placeholder-val="{{ true }}">
+                    <div style="display:grid;grid-template-columns:100px 104px 120px minmax(0,1fr) minmax(0,1fr) minmax(170px,1.2fr) 24px;align-items:center;gap:12px;min-height:56px;padding:6px 16px;box-sizing:border-box">
+                      <span style="font-weight:500;color:#0c4a6e">{{ o.ma }}</span>
+                      <span style="font-size:15px">{{ o.di }}</span>
+                      <span><span style="padding:2px 10px;font-size:12.8px;font-weight:500;color:{{ o.ttFg }};background:{{ o.ttBg }};border-radius:999px;white-space:nowrap">{{ o.tt }}</span></span>
+                      <span style="text-align:right;font-size:15px">{{ o.giaLe }}</span>
+                      <span style="text-align:right;font-size:15px;color:{{ o.hhFg }}">{{ o.hhShort }}</span>
+                      <span style="text-align:right;white-space:nowrap;font-weight:600;color:{{ o.fg }}">{{ o.result }}</span>
+                      <span style="display:flex;color:#475569;transform:{{ o.rot }}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg></span>
+                    </div>
+                  </sc-if>
+                </button>
+
+                <sc-if value="{{ o.showA }}" hint-placeholder-val="{{ false }}">
+                  <div style="padding:4px 16px 16px;border-top:1px solid #e1e7ef">
+                    <div style="display:grid;grid-template-columns:{{ lineCols }};column-gap:32px">
+                      <sc-for list="{{ o.lines }}" as="l" hint-placeholder-count="7">
+                        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;min-height:40px;padding:8px 0;box-sizing:border-box;border-bottom:1px solid #f2f5f9">
+                          <span style="font-size:15px;color:#475569">{{ l.label }}</span>
+                          <span style="font-size:15px;font-weight:500;text-align:right;color:{{ l.fg }}">{{ l.text }}</span>
+                        </div>
+                      </sc-for>
+                    </div>
+                    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px 16px;margin-top:12px">
+                      <span style="font-size:18px;font-weight:600;color:{{ o.fg }}">{{ o.result }}</span>
+                      <a href="#" style="display:inline-flex;align-items:center;gap:4px;min-height:44px;font-size:15px;font-weight:500">Mở đơn {{ o.ma }}<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"></path></svg></a>
+                    </div>
+                  </div>
+                </sc-if>
+
+                <sc-if value="{{ o.showB }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:grid;grid-template-columns:{{ bCols }};gap:16px 32px;padding:12px 16px 16px;border-top:1px solid #e1e7ef">
+                    <div>
+                      <div style="font-size:12px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:#475569;margin-bottom:4px">Cách tính</div>
+                      <sc-for list="{{ o.calc }}" as="l" hint-placeholder-count="5">
+                        <div style="display:grid;grid-template-columns:20px minmax(0,1fr) auto;align-items:baseline;gap:8px;padding:7px 0;border-top:{{ l.bt }}">
+                          <span style="font-size:17px;font-weight:500;color:#475569;text-align:center">{{ l.op }}</span>
+                          <span style="font-size:15px;color:{{ l.lfg }};font-weight:{{ l.w }}">{{ l.label }}</span>
+                          <span style="font-size:{{ l.size }};font-weight:{{ l.w }};color:{{ l.fg }};text-align:right">{{ l.text }}</span>
+                        </div>
+                      </sc-for>
+                    </div>
+                    <div>
+                      <div style="font-size:12px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:#475569;margin-bottom:4px">Để đối chiếu</div>
+                      <sc-for list="{{ o.ref }}" as="l" hint-placeholder-count="3">
+                        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid #f2f5f9">
+                          <span style="font-size:15px;color:#475569">{{ l.label }}</span>
+                          <span style="font-size:15px;font-weight:500;text-align:right">{{ l.text }}</span>
+                        </div>
+                      </sc-for>
+                      <a href="#" style="display:inline-flex;align-items:center;gap:4px;min-height:44px;margin-top:4px;font-size:15px;font-weight:500">Mở đơn {{ o.ma }}<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"></path></svg></a>
+                    </div>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+
+          <sc-if value="{{ mon.hasOrders }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:4px 12px;padding:14px 16px;background:#fff;border-top:2px solid #0c4a6e;border-radius:12px;box-shadow:0 0 0 1px rgba(15,23,42,.05)">
+              <span style="font-size:15px;color:#475569">Cộng {{ mon.count }} trong tháng</span>
+              <span style="font-size:18px;font-weight:600;color:{{ mon.fg }}">{{ mon.totalText }}</span>
+            </div>
+          </sc-if>
+        </sc-if>
+      </div>
+    </div>
+
+    <sc-if value="{{ isPhone }}" hint-placeholder-val="{{ false }}">
+      <nav aria-label="Điều hướng chính" style="flex:none;display:flex;padding:0 4px 30px;background:rgba(255,255,255,.86);border-top:1px solid #e1e7ef">
+        <a href="#" style="flex:1 1 0;min-width:0;min-height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:12px;font-weight:500;color:#475569;text-decoration:none"><span style="display:flex;align-items:center;justify-content:center;height:36px"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"></rect><path d="M9 9h6M9 13h6M9 17h3"></path></svg></span>Đơn hàng</a>
+        <a href="#" style="flex:1 1 0;min-width:0;min-height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:12px;font-weight:500;color:#475569;text-decoration:none"><span style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;color:#fff;background:#c0392b;border-radius:50%;box-shadow:0 2px 8px rgba(192,57,43,.3)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg></span>Tạo đơn</a>
+        <a href="#" aria-current="page" style="flex:1 1 0;min-width:0;min-height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:12px;font-weight:500;color:#0c4a6e;text-decoration:none"><span style="display:flex;align-items:center;justify-content:center;height:36px;padding:0 12px;background:#dcebf6;border-radius:999px"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="9" width="15" height="9" rx="1.5"></rect><rect x="7" y="6" width="15" height="9" rx="1.5"></rect><circle cx="14.5" cy="10.5" r="2"></circle></svg></span>Sổ của tôi</a>
+        <a href="#" style="flex:1 1 0;min-width:0;min-height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:12px;font-weight:500;color:#475569;text-decoration:none"><span style="display:flex;align-items:center;justify-content:center;height:36px"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 3.5-6 8-6s8 2 8 6"></path></svg></span>Tôi</a>
+      </nav>
+    </sc-if>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:375,&quot;height&quot;:812},&quot;device&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;phone&quot;,&quot;tablet&quot;,&quot;desktop&quot;],&quot;default&quot;:&quot;phone&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;state&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;data&quot;,&quot;loading&quot;,&quot;empty&quot;,&quot;error&quot;],&quot;default&quot;:&quot;data&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;layout&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;A&quot;,&quot;B&quot;],&quot;default&quot;:&quot;B&quot;,&quot;tsType&quot;:&quot;'A'|'B'&quot;},&quot;hero&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;owe&quot;,&quot;receive&quot;,&quot;settled&quot;],&quot;default&quot;:&quot;owe&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;expanded&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;TD-1001&quot;,&quot;tsType&quot;:&quot;string|null&quot;}}">
+// [mã, ngày đi, trạng thái, giá bán lẻ, hoa hồng (null = chưa tính), giảm giá bạn chịu, bạn đã thu, bạn khai chờ xác nhận, khách trả nơi khác, đã quyết toán]
+const MONTHS = [
+  { label: '08/2026', locked: true, dau: 0, orders: [['TD-0841', '14/08/2026', 'Đã giao', 3200000, 320000, 0, 1600000, 0, 1600000, 1280000]] },
+  { label: '09/2026', locked: true, dau: 0, orders: [['TD-0921', '18/09/2026', 'Đã giao', 2400000, 240000, 0, 2400000, 0, 0, 2160000]] },
+  { label: '10/2026', locked: false, dau: 0, orders: [
+    ['TD-1001', '20/10/2026', 'Đã giao', 5000000, 500000, 250000, 3000000, 0, 1750000, 0],
+    ['TD-1002', '22/10/2026', 'Đã giao', 1000000, 120000, 0, 0, 0, 1000000, 0],
+    ['TD-1003', '25/10/2026', 'Đã giao', 6000000, 790000, 0, 0, 0, 6000000, 0],
+    ['TD-1004', '30/10/2026', 'Đã xác nhận', 2000000, null, 0, 0, 500000, 0, 0],
+  ] },
+];
+const TT = { 'Đã giao': ['#dcebf6', '#082f49'], 'Đã xác nhận': ['#dcfce7', '#166534'], 'Đã huỷ': ['#f2f5f9', '#475569'] };
+const OWE = '#0c4a6e', RECV = '#166534', ZERO = '#475569';
+const m = (n) => Math.abs(n).toLocaleString('vi-VN') + '\u00a0₫';
+const word = (v) => (v > 0 ? `Bạn trả ${m(v)}` : v < 0 ? `Tour Đảo trả ${m(v)}` : 'Không còn nợ');
+const col = (v) => (v > 0 ? OWE : v < 0 ? RECV : ZERO);
+
+class Component extends DCLogic {
+  state = { mi: undefined, open: undefined };
+  renderVals() {
+    const device = this.props.device ?? 'phone';
+    const layout = this.props.layout ?? 'B';
+    const st = this.props.state ?? 'data';
+    const isPhone = device === 'phone', isDesktop = device === 'desktop';
+    const isA = layout === 'A';
+    const empty = st === 'empty';
+    const mi = this.state.mi ?? 2;
+    const open = this.state.open !== undefined ? this.state.open : (this.props.expanded ?? null);
+    const scen = this.props.hero ?? 'owe';
+    const OCT = MONTHS[2].orders;
+    const DATA = scen === 'receive' ? [MONTHS[0], MONTHS[1], { ...MONTHS[2], orders: [OCT[1]] }]
+      : scen === 'settled' ? [MONTHS[0], MONTHS[1], { ...MONTHS[2], orders: [[...OCT[0].slice(0, 9), 2750000]] }]
+      : MONTHS;
+    const M = DATA[mi];
+    const resOf = (r) => r[6] - (r[4] ?? 0) + r[5] - r[9];
+    const now = empty ? 0 : DATA[2].dau + DATA[2].orders.reduce((s, r) => s + resOf(r), 0);
+    const ordersRaw = empty ? [] : M.orders;
+
+    const orders = ordersRaw.map(([ma, di, tt, giaLe, hh, giam, thu, khai, noiKhac, quyet]) => {
+      const v = thu - (hh ?? 0) + giam - quyet;
+      const isOpen = open === ma;
+      const hhText = hh === null ? 'chưa tính — đơn chưa giao' : m(hh);
+      const fg = col(v);
+      return {
+        ma, di, tt, ttBg: TT[tt][0], ttFg: TT[tt][1], open: isOpen,
+        toggle: () => this.setState({ open: isOpen ? null : ma }),
+        rot: isOpen ? 'rotate(180deg)' : 'none',
+        shadow: isOpen ? '0 0 0 1.5px #0c4a6e, 0 3px 10px rgba(15,23,42,.08)' : '0 0 0 1px rgba(15,23,42,.05), 0 1px 2px rgba(15,23,42,.04), 0 3px 10px rgba(15,23,42,.05)',
+        who: v > 0 ? 'Bạn trả' : v < 0 ? 'Tour Đảo trả' : hh === null ? 'Chưa phát sinh' : 'Đã xong', amt: v === 0 ? (hh === null ? 'Đơn chưa giao' : 'Không còn nợ') : m(v), fg,
+        result: v === 0 && hh === null ? 'Chưa phát sinh — đơn chưa giao' : word(v),
+        giaLe: m(giaLe), hhShort: hh === null ? 'Chưa tính' : m(hh), hhFg: hh === null ? '#475569' : '#0f172a',
+        showA: isOpen && isA, showB: isOpen && !isA,
+        lines: [
+          { label: 'Giá bán lẻ', text: m(giaLe), fg: '#0f172a' },
+          { label: 'Hoa hồng của bạn', text: hhText, fg: hh === null ? '#475569' : '#0f172a' },
+          { label: 'Giảm giá bạn chịu', text: m(giam), fg: '#0f172a' },
+          { label: 'Bạn đã thu', text: m(thu), fg: '#0f172a' },
+          { label: 'Bạn khai, chờ Kế toán xác nhận', text: m(khai), fg: '#0f172a' },
+          { label: 'Khách trả nơi khác', text: m(noiKhac), fg: '#0f172a' },
+          { label: 'Đã quyết toán', text: m(quyet), fg: '#0f172a' },
+        ],
+        calc: [
+          { op: '', label: 'Bạn đã thu', text: m(thu), bt: '0', w: 400, size: '15px', fg: '#0f172a', lfg: '#475569' },
+          { op: '−', label: 'Hoa hồng của bạn', text: hhText, bt: '1px solid #f2f5f9', w: 400, size: '15px', fg: hh === null ? '#475569' : '#0f172a', lfg: '#475569' },
+          { op: '+', label: 'Giảm giá bạn chịu', text: m(giam), bt: '1px solid #f2f5f9', w: 400, size: '15px', fg: '#0f172a', lfg: '#475569' },
+          { op: '−', label: 'Đã quyết toán', text: m(quyet), bt: '1px solid #f2f5f9', w: 400, size: '15px', fg: '#0f172a', lfg: '#475569' },
+          { op: '=', label: v > 0 ? 'Bạn trả' : v < 0 ? 'Tour Đảo trả' : 'Kết quả', text: v === 0 ? (hh === null ? 'Chưa phát sinh' : 'Không còn nợ') : m(v), bt: '2px solid #0c4a6e', w: 600, size: '18px', fg, lfg: fg },
+        ],
+        ref: [
+          { label: 'Giá bán lẻ', text: m(giaLe) },
+          { label: 'Khách trả nơi khác', text: m(noiKhac) },
+          { label: 'Bạn khai, chờ Kế toán xác nhận', text: khai ? `${m(khai)} · chưa tính` : m(0) },
+        ],
+      };
+    });
+    const ps = orders.reduce((s, _o, i) => { const r = ordersRaw[i]; return s + (r[6] - (r[4] ?? 0) + r[5] - r[9]); }, 0);
+    const dau = empty ? 0 : M.dau;
+    const cuoi = dau + ps;
+    const cellsBase = [
+      { label: 'Đầu kỳ', v: dau, op: '' },
+      { label: 'Phát sinh trong tháng', v: ps, op: '+' },
+      { label: 'Cuối kỳ', v: cuoi, op: '=' },
+    ];
+    const cells = cellsBase.map((c, i) => ({
+      ...c, text: word(c.v), fg: col(c.v),
+      bt: isPhone && i > 0 ? '1px solid #e1e7ef' : '0', bl: !isPhone && i > 0 ? '1px solid #e1e7ef' : '0',
+      btB: i === 2 ? '2px solid #0c4a6e' : i === 0 ? '0' : '1px solid #f2f5f9',
+      size: i === 2 ? '18px' : '16px', w: i === 2 ? 600 : 500,
+    }));
+
+    const heroKind = now > 0 ? 'owe' : now < 0 ? 'receive' : 'settled';
+    const heroAmt = now;
+    const hero = heroKind === 'settled'
+      ? { lead: 'Bạn và Tour Đảo không còn nợ nhau', hasAmt: false, amt: '', fg: ZERO, bg: '#f2f5f9', isZero: true, isOwe: false, isRecv: false, sub: 'Tính tới hôm nay 25/10/2026, gồm cả các tháng trước.' }
+      : heroKind === 'receive'
+        ? { lead: 'Tour Đảo còn phải trả bạn', hasAmt: true, amt: m(heroAmt), fg: RECV, bg: '#dcfce7', isRecv: true, isOwe: false, isZero: false, sub: 'Tính tới hôm nay 25/10/2026, gồm cả các tháng trước.' }
+        : { lead: 'Bạn còn phải trả Tour Đảo', hasAmt: true, amt: m(heroAmt), fg: OWE, bg: '#dcebf6', isOwe: true, isRecv: false, isZero: false, sub: 'Tính tới hôm nay 25/10/2026, gồm cả các tháng trước.' };
+
+    return {
+      isPhone, notPhone: !isPhone, isA, isB: !isA,
+      pad: isPhone ? '16px 16px 24px' : '24px',
+      showError: st === 'error', showLoading: st === 'loading', showMain: st === 'data' || empty,
+      skel: [1, 2, 3], hero,
+      heroLeadSize: isPhone ? '17px' : '19px', heroAmtSize: isPhone ? '30px' : '36px',
+      months: DATA.map((x, i) => ({ label: x.label, locked: x.locked, on: i === mi, bg: i === mi ? '#dcebf6' : '#ffffff', border: i === mi ? '#dcebf6' : '#e1e7ef', onClick: () => this.setState({ mi: i, open: null }) })),
+      prevMonth: () => this.setState({ mi: Math.max(0, mi - 1), open: null }), nextMonth: () => this.setState({ mi: Math.min(2, mi + 1), open: null }),
+      noPrev: mi === 0, noNext: mi === 2,
+      sumCols: isPhone ? '1fr' : 'repeat(3,minmax(0,1fr))', cellDir: isPhone ? 'row' : 'column',
+      mon: { label: M.label, locked: M.locked, cells, orders, count: `${orders.length} đơn`, empty: orders.length === 0, hasOrders: orders.length > 0, totalText: word(ps), fg: col(ps) },
+      cardHead: !(isDesktop && isA), tableHead: isDesktop && isA,
+      lineCols: isPhone ? '1fr' : 'repeat(2,minmax(0,1fr))', bCols: isDesktop ? 'minmax(0,1.2fr) minmax(0,1fr)' : '1fr',
+    };
+  }
+}
+</script>
+</body>
+</html>
