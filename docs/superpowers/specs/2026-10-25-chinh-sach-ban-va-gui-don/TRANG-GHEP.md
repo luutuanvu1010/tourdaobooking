@@ -22,21 +22,16 @@
   - ADR-0136 gốc có 9 điều: Đ1 đến Đ8, và Đ10.
   - Bản bổ sung thêm 1 điều mới là Đ13. Phần thay Đ1 đã tính trong Đ1.
 
-**Đề nghị năm lượt, theo thứ tự.** ADR-0136 đi trước, vì ADR-0135 đã duyệt đang chờ nó để phát hành cùng (chủ chọn phương án A ngày 19/10).
+**Chủ chốt ngày 25/10** (nguyên văn): «Cho phép vượt trần: duyệt hai lượt theo ADR (bước xác nhận kèm Gửi đơn trước, chính sách bán sau).»
 
-| Lượt | Điều | Số |
+| Lượt | Nội dung | Số điều chạm quyền / dữ liệu |
 |---|---|---|
-| 1 | 0136-Đ1 cờ theo dịch vụ hoặc nhóm (kèm phần thay); 0136-Đ2 bảng yêu cầu xác nhận; 0136-Đ3 gửi, rút lại, khoá khi chờ | 3 |
-| 2 | 0136-Đ4 ô `order.confirm.review`; 0136-Đ5 ai quyết định và công tắc tự xác nhận; 0136-Đ6 nới đọc có giới hạn | 3 |
-| 3 | 0136-Đ7 Hết vé tự gán lý do; 0136-Đ8 sửa tiền khi chờ; 0136-Đ10 tin | 3 |
-| 4 | CSB-Đ1 bảng luật và bất biến với loại; CSB-Đ3 cổng máy chủ; CSB-Đ5 ai đặt luật | 3 |
-| 5 | CSB-Đ4 danh mục cho Đối tác; 0136-Đ13 Gửi đơn | 2 |
+| 1 | ADR-0136 gốc + bản bổ sung: 0136-Đ1 đến Đ8, Đ10, Đ13 | 10 |
+| 2 | Chính sách bán: CSB-Đ1, Đ3, Đ4, Đ5 | 4 |
 
-- **Cách khác, do chủ quyết:** duyệt hai lượt theo ADR, tức ADR-0136 kèm bổ sung trước, chính sách bán sau, và chủ ghi lý do vượt trần.
-- Dù chọn cách nào, trang này vẫn ghép đủ cả năm lượt, vì mục 5 (chỗ hai quyết định đụng nhau) phải đọc cùng một lúc.
-- **Thời điểm chép sang `docs/adr/`:**
-  - ADR-0136: khi lượt 1–3 đã duyệt. Đ13 vào cùng nếu lượt 5 đã duyệt; nếu chưa thì sau này Đ13 thành ADR riêng.
-  - Chính sách bán: khi lượt 4 và lượt 5 đã duyệt.
+- Lượt 1 đi trước, vì ADR-0135 đã duyệt đang chờ nó để phát hành cùng (chủ chọn phương án A ngày 19/10).
+- Trang này vẫn ghép đủ cả hai lượt, vì mục 5 (chỗ hai quyết định đụng nhau) phải đọc cùng một lúc. Bảng năm lượt nhỏ mà người soạn đề nghị trước đó không dùng nữa.
+- **Thời điểm chép sang `docs/adr/`:** ADR-0136 (gốc + bổ sung) chép khi lượt 1 đã duyệt; chính sách bán chép khi lượt 2 đã duyệt.
 
 ## 1. Bảng bị chạm chứa những loại thực thể nào
 | Bảng | Hôm nay | Sau các lượt này |
@@ -126,9 +121,9 @@
 3. **Cùng màn, cùng ô `settings.ops`:** luật bán và cờ cần xác nhận đều theo nhóm hiện hành. Đổi nhóm của một dịch vụ là đổi cả hai, nên màn gán nhóm phải cảnh báo.
 4. **Đổi bên đặt khi đơn đang chờ:** khoá khi chờ (0136-Đ3) nên phủ cả `PUT …/booker`, vì bên đặt quyết định luật bán. [người soạn]
 5. **Dịch vụ bị chặn:** Đối tác không thấy dịch vụ đó, nên không bao giờ gặp cờ cần xác nhận của nó. Văn phòng lập hộ thì nhận 409 trước khi tới bước xác nhận.
-6. **Hai lượt cùng chạm `holdsPartner`:**
-   - Lượt 5 (Đ13) đóng đường Xác nhận với người lập giữ PARTNER.
-   - Lượt 2 (0136-Đ5) đã coi người lập giữ PARTNER là bên ngoài.
+6. **Hai điều cùng chạm `holdsPartner`:**
+   - Đ13 đóng đường Xác nhận với người lập giữ PARTNER.
+   - 0136-Đ5 đã coi người lập giữ PARTNER là bên ngoài.
    - Tài khoản lai vẫn xét duyệt được đơn chờ của người khác qua hàng `SALES` của ô `order.confirm.review`. Việc đó đúng vai người phụ trách (ADR-0009), không phải tự xác nhận.
 
 ## 6. Bài kiểm dự kiến phải sửa / thêm
