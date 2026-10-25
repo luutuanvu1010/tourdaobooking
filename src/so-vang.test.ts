@@ -242,10 +242,11 @@ test("sổ vàng LỚP 2 (mã thật, src/modules/billing/rules.ts): ca ĐÃ XÁ
   }
   t.diagnostic(`đã chạy trên mã thật: ${daChay} ca đã xác nhận; chưa áp dụng: ${choXacNhan.length} ca chờ xác nhận (${choXacNhan.join(", ")})`);
   console.log(`sổ vàng lớp 2: đã chạy ${daChay} ca đã xác nhận; chưa áp dụng ${choXacNhan.length} ca chờ xác nhận (${choXacNhan.join(", ")})`);
-  assert.ok(daChay >= 5, "chống 'xanh vì rỗng': phải có ≥ 5 ca đã xác nhận của hoan-tat-cong-no.json chạy trên mã thật (SV-HT-01, 04, 05, 06, 07)");
+  // Siết 2026-10-25 (chủ dự án xác nhận SV-HT-02, SV-HT-03): đủ bảy ca SV-HT và sáu ca SV-SC — ca nào bị lặng lẽ đổi về «chờ» thì bài đỏ.
+  assert.ok(daChay >= 13, "chống 'xanh vì rỗng': phải có ≥ 13 ca đã xác nhận chạy trên mã thật (SV-HT-01…07 của hoan-tat-cong-no.json, SV-SC-01…06 của so-cong-no-luot-1.json)");
 });
 
-// Ca SV-HT-* CHỜ xác nhận (hôm nay SV-HT-02, SV-HT-03): mỗi ca một `todo` có tên + chẩn đoán «mã khớp / lệch đáp án đề xuất» — KHÔNG khẳng định (AI không tự nghiệm thu
+// Ca SV-HT-* CHỜ xác nhận (từ 2026-10-25 không còn ca nào; khuôn giữ cho ca mới): mỗi ca một `todo` có tên + chẩn đoán «mã khớp / lệch đáp án đề xuất» — KHÔNG khẳng định (AI không tự nghiệm thu
 // đáp án — Hiến pháp N8). Ca đổi sang "da_xac_nhan" thì bài lớp 2 ở trên tự chạy thật cho ca đó.
 for (const c of loadCases("golden/hoan-tat-cong-no.json").filter((x) => x.xac_nhan.trang_thai !== "da_xac_nhan")) {
   const kq = chayCaHoanTat(c);
