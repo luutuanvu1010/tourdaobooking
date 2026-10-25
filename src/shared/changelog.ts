@@ -12,6 +12,15 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Đổi nhãn dưới tên khách trên màn tài xế công ty: «Trả: …» → «Trả khách ở: …» (chủ dự án chọn chữ 25/10; «Trả:» một mình dễ đọc thành trả tiền). Chỉ chữ, KHÔNG migration.
+    // Số 2.32 và ngày là TẠM — phiên phát hành kiểm lại ở bước A.0 của docs/HANDOFF-N1.md; cần npm run trien-khai (có mã mới). Nếu phiên «hai chỗ lệch nhỏ» đã có mục 2.32: GỘP vào mục đó.
+    version: "2.32",
+    date: "2026-10-26",
+    items: [
+      { kind: "doi", text: "Màn tài xế công ty: dòng dưới tên mỗi khách nay ghi «Trả khách ở: …» thay cho «Trả: …», để rõ đây là nơi khách xuống xe." },
+    ],
+  },
+  {
     // Nhãn bảng kiểm khoá tháng (chủ dự án 2026-10-25 chọn chữ; mục «Chốt sổ 2026-10-25» của docs/superpowers/plans/2026-10-18-so-dai-ly-dot-2-thi-cong-nhat-ky.md). Chỉ chữ, KHÔNG migration.
     // Chủ dặn «đi cùng lần phát hành sau»: không triển khai riêng. Số 2.31 và ngày là TẠM — phiên phát hành kế tiếp kiểm lại ở bước A.0 của docs/HANDOFF-N1.md
     // và GỘP mục của mình vào mục này (cùng một số), đừng chồng thêm số mới chỉ vì mục này đã có sẵn (cổng «bản ở máy mới hơn production» qua sẵn nhờ mục này).

@@ -55,7 +55,7 @@ Trên máy tính, menu bên trái có các mục trên, cùng [[Của tôi]], [[
 - **Bấm nhầm Đã đón hoặc Khách đã huỷ:** màn không còn nút sửa. Gọi văn phòng.
 - **Văn phòng vừa thêm điểm:** dải trên cùng báo điểm mới (giờ đón, số khách), điểm đó có nhãn **Mới thêm** và đã nằm trong lộ trình. Đọc xong bấm [[Đã xem]].
 - **Khách chưa có tên (chỉ tài xế công ty):** trong ngày chạy, khối **Suất của khách** báo thiếu tên, ghi "Điểm 2 · Khách 1" trùng với dòng "Khách 1" dưới điểm 2. Hỏi khách, bấm [[Bổ sung tên]], nhập họ tên, năm sinh rồi bấm [[Lưu]].
-- **Chuyến có từ hai điểm trả (tài xế công ty):** dưới tên mỗi khách có chữ "Trả: …" cho biết khách xuống ở điểm nào.
+- **Chuyến có từ hai điểm trả (tài xế công ty):** dưới tên mỗi khách có dòng "Trả khách ở: …" cho biết khách xuống ở điểm nào.
 - **Văn phòng đã báo huỷ:** vẫn tới điểm. Gặp khách thì bấm [[Đã đón]]; không gặp thì bấm [[Khách đã huỷ]] để trả chỗ.
 - **Muốn ghé điểm khác trước:** khi xe đang chạy, điểm chưa tới có nút mũi tên lên và mũi tên xuống để đổi thứ tự.
 - **Cần đường tới điểm:** trong ngày chạy, mỗi điểm chưa xong có nhóm **Chỉ đường**. Bấm [[Google Maps]] để mở bản đồ với điểm đến điền sẵn; iPhone, iPad, máy Mac có thêm [[Apple Maps]]. Bản đồ chỉ nhận địa chỉ điểm đến, không nhận tên hay số điện thoại khách. Điểm đã xong hoặc chuyến đã kết thúc thì không còn nút. Điểm chưa có địa chỉ thì bản đồ tìm theo tên điểm, có thể sai — báo văn phòng.
