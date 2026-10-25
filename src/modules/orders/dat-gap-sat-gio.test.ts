@@ -119,6 +119,9 @@ test("ADR-0107 bài 1 — nút Đặt gấp: Bán hàng đóng dấu chặng dư
   }
 });
 
+/** Lô ghi dấu của nút Đặt gấp (câu `leg_short_notice` đứng đầu lô). */
+const LO_DAT_GAP = /UPDATE ord_transfer_leg SET short_notice_reason = \?1/;
+
 test("ADR-0107 bài 1b — nút Đặt gấp: chặng bị dời ra xa CHEN GIỮA lúc route đọc giờ (dưới mốc) và lúc ghi dấu → câu ghi không áp dụng: 409 stale, chặng không mang dấu, không nhật ký", async () => {
   const tat = batDongHo();
   try {
@@ -127,7 +130,7 @@ test("ADR-0107 bài 1b — nút Đặt gấp: chặng bị dời ra xa CHEN GI�
     const legN = n.services[0].legs[0].id;
     const n0 = soNhatKy(w, n.id);
     // Một lệnh khác dời chặng sang 5 ngày sau, đúng lúc route đã xét "dưới mốc" trên giờ cũ và sắp chạy lô ghi dấu.
-    w.chenTruocLo((stmts: { sql: string }[]) => stmts.some((s) => /UPDATE ord_transfer_leg SET short_notice_reason = \?1/.test(s.sql)), () => {
+    w.chenTruocLo((stmts: { sql: string }[]) => stmts.some((s) => LO_DAT_GAP.test(s.sql)), () => {
       w.sqlite.prepare("UPDATE ord_transfer_leg SET pickup_date = ? WHERE id = ?").run(ngaySau(5), legN);
     });
     const r = await datGap(w, n.id, legN, SALES);
@@ -138,6 +141,52 @@ test("ADR-0107 bài 1b — nút Đặt gấp: chặng bị dời ra xa CHEN GI�
     // Bấm lại: route đọc giờ MỚI (còn xa) → 409 short_notice_not_needed.
     const lai = await datGap(w, n.id, legN, SALES);
     assert.equal(ma(lai), "short_notice_not_needed", lai.text);
+  } finally {
+    tat();
+  }
+});
+
+test("ADR-0107 bài 1c — nút Đặt gấp: chặng bị dời GIỜ trong cùng ngày ra ngoài mốc chen giữa lúc đọc và lúc ghi dấu → 409 stale, không dấu, không nhật ký (vế giờ của câu ghi)", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const n = await nhap(w, SALES, [chang(NGAY, "10:00")]); // lúc 06:00 còn 4 giờ: dưới mốc
+    const legN = n.services[0].legs[0].id;
+    const n0 = soNhatKy(w, n.id);
+    // Cùng ngày 10:00 → 23:00 (còn 17 giờ: ngoài mốc) — ngày không đổi, chỉ vế GIỜ của câu ghi bắt được.
+    w.chenTruocLo((stmts: { sql: string }[]) => stmts.some((s) => LO_DAT_GAP.test(s.sql)), () => {
+      w.sqlite.prepare("UPDATE ord_transfer_leg SET pickup_time = '23:00' WHERE id = ?").run(legN);
+    });
+    const r = await datGap(w, n.id, legN, SALES);
+    assert.equal(r.status, 409, r.text);
+    assert.equal(ma(r), "stale");
+    assert.deepEqual(dau(w, legN), KHONG_DAU, "không bao giờ ghi dấu lên giờ chưa được xét");
+    assert.equal(soNhatKy(w, n.id), n0, "câu ghi không áp dụng → không nhật ký");
+  } finally {
+    tat();
+  }
+});
+
+test("ADR-0107 bài 1d — nút Đặt gấp hỏi ô ĐẦU thân: người không có ô luôn 403 (thân sai, đơn lạ, chặng lạ — không lộ đơn / chặng có hay không); người có ô: thân sai 400, đơn lạ hay chặng lạ 404", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const n = await nhap(w, SALES, [chang(NGAY, "10:00")]);
+    const legN = n.services[0].legs[0].id;
+    const LA = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+    const goi = (as: string, id: string, legId: string, body: unknown) => w.call("POST", `/api/orders/${id}/legs/${legId}/short-notice`, { as, body });
+    for (const as of [ACC, FIELD, PARTNER, INTERN]) {
+      for (const [id, legId, body] of [[n.id, legN, {}], [LA, legN, DAT_GAP], [n.id, LA, DAT_GAP]] as const) {
+        const r = await goi(as, id, legId, body);
+        assert.equal(r.status, 403, `${as} ${id === LA ? "đơn lạ" : legId === LA ? "chặng lạ" : "thân sai"}: ${r.text}`);
+      }
+    }
+    for (const as of [SALES, ADM]) {
+      assert.equal((await goi(as, n.id, legN, {})).status, 400, `${as}: thân sai`);
+      assert.equal((await goi(as, LA, legN, DAT_GAP)).status, 404, `${as}: đơn lạ`);
+      assert.equal((await goi(as, n.id, LA, DAT_GAP)).status, 404, `${as}: chặng lạ`);
+    }
+    assert.deepEqual(dau(w, legN), KHONG_DAU);
   } finally {
     tat();
   }
@@ -397,6 +446,8 @@ test("ADR-0107 bài 7 — MỘT chỗ canh (bài tĩnh): dấu MỚI chỉ dựn
   const [c, d] = khoangKhaiBao(chep[0]!.noiDung, "export const datGapCuaDong", "\n\n");
   assert.ok(chep[0]!.viTri > c && chep[0]!.viTri < d, "ép kiểu dấu chép phải nằm TRONG datGapCuaDong");
   assert.deepEqual(choKhop(/as DauGhi\b/g).map((x) => x.tep), [], "không ép thẳng sang DauGhi");
+  // Ép kiểu kiểu cũ `<DauDatGapMoi>{…}` qua mặt được bộ đếm chữ `as …` ở trên (người kiểm độc lập 25/10) → cấm hẳn; `Foo<DauGhi>` (tham số kiểu) không bị bắt.
+  assert.deepEqual(choKhop(/(?<![\w$.\]])<\s*(?:DauDatGapMoi|DauChepNhap|DauGhi)\s*>/g).map((x) => x.tep), [], "không ép kiểu bằng ngoặc nhọn <DauDatGapMoi> / <DauChepNhap> / <DauGhi>");
   // Câu GHI năm cột chỉ ở kho chặng, và hai chỗ gắn tham số chỉ nhận kiểu dấu có nguồn.
   const ghi = [...new Set(choKhop(/short_notice_reason\s*=|INSERT INTO ord_transfer_leg[^`]*short_notice_reason/g).map((x) => x.tep))];
   assert.deepEqual(ghi, ["modules/orders/chang-hanh-khach-repo.ts"]);

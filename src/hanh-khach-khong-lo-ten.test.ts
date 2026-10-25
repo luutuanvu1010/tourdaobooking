@@ -45,7 +45,7 @@ const vnSau = (phut: number) => {
   return { ngay: iso.slice(0, 10), gio: iso.slice(11, 16) };
 };
 const D = inDays(3);
-const UUID =/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/g;
+const UUID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/g;
 
 test("họ tên, năm sinh hành khách chỉ rời máy chủ ở GET/POST /passengers: đủ tuyến, nhật ký sạch, màn khác sạch, Bảng tin chỉ id + loại", async () => {
   const w = world();
