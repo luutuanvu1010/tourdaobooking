@@ -145,10 +145,11 @@ export interface LegWrite {
   /** Giờ cuối khung đón (0115, ADR-0134 Đ3) — từ thân (đã qua `kiemChang`); vắng = NULL ("Giờ khác"). */
   pickupSlotEnd: string | null;
   /**
-   * Dấu ĐẶT GẤP (ADR-0049 D2) ghi cùng dòng — CHỈ từ: nhánh `datGap` của lệnh sửa / thêm chặng (Quản trị, Toàn quyền), hoặc dấu CŨ của chính chặng khớp
-   * đúng một-một khi lưu lại đơn nháp (Q1 = (a) — giá trị đọc từ CSDL). Không bao giờ từ thân trình duyệt của lập / sửa nháp (I16). null = không dấu.
+   * Dấu ĐẶT GẤP (ADR-0049 D2) ghi cùng dòng — CHỈ từ: dấu MỚI của `xetDatGapSua` (lệnh thêm / thay chặng, `PUT …/trip` — ADR-0107), hoặc dấu CŨ của chính
+   * chặng khớp đúng một-một khi lưu lại đơn nháp (Q1 = (a) — `datGapCuaDong`, giá trị đọc từ CSDL). Kiểu `DauGhi` ép điều này lúc typecheck. Không bao giờ
+   * từ thân trình duyệt của lập / sửa nháp (I16). null = không dấu.
    */
-  datGap?: DatGapWrite | null;
+  datGap?: DauGhi | null;
 }
 
 const LEG_INSERT_COLS = `id, order_id, order_service_id, direction, pickup_date, pickup_time, pickup_location_id, pickup_place, dropoff_location_id, dropoff_place,
@@ -170,8 +171,8 @@ const LEG_INSERT_GUARDED = defineSql(
   `INSERT INTO ord_transfer_leg (${LEG_INSERT_COLS}, short_notice_reason, short_notice_note, short_notice_by, short_notice_at, short_notice_lead_minutes, pickup_slot_end)
    SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, NULL, NULL, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?20, ?21, ?22, ?23, ?24, ?25 WHERE EXISTS (SELECT 1 FROM audit_log WHERE id = ?19)`,
 );
-/** Năm giá trị cột đặt gấp (null cả năm = không dấu / bỏ dấu). */
-const datGapBinds = (d: DatGapWrite | null | undefined) => (d ? [d.lyDo, d.ghiChu, d.by, d.at, d.phut] : [null, null, null, null, null]);
+/** Năm giá trị cột đặt gấp (null cả năm = không dấu / bỏ dấu). Chỉ nhận dấu đã qua MỘT chỗ canh (`DauGhi` — ADR-0107). */
+const datGapBinds = (d: DauGhi | null | undefined) => (d ? [d.lyDo, d.ghiChu, d.by, d.at, d.phut] : [null, null, null, null, null]);
 const legBinds = (l: LegWrite) => [
   l.id, l.orderId, l.serviceId, l.direction, l.pickupDate, l.pickupTime, l.pickupLocationId, l.pickupPlace, l.dropoffLocationId, l.dropoffPlace,
   l.createdAt, l.createdBy, l.updatedAt, l.updatedBy, l.flightCode, l.paxOverride, l.exclusiveVehicle ? 1 : 0, l.minVehicleSeats,
@@ -199,7 +200,7 @@ const LEG_SET = `pickup_date = ?1, pickup_time = ?2, pickup_location_id = ?3, pi
   pickup_slot_end = CASE WHEN pickup_time IS ?2 THEN pickup_slot_end ELSE NULL END`;
 /**
  * Nội dung VẬN HÀNH của chặng (ngày, giờ, nơi) đổi thì dấu ĐẶT GẤP cũ không còn duyệt nội dung mới (I16 — "dấu duyệt nội dung cũ"; cùng luật Q1 = (a) của lưu
- * nháp): câu sửa GHI LẠI năm cột đặt gấp — dấu MỚI (nhánh `datGap` của Quản trị / Toàn quyền) hoặc NULL cả năm (bỏ dấu). NGOẠI LỆ (chủ Q-B 1/10 "Giữ dấu đặt
+ * nháp): câu sửa GHI LẠI năm cột đặt gấp — dấu MỚI (`xetDatGapSua`: lệnh kèm lý do và giờ SAU lệnh của chặng dưới mốc — ADR-0107) hoặc NULL cả năm (bỏ dấu). NGOẠI LỆ (chủ Q-B 1/10 "Giữ dấu đặt
  * gấp cũ"): lệnh CHỈ đổi ô phụ (số hiệu chuyến bay / số người chiều về — `chiDoiOPhu`) mà thân không có `datGap` → cờ ?21 = 1 GIỮ năm cột đang lưu. `PUT /trip`
  * luôn truyền 0.
  */
@@ -254,10 +255,10 @@ const oPhuBinds = (o: OPhuGhi, giuDatGap: boolean) => [
   o.exclusiveVehicle !== undefined ? 1 : 0, o.exclusiveVehicle ? 1 : 0, o.minVehicleSeats !== undefined ? 1 : 0, o.minVehicleSeats ?? null,
 ];
 /** `PUT /trip`: cờ ô phụ = 0 (giữ), cờ giữ dấu = 0 (luật I16 cũ). */
-export const legUpdateGuarded = (db: D1Database, legId: string, orderId: string, f: LegFields, at: string, by: string, auditId: string, datGap: DatGapWrite | null = null): D1PreparedStatement =>
+export const legUpdateGuarded = (db: D1Database, legId: string, orderId: string, f: LegFields, at: string, by: string, auditId: string, datGap: DauDatGapMoi | null = null): D1PreparedStatement =>
   db.prepare(LEG_UPDATE_GUARDED).bind(...fieldBinds(f, at, by), legId, orderId, auditId, ...datGapBinds(datGap), ...oPhuBinds({}, false));
 export const legUpdateChecked = (
-  db: D1Database, legId: string, orderId: string, f: LegFields, at: string, by: string, expectedLegUpdatedAt: string, datGap: DatGapWrite | null = null,
+  db: D1Database, legId: string, orderId: string, f: LegFields, at: string, by: string, expectedLegUpdatedAt: string, datGap: DauDatGapMoi | null = null,
   oPhu: OPhuGhi = {}, giuDatGap = false,
 ): D1PreparedStatement => db.prepare(LEG_UPDATE_CHECKED).bind(...fieldBinds(f, at, by), legId, orderId, expectedLegUpdatedAt, ...datGapBinds(datGap), ...oPhuBinds(oPhu, giuDatGap));
 
@@ -325,15 +326,19 @@ export const legFillDateOnConfirm = (db: D1Database, orderId: string, at: string
 /**
  * ĐÓNG DẤU đặt gấp lên MỘT chặng còn mở của đơn nháp hoặc đã xác nhận — CÂU ĐẦU LÔ của route đặt gấp (không lính gác: chính nó quyết định thắng/thua;
  * nhật ký theo sau bằng `changes() > 0`). Đẩy mốc CỦA CHẶNG (khoá lạc quan của route sửa chặng — form đang mở thấy "vừa có người sửa"). Đóng dấu lại
- * (dấu mới thay dấu cũ) là hợp lệ (I14). Năm cột chỉ được ghi ở đây và ở nhánh `datGap` của lệnh sửa chặng (I16) — thân lập/sửa nháp không đọc khoá này.
+ * (dấu mới thay dấu cũ) là hợp lệ (I14). Năm cột chỉ được ghi ở đây và ở các câu ghi chặng nhận `DauGhi` (I16) — thân lập/sửa nháp không đọc khoá này.
+ * ADR-0107 ý (ii): route đã xét "giờ chặng ĐANG dưới mốc" trên giờ đọc lúc trước — ?8, ?9 = đúng ngày, giờ đó; chặng vừa bị dời (lệnh khác chen giữa) thì câu
+ * không áp dụng (không bao giờ ghi dấu lên giờ chưa được xét).
  */
 const LEG_SHORT_NOTICE = defineSql(
   "orders",
   "leg_short_notice",
   `UPDATE ord_transfer_leg SET short_notice_reason = ?1, short_notice_note = ?2, short_notice_by = ?3, short_notice_at = ?4, short_notice_lead_minutes = ?5,
      updated_at = ?4, updated_by = ?3
-   WHERE id = ?6 AND order_id = ?7 AND closed_at IS NULL AND EXISTS (SELECT 1 FROM orders WHERE id = ?7 AND status IN ('draft', 'confirmed'))`,
+   WHERE id = ?6 AND order_id = ?7 AND closed_at IS NULL AND pickup_date IS ?8 AND pickup_time IS ?9
+     AND EXISTS (SELECT 1 FROM orders WHERE id = ?7 AND status IN ('draft', 'confirmed'))`,
 );
+/** Năm giá trị cột đặt gấp — chỉ là DỮ LIỆU; câu ghi KHÔNG nhận kiểu trần này (ADR-0107: MỘT chỗ canh, xem `DauGhi`). */
 export interface DatGapWrite {
   lyDo: string;
   ghiChu: string | null;
@@ -341,8 +346,19 @@ export interface DatGapWrite {
   at: string;
   phut: number;
 }
-export const legShortNotice = (db: D1Database, legId: string, orderId: string, d: DatGapWrite): D1PreparedStatement =>
-  db.prepare(LEG_SHORT_NOTICE).bind(d.lyDo, d.ghiChu, d.by, d.at, d.phut, legId, orderId);
+declare const DAU_MOI: unique symbol;
+declare const DAU_CHEP: unique symbol;
+/**
+ * Dấu MỚI (ADR-0107 Hướng A, mục 4): CHỈ `xetDatGapSua` (orders/index.ts) dựng được — sau khi xét ô `order.leg.short_notice`, lý do, và giờ SAU lệnh của
+ * chính chặng đang dưới mốc. Khoá `unique symbol` không viết được bằng chữ: một đường mới tự dựng dấu (đối tượng chữ) thì `npm run typecheck` đỏ.
+ */
+export type DauDatGapMoi = DatGapWrite & { readonly [DAU_MOI]: true };
+/** Dấu CHÉP khi lưu lại đơn nháp (ngoại lệ có tên `chepDatGapNhap`, ADR-0049 Q1 = (a)): CHỈ `datGapCuaDong` (orders/dat-gap.ts) dựng được, từ dòng CSDL. */
+export type DauChepNhap = DatGapWrite & { readonly [DAU_CHEP]: true };
+/** Mọi dấu được phép GHI xuống năm cột. */
+export type DauGhi = DauDatGapMoi | DauChepNhap;
+export const legShortNotice = (db: D1Database, legId: string, orderId: string, d: DauDatGapMoi, gio: { pickupDate: string | null; pickupTime: string | null }): D1PreparedStatement =>
+  db.prepare(LEG_SHORT_NOTICE).bind(d.lyDo, d.ghiChu, d.by, d.at, d.phut, legId, orderId, gio.pickupDate, gio.pickupTime);
 
 /**
  * Chặng CÒN MỞ ĐÃ MANG DẤU đặt gấp của MỘT đơn, kèm mã danh mục + vị trí dịch vụ (khớp một-một khi lưu lại đơn nháp — Q1 = (a)) và năm cột dấu (chép từ CSDL,

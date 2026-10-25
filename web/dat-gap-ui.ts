@@ -1,7 +1,9 @@
 // Khối giao diện dùng chung của V12 — mốc 6 giờ + đặt gấp (ADR-0049 D2; bản vẽ docs/design/van-chuyen-dieu-phoi/project/07 Bieu mau don - chang don.dc.html):
-//  - `khoiNhanDatGap`: nhãn "Đặt gấp — lý do — người duyệt" + ghi chú (khung 7c) — hiện đúng theo khoá có trong DTO (chủ H4), không lọc theo vai ở đây;
-//  - `khoiCanhBaoMoc`: dải cát "Giờ đón cách bây giờ … — dưới mốc 6 giờ" + dòng nói ai làm gì (7a Quản trị / 7b Bán hàng) + nút "Đặt gấp" (chỉ người có ô
-//    order.leg.short_notice — nơi gọi quyết) mở khung "Đặt gấp" (lý do + ghi chú ngắn, "Duyệt đặt gấp" / "Đóng").
+//  - `khoiNhanDatGap`: nhãn "Điều chỉnh khẩn cấp — lý do — người" + ghi chú (khung 7c; chữ theo ADR-0107 mục 8) — hiện đúng theo khoá có trong DTO (chủ H4),
+//    không lọc theo vai ở đây;
+//  - `khoiCanhBaoMoc`: dải cát "Giờ đón cách bây giờ … — dưới mốc 6 giờ" + dòng nói ai làm gì (7a người có ô đặt gấp — Bán hàng, Quản trị, Toàn quyền / 7b
+//    người không có — Đối tác, Thực tập) + nút "Đặt gấp" (chỉ người có ô order.leg.short_notice — nơi gọi quyết) mở khung "Đặt gấp" (lý do + ghi chú ngắn,
+//    "Duyệt đặt gấp" / "Đóng").
 // Luật chữ ở src/shared/dat-gap-hien-thi.ts; lý do lấy từ LY_DO_DAT_GAP (R-P18). Mọi nút `type="button"` (khối có thể nằm trong <form> lập đơn).
 import { LUA_CHON_LY_DO_DAT_GAP, nhanDatGap, thanDatGap } from "../src/shared/dat-gap-hien-thi";
 import { GHI_CHU_DAT_GAP_TOI_DA, type LyDoDatGap } from "../src/shared/chang-dua-don";
@@ -95,12 +97,13 @@ export function taoKhungDatGap(o: { onDuyet: (than: { lyDo: LyDoDatGap; ghiChu: 
 }
 
 /**
- * Dải cảnh báo dưới mốc (khung 7a / 7b) + (người được đặt gấp) nút "Đặt gấp" mở khung. `dongPhu` là dòng dưới tiêu đề: 7a "Xếp xe gấp cần Quản trị duyệt đặt gấp.",
- * 7b "Lưu nháp được. Xác nhận cần Quản trị duyệt đặt gấp.". `datCau` đổi câu mốc tại chỗ (biểu mẫu gõ giờ) — khung đang mở và chữ đã gõ trong khung giữ nguyên.
+ * Dải cảnh báo dưới mốc (khung 7a / 7b) + (người được đặt gấp) nút "Đặt gấp" mở khung. `dongPhu` là dòng dưới tiêu đề (ADR-0107): 7a "Chọn lý do đặt gấp thì xác
+ * nhận và xếp xe được.", 7b "Lưu nháp được. Xác nhận cần văn phòng đặt gấp.". `datCau` đổi câu mốc tại chỗ (biểu mẫu gõ giờ) — khung đang mở và chữ đã gõ trong
+ * khung giữ nguyên.
  * `nutDuyetPhu`: chuyển cho `taoKhungDatGap` (form Tạo đơn).
  */
 export function khoiCanhBaoMoc(o: { cau: string; duocDatGap: boolean; onDuyet?: (than: { lyDo: LyDoDatGap; ghiChu: string | null }) => Promise<void>; nutDuyetPhu?: boolean }): { root: HTMLElement; datCau(cau: string): void } {
-  const dongPhu = o.duocDatGap ? "Xếp xe gấp cần Quản trị duyệt đặt gấp." : "Lưu nháp được. Xác nhận cần Quản trị duyệt đặt gấp.";
+  const dongPhu = o.duocDatGap ? "Chọn lý do đặt gấp thì xác nhận và xếp xe được." : "Lưu nháp được. Xác nhận cần văn phòng đặt gấp.";
   const tieuDe = h("div", { class: "banner-title" }, o.cau);
   const dai = h("div", { class: "banner banner-warning dg-warn", "data-moc": "duoi" }, tieuDe, h("div", { class: "dg-warn-sub" }, dongPhu));
   const root = h("div", { class: "dg-block" }, dai);

@@ -1,0 +1,47 @@
+BAT_DAU 17:05:19
+✓ a) danh sách đơn: đóng ĐÚNG 2 dòng ở CẢ 390 và 1040 (không lộ người phụ trách; GIỮ tên khách ở dòng 1 + mã đơn trong phần xổ); mở nút xổ thấy “HDV: <tên>”; đúng MỘT lời gọi handlers cho cả trang, gửi đúng các mã đơn đang hiện
+✓ b) A đổi người phụ trách sang B bằng bảng chọn: bảng đóng, trang đơn tải lại thấy B + báo, trả focus; danh sách và nhật ký thấy B
+✓ c) ảnh PNG “Xác nhận gửi khách” SAU KHI đổi người in đúng tên B: giống từng byte bản dựng từ tên B, khác bản dựng từ tên A (người lập)
+✓ d) B (không phải người lập) sửa được đơn NHÁP bằng giao diện: nút Sửa, form mở được, lưu thành công; thấy “Đổi người phụ trách”, không thấy “Nhận phụ trách”
+✓ e) quyền: C không thấy nút đổi/nhận và không có Sửa/Xác nhận/Huỷ; kế toán không nút nào; quản trị và người lập có nút đổi
+✓ f) đơn CHƯA có người: chip ở danh sách (390, 1040) và ở trang đơn; C chỉ thấy “Nhận phụ trách”; người lập/quản trị thấy cả giao và nhận; kế toán không gì; C nhận được rồi sửa được đơn
+✓ g) bảng chọn: dialog + aria-modal + tên + nền inert + focus; Esc/chạm nền/✕ đóng và trả focus; danh sách khớp API; KHOÁ khi đang lưu; lỗi tải danh sách → Thử lại
+✗ h) đổi song song → tải lại + thông báo: 409 no_change, 409 stale (nhận), 403 (mất quyền); 400 invalid_assignee giữ bảng mở
+    Command failed: npx wrangler d1 execute tourdao-sales-db --local --persist-to /var/folders/m6/8lb7g7fn35q4s4tm5t6nv21h0000gn/T/tourdao-a2-EP7233 --json --command UPDATE dsp_assignment SET valid_to_at = valid_from_at WHERE order_id = '2e797a37-33e3-4fa8-ba08-9539e92f52f4' AND task_kind_code = 'HANDLE' AND valid_to_at IS NULL
+✓ i) lỗi lời gọi handlers (chặn mạng / 500 / thiếu khoá): danh sách VẪN hiện, không chip sai, không banner; trang đơn hiện đơn + nút Sửa, khối “chưa tải được” + Thử lại, KHÔNG nút nhận/đổi
+✗ j) axe 0 vi phạm (mọi mức) ở mọi trạng thái mới; vùng chạm ≥ 44 px; không tràn ngang ở 390 và 1040
+    axe (danh-sach-390): [{"id":"region","impact":"moderate","nodes":1,"help":"All page content should be contained by landmarks","mau":["#strips"]}]
+    + actual - expected
+    
+    + [
+    +   {
+    +     help: 'All page content should be contained by landmarks',
+    +     id: 'region',
+    +     impact: 'moderate',
+    +     mau: [
+    +       '#strips'
+    +     ],
+    +     nodes: 1
+✓ k) ảnh 390×844 và 1040×800: danh sách, trang đơn, bảng chọn, đơn chưa có người
+✓ m) tên khách DÀI bị cắt bằng “…” ở dòng 1 (390px) NHƯNG phần xổ vẫn có ĐÚNG dòng “Khách: <tên đầy đủ>”, ngay trước “Mã đơn”
+✓ n) bàn phím THẬT (Input.dispatchKeyEvent qua CDP): Tab từ thẻ đơn tới được nút xổ, Enter VÀ Space đều mở/đóng được (aria-expanded đổi đúng), KHÔNG điều hướng sang trang chi tiết
+✓ o) lý do nhiều dòng của “Lịch sử” (order_money_adjusted_by_field, reason có ký tự xuống dòng) hiện ĐÚNG nhiều dòng — đo bằng Range.getClientRects thật, không suy luận từ chiều cao
+✓ p) HƯỚNG DẪN VIÊN, danh sách đơn: mỗi thẻ “HDV: <tên mình>” (390 + 1040), KHÔNG gọi GET /api/dispatch/handlers
+✓ q) HƯỚNG DẪN VIÊN, trang đơn mình phụ trách (đã xác nhận 390 + 1040, chờ xác nhận 390): khối “Người phụ trách” là tên mình (không “Chưa tải được”), không nút đổi/nhận/sửa, câu giải thích riêng cho HDV; KHÔNG gọi GET /api/dispatch/handlers
+✗ l) console/CSP sạch ở mọi trang đã theo dõi (trừ các dòng mạng đã biết của lỗi cố ý)
+    Sales Một /orders: {"csp":[],"other":["network: Failed to load resource: the server responded with a status of 403 (Forbidden) http://127.0.0.1:60381/api/dispatch/handlers?orderIds=2e538059-14e3-4d6b-acb9-fa526da8430d,2ad09be3-a4b6-4046-b189-354a708848ab"],"consoleErrors":[]}
+    + actual - expected
+    
+      {
+        consoleErrors: [],
+        csp: [],
+    +   other: [
+    +     'network: Failed to load resource: the server responded with a status of 403 (Forbidden) http://127.0.0.1:60381/api/dispatch/handlers?orderIds=2e538059-14e3-4d6b-acb9-fa526da8430d,2ad09be3-a4b6-4046-b189-354a708848ab'
+    +   ]
+    -   other: []
+      }
+    
+
+3 bước ✗ / 14 bước ✓
+EXIT=1
+KET_THUC 17:06:29

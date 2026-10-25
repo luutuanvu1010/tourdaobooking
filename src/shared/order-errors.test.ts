@@ -84,18 +84,25 @@ test("mất mạng: giữ nguyên dữ liệu đã gõ", () => {
 
 test("409 short_notice_required (ADR-0049 D2): banner cát, mỗi chặng dưới mốc một dòng '<chiều · dịch vụ>: <câu mốc>'; thiếu tên / mốc thì câu dự phòng", () => {
   const x = {
-    status: 409, code: "short_notice_required", message: "Có chặng đón dưới mốc tối thiểu — cần Quản trị hoặc Toàn quyền đặt gấp trước khi xác nhận.",
+    status: 409, code: "short_notice_required", message: "Có lượt đưa đón mà giờ đón đã qua hạn chốt — cần đặt gấp trước khi xác nhận.",
     details: { code: "short_notice_required", legs: [{ legId: "l1", phutConLai: 250 }, { legId: "l9", phutConLai: -41 }] },
   };
   const b = classifyOrderError(x, { serviceNames: ["Vé cáp treo"], formatMoney: String, tenChang: (id) => (id === "l1" ? "Chiều đi · Vé cáp treo" : null), mocPhut: 360 });
   assert.equal(b.tone, "warning");
-  assert.equal(b.title, "Còn lượt đưa đón quá hạn chốt — cần Quản trị duyệt đặt gấp trước khi xác nhận.");
+  assert.equal(b.title, "Còn lượt đưa đón quá hạn chốt — cần đặt gấp trước khi xác nhận.", "ADR-0107: Bán hàng tự đặt gấp — không còn \"cần Quản trị\"");
   assert.deepEqual(b.lines.map((l) => l.text), ["Chiều đi · Vé cáp treo: Giờ đón cách bây giờ 4 giờ 10 phút — quá hạn chốt 6 giờ", "Lượt đưa đón: Giờ đón đã qua — quá hạn chốt 6 giờ"]);
   const khongMoc = classifyOrderError(x, { serviceNames: [], formatMoney: String });
   assert.deepEqual(khongMoc.lines.map((l) => l.text), ["Lượt đưa đón: giờ đón cách bây giờ 4 giờ 10 phút", "Lượt đưa đón: giờ đón đã qua"]);
   // Lệnh sửa chuyến đơn đã xác nhận (I14): 409 cùng mã nhưng KHÔNG có danh sách chặng → tiêu đề là lời máy chủ, không dòng.
-  const sua = e(409, "short_notice_required", "Chặng dưới mốc tối thiểu trước giờ đón — chỉ Quản trị hoặc Toàn quyền sửa được, kèm lý do đặt gấp.");
-  assert.deepEqual([sua.tone, sua.title, sua.lines], ["warning", "Chặng dưới mốc tối thiểu trước giờ đón — chỉ Quản trị hoặc Toàn quyền sửa được, kèm lý do đặt gấp.", []]);
+  const sua = e(409, "short_notice_required", "Lượt đưa đón có giờ đón đã qua hạn chốt — cần kèm lý do đặt gấp.");
+  assert.deepEqual([sua.tone, sua.title, sua.lines], ["warning", "Lượt đưa đón có giờ đón đã qua hạn chốt — cần kèm lý do đặt gấp.", []]);
+});
+
+test("409 short_notice_not_needed (ADR-0107 ý ii): giọng thông tin, tiêu đề là lời máy chủ, một dòng nói giờ đón có thể vừa đổi; KHÔNG trong LOI_409_KHONG_CU (trang đơn thêm nút Tải lại đơn)", () => {
+  const b = e(409, "short_notice_not_needed", "Lượt đưa đón chưa qua hạn chốt — không cần đặt gấp.");
+  assert.deepEqual([b.tone, b.title, b.action], ["info", "Lượt đưa đón chưa qua hạn chốt — không cần đặt gấp.", "none"]);
+  assert.deepEqual(b.lines.map((l) => l.text), ["Giờ đón của lượt này có thể vừa đổi — tải lại đơn để xem bản mới."]);
+  assert.equal(LOI_409_KHONG_CU.has("short_notice_not_needed"), false);
 });
 
 test("503 moc_toi_thieu_chua_co: nguy hiểm, lời máy chủ (không đoán mốc) + một dòng nói việc cần làm", () => {

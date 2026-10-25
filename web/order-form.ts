@@ -155,7 +155,8 @@ let saving = false;
 
 // ---- mốc 6 giờ + đặt gấp (ADR-0049 V12; bản vẽ docs/design/van-chuyen-dieu-phoi/project/07; ruling R-P15) ----
 // Mốc đọc từ GET /api/orders/moc-toi-thieu (đơn CHƯA lưu cũng cảnh báo được); chỉ để HIỆN — máy chủ quyết lúc lưu (canhBaoMoc) và lúc xác nhận (409).
-// Người có ô order.leg.short_notice (Quản trị, Toàn quyền) có nút "Đặt gấp": "Duyệt đặt gấp" = LƯU NHÁP rồi gọi lệnh đặt gấp cho chặng chiều đi của dịch vụ đó.
+// Người có ô order.leg.short_notice (Bán hàng, Quản trị, Toàn quyền — ADR-0107) có nút "Đặt gấp": "Duyệt đặt gấp" = LƯU NHÁP rồi gọi lệnh đặt gấp cho ĐÚNG chặng
+// mang dải cảnh báo (dải chỉ hiện khi chặng đó dưới mốc — máy chủ từ chối chặng không dưới mốc: 409 `short_notice_not_needed`).
 let mocPhut: number | null = null;
 let duocDatGap = false;
 // ---- khối Đưa đón + Hành khách (ADR-0047 Phần B; bản vẽ docs/design/2026-10-01-dua-don-hanh-khach M1, M2, M6) ----
@@ -639,7 +640,7 @@ formEl.addEventListener("submit", (e) => {
 const laLuuBangCham = nhoChamKichHoat(saveBtn);
 
 /**
- * Lưu đơn nháp. `datGap` (ADR-0049 R-P15 — nút "Duyệt đặt gấp" của Quản trị trên thẻ): lưu xong gọi lệnh đặt gấp cho chặng chiều đi của đúng dịch vụ đó (thứ tự
+ * Lưu đơn nháp. `datGap` (ADR-0049 R-P15 — nút "Duyệt đặt gấp" trên thẻ): lưu xong gọi lệnh đặt gấp cho đúng chặng `legKey` của dịch vụ đó (thứ tự
  * dịch vụ trong phản hồi = thứ tự thẻ). Lệnh đặt gấp hỏng thì đơn VẪN đã lưu → vẫn chuyển sang trang đơn, kèm `datgap=loi` để trang đơn báo và cho duyệt lại.
  */
 async function luu(datGap?: { entry: Entry; legKey: string; than: { lyDo: LyDoDatGap; ghiChu: string | null } }): Promise<void> {

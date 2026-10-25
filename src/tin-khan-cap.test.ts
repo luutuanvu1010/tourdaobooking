@@ -74,8 +74,7 @@ test("NT-11 + CAO-C: cùng lệnh KHÔNG bỏ qua luật nào → không tin (c�
     const a = await don(w, { ngay: NGAY_SAU, gio: "09:00", soNguoi: 2 });
     const t = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER}`, ngay: NGAY_SAU, bd: "08:00", kt: "12:00" }); // ngoài mốc
     assert.equal((await xep(w, SALES, t.chuyen.id, [{ legId: a.legId, soSuat: 2 }])).status, 200);
-    const gap = await don(w, { gio: "13:00", soNguoi: 2 });
-    assert.equal((await w.call("POST", `/api/orders/${gap.id}/legs/${gap.legId}/short-notice`, { as: ADM, body: { lyDo: "KHACH_DOAN_GOI_GAP" } })).status, 200);
+    const gap = await don(w, { gio: "11:30", soNguoi: 2, datGap: true }); // ADR-0107: chặng đặt gấp phải đang dưới mốc (còn 330 phút)
     const t2 = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER2}`, bd: "11:00", kt: "15:00" }); // dưới mốc
     assert.equal((await xep(w, SALES, t2.chuyen.id, [{ legId: gap.legId, soSuat: 2 }])).status, 200);
     assert.deepEqual(w.q("SELECT override_rule_code r FROM vc_trip_event WHERE kind = 'ALLOCATED'").map((x: any) => x.r), [null, null], "không luật bỏ qua");
@@ -168,8 +167,7 @@ test("Phiếu D1 THẤP-7 + CAO-C (báo mọi lệnh có bỏ qua luật — ch�
   const tat = batDongHo();
   try {
     const w = setup();
-    const gap = await don(w, { gio: "13:00", soNguoi: 2 });
-    assert.equal((await w.call("POST", `/api/orders/${gap.id}/legs/${gap.legId}/short-notice`, { as: ADM, body: { lyDo: "KHACH_DOAN_GOI_GAP" } })).status, 200);
+    const gap = await don(w, { gio: "11:30", soNguoi: 2, datGap: true }); // ADR-0107: chặng đặt gấp phải đang dưới mốc (còn 330 phút)
     w.sqlite.prepare("UPDATE ord_transfer_leg SET min_vehicle_seats = 30 WHERE id = ?").run(gap.legId); // xe 15 chỗ trái cam kết số chỗ
     const t = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER}`, bd: "11:00", kt: "15:00" }); // dưới mốc
     const r = await xep(w, SALES, t.chuyen.id, [{ legId: gap.legId, soSuat: 2 }], { camKetPhaLe: PL });
@@ -185,11 +183,6 @@ test("Phiếu D1 THẤP-7 + CAO-C (báo mọi lệnh có bỏ qua luật — ch�
 });
 
 // ---- Phiếu kiểm hẹp D1 CAO-C: tin bám mã luật MOC_TOI_THIEU, không bám lớp — ghim HIỆN TRẠNG ở ca DỜI ---------------------------------------------------------
-/** Đánh dấu ĐẶT GẤP cho chặng (đường thật — Quản trị). */
-async function datGap(w: any, d: { id: string; legId: string }) {
-  const r = await w.call("POST", `/api/orders/${d.id}/legs/${d.legId}/short-notice`, { as: ADM, body: { lyDo: "KHACH_DOAN_GOI_GAP" } });
-  assert.equal(r.status, 200, r.text);
-}
 /** Dời mọi suất mở của `nguon` sang `dich` (Bán hàng), `co` = cờ vượt gửi kèm. */
 async function doiHet(w: any, nguon: string, dich: string, suatIds: string[], co: Record<string, unknown>) {
   return goi(w, SALES, "POST", `/${nguon}/doi`, { version: await phienBan(w, nguon), suatIds, denChuyenId: dich, denVersion: await phienBan(w, dich), ...co });
@@ -199,8 +192,7 @@ test("Phiếu hẹp D1 CAO-C (báo mọi lệnh có bỏ qua luật — chủ ch
   const tat = batDongHo();
   try {
     const w = setup();
-    const gap = await don(w, { gio: "13:00", soNguoi: 2 });
-    await datGap(w, gap);
+    const gap = await don(w, { gio: "11:30", soNguoi: 2, datGap: true }); // ADR-0107: chặng đặt gấp phải đang dưới mốc (còn 330 phút)
     const nguon = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER}`, bd: "12:30", kt: "16:00" }); // ngoài mốc (còn 6 giờ 30)
     const dich = await taoChuyen(w, { xe: xe(w), taiXe: `pty-${DRIVER2}`, bd: "11:00", kt: "15:00" }); // dưới mốc
     const x = await xep(w, SALES, nguon.chuyen.id, [{ legId: gap.legId, soSuat: 2 }]);

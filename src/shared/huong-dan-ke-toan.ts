@@ -163,7 +163,7 @@ Mức riêng luôn được ưu tiên; khi gắn sẽ hiện khung vàng. Đổi
       noiDung: `Khi một tháng đã qua được đối chiếu xong, bạn khoá sổ tháng đó để không ai ghi thêm tiền vào tháng ấy (khoản thu, hoàn tiền, chi phí xe).
 
 1. Bấm [[Khoá sổ tháng]]. Trang ghi các tháng đã khoá và **Tháng khoá được kế tiếp**.
-2. Xem bảng kiểm: khoản Công ty thu chờ xác nhận, khoản thu chưa rõ người thu tiền, số dư từng bên. Bảng chỉ để xem, không chặn việc khoá.
+2. Xem bảng kiểm: khoản thu chờ đối chiếu, khoản thu chưa rõ người thu tiền, số dư từng bên. Bảng chỉ để xem, không chặn việc khoá.
 3. Bấm **Khoá tháng** kèm tháng cần khoá, đọc câu cảnh báo, ghi chú nếu muốn, rồi bấm nút xác nhận.
 
 > Lưu ý: Khoá từng tháng theo thứ tự, không khoá tháng chưa qua. Tháng đã khoá **không mở lại được**; sửa sau khi khoá chỉ còn cách khôi phục cả cơ sở dữ liệu, nên hãy chắc chắn trước.`,
@@ -223,7 +223,7 @@ Bấm nút **Lọc**, chọn **Đã huỷ** rồi bấm [[Áp dụng]]. Khối *
 - Sửa, xác nhận, huỷ đơn: không. Nhờ người lập đơn, người phụ trách đơn hoặc Quản trị.
 - Thêm dịch vụ, đổi giá sau khi xác nhận: chưa có cách sửa, kể cả tài khoản Toàn quyền — báo Quản trị. Số khách thì bạn sửa được (mục "Sửa số khách đơn đã xác nhận").
 - Nhận phụ trách, giao đơn cho người khác: không. Nhờ nhân viên bán hàng hoặc Quản trị.
-- Duyệt "Đặt gấp": không. Nhờ Quản trị.
+- Bấm "Đặt gấp": không. Nhờ nhân viên bán hàng hoặc Quản trị.
 - Tự duyệt yêu cầu điều chỉnh công nợ của chính mình: không. Nhờ Quản trị, Toàn quyền hoặc một Kế toán khác.
 - Đặt mức riêng cho một đối tác, thử tra mức: chưa, vì tài khoản Kế toán không tìm được đối tác theo tên. Nhờ Quản trị hoặc Toàn quyền.
 - Xếp xe, tạo chuyến, bấm tiến độ chuyến: không, bạn chỉ xem. Nhờ nhân viên bán hàng hoặc Quản trị.

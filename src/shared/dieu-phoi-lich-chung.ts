@@ -3,7 +3,7 @@
 //
 // - "Giữ" của chuyến CHƯA CHẠY = chính `kiemXuatBen` (một luật với cổng xuất bến), dự phóng "xuất bến đúng giờ": mốc xuất bến = max(bây giờ, giờ bắt đầu
 //   dự kiến). Nhờ vậy chuyến ngày mai không bị giữ "nghỉ thiếu" chỉ vì chuyến trước vừa kết thúc.
-// - Đơn nháp chỉ ĐẾM (I11); nháp có chặng dưới mốc chưa đặt gấp vào danh sách "chờ Quản trị duyệt đặt gấp" — route quyết ai được thấy (ô
+// - Đơn nháp chỉ ĐẾM (I11); nháp có chặng dưới mốc chưa đặt gấp vào danh sách "chờ duyệt đặt gấp" (Bán hàng, Quản trị — ADR-0107) — route quyết ai được thấy (ô
 //   `order.leg.short_notice`), hàm này không biết quyền.
 // - Chính sách rỗng → cảnh báo, không đoán mốc.
 import type { ChangVao, ChinhSachVao, ChuyenVao, DiemVao, DieuKienVao, HangBangVao, KhungChuyen, SuatVao, TrangThaiChuyen } from "./dieu-phoi-kieu.ts";

@@ -1,0 +1,30 @@
+BAT_DAU 17:03:58
+✓ form trống: trạng thái rỗng, không thanh tab, nút Lưu
+✓ Tạo đơn: thứ tự Khách hàng → Dịch vụ → Hành khách → Thanh toán (bốn bước, 14/10); nhập tay ẩn; Chuyển khoản mặc định, tên khách trống; nút 'của tôi' điền tên + SĐT tài khoản
+✓ ô chọn danh mục: 3 kết quả, lọc, trạng thái rỗng
+✓ Enter trong ô tìm danh mục: bị chặn (defaultPrevented), không gửi form, không banner lỗi, vẫn ở /order-form
+✓ dịch vụ nhóm: 7 khách → 2 lượt × 1.500.000 = 3.000.000, chữ '7 khách = 2 lượt'
+✓ dịch vụ theo người: 3.650.000; đơn giá 1.300.000 → nhãn 'Khác giá danh mục' + giá danh mục 1.350.000; tổng 3.550.000
+✓ bộ đếm: nút Tăng và ô số có vòng focus 2px lùi vào trong (không bị cắt bởi overflow:hidden)
+✓ dịch vụ nhập tay: 800.000, không nhãn lệch giá, có dòng nhắc 'không ghi tên khách'
+✓ khối chuyến: thu gọn kèm dòng cảnh báo, cảnh báo ngày đã qua / giờ đón, dòng tóm tắt, nhắc 'cùng ngày'
+✓ tóm tắt 7.350.000 / trả trước 1.000.000; bấm Lưu khi thiếu tên, SĐT → banner nêu đủ
+✓ lưu (sau khi xoá thẻ nhập tay mới): hai dịch vụ, tạm tính 6.550.000, dòng tiền do máy chủ sinh, đơn giá thương lượng và thông tin chuyến đã lưu
+✓ sửa nháp: mở đúng dữ liệu, ?focus= mở khối chuyến, đổi số khách chuyển sang giá danh mục hiện tại
+✓ stale: banner nguy hiểm, 'Tải lại đơn' nạp bản mới
+✓ catalog_changed: banner nêu 1.350.000 → 1.400.000, giá mới vào thẻ, lưu lại thành công
+✓ I1 qua DOM: thẻ đã lưu 2 → 3 → 2 quay về 1.300.000 + nhãn + tổng; gõ 1.234.000 ở 3 khách rồi về 2 vẫn 1.234.000; máy chủ lưu đúng và giữ giá danh mục của bản chụp
+✓ lưu thành công thay mục lịch sử của form (location.replace): lịch sử không còn /order-form, mục hiện tại là /order?id=…
+✓ danh sách danh mục: nút thường (không listbox/option); mục 'nhập tay' dùng aria-disabled, mờ, vẫn focus được, bấm không thêm thẻ; trạng thái rỗng role=status
+✓ trần 50 dòng/đơn: nút '+ Thêm dòng' của cả hai thẻ khoá ngay ở dòng thứ 50 và bật lại khi xoá bớt
+✓ bfcache: trang khôi phục (pageshow persisted) đang kẹt 'Đang lưu…' → nút về 'Lưu, chờ xác nhận', form hết inert; pageshow thường không đụng tới
+✓ một ngày cho cả đơn: thẻ không có ô ngày riêng; đổi ngày ở 'Chọn ngày' áp cho mọi dịch vụ
+✓ kế toán mở thẳng /order-form: banner 'không được lập đơn', nút Lưu khoá
+✓ bố cục theo khổ: 1040 hai cột + nút Lưu trong khung nhìn, lỗi → focus ô lỗi đầu tiên; 800 thanh Lưu có nền, lỗi → banner trong khung nhìn; không tràn ngang
+✓ dòng tổng ở thanh dính đáy: 390px và 800px hiện + đúng số tiền (không khối Tóm tắt), 1040px ẩn (khối Tóm tắt ở cột phải) — cascade CSS đúng cả 3 dải khổ
+   thanh dính đáy 390px: không thanh toán trước 123px, có thanh toán trước 124px
+✓ đếm dịch vụ: 'Dịch vụ (N)', Tóm tắt 'N dịch vụ', thanh đáy một dòng (Trả trước chỉ khi có thanh toán trước — sổ tiền lượt 1; 123/124px), không thông báo nổi (aria-live 'Đã thêm …'), nhãn '✓ đã thêm' không chặn chọn trùng
+✓ đo: vùng chạm ≥ 44px, ô gõ ≥ 16px, không tràn ngang ở 390px, 0 lỗi console
+UI SMOKE FORM OK
+EXIT=0
+KET_THUC 17:04:25

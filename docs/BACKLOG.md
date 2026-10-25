@@ -209,7 +209,7 @@
 
 **Nợ kỹ thuật của Đợt 7 (1.81):**
 
-- **BL-VC-SMOKE-CU — ba kịch bản Chrome cũ đỏ sẵn từ 1.80:** `a2-smoke-form` (thứ tự thẻ chưa biết khối "Hành khách"), `a2-smoke-order` (hết giờ "form mở lại đơn"), `dat-gap-smoke` bước 3/7/8/10 (`call()` đăng nhập lại làm phiên trình duyệt hết hạn — sổ phiên một máy ADR-0075). Đã chứng minh đỏ y hệt trên `dc1ef1fe` (trước Đợt 7). Sửa kịch bản, không sửa Nền tảng.
+- **BL-VC-SMOKE-CU — ba kịch bản Chrome cũ đỏ sẵn từ 1.80:** `a2-smoke-form` (thứ tự thẻ chưa biết khối "Hành khách"), `a2-smoke-order` (hết giờ "form mở lại đơn"), `dat-gap-smoke` bước 3/7/8/10 (`call()` đăng nhập lại làm phiên trình duyệt hết hạn — sổ phiên một máy ADR-0075). Đã chứng minh đỏ y hệt trên `dc1ef1fe` (trước Đợt 7). Sửa kịch bản, không sửa Nền tảng. **Cập nhật 25/10 (nhánh ADR-0107):** `dat-gap-smoke` (13/13) và `a2-smoke-form` nay ĐẠT; còn `a2-smoke-order` đỏ (dừng ở "banner incomplete_trip", y hệt `main` `78d21d65`) — nhật ký ở `docs/evidence/2026-10-25-adr-0107/`.
 - **BL-VC-TRO-GIUP — Trợ giúp bị cắt chữ để giữ trần 30 phút:** Bán hàng mất câu "Giờ đón sau giờ khởi hành" và câu ngày khởi hành đã qua; Quản trị mất ví dụ Đặt gấp và câu "Chỉ Quản trị và Toàn quyền duyệt Đặt gấp". Gói A5 (2026-10-09, thêm câu chuyển khách giữa hai xe) cắt thêm: Bán hàng mục "Điều phối xe" mất "chọn chặng, số khách" (sau [[Thêm điểm đón / thêm khách]]) và "(nhầm thì [[Bỏ đánh dấu]])" (sau [[Đã gọi báo]]); Quản trị mục "Điều chỉnh khẩn cấp và phá lệ" mất câu "Việc này ghi vào nhật ký chuyến kèm tên bạn." Khôi phục khi chủ nâng trần hoặc gọn chỗ khác.
 - **BL-VC-BANG-KICH-BAN — `web/CLAUDE.md` chưa liệt kê hai kịch bản Chrome mới** (`docs/evidence/2026-10-05-cam-ket-xe/kich-ban/cam-ket-xe-smoke.mjs`, `cam-ket-form-smoke.mjs`). Tệp luật — chủ duyệt mới thêm (N9).
 - **BL-VC-CHROME-CAM-KET — Chrome chưa phủ hộp phá lệ cam kết ở sửa chuyến / thêm điểm khi xe chạy / dời** (chỉ có bài đơn vị cho `thanPhaLe`); chưa thử iPhone thật; chưa chạy axe trong lượt kiểm độc lập.
@@ -548,3 +548,13 @@ Ghi 25/10 khi đóng phiên phân tích góp ý và ba phiên con (Lượt A, nh
 
 - **Trạng thái:** `chờ chủ chọn chữ` · Thấy khi nghiệm thu 2.30 (25/10): trang đăng nhập hiện «Thời gian dự kiến hoàn tất là 18 giờ 30 phút 48 giây». Con số là thời gian CÒN LẠI (`maintenanceMessageParts` ở `src/shared/maintenance.ts`, câu có từ 21/9), nhưng đọc lướt dễ hiểu là «xong lúc 18:30».
 - **Phương án chữ để chủ chọn:** (a) «Dự kiến xong lúc 09:11 ngày 26/10 (còn 18 giờ 30 phút)» — rõ nhất; (b) «Dự kiến hoàn tất sau 18 giờ 30 phút 48 giây nữa»; (c) giữ nguyên. Chỉ đổi chữ giao diện (kèm bài kiểm của hàm), không đụng luật máy chủ tự tắt đúng giờ.
+
+## 47. Chiết khấu theo loại khách — nợ còn mở sau bản 2.26 (mã `BL-LK-…`)
+
+Ghi 25/10 khi đóng phiên ADR-0133 (bản 2.25 + vá 2.26, migration `0116`). Trạng thái triển khai ở `docs/HANDOFF-N1.md` mục «Phiên bản 2.25», «Phiên bản 2.26»; nơi tính và các nơi gọi ở `docs/so-do-kien-truc/README.md` mục ADR-0133. Không dòng nào là lỗi tiền đang biết: ngày 25/10 hai bộ bài khoá (`src/da-giao-theo-loai.test.ts`, `src/modules/orders/chiet-khau-theo-loai.test.ts`) xanh trên `main` và `audit-invariants --db remote` ĐẠT.
+
+| Mã | Việc | Nơi | Vì sao để sau |
+|---|---|---|---|
+| BL-LK-RAO-NOI-GOI | Chưa có hàng rào máy tự quét MỌI nơi gọi hàm tính hoa hồng (`tinhDongDoiTac`, `dongThuongMaiTu`, `tongHoaHongDon`, `donChoTran`) để bắt nơi quên truyền số khách theo loại — kể cả `scripts/*.mjs` nằm ngoài typecheck. Hai lỗi tiền cùng loại đã lọt qua đúng khe này (đường ghi tay ra 200.000 thay vì 170.000, bắt được trước khi gộp; billing bỏ rơi số khách theo loại làm «Đã giao» lỗi 500 ở bản 2.25). Cùng gốc với `BL-SDL2-THU-TU-TIEN` (K-A-3 không quét `scripts/`): theo luật «khuôn trước, việc sau» nên làm MỘT rào chung cho cả hai | `src/shared/hoa-hong-dong.ts` và nơi gọi ở `orders`, `billing`, `scripts/audit-checks.mjs`, `scripts/audit-thuong-mai.mjs` | Hôm nay đúng nhờ bài khoá và người kiểm độc lập; lần thêm tham số sau chưa có máy chặn |
+| BL-LK-BAI-THIEU | Thiếu hai ca bài: (a) Đối tác tự xem hoa hồng của mình ở đơn dùng mức theo loại; (b) sửa số khách SAU «Đã giao» rồi chạy `R-BIL-2` (rủi ro báo lệch giả) | gợi ý đặt cạnh `src/da-giao-theo-loai.test.ts` | Ca biên; phần lõi đã có bài khoá |
+| BL-LK-NHAN-GHI-TAY | Dòng nhật ký «ghi tay» (`order_terms_manual`) chỉ nêu một số chung (số người lớn) khi bản chụp có ba số theo loại | `nhanHoaHongBan` ở `src/modules/orders/thuong-mai.ts` | Chỉ là chữ nhật ký; tiền đúng |

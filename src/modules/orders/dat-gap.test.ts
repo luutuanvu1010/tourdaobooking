@@ -45,13 +45,17 @@ async function nhap(w: any, as: string, gio: { date: string; time: string }) {
 const datGap = (w: any, o: any, as: string, body: unknown, legId = o.services[0].legs[0].id) => w.call("POST", `/api/orders/${o.id}/legs/${legId}/short-notice`, { as, body });
 const cot = (w: any, legId: string) =>
   ({ ...w.q("SELECT short_notice_reason AS lyDo, short_notice_note AS ghiChu, short_notice_by AS nguoi, short_notice_at AS luc, short_notice_lead_minutes AS phut FROM ord_transfer_leg WHERE id = ?", legId)[0] });
+/** Dấu CŨ đóng trước ADR-0107 trên chặng còn xa (dữ liệu có thật trên production) — API nay không tạo được, nên gieo thẳng CSDL. */
+const gieoDauCu = (w: any, legId: string) =>
+  w.sqlite.prepare("UPDATE ord_transfer_leg SET short_notice_reason = 'KHAC', short_notice_by = ?, short_notice_at = ?, short_notice_lead_minutes = 360 WHERE id = ?").run(ADM, new Date().toISOString(), legId);
 
 // ---- Route đặt gấp (TC-22 phần quyền / thân; TC-28) -------------------------------------------------------------------------------------------------------
-test("TC-22 route đặt gấp: Bán hàng, Kế toán, Thực tập, Đối tác → 403 (ô order.leg.short_notice chỉ Quản trị, Toàn quyền); không ghi, không nhật ký", async () => {
+// ADR-0107 (i) — NỚI có tên (chủ Q-3 a 8/10): Bán hàng có ô, ra khỏi danh sách 403 (Bán hàng đặt gấp: dat-gap-sat-gio.test.ts bài 1).
+test("TC-22 route đặt gấp: Kế toán, Thực tập, Đối tác → 403 (ô order.leg.short_notice: Bán hàng, Quản trị, Toàn quyền — ADR-0107); không ghi, không nhật ký", async () => {
   const w = setup();
   const o = await nhap(w, SALES, vnSau(120));
   const n0 = w.q("SELECT count(*) n FROM audit_log")[0].n;
-  for (const as of [SALES, ACC, INTERN, PARTNER]) {
+  for (const as of [ACC, INTERN, PARTNER]) {
     const r = await datGap(w, o, as, { lyDo: "KHACH_DOAN_GOI_GAP", ghiChu: "" });
     assert.equal(r.status, 403, `${as}: ${r.text}`);
   }
@@ -212,7 +216,8 @@ const suaChang = (w: any, o: any, as: string, over: Record<string, unknown>, dat
   });
 };
 
-test("TC-24 PUT …/legs/:legId dưới mốc: Bán hàng → 409 short_notice_required (kể cả chặng ĐÃ có dấu cũ — Q3); Bán hàng gửi datGap → 403; Quản trị KHÔNG datGap → 409; Quản trị kèm datGap → 200, dấu MỚI, nhật ký trước → sau có 'đặt gấp'", async () => {
+// ADR-0107 (i) — NỚI có tên (chủ Q-3 a 8/10): "Bán hàng gửi datGap → 403" thành "Bán hàng (đơn mình lập) kèm datGap → 200, dấu của Bán hàng" (cuối bài).
+test("TC-24 PUT …/legs/:legId dưới mốc: Bán hàng → 409 short_notice_required (kể cả chặng ĐÃ có dấu cũ — Q3); Quản trị KHÔNG datGap → 409; Quản trị kèm datGap → 200, dấu MỚI, nhật ký trước → sau có 'đặt gấp'; Bán hàng (đơn mình) kèm datGap → 200 (ADR-0107)", async () => {
   const w = setup();
   const o = await daXacNhanSatGio(w);
   const legId = o.services[0].legs[0].id;
@@ -220,7 +225,6 @@ test("TC-24 PUT …/legs/:legId dưới mốc: Bán hàng → 409 short_notice_r
   const r1 = await suaChang(w, o, SALES, { pickupPlace: "Khách sạn Mới" });
   assert.equal(r1.status, 409, r1.text);
   assert.equal(r1.json.error.code, "short_notice_required");
-  assert.equal((await suaChang(w, o, SALES, { pickupPlace: "Khách sạn Mới" }, DAT_GAP)).status, 403);
   assert.equal((await suaChang(w, o, ADM, { pickupPlace: "Khách sạn Mới" })).status, 409);
   assert.deepEqual(cot(w, legId), truoc, "không đổi gì");
   const ok = await suaChang(w, o, ADM, { pickupPlace: "Khách sạn Mới" }, DAT_GAP);
@@ -231,6 +235,9 @@ test("TC-24 PUT …/legs/:legId dưới mốc: Bán hàng → 409 short_notice_r
   assert.notEqual(sau.luc, truoc.luc, "dấu MỚI (lúc mới)");
   const nk = w.q("SELECT detail FROM audit_log WHERE action = 'order_leg_updated' ORDER BY rowid DESC LIMIT 1")[0].detail;
   assert.match(nk, /đặt gấp: Chuyến bay đổi giờ/);
+  const ban = await suaChang(w, ok.json.order, SALES, { pickupPlace: "Khách sạn Mới Hơn" }, DAT_GAP);
+  assert.equal(ban.status, 200, ban.text);
+  assert.equal(cot(w, legId).nguoi, SALES, "ADR-0107 (i): Bán hàng (đơn mình lập) tự đóng dấu khi sửa chặng dưới mốc");
 });
 
 test("TC-24 POST …/legs và PUT …/trip dưới mốc: Bán hàng → 409; Quản trị kèm datGap → chặng mới / chặng sửa mang dấu; chặng xa hơn mốc: Bán hàng sửa được, dấu CŨ bị bỏ (duyệt nội dung cũ — I16)", async () => {
@@ -260,9 +267,10 @@ test("TC-24 POST …/legs và PUT …/trip dưới mốc: Bán hàng → 409; Qu
   assert.equal(t2.status, 200, t2.text);
   assert.equal(cot(w, outId).lyDo, "CHUYEN_BAY_DOI_GIO", "Quản trị kèm datGap qua PUT /trip: chặng sửa mang dấu MỚI");
   assert.match(w.q("SELECT detail FROM audit_log WHERE action = 'trip_updated' ORDER BY rowid DESC LIMIT 1")[0].detail, /đặt gấp: Chuyến bay đổi giờ/);
-  // Chặng xa hơn mốc (2 ngày): Bán hàng sửa được; dấu cũ (nếu có) bị bỏ vì nội dung đổi
+  // Chặng xa hơn mốc (2 ngày): Bán hàng sửa được; dấu cũ (nếu có) bị bỏ vì nội dung đổi. Dấu cũ trên chặng còn xa nay chỉ còn là dữ liệu đóng TRƯỚC ADR-0107
+  // (nút Đặt gấp trả 409 short_notice_not_needed) → gieo thẳng CSDL.
   const xa = await nhap(w, SALES, vnSau(24 * 60 * 2));
-  assert.equal((await datGap(w, xa, ADM, { lyDo: "KHAC" })).status, 200);
+  gieoDauCu(w, xa.services[0].legs[0].id);
   assert.equal((await xacNhan(w, xa.id, SALES)).status, 200);
   const xaDoc = (await w.call("GET", `/api/orders/${xa.id}`, { as: ADM })).json.order;
   const s = await suaChang(w, xaDoc, SALES, { pickupPlace: "Khách sạn Khác" });
@@ -306,10 +314,11 @@ test("TC-43 (Q1 = (a)) lưu lại đơn nháp: chặng KHÔNG đổi giờ / nơ
   assert.equal(r.status, 200, r.text);
   assert.equal(cot(w, r.json.order.services[0].legs[0].id).lyDo, null, "đổi nơi đón: mất dấu");
   assert.equal((await xacNhan(w, o.id, SALES)).status, 409);
-  // đổi GIỜ (cùng ngày, xa mốc — chỉ đọc cột, không phụ thuộc giờ chạy bài) → mất dấu
+  // đổi GIỜ (cùng ngày, xa mốc — chỉ đọc cột, không phụ thuộc giờ chạy bài) → mất dấu. Dấu cũ trên chặng còn xa = dữ liệu đóng TRƯỚC ADR-0107 → gieo thẳng CSDL
+  // (đường chép của đơn nháp chép mọi dấu đã lưu, không xét mốc — ngoại lệ có tên của ADR-0107 mục 4).
   const xa = inDays(2);
   const o4 = await nhap(w, SALES, { date: xa, time: "05:00" });
-  assert.equal((await datGap(w, o4, ADM, { lyDo: "KHAC" })).status, 200);
+  gieoDauCu(w, o4.services[0].legs[0].id);
   d = (await w.call("GET", `/api/orders/${o4.id}`, { as: SALES })).json.order;
   r = await w.call("PUT", `/api/orders/${o4.id}`, { as: SALES, body: { customerName: "Khách Thử", customerPhone: "0912345678", expectedUpdatedAt: d.updatedAt, services: [svc(xa, [leg(xa, "05:00")], { id: d.services[0].id })] } });
   assert.equal(r.status, 200, r.text);

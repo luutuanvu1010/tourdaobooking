@@ -31,7 +31,8 @@ const chup = async (w: any, d: { id: string }) => ({
   updatedAt: (await lay(w, d.id)).updatedAt as string, nhatKy: soNhatKy(w, d.id), soDong: w.q("SELECT count(*) n FROM ord_transfer_leg WHERE order_id = ?", d.id)[0].n as number,
 });
 
-test("(a) C14: Bán hàng thay chặng dưới mốc (08:00, đón 13:00) → 409 short_notice_required; chặng cũ VẪN MỞ, không ghi gì; Bán hàng kèm datGap → 403", async () => {
+// ADR-0107 (i) — NỚI có tên (chủ Q-3 a 8/10): "Bán hàng kèm datGap → 403" thành "→ 200, chặng mới (dưới mốc) mang dấu của Bán hàng".
+test("(a) C14: Bán hàng thay chặng dưới mốc (08:00, đón 13:00) → 409 short_notice_required; chặng cũ VẪN MỞ, không ghi gì; Bán hàng kèm datGap → 200, chặng mới mang dấu của Bán hàng (ADR-0107)", async () => {
   const tat = batDongHo();
   try {
     const w = setup();
@@ -45,14 +46,17 @@ test("(a) C14: Bán hàng thay chặng dưới mốc (08:00, đón 13:00) → 40
     const o = await lay(w, d.id);
     assert.deepEqual(o.services[0].legs.map((l: any) => l.id), [d.legId], "đơn đã xác nhận còn đúng chặng cũ");
     const gap = await thay(w, d.id, d.legId, SALES, { expectedUpdatedAt: truoc.updatedAt, leg: MOI, datGap: DAT_GAP });
-    assert.equal(gap.status, 403, gap.text);
-    khongGhiGi(w, d, truoc);
+    assert.equal(gap.status, 200, gap.text);
+    assert.equal(dongLeg(w, d.legId).close_reason_code, "REPLACED");
+    const moi = gap.json.order.services[0].legs[0];
+    assert.equal(w.q("SELECT short_notice_by FROM ord_transfer_leg WHERE id = ?", moi.id)[0].short_notice_by, SALES, "chặng mới 13:00 (dưới mốc) mang dấu của Bán hàng");
   } finally {
     tat();
   }
 });
 
-test("(k) mốc xét CẢ chặng cũ (giống PUT …/legs/:legId — ADR-0049 D2): Bán hàng thay chặng ĐANG dưới mốc sang giờ trên mốc → 409, không ghi gì; Quản trị kèm datGap → 200", async () => {
+// ADR-0107 (ii), phán quyết G15 (SIẾT): lệnh được phép nhờ lý do (giờ cũ dưới mốc) nhưng chặng MỚI ở xa không mang dấu — trước đây mang dấu (đường né mốc).
+test("(k) mốc xét CẢ chặng cũ (giống PUT …/legs/:legId — ADR-0049 D2): Bán hàng thay chặng ĐANG dưới mốc sang giờ trên mốc → 409, không ghi gì; Quản trị kèm datGap → 200, chặng mới (trên mốc) KHÔNG mang dấu (ADR-0107, G15)", async () => {
   const tat = batDongHo();
   try {
     const w = setup();
@@ -67,7 +71,7 @@ test("(k) mốc xét CẢ chặng cũ (giống PUT …/legs/:legId — ADR-0049 
     const q = await thay(w, d.id, d.legId, ADM, { expectedUpdatedAt: truoc.updatedAt, leg: sau, datGap: DAT_GAP });
     assert.equal(q.status, 200, q.text);
     assert.equal(dongLeg(w, d.legId).close_reason_code, "REPLACED");
-    assert.deepEqual(q.json.order.services[0].legs.map((l: any) => [l.pickupTime, l.pickupLabel, l.datGap !== null]), [["16:00", "Khách sạn Mới", true]]);
+    assert.deepEqual(q.json.order.services[0].legs.map((l: any) => [l.pickupTime, l.pickupLabel, l.datGap !== null]), [["16:00", "Khách sạn Mới", false]]);
   } finally {
     tat();
   }

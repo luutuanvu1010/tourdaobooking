@@ -143,8 +143,9 @@ ds = (await call(A, "GET", `/api/orders/${h.id}/passengers`)).body;
 assert.deepEqual([ds.soNguoiCoTen, ds.soKhachDoan, ds.vuotSoKhach], [3, 3, false]);
 console.log("✓ (8) cờ vượt số khách dùng số khách hiệu lực (HDV sửa 2 → 3 thì tắt)");
 
-// (9) ADR-0049 D2 — MỐC 6 GIỜ LÚC ĐẶT + ĐẶT GẤP trên D1 THẬT (đường thật: Quản trị đặt gấp qua route — Ruling N-9 (ii); mốc = chính sách gieo 360 phút).
-// Chặng đón sau 2 giờ: lưu nháp được (kèm cảnh báo), xác nhận → 409 `short_notice_required`; Bán hàng đặt gấp → 403; Quản trị đặt gấp → 200; xác nhận → 200.
+// (9) ADR-0049 D2 + ADR-0107 — MỐC 6 GIỜ LÚC ĐẶT + ĐẶT GẤP trên D1 THẬT (đường thật: đặt gấp qua route — Ruling N-9 (ii); mốc = chính sách gieo 360 phút).
+// Chặng đón sau 2 giờ: lưu nháp được (kèm cảnh báo), xác nhận → 409 `short_notice_required`; Bán hàng đặt gấp → 200 (ADR-0107 ý (i), nới có tên — trước là
+// 403); xác nhận → 200. Chặng đón ngày kia 23:00 (luôn ngoài mốc): Quản trị đặt gấp → 409 `short_notice_not_needed`, không ghi (ADR-0107 ý (ii)).
 {
   const ADM = await session(ACCOUNTS.admin);
   const sau2 = new Date(Date.now() + 7 * 3600e3 + 120 * 60e3).toISOString();
@@ -159,9 +160,8 @@ console.log("✓ (8) cờ vượt số khách dùng số khách hiệu lực (HD
   assert.equal(r.status, 409, JSON.stringify(r.body));
   assert.equal(r.body.error.code, "short_notice_required");
   assert.deepEqual(r.body.error.legs.map((x) => x.legId), [legId]);
-  assert.equal((await call(A, "POST", `/api/orders/${g.id}/legs/${legId}/short-notice`, { lyDo: "KHACH_DOAN_GOI_GAP" })).status, 403, "Bán hàng không đặt gấp");
-  r = await call(ADM, "POST", `/api/orders/${g.id}/legs/${legId}/short-notice`, { lyDo: "KHACH_DOAN_GOI_GAP", ghiChu: "Khách gọi, số 0905 123 456 78" });
-  assert.equal(r.status, 200, JSON.stringify(r.body));
+  r = await call(A, "POST", `/api/orders/${g.id}/legs/${legId}/short-notice`, { lyDo: "KHACH_DOAN_GOI_GAP", ghiChu: "Khách gọi, số 0905 123 456 78" });
+  assert.equal(r.status, 200, `ADR-0107 ý (i): Bán hàng tự đặt gấp chặng dưới mốc — ${JSON.stringify(r.body)}`);
   const cot = (await sqlRows(`SELECT short_notice_reason AS l, short_notice_lead_minutes AS p, short_notice_note AS n FROM ord_transfer_leg WHERE id = '${legId}'`))[0];
   assert.deepEqual([cot.l, cot.p], ["KHACH_DOAN_GOI_GAP", 360]);
   assert.ok(!String(cot.n).includes("0905"), "ghi chú đã che dãy số");
@@ -173,7 +173,17 @@ console.log("✓ (8) cờ vượt số khách dùng số khách hiệu lực (HD
   // D1 THẬT giữ CHECK của 0040: có lý do mà thiếu số phút → chặn (vế IS NOT NULL tường minh)
   const legId2 = (await sqlRows(`SELECT id FROM ord_transfer_leg WHERE order_id = '${g.id}' AND closed_at IS NULL`))[0].id;
   await assert.rejects(sql(`UPDATE ord_transfer_leg SET short_notice_lead_minutes = NULL WHERE id = '${legId2}'`), /CHECK constraint failed/);
-  console.log("✓ (9) mốc 6 giờ: lưu nháp có cảnh báo, xác nhận 409 short_notice_required; Bán hàng đặt gấp 403; Quản trị đặt gấp 200 (360 phút, ghi chú che số); xác nhận 200; CHECK 0040 giữ trên D1");
+  // ADR-0107 ý (ii): chặng ngoài mốc — kể cả Quản trị cũng không đóng dấu được; không ghi dấu, không nhật ký.
+  const xa = vnDate(2);
+  r = await call(A, "POST", "/api/orders", orderInput({ services: [catalogService({ pax: { adult: 2 }, departDate: xa, legs: [{ ...OUT, pickupDate: xa, pickupTime: "23:00" }] })] }));
+  assert.equal(r.status, 201, JSON.stringify(r.body));
+  const donXa = r.body.order;
+  const legXa = donXa.services[0].legs[0].id;
+  r = await call(ADM, "POST", `/api/orders/${donXa.id}/legs/${legXa}/short-notice`, { lyDo: "KHACH_DOAN_GOI_GAP" });
+  assert.deepEqual([r.status, r.body.error?.code], [409, "short_notice_not_needed"], JSON.stringify(r.body));
+  assert.equal((await sqlRows(`SELECT short_notice_reason AS l FROM ord_transfer_leg WHERE id = '${legXa}'`))[0].l, null, "409: không ghi dấu");
+  assert.equal((await sqlRows(`SELECT count(*) AS n FROM audit_log WHERE order_id = '${donXa.id}' AND action = 'order_leg_short_notice'`))[0].n, 0, "409: không nhật ký");
+  console.log("✓ (9) mốc 6 giờ: lưu nháp có cảnh báo, xác nhận 409 short_notice_required; Bán hàng đặt gấp 200 (360 phút, ghi chú che số — ADR-0107); xác nhận 200; CHECK 0040 giữ trên D1; Quản trị đặt gấp chặng ngoài mốc 409 short_notice_not_needed");
 }
 
 // (10) C14 — THAY CHẶNG trên D1 THẬT (`POST /api/orders/:id/legs/:legId/replace`; người kiểm độc lập V3, 2026-10-08): đóng chặng cũ + thêm chặng mới

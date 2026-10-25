@@ -1,0 +1,14 @@
+BAT_DAU 17:04:25
+✓ đơn nháp: 2 khối dịch vụ, chip, số khách, chuyến, dòng tiền, nhãn lệch giá (chỉ dịch vụ danh mục), tổng, thanh toán, 3 nút
+file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/so-cong-no-kiem-718026/docs/evidence/2026-09-20-a2/kich-ban/a2-cdp.mjs:186
+        if (Date.now() > end) throw new Error(`hết giờ chờ: ${what}\n${expression}`);
+                                    ^
+
+Error: hết giờ chờ: banner incomplete_trip
+!document.getElementById('error').hidden && /Chưa đủ thông tin chuyến để xác nhận đơn\./.test(document.getElementById('error').textContent)
+    at Object.waitFor (file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/so-cong-no-kiem-718026/docs/evidence/2026-09-20-a2/kich-ban/a2-cdp.mjs:186:37)
+    at async file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/so-cong-no-kiem-718026/docs/evidence/2026-09-20-a2/kich-ban/a2-smoke-order.mjs:77:3
+
+Node.js v22.22.3
+EXIT=1
+KET_THUC 17:04:52

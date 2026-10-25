@@ -1,0 +1,11 @@
+BAT_DAU 17:02:10
+✓ a) mỗi quyền mở /help: dòng phiên bản, đủ bản, bản đầu mới nhất, nút Góp ý
+✓ b) đường vào: menu máy tính, dòng ở trang Tôi, thanh tab không thêm tab
+✓ c) chấm đỏ: chưa xem, đã xem, bản cũ, rác, localStorage bị chặn
+✓ d) console sạch, không CSP; vùng chạm ≥ 44px, không tràn ngang ở 390 và 320
+✓ e) mất mạng: mở /help từ bộ nhớ đệm vẫn đọc được nhật ký (vẽ trước initShell)
+✓ f) hướng dẫn theo vai: mỗi quyền thấy đúng nhóm; Quản trị có "Hướng dẫn các vai khác"; không tràn 320
+
+HELP SMOKE OK — mọi bước ✓
+EXIT=0
+KET_THUC 17:02:34

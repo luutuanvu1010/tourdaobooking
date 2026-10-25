@@ -52,7 +52,7 @@ export function kiemMocDat(chang: ChangMoc, bayGioMs: number, phut: number): Ket
 }
 
 /**
- * I14 (Q3 chủ: "Chỉ Quản trị, Toàn quyền"): sửa ngày / giờ / nơi của chặng đơn ĐÃ XÁC NHẬN khi min(giờ cũ, giờ mới) dưới mốc → cần ô `order.leg.short_notice`
+ * I14 (Q3 chủ: "Chỉ Quản trị, Toàn quyền" — ADR-0107 nới thêm Bán hàng): sửa ngày / giờ / nơi của chặng đơn ĐÃ XÁC NHẬN khi min(giờ cũ, giờ mới) dưới mốc → cần ô `order.leg.short_notice`
  * + lý do trong CHÍNH lệnh sửa. Dấu cũ KHÔNG miễn (nó duyệt nội dung cũ). Chặng chưa chốt giờ ở cả hai phía → không xét (I13). `cu` null = thêm chặng.
  * MỘT luật cho máy chủ (route thêm / sửa / thay chặng, `PUT /trip` của orders) và bảng Sửa đưa đón (kiểm cả kế hoạch trước lệnh đầu — C14); chuyển từ
  * src/modules/orders/dat-gap.ts sang đây ngày 2026-10-08, không đổi nghĩa.
