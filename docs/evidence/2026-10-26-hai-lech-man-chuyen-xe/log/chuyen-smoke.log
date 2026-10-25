@@ -1,0 +1,13 @@
+✓ 1) 2a 1040 Bán hàng CX-3010-03 bị giữ "nơi đón / trả đã đổi": đầu trang, dải + nút "Cập nhật điểm theo đơn", dải bốn ô, điểm "Lệch đơn", điều kiện xuất bến, nhật ký; "Cho xe chạy thay tài xế" khoá vì bị giữ (2.7), axe không vi phạm critical/serious
+✓ 2) H10: chuyến vừa bị người khác sửa → bấm 'Cập nhật điểm theo đơn' báo câu chung + nút 'Tải lại' (không tên người); tải lại rồi bấm → đã cập nhật, hết 'Lệch đơn', nhật ký thêm dòng
+✓ 2b) C30 (ADR-0096 Đ1.3c) 1040 Bán hàng CX-3010-04 (kế hoạch: đón · đón · trả): ↑ ↓ ở ô nơi — đầu / cuối khoá; đưa điểm trả lên trước điểm đón khoá kèm lời giải thích; bấm ↓ điểm đón đầu → PUT thân version + diem (giữ giờ xe tới) + requestId, thứ tự đổi, dải "Đã đổi thứ tự điểm"; bấm ↑ trả lại; 390: nút trong ô nơi, không tràn ngang
+✓ 3) 2f + 2.12: huỷ CX-3010-01 (3 khách, ngoài vùng khoá) — hộp "Huỷ chuyến" nói khách trở về cột "Chưa xếp", lý do nhóm Huỷ chuyến, nút khoá tới khi chọn → huỷ được, axe không vi phạm critical/serious
+✓ 4) H17 (Bán hàng): huỷ CX-2610-01 (đang khoá, 2 khách) → máy chủ đòi điều chỉnh khẩn cấp; Bán hàng có ô → hộp huỷ đóng, hộp 'Điều chỉnh khẩn cấp' mở ('Điều chỉnh khẩn cấp và huỷ'); đóng, không gửi
+✓ 5) 2b 390 Bán hàng CX-3010-02 (giấy tờ xe + thiếu tên): dòng tóm tắt thay dải bốn ô, điểm dạng vòng số, "2 chưa đạt" kèm ai xử lý, nút Sửa + Huỷ ở cuối trang, axe không vi phạm critical/serious
+✓ 5b) Người đi kèm 390 Bán hàng CX-3010-02: "Thêm người đi kèm" → bảng có tên hướng dẫn viên, KHÔNG SĐT → chọn → "Gắn lên xe" → dải "Đã gắn người đi kèm"; thẻ Khách trong chuyến có "Người đi kèm · 1" + tên, axe không vi phạm critical/serious
+✓ 6) H17 1040 Quản trị: dòng khoá "Bạn có thể điều chỉnh khẩn cấp"; huỷ CX-2610-01 → hộp huỷ đóng, hộp "Điều chỉnh khẩn cấp" mở → "Điều chỉnh khẩn cấp và huỷ" gửi lại huỷ kèm lý do → đã huỷ, chip "Điều chỉnh khẩn cấp" (ADR-0104 Đ1)
+✓ 7) Kế toán CX-3010-02: xem đủ (dải bốn ô, điểm, điều kiện, nhật ký) nhưng KHÔNG nút nào; không lệnh ghi
+✓ 8) không lỗi console ở mọi trang đã mở
+
+CHUYEN SMOKE OK (10 bước)
+EXIT=0
