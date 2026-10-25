@@ -42,3 +42,29 @@ Bài mới ở `src/modules/orders/dat-gap-sat-gio.test.ts` (chạy cả ứng d
 ## Ngoài phạm vi (nói với chủ một lần)
 
 Dấu Quản trị đã đóng trước nhiều ngày trên production (trước ADR này) KHÔNG bị dọn: chúng còn miễn mốc lúc xếp cho tới khi chặng bị sửa (I16 bỏ dấu khi nội dung đổi). Đếm và dọn là việc riêng, cần chủ quyết (đọc D1 remote).
+
+## Kết quả thi công (2026-10-25, lời khai của người thi công — người kiểm độc lập ở mục sau)
+
+| Commit | Việc | Đỏ trước (đã thấy) |
+|---|---|---|
+| `507ab09b` | Kế hoạch + tiêu chí T1–T13 (trước khi sửa mã) | — |
+| `dae616be` | Quyền, máy chủ, nhãn, hướng dẫn, trợ lý, nhật ký thay đổi; bài mới `dat-gap-sat-gio.test.ts`; nới sáu bài ghim ADR nêu tên; bảy tệp bài khác chỉ đổi dữ liệu gieo (chặng đặt gấp phải dưới mốc, đặt gấp khi còn nháp rồi mới xác nhận — tuỳ chọn `datGap` của khung thử) | bài mới chạy trước khi sửa mã: 12/13 đỏ; bỏ vế `|| coDatGap` ở `PUT …/trip` ⇒ bài 3a đỏ; đưa object thường làm dấu ⇒ `tsc` đỏ `TS2345`; thêm một `as DauDatGapMoi` ⇒ bài 7 đỏ — mỗi lần hoàn nguyên → xanh |
+| `ca631a73` | Tài liệu mô tả (`SYSTEM-DESIGN` §5, §7, §8, §9, §15; `CHANGE-GUIDE`), sổ hàng rào, kịch bản Chrome `dat-gap-smoke` theo luật mới (bước 2b) | — |
+| `f1a902c4` | Gộp `main` `78d21d65`: một mục nhật ký thay đổi **2.31** chung với khoá tháng (ba dòng ADR-0107 sau dòng khoá tháng) | — |
+| (commit này) | Bài 1b: chặng bị dời ra xa chen giữa lúc nút Đặt gấp đọc giờ và lúc ghi dấu ⇒ 409 `stale`, không dấu, không nhật ký; bằng chứng Chrome; sổ bàn giao triển khai | trên bản sao tạm, thay vế giờ của câu `leg_short_notice` bằng `?8 IS ?8 AND ?9 IS ?9` ⇒ bài 1b đỏ (`expected: 409`, `actual: 200`) |
+
+Đã chạy trên nhánh (sau gộp `main`): `npm run typecheck` 0 lỗi; `npm test` 6168 bài, 0 đỏ (11 todo có sẵn) + bài đo giờ hook 1/1; e2e đủ bộ **72/72** kịch bản, `audit-invariants --strict` ba nhóm đều "Mọi bất biến đạt" (trước đó `chang-hanh-khach` + `tai-xe-cuoc` chạy riêng: xanh); 13 tệp bài có đặt gấp chạy theo giờ thật được quét dưới tám giờ giả trong ngày (21:50, 23:40, 22:15, 00:20, 02:00, 05:50, 06:20, 09:00) — đều xanh. Kịch bản Chrome: `docs/evidence/2026-10-25-adr-0107/README.md` (`dat-gap-smoke` 13/13, `dua-don-smoke` 16/16, `help-smoke`, `a2-smoke-form`, `a2-smoke-sheet` đạt; năm kịch bản đỏ y hệt `main` hoặc do lệnh gieo của kịch bản).
+
+Tự quyết trong lúc làm (bề mặt, đảo ngược được):
+- **R1** — Giữ chữ "Duyệt đặt gấp" (nút trong khung), "Đã duyệt đặt gấp: …" (thông báo), chip "Đã duyệt đặt gấp" ở thẻ đơn và "chờ duyệt đặt gấp" ở Điều phối xe: ADR mục 8 chỉ đổi nhãn của DẤU thành "Điều chỉnh khẩn cấp".
+- **R2** — Gộp vào mục 2.31 (số tạm) của `main` thay vì thêm số mới (lời dặn trong commit `78d21d65` và `docs/HANDOFF-N1.md`).
+- **R3** — `PUT …/trip` chỉ đổi ghi chú mà kèm `datGap` ⇒ 409 `short_notice_not_needed` (không chặng nào của lệnh dưới mốc — G11 đọc theo nghĩa chữ).
+- **R4** — Câu ghi của nút Đặt gấp thêm điều kiện "đúng ngày, giờ đã xét" (chống đổi giờ chen giữa) — có bài 1b.
+- **R5** — Bài `tin-doi-hop.test.ts`: lệnh đầu của Quản trị nay dời chặng VÀO dưới mốc kèm lý do (trước: dời ra xa kèm lý do, nay bị 409) — giữ ý của bài (đuôi lý do trong tin đơn).
+- **R6** — e2e `tai-xe-cuoc` ca 4 tính kỳ vọng theo giờ chạy (chặng 23:50): dưới mốc thì Quản trị đặt gấp 200, ngoài mốc thì 409 `short_notice_not_needed`; khoảng ~17:39–17:51 giờ VN sát ranh mốc thì bỏ qua bước đặt gấp.
+
+Nợ / chưa làm: năm kịch bản Chrome đỏ sẵn (`moc-chua-co-smoke`, `dieu-phoi-smoke`, `a2-smoke-order`, `v1-xac-nhan-png`, bước j/l của `v1-nguoi-phu-trach`) — có trên `main`, không do việc này, không sửa ở đây. Dấu cũ trên production: mục "Ngoài phạm vi" ở trên.
+
+## Kiểm độc lập
+
+Chưa chạy (giao `nguoi-kiem-doc-lap` sau commit này).

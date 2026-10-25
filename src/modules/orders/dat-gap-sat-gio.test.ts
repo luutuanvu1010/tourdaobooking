@@ -119,6 +119,30 @@ test("ADR-0107 bài 1 — nút Đặt gấp: Bán hàng đóng dấu chặng dư
   }
 });
 
+test("ADR-0107 bài 1b — nút Đặt gấp: chặng bị dời ra xa CHEN GIỮA lúc route đọc giờ (dưới mốc) và lúc ghi dấu → câu ghi không áp dụng: 409 stale, chặng không mang dấu, không nhật ký", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const n = await nhap(w, SALES, [chang(NGAY, "10:00")]); // lúc 06:00 còn 4 giờ: dưới mốc
+    const legN = n.services[0].legs[0].id;
+    const n0 = soNhatKy(w, n.id);
+    // Một lệnh khác dời chặng sang 5 ngày sau, đúng lúc route đã xét "dưới mốc" trên giờ cũ và sắp chạy lô ghi dấu.
+    w.chenTruocLo((stmts: { sql: string }[]) => stmts.some((s) => /UPDATE ord_transfer_leg SET short_notice_reason = \?1/.test(s.sql)), () => {
+      w.sqlite.prepare("UPDATE ord_transfer_leg SET pickup_date = ? WHERE id = ?").run(ngaySau(5), legN);
+    });
+    const r = await datGap(w, n.id, legN, SALES);
+    assert.equal(r.status, 409, r.text);
+    assert.equal(ma(r), "stale");
+    assert.deepEqual(dau(w, legN), KHONG_DAU, "không bao giờ ghi dấu lên giờ chưa được xét");
+    assert.equal(soNhatKy(w, n.id), n0, "câu ghi không áp dụng → không nhật ký (changes() > 0)");
+    // Bấm lại: route đọc giờ MỚI (còn xa) → 409 short_notice_not_needed.
+    const lai = await datGap(w, n.id, legN, SALES);
+    assert.equal(ma(lai), "short_notice_not_needed", lai.text);
+  } finally {
+    tat();
+  }
+});
+
 // ---- Bài 2 (T2): sửa chặng `PUT …/legs/:legId` -----------------------------------------------------------------------------------------------------------------
 test("ADR-0107 bài 2a — sửa chặng: Bán hàng (đơn mình lập) dời giờ VÀO dưới mốc kèm datGap → 200, chặng mang dấu của Bán hàng; vắng datGap → 409 short_notice_required; giờ cũ và mới đều trên mốc kèm datGap → 409 short_notice_not_needed, không ghi", async () => {
   const tat = batDongHo();

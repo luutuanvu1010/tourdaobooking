@@ -1,0 +1,34 @@
+BAT_DAU 17:08:24
+✗ 1) Biểu mẫu (1040, Bán hàng): route mốc 503 → không dải cảnh báo mốc; bấm Lưu → 503 → dải đỏ câu máy chủ + 'Chưa lưu, xác nhận hay sửa chuyến có giờ đón được cho tới khi Toàn quyền đặt chính sách điều phối.'; không tạo đơn, axe không vi phạm critical/serious
+    Error: hết giờ chờ: dải 503 trên biểu mẫu
+    ((el) => el ? el.innerText.replace(/\s+/g, ' ').trim() : null)(document.querySelector("#save-error .banner-title")) === "Chưa có chính sách điều phối đang hiệu lực (hạn chốt trước giờ đón) — báo người phụ trách hệ thống."
+        at Object.waitFor (file:///private/tmp/claude-501/-Users-tuanbao-Documents-Projects-ctytnhhtourdao-tourdao-sales--claude-worktrees-so-cong-no-kiem-718026/122e3097-cba6-4ea7-884a-62c31de6f522/scratchpad/doi-chung-main/docs/evidence/2026-09-20-a2/kich-ban/a2-cdp.mjs:186:37)
+        at async file:///private/tmp/claude-501/-Users-tuanbao-Documents-Projects-ctytnhhtourdao-tourdao-sales--claude-worktrees-so-cong-no-kiem-718026/122e3097-cba6-4ea7-884a-62c31de6f522/scratchpad/doi-chung-main/docs/evidence/2026-09-29-adr-0049/kich-ban/moc-chua-co-smoke.mjs:54:5
+        at async Object.step (file:///private/tmp/claude-501/-Users-tuanbao-Documents-Projects-ctytnhhtourdao-tourdao-sales--claude-worktrees-so-cong-no-kiem-718026/122e3097-cba6-4ea7-884a-62c31de6f522/scratchpad/doi-chung-main/docs/evidence/2026-09-29-adr-0049/kich-ban/dp-lib.mjs:28:9)
+        at async file:///private/tmp/claude-501/-Users-tuanbao-Documents-Projects-ctytnhhtourdao-tourdao-sales--claude-worktrees-so-cong-no-kiem-718026/122e3097-cba6-4ea7-884a-62c31de6f522/scratchpad/doi-chung-main/docs/evidence/2026-09-29-adr-0049/kich-ban/moc-chua-co-smoke.mjs:39:3
+✗ 2) Trang đơn nháp (1040, Bán hàng): không có mốc → không khoá Xác nhận; bấm → 503 → dải đỏ câu máy chủ + dòng việc cần làm; đơn vẫn nháp
+    TypeError: Cannot read properties of undefined (reading 'status')
+        at file:///private/tmp/claude-501/-Users-tuanbao-Documents-Projects-ctytnhhtourdao-tourdao-sales--claude-worktrees-so-cong-no-kiem-718026/122e3097-cba6-4ea7-884a-62c31de6f522/scratchpad/doi-chung-main/docs/evidence/2026-09-29-adr-0049/kich-ban/moc-chua-co-smoke.mjs:72:92
+        at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+        at async Object.step (file:///private/tmp/claude-501/-Users-tuanbao-Documents-Projects-ctytnhhtourdao-tourdao-sales--claude-worktrees-so-cong-no-kiem-718026/122e3097-cba6-4ea7-884a-62c31de6f522/scratchpad/doi-chung-main/docs/evidence/2026-09-29-adr-0049/kich-ban/dp-lib.mjs:28:9)
+        at async file:///private/tmp/claude-501/-Users-tuanbao-Documents-Projects-ctytnhhtourdao-tourdao-sales--claude-worktrees-so-cong-no-kiem-718026/122e3097-cba6-4ea7-884a-62c31de6f522/scratchpad/doi-chung-main/docs/evidence/2026-09-29-adr-0049/kich-ban/moc-chua-co-smoke.mjs:63:3
+✓ 3) 390 Bán hàng: cùng dải 503 sau khi bấm Xác nhận; không tràn ngang
+✗ 4) Sửa thông tin chuyến đơn đã xác nhận (Quản trị): đổi giờ đón → 503 → dải đỏ trong bảng, KHÔNG khung Đặt gấp (không phải 409); không lưu
+    Error: hết giờ chờ: bảng sửa chuyến
+    ((el) => !!el && el.getClientRects().length > 0)(document.querySelector(".sheet [data-trip=\"pickupTime\"]"))
+        at Object.waitFor (file:///private/tmp/claude-501/-Users-tuanbao-Documents-Projects-ctytnhhtourdao-tourdao-sales--claude-worktrees-so-cong-no-kiem-718026/122e3097-cba6-4ea7-884a-62c31de6f522/scratchpad/doi-chung-main/docs/evidence/2026-09-20-a2/kich-ban/a2-cdp.mjs:186:37)
+        at async file:///private/tmp/claude-501/-Users-tuanbao-Documents-Projects-ctytnhhtourdao-tourdao-sales--claude-worktrees-so-cong-no-kiem-718026/122e3097-cba6-4ea7-884a-62c31de6f522/scratchpad/doi-chung-main/docs/evidence/2026-09-29-adr-0049/kich-ban/moc-chua-co-smoke.mjs:94:5
+        at async Object.step (file:///private/tmp/claude-501/-Users-tuanbao-Documents-Projects-ctytnhhtourdao-tourdao-sales--claude-worktrees-so-cong-no-kiem-718026/122e3097-cba6-4ea7-884a-62c31de6f522/scratchpad/doi-chung-main/docs/evidence/2026-09-29-adr-0049/kich-ban/dp-lib.mjs:28:9)
+        at async file:///private/tmp/claude-501/-Users-tuanbao-Documents-Projects-ctytnhhtourdao-tourdao-sales--claude-worktrees-so-cong-no-kiem-718026/122e3097-cba6-4ea7-884a-62c31de6f522/scratchpad/doi-chung-main/docs/evidence/2026-09-29-adr-0049/kich-ban/moc-chua-co-smoke.mjs:91:3
+✗ 5) Chính sách điều phối khi CHƯA có bản nào: ô trống, lịch sử 'Chưa có bản nào.'; lưu bản đầu (6 giờ, 2 giờ, 30, 180) → 'Bản 1 Đang dùng'; sau đó route mốc 200 và xác nhận được đơn nháp
+    Error: hết giờ chờ: lưu bản đầu
+    ((el) => el ? el.innerText.replace(/\s+/g, ' ').trim() : null)(document.querySelector("#cs-ok")) === 'Đã lưu bản mới — có hiệu lực từ bây giờ.'
+        at Object.waitFor (file:///private/tmp/claude-501/-Users-tuanbao-Documents-Projects-ctytnhhtourdao-tourdao-sales--claude-worktrees-so-cong-no-kiem-718026/122e3097-cba6-4ea7-884a-62c31de6f522/scratchpad/doi-chung-main/docs/evidence/2026-09-20-a2/kich-ban/a2-cdp.mjs:186:37)
+        at async file:///private/tmp/claude-501/-Users-tuanbao-Documents-Projects-ctytnhhtourdao-tourdao-sales--claude-worktrees-so-cong-no-kiem-718026/122e3097-cba6-4ea7-884a-62c31de6f522/scratchpad/doi-chung-main/docs/evidence/2026-09-29-adr-0049/kich-ban/moc-chua-co-smoke.mjs:115:5
+        at async Object.step (file:///private/tmp/claude-501/-Users-tuanbao-Documents-Projects-ctytnhhtourdao-tourdao-sales--claude-worktrees-so-cong-no-kiem-718026/122e3097-cba6-4ea7-884a-62c31de6f522/scratchpad/doi-chung-main/docs/evidence/2026-09-29-adr-0049/kich-ban/dp-lib.mjs:28:9)
+        at async file:///private/tmp/claude-501/-Users-tuanbao-Documents-Projects-ctytnhhtourdao-tourdao-sales--claude-worktrees-so-cong-no-kiem-718026/122e3097-cba6-4ea7-884a-62c31de6f522/scratchpad/doi-chung-main/docs/evidence/2026-09-29-adr-0049/kich-ban/moc-chua-co-smoke.mjs:109:3
+✓ 6) Không lỗi console ngoài 503 cố ý
+
+MOC CHUA CO SMOKE: 2 ✓, 4 ✗: 1) Biểu mẫu (1040, Bán hàng): route mốc 503 → không dải cảnh báo mốc; bấm Lưu → 503 → dải đỏ câu máy chủ + 'Chưa lưu, xác nhận hay sửa chuyến có giờ đón được cho tới khi Toàn quyền đặt chính sách điều phối.'; không tạo đơn, axe không vi phạm critical/serious | 2) Trang đơn nháp (1040, Bán hàng): không có mốc → không khoá Xác nhận; bấm → 503 → dải đỏ câu máy chủ + dòng việc cần làm; đơn vẫn nháp | 4) Sửa thông tin chuyến đơn đã xác nhận (Quản trị): đổi giờ đón → 503 → dải đỏ trong bảng, KHÔNG khung Đặt gấp (không phải 409); không lưu | 5) Chính sách điều phối khi CHƯA có bản nào: ô trống, lịch sử 'Chưa có bản nào.'; lưu bản đầu (6 giờ, 2 giờ, 30, 180) → 'Bản 1 Đang dùng'; sau đó route mốc 200 và xác nhận được đơn nháp
+EXIT=1
+KET_THUC 17:09:25
