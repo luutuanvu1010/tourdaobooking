@@ -12,12 +12,15 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
-    // ADR-0107 (accepted 2026-10-08; kế hoạch docs/superpowers/plans/2026-10-25-adr-0107-dat-gap-ban-hang.md): Bán hàng tự đặt gấp; dấu chỉ ghi lên chặng đang dưới
-    // mốc, kể cả Quản trị (409 short_notice_not_needed); nhãn dấu "Điều chỉnh khẩn cấp". KHÔNG migration.
-    // Số 2.31 là số TẠM (main đang ở 2.30) — phiên phát hành kiểm lại cho đúng số kế tiếp ở main (bước A.0 của docs/HANDOFF-N1.md). Ngày là ngày dự kiến.
+    // Nhãn bảng kiểm khoá tháng (chủ dự án 2026-10-25 chọn chữ; mục «Chốt sổ 2026-10-25» của docs/superpowers/plans/2026-10-18-so-dai-ly-dot-2-thi-cong-nhat-ky.md). Chỉ chữ, KHÔNG migration.
+    // Chủ dặn «đi cùng lần phát hành sau»: không triển khai riêng. Số 2.31 và ngày là TẠM — phiên phát hành kế tiếp kiểm lại ở bước A.0 của docs/HANDOFF-N1.md
+    // và GỘP mục của mình vào mục này (cùng một số), đừng chồng thêm số mới chỉ vì mục này đã có sẵn (cổng «bản ở máy mới hơn production» qua sẵn nhờ mục này).
+    // Đã gộp: ADR-0107 (accepted 2026-10-08; kế hoạch docs/superpowers/plans/2026-10-25-adr-0107-dat-gap-ban-hang.md) — Bán hàng tự đặt gấp; dấu chỉ ghi lên
+    // lượt đang dưới hạn chốt, kể cả Quản trị (409 short_notice_not_needed); nhãn dấu «Điều chỉnh khẩn cấp». KHÔNG migration. Ba dòng sau dòng khoá tháng.
     version: "2.31",
-    date: "2026-10-26",
+    date: "2026-10-25",
     items: [
+      { kind: "doi", text: "Khoá sổ tháng: mục «Khoản Công ty thu – chuyển khoản chờ xác nhận» nay tên «Khoản thu chờ đối chiếu», vì gồm cả tiền khách trả đại lý hoặc quầy nhà cung cấp." },
       { kind: "doi", text: "Nhân viên bán hàng tự bấm «Đặt gấp» cho lượt đưa đón đã qua hạn chốt (kể cả đơn người khác lập), chọn lý do — không phải gọi Quản trị nữa." },
       { kind: "doi", text: "«Đặt gấp» chỉ bấm được khi lượt đưa đón thật sự đã qua hạn chốt, với mọi người kể cả Quản trị. Lượt đã đặt gấp mà bị dời ra xa thì mất dấu." },
       { kind: "doi", text: "Lượt đã đặt gấp nay mang nhãn «Điều chỉnh khẩn cấp»; Đối tác thấy «Điều chỉnh khẩn cấp (văn phòng)»." },
