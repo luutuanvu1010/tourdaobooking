@@ -57,7 +57,7 @@
 - **Ai đặt luật [người soạn].** Toàn quyền, cùng chỗ với cờ «cần xác nhận» (Bảng điều khiển, thiết kế 19/10 Phần D).
 - **Chỗ đặt mã [người soạn].**
   - Đặt ở phân hệ giá (`pricing`), vì phân hệ này đã đọc được loại đối tác và nhóm dịch vụ, và luật thương mại gắn vai (Hiến chương 2.3).
-  - Không làm phân hệ tồn kho, vì Nền tảng chưa có nguồn số chỗ trống. Đếm chỗ thật là dự án riêng (BACKLOG §48).
+  - Không làm phân hệ tồn kho, vì Nền tảng chưa có nguồn số chỗ trống. Đếm chỗ thật là dự án riêng (BACKLOG, mã `BL-TON-KHO`).
   - Phân hệ danh mục (`catalog`) không được đọc phân hệ giá. Vì vậy, muốn lọc danh mục theo bên đặt thì cần một hàm do gốc lắp ráp tiêm vào.
 - **Luật nền bị chạm (P18).**
   - Luật nền: vai trong hồ sơ chỉ để ghi và truy vấn, **không bao giờ để cho hay chặn** một thao tác. Nguồn: ADR-0001 mục 4 (theo cách bài R-N1-12 diễn giải), ADR-0005 đ1, ADR-0018 đ3.
