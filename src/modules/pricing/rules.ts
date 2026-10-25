@@ -6,6 +6,7 @@ import { giaVonDong, hoaHongDong, lamTronNuaLen, tinhDongDoiTac, type BanChup, t
 import { nhanMuc } from "../../shared/so-dai-ly-nhan.ts";
 import { MOI_KHACH_TOI_DA } from "../../shared/so-dai-ly-nhap.ts"; // trần «Số tiền mỗi khách»: MỘT hằng cho giao diện và máy chủ (Task 14, nợ (a))
 import { khoaTen } from "../../shared/khoa-ten.ts";
+import { addDays, ngayDayDu } from "../../shared/vn-date.ts";
 
 // Phép tính tiền MỘT dòng (làm tròn nửa lên, hoa hồng, giá vốn, `tinhDongDoiTac`) và kiểu bản chụp nằm ở src/shared/hoa-hong-dong.ts để `orders/thuong-mai.ts` (DTO) chạy được bằng node trực tiếp
 // mà không nhập index.ts của module khác; ở đây chỉ tái xuất — vẫn MỘT định nghĩa (Task 5, Ruling ở sổ thi công).
@@ -82,7 +83,7 @@ function khop(d: { scope: PhamVi; catalogCode: string | null; groupCode: string 
 }
 const cungTheoLoai = (a: MucTheoLoai | null | undefined, b: MucTheoLoai | null | undefined): boolean =>
   !a || !b ? !a && !b : a.adult === b.adult && a.child === b.child && a.senior === b.senior;
-const cungMuc = (a: DongMuc, b: DongMuc): boolean => a.kind === b.kind && a.rateBp === b.rateBp && a.perPaxAmount === b.perPaxAmount && cungTheoLoai(a.theoLoai, b.theoLoai);
+export const cungMuc = (a: DongMuc, b: Pick<DongMuc, "kind" | "rateBp" | "perPaxAmount" | "theoLoai">): boolean => a.kind === b.kind && a.rateBp === b.rateBp && a.perPaxAmount === b.perPaxAmount && cungTheoLoai(a.theoLoai, b.theoLoai);
 const theoThuTu = (a: DongMuc, b: DongMuc): number => (a.targetRoleCode ?? "").localeCompare(b.targetRoleCode ?? "") || a.id.localeCompare(b.id);
 
 /**
@@ -176,7 +177,12 @@ type Ket<T> = { ok: true; value: T } | { ok: false; message: string };
 const NGAY_RE = /^\d{4}-\d{2}-\d{2}$/;
 export const PARTY_RE = /^[A-Za-z0-9-]{1,64}$/;
 export const MA_RE = /^[A-Za-z0-9_]{1,40}$/;
-export const laNgay = (s: unknown): s is string => typeof s === "string" && NGAY_RE.test(s) && new Date(`${s}T00:00:00Z`).toISOString().slice(0, 10) === s;
+// Tháng/ngày vô lý ("2026-13-40") làm `Date` hỏng: `toISOString()` sẽ ném RangeError (thành 500) nên phải loại trước.
+export const laNgay = (s: unknown): s is string => {
+  if (typeof s !== "string" || !NGAY_RE.test(s)) return false;
+  const d = new Date(`${s}T00:00:00Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s;
+};
 const laPhanVan = (n: unknown): n is number => typeof n === "number" && Number.isInteger(n) && n >= 0 && n <= 10_000;
 /** Ghi chú tuỳ chọn ≤ 200 ký tự, không dãy ≥ 8 chữ số (khuôn billing: không SĐT / số tài khoản). */
 function docGhiChu(raw: unknown): Ket<string | null> {
@@ -215,10 +221,9 @@ function docTheoLoai(raw: unknown, kind: KieuMuc, nguoiLon: number | null): Ket<
   if (child === null || senior === null) return { ok: false, message: "Nhập số tiền mỗi khách của trẻ em và của người cao tuổi (không để trống; không trả thì gõ 0). Mỗi số là số nguyên đồng, không âm, không quá mức tối đa." };
   return { ok: true, value: { adult: nguoiLon, child, senior } };
 }
-/** Phần chung của thân một dòng mức (phạm vi, mức, khoảng ngày, ghi chú) — dùng cho dòng theo loại / đối tác và dòng của mức TA. */
-function docPhanMuc(b: Record<string, unknown>): Ket<PhanMuc> {
-  const pv = docPhamVi(b);
-  if (!pv.ok) return pv;
+type PhanGia = Omit<PhanMuc, "scope" | "catalogCode" | "groupCode">;
+/** Phần mức + khoảng ngày + ghi chú (không có phạm vi) — dùng chung cho thân thêm mức và thân Đổi mức. */
+function docPhanGia(b: Record<string, unknown>): Ket<PhanGia> {
   let kind: KieuMuc;
   let rateBp: number | null = null;
   let perPaxAmount: number | null = null;
@@ -231,7 +236,37 @@ function docPhanMuc(b: Record<string, unknown>): Ket<PhanMuc> {
   if (!kn.ok) return kn;
   const gc = docGhiChu(b.ghiChu);
   if (!gc.ok) return gc;
-  return { ok: true, value: { ...pv.value, kind, rateBp, perPaxAmount, theoLoai: tl.value, ...kn.value, note: gc.value } };
+  return { ok: true, value: { kind, rateBp, perPaxAmount, theoLoai: tl.value, ...kn.value, note: gc.value } };
+}
+/** Phần chung của thân một dòng mức (phạm vi, mức, khoảng ngày, ghi chú) — dùng cho dòng theo loại / đối tác và dòng của mức TA. */
+function docPhanMuc(b: Record<string, unknown>): Ket<PhanMuc> {
+  const pv = docPhamVi(b);
+  if (!pv.ok) return pv;
+  const pg = docPhanGia(b);
+  if (!pg.ok) return pg;
+  return { ok: true, value: { ...pv.value, ...pg.value } };
+}
+/**
+ * Thân «Đổi mức» (một bước): chỉ phần mức/ngày/ghi chú của `kiemThanMuc`; đối tượng và dịch vụ giữ theo dòng cũ nên thân KHÔNG được mang
+ * `doiTuong`, `phamVi`, `catalogCode`, `groupCode`.
+ */
+export function kiemThanDoiMuc(raw: unknown): Ket<PhanGia> {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return { ok: false, message: "Thiếu thông tin mức hoa hồng." };
+  const b = raw as Record<string, unknown>;
+  if (["doiTuong", "phamVi", "catalogCode", "groupCode"].some((k) => b[k] !== undefined)) return { ok: false, message: "Đổi mức không đổi được đối tượng hay dịch vụ." };
+  return docPhanGia(b);
+}
+/**
+ * «Đổi» một dòng mức đang áp dụng (đặc tả A3): đóng dòng cũ hết ngày liền trước `tuNgay`, mở dòng mới từ `tuNgay`. `homNay` do nơi gọi truyền (luật thuần không gọi đồng hồ).
+ * Thứ tự kiểm cố định: đã ngừng → chưa tới ngày áp dụng → ngày mới không hợp lệ / trước hôm nay → mức cũ bắt đầu không trước ngày mới.
+ */
+export function kiemDoi(v: { cu: { validFrom: string; validTo: string | null }; tuNgay: unknown; homNay: string }): { ok: true; denNgayCu: string; tuNgay: string } | { ok: false; error: string } {
+  const { cu, tuNgay, homNay } = v;
+  if (cu.validTo !== null) return { ok: false, error: "Dòng này đã có ngày ngừng nên không đổi được. Thêm mức mới bắt đầu sau ngày ngừng." };
+  if (cu.validFrom > homNay) return { ok: false, error: "Mức này chưa tới ngày áp dụng nên không đổi được." };
+  if (!laNgay(tuNgay) || tuNgay < homNay) return { ok: false, error: "Ngày bắt đầu của mức mới không được trước hôm nay." };
+  if (cu.validFrom >= tuNgay) return { ok: false, error: `Mức cũ bắt đầu từ ${ngayDayDu(cu.validFrom)} nên không đổi được từ ngày ${ngayDayDu(tuNgay)}. Dùng Ngừng cho mức cũ, rồi Thêm mức mới.` };
+  return { ok: true, denNgayCu: addDays(tuNgay, -1), tuNgay };
 }
 /** Thân `POST /api/pricing/hoa-hong`: { doiTuong: { loai: "VAI", code } | { loai: "DOI_TAC", partyId }, phamVi, catalogCode?, groupCode?, kieu, tyLeBp? | moiKhach?, tuNgay, denNgay?, ghiChu? }. */
 export function kiemThanMuc(raw: unknown): Ket<ThanMuc> {
