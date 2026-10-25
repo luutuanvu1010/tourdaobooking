@@ -677,6 +677,8 @@ textarea { min-height: 72px; resize: vertical; }
 .order-row-place { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .order-row-note { color: var(--c-accent-strong); font-weight: var(--fw-semibold); }
 .money-ok { color: var(--c-green-text); }
+/* YC-0018 (24/10): nhãn «Đã nhập phần mềm kế toán» trên thẻ đơn nổi bật hơn — viên xanh nhạt, chỉ dùng token có sẵn. */
+.order-card-line3.nhap-kt-noi { width: fit-content; max-width: 100%; padding: 0 var(--s2); border: 1px solid var(--c-green-border); border-radius: var(--radius-pill); background: var(--c-green-soft); color: var(--c-green-text); font-weight: var(--fw-semibold); }
 .money-due { color: var(--c-accent-strong); }
 .order-card-toggle { flex: none; display: inline-flex; align-items: center; justify-content: center; width: var(--tap-min); height: var(--tap-min); margin: 0; padding: 0; color: var(--c-text-muted); background: none; border: 0; border-radius: var(--radius-sm); cursor: pointer; }
 .order-card-toggle::after { content: "▾"; font-size: var(--fs-ui); line-height: 1; transition: transform var(--m-fast); }

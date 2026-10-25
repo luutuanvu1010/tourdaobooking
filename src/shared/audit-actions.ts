@@ -99,6 +99,8 @@ export const AUDIT_ACTIONS = {
   prc_rate_tier_on: { label: "Bật lại mức TA", group: "ledger" },
   prc_role_tier_set: { label: "Gắn loại đối tác vào mức TA", group: "ledger" },
   prc_role_tier_closed: { label: "Kết thúc gắn loại đối tác với mức TA", group: "ledger" },
+  prc_party_tier_set: { label: "Gắn mức TA riêng cho đối tác", group: "ledger" },
+  prc_party_tier_closed: { label: "Kết thúc mức TA riêng của đối tác", group: "ledger" },
   // Khoá sổ tháng (ADR-0080 D1; module ky-so — route ở billing): `order_id` NULL; `detail` = "Khoá sổ tháng MM/YYYY" (không tiền, không SĐT).
   ledger_period_closed: { label: "Khoá sổ tháng", group: "ledger" },
   order_handler_changed: { label: "Đổi người phụ trách", group: "order" },

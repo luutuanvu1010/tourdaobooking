@@ -1,4 +1,4 @@
-// Trang «Sổ công nợ» — Kế toán, Toàn quyền (kế hoạch docs/superpowers/plans/2026-10-24-so-cong-no-doi-tac-ke-hoach.md P1; bản vẽ docs/design/so-cong-no-2026-10-25/ bản 2a).
+// Trang «Sổ công nợ» — Kế toán, Toàn quyền (kế hoạch docs/superpowers/plans/2026-10-24-so-cong-no-doi-tac-ke-hoach-thi-cong.md P1; bản vẽ docs/design/so-cong-no-2026-10-25/ bản 2a).
 // CHỈ ĐỌC. Gọi hai route của billing:
 //   GET /api/ledger                 → SoCongNoResponse: số dư từng bên, hai ô tổng (máy chủ tính), khoản chờ xác nhận, khoản chưa rõ người thu;
 //   GET /api/ledger/ben/:partyId    → SoCongNoBenResponse: từng đơn chia hai nhóm, X − Y, cờ lệch (máy chủ tính).

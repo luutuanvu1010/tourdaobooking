@@ -361,7 +361,7 @@ async function openDetail(id: string): Promise<void> {
   const laChu = p.roles.some((x) => x.roleTypeCode === OWNER_COMPANY_ROLE && x.validTo === null);
   const taiKhoan = can(me, "company.legal.write") && laChu ? h("section", { id: "tai-khoan-nhan-tien", "aria-labelledby": "tknt-title" }) : null;
   if (taiKhoan) void veTaiKhoanNhanTien(taiKhoan, p);
-  // Mục «Hoa hồng hiện hành» (góp ý YC-0020): chỉ ĐỌC, người giữ ô partner.commission.view. Hồ sơ không mang loại được hưởng thì mục tự ẩn; máy chủ từ chối (tài khoản lai…) cũng ẩn.
+  // Mục «Hoa hồng hiện hành» (góp ý YC-0020): người giữ ô partner.commission.view đọc; ô partner.commission.write gắn / kết thúc mức riêng (ADR-0138). Hồ sơ không mang loại được hưởng thì mục tự ẩn; máy chủ từ chối (tài khoản lai…) cũng ẩn.
   const hoaHong = can(me, "partner.commission.view") && !p.mergedInto ? h("section", { id: "hoa-hong-hien-hanh", "aria-labelledby": "hhhh-title", hidden: true }) : null;
   if (hoaHong) void veHoaHongHienHanh(hoaHong, p);
 
@@ -736,32 +736,99 @@ const TIN_TKNT_DA_CU = "Có người vừa đổi tài khoản nhận tiền nê
  * `daLuu` = phản hồi PUT (cùng dạng GET) để khỏi đọc lại.
  */
 /**
- * Mục «Hoa hồng hiện hành» của hồ sơ (YC-0020): loại đối tác hồ sơ đang mang và mức TA mỗi loại gắn hôm nay. Chỉ đọc — gán mức ở trang «Hoa hồng đối tác». Có ba tình huống cần
- * nói rõ vì nhân viên hay hỏi «sao đại lý này lấy khác»: chưa gắn mức, hai loại gắn hai mức khác nhau (đơn bị giữ), dòng riêng đè lên mức (dòng riêng luôn thắng mức TA).
+ * Mục «Hoa hồng hiện hành» của hồ sơ (YC-0020): loại đối tác hồ sơ đang mang và mức TA mỗi loại gắn hôm nay. Có ba tình huống cần nói rõ vì nhân viên hay hỏi «sao đại lý
+ * này lấy khác»: chưa gắn mức, hai loại gắn hai mức khác nhau (đơn bị giữ), dòng riêng đè lên mức (dòng riêng luôn thắng mức TA).
+ * ADR-0138: người giữ `partner.commission.write` gắn / kết thúc MỨC TA RIÊNG ngay ở đây; mục nói rõ nguồn («gắn riêng» hay «theo loại»). Máy chủ kiểm lại quyền; mọi câu lỗi
+ * hiện trong mục. `tin` = dòng báo sau một lần lưu; `daCo` = phản hồi lệnh (cùng dạng GET) để khỏi đọc lại.
  */
-async function veHoaHongHienHanh(sec: HTMLElement, p: Api.PartyDto): Promise<void> {
+async function veHoaHongHienHanh(sec: HTMLElement, p: Api.PartyDto, tin?: string, daCo?: Api.HoaHongHoSoResponse): Promise<void> {
   let r: Api.HoaHongHoSoResponse;
   try {
-    r = await api<Api.HoaHongHoSoResponse>(`/api/pricing/ho-so/${encodeURIComponent(p.id)}/hoa-hong`);
+    r = daCo ?? (await api<Api.HoaHongHoSoResponse>(`/api/pricing/ho-so/${encodeURIComponent(p.id)}/hoa-hong`));
   } catch {
     return; // không đọc được (không đủ quyền, mạng): ẩn mục, không làm hỏng trang hồ sơ
   }
   if (!r.laNguoiHuong) return;
+  const rieng = r.mucRieng;
+  const tieuDe = h("h3", { id: "hhhh-title", tabindex: -1 }, "Hoa hồng hiện hành");
   const dong = r.vai.map((v) =>
     h("tr", null, h("td", null, v.loai.ten),
-      h("td", null, v.muc ? h("span", null, v.muc.ten, v.muc.dangBat ? "" : h("span", { class: "muted" }, " (mức đã tắt)")) : h("span", { class: "muted" }, "Chưa gắn mức")),
+      h("td", null, v.muc ? h("span", null, v.muc.ten, " (theo loại)", v.muc.dangBat ? "" : h("span", { class: "muted" }, " (mức đã tắt)")) : h("span", { class: "muted" }, "Chưa gắn mức"),
+        rieng ? h("span", { class: "muted" }, " — không áp cho đại lý này") : ""),
       h("td", { class: "muted" }, v.tuNgay ? `từ ${ngayVN(v.tuNgay)}` : "")));
+  const khoiRieng = rieng
+    ? h("p", { "data-khoi": "muc-rieng" }, h("strong", null, `Mức riêng: ${rieng.muc.ten} (gắn riêng)`), rieng.muc.dangBat ? "" : h("span", { class: "muted" }, " (mức đã tắt)"),
+        ` — từ ${ngayVN(rieng.tuNgay)}${rieng.denNgay ? ` đến ${ngayVN(rieng.denNgay)}` : ""}. Mức theo loại không áp cho đại lý này.`)
+    : null;
   const nhac: Child[] = [];
-  if (r.xungDot) nhac.push(h("p", { class: "alert warn", role: "status" }, "Hồ sơ mang hai loại gắn hai mức TA khác nhau — với dịch vụ mà hai mức cho hai kết quả khác nhau, đơn có thể bị giữ cho tới khi gỡ bớt một loại hoặc gắn cùng một mức. Dùng «Thử tra» ở trang Hoa hồng đối tác để xem từng dịch vụ."));
-  if (r.vai.some((v) => v.muc === null)) nhac.push(h("p", { class: "muted" }, "Loại chưa gắn mức thì đơn chưa có hoa hồng cho tới khi gắn mức hoặc có dòng riêng."));
-  if (r.dongRiengDoiTac > 0) nhac.push(h("p", { class: "muted" }, `Đại lý này có ${r.dongRiengDoiTac} dòng riêng — dòng riêng luôn thắng mức TA.`));
-  if (r.dongRiengLoai > 0) nhac.push(h("p", { class: "muted" }, `Loại đối tác của hồ sơ có ${r.dongRiengLoai} dòng riêng — dòng riêng của loại thắng mức TA.`));
+  if (r.xungDot) nhac.push(h("p", { class: "alert warn", role: "status" }, "Hồ sơ mang hai loại gắn hai mức TA khác nhau — với dịch vụ mà hai mức cho hai kết quả khác nhau, đơn có thể bị giữ cho tới khi gỡ bớt một loại, gắn cùng một mức, hoặc gắn một mức riêng cho đại lý này. Dùng «Thử tra» ở trang Hoa hồng đối tác để xem từng dịch vụ."));
+  if (!rieng && r.vai.some((v) => v.muc === null)) nhac.push(h("p", { class: "muted" }, "Loại chưa gắn mức thì đơn chưa có hoa hồng cho tới khi gắn mức hoặc có dòng riêng."));
+  if (r.dongRiengDoiTac > 0) nhac.push(h("p", { class: rieng ? "alert warn" : "muted", role: rieng ? "status" : null }, `Đại lý này có ${r.dongRiengDoiTac} dòng riêng — dòng riêng luôn thắng mức TA, kể cả mức gắn riêng.`));
+  if (r.dongRiengLoai > 0) nhac.push(h("p", { class: "muted" }, rieng ? `Loại đối tác của hồ sơ có ${r.dongRiengLoai} dòng riêng — mức gắn riêng thắng các dòng đó.` : `Loại đối tác của hồ sơ có ${r.dongRiengLoai} dòng riêng — dòng riêng của loại thắng mức TA.`));
+  const khuTin = h("div", null, tin ? h("p", { class: "alert ok", role: "status" }, tin) : null);
+  const baoLoi = (chu: string) => replaceChildren(khuTin, h("p", { class: "alert danger", role: "alert" }, chu));
+  const khuLenh = h("div", null);
+  // Gửi một lệnh rồi vẽ lại cả mục bằng phản hồi; nút khoá từ lúc bấm đến khi xong (bấm đúp không gửi hai lần).
+  const guiLenh = (b: HTMLButtonElement, url: string, body: unknown, xong: string) => {
+    if (b.disabled) return;
+    b.disabled = true;
+    void (async () => {
+      try {
+        const moi = await api<Api.HoaHongHoSoResponse>(url, { method: "POST", body });
+        await veHoaHongHienHanh(sec, p, xong, moi);
+      } catch (err) {
+        baoLoi(err instanceof ApiError ? err.message : "Không kết nối được máy chủ.");
+      } finally {
+        b.disabled = false;
+      }
+    })();
+  };
+  const moGan = async () => {
+    let mt: Api.MucTaListResponse;
+    try {
+      mt = await api<Api.MucTaListResponse>("/api/pricing/muc-ta");
+    } catch (err) {
+      return baoLoi(err instanceof ApiError ? err.message : "Không tải được danh sách mức TA.");
+    }
+    const bat = mt.muc.filter((m) => m.dangBat);
+    if (bat.length === 0) return baoLoi("Chưa có mức TA nào đang bật — tạo mức ở trang Hoa hồng đối tác trước.");
+    const oMuc = select([{ value: "", label: "Chọn mức TA" }, ...bat.map((m) => ({ value: m.code, label: m.ten }))], "");
+    const oTu = input(r.homNay, { type: "date" }) as HTMLInputElement;
+    const luu = button("Lưu mức riêng", (b) => {
+      if (!oMuc.value) return baoLoi("Chọn mức TA.");
+      guiLenh(b, `/api/pricing/ho-so/${encodeURIComponent(p.id)}/muc-rieng`, { muc: oMuc.value, tuNgay: oTu.value }, "Đã gắn mức riêng cho đại lý này.");
+    }, "btn btn-primary");
+    replaceChildren(khuLenh,
+      h("div", { class: "grid three" }, field("Mức TA riêng", oMuc), field("Áp dụng từ ngày", oTu)),
+      r.dongRiengDoiTac > 0 ? h("p", { class: "alert warn", role: "status" }, `Lưu ý: đại lý này có ${r.dongRiengDoiTac} dòng riêng — dòng riêng vẫn thắng mức gắn riêng.`) : null,
+      h("p", { class: "muted" }, "Từ ngày áp dụng, đơn của đại lý này tính theo mức riêng, không theo mức của loại nữa. Đơn đã xác nhận không đổi."),
+      h("div", { class: "actions" }, luu, button("Huỷ", () => replaceChildren(khuLenh), "btn")));
+    oMuc.focus();
+  };
+  const moKetThuc = (mr: NonNullable<Api.HoaHongHoSoResponse["mucRieng"]>) => {
+    const oDen = input(r.homNay < mr.tuNgay ? mr.tuNgay : r.homNay, { type: "date" }) as HTMLInputElement;
+    const luu = button("Kết thúc mức riêng", (b) =>
+      guiLenh(b, `/api/pricing/muc-rieng/${encodeURIComponent(mr.id)}/ket-thuc`, { denNgay: oDen.value }, "Đã kết thúc mức riêng — sau ngày kết thúc, đại lý về mức theo loại."), "btn btn-primary");
+    replaceChildren(khuLenh,
+      h("div", { class: "grid three" }, field("Áp dụng đến hết ngày", oDen)),
+      h("div", { class: "actions" }, luu, button("Huỷ", () => replaceChildren(khuLenh), "btn")));
+    oDen.focus();
+  };
+  const duocGhi = can(me, "partner.commission.write");
+  const nut = !duocGhi ? null
+    : rieng ? (rieng.denNgay === null ? button("Kết thúc mức riêng", () => moKetThuc(rieng), "btn") : null)
+    : button("Gắn mức riêng", () => void moGan(), "btn");
   replaceChildren(sec,
-    h("h3", { id: "hhhh-title" }, "Hoa hồng hiện hành"),
+    tieuDe,
+    khoiRieng,
     h("table", { class: "items" }, h("tbody", null, ...dong)),
     ...nhac,
+    khuTin,
+    nut ? h("div", { class: "actions" }, nut) : null,
+    khuLenh,
     h("p", null, h("a", { href: "/hoa-hong" }, "Xem hoặc đổi mức ở trang Hoa hồng đối tác")));
   sec.hidden = false;
+  if (tin) tieuDe.focus();
 }
 
 async function veTaiKhoanNhanTien(sec: HTMLElement, p: Api.PartyDto, tin?: TinTaiKhoan, daLuu?: Api.TaiKhoanNhanTienResponse): Promise<void> {

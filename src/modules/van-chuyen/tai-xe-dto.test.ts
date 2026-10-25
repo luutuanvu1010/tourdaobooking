@@ -34,7 +34,12 @@ const ghim = (j: any, v: { lienHe: boolean; ten: boolean; chiDuong: boolean; tha
   assert.equal(j.tuChoiDuoc, false, "tài xế công ty không Từ chối (ADR-0053 D8.3)");
   assert.deepEqual(Object.keys(j.chuyen).sort(), KHOA_CHUYEN);
   for (const d of j.diem) assert.deepEqual(Object.keys(d).sort(), v.chiDuong ? KHOA_DIEM_CHI_DUONG : KHOA_DIEM);
-  for (const s of j.suat) assert.deepEqual(Object.keys(s).sort(), v.ten ? [...KHOA_SUAT, "hoTen", "namSinh"].sort() : KHOA_SUAT);
+  // ADR-0139: `tenDichVu` của suất khách đi CÙNG điều kiện với `diaChiChiDuong` ở bài này (tài xế công ty, GET chi tiết, trong ngày chạy) — `sdtNguoiDiKem`
+  // không xuất hiện vì các chuyến ở đây không có người đi kèm (bài riêng: sdt-nguoi-di-kem-tai-xe.test.ts).
+  for (const s of j.suat) {
+    const them = [...(v.ten ? ["hoTen", "namSinh"] : []), ...(v.chiDuong && s.loai === "PASSENGER" ? ["tenDichVu"] : [])];
+    assert.deepEqual(Object.keys(s).sort(), [...KHOA_SUAT, ...them].sort());
+  }
 };
 
 test("TC-39: NGOÀI ngày chạy (chuyến ngày mai, chưa chạy) — khoá hoTen, namSinh, lienHe VẮNG MẶT; không tiền, ghi chú, người lập, số / nơi cấp / hạn giấy tờ, khoá nơi", async () => {

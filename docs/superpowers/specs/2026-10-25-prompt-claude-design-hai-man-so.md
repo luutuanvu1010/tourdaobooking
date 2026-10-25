@@ -1,6 +1,6 @@
 # Prompt gửi Claude Design — hai màn sổ công nợ (2026-10-25)
 
-> Hồ sơ có ngày. Chủ dự án chốt 25/10 (trong chat): vẽ hai màn; Quản trị **không** xem màn Kế toán (muốn xem thì gán thêm quyền Kế toán); đại lý **không** thấy tỷ lệ %; điểm 4, 5 của kế hoạch `docs/superpowers/plans/2026-10-24-so-cong-no-doi-tac-ke-hoach.md` làm theo khuyến nghị.
+> Hồ sơ có ngày. Chủ dự án chốt 25/10 (trong chat): vẽ hai màn; Quản trị **không** xem màn Kế toán (muốn xem thì gán thêm quyền Kế toán); đại lý **không** thấy tỷ lệ %; điểm 4, 5 của kế hoạch `docs/superpowers/plans/2026-10-24-so-cong-no-doi-tac-ke-hoach-thi-cong.md` làm theo khuyến nghị.
 > Cách dùng: dán nguyên khối dưới đây vào Claude Design. Gửi kèm (nếu có thể): `public/app.css` (đoạn `:root` token) và một ảnh chụp trang Khoá sổ tháng hiện có (`public/khoa-thang.html`) để đúng kiểu.
 
 ---

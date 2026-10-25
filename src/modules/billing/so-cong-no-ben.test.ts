@@ -1,4 +1,4 @@
-// Màn «Sổ công nợ theo đối tác» (P1 kế hoạch docs/superpowers/plans/2026-10-24-so-cong-no-doi-tac-ke-hoach.md; bản vẽ docs/design/so-cong-no-2026-10-25/ bản 2a):
+// Màn «Sổ công nợ theo đối tác» (P1 kế hoạch docs/superpowers/plans/2026-10-24-so-cong-no-doi-tac-ke-hoach-thi-cong.md; bản vẽ docs/design/so-cong-no-2026-10-25/ bản 2a):
 // route chỉ ĐỌC `GET /api/ledger/ben/:partyId` — chi tiết một bên: từng đơn chia hai nhóm «đang giữ» / «công ty nợ», phép tính X − Y, số dư lấy từ view (cùng nguồn
 // GET /api/ledger) và cờ LỆCH khi cộng các đơn ≠ số dư. Mọi phép tính ở máy chủ (trang chỉ định dạng). Ô quyền `ledger.view` không ngữ cảnh (Kế toán, Toàn quyền).
 // Khung thử thật (tests/audit/harness.mjs); khuôn setup theo so-du-bang-tong-dong-no.test.ts. Tên người / hồ sơ là GIẢ.

@@ -336,44 +336,17 @@ function moBoLoc(): void {
       b.setAttribute("aria-pressed", String(nhap.trangThai.includes(t)));
     }, { "data-trang-thai": t }));
 
-  // Dịch vụ: ô tìm + danh sách ô tích (tải danh mục khi mở bảng).
-  const dvDem = h("span", { class: "loc-nhom-dem" });
-  const dvTim = h("input", { type: "search", id: "loc-dv-tim", placeholder: "Tìm dịch vụ…", autocomplete: "off", "aria-label": "Tìm dịch vụ" }) as HTMLInputElement;
-  const dvDs = h("div", { class: "loc-dv-ds" }, h("p", { class: "muted" }, "Đang tải danh mục…"));
-  const dvNhom = h("fieldset", { class: "loc-nhom", "data-nhom": "dichVu" }, h("legend", null, "Dịch vụ ", dvDem), dvTim, dvDs);
-  const veDemDv = (): void => {
-    dvDem.textContent = nhap.dichVu.length ? `· ${nhap.dichVu.length} đã chọn` : "";
-  };
-  veDemDv();
-  let ds: { code: string; name: string }[] = [];
-  const veDv = (): void => {
-    const kim = dvTim.value.trim().toLowerCase();
-    // Đã chọn luôn đứng đầu (kể cả mã không còn trong danh mục) để bỏ chọn được.
-    const conLai = ds.filter((x) => !nhap.dichVu.includes(x.code) && (!kim || x.name.toLowerCase().includes(kim) || x.code.toLowerCase().includes(kim))).slice(0, 40);
-    const dong = [...nhap.dichVu.map((c) => ({ code: c, name: tenDv.get(c) ?? c })), ...conLai];
-    replaceChildren(
-      dvDs,
-      ...(dong.length
-        ? dong.map((x) => {
-            const o = h("input", { type: "checkbox", checked: nhap.dichVu.includes(x.code), "data-dv": x.code }) as HTMLInputElement;
-            o.addEventListener("change", () => {
-              nhap.dichVu = o.checked ? [...nhap.dichVu, x.code] : nhap.dichVu.filter((c) => c !== x.code);
-              veDemDv();
-            });
-            return h("label", { class: "loc-dv" }, o, h("span", null, h("strong", null, x.code), " · ", x.name));
-          })
-        : [h("p", { class: "muted" }, "Không có dịch vụ khớp.")]),
-    );
-  };
-  dvTim.addEventListener("input", veDv);
-  void layDanhMuc(who).then((r) => {
-    if (r === null) {
-      dvNhom.hidden = true; // không đọc được danh mục (Hướng dẫn viên / lỗi mạng): ẩn ô, các điều kiện khác vẫn dùng được
-      return;
-    }
-    ds = r;
-    veDv();
-  });
+  // Góp ý YC-0013 (24/10): ô «Dịch vụ» gỡ khỏi bảng lọc theo lời người dùng («bỏ lọc dịch vụ», chủ chốt kế hoạch). Bộ lọc dịch vụ đã nhớ từ bản trước vẫn
+  // áp và hiện chip có nút × để bỏ; máy chủ vẫn nhận tham số `dichVu` (giữ cho bản web cũ trong bộ nhớ đệm).
+
+  // «Người phụ trách» (YC-0013): chỉ người xem mọi đơn — cùng nghĩa ô «Chưa phụ trách» của Trang chủ (máy chủ 403 với người khác).
+  const phuTrach = seesAllOrders(who)
+    ? h("label", { class: "check", "data-nhom": "phuTrach" },
+        h("input", { type: "checkbox", id: "loc-chua-phu-trach", checked: nhap.phuTrach === "chua", onchange: (e: Event) => {
+          nhap.phuTrach = (e.target as HTMLInputElement).checked ? "chua" : null;
+        } }),
+        "Chỉ đơn chưa có người phụ trách")
+    : null;
 
   // ADR-0060: "Nhập phần mềm kế toán" — chỉ người có ô xem dấu không ngữ cảnh (máy chủ 403 với người khác); bắt buộc kèm khoảng ngày (≤ 92 ngày).
   const nhapKt = can(who, "accounting.entry.view")
@@ -439,8 +412,8 @@ function moBoLoc(): void {
       h("fieldset", { class: "loc-nhom", "data-nhom": "ngay" }, h("legend", null, "Ngày đi"), h("div", { class: "loc-nut-hang" }, ...nhanh),
         h("div", { class: "loc-ngay" }, h("label", null, "Từ ngày", tu), h("label", null, "Đến ngày", den))),
       h("fieldset", { class: "loc-nhom", "data-nhom": "trangThai" }, h("legend", null, "Trạng thái"), h("div", { class: "loc-nut-hang" }, ...trangThai)),
-      dvNhom,
       nguoiNhom,
+      phuTrach ? h("fieldset", { class: "loc-nhom" }, h("legend", null, "Người phụ trách"), phuTrach) : null,
       nhapKt ? h("label", { class: "loc-nhom" }, "Nhập phần mềm kế toán (cần Từ ngày – Đến ngày)", nhapKt) : null,
       loi,
     ],

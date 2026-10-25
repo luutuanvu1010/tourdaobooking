@@ -521,3 +521,9 @@ Các việc khác từ cùng buổi xác nhận (đang chờ chủ quyết, chư
 | BL-SDL2-CHROME | Phần Chrome của Task 12 chưa được kiểm độc lập (máy người kiểm thiếu axe); chữ bị cắt ở khổ 1040 người kiểm nêu chưa rõ có từ trước; `v1-xac-nhan-png.mjs` bước b, j đỏ sẵn (Ruling R-129) | `docs/evidence/2026-10-18-so-dai-ly-dot-2/kich-ban/`, kịch bản cũ | Rà giao diện lượt sau |
 | BL-SDL2-SO-VANG | Ca vàng C-1…C-5 của `golden/so-cong-no-luot-2.json` còn `cho_xac_nhan`; SV-HT-02, 03 chạy `todo` — Kế toán đánh dấu xác nhận | `golden/` | AI không tự xác nhận ca vàng |
 
+
+## 44. Đại lý tổ chức nhiều nhân viên (mã `BL-DAI-LY-TO-CHUC`)
+
+- **Trạng thái:** `để sau` · Góp ý YC-0017 (20/10). Chủ chọn 24/10: «Chưa có đại lý cụ thể, để sau» và «Chỉ giữ bản soạn».
+- **Hồ sơ:** bản tách `docs/superpowers/specs/2026-10-24-de-xuat-adr-0140-ban-tach.md` (0140a thành viên + bên đặt về tổ chức; 0140b phạm vi xem theo tổ chức), trang ghép lượt 3 ở `2026-10-24-trang-ghep-luot-duyet-1.md`.
+- **Mở lại khi:** có ít nhất hai tài khoản của cùng một đại lý cần thấy chung đơn (ngưỡng ADR-0014 điều 5). Thứ tự khi mở: ADR-0081 dựng xong → soạn bản chính 0140a → 0140b. Số ADR lấy số trống kế tiếp lúc soạn, không giữ «0140».

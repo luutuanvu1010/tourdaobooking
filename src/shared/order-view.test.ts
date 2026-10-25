@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { OrderItemDto, OrderServiceDto } from "./contracts.ts";
-import { catalogTag, cauKhoaXacNhan, khongQuyenSuaText, orderActions, paxFullText, serviceView, suaChuyenDuoc, suaKhachDuoc, type OrderActions } from "./order-view.ts";
+import { catalogTag, cauKhoaXacNhan, khongQuyenSuaText, orderActions, paxFullText, serviceView, suaChuyenDuoc, suaKhachDuoc, type OrderActions, cauChuaCoNgay } from "./order-view.ts";
 import { can, PERMISSION_CODES, type PermissionCode } from "./permissions.ts";
 
 const NO_TRIP = { departDate: null, departTime: null, pickupTime: null, pickupPlace: null, checkinDate: null, checkinTime: null, checkinPlace: null, note: null };
@@ -186,4 +186,12 @@ test("khongQuyenSuaText + nút sửa số khách (ADR-0063 D1, phiếu kiểm A2
     khongQuyenSuaText({ ownerName: "Sales Một", status: "confirmed", viewer: { permissions: ["ACCOUNTING"] }, suaSoKhach: true }),
     "Chỉ Sales Một (người lập đơn), người phụ trách đơn hoặc quản trị viên mới được sửa, xác nhận hoặc huỷ đơn này. Số khách thì bạn sửa được bằng nút “Sửa số khách dịch vụ”.",
   );
+});
+
+// YC-0016 (24/10): đơn nháp lưu được khi chưa chọn ngày, nhưng máy chủ chặn xác nhận — trang đơn phải nói thẳng vì sao, không để người dùng bấm rồi mới thấy lỗi.
+test("cauChuaCoNgay: có dịch vụ chưa có ngày khởi hành ⇒ câu nhắc; đủ ngày hoặc chưa có dịch vụ ⇒ null", () => {
+  assert.equal(cauChuaCoNgay([{ departDate: "2026-11-01" }, { departDate: null }]), "Chưa chọn ngày khởi hành — chưa xác nhận được. Bấm «Sửa» để chọn ngày.");
+  assert.equal(cauChuaCoNgay([{ departDate: "" }]), "Chưa chọn ngày khởi hành — chưa xác nhận được. Bấm «Sửa» để chọn ngày.");
+  assert.equal(cauChuaCoNgay([{ departDate: "2026-11-01" }]), null);
+  assert.equal(cauChuaCoNgay([]), null);
 });

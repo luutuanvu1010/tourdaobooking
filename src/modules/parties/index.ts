@@ -61,6 +61,11 @@ import {
 export { kiemTenLoaiDoiTac, maLoaiDoiTac } from "./rules";
 /** ADR-0126 đ8 — số ngày giữ IP / User-Agent của phiên đã kết thúc, theo chính sách riêng tư phiên bản lớn nhất; null = chưa có số. Gốc lắp ráp tiêm cho nơi cần (auth/accounts không import parties). */
 export { hanGiuPhienNgay } from "./repository";
+/**
+ * HÀM CÔNG BỐ HẸP (ADR-0139): SĐT liên hệ chính của các hồ sơ — chỉ cho DTO tài xế công ty (người đi kèm chuyến, trong ngày chạy). Không tự kiểm quyền:
+ * chỉ gọi sau khi `van-chuyen` đã xác định người gọi đang lái chuyến và đủ điều kiện. Không bao giờ SĐT đăng nhập.
+ */
+export { sdtChinhCuaHoSo } from "./repository";
 export { composePersonName, newOrganizationStatements, newPersonStatements, findPartiesByPhone, renamePersonStatements, splitPersonName, validatePersonFullName };
 export type { ContactInput, OrgFields, PersonName, RoleInput } from "./rules";
 

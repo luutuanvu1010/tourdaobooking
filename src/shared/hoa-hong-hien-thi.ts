@@ -89,7 +89,8 @@ export function locDieuKhoan(dong: readonly SupplyTermDto[], chiConHieuLuc: bool
 // Thử tra
 
 /** Lời của bậc thắng (máy chủ đánh số 1…9: riêng đối tác trước, riêng loại đối tác sau, mức TA của loại cuối cùng; trong mỗi bên: dịch vụ, nhóm, mọi dịch vụ). */
-export const LOI_BAC: Record<1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9, string> = {
+// ADR-0138: 10–12 = mức TA gắn riêng cho đối tác (ưu tiên sau 1–3, trước 4–6; số giữ nghĩa các bậc cũ). `bac >= 7` = mọi bậc mức TA (cả riêng lẫn theo loại).
+export const LOI_BAC: Record<1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12, string> = {
   1: "mức riêng của đối tác cho dịch vụ này",
   2: "mức riêng của đối tác cho nhóm",
   3: "mức riêng của đối tác cho mọi dịch vụ",
@@ -99,6 +100,9 @@ export const LOI_BAC: Record<1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9, string> = {
   7: "mức TA của loại đối tác cho dịch vụ này",
   8: "mức TA của loại đối tác cho nhóm",
   9: "mức TA của loại đối tác cho mọi dịch vụ",
+  10: "mức TA gắn riêng cho đối tác, dịch vụ này",
+  11: "mức TA gắn riêng cho đối tác, nhóm",
+  12: "mức TA gắn riêng cho đối tác, mọi dịch vụ",
 };
 
 /** Dòng kết quả của Thử tra: «Áp mức 12,5% — mức riêng của đối tác cho nhóm»; thiếu mức → câu lý do của máy chủ (đã là tiếng Việt); không người hưởng → câu riêng. */

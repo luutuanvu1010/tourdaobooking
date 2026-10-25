@@ -218,6 +218,42 @@
       ]
     },
     {
+      "ma": "SV-TA-07",
+      "mo_ta": "Mức TA GẮN RIÊNG (bậc 11, ADR-0138). Loại «Công ty lữ hành» gắn TA1; riêng đại lý A được gắn riêng TA2 ⇒ mức theo loại bỏ qua cho A. Đơn của A có một dòng Tour đảo 1.000.000 và một dòng Vinwonders 1.000.000.",
+      "nguon": "ADR-0138 (chủ duyệt 2026-10-24, tiêu chí nghiệm thu 1) — số lấy từ ví dụ của chủ trong góp ý YC-0020 (TA1 = 10% Tour đảo / 7% Vinwonders; TA2 = 12% / 9%); thành tiền 1.000.000 mỗi dòng là số của người soạn. Thêm vào sổ 2026-10-24; AI không tự đánh dấu xác nhận (N-18) — chờ Kế toán.",
+      "xac_nhan": {"trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null},
+      "dong": [
+        {
+          "nhan": "Tour đảo 1.000.000 — bậc 11 (TA2 gắn riêng · nhóm Tour đảo 12%)",
+          "dau_vao": {"thanh_tien": 1000000, "khach_tinh": null, "kieu": "RATE", "ty_le_bp": 1200, "moi_khach": null, "ty_le_mua_bp": null},
+          "dap_an": {"hoa_hong": 120000, "gia_dai_ly": 880000, "gia_von": null}
+        },
+        {
+          "nhan": "Vinwonders 1.000.000 — bậc 11 (TA2 gắn riêng · nhóm Vinwonders 9%)",
+          "dau_vao": {"thanh_tien": 1000000, "khach_tinh": null, "kieu": "RATE", "ty_le_bp": 900, "moi_khach": null, "ty_le_mua_bp": null},
+          "dap_an": {"hoa_hong": 90000, "gia_dai_ly": 910000, "gia_von": null}
+        }
+      ]
+    },
+    {
+      "ma": "SV-TA-08",
+      "mo_ta": "Đối chứng của SV-TA-07: đại lý B cùng loại «Công ty lữ hành», KHÔNG gắn riêng ⇒ vẫn theo TA1 của loại (bậc 8). Cùng hai dòng như SV-TA-07.",
+      "nguon": "ADR-0138 (chủ duyệt 2026-10-24, tiêu chí nghiệm thu 1) — số lấy từ ví dụ của chủ trong góp ý YC-0020 (TA1 = 10% Tour đảo / 7% Vinwonders; TA2 = 12% / 9%); thành tiền 1.000.000 mỗi dòng là số của người soạn. Thêm vào sổ 2026-10-24; AI không tự đánh dấu xác nhận (N-18) — chờ Kế toán.",
+      "xac_nhan": {"trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null},
+      "dong": [
+        {
+          "nhan": "Tour đảo 1.000.000 — bậc 8 (TA1 của loại · nhóm Tour đảo 10%)",
+          "dau_vao": {"thanh_tien": 1000000, "khach_tinh": null, "kieu": "RATE", "ty_le_bp": 1000, "moi_khach": null, "ty_le_mua_bp": null},
+          "dap_an": {"hoa_hong": 100000, "gia_dai_ly": 900000, "gia_von": null}
+        },
+        {
+          "nhan": "Vinwonders 1.000.000 — bậc 8 (TA1 của loại · nhóm Vinwonders 7%)",
+          "dau_vao": {"thanh_tien": 1000000, "khach_tinh": null, "kieu": "RATE", "ty_le_bp": 700, "moi_khach": null, "ty_le_mua_bp": null},
+          "dap_an": {"hoa_hong": 70000, "gia_dai_ly": 930000, "gia_von": null}
+        }
+      ]
+    },
+    {
       "ma": "C-1",
       "mo_ta": "Đại lý giữ cọc và tự giảm giá cho khách (ADR-0079 ví dụ C-1, ví dụ của chủ dự án Q17; phiếu Kế toán tình huống 1). Đại lý A (công ty lữ hành, hoa hồng 10%) đặt tour đảo 5.000.000, giảm cho khách 250.000 nên khách trả 4.750.000. Đại lý thu cọc 3.000.000 (người thu BOOKER, dòng giữ hộ nằm trên đại lý); HDV Nam thu 1.750.000 tại cảng (dòng giữ hộ nằm trên HDV). Lúc «Đã giao»: hoa hồng Tour Đảo → đại lý 10% × 5.000.000 = 500.000 (tính trên giá TRƯỚC giảm); giảm giá bên đặt chịu đại lý → Tour Đảo 250.000. Số dư: đại lý nợ 3.000.000 + 250.000 − 500.000 = 2.750.000; HDV nợ 1.750.000; Tour Đảo thu về 4.500.000.",
       "nguon": "ADR-0079, ví dụ C-1 (bảng dòng, số dư, «Tour Đảo thu về 4.500.000»); phieu-ke-toan.md tình huống 1. Mọi số lấy nguyên từ ADR; giá đại lý 4.500.000 là «Tour Đảo thu về» của ADR. Soạn bởi AI 2026-10-19 (sổ đại lý đợt 2, Task 0); chờ chủ / Kế toán xác nhận, AI không tự đánh dấu (Hiến pháp N8).",

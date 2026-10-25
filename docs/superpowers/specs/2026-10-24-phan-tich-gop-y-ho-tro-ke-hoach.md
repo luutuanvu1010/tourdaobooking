@@ -129,3 +129,41 @@ Chủ chưa trả lời riêng Q1–Q5 nên **theo khuyến nghị đã ghi ở 
 
 ### Chưa thi công trong đợt này (cần chủ)
 Duyệt ADR 0138 + hai nháp mới; ảnh phác hai màn sổ; Zalo OA; chạy `audit-invariants --db remote`; day-len/trien-khai (lệnh do chủ chạy).
+
+## 9. Kế hoạch CHỐT, làm LẦN LƯỢT trong MỘT phiên (thay phần «Thực hiện» của mục 8; chủ 24/10)
+
+Ba phiên song song ở mục 8 đã dừng giữa chừng: không phiên nào commit; phần sửa dở nằm trong thư mục làm việc của từng phiên, **không dùng lại** (làm lại từ test đỏ ở đây).
+
+**Nguyên tắc thứ tự:** việc cần chủ duyệt đi TRƯỚC (soạn nhanh, chủ đọc trong lúc AI làm mã) → việc không cần duyệt, rủi ro thấp → lưới an toàn cho tiền → việc chạm tiền/quyền chỉ sau khi ADR được duyệt. Mỗi bước: test đỏ → xanh, `npm test` + `typecheck` xanh, commit riêng; bước chạm tiền/quyền/dữ liệu có người kiểm độc lập (subagent chỉ đọc). Báo «xong bước x / tổng 9».
+
+| Bước | Việc | Cần chủ trước? | Xong khi |
+|---|---|---|---|
+| 1 | **Xác minh hiện trạng** (chỉ đọc): production đang chạy bản nào, đã có dấu kế toán (ADR-0060), xác nhận đơn/QR chưa — `docs/HANDOFF-N1.md` + `wrangler deployments list` | Không | Bảng «đã lên / chưa lên» trong tệp này |
+| 2 | **Soạn bộ ADR lượt duyệt 1**: nháp «tiền đón là khoản riêng» (YC-0014) + «SĐT HDV cho tài xế» (YC-0015, sửa ADR-0053) + trang ghép chung với nháp 0138; nháp lượt 2 «đại lý tổ chức nhiều nhân viên» (YC-0017) | Không (chỉ tài liệu) | Bốn tệp nháp + trang ghép; người kiểm soi sự thật; **trình chủ duyệt** |
+| 3 | **Lượt A1** bộ lọc nhanh danh sách đơn: còn công nợ (qua view `billing`), đã/chưa nhập kế toán, chờ HDV nhận; gỡ ô lọc dịch vụ | Không — trừ khi cần view/migration mới thì dừng hỏi | Bài đỏ→xanh, e2e lọc đơn, kiểm độc lập |
+| 4 | **Lượt A2–A4**: nhãn «Đã nhập kế toán» nổi bật; nhắc «chưa chọn ngày» ở đơn nháp; kiểm ô ghi chú giờ đón | Không (màu mới thì hỏi) | Ảnh thật hai khổ cho chủ duyệt một lượt |
+| 5 | **Lưới an toàn sổ công nợ**: bài khoá «Σ số dư theo đối tác = Σ dòng nợ các đơn»; sửa chữ `SO-HANG-RAO.md` (SV-TA-03/06) | Không | Bài xanh + phá thử đỏ đúng chỗ |
+| 6 | **Kế hoạch thi công sổ đối tác**: màn Sổ công nợ Kế toán → ADR-0081 đối tác xem sổ → ADR-0116 hoàn tiền sau giao | Ảnh phác hai màn sổ (chủ vẽ) | Tệp kế hoạch có tiêu chí nghiệm thu |
+| 7 | **Thi công ADR lượt 1 đã duyệt**, lần lượt: 0138 gắn mức TA riêng → SĐT HDV cho tài xế → tiền đón | **Có: ADR duyệt** | Mỗi ADR một commit, kiểm độc lập, ca vàng nếu chạm tiền |
+| 8 | **Thi công sổ đối tác** theo kế hoạch bước 6 | **Có: ảnh phác** | Như bước 7 |
+| 9 | **Lượt 2**: đại lý tổ chức (sau duyệt); đăng nhập Zalo (sau khi có Zalo OA) | **Có** | — |
+
+**Điểm dừng tự nhiên:** sau bước 2 (chủ duyệt ADR), sau bước 4 (chủ xem ảnh, quyết phát hành bằng `npm run day-len` + `npm run trien-khai`), sau bước 6 (chủ vẽ ảnh phác). Trong lúc chờ duyệt, AI làm tiếp bước không phụ thuộc (3 → 4 → 5 → 6), không ngồi chờ.
+**Phát hành:** gom bước 3–5 thành một lần phát hành (có mục nhật ký thay đổi; bước 3 có thể thêm view ⇒ migration ⇒ cần triển khai); bước 7, 8 mỗi ADR một lần phát hành.
+
+## 10. Kết quả bước 1 — xác minh hiện trạng (24/10, chỉ đọc)
+
+Nguồn: `docs/HANDOFF-N1.md` mục TRẠNG THÁI (chủ dán kết quả `kiem-phien-ban.mjs --sau-deploy` → «ĐẠT: production đang chạy đúng bản 2.28», `main` `ed174142`); nhánh này chứa `ed174142`; đối chiếu `src/shared/changelog.ts`. AI không gọi được production từ máy phiên (chưa kiểm trực tiếp lần nữa).
+
+| Góp ý | Tính năng | Production 2.28? | Hệ quả cho kế hoạch |
+|---|---|---|---|
+| YC-0018, YC-0013 (vế kế toán) | Dấu «Đã nhập phần mềm kế toán» + số hoá đơn, nhãn trên thẻ đơn **và lọc đã nhập / chưa nhập** (ADR-0060) | **Đã lên từ bản 1.46** (30/9) | Bộ lọc «đã/chưa nhập kế toán» **đã có** ⇒ bỏ khỏi bước 3. YC-0018 chỉ còn làm nhãn nổi bật (bước 4) + trả lời người gửi chỗ bấm |
+| YC-0016 | Đón/Không đón bắt buộc, khung giờ đón, nháp chưa chọn vẫn lưu (ADR-0134, migration 0115) | **Đã lên** (2.24) | Bước 4 nhắc «chưa chọn ngày» vẫn cần (khác «chưa chọn đón») |
+| YC-0019 | Đơn chỉ cần xác nhận khi có dịch vụ «cần xác nhận»; QR sau xác nhận (đặc tả 19/10 Phần A, C; ADR dự kiến 0136, 0137 cũ) | **Chưa** (chỉ Đợt 1 = ADR-0134 lên) | Đã có đặc tả + nhánh `worktree-xac-nhan-don*`; không làm lại ở đây, chỉ trả lời người gửi «đang làm» |
+| YC-0020 | Mức TA (ADR-0117 lần 2) | **Đã lên bản 2.4** | Đúng như kiểm 7.2 |
+| YC-0014 | Đưa đón theo nhóm + điểm chọn nhanh (**ADR-0118 đã duyệt 14/10, thi công + kiểm độc lập xong**) | **CHƯA — nhánh `claude/tour-dao-booking-audit-bc6c77` (đầu `d7495a77`) bị bỏ quên 10 ngày, hơn nhánh này 23 commit, chưa `day-len`** | Phát hiện quan trọng: phải đưa vào bản chính trước khi làm tiền đón. **Xung đột chắc chắn** (người soát chạy `git merge-tree`: ≥ 14 tệp, gồm `orders/index.ts`, `orders/service.ts`, `web/order-form.ts`, `web/service-card.ts`, `web/khoi-dua-don.ts`, `changelog.ts`, `tests/e2e/run.mjs`) vì ADR-0134 (khung giờ) lên sau — chủ quyết: sửa xung đột rồi `day-len`, hay làm lại trên `main` mới |
+| YC-0014 (vế tiền) | **Lớp giá đưa đón (lượt 2)**: chủ đã chốt hướng 14/10 (đặc tả `2026-10-14-dot-2-gia-dua-don.md` bản 2, trên nhánh trên): phụ thu theo người, giá xe riêng theo chuyến, quy tắc là dữ liệu do **Quản trị** đặt, có hiệu lực từ ngày, đơn đã xác nhận không đổi, **phụ thu không tính hoa hồng đại lý**, nơi tự gõ tính mức «ngoài vùng», Bán hàng không sửa giá trên đơn | Chưa có ADR | **Sửa câu Q2 ở mục 8:** khuyến nghị «sửa chỉ người giữ partner.commission.write» MÂU THUẪN lời chủ 14/10 («Quản trị đặt; chỉ Quản trị / Toàn quyền điều chỉnh, có lý do») ⇒ theo lời chủ 14/10 (không hỏi lại). Nháp ADR lớp giá dựng trên đặc tả bản 2, không thiết kế lại |
+
+**Thay đổi thứ tự sau bước 1:** bước 3 chỉ còn «còn công nợ», «chờ HDV nhận», gỡ ô lọc dịch vụ. Thêm một việc cho chủ: quyết số phận nhánh đưa đón ADR-0118 (`day-len` sau khi AI kiểm xung đột với `main`, hay làm lại trên `main` mới). Lượt duyệt 1 = {0138 gắn mức TA riêng, SĐT HDV cho tài xế}; ADR lớp giá đưa đón là lượt riêng, sau khi nhánh ADR-0118 vào bản chính.
+
+**Sửa sau lượt soát sự thật (24/10):** lượt duyệt chia lại theo cách đếm từng điều D (trang ghép bản 2): lượt 1 = 0139, lượt 2 = 0138, lượt 3 = 0140. Lọc «đã/chưa nhập kế toán» có sẵn từ 1.46 **bắt buộc chọn khoảng ngày ≤ 92 ngày** (ADR-0060 A-6) — có thể đó là lý do người gửi YC-0013 tưởng chưa có; trả lời người gửi kèm hướng dẫn.

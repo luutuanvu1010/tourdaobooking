@@ -12,7 +12,7 @@ const dong = (o: Partial<DongMuc>): DongMuc => ({
   validFrom: "2026-01-01", validTo: null, ...o,
 });
 const goi = (o: { vaiMo?: string[]; duocHuong?: string[]; gan?: GanLoaiMuc[]; muc?: DongMuc[] }) =>
-  tomTatHoaHongHoSo({ partyId: P, vaiMo: o.vaiMo ?? ["L1"], vaiDuocHuong: new Set(o.duocHuong ?? ["L1", "L2"]), gan: o.gan ?? [], muc: o.muc ?? [], ngay: NGAY });
+  tomTatHoaHongHoSo({ partyId: P, vaiMo: o.vaiMo ?? ["L1"], vaiDuocHuong: new Set(o.duocHuong ?? ["L1", "L2"]), gan: o.gan ?? [], ganRieng: [], muc: o.muc ?? [], ngay: NGAY });
 
 test("gắn mức đã hết hạn hoặc chưa tới ngày KHÔNG tính (như chonMuc)", () => {
   assert.equal(goi({ gan: [gan("L1", "T1", "2026-01-01", "2026-10-01")] }).vai[0].mucCode, null, "hết hạn");

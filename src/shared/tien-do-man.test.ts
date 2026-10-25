@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  buocDiem, cauConKhach, cauTuChoiKhaiGio, giuTenKhach, goiYKhaiGio, ketThucDuoc, nhomCuoc, soHieuTaiDiemDon, tenNguoiDiKemCuaChuyen, chiSuatKhach, viecNguoiDiKem, thanDoiThuTu, doiThuTuDuoc, xayRaLucTu, type DiemVao, type SuatVao,
+  buocDiem, cauConKhach, cauTuChoiKhaiGio, giuTenKhach, goiYKhaiGio, ketThucDuoc, nhomCuoc, soHieuTaiDiemDon, tenNguoiDiKemCuaChuyen, sdtNguoiDiKemCuaChuyen, dichVuTaiDiemDon, chiSuatKhach, viecNguoiDiKem, thanDoiThuTu, doiThuTuDuoc, xayRaLucTu, type DiemVao, type SuatVao,
 } from "./tien-do-man.ts";
 import { vnLocalToMs } from "./vn-date.ts";
 
@@ -243,4 +243,21 @@ test("viecNguoiDiKem: WAITING → 'Đã lên xe' (don); BOARDED → 'Đã xuốn
     { id: "b", ten: "Hùng", lenh: "tra", nhan: "Đã xuống", trangThai: "BOARDED" },
     { id: "c", ten: "Mai", lenh: null, nhan: null, trangThai: "DROPPED" },
   ]);
+});
+
+// ADR-0139: màn tài xế công ty trong ngày chạy — số gọi người đi kèm và tên dịch vụ dưới điểm đón. Máy chủ quyết có khoá hay không; hai hàm chỉ gom.
+test("sdtNguoiDiKemCuaChuyen: người đi kèm CÓ số (theo thứ tự suất, không trùng tên); không số thì bỏ; suất khách bỏ", () => {
+  assert.deepEqual(sdtNguoiDiKemCuaChuyen([
+    { tenNguoiDiKem: "Hướng Dẫn", sdtNguoiDiKem: "0913 555 666" },
+    { tenNguoiDiKem: "Không Số" },
+    { tenNguoiDiKem: "Hướng Dẫn", sdtNguoiDiKem: "0913 555 666" },
+    { sdtNguoiDiKem: "0999" },
+  ]), [{ ten: "Hướng Dẫn", sdt: "0913 555 666" }]);
+  assert.deepEqual(sdtNguoiDiKemCuaChuyen([]), []);
+});
+test("dichVuTaiDiemDon: tên dịch vụ của các suất LÊN xe ở điểm — không trùng, theo thứ tự suất; bỏ suất không có tên dịch vụ, bỏ suất lên điểm khác", () => {
+  assert.deepEqual(dichVuTaiDiemDon([
+    { diemLen: "d1", tenDichVu: "Tour đảo" }, { diemLen: "d1", tenDichVu: "Vinwonders" }, { diemLen: "d1", tenDichVu: "Tour đảo" },
+    { diemLen: "d1" }, { diemLen: "d2", tenDichVu: "Lặn biển" },
+  ], "d1"), ["Tour đảo", "Vinwonders"]);
 });

@@ -1899,11 +1899,12 @@ export const CHECKS = [
     // nhóm) — ADR-0117 lần 2 (0097) thêm đích mức vào khoá: hai mức khác nhau cùng có dòng «mọi dịch vụ» là hợp lệ. Cộng thêm bảng gắn loại ↔ mức (0096, trigger
     // `prc_role_tier_overlap`): một loại tối đa MỘT mức tại một ngày.
     code: "R-PRC-1",
-    what: "không có hai dòng mức hoa hồng cùng đối tượng (hồ sơ, vai hoặc mức TA), cùng phạm vi và mã mà khoảng hiệu lực chồng nhau; không loại nào mang hai mức TA cùng một ngày",
+    what: "không có hai dòng mức hoa hồng cùng đối tượng (hồ sơ, vai hoặc mức TA), cùng phạm vi và mã mà khoảng hiệu lực chồng nhau; không loại nào mang hai mức TA cùng một ngày; không hồ sơ nào mang hai mức TA gắn riêng cùng một ngày",
     sql: `SELECT (${overlap("prc_commission_rule", ["target_party_id", "target_role_code", "target_tier_code", "scope", "catalog_code", "group_code"], "valid_from_date")})
-       + (${overlap("prc_role_tier", ["role_type_code"], "valid_from_date")})`,
+       + (${overlap("prc_role_tier", ["role_type_code"], "valid_from_date")})
+       + (${overlap("prc_party_tier", ["party_id"], "valid_from_date")})`,
     level: "fail",
-    note: "đặc tả sổ đại lý đợt 1 §9: một đối tượng (hồ sơ, vai hoặc mức TA), một phạm vi, một mã chỉ có MỘT mức tại mỗi ngày; một loại chỉ mang MỘT mức TA tại mỗi ngày (ADR-0117 lần 2) — Kế toán đóng một trong hai dòng",
+    note: "đặc tả sổ đại lý đợt 1 §9: một đối tượng (hồ sơ, vai hoặc mức TA), một phạm vi, một mã chỉ có MỘT mức tại mỗi ngày; một loại chỉ mang MỘT mức TA tại mỗi ngày (ADR-0117 lần 2); một hồ sơ chỉ mang MỘT mức TA gắn riêng tại mỗi ngày (ADR-0138) — Kế toán đóng một trong hai dòng",
   },
   {
     // R-PRC-2: "tắt một vai = active 0, dòng mức cũ vẫn giữ; R-PRC-2 báo" (0090) — việc của Kế toán là đóng dòng mức theo vai đó (hết hạn ⇒ hết báo).
@@ -1946,11 +1947,13 @@ export const CHECKS = [
     // R-PRC-5: dòng mức theo HỒ SƠ còn hiệu lực HÔM NAY mà hồ sơ không còn vai được hưởng nào (cùng nghĩa trigger `prc_commission_rule_target_party`: vai đang mở VÀ đang bật).
     // Tình trạng nghiệp vụ hợp lệ (công ty lữ hành thôi hợp tác) cần người rà soát — mức warn VĨNH VIỄN, không bao giờ đỏ kể cả --strict.
     code: "R-PRC-5",
-    what: "dòng mức hoa hồng còn hiệu lực hôm nay theo hồ sơ mà hồ sơ đó không còn mở vai được hưởng hoa hồng nào",
-    sql: `SELECT count(*) FROM prc_commission_rule r WHERE r.target_party_id IS NOT NULL AND r.valid_from_date <= ${HOM_NAY_VN} AND ${CHUA_HET_HAN("r")}
-       AND NOT EXISTS (SELECT 1 FROM v_pty_open_role o JOIN v_prc_beneficiary_role b ON b.role_type_code = o.role_type_code WHERE o.party_id = r.target_party_id)`,
+    what: "dòng mức hoa hồng (hoặc mức TA gắn riêng — ADR-0138) còn hiệu lực hôm nay theo hồ sơ mà hồ sơ đó không còn mở vai được hưởng hoa hồng nào",
+    sql: `SELECT (SELECT count(*) FROM prc_commission_rule r WHERE r.target_party_id IS NOT NULL AND r.valid_from_date <= ${HOM_NAY_VN} AND ${CHUA_HET_HAN("r")}
+       AND NOT EXISTS (SELECT 1 FROM v_pty_open_role o JOIN v_prc_beneficiary_role b ON b.role_type_code = o.role_type_code WHERE o.party_id = r.target_party_id))
+      + (SELECT count(*) FROM prc_party_tier g WHERE g.valid_from_date <= ${HOM_NAY_VN} AND ${CHUA_HET_HAN("g")}
+       AND NOT EXISTS (SELECT 1 FROM v_pty_open_role o JOIN v_prc_beneficiary_role b ON b.role_type_code = o.role_type_code WHERE o.party_id = g.party_id))`,
     level: "warn",
-    note: "cảnh báo, không chặn phát hành (đặc tả sổ đại lý đợt 1 §9): hồ sơ này thôi vai được hưởng mà mức còn hiệu lực — Kế toán xem lại và đóng dòng mức nếu không còn hưởng",
+    note: "cảnh báo, không chặn phát hành (đặc tả sổ đại lý đợt 1 §9): hồ sơ này thôi vai được hưởng mà mức còn hiệu lực — Kế toán xem lại và đóng dòng mức / mức riêng nếu không còn hưởng",
   },
   {
     // R-PRC-6 (ADR-0117 lần 1, migration 0095): lưới THỨ HAI cho các trigger `pty_party_role_partner_label_conflict_*`, `adr0117_permission_partner_label_internal`, `prc_beneficiary_role_kind`.

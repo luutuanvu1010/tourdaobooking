@@ -46,7 +46,7 @@ import { HANDLER_HIDDEN } from "../src/shared/order-confirmation";
 import { type PaxCounts } from "../src/shared/order-lines";
 import { LOI_409_KHONG_CU, banner, classifyOrderError, type Banner } from "../src/shared/order-errors";
 import { cauDongBoChuyen } from "../src/shared/dong-bo-chuyen-cau";
-import { cauKhoaXacNhan, khongQuyenSuaText, orderActions, paxFullText, suaChuyenDuoc, suaKhachDuoc } from "../src/shared/order-view";
+import { cauChuaCoNgay, cauKhoaXacNhan, khongQuyenSuaText, orderActions, paxFullText, suaChuyenDuoc, suaKhachDuoc } from "../src/shared/order-view";
 import { CHUA_XEP_XE, dongXeTrenDon, duocXemXeTrenDon } from "../src/shared/xe-tren-don";
 import { canhBaoGiamGiaVuot, duocSuaSoKhachVanPhong, nguonBangSuaSoKhach } from "../src/shared/so-khach-van-phong";
 import { cauNhacSoKhach, daiSauSuaSoKhach, dongLichSuHienThi, type DongLichSuHienThi } from "../src/shared/so-khach-hien-thi";
@@ -1391,15 +1391,18 @@ function render(order: Order, history: AuditEntry[], canModify: boolean, handler
   if (a.edit) btns.push(h("a", { class: "btn", href: `/order-form?id=${encodeURIComponent(order.id)}` }, "Sửa"));
   // Bản vẽ 7a / 7b: còn chặng phải đặt gấp → nút Xác nhận khoá + dòng nói vì sao (Bán hàng: "Cần Quản trị duyệt đặt gấp"; Quản trị: "Duyệt đặt gấp xong thì xác nhận được.").
   const chanXacNhan = a.confirm ? tomTatChanXacNhan(canDatGap, duocDatGap) : null;
+  // YC-0016: đơn nháp chưa có ngày khởi hành — khoá nút và nói vì sao (máy chủ vẫn chặn).
+  const chuaCoNgay = a.confirm ? cauChuaCoNgay(order.services) : null;
   if (a.confirm) {
     const nut = change("Xác nhận đơn", "confirmed", "Xác nhận đơn này? Sau khi xác nhận, dịch vụ và đơn giá sẽ bị khoá; đổi số khách phải ghi lý do.", "btn btn-accent", canhBaoXN);
-    nut.disabled = chanXacNhan !== null;
+    nut.disabled = chanXacNhan !== null || chuaCoNgay !== null;
     btns.push(nut);
   }
   if (a.editTrip) btns.push(editTripButton(order));
   if (nguonSoKhach) btns.push(nutSuaSoKhach(order, nguonSoKhach));
   if (a.cancel) btns.push(nutHuyDon());
   for (const cau of canhBaoXN) btns.push(h("p", { class: "dd-canh-xn", "data-canh-bao": "xac-nhan" }, icon("alert", 16), cau));
+  if (chuaCoNgay) btns.push(h("p", { class: "dg-lock", "data-chan": "chua-co-ngay" }, icon("lock", 16), chuaCoNgay));
   if (chanXacNhan) btns.push(duocDatGap ? h("p", { class: "dg-lock dg-lock-note", "data-chan": "xac-nhan" }, chanXacNhan) : h("p", { class: "dg-lock", "data-chan": "xac-nhan" }, icon("lock", 16), chanXacNhan));
   replaceChildren(actions, ...btns);
   // Nút riêng, ngoài `#actions` (bộ nút sửa/xác nhận/huỷ phụ thuộc trạng thái và quyền; nút này luôn có).

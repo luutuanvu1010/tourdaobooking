@@ -28,7 +28,7 @@
 // - ADR-0111 (gói A5 T13; bản vẽ "Điều phối xe đang chạy" V8, V9): ô trip.transfer — "Nhờ xe khác đón" ở điểm đón chưa tới (đề nghị STOP), "Chuyển khách sang
 //   xe khác" cạnh "Kết thúc gián đoạn" (cứu hộ ONBOARD, có nơi gặp); thẻ đề nghị gửi đi (đếm ngược, Rút lại) và gửi tới (đếm ngược, Nhận / Không nhận). Đếm
 //   ngược theo `hanLuc` máy chủ gửi; hết giờ thì đọc lại danh sách. Thẻ không tên khách (LC-18). Chữ: src/shared/xe-dang-chay-man.ts.
-import { CAU_THU_TU_DAO, buocDiem, doiThuTuDuoc, giuTenKhach, chiSuatKhach, soHieuTaiDiemDon, tenNguoiDiKemCuaChuyen, viecNguoiDiKem, type BuocDiem } from "../src/shared/tien-do-man";
+import { CAU_THU_TU_DAO, buocDiem, doiThuTuDuoc, giuTenKhach, chiSuatKhach, soHieuTaiDiemDon, tenNguoiDiKemCuaChuyen, sdtNguoiDiKemCuaChuyen, dichVuTaiDiemDon, viecNguoiDiKem, type BuocDiem } from "../src/shared/tien-do-man";
 import type { CuocChiTietResponse, DeNghiCuaToiResponse, DeNghiDto, DeNghiLenhResponse, XeNhanResponse } from "../src/shared/contracts";
 import { coCuocCuaToi } from "../src/shared/start-page";
 import { ApiError, api } from "./api";
@@ -414,10 +414,16 @@ function moBoSungTen(d: SuatTenDong, opener: HTMLButtonElement): void {
   });
 }
 
-/** Dòng "Người đi kèm: <tên>" (hướng dẫn viên; chỉ tên, không SĐT) — ở mọi trạng thái chuyến. */
+/**
+ * Dòng "Người đi kèm: <tên>" (hướng dẫn viên) — ở mọi trạng thái chuyến. ADR-0139: khi máy chủ gửi số (chỉ tài xế công ty, trong ngày chạy) thêm số bấm gọi
+ * cạnh tên, cùng khuôn dòng "Liên hệ" của điểm đón.
+ */
 function dongDiKem(): HTMLElement | null {
   const ten = tenNguoiDiKemCuaChuyen(duLieu!.suat);
-  return ten.length ? h("div", { class: "dp-cc-di-kem" }, icon("me", 16), h("span", null, `Người đi kèm: ${ten.join(", ")}`)) : null;
+  if (!ten.length) return null;
+  const so = sdtNguoiDiKemCuaChuyen(duLieu!.suat);
+  return h("div", { class: "dp-cc-di-kem" }, icon("me", 16), h("span", null, `Người đi kèm: ${ten.join(", ")}`),
+    ...so.map((x) => h("a", { href: `tel:${x.sdt.replace(/[^\d+]/g, "")}`, "data-goi": "nguoi-di-kem", "aria-label": `Gọi ${x.ten}` }, x.sdt)));
 }
 
 /** Người đi kèm cũng phải "Đã lên xe" → "Đã xuống" thì "Kết thúc chuyến" thường mới được (máy chủ đếm như khách): nút theo `viecNguoiDiKem`, chỉ khi xe đang chạy. */
@@ -486,7 +492,7 @@ function ve(): void {
     h("span", null, h("strong", null, c.bienSo), c.xuatBen ? ` · xe chạy ${c.xuatBen.gioXayRa.gio}` : "", " · trên xe ", h("strong", null, `${trenXe}/${c.soCho}`)),
   );
   const chayDuoc = c.trangThai === "RUNNING";
-  const phuDiem = (b: BuocDiem) => ({ ben: nutThuTu(b), duoi: [...bayCua(b, r.suat), ...lienHeCua(b), ...chiDuongCua(b, r), ...nutNhoDon(b)] });
+  const phuDiem = (b: BuocDiem) => ({ ben: nutThuTu(b), duoi: [...bayCua(b, r.suat), ...dichVuCua(b), ...lienHeCua(b), ...chiDuongCua(b, r), ...nutNhoDon(b)] });
   const buoc = buocDiem(r.diem, r.suat, c.trangThai, ngay);
   // C54: khi chạy, "Điểm kế tiếp" + "Các điểm sau" + "Đã xong" (thu gọn) và MỘT nút chính dính đáy; không chạy (đã kết thúc…) thì danh sách đủ như cũ.
   const nhom = nhomDiemChay(buoc);
@@ -642,6 +648,13 @@ function bayCua(b: BuocDiem, suat: CuocChiTietResponse["suat"]): Child[] {
   return ds.length ? [h("div", { class: "dp-run-bay" }, ...ds.map((x) => h("span", { class: "chip chip-code" }, `✈︎ ${x}`)))] : [];
 }
 
+/** ADR-0139: "Dịch vụ: …" của khách lên ở điểm đón này — chỉ khi máy chủ gửi `tenDichVu` (tài xế công ty, trong ngày chạy). */
+function dichVuCua(b: BuocDiem): Child[] {
+  if (b.diem.loai !== "PICKUP") return [];
+  const ds = dichVuTaiDiemDon(duLieu!.suat, b.diem.id);
+  return ds.length ? [h("div", { class: "dp-note", "data-dich-vu": "" }, `Dịch vụ: ${ds.join(", ")}`)] : [];
+}
+
 /** Liên hệ của đơn có khách lên ở điểm đón này (chỉ trong ngày chạy — DTO có `lienHe`). */
 function lienHeCua(b: BuocDiem): Child[] {
   if (b.diem.loai !== "PICKUP" || !lienHe.length) return [];
@@ -792,7 +805,7 @@ function veDiemTruoc(r: CuocChiTietResponse): HTMLElement[] {
     phuDiem: (b) => {
       const d = theoId.get(b.diem.id)!;
       const hen = d.loai === "DROPOFF" && d.gioHen ? `Hẹn ${d.gioHen.gio} · ` : "";
-      return { duoi: [...bayCua(b, r.suat), h("div", { class: "dp-note dp-cc-so-nguoi" }, `${hen}${d.soNguoi} khách`), ...chiDuongCua(b, r)] };
+      return { duoi: [...bayCua(b, r.suat), ...dichVuCua(b), h("div", { class: "dp-note dp-cc-so-nguoi" }, `${hen}${d.soNguoi} khách`), ...chiDuongCua(b, r)] };
     },
   });
 }
