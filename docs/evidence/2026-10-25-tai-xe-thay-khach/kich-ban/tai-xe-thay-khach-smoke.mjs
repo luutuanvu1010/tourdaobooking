@@ -6,7 +6,7 @@
 // ANH=truoc: chạy trên bản CŨ (commit 1c036383, trước khi sửa) để chụp ảnh "trước". Ảnh chụp TRƯỚC phần kiểm của mỗi bước, nên bước đỏ vẫn có ảnh. Bản cũ phải
 //   ĐỎ đúng các bước hành vi mới (1, 2, 3, 4, 5, 8) và XANH các bước hành vi giữ nguyên (6, 7, 9, 10) — bằng chứng kịch bản phân biệt được hai bản (P16).
 // ANH=sau (mặc định): chạy trên bản mới, phải xanh hết.
-// Dữ liệu đi đường thật (route API); tên, SĐT, biển số GIẢ. Giờ chuyến hôm nay tính theo giờ hiện tại (bắt đầu sau ~75 phút, dài 90 phút) → chạy trước ~21:40 giờ VN.
+// Dữ liệu đi đường thật (route API); tên, SĐT, biển số GIẢ. Giờ chuyến hôm nay tính theo giờ hiện tại (bắt đầu sau ~75 phút, dài 90 phút, phải xong trước nửa đêm) → chạy trước ~21:10 giờ VN.
 //   TC  tài xế công ty Tâm, xe 79A-251.25, HÔM NAY: đón Sheraton (đơn A, 2 khách có tên) và Novotel (đơn B, 2 khách: 1 có tên, 1 chưa) → trả Bến tàu (A), Bến cảng Vinpearl (B).
 //   CM  Tâm, NGÀY MAI 07:00: đón Citadines (đơn F, 2 khách) → trả Bến tàu.
 //   TD  tài xế đối tác Đông, xe nhà xe 79B-251.25, HÔM NAY (đã qua hạn Từ chối 12 giờ): đón InterContinental (C, 2 khách), Liberty (D, 1 khách) → trả Bến tàu (C),
@@ -30,7 +30,7 @@ const dm = (iso) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
 const vn = new Date(Date.now() + 7 * 3600_000);
 const bayGio = vn.getUTCHours() * 60 + vn.getUTCMinutes();
 const BD = Math.ceil((bayGio + 75) / 5) * 5;
-assert.ok(BD + 90 < 24 * 60, `kịch bản cần chạy trước ~21:40 giờ VN (chuyến hôm nay bắt đầu sau ~75 phút, dài 90 phút) — bây giờ ${gio(bayGio)}`);
+assert.ok(BD + 90 < 24 * 60, `kịch bản cần chạy trước ~21:10 giờ VN (chuyến hôm nay bắt đầu sau ~75 phút, dài 90 phút, phải xong trước nửa đêm) — bây giờ ${gio(bayGio)}`);
 
 /** Hướng dẫn viên (FIELD) giả đi kèm TD — màn tài xế đối tác hiện tên, KHÔNG SĐT (ADR-0139: SĐT người đi kèm chỉ cho tài xế công ty). */
 const HDV = { name: "Hướng Dẫn Đi Kèm 251", phone: "0900000253", pin: "246253", permissions: ["FIELD"] };

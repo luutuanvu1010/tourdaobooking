@@ -836,7 +836,7 @@ function veDiemTruoc(r: CuocChiTietResponse): HTMLElement[] {
 // ---- A4 T9: Từ chối chuyến (ADR-0053 D8) -----------------------------------------------------------------------------------------------------------------
 /** Một lệnh Từ chối mỗi trang (cùng requestId khi bấm lại sau mất mạng — `taoLenh`). */
 const lenhTuChoi = taoLenh();
-/** Dải hạn Từ chối (chỉ người có vế hạn — máy chủ gửi `hanTuChoi`) + thẻ "thấy khách từ …" của chuyến chưa chạy (máy chủ gửi `thayKhachTu` cho MỌI tài xế khi còn ngoài khung xem khách). */
+/** Dải hạn Từ chối (chỉ người có vế hạn — máy chủ gửi `hanTuChoi`) + thẻ "thấy khách từ …" của chuyến chưa chạy (máy chủ gửi `thayKhachTu` cho MỌI tài xế khi còn ngoài khung xem khách và mốc còn ở tương lai). */
 function khoiHanTuChoi(r: CuocChiTietResponse): Child[] {
   const homNay = vnToday(new Date());
   const d = daiHanTuChoi({ trangThai: r.chuyen.trangThai, tuChoiDuoc: r.tuChoiDuoc, hanTuChoi: r.hanTuChoi, sdtVanPhong: r.sdtVanPhong, chanTuChoi: r.chanTuChoi }, homNay);
