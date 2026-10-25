@@ -53,6 +53,16 @@ test("khachDangCho: chỉ suất KHÁCH đang chờ, theo thứ tự điểm đ�
   assert.deepEqual(cungDiem.map((x) => x.suatId), ["x", "y"], "cùng điểm, cùng đơn → theo tên (thứ tự ổn định giữa các lần tải)");
 });
 
+test("khachDangCho: «Khách i» đếm THEO ĐIỂM LÊN (một luật soKhachTaiDiem) — khớp nhãn thẻ điểm của buocDiem, kể cả khi có suất đã lên xe đứng trước", () => {
+  const d = [diem("a", 1), diem("b", 2)];
+  // Máy chủ gửi: a1 (đã lên xe), a2 (chờ), b1 (chờ). Đếm cả chuyến cho b1 ra «Khách 2»; đếm theo điểm: a2 = «Khách 2», b1 = «Khách 1».
+  const s = [suat("a1", "a", { trangThai: "BOARDED" }), suat("a2", "a"), suat("b1", "b")];
+  const r = khachDangCho(s, d, N);
+  assert.deepEqual(r.map((x) => [x.suatId, x.ten]), [["a2", "Khách 2"], ["b1", "Khách 1"]]);
+  const theDiem = buocDiem(d, s, "RUNNING", N).flatMap((b) => b.khach.map((k) => [k.suatId, k.ten]));
+  for (const x of r) assert.equal(x.ten, theDiem.find(([id]) => id === x.suatId)![1], "cùng một khách: khối chờ và thẻ điểm ghi cùng tên");
+});
+
 test("diemMoiChuaXem: điểm thêm khi chạy còn chờ, chưa xem → câu 'Điểm N · nơi · giờ · N khách' (giờ đón + TỔNG khách — lời chủ 5.3)", () => {
   const d = [diem("a", 4, { themKhiChay: true, tenNoi: "Bến Cầu Đá", soNguoi: 3 }), diem("b", 5, { themKhiChay: true, gioHen: null }), diem("c", 1), diem("e", 6, { themKhiChay: true, trangThai: "ARRIVED" })];
   assert.deepEqual(diemMoiChuaXem(d, new Set(["b"]), N), [{ id: "a", cau: "Điểm 4 · Bến Cầu Đá · 09:10 · 3 khách" }]);

@@ -2,7 +2,7 @@
 // khuôn chuỗi sự kiện của sổ công nợ lượt 1; khuôn hai lớp theo src/so-vang-chi-phi-xe.test.ts và golden/README.md:
 //   LỚP 1 (mọi ca, chạy ngay): ca TỰ CÂN — số nguyên đồng không âm; giá đại lý = thành tiền − hoa hồng; PER_PAX = mỗi khách × khách tính; RATE sai khác tròn số không quá nửa đồng; tổng = cộng các dòng; ca đã xác nhận
 //     có người + ngày. Bắt CA VIẾT SAI, không kiểm mã (và không chọn hộ cách làm tròn — việc đó của lớp 2).
-//   LỚP 2 (CHỈ ca "da_xac_nhan"): chạy CHÍNH `hoaHongDong` / `giaVonDong` (src/shared/hoa-hong-dong.ts — nơi `pricing` và `orders` cùng dùng) và so đáp án từng đồng. Hôm nay chưa ca nào được xác nhận ⇒ mỗi ca
+//   LỚP 2 (CHỈ ca "da_xac_nhan"): chạy CHÍNH `hoaHongDong` / `giaVonDong` (src/shared/hoa-hong-dong.ts — nơi `pricing` và `orders` cùng dùng) và so đáp án từng đồng. Ca chưa xác nhận ⇒ mỗi ca
 //     là một `test.todo` có tên ca; ca chờ chỉ in chẩn đoán «khớp / lệch mã», KHÔNG khẳng định (AI không tự nghiệm thu đáp án — Hiến pháp N8).
 // AI KHÔNG tự đổi ca sang "da_xac_nhan" — chỉ chủ dự án / Kế toán (golden/README.md "Thêm / sửa ca").
 import { test } from "node:test";
@@ -11,7 +11,9 @@ import { readFileSync } from "node:fs";
 import { giaVonDong, hoaHongDong, type KieuMuc } from "./shared/hoa-hong-dong.ts";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { world, seedStaff } from "../tests/audit/harness.mjs";
-import { sinhDongLanThu, sinhPhieuDaGiao, soDuTheoBen, type CollectorRole, type LineDraft } from "./modules/billing/rules.ts";
+import { lyDoChuaHoanThanh, sinhDongLanThu, sinhPhieuDaGiao, soDuTheoBen, type CollectorRole, type LineDraft } from "./modules/billing/rules.ts";
+import { tranGiamGiaDon, viPhamTranGiamGia } from "./modules/orders/price-guards.ts";
+import type { PermissionCode } from "./shared/permissions.ts";
 
 interface DauVao { thanh_tien: number | null; khach_tinh: number | null; kieu: KieuMuc | null; ty_le_bp: number | null; moi_khach: number | null; ty_le_mua_bp: number | null }
 interface DapAn { trang_thai?: string; hoa_hong: number | null; gia_dai_ly: number | null; gia_von: number | null; ty_le_bp_ap_dung?: number }
@@ -21,6 +23,9 @@ interface SoCai {
   giu_ho?: { loai: "HELD"; ben: string; nguoi_thu: "BOOKER" | "HDV" | "SUPPLIER"; so_tien: number }[];
   dong_da_giao?: { loai: "HOA_HONG" | "GIAM_GIA_BEN_DAT" | "GIA_VON"; tu: string; den: string; so_tien: number }[];
   so_du?: { ben: string; chieu: "no_cong_ty" | "cong_ty_no"; so_tien: number }[];
+  // Số kết luận của ca (không phải dòng sổ): Tour Đảo thu về / giữ, có chặn «Hoàn thành», trần giảm giá và từng lần nhập giảm giá.
+  cong_ty_thu_ve?: number; cong_ty_giu?: number; chan_hoan_thanh?: boolean; tran_giam_gia?: number;
+  thu_nhap_giam_gia?: { giam_gia: number; ket_qua: "tu_choi" | "duoc"; thong_bao: string | null }[];
 }
 interface Ca {
   ma: string; mo_ta: string; nguon: string; so_cai?: SoCai;
@@ -147,8 +152,8 @@ test("sổ vàng sổ đại lý — chạy thử ca chờ xác nhận (chẩn �
 // Ca C-1…C-5 (khối `so_cai`) và ADR-0078 ví dụ B-5 chạy qua CHÍNH luật sinh dòng của `src/modules/billing/rules.ts`: giữ hộ (`sinhDongLanThu`, người thu tự ghi; quầy
 // nhà cung cấp do Kế toán ghi), phiếu «Đã giao» (`sinhPhieuDaGiao`, hoa hồng / giá vốn do `hoaHongDong` / `giaVonDong` tính từ đầu vào của dòng — không lấy đáp án),
 // rồi số dư `soDuTheoBen`. Ruling R-106 (sửa theo người kiểm Task 10+11): số của các ca này lấy từ ADR-0078 / ADR-0079 ĐÃ DUYỆT (và `phieu-ke-toan.md` chép lại); bài
-// chạy và đỏ khi mã lệch số ADR, nhưng KHÔNG phải «ca vàng đạt» — ca vẫn chờ Kế toán xác nhận (ADR-0079 mục «Sổ vàng / bài kiểm»; AI không tự xác nhận ca vàng —
-// Hiến pháp N8; C-3 trùng SV-HT-02, bên src/so-vang.test.ts vẫn là `todo`). Mã sổ cho số sai ⇒ DỪNG ca đó, `todo` có lý do (không đổi luật tiền).
+// chạy và đỏ khi mã lệch số ADR. Chủ dự án xác nhận C-1…C-5 ngày 2026-10-25 (cùng SV-HT-02, SV-HT-03 bên src/so-vang.test.ts; C-3 trùng SV-HT-02) ⇒ từ đó là
+// ca vàng đạt (ADR-0079 mục «Sổ vàng / bài kiểm»). Mã sổ cho số sai ⇒ DỪNG ca đó, báo chủ (không đổi luật tiền, không sửa đáp án đã xác nhận).
 const CONG_TY = "cong_ty";
 interface DongSo { dv: string; hoaHong: number | null; giaVon: number | null; ncc: string | null; thanhTien: number }
 interface DauVaoSo { thu: { role: CollectorRole; ben: string; so: number }[]; nguoiHuong: string | null; giamGiaBenDat: number; dong: DongSo[] }
@@ -214,7 +219,8 @@ test("sổ vàng sổ đại lý — LỚP 1 sổ cái C-1…C-5: khối so_cai 
 });
 
 for (const c of CA_SO_CAI) {
-  test(`sổ vàng sổ đại lý — sổ cái ${c.ma} tính bằng mã sổ thật, so với số của ADR-0079 / phieu-ke-toan.md (ca CHỜ Kế toán xác nhận — chưa tính là ca vàng đạt)`, () => {
+  const trangThai = c.xac_nhan.trang_thai === "da_xac_nhan" ? `ca vàng đã xác nhận ${c.xac_nhan.ngay}` : "ca CHỜ xác nhận — chưa tính là ca vàng đạt";
+  test(`sổ vàng sổ đại lý — sổ cái ${c.ma} tính bằng mã sổ thật, so với số của ADR-0079 / phieu-ke-toan.md (${trangThai})`, () => {
     const sc = c.so_cai!;
     const kq = chaySo(dauVaoTuCa(c));
     const ten = (id: string) => (id === CONG_TY ? "cong_ty" : id);
@@ -222,6 +228,51 @@ for (const c of CA_SO_CAI) {
     for (const s of sc.so_du ?? []) assert.equal(kq.soDu.get(s.ben) ?? 0, s.chieu === "no_cong_ty" ? s.so_tien : -s.so_tien, `${c.ma}/${s.ben}: số dư (mã thật)`);
   });
 }
+
+// Số KẾT LUẬN của ca C (không phải dòng sổ) — chủ dự án xác nhận 2026-10-25. Trước đó chỉ nằm trong JSON, không bài nào đọc (người kiểm độc lập 25/10 chỉ ra);
+// nay chạy qua mã thật để sửa JSON hay sửa mã đều đỏ. Mỗi bài liệt kê đúng các ca mang trường đó: ca mới thêm trường mà không được kiểm ⇒ đỏ.
+test("sổ vàng sổ đại lý — C-1, C-3, C-4: «Tour Đảo thu về / giữ» = tổng số dư các bên tính bằng mã sổ thật", () => {
+  const ca = CA_SO_CAI.filter((c) => c.so_cai!.cong_ty_thu_ve !== undefined || c.so_cai!.cong_ty_giu !== undefined);
+  assert.deepEqual(ca.map((c) => c.ma), ["C-1", "C-3", "C-4"]);
+  for (const c of ca) {
+    const kq = chaySo(dauVaoTuCa(c));
+    assert.equal([...kq.soDu.values()].reduce((s, x) => s + x, 0), c.so_cai!.cong_ty_thu_ve ?? c.so_cai!.cong_ty_giu, `${c.ma}: phần Tour Đảo giữ (mã thật)`);
+  }
+});
+
+test("sổ vàng sổ đại lý — C-2: khoản công ty còn phải trả CTV không chặn «Hoàn thành» (lyDoChuaHoanThanh thật)", () => {
+  const ca = CA_SO_CAI.filter((c) => c.so_cai!.chan_hoan_thanh !== undefined);
+  assert.deepEqual(ca.map((c) => c.ma), ["C-2"]);
+  for (const c of ca) {
+    const kq = chaySo(dauVaoTuCa(c));
+    const khachTra = c.so_cai!.khach_tra!;
+    const lyDo = lyDoChuaHoanThanh({ deliveredAt: "2026-10-01T00:00:00.000Z", completedAt: null, soDu: kq.soDu, tenBen: (b) => b, daThu: khachTra, phaiThuLucGiao: khachTra });
+    assert.equal(lyDo !== null, c.so_cai!.chan_hoan_thanh, `${c.ma}: ${lyDo?.cau ?? "không chặn"}`);
+  }
+});
+
+// «Ai nhập cũng vậy, kể cả nhân viên Bán hàng» (C-5): Bán hàng, Quản trị và chính đại lý hưởng. Câu trong JSON thiếu dấu chấm cuối so với mã — cách chép, không phải số.
+const taiKhoan = (permissions: PermissionCode[], partyId: string | null = null) => ({ id: "u", permissions, partyId });
+test("sổ vàng sổ đại lý — C-5: trần giảm giá = tổng hoa hồng tính bằng hoaHongDong; từng lần nhập giảm giá ra đúng kết quả và câu báo (viPhamTranGiamGia thật)", () => {
+  const ca = TEP.cac_ca.filter((c) => c.so_cai?.tran_giam_gia !== undefined);
+  assert.deepEqual(ca.map((c) => c.ma), ["C-5"]);
+  for (const c of ca) {
+    const sc = c.so_cai!;
+    const nguoiHuong = dauVaoTuCa(c).nguoiHuong!;
+    const tongHoaHong = dauVaoTuCa(c).dong.reduce((s, d) => s + (d.hoaHong ?? 0), 0);
+    assert.equal(tranGiamGiaDon({ coNguoiHuong: true, tongHoaHong, laDoiTac: false, laThucTap: false, nguoiHuongLaMinh: false }), sc.tran_giam_gia, `${c.ma}: trần giảm giá`);
+    const don = { coNguoiHuong: true, tongHoaHong, beneficiaryPartyId: nguoiHuong, benDatKhongHuong: false };
+    assert.ok((sc.thu_nhap_giam_gia ?? []).length > 0, `${c.ma}: có lần nhập giảm giá`);
+    for (const tk of [taiKhoan(["SALES"]), taiKhoan(["ADMIN"]), taiKhoan(["PARTNER"], nguoiHuong)]) {
+      for (const n of sc.thu_nhap_giam_gia!) {
+        const vp = viPhamTranGiamGia(tk, n.giam_gia, don);
+        const ten = `${c.ma} / ${tk.permissions.join("+")} / giảm ${n.giam_gia}`;
+        assert.equal(vp === null ? "duoc" : "tu_choi", n.ket_qua, ten);
+        assert.equal(vp?.cau.replace(/\.$/, "") ?? null, n.thong_bao, `${ten}: câu báo`);
+      }
+    }
+  }
+});
 
 // ADR-0078 ví dụ B-5 (chủ hỏi 2026-10-01, «Phải thành test khi thi công»): 2 vé i-resort 600.000, i-resort bán, a = 80% ⇒ giá vốn 480.000 (trước giảm, H8 = A); lễ tân Hương
 // hưởng 100.000 (trước giảm); Hương tự giảm 20.000 ⇒ khách trả 580.000.
