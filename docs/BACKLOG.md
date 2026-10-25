@@ -513,7 +513,7 @@ Các việc khác từ cùng buổi xác nhận (đang chờ chủ quyết, chư
 | Mã | Việc | Nơi | Vì sao để sau |
 |---|---|---|---|
 | ~~BL-SDL2-DAO-DONG-TM~~ **ĐÓNG 19/10** (chủ chọn «Chặn rồi mới đẩy»; người kiểm toàn nhánh xếp HIGH): `dao_dong` trả 409 `commercial_line_needs_approval` cho ba loại dòng thương mại, tài khoản giữ quyền Đối tác 403 ở cả hai lệnh đảo, kiểm định kỳ `R-BIL-20` (sổ thi công Ruling R-147…R-150) — lịch sử: «Huỷ dòng sổ» (`dao_dong` của Kế toán) đảo được riêng dòng `HOA_HONG` / `GIA_VON` / `GIAM_GIA_BEN_DAT`: dòng đảo không mang `order_service_id`, không qua luật điều chỉnh sau «Đã giao», và `R-BIL-2` chỉ so dòng gốc nên không thấy hoa hồng ròng đã về 0 (Nợ Task 4, chưa ai quyết) | `ghiDieuChinh` nhánh `dao_dong` ở `billing/service.ts` | **Có thể mức HIGH (chờ người kiểm Task 14 xếp):** ADR-0115 để lệnh đảo ghi NGAY, không người thứ hai duyệt, nên MỘT Kế toán huỷ được dòng hoa hồng / giá vốn mà luật hai người canh. Nên chặn đảo riêng dòng thương mại (đi đường điều chỉnh có duyệt); nếu xếp HIGH thì cần mục ở `docs/quyen-hoan.json` (luật dừng dây chuyền) — điều phối / chủ quyết |
-| BL-SDL2-NHAN-KHOA-THANG | Nhãn «Khoản Công ty thu – chuyển khoản chờ xác nhận» ở bảng kiểm khoá tháng nay gồm cả khoản khách trả bên kia đang chờ | `web/khoa-thang.ts` | Chỉ chữ |
+| ~~BL-SDL2-NHAN-KHOA-THANG~~ **ĐÓNG 25/10** (chủ chọn chữ «Khoản thu chờ đối chiếu»; nhật ký thay đổi 2.31 — số tạm, đi cùng lần phát hành sau; bài `src/shared/khoa-thang-hien-thi.test.ts`) | Nhãn «Khoản Công ty thu – chuyển khoản chờ xác nhận» ở bảng kiểm khoá tháng nay gồm cả khoản khách trả bên kia đang chờ | `web/khoa-thang.ts` | Chỉ chữ |
 | BL-SDL2-NEM-THIEU-MUC | `sinhPhieuDaGiao` chỉ ném «thiếu mức» khi có người hưởng; chưa chốt có ném cả khi không người hưởng (M-2 người kiểm Task 3+4) và M-5 | `billing/rules.ts` | Route chỉ gọi khi tình trạng đủ; lỗi là lỗi mã |
 | BL-SDL2-CHUP-BU-TRAN | «Chụp bù» không kiểm trần giảm giá: đơn cũ đổi sang đại lý rồi chụp bù có thể mang giảm giá > hoa hồng (Ruling R-74) | route «Chụp bù» | Production chỉ có dữ liệu demo cho đơn đại lý |
 | BL-SDL2-KT-KEM-GIAO | Kế toán ghi `{ partyId }` của bên đặt / nhà cung cấp kèm «Đã giao» trong một lệnh — chạy theo đọc mã, chưa có bài riêng (Ruling R-41) | `billing/service.ts` | Thêm một ca bài |
@@ -549,9 +549,19 @@ Ghi 25/10 khi đóng phiên phân tích góp ý và ba phiên con (Lượt A, nh
 - **Trạng thái:** `chờ chủ chọn chữ` · Thấy khi nghiệm thu 2.30 (25/10): trang đăng nhập hiện «Thời gian dự kiến hoàn tất là 18 giờ 30 phút 48 giây». Con số là thời gian CÒN LẠI (`maintenanceMessageParts` ở `src/shared/maintenance.ts`, câu có từ 21/9), nhưng đọc lướt dễ hiểu là «xong lúc 18:30».
 - **Phương án chữ để chủ chọn:** (a) «Dự kiến xong lúc 09:11 ngày 26/10 (còn 18 giờ 30 phút)» — rõ nhất; (b) «Dự kiến hoàn tất sau 18 giờ 30 phút 48 giây nữa»; (c) giữ nguyên. Chỉ đổi chữ giao diện (kèm bài kiểm của hàm), không đụng luật máy chủ tự tắt đúng giờ.
 
-## 47. Bước Xác nhận đơn — phần còn lại sau Đợt 1 (mã `BL-XAC-NHAN-DON`)
+## 47. Chiết khấu theo loại khách — nợ còn mở sau bản 2.26 (mã `BL-LK-…`)
 
-> Chép 25/10 từ nhánh `worktree-xac-nhan-don` (lần lưu `6ebece68`, nơi mục này mang số «43»), vì mục chưa từng vào bản chính; §43 ở bản chính là mục khác. **Bổ sung 25/10:** thiết kế `docs/superpowers/specs/2026-10-25-chinh-sach-ban-va-gui-don-design.md` (cờ «cần xác nhận» theo nhóm, nút «Gửi đơn» của Đối tác, chính sách bán theo loại đối tác); số 0137 nay đã dùng cho ADR sổ đại lý nên đề xuất «thư + QR» phải đổi số. Phần dưới giữ nguyên văn bản 19/10.
+Ghi 25/10 khi đóng phiên ADR-0133 (bản 2.25 + vá 2.26, migration `0116`). Trạng thái triển khai ở `docs/HANDOFF-N1.md` mục «Phiên bản 2.25», «Phiên bản 2.26»; nơi tính và các nơi gọi ở `docs/so-do-kien-truc/README.md` mục ADR-0133. Không dòng nào là lỗi tiền đang biết: ngày 25/10 hai bộ bài khoá (`src/da-giao-theo-loai.test.ts`, `src/modules/orders/chiet-khau-theo-loai.test.ts`) xanh trên `main` và `audit-invariants --db remote` ĐẠT.
+
+| Mã | Việc | Nơi | Vì sao để sau |
+|---|---|---|---|
+| BL-LK-RAO-NOI-GOI | Chưa có hàng rào máy tự quét MỌI nơi gọi hàm tính hoa hồng (`tinhDongDoiTac`, `dongThuongMaiTu`, `tongHoaHongDon`, `donChoTran`) để bắt nơi quên truyền số khách theo loại — kể cả `scripts/*.mjs` nằm ngoài typecheck. Hai lỗi tiền cùng loại đã lọt qua đúng khe này (đường ghi tay ra 200.000 thay vì 170.000, bắt được trước khi gộp; billing bỏ rơi số khách theo loại làm «Đã giao» lỗi 500 ở bản 2.25). Cùng gốc với `BL-SDL2-THU-TU-TIEN` (K-A-3 không quét `scripts/`): theo luật «khuôn trước, việc sau» nên làm MỘT rào chung cho cả hai | `src/shared/hoa-hong-dong.ts` và nơi gọi ở `orders`, `billing`, `scripts/audit-checks.mjs`, `scripts/audit-thuong-mai.mjs` | Hôm nay đúng nhờ bài khoá và người kiểm độc lập; lần thêm tham số sau chưa có máy chặn |
+| BL-LK-BAI-THIEU | Thiếu hai ca bài: (a) Đối tác tự xem hoa hồng của mình ở đơn dùng mức theo loại; (b) sửa số khách SAU «Đã giao» rồi chạy `R-BIL-2` (rủi ro báo lệch giả) | gợi ý đặt cạnh `src/da-giao-theo-loai.test.ts` | Ca biên; phần lõi đã có bài khoá |
+| BL-LK-NHAN-GHI-TAY | Dòng nhật ký «ghi tay» (`order_terms_manual`) chỉ nêu một số chung (số người lớn) khi bản chụp có ba số theo loại | `nhanHoaHongBan` ở `src/modules/orders/thuong-mai.ts` | Chỉ là chữ nhật ký; tiền đúng |
+
+## 48. Bước Xác nhận đơn — phần còn lại sau Đợt 1 (mã `BL-XAC-NHAN-DON`)
+
+> Chép 25/10 từ nhánh `worktree-xac-nhan-don` (lần lưu `6ebece68`, nơi mục này mang số «43»), vì mục chưa từng vào bản chính; §43 ở bản chính là mục khác. **Bổ sung 25/10:** thiết kế `docs/superpowers/specs/2026-10-25-chinh-sach-ban-va-gui-don-design.md` (cờ «cần xác nhận» theo nhóm, nút «Gửi đơn» của Đối tác, chính sách bán theo loại đối tác); số 0137 nay đã dùng cho ADR sổ đại lý nên đề xuất «thư + QR» phải đổi số. Việc 1 dưới đây nay đi theo bộ đề xuất ở `docs/superpowers/specs/2026-10-25-chinh-sach-ban-va-gui-don/`: chủ đã duyệt hướng ngày 25/10; trang ghép mới thay `TRANG-GHEP-LUOT-2.md` và đề nghị chia năm lượt duyệt. Phần dưới giữ nguyên văn bản 19/10.
 
 - **Trạng thái:** `để sau` · Chủ 19/10/2026: «lưu việc còn lại vào backlog, đóng phiên». Đợt 1 (chọn Đón/Không đón, khung giờ — ADR-0134) **đã lên production bản 2.23**.
 - **Hồ sơ:** đặc tả `docs/superpowers/specs/2026-10-19-xac-nhan-don-design.md` (mục 5b–5f thắng phần trên); kế hoạch `docs/superpowers/plans/2026-10-19-xac-nhan-don.md`; nhật ký thi công `docs/superpowers/plans/2026-10-19-xac-nhan-don-thi-cong-nhat-ky.md`; đề xuất lượt 2 ở `docs/superpowers/specs/2026-10-19-xac-nhan-don/`.
@@ -564,7 +574,7 @@ Ghi 25/10 khi đóng phiên phân tích góp ý và ba phiên con (Lượt A, nh
 - **Nợ nhỏ của Đợt 1:** chưa có kịch bản Chrome riêng `chon-don-smoke.mjs`; kịch bản `trang-chu-smoke` và `dieu-phoi-smoke` dừng ở bước kiểm menu (chưa đối chiếu với main để biết có đỏ sẵn); hướng dẫn Bán hàng 3149/3150 chữ, sát trần bài đọc 30 phút.
 - **Việc của chủ (không cần mã):** đổi mốc tối thiểu trước giờ đón từ 360 xuống 30 phút trên trang Chính sách điều phối, nếu vẫn muốn.
 
-## 48. Đếm chỗ trống thật («tồn kho») — đề xuất để sau (mã `BL-TON-KHO`)
+## 49. Đếm chỗ trống thật («tồn kho») — đề xuất để sau (mã `BL-TON-KHO`)
 
-- **Trạng thái:** `đề xuất để sau` (chờ chủ duyệt thiết kế 25/10) · Chủ 25/10 nêu ý «phân hệ quản lý tồn kho». Thiết kế 25/10 chọn cờ «cần xác nhận» (người nội bộ kiểm chỗ bằng tay) vì Nền tảng chưa có nguồn số chỗ trống, và ví dụ của chủ (vé Vinpearl kèm buffet) chỉ cần kiểm tay.
+- **Trạng thái:** `đề xuất để sau` (chủ duyệt hướng thiết kế 25/10: chưa làm tồn kho) · Chủ 25/10 nêu ý «phân hệ quản lý tồn kho». Thiết kế 25/10 chọn cờ «cần xác nhận» (người nội bộ kiểm chỗ bằng tay) vì Nền tảng chưa có nguồn số chỗ trống, và ví dụ của chủ (vé Vinpearl kèm buffet) chỉ cần kiểm tay.
 - **Mở lại khi:** có nguồn số chỗ theo ngày (nhà cung cấp gửi, hoặc nhân viên nhập) và chủ muốn Nền tảng tự chặn khi hết chỗ. Khi đó là một phân hệ mới (cạnh phụ thuộc mới, tiền tố bảng mới) — cần ADR riêng.

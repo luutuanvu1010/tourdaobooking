@@ -12,6 +12,17 @@ import {
   tieuDeKeTiep,
 } from "./khoa-thang-hien-thi.ts";
 import { GHI_CHU_KHOA_TOI_DA } from "./ky-khoa.ts";
+import { SO_DO_TRANG } from "./so-do-trang.ts";
+
+// Mục «chờ» của bảng kiểm đọc `choXacNhanCongTy` = câu PENDING_COMPANY: từ sổ đại lý đợt 2 câu này gồm CẢ khoản Công ty thu chuyển khoản chờ «Xác nhận
+// đã nhận» LẪN khoản khách trả bên kia (đại lý / quầy nhà cung cấp) chờ «Bên kia đã nhận» — nhãn không được nói riêng «Công ty thu» (chủ dự án 2026-10-25
+// chọn chữ). Đọc qua sơ đồ trang (sinh từ chuỗi literal của web/khoa-thang.ts) vì trợ lý Hỗ trợ cũng kể nhãn này cho người dùng.
+test("bảng kiểm khoá tháng: mục khoản chờ tên «Khoản thu chờ đối chiếu», không nói riêng «Công ty thu»", () => {
+  const trang = SO_DO_TRANG.find((t) => t.duongDan === "/khoa-thang");
+  assert.ok(trang, "sơ đồ trang thiếu /khoa-thang");
+  assert.ok(trang.khiChay.muc.includes("Khoản thu chờ đối chiếu"), `mục khi chạy: ${trang.khiChay.muc.join(" | ")}`);
+  assert.ok(!trang.khiChay.muc.some((m) => m.includes("Công ty thu")), "còn nhãn cũ «Khoản Công ty thu …»");
+});
 
 // Câu hộp xác nhận là hàng rào con người duy nhất trước một việc không đảo ngược (đặc tả §13: khoá nhầm tháng chỉ cứu được bằng khôi phục cả cơ sở dữ liệu).
 test("hộp xác nhận nêu đúng tháng, nói KHÔNG mở lại được và đường cứu duy nhất", () => {

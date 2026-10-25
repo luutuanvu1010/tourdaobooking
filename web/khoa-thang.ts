@@ -121,7 +121,7 @@ if (!can(staff, "ledger.view")) {
     replaceChildren(
       bangKiemEl,
       h("p", { class: "muted" }, CAU_BANG_KIEM_KHONG_CHAN),
-      khoiKhoan(h("h3", null, "Khoản Công ty thu – chuyển khoản chờ xác nhận"), b.choXacNhanCongTy, "cho-xac-nhan"),
+      khoiKhoan(h("h3", null, "Khoản thu chờ đối chiếu"), b.choXacNhanCongTy, "cho-xac-nhan"),
       khoiKhoan(h("h3", null, "Khoản thu chưa rõ người thu tiền"), b.chuaRoNguoiThu, "chua-ro"),
       h(
         "div",

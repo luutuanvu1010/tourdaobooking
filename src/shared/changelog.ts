@@ -12,6 +12,16 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Nhãn bảng kiểm khoá tháng (chủ dự án 2026-10-25 chọn chữ; mục «Chốt sổ 2026-10-25» của docs/superpowers/plans/2026-10-18-so-dai-ly-dot-2-thi-cong-nhat-ky.md). Chỉ chữ, KHÔNG migration.
+    // Chủ dặn «đi cùng lần phát hành sau»: không triển khai riêng. Số 2.31 và ngày là TẠM — phiên phát hành kế tiếp kiểm lại ở bước A.0 của docs/HANDOFF-N1.md
+    // và GỘP mục của mình vào mục này (cùng một số), đừng chồng thêm số mới chỉ vì mục này đã có sẵn (cổng «bản ở máy mới hơn production» qua sẵn nhờ mục này).
+    version: "2.31",
+    date: "2026-10-25",
+    items: [
+      { kind: "doi", text: "Khoá sổ tháng: mục «Khoản Công ty thu – chuyển khoản chờ xác nhận» nay tên «Khoản thu chờ đối chiếu», vì gồm cả tiền khách trả đại lý hoặc quầy nhà cung cấp." },
+    ],
+  },
+  {
     // Màn Sổ công nợ (P1 của docs/superpowers/plans/2026-10-24-so-cong-no-doi-tac-ke-hoach-thi-cong.md; bản vẽ 2a). Thêm route chỉ đọc GET /api/ledger/ben/:partyId. KHÔNG migration.
     version: "2.30",
     date: "2026-10-25",
