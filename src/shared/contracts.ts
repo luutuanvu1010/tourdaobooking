@@ -2402,7 +2402,7 @@ export interface TaoYeuCauDieuChinhResponse {
 
 /**
  * `GET /api/ledger/ky` và thân `201` của `POST /api/ledger/ky/:period/khoa` (khoá sổ tháng — ADR-0080 D1; Kế toán, Toàn quyền). `keTiep` = tháng khoá được kế tiếp (null = hết
- * tháng đã qua để khoá); `bangKiem` = bảng kiểm của tháng đó trước khi bấm khoá (null khi `keTiep` null): khoản "Công ty thu" còn chờ xác nhận, khoản thu chưa rõ người thu
+ * tháng đã qua để khoá); `bangKiem` = bảng kiểm của tháng đó trước khi bấm khoá (null khi `keTiep` null): khoản thu chờ đối chiếu (`choXacNhanCongTy` — tên cũ; từ sổ đại lý đợt 2 gồm cả khoản khách trả bên kia BOOKER / SUPPLIER chờ «Bên kia đã nhận», nhãn giao diện «Khoản thu chờ đối chiếu»), khoản thu chưa rõ người thu
  * (chỉ mã đơn, số tiền, ngày — không SĐT, không mã giao dịch) và số dư mỗi bên với công ty tính đến cuối tháng. `coTheKhoa` = người xem có ô khoá VÀ còn tháng để khoá.
  */
 export interface KySoResponse {

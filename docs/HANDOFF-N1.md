@@ -41,7 +41,7 @@ Ghi 24/10/2026 bằng lệnh chỉ đọc chủ chạy trên máy dự án, kế
 4. **Sau 1–2 tuần:** Toàn quyền mở Chính sách điều phối → thẻ «Hạn mức Từ chối của hướng dẫn viên», xem số lần; thấy hợp lý thì chọn «Chặn» và bấm Lưu cài đặt (không cần phát hành mã).
 5. **Đường lùi:** `wrangler rollback` chỉ lùi Worker; ba bảng mới ở lại (chỉ thêm, bản cũ không đọc) — vô hại. Bản cũ chạy trên CSDL mới thì Nhận / Giao không ghi sự kiện ⇒ `R-DSP-6` báo các dòng đó (cảnh báo).
 
-## Lần phát hành kế tiếp: Sổ đại lý đợt 2 (ADR-0079, ADR-0078 điều 7–10, ADR-0132; migration `0112`, `0113` — số tạm; nhật ký thay đổi 2.24 — số tạm) — CHƯA PHÁT HÀNH — RUNBOOK
+## Lần phát hành kế tiếp: Sổ đại lý đợt 2 (ADR-0079, ADR-0078 điều 7–10, ADR-0132; migration `0112`, `0113` — số tạm; nhật ký thay đổi 2.24 — số tạm) — ĐÃ PHÁT HÀNH bản 2.24 ngày 19/10/2026 (sửa tiêu đề 25/10; dòng «Trạng thái» bên dưới là lúc soạn runbook) — RUNBOOK
 
 **Trạng thái (ghi 2026-10-19, Task 14):** nhánh `claude/objective-euclid-1c8113`, CHƯA gộp `main`, CHƯA lên production. Đặc tả `docs/superpowers/specs/2026-10-18-so-dai-ly-dot-2/README.md` §5 (phát hành, hoàn tác); sổ thi công `docs/superpowers/plans/2026-10-18-so-dai-ly-dot-2-thi-cong-nhat-ky.md`. Đổi số 19/10 (Ruling R-P11): chữ «0111» của hồ sơ cũ nay là `0112`, «0112» (chụp bù) nay là `0113`, «2.18» / «2.22» nay là 2.24.
 
@@ -109,7 +109,7 @@ Ghi 19/10/2026 từ khối tóm tắt cuối của `npm run trien-khai`, kiểm 
 - Commit: `d685117f`. Worker Version ID: `ef05296a-8ff9-4863-9d1a-d970ced9a4a8`. Không migration.
 - **Lỗi đã vá:** bản 2.25 để đơn đại lý dùng mức «theo loại khách» ném lỗi 500 khi bấm «Đã giao» / mở màn tiền (`dongThuongMaiTu` của billing bỏ rơi `pax`), và kiểm định kỳ R-BIL-2 báo lệch giả (script không đọc ba số). Người kiểm độc lập lượt hai tìm ra, lượt ba ĐẠT. Bài khoá: `src/da-giao-theo-loai.test.ts`. Chưa có đơn nào dùng mức theo loại trước khi vá nên không có dữ liệu hỏng.
 - **e2e lúc triển khai:** `trien-khai` báo đỏ ở kịch bản `xe-dang-chay` (chủ chọn đi tiếp); chạy riêng ngay sau đó 4/4 xanh, và cả bộ 71/71 xanh trước đó — rớt thoáng qua, không do bản này.
-- **Còn lại (chủ/Kế toán):** xem form «Hoa hồng đối tác» bằng mắt; khai thử một mức «theo loại» bằng tài khoản Kế toán thật rồi thử «Đã giao» một đơn đại lý (ca vàng SV-LK-01: 170.000 đ).
+- **Còn lại (chủ/Kế toán):** xem form «Hoa hồng đối tác» bằng mắt; khai thử một mức «theo loại» (Kế toán, Quản trị hoặc Toàn quyền đều khai được) rồi thử «Đã giao» một đơn đại lý bằng tài khoản Quản trị hoặc Toàn quyền — Kế toán KHÔNG có nút «Đã giao» (ADR-0025 đ2; sửa 25/10, bản trước ghi nhầm cả hai bước bằng Kế toán) (ca vàng SV-LK-01: 170.000 đ).
 
 ## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.25 ĐÃ LÊN PRODUCTION (chiết khấu «mỗi khách» theo loại khách — ADR-0133: người lớn / trẻ em / người cao tuổi, em bé luôn 0, trẻ em và người cao tuổi bắt buộc điền) — migration `0116_chiet_khau_theo_loai_khach` đã áp — triển khai 2026-10-19 21:12 giờ VN
 
