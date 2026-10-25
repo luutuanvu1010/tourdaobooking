@@ -2,7 +2,7 @@
 // tệp kia là bài luật thuần chạy nhanh, không dựng cả ứng dụng. Luật thuần: doi-muc.test.ts. Đặc tả A3 (docs/superpowers/specs/2026-10-25-hoa-hong-ho-tro-thiet-ke-lai/DAC-TA-MAY-CHU.md).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { addDays, vnToday } from "../../shared/vn-date.ts";
+import { addDays, ngayDayDu, vnToday } from "../../shared/vn-date.ts";
 import { cauDoiMuc } from "./repository.ts";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { world, seedStaff } from "../../../tests/audit/harness.mjs";
@@ -97,14 +97,14 @@ test("Đổi bị từ chối: dòng đã ngừng / sắp áp dụng / ngày sai
     ["câu 1", daNgung, { kieu: "RATE", tyLeBp: 1200, tuNgay: hn }, "Dòng này đã có ngày ngừng nên không đổi được. Thêm mức mới bắt đầu sau ngày ngừng."],
     ["câu 2", sapToi, { kieu: "RATE", tyLeBp: 1200, tuNgay: addDays(hn, 31) }, "Mức này chưa tới ngày áp dụng nên không đổi được."],
     ["câu 3", dangMo, { kieu: "RATE", tyLeBp: 1200, tuNgay: addDays(hn, -1) }, "Ngày bắt đầu của mức mới không được trước hôm nay."],
-    ["câu 4", moiHomNay, { kieu: "RATE", tyLeBp: 1200, tuNgay: hn }, ""],
+    ["câu 4", moiHomNay, { kieu: "RATE", tyLeBp: 1200, tuNgay: hn }, `Mức cũ bắt đầu từ ${ngayDayDu(hn)} nên không đổi được từ ngày ${ngayDayDu(hn)}. Dùng Ngừng cho mức cũ, rồi Thêm mức mới.`],
     ["giống hệt", dangMo, { kieu: "RATE", tyLeBp: 700, tuNgay: hn }, "Mức mới giống hệt mức cũ."],
     ["thân có phạm vi", dangMo, { kieu: "RATE", tyLeBp: 1200, tuNgay: hn, phamVi: "ALL" }, "Đổi mức không đổi được đối tượng hay dịch vụ."],
   ];
   for (const [ten, id, than, cau] of ca) {
     const r = await doi(w, id, than);
     assert.equal(r.status, 400, `${ten}: ${r.text}`);
-    if (cau) assert.equal(r.json.error.message, cau, ten); else assert.ok(r.json.error.message.startsWith("Mức cũ bắt đầu từ"), `${ten}: ${r.json.error.message}`);
+    assert.equal(r.json.error.message, cau, ten);
     assert.equal(dem(w), truoc, `${ten}: số dòng không đổi`);
   }
   assert.equal(dong(w, dangMo).valid_to_date, null);
@@ -144,4 +144,24 @@ test("Đổi: Bán hàng, Đối tác, tài khoản lai → 403; không tìm th�
   for (const ai of [SALES, DT, KP]) assert.equal((await doi(w, id, { kieu: "RATE", tyLeBp: 1200, tuNgay: hn }, ai)).status, 403, ai);
   assert.equal(dem(w), truoc);
   assert.equal((await doi(w, crypto.randomUUID(), { kieu: "RATE", tyLeBp: 1200, tuNgay: hn })).status, 404);
+});
+
+test("Đua thật qua route: dòng bị đóng NGAY TRƯỚC lô ghi (sau khi route đã đọc) ⇒ 409 stale đúng câu, không dòng mới, không nhật ký", async () => {
+  const w = setup();
+  const hn = HOM_NAY();
+  const id = await dongLoai(w, addDays(hn, -10));
+  const n0 = dem(w);
+  const a0 = Number(w.q("SELECT count(*) AS n FROM audit_log")[0].n);
+  let chen = false;
+  w.chenTruocLo((s: { sql: string }[]) => s.some((x) => /CASE WHEN changes\(\) > 0 THEN \?10/.test(x.sql)), () => {
+    chen = true;
+    w.sqlite.prepare("UPDATE prc_commission_rule SET valid_to_date = ? WHERE id = ?").run(addDays(hn, 3), id);
+  });
+  const r = await doi(w, id, { kieu: "RATE", tyLeBp: 1200, tuNgay: hn });
+  assert.ok(chen, "khung thử đã chen lệnh đóng trước lô");
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "stale");
+  assert.equal(r.json.error.message, "Dòng này vừa được người khác ngừng hoặc đổi. Tải lại trang.");
+  assert.equal(dem(w), n0, "không dòng mới");
+  assert.equal(Number(w.q("SELECT count(*) AS n FROM audit_log")[0].n), a0, "không nhật ký");
 });

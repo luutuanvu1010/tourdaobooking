@@ -258,6 +258,7 @@ export const pricingModule: AppModule = {
         auditStatement(env.DB, { staffId: staff.id, action: "prc_commission_rule_added", at, detail: chiTiet }, "changes() > 0"),
       ]);
       if (res instanceof Response) return res;
+      // Lưới dự phòng (giữ): với câu chèn VALUES + CASE, dòng cũ không đóng được thì cả lô đã lỗi NOT NULL (→ 409 ở loiBang) nên thường không tới đây; giữ để nếu câu chèn đổi dạng thì vẫn 409 chứ không ghi sai.
       if (dongDaDong(res)) return error(409, "stale", "Dòng này vừa được người khác ngừng hoặc đổi. Tải lại trang.");
       const [cu, moi] = await Promise.all([ruleById(env.DB, id), ruleById(env.DB, moiId)]);
       return json({ cu: dtoMuc(cu!, tenVai, homNay), moi: dtoMuc(moi!, tenVai, homNay) } satisfies DoiMucResponse);
