@@ -1,6 +1,7 @@
 # Chính sách bán theo loại đối tác, cờ «cần xác nhận» theo nhóm, nút «Gửi đơn» của Đối tác — thiết kế
 
-- Ngày: 2026-10-25. Trạng thái: **bản nháp chờ chủ duyệt**. Vai phiên: lập kế hoạch (không thi công).
+- Ngày: 2026-10-25. Trạng thái: **chủ duyệt hướng ngày 25/10** (nguyên văn: «Duyệt hướng thiết kế 25/10»). Vai phiên: lập kế hoạch (không thi công).
+- Bước kế ở mục 5.1 đã soạn, chờ chủ duyệt: thư mục `2026-10-25-chinh-sach-ban-va-gui-don/` (đọc `TRANG-GHEP.md` trước).
 - Nền phải xây tiếp (hồ sơ có ngày, không sửa):
   - thiết kế xác nhận đơn `2026-10-19-xac-nhan-don-design.md` (mục 5b–5f thắng phần trên);
   - đề xuất ADR-0136 `2026-10-19-xac-nhan-don/DE-XUAT-ADR-0136-buoc-xac-nhan-don.md` (**chưa duyệt**);
