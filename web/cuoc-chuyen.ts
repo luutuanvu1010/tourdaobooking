@@ -28,7 +28,14 @@
 // - ADR-0111 (gói A5 T13; bản vẽ "Điều phối xe đang chạy" V8, V9): ô trip.transfer — "Nhờ xe khác đón" ở điểm đón chưa tới (đề nghị STOP), "Chuyển khách sang
 //   xe khác" cạnh "Kết thúc gián đoạn" (cứu hộ ONBOARD, có nơi gặp); thẻ đề nghị gửi đi (đếm ngược, Rút lại) và gửi tới (đếm ngược, Nhận / Không nhận). Đếm
 //   ngược theo `hanLuc` máy chủ gửi; hết giờ thì đọc lại danh sách. Thẻ không tên khách (LC-18). Chữ: src/shared/xe-dang-chay-man.ts.
-import { CAU_THU_TU_DAO, buocDiem, doiThuTuDuoc, giuTenKhach, chiSuatKhach, soHieuTaiDiemDon, tenNguoiDiKemCuaChuyen, sdtNguoiDiKemCuaChuyen, dichVuTaiDiemDon, viecNguoiDiKem, type BuocDiem } from "../src/shared/tien-do-man";
+// - Đề xuất 25/10 (docs/superpowers/specs/2026-10-25-de-xuat-tai-xe-thay-khach-truoc-khi-cho-xe-chay.md, chủ duyệt Q1 a, Q2 a): tài xế CÔNG TY (`congTy` — không ô
+//   trip.refuse, cùng điều kiện máy chủ dựng phần chỉ tài xế công ty), trong khung xem khách, thấy tên + năm sinh từng khách và dòng "Liên hệ" ngay TRƯỚC khi cho xe
+//   chạy (`khachTruocChay`); tài xế đối tác như cũ. Chuyến có từ hai điểm trả: chữ "Trả: <nơi>" dưới tên mỗi khách, trước và trong khi chạy (`chuTraCuaKhach`, qua móc
+//   `phuKhach` riêng của màn này — màn văn phòng web/chuyen.ts không truyền nên không đổi). Khối "Suất của khách" đếm "Điểm M · Khách i" như dòng khách.
+import {
+  CAU_THU_TU_DAO, buocDiem, doiThuTuDuoc, giuTenKhach, chiSuatKhach, soHieuTaiDiemDon, tenNguoiDiKemCuaChuyen, sdtNguoiDiKemCuaChuyen, dichVuTaiDiemDon, viecNguoiDiKem, khachTruocChay, chuTraCuaKhach,
+  type BuocDiem, type KhachDiem,
+} from "../src/shared/tien-do-man";
 import type { CuocChiTietResponse, DeNghiCuaToiResponse, DeNghiDto, DeNghiLenhResponse, XeNhanResponse } from "../src/shared/contracts";
 import { coCuocCuaToi } from "../src/shared/start-page";
 import { ApiError, api } from "./api";
@@ -344,6 +351,15 @@ async function chay(khoa: string, viec: () => Promise<void>): Promise<void> {
   ve();
 }
 
+/**
+ * Tài xế CÔNG TY = KHÔNG có ô `trip.refuse` (đặt ở `main`) — đúng điều kiện máy chủ dựng phần chỉ tài xế công ty (`themCongTy`, khung không vế hạn). Chỉ quyết
+ * ẩn / hiện (khách trước khi chạy, chữ "Trả:", câu "Bạn thấy tên khách …"); dữ liệu nào tới máy là do máy chủ. Mặc định `false` = như tài xế đối tác.
+ */
+let congTy = false;
+/** Chữ "Trả: <nơi>" dưới tên khách (móc `phuKhach` của `veDiemChay` — chỉ màn này truyền). */
+const chuTra = (tra: ReadonlyMap<string, string>) => (k: KhachDiem): Child | null =>
+  tra.has(k.suatId) ? h("span", { class: "dp-khach-tra", "data-tra": "" }, tra.get(k.suatId)!) : null;
+
 // ---- Đợt 5 A-1b (ADR-0052 D5b, bản vẽ V6 6.3–6.4 — chủ duyệt 5/10): tài xế bổ sung tên khách chưa có tên -------------------------------------------------
 /** Ô `trip.passenger.add` (đặt ở `main`); máy chủ vẫn kiểm chuyến mình đang lái + trong ngày chạy. */
 let coBoSungTen = false;
@@ -363,7 +379,7 @@ function khoiSuatKhach(): HTMLElement | null {
     }),
   );
 }
-/** Bản vẽ V6 6.4 (theo ADR D5b): "Bổ sung tên — Suất N" — Họ tên*, Năm sinh*; Lưu / Đóng. Không ô loại khách (gửi null). Lưu xong đọc lại chi tiết. */
+/** Bản vẽ V6 6.4 (theo ADR D5b): "Bổ sung tên — Điểm M · Khách i" (25/10: cùng cách đếm với dòng khách) — Họ tên*, Năm sinh*; Lưu / Đóng. Không ô loại khách (gửi null). Lưu xong đọc lại chi tiết. */
 function moBoSungTen(d: SuatTenDong, opener: HTMLButtonElement): void {
   const ten = h("input", { id: "cc-bs-ten", class: "vc-input", type: "text", autocomplete: "off", maxlength: "120", "aria-required": "true" }) as HTMLInputElement;
   const nam = h("input", { id: "cc-bs-nam", class: "vc-input", type: "text", inputmode: "numeric", maxlength: "4", "aria-required": "true" }) as HTMLInputElement;
@@ -371,7 +387,7 @@ function moBoSungTen(d: SuatTenDong, opener: HTMLButtonElement): void {
   const luu = h("button", { type: "button", class: "vc-btn btn btn-primary", "data-action": "bo-sung-ten-luu" }, "Lưu") as HTMLButtonElement;
   const dong = h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary" }, "Đóng");
   const bang = moBangTruot({
-    title: `Bổ sung tên — ${d.nhan.split(" · ")[0]}`,
+    title: `Bổ sung tên — ${d.nhanNgan}`,
     body: [
       h("p", { class: "dp-sheet-text" }, "Nhập tên cho khách chưa có tên trong đơn."),
       h("div", { class: "vc-field" }, h("label", { class: "vc-label", for: "cc-bs-ten" }, "Họ tên *"), ten),
@@ -501,6 +517,7 @@ function ve(): void {
   const chung = {
     diem: r.diem, suat: r.suat, trangThai: c.trangThai, ngayXem: ngay, coNut: chayDuoc, onLenh: lenhDiem, choGui: new Set([...choGui.keys()]), vuaGhi, phuDiem, khoa: dangGui,
     choVang: chayDuoc, nutChinhODay: new Set(viec && viec.loai !== "ket-thuc" ? [viec.buoc.diem.id] : []),
+    phuKhach: chuTra(chuTraCuaKhach(r.diem, r.suat, congTy)), // đề xuất 25/10 Q2 a: "Trả: <nơi>" khi chuyến có từ hai điểm trả (chỉ tài xế công ty)
   };
   const idsSau = new Set(nhom.sau.map((x) => x.diem.id));
   const keTiep = chayDuoc && nhom.keTiep ? veDiemChay({ ...chung, loc: (x) => x.diem.id === nhom.keTiep!.diem.id, keTiepId: nhom.keTiep.diem.id }) : [];
@@ -655,11 +672,11 @@ function dichVuCua(b: BuocDiem): Child[] {
   return ds.length ? [h("div", { class: "dp-note", "data-dich-vu": "" }, `Dịch vụ: ${ds.join(", ")}`)] : [];
 }
 
-/** Liên hệ của đơn có khách lên ở điểm đón này (chỉ trong ngày chạy — DTO có `lienHe`). */
-function lienHeCua(b: BuocDiem): Child[] {
-  if (b.diem.loai !== "PICKUP" || !lienHe.length) return [];
+/** Liên hệ của đơn có khách lên ở điểm đón này (chỉ trong ngày chạy — DTO có `lienHe`). `ds`: màn trước khi chạy truyền danh sách đã qua `khachTruocChay`. */
+function lienHeCua(b: BuocDiem, ds: readonly NonNullable<CuocChiTietResponse["lienHe"]>[number][] = lienHe): Child[] {
+  if (b.diem.loai !== "PICKUP" || !ds.length) return [];
   const don = new Set(duLieu!.suat.filter((s) => s.diemLen === b.diem.id && s.maDon).map((s) => s.maDon));
-  return lienHe.filter((l) => don.has(l.maDon)).map((l) =>
+  return ds.filter((l) => don.has(l.maDon)).map((l) =>
     h("div", { class: "dp-run-lien-he" }, icon("handset", 16), h("span", null, `Liên hệ: ${l.tenLienHe}`), h("a", { href: `tel:${l.sdtLienHe.replace(/[^\d+]/g, "")}` }, l.sdtLienHe)));
 }
 
@@ -797,16 +814,22 @@ function moGianDoan(opener: HTMLElement): void {
   });
 }
 
-/** Điểm của chuyến CHƯA xuất bến (bản 1.39): số người ở mỗi điểm; điểm trả có giờ hẹn thì ghi kèm (điểm đón đã có "HẸN …" ở nhãn loại). */
+/**
+ * Điểm của chuyến CHƯA xuất bến (bản 1.39): số người ở mỗi điểm; điểm trả có giờ hẹn thì ghi kèm (điểm đón đã có "HẸN …" ở nhãn loại). Đề xuất 25/10 (Q1 a):
+ * tài xế công ty trong khung xem khách thấy thêm tên + năm sinh từng khách (không nút tiến độ — `coNut: false`) và dòng "Liên hệ"; ngoài ra như cũ — một luật ở
+ * `khachTruocChay`. Chữ "Trả:" theo `chuTraCuaKhach` (Q2 a).
+ */
 function veDiemTruoc(r: CuocChiTietResponse): HTMLElement[] {
   const theoId = new Map(r.diem.map((d) => [d.id, d]));
+  const k = khachTruocChay({ trangThai: r.chuyen.trangThai, trongNgayChay: r.trongNgayChay, suat: r.suat, lienHe }, congTy);
   return veDiemChay({
-    diem: r.diem, suat: [], trangThai: r.chuyen.trangThai, ngayXem: r.chuyen.gioBatDau.ngay, coNut: false, onLenh: () => undefined,
+    diem: r.diem, suat: k.suat, trangThai: r.chuyen.trangThai, ngayXem: r.chuyen.gioBatDau.ngay, coNut: false, onLenh: () => undefined,
     phuDiem: (b) => {
       const d = theoId.get(b.diem.id)!;
       const hen = d.loai === "DROPOFF" && d.gioHen ? `Hẹn ${d.gioHen.gio} · ` : "";
-      return { duoi: [...bayCua(b, r.suat), ...dichVuCua(b), h("div", { class: "dp-note dp-cc-so-nguoi" }, `${hen}${d.soNguoi} khách`), ...chiDuongCua(b, r)] };
+      return { duoi: [...bayCua(b, r.suat), ...dichVuCua(b), h("div", { class: "dp-note dp-cc-so-nguoi" }, `${hen}${d.soNguoi} khách`), ...lienHeCua(b, k.lienHe), ...chiDuongCua(b, r)] };
     },
+    phuKhach: chuTra(chuTraCuaKhach(r.diem, k.suat, congTy)),
   });
 }
 
@@ -828,7 +851,7 @@ function khoiHanTuChoi(r: CuocChiTietResponse): Child[] {
     if (d.loai !== "con_han" && d.sdt) nut.push(h("a", { class: "vc-btn btn", href: `tel:${d.sdt}`, "data-action": "goi-van-phong" }, "Gọi văn phòng"));
     out.push(dai(d.loai === "con_han" ? "info" : "warning", d.tieuDe, d.dong, undefined, nut.length ? [h("div", { class: "banner-actions" }, ...nut)] : []));
   }
-  const thay = cauThayKhach(r.thayKhachTu, homNay);
+  const thay = cauThayKhach(r.thayKhachTu, homNay, congTy);
   if (thay) out.push(h("div", { class: "dp-note dp-cc-thay-khach", "data-cau": "thay-khach" }, icon("eye", 16, 2), h("span", null, thay)));
   return out;
 }
@@ -905,8 +928,9 @@ function veXuatBen(dauMang: HTMLElement | null): void {
     dongDiKem(),
     khoiSuatKhach(),
     // Bản 1.39 (chủ quyết 30/9: "tài xế nên thấy điểm đón từ trước, ngày giờ đón, vị trí và số lượng khách"): các điểm của chuyến TRƯỚC khi xuất bến — thứ tự,
-    // loại, tên nơi, giờ hẹn, số người; dùng lại cách vẽ điểm của màn đang chạy, KHÔNG nút tiến độ, KHÔNG khách từng người (`suat: []`) — tên / SĐT khách vẫn
-    // chỉ trong ngày chạy (ADR-0053 D7.2). Chỉ vẽ dữ liệu route 20 đã gửi (`diem`), không đổi máy chủ.
+    // loại, tên nơi, giờ hẹn, số người; dùng lại cách vẽ điểm của màn đang chạy, KHÔNG nút tiến độ. Ngày 30/9 chủ chọn "không tên khách" cho màn này (lựa chọn
+    // giao diện, không phải luật của ADR-0053 D7.2 — D7.2 là khung của tài xế đối tác); 25/10 chủ đổi lại: tài xế công ty trong khung xem khách thấy tên, năm sinh,
+    // liên hệ ngay ở đây (`veDiemTruoc`), tài xế đối tác như cũ. Chỉ vẽ dữ liệu route 20 đã gửi, không đổi máy chủ.
     h("div", { class: "dp-run-list dp-cc-diem" }, ...veDiemTruoc(r)),
     h(
       "section",
@@ -958,6 +982,7 @@ async function main(): Promise<void> {
   if (!coCuocCuaToi(staff)) return showError(errorEl, "Tài khoản này không có cuốc xe.");
   coBoSungTen = can(staff, "trip.passenger.add", { assigned: true });
   coChuyenKhach = can(staff, "trip.transfer", { assigned: true });
+  congTy = !can(staff, "trip.refuse", { assigned: true });
   if (!id) return showError(errorEl, "Thiếu mã chuyến.");
   try {
     await nap();

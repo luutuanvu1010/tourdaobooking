@@ -44,8 +44,11 @@ test("ADR-0113 Đ3 loiTuChoi: refuse_blocked_transferred_in → đọc lại, c�
 });
 
 test("cauThayKhach, loiTuChoi, ô datetime-local", () => {
-  assert.equal(cauThayKhach(undefined, "2027-03-11"), null);
-  assert.equal(cauThayKhach(HAN, "2027-03-11"), "Bạn thấy tên khách và mã đơn từ 00:30 12/03.");
+  assert.equal(cauThayKhach(undefined, "2027-03-11", true), null);
+  assert.equal(cauThayKhach(undefined, "2027-03-11", false), null);
+  // Đề xuất 25/10 (chủ duyệt Q1 a): câu nói đúng điều màn hiện — không hứa mã đơn (màn không có ô mã đơn; mã chỉ có thể nằm trong câu điều kiện còn thiếu).
+  assert.equal(cauThayKhach({ ngay: "2027-03-12", gio: "00:00" }, "2027-03-11", true), "Bạn thấy tên khách và số liên hệ từ 00:00 12/03.", "tài xế công ty: hiện ngay trên màn trước khi chạy");
+  assert.equal(cauThayKhach(HAN, "2027-03-11", false), "Bạn thấy tên khách và số liên hệ sau khi bấm “Cho xe chạy”, sớm nhất từ 00:30 12/03.", "tài xế đối tác: chỉ sau khi cho xe chạy");
   assert.equal(loiTuChoi({ status: 409, code: "stale", message: "x" }).hanhDong, "doc_lai");
   assert.equal(loiTuChoi({ status: 409, code: "refuse_deadline_passed", message: "x" }).hanhDong, "doc_lai");
   assert.equal(loiTuChoi({ status: 409, code: "trip_not_planned", message: "x" }).hanhDong, "doc_lai");

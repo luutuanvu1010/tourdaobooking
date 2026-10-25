@@ -15,10 +15,15 @@ export const CHANGELOG: readonly ReleaseNote[] = [
     // Nhãn bảng kiểm khoá tháng (chủ dự án 2026-10-25 chọn chữ; mục «Chốt sổ 2026-10-25» của docs/superpowers/plans/2026-10-18-so-dai-ly-dot-2-thi-cong-nhat-ky.md). Chỉ chữ, KHÔNG migration.
     // Chủ dặn «đi cùng lần phát hành sau»: không triển khai riêng. Số 2.31 và ngày là TẠM — phiên phát hành kế tiếp kiểm lại ở bước A.0 của docs/HANDOFF-N1.md
     // và GỘP mục của mình vào mục này (cùng một số), đừng chồng thêm số mới chỉ vì mục này đã có sẵn (cổng «bản ở máy mới hơn production» qua sẵn nhờ mục này).
+    // Gộp 25/10 (production còn 2.30): màn tài xế thấy khách trước khi cho xe chạy — đề xuất docs/superpowers/specs/2026-10-25-de-xuat-tai-xe-thay-khach-truoc-khi-cho-xe-chay.md
+    // (chủ duyệt Q1 a, Q2 a). Chỉ giao diện + chữ, KHÔNG migration; mã giao diện mới nên lần phát hành này cần npm run trien-khai.
     version: "2.31",
     date: "2026-10-25",
     items: [
       { kind: "doi", text: "Khoá sổ tháng: mục «Khoản Công ty thu – chuyển khoản chờ xác nhận» nay tên «Khoản thu chờ đối chiếu», vì gồm cả tiền khách trả đại lý hoặc quầy nhà cung cấp." },
+      { kind: "moi", text: "Tài xế công ty, trong ngày chạy, thấy tên, năm sinh từng khách và số liên hệ ngay trên màn chuyến, trước khi bấm «Cho xe chạy»." },
+      { kind: "moi", text: "Màn tài xế công ty: chuyến có từ hai điểm trả thì dưới tên mỗi khách có chữ «Trả: …» cho biết khách xuống ở đâu." },
+      { kind: "doi", text: "Màn tài xế: khối «Suất của khách» nay ghi «Điểm 2 · Khách 1», cùng cách đếm với dòng khách dưới điểm đón." },
     ],
   },
   {

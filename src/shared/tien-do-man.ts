@@ -159,17 +159,34 @@ function nhanDon(d: DiemVao, ngayXem: string): string {
   const toi = d.gioXeToi ? hien(d.gioXeToi, ngayXem) : null;
   return ["ĐÓN", hen && `HẸN ${hen}`, toi && toi !== hen && `XE TỚI ${toi}`].filter(Boolean).join(" · ");
 }
+/**
+ * Số "Khách i" của từng suất KHÁCH theo điểm lên: thứ tự danh sách máy chủ gửi, mọi trạng thái, bỏ người đi kèm. MỘT luật cho dòng khách dưới thẻ điểm (`buocDiem`)
+ * và khối "Suất của khách" của màn tài xế (`suatCuaKhach`) — hai chỗ cùng hiện trên một màn nên phải đếm như nhau (đề xuất 25/10).
+ */
+export function soKhachTaiDiem(suat: readonly Pick<SuatVao, "id" | "loai" | "diemLen">[]): ReadonlyMap<string, number> {
+  const dem = new Map<string, number>();
+  const so = new Map<string, number>();
+  for (const x of suat) {
+    if ((x.loai ?? "PASSENGER") !== "PASSENGER" || x.diemLen === null) continue;
+    const n = (dem.get(x.diemLen) ?? 0) + 1;
+    dem.set(x.diemLen, n);
+    so.set(x.id, n);
+  }
+  return so;
+}
+
 /** Bước từng điểm của chuyến ĐANG CHẠY (nút chỉ khi `RUNNING`). Khách của điểm đón = suất lên ở đó; điểm trả không liệt kê khách (bản vẽ 5a). */
 export function buocDiem(diem: readonly DiemVao[], suat: readonly SuatVao[], trangThaiChuyen: string, ngayXem: string): BuocDiem[] {
   const chay = trangThaiChuyen === "RUNNING";
   const khachThat = suat.filter((x) => (x.loai ?? "PASSENGER") === "PASSENGER");
+  const soKhach = soKhachTaiDiem(khachThat);
   return [...diem].sort((a, b) => a.thuTu - b.thuTu).map((d) => {
     const bo = d.trangThai === "SKIPPED" || d.trangThai === "MOVED";
     const daToi = d.trangThai === "ARRIVED" || d.trangThai === "DONE";
     const len = d.loai === "PICKUP" ? khachThat.filter((x) => x.diemLen === d.id) : [];
-    const khach: KhachDiem[] = len.map((x, i) => ({
+    const khach: KhachDiem[] = len.map((x) => ({
       suatId: x.id,
-      ten: x.hoTen ? maskLongDigits(x.hoTen) : `Khách ${i + 1}`,
+      ten: x.hoTen ? maskLongDigits(x.hoTen) : `Khách ${soKhach.get(x.id)}`,
       namSinh: x.namSinh ?? null,
       ketQua: KET_QUA[x.trangThai],
       nut: chay && daToi ? (x.trangThai === "WAITING" ? ["don", "vang", "khach-huy"] : x.trangThai === "NO_SHOW" ? ["don"] : []) : [],
@@ -293,6 +310,30 @@ export function dichVuTaiDiemDon(suat: readonly { diemLen: string | null; tenDic
   const out: string[] = [];
   for (const x of suat) if (x.diemLen === diemId && x.tenDichVu && !out.includes(x.tenDichVu)) out.push(x.tenDichVu);
   return out;
+}
+
+// ---- Màn tài xế: khách trước khi cho xe chạy + chữ "Trả:" (đề xuất docs/superpowers/specs/2026-10-25-de-xuat-tai-xe-thay-khach-truoc-khi-cho-xe-chay.md, chủ duyệt
+// 25/10: Q1 a, Q2 a). `congTy` = người xem KHÔNG có ô trip.refuse — đúng điều kiện máy chủ dựng phần chỉ tài xế công ty (`themCongTy`); màn tính một lần rồi truyền vào.
+/**
+ * Khách vẽ dưới thẻ điểm TRƯỚC khi cho xe chạy: chỉ tài xế CÔNG TY, chuyến chưa chạy, trong khung xem khách (`trongNgayChay` — máy chủ đã gửi tên, liên hệ) → đúng
+ * danh sách máy chủ gửi, không lọc (ca văn phòng thu hồi xuất bến: nhãn "Văn phòng đã báo huỷ" hiện như màn đang chạy — chọn có chủ ý). Ngoài ra rỗng: tài xế đối tác
+ * giữ như cũ (tên, liên hệ chỉ sau khi bấm "Cho xe chạy"); chuyến ngoài khung không vẽ dòng khách, kể cả "Khách N".
+ */
+export function khachTruocChay<S, L>(
+  r: { trangThai: string; trongNgayChay: boolean; suat: readonly S[]; lienHe: readonly L[] }, congTy: boolean,
+): { suat: readonly S[]; lienHe: readonly L[] } {
+  return r.trangThai === "PLANNED" && r.trongNgayChay && congTy ? { suat: r.suat, lienHe: r.lienHe } : { suat: [], lienHe: [] };
+}
+
+/**
+ * Chữ nhỏ "Trả: <nơi>" dưới tên từng khách (Q2 a), trước và trong khi chạy: chỉ khi chuyến có từ HAI điểm trả còn hiệu lực (không tính điểm bỏ qua / đã chuyển —
+ * cùng cách đếm "N điểm trả" của thẻ Cuốc của tôi) và suất có điểm trả tìm thấy. Tài xế đối tác: không (Q1 a — màn y như cũ). id suất → chữ.
+ */
+export function chuTraCuaKhach(diem: readonly Pick<DiemVao, "id" | "loai" | "tenNoi" | "trangThai">[], suat: readonly Pick<SuatVao, "id" | "loai" | "diemXuong">[], congTy: boolean): ReadonlyMap<string, string> {
+  const tra = diem.filter((d) => d.loai === "DROPOFF" && d.trangThai !== "SKIPPED" && d.trangThai !== "MOVED");
+  if (!congTy || tra.length < 2) return new Map();
+  const noi = new Map(tra.map((d) => [d.id, d.tenNoi]));
+  return new Map(suat.flatMap((x) => ((x.loai ?? "PASSENGER") === "PASSENGER" && x.diemXuong !== null && noi.has(x.diemXuong) ? [[x.id, `Trả: ${noi.get(x.diemXuong)}`] as const] : [])));
 }
 
 /** Suất KHÁCH (bỏ người đi kèm `CREW`) — chỉ để ĐẾM / liệt kê khách; xét kết thúc chuyến thì dùng `ketThucDuoc` với MỌI suất. */

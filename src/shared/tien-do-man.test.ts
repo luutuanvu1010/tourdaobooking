@@ -3,7 +3,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  buocDiem, cauConKhach, cauTuChoiKhaiGio, giuTenKhach, goiYKhaiGio, ketThucDuoc, nhomCuoc, soHieuTaiDiemDon, tenNguoiDiKemCuaChuyen, sdtNguoiDiKemCuaChuyen, dichVuTaiDiemDon, chiSuatKhach, viecNguoiDiKem, thanDoiThuTu, doiThuTuDuoc, xayRaLucTu, type DiemVao, type SuatVao,
+  buocDiem, cauConKhach, cauTuChoiKhaiGio, giuTenKhach, goiYKhaiGio, ketThucDuoc, nhomCuoc, soHieuTaiDiemDon, tenNguoiDiKemCuaChuyen, sdtNguoiDiKemCuaChuyen, dichVuTaiDiemDon, chiSuatKhach, viecNguoiDiKem, thanDoiThuTu, doiThuTuDuoc, xayRaLucTu,
+  khachTruocChay, chuTraCuaKhach, soKhachTaiDiem, type DiemVao, type SuatVao,
 } from "./tien-do-man.ts";
 import { vnLocalToMs } from "./vn-date.ts";
 
@@ -260,4 +261,44 @@ test("dichVuTaiDiemDon: tên dịch vụ của các suất LÊN xe ở điểm �
     { diemLen: "d1", tenDichVu: "Tour đảo" }, { diemLen: "d1", tenDichVu: "Vinwonders" }, { diemLen: "d1", tenDichVu: "Tour đảo" },
     { diemLen: "d1" }, { diemLen: "d2", tenDichVu: "Lặn biển" },
   ], "d1"), ["Tour đảo", "Vinwonders"]);
+});
+
+// Đề xuất 25/10, chủ duyệt Q1 (a) + Q2 (a): docs/superpowers/specs/2026-10-25-de-xuat-tai-xe-thay-khach-truoc-khi-cho-xe-chay.md. "Tài xế công ty" = người xem KHÔNG có ô
+// trip.refuse (cùng điều kiện máy chủ dựng phần chỉ tài xế công ty — `themCongTy` ở van-chuyen/dieu-phoi-route.ts); màn tính một lần rồi truyền cờ vào.
+test("khachTruocChay (Q1 a): tài xế CÔNG TY, chuyến chưa chạy, trong khung xem khách → đúng danh sách suất (giữ cờ «Văn phòng đã báo huỷ») + liên hệ; tài xế đối tác, chuyến ngày mai, chuyến đang chạy → rỗng", () => {
+  const baoHuy = { luc: { ngay: "2026-09-30", gio: "07:00" }, lyDoNhan: "Khách đổi kế hoạch" };
+  const suat = [s("a", "d1", "d3", "WAITING", "Nguyễn Thị Lan"), { ...s("b", "d1", "d3", "WAITING"), vanPhongBaoHuy: baoHuy }];
+  const lienHe = [{ maDon: "TD-1", tenLienHe: "Chị Hoa", sdtLienHe: "0903 100 299" }];
+  const homNay = { trangThai: "PLANNED", trongNgayChay: true, suat, lienHe };
+  const cty = khachTruocChay(homNay, true);
+  assert.equal(cty.suat, suat, "đúng danh sách máy chủ gửi — không lọc, không chép");
+  assert.equal(cty.lienHe, lienHe);
+  assert.equal(cty.suat[1]!.vanPhongBaoHuy, baoHuy, "ca văn phòng thu hồi xuất bến: nhãn «Văn phòng đã báo huỷ» hiện như màn đang chạy (chọn có chủ ý, 25/10)");
+  assert.deepEqual(khachTruocChay(homNay, false), { suat: [], lienHe: [] }, "tài xế đối tác: màn y như hôm nay — tên, liên hệ chỉ sau khi bấm Cho xe chạy");
+  assert.deepEqual(khachTruocChay({ ...homNay, trongNgayChay: false }, true), { suat: [], lienHe: [] }, "chuyến ngày mai (ngoài khung): không dòng khách, kể cả «Khách N»");
+  assert.deepEqual(khachTruocChay({ ...homNay, trangThai: "RUNNING" }, true), { suat: [], lienHe: [] }, "chỉ cho màn trước khi chạy");
+});
+
+test("chuTraCuaKhach (Q2 a): chuyến có từ HAI điểm trả còn hiệu lực → «Trả: <nơi>» theo từng suất khách; một điểm trả (điểm bỏ qua / đã chuyển không tính), suất thiếu điểm trả, điểm trả lạ, người đi kèm, tài xế đối tác → không", () => {
+  const diem = [d(1, "PICKUP"), d(2, "PICKUP"), d(3, "DROPOFF"), d(4, "DROPOFF", "DONE")];
+  const suat: SuatVao[] = [
+    s("a", "d1", "d3", "WAITING"), s("b", "d2", "d4", "DROPPED"), { ...s("c", "d1", "d3", "WAITING"), diemXuong: null }, s("e", "d1", "d9", "WAITING"),
+    { id: "k", loai: "CREW", diemLen: null, diemXuong: "d4", trangThai: "WAITING", daDon: null, daTra: null },
+  ];
+  assert.deepEqual([...chuTraCuaKhach(diem, suat, true)], [["a", "Trả: Nơi 3"], ["b", "Trả: Nơi 4"]], "điểm trả đã xong vẫn là một điểm trả của chuyến");
+  assert.equal(chuTraCuaKhach([d(1, "PICKUP"), d(3, "DROPOFF")], suat, true).size, 0, "chuyến một điểm trả");
+  assert.equal(chuTraCuaKhach([d(1, "PICKUP"), d(3, "DROPOFF"), d(4, "DROPOFF", "SKIPPED")], suat, true).size, 0, "điểm trả bỏ qua không tính");
+  assert.equal(chuTraCuaKhach([d(1, "PICKUP"), d(3, "DROPOFF"), d(4, "DROPOFF", "MOVED")], suat, true).size, 0, "điểm trả đã chuyển không tính");
+  assert.equal(chuTraCuaKhach(diem, suat, false).size, 0, "tài xế đối tác (Q1 a — màn y như hôm nay): không «Trả:», kể cả khi xe đang chạy");
+});
+
+test("soKhachTaiDiem: «Khách i» theo điểm lên — thứ tự máy chủ gửi, mọi trạng thái, chỉ suất khách; KHỚP nhãn «Khách i» của buocDiem từng suất", () => {
+  const diem = [d(1, "PICKUP", "ARRIVED"), d(2, "PICKUP"), d(3, "DROPOFF")];
+  const suat: SuatVao[] = [
+    s("z9", "d2", "d3", "WAITING"), s("b1", "d1", "d3", "DROPPED"), s("a8", "d1", "d3", "WAITING"),
+    { id: "k", loai: "CREW", diemLen: null, diemXuong: null, trangThai: "WAITING", daDon: null, daTra: null }, s("c4", "d1", "d3", "NO_SHOW"), s("m2", "d2", "d3", "WAITING"),
+  ];
+  const so = soKhachTaiDiem(suat);
+  assert.deepEqual([...so], [["z9", 1], ["b1", 1], ["a8", 2], ["c4", 3], ["m2", 2]]);
+  for (const b of buocDiem(diem, suat, "RUNNING", "2026-09-30")) for (const k of b.khach) assert.equal(k.ten, `Khách ${so.get(k.suatId)}`, k.suatId);
 });
