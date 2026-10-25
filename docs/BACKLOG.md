@@ -548,3 +548,23 @@ Ghi 25/10 khi đóng phiên phân tích góp ý và ba phiên con (Lượt A, nh
 
 - **Trạng thái:** `chờ chủ chọn chữ` · Thấy khi nghiệm thu 2.30 (25/10): trang đăng nhập hiện «Thời gian dự kiến hoàn tất là 18 giờ 30 phút 48 giây». Con số là thời gian CÒN LẠI (`maintenanceMessageParts` ở `src/shared/maintenance.ts`, câu có từ 21/9), nhưng đọc lướt dễ hiểu là «xong lúc 18:30».
 - **Phương án chữ để chủ chọn:** (a) «Dự kiến xong lúc 09:11 ngày 26/10 (còn 18 giờ 30 phút)» — rõ nhất; (b) «Dự kiến hoàn tất sau 18 giờ 30 phút 48 giây nữa»; (c) giữ nguyên. Chỉ đổi chữ giao diện (kèm bài kiểm của hàm), không đụng luật máy chủ tự tắt đúng giờ.
+
+## 47. Bước Xác nhận đơn — phần còn lại sau Đợt 1 (mã `BL-XAC-NHAN-DON`)
+
+> Chép 25/10 từ nhánh `worktree-xac-nhan-don` (lần lưu `6ebece68`, nơi mục này mang số «43»), vì mục chưa từng vào bản chính; §43 ở bản chính là mục khác. **Bổ sung 25/10:** thiết kế `docs/superpowers/specs/2026-10-25-chinh-sach-ban-va-gui-don-design.md` (cờ «cần xác nhận» theo nhóm, nút «Gửi đơn» của Đối tác, chính sách bán theo loại đối tác); số 0137 nay đã dùng cho ADR sổ đại lý nên đề xuất «thư + QR» phải đổi số. Phần dưới giữ nguyên văn bản 19/10.
+
+- **Trạng thái:** `để sau` · Chủ 19/10/2026: «lưu việc còn lại vào backlog, đóng phiên». Đợt 1 (chọn Đón/Không đón, khung giờ — ADR-0134) **đã lên production bản 2.23**.
+- **Hồ sơ:** đặc tả `docs/superpowers/specs/2026-10-19-xac-nhan-don-design.md` (mục 5b–5f thắng phần trên); kế hoạch `docs/superpowers/plans/2026-10-19-xac-nhan-don.md`; nhật ký thi công `docs/superpowers/plans/2026-10-19-xac-nhan-don-thi-cong-nhat-ky.md`; đề xuất lượt 2 ở `docs/superpowers/specs/2026-10-19-xac-nhan-don/`.
+- **Việc còn lại, theo thứ tự:**
+  1. **Trình chủ duyệt lượt 2**: ADR-0136 (bước xác nhận: gửi / chờ / Còn vé – Hết vé, ô quyền `order.confirm.review`, hạn 15 phút trừ 22:00–06:00, đơn có chặng dưới mốc cũng phải gửi) và ADR-0137 (thư xác nhận kèm QR cho người đặt + nhân viên lập, thư báo huỷ, dựng ảnh QR ở máy chủ) + `TRANG-GHEP-LUOT-2.md`. Kiểm lại số ADR trước khi cấp (0133 đã bị nhánh chiết khấu giữ).
+  2. **Đợt 2** (ADR-0135 đã duyệt: nháp chỉ người tạo đọc/sửa, nháp không ghi thu, QR chỉ đơn đã xác nhận, bỏ ô Thanh toán trước, hàng chờ nhận chỉ đơn đã xác nhận). **Không phát hành trước Đợt 3** (chủ chọn A). Trước phát hành: chủ đếm nháp cũ đã có khoản thu (lệnh ở kế hoạch Task 2.2 Step 0).
+  3. **Đợt 3** — bước xác nhận (sau khi lượt 2 duyệt). Migration lấy số kế tiếp sau khi kiểm mọi nhánh.
+  4. **Đợt 4** — thư xác nhận kèm QR, thư + tin báo huỷ. Trước tiên kiểm Email Service của Cloudflare có gửi tới địa chỉ khách bên ngoài và có đính kèm ảnh không.
+  5. **Đợt 5** — trang Bảng điều khiển của Toàn quyền (ảnh mẫu chủ duyệt trước).
+- **Nợ nhỏ của Đợt 1:** chưa có kịch bản Chrome riêng `chon-don-smoke.mjs`; kịch bản `trang-chu-smoke` và `dieu-phoi-smoke` dừng ở bước kiểm menu (chưa đối chiếu với main để biết có đỏ sẵn); hướng dẫn Bán hàng 3149/3150 chữ, sát trần bài đọc 30 phút.
+- **Việc của chủ (không cần mã):** đổi mốc tối thiểu trước giờ đón từ 360 xuống 30 phút trên trang Chính sách điều phối, nếu vẫn muốn.
+
+## 48. Đếm chỗ trống thật («tồn kho») — đề xuất để sau (mã `BL-TON-KHO`)
+
+- **Trạng thái:** `đề xuất để sau` (chờ chủ duyệt thiết kế 25/10) · Chủ 25/10 nêu ý «phân hệ quản lý tồn kho». Thiết kế 25/10 chọn cờ «cần xác nhận» (người nội bộ kiểm chỗ bằng tay) vì Nền tảng chưa có nguồn số chỗ trống, và ví dụ của chủ (vé Vinpearl kèm buffet) chỉ cần kiểm tay.
+- **Mở lại khi:** có nguồn số chỗ theo ngày (nhà cung cấp gửi, hoặc nhân viên nhập) và chủ muốn Nền tảng tự chặn khi hết chỗ. Khi đó là một phân hệ mới (cạnh phụ thuộc mới, tiền tố bảng mới) — cần ADR riêng.
