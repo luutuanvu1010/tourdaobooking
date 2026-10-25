@@ -1,5 +1,7 @@
 // B7 — V12: mốc 6 giờ + đặt gấp trên biểu mẫu đơn, trang đơn, bảng "Sửa thông tin chuyến" (ADR-0049 D2, I14, I31; bản vẽ docs/design/van-chuyen-dieu-phoi/project/07,
-// khung 7a–7c; ruling R-P15 route mốc cho đơn chưa lưu, R-P18 bốn lý do theo bản vẽ; chủ H4 / N-14: văn phòng thấy đủ nhãn, Đối tác chỉ "Quản trị đã duyệt").
+// khung 7a–7c; ruling R-P15 route mốc cho đơn chưa lưu, R-P18 bốn lý do theo bản vẽ; chủ H4 / N-14: văn phòng thấy đủ nhãn, Đối tác chỉ thấy cờ).
+// 2026-10-25 (ADR-0107): Bán hàng có ô đặt gấp — bước 1, 2, 4 đổi kỳ vọng (có nút / khung "Đặt gấp"), thêm bước 2b (Bán hàng tự đặt gấp ở trang đơn); nhãn dấu
+// "Điều chỉnh khẩn cấp — <lý do> — <người> HH:MM", Đối tác thấy "Điều chỉnh khẩn cấp (văn phòng)"; câu 409 không còn nói "chỉ Quản trị".
 // Mốc đặt 2880 phút (48 giờ) bằng route chính sách để chặng đón NGÀY MAI luôn dưới mốc — không phụ thuộc giờ chạy kịch bản.
 // Chạy từ GỐC repo, sau `npm run build:web` (không cần mạng ngoài):
 //   AXE_JS=<…/axe.min.js> CHROME_BIN=docs/evidence/2026-09-20-a2/kich-ban/chrome-wrap.sh OUT=<thư mục ảnh> node docs/evidence/2026-09-29-adr-0049/kich-ban/dat-gap-smoke.mjs
@@ -72,13 +74,13 @@ try {
   // ---- Bán hàng --------------------------------------------------------------------------------------------------------------------------------------------
   const s = await env.as(ACCOUNTS.salesA, "/order-form", DESK);
   let o4Id = null;
-  await b.step("1", `7b trên biểu mẫu CHƯA lưu (1040, Bán hàng): đọc mốc qua GET /api/orders/moc-toi-thieu; dải cát 'Giờ đón cách bây giờ … — dưới mốc 48 giờ' + 'Lưu nháp được. Xác nhận cần Quản trị duyệt đặt gấp.', KHÔNG nút Đặt gấp; đổi ngày ra xa thì hết, đổi lại thì hiện${axeNote()}`, async () => {
+  await b.step("1", `7a trên biểu mẫu CHƯA lưu (1040, Bán hàng — ADR-0107): đọc mốc qua GET /api/orders/moc-toi-thieu; dải cát 'Giờ đón cách bây giờ … — quá hạn chốt 48 giờ' + 'Chọn lý do đặt gấp thì xác nhận và xếp xe được.', CÓ nút Đặt gấp; đổi ngày ra xa thì hết, đổi lại thì hiện${axeNote()}`, async () => {
     await themDichVuTrenForm(s);
     await s.waitFor(shown(`#services .svc .dg-warn`), "dải cảnh báo dưới mốc");
     assert.ok(apiCalls(s).some((c) => c.method === "GET" && c.path === "/api/orders/moc-toi-thieu"), "biểu mẫu gọi route mốc (R-P15)");
     assert.match(await s.ev(txt("#services .svc .dg-warn .banner-title")), CAU_MOC);
-    assert.equal(await s.ev(txt("#services .svc .dg-warn-sub")), "Lưu nháp được. Xác nhận cần Quản trị duyệt đặt gấp.");
-    assert.equal(await s.ev(`!!document.querySelector('#services [data-action="mo-dat-gap"]')`), false, "Bán hàng không có nút Đặt gấp");
+    assert.equal(await s.ev(txt("#services .svc .dg-warn-sub")), "Chọn lý do đặt gấp thì xác nhận và xếp xe được.");
+    assert.equal(await s.ev(`!!document.querySelector('#services [data-action="mo-dat-gap"]')`), true, "ADR-0107: Bán hàng có nút Đặt gấp");
     await s.ev(typeInto("#orderDate", vnDate(4)));
     await s.waitFor(`!document.querySelector('#services .dg-warn')`, "đổi ngày ra xa → hết cảnh báo");
     await s.ev(typeInto("#orderDate", MAI));
@@ -88,7 +90,7 @@ try {
     await shotFull(s, "b7-bieu-mau-ban-hang-may-tinh.png");
   });
 
-  await b.step("2", "Bán hàng Lưu nháp được (không chặn); trang đơn: cảnh báo ở dịch vụ, nút 'Xác nhận đơn' KHOÁ + dòng khoá 'Cần Quản trị duyệt đặt gấp' (7b), không nút Đặt gấp", async () => {
+  await b.step("2", "Bán hàng Lưu nháp được (không chặn); trang đơn: cảnh báo ở dịch vụ, nút 'Xác nhận đơn' KHOÁ + dòng ghi chú 'Đặt gấp xong thì xác nhận được.' (7a — ADR-0107), có nút Đặt gấp", async () => {
     await s.ev(click("#save"));
     await s.waitFor(`location.pathname === '/order'`, "chuyển sang trang đơn sau khi lưu", 15000);
     o4Id = new URLSearchParams(await s.ev("location.search")).get("id");
@@ -97,11 +99,27 @@ try {
     assert.match(await s.ev(txt("#order .dg-warn .banner-title")), CAU_MOC);
     const nut = await s.ev(`(() => { const b = [...document.querySelectorAll('#actions button')].find((x) => x.textContent === 'Xác nhận đơn'); return b ? b.disabled : null; })()`);
     assert.equal(nut, true, "nút Xác nhận khoá");
-    assert.equal(await s.ev(txt('#actions [data-chan="xac-nhan"]')), "Cần Quản trị duyệt đặt gấp");
-    assert.equal(await s.ev(`!!document.querySelector('#actions [data-chan="xac-nhan"] svg')`), true, "có biểu tượng khoá");
-    assert.equal(await s.ev(`!!document.querySelector('#order [data-action="mo-dat-gap"]')`), false);
+    assert.equal(await s.ev(txt('#actions [data-chan="xac-nhan"]')), "Đặt gấp xong thì xác nhận được.");
+    assert.equal(await s.ev(`!!document.querySelector('#actions [data-chan="xac-nhan"] svg')`), false, "người có ô đặt gấp: dòng ghi chú, không biểu tượng khoá");
+    assert.equal(await s.ev(`!!document.querySelector('#order [data-action="mo-dat-gap"]')`), true, "ADR-0107: Bán hàng có nút Đặt gấp ở trang đơn");
     await axe(s, "trang đơn Bán hàng dưới mốc");
     await shotFull(s, "b7-don-ban-hang-may-tinh.png");
+  });
+
+  await b.step("2b", "ADR-0107: Bán hàng tự đặt gấp đơn vừa lưu — khung lý do → 'Duyệt đặt gấp' → báo đã duyệt; nhãn 'Điều chỉnh khẩn cấp — Khách đoàn gọi gấp — Sales Một HH:MM'; hết cảnh báo, nút Xác nhận mở", async () => {
+    await s.ev(click('#order [data-action="mo-dat-gap"]'));
+    await s.waitFor(shown("#order .dg-panel"), "khung Đặt gấp mở (Bán hàng)");
+    await s.ev(`(() => { const x = document.querySelector('#order .dg-panel [data-dg="ly-do"]'); x.value = 'KHACH_DOAN_GOI_GAP'; x.dispatchEvent(new Event('change')); return true; })()`);
+    await s.ev(click('#order [data-action="duyet-dat-gap"]'));
+    await s.waitFor(`${txt("#error .banner-title")} === 'Đã duyệt đặt gấp: Chiều đi · Tour 4 đảo Nha Trang.'`, "báo đã duyệt (Bán hàng)");
+    assert.match(await s.ev(txt("#order .dg-mark")), /^Điều chỉnh khẩn cấp — Khách đoàn gọi gấp — Sales Một \d\d:\d\d$/);
+    assert.equal(await s.ev(`!!document.querySelector('#order .dg-warn')`), false);
+    assert.equal(await s.ev(`!!document.querySelector('#actions [data-chan]')`), false);
+    const leg = legOf(await donQuaTrang(s, o4Id));
+    assert.equal(leg.datGap.lyDo, "KHACH_DOAN_GOI_GAP");
+    assert.equal(await s.ev(noCode), "");
+    await axe(s, "nhãn đặt gấp Bán hàng 1040");
+    await shotFull(s, "b7-da-dat-gap-ban-hang-may-tinh.png");
   });
 
   await b.step("3", "409 short_notice_required khi trang đã cũ (bật nút bằng tay, bấm Xác nhận): dải cát 'Còn chặng đón dưới mốc…' + dòng 'Chiều đi · Tour 4 đảo Nha Trang: Giờ đón … — dưới mốc 48 giờ', đơn vẫn nháp", async () => {
@@ -109,7 +127,7 @@ try {
     await s.waitFor(shown("#order .dg-warn"), "trang đơn O1");
     await s.ev("window.confirm = () => true; true");
     await s.ev(`(() => { const b = [...document.querySelectorAll('#actions button')].find((x) => x.textContent === 'Xác nhận đơn'); b.disabled = false; b.click(); return true; })()`);
-    await s.waitFor(`${txt("#error .banner-title")} === 'Còn lượt đưa đón quá hạn chốt — cần Quản trị duyệt đặt gấp trước khi xác nhận.'`, "dải 409");
+    await s.waitFor(`${txt("#error .banner-title")} === 'Còn lượt đưa đón quá hạn chốt — cần đặt gấp trước khi xác nhận.'`, "dải 409");
     const dong = await s.ev(`[...document.querySelectorAll('#error .banner-lines li')].map((l) => l.textContent)`);
     assert.equal(dong.length, 1);
     assert.match(dong[0], /^Chiều đi · Tour 4 đảo Nha Trang: Giờ đón cách bây giờ \d+ giờ( \d+ phút)? — quá hạn chốt 48 giờ$/);
@@ -117,18 +135,18 @@ try {
     assert.equal(await s.ev(noCode), "");
   });
 
-  await b.step("4", "Đơn đã đặt gấp + đã xác nhận, Bán hàng (văn phòng — chủ H4): nhãn ĐỦ 'Đặt gấp — Đơn bù cho khách bị lỡ chuyến — Quản Trị duyệt …' + ghi chú; sửa giờ đón vẫn dưới mốc → 409, câu máy chủ, KHÔNG khung Đặt gấp", async () => {
+  await b.step("4", "Đơn đã đặt gấp + đã xác nhận, Bán hàng (văn phòng — chủ H4): nhãn ĐỦ 'Điều chỉnh khẩn cấp — Đơn bù cho khách bị lỡ chuyến — Quản Trị …' + ghi chú; sửa giờ đón vẫn dưới mốc → 409, câu máy chủ, CÓ khung Đặt gấp (ADR-0107)", async () => {
     await s.send("Page.navigate", { url: `${env.base}/order?id=${o3.id}` });
     await s.waitFor(shown("#order .dg-mark"), "nhãn đặt gấp");
     assert.equal(await s.ev(`document.querySelector('#order .dg-mark').dataset.datGap`), "du");
-    assert.match(await s.ev(txt("#order .dg-mark")), /^Đặt gấp — Đơn bù cho khách bị lỡ chuyến — Quản Trị duyệt \d\d:\d\d “Bù chuyến 29\/9”$/);
+    assert.match(await s.ev(txt("#order .dg-mark")), /^Điều chỉnh khẩn cấp — Đơn bù cho khách bị lỡ chuyến — Quản Trị \d\d:\d\d “Bù chuyến 29\/9”$/);
     // ADR-0047 Phần B (2026-10-01): giờ đón sửa ở bảng "Sửa đưa đón" (lệnh PUT …/legs/:id), không còn ở "Sửa thông tin chuyến".
     await s.ev(click('[data-action="sua-dua-don"]'));
     await s.waitFor(shown('.sheet .dd-chang [data-o$=":gio"]'), "bảng sửa đưa đón");
     await s.ev(typeInto('.sheet .dd-chang [data-o$=":gio"]', "11:00"));
     await s.ev(click('.sheet [data-action="luu-dua-don"]'));
-    await s.waitFor(`${txt(".sheet .banner .banner-title")} === 'Lượt đưa đón có giờ đón đã qua hạn chốt — chỉ Quản trị hoặc Toàn quyền sửa được, kèm lý do đặt gấp.'`, "câu 409 trong bảng");
-    assert.equal(await s.ev(`!!document.querySelector('.sheet .dg-panel')`), false, "Bán hàng không có khung Đặt gấp");
+    await s.waitFor(`${txt(".sheet .banner .banner-title")} === 'Lượt đưa đón có giờ đón đã qua hạn chốt — cần kèm lý do đặt gấp.'`, "câu 409 trong bảng");
+    await s.waitFor(shown(".sheet .dg-panel"), "ADR-0107: Bán hàng có khung Đặt gấp trong bảng sau 409");
     await sleep(600); // bảng ở ≥ 641px hiện dần (opacity, --m-base): chờ xong chuyển động rồi mới đo tương phản
     await axe(s, "bảng sửa chuyến Bán hàng 409");
     await s.ev(`document.querySelector('.sheet .sheet-close').click(); true`);
@@ -146,10 +164,10 @@ try {
 
   // ---- Quản trị --------------------------------------------------------------------------------------------------------------------------------------------
   const a = await env.as(ACCOUNTS.admin, `/order?id=${o1.id}`, DESK);
-  await b.step("6", "7a Quản trị (1040) trang đơn: dải cảnh báo + nút 'Đặt gấp'; nút Xác nhận khoá + 'Duyệt đặt gấp xong thì xác nhận được.'; khung: bốn lý do theo LY_DO_DAT_GAP, thiếu lý do → câu lỗi, ghi chú đếm /120", async () => {
+  await b.step("6", "7a Quản trị (1040) trang đơn: dải cảnh báo + nút 'Đặt gấp'; nút Xác nhận khoá + 'Đặt gấp xong thì xác nhận được.'; khung: bốn lý do theo LY_DO_DAT_GAP, thiếu lý do → câu lỗi, ghi chú đếm /120", async () => {
     await a.waitFor(shown('#order [data-action="mo-dat-gap"]'), "nút Đặt gấp");
-    assert.equal(await a.ev(txt('#actions [data-chan="xac-nhan"]')), "Duyệt đặt gấp xong thì xác nhận được.");
-    assert.equal(await a.ev(txt("#order .dg-warn-sub")), "Xếp xe gấp cần Quản trị duyệt đặt gấp.");
+    assert.equal(await a.ev(txt('#actions [data-chan="xac-nhan"]')), "Đặt gấp xong thì xác nhận được.");
+    assert.equal(await a.ev(txt("#order .dg-warn-sub")), "Chọn lý do đặt gấp thì xác nhận và xếp xe được.");
     await a.ev(click('#order [data-action="mo-dat-gap"]'));
     await a.waitFor(shown("#order .dg-panel"), "khung Đặt gấp mở");
     assert.equal(await a.ev(`document.activeElement.dataset.dg`), "ly-do", "focus vào ô lý do");
@@ -165,10 +183,10 @@ try {
     await shotFull(a, "b7-dat-gap-quan-tri-may-tinh.png");
   });
 
-  await b.step("7", "Duyệt đặt gấp (route 30): báo đã duyệt; nhãn 7c 'Đặt gấp — Khách đoàn gọi gấp — Quản Trị duyệt HH:MM' + ghi chú; hết cảnh báo, nút Xác nhận mở; xác nhận được đơn", async () => {
+  await b.step("7", "Duyệt đặt gấp (route 30): báo đã duyệt; nhãn 7c 'Điều chỉnh khẩn cấp — Khách đoàn gọi gấp — Quản Trị HH:MM' + ghi chú; hết cảnh báo, nút Xác nhận mở; xác nhận được đơn", async () => {
     await a.ev(click('#order [data-action="duyet-dat-gap"]'));
     await a.waitFor(`${txt("#error .banner-title")} === 'Đã duyệt đặt gấp: Chiều đi · Tour 4 đảo Nha Trang.'`, "báo đã duyệt");
-    assert.match(await a.ev(txt("#order .dg-mark")), /^Đặt gấp — Khách đoàn gọi gấp — Quản Trị duyệt \d\d:\d\d “Khách đoàn gọi lúc 07:40”$/);
+    assert.match(await a.ev(txt("#order .dg-mark")), /^Điều chỉnh khẩn cấp — Khách đoàn gọi gấp — Quản Trị \d\d:\d\d “Khách đoàn gọi lúc 07:40”$/);
     assert.equal(await a.ev(`!!document.querySelector('#order .dg-warn')`), false);
     assert.equal(await a.ev(`!!document.querySelector('#actions [data-chan]')`), false);
     const leg = legOf(await donQuaTrang(a, o1.id));
@@ -200,7 +218,7 @@ try {
     assert.deepEqual(JSON.parse(put[1].body).datGap, { lyDo: "CHUYEN_BAY_DOI_GIO", ghiChu: null });
     const leg = legOf(await donQuaTrang(a, o3.id));
     assert.deepEqual([leg.pickupTime, leg.datGap.lyDo], ["11:30", "CHUYEN_BAY_DOI_GIO"]);
-    assert.match(await a.ev(txt("#order .dg-mark")), /^Đặt gấp — Chuyến bay đổi giờ — Quản Trị duyệt \d\d:\d\d$/);
+    assert.match(await a.ev(txt("#order .dg-mark")), /^Điều chỉnh khẩn cấp — Chuyến bay đổi giờ — Quản Trị \d\d:\d\d$/);
   });
   a.close();
 
@@ -230,7 +248,7 @@ try {
     assert.equal(new URLSearchParams(await am.ev("location.search")).get("datgap"), null, "lệnh đặt gấp thành công → không có datgap=loi");
     await dongConfirmDialog(am);
     await am.waitFor(shown("#order .dg-mark"), "nhãn đặt gấp trên đơn vừa lưu");
-    assert.match(await am.ev(txt("#order .dg-mark")), /^Đặt gấp — Đơn bù cho khách bị lỡ chuyến — Quản Trị duyệt \d\d:\d\d “Bù cho khách lỡ tàu”$/);
+    assert.match(await am.ev(txt("#order .dg-mark")), /^Điều chỉnh khẩn cấp — Đơn bù cho khách bị lỡ chuyến — Quản Trị \d\d:\d\d “Bù cho khách lỡ tàu”$/);
     const posts = apiCalls(am).filter((c) => c.method === "POST");
     assert.deepEqual(posts.map((c) => c.path.replace(/[0-9a-f-]{36}/g, ":id")), ["/api/orders", "/api/orders/:id/legs/:id/short-notice"]);
     await shotFull(am, "b7-da-dat-gap-dien-thoai.png");
@@ -239,10 +257,10 @@ try {
 
   // ---- Đối tác (mở SAU CÙNG) -------------------------------------------------------------------------------------------------------------------------------
   const d = await env.as(DOI_TAC, `/order?id=${o2.id}`, MOB);
-  await b.step("10", "Đối tác (chủ H4): đơn của mình đã đặt gấp chỉ thấy 'Đặt gấp — Quản trị đã duyệt' — không lý do, không người duyệt, không ghi chú (DTO chỉ có cờ)", async () => {
+  await b.step("10", "Đối tác (chủ H4, nhãn ADR-0107): đơn của mình đã đặt gấp chỉ thấy 'Điều chỉnh khẩn cấp (văn phòng)' — không lý do, không người duyệt, không ghi chú (DTO chỉ có cờ)", async () => {
     await d.waitFor(shown("#order .dg-mark"), "nhãn đặt gấp (Đối tác)");
     assert.equal(await d.ev(`document.querySelector('#order .dg-mark').dataset.datGap`), "co");
-    assert.equal(await d.ev(txt("#order .dg-mark")), "Đặt gấp — Quản trị đã duyệt");
+    assert.equal(await d.ev(txt("#order .dg-mark")), "Điều chỉnh khẩn cấp (văn phòng)");
     // Khối dịch vụ (phần V12) không có lý do / ghi chú. Khối "Lịch sử" (nhật ký đơn của MÁY CHỦ) kiểm riêng ở bước 10b (bài canh R-P21).
     assert.equal(await d.ev(`(() => { const t = document.querySelector('#order .services').innerText; return t.includes('Ghi chú nội bộ') || t.includes('Khách đoàn gọi gấp'); })()`), false);
     assert.equal(await d.ev(`document.body.innerText.includes('Ghi chú nội bộ')`), false, "ghi chú đặt gấp không lộ ở đâu trên trang");
