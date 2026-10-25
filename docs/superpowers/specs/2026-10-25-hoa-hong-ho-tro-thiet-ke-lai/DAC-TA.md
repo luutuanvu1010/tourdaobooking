@@ -1,6 +1,6 @@
 # Đặc tả giao diện — trang «Hoa hồng đối tác» và trang «Hỗ trợ» (thiết kế lại 25/10/2026)
 
-**Trạng thái: chờ chủ duyệt** (sau QA1). Nguồn chính về bố cục và chữ: `BAN-GIAO.md` mục 4, 6, 7 (chủ duyệt 25/10) và ba bản vẽ ở `docs/design/hoa-hong-ho-tro-2026-10-25/`. Tệp này **không chép lại** bàn giao; chỉ ghi điều bàn giao để ngỏ (mục 11 của bàn giao), chỗ phải chính xác hơn, và chỗ lệch có lý do. Máy chủ: `DAC-TA-MAY-CHU.md` (phát hành trước).
+**Trạng thái: đã duyệt 2026-10-25** (chủ, chat: «duyệt luôn hai đặc tả»; sau QA1). Nguồn chính về bố cục và chữ: `BAN-GIAO.md` mục 4, 6, 7 (chủ duyệt 25/10) và ba bản vẽ ở `docs/design/hoa-hong-ho-tro-2026-10-25/`. Tệp này **không chép lại** bàn giao; chỉ ghi điều bàn giao để ngỏ (mục 11 của bàn giao), chỗ phải chính xác hơn, và chỗ lệch có lý do. Máy chủ: `DAC-TA-MAY-CHU.md` (phát hành trước).
 
 - Thứ tự thắng khi mâu thuẫn: ADR → bàn giao → đặc tả này → bản vẽ. Bản vẽ có nút «Lịch sử» / «Lịch sử áp dụng»: **không làm** (bàn giao 5.5).
 - Luật chung (`web/CLAUDE.md`): `h()`, không `innerHTML`; ẩn/hiện bằng `can()` / `perms` máy chủ trả; giá trị mới thành token ở `:root` của `public/app.css`; vùng chạm 44px; ô gõ 16px; huy hiệu đếm / chấm chưa đọc dùng `--c-danger`, không `--c-accent`; hộp trượt bằng `moBangTruot` (`web/bang-truot.ts`, khuôn `.sheet`); phông tự chứa.

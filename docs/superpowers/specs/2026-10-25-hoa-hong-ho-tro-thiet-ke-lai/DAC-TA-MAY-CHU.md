@@ -1,6 +1,6 @@
 # Đặc tả máy chủ — Hoa hồng đối tác + Hỗ trợ (thiết kế lại 25/10/2026)
 
-**Trạng thái: chờ chủ duyệt** (sau QA1). Nguồn: `BAN-GIAO.md` mục 5 và 6 (chủ duyệt 25/10). Đặc tả giao diện: `DAC-TA.md`. Quyền: `DE-XUAT-ADR-cong-tim-nguoi-huong.md`. Trang ghép: `TRANG-GHEP.md`.
+**Trạng thái: đã duyệt 2026-10-25** (chủ, chat: «duyệt luôn hai đặc tả»; sau QA1). Nguồn: `BAN-GIAO.md` mục 5 và 6 (chủ duyệt 25/10). Đặc tả giao diện: `DAC-TA.md`. Quyền: `DE-XUAT-ADR-cong-tim-nguoi-huong.md`. Trang ghép: `TRANG-GHEP.md`.
 
 - **Việc lớn** (quyền, tiền — mức hoa hồng, dữ liệu): thi công xong phải có người kiểm độc lập chỉ đọc.
 - **Không migration.** Không bảng, cột, trigger mới. Mọi thay đổi là route mới hoặc trường thêm vào phản hồi cũ.
