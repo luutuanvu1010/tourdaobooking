@@ -2,11 +2,7 @@
 
 **Trạng thái: đề xuất, chờ chủ duyệt cùng đề xuất ADR-0136.** AI soạn, không tự duyệt (N3). Đề xuất gốc `../2026-10-19-xac-nhan-don/DE-XUAT-ADR-0136-buoc-xac-nhan-don.md` là hồ sơ có ngày, **không sửa**. Khi chủ duyệt, người chép sang `docs/adr/` áp các thay đổi dưới đây vào bản chép: ADR-0136 = đề xuất gốc + bản bổ sung này.
 
-- **Ngày:** 2026-10-25. **Lượt duyệt:** theo trang ghép `TRANG-GHEP.md` mục 0, thay cách chia lượt của bộ hồ sơ 19/10:
-  - các điều của đề xuất gốc vào lượt 1–3;
-  - Đ13 vào lượt 5.
-
-  Đề xuất «0137 thư xác nhận + QR» **tách khỏi đợt duyệt này** và phải đổi số, vì 0137 đã là ADR sổ đại lý.
+- **Ngày:** 2026-10-25. **Lượt duyệt:** lượt 1, cùng đề xuất gốc. Ngày 25/10 chủ chốt duyệt hai lượt theo ADR và cho phép vượt trần (trang ghép `TRANG-GHEP.md` mục 0); cách chia này thay cách chia lượt của bộ hồ sơ 19/10. Đề xuất «0137 thư xác nhận + QR» **tách khỏi đợt duyệt này** và phải đổi số, vì 0137 đã là ADR sổ đại lý.
 - **Nguồn lời chủ:** thiết kế `../2026-10-25-chinh-sach-ban-va-gui-don-design.md` mục 1, 3, 4; hộp chọn 25/10: (b) «mọi tài khoản Đối tác», (c) «văn phòng nói chung».
 - **Số hiệu:** 0136 vẫn trống trên bản chính ngày 25/10. Số migration ghi trong đề xuất gốc (tạm 0115) **đã bị dùng**; số lấy lúc thi công.
 - **Xây trên lỗ đang hở:** như đề xuất gốc. Câu trả lời là không, với điều kiện Đợt 2 (ADR-0135) phát hành cùng Đợt 3; chủ đã chọn phương án A ngày 19/10.
@@ -46,7 +42,7 @@ Ví dụ: nhóm Vinwonders «không cần», riêng vé kèm buffet «cần». [
 
 ## Làm rõ các điều khác của đề xuất gốc
 - Đ3 «chỉ người lập gửi»: với người lập giữ quyền Đối tác, Gửi đơn thay cho Gửi xác nhận.
-- Mục «Điều chưa chắc — giá danh mục»: với đơn của Đối tác, Đ13.2 đã trả lời (giá danh mục xét theo người gửi, ngay lúc gửi). Với đơn của Thực tập, câu hỏi vẫn mở như đề xuất gốc.
+- Mục «Điều chưa chắc — giá danh mục»: với đơn của Đối tác, Đ13.2 đã trả lời (giá danh mục xét theo người gửi, ngay lúc gửi). Với đơn của Thực tập, người soạn **đổi khuyến nghị** thành giữ như hôm nay (xét theo người bấm Còn vé). Lý do: nháp của Thực tập đã qua luật giá danh mục lúc lập và lúc lưu; xét theo người lập sẽ chặn chính các lần sửa giá có lý do mà Đ8 cho phép. [người soạn 25/10]
 - Đ10: tin xác nhận và huỷ gửi tới người lập là Đối tác giữ nguyên. Ở nhánh B, người gửi không nhận tin «đã xác nhận» về việc chính mình vừa làm, vì họ đã thấy câu B. [người soạn]
 
 ## Quan hệ với ADR cũ (thêm vào danh sách của đề xuất gốc)

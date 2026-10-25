@@ -4,7 +4,7 @@
 - Ngày 25/10, ADR lớn nhất trên bản chính `90f3079e` là 0139.
 - Không dùng nhãn «0140», vì nháp «đại lý tổ chức nhiều nhân viên» đã dùng nhãn tạm 0140/0141 (trang ghép mục 7).
 
-- **Ngày:** 2026-10-25. **Lượt duyệt:** lượt 4 (Đ1, Đ3, Đ5) và lượt 5 (Đ4) theo trang ghép `TRANG-GHEP.md` mục 0. Nguồn lời chủ: thiết kế `../2026-10-25-chinh-sach-ban-va-gui-don-design.md` mục 1 và 2 (chủ duyệt hướng ngày 25/10).
+- **Ngày:** 2026-10-25. **Lượt duyệt:** lượt 2, sau bước xác nhận. Ngày 25/10 chủ chốt duyệt hai lượt theo ADR và cho phép vượt trần (trang ghép `TRANG-GHEP.md` mục 0). Nguồn lời chủ: thiết kế `../2026-10-25-chinh-sach-ban-va-gui-don-design.md` mục 1 và 2 (chủ duyệt hướng ngày 25/10).
 - **Loại:** việc lớn (quyền, dữ liệu). **Cửa:** dữ liệu một chiều mềm (một bảng chỉ thêm, ở lại); hành vi tắt được bằng cách kết thúc mọi luật.
 - **Quan hệ với ADR cũ:**
   - **ngoại lệ có tên, chỉ siết,** của ADR-0005 đ1 («loại vai trò hồ sơ … không bao giờ là điều kiện cho phép») và ADR-0018 đ3 («con đường duy nhất để vai ảnh hưởng quyền là hàm sinh quyền mặc định»). Ở đây loại đối tác của **bên đặt** được dùng để TỪ CHỐI bán, không bao giờ để cho thêm.
