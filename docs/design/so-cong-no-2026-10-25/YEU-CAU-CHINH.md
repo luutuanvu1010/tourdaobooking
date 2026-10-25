@@ -32,3 +32,6 @@ Cho mỗi màn một khung "có dữ liệu" ở iPhone và máy tính sau khi c
 
 ## Lượt 2 (nhận 2026-10-25 08:31)
 Chép `So Cong No v2.dc.html` (= 2a), `So Cua Toi v2.dc.html` (= 2b) và bảng trình bày mới (đè bảng lượt 1; bảng mới vẫn chứa phần lượt 1). Đối chiếu mã bản vẽ với mười điểm yêu cầu (AI đọc mã, chưa nhìn hình): dòng chân Sổ công nợ nay cộng thật từ danh sách đơn và có trạng thái «Lệch … — báo Kế toán trưởng»; hai nhóm «Bên này đang giữ» / «Công ty nợ bên này»; «Đã huỷ — cọc còn giữ»; sắp xếp, «Xem thêm 50 bên», «Xem thêm» đơn; một ô tìm; iPhone gộp cảnh báo. Sổ của tôi: tháng 9 cuối kỳ 1.200.000 = tháng 10 đầu kỳ; bảng chọn tháng; «Đã khoá ngày 05/10»; câu giải nghĩa; nút (i); dòng nối «tính tới hôm nay»; không thấy %, giá vốn, nhà cung cấp. Có khung kiểm tên 40 ký tự và 1.250.000.000 ₫. **Bản dùng để dựng: 2a và 2b.**
+
+## Quyết định sau khi dựng (2026-10-25)
+- Chủ giữ mục menu gộp **«Sổ công nợ & khoá sổ»** (Sổ công nợ + Khoá sổ tháng chung một mục ở nhóm TIỀN, có dải chuyển nhanh giữa hai trang) — lý do: trần 10 mục hiện sẵn của Toàn quyền. Nguyên văn: «Giữ mục menu gộp «Sổ công nợ & khoá sổ» như hiện tại.»
