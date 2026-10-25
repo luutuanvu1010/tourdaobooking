@@ -194,8 +194,17 @@ const checkTeamDescription = (v: unknown): Checked<string> => {
   return d.length > TEAM_DESCRIPTION_MAX ? bad(`Mô tả nhóm tối đa ${TEAM_DESCRIPTION_MAX} ký tự.`) : { ok: true, value: d };
 };
 
+/** Máy sinh mã nhóm từ tên (khi người lập không gửi `code`): bỏ dấu, đ→D, chữ HOA, ký tự ngoài A-Z0-9 thành `_`, cắt `_` hai đầu, tối đa 40; rỗng → NHOM. */
+export function maNhomTuTen(ten: string): string {
+  const khongDau = ten.replace(/[đĐ]/g, (c) => (c === "đ" ? "d" : "D")).normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const ma = khongDau.toUpperCase().replace(/[^A-Z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 40).replace(/_+$/, "");
+  return ma || "NHOM";
+}
+
 export function validateTeamInput(raw: Record<string, unknown>): Checked<TeamInput> {
-  if (typeof raw.code !== "string" || !TEAM_CODE_RE.test(raw.code)) return bad("Mã nhóm chỉ gồm chữ HOA không dấu, số, gạch dưới (tối đa 40 ký tự).");
+  // Không gửi `code` thì máy sinh từ tên; gửi thì kiểm đúng như trước. Tên sai vẫn bị báo ở checkTeamName.
+  const code = raw.code === undefined ? maNhomTuTen(typeof raw.name === "string" ? raw.name : "") : raw.code;
+  if (typeof code !== "string" || !TEAM_CODE_RE.test(code)) return bad("Mã nhóm chỉ gồm chữ HOA không dấu, số, gạch dưới (tối đa 40 ký tự).");
   const name = checkTeamName(raw.name);
   if (!name.ok) return name;
   let description = "";
@@ -205,7 +214,7 @@ export function validateTeamInput(raw: Record<string, unknown>): Checked<TeamInp
     description = d.value;
   }
   if (raw.sensitive !== undefined && typeof raw.sensitive !== "boolean") return bad("Cờ nhạy cảm không hợp lệ.");
-  return { ok: true, value: { code: raw.code, name: name.value, description, sensitive: raw.sensitive === true } };
+  return { ok: true, value: { code, name: name.value, description, sensitive: raw.sensitive === true } };
 }
 
 /** Sửa nhóm: ít nhất một trong tên / mô tả / nhạy cảm / đang dùng. Mã nhóm không sửa được (gửi `code` ⇒ 400, không lặng lẽ bỏ qua). */

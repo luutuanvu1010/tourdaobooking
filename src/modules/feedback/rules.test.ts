@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { FEEDBACK_KINDS, FEEDBACK_KIND_NAME, FEEDBACK_STATUSES, FEEDBACK_STATUS_NAME } from "../../shared/feedback-catalog.ts";
 import { LAM_MOI_TRAN } from "../../shared/ve-ho-tro-hien-thi.ts";
 import {
-  BODY_MAX, CAU_DON_LIEN_QUAN_SAI, parseTimHangDoi, parseTrangThaiHangDoi, MESSAGES_SINCE_LIMIT, TITLE_MAX, parseContext, parseSince, sanitizeContext, validateMemberRole, validateMessageInput, validatePatchInput, validateTeamInput, validateTeamPatch, validateTicketInput, windowStart,
+  BODY_MAX, CAU_DON_LIEN_QUAN_SAI, parseTimHangDoi, parseTrangThaiHangDoi, MESSAGES_SINCE_LIMIT, TITLE_MAX, parseContext, parseSince, sanitizeContext, validateMemberRole, validateMessageInput, validatePatchInput, validateTeamInput, validateTeamPatch, validateTicketInput, windowStart, maNhomTuTen,
 } from "./rules.ts";
 
 const REQ = "0b8f6f2e-3c1a-4f6e-9a55-2b6f4d1c7e10";
@@ -87,6 +87,26 @@ test("validateTeamInput: mã HOA/số/gạch dưới ≤ 40, tên 1–60 sau tri
   assert.equal(validateTeamInput({ code: "A", name: "x".repeat(61), sensitive: false }).ok, false);
   assert.equal(validateTeamInput({ code: "A", name: "X", description: "x".repeat(301), sensitive: false }).ok, false);
   assert.equal(validateTeamInput({ code: "A", name: "X", sensitive: "có" }).ok, false);
+});
+
+test("maNhomTuTen: bỏ dấu tiếng Việt, đ→D, chữ HOA, ký tự lạ thành _, cắt _ hai đầu, tối đa 40, rỗng → NHOM", () => {
+  assert.equal(maNhomTuTen("Kế toán – Công nợ"), "KE_TOAN_CONG_NO");
+  assert.equal(maNhomTuTen("Đặt tour"), "DAT_TOUR");
+  assert.equal(maNhomTuTen("  !!  "), "NHOM");
+  const dai = maNhomTuTen("x".repeat(80));
+  assert.equal(dai.length, 40, "80 ký tự cắt còn 40");
+  assert.equal(dai, "X".repeat(40));
+  const coGachCuoi = maNhomTuTen("Kế toán ".repeat(10)); // ký tự thứ 40 là _ → bỏ, không để _ ở cuối
+  assert.equal(coGachCuoi.length, 39);
+  assert.ok(!coGachCuoi.endsWith("_"));
+  assert.ok(/^[A-Z0-9_]{1,40}$/.test(coGachCuoi), "khớp TEAM_CODE_RE");
+});
+
+test("validateTeamInput: không gửi code thì máy sinh từ tên; tên sai vẫn bị từ chối; gửi code sai vẫn 400", () => {
+  assert.deepEqual(validateTeamInput({ name: "Đặt tour", sensitive: false }), { ok: true, value: { code: "DAT_TOUR", name: "Đặt tour", description: "", sensitive: false } });
+  assert.equal(validateTeamInput({ name: "   ", sensitive: false }).ok, false, "tên rỗng");
+  assert.equal(validateTeamInput({ name: "x".repeat(61), sensitive: false }).ok, false, "tên quá dài");
+  assert.equal(validateTeamInput({ code: "ban hang", name: "X", sensitive: false }).ok, false, "mã gửi lên vẫn kiểm");
 });
 
 test("validateTeamPatch: ít nhất một trường; từng trường đúng kiểu", () => {

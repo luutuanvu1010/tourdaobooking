@@ -133,6 +133,25 @@ test("quản lý nhóm: chỉ Toàn quyền; Quản trị, Nhân sự, thành vi
   assert.ok(kt.members.every((m: any) => typeof m.name === "string" && m.name.length > 0), "tên người đọc qua view nhãn");
 });
 
+test("tạo nhóm không gửi mã: máy sinh từ tên; trùng do máy sinh → câu riêng; trùng với nhóm đã ngưng → 409; trùng mã người gửi → câu cũ", async () => {
+  const w = setup();
+  const t = await admin(w, "POST", "", SUPER, { name: "Đặt tour", description: "", sensitive: false });
+  assert.equal(t.status, 201, t.text);
+  assert.equal(t.json.team.code, "DAT_TOUR");
+  const CAU_TU_DONG = "Đã có nhóm mang mã DAT_TOUR (tự đặt theo tên). Đổi tên nhóm khác đi một chút rồi thử lại.";
+  const trung = await admin(w, "POST", "", SUPER, { name: "Đặt tour", description: "", sensitive: false });
+  assert.equal(trung.status, 409);
+  assert.equal(trung.json.error?.message ?? trung.json.message, CAU_TU_DONG, trung.text);
+  await admin(w, "PATCH", `/${t.json.team.id}`, SUPER, { active: false });
+  const daNgung = await admin(w, "POST", "", SUPER, { name: "Đặt tour", description: "", sensitive: false });
+  assert.equal(daNgung.status, 409, "nhóm đã ngưng vẫn giữ mã");
+  assert.equal(daNgung.json.error?.message ?? daNgung.json.message, CAU_TU_DONG, daNgung.text);
+  const guiMa = await admin(w, "POST", "", SUPER, { code: "DAT_TOUR", name: "Khác tên", description: "", sensitive: false });
+  assert.equal(guiMa.status, 409);
+  assert.equal(guiMa.json.error?.message ?? guiMa.json.message, "Mã nhóm đã có.", guiMa.text);
+  assert.equal(w.q("SELECT count(*) AS n FROM fbk_team WHERE code = 'DAT_TOUR'")[0].n, 1, "không sinh thêm dòng");
+});
+
 test("Toàn quyền tạo nhóm, sửa cờ nhạy cảm, ngưng nhóm; mã trùng ⇒ 409; nhật ký không ghi mô tả", async () => {
   const w = setup();
   const t = await admin(w, "POST", "", SUPER, { code: "BAN_HANG", name: "Bán hàng", description: "Hỏi đáp bán hàng", sensitive: false });

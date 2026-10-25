@@ -246,6 +246,7 @@ export const feedbackModule: AppModule = {
       if (!raw) return BAD_JSON();
       const v = validateTeamInput(raw);
       if (!v.ok) return error(400, "invalid_input", v.message);
+      const maTuDong = raw.code === undefined; // mã do máy sinh từ tên: câu 409 khác mã người gửi (DAC-TA B3)
       const id = crypto.randomUUID();
       const at = new Date().toISOString();
       await env.DB.batch([
@@ -253,7 +254,7 @@ export const feedbackModule: AppModule = {
         auditStatement(env.DB, { staffId: staff.id, action: "feedback_team_created", at, targetType: "feedback", targetId: id, detail: v.value.code }, `EXISTS (SELECT 1 FROM fbk_team WHERE id = '${id}')`),
       ]);
       const t = await getTeam(env.DB, id);
-      if (!t) return error(409, "duplicate", "Mã nhóm đã có.");
+      if (!t) return error(409, "duplicate", maTuDong ? `Đã có nhóm mang mã ${v.value.code} (tự đặt theo tên). Đổi tên nhóm khác đi một chút rồi thử lại.` : "Mã nhóm đã có.");
       return json({ team: toAdminTeam(t, []) }, 201, { location: "/feedback" }); // trang quản lý nhóm làm ở việc giao diện; tạm trỏ trang Góp ý
     }),
     route("PATCH", "/api/feedback/admin/teams/:id", "staff", async ({ request, env, staff, params }) => {
