@@ -2721,6 +2721,8 @@ export interface SupplyTermListResponse { homNay: string; dong: SupplyTermDto[];
 export interface ThuTraResponse {
   ngay: string;
   nguoiHuong: { loai: "NONE" | "HUONG" | "KHONG_HUONG"; vai: string[] };
+  /** Có khi tra theo loại đối tác (`?loai=`): khi đó `nguoiHuong.vai` = [mã loại] và `bac` chỉ 4–9. */
+  theoLoai?: { code: string; ten: string };
   ketQua: { trangThai: "NONE" } | { trangThai: "SET"; bac: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12; muc: CommissionRuleDto } | { trangThai: "MISSING"; lyDo: string };
 }
 /**

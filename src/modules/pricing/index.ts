@@ -401,18 +401,30 @@ export const pricingModule: AppModule = {
     route("GET", "/api/pricing/thu-tra", "office", async ({ env, url, staff }) => {
       if (!can(staff, "partner.commission.view") || holdsPartner(staff)) return FORBIDDEN();
       const doiTac = url.searchParams.get("doiTac") ?? "";
+      const loai = url.searchParams.get("loai") ?? "";
       const dichVu = url.searchParams.get("dichVu") ?? "";
       const ngay = url.searchParams.get("ngay") || vnToday(new Date());
-      if (!PARTY_RE.test(doiTac) || !MA_RE.test(dichVu) || !laNgay(ngay)) return error(400, "invalid_input", "Chọn đối tác, dịch vụ và ngày hợp lệ.");
-      const [bang, tenVai] = await Promise.all([docBangChoChup(env.DB, { bookerPartyId: doiTac, catalogCodes: [dichVu], ngay }), tenLoaiVai(env.DB)]);
-      const nh = bang.nguoiHuong;
-      const nguoiHuong = { loai: nh.loai, vai: nh.loai === "HUONG" ? nh.vai.map((c) => tenVai.get(c) ?? c) : [] };
-      const kq = chonMuc({ nguoiHuong: nh, ngay, catalogCode: dichVu, groupCode: bang.nhom.get(dichVu) ?? null, dong: bang.muc, gan: bang.gan, ganRieng: bang.ganRieng });
-      if (kq.trangThai === "NONE") return json({ ngay, nguoiHuong, ketQua: { trangThai: "NONE" } } satisfies ThuTraResponse);
-      if (kq.trangThai === "MISSING") return json({ ngay, nguoiHuong, ketQua: { trangThai: "MISSING", lyDo: NHAN_LY_DO_THIEU[kq.lyDo] } } satisfies ThuTraResponse);
+      // Đúng MỘT trong hai: doiTac (hồ sơ) hoặc loai (mã loại đối tác).
+      if ((doiTac === "") === (loai === "") || (doiTac !== "" && !PARTY_RE.test(doiTac)) || (loai !== "" && !MA_RE.test(loai)) || !MA_RE.test(dichVu) || !laNgay(ngay)) {
+        return error(400, "invalid_input", "Chọn một đối tác hoặc một loại đối tác, dịch vụ và ngày hợp lệ.");
+      }
+      let theoLoai: { code: string; ten: string } | undefined;
+      if (loai !== "") {
+        const l = (await docLoaiDoiTac(env.DB)).find((x) => x.code === loai);
+        if (!l || !l.dangBat) return error(400, "invalid_input", "Loại đối tác này không có trong danh sách được hưởng hoa hồng hoặc đã tắt.");
+        theoLoai = { code: l.code, ten: l.ten };
+      }
+      const [bang, tenVai] = await Promise.all([docBangChoChup(env.DB, { bookerPartyId: theoLoai ? null : doiTac, catalogCodes: [dichVu], ngay }), tenLoaiVai(env.DB)]);
+      // Tra theo loại: người hưởng dựng sẵn, chuỗi rỗng không khớp hồ sơ nào ⇒ bậc 1–3 và 10–12 không bao giờ khớp; ganRieng bỏ trống. Cùng MỘT chonMuc.
+      const nh: NguoiHuong = theoLoai ? { loai: "HUONG", partyId: "", vai: [theoLoai.code] } : bang.nguoiHuong;
+      const nguoiHuong = theoLoai ? { loai: "HUONG" as const, vai: [theoLoai.code] } : { loai: nh.loai, vai: nh.loai === "HUONG" ? nh.vai.map((c) => tenVai.get(c) ?? c) : [] };
+      const them = theoLoai ? { theoLoai } : {};
+      const kq = chonMuc({ nguoiHuong: nh, ngay, catalogCode: dichVu, groupCode: bang.nhom.get(dichVu) ?? null, dong: bang.muc, gan: bang.gan, ganRieng: theoLoai ? [] : bang.ganRieng });
+      if (kq.trangThai === "NONE") return json({ ngay, nguoiHuong, ...them, ketQua: { trangThai: "NONE" } } satisfies ThuTraResponse);
+      if (kq.trangThai === "MISSING") return json({ ngay, nguoiHuong, ...them, ketQua: { trangThai: "MISSING", lyDo: NHAN_LY_DO_THIEU[kq.lyDo] } } satisfies ThuTraResponse);
       const dong = await ruleById(env.DB, kq.dong.id);
       if (!dong) return error(409, "stale", "Bảng mức vừa đổi — thử lại.");
-      return json({ ngay, nguoiHuong, ketQua: { trangThai: "SET", bac: kq.bac, muc: dtoMuc(dong, tenVai, ngay) } } satisfies ThuTraResponse);
+      return json({ ngay, nguoiHuong, ...them, ketQua: { trangThai: "SET", bac: kq.bac, muc: dtoMuc(dong, tenVai, ngay) } } satisfies ThuTraResponse);
     }),
     route("GET", "/api/pricing/cung-ung", "office", async ({ env, staff }) => {
       if (!can(staff, "supply.terms.view") || holdsPartner(staff)) return FORBIDDEN();
