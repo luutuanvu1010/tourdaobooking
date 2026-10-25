@@ -6,7 +6,7 @@
 import { auditStatement } from "../audit";
 import { getStaffAccount } from "../staff";
 import type {
-  FeedbackAdminTeamDto, FeedbackAdminTeamsResponse, FeedbackBadgeResponse, FeedbackDetailResponse, FeedbackMembersResponse, FeedbackMessageDto, FeedbackMessagesSinceResponse, FeedbackMyOrdersResponse, FeedbackQueueResponse, FeedbackTeamsResponse,
+  FeedbackAdminTeamDto, FeedbackAdminTeamsResponse, FeedbackBadgeResponse, FeedbackDetailResponse, FeedbackEventDto, FeedbackMembersResponse, FeedbackMessageDto, FeedbackMessagesSinceResponse, FeedbackMyOrdersResponse, FeedbackQueueResponse, FeedbackTeamsResponse,
   FeedbackTicketDto, OrderStatus,
 } from "../../shared/contracts";
 import { FEEDBACK_KIND_NAME, FEEDBACK_STATUS_NAME, canTransition, feedbackCode, isFeedbackKind, isFeedbackStatus, type FeedbackKind, type FeedbackStatus } from "../../shared/feedback-catalog";
@@ -18,8 +18,8 @@ import { mailConfig, notifyAdmins, type NotifyEvent } from "./notify";
 import { choPhepNhomGui, quyenPhieu, type Membership, type QuyenPhieu } from "./quyen";
 import {
   badgeCounts, claimStatement, endMemberStatement, findByRequest, getDonCuaToi, getTeam, getTicket, insertEventStatement, insertFirstMessageStatement, insertMemberStatement, insertReplyStatement, insertTeamStatement,
-  insertTicketStatement, insertTransferNoteStatement, listAssignable, listDonCuaToi, listMembersAll, listMessages, listMessagesSince, listMine, listQueue, listQueueTeam, listTeamsActive, listTeamsAll, markSeen, markSeenAfterWriteStatement,
-  membershipsOf, messageExists, patchTeamStatement, patchTicketStatement, setNotified, statsTeam, touchAfterReplyStatement, transferStatement, weeklyStats, type MessageRow, type TeamMemberRow, type TeamRow, type TicketRow,
+  insertTicketStatement, insertTransferNoteStatement, listAssignable, listDonCuaToi, listEvents, listEventsSince, listMembersAll, listMessages, listMessagesSince, listMine, listQueue, listQueueTeam, listTeamsActive, listTeamsAll, markSeen, markSeenAfterWriteStatement,
+  membershipsOf, messageExists, patchTeamStatement, patchTicketStatement, setNotified, statsTeam, touchAfterReplyStatement, transferStatement, weeklyStats, type EventRow, type MessageRow, type TeamMemberRow, type TeamRow, type TicketRow,
 } from "./repository";
 import {
   CAU_DON_LIEN_QUAN_SAI, MESSAGE_LIMIT_PER_HOUR, MESSAGES_SINCE_LIMIT, TEAM_ID_RE, TICKET_LIMIT_PER_HOUR, parseContext, validateMemberRole, validateMessageInput, validatePatchInput, validateTeamInput, validateTeamPatch,
@@ -72,6 +72,7 @@ const toTicket = (r: TicketRow, showMail: boolean): FeedbackTicketDto => ({
   orderId: r.order_id,
   orderCode: r.order_code,
 });
+const toEvent = (e: EventRow): FeedbackEventDto => ({ id: e.id, loai: e.type as FeedbackEventDto["loai"], at: e.at, nguoi: e.actor_name, tu: e.from_name, den: e.to_name });
 const toMessage = (m: MessageRow, viewerId: string): FeedbackMessageDto => ({
   id: m.id,
   authorId: m.author_id,
@@ -135,8 +136,9 @@ async function detail(db: D1Database, who: PermissionHolder, id: string): Promis
   const q = await quyenCuaToi(db, who, t);
   if (!q.doc) return null;
   return {
-    ticket: toTicket(t, can(who, "feedback.triage")),
+    ticket: toTicket(t, q.xuLy),
     messages: (await listMessages(db, id, q.noiBo, t.team_id)).map((m) => toMessage(m, who.id)),
+    suKien: q.xuLy ? (await listEvents(db, id)).map(toEvent) : [],
     canTriage: q.xuLy,
     perms: { xuLy: q.xuLy, giaoViec: q.giaoViecChoNguoiKhac, chuyenNhom: q.chuyenNhom },
   };
@@ -502,6 +504,7 @@ export const feedbackModule: AppModule = {
       return json({
         ticket: toTicket(sau, false),
         messages: (await listMessages(env.DB, id, "none", sau.team_id)).map((m) => toMessage(m, staff.id)),
+        suKien: [],
         canTriage: false,
         perms: { xuLy: false, giaoViec: false, chuyenNhom: false },
       } satisfies FeedbackDetailResponse);
@@ -521,8 +524,10 @@ export const feedbackModule: AppModule = {
       if (!since) return error(400, "invalid_input", "Mốc thời gian không hợp lệ.");
       const rows = await listMessagesSince(env.DB, id, q.noiBo, t.team_id, since, MESSAGES_SINCE_LIMIT);
       const p = toTicket(t, false);
+      const suKien = q.xuLy ? (await listEventsSince(env.DB, id, since, MESSAGES_SINCE_LIMIT)).map(toEvent) : [];
       return json({
         messages: rows.map((m) => toMessage(m, staff.id)),
+        suKien,
         ticket: { status: p.status, assigneeId: p.assigneeId, assigneeName: p.assigneeName, assigneeActive: p.assigneeActive, priority: p.priority, teamId: p.teamId },
       } satisfies FeedbackMessagesSinceResponse);
     }),

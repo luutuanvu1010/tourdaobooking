@@ -1355,9 +1355,13 @@ export interface FeedbackListResponse {
 export interface FeedbackQueueResponse extends FeedbackListResponse {
   stats: FeedbackStatRow[];
 }
+/** Sự kiện nhận việc / giao / chuyển nhóm của một yêu cầu — CHỈ người xử lý thấy (người gửi nhận mảng rỗng). `tu`/`den` là TÊN (người hoặc nhóm), không phải id; không kèm lý do chuyển nhóm. */
+export interface FeedbackEventDto { id: string; loai: "CLAIMED" | "ASSIGNED" | "TEAM_CHANGED"; at: string; nguoi: string; tu: string | null; den: string | null }
 export interface FeedbackDetailResponse {
   ticket: FeedbackTicketDto;
   messages: FeedbackMessageDto[];
+  /** Sự kiện theo thứ tự thời gian; rỗng với người không xử lý được phiếu. */
+  suKien: FeedbackEventDto[];
   /** Giữ cho giao diện cũ: luôn bằng `perms.xuLy`. */
   canTriage: boolean;
   /** Quyền của NGƯỜI XEM trên phiếu này (ADR-0119, tính bằng `quyenPhieu` ở máy chủ). Giao diện chỉ ẩn/hiện; máy chủ luôn kiểm lại. */
@@ -1382,6 +1386,8 @@ export interface FeedbackAdminTeamsResponse { teams: FeedbackAdminTeamDto[] }
 /** GET /api/feedback/:id/messages?since=…: tin mới (người gửi không bao giờ nhận ghi chú nội bộ) + phần đầu phiếu gọn để phát hiện đóng / đổi người / đổi mức / chuyển nhóm. Không ghi mốc đã xem. */
 export interface FeedbackMessagesSinceResponse {
   messages: FeedbackMessageDto[];
+  /** Sự kiện sau mốc `since` (cùng trần với tin); rỗng với người không xử lý được phiếu. */
+  suKien: FeedbackEventDto[];
   /** assigneeActive: như FeedbackTicketDto — false khi chưa ai giữ hoặc người giữ không hợp lệ (đã khoá, bị gỡ khỏi nhóm): giao diện coi như chưa ai nhận. */
   ticket: { status: FeedbackStatus; assigneeId: string | null; assigneeName: string | null; assigneeActive: boolean; priority: Priority; teamId: string };
 }

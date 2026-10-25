@@ -106,6 +106,14 @@ const LIST_MESSAGES = defineSql("feedback", "list_messages", `${TIN_CHO_NGUOI_XE
 // Tuyến làm mới: ?4 mốc đã chuẩn hoá toISOString (so CHUỖI, nghiêm ngặt >), ?5 trần. Cũ trước mới sau: chạm trần thì trả 100 tin CŨ NHẤT sau mốc để khách tiến
 // dần (sắp mới trước sẽ nhảy cóc). Mất tin do dấu giờ tính trước lô ghi: khách lùi mốc 30 giây và bỏ trùng theo id (đặc tả 2.1) — câu này không tự lùi.
 const LIST_MESSAGES_SINCE = defineSql("feedback", "list_messages_since", `${TIN_CHO_NGUOI_XEM} AND m.created_at > ?4 ORDER BY m.created_at, m.rowid LIMIT ?5`);
+// Sự kiện của MỘT phiếu cho NGƯỜI XỬ LÝ (route kiểm q.xuLy trước): id nhân viên / nhóm trong from_value, to_value đổi thành tên — nhân viên qua view nhãn, nhóm ở fbk_team.
+// KHÔNG chứa lý do chuyển nhóm (ghi chú nội bộ, nằm ở fbk_message). ?1 phiếu; bản SINCE thêm ?2 mốc (so CHUỖI, nghiêm ngặt >) và ?3 trần.
+const SU_KIEN = `SELECT e.id, e.type, e.at, COALESCE(a.label, '') AS actor_name,
+     CASE e.type WHEN 'TEAM_CHANGED' THEN (SELECT n.name FROM fbk_team n WHERE n.id = e.from_value) ELSE (SELECT f.label FROM v_stf_staff_label f WHERE f.id = e.from_value) END AS from_name,
+     CASE e.type WHEN 'TEAM_CHANGED' THEN (SELECT n.name FROM fbk_team n WHERE n.id = e.to_value) ELSE (SELECT f.label FROM v_stf_staff_label f WHERE f.id = e.to_value) END AS to_name
+   FROM fbk_ticket_event e LEFT JOIN v_stf_staff_label a ON a.id = e.actor_id WHERE e.ticket_id = ?1`;
+const LIST_EVENTS = defineSql("feedback", "list_events", `${SU_KIEN} ORDER BY e.at, e.id`);
+const LIST_EVENTS_SINCE = defineSql("feedback", "list_events_since", `${SU_KIEN} AND e.at > ?2 ORDER BY e.at, e.id LIMIT ?3`);
 // Hàng đợi MỘT nhóm (route GET /api/feedback/queue, sau quyenPhieu). Không chứa phiếu do chính người xem gửi (nằm ở "của tôi").
 // ?1 người xem, ?2 nhóm, ?3 trạng thái|NULL, ?4 loc (ALL|MINE|UNASSIGNED), ?5 limit, ?6 offset.
 // UNASSIGNED gồm cả phiếu có người giữ KHÔNG hợp lệ (nguoiGiuHopLe: khoá tài khoản, bị gỡ khỏi nhóm — coi như chưa ai nhận, ADR-0119 điều 8).
@@ -206,6 +214,10 @@ export const listMessages = async (db: D1Database, ticketId: string, noiBo: "non
 export const listMessagesSince = async (
   db: D1Database, ticketId: string, noiBo: "none" | "team" | "all", teamId: string, since: string, limit: number,
 ): Promise<MessageRow[]> => (await db.prepare(LIST_MESSAGES_SINCE).bind(ticketId, noiBo, teamId, since, limit).all<MessageRow>()).results;
+export interface EventRow { id: string; type: string; at: string; actor_name: string; from_name: string | null; to_name: string | null }
+export const listEvents = async (db: D1Database, ticketId: string): Promise<EventRow[]> => (await db.prepare(LIST_EVENTS).bind(ticketId).all<EventRow>()).results;
+export const listEventsSince = async (db: D1Database, ticketId: string, since: string, limit: number): Promise<EventRow[]> =>
+  (await db.prepare(LIST_EVENTS_SINCE).bind(ticketId, since, limit).all<EventRow>()).results;
 export const listQueueTeam = async (
   db: D1Database, staffId: string, teamId: string, status: string | null, loc: string, limit: number, offset: number,
 ): Promise<TicketRow[]> => (await db.prepare(LIST_QUEUE_TEAM).bind(staffId, teamId, status, loc, limit, offset).all<TicketRow>()).results;

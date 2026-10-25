@@ -1032,7 +1032,7 @@ test("tuyến làm mới — quyền: người gửi không thấy ghi chú nộ
   assert.equal(coNoiBo(sales), false, "người gửi không thấy ghi chú nội bộ");
   assert.ok(!sales.text.includes("Ghi chú nội bộ Kế toán"));
   assert.deepEqual(sales.json.messages.map((m: any) => m.body), ["Nội dung hỏi.", "Trả lời công khai"]);
-  assert.deepEqual(Object.keys(sales.json).sort(), ["messages", "ticket"]);
+  assert.deepEqual(Object.keys(sales.json).sort(), ["messages", "suKien", "ticket"]);
   assert.deepEqual(Object.keys(sales.json.ticket).sort(), ["assigneeActive", "assigneeId", "assigneeName", "priority", "status", "teamId"]);
   assert.deepEqual(sales.json.ticket, { status: "NEW", assigneeId: null, assigneeName: null, assigneeActive: false, priority: "NORMAL", teamId: KE_TOAN });
   for (const as of [KT_TV, KT_TN, SUPER]) {
