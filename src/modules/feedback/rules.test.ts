@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { FEEDBACK_KINDS, FEEDBACK_KIND_NAME, FEEDBACK_STATUSES, FEEDBACK_STATUS_NAME } from "../../shared/feedback-catalog.ts";
 import { LAM_MOI_TRAN } from "../../shared/ve-ho-tro-hien-thi.ts";
 import {
-  BODY_MAX, CAU_DON_LIEN_QUAN_SAI, MESSAGES_SINCE_LIMIT, TITLE_MAX, parseContext, parseSince, sanitizeContext, validateMemberRole, validateMessageInput, validatePatchInput, validateTeamInput, validateTeamPatch, validateTicketInput, windowStart,
+  BODY_MAX, CAU_DON_LIEN_QUAN_SAI, parseTimHangDoi, parseTrangThaiHangDoi, MESSAGES_SINCE_LIMIT, TITLE_MAX, parseContext, parseSince, sanitizeContext, validateMemberRole, validateMessageInput, validatePatchInput, validateTeamInput, validateTeamPatch, validateTicketInput, windowStart,
 } from "./rules.ts";
 
 const REQ = "0b8f6f2e-3c1a-4f6e-9a55-2b6f4d1c7e10";
@@ -158,4 +158,18 @@ test("parseSince (tuyến làm mới, ADR-0127 quyết định 1): chỉ nhận 
 
 test("trần trang của tuyến làm mới: hằng phía khách (LAM_MOI_TRAN) bằng đúng MESSAGES_SINCE_LIMIT của máy chủ — lệch thì khách không biết khi nào phải gọi tiếp ngay", () => {
   assert.equal(LAM_MOI_TRAN, MESSAGES_SINCE_LIMIT);
+});
+
+test("parseTrangThaiHangDoi: vắng = mọi trạng thái; một mã, nhiều mã, bỏ trùng; rỗng/lạ ⇒ lỗi", () => {
+  assert.deepEqual(parseTrangThaiHangDoi(null), { ok: true, value: null });
+  assert.deepEqual(parseTrangThaiHangDoi("NEW"), { ok: true, value: "NEW" });
+  assert.deepEqual(parseTrangThaiHangDoi("NEW,ACK,NEW"), { ok: true, value: "NEW,ACK" });
+  for (const x of ["", "NEW,", "NEW,LA", "new"]) assert.deepEqual(parseTrangThaiHangDoi(x), { ok: false });
+});
+
+test("parseTimHangDoi: bỏ khoảng trắng hai đầu, rỗng = không tìm, quá 60 ký tự ⇒ lỗi", () => {
+  assert.deepEqual(parseTimHangDoi(null), { ok: true, value: null });
+  assert.deepEqual(parseTimHangDoi("  YC-0007 "), { ok: true, value: "YC-0007" });
+  assert.deepEqual(parseTimHangDoi("   "), { ok: true, value: null });
+  assert.deepEqual(parseTimHangDoi("a".repeat(61)), { ok: false });
 });

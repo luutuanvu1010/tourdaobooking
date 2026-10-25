@@ -1,6 +1,6 @@
 // Luật thuần của Góp ý / Báo lỗi (không I/O). Kiểm đầu vào, lọc `context` (không đáng tin), trần tần suất.
 // Import bằng đuôi .ts để node --test chạy trực tiếp.
-import { isFeedbackKind, isFeedbackStatus, type FeedbackKind, type FeedbackStatus } from "../../shared/feedback-catalog.ts";
+import { FEEDBACK_STATUSES, isFeedbackKind, isFeedbackStatus, type FeedbackKind, type FeedbackStatus } from "../../shared/feedback-catalog.ts";
 import { isPriority, type Priority } from "../../shared/ve-ho-tro.ts";
 import type { FeedbackPatchRequest } from "../../shared/contracts.ts";
 import { UUID_RE } from "../../shared/http.ts";
@@ -249,4 +249,23 @@ export function validateTransferInput(raw: Record<string, unknown>): Checked<Tra
   const reason = cleanTitle(raw.reason);
   if (reason.length < 1 || reason.length > TRANSFER_REASON_MAX) return bad(`Lý do chuyển nhóm phải từ 1 đến ${TRANSFER_REASON_MAX} ký tự.`);
   return { ok: true, value: { teamId: raw.teamId, reason } };
+}
+
+/** Tìm trong hàng đợi: tối đa 60 ký tự (đã bỏ khoảng trắng hai đầu). */
+export const HANG_DOI_Q_MAX = 60;
+/**
+ * Tham số `status` của hàng đợi nhóm: danh sách mã cách nhau dấu phẩy (`NEW,ACK`), một mã vẫn chạy. Vắng tham số (null) = mọi trạng thái; chuỗi rỗng, mã lạ
+ * hay phần tử rỗng (`NEW,`) ⇒ lỗi. Mã lặp được bỏ. Trả chuỗi đã chuẩn hoá (bỏ trùng, giữ thứ tự gõ) để máy chủ tìm bằng `instr` — câu SQL vẫn tĩnh.
+ */
+export function parseTrangThaiHangDoi(raw: string | null): { ok: true; value: string | null } | { ok: false } {
+  if (raw === null) return { ok: true, value: null };
+  const ds = raw.split(",");
+  if (ds.length > FEEDBACK_STATUSES.length * 2 || !ds.every(isFeedbackStatus)) return { ok: false };
+  return { ok: true, value: [...new Set(ds)].join(",") };
+}
+/** Tham số `q` của hàng đợi: vắng hoặc rỗng sau khi bỏ khoảng trắng = không tìm; quá 60 ký tự ⇒ lỗi. */
+export function parseTimHangDoi(raw: string | null): { ok: true; value: string | null } | { ok: false } {
+  const q = (raw ?? "").trim();
+  if (q.length > HANG_DOI_Q_MAX) return { ok: false };
+  return { ok: true, value: q === "" ? null : q };
 }

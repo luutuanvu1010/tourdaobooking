@@ -1354,6 +1354,8 @@ export interface FeedbackListResponse {
 }
 export interface FeedbackQueueResponse extends FeedbackListResponse {
   stats: FeedbackStatRow[];
+  /** Chỉ có ở hàng đợi một nhóm (`GET /api/feedback/queue`): số yêu cầu cho ba nút lọc, theo `status` + `q`, bỏ qua `loc`. */
+  dem?: { chuaAiNhan: number; cuaToi: number; tatCa: number };
 }
 /** Sự kiện nhận việc / giao / chuyển nhóm của một yêu cầu — CHỈ người xử lý thấy (người gửi nhận mảng rỗng). `tu`/`den` là TÊN (người hoặc nhóm), không phải id; không kèm lý do chuyển nhóm. */
 export interface FeedbackEventDto { id: string; loai: "CLAIMED" | "ASSIGNED" | "TEAM_CHANGED"; at: string; nguoi: string; tu: string | null; den: string | null }

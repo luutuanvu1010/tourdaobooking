@@ -142,3 +142,9 @@ test("nhanDonChon: mã đơn + trạng thái bằng chữ tiếng Việt, không
   assert.equal(nhanDonChon({ orderCode: "TD-20261017-0003", status: "cancelled" }), "TD-20261017-0003 · Đã huỷ");
   for (const s of ["draft", "confirmed", "cancelled"] as const) assert.doesNotMatch(nhanDonChon({ orderCode: "X", status: s }), /draft|confirmed|cancelled/);
 });
+
+test("duongHangDoi: danh sách trạng thái nối dấu phẩy, tìm q, danh sách rỗng bỏ tham số", () => {
+  assert.equal(duongHangDoi("t", "ALL", ["NEW", "ACK"]), "/api/feedback/queue?team=t&loc=ALL&status=NEW%2CACK");
+  assert.equal(duongHangDoi("t", "ALL", []), "/api/feedback/queue?team=t&loc=ALL");
+  assert.equal(duongHangDoi("t", "MINE", "NEW", " YC-1 "), "/api/feedback/queue?team=t&loc=MINE&status=NEW&q=YC-1");
+});

@@ -10,7 +10,7 @@ import type {
   FeedbackTicketDto, OrderStatus,
 } from "../../shared/contracts";
 import { FEEDBACK_KIND_NAME, FEEDBACK_STATUS_NAME, canTransition, feedbackCode, isFeedbackKind, isFeedbackStatus, type FeedbackKind, type FeedbackStatus } from "../../shared/feedback-catalog";
-import { UUID_RE, error, intParam, json, readJson } from "../../shared/http";
+import { UUID_RE, error, intParam, json, mauLikeChua, readJson } from "../../shared/http";
 import { can, isExternalPermission, type PermissionHolder } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
 import { NHOM_KY_THUAT_ID, isLocHangDoi, isPriority } from "../../shared/ve-ho-tro";
@@ -18,11 +18,11 @@ import { mailConfig, notifyAdmins, type NotifyEvent } from "./notify";
 import { choPhepNhomGui, quyenPhieu, type Membership, type QuyenPhieu } from "./quyen";
 import {
   badgeCounts, claimStatement, endMemberStatement, findByRequest, getDonCuaToi, getTeam, getTicket, insertEventStatement, insertFirstMessageStatement, insertMemberStatement, insertReplyStatement, insertTeamStatement,
-  insertTicketStatement, insertTransferNoteStatement, listAssignable, listDonCuaToi, listEvents, listEventsSince, listMembersAll, listMessages, listMessagesSince, listMine, listQueue, listQueueTeam, listTeamsActive, listTeamsAll, markSeen, markSeenAfterWriteStatement,
+  insertTicketStatement, insertTransferNoteStatement, listAssignable, listDonCuaToi, listEvents, listEventsSince, listMembersAll, listMessages, listMessagesSince, listMine, listQueue, listQueueTeam, countQueueTeam, listTeamsActive, listTeamsAll, markSeen, markSeenAfterWriteStatement,
   membershipsOf, messageExists, patchTeamStatement, patchTicketStatement, setNotified, statsTeam, touchAfterReplyStatement, transferStatement, weeklyStats, type EventRow, type MessageRow, type TeamMemberRow, type TeamRow, type TicketRow,
 } from "./repository";
 import {
-  CAU_DON_LIEN_QUAN_SAI, MESSAGE_LIMIT_PER_HOUR, MESSAGES_SINCE_LIMIT, TEAM_ID_RE, TICKET_LIMIT_PER_HOUR, parseContext, validateMemberRole, validateMessageInput, validatePatchInput, validateTeamInput, validateTeamPatch,
+  CAU_DON_LIEN_QUAN_SAI, MESSAGE_LIMIT_PER_HOUR, MESSAGES_SINCE_LIMIT, TEAM_ID_RE, TICKET_LIMIT_PER_HOUR, parseContext, parseTimHangDoi, parseTrangThaiHangDoi, validateMemberRole, validateMessageInput, validatePatchInput, validateTeamInput, validateTeamPatch,
   parseSince, validateTicketInput, validateTransferInput, windowStart, type PatchInput,
 } from "./rules";
 
@@ -343,19 +343,23 @@ export const feedbackModule: AppModule = {
     route("GET", "/api/feedback/queue", "staff", async ({ env, staff, url }) => {
       const team = url.searchParams.get("team");
       const loc = url.searchParams.get("loc") ?? "ALL";
-      const status = url.searchParams.get("status");
-      if (!team || !isLocHangDoi(loc) || (status !== null && !isFeedbackStatus(status))) return error(400, "invalid_input", "Bộ lọc không hợp lệ.");
+      const status = parseTrangThaiHangDoi(url.searchParams.get("status"));
+      const tim = parseTimHangDoi(url.searchParams.get("q"));
+      if (!team || !isLocHangDoi(loc) || !status.ok || !tim.ok) return error(400, "invalid_input", "Bộ lọc không hợp lệ.");
+      const like = tim.value === null ? null : mauLikeChua(tim.value);
       const t = await getTeam(env.DB, team);
       if (!t) return error(404, "not_found", "Không tìm thấy nhóm.");
       const q = quyenPhieu({ who: staff, submitterId: "", ticketTeamId: team, memberships: await memberships(env.DB, staff) });
       if (!q.xuLy) return error(403, "forbidden", "Bạn không thuộc nhóm này.");
       const since = new Date(Date.now() - 8 * 7 * 24 * 60 * 60 * 1000).toISOString();
-      const [rows, stats] = await Promise.all([
-        listQueueTeam(env.DB, staff.id, team, status, loc, intParam(url.searchParams.get("limit"), 50, 1, 100), intParam(url.searchParams.get("offset"), 0, 0, 100000)),
+      const [rows, stats, dem] = await Promise.all([
+        listQueueTeam(env.DB, staff.id, team, status.value, like, loc, intParam(url.searchParams.get("limit"), 50, 1, 100), intParam(url.searchParams.get("offset"), 0, 0, 100000)),
         statsTeam(env.DB, since, team),
+        countQueueTeam(env.DB, staff.id, team, status.value, like),
       ]);
       return json({
         tickets: rows.map((r) => toTicket(r, true)),
+        dem,
         stats: stats.map((s) => ({ week: s.week, kind: s.kind_code as FeedbackKind, status: s.status_code as FeedbackStatus, count: s.n })),
       } satisfies FeedbackQueueResponse);
     }),

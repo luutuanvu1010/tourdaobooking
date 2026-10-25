@@ -115,16 +115,31 @@ const SU_KIEN = `SELECT e.id, e.type, e.at, COALESCE(a.label, '') AS actor_name,
 const LIST_EVENTS = defineSql("feedback", "list_events", `${SU_KIEN} ORDER BY e.at, e.rowid`);
 const LIST_EVENTS_SINCE = defineSql("feedback", "list_events_since", `${SU_KIEN} AND e.at > ?2 ORDER BY e.at, e.rowid LIMIT ?3`);
 // Hàng đợi MỘT nhóm (route GET /api/feedback/queue, sau quyenPhieu). Không chứa phiếu do chính người xem gửi (nằm ở "của tôi").
-// ?1 người xem, ?2 nhóm, ?3 trạng thái|NULL, ?4 loc (ALL|MINE|UNASSIGNED), ?5 limit, ?6 offset.
+// MỘT đoạn WHERE (bỏ qua loc) dùng chung cho câu danh sách và câu đếm để hai câu không bao giờ lọc khác nhau:
+// ?1 người xem, ?2 nhóm, ?3 danh sách trạng thái nối bằng dấu phẩy|NULL (đã kiểm từng mã ở rules.ts; tìm bằng instr nên câu vẫn tĩnh), ?4 mẫu LIKE|NULL (mauLikeChua)
+// khớp tiêu đề hoặc mã YC-nnnn (cùng công thức feedbackCode: YC- + số thứ tự đệm 0 tới 4 chữ số).
+const LOC_NHOM_Q = `t.team_id = ?2 AND t.submitter_id <> ?1
+     AND (?3 IS NULL OR instr(',' || ?3 || ',', ',' || t.status_code || ',') > 0)
+     AND (?4 IS NULL OR t.title LIKE ?4 ESCAPE '\\' OR ('YC-' || printf('%04d', t.seq)) LIKE ?4 ESCAPE '\\')`;
 // UNASSIGNED gồm cả phiếu có người giữ KHÔNG hợp lệ (nguoiGiuHopLe: khoá tài khoản, bị gỡ khỏi nhóm — coi như chưa ai nhận, ADR-0119 điều 8).
+const CHUA_AI_NHAN_SQL = `(t.assignee_id IS NULL OR NOT ${nguoiGiuHopLe("t")})`;
+// Thêm ?5 loc (ALL|MINE|UNASSIGNED), ?6 limit, ?7 offset.
 const LIST_QUEUE_TEAM = defineSql(
   "feedback",
   "list_queue_team",
   `SELECT ${COLS}, CASE WHEN ${UNREAD_USER} THEN 1 ELSE 0 END AS unread ${FROM}
-   WHERE t.team_id = ?2 AND (?3 IS NULL OR t.status_code = ?3) AND t.submitter_id <> ?1
-     AND (?4 = 'ALL' OR (?4 = 'MINE' AND t.assignee_id = ?1)
-          OR (?4 = 'UNASSIGNED' AND (t.assignee_id IS NULL OR NOT ${nguoiGiuHopLe("t")})))
-   ORDER BY ${THU_TU_UU_TIEN}, t.last_activity_at DESC LIMIT ?5 OFFSET ?6`,
+   WHERE ${LOC_NHOM_Q}
+     AND (?5 = 'ALL' OR (?5 = 'MINE' AND t.assignee_id = ?1) OR (?5 = 'UNASSIGNED' AND ${CHUA_AI_NHAN_SQL}))
+   ORDER BY ${THU_TU_UU_TIEN}, t.last_activity_at DESC LIMIT ?6 OFFSET ?7`,
+);
+// Số đếm cho ba nút lọc: theo trạng thái + tìm kiếm, BỎ QUA loc (nút nào cũng thấy số của mình).
+const COUNT_QUEUE_TEAM = defineSql(
+  "feedback",
+  "count_queue_team",
+  `SELECT count(*) AS tat_ca,
+     COALESCE(SUM(CASE WHEN ${CHUA_AI_NHAN_SQL} THEN 1 ELSE 0 END), 0) AS chua_ai_nhan,
+     COALESCE(SUM(CASE WHEN t.assignee_id = ?1 THEN 1 ELSE 0 END), 0) AS cua_toi
+   ${FROM} WHERE ${LOC_NHOM_Q}`,
 );
 // ?1 người xem, ?2 Toàn quyền (1/0): "queue" = phiếu CHƯA ĐỌC ở nhóm tôi đang thuộc (Toàn quyền: mọi nhóm), trừ phiếu tôi gửi.
 const BADGE = defineSql(
@@ -218,9 +233,15 @@ export interface EventRow { id: string; type: string; at: string; actor_name: st
 export const listEvents = async (db: D1Database, ticketId: string): Promise<EventRow[]> => (await db.prepare(LIST_EVENTS).bind(ticketId).all<EventRow>()).results;
 export const listEventsSince = async (db: D1Database, ticketId: string, since: string, limit: number): Promise<EventRow[]> =>
   (await db.prepare(LIST_EVENTS_SINCE).bind(ticketId, since, limit).all<EventRow>()).results;
+/** `statuses` = các mã đã kiểm nối bằng dấu phẩy (null = mọi trạng thái); `like` = mẫu từ `mauLikeChua` (null = không tìm). */
 export const listQueueTeam = async (
-  db: D1Database, staffId: string, teamId: string, status: string | null, loc: string, limit: number, offset: number,
-): Promise<TicketRow[]> => (await db.prepare(LIST_QUEUE_TEAM).bind(staffId, teamId, status, loc, limit, offset).all<TicketRow>()).results;
+  db: D1Database, staffId: string, teamId: string, statuses: string | null, like: string | null, loc: string, limit: number, offset: number,
+): Promise<TicketRow[]> => (await db.prepare(LIST_QUEUE_TEAM).bind(staffId, teamId, statuses, like, loc, limit, offset).all<TicketRow>()).results;
+export interface DemHangDoi { tatCa: number; chuaAiNhan: number; cuaToi: number }
+export const countQueueTeam = async (db: D1Database, staffId: string, teamId: string, statuses: string | null, like: string | null): Promise<DemHangDoi> => {
+  const r = await db.prepare(COUNT_QUEUE_TEAM).bind(staffId, teamId, statuses, like).first<{ tat_ca: number; chua_ai_nhan: number; cua_toi: number }>();
+  return { tatCa: r?.tat_ca ?? 0, chuaAiNhan: r?.chua_ai_nhan ?? 0, cuaToi: r?.cua_toi ?? 0 };
+};
 /** Huy hiệu: `mine` phiếu của tôi có phản hồi mới; `queue` phiếu chưa đọc (riêng tôi) ở nhóm tôi thuộc — Toàn quyền: mọi nhóm. */
 export async function badgeCounts(db: D1Database, staffId: string, isSuper: boolean): Promise<{ mine: number; queue: number }> {
   const r = await db.prepare(BADGE).bind(staffId, isSuper ? 1 : 0).first<{ mine: number; queue: number }>();

@@ -30,10 +30,12 @@ export function hienNhanViec(t: Pick<FeedbackTicketDto, "assigneeId" | "assignee
   return chuaAiNhan(t) && t.submitterId !== staffId && t.status !== "DONE" && t.status !== "DECLINED";
 }
 
-/** Địa chỉ hàng đợi một nhóm. Bỏ `status` khi chưa lọc: máy chủ trả 400 cho `status=` rỗng. */
-export function duongHangDoi(team: string, loc: LocHangDoi, status: FeedbackStatus | ""): string {
+/** Địa chỉ hàng đợi một nhóm. `status`: một mã, hoặc danh sách (nối bằng dấu phẩy); rỗng ("" hay []) = bỏ tham số vì máy chủ trả 400 cho `status=` rỗng. `tim` rỗng cũng bỏ. */
+export function duongHangDoi(team: string, loc: LocHangDoi, status: FeedbackStatus | "" | readonly FeedbackStatus[], tim?: string): string {
   const q = new URLSearchParams({ team, loc });
-  if (status) q.set("status", status);
+  const ds = typeof status === "string" ? (status ? [status] : []) : status;
+  if (ds.length > 0) q.set("status", ds.join(","));
+  if (tim && tim.trim()) q.set("q", tim.trim());
   return `/api/feedback/queue?${q.toString()}`;
 }
 
