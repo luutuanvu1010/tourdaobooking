@@ -24,6 +24,7 @@ export const CHANGELOG: readonly ReleaseNote[] = [
       { kind: "doi", text: "Nhân viên bán hàng tự bấm «Đặt gấp» cho lượt đưa đón đã qua hạn chốt (kể cả đơn người khác lập), chọn lý do — không phải gọi Quản trị nữa." },
       { kind: "doi", text: "«Đặt gấp» chỉ bấm được khi lượt đưa đón thật sự đã qua hạn chốt, với mọi người kể cả Quản trị. Lượt đã đặt gấp mà bị dời ra xa thì mất dấu." },
       { kind: "doi", text: "Lượt đã đặt gấp nay mang nhãn «Điều chỉnh khẩn cấp»; Đối tác thấy «Điều chỉnh khẩn cấp (văn phòng)»." },
+      { kind: "doi", text: "Kế toán nay tìm được đối tác theo tên ở trang Hoa hồng đối tác (ô «Một đối tác» và «Thử tra»)." },
     ],
   },
   {
