@@ -316,6 +316,13 @@ export function kiemThanGan(raw: unknown): Ket<{ roleTypeCode: string; tierCode:
   return { ok: true, value: { roleTypeCode: b.loai, tierCode: b.muc, ...kn.value } };
 }
 
+/** Thân `POST /api/pricing/muc-ta/gan/:id/doi` (Đổi chính sách của loại): { muc, tuNgay } — loại lấy từ gắn cũ; ngày kiểm ở `kiemDoi`. */
+export function kiemThanDoiChinhSach(raw: unknown): Ket<{ tierCode: string; tuNgay: unknown }> {
+  const b = raw && typeof raw === "object" && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};
+  if (typeof b.muc !== "string" || !MA_RE.test(b.muc)) return { ok: false, message: "Chọn mức TA." };
+  return { ok: true, value: { tierCode: b.muc, tuNgay: b.tuNgay } };
+}
+
 /** Thân `POST /api/pricing/ho-so/:id/muc-rieng` (ADR-0138): { muc, tuNgay, denNgay? } — hồ sơ lấy từ đường dẫn. */
 export function kiemThanGanRieng(raw: unknown): Ket<{ tierCode: string; validFrom: string; validTo: string | null }> {
   const b = raw && typeof raw === "object" && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};

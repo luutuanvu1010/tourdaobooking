@@ -96,6 +96,10 @@ const GAN_NGAY = defineSql("pricing", "role_tiers_on",
 const GAN_ID = defineSql("pricing", "role_tier_by_id", `SELECT ${COT_GAN} FROM prc_role_tier g WHERE g.id = ?1`);
 const GAN_THEM = defineSql("pricing", "role_tier_insert",
   `INSERT INTO prc_role_tier (id, role_type_code, tier_code, valid_from_date, valid_to_date, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?6, ?7)`);
+// Đổi chính sách của loại: chèn gắn mới ngay sau câu đóng gắn cũ trong cùng lô. Ngày bắt đầu NOT NULL chỉ có khi câu đóng đổi được dòng (changes() > 0) ⇒ gắn cũ đã đóng bằng
+// đường khác thì cả lô lỗi NOT NULL, không sinh gắn mới. Dùng VALUES + CASE (INSERT…SELECT bị bài kiến trúc tính là đọc xuyên module).
+const GAN_DOI_THEM = defineSql("pricing", "role_tier_change_insert",
+  `INSERT INTO prc_role_tier (id, role_type_code, tier_code, valid_from_date, valid_to_date, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, CASE WHEN changes() > 0 THEN ?4 END, NULL, ?5, ?6, ?5, ?6)`);
 const GAN_DONG = defineSql("pricing", "role_tier_close",
   `UPDATE prc_role_tier SET valid_to_date = ?2, updated_at = ?3, updated_by = ?4 WHERE id = ?1 AND valid_to_date IS NULL`);
 // Cảnh báo N-17 (Ruling điều phối): dòng riêng theo LOẠI (bậc 4–6, thắng TA) còn hiệu lực trong khoảng [?2, ?3 | mãi], của loại ?1 VÀ của mọi loại mà một hồ sơ đang mang loại ?1
@@ -116,6 +120,12 @@ const GAN_RIENG_THEM = defineSql("pricing", "party_tier_insert",
   `INSERT INTO prc_party_tier (id, party_id, tier_code, valid_from_date, valid_to_date, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?6, ?7)`);
 const GAN_RIENG_DONG = defineSql("pricing", "party_tier_close",
   `UPDATE prc_party_tier SET valid_to_date = ?2, updated_at = ?3, updated_by = ?4 WHERE id = ?1 AND valid_to_date IS NULL`);
+// Màn «Mức TA»: gắn mức riêng đang và sắp hiệu lực (chưa ngừng, hoặc ngừng từ hôm nay trở đi). Tên hồ sơ qua view công bố v_pty_party_label; không SĐT/email.
+const GAN_RIENG_DANG_SAP = defineSql("pricing", "party_tiers_current",
+  `SELECT g.id, g.party_id, l.display_name AS party_name, g.tier_code, t.name AS tier_name, g.valid_from_date, g.valid_to_date
+   FROM prc_party_tier g JOIN v_pty_party_label l ON l.id = g.party_id JOIN prc_rate_tier t ON t.code = g.tier_code
+   WHERE g.valid_to_date IS NULL OR g.valid_to_date >= ?1
+   ORDER BY g.valid_from_date, l.display_name, g.id`);
 const NHA_CUNG_CAP = defineSql("pricing", "suppliers",
   `SELECT l.id, l.display_name FROM v_pty_party_label l WHERE l.active = 1 AND EXISTS (SELECT 1 FROM v_pty_open_role r WHERE r.party_id = l.id AND r.role_type_code = 'SUPPLIER')
    ORDER BY l.display_name`);
@@ -172,8 +182,15 @@ export const roleTiersOn = async (db: D1Database, ngay: string) => (await db.pre
 export const roleTierById = (db: D1Database, id: string) => db.prepare(GAN_ID).bind(id).first<RoleTierRow>();
 export const insertRoleTierStatement = (db: D1Database, id: string, v: { roleTypeCode: string; tierCode: string; validFrom: string; validTo: string | null }, at: string, by: string) =>
   db.prepare(GAN_THEM).bind(id, v.roleTypeCode, v.tierCode, v.validFrom, v.validTo, at, by);
+/** Lô «Đổi chính sách»: [đóng gắn cũ hết `denNgayCu`, chèn gắn mới từ `tuNgay` cùng loại]. Nơi gọi nối nhật ký `changes() > 0` ngay sau. */
+export const cauDoiChinhSach = (db: D1Database, cuId: string, moiId: string, denNgayCu: string, roleTypeCode: string, tierCode: string, tuNgay: string, at: string, by: string): D1PreparedStatement[] => [
+  db.prepare(GAN_DONG).bind(cuId, denNgayCu, at, by),
+  db.prepare(GAN_DOI_THEM).bind(moiId, roleTypeCode, tierCode, tuNgay, at, by),
+];
 export const closeRoleTierStatement = (db: D1Database, id: string, den: string, at: string, by: string) => db.prepare(GAN_DONG).bind(id, den, at, by);
 export const partyTiersOf = async (db: D1Database, partyId: string) => (await db.prepare(GAN_RIENG_HO_SO).bind(partyId).all<PartyTierRow>()).results;
+export interface GanRiengRow { id: string; party_id: string; party_name: string; tier_code: string; tier_name: string; valid_from_date: string; valid_to_date: string | null }
+export const partyTiersCurrent = async (db: D1Database, homNay: string) => (await db.prepare(GAN_RIENG_DANG_SAP).bind(homNay).all<GanRiengRow>()).results;
 export const partyTierById = (db: D1Database, id: string) => db.prepare(GAN_RIENG_ID).bind(id).first<PartyTierRow>();
 export const insertPartyTierStatement = (db: D1Database, id: string, v: { partyId: string; tierCode: string; validFrom: string; validTo: string | null }, at: string, by: string) =>
   db.prepare(GAN_RIENG_THEM).bind(id, v.partyId, v.tierCode, v.validFrom, v.validTo, at, by);

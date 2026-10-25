@@ -2740,7 +2740,9 @@ export interface LoaiDoiTacResponse { loai: LoaiDoiTacDto }
  */
 export interface GanLoaiMucDto { id: string; loai: { code: string; ten: string }; muc: { code: string; ten: string }; tuNgay: string; denNgay: string | null; conHieuLuc: boolean }
 export interface MucTaDto { code: string; ten: string; dangBat: boolean; dong: CommissionRuleDto[]; gan: GanLoaiMucDto[] }
-export interface MucTaListResponse { homNay: string; muc: MucTaDto[]; loai: { code: string; ten: string }[] }
+/** Mức TA gắn RIÊNG cho một hồ sơ (ADR-0138), đang hoặc sắp hiệu lực. Chỉ mã, tên hồ sơ, tên mức, ngày — không SĐT/email. */
+export interface GanRiengDto { id: string; partyId: string; ten: string; muc: string; tenMuc: string; tuNgay: string; denNgay: string | null }
+export interface MucTaListResponse { homNay: string; muc: MucTaDto[]; loai: { code: string; ten: string }[]; ganRieng: GanRiengDto[] }
 export interface MucTaResponse { muc: MucTaDto }
 /** Gắn loại↔mức: 201 kèm `dongRieng` = dòng riêng theo loại (bậc 4–6) còn hiệu lực trong khoảng gắn, của loại này VÀ của mọi loại mà hồ sơ mang loại này đang mang — các dòng đó thắng TA (cảnh báo, không chặn — N-17). */
 export interface GanLoaiMucResponse { gan: GanLoaiMucDto; dongRieng: CommissionRuleDto[] }

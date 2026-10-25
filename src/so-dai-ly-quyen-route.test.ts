@@ -152,3 +152,22 @@ test("Đổi mức (POST …/hoa-hong/:id/doi): Tài xế công ty, Tài xế đ
   const kt = await w.call("POST", `/api/pricing/hoa-hong/${mucId}/doi`, { as: KT, body: than });
   assert.ok(kt.status !== 403 && kt.status !== 404 && kt.status < 500, `Kế toán: ${kt.status} ${kt.text}`);
 });
+
+// Hoa hồng + Hỗ trợ PR 1, Task 5: route «Đổi chính sách» của loại — Tài xế công ty, Tài xế đối tác, Nhân sự ⇒ 403 cổng, không ghi gì; Kế toán tới logic.
+test("Đổi chính sách (POST …/muc-ta/gan/:id/doi): Tài xế công ty, Tài xế đối tác, Nhân sự ⇒ 403 cổng, không ghi gì; Kế toán tới logic", async () => {
+  const { w } = await dungThe();
+  const ma: string = (await w.call("POST", "/api/pricing/muc-ta", { as: KT, body: { ten: "TA đổi chính sách" } })).json.muc.code;
+  const gan = await w.call("POST", "/api/pricing/muc-ta/gan", { as: KT, body: { loai: "COLLABORATOR", muc: ma, tuNgay: "2026-01-01" } });
+  assert.equal(gan.status, 201, gan.text);
+  const than = { muc: ma, tuNgay: "2099-01-01" };
+  const dem2 = () => Number(w.q("SELECT count(*) AS n FROM prc_role_tier")[0].n);
+  const truoc = dem2();
+  for (const [nhan, ai] of [["Tài xế công ty", TXC], ["Tài xế đối tác", TXDT], ["Nhân sự", NS]] as const) {
+    const r = await w.call("POST", `/api/pricing/muc-ta/gan/${gan.json.gan.id}/doi`, { as: ai, body: than });
+    assert.equal(r.status, 403, `${nhan}: ${r.text}`);
+    assert.equal(r.json.error.code, "forbidden", nhan);
+  }
+  assert.equal(dem2(), truoc, "không gắn mới");
+  const kt = await w.call("POST", `/api/pricing/muc-ta/gan/${gan.json.gan.id}/doi`, { as: KT, body: than });
+  assert.ok(kt.status !== 403 && kt.status !== 404 && kt.status < 500, `Kế toán: ${kt.status} ${kt.text}`);
+});
