@@ -38,9 +38,17 @@ export function daiHanTuChoi(
   return { loai: "qua_han", tieuDe: `Đã quá hạn từ chối (${han})`, dong: [sdt ? "Không chạy được thì gọi văn phòng ngay." : "Không chạy được thì báo văn phòng ngay."], sdt };
 }
 
-/** Thẻ "Thấy danh sách khách từ …" (ngoài khung, mốc mở còn ở tương lai — máy chủ chỉ gửi khi đó). */
-export const cauThayKhach = (thayKhachTu: GioVnDto | undefined, homNay: string): string | null =>
-  thayKhachTu ? `Bạn thấy tên khách và mã đơn từ ${gioNgan(thayKhachTu, homNay)}.` : null;
+/**
+ * Thẻ "Bạn thấy tên khách … từ …" (ngoài khung, mốc mở còn ở tương lai — máy chủ chỉ gửi khi đó; gửi cho MỌI tài xế). Câu nói đúng điều màn hiện (đề xuất 25/10,
+ * chủ duyệt Q1 a): tài xế công ty (`congTy` — không ô trip.refuse) thấy tên, liên hệ ngay trên màn trước khi chạy; tài xế đối tác chỉ sau khi bấm "Cho xe chạy". Không
+ * hứa "mã đơn": màn không có ô mã đơn (mã chỉ có thể nằm trong câu điều kiện còn thiếu, vd "TD-… thiếu 2 tên").
+ */
+export const cauThayKhach = (thayKhachTu: GioVnDto | undefined, homNay: string, congTy: boolean): string | null =>
+  !thayKhachTu
+    ? null
+    : congTy
+      ? `Bạn thấy tên khách và số liên hệ từ ${gioNgan(thayKhachTu, homNay)}.`
+      : `Bạn thấy tên khách và số liên hệ sau khi bấm “Cho xe chạy”, sớm nhất từ ${gioNgan(thayKhachTu, homNay)}.`;
 
 export interface LoiTuChoi {
   cau: string;

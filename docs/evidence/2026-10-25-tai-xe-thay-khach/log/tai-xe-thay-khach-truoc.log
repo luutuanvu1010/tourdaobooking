@@ -1,0 +1,90 @@
+✗ 1) 390 tài xế CÔNG TY, chuyến HÔM NAY chưa chạy: tên + năm sinh từng khách, "Trả: …" (hai điểm trả), dòng "Liên hệ" bấm gọi được; chưa có nút tiến độ; khối "Suất của khách" đếm "Điểm M · Khách i" trùng dòng khách, axe không vi phạm critical/serious
+    AssertionError [ERR_ASSERTION]: trước khi chạy: đủ tên, năm sinh, chữ Trả của từng khách
+    + actual - expected
+    
+    + []
+    - [
+    -   [
+    -     'Khách ?',
+    -     null,
+    -     'Trả: Bến cảng Vinpearl'
+    -   ],
+    -   [
+    -     'Lê Văn Phúc',
+    -     '1978',
+    -     'Trả: Bến cảng Vinpearl'
+✗ 2) 1040 cùng chuyến: tên, năm sinh, "Trả: …", "Liên hệ" như khổ điện thoại; không tràn ngang, axe không vi phạm critical/serious
+    AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+    + actual - expected
+    
+    + []
+    - [
+    -   [
+    -     'Khách ?',
+    -     null,
+    -     'Trả: Bến cảng Vinpearl'
+    -   ],
+    -   [
+    -     'Lê Văn Phúc',
+    -     '1978',
+    -     'Trả: Bến cảng Vinpearl'
+✗ 3) 390 tài xế công ty, chuyến NGÀY MAI: chưa thấy khách; dòng hứa "Bạn thấy tên khách và số liên hệ từ 00:00 26/10." (không còn chữ "mã đơn")
+    AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+    + actual - expected
+    
+      [
+    +   'Bạn thấy tên khách và mã đơn từ 00:00 26/10.'
+    -   'Bạn thấy tên khách và số liên hệ từ 00:00 26/10.'
+      ]
+    
+        at file:///private/tmp/claude-501/-Users-tuanbao-Documents-Projects-ctytnhhtourdao-tourdao-sales--claude-worktrees-adr-luot-b-ed348e/3b6cd0fd-93df-4e6e-b81b-f0c5e4d189a5/scratchpad/ban-cu/docs/evidence/2026-10-25-tai-xe-thay-khach/kich-ban/tai-xe-thay-khach-smoke.mjs:208:12
+        at async Object.step (file:///private/tmp/claude-501/-Users-tuanbao-Documents-Projects-ctytnhhtourdao-tourdao-sales--claude-worktrees-adr-luot-b-ed348e/3b6cd0fd-93df-4e6e-b81b-f0c5e4d189a5/scratchpad/ban-cu/docs/evidence/2026-09-29-adr-0049/kich-ban/dp-lib.mjs:28:9)
+        at async file:///private/tmp/claude-501/-Users-tuanbao-Documents-Projects-ctytnhhtourdao-tourdao-sales--claude-worktrees-adr-luot-b-ed348e/3b6cd0fd-93df-4e6e-b81b-f0c5e4d189a5/scratchpad/ban-cu/docs/evidence/2026-10-25-tai-xe-thay-khach/kich-ban/tai-xe-thay-khach-smoke.mjs:201:3
+✗ 4) 390 tài xế công ty bấm "Cho xe chạy" → đang chạy: dưới tên mỗi khách vẫn có "Trả: …"; tới điểm đầu ("Đã tới") thì chữ "Trả:" nằm trên hàng nút, đủ ngang dòng, axe không vi phạm critical/serious
+    AssertionError [ERR_ASSERTION]: đang chạy: đủ tên + chữ Trả
+    + actual - expected
+    
+      [
+        [
+          'Khách ?',
+          null,
+    +     null
+    -     'Trả: Bến cảng Vinpearl'
+        ],
+        [
+          'Lê Văn Phúc',
+          '1978',
+    +     null
+✗ 5) 1040 đang chạy: "Trả: …" dưới tên mỗi khách; không tràn ngang, axe không vi phạm critical/serious
+    AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+    + actual - expected
+    
+      [
+        [
+          'Khách ?',
+          null,
+    +     null
+    -     'Trả: Bến cảng Vinpearl'
+        ],
+        [
+          'Lê Văn Phúc',
+          '1978',
+    +     null
+✓ 6) 390 tài xế ĐỐI TÁC, chuyến hôm nay đã qua hạn Từ chối, chưa chạy: máy chủ ĐÃ gửi tên + liên hệ nhưng màn KHÔNG vẽ (như cũ) — không dòng khách, không liên hệ, không "Trả:", không dòng dịch vụ, không SĐT người đi kèm, axe không vi phạm critical/serious
+✓ 7) 1040 cùng chuyến đối tác: như khổ điện thoại, axe không vi phạm critical/serious
+✗ 8) 390 tài xế đối tác, chuyến NGÀY MAI còn hạn Từ chối: dòng hứa "Bạn thấy tên khách và số liên hệ sau khi bấm “Cho xe chạy”, sớm nhất từ 08:00 26/10."
+    AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+    + actual - expected
+    
+      [
+    +   'Bạn thấy tên khách và mã đơn từ 08:00 26/10.'
+    -   'Bạn thấy tên khách và số liên hệ sau khi bấm “Cho xe chạy”, sớm nhất từ 08:00 26/10.'
+      ]
+    
+        at file:///private/tmp/claude-501/-Users-tuanbao-Documents-Projects-ctytnhhtourdao-tourdao-sales--claude-worktrees-adr-luot-b-ed348e/3b6cd0fd-93df-4e6e-b81b-f0c5e4d189a5/scratchpad/ban-cu/docs/evidence/2026-10-25-tai-xe-thay-khach/kich-ban/tai-xe-thay-khach-smoke.mjs:275:12
+        at async Object.step (file:///private/tmp/claude-501/-Users-tuanbao-Documents-Projects-ctytnhhtourdao-tourdao-sales--claude-worktrees-adr-luot-b-ed348e/3b6cd0fd-93df-4e6e-b81b-f0c5e4d189a5/scratchpad/ban-cu/docs/evidence/2026-09-29-adr-0049/kich-ban/dp-lib.mjs:28:9)
+        at async file:///private/tmp/claude-501/-Users-tuanbao-Documents-Projects-ctytnhhtourdao-tourdao-sales--claude-worktrees-adr-luot-b-ed348e/3b6cd0fd-93df-4e6e-b81b-f0c5e4d189a5/scratchpad/ban-cu/docs/evidence/2026-10-25-tai-xe-thay-khach/kich-ban/tai-xe-thay-khach-smoke.mjs:270:3
+✓ 9) 390 tài xế đối tác bấm "Cho xe chạy" (chuyến hôm nay): thấy tên khách + liên hệ (như cũ), KHÔNG có chữ "Trả:" dù chuyến có hai điểm trả; không SĐT người đi kèm, không dòng dịch vụ, axe không vi phạm critical/serious
+✓ 10) 1040 văn phòng mở Chi tiết chuyến TC (đang chạy): màn văn phòng KHÔNG có chữ "Trả:" (không đổi), axe không vi phạm critical/serious
+
+TAI XE THAY KHACH (truoc): 4 ✓, 6 ✗: 1) 390 tài xế CÔNG TY, chuyến HÔM NAY chưa chạy: tên + năm sinh từng khách, "Trả: …" (hai điểm trả), dòng "Liên hệ" bấm gọi được; chưa có nút tiến độ; khối "Suất của khách" đếm "Điểm M · Khách i" trùng dòng khách, axe không vi phạm critical/serious | 2) 1040 cùng chuyến: tên, năm sinh, "Trả: …", "Liên hệ" như khổ điện thoại; không tràn ngang, axe không vi phạm critical/serious | 3) 390 tài xế công ty, chuyến NGÀY MAI: chưa thấy khách; dòng hứa "Bạn thấy tên khách và số liên hệ từ 00:00 26/10." (không còn chữ "mã đơn") | 4) 390 tài xế công ty bấm "Cho xe chạy" → đang chạy: dưới tên mỗi khách vẫn có "Trả: …"; tới điểm đầu ("Đã tới") thì chữ "Trả:" nằm trên hàng nút, đủ ngang dòng, axe không vi phạm critical/serious | 5) 1040 đang chạy: "Trả: …" dưới tên mỗi khách; không tràn ngang, axe không vi phạm critical/serious | 8) 390 tài xế đối tác, chuyến NGÀY MAI còn hạn Từ chối: dòng hứa "Bạn thấy tên khách và số liên hệ sau khi bấm “Cho xe chạy”, sớm nhất từ 08:00 26/10."

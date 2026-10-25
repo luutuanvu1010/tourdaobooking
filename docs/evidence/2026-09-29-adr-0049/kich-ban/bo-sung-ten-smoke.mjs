@@ -1,6 +1,8 @@
 // Vận chuyển Đợt 5 A-1b — TÀI XẾ BỔ SUNG TÊN khách chưa có tên (ADR-0052 D5b — chủ duyệt 5/10, chỉ tài xế công ty; bản vẽ docs/design/van-chuyen-dot-3-7/Điều phối xe đang chạy.dc.html
-// V6 6.3 "Suất của khách", 6.4 "Bổ sung tên — Suất N"): chuyến HÔM NAY (trong ngày chạy) có một suất chưa tên → khối "Suất của khách" (không tên khách), link
+// V6 6.3 "Suất của khách", 6.4 "Bổ sung tên — …"): chuyến HÔM NAY (trong ngày chạy) có một suất chưa tên → khối "Suất của khách" (không tên khách), link
 // "Bổ sung tên" → hộp Họ tên / Năm sinh (16px) → Lưu → máy chủ ghi, màn đọc lại: khối ẩn, điều kiện "thiếu tên" hết.
+// 25/10 (đề xuất tài xế thấy khách trước khi cho xe chạy — docs/superpowers/specs/2026-10-25-de-xuat-tai-xe-thay-khach-truoc-khi-cho-xe-chay.md): khối ghi
+// "Điểm M · Khách i · nơi" (thay "Suất N · Điểm M · nơi") — cùng cách đếm với dòng khách dưới thẻ điểm, nay hiện ngay trước khi cho xe chạy (tài xế công ty).
 // Chạy từ GỐC repo, sau `npm run build:web` (không cần mạng ngoài). Dựng chuyến HÔM NAY lúc bây giờ + 2 giờ 30 ⇒ chạy TRƯỚC 19:00 giờ VN:
 //   AXE_JS=<…/axe.min.js> CHROME_BIN=docs/evidence/2026-09-20-a2/kich-ban/chrome-wrap.sh OUT=<thư mục chứa anh/> node docs/evidence/2026-09-29-adr-0049/kich-ban/bo-sung-ten-smoke.mjs
 import { randomUUID } from "node:crypto";
@@ -37,14 +39,18 @@ const posts = (p) => apiCalls(p).filter((r) => r.method === "POST" && r.path.end
 
 try {
   const p = await env.as(d.CUONG.account, `/cuoc-chuyen?id=${T.id}`, MOB);
-  await b.step("1", `6.3 390 tài xế (chuyến hôm nay, chưa xuất bến): "Suất của khách" + "Thiếu tên 1"; hai dòng "Suất N · Điểm 1 · Sheraton Nha Trang" (Đã có tên / Chưa có tên), KHÔNG tên khách; link "Bổ sung tên" chỉ ở dòng chưa tên${axeNote()}`, async () => {
+  await b.step("1", `6.3 390 tài xế (chuyến hôm nay, chưa xuất bến): "Suất của khách" + "Thiếu tên 1"; hai dòng "Điểm 1 · Khách i · Sheraton Nha Trang" (Đã có tên / Chưa có tên), khối KHÔNG tên khách; dòng chưa tên trùng "Khách i" của dòng khách dưới điểm 1; link "Bổ sung tên" chỉ ở dòng chưa tên${axeNote()}`, async () => {
     await p.waitFor(`!!document.querySelector('.dp-suat-khach')`, "khối suất của khách", 12000);
     assert.equal(await p.ev(txt(".dp-suat-khach .dp-card-head")), "Suất của khách Thiếu tên 1");
     const dong = await p.ev(`[...document.querySelectorAll('.dp-suat-khach .dp-kc')].map((x) => x.innerText.replace(/\\s+/g, ' ').trim())`);
     assert.equal(dong.length, 2, JSON.stringify(dong));
-    assert.ok(dong.every((x) => /^Suất [12] · Điểm 1 · Sheraton Nha Trang (Đã có tên|Chưa có tên( Bổ sung tên)?)$/.test(x)), JSON.stringify(dong));
+    assert.ok(dong.every((x) => /^Điểm 1 · Khách [12] · Sheraton Nha Trang (Đã có tên|Chưa có tên( Bổ sung tên)?)$/.test(x)), JSON.stringify(dong));
     assert.equal(await p.ev(`document.querySelectorAll('.dp-suat-khach [data-action="bo-sung-ten"]').length`), 1);
     assert.equal(await p.ev(`document.querySelector('.dp-suat-khach').innerText.includes('Hành Khách Đủ Tên')`), false, "khối không hiện tên");
+    // 25/10 — một cách đếm trên một màn: khách chưa tên ở thẻ điểm 1 là "Khách i" thì khối ghi "Điểm 1 · Khách i".
+    const chuaTen = dong.find((x) => x.includes("Chưa có tên")).match(/· (Khách [12]) ·/)[1];
+    const dongThe = await p.ev(`[...document.querySelectorAll('.dp-cc-diem .dp-khach-ten')].map((x) => x.innerText.trim())`);
+    assert.deepEqual([...dongThe].sort(), ["Hành Khách Đủ Tên", chuaTen].sort(), `dòng khách dưới điểm 1 (tài xế công ty, trong ngày chạy): ${JSON.stringify(dongThe)}`);
     // Nợ L4 (dot5-tang3): tài xế công ty trong ngày chạy — dòng điều kiện thiếu tên chỉ chỗ tự bổ sung, không chỉ "(văn phòng lo)".
     const dk = await p.ev(`[...document.querySelectorAll('.dp-cond-nhan')].map((x) => x.innerText.trim())`);
     assert.ok(dk.some((x) => /^Chưa đủ tên khách.* \(bấm Bổ sung tên ở khối Suất của khách, hoặc văn phòng lo\)$/.test(x)), JSON.stringify(dk));
@@ -54,11 +60,11 @@ try {
     await shotFull(p, "d5-bo-sung-ten-khoi-dien-thoai.png");
   });
 
-  await b.step("2", `6.4 "Bổ sung tên — Suất N": câu "Nhập tên cho khách chưa có tên trong đơn.", ô ≥ 16px; Lưu khi trống → câu lỗi tại chỗ, không gửi${axeNote()}`, async () => {
+  await b.step("2", `6.4 "Bổ sung tên — Điểm 1 · Khách i": câu "Nhập tên cho khách chưa có tên trong đơn.", ô ≥ 16px; Lưu khi trống → câu lỗi tại chỗ, không gửi${axeNote()}`, async () => {
     await p.ev(click('[data-action="bo-sung-ten"]'));
     await p.waitFor(`!!document.querySelector('[data-action="bo-sung-ten-luu"]')`, "hộp bổ sung tên");
     await sleep(500);
-    assert.match(await p.ev(txt(".sheet-title")), /^Bổ sung tên — Suất [12]$/);
+    assert.match(await p.ev(txt(".sheet-title")), /^Bổ sung tên — Điểm 1 · Khách [12]$/);
     assert.ok((await p.ev(txt(".sheet-body"))).includes("Nhập tên cho khách chưa có tên trong đơn."));
     // Token --fs-field "≥ 16px nên iOS không tự phóng to" (web/CLAUDE.md "Ô gõ 16px").
     for (const sel of ["#cc-bs-ten", "#cc-bs-nam"]) assert.ok(parseFloat(await p.ev(`getComputedStyle(document.querySelector(${JSON.stringify(sel)})).fontSize`)) >= 16, `${sel} ≥ 16px`);

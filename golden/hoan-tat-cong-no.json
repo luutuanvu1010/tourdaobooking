@@ -22,9 +22,9 @@
     },
     {
       "ma": "SV-HT-02",
-      "mo_ta": "Như SV-HT-01 nhưng Cộng tác viên đã thu cọc 300.000; HDV thu 700.000 còn lại.",
+      "mo_ta": "Như SV-HT-01 nhưng Cộng tác viên đã thu cọc 300.000; HDV thu 700.000 còn lại. Tour Đảo cần thu đủ 850.000: HDV nộp 700.000, CTV nộp 150.000 (300.000 đã thu trừ 150.000 hoa hồng).",
       "nguon": "đặc tả Hoàn tất §5.1 (biến thể)",
-      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "xac_nhan": { "trang_thai": "da_xac_nhan", "nguoi": "Lưu Tuấn Vũ / Chủ dự án", "ngay": "2026-10-25" },
       "dau_vao": {
         "nguoi_ban_tren_bien_nhan": "Tour Đảo",
         "gia_ban": 1000000,
@@ -40,9 +40,9 @@
     },
     {
       "ma": "SV-HT-03",
-      "mo_ta": "Vé tắm bùn i-resort (Tour Đảo làm đại lý), bên đặt là lễ tân khách sạn hưởng 50.000/vé. 2 vé × 300.000; giá vốn 80%. Lễ tân thu trước 200.000; khách trả 400.000 tại quầy i-resort.",
+      "mo_ta": "Vé tắm bùn i-resort (Tour Đảo làm đại lý), bên đặt là lễ tân khách sạn hưởng 50.000/vé. 2 vé × 300.000; giá vốn 80%. Lễ tân thu trước 200.000; khách trả 400.000 tại quầy i-resort. Tour Đảo được lời 20.000 cho vé này: lễ tân nộp 100.000, Tour Đảo trả i-resort 80.000.",
       "nguon": "đặc tả Hoàn tất §5.2 trường hợp A",
-      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "xac_nhan": { "trang_thai": "da_xac_nhan", "nguoi": "Lưu Tuấn Vũ / Chủ dự án", "ngay": "2026-10-25" },
       "dau_vao": {
         "nguoi_ban_tren_bien_nhan": "i-resort",
         "gia_ban": 600000,

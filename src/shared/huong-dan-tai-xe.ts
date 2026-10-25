@@ -33,7 +33,7 @@ Trên máy tính, menu bên trái có các mục trên, cùng [[Của tôi]], [[
       noiDung: `1. Ở [[Cuốc của tôi]], mỗi thẻ có: giờ xe chạy, mã chuyến, trạng thái, biển số, số khách, số điểm đón, số điểm trả.
 2. Thẻ ghi **Bị giữ** kèm dòng "(văn phòng lo)": chuyến còn thiếu giấy tờ hay thông tin. Bạn không cần làm gì. Riêng thiếu tên khách của chuyến hôm nay: tài xế công ty tự bổ sung được (mục "Tình huống hay gặp").
 3. Bấm vào thẻ để mở chuyến.
-4. Trước khi chạy, bạn thấy các điểm theo thứ tự: điểm đón có giờ hẹn, điểm trả, số khách mỗi điểm.
+4. Trước khi chạy, bạn thấy các điểm theo thứ tự: điểm đón có giờ hẹn, điểm trả, số khách mỗi điểm. Tài xế công ty, trong ngày chạy, thấy thêm tên, năm sinh từng khách và dòng "Liên hệ" kèm số ở mỗi điểm đón. Bấm vào số là gọi được.
 5. Mục **Điều kiện cho xe chạy** ghi đạt hay chưa. Còn thiếu thì nút [[Cho xe chạy]] bị khoá.
 
 > Ví dụ: Anh Tâm lái xe 16 chỗ. Sáng nay có 2 điểm đón ở hai khách sạn trong Nha Trang, hẹn 06:40 và 06:55, rồi trả khách ở cảng Cầu Đá.`,
@@ -54,7 +54,8 @@ Trên máy tính, menu bên trái có các mục trên, cùng [[Của tôi]], [[
       noiDung: `- **Khách tới trễ sau khi đã bấm Vắng:** dòng khách đó vẫn còn nút [[Đã đón]].
 - **Bấm nhầm Đã đón hoặc Khách đã huỷ:** màn không còn nút sửa. Gọi văn phòng.
 - **Văn phòng vừa thêm điểm:** dải trên cùng báo điểm mới (giờ đón, số khách), điểm đó có nhãn **Mới thêm** và đã nằm trong lộ trình. Đọc xong bấm [[Đã xem]].
-- **Khách chưa có tên (chỉ tài xế công ty):** trong ngày chạy, khối **Suất của khách** báo thiếu tên. Hỏi khách, bấm [[Bổ sung tên]], nhập họ tên, năm sinh rồi bấm [[Lưu]].
+- **Khách chưa có tên (chỉ tài xế công ty):** trong ngày chạy, khối **Suất của khách** báo thiếu tên, ghi "Điểm 2 · Khách 1" trùng với dòng "Khách 1" dưới điểm 2. Hỏi khách, bấm [[Bổ sung tên]], nhập họ tên, năm sinh rồi bấm [[Lưu]].
+- **Chuyến có từ hai điểm trả (tài xế công ty):** dưới tên mỗi khách có chữ "Trả: …" cho biết khách xuống ở điểm nào.
 - **Văn phòng đã báo huỷ:** vẫn tới điểm. Gặp khách thì bấm [[Đã đón]]; không gặp thì bấm [[Khách đã huỷ]] để trả chỗ.
 - **Muốn ghé điểm khác trước:** khi xe đang chạy, điểm chưa tới có nút mũi tên lên và mũi tên xuống để đổi thứ tự.
 - **Cần đường tới điểm:** trong ngày chạy, mỗi điểm chưa xong có nhóm **Chỉ đường**. Bấm [[Google Maps]] để mở bản đồ với điểm đến điền sẵn; iPhone, iPad, máy Mac có thêm [[Apple Maps]]. Bản đồ chỉ nhận địa chỉ điểm đến, không nhận tên hay số điện thoại khách. Điểm đã xong hoặc chuyến đã kết thúc thì không còn nút. Điểm chưa có địa chỉ thì bản đồ tìm theo tên điểm, có thể sai — báo văn phòng.
@@ -81,7 +82,7 @@ Trên máy tính, menu bên trái có các mục trên, cùng [[Của tôi]], [[
       noiDung: `Nếu bạn là tài xế của nhà xe khác:
 - Bạn xem cuốc và bấm các bước chạy như tài xế công ty, trừ bổ sung tên khách.
 - **Từ chối chuyến:** chuyến chưa chạy có dải "Từ chối được tới …". Không chạy được thì bấm [[Từ chối chuyến]], chọn lý do, bấm [[Xác nhận từ chối]]. Chuyến rời khỏi Cuốc của bạn, văn phòng xếp người khác. Quá giờ đó thì không từ chối được nữa: bấm [[Gọi văn phòng]].
-- **Tên khách và mã đơn:** chỉ hiện từ giờ ghi ở dòng "Bạn thấy tên khách và mã đơn từ …".
+- **Tên khách và số liên hệ:** chỉ hiện sau khi bạn bấm [[Cho xe chạy]], sớm nhất từ giờ ghi ở dòng "Bạn thấy tên khách và số liên hệ sau khi bấm “Cho xe chạy”, sớm nhất từ …".
 - **Báo bận:** ở [[Báo bận của tôi]], chọn giờ bắt đầu, giờ kết thúc, lý do rồi bấm [[Lưu khung bận]]. Văn phòng chỉ thấy bạn bận, không thấy lý do. Giờ đó trùng chuyến bạn đang được xếp thì không lưu được: từ chối chuyến đó trước (nếu còn hạn) hoặc gọi văn phòng. Hết bận thì bấm [[Rút khung bận]].
 - Số giấy tờ bị che một phần. Bạn không thấy đơn, giá hay tin nội bộ của công ty.
 - Giấy tờ sai hoặc có giấy mới: báo văn phòng, hoặc bấm [[Hỗ trợ]].`,

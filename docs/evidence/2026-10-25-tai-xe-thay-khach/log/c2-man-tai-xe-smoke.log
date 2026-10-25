@@ -1,0 +1,12 @@
+✓ 1) C61 390: chuyến chưa chạy CÓ nút nổi "Hỗ trợ"; "Xuất bến" xong (đang chạy) thì nút nổi biến mất (body.cc-dang-chay), nút dính đáy là việc chính, axe không vi phạm critical/serious
+✓ 2) C54 390: "Điểm kế tiếp" = đúng MỘT thẻ (điểm đón 1, viền nổi), "Các điểm sau (3)" = 2 điểm đón + điểm trả; giờ hẹn ≥ 16px; nút chính "Đã tới" dính đáy, trúng ngay khi chưa cuộn; thẻ KHÔNG còn nút "Đã tới" trùng; "Kết thúc chuyến" khoá có đúng một nút + câu còn việc
+✓ 3) C59 390: bấm nút chính "Đã tới" → khách hiện; dòng "Vừa tới" ở điểm đón còn khách chờ; vòng 1 giây tự đổi chữ khi phút trôi (sửa mốc → "Đã chờ 7 phút") KHÔNG vẽ lại trang; bắt đầu không có ngưỡng nào khoá "Vắng"
+✓ 4) C56 390 (mạng chậm 1,2 giây): chạm đúp "Vắng" → đúng MỘT lệnh, KHÔNG dải đỏ; trong lúc bay mọi nút khoá, kể cả khi trang vẽ lại giữa chừng (tin / nối lại mạng); xong thì mở lại
+✓ 5) C53 390: "Đã đón 2 khách" mở hộp (nơi + số khách; chưa gửi gì); quay lại không gửi; xác nhận → đúng 2 lệnh /don lần lượt + đọc lại chi tiết ÍT lượt (không 3 lượt mỗi khách); điểm 1 thu gọn vào "Đã xong (1 điểm)" kèm dòng "Vừa ghi"; điểm 2 thành "Điểm kế tiếp", axe không vi phạm critical/serious
+✓ 6) C53 + C56 mất mạng giữa chừng: điểm 2 (2 khách) "Đã tới" → "Đã đón 2 khách" xác nhận khi MẤT MẠNG → dải "Chưa gửi được" + "Bấm lại" (máy KHÔNG tự gửi lại); có mạng, bấm lại → cả hai khách đã đón, lệnh gửi lại CÙNG requestId
+✓ 7) C54 + C57 + C53 390: điểm 3 (1 khách) "Đã tới" → "Đã đón 1 khách"; rồi điểm trả: nút chính "Đã trả" → xác nhận; khi XONG HẾT thì nút chính dính đáy là "Kết thúc chuyến" (một nút duy nhất, khối cuối chỉ còn hai nút phụ); hộp tóm tắt → kết thúc, axe không vi phạm critical/serious
+✓ 8) C57 390: cả đoàn VẮNG → điểm đón xong nhưng điểm trả còn chưa tới: nút "Kết thúc chuyến" KHOÁ (khớp máy chủ: POST ket-thuc → 409 con_khach_chua_xong), nút chính là "Đã trả"; bấm "Đã trả" → hộp cảnh báo "Vẫn ghi đã tới" → xong thì "Kết thúc chuyến" sáng và kết thúc được
+✓ 9) C61 (lỗi cũ BH-23) 390: ở trang Đơn cuộn tới đáy, nút "Hỗ trợ" KHÔNG che dòng cuối (một dòng thử sát mép phải thêm vào cuối trang) (đệm đáy chừa chỗ); gỡ tạm lớp đệm thì BỊ che (phép đo bắt được lỗi cũ)
+✓ 10) 1040: màn đang chạy bố cục máy tính — không tràn ngang, không mã kỹ thuật, axe không vi phạm critical/serious
+
+C2 MAN TAI XE OK (10 bước)
