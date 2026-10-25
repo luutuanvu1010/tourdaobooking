@@ -24,6 +24,7 @@ export const CHANGELOG: readonly ReleaseNote[] = [
       { kind: "moi", text: "Tài xế công ty, trong ngày chạy, thấy tên, năm sinh từng khách và số liên hệ ngay trên màn chuyến, trước khi bấm «Cho xe chạy»." },
       { kind: "moi", text: "Màn tài xế công ty: chuyến có từ hai điểm trả thì dưới tên mỗi khách có chữ «Trả: …» cho biết khách xuống ở đâu." },
       { kind: "doi", text: "Màn tài xế: khối «Suất của khách» nay ghi «Điểm 2 · Khách 1», cùng cách đếm với dòng khách dưới điểm đón." },
+      { kind: "doi", text: "Màn tài xế: dòng hẹn giờ thấy khách nay ghi «tên khách và số liên hệ» thay cho «tên khách và mã đơn»; tài xế đối tác ghi rõ là sau khi bấm «Cho xe chạy»." },
     ],
   },
   {
