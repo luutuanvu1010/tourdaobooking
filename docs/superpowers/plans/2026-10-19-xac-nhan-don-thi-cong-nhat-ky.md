@@ -129,3 +129,34 @@ Kết quả > 0: chủ quyết cách xử lý các nháp đó (huỷ chúng rơi
 - Trigger chặn `RUT_LAI` có vé / quyết định thiếu vé chưa đột biến riêng.
 
 **Đo cuối L3 (26/10)**: `npm test` 6311 bài, 6310 đạt, 1 đỏ CÓ CHỦ ĐÍCH (`permission-enforcement` hàng rào 1: «order.confirm.review, order.submit» chưa có lời gọi can() — hết ở Task 3.3, 3.4); bài đo giờ hook 1/1 xanh. `typecheck` 0 lỗi, `build:web` xanh. e2e `permissions orders dispatch nhap-rieng-tu` 7/7 xanh (196 giây, migration 0119 áp trên D1 local tạm, `audit-invariants` cuối xanh).
+
+## Lần giao L4 (26/10, trợ lý thi công; Task 3.3 — CHƯA kiểm độc lập)
+
+**Phạm vi**: route của bước xác nhận (ADR-0136): `POST /api/orders/:id/gui-xac-nhan`, `…/rut-xac-nhan`, `…/quyet-dinh`; `GET /api/orders/cho-xac-nhan`; `GET|POST /api/cai-dat/xac-nhan-don`; khoá khi chờ; nhánh đọc đã cắt cho người xét duyệt (Đ6); lịch chung nối yêu cầu mở. KHÔNG làm 3.3b (chạy tạm Hướng 2: không sửa tiền khi chờ), 3.4, giao diện. Không migration mới.
+
+**Rulings**
+- Cờ chưa có dòng nào ⇒ không cần xác nhận; công tắc `self_confirm_internal` không có dòng ⇒ TẮT (migration gieo 1 nên thực tế bật).
+- DTO xét duyệt cắt cả `customerName` (chặt hơn kế hoạch, vì ADR không cho phép tên khách ở đó); lịch sử, `suaSoKhach`, `canhBaoKhuyenMai` rỗng / null; `canModify` false.
+- Hết vé: máy chủ tự gán lý do `HET_CHO` (nhóm Công ty huỷ) không hỏi `order.cancel.classify`; Huỷ dùng `docLyDoHuy`.
+- Gửi và Rút lại đều đẩy `orders.updated_at` (câu `orderTouchDraft`): nếu không, Hết vé / Huỷ chỉ khoá theo `status` + `updated_at` nên huỷ vẫn thắng sau Rút lại.
+- Khép yêu cầu đứng SAU câu xác nhận trong lô (khác chữ ADR Đ7 — đã ghi ở kế hoạch); câu khép gác bằng id nhật ký của lô thắng (`wonGuard`), mọi câu đổi giờ / ngày mang cùng điều kiện «yêu cầu còn mở VÀ đơn nháp đúng mốc».
+- Bước mở yêu cầu chỉ kiểm chọn Đón / Không đón (không chạy R2, R3 — giá của Thực tập xét theo người bấm Còn vé); chặng dưới mốc KHÔNG bị từ chối lúc gửi (chính nó đưa đơn vào diện `DAT_GAP`); mốc 6 giờ chỉ chặn ở Còn vé, tính trên giờ / ngày MỚI.
+- Bên cầm yêu cầu đã khép của đúng đơn ⇒ 409 `RACED`; nháp không chờ của người khác ⇒ 404 (ADR-0135 Đ2).
+- Cờ chỉ đặt cho mã danh mục có thật (qua `getEffectiveServices`) hoặc nhóm ĐANG CÓ dịch vụ (qua view `v_ctl_service_group`); nhóm tồn tại nhưng chưa có dịch vụ ⇒ 400 (lệch nhỏ so với «nhóm có thật»; không có view công bố liệt kê nhóm). Gửi đúng trạng thái đang hiệu lực ⇒ 200, không ghi dòng.
+- `daThuCuaDon` = `tienNhieuDon().daThu` của billing (đã loại dòng đảo, trừ hoàn tiền khách); `null` ⇒ 503 `khoan_thu_chua_kiem`.
+- Ba route mới kiểm Đã giao trước mọi bước khác (bài NT-F7); `POST /api/cai-dat/xac-nhan-don` là miễn trừ có tên của bài đó.
+- `src/architecture.test.ts`: thêm tên hai câu vào `DOC_AUDIT_LOG_WONGUARD` (mở rộng danh sách nợ có hạn của `orders`) — người kiểm độc lập nên xét lại. Hàng rào 2 (`route-write-guard`) nay đọc cả tệp route phụ `xac-nhan-route.ts` (`TEP_ROUTE_PHU`) và có bài canh việc đó.
+- Bài trợ lý `tro-ly-van-nghia` đo lại 45 → 46 (mô tả ô `order.confirm.review` của L3 có chữ «người lập đơn»); không phải do L4.
+- E2E cũ phải đổi: `chang-hanh-khach.mjs` (9: `/status` dưới mốc nay trả `confirm_request_required` trước, rồi người lập tự đặt gấp), `tai-xe-cuoc.mjs` (người lập đặt gấp thay Quản trị — vốn đã 404 từ ADR-0135).
+
+**Bài đỏ → xanh** (mỗi nhóm viết bài đỏ trước, thấy đỏ, rồi mới cài): lát 1 `xac-nhan-route.test.ts` 11 bài; lát 2 `xac-nhan-quyet-dinh.test.ts` 14 bài (có đua thật bằng `w.chenTruocLo`); lát 3 `xac-nhan-doc.test.ts` 5 bài; lát 4 `xac-nhan-cai-dat.test.ts` 8 bài (8/8 đỏ khi chưa có route); lát 4b thêm bài (q) vào `xac-nhan-doc.test.ts` (đỏ → xanh). Viết lại TC-22 trong `dat-gap.test.ts`. Đột biến đã quan sát đỏ → hoàn nguyên: xem dòng ADR-0136 L4 ở `docs/SO-HANG-RAO.md` (M1–M9, M11–M22).
+
+**Đo cuối L4**: `npm test` 6351 bài, 6346 đạt, 1 đỏ CÓ CHỦ ĐÍCH (`permission-enforcement` hàng rào 1: ô `order.submit` chưa có `can()` — chờ Task 3.4); bước đo giờ của hook xanh. `npm run typecheck` 0 lỗi; `npm run build:web` xanh. `npm run test:e2e -- xac-nhan-don permissions orders dispatch nhap-rieng-tu chong-ghi-trung dong-bo-chuyen chang-hanh-khach tai-xe-cuoc`: 12/12 xanh (3 nhóm, 143 giây; có kiểm lớp vé). `node scripts/audit-invariants.mjs --db local` trên D1 local trống của worktree: 1 vi phạm R-N1-5 (không có quản trị viên nào trong CSDL trống — không liên quan L4); bản trong e2e chạy trên D1 tạm có tài khoản và xanh.
+
+### Nợ / điều chưa làm (L4)
+- `khoaKhiCho` chưa phủ route giao người phụ trách (`dispatch`) và các route văn phòng `thuong-mai`, `chup-bu` trên đơn đang chờ.
+- Tin báo Đ10 (lúc gửi / lúc quyết định) thuộc Task 3.5; `baoThayDoi` dùng «sua» cho Gửi / Rút, «xac_nhan» / «huy» cho quyết định (chưa thêm loại `cho_xac_nhan`).
+- Vế «yêu cầu còn mở» trong `ORDER_CONFIRM` là lớp phòng thủ thêm: đột biến bỏ nó không đỏ (khoá `updated_at` đã che) — không tính là hàng rào.
+- Ca (n) khoản thu: bài khung thử dùng `daThuGia` / `khongTiemDaThu` (nháp không ghi thu được qua API từ L2); không có ca e2e. Ca (q) lịch chung: bài khung thử, không e2e.
+- Ca Đối tác (Gửi đơn) và 409 `partner_submit_required` ở `/status` thuộc Task 3.4 (có comment đánh dấu chỗ đặt).
+- E2E `xac-nhan-don` không khẳng định cờ `quaHan` (phụ thuộc đồng hồ thật).
