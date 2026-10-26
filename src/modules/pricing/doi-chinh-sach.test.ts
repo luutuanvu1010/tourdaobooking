@@ -160,7 +160,7 @@ test("Đua thật qua route: gắn cũ bị đóng NGAY TRƯỚC lô ghi ⇒ 409
   assert.ok(chen, "khung thử đã chen lệnh đóng trước lô");
   assert.equal(r.status, 409, r.text);
   assert.equal(r.json.error.code, "stale");
-  assert.equal(r.json.error.message, "Gắn này vừa được người khác kết thúc hoặc đổi. Tải lại trang.");
+  assert.equal(r.json.error.message, "Lần áp dụng chính sách này vừa được người khác ngừng hoặc đổi. Tải lại trang.");
   assert.equal(demGan(w), n0, "không gắn mới");
   assert.equal(demNhatKy(w), a0, "không nhật ký");
 });

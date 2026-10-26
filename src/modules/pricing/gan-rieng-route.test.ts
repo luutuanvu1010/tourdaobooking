@@ -183,7 +183,7 @@ test("TC5 CSDL chặn ⇒ câu tiếng Việt, không ghi: hồ sơ không mang 
   assert.match(x.json.error.message, /không mang vai trò được hưởng/);
   await ok(ganRieng(w, ORG, ta2), 201);
   const chong = await ganRieng(w, ORG, ta1, "2026-06-01");
-  assert.deepEqual([chong.status, chong.json.error.message], [409, "Hồ sơ này đã có một mức riêng trong khoảng ngày này — kết thúc mức riêng cũ trước."]);
+  assert.deepEqual([chong.status, chong.json.error.message], [409, "Hồ sơ này đã có một mức riêng trong khoảng ngày này — ngừng mức riêng cũ trước."]);
   await ok(w.call("POST", `/api/pricing/muc-ta/${ta1}/tat`, { as: KT }), 200, "tắt TA1");
   assert.equal((await ganRieng(w, ORG2, ta1)).status, 409, "mức tắt");
   assert.equal((await ganRieng(w, ORG2, "MT_KHONGCO")).status, 404);

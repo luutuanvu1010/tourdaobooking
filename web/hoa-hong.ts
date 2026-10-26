@@ -166,6 +166,8 @@ async function main(): Promise<void> {
     nutDay.addEventListener("click", moThemMuc);
     thanhCuoiEl.append(nutDay);
     thanhCuoiEl.hidden = false;
+    // Nút nổi Trợ lý chỉ đo lại thanh đáy khi cuộn/đổi khổ (web/tro-ly.ts): thanh vừa hiện nên báo một lần để nút được nâng, không che «＋ Thêm mức».
+    window.dispatchEvent(new Event("resize"));
   }
 
   chonThe(docTheNho());

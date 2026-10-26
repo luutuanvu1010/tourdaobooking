@@ -3750,7 +3750,9 @@ body.co-nut-ho-tro:not(.cc-dang-chay) main { padding-bottom: calc(var(--s5) + va
 .hh-m-act { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); }
 .hh-m-act:empty { display: none; }
 .hh-m-act .btn { min-height: var(--tap-min); }
-.hh-m-cham { cursor: pointer; }
+.hh-m-cham { cursor: pointer; position: relative; }
+.hh-m-vung { display: none; position: absolute; inset: 0; width: 100%; padding: 0; background: transparent; border: 0; cursor: pointer; }
+@media (max-width: 640px) { .hh-m-vung { display: block; } }
 @media (max-width: 640px) { .hh-m-act .btn { display: none; } }
 @media (min-width: 641px) {
   .hh-m { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 1.2fr); }

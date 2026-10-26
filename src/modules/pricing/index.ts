@@ -66,11 +66,11 @@ function loiBang(e: unknown): Response | null {
   // ADR-0117 lần 2 (migration 0096 / 0097): mức TA và gắn loại↔mức. Trùng tên do cột `name_key` UNIQUE quyết (một nơi — đúng cả khi hai lần thêm đồng thời).
   if (/UNIQUE constraint failed: prc_rate_tier\.name_key/.test(m)) return error(409, "muc_trung", "Đã có chính sách với tên này.");
   if (/UNIQUE constraint failed: prc_rate_tier\.code/.test(m)) return error(409, "stale", "Trùng mã mức vừa sinh — thử lại.");
-  if (/\bprc_party_tier_overlap:/.test(m)) return error(409, "prc_tier_overlap", "Hồ sơ này đã có một mức riêng trong khoảng ngày này — kết thúc mức riêng cũ trước.");
+  if (/\bprc_party_tier_overlap:/.test(m)) return error(409, "prc_tier_overlap", "Hồ sơ này đã có một mức riêng trong khoảng ngày này — ngừng mức riêng cũ trước.");
   if (/\bprc_tier_overlap:/.test(m)) return error(409, "prc_tier_overlap", "Loại này đã theo một chính sách trong khoảng ngày này — ngừng áp dụng chính sách cũ trước.");
   if (/\bprc_tier_target:/.test(m)) return error(400, "invalid_input", "Loại đối tác này không nằm trong danh sách được hưởng hoa hồng hoặc đã tắt.");
   if (/\bprc_tier_inactive:/.test(m)) return error(409, "muc_tat", "Chính sách này đã tắt — bật lại trước khi áp dụng cho loại hay thêm mức.");
-  if (/NOT NULL constraint failed: prc_role_tier\.valid_from_date/.test(m)) return error(409, "stale", "Gắn này vừa được người khác kết thúc hoặc đổi. Tải lại trang."); // câu chèn của Đổi chính sách: gắn cũ không còn đóng được
+  if (/NOT NULL constraint failed: prc_role_tier\.valid_from_date/.test(m)) return error(409, "stale", "Lần áp dụng chính sách này vừa được người khác ngừng hoặc đổi. Tải lại trang."); // câu chèn của Đổi chính sách: gắn cũ không còn đóng được
   if (/NOT NULL constraint failed: prc_commission_rule\.valid_from_date/.test(m)) return error(409, "stale", "Dòng này vừa được người khác ngừng hoặc đổi. Tải lại trang."); // câu chèn của Đổi mức: dòng cũ không còn đóng được
   if (/\bprc_append_only:/.test(m)) return error(409, "stale", "Dòng này vừa được người khác đóng — tải lại.");
   if (/FOREIGN KEY constraint failed/.test(m)) return error(400, "invalid_input", "Nhóm dịch vụ hoặc hồ sơ không có.");
@@ -344,7 +344,7 @@ export const pricingModule: AppModule = {
       if (!can(staff, "partner.commission.write") || holdsPartner(staff)) return FORBIDDEN();
       const id = params.id!;
       const row = PARTY_RE.test(id) ? await roleTierById(env.DB, id) : null;
-      if (!row) return error(404, "not_found", "Không tìm thấy gắn loại với mức này.");
+      if (!row) return error(404, "not_found", "Không tìm thấy lần áp dụng chính sách này cho loại.");
       const den = kiemNgayDong(await readJson(request), row.valid_from_date);
       if (!den.ok) return error(400, "invalid_input", den.message);
       const [tenVai, muc] = await Promise.all([tenLoaiVai(env.DB), rateTierByCode(env.DB, row.tier_code)]);
@@ -356,7 +356,7 @@ export const pricingModule: AppModule = {
           detail: `${tenVai.get(row.role_type_code) ?? row.role_type_code} → ${tenMuc.get(row.tier_code)} · đến ${den.value}` }, "changes() > 0"),
       ]);
       if (res instanceof Response) return res;
-      if (dongDaDong(res)) return error(409, "stale", "Gắn này vừa được kết thúc — tải lại.");
+      if (dongDaDong(res)) return error(409, "stale", "Lần áp dụng chính sách này vừa được ngừng — tải lại.");
       return json({ gan: dtoGan((await roleTierById(env.DB, id))!, tenVai, tenMuc, vnToday(new Date())) });
     }),
     // «Đổi chính sách» của một loại (đặc tả A3): ngừng gắn cũ hết ngày liền trước `tuNgay` và gắn loại đó vào mức mới từ `tuNgay` trong MỘT lô (khuôn «Đổi mức»).
@@ -364,7 +364,7 @@ export const pricingModule: AppModule = {
       if (!can(staff, "partner.commission.write") || holdsPartner(staff)) return FORBIDDEN();
       const id = params.id!;
       const row = PARTY_RE.test(id) ? await roleTierById(env.DB, id) : null;
-      if (!row) return error(404, "not_found", "Không tìm thấy gắn loại với mức này.");
+      if (!row) return error(404, "not_found", "Không tìm thấy lần áp dụng chính sách này cho loại.");
       const than = kiemThanDoiChinhSach(await readJson(request));
       if (!than.ok) return error(400, "invalid_input", than.message);
       const homNay = vnToday(new Date());
@@ -383,7 +383,7 @@ export const pricingModule: AppModule = {
       ]);
       if (res instanceof Response) return res;
       // Lưới dự phòng (giữ): câu chèn VALUES + CASE làm cả lô lỗi NOT NULL (→ 409 ở loiBang) khi gắn cũ không đóng được nên thường không tới đây.
-      if (dongDaDong(res)) return error(409, "stale", "Gắn này vừa được người khác kết thúc hoặc đổi. Tải lại trang.");
+      if (dongDaDong(res)) return error(409, "stale", "Lần áp dụng chính sách này vừa được người khác ngừng hoặc đổi. Tải lại trang.");
       const [moi, dongRieng] = await Promise.all([roleTierById(env.DB, moiId), roleRulesForTierLink(env.DB, row.role_type_code, doi.tuNgay, null)]);
       return json({ gan: dtoGan(moi!, tenVai, new Map([[mucMoi.code, mucMoi.name]]), homNay), dongRieng: dongRieng.map((r) => dtoMuc(r, tenVai, homNay)) } satisfies GanLoaiMucResponse);
     }),
@@ -454,7 +454,7 @@ export const pricingModule: AppModule = {
         auditStatement(env.DB, { staffId: staff.id, action: "prc_party_tier_closed", at, detail: `mức riêng ${muc?.name ?? row.tier_code} · đến ${den.value}` }, "changes() > 0"),
       ]);
       if (res instanceof Response) return res;
-      if (dongDaDong(res)) return error(409, "stale", "Mức riêng này vừa được kết thúc — tải lại.");
+      if (dongDaDong(res)) return error(409, "stale", "Mức riêng này vừa được ngừng — tải lại.");
       return json(await hoaHongHoSo(env.DB, row.party_id));
     }),
     // "Thử tra" cho văn phòng: một đối tác + một dịch vụ + một ngày ⇒ mức nào thắng (cùng hàm `chonMuc` với lúc Xác nhận đơn, cùng `gan` của `docBangChoChup`). Chỉ đọc.

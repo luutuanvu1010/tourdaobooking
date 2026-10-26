@@ -12,6 +12,18 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // PR giao diện Hoa hồng + Hỗ trợ (PR 2; kế hoạch docs/superpowers/plans/2026-10-25-hoa-hong-ho-tro-2-giao-dien-hoa-hong.md). KHÔNG migration; có mã mới nên cần npm run trien-khai.
+    // Số 2.34 và ngày là TẠM: production đang 2.33 (GET /api/auth/config 26/10) — phiên phát hành kiểm lại ở bước A.0 của docs/HANDOFF-N1.md.
+    version: "2.34",
+    date: "2026-10-26",
+    items: [
+      { kind: "moi", text: "Trang Hoa hồng đối tác làm lại, có hai thẻ «Mức đang áp dụng» và «Thiết lập». Có Tra nhanh: chọn đối tác hoặc loại, dịch vụ, ngày là biết mức nào được áp." },
+      { kind: "moi", text: "Bảng «ai hưởng gì» xếp theo loại đối tác; mỗi dòng có nút Đổi và Ngừng (điện thoại: chạm vào dòng). Thêm, đổi, ngừng mức đều mở hộp trượt, không rời trang." },
+      { kind: "moi", text: "Thẻ Thiết lập gom việc quản lý loại đối tác và chính sách hoa hồng: thêm loại, thêm chính sách, áp dụng cho loại, tắt/bật, ngừng áp dụng." },
+      { kind: "doi", text: "Đổi chữ ở mọi màn: «Mức TA» thành «Chính sách hoa hồng»; «Đang áp», «Sắp áp», «Đã đóng» thành «Đang áp dụng», «Sắp áp dụng», «Đã ngừng»." },
+    ],
+  },
+  {
     // PR máy chủ Hoa hồng + Hỗ trợ (ADR-0141; kế hoạch docs/superpowers/plans/2026-10-25-hoa-hong-ho-tro-1-may-chu.md). KHÔNG migration; có mã mới nên cần
     // npm run trien-khai. Số 2.33 và ngày là TẠM: production đã 2.32 (GET /api/auth/config 26/10) — phiên phát hành kiểm lại ở bước A.0 của docs/HANDOFF-N1.md.
     version: "2.33",

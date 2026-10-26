@@ -1,3 +1,6 @@
+// THAY BẰNG docs/evidence/2026-10-26-hoa-hong-thiet-ke-lai/kich-ban/hoa-hong-smoke.mjs TỪ 2026-10-26 cho phần trang /hoa-hong (mục «Loại đối tác» nay ở thẻ «Thiết lập», thêm loại bằng hộp trượt;
+// nhãn «Có sẵn» / «Do Kế toán thêm» thành «Loại gốc»). Kịch bản này khoá chữ và chỗ cũ nên sẽ ĐỎ trên trang mới — hồ sơ có ngày, giữ làm bằng chứng cho bản trước 2.34; không chạy.
+// Bước 5 (ô «Thêm công việc» ở Danh bạ có hậu tố « (đối tác)») KHÔNG nằm trong hoa-hong-smoke.mjs: ai đụng web/parties.ts thì chạy dot-a-smoke.mjs / t2b-danh-ba-smoke.mjs như bảng web/CLAUDE.md.
 // Kịch bản Chrome — mục «Loại đối tác» ở /hoa-hong và ô chọn «Thêm công việc» ở Danh bạ (ADR-0117 lần 1, migration 0095). Đây là rào DUY NHẤT cho phần GIAO DIỆN của loại đối tác:
 // `npm test` canh máy chủ + CSDL (src/modules/pricing/loai-doi-tac.test.ts…), `tests/e2e/loai-doi-tac.mjs` canh HTTP thật, nhưng không bài nào mở trang. Kịch bản kiểm:
 //   1) Kế toán mở /hoa-hong: mục «Loại đối tác» hiện; năm loại có sẵn đều «Có sẵn» + «Đang dùng» và KHÔNG có nút Tắt / Bật; ô «Tên loại mới» + nút «Thêm loại» hiện;
