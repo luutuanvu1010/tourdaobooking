@@ -545,6 +545,7 @@ Ghi 25/10 khi đóng phiên phân tích góp ý và ba phiên con (Lượt A, nh
 | BL-GOPY-HT-CHROME | Kịch bản Chrome chưa chạy cho: mục «Hoa hồng hiện hành» + nút mức riêng (`web/parties.ts` — `t2b-danh-ba-smoke`, `dot-a-smoke`, `giay-to-nguoi-smoke`), màn cuốc tài xế (`web/cuoc-chuyen.ts` — `cuoc-smoke`), màn Sổ công nợ (2.30) | `web/CLAUDE.md` bảng cuối | Dựa vào kỷ luật; chạy khi máy có Chrome + axe |
 | BL-GOPY-HT-SO-VANG-TA | Ca vàng `SV-TA-07`, `SV-TA-08` (mức TA gắn riêng, ADR-0138) còn `cho_xac_nhan` | `golden/so-cong-no-luot-2.json` | Kế toán xác nhận (AI không tự đánh dấu) |
 | BL-GOPY-HT-SDT-HDV | ADR-0139 chỉ hiện số liên hệ chính của hồ sơ trong Danh bạ (không bao giờ SĐT đăng nhập): HDV chưa có số ở Danh bạ thì tài xế không thấy số | Danh bạ | Quản trị bổ sung số |
+| BL-GOPY-HT-SAN-PHAM-DONG-MO | Sản phẩm đóng/mở khi cần (YC-0022, ghi bổ sung 26/10 vì phiếu này chưa có việc nào): **nhóm** dịch vụ có bật/tắt (`catalog`), **từng sản phẩm** chưa thấy công tắc — danh mục đồng bộ từ Google Sheet nên có thể đã đóng/mở được trên Sheet (chưa kiểm). Đụng nguồn sự thật danh mục | `catalog` + Google Sheet | Chủ quyết có thêm công tắc ở Nền tảng không, rồi đặc tả |
 
 ## 46. Câu đếm ngược bảo trì dễ đọc nhầm thành giờ đồng hồ (mã `BL-BAO-TRI-DEM-NGUOC`)
 
