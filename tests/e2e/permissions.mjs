@@ -28,6 +28,14 @@ for (const [cookie, perms] of [[SALES, ["SALES"]], [ADMIN, ["ADMIN"]], [ACC, ["A
 }
 console.log("✓ /me trả quyền + hồ sơ");
 
+// --- ADR-0136 (Task 3.3): ô order.confirm.review mở danh sách chờ cho Bán hàng, Quản trị, Kế toán, HDV, Toàn quyền; cài đặt cờ + công tắc (settings.ops) chỉ Toàn quyền.
+for (const [cookie, nhan] of [[SALES, "Bán hàng"], [ADMIN, "Quản trị"], [ACC, "Kế toán"], [FIELD, "HDV"], [TAO_TK, "Toàn quyền"]]) {
+  assert.equal((await call(cookie, "GET", "/api/orders/cho-xac-nhan")).status, 200, `${nhan}: danh sách chờ xác nhận`);
+  assert.equal((await call(cookie, "GET", "/api/cai-dat/xac-nhan-don")).status, nhan === "Toàn quyền" ? 200 : 403, `${nhan}: cài đặt xác nhận đơn`);
+}
+assert.equal((await call(null, "GET", "/api/orders/cho-xac-nhan")).status, 401);
+console.log("✓ ADR-0136: danh sách chờ xác nhận mở cho 5 vai; cài đặt cờ / công tắc chỉ Toàn quyền");
+
 // --- FIELD (hướng dẫn viên, ADR-0030 S23-1…5 — lượt 1): danh sách đơn 200 nhưng CHỈ đơn mình đang phụ trách; hàng chờ nhận 200 (phần hẹp); chi tiết
 // đơn KHÔNG phụ trách → 404 (không dò được đơn người khác). Vẫn chặn (403) lập/sửa/huỷ đơn, danh mục, hồ sơ, quản trị (R-N1-15); đọc được địa điểm.
 // Tài khoản field dùng chung cho mọi kịch bản (dispatch.mjs chạy trước đã giao cho nó nhiều đơn) ⇒ khẳng định ĐƠN CỦA salesA không có trong danh sách,

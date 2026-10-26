@@ -131,7 +131,7 @@ console.log("✓ lệnh tài xế: xayRaLuc → 400; xuất bến MAY_CHU; xuấ
 
 // --- 4. TRONG ngày chạy (Q-L3-B, mục VỪA-1 của người kiểm độc lập 30/9): chuyến có ngày chạy = HÔM NAY (ngày VN), tài xế được xếp, bấm Xuất bến → GET chi
 // tiết CÓ họ tên, năm sinh, liên hệ. Đi đúng đường nghiệp vụ, không đổi chính sách, không chèn SQL vào bảng đơn / chuyến. ADR-0107 ý (ii): dấu "đặt gấp" chỉ
-// ghi lên chặng ĐANG dưới mốc. Chặng 23:50 đã dưới mốc (chạy tối) → Quản trị đóng dấu (route short-notice) rồi mới xác nhận, xếp (ĐP2(ii): xếp chính chặng
+// ghi lên chặng ĐANG dưới mốc. Chặng 23:50 đã dưới mốc (chạy tối) → người lập đóng dấu (route short-notice; Quản trị không ghi được nháp của người khác — ADR-0135) rồi mới xác nhận, xếp (ĐP2(ii): xếp chính chặng
 // đặt gấp thì qua). Cả giờ xuất bến 23:40 còn ngoài mốc (chạy ban ngày) → bấm Đặt gấp nhận 409 `short_notice_not_needed`, xác nhận và xếp không cần dấu.
 // Ở giữa (chuyến 23:40 đã vào mốc mà chặng 23:50 chưa — khoảng 10 phút mỗi ngày, cộng 1 phút dư mỗi bên) và từ 23:40 giờ VN trở đi → BỎ QUA ca này, in một
 // dòng (không lách).
@@ -157,7 +157,7 @@ if (gioVnBayGio >= "23:40") {
   }));
   assert.equal(o.status, 201, JSON.stringify(o.body));
   const legId = o.body.order.services[0].legs[0].id;
-  r = await call(ADMIN, "POST", `/api/orders/${o.body.order.id}/legs/${legId}/short-notice`, { lyDo: "KHACH_DOAN_GOI_GAP" });
+  r = await call(SALES, "POST", `/api/orders/${o.body.order.id}/legs/${legId}/short-notice`, { lyDo: "KHACH_DOAN_GOI_GAP" });
   if (changDuoiMoc) assert.equal(r.status, 200, JSON.stringify(r.body));
   else assert.deepEqual([r.status, r.body.error?.code], [409, "short_notice_not_needed"], `ADR-0107: chặng còn ngoài mốc — ${JSON.stringify(r.body)}`);
   r = await call(SALES, "POST", `/api/orders/${o.body.order.id}/status`, { status: "confirmed" });
