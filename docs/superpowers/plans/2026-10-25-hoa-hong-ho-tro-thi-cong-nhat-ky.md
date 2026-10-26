@@ -8,7 +8,7 @@
 |---|---|---|---|
 | 0 | Chủ duyệt hai đặc tả + đề xuất ADR; cấp số ADR, chuyển vào `docs/adr/` | chủ nói «duyệt» | ADR **xong**: ADR-0141 accepted 25/10 («duyệt đề xuất ADR»); hai đặc tả **đã duyệt** 25/10 («duyệt luôn hai đặc tả») |
 | 1 | PR 1 máy chủ | PR gộp + `trien-khai` + kiểm độc lập đạt | **thi công xong 26/10**, 9/9 task; kiểm độc lập cả nhánh ĐẠT CÓ ĐIỀU KIỆN → sửa I2, m1–m3, I3 → kiểm lại ĐẠT; đã gộp `main` (chủ cho phép 26/10); npm test, typecheck, e2e 72/72 xanh. **ĐÃ LÊN PRODUCTION bản 2.33** (26/10 16:22, Worker `bf53dd8e`); nghiệm thu độc lập ĐẠT CÓ ĐIỀU KIỆN — còn chủ/Kế toán thử chỉ-đọc trên production |
-| 2 | PR 2 giao diện Hoa hồng + bảng từ lượt 3 | như trên + chủ duyệt ảnh | chưa làm |
+| 2 | PR 2 giao diện Hoa hồng + bảng từ lượt 3 | như trên + chủ duyệt ảnh | **thi công xong 26/10** (4 đợt, mỗi đợt kiểm đạt); kiểm cả nhánh ĐẠT CÓ ĐIỀU KIỆN → sửa (R25 mục đối tác mở được, hướng dẫn Kế toán) → kiểm lại ĐẠT; npm test, typecheck, e2e 72/72, HOA HONG SMOKE OK hai khổ. Chờ chủ duyệt ảnh + `day-len` + `trien-khai` (nhật ký 2.34 tạm) |
 | 3 | PR 3 giao diện Hỗ trợ + bảng từ lượt 4 | như trên + chủ duyệt ảnh | chưa làm |
 
 ## Ruling (quyết định trong lúc làm)
@@ -34,3 +34,20 @@
 - Tiêu chí 5 ADR-0141 không đạt theo nghĩa đen: `co-the-tim-doi-tac.test.ts` không đỏ khi phá chính hàm dùng chung (bài khác đỏ thay) — báo chủ, không chặn.
 - Nhật ký thay đổi: dòng nhánh lần lượt nằm ở 2.31 → 2.32 (chung với «hai chỗ lệch màn chuyến xe») → **2.33 tạm**, vì production lên 2.32 trong lúc nhánh chờ gộp (GET /api/auth/config 26/10). day-len lần đầu dừng vì main tiến; gộp main lần ba.
 - Sang PR 2: không in `nguoiHuong.vai` (là mã); xét lại `CAU_CHUA_TIM_DUOC_DOI_TAC`; sửa so-dai-ly-smoke.
+
+## Ruling của lượt thi công PR 2 (26/10)
+
+Sổ chi tiết R10–R25 ở `.superpowers/sdd/2026-10-25-hoa-hong-ho-tro-2-giao-dien-hoa-hong/progress.md` (không theo dõi bằng git); tóm tắt:
+- R15: bài trợ lý Đ6 đỏ trung gian khi sơ đồ trang co lại; xanh lại nhờ câu mở đúng sự thật ở `src/shared/tro-ly-kien-truc.ts`, không nới bài.
+- R19: ô dịch vụ dùng `taoChonDichVu` (hai điều khiển) thay «một ô» của bản vẽ — chủ xem ở lượt duyệt ảnh.
+- R22 → R25: mục «Đối tác có mức riêng…» ban đầu chỉ một dòng tên (mất Đổi/Ngừng mức riêng của một đối tác so với trang cũ — người kiểm cả nhánh bắt); sửa theo bản vẽ ban-2: mở từng đối tác, có số, Đổi/Ngừng.
+- R23: dòng mức riêng không vừa là nút vừa chứa nút (axe); vùng chạm riêng chỉ ở điện thoại.
+- R24: chữ cũ sót ở câu báo máy chủ và nhãn nhật ký «Ngừng điều khoản người bán».
+
+## Nợ PR 2
+
+- Bước 5 cũ của `loai-doi-tac-smoke` (hậu tố « (đối tác)» ở Danh bạ) không còn kịch bản canh.
+- Kịch bản Chrome các màn đổi chữ theo Q1 (bảng giá xe, điều kiện cho xe chạy, người bán) chưa chạy lại — chỉ e2e API.
+- `so-dai-ly-smoke` còn 10 bước đỏ có sẵn từ trước PR 1 (4-a/b/c, 5-a/b hai khổ).
+- `src/modules/tro-ly/bang-dieu-khien-route.test.ts` thỉnh thoảng đỏ ngẫu nhiên (khoá thử trùng) — ngoài PR.
+- Bước 2c của `hoa-hong-smoke` gieo dịch vụ tên dài bằng `INSERT` thẳng `catalog_item` trên D1 tạm.
