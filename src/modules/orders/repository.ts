@@ -1075,19 +1075,35 @@ export async function confirmOrder(
   db: D1Database, id: string, staffId: string, today: string, prevUpdatedAt: string, nguongMoc: string, detail?: string,
   alsoConfirm?: (at: string) => D1PreparedStatement[],
 ): Promise<boolean> {
+  return daXacNhan(await db.batch(soanXacNhan(db, id, staffId, today, prevUpdatedAt, nguongMoc, detail, alsoConfirm).cau));
+}
+
+/**
+ * SOẠN (chưa chạy) lô xác nhận của `confirmOrder` — Task 3.2b: MỘT nguồn cho ba nơi gọi (`POST /status`, `quyet-dinh` Còn vé, `gui-don` nhánh B).
+ * `cau` = [điền ngày đón] → [đổi trạng thái, KHOÁ `updated_at = prevUpdatedAt`] → [nhật ký `confirmed` `changes() > 0`] → [câu kèm `alsoConfirm(at)` = bản chụp mức
+ * hoa hồng của đơn, dùng đúng mốc `at` của lô]. Nơi gọi muốn nối thêm câu (ví dụ khép yêu cầu xác nhận) nối SAU mảng này để chỉ số câu đổi trạng thái (1) không đổi;
+ * chạy MỘT `db.batch` rồi hỏi `daXacNhan(kq)`. Bản chụp mức đi trong `alsoConfirm` — bỏ sót thì hoa hồng của đơn không được chụp (lỗi tiền âm thầm).
+ */
+export function soanXacNhan(
+  db: D1Database, id: string, staffId: string, today: string, prevUpdatedAt: string, nguongMoc: string, detail?: string,
+  alsoConfirm?: (at: string) => D1PreparedStatement[],
+): { at: string; cau: D1PreparedStatement[] } {
   const at = nextStamp(prevUpdatedAt);
   const { from, to } = confirmWindow(today);
   // ADR-0049 D2 (I15): câu xác nhận ở tệp nửa nghiêm (`order_confirm`), thêm vế mốc tối thiểu lúc đặt — ngưỡng chuỗi do route tính bằng `nguongMocVn`.
-  const results = await db.batch([
-    legFillDateOnConfirm(db, id, at),
-    orderConfirm(db, id, at, from, to, nguongMoc, prevUpdatedAt),
-    auditStatement(db, { orderId: id, staffId, action: "confirmed", at, detail }, "changes() > 0"),
-    // Câu kèm (bản chụp thương mại — ADR-0077) đứng SAU nhật ký confirmed: chuỗi changes() > 0 nối từ UPDATE orders → nhật ký → từng câu chụp;
-    // results[1] vẫn quyết định thắng thua.
-    ...(alsoConfirm?.(at) ?? []),
-  ]);
-  return (results[1]!.meta.changes ?? 0) > 0;
+  return {
+    at,
+    cau: [
+      legFillDateOnConfirm(db, id, at),
+      orderConfirm(db, id, at, from, to, nguongMoc, prevUpdatedAt),
+      auditStatement(db, { orderId: id, staffId, action: "confirmed", at, detail }, "changes() > 0"),
+      // Câu kèm (bản chụp thương mại — ADR-0077) đứng SAU nhật ký confirmed: chuỗi changes() > 0 nối từ UPDATE orders → nhật ký → từng câu chụp.
+      ...(alsoConfirm?.(at) ?? []),
+    ],
+  };
 }
+/** Lô xác nhận (do `soanXacNhan` soạn) đã thắng ⇔ câu đổi trạng thái (thứ 2, chỉ số 1) đổi một dòng. */
+export const daXacNhan = (kq: readonly D1Result[]): boolean => (kq[1]?.meta.changes ?? 0) > 0;
 
 /**
  * Huỷ đơn có điều kiện `status = from` VÀ `updated_at = prevUpdatedAt` (khoá lạc quan, chống hai người đổi cùng lúc — kể cả khi người kia chỉ đổi

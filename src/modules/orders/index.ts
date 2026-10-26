@@ -5,8 +5,8 @@ import { auditStatement, donDuocTraLai, getAuditTrail } from "../audit";
 import { chupDon, docBangChoChup, laNguoiHuong, soKhachTinhHoaHong, type BanChup } from "../pricing";
 import { ownerCompany } from "../parties";
 import type {
-  CanhBaoMocDto, CatalogChangeDto, ChoChupBuResponse, ChupBuResponse, CatalogChangedBody, DashboardResponse, DongBoChuyenDto, DongLichSuSoKhachDto, DraftCountResponse, IncompleteTripBody, KhungGioDonResponse, MoneyEditResponse, MyAssignmentDto, NhapTayResponse, OrderDetailDto,
-  OrderDetailResponse, OrderListResponse, MocToiThieuResponse, NguoiLapResponse, OrderResponse, PassengerListResponse, PaxCounts, PoolResponse, ShortNoticeRequiredBody,
+  CanhBaoMocDto, CatalogChangeDto, ChoChupBuResponse, ChupBuResponse, CatalogChangedBody, DashboardResponse, DongBoChuyenDto, DongLichSuSoKhachDto, DraftCountResponse, KhungGioDonResponse, MoneyEditResponse, MyAssignmentDto, NhapTayResponse, OrderDetailDto,
+  OrderDetailResponse, OrderListResponse, MocToiThieuResponse, NguoiLapResponse, OrderResponse, PassengerListResponse, PaxCounts, PoolResponse,
   SuaSoKhachDichVuDto, StaffProfile, ThuongMaiResponse,
 } from "../../shared/contracts";
 import { UUID_RE, error, intParam, json, readJson, trangDon } from "../../shared/http";
@@ -32,21 +32,19 @@ import { CHIEU_LABEL, LY_DO_DAT_GAP, type LyDoDatGap } from "../../shared/chang-
 import { duoiMocKhiSua, nguongMocVn, type MocToiThieu } from "../../shared/moc-toi-thieu";
 import { canhBaoMocCua, chepDatGapNhap, docDatGap, ghiDatGapNhatKy, lichSuTheoVai } from "./dat-gap";
 import { dongHienHanh, kiemHanhKhach, soKhachDoan } from "../../shared/hanh-khach";
-import { parseUnit, type PaxCode } from "../../shared/order-lines";
+import { type PaxCode } from "../../shared/order-lines";
 import { cauKhongDoiDuocTrangThai } from "../../shared/order-status-label";
 import { soNguoiChang, tongKhach } from "../../shared/so-nguoi-chang";
 import { maskLongDigits } from "../../shared/text-guards";
 import { doanSoKhach, ghepLyDo } from "../../shared/tin-doi-don";
 import type { HanhDongDoiSoKhach } from "../../shared/audit-actions";
-import { CAU_THIEU_NGUOI_LON, donThieuNguoiLon } from "../../shared/nguoi-di-kem";
 import { CAU_LUU_Y_MAC_DINH, KHUNG_MAC_DINH, kiemCauLuuY, kiemDanhSachKhung } from "../../shared/khung-gio-don";
-import { cauThieuChonDon, thieuChonDon } from "../../shared/cong-chon-don";
 import { canhBaoGiamGiaVuot, canhBaoKhuyenMai, docThanSuaSoKhach, duocSuaSoKhachVanPhong, soKhachTraTien } from "../../shared/so-khach-van-phong";
 import { docLyDoHuy, docPhanLoai, nhanNhomHuy, type LyDoHuy } from "../../shared/ly-do-huy";
 import { lyDoHienHanh, phanLoaiStatement } from "./huy-don-repo";
 import { toPoolOrders } from "./pool";
 import { soNguoiSauSuaKhach, type ChangSoNguoi } from "./dong-bo-chuyen-don";
-import type { DongBoTheoDon, NoiChuyen } from "../../shared/dong-bo-chuyen";
+import type { NoiChuyen } from "../../shared/dong-bo-chuyen";
 import { CAU_X3_THUE_XE, NHOM_THUE_XE } from "../../shared/so-dai-ly-nhan";
 import { lichSuChoDoiTac } from "../../shared/lich-su-doi-tac";
 import { lichSuNoiBo } from "../../shared/lich-su-noi-bo";
@@ -61,7 +59,8 @@ import {
   validationContext,
   type OrderValidationContext,
 } from "./service";
-import { confirmGaps, describeTripUpdates, giaiOPhuNhap, summarizeDeviations, validateTripUpdate } from "./service-rules";
+import { GIA_DANH_MUC, MOC_CHUA_CO, RACED, STALE, TRAN_GIAM_GIA, chanDoanXacNhan, chayLoNoiChuyen, dichLoiXacNhan, kemChupXacNhan, kiemCongXacNhan, tienChoHoaHong, type KetQuaLenhDon } from "./xac-nhan-chung";
+import { describeTripUpdates, giaiOPhuNhap, validateTripUpdate } from "./service-rules";
 
 const FORBIDDEN = () => error(403, "forbidden", "Chỉ người lập đơn, người phụ trách đơn hoặc quản trị viên mới được thay đổi đơn này.");
 const CANNOT_CREATE = () => error(403, "forbidden", "Tài khoản này không được lập đơn.");
@@ -89,13 +88,9 @@ const NOT_EDITABLE = () => error(409, "not_editable", "Chỉ sửa được đơ
 const CANCELLED = () => error(409, "not_editable", "Đơn đã huỷ, không sửa được.");
 /** Sổ tiền lượt 1 (ADR-0025 đ5): đơn đã "Đã giao – đã thu đủ" bị khoá — mọi route ghi từ chối SỚM bằng câu tiếng Việt (trigger 0044 là lưới cuối). */
 const DA_GIAO = () => error(409, "order_delivered", "Đơn đã ở bước Đã giao – đã thu đủ: không sửa, huỷ hay đổi người phụ trách được nữa. Sai sót thì Kế toán dùng “Sửa khoản thu đã ghi”.");
-const STALE = () => error(409, "stale", "Đơn vừa được người khác sửa, hãy tải lại rồi sửa tiếp.");
 /** ADR-0063 D1: văn phòng sửa số khách — ô `order.money.edit` KHÔNG ngữ cảnh "đang phụ trách" (Bán hàng chỉ đơn mình lập; HDV dùng "Việc của tôi"). */
 const MONEY_EDIT_FORBIDDEN = () => error(403, "forbidden", "Chỉ người lập đơn (Bán hàng), Kế toán, Quản trị hoặc Toàn quyền mới sửa được số khách của đơn này.");
 const MONEY_EDIT_DRAFT = () => error(409, "use_order_form", "Đơn nháp: sửa số khách ngay trong form đơn.");
-const RACED = () => error(409, "invalid_transition", "Đơn vừa được người khác đổi trạng thái, hãy tải lại.");
-/** Luật giá R2 (Đối tác ADR-0027, Thực tập ADR-0100): `cau` là câu lỗi của `viPhamGiaDanhMuc` — câu theo quyền (Đối tác / chỉ Thực tập). Trần giảm giá: `tranGiamGiaNhap` / `viPhamTranGiamGia`. */
-const GIA_DANH_MUC = (cau: string) => error(403, "forbidden", cau);
 /** ADR-0047 Ruling R1: chặng / danh sách khách của ĐƠN NHÁP đi trong thân `POST/PUT /api/orders`; route riêng chỉ nhận đơn đã xác nhận. */
 const USE_ORDER_FORM = () => error(409, "use_order_form", "Đơn nháp: sửa đưa đón và danh sách hành khách ngay trong form đơn.");
 const LEG_NOT_FOUND = () => error(404, "leg_not_found", "Không tìm thấy lượt đưa đón của đơn này.");
@@ -118,8 +113,6 @@ function oPhuNhap(
 }
 /** ADR-0049 D3 + ADR-0107 ý (i): đặt gấp chặng dưới mốc — Bán hàng, Quản trị, Toàn quyền (ô `order.leg.short_notice`). */
 const CANNOT_SHORT_NOTICE = () => error(403, "forbidden", "Bạn không có quyền đặt gấp lượt đưa đón.");
-/** Mốc tối thiểu chưa có (bảng chính sách rỗng / môi trường không tiêm) — CHẶN lệnh cần mốc, không đoán con số (I25). */
-const MOC_CHUA_CO = () => error(503, "moc_toi_thieu_chua_co", "Chưa có chính sách điều phối đang hiệu lực (hạn chốt trước giờ đón) — báo người phụ trách hệ thống.");
 /** I14 (Q3 chủ): sửa / thêm / thay chặng đơn ĐÃ XÁC NHẬN dưới mốc cần lý do đặt gấp trong CHÍNH lệnh (ô `order.leg.short_notice` — ADR-0107: cả Bán hàng). */
 const SUA_DUOI_MOC = () => error(409, "short_notice_required", "Lượt đưa đón có giờ đón đã qua hạn chốt — cần kèm lý do đặt gấp.");
 /** ADR-0107 ý (ii): lệnh kèm lý do đặt gấp mà không chặng nào của lệnh dưới mốc (cũ lẫn mới) — kể cả Quản trị, Toàn quyền. Không ghi gì. */
@@ -290,18 +283,7 @@ function priceGuard(staff: PermissionHolder, order: ValidOrder, ctx: OrderValida
   return giaLoi ? GIA_DANH_MUC(giaLoi) : null;
 }
 
-/**
- * Thành tiền (Σ thành tiền dòng, trước giảm giá cấp đơn) và số khách tính hoa hồng (`soKhachTinhHoaHong`) của MỘT dịch vụ — MỘT công thức cho phần thương mại (`phanThuongMaiCuaDon`)
- * và trần giảm giá (Task 7). Đứng ngoài thân route (bài `src/so-khach-mot-luat-tien.test.ts` (4): thân route không tính trên tiền dòng).
- */
-function tienChoHoaHong(s: { unit: string; pax: PaxCounts; items: readonly { quantity: number; lineTotal: number }[] }): { thanhTien: number; soKhachTinh: number; pax: { adult: number; child: number; senior: number } | null } {
-  // ADR-0133: số khách theo loại cho mức «mỗi khách theo loại»; dịch vụ tính theo nhóm/lượt không tách loại ⇒ null (soKhachTinh là số lượt).
-  return { thanhTien: s.items.reduce((t, i) => t + i.lineTotal, 0), soKhachTinh: soKhachTinhHoaHong({ unit: s.unit, pax: s.pax, items: s.items }),
-    pax: parseUnit(s.unit).kind === "group" ? null : { adult: s.pax.adult ?? 0, child: s.pax.child ?? 0, senior: s.pax.senior ?? 0 } };
-}
 
-/** Phản hồi lỗi trần giảm giá (`viPhamTranGiamGia`): 403 luật theo quyền, 400 `discount_exceeds_commission` trần hoa hồng. */
-const TRAN_GIAM_GIA = (v: NonNullable<ReturnType<typeof viPhamTranGiamGia>>) => error(v.status, v.code, v.cau);
 
 /**
  * Sổ đại lý đợt 2, Task 7 (ADR-0079 điều 8, 9; C8 = A; đặc tả P7) — R3 ở LẬP ĐƠN / LƯU NHÁP, chạy SAU khi biết bên đặt (`resolveBooker`; Đối tác có hồ sơ được hưởng bị ép bên đặt là
@@ -580,21 +562,7 @@ export async function cancelOrderByHandler(
   return chayLoNoiChuyen(db, dong, daHuy);
 }
 
-/** Kết quả lệnh đơn có nối máy đồng bộ chuyến, cho route của module KHÁC (dispatch): thắng kèm phần "chuyến" của phản hồi; thua khoá lạc quan; lỗi đã dịch. */
-export type KetQuaLenhDon = { kq: "thang"; dongBoChuyen: DongBoChuyenDto } | { kq: "thua" } | { kq: "loi"; res: Response };
-
-/** Chạy MỘT lô (câu đơn + khúc chuyến) rồi hỏi `thang(kq)` (đọc câu đơn ở chỉ số cũ); lỗi phần chuyến → 409 `trip_rule` qua `dichLoi`, lỗi khác ném tiếp. */
-async function chayLoNoiChuyen(db: D1Database, dong: DongBoTheoDon, thang: (kq: readonly D1Result[]) => boolean): Promise<KetQuaLenhDon> {
-  let kq: D1Result[];
-  try {
-    kq = await db.batch(dong.lo);
-  } catch (e) {
-    const res = dong.dichLoi(e);
-    if (res) return { kq: "loi", res };
-    throw e;
-  }
-  return thang(kq) ? { kq: "thang", dongBoChuyen: dong.sauKhiGhi(kq).dto } : { kq: "thua" };
-}
+export type { KetQuaLenhDon };
 
 // ---- Sổ tiền lượt 1 (ADR-0024 điều 3–4, ADR-0025): `orders` công bố trạng thái + "phải thu hiện hành" + hai câu mốc CHƯA CHẠY cho billing gộp vào
 // MỘT db.batch() (quy tắc 3 ADR-0002). `orders` không đọc bảng của billing. KHÔNG tự kiểm quyền — route của billing hỏi can() trước.
@@ -1682,75 +1650,24 @@ export const ordersModule: AppModule = {
         if (r.kq === "thua") return RACED();
         dongBo = r.dongBoChuyen;
       } else {
-        const today = vnToday(new Date());
         const order = await findOrder(env.DB, id);
-        // DK-T3-01 R2: xác nhận là bước phát phiếu gửi khách mang tên/MST công ty → tài khoản có quyền Đối tác HOẶC Thực tập (ADR-0100) chỉ xác nhận được đơn
-        // mà MỌI dòng đúng giá danh mục (bắt cả đơn nháp CŨ lập trước bản vá, và dòng nhập tay cũ — không có giá danh mục). R3 (trần giảm giá ĐÃ LƯU) kiểm SAU khi tính bản chụp (Task 7).
-        const giaLoi = order ? viPhamGiaDanhMuc(staff, order.services.flatMap((s) => s.items)) : null;
-        if (giaLoi) return GIA_DANH_MUC(giaLoi);
-        // ADR-0114 D3: cửa xác nhận đọc số khách ĐÃ LƯU (nháp cũ lập trước ADR có thể không có người lớn); lập đơn / lưu nháp đã chặn ở `validateOrder`.
-        if (order && donThieuNguoiLon(order.services.map((s) => s.pax))) return error(409, "thieu_nguoi_lon", CAU_THIEU_NGUOI_LON);
-        // ADR-0134 Đ2: mỗi dịch vụ phải chọn Đón (có chặng mở) hoặc Không đón (không chặng mở). Chỉ nhánh xác nhận (đơn đang nháp — `canTransition` đã lọc);
-        // huỷ và mọi lệnh trên đơn đã xác nhận không đi qua đây (Review Focus 6). Đọc từ `order` đã nạp (dịch vụ + chặng CÒN HIỆU LỰC).
-        const thieuDon = order ? thieuChonDon(order.services.map((s) => ({ pickupChoice: s.pickupChoice, soChangMo: s.legs.length }))) : [];
-        if (thieuDon.length > 0) return error(409, "pickup_choice_required", cauThieuChonDon(thieuDon[0]!));
-        const detail = order ? summarizeDeviations(order.services.flatMap((s) => s.items)) : undefined;
-        // ADR-0049 D2 (I15, I25): điều kiện mốc nằm TRONG câu xác nhận — ngưỡng chuỗi giờ VN tính bằng `nguongMocVn` (MỘT luật với `kiemMocDat`). Mốc chưa
-        // có → 503, không đoán. MỘT mốc giờ (`nowMs`) cho câu ghi và cho việc đọc lại lý do.
+        if (!order) return NOT_FOUND();
+        // Task 3.2b: các cổng (R2 giá, người lớn, chọn đón, mốc, R3 trần) gom ở `kiemCongXacNhan` (xac-nhan-chung.ts) — cùng thứ tự, cùng câu lỗi như trước.
+        // MỘT mốc (`ctx.mocToiThieu`, TC-26) cho cổng, câu ghi và việc đọc lại lý do; chưa có → 503 (cổng trả).
         const moc = await mocToiThieu();
-        if (!moc) return MOC_CHUA_CO();
+        const cong = await kiemCongXacNhan(env.DB, { actor: staff, order, kiemMoc: true, mocToiThieu: moc });
+        if ("loi" in cong) return cong.loi;
         const nowMs = Date.now();
-        // Sổ đại lý đợt 1 (ADR-0077 điều 8; đặc tả §5): đọc bảng ở ngày xác nhận rồi gửi các câu chụp trong CÙNG lô. Đơn đang nháp nên
-        // dịch vụ đọc từ `order` là số hiện hành (chưa có dòng điều chỉnh). Câu chụp lỗi ⇒ cả lô rơi (đơn vẫn nháp).
-        const bang = order ? await docBangChoChup(env.DB, { bookerPartyId: order.bookerPartyId, catalogCodes: order.services.flatMap((s) => (s.catalogCode ? [s.catalogCode] : [])), ngay: today }) : null;
-        const chup = order && bang ? chupDon({
-          nguoiHuong: bang.nguoiHuong, ngay: today, muc: bang.muc, gan: bang.gan, ganRieng: bang.ganRieng, dieuKhoan: bang.dieuKhoan,
-          dong: order.services.map((s) => ({ serviceId: s.id, catalogCode: s.catalogCode, groupCode: s.catalogCode ? (bang.nhom.get(s.catalogCode) ?? null) : null })),
-        }) : [];
-        // Task 7 (ADR-0079 điều 8 gạch 2): R3 theo BẢN CHỤP VỪA TÍNH (chính các dòng sẽ chèn trong lô dưới) — đơn có người hưởng: trần = tổng hoa hồng (dòng thiếu mức tính 0);
-        // không người hưởng: luật hôm nay (Đối tác, Thực tập 0). Giảm giá là số ĐÃ LƯU; tiền dòng đọc từ `order` (đơn nháp: chưa có dòng điều chỉnh).
-        if (order) {
-          const tien = order.services.map((s) => ({ id: s.id, ...tienChoHoaHong(s) }));
-          const tranLoi = viPhamTranGiamGia(staff, order.discount, donChoTran(chup, tien)); // I-1: Đối tác trên đơn đại lý KHÁC ⇒ luật cũ, không nêu số
-          if (tranLoi) return TRAN_GIAM_GIA(tranLoi);
-        }
-        const kemChup = (at: string): D1PreparedStatement[] => [
-          ...cauChupChuoi(env.DB, chup.map((c) => dongGhiTuChup(c, { id: crypto.randomUUID(), orderId: id, ngay: today, at, by: staff.id, source: "AUTO", reason: null, supersedesId: null }))),
-          auditStatement(env.DB, { orderId: id, staffId: staff.id, action: "order_terms_captured", at, detail: moTaChup(chup) }, "changes() > 0"),
-        ];
         let daXacNhan: boolean;
         try {
-          daXacNhan = await confirmOrder(env.DB, id, staff.id, today, meta.updatedAt, nguongMocVn(nowMs, moc.phut), detail, kemChup);
+          // ADR-0049 D2 (I15, I25): điều kiện mốc nằm TRONG câu xác nhận — ngưỡng chuỗi giờ VN tính bằng `nguongMocVn` (MỘT luật với `kiemMocDat`).
+          daXacNhan = await confirmOrder(env.DB, id, staff.id, cong.today, meta.updatedAt, nguongMocVn(nowMs, moc!.phut), cong.detail, kemChupXacNhan(env.DB, { orderId: id, staffId: staff.id, today: cong.today, chup: cong.chup }));
         } catch (e) {
-          // F-03 (0081): tạm tính đã lưu lệch Σ thành tiền dòng (nháp cũ / SQL tay) — CSDL chặn; Lưu nháp lại thì máy chủ tính lại từ các dòng.
-          if (/order_subtotal_mismatch/.test(String((e as Error)?.message ?? e))) {
-            return error(409, "order_subtotal_mismatch", "Tiền của đơn chưa khớp các dòng dịch vụ — mở đơn, bấm Lưu rồi xác nhận lại.");
-          }
-          const loi = e instanceof Error ? e.message : String(e);
-          // Bảng mức / điều khoản đổi giữa lúc đọc và lúc ghi (trigger terms_rule_stale / terms_term_stale): cả lô rơi, đơn vẫn nháp — bấm lại là chụp theo bảng mới.
-          if (/\bterms_(rule|term)_stale:/.test(loi)) return error(409, "bang_muc_doi", "Bảng mức vừa đổi — thử lại");
-          // Người khác lưu nháp giữa lúc đọc và lúc ghi, dòng dịch vụ đổi mã (lưu nháp xoá–chèn lại dịch vụ): bản chụp trỏ dòng không còn ⇒ cả lô rơi (trigger terms_service_mismatch).
-          if (/\bterms_service_mismatch:/.test(loi)) return STALE();
+          const res = dichLoiXacNhan(e);
+          if (res) return res;
           throw e;
         }
-        if (!daXacNhan) {
-          // Thua vì đơn đã đổi trạng thái, vì chưa đủ chuyến, hay vì còn chặng dưới mốc chưa đặt gấp? Đọc lại để trả đúng lý do (không ghi nhật ký).
-          const now = await getMeta(env.DB, id);
-          if (!now || now.status !== "draft") return RACED();
-          const stored = await getStoredServices(env.DB, id);
-          const missing = confirmGaps(stored.map((s) => ({ id: s.id, name: s.name, departDate: s.trip.departDate, pax: s.pax })), today);
-          if (missing.length > 0) {
-            return json({ error: { code: "incomplete_trip", message: "Chưa đủ thông tin chuyến để xác nhận đơn.", missing } } satisfies IncompleteTripBody, 409);
-          }
-          const daDatGap = new Set((await legDatGapByOrder(env.DB, id)).map((r) => r.id));
-          const duoi = canhBaoMocCua(stored.flatMap((s) => s.legs), daDatGap, nowMs, moc.phut);
-          if (duoi.length > 0) {
-            const legs = duoi.map((d) => ({ legId: d.legKey, phutConLai: d.phutConLai }));
-            const message = "Có lượt đưa đón mà giờ đón đã qua hạn chốt — cần đặt gấp trước khi xác nhận.";
-            return json({ error: { code: "short_notice_required", message, legs } } satisfies ShortNoticeRequiredBody, 409);
-          }
-          return STALE(); // vừa có người sửa / bổ sung xong (kể cả khoá phiên bản `updated_at` của câu xác nhận) — tải lại rồi bấm lại
-        }
+        if (!daXacNhan) return chanDoanXacNhan(env.DB, { id, today: cong.today, mocToiThieu: moc!, nowMs });
       }
       baoThayDoi({ orderId: id, thayDoi: to === "cancelled" ? "huy" : "xac_nhan" });
       return json({ order: (await loadOrderView(env.DB, id, xemDuDatGap(staff)))!, ...(dongBo ? { dongBoChuyen: dongBo } : {}) } satisfies OrderResponse);

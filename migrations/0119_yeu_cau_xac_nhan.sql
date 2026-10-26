@@ -17,7 +17,9 @@ CREATE TABLE ord_confirm_request (
   ticket        TEXT,
   note          TEXT CHECK (note IS NULL OR length(note) <= 300),
   created_at    TEXT NOT NULL,
-  updated_at    TEXT NOT NULL
+  created_by    TEXT,                                  -- cột WHO không khoá ngoại (ADR-0003)
+  updated_at    TEXT NOT NULL,
+  updated_by    TEXT
 );
 CREATE UNIQUE INDEX ord_confirm_request_one_open ON ord_confirm_request(order_id) WHERE decided_at IS NULL;
 CREATE INDEX ord_confirm_request_order ON ord_confirm_request(order_id, submitted_at);
