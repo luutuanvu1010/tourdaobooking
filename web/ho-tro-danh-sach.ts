@@ -33,7 +33,7 @@ const TRANG_THAI: { key: string; nhan: string; ds: FeedbackStatus[] }[] = [
 ];
 
 // Bộ lọc giữ qua các lần dựng lại (đổi thẻ, nạp lại danh sách khi luồng đổi).
-let loc: LocHangDoi = "ALL";
+let loc: LocHangDoi = "UNASSIGNED"; // bản vẽ ho-tro-ban-2: «Việc của nhóm» mở ra ở «Chưa ai nhận»
 let khoaTrangThai = "mo";
 let tim = "";
 let nhomChon = "";
@@ -79,6 +79,7 @@ export function veDanhSach(goc: HTMLElement, o: TuyChonDanhSach): { napLai(): vo
   replaceChildren(goc, oHangDoi ? khungLoc : null, khungDs, chanDs);
 
   function veLoc(): void {
+    const dangLay = lanLoc.contains(document.activeElement) ? (document.activeElement as HTMLElement).dataset.loc : undefined; // giữ tiêu điểm khi vẽ lại
     replaceChildren(
       lanLoc,
       ...THU_TU_LOC.map((k) => {
@@ -91,6 +92,7 @@ export function veDanhSach(goc: HTMLElement, o: TuyChonDanhSach): { napLai(): vo
         return b;
       }),
     );
+    if (dangLay) lanLoc.querySelector<HTMLElement>(`[data-loc="${dangLay}"]`)?.focus();
   }
 
   function dongYeuCau(t: Api.FeedbackTicketDto): HTMLElement {

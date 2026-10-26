@@ -52,6 +52,7 @@ function nutNhanViec(t: Api.FeedbackTicketDto, nhan: string, after: () => void):
   b.addEventListener("click", async () => {
     await act(() => api<Api.FeedbackDetailResponse>(`/api/feedback/${t.id}/claim`, { method: "POST" }), b);
     after();
+    void napHuyHieu(); // việc vừa nhận không còn «chưa ai nhận»: huy hiệu đếm lại
   });
   return b;
 }
@@ -62,21 +63,40 @@ let idDangMo = params.get("id");
 let dsDangDung: { napLai(): void } | null = null;
 let theDangDung: TabHoTro | null = null;
 let demHangDoi = 0;
+/** Luồng đang mở nhưng vòng làm mới đã dừng vì người xem sang thẻ «Nhóm hỗ trợ» (R40): quay lại thẻ danh sách thì chạy lại. */
+let luongTamDung = false;
 
 function veThanhThe(): void {
+  const thanh = byId("ht-tabs");
+  const giuTieuDiem = thanh.contains(document.activeElement); // vẽ lại thanh thẻ không được làm rơi tiêu điểm bàn phím
   replaceChildren(
-    byId("ht-tabs"),
-    ...tabs.map((k) => {
-      const b = h("button", { type: "button", role: "tab", "aria-selected": String(tab === k), class: `ht-tab${tab === k ? " is-on" : ""}`, "data-tab": k },
-        NHAN_TAB[k], k === "queue" && demHangDoi > 0 && h("span", { class: "ht-dem", "aria-label": `${demHangDoi} việc chưa ai nhận` }, String(demHangDoi)));
-      b.addEventListener("click", () => {
+    thanh,
+    ...tabs.map((k, i) => {
+      const b = h("button", {
+        type: "button", role: "tab", id: `ht-tab-${k}`, "aria-selected": String(tab === k), "aria-controls": "ht-hai-cot", tabindex: tab === k ? "0" : "-1",
+        class: `ht-tab${tab === k ? " is-on" : ""}`, "data-tab": k,
+      }, NHAN_TAB[k], k === "queue" && demHangDoi > 0 && h("span", { class: "ht-dem", "aria-label": `${demHangDoi} yêu cầu chưa đọc` }, String(demHangDoi)));
+      const chon = (): void => {
         if (tab === k) return;
         tab = k;
         void loadList();
+      };
+      b.addEventListener("click", chon);
+      b.addEventListener("keydown", (e) => {
+        const toi = e.key === "ArrowRight" ? (i + 1) % tabs.length : e.key === "ArrowLeft" ? (i - 1 + tabs.length) % tabs.length : e.key === "Home" ? 0 : e.key === "End" ? tabs.length - 1 : -1;
+        if (toi < 0) return;
+        e.preventDefault();
+        const moi = tabs[toi]!;
+        if (tab !== moi) {
+          tab = moi;
+          void loadList(); // vẽ lại thanh thẻ và giữ tiêu điểm ở thẻ mới
+        } else byId(`ht-tab-${moi}`).focus();
       });
       return b;
     }),
   );
+  if (giuTieuDiem) byId(`ht-tab-${tab}`).focus();
+  byId("ht-hai-cot").setAttribute("aria-labelledby", `ht-tab-${tab}`);
   byId("ht-gui").className = tab === "mine" ? "btn btn-primary" : "btn";
 }
 
@@ -103,6 +123,10 @@ async function loadList(): Promise<void> {
     dsDangDung = null;
     theDangDung = null;
     byId("ht-luong").hidden = true;
+    if (idDangMo && !luongTamDung) {
+      dungLuong(); // luồng bị ẩn thì không làm mới ngầm
+      luongTamDung = true;
+    }
     const list = h("div", { id: "list" });
     replaceChildren(goc, list);
     try {
@@ -112,7 +136,13 @@ async function loadList(): Promise<void> {
     }
     return;
   }
-  if (idDangMo) byId("ht-luong").hidden = false; // luồng đang mở vẫn hiện khi đổi thẻ ở máy tính
+  if (idDangMo) {
+    byId("ht-luong").hidden = false; // luồng đang mở vẫn hiện khi đổi thẻ ở máy tính
+    if (luongTamDung) {
+      luongTamDung = false;
+      moLuong(byId("ht-luong"), idDangMo, ngCanh);
+    }
+  }
   if (dsDangDung && theDangDung === tab) dsDangDung.napLai();
   else {
     theDangDung = tab;
@@ -227,7 +257,10 @@ const ngCanh: NgCanhLuong = {
   staffId: staff.id,
   teams,
   dong: () => dongLuong(),
-  napLaiDs: () => dsDangDung?.napLai(),
+  napLaiDs: () => {
+    dsDangDung?.napLai();
+    void napHuyHieu(); // mở luồng là đã đọc: huy hiệu giảm
+  },
   chuyenXong: () => location.replace("/feedback?chuyen=1"),
 };
 
@@ -249,6 +282,8 @@ function hienLuong(id: string): void {
 /** Ẩn luồng (không đụng địa chỉ): mọi đường đóng đều đi qua đây nên thanh tab luôn hiện lại. */
 function anLuong(): void {
   dungLuong();
+  luongTamDung = false;
+  void napHuyHieu();
   danhDauDangMo(null);
   document.body.classList.remove("ht-luong-mo");
   datThanhTab(true);
