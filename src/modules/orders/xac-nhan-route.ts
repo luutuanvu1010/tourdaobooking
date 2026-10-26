@@ -2,7 +2,7 @@
 // Tệp riêng để `index.ts` (cửa vào module) không phình thêm và để KHÔNG import vòng: tệp này chỉ import `repository.ts`, `xac-nhan-chung.ts`, `xac-nhan-repo.ts` và các module khác QUA `index.ts` của chúng.
 // SQL ở `xac-nhan-repo.ts` (nửa nghiêm). KHÔNG tự kiểm quyền bằng vai hồ sơ; mọi cổng hỏi `can(…)` viết thẳng ô.
 import { auditStatement } from "../audit";
-import type { DonChoXacNhanDto, DonChoXacNhanResponse, GuiXacNhanResponse, LyDoCanXacNhan, QuyetDinhXacNhanResponse, ShortNoticeRequiredBody, YeuCauXacNhanDto } from "../../shared/contracts";
+import type { CaiDatXacNhanResponse, DonChoXacNhanDto, DonChoXacNhanResponse, GuiXacNhanResponse, LyDoCanXacNhan, QuyetDinhXacNhanResponse, ShortNoticeRequiredBody, YeuCauXacNhanDto } from "../../shared/contracts";
 import { UUID_RE, error, json, readJson, trangDon } from "../../shared/http";
 import { can, holdsIntern, holdsPartner } from "../../shared/permissions";
 import { route } from "../../shared/router";
@@ -14,7 +14,8 @@ import { isHHMM, isISODate, vnToday } from "../../shared/vn-date";
 import { duocQuyetDinh, hanXacNhan, quaHanXacNhan } from "../../shared/xac-nhan-don";
 import { chiNguoiLapGhiNhap } from "../../shared/xem-don-nhap";
 import { canhBaoMocCua } from "./dat-gap";
-import { cauDoiGioChang, cauDoiNgayChang, cauDoiNgayDichVu, cauGhiKepGio, cauKhepYeuCau, cauMoYeuCau, orderTouchDraft, tuXacNhanNoiBo, yeuCauMoCuaDon, yeuCauMoTatCa, yeuCauTheoId, type YeuCauRow } from "./xac-nhan-repo";
+import { getEffectiveServices } from "../catalog";
+import { cauDoiGioChang, cauDoiNgayChang, cauDoiNgayDichVu, cauGhiKepGio, cauKhepYeuCau, cauMoYeuCau, cauThemChinhSach, cauThemCo, chinhSachMoiNhat, coHienHanh, coMoiNhat, nhomDangDung, orderTouchDraft, tuXacNhanNoiBo, yeuCauMoCuaDon, yeuCauMoTatCa, yeuCauTheoId, type YeuCauRow } from "./xac-nhan-repo";
 import { legDatGapByOrder, slotPolicy } from "./chang-hanh-khach-repo";
 import { daHuy, findOrder, getMeta, nextStamp, soanHuyDon, soanXacNhan } from "./repository";
 import { MOC_CHUA_CO, RACED, STALE, chanDoanXacNhan, chayLoNoiChuyen, dichLoiXacNhan, kemChupXacNhan, kiemCongXacNhan, tinhCanXacNhan } from "./xac-nhan-chung";
@@ -25,6 +26,11 @@ const dtoYeuCau = (y: YeuCauRow, vi: LyDoCanXacNhan[], nowMs: number): YeuCauXac
 const NOT_FOUND_DON = () => error(404, "not_found", "Không tìm thấy đơn.");
 const DA_GIAO_DON = () => error(409, "order_delivered", "Đơn đã ở bước Đã giao – đã thu đủ: không sửa, huỷ hay đổi người phụ trách được nữa.");
 const FORBIDDEN_NGUOI_LAP = () => error(403, "forbidden", "Chỉ người lập đơn mới gửi hoặc rút lại yêu cầu xác nhận.");
+
+async function docCaiDat(db: D1Database, luc: string): Promise<CaiDatXacNhanResponse> {
+  const [co, tu] = await Promise.all([coHienHanh(db, luc), tuXacNhanNoiBo(db, luc)]);
+  return { dongCo: co.map((r) => ({ pham: r.scope as "SERVICE" | "GROUP", ma: r.code, canXacNhan: r.required === 1 })), tuXacNhanNoiBo: tu };
+}
 
 export const xacNhanRoutes = [
   // DANH SÁCH CHỜ (Đ6, Đ9): MỌI yêu cầu đang mở cho người giữ ô `order.confirm.review` — dịch vụ, ngày, số khách, giờ đón, tiền, hạn; KHÔNG tên khách / SĐT / email (DTO không có chỗ chứa).
@@ -264,5 +270,48 @@ export const xacNhanRoutes = [
     }
     baoThayDoi({ orderId: id, thayDoi: "xac_nhan" });
     return json({ ketQua, trangThai: "confirmed" } satisfies QuyetDinhXacNhanResponse);
+  }),
+
+  // CÀI ĐẶT CỜ «CẦN XÁC NHẬN» VÀ CÔNG TẮC TỰ XÁC NHẬN (Đ1, Đ5): cổng admin, thân hỏi `settings.ops` (hôm nay chỉ Toàn quyền). Khuôn đúng `/api/cai-dat/nhap-tay`: mỗi lần đổi chèn MỘT
+  // dòng mới chỉ-thêm với valid_from_at = max(lúc ghi, mới nhất + 1 ms) cùng nhật ký không gắn đơn; gửi đúng trạng thái đang hiệu lực = 200, không ghi; va UNIQUE → 409 `stale`.
+  // Cờ chỉ đặt cho mã danh mục có thật (dịch vụ nhập tay không có mã → 400) hoặc nhóm đang có dịch vụ.
+  route("GET", "/api/cai-dat/xac-nhan-don", "admin", async ({ env, staff }) => {
+    if (!can(staff, "settings.ops")) return error(403, "forbidden", "Chỉ Toàn quyền xem cài đặt xác nhận đơn.");
+    return json(await docCaiDat(env.DB, new Date().toISOString()));
+  }),
+  route("POST", "/api/cai-dat/xac-nhan-don", "admin", async ({ env, request, staff }) => {
+    if (!can(staff, "settings.ops")) return error(403, "forbidden", "Chỉ Toàn quyền đổi cài đặt xác nhận đơn.");
+    const b = (await readJson(request)) as Record<string, unknown> | null;
+    if (!b || typeof b !== "object") return error(400, "invalid_input", "Thiếu nội dung cài đặt.");
+    const now = new Date();
+    const lanSau = (moiNhat: string | null): string => (moiNhat && Date.parse(moiNhat) >= now.getTime() ? new Date(Date.parse(moiNhat) + 1) : now).toISOString();
+    const luu = async (cau: D1PreparedStatement, action: "confirm_flag_changed" | "confirm_policy_changed", at: string, detail: string): Promise<Response | null> => {
+      try {
+        await env.DB.batch([cau, auditStatement(env.DB, { staffId: staff.id, action, at, targetType: "system", detail })]);
+        return null;
+      } catch (e) {
+        if (/UNIQUE/i.test(String((e as Error)?.message ?? e))) return error(409, "stale", "Cài đặt vừa được đổi — tải lại rồi thử lại.");
+        throw e;
+      }
+    };
+    if (typeof b.tuXacNhanNoiBo === "boolean") {
+      if ((await tuXacNhanNoiBo(env.DB, now.toISOString())) !== b.tuXacNhanNoiBo) {
+        const at = lanSau(await chinhSachMoiNhat(env.DB));
+        const loi = await luu(cauThemChinhSach(env.DB, { id: crypto.randomUUID(), bat: b.tuXacNhanNoiBo, at, by: staff.id }), "confirm_policy_changed", at, b.tuXacNhanNoiBo ? "Bật tự xác nhận cho nhân viên nội bộ" : "Tắt tự xác nhận cho nhân viên nội bộ");
+        if (loi) return loi;
+      }
+      return json(await docCaiDat(env.DB, new Date().toISOString()));
+    }
+    const { pham, ma, canXacNhan } = b;
+    if ((pham !== "SERVICE" && pham !== "GROUP") || typeof ma !== "string" || ma.trim() === "" || typeof canXacNhan !== "boolean") return error(400, "invalid_input", "Chọn dịch vụ hoặc nhóm và bật / tắt cần xác nhận.");
+    const coThat = pham === "SERVICE" ? (await getEffectiveServices(env.DB, [ma])).has(ma) : await nhomDangDung(env.DB, ma);
+    if (!coThat) return error(400, "invalid_input", pham === "SERVICE" ? "Mã dịch vụ không có trong danh mục." : "Nhóm này chưa có dịch vụ nào.");
+    const hien = (await coHienHanh(env.DB, now.toISOString())).find((r) => r.scope === pham && r.code === ma);
+    if ((hien?.required === 1) !== canXacNhan) {
+      const at = lanSau(await coMoiNhat(env.DB));
+      const loi = await luu(cauThemCo(env.DB, { id: crypto.randomUUID(), pham, ma, can: canXacNhan, at, by: staff.id }), "confirm_flag_changed", at, `${pham === "SERVICE" ? "Dịch vụ" : "Nhóm"} ${ma}: ${canXacNhan ? "cần xác nhận" : "không cần xác nhận"}`);
+      if (loi) return loi;
+    }
+    return json(await docCaiDat(env.DB, new Date().toISOString()));
   }),
 ];

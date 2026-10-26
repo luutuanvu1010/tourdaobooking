@@ -159,3 +159,7 @@ export async function nhomTheoMa(db: D1Database, maDichVu: readonly string[]): P
   const { results } = await db.prepare(NHOM_THEO_MA).bind(JSON.stringify([...new Set(maDichVu)])).all<{ catalog_code: string; group_code: string | null }>();
   return new Map(results.flatMap((r) => (r.group_code === null ? [] : [[r.catalog_code, r.group_code] as const])));
 }
+
+/** Nhóm có ít nhất một dịch vụ đang xếp vào (qua view công bố) — để từ chối cờ đặt cho mã nhóm không có thật. */
+const NHOM_CO_DICH_VU = defineSql("orders", "service_group_in_use", `SELECT 1 AS co FROM v_ctl_service_group WHERE group_code = ?1 LIMIT 1`);
+export const nhomDangDung = async (db: D1Database, ma: string): Promise<boolean> => (await db.prepare(NHOM_CO_DICH_VU).bind(ma).first()) !== null;
