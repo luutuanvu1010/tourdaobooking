@@ -386,7 +386,7 @@ function renderReview(alerts: ReviewAlerts | null): void {
 
 // ---- "Việc của bạn" (Trang chủ MÁY TÍNH, bốn vai văn phòng — đặc tả 2026-10-14-menu-may-tinh-viec-cua-ban §3, §5) ------------------------------------------
 // Luật chọn thẻ + nguồn cần tải ở src/shared/viec-cua-ban.ts (hàm thuần, có bài). Ở đây chỉ tải số và vẽ. Điện thoại ẩn khối này bằng CSS và vẫn dùng #dash-so.
-const ICON_VIEC: Record<KhoaThe, IconName> = { xemLai: "alert", dieuChinh: "doc-check", nhap: "doc-check", conThieu: "money", chuaPhuTrach: "assign", chuyenHomNay: "clock", gopY: "chat" };
+const ICON_VIEC: Record<KhoaThe, IconName> = { xemLai: "alert", dieuChinh: "doc-check", nhap: "doc-check", conThieu: "money", chuaPhuTrach: "assign", chuyenHomNay: "clock", gopY: "chat", donCho: "clock" };
 /** Số "Cần xem lại" lần tải đầy đủ gần nhất — lần làm mới lặng lẽ (Bảng tin) không chạy lại loadReview nên dùng số này. */
 let soXemLaiGanNhat: number | null = 0;
 /** Hai nguồn ngoài (điều chỉnh công nợ, góp ý) lần tải gần nhất; chỉ tải khi khối "Việc của bạn" thật sự hiện (điện thoại ẩn nó) và chưa có số, làm mới lặng lẽ dùng lại. */
@@ -402,6 +402,18 @@ function cuonToi(id: string): void {
   dich.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
   dich.tabIndex = -1;
   dich.focus({ preventScroll: true });
+}
+
+/** Dải «Đơn chờ xác nhận» của ĐIỆN THOẠI (CSS ẩn từ 641px — máy tính dùng thẻ trong "Việc của bạn"). Không có đơn / người không giữ ô / nguồn lỗi → ẩn (thẻ máy tính tự hiện "—" + Thử lại). */
+function datDaiDonChoDienThoai(donCho: { count: number; quaHan: number } | null | undefined): void {
+  const el = byId("dash-cho-dt");
+  if (!donCho || donCho.count === 0) {
+    el.hidden = true;
+    return;
+  }
+  el.hidden = false;
+  el.classList.toggle("dash-cho-dt-qua-han", donCho.quaHan > 0);
+  replaceChildren(el, icon("clock", 18), `${donCho.count} đơn chờ xác nhận${donCho.quaHan > 0 ? ` · ${donCho.quaHan} quá hạn` : ""}`);
 }
 
 /** Một thẻ việc: biểu tượng + nhãn (đọc trước), số lớn, dòng phụ, MỘT nút làm tiếp. Nguồn lỗi (`so === null`) → "—" + "Thử lại" (tải lại số), không nút làm tiếp. */
@@ -805,7 +817,11 @@ async function taiDashboard(staff: Staff, lamMoi = false, taiMoi = false): Promi
     const lay = !ngoaiDaTai && khoiHien();
     staffDangXem = staff;
     void taiDoiChieu(staff);
-    const [data, review, unpaid, ngoai] = await Promise.all([
+    // ADR-0136 Đ9: đơn chờ xác nhận — gọi mọi khổ (điện thoại cũng cần số cho dải riêng); chỉ người giữ ô xét duyệt (`nguonCanTai`). Lỗi → null ("—"), không phải 0.
+    const layDonCho = canTai.includes("donCho")
+      ? api<Api.DonChoXacNhanResponse>("/api/orders/cho-xac-nhan").then((r) => ({ count: r.don.length, quaHan: r.don.filter((d) => d.quaHan).length }), () => null)
+      : Promise.resolve(undefined);
+    const [data, review, unpaid, ngoai, donCho] = await Promise.all([
       layDashboard(),
       lamMoi ? undefined : loadReview(staff, taiMoi || soXemLaiGanNhat === null),
       api<Api.UnpaidSummaryResponse>("/api/ledger/unpaid-summary").catch(() => null), // sổ tiền lượt 1: ô "Còn thiếu tiền" rời dashboard của orders
@@ -816,7 +832,9 @@ async function taiDashboard(staff: Staff, lamMoi = false, taiMoi = false): Promi
             canTai.includes("gopY") ? api<Api.FeedbackBadgeResponse>("/api/feedback/badge").then((r) => r.queue) : undefined,
           ])
         : null,
+      layDonCho,
     ]);
+    datDaiDonChoDienThoai(donCho);
     // Số "còn lại" cho cả ba ngày của khối "Chuyến đón" (Hôm nay / Ngày mai / Ngày kia — góp ý YC-0007); billing nhận tối đa 100 mã một lần.
     const maDon = [...new Set([...data.today, ...data.tomorrow, ...data.dayAfter].map((o) => o.id))].slice(0, 100);
     const tien = maDon.length
@@ -835,7 +853,7 @@ async function taiDashboard(staff: Staff, lamMoi = false, taiMoi = false): Promi
     // Dựng khối "Việc của bạn" SAU renderReview (thẻ "Cần xem lại" cuộn tới khối đó nên khối phải hiện cùng nguồn) và TRƯỚC dòng tóm tắt (nó lấy câu từ thẻ).
     const nguon: NguonSo = {
       nhap: data.draftCount, chuaPhuTrach: data.unassignedCount, chuyenHomNay: data.today.length, conThieu: unpaid, xemLai: soXemLaiGanNhat,
-      dieuChinh: soNgoaiGanNhat.dieuChinh, gopY: soNgoaiGanNhat.gopY,
+      dieuChinh: soNgoaiGanNhat.dieuChinh, gopY: soNgoaiGanNhat.gopY, donCho,
     };
     // Dải lỗi chung (thiếu số "Còn thiếu"): máy tính mà thẻ "Đơn còn thiếu tiền" đang hiện "—" + Thử lại thì thẻ là chỗ thử lại DUY NHẤT (không cộng nút ở dải); điện thoại (thẻ ẩn) vẫn dùng dải.
     baoLoi(unpaid || (khoiHien() && viecCuaBan(staff, nguon).the.some((t) => t.khoa === "conThieu")) ? null : LOI_SO_LIEU);

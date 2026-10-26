@@ -7,7 +7,7 @@ import type { PHAM_VI_O_TRANG_CHU } from "./pham-vi-so.ts";
 import { can, holdsPartner, seesAllOrders } from "./permissions.ts";
 import type { PermissionHolder } from "./permissions.ts";
 
-export type KhoaThe = "xemLai" | "dieuChinh" | "nhap" | "conThieu" | "chuaPhuTrach" | "chuyenHomNay" | "gopY";
+export type KhoaThe = "xemLai" | "dieuChinh" | "nhap" | "conThieu" | "chuaPhuTrach" | "chuyenHomNay" | "gopY" | "donCho";
 
 /** Số đã tải; `null` = nguồn lỗi (thẻ hiện "—" + Thử lại), KHÔNG phải 0. Khoá vắng = người này không dùng nguồn đó. */
 export interface NguonSo {
@@ -20,6 +20,8 @@ export interface NguonSo {
   readonly chuyenHomNay?: number | null;
   /** Lấy từ trường `queue` của `GET /api/feedback/badge` (không phải `mine`). */
   readonly gopY?: number | null;
+  /** ADR-0136 Đ9: đơn đang chờ xác nhận (`GET /api/orders/cho-xac-nhan`) — `quaHan` chỉ để cảnh báo, không tự huỷ. */
+  readonly donCho?: { count: number; quaHan: number } | null;
 }
 
 export interface TheViec {
@@ -37,7 +39,7 @@ const TOI_DA = 4;
 
 /** Khoá thẻ → khoá phạm vi trong `PHAM_VI_O_TRANG_CHU` (bảng chung; CHANGE-GUIDE bẫy 59(3): ô số khác phạm vi đứng cạnh nhau phải mang nhãn "Toàn công ty" / "Của tôi"). */
 export const KHOA_PHAM_VI: Readonly<Record<KhoaThe, keyof typeof PHAM_VI_O_TRANG_CHU>> = {
-  xemLai: "xemLai", dieuChinh: "dieuChinh", nhap: "donNhap", conThieu: "conThieu", chuaPhuTrach: "chuaPhuTrach", chuyenHomNay: "chuyenHomNay", gopY: "gopY",
+  xemLai: "xemLai", dieuChinh: "dieuChinh", nhap: "donNhap", conThieu: "conThieu", chuaPhuTrach: "chuaPhuTrach", chuyenHomNay: "chuyenHomNay", gopY: "gopY", donCho: "donCho",
 };
 
 interface MoTa {
@@ -61,6 +63,9 @@ const khong = (): boolean => false;
 const THE: readonly MoTa[] = [
   { khoa: "xemLai", uuTien: () => 1, hien: quanTri, nhan: "Cần xem lại", nut: () => "Xem lại", href: "#dash-review", tone: "cat", chot: khong,
     phu: () => "Những điều Nền tảng đang nhắc Quản trị" },
+  // ADR-0136 Đ9: người giữ ô xét duyệt — KHÔNG đòi xem được mọi đơn (hướng dẫn viên chưa phụ trách cũng kiểm vé); đứng sau "Cần xem lại" vì là việc có hạn 15 phút.
+  { khoa: "donCho", uuTien: () => 1.5, hien: (w) => can(w, "order.confirm.review"), nhan: "Đơn chờ xác nhận", nut: () => "Kiểm vé", href: "/cho-xac-nhan", tone: "cat", chot: khong,
+    phu: (n) => (n.donCho && n.donCho.quaHan > 0 ? `${n.donCho.quaHan} đơn quá hạn — hạn 15 phút` : "Đơn đã gửi, chờ kiểm vé") },
   { khoa: "dieuChinh", uuTien: (w) => (quanTri(w) ? 8 : 2), hien: (w) => can(w, "ledger.adjust.approve") && !holdsPartner(w), nhan: "Điều chỉnh công nợ chờ duyệt", nut: () => "Duyệt",
     href: "/dieu-chinh-cong-no", tone: "xanh", chot: khong, phu: () => "Yêu cầu đang chờ bạn duyệt" },
   // Số đơn nháp là của CHÍNH người xem (ADR-0135 Đ3: nháp là vùng riêng của người lập): nút chốt (san hô) "Xác nhận đơn" cho người xác nhận được mọi đơn; vai khác "Xem đơn nháp".
@@ -88,6 +93,7 @@ const theoUuTien = (who: PermissionHolder): MoTa[] => [...THE].sort((a, b) => a.
 
 /** Số của thẻ từ nguồn: `undefined` = chưa có nguồn (không thẻ); `null` = nguồn lỗi; còn lại là số thật. */
 function soCua(khoa: KhoaThe, nguon: NguonSo): number | null | undefined {
+  if (khoa === "donCho") return nguon.donCho === undefined ? undefined : nguon.donCho === null ? null : nguon.donCho.count;
   if (khoa === "conThieu") return nguon.conThieu === undefined ? undefined : nguon.conThieu === null ? null : nguon.conThieu.count;
   return nguon[khoa];
 }

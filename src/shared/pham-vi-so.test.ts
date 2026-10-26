@@ -10,7 +10,7 @@ test("bốn ô số Trang chủ: Còn thiếu + Chưa phụ trách 'Toàn công 
   assert.deepEqual(PHAM_VI_O_TRANG_CHU, {
     conThieu: "TOAN_CONG_TY", donNhap: "CUA_TOI", chuaPhuTrach: "TOAN_CONG_TY", doanhThu: "CUA_TOI",
     // thẻ "Việc của bạn" (máy tính): điều chỉnh = phần chờ CHÍNH người xem duyệt
-    dieuChinh: "CUA_TOI", xemLai: "TOAN_CONG_TY", chuyenHomNay: "TOAN_CONG_TY", gopY: "TOAN_CONG_TY",
+    dieuChinh: "CUA_TOI", xemLai: "TOAN_CONG_TY", chuyenHomNay: "TOAN_CONG_TY", gopY: "TOAN_CONG_TY", donCho: "TOAN_CONG_TY",
   });
   assert.deepEqual(NHAN_PHAM_VI, { TOAN_CONG_TY: "Toàn công ty", CUA_TOI: "Của tôi" });
   // ADR-0135 Đ3: không còn khoá nào tên `choXacNhan` (nhường tên cho thẻ đơn chờ xác nhận của ADR-0136); số nháp là số của chính người xem.
@@ -34,6 +34,6 @@ test("web/home.ts: thẻ 'Việc của bạn' vẽ nhãn phạm vi từ bảng c
   assert.match(tv, /PHAM_VI_O_TRANG_CHU\[KHOA_PHAM_VI\[t\.khoa\]\]/);
   assert.match(tv, /data-pham-vi/);
   const { KHOA_PHAM_VI } = await import("./viec-cua-ban.ts");
-  assert.equal(Object.keys(KHOA_PHAM_VI).length, 7);
+  assert.equal(Object.keys(KHOA_PHAM_VI).length, 8);
   for (const k of Object.values(KHOA_PHAM_VI)) assert.ok(k in PHAM_VI_O_TRANG_CHU, k);
 });

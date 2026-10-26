@@ -20,4 +20,5 @@ export const PHAM_VI_O_TRANG_CHU = {
   xemLai: "TOAN_CONG_TY",
   chuyenHomNay: "TOAN_CONG_TY",
   gopY: "TOAN_CONG_TY",
+  donCho: "TOAN_CONG_TY", // ADR-0136 Đ9: đơn đang chờ xác nhận của cả công ty
 } as const satisfies Record<string, PhamVi>;
