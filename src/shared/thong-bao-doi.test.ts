@@ -177,8 +177,10 @@ test("NT-B9 Đối tác / Thực tập: có tin đổi của đơn MÌNH lập; 
   for (const s of [BX, NGAN]) {
     assert.deepEqual(hop(s, [doi()], "tat-ca").tin, [], `${s.id}: đơn của Lan`);
     const cuaMinh = { ownerId: s.id, phuTrach: { coNguoi: true, staffId: "hung" } };
-    assert.deepEqual(hop(s, [doi({ ...cuaMinh, action: "confirmed", detail: null, sauXacNhan: undefined })], "tat-ca").tin, [], `${s.id}: tin xác nhận vẫn không`);
-    assert.deepEqual(hop(s, [doi({ ...cuaMinh, action: "cancelled", detail: null })], "tat-ca").tin, [], `${s.id}: tin huỷ vẫn không`);
+    // ADR-0136 Đ10 (Task 3.5): người lập Đối tác / Thực tập NHẬN tin xác nhận và huỷ của đơn MÌNH lập (không kèm tên người làm); đơn người khác vẫn không (dòng đầu).
+    assert.equal(hop(s, [doi({ ...cuaMinh, action: "confirmed", detail: null, sauXacNhan: undefined })], "tat-ca").tin.length, 1, `${s.id}: tin xác nhận đơn mình lập`);
+    assert.equal(hop(s, [doi({ ...cuaMinh, action: "cancelled", detail: null })], "tat-ca").tin.length, 1, `${s.id}: tin huỷ đơn mình lập`);
+    assert.deepEqual(hop(s, [doi({ action: "confirmed", detail: null, sauXacNhan: undefined })], "tat-ca").tin, [], `${s.id}: tin xác nhận đơn người khác vẫn không`);
     assert.equal(hop(s, [doi(cuaMinh)]).tin.length, 1);
   }
 });

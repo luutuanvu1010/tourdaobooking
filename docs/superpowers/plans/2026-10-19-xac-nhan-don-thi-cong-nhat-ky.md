@@ -191,3 +191,35 @@ Kết quả > 0: chủ quyết cách xử lý các nháp đó (huỷ chúng rơi
 - Cổng «luật bán» chưa có (lượt 2); chỗ móc: ngay sau `kiemCongXacNhan`, trước phân nhánh.
 - Tài khoản lai Kế toán + Đối tác: không làm (bộ nhớ dự án: không thể tồn tại; R-LC-1 chưa bắt lai chỉ theo mã quyền — nợ có sẵn, chờ chủ chọn lưới).
 - E2E đỏ CÓ SẴN ở `main` của nhánh trước L5 (đã xác nhận trên bản chép sạch của `9a93e175`): `trip` (`trip.mjs:163`), `booker` (`booker.mjs:188`), `cam-ket-xe` (`cam-ket-xe.mjs:62`) — Quản trị / Bán hàng khác xác nhận hoặc sửa nháp của người khác nay 404 (ADR-0135 Đ2); không phải do L5, không sửa vì ngoài phạm vi. `catalog` đỏ một lần trong lượt chạy toàn bộ (`bootstrap song song ghi nhật ký đồng bộ 0 lần`), chạy riêng xanh: có vẻ do tải máy, chưa tái hiện.
+
+## Lần giao L6 (26–27/10, trợ lý thi công; Task 3.5 — CHƯA kiểm độc lập)
+
+**Phạm vi**: giao diện bước xác nhận đơn và «Gửi đơn». Làm: trang đơn (khối `xacNhan` do máy chủ gửi; nút «Gửi đơn» / «Gửi xác nhận» / «Rút lại», dải «Chờ xác nhận», bảng «Xác nhận đơn» Còn vé / Hết vé / Huỷ, ảnh xác nhận chỉ sau khi đã xác nhận); form lập đơn («Gửi đơn» = lưu rồi gửi; gửi hỏng thì vào trang nháp vừa lưu, không tạo nháp trùng); trang `/cho-xac-nhan`; thẻ Trang chủ «Đơn chờ xác nhận» (máy tính + dải điện thoại); ô Điều phối đổi chữ thành «CHỜ XÁC NHẬN»; tin báo Đ10; Trợ giúp Đối tác nói «Gửi đơn». KHÔNG làm: Task 3.3b, kịch bản Chrome cũ (L7), gỡ ô lọc dịch vụ (L8). Commit theo thứ tự: `1653a01d` (khối `xacNhan`), `5717e879`, `f375cc76`, `2f871d73`, `3504803e`, `c989a11e` (Trợ giúp).
+
+**Rulings (bề mặt, đảo được)**
+- Giao diện chỉ ẩn/hiện theo cờ máy chủ gửi (`canXacNhan`, `quyetDinhDuoc`, `yeuCau`); hạn do máy chủ tính, giao diện chỉ đổi ra chữ («còn N phút» khi ≤ 60 phút, còn xa thì nói giờ hạn). Địa chỉ không mang SĐT/tên: chỉ một chữ cái nhánh `gui=A|B` và cờ `guiloi=1`; câu lỗi máy chủ để ở `sessionStorage`.
+- Người xét duyệt (không phải người lập) thấy trang đơn chờ đã cắt: không tên / SĐT / ghi chú khách, không hành khách, không biên nhận, không ảnh.
+- Mục «Chờ xác nhận» ở thanh bên KHÔNG thêm (trần 10 mục và bài HDV): chỉ là trang (`TRANG`, `TRANG_TOI`) + thẻ Trang chủ, đúng điều kế hoạch yêu cầu.
+- Tin báo: nhãn kết nối Bảng tin mới `xet-duyet` cho nháp đang chờ (nháp riêng tư ADR-0135: chỉ người lập và người giữ `order.confirm.review`); Đối tác nhận tin xác nhận / huỷ của đơn MÌNH lập, câu tin không kèm tên người làm.
+- Trợ giúp Đối tác: bài khoá chữ + tên nút (không còn «Lưu, chờ xác nhận» / [[Xác nhận đơn]], có «Gửi đơn», «Rút lại», hai câu báo nguyên văn). Bộ xếp hạng của Trợ lý rất nhạy với độ dài chữ: một câu «Đơn đi vào nhánh chờ xác nhận, và văn phòng phải … rồi mới xác nhận được» làm bài Đ6 đỏ — đã rút gọn, KHÔNG nới bài. Không thêm mục vào Hướng dẫn Bán hàng (làm đỏ A4 30 phút và các bài trợ lý).
+- Các bài đã khoá giá trị cũ được cập nhật theo luật mới (hợp lệ): `THAY_DOI` 13 giá trị, `nhanKetNoi` thêm `xet-duyet`, `web-push` ánh xạ, `viec-cua-ban` / `pham-vi-so` (thẻ `donCho`), `thong-bao.test.ts` (Đối tác chủ đơn nay nhận tin xác nhận).
+
+**Nhãn chữ MỚI cần chủ duyệt**: «Gửi xác nhận» / «Rút lại» (từ kế hoạch Task 3.5, chưa chủ duyệt riêng), «Cần Quản trị đặt gấp», «Quá hạn», «Chờ xác nhận · còn N phút», câu giải thích tiền khoá («Đơn đang chờ nên tiền chỉ để xem. Muốn đổi tiền, hãy chọn Huỷ để người lập đơn tạo lại.» — thuộc Hướng 2 tạm), «Đơn chờ xác nhận» / «Kiểm vé» ở thẻ Trang chủ, câu «Đơn đã được lưu nháp nhưng chưa gửi được: …».
+
+**Bài đỏ → xanh** (viết đỏ trước): `order-view-xac-nhan.test.ts` (5), `xac-nhan-hien-thi.test.ts`, `xac-nhan-trang-don.test.ts` (5, khung thử máy chủ), `viec-cua-ban-don-cho.test.ts`, `thong-bao-xac-nhan.test.ts` (7), `huong-dan-doi-tac-gui-don.test.ts` (3).
+
+**Đột biến đã quan sát** (đỏ → hoàn nguyên): khối `xacNhan` ép `choTuXacNhan` thành `true` ⇒ bài `xac-nhan-trang-don` đỏ; Trợ giúp thay `[[Gửi đơn]]` ⇒ `huong-dan-doi-tac-gui-don` đỏ; dời `xac-nhan-hien-thi.ts` ⇒ bài chữ đỏ; kịch bản Chrome: đổi nhãn nút «Gửi đơn» thành «Gửi đơn X» ⇒ kịch bản `xac-nhan-smoke` đỏ 5 bước (rồi hoàn nguyên, xanh 10/10).
+
+**Kịch bản Chrome mới** `docs/evidence/2026-10-26-xac-nhan-don/kich-ban/xac-nhan-smoke.mjs`: 10 bước xanh, có axe (AXE_JS = bản axe-core có sẵn trong cache npx; Chrome qua `chrome-wrap.sh`), ảnh ở `docs/evidence/2026-10-26-xac-nhan-don/anh/` (390 và 1040): Đối tác (nháp, chờ, nhánh B, đã xác nhận), Bán hàng (Gửi xác nhận, chờ), Kế toán (Trang chủ, danh sách, bảng), HDV (danh sách 390 + 1040), Quản trị (Điều phối). Kế toán mở trang sau Đối tác theo bẫy cookie chung. Bước nhánh B kiểm hộp ảnh tự mở theo chữ trên màn («XÁC NHẬN ĐƠN DỊCH VỤ») hoặc hộp thoại mở — chưa kiểm chi tiết hình ảnh PNG (đó là việc của `v1-xac-nhan-png`, đang đỏ có sẵn, xem nợ).
+
+**Hai bài sửa ở lượt đo cuối (hợp lệ, ghi để người kiểm xét)**: `goi-trang-nhe` trần gói Đơn hàng nới 96.700 → 96.800 (vượt 13 byte do dữ liệu `TRANG`/nhãn tin; có chú thích cạnh hằng số, theo tiền lệ ADR-0128) — người kiểm cân nhắc xem có muốn rút gọn thay vì nới; `thong-bao-doi` NT-B9 đổi kỳ vọng: Đối tác / Thực tập nay NHẬN tin xác nhận và huỷ của đơn mình lập (ADR-0136 Đ10), đơn người khác vẫn không.
+
+### Lệch cần chủ xử lý (L6)
+- **Cảnh báo ở màn gán nhóm Danh mục (kế hoạch Task 3.5): CHƯA làm, dừng chờ chủ.** Cờ «cần xác nhận» chỉ đọc được qua `GET /api/cai-dat/xac-nhan-don` (cổng `admin`, `settings.ops` = Toàn quyền); màn Danh mục dành cho Quản trị nên Quản trị không đọc được cờ. Muốn cảnh báo phải mở rộng hợp đồng (đưa cờ vào `CatalogAdminGroupDto` / mục danh mục) và nới ai được ĐỌC cờ — chạm quyền và hợp đồng giữa module, theo P8 phải hỏi. Phương án: (a) đưa cờ vào DTO danh mục chỉ cho người giữ `settings.ops`; (b) cho Quản trị đọc cờ (chỉ đọc); (c) bỏ cảnh báo.
+- **Giao diện cài đặt cờ «cần xác nhận» (dịch vụ / nhóm, công tắc tự xác nhận nội bộ): chưa có**; kế hoạch xếp vào Task 5.1 (trang Bảng điều khiển, cần ảnh mẫu chủ duyệt trước). Hôm nay cờ chỉ đặt được qua API (đã có route + e2e).
+
+### Nợ / điều chưa làm (L6)
+- Kịch bản Chrome CŨ đỏ vì luật mới (thuộc L7, không sửa ở đây): `trang-chu-smoke` (xác nhận đơn có dịch vụ cờ → `confirm_request_required`), `v1-xac-nhan-png` (không còn ô `prepaidAmount` từ ADR-0135), `a2-smoke-order` (bước `incomplete_trip`, đỏ có sẵn). `a2-smoke-form`, `a2-smoke-sheet` xanh. `dat-gap-smoke` báo «OK (0 bước)» — không dựa vào (kịch bản phụ thuộc giờ trong ngày).
+- Form lập đơn của Đối tác («Gửi đơn» = lưu rồi gửi, gửi hỏng → trang nháp) chưa có kịch bản Chrome riêng (đã có bài thuần và e2e API); L7.
+- Ảnh PNG xác nhận ở nhánh B: kiểm hiện hộp, không đối chiếu pixel.
+- Cảnh báo `Hạn xác nhận` hiển thị «hạn 06:15 27/10/2026» khi gửi ban đêm (đúng luật bỏ 22:00–06:00); chữ này chờ chủ xem.
