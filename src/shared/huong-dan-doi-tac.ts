@@ -13,8 +13,8 @@ export const HD_DOI_TAC: NhomHuongDan = {
 3. Bấm [[Tạo đơn]], chọn **Ngày khởi hành**, rồi chạm dịch vụ trong danh sách dưới ô [[Tìm theo tên hoặc mã dịch vụ]].
    Muốn lọc nhanh, chạm một nhóm ở hàng nhóm ngay dưới ô tìm ([[Tất cả]] để xem lại toàn bộ).
 4. Nhập số khách, tên và số điện thoại của khách.
-5. Bấm [[Lưu, chờ xác nhận]]. Nền tảng mở trang của đơn vừa lập.
-6. Kiểm lại rồi bấm [[Xác nhận đơn]]. Sau đó bấm [[Xem biên nhận]] để gửi ảnh cho khách.`,
+5. Bấm [[Gửi đơn]]. Nền tảng lưu đơn rồi gửi đi.
+6. Đơn đã xác nhận thì bấm [[Xem biên nhận]] để gửi ảnh cho khách.`,
   muc: [
     {
       tieuDe: "Menu của bạn",
@@ -57,12 +57,12 @@ Muốn đăng nhập nhanh bằng Face ID: vào [[Tôi]], phần **Đăng nhập
    - Dịch vụ có nhãn "chưa có giá" hoặc "chưa hỗ trợ" thì không chọn được.
    - Dịch vụ vừa chạm hiện "✓ đã thêm" và thẻ dịch vụ hiện bên dưới. Mỗi lúc chỉ một thẻ mở; chạm dòng gập của thẻ để mở lại.
 4. Trong thẻ dịch vụ, nhập **Số khách**: **Người lớn**, **Trẻ em**… tuỳ dịch vụ. Dòng tiền tự hiện, ví dụ "2 người lớn × giá = thành tiền". Cả đơn cần ít nhất một người lớn đi cùng; trẻ em và em bé không đi một mình.
-5. Phần **Đưa đón** trên thẻ: chọn **Đón** hoặc **Không đón** (bắt buộc trước khi xác nhận). Chọn **Đón** thì ghi giờ đón (chạm một khung giờ có sẵn, hoặc **Giờ khác** để tự gõ), **Nơi đón**, **Nơi trả** (chọn điểm có sẵn hoặc gõ tự do). Giờ đón thực tế có thể được điều chỉnh cho phù hợp tình hình hoạt động. Bấm [[Thông tin chuyến]] để ghi giờ và nơi khách có mặt, **Ghi chú dịch vụ**.
+5. Phần **Đưa đón** trên thẻ: chọn **Đón** hoặc **Không đón** (bắt buộc trước khi gửi đơn). Chọn **Đón** thì ghi giờ đón (chạm một khung giờ có sẵn, hoặc **Giờ khác** để tự gõ), **Nơi đón**, **Nơi trả** (chọn điểm có sẵn hoặc gõ tự do). Giờ đón thực tế có thể được điều chỉnh cho phù hợp tình hình hoạt động. Bấm [[Thông tin chuyến]] để ghi giờ và nơi khách có mặt, **Ghi chú dịch vụ**.
 6. Phần **Thanh toán**: chỉ còn **Giảm giá** (nếu có) và **Ghi chú thanh toán**. Đơn chưa xác nhận thì chưa ghi thu tiền được.
 7. Xem tổng tiền ở thanh dưới cùng (chạm để xem chi tiết); trên máy tính là khối **Tóm tắt** bên phải.
-8. Bấm [[Lưu, chờ xác nhận]]. Thiếu gì thì khung đỏ hiện ngay trên nút. Lưu xong, Nền tảng mở trang của đơn vừa lập.
+8. Bấm [[Gửi đơn]]. Thiếu gì thì khung đỏ hiện ngay trên nút. Đơn được lưu rồi gửi đi. Nếu chưa gửi được (ví dụ giá danh mục vừa đổi), đơn vẫn được lưu nháp, Nền tảng mở trang đơn nháp kèm lý do để bạn sửa rồi bấm [[Gửi đơn]] lại.
 
-> Ví dụ: Khách sạn "Biển Xanh" (tên đặt ra) có một gia đình 2 người lớn, 1 trẻ em muốn đi tour 4 đảo ngày 05/10. Chị Hoa (lễ tân) bấm Tạo đơn, chọn ngày 05/10, gõ "4 đảo" vào ô tìm dịch vụ và chọn dịch vụ. Chị nhập 2 người lớn, 1 trẻ em, ghi giờ đón 7:30 ở sảnh khách sạn, gõ tên và số điện thoại của khách, rồi bấm Lưu, chờ xác nhận.
+> Ví dụ: Khách sạn "Biển Xanh" (tên đặt ra) có một gia đình 2 người lớn, 1 trẻ em muốn đi tour 4 đảo ngày 05/10. Chị Hoa (lễ tân) bấm Tạo đơn, chọn ngày 05/10, gõ "4 đảo" vào ô tìm dịch vụ và chọn dịch vụ. Chị nhập 2 người lớn, 1 trẻ em, ghi giờ đón 7:30 ở sảnh khách sạn, gõ tên và số điện thoại của khách, rồi bấm Gửi đơn.
 
 ### Giá của đối tác
 
@@ -76,20 +76,21 @@ Muốn đăng nhập nhanh bằng Face ID: vào [[Tôi]], phần **Đăng nhập
 Tài khoản đối tác không chọn được hướng dẫn viên khi lập đơn. Đơn của bạn chờ nhân viên Tour Đảo nhận lo.`,
     },
     {
-      tieuDe: "Sửa đơn còn Chờ xác nhận",
-      noiDung: `1. Mở danh sách [[Đơn hàng]], bấm vào đơn.
+      tieuDe: "Sửa đơn nháp",
+      noiDung: `1. Mở danh sách [[Đơn hàng]], bấm vào đơn nháp (đơn chưa gửi).
 2. Bấm [[Sửa]]. Màn **Sửa đơn** mở ra.
-3. Sửa những gì cần, rồi bấm [[Lưu thay đổi]].`,
+3. Sửa những gì cần, rồi bấm [[Lưu thay đổi]].
+
+Đơn đã gửi và đang chờ thì bấm [[Rút lại]] trước khi sửa.`,
     },
     {
       tieuDe: "Xác nhận đơn",
-      noiDung: `1. Mở đơn đang **Chờ xác nhận**.
-2. Kiểm lại ngày, số khách, giờ đón.
-3. Bấm [[Xác nhận đơn]]. Nền tảng hỏi lại một lần. Đồng ý thì đơn chuyển sang **Đã xác nhận**.
+      noiDung: `1. Mở đơn nháp, kiểm lại ngày, số khách, giờ đón.
+2. Bấm [[Gửi đơn]]. Nền tảng báo một trong hai câu: **Đơn của bạn đã được gửi và chờ xác nhận** (nhân viên kiểm vé, bạn có thể [[Rút lại]]), hoặc **Đơn của bạn đã được chuyển đến chuyên viên phụ trách & chờ hướng dẫn viên** (đơn đã xác nhận, có ảnh biên nhận).
 
 Sau khi xác nhận, dịch vụ, số khách và tiền **bị khoá**.
 
-Nền tảng **không cho xác nhận** khi:
+Nền tảng **không cho gửi đơn** khi:
 - Có dịch vụ chưa chọn Đón hay Không đón. Nền tảng báo dịch vụ thứ mấy còn thiếu. Bấm [[Sửa]] để chọn.
 - Thiếu thông tin chuyến. Nền tảng báo "Chưa đủ thông tin chuyến để xác nhận đơn." và chỉ rõ dịch vụ còn thiếu. Bấm [[Sửa]] để bổ sung.
 - Giờ đón quá gần. Dưới nút có dòng [[Cần văn phòng đặt gấp]]. Gọi văn phòng (nhân viên bán hàng hoặc Quản trị) để đặt gấp. Khi đã đặt gấp, lượt đó có nhãn "Điều chỉnh khẩn cấp (văn phòng)" và bạn xác nhận được.
@@ -123,7 +124,7 @@ Nền tảng **không cho xác nhận** khi:
       noiDung: `Nếu Công ty tính hoa hồng cho bạn, trang đơn có khối [[Hoa hồng của bạn]]. Mỗi dịch vụ ghi **Thành tiền**, **Hoa hồng** và **Giá đại lý**, cuối khối có tổng.
 
 - Dòng ghi "Chờ Công ty cài mức" là Công ty chưa đặt mức hoa hồng cho dịch vụ đó. Bạn không cần làm gì; hoa hồng hiện khi Công ty đặt mức.
-- Đơn còn **Chờ xác nhận** ghi "Dự kiến — tính theo bảng mức hôm nay, chưa lưu". Số chốt sau khi đơn được xác nhận.
+- Đơn chưa xác nhận (nháp hoặc đang chờ xác nhận) ghi "Dự kiến — tính theo bảng mức hôm nay, chưa lưu". Số chốt sau khi đơn được xác nhận.
 - Bạn chỉ thấy tiền của chính mình, không thấy tỷ lệ hay giá vốn của Công ty.`,
     },
     {
@@ -146,7 +147,7 @@ Nền tảng ghi "Không tìm thấy dịch vụ nào khớp." Thử gõ ngắn 
 
 ### Khách đi gấp trong vài giờ tới
 
-Vẫn lập và lưu đơn được (dải vàng ghi [[Lưu nháp được. Xác nhận cần văn phòng đặt gấp.]]). Nhưng muốn xác nhận thì văn phòng phải bấm "Đặt gấp" cho lượt đó. Gọi văn phòng ngay sau khi lưu.`,
+Vẫn lập đơn và bấm [[Gửi đơn]] được (dải vàng ghi [[Lưu nháp được. Xác nhận cần văn phòng đặt gấp.]]). Nhưng muốn xác nhận thì văn phòng phải bấm "Đặt gấp" cho lượt đó. Gọi văn phòng ngay sau khi gửi.`,
     },
     {
       tieuDe: "Điều bạn không làm được — hỏi ai",
@@ -174,9 +175,9 @@ Trang chủ là màn tổng hợp của văn phòng. Tài khoản đối tác m�
 
 Đối tác dùng giá bán lẻ của danh mục nên không sửa đơn giá. Cần giá khác thì nhờ văn phòng.
 
-### Đơn tôi lưu rồi, ai sẽ lo cho khách?
+### Đơn tôi gửi rồi, ai sẽ lo cho khách?
 
-Đơn chờ nhân viên Tour Đảo bấm nhận. Khi đơn được xác nhận mà chưa có người lo, nhân viên nhận được thông báo.
+Đơn đã xác nhận chờ nhân viên Tour Đảo bấm nhận. Khi đơn được xác nhận mà chưa có người lo, nhân viên nhận được thông báo. Đơn của bạn được xác nhận hoặc bị huỷ thì bạn nhận thông báo trong hộp thông báo (không kèm tên người xử lý).
 
 ### Tôi quên mã PIN
 
