@@ -127,3 +127,5 @@ Kết quả > 0: chủ quyết cách xử lý các nháp đó (huỷ chúng rơi
 - `src/permission-enforcement.test.ts` đỏ có chủ đích tới Task 3.3, 3.4 (chưa có `can(…,"order.confirm.review")`, `can(…,"order.submit")` ở route).
 - `kiemCongXacNhan`, `chanDoanXacNhan`, `dichLoiXacNhan` chưa có bài riêng; được các bài `/status` hiện có (e2e `orders`, `dat-gap*`, `tran-giam-gia-don`, `thuc-tap-gia-route`) canh gián tiếp.
 - Trigger chặn `RUT_LAI` có vé / quyết định thiếu vé chưa đột biến riêng.
+
+**Đo cuối L3 (26/10)**: `npm test` 6311 bài, 6310 đạt, 1 đỏ CÓ CHỦ ĐÍCH (`permission-enforcement` hàng rào 1: «order.confirm.review, order.submit» chưa có lời gọi can() — hết ở Task 3.3, 3.4); bài đo giờ hook 1/1 xanh. `typecheck` 0 lỗi, `build:web` xanh. e2e `permissions orders dispatch nhap-rieng-tu` 7/7 xanh (196 giây, migration 0119 áp trên D1 local tạm, `audit-invariants` cuối xanh).
