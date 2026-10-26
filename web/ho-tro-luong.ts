@@ -6,7 +6,7 @@ import { FEEDBACK_STATUS_NAME, SAC_TRANG_THAI, buocGopY, nhanNutChuyen, statusAf
 import { tomTatThietBi } from "../src/shared/thoi-gian-tuong-doi";
 import { PRIORITIES, PRIORITY_NAME, TEAM_ROLE_NAME, type Priority } from "../src/shared/ve-ho-tro";
 import {
-  CAU_DA_CHUYEN_NHOM, CAU_KHONG_CON_TRONG_NHOM, CAU_MO_LAI, LAM_MOI_GOI_NGAY_TOI_DA, NHAN_TAI_LAI, buocChoPhep, buocLamMoi, chenSuKien, chuKyLamMoi, dauPhieuDoi, gomTin,
+  CAU_DA_CHUYEN_NHOM, CAU_KHONG_CON_TRONG_NHOM, CAU_MO_LAI, CAU_TU_CHOI_LOI_BUOC_2, LAM_MOI_GOI_NGAY_TOI_DA, NHAN_TAI_LAI, buocChoPhep, buocLamMoi, chayTuChoi, chenSuKien, chuKyLamMoi, dauPhieuDoi, gomTin,
   hienNhanViec, nguoiXuLyHienThi, nhomChuyenDuoc, type CumTin,
 } from "../src/shared/ve-ho-tro-hien-thi";
 import { ApiError, api, type Api } from "./api";
@@ -273,16 +273,52 @@ function hopNhom(b: Bo, opener: HTMLElement): void {
   });
 }
 
-/** Từ chối: Task 4 thay bằng hai bước có lý do. */
-export function tuChoi(t: Api.FeedbackTicketDto, _daGui: Set<string>, sau: () => void, opener: HTMLElement | null): void {
+/**
+ * Từ chối có lý do, hai bước (`chayTuChoi`): gửi tin lý do công khai rồi đổi trạng thái. Bước 2 lỗi ⇒ câu `CAU_TU_CHOI_LOI_BUOC_2`, hộp ghi «Lý do đã gửi»
+ * và bấm lại KHÔNG gửi lý do lần nữa (`lyDoDaGui` giữ qua cả lần mở lại hộp và lần dựng lại luồng).
+ */
+export function tuChoi(t: Api.FeedbackTicketDto, lyDoDaGui: Set<string>, sau: () => void, opener: HTMLElement | null): void {
   mo("Từ chối yêu cầu", opener, (hop) => {
-    const nut = h("button", { type: "button", class: "btn btn-primary" }, "Từ chối");
+    const nhan = h("label", { class: "ht-ly-do-nhan" }, "Lý do từ chối (người gửi sẽ đọc)");
+    const lyDo = h("textarea", { id: "ht-ly-do", rows: 4, maxLength: 4000, required: true, "aria-label": "Lý do từ chối (người gửi sẽ đọc)" });
+    nhan.append(lyDo);
+    const daGuiNote = h("p", { class: "muted", id: "ht-ly-do-da-gui" }, "Lý do đã gửi");
+    const nut = h("button", { type: "button", class: "btn btn-primary", "data-tu-choi": t.id }, "Từ chối");
+    const veTrangThai = (): void => {
+      const da = lyDoDaGui.has(t.id);
+      nhan.hidden = da;
+      daGuiNote.hidden = !da;
+    };
+    veTrangThai();
     nut.addEventListener("click", async () => {
-      const r = await chay(async () => (await api<Api.FeedbackDetailResponse>(`/api/feedback/${t.id}/xu-ly`, { method: "PATCH", body: { status: "DECLINED" } }), true), nut, hop.hienLoi);
-      if (r) hop.bt?.close(false);
-      sau();
+      if (nut.disabled) return;
+      hop.hienLoi(null);
+      nut.disabled = true;
+      hop.bt?.setBusy(true);
+      try {
+        const r = await chayTuChoi({
+          id: t.id,
+          lyDo: lyDo.value,
+          daGui: lyDoDaGui,
+          guiLyDo: () => api<Api.FeedbackDetailResponse>(`/api/feedback/${t.id}/messages`, { method: "POST", body: { body: lyDo.value.trim(), internal: false } }),
+          doiTrangThai: () => api<Api.FeedbackDetailResponse>(`/api/feedback/${t.id}/xu-ly`, { method: "PATCH", body: { status: "DECLINED" } }),
+        });
+        if (r.ok) {
+          hop.bt?.setBusy(false);
+          hop.bt?.close(false);
+        } else if (r.buoc === 0) hop.hienLoi("Ghi lý do từ chối.");
+        else if (r.buoc === 1) hop.hienLoi(thongBao(r.loi)); // bước 1 lỗi: câu máy chủ, chưa đổi trạng thái
+        else {
+          veTrangThai();
+          hop.hienLoi(CAU_TU_CHOI_LOI_BUOC_2);
+        }
+      } finally {
+        hop.bt?.setBusy(false);
+        nut.disabled = false;
+      }
+      sau(); // thành công, hay trạng thái đã đổi sẵn: nạp lại để thấy tin lý do và trạng thái mới
     });
-    return [nut];
+    return [nhan, daGuiNote, nut];
   });
 }
 

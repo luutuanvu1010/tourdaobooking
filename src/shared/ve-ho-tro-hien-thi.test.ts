@@ -4,7 +4,7 @@ import type { FeedbackMessageDto, FeedbackQueueResponse, FeedbackTeamsResponse }
 import { FEEDBACK_TRANSITIONS } from "./feedback-catalog.ts";
 import {
   CAU_DA_CHUYEN_NHOM, CAU_KHONG_CON_TRONG_NHOM, CAU_MO_LAI, CAU_TU_CHOI_LOI_BUOC_2, NHAN_TAB, NHAN_TAI_LAI, buocChoPhep, cauSuKien, cauTuanNay, chenSuKien, demTuanNay, donDienSan, gomTin,
-  LAM_MOI_LUI_MS, LAM_MOI_TRAN, buocLamMoi, chuKyLamMoi, chuaAiNhan, dauPhieuDoi, duongHangDoi, gopTin, hienNhanViec, huyHieuUuTien, nguoiXuLyHienThi, nhanDonChon, nhomChuyenDuoc, nhomHangDoi, tabHoTro,
+  LAM_MOI_LUI_MS, LAM_MOI_TRAN, buocLamMoi, chayTuChoi, chuKyLamMoi, chuaAiNhan, dauPhieuDoi, duongHangDoi, gopTin, hienNhanViec, huyHieuUuTien, nguoiXuLyHienThi, nhanDonChon, nhomChuyenDuoc, nhomHangDoi, tabHoTro,
 } from "./ve-ho-tro-hien-thi.ts";
 
 const NHOM = [
@@ -225,4 +225,36 @@ test("buocChoPhep và các câu cố định", () => {
   assert.equal(NHAN_TAI_LAI, "Tải lại yêu cầu");
   assert.equal(CAU_TU_CHOI_LOI_BUOC_2, "Đã gửi lý do nhưng chưa đổi được trạng thái. Bấm Từ chối lại.");
   assert.deepEqual(NHAN_TAB, { mine: "Yêu cầu của tôi", queue: "Việc của nhóm", teams: "Nhóm hỗ trợ" });
+});
+
+// ---- Từ chối hai bước (PR 3 Task 4; Review Focus 1) ----------------------------------------------------------------------------------
+test("chayTuChoi: bước 2 lỗi rồi bấm lại ⇒ đúng MỘT tin lý do được gửi", async () => {
+  const daGui = new Set<string>();
+  let guiLyDo = 0;
+  let doi = 0;
+  const gui = async () => void guiLyDo++;
+  const r1 = await chayTuChoi({ id: "a", lyDo: "Không làm được", daGui, guiLyDo: gui, doiTrangThai: async () => { doi++; throw new Error("mạng"); } });
+  assert.deepEqual([r1.ok, r1.ok ? 0 : r1.buoc], [false, 2]);
+  assert.equal(daGui.has("a"), true);
+  const r2 = await chayTuChoi({ id: "a", lyDo: "", daGui, guiLyDo: gui, doiTrangThai: async () => void doi++ });
+  assert.equal(r2.ok, true);
+  assert.equal(guiLyDo, 1);
+  assert.equal(doi, 2);
+  assert.equal(daGui.has("a"), false, "xong thì quên, lần từ chối sau (sau khi mở lại) phải hỏi lý do mới");
+});
+
+test("chayTuChoi: bước 1 lỗi ⇒ không đổi trạng thái, chưa đánh dấu đã gửi", async () => {
+  const daGui = new Set<string>();
+  let doi = 0;
+  const r = await chayTuChoi({ id: "b", lyDo: "x", daGui, guiLyDo: async () => { throw new Error("400"); }, doiTrangThai: async () => void doi++ });
+  assert.deepEqual([r.ok, r.ok ? 0 : r.buoc], [false, 1]);
+  assert.equal(doi, 0);
+  assert.equal(daGui.has("b"), false);
+});
+
+test("chayTuChoi: lý do rỗng khi chưa gửi ⇒ không gọi gì", async () => {
+  let n = 0;
+  const r = await chayTuChoi({ id: "c", lyDo: "   ", daGui: new Set(), guiLyDo: async () => void n++, doiTrangThai: async () => void n++ });
+  assert.equal(r.ok, false);
+  assert.equal(n, 0);
 });

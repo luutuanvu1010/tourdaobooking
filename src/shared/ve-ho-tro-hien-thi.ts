@@ -188,3 +188,29 @@ export function demTuanNay(stats: FeedbackQueueResponse["stats"], now: Date): { 
   return { tu: hai(thuHaiNgay.getUTCDate()), den: `${hai(chuNhat.getUTCDate())}/${hai(chuNhat.getUTCMonth() + 1)}`, so };
 }
 export const cauTuanNay = (v: { tu: string; den: string; so: number }): string => `Tuần này (${v.tu}–${v.den}): ${v.so} yêu cầu mới gửi tới nhóm`;
+
+/** Kết quả «Từ chối» hai bước. `buoc`: 0 = thiếu lý do (chưa gọi gì), 1 = gửi lý do lỗi (chưa đổi trạng thái), 2 = đổi trạng thái lỗi (lý do ĐÃ gửi). */
+export type KetQuaTuChoi = { ok: true } | { ok: false; buoc: 0 | 1 | 2; loi?: unknown };
+
+/**
+ * Từ chối = (1) gửi tin lý do công khai, rồi (2) đổi trạng thái. Bước 1 chỉ chạy khi `daGui` chưa có `id`; gửi được thì đánh dấu NGAY, nên bước 2 lỗi rồi bấm lại
+ * không gửi thêm tin lý do (đúng một tin trong luồng). Bước 1 lỗi ⇒ không làm bước 2. Xong cả hai ⇒ quên dấu (lần từ chối sau, khi yêu cầu được mở lại, hỏi lý do mới).
+ */
+export async function chayTuChoi(o: { id: string; lyDo: string; daGui: Set<string>; guiLyDo(): Promise<unknown>; doiTrangThai(): Promise<unknown> }): Promise<KetQuaTuChoi> {
+  if (!o.daGui.has(o.id)) {
+    if (!o.lyDo.trim()) return { ok: false, buoc: 0 };
+    try {
+      await o.guiLyDo();
+    } catch (loi) {
+      return { ok: false, buoc: 1, loi };
+    }
+    o.daGui.add(o.id);
+  }
+  try {
+    await o.doiTrangThai();
+  } catch (loi) {
+    return { ok: false, buoc: 2, loi };
+  }
+  o.daGui.delete(o.id);
+  return { ok: true };
+}

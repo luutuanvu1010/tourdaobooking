@@ -1,18 +1,16 @@
 // Trang Hỗ trợ (mã trang gopY, đường /feedback — ADR-0119 đợt 1): gửi yêu cầu tới một nhóm hỗ trợ, "Yêu cầu của tôi", luồng trả lời;
-// thành viên nhóm (và Toàn quyền) có tab "Hàng đợi nhóm" (lọc, nhận việc); Toàn quyền có thêm tab "Quản lý nhóm".
+// thành viên nhóm (và Toàn quyền) có thẻ "Việc của nhóm" (lọc, nhận việc); Toàn quyền có thêm thẻ "Nhóm hỗ trợ". Luồng ở ho-tro-luong.ts, hộp gửi ở ho-tro-gui.ts.
 // Dữ liệu qua /api/feedback*. Chuỗi từ người dùng chỉ đi qua h()/textContent. Địa chỉ: /feedback (danh sách), ?id=<uuid> (luồng), ?new=1&from=<đường dẫn> (mở form).
 // Giao diện chỉ ẩn/hiện theo `teams` / `perms` máy chủ trả về; máy chủ (quyenPhieu) luôn kiểm lại.
-import { FEEDBACK_KINDS, FEEDBACK_KIND_NAME } from "../src/shared/feedback-catalog";
 import { NHOM_KY_THUAT_ID, TEAM_ROLE_NAME, TEAM_ROLES, type TeamRole } from "../src/shared/ve-ho-tro";
-import { NHAN_TAB, nhanDonChon, nhomHangDoi, tabHoTro, type TabHoTro } from "../src/shared/ve-ho-tro-hien-thi";
-import { can, isExternalPermission } from "../src/shared/permissions";
+import { NHAN_TAB, nhomHangDoi, tabHoTro, type TabHoTro } from "../src/shared/ve-ho-tro-hien-thi";
+import { isExternalPermission } from "../src/shared/permissions";
 import { ApiError, api, type Api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
 import { veDanhSach } from "./ho-tro-danh-sach";
+import { moHopGui } from "./ho-tro-gui";
 import { dungLuong, moLuong, type NgCanhLuong } from "./ho-tro-luong";
 import { datThanhTab, initShell, showError } from "./shell";
-
-declare const __BUILD_ID__: string | undefined;
 
 const errorEl = byId("error");
 const staff = await initShell();
@@ -47,77 +45,6 @@ const tabs = tabHoTro(teams);
 const hangDoiChon = nhomHangDoi(teams);
 let tab: TabHoTro = "mine";
 let queueTeam = hangDoiChon.find((x) => teams.mine.some((m) => m.teamId === x.id))?.id ?? hangDoiChon[0]?.id ?? "";
-let clientRequestId = crypto.randomUUID(); // một lần khi mở form; giữ nguyên khi thử lại (mạng yếu) để máy chủ không tạo trùng
-
-function collectContext(): Api.FeedbackContextDto {
-  const from = params.get("from");
-  const nav = navigator as Navigator & { standalone?: boolean };
-  const ctx: Api.FeedbackContextDto = {
-    device: navigator.userAgent.slice(0, 120),
-    standalone: window.matchMedia("(display-mode: standalone)").matches || nav.standalone === true,
-  };
-  if (from && from.startsWith("/")) ctx.path = from.slice(0, 200);
-  if (typeof __BUILD_ID__ !== "undefined") ctx.appVersion = __BUILD_ID__;
-  return ctx;
-}
-
-// ---- Form gửi mới ------------------------------------------------------------------------------------------------
-const newCard = byId("new-card");
-const kindSel = byId<HTMLSelectElement>("new-kind");
-replaceChildren(kindSel, ...FEEDBACK_KINDS.map((k) => h("option", { value: k }, FEEDBACK_KIND_NAME[k])));
-const teamSel = byId<HTMLSelectElement>("new-team");
-replaceChildren(teamSel, ...teams.teams.map((t) => h("option", { value: t.id, selected: t.id === NHOM_KY_THUAT_ID }, t.name)));
-const teamHint = (): void => {
-  byId("new-team-hint").textContent = teams.teams.find((t) => t.id === teamSel.value)?.description ?? "";
-};
-teamSel.addEventListener("change", teamHint);
-teamHint();
-// Tài khoản bên ngoài chỉ gửi được nhóm Kỹ thuật (một nhóm) — không cần ô chọn; nạp nhóm lỗi (rỗng) cũng ẩn.
-const coChonNhom = teams.teams.length > 1;
-byId("new-team-label").hidden = !coChonNhom;
-
-// Ô «Đơn liên quan» (ADR-0127): chỉ đơn do chính người gửi lập (máy chủ kiểm lại lúc gửi); hỏi bảng quyền trước, không có quyền / lỗi / danh sách rỗng ⇒ ẩn ô.
-const orderSel = byId<HTMLSelectElement>("new-order");
-let daNapDon = false;
-async function napDonCuaToi(): Promise<void> {
-  if (daNapDon || !can(staff, "order.view", { ownerId: staff.id })) return;
-  daNapDon = true;
-  try {
-    const r = await api<Api.FeedbackMyOrdersResponse>("/api/feedback/my-orders");
-    replaceChildren(orderSel, h("option", { value: "" }, "Không gắn đơn"), ...r.orders.map((o) => h("option", { value: o.id }, nhanDonChon(o))));
-    byId("new-order-label").hidden = r.orders.length === 0;
-  } catch {
-    daNapDon = false; // để lần mở form sau thử lại; ô vẫn ẩn
-  }
-}
-
-function openForm(): void {
-  void napDonCuaToi();
-  const ctx = collectContext();
-  byId("new-context").textContent = `Sẽ đính kèm tự động: ${ctx.path ? `trang ${ctx.path}, ` : ""}thiết bị của bạn${ctx.standalone ? " (Nền tảng đã cài)" : ""}${ctx.appVersion ? `, phiên bản ${ctx.appVersion}` : ""}.`;
-  newCard.hidden = false;
-  byId("new-title").focus();
-}
-byId("new-cancel").addEventListener("click", () => (newCard.hidden = true));
-byId<HTMLFormElement>("new-form").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const btn = byId<HTMLButtonElement>("new-submit");
-  const body: Api.FeedbackCreateInput = {
-    kind: kindSel.value as Api.FeedbackKind,
-    title: byId<HTMLInputElement>("new-title").value,
-    body: byId<HTMLTextAreaElement>("new-body").value,
-    clientRequestId,
-    context: collectContext(),
-  };
-  if (coChonNhom && teamSel.value) body.teamId = teamSel.value;
-  if (!byId("new-order-label").hidden && orderSel.value) body.orderId = orderSel.value;
-  const r = await act(() => api<Api.FeedbackDetailResponse>("/api/feedback", { method: "POST", body }), btn);
-  if (!r) return; // giữ nguyên clientRequestId: bấm Gửi lại sẽ không tạo trùng
-  clientRequestId = crypto.randomUUID();
-  byId<HTMLFormElement>("new-form").reset();
-  newCard.hidden = true;
-  location.replace(`/feedback?id=${r.ticket.id}`); // không assign: Back/bfcache không được đưa về form đã lưu (tránh gửi trùng yêu cầu)
-});
 
 /** «Nhận việc»: nhận phiếu cho chính mình. 409 «Vừa có người nhận…» hiện ở dòng báo lỗi; thành công hay không đều gọi `after` để thấy trạng thái mới. */
 function nutNhanViec(t: Api.FeedbackTicketDto, nhan: string, after: () => void): HTMLButtonElement {
@@ -205,7 +132,8 @@ async function loadList(): Promise<void> {
   void napHuyHieu();
 }
 
-byId("ht-gui").addEventListener("click", () => openForm());
+const moForm = (opener: HTMLElement | null = null): void => moHopGui({ from: params.get("from"), staff, teams, opener });
+byId("ht-gui").addEventListener("click", () => moForm(byId("ht-gui")));
 
 // ---- Quản lý nhóm (chỉ Toàn quyền; máy chủ: ô feedback.team.manage) ------------------------------------------------
 let nhanVien: Api.StaffListRowDto[] | null = null;
@@ -354,5 +282,5 @@ if (idDangMo) hienLuong(idDangMo);
 void loadList();
 if (!idDangMo) {
   if (params.get("chuyen") === "1") byId("ht-tabs").before(h("p", { class: "muted", role: "status", id: "fb-da-chuyen" }, "Đã chuyển nhóm."));
-  if (params.get("new") === "1") openForm();
+  if (params.get("new") === "1") moForm();
 }
