@@ -22,6 +22,11 @@ test("gửi xác nhận: đơn có dịch vụ cần xác nhận → 201, yêu c
   assert.equal(y[0].decided_at, null);
   assert.equal(y[0].submitted_by, A);
   assert.equal(y[0].deadline_at, hanXacNhan(y[0].submitted_at));
+  // Hạn kiểm ĐỘC LẬP với chính hàm hanXacNhan (bài không phụ thuộc giờ thật): ít nhất 15 phút, và đúng 15 phút khi gửi trong khung ngày 06:00–21:40 giờ VN.
+  const dau = Date.parse(y[0].submitted_at);
+  const phutVn = new Date(dau + 7 * 3600e3).getUTCHours() * 60 + new Date(dau).getUTCMinutes();
+  assert.ok(Date.parse(y[0].deadline_at) - dau >= 15 * 60_000);
+  if (phutVn >= 6 * 60 && phutVn <= 21 * 60 + 40) assert.equal(Date.parse(y[0].deadline_at) - dau, 15 * 60_000);
   assert.equal(r.json.yeuCau.id, y[0].id);
   assert.equal(r.json.yeuCau.hanLuc, y[0].deadline_at);
   assert.deepEqual(r.json.yeuCau.vi, ["DICH_VU"]);

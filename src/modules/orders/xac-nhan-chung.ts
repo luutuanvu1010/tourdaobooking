@@ -3,7 +3,7 @@
 // `index.ts` và tệp route sau này không import vòng nhau. KHÔNG tự kiểm quyền người gọi (route đã làm); KHÔNG đổi hành vi so với thân nhánh `confirmed` cũ.
 import { auditStatement } from "../audit";
 import { chupDon, docBangChoChup, soKhachTinhHoaHong, type BanChup } from "../pricing";
-import type { DongBoChuyenDto, IncompleteTripBody, LyDoCanXacNhan, OrderStatus, PaxCounts, ShortNoticeRequiredBody, StaffProfile } from "../../shared/contracts";
+import type { DongBoChuyenDto, IncompleteTripBody, LyDoCanXacNhan, OrderDetailDto, OrderStatus, PaxCounts, ShortNoticeRequiredBody, StaffProfile } from "../../shared/contracts";
 import { error, json } from "../../shared/http";
 import { vnToday } from "../../shared/vn-date";
 import { parseUnit } from "../../shared/order-lines";
@@ -173,3 +173,9 @@ export async function khoaKhiCho(db: D1Database, orderId: string, status: OrderS
   if (status !== "draft") return null;
   return (await yeuCauMoCuaDon(db, orderId)) ? KHOA_KHI_CHO() : null;
 }
+
+/**
+ * Đ6: chi tiết đơn ĐANG CHỜ cho người xét duyệt KHÔNG phải người lập — bỏ SĐT, email, tên khách, ghi chú khách, ghi chú thanh toán (liên hệ người đặt vốn không nằm trong DTO này, chỉ có
+ * `bookerName`). Dịch vụ, ngày, số khách, giờ đón, tiền giữ nguyên. Hành khách (họ tên, năm sinh) không bao giờ nằm trong DTO đơn — route `…/passengers` vẫn 404.
+ */
+export const catChoXetDuyet = (o: OrderDetailDto): OrderDetailDto => ({ ...o, customerName: "", customerPhone: "", customerEmail: null, customerNote: null, paymentNote: null });

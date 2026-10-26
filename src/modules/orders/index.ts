@@ -59,8 +59,9 @@ import {
   validationContext,
   type OrderValidationContext,
 } from "./service";
-import { CAN_YEU_CAU, GIA_DANH_MUC, MOC_CHUA_CO, RACED, STALE, TRAN_GIAM_GIA, chanDoanXacNhan, chayLoNoiChuyen, dichLoiXacNhan, kemChupXacNhan, khoaKhiCho, kiemCongXacNhan, tienChoHoaHong, tinhCanXacNhan, type KetQuaLenhDon } from "./xac-nhan-chung";
+import { CAN_YEU_CAU, GIA_DANH_MUC, MOC_CHUA_CO, RACED, STALE, TRAN_GIAM_GIA, catChoXetDuyet, chanDoanXacNhan, chayLoNoiChuyen, dichLoiXacNhan, kemChupXacNhan, khoaKhiCho, kiemCongXacNhan, tienChoHoaHong, tinhCanXacNhan, type KetQuaLenhDon } from "./xac-nhan-chung";
 import { xacNhanRoutes } from "./xac-nhan-route";
+import { yeuCauMoCuaDon } from "./xac-nhan-repo";
 import { describeTripUpdates, giaiOPhuNhap, validateTripUpdate } from "./service-rules";
 
 const FORBIDDEN = () => error(403, "forbidden", "Chỉ người lập đơn, người phụ trách đơn hoặc quản trị viên mới được thay đổi đơn này.");
@@ -1453,7 +1454,9 @@ export const ordersModule: AppModule = {
       if (!than.ok) return error(400, "invalid_input", than.message);
       const [meta, moc] = await Promise.all([getMeta(env.DB, id), mocToiThieu()]);
       if (!meta) return NOT_FOUND();
-      if (!ghiDuocNhap(meta, staff)) return NOT_FOUND(); // ADR-0135 Đ2: đơn nháp chỉ người lập ghi được — người khác 404
+      // ADR-0135 Đ2: đơn nháp chỉ người lập ghi được — người khác 404. NGOẠI LỆ CÓ TÊN (ADR-0136 Đ1; plan Task 2.3): nháp đang có yêu cầu xác nhận MỞ thì người giữ ô Đặt gấp (đã hỏi ở đầu route) đặt gấp được.
+      const nhapDangCho = !ghiDuocNhap(meta, staff) && (await yeuCauMoCuaDon(env.DB, id)) !== null;
+      if (!ghiDuocNhap(meta, staff) && !nhapDangCho) return NOT_FOUND();
       if (meta.deliveredAt) return DA_GIAO();
       if (meta.status === "cancelled") return CANCELLED();
       if (!UUID_RE.test(legId)) return LEG_NOT_FOUND();
@@ -1474,7 +1477,8 @@ export const ordersModule: AppModule = {
       ]);
       if ((results[0]!.meta.changes ?? 0) === 0) return legRaced(env.DB, id, legId);
       baoThayDoi({ orderId: id, thayDoi: "chuyen" });
-      return json({ order: (await loadOrderView(env.DB, id, xemDuDatGap(staff)))! } satisfies OrderResponse);
+      const xemLai = (await loadOrderView(env.DB, id, xemDuDatGap(staff)))!;
+      return json({ order: nhapDangCho ? catChoXetDuyet(xemLai) : xemLai } satisfies OrderResponse); // người xét duyệt không phải người lập: bỏ SĐT / email / tên khách (Đ6)
     }),
 
     // ---- Danh sách hành khách (ADR-0047 A2). ĐỌC: khuôn chi tiết đơn — `order.view` theo phạm vi đơn (chỉ-FIELD không phụ trách → 404 như đơn không tồn

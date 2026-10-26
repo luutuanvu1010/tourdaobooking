@@ -20,6 +20,9 @@ const YC_COLS = "id, order_id, submitted_at, submitted_by, deadline_at";
 /** Yêu cầu còn mở của MỘT đơn (chỉ mục duy nhất có điều kiện: tối đa một). */
 const YC_MO_CUA_DON = defineSql("orders", "confirm_request_open_of_order", `SELECT ${YC_COLS} FROM ord_confirm_request WHERE order_id = ?1 AND decided_at IS NULL`);
 export const yeuCauMoCuaDon = (db: D1Database, orderId: string): Promise<YeuCauRow | null> => db.prepare(YC_MO_CUA_DON).bind(orderId).first<YeuCauRow>();
+/** Yêu cầu theo id (mọi trạng thái) — để bên THUA biết yêu cầu mình cầm đã khép (Rút lại / người khác quyết) mà không phải trả 404. */
+const YC_THEO_ID = defineSql("orders", "confirm_request_by_id", `SELECT ${YC_COLS} FROM ord_confirm_request WHERE id = ?1`);
+export const yeuCauTheoId = (db: D1Database, id: string): Promise<YeuCauRow | null> => db.prepare(YC_THEO_ID).bind(id).first<YeuCauRow>();
 /** Mọi yêu cầu còn mở của đơn NHÁP (danh sách chờ), cũ trước. */
 const YC_MO_TAT_CA = defineSql(
   "orders",

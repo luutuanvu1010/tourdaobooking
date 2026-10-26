@@ -137,7 +137,7 @@ test("route đặt gấp: đơn / chặng lạ → 404; chặng đã đóng → 
 // ---- Mốc lúc ĐẶT (TC-22 phần xác nhận; TC-23; TC-26) -------------------------------------------------------------------------------------------------------
 const xacNhan = (w: any, id: string, as: string) => w.call("POST", `/api/orders/${id}/status`, { as, body: { status: "confirmed" } });
 
-test("TC-22 mốc lúc đặt: lưu nháp chặng dưới mốc → 200 + canhBaoMoc (không chặn lưu); xác nhận → 409 short_notice_required (kèm chặng); Quản trị đặt gấp → xác nhận 200; Thực tập, Đối tác như Bán hàng", async () => {
+test("TC-22 mốc lúc đặt: lưu nháp chặng dưới mốc → 200 + canhBaoMoc (không chặn lưu); `/status` → 409 confirm_request_required (ADR-0136), Gửi xác nhận rồi Còn vé → 409 short_notice_required (kèm chặng); Quản trị đặt gấp → Còn vé 200; Thực tập, Đối tác như Bán hàng", async () => {
   const w = setup();
   for (const as of [SALES, INTERN, PARTNER]) {
     const gio = vnSau(120);
@@ -148,20 +148,26 @@ test("TC-22 mốc lúc đặt: lưu nháp chặng dưới mốc → 200 + canhBa
     assert.equal(r.json.canhBaoMoc.length, 1, `${as}: cảnh báo mốc`);
     assert.equal(r.json.canhBaoMoc[0].legKey, legId);
     assert.ok(r.json.canhBaoMoc[0].phutConLai > 100 && r.json.canhBaoMoc[0].phutConLai <= 120, JSON.stringify(r.json.canhBaoMoc));
+    // ADR-0136 Task 3.3: đơn có chặng dưới mốc chưa đặt gấp thuộc diện CẦN XÁC NHẬN — `/status` đòi Gửi xác nhận (confirm_request_required); mốc chỉ chặn ở bước Còn vé (người xét duyệt).
     const c = await xacNhan(w, r.json.order.id, as);
     assert.equal(c.status, 409, `${as}: ${c.text}`);
-    assert.equal(c.json.error.code, "short_notice_required");
-    assert.deepEqual(c.json.error.legs.map((x: any) => x.legId), [legId]);
+    assert.equal(c.json.error.code, "confirm_request_required");
     assert.equal(w.q("SELECT status FROM orders WHERE id = ?", r.json.order.id)[0].status, "draft", "không đổi trạng thái");
     assert.equal(w.q("SELECT count(*) n FROM audit_log WHERE action = 'confirmed' AND order_id = ?", r.json.order.id)[0].n, 0, "không nhật ký xác nhận");
-    if (as === SALES) assert.equal((await datGap(w, r.json.order, ADM, { lyDo: "KHACH_DOAN_GOI_GAP" })).status, 200);
-    else {
-      // ADR-0135: Quản trị không ghi được nháp của Đối tác / Thực tập (404) và hai vai này không có ô đặt gấp → dấu đặt gấp gieo bằng SQL;
-      // đường thật cho họ là «Gửi duyệt xác nhận» (Đợt 3 — chưa có ở lần giao này).
-      assert.equal((await w.call("POST", `/api/orders/${r.json.order.id}/legs/${legId}/short-notice`, { as: ADM, body: { lyDo: "KHACH_DOAN_GOI_GAP" } })).status, 404, `${as}: Quản trị đặt gấp nháp người khác`);
-      w.sqlite.prepare("UPDATE ord_transfer_leg SET short_notice_reason = 'KHACH_DOAN_GOI_GAP', short_notice_by = ?, short_notice_at = ?, short_notice_lead_minutes = 360 WHERE id = ?").run(ADM, new Date().toISOString(), legId);
-    }
-    const c2 = await xacNhan(w, r.json.order.id, as);
+    const gui = await w.call("POST", `/api/orders/${r.json.order.id}/gui-xac-nhan`, { as, body: {} }); // (Task 3.4: Đối tác đi bằng «Gửi đơn»)
+    assert.equal(gui.status, 201, `${as}: ${gui.text}`);
+    const quyet = () => {
+      const o = w.q("SELECT updated_at u FROM orders WHERE id = ?", r.json.order.id)[0];
+      const y = w.q("SELECT id FROM ord_confirm_request WHERE order_id = ? AND decided_at IS NULL", r.json.order.id)[0];
+      return w.call("POST", `/api/orders/${r.json.order.id}/quyet-dinh`, { as: ADM, body: { ketQua: "CON_VE", yeuCauId: y.id, updatedAt: o.u } });
+    };
+    const q1 = await quyet();
+    assert.equal(q1.status, 409, `${as}: ${q1.text}`);
+    assert.equal(q1.json.error.code, "short_notice_required");
+    assert.deepEqual(q1.json.error.legs.map((x: any) => x.legId), [legId]);
+    // Nháp ĐANG CHỜ: Quản trị (không phải người lập) đặt gấp được — ngoại lệ có tên của ADR-0135 Đ2 (ADR-0136 Đ1).
+    assert.equal((await w.call("POST", `/api/orders/${r.json.order.id}/legs/${legId}/short-notice`, { as: ADM, body: { lyDo: "KHACH_DOAN_GOI_GAP" } })).status, 200, `${as}: Quản trị đặt gấp nháp đang chờ`);
+    const c2 = await quyet();
     assert.equal(c2.status, 200, `${as} sau đặt gấp: ${c2.text}`);
   }
 });
