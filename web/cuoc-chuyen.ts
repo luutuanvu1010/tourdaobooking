@@ -30,7 +30,7 @@
 //   ngược theo `hanLuc` máy chủ gửi; hết giờ thì đọc lại danh sách. Thẻ không tên khách (LC-18). Chữ: src/shared/xe-dang-chay-man.ts.
 // - Đề xuất 25/10 (docs/superpowers/specs/2026-10-25-de-xuat-tai-xe-thay-khach-truoc-khi-cho-xe-chay.md, chủ duyệt Q1 a, Q2 a): tài xế CÔNG TY (`congTy` — không ô
 //   trip.refuse, cùng điều kiện máy chủ dựng phần chỉ tài xế công ty), trong khung xem khách, thấy tên + năm sinh từng khách và dòng "Liên hệ" ngay TRƯỚC khi cho xe
-//   chạy (`khachTruocChay`); tài xế đối tác như cũ. Chuyến có từ hai điểm trả: chữ "Trả: <nơi>" dưới tên mỗi khách, trước và trong khi chạy (`chuTraCuaKhach`, qua móc
+//   chạy (`khachTruocChay`); tài xế đối tác như cũ. Chuyến có từ hai điểm trả: chữ "Trả khách ở: <nơi>" dưới tên mỗi khách, trước và trong khi chạy (`chuTraCuaKhach`, qua móc
 //   `phuKhach` riêng của màn này — màn văn phòng web/chuyen.ts không truyền nên không đổi). Khối "Suất của khách" đếm "Điểm M · Khách i" như dòng khách.
 import {
   CAU_THU_TU_DAO, buocDiem, doiThuTuDuoc, giuTenKhach, chiSuatKhach, soHieuTaiDiemDon, tenNguoiDiKemCuaChuyen, sdtNguoiDiKemCuaChuyen, dichVuTaiDiemDon, viecNguoiDiKem, khachTruocChay, chuTraCuaKhach,
@@ -353,10 +353,10 @@ async function chay(khoa: string, viec: () => Promise<void>): Promise<void> {
 
 /**
  * Tài xế CÔNG TY = KHÔNG có ô `trip.refuse` (đặt ở `main`) — đúng điều kiện máy chủ dựng phần chỉ tài xế công ty (`themCongTy`, khung không vế hạn). Chỉ quyết
- * ẩn / hiện (khách trước khi chạy, chữ "Trả:", câu "Bạn thấy tên khách …"); dữ liệu nào tới máy là do máy chủ. Mặc định `false` = như tài xế đối tác.
+ * ẩn / hiện (khách trước khi chạy, chữ "Trả khách ở:", câu "Bạn thấy tên khách …"); dữ liệu nào tới máy là do máy chủ. Mặc định `false` = như tài xế đối tác.
  */
 let congTy = false;
-/** Chữ "Trả: <nơi>" dưới tên khách (móc `phuKhach` của `veDiemChay` — chỉ màn này truyền). */
+/** Chữ "Trả khách ở: <nơi>" dưới tên khách (móc `phuKhach` của `veDiemChay` — chỉ màn này truyền). */
 const chuTra = (tra: ReadonlyMap<string, string>) => (k: KhachDiem): Child | null =>
   tra.has(k.suatId) ? h("span", { class: "dp-khach-tra", "data-tra": "" }, tra.get(k.suatId)!) : null;
 
@@ -517,7 +517,7 @@ function ve(): void {
   const chung = {
     diem: r.diem, suat: r.suat, trangThai: c.trangThai, ngayXem: ngay, coNut: chayDuoc, onLenh: lenhDiem, choGui: new Set([...choGui.keys()]), vuaGhi, phuDiem, khoa: dangGui,
     choVang: chayDuoc, nutChinhODay: new Set(viec && viec.loai !== "ket-thuc" ? [viec.buoc.diem.id] : []),
-    phuKhach: chuTra(chuTraCuaKhach(r.diem, r.suat, congTy)), // đề xuất 25/10 Q2 a: "Trả: <nơi>" khi chuyến có từ hai điểm trả (chỉ tài xế công ty)
+    phuKhach: chuTra(chuTraCuaKhach(r.diem, r.suat, congTy)), // đề xuất 25/10 Q2 a: "Trả khách ở: <nơi>" khi chuyến có từ hai điểm trả (chỉ tài xế công ty)
   };
   const idsSau = new Set(nhom.sau.map((x) => x.diem.id));
   const keTiep = chayDuoc && nhom.keTiep ? veDiemChay({ ...chung, loc: (x) => x.diem.id === nhom.keTiep!.diem.id, keTiepId: nhom.keTiep.diem.id }) : [];
@@ -817,7 +817,7 @@ function moGianDoan(opener: HTMLElement): void {
 /**
  * Điểm của chuyến CHƯA xuất bến (bản 1.39): số người ở mỗi điểm; điểm trả có giờ hẹn thì ghi kèm (điểm đón đã có "HẸN …" ở nhãn loại). Đề xuất 25/10 (Q1 a):
  * tài xế công ty trong khung xem khách thấy thêm tên + năm sinh từng khách (không nút tiến độ — `coNut: false`) và dòng "Liên hệ"; ngoài ra như cũ — một luật ở
- * `khachTruocChay`. Chữ "Trả:" theo `chuTraCuaKhach` (Q2 a).
+ * `khachTruocChay`. Chữ "Trả khách ở:" theo `chuTraCuaKhach` (Q2 a).
  */
 function veDiemTruoc(r: CuocChiTietResponse): HTMLElement[] {
   const theoId = new Map(r.diem.map((d) => [d.id, d]));
