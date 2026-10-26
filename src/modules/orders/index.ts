@@ -60,7 +60,7 @@ import {
   type OrderValidationContext,
 } from "./service";
 import { CAN_YEU_CAU, GIA_DANH_MUC, MOC_CHUA_CO, RACED, STALE, TRAN_GIAM_GIA, catChoXetDuyet, chanDoanXacNhan, chayLoNoiChuyen, dichLoiXacNhan, kemChupXacNhan, khoaKhiCho, kiemCongXacNhan, tienChoHoaHong, tinhCanXacNhan, type KetQuaLenhDon } from "./xac-nhan-chung";
-import { xacNhanRoutes } from "./xac-nhan-route";
+import { PHAI_GUI_DON, phaiGuiDon, xacNhanRoutes } from "./xac-nhan-route";
 import { yeuCauMoCuaDon } from "./xac-nhan-repo";
 import { describeTripUpdates, giaiOPhuNhap, validateTripUpdate } from "./service-rules";
 
@@ -1658,6 +1658,8 @@ export const ordersModule: AppModule = {
       if (!ghiDuocNhap(meta, staff)) return NOT_FOUND(); // ADR-0135 Đ2: đơn nháp chỉ người lập ghi được — người khác 404
       { const khoa = await khoaKhiCho(env.DB, id, meta.status); if (khoa) return khoa; } // ADR-0136 Đ3: đang chờ xác nhận ⇒ phải Rút lại trước
       if (!can(staff, "order.modify", { ownerId: meta.staffId, assigned })) return FORBIDDEN();
+      // ADR-0136 Đ13.5: người LẬP đơn giữ quyền Đối tác (kể cả tài khoản lai) không xác nhận thẳng — chỉ có «Gửi đơn». Luật ở route vì `can()` lấy HỢP các ô; huỷ đơn của mình giữ như hôm nay.
+      if (to === "confirmed" && phaiGuiDon(staff, meta)) return PHAI_GUI_DON();
       if (meta.deliveredAt) return DA_GIAO();
       const from = meta.status;
       if (!canTransition(from, to)) return error(409, "invalid_transition", cauKhongDoiDuocTrangThai(from, to)); // nhãn tiếng Việt, không mã thô (Task 14, nợ (g)); mã `invalid_transition` giữ nguyên
@@ -1682,7 +1684,7 @@ export const ordersModule: AppModule = {
         const moc = await mocToiThieu();
         const nowMs = Date.now();
         // ADR-0136 Đ3: đơn thuộc diện cần xác nhận (cờ dịch vụ / nhóm, hoặc chặng dưới mốc chưa đặt gấp) không xác nhận thẳng được — phải Gửi xác nhận. Đứng SAU `can()`/khoá khi chờ,
-        // TRƯỚC mọi cổng của lô xác nhận. (Task 3.4 đặt cổng 409 `partner_submit_required` NGAY TRƯỚC dòng này.) Mốc chưa có thì chỉ xét cờ; `kiemCongXacNhan` sẽ trả 503 sau.
+        // TRƯỚC mọi cổng của lô xác nhận. (Cổng 409 `partner_submit_required` đã đặt ngay sau `can()` ở trên.) Mốc chưa có thì chỉ xét cờ; `kiemCongXacNhan` sẽ trả 503 sau.
         if ((await tinhCanXacNhan(env.DB, order, moc, nowMs)).can) return CAN_YEU_CAU();
         const cong = await kiemCongXacNhan(env.DB, { actor: staff, order, kiemMoc: true, mocToiThieu: moc });
         if ("loi" in cong) return cong.loi;

@@ -92,7 +92,7 @@ test("D-1 (a) tái hiện: Đối tác không thấy lý do nội bộ, tên K�
   });
   assert.equal(pr.status, 201, pr.text);
   const id = pr.json.order.id;
-  assert.equal((await w.call("POST", `/api/orders/${id}/status`, { as: PARTNER, body: { status: "confirmed" } })).status, 200);
+  assert.equal((await w.call("POST", `/api/orders/${id}/gui-don`, { as: PARTNER, body: {} })).status, 200);
   assert.equal((await w.call("POST", `/api/orders/${id}/payments`, { as: PARTNER, body: { soTien: 300000, hinhThuc: "CASH", nguoiThu: "cong_ty" } })).status, 201);
   const lt = (await w.call("GET", `/api/orders/${id}/payments`, { as: ACC })).json.lanThu[0];
   assert.equal((await w.call("POST", `/api/ledger/company-receipts/${lt.id}/confirm`, { as: ACC, body: {} })).status, 200);
@@ -193,7 +193,7 @@ test("D-1 (d) khối cọc và lần thu của Đối tác bỏ lyDo / nguoiDuye
       body: { customerName: "Khách Đối Tác", customerPhone: "0933333333", services: [{ kind: "catalog", pickupChoice: "KHONG_DON", catalogCode: "ZA1", pax: { adult: 1, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 777000 }, departDate: NGAY, legs: [] }] },
     });
     assert.equal(r.status, 201, r.text);
-    assert.equal((await w.call("POST", `/api/orders/${r.json.order.id}/status`, { as: PARTNER, body: { status: "confirmed" } })).status, 200);
+    assert.equal((await w.call("POST", `/api/orders/${r.json.order.id}/gui-don`, { as: PARTNER, body: {} })).status, 200);
     return r.json.order.id as string;
   };
   // Đơn 1: lần thu của Đối tác (ghi chú của mình) + lần thu của Kế toán (ghi chú nội bộ); huỷ; duyệt hoàn.

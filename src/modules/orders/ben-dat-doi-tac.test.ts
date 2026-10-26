@@ -91,7 +91,7 @@ const chup = (w: W, id: string) => w.q("SELECT * FROM ord_service_terms WHERE or
 /** Bản chụp HIỆN HÀNH (chưa bị bản nào thay) của đơn, theo dòng dịch vụ. */
 const hienHanh = (w: W, id: string) =>
   w.q("SELECT t.* FROM ord_service_terms t WHERE t.order_id = ? AND NOT EXISTS (SELECT 1 FROM ord_service_terms n WHERE n.supersedes_id = t.id) ORDER BY t.order_service_id", id);
-const xacNhan = (w: W, id: string, as = SALES) => w.call("POST", `/api/orders/${id}/status`, { as, body: { status: "confirmed" } });
+const xacNhan = (w: W, id: string, as = SALES) => w.xacNhanDon(id, as); // ADR-0136 Đ13.5: Đối tác «Gửi đơn», người khác /status
 const doiBen = (w: W, id: string, bookerPartyId: string | null, as = SALES, extra: Record<string, unknown> = {}) =>
   w.call("PUT", `/api/orders/${id}/booker`, { as, body: { customerName: "Khách Thử", customerPhone: "0912345678", bookerPartyId, expectedUpdatedAt: mocCua(w, id), ...extra } });
 const muc = (w: W, body: Record<string, unknown>) => w.call("POST", "/api/pricing/hoa-hong", { as: KT, body: { tuNgay: "2026-01-01", ...body } });

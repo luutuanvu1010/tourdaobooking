@@ -44,7 +44,7 @@ async function draft(w: any, as = SALES, extra: Record<string, unknown> = {}) {
 }
 async function confirmed(w: any, as = SALES, extra: Record<string, unknown> = {}) {
   const o = await draft(w, as, extra);
-  assert.equal((await w.call("POST", `/api/orders/${o.id}/status`, { as, body: { status: "confirmed" } })).status, 200);
+  assert.equal((await w.xacNhanDon(o.id, as)).status, 200); // ADR-0136 Đ13.5: Đối tác «Gửi đơn»
   return (await w.call("GET", `/api/orders/${o.id}`, { as: ADM })).json.order;
 }
 const list = (w: any, id: string, as = SALES) => w.call("GET", `/api/orders/${id}/passengers`, { as });
@@ -186,7 +186,7 @@ test("PM-2: danh sách theo thứ tự nhập — nháp 8 người đúng thứ 
   const put = await w.call("PUT", `/api/orders/${o.id}`, { as: SALES, body: body({ expectedUpdatedAt: o.updatedAt, services: [{ ...body().services[0], id: o.services[0].id }], passengers: dao }) });
   assert.equal(put.status, 200, put.text);
   assert.deepEqual(names(await list(w, o.id)), dao.map((p) => p.fullName));
-  assert.equal((await w.call("POST", `/api/orders/${o.id}/status`, { as: SALES, body: { status: "confirmed" } })).status, 200);
+  assert.equal((await w.xacNhanDon(o.id, SALES)).status, 200);
   const g = (await list(w, o.id)).json;
   const dau = g.passengers[0];
   const r1 = await change(w, o.id, SALES, g.orderUpdatedAt, { sua: [{ personKey: dau.personKey, fullName: "Khách Dò Tìm Đầu Sửa", birthYear: 1911, paxCode: null }] });

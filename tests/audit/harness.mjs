@@ -320,5 +320,13 @@ export function world(tuyChon = {}) {
     let json = null; try { json = JSON.parse(text); } catch {}
     return { status: res.status, json, text, bytes, headers: res.headers };
   }
-  return { sqlite, env, r2, call, token, choNen, raoTraVe, chenTruocLo, q:(sql, ...a) => sqlite.prepare(sql).all(...a), soLanGoiMoc: () => soLanGoiMoc, soLanGoiNhan: () => goiNhan.length, goiNhan: () => goiNhan };
+  /**
+   * Xác nhận một đơn nháp THAY NGƯỜI LẬP `as` theo đúng đường của ADR-0136 Đ13.5: người giữ quyền Đối tác không xác nhận thẳng (409 `partner_submit_required`) — họ «Gửi đơn»
+   * (`gui-don`, đơn thường → nhánh B, 200); người khác dùng `POST /status`. Chỉ là trợ giúp dựng bài; bài kiểm đường cũ/mới gọi route trực tiếp.
+   */
+  const xacNhanDon = (id, as) => {
+    const laDoiTac = sqlite.prepare("SELECT 1 FROM stf_permission WHERE staff_id = ? AND permission_type_code = 'PARTNER' AND valid_to_at IS NULL").get(as) !== undefined;
+    return laDoiTac ? call("POST", `/api/orders/${id}/gui-don`, { as, body: {} }) : call("POST", `/api/orders/${id}/status`, { as, body: { status: "confirmed" } });
+  };
+  return { sqlite, env, r2, call, xacNhanDon, token, choNen, raoTraVe, chenTruocLo, q:(sql, ...a) => sqlite.prepare(sql).all(...a), soLanGoiMoc: () => soLanGoiMoc, soLanGoiNhan: () => goiNhan.length, goiNhan: () => goiNhan };
 }

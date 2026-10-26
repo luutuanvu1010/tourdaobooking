@@ -111,7 +111,7 @@ test("route đặt gấp: đơn / chặng lạ → 404; chặng đã đóng → 
   const o = await nhap(w, SALES, vnSau(24 * 60 * 3));
   assert.equal((await datGap(w, { ...o, id: NO_SUCH }, ADM, { lyDo: "KHAC" })).status, 404);
   assert.equal((await datGap(w, o, ADM, { lyDo: "KHAC" }, NO_SUCH)).status, 404);
-  assert.equal((await w.call("POST", `/api/orders/${o.id}/status`, { as: SALES, body: { status: "confirmed" } })).status, 200);
+  assert.equal((await w.xacNhanDon(o.id, SALES)).status, 200);
   const doc = (await w.call("GET", `/api/orders/${o.id}`, { as: ai(w, o.id, ADM) })).json.order;
   const l = doc.services[0].legs[0];
   assert.equal((await w.call("POST", `/api/orders/${o.id}/legs/${l.id}/close`, { as: SALES, body: { expectedUpdatedAt: l.updatedAt, reasonCode: "NOT_NEEDED" } })).status, 200);
@@ -151,10 +151,11 @@ test("TC-22 mốc lúc đặt: lưu nháp chặng dưới mốc → 200 + canhBa
     // ADR-0136 Task 3.3: đơn có chặng dưới mốc chưa đặt gấp thuộc diện CẦN XÁC NHẬN — `/status` đòi Gửi xác nhận (confirm_request_required); mốc chỉ chặn ở bước Còn vé (người xét duyệt).
     const c = await xacNhan(w, r.json.order.id, as);
     assert.equal(c.status, 409, `${as}: ${c.text}`);
-    assert.equal(c.json.error.code, "confirm_request_required");
+    // Đ13.5: người lập giữ quyền Đối tác nhận `partner_submit_required` TRƯỚC (đường xác nhận cũ đóng), phải «Gửi đơn».
+    assert.equal(c.json.error.code, as === PARTNER ? "partner_submit_required" : "confirm_request_required");
     assert.equal(w.q("SELECT status FROM orders WHERE id = ?", r.json.order.id)[0].status, "draft", "không đổi trạng thái");
     assert.equal(w.q("SELECT count(*) n FROM audit_log WHERE action = 'confirmed' AND order_id = ?", r.json.order.id)[0].n, 0, "không nhật ký xác nhận");
-    const gui = await w.call("POST", `/api/orders/${r.json.order.id}/gui-xac-nhan`, { as, body: {} }); // (Task 3.4: Đối tác đi bằng «Gửi đơn»)
+    const gui = await w.call("POST", `/api/orders/${r.json.order.id}/${as === PARTNER ? "gui-don" : "gui-xac-nhan"}`, { as, body: {} }); // Đối tác đi bằng «Gửi đơn» (nhánh A vì chặng dưới mốc)
     assert.equal(gui.status, 201, `${as}: ${gui.text}`);
     const quyet = () => {
       const o = w.q("SELECT updated_at u FROM orders WHERE id = ?", r.json.order.id)[0];

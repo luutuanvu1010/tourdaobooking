@@ -56,7 +56,7 @@ function nhap(w: W, chu: string, booker: string | null, dv: [string | null, numb
 }
 async function daXacNhan(w: W, booker: string | null, dvs: [string | null, number][], chu: string): Promise<string> {
   const id = nhap(w, chu, booker, dvs);
-  const r = await w.call("POST", `/api/orders/${id}/status`, { as: chu, body: { status: "confirmed" } });
+  const r = await w.xacNhanDon(id, chu);
   assert.equal(r.status, 200, r.text);
   return id;
 }

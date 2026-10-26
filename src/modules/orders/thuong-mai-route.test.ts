@@ -66,7 +66,7 @@ function nhap(w: W, chu: string, booker: string | null, dv: [string | null, numb
   return id;
 }
 const dv = (id: string, i = 0) => `${id}-s${i}`;
-const xacNhan = (w: W, id: string, as = SALES) => w.call("POST", `/api/orders/${id}/status`, { as, body: { status: "confirmed" } });
+const xacNhan = (w: W, id: string, as = SALES) => w.xacNhanDon(id, as); // ADR-0136 Đ13.5: Đối tác «Gửi đơn», người khác /status
 /** Đơn đã xác nhận (có bản chụp) của SALES. */
 async function daXacNhan(w: W, booker: string | null, dvs: [string | null, number][], chu = SALES): Promise<string> {
   const id = nhap(w, chu, booker, dvs);

@@ -30,7 +30,13 @@ const tag = Date.now().toString(36);
 const lines = (o) => o.services.flatMap((s) => s.items);
 const get = async (who, id) => (await call(who, "GET", `/api/orders/${id}`)).body.order;
 const put = (who, order, services, extra = {}) => call(who, "PUT", `/api/orders/${order.id}`, orderInput({ services, expectedUpdatedAt: order.updatedAt, ...extra }));
-const confirm = (who, order) => call(who, "POST", `/api/orders/${order.id}/status`, { status: "confirmed" });
+// ADR-0136 Đ13.5: người LẬP đơn giữ quyền Đối tác (kể cả tài khoản lai, «Thực tập + Đối tác») bị chặn ở /status bằng 409 `partner_submit_required` — họ «Gửi đơn». Giúp dựng bài: thử /status,
+// gặp đúng mã đó thì gửi đơn (đơn thường → nhánh B, 200, cùng mọi cổng R2/R3/người lớn/chọn Đón theo người gửi nên các kỳ vọng 403/200 của kịch bản này giữ nguyên). Cặp 409 → gửi đơn cũng chứng
+// minh cổng Đối tác đang chặn ở /status; ca khẳng định riêng nằm ở tests/e2e/gui-don.mjs.
+const confirm = async (who, order) => {
+  const r = await call(who, "POST", `/api/orders/${order.id}/status`, { status: "confirmed" });
+  return r.status === 409 && r.body?.error?.code === "partner_submit_required" ? call(who, "POST", `/api/orders/${order.id}/gui-don`, {}) : r;
+};
 const tripOf = (sv) => ({
   departDate: sv.departDate ?? "", departTime: sv.departTime ?? "", pickupTime: sv.pickupTime ?? "", pickupPlace: sv.pickupPlace ?? "",
   checkinDate: sv.checkinDate ?? "", checkinTime: sv.checkinTime ?? "", checkinPlace: sv.checkinPlace ?? "", note: sv.note ?? "",

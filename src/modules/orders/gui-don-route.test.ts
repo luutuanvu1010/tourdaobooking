@@ -88,7 +88,7 @@ test("(4b) tài khoản lai chỉ bị chặn khi CHÍNH họ là người lập
   assert.equal((await w.call("POST", `/api/orders/${t.id}/status`, { as: A, body: { status: "confirmed" } })).status, 200);
 });
 
-test("(5) một cổng hỏng khi gửi → đúng lỗi cổng đó, đơn ở lại nháp, không mở yêu cầu (thiếu chọn Đón, dòng khác giá danh mục)", async () => {
+test("(5) một cổng hỏng khi gửi → đúng lỗi cổng đó, đơn ở lại nháp, không mở yêu cầu (thiếu chọn Đón, dòng khác giá danh mục, thiếu người lớn)", async () => {
   const w = setup();
   datCo(w, "SERVICE", "ZA1", true);
   const s = svc("ZA1", inDays(3)) as any;
@@ -103,7 +103,13 @@ test("(5) một cổng hỏng khi gửi → đúng lỗi cổng đó, đơn ở 
   w.sqlite.prepare("UPDATE orders SET subtotal = 500000, total = 500000 - discount, remaining_amount = 500000 - discount - deposit_amount WHERE id = ?").run(gia.id);
   const r2 = await guiDon(w, gia.id, PARTNER);
   assert.equal(r2.status, 403, r2.text);
-  for (const id of [thieu.id, gia.id]) {
+  // nháp CŨ lập trước ADR-0114 D3: không có người lớn (chèn thẳng bằng SQL)
+  const nl = await lap(w, PARTNER, THUONG());
+  w.sqlite.prepare("UPDATE order_service SET pax_adult = 0, pax_child = 2 WHERE order_id = ?").run(nl.id);
+  const r3 = await guiDon(w, nl.id, PARTNER);
+  assert.equal(r3.status, 409, r3.text);
+  assert.equal(r3.json.error.code, "thieu_nguoi_lon");
+  for (const id of [thieu.id, gia.id, nl.id]) {
     assert.equal(trangThai(w, id), "draft");
     assert.equal(mo(w, id).length, 0);
   }

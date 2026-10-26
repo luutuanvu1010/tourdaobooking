@@ -54,7 +54,7 @@ function nhap(w: W, o: { owner?: string; booker?: string | null; dichVu?: DvNhap
 async function xacNhan(w: W, id: string): Promise<void> {
   // ADR-0135: đơn nháp chỉ người lập ghi được (kể cả xác nhận) — xác nhận bằng CHÍNH người lập của đơn gieo.
   const nguoiLap = String(w.q("SELECT staff_id AS s FROM orders WHERE id = ?", id)[0].s);
-  const xn = await w.call("POST", `/api/orders/${id}/status`, { as: nguoiLap, body: { status: "confirmed" } });
+  const xn = await w.xacNhanDon(id, nguoiLap);
   assert.equal(xn.status, 200, xn.text);
 }
 /** Đơn cũ (xác nhận TRƯỚC 0090): đổi trạng thái bằng SQL, KHÔNG qua route nên không có bản chụp. */

@@ -58,7 +58,7 @@ async function duLieu() {
   assert.equal((await w.call("POST", `/api/orders/${a4}/status`, { as: SALES, body: { status: "confirmed" } })).status, 200);
   // ADR-0135: nháp chỉ người lập thấy → chỉ a3 (của An) còn là nháp; f4 (HDV phụ trách) và p3 (Đối tác) xác nhận để văn phòng / HDV còn thấy.
   assert.equal((await w.call("POST", `/api/orders/${f4}/status`, { as: SALES_B, body: { status: "confirmed" } })).status, 200);
-  assert.equal((await w.call("POST", `/api/orders/${p3}/status`, { as: PARTNER, body: { status: "confirmed" } })).status, 200);
+  assert.equal((await w.call("POST", `/api/orders/${p3}/gui-don`, { as: PARTNER, body: {} })).status, 200);
   assert.equal((await w.call("POST", `/api/orders/${b6}/status`, { as: SALES_B, body: { status: "cancelled", lyDo: "KHACH_DOI_Y", reason: "Khách đổi ý" } })).status, 200);
   return { w, a3, a4, b6, f4, p3 };
 }

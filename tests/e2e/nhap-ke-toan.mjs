@@ -27,7 +27,9 @@ const INTERN = await taiKhoanCookie("Thực Tập Nhập KT", ["INTERN"]);
 async function donXacNhan(cookie) {
   const r = await call(cookie, "POST", "/api/orders", orderInput({ services: [catalogService({ departDate: NGAY })] }));
   assert.equal(r.status, 201, JSON.stringify(r.body));
-  const c = await call(cookie, "POST", `/api/orders/${r.body.order.id}/status`, { status: "confirmed" });
+  // ADR-0136 Đ13.5: người lập giữ quyền Đối tác (PARTNER, lai Bán hàng + Đối tác, lai Đối tác + HDV) bị chặn ở /status (409 `partner_submit_required`) và «Gửi đơn» (đơn thường → nhánh B, 200).
+  let c = await call(cookie, "POST", `/api/orders/${r.body.order.id}/status`, { status: "confirmed" });
+  if (c.status === 409 && c.body?.error?.code === "partner_submit_required") c = await call(cookie, "POST", `/api/orders/${r.body.order.id}/gui-don`, {});
   assert.equal(c.status, 200, JSON.stringify(c.body));
   return r.body.order.id;
 }

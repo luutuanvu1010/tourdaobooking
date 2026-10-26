@@ -36,6 +36,16 @@ for (const [cookie, nhan] of [[SALES, "Bán hàng"], [ADMIN, "Quản trị"], [A
 assert.equal((await call(null, "GET", "/api/orders/cho-xac-nhan")).status, 401);
 console.log("✓ ADR-0136: danh sách chờ xác nhận mở cho 5 vai; cài đặt cờ / công tắc chỉ Toàn quyền");
 
+// --- ADR-0136 Đ13.6 (Task 3.4): ô order.submit — «Gửi đơn» chỉ Đối tác (đơn của mình) và Toàn quyền. Bán hàng gọi gui-don trên nháp CỦA MÌNH → 403; người không lập → 404; chưa đăng nhập → 401.
+{
+  const nhap = await call(SALES, "POST", "/api/orders", orderInput());
+  assert.equal(nhap.status, 201, JSON.stringify(nhap.body));
+  assert.equal((await call(SALES, "POST", `/api/orders/${nhap.body.order.id}/gui-don`, {})).status, 403, "Bán hàng không có order.submit");
+  assert.equal((await call(ACC, "POST", `/api/orders/${nhap.body.order.id}/gui-don`, {})).status, 404, "nháp của người khác: 404");
+  assert.equal((await call(null, "POST", `/api/orders/${nhap.body.order.id}/gui-don`, {})).status, 401);
+  console.log("✓ ADR-0136 Đ13.6: gui-don — Bán hàng 403 (ô order.submit), người khác 404, chưa đăng nhập 401");
+}
+
 // --- FIELD (hướng dẫn viên, ADR-0030 S23-1…5 — lượt 1): danh sách đơn 200 nhưng CHỈ đơn mình đang phụ trách; hàng chờ nhận 200 (phần hẹp); chi tiết
 // đơn KHÔNG phụ trách → 404 (không dò được đơn người khác). Vẫn chặn (403) lập/sửa/huỷ đơn, danh mục, hồ sơ, quản trị (R-N1-15); đọc được địa điểm.
 // Tài khoản field dùng chung cho mọi kịch bản (dispatch.mjs chạy trước đã giao cho nó nhiều đơn) ⇒ khẳng định ĐƠN CỦA salesA không có trong danh sách,

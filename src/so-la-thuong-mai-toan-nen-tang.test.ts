@@ -251,7 +251,7 @@ async function gieo(w: W): Promise<Gieo> {
   await KQ(w.call("POST", `/api/pricing/muc-ta/${mucTa}/dong`, { as: ACC, body: { tuNgay: "2026-01-01", phamVi: "ALL", kieu: "RATE", tyLeBp: 4261 } }), 201, "dòng của mức TA");
   await KQ(w.call("POST", "/api/pricing/muc-ta/gan", { as: ACC, body: { loai: "TRAVEL_AGENCY", muc: mucTa, tuNgay: "2026-01-01" } }), 201, "gắn loại vào mức TA");
 
-  const xacNhan = (id: string, as: string) => KQ(w.call("POST", `/api/orders/${id}/status`, { as, body: { status: "confirmed" } }), 200, `xác nhận ${id}`);
+  const xacNhan = (id: string, as: string) => KQ(w.xacNhanDon(id, as), 200, `xác nhận ${id}`); // ADR-0136 Đ13.5
   const cuaA = nhap(w, PARTNER, `pty-${PARTNER}`, [["ZA1", 777_000]]);
   await xacNhan(cuaA, PARTNER);
   const cuaB = nhap(w, DT_B, PTY_B, DV);
@@ -348,7 +348,7 @@ test("số lạ toàn Nền tảng: tài khoản giữ quyền Đối tác (thu�
       assert.notEqual(ghiTay.status, 200, `${tk.ten} không bao giờ ghi được mức tay: ${ghiTay.text}`);
       xet("POST /api/orders/:id/thuong-mai/:serviceId", tk, ghiTay);
       daQuet.add("POST /api/orders/:id/status — tài khoản lai xác nhận đơn của mình có bên đặt B (lô chụp mức của B)");
-      const xn = await w.call("POST", `/api/orders/${id}/status`, { as: tk.id, body: { status: "confirmed" } });
+      const xn = await w.xacNhanDon(id, tk.id);
       if (xn.status === 200) xacNhan200++;
       xet("POST /api/orders/:id/status", tk, xn);
       daQuet.add("Đơn của chính tài khoản lai, bên đặt B — chi tiết + lịch sử, phần đối tác, biên nhận, QR, lần thu, hành khách");

@@ -70,7 +70,12 @@ const lapDon = async (who, body) => {
   assert.equal(r.status, 201, `lập đơn: ${JSON.stringify(r.body)}`);
   return r.body.order;
 };
-const xacNhan = (who, id) => call(who, "POST", `/api/orders/${id}/status`, { status: "confirmed" });
+// ADR-0136 Đ13.5: người LẬP đơn giữ quyền Đối tác (kể cả tài khoản lai) bị chặn ở /status bằng 409 `partner_submit_required` — họ «Gửi đơn». Giúp dựng bài: thử /status, gặp đúng mã đó thì gửi đơn
+// (đơn thường → nhánh B, 200, cùng mọi cổng R2/R3/người lớn/chọn Đón theo người gửi). Cặp 409 → 200 này cũng là bằng chứng cổng Đối tác ĐANG chặn ở /status.
+const xacNhan = async (who, id) => {
+  const r = await call(who, "POST", `/api/orders/${id}/status`, { status: "confirmed" });
+  return r.status === 409 && r.body?.error?.code === "partner_submit_required" ? call(who, "POST", `/api/orders/${id}/gui-don`, {}) : r;
+};
 const ganHdv = async (orderId) => {
   const r = await call(ADM, "PUT", `/api/orders/${orderId}/handler`, { staffId: HDV.id });
   assert.equal(r.status, 200, `Quản trị gắn HDV: ${JSON.stringify(r.body)}`);

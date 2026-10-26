@@ -69,7 +69,7 @@ async function datGapChieuDi(w: any, o: any) {
 }
 /** Người lập xác nhận (đường thật). Đơn có dấu đặt gấp ở mọi chặng dưới mốc nên qua được. */
 async function xnNguoiLap(w: any, o: any) {
-  const r = await w.call("POST", `/api/orders/${o.id}/status`, { as: o.staffId, body: { status: "confirmed" } });
+  const r = await w.xacNhanDon(o.id, o.staffId);
   assert.equal(r.status, 200, r.text);
 }
 const legsOf = (order: any) => order.services.flatMap((s: any) => s.legs);
@@ -181,7 +181,7 @@ test("R-P21: lịch sử đơn — dòng SỬA CHẶNG đơn đã xác nhận d�
   });
   assert.equal(tao.status, 201, tao.text);
   const o = tao.json.order;
-  const xn = await w.call("POST", `/api/orders/${o.id}/status`, { as: SALES, body: { status: "confirmed" } });
+  const xn = await w.xacNhanDon(o.id, SALES);
   assert.equal(xn.status, 200, xn.text);
   const don = (await w.call("GET", `/api/orders/${o.id}`, { as: ADM })).json.order;
   const l = legsOf(don).find((x: any) => x.direction === "OUT");

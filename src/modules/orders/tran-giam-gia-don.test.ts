@@ -62,7 +62,7 @@ const than = (services: unknown[], extra: Record<string, unknown> = {}) => ({ cu
 /** C-5: 10 người lớn × 790.000 = 7.900.000; 10% ⇒ hoa hồng 790.000. */
 const C5 = [dv("ZA1", 10)];
 const lap = (w: W, as: string, services: unknown[], extra: Record<string, unknown> = {}) => w.call("POST", "/api/orders", { as, body: than(services, extra) });
-const xacNhan = (w: W, id: string, as = SALES) => w.call("POST", `/api/orders/${id}/status`, { as, body: { status: "confirmed" } });
+const xacNhan = (w: W, id: string, as = SALES) => w.xacNhanDon(id, as); // ADR-0136 Đ13.5: Đối tác «Gửi đơn», người khác /status
 const dem = (w: W, sql: string, ...a: unknown[]): number => Number(w.q(sql, ...a)[0].n);
 const soDon = (w: W) => dem(w, "SELECT count(*) AS n FROM orders");
 const tran = (r: { status: number; json: any; text: string }, x: string, ten = "") => {

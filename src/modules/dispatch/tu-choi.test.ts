@@ -47,7 +47,7 @@ async function donDaXacNhan(w: any, handler: string, opts: { departDate?: string
   const created = await w.call("POST", "/api/orders", { as: chu, body: orderBody(opts.departDate ?? inDays(2), {}, opts.soDichVu ?? 1) });
   assert.equal(created.status, 201, created.text);
   const id = created.json.order.id;
-  const xn = await w.call("POST", `/api/orders/${id}/status`, { as: chu, body: { status: "confirmed" } });
+  const xn = await w.xacNhanDon(id, chu);
   assert.equal(xn.status, 200, xn.text);
   const giao = await w.call("PUT", `/api/orders/${id}/handler`, { as: ADM, body: { staffId: handler } });
   assert.equal(giao.status, 200, giao.text);

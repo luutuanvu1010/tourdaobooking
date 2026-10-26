@@ -45,7 +45,7 @@ async function donDoiTac(w: any) {
   });
   assert.equal(r.status, 201, r.text);
   const id = r.json.order.id;
-  assert.equal((await w.call("POST", `/api/orders/${id}/status`, { as: PARTNER, body: { status: "confirmed" } })).status, 200);
+  assert.equal((await w.call("POST", `/api/orders/${id}/gui-don`, { as: PARTNER, body: {} })).status, 200);
   assert.equal((await w.call("PUT", `/api/orders/${id}/handler`, { as: ADM, body: { staffId: SALES } })).status, 200);
   return { id, code: r.json.order.orderCode as string, legId: r.json.order.services[0].legs[0].id as string };
 }

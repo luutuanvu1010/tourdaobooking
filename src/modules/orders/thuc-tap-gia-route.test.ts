@@ -38,7 +38,8 @@ const soDon = (w: W) => w.q("SELECT count(*) AS n FROM orders")[0].n as number;
 const tao = (w: W, as: string, svc = catalogSvc(), extra: Record<string, unknown> = {}) => w.call("POST", "/api/orders", { as, body: donBody([svc], extra) });
 const sua = (w: W, as: string, don: any, svc = catalogSvc(), extra: Record<string, unknown> = {}) =>
   w.call("PUT", `/api/orders/${don.id}`, { as, body: donBody([svc], { expectedUpdatedAt: don.updatedAt, ...extra }) });
-const xacNhan = (w: W, as: string, id: string) => w.call("POST", `/api/orders/${id}/status`, { as, body: { status: "confirmed" } });
+// ADR-0136 Đ13.5: người lập giữ quyền Đối tác xác nhận bằng «Gửi đơn» (harness chọn đường theo quyền), mọi cổng giá/giảm giá giữ nguyên
+const xacNhan = (w: W, as: string, id: string) => w.xacNhanDon(id, as);
 const trangThai = (w: W, id: string) => w.q("SELECT status FROM orders WHERE id = ?", id)[0].status as string;
 /** Làm lệch đơn NHÁP đã lưu bằng SQL — đúng như một đơn nháp CŨ lập trước bản vá (API ngày nay không nhận). */
 const lamLechGia = (w: W, id: string, donGia: number) => {
