@@ -1,7 +1,7 @@
 // Trang «Hoa hồng đối tác» (thiết kế lại, PR 2) — KHUNG: nạp dữ liệu, chuyển hai thẻ «Mức đang áp dụng» / «Thiết lập», truyền dữ liệu cho các khối nội dung.
 // Gọi (chỉ đọc, ở đây): GET /api/pricing/hoa-hong (CommissionRuleListResponse), /api/pricing/muc-ta (MucTaListResponse), /api/pricing/loai-doi-tac (LoaiDoiTacListResponse), /api/catalog.
 // Ẩn/hiện hỏi bảng quyền (`can`): xem = partner.commission.view, thêm mức = partner.commission.write; máy chủ kiểm lại (403 ⇒ «Bạn không có quyền xem trang này.»).
-// Trang không tính tiền, không chọn mức: số và lời từ máy chủ / luật thuần ở src/shared/hoa-hong-hien-thi.ts. Thẻ «Mức đang áp dụng»: web/hoa-hong-tra-nhanh.ts, -bang.ts, -hop.ts; thẻ «Thiết lập» vào đợt sau.
+// Trang không tính tiền, không chọn mức: số và lời từ máy chủ / luật thuần ở src/shared/hoa-hong-hien-thi.ts. Thẻ «Mức đang áp dụng»: web/hoa-hong-tra-nhanh.ts, -bang.ts, -hop.ts; thẻ «Thiết lập»: web/hoa-hong-thiet-lap.ts.
 import { CAU_KHONG_CO_QUYEN_XEM, type TenDanhMuc } from "../src/shared/hoa-hong-hien-thi";
 import { can, type PermissionHolder } from "../src/shared/permissions";
 import { ApiError, api, type Api } from "./api";
@@ -91,7 +91,7 @@ function chonThe(t: The, lay = false): void {
   if (lay) tabEl[t].focus();
 }
 
-// ---- Chỗ giữ cho các khối nội dung (đợt sau thay bằng hoa-hong-tra-nhanh / -bang / -hop / -thiet-lap) --------------------------------------------------
+// ---- Các khối nội dung (hoa-hong-tra-nhanh / -bang / -hop / -thiet-lap) --------------------------------------------------
 function veTheApDung(d: DuLieuHoaHong): void {
   const traNhanh = h("div", null);
   const bang = h("div", null);

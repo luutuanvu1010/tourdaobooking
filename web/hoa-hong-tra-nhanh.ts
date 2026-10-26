@@ -96,7 +96,8 @@ function dungForm(d: DuLieuHoaHong, cuonToi: (dongId: string, loai?: string) => 
   o.addEventListener("keydown", (e) => {
     if (e.key === "Enter") e.preventDefault();
   });
-  veGoiY(null);
+  // Gợi ý loại chỉ hiện khi ô được chạm hoặc gõ (không dựng sẵn cả cột lúc trang mở).
+  o.addEventListener("focus", () => veGoiY(null));
   veDaChon();
 
   const form = h(

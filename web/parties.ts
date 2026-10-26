@@ -761,7 +761,7 @@ async function veHoaHongHienHanh(sec: HTMLElement, p: Api.PartyDto, tin?: string
         ` — từ ${ngayVN(rieng.tuNgay)}${rieng.denNgay ? ` đến ${ngayVN(rieng.denNgay)}` : ""}. Mức theo loại không áp cho đại lý này.`)
     : null;
   const nhac: Child[] = [];
-  if (r.xungDot) nhac.push(h("p", { class: "alert warn", role: "status" }, "Hồ sơ mang hai loại theo hai chính sách khác nhau — với dịch vụ mà hai mức cho hai kết quả khác nhau, đơn có thể bị giữ cho tới khi gỡ bớt một loại, gắn cùng một mức, hoặc gắn một mức riêng cho đại lý này. Dùng «Thử tra» ở trang Hoa hồng đối tác để xem từng dịch vụ."));
+  if (r.xungDot) nhac.push(h("p", { class: "alert warn", role: "status" }, "Hồ sơ mang hai loại theo hai chính sách khác nhau — với dịch vụ mà hai mức cho hai kết quả khác nhau, đơn có thể bị giữ cho tới khi gỡ bớt một loại, gắn cùng một mức, hoặc gắn một mức riêng cho đại lý này. Dùng «Tra nhanh» ở trang Hoa hồng đối tác để xem từng dịch vụ."));
   if (!rieng && r.vai.some((v) => v.muc === null)) nhac.push(h("p", { class: "muted" }, "Loại chưa gắn mức thì đơn chưa có hoa hồng cho tới khi áp dụng chính sách hoặc có mức riêng."));
   if (r.dongRiengDoiTac > 0) nhac.push(h("p", { class: rieng ? "alert warn" : "muted", role: rieng ? "status" : null }, `Đại lý này có ${r.dongRiengDoiTac} mức riêng — mức riêng luôn thắng chính sách, kể cả chính sách riêng.`));
   if (r.dongRiengLoai > 0) nhac.push(h("p", { class: "muted" }, rieng ? `Loại đối tác của hồ sơ có ${r.dongRiengLoai} mức riêng — chính sách riêng thắng các mức đó.` : `Loại đối tác của hồ sơ có ${r.dongRiengLoai} mức riêng — mức riêng thắng chính sách của loại.`));
@@ -791,7 +791,7 @@ async function veHoaHongHienHanh(sec: HTMLElement, p: Api.PartyDto, tin?: string
       return baoLoi(err instanceof ApiError ? err.message : "Không tải được danh sách chính sách.");
     }
     const bat = mt.muc.filter((m) => m.dangBat);
-    if (bat.length === 0) return baoLoi("Chưa có chính sách nào đang bật — tạo mức ở trang Hoa hồng đối tác trước.");
+    if (bat.length === 0) return baoLoi("Chưa có chính sách nào đang bật — tạo chính sách ở trang Hoa hồng đối tác trước.");
     const oMuc = select([{ value: "", label: "Chọn chính sách" }, ...bat.map((m) => ({ value: m.code, label: m.ten }))], "");
     const oTu = input(r.homNay, { type: "date" }) as HTMLInputElement;
     const luu = button("Lưu mức riêng", (b) => {
