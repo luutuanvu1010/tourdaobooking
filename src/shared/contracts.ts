@@ -667,13 +667,13 @@ export interface PoolResponse { orders: PoolOrderDto[] }
 /**
  * `GET /api/orders/dashboard` (Trang chủ mới, `access: "office"`) — tổng quan cho nhân viên văn phòng.
  * `today`: đơn confirmed mà dịch vụ SỚM NHẤT có ngày đón (bỏ qua dịch vụ không có ngày) rơi đúng hôm nay.
- * `draftCount`: đơn nháp chưa xác nhận.
- * `unassignedCount`: đơn nháp hoặc đã xác nhận (không tính đơn huỷ) chưa có người phụ trách — ADR-0020 điều 7 (M1 = A), ADR-0030 S20-13.
+ * `draftCount`: số đơn nháp CỦA NGƯỜI XEM (ADR-0135 Đ3: nháp là vùng riêng của người lập).
+ * `unassignedCount`: đơn ĐÃ XÁC NHẬN (không tính nháp, đơn huỷ) chưa có người phụ trách — ADR-0020 điều 7 (M1 = A), ADR-0030 S20-13, ADR-0135 Đ3.
  * `revenueWeek`: doanh thu (tổng `total` hiện hành) của CHÍNH người xem trong tuần `from`..`to` (thứ Hai–Chủ nhật, giờ Việt Nam, hai đầu bao gồm).
  * `revenueWeek.daily`: ĐÚNG 7 phần tử (thứ Hai→Chủ nhật, cùng số hiện hành), ngày không có đơn vẫn có phần tử `total: 0` — dữ liệu cho
  * biểu đồ cột "Doanh thu của tôi" (Đợt D Task 2).
  */
-/** `GET /api/orders/dem-nhap` — số đơn CHƯA XÁC NHẬN (huy hiệu "Đơn hàng" ở thanh bên); cùng số `DashboardResponse.draftCount`, không kéo cả Bảng điều khiển. */
+/** `GET /api/orders/dem-nhap` — số đơn nháp của CHÍNH người gọi (huy hiệu "Đơn hàng" ở thanh bên); cùng số `DashboardResponse.draftCount`, không kéo cả Bảng điều khiển. */
 export interface DraftCountResponse { draftCount: number }
 export interface DashboardResponse {
   today: OrderSummaryDto[];

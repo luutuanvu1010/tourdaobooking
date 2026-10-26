@@ -17,7 +17,8 @@ import { docGhiChuKy, khoaKyStatements, kiemKhoaKy, thangDaKhoa } from "../ky-so
 import { donDangThuTien, phanThuongMaiCuaDon, thongTinGiaoDon } from "../orders";
 import { danhSachYeuCau, duyetYeuCau, ruYeuCau, taoYeuCau, tuChoiYeuCau } from "./dieu-chinh";
 import { donChoNhapKeToan, docNhapKeToan, ghiNhapKeToan } from "./nhap-ke-toan";
-import { accountingEnteredAmong, earliestLedgerMonth, orderOwners, receiptsOfOrder, soDongNoCuaNguoiRow } from "./repository";
+import { ketQuaXemDon } from "../../shared/xem-don-nhap";
+import { accountingEnteredAmong, earliestLedgerMonth, orderOwners, orderStatuses, receiptsOfOrder, soDongNoCuaNguoiRow } from "./repository";
 import { daTraTheoThuCho } from "./rules";
 import { cocChoBienNhan, cocCuaDon, danhSachCoc, demCoc, doiChieuCoc, ghiChiHoan, ghiChuyen, ghiDuyet, ghiHoanNgoai, ghiHuyDuyet, xacNhanHoanNgoai } from "./coc";
 import {
@@ -74,7 +75,9 @@ export const billingModule: AppModule = {
       const [info, assigned] = await Promise.all([thongTinGiaoDon(env.DB, id), isAssigned(id)]);
       if (!info) return NOT_FOUND();
       const scope = { ownerId: info.ownerId, assigned };
-      if (!can(staff, "order.view", scope)) return seesOnlyAssignedOrders(staff) ? NOT_FOUND() : FORBIDDEN_VIEW();
+      // ADR-0135 Đ1: đơn nháp của người khác → 404 (luật thuần dùng chung); đơn đã xác nhận / huỷ giữ luật cũ.
+      const xem = ketQuaXemDon({ coQuyenXem: can(staff, "order.view", scope), status: info.status, laNguoiLap: info.ownerId === staff.id, dangCho: false, xetDuyetDuoc: false, chiXemDonDuocGiao: seesOnlyAssignedOrders(staff) });
+      if (xem !== "ok") return xem === "404" ? NOT_FOUND() : FORBIDDEN_VIEW();
       if (!can(staff, "money.view", scope)) return FORBIDDEN_VIEW();
       // ADR-0089: khối cọc của đơn huỷ — cờ nút theo ĐÚNG ô của route ghi; tên người giữ tiền chỉ cho `ledger.view` phạm vi any.
       const coc = info.status === "cancelled"
@@ -250,7 +253,8 @@ export const billingModule: AppModule = {
       const [don, assigned] = await Promise.all([donChoNhapKeToan(env.DB, id), isAssigned(id)]);
       if (!don) return NOT_FOUND();
       const scope = { ownerId: don.ownerId, assigned };
-      if (!can(staff, "order.view", scope)) return seesOnlyAssignedOrders(staff) ? NOT_FOUND() : FORBIDDEN_VIEW();
+      const xem = ketQuaXemDon({ coQuyenXem: can(staff, "order.view", scope), status: don.status, laNguoiLap: don.ownerId === staff.id, dangCho: false, xetDuyetDuoc: false, chiXemDonDuocGiao: seesOnlyAssignedOrders(staff) });
+      if (xem !== "ok") return xem === "404" ? NOT_FOUND() : FORBIDDEN_VIEW(); // ADR-0135 Đ1
       if (!can(staff, "accounting.entry.view", scope)) return FORBIDDEN_VIEW();
       return json((await docNhapKeToan(env.DB, id, { coTheGhi: can(staff, "accounting.entry.mark"), status: don.status })) satisfies NhapKeToanResponse);
     }),
@@ -283,11 +287,13 @@ export const billingModule: AppModule = {
         return error(400, "invalid_input", "Danh sách đơn không hợp lệ (tối đa 100 mã).");
       }
       const ids = [...new Set(raw as string[])];
-      const [owners, handled] = await Promise.all([orderOwners(env.DB, ids), myHandledOrderIds()]);
+      const [owners, handled, trangThai] = await Promise.all([orderOwners(env.DB, ids), myHandledOrderIds(), orderStatuses(env.DB, ids)]);
       const phuTrach = new Set(handled);
       const xemDuoc = ids.filter((id) => {
         const scope = { ownerId: owners.get(id), assigned: phuTrach.has(id) };
-        return owners.has(id) && can(staff, "order.view", scope) && can(staff, "money.view", scope);
+        const status = trangThai.get(id);
+        // ADR-0135 Đ1: đơn nháp của người khác bị bỏ khỏi kết quả (cùng luật thuần với các đường đọc khác).
+        return owners.has(id) && status !== undefined && ketQuaXemDon({ coQuyenXem: can(staff, "order.view", scope), status, laNguoiLap: owners.get(id) === staff.id, dangCho: false, xetDuyetDuoc: false, chiXemDonDuocGiao: false }) === "ok" && can(staff, "money.view", scope);
       });
       const tien = await tienNhieuDon(env.DB, xemDuoc);
       const balances: LedgerBalancesResponse["balances"] = {};

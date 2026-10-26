@@ -27,6 +27,8 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export interface DongDon {
   id: string; orderId: string; maDon: string; action: string; actorId: string | null; tenNguoiLam: string | null;
   luc: string; ownerId: string; phuTrach: TrangThaiPhuTrach; lapChuaCoNguoi: boolean;
+  /** ADR-0135 Đ4: đơn đang NHÁP — tin chỉ tới người lập (`nhanSuKien` bỏ mọi nhãn khác). Vắng = false. */
+  laNhap?: boolean;
   cungLoLap: boolean; // order_handler_changed cùng mốc với dòng created của đơn = chọn người phụ trách LÚC LẬP (ADR-0030 Task 1.3) → không thành tin riêng
   // ---- Chỉ dòng ĐỔI (ADR-0062 — view v_aud_order_change; gốc lắp ráp dựng cho gõ cửa). Dòng tin đơn cũ để vắng. ----
   /** Chữ nhật ký có khuôn do máy chủ viết — CHỈ hàm đọc `phanDoiCuaTin` dùng, không bao giờ in thô. */
@@ -184,9 +186,9 @@ export function locHopThongBao(
     // Hộp KHÔNG biết người phụ trách trước sự kiện. Nhãn cho-nhan do chính loại tin quyết (dòng dưới), nên bỏ mọi cho-nhan nhanSuKien suy ra.
     // Hôm nay (ADR-0030 chưa lên main) nhanSuKien chưa nhận null → truyền { coNguoi: false, staffId: null }; kết quả đúng nhờ .filter.
     // KHI GỘP ADR-0030 Task 1.4: đổi thành handlerTruoc: null ("không biết" — không bao giờ coi là "chưa ai", NT-3). Mục "Phụ thuộc ADR-0030" điểm 6.
-    const nhan = nhanSuKien({ ownerId: d.ownerId, handlerTruoc: { coNguoi: false, staffId: null }, handlerSau: d.phuTrach })
+    const nhan = nhanSuKien({ ownerId: d.ownerId, handlerTruoc: { coNguoi: false, staffId: null }, handlerSau: d.phuTrach, laNhap: d.laNhap })
       .filter((t) => t !== "cho-nhan");
-    if (loai === "cho_nhan") nhan.push("cho-nhan");
+    if (loai === "cho_nhan" && d.laNhap !== true) nhan.push("cho-nhan");
     // ADR-0045: đơn NHÁP chưa là việc của ai — tin "lập đơn" chỉ ở ngăn "Tất cả" (không "Của tôi" → không số đỏ, không gõ cửa màn hình khoá).
     if (d.action === "created") nhan.splice(0, nhan.length, ...nhan.filter((t) => t === "tat-ca"));
     const chung = nhan.filter((t) => ketNoi.has(t));
@@ -226,7 +228,7 @@ export function locHopThongBao(
     }
     if (!duocThayTinDoi(staff, d.ownerId)) continue;
     // Người lập + người phụ trách HIỆN TẠI (handlerTruoc "không biết") + tat-ca; bỏ cho-nhan (đơn đã xác nhận — tin đổi không phải việc hàng chờ).
-    const chung = nhanSuKien({ ownerId: d.ownerId, handlerTruoc: null, handlerSau: d.phuTrach }).filter((t) => t !== "cho-nhan" && ketNoi.has(t));
+    const chung = nhanSuKien({ ownerId: d.ownerId, handlerTruoc: null, handlerSau: d.phuTrach, laNhap: d.laNhap }).filter((t) => t !== "cho-nhan" && ketNoi.has(t));
     if (!chung.length) continue;
     const coTen = d.tenNguoiLam !== null && xemTenNguoiLam(staff);
     tat.push({

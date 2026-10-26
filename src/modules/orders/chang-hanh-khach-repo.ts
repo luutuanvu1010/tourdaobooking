@@ -636,13 +636,17 @@ export interface LegLichChungRow {
 export async function legLichChungRows(db: D1Database, tuNgay: string, denNgay: string): Promise<LegLichChungRow[]> {
   return (await db.prepare(LEG_LICH_CHUNG).bind(tuNgay, denNgay).all<LegLichChungRow>()).results;
 }
-/** Chặng MỞ của đơn NHÁP có ngày đón trong [?1, ?2] (I11): CHỈ khoá, mã đơn, ngày giờ, cờ đặt gấp — không nơi, không số người. */
+/**
+ * Chặng MỞ của đơn NHÁP có ngày đón trong [?1, ?2] (I11): CHỈ khoá, mã đơn, ngày giờ, cờ đặt gấp — không nơi, không số người.
+ * ADR-0135 Đ9 (đặc tả 5d.1): lịch chung điều phối chỉ được thấy chặng của nháp CÓ YÊU CẦU XÁC NHẬN CÒN MỞ. Bảng yêu cầu chưa có ở Đợt 2 ⇒ điều kiện `0 = 1` TẮT
+ * phần nháp (đơn nháp là vùng riêng của người lập; không lộ qua lịch chung). Task 3.3 thay `0 = 1` bằng `EXISTS (… ord_confirm_request … còn mở)`.
+ */
 const LEG_LICH_CHUNG_NHAP = defineSql(
   "orders",
   "leg_lich_chung_nhap",
   `SELECT l.id, l.order_id, o.order_code, l.pickup_date, l.pickup_time, l.short_notice_reason IS NOT NULL AS dat_gap
    FROM ord_transfer_leg l JOIN orders o ON o.id = l.order_id
-   WHERE l.closed_at IS NULL AND o.status = 'draft' AND l.pickup_date BETWEEN ?1 AND ?2`,
+   WHERE l.closed_at IS NULL AND o.status = 'draft' AND 0 = 1 AND l.pickup_date BETWEEN ?1 AND ?2`,
 );
 export interface LegLichChungNhapRow {
   id: string;

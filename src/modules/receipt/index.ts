@@ -5,6 +5,7 @@ import type { QrThanhToanResponse, ReceiptResponse } from "../../shared/contract
 import { UUID_RE, error, json } from "../../shared/http";
 import { can, seesOnlyAssignedOrders } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
+import { ketQuaXemDon } from "../../shared/xem-don-nhap";
 import { soTienBienNhan, soTienChoQr } from "../billing";
 import { congTyChoBienNhan } from "../company";
 import { donChoBienNhan, phanThuongMaiCuaDon } from "../orders";
@@ -25,7 +26,9 @@ export const receiptModule: AppModule = {
       const [order, assigned] = await Promise.all([donChoBienNhan(env.DB, id), isAssigned(id)]);
       if (!order) return NOT_FOUND();
       const scope = { ownerId: order.staffId, assigned };
-      if (!can(staff, "order.view", scope)) return seesOnlyAssignedOrders(staff) ? NOT_FOUND() : FORBIDDEN_VIEW();
+      // ADR-0135 Đ1: đơn nháp của người khác → 404 (luật thuần dùng chung); đơn đã xác nhận / huỷ giữ luật cũ.
+      const xem = ketQuaXemDon({ coQuyenXem: can(staff, "order.view", scope), status: order.status, laNguoiLap: order.staffId === staff.id, dangCho: false, xetDuyetDuoc: false, chiXemDonDuocGiao: seesOnlyAssignedOrders(staff) });
+      if (xem !== "ok") return xem === "404" ? NOT_FOUND() : FORBIDDEN_VIEW();
       if (!can(staff, "money.view", scope) || !can(staff, "contact.view", scope)) return FORBIDDEN_VIEW();
       // Sổ đại lý đợt 2 Task 8 (ADR-0078 điều 10): người bán từng dịch vụ (bản chụp) để chia phần — hàm công bố của orders KHÔNG tự kiểm quyền nên chỉ gọi ở đây,
       // SAU `can(` (src/orders-cong-bo.test.ts). `dungBienNhan` chỉ đọc người bán + tên người bán; mức, a%, người hưởng không bao giờ ra biên nhận.
@@ -45,7 +48,9 @@ export const receiptModule: AppModule = {
       const [order, assigned] = await Promise.all([donChoBienNhan(env.DB, id), isAssigned(id)]);
       if (!order) return NOT_FOUND();
       const scope = { ownerId: order.staffId, assigned };
-      if (!can(staff, "order.view", scope)) return seesOnlyAssignedOrders(staff) ? NOT_FOUND() : FORBIDDEN_VIEW();
+      // ADR-0135 Đ1: đơn nháp của người khác → 404 (luật thuần dùng chung); đơn đã xác nhận / huỷ giữ luật cũ.
+      const xem = ketQuaXemDon({ coQuyenXem: can(staff, "order.view", scope), status: order.status, laNguoiLap: order.staffId === staff.id, dangCho: false, xetDuyetDuoc: false, chiXemDonDuocGiao: seesOnlyAssignedOrders(staff) });
+      if (xem !== "ok") return xem === "404" ? NOT_FOUND() : FORBIDDEN_VIEW();
       if (!can(staff, "money.view", scope)) return FORBIDDEN_VIEW();
       const tien = await soTienChoQr(env.DB, id);
       if (!tien) return error(503, "money_unavailable", "Chưa đọc được số tiền của đơn — tải lại rồi thử lại.");

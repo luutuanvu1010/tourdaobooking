@@ -37,7 +37,7 @@ const TOI_DA = 4;
 
 /** Khoá thẻ → khoá phạm vi trong `PHAM_VI_O_TRANG_CHU` (bảng chung; CHANGE-GUIDE bẫy 59(3): ô số khác phạm vi đứng cạnh nhau phải mang nhãn "Toàn công ty" / "Của tôi"). */
 export const KHOA_PHAM_VI: Readonly<Record<KhoaThe, keyof typeof PHAM_VI_O_TRANG_CHU>> = {
-  xemLai: "xemLai", dieuChinh: "dieuChinh", nhap: "choXacNhan", conThieu: "conThieu", chuaPhuTrach: "chuaPhuTrach", chuyenHomNay: "chuyenHomNay", gopY: "gopY",
+  xemLai: "xemLai", dieuChinh: "dieuChinh", nhap: "donNhap", conThieu: "conThieu", chuaPhuTrach: "chuaPhuTrach", chuyenHomNay: "chuyenHomNay", gopY: "gopY",
 };
 
 interface MoTa {
@@ -63,9 +63,9 @@ const THE: readonly MoTa[] = [
     phu: () => "Những điều Nền tảng đang nhắc Quản trị" },
   { khoa: "dieuChinh", uuTien: (w) => (quanTri(w) ? 8 : 2), hien: (w) => can(w, "ledger.adjust.approve") && !holdsPartner(w), nhan: "Điều chỉnh công nợ chờ duyệt", nut: () => "Duyệt",
     href: "/dieu-chinh-cong-no", tone: "xanh", chot: khong, phu: () => "Yêu cầu đang chờ bạn duyệt" },
-  // Số đơn nháp là của CẢ công ty: nút chốt (san hô) "Xác nhận đơn" chỉ cho Quản trị (xác nhận được mọi đơn); vai khác chỉ "Xem đơn nháp".
+  // Số đơn nháp là của CHÍNH người xem (ADR-0135 Đ3: nháp là vùng riêng của người lập): nút chốt (san hô) "Xác nhận đơn" cho người xác nhận được mọi đơn; vai khác "Xem đơn nháp".
   { khoa: "nhap", uuTien: () => 3, hien: xemDon, nhan: "Đơn nháp", nut: (w) => (xacNhanDuocMoiDon(w) ? "Xác nhận đơn" : "Xem đơn nháp"), href: "/orders", tone: "xanh", chot: xacNhanDuocMoiDon,
-    phu: () => "Đơn còn ở trạng thái nháp, chưa xác nhận" },
+    phu: () => "Đơn nháp của bạn, chưa xác nhận" },
   { khoa: "conThieu", uuTien: (w) => (quanTri(w) ? 9 : 4), hien: xemDon, nhan: "Đơn còn thiếu tiền", nut: (w) => (can(w, "ledger.write") ? "Ghi thu" : "Xem đơn"), href: "/orders",
     tone: "cat", chot: khong, phu: (n) => (n.conThieu ? `Còn phải thu ${vndShort(n.conThieu.total)} ₫` : "Chưa tải được số tiền còn thu") },
   { khoa: "chuaPhuTrach", uuTien: () => 5, hien: (w) => xemDon(w) && (can(w, "order.create") || quanTri(w)), nhan: "Đơn chưa có người phụ trách",

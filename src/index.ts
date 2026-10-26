@@ -95,12 +95,12 @@ const APP_OPTIONS: AppOptions = {
         ["tram", phatDon(
           env,
           { loai: "don", orderId: e.orderId, maDon: ref.orderCode, thayDoi, luc },
-          nhanSuKien({ ownerId: ref.staffId, handlerTruoc: e.handlerTruoc ?? HANDLER_TRUOC_KHONG_BIET, handlerSau }),
+          nhanSuKien({ ownerId: ref.staffId, handlerTruoc: e.handlerTruoc ?? HANDLER_TRUOC_KHONG_BIET, handlerSau, laNhap: ref.status === "draft" }), // ADR-0135 Đ4: tin của nháp chỉ tới người lập
         )],
         ["day", tinDoi ? dayGoCuaDoi(env, e.orderId, actor.id, batDau, (q) => chuyenChoTinTheoId(env.DB, q), (ds) => xepHangDay(env, ds)) : action === null ? null : dayGoCua(env, {
           don: {
             id: "day", orderId: e.orderId, maDon: ref.orderCode, action, actorId: actor.id, tenNguoiLam: null, luc, ownerId: ref.staffId,
-            phuTrach: handlerSau, lapChuaCoNguoi: thayDoi === "tao_cho_nhan", cungLoLap: false,
+            phuTrach: handlerSau, lapChuaCoNguoi: thayDoi === "tao_cho_nhan", cungLoLap: false, laNhap: ref.status === "draft",
           },
           quanTrong: false,
         }, (ds) => xepHangDay(env, ds))],

@@ -33,8 +33,9 @@ export async function donCuaNguoiDat(db: D1Database, partyId: string): Promise<D
     doi: seDoi.length,
     giuDaGiao: results.filter((r) => r.delivered_at !== null).length,
     giuDaHuy: results.filter((r) => r.status === "cancelled").length,
-    lechTien: seDoi.filter((r) => r.lech === 1).map((r) => r.order_code),
-    maDoi: seDoi.map((r) => r.order_code),
+    // ADR-0135 Đ1: đơn NHÁP chỉ được ĐẾM (`doi`), mã đơn nháp không ra khỏi hàm — người gộp hồ sơ thường không phải người lập (bài nhap-rieng-tu.test.ts).
+    lechTien: seDoi.filter((r) => r.lech === 1 && r.status !== "draft").map((r) => r.order_code),
+    maDoi: seDoi.filter((r) => r.status !== "draft").map((r) => r.order_code),
   };
 }
 export const cauDoiNguoiDat = (db: D1Database, tuPartyId: string, sangPartyId: string, at: string): D1PreparedStatement =>

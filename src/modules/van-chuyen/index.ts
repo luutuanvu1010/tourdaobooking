@@ -80,6 +80,7 @@ import { docBoDanhDauGoiBao, docDaGoiBao } from "./dieu-phoi-than";
 import { danhSachNhac, docGoiBao, phanHoiLenhLap, xuLyMoc, type QuyenGoiBao } from "./goi-bao-lenh";
 // ADR-0059: xe trên chi tiết đơn — route đọc, danh sách trắng.
 import type { XeCuaDonResponse } from "../../shared/contracts";
+import { ketQuaXemDon } from "../../shared/xem-don-nhap";
 import { changMoCuaDon, donTonTai, xeCuaDon } from "./chuyen-repo";
 import { lyDoGiuDto, xeCuaDonDto } from "./dieu-phoi-dto";
 // ADR-0057 T1 (kế hoạch Đợt 4 Task 4): bảng giá thuê xe theo nhà xe, danh mục tuyến / cỡ xe — thân route mỏng, xử lý ở tien-xe-lenh.ts.
@@ -2359,7 +2360,9 @@ export const vanChuyenModule: AppModule = {
     route("GET", "/api/van-chuyen/xe-cua-don/:orderId", "office", async ({ env, params, staff }) => {
       if (!can(staff, "trip.view") || !can(staff, "order.view")) return CAN_XEM_XE_DON();
       const orderId = params.orderId ?? "";
-      if (!(await donTonTai(env.DB, orderId))) return error(404, "not_found", "Không tìm thấy đơn.");
+      const don = await donTonTai(env.DB, orderId);
+      // ADR-0135 Đ1: nháp của người khác → 404 như đơn không tồn tại (nguồn đọc là view, không xét trạng thái nên phải hỏi luật thuần ở đây).
+      if (!don || ketQuaXemDon({ coQuyenXem: true, status: don.status, laNguoiLap: don.ownerId === staff.id, dangCho: false, xetDuyetDuoc: false, chiXemDonDuocGiao: false }) !== "ok") return error(404, "not_found", "Không tìm thấy đơn.");
       const [legIds, rows] = await Promise.all([changMoCuaDon(env.DB, orderId), xeCuaDon(env.DB, orderId)]);
       return json(xeCuaDonDto(legIds, rows) satisfies XeCuaDonResponse);
     }),

@@ -229,6 +229,13 @@ export async function orderOwners(db: D1Database, ids: readonly string[]): Promi
   return new Map((await db.prepare(ORDER_OWNERS).bind(JSON.stringify(ids)).all<{ id: string; staff_id: string }>()).results.map((r) => [r.id, r.staff_id]));
 }
 
+/** Trạng thái của các đơn (view công bố v_ord_order_state) — để áp luật «ai đọc được đơn nháp» (ADR-0135 Đ1) cho lời gọi nhiều đơn như `POST /api/ledger/balances`. */
+const ORDER_STATUSES = defineSql("billing", "order_statuses", `SELECT id, status FROM v_ord_order_state WHERE id IN (SELECT value FROM json_each(?1))`);
+export async function orderStatuses(db: D1Database, ids: readonly string[]): Promise<Map<string, "draft" | "confirmed" | "cancelled">> {
+  if (ids.length === 0) return new Map();
+  return new Map((await db.prepare(ORDER_STATUSES).bind(JSON.stringify(ids)).all<{ id: string; status: "draft" | "confirmed" | "cancelled" }>()).results.map((r) => [r.id, r.status]));
+}
+
 /** Số dư MỘT bên với công ty chủ — cùng view, cùng bộ lọc với `BALANCES_WITH_OWNER` (màn «Sổ công nợ», chi tiết một bên). */
 const BALANCE_OF_PARTY = defineSql(
   "billing",

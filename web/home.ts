@@ -708,7 +708,7 @@ function renderSoDienThoai(data: Api.DashboardResponse, unpaid: Api.UnpaidSummar
       ? oSo("money", "Còn thiếu", PHAM_VI_O_TRANG_CHU.conThieu, `${vndShort(unpaid.total)} ₫`, unpaid.count === 0 ? "Không có đơn nào" : `${unpaid.count} đơn`, "dash-so-thieu")
       : oSo("money", "Còn thiếu", PHAM_VI_O_TRANG_CHU.conThieu, "—", "Chưa tải được số"),
     oSo("chart", "Doanh thu của tôi", PHAM_VI_O_TRANG_CHU.doanhThu, `${vndShort(rev.total)} ₫`, `Tuần này · ${rev.count} đơn`, "dash-so-doanh-thu"),
-    oSo("doc-check", "Chờ xác nhận", PHAM_VI_O_TRANG_CHU.choXacNhan, String(data.draftCount), "Cần xác nhận đơn"),
+    oSo("doc-check", "Đơn nháp", PHAM_VI_O_TRANG_CHU.donNhap, String(data.draftCount), "Nháp của bạn, chưa xác nhận"),
     oSo("assign", "Chưa phụ trách", PHAM_VI_O_TRANG_CHU.chuaPhuTrach, String(data.unassignedCount), "Chờ người nhận"),
   );
   byId("dash-so").hidden = false;

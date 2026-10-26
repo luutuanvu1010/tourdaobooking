@@ -98,8 +98,11 @@ export function nhanSuKien(input: {
   ownerId: string;
   handlerTruoc: TrangThaiPhuTrach | null;
   handlerSau: TrangThaiPhuTrach;
+  /** ADR-0135 Đ4: đơn đang NHÁP (vùng riêng của người lập) — sự kiện chỉ mang `nguoi:<người lập>`: bỏ `tat-ca`, `cho-nhan`, nhãn người phụ trách trước / sau. Vắng = false (đơn đã xác nhận / huỷ). */
+  laNhap?: boolean;
 }): string[] {
   const { ownerId, handlerTruoc, handlerSau } = input;
+  if (input.laNhap === true) return [`nguoi:${ownerId}`];
   const nhan = new Set<string>(["tat-ca", `nguoi:${ownerId}`]);
   if (handlerTruoc !== null && handlerTruoc.staffId !== null) nhan.add(`nguoi:${handlerTruoc.staffId}`);
   if (handlerSau.staffId !== null) nhan.add(`nguoi:${handlerSau.staffId}`);

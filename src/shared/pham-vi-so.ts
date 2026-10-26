@@ -6,11 +6,13 @@ export type PhamVi = keyof typeof NHAN_PHAM_VI;
 /**
  * Bốn ô số của Trang chủ (thẻ điện thoại + thẻ máy tính): khớp máy chủ — "Còn thiếu tiền" (`GET /api/ledger/unpaid-summary`, mọi đơn đang thu), "Chờ xác
  * nhận" / "Chưa phụ trách" (`draftCount` / `unassignedCount` của `GET /api/orders/dashboard`, cả bảng); "Doanh thu" (`revenueWeek`, theo người lập = người xem).
+ * ADR-0135 Đ3 (25/10): `draftCount` nay là số đơn nháp CỦA NGƯỜI XEM (nháp là vùng riêng của người lập) nên khoá ô nháp đổi tên `donNhap` và mang phạm vi "Của tôi";
+ * `unassignedCount` chỉ đếm đơn đã xác nhận. Tên cũ `choXacNhan` nhường chỗ cho thẻ «đơn chờ xác nhận» của bước xác nhận (ADR-0136).
  * Máy chủ đổi phạm vi một số thì đổi dòng ở đây.
  */
 export const PHAM_VI_O_TRANG_CHU = {
   conThieu: "TOAN_CONG_TY",
-  choXacNhan: "TOAN_CONG_TY",
+  donNhap: "CUA_TOI",
   chuaPhuTrach: "TOAN_CONG_TY",
   doanhThu: "CUA_TOI",
   // Thẻ "Việc của bạn" (máy tính, 15/10): `dieuChinh` đếm phần chờ CHÍNH người xem duyệt (`choDuyetChoToi`); `xemLai` (cảnh báo giá + giấy tờ), `chuyenHomNay`, `gopY` (hàng đợi) là cả công ty.

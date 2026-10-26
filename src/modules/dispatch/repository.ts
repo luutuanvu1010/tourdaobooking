@@ -20,8 +20,18 @@ const COLUMNS = "order_id, party_id, staff_id, label";
 // `json_each(?1)` nhận MẢNG JSON các id: câu SQL vẫn TĨNH dù số id thay đổi (tối đa 100 — luật ở rules.ts).
 const HANDLERS_OF_ORDERS = defineSql("dispatch", "handlers_of_orders", `SELECT ${COLUMNS} FROM v_dsp_order_handler WHERE order_id IN (SELECT value FROM json_each(?1))`);
 const HANDLER_OF_ORDER = defineSql("dispatch", "handler_of_order", `SELECT ${COLUMNS} FROM v_dsp_order_handler WHERE order_id = ?1`);
-const IS_HANDLER = defineSql("dispatch", "is_handler", "SELECT 1 AS ok FROM v_dsp_order_handler WHERE order_id = ?1 AND staff_id = ?2");
-const HANDLED_ORDER_IDS = defineSql("dispatch", "handled_order_ids", "SELECT order_id FROM v_dsp_order_handler WHERE staff_id = ?1");
+// ADR-0135 Đ5: người phụ trách CHỌN SẴN trên đơn NHÁP chưa là người phụ trách thật — dòng mở trên nháp không sinh quyền (mất ngay khi đơn rời trạng thái nháp: lúc
+// xác nhận dòng ấy trở thành người phụ trách thật). Trạng thái đơn đọc qua view công bố v_ord_order_state.
+const IS_HANDLER = defineSql(
+  "dispatch",
+  "is_handler",
+  `SELECT 1 AS ok FROM v_dsp_order_handler h JOIN v_ord_order_state o ON o.id = h.order_id WHERE h.order_id = ?1 AND h.staff_id = ?2 AND o.status <> 'draft'`,
+);
+const HANDLED_ORDER_IDS = defineSql(
+  "dispatch",
+  "handled_order_ids",
+  `SELECT h.order_id FROM v_dsp_order_handler h JOIN v_ord_order_state o ON o.id = h.order_id WHERE h.staff_id = ?1 AND o.status <> 'draft'`,
+);
 
 // Dòng HANDLE mới: ?1 id, ?2 đơn, ?3 hồ sơ người nhận, ?4 thời điểm (UTC), ?5 người thao tác (cột WHO: TEXT NULL, không khoá ngoại — ADR-0003).
 const INSERT_COLUMNS = "id, order_id, task_kind_code, party_id, status_code, valid_from_at, created_at, created_by, updated_at, updated_by";

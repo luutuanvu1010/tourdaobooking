@@ -20,6 +20,7 @@ import { UUID_RE, error, json, readJson } from "../../shared/http";
 import { can, hasPermission, holdsPartner, MATRIX } from "../../shared/permissions";
 import { lyDoHuyCuaHdv } from "../../shared/ly-do-huy";
 import { docLyDoTuChoi } from "../../shared/ly-do-tu-choi";
+import { chiNguoiLapGhiNhap } from "../../shared/xem-don-nhap";
 import { route, type AppModule, type NewOrderHandler } from "../../shared/router";
 import { tripDeparted, tuChoiQuaMuon } from "../../shared/trip-rules";
 import { vnToday } from "../../shared/vn-date";
@@ -213,6 +214,8 @@ export const dispatchModule: AppModule = {
       if (!UUID_RE.test(orderId)) return NOT_FOUND();
       const [order, current] = await Promise.all([findOrderOwner(env.DB, orderId), findHandlerOf(env.DB, orderId)]);
       if (!order) return NOT_FOUND();
+      // ADR-0135 Đ2: đơn NHÁP là vùng riêng của người lập — người khác (kể cả Toàn quyền, người được chọn sẵn) nhận 404, trước mọi đọc thân; người lập đổi người trên nháp của mình thì đi tiếp.
+      if (!chiNguoiLapGhiNhap({ status: order.status, laNguoiLap: order.staffId === staff.id })) return NOT_FOUND();
       // Bảng tin (ADR-0022, NT-2): trạng thái phụ trách TRƯỚC thay đổi, tính từ `current` đã đọc — dùng cho cả luật "nhận"/"giao" và nhãn người nhận.
       const truoc: TrangThaiPhuTrach = { coNguoi: current !== null, staffId: current?.staff_id ?? null };
       // Chốt Nhận đơn đã huỷ/đã qua ngày đi (ADR-0030 S20-5) chỉ áp cho "Nhận" thật (xem khối dưới, sau verdict). GIAO cho người khác vẫn được cả với đơn đã
@@ -229,6 +232,7 @@ export const dispatchModule: AppModule = {
       // "Nhận" thật: đơn CHƯA có người (current === null) và người gọi tự đặt CHÍNH MÌNH. Chốt Nhận (ADR-0030 S20-5) và chặn tài khoản lai (có quyền Đối
       // tác) chỉ áp NHÁNH này — giao cho người khác không đổi (đúng chú thích ở trên).
       if (current === null && input.staffId === staff.id) {
+        if (order.status === "draft") return error(409, "order_not_confirmed", "Đơn chưa xác nhận, chưa nhận được."); // ADR-0135 Đ6 — chỉ người lập tự nhận nháp của mình gặp câu này (người khác đã 404 ở trên)
         if (holdsPartner(staff)) return CLAIM_PARTNER_FORBIDDEN();
         if (order.status === "cancelled") return CLAIM_CANCELLED();
         if (tripDeparted(await findOrderDepartDates(env.DB, orderId), vnToday(new Date()))) return CLAIM_DEPARTED();
@@ -273,6 +277,7 @@ export const dispatchModule: AppModule = {
       if (!UUID_RE.test(orderId)) return NOT_FOUND();
       const [order, assigned] = await Promise.all([findOrderOwner(env.DB, orderId), isAssigned(orderId)]);
       if (!order) return NOT_FOUND();
+      if (!chiNguoiLapGhiNhap({ status: order.status, laNguoiLap: order.staffId === staff.id })) return NOT_FOUND(); // ADR-0135: nháp của người khác (kể cả HDV chọn sẵn, Toàn quyền) → 404
       if (!can(staff, "order.cancel", { assigned })) return CANCEL_FORBIDDEN();
       if (await orderDelivered(env.DB, orderId)) return DA_GIAO();
       if (order.status !== "confirmed") return NOT_CONFIRMED();
@@ -307,6 +312,7 @@ export const dispatchModule: AppModule = {
       if (!UUID_RE.test(orderId)) return NOT_FOUND();
       const [order, assigned] = await Promise.all([findOrderOwner(env.DB, orderId), isAssigned(orderId)]);
       if (!order) return NOT_FOUND();
+      if (!chiNguoiLapGhiNhap({ status: order.status, laNguoiLap: order.staffId === staff.id })) return NOT_FOUND(); // ADR-0135: nháp của người khác (kể cả HDV chọn sẵn, Toàn quyền) → 404
       // CỐ Ý không dùng can(staff, "order.money.edit", { assigned }) trần: ô order.money.edit của ACCOUNTING/ADMIN trong MATRIX là "any" (dành cho
       // route văn phòng `POST /api/orders/:id/money-edit` — ADR-0063 D1, cổng office; sửa số khách MỌI đơn không cần đang phụ trách) — can() hợp nhiều quyền nên sẽ cho ACCOUNTING/ADMIN qua route HẸP
       // này dù không phải người phụ trách (lỗ đã bị kiểm độc lập bắt: đổi số khách/tiền của BẤT KỲ đơn đã xác nhận nào). Route hẹp này CHỈ dành cho
@@ -344,6 +350,7 @@ export const dispatchModule: AppModule = {
       if (!UUID_RE.test(orderId)) return NOT_FOUND();
       const [order, current] = await Promise.all([findOrderOwner(env.DB, orderId), findHandlerOf(env.DB, orderId)]);
       if (!order) return NOT_FOUND();
+      if (!chiNguoiLapGhiNhap({ status: order.status, laNguoiLap: order.staffId === staff.id })) return NOT_FOUND(); // ADR-0135: nháp của người khác (kể cả HDV chọn sẵn, Toàn quyền) → 404
       if (current === null || current.staff_id !== staff.id) return REFUSE_FORBIDDEN();
       if (order.status === "draft") return REFUSE_NOT_CONFIRMED();
       if (order.status === "cancelled") return REFUSE_CANCELLED();

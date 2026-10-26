@@ -1023,7 +1023,12 @@ export const MOC_GOI_INSERT = defineSql(
 
 // ---- XE TRÊN CHI TIẾT ĐƠN (ADR-0059) — chỉ đọc, qua view công bố của orders (`v_ord_order_label` — đơn có tồn tại; `v_ord_leg_key` — chặng mở của đơn) và
 // parties (`v_pty_party_label` — tên tài xế). Không đọc SĐT, tên khách, khoá so sánh nơi. Bỏ chuyến huỷ; chỉ đếm suất KHÁCH đang mở.
-const DON_TON_TAI = defineSql("van-chuyen", "don_ton_tai", "SELECT 1 AS co FROM v_ord_order_label WHERE id = ?1");
+// ADR-0135 Đ1: trả cả trạng thái + người lập (view công bố v_ord_order_state, v_ord_order_owner) để route áp luật «ai đọc được đơn nháp»; không tên / SĐT / tiền.
+const DON_TON_TAI = defineSql(
+  "van-chuyen",
+  "don_ton_tai",
+  "SELECT s.status, w.staff_id AS owner_id FROM v_ord_order_state s JOIN v_ord_order_owner w ON w.id = s.id WHERE s.id = ?1",
+);
 const CHANG_MO_CUA_DON = defineSql("van-chuyen", "chang_mo_cua_don", "SELECT k.id FROM v_ord_leg_key k WHERE k.order_id = ?1 AND k.is_open = 1 ORDER BY k.id");
 export interface XeCuaDonRow {
   leg_id: string;
@@ -1046,8 +1051,9 @@ const XE_CUA_DON = defineSql(
    GROUP BY a.leg_id, t.id
    ORDER BY a.leg_id, t.planned_start_ms, t.code`,
 );
-export async function donTonTai(db: D1Database, orderId: string): Promise<boolean> {
-  return (await db.prepare(DON_TON_TAI).bind(orderId).first<{ co: number }>()) !== null;
+export async function donTonTai(db: D1Database, orderId: string): Promise<{ status: "draft" | "confirmed" | "cancelled"; ownerId: string } | null> {
+  const r = await db.prepare(DON_TON_TAI).bind(orderId).first<{ status: "draft" | "confirmed" | "cancelled"; owner_id: string }>();
+  return r ? { status: r.status, ownerId: r.owner_id } : null;
 }
 export async function changMoCuaDon(db: D1Database, orderId: string): Promise<string[]> {
   return (await db.prepare(CHANG_MO_CUA_DON).bind(orderId).all<{ id: string }>()).results.map((r) => r.id);

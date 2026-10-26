@@ -406,9 +406,9 @@ export interface OrderMeta {
 }
 
 /** Mã đơn + người lập — chỉ hai trường này (Bảng tin, ADR-0022 điều 4: sự kiện không mang tên/SĐT khách, không tiền). null nếu không có đơn. */
-export async function getOrderRef(db: D1Database, id: string): Promise<{ staffId: string; orderCode: string } | null> {
-  const row = await db.prepare("SELECT staff_id, order_code FROM orders WHERE id = ?").bind(id).first<{ staff_id: string; order_code: string }>();
-  return row ? { staffId: row.staff_id, orderCode: row.order_code } : null;
+export async function getOrderRef(db: D1Database, id: string): Promise<{ staffId: string; orderCode: string; status: OrderStatus } | null> {
+  const row = await db.prepare("SELECT staff_id, order_code, status FROM orders WHERE id = ?").bind(id).first<{ staff_id: string; order_code: string; status: OrderStatus }>();
+  return row ? { staffId: row.staff_id, orderCode: row.order_code, status: row.status } : null;
 }
 
 export async function getMeta(db: D1Database, id: string): Promise<OrderMeta | null> {
@@ -509,6 +509,8 @@ export interface ListOrdersOpts {
   ownerId: string | null;
   orderIds: readonly string[] | null;
   chiTrongIds?: readonly string[] | null;
+  /** Người đang xem (ADR-0135 Đ1): đơn NHÁP chỉ hiện cho chính người lập — mọi người khác, kể cả Toàn quyền, không thấy (kể cả khi tìm theo mã đơn). BẮT BUỘC. */
+  nguoiXem: string;
 }
 
 /** MỘT bộ dựng điều kiện cho cả trang danh sách và tập ứng viên của bộ lọc dấu kế toán — hai câu không bao giờ lệch phạm vi / bộ lọc. */
@@ -516,6 +518,9 @@ function dieuKienDanhSach(opts: ListOrdersOpts): { whereSql: string; binds: (str
   const where: string[] = [];
   const binds: (string | number)[] = [];
   const scope: string[] = [];
+  // ADR-0135 Đ1: đơn nháp là vùng riêng của người lập — điều kiện này AND với mọi phạm vi và bộ lọc bên dưới, không nhánh nào nới được.
+  where.push("(o.status <> 'draft' OR o.staff_id = ?)");
+  binds.push(opts.nguoiXem);
   if (opts.ownerId !== null) {
     scope.push("o.staff_id = ?");
     binds.push(opts.ownerId);
@@ -603,7 +608,7 @@ export async function listPoolSources(db: D1Database, today: string): Promise<Po
   const { results: orderRows } = await db
     .prepare(
       `SELECT o.id, o.order_code, o.status FROM orders o
-       WHERE o.status IN ('draft', 'confirmed')
+       WHERE o.status = 'confirmed'
          AND (EXISTS (SELECT 1 FROM order_service s WHERE s.order_id = o.id AND s.depart_date >= ?)
               OR NOT EXISTS (SELECT 1 FROM order_service s WHERE s.order_id = o.id AND s.depart_date IS NOT NULL AND s.depart_date <> ''))`,
     )
@@ -638,7 +643,7 @@ export interface DashboardData {
   /** Cùng luật `today` cho ngày mai / ngày kia (góp ý YC-0007). */
   tomorrow: OrderSummaryDto[];
   dayAfter: OrderSummaryDto[];
-  /** Đơn nháp chưa xác nhận (cùng `unassignedCount` là hai số duy nhất của Trang chủ có đếm đơn nháp). */
+  /** Đơn nháp CỦA NGƯỜI GỌI (ADR-0135 Đ3). `unassignedCount` chỉ đếm đơn đã xác nhận. */
   draftCount: number;
   /**
    * Đơn NHÁP hoặc ĐÃ XÁC NHẬN (không tính đơn huỷ) chưa có người phụ trách đang mở — ADR-0020 điều 7 (M1 = A), ADR-0030 S20-13. Tập đơn đang có người
@@ -711,9 +716,9 @@ async function chuyenDonTrongNgay(db: D1Database, ngay: string): Promise<OrderSu
   ).map((s) => ({ ...s, trip: todayTripById.get(s.id) ?? s.trip }));
 }
 
-/** Số đơn nháp (chưa xác nhận) toàn công ty — MỘT câu; dùng chung cho Bảng điều khiển và huy hiệu thanh bên (`GET /api/orders/dem-nhap`). */
-export async function countDrafts(db: D1Database): Promise<number> {
-  const row = await db.prepare(`SELECT COUNT(*) AS n FROM orders WHERE status = 'draft'`).first<{ n: number }>();
+/** Số đơn nháp CỦA NGƯỜI GỌI (ADR-0135 Đ3: nháp là vùng riêng — không đếm nháp của người khác) — MỘT câu; dùng chung cho Bảng điều khiển và huy hiệu thanh bên (`GET /api/orders/dem-nhap`). */
+export async function countDrafts(db: D1Database, staffId: string): Promise<number> {
+  const row = await db.prepare(`SELECT COUNT(*) AS n FROM orders WHERE status = 'draft' AND staff_id = ?1`).bind(staffId).first<{ n: number }>();
   return row?.n ?? 0;
 }
 
@@ -742,10 +747,10 @@ export async function getDashboard(
   // 2) "Còn thiếu tiền" RỜI Trang chủ của orders (sổ tiền lượt 1 — ADR-0026 đ9): số đã thu là của billing, `orders` không đọc bảng bil_ ⇒ ô đó lấy qua
   //    `GET /api/ledger/unpaid-summary` (module billing).
 
-  // 3) Đơn nháp chưa xác nhận.
-  const draftCount = await countDrafts(db);
+  // 3) Đơn nháp của chính người gọi (ADR-0135 Đ3).
+  const draftCount = await countDrafts(db, staffId);
 
-  // 4) "Chưa phụ trách" (ADR-0020 điều 7, M1 = A; ADR-0030 S20-13): đơn NHÁP hoặc ĐÃ XÁC NHẬN (không tính đơn huỷ) chưa có người phụ trách đang mở.
+  // 4) "Chưa phụ trách" (ADR-0020 điều 7, M1 = A; ADR-0030 S20-13): chỉ đơn ĐÃ XÁC NHẬN chưa có người phụ trách đang mở (ADR-0135 Đ3: nháp là vùng riêng của người lập, không phải việc chờ ai nhận; đơn huỷ cũng không tính).
   //    `orders` KHÔNG đọc dữ liệu phân công (không import `dispatch`, không đọc view của nó — `src/architecture.test.ts` canh): lấy id các đơn còn hiệu
   //    lực ở đây, hỏi `ordersWithHandler` đơn nào đang có người (dispatch trả lời), đếm phần còn lại. Ngữ nghĩa "dòng đã đóng coi như chưa có ai", "hồ
   //    sơ không có tài khoản vẫn là có người" thuộc dispatch (`src/modules/dispatch/handler-of.test.ts`).
@@ -753,7 +758,7 @@ export async function getDashboard(
   //    hạn đã có ở khối 2 (`getLatestAdjustments` nhận mọi đơn đã xác nhận). Hôm nay vài trăm đơn; khi số đơn chưa huỷ vượt vài nghìn thì phải xem lại.
   //    Đo 2026-09-27 trên node:sqlite (CHƯA đo trên D1): 2 000 đơn → chuỗi JSON 78 001 byte, cả hàm ~5 ms; 50 000 đơn → 1 950 001 byte — sát giới hạn
   //    2 MB/chuỗi của D1 (tài liệu Cloudflare; tài liệu không nói rõ giới hạn đó có áp cho tham số ràng buộc hay không).
-  const { results: openRows } = await db.prepare(`SELECT id FROM orders WHERE status IN ('draft', 'confirmed')`).all<{ id: string }>();
+  const { results: openRows } = await db.prepare(`SELECT id FROM orders WHERE status = 'confirmed'`).all<{ id: string }>();
   const withHandler = await ordersWithHandler(openRows.map((r) => r.id));
   const unassignedCount = openRows.filter((r) => !withHandler.has(r.id)).length;
 
