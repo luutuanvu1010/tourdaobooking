@@ -50,3 +50,26 @@ Sổ điều phối (P19: trạng thái sống ở đây, không trong trí nh�
 ## Việc ngoài kế hoạch làm trong phiên
 
 - **Gỡ hook Stop «cổng xanh»** theo lệnh chủ ("gỡ đi…"), nhánh riêng `worktree-agent-a7b56f52be49e4ff4` (commit 2334efd5, dựng trên origin/main b1b2abe4): bỏ đăng ký trong `.claude/settings.json`, sửa CLAUDE.md §8, sổ hàng rào ghi "ĐÃ GỠ 2026-10-19". Hai tệp `.claude/hooks/cong-xanh*.mjs` còn nằm đó (AI bị chặn xoá), không còn được gọi. Kết quả kiểm độc lập: xem báo cáo cuối phiên.
+
+## Lần giao L1 (26/10, trợ lý thi công; Task 2.1 + 2.3 — CHƯA kiểm độc lập)
+
+**Phạm vi**: nháp riêng tư (ADR-0135) — luật thuần `src/shared/xem-don-nhap.ts` (`xemDuocDon`, `ketQuaXemDon`, `chiNguoiLapGhiNhap`); đường đọc/ghi của orders, dispatch, receipt, billing, van-chuyen, thông báo, bảng tin, Việc của bạn; khoá `choXacNhan` → `donNhap` (phạm vi `CUA_TOI`); lịch chung chặng tắt phần nháp. KHÔNG làm: Task 2.2, Đợt 3, đổi giá trị ô quyền, migration.
+
+**Bước 0 — kiểm view `v_ord_*` có lộ mã đơn nháp không**: `v_ord_order_label` (id, order_code) là view công bố trên MỌI đơn, kể cả nháp (thiết kế từ migration 0009, không đổi). Các nơi dùng: thongbao (tin nháp bị `locHopThongBao`/`DongDon.laNhap` lọc theo trạng thái HIỆN TẠI), audit, feedback, van-chuyen, billing. Đã sửa/chặn: tin thông báo nháp chỉ tới người lập; `donCuaNguoiDat` không trả mã nháp; hộp thoại gộp hồ sơ không còn nêu mã đơn nháp. CHƯA kiểm sâu từng đường: audit (`audit/repository.ts` ghép nhãn vào dòng nhật ký — nhật ký đơn nháp đọc qua route đơn nên đã 404), feedback (`DON_CUA_NGUOI` chỉ đơn của chính người đó), billing (`bil_*` gắn đơn nháp chỉ có khi nháp đã nhận tiền — thuộc Task 2.2). Kết luận: view không đổi; không thấy đường lộ cho người khác ngoài các điểm đã chặn; phần billing để Task 2.2.
+
+**Rulings**: `isAssigned`/`findHandledOrderIds` loại đơn nháp; cổng nháp đặt TRƯỚC kiểm ô quyền ở các route đặt gấp, `handler-cancel`/`handler-money-edit`/`handler-refuse` và route chặng/hành khách (để người không phải người lập luôn 404, không lộ 403/409); `LEG_LICH_CHUNG_NHAP` có điều kiện `0 = 1`; tin nháp xét theo trạng thái hiện tại.
+
+**Hàng rào**: dòng mới ở `docs/SO-HANG-RAO.md` (đột biến `chiNguoiLapGhiNhap` luôn `true` ⇒ 24 bài đỏ, hoàn nguyên ⇒ 41/41 xanh, quan sát 26/10). Ba cổng 404 mới ở route `handler-*` thêm SAU bài hàng loạt; chỉ có đột biến chứng minh, bài riêng từng cổng nằm ở `tu-choi.test.ts` (TC-4), `nhap-rieng-tu.test.ts`.
+
+**Bài cũ đỏ → cách sửa** (chỉ sửa dữ liệu gieo/kỳ vọng, KHÔNG nới luật): các bài giả định người khác đọc/ghi/xác nhận nháp. Ba khuôn: (1) xác nhận bằng chính người lập (`SELECT staff_id`) hoặc tạo nháp rồi `UPDATE … status='confirmed'` (chèn thẳng đã xác nhận bị trigger chặn); (2) đổi kỳ vọng sang 404 nơi "người khác đọc/ghi nháp" là chính điểm kiểm; (3) dấu «đặt gấp» của Đối tác/Thực tập gieo bằng SQL vì họ không có ô. Danh sách tệp: billing (`ben-kia`, `ben-kia-lua-chon`, `so-cong-no-ben`, `so-du-bang-tong-dong-no`, `dieu-chinh-duyet-route`, `nhap-ke-toan`); orders (`o-moi-chang`, `cam-ket-chang`, `canh-bao-ha-muc`, `xem-don-theo-quyen`, `dat-gap`, `dat-gap-hien-thi`, `dat-gap-sat-gio`, `thuong-mai-route`, `loc-don-route`, `loc-chua-phu-trach`, `tim-chu-dai`, `dashboard`, `lich-chung-chang`, `so-khach-van-phong-route`, `chang-route`, `chiet-khau-theo-loai`, `tran-giam-gia-don`, `order-ref`, `nguoi-lap-route`, `nguoi-dat-gop`); dispatch (`nhan-don`, `tu-choi`, `service`, `handler-of`); van-chuyen (`dieu-phoi`, `dieu-chinh-khan-cap`, `nhan-khan-cap`, `xe-dang-chay-route`, `tests/audit/dieu-phoi-khung.mjs`); khác (`thongbao/tin-doi-hop`, `receipt/bien-nhan`, `parties/gop-route`, `pricing/*` ba tệp, `so-la-doi-tac`, `so-la-thuong-mai-toan-nen-tang`, `so-vang-so-dai-ly`, `shared/viec-cua-ban`). e2e: `orders`, `permissions`, `thongbao`, `bangtin`, `chang-hanh-khach`, `dispatch` (đơn dựng sẵn nay xác nhận mặc định; HDV chọn sẵn không thấy nháp trong «Việc của tôi»/danh sách), thêm `nhap-rieng-tu`.
+
+**Đo (26/10)**: `npm test` thoát 0 — 6273 bài, 6269 đạt, 0 hỏng (4 bỏ qua theo bộ cũ); `npm run typecheck` 0 lỗi; `npm run build:web` xanh; e2e `nhap-rieng-tu orders dispatch permissions bangtin thongbao gop-ho-so chang-hanh-khach` xanh cả tám + `audit-invariants` cuối.
+
+### Nợ / câu hỏi cho chủ
+- Nháp của Đối tác/Thực tập dưới mốc 6 giờ không đóng dấu «đặt gấp» được (đường thật là «Gửi duyệt xác nhận» — Đợt 3).
+- `/api/orders/nguoi-lap` có thể liệt kê người chỉ có nháp.
+- `GET /api/dispatch/handlers?orderIds=` chưa lọc nháp.
+- Thông báo 409 gộp hồ sơ không còn nêu mã đơn nháp.
+- `STATUS_LABEL.draft` còn là «Chờ xác nhận» (đổi chữ thuộc giao diện/Đợt 3).
+- HDV chọn sẵn nay nhận 404 (trước là 403/409) ở `handler-cancel`/`handler-money-edit`/`handler-refuse` với nháp.
+- Billing ghép nhãn đơn nháp đã nhận tiền: để Task 2.2.
