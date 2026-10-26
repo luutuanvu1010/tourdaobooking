@@ -1,7 +1,7 @@
 // Chữ và luật hiển thị thuần của hai màn «Hoa hồng đối tác» (/hoa-hong) và «Người bán dịch vụ» (/nguoi-ban) — web/hoa-hong.ts, web/nguoi-ban.ts (sổ đại lý đợt 1, Task 10).
 // Nhãn mức đi qua MỘT nguồn `nhanMuc` / `nhanTyLeBp` (so-dai-ly-nhan.ts); không mã thô (RATE, PER_PAX, MISSING, NONE…) ra người dùng. Giao diện không tính tiền, không chọn mức:
 // «mức nào thắng» do máy chủ trả (`bac`), ở đây chỉ dịch bậc ra lời.
-import type { CommissionRuleDto, DoiTuongMucDto, LoaiDoiTacDto, MucTaDto, MucTaListResponse, SupplyTermDto, ThuTraResponse } from "./contracts.ts";
+import type { CommissionRuleDto, DoiTuongMucDto, GanLoaiMucDto, LoaiDoiTacDto, MucTaDto, MucTaListResponse, SupplyTermDto, ThuTraResponse } from "./contracts.ts";
 import { ngayVN } from "./giay-to-hien-thi.ts";
 import { can, holdsPartner, type PermissionHolder } from "./permissions.ts";
 import { CAU_THIEU_MUC, nhanMuc, nhanTyLeBp } from "./so-dai-ly-nhan.ts";
@@ -214,4 +214,40 @@ export function ghepDoiTacRieng(dong: readonly CommissionRuleDto[], ganRieng: Mu
     else m.set(g.partyId, { partyId: g.partyId, ten: g.ten, mucRieng: false, chinhSach: g.tenMuc });
   }
   return [...m.values()].sort((a, b) => a.ten.localeCompare(b.ten, "vi"));
+}
+
+/** «Từ 01/01/2026 · đến 31/12/2026» hoặc «Từ 01/01/2026 · không thời hạn». */
+export const nhanHieuLuc = (d: { tuNgay: string; denNgay: string | null }): string => `Từ ${ngayVN(d.tuNgay)} · ${d.denNgay === null ? "không thời hạn" : `đến ${ngayVN(d.denNgay)}`}`;
+
+/** Câu dưới ba ô «Tách theo loại khách» của hộp Thêm mức / Đổi (bàn giao mục 4, ADR-0133). */
+export const CAU_THEO_LOAI_KHACH =
+  "Nhóm khách nào không trả hoa hồng thì ghi 0; ba ô đều phải điền. Em bé không tính hoa hồng. Dịch vụ tính theo lượt (phao chuối, dù bay): dùng số của người lớn cho mỗi lượt.";
+
+/** Chính sách đang áp dụng cho một loại (gắn còn hiệu lực hôm nay); không có → null. Máy chủ chặn hai gắn chồng ngày nên tối đa một. */
+export function chinhSachCuaLoai(mt: MucTaListResponse, loaiCode: string): { gan: GanLoaiMucDto; muc: MucTaDto } | null {
+  for (const m of mt.muc) {
+    const g = m.gan.find((x) => x.conHieuLuc && x.loai.code === loaiCode);
+    if (g) return { gan: g, muc: m };
+  }
+  return null;
+}
+
+/**
+ * Bảng «Theo loại đối tác»: mỗi loại kèm các dòng mức RIÊNG của nó đã qua bộ lọc. Ô tìm khớp tên loại → giữ mọi dòng (đã lọc trạng thái) của loại; khớp dòng (dịch vụ) → chỉ dòng khớp.
+ * Ô tìm rỗng → mọi loại hiện, kể cả loại chưa có dòng nào. Có chữ tìm mà không khớp gì → loại ẩn.
+ */
+export function locBangLoai<L extends { code: string; ten: string }>(loai: readonly L[], dong: readonly CommissionRuleDto[], bo: BoLoc, homNay: string, ten: TenDanhMuc): { loai: L; dong: CommissionRuleDto[] }[] {
+  const tim = chuanTim(bo.tim);
+  const ra: { loai: L; dong: CommissionRuleDto[] }[] = [];
+  for (const l of loai) {
+    const cua = dong.filter((d) => d.doiTuong.loai === "VAI" && d.doiTuong.code === l.code);
+    const theoTrangThai = cua.filter((d) => !bo.chiConHieuLuc || trangThaiDong(d, homNay) !== "DA_DONG");
+    if (tim === "") ra.push({ loai: l, dong: theoTrangThai });
+    else if (chuanTim(l.ten).includes(tim)) ra.push({ loai: l, dong: theoTrangThai });
+    else {
+      const khop = locMuc(cua, bo, homNay, ten);
+      if (khop.length > 0) ra.push({ loai: l, dong: khop });
+    }
+  }
+  return ra;
 }
