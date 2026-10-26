@@ -29,8 +29,16 @@ export interface MoHop {
   doi(d: Api.CommissionRuleDto): void;
   /** `moTa` thay câu mô tả mặc định khi không có dòng mức để mô tả (vd ngừng một lần áp dụng chính sách cho loại). */
   ngung(d: Api.CommissionRuleDto, url: string, moTa?: string): void;
+  /** Ngừng một lần áp dụng chính sách cho loại (R21): chọn ngày cuối, `POST /api/pricing/muc-ta/gan/:id/ket-thuc`. */
+  ngungApDung(gan: Api.GanLoaiMucDto): void;
   doiChinhSach(gan: Api.GanLoaiMucDto): void;
   apDungChinhSach(muc: Api.MucTaDto): void;
+  /** Hộp chỉ hỏi tên → thêm loại đối tác (`POST /api/pricing/loai-doi-tac`). */
+  themLoai(): void;
+  /** Hộp chỉ hỏi tên → thêm chính sách (`POST /api/pricing/muc-ta`). */
+  themChinhSach(): void;
+  /** Lệnh một bước không cần hộp (Tắt / Bật): gửi, nạp lại trang; trả câu lỗi nguyên văn của máy chủ, hoặc null nếu xong. */
+  guiNhanh(path: string, thongBao: string): Promise<string | null>;
 }
 
 export interface NguCanhHop {
@@ -321,26 +329,42 @@ export function taoMoHop(ctx: NguCanhHop): MoHop {
     });
   }
 
-  function ngung(dong: Api.CommissionRuleDto, url: string, moTa?: string): void {
+  /** Hộp «chọn ngày cuối hiệu lực» dùng chung cho Ngừng một mức và Ngừng áp dụng một chính sách. */
+  function hopNgay(o: { tuNgay: string; moTa: string; url: string; title: string; nhan: string; daXong: string }): void {
     const d = ctx.lay();
-    const ngay = h("input", { id: "hh-ngung-ngay", type: "date", value: ngayDongMacDinh(d.homNay, dong.tuNgay), min: dong.tuNgay });
+    const ngay = h("input", { id: "hh-ngung-ngay", type: "date", value: ngayDongMacDinh(d.homNay, o.tuNgay), min: o.tuNgay });
     const loi = h("p", { class: "field-error", role: "alert", hidden: true });
-    const ten = nhanDoiTuong(dong.doiTuong);
     moHop(ctx, {
-      title: "Ngừng",
-      body: [h("p", null, h("strong", null, moTa ?? `Ngừng mức: ${ten.ten} · ${nhanPhamVi(dong, d.ten)} · ${nhanMucDto(dong)}`)), h("label", null, "Ngày cuối hiệu lực", ngay), loi],
-      nhan: "Ngừng",
+      title: o.title,
+      body: [h("p", null, h("strong", null, o.moTa)), h("label", null, "Ngày cuối hiệu lực", ngay), loi],
+      nhan: o.nhan,
       chuan() {
-        const kq = docNgayDong(ngay.value, dong.tuNgay);
+        const kq = docNgayDong(ngay.value, o.tuNgay);
         if (!kq.ok) {
           loi.textContent = kq.message;
           loi.hidden = false;
           return null;
         }
         loi.hidden = true;
-        return { path: url, body: kq.body };
+        return { path: o.url, body: kq.body };
       },
-      xong: () => ctx.baoOk("Đã ngừng."),
+      xong: () => ctx.baoOk(o.daXong),
+    });
+  }
+
+  function ngung(dong: Api.CommissionRuleDto, url: string, moTa?: string): void {
+    const ten = nhanDoiTuong(dong.doiTuong);
+    hopNgay({ tuNgay: dong.tuNgay, moTa: moTa ?? `Ngừng mức: ${ten.ten} · ${nhanPhamVi(dong, ctx.lay().ten)} · ${nhanMucDto(dong)}`, url, title: "Ngừng", nhan: "Ngừng", daXong: "Đã ngừng." });
+  }
+
+  function ngungApDung(gan: Api.GanLoaiMucDto): void {
+    hopNgay({
+      tuNgay: gan.tuNgay,
+      moTa: `Ngừng áp dụng chính sách ${gan.muc.ten} cho loại ${gan.loai.ten}`,
+      url: `/api/pricing/muc-ta/gan/${encodeURIComponent(gan.id)}/ket-thuc`,
+      title: "Ngừng áp dụng",
+      nhan: "Ngừng áp dụng",
+      daXong: `Đã ngừng áp dụng chính sách «${gan.muc.ten}» cho loại «${gan.loai.ten}».`,
     });
   }
 
@@ -392,10 +416,43 @@ export function taoMoHop(ctx: NguCanhHop): MoHop {
     });
   }
 
+  function hoiTen(o: { title: string; nhan: string; nhanO: string; path: string; xong: string }): void {
+    const ten = h("input", { id: "hh-hoi-ten", type: "text", maxLength: 80, autocomplete: "off" });
+    const loi = h("p", { class: "field-error", role: "alert", hidden: true });
+    moHop(ctx, {
+      title: o.title,
+      body: [h("label", null, o.nhanO, ten), loi],
+      nhan: o.nhan,
+      chuan() {
+        if (ten.value.trim() === "") {
+          loi.textContent = "Nhập tên.";
+          loi.hidden = false;
+          return null;
+        }
+        loi.hidden = true;
+        return { path: o.path, body: { ten: ten.value } };
+      },
+      xong: () => ctx.baoOk(o.xong),
+    });
+  }
+  const themLoai = (): void => hoiTen({ title: "Thêm loại", nhan: "Thêm loại", nhanO: "Tên loại đối tác", path: "/api/pricing/loai-doi-tac", xong: "Đã thêm loại." });
+  const themChinhSach = (): void => hoiTen({ title: "Thêm chính sách", nhan: "Thêm chính sách", nhanO: "Tên chính sách", path: "/api/pricing/muc-ta", xong: "Đã thêm chính sách." });
+  async function guiNhanh(path: string, thongBao: string): Promise<string | null> {
+    ctx.baoOk(null);
+    try {
+      await api<unknown>(path, { method: "POST", body: {} });
+    } catch (err) {
+      return lyDoLoi(err);
+    }
+    await ctx.napLai();
+    ctx.baoOk(thongBao);
+    return null;
+  }
+
   function ketQuaGan(r: Api.GanLoaiMucResponse): void {
     if (r.dongRieng.length > 0) ctx.canhBao(khungDongRieng(r, ctx.lay()));
     else ctx.baoOk(`Đã áp dụng chính sách «${r.gan.muc.ten}» cho loại «${r.gan.loai.ten}» từ ngày ${MA_NGAY(r.gan.tuNgay)}.`);
   }
 
-  return { themMuc, doi, ngung, doiChinhSach, apDungChinhSach };
+  return { themMuc, doi, ngung, ngungApDung, doiChinhSach, apDungChinhSach, themLoai, themChinhSach, guiNhanh };
 }

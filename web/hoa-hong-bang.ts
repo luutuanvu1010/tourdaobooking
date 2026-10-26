@@ -41,10 +41,10 @@ let veLai: (() => void) | null = null;
 const huyHieuTrangThai = (tt: ReturnType<typeof trangThaiDong>): HTMLElement =>
   h("span", { class: tt === "DANG_AP" ? "badge badge-confirmed" : tt === "SAP_AP" ? "badge badge-draft" : "badge badge-cancelled" }, NHAN_TRANG_THAI[tt]);
 
-const urlNgung = (r: Api.CommissionRuleDto): string => `/api/pricing/hoa-hong/${encodeURIComponent(r.id)}/dong`;
+export const urlNgung = (r: Api.CommissionRuleDto): string => `/api/pricing/hoa-hong/${encodeURIComponent(r.id)}/dong`;
 
 /** Một dòng mức: Dịch vụ · Mức · Hiệu lực · Trạng thái · (Đổi/Ngừng). `hanhDong` false = dòng chỉ xem (mức của chính sách). */
-function dongMuc(r: Api.CommissionRuleDto, d: DuLieuHoaHong, mo: MoHop, hanhDong: boolean): HTMLElement {
+export function dongMuc(r: Api.CommissionRuleDto, d: DuLieuHoaHong, mo: MoHop, hanhDong: boolean): HTMLElement {
   const phamVi = nhanPhamVi(r, d.ten);
   const nut = hanhDong ? nutDoiNgung(r, d.homNay) : ({ hien: false, ghiChu: "" } as const);
   const act = h("div", { class: "hh-m-act" });
@@ -105,7 +105,7 @@ function dongMuc(r: Api.CommissionRuleDto, d: DuLieuHoaHong, mo: MoHop, hanhDong
   return li;
 }
 
-const dauBang = (): HTMLElement =>
+export const dauBang = (): HTMLElement =>
   h("div", { class: "hh-m hh-m-dau", "aria-hidden": "true" }, h("div", null, "Dịch vụ"), h("div", null, "Mức"), h("div", null, "Hiệu lực"), h("div", null, "Trạng thái"), h("div", null));
 
 function cumLoai(item: { loai: Api.LoaiDoiTacDto; dong: Api.CommissionRuleDto[]; tatCa: Api.CommissionRuleDto[]; cs: ReturnType<typeof chinhSachCuaLoai>; coMuc: boolean }, d: DuLieuHoaHong, mo: MoHop, ghi: boolean, chuyenThe?: () => void): HTMLElement {
@@ -146,7 +146,9 @@ function cumLoai(item: { loai: Api.LoaiDoiTacDto; dong: Api.CommissionRuleDto[];
     if (cs) {
       const doiCs = h("button", { type: "button", class: "btn" }, "Đổi chính sách");
       doiCs.addEventListener("click", () => mo.doiChinhSach(cs.gan));
-      hang.append(doiCs);
+      const ngungCs = h("button", { type: "button", class: "btn" }, "Ngừng áp dụng");
+      ngungCs.addEventListener("click", () => mo.ngungApDung(cs.gan));
+      hang.append(doiCs, ngungCs);
     }
     ct.append(hang);
   }
@@ -165,7 +167,7 @@ function veNoiDung(noi: HTMLElement, d: DuLieuHoaHong, mo: MoHop, chuyenThe?: ()
     }),
   );
   const tim = chuanTim(loc.tim);
-  const doiTac = ghepDoiTacRieng(d.dong, d.mucTa.ganRieng).filter((x) => tim === "" || chuanTim(x.ten).includes(tim) || chuanTim(x.chinhSach ?? "").includes(tim));
+  const doiTac = ghepDoiTacRieng(d.dong, d.mucTa.ganRieng, d.homNay).filter((x) => tim === "" || chuanTim(x.ten).includes(tim) || chuanTim(x.chinhSach ?? "").includes(tim));
 
   const muc1 = h("section", { class: "hh-muc" }, h("h2", { class: "hh-muc-ten" }, "Theo loại đối tác"));
   if (d.loai.length === 0) muc1.append(h("p", { class: "muted" }, CAU_KHONG_CO_LOAI));

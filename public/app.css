@@ -3761,3 +3761,13 @@ body.co-nut-ho-tro:not(.cc-dang-chay) main { padding-bottom: calc(var(--s5) + va
 .hh-doi-tac { margin: 0; padding: 0; list-style: none; }
 .hh-doi-tac li { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s1) var(--s2); min-height: var(--tap-min); padding: var(--s2) 0; border-bottom: 1px solid var(--c-line); }
 .hh-hop-khoi { display: grid; gap: var(--s3); }
+/* Thẻ «Thiết lập» của /hoa-hong (PR 2, đợt 3): danh sách loại, thẻ chính sách. Chỉ token. */
+.hh-tl-loai, .hh-tl-gan { margin: 0 0 var(--s2); padding: 0; list-style: none; }
+.hh-tl-dong { display: grid; gap: var(--s1); padding: var(--s3) 0; border-bottom: 1px solid var(--c-line); }
+.hh-tl-ten { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s1) var(--s2); }
+.hh-tl-cs { margin-bottom: var(--s3); padding: var(--s3) var(--s4); background: var(--c-bg); border: 1px solid var(--c-line); border-radius: var(--radius-md); }
+.hh-tl-cs-dau h3 { margin: 0 0 var(--s1); }
+.hh-tl-gan li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s2); min-height: var(--tap-min); border-top: 1px solid var(--c-line); }
+.hh-tl-gan .btn, .hh-tl-dong .btn, .hh-tl-cs .actions .btn { min-height: var(--tap-min); }
+/* Trong thẻ Thiết lập nút Tắt/Bật/Đổi chính sách luôn hiện (kể cả điện thoại; ở thẻ Áp dụng nút nhỏ trong dòng mức bị ẩn). */
+.hh-tl-act .btn { display: inline-flex; }

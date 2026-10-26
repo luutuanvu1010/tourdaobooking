@@ -8,6 +8,7 @@ import { ApiError, api, type Api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
 import { cuonToiDong, veBangApDung } from "./hoa-hong-bang";
 import { taoMoHop } from "./hoa-hong-hop";
+import { veThietLap } from "./hoa-hong-thiet-lap";
 import { veTraNhanh } from "./hoa-hong-tra-nhanh";
 import { initShell, showError } from "./shell";
 import { lyDoLoi, taiDanhMuc, type DanhMuc } from "./so-dai-ly-ui";
@@ -98,8 +99,8 @@ function veTheApDung(d: DuLieuHoaHong): void {
   veTraNhanh(traNhanh, d, cuonToiDong);
   veBangApDung(bang, d, moHop, () => chonThe("thiet-lap", true));
 }
-function veTheThietLap(_d: DuLieuHoaHong): void {
-  panelEl["thiet-lap"].replaceChildren();
+function veTheThietLap(d: DuLieuHoaHong): void {
+  veThietLap(panelEl["thiet-lap"], d, moHop);
 }
 /** Mở hộp «Thêm mức» (nút đầu trang và thanh dính đáy). */
 function moThemMuc(): void {
