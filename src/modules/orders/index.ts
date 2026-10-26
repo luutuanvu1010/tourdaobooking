@@ -59,7 +59,7 @@ import {
   validationContext,
   type OrderValidationContext,
 } from "./service";
-import { CAN_YEU_CAU, GIA_DANH_MUC, MOC_CHUA_CO, RACED, STALE, TRAN_GIAM_GIA, catChoXetDuyet, chanDoanXacNhan, chayLoNoiChuyen, dichLoiXacNhan, kemChupXacNhan, khoaKhiCho, kiemCongXacNhan, tienChoHoaHong, tinhCanXacNhan, type KetQuaLenhDon } from "./xac-nhan-chung";
+import { CAN_YEU_CAU, GIA_DANH_MUC, MOC_CHUA_CO, RACED, STALE, TRAN_GIAM_GIA, catChoXetDuyet, chanDoanXacNhan, chayLoNoiChuyen, dichLoiXacNhan, kemChupXacNhan, khoaKhiCho, kiemCongXacNhan, tienChoHoaHong, tinhCanXacNhan, xacNhanTrenDon, type KetQuaLenhDon } from "./xac-nhan-chung";
 import { PHAI_GUI_DON, phaiGuiDon, xacNhanRoutes } from "./xac-nhan-route";
 import { yeuCauMoCuaDon } from "./xac-nhan-repo";
 import { describeTripUpdates, giaiOPhuNhap, validateTripUpdate } from "./service-rules";
@@ -1161,11 +1161,13 @@ export const ordersModule: AppModule = {
       const xetDuyetDuoc = can(staff, "order.confirm.review");
       const choXem = tuChoiXem(staff, order, can(staff, "order.view", scope), FORBIDDEN, { dangCho, xetDuyetDuoc });
       if (choXem) return choXem;
+      // Task 3.5: trạng thái bước xác nhận theo người xem (đơn nháp) — giao diện chỉ ẩn/hiện theo khối này.
+      const xacNhan = await xacNhanTrenDon(env.DB, { staff, order, moc, nowMs: Date.now() });
       // ADR-0136 Đ6 — NHÁNH RIÊNG cho người xét duyệt KHÔNG phải người lập đọc đơn ĐANG CHỜ: bỏ qua cổng `money.view` / `contact.view` (HDV chưa phụ trách vẫn mở được), KHÔNG dùng DTO hẹp của Đối tác (kể cả
       // tài khoản lai) mà CẮT trường (SĐT, email, tên, ghi chú); không lịch sử, không bảng sửa số khách, không nút sửa. Tiền giữ nguyên (chỉ đọc).
       if (dangCho && xetDuyetDuoc) {
         return json({
-          order: catChoXetDuyet(order), history: [], canModify: false, mocToiThieuPhut: moc?.phut ?? null, suaSoKhach: null, canhBaoKhuyenMai: null, lichSuSoKhach: null, canhBaoGiamGia: null,
+          order: catChoXetDuyet(order), history: [], canModify: false, mocToiThieuPhut: moc?.phut ?? null, suaSoKhach: null, canhBaoKhuyenMai: null, lichSuSoKhach: null, canhBaoGiamGia: null, xacNhan,
         } satisfies OrderDetailResponse);
       }
       // ADR-0019 điều 2: chi tiết đơn trả tiền và liên hệ khách — hỏi hai ô với phạm vi CỦA ĐƠN NÀY; sai thì 403 (không cắt bớt trường).
@@ -1212,7 +1214,7 @@ export const ordersModule: AppModule = {
         canhBaoKhuyenMai: await nhacKhuyenMaiCuaDon(env.DB, order), // ADR-0114 D1: người xem đã qua `money.view` ở trên (giảm giá là dữ liệu tiền) — không lộ thêm gì
         // ADR-0114 D2: lịch sử số khách CHỈ cho người qua `order.history.view` với đơn này (cùng điều kiện khối `history` ở trên), còn lại null — không đổi ai được xem gì.
         lichSuSoKhach: can(staff, "order.history.view", scope) ? await lichSuSoKhachCuaDon(env.DB, order) : null,
-        canhBaoGiamGia: await canhBaoGiamGiaCuaDon(),
+        canhBaoGiamGia: await canhBaoGiamGiaCuaDon(), xacNhan,
       } satisfies OrderDetailResponse);
     }),
 

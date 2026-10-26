@@ -3,7 +3,8 @@
 // `index.ts` và tệp route sau này không import vòng nhau. KHÔNG tự kiểm quyền người gọi (route đã làm); KHÔNG đổi hành vi so với thân nhánh `confirmed` cũ.
 import { auditStatement } from "../audit";
 import { chupDon, docBangChoChup, soKhachTinhHoaHong, type BanChup } from "../pricing";
-import type { DongBoChuyenDto, IncompleteTripBody, LyDoCanXacNhan, OrderDetailDto, OrderStatus, PaxCounts, ShortNoticeRequiredBody, StaffProfile } from "../../shared/contracts";
+import type { DongBoChuyenDto, IncompleteTripBody, LyDoCanXacNhan, OrderDetailDto, OrderStatus, PaxCounts, ShortNoticeRequiredBody, StaffProfile, XacNhanTrenDonDto } from "../../shared/contracts";
+import { can, holdsIntern, holdsPartner } from "../../shared/permissions";
 import { error, json } from "../../shared/http";
 import { vnToday } from "../../shared/vn-date";
 import { parseUnit } from "../../shared/order-lines";
@@ -11,9 +12,9 @@ import type { DongBoTheoDon } from "../../shared/dong-bo-chuyen";
 import { CAU_THIEU_NGUOI_LON, donThieuNguoiLon } from "../../shared/nguoi-di-kem";
 import { cauThieuChonDon, thieuChonDon } from "../../shared/cong-chon-don";
 import type { MocToiThieu } from "../../shared/moc-toi-thieu";
-import { canXacNhan } from "../../shared/xac-nhan-don";
+import { canXacNhan, duocQuyetDinh, quaHanXacNhan } from "../../shared/xac-nhan-don";
 import { canhBaoMocCua } from "./dat-gap";
-import { coHienHanh, nhomTheoMa, yeuCauMoCuaDon } from "./xac-nhan-repo";
+import { coHienHanh, nhomTheoMa, tuXacNhanNoiBo, yeuCauMoCuaDon } from "./xac-nhan-repo";
 import { legDatGapByOrder } from "./chang-hanh-khach-repo";
 import { findOrder, getMeta, getStoredServices } from "./repository";
 import { viPhamGiaDanhMuc, viPhamTranGiamGia } from "./price-guards";
@@ -179,3 +180,29 @@ export async function khoaKhiCho(db: D1Database, orderId: string, status: OrderS
  * `bookerName`). Dịch vụ, ngày, số khách, giờ đón, tiền giữ nguyên. Hành khách (họ tên, năm sinh) không bao giờ nằm trong DTO đơn — route `…/passengers` vẫn 404.
  */
 export const catChoXetDuyet = (o: OrderDetailDto): OrderDetailDto => ({ ...o, customerName: "", customerPhone: "", customerEmail: null, customerNote: null, paymentNote: null });
+
+/**
+ * Khối `xacNhan` của `GET /api/orders/:id` (Task 3.5): giao diện KHÔNG suy ra «đang chờ», «cần xác nhận», «quyết định được» — máy chủ quyết theo người xem, cùng hàm với các route
+ * (`tinhCanXacNhan`, `duocQuyetDinh`, `tuXacNhanNoiBo`). Chỉ cho đơn NHÁP và chỉ người liên quan (người lập; hoặc người giữ ô xét duyệt khi đơn đang chờ); còn lại null.
+ * `canXacNhan` chỉ tính cho người lập. Không chứa dữ liệu khách.
+ */
+export async function xacNhanTrenDon(db: D1Database, i: { staff: StaffProfile; order: { id: string; staffId: string; status: OrderStatus }; moc: MocToiThieu | null; nowMs: number }): Promise<XacNhanTrenDonDto | null> {
+  if (i.order.status !== "draft") return null;
+  const laNguoiLap = i.order.staffId === i.staff.id;
+  const coQuyenXetDuyet = can(i.staff, "order.confirm.review");
+  const y = await yeuCauMoCuaDon(db, i.order.id);
+  if (!laNguoiLap && !(y && coQuyenXetDuyet)) return null;
+  let canXN = false;
+  let vi: LyDoCanXacNhan[] = [];
+  const don = await findOrder(db, i.order.id);
+  if (don) {
+    const kq = await tinhCanXacNhan(db, don, i.moc, i.nowMs);
+    vi = kq.vi;
+    canXN = laNguoiLap && kq.can;
+  }
+  const quyetDinhDuoc = y !== null && duocQuyetDinh({
+    laNguoiLap, laNoiBo: !holdsPartner(i.staff) && !holdsIntern(i.staff), coQuyenXetDuyet,
+    choTuXacNhan: laNguoiLap ? await tuXacNhanNoiBo(db, new Date(i.nowMs).toISOString()) : false,
+  });
+  return { yeuCau: y ? { id: y.id, guiLuc: y.submitted_at, hanLuc: y.deadline_at, quaHan: quaHanXacNhan(y.deadline_at, i.nowMs), vi } : null, canXacNhan: canXN, quyetDinhDuoc };
+}

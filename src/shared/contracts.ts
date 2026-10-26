@@ -628,7 +628,17 @@ export interface OrderDetailResponse {
    * xem phần thương mại của đơn (luật `cheDoThuongMai`, kể cả tài khoản lai Đối tác).
    */
   canhBaoGiamGia: { vuot: number } | null;
+  /**
+   * ADR-0136 (Task 3.5): trạng thái bước xác nhận của đơn NHÁP theo người xem — máy chủ quyết, giao diện chỉ ẩn/hiện. null = đơn không phải nháp, hoặc người xem không liên quan
+   * (không phải người lập, không xét duyệt được). Vắng khoá = máy chủ cũ.
+   */
+  xacNhan?: XacNhanTrenDonDto | null;
 }
+/**
+ * `yeuCau` = yêu cầu xác nhận ĐANG MỞ của đơn (null = chưa gửi / đã rút). `canXacNhan` = đơn thuộc diện phải qua bước xác nhận (chỉ tính cho người lập; người khác false).
+ * `quyetDinhDuoc` = người xem bấm Còn vé / Hết vé / Huỷ được lúc này (đã tính cả công tắc «tự xác nhận»); false khi không có yêu cầu mở.
+ */
+export interface XacNhanTrenDonDto { yeuCau: YeuCauXacNhanDto | null; canXacNhan: boolean; quyetDinhDuoc: boolean }
 /**
  * `POST /api/orders/:id/money-edit` (ADR-0063 D1): đơn HIỆN HÀNH sau lần sửa; `daGhi` false = số khách y nguyên, không ghi gì; `canhBaoTongAm` (tên khoá GIỮ, nghĩa
  * đổi theo ADR-0109) = câu cảnh báo khi giảm giá > tạm tính hiện hành (không chặn — `canhBaoGiamGiaVuot` của src/shared/so-khach-van-phong.ts), null khi không.
