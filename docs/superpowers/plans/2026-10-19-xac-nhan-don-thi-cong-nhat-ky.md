@@ -105,3 +105,25 @@ Kết quả > 0: chủ quyết cách xử lý các nháp đó (huỷ chúng rơi
 - Route ghi billing trên nháp người khác trả 409/403 chứ không 404 (kênh dò sự tồn tại, xem dòng «lưới hở chấp nhận được» ở `docs/SO-HANG-RAO.md`).
 - `tests/e2e/orders.mjs` từng bỏ vòng 403 «SALES khác/kế toán/FIELD» của nháp mà dòng `console.log` vẫn khẳng định; đã đặt lại vòng ấy trên đơn ĐÃ XÁC NHẬN (sửa chuyến, huỷ ⇒ 403) và sửa dòng log.
 
+
+## Lần giao L3 (26/10, trợ lý thi công; Task 3.1 + 3.2 + 3.2b — CHƯA kiểm độc lập)
+
+**Phạm vi**: nền của bước xác nhận (ADR-0136) — chưa có route nào của bước xác nhận (Task 3.3 trở đi), chưa giao diện. Luật thuần `src/shared/xac-nhan-don.ts` (`canXacNhan` ba bước, `hanXacNhan`, `duocQuyetDinh`, `KetQuaXacNhan`) và `src/shared/gui-don-cau-bao.ts` (`CAU_BAO_GUI_DON` nguyên văn); migration `0119_yeu_cau_xac_nhan.sql` (ba bảng); hai ô quyền; tách lô xác nhận.
+
+**Số migration**: `0119`. Kiểm ngay trước khi tạo tệp (fetch `origin --prune`, mọi nhánh cục bộ + xa chưa gộp, mọi worktree): `main` có tới `0118_muc_ta_gan_rieng`; số cao nhất ở các nhánh khác là `0118` (16 nhánh), `0117` (5), `0115` (2), `0098` (2 nhánh cũ); không nhánh hay worktree nào giữ `0119` trở lên.
+
+**Rulings**
+- `hanXacNhan`: gửi trong khoảng 22:00–06:00 ⇒ đồng hồ chạy từ 06:00; gửi sát 22:00 ⇒ phần 15 phút còn thiếu tính tiếp từ 06:00 hôm sau; hạn đúng 22:00 (21:45 + 15) vẫn là 22:00 cùng ngày (không đẩy sang sáng). Trả ISO UTC, giữ giây lẻ.
+- `canXacNhan`: dịch vụ nhập tay (`ma` null) không bao giờ cần xác nhận; giá trị tường minh `false` của dòng dịch vụ thắng dòng nhóm `true` và ngược lại.
+- Bảng `ord_confirm_request`: trigger tách bốn cái (đã khép thì không sửa; bất biến đơn / người gửi / hạn; khép phải đủ trường; `RUT_LAI` không có vé, kết quả khác phải có vé). Giá trị `outcome`, `ticket`, `scope` kiểm ở mã, không `CHECK` liệt kê. Thêm `created_by`, `updated_by` (bài kiến trúc ADR-0003 đòi cột kiểm toán WHO) — kế hoạch không liệt kê hai cột này.
+- Hai ô quyền: đúng giá trị kế hoạch. `order.submit` của Quản trị = `none` nên thêm vào `ADMIN_NONE_OPS` của `permissions.test.ts`. `can()` lấy HỢP nên tài khoản lai (Bán hàng + Đối tác) có cả hai ô; cổng cho tài khoản lai đặt ở route (Task 3.3, 3.4). `order.modify` giữ giá trị; chỉ đổi chú thích và mô tả ở `TEN_THAO_TAC` (thêm câu «Đối tác không bấm Xác nhận đơn mà bấm Gửi đơn»); kho trợ lý sinh lại bằng `node scripts/sinh-so-do-trang.mjs`.
+- Task 3.2b: `soanXacNhan` (repository) trả `{ at, cau }`, `daXacNhan(kq)` đọc chỉ số 1; `confirmOrder` là vỏ mỏng. Tệp mới `src/modules/orders/xac-nhan-chung.ts` giữ `kiemCongXacNhan` (các cổng R2 giá, người lớn, chọn đón, [mốc khi `kiemMoc`], bản chụp mức, R3 trần), `kemChupXacNhan`, `dichLoiXacNhan` (lỗi trigger), `chanDoanXacNhan` (lô thua), `chayLoNoiChuyen`, `tienChoHoaHong` và các hằng phản hồi `STALE`, `RACED`, `GIA_DANH_MUC`, `TRAN_GIAM_GIA`, `MOC_CHUA_CO`; `index.ts` import lại từ đó. `POST /status` nhánh `confirmed` gọi các hàm này, cùng thứ tự cổng và câu lỗi. Khác biệt duy nhất: nếu `findOrder` trả null (không thể xảy ra sau `getMeta` vì không xoá cứng đơn) nay trả 404 thay vì rơi sang lô thua.
+- `kiemCongXacNhan.mocToiThieu` nhận giá trị đã gọi `ctx.mocToiThieu()` MỘT lần (TC-26). `kiemMoc = false` dành cho lúc chỉ GỬI yêu cầu (mốc chỉ chặn ở Còn vé).
+
+**Bài đỏ → xanh**: `xac-nhan-don.test.ts` + `gui-don-cau-bao.test.ts` đỏ (thiếu mô-đun) → 14/14 xanh; `migrations-xac-nhan.test.ts` 0/9 đỏ → 9/9 xanh; ghim ô quyền: 7 bài đỏ ở `permissions.test.ts` (kèm ghim hàng Đối tác ở `xem-don-theo-quyen.test.ts`) khi đã thêm bảng kỳ vọng mà chưa có ô → thêm ô còn đỏ 6 (tên trợ lý, `ADMIN_NONE_OPS`, tệp sinh) → xanh sau khi thêm `TEN_THAO_TAC`, `ADMIN_NONE_OPS`, chạy bộ sinh; `soan-xac-nhan.test.ts` 0/4 đỏ → 4/4 xanh. Đột biến đã quan sát: xem dòng cuối `docs/SO-HANG-RAO.md` (26/10).
+
+### Nợ / điều chưa làm (L3)
+- `ORDER_CONFIRM` (`chang-hanh-khach-repo.ts`) chưa nhận vế «yêu cầu còn mở» và `auditStatement` chưa có id riêng cho khuôn `wonGuard` mà Task 3.2b nêu: hôm nay chưa có nơi dùng nên thêm sẽ là mã chết không có bài; làm cùng Task 3.3 (nơi gọi đầu tiên) kèm bài đua.
+- `src/permission-enforcement.test.ts` đỏ có chủ đích tới Task 3.3, 3.4 (chưa có `can(…,"order.confirm.review")`, `can(…,"order.submit")` ở route).
+- `kiemCongXacNhan`, `chanDoanXacNhan`, `dichLoiXacNhan` chưa có bài riêng; được các bài `/status` hiện có (e2e `orders`, `dat-gap*`, `tran-giam-gia-don`, `thuc-tap-gia-route`) canh gián tiếp.
+- Trigger chặn `RUT_LAI` có vé / quyết định thiếu vé chưa đột biến riêng.
