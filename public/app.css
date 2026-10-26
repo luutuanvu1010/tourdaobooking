@@ -3709,3 +3709,24 @@ body.co-nut-ho-tro:not(.cc-dang-chay) main { padding-bottom: calc(var(--s5) + va
 /* Dòng «còn N lần» trong hộp Từ chối (ADR-0032 điều 9) và dòng phụ «đã từ chối đơn này lúc …» ở bảng chọn người (điều 10). */
 .tu-choi-con-lai { margin: 0 0 var(--s3); color: var(--c-text-muted); font-size: var(--fs-label); }
 .assignee-tu-choi { display: block; color: var(--c-sand-text); font-size: var(--fs-label); }
+
+/* ---------- Bước xác nhận đơn (ADR-0136, Task 3.5): dải «Chờ xác nhận», bảng «Xác nhận đơn», trang danh sách chờ. Chỉ token. ---------- */
+.cx-dai { display: flex; align-items: center; gap: var(--s2); margin: var(--s3) 0; padding: var(--s3) var(--s4); font-size: var(--fs-label); color: var(--c-sand-text); background: var(--c-sand-soft); border: 1px solid var(--c-sand-border); border-radius: var(--radius-md); }
+.cx-dai svg { flex: none; }
+.cx-dai-qua-han { color: var(--c-danger-text); background: var(--c-danger-soft); border-color: var(--c-danger-border); }
+.cx-bang { display: grid; gap: var(--s3); margin: var(--s3) 0; padding: var(--s4); background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius-md); }
+.cx-tieu-de { margin: 0; font-size: var(--fs-label); }
+.cx-con-ve, .cx-gio { display: grid; gap: var(--s3); }
+.cx-truong { display: grid; gap: var(--s1); }
+.cx-nhan { font-size: var(--fs-label); font-weight: var(--fw-semibold); color: var(--c-text-muted); }
+.cx-hang-nut { display: flex; flex-wrap: wrap; align-items: flex-start; gap: var(--s3); }
+.cx-bang .btn, .cx-ds-nut { min-height: var(--tap-min); }
+.cx-loi { margin: 0; color: var(--c-danger-text); font-size: var(--fs-label); }
+.cx-ghi-chu { margin: 0; font-size: var(--fs-label); }
+.cx-ds { display: grid; gap: var(--s3); margin: var(--s3) 0; padding: 0; list-style: none; }
+.cx-the { display: grid; gap: var(--s2); padding: var(--s4); background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius-md); }
+.cx-the-dau { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s2); }
+.cx-the-ma { font-weight: var(--fw-bold); color: var(--c-text); }
+.cx-the-dong { margin: 0; font-size: var(--fs-label); color: var(--c-text-muted); }
+.cx-nhan-gap { display: inline-block; padding: 0 var(--s2); font-size: var(--fs-label); font-weight: var(--fw-bold); color: var(--c-sand-text); background: var(--c-sand-soft); border-radius: var(--radius-pill); }
+.cx-nhan-qua-han { display: inline-block; padding: 0 var(--s2); font-size: var(--fs-label); font-weight: var(--fw-bold); color: var(--c-danger-text); background: var(--c-danger-soft); border-radius: var(--radius-pill); }

@@ -71,11 +71,25 @@ export function paxFullText(pax: PaxCounts): string {
   return PAX_ORDER.filter((c) => pax[c] > 0).map((c) => `${pax[c]} ${PAX_LABEL[c].toLowerCase()}`).join(", ");
 }
 
+/**
+ * Cờ bước xác nhận của đơn NHÁP — lấy từ khối `xacNhan` của máy chủ (`canXacNhan`, `dangCho` = có yêu cầu mở, `quyetDinhDuoc`); `giuDoiTacLap` = người xem là người lập VÀ giữ quyền
+ * Đối tác (`holdsPartner`), suy ở giao diện (không phải quyết định bảo mật: máy chủ vẫn trả 409 `partner_submit_required`).
+ */
+export interface ChoXacNhan { canXacNhan: boolean; dangCho: boolean; quyetDinhDuoc: boolean; giuDoiTacLap: boolean }
+
 export interface OrderActions {
   /** Nút "Sửa" (mở form) — đơn nháp. */
   edit: boolean;
   /** Nút "Xác nhận đơn" — đơn nháp. */
   confirm: boolean;
+  /** Nút "Gửi xác nhận" — nháp thuộc diện cần xác nhận, người lập không giữ quyền Đối tác (ADR-0136 Đ3). */
+  send: boolean;
+  /** Nút "Rút lại" — nháp đang chờ xác nhận, người lập. */
+  withdraw: boolean;
+  /** Bảng "Xác nhận đơn" (Còn vé / Hết vé / Huỷ) — nháp đang chờ, người quyết định được (máy chủ quyết, đã tính công tắc tự xác nhận). */
+  decide: boolean;
+  /** Nút "Gửi đơn" — nháp của người lập giữ quyền Đối tác (Đ13). */
+  submit: boolean;
   /** Nút "Sửa thông tin chuyến" (bảng trượt) — đơn đã xác nhận. */
   editTrip: boolean;
   /** Nút "Huỷ đơn" — đơn nháp hoặc đã xác nhận. */
@@ -109,10 +123,19 @@ export function khongQuyenSuaText(input: { ownerName: string; status: OrderStatu
  * `canModify` là cờ của máy chủ (`can(order.modify, owner)`), không suy ra ở client (D4). `canEditTrip` = `suaChuyenDuoc(...)`: nút "Sửa thông tin chuyến"
  * và "Đổi khách" của đơn đã xác nhận (route PUT …/trip, PUT …/booker hỏi ô `order.trip.edit`, hẹp hơn `order.modify` — Đối tác, Thực tập: none).
  */
-export function orderActions(status: OrderStatus, canModify: boolean, canEditTrip: boolean): OrderActions {
-  const none: OrderActions = { edit: false, confirm: false, editTrip: false, cancel: false, noPermission: false, locked: status === "confirmed" };
+export function orderActions(status: OrderStatus, canModify: boolean, canEditTrip: boolean, cho?: ChoXacNhan): OrderActions {
+  const none: OrderActions = { edit: false, confirm: false, send: false, withdraw: false, decide: false, submit: false, editTrip: false, cancel: false, noPermission: false, locked: status === "confirmed" };
+  if (status === "draft" && cho?.dangCho) {
+    // Đang chờ xác nhận (Đ3): người lập chỉ còn Rút lại; người quyết định được có nút quyết định. Người xét duyệt không phải người lập không "thiếu quyền sửa" — họ không đến đây để sửa.
+    return { ...none, withdraw: canModify, decide: cho.quyetDinhDuoc };
+  }
   if (!canModify) return { ...none, noPermission: true };
-  if (status === "draft") return { ...none, edit: true, confirm: true, cancel: true };
+  if (status === "draft") {
+    // Người lập giữ quyền Đối tác (Đ13): nút duy nhất là «Gửi đơn». Cần xác nhận: «Gửi xác nhận» thay «Xác nhận đơn» (Đ3).
+    if (cho?.giuDoiTacLap) return { ...none, edit: true, submit: true, cancel: true };
+    const can = cho?.canXacNhan === true;
+    return { ...none, edit: true, confirm: !can, send: can, cancel: true };
+  }
   if (status === "confirmed") return { ...none, editTrip: canEditTrip, cancel: true };
   return none;
 }

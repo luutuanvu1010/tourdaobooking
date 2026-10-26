@@ -79,7 +79,7 @@ test("serviceView: đơn giá cao hơn giá danh mục → độ lệch dương;
 });
 
 test("orderActions: nút theo trạng thái và quyền; đơn đã xác nhận khoá dịch vụ/tiền và chỉ còn sửa chuyến", () => {
-  const A = (o: Partial<OrderActions>): OrderActions => ({ edit: false, confirm: false, editTrip: false, cancel: false, noPermission: false, locked: false, ...o });
+  const A = (o: Partial<OrderActions>): OrderActions => ({ edit: false, confirm: false, send: false, withdraw: false, decide: false, submit: false, editTrip: false, cancel: false, noPermission: false, locked: false, ...o });
   assert.deepEqual(orderActions("draft", true, true), A({ edit: true, confirm: true, cancel: true }));
   assert.deepEqual(orderActions("draft", false, false), A({ noPermission: true }));
   assert.deepEqual(orderActions("confirmed", true, true), A({ editTrip: true, cancel: true, locked: true }));
@@ -113,7 +113,7 @@ test("khongQuyenSuaText: người khác (kế toán, bán hàng không liên qua
 // L1 (lỗi báo 30/9): Đối tác / Thực tập sửa, xác nhận, huỷ đơn MÌNH lập (order.modify = own) nhưng KHÔNG sửa thông tin chuyến / đổi khách sau xác nhận
 // (order.trip.edit = none) — trước đây nút "Sửa thông tin chuyến" và "Đổi khách" vẫn hiện (chỉ dựa canModify) rồi máy chủ trả 403.
 test("orderActions: đơn đã xác nhận, sửa được đơn nhưng KHÔNG có quyền sửa chuyến → không nút sửa chuyến/đổi khách, vẫn huỷ được", () => {
-  const A = (o: Partial<OrderActions>): OrderActions => ({ edit: false, confirm: false, editTrip: false, cancel: false, noPermission: false, locked: false, ...o });
+  const A = (o: Partial<OrderActions>): OrderActions => ({ edit: false, confirm: false, send: false, withdraw: false, decide: false, submit: false, editTrip: false, cancel: false, noPermission: false, locked: false, ...o });
   assert.deepEqual(orderActions("confirmed", true, false), A({ cancel: true, locked: true }));
   assert.deepEqual(orderActions("draft", true, false), A({ edit: true, confirm: true, cancel: true }), "đơn nháp không đổi (sửa chuyến của nháp đi qua nút Sửa)");
 });

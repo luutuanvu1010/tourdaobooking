@@ -11,6 +11,7 @@ import type { MauChang } from "../src/shared/chang-mac-dinh";
 import { dongTuDto, loiDanhSachKhach, passengersNhap, type DongKhach } from "../src/shared/hanh-khach-form";
 import { soKhachDoan } from "../src/shared/hanh-khach";
 import { suaChuyenDuoc, suaKhachDuoc } from "../src/shared/order-view";
+import { NHAN_NUT_XAC_NHAN } from "../src/shared/xac-nhan-hien-thi";
 import { gopBenDat, khoiBenDatForm, nhanSdtKhach, nhanTenKhach, noiNapBenDat, type BenDatChon } from "../src/shared/phan-doi-tac-hien-thi";
 import { NETWORK_BANNER, banner, classifyOrderError, type Banner } from "../src/shared/order-errors";
 import { can, chiGiaDanhMuc, holdsIntern, holdsPartner } from "../src/shared/permissions";
@@ -150,6 +151,8 @@ let live = new Map<string, CatalogServiceDto>(); // dịch vụ danh mục ĐANG
 let orderUpdatedAt: string | null = null;
 let formLocked = false;
 let saving = false;
+/** ADR-0136 Đ13: người lập giữ quyền Đối tác (kể cả tài khoản lai) — đơn MỚI có nút chính «Gửi đơn» (lưu rồi gửi). Gán sau `initShell()`; chỉ đổi chữ nút, máy chủ vẫn là cổng (`order.submit`). */
+let guiDonKhiLuu = false;
 
 // ---- mốc 6 giờ + đặt gấp (ADR-0049 V12; bản vẽ docs/design/van-chuyen-dieu-phoi/project/07; ruling R-P15) ----
 // Mốc đọc từ GET /api/orders/moc-toi-thieu (đơn CHƯA lưu cũng cảnh báo được); chỉ để HIỆN — máy chủ quyết lúc lưu (canhBaoMoc) và lúc xác nhận (409).
@@ -445,7 +448,7 @@ function recompute(): void {
   capNhatBuoc();
   const tooMany = ds.some((d) => draftIssues(d).some((i) => i.code === "too_many_guests")); // vượt 50 khách khoá nút Lưu (đặc tả 5.1)
   saveBtn.disabled = formLocked || saving || tooMany;
-  saveBtn.textContent = saving ? "Đang lưu…" : editId ? "Lưu thay đổi" : "Lưu, chờ xác nhận";
+  saveBtn.textContent = saving ? (guiDonKhiLuu && !editId ? "Đang gửi…" : "Đang lưu…") : editId ? "Lưu thay đổi" : guiDonKhiLuu ? NHAN_NUT_XAC_NHAN.submit : "Lưu, chờ xác nhận";
 }
 
 for (const id of ["discount"]) {
@@ -657,6 +660,20 @@ async function luu(datGap?: { entry: Entry; legKey: string; than: { lyDo: LyDoDa
     }
     // THAY mục lịch sử của form (không thêm): Back/bfcache không đưa người dùng về form đã lưu, nơi bấm Lưu lần hai sẽ POST /api/orders lần hai (đơn trùng).
     // Đơn MỚI kèm `moi=1`: trang đơn tự mở hộp thoại "Xác nhận đơn để gửi khách" (ảnh PNG) một lần rồi bỏ tham số; đơn SỬA thì không.
+    // ADR-0136 Đ13: «Gửi đơn» = lưu rồi gửi. Đơn ĐÃ LƯU (có id) dù gửi hỏng: vào trang nháp vừa tạo kèm câu lỗi (`guiloi=1`; câu máy chủ để ở sessionStorage, không đưa lên địa chỉ),
+    // không ở lại form — bấm lần hai trên form sẽ POST /api/orders lần hai (nháp trùng). Thành công: chỉ MỘT CHỮ CÁI nhánh (`gui=A|B`) lên địa chỉ — trang đơn dựng câu báo từ `CAU_BAO_GUI_DON`.
+    if (!editId && guiDonKhiLuu && !datGap) {
+      let thamSo = "";
+      try {
+        const r = await api<Api.GuiDonResponse>(`/api/orders/${encodeURIComponent(order.id)}/gui-don`, { method: "POST", body: {} });
+        thamSo = `&gui=${r.nhanh}${r.nhanh === "B" ? "&moi=1" : ""}`;
+      } catch (e) {
+        try { sessionStorage.setItem(`gui-don-loi:${order.id}`, e instanceof ApiError ? e.message : ""); } catch { /* không có sessionStorage: trang đơn nói câu chung */ }
+        thamSo = "&guiloi=1";
+      }
+      location.replace(`/order?id=${encodeURIComponent(order.id)}${thamSo}`);
+      return;
+    }
     location.replace(`/order?id=${encodeURIComponent(order.id)}${editId ? "" : "&moi=1"}${datGapLoi}`);
   } catch (err) {
     setSaving(false);
@@ -810,6 +827,7 @@ function datViTriKhoiKhach(): void {
 const layDanhMuc = layKhungNho()?.canCreate === true ? goiSom(() => api<Api.CatalogPublicResponse>("/api/catalog/for-order")) : () => api<Api.CatalogPublicResponse>("/api/catalog/for-order");
 const layDon = editId ? goiSom(() => api<Api.OrderDetailResponse>(`/api/orders/${encodeURIComponent(editId)}`)) : null;
 const staff = await initShell();
+guiDonKhiLuu = holdsPartner(staff);
 ganViTriThongBao();
 picker.setTaiKhoan(staff.id); // ADR-0058 Đ8: nhóm đã chọn nhớ THEO TÀI KHOẢN trên máy — bộ chọn dựng trước khi biết tài khoản, trước dòng này không đọc / ghi bộ nhớ
 retailOnly = chiGiaDanhMuc(staff); // trước loadCatalog/loadOrder: thẻ dịch vụ dựng sau dòng này
