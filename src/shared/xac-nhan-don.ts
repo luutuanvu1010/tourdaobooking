@@ -67,3 +67,8 @@ export function hanXacNhan(guiLucIso: string): string {
 export function duocQuyetDinh(i: { laNguoiLap: boolean; laNoiBo: boolean; coQuyenXetDuyet: boolean; choTuXacNhan: boolean }): boolean {
   return i.coQuyenXetDuyet && (!i.laNguoiLap || (i.laNoiBo && i.choTuXacNhan));
 }
+
+/** Đ9: yêu cầu QUÁ HẠN khi bây giờ SAU hạn (chỉ cảnh báo, không tự huỷ). `nowMs` do nơi gọi truyền — đồng hồ tiêm được, bài không phụ thuộc giờ thật. */
+export function quaHanXacNhan(hanIso: string, nowMs: number): boolean {
+  return nowMs > Date.parse(hanIso);
+}

@@ -74,10 +74,10 @@ const NOT_FOUND = () => error(404, "not_found", "Không tìm thấy đơn.");
 /**
  * ADR-0135 Đ1: MỘT chỗ canh đường ĐỌC một đơn (thay cho `if (!can(order.view)) …`). `coQuyenXem` = `can(order.view, scope)`. Trả `null` khi xem được; không thì Response từ chối:
  * đơn nháp của người khác → 404 (không dò được); đơn đã xác nhận / huỷ giữ nguyên hành vi cũ (chỉ-HDV không phụ trách → 404, còn lại 403 do `quaFORBIDDEN`).
- * Trước Đợt 3 `dangCho` và `xetDuyetDuoc` luôn false (chưa có bước chờ xác nhận).
+ * `xet` (ADR-0136 Đ6): chỉ route chi tiết đơn truyền thật (`dangCho` = nháp có yêu cầu mở, `xetDuyetDuoc` = ô `order.confirm.review`); các route khác giữ false ⇒ đơn chờ vẫn 404 với người xét duyệt (hành khách, biên nhận, QR).
  */
-function tuChoiXem(staff: PermissionHolder & { id: string }, o: { status: OrderStatus; staffId: string }, coQuyenXem: boolean, quaFORBIDDEN: () => Response): Response | null {
-  const kq = ketQuaXemDon({ coQuyenXem, status: o.status, laNguoiLap: o.staffId === staff.id, dangCho: false, xetDuyetDuoc: false, chiXemDonDuocGiao: seesOnlyAssignedOrders(staff) });
+function tuChoiXem(staff: PermissionHolder & { id: string }, o: { status: OrderStatus; staffId: string }, coQuyenXem: boolean, quaFORBIDDEN: () => Response, xet: { dangCho: boolean; xetDuyetDuoc: boolean } = { dangCho: false, xetDuyetDuoc: false }): Response | null {
+  const kq = ketQuaXemDon({ coQuyenXem, status: o.status, laNguoiLap: o.staffId === staff.id, dangCho: xet.dangCho, xetDuyetDuoc: xet.xetDuyetDuoc, chiXemDonDuocGiao: seesOnlyAssignedOrders(staff) });
   return kq === "ok" ? null : kq === "404" ? NOT_FOUND() : quaFORBIDDEN();
 }
 /** ADR-0135 Đ2: MỘT chỗ canh đường GHI của đơn nháp — chỉ người lập (luật thuần `chiNguoiLapGhiNhap`); người khác nhận 404 như đơn không tồn tại. */
@@ -1157,8 +1157,17 @@ export const ordersModule: AppModule = {
       // ADR-0014 điều 3 (D-01): PARTNER chỉ xem được chi tiết đơn của chính mình — SALES/ACCOUNTING/ADMIN/SUPER_ADMIN (order.view = any) luôn qua.
       // ADR-0030 S23-4: tài khoản CHỈ xem đơn mình phụ trách (chỉ-FIELD) nhận 404 như đơn không tồn tại (không dò được đơn người khác, kể cả đơn chờ nhận —
       // hàng chờ có route riêng ở dạng phần hẹp); Đối tác/Thực tập mở đơn người khác vẫn 403 (Review Focus 2).
-      const choXem = tuChoiXem(staff, order, can(staff, "order.view", scope), FORBIDDEN);
+      const dangCho = order.status === "draft" && order.staffId !== staff.id && (await yeuCauMoCuaDon(env.DB, order.id)) !== null;
+      const xetDuyetDuoc = can(staff, "order.confirm.review");
+      const choXem = tuChoiXem(staff, order, can(staff, "order.view", scope), FORBIDDEN, { dangCho, xetDuyetDuoc });
       if (choXem) return choXem;
+      // ADR-0136 Đ6 — NHÁNH RIÊNG cho người xét duyệt KHÔNG phải người lập đọc đơn ĐANG CHỜ: bỏ qua cổng `money.view` / `contact.view` (HDV chưa phụ trách vẫn mở được), KHÔNG dùng DTO hẹp của Đối tác (kể cả
+      // tài khoản lai) mà CẮT trường (SĐT, email, tên, ghi chú); không lịch sử, không bảng sửa số khách, không nút sửa. Tiền giữ nguyên (chỉ đọc).
+      if (dangCho && xetDuyetDuoc) {
+        return json({
+          order: catChoXetDuyet(order), history: [], canModify: false, mocToiThieuPhut: moc?.phut ?? null, suaSoKhach: null, canhBaoKhuyenMai: null, lichSuSoKhach: null, canhBaoGiamGia: null,
+        } satisfies OrderDetailResponse);
+      }
       // ADR-0019 điều 2: chi tiết đơn trả tiền và liên hệ khách — hỏi hai ô với phạm vi CỦA ĐƠN NÀY; sai thì 403 (không cắt bớt trường).
       if (!can(staff, "money.view", scope) || !can(staff, "contact.view", scope)) return FORBIDDEN_VIEW();
       // R-P21 (áp lời chủ H4): dòng đặt gấp của lịch sử rút gọn theo vai (Đối tác, HDV, Thực tập không thấy lý do, tên người duyệt).

@@ -2,7 +2,7 @@
 // Tệp riêng để `index.ts` (cửa vào module) không phình thêm và để KHÔNG import vòng: tệp này chỉ import `repository.ts`, `xac-nhan-chung.ts`, `xac-nhan-repo.ts` và các module khác QUA `index.ts` của chúng.
 // SQL ở `xac-nhan-repo.ts` (nửa nghiêm). KHÔNG tự kiểm quyền bằng vai hồ sơ; mọi cổng hỏi `can(…)` viết thẳng ô.
 import { auditStatement } from "../audit";
-import type { GuiXacNhanResponse, LyDoCanXacNhan, QuyetDinhXacNhanResponse, ShortNoticeRequiredBody, YeuCauXacNhanDto } from "../../shared/contracts";
+import type { DonChoXacNhanDto, DonChoXacNhanResponse, GuiXacNhanResponse, LyDoCanXacNhan, QuyetDinhXacNhanResponse, ShortNoticeRequiredBody, YeuCauXacNhanDto } from "../../shared/contracts";
 import { UUID_RE, error, json, readJson, trangDon } from "../../shared/http";
 import { can, holdsIntern, holdsPartner } from "../../shared/permissions";
 import { route } from "../../shared/router";
@@ -11,23 +11,45 @@ import { docLyDoHuy, type LyDoHuy } from "../../shared/ly-do-huy";
 import { KHUNG_MAC_DINH, kiemDanhSachKhung } from "../../shared/khung-gio-don";
 import { nguongMocVn } from "../../shared/moc-toi-thieu";
 import { isHHMM, isISODate, vnToday } from "../../shared/vn-date";
-import { duocQuyetDinh, hanXacNhan } from "../../shared/xac-nhan-don";
+import { duocQuyetDinh, hanXacNhan, quaHanXacNhan } from "../../shared/xac-nhan-don";
 import { chiNguoiLapGhiNhap } from "../../shared/xem-don-nhap";
 import { canhBaoMocCua } from "./dat-gap";
-import { cauDoiGioChang, cauDoiNgayChang, cauDoiNgayDichVu, cauGhiKepGio, cauKhepYeuCau, cauMoYeuCau, orderTouchDraft, tuXacNhanNoiBo, yeuCauMoCuaDon, yeuCauTheoId, type YeuCauRow } from "./xac-nhan-repo";
+import { cauDoiGioChang, cauDoiNgayChang, cauDoiNgayDichVu, cauGhiKepGio, cauKhepYeuCau, cauMoYeuCau, orderTouchDraft, tuXacNhanNoiBo, yeuCauMoCuaDon, yeuCauMoTatCa, yeuCauTheoId, type YeuCauRow } from "./xac-nhan-repo";
 import { legDatGapByOrder, slotPolicy } from "./chang-hanh-khach-repo";
 import { daHuy, findOrder, getMeta, nextStamp, soanHuyDon, soanXacNhan } from "./repository";
 import { MOC_CHUA_CO, RACED, STALE, chanDoanXacNhan, chayLoNoiChuyen, dichLoiXacNhan, kemChupXacNhan, kiemCongXacNhan, tinhCanXacNhan } from "./xac-nhan-chung";
 import { confirmWindow } from "./service-rules";
 
 const NHAN_VI: Record<LyDoCanXacNhan, string> = { DICH_VU: "dịch vụ cần xác nhận", DAT_GAP: "chặng đón dưới hạn chốt, cần đặt gấp" };
-const quaHan = (hanLuc: string, nowMs: number): boolean => Date.parse(hanLuc) < nowMs;
-const dtoYeuCau = (y: YeuCauRow, vi: LyDoCanXacNhan[], nowMs: number): YeuCauXacNhanDto => ({ id: y.id, guiLuc: y.submitted_at, hanLuc: y.deadline_at, quaHan: quaHan(y.deadline_at, nowMs), vi });
+const dtoYeuCau = (y: YeuCauRow, vi: LyDoCanXacNhan[], nowMs: number): YeuCauXacNhanDto => ({ id: y.id, guiLuc: y.submitted_at, hanLuc: y.deadline_at, quaHan: quaHanXacNhan(y.deadline_at, nowMs), vi });
 const NOT_FOUND_DON = () => error(404, "not_found", "Không tìm thấy đơn.");
 const DA_GIAO_DON = () => error(409, "order_delivered", "Đơn đã ở bước Đã giao – đã thu đủ: không sửa, huỷ hay đổi người phụ trách được nữa.");
 const FORBIDDEN_NGUOI_LAP = () => error(403, "forbidden", "Chỉ người lập đơn mới gửi hoặc rút lại yêu cầu xác nhận.");
 
 export const xacNhanRoutes = [
+  // DANH SÁCH CHỜ (Đ6, Đ9): MỌI yêu cầu đang mở cho người giữ ô `order.confirm.review` — dịch vụ, ngày, số khách, giờ đón, tiền, hạn; KHÔNG tên khách / SĐT / email (DTO không có chỗ chứa).
+  // Phải đứng TRƯỚC `GET /api/orders/:id` (index.ts spread mảng này ở ĐẦU `routes`). Quá hạn chỉ là cờ cảnh báo.
+  route("GET", "/api/orders/cho-xac-nhan", "orders", async ({ env, staff, mocToiThieu }) => {
+    if (!can(staff, "order.confirm.review")) return error(403, "forbidden", "Tài khoản này không xét duyệt xác nhận đơn.");
+    const [ys, moc] = await Promise.all([yeuCauMoTatCa(env.DB), mocToiThieu()]);
+    const nowMs = Date.now();
+    const don: DonChoXacNhanDto[] = [];
+    for (const y of ys) {
+      const o = await findOrder(env.DB, y.order_id);
+      if (!o) continue;
+      const vi = (await tinhCanXacNhan(env.DB, o, moc, nowMs)).vi;
+      const ngay = o.services.map((s) => s.departDate).filter((d): d is string => d !== null).sort()[0] ?? null;
+      const dau = o.services.flatMap((s) => s.legs).filter((l) => l.pickupTime !== null).sort((a, b) => `${a.pickupDate ?? ""} ${a.pickupTime}`.localeCompare(`${b.pickupDate ?? ""} ${b.pickupTime}`))[0];
+      don.push({
+        yeuCauId: y.id, orderId: o.id, orderCode: o.orderCode, dichVu: o.services.map((s) => s.name), ngayDi: ngay,
+        soKhach: o.services.reduce((t, s) => t + (s.pax.adult ?? 0) + (s.pax.child ?? 0) + (s.pax.senior ?? 0), 0),
+        gioDon: dau ? (dau.pickupSlotEnd ? `${dau.pickupTime}–${dau.pickupSlotEnd}` : dau.pickupTime) : null,
+        tong: o.total, hanLuc: y.deadline_at, quaHan: quaHanXacNhan(y.deadline_at, nowMs), canDatGap: vi.includes("DAT_GAP"), vi,
+      });
+    }
+    return json({ don } satisfies DonChoXacNhanResponse);
+  }),
+
   // GỬI XÁC NHẬN (Đ3): người lập, đơn nháp, thuộc diện cần xác nhận (Đ1), đã chọn Đón / Không đón, chưa có yêu cầu mở, đơn CHƯA CÓ KHOẢN THU. Không chạy R2 / R3 ở bước này
   // (giá của Thực tập xét theo người bấm Còn vé — ADR-0136 làm rõ 25/10). Chặng dưới mốc KHÔNG bị từ chối lúc gửi: chính nó đưa đơn vào diện cần xác nhận (`DAT_GAP`).
   // Task 3.4 sẽ thêm cổng 409 `partner_submit_required` NGAY SAU `can()` cho người lập giữ quyền Đối tác.
