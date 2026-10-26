@@ -34,19 +34,23 @@ export interface KhachChoDong {
   /** Dòng đã báo huỷ (V11 bảng 11.2): nhãn chip + câu "vẫn chiếm chỗ"; null = chưa báo. */
   baoHuy: { nhan: string; phu: string } | null;
 }
-/** "Khách đang chờ" của chuyến đang chạy (V11 bảng 11.2): suất khách còn chờ, theo thứ tự điểm đón. Không tên → "Khách N"; tên che số dài. */
+/**
+ * "Khách đang chờ" của chuyến đang chạy (V11 bảng 11.2): suất khách còn chờ, theo thứ tự điểm đón. Tên che số dài. Không tên → "Khách i" đếm THEO ĐIỂM LÊN
+ * (`soKhachTaiDiem`, một luật với thẻ điểm của `buocDiem` — cùng khách ở hai khối trên màn /chuyen phải ghi cùng số; trước 25/10 khối này đếm trên cả chuyến).
+ */
 export function khachDangCho(suat: readonly SuatVao[], diem: readonly DiemVao[], ngayXem: string): KhachChoDong[] {
   const theoId = new Map(diem.map((d) => [d.id, d]));
+  const so = soKhachTaiDiem(suat);
   const thuTu = (x: SuatVao) => theoId.get(x.diemLen ?? "")?.thuTu ?? Number.MAX_SAFE_INTEGER;
   return suat
     .filter((x) => laKhach(x) && x.trangThai === "WAITING")
     .sort((a, b) => thuTu(a) - thuTu(b) || (a.maDon ?? "").localeCompare(b.maDon ?? "") || (a.hoTen ?? "").localeCompare(b.hoTen ?? "", "vi") || a.id.localeCompare(b.id))
-    .map((x, i) => {
+    .map((x) => {
       const d = theoId.get(x.diemLen ?? "");
       const bh = x.vanPhongBaoHuy;
       return {
         suatId: x.id,
-        ten: x.hoTen ? maskLongDigits(x.hoTen) : `Khách ${i + 1}`,
+        ten: x.hoTen ? maskLongDigits(x.hoTen) : so.has(x.id) ? `Khách ${so.get(x.id)}` : "Khách",
         maDon: x.maDon ?? null, // khoá vắng (vế hạn ngoài khung — G-A4-7) → null, như "không có mã"
         noiDon: d ? [`Điểm ${d.thuTu}`, d.tenNoi, d.gioHen ? hien(d.gioHen, ngayXem) : null].filter(Boolean).join(" · ") : "—",
         baoHuy: bh ? { nhan: "Văn phòng đã báo huỷ", phu: `Vẫn chiếm chỗ cho đến khi tài xế xác nhận · ${hien(bh.luc, ngayXem)} · ${bh.lyDoNhan}` } : null,

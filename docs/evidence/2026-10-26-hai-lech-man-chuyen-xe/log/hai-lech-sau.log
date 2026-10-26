@@ -1,0 +1,8 @@
+✓ 1) 390 tài xế công ty, chuyến HÔM NAY chưa chạy: «Dịch vụ: …» (2 dòng, mỗi điểm đón một) thẳng cột với tên nơi đón, axe không vi phạm critical/serious
+✓ 2) 1040 cùng chuyến: «Dịch vụ: …» thẳng cột với tên nơi đón, axe không vi phạm critical/serious
+✓ 3) 390 tài xế bấm «Cho xe chạy» → đang chạy: «Dịch vụ: …» vẫn thẳng cột, axe không vi phạm critical/serious
+✓ 4) 1040 văn phòng mở Chi tiết chuyến TC (đang chạy): khối «Khách đang chờ» ghi «Khách 2» cho khách chưa tên ở Novotel, CÙNG số với thẻ điểm, axe không vi phạm critical/serious
+✓ 5) 390 văn phòng cùng chuyến: như khổ máy tính, axe không vi phạm critical/serious
+
+HAI LECH MAN CHUYEN XE (sau) OK (5 bước)
+EXIT=0
