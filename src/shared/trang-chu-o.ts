@@ -61,7 +61,7 @@ export const O_TRANG_CHU: readonly DinhNghiaO[] = [
   { khoa: "chinh-sach", nhan: "Chính sách điều phối", nhom: "Vận chuyển", trang: "chinhSachDieuPhoi" },
   { khoa: "ly-do", nhan: "Lý do điều phối", nhom: "Vận chuyển", trang: "lyDoDieuPhoi" },
   { khoa: "gop-y", nhan: "Hỗ trợ", nhom: "Của tôi", trang: "gopY" },
-  { khoa: "tro-giup", nhan: "Trợ giúp", nhom: "Của tôi", trang: "troGiup" },
+  { khoa: "tro-giup", nhan: "Hướng dẫn", nhom: "Của tôi", trang: "troGiup" },
 ];
 const DS = O_TRANG_CHU;
 

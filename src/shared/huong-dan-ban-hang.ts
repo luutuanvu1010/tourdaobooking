@@ -21,12 +21,12 @@ export const HD_BAN_HANG: NhomHuongDan = {
 - **Đầu menu**: [[Tạo đơn]], [[Trang chủ]], [[Đơn hàng]] (số nhỏ bên cạnh là số đơn đang chờ xác nhận), [[Danh bạ]].
 - Nhóm **VẬN CHUYỂN**: [[Điều phối xe]], [[Xe đang chạy]].
 - Nhóm **THIẾT LẬP** (bấm để mở, thu gọn): [[Hoa hồng đối tác]] (chỉ xem).
-- **Chân menu**: [[Của tôi]], [[Hỗ trợ]], [[Trợ giúp]]. Nút [[Đăng xuất]] ở dưới cùng.
+- **Chân menu**: [[Của tôi]], [[Hỗ trợ]], [[Hướng dẫn]]. Nút [[Đăng xuất]] ở dưới cùng.
 - Thanh trên cùng: ô tìm đơn, nút [[Tạo đơn]] và cái chuông thông báo.
 
 ### Trên điện thoại (thanh dưới đáy)
 
-Bốn tab: [[Trang chủ]], [[Đơn hàng]], [[Tạo đơn]], [[Tôi]]. Trong trang [[Tôi]] có [[Danh bạ]], [[Điều phối xe]], [[Hỗ trợ]], [[Trợ giúp]], [[Đăng xuất]] và nút [[Bật thông báo trên điện thoại]].`,
+Bốn tab: [[Trang chủ]], [[Đơn hàng]], [[Tạo đơn]], [[Tôi]]. Trong trang [[Tôi]] có [[Danh bạ]], [[Điều phối xe]], [[Hỗ trợ]], [[Hướng dẫn]], [[Đăng xuất]] và nút [[Bật thông báo trên điện thoại]].`,
     },
     {
       tieuDe: "Lập đơn mới",
@@ -231,7 +231,7 @@ Có khi Toàn quyền bật "Dịch vụ nhập tay" (mặc định tắt). Khi 
 
 ### Xem bản mới có gì ở đâu?
 
-Vào [[Trợ giúp]]: có số phiên bản và nhật ký thay đổi.`,
+Vào [[Hướng dẫn]]: có số phiên bản và nhật ký thay đổi.`,
     },
   ],
 };

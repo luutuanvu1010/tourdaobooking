@@ -657,7 +657,7 @@ function ngayChao(now: Date, coNam = false): string {
 
 /**
  * Dải đầu trang điện thoại (bản vẽ 1a): CHÍNH #topbar đổi kiểu ở khổ ≤640px trên trang này (CSS `body.trang-chu`), nên chuông thông báo giữ nguyên nút, ngăn tin
- * và cách đếm của web/thong-bao-ui.ts. Ở đây chỉ chèn thêm lời chào + ngày, nút Trợ giúp, viên thuốc bảo trì — máy tính ẩn cả ba bằng CSS.
+ * và cách đếm của web/thong-bao-ui.ts. Ở đây chỉ chèn thêm lời chào + ngày, nút Hướng dẫn, viên thuốc bảo trì — máy tính ẩn cả ba bằng CSS.
  * Chèn SAU initShell(): initShell() dựng lại #topbar từ đầu.
  */
 function dungDauTrang(staff: Staff): void {
@@ -673,7 +673,7 @@ function dungDauTrang(staff: Staff): void {
   const avatar = topbar.querySelector(".bar-avatar");
   if (avatar) avatar.after(chao);
   else topbar.append(chao);
-  topbar.append(h("a", { class: "dash-hero-nut", href: "/help", "aria-label": "Trợ giúp" }, icon("help")));
+  topbar.append(h("a", { class: "dash-hero-nut", href: "/help", "aria-label": "Hướng dẫn" }, icon("help")));
   // Đang bảo trì (bản vẽ 1g): viên thuốc cát thay cho dải mảnh chung của khung ở khổ này; vẫn dẫn tới trang Tôi, nơi tắt bảo trì (như dải mảnh).
   // Hàng riêng (`.dash-hero-dong` trải hết bề ngang) để viên thuốc xuống dưới lời chào mà vẫn chỉ rộng bằng chữ.
   if (document.querySelector(".maint-strip")) topbar.append(h("div", { class: "dash-hero-dong" }, h("a", { class: "dash-hero-bao-tri", href: "/account" }, icon("alert", 16), "Đang ở chế độ bảo trì")));
@@ -752,7 +752,7 @@ const layFeedback = () => api<Api.FeedbackQueueResponse>("/api/feedback");
 async function main(): Promise<void> {
   initSectionIcons();
   ganOTim();
-  // Cùng luật với web/shell.ts (chấm `.new-dot`): bấm Quay lại từ /help, trang được phục hồi nguyên trạng từ bộ đệm lùi/tiến — đã xem bản mới thì gỡ chấm ô Trợ giúp.
+  // Cùng luật với web/shell.ts (chấm `.new-dot`): bấm Quay lại từ /help, trang được phục hồi nguyên trạng từ bộ đệm lùi/tiến — đã xem bản mới thì gỡ chấm ô Hướng dẫn.
   window.addEventListener("pageshow", (e) => {
     if (e.persisted && !helpHasNews()) for (const cham of document.querySelectorAll(".dash-o-cham")) cham.remove();
   });

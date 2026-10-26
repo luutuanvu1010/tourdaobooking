@@ -212,7 +212,7 @@ try {
   r = await hoi(SALES, "đổi PIN");
   assert.equal(r.status, 429);
   assert.equal(r.body.error.code, "tro_ly_het_tran_thang");
-  assert.equal(r.body.error.message, "Trợ lý tạm nghỉ tới tháng sau — xem Trợ giúp");
+  assert.equal(r.body.error.message, "Trợ lý tạm nghỉ tới tháng sau — xem Hướng dẫn");
   assert.equal(nhan.length, n, "chạm trần tháng không được gọi OpenAI");
   console.log("✓ trần tháng → 429, không gọi OpenAI");
 

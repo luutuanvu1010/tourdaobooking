@@ -46,7 +46,7 @@ Tiền của đơn (thành tiền, tổng, còn lại) do máy chủ tự tính 
   },
   {
     tieuDe: "Trợ lý Hỗ trợ trả lời được gì",
-    noiDung: `Trợ lý Hỗ trợ chỉ hướng dẫn cách dùng Nền tảng, dựa trên bộ hướng dẫn trong Trợ giúp, sơ đồ các phần của Nền tảng và danh sách trang, mục, nút của Nền tảng (tự cập nhật mỗi lần Nền tảng được cập nhật). Trợ lý không xem được đơn, khách, tiền hay dữ liệu thật của công ty, không làm thay thao tác nào, và có thể trả lời sai: luôn đối chiếu với màn hình. Việc hướng dẫn chưa nói thì trợ lý nói thật và gợi hỏi Quản trị hoặc gửi Góp ý. Trợ lý nhớ tối đa ba câu vừa hỏi của chính người hỏi trong cùng cuộc trò chuyện, và không bao giờ nêu số tiền.
+    noiDung: `Trợ lý Hỗ trợ chỉ hướng dẫn cách dùng Nền tảng, dựa trên bộ hướng dẫn trong Hướng dẫn, sơ đồ các phần của Nền tảng và danh sách trang, mục, nút của Nền tảng (tự cập nhật mỗi lần Nền tảng được cập nhật). Trợ lý không xem được đơn, khách, tiền hay dữ liệu thật của công ty, không làm thay thao tác nào, và có thể trả lời sai: luôn đối chiếu với màn hình. Việc hướng dẫn chưa nói thì trợ lý nói thật và gợi hỏi Quản trị hoặc gửi Góp ý. Trợ lý nhớ tối đa ba câu vừa hỏi của chính người hỏi trong cùng cuộc trò chuyện, và không bao giờ nêu số tiền.
 Câu hỏi (đã che số điện thoại, email, số giấy tờ) và câu trả lời được lưu để cải thiện trợ lý; chỉ người phụ trách hệ thống đọc được, không ai xoá được. Người phụ trách hệ thống bật hoặc tắt trợ lý theo từng vai trò, đặt câu chào, câu hỏi mẫu, chọn mẫu AI, sửa lời nhắc và thêm đoạn ngữ cảnh ở trang Trợ lý Hỗ trợ; vai trò đang tắt thì không thấy nút Hỗ trợ.`,
   },
 ];

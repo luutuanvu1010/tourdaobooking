@@ -22,7 +22,7 @@ export const HD_DOI_TAC: NhomHuongDan = {
 
 Thanh menu dọc bên trái có:
 - Đầu menu: nút nổi bật [[Tạo đơn]], rồi [[Đơn hàng]].
-- Chân menu: [[Của tôi]], [[Hỗ trợ]], [[Trợ giúp]].
+- Chân menu: [[Của tôi]], [[Hỗ trợ]], [[Hướng dẫn]].
 
 ### Trên điện thoại
 

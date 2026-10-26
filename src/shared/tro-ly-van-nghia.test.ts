@@ -219,6 +219,16 @@ test("C4b (ADR-0130): giao diện đổi «app» → «Nền tảng» — câu h
   }
 });
 
+test("C4c (đổi chữ «Trợ giúp» → «Hướng dẫn», 2026-10-27): người gõ «trợ giúp» được đối xử như «hướng dẫn» — cùng đoạn, và có trang Hướng dẫn", () => {
+  const kho = chiaKho();
+  const vec = kho.map(() => mot(1));
+  const ten = (c: string) => chonDoanTron(c, mot(0), kho, vec, ["SALES"]).map((x) => x.doan.ten);
+  for (const [cu, moi] of [["trợ giúp", "hướng dẫn"], ["mở trang Trợ giúp", "mở trang Hướng dẫn"]] as const) {
+    assert.deepEqual(ten(cu), ten(moi), cu);
+    assert.ok(ten(cu).includes("Sơ đồ trang › Hướng dẫn"), `${cu}: ${JSON.stringify(ten(cu))}`);
+  }
+});
+
 test("C5: truy vấn = câu hiện tại + câu trước gần nhất — câu nối tiếp không khớp gì vẫn ra đoạn nhờ câu trước", () => {
   const vec = KHO.map(() => mot(1));
   assert.deepEqual(chonDoanTron("còn trên điện thoại thì sao", mot(0), KHO, vec, ["SALES"]), []);

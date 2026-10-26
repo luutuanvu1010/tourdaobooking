@@ -46,12 +46,12 @@ void feedbackBadge().then((n) => {
 });
 // LỐI VÀO CÁC TRANG ở trang Tôi: dòng nào hiện cho ai, chữ và thứ tự khai ở bảng mục (src/shared/muc-giao-dien.ts — TRANG_TOI, cùng bảng quyền với máy chủ;
 // rào máy src/muc-hien-mo-duoc-{1,2,3}.test.ts). Ở đây chỉ vẽ. Bố cục: Danh bạ / Địa điểm / Loại giấy tờ cá nhân → nhãn "VẬN CHUYỂN" + nhóm (ADR-0040 D1; bản vẽ 00 điện
-// thoại — chỉ dựng khi có dòng mở nhóm) → phần còn lại + Đăng xuất. `#links` giữ phần còn lại (Góp ý, Trợ giúp, Đăng xuất…) để mọi chỗ đang tìm các dòng đó trong
+// thoại — chỉ dựng khi có dòng mở nhóm) → phần còn lại + Đăng xuất. `#links` giữ phần còn lại (Góp ý, Hướng dẫn, Đăng xuất…) để mọi chỗ đang tìm các dòng đó trong
 // #links vẫn đúng; tài khoản không có dòng nào của nhóm: DOM như cũ (một danh sách).
 // sinh-so-do-trang: nhãn các dòng TRANG_TOI (trừ nhóm VẬN CHUYỂN) chèn vào kho trợ lý ở ĐÚNG chỗ này.
 const toi = trangToi(staff);
 const soSapHet = h("span", { class: "vc-badge", hidden: true });
-/** Một dòng lối vào. Phần chỉ trình bày (không quyết ai thấy): huy hiệu Góp ý, chấm "Có bản mới" của Trợ giúp, số giấy tờ xe đã hết + sắp hết hạn (màu cát). */
+/** Một dòng lối vào. Phần chỉ trình bày (không quyết ai thấy): huy hiệu Góp ý, chấm "Có bản mới" của Hướng dẫn, số giấy tờ xe đã hết + sắp hết hạn (màu cát). */
 function dongToi(m: MucHien, nhomVanChuyen: boolean): HTMLElement {
   const them = m.trang === "gopY" ? feedbackBadgeEl : m.trang === "troGiup" ? helpHasNews() && newDot() : m.trang === "sapHetHan" ? soSapHet : null;
   return h("a", { class: "row-link", href: m.href }, nhomVanChuyen ? h("span", { class: "vc-row-label" }, m.nhan) : m.nhan, them, icon("next", 20));

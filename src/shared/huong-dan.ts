@@ -1,5 +1,5 @@
 // Hướng dẫn người dùng theo vai (đặc tả docs/superpowers/specs/2026-09-30-huong-dan-theo-vai.md). Thuần, không I/O.
-// MỘT NGUỒN cho trang Trợ giúp (web/help.ts) và bản đọc ngoài app (scripts/xuat-huong-dan.mjs → Google Docs).
+// MỘT NGUỒN cho trang Hướng dẫn (web/help.ts) và bản đọc ngoài app (scripts/xuat-huong-dan.mjs → Google Docs).
 // Nội dung ở các tệp huong-dan-*.ts, viết bằng tập con markdown nhỏ (xem phanTich). Luật chủ duyệt 30/9: chữ hướng dẫn nằm trên
 // mọi máy (ADR-0035) nên CHỈ ghi tên nút và cách làm — không giá, không số liệu, không tên / SĐT thật; huong-dan.test.ts canh.
 import type { PermissionCode } from "./permissions.ts";
@@ -26,7 +26,7 @@ export interface NhomHuongDan {
   readonly muc: readonly MucHuongDan[];
 }
 
-/** Thứ tự trong bản đọc ngoài app (Phần chung đầu). Trang Trợ giúp đặt nhóm vai của người xem trước Phần chung (web/help.ts). */
+/** Thứ tự trong bản đọc ngoài app (Phần chung đầu). Trang Hướng dẫn đặt nhóm vai của người xem trước Phần chung (web/help.ts). */
 export const HUONG_DAN: readonly NhomHuongDan[] = [HD_CHUNG, HD_BAN_HANG, HD_HDV, HD_KE_TOAN, HD_DOI_TAC, HD_TAI_XE, HD_NHAN_SU, HD_QUAN_TRI];
 
 /** Các nhóm tài khoản này thấy (Phần chung + nhóm có quyền giao nhau), đúng thứ tự HUONG_DAN. */

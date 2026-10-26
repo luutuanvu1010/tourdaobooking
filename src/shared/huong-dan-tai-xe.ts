@@ -26,7 +26,7 @@ export const HD_TAI_XE: NhomHuongDan = {
 - [[Báo bận của tôi]]: ghi giờ bạn bận để văn phòng không xếp chuyến.
 - [[Tôi]]: đủ **Giấy tờ của tôi**, đổi PIN, bật thông báo.
 
-Trên máy tính, menu bên trái có các mục trên, cùng [[Của tôi]], [[Hỗ trợ]], [[Trợ giúp]].`,
+Trên máy tính, menu bên trái có các mục trên, cùng [[Của tôi]], [[Hỗ trợ]], [[Hướng dẫn]].`,
     },
     {
       tieuDe: "Xem cuốc và chuẩn bị",

@@ -13,7 +13,7 @@ export const HD_NHAN_SU: NhomHuongDan = {
   muc: [
     {
       tieuDe: "Menu của bạn",
-      noiDung: `- Máy tính: nhóm **THIẾT LẬP** có [[Quản lý tài khoản]] (nhóm này tự mở sẵn vì bạn chỉ có một nhóm); chân menu có trang Của tôi, Hỗ trợ, Trợ giúp.
+      noiDung: `- Máy tính: nhóm **THIẾT LẬP** có [[Quản lý tài khoản]] (nhóm này tự mở sẵn vì bạn chỉ có một nhóm); chân menu có trang Của tôi, Hỗ trợ, Hướng dẫn.
 - Điện thoại: tab [[Tài khoản]] và **Tôi** ở đáy màn hình.
 - Mở Nền tảng là vào thẳng trang Quản lý tài khoản.`,
     },
