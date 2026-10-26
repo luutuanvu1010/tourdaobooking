@@ -161,7 +161,10 @@ export const dispatchModule: AppModule = {
       if (!can(staff, "order.view")) return VIEW_FORBIDDEN();
       const parsed = parseOrderIds(url.searchParams.get("orderIds"));
       if (!parsed.ok) return error(400, "invalid_input", parsed.message);
-      const rows = parsed.ids.length ? await findHandlersOf(env.DB, parsed.ids) : [];
+      const tatCa = parsed.ids.length ? await findHandlersOf(env.DB, parsed.ids) : [];
+      // ADR-0135 Đ2: người phụ trách CHỌN SẴN trên đơn NHÁP của người khác không trả (như đơn không tồn tại); người lập vẫn thấy.
+      const chu = await Promise.all(tatCa.map((r) => findOrderOwner(env.DB, r.order_id)));
+      const rows = tatCa.filter((_, i) => chu[i] !== null && chiNguoiLapGhiNhap({ status: chu[i]!.status, laNguoiLap: chu[i]!.staffId === staff.id }));
       const byOrder = new Map(rows.map((r) => [r.order_id, r]));
       const handlers: Record<string, HandlerDto | null> = {};
       for (const id of parsed.ids) {
@@ -459,6 +462,10 @@ export const dispatchModule: AppModule = {
       if (!can(staff, "dispatch.refuse", { assigned: true })) return REFUSE_FORBIDDEN();
       const orderId = params.id!;
       if (!UUID_RE.test(orderId)) return NOT_FOUND();
+      const order = await findOrderOwner(env.DB, orderId);
+      if (!order) return NOT_FOUND();
+      // ADR-0135 Đ2: đơn nháp của người khác (kể cả HDV chọn sẵn) → 404, đứng trước kiểm «có phụ trách không».
+      if (!chiNguoiLapGhiNhap({ status: order.status, laNguoiLap: order.staffId === staff.id })) return NOT_FOUND();
       const current = await findHandlerOf(env.DB, orderId);
       if (current === null || current.staff_id !== staff.id) return REFUSE_FORBIDDEN();
       const luc = new Date();
@@ -473,6 +480,7 @@ export const dispatchModule: AppModule = {
       if (!UUID_RE.test(orderId)) return NOT_FOUND();
       const [order, assigned] = await Promise.all([findOrderOwner(env.DB, orderId), isAssigned(orderId)]);
       if (!order) return NOT_FOUND();
+      if (!chiNguoiLapGhiNhap({ status: order.status, laNguoiLap: order.staffId === staff.id })) return NOT_FOUND(); // ADR-0135 Đ2
       if (!can(staff, "dispatch.assign", { ownerId: order.staffId, assigned })) return FORBIDDEN();
       const tuChoi: TuChoiTruocResponse["tuChoi"] = {};
       for (const r of await tuChoiCuaDon(env.DB, orderId)) tuChoi[r.party_id] ??= { luc: r.occurred_at, lyDo: r.reason_code as MaLyDoTuChoi };

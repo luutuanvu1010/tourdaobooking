@@ -316,7 +316,12 @@ assert.equal((await lastAction(Bc, h)).staffName, "", "ADR-0131: không phải T
 r = await putTrip(A, h, { note: "người lập chỉnh sau khi đã giao lại" }); // người lập vẫn sửa được chuyến
 assert.equal(r.status, 200, JSON.stringify(r.body));
 h = r.body.order;
-for (const [label, cookie] of [["SALES khác", Cx], ["kế toán", ACC], ["FIELD", FIELD]]) assert.equal((await putTrip(cookie, h, { note: "chui" })).status, 403, `${label} PUT chuyến`);
+// Vòng 403 của bản cũ (trước ADR-0135 chạy trên nháp) đặt lại trên đơn ĐÃ XÁC NHẬN: người khác / kế toán / FIELD không sửa, không huỷ, không sửa chuyến được; không gì đổi.
+for (const [label, cookie] of [["SALES khác", Cx], ["kế toán", ACC], ["FIELD", FIELD]]) {
+  assert.equal((await putTrip(cookie, h, { note: "chui" })).status, 403, `${label} PUT chuyến`);
+  assert.equal((await setStatus(cookie, h, "cancelled")).status, 403, `${label} huỷ`);
+}
+assert.equal((await detail(A, h)).order.updatedAt, h.updatedAt, "bị từ chối thì không đổi gì");
 
 // --- người phụ trách HUỶ đơn đã xác nhận; sau huỷ không sửa được gì nữa
 r = await setStatus(Bc, h, "cancelled");
@@ -326,7 +331,7 @@ assert.deepEqual((await lastAction(TOAN_QUYEN, r.body.order)).staffName, "NV Bá
 assert.equal((await lastAction(Bc, r.body.order)).staffName, "", "ADR-0131: không phải Toàn quyền thì tên người làm bị bỏ");
 assert.equal((await putTrip(Bc, r.body.order, { note: "sau huỷ" })).status, 409);
 assert.equal((await setStatus(Bc, r.body.order, "confirmed")).status, 409);
-console.log("✓ nháp: người phụ trách chọn sẵn vẫn 404; sau xác nhận (người lập) người phụ trách sửa chuyến, huỷ; người lập vẫn được; SALES khác/kế toán/FIELD 403; số khách/dịch vụ/tiền vẫn khoá sau xác nhận");
+console.log("✓ nháp: người phụ trách chọn sẵn vẫn 404; sau xác nhận (người lập) người phụ trách sửa chuyến, huỷ; người lập vẫn được; trên đơn ĐÃ XÁC NHẬN SALES khác/kế toán/FIELD sửa chuyến, huỷ đều 403; số khách/dịch vụ/tiền vẫn khoá sau xác nhận");
 
 // --- MẤT quyền ngay khi bị đổi người (quyền đi theo người phụ trách HIỆN TẠI, không theo người từng phụ trách) — trên đơn ĐÃ XÁC NHẬN
 const h3 = await mkOrder();

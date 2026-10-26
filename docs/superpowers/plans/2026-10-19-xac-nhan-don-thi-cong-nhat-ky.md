@@ -97,3 +97,11 @@ Kết quả > 0: chủ quyết cách xử lý các nháp đó (huỷ chúng rơi
 - `a2-smoke-order.mjs` đỏ có sẵn (khoá nút Xác nhận khi thiếu ngày); kịch bản Chrome khác còn nhắc ô trả trước: `a2-evidence.mjs`, `v1-xac-nhan-png.mjs`, `qr-smoke.mjs`, `tao-don-thiet-ke-lai/…/than-gui.mjs`, `nhan-noi-safari-smoke.mjs`, `thanh-dinh-smoke.mjs` — chưa chạy, nhiều khả năng cần sửa.
 - Sổ `/api/ledger*` hiện mã nháp cũ có khoản thu cho văn phòng (xem Rà billing) — quyết sau Step 0.
 - Hướng dẫn Đối tác: chỉ sửa câu bước 6 (mâu thuẫn trực tiếp); phần còn lại của Trợ giúp Đối tác để Task 3.5.
+
+## K1 26/10 (người kiểm độc lập Đợt 2 báo «đạt có điều kiện»; trợ lý thi công sửa)
+Đã sửa: P1 `GET /api/dispatch/handlers` lọc nháp người khác; P2 `tests/e2e/so-dai-ly-dot-2.mjs` mục 6 dựng ca bằng SQL; P3 bài `donCuaNguoiDat` có nháp lệch tiền; P4 `tu-choi-truoc`, `han-muc-tu-choi` vào cổng nháp (route `han-muc-tu-choi` nay 404 cho đơn không tồn tại, trước đó 403 «không phụ trách»). Ghi nhận, KHÔNG sửa mã:
+- Ghi thu trên nháp người khác trả 404 đứng TRƯỚC kiểm ô quyền; chữ Đ7 nói 409 — 404 là suy diễn từ Đ1/Đ2. Chờ chủ xác nhận.
+- `GET /api/orders/nguoi-lap` lộ ngày `ganNhat` của người chỉ có nháp (dấu hiệu có nháp, không lộ nội dung). Chờ chủ quyết.
+- Route ghi billing trên nháp người khác trả 409/403 chứ không 404 (kênh dò sự tồn tại, xem dòng «lưới hở chấp nhận được» ở `docs/SO-HANG-RAO.md`).
+- `tests/e2e/orders.mjs` từng bỏ vòng 403 «SALES khác/kế toán/FIELD» của nháp mà dòng `console.log` vẫn khẳng định; đã đặt lại vòng ấy trên đơn ĐÃ XÁC NHẬN (sửa chuyến, huỷ ⇒ 403) và sửa dòng log.
+

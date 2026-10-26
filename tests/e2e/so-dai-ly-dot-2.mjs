@@ -386,15 +386,13 @@ let don2;
   for (const [ai, who] of [["Đối tác không được hưởng", DT0.cookie], ["Tài khoản lai Bán hàng + Đối tác", LAI.cookie]]) {
     const o = await lapDon(who, orderInput({ customerName: `Khách I Một ${CHU}`, services: [dv("ZSD2T", 1, { departDate: vnDate(7) })] }));
     assert.equal(o.bookerPartyId, null, `${ai}: hồ sơ không mang vai được hưởng ⇒ đơn không bên đặt`);
-    // Văn phòng (Quản trị) gắn bên đặt = đại lý A (mức riêng 10% ⇒ hoa hồng 500.000) bằng route thật
-    let r = await put(ADM, await docDon(ADM, o.id), { bookerPartyId: DLA.partyId });
-    assert.equal(r.status, 200, `${ai}: Quản trị gắn đại lý A: ${JSON.stringify(r.body)}`);
-    assert.equal(r.body.order.bookerPartyId, DLA.partyId);
-    const tm = await call(A, "GET", `/api/orders/${o.id}/thuong-mai`);
-    assert.equal(tm.body.vanPhong?.tong?.hoaHong, 500000, `${ai}: đối chứng — hoa hồng dự kiến của đại lý A trên đơn là 500.000`);
+    // Gắn bên đặt = đại lý A (mức riêng 10% ⇒ hoa hồng dự kiến 500.000) bằng SQL: từ ADR-0135 Đ2 đơn NHÁP là vùng riêng của người lập nên Quản trị không còn mở /
+    // sửa được nháp của người khác (404) — tình huống «văn phòng gắn đại lý khác» được dựng trực tiếp ở CSDL.
+    await sql(`UPDATE orders SET booker_party_id = '${DLA.partyId}' WHERE id = '${o.id}'`);
+    assert.equal((await docDon(who, o.id)).bookerPartyId, DLA.partyId, `${ai}: bên đặt đã gắn đại lý A`);
     // Lưu nháp giảm ĐÚNG bằng hoa hồng của đại lý kia ⇒ 403 câu cũ, không số, đơn không đổi
     const truoc = await docDon(who, o.id);
-    r = await put(who, truoc, { bookerPartyId: DLA.partyId, discount: 500000 });
+    let r = await put(who, truoc, { bookerPartyId: DLA.partyId, discount: 500000 });
     assert.equal(r.status, 403, `${ai}, lưu nháp giảm 500.000: ${JSON.stringify(r.body)}`);
     assert.deepEqual([maLoi(r), r.body.error.message], ["forbidden", CAU_DOI_TAC]);
     assert.doesNotMatch(JSON.stringify(r.body), /500[.,]?000/, `${ai}: câu không lộ số hoa hồng của đại lý`);

@@ -134,6 +134,31 @@ test("[GET /api/orders/pool] hàng chờ nhận: không có đơn nháp, có đ�
   }
 });
 
+test("[GET /api/dispatch/handlers] người phụ trách chọn sẵn của NHÁP người khác không lộ (như đơn không tồn tại); người lập vẫn thấy; sau xác nhận ai có quyền xem cũng thấy", async () => {
+  const { w, nhap } = await theGioi();
+  const ma = await lap(w, A);
+  for (const [ten, id] of Object.entries({ B, ACC, ADM, SUP })) {
+    const r = await w.call("GET", `/api/dispatch/handlers?orderIds=${nhap},${ma}`, { as: id });
+    assert.equal(r.status, 200, `${ten}: ${r.text}`);
+    assert.equal(r.json.handlers[nhap], null, `${ten}: lộ người phụ trách chọn sẵn của nháp`);
+    assert.ok(!JSON.stringify(r.json).includes("party_id") && !JSON.stringify(r.json).includes(H), `${ten}: lộ hồ sơ`);
+  }
+  const rA = await w.call("GET", `/api/dispatch/handlers?orderIds=${nhap}`, { as: A });
+  assert.equal(rA.status, 200, rA.text);
+  assert.ok(rA.json.handlers[nhap], "người lập phải thấy người mình chọn sẵn");
+  await xacNhan(w, A, nhap);
+  const rS = await w.call("GET", `/api/dispatch/handlers?orderIds=${nhap}`, { as: SUP });
+  assert.ok(rS.json.handlers[nhap], "sau xác nhận Toàn quyền thấy người phụ trách");
+});
+
+test("[GET …/tu-choi-truoc] [GET …/han-muc-tu-choi] nháp của người khác: 404 (Quản trị, Toàn quyền, HDV chọn sẵn); người lập không bị chặn bởi cổng nháp", async () => {
+  const { w, nhap } = await theGioi();
+  for (const id of [ADM, SUP]) khongThay(await w.call("GET", `/api/orders/${nhap}/tu-choi-truoc`, { as: id }), `tu-choi-truoc/${id}`);
+  khongThay(await w.call("GET", `/api/orders/${nhap}/han-muc-tu-choi`, { as: H }), "han-muc-tu-choi/HDV chọn sẵn");
+  const rA = await w.call("GET", `/api/orders/${nhap}/tu-choi-truoc`, { as: A });
+  assert.notEqual(rA.status, 404, rA.text);
+});
+
 test("[GET /api/dispatch/mine] 'việc của tôi' của HDV chọn sẵn không có đơn nháp; sau xác nhận thì có", async () => {
   const { w, nhap } = await theGioi();
   const ids = async () => (await w.call("GET", "/api/dispatch/mine", { as: H })).json.assignments.map((x: any) => x.orderId ?? x.id);
@@ -157,12 +182,17 @@ test("[donCuaNguoiDat] gộp hồ sơ người đặt: nháp chỉ được Đ�
   const pid = "aaaaaaaa-0000-4000-8000-000000000001";
   w.sqlite.exec(`INSERT INTO pty_party (id, party_kind, display_name, created_at, updated_at) VALUES ('${pid}', 'PERSON', 'Khách', '2026-01-01', '2026-01-01')`);
   w.sqlite.exec(`UPDATE orders SET booker_party_id = '${pid}'`);
+  // nháp LỆCH TIỀN (lech = 1) cũng không được lộ mã qua `lechTien` (mã đơn nháp không ra khỏi hàm — Đ1). Trigger tiền chặn UPDATE lệch nên gỡ nó (chỉ DB thử).
+  w.sqlite.exec("DROP TRIGGER IF EXISTS orders_money_update");
+  w.sqlite.exec(`UPDATE orders SET total = subtotal - discount + 1 WHERE id = '${nhap}'`);
+  assert.equal(w.q("SELECT (total IS NOT subtotal - discount) AS l FROM orders WHERE id = ?", nhap)[0].l, 1, "nháp thử phải lệch tiền");
   const { donCuaNguoiDat } = await import("./nguoi-dat-gop-repo.ts");
   const kq = await donCuaNguoiDat(w.env.DB, pid);
   const maNhap = w.q("SELECT order_code c FROM orders WHERE id = ?", nhap)[0].c as string;
   const maXn = w.q("SELECT order_code c FROM orders WHERE id = ?", daXn)[0].c as string;
   assert.equal(kq.doi, 2, "nháp vẫn được đếm");
   assert.deepEqual(kq.maDoi, [maXn]);
+  assert.deepEqual(kq.lechTien, [], "nháp lệch tiền không vào lechTien");
   assert.equal(JSON.stringify(kq).includes(maNhap), false, "mã đơn nháp lộ trong donCuaNguoiDat");
 });
 

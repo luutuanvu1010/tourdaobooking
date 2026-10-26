@@ -8,9 +8,9 @@ Nhánh thi công: `claude/xac-nhan-don-thi-cong`, dựng từ `origin/main` `968
 
 | # | Việc | Xong khi | Trạng thái |
 |---|---|---|---|
-| L1 | Task 2.1 + 2.3: luật thuần «ai đọc/ghi được đơn nháp», áp mọi đường đọc và ghi, số đếm, người phụ trách chọn sẵn, hàng chờ nhận, tin của nháp | bài đỏ→xanh theo từng hàng của trang ghép lượt 1 mục 3; `npm test` + `typecheck` xanh; e2e `orders` | chưa làm |
-| L2 | Task 2.2: nháp không ghi thu (409), QR chỉ đơn đã xác nhận, bỏ ô Thanh toán trước khỏi màn Tạo đơn, sửa chữ hướng dẫn | như trên; kịch bản Chrome màn Tạo đơn hai khổ | chưa làm |
-| K1 | Kiểm độc lập Đợt 2 (`nguoi-kiem-doc-lap`: quyền xem, tiền) rồi sửa | báo cáo kiểm «đạt» hoặc «đạt có điều kiện» đã sửa hết | chưa làm |
+| L1 | Task 2.1 + 2.3: luật thuần «ai đọc/ghi được đơn nháp», áp mọi đường đọc và ghi, số đếm, người phụ trách chọn sẵn, hàng chờ nhận, tin của nháp | bài đỏ→xanh theo từng hàng của trang ghép lượt 1 mục 3; `npm test` + `typecheck` xanh; e2e `orders` | đã làm 26/10 (tự khai), chờ K1 |
+| L2 | Task 2.2: nháp không ghi thu (409), QR chỉ đơn đã xác nhận, bỏ ô Thanh toán trước khỏi màn Tạo đơn, sửa chữ hướng dẫn | như trên; kịch bản Chrome màn Tạo đơn hai khổ | đã làm 26/10 (tự khai), chờ K1 |
+| K1 | Kiểm độc lập Đợt 2 (`nguoi-kiem-doc-lap`: quyền xem, tiền) rồi sửa | báo cáo kiểm «đạt» hoặc «đạt có điều kiện» đã sửa hết | đang kiểm |
 | L3 | Task 3.1 + 3.2 + 3.2b: luật thuần (cần xác nhận ba bước, hạn 15 phút trừ 22–06, ai quyết định), migration `0119` + hai ô quyền `order.confirm.review`, `order.submit`, tách lô xác nhận dùng chung | bài đỏ→xanh; ghim ô quyền ở mọi bài; kiểm lại số migration ngay trước khi tạo tệp | chưa làm |
 | L4 | Task 3.3: route gửi xác nhận / rút lại / quyết định / danh sách chờ / cài đặt cờ, chặn mở yêu cầu khi đơn đã có khoản thu (hàm tiêm từ gốc lắp ráp) | e2e `xac-nhan-don` các ca a–p; bài đua hai người quyết | chưa làm |
 | L5 | Task 3.4: route «Gửi đơn» (nhánh A, nhánh B), 409 `partner_submit_required` chỉ chặn người lập giữ quyền Đối tác | các ca 1–7 của Task 3.4; tài khoản lai đúng bảng ADR-0136 | chưa làm |
@@ -58,3 +58,5 @@ Quy ước: mỗi lần giao ghi vào nhật ký thi công `docs/superpowers/pla
 - Tài khoản lai Bán hàng + Đối tác đọc được đơn chờ của Đối tác khác (dịch vụ, ngày, số khách, giờ đón, tiền; không tên/SĐT/email) — hệ quả «hợp quyền», chủ đã biết 26/10.
 - Chữ ADR-0136 Đ13.5 câu thứ ba và tiêu chí 4 hiểu hẹp (chỉ đơn chờ) — ghi ở `SYSTEM-DESIGN` §16 ở L7; chủ ra dòng bổ sung ADR sau.
 - Kịch bản Chrome chưa chạy cho các màn của 2.29, 2.30 (BACKLOG §45 `BL-GOPY-HT-CHROME`).
+- Kịch bản Chrome còn nhắc ô Trả trước (nhiều khả năng đỏ/cần sửa, chưa chạy): `a2-evidence`, `v1-xac-nhan-png`, `qr-smoke`, `than-gui`, `nhan-noi-safari-smoke`, `thanh-dinh-smoke`.
+- `a2-smoke-order` đỏ từ trước ở bước 2 (banner `incomplete_trip`, commit 2ce61247) — không do nhánh này.
