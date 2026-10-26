@@ -12,6 +12,8 @@
 // Ảnh ghi vào docs/evidence/2026-10-08-so-dai-ly-dot-1/anh/ (đặt OUT=<thư mục> để ghi chỗ khác). Mỗi bước chạy riêng (một bước đỏ không chặn bước sau); cuối cùng in
 // "SMOKE OK" hoặc danh sách bước đỏ (thoát 1). axe: lỗi mức critical/serious làm đỏ bước; moderate/minor in ra ở mục "axe nhẹ" (ghi vào báo cáo, không sửa mã sản phẩm).
 import assert from "node:assert/strict";
+// Các bước 1 và 1b khoá giao diện /hoa-hong CŨ (đã làm lại 2026-10-26; thay bằng docs/evidence/2026-10-26-hoa-hong-thiet-ke-lai/kich-ban/hoa-hong-smoke.mjs). Mặc định bỏ qua; SDL_HOA_HONG_CU=1 chạy lại (sẽ đỏ).
+const HOA_HONG_CU = process.env.SDL_HOA_HONG_CU === "1";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -265,6 +267,7 @@ try {
     await p.ev("document.getElementById('muc-add-form').requestSubmit(), true");
   };
   for (const [kho, vp] of KHO) {
+    if (!HOA_HONG_CU) continue; // bước 1: giao diện /hoa-hong cũ — thay bằng hoa-hong-smoke.mjs từ 2026-10-26
     let p;
     try {
       p = await moTrang(ACCOUNTS.accounting, "/hoa-hong", vp);
@@ -324,6 +327,7 @@ try {
 
   // ================================================================ 1b. Quản trị / Toàn quyền: tra được đối tác, Thử tra ra mức bậc 5 (loại đối tác cho nhóm)
   for (const [kho, vp, acc, ten] of [["390", MOB, ACCOUNTS.admin, "Quản trị"], ["1040", DESK, ACCOUNTS.admin, "Quản trị"], ["1040", DESK, ACCOUNTS.chu, "Toàn quyền"]]) {
+    if (!HOA_HONG_CU) continue; // bước 1b: giao diện /hoa-hong cũ — thay bằng hoa-hong-smoke.mjs từ 2026-10-26
     let p;
     try {
       p = await moTrang(acc, "/hoa-hong", vp);
@@ -404,12 +408,12 @@ try {
     try {
       p = await moTrang(ACCOUNTS.salesA, "/hoa-hong", vp);
       await cho(p, "!document.getElementById('hh-noi-dung').hidden || !document.getElementById('error').hidden", "trang dựng xong");
-      await buoc(`31-${kho}a`, `Bán hàng /hoa-hong (${kho}): danh sách có dòng (đóng được với Kế toán) nhưng KHÔNG #muc-add-card hiện, KHÔNG [data-dong]`, async () => {
+      await buoc(`31-${kho}a`, `Bán hàng /hoa-hong (${kho}): thấy các loại nhưng không nút ghi nào`, async () => {
         assert.equal(await loiTrang(p), null);
-        assert.ok((await p.ev("document.querySelectorAll('#muc-list [data-id]').length")) >= 2, "có dòng mức để so");
-        assert.equal(await p.ev(`!!document.querySelector('#muc-list [data-id="${mucHdv.dong.id}"]')`), true, "chính dòng Kế toán thấy nút Đóng");
-        assert.equal(await p.ev("document.getElementById('muc-add-card').hidden && document.getElementById('muc-add-form').childElementCount === 0"), true, "ô thêm mức ẩn và chưa dựng");
-        assert.equal(await p.ev("document.querySelectorAll('[data-dong]').length"), 0, "không nút Đóng mức");
+        // Trang /hoa-hong làm lại 2026-10-26: Bán hàng thấy các loại (mỗi loại một cụm) nhưng không một nút ghi nào (chi tiết: hoa-hong-smoke.mjs bước 7).
+        assert.ok((await p.ev("document.querySelectorAll('.hh-lo').length")) >= 2, "có loại đối tác để so");
+        assert.equal(await p.ev("document.getElementById('hh-them-muc').hidden && document.getElementById('hh-thanh-cuoi').hidden"), true, "nút Thêm mức ẩn");
+        assert.equal(await p.ev("[...document.querySelectorAll('#hh-noi-dung button')].filter((b) => /^(＋|Thêm|Đổi|Ngừng|Tắt|Bật|Áp dụng)/.test(b.textContent.trim())).length"), 0, "không nút ghi nào");
         await chup(p, `31-hoa-hong-ban-hang-${kho}`, { ca: true });
       });
       await buoc(`31-${kho}b`, `Bán hàng (${kho}): không có liên kết «Người bán dịch vụ» / «Khoá sổ tháng»${kho === "1040" ? "; thanh bên có «Hoa hồng đối tác»" : ""}`, async () => {
@@ -665,7 +669,7 @@ try {
       p = await moTrang(ACCOUNTS.admin, "/order-form", DESK);
       await buoc("36-quan-tri", "Quản trị form lập đơn có #dat-qua-doi-tac + nút «Đặt qua đối tác»; mở /khoa-thang ⇒ câu từ chối của trang", async () => {
         await cho(p, "!!document.querySelector('#dat-qua-doi-tac [data-action=\"dat-qua-mo\"]')", "ô Đặt qua đối tác");
-        assert.equal(await p.ev("document.querySelector('[data-action=\"dat-qua-mo\"]').textContent"), "Đặt qua đối tác");
+        assert.equal(await p.ev("document.querySelector('[data-action=\"dat-qua-mo\"]').textContent"), "Qua đối tác"); // nhãn nút đổi từ «Đặt qua đối tác» ở lần thiết kế lại form Tạo đơn 18/10
         await p.send("Page.navigate", { url: `${env.base}/khoa-thang` });
         await cho(p, "location.pathname === '/khoa-thang' && !document.getElementById('error').hidden", "câu từ chối");
         assert.equal(await loiTrang(p), CAU_KHOA_THANG_TU_CHOI);
