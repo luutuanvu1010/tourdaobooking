@@ -1,3 +1,5 @@
+// THAY BẰNG docs/evidence/2026-10-26-hoa-hong-thiet-ke-lai/kich-ban/hoa-hong-smoke.mjs TỪ 2026-10-26 (trang /hoa-hong làm lại: mục «Mức TA» thành «Chính sách hoa hồng» ở thẻ «Thiết lập», biểu mẫu thành hộp trượt).
+// Kịch bản này khoá chữ và chỗ cũ nên sẽ ĐỎ trên trang mới — hồ sơ có ngày, giữ nguyên làm bằng chứng cho bản 2.x trước 2.34; không chạy, không còn trong bảng web/CLAUDE.md.
 // Kịch bản Chrome — mục «Mức TA» ở /hoa-hong (ADR-0117 lần 2, migration 0096 + 0097). Đây là rào DUY NHẤT cho phần GIAO DIỆN của mức TA: `npm test` canh máy chủ + CSDL
 // (src/modules/pricing/muc-ta.test.ts…), `tests/e2e/muc-ta.mjs` canh HTTP thật, nhưng không bài nào mở trang. Kịch bản kiểm (mỗi khổ):
 //   1) Kế toán mở /hoa-hong: mục «Mức TA» hiện, câu luật «không đổi mức trong cùng ngày» hiện nguyên văn, ba biểu mẫu (Thêm mức TA, Thêm dòng, Gắn mức) hiện;

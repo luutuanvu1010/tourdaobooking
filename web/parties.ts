@@ -761,10 +761,10 @@ async function veHoaHongHienHanh(sec: HTMLElement, p: Api.PartyDto, tin?: string
         ` — từ ${ngayVN(rieng.tuNgay)}${rieng.denNgay ? ` đến ${ngayVN(rieng.denNgay)}` : ""}. Mức theo loại không áp cho đại lý này.`)
     : null;
   const nhac: Child[] = [];
-  if (r.xungDot) nhac.push(h("p", { class: "alert warn", role: "status" }, "Hồ sơ mang hai loại gắn hai mức TA khác nhau — với dịch vụ mà hai mức cho hai kết quả khác nhau, đơn có thể bị giữ cho tới khi gỡ bớt một loại, gắn cùng một mức, hoặc gắn một mức riêng cho đại lý này. Dùng «Thử tra» ở trang Hoa hồng đối tác để xem từng dịch vụ."));
-  if (!rieng && r.vai.some((v) => v.muc === null)) nhac.push(h("p", { class: "muted" }, "Loại chưa gắn mức thì đơn chưa có hoa hồng cho tới khi gắn mức hoặc có dòng riêng."));
-  if (r.dongRiengDoiTac > 0) nhac.push(h("p", { class: rieng ? "alert warn" : "muted", role: rieng ? "status" : null }, `Đại lý này có ${r.dongRiengDoiTac} dòng riêng — dòng riêng luôn thắng mức TA, kể cả mức gắn riêng.`));
-  if (r.dongRiengLoai > 0) nhac.push(h("p", { class: "muted" }, rieng ? `Loại đối tác của hồ sơ có ${r.dongRiengLoai} dòng riêng — mức gắn riêng thắng các dòng đó.` : `Loại đối tác của hồ sơ có ${r.dongRiengLoai} dòng riêng — dòng riêng của loại thắng mức TA.`));
+  if (r.xungDot) nhac.push(h("p", { class: "alert warn", role: "status" }, "Hồ sơ mang hai loại theo hai chính sách khác nhau — với dịch vụ mà hai mức cho hai kết quả khác nhau, đơn có thể bị giữ cho tới khi gỡ bớt một loại, gắn cùng một mức, hoặc gắn một mức riêng cho đại lý này. Dùng «Tra nhanh» ở trang Hoa hồng đối tác để xem từng dịch vụ."));
+  if (!rieng && r.vai.some((v) => v.muc === null)) nhac.push(h("p", { class: "muted" }, "Loại chưa gắn mức thì đơn chưa có hoa hồng cho tới khi áp dụng chính sách hoặc có mức riêng."));
+  if (r.dongRiengDoiTac > 0) nhac.push(h("p", { class: rieng ? "alert warn" : "muted", role: rieng ? "status" : null }, `Đại lý này có ${r.dongRiengDoiTac} mức riêng — mức riêng luôn thắng chính sách, kể cả chính sách riêng.`));
+  if (r.dongRiengLoai > 0) nhac.push(h("p", { class: "muted" }, rieng ? `Loại đối tác của hồ sơ có ${r.dongRiengLoai} mức riêng — chính sách riêng thắng các mức đó.` : `Loại đối tác của hồ sơ có ${r.dongRiengLoai} mức riêng — mức riêng thắng chính sách của loại.`));
   const khuTin = h("div", null, tin ? h("p", { class: "alert ok", role: "status" }, tin) : null);
   const baoLoi = (chu: string) => replaceChildren(khuTin, h("p", { class: "alert danger", role: "alert" }, chu));
   const khuLenh = h("div", null);
@@ -788,27 +788,27 @@ async function veHoaHongHienHanh(sec: HTMLElement, p: Api.PartyDto, tin?: string
     try {
       mt = await api<Api.MucTaListResponse>("/api/pricing/muc-ta");
     } catch (err) {
-      return baoLoi(err instanceof ApiError ? err.message : "Không tải được danh sách mức TA.");
+      return baoLoi(err instanceof ApiError ? err.message : "Không tải được danh sách chính sách.");
     }
     const bat = mt.muc.filter((m) => m.dangBat);
-    if (bat.length === 0) return baoLoi("Chưa có mức TA nào đang bật — tạo mức ở trang Hoa hồng đối tác trước.");
-    const oMuc = select([{ value: "", label: "Chọn mức TA" }, ...bat.map((m) => ({ value: m.code, label: m.ten }))], "");
+    if (bat.length === 0) return baoLoi("Chưa có chính sách nào đang bật — tạo chính sách ở trang Hoa hồng đối tác trước.");
+    const oMuc = select([{ value: "", label: "Chọn chính sách" }, ...bat.map((m) => ({ value: m.code, label: m.ten }))], "");
     const oTu = input(r.homNay, { type: "date" }) as HTMLInputElement;
     const luu = button("Lưu mức riêng", (b) => {
-      if (!oMuc.value) return baoLoi("Chọn mức TA.");
+      if (!oMuc.value) return baoLoi("Chọn chính sách.");
       guiLenh(b, `/api/pricing/ho-so/${encodeURIComponent(p.id)}/muc-rieng`, { muc: oMuc.value, tuNgay: oTu.value }, "Đã gắn mức riêng cho đại lý này.");
     }, "btn btn-primary");
     replaceChildren(khuLenh,
-      h("div", { class: "grid three" }, field("Mức TA riêng", oMuc), field("Áp dụng từ ngày", oTu)),
-      r.dongRiengDoiTac > 0 ? h("p", { class: "alert warn", role: "status" }, `Lưu ý: đại lý này có ${r.dongRiengDoiTac} dòng riêng — dòng riêng vẫn thắng mức gắn riêng.`) : null,
+      h("div", { class: "grid three" }, field("Chính sách riêng", oMuc), field("Áp dụng từ ngày", oTu)),
+      r.dongRiengDoiTac > 0 ? h("p", { class: "alert warn", role: "status" }, `Lưu ý: đại lý này có ${r.dongRiengDoiTac} mức riêng — mức riêng vẫn thắng chính sách riêng.`) : null,
       h("p", { class: "muted" }, "Từ ngày áp dụng, đơn của đại lý này tính theo mức riêng, không theo mức của loại nữa. Đơn đã xác nhận không đổi."),
       h("div", { class: "actions" }, luu, button("Huỷ", () => replaceChildren(khuLenh), "btn")));
     oMuc.focus();
   };
   const moKetThuc = (mr: NonNullable<Api.HoaHongHoSoResponse["mucRieng"]>) => {
     const oDen = input(r.homNay < mr.tuNgay ? mr.tuNgay : r.homNay, { type: "date" }) as HTMLInputElement;
-    const luu = button("Kết thúc mức riêng", (b) =>
-      guiLenh(b, `/api/pricing/muc-rieng/${encodeURIComponent(mr.id)}/ket-thuc`, { denNgay: oDen.value }, "Đã kết thúc mức riêng — sau ngày kết thúc, đại lý về mức theo loại."), "btn btn-primary");
+    const luu = button("Ngừng áp dụng", (b) =>
+      guiLenh(b, `/api/pricing/muc-rieng/${encodeURIComponent(mr.id)}/ket-thuc`, { denNgay: oDen.value }, "Đã ngừng áp dụng chính sách riêng — sau ngày cuối, đại lý về chính sách theo loại."), "btn btn-primary");
     replaceChildren(khuLenh,
       h("div", { class: "grid three" }, field("Áp dụng đến hết ngày", oDen)),
       h("div", { class: "actions" }, luu, button("Huỷ", () => replaceChildren(khuLenh), "btn")));
@@ -816,8 +816,8 @@ async function veHoaHongHienHanh(sec: HTMLElement, p: Api.PartyDto, tin?: string
   };
   const duocGhi = can(me, "partner.commission.write");
   const nut = !duocGhi ? null
-    : rieng ? (rieng.denNgay === null ? button("Kết thúc mức riêng", () => moKetThuc(rieng), "btn") : null)
-    : button("Gắn mức riêng", () => void moGan(), "btn");
+    : rieng ? (rieng.denNgay === null ? button("Ngừng áp dụng", () => moKetThuc(rieng), "btn") : null)
+    : button("Áp dụng chính sách riêng", () => void moGan(), "btn");
   replaceChildren(sec,
     tieuDe,
     khoiRieng,

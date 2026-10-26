@@ -199,12 +199,14 @@ export interface TimDoiTac {
   datLai(): void;
   /** Gọi mỗi khi người dùng chọn / bỏ chọn một đối tác. */
   khiDoi(fn: () => void): void;
+  /** Điền sẵn một đối tác đã biết (hộp «Thêm mức» mở từ một dòng). */
+  datChon(c: { partyId: string; ten: string }): void;
 }
 
 /** `choPhep` false (tài khoản không qua cổng của route tìm người hưởng): thay ô tìm bằng một câu nói rõ, không để người dùng gõ vào ô chắc chắn bị từ chối. */
 export function taoTimDoiTac(o: { choPhep: boolean; id: string }): TimDoiTac {
   if (!o.choPhep) {
-    return { root: h("p", { class: "muted", id: o.id, "data-khong-tim-duoc": "" }, CAU_CHUA_TIM_DUOC_DOI_TAC), chon: () => null, datLai: () => undefined, khiDoi: () => undefined };
+    return { root: h("p", { class: "muted", id: o.id, "data-khong-tim-duoc": "" }, CAU_CHUA_TIM_DUOC_DOI_TAC), chon: () => null, datLai: () => undefined, khiDoi: () => undefined, datChon: () => undefined };
   }
   let chonRoi: { partyId: string; ten: string } | null = null;
   let hen: number | undefined;
@@ -286,6 +288,11 @@ export function taoTimDoiTac(o: { choPhep: boolean; id: string }): TimDoiTac {
     khiDoi(fn) {
       khiDoiFn = fn;
     },
+    datChon(c) {
+      chonRoi = { partyId: c.partyId, ten: c.ten };
+      replaceChildren(ketQua);
+      veDaChon();
+    },
   };
 }
 
@@ -335,7 +342,7 @@ export function veHopDong(khu: HTMLElement, t: ThongTinHopDong): void {
   thoi.addEventListener("click", () => t.dong());
   const hop = h(
     "div",
-    { id: "dong-hop", class: "maint-confirm", role: "group", "aria-label": "Đóng dòng", tabindex: -1 },
+    { id: "dong-hop", class: "maint-confirm", role: "group", "aria-label": "Ngừng", tabindex: -1 },
     h("p", null, h("strong", null, t.moTa)),
     t.canhBao !== null && h("p", null, h("strong", null, t.canhBao)),
     h("label", null, "Ngày kết thúc", ngay),

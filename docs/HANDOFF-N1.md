@@ -2,7 +2,7 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## ĐANG CHỜ PHÁT HÀNH — Bước xác nhận đơn + «Gửi đơn» + nháp riêng tư (ADR-0135, ADR-0136), bản kế tiếp 2.34 (số tạm) — CHƯA triển khai
+## ĐANG CHỜ PHÁT HÀNH — Bước xác nhận đơn + «Gửi đơn» + nháp riêng tư (ADR-0135, ADR-0136), bản kế tiếp 2.35 (số tạm) — CHƯA triển khai
 
 Ghi 27/10/2026 (nhánh `claude/xac-nhan-don-thi-cong`, chưa vào `main`; KHÔNG phải trạng thái production). Khi phát hành: **cần `npm run trien-khai`, CÓ migration `0119_yeu_cau_xac_nhan`** (ba bảng); phiên phát hành kiểm lại số migration (`ls migrations`, mọi nhánh chưa gộp) và số phiên bản ở bước A.0 (mục nhật ký đầu `src/shared/changelog.ts`, kỳ vọng ở `src/shared/app-info.test.ts`). Trước khi chạy `trien-khai`, chủ đếm nháp cũ đã có khoản thu (lệnh ở kế hoạch `docs/superpowers/plans/2026-10-19-xac-nhan-don.md`, Task 2.2 Step 0). Task 3.3b (sửa tiền khi đơn chờ) HOÃN — bản này chạy Hướng 2. Sau phát hành: Toàn quyền đánh dấu dịch vụ / nhóm cần xác nhận qua `POST /api/cai-dat/xac-nhan-don` (giao diện cài đặt chờ Đợt 5; mặc định chưa đánh dấu nên đa số đơn Đối tác đi nhánh B). Việc treo: kịch bản Chrome cũ nhắc ô «Thanh toán trước» (ghi chú đầu tệp), ba lệch chữ ADR ở `docs/SYSTEM-DESIGN.md` §16 chờ chủ.
 

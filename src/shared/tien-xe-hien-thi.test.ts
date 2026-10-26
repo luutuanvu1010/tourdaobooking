@@ -36,9 +36,9 @@ test("soTienCoDau: '+ 450.000 ₫' / '− 400.000 ₫' — chỉ định dạng 
 });
 
 test("NHAN_TRANG_THAI_GIA: ba trạng thái dòng giá (máy chủ gắn) → nhãn + tông bản vẽ", () => {
-  assert.deepEqual(NHAN_TRANG_THAI_GIA.DANG_AP, { nhan: "Đang áp", tone: "ok" });
-  assert.deepEqual(NHAN_TRANG_THAI_GIA.SAP_AP, { nhan: "Sắp áp", tone: "unit" });
-  assert.deepEqual(NHAN_TRANG_THAI_GIA.DA_KET_THUC, { nhan: "Đã kết thúc", tone: "muted" });
+  assert.deepEqual(NHAN_TRANG_THAI_GIA.DANG_AP, { nhan: "Đang áp dụng", tone: "ok" });
+  assert.deepEqual(NHAN_TRANG_THAI_GIA.SAP_AP, { nhan: "Sắp áp dụng", tone: "unit" });
+  assert.deepEqual(NHAN_TRANG_THAI_GIA.DA_KET_THUC, { nhan: "Đã ngừng", tone: "muted" });
 });
 
 test("goiYDoiGia: câu gợi ý theo ngày người gõ (máy chủ quyết)", () => {

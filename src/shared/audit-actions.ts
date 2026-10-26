@@ -88,22 +88,22 @@ export const AUDIT_ACTIONS = {
   // Sổ đại lý đợt 1 (ADR-0077, ADR-0078 B1; module pricing): thêm / đóng dòng mức hoa hồng và điều khoản người bán — `order_id` NULL; `detail` = mô tả lời thường
   // ("<đối tượng> · <phạm vi> · <mức>"), KHÔNG SĐT, không tiền khách.
   prc_commission_rule_added: { label: "Thêm mức hoa hồng", group: "ledger" },
-  prc_commission_rule_closed: { label: "Đóng mức hoa hồng", group: "ledger" },
+  prc_commission_rule_closed: { label: "Ngừng mức hoa hồng", group: "ledger" },
   prc_supply_term_added: { label: "Thêm điều khoản người bán", group: "ledger" },
-  prc_supply_term_closed: { label: "Đóng điều khoản người bán", group: "ledger" },
+  prc_supply_term_closed: { label: "Ngừng điều khoản người bán", group: "ledger" },
   // ADR-0117 lần 1: Kế toán / Quản trị / Toàn quyền thêm, tắt, bật LOẠI ĐỐI TÁC — `detail` = tên loại (đã cấm số điện thoại / email trong tên), không mã thô.
   prc_partner_type_added: { label: "Thêm loại đối tác", group: "ledger" },
   prc_partner_type_off: { label: "Tắt loại đối tác", group: "ledger" },
   prc_partner_type_on: { label: "Bật lại loại đối tác", group: "ledger" },
   // ADR-0117 lần 2: mức TA dùng chung — `detail` = tên mức / «tên loại → tên mức · từ … đến …» (tên đã cấm số điện thoại / email), không mã thô. Dòng của mức đi qua
   // `prc_commission_rule_added` / `_closed` (đối tượng «mức TA <tên>»).
-  prc_rate_tier_added: { label: "Thêm mức TA", group: "ledger" },
-  prc_rate_tier_off: { label: "Tắt mức TA", group: "ledger" },
-  prc_rate_tier_on: { label: "Bật lại mức TA", group: "ledger" },
-  prc_role_tier_set: { label: "Gắn loại đối tác vào mức TA", group: "ledger" },
-  prc_role_tier_closed: { label: "Kết thúc gắn loại đối tác với mức TA", group: "ledger" },
-  prc_party_tier_set: { label: "Gắn mức TA riêng cho đối tác", group: "ledger" },
-  prc_party_tier_closed: { label: "Kết thúc mức TA riêng của đối tác", group: "ledger" },
+  prc_rate_tier_added: { label: "Thêm chính sách hoa hồng", group: "ledger" },
+  prc_rate_tier_off: { label: "Tắt chính sách hoa hồng", group: "ledger" },
+  prc_rate_tier_on: { label: "Bật lại chính sách hoa hồng", group: "ledger" },
+  prc_role_tier_set: { label: "Áp dụng chính sách hoa hồng cho loại", group: "ledger" },
+  prc_role_tier_closed: { label: "Ngừng áp dụng chính sách hoa hồng cho loại", group: "ledger" },
+  prc_party_tier_set: { label: "Áp dụng chính sách hoa hồng riêng cho đối tác", group: "ledger" },
+  prc_party_tier_closed: { label: "Ngừng áp dụng chính sách hoa hồng riêng của đối tác", group: "ledger" },
   // Khoá sổ tháng (ADR-0080 D1; module ky-so — route ở billing): `order_id` NULL; `detail` = "Khoá sổ tháng MM/YYYY" (không tiền, không SĐT).
   ledger_period_closed: { label: "Khoá sổ tháng", group: "ledger" },
   order_handler_changed: { label: "Đổi người phụ trách", group: "order" },

@@ -127,6 +127,25 @@ export function docThanMuc(f: FormMuc): KetDocForm<ThanMucGui> {
   return { ok: true, body: { doiTuong: dt, ...pv, ...muc } };
 }
 
+/** Ô của hộp «Đổi»: như «Thêm mức» nhưng không có đối tượng / phạm vi (máy chủ chép từ dòng cũ). */
+export interface FormDoiMuc extends FormTheoLoai {
+  kieu: "RATE" | "PER_PAX";
+  tyLe: string;
+  moiKhach: string;
+  tuNgay: string;
+  denNgay: string;
+  ghiChu: string;
+}
+export type ThanDoiMucGui = Omit<PhamViNgayBody, "phamVi" | "catalogCode" | "groupCode"> & MucGui;
+/** Thân `POST /api/pricing/hoa-hong/:id/doi` (máy chủ: `kiemThanDoiMuc`): chỉ mức, ngày, ghi chú — KHÔNG mang `doiTuong`, `phamVi`, `catalogCode`, `groupCode`. */
+export function docThanDoiMuc(f: FormDoiMuc): KetDocForm<ThanDoiMucGui> {
+  const loi: LoiO[] = [];
+  const { phamVi: _bo, ...pv } = docPhamViNgay({ phamVi: "ALL", catalogCode: "", groupCode: "", tuNgay: f.tuNgay, denNgay: f.denNgay, ghiChu: f.ghiChu }, loi);
+  const muc = docMucForm(f, loi);
+  if (loi.length > 0 || muc === null) return { ok: false, loi };
+  return { ok: true, body: { ...pv, ...muc } };
+}
+
 // ---- Mức TA (ADR-0117 lần 2) ----
 /** Ô của form «Thêm dòng» cho một mức TA: như «Thêm mức» nhưng không có «Áp cho» — đích là chính mức (mã mức đi trên đường dẫn). */
 export interface FormDongMucTa extends FormPhamViNgay, FormTheoLoai {
@@ -160,7 +179,7 @@ export function docThanGan(f: FormGan): KetDocForm<ThanGanGui> {
   const tu = f.tuNgay.trim();
   const den = f.denNgay.trim();
   if (loai === "") loi.push({ truong: "loai", message: "Chọn một loại đối tác." });
-  if (muc === "") loi.push({ truong: "mucTa", message: "Chọn một mức TA." });
+  if (muc === "") loi.push({ truong: "mucTa", message: "Chọn một chính sách." });
   if (!isISODate(tu)) loi.push({ truong: "tuNgay", message: "Chọn ngày bắt đầu." });
   if (den !== "") {
     if (!isISODate(den)) loi.push({ truong: "denNgay", message: "Ngày kết thúc không hợp lệ." });

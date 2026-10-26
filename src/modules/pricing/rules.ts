@@ -292,16 +292,16 @@ export function kiemThanDongMucTa(raw: unknown, tierCode: string): Ket<ThanMuc> 
   return { ok: true, value: { targetPartyId: null, targetRoleCode: null, targetTierCode: tierCode, ...pm.value } };
 }
 /**
- * Tên mức TA do người dùng nhập: gọn khoảng trắng, 2–60 ký tự (chặt hơn CHECK 1–60 của bảng để CHECK không bao giờ nổ thành 500), khoá so tên (`khoaTen`) không rỗng; tên đi vào
+ * Tên chính sách do người dùng nhập: gọn khoảng trắng, 2–60 ký tự (chặt hơn CHECK 1–60 của bảng để CHECK không bao giờ nổ thành 500), khoá so tên (`khoaTen`) không rỗng; tên đi vào
  * nhật ký nên không cho dãy ≥ 8 chữ số (SĐT / số tài khoản) hay `@` (email) — cùng khuôn tên loại đối tác. Trùng tên KHÔNG kiểm ở đây: cột `name_key` UNIQUE quyết (một nơi,
  * đúng cả khi hai lần thêm đồng thời).
  */
 export function kiemTenMucTa(raw: unknown): Ket<{ ten: string; khoa: string }> {
   const ten = typeof raw === "string" ? raw.trim().replace(/\s+/g, " ") : "";
-  if (ten.length < 2 || ten.length > 60) return { ok: false, message: "Tên mức TA dài từ 2 đến 60 ký tự." };
-  if (/\d{8,}/.test(ten.replace(/[\s.]/g, "")) || /\d{9,}/.test(ten.replace(/[\s.-]/g, "")) || ten.includes("@")) return { ok: false, message: "Tên mức TA không được chứa số điện thoại, số tài khoản hay địa chỉ email." };
+  if (ten.length < 2 || ten.length > 60) return { ok: false, message: "Tên chính sách dài từ 2 đến 60 ký tự." };
+  if (/\d{8,}/.test(ten.replace(/[\s.]/g, "")) || /\d{9,}/.test(ten.replace(/[\s.-]/g, "")) || ten.includes("@")) return { ok: false, message: "Tên chính sách không được chứa số điện thoại, số tài khoản hay địa chỉ email." };
   const khoa = khoaTen(ten);
-  if (khoa.length < 2) return { ok: false, message: "Tên mức TA dài từ 2 đến 60 ký tự." };
+  if (khoa.length < 2) return { ok: false, message: "Tên chính sách dài từ 2 đến 60 ký tự." };
   return { ok: true, value: { ten, khoa } };
 }
 /** Mã mức TA máy chủ sinh: `MT_` + 8 chữ hoa (không bao giờ trùng đoạn đường cố định như «gan»; khớp `MA_RE`). `bytes` lấy từ `crypto.getRandomValues` ở nơi gọi. */
@@ -310,7 +310,7 @@ export const MUC_TA_RE = /^MT_[A-Z]{8}$/;
 /** Thân `POST /api/pricing/muc-ta/gan`: { loai, muc, tuNgay, denNgay? }. */
 export function kiemThanGan(raw: unknown): Ket<{ roleTypeCode: string; tierCode: string; validFrom: string; validTo: string | null }> {
   const b = raw && typeof raw === "object" && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};
-  if (typeof b.loai !== "string" || !MA_RE.test(b.loai) || typeof b.muc !== "string" || !MA_RE.test(b.muc)) return { ok: false, message: "Chọn loại đối tác và mức TA." };
+  if (typeof b.loai !== "string" || !MA_RE.test(b.loai) || typeof b.muc !== "string" || !MA_RE.test(b.muc)) return { ok: false, message: "Chọn loại đối tác và chính sách." };
   const kn = docKhoangNgay(b);
   if (!kn.ok) return kn;
   return { ok: true, value: { roleTypeCode: b.loai, tierCode: b.muc, ...kn.value } };
@@ -319,14 +319,14 @@ export function kiemThanGan(raw: unknown): Ket<{ roleTypeCode: string; tierCode:
 /** Thân `POST /api/pricing/muc-ta/gan/:id/doi` (Đổi chính sách của loại): { muc, tuNgay } — loại lấy từ gắn cũ; ngày kiểm ở `kiemDoi`. */
 export function kiemThanDoiChinhSach(raw: unknown): Ket<{ tierCode: string; tuNgay: unknown }> {
   const b = raw && typeof raw === "object" && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};
-  if (typeof b.muc !== "string" || !MA_RE.test(b.muc)) return { ok: false, message: "Chọn mức TA." };
+  if (typeof b.muc !== "string" || !MA_RE.test(b.muc)) return { ok: false, message: "Chọn chính sách." };
   return { ok: true, value: { tierCode: b.muc, tuNgay: b.tuNgay } };
 }
 
 /** Thân `POST /api/pricing/ho-so/:id/muc-rieng` (ADR-0138): { muc, tuNgay, denNgay? } — hồ sơ lấy từ đường dẫn. */
 export function kiemThanGanRieng(raw: unknown): Ket<{ tierCode: string; validFrom: string; validTo: string | null }> {
   const b = raw && typeof raw === "object" && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};
-  if (typeof b.muc !== "string" || !MA_RE.test(b.muc)) return { ok: false, message: "Chọn mức TA." };
+  if (typeof b.muc !== "string" || !MA_RE.test(b.muc)) return { ok: false, message: "Chọn chính sách." };
   const kn = docKhoangNgay(b);
   if (!kn.ok) return kn;
   return { ok: true, value: { tierCode: b.muc, ...kn.value } };

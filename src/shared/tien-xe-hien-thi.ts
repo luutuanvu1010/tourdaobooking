@@ -46,9 +46,9 @@ export const soTienCoDau = (n: number): string => `${n < 0 ? "−" : "+"} ${vnd(
 
 /** Trạng thái dòng giá (máy chủ gắn theo ngày xem) → nhãn + tông chip (bản vẽ 1a: Đang áp xanh lá, Sắp áp xanh biển, Đã kết thúc xám). */
 export const NHAN_TRANG_THAI_GIA: Readonly<Record<"DANG_AP" | "SAP_AP" | "DA_KET_THUC", { nhan: string; tone: ToneTienXe }>> = {
-  DANG_AP: { nhan: "Đang áp", tone: "ok" },
-  SAP_AP: { nhan: "Sắp áp", tone: "unit" },
-  DA_KET_THUC: { nhan: "Đã kết thúc", tone: "muted" },
+  DANG_AP: { nhan: "Đang áp dụng", tone: "ok" },
+  SAP_AP: { nhan: "Sắp áp dụng", tone: "unit" },
+  DA_KET_THUC: { nhan: "Đã ngừng", tone: "muted" },
 };
 
 /** Gợi ý dưới ô "Từ ngày" của form Đổi giá (bản vẽ 1a). Chỉ định dạng ngày người gõ — máy chủ quyết ngày đóng dòng cũ. */

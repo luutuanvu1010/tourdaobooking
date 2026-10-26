@@ -95,7 +95,7 @@ test("Đổi chính sách: cùng mức → 400; mức đã tắt → 409 đúng 
   const a1 = demNhatKy(w);
   const r2 = await doi(w, gan, { muc: ta2, tuNgay: hn });
   assert.equal(r2.status, 409, r2.text);
-  assert.equal(r2.json.error.message, "Mức TA này đã tắt — bật lại trước khi gắn loại hay thêm dòng.");
+  assert.equal(r2.json.error.message, "Chính sách này đã tắt — bật lại trước khi áp dụng cho loại hay thêm mức.");
   assert.equal(ganRow(w, gan).valid_to_date, null, "gắn cũ còn nguyên (lô bị huỷ)");
   const r3 = await doi(w, gan, { muc: "MT_KHONGCO1", tuNgay: hn });
   assert.equal(r3.status, 404, r3.text);
@@ -160,7 +160,7 @@ test("Đua thật qua route: gắn cũ bị đóng NGAY TRƯỚC lô ghi ⇒ 409
   assert.ok(chen, "khung thử đã chen lệnh đóng trước lô");
   assert.equal(r.status, 409, r.text);
   assert.equal(r.json.error.code, "stale");
-  assert.equal(r.json.error.message, "Gắn này vừa được người khác kết thúc hoặc đổi. Tải lại trang.");
+  assert.equal(r.json.error.message, "Lần áp dụng chính sách này vừa được người khác ngừng hoặc đổi. Tải lại trang.");
   assert.equal(demGan(w), n0, "không gắn mới");
   assert.equal(demNhatKy(w), a0, "không nhật ký");
 });

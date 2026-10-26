@@ -14,14 +14,26 @@ export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // Bước xác nhận đơn + «Gửi đơn» của Đối tác + nháp riêng tư (ADR-0135 Đợt 2, ADR-0136 Đợt 3; kế hoạch docs/superpowers/plans/2026-10-19-xac-nhan-don.md).
     // CÓ migration 0119 (ba bảng yêu cầu xác nhận / cờ / khung giờ) nên cần npm run trien-khai. Task 3.3b (sửa tiền khi đơn đang chờ) HOÃN, chưa có trong bản này.
-    // Số 2.34 và ngày là TẠM — phiên phát hành kiểm lại ở bước A.0 của docs/HANDOFF-N1.md.
-    version: "2.34",
+    // Số 2.35 và ngày là TẠM — phiên phát hành kiểm lại ở bước A.0 của docs/HANDOFF-N1.md.
+    version: "2.35",
     date: "2026-10-27",
     items: [
       { kind: "moi", text: "Đối tác bấm «Gửi đơn» để gửi đơn đi. Đơn có dịch vụ cần kiểm vé được văn phòng xác nhận trước; các đơn còn lại xác nhận ngay." },
       { kind: "moi", text: "Đơn có dịch vụ cần kiểm vé: bấm «Gửi xác nhận», còn «Rút lại» được. Kế toán và hướng dẫn viên quyết định ở trang «Đơn chờ xác nhận»." },
       { kind: "doi", text: "Đơn nháp là của riêng người lập: người khác không thấy và không sửa được, kể cả Quản trị." },
       { kind: "doi", text: "Màn Tạo đơn không còn ô «Thanh toán trước». Thu tiền ghi sau khi đơn đã xác nhận, và mã QR chỉ hiện sau khi đơn đã xác nhận." },
+    ],
+  },
+  {
+    // PR giao diện Hoa hồng + Hỗ trợ (PR 2; kế hoạch docs/superpowers/plans/2026-10-25-hoa-hong-ho-tro-2-giao-dien-hoa-hong.md). KHÔNG migration; có mã mới nên cần npm run trien-khai.
+    // Số 2.34 và ngày là TẠM: production đang 2.33 (GET /api/auth/config 26/10) — phiên phát hành kiểm lại ở bước A.0 của docs/HANDOFF-N1.md.
+    version: "2.34",
+    date: "2026-10-26",
+    items: [
+      { kind: "moi", text: "Trang Hoa hồng đối tác làm lại, có hai thẻ «Mức đang áp dụng» và «Thiết lập». Có Tra nhanh: chọn đối tác hoặc loại, dịch vụ, ngày là biết mức nào được áp." },
+      { kind: "moi", text: "Bảng «ai hưởng gì» xếp theo loại đối tác, mở từng đối tác để xem mức riêng; dòng mức riêng đang áp dụng có nút Đổi, Ngừng (điện thoại: chạm vào dòng)." },
+      { kind: "moi", text: "Thẻ Thiết lập gom việc quản lý loại đối tác và chính sách hoa hồng: thêm loại, thêm chính sách, áp dụng cho loại, tắt/bật, ngừng áp dụng." },
+      { kind: "doi", text: "Đổi chữ ở mọi màn: «Mức TA» thành «Chính sách hoa hồng»; «Đang áp», «Sắp áp», «Đã đóng» thành «Đang áp dụng», «Sắp áp dụng», «Đã ngừng»." },
     ],
   },
   {

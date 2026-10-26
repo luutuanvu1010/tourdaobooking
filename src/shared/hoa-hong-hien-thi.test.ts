@@ -11,6 +11,19 @@ import {
   boDongMucTa,
   nhanMucTa,
   NHAN_TRANG_THAI,
+  NHAN_LOAI_GOC,
+  CAU_CHUA_CO_MUC_LOAI,
+  NHAN_CHUA_CO_MUC,
+  CAU_NHAC_UU_TIEN,
+  CAU_TRA_THEO_LOAI,
+  cauMucCuSeNgung,
+  cauSeTao,
+  cauCanhBaoTheoChinhSach,
+  ghepDoiTacRieng,
+  dongRiengDoiTac,
+  nutDoiNgung,
+  tomTatMuc,
+  xepLoai,
   canXacNhanDongDieuKhoan,
   nhanLoaiDoiTac,
   cauThuTra,
@@ -60,7 +73,7 @@ test("nhanMucDto đổi khuôn DTO sang nhanMuc: phần trăm và đồng mỗi 
 test("nhanDoiTuong: vai và đối tác cụ thể phân biệt bằng chữ nhỏ (hai thứ có thể trùng tên)", () => {
   assert.deepEqual(nhanDoiTuong({ loai: "VAI", code: "TRAVEL_AGENCY", ten: "Đại lý du lịch" }), { ten: "Đại lý du lịch", loai: "Loại đối tác" });
   assert.deepEqual(nhanDoiTuong({ loai: "DOI_TAC", partyId: "pty-1", ten: "Đại Lý A" }), { ten: "Đại Lý A", loai: "Một đối tác" });
-  assert.deepEqual(nhanDoiTuong({ loai: "MUC", code: "MT_ABCDEFGH", ten: "TA1" }), { ten: "TA1", loai: "Mức TA" }, "ADR-0117 lần 2: dòng của mức TA");
+  assert.deepEqual(nhanDoiTuong({ loai: "MUC", code: "MT_ABCDEFGH", ten: "TA1" }), { ten: "TA1", loai: "Chính sách" }, "ADR-0117 lần 2: dòng của mức TA");
 });
 
 test("trạng thái dòng: đang áp / sắp áp / đã đóng; chỉ dòng chưa có ngày kết thúc mới đóng được", () => {
@@ -69,7 +82,7 @@ test("trạng thái dòng: đang áp / sắp áp / đã đóng; chỉ dòng chư
   assert.equal(trangThaiDong({ conHieuLuc: false, denNgay: null }, HOM_NAY), "SAP_AP", "bắt đầu sau hôm nay, chưa có ngày kết thúc");
   assert.equal(trangThaiDong({ conHieuLuc: false, denNgay: "2026-12-31" }, HOM_NAY), "SAP_AP");
   assert.equal(trangThaiDong({ conHieuLuc: false, denNgay: "2026-10-08" }, HOM_NAY), "DA_DONG");
-  assert.deepEqual(NHAN_TRANG_THAI, { DANG_AP: "Đang áp", SAP_AP: "Sắp áp", DA_DONG: "Đã đóng" });
+  assert.deepEqual(NHAN_TRANG_THAI, { DANG_AP: "Đang áp dụng", SAP_AP: "Sắp áp dụng", DA_DONG: "Đã ngừng" });
   assert.equal(dongDongDuoc({ denNgay: null }), true);
   assert.equal(dongDongDuoc({ denNgay: "2026-12-31" }), false, "đã có ngày kết thúc: máy chủ trả 409 nếu đóng lại");
 });
@@ -110,9 +123,9 @@ test("cauThuTra: chín bậc có lời riêng, thiếu mức dùng câu của m�
   const co = (bac: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9): ThuTraResponse => ({ ...base, ketQua: { trangThai: "SET", bac, muc: muc({}) } });
   assert.equal(cauThuTra(co(3)), "Áp mức 12,5% — mức riêng của đối tác cho mọi dịch vụ");
   assert.equal(cauThuTra(co(6)), "Áp mức 12,5% — mức của loại đối tác cho mọi dịch vụ");
-  assert.equal(cauThuTra(co(7)), "Áp mức 12,5% — mức TA của loại đối tác cho dịch vụ này");
-  assert.equal(cauThuTra(co(8)), "Áp mức 12,5% — mức TA của loại đối tác cho nhóm");
-  assert.equal(cauThuTra(co(9)), "Áp mức 12,5% — mức TA của loại đối tác cho mọi dịch vụ");
+  assert.equal(cauThuTra(co(7)), "Áp mức 12,5% — chính sách của loại đối tác cho dịch vụ này");
+  assert.equal(cauThuTra(co(8)), "Áp mức 12,5% — chính sách của loại đối tác cho nhóm");
+  assert.equal(cauThuTra(co(9)), "Áp mức 12,5% — chính sách của loại đối tác cho mọi dịch vụ");
   const loi = new Set<string>();
   for (const b of [1, 2, 3, 4, 5, 6, 7, 8, 9] as const) loi.add(LOI_BAC[b]);
   assert.equal(loi.size, 9, "mỗi bậc một lời khác nhau");
@@ -133,7 +146,7 @@ test("người bán và tỷ lệ mua lại; dòng mặc định của công ty 
   assert.equal(canXacNhanDongDieuKhoan(dk({})), true);
   assert.equal(canXacNhanDongDieuKhoan(dk({ phamVi: "GROUP", groupCode: "DTH" })), false, "công ty bán một nhóm: đóng thẳng");
   assert.equal(canXacNhanDongDieuKhoan(dk({ nguoiBan: { partyId: "pty-ncc", ten: "i-resort", laCongTy: false } })), false, "nhà cung cấp bán mọi dịch vụ không phải dòng mặc định");
-  assert.equal(CAU_DONG_DONG_MAC_DINH, "Đóng dòng mặc định thì dịch vụ chưa có điều khoản riêng sẽ thiếu người bán cho tới khi mở dòng mới. Vẫn đóng?");
+  assert.equal(CAU_DONG_DONG_MAC_DINH, "Ngừng điều khoản mặc định thì dịch vụ chưa có điều khoản riêng sẽ thiếu người bán cho tới khi mở điều khoản mới. Vẫn ngừng?");
 });
 
 test("coTheTimDoiTac giữ ĐÚNG cổng của route nguoi-huong (order.create hoặc partner.commission.write, không giữ quyền Đối tác)", () => {
@@ -154,24 +167,24 @@ test("coTheTimDoiTac: Kế toán tìm được, Đối tác và lai thì không 
 });
 
 test("ADR-0117: nhanLoaiDoiTac — nút Tắt / Bật chỉ ở loại do Kế toán thêm, theo cờ đang bật; loại có sẵn không có nút", () => {
-  assert.deepEqual(nhanLoaiDoiTac({ ten: "Công ty lữ hành", coSan: true, dangBat: true }), { nguon: "Có sẵn", trangThai: "Đang dùng", nut: null });
+  assert.deepEqual(nhanLoaiDoiTac({ ten: "Công ty lữ hành", coSan: true, dangBat: true }), { nguon: "Loại gốc", trangThai: "", nut: null });
   assert.equal(nhanLoaiDoiTac({ ten: "Khách sạn", coSan: true, dangBat: false }).nut, null, "loại có sẵn dù lệch cờ cũng không có nút");
-  assert.deepEqual(nhanLoaiDoiTac({ ten: "Nhân viên spa", coSan: false, dangBat: true }), { nguon: "Do Kế toán thêm", trangThai: "Đang dùng", nut: { hanhDong: "tat", nhan: "Tắt", ariaLabel: "Tắt loại: Nhân viên spa" } });
-  assert.deepEqual(nhanLoaiDoiTac({ ten: "Nhân viên spa", coSan: false, dangBat: false }), { nguon: "Do Kế toán thêm", trangThai: "Đã tắt", nut: { hanhDong: "bat", nhan: "Bật", ariaLabel: "Bật loại: Nhân viên spa" } });
+  assert.deepEqual(nhanLoaiDoiTac({ ten: "Nhân viên spa", coSan: false, dangBat: true }), { nguon: "", trangThai: "", nut: { hanhDong: "tat", nhan: "Tắt", ariaLabel: "Tắt loại: Nhân viên spa" } });
+  assert.deepEqual(nhanLoaiDoiTac({ ten: "Nhân viên spa", coSan: false, dangBat: false }), { nguon: "", trangThai: "Đã tắt", nut: { hanhDong: "bat", nhan: "Bật", ariaLabel: "Bật loại: Nhân viên spa" } });
 });
 
 test("ADR-0117 lần 2: «Thử tra» thắng ở bậc 7–9 ⇒ câu kèm TÊN mức TA (N-12); bậc khác không thêm tên", () => {
   const base = { ngay: HOM_NAY, nguoiHuong: { loai: "HUONG" as const, vai: ["Lễ tân khách sạn"] } };
   const dongMuc = muc({ doiTuong: { loai: "MUC", code: "MT_ABCDEFGH", ten: "Đại lý cấp 1" }, phamVi: "SERVICE", catalogCode: "HONTAM", tyLeBp: 1500 });
-  assert.equal(cauThuTra({ ...base, ketQua: { trangThai: "SET", bac: 7, muc: dongMuc } }), "Áp mức 15% — mức TA của loại đối tác cho dịch vụ này: «Đại lý cấp 1»");
-  assert.equal(cauThuTra({ ...base, ketQua: { trangThai: "SET", bac: 9, muc: { ...dongMuc, phamVi: "ALL", catalogCode: null } } }), "Áp mức 15% — mức TA của loại đối tác cho mọi dịch vụ: «Đại lý cấp 1»");
+  assert.equal(cauThuTra({ ...base, ketQua: { trangThai: "SET", bac: 7, muc: dongMuc } }), "Áp mức 15% — chính sách của loại đối tác cho dịch vụ này: «Đại lý cấp 1»");
+  assert.equal(cauThuTra({ ...base, ketQua: { trangThai: "SET", bac: 9, muc: { ...dongMuc, phamVi: "ALL", catalogCode: null } } }), "Áp mức 15% — chính sách của loại đối tác cho mọi dịch vụ: «Đại lý cấp 1»");
   assert.doesNotMatch(cauThuTra({ ...base, ketQua: { trangThai: "SET", bac: 7, muc: dongMuc } }), /MT_[A-Z]{8}/, "không lộ mã mức");
   assert.equal(cauThuTra({ ...base, ketQua: { trangThai: "SET", bac: 6, muc: muc({}) } }), "Áp mức 12,5% — mức của loại đối tác cho mọi dịch vụ", "bậc riêng: không thêm tên");
 });
 
 test("ADR-0117 lần 2: nhanMucTa — «Đang dùng» + nút Tắt / «Đã tắt» + nút Bật (theo cờ máy chủ), nhãn nút có tên mức, không mã", () => {
-  assert.deepEqual(nhanMucTa({ ten: "Đại lý cấp 1", dangBat: true }), { trangThai: "Đang dùng", nut: { hanhDong: "tat", nhan: "Tắt", ariaLabel: "Tắt mức TA: Đại lý cấp 1" } });
-  assert.deepEqual(nhanMucTa({ ten: "Đại lý cấp 1", dangBat: false }), { trangThai: "Đã tắt", nut: { hanhDong: "bat", nhan: "Bật", ariaLabel: "Bật mức TA: Đại lý cấp 1" } });
+  assert.deepEqual(nhanMucTa({ ten: "Đại lý cấp 1", dangBat: true }), { trangThai: "Đang dùng", nut: { hanhDong: "tat", nhan: "Tắt", ariaLabel: "Tắt chính sách: Đại lý cấp 1" } });
+  assert.deepEqual(nhanMucTa({ ten: "Đại lý cấp 1", dangBat: false }), { trangThai: "Đã tắt", nut: { hanhDong: "bat", nhan: "Bật", ariaLabel: "Bật chính sách: Đại lý cấp 1" } });
 });
 
 test("ADR-0117 lần 2: boDongMucTa — dòng của mức TA chỉ hiện ở mục «Mức TA», không lặp ở «Các mức hiện có»; giữ thứ tự", () => {
@@ -182,8 +195,83 @@ test("ADR-0117 lần 2: boDongMucTa — dòng của mức TA chỉ hiện ở m�
 test("ADR-0117 lần 2: câu cảnh báo khi gắn mức cho loại còn dòng riêng (N-17) và câu luật đổi mức trong ngày — nguyên văn", () => {
   assert.equal(
     cauCanhBaoDongRieng("Lễ tân khách sạn", "Đại lý cấp 1", 2),
-    "Đã gắn, nhưng loại «Lễ tân khách sạn» (hoặc loại khác mà cùng đối tác đang mang) còn 2 dòng mức riêng đang áp. Dòng riêng được ưu tiên hơn mức TA «Đại lý cấp 1». Đóng các dòng này nếu muốn dùng mức TA.",
+    "Đã áp dụng chính sách, nhưng loại «Lễ tân khách sạn» (hoặc loại khác mà cùng đối tác đang mang) còn 2 mức riêng đang áp dụng. Mức riêng được ưu tiên hơn chính sách «Đại lý cấp 1». Ngừng các mức riêng này nếu muốn dùng chính sách.",
   );
-  assert.match(cauCanhBaoDongRieng("A", "B", 1), /Đóng các dòng này nếu muốn dùng mức TA\.$/);
-  assert.equal(CAU_DOI_MUC_TRONG_NGAY, "Mỗi loại chỉ gắn một mức TA trong một ngày. Muốn đổi sang mức khác từ hôm nay: kết thúc gắn cũ tới hôm qua, rồi gắn mức mới từ hôm nay. Gắn bắt đầu từ hôm nay thì không đổi được trong cùng ngày.");
+  assert.match(cauCanhBaoDongRieng("A", "B", 1), /Ngừng các mức riêng này nếu muốn dùng chính sách\.$/);
+  assert.equal(CAU_DOI_MUC_TRONG_NGAY, "Mỗi loại chỉ theo một chính sách trong một ngày. Muốn đổi sang chính sách khác từ hôm nay: ngừng áp dụng chính sách cũ đến hết hôm qua, rồi áp dụng chính sách mới từ hôm nay. Áp dụng từ hôm nay thì không đổi được trong cùng ngày.");
+});
+
+test("PR2 T1: nhãn mới và các câu nguyên văn", () => {
+  assert.equal(NHAN_LOAI_GOC, "Loại gốc");
+  assert.equal(CAU_CHUA_CO_MUC_LOAI, "Đơn của loại này sẽ bị giữ ở bước Đã giao cho tới khi có mức");
+  assert.equal(NHAN_CHUA_CO_MUC, "Chưa có mức");
+  assert.equal(CAU_NHAC_UU_TIEN, "Mức riêng được ưu tiên hơn chính sách. Mức nào áp cho một đối tác cụ thể: dùng Tra nhanh.");
+  assert.equal(CAU_TRA_THEO_LOAI, "Đang tra theo loại. Một đối tác cụ thể của loại này có thể có mức riêng hoặc chính sách riêng — gõ tên đối tác để chắc.");
+  assert.equal(cauMucCuSeNgung("10%", "2026-11-01"), "Mức cũ 10% sẽ ngừng, đến hết 31/10/2026.");
+  assert.equal(cauSeTao({ ai: "Đại lý A", dichVu: "Mọi dịch vụ", muc: "10%", tu: "2026-11-01", den: null }), "Sẽ tạo: Đại lý A · Mọi dịch vụ · 10% · từ 01/11/2026, không thời hạn.");
+  assert.equal(cauSeTao({ ai: "A", dichVu: "B", muc: "5%", tu: "2026-11-01", den: "2026-12-31" }), "Sẽ tạo: A · B · 5% · từ 01/11/2026 đến 31/12/2026.");
+  assert.equal(cauCanhBaoTheoChinhSach("Cấp 1"), "Loại này đang theo chính sách Cấp 1. Mức riêng được ưu tiên hơn chính sách.");
+});
+
+test("PR2 T1: nhanLoaiDoiTac — loại gốc, chỉ «Đã tắt» khi tắt", () => {
+  assert.equal(nhanLoaiDoiTac({ ten: "X", coSan: true, dangBat: true }).nguon, "Loại gốc");
+  assert.equal(nhanLoaiDoiTac({ ten: "X", coSan: false, dangBat: false }).trangThai, "Đã tắt");
+  assert.equal(nhanLoaiDoiTac({ ten: "X", coSan: false, dangBat: true }).trangThai, "");
+});
+
+test("PR2 T1: nutDoiNgung — năm ca", () => {
+  const d = (o: object) => ({ tuNgay: "2026-01-01", denNgay: null, conHieuLuc: true, ...o });
+  assert.deepEqual(nutDoiNgung(d({}), HOM_NAY), { hien: true });
+  assert.deepEqual(nutDoiNgung(d({ tuNgay: "2026-11-01", conHieuLuc: false }), HOM_NAY), { hien: false, ghiChu: "chưa tới ngày" });
+  assert.deepEqual(nutDoiNgung(d({ denNgay: "2026-12-31" }), HOM_NAY), { hien: false, ghiChu: "ngừng sau 31/12/2026" });
+  assert.deepEqual(nutDoiNgung(d({ denNgay: "2026-10-08", conHieuLuc: false }), HOM_NAY), { hien: false, ghiChu: "" });
+  assert.deepEqual(nutDoiNgung(d({ tuNgay: HOM_NAY }), HOM_NAY), { hien: false, ghiChu: "" });
+});
+
+test("PR2 T1: tomTatMuc — số đứng trước, tên dài vẫn bắt đầu bằng số", () => {
+  const dai = "D".repeat(120);
+  const t2 = { dichVu: () => dai, nhom: () => undefined };
+  const s = tomTatMuc([muc({ id: "a", phamVi: "SERVICE", catalogCode: "X" }), muc({ id: "b", conHieuLuc: false }), muc({ id: "c", kieu: "PER_PAX", tyLeBp: null, moiKhach: 50_000 })], t2);
+  assert.match(s, /^12,5% Dịch vụ D+ · 50\.000đ\/khách Mọi dịch vụ$/);
+  assert.equal(tomTatMuc([], ten), "");
+});
+
+test("PR2 T1: xepLoai — chưa có mức lên đầu rồi theo tên", () => {
+  assert.deepEqual(xepLoai([{ ten: "Bé", coMuc: true }, { ten: "An", coMuc: true }, { ten: "Cò", coMuc: false }]).map((x) => x.ten), ["Cò", "An", "Bé"]);
+});
+
+test("PR2 T1: ghepDoiTacRieng — mỗi đối tác một dòng, xếp theo tên", () => {
+  const dong = [muc({ id: "1", doiTuong: { loai: "DOI_TAC", partyId: "p2", ten: "Zeta" } }), muc({ id: "2", doiTuong: { loai: "DOI_TAC", partyId: "p2", ten: "Zeta" } }), muc({ id: "3" })];
+  const gan = [{ id: "g", partyId: "p1", ten: "Alpha", muc: "M", tenMuc: "Cấp 1", tuNgay: "2026-01-01", denNgay: null }];
+  assert.deepEqual(ghepDoiTacRieng(dong, gan, "2026-06-01"), [
+    { partyId: "p1", ten: "Alpha", mucRieng: false, chinhSach: "Cấp 1" },
+    { partyId: "p2", ten: "Zeta", mucRieng: true, chinhSach: null },
+  ]);
+});
+
+test("PR2 Đợt 3 (R17): ghepDoiTacRieng — mức riêng ĐANG và SẮP áp dụng được tính, dòng đã ngừng thì bỏ", () => {
+  const homNay = "2026-06-01";
+  const dt = (partyId: string, ten: string) => ({ loai: "DOI_TAC" as const, partyId, ten });
+  const dong = [
+    muc({ id: "dang", doiTuong: dt("p1", "Đang"), conHieuLuc: true }),
+    muc({ id: "sap", doiTuong: dt("p2", "Sắp"), conHieuLuc: false, tuNgay: "2026-07-01" }),
+    muc({ id: "ngung", doiTuong: dt("p3", "Ngừng"), conHieuLuc: false, tuNgay: "2026-01-01", denNgay: "2026-03-31" }),
+  ];
+  assert.deepEqual(ghepDoiTacRieng(dong, [], homNay).map((x) => x.partyId), ["p1", "p2"]);
+});
+
+test("R25: dongRiengDoiTac — chỉ dòng của đúng đối tác, theo bộ lọc trạng thái và ô tìm", () => {
+  const homNay = "2026-06-01";
+  const dt = (partyId: string, ten: string) => ({ loai: "DOI_TAC" as const, partyId, ten });
+  const dong = [
+    muc({ id: "a", doiTuong: dt("p1", "Hoa Nguyễn"), conHieuLuc: true }),
+    muc({ id: "b", doiTuong: dt("p1", "Hoa Nguyễn"), conHieuLuc: false, tuNgay: "2026-01-01", denNgay: "2026-03-31" }),
+    muc({ id: "c", doiTuong: dt("p2", "Khác"), conHieuLuc: true }),
+    muc({ id: "d" }),
+  ];
+  const ten = {} as never;
+  assert.deepEqual(dongRiengDoiTac(dong, "p1", { chiConHieuLuc: true, tim: "" }, homNay, ten).map((x) => x.id), ["a"]);
+  assert.deepEqual(dongRiengDoiTac(dong, "p1", { chiConHieuLuc: false, tim: "" }, homNay, ten).map((x) => x.id), ["a", "b"]);
+  assert.deepEqual(dongRiengDoiTac(dong, "p1", { chiConHieuLuc: true, tim: "hoa nguyen" }, homNay, ten).map((x) => x.id), ["a"]);
+  assert.deepEqual(dongRiengDoiTac(dong, "p2", { chiConHieuLuc: true, tim: "hoa nguyen" }, homNay, ten).map((x) => x.id), []);
 });

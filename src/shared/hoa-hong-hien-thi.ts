@@ -1,15 +1,17 @@
 // Chữ và luật hiển thị thuần của hai màn «Hoa hồng đối tác» (/hoa-hong) và «Người bán dịch vụ» (/nguoi-ban) — web/hoa-hong.ts, web/nguoi-ban.ts (sổ đại lý đợt 1, Task 10).
 // Nhãn mức đi qua MỘT nguồn `nhanMuc` / `nhanTyLeBp` (so-dai-ly-nhan.ts); không mã thô (RATE, PER_PAX, MISSING, NONE…) ra người dùng. Giao diện không tính tiền, không chọn mức:
 // «mức nào thắng» do máy chủ trả (`bac`), ở đây chỉ dịch bậc ra lời.
-import type { CommissionRuleDto, DoiTuongMucDto, LoaiDoiTacDto, MucTaDto, SupplyTermDto, ThuTraResponse } from "./contracts.ts";
+import type { CommissionRuleDto, DoiTuongMucDto, GanLoaiMucDto, LoaiDoiTacDto, MucTaDto, MucTaListResponse, SupplyTermDto, ThuTraResponse } from "./contracts.ts";
+import { ngayVN } from "./giay-to-hien-thi.ts";
 import { can, holdsPartner, type PermissionHolder } from "./permissions.ts";
 import { CAU_THIEU_MUC, nhanMuc, nhanTyLeBp } from "./so-dai-ly-nhan.ts";
+import { addDays } from "./vn-date.ts";
 
 export const CAU_KHONG_CO_QUYEN_XEM = "Bạn không có quyền xem trang này.";
 /** Thay ô tìm đối tác ở người không qua cổng của route tìm người hưởng (xem `coTheTimDoiTac`). */
 export const CAU_CHUA_TIM_DUOC_DOI_TAC = "Tài khoản của bạn chưa tìm được đối tác theo tên. Cần đặt mức riêng cho một đối tác thì nhờ Quản trị hoặc Toàn quyền.";
 /** Hộp xác nhận khi đóng dòng «Mọi dịch vụ» của công ty chủ (đặc tả sổ đại lý đợt 1: dòng mặc định gieo sẵn; đóng mà không mở dòng mới thì dịch vụ thiếu người bán). */
-export const CAU_DONG_DONG_MAC_DINH = "Đóng dòng mặc định thì dịch vụ chưa có điều khoản riêng sẽ thiếu người bán cho tới khi mở dòng mới. Vẫn đóng?";
+export const CAU_DONG_DONG_MAC_DINH = "Ngừng điều khoản mặc định thì dịch vụ chưa có điều khoản riêng sẽ thiếu người bán cho tới khi mở điều khoản mới. Vẫn ngừng?";
 export const CAU_KHONG_CO_MUC = "Chưa có mức nào.";
 export const CAU_KHONG_CO_DIEU_KHOAN = "Chưa có điều khoản nào.";
 export const CAU_KHONG_KHOP_LOC = "Không có dòng nào khớp bộ lọc.";
@@ -49,12 +51,12 @@ export const nhanMucDto = (m: { kieu: "RATE" | "PER_PAX"; tyLeBp: number | null;
 
 /** Cột «Áp cho»: tên (vai, đối tác hoặc mức TA) và một chữ nhỏ nói đó là loại đối tác, một đối tác hay một mức TA — các thứ có thể trùng tên. */
 export function nhanDoiTuong(d: DoiTuongMucDto): { ten: string; loai: string } {
-  return d.loai === "VAI" ? { ten: d.ten, loai: "Loại đối tác" } : d.loai === "MUC" ? { ten: d.ten, loai: "Mức TA" } : { ten: d.ten, loai: "Một đối tác" };
+  return d.loai === "VAI" ? { ten: d.ten, loai: "Loại đối tác" } : d.loai === "MUC" ? { ten: d.ten, loai: "Chính sách" } : { ten: d.ten, loai: "Một đối tác" };
 }
 
 export type TrangThaiDong = "DANG_AP" | "SAP_AP" | "DA_DONG";
-export const NHAN_TRANG_THAI: Record<TrangThaiDong, string> = { DANG_AP: "Đang áp", SAP_AP: "Sắp áp", DA_DONG: "Đã đóng" };
-/** Đang áp = `conHieuLuc` của máy chủ; chưa tới ngày bắt đầu = «Sắp áp»; còn lại (đã qua ngày kết thúc) = «Đã đóng». */
+export const NHAN_TRANG_THAI: Record<TrangThaiDong, string> = { DANG_AP: "Đang áp dụng", SAP_AP: "Sắp áp dụng", DA_DONG: "Đã ngừng" };
+/** Đang áp dụng = `conHieuLuc` của máy chủ; chưa tới ngày bắt đầu = «Sắp áp dụng»; còn lại (đã qua ngày kết thúc) = «Đã ngừng». */
 export function trangThaiDong(d: { conHieuLuc: boolean; denNgay: string | null }, homNay: string): TrangThaiDong {
   if (d.conHieuLuc) return "DANG_AP";
   return d.denNgay !== null && d.denNgay < homNay ? "DA_DONG" : "SAP_AP";
@@ -97,12 +99,12 @@ export const LOI_BAC: Record<1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12, s
   4: "mức của loại đối tác cho dịch vụ này",
   5: "mức của loại đối tác cho nhóm",
   6: "mức của loại đối tác cho mọi dịch vụ",
-  7: "mức TA của loại đối tác cho dịch vụ này",
-  8: "mức TA của loại đối tác cho nhóm",
-  9: "mức TA của loại đối tác cho mọi dịch vụ",
-  10: "mức TA gắn riêng cho đối tác, dịch vụ này",
-  11: "mức TA gắn riêng cho đối tác, nhóm",
-  12: "mức TA gắn riêng cho đối tác, mọi dịch vụ",
+  7: "chính sách của loại đối tác cho dịch vụ này",
+  8: "chính sách của loại đối tác cho nhóm",
+  9: "chính sách của loại đối tác cho mọi dịch vụ",
+  10: "chính sách riêng của đối tác, dịch vụ này",
+  11: "chính sách riêng của đối tác, nhóm",
+  12: "chính sách riêng của đối tác, mọi dịch vụ",
 };
 
 /** Dòng kết quả của Thử tra: «Áp mức 12,5% — mức riêng của đối tác cho nhóm»; thiếu mức → câu lý do của máy chủ (đã là tiếng Việt); không người hưởng → câu riêng. */
@@ -132,18 +134,17 @@ export const canXacNhanDongDieuKhoan = (d: SupplyTermDto): boolean => d.phamVi =
 // Loại đối tác (ADR-0117 lần 1): mục «Loại đối tác» ở /hoa-hong
 
 export const CAU_KHONG_CO_LOAI = "Chưa có loại đối tác nào.";
-export const NHAN_LOAI_CO_SAN = "Có sẵn";
-export const NHAN_LOAI_DO_KE_TOAN = "Do Kế toán thêm";
+export const NHAN_LOAI_GOC = "Loại gốc";
 export const NHAN_LOAI_DANG_DUNG = "Đang dùng";
 export const NHAN_LOAI_DA_TAT = "Đã tắt";
 /**
  * Chữ và nút của một dòng loại đối tác. Nút «Tắt» / «Bật» CHỈ có ở loại do Kế toán thêm (`coSan` = false, cờ do máy chủ trả — năm vai bên ngoài có sẵn là vai đăng nhập, máy chủ
  * từ chối đổi chúng); giao diện không tự suy loại nào "do Kế toán thêm". Quyền ghi (`partner.commission.write`) do trang kiểm riêng bằng `can`.
  */
-export function nhanLoaiDoiTac(l: Pick<LoaiDoiTacDto, "ten" | "coSan" | "dangBat">): { nguon: string; trangThai: string; nut: { hanhDong: "tat" | "bat"; nhan: string; ariaLabel: string } | null } {
+export function nhanLoaiDoiTac(l: Pick<LoaiDoiTacDto, "ten" | "coSan" | "dangBat">): { nguon: "Loại gốc" | ""; trangThai: "Đã tắt" | ""; nut: { hanhDong: "tat" | "bat"; nhan: string; ariaLabel: string } | null } {
   return {
-    nguon: l.coSan ? NHAN_LOAI_CO_SAN : NHAN_LOAI_DO_KE_TOAN,
-    trangThai: l.dangBat ? NHAN_LOAI_DANG_DUNG : NHAN_LOAI_DA_TAT,
+    nguon: l.coSan ? NHAN_LOAI_GOC : "",
+    trangThai: l.dangBat ? "" : NHAN_LOAI_DA_TAT,
     nut: l.coSan ? null : l.dangBat ? { hanhDong: "tat", nhan: "Tắt", ariaLabel: `Tắt loại: ${l.ten}` } : { hanhDong: "bat", nhan: "Bật", ariaLabel: `Bật loại: ${l.ten}` },
   };
 }
@@ -151,21 +152,111 @@ export function nhanLoaiDoiTac(l: Pick<LoaiDoiTacDto, "ten" | "coSan" | "dangBat
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------
 // Mức TA dùng chung (ADR-0117 lần 2): mục «Mức TA» ở /hoa-hong
 
-export const CAU_KHONG_CO_MUC_TA = "Chưa có mức TA nào.";
+export const CAU_KHONG_CO_MUC_TA = "Chưa có chính sách nào.";
 /** Luật «không đổi mức trong cùng ngày» nói thẳng trên màn (máy chủ chặn hai gắn chồng ngày của một loại, và ngày kết thúc không được trước ngày bắt đầu). */
 export const CAU_DOI_MUC_TRONG_NGAY =
-  "Mỗi loại chỉ gắn một mức TA trong một ngày. Muốn đổi sang mức khác từ hôm nay: kết thúc gắn cũ tới hôm qua, rồi gắn mức mới từ hôm nay. Gắn bắt đầu từ hôm nay thì không đổi được trong cùng ngày.";
+  "Mỗi loại chỉ theo một chính sách trong một ngày. Muốn đổi sang chính sách khác từ hôm nay: ngừng áp dụng chính sách cũ đến hết hôm qua, rồi áp dụng chính sách mới từ hôm nay. Áp dụng từ hôm nay thì không đổi được trong cùng ngày.";
 /**
- * Cảnh báo vàng (KHÔNG chặn) sau khi gắn loại vào mức mà máy chủ trả `dongRieng` khác rỗng (N-17): các dòng riêng theo loại đó — hoặc theo loại khác mà cùng hồ sơ đang mang — thắng mức TA.
- * Danh sách dòng do MÁY CHỦ tính (giao diện không tự suy «loại khác cùng hồ sơ mang»), nên cảnh báo chỉ có ngay sau lần gắn; tải lại trang thì mất.
+ * Cảnh báo vàng (KHÔNG chặn) sau khi áp dụng chính sách cho loại mà máy chủ trả `dongRieng` khác rỗng (N-17): các mức riêng theo loại đó — hoặc theo loại khác mà cùng hồ sơ đang mang — thắng chính sách.
+ * Danh sách do MÁY CHỦ tính, nên cảnh báo chỉ có ngay sau lần áp dụng; tải lại trang thì mất.
  */
 export const cauCanhBaoDongRieng = (tenLoai: string, tenMuc: string, soDong: number): string =>
-  `Đã gắn, nhưng loại «${tenLoai}» (hoặc loại khác mà cùng đối tác đang mang) còn ${soDong} dòng mức riêng đang áp. Dòng riêng được ưu tiên hơn mức TA «${tenMuc}». Đóng các dòng này nếu muốn dùng mức TA.`;
+  `Đã áp dụng chính sách, nhưng loại «${tenLoai}» (hoặc loại khác mà cùng đối tác đang mang) còn ${soDong} mức riêng đang áp dụng. Mức riêng được ưu tiên hơn chính sách «${tenMuc}». Ngừng các mức riêng này nếu muốn dùng chính sách.`;
 /** Trạng thái và nút Tắt / Bật của một mức — theo cờ `dangBat` của máy chủ. Quyền ghi do trang kiểm riêng bằng `can`. */
 export function nhanMucTa(m: Pick<MucTaDto, "ten" | "dangBat">): { trangThai: string; nut: { hanhDong: "tat" | "bat"; nhan: string; ariaLabel: string } } {
   return m.dangBat
-    ? { trangThai: NHAN_LOAI_DANG_DUNG, nut: { hanhDong: "tat", nhan: "Tắt", ariaLabel: `Tắt mức TA: ${m.ten}` } }
-    : { trangThai: NHAN_LOAI_DA_TAT, nut: { hanhDong: "bat", nhan: "Bật", ariaLabel: `Bật mức TA: ${m.ten}` } };
+    ? { trangThai: NHAN_LOAI_DANG_DUNG, nut: { hanhDong: "tat", nhan: "Tắt", ariaLabel: `Tắt chính sách: ${m.ten}` } }
+    : { trangThai: NHAN_LOAI_DA_TAT, nut: { hanhDong: "bat", nhan: "Bật", ariaLabel: `Bật chính sách: ${m.ten}` } };
 }
 /** Bảng «Các mức hiện có» bỏ dòng của mức TA: các dòng đó hiện (và đóng) ở mục «Mức TA», dưới tên mức của chúng. Giữ thứ tự máy chủ trả. */
 export const boDongMucTa = (dong: readonly CommissionRuleDto[]): CommissionRuleDto[] => dong.filter((d) => d.doiTuong.loai !== "MUC");
+
+// ---------------------------------------------------------------------------------------------------------------------------------------------------------
+// Trang «Hoa hồng đối tác» thiết kế lại (PR 2): nút Đổi/Ngừng, dòng tóm tắt, câu nhắc, xếp loại, ghép đối tác có mức riêng
+
+/** Nút «Đổi» / «Ngừng» chỉ cho dòng đang áp dụng, đã bắt đầu trước hôm nay và chưa có ngày ngừng; ngược lại trả ghi chú (có thể rỗng). */
+export function nutDoiNgung(d: { tuNgay: string; denNgay: string | null; conHieuLuc: boolean }, homNay: string): { hien: true } | { hien: false; ghiChu: string } {
+  if (d.conHieuLuc && d.tuNgay < homNay && d.denNgay === null) return { hien: true };
+  if (!d.conHieuLuc && d.tuNgay > homNay) return { hien: false, ghiChu: "chưa tới ngày" };
+  if (d.conHieuLuc && d.denNgay !== null && d.denNgay >= homNay) return { hien: false, ghiChu: `ngừng sau ${ngayVN(d.denNgay)}` };
+  return { hien: false, ghiChu: "" };
+}
+
+/** Tóm tắt các dòng đang áp dụng: số đứng trước (tên dịch vụ dài bị cắt ở giao diện, không mất số), nối bằng « · ». */
+export function tomTatMuc(dong: readonly CommissionRuleDto[], ten: TenDanhMuc): string {
+  return dong.filter((d) => d.conHieuLuc).map((d) => `${nhanMucDto(d)} ${nhanPhamVi(d, ten)}`).join(" · ");
+}
+
+export const CAU_CHUA_CO_MUC_LOAI = "Đơn của loại này sẽ bị giữ ở bước Đã giao cho tới khi có mức";
+export const NHAN_CHUA_CO_MUC = "Chưa có mức";
+export const CAU_NHAC_UU_TIEN = "Mức riêng được ưu tiên hơn chính sách. Mức nào áp cho một đối tác cụ thể: dùng Tra nhanh.";
+export const CAU_TRA_THEO_LOAI = "Đang tra theo loại. Một đối tác cụ thể của loại này có thể có mức riêng hoặc chính sách riêng — gõ tên đối tác để chắc.";
+export const cauMucCuSeNgung = (mucCu: string, tuNgay: string): string => `Mức cũ ${mucCu} sẽ ngừng, đến hết ${ngayVN(addDays(tuNgay, -1))}.`;
+export const cauSeTao = (v: { ai: string; dichVu: string; muc: string; tu: string; den: string | null }): string =>
+  `Sẽ tạo: ${v.ai} · ${v.dichVu} · ${v.muc} · từ ${ngayVN(v.tu)}${v.den ? ` đến ${ngayVN(v.den)}` : ", không thời hạn"}.`;
+export const cauCanhBaoTheoChinhSach = (tenChinhSach: string): string => `Loại này đang theo chính sách ${tenChinhSach}. Mức riêng được ưu tiên hơn chính sách.`;
+
+/** Loại chưa có mức lên đầu, rồi theo tên (tiếng Việt). */
+export function xepLoai<T extends { ten: string; coMuc: boolean }>(ds: readonly T[]): T[] {
+  return [...ds].sort((a, b) => Number(a.coMuc) - Number(b.coMuc) || a.ten.localeCompare(b.ten, "vi"));
+}
+
+/** Mỗi đối tác một dòng: có mức riêng đang HOẶC sắp áp dụng (dòng `DOI_TAC`, bỏ dòng đã ngừng — khớp bộ lọc «Đang và sắp áp dụng») và/hoặc chính sách gắn riêng; xếp theo tên. */
+export function ghepDoiTacRieng(dong: readonly CommissionRuleDto[], ganRieng: MucTaListResponse["ganRieng"], homNay: string): { partyId: string; ten: string; mucRieng: boolean; chinhSach: string | null }[] {
+  const m = new Map<string, { partyId: string; ten: string; mucRieng: boolean; chinhSach: string | null }>();
+  for (const d of dong) {
+    if (d.doiTuong.loai !== "DOI_TAC" || trangThaiDong(d, homNay) === "DA_DONG") continue;
+    m.set(d.doiTuong.partyId, { partyId: d.doiTuong.partyId, ten: d.doiTuong.ten, mucRieng: true, chinhSach: null });
+  }
+  for (const g of ganRieng) {
+    const cu = m.get(g.partyId);
+    if (cu) cu.chinhSach = g.tenMuc;
+    else m.set(g.partyId, { partyId: g.partyId, ten: g.ten, mucRieng: false, chinhSach: g.tenMuc });
+  }
+  return [...m.values()].sort((a, b) => a.ten.localeCompare(b.ten, "vi"));
+}
+
+/** Các dòng mức riêng (`DOI_TAC`) của MỘT đối tác, đã qua bộ lọc: ô tìm khớp tên đối tác → giữ mọi dòng (đã lọc trạng thái); không thì chỉ dòng có dịch vụ khớp. Giữ thứ tự máy chủ trả. */
+export function dongRiengDoiTac(dong: readonly CommissionRuleDto[], partyId: string, bo: BoLoc, homNay: string, ten: TenDanhMuc): CommissionRuleDto[] {
+  const cua = dong.filter((d) => d.doiTuong.loai === "DOI_TAC" && d.doiTuong.partyId === partyId);
+  const tim = chuanTim(bo.tim);
+  const tenDt = cua[0]?.doiTuong.ten ?? "";
+  if (tim === "" || chuanTim(tenDt).includes(tim)) return cua.filter((d) => !bo.chiConHieuLuc || trangThaiDong(d, homNay) !== "DA_DONG");
+  return locMuc(cua, bo, homNay, ten);
+}
+
+/** «Từ 01/01/2026 · đến 31/12/2026» hoặc «Từ 01/01/2026 · không thời hạn». */
+export const nhanHieuLuc = (d: { tuNgay: string; denNgay: string | null }): string => `Từ ${ngayVN(d.tuNgay)} · ${d.denNgay === null ? "không thời hạn" : `đến ${ngayVN(d.denNgay)}`}`;
+
+/** Câu dưới ba ô «Tách theo loại khách» của hộp Thêm mức / Đổi (bàn giao mục 4, ADR-0133). */
+export const CAU_THEO_LOAI_KHACH =
+  "Nhóm khách nào không trả hoa hồng thì ghi 0; ba ô đều phải điền. Em bé không tính hoa hồng. Dịch vụ tính theo lượt (phao chuối, dù bay): dùng số của người lớn cho mỗi lượt.";
+
+/** Chính sách đang áp dụng cho một loại (gắn còn hiệu lực hôm nay); không có → null. Máy chủ chặn hai gắn chồng ngày nên tối đa một. */
+export function chinhSachCuaLoai(mt: MucTaListResponse, loaiCode: string): { gan: GanLoaiMucDto; muc: MucTaDto } | null {
+  for (const m of mt.muc) {
+    const g = m.gan.find((x) => x.conHieuLuc && x.loai.code === loaiCode);
+    if (g) return { gan: g, muc: m };
+  }
+  return null;
+}
+
+/**
+ * Bảng «Theo loại đối tác»: mỗi loại kèm các dòng mức RIÊNG của nó đã qua bộ lọc. Ô tìm khớp tên loại → giữ mọi dòng (đã lọc trạng thái) của loại; khớp dòng (dịch vụ) → chỉ dòng khớp.
+ * Ô tìm rỗng → mọi loại hiện, kể cả loại chưa có dòng nào. Có chữ tìm mà không khớp gì → loại ẩn.
+ */
+export function locBangLoai<L extends { code: string; ten: string }>(loai: readonly L[], dong: readonly CommissionRuleDto[], bo: BoLoc, homNay: string, ten: TenDanhMuc): { loai: L; dong: CommissionRuleDto[] }[] {
+  const tim = chuanTim(bo.tim);
+  const ra: { loai: L; dong: CommissionRuleDto[] }[] = [];
+  for (const l of loai) {
+    const cua = dong.filter((d) => d.doiTuong.loai === "VAI" && d.doiTuong.code === l.code);
+    const theoTrangThai = cua.filter((d) => !bo.chiConHieuLuc || trangThaiDong(d, homNay) !== "DA_DONG");
+    if (tim === "") ra.push({ loai: l, dong: theoTrangThai });
+    else if (chuanTim(l.ten).includes(tim)) ra.push({ loai: l, dong: theoTrangThai });
+    else {
+      const khop = locMuc(cua, bo, homNay, ten);
+      if (khop.length > 0) ra.push({ loai: l, dong: khop });
+    }
+  }
+  return ra;
+}
