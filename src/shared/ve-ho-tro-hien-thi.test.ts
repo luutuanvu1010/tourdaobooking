@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type { FeedbackTeamsResponse } from "./contracts.ts";
+import type { FeedbackMessageDto, FeedbackQueueResponse, FeedbackTeamsResponse } from "./contracts.ts";
+import { FEEDBACK_TRANSITIONS } from "./feedback-catalog.ts";
 import {
+  CAU_DA_CHUYEN_NHOM, CAU_KHONG_CON_TRONG_NHOM, CAU_MO_LAI, CAU_TU_CHOI_LOI_BUOC_2, NHAN_TAB, NHAN_TAI_LAI, buocChoPhep, cauSuKien, cauTuanNay, chenSuKien, demTuanNay, donDienSan, gomTin,
   LAM_MOI_LUI_MS, LAM_MOI_TRAN, buocLamMoi, chuKyLamMoi, chuaAiNhan, dauPhieuDoi, duongHangDoi, gopTin, hienNhanViec, huyHieuUuTien, nguoiXuLyHienThi, nhanDonChon, nhomChuyenDuoc, nhomHangDoi, tabHoTro,
 } from "./ve-ho-tro-hien-thi.ts";
 
@@ -147,4 +149,80 @@ test("duongHangDoi: danh sách trạng thái nối dấu phẩy, tìm q, danh s�
   assert.equal(duongHangDoi("t", "ALL", ["NEW", "ACK"]), "/api/feedback/queue?team=t&loc=ALL&status=NEW%2CACK");
   assert.equal(duongHangDoi("t", "ALL", []), "/api/feedback/queue?team=t&loc=ALL");
   assert.equal(duongHangDoi("t", "MINE", "NEW", " YC-1 "), "/api/feedback/queue?team=t&loc=MINE&status=NEW&q=YC-1");
+});
+
+// ---- PR 3 đợt 1 -------------------------------------------------------------------------------------------------
+const mkTin = (id: string, authorId: string, phut: number, o: Partial<FeedbackMessageDto> = {}): FeedbackMessageDto => ({
+  id, authorId, authorName: authorId, body: id, internal: false, mine: false, createdAt: new Date(Date.UTC(2026, 9, 27, 3, phut)).toISOString(), ...o,
+});
+
+test("gomTin: ba tin cùng người 0'/3'/9' → hai cụm (khoảng cách tính giữa hai tin liền nhau)", () => {
+  const c = gomTin([mkTin("a", "u1", 0), mkTin("b", "u1", 3), mkTin("c", "u1", 9)], "u9");
+  assert.equal(c.length, 2);
+  assert.deepEqual(c[0]?.tin.map((m) => m.id), ["a", "b"]);
+  assert.deepEqual(c[1]?.tin.map((m) => m.id), ["c"]);
+});
+
+test("gomTin: công khai rồi ghi chú nội bộ cùng người cùng phút → hai cụm; cuaToi theo người xem", () => {
+  const c = gomTin([mkTin("a", "u1", 0), mkTin("b", "u1", 0, { internal: true })], "u1");
+  assert.equal(c.length, 2);
+  assert.equal(c[0]?.noiBo, false);
+  assert.equal(c[1]?.noiBo, true);
+  assert.equal(c[0]?.cuaToi, true);
+  assert.deepEqual(gomTin([], "u1"), []);
+});
+
+test("gomTin: khác tác giả thì tách cụm", () => {
+  assert.equal(gomTin([mkTin("a", "u1", 0), mkTin("b", "u2", 1)], "u1").length, 2);
+});
+
+test("cauSuKien: ba loại", () => {
+  const e = (loai: "CLAIMED" | "ASSIGNED" | "TEAM_CHANGED", tu: string | null, den: string | null) => ({ id: "e", loai, at: "2026-10-27T03:00:00Z", nguoi: "Lan", tu, den });
+  assert.equal(cauSuKien(e("CLAIMED", null, null)), "Lan đã nhận việc");
+  assert.equal(cauSuKien(e("ASSIGNED", null, "Minh")), "Lan giao cho Minh");
+  assert.equal(cauSuKien(e("TEAM_CHANGED", "Kỹ thuật", "Kế toán")), "Chuyển sang nhóm Kế toán");
+});
+
+test("chenSuKien: chen theo thời gian, cụm giữ nguyên", () => {
+  const cum = gomTin([mkTin("a", "u1", 0), mkTin("b", "u1", 30)], "u9");
+  const ev = { id: "e", loai: "CLAIMED" as const, at: new Date(Date.UTC(2026, 9, 27, 3, 15)).toISOString(), nguoi: "Lan", tu: null, den: null };
+  const r = chenSuKien(cum, [ev]);
+  assert.equal(r.length, 3);
+  assert.ok("tin" in r[0]! && "suKien" in r[1]! && "tin" in r[2]!);
+  assert.equal((r[1] as { cau: string }).cau, "Lan đã nhận việc");
+});
+
+test("donDienSan", () => {
+  assert.equal(donDienSan("/order?id=a&x=1", [{ id: "a" }]), "a");
+  assert.equal(donDienSan("/order?x=1&id=a", [{ id: "a" }]), "a");
+  assert.equal(donDienSan("/order?id=b", [{ id: "a" }]), null);
+  assert.equal(donDienSan("/orders?id=a", [{ id: "a" }]), null);
+  assert.equal(donDienSan(null, [{ id: "a" }]), null);
+});
+
+test("demTuanNay: tuần Hai–Chủ nhật giờ VN, cộng mọi loại/trạng thái, câu hiển thị", () => {
+  // Thứ Ba 27/10/2026: tuần 26/10–01/11 (strftime %W = 43)
+  const now = new Date("2026-10-27T05:00:00Z");
+  const stats: FeedbackQueueResponse["stats"] = [
+    { week: "2026-43", kind: "BUG", status: "NEW", count: 2 },
+    { week: "2026-43", kind: "IDEA", status: "DONE", count: 1 },
+    { week: "2026-42", kind: "BUG", status: "NEW", count: 9 },
+  ];
+  const v = demTuanNay(stats, now);
+  assert.deepEqual(v, { tu: "26", den: "01/11", so: 3 });
+  assert.equal(cauTuanNay(v), "Tuần này (26–01/11): 3 yêu cầu mới gửi tới nhóm");
+  // Chủ nhật 01/11 23:30 VN vẫn là tuần đó; 00:10 VN thứ Hai 02/11 sang tuần mới
+  assert.equal(demTuanNay(stats, new Date("2026-11-01T16:30:00Z")).tu, "26");
+  assert.equal(demTuanNay(stats, new Date("2026-11-01T17:10:00Z")).tu, "02");
+  assert.equal(demTuanNay([], now).so, 0);
+});
+
+test("buocChoPhep và các câu cố định", () => {
+  assert.deepEqual(buocChoPhep("NEW"), [...FEEDBACK_TRANSITIONS.NEW]);
+  assert.equal(CAU_MO_LAI, "Gửi sẽ mở lại yêu cầu này");
+  assert.equal(CAU_KHONG_CON_TRONG_NHOM, "Yêu cầu này không còn trong nhóm của bạn.");
+  assert.equal(CAU_DA_CHUYEN_NHOM, "Yêu cầu vừa được chuyển sang nhóm khác.");
+  assert.equal(NHAN_TAI_LAI, "Tải lại yêu cầu");
+  assert.equal(CAU_TU_CHOI_LOI_BUOC_2, "Đã gửi lý do nhưng chưa đổi được trạng thái. Bấm Từ chối lại.");
+  assert.deepEqual(NHAN_TAB, { mine: "Yêu cầu của tôi", queue: "Việc của nhóm", teams: "Nhóm hỗ trợ" });
 });
