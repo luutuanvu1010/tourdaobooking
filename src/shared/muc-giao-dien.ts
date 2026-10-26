@@ -167,7 +167,8 @@ export const THANH_BEN = [
   // Tài xế: "Trang chủ" của họ là /tai-xe; "Cuốc của tôi" cho mọi tài khoản tài xế công ty (kể cả kiêm văn phòng — K2b T2).
   { nhom: "HẰNG NGÀY", trang: "trangTaiXe", nhan: "Trang chủ", bieuTuong: "home" },
   { nhom: "HẰNG NGÀY", trang: "donHang", nhan: "Đơn hàng", bieuTuong: "orders" },
-  { nhom: "HẰNG NGÀY", trang: "danhBa", nhan: "Danh bạ", bieuTuong: "contact-card" },  { nhom: "HẰNG NGÀY", trang: "cuoc", nhan: "Cuốc của tôi", bieuTuong: "assign" },
+  { nhom: "HẰNG NGÀY", trang: "danhBa", nhan: "Danh bạ", bieuTuong: "contact-card" },
+  { nhom: "HẰNG NGÀY", trang: "cuoc", nhan: "Cuốc của tôi", bieuTuong: "assign" },
   { nhom: "HẰNG NGÀY", trang: "ban", nhan: "Báo bận của tôi", bieuTuong: "clock" },
   { nhom: "VẬN CHUYỂN", trang: "dieuPhoi", nhan: "Điều phối xe", bieuTuong: "truck" },
   { nhom: "VẬN CHUYỂN", trang: "xeDangChay", nhan: "Xe đang chạy", bieuTuong: "pin" },

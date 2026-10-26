@@ -25,7 +25,7 @@ const CHO_PHEP_NHAT_KY = new Set(["web/help.ts"]);
 // Nới 96.500 → 96.700 (ADR-0128 Q1, 2026-10-17): thêm một dòng bản đồ quyền `dispatch.policy.lead` vào `permissions.ts` (gói nhúng cả bản đồ, +~90 byte); không thêm mã giao diện.
 // Nhận main vào nhánh hồ sơ riêng tư: giữ trần LỚN HƠN của hai bên (96.700); không nới thêm — đo gói thật sau gộp ở báo cáo.
 // Nới 96.700 → 96.800 (ADR-0136 Task 3.5, 27/10): gói nhúng `muc-giao-dien.ts` (thêm trang /cho-xac-nhan vào `TRANG`/`TRANG_TOI`) và `bang-tin.ts`/`thong-bao.ts` (nhãn `xet-duyet`, loại tin `cho_xac_nhan`) — chỉ dữ liệu, +13 byte đo thật; không thêm mã giao diện vào trang Đơn hàng.
-const TRAN_ORDERS = 96_800;
+const TRAN_ORDERS = 96_700;
 
 function dung(trang: string) {
   const r = buildSync({

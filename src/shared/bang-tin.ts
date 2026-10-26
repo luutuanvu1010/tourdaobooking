@@ -108,7 +108,7 @@ export function nhanSuKien(input: {
   choXacNhan?: boolean;
 }): string[] {
   const { ownerId, handlerTruoc, handlerSau } = input;
-  if (input.laNhap === true) return input.choXacNhan === true ? [`nguoi:${ownerId}`, NHAN_XET_DUYET].sort() : [`nguoi:${ownerId}`];
+  if (input.laNhap) return input.choXacNhan ? [`nguoi:${ownerId}`, NHAN_XET_DUYET].sort() : [`nguoi:${ownerId}`];
   const nhan = new Set<string>(["tat-ca", `nguoi:${ownerId}`]);
   if (handlerTruoc !== null && handlerTruoc.staffId !== null) nhan.add(`nguoi:${handlerTruoc.staffId}`);
   if (handlerSau.staffId !== null) nhan.add(`nguoi:${handlerSau.staffId}`);
@@ -200,10 +200,11 @@ export function thongBaoNoi(staff: PermissionHolder, suKien: SuKienDon): ThongBa
     if (nhan.includes("cho-nhan") && !nhan.includes("tat-ca")) return null;
   }
   // ADR-0136 Đ10: tin «đơn chờ xác nhận» chỉ nổi cho người giữ ô xét duyệt, và HDV cũng mở được đơn chờ (Đ6) nên đích là trang đơn.
-  if (suKien.thayDoi === "cho_xac_nhan") return can(staff, "order.confirm.review") ? { cau: CAU_THONG_BAO.cho_xac_nhan!(suKien.maDon), lienKet: `/order?id=${suKien.orderId}` } : null;
+  const choXn = suKien.thayDoi === "cho_xac_nhan";
+  if (choXn && !can(staff, "order.confirm.review")) return null;
   const dungCau = CAU_THONG_BAO[suKien.thayDoi];
   if (!dungCau) return null;
-  return { cau: dungCau(suKien.maDon), lienKet: isOffice(staff) ? `/order?id=${suKien.orderId}` : "/account" };
+  return { cau: dungCau(suKien.maDon), lienKet: choXn || isOffice(staff) ? `/order?id=${suKien.orderId}` : "/account" };
 }
 
 const KHOA_SU_KIEN_HOP_LE = ["loai", "orderId", "maDon", "thayDoi", "luc"] as const;
