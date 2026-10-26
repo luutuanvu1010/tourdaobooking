@@ -242,8 +242,19 @@ test("PR2 T1: xepLoai — chưa có mức lên đầu rồi theo tên", () => {
 test("PR2 T1: ghepDoiTacRieng — mỗi đối tác một dòng, xếp theo tên", () => {
   const dong = [muc({ id: "1", doiTuong: { loai: "DOI_TAC", partyId: "p2", ten: "Zeta" } }), muc({ id: "2", doiTuong: { loai: "DOI_TAC", partyId: "p2", ten: "Zeta" } }), muc({ id: "3" })];
   const gan = [{ id: "g", partyId: "p1", ten: "Alpha", muc: "M", tenMuc: "Cấp 1", tuNgay: "2026-01-01", denNgay: null }];
-  assert.deepEqual(ghepDoiTacRieng(dong, gan), [
+  assert.deepEqual(ghepDoiTacRieng(dong, gan, "2026-06-01"), [
     { partyId: "p1", ten: "Alpha", mucRieng: false, chinhSach: "Cấp 1" },
     { partyId: "p2", ten: "Zeta", mucRieng: true, chinhSach: null },
   ]);
+});
+
+test("PR2 Đợt 3 (R17): ghepDoiTacRieng — mức riêng ĐANG và SẮP áp dụng được tính, dòng đã ngừng thì bỏ", () => {
+  const homNay = "2026-06-01";
+  const dt = (partyId: string, ten: string) => ({ loai: "DOI_TAC" as const, partyId, ten });
+  const dong = [
+    muc({ id: "dang", doiTuong: dt("p1", "Đang"), conHieuLuc: true }),
+    muc({ id: "sap", doiTuong: dt("p2", "Sắp"), conHieuLuc: false, tuNgay: "2026-07-01" }),
+    muc({ id: "ngung", doiTuong: dt("p3", "Ngừng"), conHieuLuc: false, tuNgay: "2026-01-01", denNgay: "2026-03-31" }),
+  ];
+  assert.deepEqual(ghepDoiTacRieng(dong, [], homNay).map((x) => x.partyId), ["p1", "p2"]);
 });

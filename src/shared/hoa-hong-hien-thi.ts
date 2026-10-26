@@ -201,11 +201,11 @@ export function xepLoai<T extends { ten: string; coMuc: boolean }>(ds: readonly 
   return [...ds].sort((a, b) => Number(a.coMuc) - Number(b.coMuc) || a.ten.localeCompare(b.ten, "vi"));
 }
 
-/** Mỗi đối tác một dòng: có mức riêng đang áp dụng (dòng `DOI_TAC`) và/hoặc chính sách gắn riêng; xếp theo tên. */
-export function ghepDoiTacRieng(dong: readonly CommissionRuleDto[], ganRieng: MucTaListResponse["ganRieng"]): { partyId: string; ten: string; mucRieng: boolean; chinhSach: string | null }[] {
+/** Mỗi đối tác một dòng: có mức riêng đang HOẶC sắp áp dụng (dòng `DOI_TAC`, bỏ dòng đã ngừng — khớp bộ lọc «Đang và sắp áp dụng») và/hoặc chính sách gắn riêng; xếp theo tên. */
+export function ghepDoiTacRieng(dong: readonly CommissionRuleDto[], ganRieng: MucTaListResponse["ganRieng"], homNay: string): { partyId: string; ten: string; mucRieng: boolean; chinhSach: string | null }[] {
   const m = new Map<string, { partyId: string; ten: string; mucRieng: boolean; chinhSach: string | null }>();
   for (const d of dong) {
-    if (d.doiTuong.loai !== "DOI_TAC" || !d.conHieuLuc) continue;
+    if (d.doiTuong.loai !== "DOI_TAC" || trangThaiDong(d, homNay) === "DA_DONG") continue;
     m.set(d.doiTuong.partyId, { partyId: d.doiTuong.partyId, ten: d.doiTuong.ten, mucRieng: true, chinhSach: null });
   }
   for (const g of ganRieng) {
