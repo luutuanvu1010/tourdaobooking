@@ -44,7 +44,7 @@ export async function veTheHanMuc(el: HTMLElement, staff: StaffProfile): Promise
   const tomTat = h(
     "p",
     { class: "hm-tom-tat" },
-    cs ? `Đang áp: ${NHAN_CHE_DO[cs.cheDo]} · tối đa ${cs.lienTiep} đơn liên tiếp · ${cs.moiTuan} lần mỗi tuần (thứ Hai – Chủ nhật).` : "Chưa có cài đặt — báo Toàn quyền.",
+    cs ? `Đang áp dụng: ${NHAN_CHE_DO[cs.cheDo]} · tối đa ${cs.lienTiep} đơn liên tiếp · ${cs.moiTuan} lần mỗi tuần (thứ Hai – Chủ nhật).` : "Chưa có cài đặt — báo Toàn quyền.",
   );
 
   const dong = du.nguoi.map((n) => {

@@ -64,12 +64,12 @@ function loiBang(e: unknown): Response | null {
   if (/\bprc_all_owner_only:/.test(m)) return error(400, "invalid_input", "Dòng \"mọi dịch vụ\" chỉ dành cho Tour Đảo.");
   if (/\bprc_transfer_no_supplier:/.test(m)) return error(409, "prc_transfer_no_supplier", CAU_X3_THUE_XE);
   // ADR-0117 lần 2 (migration 0096 / 0097): mức TA và gắn loại↔mức. Trùng tên do cột `name_key` UNIQUE quyết (một nơi — đúng cả khi hai lần thêm đồng thời).
-  if (/UNIQUE constraint failed: prc_rate_tier\.name_key/.test(m)) return error(409, "muc_trung", "Đã có mức TA với tên này.");
+  if (/UNIQUE constraint failed: prc_rate_tier\.name_key/.test(m)) return error(409, "muc_trung", "Đã có chính sách với tên này.");
   if (/UNIQUE constraint failed: prc_rate_tier\.code/.test(m)) return error(409, "stale", "Trùng mã mức vừa sinh — thử lại.");
   if (/\bprc_party_tier_overlap:/.test(m)) return error(409, "prc_tier_overlap", "Hồ sơ này đã có một mức riêng trong khoảng ngày này — kết thúc mức riêng cũ trước.");
-  if (/\bprc_tier_overlap:/.test(m)) return error(409, "prc_tier_overlap", "Loại này đã mang một mức TA trong khoảng ngày này — kết thúc gắn cũ trước.");
+  if (/\bprc_tier_overlap:/.test(m)) return error(409, "prc_tier_overlap", "Loại này đã theo một chính sách trong khoảng ngày này — ngừng áp dụng chính sách cũ trước.");
   if (/\bprc_tier_target:/.test(m)) return error(400, "invalid_input", "Loại đối tác này không nằm trong danh sách được hưởng hoa hồng hoặc đã tắt.");
-  if (/\bprc_tier_inactive:/.test(m)) return error(409, "muc_tat", "Mức TA này đã tắt — bật lại trước khi gắn loại hay thêm dòng.");
+  if (/\bprc_tier_inactive:/.test(m)) return error(409, "muc_tat", "Chính sách này đã tắt — bật lại trước khi áp dụng cho loại hay thêm mức.");
   if (/NOT NULL constraint failed: prc_role_tier\.valid_from_date/.test(m)) return error(409, "stale", "Gắn này vừa được người khác kết thúc hoặc đổi. Tải lại trang."); // câu chèn của Đổi chính sách: gắn cũ không còn đóng được
   if (/NOT NULL constraint failed: prc_commission_rule\.valid_from_date/.test(m)) return error(409, "stale", "Dòng này vừa được người khác ngừng hoặc đổi. Tải lại trang."); // câu chèn của Đổi mức: dòng cũ không còn đóng được
   if (/\bprc_append_only:/.test(m)) return error(409, "stale", "Dòng này vừa được người khác đóng — tải lại.");
@@ -101,7 +101,7 @@ const dtoDk = (r: TermRow, congTyId: string | null, homNay: string): SupplyTermD
 /** Tên đối tượng của một dòng mức cho nhật ký: tên vai bằng tiếng Việt, "mức TA <tên mức>", hoặc "đối tác <mã hồ sơ>" (không tên riêng, không liên hệ). */
 const tenDoiTuongNhatKy = (r: { target_role_code: string | null; target_party_id: string | null; target_tier_code?: string | null; tier_name?: string | null }, tenVai: ReadonlyMap<string, string>): string =>
   r.target_role_code !== null ? tenVai.get(r.target_role_code) ?? r.target_role_code
-    : r.target_tier_code != null ? `mức TA ${r.tier_name ?? r.target_tier_code}` : `đối tác ${r.target_party_id}`;
+    : r.target_tier_code != null ? `chính sách ${r.tier_name ?? r.target_tier_code}` : `đối tác ${r.target_party_id}`;
 
 /**
  * Loại đối tác được hưởng (ADR-0117): mỗi dòng của danh sách được hưởng, tên + cờ loại đối tác lấy từ parties (hàm công bố `loaiVaiChiTiet`). `dangBat` = CẢ HAI cờ cùng bật
@@ -156,7 +156,7 @@ async function hoaHongHoSo(db: D1Database, id: string): Promise<HoaHongHoSoRespo
     }),
   } satisfies HoaHongHoSoResponse;
 }
-const MUC_KHONG_CO = () => error(404, "not_found", "Không tìm thấy mức TA này.");
+const MUC_KHONG_CO = () => error(404, "not_found", "Không tìm thấy chính sách này.");
 const dtoGan = (r: RoleTierRow, tenVai: ReadonlyMap<string, string>, tenMuc: ReadonlyMap<string, string>, homNay: string): GanLoaiMucDto => ({
   id: r.id, loai: { code: r.role_type_code, ten: tenVai.get(r.role_type_code) ?? r.role_type_code }, muc: { code: r.tier_code, ten: tenMuc.get(r.tier_code) ?? r.tier_code },
   tuNgay: r.valid_from_date, denNgay: r.valid_to_date, conHieuLuc: hieuLuc({ validFrom: r.valid_from_date, validTo: r.valid_to_date }, homNay),
@@ -409,7 +409,7 @@ export const pricingModule: AppModule = {
       const res = await chayLo(env.DB, [
         insertRuleStatement(env.DB, id, v, at, staff.id),
         ...(v.theoLoai ? [insertRulePaxStatement(env.DB, id, v.theoLoai, at, staff.id)] : []),
-        auditStatement(env.DB, { staffId: staff.id, action: "prc_commission_rule_added", at, detail: moTaMuc({ doiTuong: `mức TA ${muc.name}`, ...v }) }),
+        auditStatement(env.DB, { staffId: staff.id, action: "prc_commission_rule_added", at, detail: moTaMuc({ doiTuong: `chính sách ${muc.name}`, ...v }) }),
       ]);
       if (res instanceof Response) return res;
       return kemLocation(json({ dong: dtoMuc((await ruleById(env.DB, id))!, await tenLoaiVai(env.DB), vnToday(new Date())) }, 201), "/hoa-hong");

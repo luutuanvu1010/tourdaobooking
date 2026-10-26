@@ -11,7 +11,7 @@ export const CAU_KHONG_CO_QUYEN_XEM = "Bạn không có quyền xem trang này."
 /** Thay ô tìm đối tác ở người không qua cổng của route tìm người hưởng (xem `coTheTimDoiTac`). */
 export const CAU_CHUA_TIM_DUOC_DOI_TAC = "Tài khoản của bạn chưa tìm được đối tác theo tên. Cần đặt mức riêng cho một đối tác thì nhờ Quản trị hoặc Toàn quyền.";
 /** Hộp xác nhận khi đóng dòng «Mọi dịch vụ» của công ty chủ (đặc tả sổ đại lý đợt 1: dòng mặc định gieo sẵn; đóng mà không mở dòng mới thì dịch vụ thiếu người bán). */
-export const CAU_DONG_DONG_MAC_DINH = "Đóng dòng mặc định thì dịch vụ chưa có điều khoản riêng sẽ thiếu người bán cho tới khi mở dòng mới. Vẫn đóng?";
+export const CAU_DONG_DONG_MAC_DINH = "Ngừng điều khoản mặc định thì dịch vụ chưa có điều khoản riêng sẽ thiếu người bán cho tới khi mở điều khoản mới. Vẫn ngừng?";
 export const CAU_KHONG_CO_MUC = "Chưa có mức nào.";
 export const CAU_KHONG_CO_DIEU_KHOAN = "Chưa có điều khoản nào.";
 export const CAU_KHONG_KHOP_LOC = "Không có dòng nào khớp bộ lọc.";
@@ -51,7 +51,7 @@ export const nhanMucDto = (m: { kieu: "RATE" | "PER_PAX"; tyLeBp: number | null;
 
 /** Cột «Áp cho»: tên (vai, đối tác hoặc mức TA) và một chữ nhỏ nói đó là loại đối tác, một đối tác hay một mức TA — các thứ có thể trùng tên. */
 export function nhanDoiTuong(d: DoiTuongMucDto): { ten: string; loai: string } {
-  return d.loai === "VAI" ? { ten: d.ten, loai: "Loại đối tác" } : d.loai === "MUC" ? { ten: d.ten, loai: "Mức TA" } : { ten: d.ten, loai: "Một đối tác" };
+  return d.loai === "VAI" ? { ten: d.ten, loai: "Loại đối tác" } : d.loai === "MUC" ? { ten: d.ten, loai: "Chính sách" } : { ten: d.ten, loai: "Một đối tác" };
 }
 
 export type TrangThaiDong = "DANG_AP" | "SAP_AP" | "DA_DONG";
@@ -99,12 +99,12 @@ export const LOI_BAC: Record<1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12, s
   4: "mức của loại đối tác cho dịch vụ này",
   5: "mức của loại đối tác cho nhóm",
   6: "mức của loại đối tác cho mọi dịch vụ",
-  7: "mức TA của loại đối tác cho dịch vụ này",
-  8: "mức TA của loại đối tác cho nhóm",
-  9: "mức TA của loại đối tác cho mọi dịch vụ",
-  10: "mức TA gắn riêng cho đối tác, dịch vụ này",
-  11: "mức TA gắn riêng cho đối tác, nhóm",
-  12: "mức TA gắn riêng cho đối tác, mọi dịch vụ",
+  7: "chính sách của loại đối tác cho dịch vụ này",
+  8: "chính sách của loại đối tác cho nhóm",
+  9: "chính sách của loại đối tác cho mọi dịch vụ",
+  10: "chính sách riêng của đối tác, dịch vụ này",
+  11: "chính sách riêng của đối tác, nhóm",
+  12: "chính sách riêng của đối tác, mọi dịch vụ",
 };
 
 /** Dòng kết quả của Thử tra: «Áp mức 12,5% — mức riêng của đối tác cho nhóm»; thiếu mức → câu lý do của máy chủ (đã là tiếng Việt); không người hưởng → câu riêng. */
@@ -165,8 +165,8 @@ export const cauCanhBaoDongRieng = (tenLoai: string, tenMuc: string, soDong: num
 /** Trạng thái và nút Tắt / Bật của một mức — theo cờ `dangBat` của máy chủ. Quyền ghi do trang kiểm riêng bằng `can`. */
 export function nhanMucTa(m: Pick<MucTaDto, "ten" | "dangBat">): { trangThai: string; nut: { hanhDong: "tat" | "bat"; nhan: string; ariaLabel: string } } {
   return m.dangBat
-    ? { trangThai: NHAN_LOAI_DANG_DUNG, nut: { hanhDong: "tat", nhan: "Tắt", ariaLabel: `Tắt mức TA: ${m.ten}` } }
-    : { trangThai: NHAN_LOAI_DA_TAT, nut: { hanhDong: "bat", nhan: "Bật", ariaLabel: `Bật mức TA: ${m.ten}` } };
+    ? { trangThai: NHAN_LOAI_DANG_DUNG, nut: { hanhDong: "tat", nhan: "Tắt", ariaLabel: `Tắt chính sách: ${m.ten}` } }
+    : { trangThai: NHAN_LOAI_DA_TAT, nut: { hanhDong: "bat", nhan: "Bật", ariaLabel: `Bật chính sách: ${m.ten}` } };
 }
 /** Bảng «Các mức hiện có» bỏ dòng của mức TA: các dòng đó hiện (và đóng) ở mục «Mức TA», dưới tên mức của chúng. Giữ thứ tự máy chủ trả. */
 export const boDongMucTa = (dong: readonly CommissionRuleDto[]): CommissionRuleDto[] => dong.filter((d) => d.doiTuong.loai !== "MUC");

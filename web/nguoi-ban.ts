@@ -140,7 +140,7 @@ async function main(): Promise<void> {
         }
         replaceChildren(dongKhuEl);
         await tai();
-        hienOk("Đã đóng điều khoản.");
+        hienOk("Đã ngừng điều khoản.");
       },
     });
   }

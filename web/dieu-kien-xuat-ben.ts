@@ -82,14 +82,14 @@ function veDieuKien(): void {
       if (!confirm(`Đóng điều kiện “${nhan}”? Từ lúc này xe không còn phải có giấy này mới được chạy. Không mở lại được — muốn áp lại thì thêm điều kiện mới.`)) return;
       void ghi(async () => {
         rules = (await api<Api.DepartureRuleListResponse>(`/api/van-chuyen/dieu-kien/${encodeURIComponent(r.id)}/dong`, { method: "POST" })).rules;
-        return `Đã đóng điều kiện “${nhan}”.`;
+        return `Đã ngừng điều kiện “${nhan}”.`;
       });
     });
     return h(
       "div",
       { class: r.active ? "dp-reason" : "dp-reason is-off", "data-rule": r.id },
-      h("span", { class: "dp-reason-label" }, nhan, h("span", { class: "dp-reason-sub" }, r.active ? `Áp từ ${ngayTuIso(r.validFrom)}` : `Đã đóng ${ngayTuIso(r.validTo ?? r.validFrom)}`)),
-      r.active ? h("span", { class: "chip chip-unit" }, "Đang áp") : h("span", { class: "chip chip-muted" }, "Đã đóng"),
+      h("span", { class: "dp-reason-label" }, nhan, h("span", { class: "dp-reason-sub" }, r.active ? `Áp từ ${ngayTuIso(r.validFrom)}` : `Đã ngừng ${ngayTuIso(r.validTo ?? r.validFrom)}`)),
+      r.active ? h("span", { class: "chip chip-unit" }, "Đang áp dụng") : h("span", { class: "chip chip-muted" }, "Đã ngừng"),
       nut,
     );
   };

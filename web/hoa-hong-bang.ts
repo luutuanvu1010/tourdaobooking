@@ -128,7 +128,7 @@ function cumLoai(item: { loai: Api.LoaiDoiTacDto; dong: Api.CommissionRuleDto[];
     else moSan.delete(loai.code);
   });
 
-  ct.append(h("h3", null, "Mức riêng của loại này"));
+  ct.append(h("h3", null, "Mức riêng cho loại này"));
   if (item.dong.length > 0) ct.append(dauBang(), h("ul", { class: "hh-mrows" }, ...item.dong.map((r) => dongMuc(r, d, mo, ghi))));
   else ct.append(h("p", { class: "muted" }, item.tatCa.length > 0 ? CAU_KHONG_KHOP_LOC : CAU_KHONG_CO_MUC));
   if (cs) {

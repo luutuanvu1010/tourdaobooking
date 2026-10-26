@@ -32,6 +32,11 @@ export const TU_DA_LOAI: readonly TuDaLoai[] = [
   // «vai» là CHỮ, không phải mã nội bộ (`VAI`, `muc-vai`, `/api/tro-ly/vai`, khoá `vai`, cột SQL `h.vai,`); «đổi vai» (nhập vai) trong lời dặn Trợ lý là nghĩa khác.
   { cam: /^(?!vai$)[\s\S]*(?<![\p{L}\p{N}_\-/.])(?<!đổi )[Vv]ai(?![\p{L}\p{M}\p{N}_\-,])(?! trò)/u, thay: "vai trò", nguon: "chủ 2026-10-18 (lượt 2)" },
   { cam: /[Pp]hiên(?! bản)|PHIÊN(?! BẢN)/u, thay: "máy đang đăng nhập (Đăng xuất máy này)", nguon: "chủ 2026-10-18 (lượt 2)" },
+  // Lượt 3 — hoa hồng (chủ 2026-10-25), hồ sơ docs/superpowers/specs/2026-10-25-hoa-hong-ho-tro-thiet-ke-lai/DAC-TA.md mục C. «Chính sách hoa hồng» thay «Mức TA»; «Mức riêng» thay «Dòng riêng»;
+  // một họ từ hiệu lực (Ngừng · Áp dụng chính sách cho loại · Ngừng áp dụng · Đang/Sắp áp dụng · Đã ngừng) thay Đóng/Gắn/Kết thúc gắn (Q1 = A).
+  { cam: /[Mm]ức TA|MỨC TA/u, thay: "Chính sách hoa hồng (chính sách <tên>, chính sách riêng)", nguon: "chủ 2026-10-25 (bàn giao Hoa hồng + Hỗ trợ, «chọn A cả ba»)" },
+  { cam: /[Dd]òng riêng|[Rr]iêng của loại/u, thay: "Mức riêng", nguon: "chủ 2026-10-25 (bàn giao Hoa hồng + Hỗ trợ, «chọn A cả ba»)" },
+  { cam: /Đóng mức|Đóng dòng|[Kk]ết thúc gắn|Gắn mức|Đang áp(?! dụng)|Sắp áp(?! dụng)|Đã đóng(?! sổ| tiền)/u, thay: "Ngừng · Áp dụng chính sách cho loại · Ngừng áp dụng · Đang áp dụng · Sắp áp dụng · Đã ngừng", nguon: "chủ 2026-10-25 (bàn giao Hoa hồng + Hỗ trợ, «chọn A cả ba»)" },
 ];
 
 /** Chữ «đảo» là hòn đảo (tên công ty, tên tour) — gỡ khỏi chuỗi trước khi so với dòng «Đảo» ở trên. */

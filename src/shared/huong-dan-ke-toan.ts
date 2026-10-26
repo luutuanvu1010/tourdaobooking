@@ -116,11 +116,11 @@ Kế toán có nút [[+ Hồ sơ mới]] và được thêm, sửa hồ sơ khá
       tieuDe: "Đặt mức hoa hồng cho đối tác",
       noiDung: `Hoa hồng là tiền Công ty trả cho đại lý hoặc cộng tác viên đặt đơn. Khi đơn được xác nhận, Nền tảng lấy mức đang áp trong bảng, tính hoa hồng một lần rồi giữ nguyên.
 
-1. Bấm [[Hoa hồng đối tác]] để xem các mức đang áp và sắp áp.
-2. Ở khối [[Thêm mức]], chọn áp cho một loại đối tác, chọn phạm vi (một dịch vụ, một nhóm dịch vụ hoặc mọi dịch vụ), chọn **Phần trăm** hoặc **Số tiền mỗi khách**, nhập ngày bắt đầu rồi bấm [[Thêm mức]].
-3. Hết dùng một mức thì bấm [[Đóng mức]] ở dòng đó. Mức không sửa, không xoá được; muốn đổi thì đóng mức cũ và thêm mức mới.
+1. Bấm [[Hoa hồng đối tác]]: thẻ **Mức đang áp dụng** cho biết từng loại đang hưởng mức nào; ô **Tra nhanh** cho biết mức áp cho một đối tác.
+2. Bấm [[＋ Thêm mức]], chọn áp cho một loại đối tác, chọn dịch vụ (một dịch vụ, một nhóm dịch vụ hoặc mọi dịch vụ), chọn **Phần trăm** hoặc **Số tiền mỗi khách**, nhập ngày bắt đầu rồi bấm [[Thêm mức]].
+3. Đổi mức: bấm [[Đổi]] ở dòng đó, nhập mức mới và ngày bắt đầu; mức cũ tự ngừng. Hết dùng hẳn: bấm [[Ngừng]] và chọn ngày cuối. Mức không sửa, không xoá được.
 
-Tài khoản Kế toán chưa tìm được từng đối tác theo tên, nên chưa đặt được mức riêng cho một đối tác và chưa dùng được khối [[Thử tra]]. Cần việc đó thì nhờ Quản trị hoặc Toàn quyền.
+Tài khoản Kế toán chưa tìm được từng đối tác theo tên, nên chưa đặt được mức riêng cho một đối tác và chưa dùng được **Tra nhanh** theo tên. Cần việc đó thì nhờ Quản trị hoặc Toàn quyền.
 
 Người bán dịch vụ làm tương tự ở trang [[Người bán dịch vụ]]: khối [[Thêm điều khoản]] ghi dịch vụ nào do Tour Đảo bán, dịch vụ nào do nhà cung cấp bán (kèm tỷ lệ Tour Đảo mua lại). Dịch vụ nhóm Thuê xe không ghi nhà cung cấp mua lại.
 
@@ -130,21 +130,21 @@ Người bán dịch vụ làm tương tự ở trang [[Người bán dịch v�
       tieuDe: "Thêm loại đối tác",
       noiDung: `Loại đối tác là nhóm được hưởng hoa hồng, như Công ty lữ hành hay Lễ tân khách sạn. Cần loại mới thì bạn tự thêm.
 
-1. Bấm [[Hoa hồng đối tác]], ở khối **Loại đối tác** gõ tên vào ô **Tên loại mới** rồi bấm [[Thêm loại]].
-2. Đặt mức cho loại mới ở khối [[Thêm mức]], như các loại khác.
-3. Không dùng nữa thì bấm [[Tắt]] ở dòng loại đó; cần lại thì bấm [[Bật]]. Các loại có sẵn thì không tắt được.
+1. Bấm [[Hoa hồng đối tác]], thẻ **Thiết lập**, bấm [[＋ Thêm loại]] và gõ tên.
+2. Đặt mức cho loại mới bằng [[＋ Thêm mức]].
+3. Không dùng nữa thì bấm [[Tắt]] ở dòng loại đó; cần lại thì bấm [[Bật]]. Các loại gốc (ghi **Loại gốc**) thì không tắt được.
 
 Gắn loại cho hồ sơ ở Danh bạ là việc của Quản trị hoặc Toàn quyền. Loại đã tắt thì không gắn thêm, nhưng đơn đã xác nhận vẫn giữ nguyên hoa hồng.`,
     },
     {
-      tieuDe: "Mức TA",
-      noiDung: `Mức TA là bộ hoa hồng có tên, dùng chung cho nhiều loại đối tác.
+      tieuDe: "Chính sách hoa hồng",
+      noiDung: `Chính sách hoa hồng là bộ mức có tên, dùng chung cho nhiều loại.
 
-1. Ở khối **Mức TA** của [[Hoa hồng đối tác]], gõ tên, bấm [[Thêm mức TA]].
-2. [[Thêm dòng]]: chọn mức, phạm vi, mức hoa hồng.
-3. [[Gắn mức]]: chọn loại, mức, ngày bắt đầu.
+1. Ở thẻ **Thiết lập**, bấm [[＋ Thêm chính sách]] và gõ tên.
+2. [[＋ Thêm mức vào chính sách]]: chọn dịch vụ và mức.
+3. [[Áp dụng cho loại…]]: chọn loại và ngày bắt đầu.
 
-Mức riêng luôn được ưu tiên; khi gắn sẽ hiện khung vàng. Đổi mức từ hôm nay: [[Kết thúc gắn]] ngày hôm qua rồi gắn mức mới.`,
+Mức riêng luôn thắng chính sách. Đổi chính sách của một loại: [[Đổi chính sách]]. Không dùng nữa: [[Ngừng áp dụng]].`,
     },
     {
       tieuDe: "Chụp bù, ghi mức tay cho một đơn",

@@ -342,7 +342,7 @@ export function veHopDong(khu: HTMLElement, t: ThongTinHopDong): void {
   thoi.addEventListener("click", () => t.dong());
   const hop = h(
     "div",
-    { id: "dong-hop", class: "maint-confirm", role: "group", "aria-label": "Đóng dòng", tabindex: -1 },
+    { id: "dong-hop", class: "maint-confirm", role: "group", "aria-label": "Ngừng", tabindex: -1 },
     h("p", null, h("strong", null, t.moTa)),
     t.canhBao !== null && h("p", null, h("strong", null, t.canhBao)),
     h("label", null, "Ngày kết thúc", ngay),
