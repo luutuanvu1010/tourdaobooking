@@ -2,7 +2,15 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.30 ĐÃ LÊN PRODUCTION (màn «Sổ công nợ» cho Kế toán / Toàn quyền — P1 của kế hoạch `docs/superpowers/plans/2026-10-24-so-cong-no-doi-tac-ke-hoach.md`; route chỉ đọc `GET /api/ledger/ben/:partyId`; mục menu gộp «Sổ công nợ & khoá sổ») — KHÔNG migration — triển khai 2026-10-25 14:30
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.33 ĐÃ LÊN PRODUCTION (PR máy chủ «Hoa hồng + Hỗ trợ»: Kế toán tìm đối tác theo tên — ADR-0141; nút «Đổi» mức hoa hồng và chính sách mức TA; tra theo loại; hàng đợi Hỗ trợ lọc nhiều trạng thái, tìm, đếm; dòng hệ thống chỉ người xử lý thấy) — KHÔNG migration — triển khai 2026-10-26 16:22 (giờ VN)
+
+Ghi 26/10/2026 bằng lệnh CHỈ ĐỌC (người kiểm độc lập, phiên Hoa hồng + Hỗ trợ; chủ chạy `day-len` + `trien-khai`):
+- Commit `main` = `origin/main`: `4976cc00`. Worker Version ID: `bf53dd8e-2100-409a-be09-f7dfdfb6f9f1` (`wrangler deployments list`, tạo 2026-10-26T09:22:52Z). Bản liền trước: `02f8c931-9f22-4bbe-831b-d256a8bd1af5` (04:48Z — bản 2.32 của phiên khác, chưa có mục trạng thái riêng; 2.31 cũng chưa có).
+- `GET /api/auth/config` → `version 2.33`; `kiem-phien-ban.mjs --sau-deploy` ĐẠT; `d1 migrations list --remote` → «No migrations to apply!»; `audit-invariants --db remote` thoát 0 (5 cảnh báo, R-CTL-1 9 dịch vụ chưa phân nhóm). GET không phiên `nguoi-huong`, `feedback/queue` → 401.
+- Chế độ bảo trì ĐANG BẬT (`endsAt` 2026-10-30T04:56Z) — không do đợt này.
+- Nghiệm thu: ĐẠT CÓ ĐIỀU KIỆN — hành vi theo quyền chỉ có bằng chứng trên máy thử (npm test, e2e 72/72 trên `4976cc00`). Còn: chủ hoặc Kế toán thử chỉ-đọc trên production (gõ tên đối tác ở trang Hoa hồng ra kết quả; trang đơn không có ô «Đặt qua đối tác»). Sổ: `docs/superpowers/plans/2026-10-25-hoa-hong-ho-tro-thi-cong-nhat-ky.md`.
+
+## TRẠNG THÁI TRIỂN KHAI (cũ) — Phiên bản 2.30 ĐÃ LÊN PRODUCTION (màn «Sổ công nợ» cho Kế toán / Toàn quyền — P1 của kế hoạch `docs/superpowers/plans/2026-10-24-so-cong-no-doi-tac-ke-hoach.md`; route chỉ đọc `GET /api/ledger/ben/:partyId`; mục menu gộp «Sổ công nợ & khoá sổ») — KHÔNG migration — triển khai 2026-10-25 14:30
 
 Ghi 25/10/2026 bằng lệnh CHỈ ĐỌC trên máy dự án (phiên phân tích góp ý; khối cuối của `trien-khai` 2.30 chạy ở phiên sổ công nợ, chưa ai dán vào đây):
 - Commit `main`: `a575f2d9`. Worker Version ID: `4aa1eff4-b089-44f4-8fd8-b7833cb98ce1` (`wrangler deployments list`, tạo 2026-10-25T07:30:42Z).
