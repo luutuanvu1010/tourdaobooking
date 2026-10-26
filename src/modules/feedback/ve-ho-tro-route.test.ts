@@ -661,7 +661,7 @@ test("chuyển sang chính nhóm đang giữ hoặc chuyển lúc phiếu đã �
   assert.equal(w.q("SELECT count(*) AS n FROM audit_log WHERE action = 'feedback_team_changed'")[0].n, 0);
 });
 
-test("phiếu nhóm nhạy cảm: Quản trị và Nhân sự (không thuộc nhóm) không có đường tắt ở /claim, /xu-ly, /transfer", async () => {
+test("yêu cầu nhóm nhạy cảm: Quản trị và Nhân sự (không thuộc nhóm) không có đường tắt ở /claim, /xu-ly, /transfer", async () => {
   const w = setup();
   const kt = (await tao(w, SALES, KE_TOAN)).json.ticket.id;
   const ns = (await tao(w, SALES, NHAN_SU)).json.ticket.id;
@@ -745,12 +745,12 @@ test("R13: phiếu đã đóng (Đã xong/Từ chối) không chuyển nhóm ⇒
   assert.equal(w.q("SELECT count(*) AS n FROM audit_log WHERE action = 'feedback_team_changed'")[0].n, 0);
 });
 
-test("nhật ký tạo phiếu nhóm nhạy cảm KHÔNG ghi tiêu đề (phiếu vẫn tra được qua target_id)", async () => {
+test("nhật ký tạo yêu cầu nhóm nhạy cảm KHÔNG ghi tiêu đề (phiếu vẫn tra được qua target_id)", async () => {
   const w = setup();
   const r = await tao(w, SALES, NHAN_SU, { title: "Xin giấy xác nhận lương" });
   const dong = w.q("SELECT detail, target_id FROM audit_log WHERE action = 'feedback_created'")[0];
   assert.ok(!String(dong.detail).includes("lương"));
-  assert.equal(dong.detail, "phiếu nhóm nhạy cảm");
+  assert.equal(dong.detail, "yêu cầu nhóm nhạy cảm");
   assert.equal(dong.target_id, r.json.ticket.id);
   await tao(w, SALES, KY_THUAT, { title: "Lỗi nút lưu" });
   assert.ok(w.q("SELECT detail FROM audit_log WHERE action = 'feedback_created' ORDER BY rowid DESC")[0].detail.includes("Lỗi nút lưu"), "nhóm thường giữ hành vi cũ");
@@ -829,7 +829,7 @@ test("mức ưu tiên đi cùng đổi trạng thái: hai dòng nhật ký (tr�
   assert.deepEqual(nkUuTien(w).map((x: any) => x.detail), [`${t.code}: NORMAL → URGENT`, `${t.code}: URGENT → URGENT`]);
 });
 
-test("mức ưu tiên phiếu nhóm nhạy cảm: nhật ký chỉ mã phiếu + mức, không tiêu đề", async () => {
+test("mức ưu tiên yêu cầu nhóm nhạy cảm: nhật ký chỉ mã phiếu + mức, không tiêu đề", async () => {
   const w = setup();
   const t = (await tao(w, SALES, NHAN_SU, { title: "Xin giấy xác nhận lương" })).json.ticket;
   assert.equal((await xuLy(w, t.id, NS_TV, { priority: "HIGH" })).status, 200);

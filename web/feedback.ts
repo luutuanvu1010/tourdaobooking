@@ -95,6 +95,7 @@ function veThanhThe(): void {
     }),
   );
   if (giuTieuDiem) byId(`ht-tab-${tab}`).focus();
+  byId(`ht-tab-${tab}`).scrollIntoView({ block: "nearest", inline: "nearest" }); // 390px: thanh thẻ cuộn ngang — thẻ đang chọn không bị cắt
   byId("ht-hai-cot").setAttribute("aria-labelledby", `ht-tab-${tab}`);
   byId("ht-gui").className = tab === "mine" ? "btn btn-primary" : "btn";
 }

@@ -185,7 +185,7 @@ export const feedbackModule: AppModule = {
       await env.DB.batch([
         insertTicketStatement(env.DB, { id, kind: v.value.kind, title: v.value.title, context: v.value.context, submitterId: staff.id, clientRequestId: v.value.clientRequestId, now: at, windowStart: windowStart(now), limit: TICKET_LIMIT_PER_HOUR, teamId, order }),
         insertFirstMessageStatement(env.DB, { id: crypto.randomUUID(), ticketId: id, authorId: staff.id, body: v.value.body, now: at }),
-        auditStatement(env.DB, { staffId: staff.id, action: "feedback_created", at, targetType: "feedback", targetId: id, detail: team.sensitive === 1 ? "phiếu nhóm nhạy cảm" : v.value.title.slice(0, 100) }, `EXISTS (SELECT 1 FROM fbk_ticket WHERE id = '${id}')`),
+        auditStatement(env.DB, { staffId: staff.id, action: "feedback_created", at, targetType: "feedback", targetId: id, detail: team.sensitive === 1 ? "yêu cầu nhóm nhạy cảm" : v.value.title.slice(0, 100) }, `EXISTS (SELECT 1 FROM fbk_ticket WHERE id = '${id}')`),
       ]);
       const mine = await findByRequest(env.DB, staff.id, v.value.clientRequestId);
       if (!mine) return RATE_LIMITED(); // không chèn được và cũng không phải gửi lại → chạm trần

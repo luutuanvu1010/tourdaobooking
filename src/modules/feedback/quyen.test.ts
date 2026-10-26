@@ -17,7 +17,7 @@ test("người ngoài nhóm và không phải người gửi: không đọc, kh�
   }
 });
 
-test("Quản trị (ADMIN) không có đường tắt vào phiếu nhóm nhạy cảm", () => {
+test("Quản trị (ADMIN) không có đường tắt vào yêu cầu nhóm nhạy cảm", () => {
   assert.equal(q(who("qt", "ADMIN"), []).doc, false);
 });
 
