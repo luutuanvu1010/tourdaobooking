@@ -38,6 +38,29 @@ let goc: HTMLElement | null = null;
 let duHienTai: DuLieuHoaHong | null = null;
 let veLai: (() => void) | null = null;
 
+const KHO_DIEN_THOAI = "(max-width: 640px)";
+const theoKho = new Set<(dt: boolean) => void>();
+let dangNgheKho = false;
+/** Gọi `fn` ngay và mỗi khi khổ màn đổi qua lại ngưỡng điện thoại; tự bỏ phần tử đã rời trang. */
+function chayTheoKho(el: HTMLElement, fn: (dienThoai: boolean) => void): void {
+  const mql = window.matchMedia(KHO_DIEN_THOAI);
+  const goi = (dt: boolean): void => {
+    if (!el.isConnected) {
+      theoKho.delete(goi);
+      return;
+    }
+    fn(dt);
+  };
+  fn(mql.matches);
+  theoKho.add(goi);
+  if (!dangNgheKho) {
+    dangNgheKho = true;
+    mql.addEventListener("change", (e) => {
+      for (const f of [...theoKho]) f(e.matches);
+    });
+  }
+}
+
 const huyHieuTrangThai = (tt: ReturnType<typeof trangThaiDong>): HTMLElement =>
   h("span", { class: tt === "DANG_AP" ? "badge badge-confirmed" : tt === "SAP_AP" ? "badge badge-draft" : "badge badge-cancelled" }, NHAN_TRANG_THAI[tt]);
 
@@ -67,9 +90,18 @@ export function dongMuc(r: Api.CommissionRuleDto, d: DuLieuHoaHong, mo: MoHop, h
   if (hanhDong && nut.hien) {
     // Điện thoại: chạm dòng mở hộp hai việc (Đổi, Ngừng); nút nhỏ trong dòng bị CSS ẩn.
     li.classList.add("hh-m-cham");
-    li.tabIndex = 0;
-    li.setAttribute("role", "button");
-    li.setAttribute("aria-label", `${phamVi} · ${nhanMucDto(r)}: Đổi hoặc Ngừng`);
+    // Vai nút chỉ có ở điện thoại (nơi nút nhỏ bị ẩn); ở máy tính dòng chứa nút thật nên không được vừa là nút vừa chứa nút.
+    chayTheoKho(li, (dt) => {
+      if (dt) {
+        li.tabIndex = 0;
+        li.setAttribute("role", "button");
+        li.setAttribute("aria-label", `${phamVi} · ${nhanMucDto(r)}: Đổi hoặc Ngừng`);
+      } else {
+        li.removeAttribute("tabindex");
+        li.removeAttribute("role");
+        li.removeAttribute("aria-label");
+      }
+    });
     const mot = (): void => {
       if (!window.matchMedia("(max-width: 640px)").matches) return;
       const doi = h("button", { type: "button", class: "btn btn-primary" }, "Đổi");
@@ -225,10 +257,15 @@ export function veBangApDung(g: HTMLElement, d: DuLieuHoaHong, mo: MoHop, chuyen
 }
 
 /** «Xem dòng ↓» của Tra nhanh: cuộn tới dòng mức, mở cụm chứa nó. Bộ lọc đang giấu dòng đó thì trả về mặc định rồi thử lại. */
-export function cuonToiDong(dongId: string): void {
+export function cuonToiDong(dongId: string, loai?: string): void {
   if (!goc || !duHienTai) return;
   const dt = duHienTai.dong.find((r) => r.id === dongId)?.doiTuong;
-  const chon = (): HTMLElement | null => (dt?.loai === "DOI_TAC" ? goc!.querySelector(`[data-party="${CSS.escape(dt.partyId)}"]`) : goc!.querySelector(`[data-dong-id="${CSS.escape(dongId)}"]`));
+  // Ưu tiên dòng nằm trong loại đang tra (cùng một dòng chính sách hiện ở nhiều loại).
+  const chon = (): HTMLElement | null => {
+    if (dt?.loai === "DOI_TAC") return goc!.querySelector(`[data-party="${CSS.escape(dt.partyId)}"]`);
+    const sel = `[data-dong-id="${CSS.escape(dongId)}"]`;
+    return (loai ? goc!.querySelector<HTMLElement>(`.hh-lo[data-loai="${CSS.escape(loai)}"] ${sel}`) : null) ?? goc!.querySelector(sel);
+  };
   let el = chon();
   if (!el && veLai) {
     loc = { chiConHieuLuc: true, tim: "" };

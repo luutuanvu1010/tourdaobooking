@@ -227,7 +227,10 @@ export function taoMoHop(ctx: NguCanhHop): MoHop {
       docAi = () => (loaiDt.checked && duocTimTen ? { loai: "DOI_TAC", partyId: tim.chon()?.partyId ?? "" } : { loai: "VAI", code: vai.value });
       tenAi = () => (loaiDt.checked && duocTimTen ? (tim.chon()?.ten ?? "") : (d.vai.find((v) => v.code === vai.value)?.ten ?? ""));
       tuLoai = () => (loaiDt.checked && duocTimTen ? null : vai.value || null);
-      tim.khiDoi(() => loi.xoa());
+      tim.khiDoi(() => {
+        loi.xoa();
+        veCau();
+      });
     }
     // ---- Dịch vụ
     const pv = h("select", { id: "hh-hop-pham-vi", "aria-label": "Dịch vụ" }, h("option", { value: "ALL" }, "Tất cả dịch vụ"), h("option", { value: "GROUP" }, "Một nhóm"), h("option", { value: "SERVICE" }, "Một dịch vụ"));

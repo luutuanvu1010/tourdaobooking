@@ -18,7 +18,7 @@ const chuanTim = (s: string): string => s.normalize("NFD").replace(/[̀-ͯ]/g, "
 type Chon = { kieu: "loai"; code: string; ten: string } | { kieu: "doi-tac"; partyId: string; ten: string };
 let dem = 0;
 
-function dungForm(d: DuLieuHoaHong, cuonToi: (dongId: string) => void, truocKhiCuon: () => void): HTMLElement {
+function dungForm(d: DuLieuHoaHong, cuonToi: (dongId: string, loai?: string) => void, truocKhiCuon: () => void): HTMLElement {
   const id = `hh-tn${++dem}`;
   const duocTimTen = coTheTimDoiTac(d.nguoiDung);
   let chon: Chon | null = null;
@@ -128,9 +128,10 @@ function dungForm(d: DuLieuHoaHong, cuonToi: (dongId: string) => void, truocKhiC
       const k = r.ketQua;
       const xem = k.trangThai === "SET" ? h("button", { type: "button", class: "btn btn-link", "data-xem-dong": k.muc.id }, "Xem dòng ↓") : null;
       const dongId = k.trangThai === "SET" ? k.muc.id : "";
+      const loaiDangTra = chon.kieu === "loai" ? chon.code : undefined;
       xem?.addEventListener("click", () => {
         truocKhiCuon();
-        cuonToi(dongId);
+        cuonToi(dongId, loaiDangTra);
       });
       replaceChildren(
         ketQua,
@@ -151,7 +152,7 @@ function dungForm(d: DuLieuHoaHong, cuonToi: (dongId: string) => void, truocKhiC
 }
 
 /** Vẽ «Tra nhanh» vào `goc`: khối nằm sẵn (máy tính) hoặc nút mở hộp trượt (điện thoại). `cuonToi(dongId)` cuộn tới dòng mức trong bảng và mở cụm chứa nó. */
-export function veTraNhanh(goc: HTMLElement, d: DuLieuHoaHong, cuonToi: (dongId: string) => void): void {
+export function veTraNhanh(goc: HTMLElement, d: DuLieuHoaHong, cuonToi: (dongId: string, loai?: string) => void): void {
   if (window.matchMedia("(max-width: 640px)").matches) {
     const nut = h("button", { type: "button", class: "btn hh-tn-nut", id: "hh-tra-nhanh-nut" }, "Tra nhanh");
     nut.addEventListener("click", () => {
