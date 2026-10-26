@@ -81,14 +81,6 @@ let canhBaoGiamGia: { vuot: number } | null = null;
 /** Lịch sử số khách đủ dòng (ADR-0114 D2); `null` = người xem không có `order.history.view`. Khối chỉ hiện khi đơn đã có ít nhất một lần sửa (`dongLichSuHienThi`). */
 let lichSuSoKhach: Api.DongLichSuSoKhachDto[] | null = null;
 
-// Form lập đơn ghi tiền trả trước ở BƯỚC HAI (sổ tiền lượt 1, NT-S6); bước đó hỏng thì chuyển tới đây kèm `thutruoc=loi` — báo một lần, bỏ tham số ngay.
-let baoThuTruocLoi = new URLSearchParams(location.search).get("thutruoc") === "loi";
-if (baoThuTruocLoi) {
-  const url = new URL(location.href);
-  url.searchParams.delete("thutruoc");
-  history.replaceState(history.state, "", url.pathname + url.search + url.hash);
-}
-
 // Biểu mẫu lập đơn "Duyệt đặt gấp" (ADR-0049 R-P15) tự lưu nháp rồi gọi lệnh đặt gấp; lệnh đó hỏng thì chuyển tới đây kèm `datgap=loi` — báo một lần, bỏ tham số
 // NGAY (như `moi`) để tải lại trang không báo lại.
 let baoDatGapLoi = new URLSearchParams(location.search).get("datgap") === "loi";
@@ -563,8 +555,8 @@ function tienCard(order: Order): HTMLElement {
   const keToan = t?.keToan && !t.completedAt ? khoiKeToan(order, t) : null;
   const coc = t?.coc ? khoiCoc(order, t.coc) : null;
   const nut: HTMLElement[] = [];
-  // ADR-0108 đ3 (đặc tả §4.2): QR khi đọc được tiền của đơn (route payments đã hỏi order.view + money.view), đơn chưa Đã giao, còn lại > 0. Máy chủ kiểm lại.
-  if (t && !t.coc && !t.deliveredAt && t.conLai > 0 && order.status !== "cancelled") nut.push(nutQr(order, t));
+  // ADR-0108 đ3 (đặc tả §4.2): QR khi đọc được tiền của đơn (route payments đã hỏi order.view + money.view), đơn chưa Đã giao, còn lại > 0. ADR-0135 Đ8: chỉ đơn ĐÃ XÁC NHẬN. Máy chủ kiểm lại.
+  if (t && !t.coc && !t.deliveredAt && t.conLai > 0 && order.status === "confirmed") nut.push(nutQr(order, t));
   if (t?.coTheGhiThu) nut.push(nutGhiThu(order, t));
   if (t && t.quyenGiao && !t.deliveredAt && order.status === "confirmed") nut.push(nutChot(order, "delivered", t));
   if (t && t.quyenHoanThanh && t.deliveredAt && !t.completedAt) nut.push(nutChot(order, "completed", t));
@@ -1582,10 +1574,6 @@ async function load(quiet = false): Promise<void> {
     khachDon = khach;
     show(null);
     render(order, history, canModify, handler);
-    if (baoThuTruocLoi) {
-      baoThuTruocLoi = false;
-      show(banner("warning", "Đơn đã lưu, chưa ghi được tiền trả trước — thử lại.", { lines: [{ text: "Bấm “Ghi khoản thu” ở mục Thanh toán bên dưới." }] }));
-    }
     if (baoDatGapLoi) {
       baoDatGapLoi = false;
       show(banner("warning", "Đơn đã lưu nhưng chưa duyệt đặt gấp được.", { lines: [{ text: "Bấm “Đặt gấp” ở lượt đưa đón bên dưới để duyệt lại." }] }));

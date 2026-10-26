@@ -34,8 +34,7 @@ try {
   });
   assert.equal(created.status, 201, JSON.stringify(created.json));
   const order = created.json.order;
-  // Sổ tiền lượt 1 (ADR-0026 đ9): tiền trả trước = LẦN THU của billing (trước đây là cột cọc trên đơn).
-  assert.equal((await call(ACCOUNTS.salesA, "POST", `/api/orders/${order.id}/payments`, { soTien: 500000, hinhThuc: "CASH", nguoiThu: "toi" })).status, 201);
+  // ADR-0135 Đ7: đơn nháp không ghi thu được (trước đây ca này ghi 500.000 lên nháp) — đơn nháp không có khoản thu.
   env.sql(`UPDATE order_service SET catalog_code = NULL, unit = 'manual', name = 'Xe đưa đón riêng', pax_adult = 3 WHERE id = '${order.services[1].id}'`);
   env.sql(`UPDATE order_item SET catalog_code = NULL, pax_code = NULL, catalog_price = NULL, description = 'Xe 7 chỗ 2 chiều', detail = NULL WHERE service_id = '${order.services[1].id}'`);
   // ADR-0021: API nay chặn đơn lệch ngày ("có ngày" + "chưa có ngày"); ca này chỉ còn ở đơn CŨ → dựng lại bằng SQL: dịch vụ danh mục có ngày, dịch vụ nhập tay trống ngày
@@ -64,7 +63,7 @@ try {
   assert.equal(await p.ev(`${svc(1)}.querySelectorAll('.kv-warn').length`), 1);
   assert.equal(await p.ev(`${svc(1)}.querySelector('.tag-price') === null`), true, "dịch vụ nhập tay không có nhãn lệch giá");
   assert.deepEqual(await p.ev(pairs("document", ".totals .kv")).then((r) => r.slice(0, 5)), [
-    ["Tạm tính", "4.350.000 ₫"], ["Giảm giá", "100.000 ₫"], ["Tổng cộng", "4.250.000 ₫"], ["Khách hàng đã trả trước", "500.000 ₫"], ["Còn lại", "3.750.000 ₫"], // ADR-0089 đ3: nhãn trước Đã giao
+    ["Tạm tính", "4.350.000 ₫"], ["Giảm giá", "100.000 ₫"], ["Tổng cộng", "4.250.000 ₫"], ["Khách hàng đã trả trước", "0 ₫"], ["Còn lại", "4.250.000 ₫"], // ADR-0135 Đ7: nháp chưa có khoản thu
   ]);
   assert.deepEqual(await p.ev("[...document.querySelectorAll('#actions .btn')].map((b) => b.textContent)"), ["Sửa", "Xác nhận đơn", "Huỷ đơn"]);
   assert.equal(await p.ev("!!document.querySelector('.lock-note')"), false, "đơn nháp không có dòng nhắc khoá");

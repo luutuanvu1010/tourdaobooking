@@ -51,8 +51,12 @@ const fldB = await me(await session(ACCOUNTS.fieldB));
   assert.ok(!("remainingAmount" in o) && !("depositAmount" in o), "đơn không còn trường cọc cũ");
   const tong = o.total;
   assert.equal(tong, 300000);
-  assert.equal((await call(A, "POST", `/api/orders/${o.id}/payments`, { soTien: 100000, hinhThuc: "BANK_TRANSFER", nguoiThu: "cong_ty" })).status, 201, "Bán hàng khai Công ty thu – CK");
+  // ADR-0135 Đ7: nháp không ghi thu — xác nhận TRƯỚC, rồi mới khai khoản thu.
+  const nhapThu = await call(A, "POST", `/api/orders/${o.id}/payments`, { soTien: 100000, hinhThuc: "BANK_TRANSFER", nguoiThu: "cong_ty" });
+  assert.equal(nhapThu.status, 409, "đơn nháp: chưa ghi thu được");
+  assert.equal(nhapThu.body.error.code, "order_draft_no_payment");
   assert.equal((await call(A, "POST", `/api/orders/${o.id}/status`, { status: "confirmed" })).status, 200);
+  assert.equal((await call(A, "POST", `/api/orders/${o.id}/payments`, { soTien: 100000, hinhThuc: "BANK_TRANSFER", nguoiThu: "cong_ty" })).status, 201, "Bán hàng khai Công ty thu – CK");
 
   // Bán hàng không có nút Đã giao (ô order.handover = none); Quản trị không Hoàn thành được (order.complete = none).
   assert.equal((await call(A, "POST", `/api/orders/${o.id}/delivered`, {})).status, 403, "Bán hàng không bấm Đã giao");
@@ -133,6 +137,7 @@ const fldB = await me(await session(ACCOUNTS.fieldB));
   const r = await call(A, "POST", "/api/orders", { ...orderInput({ services: [catalogService({ pax: { adult: 1 }, departDate: vnDate(5) })] }), handlerStaffId: fld.id });
   assert.equal(r.status, 201, JSON.stringify(r.body));
   const o = r.body.order;
+  assert.equal((await call(A, "POST", `/api/orders/${o.id}/status`, { status: "confirmed" })).status, 200, "ADR-0135 Đ7: đơn phải xác nhận trước khi ghi thu");
   assert.equal((await call(F, "POST", `/api/orders/${o.id}/payments`, { soTien: 100000, hinhThuc: "BANK_TRANSFER", nguoiThu: "cong_ty" })).status, 201, "HDV khai Công ty thu – CK");
   assert.equal((await call(F, "POST", `/api/orders/${o.id}/payments`, { soTien: 50000, hinhThuc: "CASH", nguoiThu: "toi" })).status, 201, "HDV thu tiền mặt");
   const ck = (await sqlRows(`SELECT id FROM bil_payment_receipt WHERE order_id = '${o.id}' AND collector_role_code = 'COMPANY'`))[0].id;

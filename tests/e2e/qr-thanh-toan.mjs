@@ -86,6 +86,23 @@ assert.equal(dongTk.find((x) => x.valid_to === null).account_number, SO_THAT);
 assert.ok(dongTk.some((x) => x.account_number === SO_TAM && x.valid_to !== null), "dòng cũ được đóng, giữ làm lịch sử");
 console.log("✓ cài tài khoản nhận tiền: Kế toán/Quản trị/Bán hàng 403; thân cũ 409 stale; đúng một dòng hiện hành, dòng cũ đóng");
 
+// ---- 2b) ADR-0135 Đ7 + Đ8: đơn NHÁP không ghi thu, không có QR (kể cả khi đã cài tài khoản); sau xác nhận thì có
+{
+  const r = await call(A, "POST", "/api/orders", { ...orderInput({ services: [catalogService({ pax: { adult: 1 }, departDate: vnDate(10) })] }), handlerStaffId: fld.id });
+  assert.equal(r.status, 201, JSON.stringify(r.body));
+  const id = r.body.order.id;
+  const thu = await call(A, "POST", `/api/orders/${id}/payments`, { soTien: 10000, hinhThuc: "CASH", nguoiThu: "toi" });
+  assert.deepEqual([thu.status, maLoi(thu)], [409, "order_draft_no_payment"]);
+  const q = await qr(A, id);
+  assert.deepEqual([q.status, maLoi(q)], [409, "qr_requires_confirmed"]);
+  assert.equal((await qr(B, id)).status, 404, "nháp của người khác: 404, không lộ 409");
+  assert.equal((await call(A, "GET", `/api/orders/${id}/payments`)).body.coTheGhiThu, false);
+  assert.equal((await call(A, "POST", `/api/orders/${id}/status`, { status: "confirmed" })).status, 200);
+  assert.equal((await qr(A, id)).status, 200, "sau xác nhận có QR");
+  assert.equal((await call(A, "POST", `/api/orders/${id}/payments`, { soTien: 10000, hinhThuc: "CASH", nguoiThu: "toi" })).status, 201);
+  console.log("✓ đơn nháp: ghi thu 409 order_draft_no_payment, QR 409 qr_requires_confirmed; sau xác nhận cả hai được");
+}
+
 // ---- 3) QR: mặc định = còn lại; nội dung = mã đơn bỏ gạch; số khác; số gõ lạ ⇒ 400
 assert.equal((await call(A, "POST", `/api/orders/${don1.id}/payments`, { soTien: 50000, hinhThuc: "CASH", nguoiThu: "toi" })).status, 201);
 const q = await qr(A, don1.id);

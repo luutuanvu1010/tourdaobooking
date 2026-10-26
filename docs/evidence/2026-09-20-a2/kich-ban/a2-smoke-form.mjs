@@ -26,9 +26,9 @@ try {
   await p.waitFor("!document.getElementById('hk-card').hidden", "khối Hành khách dựng xong");
   assert.deepEqual(await p.ev("[...document.querySelectorAll('.form-main > .card > h2, .form-main > .card > .khach-dau > h2')].map((x) => x.textContent)"), ["Khách hàng", "Dịch vụ", "Hành khách", "Thanh toán"]); // 14/10: bốn bước — khách lên đầu, ngày khởi hành nằm trong khối khách (không còn thẻ "Chọn ngày")
   assert.equal(await p.ev("document.getElementById('add-manual').hidden"), true, "nút '+ Dịch vụ nhập tay' ẩn khi danh mục tải được");
-  assert.equal(await p.ev("document.getElementById('prepaidMethod').value"), "BANK_TRANSFER", "hình thức trả trước mặc định Chuyển khoản (YC-0002, chủ duyệt 30/9)");
-  assert.match(await p.ev("document.querySelector('label:has(#prepaidAmount)').textContent"), /^Thanh toán trước/);
-  assert.match(await p.ev("document.querySelector('label:has(#prepaidMethod)').textContent"), /^Hình thức/);
+  // ADR-0135 Đ7: màn Tạo đơn không còn ô «Thanh toán trước» / «Hình thức» / «Người thu tiền» (nháp chưa ghi thu được).
+  assert.equal(await p.ev("['prepaidAmount', 'prepaidMethod', 'prepaidCollector', 'prepaid-hint', 'sum-prepaid-row', 'mobile-prepaid-row'].filter((id) => document.getElementById(id)).length"), 0, "không còn ô / dòng trả trước");
+  assert.equal(await p.ev("/Thanh toán trước|Người thu tiền/.test(document.querySelector('#pay-card').textContent)"), false, "khối Thanh toán không nhắc trả trước");
   assert.equal(await p.ev("document.getElementById('customerName').value"), "", "không điền sẵn tên khách (YC-0002)");
   await p.ev("document.getElementById('use-mine').click(); true");
   assert.deepEqual(await p.ev("[document.getElementById('customerName').value, document.getElementById('customerPhone').value, document.getElementById('customerEmail').value]"), [ACCOUNTS.salesA.name, ACCOUNTS.salesA.phone, ""]);
@@ -142,19 +142,16 @@ try {
 
   // ---- 7) thanh toán, tóm tắt, kiểm phía trình duyệt ----
   assert.match(await p.ev("document.getElementById('sum-subtotal').textContent"), /7\.350\.000/);
-  await p.ev(setInput("document.getElementById('prepaidAmount')", "1000000"));
-  assert.match(await p.ev("document.getElementById('sum-prepaid').textContent"), /1\.000\.000/);
-  assert.equal(await p.ev("document.getElementById('sum-prepaid-row').hidden"), false, "tóm tắt hiện dòng trả trước (ghi sau khi lưu)");
   await p.ev("document.getElementById('save').click(); true"); // thiếu tên/SĐT khách
   await p.waitFor("!document.getElementById('save-error').hidden", "banner kiểm phía trình duyệt");
   assert.equal(await p.ev("(() => { const r = document.getElementById('save-error').getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight; })()"), true, "banner lỗi nằm trong khung nhìn sau khi bấm Lưu (điện thoại)");
   const msg = await p.ev("document.getElementById('save-error').textContent");
   for (const m of ["Nhập tên khách.", "Nhập số điện thoại khách."]) assert.ok(msg.includes(m), `thiếu "${m}" trong: ${msg}`);
-  ok("tóm tắt 7.350.000 / trả trước 1.000.000; bấm Lưu khi thiếu tên, SĐT → banner nêu đủ");
+  ok("tóm tắt 7.350.000 (không dòng trả trước); bấm Lưu khi thiếu tên, SĐT → banner nêu đủ");
 
   // ---- 8) lưu thành công → đơn có đúng dữ liệu (đọc lại qua API) ----
   // 2026-09-26 (DK-T3-01, chủ dự án "loại bỏ hoàn toàn dịch vụ nhập tay"): máy chủ không nhận dịch vụ nhập tay MỚI (400) → xoá thẻ nhập tay của bước 5
-  // trước khi lưu; đơn lưu còn HAI dịch vụ danh mục: 3.550.000 (TD101) + 3.000.000 (TTB03) = 6.550.000, cọc 1.000.000 → còn lại 5.550.000.
+  // trước khi lưu; đơn lưu còn HAI dịch vụ danh mục: 3.550.000 (TD101) + 3.000.000 (TTB03) = 6.550.000, không còn khoản trả trước ở form.
   await p.ev(`${card(2)}.querySelector('.svc-remove').click(); true`);
   await p.waitFor(`${cards}.length === 2 && /6\\.550\\.000/.test(document.getElementById('sum-subtotal').textContent)`, "đã xoá thẻ nhập tay mới, tạm tính 6.550.000");
   await p.ev(setInput("document.getElementById('customerName')", "Trần Văn Bình"));
@@ -165,9 +162,9 @@ try {
   const detail = await p.ev(`fetch('/api/orders/' + ${JSON.stringify(orderId)}).then((r) => r.json())`);
   assert.equal(detail.order.services.length, 2);
   assert.equal(detail.order.subtotal, 6550000);
-  // Bước hai của form (sổ tiền lượt 1): trả trước 1.000.000 thành lần thu "Công ty thu – CK" → còn lại 5.550.000 (billing).
+  // ADR-0135 Đ7: form không còn bước hai ghi thu — nháp vừa lưu chưa có khoản thu nào, và chưa ghi thu được.
   const tienDon = await p.ev(`fetch('/api/orders/' + ${JSON.stringify(orderId)} + '/payments').then((r) => r.json())`);
-  assert.deepEqual([tienDon.daThu, tienDon.conLai, tienDon.lanThu.length], [1000000, 5550000, 1]);
+  assert.deepEqual([tienDon.daThu, tienDon.lanThu.length, tienDon.coTheGhiThu], [0, 0, false]);
   const tour = detail.order.services.find((s) => s.catalogCode === "TD101");
   assert.deepEqual(tour.items.map((i) => [i.paxCode, i.quantity, i.unitPrice, i.catalogPrice]), [["adult", 2, 1300000, 1350000], ["child", 1, 950000, 950000]]);
   assert.equal(tour.departDate, vnDate(7));
@@ -438,8 +435,8 @@ try {
   await p.ev(setInput(`${card(0)}.querySelector('input[placeholder="Vd: Xe 7 chỗ 2 chiều"]')`, "Xe 7 chỗ 2 chiều"));
   await p.ev(setInput(`${card(0)}.querySelector('.price-field')`, "500000"));
   await p.waitFor("document.getElementById('mobile-total').textContent.includes('500.000')", "khối tóm tắt điện thoại cập nhật số tiền");
-  const readMobileSummary = () => p.ev(`(() => { const s = getComputedStyle(document.querySelector('.mobile-actions-summary')); return { display: s.display, total: document.getElementById('mobile-total').textContent, prepaid: !document.getElementById('mobile-prepaid-row').hidden }; })()`);
-  assert.deepEqual(await readMobileSummary(), { display: "block", total: "500.000 ₫", prepaid: false }, "390px (điện thoại): khối tóm tắt PHẢI hiện, đúng số tiền (sổ tiền lượt 1: không trả trước → không dòng 'Trả trước', không tự trừ 'Còn lại')");
+  const readMobileSummary = () => p.ev(`(() => { const s = getComputedStyle(document.querySelector('.mobile-actions-summary')); return { display: s.display, total: document.getElementById('mobile-total').textContent, dongTraTruoc: document.getElementById('mobile-prepaid-row') !== null }; })()`);
+  assert.deepEqual(await readMobileSummary(), { display: "block", total: "500.000 ₫", dongTraTruoc: false }, "390px (điện thoại): khối tóm tắt PHẢI hiện, đúng số tiền (ADR-0135: không còn dòng 'Trả trước', không tự trừ 'Còn lại')");
   // Thiết kế lại 18/10 (Việc 8, sửa CÓ CHỦ ĐÍCH): dưới 960px (form một cột, kể cả iPad dọc 800px) KHÔNG còn khối Tóm tắt — dòng tổng ở thanh dính cuối trang thay nó, nên 800px nay PHẢI hiện
   // dòng tổng (trước: ẩn, vì khối Tóm tắt còn hiện ở khổ đó). Hành vi đầy đủ của thanh dính: docs/evidence/2026-10-18-tao-don-thiet-ke-lai/kich-ban/thanh-dinh-smoke.mjs.
   const tomTatHien = () => p.ev("document.querySelector('.summary-card').getClientRects().length > 0");
@@ -464,12 +461,11 @@ try {
   // ---- 12a) bản 1.39: đếm dịch vụ (tiêu đề khối, Tóm tắt, thanh dính đáy một dòng); nhãn dịch vụ đã có trong đơn (không chặn chọn trùng) ----
   // Thiết kế lại 18/10 (DAC-TA mục 3A — sửa CÓ CHỦ ĐÍCH): bỏ thông báo nổi "Đã thêm … — đơn có N dịch vụ", thay bằng vùng aria-live của ô chọn ("Đã thêm <tên>")
   // và nhãn "✓ đã thêm" ngay trên dòng (trước: "đã chọn"). Hành vi đầy đủ của ô chọn: docs/evidence/2026-09-30-nhom-dich-vu/kich-ban/chip-nhom-smoke.mjs.
-  const dem = () => p.ev(`({ title: document.getElementById('services-title').textContent, sum: document.getElementById('sum-count').textContent, mob: document.querySelector('.mobile-sum-line > span:first-child').textContent, due: !document.getElementById('mobile-prepaid-row').hidden, toast: [...document.querySelectorAll('.toast-bao')].map((t) => t.textContent), bar: Math.round(document.querySelector('.form-actions').getBoundingClientRect().height) })`);
+  const dem = () => p.ev(`({ title: document.getElementById('services-title').textContent, sum: document.getElementById('sum-count').textContent, mob: document.querySelector('.mobile-sum-line > span:first-child').textContent, toast: [...document.querySelectorAll('.toast-bao')].map((t) => t.textContent), bar: Math.round(document.querySelector('.form-actions').getBoundingClientRect().height) })`);
   const d1 = await dem();
   assert.equal(d1.title, "Dịch vụ (1)");
   assert.equal(d1.sum, "1 dịch vụ");
   assert.match(d1.mob, /^1 dịch vụ · Tổng /);
-  assert.equal(d1.due, false, "chưa có thanh toán trước: không hiện 'Trả trước' (sổ tiền lượt 1 — thay 'Còn lại')");
   assert.deepEqual(d1.toast, [], "không còn thông báo nổi sau khi chọn dịch vụ (thiết kế lại 18/10)");
   await p.waitFor("document.querySelector('.catalog .catalog-bao').textContent === 'Đã thêm Tour 4 đảo Nha Trang'", "vùng aria-live của ô chọn đọc 'Đã thêm <tên>'");
   await p.ev("document.getElementById('catalog-q').focus(); true");
@@ -481,12 +477,8 @@ try {
   const d2 = await dem();
   assert.equal(d2.title, "Dịch vụ (2)");
   assert.deepEqual(d2.toast, [], "chọn trùng: vẫn không thông báo nổi");
-  await p.ev(setInput("document.getElementById('prepaidAmount')", "100000"));
-  await p.waitFor("!document.getElementById('mobile-prepaid-row').hidden", "có thanh toán trước: hiện 'Trả trước'");
-  const d3 = await dem();
-  console.log(`   thanh dính đáy 390px: không thanh toán trước ${d2.bar}px, có thanh toán trước ${d3.bar}px`);
-  await p.ev(setInput("document.getElementById('prepaidAmount')", ""));
-  ok(`đếm dịch vụ: 'Dịch vụ (N)', Tóm tắt 'N dịch vụ', thanh đáy một dòng (Trả trước chỉ khi có thanh toán trước — sổ tiền lượt 1; ${d2.bar}/${d3.bar}px), không thông báo nổi (aria-live 'Đã thêm …'), nhãn '✓ đã thêm' không chặn chọn trùng`);
+  console.log(`   thanh dính đáy 390px: ${d2.bar}px (không còn dòng trả trước, ADR-0135)`);
+  ok(`đếm dịch vụ: 'Dịch vụ (N)', Tóm tắt 'N dịch vụ', thanh đáy một dòng (thanh đáy ${d2.bar}px, không dòng trả trước — ADR-0135), không thông báo nổi (aria-live 'Đã thêm …'), nhãn '✓ đã thêm' không chặn chọn trùng`);
   const m = await p.ev(`(() => {
     const small = [...document.querySelectorAll('.counter-btn, .svc-remove, #save, .catalog-list button, .trip > summary')].filter((el) => { const r = el.getBoundingClientRect(); return r.width > 0 && (r.height < 43.5 || r.width < 43.5); }).map((el) => el.className + ' ' + Math.round(el.getBoundingClientRect().width) + 'x' + Math.round(el.getBoundingClientRect().height));
     const smallFont = [...document.querySelectorAll('input, select, textarea')].filter((el) => el.getBoundingClientRect().width > 0 && parseFloat(getComputedStyle(el).fontSize) < 16).map((el) => el.id || el.className);

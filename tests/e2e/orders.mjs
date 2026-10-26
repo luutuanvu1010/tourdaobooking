@@ -34,6 +34,8 @@ assert.equal(o.subtotal, 1400000); assert.equal(o.total, 1300000);
 assert.ok(!("remainingAmount" in o) && !("depositAmount" in o), "đơn không mang ba trường cọc cũ");
 // (Đơn RIÊNG cho phần tiền — giữ nguyên số dòng nhật ký của đơn `o` mà các bước sau đếm.)
 const oTien = (await call(A, "POST", "/api/orders", input)).body.order;
+assert.equal((await call(A, "POST", `/api/orders/${oTien.id}/payments`, { soTien: 500000, hinhThuc: "CASH", nguoiThu: "toi" })).status, 409, "ADR-0135 Đ7: đơn nháp chưa ghi thu được");
+assert.equal((await call(A, "POST", `/api/orders/${oTien.id}/status`, { status: "confirmed" })).status, 200);
 assert.equal((await call(A, "POST", `/api/orders/${oTien.id}/payments`, { soTien: 500000, hinhThuc: "CASH", nguoiThu: "toi" })).status, 201);
 const tienO = (await call(A, "GET", `/api/orders/${oTien.id}/payments`)).body;
 assert.deepEqual([tienO.phaiThu, tienO.daThu, tienO.conLai], [1300000, 500000, 800000], "còn lại = phải thu − đã thu (billing)");

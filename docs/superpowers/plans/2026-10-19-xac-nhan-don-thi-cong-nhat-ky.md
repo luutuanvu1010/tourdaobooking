@@ -73,3 +73,27 @@ Sổ điều phối (P19: trạng thái sống ở đây, không trong trí nh�
 - `STATUS_LABEL.draft` còn là «Chờ xác nhận» (đổi chữ thuộc giao diện/Đợt 3).
 - HDV chọn sẵn nay nhận 404 (trước là 403/409) ở `handler-cancel`/`handler-money-edit`/`handler-refuse` với nháp.
 - Billing ghép nhãn đơn nháp đã nhận tiền: để Task 2.2.
+
+## Lần giao L2 (26/10, trợ lý thi công; Task 2.2 trừ Step 0 — CHƯA kiểm độc lập)
+
+**Phạm vi**: ADR-0135 Đ7 + Đ8. Nháp không ghi thu (409 `order_draft_no_payment`; người khác → 404 trước, theo L1); cổng đặt ở đơn NHẬN của lệnh chuyển cọc (`ghiChuyen`); cờ `coTheGhiThu` thêm `status !== "draft"`. QR: mọi đơn không `confirmed` → 409 `qr_requires_confirmed` (đặt SAU kiểm quyền xem + `money.view`, TRƯỚC đọc tiền/tài khoản). Màn Tạo đơn bỏ ba ô trả trước, bước hai ghi thu, dòng ở Tóm tắt / thanh dính / bảng chi tiết, tham số `thutruoc=loi` của trang đơn; nút QR ở `web/order.ts` chỉ khi `confirmed`. Hướng dẫn Bán hàng + Đối tác sửa câu ô «Thanh toán trước». Không migration, không đổi ô quyền.
+
+**Step 0 — VIỆC CỦA CHỦ trước khi chạy `npm run trien-khai`** (AI không chạy lệnh remote). Chạy ở thư mục `tourdao-sales`:
+```
+npx wrangler d1 execute tourdao-sales-db --remote --command "SELECT COUNT(DISTINCT o.id) AS so_don FROM orders o JOIN bil_payment_receipt r ON r.order_id = o.id WHERE o.status = 'draft'"
+```
+Kết quả > 0: chủ quyết cách xử lý các nháp đó (huỷ chúng rơi vào lỗ TNV-G1) và ghi kết quả vào nhật ký này. Kết quả chưa có.
+
+**Thứ tự đỏ → xanh**: `nhap-khong-thu.test.ts` 6/6 đỏ (201 thay vì 409; `coTheGhiThu` true; 201 thay vì 400 ở duyệt chuyển; QR 200/`nothing_due`) → cài đặt → 6/6 xanh. `tao-don-khong-tra-truoc.test.ts` 3/3 đỏ (còn `prepaid`, còn câu hướng dẫn, nút QR chưa chặn) → sửa form / hướng dẫn / `order.ts` → xanh.
+
+**Bài cũ sửa dữ liệu gieo / kỳ vọng (không nới luật)**: `ben-kia.test.ts` (ghi thu lên nháp: 400 → 409 vì cổng đứng trước); `qr-thanh-toan.test.ts` (đơn huỷ: `nothing_due` → `qr_requires_confirmed`); `o-chon-nhan-noi-safari.test.ts` (bỏ điều kiện «còn ít nhất một ô chọn một» vì hai ô chọn một duy nhất của form đã bỏ; luật cho ô sau này giữ). e2e: `so-tien`, `orders`, `chong-ghi-trung`, `sua-so-khach`, `dispatch` xác nhận đơn TRƯỚC khi ghi thu; `sua-so-khach` CA 4: Kế toán sửa tiền nháp của người khác 409 → 404 (hệ quả L1); thêm ca vào `so-tien` (nháp 409) và `qr-thanh-toan` mục 2b. Kịch bản Chrome `a2-smoke-form.mjs` (bỏ mọi chỗ gõ / đo ô trả trước, thêm kiểm «không còn ô») và `a2-smoke-order.mjs` (bỏ khoản thu 500.000 lên nháp; tiền «đã trả trước 0 ₫»).
+
+**Rà `billing` (câu hỏi L1 để ngỏ — `v_ord_order_label`)**: đã xem mọi route đọc của `billing/index.ts`: `GET …/payments` (đã chặn nháp người khác ở L1), `GET …/nhap-ke-toan` (L1), `POST /api/ledger/balances` (L1 bỏ nháp người khác), `GET /api/ledger/unpaid-summary` (chỉ đếm, đơn đã xác nhận), `GET /api/ledger/mine`, `GET /api/ledger`, `GET /api/ledger/ben/:partyId`, `GET /api/ledger/coc`, `…/coc/doi-chieu`, `…/coc/dem`, `GET /api/ledger/adjustment-requests`, `GET /api/ledger/ky`. Kết quả: (1) MỘT chỗ lộ mã đơn nháp qua view đã có và đã chặn bằng bài đỏ: `POST …/coc/duyet` tra đơn nhận theo MÃ qua `orderByCode` → nhận cả đơn nháp của người khác (201); nay nháp = «Không tìm thấy đơn nhận tiền.» (400). (2) Các route ledger văn phòng (`/api/ledger`, `/ben`, `/coc*`) ghép mã đơn qua `v_ord_order_label` cho mọi dòng `bil_*`; đơn nháp MỚI không còn dòng `bil_*` (không ghi thu được) nên không lộ thêm, nhưng nháp CŨ đã có khoản thu từ ô Trả trước (đối tượng của Step 0) vẫn hiện mã trong sổ cho Kế toán/văn phòng. CHƯA có bài cho phần này vì phụ thuộc kết quả Step 0 (nếu 0 thì không có gì để lộ); xem Nợ.
+
+**Đo (26/10)**: `npm test` — lần cuối 6282 bài, 1 đỏ (`o-chon-nhan-noi-safari`, đã sửa); chạy lại sau sửa xem báo cáo cuối. `typecheck` 0 lỗi, `build:web` xanh. e2e `so-tien qr-thanh-toan coc-don-huy orders nhap-rieng-tu` xanh; thêm `chong-ghi-trung sua-so-khach dispatch` xanh (6/6). Chrome: `a2-smoke-form` xanh («UI SMOKE FORM OK»; 390 + 800 + 1040 trong kịch bản; chưa chạy kiểm màu vì không đặt `AXE_JS` — kịch bản này không dùng axe). `a2-smoke-order` đỏ ở bước 2 (nút «Xác nhận đơn» bị khoá phía giao diện khi nháp thiếu ngày — thay đổi 2ce61247 có từ trước, không do L2; bước 1 đã xanh).
+
+### Nợ / câu hỏi cho chủ (L2)
+- `tests/e2e/so-dai-ly-dot-2.mjs` (mục I): Quản trị gắn «bên đặt» vào nháp của Đối tác / tài khoản lai → nay 404 (nháp riêng tư, hệ quả L1); cần quyết định cách dựng lại ca (xác nhận trước? cho Đối tác Gửi đơn ở Đợt 3?). Chưa sửa.
+- `a2-smoke-order.mjs` đỏ có sẵn (khoá nút Xác nhận khi thiếu ngày); kịch bản Chrome khác còn nhắc ô trả trước: `a2-evidence.mjs`, `v1-xac-nhan-png.mjs`, `qr-smoke.mjs`, `tao-don-thiet-ke-lai/…/than-gui.mjs`, `nhan-noi-safari-smoke.mjs`, `thanh-dinh-smoke.mjs` — chưa chạy, nhiều khả năng cần sửa.
+- Sổ `/api/ledger*` hiện mã nháp cũ có khoản thu cho văn phòng (xem Rà billing) — quyết sau Step 0.
+- Hướng dẫn Đối tác: chỉ sửa câu bước 6 (mâu thuẫn trực tiếp); phần còn lại của Trợ giúp Đối tác để Task 3.5.

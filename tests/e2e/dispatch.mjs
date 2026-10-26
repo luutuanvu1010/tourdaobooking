@@ -979,9 +979,9 @@ try {
   // chỉnh của orders; màn chi tiết đọc GET /api/orders/:id/payments, danh sách / Trang chủ / Việc của tôi đọc POST /api/ledger/balances) ---------
   {
     const d5 = await legacyManualOrder([catSvc({ pax: { adult: 2 }, departDate: vnDate(0) })], 200000);
+    assert.equal((await call(A, "POST", `/api/orders/${d5.id}/status`, { status: "confirmed" })).status, 200, "ADR-0135 Đ7: xác nhận trước khi ghi thu");
     assert.equal((await call(A, "POST", `/api/orders/${d5.id}/payments`, { soTien: 300000, hinhThuc: "CASH", nguoiThu: "cong_ty" })).status, 201, "trả trước 300.000 = lần thu");
     const d5SvcId = d5.services.find((s) => s.catalogCode === "ZH1").id;
-    assert.equal((await call(A, "POST", `/api/orders/${d5.id}/status`, { status: "confirmed" })).status, 200);
     assert.equal((await setHandler(A, d5.id, fld.id)).status, 200);
     r = await moneyEdit(FIELD, d5.id, { reason: "D5: đơn trộn có trả trước", services: [{ id: d5SvcId, pax: pax(4) }] });
     assert.equal(r.status, 200, JSON.stringify(r.body));
@@ -1047,12 +1047,12 @@ try {
       }))
     ).body.order;
     assert.ok(g?.id, "lập đơn giá thoả thuận thất bại");
+    assert.equal((await call(A, "POST", `/api/orders/${g.id}/status`, { status: "confirmed" })).status, 200, "ADR-0135 Đ7: xác nhận trước khi ghi thu");
     assert.equal((await call(A, "POST", `/api/orders/${g.id}/payments`, { soTien: 300000, hinhThuc: "CASH", nguoiThu: "cong_ty" })).status, 201, "trả trước 300.000 = lần thu");
     const conLaiBilling = async () => (await call(A, "GET", `/api/orders/${g.id}/payments`)).body.conLai;
     assert.equal(g.services[0].items[0].unitPrice, DEAL, "đối chứng: đơn lưu đúng giá thoả thuận");
     assert.equal(g.services[0].items[0].catalogPrice, 300000);
     const gSvc = g.services[0].id;
-    assert.equal((await call(A, "POST", `/api/orders/${g.id}/status`, { status: "confirmed" })).status, 200);
     assert.equal((await setHandler(A, g.id, fld.id)).status, 200);
     const adjCount = async () => Number((await sqlRows(`SELECT count(*) AS n FROM order_money_adjustment WHERE order_id = '${g.id}'`))[0].n);
 

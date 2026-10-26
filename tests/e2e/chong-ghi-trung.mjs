@@ -117,8 +117,8 @@ const TAG = randomUUID().slice(0, 6);
 // "Ghi chi hoàn" (Kế toán) — lối ghi hoàn tự do trả 409 `coc_needs_approval`; tình huống gửi lại cùng vé nay đặt ở lệnh "Ghi chi hoàn".
 {
   const o = await lapDon(`KT03 Cùng Vé ${TAG}`);
+  await xacNhan(o.id); // ADR-0135 Đ7: xác nhận TRƯỚC khi ghi thu
   assert.equal((await call(A, "POST", `/api/orders/${o.id}/payments`, { soTien: 100000, hinhThuc: "CASH", nguoiThu: "toi" })).status, 201);
-  await xacNhan(o.id);
   assert.equal((await call(A, "POST", `/api/orders/${o.id}/status`, { status: "cancelled", lyDo: "KHACH_DOI_Y" })).status, 200, "huỷ đơn");
   assert.equal((await call(ACC, "POST", "/api/ledger/refunds", { orderId: o.id, soTien: 40000, hinhThuc: "BANK_TRANSFER", nguoiTra: "cong_ty" })).body?.error?.code, "coc_needs_approval", "KT03: đơn huỷ không ghi hoàn tự do");
   const duyet = await call(ADM, "POST", `/api/orders/${o.id}/coc/duyet`, { loai: "hoan", soTien: 40000, lyDo: "Khách xin lại một phần cọc" });
@@ -138,6 +138,7 @@ const TAG = randomUUID().slice(0, 6);
   await haiLanCungVe("KT04 nộp", ACC, "POST", "/api/ledger/settlements", { chieu: "nop", partyId: hdvParty, phanBo: [{ orderId: o.id, soTien: 200000 }] });
   assert.equal(await dem(`SELECT count(*) AS n FROM audit_log WHERE action = 'ledger_settlement'`), truoc + 1, "KT04: một lần nộp");
   const o2 = await lapDon(`KT04 Đảo ${TAG}`);
+  await xacNhan(o2.id); // ADR-0135 Đ7: xác nhận TRƯỚC khi ghi thu
   assert.equal((await call(A, "POST", `/api/orders/${o2.id}/payments`, { soTien: 50000, hinhThuc: "CASH", nguoiThu: "toi" })).status, 201);
   const receiptId = (await sqlRows(`SELECT id FROM bil_payment_receipt WHERE order_id = '${o2.id}' AND kind_code = 'CUSTOMER_PAYMENT'`))[0].id;
   const truocDao = await dem(`SELECT count(*) AS n FROM bil_payment_receipt WHERE order_id = '${o2.id}'`);

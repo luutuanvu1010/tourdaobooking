@@ -29,6 +29,6 @@ test("ô chọn một trong khung nhãn nổi tự vẽ (appearance: none) để
 test("mọi ô chọn một của form Tạo đơn là CON TRỰC TIẾP của khung nhãn nổi (luật `.o-noi-khung > select` áp tới)", () => {
   const soChon = (html.match(/<select\b/g) ?? []).length;
   const soTrongKhung = (html.match(/<span class="o-noi-khung[^"]*"><span class="o-noi-chu">[^<]*<\/span><select\b/g) ?? []).length;
-  assert.ok(soChon > 0, "form Tạo đơn không còn ô chọn một nào — xem lại bài");
+  // ADR-0135 Đ7: ba ô «Hình thức» / «Người thu tiền» (hai ô chọn một duy nhất của form) đã bỏ; form có thể không còn ô chọn một nào — luật canh cho ô sau này.
   assert.equal(soTrongKhung, soChon, "có ô chọn một nằm ngoài khung nhãn nổi (hoặc không là con trực tiếp)");
 });

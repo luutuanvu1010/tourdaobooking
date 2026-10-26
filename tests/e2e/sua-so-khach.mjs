@@ -26,9 +26,10 @@ async function donXacNhan({ adult, child = 0, discount = 0, daTra = 0, departDat
   const r = await call(A, "POST", "/api/orders", { ...orderInput({ services: [catalogService({ pax: child ? { adult, child } : { adult }, departDate })], discount }), handlerStaffId: fld.id });
   assert.equal(r.status, 201, JSON.stringify(r.body));
   const o = r.body.order;
-  if (daTra > 0) assert.equal((await call(A, "POST", `/api/orders/${o.id}/payments`, { soTien: daTra, hinhThuc: "BANK_TRANSFER", nguoiThu: "cong_ty" })).status, 201, "khách trả trước");
   const xn = await call(A, "POST", `/api/orders/${o.id}/status`, { status: "confirmed" });
   assert.equal(xn.status, 200, JSON.stringify(xn.body));
+  // ADR-0135 Đ7: ghi thu SAU xác nhận (đơn nháp chưa ghi thu được).
+  if (daTra > 0) assert.equal((await call(A, "POST", `/api/orders/${o.id}/payments`, { soTien: daTra, hinhThuc: "BANK_TRANSFER", nguoiThu: "cong_ty" })).status, 201, "khách trả trước");
   return { id: o.id, svc: o.services[0].id };
 }
 const sua = (cookie, don, adult, lyDo = "BOT_NGUOI", child = 0) => call(cookie, "POST", `/api/orders/${don.id}/money-edit`, { lyDo, services: [{ id: don.svc, pax: P(adult, child) }] });
@@ -144,7 +145,8 @@ const tienDon = async (id) => (await call(ACC, "GET", `/api/orders/${id}/payment
   const nhap = await call(A, "POST", "/api/orders", orderInput());
   assert.equal(nhap.status, 201);
   const rn = await call(ACC, "POST", `/api/orders/${nhap.body.order.id}/money-edit`, { lyDo: "KHAC", services: [{ id: nhap.body.order.services[0].id, pax: P(2) }] });
-  assert.deepEqual([rn.status, rn.body.error?.code ?? rn.body.code], [409, "use_order_form"], JSON.stringify(rn.body));
+  assert.deepEqual([rn.status, rn.body.error?.code ?? rn.body.code], [404, "not_found"], JSON.stringify(rn.body));
+  // ADR-0135 Đ2: nháp của người KHÁC (Kế toán) → 404 (trước L1 là 409 use_order_form).
 
   const don = await donXacNhan({ adult: 1, departDate: vnDate(0) });
   const d = await call(F, "POST", `/api/orders/${don.id}/delivered`, { lanThu: { soTien: 100000, hinhThuc: "CASH", nguoiThu: "toi" } });

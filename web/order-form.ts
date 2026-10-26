@@ -50,8 +50,6 @@ import { benDatCuaToi, initShell, setBarTitle } from "./shell";
 
 const params = new URLSearchParams(location.search);
 const editId = params.get("id");
-/** Tiền trả trước KHÔNG nhận ở form này (ẩn ba ô, không đọc số): đang SỬA đơn, hoặc người lập có quyền ghi sổ (ADR-0092 Đ6 — ô mã chỉ có ở trang đơn). Đặt SAU `initShell()` (cần biết tài khoản); đọc ở `recompute`, `validate` và bước hai của lúc lưu thay cho `editId`. */
-let traTruocAn = Boolean(editId);
 const focusId = params.get("focus");
 const today = vnToday(new Date());
 /**
@@ -410,42 +408,22 @@ function gapChiTietKhiLoi(): void {
   if (!wide() && !bangChiTiet.hidden) datMoChiTiet(false);
 }
 
-/**
- * Việc 8: "Hình thức", "Người nhận tiền" và câu ghi sổ chỉ hiện khi đã nhập số trả trước (lúc lưu chỉ đọc hai ô này khi số > 0 — thân gửi không đổi).
- * `traTruocAn` (đang sửa đơn / người có quyền ghi sổ): ba ô đã ẩn hẳn và câu giải thích riêng luôn hiện — không đụng ở đây.
- */
-function capNhatOTraTruoc(): void {
-  if (traTruocAn) return;
-  const co = num("prepaidAmount") > 0;
-  for (const id of ["prepaid-method-field", "prepaid-collector-field", "prepaid-hint"]) byId(id).hidden = !co;
-}
-
 // ---- tóm tắt tiền và trạng thái nút ----
 function recompute(): void {
   const ds = drafts();
-  const s = orderSummary(ds, num("discount"), traTruocAn ? 0 : num("prepaidAmount"));
+  const s = orderSummary(ds, num("discount"), 0);
   // MỘT lần tính (`orderSummary`), cùng chuỗi `vnd()` cho Tóm tắt (≥ 960px) và thanh dính cuối trang + bảng chi tiết (dưới 960px) — không tính tiền ở chỗ thứ hai; máy chủ tính lại khi lưu.
   const tamTinh = vnd(s.subtotal);
   const giamGia = vnd(s.discount);
   const tong = vnd(s.total);
-  // Sổ tiền lượt 1 (ADR-0026 đ9): KHÔNG tự trừ ra "còn lại" ở trình duyệt — chỉ nhắc lại số trả trước sẽ ghi thành khoản thu sau khi lưu.
-  const traTruoc = vnd(s.traTruoc);
-  const khongTraTruoc = s.traTruoc === 0;
   byId("sum-subtotal").textContent = tamTinh;
   byId("sum-discount").textContent = giamGia;
   byId("sum-total").textContent = tong;
-  byId("sum-prepaid").textContent = traTruoc;
-  byId("sum-prepaid-row").hidden = khongTraTruoc;
   byId("mobile-total").textContent = tong;
-  byId("mobile-prepaid").textContent = traTruoc;
-  byId("mobile-prepaid-row").hidden = khongTraTruoc;
   byId("ct-tam-tinh").textContent = tamTinh;
   byId("ct-giam-gia").textContent = giamGia;
   byId("ct-tong").textContent = tong;
-  byId("ct-tra-truoc").textContent = traTruoc;
-  byId("ct-tra-truoc-dong").hidden = khongTraTruoc;
-  capNhatOTraTruoc();
-  // Bản 1.39: đếm dịch vụ ở tiêu đề khối, Tóm tắt và thanh dính đáy (một dòng "N dịch vụ · Tổng …"; sổ tiền lượt 1: "Trả trước" chỉ khi có số trả trước —
+  // Bản 1.39: đếm dịch vụ ở tiêu đề khối, Tóm tắt và thanh dính đáy (một dòng "N dịch vụ · Tổng …"; ADR-0135: form không còn nhận tiền trả trước —
   // không tự trừ "còn lại" ở trình duyệt, ADR-0026 đ9).
   const n = entries.length;
   byId("services-title").textContent = n > 0 ? `Dịch vụ (${n})` : "Dịch vụ";
@@ -470,7 +448,7 @@ function recompute(): void {
   saveBtn.textContent = saving ? "Đang lưu…" : editId ? "Lưu thay đổi" : "Lưu, chờ xác nhận";
 }
 
-for (const id of ["discount", "prepaidAmount"]) {
+for (const id of ["discount"]) {
   const el = field(id) as HTMLInputElement;
   el.addEventListener("input", () => {
     regroupMoney(el); // gõ tự nhóm hàng nghìn, giữ con trỏ
@@ -488,17 +466,12 @@ function datLoiO(id: string, cau: string | null): void {
   field(id).setAttribute("aria-invalid", cau ? "true" : "false");
 }
 
-/** Câu lỗi tiền của biểu mẫu (giảm giá quá tạm tính / trả trước quá tổng): MỘT nơi, dùng cho cả khung "Chưa lưu được" (`validate`) lẫn dấu ✓ của bước Thanh toán (`capNhatBuoc`) — không so sánh tiền ở chỗ thứ hai. Máy chủ vẫn chặn lại ở rules.ts. */
-function loiTienForm(): { cau: string[]; oTraTruoc: boolean } {
+/** Câu lỗi tiền của biểu mẫu (giảm giá quá tạm tính): MỘT nơi, dùng cho cả khung "Chưa lưu được" (`validate`) lẫn dấu ✓ của bước Thanh toán (`capNhatBuoc`) — không so sánh tiền ở chỗ thứ hai. Máy chủ vẫn chặn lại ở rules.ts. */
+function loiTienForm(): { cau: string[] } {
   const lines: string[] = [];
-  let oTraTruoc = false;
-  const s = orderSummary(drafts(), num("discount"), traTruocAn ? 0 : num("prepaidAmount"));
+  const s = orderSummary(drafts(), num("discount"), 0);
   if (s.discount > s.subtotal) lines.push("Giảm giá không được vượt quá tạm tính.");
-  else if (s.traTruoc > s.total) {
-    lines.push("Thanh toán trước không được vượt quá tổng cộng.");
-    oTraTruoc = true;
-  }
-  return { cau: lines, oTraTruoc };
+  return { cau: lines };
 }
 
 /** `cacO` = mọi ô / khối có lỗi: nơi gọi mở khối gập chứa chúng (`moKhoiChua`) — lỗi không bao giờ nằm trong khối đóng. */
@@ -535,7 +508,6 @@ function validate(): { banner: Banner; focus: HTMLElement; cacO: HTMLElement[] }
   }
   const tien = loiTienForm();
   lines.push(...tien.cau);
-  if (tien.oTraTruoc) focusables.push(field("prepaidAmount"));
   if (lines.length === 0) return null;
   return { banner: banner("danger", "Chưa lưu được — kiểm tra lại:", { lines: lines.map((text) => ({ text })) }), focus: focusables[0] ?? saveErrorEl, cacO: focusables };
 }
@@ -683,23 +655,9 @@ async function luu(datGap?: { entry: Entry; legKey: string; than: { lyDo: LyDoDa
         datGapLoi = "&datgap=loi";
       }
     }
-    // BƯỚC HAI (sổ tiền lượt 1 — ADR-0026 đ9, NT-S6): tiền trả trước KHÔNG nằm trong lô tạo đơn; đơn đã lưu xong mới ghi KHOẢN THU qua billing. Lỗi ở bước này
-    // KHÔNG làm mất đơn: vẫn sang trang đơn, kèm `thutruoc=loi` để trang đơn báo "Đơn đã lưu, chưa ghi được tiền trả trước — thử lại".
-    let thuTruocLoi = "";
-    const traTruoc = traTruocAn ? 0 : num("prepaidAmount");
-    if (traTruoc > 0) {
-      try {
-        await api(`/api/orders/${encodeURIComponent(order.id)}/payments`, {
-          method: "POST",
-          body: { soTien: traTruoc, hinhThuc: field("prepaidMethod").value as Api.LanThuInput["hinhThuc"], nguoiThu: field("prepaidCollector").value === "toi" ? "toi" : "cong_ty" } satisfies Api.LanThuInput,
-        });
-      } catch {
-        thuTruocLoi = "&thutruoc=loi";
-      }
-    }
     // THAY mục lịch sử của form (không thêm): Back/bfcache không đưa người dùng về form đã lưu, nơi bấm Lưu lần hai sẽ POST /api/orders lần hai (đơn trùng).
     // Đơn MỚI kèm `moi=1`: trang đơn tự mở hộp thoại "Xác nhận đơn để gửi khách" (ảnh PNG) một lần rồi bỏ tham số; đơn SỬA thì không.
-    location.replace(`/order?id=${encodeURIComponent(order.id)}${editId ? "" : "&moi=1"}${datGapLoi}${thuTruocLoi}`);
+    location.replace(`/order?id=${encodeURIComponent(order.id)}${editId ? "" : "&moi=1"}${datGapLoi}`);
   } catch (err) {
     setSaving(false);
     await onSaveError(err);
@@ -853,8 +811,6 @@ const layDanhMuc = layKhungNho()?.canCreate === true ? goiSom(() => api<Api.Cata
 const layDon = editId ? goiSom(() => api<Api.OrderDetailResponse>(`/api/orders/${encodeURIComponent(editId)}`)) : null;
 const staff = await initShell();
 ganViTriThongBao();
-// Cờ "không nhận tiền trả trước" bật NGAY khi biết tài khoản (người có quyền ghi sổ): từ đây tới khối ẩn ba ô ở dưới không còn khe nào mà số gõ sớm bị đọc ở `recompute` / `validate` / lúc lưu.
-traTruocAn ||= can(staff, "ledger.write");
 picker.setTaiKhoan(staff.id); // ADR-0058 Đ8: nhóm đã chọn nhớ THEO TÀI KHOẢN trên máy — bộ chọn dựng trước khi biết tài khoản, trước dòng này không đọc / ghi bộ nhớ
 retailOnly = chiGiaDanhMuc(staff); // trước loadCatalog/loadOrder: thẻ dịch vụ dựng sau dòng này
 duocDatGap = can(staff, "order.leg.short_notice");
@@ -935,22 +891,6 @@ if (can(staff, "order.create")) await loadCatalog(); // trước loadOrder: th�
 duocNhapTay = await layNhapTay;
 addManualBtn.hidden = !duocNhapTay;
 picker.setNhapTay(duocNhapTay);
-// Sửa đơn nháp: tiền trả trước là KHOẢN THU ở trang đơn (mục Thanh toán), không nhập lại ở form (sổ tiền lượt 1).
-if (editId) {
-  for (const f of ["prepaid-amount-field", "prepaid-method-field", "prepaid-collector-field"]) byId(f).hidden = true;
-  byId("prepaid-hint").textContent = "Tiền khách đã trả trước ghi ở trang đơn (mục Thanh toán → Ghi khoản thu).";
-  byId("prepaid-hint").hidden = false; // câu giải thích duy nhất của khối khi không nhận trả trước — luôn hiện (`capNhatOTraTruoc` không đụng khi `traTruocAn`)
-}
-// ADR-0092 Đ6 (C1): người có quyền ghi sổ (Toàn quyền) ghi CK – Công ty thu phải kèm mã giao dịch ngân hàng — ô mã chỉ ở trang đơn ⇒ form không nhận tiền trả
-// trước của người này (tránh lần gửi chắc chắn 400 làm rơi tiền trả trước); cùng khuôn với lúc sửa đơn.
-if (!editId && can(staff, "ledger.write")) {
-  for (const f of ["prepaid-amount-field", "prepaid-method-field", "prepaid-collector-field"]) byId(f).hidden = true;
-  byId("prepaid-hint").textContent = "Tiền khách đã trả trước ghi ở trang đơn sau khi lưu (mục Thanh toán → Ghi khoản thu, kèm mã giao dịch ngân hàng nếu chuyển khoản vào tài khoản công ty).";
-  byId("prepaid-hint").hidden = false;
-  // Form dùng được trong lúc tải (initShell, danh mục…): số đã gõ sớm phải bị xoá (cờ `traTruocAn` đã bật ngay sau `initShell()`, nên số đó không còn được đọc), kẻo vẫn gửi khoản thu CK – Công ty thu không mã (400) và làm rơi tiền trả trước.
-  field("prepaidAmount").value = "";
-  recompute();
-}
 if (editId) {
   byId("form-title").textContent = "Sửa đơn";
   setBarTitle("Sửa đơn");
