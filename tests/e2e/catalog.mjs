@@ -50,10 +50,18 @@ for (const [m, p] of [["GET", "/api/catalog/admin"], ["POST", "/api/catalog/sync
 // --- lần đọc đầu tiên tự kéo Sheet thật (bootstrap), 5 người mở form cùng lúc. Kiểm hồi quy: không có dòng nhật ký trùng.
 // Lưu ý: chưa tái hiện được tranh chấp gốc trên wrangler dev local (D1 local tuần tự quá nhanh; lần đồng bộ thừa lại thấy
 // "0 thay đổi" nên không ghi nhật ký) → kiểm này KHÔNG chứng minh claimFirstSync; điều đó dựa vào UPDATE có điều kiện.
+// Đặt lại trạng thái đồng bộ về "chưa từng": kịch bản đứng trước cùng nhóm (vd `xac-nhan-don`, đọc dịch vụ hiệu lực) có thể đã giành lượt đồng bộ đầu
+// (`claimFirstSync`) mà không kéo xong Sheet, làm bước bootstrap dưới đây không có gì để kiểm (27/10, lệch thứ tự nhóm — không phải lỗi mã).
+// Cũng bỏ dịch vụ GIẢ do kịch bản trước gieo (`ensureFakeCatalog`, mã ZE*/ZT*…): bootstrap chỉ chạy khi bảng danh mục còn trống.
+await sql("DELETE FROM catalog_item");
+await sql("UPDATE catalog_sync SET last_attempt_at = NULL, last_success_at = NULL, last_error_code = NULL, last_error = NULL, item_count = NULL, problems_json = NULL WHERE id = 'default'");
+// Phụ thuộc thứ tự trong một nhóm e2e: kịch bản đứng trước (vd `xac-nhan-don`, nơi đọc dịch vụ hiệu lực) có thể đã kéo Sheet lần đầu — khi đó đợt 5 request này
+// không sinh dòng nhật ký nào. Nên đếm số dòng TĂNG THÊM do đợt này: không bao giờ quá một (đúng với D1 mới: 0 → 1).
+const dongTruoc = (await call(TOAN_QUYEN, "GET", "/api/audit?action=catalog_synced&limit=10")).body.entries.length;
 const burst = await Promise.all(Array.from({ length: 5 }, () => call(SALES, "GET", "/api/catalog")));
 assert.ok(burst.every((b) => b.status === 200));
 const syncedLogs = (await call(TOAN_QUYEN, "GET", "/api/audit?action=catalog_synced&limit=10")).body.entries;
-assert.equal(syncedLogs.length, 1, `bootstrap song song ghi nhật ký đồng bộ ${syncedLogs.length} lần`);
+assert.ok(syncedLogs.length - dongTruoc <= 1, `bootstrap song song ghi nhật ký đồng bộ ${syncedLogs.length - dongTruoc} lần (trước đó đã có ${dongTruoc})`);
 console.log("✓ 5 request đầu tiên song song → một dòng nhật ký đồng bộ");
 let r = await call(SALES, "GET", "/api/catalog");
 assert.equal(r.status, 200);
