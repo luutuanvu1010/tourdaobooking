@@ -1,13 +1,16 @@
 // Trang «Hoa hồng đối tác» (thiết kế lại, PR 2) — KHUNG: nạp dữ liệu, chuyển hai thẻ «Mức đang áp dụng» / «Thiết lập», truyền dữ liệu cho các khối nội dung.
 // Gọi (chỉ đọc, ở đây): GET /api/pricing/hoa-hong (CommissionRuleListResponse), /api/pricing/muc-ta (MucTaListResponse), /api/pricing/loai-doi-tac (LoaiDoiTacListResponse), /api/catalog.
 // Ẩn/hiện hỏi bảng quyền (`can`): xem = partner.commission.view, thêm mức = partner.commission.write; máy chủ kiểm lại (403 ⇒ «Bạn không có quyền xem trang này.»).
-// Trang không tính tiền, không chọn mức: số và lời từ máy chủ / luật thuần ở src/shared/hoa-hong-hien-thi.ts. Các khối nội dung (Tra nhanh, bảng, hộp trượt, thiết lập) vào đợt sau.
+// Trang không tính tiền, không chọn mức: số và lời từ máy chủ / luật thuần ở src/shared/hoa-hong-hien-thi.ts. Thẻ «Mức đang áp dụng»: web/hoa-hong-tra-nhanh.ts, -bang.ts, -hop.ts; thẻ «Thiết lập» vào đợt sau.
 import { CAU_KHONG_CO_QUYEN_XEM, type TenDanhMuc } from "../src/shared/hoa-hong-hien-thi";
-import { can } from "../src/shared/permissions";
+import { can, type PermissionHolder } from "../src/shared/permissions";
 import { ApiError, api, type Api } from "./api";
-import { byId, h } from "./dom";
+import { byId, h, replaceChildren } from "./dom";
+import { cuonToiDong, veBangApDung } from "./hoa-hong-bang";
+import { taoMoHop } from "./hoa-hong-hop";
+import { veTraNhanh } from "./hoa-hong-tra-nhanh";
 import { initShell, showError } from "./shell";
-import { lyDoLoi, taiDanhMuc } from "./so-dai-ly-ui";
+import { lyDoLoi, taiDanhMuc, type DanhMuc } from "./so-dai-ly-ui";
 
 /** Dữ liệu một lần nạp, truyền cho mọi khối. Ghi xong gọi `napLai` để nạp lại và vẽ lại cả hai thẻ. */
 export interface DuLieuHoaHong {
@@ -17,6 +20,9 @@ export interface DuLieuHoaHong {
   mucTa: Api.MucTaListResponse;
   loai: Api.LoaiDoiTacDto[];
   ten: TenDanhMuc;
+  /** Danh sách dịch vụ và nhóm để chọn trong ô «Dịch vụ» (Tra nhanh, hộp Thêm mức). */
+  dm: DanhMuc;
+  nguoiDung: PermissionHolder;
 }
 
 type The = "ap-dung" | "thiet-lap";
@@ -33,6 +39,24 @@ const tabEl: Record<The, HTMLElement> = { "ap-dung": byId("hh-tab-ap-dung"), "th
 const staff = await initShell();
 
 let du: DuLieuHoaHong | null = null;
+
+const okEl = byId("ok");
+/** Khung vàng giữ sau khi đóng hộp (cảnh báo mức riêng thắng chính sách); nằm ngoài hai thẻ nên không mất khi vẽ lại. */
+const canhBaoEl = h("div", { hidden: true });
+noiDungEl.prepend(canhBaoEl);
+const moHop = taoMoHop({
+  lay: () => du!,
+  napLai: () => napLai(),
+  nguoiDung: staff,
+  baoOk(text) {
+    okEl.textContent = text ?? "";
+    okEl.hidden = !text;
+  },
+  canhBao(node) {
+    replaceChildren(canhBaoEl, node);
+    canhBaoEl.hidden = node === null;
+  },
+});
 
 /** Hiện câu lỗi ở đầu trang và cuộn tới nó. */
 function baoLoi(err: unknown): void {
@@ -67,14 +91,20 @@ function chonThe(t: The, lay = false): void {
 }
 
 // ---- Chỗ giữ cho các khối nội dung (đợt sau thay bằng hoa-hong-tra-nhanh / -bang / -hop / -thiet-lap) --------------------------------------------------
-function veTheApDung(_d: DuLieuHoaHong): void {
-  panelEl["ap-dung"].replaceChildren();
+function veTheApDung(d: DuLieuHoaHong): void {
+  const traNhanh = h("div", null);
+  const bang = h("div", null);
+  replaceChildren(panelEl["ap-dung"], traNhanh, bang);
+  veTraNhanh(traNhanh, d, cuonToiDong);
+  veBangApDung(bang, d, moHop, () => chonThe("thiet-lap", true));
 }
 function veTheThietLap(_d: DuLieuHoaHong): void {
   panelEl["thiet-lap"].replaceChildren();
 }
-/** Mở hộp «Thêm mức» (đợt sau). */
-function moThemMuc(): void {}
+/** Mở hộp «Thêm mức» (nút đầu trang và thanh dính đáy). */
+function moThemMuc(): void {
+  moHop.themMuc();
+}
 
 function veTatCa(d: DuLieuHoaHong): void {
   veTheApDung(d);
@@ -107,7 +137,7 @@ async function main(): Promise<void> {
       api<Api.LoaiDoiTacListResponse>("/api/pricing/loai-doi-tac"),
       api<Api.MucTaListResponse>("/api/pricing/muc-ta"),
     ]);
-    du = { homNay: ds.homNay, dong: ds.dong, vai: ds.vai, mucTa, loai: loai.loai, ten: dm.ten };
+    du = { homNay: ds.homNay, dong: ds.dong, vai: ds.vai, mucTa, loai: loai.loai, ten: dm.ten, dm, nguoiDung: staff };
     if (dm.loi) showError(errorEl, dm.loi);
   } catch (err) {
     dangTai.remove();
