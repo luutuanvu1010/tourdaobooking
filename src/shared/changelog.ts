@@ -12,6 +12,19 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // PR giao diện Hỗ trợ (PR 3; kế hoạch docs/superpowers/plans/2026-10-25-hoa-hong-ho-tro-3-giao-dien-ho-tro.md). KHÔNG migration; có mã mới nên cần npm run trien-khai.
+    // Số 2.35 và ngày là TẠM: production đang 2.34 (GET /api/auth/config 27/10) — phiên phát hành kiểm lại ở bước A.0 của docs/HANDOFF-N1.md.
+    version: "2.35",
+    date: "2026-10-27",
+    items: [
+      { kind: "moi", text: "Trang Hỗ trợ làm lại, có ba thẻ: «Yêu cầu của tôi», «Việc của nhóm», «Nhóm hỗ trợ». Máy tính chia hai cột; điện thoại mở yêu cầu toàn màn hình." },
+      { kind: "moi", text: "«Việc của nhóm» (trước là «Hàng đợi nhóm») có ba nút lọc kèm số, ô tìm, «Tải thêm». Đổi trạng thái, ưu tiên, người xử lý ngay đầu yêu cầu; ô trả lời sát đáy." },
+      { kind: "moi", text: "Từ chối một yêu cầu phải ghi lý do, người gửi đọc được lý do đó. Khi bấm «Gửi yêu cầu» từ trang đơn của bạn, đơn được điền sẵn." },
+      { kind: "moi", text: "Toàn quyền thêm nhóm hỗ trợ chỉ cần tên và mô tả, không phải đặt mã. Màn «Nhóm hỗ trợ» xem dạng bảng, gạt công tắc «Nhạy cảm» là lưu ngay." },
+      { kind: "doi", text: "Đổi tên «Trợ giúp» thành «Hướng dẫn» ở mọi màn. Trợ lý vẫn hiểu khi bạn gõ «trợ giúp»." },
+    ],
+  },
+  {
     // PR giao diện Hoa hồng + Hỗ trợ (PR 2; kế hoạch docs/superpowers/plans/2026-10-25-hoa-hong-ho-tro-2-giao-dien-hoa-hong.md). KHÔNG migration; có mã mới nên cần npm run trien-khai.
     // Số 2.34 và ngày là TẠM: production đang 2.33 (GET /api/auth/config 26/10) — phiên phát hành kiểm lại ở bước A.0 của docs/HANDOFF-N1.md.
     version: "2.34",

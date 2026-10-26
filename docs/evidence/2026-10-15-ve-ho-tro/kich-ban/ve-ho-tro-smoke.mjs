@@ -1,3 +1,4 @@
+// 2026-10-27: phần kiểm trang Hỗ trợ (/feedback) của kịch bản này THAY BẰNG docs/evidence/2026-10-27-ho-tro-thiet-ke-lai/kich-ban/ho-tro-smoke.mjs; các phần khác còn dùng. KHÔNG chạy lại phần /feedback (chữ cũ «Hàng đợi nhóm», «Quản lý nhóm», «Trợ giúp»).
 // Kịch bản Chrome — trang Hỗ trợ theo nhóm (Vé hỗ trợ đợt 1, ADR-0119, Việc 7 của docs/superpowers/plans/2026-10-15-ve-ho-tro-dot-1.md).
 //   0. Dữ liệu dựng bằng API TRƯỚC khi mở trang (luật một máy ADR-0075): Toàn quyền thêm Kế toán vào nhóm Kế toán; thêm một tài khoản chỉ Đối tác.
 //   1. Bán hàng (1040): menu ghi «Hỗ trợ»; form có ô «Gửi tới nhóm» (4 nhóm, mặc định Kỹ thuật, có dòng mô tả); KHÔNG có tab «Hàng đợi nhóm»;

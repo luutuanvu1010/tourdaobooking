@@ -1,7 +1,7 @@
 // Hàng rào dung lượng gói giao diện (nghiên cứu tốc độ 2026-10-02, đợt 1 việc 2): mỗi trang là một lần tải trọn vẹn (ứng dụng nhiều trang), nên mã thừa trong
 // gói chính là thời gian chờ ở mọi lần bấm. Nhật ký thay đổi (`src/shared/changelog.ts`, ~63 KB và dày thêm sau MỖI bản phát hành) từng lọt vào gói của cả 33
 // trang chỉ vì `web/help-seen.ts` cần số phiên bản. Bài này dựng LẠI gói từng trang trong bộ nhớ (cùng tuỳ chọn với `npm run build:web`) và đỏ nếu:
-//   (1) gói của trang nào ngoài Trợ giúp kéo `changelog.ts` vào; (2) gói trang Đơn hàng vượt trần dung lượng.
+//   (1) gói của trang nào ngoài Hướng dẫn kéo `changelog.ts` vào; (2) gói trang Đơn hàng vượt trần dung lượng.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -41,7 +41,7 @@ test("danh sách trang lấy được từ build:web (đủ nhiều, không rỗ
   assert.ok(TRANG.includes("web/orders.ts") && TRANG.includes("web/help.ts"));
 });
 
-test("gói của trang nào ngoài Trợ giúp cũng KHÔNG chứa nhật ký thay đổi (src/shared/changelog.ts)", () => {
+test("gói của trang nào ngoài Hướng dẫn cũng KHÔNG chứa nhật ký thay đổi (src/shared/changelog.ts)", () => {
   const vao = TRANG.filter((t) => !CHO_PHEP_NHAT_KY.has(t)).filter((t) => dung(t).dauVao.some((f) => f.endsWith("src/shared/changelog.ts")));
   assert.deepEqual(vao, [], "các trang này kéo nhật ký thay đổi vào gói (nhập `app-info`/`changelog` thay vì `web/phien-ban`?)");
 });
@@ -55,7 +55,7 @@ test("tên ứng dụng ở web/phien-ban.ts trùng bản gốc ở src/shared/a
   assert.equal(TEN_O_WEB, APP_NAME);
 });
 
-test("trang nào nhập thẳng app-info/changelog (ngoài Trợ giúp) đều bị bắt — giao diện chỉ nhập `web/phien-ban`", () => {
+test("trang nào nhập thẳng app-info/changelog (ngoài Hướng dẫn) đều bị bắt — giao diện chỉ nhập `web/phien-ban`", () => {
   const nhap = TRANG.filter((t) => !CHO_PHEP_NHAT_KY.has(t)).filter((t) => /from "\.\.\/src\/shared\/(app-info|changelog)"/.test(readFileSync(new URL(t, goc), "utf8")));
   assert.deepEqual(nhap, []);
 });

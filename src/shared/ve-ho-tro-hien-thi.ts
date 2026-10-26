@@ -7,7 +7,7 @@ import { PRIORITY_NAME, type LocHangDoi, type Priority } from "./ve-ho-tro.ts";
 
 export type TabHoTro = "mine" | "queue" | "teams";
 
-/** Tab hiện cho người xem: «Yêu cầu của tôi» luôn có; «Việc của nhóm» khi là thành viên một nhóm còn dùng hoặc Toàn quyền; «Quản lý nhóm» chỉ Toàn quyền. */
+/** Tab hiện cho người xem: «Yêu cầu của tôi» luôn có; «Việc của nhóm» khi là thành viên một nhóm còn dùng hoặc Toàn quyền; «Nhóm hỗ trợ» chỉ Toàn quyền. */
 export function tabHoTro(t: FeedbackTeamsResponse): TabHoTro[] {
   const out: TabHoTro[] = ["mine"];
   if (t.isSuper || nhomHangDoi(t).length > 0) out.push("queue");

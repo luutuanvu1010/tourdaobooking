@@ -1,3 +1,4 @@
+// 2026-10-27: phần kiểm trang Hỗ trợ (/feedback) của kịch bản này THAY BẰNG docs/evidence/2026-10-27-ho-tro-thiet-ke-lai/kich-ban/ho-tro-smoke.mjs; các phần khác còn dùng. KHÔNG chạy lại phần /feedback (chữ cũ «Hàng đợi nhóm», «Quản lý nhóm», «Trợ giúp»).
 // Kịch bản Chrome cho Đợt C (Task 4): phủ bố cục 2 cột mới ở 3 trang chưa từng có kịch bản riêng — Đăng nhập (/login),
 // Tôi (/account), Góp ý (/feedback) — ở khổ máy tính (≥900px) và điện thoại (<900px). Dùng lại NGUYÊN cơ chế CDP của A2
 // (startEnv()/ACCOUNTS/ok từ ../../2026-09-20-a2/kich-ban/a2-cdp.mjs) và mẫu cấu trúc của ../../2026-09-22-buoc-2-dot-a/kich-ban/dot-a-smoke.mjs.
