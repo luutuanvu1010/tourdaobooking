@@ -52,7 +52,7 @@ export function veNhomHoTro(goc: HTMLElement): void {
 
   /** Công tắc «Nhạy cảm» của một nhóm: lưu ngay, hiện «Đã lưu»; lỗi thì trả công tắc về cũ và báo. */
   function congTacNhayCam(t: Api.FeedbackAdminTeamDto): HTMLElement {
-    const nut = h("button", { type: "button", role: "switch", class: "dp-switch", "aria-checked": String(t.sensitive), "aria-label": `Nhạy cảm — nhóm ${t.name}`, "data-nhay-cam": t.id }, h("span", { class: "dp-switch-knob" }));
+    const nut = h("button", { type: "button", role: "switch", class: "dp-switch ht-switch", "aria-checked": String(t.sensitive), "aria-label": `Nhạy cảm — nhóm ${t.name}`, "data-nhay-cam": t.id }, h("span", { class: "dp-switch-knob" }));
     const trangThai = h("span", { class: "muted ht-da-luu", role: "status" });
     nut.addEventListener("click", async () => {
       if (nut.disabled) return;
@@ -181,7 +181,7 @@ export function veNhomHoTro(goc: HTMLElement): void {
     const ten = h("input", { id: "ht-nhom-ten", type: "text", maxLength: 80, value: t0.name, required: true });
     const moTa = h("input", { id: "ht-nhom-mo-ta", type: "text", maxLength: 200, value: t0.description });
     let nhay = t0.sensitive;
-    const nutNhay = h("button", { type: "button", role: "switch", class: "dp-switch", "aria-checked": String(nhay), "aria-labelledby": "ht-nhom-nhay-nhan", "aria-describedby": "ht-nhom-nhay-goi-y" }, h("span", { class: "dp-switch-knob" }));
+    const nutNhay = h("button", { type: "button", role: "switch", class: "dp-switch ht-switch", "aria-checked": String(nhay), "aria-labelledby": "ht-nhom-nhay-nhan", "aria-describedby": "ht-nhom-nhay-goi-y" }, h("span", { class: "dp-switch-knob" }));
     nutNhay.addEventListener("click", () => {
       nhay = !nhay;
       nutNhay.setAttribute("aria-checked", String(nhay));

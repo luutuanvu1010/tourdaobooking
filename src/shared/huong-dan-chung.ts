@@ -94,7 +94,7 @@ Bấm [[Đăng xuất]] ở trang Tôi hoặc dưới cùng menu máy tính. Má
     {
       tieuDe: "Hướng dẫn và Hỗ trợ",
       noiDung: `### Hướng dẫn
-Mở [[Hướng dẫn]] để đọc hướng dẫn và [[Nhật ký thay đổi]] của từng phiên bản. Khi có bản mới chưa đọc, tab Tôi và mục Hướng dẫn có chấm đỏ, bản đó có nhãn [[Mới cập nhật]].
+Hướng dẫn ở đâu: mục [[Hướng dẫn]] trong menu, có [[Nhật ký thay đổi]] từng phiên bản. Có bản mới chưa đọc thì tab Tôi và Hướng dẫn có chấm đỏ, bản đó có nhãn [[Mới cập nhật]].
 
 ### Gửi góp ý, báo lỗi
 1. Bấm [[Hỗ trợ]].

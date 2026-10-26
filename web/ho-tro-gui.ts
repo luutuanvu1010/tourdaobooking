@@ -87,6 +87,12 @@ export function moHopGui(o: TuyChonHopGui): void {
       }
     })();
   }
+  tieuDe.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.isComposing) {
+      e.preventDefault();
+      gui.click(); // Enter ở ô tiêu đề gửi được (không có <form> bao vì nút Gửi nằm ở chân hộp)
+    }
+  });
   tieuDe.focus();
 
   gui.addEventListener("click", async () => {

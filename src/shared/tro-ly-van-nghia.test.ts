@@ -229,6 +229,15 @@ test("C4c (đổi chữ «Trợ giúp» → «Hướng dẫn», 2026-10-27): ng�
   }
 });
 
+test("C4d (R44, 2026-10-27): «trợ giúp ở đâu» / «hướng dẫn ở đâu» ra đoạn nói trang Hướng dẫn nằm ở đâu (trước đổi tên, «trợ giúp ở đâu» ra trang Trợ giúp)", () => {
+  const kho = chiaKho();
+  const vec = kho.map(() => mot(1));
+  const ten = (c: string) => chonDoanTron(c, mot(0), kho, vec, ["SALES"]).map((x) => x.doan.ten);
+  for (const c of ["trợ giúp ở đâu", "hướng dẫn ở đâu", "trang trợ giúp ở đâu", "trang hướng dẫn ở đâu"]) {
+    assert.ok(ten(c).slice(0, 3).includes("Phần chung › Hướng dẫn và Hỗ trợ"), `${c}: ${JSON.stringify(ten(c).slice(0, 4))}`);
+  }
+});
+
 test("C5: truy vấn = câu hiện tại + câu trước gần nhất — câu nối tiếp không khớp gì vẫn ra đoạn nhờ câu trước", () => {
   const vec = KHO.map(() => mot(1));
   assert.deepEqual(chonDoanTron("còn trên điện thoại thì sao", mot(0), KHO, vec, ["SALES"]), []);

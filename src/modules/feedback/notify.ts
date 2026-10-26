@@ -43,7 +43,7 @@ export function buildMail(e: NotifyEvent): { subject: string; html: string } {
   const link = `<p><a href="${esc(e.url)}">Mở trong Nền tảng</a></p>`;
   if (e.sensitive) {
     const subject = oneLine(`[${team}] ${head} ${e.code}`, 150);
-    const cau = e.type === "created" ? `Có phiếu mới cho nhóm ${team}. Mở Nền tảng để xem.` : `Có phản hồi mới ở phiếu nhóm ${team}. Mở Nền tảng để xem.`;
+    const cau = e.type === "created" ? `Có yêu cầu mới cho nhóm ${team}. Mở Nền tảng để xem.` : `Có phản hồi mới ở yêu cầu nhóm ${team}. Mở Nền tảng để xem.`;
     const html = `<p><strong>${esc(head)}</strong> — ${esc(e.code)}</p><p>${esc(cau)}</p>` + link;
     return { subject, html };
   }

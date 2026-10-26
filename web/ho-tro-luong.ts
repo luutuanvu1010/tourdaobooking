@@ -303,20 +303,23 @@ export function tuChoi(t: Api.FeedbackTicketDto, lyDoDaGui: Set<string>, sau: ()
           guiLyDo: () => api<Api.FeedbackDetailResponse>(`/api/feedback/${t.id}/messages`, { method: "POST", body: { body: lyDo.value.trim(), internal: false } }),
           doiTrangThai: () => api<Api.FeedbackDetailResponse>(`/api/feedback/${t.id}/xu-ly`, { method: "PATCH", body: { status: "DECLINED" } }),
         });
+        let nap = false;
         if (r.ok) {
           hop.bt?.setBusy(false);
           hop.bt?.close(false);
+          nap = true;
         } else if (r.buoc === 0) hop.hienLoi("Ghi lý do từ chối.");
-        else if (r.buoc === 1) hop.hienLoi(thongBao(r.loi)); // bước 1 lỗi: câu máy chủ, chưa đổi trạng thái
+        else if (r.buoc === 1) hop.hienLoi(thongBao(r.loi)); // bước 1 lỗi: câu máy chủ, chưa đổi gì ⇒ không nạp lại luồng
         else {
           veTrangThai();
           hop.hienLoi(CAU_TU_CHOI_LOI_BUOC_2);
+          nap = true; // tin lý do đã vào luồng: nạp lại để thấy
         }
+        if (nap) sau();
       } finally {
         hop.bt?.setBusy(false);
         nut.disabled = false;
       }
-      sau(); // thành công, hay trạng thái đã đổi sẵn: nạp lại để thấy tin lý do và trạng thái mới
     });
     return [nhan, daGuiNote, nut];
   });
@@ -353,10 +356,12 @@ function dungChiTiet(b: Bo): HTMLElement {
 function dungBuoc(t: Api.FeedbackTicketDto): HTMLElement {
   const buoc = buocGopY(t.status);
   const sac = SAC_TRANG_THAI[t.status];
+  const nx = nguoiXuLyHienThi(t);
   return h(
     "div",
     { class: `ht-buoc is-${sac}`, "aria-label": `Trạng thái: ${t.statusName}` },
     h("strong", null, sac === "xong" ? "✓ " : sac === "tu-choi" ? "✕ " : "● ", t.statusName || FEEDBACK_STATUS_NAME[t.status]),
+    nx.kieu === "co" ? h("span", { class: "muted ht-nguoi-xu-ly", id: "ht-nguoi-xu-ly" }, ` · Người xử lý: ${nx.ten}`) : null,
     buoc ? h("ol", { class: "ht-buoc-dong" }, ...buoc.map((x) => h("li", { class: `is-${x.tinh}`, "aria-current": x.tinh === "dang" ? "step" : undefined }, x.nhan))) : null,
   );
 }

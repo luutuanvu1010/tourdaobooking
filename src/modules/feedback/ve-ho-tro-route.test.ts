@@ -208,7 +208,7 @@ test("không ngưng được nhóm Kỹ thuật (nhóm mặc định cho phiếu
   const r = await admin(w, "PATCH", `/${KY_THUAT}`, SUPER, { active: false });
   assert.equal(r.status, 409, r.text);
   assert.equal(r.json.error.code, "conflict");
-  assert.equal(r.json.error.message, "Không thể ngưng nhóm Kỹ thuật: đây là nhóm mặc định cho phiếu cũ và tài khoản bên ngoài.");
+  assert.equal(r.json.error.message, "Không thể ngưng nhóm Kỹ thuật: đây là nhóm mặc định cho yêu cầu cũ và tài khoản bên ngoài.");
   assert.equal(w.q(`SELECT active FROM fbk_team WHERE id = '${KY_THUAT}'`)[0].active, 1);
   assert.equal(w.q("SELECT count(*) AS n FROM audit_log WHERE action = 'feedback_team_updated'")[0].n, 0, "lần bị chặn không ghi nhật ký");
   assert.equal((await admin(w, "PATCH", `/${KY_THUAT}`, SUPER, { sensitive: true })).status, 200, "sửa trường khác của Kỹ thuật vẫn được");
@@ -580,7 +580,7 @@ test("R11b: ghi chú nội bộ đúng lúc phiếu vừa chuyển nhóm ⇒ 409
   const r = await traLoi(w, id, KT_TV, "Bí mật của Kế toán", true);
   assert.equal(r.status, 409, r.text);
   assert.equal(r.json.error.code, "stale");
-  assert.equal(r.json.error.message, "Phiếu vừa đổi nhóm, hãy tải lại.");
+  assert.equal(r.json.error.message, "Yêu cầu vừa đổi nhóm, hãy tải lại.");
   assert.equal(w.q(`SELECT count(*) AS n FROM fbk_message WHERE ticket_id = '${id}' AND internal = 1`)[0].n, 0, "không có ghi chú nào mang nhãn Nhân sự");
   assert.equal(w.q("SELECT count(*) AS n FROM audit_log WHERE action = 'feedback_replied'")[0].n, 0);
   // Trần tin nhắn (không đổi nhóm) vẫn là 429 — phân biệt bằng đọc lại phiếu.
@@ -694,7 +694,7 @@ test("PATCH_TICKET theo nhóm: đổi trạng thái / giao việc đúng lúc ph
   let r = await xuLy(w, id, KT_TV, { status: "ACK" });
   assert.equal(r.status, 409, r.text);
   assert.equal(r.json.error.code, "stale");
-  assert.equal(r.json.error.message, "Phiếu vừa đổi nhóm, hãy tải lại.");
+  assert.equal(r.json.error.message, "Yêu cầu vừa đổi nhóm, hãy tải lại.");
   kiemKhongGhi("xu-ly trạng thái");
   // /xu-ly: Trưởng nhóm giao việc (người nhận thuộc nhóm MỚI — không được gán chéo).
   w.sqlite.exec(`UPDATE fbk_ticket SET team_id = '${KE_TOAN}' WHERE id = '${id}'`);
@@ -702,14 +702,14 @@ test("PATCH_TICKET theo nhóm: đổi trạng thái / giao việc đúng lúc ph
   w.sqlite.exec(`INSERT INTO fbk_team_member (id, team_id, staff_id, role, valid_from_at, created_at, updated_at) VALUES ('tv-ns-kttv', '${NHAN_SU}', '${KT_TV}', 'MEMBER', '${NOW}', '${NOW}', '${NOW}')`);
   r = await xuLy(w, id, KT_TN, { assigneeId: KT_TV });
   assert.equal(r.status, 409, r.text);
-  assert.equal(r.json.error.message, "Phiếu vừa đổi nhóm, hãy tải lại.");
+  assert.equal(r.json.error.message, "Yêu cầu vừa đổi nhóm, hãy tải lại.");
   kiemKhongGhi("xu-ly giao việc");
   // Tuyến cũ (Toàn quyền).
   w.sqlite.exec(`UPDATE fbk_ticket SET team_id = '${KE_TOAN}' WHERE id = '${id}'`);
   chenTruocLo(w, PATCH_RE, doiNhomThang(w, id, NHAN_SU));
   r = await w.call("PATCH", `/api/feedback/${id}`, { as: SUPER, body: { status: "ACK" } });
   assert.equal(r.status, 409, r.text);
-  assert.equal(r.json.error.message, "Phiếu vừa đổi nhóm, hãy tải lại.");
+  assert.equal(r.json.error.message, "Yêu cầu vừa đổi nhóm, hãy tải lại.");
   kiemKhongGhi("tuyến cũ");
 });
 
@@ -733,7 +733,7 @@ test("R13: phiếu đã đóng (Đã xong/Từ chối) không chuyển nhóm ⇒
     const r = await chuyen(w, id, KT_TN, NHAN_SU);
     assert.equal(r.status, 409, `${st} ${r.text}`);
     assert.equal(r.json.error.code, "conflict");
-    assert.equal(r.json.error.message, "Phiếu đã đóng, hãy mở lại trước khi chuyển nhóm.");
+    assert.equal(r.json.error.message, "Yêu cầu đã đóng, hãy mở lại trước khi chuyển nhóm.");
   }
   w.sqlite.exec(`UPDATE fbk_ticket SET status_code = 'ACK' WHERE id = '${id}'`);
   chenTruocLo(w, /UPDATE fbk_ticket SET team_id = \?2/, () => { w.sqlite.exec(`UPDATE fbk_ticket SET status_code = 'DONE' WHERE id = '${id}'`); });
@@ -844,7 +844,7 @@ test("mức ưu tiên đúng lúc phiếu vừa chuyển nhóm ⇒ 409 stale, kh
   chenTruocLo(w, /assignee_id = CASE WHEN \?3 = 1/, doiNhomThang(w, id, NHAN_SU));
   const r = await xuLy(w, id, KT_TV, { priority: "URGENT" });
   assert.equal(r.status, 409, r.text);
-  assert.equal(r.json.error.message, "Phiếu vừa đổi nhóm, hãy tải lại.");
+  assert.equal(r.json.error.message, "Yêu cầu vừa đổi nhóm, hãy tải lại.");
   assert.equal(w.q(`SELECT priority FROM fbk_ticket WHERE id = '${id}'`)[0].priority, "NORMAL");
   assert.equal(nkUuTien(w).length, 0);
 });
@@ -888,13 +888,13 @@ test("hàng đợi nhóm (và hàng đợi admin) sắp Khẩn → Cao → Thư�
   assert.deepEqual(tieuDe(mine.json.tickets), ["N1", "N2", "H", "U"], "người gửi giữ thứ tự cũ");
 });
 
-test("câu 403 của tuyến xử lý (kể cả thân chỉ có priority) nói đúng việc: «Chỉ nhóm xử lý được xử lý phiếu.»", async () => {
+test("câu 403 của tuyến xử lý (kể cả thân chỉ có priority) nói đúng việc: «Chỉ nhóm xử lý được xử lý yêu cầu.»", async () => {
   const w = setup();
   const id = (await tao(w, SALES, KE_TOAN)).json.ticket.id;
   for (const body of [{ priority: "URGENT" }, { status: "IN_PROGRESS" }]) {
     const r = await xuLy(w, id, SALES, body);
     assert.equal(r.status, 403, r.text);
-    assert.equal(r.json.error.message, "Chỉ nhóm xử lý được xử lý phiếu.");
+    assert.equal(r.json.error.message, "Chỉ nhóm xử lý được xử lý yêu cầu.");
   }
 });
 
@@ -1246,7 +1246,7 @@ test("R6 giao việc: người nhận là đối tác / tài khoản lai / tài 
       const nk0 = w.q(`SELECT count(*) AS n FROM audit_log WHERE target_id = '${id}'`)[0].n;
       const r = await giao(w, id, { assigneeId: s });
       assert.equal(r.status, 400, `${ten} ${k}: ${r.text}`);
-      assert.deepEqual(r.json.error, { code: "invalid_input", message: "Người xử lý phải là thành viên đang hoạt động của nhóm giữ phiếu (không phải người gửi)." }, `${ten} ${k}: cùng câu lỗi, không lộ loại tài khoản`);
+      assert.deepEqual(r.json.error, { code: "invalid_input", message: "Người xử lý phải là thành viên đang hoạt động của nhóm giữ yêu cầu (không phải người gửi)." }, `${ten} ${k}: cùng câu lỗi, không lộ loại tài khoản`);
       assert.equal(w.q(`SELECT assignee_id FROM fbk_ticket WHERE id = '${id}'`)[0].assignee_id, KT_TV, `${ten} ${k}: người giữ không đổi`);
       assert.equal(w.q(`SELECT count(*) AS n FROM fbk_ticket_event WHERE ticket_id = '${id}' AND type = 'ASSIGNED'`)[0].n, 0, `${ten} ${k}: không sự kiện ASSIGNED`);
       assert.equal(w.q(`SELECT count(*) AS n FROM audit_log WHERE target_id = '${id}'`)[0].n, nk0, `${ten} ${k}: không dòng nhật ký`);

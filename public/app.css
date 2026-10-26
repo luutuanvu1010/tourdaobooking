@@ -423,7 +423,7 @@
      --c-bar-bg / --c-on-bar (khai ở nhóm MÀU THEO VAI bên trên; ADR-0087: Toàn quyền chỉnh được qua núm thanh trên). Gộp main 2026-10-02: hai token đã có nên bỏ
      giá trị dự phòng xanh (trỏ thẳng --c-primary) — dải luôn cùng màu thanh trên. Chữ phụ và nền tròn của nút suy từ CHÍNH màu chữ (độ mờ) nên hợp mọi màu thanh. */
   --hero-bg: var(--c-bar-bg);
-  --c-on-hero: var(--c-on-bar);         /* tên, chuông, nút trợ giúp, chữ phụ trên dải đầu trang */
+  --c-on-hero: var(--c-on-bar);         /* tên, chuông, nút hướng dẫn, chữ phụ trên dải đầu trang */
   --c-hero-ring: var(--c-bar-bg);       /* viền quanh số đỏ trên chuông (tách số khỏi nền dải) */
   --c-hero-edge: var(--c-status-bar);   /* dải cố định sau thanh trạng thái iPhone khi dải đầu trang đã cuộn đi */
   --hero-muted: .8;            /* độ đậm chữ phụ ("Xin chào,", ngày) so với màu chữ của dải — trên xanh ≈ chữ trắng nhạt của bản vẽ, trên trắng ≈ xanh nhạt (≥ 4,5:1) */
@@ -437,7 +437,7 @@
   --tile-box: 52px;            /* ô vuông biểu tượng của lưới chức năng */
   --radius-tile: 14px;         /* bo góc ô vuông biểu tượng */
   --tile-badge: 20px;          /* huy hiệu số trên ô vuông / chuông dải đầu trang */
-  --tile-dot: 10px;            /* chấm "có bản mới" trên ô Trợ giúp */
+  --tile-dot: 10px;            /* chấm "có bản mới" trên ô Hướng dẫn */
   --lh-18: 18px;               /* dòng nhãn ô (tối đa hai dòng), ngày trên dải đầu trang, dòng phụ số liệu */
   --icon-md: 20px;             /* biểu tượng tiêu đề khối Chuyến đón / Cần xem lại (điện thoại) */
   --lh-20: 20px;               /* dòng chữ 14px của bản vẽ (ngày, dòng phụ chuyến, dải lỗi) */
@@ -1027,6 +1027,7 @@ button.xm-the { min-height: var(--tap-min); cursor: pointer; }
 .ht-tra-loi .btn { min-height: var(--tap-min); }
 .ht-che-do-hang { display: flex; gap: var(--s2); }
 .ht-che-do { min-height: var(--tap-min); padding: 0 var(--s3); font: inherit; font-size: var(--fs-label); color: var(--c-text-muted); background: none; border: 0; border-bottom: var(--fb-line) solid transparent; cursor: pointer; }
+.ht-switch::after { content: ""; position: absolute; top: calc((var(--h-switch) - var(--tap-min)) / 2); bottom: calc((var(--h-switch) - var(--tap-min)) / 2); left: 0; right: 0; } /* vùng chạm cao >= tap-min, không đổi cỡ công tắc */
 .ht-che-do[aria-pressed="true"] { color: var(--c-primary); font-weight: var(--fw-bold); border-bottom-color: var(--c-primary); }
 .ht-che-do[hidden] { display: none; }
 .ht-mo-lai { margin: 0; font-size: var(--fs-label); }
@@ -1842,7 +1843,7 @@ body.login-page main.login { display: flex; flex-direction: column; flex: 1; min
   .dash-hero-ngay { font-size: var(--fs-step-2); font-weight: var(--fw-medium, 500); line-height: var(--lh-18); color: var(--c-on-hero); opacity: var(--hero-muted); }
   body.trang-chu #topbar:has(> .bell) .bell { order: 0; margin-left: 0; isolation: isolate; color: var(--c-on-hero); border-radius: var(--radius-pill); background: none; }
   body.trang-chu #topbar .bell:hover, body.trang-chu #topbar .bell[aria-expanded="true"] { background: none; }
-  /* Nền tròn của chuông / Trợ giúp: lớp dưới cùng màu chữ, độ đậm --hero-btn-tint (isolation giữ lớp này nằm TRONG nút, dưới biểu tượng và số đỏ). */
+  /* Nền tròn của chuông / Hướng dẫn: lớp dưới cùng màu chữ, độ đậm --hero-btn-tint (isolation giữ lớp này nằm TRONG nút, dưới biểu tượng và số đỏ). */
   body.trang-chu #topbar .bell::before, body.trang-chu #topbar .dash-hero-nut::before { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: currentColor; opacity: var(--hero-btn-tint); }
   body.trang-chu #topbar .bell-count { top: calc(var(--s1) / 2); right: 0; min-width: calc(var(--tile-badge) - 2 * var(--ntf-badge-ring)); height: calc(var(--tile-badge) - 2 * var(--ntf-badge-ring)); font-weight: var(--fw-bold, 700); box-shadow: 0 0 0 var(--ntf-badge-ring) var(--c-hero-ring); }
   body.trang-chu #topbar .dash-hero-nut { order: 0; position: relative; isolation: isolate; display: flex; align-items: center; justify-content: center; flex: none; width: var(--tap-min); height: var(--tap-min); color: var(--c-on-hero); border-radius: var(--radius-pill); }
@@ -2158,7 +2159,7 @@ body.login-page main.login { display: flex; flex-direction: column; flex: 1; min
   .dash-today-row, .dash-xuong-mt-dong { grid-template-columns: var(--w-trip-time-mt-lg) minmax(0, 1fr) auto; }
 }
 
-/* Trang Trợ giúp + chấm đỏ "có bản mới" (đặc tả nhật ký thay đổi 2026-09-23) */
+/* Trang Hướng dẫn + chấm đỏ "có bản mới" (đặc tả nhật ký thay đổi 2026-09-23) */
 .new-dot { display: inline-block; width: var(--dot-size); height: var(--dot-size); margin-left: var(--s1); vertical-align: middle; border-radius: var(--radius-pill); background: var(--c-danger); }
 .row-link .new-dot { margin-right: auto; } /* .row-link dàn space-between: không có dòng này chấm trôi ra giữa hàng; auto đẩy mũi tên về sát phải, chấm đứng ngay sau chữ */
 #tabbar .tab-icon { position: relative; }
@@ -2168,7 +2169,7 @@ body.login-page main.login { display: flex; flex-direction: column; flex: 1; min
 .release-note h3 { margin: 0 0 var(--s2); }
 .release-items { margin: 0; padding-left: var(--s4); }
 .release-items li + li { margin-top: var(--s1); }
-/* Hướng dẫn theo vai (trang Trợ giúp — src/shared/huong-dan.ts) */
+/* Hướng dẫn theo vai (trang Hướng dẫn — src/shared/huong-dan.ts) */
 .hd-nhom + .hd-nhom { margin-top: var(--s5); padding-top: var(--s4); border-top: 1px solid var(--c-line); }
 .hd-nhom h3 { margin: 0 0 var(--s1); }
 .hd-phut { font-weight: var(--fw-regular); font-size: var(--fs-step-3); }
