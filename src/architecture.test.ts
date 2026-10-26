@@ -167,6 +167,8 @@ const NUA_NGHIEM: readonly { module: string; file: string }[] = [
   { module: "orders", file: "modules/orders/huy-don-repo.ts" },
   // Sổ đại lý đợt 1 (ADR-0077 điều 8 — đặc tả §5 cho phép): SQL bản chụp thương mại, mọi câu qua defineSql + EXPLAIN.
   { module: "orders", file: "modules/orders/thuong-mai-repo.ts" },
+  // ADR-0136 (Task 3.3): yêu cầu xác nhận, cờ «cần xác nhận», công tắc tự xác nhận, đổi ngày / giờ đón lúc Còn vé — mọi câu qua defineSql + EXPLAIN.
+  { module: "orders", file: "modules/orders/xac-nhan-repo.ts" },
   // ADR-0058 Đ6: SQL MỚI của `catalog` (hai bảng `ctl_`) chỉ ở tệp này; `repository.ts` cũ còn LEGACY tới CATALOG_LEGACY_HAN.
   { module: "catalog", file: "modules/catalog/nhom-repo.ts" },
 ];
@@ -195,6 +197,8 @@ const DOC_AUDIT_LOG_WONGUARD = {
     "orders.passenger_insert_guarded", "orders.passenger_void_guarded", "orders.order_touch_guarded", "orders.service_mirror_update_guarded",
     // chủ duyệt 5/10 (Đợt 5 A-1b, tệp đề xuất docs/superpowers/plans/2026-10-05-adr-0052-a1b-de-xuat-luat.md mục 2): câu ghi tên do TÀI XẾ nhập, gác id nhật ký.
     "orders.passenger_insert_driver",
+    // ADR-0136 (Task 3.3, plan "id riêng cho khuôn wonGuard"): mở yêu cầu xác nhận / khép yêu cầu chỉ khi dòng nhật ký của CHÍNH lô đã ghi — hai câu mới, cùng khuôn, không nới thêm kiểu đọc.
+    "orders.confirm_request_open_guarded", "orders.confirm_request_close_guarded",
   ],
 } as const;
 

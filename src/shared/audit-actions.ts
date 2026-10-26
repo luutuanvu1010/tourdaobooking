@@ -30,6 +30,9 @@ export const AUDIT_ACTIONS = {
   // ADR-0047 A2: `detail` ĐÚNG khuôn "thêm N, sửa N, huỷ N khách" — KHÔNG tên, KHÔNG năm sinh (Hiến chương 5.12; kiểm định kỳ R-ORD-10).
   order_passenger_changed: { label: "Sửa danh sách hành khách", group: "order" },
   confirmed: { label: "Xác nhận đơn", group: "order" },
+  // ADR-0136 Đ3: gửi / rút lại yêu cầu xác nhận — `detail` là khuôn cố định ("Gửi xác nhận · cần: dịch vụ cần xác nhận / đặt gấp"), không dữ liệu khách.
+  order_confirm_requested: { label: "Gửi xác nhận đơn", group: "order" },
+  order_confirm_withdrawn: { label: "Rút lại yêu cầu xác nhận", group: "order" },
   cancelled: { label: "Huỷ đơn", group: "order" },
   order_cancelled_by_field: { label: "Huỷ đơn (hướng dẫn viên đang phụ trách)", group: "order" },
   order_cancel_reason_classified: { label: "Phân loại lý do huỷ", group: "order" },
@@ -253,6 +256,9 @@ export const AUDIT_ACTIONS = {
   // ADR-0061 điều 6: Toàn quyền bật / tắt "Dịch vụ nhập tay" (POST /api/cai-dat/nhap-tay) — không gắn đơn (orderId NULL); detail "Bật" / "Tắt".
   manual_service_policy_changed: { label: "Đổi công tắc dịch vụ nhập tay", group: "system" },
   pickup_slot_policy_changed: { label: "Đổi khung giờ đón", group: "system" },
+  // ADR-0136 Đ1, Đ5: cờ «cần xác nhận» theo dịch vụ / nhóm, công tắc «nội bộ tự xác nhận» — `detail` ghi mã dịch vụ / nhóm (không dữ liệu khách).
+  confirm_flag_changed: { label: "Đổi cờ cần xác nhận", group: "system" },
+  confirm_policy_changed: { label: "Đổi công tắc tự xác nhận", group: "system" },
   // ADR-0069 điều 5 + Hiến chương 5.12: ai đổi cài đặt trợ lý Hỗ trợ lúc nào — detail chỉ nêu PHẦN đã đổi, KHÔNG nội dung lời dặn / ngữ cảnh.
   tro_ly_settings_changed: { label: "Đổi cài đặt trợ lý Hỗ trợ", group: "system" },
   // ADR-0087 điều 6: Toàn quyền đổi giao diện công ty — detail = các ô đổi (nhãn: cũ → mới), không dữ liệu cá nhân. KHÔNG im lặng (ADR-0038).

@@ -151,10 +151,17 @@ export function hasAdminDenial(rawBody: string, re: RegExp = ADMIN_DENIAL_RE): b
   return false;
 }
 
+/**
+ * Tệp route NGOÀI `index.ts` mà bài kiểm này cũng đọc (siết, ADR-0136 Task 3.3: `orders/xac-nhan-route.ts` — nếu không đọc thì chín route của bước xác nhận đứng ngoài hàng rào 2 và
+ * luật (4)). Tệp khác trong src/modules có `route("` mà không có tên ở đây ⇒ bài "mọi tệp route đều được đọc" ở dưới đỏ — không tệp route nào được trốn khỏi hàng rào.
+ */
+const TEP_ROUTE_PHU: Record<string, string[]> = { orders: ["xac-nhan-route.ts"] };
+
 function collectRoutes(): RouteInfo[] {
   const out: RouteInfo[] = [];
   for (const mod of readdirSync(join(SRC, "modules")).sort()) {
-    const file = join(SRC, "modules", mod, "index.ts");
+   for (const ten of ["index.ts", ...(TEP_ROUTE_PHU[mod] ?? [])]) {
+    const file = join(SRC, "modules", mod, ten);
     if (!existsSync(file)) continue;
     const text = readFileSync(file, "utf8");
     const masked = maskSource(text); // che chuỗi + chú thích; cùng độ dài nên chỉ số dùng chung với `text`
@@ -179,10 +186,23 @@ function collectRoutes(): RouteInfo[] {
       assert.equal(depth, 0, `${tag}: ngoặc nhọn không cân — bộ che chuỗi/chú thích không hiểu tệp này`);
       out.push({ module: mod, method: hit[1]!, path: hit[2]!, access: hit[3]!, guarded: isGuardedBody(masked.slice(open, i + 1)), body: text.slice(open, i + 1) });
     }
-    assert.equal(found, declared, `${mod}/index.ts: có ${declared} lời gọi route( nhưng chỉ bóc được ${found} theo khuôn route("METHOD", "path", "access", …)`);
+    assert.equal(found, declared, `${mod}/${ten}: có ${declared} lời gọi route( nhưng chỉ bóc được ${found} theo khuôn route("METHOD", "path", "access", …)`);
+   }
   }
   return out;
 }
+
+test("mọi tệp route trong src/modules đều được hàng rào 2 đọc (index.ts hoặc TEP_ROUTE_PHU) — tệp route ngoài danh sách là chỗ trốn", () => {
+  const la: string[] = [];
+  for (const mod of readdirSync(join(SRC, "modules")).sort()) {
+    const dir = join(SRC, "modules", mod);
+    for (const ten of readdirSync(dir)) {
+      if (!ten.endsWith(".ts") || ten.endsWith(".test.ts") || ten === "index.ts" || (TEP_ROUTE_PHU[mod] ?? []).includes(ten)) continue;
+      if (/\broute\(\s*"(GET|POST|PUT|PATCH|DELETE)"/.test(maskSource(readFileSync(join(dir, ten), "utf8"), { strings: false, comments: true }))) la.push(`${mod}/${ten}`);
+    }
+  }
+  assert.deepEqual(la, [], `tệp khai route ngoài index.ts mà chưa vào TEP_ROUTE_PHU: ${la.join(", ")}`);
+});
 
 function loadDeferrals(): RouteDeferral[] {
   const raw = JSON.parse(readFileSync(join(ROOT, DEFERRALS_FILE), "utf8")) as { cua_ghi?: unknown };

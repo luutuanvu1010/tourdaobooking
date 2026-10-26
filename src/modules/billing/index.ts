@@ -534,3 +534,9 @@ export async function soTienChoQr(db: D1Database, orderId: string): Promise<{ co
  * thái hiện tại = đã nhập phần mềm kế toán. KHÔNG tự kiểm quyền — route của orders hỏi `accounting.entry.view` trước khi dùng kết quả. Một truy vấn, MỘT tham số.
  */
 export const nhapKeToanCuaDon = (db: D1Database, orderIds: readonly string[]): Promise<Set<string>> => accountingEnteredAmong(db, orderIds);
+
+/**
+ * ADR-0136 Đ3 — số ĐÃ THU RÒNG của MỘT đơn do GỐC LẮP RÁP tiêm vào `ctx.daThuCuaDon` (orders không đọc bảng bil_): cùng `tienNhieuDon` mà danh sách đơn và Trang chủ dùng, nên `daThu` đã
+ * loại khoản bị đảo (`hieuLuc`) và trừ tiền trả lại khách. KHÔNG tự kiểm quyền — route của orders hỏi `can(` trước. `null` khi không đọc được số của đơn (route từ chối kín).
+ */
+export const daThuCuaDon = async (db: D1Database, orderId: string): Promise<number | null> => (await tienNhieuDon(db, [orderId])).get(orderId)?.daThu ?? null;

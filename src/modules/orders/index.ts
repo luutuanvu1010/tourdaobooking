@@ -59,7 +59,8 @@ import {
   validationContext,
   type OrderValidationContext,
 } from "./service";
-import { GIA_DANH_MUC, MOC_CHUA_CO, RACED, STALE, TRAN_GIAM_GIA, chanDoanXacNhan, chayLoNoiChuyen, dichLoiXacNhan, kemChupXacNhan, kiemCongXacNhan, tienChoHoaHong, type KetQuaLenhDon } from "./xac-nhan-chung";
+import { CAN_YEU_CAU, GIA_DANH_MUC, MOC_CHUA_CO, RACED, STALE, TRAN_GIAM_GIA, chanDoanXacNhan, chayLoNoiChuyen, dichLoiXacNhan, kemChupXacNhan, khoaKhiCho, kiemCongXacNhan, tienChoHoaHong, tinhCanXacNhan, type KetQuaLenhDon } from "./xac-nhan-chung";
+import { xacNhanRoutes } from "./xac-nhan-route";
 import { describeTripUpdates, giaiOPhuNhap, validateTripUpdate } from "./service-rules";
 
 const FORBIDDEN = () => error(403, "forbidden", "Chỉ người lập đơn, người phụ trách đơn hoặc quản trị viên mới được thay đổi đơn này.");
@@ -776,6 +777,8 @@ export async function phanThuongMaiCuaDon(db: D1Database, orderId: string): Prom
 export const ordersModule: AppModule = {
   name: "orders",
   routes: [
+    // ADR-0136 (Task 3.3): Gửi xác nhận / Rút lại / Quyết định / danh sách chờ / cài đặt cờ. ĐỨNG ĐẦU mảng: `GET /api/orders/cho-xac-nhan` phải thắng `GET /api/orders/:id` (router lấy route ĐẦU TIÊN khớp).
+    ...xacNhanRoutes,
     // ADR-0061 điều 6: công tắc "Dịch vụ nhập tay". Hai route thuộc module orders (bảng ord_manual_service_policy) nhưng CỐ Ý không nằm dưới /api/orders:
     // đổi chính sách không phải thay đổi một đơn (không thuộc bài baoThayDoi của src/bang-tin-guard.test.ts), và tránh bẫy router ":id".
     // ĐỌC (cổng orders): form lập đơn biết hiện nút theo `duocDung` (= duocNhapTay của CHÍNH người gọi). Chỉ người lập đơn cần biết → hỏi order.create
@@ -1209,6 +1212,7 @@ export const ordersModule: AppModule = {
       const [meta, assigned] = await Promise.all([getMeta(env.DB, id), isAssigned(id)]);
       if (!meta) return NOT_FOUND();
       if (!ghiDuocNhap(meta, staff)) return NOT_FOUND(); // ADR-0135 Đ2: đơn nháp chỉ người lập ghi được — người khác 404
+      { const khoa = await khoaKhiCho(env.DB, id, meta.status); if (khoa) return khoa; } // ADR-0136 Đ3: đang chờ xác nhận ⇒ phải Rút lại trước
       if (!can(staff, "order.modify", { ownerId: meta.staffId, assigned })) return FORBIDDEN();
       if (meta.deliveredAt) return DA_GIAO();
       if (meta.status !== "draft") return NOT_EDITABLE();
@@ -1272,6 +1276,7 @@ export const ordersModule: AppModule = {
       const [meta, assigned] = await Promise.all([getMeta(env.DB, id), isAssigned(id)]);
       if (!meta) return NOT_FOUND();
       if (!ghiDuocNhap(meta, staff)) return NOT_FOUND(); // ADR-0135 Đ2: đơn nháp chỉ người lập ghi được — người khác 404
+      { const khoa = await khoaKhiCho(env.DB, id, meta.status); if (khoa) return khoa; } // ADR-0136 Đ3: đang chờ xác nhận ⇒ phải Rút lại trước
       if (!can(staff, "order.trip.edit", { ownerId: meta.staffId, assigned })) return FORBIDDEN();
       if (meta.deliveredAt) return DA_GIAO();
       if (meta.status === "cancelled") return CANCELLED();
@@ -1323,6 +1328,7 @@ export const ordersModule: AppModule = {
       const [meta, assigned] = await Promise.all([getMeta(env.DB, id), isAssigned(id)]);
       if (!meta) return NOT_FOUND();
       if (!ghiDuocNhap(meta, staff)) return NOT_FOUND(); // ADR-0135 Đ2: đơn nháp chỉ người lập ghi được — người khác 404
+      { const khoa = await khoaKhiCho(env.DB, id, meta.status); if (khoa) return khoa; } // ADR-0136 Đ3: đang chờ xác nhận ⇒ phải Rút lại trước
       if (!can(staff, "order.trip.edit", { ownerId: meta.staffId, assigned })) return FORBIDDEN();
       if (meta.deliveredAt) return DA_GIAO();
       if (meta.status === "draft") return USE_ORDER_FORM();
@@ -1351,6 +1357,7 @@ export const ordersModule: AppModule = {
       const [meta, assigned] = await Promise.all([getMeta(env.DB, id), isAssigned(id)]);
       if (!meta) return NOT_FOUND();
       if (!ghiDuocNhap(meta, staff)) return NOT_FOUND(); // ADR-0135 Đ2: đơn nháp chỉ người lập ghi được — người khác 404
+      { const khoa = await khoaKhiCho(env.DB, id, meta.status); if (khoa) return khoa; } // ADR-0136 Đ3: đang chờ xác nhận ⇒ phải Rút lại trước
       if (!can(staff, "order.trip.edit", { ownerId: meta.staffId, assigned })) return FORBIDDEN();
       if (meta.deliveredAt) return DA_GIAO();
       // NHÁNH NHÁP (ADR-0054 D10.3 "đường mới cho đơn nháp"; kế hoạch ô mới Task 3.5) — `lenhNhap` (dưới đây); đơn đã xác nhận đi đường cũ. Cả hai về MỘT chỗ
@@ -1375,6 +1382,7 @@ export const ordersModule: AppModule = {
       const [meta, assigned] = await Promise.all([getMeta(env.DB, id), isAssigned(id)]);
       if (!meta) return NOT_FOUND();
       if (!ghiDuocNhap(meta, staff)) return NOT_FOUND(); // ADR-0135 Đ2: đơn nháp chỉ người lập ghi được — người khác 404
+      { const khoa = await khoaKhiCho(env.DB, id, meta.status); if (khoa) return khoa; } // ADR-0136 Đ3: đang chờ xác nhận ⇒ phải Rút lại trước
       if (!can(staff, "order.trip.edit", { ownerId: meta.staffId, assigned })) return FORBIDDEN();
       if (meta.deliveredAt) return DA_GIAO();
       if (meta.status === "draft") return USE_ORDER_FORM();
@@ -1406,6 +1414,7 @@ export const ordersModule: AppModule = {
       const [meta, assigned] = await Promise.all([getMeta(env.DB, id), isAssigned(id)]);
       if (!meta) return NOT_FOUND();
       if (!ghiDuocNhap(meta, staff)) return NOT_FOUND(); // ADR-0135 Đ2: đơn nháp chỉ người lập ghi được — người khác 404
+      { const khoa = await khoaKhiCho(env.DB, id, meta.status); if (khoa) return khoa; } // ADR-0136 Đ3: đang chờ xác nhận ⇒ phải Rút lại trước
       if (!can(staff, "order.trip.edit", { ownerId: meta.staffId, assigned })) return FORBIDDEN();
       if (meta.deliveredAt) return DA_GIAO();
       if (meta.status === "draft") return USE_ORDER_FORM();
@@ -1490,6 +1499,7 @@ export const ordersModule: AppModule = {
       const [meta, assigned] = await Promise.all([getMeta(env.DB, id), isAssigned(id)]);
       if (!meta) return NOT_FOUND();
       if (!ghiDuocNhap(meta, staff)) return NOT_FOUND(); // ADR-0135 Đ2: đơn nháp chỉ người lập ghi được — người khác 404
+      { const khoa = await khoaKhiCho(env.DB, id, meta.status); if (khoa) return khoa; } // ADR-0136 Đ3: đang chờ xác nhận ⇒ phải Rút lại trước
       if (!can(staff, "order.passenger.write", { ownerId: meta.staffId, assigned })) return CANNOT_WRITE_PASSENGERS();
       if (meta.deliveredAt) return DA_GIAO();
       if (meta.status === "draft") return USE_ORDER_FORM();
@@ -1561,6 +1571,7 @@ export const ordersModule: AppModule = {
       const [meta, assigned] = await Promise.all([getMeta(env.DB, id), isAssigned(id)]);
       if (!meta) return NOT_FOUND();
       if (!ghiDuocNhap(meta, staff)) return NOT_FOUND(); // ADR-0135 Đ2: đơn nháp chỉ người lập ghi được — người khác 404
+      { const khoa = await khoaKhiCho(env.DB, id, meta.status); if (khoa) return khoa; } // ADR-0136 Đ3: đang chờ xác nhận ⇒ phải Rút lại trước
       if (!can(staff, "order.trip.edit", { ownerId: meta.staffId, assigned })) return FORBIDDEN();
       if (meta.deliveredAt) return DA_GIAO();
       if (meta.status === "cancelled") return CANCELLED();
@@ -1632,6 +1643,7 @@ export const ordersModule: AppModule = {
       const [meta, assigned] = await Promise.all([getMeta(env.DB, id), isAssigned(id)]);
       if (!meta) return NOT_FOUND();
       if (!ghiDuocNhap(meta, staff)) return NOT_FOUND(); // ADR-0135 Đ2: đơn nháp chỉ người lập ghi được — người khác 404
+      { const khoa = await khoaKhiCho(env.DB, id, meta.status); if (khoa) return khoa; } // ADR-0136 Đ3: đang chờ xác nhận ⇒ phải Rút lại trước
       if (!can(staff, "order.modify", { ownerId: meta.staffId, assigned })) return FORBIDDEN();
       if (meta.deliveredAt) return DA_GIAO();
       const from = meta.status;
@@ -1655,9 +1667,12 @@ export const ordersModule: AppModule = {
         // Task 3.2b: các cổng (R2 giá, người lớn, chọn đón, mốc, R3 trần) gom ở `kiemCongXacNhan` (xac-nhan-chung.ts) — cùng thứ tự, cùng câu lỗi như trước.
         // MỘT mốc (`ctx.mocToiThieu`, TC-26) cho cổng, câu ghi và việc đọc lại lý do; chưa có → 503 (cổng trả).
         const moc = await mocToiThieu();
+        const nowMs = Date.now();
+        // ADR-0136 Đ3: đơn thuộc diện cần xác nhận (cờ dịch vụ / nhóm, hoặc chặng dưới mốc chưa đặt gấp) không xác nhận thẳng được — phải Gửi xác nhận. Đứng SAU `can()`/khoá khi chờ,
+        // TRƯỚC mọi cổng của lô xác nhận. (Task 3.4 đặt cổng 409 `partner_submit_required` NGAY TRƯỚC dòng này.) Mốc chưa có thì chỉ xét cờ; `kiemCongXacNhan` sẽ trả 503 sau.
+        if ((await tinhCanXacNhan(env.DB, order, moc, nowMs)).can) return CAN_YEU_CAU();
         const cong = await kiemCongXacNhan(env.DB, { actor: staff, order, kiemMoc: true, mocToiThieu: moc });
         if ("loi" in cong) return cong.loi;
-        const nowMs = Date.now();
         let daXacNhan: boolean;
         try {
           // ADR-0049 D2 (I15, I25): điều kiện mốc nằm TRONG câu xác nhận — ngưỡng chuỗi giờ VN tính bằng `nguongMocVn` (MỘT luật với `kiemMocDat`).

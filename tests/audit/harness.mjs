@@ -177,6 +177,8 @@ export function khoR2Gia() {
  *   `mocToiThieu` — lách hàng rào N-9) → ném lỗi; dùng chung với tuỳ chọn khác → ném lỗi (không lặng lẽ bỏ). Không nới luật cho môi trường thử.
  * - `khongTiemNhan: true` — bỏ hàm tiêm nhãn người bấm (ruling R-P20: route để trống nhãn, không đoán). `demNhan: true` — nhãn GIẢ có ĐẾM số lần gọi
  *   (`w.soLanGoiNhan()`, mỗi lần một mảng id) — "một lần mỗi request cho cả danh sách".
+ * - `khongTiemDaThu: true` — ADR-0136 Đ3: bỏ hàm tiêm «số đã thu của đơn» ⇒ route gửi xác nhận PHẢI trả 503 `khoan_thu_chua_kiem` (từ chối kín, không đoán). `daThuGia: <số VNĐ>` — hàm tiêm GIẢ
+ *   trả số cố định, CHỈ để kiểm nhánh «đơn đã có khoản thu» (từ L2 nháp không ghi thu được qua API).
  * - `khongTiemAnDanhPhien: true` — ADR-0126 đ8 (lát H-5 Gói 2): bỏ hàm tiêm câu ẩn danh sổ phiên của auth ⇒ route Thực hiện phiếu xoá của chủ có tài khoản PHẢI trả 503 `erasure_unavailable`,
  *   không thực hiện thiếu phần sổ phiên. Cùng khuôn `khongTiemNhan` (bỏ đúng MỘT hàm tiêm, không nới luật nào).
  * - `khongDongBoChuyen: true` — ADR-0104 Đ2 (kế hoạch N9 "đổi cách dựng, không nới luật"): bỏ hàm tiêm máy đồng bộ chuyến ⇒ router dùng `dongBoDiThang` (lô = câu
@@ -206,6 +208,11 @@ export function world(tuyChon = {}) {
     ungDung = app.taoAppChoKhungThu({ mocToiThieu: undefined });
   } else if (tuyChon.demMoc) {
     ungDung = app.taoAppChoKhungThu({ mocToiThieu: async () => (soLanGoiMoc++, { phut: 360, policyId: MOC_GIA_POLICY_ID, canhBaoPhut: 120 }) });
+  } else if (tuyChon.khongTiemDaThu) {
+    ungDung = app.taoAppChoKhungThu({ daThuCuaDon: undefined });
+  } else if (tuyChon.daThuGia !== undefined) {
+    const so = tuyChon.daThuGia;
+    ungDung = app.taoAppChoKhungThu({ daThuCuaDon: async () => so });
   } else if (tuyChon.khongTiemAnDanhPhien) {
     ungDung = app.taoAppChoKhungThu({ cauAnDanhPhien: undefined });
   } else if (tuyChon.khongTiemNhan) {

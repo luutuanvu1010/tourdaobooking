@@ -17,7 +17,7 @@ import { accountsModule } from "./modules/accounts";
 import { auditModule } from "./modules/audit";
 import { anDanhPhienCuaTaiKhoanStatement, authModule, checkAuthConfig, currentStaff } from "./modules/auth";
 import { bangtinModule, dongCua, phatChuyen, phatDon, xepHangDay } from "./modules/bangtin";
-import { billingModule, nhapKeToanCuaDon, soDongNoCuaNguoi } from "./modules/billing";
+import { billingModule, daThuCuaDon, nhapKeToanCuaDon, soDongNoCuaNguoi } from "./modules/billing";
 import { receiptModule } from "./modules/receipt";
 import { catalogModule, runScheduledSync } from "./modules/catalog";
 import { companyModule } from "./modules/company";
@@ -203,6 +203,8 @@ const APP_OPTIONS: AppOptions = {
     }),
     // DẤU "ĐÃ NHẬP PHẦN MỀM KẾ TOÁN" (ADR-0060 điều 5): `orders` không đọc bảng bil_ — gốc lắp ráp gọi hàm đọc tập id của billing (lọc + nhãn danh sách đơn).
     nhapKeToanCuaDon: (env, ids) => nhapKeToanCuaDon(env.DB, ids),
+    // SỐ ĐÃ THU RÒNG CỦA ĐƠN (ADR-0136 Đ3): `orders` không đọc bảng bil_ — gốc lắp ráp gọi hàm công bố của billing (chặn mở yêu cầu xác nhận khi đơn đã có khoản thu).
+    daThuCuaDon: (env, id) => daThuCuaDon(env.DB, id),
     // LỚP CHỐNG GHI TRÙNG (ADR-0094 đ2): router không import module — gốc lắp ráp tiêm phần của `lan-gui` (vân tay HMAC, tra / chèn / cập nhật vé).
     lanGui: lanGuiNoi,
   },

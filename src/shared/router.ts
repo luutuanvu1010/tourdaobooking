@@ -206,6 +206,12 @@ export interface Ctx<A extends Access = Access> {
    */
   nhapKeToanCuaDon: (orderIds: readonly string[]) => Promise<Set<string> | null>;
   /**
+   * SỐ ĐÃ THU RÒNG của MỘT đơn (ADR-0136 Đ3 — «đơn đã có khoản thu» chặn mở yêu cầu xác nhận) — do gốc lắp ráp tiêm (`billing.daThuCuaDon`; `orders` KHÔNG đọc bảng `bil_`, không
+   * import `billing`, ADR-0024 đ4). Số ròng đã trừ dòng đảo và tiền trả lại khách (`hieuLuc` + `conLai`). MỘT truy vấn mỗi lần gọi. `null` = môi trường không tiêm (khung thử cố ý)
+   * HOẶC không đọc được ⇒ route TỪ CHỐI KÍN (503 `khoan_thu_chua_kiem`), KHÔNG đoán «chưa có khoản thu».
+   */
+  daThuCuaDon: (orderId: string) => Promise<number | null>;
+  /**
    * TIN CHUYẾN (ADR-0052 D6.3) — dữ kiện chuyến theo id (mã, ngày, khoảng lái, đơn của suất vắng) do gốc lắp ráp tiêm (`van-chuyen.chuyenChoTinTheoId`;
    * thongbao không import van-chuyen). Một lần gọi = ba truy vấn mảng JSON (mảng chuyến rỗng: không truy vấn). `null` = môi trường không tiêm (khung thử cố ý)
    * ⇒ không có tin chuyến. `legIds` (MQ-07, ADR-0052 D6.2): thêm suất khách của các chặng đó + dữ kiện chuyến của chúng.
@@ -341,6 +347,8 @@ export interface AppOptions {
     gopHoSo: (env: Env) => GopHoSoNoi;
     /** ADR-0060 điều 5. BẮT BUỘC trong mã chạy thật (`src/index.ts`: `nhapKeToanCuaDon` của billing); thiếu (khung thử cố ý) → router trả `null`. */
     nhapKeToanCuaDon: (env: Env, orderIds: readonly string[]) => Promise<Set<string>>;
+    /** ADR-0136 Đ3. BẮT BUỘC trong mã chạy thật (`src/index.ts`: `daThuCuaDon` của billing); thiếu (khung thử cố ý) → router trả `null`. */
+    daThuCuaDon: (env: Env, orderId: string) => Promise<number | null>;
     /** TIN CHUYẾN (ADR-0052 D6.3). BẮT BUỘC trong mã chạy thật (`src/index.ts`: `chuyenChoTinTheoId` của van-chuyen); thiếu (khung thử cố ý) → router trả `null`. */
     chuyenChoTin: (env: Env, q: HoiChuyenChoTin) => Promise<ChuyenChoTin>;
     /**
@@ -479,6 +487,7 @@ export function createApp(opts: AppOptions) {
       },
       nhapKeToanCuaDon: (ids) =>
         typeof opts.injected.nhapKeToanCuaDon !== "function" ? Promise.resolve(null) : ids.length === 0 ? Promise.resolve(new Set<string>()) : opts.injected.nhapKeToanCuaDon(envH, ids),
+      daThuCuaDon: (id) => (typeof opts.injected.daThuCuaDon !== "function" ? Promise.resolve(null) : opts.injected.daThuCuaDon(envH, id)),
       chuyenChoTin: (q) =>
         // Không hỏi chuyến NÀO và không hỏi chặng nào → không truy vấn. Hỏi CHỈ chặng (MQ-07) vẫn phải gọi hàm thật — chuyến suy từ suất của chặng.
         typeof opts.injected.chuyenChoTin !== "function" ? Promise.resolve(null)

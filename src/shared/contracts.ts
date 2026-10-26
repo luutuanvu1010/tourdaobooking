@@ -2807,3 +2807,63 @@ export interface ChoChupBuDto {
 export interface ChoChupBuResponse { don: ChoChupBuDto[] }
 /** `POST /api/orders/:id/chup-bu` — bản chụp vừa ghi (mức của ngày xác nhận), mỗi dòng dịch vụ một bản. Chỉ người giữ `order.terms.override` (luôn có `supply.terms.view`). */
 export interface ChupBuResponse { chup: BanChup[] }
+
+// ---- Bước xác nhận đơn (ADR-0136, Task 3.3) -----------------------------------------------------------------------------------------------------------
+/** Vì sao đơn phải qua bước xác nhận: có dịch vụ «cần xác nhận» (Đ1) và/hoặc còn chặng đón dưới mốc 6 giờ chưa đặt gấp. Giao diện đổi sang chữ thường, không hiện mã. */
+export type LyDoCanXacNhan = "DICH_VU" | "DAT_GAP";
+/** Một yêu cầu xác nhận (đang mở). `quaHan` chỉ để CẢNH BÁO (Đ9) — không tự huỷ. */
+export interface YeuCauXacNhanDto {
+  id: string;
+  guiLuc: string;
+  hanLuc: string;
+  quaHan: boolean;
+  vi: LyDoCanXacNhan[];
+}
+export interface GuiXacNhanResponse {
+  yeuCau: YeuCauXacNhanDto;
+}
+/** Một dòng của danh sách chờ — KHÔNG tên khách, SĐT, email (Đ6). */
+export interface DonChoXacNhanDto {
+  yeuCauId: string;
+  orderId: string;
+  orderCode: string;
+  dichVu: string[];
+  ngayDi: string | null;
+  soKhach: number;
+  /** Giờ đón sớm nhất của chặng mở, "HH:MM" (kèm cuối khung "HH:MM–HH:MM" nếu có); null = không đón / chưa có giờ. */
+  gioDon: string | null;
+  tong: number;
+  hanLuc: string;
+  quaHan: boolean;
+  /** Đơn vào bước chỉ vì chặng dưới mốc: người xét duyệt không giữ ô Đặt gấp cần nhờ Quản trị (nhãn «Cần Quản trị đặt gấp»). */
+  canDatGap: boolean;
+  vi: LyDoCanXacNhan[];
+}
+export interface DonChoXacNhanResponse {
+  don: DonChoXacNhanDto[];
+}
+/** `POST /api/orders/:id/quyet-dinh` — kết quả vé: Còn vé / Hết vé / Huỷ (mã, không hiện ra người dùng). */
+export interface QuyetDinhXacNhanInput {
+  ketQua: "CON_VE" | "HET_VE" | "HUY";
+  yeuCauId: string;
+  updatedAt: string;
+  ngayDi?: string;
+  gioDon?: { legId: string; pickupTime: string; pickupSlotEnd?: string }[];
+  lyDo?: string;
+  ghiChu?: string;
+}
+export interface QuyetDinhXacNhanResponse {
+  ketQua: "CON_VE" | "HET_VE" | "HUY";
+  trangThai: OrderStatus;
+}
+/** `GET|POST /api/cai-dat/xac-nhan-don`. Một dòng cờ: phạm vi dịch vụ hoặc nhóm. */
+export interface DongCoXacNhanDto {
+  pham: "SERVICE" | "GROUP";
+  ma: string;
+  canXacNhan: boolean;
+}
+export interface CaiDatXacNhanResponse {
+  dongCo: DongCoXacNhanDto[];
+  tuXacNhanNoiBo: boolean;
+}
+export type CaiDatXacNhanInput = { pham: "SERVICE" | "GROUP"; ma: string; canXacNhan: boolean } | { tuXacNhanNoiBo: boolean };

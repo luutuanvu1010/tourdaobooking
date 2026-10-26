@@ -802,7 +802,7 @@ export async function getDashboard(
 const isCodeCollision = (e: unknown) => e instanceof Error && /UNIQUE constraint failed: orders\.order_code/.test(e.message);
 
 /** Mốc `updated_at` mới, luôn LỚN HƠN mốc cũ (dù đồng hồ lệch/cùng mili-giây) để điều kiện khoá lạc quan phân biệt được "đã ghi" với "chưa ghi". */
-function nextStamp(prev: string): string {
+export function nextStamp(prev: string): string {
   const p = Date.parse(prev);
   return new Date(Number.isNaN(p) ? Date.now() : Math.max(Date.now(), p + 1)).toISOString();
 }
@@ -1086,17 +1086,20 @@ export async function confirmOrder(
  */
 export function soanXacNhan(
   db: D1Database, id: string, staffId: string, today: string, prevUpdatedAt: string, nguongMoc: string, detail?: string,
-  alsoConfirm?: (at: string) => D1PreparedStatement[],
-): { at: string; cau: D1PreparedStatement[] } {
+  alsoConfirm?: (at: string) => D1PreparedStatement[], opts?: { auditId?: string; yeuCauId?: string },
+): { at: string; cau: D1PreparedStatement[]; auditId: string } {
   const at = nextStamp(prevUpdatedAt);
   const { from, to } = confirmWindow(today);
   // ADR-0049 D2 (I15): câu xác nhận ở tệp nửa nghiêm (`order_confirm`), thêm vế mốc tối thiểu lúc đặt — ngưỡng chuỗi do route tính bằng `nguongMocVn`.
+  // `opts.auditId`: id dòng nhật ký `confirmed` do nơi gọi chọn trước, để câu khép yêu cầu (`_guarded`) hỏi «dòng này đã ghi» (Task 3.3 — khuôn `wonGuard`).
+  const auditId = opts?.auditId ?? crypto.randomUUID();
   return {
     at,
+    auditId,
     cau: [
       legFillDateOnConfirm(db, id, at),
-      orderConfirm(db, id, at, from, to, nguongMoc, prevUpdatedAt),
-      auditStatement(db, { orderId: id, staffId, action: "confirmed", at, detail }, "changes() > 0"),
+      orderConfirm(db, id, at, from, to, nguongMoc, prevUpdatedAt, opts?.yeuCauId ?? null),
+      auditStatement(db, { id: auditId, orderId: id, staffId, action: "confirmed", at, detail }, "changes() > 0"),
       // Câu kèm (bản chụp thương mại — ADR-0077) đứng SAU nhật ký confirmed: chuỗi changes() > 0 nối từ UPDATE orders → nhật ký → từng câu chụp.
       ...(alsoConfirm?.(at) ?? []),
     ],

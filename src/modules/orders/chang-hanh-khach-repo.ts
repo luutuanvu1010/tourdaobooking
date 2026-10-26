@@ -413,10 +413,15 @@ const ORDER_CONFIRM = defineSql(
          AND (s.depart_date IS NULL OR s.depart_date < ?3 OR s.depart_date > ?4 OR s.pax_adult + s.pax_child + s.pax_senior + s.pax_infant < 1))
      AND NOT EXISTS (
        SELECT 1 FROM ord_transfer_leg l WHERE l.order_id = orders.id AND l.closed_at IS NULL AND l.pickup_time IS NOT NULL
-         AND l.short_notice_reason IS NULL AND l.pickup_date || ' ' || l.pickup_time < ?5)`,
+         AND l.short_notice_reason IS NULL AND l.pickup_date || ' ' || l.pickup_time < ?5)
+     AND (?7 IS NULL OR EXISTS (SELECT 1 FROM ord_confirm_request q WHERE q.id = ?7 AND q.order_id = orders.id AND q.decided_at IS NULL))`,
 );
-export const orderConfirm = (db: D1Database, orderId: string, at: string, from: string, to: string, nguongMoc: string, prevUpdatedAt: string): D1PreparedStatement =>
-  db.prepare(ORDER_CONFIRM).bind(at, orderId, from, to, nguongMoc, prevUpdatedAt);
+/**
+ * `yeuCauId` (Task 3.3, ADR-0136 Đ7): khi người xét duyệt bấm Còn vé, câu xác nhận còn mang vế «yêu cầu đã đọc VẪN CÒN MỞ» — người lập vừa Rút lại / người khác vừa quyết
+ * thì câu không đổi dòng nào. NULL = xác nhận thường (`/status`, không qua yêu cầu).
+ */
+export const orderConfirm = (db: D1Database, orderId: string, at: string, from: string, to: string, nguongMoc: string, prevUpdatedAt: string, yeuCauId: string | null = null): D1PreparedStatement =>
+  db.prepare(ORDER_CONFIRM).bind(at, orderId, from, to, nguongMoc, prevUpdatedAt, yeuCauId);
 
 // ---- Ghi kép hai cột cũ (Ruling R3, phát hành 1) ---------------------------------------------------------------------------------------------
 

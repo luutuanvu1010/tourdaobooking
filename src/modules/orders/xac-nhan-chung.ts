@@ -3,7 +3,7 @@
 // `index.ts` và tệp route sau này không import vòng nhau. KHÔNG tự kiểm quyền người gọi (route đã làm); KHÔNG đổi hành vi so với thân nhánh `confirmed` cũ.
 import { auditStatement } from "../audit";
 import { chupDon, docBangChoChup, soKhachTinhHoaHong, type BanChup } from "../pricing";
-import type { DongBoChuyenDto, IncompleteTripBody, PaxCounts, ShortNoticeRequiredBody, StaffProfile } from "../../shared/contracts";
+import type { DongBoChuyenDto, IncompleteTripBody, LyDoCanXacNhan, OrderStatus, PaxCounts, ShortNoticeRequiredBody, StaffProfile } from "../../shared/contracts";
 import { error, json } from "../../shared/http";
 import { vnToday } from "../../shared/vn-date";
 import { parseUnit } from "../../shared/order-lines";
@@ -11,7 +11,9 @@ import type { DongBoTheoDon } from "../../shared/dong-bo-chuyen";
 import { CAU_THIEU_NGUOI_LON, donThieuNguoiLon } from "../../shared/nguoi-di-kem";
 import { cauThieuChonDon, thieuChonDon } from "../../shared/cong-chon-don";
 import type { MocToiThieu } from "../../shared/moc-toi-thieu";
+import { canXacNhan } from "../../shared/xac-nhan-don";
 import { canhBaoMocCua } from "./dat-gap";
+import { coHienHanh, nhomTheoMa, yeuCauMoCuaDon } from "./xac-nhan-repo";
 import { legDatGapByOrder } from "./chang-hanh-khach-repo";
 import { findOrder, getMeta, getStoredServices } from "./repository";
 import { viPhamGiaDanhMuc, viPhamTranGiamGia } from "./price-guards";
@@ -135,4 +137,39 @@ export async function chanDoanXacNhan(db: D1Database, i: { id: string; today: st
     return json({ error: { code: "short_notice_required", message, legs } } satisfies ShortNoticeRequiredBody, 409);
   }
   return STALE(); // vừa có người sửa / bổ sung xong (kể cả khoá phiên bản `updated_at` của câu xác nhận) — tải lại rồi bấm lại
+}
+
+// ---- Bước xác nhận đơn (Task 3.3, ADR-0136) — phần dùng chung giữa `index.ts` (`/status`, khoá khi chờ) và `xac-nhan-route.ts` ------------------------------------------
+export const CAN_YEU_CAU = () => error(409, "confirm_request_required", "Đơn có dịch vụ cần xác nhận, hãy bấm Gửi xác nhận.");
+export const KHOA_KHI_CHO = () => error(409, "confirm_pending_locked", "Đơn đang chờ xác nhận, hãy Rút lại trước khi sửa.");
+
+/**
+ * Đ1: đơn này có PHẢI qua bước xác nhận không (cờ dịch vụ → cờ nhóm hiện hành → không cần, và chặng dưới mốc 6 giờ chưa đặt gấp). Đọc cờ HIỆN HÀNH lúc `nowMs`.
+ * `moc` null (khung thử không tiêm / bảng rỗng) ⇒ không xét được phần chặng dưới mốc, coi là KHÔNG có — nơi gọi phải tự trả 503 khi việc của nó cần mốc.
+ */
+export async function tinhCanXacNhan(db: D1Database, order: DonXacNhan, moc: MocToiThieu | null, nowMs: number): Promise<{ can: boolean; vi: LyDoCanXacNhan[] }> {
+  const ma = order.services.flatMap((s) => (s.catalogCode ? [s.catalogCode] : []));
+  const [co, nhom] = await Promise.all([coHienHanh(db, new Date(nowMs).toISOString()), nhomTheoMa(db, ma)]);
+  const coDichVu = new Map<string, boolean>();
+  const coNhom = new Map<string, boolean>();
+  for (const r of co) (r.scope === "SERVICE" ? coDichVu : r.scope === "GROUP" ? coNhom : new Map<string, boolean>()).set(r.code, r.required === 1);
+  let duoiMoc = false;
+  if (moc) {
+    const daDatGap = new Set((await legDatGapByOrder(db, order.id)).map((r) => r.id));
+    duoiMoc = canhBaoMocCua(order.services.flatMap((s) => s.legs), daDatGap, nowMs, moc.phut).length > 0;
+  }
+  const kq = canXacNhan({
+    dichVu: order.services.map((s) => ({ ma: s.catalogCode, nhom: s.catalogCode ? (nhom.get(s.catalogCode) ?? null) : null })),
+    coDichVu, coNhom, coChangDuoiMocChuaDatGap: duoiMoc,
+  });
+  return { can: kq.can, vi: kq.vi };
+}
+
+/**
+ * KHOÁ KHI CHỜ (Đ3): đơn nháp đang có yêu cầu xác nhận mở ⇒ người lập không sửa / xác nhận / huỷ được — phải Rút lại. Gọi ngay SAU cổng 404 của nháp (`ghiDuocNhap`)
+ * ở mọi route ghi của người lập, TRƯỚC các 409 khác (nếu không ca "sửa khi chờ" thấy `use_order_form`). Đơn đã xác nhận / huỷ: không truy vấn.
+ */
+export async function khoaKhiCho(db: D1Database, orderId: string, status: OrderStatus): Promise<Response | null> {
+  if (status !== "draft") return null;
+  return (await yeuCauMoCuaDon(db, orderId)) ? KHOA_KHI_CHO() : null;
 }
