@@ -3,68 +3,24 @@
 <body data-title="Hoa hồng đối tác" data-back="/account">
 <header id="topbar"></header>
 <main>
-  <!-- Hoa hồng đối tác (sổ đại lý đợt 1, Task 10; ADR-0077). Xem: ô partner.commission.view; thêm / đóng mức: partner.commission.write. Tài khoản giữ quyền Đối tác không vào được (máy chủ 403).
-       web/hoa-hong.ts dựng nội dung; id cố định cho kịch bản Chrome: #loai-list, #loai-add-form, #loai-ten, #loai-loi, #muc-list, #muc-add-form, #thu-tra-form, #thu-tra-ket-qua. Mục «Loại đối tác» (ADR-0117 lần 1):
-       xem = partner.commission.view; thêm / tắt / bật = partner.commission.write. -->
-  <h1>Hoa hồng đối tác</h1>
-  <p class="muted">Mức hoa hồng cho đối tác theo dịch vụ. Mức không sửa, không xoá được — chỉ thêm mức mới và đóng mức cũ.</p>
+  <!-- Hoa hồng đối tác (thiết kế lại, PR 2). Xem: partner.commission.view; thêm / ngừng mức: partner.commission.write. Tài khoản giữ quyền Đối tác không vào được (máy chủ 403).
+       web/hoa-hong.ts nạp dữ liệu và chuyển hai thẻ; nội dung từng thẻ do các khối web/hoa-hong-*.ts vẽ vào #hh-the-ap-dung, #hh-the-thiet-lap. -->
+  <div class="hh-dau">
+    <h1>Hoa hồng đối tác</h1>
+    <button type="button" id="hh-them-muc" class="btn btn-primary btn-chinh" hidden>＋ Thêm mức</button>
+  </div>
   <div id="error" class="alert" role="alert" hidden></div>
   <div id="ok" class="alert ok" role="status" hidden></div>
-  <!-- Ẩn cho tới khi máy chủ trả bảng mức (khỏi hiện khung trống cho tài khoản không có quyền xem). -->
+  <!-- Ẩn cho tới khi máy chủ trả dữ liệu (khỏi hiện khung trống cho tài khoản không có quyền xem). -->
   <div id="hh-noi-dung" hidden>
-    <section class="card" aria-labelledby="loai-tieu-de">
-      <h2 id="loai-tieu-de">Loại đối tác</h2>
-      <p class="muted">Loại đối tác được hưởng hoa hồng. Loại do Kế toán thêm thì Quản trị gắn cho hồ sơ ở Danh bạ; nhân viên nội bộ không gắn được. Đặt mức cho loại mới ở phần «Thêm mức» bên dưới.</p>
-      <ul id="loai-list" class="hh-loai"></ul>
-      <p id="loai-rong" class="muted" hidden></p>
-      <form id="loai-add-form" autocomplete="off" novalidate hidden></form>
-      <p id="loai-loi" class="field-error" role="alert" hidden></p>
-    </section>
-    <!-- Mức TA dùng chung (ADR-0117 lần 2): xem = partner.commission.view; thêm mức / tắt / bật / thêm dòng / gắn / kết thúc gắn = partner.commission.write. id cố định cho kịch bản
-         Chrome docs/evidence/2026-10-15-muc-ta/kich-ban/muc-ta-smoke.mjs: #mucta-list, #mucta-canh-bao, #mucta-loi, #mucta-add-form, #mucta-dong-form, #mucta-gan-form, #mucta-dong-khu. -->
-    <section class="card" aria-labelledby="mucta-tieu-de">
-      <h2 id="mucta-tieu-de">Mức TA</h2>
-      <p class="muted">Mức TA là bộ hoa hồng có tên, dùng chung cho nhiều loại đối tác (ví dụ «Đại lý cấp 1»). Gắn một loại vào một mức thì đối tác mang loại đó hưởng theo mức này, trừ chỗ đối tác hoặc loại còn mức riêng — mức riêng luôn được ưu tiên.</p>
-      <p id="mucta-luat" class="muted"></p>
-      <div id="mucta-canh-bao" class="alert warn" role="status" hidden></div>
-      <div id="mucta-list"></div>
-      <p id="mucta-rong" class="muted" hidden></p>
-      <!-- Hộp «Đóng dòng» / «Kết thúc gắn» (ngày kết thúc) hiện ở đây khi bấm nút của một dòng. -->
-      <div id="mucta-dong-khu"></div>
-      <p id="mucta-loi" class="field-error" role="alert" hidden></p>
-      <form id="mucta-add-form" autocomplete="off" novalidate hidden></form>
-      <form id="mucta-dong-form" autocomplete="off" novalidate hidden></form>
-      <form id="mucta-gan-form" autocomplete="off" novalidate hidden></form>
-    </section>
-    <section class="card" aria-labelledby="muc-tieu-de">
-      <h2 id="muc-tieu-de">Các mức hiện có</h2>
-      <p class="muted">Mức riêng theo loại đối tác hoặc theo một đối tác. Dòng của mức TA nằm ở mục «Mức TA» bên trên.</p>
-      <div class="hh-loc">
-        <label>Hiện<select id="muc-loc-trang-thai"><option value="dang-ap">Đang áp và sắp áp</option><option value="tat-ca">Tất cả</option></select></label>
-        <label>Tìm theo đối tượng hoặc dịch vụ<input id="muc-loc-tim" type="search" autocomplete="off" placeholder="Tên đối tác, loại đối tác hoặc dịch vụ"></label>
-      </div>
-      <div class="table-wrap">
-        <table class="items">
-          <thead><tr><th>Áp cho</th><th>Phạm vi</th><th>Mức</th><th>Từ ngày</th><th>Đến ngày</th><th>Trạng thái</th><th></th></tr></thead>
-          <tbody id="muc-list"></tbody>
-        </table>
-      </div>
-      <div id="muc-list-cards" class="card-list"></div>
-      <p id="muc-rong" class="muted" hidden></p>
-      <!-- Hộp «Đóng mức» (ngày kết thúc) hiện ở đây khi bấm nút của một dòng. -->
-      <div id="muc-dong-khu"></div>
-    </section>
-    <section id="muc-add-card" class="card" aria-labelledby="muc-add-tieu-de" hidden>
-      <h2 id="muc-add-tieu-de">Thêm mức</h2>
-      <form id="muc-add-form" autocomplete="off" novalidate></form>
-    </section>
-    <section class="card" aria-labelledby="thu-tra-tieu-de">
-      <h2 id="thu-tra-tieu-de">Thử tra</h2>
-      <p class="muted">Chọn một đối tác, một dịch vụ và một ngày để xem mức nào sẽ áp.</p>
-      <form id="thu-tra-form" autocomplete="off" novalidate></form>
-      <div id="thu-tra-ket-qua" role="status" aria-live="polite"></div>
-    </section>
+    <div class="tx-tabs hh-the" role="tablist" aria-label="Hoa hồng đối tác">
+      <button type="button" role="tab" id="hh-tab-ap-dung" class="tx-tab" aria-selected="true" aria-controls="hh-the-ap-dung" tabindex="0" data-the="ap-dung">Mức đang áp dụng</button>
+      <button type="button" role="tab" id="hh-tab-thiet-lap" class="tx-tab" aria-selected="false" aria-controls="hh-the-thiet-lap" tabindex="-1" data-the="thiet-lap">Thiết lập</button>
+    </div>
+    <section id="hh-the-ap-dung" role="tabpanel" aria-labelledby="hh-tab-ap-dung"></section>
+    <section id="hh-the-thiet-lap" role="tabpanel" aria-labelledby="hh-tab-thiet-lap" hidden></section>
   </div>
+  <div id="hh-thanh-cuoi" class="vc-bottom-bar thanh-hanh-dong-cuoi" hidden></div>
 </main>
 <script type="module" src="/js/hoa-hong.js"></script>
 </body></html>

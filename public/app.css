@@ -3709,3 +3709,10 @@ body.co-nut-ho-tro:not(.cc-dang-chay) main { padding-bottom: calc(var(--s5) + va
 /* Dòng «còn N lần» trong hộp Từ chối (ADR-0032 điều 9) và dòng phụ «đã từ chối đơn này lúc …» ở bảng chọn người (điều 10). */
 .tu-choi-con-lai { margin: 0 0 var(--s3); color: var(--c-text-muted); font-size: var(--fs-label); }
 .assignee-tu-choi { display: block; color: var(--c-sand-text); font-size: var(--fs-label); }
+
+/* Trang «Hoa hồng đối tác» thiết kế lại (PR 2): đầu trang (tiêu đề + nút Thêm mức) và hai thẻ. Chỉ token. */
+.hh-dau { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s2) var(--s4); }
+.hh-dau h1 { margin: 0; }
+.hh-dau .btn { min-height: var(--tap-min); }
+.hh-the { margin-top: var(--s3); }
+@media (max-width: 640px) { .hh-dau .btn { display: none; } }
