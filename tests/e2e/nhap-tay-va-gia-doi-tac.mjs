@@ -365,16 +365,14 @@ try {
   }
   console.log("✓ ADR-0061 tiêu chí 3 (PUT): Thực tập, Đối tác, lai Đối tác+Bán hàng sửa nháp thêm dịch vụ nhập tay → 400");
 
-  // 9f) Hệ quả có chủ ý (ADR-0061): Quản trị thêm dịch vụ nhập tay vào đơn nháp CỦA ĐỐI TÁC → Đối tác không xác nhận được (R2, 403); nội bộ xác nhận thay
-  const pd = (await call(P, "POST", "/api/orders", orderInput({ customerName: `NT nháp Đối tác ${tag}` }))).body.order;
-  r = await put(ADMIN, pd, [catalogAsStored(pd.services[0]), manualService([{ description: "Phụ thu", quantity: 1, unitPrice: 50000 }])]);
-  assert.equal(r.status, 200, JSON.stringify(r.body));
-  const pd2 = r.body.order;
+  // 9f) Hệ quả của ADR-0061 sau ADR-0135/0136: nháp của Đối tác có dịch vụ nhập tay → Đối tác «Gửi đơn» bị R2 chặn (403); Quản trị KHÔNG xác nhận thay được nữa (nháp là vùng riêng của người lập → 404).
+  // Trạng thái «nháp có nhập tay» dựng bằng SQL (từ ADR-0135 Quản trị không sửa được nháp của người khác); kỳ vọng ghi quyền R2 giữ nguyên.
+  const pd2 = await legacyDraft(P, `NT nháp Đối tác ${tag}`);
   r = await confirm(P, pd2);
   assert.equal(r.status, 403, JSON.stringify(r.body));
   assert.match(r.body.error.message, RETAIL);
-  assert.equal((await confirm(ADMIN, pd2)).status, 200, "Quản trị xác nhận thay");
-  console.log("✓ ADR-0061 hệ quả: nội bộ thêm nhập tay vào nháp của Đối tác → Đối tác xác nhận 403 (R2), Quản trị xác nhận thay 200");
+  assert.equal((await confirm(ADMIN, pd2)).status, 404, "Quản trị không xác nhận thay nháp của Đối tác (ADR-0135 Đ2)");
+  console.log("✓ ADR-0061 hệ quả: nháp của Đối tác có nhập tay → Đối tác Gửi đơn 403 (R2); Quản trị 404 (nháp riêng tư)");
 
   // 9g) Tiêu chí 5: Toàn quyền TẮT → đơn đã có dịch vụ nhập tay vẫn mở; sửa giá/tên dòng đó → 400; gửi nguyên → 200; xác nhận → 200
   r = await datCongTac(SUPER, false);

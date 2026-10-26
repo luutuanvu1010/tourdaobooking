@@ -40,6 +40,12 @@ const newOrder = async (cookie = A, giuNhap = false) => {
   assert.equal(r.status, 201, JSON.stringify(r.body));
   if (giuNhap) return r.body.order;
   const xn = await call(cookie, "POST", `/api/orders/${r.body.order.id}/status`, { status: "confirmed" });
+  if (xn.status === 409 && xn.body?.error?.code === "partner_submit_required") {
+    // ADR-0136 Đ13.5: người lập giữ quyền Đối tác «Gửi đơn» (đơn thường → nhánh B, 200, phản hồi không kèm đơn nên đọc lại)
+    const g = await call(cookie, "POST", `/api/orders/${r.body.order.id}/gui-don`, {});
+    assert.equal(g.status, 200, JSON.stringify(g.body));
+    return (await call(cookie, "GET", `/api/orders/${r.body.order.id}`)).body.order;
+  }
   assert.equal(xn.status, 200, JSON.stringify(xn.body));
   return xn.body.order;
 };

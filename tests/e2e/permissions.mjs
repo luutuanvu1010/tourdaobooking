@@ -198,7 +198,7 @@ console.log("✓ nhiều quyền + hiệu lực ngay");
   const taiXeDt = await taoTheoVai(["DRIVER_EXTERNAL"], "Tài Xế Đối Tác Người Lập");
   const donDt = await call(doiTac.cookie, "POST", "/api/orders", orderInput());
   assert.equal(donDt.status, 201, JSON.stringify(donDt.body));
-  assert.equal((await call(doiTac.cookie, "POST", `/api/orders/${donDt.body.order.id}/status`, { status: "confirmed" })).status, 200, "Đối tác xác nhận đơn của mình (ADR-0135: nháp chỉ người lập thấy — Kế toán lọc mới thấy)");
+  assert.equal((await call(doiTac.cookie, "POST", `/api/orders/${donDt.body.order.id}/gui-don`, {})).status, 200, "Đối tác «Gửi đơn» đơn của mình (ADR-0136 Đ13.5: không còn xác nhận thẳng; nhánh B) (ADR-0135: nháp chỉ người lập thấy — Kế toán lọc mới thấy)");
   assert.equal((await call(nghi.cookie, "POST", "/api/orders", orderInput())).status, 201);
   assert.equal((await call(ADMIN, "PATCH", `/api/staff/${nghi.id}`, { active: false })).status, 200, "cho nghỉ việc SAU khi đã lập đơn");
 
