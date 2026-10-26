@@ -56,7 +56,8 @@ const CA: Record<string, unknown> = {
   "POST /api/orders/:id/thuong-mai/:serviceId": { lyDo: "thoả thuận miệng với CTV Lan", hoaHong: { kieu: "RATE", tyLeBp: 1500 } },
   // Sổ đại lý đợt 2 (Task 6): «Chụp bù» — không thân; đơn Đã giao ⇒ 409 order_delivered trước bước đếm bản chụp.
   "POST /api/orders/:id/chup-bu": {},
-  // ADR-0136 (Task 3.3): ba route của bước xác nhận — đơn Đã giao đã xác nhận, không còn là nháp ⇒ 409 order_delivered TRƯỚC mọi bước kiểm khác. Thân quyết định hợp lệ (route kiểm thân trước).
+  // ADR-0136 (Task 3.3): bốn route của bước xác nhận (gui-don thêm ở Task 3.4) — đơn Đã giao đã xác nhận, không còn là nháp ⇒ 409 order_delivered TRƯỚC mọi bước kiểm khác. Thân quyết định hợp lệ (route kiểm thân trước).
+  "POST /api/orders/:id/gui-don": {}, // Task 3.4: Gửi đơn của Đối tác — Toàn quyền giữ ô order.submit (any) ⇒ qua cổng quyền rồi 409 order_delivered
   "POST /api/orders/:id/gui-xac-nhan": {},
   "POST /api/orders/:id/rut-xac-nhan": {},
   "POST /api/orders/:id/quyet-dinh": { ketQua: "CON_VE", yeuCauId: "99999999-9999-4999-8999-000000000099", updatedAt: "x" },

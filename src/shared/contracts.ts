@@ -2822,6 +2822,10 @@ export interface YeuCauXacNhanDto {
 export interface GuiXacNhanResponse {
   yeuCau: YeuCauXacNhanDto;
 }
+/** `POST /api/orders/:id/gui-don` (ADR-0136 Đ13): nhánh A (201) mở yêu cầu xác nhận; nhánh B (200) đã xác nhận, không có yêu cầu. `thongBao` lấy từ `CAU_BAO_GUI_DON`. */
+export type GuiDonResponse =
+  | { nhanh: "A"; thongBao: string; yeuCau: YeuCauXacNhanDto }
+  | { nhanh: "B"; thongBao: string };
 /** Một dòng của danh sách chờ — KHÔNG tên khách, SĐT, email (Đ6). */
 export interface DonChoXacNhanDto {
   yeuCauId: string;
