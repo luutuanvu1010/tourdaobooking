@@ -20,7 +20,8 @@ import { pathToFileURL } from "node:url";
 import { ACCOUNTS, docAxe, ok, setInput, sleep, startEnv, vnDate } from "../../2026-10-08-qr-thanh-toan/kich-ban/qr-chung.mjs";
 
 const AXE = docAxe(); // thiếu AXE_JS ⇒ dừng NGAY, trước khi dựng môi trường
-const OUT = process.env.OUT ?? join(process.cwd(), "docs/evidence/2026-10-08-so-dai-ly-dot-1/anh");
+// Hồ sơ 2026-10-08 đã đóng băng: mặc định ghi ảnh vào thư mục có ngày của lần chạy lại (đặt OUT=<thư mục> để ghi chỗ khác).
+const OUT = process.env.OUT ?? join(process.cwd(), "docs/evidence/2026-10-26-hoa-hong-thiet-ke-lai/anh-so-dai-ly");
 mkdirSync(OUT, { recursive: true });
 const DESK = { width: 1040, height: 900, mobile: false };
 const MOB = { width: 390, height: 844, mobile: true };
