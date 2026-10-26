@@ -18,7 +18,7 @@ export const CHANGELOG: readonly ReleaseNote[] = [
     date: "2026-10-26",
     items: [
       { kind: "moi", text: "Trang Hoa hồng đối tác làm lại, có hai thẻ «Mức đang áp dụng» và «Thiết lập». Có Tra nhanh: chọn đối tác hoặc loại, dịch vụ, ngày là biết mức nào được áp." },
-      { kind: "moi", text: "Bảng «ai hưởng gì» xếp theo loại đối tác; mỗi dòng mức riêng đang áp dụng (của loại hoặc của một đối tác, mở từng đối tác để xem) có nút Đổi và Ngừng (điện thoại: chạm vào dòng). Thêm, đổi, ngừng mức đều mở hộp trượt, không rời trang." },
+      { kind: "moi", text: "Bảng «ai hưởng gì» xếp theo loại đối tác, mở từng đối tác để xem mức riêng; dòng mức riêng đang áp dụng có nút Đổi, Ngừng (điện thoại: chạm vào dòng)." },
       { kind: "moi", text: "Thẻ Thiết lập gom việc quản lý loại đối tác và chính sách hoa hồng: thêm loại, thêm chính sách, áp dụng cho loại, tắt/bật, ngừng áp dụng." },
       { kind: "doi", text: "Đổi chữ ở mọi màn: «Mức TA» thành «Chính sách hoa hồng»; «Đang áp», «Sắp áp», «Đã đóng» thành «Đang áp dụng», «Sắp áp dụng», «Đã ngừng»." },
     ],
