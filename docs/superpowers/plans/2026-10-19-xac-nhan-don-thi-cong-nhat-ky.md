@@ -26,6 +26,11 @@ Sổ điều phối (P19: trạng thái sống ở đây, không trong trí nh�
   - Task 3.4: nút Gửi đơn ở form và trang đơn, hai câu báo nhánh A / B, Trợ giúp Đối tác.
   - Bài đỏ đo được và các e2e phải sửa: trang ghép 25/10 mục 6. Cổng «luật bán» trong Gửi đơn chỉ thêm khi ADR chính sách bán (lượt 2) đã duyệt.
 
+## Lệch cần chủ xử lý (ghi 26/10; không sửa ADR)
+
+- **ADR-0136 Đ13.5 câu thứ ba và tiêu chí nghiệm thu 4** nói tài khoản lai (giữ quyền Đối tác) xác nhận đơn được giao do người khác lập «vẫn như hôm nay». ADR-0135 Đ2 (nháp của người khác: 404, kể cả người phụ trách chọn sẵn) làm đường đó không còn với **nháp thường**. Chủ chốt 26/10: «Đơn chờ thì quyết định được, nháp thường thì không». Kế hoạch hiểu chữ ADR-0136 hẹp lại: chỉ đơn **đang chờ**, quyết định qua ô `order.confirm.review`. Chờ chủ ra dòng bổ sung cho ADR.
+- **ADR-0136 Đ8 (sửa tiền khi chờ) và tiêu chí 8:** chủ hoãn 26/10 — Task 3.3b, hai hướng, chờ chủ duyệt sau.
+
 ## Báo cáo trợ lý thi công Đợt 1 (19/10, tự khai — CHƯA kiểm độc lập)
 
 - Commit: 416a8388, cb318faa, dafd1d06, 4bc6a1e6, debe67da (hai kịch bản Chrome a2 gieo đơn có lựa chọn đón).
