@@ -1,3 +1,4 @@
+// GHI CHÚ 27/10/2026 (ADR-0135/0136): đoạn nhập `prepaidAmount` không còn ô tương ứng từ 27/10 (ADR-0135 Đ7); chưa sửa, ghi nợ.
 // Thân POST / PUT gửi lên máy chủ cho CÙNG một chuỗi thao tác — trước và sau việc "thẻ dịch vụ gập" (Task 5, 18/10/2026). Phải giống nhau TỪNG BYTE sau khi bỏ
 // id ngẫu nhiên (UUID) và dấu khoá lạc quan (`expectedUpdatedAt`) — khuôn T5 của đợt bốn bước (docs/evidence/2026-10-14-tao-don-bon-buoc/kich-ban/chup-anh.mjs, so-sanh.py).
 // Mọi ô đều điền bằng `setInput` / `.click()` của JS (chạy được cả khi ô đang nằm trong thẻ gập — `hidden` không chặn sự kiện), nên CÙNG kịch bản chạy được trên bản trước lẫn bản sau.

@@ -1,3 +1,4 @@
+// GHI CHÚ 27/10/2026 (ADR-0135/0136): phần E (ba ô trả trước) hết hiệu lực từ 27/10 (ADR-0135 Đ7). Bước B/C đã đỏ có sẵn (axe `moderate region: #strips`). Chưa sửa, ghi nợ.
 // Kịch bản Chrome — QR thanh toán (ADR-0108; đặc tả docs/superpowers/specs/2026-10-08-qr-thanh-toan/README.md §4.1, §4.2, §7, §8.1, §8.7, §8.10): màn đơn, bảng QR, mục
 // "Tài khoản nhận tiền" ở Danh bạ, lối tắt "Khách đã chuyển khoản", form lập đơn của Toàn quyền. Các ô mã giao dịch của Kế toán nằm ở qr-ma-smoke.mjs.
 //   A. Bán hàng mở QR khi CHƯA cài tài khoản (390 và 1040): đúng câu "…báo người phụ trách hệ thống.", không mã, hai nút tắt.

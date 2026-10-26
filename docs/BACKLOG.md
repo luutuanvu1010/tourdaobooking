@@ -574,6 +574,7 @@ Ghi 25/10 khi đóng phiên ADR-0133 (bản 2.25 + vá 2.26, migration `0116`). 
   3. **Đợt 3** — bước xác nhận kèm «Gửi đơn» (ADR-0136 đã duyệt 25/10). Trước khi thi công phải sửa kế hoạch theo ADR-0136 (nhật ký thi công, mục «Ruling», dòng 25/10). Migration lấy số kế tiếp sau khi kiểm mọi nhánh.
   4. **Đợt 4** — thư xác nhận kèm QR, thư + tin báo huỷ. Trước tiên kiểm Email Service của Cloudflare có gửi tới địa chỉ khách bên ngoài và có đính kèm ảnh không.
   5. **Đợt 5** — trang Bảng điều khiển của Toàn quyền (ảnh mẫu chủ duyệt trước).
+- **Tiến độ 27/10/2026 (nhánh `claude/xac-nhan-don-thi-cong`, chưa vào `main`):** Đợt 2 và Đợt 3 đã thi công xong về mã (trừ Task 3.3b hoãn, giao diện cài đặt cờ Task 5.1, cảnh báo ở màn gán nhóm — chờ chủ), tài liệu mô tả đã cập nhật (`SYSTEM-DESIGN` §5–§8, §16, `CHANGE-GUIDE` z27 và bẫy 85), nhật ký thay đổi 2.34 (số tạm). Chờ người kiểm độc lập toàn nhánh (K2), rồi chủ `day-len` + `trien-khai` (có migration `0119`). Nợ kịch bản Chrome cũ nhắc ô «Thanh toán trước»: xem nhật ký thi công mục «Lần giao L7+L8».
 - **Nợ nhỏ của Đợt 1:** chưa có kịch bản Chrome riêng `chon-don-smoke.mjs`; kịch bản `trang-chu-smoke` và `dieu-phoi-smoke` dừng ở bước kiểm menu (chưa đối chiếu với main để biết có đỏ sẵn); hướng dẫn Bán hàng 3149/3150 chữ, sát trần bài đọc 30 phút.
 - **Việc của chủ (không cần mã):** đổi mốc tối thiểu trước giờ đón từ 360 xuống 30 phút trên trang Chính sách điều phối, nếu vẫn muốn.
 

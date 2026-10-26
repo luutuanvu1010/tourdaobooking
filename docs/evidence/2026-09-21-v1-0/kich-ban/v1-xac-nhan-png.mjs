@@ -1,3 +1,4 @@
+// GHI CHÚ 27/10/2026 (ADR-0135/0136): đỏ từ 27/10: dựng đơn bằng ô «Thanh toán trước» / ghi thu lên nháp (ADR-0135 Đ7: màn Tạo đơn không còn ô này, nháp không ghi thu được). Thay bằng `docs/evidence/2026-10-26-xac-nhan-don/kich-ban/xac-nhan-smoke.mjs` (ảnh xác nhận chỉ sau khi đơn đã xác nhận); sửa dựng dữ liệu nếu cần kiểm PNG (ghi nợ).
 // Kiểm ẢNH XÁC NHẬN ĐƠN (PNG dựng bằng canvas ở trình duyệt) + hộp thoại "Xác nhận đơn để gửi khách" bằng Chrome thật. Nằm trong repo, không thêm dependency (dùng esbuild
 // đã có ở devDependencies để đóng gói bộ vẽ + mô hình thuần thành một script chạy được trong trang, phục vụ đối chiếu byte và đo bố cục).
 // Dựa trên môi trường của A2 (`../../2026-09-20-a2/kich-ban/a2-cdp.mjs`: D1 tạm + `wrangler dev` + Chrome headless qua CDP; Turnstile TẮT). Chạy từ GỐC repo, sau `npm run build:web`:

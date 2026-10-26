@@ -1,3 +1,4 @@
+// GHI CHÚ 27/10/2026 (ADR-0135/0136): bước (b) dùng ô `prepaidAmount` đã gỡ (ADR-0135 Đ7); chưa sửa, chưa chạy lại (cần Playwright WebKit), ghi nợ.
 // Kịch bản WebKit (bộ máy của Safari) — vòng sửa sau production 19/10/2026 (Việc 12). Chủ dự án thử bằng tài khoản ĐỐI TÁC trên Safari máy Mac, báo hai lỗi:
 //   (1) "hiển thị đang bị trùng các dòng": nhãn nổi "Hình thức" / "Người thu tiền" ĐÈ lên chữ giá trị của ô chọn một ở khối Thanh toán. Chỉ WebKit: khuôn ô chọn của máy bỏ
 //       đệm trên + chiều cao tối thiểu của tác giả (padding-top 0px, min-height 18px, cao 25px) — Chrome tôn trọng 24px / 52px nên thanh-dinh-smoke (Chrome) không bao giờ đỏ.

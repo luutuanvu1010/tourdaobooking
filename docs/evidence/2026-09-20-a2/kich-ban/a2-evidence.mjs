@@ -1,3 +1,4 @@
+// GHI CHÚ 27/10/2026 (ADR-0135/0136): đỏ có sẵn trước nhánh xác nhận đơn (khoá `data-trip="pickupTime"` đã gỡ từ ADR-0047) và còn nhắc ô `prepaidAmount` đã gỡ ở ADR-0135 Đ7. Hồ sơ có ngày, không chạy lại; màn Tạo đơn hiện hành có `a2-smoke-form.mjs`.
 // Bằng chứng giao diện A2 (Hiến pháp §8.2: bằng chứng thay cho lời khai). Đo trên `wrangler dev` cục bộ với D1 tạm, bằng Chrome headless — KHÔNG phải iPhone thật.
 // Chạy từ GỐC repo, sau `npm run build:web`:
 //   AXE_JS=<…/axe/package/axe.min.js> CHROME_BIN=<…/kich-ban/chrome-wrap.sh> node docs/evidence/2026-09-20-a2/kich-ban/a2-evidence.mjs

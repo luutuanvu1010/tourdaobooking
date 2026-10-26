@@ -1,3 +1,4 @@
+// GHI CHÚ 27/10/2026 (ADR-0135/0136): các bước 390-3, 390-3b, 390-4, 1040-11, 11b, 13 nhắc ô trả trước đã gỡ (ADR-0135 Đ7) nên đỏ từ 27/10; chưa sửa, ghi nợ. Kiểm màn Tạo đơn hiện hành bằng `a2-smoke-form.mjs`.
 // Kịch bản Chrome — thanh dính cuối trang, thang nút ba cấp, thanh toán chỉ hiện ô khi có trả trước, lỗi lưu ngay trên nút Lưu (màn Tạo đơn thiết kế lại 18/10/2026, Việc 8;
 // đặc tả docs/superpowers/specs/2026-10-18-tao-don-thiet-ke-lai/DAC-TA.md mục 3D + PROMPT-CLAUDE-DESIGN.md "Thanh toán" / "Điện thoại bỏ khối Tóm tắt"; tiêu chí 5, 8).
 // Việc 8 CHỈ đổi cách hiện: tiền vẫn do `orderSummary` (src/shared/service-form.ts) xem trước, máy chủ tính lại (`buildLines`); thân gửi so từng byte ở than-gui.mjs (CACH=tratruoc).
