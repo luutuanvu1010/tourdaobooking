@@ -279,17 +279,17 @@ test("khachTruocChay (Q1 a): tài xế CÔNG TY, chuyến chưa chạy, trong kh
   assert.deepEqual(khachTruocChay({ ...homNay, trangThai: "RUNNING" }, true), { suat: [], lienHe: [] }, "chỉ cho màn trước khi chạy");
 });
 
-test("chuTraCuaKhach (Q2 a): chuyến có từ HAI điểm trả còn hiệu lực → «Trả: <nơi>» theo từng suất khách; một điểm trả (điểm bỏ qua / đã chuyển không tính), suất thiếu điểm trả, điểm trả lạ, người đi kèm, tài xế đối tác → không", () => {
+test("chuTraCuaKhach (Q2 a): chuyến có từ HAI điểm trả còn hiệu lực → «Trả khách ở: <nơi>» theo từng suất khách; một điểm trả (điểm bỏ qua / đã chuyển không tính), suất thiếu điểm trả, điểm trả lạ, người đi kèm, tài xế đối tác → không", () => {
   const diem = [d(1, "PICKUP"), d(2, "PICKUP"), d(3, "DROPOFF"), d(4, "DROPOFF", "DONE")];
   const suat: SuatVao[] = [
     s("a", "d1", "d3", "WAITING"), s("b", "d2", "d4", "DROPPED"), { ...s("c", "d1", "d3", "WAITING"), diemXuong: null }, s("e", "d1", "d9", "WAITING"),
     { id: "k", loai: "CREW", diemLen: null, diemXuong: "d4", trangThai: "WAITING", daDon: null, daTra: null },
   ];
-  assert.deepEqual([...chuTraCuaKhach(diem, suat, true)], [["a", "Trả: Nơi 3"], ["b", "Trả: Nơi 4"]], "điểm trả đã xong vẫn là một điểm trả của chuyến");
+  assert.deepEqual([...chuTraCuaKhach(diem, suat, true)], [["a", "Trả khách ở: Nơi 3"], ["b", "Trả khách ở: Nơi 4"]], "điểm trả đã xong vẫn là một điểm trả của chuyến");
   assert.equal(chuTraCuaKhach([d(1, "PICKUP"), d(3, "DROPOFF")], suat, true).size, 0, "chuyến một điểm trả");
   assert.equal(chuTraCuaKhach([d(1, "PICKUP"), d(3, "DROPOFF"), d(4, "DROPOFF", "SKIPPED")], suat, true).size, 0, "điểm trả bỏ qua không tính");
   assert.equal(chuTraCuaKhach([d(1, "PICKUP"), d(3, "DROPOFF"), d(4, "DROPOFF", "MOVED")], suat, true).size, 0, "điểm trả đã chuyển không tính");
-  assert.equal(chuTraCuaKhach(diem, suat, false).size, 0, "tài xế đối tác (Q1 a — màn y như hôm nay): không «Trả:», kể cả khi xe đang chạy");
+  assert.equal(chuTraCuaKhach(diem, suat, false).size, 0, "tài xế đối tác (Q1 a — màn y như hôm nay): không «Trả khách ở:», kể cả khi xe đang chạy");
 });
 
 test("soKhachTaiDiem: «Khách i» theo điểm lên — thứ tự máy chủ gửi, mọi trạng thái, chỉ suất khách; KHỚP nhãn «Khách i» của buocDiem từng suất", () => {

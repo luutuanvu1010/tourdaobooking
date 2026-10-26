@@ -9,7 +9,7 @@ Sổ điều phối (P19: trạng thái sống ở đây, không trong trí nh�
 | 0 — hồ sơ | Xong. Lượt 1 **chủ duyệt** ("duyệt lượt 1"): `docs/adr/ADR-0134-don-khong-don-khung-gio.md`, `docs/adr/ADR-0135-nhap-rieng-tu-khong-thu.md`. Lượt 2 của bộ 19/10 (`docs/superpowers/specs/2026-10-19-xac-nhan-don/`): **ADR-0136 đã duyệt 25/10** kèm bản bổ sung (xem hàng 3); đề xuất thư + QR (số tạm 0137) chưa trình, cần số mới. |
 | 1 — đón/không đón, khung giờ | **ĐÃ LÊN PRODUCTION bản 2.23 (19/10)**: kiểm độc lập ĐẠT có điều kiện, chuẩn bị phát hành (64 kịch bản Chrome, e2e trọn 70/70, tài liệu), chủ day-len + trien-khai; GET /api/auth/config trả version 2.23. Lịch sử: thi công **đã commit** (416a8388 migration, cb318faa máy chủ, dafd1d06 giao diện, 4bc6a1e6 e2e). Báo cáo cuối của trợ lý thi công và **kiểm độc lập chưa có** — xem mục "Việc kế tiếp". |
 | 2 — nháp riêng tư, không thu | Chưa làm. **Phát hành chung với Đợt 3** (chủ chọn A, đặc tả 5f). |
-| 3 — bước xác nhận | Chưa làm. **ADR-0136 chủ duyệt 25/10** (đề xuất gốc + bản bổ sung 25/10: cờ «cần xác nhận» theo dịch vụ hoặc nhóm, nút «Gửi đơn» của Đối tác, ô `order.submit`): `docs/adr/ADR-0136-buoc-xac-nhan-don-va-gui-don.md`. Kế hoạch phải sửa trước khi thi công — xem Ruling 25/10. |
+| 3 — bước xác nhận | Chưa làm. **ADR-0136 chủ duyệt 25/10** (đề xuất gốc + bản bổ sung 25/10: cờ «cần xác nhận» theo dịch vụ hoặc nhóm, nút «Gửi đơn» của Đối tác, ô `order.submit`): `docs/adr/ADR-0136-buoc-xac-nhan-don-va-gui-don.md`. **Kế hoạch ĐÃ SỬA 25/10** theo Ruling (người kiểm độc lập đã soát một vòng, đã sửa theo); chờ chủ `day-len` nhánh sửa kế hoạch rồi thi công. Điểm sửa tiền khi đơn chờ (Đ8): chủ quyết 26/10 giữ ADR-0023 đ4, lý do là mã đóng. |
 | 4 — thư + QR | Chưa làm. Đề xuất mang số tạm 0137 (nay đã là ADR sổ đại lý): cần số mới, chưa trình lại. |
 | 5 — Bảng điều khiển | Chưa làm; cần ảnh mẫu chủ duyệt trước. |
 
@@ -26,6 +26,11 @@ Sổ điều phối (P19: trạng thái sống ở đây, không trong trí nh�
   - Task 3.4: nút Gửi đơn ở form và trang đơn, hai câu báo nhánh A / B, Trợ giúp Đối tác.
   - Bài đỏ đo được và các e2e phải sửa: trang ghép 25/10 mục 6. Cổng «luật bán» trong Gửi đơn chỉ thêm khi ADR chính sách bán (lượt 2) đã duyệt.
 
+## Lệch cần chủ xử lý (ghi 26/10; không sửa ADR)
+
+- **ADR-0136 Đ13.5 câu thứ ba và tiêu chí nghiệm thu 4** nói tài khoản lai (giữ quyền Đối tác) xác nhận đơn được giao do người khác lập «vẫn như hôm nay». ADR-0135 Đ2 (nháp của người khác: 404, kể cả người phụ trách chọn sẵn) làm đường đó không còn với **nháp thường**. Chủ chốt 26/10: «Đơn chờ thì quyết định được, nháp thường thì không». Kế hoạch hiểu chữ ADR-0136 hẹp lại: chỉ đơn **đang chờ**, quyết định qua ô `order.confirm.review`. Chờ chủ ra dòng bổ sung cho ADR.
+- **ADR-0136 Đ8 (sửa tiền khi chờ) và tiêu chí 8:** chủ hoãn 26/10 — Task 3.3b, hai hướng, chờ chủ duyệt sau.
+
 ## Báo cáo trợ lý thi công Đợt 1 (19/10, tự khai — CHƯA kiểm độc lập)
 
 - Commit: 416a8388, cb318faa, dafd1d06, 4bc6a1e6, debe67da (hai kịch bản Chrome a2 gieo đơn có lựa chọn đón).
@@ -40,7 +45,7 @@ Sổ điều phối (P19: trạng thái sống ở đây, không trong trí nh�
 3. Gọi `nguoi-kiem-doc-lap` cho Đợt 1 (dữ liệu + hợp đồng API): ADR-0134, Task 1.1–1.3, Review Focus 6; chạy lại `npm test`, `npm run typecheck`, e2e `chon-don orders chang-hanh-khach dua-don-dau-cuoi trip dispatch nhap-tay-va-gia-doi-tac`, kịch bản Chrome `chon-don-smoke.mjs` (ghi rõ có chạy hay không).
 4. Đạt → Đợt 1 phát hành riêng được (`npm run day-len` do chủ chạy; có migration ⇒ "cần `npm run trien-khai`").
 5. Trình chủ lượt 2 (ADR-0136, 0137 + `TRANG-GHEP-LUOT-2.md`); kiểm lại số ADR trước khi cấp. — **25/10: ADR-0136 đã duyệt** (Ruling 25/10); đề xuất thư + QR cần số mới, chưa trình.
-6. Đợt 2 + 3 thi công theo kế hoạch (mỗi đợt một trợ lý + kiểm độc lập), phát hành chung. — **Sửa kế hoạch theo Ruling 25/10 trước.**
+6. Đợt 2 + 3 thi công theo kế hoạch (mỗi đợt một trợ lý + kiểm độc lập), phát hành chung. — **Kế hoạch đã sửa theo Ruling 25/10 (Task 3.2b mới: tách lô xác nhận trước 3.3).**
 
 ## Việc ngoài kế hoạch làm trong phiên
 

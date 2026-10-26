@@ -312,7 +312,7 @@ export function dichVuTaiDiemDon(suat: readonly { diemLen: string | null; tenDic
   return out;
 }
 
-// ---- Màn tài xế: khách trước khi cho xe chạy + chữ "Trả:" (đề xuất docs/superpowers/specs/2026-10-25-de-xuat-tai-xe-thay-khach-truoc-khi-cho-xe-chay.md, chủ duyệt
+// ---- Màn tài xế: khách trước khi cho xe chạy + chữ "Trả khách ở:" (đề xuất docs/superpowers/specs/2026-10-25-de-xuat-tai-xe-thay-khach-truoc-khi-cho-xe-chay.md, chủ duyệt
 // 25/10: Q1 a, Q2 a). `congTy` = người xem KHÔNG có ô trip.refuse — đúng điều kiện máy chủ dựng phần chỉ tài xế công ty (`themCongTy`); màn tính một lần rồi truyền vào.
 /**
  * Khách vẽ dưới thẻ điểm TRƯỚC khi cho xe chạy: chỉ tài xế CÔNG TY, chuyến chưa chạy, trong khung xem khách (`trongNgayChay` — máy chủ đã gửi tên, liên hệ) → đúng
@@ -326,14 +326,14 @@ export function khachTruocChay<S, L>(
 }
 
 /**
- * Chữ nhỏ "Trả: <nơi>" dưới tên từng khách (Q2 a), trước và trong khi chạy: chỉ khi chuyến có từ HAI điểm trả còn hiệu lực (không tính điểm bỏ qua / đã chuyển —
+ * Chữ nhỏ "Trả khách ở: <nơi>" dưới tên từng khách (Q2 a), trước và trong khi chạy: chỉ khi chuyến có từ HAI điểm trả còn hiệu lực (không tính điểm bỏ qua / đã chuyển —
  * cùng cách đếm "N điểm trả" của thẻ Cuốc của tôi) và suất có điểm trả tìm thấy. Tài xế đối tác: không (Q1 a — màn y như cũ). id suất → chữ.
  */
 export function chuTraCuaKhach(diem: readonly Pick<DiemVao, "id" | "loai" | "tenNoi" | "trangThai">[], suat: readonly Pick<SuatVao, "id" | "loai" | "diemXuong">[], congTy: boolean): ReadonlyMap<string, string> {
   const tra = diem.filter((d) => d.loai === "DROPOFF" && d.trangThai !== "SKIPPED" && d.trangThai !== "MOVED");
   if (!congTy || tra.length < 2) return new Map();
   const noi = new Map(tra.map((d) => [d.id, d.tenNoi]));
-  return new Map(suat.flatMap((x) => ((x.loai ?? "PASSENGER") === "PASSENGER" && x.diemXuong !== null && noi.has(x.diemXuong) ? [[x.id, `Trả: ${noi.get(x.diemXuong)}`] as const] : [])));
+  return new Map(suat.flatMap((x) => ((x.loai ?? "PASSENGER") === "PASSENGER" && x.diemXuong !== null && noi.has(x.diemXuong) ? [[x.id, `Trả khách ở: ${noi.get(x.diemXuong)}`] as const] : [])));
 }
 
 /** Suất KHÁCH (bỏ người đi kèm `CREW`) — chỉ để ĐẾM / liệt kê khách; xét kết thúc chuyến thì dùng `ketThucDuoc` với MỌI suất. */

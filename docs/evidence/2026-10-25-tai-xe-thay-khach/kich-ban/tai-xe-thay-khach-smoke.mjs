@@ -1,7 +1,7 @@
 // Đề xuất 25/10 (docs/superpowers/specs/2026-10-25-de-xuat-tai-xe-thay-khach-truoc-khi-cho-xe-chay.md — chủ duyệt Q1 a, Q2 a), màn chuyến của tài xế (/cuoc-chuyen):
 //   - Tài xế CÔNG TY, trong ngày chạy, thấy tên + năm sinh từng khách và dòng "Liên hệ" (bấm là gọi) TRƯỚC khi bấm "Cho xe chạy"; chưa có nút tiến độ.
-//   - Chuyến có từ hai điểm trả: dưới tên mỗi khách có chữ "Trả: <nơi>" (chỉ tài xế công ty), trước và trong khi chạy.
-//   - Tài xế ĐỐI TÁC giữ như cũ: máy chủ đã gửi tên + liên hệ từ lúc qua hạn Từ chối nhưng màn KHÔNG vẽ trước khi bấm "Cho xe chạy"; không có chữ "Trả:".
+//   - Chuyến có từ hai điểm trả: dưới tên mỗi khách có chữ "Trả khách ở: <nơi>" (chỉ tài xế công ty), trước và trong khi chạy.
+//   - Tài xế ĐỐI TÁC giữ như cũ: máy chủ đã gửi tên + liên hệ từ lúc qua hạn Từ chối nhưng màn KHÔNG vẽ trước khi bấm "Cho xe chạy"; không có chữ "Trả khách ở:".
 //   - Dòng hứa "Bạn thấy tên khách …" chia theo loại tài xế, bỏ chữ "mã đơn". Khối "Suất của khách" đếm "Điểm M · Khách i" như dòng khách. Màn văn phòng (/chuyen) không đổi.
 // ANH=truoc: chạy trên bản CŨ (commit 1c036383, trước khi sửa) để chụp ảnh "trước". Ảnh chụp TRƯỚC phần kiểm của mỗi bước, nên bước đỏ vẫn có ảnh. Bản cũ phải
 //   ĐỎ đúng các bước hành vi mới (1, 2, 3, 4, 5, 8) và XANH các bước hành vi giữ nguyên (6, 7, 9, 10) — bằng chứng kịch bản phân biệt được hai bản (P16).
@@ -149,11 +149,11 @@ const moChuyen = async (p, id) => {
 };
 const dsChu = (sel) => `[...document.querySelectorAll(${JSON.stringify(sel)})].map((x) => x.innerText.replace(/\\s+/g, ' ').trim())`;
 const html = (p) => p.ev("document.querySelector('main').innerHTML");
-/** Mỗi dòng khách: [tên, năm sinh, chữ "Trả:"] (null khi không có). */
+/** Mỗi dòng khách: [tên, năm sinh, chữ "Trả khách ở:"] (null khi không có). */
 const DONG_KHACH = `[...document.querySelectorAll('.dp-cc-diem .dp-khach, #cc-trang .dp-khach')].map((k) => [k.querySelector('.dp-khach-ten')?.innerText.trim() ?? null, k.querySelector('.dp-khach-nam')?.innerText.trim() ?? null, k.querySelector('.dp-khach-tra')?.innerText.trim() ?? null])`;
 const xepDong = (ds) => [...ds].map((d) => [/^Khách \d+$/.test(d[0]) ? "Khách ?" : d[0], d[1], d[2]]).sort((x, y) => `${x}`.localeCompare(`${y}`));
 /** Dòng khách mong đợi của một chuyến, đọc tên nơi trả từ chính chi tiết máy chủ trả cho trang (một nguồn với màn). */
-const mongDoi = (ct, coTra) => xepDong(ct.suat.filter((s) => (s.loai ?? "PASSENGER") === "PASSENGER").map((s) => [s.hoTen ?? "Khách ?", s.namSinh ? String(s.namSinh) : null, coTra ? `Trả: ${ct.diem.find((d) => d.id === s.diemXuong).tenNoi}` : null]));
+const mongDoi = (ct, coTra) => xepDong(ct.suat.filter((s) => (s.loai ?? "PASSENGER") === "PASSENGER").map((s) => [s.hoTen ?? "Khách ?", s.namSinh ? String(s.namSinh) : null, coTra ? `Trả khách ở: ${ct.diem.find((d) => d.id === s.diemXuong).tenNoi}` : null]));
 // Nút / phần cuối của trang không bị thanh dính đáy hay thanh tab che (khuôn cuoc-smoke): chèn tạm khối 1200px đầu <main>, cuộn tới đáy, `elementFromPoint` ở tâm phần tử.
 const khongBiChe = (sel) => `(() => { if (window.innerHeight > 900) return 'khung cao ' + window.innerHeight; const dem = document.createElement('div'); dem.style.height = '1200px'; document.querySelector('main').prepend(dem); try { window.scrollTo(0, document.documentElement.scrollHeight); const el = [...document.querySelectorAll(${JSON.stringify(sel)})].filter((x) => x.getClientRects().length).at(-1); if (!el) return 'không thấy'; const r = el.getBoundingClientRect(); const t = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); if (!t) return 'ngoài khung'; return el === t || el.contains(t) ? 'ok' : t.closest('#tabbar') ? 'thanh tab che' : t.closest('#cc-day') ? 'thanh nút đáy che' : t.tagName + '.' + t.className; } finally { dem.remove(); window.scrollTo(0, 0); } })()`;
 const loiConsole = (p, ten) => assert.deepEqual(p.consoleErrors, [], `${ten}: lỗi console ${JSON.stringify(p.consoleErrors)}`);
@@ -166,7 +166,7 @@ const SDT_HDV = HDV.phone.slice(1);
   // ---- Tài xế công ty Tâm ----------------------------------------------------------------------------------------------------------------------------------------
   let p = await env.as(TAM.account, `/cuoc-chuyen?id=${TC.id}`, MOB);
   let ctTC = null;
-  await b.step("1", `390 tài xế CÔNG TY, chuyến HÔM NAY chưa chạy: tên + năm sinh từng khách, "Trả: …" (hai điểm trả), dòng "Liên hệ" bấm gọi được; chưa có nút tiến độ; khối "Suất của khách" đếm "Điểm M · Khách i" trùng dòng khách${axeNote()}`, async () => {
+  await b.step("1", `390 tài xế CÔNG TY, chuyến HÔM NAY chưa chạy: tên + năm sinh từng khách, "Trả khách ở: …" (hai điểm trả), dòng "Liên hệ" bấm gọi được; chưa có nút tiến độ; khối "Suất của khách" đếm "Điểm M · Khách i" trùng dòng khách${axeNote()}`, async () => {
     await p.waitFor(DA_VE(TC.id), "màn chuyến TC", 12000);
     await chup(p, "1-cong-ty-truoc-chay-390", MOB);
     ctTC = (await fetchTrang(p, "GET", `/api/van-chuyen/cuoc-cua-toi/${TC.id}`)).json; // phiên của chính trang (ADR-0075)
@@ -188,7 +188,7 @@ const SDT_HDV = HDV.phone.slice(1);
     await axe(p, "công ty trước khi chạy 390");
   });
 
-  await b.step("2", `1040 cùng chuyến: tên, năm sinh, "Trả: …", "Liên hệ" như khổ điện thoại; không tràn ngang${axeNote()}`, async () => {
+  await b.step("2", `1040 cùng chuyến: tên, năm sinh, "Trả khách ở: …", "Liên hệ" như khổ điện thoại; không tràn ngang${axeNote()}`, async () => {
     await doiKhung(p, DESK);
     await p.waitFor(DA_VE(TC.id), "màn chuyến TC 1040", 12000);
     await chup(p, "2-cong-ty-truoc-chay-1040", DESK);
@@ -209,7 +209,7 @@ const SDT_HDV = HDV.phone.slice(1);
     assert.equal(await p.ev(noCode), "");
   });
 
-  await b.step("4", `390 tài xế công ty bấm "Cho xe chạy" → đang chạy: dưới tên mỗi khách vẫn có "Trả: …"; tới điểm đầu ("Đã tới") thì chữ "Trả:" nằm trên hàng nút, đủ ngang dòng${axeNote()}`, async () => {
+  await b.step("4", `390 tài xế công ty bấm "Cho xe chạy" → đang chạy: dưới tên mỗi khách vẫn có "Trả khách ở: …"; tới điểm đầu ("Đã tới") thì chữ "Trả khách ở:" nằm trên hàng nút, đủ ngang dòng${axeNote()}`, async () => {
     await moChuyen(p, TC.id);
     await p.ev(click('[data-action="xuat-ben"]'));
     await p.waitFor(`!!document.querySelector('[data-action="xuat-ben-xac-nhan"]')`, "hộp xác nhận cho xe chạy");
@@ -228,7 +228,7 @@ const SDT_HDV = HDV.phone.slice(1);
     await axe(p, "công ty đang chạy 390");
   });
 
-  await b.step("5", `1040 đang chạy: "Trả: …" dưới tên mỗi khách; không tràn ngang${axeNote()}`, async () => {
+  await b.step("5", `1040 đang chạy: "Trả khách ở: …" dưới tên mỗi khách; không tràn ngang${axeNote()}`, async () => {
     await doiKhung(p, DESK);
     await p.waitFor(`!!document.querySelector('.dp-cc-head') && document.querySelectorAll('.dp-khach').length === 4`, "màn đang chạy TC 1040", 12000);
     await chup(p, "5-cong-ty-dang-chay-1040", DESK);
@@ -241,7 +241,7 @@ const SDT_HDV = HDV.phone.slice(1);
 
   // ---- Tài xế đối tác Đông -----------------------------------------------------------------------------------------------------------------------------------------
   p = await env.as(DONG.account, `/cuoc-chuyen?id=${TD.id}`, MOB);
-  await b.step("6", `390 tài xế ĐỐI TÁC, chuyến hôm nay đã qua hạn Từ chối, chưa chạy: máy chủ ĐÃ gửi tên + liên hệ nhưng màn KHÔNG vẽ (như cũ) — không dòng khách, không liên hệ, không "Trả:", không dòng dịch vụ, không SĐT người đi kèm${axeNote()}`, async () => {
+  await b.step("6", `390 tài xế ĐỐI TÁC, chuyến hôm nay đã qua hạn Từ chối, chưa chạy: máy chủ ĐÃ gửi tên + liên hệ nhưng màn KHÔNG vẽ (như cũ) — không dòng khách, không liên hệ, không "Trả khách ở:", không dòng dịch vụ, không SĐT người đi kèm${axeNote()}`, async () => {
     await p.waitFor(DA_VE(TD.id), "màn chuyến TD", 12000);
     await chup(p, "6-doi-tac-qua-han-chua-chay-390", MOB);
     const ct = (await fetchTrang(p, "GET", `/api/van-chuyen/cuoc-cua-toi/${TD.id}`)).json;
@@ -276,7 +276,7 @@ const SDT_HDV = HDV.phone.slice(1);
     assert.equal(await p.ev("document.querySelectorAll('.dp-khach, .dp-run-lien-he').length"), 0);
   });
 
-  await b.step("9", `390 tài xế đối tác bấm "Cho xe chạy" (chuyến hôm nay): thấy tên khách + liên hệ (như cũ), KHÔNG có chữ "Trả:" dù chuyến có hai điểm trả; không SĐT người đi kèm, không dòng dịch vụ${axeNote()}`, async () => {
+  await b.step("9", `390 tài xế đối tác bấm "Cho xe chạy" (chuyến hôm nay): thấy tên khách + liên hệ (như cũ), KHÔNG có chữ "Trả khách ở:" dù chuyến có hai điểm trả; không SĐT người đi kèm, không dòng dịch vụ${axeNote()}`, async () => {
     await moChuyen(p, TD.id);
     await p.ev(click('[data-action="xuat-ben"]'));
     await p.waitFor(`!!document.querySelector('[data-action="xuat-ben-xac-nhan"]')`, "hộp xác nhận cho xe chạy TD");
@@ -296,11 +296,11 @@ const SDT_HDV = HDV.phone.slice(1);
 
   // ---- Văn phòng (Quản trị) ------------------------------------------------------------------------------------------------------------------------------------------
   p = await env.as(ACCOUNTS.admin, `/chuyen?id=${TC.id}`, DESK);
-  await b.step("10", `1040 văn phòng mở Chi tiết chuyến TC (đang chạy): màn văn phòng KHÔNG có chữ "Trả:" (không đổi)${axeNote()}`, async () => {
+  await b.step("10", `1040 văn phòng mở Chi tiết chuyến TC (đang chạy): màn văn phòng KHÔNG có chữ "Trả khách ở:" (không đổi)${axeNote()}`, async () => {
     await p.waitFor(`document.querySelectorAll('.dp-khach').length >= 4`, "dòng khách ở Chi tiết chuyến", 12000);
     await chup(p, "10-van-phong-chi-tiet-chuyen-1040", DESK);
     assert.equal(await p.ev("document.querySelectorAll('.dp-khach-tra').length"), 0);
-    assert.equal(await p.ev("/Trả: /.test(document.querySelector('main').innerText)"), false, "không chữ Trả ở màn văn phòng");
+    assert.equal(await p.ev("/Trả khách ở: /.test(document.querySelector('main').innerText)"), false, "không chữ Trả ở màn văn phòng");
     await axe(p, "văn phòng chi tiết chuyến 1040");
     loiConsole(p, "trang văn phòng");
   });

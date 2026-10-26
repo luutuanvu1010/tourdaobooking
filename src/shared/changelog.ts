@@ -12,16 +12,24 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // PR máy chủ Hoa hồng + Hỗ trợ (ADR-0141; kế hoạch docs/superpowers/plans/2026-10-25-hoa-hong-ho-tro-1-may-chu.md). KHÔNG migration; có mã mới nên cần
+    // npm run trien-khai. Số 2.33 và ngày là TẠM: production đã 2.32 (GET /api/auth/config 26/10) — phiên phát hành kiểm lại ở bước A.0 của docs/HANDOFF-N1.md.
+    version: "2.33",
+    date: "2026-10-26",
+    items: [
+      { kind: "doi", text: "Kế toán nay tìm được đối tác theo tên ở trang Hoa hồng đối tác (ô «Một đối tác» và «Thử tra»)." },
+    ],
+  },
+  {
     // Hai chỗ lệch nhỏ của màn chuyến xe (việc 25/10 sau «tài xế thấy khách»): cùng một cách đếm «Khách i» ở màn văn phòng; lề trái dòng «Dịch vụ». Chỉ giao diện + luật hiển thị, KHÔNG migration.
-    // Số 2.32 và ngày là TẠM — phiên phát hành kiểm lại ở bước A.0 của docs/HANDOFF-N1.md; cần npm run trien-khai (có mã mới).
-    // Gộp thêm (26/10): PR máy chủ Hoa hồng + Hỗ trợ (ADR-0141; kế hoạch docs/superpowers/plans/2026-10-25-hoa-hong-ho-tro-1-may-chu.md). Số 2.32 và ngày là TẠM:
-    //   production đã 2.31 (GET /api/auth/config 26/10). KHÔNG migration; có mã mới nên cần npm run trien-khai. Phiên phát hành kế tiếp gộp vào mục này.
+    // Cùng mục 2.32 (gộp hai nhánh khi nhập): đổi nhãn dưới tên khách trên màn tài xế công ty: «Trả: …» → «Trả khách ở: …» (chủ dự án chọn chữ 25/10; «Trả:» một mình dễ đọc thành trả tiền). Chỉ chữ, KHÔNG migration.
+    // Số 2.32 và ngày là TẠM — phiên phát hành kiểm lại ở bước A.0 của docs/HANDOFF-N1.md; cần npm run trien-khai (có mã mới). Cả hai việc KHÔNG migration.
     version: "2.32",
     date: "2026-10-26",
     items: [
       { kind: "sua", text: "Màn chuyến của văn phòng: khối «Khách đang chờ» đếm «Khách i» theo từng điểm đón, cùng số với thẻ điểm — không còn «Khách 3» chỗ này, «Khách 2» chỗ kia." },
       { kind: "sua", text: "Màn tài xế: dòng «Dịch vụ: …» dưới điểm đón nay thẳng cột với tên nơi đón, không còn lệch ra sát mép trái." },
-      { kind: "doi", text: "Kế toán nay tìm được đối tác theo tên ở trang Hoa hồng đối tác (ô «Một đối tác» và «Thử tra»)." },
+      { kind: "doi", text: "Màn tài xế công ty: dòng dưới tên mỗi khách nay ghi «Trả khách ở: …» thay cho «Trả: …», để rõ đây là nơi khách xuống xe." },
     ],
   },
   {

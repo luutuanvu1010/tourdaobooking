@@ -7,7 +7,7 @@
 | # | Việc | Xong khi | Trạng thái |
 |---|---|---|---|
 | 0 | Chủ duyệt hai đặc tả + đề xuất ADR; cấp số ADR, chuyển vào `docs/adr/` | chủ nói «duyệt» | ADR **xong**: ADR-0141 accepted 25/10 («duyệt đề xuất ADR»); hai đặc tả **đã duyệt** 25/10 («duyệt luôn hai đặc tả») |
-| 1 | PR 1 máy chủ | PR gộp + `trien-khai` + kiểm độc lập đạt | **thi công xong 26/10**, 9/9 task; kiểm độc lập cả nhánh ĐẠT CÓ ĐIỀU KIỆN → sửa I2, m1–m3, I3 → kiểm lại ĐẠT; đã gộp `main` (chủ cho phép 26/10); npm test, typecheck, e2e 72/72 xanh. Chờ chủ `day-len` + `trien-khai` (mục nhật ký 2.32 tạm, chung với «hai chỗ lệch màn chuyến xe») |
+| 1 | PR 1 máy chủ | PR gộp + `trien-khai` + kiểm độc lập đạt | **thi công xong 26/10**, 9/9 task; kiểm độc lập cả nhánh ĐẠT CÓ ĐIỀU KIỆN → sửa I2, m1–m3, I3 → kiểm lại ĐẠT; đã gộp `main` (chủ cho phép 26/10); npm test, typecheck, e2e 72/72 xanh. Chờ chủ `day-len` + `trien-khai` (mục nhật ký 2.33 tạm — production đã lên 2.32 sáng 26/10) |
 | 2 | PR 2 giao diện Hoa hồng + bảng từ lượt 3 | như trên + chủ duyệt ảnh | chưa làm |
 | 3 | PR 3 giao diện Hỗ trợ + bảng từ lượt 4 | như trên + chủ duyệt ảnh | chưa làm |
 
@@ -32,5 +32,5 @@
 - R7: Task 6 làm bước quan sát đỏ thật trước khi xanh.
 - R9: 10 bước đỏ của kịch bản Chrome so-dai-ly-smoke có sẵn từ 4dea95da (người kiểm chứng minh); sửa ở PR 2.
 - Tiêu chí 5 ADR-0141 không đạt theo nghĩa đen: `co-the-tim-doi-tac.test.ts` không đỏ khi phá chính hàm dùng chung (bài khác đỏ thay) — báo chủ, không chặn.
-- Nhật ký thay đổi: production đã 2.31 → dòng nhánh vào mục 2.32 tạm, gộp chung với mục 2.32 của phiên «hai chỗ lệch màn chuyến xe».
+- Nhật ký thay đổi: dòng nhánh lần lượt nằm ở 2.31 → 2.32 (chung với «hai chỗ lệch màn chuyến xe») → **2.33 tạm**, vì production lên 2.32 trong lúc nhánh chờ gộp (GET /api/auth/config 26/10). day-len lần đầu dừng vì main tiến; gộp main lần ba.
 - Sang PR 2: không in `nguoiHuong.vai` (là mã); xét lại `CAU_CHUA_TIM_DUOC_DOI_TAC`; sửa so-dai-ly-smoke.
