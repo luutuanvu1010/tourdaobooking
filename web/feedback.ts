@@ -2,14 +2,13 @@
 // thành viên nhóm (và Toàn quyền) có thẻ "Việc của nhóm" (lọc, nhận việc); Toàn quyền có thêm thẻ "Nhóm hỗ trợ". Luồng ở ho-tro-luong.ts, hộp gửi ở ho-tro-gui.ts.
 // Dữ liệu qua /api/feedback*. Chuỗi từ người dùng chỉ đi qua h()/textContent. Địa chỉ: /feedback (danh sách), ?id=<uuid> (luồng), ?new=1&from=<đường dẫn> (mở form).
 // Giao diện chỉ ẩn/hiện theo `teams` / `perms` máy chủ trả về; máy chủ (quyenPhieu) luôn kiểm lại.
-import { NHOM_KY_THUAT_ID, TEAM_ROLE_NAME, TEAM_ROLES, type TeamRole } from "../src/shared/ve-ho-tro";
 import { NHAN_TAB, nhomHangDoi, tabHoTro, type TabHoTro } from "../src/shared/ve-ho-tro-hien-thi";
-import { isExternalPermission } from "../src/shared/permissions";
 import { ApiError, api, type Api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
 import { veDanhSach } from "./ho-tro-danh-sach";
 import { moHopGui } from "./ho-tro-gui";
 import { dungLuong, moLuong, type NgCanhLuong } from "./ho-tro-luong";
+import { veNhomHoTro } from "./ho-tro-nhom";
 import { datThanhTab, initShell, showError } from "./shell";
 
 const errorEl = byId("error");
@@ -58,7 +57,7 @@ function nutNhanViec(t: Api.FeedbackTicketDto, nhan: string, after: () => void):
 }
 
 // ---- Khung: thanh thẻ + danh sách (PR 3) -------------------------------------------------------------------------
-// Danh sách hai thẻ nằm ở web/ho-tro-danh-sach.ts; thẻ «Nhóm hỗ trợ» (quản lý nhóm) còn ở file này cho tới Task 5.
+// Danh sách hai thẻ nằm ở web/ho-tro-danh-sach.ts; thẻ «Nhóm hỗ trợ» (quản lý nhóm) ở web/ho-tro-nhom.ts.
 let idDangMo = params.get("id");
 let dsDangDung: { napLai(): void } | null = null;
 let theDangDung: TabHoTro | null = null;
@@ -127,13 +126,7 @@ async function loadList(): Promise<void> {
       dungLuong(); // luồng bị ẩn thì không làm mới ngầm
       luongTamDung = true;
     }
-    const list = h("div", { id: "list" });
-    replaceChildren(goc, list);
-    try {
-      await loadTeamsAdmin(list);
-    } catch (err) {
-      fail(err);
-    }
+    veNhomHoTro(goc); // bảng nhóm + hộp Sửa / Thêm nhóm (web/ho-tro-nhom.ts)
     return;
   }
   if (idDangMo) {
@@ -164,92 +157,6 @@ async function loadList(): Promise<void> {
 
 const moForm = (opener: HTMLElement | null = null): void => moHopGui({ from: params.get("from"), staff, teams, opener });
 byId("ht-gui").addEventListener("click", () => moForm(byId("ht-gui")));
-
-// ---- Quản lý nhóm (chỉ Toàn quyền; máy chủ: ô feedback.team.manage) ------------------------------------------------
-let nhanVien: Api.StaffListRowDto[] | null = null;
-
-async function loadTeamsAdmin(list: HTMLElement): Promise<void> {
-  const [r, ds] = await Promise.all([
-    api<Api.FeedbackAdminTeamsResponse>("/api/feedback/admin/teams"),
-    nhanVien ? Promise.resolve(nhanVien) : api<Api.StaffListResponse>("/api/staff").then((x) => x.staff),
-  ]);
-  nhanVien = ds;
-  // Chỉ tài khoản đang hoạt động, KHÔNG mang quyền bên ngoài (máy chủ từ chối cả hai — R6).
-  const chonDuoc = ds.filter((s) => s.active && !s.permissions.some(isExternalPermission));
-  replaceChildren(list, ...r.teams.map((t) => theNhom(t, chonDuoc)), formTaoNhom());
-}
-
-const ghiNhom = (path: string, method: string, body?: unknown) => api<{ team: Api.FeedbackAdminTeamDto }>(path, { method, body });
-
-function theNhom(t: Api.FeedbackAdminTeamDto, chonDuoc: Api.StaffListRowDto[]): HTMLElement {
-  const base = `/api/feedback/admin/teams/${t.id}`;
-  const reload = () => void loadList();
-  const nutNgung = t.id === NHOM_KY_THUAT_ID && t.active ? null : h("button", { type: "button", class: "btn" }, t.active ? "Ngưng" : "Dùng lại");
-  nutNgung?.addEventListener("click", async () => {
-    if (await act(() => ghiNhom(base, "PATCH", { active: !t.active }), nutNgung)) reload();
-  });
-  const nhayCam = h("input", { type: "checkbox", checked: t.sensitive });
-  nhayCam.addEventListener("change", async () => {
-    const r = await act(() => ghiNhom(base, "PATCH", { sensitive: nhayCam.checked }));
-    if (!r) nhayCam.checked = t.sensitive;
-    reload();
-  });
-  const thanhVien = t.members.map((m) => {
-    const vaiKhac: TeamRole = m.role === "LEAD" ? "MEMBER" : "LEAD";
-    const doiVai = h("button", { type: "button", class: "btn btn-link" }, `Đổi thành ${TEAM_ROLE_NAME[vaiKhac]}`);
-    doiVai.addEventListener("click", async () => {
-      if (await act(() => ghiNhom(`${base}/members/${m.staffId}`, "PUT", { role: vaiKhac }), doiVai)) reload();
-    });
-    const go = h("button", { type: "button", class: "btn btn-link" }, "Gỡ");
-    go.addEventListener("click", async () => {
-      if (await act(() => ghiNhom(`${base}/members/${m.staffId}`, "DELETE"), go)) reload();
-    });
-    return h("div", { class: "list-row", "data-member": m.staffId }, h("strong", null, m.name ?? "(không rõ tên)"), ` · ${TEAM_ROLE_NAME[m.role]} `, doiVai, go);
-  });
-  const coSan = new Set(t.members.map((m) => m.staffId));
-  const chonNguoi = h("select", { "aria-label": `Nhân viên thêm vào nhóm ${t.name}` }, h("option", { value: "" }, "Chọn nhân viên…"),
-    ...chonDuoc.filter((s) => !coSan.has(s.id)).map((s) => h("option", { value: s.id }, s.fullName)));
-  const chonVai = h("select", { "aria-label": "Vai trò trong nhóm" }, ...TEAM_ROLES.map((v) => h("option", { value: v, selected: v === "MEMBER" }, TEAM_ROLE_NAME[v])));
-  const them = h("button", { type: "button", class: "btn" }, "Thêm");
-  them.addEventListener("click", async () => {
-    if (!chonNguoi.value) return showError(errorEl, "Chọn nhân viên trước khi thêm.");
-    if (await act(() => ghiNhom(`${base}/members/${chonNguoi.value}`, "PUT", { role: chonVai.value }), them)) reload();
-  });
-  return h(
-    "section",
-    { class: "card", "data-team": t.id },
-    h("h3", null, t.name, " ", t.sensitive && h("span", { class: "badge badge-draft" }, "Nhạy cảm"), " ", !t.active && h("span", { class: "badge badge-cancelled" }, "Đã ngưng")),
-    t.description && h("p", { class: "muted" }, t.description),
-    h("label", null, nhayCam, " Nhạy cảm (tiêu đề không ra email chung và nhật ký)"),
-    nutNgung,
-    h("h4", null, "Thành viên"),
-    ...(thanhVien.length ? thanhVien : [h("p", { class: "muted" }, "Chưa có thành viên.")]),
-    h("div", { class: "grid" }, chonNguoi, chonVai, them),
-  );
-}
-
-function formTaoNhom(): HTMLElement {
-  const ma = h("input", { type: "text", maxLength: 40, placeholder: "VD: KINH_DOANH", autocapitalize: "characters" });
-  const ten = h("input", { type: "text", maxLength: 80 });
-  const moTa = h("input", { type: "text", maxLength: 200 });
-  const nhayCam = h("input", { type: "checkbox" });
-  const tao = h("button", { type: "button", class: "btn btn-primary" }, "Tạo nhóm");
-  tao.addEventListener("click", async () => {
-    const body = { code: ma.value.trim(), name: ten.value, description: moTa.value, sensitive: nhayCam.checked };
-    if (await act(() => ghiNhom("/api/feedback/admin/teams", "POST", body), tao)) void loadList();
-  });
-  return h(
-    "section",
-    { class: "card" },
-    h("h3", null, "Tạo nhóm mới"),
-    h("div", { class: "grid" },
-      h("label", null, "Mã nhóm (chữ HOA không dấu, số, gạch dưới)", ma),
-      h("label", null, "Tên nhóm", ten),
-      h("label", null, "Mô tả", moTa),
-      h("label", null, nhayCam, " Nhạy cảm"),
-      h("div", null, tao)),
-  );
-}
 
 // ---- Luồng một yêu cầu: mở tại chỗ (web/ho-tro-luong.ts) ----------------------------------------------------------------
 // Địa chỉ `?id=` giữ trên thanh địa chỉ: mở = pushState (nút quay lại của trình duyệt đóng luồng), mở thẳng từ `?id=` = đóng bằng replaceState.

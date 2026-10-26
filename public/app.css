@@ -190,6 +190,7 @@
   --w-toast: 360px;
   --fb-line: 2px;             /* nét nối + viền chấm của thanh bước Góp ý */
   --fb-dot: 28px;              /* chấm của thanh bước trạng thái Góp ý (ảnh phác c, chủ duyệt 30/9) */
+  --ht-av: 28px;               /* PR 3 màn Nhóm hỗ trợ: ảnh đại diện chữ tắt của thành viên */
   --w-ht-cot-trai: 320px;      /* PR 3 trang Hỗ trợ: cột danh sách bên trái ở máy tính */
   --w-fb-tin: 85%;             /* Vé hỗ trợ đợt 2a (ADR-0127): bề rộng tối đa một bong bóng tin — chừa lề phía bên kia để thấy rõ tin của ai */
   /* "Việc của tôi" của hướng dẫn viên (Task 1.8 ADR-0030) — số đo từ bản thiết kế "Viec cua toi - HDV v2.dc.html" (Claude Design 2026-09-27; chủ dự án
@@ -938,6 +939,22 @@ button.xm-the { min-height: var(--tap-min); cursor: pointer; }
 .ht-dem { color: var(--c-on-dark); background: var(--c-danger); }
 .ht-so { margin-left: var(--s2); color: var(--c-text); background: var(--c-primary-soft); }
 .ht-hai-cot { display: block; }
+/* Màn «Nhóm hỗ trợ» (Toàn quyền): bảng ≥ 900px, thẻ ở điện thoại (cùng khuôn .table-wrap / .card-list). */
+.ht-nhom { padding: var(--s3); display: grid; gap: var(--s3); }
+.ht-nhom-chan { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s3); }
+.ht-nhom-chan .btn, .ht-nhom-thao-tac .btn, .ht-nhom-dong .btn { min-height: var(--tap-min); }
+.ht-nhom-ghi-chu { margin: 0; font-size: var(--fs-label); }
+.ht-nhom-dong { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); justify-content: space-between; }
+.ht-nhom-ngung-ds { display: grid; gap: var(--s2); }
+.ht-nhom-ten-tv { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.ht-nhom-thanh-vien, .ht-nhom-them-nguoi, .ht-nhom-ket-qua { display: grid; gap: var(--s2); }
+.ht-nhom-them-nguoi input, .ht-nhom-them-nguoi select { font-size: var(--fs-field); min-height: var(--tap-min); }
+.ht-bang-nhom td { vertical-align: middle; }
+.ht-nhom-thao-tac { text-align: right; }
+.ht-thanh-vien { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--s1); }
+.ht-cong-tac { display: inline-flex; align-items: center; gap: var(--s2); min-height: var(--tap-min); }
+.ht-av { flex: none; display: inline-flex; align-items: center; justify-content: center; width: var(--ht-av); height: var(--ht-av); border-radius: 50%; color: var(--c-avatar-text); background: var(--c-avatar-bg); font-size: var(--fs-badge); font-weight: var(--fw-heavy); }
+.ht-av.is-truong { box-shadow: 0 0 0 2px var(--c-primary); }
 .ht-luong { min-width: 0; }
 .ht-danh-sach { padding: 0; overflow: hidden; }
 .ht-loc { display: flex; flex-direction: column; gap: var(--s2); padding: var(--s3); border-bottom: 1px solid var(--c-border); }

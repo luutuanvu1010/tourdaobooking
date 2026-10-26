@@ -214,3 +214,10 @@ export async function chayTuChoi(o: { id: string; lyDo: string; daGui: Set<strin
   o.daGui.delete(o.id);
   return { ok: true };
 }
+
+/** Chữ tắt cho ảnh đại diện: chữ cái đầu của tối đa hai từ CUỐI trong tên («Kế Toán» → «KT», «Lan» → «L»); tên rỗng / thiếu → «?». */
+export function chuTat(ten: string | null | undefined): string {
+  const tu = (ten ?? "").trim().split(/\s+/).filter(Boolean);
+  if (!tu.length) return "?";
+  return tu.slice(-2).map((t) => [...t][0]!.toLocaleUpperCase("vi-VN")).join("");
+}

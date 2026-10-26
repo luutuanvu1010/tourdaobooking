@@ -3,7 +3,7 @@ import { test } from "node:test";
 import type { FeedbackMessageDto, FeedbackQueueResponse, FeedbackTeamsResponse } from "./contracts.ts";
 import { FEEDBACK_TRANSITIONS } from "./feedback-catalog.ts";
 import {
-  CAU_DA_CHUYEN_NHOM, CAU_KHONG_CON_TRONG_NHOM, CAU_MO_LAI, CAU_TU_CHOI_LOI_BUOC_2, NHAN_TAB, NHAN_TAI_LAI, buocChoPhep, cauSuKien, cauTuanNay, chenSuKien, demTuanNay, donDienSan, gomTin,
+  CAU_DA_CHUYEN_NHOM, chuTat, CAU_KHONG_CON_TRONG_NHOM, CAU_MO_LAI, CAU_TU_CHOI_LOI_BUOC_2, NHAN_TAB, NHAN_TAI_LAI, buocChoPhep, cauSuKien, cauTuanNay, chenSuKien, demTuanNay, donDienSan, gomTin,
   LAM_MOI_LUI_MS, LAM_MOI_TRAN, buocLamMoi, chayTuChoi, chuKyLamMoi, chuaAiNhan, dauPhieuDoi, duongHangDoi, gopTin, hienNhanViec, huyHieuUuTien, nguoiXuLyHienThi, nhanDonChon, nhomChuyenDuoc, nhomHangDoi, tabHoTro,
 } from "./ve-ho-tro-hien-thi.ts";
 
@@ -257,4 +257,12 @@ test("chayTuChoi: lý do rỗng khi chưa gửi ⇒ không gọi gì", async () 
   const r = await chayTuChoi({ id: "c", lyDo: "   ", daGui: new Set(), guiLyDo: async () => void n++, doiTrangThai: async () => void n++ });
   assert.equal(r.ok, false);
   assert.equal(n, 0);
+});
+
+test("chuTat: hai từ cuối viết hoa; một từ; rỗng / thiếu ⇒ «?»", () => {
+  assert.equal(chuTat("Kế Toán"), "KT");
+  assert.equal(chuTat("  nguyễn văn đức "), "VĐ");
+  assert.equal(chuTat("Lan"), "L");
+  assert.equal(chuTat(""), "?");
+  assert.equal(chuTat(null), "?");
 });
