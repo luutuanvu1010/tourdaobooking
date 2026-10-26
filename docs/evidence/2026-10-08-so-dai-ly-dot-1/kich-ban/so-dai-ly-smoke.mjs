@@ -9,7 +9,7 @@
 // Kho cookie Chrome dùng chung ⇒ trang của tài khoản Đối tác mở SAU CÙNG.
 // Chạy từ GỐC repo, sau `npm run build:web`, cần axe-core lấy NGOÀI repo (`npm pack axe-core`):
 //   AXE_JS=<…/package/axe.min.js> CHROME_BIN=$PWD/docs/evidence/2026-09-20-a2/kich-ban/chrome-wrap.sh node docs/evidence/2026-10-08-so-dai-ly-dot-1/kich-ban/so-dai-ly-smoke.mjs
-// Ảnh ghi vào docs/evidence/2026-10-08-so-dai-ly-dot-1/anh/ (đặt OUT=<thư mục> để ghi chỗ khác). Mỗi bước chạy riêng (một bước đỏ không chặn bước sau); cuối cùng in
+// Ảnh ghi vào docs/evidence/2026-10-26-hoa-hong-thiet-ke-lai/anh-so-dai-ly/ (đặt OUT=<thư mục> để ghi chỗ khác). Mỗi bước chạy riêng (một bước đỏ không chặn bước sau); cuối cùng in
 // "SMOKE OK" hoặc danh sách bước đỏ (thoát 1). axe: lỗi mức critical/serious làm đỏ bước; moderate/minor in ra ở mục "axe nhẹ" (ghi vào báo cáo, không sửa mã sản phẩm).
 import assert from "node:assert/strict";
 // Các bước 1 và 1b khoá giao diện /hoa-hong CŨ (đã làm lại 2026-10-26; thay bằng docs/evidence/2026-10-26-hoa-hong-thiet-ke-lai/kich-ban/hoa-hong-smoke.mjs). Mặc định bỏ qua; SDL_HOA_HONG_CU=1 chạy lại (sẽ đỏ).
