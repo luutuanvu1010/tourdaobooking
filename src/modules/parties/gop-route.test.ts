@@ -254,13 +254,14 @@ test("Hợp đồng lỗi lô: dữ liệu đổi trong khe → 409 merge_stale;
     assert.equal(w.q("SELECT active FROM pty_party WHERE id = ?", A)[0].active, 1);
     assert.equal(w.q("SELECT count(*) n FROM audit_log WHERE action = 'party_merged'")[0].n, 0);
   }
-  // (b) đơn nháp của A lệch ở CỘT CỌC CŨ (kế hoạch không đọc được — NT-R9) → trigger tiền 0007 huỷ lô → 409 merge_order_invalid NÊU MÃ ĐƠN (ADR-0068 Đ1 bước 5).
-  {
+  // (b) đơn của A lệch ở CỘT CỌC CŨ (kế hoạch không đọc được — NT-R9) → trigger tiền 0007 huỷ lô → 409 merge_order_invalid NÊU MÃ ĐƠN (ADR-0068 Đ1 bước 5).
+  // ADR-0135: với đơn NHÁP (riêng tư của người lập) lô vẫn bị huỷ, nhưng câu trả lời KHÔNG nêu mã đơn nháp cho Quản trị.
+  for (const [trangThai, nenMa] of [["confirmed", true], ["draft", false]] as const) {
     const w = nen();
     const A = await taoA(w);
     const B = await taoB(w);
     const don = "00000000-0000-4000-8000-00000000d201";
-    donCua(w, don, A, "draft");
+    donCua(w, don, A, trangThai);
     const trg = w.q("SELECT sql FROM sqlite_master WHERE type = 'trigger' AND name = 'orders_money_update'")[0].sql as string;
     w.sqlite.exec("DROP TRIGGER orders_money_update");
     w.sqlite.prepare("UPDATE orders SET remaining_amount = 5 WHERE id = ?").run(don); // dữ liệu cũ lệch (remaining ≠ total − cọc)
@@ -269,7 +270,8 @@ test("Hợp đồng lỗi lô: dữ liệu đổi trong khe → 409 merge_stale;
     const { kq: r, log } = await thuLog(() => gop(w, ADM, A, B.partyId));
     assert.equal(r.status, 409, r.text);
     assert.equal(r.json.error.code, "merge_order_invalid");
-    assert.match(r.json.error.message, /TD-d201/);
+    if (nenMa) assert.match(r.json.error.message, /TD-d201/, trangThai);
+    else assert.doesNotMatch(r.json.error.message, /TD-d201/, "nháp: không nêu mã đơn (ADR-0135)");
     assert.doesNotMatch(r.json.error.message, /money_invariant|SQLITE/);
     assert.deepEqual(log, []);
     assert.equal(w.q("SELECT active FROM pty_party WHERE id = ?", A)[0].active, 1);

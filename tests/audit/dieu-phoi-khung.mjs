@@ -147,7 +147,7 @@ export async function don(w, v) {
   assert.equal(r.status, 201, r.text);
   const o = r.json.order;
   if (v.datGap) {
-    const g = await w.call("POST", `/api/orders/${o.id}/legs/${o.services[0].legs[0].id}/short-notice`, { as: ADM, body: { lyDo: "KHACH_DOAN_GOI_GAP" } });
+    const g = await w.call("POST", `/api/orders/${o.id}/legs/${o.services[0].legs[0].id}/short-notice`, { as: SALES, body: { lyDo: "KHACH_DOAN_GOI_GAP" } });
     assert.equal(g.status, 200, g.text);
   }
   const x = await w.call("POST", `/api/orders/${o.id}/status`, { as: SALES, body: { status: "confirmed" } });

@@ -40,7 +40,7 @@ async function don(w: W, giam: number): Promise<{ id: string; svc: string }> {
   w.sqlite.prepare(`INSERT INTO order_service (pickup_choice, id, order_id, sort_order, catalog_code, name, unit, pax_adult, depart_date) VALUES ('KHONG_DON', ?, ?, 0, 'HONTAM', 'Vé Hòn Tằm', 'perPax', 1, ?)`).run(svc, id, vnHomNay());
   w.sqlite.prepare(`INSERT INTO order_item (id, order_id, service_id, catalog_code, pax_code, description, quantity, unit_price, catalog_price, line_total) VALUES (?, ?, ?, 'HONTAM', 'adult', 'Người lớn', 1, ?, ?, ?)`)
     .run(`${svc}-i`, id, svc, sub, sub, sub);
-  const xn = await w.call("POST", `/api/orders/${id}/status`, { as: SUPER, body: { status: "confirmed" } });
+  const xn = await w.call("POST", `/api/orders/${id}/status`, { as: SALES, body: { status: "confirmed" } });
   assert.equal(xn.status, 200, xn.text);
   return { id, svc };
 }

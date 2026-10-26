@@ -88,5 +88,5 @@ test("khối số máy tính chỉ còn ô Doanh thu; điện thoại vẫn đ�
   assert.equal((mt.match(/oSoMayTinh\(/g) ?? []).length, 1);
   assert.match(mt, /Doanh thu của tôi/);
   const dt = home.slice(home.indexOf("function renderSoDienThoai"), home.indexOf("const LOI_SO_LIEU"));
-  for (const nhan of ["Còn thiếu", "Doanh thu của tôi", "Chờ xác nhận", "Chưa phụ trách"]) assert.ok(dt.includes(`"${nhan}"`), nhan);
+  for (const nhan of ["Còn thiếu", "Doanh thu của tôi", "Đơn nháp", "Chưa phụ trách"]) assert.ok(dt.includes(`"${nhan}"`), nhan);
 });

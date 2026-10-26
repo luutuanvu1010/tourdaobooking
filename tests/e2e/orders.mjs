@@ -76,18 +76,12 @@ assert.equal(summary2.trip.pickupTime, "07:00", "trip lấy đúng của dịch 
 // (test bất biến `{ services: [] }` ở trên đã xác nhận trả 400), nên KHÔNG tạo được qua API thật. `summarizeServices([])` đã có unit test riêng ở
 // repository.test.ts (Task 1) — coi đó là đủ phủ cho trường hợp không có dịch vụ, bỏ qua ca này ở e2e.
 
-// nhân viên B xem được đơn của A
+// ADR-0135: đơn NHÁP của A chỉ A thấy — nhân viên B (Bán hàng) mở → 404, danh sách / tìm kiếm của B không có đơn. B xem được sau khi A xác nhận (khối bên dưới).
 r = await call(Bc, "GET", `/api/orders/${o.id}`);
-assert.equal(r.status, 200); assert.equal(r.body.order.staffName, "NV Bán A (test)");
-assert.equal(r.body.history.length, 0, "SALES chỉ xem nhật ký đơn của mình (ADR-0007) — B không thấy nhật ký đơn của A");
-assert.equal((await call(A, "GET", `/api/orders/${o.id}`)).body.history.length, 1, "người lập đơn thấy nhật ký của mình");
-r = await call(Bc, "GET", "/api/orders?q=Hòn"); // tìm theo tên khách không khớp dịch vụ → 0
-r = await call(Bc, "GET", "/api/orders?q=" + encodeURIComponent("Nguyễn"));
-assert.ok(r.body.orders.some((x) => x.id === o.id));
+assert.equal(r.status, 404, "nháp của A: B mở → 404");
 r = await call(Bc, "GET", "/api/orders?q=" + o.orderCode);
-assert.equal(r.body.orders.length, 1);
-r = await call(Bc, "GET", "/api/orders?q=%25"); // ký tự LIKE được escape
-assert.equal(r.body.orders.length, 0);
+assert.equal(r.body.orders.length, 0, "tìm theo mã đơn nháp của A: B không thấy");
+assert.equal((await call(A, "GET", `/api/orders/${o.id}`)).body.history.length, 1, "người lập đơn thấy nhật ký của mình");
 
 // bất biến: giảm giá / cọc quá mức, số âm, chuỗi
 for (const bad of [{ discount: 1400001 }, { discount: -1 }, { services: [svc({ adult: 1 }, { adult: "5" })] }, { services: [] }]) {
@@ -95,14 +89,12 @@ for (const bad of [{ discount: 1400001 }, { discount: -1 }, { services: [svc({ a
   assert.equal(r.status, 400, JSON.stringify(bad));
 }
 
-// PHÂN QUYỀN: B (sales, không phải người lập) xem được nhưng KHÔNG sửa/đổi trạng thái đơn của A
-r = await call(Bc, "GET", `/api/orders/${o.id}`);
-assert.equal(r.body.canModify, false);
+// PHÂN QUYỀN (ADR-0135): đơn NHÁP của A — B (sales, không phải người lập) không sửa / đổi trạng thái được: 404 (như đơn không tồn tại), không ghi gì
 r = await call(A, "GET", `/api/orders/${o.id}`);
 assert.equal(r.body.canModify, true);
-assert.equal((await call(Bc, "PUT", `/api/orders/${o.id}`, input)).status, 403);
-assert.equal((await call(Bc, "POST", `/api/orders/${o.id}/status`, { status: "confirmed" })).status, 403);
-assert.equal((await call(Bc, "POST", `/api/orders/${o.id}/status`, { status: "cancelled", lyDo: "KHACH_DOI_Y" })).status, 403);
+assert.equal((await call(Bc, "PUT", `/api/orders/${o.id}`, input)).status, 404);
+assert.equal((await call(Bc, "POST", `/api/orders/${o.id}/status`, { status: "confirmed" })).status, 404);
+assert.equal((await call(Bc, "POST", `/api/orders/${o.id}/status`, { status: "cancelled", lyDo: "KHACH_DOI_Y" })).status, 404);
 assert.equal((await call(null, "PUT", `/api/orders/${o.id}`, input)).status, 401);
 r = await call(A, "GET", `/api/orders/${o.id}`);
 assert.equal(r.body.order.status, "draft"); assert.equal(r.body.history.length, 1); // bị từ chối → không đổi gì, không ghi log
@@ -114,13 +106,26 @@ assert.equal(r.status, 200, JSON.stringify(r.body));
 assert.equal(r.body.order.total, 600000); assert.equal(lines(r.body.order).length, 1);
 let cur = r.body.order;
 
-// admin (không phải người lập) sửa được
+// admin (không phải người lập) KHÔNG sửa được nháp của người khác (ADR-0135): 404, đơn không đổi
 r = await call(ADMIN, "PUT", `/api/orders/${o.id}`, { ...input, ...replace, customerNote: "admin sửa", expectedUpdatedAt: cur.updatedAt });
-assert.equal(r.status, 200);
+assert.equal(r.status, 404);
 
 // xác nhận (người lập): đơn có ngày khởi hành + khách nên đủ điều kiện
 r = await call(A, "POST", `/api/orders/${o.id}/status`, { status: "confirmed" });
 assert.equal(r.status, 200, JSON.stringify(r.body)); assert.equal(r.body.order.status, "confirmed"); assert.ok(r.body.order.confirmedAt);
+// sau xác nhận đơn thành đơn chung: B (sales, không phải người lập) xem được nhưng KHÔNG sửa / đổi trạng thái
+r = await call(Bc, "GET", `/api/orders/${o.id}`);
+assert.equal(r.status, 200); assert.equal(r.body.order.staffName, "NV Bán A (test)");
+assert.equal(r.body.canModify, false);
+assert.equal(r.body.history.length, 0, "SALES chỉ xem nhật ký đơn của mình (ADR-0007) — B không thấy nhật ký đơn của A");
+r = await call(Bc, "GET", "/api/orders?q=" + encodeURIComponent("Nguyễn"));
+assert.ok(r.body.orders.some((x) => x.id === o.id));
+r = await call(Bc, "GET", "/api/orders?q=" + o.orderCode);
+assert.equal(r.body.orders.length, 1);
+r = await call(Bc, "GET", "/api/orders?q=%25"); // ký tự LIKE được escape
+assert.equal(r.body.orders.length, 0);
+assert.equal((await call(Bc, "PUT", `/api/orders/${o.id}`, input)).status, 403);
+assert.equal((await call(Bc, "POST", `/api/orders/${o.id}/status`, { status: "confirmed" })).status, 403);
 // không sửa được, không quay về draft, không xác nhận lại
 assert.equal((await call(A, "PUT", `/api/orders/${o.id}`, input)).status, 409);
 assert.equal((await call(A, "POST", `/api/orders/${o.id}/status`, { status: "draft" })).status, 400);
@@ -133,7 +138,7 @@ assert.equal((await call(A, "POST", `/api/orders/${o.id}/status`, { status: "can
 r = await call(A, "GET", `/api/orders/${o.id}`);
 console.log("lịch sử:", r.body.history.map((h) => `${h.action}/${h.staffName}`).join(", "));
 // Sổ đại lý đợt 1 (đặc tả §5): lô Xác nhận ghi thêm MỘT dòng `order_terms_captured` ngay sau `confirmed` (cùng mốc giờ, thứ tự chèn) — người xem văn phòng thấy dòng đó.
-assert.deepEqual(r.body.history.map((h) => h.action), ["created", "updated", "updated", "confirmed", "order_terms_captured", "cancelled"]);
+assert.deepEqual(r.body.history.map((h) => h.action), ["created", "updated", "confirmed", "order_terms_captured", "cancelled"]);
 assert.equal(r.body.history.at(-1).staffName, "", "ADR-0131: người lập đơn (không phải Toàn quyền) không thấy tên người làm trong lịch sử");
 assert.equal((await call(TOAN_QUYEN, "GET", `/api/orders/${o.id}`)).body.history.at(-1).staffName, "QTV Test", "Toàn quyền vẫn thấy đúng người huỷ");
 
@@ -262,10 +267,20 @@ const putTrip = (cookie, order, changes = {}, extra = {}) =>
 const lastAction = async (cookie, order) => (await detail(cookie, order)).history.at(-1);
 
 // --- trước khi được giao: B chỉ là người ngoài
+// ADR-0135 (chủ duyệt 19/10): đơn NHÁP riêng tư — người phụ trách (kể cả chọn sẵn) chỉ thao tác được SAU khi người lập xác nhận; bản cũ của đoạn này cho người phụ trách
+// sửa nháp và xác nhận đơn, nay không còn đường đó (ca nháp ở tests/e2e/nhap-rieng-tu.mjs). Đoạn dưới: người lập giao cho B khi còn nháp → B vẫn 404; xác nhận xong B mới thành người phụ trách thật.
 let h = await mkOrder();
-assert.equal((await detail(Bc, h)).canModify, false);
-assert.equal((await putOrder(Bc, h, {})).status, 403);
-await assign(A, h, bId); // người lập giao cho B
+assert.equal((await call(Bc, "GET", `/api/orders/${h.id}`)).status, 404, "B (chưa được giao) mở nháp của A → 404");
+assert.equal((await putOrder(Bc, h, {})).status, 404, "B sửa nháp của A → 404");
+await assign(A, h, bId); // người lập chọn sẵn B khi còn nháp (đơn nháp ghi người phụ trách chọn sẵn)
+assert.equal((await call(Bc, "GET", `/api/orders/${h.id}`)).status, 404, "B (chọn sẵn) mở nháp → vẫn 404");
+assert.equal((await putOrder(Bc, h, {})).status, 404, "B (chọn sẵn) sửa nháp → 404");
+r = await setStatus(Bc, h, "confirmed");
+assert.equal(r.status, 404, "B (chọn sẵn) xác nhận nháp → 404: chỉ người lập xác nhận");
+r = await setStatus(A, h, "confirmed");
+assert.equal(r.status, 200, JSON.stringify(r.body));
+assert.equal(r.body.order.status, "confirmed");
+h = r.body.order;
 // canModify + nhật ký đúng cho từng người (cờ ở giao diện và kiểm ở máy chủ dùng CÙNG một giá trị "được giao")
 for (const [label, cookie, canModify, sees] of [
   ["người phụ trách (B)", Bc, true, true], ["người lập đã giao lại (A)", A, true, true], ["quản trị", ADMIN, true, true],
@@ -279,51 +294,21 @@ for (const [label, cookie, canModify, sees] of [
 r = await call(FIELD, "GET", `/api/orders/${h.id}`);
 assert.equal(r.status, 404, `FIELD không phụ trách đơn → 404: ${JSON.stringify(r.body)}`);
 assert.equal(r.body.error.code, "not_found");
-assert.deepEqual((await detail(Bc, h)).history.map((x) => x.action), ["created", "order_handler_changed"], "người phụ trách xem cả dòng đổi người");
-
-// --- người phụ trách sửa đơn NHÁP đủ: đổi dịch vụ, số khách, giảm giá, cọc — máy chủ tính lại tiền
-const bigger = { services: [svc({ adult: 4, child: 2 }, { adult: 300000, child: 50000 })], discount: 50000 }; // 4 × 300.000 + 2 × 50.000 = 1.300.000
-r = await putOrder(Bc, h, bigger);
-assert.equal(r.status, 200, JSON.stringify(r.body));
-assert.deepEqual([r.body.order.services[0].pax.adult, r.body.order.subtotal, r.body.order.total], [4, 1300000, 1250000], "dịch vụ, số khách và tiền do máy chủ tính lại");
-assert.equal(lines(r.body.order).length, 2);
-h = r.body.order;
-let last = await lastAction(TOAN_QUYEN, h);
-assert.deepEqual([last.action, last.staffName], ["updated", "NV Bán B (test)"], "nhật ký ghi đúng người phụ trách đã sửa");
-assert.equal((await lastAction(Bc, h)).staffName, "", "ADR-0131: người phụ trách (không phải Toàn quyền) không thấy tên người làm");
-// người lập (đã giao lại) VẪN sửa được
-r = await putOrder(A, h, { ...bigger, customerNote: "người lập vẫn sửa được" });
-assert.equal(r.status, 200, JSON.stringify(r.body));
-h = r.body.order;
-assert.equal(h.customerNote, "người lập vẫn sửa được");
-// người khác / kế toán / FIELD: 403 ở mọi thao tác sửa; không gì đổi
-for (const [label, cookie] of [["SALES khác", Cx], ["kế toán", ACC], ["FIELD", FIELD]]) {
-  for (const [what, res] of [
-    ["PUT đơn", await putOrder(cookie, h, bigger)], ["xác nhận", await setStatus(cookie, h, "confirmed")], ["huỷ", await setStatus(cookie, h, "cancelled")], ["PUT chuyến", await putTrip(cookie, h, { note: "chui" })],
-  ]) assert.equal(res.status, 403, `${label} ${what} → ${res.status}`);
-}
-assert.deepEqual((await detail(A, h)).order.updatedAt, h.updatedAt, "bị từ chối thì không đổi gì");
-
-// --- người phụ trách XÁC NHẬN đơn
-r = await setStatus(Bc, h, "confirmed");
-assert.equal(r.status, 200, JSON.stringify(r.body));
-assert.equal(r.body.order.status, "confirmed");
-h = r.body.order;
-// Sổ đại lý đợt 1: dòng cuối là `order_terms_captured` (cùng lô, ngay sau `confirmed`) — so hai dòng cuối, cả hai do người phụ trách ghi.
-assert.deepEqual((await detail(TOAN_QUYEN, h)).history.slice(-2).map((x) => [x.action, x.staffName]), [["confirmed", "NV Bán B (test)"], ["order_terms_captured", "NV Bán B (test)"]]);
-assert.deepEqual((await detail(A, h)).history.slice(-2).map((x) => x.staffName), ["", ""], "ADR-0131: người lập (không phải Toàn quyền) không thấy tên người làm");
+// Sổ đại lý đợt 1: dòng cuối là `order_terms_captured` (cùng lô, ngay sau `confirmed`) — so hai dòng cuối, cả hai do NGƯỜI LẬP (A) ghi.
+assert.deepEqual((await detail(TOAN_QUYEN, h)).history.slice(-2).map((x) => [x.action, x.staffName]), [["confirmed", "NV Bán A (test)"], ["order_terms_captured", "NV Bán A (test)"]]);
+assert.deepEqual((await detail(Bc, h)).history.map((x) => x.action).slice(0, 2), ["created", "order_handler_changed"], "người phụ trách xem cả dòng đổi người");
 
 // --- sau xác nhận: sửa THÔNG TIN CHUYẾN được (order.trip.edit); số khách/dịch vụ/tiền vẫn KHOÁ (order.money.edit không mở)
-assert.equal((await putOrder(Bc, h, bigger)).status, 409, "PUT cả đơn sau xác nhận vẫn 409 (như người lập)");
-assert.equal((await putOrder(Bc, h, bigger)).body.error.code, "not_editable");
+assert.equal((await putOrder(Bc, h, { services: [svc({ adult: 4, child: 2 }, { adult: 300000, child: 50000 })], discount: 50000 })).status, 409, "PUT cả đơn sau xác nhận vẫn 409 (như người lập)");
+assert.equal((await putOrder(Bc, h, {})).body.error.code, "not_editable");
 // cố lách qua PUT /trip bằng số khách, dịch vụ, tiền: các trường thừa bị bỏ qua, chỉ trường chuyến đổi
 r = await putTrip(Bc, h, { pickupPlace: "KS người phụ trách chỉnh" }, { pax: { adult: 9 }, items: [{ description: "lách", quantity: 1, unitPrice: 1 }], total: 1, discount: 999999, name: "Đổi tên" });
 assert.equal(r.status, 200, JSON.stringify(r.body));
 assert.equal(r.body.order.services[0].pickupPlace, "KS người phụ trách chỉnh");
-assert.deepEqual([r.body.order.services[0].pax.adult, r.body.order.total, r.body.order.discount, r.body.order.services[0].name], [4, h.total, h.discount, h.services[0].name], "số khách/tiền/tên dịch vụ không đổi");
+assert.deepEqual([r.body.order.services[0].pax.adult, r.body.order.total, r.body.order.discount, r.body.order.services[0].name], [h.services[0].pax.adult, h.total, h.discount, h.services[0].name], "số khách/tiền/tên dịch vụ không đổi");
 assert.deepEqual(lines(r.body.order).map((i) => [i.description, i.quantity, i.unitPrice, i.lineTotal]), lines(h).map((i) => [i.description, i.quantity, i.unitPrice, i.lineTotal]));
 h = r.body.order;
-last = await lastAction(TOAN_QUYEN, h);
+let last = await lastAction(TOAN_QUYEN, h);
 assert.deepEqual([last.action, last.staffName], ["trip_updated", "NV Bán B (test)"]);
 assert.equal((await lastAction(Bc, h)).staffName, "", "ADR-0131: không phải Toàn quyền thì tên người làm bị bỏ");
 r = await putTrip(A, h, { note: "người lập chỉnh sau khi đã giao lại" }); // người lập vẫn sửa được chuyến
@@ -339,26 +324,23 @@ assert.deepEqual((await lastAction(TOAN_QUYEN, r.body.order)).staffName, "NV Bá
 assert.equal((await lastAction(Bc, r.body.order)).staffName, "", "ADR-0131: không phải Toàn quyền thì tên người làm bị bỏ");
 assert.equal((await putTrip(Bc, r.body.order, { note: "sau huỷ" })).status, 409);
 assert.equal((await setStatus(Bc, r.body.order, "confirmed")).status, 409);
-console.log("✓ người phụ trách (khác người lập) sửa nháp đủ, xác nhận, sửa chuyến, huỷ; người lập vẫn được; SALES khác/kế toán/FIELD 403; số khách/dịch vụ/tiền vẫn khoá sau xác nhận");
+console.log("✓ nháp: người phụ trách chọn sẵn vẫn 404; sau xác nhận (người lập) người phụ trách sửa chuyến, huỷ; người lập vẫn được; SALES khác/kế toán/FIELD 403; số khách/dịch vụ/tiền vẫn khoá sau xác nhận");
 
-// --- người phụ trách huỷ thẳng đơn NHÁP; và MẤT quyền ngay khi bị đổi người (quyền đi theo người phụ trách HIỆN TẠI, không theo người từng phụ trách)
-const h2 = await mkOrder();
-await assign(A, h2, bId);
-r = await setStatus(Bc, h2, "cancelled");
-assert.equal(r.status, 200, JSON.stringify(r.body));
+// --- MẤT quyền ngay khi bị đổi người (quyền đi theo người phụ trách HIỆN TẠI, không theo người từng phụ trách) — trên đơn ĐÃ XÁC NHẬN
 const h3 = await mkOrder();
+assert.equal((await setStatus(A, h3, "confirmed")).status, 200);
 await assign(A, h3, bId);
-assert.equal((await putOrder(Bc, h3, { customerNote: "B còn là người phụ trách" })).status, 200);
+assert.equal((await putTrip(Bc, (await detail(Bc, h3)).order, { note: "B còn là người phụ trách" })).status, 200);
 await assign(A, h3, cId); // A đổi sang Cx
 const h3now = (await detail(Cx, h3)).order;
 assert.equal((await detail(Bc, h3)).canModify, false, "B không còn là người phụ trách → hết quyền");
 assert.equal((await detail(Bc, h3)).history.length, 0, "và không xem được nhật ký");
-assert.equal((await putOrder(Bc, h3now, { customerNote: "B sửa lén" })).status, 403);
-assert.equal((await setStatus(Bc, h3now, "confirmed")).status, 403);
+assert.equal((await putTrip(Bc, h3now, { note: "B sửa lén" })).status, 403);
+assert.equal((await setStatus(Bc, h3now, "cancelled")).status, 403);
 assert.equal((await detail(Cx, h3)).canModify, true, "người phụ trách mới có quyền");
-assert.equal((await putOrder(Cx, h3now, { customerNote: "Cx sửa" })).status, 200);
-assert.equal((await putOrder(A, (await detail(A, h3)).order, { customerNote: "A vẫn sửa được" })).status, 200, "người lập vẫn sửa được");
-console.log("✓ người phụ trách huỷ đơn nháp; bị đổi người thì mất quyền ngay, người phụ trách mới có quyền");
+assert.equal((await putTrip(Cx, h3now, { note: "Cx sửa" })).status, 200);
+assert.equal((await putTrip(A, (await detail(A, h3)).order, { note: "A vẫn sửa được" })).status, 200, "người lập vẫn sửa được");
+console.log("✓ bị đổi người thì mất quyền ngay, người phụ trách mới có quyền (đơn đã xác nhận)");
 
 // --- Bộ lọc danh sách đơn nhiều điều kiện (góp ý T4): ngày đi, dịch vụ (nhiều), trạng thái (nhiều), người lập — AND nhau và với ô tìm; sai → 400 tiếng Việt.
 // D1 dùng chung cả lần chạy → mọi truy vấn kèm `q=<nhãn riêng>` để chỉ đếm đơn của đoạn này. Bài đủ ca (kể cả phạm vi theo vai) ở loc-don-route.test.ts.
@@ -371,6 +353,9 @@ console.log("✓ người phụ trách huỷ đơn nháp; bị đổi người t
   };
   const x1 = await mk(A, "ZE1", 3);
   const x2 = await mk(A, "ZE2", 4);
+  // ADR-0135: nháp chỉ người lập thấy → x1, x2 xác nhận để Quản trị còn lọc thấy; x3 (nháp rồi huỷ) là đơn đã huỷ nên thấy.
+  assert.equal((await setStatus(A, { id: x1 }, "confirmed")).status, 200);
+  assert.equal((await setStatus(A, { id: x2 }, "confirmed")).status, 200);
   const x3 = await mk(Bc, "ZE1", 4);
   assert.equal((await setStatus(Bc, { id: x3 }, "cancelled")).status, 200);
   const loc = async (qs) => {
@@ -381,7 +366,8 @@ console.log("✓ người phụ trách huỷ đơn nháp; bị đổi người t
   assert.deepEqual(await loc(""), new Set([x1, x2, x3]));
   assert.deepEqual(await loc(`tu=${vnDate(4)}&den=${vnDate(4)}`), new Set([x2, x3]), "ngày đi");
   assert.deepEqual(await loc("dichVu=ZE2"), new Set([x2]), "dịch vụ");
-  assert.deepEqual(await loc("status=draft&status=cancelled"), new Set([x1, x2, x3]), "trạng thái chọn nhiều");
+  assert.deepEqual(await loc("status=confirmed&status=cancelled"), new Set([x1, x2, x3]), "trạng thái chọn nhiều");
+  assert.deepEqual(await loc("status=draft"), new Set(), "Quản trị không thấy nháp nào của người khác (ADR-0135)");
   assert.deepEqual(await loc("status=cancelled"), new Set([x3]));
   assert.deepEqual(await loc(`nguoiLap=${bId}`), new Set([x3]), "người lập");
   assert.deepEqual(await loc(`nguoiLap=${bId}&dichVu=ZE1&tu=${vnDate(4)}&status=cancelled`), new Set([x3]), "bốn điều kiện cùng lúc");
@@ -398,7 +384,7 @@ console.log("✓ người phụ trách huỷ đơn nháp; bị đổi người t
   const tenDai = `Nguyễn Thị Phượng Hoàng Yến Nhi Thanh Tâm ${randomPhone().slice(-4)}`; // 46+ ký tự, > 48 byte; đuôi số để chỉ khớp đơn của đoạn này
   const dai = (await call(A, "POST", "/api/orders", { ...input, customerName: tenDai, discount: 0 }));
   assert.equal(dai.status, 201, JSON.stringify(dai.body));
-  const tim = await call(ADMIN, "GET", "/api/orders?limit=100&q=" + encodeURIComponent(tenDai));
+  const tim = await call(A, "GET", "/api/orders?limit=100&q=" + encodeURIComponent(tenDai)); // ADR-0135: nháp → người lập tìm
   assert.equal(tim.status, 200, `chữ tìm dài phải 200, không 500: ${JSON.stringify(tim.body)}`);
   assert.ok(tim.body.orders.some((x) => x.id === dai.body.order.id), "thấy đơn có tên khách dài (tìm theo phần đầu)");
   for (const q of ["ệ".repeat(100), "x".repeat(100), "%".repeat(100)]) {

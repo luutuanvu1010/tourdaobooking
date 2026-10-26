@@ -45,7 +45,9 @@ async function lap(w: any, as: string, legs: unknown[] = [OUT, RET], extra: Reco
   assert.equal(r.status, 201, r.text);
   return r.json.order;
 }
-const xem = async (w: any, id: string) => (await w.call("GET", `/api/orders/${id}`, { as: ADM })).json.order;
+// ADR-0135: đơn nháp chỉ người lập đọc/ghi → thao tác trên nháp đi bằng người lập.
+const nguoiLap = (w: any, id: string): string => String(w.q("SELECT staff_id AS s FROM orders WHERE id = ?", id)[0].s);
+const xem = async (w: any, id: string) => (await w.call("GET", `/api/orders/${id}`, { as: nguoiLap(w, id) })).json.order;
 const xacNhan = async (w: any, o: any, as = SALES) => assert.equal((await w.call("POST", `/api/orders/${o.id}/status`, { as, body: { status: "confirmed" } })).status, 200);
 const legBody = (l: any, over: Record<string, unknown> = {}) => ({
   id: l.id, direction: l.direction, pickupDate: l.pickupDate ?? "", pickupTime: l.pickupTime ?? "", pickupLocationId: l.pickupLocationId, pickupPlace: l.pickupPlace ?? "",
@@ -116,7 +118,7 @@ test("3. minVehicleSeats null xoá; 0, 101, 'abc', 1.5 → 400 tiếng Việt; e
   }
 });
 
-test("4. Đối tác / Thực tập / Bán hàng bật xe riêng trên nháp CỦA MÌNH → được (lập + lưu); đơn người khác → 403; không ô quyền mới", async () => {
+test("4. Đối tác / Thực tập / Bán hàng bật xe riêng trên nháp CỦA MÌNH → được (lập + lưu); nháp người khác → 404 (ADR-0135); không ô quyền mới", async () => {
   const w = setup();
   for (const as of [PARTNER, INTERN, SALES]) {
     const o = await lap(w, as, [{ ...OUT, exclusiveVehicle: true }, RET]);
@@ -126,7 +128,7 @@ test("4. Đối tác / Thực tập / Bán hàng bật xe riêng trên nháp C�
     assert.equal(cotTheoChieu(w, o.id, "OUT").min_vehicle_seats, 9, as);
   }
   const o = await lap(w, SALES, [OUT, RET]);
-  for (const as of [PARTNER, INTERN]) assert.equal((await luuNhap(w, o, as, [legBody(di(o), { exclusiveVehicle: true }), legBody(ve(o))])).status, 403, as);
+  for (const as of [PARTNER, INTERN]) assert.equal((await luuNhap(w, o, as, [legBody(di(o), { exclusiveVehicle: true }), legBody(ve(o))])).status, 404, as);
   assert.equal(cotTheoChieu(w, o.id, "OUT").exclusive_vehicle, 0);
 });
 
@@ -150,7 +152,7 @@ test("sau xác nhận: ô order.trip.edit — Bán hàng đơn mình, Quản tr�
 async function donDuoiMoc(w: any) {
   const g = vnSau(120);
   const o = await lap(w, SALES, [{ ...OUT, pickupDate: g.date, pickupTime: g.time }, { ...RET, pickupDate: g.date, pickupTime: vnSau(180).time }], { departDate: g.date });
-  for (const l of o.services[0].legs) assert.equal((await w.call("POST", `/api/orders/${o.id}/legs/${l.id}/short-notice`, { as: ADM, body: { lyDo: "KHACH_DOAN_GOI_GAP" } })).status, 200);
+  for (const l of o.services[0].legs) assert.equal((await w.call("POST", `/api/orders/${o.id}/legs/${l.id}/short-notice`, { as: nguoiLap(w, o.id), body: { lyDo: "KHACH_DOAN_GOI_GAP" } })).status, 200);
   await xacNhan(w, o);
   return xem(w, o.id);
 }
@@ -207,7 +209,7 @@ test("8. chepDatGapNhap: lưu nháp chỉ đổi cam kết (giờ, nơi y nguyê
   const w = setup();
   const g = vnSau(120);
   const o = await lap(w, SALES, [{ ...OUT, pickupDate: g.date, pickupTime: g.time }], { departDate: g.date });
-  assert.equal((await w.call("POST", `/api/orders/${o.id}/legs/${di(o).id}/short-notice`, { as: ADM, body: { lyDo: "CHUYEN_BAY_DOI_GIO" } })).status, 200);
+  assert.equal((await w.call("POST", `/api/orders/${o.id}/legs/${di(o).id}/short-notice`, { as: nguoiLap(w, o.id), body: { lyDo: "CHUYEN_BAY_DOI_GIO" } })).status, 200);
   const o2 = await xem(w, o.id);
   const r = await luuNhap(w, o2, SALES, [legBody(di(o2), CK)], { departDate: g.date });
   assert.equal(r.status, 200, r.text);

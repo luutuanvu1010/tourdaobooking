@@ -25,13 +25,14 @@ function dungWorld(): W {
   seedStaff(w.sqlite, { id: LAI_SUP, phone: "0900000033", name: "Lai Toàn Quyền", perms: ["SUPER_ADMIN", "PARTNER"] });
   return w;
 }
-/** Đơn nháp (gieo SQL) của `chu`; `hdv` = người đang phụ trách (dòng HANDLE của điều phối), nếu có. */
+/** Đơn ĐÃ XÁC NHẬN (gieo SQL; ADR-0135: đơn nháp chỉ người lập đọc được nên bài về lịch sử mà người KHÁC đọc phải dùng đơn đã xác nhận) của `chu`; `hdv` = người đang phụ trách (dòng HANDLE của điều phối), nếu có. */
 function nhapDon(w: W, chu: string, hdv: string | null = null): string {
   const id = uuid();
   w.sqlite.prepare(`INSERT INTO orders (id, order_code, staff_id, status, customer_name, customer_phone, subtotal, total, remaining_amount, created_at, updated_at)
     VALUES (?, ?, ?, 'draft', 'Khách Giả', '0900000099', 1000000, 1000000, 1000000, ?, ?)`).run(id, `TD-KT-${seq}`, chu, AT, AT);
   w.sqlite.prepare(`INSERT INTO order_service (id, order_id, sort_order, name, unit, pax_adult, depart_date) VALUES (?, ?, 0, 'DV', 'manual', 1, ?)`).run(`${id}-s`, id, NGAY);
   w.sqlite.prepare(`INSERT INTO order_item (id, order_id, service_id, description, quantity, unit_price, line_total) VALUES (?, ?, ?, 'Người lớn', 1, 1000000, 1000000)`).run(`${id}-i`, id, `${id}-s`);
+  w.sqlite.prepare("UPDATE orders SET status = 'confirmed', confirmed_at = ? WHERE id = ?").run(AT, id); // sau khi có dịch vụ + dòng tiền (trigger chặn xác nhận đơn rỗng)
   if (hdv) {
     w.sqlite.prepare(`INSERT INTO dsp_assignment (id, order_id, task_kind_code, party_id, status_code, valid_from_at, created_at, updated_at)
       VALUES (?, ?, 'HANDLE', ?, 'PENDING', ?, ?, ?)`).run(uuid(), id, `pty-${hdv}`, AT, AT, AT);

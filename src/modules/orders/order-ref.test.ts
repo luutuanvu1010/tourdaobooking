@@ -53,9 +53,9 @@ function seed(): DatabaseSync {
   return sqlite;
 }
 
-test("findOrderRef: trả ĐÚNG hai trường mã đơn + người lập (không lộ gì khác của đơn — không tên/SĐT khách, không tiền)", async () => {
+test("findOrderRef: trả ĐÚNG ba trường mã đơn + người lập + trạng thái (không lộ gì khác của đơn — không tên/SĐT khách, không tiền)", async () => {
   const db = fakeD1(seed());
-  assert.deepEqual(await findOrderRef(db, "o-1"), { staffId: "s-a", orderCode: "TD260926-001" });
+  assert.deepEqual(await findOrderRef(db, "o-1"), { staffId: "s-a", orderCode: "TD260926-001", status: "draft" }); // ADR-0135: thêm trạng thái để Bảng tin / Thông báo biết đơn nháp (chỉ gửi cho người lập)
 });
 
 test("findOrderRef: đơn không tồn tại → null (gốc lắp ráp thôi phát, không ném lỗi)", async () => {

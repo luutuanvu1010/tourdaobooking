@@ -54,7 +54,7 @@ function nhap(w: W, o: { owner?: string; booker?: string | null; iresort?: boole
   return id;
 }
 async function xacNhan(w: W, id: string): Promise<void> {
-  const xn = await w.call("POST", `/api/orders/${id}/status`, { as: SUPER, body: { status: "confirmed" } });
+  const xn = await w.call("POST", `/api/orders/${id}/status`, { as: String((w.sqlite.prepare("SELECT staff_id AS s FROM orders WHERE id = ?").get(id) as any).s), body: { status: "confirmed" } }); // ADR-0135: người lập xác nhận
   assert.equal(xn.status, 200, xn.text);
   w.sqlite.prepare(`INSERT INTO dsp_assignment (id, order_id, task_kind_code, party_id, status_code, valid_from_at, created_at, created_by, updated_at, updated_by)
     VALUES (?, ?, 'HANDLE', ?, 'PENDING', ?, ?, NULL, ?, NULL)`).run(uuid(), id, `pty-${HDV}`, AT, AT, AT);

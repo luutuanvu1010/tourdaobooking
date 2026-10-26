@@ -6,13 +6,16 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { NHAN_PHAM_VI, PHAM_VI_O_TRANG_CHU } from "./pham-vi-so.ts";
 
-test("bốn ô số Trang chủ: ba ô 'Toàn công ty', Doanh thu 'Của tôi'; nhãn tiếng Việt", () => {
+test("bốn ô số Trang chủ: Còn thiếu + Chưa phụ trách 'Toàn công ty', Doanh thu + Đơn nháp 'Của tôi' (ADR-0135 Đ3); nhãn tiếng Việt", () => {
   assert.deepEqual(PHAM_VI_O_TRANG_CHU, {
-    conThieu: "TOAN_CONG_TY", choXacNhan: "TOAN_CONG_TY", chuaPhuTrach: "TOAN_CONG_TY", doanhThu: "CUA_TOI",
+    conThieu: "TOAN_CONG_TY", donNhap: "CUA_TOI", chuaPhuTrach: "TOAN_CONG_TY", doanhThu: "CUA_TOI",
     // thẻ "Việc của bạn" (máy tính): điều chỉnh = phần chờ CHÍNH người xem duyệt
     dieuChinh: "CUA_TOI", xemLai: "TOAN_CONG_TY", chuyenHomNay: "TOAN_CONG_TY", gopY: "TOAN_CONG_TY",
   });
   assert.deepEqual(NHAN_PHAM_VI, { TOAN_CONG_TY: "Toàn công ty", CUA_TOI: "Của tôi" });
+  // ADR-0135 Đ3: không còn khoá nào tên `choXacNhan` (nhường tên cho thẻ đơn chờ xác nhận của ADR-0136); số nháp là số của chính người xem.
+  assert.equal("choXacNhan" in PHAM_VI_O_TRANG_CHU, false);
+  assert.equal(PHAM_VI_O_TRANG_CHU.donNhap, "CUA_TOI");
 });
 
 test("web/home.ts: MỌI ô số (oSo / oSoMayTinh) truyền phạm vi từ bảng chung — không ô nào thiếu nhãn", () => {

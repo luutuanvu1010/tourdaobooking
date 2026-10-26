@@ -39,7 +39,7 @@ async function order(w: any, as = SALES, confirm = true, extra: Record<string, u
   });
   assert.equal(r.status, 201, r.text);
   if (confirm) assert.equal((await w.call("POST", `/api/orders/${r.json.order.id}/status`, { as, body: { status: "confirmed" } })).status, 200);
-  return (await w.call("GET", `/api/orders/${r.json.order.id}`, { as: ADM })).json.order;
+  return (await w.call("GET", `/api/orders/${r.json.order.id}`, { as })).json.order; // ADR-0135: đọc bằng người lập (nháp chỉ người lập đọc)
 }
 const addLeg = (w: any, o: any, as: string, leg: Record<string, unknown> = RET, expected = o.updatedAt) =>
   w.call("POST", `/api/orders/${o.id}/legs`, { as, body: { expectedUpdatedAt: expected, serviceId: o.services[0].id, leg } });

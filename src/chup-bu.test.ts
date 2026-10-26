@@ -178,8 +178,8 @@ test("(A3) từ chối: đơn đã có bản chụp (kể cả bản thiếu m�
   // (d) đơn nháp, đơn huỷ
   const nhap = donCu(w, { nhap: true });
   const rn = await chupBu(w, nhap.id);
-  assert.equal(rn.status, 409, rn.text);
-  assert.equal(rn.json.error.code, "not_confirmed");
+  assert.equal(rn.status, 404, rn.text); // ADR-0135 Đ2: đơn nháp của người khác (Kế toán ở đây) → 404, không lộ trạng thái (trước: 409 not_confirmed)
+  assert.equal(rn.json.error.code, "not_found");
   const huy = donCu(w);
   huyDon(w.sqlite, huy.id);
   assert.equal((await chupBu(w, huy.id)).status, 409);

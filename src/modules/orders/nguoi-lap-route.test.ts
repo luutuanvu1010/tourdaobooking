@@ -131,6 +131,9 @@ test("ADR-0067 bài ghim hành vi: trên cả 1024 tập con quyền — /api/or
   seedStaff(w.sqlite, { id: LAP, phone: "0900009999", name: "Người Lập Chứng", perms: ["SALES"] });
   w.sqlite.exec("INSERT INTO catalog_item (code, name, unit, price_adult, in_sheet, first_seen_at, updated_at) VALUES ('ZA1', 'Tour đảo', 'perPax', 500000, 1, '2026-01-01', '2026-01-01')");
   const chung = await donMoi(w, LAP); // đơn "chứng": người khác lập, KHÔNG ai phụ trách → chỉ nhánh "xem mọi đơn" thấy
+  // ADR-0135: đơn NHÁP chỉ người lập thấy → đơn «chứng» phải là đơn ĐÃ XÁC NHẬN mới phân biệt được nhánh «xem mọi đơn».
+  w.sqlite.prepare("UPDATE order_service SET pickup_choice = 'KHONG_DON' WHERE order_id = ?").run(chung); // ADR-0134: dịch vụ phải chọn Đón / Không đón mới xác nhận được
+  assert.equal((await w.call("POST", `/api/orders/${chung}/status`, { as: LAP, body: { status: "confirmed" } })).status, 200);
   let soXemMoi = 0;
   let soKhong = 0;
   for (let mask = 0; mask < 1 << PERMISSION_CODES.length; mask++) {

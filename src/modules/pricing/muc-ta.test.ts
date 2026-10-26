@@ -492,7 +492,7 @@ test("Bản tính thử đơn NHÁP (phần thương mại) với bên đặt c�
   await dongTyLe(w, ta1, 1200);
   await ganOk(w, loai, ta1);
   const id = nhap(w, ORG);
-  const r = await ok(w.call("GET", `/api/orders/${id}/thuong-mai`, { as: KT }), 200, "thương mại đơn nháp");
+  const r = await ok(w.call("GET", `/api/orders/${id}/thuong-mai`, { as: SALES }), 200, "thương mại đơn nháp"); // ADR-0135: nháp chỉ người lập đọc
   assert.equal(r.json.vanPhong.duKien, true, "đơn nháp ⇒ bản tính thử");
   const d = r.json.vanPhong.dong[0];
   assert.deepEqual([d.muc, d.hoaHong, d.thieu], ["12%", 240_000, null]);

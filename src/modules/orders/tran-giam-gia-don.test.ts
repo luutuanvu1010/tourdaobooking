@@ -200,11 +200,13 @@ test("I-1: Đối tác không được hưởng / tài khoản lai Bán hàng + 
     const r0 = await lap(w, who, C5);
     assert.equal(r0.status, 201, `${ten}: ${r0.text}`);
     const id = r0.json.order.id;
-    // Văn phòng (Quản trị) gắn bên đặt DLA bằng route thật.
-    const gan = await w.call("PUT", `/api/orders/${id}`, {
+    // Văn phòng gắn bên đặt DLA. ADR-0135: Quản trị KHÔNG ghi được nháp của người khác (route → 404) → gieo thẳng cột, như thể văn phòng đã gắn từ trước.
+    assert.equal((await w.call("PUT", `/api/orders/${id}`, {
       as: ADMIN, body: than([{ ...dv("ZA1", 10), id: r0.json.order.services[0].id }], { bookerPartyId: DLA, expectedUpdatedAt: w.q("SELECT updated_at AS u FROM orders WHERE id = ?", id)[0].u }),
-    });
-    assert.equal(gan.status, 200, `${ten}, Quản trị gắn DLA: ${gan.text}`);
+    })).status, 404, `${ten}: Quản trị gắn DLA vào nháp người khác → 404`);
+    const moc = new Date(Date.now() + 1000).toISOString();
+    w.sqlite.prepare("UPDATE orders SET booker_party_id = ?, updated_at = ? WHERE id = ?").run(DLA, moc, id);
+    const gan = { status: 200, json: { order: { services: r0.json.order.services, updatedAt: moc } }, text: "" };
     assert.equal(w.q("SELECT booker_party_id AS b FROM orders WHERE id = ?", id)[0].b, DLA);
     const sua = await w.call("PUT", `/api/orders/${id}`, {
       as: who, body: than([{ ...dv("ZA1", 10), id: gan.json.order.services[0].id }], { discount: 790000, expectedUpdatedAt: gan.json.order.updatedAt }),

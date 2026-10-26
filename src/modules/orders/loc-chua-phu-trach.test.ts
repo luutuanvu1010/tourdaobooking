@@ -1,5 +1,5 @@
 // Góp ý YC-0013 (24/10): bộ lọc «Chưa có người phụ trách» ở danh sách đơn — `GET /api/orders?phuTrach=chua`.
-// Cùng nghĩa với ô «Chưa phụ trách» của Trang chủ: đơn NHÁP hoặc ĐÃ XÁC NHẬN chưa có người phụ trách đang mở; tập «đang có người» hỏi qua
+// Cùng nghĩa với ô «Chưa phụ trách» của Trang chủ: đơn ĐÃ XÁC NHẬN chưa có người phụ trách đang mở (ADR-0135: đơn NHÁP riêng tư, không tính vào ô này); tập «đang có người» hỏi qua
 // `ctx.ordersWithHandler` (gốc lắp ráp nối vào dispatch — orders không đọc dữ liệu phân công). Chỉ người xem MỌI đơn (cùng ba ô của Trang chủ) dùng được.
 // Khung gieo chép từ src/modules/billing/nhap-ke-toan.test.ts (khuôn ADR-0060 điều 5: tập ứng viên → hàm tiêm → lọc + phân trang).
 import { test } from "node:test";
@@ -65,16 +65,16 @@ function donMoi(w: any, o: { owner: string; ngay: string; status?: "draft" | "co
 const ds = (w: any, as: string, qs: string) => w.call("GET", `/api/orders?${qs}`, { as });
 const ids = (r: any): string[] => r.json.orders.map((o: any) => o.id).sort();
 
-test("YC-0013: phuTrach=chua chỉ trả đơn nháp / đã xác nhận CHƯA có người phụ trách; không đơn huỷ, không đơn đã có người", async () => {
+test("YC-0013: phuTrach=chua chỉ trả đơn đã xác nhận CHƯA có người phụ trách; không đơn nháp (ADR-0135), không đơn huỷ, không đơn đã có người", async () => {
   const w = dung();
-  const nhapTrong = donMoi(w, { owner: ID.SALES, ngay: "2026-11-01" });
+  donMoi(w, { owner: ID.SALES, ngay: "2026-11-01" }); // nháp chưa người phụ trách: KHÔNG vào «Chưa phụ trách» (ADR-0135)
   const xnTrong = donMoi(w, { owner: ID.SALES, ngay: "2026-11-02", status: "confirmed" });
   donMoi(w, { owner: ID.SALES, ngay: "2026-11-03", status: "confirmed", hdv: ID.HDV });
   donMoi(w, { owner: ID.SALES, ngay: "2026-11-04", status: "cancelled" });
   for (const as of [ID.ACC, ID.SALES, ID.ADMIN, ID.SA]) {
     const r = await ds(w, as, "phuTrach=chua");
     assert.equal(r.status, 200, `${as}: ${r.text}`);
-    assert.deepEqual(ids(r), [nhapTrong, xnTrong].sort(), as);
+    assert.deepEqual(ids(r), [xnTrong], as);
   }
 });
 
@@ -128,18 +128,22 @@ test("YC-0013 bài canh trần: đúng LOC_NHAP_TOI_DA_UNG_VIEN đơn → lọc 
   const insO = w.sqlite.prepare(`INSERT INTO orders (id, order_code, staff_id, status, customer_name, customer_phone, subtotal, total, remaining_amount, created_at, updated_at)
     VALUES (?, ?, ?, 'draft', 'Khách Giả', '0900000099', 1, 1, 1, ?, ?)`);
   const insS = w.sqlite.prepare(`INSERT INTO order_service (id, order_id, name, unit, pax_adult, depart_date) VALUES (?, ?, 'Vé', 'perPax', 1, '2026-10-05')`);
+  const insI = w.sqlite.prepare(`INSERT INTO order_item (id, order_id, service_id, description, quantity, unit_price, line_total) VALUES (?, ?, ?, 'Người lớn', 1, 1, 1)`);
   w.sqlite.exec("BEGIN");
   for (let i = 0; i < LOC_NHAP_TOI_DA_UNG_VIEN; i++) {
     const id = `40000000-0000-4000-8000-${String(i).padStart(12, "0")}`;
     insO.run(id, `TD-CAP${i}`, ID.SALES, AT, AT);
     insS.run(`svc-${id}`, id);
+    insI.run(`it-${id}`, id, `svc-${id}`);
   }
+  // ADR-0135: «Chưa phụ trách» chỉ tính đơn đã xác nhận → đưa cả tập sang đã xác nhận (nháp → xác nhận, đúng thứ tự mà trigger cho phép).
+  w.sqlite.prepare("UPDATE orders SET status = 'confirmed', confirmed_at = ? WHERE id LIKE '40000000-%'").run(AT);
   w.sqlite.exec("COMMIT");
   const ok = await ds(w, ID.ACC, "phuTrach=chua&limit=5");
   assert.equal(ok.status, 200, ok.text);
   assert.equal(ok.json.orders.length, 5);
   assert.equal(ok.json.hasMore, true);
-  donMoi(w, { owner: ID.SALES, ngay: "2026-10-05" });
+  donMoi(w, { owner: ID.SALES, ngay: "2026-10-05", status: "confirmed" });
   const vuot = await ds(w, ID.ACC, "phuTrach=chua&limit=5");
   assert.equal(vuot.status, 400, vuot.text);
   assert.match(vuot.json.error.message, /chọn thêm khoảng ngày đi/);

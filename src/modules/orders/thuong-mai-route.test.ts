@@ -136,7 +136,8 @@ test("(2) đơn nháp ⇒ duKien = true, tính theo bảng hôm nay, KHÔNG ghi 
   await muc(w, mucVai(1000));
   const id = nhap(w, SALES, "pty-dla", [["HONTAM", 2_000_000], [null, 300_000]]);
   const nhatKyTruoc = Number(w.q("SELECT count(*) AS n FROM audit_log WHERE order_id = ?", id)[0].n);
-  const r = await xem(w, id, KT);
+  assert.equal((await xem(w, id, KT)).status, 404, "ADR-0135: Kế toán không đọc nháp của Bán hàng");
+  const r = await xem(w, id, SALES); // người lập xem tính thử trên nháp của mình
   assert.equal(r.status, 200, r.text);
   assert.equal(r.json.vanPhong.duKien, true);
   assert.equal(r.json.vanPhong.chuaChup, false);
@@ -204,7 +205,7 @@ test("(3b2) tài khoản lai, đơn của mình nhưng bên đặt là đại l�
     assert.equal(r.status, 404, `${ten}: ${r.text}`);
     assert.equal(r.json.error.code, "not_found", ten);
     assert.doesNotMatch(r.text, /200000|300000|doiTac|hoaHong/, `${ten}: thân 404 không lộ số`);
-    assert.equal((await xem(w, id, KT)).status, 200, `${ten}: văn phòng vẫn xem được`);
+    assert.equal((await xem(w, id, KT)).status, ten === "nháp" ? 404 : 200, `${ten}: văn phòng xem được đơn xác nhận; nháp của người khác → 404 (ADR-0135)`);
   }
 });
 
@@ -262,7 +263,10 @@ test("(3d2) MỌI tài khoản lai — Bán hàng / Kế toán / Quản trị / 
   w.sqlite.prepare("INSERT INTO dsp_assignment (id, order_id, task_kind_code, party_id, valid_from_at, created_at, updated_at) VALUES ('as-lai-hdv', ?, 'HANDLE', ?, ?, ?, ?)").run(cuaB, `pty-${LAI_HDV}`, AT, AT, AT);
   const cuaTtBenB = nhap(w, LAI_TT, `pty-${DT_B}`, [["HONTAM", 2_000_000]]);
   // Răng: văn phòng THẤY số riêng của B ở đúng ba đơn mà các tài khoản lai không được thấy.
-  for (const id of [cuaB, nhapB, cuaTtBenB]) assert.equal((await xem(w, id, KT)).json.vanPhong.dong[0].hoaHong, 480_017, `răng: Kế toán thấy 480.017 ở đơn ${id}`);
+  assert.equal((await xem(w, cuaB, KT)).json.vanPhong.dong[0].hoaHong, 480_017, "răng: Kế toán thấy 480.017 ở đơn B đã xác nhận");
+  for (const id of [nhapB, cuaTtBenB]) assert.equal((await xem(w, id, KT)).status, 404, `ADR-0135: nháp của người khác, Kế toán cũng 404 (${id})`);
+  // Răng cho hai nháp: người LẬP (Đối tác B / Thực tập lai) mới là người đọc được nháp — Đối tác B đọc nháp của mình thì thấy số của B.
+  assert.equal((await xem(w, nhapB, DT_B)).status, 200, "răng: người lập (B) đọc được nháp của mình");
   assert.equal((await w.call("GET", `/api/orders/${cuaB}`, { as: LAI_HDV })).status, 200, "HDV + Đối tác được giao vẫn mở được chi tiết đơn — 404 dưới đây là của phần đối tác, không phải vì không xem được đơn");
   const ca: [string, string, string][] = [];
   for (const [ten, as] of [["Bán hàng", LAI_BAN], ["Kế toán", LAI_KT], ["Quản trị", LAI_QT], ["Toàn quyền", LAI_TQ], ["HDV được giao", LAI_HDV], ["Thực tập", LAI_TT]] as const) {
@@ -303,7 +307,7 @@ test("(3f) Đối tác A, đơn của mình nhưng bên đặt là hồ sơ đ�
     assert.equal(r.status, 404, `${ten}: ${r.text}`);
     assert.equal(r.json.error.code, "not_found", ten);
     assert.doesNotMatch(r.text, /480017|480\.017|doiTac|hoaHong/, `${ten}: thân 404 không lộ số`);
-    assert.equal((await xem(w, id, KT)).status, 200, `${ten}: văn phòng vẫn xem được (đơn tồn tại)`);
+    assert.equal((await xem(w, id, KT)).status, ten === "nháp" ? 404 : 200, `${ten}: văn phòng xem được đơn xác nhận; nháp của Đối tác → 404 (ADR-0135)`);
   }
   assert.equal((await xem(w, xacNhanAB, KT)).json.vanPhong.dong[0].hoaHong, 480_017, "răng: số của B có thật, văn phòng thấy");
 });
@@ -462,8 +466,8 @@ test("(6) kiểm hợp lệ: thiếu lý do 400; đơn nháp 409; đã giao 409;
   // đơn nháp
   const nhapId = nhap(w, SALES, "pty-dla", [["HONTAM", 1_000_000]]);
   const n = await ghi(w, nhapId, dv(nhapId), KT, tay15);
-  assert.equal(n.status, 409, n.text);
-  assert.equal(n.json.error.code, "not_confirmed");
+  assert.equal(n.status, 404, n.text); // ADR-0135: nháp của người khác (Kế toán) → 404, không còn 409 not_confirmed
+  assert.equal(n.json.error.code, "not_found");
 
   // đơn xác nhận trước khi có bảng mức (không có dòng bản chụp nào)
   const cu = nhap(w, SALES, "pty-dla", [["HONTAM", 1_000_000]]);

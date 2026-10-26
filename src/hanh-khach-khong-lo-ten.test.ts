@@ -104,11 +104,11 @@ test("họ tên, năm sinh hành khách chỉ rời máy chủ ở GET/POST /pas
       }, 200);
     },
     "POST /api/orders/:id/legs/:legId/short-notice": async () => {
-      // ADR-0049 D3 (Toàn quyền giữ ô order.leg.short_notice): ghi chú đặt gấp chứa tên + SĐT — nhật ký chỉ mã đơn + chiều + NHÃN lý do (TC-28).
+      // ADR-0049 D3 (ô order.leg.short_notice; ADR-0135: nháp chỉ NGƯỜI LẬP ghi được nên người đặt gấp là Bán hàng đã lập đơn — cũng giữ ô này, ADR-0107): ghi chú đặt gấp chứa tên + SĐT — nhật ký chỉ mã đơn + chiều + NHÃN lý do (TC-28).
       // ADR-0107: chỉ đặt gấp được chặng ĐANG dưới mốc — chặng của đơn chính đón sau 3 ngày, nên ca này đặt gấp trên một đơn nháp riêng đón sau 150 phút.
       const g = vnSau(150);
       const sat = (await goi("lập nháp sát giờ", "POST", "/api/orders", SALES, { customerName: "Khách Thử", customerPhone: "0912345678", services: [svc({ departDate: g.ngay, legs: [{ ...OUT, pickupDate: g.ngay, pickupTime: g.gio }] })] }, 201)).json.order;
-      await goi("đặt gấp", "POST", `/api/orders/${sat.id}/legs/${sat.services[0].legs[0].id}/short-notice`, SUP, { lyDo: "KHACH_DOAN_GOI_GAP", ghiChu: `${TEN[0]} gọi ${SDT}` }, 200);
+      await goi("đặt gấp", "POST", `/api/orders/${sat.id}/legs/${sat.services[0].legs[0].id}/short-notice`, SALES, { lyDo: "KHACH_DOAN_GOI_GAP", ghiChu: `${TEN[0]} gọi ${SDT}` }, 200);
     },
     "POST /api/orders/:id/legs/:legId/close": async () => {
       const l = (await doc()).services[0].legs.find((x: any) => x.direction === "RETURN");

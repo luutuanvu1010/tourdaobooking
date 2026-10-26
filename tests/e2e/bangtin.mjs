@@ -102,28 +102,32 @@ const P2 = await taoTaiKhoanDungMotLan("Đối Tác Bảng Tin 2 (test)", ["PART
     const r = await call(salesACookie, "POST", "/api/orders", orderInput({ handlerStaffId: salesBId }));
     assert.equal(r.status, 201, JSON.stringify(r.body));
     const order = r.body.order;
-    for (const [ten, p] of [["salesA", pA], ["salesB", pB], ["kế toán", pAcc]]) {
-      assert.ok(await p.cho((tin) => tin.some((t) => t.orderId === order.id && t.thayDoi === "tao" && t.maDon === order.orderCode)), `ca 3: ${ten} phải nhận đúng một tin 'tao' (mã đơn khớp) trong 2 giây`);
-      await yen(ON_DINH_MS); // tin đầu đã tới: chờ ổn định để lần phát đôi (nếu có) hiện ra
-      const cuaDon = p.tin.filter((t) => t.orderId === order.id);
-      assert.equal(cuaDon.length, 1, `ca 3: ${ten} chỉ nhận đúng MỘT tin cho đơn này`);
-      assert.deepEqual(Object.keys(cuaDon[0]).sort(), ["loai", "luc", "maDon", "orderId", "thayDoi"], `ca 3: khung tin của ${ten} phải có đúng 5 khoá`);
+    // ADR-0135: đơn NHÁP chỉ người lập thấy → CHỈ salesA nhận tin 'tao'; salesB (người phụ trách chọn sẵn) và kế toán KHÔNG nhận tin nào của đơn nháp.
+    assert.ok(await pA.cho((tin) => tin.some((t) => t.orderId === order.id && t.thayDoi === "tao" && t.maDon === order.orderCode)), "ca 3: salesA (người lập) phải nhận đúng một tin 'tao' (mã đơn khớp) trong 2 giây");
+    await yen(ON_DINH_MS); // tin đầu đã tới: chờ ổn định để lần phát đôi (nếu có) hiện ra
+    const cuaDon = pA.tin.filter((t) => t.orderId === order.id);
+    assert.equal(cuaDon.length, 1, "ca 3: salesA chỉ nhận đúng MỘT tin cho đơn này");
+    assert.deepEqual(Object.keys(cuaDon[0]).sort(), ["loai", "luc", "maDon", "orderId", "thayDoi"], "ca 3: khung tin của salesA phải có đúng 5 khoá");
+    for (const [ten, p] of [["salesB (người phụ trách chọn sẵn)", pB], ["kế toán", pAcc]]) {
+      assert.equal(p.tin.filter((t) => t.orderId === order.id).length, 0, `ca 3: ${ten} KHÔNG nhận tin của đơn nháp (ADR-0135)`);
     }
     assert.equal(pP1.tin.filter((t) => t.orderId === order.id).length, 0, "ca 3: Đối tác không liên quan không nhận tin đơn của salesA");
     assert.equal(pField.tin.filter((t) => t.orderId === order.id).length, 0, "ca 3: field (không phụ trách, đơn lập kèm người — không phải đơn chờ nhận) không nhận tin đơn");
   } finally {
     dongHet(pA, pB, pAcc, pField, pP1);
   }
-  console.log("✓ ca 3: lập đơn → văn phòng (salesA/salesB/kế toán) nhận đúng một tin 'tao' đủ 5 khoá trong 2 giây; Đối tác/field không nhận");
+  console.log("✓ ca 3: lập đơn NHÁP → chỉ người lập (salesA) nhận đúng một tin 'tao' đủ 5 khoá trong 2 giây; salesB/kế toán/Đối tác/field không nhận (ADR-0135)");
 }
 
 // === CA 4 (DP-1 PUT /api/orders/:id/handler — nhan/giao; NT-2 handlerTruoc; ADR-0030 S20-8/S20-9): đơn mới lập không chọn ai (đơn CHỜ NHẬN) rồi
 // salesB Nhận → văn phòng nhận 'nhan'; field (hướng dẫn viên, có nhãn `cho-nhan` từ lượt 1) nhận ĐÚNG MỘT tin 'nhan' của đơn vừa RỜI hàng chờ (luật (b)
 // — "ngoại lệ duy nhất" S20-9; trước lượt 1 là 0 tin); salesA giao cho field → field nhận 'giao' (tổng 2); salesA giao tiếp từ field sang salesB → field
 // VẪN nhận (người phụ trách TRƯỚC thay đổi, NT-2), tổng 3. Khoá chặt (Task 1.9): salesA giao tiếp cho fieldB ("HDV B") rồi văn phòng sửa, xác nhận, huỷ
-// đơn fieldB đang phụ trách → fieldB nhận từng tin (đối chứng dương — tin CÓ phát), field ("HDV A", không liên quan) KHÔNG nhận thêm khung nào. =====
+// đơn fieldB đang phụ trách → fieldB nhận từng tin (đối chứng dương — tin CÓ phát), field ("HDV A", không liên quan) KHÔNG nhận thêm khung nào. (ADR-0135: đơn xác nhận sẵn, chỉ còn bước huỷ.) =====
 {
   const o4 = (await call(salesACookie, "POST", "/api/orders", orderInput())).body.order; // không chọn ai → chưa có người phụ trách (ADR-0030 S20-4)
+  // ADR-0135: đơn NHÁP chưa ai Nhận / nhìn thấy được → salesA xác nhận TRƯỚC khi mở các phiên (tin lúc lập / xác nhận không tính vào bài này).
+  assert.equal((await call(salesACookie, "POST", `/api/orders/${o4.id}/status`, { status: "confirmed" })).status, 200, "ca 4: salesA xác nhận đơn thử");
   const [pA, pB, pAcc, pField, pFieldB] = await moiPhien(salesACookie, salesBCookie, accountantCookie, fieldCookie, fieldBCookie);
   const cuaField = () => pField.tin.filter((t) => t.orderId === o4.id);
   try {
@@ -165,13 +169,7 @@ const P2 = await taoTaiKhoanDungMotLan("Đối Tác Bảng Tin 2 (test)", ["PART
     r = await call(salesACookie, "PUT", `/api/orders/${o4.id}/handler`, { staffId: fieldBId });
     assert.equal(r.status, 200, JSON.stringify(r.body));
     assert.ok(await cho(() => tinCuaFieldB("giao") === 1, 2000), "ca 4 (b): fieldB vừa được giao phải nhận tin 'giao' trong 2 giây");
-    const cur = (await call(salesACookie, "GET", `/api/orders/${o4.id}`)).body.order;
-    r = await call(salesACookie, "PUT", `/api/orders/${o4.id}`, orderInput({ customerNote: "ca 4: văn phòng sửa đơn HDV B", expectedUpdatedAt: cur.updatedAt }));
-    assert.equal(r.status, 200, `ca 4 (b): văn phòng sửa đơn nháp HDV B đang phụ trách: ${JSON.stringify(r.body)}`);
-    assert.ok(await cho(() => tinCuaFieldB("sua") === 1, 2000), "ca 4 (b): fieldB (người phụ trách) phải nhận tin 'sua' trong 2 giây");
-    r = await call(salesACookie, "POST", `/api/orders/${o4.id}/status`, { status: "confirmed" });
-    assert.equal(r.status, 200, `ca 4 (b): văn phòng xác nhận đơn HDV B đang phụ trách: ${JSON.stringify(r.body)}`);
-    assert.ok(await cho(() => tinCuaFieldB("xac_nhan") === 1, 2000), "ca 4 (b): fieldB phải nhận tin 'xac_nhan' trong 2 giây");
+    // (ADR-0135: bước «văn phòng sửa» / «xác nhận» của đơn nháp không còn trong ca này — đơn đã xác nhận từ đầu; mỗi route đó có tin riêng ở ca 5.)
     r = await call(salesACookie, "POST", `/api/orders/${o4.id}/status`, { status: "cancelled", lyDo: "KHACH_DOI_Y" });
     assert.equal(r.status, 200, `ca 4 (b): văn phòng huỷ đơn HDV B đang phụ trách: ${JSON.stringify(r.body)}`);
     assert.ok(await cho(() => tinCuaFieldB("huy") === 1, 2000), "ca 4 (b): fieldB phải nhận tin 'huy' trong 2 giây");
@@ -227,8 +225,8 @@ const P2 = await taoTaiKhoanDungMotLan("Đối Tác Bảng Tin 2 (test)", ["PART
     phien = (await moiPhien(salesACookie))[0];
     try {
       const r = await call(C.cookie, "PUT", `/api/orders/${o.id}`, orderInput({ customerNote: "không được phép", expectedUpdatedAt: o.updatedAt }));
-      assert.equal(r.status, 403, JSON.stringify(r.body));
-      await khongTinNao(phien, o.id, "ca 5a PUT /api/orders/:id thất bại (403, không liên quan)");
+      assert.equal(r.status, 404, JSON.stringify(r.body)); // ADR-0135: nháp của salesA — người khác nhận 404 (không còn 403)
+      await khongTinNao(phien, o.id, "ca 5a PUT /api/orders/:id thất bại (404 nháp người khác, ADR-0135)");
     } finally { dongHet(phien); }
   }
   console.log("✓ ca 5a: PUT /api/orders/:id — thành công → một tin 'sua'; 403 (không liên quan) → không tin nào");
@@ -247,8 +245,8 @@ const P2 = await taoTaiKhoanDungMotLan("Đối Tác Bảng Tin 2 (test)", ["PART
     phien = (await moiPhien(salesACookie))[0];
     try {
       const r = await putTrip(C.cookie, o, { note: "không được phép" });
-      assert.equal(r.status, 403, JSON.stringify(r.body));
-      await khongTinNao(phien, o.id, "ca 5b PUT /api/orders/:id/trip thất bại (403, không liên quan)");
+      assert.equal(r.status, 404, JSON.stringify(r.body)); // ADR-0135: nháp của salesA — người khác nhận 404 (không còn 403)
+      await khongTinNao(phien, o.id, "ca 5b PUT /api/orders/:id/trip thất bại (404 nháp người khác, ADR-0135)");
     } finally { dongHet(phien); }
 
     phien = (await moiPhien(salesACookie))[0];
@@ -275,8 +273,8 @@ const P2 = await taoTaiKhoanDungMotLan("Đối Tác Bảng Tin 2 (test)", ["PART
     phien = (await moiPhien(salesACookie))[0];
     try {
       const r = await putBooker(C.cookie, o, { customerName: "Không được phép" });
-      assert.equal(r.status, 403, JSON.stringify(r.body));
-      await khongTinNao(phien, o.id, "ca 5c PUT /api/orders/:id/booker thất bại (403, không liên quan)");
+      assert.equal(r.status, 404, JSON.stringify(r.body)); // ADR-0135: nháp của salesA — người khác nhận 404 (không còn 403)
+      await khongTinNao(phien, o.id, "ca 5c PUT /api/orders/:id/booker thất bại (404 nháp người khác, ADR-0135)");
     } finally { dongHet(phien); }
 
     phien = (await moiPhien(salesACookie))[0];
@@ -358,7 +356,7 @@ const P2 = await taoTaiKhoanDungMotLan("Đối Tác Bảng Tin 2 (test)", ["PART
 }
 
 // === CA 6 (order.view = own của PARTNER; BT-2): Đối tác lập đơn của mình → chính Đối tác đó nhận (tin 'tao_cho_nhan' — tài khoản CHỈ Đối tác
-// KHÔNG tự thành người phụ trách, ADR-0014 điều 9/10); Đối tác thứ hai không liên quan không nhận; văn phòng vẫn nhận. Đối tác bắt tay kèm
+// KHÔNG tự thành người phụ trách, ADR-0014 điều 9/10); Đối tác thứ hai không liên quan không nhận; văn phòng KHÔNG nhận (đơn nháp riêng tư — ADR-0135). Đối tác bắt tay kèm
 // header giả x-bang-tin-nhan: ["tat-ca","cho-nhan"] → vẫn KHÔNG nhận được tin đơn NGƯỜI KHÁC (BT-2: máy chủ dựng nhãn mới, bỏ header trình duyệt). =
 {
   const [pP1, pP1Gia, pP2, pOffice] = await moiPhien(
@@ -371,10 +369,12 @@ const P2 = await taoTaiKhoanDungMotLan("Đối Tác Bảng Tin 2 (test)", ["PART
     const r = await call(P1.cookie, "POST", "/api/orders", orderInput());
     assert.equal(r.status, 201, JSON.stringify(r.body));
     const order = r.body.order;
-    for (const [ten, p] of [["chính Đối tác (kết nối thường)", pP1], ["chính Đối tác (kết nối gửi nhãn giả)", pP1Gia], ["văn phòng", pOffice]]) {
+    for (const [ten, p] of [["chính Đối tác (kết nối thường)", pP1], ["chính Đối tác (kết nối gửi nhãn giả)", pP1Gia]]) {
       assert.ok(await p.cho((tin) => tin.some((t) => t.orderId === order.id && t.thayDoi === "tao_cho_nhan")), `ca 6: ${ten} phải nhận tin 'tao_cho_nhan' của đơn Đối tác lập, trong 2 giây`);
     }
     assert.equal(pP2.tin.filter((t) => t.orderId === order.id).length, 0, "ca 6: Đối tác thứ hai không liên quan không nhận tin đơn của Đối tác thứ nhất");
+    // ADR-0135: đơn NHÁP của Đối tác chỉ chính Đối tác thấy — văn phòng (kể cả nhãn «chờ nhận») KHÔNG nhận tin của đơn nháp.
+    assert.equal(pOffice.tin.filter((t) => t.orderId === order.id).length, 0, "ca 6: văn phòng không nhận tin của đơn NHÁP do Đối tác lập (ADR-0135)");
 
     // BT-2: đơn của MỘT NGƯỜI KHÁC (salesA) — kết nối gửi nhãn giả "tat-ca"/"cho-nhan" của Đối tác vẫn KHÔNG nhận được.
     const r2 = await call(salesACookie, "POST", "/api/orders", orderInput());
@@ -386,7 +386,7 @@ const P2 = await taoTaiKhoanDungMotLan("Đối Tác Bảng Tin 2 (test)", ["PART
   } finally {
     dongHet(pP1, pP1Gia, pP2, pOffice);
   }
-  console.log("✓ ca 6: Đối tác lập đơn của mình → chính mình nhận 'tao_cho_nhan'; Đối tác khác không nhận; văn phòng nhận; header nhãn giả (BT-2) không mở rộng được phạm vi nhận");
+  console.log("✓ ca 6: Đối tác lập đơn nháp của mình → chính mình nhận 'tao_cho_nhan'; Đối tác khác và văn phòng không nhận; header nhãn giả (BT-2) không mở rộng được phạm vi nhận");
 }
 
 // === CA 7 (BT-3): gửi 'ping' → nhận 'pong' tự động (khung văn bản bình thường trên đường truyền nhưng không phải SuKienDon nên không vào `tin`
@@ -531,6 +531,7 @@ const P2 = await taoTaiKhoanDungMotLan("Đối Tác Bảng Tin 2 (test)", ["PART
   // cho-nhan; tài khoản lai KHÔNG nhận (S20-8: !holdsPartner). ---
   {
     const oC = (await call(salesACookie, "POST", "/api/orders", orderInput())).body.order; // không chọn ai → chưa có người, đang ở hàng chờ
+    assert.equal((await call(salesACookie, "POST", `/api/orders/${oC.id}/status`, { status: "confirmed" })).status, 200, "ca 11b: đơn nháp chưa vào hàng chờ — salesA xác nhận trước (ADR-0135)");
     const [pFieldB, pLai] = await moiPhien(fieldBCookie, lai.cookie);
     try {
       const r = await call(salesBCookie, "PUT", `/api/orders/${oC.id}/handler`, { staffId: salesBId });

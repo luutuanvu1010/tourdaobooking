@@ -51,12 +51,26 @@ async function nhap(w: any, as: string, extra: Record<string, unknown> = {}) {
   assert.equal(r.status, 201, r.text);
   return r.json.order;
 }
-/** Quản trị đặt gấp chặng chiều ĐI (chặng về giữ không dấu). */
+/**
+ * Quản trị «đã duyệt» đặt gấp chặng chiều ĐI (chặng về giữ không dấu). ADR-0135: Quản trị KHÔNG ghi được nháp của người khác (route → 404) nên dấu được
+ * GIEO như route đặt gấp đã ghi (cột dấu + dòng nhật ký `order_leg_short_notice`, ghi chú đã che số) — thứ kiểm ở đây là cách HIỂN THỊ dấu theo vai, không phải việc đóng dấu.
+ * Trả đơn đọc bằng người lập.
+ */
 async function datGapChieuDi(w: any, o: any) {
   const di = o.services[0].legs.find((l: any) => l.direction === "OUT");
-  const r = await w.call("POST", `/api/orders/${o.id}/legs/${di.id}/short-notice`, { as: ADM, body: { lyDo: "CHUYEN_BAY_DOI_GIO", ghiChu: "Khách gọi, số 0905123456" } });
+  const luc = new Date().toISOString();
+  w.sqlite.prepare("UPDATE ord_transfer_leg SET short_notice_reason = 'CHUYEN_BAY_DOI_GIO', short_notice_note = ?, short_notice_by = ?, short_notice_at = ?, short_notice_lead_minutes = 360 WHERE id = ?")
+    .run("Khách gọi, số ••••••••••", ADM, luc, di.id);
+  w.sqlite.prepare("INSERT INTO audit_log (id, order_id, staff_id, action, detail, created_at) VALUES (?, ?, ?, 'order_leg_short_notice', ?, ?)")
+    .run(`nk-${di.id}`, o.id, ADM, `${o.orderCode} · Chiều đi · đặt gấp: Chuyến bay đổi giờ`, luc);
+  const r = await w.call("GET", `/api/orders/${o.id}`, { as: o.staffId });
   assert.equal(r.status, 200, r.text);
   return r.json.order;
+}
+/** Người lập xác nhận (đường thật). Đơn có dấu đặt gấp ở mọi chặng dưới mốc nên qua được. */
+async function xnNguoiLap(w: any, o: any) {
+  const r = await w.call("POST", `/api/orders/${o.id}/status`, { as: o.staffId, body: { status: "confirmed" } });
+  assert.equal(r.status, 200, r.text);
 }
 const legsOf = (order: any) => order.services.flatMap((s: any) => s.legs);
 const KHOA_DU = ["daDuyet", "ghiChu", "luc", "lyDo", "lyDoNhan", "nguoiDuyet"];
@@ -84,7 +98,8 @@ function kiemCo(order: any, ai: string) {
 test("H4/N-14: văn phòng (Bán hàng, Kế toán, Quản trị, Toàn quyền) thấy ĐỦ dấu đặt gấp trên GET /api/orders/:id; HDV đang phụ trách đơn đó CHỈ thấy cờ", async () => {
   const w = setup();
   const o = await nhap(w, SALES, { handlerStaffId: FIELD });
-  kiemDu(await datGapChieuDi(w, o), "phản hồi route đặt gấp (Quản trị)");
+  kiemDu(await datGapChieuDi(w, o), "chi tiết đơn của người lập");
+  await xnNguoiLap(w, o); // ADR-0135: nháp chỉ người lập thấy → xác nhận rồi văn phòng khác mới xem được
   for (const as of [SALES, ACC, ADM, SUP]) {
     const r = await w.call("GET", `/api/orders/${o.id}`, { as });
     assert.equal(r.status, 200, `${as}: ${r.text}`);
@@ -106,7 +121,9 @@ test("H4/N-14: Đối tác và Thực tập (đơn tự lập) CHỈ thấy cờ
     const luu = await w.call("PUT", `/api/orders/${o.id}`, { as, body: { ...than(), expectedUpdatedAt: r.json.order.updatedAt } });
     assert.equal(luu.status, 200, luu.text);
     kiemCo(luu.json.order, `${as} PUT (dấu giữ theo Q1 = (a): chặng không đổi)`);
-    // Quản trị xem CÙNG đơn: đủ.
+    assert.equal((await w.call("GET", `/api/orders/${o.id}`, { as: ADM })).status, 404, "Quản trị: nháp của người khác → 404 (ADR-0135)");
+    await xnNguoiLap(w, o);
+    // Quản trị xem CÙNG đơn (đã xác nhận): đủ.
     kiemDu((await w.call("GET", `/api/orders/${o.id}`, { as: ADM })).json.order, `Quản trị xem đơn của ${as}`);
   }
 });
@@ -137,6 +154,7 @@ test("R-P21: lịch sử đơn — Đối tác, Thực tập (đơn tự lập),
   for (const as of [PARTNER, INTERN]) {
     const o = await nhap(w, as);
     await datGapChieuDi(w, o);
+    await xnNguoiLap(w, o);
     kiemLichSuCo(await lichSu(w, o.id, as), as);
     const vp = await lichSu(w, o.id, ACC);
     const dong = vp.find((e) => e.action === "order_leg_short_notice")!;
@@ -147,6 +165,7 @@ test("R-P21: lịch sử đơn — Đối tác, Thực tập (đơn tự lập),
   }
   const o = await nhap(w, SALES, { handlerStaffId: FIELD });
   await datGapChieuDi(w, o);
+  await xnNguoiLap(w, o);
   kiemLichSuCo(await lichSu(w, o.id, FIELD), "HDV");
   assert.ok((await lichSu(w, o.id, SUP)).some((e) => e.staffName === TEN_DUYET && /Chuyến bay đổi giờ/.test(e.detail ?? "")), "Toàn quyền: tên người duyệt + nhãn lý do");
   for (const as of [SALES, ADM]) assert.ok((await lichSu(w, o.id, as)).some((e) => e.staffName === "" && /Chuyến bay đổi giờ/.test(e.detail ?? "")), `${as}: nhãn lý do, không tên`);
@@ -181,6 +200,8 @@ test("R-P21: lịch sử đơn — dòng SỬA CHẶNG đơn đã xác nhận d�
 test("H4/N-14: chặng chưa đặt gấp → datGap null với mọi vai (khoá có mặt, giá trị null)", async () => {
   const w = setup();
   const o = await nhap(w, SALES, { handlerStaffId: FIELD });
+  // Đơn không dấu đặt gấp mà chặng dưới mốc thì không xác nhận được qua route → đưa sang «đã xác nhận» bằng SQL; HDV chọn sẵn đã có dòng giao việc từ lúc lập.
+  w.sqlite.prepare("UPDATE orders SET status = 'confirmed', confirmed_at = ? WHERE id = ?").run(new Date().toISOString(), o.id);
   for (const as of [SALES, ADM, FIELD]) {
     const r = await w.call("GET", `/api/orders/${o.id}`, { as });
     for (const l of legsOf(r.json.order)) assert.ok("datGap" in l && l.datGap === null, `${as}: ${JSON.stringify(l)}`);

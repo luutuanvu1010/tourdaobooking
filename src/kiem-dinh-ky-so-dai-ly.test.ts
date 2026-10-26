@@ -83,7 +83,9 @@ function nhap(w: W, o: { booker?: string | null; dichVu?: DvNhap[]; giam?: numbe
   return { id, svc };
 }
 async function xacNhan(w: W, id: string): Promise<void> {
-  const xn = await w.call("POST", `/api/orders/${id}/status`, { as: SUPER, body: { status: "confirmed" } });
+  // ADR-0135: đơn nháp chỉ người lập xác nhận được — dùng chính người lập của đơn gieo.
+  const nguoiLap = String(w.q("SELECT staff_id AS s FROM orders WHERE id = ?", id)[0].s);
+  const xn = await w.call("POST", `/api/orders/${id}/status`, { as: nguoiLap, body: { status: "confirmed" } });
   assert.equal(xn.status, 200, xn.text);
   w.sqlite.prepare(`INSERT INTO dsp_assignment (id, order_id, task_kind_code, party_id, status_code, valid_from_at, created_at, created_by, updated_at, updated_by)
     VALUES (?, ?, 'HANDLE', ?, 'PENDING', ?, ?, NULL, ?, NULL)`).run(uuid(), id, `pty-${HDV}`, AT, AT, AT);

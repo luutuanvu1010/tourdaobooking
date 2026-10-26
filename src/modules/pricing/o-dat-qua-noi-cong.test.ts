@@ -86,6 +86,7 @@ test("cổng khối Phần đối tác: người ĐÃ mở được trang đơn 
       VALUES (?, ?, ?, 'draft', 'Khách Giả', '0900000099', 1000000, 1000000, 1000000, NULL, ?, ?)`).run(id, `TD-${seq}`, chu, AT, AT);
     w.sqlite.prepare(`INSERT INTO order_service (id, order_id, sort_order, catalog_code, name, unit, pax_adult, depart_date) VALUES (?, ?, 0, NULL, 'DV 0', 'manual', 1, ?)`).run(`${id}-s0`, id, vnHomNay());
     w.sqlite.prepare(`INSERT INTO order_item (id, order_id, service_id, catalog_code, pax_code, description, quantity, unit_price, catalog_price, line_total) VALUES (?, ?, ?, NULL, NULL, 'Người lớn', 1, 1000000, NULL, 1000000)`).run(`${id}-i0`, id, `${id}-s0`);
+    w.sqlite.prepare("UPDATE orders SET status = 'confirmed', confirmed_at = ? WHERE id = ?").run(AT, id); // ADR-0135: đơn NHÁP của người khác không mở được trang → đơn thử là đơn đã xác nhận
     return id;
   };
   const donCuaNguoiKhac = taoDon(CHU);

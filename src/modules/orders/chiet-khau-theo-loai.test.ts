@@ -33,8 +33,8 @@ async function donXacNhan(w: W, pax: Pax): Promise<{ id: string; svc: string }> 
   assert.equal((await w.call("POST", `/api/orders/${id}/status`, { as: ID.SALES, body: { status: "confirmed" } })).status, 200);
   return { id, svc: r.json.order.services[0].id as string };
 }
-const thuongMai = async (w: W, id: string) => {
-  const r = await w.call("GET", `/api/orders/${id}/thuong-mai`, { as: ID.ACC });
+const thuongMai = async (w: W, id: string, as: string = ID.ACC) => { // ADR-0135: đơn NHÁP chỉ người lập đọc → bài nháp truyền người lập
+  const r = await w.call("GET", `/api/orders/${id}/thuong-mai`, { as });
   assert.equal(r.status, 200, r.text);
   return r.json.vanPhong.dong[0] as { hoaHong: number | null; muc: string | null };
 };
@@ -83,7 +83,7 @@ test("đơn nháp (tính thử) cũng theo ba số của mức hiện hành", as
   w.sqlite.prepare("UPDATE orders SET booker_party_id = 'pty-dla' WHERE id = ?").run(id);
   // ADR-0134: mỗi dịch vụ phải chọn Đón / Không đón mới xác nhận được; bài này không xét đưa đón.
   w.sqlite.prepare("UPDATE order_service SET pickup_choice = 'KHONG_DON' WHERE order_id = ?").run(id);
-  assert.equal((await thuongMai(w, id)).hoaHong, 170_000);
+  assert.equal((await thuongMai(w, id, ID.SALES)).hoaHong, 170_000);
 });
 
 const ghiTay = (w: W, id: string, svc: string, body: unknown) => w.call("POST", `/api/orders/${id}/thuong-mai/${svc}`, { as: ID.ACC, body });

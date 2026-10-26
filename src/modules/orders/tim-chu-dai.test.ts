@@ -26,7 +26,8 @@ async function donMoi(w: any, tenKhach: string): Promise<string> {
   assert.equal(r.status, 201, r.text);
   return r.json.order.id;
 }
-const tim = (w: any, q: string, as = ADM) => w.call("GET", `/api/orders?limit=100&q=${encodeURIComponent(q)}`, { as });
+// ADR-0135: mọi đơn thử còn là NHÁP của Bán hàng → tìm bằng chính người lập (Quản trị không thấy nháp của người khác).
+const tim = (w: any, q: string, as = SALES) => w.call("GET", `/api/orders?limit=100&q=${encodeURIComponent(q)}`, { as });
 const idCua = (r: any): string[] => r.json.orders.map((o: any) => o.id);
 
 // Tên có dấu 41 ký tự = 52 byte ⇒ mẫu `%…%` = 54 byte, vượt 50. (Tên thường như "Nguyễn Thị Phượng Hoàng Yến" chỉ 39 byte nên chưa vượt; chữ nhiều dấu nặng

@@ -298,26 +298,28 @@ test("unpaid: không còn trong dữ liệu Trang chủ của orders (chuyển s
   assert.ok(!("unpaid" in data));
 });
 
-test("draftCount: đếm đúng số đơn nháp, không đếm đơn đã xác nhận/huỷ", async () => {
+test("draftCount: đếm nháp của CHÍNH người xem (ADR-0135), không đếm nháp người khác, đơn đã xác nhận/huỷ", async () => {
   const sqlite = seed();
   const db = fakeD1(sqlite);
   insertDraftOrder(sqlite, { id: "d1", staffId: "s-a", createdAt: "2026-09-20T01:00:00.000Z" });
   insertDraftOrder(sqlite, { id: "d2", staffId: "s-b", createdAt: "2026-09-20T01:00:00.000Z" });
   insertConfirmedOrderNoServices(sqlite, { id: "d3", staffId: "s-a", createdAt: "2026-09-20T01:00:00.000Z" }); // đã xác nhận, không phải nháp
   const data = await getDashboard(db, "s-a", TODAY, WEEK.from, WEEK.to, NO_HANDLERS);
-  assert.equal(data.draftCount, 2, "d1, d2 còn nháp; d3 đã xác nhận không tính");
+  assert.equal(data.draftCount, 1, "ADR-0135: chỉ nháp của CHÍNH người xem (d1); d2 là nháp của s-b, d3 đã xác nhận → không tính");
+  const dataB = await getDashboard(db, "s-b", TODAY, WEEK.from, WEEK.to, NO_HANDLERS);
+  assert.equal(dataB.draftCount, 1, "s-b chỉ đếm d2 của mình");
 });
 
 // ---- 4) Chưa có người phụ trách --------------------------------------------------------------------------------
 
-test("unassignedCount (ADR-0020 điều 7 M1 = A, ADR-0030 S20-13): đếm đơn NHÁP lẫn đã xác nhận chưa có người; đơn huỷ không đếm; đơn nháp có người không đếm", async () => {
+test("unassignedCount (ADR-0135 đảo ADR-0020 điều 7 M1): chỉ đếm đơn ĐÃ XÁC NHẬN chưa có người; đơn nháp (kể cả của chính mình) và đơn huỷ không đếm", async () => {
   const sqlite = seed();
   const db = fakeD1(sqlite);
   const at = "2026-09-20T01:00:00.000Z";
   insertConfirmedOrderNoServices(sqlite, { id: "c1", staffId: "s-a", createdAt: at }); // đã xác nhận, CÓ người → KHÔNG tính
   insertConfirmedOrderNoServices(sqlite, { id: "c2", staffId: "s-a", createdAt: at }); // đã xác nhận, chưa có người → TÍNH
-  insertDraftOrder(sqlite, { id: "d1", staffId: "s-a", createdAt: at }); // nháp, chưa có người → TÍNH (mới: M1 = A)
-  insertDraftOrder(sqlite, { id: "d2", staffId: "s-b", createdAt: at }); // nháp của người khác, chưa có người → TÍNH (số toàn công ty)
+  insertDraftOrder(sqlite, { id: "d1", staffId: "s-a", createdAt: at }); // nháp, chưa có người → KHÔNG tính (ADR-0135)
+  insertDraftOrder(sqlite, { id: "d2", staffId: "s-b", createdAt: at }); // nháp của người khác → KHÔNG tính
   insertDraftOrder(sqlite, { id: "d3", staffId: "s-a", createdAt: at }); // nháp, CÓ người → KHÔNG tính
   insertDraftOrder(sqlite, { id: "x1", staffId: "s-a", createdAt: at });
   cancel(sqlite, "x1"); // nháp → huỷ, chưa có người → KHÔNG tính
@@ -326,11 +328,11 @@ test("unassignedCount (ADR-0020 điều 7 M1 = A, ADR-0030 S20-13): đếm đơn
 
   const lookup = handlerLookup(["c1", "d3"]);
   const data = await getDashboard(db, "s-a", TODAY, WEEK.from, WEEK.to, lookup.fn);
-  assert.equal(data.unassignedCount, 3, "c2 (đã xác nhận) + d1, d2 (nháp) chưa có người; c1, d3 có người; x1, x2 đã huỷ");
+  assert.equal(data.unassignedCount, 1, "chỉ c2 (đã xác nhận, chưa có người); c1 có người; mọi nháp và x1, x2 (đã huỷ) không tính");
   assert.deepEqual(
     lookup.asked.map((ids) => [...ids].sort()),
-    [["c1", "c2", "d1", "d2", "d3"]],
-    "hỏi dispatch ĐÚNG MỘT lần, đúng các đơn nháp + đã xác nhận — không hỏi đơn đã huỷ",
+    [["c1", "c2"]],
+    "hỏi dispatch ĐÚNG MỘT lần, đúng các đơn đã xác nhận — không hỏi đơn nháp, đơn đã huỷ",
   );
 });
 
@@ -346,7 +348,7 @@ test("unassignedCount: chỉ tin câu trả lời của hàm tiêm — dòng ph�
   insertHandler(sqlite, { id: "h3", orderId: "u3", partyId: "pty-s-b", from: "2026-09-20T02:00:00.000Z" }); // CSDL: có người; hàm tiêm: KHÔNG → TÍNH
 
   const data = await getDashboard(db, "s-a", TODAY, WEEK.from, WEEK.to, handlerLookup(["u2"]).fn);
-  assert.equal(data.unassignedCount, 2, "u1, u3 (hàm tiêm nói chưa có người); u2 có người theo hàm tiêm");
+  assert.equal(data.unassignedCount, 1, "u1 (đã xác nhận, hàm tiêm nói chưa có người); u2 có người theo hàm tiêm; u3 là nháp (ADR-0135) không tính");
 });
 
 // ---- 5) Doanh thu tuần --------------------------------------------------------------------------------------------

@@ -482,7 +482,7 @@ async function donDaGiao(w: W, lanThu: [number, unknown][], booker: string | nul
     w.sqlite.prepare("UPDATE orders SET status = 'confirmed', confirmed_at = ?, updated_at = ? WHERE id = ?").run(AT, AT, id);
     gieoBanChup(w.sqlite, id);
   } else {
-    const xn = await w.call("POST", `/api/orders/${id}/status`, { as: SA, body: { status: "confirmed" } });
+    const xn = await w.call("POST", `/api/orders/${id}/status`, { as: SALES, body: { status: "confirmed" } });
     assert.equal(xn.status, 200, xn.text);
   }
   for (const [soTien, nguoiThu] of lanThu) assert.equal((await thu(w, KT, id, soTien, nguoiThu)).status, 201);
@@ -643,7 +643,7 @@ async function donDaiLyGiam(w: W): Promise<string> {
   w.sqlite.prepare("INSERT INTO order_service (pickup_choice, id, order_id, sort_order, catalog_code, name, unit, pax_adult, depart_date) VALUES ('KHONG_DON', ?, ?, 0, 'IRESORT', 'Vé i-resort', 'perPax', 1, ?)").run(`${id}-s`, id, vnNgay(0));
   w.sqlite.prepare(`INSERT INTO order_item (id, order_id, service_id, catalog_code, pax_code, description, quantity, unit_price, catalog_price, line_total)
     VALUES (?, ?, ?, 'IRESORT', 'adult', 'Người lớn', 1, 1000000, 1000000, 1000000)`).run(`${id}-i`, id, `${id}-s`);
-  const xn = await w.call("POST", `/api/orders/${id}/status`, { as: SA, body: { status: "confirmed" } });
+  const xn = await w.call("POST", `/api/orders/${id}/status`, { as: SALES, body: { status: "confirmed" } });
   assert.equal(xn.status, 200, xn.text);
   assert.equal((await thu(w, KT, id, 750_000, "cong_ty")).status, 201);
   const g = await w.call("POST", `/api/orders/${id}/delivered`, { as: SA, body: {} });

@@ -153,7 +153,7 @@ test("ĐƯỜNG TÍNH THỬ ĐƠN NHÁP: bên đặt ORG gắn riêng TA2 ⇒ 12
   const { ta2 } = await nen(w);
   await ok(ganRieng(w, ORG, ta2), 201);
   const id = nhap(w, ORG);
-  const d = (await ok(w.call("GET", `/api/orders/${id}/thuong-mai`, { as: KT }), 200)).json.vanPhong.dong[0];
+  const d = (await ok(w.call("GET", `/api/orders/${id}/thuong-mai`, { as: SALES }), 200)).json.vanPhong.dong[0]; // ADR-0135: nháp chỉ người lập đọc
   assert.deepEqual([d.muc, d.hoaHong, d.thieu], ["12%", 240_000, null]);
   assert.equal(chup(w, id).length, 0);
 });

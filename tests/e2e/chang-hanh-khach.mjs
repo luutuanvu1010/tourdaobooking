@@ -180,6 +180,8 @@ console.log("✓ (8) cờ vượt số khách dùng số khách hiệu lực (HD
   const donXa = r.body.order;
   const legXa = donXa.services[0].legs[0].id;
   r = await call(ADM, "POST", `/api/orders/${donXa.id}/legs/${legXa}/short-notice`, { lyDo: "KHACH_DOAN_GOI_GAP" });
+  assert.equal(r.status, 404, "ADR-0135: nháp của A — Quản trị không đóng dấu được (404, đứng trước mọi kiểm khác)");
+  r = await call(A, "POST", `/api/orders/${donXa.id}/legs/${legXa}/short-notice`, { lyDo: "KHACH_DOAN_GOI_GAP" });
   assert.deepEqual([r.status, r.body.error?.code], [409, "short_notice_not_needed"], JSON.stringify(r.body));
   assert.equal((await sqlRows(`SELECT short_notice_reason AS l FROM ord_transfer_leg WHERE id = '${legXa}'`))[0].l, null, "409: không ghi dấu");
   assert.equal((await sqlRows(`SELECT count(*) AS n FROM audit_log WHERE order_id = '${donXa.id}' AND action = 'order_leg_short_notice'`))[0].n, 0, "409: không nhật ký");

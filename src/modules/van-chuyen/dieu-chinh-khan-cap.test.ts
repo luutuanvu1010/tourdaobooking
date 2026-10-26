@@ -48,7 +48,7 @@ async function donXeRieng(w: any, v: { ngay?: string; gio: string; soNguoi?: num
   });
   assert.equal(r.status, 201, r.text);
   const o = r.json.order;
-  if (v.datGap) assert.equal((await w.call("POST", `/api/orders/${o.id}/legs/${o.services[0].legs[0].id}/short-notice`, { as: ADM, body: { lyDo: "KHACH_DOAN_GOI_GAP" } })).status, 200);
+  if (v.datGap) assert.equal((await w.call("POST", `/api/orders/${o.id}/legs/${o.services[0].legs[0].id}/short-notice`, { as: SALES, body: { lyDo: "KHACH_DOAN_GOI_GAP" } })).status, 200);
   assert.equal((await w.call("POST", `/api/orders/${o.id}/status`, { as: SALES, body: { status: "confirmed" } })).status, 200);
   return { id: o.id, code: o.orderCode, legId: o.services[0].legs[0].id };
 }

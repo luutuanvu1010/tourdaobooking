@@ -88,10 +88,10 @@ async function don(w: any, v: { ngay: string; gio: string; soNguoi?: number; ten
   const p = await w.call("GET", `/api/orders/${o.id}/passengers`, { as: SALES });
   return { id: o.id as string, code: o.orderCode as string, legId: o.services[0].legs[0].id as string, personKeys: (p.json.passengers as any[]).map((x) => x.personKey as string) };
 }
-/** ADR-0107 — chỉ đặt gấp được chặng ĐANG dưới mốc: đơn nháp có chặng đón sau `phut` phút (dưới mốc 360), Quản trị đặt gấp, rồi Bán hàng xác nhận. */
+/** ADR-0107 — chỉ đặt gấp được chặng ĐANG dưới mốc: đơn nháp có chặng đón sau `phut` phút (dưới mốc 360), người lập (Bán hàng) đặt gấp, rồi Bán hàng xác nhận. */
 async function donDatGap(w: any, phut: number, v: { noiDon?: { place?: string; locId?: string }; camKet?: { exclusiveVehicle?: boolean; minVehicleSeats?: number | null } } = {}) {
   const d = await don(w, { ...vnSau(phut), ...v, xacNhan: false });
-  const g = await w.call("POST", `/api/orders/${d.id}/legs/${d.legId}/short-notice`, { as: ADM, body: { lyDo: "KHACH_DOAN_GOI_GAP" } });
+  const g = await w.call("POST", `/api/orders/${d.id}/legs/${d.legId}/short-notice`, { as: SALES, body: { lyDo: "KHACH_DOAN_GOI_GAP" } }); // ADR-0135: nháp chỉ người lập (Bán hàng có ô đặt gấp — ADR-0107)
   assert.equal(g.status, 200, g.text);
   const x = await w.call("POST", `/api/orders/${d.id}/status`, { as: SALES, body: { status: "confirmed" } });
   assert.equal(x.status, 200, x.text);

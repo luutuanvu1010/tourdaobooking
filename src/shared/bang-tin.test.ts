@@ -195,6 +195,18 @@ test("hàng rào (2): gốc lắp ráp src/index.ts gọi nhanSuKien với handl
   );
 });
 
+// ADR-0135 Đ4 (Task 2.3): sự kiện của đơn NHÁP chỉ gắn nhãn người lập — không `tat-ca`, không `cho-nhan`, không nhãn người phụ trách trước / sau.
+test("nhanSuKien: đơn NHÁP (laNhap) chỉ mang nguoi:<người lập> — bỏ tat-ca, cho-nhan, nhãn người phụ trách trước/sau (ADR-0135 Đ4)", () => {
+  const coHdv = { coNguoi: true, staffId: "hdv" };
+  const khongAi = { coNguoi: false, staffId: null };
+  assert.deepEqual(nhanSuKien({ ownerId: "chu", handlerTruoc: null, handlerSau: coHdv, laNhap: true }), ["nguoi:chu"]);
+  assert.deepEqual(nhanSuKien({ ownerId: "chu", handlerTruoc: { coNguoi: true, staffId: "hdv1" }, handlerSau: { coNguoi: true, staffId: "hdv2" }, laNhap: true }), ["nguoi:chu"]);
+  assert.deepEqual(nhanSuKien({ ownerId: "chu", handlerTruoc: khongAi, handlerSau: khongAi, laNhap: true }), ["nguoi:chu"]);
+  // đơn đã xác nhận (laNhap vắng hoặc false): luật cũ nguyên vẹn
+  assert.deepEqual(nhanSuKien({ ownerId: "chu", handlerTruoc: null, handlerSau: coHdv }), ["nguoi:chu", "nguoi:hdv", "tat-ca"]);
+  assert.deepEqual(nhanSuKien({ ownerId: "chu", handlerTruoc: null, handlerSau: coHdv, laNhap: false }), ["nguoi:chu", "nguoi:hdv", "tat-ca"]);
+});
+
 test("nhanSuKien: luôn có tat-ca + nguoi:owner; thêm nguoi:handler khi có tài khoản; cho-nhan theo luật (a)/(b) — ADR-0030 S20-8/9", () => {
   const chuaAi: TrangThaiPhuTrach = { coNguoi: false, staffId: null };
   const coTaiKhoan = (id: string): TrangThaiPhuTrach => ({ coNguoi: true, staffId: id });

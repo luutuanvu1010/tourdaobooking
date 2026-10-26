@@ -59,9 +59,10 @@ function seed(): DatabaseSync {
     ('s-b', 'Trần Thị Bình', '0901000002', 'x', 'sales', 1, '2026-09-19T05:00:00.000Z')`);
   for (const f of FILES.filter((x) => x.slice(0, 4) > "0011")) sqlite.exec(readFileSync(new URL(f, DIR), "utf8"));
   sqlite.exec(`INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES ('pty-khong-tk', 'PERSON', 'Hướng dẫn viên ngoài', 1, '${T1}', '${T1}')`);
-  for (const id of ["o-co-tk", "o-khong-tk", "o-chua-ai", "o-da-dong"]) {
+  // ADR-0135: đơn NHÁP không có «người phụ trách thật» → các đơn thử là đơn đã xác nhận; `o-nhap` là nháp có HDV chọn sẵn (h4) để canh luật loại nháp.
+  for (const [id, st] of [["o-co-tk", "confirmed"], ["o-khong-tk", "confirmed"], ["o-chua-ai", "confirmed"], ["o-da-dong", "confirmed"], ["o-nhap", "draft"]] as const) {
     sqlite.exec(`INSERT INTO orders (id, order_code, staff_id, status, customer_name, customer_phone, created_at, updated_at)
-                 VALUES ('${id}', 'TD-${id}', 's-a', 'draft', 'K', '0900000009', '${T1}', '${T1}')`);
+                 VALUES ('${id}', 'TD-${id}', 's-a', '${st}', 'K', '0900000009', '${T1}', '${T1}')`);
   }
   const handle = (id: string, orderId: string, partyId: string, validTo: string | null) =>
     sqlite
@@ -72,6 +73,7 @@ function seed(): DatabaseSync {
       .run(id, orderId, partyId, T1, validTo, T1, validTo ?? T1);
   handle("h1", "o-co-tk", "pty-s-b", null);
   handle("h2", "o-khong-tk", "pty-khong-tk", null);
+  handle("h4", "o-nhap", "pty-s-b", null); // nháp có HDV chọn sẵn
   handle("h3", "o-da-dong", "pty-s-b", T2); // dòng đã ĐÓNG — không còn người phụ trách đang mở
   return sqlite;
 }
@@ -105,6 +107,6 @@ test("ordersWithHandler: mảng rỗng → tập rỗng, KHÔNG truy vấn D1", 
 
 test("handledOrderIdsOf: đơn mà tài khoản ĐANG phụ trách — dòng đã đóng không tính; người không phụ trách gì → []", async () => {
   const db = fakeD1(seed());
-  assert.deepEqual(await handledOrderIdsOf(db, "s-b"), ["o-co-tk"], "o-da-dong: dòng của Bình đã đóng");
+  assert.deepEqual(await handledOrderIdsOf(db, "s-b"), ["o-co-tk"], "o-da-dong: dòng của Bình đã đóng; o-nhap: nháp (HDV chọn sẵn) KHÔNG tính — ADR-0135");
   assert.deepEqual(await handledOrderIdsOf(db, "s-a"), []);
 });

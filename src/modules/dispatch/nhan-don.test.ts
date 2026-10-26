@@ -31,6 +31,8 @@ const orderBody = (departDate = inDays(3)) => ({
 async function newUnhandledOrder(w: any, departDate?: string): Promise<string> {
   const r = await w.call("POST", "/api/orders", { as: PARTNER, body: orderBody(departDate) });
   assert.equal(r.status, 201, r.text);
+  // ADR-0135: đơn NHÁP chưa ai Nhận được (chỉ người lập thấy) → đưa sang «đã xác nhận» bằng SQL (đơn quá ngày đi không qua được đường xác nhận).
+  w.sqlite.prepare("UPDATE orders SET status = 'confirmed', confirmed_at = ? WHERE id = ?").run(new Date().toISOString(), r.json.order.id);
   return r.json.order.id;
 }
 const claim = (w: any, orderId: string, as: string) => w.call("PUT", `/api/orders/${orderId}/handler`, { as, body: { staffId: as } });

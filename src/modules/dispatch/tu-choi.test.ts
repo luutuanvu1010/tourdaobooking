@@ -47,7 +47,7 @@ async function donDaXacNhan(w: any, handler: string, opts: { departDate?: string
   const created = await w.call("POST", "/api/orders", { as: chu, body: orderBody(opts.departDate ?? inDays(2), {}, opts.soDichVu ?? 1) });
   assert.equal(created.status, 201, created.text);
   const id = created.json.order.id;
-  const xn = await w.call("POST", `/api/orders/${id}/status`, { as: chu === PARTNER ? ADM : chu, body: { status: "confirmed" } });
+  const xn = await w.call("POST", `/api/orders/${id}/status`, { as: chu, body: { status: "confirmed" } });
   assert.equal(xn.status, 200, xn.text);
   const giao = await w.call("PUT", `/api/orders/${id}/handler`, { as: ADM, body: { staffId: handler } });
   assert.equal(giao.status, 200, giao.text);
@@ -139,7 +139,7 @@ test("TC-3: Toàn quyền / Bán hàng / Quản trị ĐANG phụ trách → 200
 });
 
 // ---- TC-4 ----
-test("TC-4: đơn đã huỷ → 409 cancelled; đơn Đã giao → 409 order_delivered; đơn nháp (người phụ trách chọn sẵn) → 409 order_not_confirmed", async () => {
+test("TC-4: đơn đã huỷ → 409 cancelled; đơn Đã giao → 409 order_delivered; đơn nháp (người phụ trách chọn sẵn) → 404 (ADR-0135)", async () => {
   const w = setup();
   const huy = await donDaXacNhan(w, FIELD);
   assert.equal((await w.call("POST", `/api/orders/${huy}/status`, { as: ADM, body: { status: "cancelled", lyDo: "KHACH_DOI_Y" } })).status, 200);
@@ -157,8 +157,8 @@ test("TC-4: đơn đã huỷ → 409 cancelled; đơn Đã giao → 409 order_de
   assert.equal(nhap.status, 201, nhap.text);
   assert.equal(moDong(w, nhap.json.order.id).length, 1, "đơn nháp có người phụ trách chọn sẵn");
   const r3 = await tuChoi(w, nhap.json.order.id, FIELD);
-  assert.equal(r3.status, 409, r3.text);
-  assert.equal(r3.json.error.code, "order_not_confirmed");
+  assert.equal(r3.status, 404, r3.text); // ADR-0135: nháp của người khác — kể cả HDV chọn sẵn — chỉ 404 (trước đây 409 order_not_confirmed)
+  assert.equal(r3.json.error.code, "not_found");
   for (const id of [huy, giao, nhap.json.order.id]) assert.equal(moDong(w, id).length, 1, "409 không đóng dòng nào");
   assert.equal(w.q("SELECT count(*) n FROM audit_log WHERE action = 'order_handler_refused'")[0].n, 0);
 });

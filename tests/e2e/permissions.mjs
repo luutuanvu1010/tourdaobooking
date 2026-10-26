@@ -16,6 +16,8 @@ const FIELD = await session(ACCOUNTS.field);
 let r = await call(SALES, "POST", "/api/orders", orderInput());
 assert.equal(r.status, 201, JSON.stringify(r.body));
 const order = r.body.order;
+// ADR-0135: đơn NHÁP chỉ người lập thấy → salesA xác nhận để đơn thành đơn chung (văn phòng, hàng chờ nhận, HDV mới nhìn thấy).
+assert.equal((await call(SALES, "POST", `/api/orders/${order.id}/status`, { status: "confirmed" })).status, 200, "salesA xác nhận đơn thử");
 
 // --- /me trả quyền và hồ sơ
 for (const [cookie, perms] of [[SALES, ["SALES"]], [ADMIN, ["ADMIN"]], [ACC, ["ACCOUNTING"]], [FIELD, ["FIELD"]]]) {
@@ -144,6 +146,7 @@ await ensureFakeCatalog();
 r = await call(MC, "POST", "/api/orders", orderInput({ handlerStaffId: M.id }));
 assert.equal(r.status, 201, `thêm SALES → lập đơn được ngay: ${JSON.stringify(r.body)}`);
 const mOrder = r.body.order;
+assert.equal((await call(MC, "POST", `/api/orders/${mOrder.id}/status`, { status: "confirmed" })).status, 200, "MC xác nhận đơn của mình (ADR-0135: nháp chỉ người lập thấy — quản trị mới giao lại được)");
 assert.equal((await call(MC, "PUT", `/api/orders/${order.id}/handler`, { staffId: M.id })).status, 409, "SALES không liên quan không tự nhận được đơn đã có người phụ trách (409 stale, không phải 403)");
 assert.equal((await call(MC, "PUT", `/api/orders/${order.id}/handler`, { staffId: meB.id })).status, 403, "còn GIAO HỘ người khác khi không phải người lập/người phụ trách thì vẫn là vượt quyền");
 assert.equal((await call(MC, "PUT", `/api/orders/${order.id}`, orderInput({ expectedUpdatedAt: order.updatedAt }))).status, 403, "và không sửa được đơn đó");
@@ -177,6 +180,7 @@ console.log("✓ nhiều quyền + hiệu lực ngay");
   const taiXeDt = await taoTheoVai(["DRIVER_EXTERNAL"], "Tài Xế Đối Tác Người Lập");
   const donDt = await call(doiTac.cookie, "POST", "/api/orders", orderInput());
   assert.equal(donDt.status, 201, JSON.stringify(donDt.body));
+  assert.equal((await call(doiTac.cookie, "POST", `/api/orders/${donDt.body.order.id}/status`, { status: "confirmed" })).status, 200, "Đối tác xác nhận đơn của mình (ADR-0135: nháp chỉ người lập thấy — Kế toán lọc mới thấy)");
   assert.equal((await call(nghi.cookie, "POST", "/api/orders", orderInput())).status, 201);
   assert.equal((await call(ADMIN, "PATCH", `/api/staff/${nghi.id}`, { active: false })).status, 200, "cho nghỉ việc SAU khi đã lập đơn");
 

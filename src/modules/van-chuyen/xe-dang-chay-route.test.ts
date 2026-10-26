@@ -100,7 +100,7 @@ test("D5.1 thêm điểm: chặng ĐẶT GẤP — Bán hàng 200 không phá l�
   try {
     const w = setup();
     const { a, b } = await xeDangChay(w);
-    assert.equal((await w.call("POST", `/api/orders/${b.id}/legs/${b.legId}/short-notice`, { as: ADM, body: { lyDo: "KHAC" } })).status, 200);
+    assert.equal((await w.call("POST", `/api/orders/${b.id}/legs/${b.legId}/short-notice`, { as: SALES, body: { lyDo: "KHAC" } })).status, 200);
     const qua = await themDiem(w, a.id, SALES, [{ legId: b.legId, soSuat: 3 }]);
     assert.equal(qua.status, 409, qua.text);
     assert.equal(qua.json.error.code, "vuot_so_nguoi_chang");

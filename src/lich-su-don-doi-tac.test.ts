@@ -56,12 +56,14 @@ function chiTietGieo(a: AuditAction): string {
 }
 
 /** Đơn nháp (gieo SQL) của `chu`, một dịch vụ — chỉ để có nơi gắn dòng nhật ký. */
-function nhapDon(w: W, chu: string): string {
+/** `daXacNhan` (ADR-0135: nháp chỉ người lập đọc được — bài người KHÁC đọc lịch sử phải dùng đơn đã xác nhận) đổi trạng thái bằng SQL sau khi có dịch vụ + dòng tiền. */
+function nhapDon(w: W, chu: string, daXacNhan = false): string {
   const id = uuid();
   w.sqlite.prepare(`INSERT INTO orders (id, order_code, staff_id, status, customer_name, customer_phone, subtotal, total, remaining_amount, created_at, updated_at)
     VALUES (?, ?, ?, 'draft', 'Khách Giả', '0900000099', 1000000, 1000000, 1000000, ?, ?)`).run(id, `TD-LS-${seq}`, chu, AT, AT);
   w.sqlite.prepare(`INSERT INTO order_service (pickup_choice, id, order_id, sort_order, name, unit, pax_adult, depart_date) VALUES ('KHONG_DON', ?, ?, 0, 'DV', 'manual', 1, ?)`).run(`${id}-s`, id, NGAY);
   w.sqlite.prepare(`INSERT INTO order_item (id, order_id, service_id, description, quantity, unit_price, line_total) VALUES (?, ?, ?, 'Người lớn', 1, 1000000, 1000000)`).run(`${id}-i`, id, `${id}-s`);
+  if (daXacNhan) w.sqlite.prepare("UPDATE orders SET status = 'confirmed', confirmed_at = ? WHERE id = ?").run(AT, id);
   return id;
 }
 /** Mỗi hành động của AUDIT_ACTIONS MỘT dòng nhật ký gắn đơn, người làm = `nguoi`. Dòng sau cùng: dòng `created` do chính `chu` làm (đối chứng "tên mình giữ nguyên"). */
@@ -155,7 +157,7 @@ test("D-1 (b) mọi hành động của audit-actions.ts: Đối tác (và tài 
 test("D-1 (c) người nội bộ: Toàn quyền thấy ĐỦ, có tên; Kế toán / Quản trị / Bán hàng chỉ thấy danh sách nội bộ, KHÔNG tên (ADR-0131)", async () => {
   const w = dungWorld();
   const tatCa = Object.keys(AUDIT_ACTIONS) as AuditAction[];
-  const donCuaBan = nhapDon(w, SALES);
+  const donCuaBan = nhapDon(w, SALES, true);
   gieoMoiHanhDong(w, donCuaBan, ACC);
   for (const [as, quyen] of [[ACC, ["ACCOUNTING"]], [ADM, ["ADMIN"]], [SUP, ["SUPER_ADMIN"]], [SALES, ["SALES"]]] as [string, PermissionCode[]][]) {
     const h = await lichSu(w, as, donCuaBan);

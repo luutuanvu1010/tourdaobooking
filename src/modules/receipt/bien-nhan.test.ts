@@ -243,7 +243,7 @@ async function don(w: W, o: { owner?: string; booker?: string | null; dichVu: Dv
     w.sqlite.prepare(`INSERT INTO order_item (id, order_id, service_id, catalog_code, pax_code, description, quantity, unit_price, catalog_price, line_total) VALUES (?, ?, ?, ?, 'adult', 'Người lớn', ?, ?, ?, ?)`)
       .run(`${s}-i`, id, s, d.catalog, d.khach, d.donGia, d.donGia, d.khach * d.donGia);
   });
-  const xn = await w.call("POST", `/api/orders/${id}/status`, { as: R_SUPER, body: { status: "confirmed" } });
+  const xn = await w.call("POST", `/api/orders/${id}/status`, { as: o.owner ?? R_SALES, body: { status: "confirmed" } }); // ADR-0135: nháp chỉ người lập xác nhận
   assert.equal(xn.status, 200, xn.text);
   w.sqlite.prepare(`INSERT INTO dsp_assignment (id, order_id, task_kind_code, party_id, status_code, valid_from_at, created_at, created_by, updated_at, updated_by)
     VALUES (?, ?, 'HANDLE', ?, 'PENDING', ?, ?, NULL, ?, NULL)`).run(uuid(), id, `pty-${R_HDV}`, R_AT, R_AT, R_AT);

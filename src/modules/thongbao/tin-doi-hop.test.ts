@@ -15,7 +15,11 @@ const hopCua = async (w: any, as: string, ngan: "cua-toi" | "tat-ca" = "cua-toi"
 };
 const doiCua = async (w: any, as: string, ngan: "cua-toi" | "tat-ca" = "cua-toi") => (await hopCua(w, as, ngan)).filter((t) => t.loai === "doi_sau_xac_nhan");
 const gioHenCua = async (w: any, as: string, ngan: "cua-toi" | "tat-ca" = "cua-toi") => (await hopCua(w, as, ngan)).filter((t) => t.loai === "chuyen" && t.cau.includes("giờ"));
-const donXem = async (w: any, id: string) => (await w.call("GET", `/api/orders/${id}`, { as: ADM })).json.order;
+// ADR-0135: đơn NHÁP chỉ người lập đọc được → khi còn nháp đọc bằng người lập, đã xác nhận thì Quản trị.
+const donXem = async (w: any, id: string) => {
+  const r = w.q("SELECT status, staff_id FROM orders WHERE id = ?", id)[0];
+  return (await w.call("GET", `/api/orders/${id}`, { as: r?.status === "draft" ? String(r.staff_id) : ADM })).json.order;
+};
 const LEG = (l: any, over: Record<string, unknown> = {}) => ({
   pickupDate: l.pickupDate, pickupTime: l.pickupTime ?? "", pickupLocationId: l.pickupLocationId, pickupPlace: l.pickupPlace ?? "", dropoffLocationId: l.dropoffLocationId,
   dropoffPlace: l.dropoffPlace ?? "", ...over,

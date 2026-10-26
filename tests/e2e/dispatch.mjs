@@ -33,10 +33,15 @@ const C = await makeStaff(`Cẩm Cửu ${tag}`);
 const D = await makeStaff(`Đào Đã Nghỉ ${tag}`, false);
 const P = await makeStaff(`Phan Đối Tác ${tag}`, true, ["PARTNER"]);
 
-const newOrder = async (cookie = A) => {
+// ADR-0135: đơn NHÁP chỉ người lập thấy / ghi → người lập XÁC NHẬN ngay (Nhận, giao, tin, hàng chờ chỉ có nghĩa với đơn đã xác nhận). `giuNhap` = giữ nháp.
+const SAU_LAP = ["created", "confirmed", "order_terms_captured"]; // nhật ký của đơn vừa lập + xác nhận (lô xác nhận ghi thêm dòng chụp mức)
+const newOrder = async (cookie = A, giuNhap = false) => {
   const r = await call(cookie, "POST", "/api/orders", orderInput());
   assert.equal(r.status, 201, JSON.stringify(r.body));
-  return r.body.order;
+  if (giuNhap) return r.body.order;
+  const xn = await call(cookie, "POST", `/api/orders/${r.body.order.id}/status`, { status: "confirmed" });
+  assert.equal(xn.status, 200, JSON.stringify(xn.body));
+  return xn.body.order;
 };
 const handlerOf = async (cookie, orderId) => {
   const r = await call(cookie, "GET", `/api/dispatch/handlers?orderIds=${orderId}`);
@@ -57,7 +62,7 @@ const asDto = (who) => ({ partyId: who.partyId, staffId: who.id, name: who.fullN
 const o1 = await newOrder(A);
 assert.equal(await handlerOf(A, o1.id), null, "Bán hàng lập đơn không chọn ai → đơn chưa có người phụ trách");
 assert.deepEqual(await rowsOf(o1.id), [], "không có dòng HANDLE nào (kể cả đã đóng)");
-assert.deepEqual((await history(A, o1)).map((h) => h.action), ["created"]);
+assert.deepEqual((await history(A, o1)).map((h) => h.action), SAU_LAP);
 const oAdmin = await newOrder(ADMIN);
 assert.equal(await handlerOf(ADMIN, oAdmin.id), null, "quản trị lập đơn không chọn ai → cũng chưa có người phụ trách");
 assert.deepEqual(await rowsOf(oAdmin.id), []);
@@ -98,7 +103,7 @@ assert.ok(P.partyId, "tài khoản Đối tác vẫn có hồ sơ — ca này KH
 const oPartner = await newOrder(P.cookie);
 assert.equal(await handlerOf(A, oPartner.id), null, "tài khoản chỉ Đối tác lập đơn KHÔNG được tự thành người phụ trách (ADR-0014 điều 9/10)");
 assert.deepEqual(await rowsOf(oPartner.id), [], "không có dòng HANDLE nào (kể cả đã đóng) cho đơn do Đối tác lập");
-assert.deepEqual((await history(ADMIN, oPartner)).map((h) => h.action), ["created"]);
+assert.deepEqual((await history(ADMIN, oPartner)).map((h) => h.action), SAU_LAP);
 const claimed = await setHandler(B, oPartner.id, b.id);
 assert.equal(claimed.status, 200, JSON.stringify(claimed.body));
 assert.deepEqual(await handlerOf(A, oPartner.id), asDto(b), "đơn để trống của Đối tác: nhân viên bán hàng nhận cho chính mình được");
@@ -280,11 +285,15 @@ r = await call(B, "GET", `/api/orders/${o5.id}`);
 assert.equal(r.body.canModify, true, "người phụ trách thấy canModify");
 assert.ok(r.body.history.length >= 2, "người phụ trách xem được lịch sử đơn");
 assert.equal((await call(C.cookie, "GET", `/api/orders/${o5.id}`)).body.canModify, false);
-r = await call(B, "PUT", `/api/orders/${o5.id}`, orderInput({ customerNote: "người phụ trách sửa", expectedUpdatedAt: o5.updatedAt }));
+// ADR-0135: đơn đã xác nhận không sửa cả đơn nữa → người phụ trách sửa THÔNG TIN CHUYẾN (order.trip.edit, nhờ ctx.assigned); SALES không liên quan thì 403.
+const d5 = (await call(B, "GET", `/api/orders/${o5.id}`)).body.order;
+const sv5 = d5.services[0];
+const trip5 = (noi) => ({ expectedUpdatedAt: d5.updatedAt, services: [{ id: sv5.id, departDate: sv5.departDate ?? "", departTime: sv5.departTime ?? "", pickupTime: sv5.pickupTime ?? "", pickupPlace: noi, checkinDate: sv5.checkinDate ?? "", checkinTime: sv5.checkinTime ?? "", checkinPlace: sv5.checkinPlace ?? "", note: sv5.note ?? "" }] });
+r = await call(B, "PUT", `/api/orders/${o5.id}/trip`, trip5("người phụ trách sửa"));
 assert.equal(r.status, 200, JSON.stringify(r.body));
-assert.equal(r.body.order.customerNote, "người phụ trách sửa");
-assert.equal((await call(C.cookie, "PUT", `/api/orders/${o5.id}`, orderInput({ expectedUpdatedAt: r.body.order.updatedAt }))).status, 403);
-console.log("✓ người phụ trách (khác người lập) sửa được đơn nháp; SALES không liên quan thì không");
+assert.equal(r.body.order.services[0].pickupPlace, "người phụ trách sửa");
+assert.equal((await call(C.cookie, "PUT", `/api/orders/${o5.id}/trip`, { ...trip5("chui"), expectedUpdatedAt: r.body.order.updatedAt })).status, 403);
+console.log("✓ người phụ trách (khác người lập) sửa được chuyến của đơn đã xác nhận; SALES không liên quan thì không");
 
 // --- 10) tranh chấp song song: đúng một bên thắng, bên thua không để lại dòng nào và KHÔNG có dòng nhật ký
 // (Nếu hai request tình cờ chạy nối tiếp thì cả hai có thể thắng — lần thứ hai đọc người phụ trách đã đổi; bất biến vẫn phải đúng: số dòng nhật ký
@@ -354,20 +363,22 @@ const handlerCancel = (cookie, orderId, body) => call(cookie, "POST", `/api/orde
 const orderMoney = async (orderId) => (await sqlRows(`SELECT status, subtotal, total, deposit_amount FROM orders WHERE id = '${orderId}'`))[0];
 
 // Đơn nháp: FIELD chưa là người phụ trách (đơn mới chưa có ai) → 403; gán rồi thử huỷ khi CÒN NHÁP → 409 (route chỉ nhận đơn đã xác nhận).
-const o10 = await newOrder(A);
+// ADR-0135: nháp của A — FIELD (chưa giao hay chọn sẵn) mở route huỷ đều nhận 404 (như đơn không tồn tại), không lộ trạng thái.
+const o10 = await newOrder(A, true);
 r = await handlerCancel(FIELD, o10.id, { reason: "customer_requested" });
-assert.equal(r.status, 403, JSON.stringify(r.body));
-console.log("✓ FIELD không phải người phụ trách → 403");
-
+assert.equal(r.status, 404, JSON.stringify(r.body));
 assert.equal((await setHandler(A, o10.id, fld.id)).status, 200);
 r = await handlerCancel(FIELD, o10.id, { reason: "customer_requested" });
-assert.equal(r.status, 409, JSON.stringify(r.body));
-assert.equal(r.body.error.code, "not_editable");
-console.log("✓ đơn nháp (chưa xác nhận) → 409, chưa huỷ được qua đường này");
+assert.equal(r.status, 404, JSON.stringify(r.body));
+console.log("✓ đơn nháp (chưa xác nhận) → 404 kể cả khi FIELD là người chọn sẵn");
+// Đơn đã xác nhận mà FIELD chưa phải người phụ trách → 403.
+const o10b = await newOrder(A);
+r = await handlerCancel(FIELD, o10b.id, { reason: "customer_requested" });
+assert.equal(r.status, 403, JSON.stringify(r.body));
+console.log("✓ FIELD không phải người phụ trách (đơn đã xác nhận) → 403");
 
 // Đơn xác nhận được (orderInput() mặc định đã có departDate/pax hợp lệ — xác nhận thẳng): xác nhận, gán FIELD, thử lý do sai rồi lý do đúng.
-const o11 = await newOrder(A);
-assert.equal((await call(A, "POST", `/api/orders/${o11.id}/status`, { status: "confirmed" })).status, 200);
+const o11 = await newOrder(A); // newOrder đã xác nhận
 assert.equal((await setHandler(A, o11.id, fld.id)).status, 200);
 
 r = await handlerCancel(FIELD, o11.id, {});
@@ -412,7 +423,7 @@ console.log("✓ đơn không tồn tại → 404");
 // UPDATE order_service.depart_date trên D1 local tạm (trigger 0008 không khoá cột này — đúng cách kiểm toán dựng "tour 40 ngày trước").
 const confirmedForField = async () => {
   const o = await newOrder(A);
-  assert.equal((await call(A, "POST", `/api/orders/${o.id}/status`, { status: "confirmed" })).status, 200);
+  // (newOrder đã xác nhận — ADR-0135)
   assert.equal((await setHandler(A, o.id, fld.id)).status, 200);
   return o;
 };
@@ -470,14 +481,13 @@ try {
   const pax = (adult) => ({ adult, child: 0, senior: 0, infant: 0 });
 
   r = await moneyEdit(FIELD, o14.id, { reason: "x", services: [{ id: svcId, pax: pax(3) }] });
-  assert.equal(r.status, 403, JSON.stringify(r.body));
-  console.log("✓ FIELD không phải người phụ trách → 403");
+  assert.equal(r.status, 404, JSON.stringify(r.body)); // ADR-0135: nháp của A — người khác 404
+  console.log("✓ FIELD không phải người phụ trách đơn NHÁP → 404");
 
   assert.equal((await setHandler(A, o14.id, fld.id)).status, 200);
   r = await moneyEdit(FIELD, o14.id, { reason: "x", services: [{ id: svcId, pax: pax(3) }] });
-  assert.equal(r.status, 409, JSON.stringify(r.body));
-  assert.equal(r.body.error.code, "not_editable");
-  console.log("✓ đơn nháp (chưa xác nhận) → 409");
+  assert.equal(r.status, 404, JSON.stringify(r.body)); // chọn sẵn cũng 404 (trước đây 409 not_editable)
+  console.log("✓ đơn nháp (chưa xác nhận) → 404 kể cả HDV chọn sẵn");
 
   assert.equal((await call(A, "POST", `/api/orders/${o14.id}/status`, { status: "confirmed" })).status, 200, JSON.stringify(await call(A, "GET", `/api/orders/${o14.id}`)));
 
@@ -757,12 +767,9 @@ try {
   const mineList = await mine(FIELD);
   const mineIds = mineList.map((x) => x.orderId);
   assert.ok(mineIds.includes(o14.id), "FIELD đang phụ trách o14 (đã xác nhận) phải thấy trong danh sách");
-  assert.ok(mineIds.includes(o10.id), "FIELD đang phụ trách o10 (NHÁP) nay cũng phải thấy trong danh sách (bản 1.6)");
-  for (const [label, id] of [["o11 (đã huỷ)", o11.id], ["o16 (đã huỷ)", o16.id], ["o15 (FIELD không phụ trách)", o15.id]]) {
+  for (const [label, id] of [["o10 (NHÁP — ADR-0135: người phụ trách chọn sẵn cũng không thấy)", o10.id], ["o11 (đã huỷ)", o11.id], ["o16 (đã huỷ)", o16.id], ["o15 (FIELD không phụ trách)", o15.id]]) {
     assert.ok(!mineIds.includes(id), `${label} không được có trong danh sách của FIELD`);
   }
-  const mine10 = mineList.find((x) => x.orderId === o10.id);
-  assert.equal(mine10.status, "draft", "o10 còn nháp: trường status phải là 'draft'");
   const mine14 = mineList.find((x) => x.orderId === o14.id);
   assert.equal(mine14.status, "confirmed", "o14 đã xác nhận: trường status phải là 'confirmed'");
   assert.deepEqual(Object.keys(mine14).sort(), ["customerName", "customerPhone", "orderCode", "orderId", "services", "status", "total"]);
@@ -770,7 +777,7 @@ try {
     Object.keys(mine14.services[0]).sort(),
     ["catalogCode", "checkinDate", "checkinPlace", "checkinTime", "departDate", "departTime", "editablePaxCodes", "id", "name", "note", "pax", "pickupPlace", "pickupTime"].sort(),
   );
-  for (const [label, m] of [["o14 (đã xác nhận)", mine14], ["o10 (nháp)", mine10]]) {
+  for (const [label, m] of [["o14 (đã xác nhận)", mine14]]) {
     const { services: svcs, total, ...rest } = m;
     assert.doesNotMatch(JSON.stringify(svcs), /subtotal|discount|total|price|amount/i, `${label}: dịch vụ trong 'Việc của tôi' không có trường tiền nào (không giá từng dòng)`);
     assert.doesNotMatch(JSON.stringify(rest), /subtotal|discount|total|price|amount/i, `${label}: ngoài tổng tiền cấp đơn, không lộ thêm trường tiền nào`);
@@ -1102,7 +1109,7 @@ try {
   const poolIds = async (cookie) => (await pool(cookie)).map((o) => o.orderId);
   const mineOf = async (cookie) => (await call(cookie, "GET", "/api/dispatch/mine")).body.assignments;
   const openHandleOf = async (partyId) =>
-    (await sqlRows(`SELECT order_id FROM dsp_assignment WHERE task_kind_code = 'HANDLE' AND order_service_id IS NULL AND valid_to_at IS NULL AND party_id = '${partyId}'`))
+    (await sqlRows(`SELECT order_id FROM dsp_assignment WHERE task_kind_code = 'HANDLE' AND order_service_id IS NULL AND valid_to_at IS NULL AND party_id = '${partyId}' AND order_id IN (SELECT id FROM orders WHERE status <> 'draft')`))
       .map((x) => x.order_id)
       .sort();
 
@@ -1120,7 +1127,7 @@ try {
   for (const [label, cookie] of [["HDV A", FIELD], ["HDV B", FIELDB]]) assert.ok(!(await poolIds(cookie)).includes(q1.id), `đơn vừa được nhận rời hàng chờ của ${label}`);
   const mineQ1 = (await mineOf(FIELD)).find((x) => x.orderId === q1.id);
   assert.ok(mineQ1, "đơn vừa nhận hiện ở 'Việc của tôi' của HDV A");
-  assert.equal(mineQ1.status, "draft", "đơn còn chờ xác nhận vẫn hiện ở 'Việc của tôi' (S23-8), kèm trạng thái");
+  assert.equal(mineQ1.status, "confirmed", "đơn đã xác nhận hiện ở 'Việc của tôi', kèm trạng thái (ADR-0135: nháp không vào hàng chờ nên không ai nhận được)");
   assert.ok(!(await mineOf(FIELDB)).some((x) => x.orderId === q1.id), "… và KHÔNG hiện ở 'Việc của tôi' của HDV B");
   console.log("✓ L1-6: HDV nhận đơn chờ nhận → 200, thành người phụ trách, đơn rời hàng chờ của cả hai HDV, hiện ở 'Việc của tôi' (kể cả chờ xác nhận)");
 
@@ -1185,6 +1192,8 @@ try {
   r = await call(A, "POST", "/api/orders", orderInput({ services: [catalogService({ pickupPlace: "Đón ở 0905 123.456 cổng sau", pickupTime: "07:00" })] }));
   assert.equal(r.status, 201, JSON.stringify(r.body));
   const qMask = r.body.order;
+  // ADR-0135: nháp là vùng riêng của người lập — hai đơn này phải ĐÃ XÁC NHẬN thì HDV mới thấy / hàng chờ mới có.
+  for (const x of [qB, qMask]) assert.equal((await call(A, "POST", `/api/orders/${x.id}/status`, { status: "confirmed" })).status, 200);
 
   // (a) Danh sách đơn của HDV = ĐÚNG tập đơn mình đang phụ trách (đối chiếu dòng HANDLE đang mở trong CSDL), không đơn người khác, không đơn chờ nhận;
   // mỗi dòng có tiền + SĐT khách (money.view/contact.view `assigned`).
@@ -1244,7 +1253,7 @@ try {
   assert.equal(r.body.order.customerPhone, "0901 234 567", "chi tiết đơn mình phụ trách có SĐT khách");
   assert.equal(typeof r.body.order.total, "number", "chi tiết đơn mình phụ trách có tiền");
   assert.ok(r.body.order.total > 0, "tiền của đơn khác 0");
-  assert.deepEqual(r.body.history.map((h) => h.action), ["created", "order_claimed"], "chi tiết đơn mình phụ trách có lịch sử (q1: HDV A tự nhận, ADR-0034 §4.3)");
+  assert.deepEqual(r.body.history.map((h) => h.action), [...SAU_LAP, "order_claimed"], "chi tiết đơn mình phụ trách có lịch sử (q1: HDV A tự nhận, ADR-0034 §4.3)");
   assert.equal(r.body.canModify, false, "hướng dẫn viên không sửa/xác nhận đơn (order.modify = none)");
   console.log("✓ L1-3 tách ba đường: danh sách = đúng đơn mình phụ trách (có tiền/SĐT); hàng chờ = chỉ đơn chưa ai nhận, chưa huỷ, chưa qua ngày đi, phần hẹp, SĐT ở nơi đón bị che; chi tiết đơn người khác/đơn chờ nhận → 404; đơn mình → 200 đủ tiền/SĐT/lịch sử");
 }
@@ -1314,7 +1323,7 @@ try {
   assert.deepEqual([r.status, r.body.error?.code], [409, "cancelled"]);
   const nhap = (await call(A, "POST", "/api/orders", orderInput({ handlerStaffId: fld.id }))).body.order;
   r = await refuse(FIELD, nhap.id);
-  assert.deepEqual([r.status, r.body.error?.code], [409, "order_not_confirmed"]);
+  assert.deepEqual([r.status, r.body.error?.code], [404, "not_found"]); // ADR-0135: nháp của A — người phụ trách chọn sẵn cũng 404
   for (const [ten, ngay] of [["hôm nay", vnDate(0)], ["ngày mai", vnDate(1)]]) {
     const o = await donChoNguoi(fld, ngay);
     r = await refuse(FIELD, o.id);

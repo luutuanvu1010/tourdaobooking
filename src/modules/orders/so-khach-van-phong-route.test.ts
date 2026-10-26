@@ -148,9 +148,12 @@ test("TC2: 404 (mã sai dạng / không có) → 403 trước 409 → Đã giao 
 
   const nhap = await taoDon(w, { nhap: true });
   const rn = await sua(w, ID.ACC, nhap.id, than(nhap.svc, P(3)));
-  assert.equal(rn.status, 409, rn.text);
-  assert.equal(rn.json.error.code, "use_order_form");
-  assert.match(rn.json.error.message, /nháp/);
+  assert.equal(rn.status, 404, rn.text); // ADR-0135: nháp của Bán hàng → Kế toán 404 (không còn 409 use_order_form)
+  assert.equal(rn.json.error.code, "not_found");
+  const rl = await sua(w, ID.SALES, nhap.id, than(nhap.svc, P(3))); // người lập vẫn đi đường cũ: nháp → 409 use_order_form
+  assert.equal(rl.status, 409, rl.text);
+  assert.equal(rl.json.error.code, "use_order_form");
+  assert.match(rl.json.error.message, /nháp/);
 
   const huy = await taoDon(w);
   assert.equal((await w.call("POST", `/api/orders/${huy.id}/status`, { as: ID.SALES, body: { status: "cancelled", lyDo: "KHACH_DOI_Y" } })).status, 200);
@@ -401,7 +404,8 @@ test("TC12: GET chi tiết đơn — suaSoKhach theo bản chụp gốc (loại 
   assert.equal(await xem(ID.SALES_B), null, "Bán hàng không lập đơn");
   assert.equal(await xem(ID.FIELD), null, "hướng dẫn viên dùng 'Việc của tôi'");
   const nhap = await taoDon(w, { nhap: true });
-  assert.equal(await xem(ID.ACC, nhap.id), null, "đơn nháp");
+  assert.equal((await w.call("GET", `/api/orders/${nhap.id}`, { as: ID.ACC })).status, 404, "đơn nháp của người khác: 404 (ADR-0135)");
+  assert.equal(await xem(ID.SALES, nhap.id), null, "đơn nháp, người lập xem: không có ô sửa số khách");
   w.sqlite.prepare("UPDATE orders SET delivered_at = ?, delivered_by = ? WHERE id = ?").run("2026-10-01T00:00:00.000Z", ID.SUPER, d.id);
   assert.equal(await xem(ID.ACC), null, "đã giao");
 });

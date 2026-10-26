@@ -35,14 +35,18 @@ const aId = await idOf(ACCOUNTS.salesA.phone);
 const taoDon = async (cookie, handlerStaffId = aId) => {
   const x = await call(cookie, "POST", "/api/orders", orderInput({ handlerStaffId }));
   assert.equal(x.status, 201, JSON.stringify(x.body));
+  // ADR-0135: tin về đơn NHÁP chỉ gửi người lập → người lập xác nhận để tin thành tin chung (Kế toán / Toàn quyền / B mới thấy).
+  const xn = await call(cookie, "POST", `/api/orders/${x.body.order.id}/status`, { status: "confirmed" });
+  assert.equal(xn.status, 200, JSON.stringify(xn.body));
   return x.body.order; // có .id và .orderCode
 };
 const don = await taoDon(A);
 const tatKT = (await call(KT, "GET", "/api/thong-bao?ngan=tat-ca")).body;
 const tin = tatKT.tin.find((t) => t.maDon === don.orderCode);
-assert.ok(tin && tin.cau === `Có đơn mới ${don.orderCode}` && !tin.cau.includes(ACCOUNTS.salesA.name), "Kế toán không thấy tên người lập (ADR-0131: chỉ Toàn quyền)");
+// ADR-0135: tin của đơn xét theo trạng thái HIỆN TẠI — đơn đã xác nhận nên tin là «vừa được xác nhận» (còn nháp thì chỉ người lập thấy).
+assert.ok(tin && tin.cau === `Đơn ${don.orderCode} vừa được xác nhận` && !tin.cau.includes(ACCOUNTS.salesA.name), "Kế toán không thấy tên người lập (ADR-0131: chỉ Toàn quyền)");
 const tinTQ = (await call(TQ, "GET", "/api/thong-bao?ngan=tat-ca")).body.tin.find((t) => t.maDon === don.orderCode);
-assert.ok(tinTQ && tinTQ.cau.startsWith(ACCOUNTS.salesA.name + " vừa lập đơn"), "Toàn quyền thấy tên người lập");
+assert.ok(tinTQ && tinTQ.cau.startsWith(ACCOUNTS.salesA.name + " vừa xác nhận đơn"), "Toàn quyền thấy tên người lập");
 assert.equal(tin.cuaToi, false);
 const tatB = await call(B, "GET", "/api/thong-bao?ngan=tat-ca");
 const tinB = tatB.body.tin.find((t) => t.maDon === don.orderCode);

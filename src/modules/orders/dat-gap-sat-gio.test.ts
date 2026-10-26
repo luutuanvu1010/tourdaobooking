@@ -89,11 +89,18 @@ test("ADR-0107 bài 1 — nút Đặt gấp: Bán hàng đóng dấu chặng dư
     }
     assert.deepEqual(dau(w, legN), KHONG_DAU);
     assert.equal(soNhatKy(w, n.id), n0, "403: không nhật ký");
-    const ok = await datGap(w, n.id, legN, SALES);
+    // ADR-0135 (đảo ý «Bán hàng đóng dấu đơn NGƯỜI KHÁC lập»): nháp của Thực tập → Bán hàng khác, Quản trị, Toàn quyền đều 404, không ghi dấu, không nhật ký.
+    for (const as of [SALES, SALES2, ADM, SUP]) assert.equal((await datGap(w, n.id, legN, as)).status, 404, `${as}: nháp người khác`);
+    assert.deepEqual(dau(w, legN), KHONG_DAU);
+    assert.equal(soNhatKy(w, n.id), n0, "404: không nhật ký");
+    // Nháp của chính Bán hàng: tự đóng dấu được, rồi xác nhận.
+    const m = await nhap(w, SALES, [chang(NGAY, "10:00")]);
+    const legM = m.services[0].legs[0].id;
+    const ok = await datGap(w, m.id, legM, SALES);
     assert.equal(ok.status, 200, ok.text);
-    assert.deepEqual(dau(w, legN), { lyDo: "KHACH_DOAN_GOI_GAP", nguoi: SALES }, "Bán hàng (không phải người lập) đóng được dấu");
-    assert.equal(nhatKyCuoi(w, n.id, "order_leg_short_notice"), `${n.orderCode} · Chiều đi${DUOI}`);
-    assert.equal((await w.call("POST", `/api/orders/${n.id}/status`, { as: INTERN, body: { status: "confirmed" } })).status, 200, "có dấu: người lập xác nhận được");
+    assert.deepEqual(dau(w, legM), { lyDo: "KHACH_DOAN_GOI_GAP", nguoi: SALES }, "Bán hàng đóng dấu nháp của mình");
+    assert.equal(nhatKyCuoi(w, m.id, "order_leg_short_notice"), `${m.orderCode} · Chiều đi${DUOI}`);
+    assert.equal((await w.call("POST", `/api/orders/${m.id}/status`, { as: SALES, body: { status: "confirmed" } })).status, 200, "có dấu: người lập xác nhận được");
 
     // Đơn ĐÃ XÁC NHẬN của Bán hàng khác, đón 13:00 — còn 7 giờ: trên mốc.
     const x = await daXacNhan(w, SALES2, [chang(NGAY, "13:00")]);
@@ -109,9 +116,10 @@ test("ADR-0107 bài 1 — nút Đặt gấp: Bán hàng đóng dấu chặng dư
     denGio("08:00"); // còn 5 giờ: dưới mốc
     assert.equal((await datGap(w, x.id, legX, SALES)).status, 200, "chặng đã dưới mốc: Bán hàng đóng được (đơn người khác)");
 
-    // Chặng chưa chốt giờ không bao giờ "dưới mốc" (I13) → 409, kể cả Quản trị.
+    // Chặng chưa chốt giờ không bao giờ "dưới mốc" (I13) → 409 (người lập).
     const k = await nhap(w, SALES, [chang(NGAY, "")]);
-    const rk = await datGap(w, k.id, k.services[0].legs[0].id, ADM);
+    assert.equal((await datGap(w, k.id, k.services[0].legs[0].id, ADM)).status, 404, "nháp người khác: 404 đứng trước");
+    const rk = await datGap(w, k.id, k.services[0].legs[0].id, SALES);
     assert.equal(rk.status, 409, rk.text);
     assert.equal(ma(rk), "short_notice_not_needed");
   } finally {
@@ -462,7 +470,10 @@ test("ADR-0107 bài 7 — ngoại lệ có tên (chép dấu cũ khi lưu lại 
     const w = setup();
     for (const as of [PARTNER, INTERN]) {
       const n = await nhap(w, as, [chang(NGAY, "10:00")]);
-      assert.equal((await datGap(w, n.id, n.services[0].legs[0].id, SALES)).status, 200);
+      // ADR-0135: Bán hàng không ghi được nháp của Đối tác / Thực tập (404) → gieo dấu như route đặt gấp đã ghi (người đóng dấu = Bán hàng).
+      assert.equal((await datGap(w, n.id, n.services[0].legs[0].id, SALES)).status, 404, `${as}: Bán hàng đặt gấp nháp người khác`);
+      w.sqlite.prepare("UPDATE ord_transfer_leg SET short_notice_reason = 'KHACH_DOAN_GOI_GAP', short_notice_by = ?, short_notice_at = ?, short_notice_lead_minutes = 360 WHERE id = ?")
+        .run(SALES, new Date().toISOString(), n.services[0].legs[0].id);
       const d = (await w.call("GET", `/api/orders/${n.id}`, { as })).json.order;
       const luu = await w.call("PUT", `/api/orders/${n.id}`, {
         as, body: { ...than([chang(NGAY, "10:00")], NGAY), services: [dichVu([chang(NGAY, "10:00")], NGAY, { id: d.services[0].id })], expectedUpdatedAt: d.updatedAt },
@@ -478,14 +489,16 @@ test("ADR-0107 bài 7 — ngoại lệ có tên (chép dấu cũ khi lưu lại 
 });
 
 // ---- Bài 12 (T12): chỗ thứ hai hỏi ô — danh sách đơn nháp chờ đặt gấp trên lịch chung ------------------------------------------------------------------------------
-test("ADR-0107 bài 12 — GET /api/van-chuyen/lich: Bán hàng thấy đơn nháp chờ đặt gấp (nhapChoDatGap); Kế toán (có trip.view, không có ô đặt gấp) nhận mảng rỗng", async () => {
+test("ADR-0107 bài 12 (đổi bởi ADR-0135) — GET /api/van-chuyen/lich: nhapChoDatGap rỗng với mọi vai (nháp riêng tư); Kế toán (có trip.view, không có ô đặt gấp) nhận mảng rỗng", async () => {
   const tat = batDongHo();
   try {
     const w = setup();
     const n = await nhap(w, INTERN, [chang(NGAY, "10:00")]);
     const ban = await w.call("GET", `/api/van-chuyen/lich?ngay=${NGAY}`, { as: SALES });
     assert.equal(ban.status, 200, ban.text);
-    assert.deepEqual(ban.json.nhapChoDatGap.map((x: any) => x.orderId), [n.id]);
+    // ADR-0135: nháp chỉ người lập thấy → lịch chung TẮT phần «nháp chờ đặt gấp» cho mọi người (kể cả Bán hàng); đường tới đó là «Gửi duyệt xác nhận» (Đợt 3).
+    assert.deepEqual(ban.json.nhapChoDatGap.map((x: any) => x.orderId), []);
+    assert.ok(n.id);
     const kt = await w.call("GET", `/api/van-chuyen/lich?ngay=${NGAY}`, { as: ACC });
     assert.equal(kt.status, 200, kt.text);
     assert.deepEqual(kt.json.nhapChoDatGap, []);

@@ -135,10 +135,10 @@ test("conLaiThe: phần dồn theo thứ tự ưu tiên; cauConLai viết nhãn 
   assert.equal(cauConLai(0, []), null);
   assert.deepEqual(viecCuaBan(who("SALES"), day).conLaiThe, []);
 });
-test("nhãn phạm vi: mỗi khoá thẻ có phạm vi trong bảng chung (điều chỉnh = Của tôi, còn lại Toàn công ty)", () => {
+test("nhãn phạm vi: mỗi khoá thẻ có phạm vi trong bảng chung (điều chỉnh và đơn nháp = Của tôi — ADR-0135; còn lại Toàn công ty)", () => {
   assert.deepEqual(
     Object.entries(KHOA_PHAM_VI).map(([k, v]) => [k, PHAM_VI_O_TRANG_CHU[v]]),
-    [["xemLai", "TOAN_CONG_TY"], ["dieuChinh", "CUA_TOI"], ["nhap", "TOAN_CONG_TY"], ["conThieu", "TOAN_CONG_TY"], ["chuaPhuTrach", "TOAN_CONG_TY"], ["chuyenHomNay", "TOAN_CONG_TY"], ["gopY", "TOAN_CONG_TY"]],
+    [["xemLai", "TOAN_CONG_TY"], ["dieuChinh", "CUA_TOI"], ["nhap", "CUA_TOI"], ["conThieu", "TOAN_CONG_TY"], ["chuaPhuTrach", "TOAN_CONG_TY"], ["chuyenHomNay", "TOAN_CONG_TY"], ["gopY", "TOAN_CONG_TY"]],
   );
 });
 

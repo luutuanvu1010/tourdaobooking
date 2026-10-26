@@ -161,7 +161,10 @@ test("số lạ: tài khoản lai Bán hàng + Đối tác quét đơn của B v
 
   // Có răng: văn phòng THẤY số lạ của B ở đúng các đơn mà tài khoản lai không được thấy (nên một chỗ rò sẽ bị bài bắt).
   assert.equal((await w.call("GET", `/api/orders/${cuaB}/thuong-mai`, { as: KT })).json.vanPhong.dong[0].hoaHong, 480_017, "đơn B đã xác nhận: 1 khách × 480.017đ");
-  assert.equal((await w.call("GET", `/api/orders/${nhapB}/thuong-mai`, { as: KT })).json.vanPhong.dong[0].hoaHong, 480_017, "đơn B nháp (tính thử): cùng số");
+  // ADR-0135: nháp của người khác không đọc được, kể cả Kế toán (404) → răng của «đơn B nháp» đặt ở nháp do Bán hàng lập (bên đặt B): người lập đọc được và thấy cùng số.
+  assert.equal((await w.call("GET", `/api/orders/${nhapB}/thuong-mai`, { as: KT })).status, 404, "đơn B nháp của Đối tác B: Kế toán cũng 404");
+  const nhapBBanHang = nhap(w, SALES, `pty-${DT_B}`, [["HONTAM", GIA_DON]]);
+  assert.equal((await w.call("GET", `/api/orders/${nhapBBanHang}/thuong-mai`, { as: SALES })).json.vanPhong.dong[0].hoaHong, 480_017, "đơn B nháp (tính thử, người lập đọc): cùng số");
 
   const trangThai: string[] = [];
   const quet = async (duong: string, as = LAI_BAN) => {

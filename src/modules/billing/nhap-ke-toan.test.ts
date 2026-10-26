@@ -285,19 +285,23 @@ test("ADR-0060 bài canh cỡ tập ứng viên: đúng LOC_NHAP_TOI_DA_UNG_VIEN
   const insO = w.sqlite.prepare(`INSERT INTO orders (id, order_code, staff_id, status, customer_name, customer_phone, subtotal, total, remaining_amount, created_at, updated_at)
     VALUES (?, ?, ?, 'draft', 'Khách Giả', '0900000099', 1, 1, 1, ?, ?)`);
   const insS = w.sqlite.prepare(`INSERT INTO order_service (id, order_id, name, unit, pax_adult, depart_date) VALUES (?, ?, 'Vé', 'perPax', 1, '2026-10-05')`);
+  const insI = w.sqlite.prepare(`INSERT INTO order_item (id, order_id, service_id, description, quantity, unit_price, line_total) VALUES (?, ?, ?, 'Người lớn', 1, 1, 1)`);
   w.sqlite.exec("BEGIN");
   for (let i = 0; i < LOC_NHAP_TOI_DA_UNG_VIEN; i++) {
     const id = `40000000-0000-4000-8000-${String(i).padStart(12, "0")}`;
     insO.run(id, `TD-CAP${i}`, ID.SALES, AT, AT);
     insS.run(`svc-${id}`, id);
+    insI.run(`it-${id}`, id, `svc-${id}`);
   }
+  // ADR-0135: Kế toán không thấy đơn nháp của người khác → cả tập ứng viên là đơn đã xác nhận.
+  w.sqlite.prepare("UPDATE orders SET status = 'confirmed', confirmed_at = ? WHERE id LIKE '40000000-%'").run(AT);
   w.sqlite.exec("COMMIT");
   const qs = "/api/orders?nhapKeToan=chua&tu=2026-10-01&den=2026-10-31&limit=5";
   const ok = await w.call("GET", qs, { as: ID.ACC });
   assert.equal(ok.status, 200, ok.text);
   assert.equal(ok.json.orders.length, 5);
   assert.equal(ok.json.hasMore, true);
-  donMoi(w, { owner: ID.SALES, ngay: "2026-10-05" });
+  donMoi(w, { owner: ID.SALES, ngay: "2026-10-05", status: "confirmed" });
   const vuot = await w.call("GET", qs, { as: ID.ACC });
   assert.equal(vuot.status, 400, vuot.text);
   assert.match(vuot.json.error.message, /thu hẹp khoảng ngày/);

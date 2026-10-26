@@ -79,7 +79,7 @@ function seed(): DatabaseSync {
     ('bai-do', 'MEASURE', 2, 15, '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z')`);
   for (const id of ["o-1", "o-2"]) {
     sqlite.exec(`INSERT INTO orders (id, order_code, staff_id, status, customer_name, customer_phone, created_at, updated_at)
-                 VALUES ('${id}', 'TD-${id}', 's-a', 'draft', 'K', '0900000009', '2026-09-20T03:00:00.000Z', '2026-09-20T03:00:00.000Z')`);
+                 VALUES ('${id}', 'TD-${id}', 's-a', 'confirmed', 'K', '0900000009', '2026-09-20T03:00:00.000Z', '2026-09-20T03:00:00.000Z')`); // ADR-0135: đơn nháp không có «người phụ trách thật» (isHandler loại nháp) → đơn thử là đơn đã xác nhận
   }
   return sqlite;
 }

@@ -69,8 +69,9 @@ test("TC-20 lichChungChang: ĐÚNG các khoá của chặng (có khoaNoiDon / kh
       "pickupTime", "serviceName", "soHieuChuyenBay", "soNguoi", "xeRieng",
     ]);
   }
-  assert.deepEqual(kq.nhap, [{ legId: nhap.services[0].legs[0].id, orderId: nhap.id, orderCode: nhap.orderCode, pickupDate: D, pickupTime: "06:30", datGap: false }]);
-  for (const n of kq.nhap) assert.deepEqual(Object.keys(n).sort(), ["datGap", "legId", "orderCode", "orderId", "pickupDate", "pickupTime"]);
+  // ADR-0135: nháp chỉ người lập thấy → lịch chung TẮT phần chặng nháp (Task 3.3 của kế hoạch bật lại cho đơn «chờ xác nhận»). Khoá của phần nháp (khi bật lại): datGap, legId, orderCode, orderId, pickupDate, pickupTime.
+  assert.ok(nhap.id);
+  assert.deepEqual(kq.nhap, []);
   const out = kq.chang.find((c: any) => c.direction === "OUT")!;
   assert.equal(out.soNguoi, 2);
   assert.equal(out.nguoiCuaDon.length, 1, "khoá người (không tên)");
@@ -98,7 +99,7 @@ test("TC-20 [0050] hai nơi CHỈ khác ở dãy từ 8 chữ số: chữ đã c
   // ADR-0107: chỉ đặt gấp được chặng ĐANG dưới mốc → chặng của b đón sau 150 phút (ngày gB); lịch đọc từ ngày gB tới D để có cả a lẫn b.
   const gB = vnSau(150);
   const b = await order(w, false, [{ ...OUT(NOI_B), pickupDate: gB.ngay, pickupTime: gB.gio }], {}, gB.ngay);
-  assert.equal((await w.call("POST", `/api/orders/${b.id}/legs/${b.services[0].legs[0].id}/short-notice`, { as: ADM, body: { lyDo: "KHAC" } })).status, 200);
+  assert.equal((await w.call("POST", `/api/orders/${b.id}/legs/${b.services[0].legs[0].id}/short-notice`, { as: SALES, body: { lyDo: "KHAC" } })).status, 200); // ADR-0135: nháp chỉ người lập (Bán hàng có ô — ADR-0107)
   assert.equal((await w.call("POST", `/api/orders/${b.id}/status`, { as: SALES, body: { status: "confirmed" } })).status, 200);
   const kq = await lichChungChang(w.env.DB, gB.ngay, D);
   const ca = kq.chang.find((c: any) => c.orderId === a.id)!;

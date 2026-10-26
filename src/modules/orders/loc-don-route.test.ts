@@ -50,38 +50,46 @@ const ids = async (w: any, as: string, qs: string): Promise<Set<string>> => {
 
 async function duLieu() {
   const w = setup();
-  const a3 = await donMoi(w, SALES, "ZA1", D3); // An, Tour đảo, D3, nháp
+  const a3 = await donMoi(w, SALES, "ZA1", D3); // An, Tour đảo, D3, nháp (giữ nháp: chỉ An thấy)
   const a4 = await donMoi(w, SALES, "ZA2", D4); // An, Lặn biển, D4 → xác nhận
   const b6 = await donMoi(w, SALES_B, "ZA1", D6); // Bình, Tour đảo, D6 → huỷ
   const f4 = await donMoi(w, SALES_B, "ZA1", D4, { handlerStaffId: FIELD }); // Bình, Tour đảo, D4, HDV phụ trách
   const p3 = await donMoi(w, PARTNER, "ZA1", D3); // Đối tác lập
   assert.equal((await w.call("POST", `/api/orders/${a4}/status`, { as: SALES, body: { status: "confirmed" } })).status, 200);
+  // ADR-0135: nháp chỉ người lập thấy → chỉ a3 (của An) còn là nháp; f4 (HDV phụ trách) và p3 (Đối tác) xác nhận để văn phòng / HDV còn thấy.
+  assert.equal((await w.call("POST", `/api/orders/${f4}/status`, { as: SALES_B, body: { status: "confirmed" } })).status, 200);
+  assert.equal((await w.call("POST", `/api/orders/${p3}/status`, { as: PARTNER, body: { status: "confirmed" } })).status, 200);
   assert.equal((await w.call("POST", `/api/orders/${b6}/status`, { as: SALES_B, body: { status: "cancelled", lyDo: "KHACH_DOI_Y", reason: "Khách đổi ý" } })).status, 200);
   return { w, a3, a4, b6, f4, p3 };
 }
 
 test("lọc: không tham số → như cũ (mọi đơn cho người xem mọi đơn)", async () => {
   const { w, a3, a4, b6, f4, p3 } = await duLieu();
-  assert.deepEqual(await ids(w, ADM, ""), new Set([a3, a4, b6, f4, p3]));
+  assert.deepEqual(await ids(w, ADM, ""), new Set([a4, b6, f4, p3]), "ADR-0135: nháp của An không lọt vào danh sách của Quản trị");
+  assert.deepEqual(await ids(w, SALES, ""), new Set([a3, a4, b6, f4, p3]), "người lập thấy nháp của mình cùng mọi đơn khác");
 });
 
 test("lọc: khoảng ngày đi (một đầu, hai đầu, một ngày) theo ngày dịch vụ", async () => {
   const { w, a3, a4, b6, f4, p3 } = await duLieu();
-  assert.deepEqual(await ids(w, ADM, `tu=${D3}&den=${D3}`), new Set([a3, p3]), "đúng một ngày");
+  assert.deepEqual(await ids(w, ADM, `tu=${D3}&den=${D3}`), new Set([p3]), "đúng một ngày (Quản trị không thấy nháp a3)");
+  assert.deepEqual(await ids(w, SALES, `tu=${D3}&den=${D3}`), new Set([a3, p3]), "đúng một ngày (người lập thấy cả nháp)");
   assert.deepEqual(await ids(w, ADM, `tu=${D4}`), new Set([a4, f4, b6]), "chỉ đầu Từ");
-  assert.deepEqual(await ids(w, ADM, `den=${D4}`), new Set([a3, p3, a4, f4]), "chỉ đầu Đến");
+  assert.deepEqual(await ids(w, ADM, `den=${D4}`), new Set([p3, a4, f4]), "chỉ đầu Đến");
   assert.deepEqual(await ids(w, ADM, `tu=${inDays(10)}`), new Set(), "không đơn nào");
 });
 
 test("lọc: dịch vụ chọn nhiều, trạng thái chọn nhiều, người lập — AND với nhau và với ngày đi", async () => {
   const { w, a3, a4, b6, f4, p3 } = await duLieu();
   assert.deepEqual(await ids(w, ADM, "dichVu=ZA2"), new Set([a4]));
-  assert.deepEqual(await ids(w, ADM, "dichVu=ZA2&dichVu=ZA1"), new Set([a3, a4, b6, f4, p3]));
-  assert.deepEqual(await ids(w, ADM, "status=confirmed&status=cancelled"), new Set([a4, b6]));
+  assert.deepEqual(await ids(w, ADM, "dichVu=ZA2&dichVu=ZA1"), new Set([a4, b6, f4, p3]));
+  assert.deepEqual(await ids(w, ADM, "status=confirmed&status=cancelled"), new Set([a4, b6, f4, p3]));
+  assert.deepEqual(await ids(w, ADM, "status=cancelled"), new Set([b6]));
   assert.deepEqual(await ids(w, ADM, `nguoiLap=${SALES_B}`), new Set([b6, f4]));
   assert.deepEqual(await ids(w, ADM, `nguoiLap=${SALES_B}&dichVu=ZA1&tu=${D4}&den=${D4}`), new Set([f4]), "AND bốn điều kiện");
-  assert.deepEqual(await ids(w, ADM, `dichVu=ZA1&status=draft&tu=${D3}&den=${D3}`), new Set([a3, p3]));
-  assert.deepEqual(await ids(w, ADM, "status=draft&q=0912345678"), new Set([a3, f4, p3]), "ô tìm vẫn chạy cùng bộ lọc");
+  assert.deepEqual(await ids(w, ADM, `dichVu=ZA1&status=draft&tu=${D3}&den=${D3}`), new Set(), "Quản trị: không có nháp nào của người khác");
+  assert.deepEqual(await ids(w, SALES, `dichVu=ZA1&status=draft&tu=${D3}&den=${D3}`), new Set([a3]), "người lập: nháp của mình");
+  assert.deepEqual(await ids(w, SALES, "status=draft&q=0912345678"), new Set([a3]), "ô tìm vẫn chạy cùng bộ lọc");
+  assert.deepEqual(await ids(w, ADM, "status=confirmed&q=0912345678"), new Set([a4, f4, p3]), "ô tìm vẫn chạy cùng bộ lọc (đơn đã xác nhận)");
 });
 
 test("lọc KHÔNG nới phạm vi: Đối tác / Thực tập lọc người lập khác → rỗng; HDV lọc người lập khác chỉ trong đơn mình phụ trách", async () => {

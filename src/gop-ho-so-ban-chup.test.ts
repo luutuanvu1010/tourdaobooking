@@ -42,7 +42,7 @@ test("gộp hồ sơ người hưởng B vào A sau Xác nhận, rồi «Đã gi
     VALUES (?, 'TD-GOP1', ?, 'draft', 'Khách Giả', '0900000099', 1000000, 0, 1000000, 1000000, ?, ?, ?)`).run(ID, SALES, B, AT, AT);
   w.sqlite.prepare("INSERT INTO order_service (pickup_choice, id, order_id, sort_order, catalog_code, name, unit, pax_adult, depart_date) VALUES ('KHONG_DON', ?, ?, 0, 'HONTAM', 'Vé Hòn Tằm', 'perPax', 1, ?)").run(SV, ID, homNay);
   w.sqlite.prepare("INSERT INTO order_item (id, order_id, service_id, catalog_code, pax_code, description, quantity, unit_price, catalog_price, line_total) VALUES (?, ?, ?, 'HONTAM', 'adult', 'Người lớn', 1, 1000000, 1000000, 1000000)").run(`${SV}-i`, ID, SV);
-  const xn = await w.call("POST", `/api/orders/${ID}/status`, { as: SUPER, body: { status: "confirmed" } });
+  const xn = await w.call("POST", `/api/orders/${ID}/status`, { as: SALES, body: { status: "confirmed" } }); // ADR-0135: đơn nháp chỉ người lập (SALES) xác nhận được
   assert.equal(xn.status, 200, xn.text);
   const chup = () => w.q("SELECT beneficiary_party_id b FROM ord_service_terms t WHERE order_service_id = ? AND NOT EXISTS (SELECT 1 FROM ord_service_terms x WHERE x.supersedes_id = t.id)", SV);
   assert.deepEqual(chup().map((r: Record<string, unknown>) => r.b), [B], "bản chụp lúc Xác nhận: người hưởng B");

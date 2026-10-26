@@ -47,7 +47,15 @@ async function lap(w: any, as: string, legs: unknown[] = [OUT, RET], extra: Reco
   assert.equal(r.status, 201, r.text);
   return r.json.order;
 }
-const xem = async (w: any, id: string) => (await w.call("GET", `/api/orders/${id}`, { as: ADM })).json.order;
+// ADR-0135: đơn nháp chỉ người lập đọc/ghi → mọi thao tác trên nháp đi bằng người lập.
+/** Gieo `pax_override` của chặng VỀ bằng SQL (đơn nháp của Đối tác / Thực tập: người lập không có ô sửa số người, văn phòng không ghi được nháp người khác). Nâng `updated_at` để khoá lạc quan thấy bản cũ. */
+const datPax = (w: any, o: any, n: number) => {
+  const t = new Date(Date.now() + 60_000).toISOString();
+  w.sqlite.prepare("UPDATE ord_transfer_leg SET pax_override = ?, updated_at = ? WHERE order_id = ? AND direction = 'RETURN' AND closed_at IS NULL").run(n, t, o.id);
+  w.sqlite.prepare("UPDATE orders SET updated_at = ? WHERE id = ?").run(t, o.id);
+};
+const nguoiLap = (w: any, id: string): string => String(w.q("SELECT staff_id AS s FROM orders WHERE id = ?", id)[0].s);
+const xem = async (w: any, id: string) => (await w.call("GET", `/api/orders/${id}`, { as: nguoiLap(w, id) })).json.order;
 const xacNhan = async (w: any, o: any, as = SALES) => assert.equal((await w.call("POST", `/api/orders/${o.id}/status`, { as, body: { status: "confirmed" } })).status, 200);
 /** Chặng (LegDto) → thân chặng gửi lại (giữ id). Khoá ô phụ chỉ có khi `over` mang. */
 const legBody = (l: any, over: Record<string, unknown> = {}) => ({
@@ -87,9 +95,8 @@ test("TC-F3 nháp: Bán hàng / Đối tác / Thực tập (đơn mình) ghi s�
     assert.equal(cotTheoChieu(w, o.id, "OUT").flight_code, null, "chuỗi rỗng = xoá về NULL");
   }
   const o = await lap(w, SALES, [{ ...OUT, flightCode: "VN1553" }]);
-  assert.equal((await luuNhap(w, o, ACC, [legBody(di(o), { flightCode: "VJ123" })])).status, 403);
-  // ADR-0055 tiêu chí 7: Đối tác sửa số hiệu trên nháp của NGƯỜI KHÁC → 403 (ô order.modify phạm vi own); Thực tập cũng vậy.
-  for (const as of [PARTNER, INTERN]) assert.equal((await luuNhap(w, o, as, [legBody(di(o), { flightCode: "VJ123" })])).status, 403, as);
+  // ADR-0135: nháp của Bán hàng — người khác (Kế toán, Đối tác, Thực tập) ghi → 404 (không phải 403), số hiệu không đổi.
+  for (const as of [ACC, PARTNER, INTERN]) assert.equal((await luuNhap(w, o, as, [legBody(di(o), { flightCode: "VJ123" })])).status, 404, as);
   assert.equal(cot(w, di(o).id).flight_code, "VN1553");
 });
 
@@ -117,7 +124,7 @@ test("lưu nháp giữ CẢ số hiệu lẫn dấu đặt gấp chép (Q1 = (a)
   const w = setup();
   const g = vnSau(120);
   const o = await lap(w, SALES, [{ ...OUT, pickupDate: g.date, pickupTime: g.time, flightCode: "VN1553" }], { departDate: g.date });
-  assert.equal((await w.call("POST", `/api/orders/${o.id}/legs/${di(o).id}/short-notice`, { as: ADM, body: { lyDo: "CHUYEN_BAY_DOI_GIO" } })).status, 200);
+  assert.equal((await w.call("POST", `/api/orders/${o.id}/legs/${di(o).id}/short-notice`, { as: nguoiLap(w, o.id), body: { lyDo: "CHUYEN_BAY_DOI_GIO" } })).status, 200);
   const o2 = await xem(w, o.id);
   const r = await luuNhap(w, o2, SALES, [legBody(di(o2))], { departDate: g.date });
   assert.equal(r.status, 200, r.text);
@@ -125,7 +132,7 @@ test("lưu nháp giữ CẢ số hiệu lẫn dấu đặt gấp chép (Q1 = (a)
   assert.equal(row.flight_code, "VN1553");
   assert.equal(row.pax_override, null);
   assert.equal(row.short_notice_reason, "CHUYEN_BAY_DOI_GIO");
-  assert.equal(row.short_notice_by, ADM);
+  assert.equal(row.short_notice_by, SALES);
   assert.equal(row.short_notice_lead_minutes, 360);
   assert.ok(String(row.short_notice_at).endsWith("Z"));
 });
@@ -143,7 +150,7 @@ test("TC-F3 sau xác nhận: thêm / sửa số hiệu — Bán hàng đơn mìn
   const r = await suaChang(w, c, SALES, di(c), { flightCode: "vn 1553" });
   assert.equal(r.status, 200, r.text);
   assert.equal(cot(w, di(c).id).flight_code, "VN1553");
-  const r2 = await suaChang(w, r.json.order, ADM, di(r.json.order), { flightCode: "VJ123" });
+  const r2 = await suaChang(w, r.json.order, nguoiLap(w, o.id), di(r.json.order), { flightCode: "VJ123" });
   assert.equal(r2.status, 200, r2.text);
   const them = await w.call("POST", `/api/orders/${o.id}/legs`, { as: SALES, body: { expectedUpdatedAt: r2.json.order.updatedAt, serviceId: c.services[0].id, leg: { ...RET, flightCode: "QH1520" } } });
   assert.equal(them.status, 201, them.text);
@@ -158,7 +165,7 @@ test("TC-F3 sau xác nhận: thêm / sửa số hiệu — Bán hàng đơn mìn
 async function donDuoiMoc(w: any) {
   const g = vnSau(120);
   const o = await lap(w, SALES, [{ ...OUT, pickupDate: g.date, pickupTime: g.time }, { ...RET, pickupDate: g.date, pickupTime: vnSau(180).time }], { departDate: g.date });
-  for (const l of o.services[0].legs) assert.equal((await w.call("POST", `/api/orders/${o.id}/legs/${l.id}/short-notice`, { as: ADM, body: { lyDo: "KHACH_DOAN_GOI_GAP" } })).status, 200);
+  for (const l of o.services[0].legs) assert.equal((await w.call("POST", `/api/orders/${o.id}/legs/${l.id}/short-notice`, { as: nguoiLap(w, o.id), body: { lyDo: "KHACH_DOAN_GOI_GAP" } })).status, 200);
   await xacNhan(w, o);
   return xem(w, o.id);
 }
@@ -179,7 +186,7 @@ test("TC-F5 + Q-B (chủ 1/10 'Giữ dấu đặt gấp cũ'): chặng dưới m
 test("Q-B: chỉ đổi ô phụ mà thân CÓ datGap → ghi dấu MỚI (cờ giữ = 0) — Quản trị, và Bán hàng đơn mình lập (ADR-0107)", async () => {
   const w = setup();
   const c = await donDuoiMoc(w);
-  const r = await suaChang(w, c, ADM, di(c), { flightCode: "VN1553" }, { datGap: { lyDo: "CHUYEN_BAY_DOI_GIO" } });
+  const r = await suaChang(w, c, nguoiLap(w, c.id), di(c), { flightCode: "VN1553" }, { datGap: { lyDo: "CHUYEN_BAY_DOI_GIO" } });
   assert.equal(r.status, 200, r.text);
   assert.deepEqual(cot(w, di(c).id), { flight_code: "VN1553", pax_override: null, short_notice_reason: "CHUYEN_BAY_DOI_GIO" });
   const ban = await suaChang(w, r.json.order, SALES, di(r.json.order), { flightCode: "VJ123" }, { datGap: { lyDo: "KHACH_DOAN_GOI_GAP" } });
@@ -259,7 +266,12 @@ test("TC-P3 quyền đơn ĐÃ XÁC NHẬN (ô order.trip.edit): Bán hàng đơ
 // ---- TC-P4, TC-P5 (đơn NHÁP) --------------------------------------------------------------------------------------------------------------------------------
 test("TC-P4 (a)(b): nhánh nháp PUT /legs/:legId — Bán hàng đơn mình / Quản trị chỉ gửi paxOverride + expectedUpdatedAt → 200; có khoá khác → 409 use_order_form", async () => {
   const w = setup();
-  for (const as of [SALES, ADM]) {
+  { // ADR-0135: Quản trị KHÔNG ghi được nháp của người khác → 404 (không phải 403), ô không đổi
+    const o = await lap(w, SALES, [OUT, RET]);
+    assert.equal((await nhanhNhap(w, o, ADM, ve(o), { expectedUpdatedAt: ve(o).updatedAt, paxOverride: 3 })).status, 404);
+    assert.equal(cot(w, ve(o).id).pax_override, null);
+  }
+  for (const as of [SALES]) {
     const o = await lap(w, SALES, [OUT, RET]);
     const r = await nhanhNhap(w, o, as, ve(o), { expectedUpdatedAt: ve(o).updatedAt, paxOverride: 3 });
     assert.equal(r.status, 200, `${as}: ${r.text}`);
@@ -288,7 +300,7 @@ test("TC-P4 (c)(d)(e): Đối tác / Thực tập lưu nháp — gửi paxOverri
   for (const as of [PARTNER, INTERN]) {
     assert.equal((await w.call("POST", "/api/orders", { as, body: body([svc([OUT, { ...RET, paxOverride: 2 }])]) })).status, 403, as);
     const o = await lap(w, as, [OUT, RET]);
-    assert.equal((await nhanhNhap(w, o, ADM, ve(o), { expectedUpdatedAt: ve(o).updatedAt, paxOverride: 2 })).status, 200);
+    datPax(w, o, 2); // văn phòng không còn ghi được nháp của người khác (ADR-0135) → gieo cột bằng SQL
     const c = await xem(w, o.id);
     const khac = await luuNhap(w, c, as, [legBody(di(c)), legBody(ve(c), { paxOverride: 3 })]);
     assert.equal(khac.status, 403, khac.text);
@@ -315,7 +327,7 @@ test("TC-P4 (c)(d)(e): Đối tác / Thực tập lưu nháp — gửi paxOverri
 test("TC-P5 không mất khi lưu nháp: Quản trị đặt 2 qua nhánh nháp → form cũ của Đối tác 409 stale → tải lại, lưu thân KHÔNG có khoá → vẫn 2", async () => {
   const w = setup();
   const o = await lap(w, PARTNER, [OUT, RET]);
-  assert.equal((await nhanhNhap(w, o, ADM, ve(o), { expectedUpdatedAt: ve(o).updatedAt, paxOverride: 2 })).status, 200);
+  datPax(w, o, 2); // văn phòng không còn ghi được nháp của người khác (ADR-0135) → gieo cột bằng SQL
   const cu = await luuNhap(w, o, PARTNER, [legBody(di(o)), legBody(ve(o))]);
   assert.equal(cu.status, 409);
   assert.equal(cu.json.error.code, "stale");
@@ -345,7 +357,7 @@ test("TC-P6: chặng về bị BỎ rồi thêm lại → chặng mới số ng�
 test("nháp: chặng về đang có số người mà thân gửi CÙNG id với chiều ĐI (không khoá) → số người về NULL (chặng về coi như bỏ), không 403, không lỗi CSDL", async () => {
   const w = setup();
   const o = await lap(w, PARTNER, [{ ...RET, paxOverride: undefined }]);
-  assert.equal((await nhanhNhap(w, o, ADM, ve(o), { expectedUpdatedAt: ve(o).updatedAt, paxOverride: 2 })).status, 200);
+  datPax(w, o, 2); // văn phòng không còn ghi được nháp của người khác (ADR-0135) → gieo cột bằng SQL
   const c = (await w.call("GET", `/api/orders/${o.id}`, { as: PARTNER })).json.order;
   const r = await luuNhap(w, c, PARTNER, [legBody(ve(c), { direction: "OUT", pickupLocationId: null, pickupPlace: "Khách sạn A", dropoffLocationId: LOC, dropoffPlace: "" })]);
   assert.equal(r.status, 200, r.text);
@@ -356,7 +368,7 @@ test("nháp: chặng về đang có số người mà thân gửi CÙNG id với
 test("TC-P10: số người về 2 đã lưu, số khách giảm còn 1 — Đối tác lưu nháp không gửi / gửi bằng 2 → 200 (cột vẫn 2); văn phòng gửi 3 → 400, gửi 1 → 200", async () => {
   const w = setup();
   const o = await lap(w, PARTNER, [OUT, RET]);
-  assert.equal((await nhanhNhap(w, o, ADM, ve(o), { expectedUpdatedAt: ve(o).updatedAt, paxOverride: 2 })).status, 200);
+  datPax(w, o, 2); // văn phòng không còn ghi được nháp của người khác (ADR-0135) → gieo cột bằng SQL
   const c = (await w.call("GET", `/api/orders/${o.id}`, { as: PARTNER })).json.order;
   const giam = await w.call("PUT", `/api/orders/${o.id}`, {
     as: PARTNER, body: body([svc([legBody(di(c)), legBody(ve(c))], { id: c.services[0].id, pax: { adult: 1, child: 0, senior: 0, infant: 0 } })], { expectedUpdatedAt: c.updatedAt }),
@@ -369,17 +381,20 @@ test("TC-P10: số người về 2 đã lưu, số khách giảm còn 1 — Đ�
   });
   assert.equal(bang.status, 200, `gửi BẰNG bản cũ không kiểm L-R1: ${bang.text}`);
   const b = bang.json.order;
-  assert.equal((await nhanhNhap(w, b, ADM, ve(b), { expectedUpdatedAt: ve(b).updatedAt, paxOverride: 3 })).status, 400, "vượt số khách hiện hành 1");
-  const mot = await nhanhNhap(w, b, ADM, ve(b), { expectedUpdatedAt: ve(b).updatedAt, paxOverride: 1 });
+  assert.equal(cotTheoChieu(w, b.id, "RETURN").pax_override, 2);
+  // Nửa «văn phòng gửi 3 → 400, gửi 1 → 200»: nháp của Đối tác không còn ai ngoài người lập ghi được (ADR-0135) → làm trên nháp của Bán hàng (1 khách).
+  const s = await lap(w, SALES, [OUT, RET], { pax: { adult: 1, child: 0, senior: 0, infant: 0 } });
+  assert.equal((await nhanhNhap(w, s, SALES, ve(s), { expectedUpdatedAt: ve(s).updatedAt, paxOverride: 3 })).status, 400, "vượt số khách hiện hành 1");
+  const mot = await nhanhNhap(w, s, SALES, ve(s), { expectedUpdatedAt: ve(s).updatedAt, paxOverride: 1 });
   assert.equal(mot.status, 200, mot.text);
-  assert.equal(cotTheoChieu(w, o.id, "RETURN").pax_override, 1);
+  assert.equal(cotTheoChieu(w, s.id, "RETURN").pax_override, 1);
 });
 
 // ---- Task 4 — đường ĐỌC (TC-F7 phần đơn) ---------------------------------------------------------------------------------------------------------------------
 test("TC-F7: chi tiết đơn — LegDto có flightCode + paxOverride (ai xem được chặng thì thấy, kể cả Đối tác đơn mình); biên nhận gửi khách KHÔNG có số hiệu (C3)", async () => {
   const w = setup();
   const o = await lap(w, PARTNER, [{ ...OUT, flightCode: "VN1553" }, RET]);
-  assert.equal((await nhanhNhap(w, o, ADM, ve(o), { expectedUpdatedAt: ve(o).updatedAt, paxOverride: 2 })).status, 200);
+  datPax(w, o, 2); // văn phòng không còn ghi được nháp của người khác (ADR-0135) → gieo cột bằng SQL
   const p = (await w.call("GET", `/api/orders/${o.id}`, { as: PARTNER })).json.order;
   assert.deepEqual([di(p).flightCode, di(p).paxOverride], ["VN1553", null]);
   assert.deepEqual([ve(p).flightCode, ve(p).paxOverride], [null, 2]);

@@ -257,7 +257,7 @@ async function gieo(w: W): Promise<Gieo> {
   const cuaB = nhap(w, DT_B, PTY_B, DV);
   await xacNhan(cuaB, DT_B);
   await KQ(w.call("POST", `/api/orders/${cuaB}/thuong-mai/${cuaB}-s1`, { as: ACC, body: { lyDo: "Thoả thuận riêng với đại lý Bê", hoaHong: { kieu: "RATE", tyLeBp: 5287 } } }), 200, "ghi tay");
-  const nhapB = nhap(w, DT_B, PTY_B, DV);
+  const nhapB = nhap(w, SALES, PTY_B, DV); // ADR-0135: nháp chỉ người lập đọc → do Bán hàng lập (bên đặt B); Kế toán / Đối tác khác đều 404, người lập đọc được bản tính thử
   w.sqlite.prepare("INSERT INTO dsp_assignment (id, order_id, task_kind_code, party_id, valid_from_at, created_at, updated_at) VALUES ('as-sl-f', ?, 'HANDLE', ?, ?, ?, ?)")
     .run(cuaB, `pty-${laiCua("FIELD").id}`, AT, AT, AT);
   const donLai = new Map(LAI.map((t) => [t.id, nhap(w, t.id, PTY_B, DV)] as const));
@@ -296,7 +296,7 @@ test("số lạ toàn Nền tảng: tài khoản giữ quyền Đối tác (thu�
     }
     const w = setup();
     const g = await gieo(w);
-    const donB = [{ id: g.cuaB, chu: DT_B, giao: laiCua("FIELD").id }, { id: g.nhapB, chu: DT_B }, ...LAI.map((t) => ({ id: g.donLai.get(t.id)!, chu: t.id }))];
+    const donB = [{ id: g.cuaB, chu: DT_B, giao: laiCua("FIELD").id }, { id: g.nhapB, chu: SALES }, ...LAI.map((t) => ({ id: g.donLai.get(t.id)!, chu: t.id }))];
     /** Hai chiều, suy từ MATRIX: giữ PARTNER ⇒ cấm thẳng; còn lại theo ô xem của đúng loại số. */
     const duocXem = (tk: TaiKhoan, loai: Loai): boolean => {
       if (holdsPartner(tk)) return false;
@@ -314,7 +314,7 @@ test("số lạ toàn Nền tảng: tài khoản giữ quyền Đối tác (thu�
     kiem("đơn B xác nhận, dòng SLX", [d[0].muc, d[0].hoaHong, d[0].giaDaiLy, d[0].nhaCungCap?.tyLeMua, d[0].nhaCungCap?.giaVon], ["370.913đ/khách", 370_913, 629_087, "61,73%", 617_300]);
     kiem("đơn B xác nhận, dòng SLY", [d[1].muc, d[1].hoaHong, d[1].giaDaiLy, d[1].ghiTay], ["52,87%", 1_057_400, 942_600, true]);
     kiem("đơn B xác nhận, tổng", [vpB.json.vanPhong.tong.hoaHong, vpB.json.vanPhong.tong.giaDaiLy], [1_428_313, 1_571_687]);
-    const vpNhap = await KQ(w.call("GET", `/api/orders/${g.nhapB}/thuong-mai`, { as: ACC }), 200, "Kế toán đọc đơn B nháp");
+    const vpNhap = await KQ(w.call("GET", `/api/orders/${g.nhapB}/thuong-mai`, { as: SALES }), 200, "người lập (Bán hàng) đọc đơn B nháp");
     kiem("đơn B nháp, các dòng", vpNhap.json.vanPhong.dong.map((x: { muc: string; hoaHong: number; giaDaiLy: number }) => [x.muc, x.hoaHong, x.giaDaiLy]), [["370.913đ/khách", 370_913, 629_087], ["37,29%", 745_800, 1_254_200]]);
     kiem("đơn B nháp, tổng", [vpNhap.json.vanPhong.tong.hoaHong, vpNhap.json.vanPhong.tong.giaDaiLy], [1_116_713, 1_883_287]);
 
