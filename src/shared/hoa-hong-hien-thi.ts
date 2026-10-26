@@ -216,6 +216,15 @@ export function ghepDoiTacRieng(dong: readonly CommissionRuleDto[], ganRieng: Mu
   return [...m.values()].sort((a, b) => a.ten.localeCompare(b.ten, "vi"));
 }
 
+/** Các dòng mức riêng (`DOI_TAC`) của MỘT đối tác, đã qua bộ lọc: ô tìm khớp tên đối tác → giữ mọi dòng (đã lọc trạng thái); không thì chỉ dòng có dịch vụ khớp. Giữ thứ tự máy chủ trả. */
+export function dongRiengDoiTac(dong: readonly CommissionRuleDto[], partyId: string, bo: BoLoc, homNay: string, ten: TenDanhMuc): CommissionRuleDto[] {
+  const cua = dong.filter((d) => d.doiTuong.loai === "DOI_TAC" && d.doiTuong.partyId === partyId);
+  const tim = chuanTim(bo.tim);
+  const tenDt = cua[0]?.doiTuong.ten ?? "";
+  if (tim === "" || chuanTim(tenDt).includes(tim)) return cua.filter((d) => !bo.chiConHieuLuc || trangThaiDong(d, homNay) !== "DA_DONG");
+  return locMuc(cua, bo, homNay, ten);
+}
+
 /** «Từ 01/01/2026 · đến 31/12/2026» hoặc «Từ 01/01/2026 · không thời hạn». */
 export const nhanHieuLuc = (d: { tuNgay: string; denNgay: string | null }): string => `Từ ${ngayVN(d.tuNgay)} · ${d.denNgay === null ? "không thời hạn" : `đến ${ngayVN(d.denNgay)}`}`;
 

@@ -198,6 +198,20 @@ try {
       };
       const ORG = await orgMoi(`Khách sạn Biển Xanh ${CHU} ${D}`, L_A);
       const ORG2 = await orgMoi(`Nhà hàng Hải Sản ${CHU} ${D}`, L_A);
+      // R25 + Review Focus 3: một đối tác có BA mức riêng đã bắt đầu từ trước hôm nay (một sẽ «Đổi», một sẽ «Ngừng», một có tên dịch vụ dài ≥ 120 ký tự).
+      const TEN_DAI = "Tour khám phá trọn gói bốn đảo vịnh Nha Trang kèm lặn ngắm san hô, tắm biển, ăn trưa hải sản, xe đưa đón khách sạn nội thành và hướng dẫn viên tiếng Việt";
+      assert.ok(TEN_DAI.length >= 120, "tên dịch vụ dài ≥ 120 ký tự");
+      env.sql(`INSERT OR IGNORE INTO catalog_item (code, name, unit, price_adult, first_seen_at, updated_at, in_sheet) VALUES ('TDLONG1', '${TEN_DAI}', 'khách', 1000000, '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z', 1)`);
+      const ORG3 = await orgMoi(`Công ty Lữ hành Sao Biển ${CHU} ${D}`, L_A);
+      const mucDt = async (phamVi, tyLeBp) =>
+        phai(await call(ACCOUNTS.accounting, "POST", "/api/pricing/hoa-hong", { doiTuong: { loai: "DOI_TAC", partyId: ORG3.id }, ...phamVi, kieu: "RATE", tyLeBp, tuNgay: vnDate(-10) }), 201, "mức riêng của đối tác");
+      await mucDt({ phamVi: "SERVICE", catalogCode: "TD101" }, 1200);
+      await mucDt({ phamVi: "ALL" }, 500);
+      await mucDt({ phamVi: "SERVICE", catalogCode: "TDLONG1" }, 800);
+      const dsDt = phai(await call(ACCOUNTS.accounting, "GET", "/api/pricing/hoa-hong"), 200, "danh sách mức").dong.filter((r) => r.doiTuong.loai === "DOI_TAC" && r.doiTuong.partyId === ORG3.id);
+      const R3_DOI = dsDt.find((r) => r.catalogCode === "TD101");
+      const R3_NGUNG = dsDt.find((r) => r.phamVi === "ALL");
+      assert.ok(R3_DOI && R3_NGUNG && dsDt.length === 3, `ba mức riêng của đối tác: ${dsDt.length}`);
 
       // ======================= Kế toán =======================
       {
@@ -249,9 +263,61 @@ try {
             assert.equal(await clickTrong(p, ".sheet", "Thêm mức"), true);
             await choOk(p, "Đã thêm mức.");
             await choDongHop(p);
-            await p.waitFor(`!!document.querySelector('li[data-party="${ORG2.id}"]')`, "đối tác có ở mục «Đối tác có mức riêng…»");
-            assert.match(await p.ev(`document.querySelector('li[data-party="${ORG2.id}"]').innerText`), /Mức riêng/);
+            await p.waitFor(`!!document.querySelector('.hh-dt[data-party="${ORG2.id}"]')`, "đối tác có ở mục «Đối tác có mức riêng…»");
+            assert.match(await p.ev(`document.querySelector('.hh-dt[data-party="${ORG2.id}"]').innerText`), /Mức riêng/);
             await bocucSach(p, `bước 2 ${kho}`);
+          });
+
+          await buoc(`2c${kho}`, "Tên dịch vụ rất dài (≥ 120 ký tự) ở dòng đối tác: không tràn ngang, dòng tóm tắt bắt đầu bằng số", async () => {
+            const k = await p.ev(`(() => { const t = document.querySelector('.hh-dt[data-party="${ORG3.id}"] .hh-tom-tat'); return t ? { chu: t.textContent, rong: document.documentElement.scrollWidth, khung: innerWidth } : null; })()`);
+            assert.ok(k, "đối tác có dòng tóm tắt");
+            assert.match(k.chu, /^\d/, `dòng tóm tắt bắt đầu bằng số: ${k.chu.slice(0, 60)}`);
+            assert.ok(k.chu.includes(TEN_DAI), "tên dịch vụ dài có trong dòng tóm tắt (bị cắt bằng CSS, không mất chữ)");
+            assert.ok(k.rong <= k.khung, `không tràn ngang: scrollWidth ${k.rong} > ${k.khung}`);
+            await p.ev(`document.querySelector('.hh-dt[data-party="${ORG3.id}"]').scrollIntoView({ block: 'center' })`);
+            await bocucSach(p, `bước 2c ${kho}`);
+            await chup(p, `17-ten-dich-vu-rat-dai-${tenKho}`, false);
+          });
+
+          await buoc(`2b${kho}`, "Mục «Đối tác…»: mở một đối tác (▾) thấy số, «Đổi» và «Ngừng» dòng mức riêng chạy được", async () => {
+            const sel = `.hh-dt[data-party="${ORG3.id}"]`;
+            assert.equal(await p.ev(`document.querySelector('${sel} .hh-loai-nut').getAttribute('aria-expanded')`), "false", "đóng sẵn");
+            assert.equal(await p.ev(`document.querySelector('${sel} .hh-lo-ct').hidden`), true);
+            assert.equal(await bam(p, `${sel} .hh-loai-nut`), true);
+            assert.equal(await p.ev(`document.querySelector('${sel} .hh-loai-nut').getAttribute('aria-expanded')`), "true");
+            const chu = await p.ev(`document.querySelector('${sel} .hh-lo-ct').innerText`);
+            assert.match(chu, /12\s*%/, `thấy số của dòng mức riêng: ${chu.slice(0, 200)}`);
+            assert.ok(chu.includes("Đang áp dụng"), "thấy trạng thái");
+            assert.ok(chu.includes("Danh bạ"), "có liên kết hồ sơ ở Danh bạ");
+            assert.equal(await p.ev(`document.querySelectorAll('[role=button] button').length`), 0, "không có vai nút nào chứa nút thật");
+            await bocucSach(p, `bước 2b mở đối tác ${kho}`);
+            await axeKiem(p, `đối tác mở ${kho}`);
+            await chup(p, `18-doi-tac-mo-ra-${tenKho}`);
+            // Đổi dòng 12% -> 14%
+            await moDoi(p, R3_DOI.id, tenKho);
+            await p.ev(setInput("document.getElementById('hh-doi-ty-le')", "14"));
+            assert.equal(await clickTrong(p, ".sheet", "Đổi mức"), true);
+            await choOk(p, "Đã đổi mức.");
+            await choDongHop(p);
+            let dong = await cacDong(p);
+            assert.equal(dong.find((r) => r.id === R3_DOI.id).denNgay, homQua, "dòng cũ của đối tác ngừng hôm qua");
+            assert.ok(dong.some((r) => r.doiTuong.partyId === ORG3.id && r.id !== R3_DOI.id && r.tyLeBp === 1400), "dòng mới 14% của đối tác");
+            assert.equal(await p.ev(`document.querySelector('${sel} .hh-loai-nut').getAttribute('aria-expanded')`), "true", "đối tác vẫn mở sau khi vẽ lại");
+            // Ngừng dòng «Mọi dịch vụ»
+            if (tenKho === "390") {
+              assert.equal(await bam(p, `li[data-dong-id="${R3_NGUNG.id}"] .hh-m-vung`), true, "chạm dòng");
+              await choHop(p, ".sheet .sheet-foot");
+              assert.equal(await clickTrong(p, ".sheet", "Ngừng"), true, "nút Ngừng trong hộp hai việc");
+            } else {
+              assert.equal(await p.ev(`(() => { const b = document.querySelector('li[data-dong-id="${R3_NGUNG.id}"] button[aria-label^="Ngừng:"]'); if (!b) return false; b.click(); return true; })()`), true, "nút Ngừng của dòng");
+            }
+            await choHop(p, "#hh-ngung-ngay");
+            assert.equal(await clickTrong(p, ".sheet", "Ngừng"), true);
+            await choOk(p, "Đã ngừng.");
+            await choDongHop(p);
+            dong = await cacDong(p);
+            assert.notEqual(dong.find((r) => r.id === R3_NGUNG.id).denNgay, null, "dòng «Mọi dịch vụ» của đối tác đã có ngày ngừng");
+            await bocucSach(p, `bước 2b ${kho}`);
           });
 
           await buoc(`3${kho}`, "«Đổi» dòng mức riêng: Từ = hôm nay → cũ ngừng hôm qua; Từ = hôm nay + 5 → cũ ngừng hôm nay + 4", async () => {

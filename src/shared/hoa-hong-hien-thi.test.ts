@@ -20,6 +20,7 @@ import {
   cauSeTao,
   cauCanhBaoTheoChinhSach,
   ghepDoiTacRieng,
+  dongRiengDoiTac,
   nutDoiNgung,
   tomTatMuc,
   xepLoai,
@@ -257,4 +258,20 @@ test("PR2 Đợt 3 (R17): ghepDoiTacRieng — mức riêng ĐANG và SẮP áp d
     muc({ id: "ngung", doiTuong: dt("p3", "Ngừng"), conHieuLuc: false, tuNgay: "2026-01-01", denNgay: "2026-03-31" }),
   ];
   assert.deepEqual(ghepDoiTacRieng(dong, [], homNay).map((x) => x.partyId), ["p1", "p2"]);
+});
+
+test("R25: dongRiengDoiTac — chỉ dòng của đúng đối tác, theo bộ lọc trạng thái và ô tìm", () => {
+  const homNay = "2026-06-01";
+  const dt = (partyId: string, ten: string) => ({ loai: "DOI_TAC" as const, partyId, ten });
+  const dong = [
+    muc({ id: "a", doiTuong: dt("p1", "Hoa Nguyễn"), conHieuLuc: true }),
+    muc({ id: "b", doiTuong: dt("p1", "Hoa Nguyễn"), conHieuLuc: false, tuNgay: "2026-01-01", denNgay: "2026-03-31" }),
+    muc({ id: "c", doiTuong: dt("p2", "Khác"), conHieuLuc: true }),
+    muc({ id: "d" }),
+  ];
+  const ten = {} as never;
+  assert.deepEqual(dongRiengDoiTac(dong, "p1", { chiConHieuLuc: true, tim: "" }, homNay, ten).map((x) => x.id), ["a"]);
+  assert.deepEqual(dongRiengDoiTac(dong, "p1", { chiConHieuLuc: false, tim: "" }, homNay, ten).map((x) => x.id), ["a", "b"]);
+  assert.deepEqual(dongRiengDoiTac(dong, "p1", { chiConHieuLuc: true, tim: "hoa nguyen" }, homNay, ten).map((x) => x.id), ["a"]);
+  assert.deepEqual(dongRiengDoiTac(dong, "p2", { chiConHieuLuc: true, tim: "hoa nguyen" }, homNay, ten).map((x) => x.id), []);
 });
