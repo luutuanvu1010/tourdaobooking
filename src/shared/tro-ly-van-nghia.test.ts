@@ -190,13 +190,15 @@ test("C4: kho THẬT + mọi véc-tơ đoạn trực giao câu hỏi ⇒ chỉ c
   // 2026-10-23 (ADR-0030 điều 1, nút Từ chối): hướng dẫn HDV / Bán hàng / Quản trị thêm chữ «Từ chối đơn», «người lập đơn», bảng tên kho cấu trúc thêm ô `dispatch.refuse`
   // ⇒ đo lại bằng chính bài này: 17 / 10 / 45 — MỘT đoạn chứa «lập đơn» vượt ngưỡng (mục «Trả đơn (Từ chối)» của HDV: «báo người lập đơn đổi người phụ trách»). Luật không đổi,
   // trần 12 vẫn cắt; các tên đoạn khoá dưới đây giữ nguyên.
-  assert.deepEqual([dem("sao app khó dùng thế"), dem("đổi mã PIN thế nào"), dem("lập đơn mới ra sao")], [17, 10, 45]);
+  // 2026-10-26 (ADR-0136, ô quyền `order.confirm.review`): mô tả ô trong bảng tên kho cấu trúc nói «Người lập đơn không tự quyết đơn của mình…» ⇒ đo lại bằng chính bài này:
+  // 17 / 10 / 46 — MỘT đoạn chứa «lập đơn» vượt ngưỡng của câu lập đơn. Luật không đổi, trần 12 vẫn cắt; các tên đoạn khoá dưới đây giữ nguyên.
+  assert.deepEqual([dem("sao app khó dùng thế"), dem("đổi mã PIN thế nào"), dem("lập đơn mới ra sao")], [17, 10, 46]);
   // 2026-10-05 (1.81, Đợt 7): Trợ giúp thêm câu về hai ô "Xe riêng" / "Xe tối thiểu" (Bán hàng, Quản trị) và bỏ vài dòng trùng ý ⇒ hai đoạn nữa vượt ngưỡng tương đối của câu than phiền (15 → 17); luật không đổi, trần 12 vẫn cắt.
   const thanPhien = chonDoanTron("sao app khó dùng thế", mot(0), kho, vec, ["SALES"]).map((x) => x.doan.ten);
   assert.equal(thanPhien.length, SO_DOAN_TOI_DA);
   assert.ok(thanPhien.includes("Phần chung › Câu hỏi thường gặp"), JSON.stringify(thanPhien));
   assert.ok(!thanPhien.some((t) => t.includes("Điều phối xe")), JSON.stringify(thanPhien));
-  // 44 khớp mạnh ⇒ RRF + trần 12 đoạn / 6.000 token chọn tiếp (F7: khoá tên cụ thể, không chỉ "có đoạn").
+  // 46 khớp mạnh ⇒ RRF + trần 12 đoạn / 6.000 token chọn tiếp (F7: khoá tên cụ thể, không chỉ "có đoạn").
   const lapDon = chonDoanTron("lập đơn mới ra sao", mot(0), kho, vec, ["SALES"]).map((x) => x.doan.ten);
   assert.equal(lapDon.length, SO_DOAN_TOI_DA);
   assert.equal(lapDon[0], "Cấu trúc Nền tảng › Việc: lập đơn mới");

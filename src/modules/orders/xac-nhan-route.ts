@@ -21,7 +21,7 @@ import { daHuy, findOrder, getMeta, nextStamp, soanHuyDon, soanXacNhan } from ".
 import { MOC_CHUA_CO, RACED, STALE, chanDoanXacNhan, chayLoNoiChuyen, dichLoiXacNhan, kemChupXacNhan, kiemCongXacNhan, tinhCanXacNhan } from "./xac-nhan-chung";
 import { confirmWindow } from "./service-rules";
 
-const NHAN_VI: Record<LyDoCanXacNhan, string> = { DICH_VU: "dịch vụ cần xác nhận", DAT_GAP: "chặng đón dưới hạn chốt, cần đặt gấp" };
+const NHAN_VI: Record<LyDoCanXacNhan, string> = { DICH_VU: "dịch vụ cần xác nhận", DAT_GAP: "lượt đón dưới hạn chốt, cần đặt gấp" };
 const dtoYeuCau = (y: YeuCauRow, vi: LyDoCanXacNhan[], nowMs: number): YeuCauXacNhanDto => ({ id: y.id, guiLuc: y.submitted_at, hanLuc: y.deadline_at, quaHan: quaHanXacNhan(y.deadline_at, nowMs), vi });
 const NOT_FOUND_DON = () => error(404, "not_found", "Không tìm thấy đơn.");
 const DA_GIAO_DON = () => error(409, "order_delivered", "Đơn đã ở bước Đã giao – đã thu đủ: không sửa, huỷ hay đổi người phụ trách được nữa.");
@@ -112,6 +112,7 @@ export const xacNhanRoutes = [
     if (!meta) return NOT_FOUND_DON();
     if (!chiNguoiLapGhiNhap({ status: meta.status, laNguoiLap: meta.staffId === staff.id })) return NOT_FOUND_DON();
     if (!can(staff, "order.modify", { ownerId: meta.staffId, assigned })) return FORBIDDEN_NGUOI_LAP();
+    if (meta.deliveredAt) return DA_GIAO_DON();
     if (meta.status !== "draft" || meta.staffId !== staff.id) return error(409, "confirm_not_open", "Đơn này không có yêu cầu xác nhận đang chờ.");
     const y = await yeuCauMoCuaDon(env.DB, id);
     if (!y) return error(409, "confirm_not_open", "Đơn này không có yêu cầu xác nhận đang chờ.");
@@ -144,6 +145,7 @@ export const xacNhanRoutes = [
     if (typeof body?.yeuCauId !== "string" || body.yeuCauId === "" || typeof body?.updatedAt !== "string" || body.updatedAt === "") return error(400, "invalid_input", "Thiếu yêu cầu xác nhận hoặc mốc cập nhật của đơn — tải lại rồi thử lại.");
     const meta = await getMeta(env.DB, id);
     if (!meta) return NOT_FOUND_DON();
+    if (meta.deliveredAt) return DA_GIAO_DON();
     const y = await yeuCauMoCuaDon(env.DB, id);
     if (meta.status !== "draft") return RACED();
     if (!y) {

@@ -25,6 +25,7 @@ const MIEN: { route: string; lyDo: string }[] = [
   { route: "POST /api/orders", lyDo: "tạo đơn MỚI — không có đơn đã Đã giao nào để khoá" },
   // ADR-0061 điều 6 (miễn trừ có tên, chủ duyệt kèm ADR): bảng ord_manual_service_policy thuộc orders nên route nằm ở orders (chỉ module chủ ghi bảng).
   { route: "POST /api/cai-dat/nhap-tay", lyDo: "đổi chính sách nhập tay toàn hệ thống, không ghi đơn nào, không có đơn để khoá" },
+  { route: "POST /api/cai-dat/xac-nhan-don", lyDo: "đổi cờ «cần xác nhận» / công tắc tự xác nhận toàn hệ thống (ADR-0136 Đ1, Đ5), không ghi đơn nào, không có đơn để khoá" },
   { route: "POST /api/cai-dat/khung-gio-don", lyDo: "đổi khung giờ đón toàn hệ thống (ADR-0134 Đ6), không ghi đơn nào, không có đơn để khoá" },
   // ADR-0089 đ8: phân loại lý do huỷ chỉ chạy trên ĐƠN ĐÃ HUỶ; đơn đã Đã giao không huỷ được (ADR-0025 đ1) ⇒ route trả 409 invalid_state "đơn chưa huỷ".
   // ADR-0032: hai route cài đặt / đặt lại hạn mức Từ chối của dispatch — không ghi đơn nào (sổ sự kiện + cài đặt), không có đơn để khoá.
@@ -55,6 +56,10 @@ const CA: Record<string, unknown> = {
   "POST /api/orders/:id/thuong-mai/:serviceId": { lyDo: "thoả thuận miệng với CTV Lan", hoaHong: { kieu: "RATE", tyLeBp: 1500 } },
   // Sổ đại lý đợt 2 (Task 6): «Chụp bù» — không thân; đơn Đã giao ⇒ 409 order_delivered trước bước đếm bản chụp.
   "POST /api/orders/:id/chup-bu": {},
+  // ADR-0136 (Task 3.3): ba route của bước xác nhận — đơn Đã giao đã xác nhận, không còn là nháp ⇒ 409 order_delivered TRƯỚC mọi bước kiểm khác. Thân quyết định hợp lệ (route kiểm thân trước).
+  "POST /api/orders/:id/gui-xac-nhan": {},
+  "POST /api/orders/:id/rut-xac-nhan": {},
+  "POST /api/orders/:id/quyet-dinh": { ketQua: "CON_VE", yeuCauId: "99999999-9999-4999-8999-000000000099", updatedAt: "x" },
   // ADR-0030 điều 1 (nút Từ chối): chỉ CHÍNH người phụ trách qua được chốt đúng người (Toàn quyền không phụ trách → 403 có chủ ý) ⇒ dòng này gọi bằng người phụ
   // trách của đơn khoá (HDV, xem NGUOI_GOI) — vẫn phải 409 order_delivered.
   "POST /api/orders/:id/handler-refuse": { lyDo: "BAN_LICH" },
