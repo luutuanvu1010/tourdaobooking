@@ -58,12 +58,13 @@ const donThuong = async (ten, noi, extra = {}) => {
   assert.equal((await call(SALES, "POST", `/api/orders/${x.body.order.id}/status`, { status: "confirmed" })).status, 200);
   return x.body.order;
 };
-r = await call(ADMIN, "POST", `/api/orders/${a.id}/status`, { status: "confirmed" });
+// ADR-0135 Đ2 + ADR-0136: nháp của Đối tác là riêng tư, Quản trị không xác nhận thay (404); Đối tác tự «Gửi đơn» (nhánh B, không dịch vụ cần xác nhận) → đơn đã xác nhận
+r = await call(PARTNER, "POST", `/api/orders/${a.id}/gui-don`, {});
 assert.equal(r.status, 200, JSON.stringify(r.body));
 const b = await donThuong([P(3), P(4)], `Khách sạn Cam Kết B ${duoi}`, { minVehicleSeats: 16 }); // ADR-0128 Q2: đòi ≥ 16 chỗ (xe 15) — vi phạm phá lệ được
 const c = await donThuong([P(5), P(6)], `Khách sạn Cam Kết C ${duoi}`, { minVehicleSeats: 16 });
 const legA = a.services[0].legs[0].id, legB = b.services[0].legs[0].id, legC = c.services[0].legs[0].id;
-console.log("✓ (1) Đối tác lập nháp có xe riêng → 201, cờ đọc lại đúng; văn phòng xác nhận A; B, C đòi ≥ 16 chỗ");
+console.log("✓ (1) Đối tác lập nháp có xe riêng → 201, cờ đọc lại đúng; Đối tác Gửi đơn A; B, C đòi ≥ 16 chỗ");
 
 // --- (2a) xếp A (xe riêng); xếp B → 409 chặn cứng (ADR-0128 Q2); rút A. (2) xếp B (đòi ≥ 16 chỗ) → 409; Bán hàng phá lệ → 403 (chuyến NGÀY MAI — ngoài mốc, lớp QUAN_TRI; ADR-0104 Đ1); Quản trị phá lệ → 200 ---
 r = await call(SALES, "POST", "/api/van-chuyen/chuyen", { requestId: uuid(), xeId, taiXePartyId: txParty, batDau: { ngay: D, gio: "09:30" }, ketThuc: { ngay: D, gio: "12:00" } });

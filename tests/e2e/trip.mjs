@@ -156,7 +156,7 @@ try {
   for (let round = 0; round < 5; round++) {
     const d = (await post([motor()])).body.order;
     const clear = put(d, [motor({ id: d.services[0].id, departDate: "" })]);
-    const [p, c] = await Promise.all([clear, confirm(ADMIN, d)]);
+    const [p, c] = await Promise.all([clear, confirm(A, d)]); // người lập xác nhận (ADR-0135 Đ2: Quản trị không xử lý nháp của người khác)
     const now = (await get(A, d)).order;
     // Mỗi bên chỉ được 200 hoặc 409 SẠCH — không 500. Nếu điều kiện xác nhận không nằm trong câu UPDATE mà chỉ có trigger đỡ phía sau,
     // bên thua trả 500 (trigger ném lỗi) dù trạng thái cuối vẫn đúng: bài đua này là chốt duy nhất cho yêu cầu đó.

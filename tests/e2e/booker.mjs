@@ -185,6 +185,6 @@ r = await call(SALES, "PUT", B(cur.id), { customerName: "Y", customerPhone: "090
 assert.equal(r.status, 409);
 assert.equal(r.body.error.code, "not_editable");
 assert.equal((await call(SALES, "PUT", B("00000000-0000-0000-0000-000000000000"), body)).status, 404);
-assert.equal((await call(ADMIN, "PUT", B(linked.id), { customerName: "", customerPhone: "0909000111", expectedUpdatedAt: "x" })).status, 400);
+assert.equal((await call(SALES, "PUT", B(linked.id), { customerName: "", customerPhone: "0909000111", expectedUpdatedAt: "x" })).status, 400);
 console.log("✓ đơn đã huỷ không đổi khách được; 404; 400");
 console.log("E2E OK");
