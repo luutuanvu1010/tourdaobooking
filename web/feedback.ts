@@ -2,16 +2,15 @@
 // thành viên nhóm (và Toàn quyền) có tab "Hàng đợi nhóm" (lọc, nhận việc); Toàn quyền có thêm tab "Quản lý nhóm".
 // Dữ liệu qua /api/feedback*. Chuỗi từ người dùng chỉ đi qua h()/textContent. Địa chỉ: /feedback (danh sách), ?id=<uuid> (luồng), ?new=1&from=<đường dẫn> (mở form).
 // Giao diện chỉ ẩn/hiện theo `teams` / `perms` máy chủ trả về; máy chủ (quyenPhieu) luôn kiểm lại.
-import { FEEDBACK_KINDS, FEEDBACK_KIND_NAME, FEEDBACK_STATUS_NAME, FEEDBACK_TRANSITIONS, SAC_TRANG_THAI, buocGopY, nhanNutChuyen } from "../src/shared/feedback-catalog";
-import { NHOM_KY_THUAT_ID, PRIORITIES, PRIORITY_NAME, TEAM_ROLE_NAME, TEAM_ROLES, type Priority, type TeamRole } from "../src/shared/ve-ho-tro";
-import {
-  LAM_MOI_GOI_NGAY_TOI_DA, NHAN_TAB, buocLamMoi, chuKyLamMoi, dauPhieuDoi, hienNhanViec, nguoiXuLyHienThi, nhanDonChon, nhomChuyenDuoc, nhomHangDoi, tabHoTro, type TabHoTro,
-} from "../src/shared/ve-ho-tro-hien-thi";
+import { FEEDBACK_KINDS, FEEDBACK_KIND_NAME } from "../src/shared/feedback-catalog";
+import { NHOM_KY_THUAT_ID, TEAM_ROLE_NAME, TEAM_ROLES, type TeamRole } from "../src/shared/ve-ho-tro";
+import { NHAN_TAB, nhanDonChon, nhomHangDoi, tabHoTro, type TabHoTro } from "../src/shared/ve-ho-tro-hien-thi";
 import { can, isExternalPermission } from "../src/shared/permissions";
 import { ApiError, api, type Api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
 import { veDanhSach } from "./ho-tro-danh-sach";
-import { initShell, showError } from "./shell";
+import { dungLuong, moLuong, type NgCanhLuong } from "./ho-tro-luong";
+import { datThanhTab, initShell, showError } from "./shell";
 
 declare const __BUILD_ID__: string | undefined;
 
@@ -132,7 +131,7 @@ function nutNhanViec(t: Api.FeedbackTicketDto, nhan: string, after: () => void):
 
 // ---- Khung: thanh thẻ + danh sách (PR 3) -------------------------------------------------------------------------
 // Danh sách hai thẻ nằm ở web/ho-tro-danh-sach.ts; thẻ «Nhóm hỗ trợ» (quản lý nhóm) còn ở file này cho tới Task 5.
-const idDangMo = params.get("id");
+let idDangMo = params.get("id");
 let dsDangDung: { napLai(): void } | null = null;
 let theDangDung: TabHoTro | null = null;
 let demHangDoi = 0;
@@ -186,7 +185,7 @@ async function loadList(): Promise<void> {
     }
     return;
   }
-  if (idDangMo) byId("ht-luong").hidden = false;
+  if (idDangMo) byId("ht-luong").hidden = false; // luồng đang mở vẫn hiện khi đổi thẻ ở máy tính
   if (dsDangDung && theDangDung === tab) dsDangDung.napLai();
   else {
     theDangDung = tab;
@@ -195,10 +194,12 @@ async function loadList(): Promise<void> {
       nhom: tab === "queue" ? hangDoiChon : [],
       nhomMacDinh: queueTeam,
       staffId: staff.id,
-      dangMo: idDangMo,
+      get dangMo() {
+        return idDangMo;
+      },
       nutNhanViec,
       baoLoi: fail,
-      moYeuCau: (yc) => location.assign(`/feedback?id=${encodeURIComponent(yc)}`), // Task 3 chuyển sang mở tại chỗ
+      moYeuCau,
     });
   }
   void napHuyHieu();
@@ -292,341 +293,66 @@ function formTaoNhom(): HTMLElement {
   );
 }
 
-// ---- Luồng một yêu cầu -------------------------------------------------------------------------------------------
-/** ≥ 900px: hiện đồng thời danh sách + luồng (2 cột). Dưới 900px: mở luồng thì ẩn danh sách như cũ (Đợt C Task 3). */
-const wide = (): boolean => window.matchMedia("(min-width: 900px)").matches;
+// ---- Luồng một yêu cầu: mở tại chỗ (web/ho-tro-luong.ts) ----------------------------------------------------------------
+// Địa chỉ `?id=` giữ trên thanh địa chỉ: mở = pushState (nút quay lại của trình duyệt đóng luồng), mở thẳng từ `?id=` = đóng bằng replaceState.
+const ngCanh: NgCanhLuong = {
+  staffId: staff.id,
+  teams,
+  dong: () => dongLuong(),
+  napLaiDs: () => dsDangDung?.napLai(),
+  chuyenXong: () => location.replace("/feedback?chuyen=1"),
+};
 
-/** Bản nháp ô trả lời theo phiếu: giữ qua mọi lần dựng lại khung (đổi trạng thái, mức ưu tiên, giao việc) — chỉ xoá khi gửi thành công. */
-const banNhap = new Map<string, { body: string; internal: boolean }>();
-
-/**
- * Tự làm mới khung trò chuyện (ADR-0127, đặc tả 2.1). MỘT vòng cho cả trang: mỗi lần loadThread() tăng `doiLuong`; vòng / lời gọi của đời cũ thấy đời đổi thì bỏ
- * (không vẽ trạng thái cũ đè lên kết quả lệnh ghi vừa xong). Hẹn giờ bằng setTimeout nối nhau sau khi lời gọi trước xong ⇒ không bao giờ hai lời gọi chồng nhau.
- * Không gọi fail() (dòng báo lỗi không nháy mỗi 5 giây): 404/403 ⇒ dừng hẳn kèm câu báo; lỗi khác (mạng…) ⇒ bỏ qua lần đó. Tuyến làm mới không ghi «đã xem».
- */
-interface LamMoi {
-  doi: number;
-  id: string;
-  tin: Api.FeedbackMessageDto[];
-  since: string;
-  /** Giờ tạo phiếu: mốc khi chưa có tin nào. */
-  macDinh: string;
-  dau: Api.FeedbackMessagesSinceResponse["ticket"];
-  hen?: ReturnType<typeof setTimeout>;
-  dangGoi: boolean;
-  dung: boolean;
-  /** Vẽ phần trả về lên khung (do loadThread dựng, giữ tham chiếu tới đúng các phần tử của đời đó). */
-  ve: (r: Api.FeedbackMessagesSinceResponse, moi: Api.FeedbackMessageDto[]) => void;
-  dungVi: () => void;
-}
-let doiLuong = 0;
-let lm: LamMoi | null = null;
-
-function henLamMoi(s: LamMoi): void {
-  clearTimeout(s.hen);
-  s.hen = undefined;
-  if (s.dung || s.doi !== doiLuong || document.visibilityState !== "visible") return; // ẩn tab: dừng; hiện lại thì visibilitychange gọi ngay
-  s.hen = setTimeout(() => void vongLamMoi(s), chuKyLamMoi(s.dau.status));
+function danhDauDangMo(id: string | null): void {
+  idDangMo = id;
+  for (const el of document.querySelectorAll<HTMLElement>(".ht-dong")) el.classList.toggle("is-dang-mo", id !== null && el.dataset.ticket === id);
 }
 
-async function vongLamMoi(s: LamMoi, lanGoiNgay = 0): Promise<void> {
-  if (s.dung || s.dangGoi || s.doi !== doiLuong || document.visibilityState !== "visible") return;
-  s.dangGoi = true;
-  let r: Api.FeedbackMessagesSinceResponse;
-  try {
-    r = await api<Api.FeedbackMessagesSinceResponse>(`/api/feedback/${s.id}/messages?since=${encodeURIComponent(s.since)}`);
-  } catch (err) {
-    s.dangGoi = false;
-    if (s.doi !== doiLuong) return;
-    if (err instanceof ApiError && (err.status === 404 || err.status === 403)) {
-      s.dung = true;
-      s.dungVi();
-      return;
-    }
-    henLamMoi(s); // lỗi mạng / máy chủ: bỏ qua lần này
-    return;
+/** Hiện luồng của `id` (không đụng địa chỉ). Điện thoại: toàn màn và ẩn thanh tab. */
+function hienLuong(id: string): void {
+  danhDauDangMo(id);
+  document.body.classList.add("ht-luong-mo");
+  datThanhTab(false);
+  const goc = byId("ht-luong");
+  goc.hidden = false;
+  moLuong(goc, id, ngCanh);
+}
+
+/** Ẩn luồng (không đụng địa chỉ): mọi đường đóng đều đi qua đây nên thanh tab luôn hiện lại. */
+function anLuong(): void {
+  dungLuong();
+  danhDauDangMo(null);
+  document.body.classList.remove("ht-luong-mo");
+  datThanhTab(true);
+  byId("ht-luong").hidden = true;
+  replaceChildren(byId("ht-luong"));
+}
+
+function moYeuCau(yc: string): void {
+  const url = `/feedback?id=${encodeURIComponent(yc)}`;
+  // Đang có luồng mở (máy tính, bấm sang dòng khác): thay mục lịch sử, không chồng thêm — nút quay lại vẫn đóng luồng bằng MỘT lần bấm.
+  if (idDangMo !== null) history.replaceState(history.state, "", url);
+  else history.pushState({ htLuong: true }, "", url);
+  hienLuong(yc);
+}
+
+function dongLuong(): void {
+  if (history.state?.htLuong) history.back(); // popstate lo phần còn lại
+  else {
+    history.replaceState(null, "", "/feedback");
+    anLuong();
   }
-  s.dangGoi = false;
-  if (s.doi !== doiLuong || s.dung) return;
-  const b = buocLamMoi(s.tin, r.messages, s.macDinh);
-  s.tin = b.tin;
-  s.since = b.since;
-  s.ve(r, b.moi);
-  s.dau = r.ticket;
-  if (b.goiNgay && lanGoiNgay < LAM_MOI_GOI_NGAY_TOI_DA) return void vongLamMoi(s, lanGoiNgay + 1);
-  henLamMoi(s);
 }
 
-document.addEventListener("visibilitychange", () => {
-  if (!lm) return;
-  if (document.visibilityState === "visible") {
-    clearTimeout(lm.hen);
-    lm.hen = undefined;
-    void vongLamMoi(lm);
-  } else {
-    clearTimeout(lm.hen); // tab ẩn: không gọi gì
-    lm.hen = undefined;
-  }
+window.addEventListener("popstate", () => {
+  const moi = new URLSearchParams(location.search).get("id");
+  if (moi) hienLuong(moi);
+  else anLuong();
 });
 
-/** Một bong bóng tin: của mình bên phải, của người khác bên trái, ghi chú nội bộ viền riêng. Giữ lớp `card` (kịch bản Chrome đợt 1 tìm tin theo `#thread .card`). */
-const bongBong = (m: Api.FeedbackMessageDto): HTMLElement =>
-  h("div", { class: `card fb-tin${m.mine ? " is-minh" : ""}${m.internal ? " is-noi-bo" : ""}`, "data-tin": m.id },
-    h("div", { class: "muted fb-tin-dau" }, `${m.authorName ?? "?"} · ${when(m.createdAt)}`, m.internal && h("span", { class: "badge badge-draft" }, "Ghi chú nội bộ")),
-    h("p", null, m.body));
-
-/** Chèn bong bóng còn thiếu đúng vị trí theo danh sách đã gộp — không dựng lại các tin đang hiện (không mất chỗ đang đọc). */
-function veTin(ds: HTMLElement, tin: readonly Api.FeedbackMessageDto[]): void {
-  const coSan = new Map<string, Element>();
-  for (const el of ds.querySelectorAll("[data-tin]")) coSan.set(el.getAttribute("data-tin") ?? "", el);
-  let cur: Element | null = ds.firstElementChild;
-  for (const m of tin) {
-    const el = coSan.get(m.id) ?? bongBong(m);
-    if (el === cur) cur = cur.nextElementSibling;
-    else ds.insertBefore(el, cur);
-  }
-}
-
-/** Người xem đang ở gần cuối trang (đọc tin mới nhất / đang gõ trả lời) — chỉ khi đó mới cuộn theo tin mới. */
-const oCuoiTrang = (): boolean => window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 160;
-
-async function loadThread(id: string): Promise<void> {
-  const doiNay = ++doiLuong;
-  if (lm) {
-    clearTimeout(lm.hen);
-    lm.dung = true;
-    lm = null;
-  }
-  byId("ht-danh-sach").hidden = !wide();
-  byId("ht-tabs").hidden = !wide();
-  const box = byId("ht-luong");
-  box.hidden = false;
-  let d: Api.FeedbackDetailResponse | null = null;
-  let loiMo = "";
-  try {
-    d = await api<Api.FeedbackDetailResponse>(`/api/feedback/${id}`);
-  } catch (err) {
-    fail(err);
-    loiMo = err instanceof ApiError ? err.message : "Không kết nối được máy chủ.";
-  }
-  if (doiNay !== doiLuong) return; // đã có lần nạp mới hơn
-  // ≥ 900px danh sách hiện cạnh luồng: nạp lại SAU lời gọi trên (máy chủ vừa đánh dấu đã xem) — gọi mỗi lần loadThread() chạy
-  // (mở, trả lời, đổi trạng thái) để danh sách không giữ trạng thái "Mới" cũ khi yêu cầu đã xong (góp ý 1/10). Vòng tự làm mới KHÔNG nạp danh sách.
-  if (wide()) void loadList();
-  if (!d) {
-    // Câu lỗi ghi NGAY trong khung luồng: ≥ 900px loadList() phía trên xoá dòng báo lỗi chung khi dựng lại danh sách.
-    replaceChildren(box, h("a", { href: "/feedback" }, "← Quay lại"), h("p", { class: "muted", id: "fb-loi-mo" }, loiMo));
-    return;
-  }
-  const t = d.ticket;
-  const perms = d.perms;
-  const reload = () => void loadThread(id);
-  const nhap = banNhap.get(id) ?? { body: "", internal: false };
-  const body = h("textarea", { rows: 4, maxLength: 4000, placeholder: "Viết phản hồi…", value: nhap.body });
-  const internal = h("input", { type: "checkbox", checked: perms.xuLy && nhap.internal });
-  const luuNhap = () => banNhap.set(id, { body: body.value, internal: internal.checked });
-  body.addEventListener("input", luuNhap);
-  internal.addEventListener("change", luuNhap);
-  const send = h("button", { type: "button", class: "btn btn-primary btn-chinh" }, "Gửi");
-  send.addEventListener("click", async () => {
-    const r = await act(() => api<Api.FeedbackDetailResponse>(`/api/feedback/${id}/messages`, { method: "POST", body: { body: body.value, internal: perms.xuLy && internal.checked } }), send);
-    if (!r) return;
-    banNhap.delete(id);
-    reload();
-  });
-
-  const khoiDau = h("div", { id: "fb-dau" }, ...dungDau(t, perms, reload));
-  // Khối chuyển nhóm chỉ có khi phiếu còn mở: vòng làm mới thấy trạng thái đổi (đóng / mở lại) thì dựng lại ngay sau khối đầu.
-  const dungChuyen = (): HTMLElement | null => (perms.chuyenNhom && t.status !== "DONE" && t.status !== "DECLINED" ? khoiChuyenNhom(t) : null);
-  let khoiChuyen = dungChuyen();
-  const tinDs = h("div", { class: "fb-tin-ds", id: "fb-tin-ds" });
-  veTin(tinDs, d.messages);
-  const traLoi = h("div", { id: "fb-tra-loi" }, h("label", null, "Trả lời", body), perms.xuLy && h("label", null, internal, " Ghi chú nội bộ (người gửi không thấy)"), send);
-  const baoDung = h("p", { class: "alert", role: "status", id: "fb-lam-moi-dung", hidden: true });
-  const baoChuyen = h("p", { class: "muted", role: "status", id: "fb-da-doi-nhom", hidden: true }, "Phiếu vừa được chuyển sang nhóm khác. ",
-    h("button", { type: "button", class: "btn btn-link", onclick: reload }, "Tải lại phiếu"));
-  replaceChildren(
-    box,
-    h("a", { href: "/feedback" }, "← Danh sách"),
-    h("h2", null, `${t.code} · ${t.title}`),
-    h("p", { class: "muted" }, `${t.teamName} · ${t.kindName}${t.resolvedIn ? ` · sửa ở bản ${t.resolvedIn}` : ""} · ${t.submitterName ?? ""} · ${when(t.createdAt)}`),
-    t.orderId && t.orderCode
-      ? h("p", { id: "fb-don" }, "Đơn liên quan: ", h("a", { href: `/order?id=${encodeURIComponent(t.orderId)}` }, t.orderCode))
-      : null,
-    t.context.path || t.context.device || t.context.appVersion || (t.context.orderCode && !t.orderCode)
-      ? h("p", { class: "muted" }, [t.context.path && `Trang: ${t.context.path}`, !t.orderCode && t.context.orderCode && `Đơn: ${t.context.orderCode}`, t.context.device && `Thiết bị: ${t.context.device}`, t.context.appVersion && `Bản: ${t.context.appVersion}`].filter(Boolean).join(" · "))
-      : null,
-    baoDung,
-    baoChuyen,
-    khoiDau,
-    khoiChuyen,
-    tinDs,
-    traLoi,
-  );
-
-  const s: LamMoi = {
-    doi: doiNay,
-    id,
-    tin: [],
-    since: "",
-    macDinh: t.createdAt,
-    dau: { status: t.status, assigneeId: t.assigneeId, assigneeName: t.assigneeName, assigneeActive: t.assigneeActive, priority: t.priority, teamId: t.teamId },
-    dangGoi: false,
-    dung: false,
-    ve: (r, moi) => {
-      if (moi.length) {
-        const cuoi = oCuoiTrang();
-        veTin(tinDs, s.tin);
-        if (cuoi) window.scrollTo({ top: document.documentElement.scrollHeight });
-      }
-      if (r.ticket.teamId !== t.teamId) baoChuyen.hidden = false; // quyền trên nhóm mới (perms) chỉ có ở tuyến chi tiết: người xem tự bấm tải lại
-      if (dauPhieuDoi(s.dau, r.ticket)) {
-        const doiTrangThai = r.ticket.status !== t.status;
-        Object.assign(t, { status: r.ticket.status, statusName: FEEDBACK_STATUS_NAME[r.ticket.status], assigneeId: r.ticket.assigneeId, assigneeName: r.ticket.assigneeName, assigneeActive: r.ticket.assigneeActive, priority: r.ticket.priority });
-        replaceChildren(khoiDau, ...dungDau(t, perms, reload));
-        if (doiTrangThai) {
-          const moi = dungChuyen();
-          if (khoiChuyen) khoiChuyen.replaceWith(...(moi ? [moi] : []));
-          else if (moi) khoiDau.after(moi);
-          khoiChuyen = moi;
-        }
-      }
-    },
-    dungVi: () => {
-      baoDung.textContent = "Phiếu này không còn trong nhóm của bạn.";
-      baoDung.hidden = false;
-      traLoi.hidden = true;
-      khoiDau.hidden = true; // nút đổi trạng thái / mức / giao việc không còn dùng được: ẩn cùng ô trả lời
-      if (khoiChuyen) khoiChuyen.hidden = true;
-    },
-  };
-  const b0 = buocLamMoi([], d.messages, t.createdAt);
-  s.tin = b0.tin;
-  s.since = b0.since;
-  lm = s;
-  henLamMoi(s);
-}
-
-/** Khối đầu phiếu: trạng thái (+ nút chuyển), mức ưu tiên, người xử lý (+ nhận việc / giao cho người khác). Dựng lại khi lần làm mới thấy đầu phiếu đổi. */
-function dungDau(t: Api.FeedbackTicketDto, perms: Api.FeedbackDetailResponse["perms"], reload: () => void): HTMLElement[] {
-  const controls: HTMLElement[] = [];
-  if (perms.xuLy) {
-    for (const to of FEEDBACK_TRANSITIONS[t.status]) {
-      const b = h("button", { type: "button", class: "btn", "data-to": to }, nhanNutChuyen(t.status, to));
-      b.addEventListener("click", async () => {
-        await act(() => api<Api.FeedbackDetailResponse>(`/api/feedback/${t.id}/xu-ly`, { method: "PATCH", body: { status: to } }), b);
-        reload(); // thành công hay 409 (trạng thái đã đổi) đều nạp lại để thấy trạng thái mới; lỗi vẫn hiện ở banner; bản nháp trả lời được giữ
-      });
-      controls.push(b);
-    }
-  }
-  // Khối trạng thái nổi bật (chủ duyệt ảnh c, 30/9): tên trạng thái có màu + thanh bước Mới → Đã tiếp nhận → Đang xử lý → Đã xong; Từ chối là nhánh rẽ.
-  const sac = SAC_TRANG_THAI[t.status];
-  const buoc = buocGopY(t.status);
-  const khoiTrangThai = h(
-    "section",
-    { class: `fb-status is-${sac}`, "aria-label": `Trạng thái: ${t.statusName}` },
-    h("div", { class: "fb-status-nhan" }, sac === "xong" ? "✓ " : sac === "tu-choi" ? "✕ " : "● ", t.statusName),
-    buoc
-      ? h("ol", { class: "fb-steps" }, ...buoc.map((b, i) => h("li", { class: `fb-step is-${b.tinh}`, "aria-current": b.tinh === "dang" ? "step" : undefined },
-          h("span", { class: "fb-step-dot", "aria-hidden": "true" }, b.tinh === "xong" ? "✓" : String(i + 1)), h("span", { class: "fb-step-nhan" }, b.nhan))))
-      : h("p", { class: "muted fb-status-nhanh" }, "Mới → Đã tiếp nhận → Từ chối"),
-    controls.length ? h("div", { class: "fb-status-nut" }, ...controls) : null,
-  );
-  return [khoiTrangThai, khoiUuTien(t, perms.xuLy, reload), ...(perms.xuLy ? [khoiNguoiXuLy(t, perms.giaoViec, reload)] : [])];
-}
-
-/** Mức ưu tiên (ADR-0127): người xử lý chọn bằng ô; người khác chỉ thấy nhãn. Máy chủ kiểm lại (quyenPhieu.xuLy). */
-function khoiUuTien(t: Api.FeedbackTicketDto, xuLy: boolean, reload: () => void): HTMLElement {
-  if (!xuLy) return h("p", { id: "fb-uu-tien-nhan" }, "Mức ưu tiên: ", h("strong", null, PRIORITY_NAME[t.priority]));
-  const chon = h("select", { id: "fb-uu-tien" }, ...PRIORITIES.map((p) => h("option", { value: p, selected: p === t.priority }, PRIORITY_NAME[p])));
-  chon.addEventListener("change", async () => {
-    const r = await act(() => api<Api.FeedbackDetailResponse>(`/api/feedback/${t.id}/xu-ly`, { method: "PATCH", body: { priority: chon.value as Priority } }));
-    if (!r) chon.value = t.priority;
-    reload();
-  });
-  return h("label", { class: "fb-uu-tien-o" }, "Mức ưu tiên", chon);
-}
-
-/**
- * Người xử lý (chỉ nhóm xử lý thấy): tên; người giữ không còn hợp lệ (bị khoá hoặc rời nhóm) hiện tên mờ và phiếu coi như «Chưa ai nhận»; «Nhận việc cho tôi» khi
- * chưa ai nhận; «Giao cho người khác» cho Trưởng nhóm / Toàn quyền (`perms.giaoViec`) — danh sách thành viên tải khi bấm (máy chủ đã loại người gửi, tài khoản khoá, bên ngoài).
- */
-function khoiNguoiXuLy(t: Api.FeedbackTicketDto, giaoViec: boolean, reload: () => void): HTMLElement {
-  const nx = nguoiXuLyHienThi(t);
-  const giao = giaoViec && t.status !== "DONE" && t.status !== "DECLINED" ? nutGiaoViec(t, reload) : null;
-  return h(
-    "div",
-    { id: "fb-nguoi-xu-ly" },
-    nx.kieu === "co" ? `Người xử lý: ${nx.ten}` : h("span", { class: "badge badge-draft" }, "Chưa ai nhận"),
-    nx.kieu === "cu" && h("span", { class: "muted fb-ten-mo" }, ` Người giữ trước: ${nx.ten} (đã nghỉ hoặc rời nhóm)`),
-    " ",
-    hienNhanViec(t, staff.id) && nutNhanViec(t, "Nhận việc cho tôi", reload),
-    giao,
-  );
-}
-
-function nutGiaoViec(t: Api.FeedbackTicketDto, reload: () => void): HTMLElement {
-  const vung = h("div", { class: "fb-giao", id: "fb-giao" });
-  const mo = h("button", { type: "button", class: "btn", "data-giao": t.id }, "Giao cho người khác");
-  mo.addEventListener("click", async () => {
-    const r = await act(() => api<Api.FeedbackMembersResponse>(`/api/feedback/teams/${encodeURIComponent(t.teamId)}/members?ticket=${encodeURIComponent(t.id)}`), mo);
-    if (!r) return;
-    const dangGiu = t.assigneeActive ? t.assigneeId : null;
-    const ds = r.members.filter((m) => m.staffId !== dangGiu);
-    if (ds.length === 0) return void replaceChildren(vung, h("p", { class: "muted" }, "Nhóm chưa có thành viên khác để giao."));
-    const chon = h("select", { id: "fb-giao-chon", "aria-label": "Giao cho" }, ...ds.map((m) => h("option", { value: m.staffId }, `${m.name} · ${TEAM_ROLE_NAME[m.role]}`)));
-    const nut = h("button", { type: "button", class: "btn btn-primary" }, "Giao");
-    nut.addEventListener("click", async () => {
-      if (await act(() => api<Api.FeedbackDetailResponse>(`/api/feedback/${t.id}/xu-ly`, { method: "PATCH", body: { assigneeId: chon.value } }), nut)) reload();
-    });
-    const huy = h("button", { type: "button", class: "btn btn-link", onclick: () => replaceChildren(vung, mo) }, "Huỷ");
-    replaceChildren(vung, h("label", null, "Giao cho", chon), h("div", { class: "fb-status-nut" }, nut, huy));
-  });
-  vung.append(mo);
-  return vung;
-}
-
-/** Chuyển phiếu sang nhóm khác (Trưởng nhóm đang giữ phiếu hoặc Toàn quyền): nhóm nhận + lý do bắt buộc. Sau khi chuyển, người chuyển có thể mất quyền xem — nạp lại sẽ báo. */
-function khoiChuyenNhom(t: Api.FeedbackTicketDto): HTMLElement | null {
-  const dich = nhomChuyenDuoc(teams, t.teamId);
-  if (dich.length === 0) return null;
-  const chon = h("select", { id: "fb-chuyen-nhom" }, ...dich.map((x) => h("option", { value: x.id }, x.name)));
-  const lyDo = h("input", { id: "fb-chuyen-ly-do", type: "text", maxLength: 300 });
-  const nut = h("button", { type: "button", class: "btn" }, "Chuyển");
-  nut.addEventListener("click", async () => {
-    if (!lyDo.value.trim()) return showError(errorEl, "Ghi lý do chuyển nhóm.");
-    const r = await act(() => api<unknown>(`/api/feedback/${t.id}/transfer`, { method: "POST", body: { teamId: chon.value, reason: lyDo.value } }), nut);
-    // Chuyển xong người chuyển thường mất quyền xem phiếu (nhóm mới giữ): về danh sách kèm câu báo, không nạp lại phiếu rồi hiện lỗi.
-    if (r !== undefined) location.replace("/feedback?chuyen=1");
-  });
-  return h(
-    "details",
-    { class: "card", id: "fb-chuyen" },
-    h("summary", null, "Chuyển nhóm"),
-    h("div", { class: "grid" }, h("label", null, "Nhóm nhận", chon), h("label", null, "Lý do", lyDo), h("div", null, nut)),
-  );
-}
-
-const id = params.get("id");
-if (id) {
-  // ≥ 900px: danh sách hiện cùng luồng (Đợt C Task 3) — loadThread() tự nạp nó SAU khi máy chủ đánh dấu đã xem; không gọi song
-  // song ở đây vì lời gọi đó có thể về sau cùng và ghi đè danh sách bằng dữ liệu cũ.
-  void loadThread(id);
-  // Đăng ký MỘT LẦN cho lần tải trang này (loadThread() có thể được gọi lại sau khi gửi trả lời/đổi trạng thái,
-  // nhưng listener chỉ cần gắn một lần ở đây): đổi khổ cửa sổ qua mốc 900px ngay trên trang đang mở luồng
-  // (không load lại trang) phải đồng bộ lại ẩn/hiện danh sách, không chỉ chụp giá trị lúc tải trang.
-  const mq = window.matchMedia("(min-width: 900px)");
-  mq.addEventListener("change", () => {
-    byId("ht-danh-sach").hidden = !mq.matches;
-    byId("ht-tabs").hidden = !mq.matches;
-    // Hẹp → rộng: danh sách vừa hiện lại phải có nội dung ngay, không chỉ khung rỗng
-    // (như đường tải trang khi mở ?id= ở khổ rộng, phía trên).
-    // loadList() tự dựng lại toàn bộ tabs/summary/list từ đầu mỗi lần gọi nên gọi lại nhiều lần (resize qua lại mốc) an toàn.
-    if (mq.matches) void loadList();
-  });
-} else {
+if (idDangMo) hienLuong(idDangMo);
+void loadList();
+if (!idDangMo) {
   if (params.get("chuyen") === "1") byId("ht-tabs").before(h("p", { class: "muted", role: "status", id: "fb-da-chuyen" }, "Đã chuyển nhóm."));
-  void loadList();
   if (params.get("new") === "1") openForm();
 }

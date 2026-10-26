@@ -497,6 +497,14 @@ export async function initShell(): Promise<Staff> {
   return staff;
 }
 
+/**
+ * Ẩn / hiện thanh tab dưới đáy (điện thoại). Trang Hỗ trợ ẩn nó khi mở một yêu cầu toàn màn để ô trả lời dính đáy không chồng lên; mọi đường đóng
+ * (nút quay lại, Esc, nút «‹») phải gọi lại với `true`. Chỉ đổi lớp `tabbar-an` của body; luật CSS nằm ở khối điện thoại của app.css.
+ */
+export function datThanhTab(hien: boolean): void {
+  document.body.classList.toggle("tabbar-an", !hien);
+}
+
 export function showError(el: HTMLElement, message: string | null): void {
   el.textContent = message ?? "";
   el.hidden = !message;

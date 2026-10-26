@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const LOP_CHUNG = "thanh-hanh-dong-cuoi";
 /** Lớp riêng của các thanh nút cuối trang / cuối danh sách hiện có. Thanh mới: thêm lớp chung (bài này không đoán được lớp mới — dựa vào kỷ luật). */
-const LOP_THANH = ["form-actions", "vc-bottom-bar", "dp-run-end", "dp-ct-bottom"];
+const LOP_THANH = ["form-actions", "vc-bottom-bar", "dp-run-end", "dp-ct-bottom", "ht-tra-loi"];
 
 test("tro-ly.ts: hàm né của nút nổi đo ĐÚNG lớp chung, không còn danh sách bộ chọn đóng", () => {
   const src = readFileSync(join(ROOT, "web", "tro-ly.ts"), "utf8");
@@ -31,4 +31,9 @@ test("mọi khối mang lớp thanh cuối trang đã biết cũng mang lớp ch
   for (const f of readdirSync(join(ROOT, "public")).filter((x) => x.endsWith(".html"))) quet(join(ROOT, "public", f), /class="([^"]*)"/g);
   for (const f of readdirSync(join(ROOT, "web")).filter((x) => x.endsWith(".ts"))) quet(join(ROOT, "web", f), /class: "([^"]*)"/g);
   assert.deepEqual(thieu, []);
+});
+
+test("trang Hỗ trợ: ô trả lời dính đáy của luồng một yêu cầu mang lớp chung (nút nổi Hỗ trợ né được)", () => {
+  const src = readFileSync(join(ROOT, "web", "ho-tro-luong.ts"), "utf8");
+  assert.match(src, new RegExp(`class: "ht-tra-loi ${LOP_CHUNG}"`));
 });

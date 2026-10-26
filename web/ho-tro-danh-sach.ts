@@ -115,7 +115,7 @@ export function veDanhSach(goc: HTMLElement, o: TuyChonDanhSach): { napLai(): vo
       lienKet,
       h("div", { class: "ht-dong-phai" },
         h("span", { class: "ht-gio muted" }, thoiGianTuongDoi(t.lastActivityAt, now)),
-        oHangDoi && hienNhanViec(t, o.staffId) && o.nutNhanViec(t, "Nhận việc", () => void tai(false))));
+        oHangDoi && hienNhanViec(t, o.staffId) && o.nutNhanViec(t, "Nhận việc", () => void tai(false, true))));
   }
 
   function ve(): void {
@@ -127,7 +127,11 @@ export function veDanhSach(goc: HTMLElement, o: TuyChonDanhSach): { napLai(): vo
     replaceChildren(chanDs, chan ? h("p", { class: "muted ht-tuan" }, chan) : null, conNua ? tiep : null);
   }
 
-  async function tai(them: boolean): Promise<void> {
+  /**
+   * Nạp danh sách. `them`: nối thêm trang kế. `giu`: làm mới nhưng GIỮ số dòng đã tải (R36 — sau thao tác ở luồng, danh sách không rơi về 50 dòng đầu);
+   * máy chủ trần 100 dòng mỗi lần nên nạp từng trang 50 cho tới khi đủ số dòng đang có. Dòng gộp theo `id`, không lặp.
+   */
+  async function tai(them: boolean, giu = false): Promise<void> {
     const lanNay = ++doi;
     if (oHangDoi && !nhomChon) {
       dong = [];
@@ -135,28 +139,39 @@ export function veDanhSach(goc: HTMLElement, o: TuyChonDanhSach): { napLai(): vo
       ve();
       return;
     }
+    const muc = giu ? Math.max(TRANG, dong.length) : TRANG;
     const tu = them ? offset : 0;
-    const phan = `limit=${TRANG}&offset=${tu}`;
     try {
-      let tickets: Api.FeedbackTicketDto[];
-      if (oHangDoi) {
-        const ds = TRANG_THAI.find((t) => t.key === khoaTrangThai)?.ds ?? [];
-        const r = await api<Api.FeedbackQueueResponse>(`${duongHangDoi(nhomChon, loc, ds, tim)}&${phan}`);
-        if (lanNay !== doi) return;
-        tickets = r.tickets;
-        if (r.dem) dem = r.dem;
-        chan = cauTuanNay(demTuanNay(r.stats, new Date()));
-      } else {
-        const r = await api<Api.FeedbackListResponse>(`/api/feedback/mine?${phan}`);
-        if (lanNay !== doi) return;
-        tickets = r.tickets;
-      }
       const theoId = new Map<string, Api.FeedbackTicketDto>();
       for (const t of them ? dong : []) theoId.set(t.id, t);
-      for (const t of tickets) theoId.set(t.id, t);
+      let con = false;
+      let da = 0;
+      let dauTien = true;
+      do {
+        const phan = `limit=${TRANG}&offset=${tu + da}`;
+        let tickets: Api.FeedbackTicketDto[];
+        if (oHangDoi) {
+          const ds = TRANG_THAI.find((t) => t.key === khoaTrangThai)?.ds ?? [];
+          const r = await api<Api.FeedbackQueueResponse>(`${duongHangDoi(nhomChon, loc, ds, tim)}&${phan}`);
+          if (lanNay !== doi) return;
+          tickets = r.tickets;
+          if (dauTien) {
+            if (r.dem) dem = r.dem;
+            chan = cauTuanNay(demTuanNay(r.stats, new Date()));
+          }
+        } else {
+          const r = await api<Api.FeedbackListResponse>(`/api/feedback/mine?${phan}`);
+          if (lanNay !== doi) return;
+          tickets = r.tickets;
+        }
+        dauTien = false;
+        for (const t of tickets) theoId.set(t.id, t);
+        da += tickets.length;
+        con = tickets.length >= TRANG;
+      } while (con && da < muc);
       dong = [...theoId.values()];
-      offset = tu + tickets.length;
-      conNua = tickets.length >= TRANG;
+      offset = tu + da;
+      conNua = con;
       ve();
     } catch (err) {
       if (lanNay === doi) o.baoLoi(err);
@@ -165,5 +180,5 @@ export function veDanhSach(goc: HTMLElement, o: TuyChonDanhSach): { napLai(): vo
 
   veLoc();
   void tai(false);
-  return { napLai: () => void tai(false) };
+  return { napLai: () => void tai(false, true) };
 }
