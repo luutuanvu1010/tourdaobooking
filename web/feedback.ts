@@ -2,14 +2,15 @@
 // thành viên nhóm (và Toàn quyền) có tab "Hàng đợi nhóm" (lọc, nhận việc); Toàn quyền có thêm tab "Quản lý nhóm".
 // Dữ liệu qua /api/feedback*. Chuỗi từ người dùng chỉ đi qua h()/textContent. Địa chỉ: /feedback (danh sách), ?id=<uuid> (luồng), ?new=1&from=<đường dẫn> (mở form).
 // Giao diện chỉ ẩn/hiện theo `teams` / `perms` máy chủ trả về; máy chủ (quyenPhieu) luôn kiểm lại.
-import { FEEDBACK_KINDS, FEEDBACK_KIND_NAME, FEEDBACK_STATUSES, FEEDBACK_STATUS_NAME, FEEDBACK_TRANSITIONS, SAC_TRANG_THAI, buocGopY, nhanNutChuyen, type FeedbackStatus } from "../src/shared/feedback-catalog";
-import { LOC_HANG_DOI, LOC_HANG_DOI_NAME, NHOM_KY_THUAT_ID, PRIORITIES, PRIORITY_NAME, TEAM_ROLE_NAME, TEAM_ROLES, type LocHangDoi, type Priority, type TeamRole } from "../src/shared/ve-ho-tro";
+import { FEEDBACK_KINDS, FEEDBACK_KIND_NAME, FEEDBACK_STATUS_NAME, FEEDBACK_TRANSITIONS, SAC_TRANG_THAI, buocGopY, nhanNutChuyen } from "../src/shared/feedback-catalog";
+import { NHOM_KY_THUAT_ID, PRIORITIES, PRIORITY_NAME, TEAM_ROLE_NAME, TEAM_ROLES, type Priority, type TeamRole } from "../src/shared/ve-ho-tro";
 import {
-  LAM_MOI_GOI_NGAY_TOI_DA, buocLamMoi, chuKyLamMoi, chuaAiNhan, dauPhieuDoi, duongHangDoi, hienNhanViec, huyHieuUuTien, nguoiXuLyHienThi, nhanDonChon, nhomChuyenDuoc, nhomHangDoi, tabHoTro, type TabHoTro,
+  LAM_MOI_GOI_NGAY_TOI_DA, NHAN_TAB, buocLamMoi, chuKyLamMoi, dauPhieuDoi, hienNhanViec, nguoiXuLyHienThi, nhanDonChon, nhomChuyenDuoc, nhomHangDoi, tabHoTro, type TabHoTro,
 } from "../src/shared/ve-ho-tro-hien-thi";
 import { can, isExternalPermission } from "../src/shared/permissions";
 import { ApiError, api, type Api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
+import { veDanhSach } from "./ho-tro-danh-sach";
 import { initShell, showError } from "./shell";
 
 declare const __BUILD_ID__: string | undefined;
@@ -47,8 +48,6 @@ const tabs = tabHoTro(teams);
 const hangDoiChon = nhomHangDoi(teams);
 let tab: TabHoTro = "mine";
 let queueTeam = hangDoiChon.find((x) => teams.mine.some((m) => m.teamId === x.id))?.id ?? hangDoiChon[0]?.id ?? "";
-let loc: LocHangDoi = "ALL";
-let statusFilter: FeedbackStatus | "" = "";
 let clientRequestId = crypto.randomUUID(); // một lần khi mở form; giữ nguyên khi thử lại (mạng yếu) để máy chủ không tạo trùng
 
 function collectContext(): Api.FeedbackContextDto {
@@ -131,88 +130,81 @@ function nutNhanViec(t: Api.FeedbackTicketDto, nhan: string, after: () => void):
   return b;
 }
 
-// ---- Danh sách ---------------------------------------------------------------------------------------------------
-function ticketRow(t: Api.FeedbackTicketDto): HTMLElement {
-  const link = h("a", { href: `/feedback?id=${t.id}` }, h("strong", null, `${t.code} · ${t.title}`));
-  const oHangDoi = tab === "queue";
-  const uuTien = huyHieuUuTien(t.priority);
-  return h(
-    "div",
-    { class: "list-row", "data-ticket": t.id },
-    link,
-    t.unread && h("span", { class: "badge badge-cancelled" }, "Mới"),
-    uuTien && h("span", { class: `badge fb-uu-tien is-${uuTien.sac}`, "data-uu-tien": t.priority }, uuTien.chu),
-    h("div", { class: "muted" }, h("span", { class: `badge fb-badge is-${SAC_TRANG_THAI[t.status]}` }, t.statusName), ` ${t.kindName} · ${t.teamName} · ${when(t.lastActivityAt)}${oHangDoi && t.submitterName ? ` · ${t.submitterName}` : ""}`),
-    oHangDoi && h("div", { class: "muted" }, chuaAiNhan(t) ? h("span", { class: "badge badge-draft" }, "Chưa ai nhận") : `Người xử lý: ${t.assigneeName ?? "?"}`),
-    oHangDoi && hienNhanViec(t, staff.id) && nutNhanViec(t, "Nhận việc", () => void loadList()),
-    t.mailPending && h("div", { class: "muted" }, "Chưa gửi được email báo nhóm"),
+// ---- Khung: thanh thẻ + danh sách (PR 3) -------------------------------------------------------------------------
+// Danh sách hai thẻ nằm ở web/ho-tro-danh-sach.ts; thẻ «Nhóm hỗ trợ» (quản lý nhóm) còn ở file này cho tới Task 5.
+const idDangMo = params.get("id");
+let dsDangDung: { napLai(): void } | null = null;
+let theDangDung: TabHoTro | null = null;
+let demHangDoi = 0;
+
+function veThanhThe(): void {
+  replaceChildren(
+    byId("ht-tabs"),
+    ...tabs.map((k) => {
+      const b = h("button", { type: "button", role: "tab", "aria-selected": String(tab === k), class: `ht-tab${tab === k ? " is-on" : ""}`, "data-tab": k },
+        NHAN_TAB[k], k === "queue" && demHangDoi > 0 && h("span", { class: "ht-dem", "aria-label": `${demHangDoi} việc chưa ai nhận` }, String(demHangDoi)));
+      b.addEventListener("click", () => {
+        if (tab === k) return;
+        tab = k;
+        void loadList();
+      });
+      return b;
+    }),
   );
+  byId("ht-gui").className = tab === "mine" ? "btn btn-primary" : "btn";
 }
 
-const NHAN_TAB: Record<TabHoTro, string> = { mine: "Yêu cầu của tôi", queue: "Hàng đợi nhóm", teams: "Quản lý nhóm" };
-
-async function loadList(): Promise<void> {
-  replaceChildren(
-    byId("tabs"),
-    ...tabs.map((k) => h("button", { type: "button", class: tab === k ? "btn btn-primary" : "btn btn-link", "data-tab": k, onclick: () => ((tab = k), void loadList()) }, NHAN_TAB[k])),
-    h("button", { type: "button", class: "btn btn-link", onclick: () => openForm() }, "+ Gửi yêu cầu mới"),
-  );
-  showError(errorEl, null);
-  const summary = byId("summary");
-  const list = byId("list");
+async function napHuyHieu(): Promise<void> {
+  if (!tabs.includes("queue")) return;
   try {
-    if (tab === "queue") {
-      await loadQueue(summary, list);
-    } else if (tab === "teams") {
-      replaceChildren(summary);
-      await loadTeamsAdmin(list);
-    } else {
-      replaceChildren(summary);
-      const r = await api<Api.FeedbackListResponse>("/api/feedback/mine");
-      replaceChildren(list, ...(r.tickets.length ? r.tickets.map(ticketRow) : [h("p", { class: "muted" }, "Bạn chưa gửi yêu cầu nào.")]));
+    const b = await api<Api.FeedbackBadgeResponse>("/api/feedback/badge");
+    if (b.queue !== demHangDoi) {
+      demHangDoi = b.queue;
+      veThanhThe();
     }
-  } catch (err) {
-    fail(err);
+  } catch {
+    /* huy hiệu chỉ là phụ: lỗi thì thôi */
   }
 }
 
-async function loadQueue(summary: HTMLElement, list: HTMLElement): Promise<void> {
-  const chonNhom = h(
-    "select",
-    { id: "queue-team", "aria-label": "Nhóm", onchange: (e: Event) => ((queueTeam = (e.target as HTMLSelectElement).value), void loadList()) },
-    ...hangDoiChon.map((x) => h("option", { value: x.id, selected: x.id === queueTeam }, x.name)),
-  );
-  const locNut = h(
-    "div",
-    { class: "fb-status-nut", role: "group", "aria-label": "Lọc theo người nhận" },
-    ...LOC_HANG_DOI.map((k) => h("button", { type: "button", class: loc === k ? "btn btn-primary" : "btn", "data-loc": k, "aria-pressed": String(loc === k), onclick: () => ((loc = k), void loadList()) }, LOC_HANG_DOI_NAME[k])),
-  );
-  const locTrangThai = h(
-    "select",
-    { id: "queue-status", "aria-label": "Trạng thái", onchange: (e: Event) => ((statusFilter = (e.target as HTMLSelectElement).value as FeedbackStatus | ""), void loadList()) },
-    h("option", { value: "" }, "Mọi trạng thái"),
-    ...FEEDBACK_STATUSES.map((s) => h("option", { value: s, selected: s === statusFilter }, FEEDBACK_STATUS_NAME[s])),
-  );
-  if (!queueTeam) {
-    replaceChildren(summary);
-    replaceChildren(list, h("p", { class: "muted" }, "Chưa có nhóm nào."));
+/** Dựng thanh thẻ + nội dung thẻ đang chọn. Thẻ danh sách: dựng một lần rồi chỉ nạp lại; gọi lại nhiều lần (luồng đổi, đổi khổ) đều an toàn. */
+async function loadList(): Promise<void> {
+  showError(errorEl, null);
+  veThanhThe();
+  const goc = byId("ht-danh-sach");
+  byId("ht-hai-cot").classList.toggle("is-mot-cot", tab === "teams");
+  if (tab === "teams") {
+    dsDangDung = null;
+    theDangDung = null;
+    byId("ht-luong").hidden = true;
+    const list = h("div", { id: "list" });
+    replaceChildren(goc, list);
+    try {
+      await loadTeamsAdmin(list);
+    } catch (err) {
+      fail(err);
+    }
     return;
   }
-  const r = await api<Api.FeedbackQueueResponse>(duongHangDoi(queueTeam, loc, statusFilter));
-  const weeks = [...new Set(r.stats.map((s) => s.week))];
-  const count = (w: string, k: string) => r.stats.filter((s) => s.week === w && s.kind === k).reduce((n, s) => n + s.count, 0);
-  replaceChildren(
-    summary,
-    hangDoiChon.length > 1 ? h("label", null, "Nhóm", chonNhom) : h("p", null, h("strong", null, hangDoiChon[0]?.name ?? "")),
-    locNut,
-    h("label", null, "Trạng thái", locTrangThai),
-    weeks.length > 0 &&
-      h("table", { class: "items" },
-        h("thead", null, h("tr", null, h("th", null, "Tuần"), ...FEEDBACK_KINDS.map((k) => h("th", null, FEEDBACK_KIND_NAME[k])))),
-        h("tbody", null, ...weeks.map((w) => h("tr", null, h("td", null, w), ...FEEDBACK_KINDS.map((k) => h("td", null, String(count(w, k)))))))),
-  );
-  replaceChildren(list, ...(r.tickets.length ? r.tickets.map(ticketRow) : [h("p", { class: "muted" }, "Chưa có yêu cầu nào.")]));
+  if (idDangMo) byId("ht-luong").hidden = false;
+  if (dsDangDung && theDangDung === tab) dsDangDung.napLai();
+  else {
+    theDangDung = tab;
+    dsDangDung = veDanhSach(goc, {
+      the: tab,
+      nhom: tab === "queue" ? hangDoiChon : [],
+      nhomMacDinh: queueTeam,
+      staffId: staff.id,
+      dangMo: idDangMo,
+      nutNhanViec,
+      baoLoi: fail,
+      moYeuCau: (yc) => location.assign(`/feedback?id=${encodeURIComponent(yc)}`), // Task 3 chuyển sang mở tại chỗ
+    });
+  }
+  void napHuyHieu();
 }
+
+byId("ht-gui").addEventListener("click", () => openForm());
 
 // ---- Quản lý nhóm (chỉ Toàn quyền; máy chủ: ô feedback.team.manage) ------------------------------------------------
 let nhanVien: Api.StaffListRowDto[] | null = null;
@@ -405,8 +397,9 @@ async function loadThread(id: string): Promise<void> {
     lm.dung = true;
     lm = null;
   }
-  byId("list-card").hidden = !wide();
-  const box = byId("thread");
+  byId("ht-danh-sach").hidden = !wide();
+  byId("ht-tabs").hidden = !wide();
+  const box = byId("ht-luong");
   box.hidden = false;
   let d: Api.FeedbackDetailResponse | null = null;
   let loiMo = "";
@@ -625,14 +618,15 @@ if (id) {
   // (không load lại trang) phải đồng bộ lại ẩn/hiện danh sách, không chỉ chụp giá trị lúc tải trang.
   const mq = window.matchMedia("(min-width: 900px)");
   mq.addEventListener("change", () => {
-    byId("list-card").hidden = !mq.matches;
+    byId("ht-danh-sach").hidden = !mq.matches;
+    byId("ht-tabs").hidden = !mq.matches;
     // Hẹp → rộng: danh sách vừa hiện lại phải có nội dung ngay, không chỉ khung rỗng
     // (như đường tải trang khi mở ?id= ở khổ rộng, phía trên).
     // loadList() tự dựng lại toàn bộ tabs/summary/list từ đầu mỗi lần gọi nên gọi lại nhiều lần (resize qua lại mốc) an toàn.
     if (mq.matches) void loadList();
   });
 } else {
-  if (params.get("chuyen") === "1") byId("list-card").prepend(h("p", { class: "muted", role: "status", id: "fb-da-chuyen" }, "Đã chuyển nhóm."));
+  if (params.get("chuyen") === "1") byId("ht-tabs").before(h("p", { class: "muted", role: "status", id: "fb-da-chuyen" }, "Đã chuyển nhóm."));
   void loadList();
   if (params.get("new") === "1") openForm();
 }

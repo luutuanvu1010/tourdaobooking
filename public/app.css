@@ -190,6 +190,7 @@
   --w-toast: 360px;
   --fb-line: 2px;             /* nét nối + viền chấm của thanh bước Góp ý */
   --fb-dot: 28px;              /* chấm của thanh bước trạng thái Góp ý (ảnh phác c, chủ duyệt 30/9) */
+  --w-ht-cot-trai: 320px;      /* PR 3 trang Hỗ trợ: cột danh sách bên trái ở máy tính */
   --w-fb-tin: 85%;             /* Vé hỗ trợ đợt 2a (ADR-0127): bề rộng tối đa một bong bóng tin — chừa lề phía bên kia để thấy rõ tin của ai */
   /* "Việc của tôi" của hướng dẫn viên (Task 1.8 ADR-0030) — số đo từ bản thiết kế "Viec cua toi - HDV v2.dc.html" (Claude Design 2026-09-27; chủ dự án
      yêu cầu làm đúng bản thiết kế — coi là duyệt các cỡ chữ/số đo dưới đây, cùng tiền lệ trang Đăng nhập). Màu đều là token sẵn có. */
@@ -927,9 +928,40 @@ button.xm-the { min-height: var(--tap-min); cursor: pointer; }
 #fb-nguoi-xu-ly { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); margin: var(--s3) 0; }
 #fb-nguoi-xu-ly .btn, .fb-giao .btn { min-height: var(--tap-min); }
 .fb-giao { flex-basis: 100%; }
-.feedback-layout { display: block; } /* Đợt C Task 3: bố cục 2 cột ở máy tính — mặc định xếp dọc, giữ đúng thứ tự DOM gốc (#list-card rồi #thread) ở điện thoại */
+/* Trang Hỗ trợ thiết kế lại (PR 3): ba thẻ; ≥ 900px hai cột (cột trái cố định --w-ht-cot-trai + phần còn lại); điện thoại xếp dọc. Chấm chưa đọc và huy hiệu đếm dùng --c-danger. */
+.ht-dau { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); flex-wrap: wrap; }
+.ht-dau h1 { margin: 0; }
+.ht-tabs { display: flex; gap: var(--s1); margin: var(--s3) 0; border-bottom: 1px solid var(--c-border); overflow-x: auto; }
+.ht-tab { display: inline-flex; align-items: center; gap: var(--s2); min-height: var(--tap-min); padding: 0 var(--s3); font: inherit; color: var(--c-text-muted); background: none; border: 0; border-bottom: var(--fb-line) solid transparent; margin-bottom: -1px; cursor: pointer; white-space: nowrap; }
+.ht-tab.is-on { color: var(--c-primary); font-weight: var(--fw-bold); border-bottom-color: var(--c-primary); }
+.ht-dem, .ht-so { display: inline-block; min-width: var(--s5); padding: 0 var(--s2); font-size: var(--fs-badge); font-weight: var(--fw-heavy); line-height: var(--s5); text-align: center; border-radius: var(--s5); }
+.ht-dem { color: var(--c-on-dark); background: var(--c-danger); }
+.ht-so { margin-left: var(--s2); color: var(--c-text); background: var(--c-primary-soft); }
+.ht-hai-cot { display: block; }
+.ht-luong { min-width: 0; }
+.ht-danh-sach { padding: 0; overflow: hidden; }
+.ht-loc { display: flex; flex-direction: column; gap: var(--s2); padding: var(--s3); border-bottom: 1px solid var(--c-border); }
+.ht-loc-o { display: flex; flex-direction: column; gap: var(--s1); font-size: var(--fs-label); }
+.ht-ten-nhom { margin: 0; font-weight: var(--fw-bold); }
+.ht-loc-nut { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.ht-loc-nut .btn { min-height: var(--tap-min); }
+.ht-loc input[type="search"] { font-size: var(--fs-field); min-height: var(--tap-min); }
+.ht-dong { display: flex; gap: var(--s2); align-items: flex-start; padding: var(--s3); border-bottom: 1px solid var(--c-border); }
+.ht-dong.is-dang-mo { background: var(--c-surface); box-shadow: inset var(--s1) 0 0 var(--c-primary); }
+.ht-dong-noi { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--s1); min-height: var(--tap-min); color: var(--c-text); text-decoration: none; }
+.ht-tieu-de { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); overflow-wrap: anywhere; }
+.ht-tieu-de.is-chua-doc { font-weight: var(--fw-heavy); }
+.ht-cham { flex: none; width: var(--s2); height: var(--s2); background: var(--c-danger); border-radius: 50%; }
+.ht-phu { font-size: var(--fs-label); overflow-wrap: anywhere; }
+.ht-dong-phai { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: var(--s2); font-size: var(--fs-label); }
+.ht-dong-phai .btn { min-height: var(--tap-min); }
+.ht-trong { padding: var(--s4); }
+.ht-chan { padding: var(--s3); display: flex; flex-direction: column; gap: var(--s2); align-items: flex-start; }
+.ht-chan p { margin: 0; }
+.ht-chan .btn { min-height: var(--tap-min); }
 @media (min-width: 900px) {
-  .feedback-layout { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s5); align-items: start; }
+  .ht-hai-cot { display: grid; grid-template-columns: var(--w-ht-cot-trai) minmax(0, 1fr); gap: var(--s4); align-items: start; }
+  .ht-hai-cot.is-mot-cot { display: block; }
 }
 .profile { display: flex; align-items: center; gap: var(--s3); }
 .avatar { flex: none; display: flex; align-items: center; justify-content: center; width: var(--avatar); height: var(--avatar); border-radius: 50%; color: var(--c-avatar-text); background: var(--c-avatar-bg); font-weight: var(--fw-heavy); font-size: var(--fs-name); }
