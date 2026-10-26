@@ -80,8 +80,8 @@ test("E3: không thấy tin do chính mình làm hoặc gửi (K6)", () => {
 test("Đối tác/Thực tập không có tin về đơn; HDV chỉ thấy tin chờ nhận khi có dispatch.claim", () => {
   const d = [don({ action: "confirmed", ownerId: "bx", actorId: "bx", phuTrach: { coNguoi: false, staffId: null } })];
   // Đối tác là CHỦ đơn, người khác xác nhận (không bị loại vì là người thao tác) → vẫn không có tin (khoá cổng Đối tác/Thực tập của duocThayTinDon)
-  assert.equal(hop(BX, [don({ action: "confirmed", ownerId: "bx", actorId: "hung", phuTrach: { coNguoi: true, staffId: "hung" } })], [], "tat-ca").tin.length, 0);
-  assert.equal(hop(BX, [don({ action: "confirmed", ownerId: "bx", actorId: "hung", phuTrach: { coNguoi: false, staffId: null } })], [], "tat-ca").tin.length, 0);
+  assert.equal(hop(BX, [don({ action: "confirmed", ownerId: "bx", actorId: "hung", phuTrach: { coNguoi: true, staffId: "hung" } })], [], "tat-ca").tin.length, 1); // ADR-0136 Đ10: người lập nhận tin xác nhận của ĐƠN MÌNH (không tên)
+  assert.equal(hop(BX, [don({ action: "confirmed", ownerId: "bx", actorId: "hung", phuTrach: { coNguoi: false, staffId: null } })], [], "tat-ca").tin.length, 1);
   assert.equal(hop(NGAN, d).tin.length, 0);
   const tam = hop(TAM, d); // FIELD dispatch.claim = any (ADR-0030 S20-6/S20-12) → HDV THẤY tin chờ nhận
   assert.equal(tam.tin.length, 1);

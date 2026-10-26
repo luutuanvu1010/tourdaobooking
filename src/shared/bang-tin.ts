@@ -11,7 +11,7 @@ import { can, hasPermission, holdsPartner, isOffice, type PermissionHolder } fro
  * giao người phụ trách) và `hoan_thanh` — CHỈ làm mới màn hình (không thông báo nổi, không gõ cửa màn hình khoá — ADR-0045; giả định bề mặt đảo được).
  * `tu_choi` (ADR-0030 điều 1): người phụ trách tự trả đơn — đơn về hàng chờ; thông báo nổi, không gõ cửa màn hình khoá (Q4 (a), chủ 2026-10-23).
  */
-export const THAY_DOI = ["tao", "tao_cho_nhan", "nhan", "giao", "xac_nhan", "huy", "sua", "chuyen", "tien", "chot_giao", "hoan_thanh", "tu_choi"] as const;
+export const THAY_DOI = ["tao", "tao_cho_nhan", "nhan", "giao", "xac_nhan", "huy", "sua", "chuyen", "tien", "chot_giao", "hoan_thanh", "tu_choi", "cho_xac_nhan"] as const;
 export type ThayDoiDon = (typeof THAY_DOI)[number];
 
 /** Sự kiện phát cho mọi màn hình đang mở — ĐÚNG 5 khoá, không hơn (điều 4). `maDon` = `orders.order_code`. */
@@ -58,9 +58,13 @@ export function nhanKetNoi(staff: PermissionHolder): string[] {
   const nhan = new Set<string>([`nguoi:${staff.id}`]);
   if (can(staff, "order.view")) nhan.add("tat-ca");
   if (can(staff, "dispatch.claim") && !holdsPartner(staff)) nhan.add("cho-nhan");
+  if (can(staff, "order.confirm.review")) nhan.add(NHAN_XET_DUYET); // ADR-0136 Đ10: người xét duyệt (kể cả HDV chưa phụ trách) nhận tin «đơn chờ xác nhận»
   if (can(staff, "trip.view")) nhan.add(NHAN_DIEU_XE); // ADR-0052 D6.4: không ngữ cảnh = ô any (tài xế — assigned — không có)
   return [...nhan].sort();
 }
+
+/** ADR-0136 Đ10: nhãn kết nối của người giữ ô `order.confirm.review`. Chỉ gắn vào sự kiện GỬI / RÚT LẠI của nháp — không mở thêm lối vào cho nháp riêng tư nào khác. */
+export const NHAN_XET_DUYET = "xet-duyet";
 
 /** ADR-0052 D6.4: nhãn kết nối của người xem được MỌI chuyến (`can(trip.view)` không ngữ cảnh = ô any). */
 export const NHAN_DIEU_XE = "dieu-xe";
@@ -100,9 +104,11 @@ export function nhanSuKien(input: {
   handlerSau: TrangThaiPhuTrach;
   /** ADR-0135 Đ4: đơn đang NHÁP (vùng riêng của người lập) — sự kiện chỉ mang `nguoi:<người lập>`: bỏ `tat-ca`, `cho-nhan`, nhãn người phụ trách trước / sau. Vắng = false (đơn đã xác nhận / huỷ). */
   laNhap?: boolean;
+  /** ADR-0136 Đ10: sự kiện GỬI xác nhận / RÚT LẠI của nháp — thêm nhãn `xet-duyet` (người giữ ô xét duyệt), KHÔNG thêm `tat-ca`, `cho-nhan`, người phụ trách chọn sẵn. Chỉ có nghĩa khi `laNhap`. */
+  choXacNhan?: boolean;
 }): string[] {
   const { ownerId, handlerTruoc, handlerSau } = input;
-  if (input.laNhap === true) return [`nguoi:${ownerId}`];
+  if (input.laNhap === true) return input.choXacNhan === true ? [`nguoi:${ownerId}`, NHAN_XET_DUYET].sort() : [`nguoi:${ownerId}`];
   const nhan = new Set<string>(["tat-ca", `nguoi:${ownerId}`]);
   if (handlerTruoc !== null && handlerTruoc.staffId !== null) nhan.add(`nguoi:${handlerTruoc.staffId}`);
   if (handlerSau.staffId !== null) nhan.add(`nguoi:${handlerSau.staffId}`);
@@ -148,6 +154,7 @@ const CAU_THONG_BAO: { [K in ThayDoiDon]?: (maDon: string) => string } = {
   xac_nhan: (maDon) => `Đơn ${maDon} đã được xác nhận`,
   huy: (maDon) => `Đơn ${maDon} đã bị huỷ`,
   tu_choi: (maDon) => `Đơn ${maDon} vừa được trả lại, đang chờ người nhận`,
+  cho_xac_nhan: (maDon) => `Đơn ${maDon} đang chờ xác nhận`, // ADR-0136 Đ10 — không tên người gửi
 };
 
 /**
@@ -192,6 +199,8 @@ export function thongBaoNoi(staff: PermissionHolder, suKien: SuKienDon): ThongBa
     const nhan = nhanKetNoi(staff);
     if (nhan.includes("cho-nhan") && !nhan.includes("tat-ca")) return null;
   }
+  // ADR-0136 Đ10: tin «đơn chờ xác nhận» chỉ nổi cho người giữ ô xét duyệt, và HDV cũng mở được đơn chờ (Đ6) nên đích là trang đơn.
+  if (suKien.thayDoi === "cho_xac_nhan") return can(staff, "order.confirm.review") ? { cau: CAU_THONG_BAO.cho_xac_nhan!(suKien.maDon), lienKet: `/order?id=${suKien.orderId}` } : null;
   const dungCau = CAU_THONG_BAO[suKien.thayDoi];
   if (!dungCau) return null;
   return { cau: dungCau(suKien.maDon), lienKet: isOffice(staff) ? `/order?id=${suKien.orderId}` : "/account" };

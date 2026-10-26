@@ -7,7 +7,7 @@ import { tinChuyenCho, tinGioHenCho, type ChuyenCuaChang, type DongChuyen, type 
 import { HANH_DONG_DOI_SO_KHACH } from "./audit-actions.ts";
 import { phanDoiCuaTin, type PhanDoiTin } from "./tin-doi-don.ts";
 
-export const HANH_DONG_TIN_DON = ["created", "order_claimed", "order_handler_changed", "confirmed", "cancelled", "order_cancelled_by_field"] as const;
+export const HANH_DONG_TIN_DON = ["created", "order_claimed", "order_handler_changed", "confirmed", "cancelled", "order_cancelled_by_field", "order_confirm_requested"] as const;
 /**
  * ADR-0062 Đ1 — tập nguồn ĐÓNG của tin "đơn đổi sau xác nhận" (khai MỘT nơi; view `v_aud_order_change` lọc đúng tập này — bài migrations-tin-doi-don):
  * sửa thông tin chuyến, sửa / thêm / bỏ chặng, và MỌI hành động mang cờ `doiSoKhach` (dẫn từ AUDIT_ACTIONS — không gõ tay).
@@ -83,6 +83,7 @@ export function loaiTinDon(d: DongDon): LoaiTinDon | null {
     case "order_handler_changed": return d.cungLoLap ? null : "giao";
     case "confirmed": return d.phuTrach.coNguoi ? "xac_nhan" : "cho_nhan";
     case "cancelled": case "order_cancelled_by_field": return "huy";
+    case "order_confirm_requested": return "cho_xac_nhan"; // ADR-0136 Đ10: người xét duyệt biết có đơn chờ kiểm vé
     // ADR-0062 Đ1: dòng đổi thành tin khi đơn ĐÃ xác nhận trước đó VÀ hàm đọc nhận ra phần đổi (mốc / cửa sổ do locHopThongBao xét).
     default: return laHanhDongTinDoi(d.action) && d.sauXacNhan === true && phanCua(d) !== null ? "doi_sau_xac_nhan" : null;
   }
@@ -95,6 +96,7 @@ const CAU: Record<Exclude<LoaiTinDon, "doi_sau_xac_nhan">, { coTen: (ten: string
   giao: { coTen: (t, m) => `${t} vừa giao đơn ${m} cho người khác phụ trách`, khongTen: (m) => `Đơn ${m} vừa đổi người phụ trách` },
   xac_nhan: { coTen: (t, m) => `${t} vừa xác nhận đơn ${m}`, khongTen: (m) => `Đơn ${m} vừa được xác nhận` },
   huy: { coTen: (t, m) => `${t} vừa huỷ đơn ${m}`, khongTen: (m) => `Đơn ${m} vừa bị huỷ` },
+  cho_xac_nhan: { coTen: (_t, m) => `Đơn ${m} đang chờ xác nhận`, khongTen: (m) => `Đơn ${m} đang chờ xác nhận` }, // ADR-0136 Đ10: không bao giờ kèm tên người gửi
 };
 /** Tin "giao" đọc bởi chính người đang phụ trách đơn: "cho người khác" dễ làm họ tưởng mình không phải đi (B-01). Chọn theo `d.phuTrach` (người HIỆN TẠI —
  * nhật ký chỉ ghi tên) VÀ dòng phải là lần đổi người MỚI NHẤT của đơn (giao / tự nhận; kiểm độc lập F-1): dòng giao cũ hơn đã có người khác nhận sau. */
@@ -182,11 +184,14 @@ export function locHopThongBao(
     // ADR-0045 (vòng kiểm độc lập I-1): người KHÔNG nhận được đơn (Kế toán…) thấy dòng xác nhận của đơn chưa có người như tin "xác nhận"
     // thường (ở "Tất cả") — giữ đúng hành vi trước 1.30, không để việc xác nhận biến mất khỏi hộp của họ.
     if (loai === "cho_nhan" && !duocThayTinDon(staff, true)) loai = "xac_nhan";
-    if (!loai || loai === "doi_sau_xac_nhan" || !duocThayTinDon(staff, loai === "cho_nhan")) continue; // dòng đổi đã rẽ nhánh ở trên
+    if (!loai || loai === "doi_sau_xac_nhan") continue; // dòng đổi đã rẽ nhánh ở trên
+    // ADR-0136 Đ10: (1) «đơn chờ xác nhận» chỉ cho người giữ ô xét duyệt; (2) người LẬP đơn (kể cả Đối tác, Thực tập) nhận tin xác nhận / huỷ của ĐƠN MÌNH — mọi loại tin khác vẫn theo `duocThayTinDon`.
+    const laTinCuaChu = d.ownerId === staff.id && (loai === "xac_nhan" || loai === "huy") && can(staff, "order.view", { ownerId: d.ownerId });
+    if (loai === "cho_xac_nhan" ? !can(staff, "order.confirm.review") : !duocThayTinDon(staff, loai === "cho_nhan") && !laTinCuaChu) continue;
     // Hộp KHÔNG biết người phụ trách trước sự kiện. Nhãn cho-nhan do chính loại tin quyết (dòng dưới), nên bỏ mọi cho-nhan nhanSuKien suy ra.
     // Hôm nay (ADR-0030 chưa lên main) nhanSuKien chưa nhận null → truyền { coNguoi: false, staffId: null }; kết quả đúng nhờ .filter.
     // KHI GỘP ADR-0030 Task 1.4: đổi thành handlerTruoc: null ("không biết" — không bao giờ coi là "chưa ai", NT-3). Mục "Phụ thuộc ADR-0030" điểm 6.
-    const nhan = nhanSuKien({ ownerId: d.ownerId, handlerTruoc: { coNguoi: false, staffId: null }, handlerSau: d.phuTrach, laNhap: d.laNhap })
+    const nhan = nhanSuKien({ ownerId: d.ownerId, handlerTruoc: { coNguoi: false, staffId: null }, handlerSau: d.phuTrach, laNhap: d.laNhap, choXacNhan: loai === "cho_xac_nhan" })
       .filter((t) => t !== "cho-nhan");
     if (loai === "cho_nhan" && d.laNhap !== true) nhan.push("cho-nhan");
     // ADR-0045: đơn NHÁP chưa là việc của ai — tin "lập đơn" chỉ ở ngăn "Tất cả" (không "Của tôi" → không số đỏ, không gõ cửa màn hình khoá).
@@ -200,7 +205,7 @@ export function locHopThongBao(
       cau: loai === "giao" && d.phuTrach.staffId === staff.id && doiNguoiCuoi.get(d.orderId) === d.luc
         ? (coTen ? CAU_GIAO_CHO_BAN.coTen(d.tenNguoiLam!, d.maDon) : CAU_GIAO_CHO_BAN.khongTen(d.maDon))
         : coTen ? CAU[loai].coTen(d.tenNguoiLam!, d.maDon) : CAU[loai].khongTen(d.maDon),
-      lienKet: isOffice(staff) ? `/order?id=${d.orderId}` : "/account",
+      lienKet: isOffice(staff) || loai === "cho_xac_nhan" || laTinCuaChu ? `/order?id=${d.orderId}` : "/account",
       luc: d.luc, cuaToi, chuaDoc: d.luc > vao.docDenLuc, mo: false, // ADR-0045: "chờ nhận" chỉ tồn tại khi đơn ĐANG chưa có người → không còn tin chờ nhận "mờ"
     });
   }

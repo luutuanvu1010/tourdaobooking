@@ -122,7 +122,7 @@ export const xacNhanRoutes = [
     if (chan) return chan;
     const mo = await moYeuCau(env.DB, { id, staffId: staff.id, meta, vi: canXN.vi, nowMs });
     if ("loi" in mo) return mo.loi;
-    baoThayDoi({ orderId: id, thayDoi: "sua" });
+    baoThayDoi({ orderId: id, thayDoi: "cho_xac_nhan" });
     return json({ yeuCau: mo.yeuCau } satisfies GuiXacNhanResponse, 201, { location: trangDon(id) });
   }),
 
@@ -153,7 +153,7 @@ export const xacNhanRoutes = [
       if (chan) return chan;
       const mo = await moYeuCau(env.DB, { id, staffId: staff.id, meta, vi: canXN.vi, nowMs });
       if ("loi" in mo) return mo.loi;
-      baoThayDoi({ orderId: id, thayDoi: "sua" });
+      baoThayDoi({ orderId: id, thayDoi: "cho_xac_nhan" });
       return json({ nhanh: "A", thongBao: CAU_BAO_GUI_DON.A, yeuCau: mo.yeuCau } satisfies GuiDonResponse, 201, { location: trangDon(id) });
     }
     const detail = ["tự xác nhận khi Đối tác gửi đơn", cong.detail].filter(Boolean).join(" | ");

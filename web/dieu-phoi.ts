@@ -128,7 +128,7 @@ function ve(): void {
     o("CHƯA XẾP", s.chuaXep, moc, "is-danger"),
     o("CHUYẾN", s.chuyen, s.biGiu ? `${s.biGiu} bị giữ` : "", "is-danger"),
     o("CẦN XỬ LÝ", s.canXuLy),
-    o("ĐƠN NHÁP", s.nhap, s.choDatGap ? "chờ duyệt đặt gấp" : "", "is-sand"),
+    o("CHỜ XÁC NHẬN", s.nhap, s.choDatGap ? "chờ duyệt đặt gấp" : "", "is-sand"),
   );
   const om = (nhan: string, so: number, danger = false) => h("div", { class: "dp-stat-m" }, h("span", { class: danger && so > 0 ? "dp-stat-n is-danger" : "dp-stat-n" }, String(so)), h("span", { class: "dp-stat-k" }, nhan));
   replaceChildren(soMEl, om("lượt", s.chang), om("đã xếp", s.daXep), om("chưa xếp", s.chuaXep, true), om("chuyến", s.chuyen));

@@ -55,7 +55,7 @@ try {
     assert.match(await p.ev(txt("#dp-ngay-nhan")), /^(Thứ (Hai|Ba|Tư|Năm|Sáu|Bảy)|Chủ nhật)$/);
     assert.equal(await p.ev(`document.querySelector('#dp-moi').getAttribute('href')`), `/chuyen-sua?ngay=${d.NGAY_XA}`);
     assert.ok(await p.ev(shown("#dp-moi")));
-    assert.deepEqual(await p.ev(soLieu), ["LƯỢT ĐƯA ĐÓN 4", "ĐÃ XẾP 3", "CHƯA XẾP 1", "CHUYẾN 4 2 bị giữ", `CẦN XỬ LÝ ${await p.ev(`document.querySelectorAll('#dp-cot-can-xu-ly .dp-cxl').length`)}`, "ĐƠN NHÁP 0"]);
+    assert.deepEqual(await p.ev(soLieu), ["LƯỢT ĐƯA ĐÓN 4", "ĐÃ XẾP 3", "CHƯA XẾP 1", "CHUYẾN 4 2 bị giữ", `CẦN XỬ LÝ ${await p.ev(`document.querySelectorAll('#dp-cot-can-xu-ly .dp-cxl').length`)}`, "CHỜ XÁC NHẬN 0"]);
     assert.equal(await p.ev(shown("#dp-tabs")), false, "máy tính: không thẻ");
     for (const c of ["#dp-cot-chua-xep", "#dp-cot-xe", "#dp-cot-can-xu-ly"]) assert.ok(await p.ev(shown(c)), c);
     const nav = await p.ev(vcSub);

@@ -95,7 +95,7 @@ const APP_OPTIONS: AppOptions = {
         ["tram", phatDon(
           env,
           { loai: "don", orderId: e.orderId, maDon: ref.orderCode, thayDoi, luc },
-          nhanSuKien({ ownerId: ref.staffId, handlerTruoc: e.handlerTruoc ?? HANDLER_TRUOC_KHONG_BIET, handlerSau, laNhap: ref.status === "draft" }), // ADR-0135 Đ4: tin của nháp chỉ tới người lập
+          nhanSuKien({ ownerId: ref.staffId, handlerTruoc: e.handlerTruoc ?? HANDLER_TRUOC_KHONG_BIET, handlerSau, laNhap: ref.status === "draft", choXacNhan: thayDoi === "cho_xac_nhan" }), // ADR-0135 Đ4; ADR-0136 Đ10: gửi xác nhận thêm nhãn xet-duyet: tin của nháp chỉ tới người lập
         )],
         ["day", tinDoi ? dayGoCuaDoi(env, e.orderId, actor.id, batDau, (q) => chuyenChoTinTheoId(env.DB, q), (ds) => xepHangDay(env, ds)) : action === null ? null : dayGoCua(env, {
           don: {
