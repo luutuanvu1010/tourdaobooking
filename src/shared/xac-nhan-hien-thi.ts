@@ -5,6 +5,10 @@ import { vnDateTimeText } from "./vn-date.ts";
 /** Nhãn nút (ADR-0136 Đ3, Đ13). «Gửi đơn» là chữ chủ đã duyệt; hai nhãn còn lại lấy từ kế hoạch Task 3.5. */
 export const NHAN_NUT_XAC_NHAN = { send: "Gửi xác nhận", withdraw: "Rút lại", submit: "Gửi đơn" } as const;
 
+/** Nhãn trên thẻ ở danh sách chờ (kế hoạch Task 3.3: «Cần Quản trị đặt gấp» khi đơn vào bước chỉ vì chặng dưới mốc và người xem không giữ ô đặt gấp). */
+export const NHAN_CAN_DAT_GAP = "Cần Quản trị đặt gấp";
+export const NHAN_QUA_HAN = "Quá hạn";
+
 /** Ba kết quả của người xét duyệt (mã → chữ). */
 export const NHAN_KET_QUA = { CON_VE: "Còn vé", HET_VE: "Hết vé", HUY: "Huỷ" } as const;
 

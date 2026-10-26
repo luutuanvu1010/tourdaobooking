@@ -105,6 +105,8 @@ export const TRANG = {
   nguoiBan: { duong: "/nguoi-ban", hien: (s) => can(s, "supply.terms.view") && !holdsPartner(s) },
   // Chụp bù mức (sổ đại lý đợt 2, Task 12; ADR-0079 điều 7 b2): CÙNG cổng route `GET /api/orders/cho-chup-bu` — ô order.terms.override và không giữ quyền Đối tác (kể cả lai).
   chupBu: { duong: "/chup-bu", hien: (s) => can(s, "order.terms.override") && !holdsPartner(s) },
+  // Đơn chờ xác nhận (ADR-0136 Đ6; Task 3.5): CÙNG cổng route `GET /api/orders/cho-xac-nhan` — ô order.confirm.review không ngữ cảnh (Bán hàng, Kế toán, Quản trị, HDV, Toàn quyền).
+  choXacNhan: { duong: "/cho-xac-nhan", hien: (s) => can(s, "order.confirm.review") },
   nhatKy: { duong: "/audit", hien: (s) => can(s, "audit.view") }, // ADR-0038 điều 6: chỉ Toàn quyền
   guiThongBao: { duong: "/gui-thong-bao", hien: (s) => can(s, "notice.send") }, // ADR-0034
   troLy: { duong: "/tro-ly-cai-dat", hien: (s) => can(s, "settings.ops") }, // ADR-0069 điều 1
@@ -165,8 +167,7 @@ export const THANH_BEN = [
   // Tài xế: "Trang chủ" của họ là /tai-xe; "Cuốc của tôi" cho mọi tài khoản tài xế công ty (kể cả kiêm văn phòng — K2b T2).
   { nhom: "HẰNG NGÀY", trang: "trangTaiXe", nhan: "Trang chủ", bieuTuong: "home" },
   { nhom: "HẰNG NGÀY", trang: "donHang", nhan: "Đơn hàng", bieuTuong: "orders" },
-  { nhom: "HẰNG NGÀY", trang: "danhBa", nhan: "Danh bạ", bieuTuong: "contact-card" },
-  { nhom: "HẰNG NGÀY", trang: "cuoc", nhan: "Cuốc của tôi", bieuTuong: "assign" },
+  { nhom: "HẰNG NGÀY", trang: "danhBa", nhan: "Danh bạ", bieuTuong: "contact-card" },  { nhom: "HẰNG NGÀY", trang: "cuoc", nhan: "Cuốc của tôi", bieuTuong: "assign" },
   { nhom: "HẰNG NGÀY", trang: "ban", nhan: "Báo bận của tôi", bieuTuong: "clock" },
   { nhom: "VẬN CHUYỂN", trang: "dieuPhoi", nhan: "Điều phối xe", bieuTuong: "truck" },
   { nhom: "VẬN CHUYỂN", trang: "xeDangChay", nhan: "Xe đang chạy", bieuTuong: "pin" },
@@ -244,6 +245,7 @@ export interface ChoTrangToi extends ChoDat {
 
 export const TRANG_TOI = [
   { phan: "dau", trang: "danhBa", nhan: "Danh bạ", khongSangTabToi: true },
+  { phan: "dau", trang: "choXacNhan", nhan: "Đơn chờ xác nhận" },
   { phan: "dau", trang: "diaDiem", nhan: "Địa điểm", khongSangTabToi: true },
   { phan: "dau", trang: "loaiGiayToNguoi", nhan: "Loại giấy tờ cá nhân" },
   { phan: "van-chuyen", trang: "dieuPhoi", nhan: "Điều phối xe" },

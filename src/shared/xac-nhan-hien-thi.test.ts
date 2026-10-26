@@ -1,7 +1,7 @@
 // ADR-0136 Task 3.5: chữ hiển thị của bước xác nhận — thuần, đồng hồ TIÊM (`nowMs`), không tính lại hạn (hạn do máy chủ gửi, `hanXacNhan`).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { CAU_TIEN_KHOA_KHI_CHO, dongChoXacNhan, nhanLyDoCanXacNhan, NHAN_NUT_XAC_NHAN, NHAN_KET_QUA, cauLoiGuiDon } from "./xac-nhan-hien-thi.ts";
+import { CAU_TIEN_KHOA_KHI_CHO, NHAN_CAN_DAT_GAP, NHAN_QUA_HAN, dongChoXacNhan, nhanLyDoCanXacNhan, NHAN_NUT_XAC_NHAN, NHAN_KET_QUA, cauLoiGuiDon } from "./xac-nhan-hien-thi.ts";
 
 const HAN = "2026-10-26T03:15:00.000Z"; // 10:15 giờ Việt Nam
 
@@ -30,6 +30,11 @@ test("không lộ mã thô: lý do cần xác nhận và kết quả đều là 
   assert.equal(NHAN_NUT_XAC_NHAN.withdraw, "Rút lại");
   assert.equal(NHAN_NUT_XAC_NHAN.submit, "Gửi đơn");
   for (const v of Object.values(NHAN_NUT_XAC_NHAN)) assert.ok(!/[A-Z_]{4,}/.test(v), v);
+});
+
+test("nhãn thẻ danh sách chờ đúng chữ kế hoạch", () => {
+  assert.equal(NHAN_CAN_DAT_GAP, "Cần Quản trị đặt gấp");
+  assert.equal(NHAN_QUA_HAN, "Quá hạn");
 });
 
 test("đơn đang chờ: tiền chỉ đọc — câu giải thích nói cách đổi tiền theo Hướng 2 (Huỷ rồi lập lại)", () => {
