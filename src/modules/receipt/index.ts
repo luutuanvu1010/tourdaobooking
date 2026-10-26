@@ -52,6 +52,8 @@ export const receiptModule: AppModule = {
       const xem = ketQuaXemDon({ coQuyenXem: can(staff, "order.view", scope), status: order.status, laNguoiLap: order.staffId === staff.id, dangCho: false, xetDuyetDuoc: false, chiXemDonDuocGiao: seesOnlyAssignedOrders(staff) });
       if (xem !== "ok") return xem === "404" ? NOT_FOUND() : FORBIDDEN_VIEW();
       if (!can(staff, "money.view", scope)) return FORBIDDEN_VIEW();
+      // ADR-0135 Đ8: QR chỉ cho đơn ĐÃ XÁC NHẬN (mọi đơn); đặt sau kiểm quyền xem để người không xem được vẫn nhận 404/403.
+      if (order.status !== "confirmed") return error(409, "qr_requires_confirmed", "Đơn chưa xác nhận, chưa có mã QR thanh toán.");
       const tien = await soTienChoQr(env.DB, id);
       if (!tien) return error(503, "money_unavailable", "Chưa đọc được số tiền của đơn — tải lại rồi thử lại.");
       const so = kiemSoTienQr({ daGiao: tien.daGiao, conLai: tien.conLai, soTienRaw: url.searchParams.get("soTien") });

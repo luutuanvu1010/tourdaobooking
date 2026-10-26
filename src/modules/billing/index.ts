@@ -17,7 +17,7 @@ import { docGhiChuKy, khoaKyStatements, kiemKhoaKy, thangDaKhoa } from "../ky-so
 import { donDangThuTien, phanThuongMaiCuaDon, thongTinGiaoDon } from "../orders";
 import { danhSachYeuCau, duyetYeuCau, ruYeuCau, taoYeuCau, tuChoiYeuCau } from "./dieu-chinh";
 import { donChoNhapKeToan, docNhapKeToan, ghiNhapKeToan } from "./nhap-ke-toan";
-import { ketQuaXemDon } from "../../shared/xem-don-nhap";
+import { chiNguoiLapGhiNhap, ketQuaXemDon } from "../../shared/xem-don-nhap";
 import { accountingEnteredAmong, earliestLedgerMonth, orderOwners, orderStatuses, receiptsOfOrder, soDongNoCuaNguoiRow } from "./repository";
 import { daTraTheoThuCho } from "./rules";
 import { cocChoBienNhan, cocCuaDon, danhSachCoc, demCoc, doiChieuCoc, ghiChiHoan, ghiChuyen, ghiDuyet, ghiHoanNgoai, ghiHuyDuyet, xacNhanHoanNgoai } from "./coc";
@@ -28,6 +28,7 @@ import { ghiThayLanThu } from "./thay-lan-thu";
 
 const NOT_FOUND = () => error(404, "not_found", "Không tìm thấy đơn.");
 const FORBIDDEN_VIEW = () => error(403, "forbidden", "Tài khoản này không được xem thông tin này.");
+const DRAFT_NO_PAYMENT = () => error(409, "order_draft_no_payment", "Đơn chưa xác nhận, chưa ghi thu được.");
 const CANNOT_RECEIVE = () => error(403, "forbidden", "Tài khoản này không được ghi tiền cho đơn này.");
 const CANNOT_RECEIVE_CANCELLED = () => error(403, "forbidden", "Đơn đã huỷ — chỉ Kế toán hoặc Toàn quyền ghi được khoản thu (khách chuyển khoản muộn).");
 const CANNOT_HANDOVER = () => error(403, "forbidden", "Chỉ hướng dẫn viên đang phụ trách đơn, Quản trị hoặc Toàn quyền mới bấm được Đã giao – đã thu đủ.");
@@ -99,7 +100,7 @@ export const billingModule: AppModule = {
       const body = await tienCuaDon(env.DB, info, phan, nguoiGoi(staff), {
         laDoiTac: holdsPartner(staff),
         // Cờ theo ĐÚNG luật của route ghi (đ13): đơn huỷ thì thêm ô `ledger.write`.
-        coTheGhiThu: can(staff, "payment.receive", scope) && (info.status !== "cancelled" || can(staff, "ledger.write")),
+        coTheGhiThu: info.status !== "draft" && can(staff, "payment.receive", scope) && (info.status !== "cancelled" || can(staff, "ledger.write")),
         coTheBamGiao: can(staff, "order.handover", { assigned }),
         coTheBamHoanThanh: can(staff, "order.complete"),
         // Task 9 (đặc tả P8; I-1 người kiểm Task 3+4): chỉ người có `supply.terms.view` và KHÔNG giữ quyền Đối tác được biết có giá vốn / số dư nhà cung cấp.
@@ -116,6 +117,9 @@ export const billingModule: AppModule = {
       if (!UUID_RE.test(id)) return NOT_FOUND();
       const [info, assigned] = await Promise.all([thongTinGiaoDon(env.DB, id), isAssigned(id)]);
       if (!info) return NOT_FOUND();
+      // ADR-0135 Đ7: đơn NHÁP không ghi thu. Đơn nháp của người khác → 404 trước (không dò được); người lập → 409. Áp cả đơn đang chờ xác nhận (vẫn là nháp).
+      if (!chiNguoiLapGhiNhap({ status: info.status, laNguoiLap: info.ownerId === staff.id })) return NOT_FOUND();
+      if (info.status === "draft") return DRAFT_NO_PAYMENT();
       if (!can(staff, "payment.receive", { ownerId: info.ownerId, assigned })) return CANNOT_RECEIVE();
       // ADR-0089 đ13 (NT-H10, H-C9): khoản thu lên ĐƠN ĐÃ HUỶ (khách chuyển khoản muộn) chỉ Kế toán, Toàn quyền.
       if (info.status === "cancelled" && !can(staff, "ledger.write")) return CANNOT_RECEIVE_CANCELLED();

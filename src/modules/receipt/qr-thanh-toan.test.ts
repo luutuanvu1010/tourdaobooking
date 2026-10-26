@@ -138,7 +138,7 @@ test("§8.4: đơn huỷ / đã thu đủ ⇒ 409 không còn tiền; đơn đã
   assert.equal(r.json.error.message, "Đơn đã giao — không thu thêm.");
   const huy = don(w, "99999999-9999-4999-8999-000000000032", "TD-20261008-0032", SALES);
   assert.equal((await w.call("POST", `/api/orders/${huy}/status`, { as: SALES, body: { status: "cancelled", lyDo: "SAI_THONG_TIN" } })).status, 200);
-  assert.equal((await qr(w, SALES, huy)).json.error.message, "Đơn không còn tiền cần thu.");
+  assert.equal((await qr(w, SALES, huy)).json.error.code, "qr_requires_confirmed", "ADR-0135 Đ8: đơn huỷ không có QR (trước đây 'không còn tiền cần thu')");
 });
 
 test("Review Focus 4: đổi công ty chủ sang hồ sơ chưa cài tài khoản ⇒ 409, không dùng tài khoản công ty cũ", async () => {

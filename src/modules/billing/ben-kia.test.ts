@@ -325,7 +325,7 @@ test("từ chối: «khách trả cho đại lý» trên đơn khách lẻ ⇒ 4
   }
   assert.equal(n(w, "SELECT count(*) AS n FROM bil_payment_receipt WHERE order_id = ?", id), 1, "không ghi gì thêm");
   const nh = nhap(w);
-  assert.equal((await thu(w, SALES, nh.id, mat(100_000, "ben_dat"))).status, 400, "đơn nháp: chưa có bản chụp chốt bên đặt");
+  assert.equal((await thu(w, SALES, nh.id, mat(100_000, "ben_dat"))).status, 409, "đơn nháp: ADR-0135 Đ7 chặn ghi thu từ cổng đầu (trước đây 400 vì chưa có bản chụp chốt bên đặt)");
   const ten = await thu(w, HDV, id, mat(100_000, { partyId: `pty-${PT}` }));
   assert.equal(ten.status, 400, "người không phải Kế toán chỉ ghi chính mình / Công ty / hai lựa chọn khai");
 });

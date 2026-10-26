@@ -193,6 +193,8 @@ export async function ghiDuyet(db: D1Database, input: { orderId: string; raw: un
     if (typeof b.donNhan !== "string" || b.donNhan.trim() === "" || b.donNhan.length > 40) return loi(400, "invalid_input", "Nhập mã đơn nhận tiền.");
     const nhan = await orderByCode(db, b.donNhan.trim());
     if (!nhan) return loi(400, "invalid_input", "Không tìm thấy đơn nhận tiền.");
+    // ADR-0135 Đ1: mã đơn NHÁP không lộ qua billing — đơn nháp coi như không tìm thấy (ở lệnh chuyển, đơn nhận nháp bị chặn riêng, xem `ghiChuyen`).
+    if (nhan.status === "draft") return loi(400, "invalid_input", "Không tìm thấy đơn nhận tiền.");
     if (nhan.id === input.orderId || nhan.status === "cancelled" || nhan.delivered_at) return loi(409, "coc_bad_target", "Đơn nhận phải là đơn khác, còn hiệu lực và chưa Đã giao.");
     donNhanId = nhan.id;
   }
@@ -301,6 +303,8 @@ export async function ghiChuyen(db: D1Database, input: { orderId: string; raw: u
   if (goc.kind !== "TRANSFER" || !goc.targetOrderId) return loi(409, "invalid_state", "Khoản này là duyệt hoàn — dùng “Ghi chi hoàn”.");
   // Kiểm độc lập vòng 2 CAO-1: đơn nhận có thể đã huỷ / Đã giao sau lúc duyệt (lớp CSDL: trigger coc_transfer_target_invalid huỷ cả lô).
   const nhan = await orderState(db, goc.targetOrderId);
+  // ADR-0135 Đ7: cổng đặt ở đơn NHẬN — đơn nháp không nhận tiền, kể cả qua lệnh chuyển cọc.
+  if (nhan && nhan.status === "draft") return loi(409, "order_draft_no_payment", "Đơn chưa xác nhận, chưa ghi thu được.");
   if (!nhan || nhan.status === "cancelled" || nhan.delivered_at !== null) return loi(409, "coc_transfer_target_invalid", CAU_DON_NHAN_HONG);
   const giu = await docBen(db, b.nguoiGiu, d.congTyId, "Chọn ai đang cầm khoản tiền này (Công ty, hoặc nhân viên chưa nộp về công ty).");
   if (!giu.ok) return giu;
