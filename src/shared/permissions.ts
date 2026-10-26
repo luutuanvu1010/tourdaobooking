@@ -90,7 +90,7 @@ export const MATRIX = {
   "order.history.view": row("ownOrAssigned", "any", "any", "assigned", "own", "any", "own", "none", "none", "none"), // mở khối "Lịch sử" của đơn — lớp RÚT GỌN không tên (ADR-0131); ADR-0009: cả người phụ trách; ADR-0030 S23-3: FIELD đơn đang phụ trách
   "contact.view": row("any", "any", "any", "assigned", "ownOrAssigned", "any", "own", "none", "none", "none"), // tên/SĐT khách, điểm đón, giờ — PARTNER: own (đơn tự lập) + assigned (đơn được duyệt "xin nhận", ADR-0014 điều 10). NGOẠI LỆ CÓ TÊN (ADR-0030 S23-2): nơi đón/giờ đón ở PHẦN HẸP của hàng chờ (order.pool.view) không đòi ô này — nơi đón đã che dãy số. Nay gồm HỌ TÊN + NĂM SINH của từng hành khách (ADR-0047 A2 — GET /api/orders/:id/passengers)
   "order.create": row("any", "none", "any", "none", "any", "any", "any", "none", "none", "none"), // lập đơn (đơn mới luôn là của người lập)
-  "order.modify": row("ownOrAssigned", "none", "any", "none", "own", "any", "own", "none", "none", "none"), // sửa, xác nhận, huỷ đơn (ADR-0009: cả người phụ trách; ADR-0014: PARTNER của mình)
+  "order.modify": row("ownOrAssigned", "none", "any", "none", "own", "any", "own", "none", "none", "none"), // sửa, huỷ đơn; xác nhận thẳng (ADR-0009: cả người phụ trách; ADR-0014: PARTNER của mình — nhưng ĐỐI TÁC xác nhận bằng «Gửi đơn», ô order.submit, ADR-0136 Đ13)
   "order.trip.edit": row("ownOrAssigned", "none", "any", "none", "none", "any", "none", "none", "none", "none"), // thông tin vận hành sau xác nhận
   // ADR-0049 D3: ĐẶT GẤP chặng dưới mốc tối thiểu (route POST /api/orders/:id/legs/:legId/short-notice + nhánh `datGap` của lệnh sửa / thêm / thay chặng và
   // `PUT …/trip`). ADR-0107 ý (i) (accepted 2026-10-08 — NỚI có tên, Điều 9.4): Bán hàng, Quản trị, Toàn quyền. Không phạm vi đơn: đặt gấp cho mọi đơn; bốn
@@ -100,6 +100,13 @@ export const MATRIX = {
   // số) — văn phòng (Bán hàng, Kế toán, Quản trị, Toàn quyền). Mã khác xem được đơn (Đối tác, HDV, Thực tập) chỉ nhận cờ "Điều chỉnh khẩn cấp (văn phòng)"
   // (`legs[].datGap = { daDuyet: true }`). Không phạm vi đơn: phạm vi đã do order.view quyết. Hỏi ở `loadOrderView` qua `xemDuDatGap` (orders/index.ts).
   "order.leg.short_notice.view": row("any", "any", "any", "none", "none", "any", "none", "none", "none", "none"),
+  // ADR-0136 Đ4 (chủ duyệt 25/10/2026): QUYẾT ĐỊNH đơn đang chờ xác nhận (Còn vé / Hết vé / Huỷ) và đọc đơn chờ ở phần hẹp (route `quyet-dinh`, danh sách chờ).
+  // Bán hàng, Kế toán, Quản trị, HDV (FIELD), Toàn quyền; KHÔNG Đối tác, Thực tập, tài xế, Nhân sự. Không phạm vi đơn. `can()` lấy HỢP các ô của mọi quyền
+  // tài khoản giữ — tài khoản lai (Bán hàng + Đối tác) có ô này; cổng «không tự quyết đơn của mình» đặt ở route bằng `duocQuyetDinh` (src/shared/xac-nhan-don.ts).
+  "order.confirm.review": row("any", "any", "any", "any", "none", "any", "none", "none", "none", "none"),
+  // ADR-0136 Đ13.6 (đúng hàng đích ADR-0018 đ6): nút «Gửi đơn» của ĐỐI TÁC (own = đơn của mình). Toàn quyền any (bài «Toàn quyền = any ở mọi thao tác»); mọi mã khác none —
+  // văn phòng không «gửi» mà xác nhận thẳng. KHÔNG tách ô `order.confirm`: `order.modify` giữ nguyên giá trị.
+  "order.submit": row("none", "none", "none", "none", "own", "any", "none", "none", "none", "none"),
   "order.passenger.write": row("ownOrAssigned", "none", "any", "none", "own", "any", "own", "none", "none", "none"), // ADR-0047 A2: nhập, sửa (dòng mới), huỷ dòng trong danh sách hành khách — bằng order.modify; tài xế không đi qua ô này
   // ADR-0061 điều 2 (accepted 2026-09-30): thêm / sửa tên-giá DỊCH VỤ NHẬP TAY khi công tắc nhập tay đang BẬT. Không phạm vi đơn (đơn nào lập/sửa được vẫn do
   // order.create / order.modify quyết). Hỏi ở MỘT hàm `duocNhapTay` (orders/price-guards.ts): Đối tác TRƯỚC (holdsPartner — tài khoản lai cũng bị chặn), rồi
