@@ -104,3 +104,21 @@ test("(r) tài khoản lai Bán hàng + Đối tác mở chi tiết đơn chờ 
   assert.ok(Array.isArray(r.json.order.services) && r.json.order.services.length === 1);
 });
 
+
+test("(q) lịch chung điều phối: chặng của nháp CHỈ hiện khi có yêu cầu xác nhận còn mở; chưa gửi / Rút lại → vắng; ca đặt gấp mang cờ datGap", async () => {
+  const w = setup();
+  const { legLichChungNhapRows } = await import("./chang-hanh-khach-repo.ts");
+  const hang = async () => (await legLichChungNhapRows(w.env.DB, inDays(0), inDays(10))) as any[];
+  datCo(w, "SERVICE", "ZA1", true);
+  const ngay = inDays(3);
+  const o = await lap(w, A, [svc("ZA1", ngay, [leg(ngay, "07:00")])]);
+  assert.deepEqual(await hang(), [], "nháp chưa gửi");
+  assert.equal((await gui(w, o.id, A)).status, 201);
+  const r = await hang();
+  assert.equal(r.length, 1);
+  assert.equal(r[0].order_id, o.id);
+  assert.equal(r[0].pickup_time, "07:00");
+  assert.deepEqual(Object.keys(r[0]).sort(), ["dat_gap", "id", "order_code", "order_id", "pickup_date", "pickup_time"], "chỉ khoá, mã đơn, ngày giờ, cờ đặt gấp");
+  assert.equal((await rut(w, o.id, A)).status, 200);
+  assert.deepEqual(await hang(), [], "sau Rút lại");
+});
