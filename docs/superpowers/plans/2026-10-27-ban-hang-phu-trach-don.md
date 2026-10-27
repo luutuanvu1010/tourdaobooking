@@ -20,7 +20,7 @@
 
 | # | Việc | Xong khi | Trạng thái |
 |---|---|---|---|
-| 0 | Điều kiện bắt đầu | chủ đã duyệt dòng làm rõ ADR-0136 Đ10 / ADR-0034 đ5 (phiên sửa hộp thư); nhánh hộp thư (`0120`) đã vào `main`; nhánh này dựng trên `main` mới nhất. Hai điểm trước Task 5 (bốn dòng lịch sử nội bộ; cách xử tài khoản lai ở Review Focus 4) **chủ đã duyệt 27/10**, nguyên văn: «Duyệt cả hai đề xuất: tài khoản lai Bán hàng + Đối tác bấm Còn vé thì đơn vẫn xác nhận nhưng không thành Bán hàng phụ trách; bốn dòng mời/nhận/từ chối/đổi Bán hàng hiện trong lịch sử nội bộ, không tên người.» | chưa (chờ hộp thư) |
+| 0 | Điều kiện bắt đầu | chủ đã duyệt dòng làm rõ ADR-0136 Đ10 / ADR-0034 đ5 (phiên sửa hộp thư); nhánh hộp thư (`0120`) đã vào `main`; nhánh này dựng trên `main` mới nhất. Hai điểm trước Task 5 (bốn dòng lịch sử nội bộ; cách xử tài khoản lai ở Review Focus 4) **chủ đã duyệt 27/10**, nguyên văn: «Duyệt cả hai đề xuất: tài khoản lai Bán hàng + Đối tác bấm Còn vé thì đơn vẫn xác nhận nhưng không thành Bán hàng phụ trách; bốn dòng mời/nhận/từ chối/đổi Bán hàng hiện trong lịch sử nội bộ, không tên người.» | **đủ (27/10 tối)**: ADR-0136 mục «Làm rõ 27/10» chủ duyệt (`a14ec12a`); `0120` trên `main` và production bản 2.37; nhánh này đã nhập `main` `2847b6c2`. Người thi công vẫn kiểm lại `main` mới nhất trước Task 1 |
 | 1 | Luật thuần: đồng hồ, lời mời, ai nhận, ai thấy thẻ, danh sách trắng | `src/shared/ban-hang-phu-trach.test.ts` + `xac-nhan-don.test.ts` đỏ→xanh | chưa làm |
 | 2 | Migration: ba bảng `dispatch`, view (cả view gác nhật ký), cột mời trên `orders`, dựng lại khoá Đã giao | bài migration + NT-R6 xanh; `data-dictionary` + `npm run dict`; ba dòng sổ hàng rào | chưa làm |
 | 3 | `dispatch`: SQL, câu lệnh, hàm công bố; gốc lắp ráp | `dispatch/ban-hang.test.ts` + `architecture.test.ts` xanh; `typecheck` 0 lỗi | chưa làm |
@@ -436,7 +436,8 @@
   - Chép điều kiện từ **bản mới nhất** trong `migrations/` (đã có phần `0120` của nhánh hộp thư).
   - Thêm `sales_invited`, `sales_owner_claimed`, `sales_owner_changed`, `sales_invite_refused`, `order_completed`.
   - Không thêm `order_handler_refused` (chủ đã quyết, xem `docs/CHANGE-GUIDE.md` mục hộp thư).
-  - Sửa bài ghim view theo cách nhánh hộp thư đã làm.
+  - Sửa bài ghim view theo cách nhánh hộp thư đã làm: `src/migrations-tin-cho-xac-nhan.test.ts` buộc tập hành động của view **bằng đúng** `HANH_DONG_TIN_DON`, nên năm hành động mới phải vào cả hai nơi cùng lúc.
+  - Giữ bộ lọc `yeuCauDaKhep` của `0120` (tin «đang chờ xác nhận» biến mất khi yêu cầu đã rút lại / xác nhận / huỷ); bài `src/modules/thongbao/tin-cho-xac-nhan-hop.test.ts` phải còn xanh.
 - Test: `src/shared/bang-tin.test.ts`, `src/shared/thong-bao.test.ts`, `src/shared/web-push.test.ts` (tên theo tệp có sẵn), bài ghim view.
 
 - [ ] **Step 1: Viết bài đỏ**, mỗi dòng của bảng L9 (thiết kế) cộng dòng «Đổi» một ca. Phải có:
