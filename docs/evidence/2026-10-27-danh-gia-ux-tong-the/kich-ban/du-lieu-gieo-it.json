@@ -1,0 +1,62 @@
+{
+  "dichVu": {
+    "duThuyen": "DTE1",
+    "bus": "BCT4",
+    "atv": "ATV",
+    "dem": "BFN1",
+    "bus24": "BCT24"
+  },
+  "khachLe": [
+    {
+      "id": "d44efc65-3445-462b-8055-8a2b4ebb1e36",
+      "ten": "Nguyễn Thị Lan Anh",
+      "sdt": "0912000101"
+    },
+    {
+      "id": "04bdb72f-cb6d-4986-8bf8-d4da052b3a15",
+      "ten": "Trần Văn Bình",
+      "sdt": "0912000102"
+    },
+    {
+      "id": "d1c00a79-62f9-41bb-aed1-7cf0705ab9a7",
+      "ten": "Lê Hoàng Châu",
+      "sdt": "0912000103"
+    },
+    {
+      "id": "84ea73c1-6b2b-413e-8066-6b1d91d50046",
+      "ten": "Phạm Minh Đức",
+      "sdt": "0912000104"
+    },
+    {
+      "id": "782a3bd3-2305-4834-b058-a28d708448c9",
+      "ten": "Võ Thị Hồng Nhung",
+      "sdt": "0912000105"
+    }
+  ],
+  "daiLyToChuc": {
+    "id": "65dfac54-d0aa-4db1-b299-b312cdd852bf",
+    "ganVai": 409,
+    "loi": {
+      "code": "role_via_account",
+      "message": "Vai trò này quyết định quyền đăng nhập nên chỉ gán hoặc gỡ ở màn Quản lý tài khoản."
+    }
+  },
+  "nhaXe": "80a621c7-2811-4ebf-b883-f5967b0692f0",
+  "xe": {
+    "xe1": "af418c43-a978-4f97-a6c9-c0f605a6ab37",
+    "xe2": "5f11e2b3-1a3a-49a3-b4b5-94c77641a273",
+    "xe3": "c32f8d0d-a094-433e-87cc-38afab2be422"
+  },
+  "don": {
+    "nhap": "17b0fef6-b4d4-418d-baf3-70684b8d5671",
+    "choXacNhan": "974f4a82-ee1d-4407-9cc5-33ace73ca6e7",
+    "baDichVu": "78249cea-9ba3-4d8c-b420-15417054f19c",
+    "homNay": "83605d2f-ad3d-4876-bbc9-d2762fec3cb6",
+    "doiTac": "8fd6621c-6a2d-40b5-8d14-3285935efb0a"
+  },
+  "gioDonHomNay": {
+    "gio": "22:10",
+    "datGap": false
+  },
+  "chuyenHomNay": "7a0c24df-0621-4577-8c59-e79508be0a0c"
+}
