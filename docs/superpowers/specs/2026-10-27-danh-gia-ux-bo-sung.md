@@ -18,7 +18,7 @@ Dưới đây chỉ là những điểm **chưa thấy** trong `PHU-LUC-PHAT-HIE
 
 ## Bằng chứng
 
-Ảnh, số đo và kịch bản của phiên này **không đưa vào kho**, vì trùng tên tệp với bộ bằng chứng của bản kia. Chúng nằm ngoài kho ở `~/tourdao-ux-2026-10-27/` (`anh-day-du/nhieu/<bộ>/`, `ban-sao-phien-song-song/evidence/` gồm kịch bản, `so-lieu/nhieu-*.json`, `so-lieu/tong-hop-nhieu.json`, `hanh-trinh/`). Ảnh cho từng dòng trên:
+Ảnh, số đo và kịch bản của phiên này **không đưa vào kho**, vì trùng tên tệp với bộ bằng chứng của bản kia. Chúng nằm ngoài kho ở `~/tourdao-ux-2026-10-27/` (`anh-day-du/nhieu/<bộ>/`, `ban-sao-phien-song-song/evidence/` gồm kịch bản, `so-lieu/nhieu-*.json`, `so-lieu/tong-hop-nhieu.json`, `hanh-trinh/`). Ảnh cho từng dòng trên (`anh-day-du/…` tính từ `~/tourdao-ux-2026-10-27/`; `so-lieu/…`, `hanh-trinh/…` tính từ `~/tourdao-ux-2026-10-27/ban-sao-phien-song-song/evidence/`):
 
 - B-BO-QUA-DIEU-HUONG: `so-lieu/nhieu-SUPER_ADMIN.json`, trường `focus` của mọi ô khổ 1040.
 - B-THIET-LAP-CHE: `anh-day-du/nhieu/ACCOUNTING/hoa-hong-1040-man-dau.jpg`.
