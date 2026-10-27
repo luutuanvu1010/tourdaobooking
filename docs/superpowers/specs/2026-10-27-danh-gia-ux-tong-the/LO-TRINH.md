@@ -49,7 +49,11 @@ Chủ quyết ở cổng 1 hoặc ADR nhỏ riêng (thay cách phát hành và s
 | 3 | Nạp sẵn **khung + trang đầu theo vai + 5 mục thanh tab** ngay, các trang còn lại nạp dần khi rảnh | `web/sw/sw.ts`, `PRECACHE` | lần mở đầu không tải 1,9 MB | trang chưa nạp sẵn khi mất mạng → trang mất mạng chung |
 | 4 | Speculation Rules (`prerender`/`prefetch` mục thanh tab và liên kết đang rê) | một `<script type="speculationrules">` trong khung | chuyển trang cảm nhận < 300 ms | chỉ Chrome/Edge; Safari iOS bỏ qua an toàn |
 | 5 | View Transitions giữa tài liệu (`@view-transition { navigation: auto }`) + khung xương cùng lưới với nội dung thật | `app.css`, khung xương | không chớp trắng, CLS ≈ 0 | Safari 18+ mới có; nơi khác tự bỏ qua |
-| 6 | Lưu xong báo ngay, đồng bộ sau (chỉ với hành động an toàn: lưu nháp, ghi chú) | `api.ts`, toast | phản hồi chạm < 100 ms | chạm luật nghiệp vụ nếu mở rộng → DỪNG, hỏi chủ |
+| 6 | Khung xương cùng lưới với nội dung thật ở mọi khuôn trang (hiện chỉ Trang chủ, Đơn hàng có) | `app.css`, khung chung | CLS lạnh về ≈ 0 ở 12 trang đang > 0,1 (Tôi 1,28) | không |
+| 7 | **Gộp lời gọi dữ liệu mỗi trang** (Trang chủ, Tôi 14 lời gọi; Chi tiết đơn 12; Tạo đơn 10) thành 1–2 lời gọi "dữ liệu trang" hoặc gọi song song ngay khi HTML tới (không chờ JS) | `src/` route mới hoặc `api.ts` | nội dung lạnh từ 1,1–2,0 s về ≈ 1,0–1,3 s; nóng từ 0,2–0,9 s về ≈ 0,1–0,3 s | **chạm API và ranh giới module** → cần ADR, chờ chủ; không làm trong đợt 0 |
+| 8 | Lưu xong báo ngay, đồng bộ sau (chỉ với hành động an toàn: lưu nháp, ghi chú) | `api.ts`, toast | phản hồi chạm < 100 ms (hiện đã 10–13 ms cho thao tác tại chỗ) | chạm luật nghiệp vụ nếu mở rộng → DỪNG, hỏi chủ |
+
+Số đo trước (27/10, `KIEM-KE.md` mục 8): nội dung lạnh 1.110–2.011 ms (0/45 đạt), nóng 203–938 ms; chuyển trang vẽ 45–101 ms, nội dung 420–894 ms; chạm 10–13 ms; CLS lạnh > 0,1 ở 12/45. Đợt 0 chạy lại đúng `do-toc-do.mjs` để so.
 
 ## 4. Danh sách thử tay trên iPhone cho chủ (bổ sung vào `docs/PWA-IPHONE.md`, mục "Danh sách kiểm trên iPhone thật", nối tiếp 7 mục đang có)
 

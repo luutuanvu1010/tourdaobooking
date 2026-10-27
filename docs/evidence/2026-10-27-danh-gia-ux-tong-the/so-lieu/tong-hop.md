@@ -502,3 +502,91 @@ Số ô đã quét: nhieu 474 (lỗi kịch bản 0); it 474 (lỗi kịch bản
 | Tài xế công ty (`DRIVER`) | Tài xế công ty (`DRIVER_INTERNAL`) | INTERNAL | `/cuoc` | 6 | 5 | không |
 | Nhân sự (`HR`) | Hành chính nhân sự (`HR_STAFF`) | INTERNAL | `/staff` | 4 | 4 | có |
 | Tài xế đối tác (`DRIVER_PARTNER`) | Tài xế đối tác (`DRIVER_EXTERNAL`) | EXTERNAL | `/cuoc` | 7 | 6 | không |
+
+## K. Tốc độ cảm nhận (mặt 11): 4G chậm (Lighthouse di động): 1,6 Mbit/s xuống, 750 kbit/s lên, trễ 150 ms; CPU chậm 4×; 390×844 di động. In đậm = vượt ngân sách (mở trang > 1.000 ms, CLS > 0,1, TBT > 200 ms)
+
+| Trang | Bộ | Lạnh: FCP | LCP | Khung xong | Nội dung xong | API cuối về | CLS | TBT | Khung xương? | Tải: JS KB (nén/giải) | CSS KB | Phông KB | API (số) | Nóng: FCP | Nội dung xong | CLS | Nạp sẵn (mục / ms) |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `/` | TQ | 996 | 1196 | 974 | **1850** | 1844 | **0.2253** | 0 | có | 34/105 | 89 | 55 | 14 | 76 | 781 | 0.0114 | 102 / 2534 |
+| `/orders` | TQ | 948 | 1392 | 962 | **1513** | 1511 | 0.0498 | 0 | có | 31/94 | 89 | 55 | 7 | 88 | 428 | 0 | 102 / 2529 |
+| `/order` | TQ | 1304 | 1840 | 1283 | **2011** | 2010 | 0.0135 | 0 | không | 97/313 | 89 | 28 | 12 | 64 | 622 | 0 | 102 / 2533 |
+| `/order-form` | TQ | 1152 | 1508 | 1131 | **1889** | 1850 | **0.1142** | 0 | không | 64/195 | 89 | 55 | 10 | 76 | 612 | 0 | 102 / 2535 |
+| `/parties` | TQ | 1028 | 1028 | 998 | **1707** | 1703 | **0.2064** | 0 | không | 41/131 | 89 | 55 | 7 | 64 | 596 | 0.1332 | 102 / 2535 |
+| `/catalog` | TQ | 996 | 996 | 967 | **1540** | 1516 | **0.6729** | 0 | không | 32/101 | 89 | 55 | 8 | 64 | 458 | 0 | 102 / 2522 |
+| `/staff` | TQ | 980 | 1344 | 958 | **1361** | 1349 | 0.0484 | 0 | chữ | 33/105 | 89 | 55 | 6 | 68 | 425 | 0 | 102 / 2531 |
+| `/sessions` | TQ | 964 | 964 | 939 | **1484** | 1479 | 0.0838 | 0 | không | 27/86 | 89 | 55 | 7 | 60 | 418 | 0 | 102 / 2519 |
+| `/locations` | TQ | 952 | 952 | 931 | **1329** | 1327 | 0.0486 | 0 | không | 25/77 | 89 | 55 | 5 | 52 | 402 | 0 | 102 / 2525 |
+| `/loai-giay-to-nguoi` | TQ | 952 | 952 | 925 | **1329** | 1324 | 0.0211 | 0 | không | 25/78 | 89 | 55 | 5 | 72 | 415 | 0 | 102 / 2529 |
+| `/dieu-phoi` | TQ | 1024 | 1552 | 1000 | **1539** | 1532 | 0.0217 | 0 | không | 41/129 | 89 | 55 | 7 | 64 | 430 | 0 | 102 / 2525 |
+| `/chuyen` | TQ | 1072 | 1620 | 1057 | **1598** | 1768 | 0.0116 | 0 | không | 51/167 | 89 | 28 | 7 | 80 | 588 | 0 | 102 / 2535 |
+| `/chuyen-sua` | TQ | 972 | 1348 | 955 | **1858** | 1851 | 0.0116 | 0 | không | 30/91 | 89 | 28 | 8 | 72 | 938 | 0 | 102 / 2526 |
+| `/xe-dang-chay` | TQ | 948 | 1432 | 923 | **1115** | 1414 | 0.0116 | 0 | không | 25/76 | 89 | 28 | 7 | 48 | 203 | 0 | 102 / 2518 |
+| `/de-nghi` | TQ | 964 | 1340 | 943 | **1320** | 1314 | 0.0117 | 0 | không | 27/84 | 89 | 28 | 5 | 76 | 415 | 0 | 102 / 2528 |
+| `/bang-gia-xe` | TQ | 976 | 1524 | 949 | **1510** | 1503 | 0.0341 | 0 | chữ | 30/92 | 89 | 55 | 6 | 48 | 559 | 0.0132 | 102 / 2522 |
+| `/bang-ke-xe` | TQ | 956 | 1176 | 956 | **1365** | 1362 | 0.0385 | 0 | chữ | 27/82 | 89 | 55 | 5 | 80 | 416 | 0 | 102 / 2527 |
+| `/xe` | TQ | 944 | 1328 | 926 | **1424** | 1423 | **0.1695** | 0 | không | 26/78 | 89 | 55 | 6 | 68 | 425 | 0 | 102 / 2530 |
+| `/xe-sua` | TQ | 948 | 1316 | 924 | **1296** | 1294 | 0.0803 | 0 | không | 27/83 | 89 | 55 | 5 | 84 | 394 | 0 | 102 / 2529 |
+| `/xe-chi-tiet` | TQ | 972 | 1360 | 952 | **1342** | 1339 | 0.0063 | 0 | không | 29/89 | 89 | 55 | 6 | 76 | 422 | 0 | 102 / 2533 |
+| `/lich-xe-ban` | TQ | 960 | 1352 | 942 | **1326** | 1323 | 0.0484 | 0 | không | 28/87 | 89 | 55 | 5 | 48 | 409 | 0 | 102 / 2531 |
+| `/giay-to-sap-het-han` | TQ | 936 | 1316 | 920 | **1298** | 1295 | 0.0147 | 0 | không | 26/80 | 89 | 55 | 5 | 36 | 395 | 0 | 102 / 2521 |
+| `/loai-giay-to-xe` | TQ | 920 | 920 | 935 | **1346** | 1341 | 0.0291 | 0 | không | 25/78 | 89 | 55 | 5 | 68 | 422 | 0 | 102 / 2534 |
+| `/chinh-sach-dieu-phoi` | TQ | 992 | 1464 | 964 | **1450** | 1446 | **0.9105** | 0 | không | 32/102 | 89 | 55 | 7 | 76 | 427 | 0 | 102 / 2530 |
+| `/dieu-kien-xuat-ben` | TQ | 928 | 928 | 943 | **1488** | 1484 | 0.0174 | 0 | không | 26/81 | 89 | 55 | 8 | 64 | 428 | 0 | 102 / 2530 |
+| `/ly-do-dieu-phoi` | TQ | 964 | 1344 | 954 | **1328** | 1326 | 0.0116 | 0 | không | 26/81 | 89 | 28 | 5 | 80 | 415 | 0 | 102 / 2531 |
+| `/khoa-thang` | TQ | 952 | 952 | 925 | **1323** | 1323 | 0.0342 | 0 | chữ | 26/79 | 89 | 55 | 5 | 40 | 393 | 0 | 102 / 2532 |
+| `/so-cong-no` | TQ | 964 | 964 | 940 | **1341** | 1338 | **0.2209** | 0 | chữ | 26/81 | 89 | 55 | 5 | 76 | 417 | 0 | 102 / 2533 |
+| `/dieu-chinh-cong-no` | TQ | 952 | 1156 | 941 | **1130** | 1323 | **0.361** | 0 | không | 26/81 | 89 | 55 | 5 | 80 | 229 | 0 | 102 / 2537 |
+| `/hoa-hong` | TQ | 1012 | 1588 | 989 | **1575** | 1518 | 0.0224 | 6 | chữ | 38/122 | 89 | 72 | 8 | 60 | 459 | 0 | 102 / 2532 |
+| `/nguoi-ban` | TQ | 936 | 936 | 953 | **1507** | 1497 | 0.0174 | 0 | không | 28/85 | 89 | 55 | 6 | 52 | 430 | 0 | 102 / 2535 |
+| `/chup-bu` | TQ | 924 | 924 | 939 | **1128** | 1339 | 0.0264 | 0 | chữ | 25/76 | 89 | 55 | 5 | 64 | 224 | 0 | 102 / 2534 |
+| `/cho-xac-nhan` | TQ | 948 | 948 | 929 | **1110** | 1321 | 0.0188 | 0 | không | 25/75 | 89 | 55 | 5 | 64 | 224 | 0 | 102 / 2531 |
+| `/audit` | TQ | 972 | 1440 | 941 | **1420** | 1403 | 0.0268 | 0 | không | 28/95 | 89 | 55 | 5 | 52 | 455 | 0 | 102 / 2525 |
+| `/gui-thong-bao` | TQ | 948 | 1136 | 918 | **1113** | 1318 | **0.1452** | 0 | không | 26/80 | 89 | 55 | 5 | 60 | 228 | 0 | 102 / 2530 |
+| `/tro-ly-cai-dat` | TQ | 976 | 1528 | 949 | **1506** | 1677 | 0.0147 | 0 | không | 30/93 | 89 | 55 | 9 | 64 | 448 | 0 | 102 / 2536 |
+| `/giao-dien` | TQ | 968 | 968 | 943 | **1351** | 1343 | **0.7864** | 0 | không | 29/90 | 89 | 55 | 5 | 44 | 409 | 0 | 102 / 2526 |
+| `/account` | TQ | 1108 | 1624 | 1068 | **1764** | 1763 | **1.2841** | 0 | không | 55/173 | 89 | 55 | 14 | 64 | 606 | 0 | 102 / 2533 |
+| `/feedback` | TQ | 988 | 1588 | 1004 | **1581** | 1752 | 0.0454 | 0 | không | 37/114 | 89 | 55 | 10 | 80 | 601 | 0 | 102 / 2529 |
+| `/help` | TQ | 1308 | 1520 | 1218 | **1496** | 1661 | **0.7965** | 0 | không | 83/356 | 89 | 71 | 4 | 148 | 297 | 0 | 102 / 2534 |
+| `/login` | TQ | 1016 | 1016 | — | **1180** | 1179 | 0.0007 | 0 | không | 26/76 | 89 | 55 | 2 | 64 | 228 | 0 | 102 / 2536 |
+| `/tai-xe` | TXĐT | 932 | 1132 | 935 | **1122** | 1327 | 0.0362 | 0 | không | 25/76 | 89 | 55 | 5 | 72 | 226 | 0 | 102 / 2531 |
+| `/cuoc` | TXĐT | 948 | 1316 | 924 | **1289** | 1288 | 0.0002 | 0 | không | 25/78 | 89 | 55 | 5 | 60 | 394 | 0 | 102 / 2527 |
+| `/cuoc-chuyen` | TXĐT | 1044 | 1564 | 1015 | **1547** | 1540 | 0 | 0 | không | 42/133 | 89 | 28 | 6 | 68 | 565 | 0 | 102 / 2534 |
+| `/ban` | TXĐT | 936 | 1348 | 950 | **1132** | 1317 | 0.0003 | 0 | không | 26/80 | 89 | 55 | 5 | 76 | 225 | 0 | 102 / 2531 |
+
+### K.Chuyển trang (bấm mục thanh tab / thanh bên → trang kế, nóng) và phản hồi chạm. Ngân sách: chuyển trang ≤ 300 ms, chạm ≤ 100 ms
+
+| Khổ | Đích / nút | Bấm → vẽ đầu tiên (ms) | Bấm → nội dung xong (ms) | Chạm → DOM đổi (ms) |
+| --- | --- | --- | --- | --- |
+| 390 | → /orders | 77 | 420 | — |
+| 390 | → /order-form | 101 | 624 | — |
+| 390 | / | LỖI không thấy mục điều hướng #tabbar a[href='/'] |
+| 390 | /orders «Lọc» | — | — | 12 |
+| 390 | / «Tất cả» | — | — | 10 |
+| 1040 | → /orders | 45 | 563 | — |
+| 1040 | → /order-form | 57 | 643 | — |
+| 1040 | → / | 49 | 894 | — |
+| 1040 | /orders «Lọc» | — | — | 12 |
+| 1040 | / «Tất cả» | — | — | 13 |
+
+## L1. Hành trình thật ở khổ 390 (một hành trình mỗi bộ quyền, từ màn Đăng nhập): chạm, gõ, cuộn, đoán
+
+| Bộ | Hành trình | Chạm | Ký tự gõ | Màn cuộn | Đoán | Không tìm thấy | Bước | Lỗi kịch bản | Bước đáng chú ý |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| BH | Bán hàng: đăng nhập → Trang chủ → Tạo đơn ba dịch vụ cho khách mới → lưu chờ xác nhận → xem lại ở Đơn hàng và Trang chủ | 12 | 46 | 1.0 | 1 | 0 | 19 | — | 5. sau đăng nhập (thanh tab: *Trang chủ · Đơn hàng · Tạo đơn · Tôi; thanh bên: 0 mục)<br>7. tới /order-form → đúng<br>14. cuộn tới «re:Thanh toán\|Tóm tắt» (xem phần tiền trước khi lưu)<br>15. mở chi tiết tiền ở chân màn<br>17. tới /order → đúng<br>18. mở /orders (xem lại đơn ở danh sách)<br>19. mở / (hôm sau mở Trang chủ: đơn có hiện không?) |
+| TT | Thực tập: đăng nhập → Đơn hàng → Tạo đơn một dịch vụ (không được chọn người phụ trách) → lưu | 10 | 44 | 0.9 | 1 | 0 | 15 | — | 5. sau đăng nhập (thanh tab: *Đơn hàng · Tạo đơn · Tôi; thanh bên: 0 mục)<br>7. tới /order-form → đúng (KHÔNG có khối Người phụ trách (đúng luật Thực tập))<br>12. cuộn tới «re:Thanh toán\|Tóm tắt» (xem phần tiền trước khi lưu)<br>13. mở chi tiết tiền ở chân màn<br>15. tới /order → đúng |
+| KT | Kế toán: đăng nhập → Đơn chờ xác nhận → kiểm vé một đơn → Còn vé → Sổ công nợ → mở một bên để đối chiếu | 6 | 16 | 0.0 | 1 | 0 | 12 | — | 5. sau đăng nhập (thanh tab: *Trang chủ · Đơn hàng · Tôi; thanh bên: 0 mục)<br>6. mở /cho-xac-nhan (danh sách chờ kiểm vé)<br>8. tới /order → đúng<br>11. mở /so-cong-no (sổ công nợ)<br>12. mở bên đầu tiên trong danh sách |
+| QT | Quản trị: đăng nhập → Điều phối xe → chọn một lượt đưa đón → xếp vào chuyến / tạo chuyến → quay về Đơn hàng → mở đơn → Sửa thông tin chuyến | 8 | 16 | 0.0 | 2 | 0 | 15 | — | 5. sau đăng nhập (thanh tab: *Trang chủ · Đơn hàng · Tạo đơn · Dịch vụ · Tài khoản · Tôi; thanh bên: 0 mục)<br>6. mở /dieu-phoi (bảng điều phối)<br>9. tới /chuyen-sua → KHÔNG, đang ở /dieu-phoi<br>11. mở /orders (danh sách đơn)<br>12. mở đơn đầu tiên<br>13. tới /order → đúng |
+| HDV | Hướng dẫn viên: đăng nhập → Đơn hàng (trang đầu) → Tôi → khối «Việc của tôi» → mở đơn được giao → Xác nhận đã nhận | 4 | 16 | 7.6 | 1 | 0 | 9 | — | 5. sau đăng nhập (thanh tab: *Đơn hàng · Tôi; thanh bên: 0 mục)<br>6. mở /account (trang Tôi)<br>7. cuộn tới «Việc của tôi» (tìm khối Việc của tôi)<br>8. mở đơn đầu tiên trong Việc của tôi<br>9. tới /order → đúng (không có nút «Xác nhận đã nhận» ở đơn này) |
+| ĐT | Đối tác: đăng nhập → Đơn hàng → Tạo đơn cho khách của mình (một dịch vụ) → gửi → xem trạng thái ở Đơn hàng → Tôi (hoa hồng?) | 10 | 47 | 0.8 | 2 | 1 | 18 | — | 5. sau đăng nhập (thanh tab: *Đơn hàng · Tạo đơn · Tôi; thanh bên: 0 mục)<br>7. tới /order-form → đúng<br>12. cuộn tới «re:Thanh toán\|Tóm tắt» (xem phần tiền trước khi lưu)<br>13. mở chi tiết tiền ở chân màn<br>15. tới /order → đúng<br>16. mở /orders (xem trạng thái đơn vừa gửi)<br>17. mở /account (trang Tôi: có thấy hoa hồng / chính sách bán không?)<br>18. cuộn tới «re:[Hh]oa hồng» → KHÔNG THẤY (tìm chữ hoa hồng) |
+| TQ | Toàn quyền: đăng nhập → Quản lý tài khoản → Thêm tài khoản qua màn hình (tên, SĐT, một quyền) → nhận PIN → Hỗ trợ → nhận một vé | 8 | 48 | 0.7 | 1 | 1 | 14 | — | 5. sau đăng nhập (thanh tab: *Trang chủ · Đơn hàng · Tạo đơn · Dịch vụ · Tài khoản · Tôi; thanh bên: 0 mục)<br>6. mở /staff (quản lý tài khoản)<br>7. cuộn tới «Thêm tài khoản» (tìm khung Thêm tài khoản)<br>11. bấm «Tạo tài khoản» (thấy PIN sau khi tạo)<br>13. mở /feedback (Hỗ trợ)<br>14. mở vé đầu tiên → KHÔNG TÌM THẤY (khớp 0) |
+| TX | Tài xế công ty: đăng nhập → Cuốc của tôi → mở chuyến → Xuất bến → Đã đón → Đã trả → Kết thúc chuyến | 5 | 16 | 0.8 | 1 | 1 | 9 | — | 5. sau đăng nhập (thanh tab: Trang chủ · *Cuốc của tôi · Tôi; thanh bên: 0 mục)<br>7. tới /cuoc-chuyen → đúng<br>8. bấm «Cho xe chạy» → KHÔNG TÌM THẤY (khớp 0) |
+| TXĐT | Tài xế đối tác: đăng nhập → Trang đầu tài xế → Xem cuốc → mở chuyến → Báo bận của tôi → ghi một khung bận | 9 | 36 | 0.0 | 2 | 0 | 13 | — | 5. sau đăng nhập (thanh tab: Trang chủ · *Cuốc của tôi · Báo bận của tôi · Tôi; thanh bên: 0 mục)<br>6. mở /tai-xe (trang đầu tài xế)<br>9. mở /ban (Báo bận của tôi)<br>10. chọn «2026-10-30T08:00» ở Từ<br>11. chọn «2026-10-30T12:00» ở Đến |
+| NS | Nhân sự: đăng nhập → Quản lý tài khoản → Thêm tài khoản (tên, SĐT, một quyền) → nhận PIN → đóng | 8 | 43 | 0.5 | 0 | 0 | 11 | — | 5. sau đăng nhập (thanh tab: *Tài khoản · Tôi; thanh bên: 0 mục)<br>6. cuộn tới «Thêm tài khoản» (tìm khung Thêm tài khoản)<br>10. bấm «Tạo tài khoản» (thấy PIN sau khi tạo) |
+
+## L2. Hành trình thật ở khổ 1040 (một hành trình mỗi bộ quyền, từ màn Đăng nhập): chạm, gõ, cuộn, đoán
+
+| Bộ | Hành trình | Chạm | Ký tự gõ | Màn cuộn | Đoán | Không tìm thấy | Bước | Lỗi kịch bản | Bước đáng chú ý |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| BH | Bán hàng: đăng nhập → Trang chủ → Tạo đơn ba dịch vụ cho khách mới → lưu chờ xác nhận → xem lại ở Đơn hàng và Trang chủ | 11 | 46 | 1.1 | 0 | 0 | 18 | — | 5. sau đăng nhập (thanh tab: (không); thanh bên: 10 mục)<br>7. tới /order-form → đúng<br>14. cuộn tới «re:Thanh toán\|Tóm tắt» (xem phần tiền trước khi lưu)<br>16. tới /order → đúng<br>17. mở /orders (xem lại đơn ở danh sách)<br>18. mở / (hôm sau mở Trang chủ: đơn có hiện không?) |
+| KT | Kế toán: đăng nhập → Đơn chờ xác nhận → kiểm vé một đơn → Còn vé → Sổ công nợ → mở một bên để đối chiếu | 6 | 16 | 0.0 | 1 | 0 | 12 | — | 5. sau đăng nhập (thanh tab: (không); thanh bên: 12 mục)<br>6. mở /cho-xac-nhan (danh sách chờ kiểm vé)<br>8. tới /order → đúng<br>11. mở /so-cong-no (sổ công nợ)<br>12. mở bên đầu tiên trong danh sách |
+| QT | Quản trị: đăng nhập → Điều phối xe → chọn một lượt đưa đón → xếp vào chuyến / tạo chuyến → quay về Đơn hàng → mở đơn → Sửa thông tin chuyến | 7 | 16 | 0.0 | 2 | 0 | 14 | — | 5. sau đăng nhập (thanh tab: (không); thanh bên: 14 mục)<br>6. mở /dieu-phoi (bảng điều phối)<br>8. tới /chuyen-sua → KHÔNG, đang ở /dieu-phoi<br>10. mở /orders (danh sách đơn)<br>11. mở đơn đầu tiên<br>12. tới /order → đúng |

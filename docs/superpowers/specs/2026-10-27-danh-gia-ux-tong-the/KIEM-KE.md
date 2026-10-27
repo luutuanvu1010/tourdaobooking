@@ -12,9 +12,9 @@ Hồ sơ có ngày (`PROMPT.md` mục 6.5 sản phẩm số 3). Bảng số li�
 | Trạng thái dữ liệu | rỗng / ít / nhiều | ba kho D1 riêng (`d1-rong`, `d1-it`, `d1`) | gieo qua API, nhật ký gieo giữ ở `kich-ban/` |
 | Trạng thái lỗi | 403 / 404 / mất mạng | mỗi bộ một trang 403, một 404, một mất mạng ở 390 + 1040 | mất mạng giả lập bằng CDP `Network.emulateNetworkConditions offline` sau khi đã cache |
 | Đo máy | hit-test, getComputedStyle, vùng chạm, ô gõ, tràn, axe, focus | đúng (`do-trong-trang.js`) | axe-core 4.13 ngoài kho |
-| Tốc độ | 4G chậm + CPU ×4, lạnh/nóng, chuyển trang, chạm, CLS | (điền: số trang đo) | `do-toc-do.mjs` |
+| Tốc độ | 4G chậm + CPU ×4, lạnh/nóng, chuyển trang, chạm, CLS | 45 trang (41 Toàn quyền + 4 Tài xế đối tác), 5 lần chuyển trang, 4 lần chạm | `do-toc-do.mjs`, chạy một mình |
 | Hành trình | mỗi bộ một hành trình thật, đếm chạm/cuộn/đoán | 10 hành trình ở 390; 3 ở 1040 | `hanh-trinh.mjs` |
-| Số ô đã quét | — | NHIỀU (điền) · ÍT (điền) · RỖNG 474 · lỗi kịch bản 0/0/0 | một ô = trang × bộ × khổ (× trạng thái lỗi) |
+| Số ô đã quét | — | NHIỀU 474 · ÍT 474 · RỖNG 474 · lỗi kịch bản 0/0/0 | một ô = trang × bộ × khổ (× trạng thái lỗi); 1.422 ô, ≈ 2.850 ảnh |
 
 ## 2. Mười lăm vai gộp thành mười bộ quyền (sinh từ mã bằng `ma-tran-quyen.mjs`, không chép tay)
 
@@ -154,9 +154,24 @@ Phân tích chi tiết và số dòng: `SO-LECH-TU-MA.md`.
 | Câu trạng thái rỗng | 20 lớp | 13 câu khác nhau (NHIỀU) + 5 trang rỗng không có câu (RỖNG) | "Chưa có đơn nào khớp." vs "Chưa có xe nào. Thêm xe để…" |
 | Phông | 4 họ khai | 1 họ dùng (Be Vietnam Pro) | — |
 
-## 8. Tốc độ (4G chậm + CPU ×4, 390×844; `so-lieu/toc-do.json`)
+## 8. Tốc độ (4G chậm + CPU ×4, 390×844; `so-lieu/toc-do.json`; bảng 45 dòng ở `tong-hop.md` K, in đậm chỗ vượt ngân sách)
 
-(điền từ `tong-hop.md` K: bảng lạnh / nóng từng trang; chuyển trang; chạm; CLS; vượt ngân sách in đậm)
+Điều kiện: Chrome headless, mạng giả lập 1,6 Mbit/s xuống / 750 kbit/s lên / trễ 150 ms, CPU chậm 4×; mỗi trang đo **lạnh** (cache trống) → chờ service worker nạp sẵn xong (đo không kẹp mạng) → **nóng**. 45 trang (41 với Toàn quyền, 4 với Tài xế đối tác, kể cả Đăng nhập). Ngân sách đề bài: mở trang ≤ 1.000 ms, chuyển trang ≤ 300 ms, chạm ≤ 100 ms, CLS ≈ 0.
+
+| Số đo | Lạnh (lần đầu) | Nóng (mở lại) | Đạt ngân sách? |
+|---|---|---|---|
+| Vẽ đầu tiên (FCP) | 920–1.308 ms (trung vị ≈ 960) | 36–148 ms | lạnh: sát mốc; nóng: đạt |
+| Khung vỏ xong (thanh trên/tab có nội dung) | 918–1.283 ms | 40–150 ms | — |
+| **Nội dung thật xong** (API cuối về + vẽ) | **1.110–2.011 ms, 0/45 ≤ 1 s** | 203–938 ms, 45/45 ≤ 1 s (21 trang > 400 ms) | lạnh: **không**; nóng: đạt |
+| CLS (dịch chuyển bố cục) | **12/45 trang > 0,1** (Tôi 1,28; Chính sách điều phối 0,91; Hướng dẫn 0,80; Giao diện 0,79; Dịch vụ 0,67; Điều chỉnh công nợ 0,36; Trang chủ 0,23; Sổ công nợ 0,22; Danh bạ 0,21; Xe 0,17; Gửi thông báo 0,15; Tạo đơn 0,11) | ≈ 0 (Danh bạ 0,13) | lạnh: **không**; nóng: đạt |
+| TBT (chặn luồng chính) | 0 ms ở 44/45 (Hoa hồng 6) | 0 | đạt — CPU không phải nút thắt |
+| Khung xương khi tải | có: Trang chủ, Đơn hàng; chỉ chữ "Đang tải": 7 trang; không gì: 36 trang | — | — |
+| Tải mỗi trang (nén / giải nén) | CSS 89 / 426 KB (mọi trang) · JS 25–97 / 76–356 KB · phông 28–72 KB · API 5–14 lời gọi (Trang chủ 14, Tôi 14, Chi tiết đơn 12, Tạo đơn 10) | 0 KB tĩnh (cache), API vẫn 5–14 lời gọi | — |
+| Nạp sẵn lần đầu (service worker) | 102 mục ≈ 1,9 MB nén; ≈ 2,5 s không kẹp mạng, ước ≈ 10 s trên 4G chậm | — | — |
+| Chuyển trang (bấm mục thanh tab/thanh bên, nóng) | — | vẽ 45–101 ms; nội dung 420–894 ms | vẽ: đạt; nội dung: không |
+| Phản hồi chạm (mở Lọc; viên Tất cả) | — | DOM đổi sau 10–13 ms | đạt |
+
+Năm trang nặng nhất khi mở lần đầu (nội dung xong, lạnh): Chi tiết đơn 2.011 · Tạo đơn 1.889 · Chuyến mới 1.858 · Trang chủ 1.850 · Tôi 1.764 ms. Đăng nhập: 1.180 ms lạnh, 228 nóng.
 
 ## 9. Hành trình thật (`so-lieu/hanh-trinh-390.json`, `-1040.json`; ảnh bước `~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/<khổ>/<bộ>/`, ảnh trích dẫn chép vào `anh/ht-*.jpg`)
 
