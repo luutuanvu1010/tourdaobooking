@@ -61,7 +61,7 @@ async function khongConTinCho(w: any, ma: string, nhan: string) {
   }
 }
 
-test("hết chờ → tin «đang chờ xác nhận» biến mất: rút lại, Còn vé, Hết vé; gửi lại sau rút lại → đúng một tin mới", async () => {
+test("hết chờ → tin «đang chờ xác nhận» biến mất: rút lại, Còn vé, Hết vé, Huỷ; gửi lại sau rút lại → đúng một tin mới", async () => {
   const w = setup();
   datCo(w, "SERVICE", "ZA1", true);
   const gui = (id: string) => w.call("POST", `/api/orders/${id}/gui-xac-nhan`, { as: A, body: {} });
@@ -74,10 +74,10 @@ test("hết chờ → tin «đang chờ xác nhận» biến mất: rút lại, 
   const sauGuiLai = await w.call("GET", "/api/thong-bao?ngan=cua-toi", { as: ACC });
   assert.equal(cuaDon(sauGuiLai, r.orderCode).length, 1, sauGuiLai.text);
 
-  for (const ketQua of ["CON_VE", "HET_VE"]) {
+  for (const [ketQua, them] of [["CON_VE", {}], ["HET_VE", {}], ["HUY", { lyDo: "KHACH_DOI_Y" }]] as const) {
     const o = await lap(w, A);
     assert.equal((await gui(o.id)).status, 201);
-    const qd = await w.call("POST", `/api/orders/${o.id}/quyet-dinh`, { as: ACC, body: { ketQua, yeuCauId: yeuCauMo(w, o.id), updatedAt: mocDon(w, o.id) } });
+    const qd = await w.call("POST", `/api/orders/${o.id}/quyet-dinh`, { as: ACC, body: { ketQua, yeuCauId: yeuCauMo(w, o.id), updatedAt: mocDon(w, o.id), ...them } });
     assert.equal(qd.status, 200, `${ketQua}: ${qd.text}`);
     await khongConTinCho(w, o.orderCode, ketQua);
   }

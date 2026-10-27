@@ -76,3 +76,11 @@ test("yêu cầu đã khép (rút lại / xác nhận / huỷ — chủ dự án
     assert.equal(hop(s, [don({ yeuCauDaKhep: false })]).tin.length, 1, `${s.id}: yêu cầu còn mở vẫn là tin`);
   }
 });
+
+test("dòng RÚT LẠI không bao giờ thành tin (nó vào view 0120 chỉ để biết yêu cầu đã khép — phiếu kiểm độc lập M-A)", () => {
+  const rut = don({ action: "order_confirm_withdrawn", laNhap: true });
+  assert.equal(loaiTinDon(rut), null);
+  for (const s of [LAP, KT, HDV, BH, QT, DT, TT, HR]) {
+    for (const ngan of ["cua-toi", "tat-ca"] as const) assert.equal(hop(s, [{ ...rut, actorId: "khac" }], ngan).tin.length, 0, `${s.id} ${ngan}`);
+  }
+});
