@@ -55,6 +55,9 @@ const KHO_THEM = [[768, 1024, true], [1440, 900, false]];
 const tenTep = (p) => (p === "/" ? "trang-chu" : p.slice(1).replace(/[^a-z0-9-]/gi, "_"));
 
 const ketQua = [];
+mkdirSync(join(EVID, "so-lieu"), { recursive: true });
+const RA = join(EVID, "so-lieu", `${NHAN}${CHI_BO ? "-" + CHI_BO.join("_") : ""}${CHI_TRANG ? "-tung-trang" : ""}.json`);
+const ghiKetQua = (xong) => writeFileSync(RA, JSON.stringify({ nhan: NHAN, luc: new Date().toISOString(), base: BASE, xong, ketQua }, null, 1));
 const chrome = await moChrome();
 try {
   for (const [bo, info] of Object.entries(maTran.bo)) {
@@ -115,12 +118,12 @@ try {
         ketQua.push(o);
       }
     }
-    await ngan.dong();
+    await ngan.dong().catch(() => {});
+    ghiKetQua(false); // ghi tạm sau mỗi bộ quyền: treo giữa chừng không mất phần đã đo
+    console.log(`— xong bộ ${bo}: ${ketQua.length} ô tới giờ`);
   }
 } finally {
   await chrome.tat();
-  mkdirSync(join(EVID, "so-lieu"), { recursive: true });
-  const ra = join(EVID, "so-lieu", `${NHAN}${CHI_BO ? "-" + CHI_BO.join("_") : ""}${CHI_TRANG ? "-tung-trang" : ""}.json`);
-  writeFileSync(ra, JSON.stringify({ nhan: NHAN, luc: new Date().toISOString(), base: BASE, ketQua }, null, 1));
-  console.log(`Ghi ${ra} (${ketQua.length} ô)`);
+  ghiKetQua(true);
+  console.log(`Ghi ${RA} (${ketQua.length} ô)`);
 }

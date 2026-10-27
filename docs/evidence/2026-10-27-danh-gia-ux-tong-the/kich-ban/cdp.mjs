@@ -32,7 +32,11 @@ export async function moChrome() {
     if (m.id && pending.has(m.id)) { pending.get(m.id)(m); pending.delete(m.id); return; }
     if (m.sessionId && listeners.has(m.sessionId)) listeners.get(m.sessionId)(m);
   });
-  const send = (method, params = {}, sessionId) => new Promise((res) => { const i = ++id; pending.set(i, res); ws.send(JSON.stringify({ id: i, method, params, ...(sessionId ? { sessionId } : {}) })); });
+  // Mọi lệnh CDP có hạn 45 s: lần quét 27/10 15:38 treo vĩnh viễn ở Page.captureScreenshot cả trang của /help (trang rất dài) vì không có hạn.
+  const send = (method, params = {}, sessionId) => new Promise((res, rej) => { const i = ++id; const t = setTimeout(() => { pending.delete(i); rej(new Error(`CDP ${method} không trả lời sau 45 s`)); }, 45000); pending.set(i, (m) => { clearTimeout(t); res(m); }); ws.send(JSON.stringify({ id: i, method, params, ...(sessionId ? { sessionId } : {}) })); });
+  // Bị dừng (TaskStop / Ctrl+C) thì tắt Chrome theo, không để tiến trình mồ côi.
+  const dungKhiBiGiet = () => { try { chrome.kill("SIGKILL"); } catch { /* đã thoát */ } try { rmSync(profile, { recursive: true, force: true }); } catch { /* bỏ */ } process.exit(130); };
+  process.on("SIGTERM", dungKhiBiGiet); process.on("SIGINT", dungKhiBiGiet);
 
   /** Một ngăn trình duyệt mới (cookie riêng) + một tab. */
   async function moNgan() {
@@ -73,8 +77,12 @@ export async function moChrome() {
         if (lang >= 600 || Date.now() > het) break;
       }
     };
+    /** Ảnh JPEG; `full` = cả trang nhưng CẮT tối đa 9.000 px chiều cao (trang dài hơn — Hướng dẫn với nhật ký thay đổi — làm Chrome treo khi chụp không giới hạn). */
     const chup = async (path, full = true) => {
-      const r = await s("Page.captureScreenshot", { format: "jpeg", quality: 62, captureBeyondViewport: full });
+      let clip;
+      if (full) { const cao = await ev("Math.min(document.documentElement.scrollHeight, 9000)"); const rong = await ev("innerWidth"); clip = { x: 0, y: 0, width: rong, height: cao, scale: 1 }; }
+      const r = await s("Page.captureScreenshot", { format: "jpeg", quality: 62, captureBeyondViewport: full, ...(clip ? { clip } : {}) });
+      if (!r.result?.data) throw new Error(`chụp ảnh lỗi: ${JSON.stringify(r.error ?? r).slice(0, 200)}`);
       writeFileSync(path, Buffer.from(r.result.data, "base64"));
     };
     const cookie = (c, url) => s("Network.setCookie", { ...c, url, httpOnly: true });

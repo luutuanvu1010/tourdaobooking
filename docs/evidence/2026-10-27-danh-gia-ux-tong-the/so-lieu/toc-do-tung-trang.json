@@ -1,0 +1,113 @@
+{
+ "luc": "2026-10-27T09:00:00.231Z",
+ "base": "http://localhost:8795",
+ "dieuKien": {
+  "mang": "4G chậm (Lighthouse di động): 1,6 Mbit/s xuống, 750 kbit/s lên, trễ 150 ms",
+  "cpu": "chậm 4×",
+  "khung": "390×844 di động"
+ },
+ "ketQua": [
+  {
+   "bo": "SUPER_ADMIN",
+   "trang": "/login",
+   "lan": 0,
+   "lanh": {
+    "ttfb": 23.399999976158142,
+    "fcp": 1036,
+    "lcp": null,
+    "dcl": 986.2999999523163,
+    "load": 1447.199999988079,
+    "khungXong": null,
+    "noiDungXong": null,
+    "apiCuoiVe": 1150.5,
+    "cls": 0,
+    "tbt": 0,
+    "soLongTask": 0,
+    "khungXuong": false,
+    "dangTai": false,
+    "taiLieuByte": 2590,
+    "tai": {
+     "css": {
+      "so": 4,
+      "byte": 146720,
+      "giai": 481886
+     },
+     "anh": {
+      "so": 2,
+      "byte": 8468,
+      "giai": 15736
+     },
+     "js": {
+      "so": 1,
+      "byte": 26629,
+      "giai": 78088
+     },
+     "api": {
+      "so": 2,
+      "byte": 879,
+      "giai": 278
+     }
+    },
+    "bam": 0,
+    "chuyenTrangFcp": null,
+    "chuyenTrangNoiDung": null,
+    "tieuDe": "Đăng nhập — Island Booking System",
+    "duong": "/login"
+   },
+   "napSan": {
+    "soMuc": 102,
+    "choMs": 2529,
+    "coSW": true
+   },
+   "nong": {
+    "ttfb": 3.800000011920929,
+    "fcp": 68,
+    "lcp": null,
+    "dcl": 59.60000002384186,
+    "load": 61.60000002384186,
+    "khungXong": null,
+    "noiDungXong": null,
+    "apiCuoiVe": 234.10000002384186,
+    "cls": 0,
+    "tbt": 0,
+    "soLongTask": 0,
+    "khungXuong": false,
+    "dangTai": false,
+    "taiLieuByte": 0,
+    "tai": {
+     "css": {
+      "so": 4,
+      "byte": 0,
+      "giai": 481886
+     },
+     "anh": {
+      "so": 2,
+      "byte": 0,
+      "giai": 15736
+     },
+     "js": {
+      "so": 1,
+      "byte": 0,
+      "giai": 78088
+     },
+     "api": {
+      "so": 2,
+      "byte": 879,
+      "giai": 278
+     }
+    },
+    "bam": 0,
+    "chuyenTrangFcp": null,
+    "chuyenTrangNoiDung": null,
+    "tieuDe": "Đăng nhập — Island Booking System",
+    "duong": "/login"
+   },
+   "loiConsole": [
+    "TypeError: Failed to execute 'observe' on 'MutationObserver': parameter 1 is not of type 'Node'.\n    at <anonymous>:16:6\n    at <anonymous>:20:3"
+   ]
+  },
+  {
+   "chuyenTrang": []
+  }
+ ]
+}
