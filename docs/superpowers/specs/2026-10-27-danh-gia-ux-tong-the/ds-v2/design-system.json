@@ -360,8 +360,8 @@
   },
   "lastChange": {
     "by": "Claude",
-    "at": "2026-10-27T22:15:57.059Z",
+    "at": "2026-10-27T23:20:11.402Z",
     "via": "Claude Code",
-    "note": "Dựng lần đầu từ mã tourdaobooking main@2847b6c2 (app.css :root, web/icons.ts, public/fonts) theo HE-THONG-HOP-NHAT.md — Chặng 2, cổng 2a. Cỡ byte tài sản ghi theo kết quả tải lên."
+    "note": "28/10: sửa 7 chỗ theo bảng lệch 2c (DOI-CHIEU-BO-V2-2026-10-28.md): A2 thêm họ co-chu fs-step-1…14; A3 ghi BỎ lh-heading + chiều cao dòng theo vai; B4 năm trang thành phần về khuôn bốn mục; E5 phạm vi mono; F3 fs-field 17→16 ở 8 ô gõ; F4 thêm fw-home-stat 700; F7 dấu MỚI từng mốc. Toast tạm giữ diện mạo theo mã (F6)."
   }
 }
