@@ -20,7 +20,7 @@
 
 | # | Việc | Xong khi | Trạng thái |
 |---|---|---|---|
-| 0 | Điều kiện bắt đầu | chủ đã duyệt dòng làm rõ ADR-0136 Đ10 / ADR-0034 đ5 (phiên sửa hộp thư); nhánh hộp thư (`0120`) đã vào `main`; nhánh này dựng trên `main` mới nhất | chưa |
+| 0 | Điều kiện bắt đầu | chủ đã duyệt dòng làm rõ ADR-0136 Đ10 / ADR-0034 đ5 (phiên sửa hộp thư); nhánh hộp thư (`0120`) đã vào `main`; nhánh này dựng trên `main` mới nhất. **Trước Task 5** cần thêm: chủ duyệt bốn dòng lịch sử nội bộ (Task 5) và giữ hoặc đổi cách xử tài khoản lai (Review Focus 4) | chưa |
 | 1 | Luật thuần: đồng hồ, lời mời, ai nhận, ai thấy thẻ, danh sách trắng | `src/shared/ban-hang-phu-trach.test.ts` + `xac-nhan-don.test.ts` đỏ→xanh | chưa làm |
 | 2 | Migration: ba bảng `dispatch`, view (cả view gác nhật ký), cột mời trên `orders`, dựng lại khoá Đã giao | bài migration + NT-R6 xanh; `data-dictionary` + `npm run dict`; ba dòng sổ hàng rào | chưa làm |
 | 3 | `dispatch`: SQL, câu lệnh, hàm công bố; gốc lắp ráp | `dispatch/ban-hang.test.ts` + `architecture.test.ts` xanh; `typecheck` 0 lỗi | chưa làm |
@@ -49,7 +49,7 @@
 - **Câu nối vào lô có sẵn phải gác «lệnh chính đã thắng».** Luật lô hiện có: bên thua tự thành 0 dòng vì mọi câu mang cùng điều kiện; một câu `INSERT` không gác vẫn chạy khi lệnh chính đổi 0 dòng, để lại dữ liệu mồ côi.
   - Câu của `dispatch` nối vào lô của `orders` gác bằng id nhật ký của lệnh đơn, qua view `v_aud_order_ban_hang` (Task 2, khuôn `v_aud_order_cmd` của `0089`). `dispatch` không đọc `audit_log` trực tiếp.
   - Câu đi sau câu chính của chính `dispatch` gác bằng id dòng vừa mở.
-- **Lịch sử đơn:** bốn hành động mới nằm ở danh sách cho phép của lịch sử nội bộ (không tên người; chi tiết không có tên hay mã). Ở lịch sử Đối tác, chúng nằm ở danh sách **ẩn**: Đối tác chỉ thấy tên Bán hàng phụ trách trên đơn, đúng câu trả lời «Chỉ hiện tên». Người soạn tự quyết, có ghi trong báo cáo cho chủ.
+- **Lịch sử đơn:** bốn hành động mới gắn đơn nằm ở danh sách cho phép của lịch sử nội bộ (không tên người; chi tiết không có tên hay mã). Danh sách đó có bản «chủ duyệt» trong bài thử, nên bốn dòng này chờ chủ duyệt trước Task 5. Ở lịch sử Đối tác, chúng nằm ở danh sách **ẩn**: Đối tác chỉ thấy tên Bán hàng phụ trách trên đơn, đúng câu trả lời «Chỉ hiện tên». Người soạn tự quyết, có ghi trong báo cáo cho chủ.
 - **Hộp thư tính theo trạng thái hiện tại** (khuôn `handlerTruoc` giả ở `src/shared/thong-bao.ts`, quanh dòng 192). Người cũ khi Đổi, và X sau khi lời mời đã khép, chỉ nhận qua Bảng tin và báo đẩy lúc sự kiện, không có dòng hộp thư. Người soạn tự quyết theo tiền lệ của ô HDV.
 - **Chạy kiểm:** giữa chừng chỉ chạy `node --test <tệp liên quan>` và `npm run typecheck`. `npm test` và `npm run test:e2e` mỗi bộ chạy **một lần**, ở Task 9.
 - **Việc lớn:** sau Task 9 phải có người kiểm độc lập chỉ đọc (`nguoi-kiem-doc-lap`). Người thi công không tự nghiệm thu. AI không `git push`, không deploy, không áp migration remote.
@@ -58,7 +58,11 @@
 1. **X mất quyền Bán hàng hoặc bị ngưng trong 15 phút của mình.** Người khác phải nhận được ngay; X bấm Nhận thì 403. Lúc ghi nhận mà X đã mất quyền thì không mời. Bài: Task 1, Task 5 (ca R1).
 2. **Đơn bị huỷ trong 15 phút của X.** Lời mời khép `HUY_DON`; X bấm Nhận thì 409 «Đơn đã huỷ»; đơn không vào thẻ. Bài: Task 5 (ca R2).
 3. **Mốc đúng biên.** 17:00:00 ⇒ hạn 07:15 hôm sau; 07:00:00 ⇒ 07:15; giữ giây. «Còn N phút» lúc 17:30 cho hạn 07:10 hôm sau ⇒ 10, không phải 820. Bài: Task 1.
-4. **Tài khoản lai Bán hàng + Đối tác.** Không có trong danh sách mời; bấm Nhận thì 403; không hưởng ngoại lệ Quản trị. Bài: Task 5 (ca R4, `gieoTaiKhoanLai`).
+4. **Tài khoản lai Bán hàng + Đối tác.**
+   - Không có trong danh sách mời; bấm Nhận thì 403; không hưởng ngoại lệ Quản trị.
+   - Bấm Còn vé trên đơn chờ của người khác (ADR-0136 cho phép) thì đơn vẫn được xác nhận, nhưng **không** mở ô cho người bấm và **không** khép lời mời. Đơn sang «Chờ Bán hàng nhận», vì QĐ2(c) cấm người giữ quyền Đối tác giữ ô.
+   - Đây là cách người soạn áp QĐ2(c), chủ có thể đổi trước Task 5. Phương án khác: chặn 403, nhưng như vậy là bớt quyền ADR-0136 đã cho.
+   - Bài: Task 5 (ca R4, `gieoTaiKhoanLai`, cả hai đường).
 5. **Hai người bấm cùng lúc.** Gồm cả hai trường hợp:
    - X và Quản trị bấm cùng lúc;
    - Rút lại chen vào giữa lúc đọc và lúc ghi của Còn vé.
@@ -255,7 +259,7 @@
     - `scopeDuocGiao` **chỉ** dùng ở hai lời gọi `order.history.view` (khối `history` và `lichSuSoKhach`). Mọi ô khác giữ `scope` cũ, để nút huỷ và ô tiền không rò theo cờ mới.
     - DTO `OrderDetailResponse` thêm `laBanHangPhuTrach: boolean`.
   - **`src/modules/van-chuyen/index.ts`:**
-    - Ở chỗ dựng `quyenGoiBaoCua` (dòng 200–201), truyền hàm gộp `async (id) => (await isAssigned(id)) || (await isSalesOwner(id))`. **Không** đổi chữ ký, vì kết quả được truyền ở khoảng 25 chỗ.
+    - `quyenGoiBaoCua` (dòng 200–201) **không** đổi chữ ký. Thêm một hàm gộp dùng chung `giaoChoGoiBao(isAssigned, isSalesOwner) = async (id) => (await isAssigned(id)) || (await isSalesOwner(id))`, rồi đổi đối số ở **mọi** chỗ gọi `quyenGoiBaoCua(staff, isAssigned)` (khoảng 25 chỗ, dòng 1237–2425) thành `quyenGoiBaoCua(staff, giaoChoGoiBao(isAssigned, isSalesOwner))`.
     - Dòng 2391, 2413 (`trip.call_ack` có `isAssigned`) đổi theo cùng cách.
     - Hai chỗ `assigned: true` để nguyên.
   - **`src/modules/dispatch/rules.ts`:** `mayChangeHandler` và `handlerChangeVerdict` nhận thêm `laBanHangPhuTrach: boolean` (ô `dispatch.assign`). Nối cờ vào **cả hai** route gọi chúng:
@@ -265,6 +269,10 @@
   - **`src/shared/order-view.ts`:**
     - `suaChuyenDuoc(viewer, ownerId, canModify, laBanHangPhuTrach)` và `suaKhachDuoc` đổi cùng chữ ký. Khi `!canModify && !laBanHangPhuTrach` ⇒ `false`; còn lại hỏi ô như cũ với `assigned: ownerId !== viewer.id`.
     - `orderActions`: đơn `confirmed` mà `!canModify` nhưng `canEditTrip` ⇒ `{ editTrip: true, cancel: false, noPermission: false, locked: true }`.
+    - **Mốc Đã giao:** hôm nay `canModify` tự tắt khi đơn Đã giao (`orders/index.ts`, quanh dòng 1213), và máy chủ trả `DA_GIAO` ở `PUT …/trip`. Đường mới phải giữ đúng điều đó.
+      - Thêm hàm thuần `banHangSuaDuoc(order: { deliveredAt: string | null }, laBanHangPhuTrach: boolean): boolean = laBanHangPhuTrach && order.deliveredAt === null`.
+      - Hai hàm trên nhận **kết quả** của nó, không nhận cờ thô.
+      - Ca bắt buộc: đơn Đã giao mà người xem là Bán hàng phụ trách ⇒ không có nút sửa chuyến, không có nút sửa khách.
     - Lý do: hôm nay giao diện suy phạm vi từ `canModify`, mà Bán hàng phụ trách không có `order.modify`. Không sửa thì họ sửa được ở máy chủ nhưng không thấy nút.
   - **`src/shared/order-view.test.ts`** (quanh dòng 136–166):
     - mô hình «máy chủ quyết» đổi thành ô `order.trip.edit` / `order.passenger.write` với `assigned = phụ trách HDV || Bán hàng phụ trách`;
@@ -308,7 +316,8 @@
 
     Các câu này đi **cùng lô** và đứng **sau** câu xác nhận / mở yêu cầu.
     - Chúng mang `auditId` của dòng nhật ký `confirmed` / `order_confirm_requested` của lô đó.
-    - Nơi gọi chọn `auditId` trước, như `opts.auditId` của `soanXacNhan`. `soanHuyDon` và lô gửi xác nhận chưa trả `auditId` thì thêm theo cùng cách.
+    - Nơi gọi chọn `auditId` trước, như `opts.auditId` của `soanXacNhan`.
+    - `soanHuyDon` đã trả `auditId`. Hai hàm chưa lộ `auditId` là `confirmOrder` (`repository.ts`, quanh dòng 1074, chưa có tham số `opts`) và `cancelOrderByHandler`: thêm theo cùng cách. Lô gửi xác nhận (`xac-nhan-route.ts`, quanh dòng 51) đã chọn `auditId` trước.
     - Nhật ký `sales_invited` cũng gác theo `auditId` đó.
   - **Route mới** `GET /api/orders/chua-co-ban-hang`, đặt **trước** `GET /api/orders/:id` trong mảng route (router lấy route khớp đầu tiên):
     - cổng `order.view`;
@@ -319,6 +328,7 @@
   - **`quyet-dinh`:** cổng ưu tiên qua `duocQuyetDinh` mới.
     - `duocQuyetDinh` còn người gọi thứ hai: `src/modules/orders/xac-nhan-chung.ts` (quanh dòng 203, trường `quyetDinhDuoc` của DTO). Truyền cùng đầu vào.
     - **Còn vé** ⇒ lô `[...cauDau, ...xn.cau, khep, cauMoBanHangBatBuoc({ người bấm, auditId }), cauKhepLoiMoiSauLenhDon({ laX ? NHAN : NGUOI_KHAC, auditId })]`.
+      - Người bấm giữ quyền Đối tác (tài khoản lai, Review Focus 4) ⇒ lô **không** có hai câu cuối: đơn được xác nhận, ô trống, lời mời giữ nguyên.
       - Trong `catch`, xét `laVaChamOBanHang(e)` **trước** `dichLoiXacNhan(e)`. Trúng ⇒ 409 `stale` «Đơn vừa có Bán hàng phụ trách, hãy tải lại.», không 500.
       - Lỗi khác ném tiếp.
     - **Hết vé / Huỷ** ⇒ thêm `cauKhepLoiMoiSauLenhDon({ HUY_DON, auditId của dòng huỷ })`.
@@ -329,7 +339,10 @@
     - lời mời vẫn đúng trạng thái trước lô thua.
 - Modify — đường huỷ thêm `cauKhepLoiMoiSauLenhDon({ HUY_DON, auditId })`:
   - `/status` huỷ (`orders`);
-  - `handler-cancel` (`dispatch`): nhận `auditId` từ `soanHuyDon` của `orders` qua `ctx`.
+  - `handler-cancel` (`dispatch`):
+    - Route này import thẳng `cancelOrderByHandler` của `orders` (`dispatch/index.ts`, quanh dòng 298). `auditId` sinh bên trong `soanHuyDon`, còn `cauSauHuy` được dựng trước lúc gọi (quanh dòng 296).
+    - Đổi tham số `cauSauHuy` thành hàm `(auditId: string) => D1PreparedStatement[]`.
+    - Đặt hàm đó **trước** `noiChuyen`, để bài NT-6 (`src/dong-bo-chuyen-guard.test.ts`, quanh dòng 108) vẫn bóc đúng thân hàm.
 - Create: `src/modules/dispatch/ban-hang-route.ts`, nối vào mảng route của `dispatchModule`:
   - **`GET /api/dispatch/ban-hang-moi`** (`dispatch.sales.invitees`) → `{ banHang: { staffId, name }[] }`.
   - **`GET /api/dispatch/ban-hang?orderIds=…`** (≤ 30) → `{ [orderId]: { banHang: { staffId, name } | null; loiMoi: { staffId, name, conPhut } | null; laBanHangPhuTrach: boolean } }`.
@@ -338,7 +351,7 @@
   - **`POST /api/orders/:id/ban-hang/nhan`** (`dispatch.sales.claim`).
     - Chỉ đơn `confirmed`; đơn chờ xác nhận ⇒ 409 `can_quyet_dinh` «Đơn cần kiểm vé — hãy chọn Còn vé / Hết vé».
     - Cổng qua `duocNhanBanHang`.
-    - Lô: `cauMoBanHangNeuTrong({ id })` + `cauKhepLoiMoiSauNhan({ laX ? NHAN : NGUOI_KHAC, ownerRowId: id })` + nhật ký `sales_owner_claimed` gác theo câu chính. Thua ⇒ 409.
+    - Lô theo thứ tự: `cauMoBanHangNeuTrong({ id })` → nhật ký `sales_owner_claimed` với `changes() > 0` (đứng **ngay sau** câu chính, để `changes()` còn trỏ đúng câu đó) → `cauKhepLoiMoiSauNhan({ laX ? NHAN : NGUOI_KHAC, ownerRowId: id })`. Thua ⇒ 409.
   - **`POST /api/orders/:id/ban-hang/tu-choi`:** chỉ X, khi lời mời còn mở. Lô: `cauTuChoiLoiMoi` + nhật ký `sales_invite_refused` với `changes() > 0`.
   - **`PUT /api/orders/:id/ban-hang`** `{ staffId: string | null }` (`dispatch.sales.assign`).
     - Chỉ đơn `confirmed`; nháp ⇒ 409 `don_nhap`. Không chặn đơn cũ.
@@ -352,10 +365,12 @@
   - `sales_invited` «Mời Bán hàng phụ trách»;
   - `sales_owner_claimed` «Nhận Bán hàng phụ trách»;
   - `sales_owner_changed` «Đổi Bán hàng phụ trách»;
-  - `sales_invite_refused` «Từ chối phụ trách đơn».
-  - Chi tiết (`detail`) của bốn hành động không chứa tên, mã người hay SĐT.
+  - `sales_invite_refused` «Từ chối phụ trách đơn»;
+  - `sales_policy_changed` «Đổi cài đặt Bán hàng phụ trách» (không gắn đơn).
+  - Chi tiết (`detail`) của năm hành động không chứa tên, mã người hay SĐT.
 - Modify — phân loại lịch sử (thiếu thì `src/shared/lich-su-noi-bo.test.ts` và `src/lich-su-don-doi-tac.test.ts` đỏ):
-  - `src/shared/lich-su-noi-bo.ts`: cả bốn vào `LICH_SU_NOI_BO_CHO_PHEP`, giá trị `"giu"`;
+  - `src/shared/lich-su-noi-bo.ts`: cả bốn vào `LICH_SU_NOI_BO_CHO_PHEP`, giá trị `"giu"`. Việc này buộc sửa danh sách «chủ duyệt» `DUYET` trong `src/shared/lich-su-noi-bo.test.ts` (dòng 14–26, 41–43), nên **cần chủ duyệt bốn dòng này trước Task 5**. Chủ không duyệt thì đưa cả bốn vào `LICH_SU_NOI_BO_AN`.
+  - Hành động thứ năm `sales_policy_changed` «Đổi cài đặt Bán hàng phụ trách» (nhật ký không gắn đơn của route chính sách): vào danh sách **ẩn** của cả hai lịch sử, như `confirm_policy_changed`;
   - `src/shared/lich-su-doi-tac.ts`: cả bốn vào `LICH_SU_DOI_TAC_AN`, **không** vào `LICH_SU_DOI_TAC_CHO_PHEP` (danh sách đó phải khớp danh sách chủ duyệt trong bài).
 - Modify: `src/shared/contracts.ts` (DTO mới).
 - Create: `tests/e2e/ban-hang-phu-trach.mjs` (khuôn `tests/e2e/xac-nhan-don.mjs`, mã danh mục giả `ZXN1` / `ZXN2`).
@@ -406,6 +421,8 @@
   - yêu cầu có X ⇒ chỉ X trong ưu tiên;
   - Hoàn thành ⇒ Bán hàng phụ trách + người lập;
   - Đổi ⇒ người mới + người lập.
+
+  Biết và chấp nhận: lời mời gửi lại cho một X khác làm sự kiện `sales_invited` cũ hiện thêm cho người mới, vì hộp thư chỉ biết trạng thái hiện tại.
 
   Người cũ khi Đổi, và X khi người khác đã nhận, **không** có dòng hộp thư. Họ nhận qua Bảng tin và báo đẩy lúc sự kiện (`baoThayDoi` truyền `banHangTruoc`), giống cách ô HDV làm hôm nay (`handlerTruoc` giả ở `src/shared/thong-bao.ts`, quanh dòng 192–194).
 - Modify — đường giờ hẹn của chuyến:
