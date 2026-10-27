@@ -90,6 +90,10 @@ Phân loại: **(a)** chép sai hoặc sót so với mã → phiên giữ bộ s
 | F6 | Toast nền `c-primary-strong`, nút Hoàn tác màu cát, toast nằm trên bảng trượt; giữ `ease-out` có sẵn | Mã: toast nền trắng `c-surface`, viền trái 4 px `c-primary`, chữ `c-text`, bóng `shadow-overlay` (dòng 2192) → bộ tự đổi diện mạo | **(c)** diện mạo toast · **(b)** lớp xếp và `ease-out` | Tạm giữ toast theo mã trong bộ; diện mạo chờ Claude Design rồi gộp. Toast trên bảng trượt (`z-tren-cung`) hợp lý |
 | F7 | Tờ tóm tắt ghi "MỚI 19 token"; đếm dấu MỚI trong `tokens.json` ra 16 + 3 mốc không đánh dấu | Máy đếm 28/10: 16 token có chữ MỚI trong công dụng + 3 `moc-*` (chữ MỚI chỉ ở ghi chú nhóm) = 19 → tờ tóm tắt đúng | **(a)** nhỏ | Đánh dấu MỚI vào từng mốc để máy đếm ra 19 |
 
+## Kiểm lại sau khi phiên dựng bộ sửa (28/10, bản 5, phiên bản `1793143219-823e`)
+
+Chạy lại cùng kịch bản trên `tokens.json` bản 5 (bản chụp `so-lieu/bo-v2-tokens-1793143219-823e.json`) và tải lại 5 trang thành phần đã sửa: **204 token, 19 MỚI, 86/88 giá trị đầu vào khớp**; hai giá trị không có đều là BỎ có lý do (`lh-heading` 1,16 → chiều cao dòng theo vai chữ; `shadow-float` → Trợ lý lên thanh trên). Từng dòng đã nhận sửa: A2 **đạt** (họ `co-chu` đủ 14 bậc 12…32); A3 **đạt** (ghi BỎ kèm lý do); B4 **đạt** (DaiTren, HuyHieu, ThongBao, ThanhDinh, TrangThaiRong đủ bốn mục đúng tên); E5 **đạt** (mono cho mã PIN và mã hai lớp); F3 **đạt** (ghi 17 → 16 ở 8 ô gõ dùng `fs-field`); F4 **đạt** (`fw-home-stat` 700, ghi ĐỔI theo `fw-heavy` mới); F7 **đạt** (ba mốc có dấu MỚI); F6 toast tạm giữ diện mạo theo mã như đề nghị. **Còn mở cho chủ: E1–E4 và ba điểm "mất gì" F2, F3, F5 (ở tờ cổng 2a).** Không kiểm lại bản xem trước bằng mắt (việc của chủ ở cổng 2a).
+
 ## G. Việc tiếp theo
 
 1. Phiên giữ bộ (`island-booking-design-system-v2`) sửa A2, A3, B4, E5, F3 (phạm vi 17 → 16), F4 (`fw-home-stat`), F7 (lệch nhỏ, không cần chủ).

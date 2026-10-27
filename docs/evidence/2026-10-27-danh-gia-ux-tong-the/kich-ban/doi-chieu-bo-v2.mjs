@@ -1,6 +1,7 @@
 // Đối chiếu tokens.json của bộ v2 với giá trị ở DAU-VAO-BO-V2.md (chép từ mã). Chỉ đọc, in bảng.
 import { readFileSync } from "node:fs";
-const t = JSON.parse(readFileSync("/Users/tuanbao/.claude/jobs/f5f75857/tmp/bo-v2/project/tokens.json", "utf8"));
+// Dùng: node doi-chieu-bo-v2.mjs <đường dẫn tokens.json của bộ> (mặc định: bản chụp bản 1 trong so-lieu/)
+const t = JSON.parse(readFileSync(process.argv[2] ?? new URL("../so-lieu/bo-v2-tokens-1793139375-8732.json", import.meta.url), "utf8"));
 const all = [];
 (function walk(o, p) {
   if (Array.isArray(o)) { o.forEach((v, i) => walk(v, [...p, String(i)])); return; }
