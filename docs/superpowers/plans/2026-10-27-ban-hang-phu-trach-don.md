@@ -361,7 +361,7 @@
     - `valid_from_at = max(lúc ghi, dòng mới nhất + 1 ms)`;
     - gửi đúng giá trị đang hiệu lực ⇒ 200, không ghi;
     - va UNIQUE ⇒ 409 `stale`.
-- Modify: `src/shared/audit-actions.ts` thêm bốn hành động:
+- Modify: `src/shared/audit-actions.ts` thêm năm hành động:
   - `sales_invited` «Mời Bán hàng phụ trách»;
   - `sales_owner_claimed` «Nhận Bán hàng phụ trách»;
   - `sales_owner_changed` «Đổi Bán hàng phụ trách»;
