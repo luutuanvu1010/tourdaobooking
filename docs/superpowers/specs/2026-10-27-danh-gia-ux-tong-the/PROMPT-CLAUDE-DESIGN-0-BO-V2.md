@@ -35,7 +35,7 @@ Nguyên tắc vàng của bộ: **"một ý nghĩa, một hình"**. Một trạn
 
 **Cấu trúc token ba tầng**: *gốc* (màu thương hiệu, thang cỡ chữ 14 bậc, khoảng cách 4/8/12/16/24/32/48, bo 8/12/18/999, bóng 3 mức, độ đậm, phông) → *ý nghĩa* (nền, viền, chữ, màu chính, năm tông trạng thái, tiêu điểm, chiều cao điều khiển, lớp xếp, chuyển động) → *thành phần* (chỉ khi thành phần cần giá trị khác ý nghĩa). Tên token tiếng Việt không dấu, kiểu `--c-primary`, `--h-control`, `--nut-chinh-bg`. Mỗi token một dòng công dụng.
 
-**Độ đậm chữ (chủ quyết 27/10)**: ba mức **400 nội dung / 500 nhãn và nút / 600 tiêu đề và số lớn**. Thang cỡ chữ giữ nguyên 14 bậc. Tiêu đề trang dùng bậc 20–24, tiêu đề khối 16–18, nội dung 16, phụ 14, huy hiệu 12.
+**Độ đậm chữ (chủ quyết 27/10)**: ba mức **400 nội dung / 500 nhãn và nút / 600 tiêu đề và số lớn**. Thang cỡ chữ giữ nguyên 14 bậc. Tiêu đề trang dùng bậc 18 (như mã, `fs-title`), tiêu đề lớn 24, tiêu đề khối 16, nội dung 16, nhãn 14, phụ 13, huy hiệu 12.
 
 **Năm tông trạng thái**, mỗi tông một cặp nền nhạt / chữ đậm có sẵn, một biểu tượng, một hình huy hiệu (12/500, bo 999, không viền):
 
@@ -90,7 +90,7 @@ Khách "Nguyễn Thị Lan Anh", "Trần Quốc Bảo"; mã đơn "TD-2026-10-04
 
 **Cỡ chữ** 14 bậc: 12, 13, 14, 15, 16, 17, 18, 19, 20, 22, 24, 26, 28, 32 px; dòng tiêu đề 1,16; dòng nội dung 18/20/22/24 px. **Độ đậm** 400 / 500 / 600 (mục 5). **Khoảng cách** 4, 8, 12, 16, 24, 32, 48. **Bo góc** 6 (nhỏ), 8 (nút, ô), 12 (thẻ), 14 (ô số liệu), 18 (bảng trượt), 999 (chip, tab, huy hiệu). **Bóng**: thẻ `0 1px 2px rgba(15,23,42,.04), 0 3px 10px rgba(15,23,42,.05)`; thẻ rê `0 2px 6px rgba(15,23,42,.06), 0 12px 28px rgba(15,23,42,.1)`; lớp phủ `0 16px 48px rgba(15,23,42,.18), 0 2px 8px rgba(15,23,42,.06)`; nổi `0 4px 14px rgba(15,23,42,.12), 0 1px 3px rgba(15,23,42,.08)`; nút đặc `0 1px 2px rgba(8,47,73,.22), 0 4px 14px rgba(12,74,110,.24)`. **Chuyển động**: đường cong `cubic-bezier(.22, 1, .36, 1)`; thời lượng 150 ms (nhanh) và 200 ms (vừa); tắt khi người dùng chọn giảm chuyển động. **Chiều cao**: vùng chạm 44, điều khiển 44, điều khiển lớn 52, thanh trên 60. **Lớp xếp**: dính 10, tab 20, bảng trượt 30, phụ 40, trên cùng 50.
 
-**Biểu tượng** (37, nét 2 px, lưới 24, không emoji): home, orders, plus, me, services, staff, back, next, lock, alert, close, check, contact-card, pin, history, chat, palette, doc-check, money, assign, clock, chart, handset, guests, face, help, bell, megaphone, swap, ban, truck, eye, chevron-down, resize, search, grid, trash. Năm biểu tượng trạng thái lấy từ đây: clock (cát), swap (biển), check (xanh lá), alert (đỏ), ban (xám); nếu cần hình khác thì đề xuất và đánh dấu MỚI.
+**Biểu tượng** (40, nét 2 px, lưới 24, không emoji): home, orders, plus, me, services, staff, back, next, lock, alert, close, check, contact-card, pin, history, chat, palette, doc-check, money, assign, clock, chart, handset, guests, face, help, bell, megaphone, userPlus, checkCircle, swap, filePlus, ban, truck, eye, chevron-down, resize, search, grid, trash. Năm biểu tượng trạng thái lấy từ đây: clock (cát), swap (biển), check (xanh lá), alert (đỏ), ban (xám); nếu cần hình khác thì đề xuất và đánh dấu MỚI.
 
 Không có token sẵn cho thứ bạn cần thì **đề xuất token MỚI, đánh dấu MỚI và ghi lý do một dòng**; không viết cứng giá trị vào thành phần.
 

@@ -69,9 +69,9 @@ Thanh trên và vỏ ngoài (`--c-bar-bg`, `--c-on-bar`, `--c-status-bar`) mặc
 - Chiều cao: vùng chạm tối thiểu 44 (`--tap-min`); ô nhập 52 ở chân dính (`--h-field`); thanh trên 60 (`--bar-h`). **MỚI: `--h-control` 44, `--h-control-lon` 52 thay 9 token cùng họ.**
 - **MỚI:** `--w-noi-dung-max` 1280 px ở khổ 1440; lớp xếp `--z-dinh` 10, `--z-tab` 20, `--z-truot` 30, `--z-phu` 40, `--z-tren-cung` 50.
 
-## 4. Biểu tượng (từ mã, 37 cái, nét 2 px, lưới 24, không emoji)
+## 4. Biểu tượng (từ mã, 40 cái, nét 2 px, lưới 24, không emoji)
 
-`home, orders, plus, me, services, staff, back, next, lock, alert, close, check, contact-card, pin, history, chat, palette, doc-check, money, assign, clock, chart, handset, guests, face, help, bell, megaphone, swap, ban, truck, eye, chevron-down, resize, search, grid, trash`. Bo góc biểu tượng cài đặt `22.37%`. **MỚI: năm biểu tượng trạng thái** cho năm tông (đồng hồ, mũi tên vòng, dấu tích, dấu chấm than, dấu gạch) — chọn từ danh sách trên khi có (`clock`, `swap`, `check`, `alert`, `ban`) hoặc đề xuất thêm.
+`home, orders, plus, me, services, staff, back, next, lock, alert, close, check, contact-card, pin, history, chat, palette, doc-check, money, assign, clock, chart, handset, guests, face, help, bell, megaphone, userPlus, checkCircle, swap, filePlus, ban, truck, eye, chevron-down, resize, search, grid, trash` (đếm lại 28/10: bản đầu ghi 37 vì sót ba tên viết liền). Bo góc biểu tượng cài đặt `22.37%`. **MỚI: năm biểu tượng trạng thái** cho năm tông (đồng hồ, mũi tên vòng, dấu tích, dấu chấm than, dấu gạch) — chọn từ danh sách trên khi có (`clock`, `swap`, `check`, `alert`, `ban`) hoặc đề xuất thêm.
 
 ## 5. Cấu trúc bộ v2 (MỚI, theo đề cương mục 7)
 
