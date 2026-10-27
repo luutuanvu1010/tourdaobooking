@@ -85,6 +85,7 @@ Ba câu đầu là ba quyết định ở `BAO-CAO.md`; các câu sau chỉ cầ
 | 9 | Câu lỗi máy chủ nói sai lý do (H-CAU-LOI: ngày đã qua báo "chưa đủ thông tin chuyến"; gán vai tổ chức dẫn sang Quản lý tài khoản): sửa câu ở `order-errors.ts` trong đợt nào, hay mở lại luật xác nhận đơn ngày đã qua? | chỉ sửa câu cho đúng lý do, không đổi luật; làm trong đợt Chi tiết | API/nghiệp vụ → chờ chủ |
 | 10 | Trang 404 chung cần Worker trả HTML thay JSON cho địa chỉ lạ (H-404): cho đổi cấu hình định tuyến ở đợt 0? | cho, kèm kiểm e2e | cấu hình triển khai |
 | 11 | Nhật ký thay đổi trên Hướng dẫn: giữ 5 phiên bản gần nhất trên trang, còn lại tách trang riêng? (C-HUONG-DAN) | giữ 5, tách phần còn lại | chỉ nội dung |
+| 12 | (Từ tờ bổ sung `2026-10-27-danh-gia-ux-bo-sung.md`, mã B-TONG-HOA-HONG-DOI-TAC) Đối tác xem được hoa hồng từng đơn nhưng không có chỗ xem tổng theo tháng: có thêm chỗ xem tổng không? | **không có đề xuất mặc định** — thêm là thêm tính năng chạm tiền và quyền (`partner.commission.view` hôm nay "none" cho Đối tác), chỉ làm khi chủ quyết | tiền + quyền → chờ chủ |
 
 ## 6. Việc không thuộc lộ trình này (ghi để không quên)
 

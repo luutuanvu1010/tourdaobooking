@@ -6,6 +6,8 @@ Quy ước bằng chứng: **`ảnh nhieu/ADMIN/xe-390`** = ảnh màn đầu tr
 
 Nguồn: (a) kiểm kê từ mã (`SO-LECH-TU-MA.md`, cỡ gói đo bằng `wc -c`/`gzip`), (b) quét màn hình 45 trang × 10 bộ × 390/1040 (+768/1440 cho danh sách và bảng điều khiển) ở ba trạng thái dữ liệu và ba trạng thái lỗi (`so-lieu/nhieu.json`, `it.json`, `rong.json`), (c) hành trình thật (`so-lieu/hanh-trinh-390.json`, `-1040.json`), (d) đo tốc độ (`so-lieu/toc-do.json`), (e) gieo dữ liệu qua API (`kich-ban/nhat-ky-gieo-*.json`), (f) chấm bằng mắt từng ảnh (ghi chú gốc giữ ngoài kho, kết luận đã đưa vào đây).
 
+Đọc kèm: `docs/superpowers/specs/2026-10-27-danh-gia-ux-bo-sung.md` — tờ bổ sung của phiên song song cùng ngày (đo theo đề bài bản cũ, 454 ô), ghi **năm điểm chưa có ở đây** (mã B-…: bỏ qua tới nội dung chính, mục con nhóm Thiết lập bị chân thanh bên che, nhãn lúc in hoa lúc không, nút "Lưu, chờ xác nhận" mang ba tên, và một câu hỏi về chỗ xem tổng hoa hồng của Đối tác). Chưa gộp vào bảng dưới; gộp ở Chặng 2 khi dựng đề bài họ màn, giữ nguyên mã B-.
+
 ## A. Mức CHẶN (không làm xong việc, hoặc dễ nhập sai tiền / sai khách)
 
 | Mã | Phạm vi | Trang · bộ · khổ | Phát hiện và bước tái hiện | Bằng chứng | Mặt | Tiêu chí |
