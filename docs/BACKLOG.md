@@ -602,3 +602,12 @@ Ghi 25/10 khi đóng phiên ADR-0133 (bản 2.25 + vá 2.26, migration `0116`). 
   - `so-dai-ly-smoke` còn 10 bước đỏ có sẵn.
   - Chưa có «Lịch sử» của từng dòng mức.
   - Chưa có «Đổi» cho chính sách riêng của đối tác.
+
+## 51. Đánh giá UX tổng thể — việc chủ để sau tại cổng 1 (mã `BL-UX-…`)
+
+- **Trạng thái:** `để sau, cần ADR riêng` · Chủ 27/10/2026 (tối) trả lời cổng 1, ghi ở `docs/superpowers/specs/2026-10-27-danh-gia-ux-tong-the/QUYET-DINH-CONG-1.md`.
+- **Hồ sơ:** báo cáo `…/BAO-CAO.md`; tờ bổ sung của phiên song song `docs/superpowers/specs/2026-10-27-danh-gia-ux-bo-sung.md`.
+
+| Mã | Cần chủ quyết | Khuyến nghị | Nếu để nguyên |
+|---|---|---|---|
+| BL-UX-HOA-HONG-DT | Đối tác xem được hoa hồng từng đơn nhưng không có chỗ xem tổng theo tháng (quyền `partner.commission.view` hiện "none" cho Đối tác). Chủ 27/10: chưa thêm, chỉ làm khi có ADR riêng vì chạm tiền và quyền. | Khi mở lại: ADR nêu ai được xem tổng, tổng tính từ nguồn nào (sổ hoa hồng), có kèm đối chiếu công nợ không. | Đối tác tự cộng tay từng đơn; không sai số liệu, chỉ bất tiện. |

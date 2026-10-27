@@ -84,6 +84,11 @@ Chủ dự án 19/10 (đặc tả Phần A mục 1–8; lượt 3; lượt 4 m�
 - Mục «Điều chưa chắc — giá danh mục»: với đơn của Đối tác, Đ13.2 đã trả lời (giá danh mục xét theo người gửi, ngay lúc gửi). Với đơn của Thực tập, người soạn **đổi khuyến nghị** thành giữ như hôm nay (xét theo người bấm Còn vé). Lý do: nháp của Thực tập đã qua luật giá danh mục lúc lập và lúc lưu; xét theo người lập sẽ chặn chính các lần sửa giá có lý do mà Đ8 cho phép. [người soạn 25/10]
 - Đ10: tin xác nhận và huỷ gửi tới người lập là Đối tác giữ nguyên. Ở nhánh B, người gửi không nhận tin «đã xác nhận» về việc chính mình vừa làm, vì họ đã thấy câu B. [người soạn]
 
+## Làm rõ 27/10 — Đ10, tin lúc gửi trong hộp thông báo
+Chủ dự án duyệt trong chat 2026-10-27, nguyên văn: *«Duyệt dòng làm rõ ADR-0136 Đ10 như bản nháp. Ghi vào rồi đưa lệnh nhập và triển khai.»* Nguồn: sửa lỗi bản 2.36 (tin lúc gửi không vào hộp thông báo; màn hình khoá đọc nhầm tin cũ), migration `0120_tin_cho_xac_nhan.sql`.
+- Tin «Đơn … đang chờ xác nhận» vào hộp thông báo bằng cách thêm hai hành động `order_confirm_requested` và `order_confirm_withdrawn` vào danh sách của view `v_aud_order_event` (migration 0120), giữ nguyên năm cột. Điều này thay một phần câu «không sửa view đang có» của ADR-0034 điều 5 và ADR-0062: được thêm hành động vào danh sách bằng migration mới, vẫn không được đổi cột.
+- Tin chỉ còn khi yêu cầu còn mở: Rút lại, Còn vé, Hết vé hoặc Huỷ thì tin biến mất khỏi hộp thông báo (chủ dự án chọn 27/10).
+
 ## Phương án bị bác
 - **Thêm giá trị `pending` vào `orders.status`:** phải dựng lại bảng `orders` và trigger (điều `0018` cố tránh), mọi chỗ đọc trạng thái phải sửa.
 - **Dùng `order.modify` để xét duyệt:** Kế toán, HDV không có ô này, Bán hàng chỉ đơn mình — trái lời chủ "mọi vai nội bộ".
