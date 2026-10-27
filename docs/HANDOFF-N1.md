@@ -2,7 +2,14 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.34 ĐÃ LÊN PRODUCTION (PR 2 «Hoa hồng + Hỗ trợ»: trang Hoa hồng đối tác làm lại — hai thẻ «Mức đang áp dụng» / «Thiết lập», Tra nhanh, Đổi / Ngừng trong hộp trượt; bảng từ lượt 3: «Chính sách hoa hồng», «Mức riêng», «Đang áp dụng / Sắp áp dụng / Đã ngừng» ở mọi màn cùng nghĩa) — KHÔNG migration — triển khai 2026-10-27 00:32 (giờ VN)
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.35 ĐÃ LÊN PRODUCTION (PR 3 «Hoa hồng + Hỗ trợ»: trang Hỗ trợ làm lại — ba thẻ, danh sách hai cột, luồng trao đổi, Gửi yêu cầu, Nhóm hỗ trợ dạng bảng; bảng từ lượt 4: «Việc của nhóm», «Hướng dẫn») — KHÔNG migration — triển khai 2026-10-27 10:32 (giờ VN)
+
+Ghi 27/10/2026 bằng lệnh CHỈ ĐỌC (người kiểm độc lập, phiên Hoa hồng + Hỗ trợ; chủ chạy `day-len` + `trien-khai`):
+- Commit `main` = `origin/main`: `33e226eb`. Worker Version ID: `0024b0ba-197e-4042-a6ec-63e08d41c63d` (tạo 2026-10-27T03:32:14Z). Bản liền trước: `0bc2e81d-25b9-4f06-8caa-1802ac6eb362` (2.34).
+- `GET /api/auth/config` → `version 2.35`; `kiem-phien-ban.mjs --sau-deploy` ĐẠT; `d1 migrations list --remote` → «No migrations to apply!»; `audit-invariants --db remote` → «Mọi bất biến đạt, 5 cảnh báo»; `GET /feedback` 200, `GET /js/feedback.js` là bản mới.
+- Chế độ bảo trì ĐANG BẬT (tới 2026-10-30T04:56Z) — chưa thử trang có đăng nhập trên production. Nghiệm thu: ĐẠT (phần chỉ đọc). Nợ I-1 (bảy ca giao diện theo quyền không còn kịch bản Chrome canh, dựa vào kỷ luật): sổ `docs/superpowers/plans/2026-10-25-hoa-hong-ho-tro-thi-cong-nhat-ky.md`.
+
+## TRẠNG THÁI TRIỂN KHAI (cũ) — Phiên bản 2.34 ĐÃ LÊN PRODUCTION (PR 2 «Hoa hồng + Hỗ trợ»: trang Hoa hồng đối tác làm lại — hai thẻ «Mức đang áp dụng» / «Thiết lập», Tra nhanh, Đổi / Ngừng trong hộp trượt; bảng từ lượt 3: «Chính sách hoa hồng», «Mức riêng», «Đang áp dụng / Sắp áp dụng / Đã ngừng» ở mọi màn cùng nghĩa) — KHÔNG migration — triển khai 2026-10-27 00:32 (giờ VN)
 
 Ghi 27/10/2026 bằng lệnh CHỈ ĐỌC (người kiểm độc lập, phiên Hoa hồng + Hỗ trợ; chủ chạy `day-len` + `trien-khai`):
 - Commit `main` = `origin/main`: `7c9f4207`. Worker Version ID: `0bc2e81d-25b9-4f06-8caa-1802ac6eb362` (tạo 2026-10-26T17:32:55Z). Bản liền trước: `bf53dd8e-2100-409a-be09-f7dfdfb6f9f1` (2.33).
