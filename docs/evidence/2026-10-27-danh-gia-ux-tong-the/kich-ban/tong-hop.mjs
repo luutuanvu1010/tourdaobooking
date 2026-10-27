@@ -127,6 +127,36 @@ bang(["Bộ quyền (mã)", "Vai được gộp (tên hiện trên giao diện)"
 }));
 J.vaiTheoBo = Object.fromEntries(Object.entries(vaiTheoBo).map(([bo, ds]) => [bo, ds.map((v) => v.vai)]));
 
+// ---------- K. Tốc độ (toc-do.json, nếu có) ----------
+if (existsSync(join(SL, "toc-do.json"))) {
+  const T = JSON.parse(readFileSync(join(SL, "toc-do.json"), "utf8"));
+  const ds = T.ketQua.filter((o) => o.trang);
+  const r = (x) => (x == null ? "—" : Math.round(x));
+  const kb = (x) => (x == null ? "—" : Math.round(x / 1024));
+  const qua = (v, nguong) => (v != null && v > nguong ? `**${Math.round(v)}**` : r(v));
+  md.push(`## K. Tốc độ cảm nhận (mặt 11): ${T.dieuKien.mang}; CPU ${T.dieuKien.cpu}; ${T.dieuKien.khung}. In đậm = vượt ngân sách (mở trang > 1.000 ms, CLS > 0,1, TBT > 200 ms)`, "");
+  bang(["Trang", "Bộ", "Lạnh: FCP", "LCP", "Khung xong", "Nội dung xong", "API cuối về", "CLS", "TBT", "Khung xương?", "Tải: JS KB (nén/giải)", "CSS KB", "Phông KB", "API (số)", "Nóng: FCP", "Nội dung xong", "CLS", "Nạp sẵn (mục / ms)"], ds.map((o) => {
+    if (o.loi) return [`\`${o.trang}\``, VIET[o.bo], "LỖI: " + o.loi.slice(0, 80)];
+    const l = o.lanh, n = o.nong;
+    J.tocDo ??= {}; J.tocDo[o.trang] = { lanh: { fcp: l.fcp, lcp: l.lcp, khungXong: l.khungXong, noiDungXong: l.noiDungXong, cls: l.cls, tbt: l.tbt, jsNen: l.tai.js?.byte, jsGiai: l.tai.js?.giai, cssNen: l.tai.css?.byte, api: l.tai.api?.so, khungXuong: l.khungXuong }, nong: { fcp: n.fcp, noiDungXong: n.noiDungXong, cls: n.cls } };
+    return [`\`${o.trang}\``, VIET[o.bo], r(l.fcp), r(l.lcp), r(l.khungXong), qua(l.noiDungXong, 1000), r(l.apiCuoiVe), l.cls > 0.1 ? `**${l.cls}**` : l.cls, qua(l.tbt, 200), l.khungXuong ? "có" : (l.dangTai ? "chữ" : "không"), `${kb(l.tai.js?.byte)}/${kb(l.tai.js?.giai)}`, kb(l.tai.css?.byte), kb(l.tai.phong?.byte), l.tai.api?.so ?? 0, r(n.fcp), qua(n.noiDungXong, 1000), n.cls, o.napSan ? `${o.napSan.soMuc} / ${o.napSan.choMs}` : "—"];
+  }));
+  const ct = T.ketQua.find((o) => o.chuyenTrang)?.chuyenTrang ?? [];
+  md.push("### K.Chuyển trang (bấm mục thanh tab / thanh bên → trang kế, nóng) và phản hồi chạm. Ngân sách: chuyển trang ≤ 300 ms, chạm ≤ 100 ms", "");
+  bang(["Khổ", "Đích / nút", "Bấm → vẽ đầu tiên (ms)", "Bấm → nội dung xong (ms)", "Chạm → DOM đổi (ms)"], ct.flatMap((c) => c.cham ? c.cham.map((x) => [c.kho, `${x.trang} «${x.nut}»`, "—", "—", x.ms == null ? "không thấy nút" : x.ms < 0 ? "**> 3000**" : qua(x.ms, 100)]) : c.loi ? [[c.kho, c.dich ?? "", "LỖI " + c.loi]] : [[c.kho, `→ ${c.dich}`, qua(c.chuyenTrangFcp, 300), qua(c.chuyenTrangNoiDung, 1000), "—"]]));
+  J.chuyenTrang = ct;
+}
+
+// ---------- L. Hành trình thật (hanh-trinh-*.json, nếu có) ----------
+for (const kho of [390, 1040]) {
+  const p = join(SL, `hanh-trinh-${kho}.json`);
+  if (!existsSync(p)) continue;
+  const H = JSON.parse(readFileSync(p, "utf8"));
+  md.push(`## L${kho === 390 ? "1" : "2"}. Hành trình thật ở khổ ${kho} (một hành trình mỗi bộ quyền, từ màn Đăng nhập): chạm, gõ, cuộn, đoán`, "");
+  bang(["Bộ", "Hành trình", "Chạm", "Ký tự gõ", "Màn cuộn", "Đoán", "Không tìm thấy", "Bước", "Lỗi kịch bản", "Bước đáng chú ý"], H.ketQua.map((h) => [VIET[h.bo], h.ten, h.cham, h.go, h.cuon?.toFixed?.(1) ?? h.cuon, h.doan, h.khongThay, h.buoc.length, h.loi ? h.loi.slice(0, 80) : "—", h.buoc.filter((b) => b.ketQua || b.doan || b.ghi).map((b) => `${b.n}. ${b.viec}${b.ketQua ? " → " + b.ketQua : ""}${b.ghi ? " (" + b.ghi + ")" : ""}`).join("<br>")]));
+  J[`hanhTrinh${kho}`] = H.ketQua.map((h) => ({ bo: h.bo, ten: h.ten, cham: h.cham, go: h.go, cuon: h.cuon, doan: h.doan, khongThay: h.khongThay, buoc: h.buoc.map((b) => ({ n: b.n, viec: b.viec, ketQua: b.ketQua, doan: b.doan, anh: b.anh, url: b.url, ghi: b.ghi })) }));
+}
+
 // ---------- Tóm tắt số ----------
 const tongO = Object.fromEntries(NHAN.map((n) => [n, D[n].length])); const loiO = Object.fromEntries(NHAN.map((n) => [n, D[n].filter((o) => o.loi).length]));
 md.unshift(`# Tổng hợp số liệu quét — ${new Date().toISOString().slice(0, 10)}`, "", `Số ô đã quét: ${NHAN.map((n) => `${n} ${tongO[n]} (lỗi kịch bản ${loiO[n]})`).join("; ")}. Trang: ${trangXep.length}. Bộ quyền: ${UU_TIEN.length}.`, "");

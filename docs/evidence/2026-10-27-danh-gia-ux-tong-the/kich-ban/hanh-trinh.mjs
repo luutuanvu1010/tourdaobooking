@@ -104,7 +104,13 @@ async function chayHanhTrinh(chrome, bo, dinhNghia) {
     async choDuong(duong, max = 8000) { const het = Date.now() + max; for (;;) { const d = await ngan.ev("location.pathname").catch(() => null); if (d === duong || Date.now() > het) { const b = buoc(`tới ${duong}`); b.ketQua = d === duong ? "đúng" : `KHÔNG, đang ở ${d}`; if (d !== duong) { HT.doan++; b.doan = true; } await lang(); await anhBuoc(b); return d === duong; } await sleep(200); } },
     ghi(chu) { const b = HT.buoc.at(-1); if (b) b.ghi = (b.ghi ? b.ghi + "; " : "") + chu; },
     /** Đăng nhập bằng màn hình thật: SĐT, PIN, nút. */
-    async dangNhap() { await H.di("/login"); await H.go("#phone", tk.sdt, "Số điện thoại"); await H.go("#pin", tk.pin, "Mã PIN"); await H.bam("css:#submit", { viec: "bấm «Đăng nhập»" }); await sleep(600); await lang(); const b = buoc("sau đăng nhập"); await anhBuoc(b); },
+    async dangNhap() {
+      await H.di("/login"); await H.go("#phone", tk.sdt, "Số điện thoại"); await H.go("#pin", tk.pin, "Mã PIN"); await H.bam("css:#submit", { viec: "bấm «Đăng nhập»" }); await sleep(600); await lang();
+      const b = buoc("sau đăng nhập"); await anhBuoc(b);
+      // Ghi các mục điều hướng đang thấy (bù cho cột nav của do-trong-trang.js dùng bộ chọn .tabbar/.topbar không có thật): thanh tab (390) hoặc thanh bên (1040), mục nào sáng.
+      HT.dieuHuong = await ngan.ev(`(() => { const thay = (el) => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0; }; const muc = (sel) => [...document.querySelectorAll(sel)].filter(thay).map((el) => ({ ten: (el.getAttribute("aria-label") || el.innerText || "").trim().replace(/\\s+/g, " ").slice(0, 30), sang: el.getAttribute("aria-current") === "page" || el.classList.contains("active") || el.classList.contains("is-active") })); return { tab: muc("#tabbar a, #tabbar button"), ben: muc("#sidebar .sidebar-item, #sidebar a"), tren: muc("#topbar a, #topbar button") }; })()`).catch(() => null);
+      b.ghi = HT.dieuHuong ? `thanh tab: ${HT.dieuHuong.tab.map((m) => (m.sang ? "*" : "") + m.ten).join(" · ") || "(không)"}; thanh bên: ${HT.dieuHuong.ben.length} mục` : "không đọc được điều hướng";
+    },
     ngay, tk,
   };
   try { await dinhNghia.buoc(H); } catch (e) { HT.loi = String(e).slice(0, 300); const b = buoc("LỖI KỊCH BẢN"); b.ketQua = HT.loi; await anhBuoc(b); }
