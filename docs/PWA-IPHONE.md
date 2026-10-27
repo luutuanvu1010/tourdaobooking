@@ -42,6 +42,17 @@ Xếp theo rủi ro: mục 1 là thứ Chrome headless không kiểm được v�
 6. Tắt hẳn app rồi mở lại: màn hình hiện gần như tức thì (khung từ cache), dữ liệu tải sau.
 7. Tab Tôi → Đăng xuất về màn hình đăng nhập.
 
+Bổ sung 27/10/2026 từ đánh giá UX tổng thể (`docs/superpowers/specs/2026-10-27-danh-gia-ux-tong-the/LO-TRINH.md` mục 4; Chrome headless không đo được các mục này). Ghi "đạt / không" + ảnh vào `docs/evidence/<ngày>-iphone/`.
+
+8. **Tốc độ cảm nhận:** tắt hẳn app, bật rồi tắt chế độ máy bay, mở lại từ icon: Trang chủ hiện khung trong ≤ 1 giây? Bấm tab "Đơn" rồi tab "Tôi": có chớp trắng giữa hai trang không?
+9. **Vùng chạm bằng ngón cái:** ở Đơn hàng bấm được nút "Lọc" và chip "Xoá lọc" ngay lần đầu; ở Chi tiết đơn, nút "Xác nhận đơn" ở chân dính không bị thanh home đè.
+10. **Bảng trượt:** mở "Sửa thông tin chuyến", kéo xuống để đóng; bàn phím hiện lên thì nút "Lưu" của bảng trượt còn thấy.
+11. **Mất mạng giữa chừng:** đang điền Tạo đơn, bật chế độ máy bay, bấm "Lưu, chờ xác nhận": câu báo nói gì; dữ liệu đã gõ còn không sau khi có mạng lại.
+12. **Không có quyền / không có trang:** dán địa chỉ `/audit` (tài khoản Bán hàng) và `/khong-co-trang-nay`: có về được trang đầu bằng một chạm không.
+13. **Thanh dính đáy chồng nhau:** ở Chuyến của tôi (tài xế) và Hỗ trợ (ô trả lời) chỉ có một thanh dính dưới, không thanh nào đè thanh tab.
+14. **Chữ và số:** ở Sổ công nợ và Hoa hồng, số tiền có dấu chấm ngăn nghìn, canh phải, không bị cắt "…" ở 390.
+15. **Trang Hướng dẫn:** cuộn tới cuối mất bao lâu; có tìm được mục cần trong 10 giây không.
+
 ## Cách thử iPhone bằng D1 tạm (không đụng dữ liệu thật)
 
 Chạy `node scripts/dev-iphone.mjs` từ thư mục gốc: dựng D1 **tạm** (mất khi thoát, không đụng dữ liệu thật), tạo hai tài khoản thử (admin, nhân viên) và in địa chỉ cùng SĐT/PIN.

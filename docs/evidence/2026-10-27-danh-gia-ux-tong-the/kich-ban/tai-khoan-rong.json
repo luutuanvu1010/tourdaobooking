@@ -1,0 +1,449 @@
+{
+  "ghiChu": "DỮ LIỆU GIẢ, chỉ cho máy chủ thử cục bộ của cuộc đánh giá UX 27/10/2026. PIN do máy chủ sinh khi tạo (route không cho chọn PIN).",
+  "taiKhoan": [
+    {
+      "khoa": "toanquyen",
+      "bo": "SUPER_ADMIN+ADMIN",
+      "vai": "IT",
+      "ten": "Toàn Quyền Thử",
+      "sdt": "0900000010",
+      "pin": "739164",
+      "id": "7d0432b1-b4ab-4948-9ef1-f96e482e00c7",
+      "partyId": "92b4e125-a340-44dc-b609-186b44a94db4",
+      "permissions": [
+        "ADMIN",
+        "SUPER_ADMIN"
+      ],
+      "ganIT": "đã gán"
+    },
+    {
+      "khoa": "sales",
+      "bo": "SALES",
+      "vai": "SALES_STAFF",
+      "ten": "Bán Hàng Thử",
+      "sdt": "0900000901",
+      "pin": "027944",
+      "id": "2c5d35a5-de86-472b-be99-28a2c07cfe46",
+      "partyId": "e1efe6ca-6e79-4877-9df2-7bee656d0f0f",
+      "permissions": [
+        "SALES"
+      ],
+      "roles": [
+        "SALES_STAFF"
+      ],
+      "dangNhapThu": {
+        "status": 200,
+        "code": null,
+        "message": null,
+        "khoaTraVe": [
+          "staff"
+        ],
+        "me": {
+          "status": 200,
+          "khoa": [
+            "staff",
+            "maintenance",
+            "benDatCuaToi"
+          ],
+          "staffKhoa": [
+            "id",
+            "fullName",
+            "phone",
+            "partyId",
+            "permissions"
+          ]
+        }
+      }
+    },
+    {
+      "khoa": "sales2",
+      "bo": "SALES",
+      "vai": "SALES_STAFF",
+      "ten": "Bán Hàng Hai",
+      "sdt": "0900000902",
+      "pin": "402435",
+      "id": "04cba525-975e-4c11-9186-f48f98572b6e",
+      "partyId": "8f1e047f-a99c-42be-84f6-ea5e5fc84bbe",
+      "permissions": [
+        "SALES"
+      ],
+      "roles": [
+        "SALES_STAFF"
+      ],
+      "dangNhapThu": {
+        "status": 200,
+        "code": null,
+        "message": null,
+        "khoaTraVe": [
+          "staff"
+        ],
+        "me": {
+          "status": 200,
+          "khoa": [
+            "staff",
+            "maintenance",
+            "benDatCuaToi"
+          ],
+          "staffKhoa": [
+            "id",
+            "fullName",
+            "phone",
+            "partyId",
+            "permissions"
+          ]
+        }
+      }
+    },
+    {
+      "khoa": "intern",
+      "bo": "INTERN",
+      "vai": "INTERN",
+      "ten": "Thực Tập Thử",
+      "sdt": "0900000903",
+      "pin": "992919",
+      "id": "16489705-9781-4895-be7d-11f506505ad2",
+      "partyId": "d7cdccb3-659a-4ad9-bc40-095a2cc71e71",
+      "permissions": [
+        "INTERN"
+      ],
+      "roles": [
+        "INTERN"
+      ],
+      "dangNhapThu": {
+        "status": 200,
+        "code": null,
+        "message": null,
+        "khoaTraVe": [
+          "staff"
+        ],
+        "me": {
+          "status": 200,
+          "khoa": [
+            "staff",
+            "maintenance",
+            "benDatCuaToi"
+          ],
+          "staffKhoa": [
+            "id",
+            "fullName",
+            "phone",
+            "partyId",
+            "permissions"
+          ]
+        }
+      }
+    },
+    {
+      "khoa": "ketoan",
+      "bo": "ACCOUNTING",
+      "vai": "ACCOUNTANT",
+      "ten": "Kế Toán Thử",
+      "sdt": "0900000904",
+      "pin": "222802",
+      "id": "b36443da-1d03-4724-97a7-5c2ce2a6bc69",
+      "partyId": "90fe9dd1-4fa0-43e6-99c4-80bf3cb3ce82",
+      "permissions": [
+        "ACCOUNTING"
+      ],
+      "roles": [
+        "ACCOUNTANT"
+      ],
+      "dangNhapThu": {
+        "status": 200,
+        "code": null,
+        "message": null,
+        "khoaTraVe": [
+          "staff"
+        ],
+        "me": {
+          "status": 200,
+          "khoa": [
+            "staff",
+            "maintenance",
+            "benDatCuaToi"
+          ],
+          "staffKhoa": [
+            "id",
+            "fullName",
+            "phone",
+            "partyId",
+            "permissions"
+          ]
+        }
+      }
+    },
+    {
+      "khoa": "quantri",
+      "bo": "ADMIN",
+      "vai": "DIRECTOR",
+      "ten": "Quản Trị Thử",
+      "sdt": "0900000905",
+      "pin": "751299",
+      "id": "33d45d40-e8fa-4404-984a-e86829022297",
+      "partyId": "fefb4ca1-f514-4801-93a4-15af70c981d4",
+      "permissions": [
+        "ADMIN"
+      ],
+      "roles": [
+        "DIRECTOR"
+      ],
+      "dangNhapThu": {
+        "status": 200,
+        "code": null,
+        "message": null,
+        "khoaTraVe": [
+          "staff"
+        ],
+        "me": {
+          "status": 200,
+          "khoa": [
+            "staff",
+            "maintenance",
+            "benDatCuaToi"
+          ],
+          "staffKhoa": [
+            "id",
+            "fullName",
+            "phone",
+            "partyId",
+            "permissions"
+          ]
+        }
+      }
+    },
+    {
+      "khoa": "hdv",
+      "bo": "FIELD",
+      "vai": "GUIDE_INTERNAL",
+      "ten": "Hướng Dẫn Thử",
+      "sdt": "0900000906",
+      "pin": "574390",
+      "id": "a956ed07-e15b-4af6-abef-8e39fd61600b",
+      "partyId": "58d4e52b-b22d-4fad-b051-6456ed100aac",
+      "permissions": [
+        "FIELD"
+      ],
+      "roles": [
+        "GUIDE_INTERNAL"
+      ],
+      "dangNhapThu": {
+        "status": 200,
+        "code": null,
+        "message": null,
+        "khoaTraVe": [
+          "staff"
+        ],
+        "me": {
+          "status": 200,
+          "khoa": [
+            "staff",
+            "maintenance",
+            "benDatCuaToi"
+          ],
+          "staffKhoa": [
+            "id",
+            "fullName",
+            "phone",
+            "partyId",
+            "permissions"
+          ]
+        }
+      }
+    },
+    {
+      "khoa": "ctv",
+      "bo": "PARTNER",
+      "vai": "COLLABORATOR",
+      "ten": "Cộng Tác Thử",
+      "sdt": "0900000907",
+      "pin": "127983",
+      "id": "466303e3-0793-417a-9b5b-ffa204aa8786",
+      "partyId": "9c071ee6-1475-4926-b681-355d703b21ce",
+      "permissions": [
+        "PARTNER"
+      ],
+      "roles": [
+        "COLLABORATOR"
+      ],
+      "dangNhapThu": {
+        "status": 200,
+        "code": null,
+        "message": null,
+        "khoaTraVe": [
+          "staff"
+        ],
+        "me": {
+          "status": 200,
+          "khoa": [
+            "staff",
+            "maintenance",
+            "benDatCuaToi"
+          ],
+          "staffKhoa": [
+            "id",
+            "fullName",
+            "phone",
+            "partyId",
+            "permissions"
+          ]
+        }
+      }
+    },
+    {
+      "khoa": "luhanh",
+      "bo": "PARTNER",
+      "vai": "TRAVEL_AGENCY",
+      "ten": "Lữ Hành Thử",
+      "sdt": "0900000908",
+      "pin": "999067",
+      "id": "fcb5b286-62b7-46bb-9f4a-9691a4c6ad00",
+      "partyId": "e7007840-1e62-48b0-97b7-1803ee7b19d9",
+      "permissions": [
+        "PARTNER"
+      ],
+      "roles": [
+        "TRAVEL_AGENCY"
+      ],
+      "dangNhapThu": {
+        "status": 200,
+        "code": null,
+        "message": null,
+        "khoaTraVe": [
+          "staff"
+        ],
+        "me": {
+          "status": 200,
+          "khoa": [
+            "staff",
+            "maintenance",
+            "benDatCuaToi"
+          ],
+          "staffKhoa": [
+            "id",
+            "fullName",
+            "phone",
+            "partyId",
+            "permissions"
+          ]
+        }
+      }
+    },
+    {
+      "khoa": "taixe",
+      "bo": "DRIVER",
+      "vai": "DRIVER_INTERNAL",
+      "ten": "Tài Xế Công Ty Thử",
+      "sdt": "0900000909",
+      "pin": "237180",
+      "id": "ef9f6c10-87ea-4e50-bd71-1cc91c4f8f42",
+      "partyId": "a3cfc46c-dc29-4e5a-bac1-bb0783511597",
+      "permissions": [
+        "DRIVER"
+      ],
+      "roles": [
+        "DRIVER_INTERNAL"
+      ],
+      "dangNhapThu": {
+        "status": 200,
+        "code": null,
+        "message": null,
+        "khoaTraVe": [
+          "staff"
+        ],
+        "me": {
+          "status": 200,
+          "khoa": [
+            "staff",
+            "maintenance",
+            "benDatCuaToi"
+          ],
+          "staffKhoa": [
+            "id",
+            "fullName",
+            "phone",
+            "partyId",
+            "permissions"
+          ]
+        }
+      }
+    },
+    {
+      "khoa": "taixedt",
+      "bo": "DRIVER_PARTNER",
+      "vai": "DRIVER_EXTERNAL",
+      "ten": "Tài Xế Đối Tác Thử",
+      "sdt": "0900000910",
+      "pin": "501561",
+      "id": "64602f4a-0116-4cc5-b3d0-6b3f6cf6e65b",
+      "partyId": "2425d873-11b4-4702-beeb-9899e6168b5f",
+      "permissions": [
+        "DRIVER_PARTNER"
+      ],
+      "roles": [
+        "DRIVER_EXTERNAL"
+      ],
+      "dangNhapThu": {
+        "status": 200,
+        "code": null,
+        "message": null,
+        "khoaTraVe": [
+          "staff"
+        ],
+        "me": {
+          "status": 200,
+          "khoa": [
+            "staff",
+            "maintenance",
+            "benDatCuaToi"
+          ],
+          "staffKhoa": [
+            "id",
+            "fullName",
+            "phone",
+            "partyId",
+            "permissions"
+          ]
+        }
+      }
+    },
+    {
+      "khoa": "nhansu",
+      "bo": "HR",
+      "vai": "HR_STAFF",
+      "ten": "Nhân Sự Thử",
+      "sdt": "0900000911",
+      "pin": "697483",
+      "id": "75ddde91-2fc1-4831-9f06-299fa7cfdb77",
+      "partyId": "f05cdb0d-5b36-49fd-88b8-5cf59b62c763",
+      "permissions": [
+        "HR"
+      ],
+      "roles": [
+        "HR_STAFF"
+      ],
+      "dangNhapThu": {
+        "status": 200,
+        "code": null,
+        "message": null,
+        "khoaTraVe": [
+          "staff"
+        ],
+        "me": {
+          "status": 200,
+          "khoa": [
+            "staff",
+            "maintenance",
+            "benDatCuaToi"
+          ],
+          "staffKhoa": [
+            "id",
+            "fullName",
+            "phone",
+            "partyId",
+            "permissions"
+          ]
+        }
+      }
+    }
+  ]
+}

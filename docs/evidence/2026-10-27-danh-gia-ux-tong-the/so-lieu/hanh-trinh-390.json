@@ -1,0 +1,1855 @@
+{
+ "luc": "2026-10-27T10:10:49.383Z",
+ "base": "http://localhost:8795",
+ "kho": 390,
+ "ketQua": [
+  {
+   "bo": "SALES",
+   "ten": "Bán hàng: đăng nhập → Trang chủ → Tạo đơn ba dịch vụ cho khách mới → lưu chờ xác nhận → xem lại ở Đơn hàng và Trang chủ",
+   "kho": 390,
+   "taiKhoan": "Bán Hàng Thử",
+   "cham": 12,
+   "go": 46,
+   "cuon": 1,
+   "doan": 1,
+   "khongThay": 0,
+   "buoc": [
+    {
+     "n": 1,
+     "viec": "mở /login",
+     "cham": 0,
+     "cuon": 0,
+     "doan": false,
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/SALES/01-mo-login.jpg",
+     "url": "/login"
+    },
+    {
+     "n": 2,
+     "viec": "gõ «0900000901» vào Số điện thoại",
+     "cham": 1,
+     "cuon": 0,
+     "doan": false,
+     "go": 10,
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/SALES/02-go-0900000901-vao-so-dien-thoai.jpg",
+     "url": "/login"
+    },
+    {
+     "n": 3,
+     "viec": "gõ «953329» vào Mã PIN",
+     "cham": 1,
+     "cuon": 0,
+     "doan": false,
+     "go": 6,
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/SALES/03-go-953329-vao-ma-pin.jpg",
+     "url": "/login"
+    },
+    {
+     "n": 4,
+     "viec": "bấm «Đăng nhập»",
+     "cham": 1,
+     "cuon": 0,
+     "doan": false,
+     "ghi": "",
+     "phanTu": "button.btn «Đăng nhập» 350×52",
+     "hitTest": "SPAN",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/SALES/04-bam-dang-nhap.jpg",
+     "url": "/"
+    },
+    {
+     "n": 5,
+     "viec": "sau đăng nhập",
+     "cham": 0,
+     "cuon": 0,
+     "doan": false,
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/SALES/05-sau-dang-nhap.jpg",
+     "url": "/",
+     "ghi": "thanh tab: *Trang chủ · Đơn hàng · Tạo đơn · Tôi; thanh bên: 0 mục"
+    },
+    {
+     "n": 6,
+     "viec": "bấm «Tạo đơn» ở Trang chủ",
+     "cham": 1,
+     "cuon": 0,
+     "doan": false,
+     "ghi": "",
+     "phanTu": "a.tab «Tạo đơn» 96×58",
+     "hitTest": "[object SVGAnimatedString]",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/SALES/06-bam-tao-don-o-trang-chu.jpg",
+     "url": "/order-form"
+    },
+    {
+     "n": 7,
+     "viec": "tới /order-form",
+     "cham": 0,
+     "cuon": 0,
+     "doan": false,
+     "ketQua": "đúng",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/SALES/07-toi-order-form.jpg",
+     "url": "/order-form"
+    },
+    {
+     "n": 8,
+     "viec": "chọn «2026-10-29» ở Ngày khởi hành",
+     "cham": 1,
+     "cuon": 0,
+     "doan": false,
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/SALES/08-chon-2026-10-29-o-ngay-khoi-hanh.jpg",
+     "url": "/order-form"
+    },
+    {
+     "n": 9,
+     "viec": "gõ «Khách Thử Hành Trình» vào Tên khách",
+     "cham": 1,
+     "cuon": 0,
+     "doan": false,
+     "go": 20,
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/SALES/09-go-khach-thu-hanh-trinh-vao-ten-khach.jpg",
+     "url": "/order-form"
+    },
+    {
+     "n": 10,
+     "viec": "gõ «0911222333» vào SĐT khách",
+     "cham": 1,
+     "cuon": 0,
+     "doan": false,
+     "go": 10,
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/SALES/10-go-0911222333-vao-sdt-khach.jpg",
+     "url": "/order-form"
+    },
+    {
+     "n": 11,
+     "viec": "chọn dịch vụ thứ 1 trong danh mục",
+     "cham": 1,
+     "cuon": 0.7,
+     "doan": false,
+     "ghi": "",
+     "phanTu": "button.catalog-pick «Tour lái xe địa hình ATV trong rừng Hòn Bà (90 phú» 280×103",
+     "hitTest": "catalog-ten",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/SALES/11-chon-dich-vu-thu-1-trong-danh-muc.jpg",
+     "url": "/order-form"
+    },
+    {
+     "n": 12,
+     "viec": "chọn dịch vụ thứ 2 trong danh mục",
+     "cham": 1,
+     "cuon": 0,
+     "doan": false,
+     "ghi": "",
+     "phanTu": "button.catalog-pick «Bus city tour 1 vòng (tour ngày) BCT1 100.000» 280×81",
+     "hitTest": "catalog-ten",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/SALES/12-chon-dich-vu-thu-2-trong-danh-muc.jpg",
+     "url": "/order-form"
+    },
+    {
+     "n": 13,
+     "viec": "chọn dịch vụ thứ 3 trong danh mục",
+     "cham": 1,
+     "cuon": 0,
+     "doan": false,
+     "ghi": "",
+     "phanTu": "button.catalog-pick «Bus city tour 24 tiếng (tour ngày) BCT24 250.000» 280×81",
+     "hitTest": "SPAN",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/SALES/13-chon-dich-vu-thu-3-trong-danh-muc.jpg",
+     "url": "/order-form"
+    },
+    {
+     "n": 14,
+     "viec": "cuộn tới «re:Thanh toán|Tóm tắt»",
+     "cham": 0,
+     "cuon": 0.3,
+     "doan": false,
+     "ghi": "xem phần tiền trước khi lưu",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/SALES/14-cuon-toi-re-thanh-toan-tom-tat.jpg",
+     "url": "/order-form"
+    },
+    {
+     "n": 15,
+     "viec": "mở chi tiết tiền ở chân màn",
+     "cham": 1,
+     "cuon": 0,
+     "doan": true,
+     "ghi": "",
+     "phanTu": "button.mobile-sum-nut «2 dịch vụ · Tổng 1.750.000 ₫ Thu gọn ▾» 358×44",
+     "hitTest": "SPAN",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/SALES/15-mo-chi-tiet-tien-o-chan-man.jpg",
+     "url": "/order-form"
+    },
+    {
+     "n": 16,
+     "viec": "bấm nút lưu ở chân biểu mẫu",
+     "cham": 1,
+     "cuon": 0,
+     "doan": false,
+     "ghi": "",
+     "phanTu": "button.btn «Lưu, chờ xác nhận» 358×46",
+     "hitTest": "btn btn-primary",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/SALES/16-bam-nut-luu-o-chan-bieu-mau.jpg",
+     "url": "/order?id=…"
+    },
+    {
+     "n": 17,
+     "viec": "tới /order",
+     "cham": 0,
+     "cuon": 0,
+     "doan": false,
+     "ketQua": "đúng",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/SALES/17-toi-order.jpg",
+     "url": "/order?id=…"
+    },
+    {
+     "n": 18,
+     "viec": "mở /orders",
+     "cham": 0,
+     "cuon": 0,
+     "doan": false,
+     "ghi": "xem lại đơn ở danh sách",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/SALES/18-mo-orders.jpg",
+     "url": "/orders"
+    },
+    {
+     "n": 19,
+     "viec": "mở /",
+     "cham": 0,
+     "cuon": 0,
+     "doan": false,
+     "ghi": "hôm sau mở Trang chủ: đơn có hiện không?",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/SALES/19-mo.jpg",
+     "url": "/"
+    }
+   ],
+   "loiConsole": [],
+   "dieuHuong": {
+    "tab": [
+     {
+      "ten": "Trang chủ",
+      "sang": true
+     },
+     {
+      "ten": "Đơn hàng",
+      "sang": false
+     },
+     {
+      "ten": "Tạo đơn",
+      "sang": false
+     },
+     {
+      "ten": "Tôi",
+      "sang": false
+     }
+    ],
+    "ben": [],
+    "tren": [
+     {
+      "ten": "Thông báo, 14 tin chưa đọc",
+      "sang": false
+     },
+     {
+      "ten": "Hướng dẫn",
+      "sang": false
+     }
+    ]
+   }
+  },
+  {
+   "bo": "INTERN",
+   "ten": "Thực tập: đăng nhập → Đơn hàng → Tạo đơn một dịch vụ (không được chọn người phụ trách) → lưu",
+   "kho": 390,
+   "taiKhoan": "Thực Tập Thử",
+   "cham": 10,
+   "go": 44,
+   "cuon": 0.8999999999999999,
+   "doan": 1,
+   "khongThay": 0,
+   "buoc": [
+    {
+     "n": 1,
+     "viec": "mở /login",
+     "cham": 0,
+     "cuon": 0,
+     "doan": false,
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/INTERN/01-mo-login.jpg",
+     "url": "/login"
+    },
+    {
+     "n": 2,
+     "viec": "gõ «0900000903» vào Số điện thoại",
+     "cham": 1,
+     "cuon": 0,
+     "doan": false,
+     "go": 10,
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/INTERN/02-go-0900000903-vao-so-dien-thoai.jpg",
+     "url": "/login"
+    },
+    {
+     "n": 3,
+     "viec": "gõ «224898» vào Mã PIN",
+     "cham": 1,
+     "cuon": 0,
+     "doan": false,
+     "go": 6,
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/INTERN/03-go-224898-vao-ma-pin.jpg",
+     "url": "/login"
+    },
+    {
+     "n": 4,
+     "viec": "bấm «Đăng nhập»",
+     "cham": 1,
+     "cuon": 0,
+     "doan": false,
+     "ghi": "",
+     "phanTu": "button.btn «Đăng nhập» 350×52",
+     "hitTest": "SPAN",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/INTERN/04-bam-dang-nhap.jpg",
+     "url": "/orders"
+    },
+    {
+     "n": 5,
+     "viec": "sau đăng nhập",
+     "cham": 0,
+     "cuon": 0,
+     "doan": false,
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/INTERN/05-sau-dang-nhap.jpg",
+     "url": "/orders",
+     "ghi": "thanh tab: *Đơn hàng · Tạo đơn · Tôi; thanh bên: 0 mục"
+    },
+    {
+     "n": 6,
+     "viec": "bấm «+ Tạo đơn» ở Đơn hàng",
+     "cham": 1,
+     "cuon": 0,
+     "doan": false,
+     "ghi": "",
+     "phanTu": "a.tab «Tạo đơn» 127×58",
+     "hitTest": "[object SVGAnimatedString]",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/INTERN/06-bam-tao-don-o-don-hang.jpg",
+     "url": "/order-form"
+    },
+    {
+     "n": 7,
+     "viec": "tới /order-form",
+     "cham": 0,
+     "cuon": 0,
+     "doan": false,
+     "ketQua": "đúng",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/INTERN/07-toi-order-form.jpg",
+     "url": "/order-form",
+     "ghi": "KHÔNG có khối Người phụ trách (đúng luật Thực tập)"
+    },
+    {
+     "n": 8,
+     "viec": "chọn «2026-10-29» ở Ngày khởi hành",
+     "cham": 1,
+     "cuon": 0,
+     "doan": false,
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/INTERN/08-chon-2026-10-29-o-ngay-khoi-hanh.jpg",
+     "url": "/order-form"
+    },
+    {
+     "n": 9,
+     "viec": "gõ «Khách Thực Tập Thử» vào Tên khách",
+     "cham": 1,
+     "cuon": 0,
+     "doan": false,
+     "go": 18,
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/INTERN/09-go-khach-thuc-tap-thu-vao-ten-khach.jpg",
+     "url": "/order-form"
+    },
+    {
+     "n": 10,
+     "viec": "gõ «0911222334» vào SĐT khách",
+     "cham": 1,
+     "cuon": 0,
+     "doan": false,
+     "go": 10,
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/INTERN/10-go-0911222334-vao-sdt-khach.jpg",
+     "url": "/order-form"
+    },
+    {
+     "n": 11,
+     "viec": "chọn dịch vụ thứ 1 trong danh mục",
+     "cham": 1,
+     "cuon": 0.6,
+     "doan": false,
+     "ghi": "",
+     "phanTu": "button.catalog-pick «Tour lái xe địa hình ATV trong rừng Hòn Bà (90 phú» 280×103",
+     "hitTest": "catalog-ten",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/INTERN/11-chon-dich-vu-thu-1-trong-danh-muc.jpg",
+     "url": "/order-form"
+    },
+    {
+     "n": 12,
+     "viec": "cuộn tới «re:Thanh toán|Tóm tắt»",
+     "cham": 0,
+     "cuon": 0.3,
+     "doan": false,
+     "ghi": "xem phần tiền trước khi lưu",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/INTERN/12-cuon-toi-re-thanh-toan-tom-tat.jpg",
+     "url": "/order-form"
+    },
+    {
+     "n": 13,
+     "viec": "mở chi tiết tiền ở chân màn",
+     "cham": 1,
+     "cuon": 0,
+     "doan": true,
+     "ghi": "",
+     "phanTu": "button.mobile-sum-nut «1 dịch vụ · Tổng 1.650.000 ₫ Chi tiết ▴» 358×44",
+     "hitTest": "SPAN",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/INTERN/13-mo-chi-tiet-tien-o-chan-man.jpg",
+     "url": "/order-form"
+    },
+    {
+     "n": 14,
+     "viec": "bấm nút lưu ở chân biểu mẫu",
+     "cham": 1,
+     "cuon": 0,
+     "doan": false,
+     "ghi": "",
+     "phanTu": "button.btn «Lưu, chờ xác nhận» 358×46",
+     "hitTest": "btn btn-primary",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/INTERN/14-bam-nut-luu-o-chan-bieu-mau.jpg",
+     "url": "/order?id=…"
+    },
+    {
+     "n": 15,
+     "viec": "tới /order",
+     "cham": 0,
+     "cuon": 0,
+     "doan": false,
+     "ketQua": "đúng",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/INTERN/15-toi-order.jpg",
+     "url": "/order?id=…"
+    }
+   ],
+   "loiConsole": [],
+   "dieuHuong": {
+    "tab": [
+     {
+      "ten": "Đơn hàng",
+      "sang": true
+     },
+     {
+      "ten": "Tạo đơn",
+      "sang": false
+     },
+     {
+      "ten": "Tôi",
+      "sang": false
+     }
+    ],
+    "ben": [],
+    "tren": [
+     {
+      "ten": "Island Booking System",
+      "sang": false
+     },
+     {
+      "ten": "Thông báo, 1 tin chưa đọc",
+      "sang": false
+     }
+    ]
+   }
+  },
+  {
+   "bo": "ACCOUNTING",
+   "ten": "Kế toán: đăng nhập → Đơn chờ xác nhận → kiểm vé một đơn → Còn vé → Sổ công nợ → mở một bên để đối chiếu",
+   "kho": 390,
+   "taiKhoan": "Kế Toán Thử",
+   "cham": 6,
+   "go": 16,
+   "cuon": 0,
+   "doan": 1,
+   "khongThay": 0,
+   "buoc": [
+    {
+     "n": 1,
+     "viec": "mở /login",
+     "cham": 0,
+     "cuon": 0,
+     "doan": false,
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/ACCOUNTING/01-mo-login.jpg",
+     "url": "/login"
+    },
+    {
+     "n": 2,
+     "viec": "gõ «0900000904» vào Số điện thoại",
+     "cham": 1,
+     "cuon": 0,
+     "doan": false,
+     "go": 10,
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/ACCOUNTING/02-go-0900000904-vao-so-dien-thoai.jpg",
+     "url": "/login"
+    },
+    {
+     "n": 3,
+     "viec": "gõ «074097» vào Mã PIN",
+     "cham": 1,
+     "cuon": 0,
+     "doan": false,
+     "go": 6,
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/ACCOUNTING/03-go-074097-vao-ma-pin.jpg",
+     "url": "/login"
+    },
+    {
+     "n": 4,
+     "viec": "bấm «Đăng nhập»",
+     "cham": 1,
+     "cuon": 0,
+     "doan": false,
+     "ghi": "",
+     "phanTu": "button.btn «Đăng nhập» 350×52",
+     "hitTest": "SPAN",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/ACCOUNTING/04-bam-dang-nhap.jpg",
+     "url": "/"
+    },
+    {
+     "n": 5,
+     "viec": "sau đăng nhập",
+     "cham": 0,
+     "cuon": 0,
+     "doan": false,
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/ACCOUNTING/05-sau-dang-nhap.jpg",
+     "url": "/",
+     "ghi": "thanh tab: *Trang chủ · Đơn hàng · Tôi; thanh bên: 0 mục"
+    },
+    {
+     "n": 6,
+     "viec": "mở /cho-xac-nhan",
+     "cham": 0,
+     "cuon": 0,
+     "doan": false,
+     "ghi": "danh sách chờ kiểm vé",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/ACCOUNTING/06-mo-cho-xac-nhan.jpg",
+     "url": "/cho-xac-nhan"
+    },
+    {
+     "n": 7,
+     "viec": "bấm «Kiểm vé» đơn đầu tiên",
+     "cham": 1,
+     "cuon": 0,
+     "doan": false,
+     "ghi": "",
+     "phanTu": "a.btn «Kiểm vé» 324×46",
+     "hitTest": "btn btn-accent cx-ds-nut",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/ACCOUNTING/07-bam-kiem-ve-don-dau-tien.jpg",
+     "url": "/order?id=…"
+    },
+    {
+     "n": 8,
+     "viec": "tới /order",
+     "cham": 0,
+     "cuon": 0,
+     "doan": false,
+     "ketQua": "đúng",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/ACCOUNTING/08-toi-order.jpg",
+     "url": "/order?id=…"
+    },
+    {
+     "n": 9,
+     "viec": "nhìn: thẻ Xác nhận đơn mở sẵn ở đầu trang",
+     "cham": 0,
+     "cuon": 0,
+     "doan": false,
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/ACCOUNTING/09-nhin-the-xac-nhan-don-mo-san-o-dau-trang.jpg",
+     "url": "/order?id=…"
+    },
+    {
+     "n": 10,
+     "viec": "chọn «Còn vé»",
+     "cham": 1,
+     "cuon": 0,
+     "doan": false,
+     "ghi": "",
+     "phanTu": "button.btn «Còn vé» 324×46",
+     "hitTest": "btn btn-accent",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/ACCOUNTING/10-chon-con-ve.jpg",
+     "url": "/order?id=…"
+    },
+    {
+     "n": 11,
+     "viec": "mở /so-cong-no",
+     "cham": 0,
+     "cuon": 0,
+     "doan": false,
+     "ghi": "sổ công nợ",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/ACCOUNTING/11-mo-so-cong-no.jpg",
+     "url": "/so-cong-no"
+    },
+    {
+     "n": 12,
+     "viec": "mở bên đầu tiên trong danh sách",
+     "cham": 1,
+     "cuon": 0,
+     "doan": true,
+     "ghi": "",
+     "phanTu": "li. «Cộng Tác Thử Đang giữ 470.000 ₫» 326×49",
+     "hitTest": "scn-so scn-giu",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/ACCOUNTING/12-mo-ben-dau-tien-trong-danh-sach.jpg",
+     "url": "/so-cong-no"
+    }
+   ],
+   "loiConsole": [],
+   "dieuHuong": {
+    "tab": [
+     {
+      "ten": "Trang chủ",
+      "sang": true
+     },
+     {
+      "ten": "Đơn hàng",
+      "sang": false
+     },
+     {
+      "ten": "Tôi",
+      "sang": false
+     }
+    ],
+    "ben": [],
+    "tren": [
+     {
+      "ten": "Thông báo, 2 tin chưa đọc",
+      "sang": false
+     },
+     {
+      "ten": "Hướng dẫn",
+      "sang": false
+     }
+    ]
+   }
+  },
+  {
+   "bo": "ADMIN",
+   "ten": "Quản trị: đăng nhập → Điều phối xe → chọn một lượt đưa đón → xếp vào chuyến / tạo chuyến → quay về Đơn hàng → mở đơn → Sửa thông tin chuyến",
+   "kho": 390,
+   "taiKhoan": "Quản Trị Thử",
+   "cham": 8,
+   "go": 16,
+   "cuon": 0,
+   "doan": 2,
+   "khongThay": 0,
+   "buoc": [
+    {
+     "n": 1,
+     "viec": "mở /login",
+     "cham": 0,
+     "cuon": 0,
+     "doan": false,
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/ADMIN/01-mo-login.jpg",
+     "url": "/login"
+    },
+    {
+     "n": 2,
+     "viec": "gõ «0900000905» vào Số điện thoại",
+     "cham": 1,
+     "cuon": 0,
+     "doan": false,
+     "go": 10,
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/ADMIN/02-go-0900000905-vao-so-dien-thoai.jpg",
+     "url": "/login"
+    },
+    {
+     "n": 3,
+     "viec": "gõ «290819» vào Mã PIN",
+     "cham": 1,
+     "cuon": 0,
+     "doan": false,
+     "go": 6,
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/ADMIN/03-go-290819-vao-ma-pin.jpg",
+     "url": "/login"
+    },
+    {
+     "n": 4,
+     "viec": "bấm «Đăng nhập»",
+     "cham": 1,
+     "cuon": 0,
+     "doan": false,
+     "ghi": "",
+     "phanTu": "button.btn «Đăng nhập» 350×52",
+     "hitTest": "SPAN",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/ADMIN/04-bam-dang-nhap.jpg",
+     "url": "/"
+    },
+    {
+     "n": 5,
+     "viec": "sau đăng nhập",
+     "cham": 0,
+     "cuon": 0,
+     "doan": false,
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/ADMIN/05-sau-dang-nhap.jpg",
+     "url": "/",
+     "ghi": "thanh tab: *Trang chủ · Đơn hàng · Tạo đơn · Dịch vụ · Tài khoản · Tôi; thanh bên: 0 mục"
+    },
+    {
+     "n": 6,
+     "viec": "mở /dieu-phoi",
+     "cham": 0,
+     "cuon": 0,
+     "doan": false,
+     "ghi": "bảng điều phối",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/ADMIN/06-mo-dieu-phoi.jpg",
+     "url": "/dieu-phoi"
+    },
+    {
+     "n": 7,
+     "viec": "bấm tab «Cần xử lý»",
+     "cham": 1,
+     "cuon": 0,
+     "doan": false,
+     "ghi": "",
+     "phanTu": "button.dp-tab «Cần xử lý 1» 114×40",
+     "hitTest": "dp-tab",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/ADMIN/07-bam-tab-can-xu-ly.jpg",
+     "url": "/dieu-phoi"
+    },
+    {
+     "n": 8,
+     "viec": "bấm «+ Chuyến mới»",
+     "cham": 1,
+     "cuon": 0,
+     "doan": false,
+     "ghi": "",
+     "phanTu": "a.vc-btn «+ Chuyến mới» 358×44",
+     "hitTest": "vc-btn btn btn-accent dp-new",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/ADMIN/08-bam-chuyen-moi.jpg",
+     "url": "/dieu-phoi"
+    },
+    {
+     "n": 9,
+     "viec": "tới /chuyen-sua",
+     "cham": 0,
+     "cuon": 0,
+     "doan": true,
+     "ketQua": "KHÔNG, đang ở /dieu-phoi",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/ADMIN/09-toi-chuyen-sua.jpg",
+     "url": "/dieu-phoi"
+    },
+    {
+     "n": 10,
+     "viec": "nhìn: biểu mẫu Chuyến mới",
+     "cham": 0,
+     "cuon": 0,
+     "doan": false,
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/ADMIN/10-nhin-bieu-mau-chuyen-moi.jpg",
+     "url": "/dieu-phoi"
+    },
+    {
+     "n": 11,
+     "viec": "mở /orders",
+     "cham": 0,
+     "cuon": 0,
+     "doan": false,
+     "ghi": "danh sách đơn",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/ADMIN/11-mo-orders.jpg",
+     "url": "/orders"
+    },
+    {
+     "n": 12,
+     "viec": "mở đơn đầu tiên",
+     "cham": 1,
+     "cuon": 0,
+     "doan": true,
+     "ghi": "",
+     "phanTu": "a.order-row «1. 27/10 · 16:20 Ngô Thị Mai Đã xác nhận 091300021» 272×75",
+     "hitTest": "order-row-pax icon-label",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/ADMIN/12-mo-don-dau-tien.jpg",
+     "url": "/order?id=…"
+    },
+    {
+     "n": 13,
+     "viec": "tới /order",
+     "cham": 0,
+     "cuon": 0,
+     "doan": false,
+     "ketQua": "đúng",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/ADMIN/13-toi-order.jpg",
+     "url": "/order?id=…"
+    },
+    {
+     "n": 14,
+     "viec": "bấm «Sửa thông tin chuyến»",
+     "cham": 1,
+     "cuon": 0,
+     "doan": false,
+     "ghi": "",
+     "phanTu": "button.btn «Sửa thông tin chuyến» 147×94",
+     "hitTest": "btn btn-primary",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/ADMIN/14-bam-sua-thong-tin-chuyen.jpg",
+     "url": "/order?id=…"
+    },
+    {
+     "n": 15,
+     "viec": "đóng bảng trượt",
+     "cham": 1,
+     "cuon": 0,
+     "doan": false,
+     "ghi": "",
+     "phanTu": "button.btn «Đóng» 44×44",
+     "hitTest": "[object SVGAnimatedString]",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/ADMIN/15-dong-bang-truot.jpg",
+     "url": "/order?id=…"
+    }
+   ],
+   "loiConsole": [],
+   "dieuHuong": {
+    "tab": [
+     {
+      "ten": "Trang chủ",
+      "sang": true
+     },
+     {
+      "ten": "Đơn hàng",
+      "sang": false
+     },
+     {
+      "ten": "Tạo đơn",
+      "sang": false
+     },
+     {
+      "ten": "Dịch vụ",
+      "sang": false
+     },
+     {
+      "ten": "Tài khoản",
+      "sang": false
+     },
+     {
+      "ten": "Tôi",
+      "sang": false
+     }
+    ],
+    "ben": [],
+    "tren": [
+     {
+      "ten": "Thông báo, 24 tin chưa đọc",
+      "sang": false
+     },
+     {
+      "ten": "Hướng dẫn",
+      "sang": false
+     }
+    ]
+   }
+  },
+  {
+   "bo": "FIELD",
+   "ten": "Hướng dẫn viên: đăng nhập → Đơn hàng (trang đầu) → Tôi → khối «Việc của tôi» → mở đơn được giao → Xác nhận đã nhận",
+   "kho": 390,
+   "taiKhoan": "Hướng Dẫn Thử",
+   "cham": 4,
+   "go": 16,
+   "cuon": 7.6,
+   "doan": 1,
+   "khongThay": 0,
+   "buoc": [
+    {
+     "n": 1,
+     "viec": "mở /login",
+     "cham": 0,
+     "cuon": 0,
+     "doan": false,
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/FIELD/01-mo-login.jpg",
+     "url": "/login"
+    },
+    {
+     "n": 2,
+     "viec": "gõ «0900000906» vào Số điện thoại",
+     "cham": 1,
+     "cuon": 0,
+     "doan": false,
+     "go": 10,
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/FIELD/02-go-0900000906-vao-so-dien-thoai.jpg",
+     "url": "/login"
+    },
+    {
+     "n": 3,
+     "viec": "gõ «568821» vào Mã PIN",
+     "cham": 1,
+     "cuon": 0,
+     "doan": false,
+     "go": 6,
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/FIELD/03-go-568821-vao-ma-pin.jpg",
+     "url": "/login"
+    },
+    {
+     "n": 4,
+     "viec": "bấm «Đăng nhập»",
+     "cham": 1,
+     "cuon": 0,
+     "doan": false,
+     "ghi": "",
+     "phanTu": "button.btn «Đăng nhập» 350×52",
+     "hitTest": "SPAN",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/FIELD/04-bam-dang-nhap.jpg",
+     "url": "/orders"
+    },
+    {
+     "n": 5,
+     "viec": "sau đăng nhập",
+     "cham": 0,
+     "cuon": 0,
+     "doan": false,
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/FIELD/05-sau-dang-nhap.jpg",
+     "url": "/orders",
+     "ghi": "thanh tab: *Đơn hàng · Tôi; thanh bên: 0 mục"
+    },
+    {
+     "n": 6,
+     "viec": "mở /account",
+     "cham": 0,
+     "cuon": 0,
+     "doan": false,
+     "ghi": "trang Tôi",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/FIELD/06-mo-account.jpg",
+     "url": "/account"
+    },
+    {
+     "n": 7,
+     "viec": "cuộn tới «Việc của tôi»",
+     "cham": 0,
+     "cuon": 0,
+     "doan": false,
+     "ghi": "tìm khối Việc của tôi",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/FIELD/07-cuon-toi-viec-cua-toi.jpg",
+     "url": "/account"
+    },
+    {
+     "n": 8,
+     "viec": "mở đơn đầu tiên trong Việc của tôi",
+     "cham": 1,
+     "cuon": 7.6,
+     "doan": true,
+     "ghi": "",
+     "phanTu": "a.btn «Xem đơn» 324×48",
+     "hitTest": "btn hdv-act hdv-xem",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/FIELD/08-mo-don-dau-tien-trong-viec-cua-toi.jpg",
+     "url": "/order?id=…"
+    },
+    {
+     "n": 9,
+     "viec": "tới /order",
+     "cham": 0,
+     "cuon": 0,
+     "doan": false,
+     "ketQua": "đúng",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/FIELD/09-toi-order.jpg",
+     "url": "/order?id=…",
+     "ghi": "không có nút «Xác nhận đã nhận» ở đơn này"
+    }
+   ],
+   "loiConsole": [],
+   "dieuHuong": {
+    "tab": [
+     {
+      "ten": "Đơn hàng",
+      "sang": true
+     },
+     {
+      "ten": "Tôi",
+      "sang": false
+     }
+    ],
+    "ben": [],
+    "tren": [
+     {
+      "ten": "Island Booking System",
+      "sang": false
+     },
+     {
+      "ten": "Thông báo, 32 tin chưa đọc",
+      "sang": false
+     }
+    ]
+   }
+  },
+  {
+   "bo": "PARTNER",
+   "ten": "Đối tác: đăng nhập → Đơn hàng → Tạo đơn cho khách của mình (một dịch vụ) → gửi → xem trạng thái ở Đơn hàng → Tôi (hoa hồng?)",
+   "kho": 390,
+   "taiKhoan": "Cộng Tác Thử",
+   "cham": 10,
+   "go": 47,
+   "cuon": 0.8,
+   "doan": 2,
+   "khongThay": 1,
+   "buoc": [
+    {
+     "n": 1,
+     "viec": "mở /login",
+     "cham": 0,
+     "cuon": 0,
+     "doan": false,
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/PARTNER/01-mo-login.jpg",
+     "url": "/login"
+    },
+    {
+     "n": 2,
+     "viec": "gõ «0900000907» vào Số điện thoại",
+     "cham": 1,
+     "cuon": 0,
+     "doan": false,
+     "go": 10,
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/PARTNER/02-go-0900000907-vao-so-dien-thoai.jpg",
+     "url": "/login"
+    },
+    {
+     "n": 3,
+     "viec": "gõ «824522» vào Mã PIN",
+     "cham": 1,
+     "cuon": 0,
+     "doan": false,
+     "go": 6,
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/PARTNER/03-go-824522-vao-ma-pin.jpg",
+     "url": "/login"
+    },
+    {
+     "n": 4,
+     "viec": "bấm «Đăng nhập»",
+     "cham": 1,
+     "cuon": 0,
+     "doan": false,
+     "ghi": "",
+     "phanTu": "button.btn «Đăng nhập» 350×52",
+     "hitTest": "SPAN",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/PARTNER/04-bam-dang-nhap.jpg",
+     "url": "/orders"
+    },
+    {
+     "n": 5,
+     "viec": "sau đăng nhập",
+     "cham": 0,
+     "cuon": 0,
+     "doan": false,
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/PARTNER/05-sau-dang-nhap.jpg",
+     "url": "/orders",
+     "ghi": "thanh tab: *Đơn hàng · Tạo đơn · Tôi; thanh bên: 0 mục"
+    },
+    {
+     "n": 6,
+     "viec": "bấm «+ Tạo đơn»",
+     "cham": 1,
+     "cuon": 0,
+     "doan": false,
+     "ghi": "",
+     "phanTu": "a.tab «Tạo đơn» 127×58",
+     "hitTest": "[object SVGAnimatedString]",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/PARTNER/06-bam-tao-don.jpg",
+     "url": "/order-form"
+    },
+    {
+     "n": 7,
+     "viec": "tới /order-form",
+     "cham": 0,
+     "cuon": 0,
+     "doan": false,
+     "ketQua": "đúng",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/PARTNER/07-toi-order-form.jpg",
+     "url": "/order-form"
+    },
+    {
+     "n": 8,
+     "viec": "chọn «2026-10-29» ở Ngày khởi hành",
+     "cham": 1,
+     "cuon": 0,
+     "doan": false,
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/PARTNER/08-chon-2026-10-29-o-ngay-khoi-hanh.jpg",
+     "url": "/order-form"
+    },
+    {
+     "n": 9,
+     "viec": "gõ «Khách Của Đối Tác Thử» vào Tên khách",
+     "cham": 1,
+     "cuon": 0,
+     "doan": false,
+     "go": 21,
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/PARTNER/09-go-khach-cua-doi-tac-thu-vao-ten-khach.jpg",
+     "url": "/order-form"
+    },
+    {
+     "n": 10,
+     "viec": "gõ «0911222335» vào SĐT khách",
+     "cham": 1,
+     "cuon": 0,
+     "doan": false,
+     "go": 10,
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/PARTNER/10-go-0911222335-vao-sdt-khach.jpg",
+     "url": "/order-form"
+    },
+    {
+     "n": 11,
+     "viec": "chọn dịch vụ thứ 1 trong danh mục",
+     "cham": 1,
+     "cuon": 0.5,
+     "doan": false,
+     "ghi": "",
+     "phanTu": "button.catalog-pick «Tour lái xe địa hình ATV trong rừng Hòn Bà (90 phú» 280×103",
+     "hitTest": "catalog-ten",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/PARTNER/11-chon-dich-vu-thu-1-trong-danh-muc.jpg",
+     "url": "/order-form"
+    },
+    {
+     "n": 12,
+     "viec": "cuộn tới «re:Thanh toán|Tóm tắt»",
+     "cham": 0,
+     "cuon": 0.3,
+     "doan": false,
+     "ghi": "xem phần tiền trước khi lưu",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/PARTNER/12-cuon-toi-re-thanh-toan-tom-tat.jpg",
+     "url": "/order-form"
+    },
+    {
+     "n": 13,
+     "viec": "mở chi tiết tiền ở chân màn",
+     "cham": 1,
+     "cuon": 0,
+     "doan": true,
+     "ghi": "",
+     "phanTu": "button.mobile-sum-nut «1 dịch vụ · Tổng 1.650.000 ₫ Chi tiết ▴» 358×44",
+     "hitTest": "SPAN",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/PARTNER/13-mo-chi-tiet-tien-o-chan-man.jpg",
+     "url": "/order-form"
+    },
+    {
+     "n": 14,
+     "viec": "bấm nút lưu ở chân biểu mẫu",
+     "cham": 1,
+     "cuon": 0,
+     "doan": false,
+     "ghi": "",
+     "phanTu": "button.btn «Gửi đơn» 358×46",
+     "hitTest": "btn btn-primary",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/PARTNER/14-bam-nut-luu-o-chan-bieu-mau.jpg",
+     "url": "/order?id=…"
+    },
+    {
+     "n": 15,
+     "viec": "tới /order",
+     "cham": 0,
+     "cuon": 0,
+     "doan": false,
+     "ketQua": "đúng",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/PARTNER/15-toi-order.jpg",
+     "url": "/order?id=…"
+    },
+    {
+     "n": 16,
+     "viec": "mở /orders",
+     "cham": 0,
+     "cuon": 0,
+     "doan": false,
+     "ghi": "xem trạng thái đơn vừa gửi",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/PARTNER/16-mo-orders.jpg",
+     "url": "/orders"
+    },
+    {
+     "n": 17,
+     "viec": "mở /account",
+     "cham": 0,
+     "cuon": 0,
+     "doan": false,
+     "ghi": "trang Tôi: có thấy hoa hồng / chính sách bán không?",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/PARTNER/17-mo-account.jpg",
+     "url": "/account"
+    },
+    {
+     "n": 18,
+     "viec": "cuộn tới «re:[Hh]oa hồng»",
+     "cham": 0,
+     "cuon": 0,
+     "doan": true,
+     "ghi": "tìm chữ hoa hồng",
+     "ketQua": "KHÔNG THẤY",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/PARTNER/18-cuon-toi-re-hh-oa-hong.jpg",
+     "url": "/account"
+    }
+   ],
+   "loiConsole": [],
+   "dieuHuong": {
+    "tab": [
+     {
+      "ten": "Đơn hàng",
+      "sang": true
+     },
+     {
+      "ten": "Tạo đơn",
+      "sang": false
+     },
+     {
+      "ten": "Tôi",
+      "sang": false
+     }
+    ],
+    "ben": [],
+    "tren": [
+     {
+      "ten": "Island Booking System",
+      "sang": false
+     },
+     {
+      "ten": "Thông báo, 1 tin chưa đọc",
+      "sang": false
+     }
+    ]
+   }
+  },
+  {
+   "bo": "SUPER_ADMIN",
+   "ten": "Toàn quyền: đăng nhập → Quản lý tài khoản → Thêm tài khoản qua màn hình (tên, SĐT, một quyền) → nhận PIN → Hỗ trợ → nhận một vé",
+   "kho": 390,
+   "taiKhoan": "Toàn Quyền Thử",
+   "cham": 8,
+   "go": 48,
+   "cuon": 0.7,
+   "doan": 1,
+   "khongThay": 1,
+   "buoc": [
+    {
+     "n": 1,
+     "viec": "mở /login",
+     "cham": 0,
+     "cuon": 0,
+     "doan": false,
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/SUPER_ADMIN/01-mo-login.jpg",
+     "url": "/login"
+    },
+    {
+     "n": 2,
+     "viec": "gõ «0900000010» vào Số điện thoại",
+     "cham": 1,
+     "cuon": 0,
+     "doan": false,
+     "go": 10,
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/SUPER_ADMIN/02-go-0900000010-vao-so-dien-thoai.jpg",
+     "url": "/login"
+    },
+    {
+     "n": 3,
+     "viec": "gõ «739164» vào Mã PIN",
+     "cham": 1,
+     "cuon": 0,
+     "doan": false,
+     "go": 6,
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/SUPER_ADMIN/03-go-739164-vao-ma-pin.jpg",
+     "url": "/login"
+    },
+    {
+     "n": 4,
+     "viec": "bấm «Đăng nhập»",
+     "cham": 1,
+     "cuon": 0,
+     "doan": false,
+     "ghi": "",
+     "phanTu": "button.btn «Đăng nhập» 350×52",
+     "hitTest": "SPAN",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/SUPER_ADMIN/04-bam-dang-nhap.jpg",
+     "url": "/"
+    },
+    {
+     "n": 5,
+     "viec": "sau đăng nhập",
+     "cham": 0,
+     "cuon": 0,
+     "doan": false,
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/SUPER_ADMIN/05-sau-dang-nhap.jpg",
+     "url": "/",
+     "ghi": "thanh tab: *Trang chủ · Đơn hàng · Tạo đơn · Dịch vụ · Tài khoản · Tôi; thanh bên: 0 mục"
+    },
+    {
+     "n": 6,
+     "viec": "mở /staff",
+     "cham": 0,
+     "cuon": 0,
+     "doan": false,
+     "ghi": "quản lý tài khoản",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/SUPER_ADMIN/06-mo-staff.jpg",
+     "url": "/staff"
+    },
+    {
+     "n": 7,
+     "viec": "cuộn tới «Thêm tài khoản»",
+     "cham": 0,
+     "cuon": 0,
+     "doan": false,
+     "ghi": "tìm khung Thêm tài khoản",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/SUPER_ADMIN/07-cuon-toi-them-tai-khoan.jpg",
+     "url": "/staff"
+    },
+    {
+     "n": 8,
+     "viec": "gõ «Tài Khoản Thử Màn Hình» vào Họ tên",
+     "cham": 1,
+     "cuon": 0,
+     "doan": false,
+     "go": 22,
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/SUPER_ADMIN/08-go-tai-khoan-thu-man-hinh-vao-ho-ten.jpg",
+     "url": "/staff"
+    },
+    {
+     "n": 9,
+     "viec": "gõ «0900000912» vào Số điện thoại",
+     "cham": 1,
+     "cuon": 0,
+     "doan": false,
+     "go": 10,
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/SUPER_ADMIN/09-go-0900000912-vao-so-dien-thoai.jpg",
+     "url": "/staff"
+    },
+    {
+     "n": 10,
+     "viec": "đánh dấu quyền đầu tiên",
+     "cham": 1,
+     "cuon": 0,
+     "doan": false,
+     "ghi": "",
+     "phanTu": "label.check «Giám đốc» 326×32",
+     "hitTest": "check",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/SUPER_ADMIN/10-danh-dau-quyen-dau-tien.jpg",
+     "url": "/staff"
+    },
+    {
+     "n": 11,
+     "viec": "bấm «Tạo tài khoản»",
+     "cham": 1,
+     "cuon": 0.7,
+     "doan": false,
+     "ghi": "thấy PIN sau khi tạo",
+     "phanTu": "button.btn «Tạo tài khoản» 146×46",
+     "hitTest": "btn btn-primary",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/SUPER_ADMIN/11-bam-tao-tai-khoan.jpg",
+     "url": "/staff"
+    },
+    {
+     "n": 12,
+     "viec": "đóng khung PIN",
+     "cham": 1,
+     "cuon": 0,
+     "doan": false,
+     "ghi": "",
+     "phanTu": "button.btn «Đã ghi lại, ẩn đi» 154×70",
+     "hitTest": "btn btn-link",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/SUPER_ADMIN/12-dong-khung-pin.jpg",
+     "url": "/staff"
+    },
+    {
+     "n": 13,
+     "viec": "mở /feedback",
+     "cham": 0,
+     "cuon": 0,
+     "doan": false,
+     "ghi": "Hỗ trợ",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/SUPER_ADMIN/13-mo-feedback.jpg",
+     "url": "/feedback"
+    },
+    {
+     "n": 14,
+     "viec": "mở vé đầu tiên",
+     "cham": 0,
+     "cuon": 0,
+     "doan": true,
+     "ghi": "",
+     "ketQua": "KHÔNG TÌM THẤY (khớp 0)",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/SUPER_ADMIN/14-mo-ve-dau-tien.jpg",
+     "url": "/feedback"
+    }
+   ],
+   "loiConsole": [],
+   "dieuHuong": {
+    "tab": [
+     {
+      "ten": "Trang chủ",
+      "sang": true
+     },
+     {
+      "ten": "Đơn hàng",
+      "sang": false
+     },
+     {
+      "ten": "Tạo đơn",
+      "sang": false
+     },
+     {
+      "ten": "Dịch vụ",
+      "sang": false
+     },
+     {
+      "ten": "Tài khoản",
+      "sang": false
+     },
+     {
+      "ten": "Tôi",
+      "sang": false
+     }
+    ],
+    "ben": [],
+    "tren": [
+     {
+      "ten": "Thông báo, 23 tin chưa đọc",
+      "sang": false
+     },
+     {
+      "ten": "Hướng dẫn",
+      "sang": false
+     }
+    ]
+   }
+  },
+  {
+   "bo": "DRIVER",
+   "ten": "Tài xế công ty: đăng nhập → Cuốc của tôi → mở chuyến → Xuất bến → Đã đón → Đã trả → Kết thúc chuyến",
+   "kho": 390,
+   "taiKhoan": "Tài Xế Công Ty Thử",
+   "cham": 5,
+   "go": 16,
+   "cuon": 0.8,
+   "doan": 1,
+   "khongThay": 1,
+   "buoc": [
+    {
+     "n": 1,
+     "viec": "mở /login",
+     "cham": 0,
+     "cuon": 0,
+     "doan": false,
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/DRIVER/01-mo-login.jpg",
+     "url": "/login"
+    },
+    {
+     "n": 2,
+     "viec": "gõ «0900000909» vào Số điện thoại",
+     "cham": 1,
+     "cuon": 0,
+     "doan": false,
+     "go": 10,
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/DRIVER/02-go-0900000909-vao-so-dien-thoai.jpg",
+     "url": "/login"
+    },
+    {
+     "n": 3,
+     "viec": "gõ «697015» vào Mã PIN",
+     "cham": 1,
+     "cuon": 0,
+     "doan": false,
+     "go": 6,
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/DRIVER/03-go-697015-vao-ma-pin.jpg",
+     "url": "/login"
+    },
+    {
+     "n": 4,
+     "viec": "bấm «Đăng nhập»",
+     "cham": 1,
+     "cuon": 0,
+     "doan": false,
+     "ghi": "",
+     "phanTu": "button.btn «Đăng nhập» 350×52",
+     "hitTest": "SPAN",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/DRIVER/04-bam-dang-nhap.jpg",
+     "url": "/cuoc"
+    },
+    {
+     "n": 5,
+     "viec": "sau đăng nhập",
+     "cham": 0,
+     "cuon": 0,
+     "doan": false,
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/DRIVER/05-sau-dang-nhap.jpg",
+     "url": "/cuoc",
+     "ghi": "thanh tab: Trang chủ · *Cuốc của tôi · Tôi; thanh bên: 0 mục"
+    },
+    {
+     "n": 6,
+     "viec": "mở chuyến đầu tiên trong Cuốc của tôi",
+     "cham": 1,
+     "cuon": 0,
+     "doan": false,
+     "ghi": "",
+     "phanTu": "a.vc-card «15:50 CX-2710-02 Đang chạy 79B-123.45 · 2 khách · » 358×140",
+     "hitTest": "dp-cuoc-dong",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/DRIVER/06-mo-chuyen-dau-tien-trong-cuoc-cua-toi.jpg",
+     "url": "/cuoc-chuyen?id=…"
+    },
+    {
+     "n": 7,
+     "viec": "tới /cuoc-chuyen",
+     "cham": 0,
+     "cuon": 0,
+     "doan": false,
+     "ketQua": "đúng",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/DRIVER/07-toi-cuoc-chuyen.jpg",
+     "url": "/cuoc-chuyen?id=…"
+    },
+    {
+     "n": 8,
+     "viec": "bấm «Cho xe chạy»",
+     "cham": 0,
+     "cuon": 0,
+     "doan": true,
+     "ghi": "",
+     "ketQua": "KHÔNG TÌM THẤY (khớp 0)",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/DRIVER/08-bam-cho-xe-chay.jpg",
+     "url": "/cuoc-chuyen?id=…"
+    },
+    {
+     "n": 9,
+     "viec": "bấm «Kết thúc chuyến»",
+     "cham": 1,
+     "cuon": 0.8,
+     "doan": false,
+     "ghi": "",
+     "phanTu": "button.vc-btn «Kết thúc chuyến» 358×52",
+     "hitTest": "vc-btn btn btn-accent",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/DRIVER/09-bam-ket-thuc-chuyen.jpg",
+     "url": "/cuoc-chuyen?id=…"
+    }
+   ],
+   "loiConsole": [],
+   "dieuHuong": {
+    "tab": [
+     {
+      "ten": "Trang chủ",
+      "sang": false
+     },
+     {
+      "ten": "Cuốc của tôi",
+      "sang": true
+     },
+     {
+      "ten": "Tôi",
+      "sang": false
+     }
+    ],
+    "ben": [],
+    "tren": [
+     {
+      "ten": "Thông báo, 6 tin chưa đọc",
+      "sang": false
+     }
+    ]
+   }
+  },
+  {
+   "bo": "DRIVER_PARTNER",
+   "ten": "Tài xế đối tác: đăng nhập → Trang đầu tài xế → Xem cuốc → mở chuyến → Báo bận của tôi → ghi một khung bận",
+   "kho": 390,
+   "taiKhoan": "Tài Xế Đối Tác Thử",
+   "cham": 9,
+   "go": 36,
+   "cuon": 0,
+   "doan": 2,
+   "khongThay": 0,
+   "buoc": [
+    {
+     "n": 1,
+     "viec": "mở /login",
+     "cham": 0,
+     "cuon": 0,
+     "doan": false,
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/DRIVER_PARTNER/01-mo-login.jpg",
+     "url": "/login"
+    },
+    {
+     "n": 2,
+     "viec": "gõ «0900000910» vào Số điện thoại",
+     "cham": 1,
+     "cuon": 0,
+     "doan": false,
+     "go": 10,
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/DRIVER_PARTNER/02-go-0900000910-vao-so-dien-thoai.jpg",
+     "url": "/login"
+    },
+    {
+     "n": 3,
+     "viec": "gõ «542403» vào Mã PIN",
+     "cham": 1,
+     "cuon": 0,
+     "doan": false,
+     "go": 6,
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/DRIVER_PARTNER/03-go-542403-vao-ma-pin.jpg",
+     "url": "/login"
+    },
+    {
+     "n": 4,
+     "viec": "bấm «Đăng nhập»",
+     "cham": 1,
+     "cuon": 0,
+     "doan": false,
+     "ghi": "",
+     "phanTu": "button.btn «Đăng nhập» 350×52",
+     "hitTest": "SPAN",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/DRIVER_PARTNER/04-bam-dang-nhap.jpg",
+     "url": "/cuoc"
+    },
+    {
+     "n": 5,
+     "viec": "sau đăng nhập",
+     "cham": 0,
+     "cuon": 0,
+     "doan": false,
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/DRIVER_PARTNER/05-sau-dang-nhap.jpg",
+     "url": "/cuoc",
+     "ghi": "thanh tab: Trang chủ · *Cuốc của tôi · Báo bận của tôi · Tôi; thanh bên: 0 mục"
+    },
+    {
+     "n": 6,
+     "viec": "mở /tai-xe",
+     "cham": 0,
+     "cuon": 0,
+     "doan": false,
+     "ghi": "trang đầu tài xế",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/DRIVER_PARTNER/06-mo-tai-xe.jpg",
+     "url": "/tai-xe"
+    },
+    {
+     "n": 7,
+     "viec": "bấm «Xem cuốc của tôi»",
+     "cham": 1,
+     "cuon": 0,
+     "doan": false,
+     "ghi": "",
+     "phanTu": "a.tab «Cuốc của tôi» 96×58",
+     "hitTest": "[object SVGAnimatedString]",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/DRIVER_PARTNER/07-bam-xem-cuoc-cua-toi.jpg",
+     "url": "/cuoc"
+    },
+    {
+     "n": 8,
+     "viec": "mở chuyến đầu tiên",
+     "cham": 1,
+     "cuon": 0,
+     "doan": false,
+     "ghi": "",
+     "phanTu": "a.vc-card «15:50 CX-2710-03 Đang chạy 79H-567.89 · 2 khách · » 358×140",
+     "hitTest": "dp-cuoc-dong",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/DRIVER_PARTNER/08-mo-chuyen-dau-tien.jpg",
+     "url": "/cuoc-chuyen?id=…"
+    },
+    {
+     "n": 9,
+     "viec": "mở /ban",
+     "cham": 0,
+     "cuon": 0,
+     "doan": false,
+     "ghi": "Báo bận của tôi",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/DRIVER_PARTNER/09-mo-ban.jpg",
+     "url": "/ban"
+    },
+    {
+     "n": 10,
+     "viec": "chọn «2026-10-30T08:00» ở Từ",
+     "cham": 1,
+     "cuon": 0,
+     "doan": true,
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/DRIVER_PARTNER/10-chon-2026-10-30t08-00-o-tu.jpg",
+     "url": "/ban"
+    },
+    {
+     "n": 11,
+     "viec": "chọn «2026-10-30T12:00» ở Đến",
+     "cham": 1,
+     "cuon": 0,
+     "doan": true,
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/DRIVER_PARTNER/11-chon-2026-10-30t12-00-o-den.jpg",
+     "url": "/ban"
+    },
+    {
+     "n": 12,
+     "viec": "gõ «Bận việc riêng (thử)» vào Lý do",
+     "cham": 1,
+     "cuon": 0,
+     "doan": false,
+     "go": 20,
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/DRIVER_PARTNER/12-go-ban-viec-rieng-thu-vao-ly-do.jpg",
+     "url": "/ban"
+    },
+    {
+     "n": 13,
+     "viec": "bấm «Lưu khung bận»",
+     "cham": 1,
+     "cuon": 0,
+     "doan": false,
+     "ghi": "",
+     "phanTu": "button.vc-btn «Lưu khung bận» 148×44",
+     "hitTest": "vc-btn btn btn-accent",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/DRIVER_PARTNER/13-bam-luu-khung-ban.jpg",
+     "url": "/ban"
+    }
+   ],
+   "loiConsole": [],
+   "dieuHuong": {
+    "tab": [
+     {
+      "ten": "Trang chủ",
+      "sang": false
+     },
+     {
+      "ten": "Cuốc của tôi",
+      "sang": true
+     },
+     {
+      "ten": "Báo bận của tôi",
+      "sang": false
+     },
+     {
+      "ten": "Tôi",
+      "sang": false
+     }
+    ],
+    "ben": [],
+    "tren": [
+     {
+      "ten": "Thông báo, 4 tin chưa đọc",
+      "sang": false
+     }
+    ]
+   }
+  },
+  {
+   "bo": "HR",
+   "ten": "Nhân sự: đăng nhập → Quản lý tài khoản → Thêm tài khoản (tên, SĐT, một quyền) → nhận PIN → đóng",
+   "kho": 390,
+   "taiKhoan": "Nhân Sự Thử",
+   "cham": 8,
+   "go": 43,
+   "cuon": 0.5,
+   "doan": 0,
+   "khongThay": 0,
+   "buoc": [
+    {
+     "n": 1,
+     "viec": "mở /login",
+     "cham": 0,
+     "cuon": 0,
+     "doan": false,
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/HR/01-mo-login.jpg",
+     "url": "/login"
+    },
+    {
+     "n": 2,
+     "viec": "gõ «0900000911» vào Số điện thoại",
+     "cham": 1,
+     "cuon": 0,
+     "doan": false,
+     "go": 10,
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/HR/02-go-0900000911-vao-so-dien-thoai.jpg",
+     "url": "/login"
+    },
+    {
+     "n": 3,
+     "viec": "gõ «982548» vào Mã PIN",
+     "cham": 1,
+     "cuon": 0,
+     "doan": false,
+     "go": 6,
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/HR/03-go-982548-vao-ma-pin.jpg",
+     "url": "/login"
+    },
+    {
+     "n": 4,
+     "viec": "bấm «Đăng nhập»",
+     "cham": 1,
+     "cuon": 0,
+     "doan": false,
+     "ghi": "",
+     "phanTu": "button.btn «Đăng nhập» 350×52",
+     "hitTest": "SPAN",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/HR/04-bam-dang-nhap.jpg",
+     "url": "/staff"
+    },
+    {
+     "n": 5,
+     "viec": "sau đăng nhập",
+     "cham": 0,
+     "cuon": 0,
+     "doan": false,
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/HR/05-sau-dang-nhap.jpg",
+     "url": "/staff",
+     "ghi": "thanh tab: *Tài khoản · Tôi; thanh bên: 0 mục"
+    },
+    {
+     "n": 6,
+     "viec": "cuộn tới «Thêm tài khoản»",
+     "cham": 0,
+     "cuon": 0,
+     "doan": false,
+     "ghi": "tìm khung Thêm tài khoản",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/HR/06-cuon-toi-them-tai-khoan.jpg",
+     "url": "/staff"
+    },
+    {
+     "n": 7,
+     "viec": "gõ «Nhân Viên Mới Thử» vào Họ tên",
+     "cham": 1,
+     "cuon": 0,
+     "doan": false,
+     "go": 17,
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/HR/07-go-nhan-vien-moi-thu-vao-ho-ten.jpg",
+     "url": "/staff"
+    },
+    {
+     "n": 8,
+     "viec": "gõ «0900000913» vào Số điện thoại",
+     "cham": 1,
+     "cuon": 0,
+     "doan": false,
+     "go": 10,
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/HR/08-go-0900000913-vao-so-dien-thoai.jpg",
+     "url": "/staff"
+    },
+    {
+     "n": 9,
+     "viec": "đánh dấu quyền đầu tiên",
+     "cham": 1,
+     "cuon": 0,
+     "doan": false,
+     "ghi": "",
+     "phanTu": "label.check «Hướng dẫn viên nội bộ» 326×32",
+     "hitTest": "check",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/HR/09-danh-dau-quyen-dau-tien.jpg",
+     "url": "/staff"
+    },
+    {
+     "n": 10,
+     "viec": "bấm «Tạo tài khoản»",
+     "cham": 1,
+     "cuon": 0.5,
+     "doan": false,
+     "ghi": "thấy PIN sau khi tạo",
+     "phanTu": "button.btn «Tạo tài khoản» 146×46",
+     "hitTest": "btn btn-primary",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/HR/10-bam-tao-tai-khoan.jpg",
+     "url": "/staff"
+    },
+    {
+     "n": 11,
+     "viec": "đóng khung PIN",
+     "cham": 1,
+     "cuon": 0,
+     "doan": false,
+     "ghi": "",
+     "phanTu": "button.btn «Đã ghi lại, ẩn đi» 154×70",
+     "hitTest": "btn btn-link",
+     "anh": "~/tourdao-ux-2026-10-27-v2/anh/hanh-trinh/390/HR/11-dong-khung-pin.jpg",
+     "url": "/staff"
+    }
+   ],
+   "loiConsole": [],
+   "dieuHuong": {
+    "tab": [
+     {
+      "ten": "Tài khoản",
+      "sang": true
+     },
+     {
+      "ten": "Tôi",
+      "sang": false
+     }
+    ],
+    "ben": [],
+    "tren": [
+     {
+      "ten": "Thông báo, 1 tin chưa đọc",
+      "sang": false
+     }
+    ]
+   }
+  }
+ ]
+}
