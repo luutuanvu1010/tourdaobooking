@@ -1,6 +1,6 @@
 # Luồng việc theo vai — Phần 1: Bán hàng phụ trách đơn (thiết kế, 27/10/2026)
 
-**Trạng thái:** bản thiết kế chờ chủ dự án duyệt. Chưa có mã, chưa có ADR (số ADR cấp lúc duyệt). Phần 2 (HDV nhận / từ chối khi được giao, «Chờ HDV nhận đơn») và Phần 3 (vai Điều phối xe, tài xế nhận / huỷ chuyến) thiết kế sau, mỗi phần một lượt duyệt riêng.
+**Trạng thái:** **ĐÃ DUYỆT** — chủ dự án 2026-10-27, nguyên văn: «Duyệt Phần 1 theo mọi khuyến nghị của người soạn, kể cả Q1: Quản trị và Toàn quyền nhận thay được bất cứ lúc nào, kể cả trong 15 phút của X.» Quyết định chép thành `docs/adr/ADR-0142-ban-hang-phu-trach-don.md`. Từ đây là hồ sơ có ngày: không sửa cho khớp hiện trạng; điều mới ghi ở bản mới trỏ về đây. Chưa có mã. Phần 2 (HDV nhận / từ chối khi được giao, «Chờ HDV nhận đơn») và Phần 3 (vai Điều phối xe, tài xế nhận / huỷ chuyến) thiết kế sau, mỗi phần một lượt duyệt riêng.
 
 **Nguồn lời chủ:** cuộc trò chuyện 27/10/2026 (sau khi bản 2.36 lên production). Lời chủ được đánh dấu **[chủ]**; điều người soạn tự quyết đánh dấu **[người soạn]** và gom ở mục A.4 để chủ soát.
 
@@ -47,7 +47,7 @@ Thẻ cảnh báo, danh sách thông báo và chữ hiện trên màn hình là 
 - Khối chọn người phụ trách ở form hôm nay đổi tên thành «Hướng dẫn viên» và chỉ liệt kê HDV, để không lẫn với khối mời Bán hàng.
 - Lỗi «tin chờ xác nhận không vào hộp thông báo» được sửa thành **việc riêng nhỏ**, không chờ bản thiết kế này.
 
-### A.5 Câu hỏi còn mở (một câu)
+### A.5 Câu hỏi còn mở (một câu) — **ĐÃ TRẢ LỜI 27/10: theo khuyến nghị** (Quản trị, Toàn quyền nhận thay hoặc xác nhận thay bất cứ lúc nào)
 **Q1 — Ai được nhận thay trong 15 phút của X?** Đồng hồ chỉ chạy trong 7h–17h, nên 15 phút ưu tiên của X có thể kéo qua đêm. Ví dụ: đơn đón gấp gửi lúc 18h cho chuyến 23h thì tới 7h15 sáng hôm sau người khác mới nhận được, trong khi chuyến đã chạy. **Khuyến nghị:** Quản trị và Toàn quyền nhận thay hoặc xác nhận thay được **bất cứ lúc nào**, kể cả trong 15 phút của X và ngoài 7h–17h; X được báo là đã có người nhận thay. Bán hàng khác và chính người lập vẫn phải chờ hết 15 phút. Cách khác là giữ đúng «chỉ X»: đơn gấp ngoài giờ có thể bị trễ.
 
 ---
@@ -81,7 +81,7 @@ Thẻ cảnh báo, danh sách thông báo và chữ hiện trên màn hình là 
 - **L3 — Tự mời mình.** Người lập giữ quyền Bán hàng và chọn chính mình:
   - đơn không cần kiểm: thành Bán hàng phụ trách ngay lúc ghi nhận;
   - đơn cần kiểm: tự quyết theo công tắc tự xác nhận như hôm nay, và Còn vé thì thành người phụ trách. [người soạn]
-- **L4 — Nhận khi đơn đang Chờ Bán hàng nhận.** Bán hàng (không giữ quyền Đối tác), Quản trị, Toàn quyền bấm **Nhận phụ trách**. Đơn cần kiểm thì nút này là quyết định Còn vé, kèm Hết vé / Huỷ như hôm nay. Hai người bấm cùng lúc thì đúng một người thắng, người kia nhận 409 kèm câu tiếng Việt. Đơn huỷ hoặc đã qua ngày đi thì không nhận được (chốt như Nhận của ô hôm nay). **Trong thời gian ưu tiên của X**, người khác bấm sẽ nhận 409 «Đơn đang chờ <X> trả lời, còn N phút». Luật này áp cả người lập đã mời X: người lập không tự quyết chen trong thời gian ưu tiên. Ngoại lệ cho Quản trị và Toàn quyền tuỳ câu trả lời Q1 (A.5).
+- **L4 — Nhận khi đơn đang Chờ Bán hàng nhận.** Bán hàng (không giữ quyền Đối tác), Quản trị, Toàn quyền bấm **Nhận phụ trách**. Đơn cần kiểm thì nút này là quyết định Còn vé, kèm Hết vé / Huỷ như hôm nay. Hai người bấm cùng lúc thì đúng một người thắng, người kia nhận 409 kèm câu tiếng Việt. Đơn huỷ hoặc đã qua ngày đi thì không nhận được (chốt như Nhận của ô hôm nay). **Trong thời gian ưu tiên của X**, người khác bấm sẽ nhận 409 «Đơn đang chờ <X> trả lời, còn N phút». Luật này áp cả người lập đã mời X: người lập không tự quyết chen trong thời gian ưu tiên. **Ngoại lệ (Q1, chủ duyệt 27/10):** Quản trị và Toàn quyền nhận phụ trách hoặc quyết định (Còn vé / Hết vé / Huỷ) được **bất cứ lúc nào**, kể cả trong thời gian ưu tiên của X và ngoài 07:00–17:00. Khi đó lời mời của X khép kết quả «người khác nhận», và X được báo trên Bảng tin. Ngoại lệ xét theo quyền Quản trị / Toàn quyền của người bấm. Tài khoản lai Bán hàng + Quản trị được hưởng; tài khoản giữ quyền Đối tác thì không, như mọi cổng nhận.
 
   Người giữ ô có thể là: tài khoản giữ quyền Bán hàng (không giữ quyền Đối tác), hoặc Quản trị / Toàn quyền khi chính họ bấm Nhận phụ trách hay Còn vé. Danh sách để mời (L1) chỉ có người giữ quyền Bán hàng.
 - **L5 — Ai xác nhận đơn cần kiểm.** Ô `order.confirm.review` còn Bán hàng, Quản trị, Toàn quyền; Kế toán và HDV đổi thành `none`. `duocQuyetDinh` thêm điều kiện thời gian ưu tiên của L2/L4. Còn vé ⇒ người bấm thành Bán hàng phụ trách, cùng lô với xác nhận. Đơn chỉ cần kiểm vì chặng dưới mốc vẫn theo luật Đặt gấp hiện có (ADR-0049, ADR-0107).
