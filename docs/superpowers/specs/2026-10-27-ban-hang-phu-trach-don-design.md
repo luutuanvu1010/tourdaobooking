@@ -25,7 +25,7 @@ Mỗi đơn phải có **một Bán hàng chịu trách nhiệm**, và không đ
 | # | Quyết định | Được | Mất / rủi ro | Khuyến nghị |
 |---|---|---|---|---|
 | QĐ1 | **Thêm một ô riêng «Bán hàng phụ trách»** trên mỗi đơn, tách khỏi ô «người phụ trách» hôm nay. Ô hôm nay giữ nguyên (HDV vẫn bấm Nhận như cũ); Phần 2 sẽ biến nó thành ô HDV. Bán hàng phụ trách có quyền trên đơn như người phụ trách hôm nay (sửa đơn, xem lịch sử, đổi người). | Phần 1 lên production một mình được; hàng chờ nhận của HDV không bị ảnh hưởng. | Từ bản này tới Phần 2, một đơn có hai chỗ ghi tên người. Màn hình phải ghi rõ «Bán hàng:» và «HDV:». | Đồng ý. Nếu dùng chung một ô thì Bán hàng chiếm ô trước, HDV không nhận được đơn nào cho tới khi Phần 2 xong. |
-| QĐ2 | **Đổi quyền:** (a) chỉ Bán hàng, Quản trị, Toàn quyền xác nhận đơn cần kiểm; (b) Thực tập và Đối tác được mời Bán hàng lúc lập đơn; danh sách họ thấy chỉ có **tên** Bán hàng, không SĐT; (c) chỉ tài khoản có quyền Bán hàng được mời và được nhận ô Bán hàng phụ trách; Quản trị, Toàn quyền nhận thay hoặc đổi người được. | Đúng ý bạn: Bán hàng là người chốt đơn. | Kế toán mất nút «Còn vé / Hết vé» của bản 2.36. Khoảng 1.000 tài khoản Đối tác sẽ thấy tên các Bán hàng (hôm nay họ không thấy danh sách nhân viên nào). | Đồng ý, chỉ hiện tên. |
+| QĐ2 | **Đổi quyền:** (a) chỉ Bán hàng, Quản trị, Toàn quyền xác nhận đơn cần kiểm; (b) Thực tập và Đối tác được mời Bán hàng lúc lập đơn; danh sách họ thấy chỉ có **tên** Bán hàng, không SĐT; (c) chỉ tài khoản có quyền Bán hàng có tên trong danh sách mời; người giữ ô Bán hàng phụ trách là Bán hàng, hoặc Quản trị / Toàn quyền khi chính họ bấm nhận hay xác nhận; Quản trị, Toàn quyền đổi người được. | Đúng ý bạn: Bán hàng là người chốt đơn. | Kế toán mất nút «Còn vé / Hết vé» của bản 2.36; Kế toán và HDV không còn mở được đơn đang chờ xác nhận (Kế toán chỉ thấy con số trên thẻ cảnh báo). Khoảng 1.000 tài khoản Đối tác sẽ thấy tên các Bán hàng (hôm nay họ không thấy danh sách nhân viên nào). | Đồng ý, chỉ hiện tên. |
 | QĐ3 | **Lời mời là một bản ghi có hạn:** ghi ai mời ai, lúc nào, hết ưu tiên lúc nào (tính theo đồng hồ 7h–17h), kết quả Nhận / Từ chối / Hết hạn. Không xoá; mỗi lần mời là một dòng mới. | Biết chắc ai đã nhận việc; hết hạn tự mở cho người khác mà không cần ai bấm. | Thêm bảng mới (một lần đổi cấu trúc dữ liệu). | Đồng ý. |
 
 Thẻ cảnh báo, danh sách thông báo và chữ hiện trên màn hình là phần **hiển thị**, không đổi quyền hay dữ liệu, nên đi cùng lượt này mà không tính vào ba quyết định.
@@ -36,20 +36,25 @@ Thẻ cảnh báo, danh sách thông báo và chữ hiện trên màn hình là 
 - Sau khi đã nhận, Bán hàng **không tự trả lại** đơn; muốn đổi người thì Quản trị hoặc Toàn quyền đổi.
 - **Đơn cũ** (lập trước bản này) không được ghi thêm Bán hàng phụ trách và không tính vào thẻ cảnh báo, để thẻ không ngập đơn cũ ngay ngày đầu.
 - Trên màn hình không dùng chữ «tự do» (chữ này đang có nghĩa khác trong tài liệu cũ); dùng «Chờ Bán hàng nhận». Phần 2 sẽ có «Chờ HDV nhận».
-- Sau khi đơn đã gửi, người lập **không mời lại** người khác; X từ chối thì đơn chờ Bán hàng nhận.
+- Sau khi đơn đã gửi, người lập **không đổi lời mời**; X từ chối thì đơn chờ Bán hàng nhận. Riêng đơn cần kiểm, người lập Rút lại thì lời mời cũ khép; gửi lại là một lời mời mới với 15 phút mới.
+- Khi đơn rơi vào «Chờ Bán hàng nhận» (không mời ai, hoặc X từ chối), Bán hàng, Quản trị, Toàn quyền thấy tin trên Bảng tin trong Nền tảng, **không** báo đẩy lên điện thoại, để 30 người không bị báo cho mỗi đơn.
+- Thẻ cảnh báo của Kế toán chỉ liệt kê đơn **đã xác nhận**; đơn còn chờ xác nhận chỉ hiện thành con số, vì đơn nháp vẫn riêng tư như bản 2.36.
+- Thẻ cảnh báo bỏ đơn đã qua ngày đi, đã giao hoặc đã hoàn thành, để thẻ không giữ đơn không xử lý được.
+- Bán hàng phụ trách được: sửa đơn, xem lịch sử, sửa thông tin chuyến, sửa danh sách hành khách, giao HDV, bấm «Đã gọi báo» giờ hẹn cho khách. **Không** được bất cứ việc gì về tiền, không huỷ thay HDV.
+- Đơn cũ không hiện dòng «Chờ Bán hàng nhận» và không có nút Nhận; Quản trị muốn thì tự gán. Yêu cầu xác nhận mở trước bản này mà bấm Còn vé sau bản này thì người bấm vẫn thành người phụ trách.
 - Đơn cần kiểm có mời X: tin «có đơn chờ xác nhận» chỉ gửi X trong 15 phút ưu tiên, không gửi cả văn phòng như bản 2.36.
 - Khối chọn người phụ trách ở form hôm nay đổi tên thành «Hướng dẫn viên» và chỉ liệt kê HDV, để không lẫn với khối mời Bán hàng.
 - Lỗi «tin chờ xác nhận không vào hộp thông báo» được sửa thành **việc riêng nhỏ**, không chờ bản thiết kế này.
 
-### A.5 Câu hỏi còn mở
-*(điền sau khi người đọc thử soát bản thiết kế)*
+### A.5 Câu hỏi còn mở (một câu)
+**Q1 — Ai được nhận thay trong 15 phút của X?** Đồng hồ chỉ chạy trong 7h–17h, nên 15 phút ưu tiên của X có thể kéo qua đêm. Ví dụ: đơn đón gấp gửi lúc 18h cho chuyến 23h thì tới 7h15 sáng hôm sau người khác mới nhận được, trong khi chuyến đã chạy. **Khuyến nghị:** Quản trị và Toàn quyền nhận thay hoặc xác nhận thay được **bất cứ lúc nào**, kể cả trong 15 phút của X và ngoài 7h–17h; X được báo là đã có người nhận thay. Bán hàng khác và chính người lập vẫn phải chờ hết 15 phút. Cách khác là giữ đúng «chỉ X»: đơn gấp ngoài giờ có thể bị trễ.
 
 ---
 
 ## B. Thiết kế chi tiết (cho người lập kế hoạch thi công)
 
 ### B.1 Hiện trạng (đọc mã ngày 27/10, `main` = `b7881474`, production 2.36)
-- **Một ô người phụ trách mỗi đơn**: dòng `HANDLE` của `dsp_assignment` (`migrations/0014_dispatch.sql`), chỉ mục duy nhất `dsp_assignment_handler_open_uq` (một dòng mở mỗi đơn); đổi người = đóng dòng cũ + mở dòng mới cùng lô. Người được giữ ô: qua `checkAssignee` (`src/modules/dispatch/rules.ts`) — Bán hàng, Quản trị, Toàn quyền, HDV; loại Kế toán, Thực tập, Đối tác và tài khoản lai có Đối tác. Người giữ ô được coi là «được giao» (`ctx.assigned`, tiêm từ `isOrderHandler` ở `src/index.ts`; câu `IS_HANDLER` bỏ qua đơn nháp — ADR-0135 Đ5) cho các ô `ownOrAssigned`/`assigned`. Giao diện ghi mọi người giữ ô là «HDV: <tên>» (`handlerText`, `src/shared/handler-view.ts`), kể cả nhân viên Bán hàng.
+- **Một ô người phụ trách mỗi đơn**: dòng `HANDLE` của `dsp_assignment` (`migrations/0014_dispatch.sql`), chỉ mục duy nhất `dsp_assignment_handler_open_uq` (một dòng mở mỗi đơn); đổi người = đóng dòng cũ + mở dòng mới cùng lô. Người được giữ ô: qua `checkAssignee` (`src/modules/dispatch/rules.ts`) — Bán hàng, Quản trị, Toàn quyền, HDV; loại Kế toán, Thực tập, Đối tác và tài khoản lai có Đối tác. Người giữ ô được coi là «được giao» (gốc lắp ráp tiêm `ctx.isAssigned` từ `isOrderHandler` ở `src/index.ts`; route chuyển kết quả vào `can()` thành `assigned`; câu `IS_HANDLER` bỏ qua đơn nháp — ADR-0135 Đ5; `ctx.isAssigned` còn được `billing`, `receipt`, `van-chuyen` dùng) cho các ô `ownOrAssigned`/`assigned`. Giao diện ghi mọi người giữ ô là «HDV: <tên>» (`handlerText`, `src/shared/handler-view.ts`), kể cả nhân viên Bán hàng.
 - **Chọn lúc lập** (ADR-0020 đ1, ADR-0030 S20-4): `handlerStaffId` ở `POST /api/orders` mở thẳng dòng `HANDLE` trong lô tạo đơn; chỉ ai có `dispatch.assign` trên đơn của mình (Bán hàng, Quản trị, Toàn quyền) — Thực tập, Đối tác nhận 403. Bảng chọn `GET /api/dispatch/assignees` gom nhóm HDV → Bán hàng → Quản trị.
 - **Hàng chờ nhận** `GET /api/orders/pool`: chỉ đơn `confirmed`, chưa có `HANDLE`, chưa huỷ, chưa qua ngày đi; ô `order.pool.view` = HDV, Toàn quyền. Bán hàng nhận bằng `PUT /api/orders/:id/handler` (`dispatch.claim`).
 - **Bước xác nhận 2.36** (ADR-0136, migration 0119): «chờ xác nhận» = đơn `draft` + dòng `ord_confirm_request` mở. Cần xác nhận khi `canXacNhan` (`src/shared/xac-nhan-don.ts`): dịch vụ / nhóm có cờ, hoặc chặng dưới mốc chưa đặt gấp (mốc đọc từ chính sách tiêm, hôm nay 360 phút). Hạn `hanXacNhan`: 15 phút, bỏ 22:00–06:00. Người quyết: ô `order.confirm.review` (Bán hàng, Kế toán, Quản trị, HDV, Toàn quyền) + `duocQuyetDinh` (người lập nội bộ tự quyết khi công tắc `self_confirm_internal` bật — đang bật). Còn vé = lô xác nhận hiện có; Hết vé = huỷ. **Người quyết không thành người phụ trách.** Thẻ «Đơn chờ xác nhận»: `src/shared/viec-cua-ban.ts`, `web/home.ts`, trang `web/cho-xac-nhan.ts`, API `GET /api/orders/cho-xac-nhan`.
@@ -66,7 +71,7 @@ Thẻ cảnh báo, danh sách thông báo và chữ hiện trên màn hình là 
 - **Phút giờ hành chính**: phút nằm trong 07:00–17:00 giờ Việt Nam, mọi ngày trong tuần.
 
 ### B.3 Luật
-- **L1 — Mời lúc lập.** Form lập và sửa nháp có ô tuỳ chọn «Bán hàng phụ trách», cho **mọi** người giữ `order.create` (kể cả Thực tập, Đối tác). Người được mời phải đang hoạt động, có hồ sơ, giữ quyền Bán hàng, không giữ quyền Đối tác. Sai thì 400, không lưu (như `invalid_assignee` hôm nay). Danh sách để mời chỉ trả **mã + tên**, không SĐT, không email. Lời mời chỉ có hiệu lực từ lúc ghi nhận. Sau lúc ghi nhận, người lập không đổi hay mời lại [người soạn].
+- **L1 — Mời lúc lập.** Form lập và sửa nháp có ô tuỳ chọn «Bán hàng phụ trách», cho **mọi** người giữ `order.create` (kể cả Thực tập, Đối tác). Người được mời phải đang hoạt động, có hồ sơ, giữ quyền Bán hàng, không giữ quyền Đối tác. Sai thì 400, không lưu (như `invalid_assignee` hôm nay). Danh sách để mời chỉ trả **mã + tên**, không SĐT, không email. Lời mời chỉ có hiệu lực từ lúc ghi nhận. Sau lúc ghi nhận, người lập không đổi lời mời. Riêng đơn cần kiểm, Rút lại sẽ khép lời mời đang mở và đơn về nháp sửa được; gửi lại là một lúc ghi nhận mới, một dòng lời mời mới (X có thể đổi), 15 phút mới [người soạn]. Mỗi đơn có tối đa một lời mời mở.
 - **L2 — X trả lời.** Trong thời gian ưu tiên, X bấm:
   - **Nhận**: với đơn không cần kiểm, mở ô Bán hàng phụ trách cho X. Với đơn cần kiểm, chạy đúng lô «Còn vé» của ADR-0136 và **trong cùng lô** mở ô cho X. X vẫn chọn được Hết vé hoặc Huỷ như người xác nhận.
   - **Từ chối**: lời mời khép kết quả Từ chối; đơn sang Chờ Bán hàng nhận; người lập được báo.
@@ -75,18 +80,25 @@ Thẻ cảnh báo, danh sách thông báo và chữ hiện trên màn hình là 
 - **L3 — Tự mời mình.** Người lập giữ quyền Bán hàng và chọn chính mình:
   - đơn không cần kiểm: thành Bán hàng phụ trách ngay lúc ghi nhận;
   - đơn cần kiểm: tự quyết theo công tắc tự xác nhận như hôm nay, và Còn vé thì thành người phụ trách. [người soạn]
-- **L4 — Nhận khi đơn đang Chờ Bán hàng nhận.** Bán hàng (không giữ quyền Đối tác), Quản trị, Toàn quyền bấm **Nhận phụ trách**. Đơn cần kiểm thì nút này là quyết định Còn vé, kèm Hết vé / Huỷ như hôm nay. Hai người bấm cùng lúc thì đúng một người thắng, người kia nhận 409 kèm câu tiếng Việt. Đơn huỷ hoặc đã qua ngày đi thì không nhận được (chốt như Nhận của ô hôm nay). **Trong thời gian ưu tiên của X**, người khác bấm sẽ nhận 409 «Đơn đang chờ <X> trả lời, còn N phút» (xem câu hỏi Q1 về Quản trị).
+- **L4 — Nhận khi đơn đang Chờ Bán hàng nhận.** Bán hàng (không giữ quyền Đối tác), Quản trị, Toàn quyền bấm **Nhận phụ trách**. Đơn cần kiểm thì nút này là quyết định Còn vé, kèm Hết vé / Huỷ như hôm nay. Hai người bấm cùng lúc thì đúng một người thắng, người kia nhận 409 kèm câu tiếng Việt. Đơn huỷ hoặc đã qua ngày đi thì không nhận được (chốt như Nhận của ô hôm nay). **Trong thời gian ưu tiên của X**, người khác bấm sẽ nhận 409 «Đơn đang chờ <X> trả lời, còn N phút». Luật này áp cả người lập đã mời X: người lập không tự quyết chen trong thời gian ưu tiên. Ngoại lệ cho Quản trị và Toàn quyền tuỳ câu trả lời Q1 (A.5).
+
+  Người giữ ô có thể là: tài khoản giữ quyền Bán hàng (không giữ quyền Đối tác), hoặc Quản trị / Toàn quyền khi chính họ bấm Nhận phụ trách hay Còn vé. Danh sách để mời (L1) chỉ có người giữ quyền Bán hàng.
 - **L5 — Ai xác nhận đơn cần kiểm.** Ô `order.confirm.review` còn Bán hàng, Quản trị, Toàn quyền; Kế toán và HDV đổi thành `none`. `duocQuyetDinh` thêm điều kiện thời gian ưu tiên của L2/L4. Còn vé ⇒ người bấm thành Bán hàng phụ trách, cùng lô với xác nhận. Đơn chỉ cần kiểm vì chặng dưới mốc vẫn theo luật Đặt gấp hiện có (ADR-0049, ADR-0107).
-- **L6 — Ô Bán hàng phụ trách.** Một dòng mở mỗi đơn, chặn ở **cả** cơ sở dữ liệu lẫn mã (Hiến chương 5.1). Đổi người = đóng dòng cũ + mở dòng mới cùng lô; không xoá, không sửa đè (5.5). Bán hàng không tự trả lại; Quản trị và Toàn quyền đổi hoặc bỏ trống được [người soạn]. Người đang giữ ô được coi là «được giao» ở mọi ô quyền mà hôm nay người phụ trách được hưởng qua `ctx.assigned` (`order.modify`, `order.history.view`, `order.trip.edit`, `order.passenger.write`, `dispatch.assign` với Bán hàng). Như hôm nay, không áp cho đơn nháp. Nhờ `dispatch.assign`, Bán hàng phụ trách giao được người phụ trách / HDV, đúng bước 3 của chủ. Ô này **không** mở `order.money.edit`, `order.cancel`, `dispatch.refuse`. Đơn đã Đã giao: khoá đổi người như dòng `HANDLE` (trigger của migration 0044).
+- **L6 — Ô Bán hàng phụ trách.** Một dòng mở mỗi đơn, chặn ở **cả** cơ sở dữ liệu lẫn mã (Hiến chương 5.1). Đổi người = đóng dòng cũ + mở dòng mới cùng lô; không xoá, không sửa đè (5.5). Bán hàng không tự trả lại; Quản trị và Toàn quyền đổi hoặc bỏ trống được [người soạn]. Người đang giữ ô được coi là «được giao» chỉ ở **danh sách trắng** sau:
+  - `order.modify`, `order.history.view`, `order.trip.edit`, `order.passenger.write`;
+  - `dispatch.assign` (với Bán hàng);
+  - `trip.call_ack` («Đã gọi báo» giờ hẹn).
+
+  Làm bằng một cờ tiêm **riêng** từ gốc lắp ráp, **không** nới `isOrderHandler`. Lý do: `ctx.isAssigned` còn mở các ô tiền và các ô `assigned` của HDV ở `billing`, `receipt`, `dispatch.refuse`. Nếu nới nó, tài khoản lai Bán hàng + HDV sẽ hưởng luôn ô tiền. Như hôm nay, cờ không áp cho đơn nháp. Nhờ `dispatch.assign`, Bán hàng phụ trách giao được người phụ trách / HDV, đúng bước 3 của chủ. Ô này **không** mở `order.money.edit`, `order.cancel`, `order.handover`, `payment.receive`, `dispatch.refuse`, hay bất kỳ ô nào ngoài danh sách trắng. Đơn đã Đã giao: khoá đổi người như dòng `HANDLE` (trigger của migration 0044).
 - **L7 — Đồng hồ giờ hành chính.** Một hàm thuần `cong N phút giờ hành chính(mốc)` thay `hanXacNhan`, dùng cho ba chỗ: hạn ưu tiên của lời mời, hạn của yêu cầu xác nhận (thay ADR-0136 Đ9), và mốc hiện thẻ cảnh báo. Ba con số 15, 07:00, 17:00 nằm ở **một** dòng chính sách chỉ thêm, chỉ `settings.ops` đổi (Hiến chương 5.2), không viết cứng rải rác.
 - **L8 — Thẻ cảnh báo «Đơn chưa có Bán hàng phụ trách».** Đơn vào thẻ khi đủ cả năm điều kiện:
-  - chưa huỷ;
+  - chưa huỷ, chưa qua ngày đi (`tripDeparted`), chưa Đã giao, chưa Hoàn thành;
   - lúc ghi nhận từ **mốc phát hành** trở đi (đơn cũ không vào thẻ, cũng không ghi bù — L10);
   - chưa có dòng Bán hàng phụ trách mở;
   - đã qua 15 phút giờ hành chính;
   - kể cả đơn đang chờ xác nhận.
 
-  Ai thấy thẻ: Bán hàng, Quản trị, Toàn quyền, Kế toán thấy mọi đơn như vậy. Người lập (kể cả Đối tác, Thực tập) chỉ thấy đơn của mình, với chữ kiểu «đang chờ văn phòng nhận». Thẻ có ở Trang chủ trên cả điện thoại và máy tính. Kế toán và người lập chỉ xem, không có nút Nhận. Thẻ không gửi báo đẩy.
+  Ai thấy thẻ: Bán hàng, Quản trị, Toàn quyền thấy mọi đơn như vậy. Kế toán thấy mọi đơn **đã xác nhận** như vậy; đơn đang chờ xác nhận chỉ hiện thành **con số**, không mã đơn, không mở được. Lý do: Kế toán mất ô `order.confirm.review`, nên theo ADR-0135 Đ1 không còn đọc được nháp đang chờ; không nới riêng cho Kế toán. Người lập (kể cả Đối tác, Thực tập) chỉ thấy đơn của mình, với chữ kiểu «đang chờ văn phòng nhận». Thẻ có ở Trang chủ trên cả điện thoại và máy tính. Kế toán và người lập chỉ xem, không có nút Nhận. Thẻ không gửi báo đẩy.
 - **L9 — Thông báo** (sau lô ghi, không bao giờ trong lô — Hiến chương 5.10):
 
   | Sự kiện | Người nhận | Kênh |
@@ -94,28 +106,33 @@ Thẻ cảnh báo, danh sách thông báo và chữ hiện trên màn hình là 
   | Lời mời có hiệu lực (lúc ghi nhận) | X | hộp thư + báo đẩy + Bảng tin |
   | Có Bán hàng phụ trách (X nhận, người khác nhận, Còn vé) | người lập; X nếu người khác nhận thay | hộp thư + báo đẩy; X chỉ Bảng tin |
   | X từ chối | người lập | hộp thư + Bảng tin |
+  | Đơn rơi vào Chờ Bán hàng nhận (lúc ghi nhận mà không mời ai, hoặc X từ chối) | nhóm Bán hàng, Quản trị, Toàn quyền | **chỉ Bảng tin**, không báo đẩy [người soạn]; hết 15 phút của X thì không có tin, chỉ có thẻ |
   | Người phụ trách / HDV nhận hoặc được giao (ô hôm nay) | **thêm** Bán hàng phụ trách vào danh sách nhận hiện có | như hôm nay |
   | Đơn bị huỷ (mọi đường, kể cả Hết vé, HDV huỷ) | **thêm** Bán hàng phụ trách | như hôm nay |
   | Hoàn thành (`order_completed`) | Bán hàng phụ trách + người lập | hộp thư + Bảng tin (mới) |
   | Gửi yêu cầu xác nhận | có X: **chỉ X** trong thời gian ưu tiên; không có X: mọi người giữ ô như ADR-0136 Đ10 | như hôm nay |
 
   Đối tác và Thực tập nhận vào hộp thư, không có tin nổi, như hôm nay. Mỗi hành động mới vào hộp thư cần migration mới định nghĩa lại `v_aud_order_event` và sửa bài ghim. Lỗi hộp thư thiếu `order_confirm_requested` là **việc sửa riêng, có thể lên trước**; khi đó Phần 1 xây trên bản đã sửa.
-- **L10 — Đơn cũ.** Không ghi bù Bán hàng phụ trách cho đơn lập trước mốc phát hành. Đơn cũ vẫn đi theo ô người phụ trách hôm nay. Người thi công chọn cách lưu mốc phát hành (dòng chính sách hoặc hằng trong migration).
+- **L10 — Đơn cũ.** «Đơn cũ» là đơn có lúc ghi nhận trước mốc phát hành. Máy không tự ghi bù Bán hàng phụ trách cho đơn cũ. Đơn cũ không hiện chip Chờ Bán hàng nhận, không có nút Nhận phụ trách, không vào thẻ. Quản trị / Toàn quyền vẫn **Đổi Bán hàng** để gán được. Riêng yêu cầu xác nhận mở trước mốc mà được bấm Còn vé sau mốc: người bấm thành Bán hàng phụ trách (L5), vì đó là một hành động sau mốc, không phải ghi bù. Người thi công chọn cách lưu mốc phát hành (dòng chính sách hoặc hằng trong migration).
 - **L11 — Giao diện.** Phải có **ảnh thật hai khổ để chủ duyệt** trước khi gộp vào bản chính.
   - Form lập đơn: khối mời «Bán hàng phụ trách» cho mọi người lập. Khối chọn người phụ trách hôm nay (chỉ người có `dispatch.assign`) đổi tên «Hướng dẫn viên», danh sách chỉ hiện người giữ quyền HDV. Đây chỉ là đổi giao diện; luật máy chủ của ô đó đổi ở Phần 2.
   - Trang đơn và thẻ đơn có dòng «Bán hàng: <tên>», hoặc chip «Chờ Bán hàng nhận», hoặc «Đang mời <X> · còn N phút». Nút Nhận / Từ chối chỉ X thấy; Nhận phụ trách cho Bán hàng, Quản trị, Toàn quyền khi đơn đang chờ; Đổi Bán hàng cho Quản trị, Toàn quyền.
   - Thẻ «Đơn chờ xác nhận» của 2.36 nay chỉ còn người xác nhận được thấy.
+  - Khối người phụ trách hôm nay trên trang đơn (nút Nhận của `handlerControls` cho ô `HANDLE`) giữ nguyên hành vi ở Phần 1, nhưng đổi nhãn thành «Hướng dẫn viên» / «Nhận làm HDV». Mục đích là không trùng chữ với nút «Nhận phụ trách» của ô Bán hàng. Ai được bấm ô đó đổi ở Phần 2 [người soạn].
   - Không dùng chữ «tự do» trên màn hình.
 
 ### B.4 Câu của ADR đã duyệt bị thay hoặc bổ sung (ADR mới phải ghi rõ — Hiến chương 6.1)
 - **ADR-0136**:
   - Đ4: Kế toán và HDV thành `none`.
-  - Đ5: thêm thời gian ưu tiên của X.
-  - Đ6: tập người đọc đơn chờ thu hẹp theo Đ4, chữ không đổi.
+  - Đ5: thêm thời gian ưu tiên của X, áp cả người lập.
+  - Đ6: **chữ phải đổi**, bỏ «kể cả HDV chưa phụ trách». Dòng quan hệ của ADR-0136 từng thay một phần ADR-0023 đ1 và ADR-0030 S23-1/S23-4 để HDV đọc được đơn chờ; phần thay đó **đảo lại**, tức HDV quay về chỉ đọc đơn mình phụ trách và hàng chờ nhận.
   - Đ7: Còn vé thêm câu mở ô Bán hàng phụ trách.
-  - Đ9: đồng hồ 07–17 thay «bỏ 22–06».
+  - Đ8: phần của Kế toán (sửa tiền đơn đang chờ) mất chỗ dùng vì Kế toán không còn đọc được đơn chờ. Đ8 chưa có mã; câu Q1 cũ (Task 3.3b, hướng 1 hay hướng 2) vẫn chờ chủ, nay chỉ còn Quản trị / Toàn quyền.
+  - Đ9: đồng hồ 07–17 thay «bỏ 22–06». Người thấy quá hạn đổi từ «người giữ ô» sang năm nhóm của L8.
   - Đ10: tin lúc gửi chỉ tới X khi có lời mời.
+  - Đ13.4 và câu (c) của phần Bối cảnh («không thêm dữ liệu mới»): đơn của Đối tác nay có thêm lời mời và ô Bán hàng phụ trách; hai câu báo của Gửi đơn giữ nguyên.
 - **ADR-0020 đ1 / ADR-0030 S20-4**: thêm lời mời Bán hàng cho mọi người lập. Câu «Thực tập, Đối tác không chọn được» chỉ còn áp cho ô người phụ trách hôm nay.
+- **ADR-0020 đ3**: người giao người phụ trách nay gồm cả Bán hàng phụ trách (qua `dispatch.assign`, L6).
 - **Giữ nguyên:**
   - ADR-0020 đ2 (ai Nhận ô hôm nay);
   - ADR-0032 (hạn mức từ chối chỉ áp HDV, không áp lời mời Bán hàng);
@@ -174,7 +191,7 @@ Không xây trên mục nào của `docs/quyen-hoan.json`. Với TNV-G1 (đơn h
    - `order.confirm.review` (đổi).
    - Ba ô mới (B.8).
    - Các ô `ownOrAssigned` / `assigned` của người phụ trách: nay «được giao» gồm cả Bán hàng phụ trách (L6). Riêng Bán hàng, `order.view` và `contact.view` đã là `any` nên không nới đọc.
-   - Kế toán (`order.view` `any`) đọc thẻ cảnh báo không nới gì.
+   - Kế toán (`order.view` `any`) chỉ đọc đơn **đã xác nhận** trên thẻ cảnh báo. Đơn chờ xác nhận chỉ là con số. Kế toán **mất** quyền đọc đơn chờ mà ADR-0136 Đ6 từng cho; HDV cũng mất.
    - Đối tác và Thực tập chỉ thấy đơn của mình (`own`). Điểm mới duy nhất ra ngoài là danh sách **tên** Bán hàng.
 3. **Cổng canh cửa.**
    - **Máy chủ:**
@@ -206,4 +223,7 @@ Không xây trên mục nào của `docs/quyen-hoan.json`. Với TNV-G1 (đơn h
 8. Bán hàng phụ trách sửa được đơn (`order.modify`) và giao HDV (`dispatch.assign`), nhưng không sửa tiền qua `order.money.edit`. Trên đơn nháp, lời mời không cho X quyền gì.
 9. Danh sách tên Bán hàng gọi bằng phiên Đối tác: chỉ có mã + tên; không có tài khoản lai, không có người đã nghỉ.
 10. Hoàn thành đơn ⇒ Bán hàng phụ trách và người lập có tin trong hộp thư.
-11. HDV vẫn thấy hàng chờ nhận và Nhận được đơn như trước bản này.
+11. HDV vẫn thấy hàng chờ nhận và Nhận được đơn như trước bản này. HDV mở đơn đang chờ xác nhận (không phụ trách) ⇒ 404.
+12. Thẻ cảnh báo của Kế toán: đơn chờ xác nhận chỉ là con số, không có mã đơn. Đơn đã qua ngày đi, Đã giao hoặc Hoàn thành không vào thẻ của ai.
+13. Tài khoản lai Bán hàng + HDV đang là Bán hàng phụ trách (không giữ ô người phụ trách) ⇒ không ghi được khoản thu, không Đã giao, không sửa tiền theo phạm vi «được giao».
+14. Rút lại rồi gửi lại ⇒ lời mời cũ khép, lời mời mới mở với 15 phút mới; không bao giờ có hai lời mời mở cho một đơn.
