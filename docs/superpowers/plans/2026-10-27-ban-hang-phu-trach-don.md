@@ -20,7 +20,7 @@
 
 | # | Việc | Xong khi | Trạng thái |
 |---|---|---|---|
-| 0 | Điều kiện bắt đầu | chủ đã duyệt dòng làm rõ ADR-0136 Đ10 / ADR-0034 đ5 (phiên sửa hộp thư); nhánh hộp thư (`0120`) đã vào `main`; nhánh này dựng trên `main` mới nhất. **Trước Task 5** cần thêm: chủ duyệt bốn dòng lịch sử nội bộ (Task 5) và giữ hoặc đổi cách xử tài khoản lai (Review Focus 4) | chưa |
+| 0 | Điều kiện bắt đầu | chủ đã duyệt dòng làm rõ ADR-0136 Đ10 / ADR-0034 đ5 (phiên sửa hộp thư); nhánh hộp thư (`0120`) đã vào `main`; nhánh này dựng trên `main` mới nhất. Hai điểm trước Task 5 (bốn dòng lịch sử nội bộ; cách xử tài khoản lai ở Review Focus 4) **chủ đã duyệt 27/10**, nguyên văn: «Duyệt cả hai đề xuất: tài khoản lai Bán hàng + Đối tác bấm Còn vé thì đơn vẫn xác nhận nhưng không thành Bán hàng phụ trách; bốn dòng mời/nhận/từ chối/đổi Bán hàng hiện trong lịch sử nội bộ, không tên người.» | chưa (chờ hộp thư) |
 | 1 | Luật thuần: đồng hồ, lời mời, ai nhận, ai thấy thẻ, danh sách trắng | `src/shared/ban-hang-phu-trach.test.ts` + `xac-nhan-don.test.ts` đỏ→xanh | chưa làm |
 | 2 | Migration: ba bảng `dispatch`, view (cả view gác nhật ký), cột mời trên `orders`, dựng lại khoá Đã giao | bài migration + NT-R6 xanh; `data-dictionary` + `npm run dict`; ba dòng sổ hàng rào | chưa làm |
 | 3 | `dispatch`: SQL, câu lệnh, hàm công bố; gốc lắp ráp | `dispatch/ban-hang.test.ts` + `architecture.test.ts` xanh; `typecheck` 0 lỗi | chưa làm |
@@ -49,7 +49,7 @@
 - **Câu nối vào lô có sẵn phải gác «lệnh chính đã thắng».** Luật lô hiện có: bên thua tự thành 0 dòng vì mọi câu mang cùng điều kiện; một câu `INSERT` không gác vẫn chạy khi lệnh chính đổi 0 dòng, để lại dữ liệu mồ côi.
   - Câu của `dispatch` nối vào lô của `orders` gác bằng id nhật ký của lệnh đơn, qua view `v_aud_order_ban_hang` (Task 2, khuôn `v_aud_order_cmd` của `0089`). `dispatch` không đọc `audit_log` trực tiếp.
   - Câu đi sau câu chính của chính `dispatch` gác bằng id dòng vừa mở.
-- **Lịch sử đơn:** bốn hành động mới gắn đơn nằm ở danh sách cho phép của lịch sử nội bộ (không tên người; chi tiết không có tên hay mã). Danh sách đó có bản «chủ duyệt» trong bài thử, nên bốn dòng này chờ chủ duyệt trước Task 5. Ở lịch sử Đối tác, chúng nằm ở danh sách **ẩn**: Đối tác chỉ thấy tên Bán hàng phụ trách trên đơn, đúng câu trả lời «Chỉ hiện tên». Người soạn tự quyết, có ghi trong báo cáo cho chủ.
+- **Lịch sử đơn:** bốn hành động mới gắn đơn nằm ở danh sách cho phép của lịch sử nội bộ (không tên người; chi tiết không có tên hay mã). Danh sách đó có bản «chủ duyệt» trong bài thử; chủ đã duyệt bốn dòng này ngày 27/10 (nguyên văn ở dòng 0). Ở lịch sử Đối tác, chúng nằm ở danh sách **ẩn**: Đối tác chỉ thấy tên Bán hàng phụ trách trên đơn, đúng câu trả lời «Chỉ hiện tên». Người soạn tự quyết, có ghi trong báo cáo cho chủ.
 - **Hộp thư tính theo trạng thái hiện tại** (khuôn `handlerTruoc` giả ở `src/shared/thong-bao.ts`, quanh dòng 192). Người cũ khi Đổi, và X sau khi lời mời đã khép, chỉ nhận qua Bảng tin và báo đẩy lúc sự kiện, không có dòng hộp thư. Người soạn tự quyết theo tiền lệ của ô HDV.
 - **Chạy kiểm:** giữa chừng chỉ chạy `node --test <tệp liên quan>` và `npm run typecheck`. `npm test` và `npm run test:e2e` mỗi bộ chạy **một lần**, ở Task 9.
 - **Việc lớn:** sau Task 9 phải có người kiểm độc lập chỉ đọc (`nguoi-kiem-doc-lap`). Người thi công không tự nghiệm thu. AI không `git push`, không deploy, không áp migration remote.
@@ -61,7 +61,7 @@
 4. **Tài khoản lai Bán hàng + Đối tác.**
    - Không có trong danh sách mời; bấm Nhận thì 403; không hưởng ngoại lệ Quản trị.
    - Bấm Còn vé trên đơn chờ của người khác (ADR-0136 cho phép) thì đơn vẫn được xác nhận, nhưng **không** mở ô cho người bấm và **không** khép lời mời. Đơn sang «Chờ Bán hàng nhận», vì QĐ2(c) cấm người giữ quyền Đối tác giữ ô.
-   - Đây là cách người soạn áp QĐ2(c), chủ có thể đổi trước Task 5. Phương án khác: chặn 403, nhưng như vậy là bớt quyền ADR-0136 đã cho.
+   - Người soạn đề xuất cách áp QĐ2(c) này; **chủ đã duyệt 27/10** (nguyên văn ở dòng 0). Phương án bị loại: chặn 403, vì như vậy là bớt quyền ADR-0136 đã cho.
    - Bài: Task 5 (ca R4, `gieoTaiKhoanLai`, cả hai đường).
 5. **Hai người bấm cùng lúc.** Gồm cả hai trường hợp:
    - X và Quản trị bấm cùng lúc;
@@ -369,7 +369,7 @@
   - `sales_policy_changed` «Đổi cài đặt Bán hàng phụ trách» (không gắn đơn).
   - Chi tiết (`detail`) của năm hành động không chứa tên, mã người hay SĐT.
 - Modify — phân loại lịch sử (thiếu thì `src/shared/lich-su-noi-bo.test.ts` và `src/lich-su-don-doi-tac.test.ts` đỏ):
-  - `src/shared/lich-su-noi-bo.ts`: cả bốn vào `LICH_SU_NOI_BO_CHO_PHEP`, giá trị `"giu"`. Việc này buộc sửa danh sách «chủ duyệt» `DUYET` trong `src/shared/lich-su-noi-bo.test.ts` (dòng 14–26, 41–43), nên **cần chủ duyệt bốn dòng này trước Task 5**. Chủ không duyệt thì đưa cả bốn vào `LICH_SU_NOI_BO_AN`.
+  - `src/shared/lich-su-noi-bo.ts`: cả bốn vào `LICH_SU_NOI_BO_CHO_PHEP`, giá trị `"giu"`. Việc này buộc sửa danh sách «chủ duyệt» `DUYET` trong `src/shared/lich-su-noi-bo.test.ts` (dòng 14–26, 41–43), nên phải có chủ duyệt: **chủ đã duyệt 27/10** (nguyên văn ở dòng 0). Người thi công thêm bốn mã vào `DUYET`, giá trị `"giu"`, kèm chú thích cuối dòng `// ADR-0142: chủ duyệt 27/10` theo kiểu dòng ADR-0136 đã có; không sửa trang ghép gốc của danh sách (hồ sơ có ngày, đóng băng).
   - Hành động thứ năm `sales_policy_changed` «Đổi cài đặt Bán hàng phụ trách» (nhật ký không gắn đơn của route chính sách): vào danh sách **ẩn** của cả hai lịch sử, như `confirm_policy_changed`;
   - `src/shared/lich-su-doi-tac.ts`: cả bốn vào `LICH_SU_DOI_TAC_AN`, **không** vào `LICH_SU_DOI_TAC_CHO_PHEP` (danh sách đó phải khớp danh sách chủ duyệt trong bài).
 - Modify: `src/shared/contracts.ts` (DTO mới).
