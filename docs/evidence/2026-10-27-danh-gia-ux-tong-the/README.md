@@ -38,11 +38,15 @@ Hành trình thật tạo thêm hai tài khoản qua màn hình: 0900000912 (To�
 | `tong-hop.mjs` | gộp số liệu quét thành bảng Markdown (trang × họ × bộ × ảnh; số đo từng trang; 403/404/mất mạng; rỗng vs nhiều; sổ lệch đo trên màn hình; axe; chữ Anh; console; thanh điều hướng; 15 vai → 10 bộ) | `../so-lieu/tong-hop.md`, `tong-hop.json` |
 | `dem-ban-chup.mjs` | đếm ảnh đã chụp | — |
 
-Lệnh đã chạy (theo thứ tự): `may-chu.mjs` ×3 (8795/8796/8797) → `gieo-du-lieu.mjs --chang tai-khoan` (kho d1 và d1-rong) → `--chang it` (kho d1-it) → `--chang nhieu` (kho d1) → `ma-tran-quyen.mjs` → `do-trang.mjs` ×3 (chạy song song; lượt đầu 15:29 treo ở `/help` vì chụp cả trang không giới hạn, dừng lúc 15:49, sửa `cdp.mjs`, chạy lại 15:50) → `tong-hop.mjs` → `hanh-trinh.mjs` (390, rồi 1040 cho Bán hàng / Kế toán / Quản trị) → `do-toc-do.mjs` (chạy một mình khi máy rảnh). Cỡ gói tĩnh đo bằng `wc -c` và `gzip -c | wc -c` trên `public/js/*.js`, `public/app.css`, `public/fonts/` (số ở `KIEM-KE.md`).
+| `do-co-goi.sh <gốc kho>` | cỡ gói tĩnh từng trang (thô / gzip), phông, HTML có preload/prefetch không | `../so-lieu/co-goi.txt` |
+| `dem-token.mjs <gốc kho>` | đếm token `:root` của `app.css`: không dùng, dùng 1 lần, bí danh, trùng giá trị | `../so-lieu/token.txt` |
+| `chep-anh-dai-dien.mjs` | chép ảnh được trích dẫn trong hồ sơ + ảnh 390/1040 mọi trang + 3 trạng thái chung vào `../anh/` | `../anh/*.jpg` |
+
+Lệnh đã chạy (theo thứ tự, 27/10/2026): `may-chu.mjs` ×3 (8795/8796/8797) → `gieo-du-lieu.mjs --chang tai-khoan` (kho d1 và d1-rong) → `--chang it` (kho d1-it) → `--chang nhieu` (kho d1) → `ma-tran-quyen.mjs` → `do-trang.mjs` ×3 (chạy song song; lượt đầu 15:29 treo ở `/help` vì chụp cả trang không giới hạn, dừng lúc 15:49, sửa `cdp.mjs`, chạy lại 15:50, xong 16:58–17:07, 474 ô mỗi lượt, 0 lỗi kịch bản) → `do-co-goi.sh`, `dem-token.mjs` → `tong-hop.mjs` → `hanh-trinh.mjs` chạy thử trên kho RỖNG rồi ÍT để sửa ba nhãn kịch bản lệch màn hình thật (thẻ "Xác nhận đơn" không phải nút; nút tài xế là "Cho xe chạy"; điều phối không còn lượt chưa xếp) → `hanh-trinh.mjs --kho 390` (10 bộ, 17:06) rồi `--kho 1040 --bo SALES,ACCOUNTING,ADMIN` (17:11) trên kho NHIỀU → `do-toc-do.mjs` (17:13, chạy một mình) → `tong-hop.mjs` lần cuối → `chep-anh-dai-dien.mjs`. Hai lượt chạy thử của `hanh-trinh.mjs` không giữ số liệu (đã xoá) vì dữ liệu không đủ để đi hết hành trình.
 
 ## Ảnh đại diện trong kho (`anh/`)
 
-Chép từ bộ ảnh đầy đủ: mỗi trang hai ảnh màn đầu (390 và 1040, trạng thái NHIỀU, bộ quyền rộng nhất có trang) + ảnh ba trạng thái chung + ảnh các bước hành trình được trích dẫn trong phụ lục. Tên tệp giữ nguyên như bộ đầy đủ, thêm tiền tố `<nhan>-<bộ>-`.
+Chép bằng `kich-ban/chep-anh-dai-dien.mjs` từ bộ ảnh đầy đủ: mọi ảnh được trích dẫn trong năm tệp hồ sơ (quy ước `ảnh nhieu/ADMIN/xe-390` → `anh/nhieu-ADMIN-xe-390.jpg`, ảnh màn đầu; `ảnh ht/390/SALES/15` → `anh/ht-390-SALES-15.jpg`, bước hành trình) + ảnh màn đầu 390 và 1040 của mọi trang (trạng thái NHIỀU, bộ quyền rộng nhất) + ảnh 403 / 404 / mất mạng của Bán hàng. Ảnh JPEG chất lượng vừa, mỗi tệp 40–120 KB.
 
 ## Điều chưa làm / giới hạn
 
@@ -50,3 +54,6 @@ Chép từ bộ ảnh đầy đủ: mỗi trang hai ảnh màn đầu (390 và 1
 - Mạng 4G và CPU chậm là giả lập của Chrome, không phải thiết bị thật; số đo nóng/lạnh đọc tương đối giữa các trang.
 - Service worker chỉ đăng ký trên `localhost` (không phải 127.0.0.1): mọi lượt quét dùng `http://localhost:<cổng>`.
 - Luật một máy (ADR-0075): đăng nhập mới đá phiên cũ, nên các kịch bản dùng chung tài khoản không chạy song song trên cùng kho.
+- Cột "thanh điều hướng" của `do-trong-trang.js` (`nav`, `coTabbar`) dùng bộ chọn `.tabbar/.topbar` không khớp DOM thật (`#tabbar`, `#topbar`) nên rỗng; không sửa giữa lượt để ba lượt cùng một thước; thanh tab nhìn thấy lấy từ bước "sau đăng nhập" của `hanh-trinh.mjs`.
+- Lượt quét mở `/cuoc-chuyen` của tài xế bằng mã chuyến đầu tiên của kho, không phải chuyến của tài xế đó, nên ảnh quét là hộp "Không tìm thấy chuyến."; màn chuyến thật lấy từ hành trình Tài xế.
+- Kịch bản hành trình chỉ bấm nhãn đã định trước: Tài xế dừng ở "Đã tới" (nhãn không có trong kịch bản), Tài xế đối tác gõ lý do thay vì chọn nút tròn nên khung bận không lưu — hai chỗ này được ghi là phát hiện (nút tắt không giải thích) chứ không chạy lại cho "đẹp số".

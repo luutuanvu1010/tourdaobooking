@@ -154,16 +154,18 @@ const HANH_TRINH = {
     await H.dangNhap();
     await H.di("/cho-xac-nhan", "danh sách chờ kiểm vé");
     const ok = await H.bam("Kiểm vé", { viec: "bấm «Kiểm vé» đơn đầu tiên" });
-    if (ok) { await H.choDuong("/order"); const xn = await H.bam("re:^Xác nhận( đơn)?$", { viec: "bấm «Xác nhận đơn»" }); if (xn) await H.bam("re:^Còn vé", { viec: "chọn «Còn vé»" }); }
+    // Thẻ "Xác nhận đơn" mở sẵn ở đầu Chi tiết đơn (không phải nút); ba kết quả: Còn vé / Hết vé / Huỷ.
+    if (ok) { await H.choDuong("/order"); await H.anh("thẻ Xác nhận đơn mở sẵn ở đầu trang"); await H.bam("re:^Còn vé", { viec: "chọn «Còn vé»" }); }
     await H.di("/so-cong-no", "sổ công nợ");
     await H.bam("css:#scn-ds a, #scn-ds button, #scn-ds li, #scn-ds [role=button]", { thu: 0, viec: "mở bên đầu tiên trong danh sách", doan: true });
   } },
   ADMIN: { ten: "Quản trị: đăng nhập → Điều phối xe → chọn một lượt đưa đón → xếp vào chuyến / tạo chuyến → quay về Đơn hàng → mở đơn → Sửa thông tin chuyến", async buoc(H) {
     await H.dangNhap();
     await H.di("/dieu-phoi", "bảng điều phối");
-    await H.bam("css:#dp-ds input[type=checkbox], .dp-chon input[type=checkbox], main input[type=checkbox]", { thu: 0, viec: "đánh dấu một lượt đưa đón", doan: true });
-    const x = await H.bam("re:^(Xếp vào chuyến|Tạo chuyến)", { viec: "bấm «Xếp vào chuyến» / «Tạo chuyến»" });
-    if (x) { await H.anh("hộp / bảng sau khi bấm"); await H.bam("re:^(Đóng|Huỷ|Thôi|Quay lại|Bỏ chọn)$", { viec: "đóng hộp" }); }
+    // Dữ liệu gieo đã xếp hết lượt đưa đón, nên việc hằng ngày đo được là: xem tab "Cần xử lý", rồi mở biểu mẫu "+ Chuyến mới" (không lưu).
+    if (await H.co("re:^Cần xử lý")) await H.bam("re:^Cần xử lý", { viec: "bấm tab «Cần xử lý»" });
+    const x = await H.bam("re:^\\+? ?Chuyến mới", { viec: "bấm «+ Chuyến mới»" });
+    if (x) { await H.choDuong("/chuyen-sua"); await H.anh("biểu mẫu Chuyến mới"); }
     await H.di("/orders", "danh sách đơn");
     await H.bam("css:#list a[href^='/order'], #list .card, #list article, #list li", { thu: 0, viec: "mở đơn đầu tiên", doan: true });
     await H.choDuong("/order");
@@ -205,10 +207,12 @@ const HANH_TRINH = {
     const ok = await H.bam("css:a[href^='/cuoc-chuyen']", { thu: 0, viec: "mở chuyến đầu tiên trong Cuốc của tôi" });
     if (!ok) return;
     await H.choDuong("/cuoc-chuyen");
-    if (await H.bam("re:^Xuất bến", { viec: "bấm «Xuất bến»" })) { if (await H.co("re:^(Xuất bến|Xác nhận|Đồng ý)")) await H.bam("re:^(Xuất bến|Xác nhận|Đồng ý)", { viec: "xác nhận xuất bến" }); }
+    // Nhãn thật trên màn hình (25/10): "Cho xe chạy" (xuất bến) → "Đã đón" → "Đã trả" → "Kết thúc chuyến"; mỗi bước có thể kèm hộp xác nhận.
+    const XB = "re:^(Cho xe chạy|Xuất bến)";
+    if (await H.bam(XB, { viec: "bấm «Cho xe chạy»" })) { if (await H.co("re:^(Cho xe chạy|Xuất bến|Xác nhận|Đồng ý)$")) await H.bam("re:^(Cho xe chạy|Xuất bến|Xác nhận|Đồng ý)$", { viec: "xác nhận cho xe chạy" }); }
     if (await H.co("re:^Đã đón")) await H.bam("re:^Đã đón", { viec: "bấm «Đã đón»" });
     if (await H.co("re:^Đã trả")) await H.bam("re:^Đã trả", { viec: "bấm «Đã trả»" });
-    if (await H.co("re:^Kết thúc chuyến")) { await H.bam("re:^Kết thúc chuyến"); if (await H.co("re:^(Kết thúc|Xác nhận|Đồng ý)$")) await H.bam("re:^(Kết thúc|Xác nhận|Đồng ý)$", { viec: "xác nhận kết thúc" }); }
+    if (await H.co("re:^Kết thúc chuyến")) { await H.bam("re:^Kết thúc chuyến", { viec: "bấm «Kết thúc chuyến»" }); if (await H.co("re:^(Kết thúc|Xác nhận|Đồng ý)$")) await H.bam("re:^(Kết thúc|Xác nhận|Đồng ý)$", { viec: "xác nhận kết thúc" }); }
   } },
   DRIVER_PARTNER: { ten: "Tài xế đối tác: đăng nhập → Trang đầu tài xế → Xem cuốc → mở chuyến → Báo bận của tôi → ghi một khung bận", async buoc(H) {
     await H.dangNhap();
