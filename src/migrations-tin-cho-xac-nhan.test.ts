@@ -39,7 +39,6 @@ test("IN (…) của view (định nghĩa CUỐI trong CSDL) = ĐÚNG HANH_DONG_
   const trongView = [...m[1]!.matchAll(/'([a-z_]+)'/g)].map((x) => x[1]).sort();
   assert.deepEqual(trongView, [...HANH_DONG_TIN_DON].sort());
   assert.ok(!trongView.includes("order_handler_refused"), "K7 (CHANGE-GUIDE công thức w): HDV «Từ chối» chưa lên chuông");
-  assert.ok(!trongView.includes("order_confirm_withdrawn"), "rút lại không thành tin (loaiTinDon không có nhánh) — không đưa vào view");
 });
 
 // Danh sách THỨ BA của cùng lớp lỗi (phiếu kiểm độc lập M-1, 27/10): cú gõ cửa màn hình khoá dựng tin từ hanhDongCuaThayDoi (web-push.ts) rồi service
@@ -55,7 +54,7 @@ test("lọc theo hành vi: mỗi hành động của HANH_DONG_TIN_DON gắn đ�
   db.exec(`INSERT INTO orders (id, order_code, staff_id, status, customer_name, customer_phone, created_at, updated_at) VALUES ('o1', 'TD-1', 's1', 'draft', 'K', '0900000009', '${T}', '${T}')`);
   const ghi = db.prepare("INSERT INTO audit_log (id, order_id, staff_id, action, created_at) VALUES (?, ?, 's1', ?, ?)");
   HANH_DONG_TIN_DON.forEach((a, i) => ghi.run(`in${i}`, "o1", a, T));
-  ["order_handler_refused", "order_confirm_withdrawn", "updated", "trip_updated"].forEach((a, i) => ghi.run(`out${i}`, "o1", a, T));
+  ["order_handler_refused", "order_terms_captured", "updated", "trip_updated"].forEach((a, i) => ghi.run(`out${i}`, "o1", a, T));
   ghi.run("out-khong-don", null, "order_confirm_requested", T);
   const r = (db.prepare("SELECT action FROM v_aud_order_event ORDER BY action").all() as { action: string }[]).map((x) => x.action);
   assert.deepEqual(r, [...HANH_DONG_TIN_DON].sort());

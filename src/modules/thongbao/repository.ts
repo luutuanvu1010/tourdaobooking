@@ -10,7 +10,9 @@ const LIST_DON = defineSql("thongbao", "list_don", `
          w.staff_id AS owner_id, (h.order_id IS NOT NULL) AS co_nguoi, h.staff_id AS handler_staff_id,
          (f.first_at IS NULL OR f.first_at > e.created_at) AS lap_chua_co_nguoi, (st.status = 'draft') AS la_nhap,
          (e.action = 'order_handler_changed' AND EXISTS (SELECT 1 FROM v_aud_order_event c
-            WHERE c.order_id = e.order_id AND c.action = 'created' AND c.created_at = e.created_at)) AS cung_lo_lap
+            WHERE c.order_id = e.order_id AND c.action = 'created' AND c.created_at = e.created_at)) AS cung_lo_lap,
+         (e.action = 'order_confirm_requested' AND EXISTS (SELECT 1 FROM v_aud_order_event k
+            WHERE k.order_id = e.order_id AND k.action IN ('order_confirm_withdrawn', 'confirmed', 'cancelled') AND k.created_at > e.created_at)) AS yeu_cau_da_khep
   FROM v_aud_order_event e
   JOIN v_ord_order_label o ON o.id = e.order_id
   JOIN v_ord_order_owner w ON w.id = e.order_id
@@ -92,7 +94,7 @@ const INSERT_ACK = defineSql("thongbao", "insert_ack", `
   ON CONFLICT (notice_id, staff_id) DO NOTHING`);
 
 interface DonRow { id: string; order_id: string; ma_don: string; action: string; actor_id: string | null; ten_nguoi_lam: string | null; luc: string;
-  owner_id: string; co_nguoi: number; handler_staff_id: string | null; lap_chua_co_nguoi: number; cung_lo_lap: number; la_nhap: number }
+  owner_id: string; co_nguoi: number; handler_staff_id: string | null; lap_chua_co_nguoi: number; cung_lo_lap: number; la_nhap: number; yeu_cau_da_khep: number }
 interface ThuCongRow { id: string; tieu_de: string; noi_dung: string; quan_trong: number; created_by: string; ten_nguoi_gui: string; created_at: string;
   thu_hoi: number; tags: string | null; da_hieu_luc: string | null }
 interface ThuCongLookupRow { id: string; quan_trong: number; created_by: string | null; thu_hoi: number; tags: string | null; da_hieu_luc: string | null }
@@ -102,7 +104,8 @@ export interface ThuCongLookup { id: string; quanTrong: boolean; thuHoi: boolean
 export async function listDon(db: D1Database, tu: string): Promise<DongDon[]> {
   const r = (await db.prepare(LIST_DON).bind(tu).all<DonRow>()).results;
   return r.map((x) => ({ id: x.id, orderId: x.order_id, maDon: x.ma_don, action: x.action, actorId: x.actor_id, tenNguoiLam: x.ten_nguoi_lam, luc: x.luc,
-    ownerId: x.owner_id, phuTrach: { coNguoi: x.co_nguoi === 1, staffId: x.handler_staff_id }, lapChuaCoNguoi: x.lap_chua_co_nguoi === 1, cungLoLap: x.cung_lo_lap === 1, laNhap: x.la_nhap === 1 }));
+    ownerId: x.owner_id, phuTrach: { coNguoi: x.co_nguoi === 1, staffId: x.handler_staff_id }, lapChuaCoNguoi: x.lap_chua_co_nguoi === 1, cungLoLap: x.cung_lo_lap === 1, laNhap: x.la_nhap === 1,
+    yeuCauDaKhep: x.yeu_cau_da_khep === 1 }));
 }
 interface DoiRow { id: string; order_id: string; ma_don: string; action: string; detail: string | null; leg_id: string | null; actor_id: string | null;
   ten_nguoi_lam: string | null; luc: string; owner_id: string; co_nguoi: number; handler_staff_id: string | null; sau_xac_nhan: number; la_nhap: number }

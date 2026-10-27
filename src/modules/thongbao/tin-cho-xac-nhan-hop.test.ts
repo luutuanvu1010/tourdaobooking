@@ -44,3 +44,41 @@ test("gửi xác nhận → người xét duyệt có tin «đang chờ xác nh�
     }
   }
 });
+
+// Chủ dự án 27/10 (sau phiếu kiểm độc lập I-2): tin «đang chờ xác nhận» chỉ còn khi yêu cầu CÒN MỞ. Rút lại (đơn lại là nháp riêng tư — ADR-0135 Đ6), Còn vé
+// (`confirmed`), Hết vé / Huỷ (`cancelled`) đều khép yêu cầu ⇒ tin chờ biến mất ở cả hai ngăn và khỏi câu màn hình khoá. Gửi lại sau rút lại = một tin mới.
+const yeuCauMo = (w: any, id: string) => w.q("SELECT id FROM ord_confirm_request WHERE order_id = ? AND decided_at IS NULL", id)[0]?.id;
+const mocDon = (w: any, id: string) => w.q("SELECT updated_at u FROM orders WHERE id = ?", id)[0].u;
+async function khongConTinCho(w: any, ma: string, nhan: string) {
+  for (const as of [B, LAI, ADM, ACC, H, SUP]) {
+    for (const ngan of ["cua-toi", "tat-ca"]) {
+      const hop = await w.call("GET", `/api/thong-bao?ngan=${ngan}`, { as });
+      assert.equal(hop.status, 200, hop.text);
+      assert.equal(cuaDon(hop, ma).length, 0, `${nhan} — ${as} ${ngan}: ${hop.text}`);
+    }
+    const moi = await w.call("GET", "/api/thong-bao/moi-nhat", { as });
+    assert.notEqual(moi.json.tin?.cau, `Đơn ${ma} đang chờ xác nhận`, `${nhan} — ${as} màn hình khoá: ${moi.text}`); // đơn KHÁC còn chờ thật thì vẫn được đọc
+  }
+}
+
+test("hết chờ → tin «đang chờ xác nhận» biến mất: rút lại, Còn vé, Hết vé; gửi lại sau rút lại → đúng một tin mới", async () => {
+  const w = setup();
+  datCo(w, "SERVICE", "ZA1", true);
+  const gui = (id: string) => w.call("POST", `/api/orders/${id}/gui-xac-nhan`, { as: A, body: {} });
+
+  const r = await lap(w, A);
+  assert.equal((await gui(r.id)).status, 201);
+  assert.equal((await w.call("POST", `/api/orders/${r.id}/rut-xac-nhan`, { as: A, body: {} })).status, 200);
+  await khongConTinCho(w, r.orderCode, "rút lại");
+  assert.equal((await gui(r.id)).status, 201);
+  const sauGuiLai = await w.call("GET", "/api/thong-bao?ngan=cua-toi", { as: ACC });
+  assert.equal(cuaDon(sauGuiLai, r.orderCode).length, 1, sauGuiLai.text);
+
+  for (const ketQua of ["CON_VE", "HET_VE"]) {
+    const o = await lap(w, A);
+    assert.equal((await gui(o.id)).status, 201);
+    const qd = await w.call("POST", `/api/orders/${o.id}/quyet-dinh`, { as: ACC, body: { ketQua, yeuCauId: yeuCauMo(w, o.id), updatedAt: mocDon(w, o.id) } });
+    assert.equal(qd.status, 200, `${ketQua}: ${qd.text}`);
+    await khongConTinCho(w, o.orderCode, ketQua);
+  }
+});

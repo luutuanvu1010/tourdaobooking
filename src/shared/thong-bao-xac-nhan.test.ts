@@ -66,3 +66,13 @@ test("Bảng tin: sự kiện `cho_xac_nhan` hợp lệ; thông báo nổi chỉ
   assert.deepEqual(thongBaoNoi(HDV, ev as never), { cau: "Đơn TD-1 đang chờ xác nhận", lienKet: "/order?id=o1" });
   assert.equal(thongBaoNoi(DT, ev as never), null);
 });
+
+test("yêu cầu đã khép (rút lại / xác nhận / huỷ — chủ dự án 27/10): dòng gửi cũ KHÔNG còn là tin «đang chờ xác nhận» ở ngăn nào", () => {
+  for (const s of [KT, HDV, BH, QT]) {
+    for (const ngan of ["cua-toi", "tat-ca"] as const) {
+      assert.equal(hop(s, [don({ yeuCauDaKhep: true })], ngan).tin.length, 0, `${s.id} ${ngan}`);
+      assert.equal(hop(s, [don({ yeuCauDaKhep: true, laNhap: false })], ngan).tin.length, 0, `${s.id} ${ngan} (đơn đã quyết)`);
+    }
+    assert.equal(hop(s, [don({ yeuCauDaKhep: false })]).tin.length, 1, `${s.id}: yêu cầu còn mở vẫn là tin`);
+  }
+});

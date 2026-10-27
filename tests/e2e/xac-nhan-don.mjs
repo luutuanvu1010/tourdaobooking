@@ -115,6 +115,14 @@ try {
   assert.equal(sau.status, "confirmed");
   assert.equal(sau.services[0].legs[0].pickupTime, "08:30");
   assert.equal((await call(ACC, "GET", "/api/orders/cho-xac-nhan")).body.don.some((x) => x.orderId === a.id), false, "đã quyết thì rời danh sách chờ");
+  // Chủ dự án 27/10: hết chờ thì tin «đang chờ xác nhận» biến mất khỏi hộp thư (câu list_don đọc dòng confirmed ghi SAU dòng gửi — chạy trên D1 thật).
+  for (const [ten, who] of [["Kế toán", ACC], ["Toàn quyền", SUPER], ["Bán hàng khác", SALES_B]]) {
+    for (const ngan of ["cua-toi", "tat-ca"]) {
+      r = await call(who, "GET", `/api/thong-bao?ngan=${ngan}`);
+      assert.equal(r.status, 200, `${ten}: ${JSON.stringify(r.body)}`);
+      assert.equal(tinCho(r.body).length, 0, `${ten} ${ngan}: đã quyết thì không còn tin chờ xác nhận`);
+    }
+  }
   console.log("✓ (a)(b)(c)(l): cờ dịch vụ → 409 rồi gửi 201; danh sách chờ + chi tiết đã cắt; khoá khi chờ; Kế toán Còn vé đổi giờ 08:30");
 
   // ---- (d) Hết vé / Huỷ ------------------------------------------------------------------------------------------------------------------------------------

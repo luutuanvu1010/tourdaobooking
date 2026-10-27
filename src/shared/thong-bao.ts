@@ -7,7 +7,11 @@ import { tinChuyenCho, tinGioHenCho, type ChuyenCuaChang, type DongChuyen, type 
 import { HANH_DONG_DOI_SO_KHACH } from "./audit-actions.ts";
 import { phanDoiCuaTin, type PhanDoiTin } from "./tin-doi-don.ts";
 
-export const HANH_DONG_TIN_DON = ["created", "order_claimed", "order_handler_changed", "confirmed", "cancelled", "order_cancelled_by_field", "order_confirm_requested"] as const;
+/**
+ * Tập hành động của view hộp thư `v_aud_order_event` (khai MỘT nơi; bài src/migrations-tin-cho-xac-nhan.test.ts buộc view = ĐÚNG tập này, và mọi hành động gõ cửa
+ * màn hình khoá phải thuộc tập). `order_confirm_withdrawn` không thành tin (loaiTinDon trả null) — chỉ để list_don biết yêu cầu xác nhận đã khép (migration 0120).
+ */
+export const HANH_DONG_TIN_DON = ["created", "order_claimed", "order_handler_changed", "confirmed", "cancelled", "order_cancelled_by_field", "order_confirm_requested", "order_confirm_withdrawn"] as const;
 /**
  * ADR-0062 Đ1 — tập nguồn ĐÓNG của tin "đơn đổi sau xác nhận" (khai MỘT nơi; view `v_aud_order_change` lọc đúng tập này — bài migrations-tin-doi-don):
  * sửa thông tin chuyến, sửa / thêm / bỏ chặng, và MỌI hành động mang cờ `doiSoKhach` (dẫn từ AUDIT_ACTIONS — không gõ tay).
@@ -29,6 +33,8 @@ export interface DongDon {
   luc: string; ownerId: string; phuTrach: TrangThaiPhuTrach; lapChuaCoNguoi: boolean;
   /** ADR-0135 Đ4: đơn đang NHÁP — tin chỉ tới người lập (`nhanSuKien` bỏ mọi nhãn khác). Vắng = false. */
   laNhap?: boolean;
+  /** Chỉ dòng `order_confirm_requested`: đơn có dòng rút lại / xác nhận / huỷ ghi SAU dòng gửi = yêu cầu đã khép → không còn tin «đang chờ» (chủ dự án 27/10). Vắng = còn mở. */
+  yeuCauDaKhep?: boolean;
   cungLoLap: boolean; // order_handler_changed cùng mốc với dòng created của đơn = chọn người phụ trách LÚC LẬP (ADR-0030 Task 1.3) → không thành tin riêng
   // ---- Chỉ dòng ĐỔI (ADR-0062 — view v_aud_order_change; gốc lắp ráp dựng cho gõ cửa). Dòng tin đơn cũ để vắng. ----
   /** Chữ nhật ký có khuôn do máy chủ viết — CHỈ hàm đọc `phanDoiCuaTin` dùng, không bao giờ in thô. */
@@ -185,6 +191,7 @@ export function locHopThongBao(
     // thường (ở "Tất cả") — giữ đúng hành vi trước 1.30, không để việc xác nhận biến mất khỏi hộp của họ.
     if (loai === "cho_nhan" && !duocThayTinDon(staff, true)) loai = "xac_nhan";
     if (!loai || loai === "doi_sau_xac_nhan") continue; // dòng đổi đã rẽ nhánh ở trên
+    if (loai === "cho_xac_nhan" && d.yeuCauDaKhep === true) continue; // hết chờ (rút lại / quyết định) → không còn tin «đang chờ»; đơn rút lại lại là nháp riêng tư (ADR-0135 Đ6)
     // ADR-0136 Đ10: (1) «đơn chờ xác nhận» chỉ cho người giữ ô xét duyệt; (2) người LẬP đơn (kể cả Đối tác, Thực tập) nhận tin xác nhận / huỷ của ĐƠN MÌNH — mọi loại tin khác vẫn theo `duocThayTinDon`.
     const laTinCuaChu = d.ownerId === staff.id && (loai === "xac_nhan" || loai === "huy") && can(staff, "order.view", { ownerId: d.ownerId });
     if (loai === "cho_xac_nhan" ? !can(staff, "order.confirm.review") : !duocThayTinDon(staff, loai === "cho_nhan") && !laTinCuaChu) continue;
