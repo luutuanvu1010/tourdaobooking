@@ -12,6 +12,15 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Sửa lỗi 2.36 (ADR-0136 Đ10): tin «đang chờ xác nhận» không vào hộp thông báo, màn hình khoá đọc nhầm tin cũ. CÓ migration 0120 (dựng lại view hộp thư)
+    // nên cần npm run trien-khai. Số 2.37 và ngày là TẠM (production 2.36 lúc làm — GET /api/auth/config 27/10) — phiên phát hành kiểm lại ở bước A.0 của docs/HANDOFF-N1.md.
+    version: "2.37",
+    date: "2026-10-27",
+    items: [
+      { kind: "sua", text: "Khi một đơn được gửi xác nhận, người xét duyệt nay thấy tin «Đơn … đang chờ xác nhận» trong hộp thông báo, và chữ trên màn hình khoá điện thoại đúng với tin đó." },
+    ],
+  },
+  {
     // Bước xác nhận đơn + «Gửi đơn» của Đối tác + nháp riêng tư (ADR-0135 Đợt 2, ADR-0136 Đợt 3; kế hoạch docs/superpowers/plans/2026-10-19-xac-nhan-don.md).
     // CÓ migration 0119 (ba bảng yêu cầu xác nhận / cờ / khung giờ) nên cần npm run trien-khai. Task 3.3b (sửa tiền khi đơn đang chờ) HOÃN, chưa có trong bản này.
     // Số 2.36 và ngày là TẠM — phiên phát hành kiểm lại ở bước A.0 của docs/HANDOFF-N1.md.

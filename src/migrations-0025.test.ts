@@ -57,27 +57,29 @@ test("0025: một client_request_id của cùng người gửi chỉ một tin; 
   assert.equal(dem, 2);
 });
 
-// K7 (đặc tả §2): HDV bấm "Từ chối" CHƯA lên chuông ở lượt 1 — order_handler_refused CỐ Ý không thuộc view. Đổi danh sách 6 hành động
+// K7 (đặc tả §2): HDV bấm "Từ chối" CHƯA lên chuông ở lượt 1 — order_handler_refused CỐ Ý không thuộc view. Đổi danh sách hành động
 // dưới đây (thêm/bớt) là đổi quyết định của chủ, không phải sửa lỗi kỹ thuật. Test kiểm ĐỦ + ĐÚNG (không chỉ kiểm dương một phần):
 // còn dòng bị loại vì action lạ (order_handler_refused/updated/trip_updated), dòng bị loại vì không có đơn (order_id NULL),
 // và một dòng hệ thống không người làm (staff_id NULL) vẫn phải giữ lại.
-test("0025: v_aud_order_event lọc ĐÚNG 6 hành động về đơn có order_id (K7: order_handler_refused chưa lên chuông)", () => {
+// ADR-0136 Đ10 (chủ duyệt 2026-10-25): thêm hành động thứ 7 `order_confirm_requested` — view dựng lại ở migration *_tin_cho_xac_nhan.sql (0120); rút lại
+// (`order_confirm_withdrawn`) không thành tin nên ở ngoài view. Bài so tập với hằng HANH_DONG_TIN_DON: src/migrations-tin-cho-xac-nhan.test.ts.
+test("0025 + 0120: v_aud_order_event lọc ĐÚNG 7 hành động về đơn có order_id (K7: order_handler_refused chưa lên chuông)", () => {
   const db = moi();
   const { staffId } = seedOrder(db);
   const withOrder = db.prepare(`INSERT INTO audit_log (id, order_id, staff_id, action, created_at) VALUES (?, 'o1', ?, ?, ?)`);
   const withOrderNoStaff = db.prepare(`INSERT INTO audit_log (id, order_id, staff_id, action, created_at) VALUES (?, 'o1', NULL, ?, ?)`);
   const noOrder = db.prepare(`INSERT INTO audit_log (id, order_id, staff_id, action, created_at) VALUES (?, NULL, ?, ?, ?)`);
 
-  // 6 hành động THUỘC view
-  ["created", "order_claimed", "order_handler_changed", "confirmed", "order_cancelled_by_field"].forEach((a, i) => withOrder.run("in" + i, staffId, a, T));
+  // 7 hành động THUỘC view
+  ["created", "order_claimed", "order_handler_changed", "confirmed", "order_cancelled_by_field", "order_confirm_requested"].forEach((a, i) => withOrder.run("in" + i, staffId, a, T));
   withOrderNoStaff.run("in-cancel-system", "cancelled", T); // hệ thống tự huỷ, không người làm — view vẫn phải giữ dòng này
 
   // KHÔNG thuộc view
-  ["updated", "trip_updated", "order_handler_refused"].forEach((a, i) => withOrder.run("out" + i, staffId, a, T));
+  ["updated", "trip_updated", "order_handler_refused", "order_confirm_withdrawn"].forEach((a, i) => withOrder.run("out" + i, staffId, a, T));
   noOrder.run("out-no-order", staffId, "created", T); // action hợp lệ nhưng không gắn đơn nào (order_id NULL)
 
   const rows = db.prepare(`SELECT order_id, staff_id, action FROM v_aud_order_event ORDER BY action`).all() as { order_id: string; staff_id: string | null; action: string }[];
-  assert.deepEqual(rows.map((r) => r.action), ["cancelled", "confirmed", "created", "order_cancelled_by_field", "order_claimed", "order_handler_changed"]);
+  assert.deepEqual(rows.map((r) => r.action), ["cancelled", "confirmed", "created", "order_cancelled_by_field", "order_claimed", "order_confirm_requested", "order_handler_changed"]);
   assert.ok(rows.every((r) => r.order_id === "o1"), "mọi dòng phải có order_id (lọc order_id IS NOT NULL)");
   assert.ok(rows.some((r) => r.staff_id === null), "phải giữ dòng hệ thống không người làm (staff_id NULL)");
 });

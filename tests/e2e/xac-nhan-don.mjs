@@ -79,6 +79,19 @@ try {
     khongLo(JSON.stringify(r.body));
   }
   assert.equal((await call(HR, "GET", "/api/orders/cho-xac-nhan")).status, 403, "Hành chính nhân sự không xét duyệt");
+  // ADR-0136 Đ10 (migration 0120): tin «Đơn … đang chờ xác nhận» ở hộp thư người xét duyệt — bản 2.36 thiếu vì view hộp thư không có order_confirm_requested.
+  const cauCho = `Đơn ${a.orderCode} đang chờ xác nhận`;
+  const tinCho = (body) => (body.tin ?? []).filter((t) => t.loai === "cho_xac_nhan" && t.maDon === a.orderCode);
+  for (const [ten, who] of [["Kế toán", ACC], ["HDV", FIELD], ["Quản trị", ADMIN], ["Toàn quyền", SUPER], ["Bán hàng khác", SALES_B]]) {
+    r = await call(who, "GET", "/api/thong-bao?ngan=cua-toi");
+    assert.equal(r.status, 200, `${ten}: ${JSON.stringify(r.body)}`);
+    assert.deepEqual(tinCho(r.body).map((t) => t.cau), [cauCho], `${ten}: hộp thư phải có đúng một tin chờ xác nhận`);
+  }
+  for (const [ten, who] of [["người gửi", SALES], ["Hành chính nhân sự", HR]]) {
+    r = await call(who, "GET", "/api/thong-bao?ngan=tat-ca");
+    assert.equal(r.status, 200, `${ten}: ${JSON.stringify(r.body)}`);
+    assert.equal(tinCho(r.body).length, 0, `${ten} không nhận tin chờ xác nhận`);
+  }
   for (const [ten, who] of [["Kế toán", ACC], ["HDV chưa phụ trách", FIELD]]) {
     r = await call(who, "GET", `/api/orders/${a.id}`);
     assert.equal(r.status, 200, `${ten}: ${JSON.stringify(r.body)}`);
