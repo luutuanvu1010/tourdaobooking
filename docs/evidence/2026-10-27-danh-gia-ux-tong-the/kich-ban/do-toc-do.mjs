@@ -54,7 +54,8 @@ const CAI_SAN = `
     if (!S.khungXuong && document.querySelector('[class*=skeleton], [class*=khung-xuong], [aria-busy=true]')) S.khungXuong = true;
     if (!S.dangTai && /Đang tải/.test(document.body?.innerText || '')) S.dangTai = true;
   });
-  mo.observe(document.documentElement, { childList: true, subtree: true, characterData: true });
+  // Quan sát document (có từ lúc cài, trước khi html được dựng); documentElement lúc này còn null.
+  mo.observe(document, { childList: true, subtree: true, characterData: true });
   try { new PerformanceObserver((l) => { for (const e of l.getEntries()) if (!e.hadRecentInput) S.cls += e.value; }).observe({ type: 'layout-shift', buffered: true }); } catch {}
   try { new PerformanceObserver((l) => { for (const e of l.getEntries()) S.longTasks.push([e.startTime, e.duration]); }).observe({ type: 'longtask', buffered: true }); } catch {}
   try { new PerformanceObserver((l) => { const e = l.getEntries().at(-1); if (e) S.lcp = e.startTime; }).observe({ type: 'largest-contentful-paint', buffered: true }); } catch {}
@@ -70,7 +71,8 @@ const DOC_SO = `(() => {
   for (let i = bd.length - 1; i >= 0; i--) { const t = bd[i][0]; const sau = bd.slice(i + 1).find(([u]) => u - t < 700); if (!sau) { noiDung = t; break; } }
   const tbt = (S.longTasks || []).filter(([s]) => s >= (fcp ?? 0)).reduce((a, [, d]) => a + Math.max(0, d - 50), 0);
   const res = performance.getEntriesByType('resource');
-  const loai = (r) => /\\/api\\//.test(r.name) ? 'api' : r.initiatorType === 'css' || /\\.css(\\?|$)/.test(r.name) ? 'css' : /\\.woff2/.test(r.name) ? 'phong' : /\\.js(\\?|$)/.test(r.name) ? 'js' : r.initiatorType === 'img' || /\\.(png|jpg|svg)/.test(r.name) ? 'anh' : 'khac';
+  // Phông do CSS kéo về có initiatorType 'css' → xét đuôi .woff2 TRƯỚC.
+  const loai = (r) => /\\/api\\//.test(r.name) ? 'api' : /\\.woff2/.test(r.name) ? 'phong' : /\\.css(\\?|$)/.test(r.name) ? 'css' : /\\.js(\\?|$)/.test(r.name) ? 'js' : r.initiatorType === 'img' || /\\.(png|jpg|svg|webmanifest)/.test(r.name) ? 'anh' : 'khac';
   const tai = {};
   for (const r of res) { const k = loai(r); tai[k] = tai[k] || { so: 0, byte: 0, giai: 0 }; tai[k].so++; tai[k].byte += r.transferSize || 0; tai[k].giai += r.decodedBodySize || 0; }
   const apiMax = Math.max(0, ...res.filter((r) => loai(r) === 'api').map((r) => r.responseEnd));
