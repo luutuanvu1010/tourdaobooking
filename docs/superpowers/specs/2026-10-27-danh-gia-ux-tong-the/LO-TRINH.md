@@ -64,7 +64,25 @@ Chạy trên D1 tạm (`node scripts/dev-iphone.mjs`), không dữ liệu thật
 14. **Chữ và số**: ở Sổ công nợ và Hoa hồng, số tiền có dấu chấm ngăn nghìn, canh phải, không bị cắt "…" ở 390.
 15. **Trang Hướng dẫn**: cuộn tới cuối mất bao lâu; có tìm được mục cần trong 10 giây không.
 
-## 5. Việc không thuộc lộ trình này (ghi để không quên)
+## 5. Câu hỏi gom cho chủ (trả lời một lần, trước hoặc cùng cổng 1; không câu nào chặn việc đọc báo cáo)
+
+Ba câu đầu là ba quyết định ở `BAO-CAO.md`; các câu sau chỉ cần một dòng trả lời, chưa trả lời thì thi công theo "đề xuất".
+
+| # | Câu hỏi | Đề xuất (làm theo nếu chủ không nói khác) | Chạm gì |
+|---|---|---|---|
+| 1 | Duyệt đề cương `HE-THONG-HOP-NHAT.md` để dựng bộ v2 ở Chặng 2? | duyệt | chỉ giao diện |
+| 2 | Độ đậm chữ: giữ một mức 500 hay mở lại ba mức 400/500/600? (H-DO-DAM) | mở lại ba mức, đổi bằng token | quyết định "Thị giác 1.70" |
+| 3 | Cho đợt 0 sửa khung tải (tách gói chung, nạp sẵn theo vai, preload, Speculation Rules, View Transitions) qua một ADR nhỏ sửa ADR-0035? (H-GOI, H-TOC-DO) | đồng ý, đo trước/sau bằng kịch bản đợt này | cách phát hành, service worker |
+| 4 | Nút nổi "Trợ lý": chuyển thành biểu tượng ở thanh trên, hay giữ nổi với đệm đáy và tự ẩn khi có chân dính? (H-FAB) | chuyển lên thanh trên | ADR-0066/0084 (Trợ lý), không chạm nghiệp vụ |
+| 5 | Ô nhãn nổi của Tạo đơn (quyết định 13/10): đổi về nhãn trên ô như mọi biểu mẫu khác? (H-O-NHAP) | đổi về nhãn trên ô ở đợt Biểu mẫu | quyết định 13/10 |
+| 6 | "Thanh bên trần 10 mục": đếm mọi mục (Toàn quyền 28) hay đếm nhóm gập là một (Toàn quyền 14)? | đếm nhóm gập là một; trần áp cho mục hiện sẵn | ràng buộc PROMPT mục 5 |
+| 7 | Tiền ở danh sách điện thoại: bỏ kiểu "1,08tr ₫ / 410k ₫", ghi đủ "1.080.000 ₫" ở mọi khổ? (H-TIEN-KHO) | ghi đủ ở mọi khổ | chỉ hiển thị, không chạm cách tính |
+| 8 | Dải nhắc bảo mật hai lớp và thông báo quan trọng: cho thu gọn thành một dòng và nhớ "đã đọc" theo phiên? (H-DAI-TREN) | thu gọn + nhớ theo phiên; vẫn bắt "Đã hiểu" với thông báo quan trọng | ADR-0074/0075 (bảo mật hai lớp), ADR-0045 (thông báo) — chỉ cách hiện |
+| 9 | Câu lỗi máy chủ nói sai lý do (H-CAU-LOI: ngày đã qua báo "chưa đủ thông tin chuyến"; gán vai tổ chức dẫn sang Quản lý tài khoản): sửa câu ở `order-errors.ts` trong đợt nào, hay mở lại luật xác nhận đơn ngày đã qua? | chỉ sửa câu cho đúng lý do, không đổi luật; làm trong đợt Chi tiết | API/nghiệp vụ → chờ chủ |
+| 10 | Trang 404 chung cần Worker trả HTML thay JSON cho địa chỉ lạ (H-404): cho đổi cấu hình định tuyến ở đợt 0? | cho, kèm kiểm e2e | cấu hình triển khai |
+| 11 | Nhật ký thay đổi trên Hướng dẫn: giữ 5 phiên bản gần nhất trên trang, còn lại tách trang riêng? (C-HUONG-DAN) | giữ 5, tách phần còn lại | chỉ nội dung |
+
+## 6. Việc không thuộc lộ trình này (ghi để không quên)
 
 - Lỗi nghiệp vụ lộ ra khi gieo dữ liệu (`PHU-LUC-PHAT-HIEN.md` mã H-CAU-LOI và các C-… nghiệp vụ): câu lỗi máy chủ, luật xác nhận đơn ngày đã qua, gán vai cho hồ sơ tổ chức — chạm API/dữ liệu, chờ chủ quyết riêng, không vẽ.
 - 404 của Cloudflare (trang trơn) → trang 404 chung thuộc đợt 0 nhưng cần `_routes`/Worker trả HTML: chạm cấu hình triển khai, ghi ở đặc tả đợt 0.

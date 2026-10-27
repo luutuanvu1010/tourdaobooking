@@ -18,7 +18,11 @@ Hồ sơ có ngày: 27/10/2026, Chặng 1 của đề bài `PROMPT.md` (mục 6.
 - **Một thanh trên duy nhất** cho mọi trang trong (khuôn "đầu trang" ở mục 2): trái = quay lại (điện thoại) hoặc đường dẫn 1 cấp (máy tính), giữa = tiêu đề trang 18/600 cắt một dòng, phải = **tối đa một** hành động chính + chuông. Trang chủ là ngoại lệ có dải chào (giữ bản vẽ 1.73). Thay cho ≈ 12 kiểu đầu trang hiện nay (H-DAU-TRANG).
 - **Tab phụ trong trang** (Hỗ trợ, Thông báo, Điều phối, Tài xế, dải trang anh em, phân đoạn Xe): **một thành phần "Tab"** với hai biến thể: gạch chân (máy tính) và viên thuốc cuộn ngang (điện thoại). Thay cho 8 kiểu (H-TAB).
 - **Người dùng biết mình ở đâu**: mục đang mở phải sáng ở thanh tab / thanh bên (`aria-current="page"`), tiêu đề trang trùng nhãn mục; trang con (chi tiết, biểu mẫu) sáng mục cha. Số đo hiện trạng: cột "mục sáng" bảng I `tong-hop.md` (H-DIEU-HUONG).
-- **Không quá 2 chạm tới việc hằng ngày**: Bán hàng → Tạo đơn (1 chạm từ Trang chủ hoặc nút ở thanh trên), Kế toán → Đơn chờ xác nhận, Tài xế → Chuyến hôm nay, Nhân sự → Thêm tài khoản. Số chạm đo thật ở `so-lieu/hanh-trinh-390.json` (H-HANH-TRINH).
+- **Không quá 2 chạm tới việc hằng ngày**: Bán hàng → Tạo đơn (1 chạm từ Trang chủ hoặc nút ở thanh trên), Kế toán → Đơn chờ xác nhận và Sổ công nợ (hiện phải qua Tôi → Của tôi, H-DIEU-HUONG), Tài xế → Chuyến hôm nay, Nhân sự → Thêm tài khoản. Số chạm đo thật ở `so-lieu/hanh-trinh-390.json` (H-HANH-TRINH).
+- **Thanh tab điện thoại luôn 4–5 mục** cho mọi bộ quyền (hiện từ 2 đến 6 — H-DIEU-HUONG, C-TABBAR-6): bộ ít trang (HDV, Nhân sự) bù bằng mục "Hỗ trợ" và "Hướng dẫn" thay vì để 2 mục rộng 195 px; bộ nhiều trang (Quản trị, Toàn quyền) gom "Dịch vụ" và "Tài khoản" vào "Thiết lập" để còn 5. Trang không thuộc tab nào sáng mục **cha theo nhóm thanh bên** (Điều phối, Xe → nhóm Vận chuyển → mục "Đơn hàng"? không: mục gần nhất theo `THANH_TAB`; nếu không có thì **không sáng mục nào**, không mượn "Tôi").
+- **Một hành động chính có đúng một lối trên mỗi màn** (H-NUT-CHINH-TRUNG): ở máy tính là nút ở thanh trên (giữ A2), ở điện thoại là nút "+" thanh tab hoặc chân dính; không lặp thêm nút cùng tên trong thân trang hay thanh bên.
+- **Dải trên trang tối đa một dải** (H-DAI-TREN, C-TRANG-CHU-DAI-DE): bảo trì > thông báo quan trọng > nhắc bảo mật hai lớp theo thứ tự ưu tiên; dải cao một dòng (44 px) với nút "Xem" mở bảng trượt đọc đủ; sau khi bấm "Đã hiểu" hay đóng thì nhớ theo phiên; không hiện dải nhắc bảo mật khi đang ở biểu mẫu (Tạo đơn, Tạo chuyến). Ô tìm nổi của Trang chủ không được đè dải.
+- **Không có nút nổi đè nội dung** (H-FAB): "Trợ lý" chuyển thành một biểu tượng ở thanh trên (cạnh chuông) ở cả hai khổ; nếu chủ muốn giữ nút nổi thì trang phải chừa đệm đáy 72 px và nút tự ẩn khi có chân dính hay bảng trượt mở — **câu hỏi gom số 4** ở `LO-TRINH.md`.
 
 ## 2. Đúng năm khuôn trang, mỗi khuôn có vùng cố định (mặt 2)
 
@@ -32,7 +36,7 @@ Mọi trang trong `PAGES` xếp vào đúng một khuôn (bảng trang × họ �
 | **Bảng điều khiển** | **Trang chủ** (theo vai), **Điều phối xe**, Trang đầu tài xế, Lịch xe bận, Sổ công nợ, Hoa hồng, Khoá sổ tháng, Bảng kê xe thuê | dải chào (Trang chủ) hoặc tiêu đề + chọn ngày/kỳ | ô tìm / chọn ngày | lưới ô số liệu → khối việc hôm nay → lối tắt | không có | 2 cột ≥ 1200 (giữ), nhưng Trang chủ bỏ mốc 1400 riêng |
 | **Thiết lập** | **Dịch vụ**, **Giao diện công ty**, Địa điểm, 2 loại giấy tờ, Chính sách điều phối, Điều kiện xuất bến, Lý do điều phối, Bảng giá xe, Người bán, Trợ lý, Gửi thông báo, Tôi, Hướng dẫn, Đăng nhập | tiêu đề + nút "+ Thêm" | thanh tìm (nếu > 20 mục) | danh sách thẻ/bảng hoặc nhóm công tắc; Tôi = nhóm dòng liên kết | nút "Lưu" nếu là trang công tắc | một cột tối đa 900 |
 
-Luật chung cho cả năm khuôn: hành động chính **luôn** ở một trong hai chỗ — góc phải đầu trang (máy tính, danh sách/thiết lập) hoặc chân dính (điện thoại, chi tiết/biểu mẫu); không đặt nút chính giữa thân. Trạng thái **rỗng / ít / nhiều / đang tải / lỗi / mất mạng / không quyền** là bắt buộc của mỗi khuôn (mục 3). Phát hiện tương ứng: H-DAU-TRANG, H-DINH, H-TAI-RONG, bảng D và C của `tong-hop.md`.
+Luật chung cho cả năm khuôn: hành động chính **luôn** ở một trong hai chỗ — góc phải đầu trang (máy tính, danh sách/thiết lập) hoặc chân dính (điện thoại, chi tiết/biểu mẫu); không đặt nút chính giữa thân. **Biểu mẫu thêm mới không đứng trước danh sách** (H-TIM-LOC, C-STAFF-FORM-TRUOC, C-DANH-BA-LOC-390): danh sách là mục đích của trang nên thấy ngay ở màn đầu; "Thêm" mở bảng trượt (điện thoại) hoặc trang/ngăn riêng (máy tính); bộ lọc nhiều ô gập lại sau nút "Lọc" với chip đang lọc hiện dưới ô tìm (mẫu Đơn hàng). Ở khổ ≥ 900 danh sách là **bảng cột** (H-DANH-SACH-BANG), nội dung rộng tối đa 1280 căn giữa. Trạng thái **rỗng / ít / nhiều / đang tải / lỗi / mất mạng / không quyền** là bắt buộc của mỗi khuôn (mục 3). Phát hiện tương ứng: H-DAU-TRANG, H-DINH, H-TAI-RONG, bảng D và C của `tong-hop.md`.
 
 ## 3. Thành phần dùng chung và trạng thái (mặt 3–7)
 
@@ -41,7 +45,8 @@ Mỗi thành phần: **một tên lớp gốc + biến thể bằng thuộc tín
 | Thành phần (gộp từ) | Bình thường | Rê chuột | Focus | Tắt | Lỗi | Đang tải | Rỗng | Phát hiện |
 |---|---|---|---|---|---|---|---|---|
 | Nút 3 cấp × 2 cỡ (gộp ≈ 48 kiểu) | ✔ | ✔ (chỉ `hover: hover`) | ✔ vành 3px `--c-focus` | ✔ xám phẳng, không opacity | — | ✔ vòng quay trong nút | — | H-NUT |
-| Tab (gộp 8 kiểu) | ✔ | ✔ | ✔ | — | — | — | — | H-TAB |
+| Tab (gộp 8 kiểu từ mã, 11 kiểu thấy trên màn hình) | ✔ | ✔ | ✔ | — | — | — | — | H-TAB |
+| Nút nổi (chỉ nếu chủ giữ "Trợ lý" dạng nổi; mặc định: vào thanh trên) | ✔ 56, góc phải, đệm đáy 72 cho trang | ✔ | ✔ | — | — | — | — | H-FAB |
 | Ô nhập: chữ, số, tiền, SĐT, ngày, giờ, chọn, nhiều dòng (gộp 16/17 px, 46/44/52) | ✔ 16px, cao 44 (52 ở chân dính) | — | ✔ | ✔ | ✔ viền đỏ + câu dưới ô + cách sửa | — | — | H-O-NHAP |
 | Nhãn ô: luôn thấy, 14/500 màu chữ; "(tuỳ chọn)" ghi sau nhãn; bắt buộc không dùng dấu * | ✔ | — | — | — | — | — | — | H-O-NHAP |
 | Ô tích, ô chọn một, công tắc (gộp 6 cách) | ✔ | ✔ | ✔ | ✔ | ✔ | — | — | H-O-NHAP |
@@ -71,7 +76,7 @@ Giữ nguyên và nhân rộng (ba màn mới nhất tốt hơn phần còn lạ
 - **Chỉ ba mốc**: 640 (≤ 640 = điện thoại: thanh tab, chân dính, bảng trượt, một cột), 900 (≥ 900 = bảng thay thẻ, hai cột chi tiết/biểu mẫu, ô tìm lên thanh trên), 1200 (≥ 1200 = ba cột điều phối, hai cột Trang chủ). Bỏ 720/1024 (Sổ công nợ), 959/960 (Tạo đơn), 1400 (Trang chủ), và sửa khối `(min-width: 640px)` lệch 1 px (H-MOC). 768 (iPad dọc) rơi vào 641–899: thanh bên thu gọn (chỉ biểu tượng, 56px) + thẻ; 1440 rơi vào ≥ 1200: nội dung rộng tối đa 1280 căn giữa, không kéo giãn bảng.
 - Điện thoại: vùng chạm ≥ 44 (đo thật: cột "vùng chạm < 44" bảng B1 `tong-hop.md`, H-CHAM-44); ô gõ 16px; thanh dính đáy chừa `safe-area`; bảng trượt từ đáy; không tràn ngang (H-TRAN); chữ cắt bằng "…" chỉ ở tiêu đề thanh trên, không ở số tiền hay tên khách.
 - Máy tính: mọi việc làm được bằng Tab + Enter + Esc (đo: cột "focus thấy (Tab)" bảng B2, H-FOCUS); rê chuột chỉ thêm, không bắt buộc; phím tắt tối thiểu: `/` vào ô tìm, `Esc` đóng bảng trượt, `N` tạo mới ở trang danh sách (MỚI, chờ duyệt).
-- Cùng từ vựng ở hai khổ: nhãn nút, tên mục, câu trạng thái không đổi theo khổ (chỉ bố cục đổi).
+- Cùng từ vựng ở hai khổ: nhãn nút, tên mục, câu trạng thái không đổi theo khổ (chỉ bố cục đổi). **Tiền ghi một cách** "1.080.000 ₫" ở mọi khổ (H-TIEN-KHO); nếu thẻ 390 không đủ chỗ thì xuống dòng riêng, không viết "1,08tr". Số khách ghi "2 NL · 1 TE" với chú thích một lần ở đầu danh sách hoặc ghi đủ "2 người lớn, 1 trẻ em" ở chi tiết (H-VIET-TAT). Tên khách không bị cắt dưới 20 ký tự ở 390: huy hiệu xuống dòng hai, không chiếm chỗ dòng tên (H-CAT-CHU).
 
 ## 5. Từ vựng trạng thái (mặt 5)
 
@@ -154,3 +159,8 @@ Bộ (a) "Tour Đảo Booking Design System" (dựng từ `app.css` tháng 9); b
 2. Chế độ mật độ bảng (gọn/thoáng) — thêm một núm ở Giao diện công ty (ADR-0087 mở rộng).
 3. Khung tải (H-GOI): tách gói chung bằng esbuild `--splitting`, chỉ nạp sẵn khung + trang đầu theo vai thay vì cả 47 trang, thêm `modulepreload`/Speculation Rules/View Transitions — không đổi kiến trúc nhưng đổi cách phát hành và service worker (ADR-0035) → **cần ADR nhỏ** với số đo trước/sau ở `LO-TRINH.md`.
 4. Nhật ký thay đổi trên trang Hướng dẫn (65 màn) — giữ bao nhiêu phiên bản (C-HUONG-DAN).
+5. Nút nổi "Trợ lý" (H-FAB): đưa vào thanh trên (đề xuất) hay giữ nổi có đệm — chạm quyết định ADR-0066/0084 về Trợ lý.
+6. Ô nhãn nổi của Tạo đơn (quyết định 13/10): đổi về nhãn trên ô cho thống nhất (đề xuất) hay giữ.
+7. Cách đếm "thanh bên trần 10 mục" (PROMPT mục 5): Toàn quyền hiện 28 mục khi đếm hết, 14 khi đếm nhóm gập là một.
+
+Bảy điều trên gom thành **câu hỏi gom** ở `LO-TRINH.md` mục 5; ba điều đầu đã lên `BAO-CAO.md`.

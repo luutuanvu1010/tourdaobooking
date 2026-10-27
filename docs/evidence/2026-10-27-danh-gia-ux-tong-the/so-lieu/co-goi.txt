@@ -1,0 +1,111 @@
+tệp                            thô     gzip
+help.js                        364888    84577
+order.js                       320571    98590
+order-form.js                  200141    64678
+account.js                     176642    55512
+chuyen.js                      171464    51944
+cuoc-chuyen.js                 136129    42218
+parties.js                     133921    41944
+dieu-phoi.js                   131880    41727
+hoa-hong.js                    124800    38337
+feedback.js                    116908    37935
+home.js                        107692    34228
+staff.js                       107384    33091
+chinh-sach-dieu-phoi.js        104642    32398
+catalog.js                     103264    32645
+audit.js                        97744    28575
+orders.js                       96683    31532
+tro-ly-cai-dat.js               95599    30043
+bang-gia-xe.js                  94598    29945
+chuyen-sua.js                   92985    29795
+giao-dien.js                    91687    29377
+xe-chi-tiet.js                  91141    29199
+lich-xe-ban.js                  88674    28612
+sessions.js                     87774    27583
+nguoi-ban.js                    87302    28071
+de-nghi.js                      85605    27509
+xe-sua.js                       84788    26950
+bang-ke-xe.js                   83546    26916
+dieu-kien-xuat-ben.js           83356    26625
+ly-do-dieu-phoi.js              82993    26540
+dieu-chinh-cong-no.js           82662    26528
+so-cong-no.js                   82491    26537
+giay-to-sap-het-han.js          81966    26125
+ban.js                          81911    26271
+gui-thong-bao.js                81470    25964
+khoa-thang.js                   80657    25799
+loai-giay-to-xe.js              80308    25636
+xe.js                           80236    25842
+loai-giay-to-nguoi.js           80112    25516
+cuoc.js                         79931    25626
+locations.js                    79144    25063
+chup-bu.js                      78323    25047
+xe-dang-chay.js                 78099    25019
+login.js                        78088    26141
+tai-xe.js                       77926    24895
+cho-xac-nhan.js                 77239    24763
+app.css                        426455    90154
+sw.js                            4992     1821
+--- phông ---
+OFL-be-vietnam-pro.txt           4397
+be-vietnam-pro-400.woff2        27048
+be-vietnam-pro-500.woff2        28376
+be-vietnam-pro-600.woff2        28464
+be-vietnam-pro-700.woff2        28904
+be-vietnam-pro-800.woff2        29024
+lexend-400.woff2                15720
+lexend-500.woff2                16412
+lexend-600.woff2                16380
+lexend-700.woff2                16288
+noto-sans-400.woff2             16684
+noto-sans-500.woff2             17460
+noto-sans-600.woff2             17624
+noto-sans-700.woff2             17304
+nunito-400.woff2                18148
+nunito-500.woff2                18188
+nunito-600.woff2                18352
+nunito-700.woff2                17844
+tổng phông byte: 352617
+--- phông app.css khai @font-face ---
+18
+fonts/be-vietnam-pro-400.woff2
+fonts/be-vietnam-pro-500.woff2
+fonts/be-vietnam-pro-600.woff2
+fonts/be-vietnam-pro-700.woff2
+fonts/be-vietnam-pro-800.woff2
+fonts/lexend-400.woff2
+fonts/lexend-500.woff2
+fonts/lexend-600.woff2
+fonts/lexend-700.woff2
+fonts/noto-sans-400.woff2
+fonts/noto-sans-500.woff2
+fonts/noto-sans-600.woff2
+fonts/noto-sans-700.woff2
+fonts/nunito-400.woff2
+fonts/nunito-500.woff2
+fonts/nunito-600.woff2
+fonts/nunito-700.woff2
+--- HTML: preload/prefetch/speculationrules/view-transition/modulepreload ---
+       0
+       0
+       0
+       0
+0
+--- HTML cỡ ---
+  110235 total
+--- script tag mỗi HTML (defer/module) ---
+   1 <script type="module" src="/js/xe.js">
+   1 <script type="module" src="/js/xe-sua.js">
+   1 <script type="module" src="/js/xe-dang-chay.js">
+   1 <script type="module" src="/js/xe-chi-tiet.js">
+   1 <script type="module" src="/js/tro-ly-cai-dat.js">
+   1 <script type="module" src="/js/tai-xe.js">
+   1 <script type="module" src="/js/staff.js">
+   1 <script type="module" src="/js/so-cong-no.js">
+   1 <script type="module" src="/js/sessions.js">
+   1 <script type="module" src="/js/parties.js">
+   1 <script type="module" src="/js/orders.js">
+   1 <script type="module" src="/js/order.js">
+--- thẻ link css mỗi HTML ---
+  47 <link rel="stylesheet" href="/giao-dien.css">
+  47 <link rel="stylesheet" href="/app.css">
