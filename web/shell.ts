@@ -372,7 +372,7 @@ export function setBarTitle(text: string): void {
 export async function initShell(): Promise<Staff> {
   registerServiceWorker();
   // Nút lùi (history.back) phục hồi trang từ bộ đệm lùi/tiến NGUYÊN TRẠNG, kể cả chấm đỏ vẽ lúc chưa xem /help (tiền lệ: pageshow ở order-form.ts).
-  // Trang được phục hồi mà nay đã xem bản mới nhất ⇒ gỡ mọi chấm "Có bản mới" của Trợ giúp (tab Tôi, dòng ở trang Tôi, menu máy tính).
+  // Trang được phục hồi mà nay đã xem bản mới nhất ⇒ gỡ mọi chấm "Có bản mới" của Hướng dẫn (tab Tôi, dòng ở trang Tôi, menu máy tính).
   window.addEventListener("pageshow", (e) => {
     if (e.persisted && !helpHasNews()) for (const dot of document.querySelectorAll(".new-dot")) dot.remove();
   });
@@ -495,6 +495,14 @@ export async function initShell(): Promise<Staff> {
   void ganTroLy(staff);
   void ganDaiNhacHaiLop(staff.id); // ADR-0074: dải nhắc bật bảo mật hai lớp — hỏi nền, không chặn khung
   return staff;
+}
+
+/**
+ * Ẩn / hiện thanh tab dưới đáy (điện thoại). Trang Hỗ trợ ẩn nó khi mở một yêu cầu toàn màn để ô trả lời dính đáy không chồng lên; mọi đường đóng
+ * (nút quay lại, Esc, nút «‹») phải gọi lại với `true`. Chỉ đổi lớp `tabbar-an` của body; luật CSS nằm ở khối điện thoại của app.css.
+ */
+export function datThanhTab(hien: boolean): void {
+  document.body.classList.toggle("tabbar-an", !hien);
 }
 
 export function showError(el: HTMLElement, message: string | null): void {

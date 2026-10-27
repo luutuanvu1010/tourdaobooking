@@ -1,8 +1,9 @@
-// Kiểm trang Trợ giúp + chấm đỏ bằng Chrome thật (môi trường A2: D1 tạm + wrangler dev + Chrome headless qua CDP). KHÔNG cần mạng ngoài.
+// 2026-10-27: phần kiểm trang Hỗ trợ (/feedback) của kịch bản này THAY BẰNG docs/evidence/2026-10-27-ho-tro-thiet-ke-lai/kich-ban/ho-tro-smoke.mjs; các phần khác còn dùng. KHÔNG chạy lại phần /feedback (chữ cũ «Hàng đợi nhóm», «Quản lý nhóm», «Trợ giúp»).
+// Kiểm trang Hướng dẫn + chấm đỏ bằng Chrome thật (môi trường A2: D1 tạm + wrangler dev + Chrome headless qua CDP). KHÔNG cần mạng ngoài.
 // Chạy từ GỐC repo: npm run build:web && CHROME_BIN=docs/evidence/2026-09-20-a2/kich-ban/chrome-wrap.sh node docs/evidence/2026-09-23-nhat-ky-thay-doi/kich-ban/help-smoke.mjs
 //   a  mỗi quyền (SALES, ACCOUNTING, ADMIN, FIELD) mở /help: đúng dòng phiên bản, đủ số bản, bản đầu là bản mới nhất, nút Góp ý đúng đích
-//   b  máy tính 1040: thanh điều hướng dọc (#sidebar, nhóm TÔI) có "Trợ giúp"; điện thoại 390: trang Tôi có dòng "Trợ giúp"; thanh tab của SALES không thêm tab
-//   c  chấm đỏ: chưa xem ⇒ có ở tab Tôi + dòng Trợ giúp (chấm đứng ngay sau chữ, ≤ 16px); mở /help ⇒ tắt; lưu bản cũ ⇒ hiện lại; lưu rác ⇒ hiện; localStorage ném lỗi ⇒ không chấm, không lỗi
+//   b  máy tính 1040: thanh điều hướng dọc (#sidebar, nhóm TÔI) có "Hướng dẫn"; điện thoại 390: trang Tôi có dòng "Hướng dẫn"; thanh tab của SALES không thêm tab
+//   c  chấm đỏ: chưa xem ⇒ có ở tab Tôi + dòng Hướng dẫn (chấm đứng ngay sau chữ, ≤ 16px); mở /help ⇒ tắt; lưu bản cũ ⇒ hiện lại; lưu rác ⇒ hiện; localStorage ném lỗi ⇒ không chấm, không lỗi
 //   d  console sạch, không lỗi CSP; vùng chạm ≥ 44px, không tràn ngang ở 390 và 320 trên /help
 //   f  hướng dẫn theo vai (30/9): SALES / ACCOUNTING / FIELD / ADMIN thấy đúng nhóm; chỉ Quản trị có "Hướng dẫn các vai khác"; mở hết mục ở 320 không tràn
 //   e  mất mạng (CDP giả lập offline, sau khi service worker đã lưu trang): tải lại /help vẫn đủ nhật ký + đúng dòng phiên bản (nhật ký vẽ TRƯỚC initShell)
@@ -47,11 +48,11 @@ const goto = async (p, path) => {
   await p.waitFor("document.readyState === 'complete'", `trang ${path} tải xong`);
 };
 const dots = (p) => p.ev(`({ tab: !!${q("#tabbar a[href='/account'] .new-dot")}, link: !!${q("#links a[href='/help'] .new-dot")}, nav: !!${q("#sidebar a[href='/help'] .new-dot")} })`);
-// Khoảng cách ngang (px) từ cuối chữ "Trợ giúp" tới chấm đỏ trong dòng ở trang Tôi (đo chữ bằng Range, không đo cả thẻ a).
+// Khoảng cách ngang (px) từ cuối chữ "Hướng dẫn" tới chấm đỏ trong dòng ở trang Tôi (đo chữ bằng Range, không đo cả thẻ a).
 const dotGap = (p) =>
   p.ev(`(() => {
     const a = ${q("#links a[href='/help']")};
-    const t = [...a.childNodes].find((n) => n.nodeType === 3 && n.textContent.trim() === 'Trợ giúp');
+    const t = [...a.childNodes].find((n) => n.nodeType === 3 && n.textContent.trim() === 'Hướng dẫn');
     const r = document.createRange();
     r.selectNodeContents(t);
     return Math.round(a.querySelector('.new-dot').getBoundingClientRect().left - r.getBoundingClientRect().right);
@@ -70,7 +71,7 @@ try {
       const p = await env.as(ACCOUNTS[key], "/help", M);
       try {
         await p.waitFor(`${q("#changelog")}?.children.length > 0`, `nhật ký hiện (${key})`, 10000);
-        assert.equal(await p.ev(`${q("h1")}.textContent`), "Trợ giúp", key);
+        assert.equal(await p.ev(`${q("h1")}.textContent`), "Hướng dẫn", key);
         assert.equal(await p.ev(`${q("#release")}.textContent`), `${APP_NAME} · ${formatReleaseLine()}`, key);
         assert.equal(await p.ev(`document.querySelectorAll('.release-note').length`), CHANGELOG.length, key);
         assert.match(await p.ev(`${q(".release-note h3")}.textContent`), new RegExp(`^Phiên bản ${CHANGELOG[0].version.replace(".", "\\.")} — `), key);
@@ -85,15 +86,15 @@ try {
   await step("b", "đường vào: menu máy tính, dòng ở trang Tôi, thanh tab không thêm tab", async () => {
     const d = await env.as(ACCOUNTS.salesA, "/", DESK);
     try {
-      await d.waitFor(`!!${q("#sidebar a[href='/help']")}`, "menu có Trợ giúp", 10000);
-      assert.equal((await d.ev(`${q("#sidebar a[href='/help']")}.textContent`)).trim().startsWith("Trợ giúp"), true);
+      await d.waitFor(`!!${q("#sidebar a[href='/help']")}`, "menu có Hướng dẫn", 10000);
+      assert.equal((await d.ev(`${q("#sidebar a[href='/help']")}.textContent`)).trim().startsWith("Hướng dẫn"), true);
       await d.shot(join(OUT, "anh/b-menu-may-tinh-1040.png"));
     } finally {
       d.close();
     }
     const p = await env.as(ACCOUNTS.salesA, "/account", M);
     try {
-      await p.waitFor(`!!${q("#links a[href='/help']")}`, "trang Tôi có dòng Trợ giúp", 10000);
+      await p.waitFor(`!!${q("#links a[href='/help']")}`, "trang Tôi có dòng Hướng dẫn", 10000);
       assert.deepEqual(await p.ev(`[...document.querySelectorAll('#tabbar .tab')].map((a) => a.textContent.trim())`), ["Trang chủ", "Đơn hàng", "Tạo đơn", "Tôi"]);
     } finally {
       p.close();
@@ -105,27 +106,27 @@ try {
     try {
       await p.ev("localStorage.clear(), true");
       await reload(p);
-      await p.waitFor(`!!${q("#links a[href='/help']")}`, "dòng Trợ giúp hiện", 10000);
+      await p.waitFor(`!!${q("#links a[href='/help']")}`, "dòng Hướng dẫn hiện", 10000);
       assert.deepEqual(await dots(p), { tab: true, link: true, nav: true }, "chưa xem ⇒ có chấm");
       const gap = await dotGap(p);
-      assert.ok(gap >= 0 && gap <= 16, `chấm đỏ phải đứng ngay sau chữ "Trợ giúp" (khoảng cách ${gap}px, cho phép 0–16px)`);
+      assert.ok(gap >= 0 && gap <= 16, `chấm đỏ phải đứng ngay sau chữ "Hướng dẫn" (khoảng cách ${gap}px, cho phép 0–16px)`);
       await p.shot(join(OUT, "anh/c-cham-do-390.png"));
       await goto(p, "/help");
       assert.equal(await p.ev("localStorage.getItem('td_help_seen')"), CHANGELOG[0].version);
       assert.equal(await p.ev(`!!${q(".release-note .badge-new")}`), true, "chưa từng xem ⇒ bản mới nhất có nhãn Mới cập nhật");
       await goto(p, "/account");
-      await p.waitFor(`!!${q("#links a[href='/help']")}`, "dòng Trợ giúp hiện", 10000);
+      await p.waitFor(`!!${q("#links a[href='/help']")}`, "dòng Hướng dẫn hiện", 10000);
       assert.deepEqual(await dots(p), { tab: false, link: false, nav: false }, "đã xem ⇒ tắt");
       for (const stored of [CHANGELOG[1]?.version ?? "0.9", "rác"]) {
         await p.ev(`localStorage.setItem('td_help_seen', ${JSON.stringify(stored)}), true`);
         await reload(p);
-        await p.waitFor(`!!${q("#links a[href='/help']")}`, "dòng Trợ giúp hiện", 10000);
+        await p.waitFor(`!!${q("#links a[href='/help']")}`, "dòng Hướng dẫn hiện", 10000);
         assert.deepEqual(await dots(p), { tab: true, link: true, nav: true }, `lưu "${stored}" ⇒ có chấm`);
       }
-      // Nút lùi: Tôi (có chấm) → bấm dòng Trợ giúp → /help → bấm nút lùi ở thanh đầu (history.back) ⇒ trang Tôi phục hồi từ bộ đệm lùi/tiến, chấm phải tắt.
+      // Nút lùi: Tôi (có chấm) → bấm dòng Hướng dẫn → /help → bấm nút lùi ở thanh đầu (history.back) ⇒ trang Tôi phục hồi từ bộ đệm lùi/tiến, chấm phải tắt.
       await p.ev("(window.__trangCu = true)");
       await p.ev(`${q("#links a[href='/help']")}.click(), true`);
-      await p.waitFor(`location.pathname === '/help' && ${q("#changelog")}?.children.length > 0 && !!${q(".bar-back")}`, "đã sang /help qua dòng Trợ giúp", 10000);
+      await p.waitFor(`location.pathname === '/help' && ${q("#changelog")}?.children.length > 0 && !!${q(".bar-back")}`, "đã sang /help qua dòng Hướng dẫn", 10000);
       assert.equal(await p.ev("localStorage.getItem('td_help_seen')"), CHANGELOG[0].version, "mở /help ⇒ đã đánh dấu xem");
       await p.ev(`${q(".bar-back")}.click(), true`);
       await p.waitFor(`location.pathname === '/account' && document.readyState === 'complete' && !!${q("#links a[href='/help']")}`, "nút lùi về trang Tôi", 10000);
@@ -140,7 +141,7 @@ try {
       const c = await env.login(ACCOUNTS.salesA);
       await b.send("Network.setCookie", { name: c.name, value: c.value, url: env.base, httpOnly: true });
       await goto(b, "/account");
-      await b.waitFor(`!!${q("#links a[href='/help']")}`, "dòng Trợ giúp hiện dù localStorage bị chặn", 10000);
+      await b.waitFor(`!!${q("#links a[href='/help']")}`, "dòng Hướng dẫn hiện dù localStorage bị chặn", 10000);
       assert.deepEqual(await dots(b), { tab: false, link: false, nav: false }, "bị chặn ⇒ không chấm");
       await goto(b, "/help");
       await b.waitFor(`${q("#changelog")}?.children.length > 0`, "nhật ký vẫn hiện khi localStorage bị chặn", 10000);

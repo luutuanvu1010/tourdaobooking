@@ -78,7 +78,7 @@ const SHAPES = {
     ["path", { d: "M12 9v4h-1" }],
     ["path", { d: "M9 16c1.7 1.3 4.3 1.3 6 0" }],
   ],
-  // Mục "Trợ giúp" của thanh điều hướng dọc: vòng tròn + dấu hỏi.
+  // Mục "Hướng dẫn" của thanh điều hướng dọc: vòng tròn + dấu hỏi.
   help: [
     ["circle", { cx: 12, cy: 12, r: 8.5 }],
     ["path", { d: "M9.6 9.6a2.5 2.5 0 0 1 4.8 1c0 1.7-2.4 2.2-2.4 3.6" }],

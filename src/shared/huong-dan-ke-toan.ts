@@ -23,13 +23,13 @@ Thanh menu dọc bên trái có:
 - Nhóm VẬN CHUYỂN: [[Điều phối xe]], [[Xe đang chạy]], [[Giá & chi phí]].
 - Nhóm TIỀN: [[Điều chỉnh công nợ]], [[Khoá sổ tháng]].
 - Nhóm THIẾT LẬP (bấm để mở, thu gọn): [[Hoa hồng đối tác]], [[Người bán dịch vụ]], [[Chụp bù mức]].
-- Chân menu: [[Của tôi]], [[Hỗ trợ]], [[Trợ giúp]].
+- Chân menu: [[Của tôi]], [[Hỗ trợ]], [[Hướng dẫn]].
 
 Ô tìm kiếm trên đầu trang: gõ mã đơn, tên khách hoặc số điện thoại rồi bấm Enter.
 
 ### Trên điện thoại
 
-Thanh tab dưới đáy có [[Trang chủ]], [[Đơn hàng]] và [[Tôi]]. Các mục khác như [[Danh bạ]], [[Điều phối xe]], [[Điều chỉnh công nợ]], [[Hỗ trợ]], [[Trợ giúp]] nằm trong trang [[Tôi]].
+Thanh tab dưới đáy có [[Trang chủ]], [[Đơn hàng]] và [[Tôi]]. Các mục khác như [[Danh bạ]], [[Điều phối xe]], [[Điều chỉnh công nợ]], [[Hỗ trợ]], [[Hướng dẫn]] nằm trong trang [[Tôi]].
 
 > Lưu ý: Bạn không thấy nút [[Tạo đơn]]. Đó là đúng, vì Kế toán không lập đơn.`,
     },

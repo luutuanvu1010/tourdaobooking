@@ -21,7 +21,7 @@
 
 ## Vì sao có quy trình này
 
-- **Số phiên bản đi theo nhật ký.** Số phiên bản không nằm rời ở đâu cả. Nó lấy từ **mục đầu tiên của nhật ký thay đổi**. Thêm một mục mới thì mọi chỗ hiện "Phiên bản…" đều đổi theo: màn đăng nhập, trang Trợ giúp, thông tin máy chủ gửi ra. Chấm đỏ "có bản mới" cũng hiện cho nhân viên. Trước đây số phiên bản đứng yên ở 1.0 qua 9 lần phát hành, vì không có bước nào nhắc phải đổi.
+- **Số phiên bản đi theo nhật ký.** Số phiên bản không nằm rời ở đâu cả. Nó lấy từ **mục đầu tiên của nhật ký thay đổi**. Thêm một mục mới thì mọi chỗ hiện "Phiên bản…" đều đổi theo: màn đăng nhập, trang Hướng dẫn, thông tin máy chủ gửi ra. Chấm đỏ "có bản mới" cũng hiện cho nhân viên. Trước đây số phiên bản đứng yên ở 1.0 qua 9 lần phát hành, vì không có bước nào nhắc phải đổi.
 - **AI không được tự đẩy code lên GitHub hay tự phát hành** (luật dự án). Hai việc này luôn do bạn gõ lệnh, để mọi thay đổi lên hệ thống thật đều qua tay bạn.
 - **Hai lệnh `day-len` và `trien-khai` tự kiểm và tự dừng** khi có gì sai. Nhờ vậy không bỏ sót bước nào và không lỗi do quên. Hai lệnh chỉ chạy trong **ứng dụng Terminal của macOS**. Gõ qua Claude thì lệnh tự từ chối.
 
@@ -168,7 +168,7 @@ Gõ `c` khi được hỏi.
 
 ## Sau khi phát hành
 
-- Số phiên bản mới hiện ở **màn đăng nhập** và **trang Trợ giúp**. Nhân viên thấy **chấm đỏ** ở mục Trợ giúp cho tới khi mở trang đó.
+- Số phiên bản mới hiện ở **màn đăng nhập** và **trang Hướng dẫn**. Nhân viên thấy **chấm đỏ** ở mục Hướng dẫn cho tới khi mở trang đó.
 - Nhân viên có thể phải **mở lại app một lần** mới thấy bản mới, vì app trên điện thoại giữ bản cũ trong bộ nhớ đệm.
 - Nếu **chế độ bảo trì đang bật**, nhân viên chỉ thấy bản mới sau khi tắt bảo trì. Lệnh phát hành không đụng tới chế độ bảo trì.
 

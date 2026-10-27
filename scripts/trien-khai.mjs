@@ -11,5 +11,5 @@ if (process.argv.slice(2).filter((a) => a !== "--").length) {
   log("Dùng: npm run trien-khai (không nhận tham số)");
   process.exit(1);
 }
-// Số phiên bản ở máy đọc từ cùng nguồn với trang Trợ giúp (mục đầu nhật ký thay đổi), như scripts/kiem-phien-ban.mjs; lib giữ thuần.
+// Số phiên bản ở máy đọc từ cùng nguồn với trang Hướng dẫn (mục đầu nhật ký thay đổi), như scripts/kiem-phien-ban.mjs; lib giữ thuần.
 process.exitCode = await trienKhai({ run, ask, isTTY, log, version: APP_VERSION });

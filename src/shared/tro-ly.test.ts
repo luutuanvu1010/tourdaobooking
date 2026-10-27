@@ -160,7 +160,7 @@ test("ADR-0084 Đ3: dòng Mai do MÁY CHỦ nối — ĐÚNG MỘT lần, SAU l�
 });
 
 test("ADR-0084: câu hết trần ngày viết 'Ngày mai' — trợ lý tên Mai, chữ 'Mai hỏi tiếp' đọc như tên người", () => {
-  assert.equal(cauHetTranNgay(30), "Bạn đã hỏi đủ 30 câu hôm nay. Ngày mai hỏi tiếp, hoặc xem hướng dẫn ở Trợ giúp.");
+  assert.equal(cauHetTranNgay(30), "Bạn đã hỏi đủ 30 câu hôm nay. Ngày mai hỏi tiếp, hoặc xem trang Hướng dẫn.");
 });
 
 test("ADR-0084 Đ3: kiểm trần tính CẢ dòng Mai — tên gọi dài hơn ⇒ ước token vào lớn hơn (cùng hàm thân với lần gọi thật)", () => {

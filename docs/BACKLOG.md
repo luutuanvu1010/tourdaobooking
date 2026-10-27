@@ -574,7 +574,7 @@ Ghi 25/10 khi đóng phiên ADR-0133 (bản 2.25 + vá 2.26, migration `0116`). 
   3. **Đợt 3** — bước xác nhận kèm «Gửi đơn» (ADR-0136 đã duyệt 25/10). Trước khi thi công phải sửa kế hoạch theo ADR-0136 (nhật ký thi công, mục «Ruling», dòng 25/10). Migration lấy số kế tiếp sau khi kiểm mọi nhánh.
   4. **Đợt 4** — thư xác nhận kèm QR, thư + tin báo huỷ. Trước tiên kiểm Email Service của Cloudflare có gửi tới địa chỉ khách bên ngoài và có đính kèm ảnh không.
   5. **Đợt 5** — trang Bảng điều khiển của Toàn quyền (ảnh mẫu chủ duyệt trước).
-- **Tiến độ 27/10/2026 (nhánh `claude/xac-nhan-don-thi-cong`, chưa vào `main`):** Đợt 2 và Đợt 3 đã thi công xong về mã (trừ Task 3.3b hoãn, giao diện cài đặt cờ Task 5.1, cảnh báo ở màn gán nhóm — chờ chủ), tài liệu mô tả đã cập nhật (`SYSTEM-DESIGN` §5–§8, §16, `CHANGE-GUIDE` z27 và bẫy 85), nhật ký thay đổi 2.35 (số tạm; 2.34 là của Hoa hồng PR 2). Chờ người kiểm độc lập toàn nhánh (K2), rồi chủ `day-len` + `trien-khai` (có migration `0119`). Nợ kịch bản Chrome cũ nhắc ô «Thanh toán trước»: xem nhật ký thi công mục «Lần giao L7+L8».
+- **Tiến độ 27/10/2026 (nhánh `claude/xac-nhan-don-thi-cong`, chưa vào `main`):** Đợt 2 và Đợt 3 đã thi công xong về mã (trừ Task 3.3b hoãn, giao diện cài đặt cờ Task 5.1, cảnh báo ở màn gán nhóm — chờ chủ), tài liệu mô tả đã cập nhật (`SYSTEM-DESIGN` §5–§8, §16, `CHANGE-GUIDE` z27 và bẫy 85), nhật ký thay đổi 2.36 (số tạm; 2.34 và 2.35 là của Hoa hồng và Hỗ trợ). Chờ người kiểm độc lập toàn nhánh (K2), rồi chủ `day-len` + `trien-khai` (có migration `0119`). Nợ kịch bản Chrome cũ nhắc ô «Thanh toán trước»: xem nhật ký thi công mục «Lần giao L7+L8».
 - **Nợ nhỏ của Đợt 1:** chưa có kịch bản Chrome riêng `chon-don-smoke.mjs`; kịch bản `trang-chu-smoke` và `dieu-phoi-smoke` dừng ở bước kiểm menu (chưa đối chiếu với main để biết có đỏ sẵn); hướng dẫn Bán hàng 3149/3150 chữ, sát trần bài đọc 30 phút.
 - **Việc của chủ (không cần mã):** đổi mốc tối thiểu trước giờ đón từ 360 xuống 30 phút trên trang Chính sách điều phối, nếu vẫn muốn.
 
@@ -582,3 +582,23 @@ Ghi 25/10 khi đóng phiên ADR-0133 (bản 2.25 + vá 2.26, migration `0116`). 
 
 - **Trạng thái:** `đề xuất để sau` (chủ duyệt hướng thiết kế 25/10: chưa làm tồn kho) · Chủ 25/10 nêu ý «phân hệ quản lý tồn kho». Thiết kế 25/10 chọn cờ «cần xác nhận» (người nội bộ kiểm chỗ bằng tay) vì Nền tảng chưa có nguồn số chỗ trống, và ví dụ của chủ (vé Vinpearl kèm buffet) chỉ cần kiểm tay.
 - **Mở lại khi:** có nguồn số chỗ theo ngày (nhà cung cấp gửi, hoặc nhân viên nhập) và chủ muốn Nền tảng tự chặn khi hết chỗ. Khi đó là một phân hệ mới (cạnh phụ thuộc mới, tiền tố bảng mới) — cần ADR riêng.
+
+## 50. Hoa hồng + Hỗ trợ thiết kế lại — việc chờ chủ quyết sau bản 2.35 (mã `BL-HH-HT-…`)
+
+- **Trạng thái:** `chờ chủ quyết` · Chủ 27/10/2026: «ghi những điều tôi cần quyết vào trong backlog, đóng phiên và dọn dẹp». Cả ba phần đã lên production: 2.33 (máy chủ, ADR-0141), 2.34 (giao diện Hoa hồng), 2.35 (giao diện Hỗ trợ). Nghiệm thu độc lập đạt phần chỉ đọc. Phần có đăng nhập chưa thử trên production vì chế độ bảo trì bật tới 30/10.
+- **Hồ sơ:** đặc tả `docs/superpowers/specs/2026-10-25-hoa-hong-ho-tro-thiet-ke-lai/`; sổ điều phối (ruling, nợ đầy đủ) `docs/superpowers/plans/2026-10-25-hoa-hong-ho-tro-thi-cong-nhat-ky.md`.
+
+| Mã | Cần chủ quyết | Khuyến nghị | Nếu để nguyên |
+|---|---|---|---|
+| BL-HH-HT-PHU-KIEM | Bảy ca ẩn/hiện theo quyền trên trang Hỗ trợ không còn kịch bản Chrome canh, vì đã bỏ ba kịch bản cũ. Bảy ca: người ngoài nhóm mở thẳng yêu cầu; Đối tác không có «Gửi tới nhóm»; thành viên thường không có «Giao cho người khác»; yêu cầu bị chuyển nhóm khi đang mở; vòng tự làm mới; người giữ bị khoá; máy tính hiện hai cột. Chi tiết ở sổ điều phối, mục «Nợ PR 3». | Bổ sung vào `ho-tro-smoke`, khoảng 30–45 phút | Máy chủ vẫn chặn đúng, nhưng sửa giao diện sau này có thể làm lộ nút mà không ai hay (dựa vào kỷ luật) |
+| BL-HH-HT-RAO-PYTHON | Hàng rào tệp luật (`guard-tep.mjs`) không chặn việc ghi tệp luật bằng trình thông dịch (python). Một trợ lý đã sửa được `web/CLAUDE.md`, sau đó đã hoàn nguyên và thay đổi không vào commit. | Vá ở một phiên riêng, có quan sát chặn thật rồi ghi vào `docs/SO-HANG-RAO.md` | Tệp luật chỉ được bảo vệ một phần |
+| BL-HH-HT-R37 | Màn Hỗ trợ bỏ bảng thống kê tuần × loại, thay bằng câu «Tuần này …». Dòng «Việc của nhóm» không còn hiện loại yêu cầu. Cả hai đúng theo bản vẽ đã duyệt. | Xác nhận giữ nguyên | Không ảnh hưởng gì |
+| BL-HH-HT-LECH-CHU | Hai chỗ chữ trong quyết định đã duyệt lệch với mã, đã ghi ở `docs/SYSTEM-DESIGN.md` §16. (a) R5: câu ghi «Đổi» dùng `VALUES + CASE` thay cho `INSERT … SELECT`; hai cách cho kết quả như nhau. (b) ADR-0066 điều 6: «xem Trợ giúp» đổi thành «xem Hướng dẫn» theo bảng từ lượt 4. | Ghi nhận, ra dòng lịch sử ADR | Không ảnh hưởng gì |
+| BL-HH-HT-TC5 | Tiêu chí 5 của ADR-0141 không đạt theo nghĩa đen: khi cố ý phá hàm dùng chung, bài `co-the-tim-doi-tac.test.ts` không đỏ, nhưng một bài khác đỏ thay. | Ghi nhận; tuỳ chọn sửa bài cho đỏ đúng chỗ | Lỗi vẫn bị bắt, chỉ ở bài khác |
+
+- **Nợ nhỏ, không cần quyết** (ở sổ điều phối, các mục «Nợ / để sau», «Nợ PR 2», «Nợ PR 3»):
+  - Phép kiểm của ba kịch bản đã đổi chữ «Trợ giúp» → «Hướng dẫn» nhưng chưa chạy lại.
+  - `demTuanNay` tính tuần theo giờ Việt Nam, máy chủ gom theo giờ UTC, nên sát nửa đêm Chủ nhật có thể lệch tới 7 giờ.
+  - `so-dai-ly-smoke` còn 10 bước đỏ có sẵn.
+  - Chưa có «Lịch sử» của từng dòng mức.
+  - Chưa có «Đổi» cho chính sách riêng của đối tác.

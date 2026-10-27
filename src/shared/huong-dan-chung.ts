@@ -92,9 +92,9 @@ Bấm [[Đăng xuất]] ở trang Tôi hoặc dưới cùng menu máy tính. Má
 - [[Máy đang đăng nhập của tôi]] ở trang Tôi ghi các lần đăng nhập gần đây; dòng **Máy này** là máy đang cầm. Thấy lạ thì đổi PIN ngay.`,
     },
     {
-      tieuDe: "Trợ giúp và Hỗ trợ",
-      noiDung: `### Trợ giúp
-Mở [[Trợ giúp]] để đọc hướng dẫn và [[Nhật ký thay đổi]] của từng phiên bản. Khi có bản mới chưa đọc, tab Tôi và mục Trợ giúp có chấm đỏ, bản đó có nhãn [[Mới cập nhật]].
+      tieuDe: "Hướng dẫn và Hỗ trợ",
+      noiDung: `### Hướng dẫn
+Hướng dẫn ở đâu: mục [[Hướng dẫn]] trong menu, có [[Nhật ký thay đổi]] từng phiên bản. Có bản mới chưa đọc thì tab Tôi và Hướng dẫn có chấm đỏ, bản đó có nhãn [[Mới cập nhật]].
 
 ### Gửi góp ý, báo lỗi
 1. Bấm [[Hỗ trợ]].
@@ -117,7 +117,7 @@ Chỉ bạn, nhóm nhận và người phụ trách hệ thống đọc được
 - Trợ lý chỉ biết hướng dẫn và các trang. Nó không xem được đơn, khách hay tiền, và không làm thay bạn.
 - Trả lời do AI, có thể sai: luôn đối chiếu với màn hình.
 - Câu hỏi được lưu để cải thiện trợ lý, chỉ người phụ trách hệ thống đọc được. Đừng gõ thông tin khách. Số điện thoại, email được tự che trước khi lưu và gửi đi.
-- Báo **Trợ lý chưa bật** hoặc **tạm nghỉ tới tháng sau**: đọc Trợ giúp, hoặc hỏi Quản trị.`,
+- Báo **Trợ lý chưa bật** hoặc **tạm nghỉ tới tháng sau**: đọc Hướng dẫn, hoặc hỏi Quản trị.`,
     },
     {
       tieuDe: "Khi Nền tảng đang bảo trì",

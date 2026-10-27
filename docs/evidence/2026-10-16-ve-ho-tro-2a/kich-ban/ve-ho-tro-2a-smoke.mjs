@@ -1,3 +1,4 @@
+// 2026-10-27: phần kiểm trang Hỗ trợ (/feedback) của kịch bản này THAY BẰNG docs/evidence/2026-10-27-ho-tro-thiet-ke-lai/kich-ban/ho-tro-smoke.mjs; các phần khác còn dùng. KHÔNG chạy lại phần /feedback (chữ cũ «Hàng đợi nhóm», «Quản lý nhóm», «Trợ giúp»).
 // Kịch bản Chrome — Vé hỗ trợ đợt 2a (ADR-0127, Việc 5 của docs/superpowers/plans/2026-10-16-ve-ho-tro-dot-2a.md): khung trò chuyện tự làm mới, mức ưu tiên,
 // đơn liên quan, «Giao cho người khác». Khuôn: docs/evidence/2026-10-15-ve-ho-tro/kich-ban/ve-ho-tro-smoke.mjs.
 //   0. Dữ liệu bằng API TRƯỚC khi mở trang (luật một máy ADR-0075): Toàn quyền thêm Kế toán (Thành viên) + Bán hàng Hai (Trưởng nhóm) vào nhóm Kế toán;

@@ -9,7 +9,7 @@
 | 0 | Chủ duyệt hai đặc tả + đề xuất ADR; cấp số ADR, chuyển vào `docs/adr/` | chủ nói «duyệt» | ADR **xong**: ADR-0141 accepted 25/10 («duyệt đề xuất ADR»); hai đặc tả **đã duyệt** 25/10 («duyệt luôn hai đặc tả») |
 | 1 | PR 1 máy chủ | PR gộp + `trien-khai` + kiểm độc lập đạt | **thi công xong 26/10**, 9/9 task; kiểm độc lập cả nhánh ĐẠT CÓ ĐIỀU KIỆN → sửa I2, m1–m3, I3 → kiểm lại ĐẠT; đã gộp `main` (chủ cho phép 26/10); npm test, typecheck, e2e 72/72 xanh. **ĐÃ LÊN PRODUCTION bản 2.33** (26/10 16:22, Worker `bf53dd8e`); nghiệm thu độc lập ĐẠT CÓ ĐIỀU KIỆN — còn chủ/Kế toán thử chỉ-đọc trên production |
 | 2 | PR 2 giao diện Hoa hồng + bảng từ lượt 3 | như trên + chủ duyệt ảnh | **thi công xong 26/10** (4 đợt, mỗi đợt kiểm đạt); kiểm cả nhánh ĐẠT CÓ ĐIỀU KIỆN → sửa (R25 mục đối tác mở được, hướng dẫn Kế toán) → kiểm lại ĐẠT; npm test, typecheck, e2e 72/72, HOA HONG SMOKE OK hai khổ. Chờ chủ duyệt ảnh + `day-len` + `trien-khai` (nhật ký 2.34 tạm) |
-| 3 | PR 3 giao diện Hỗ trợ + bảng từ lượt 4 | như trên + chủ duyệt ảnh | chưa làm |
+| 3 | PR 3 giao diện Hỗ trợ + bảng từ lượt 4 | như trên + chủ duyệt ảnh | **thi công xong 27/10** (4 đợt, ba đợt đầu kiểm đạt; đợt 4 tạm dừng theo lệnh chủ rồi làm tiếp gọn — R46); kiểm cả nhánh ĐẠT CÓ ĐIỀU KIỆN (lỗ phủ kiểm giao diện, xem «Nợ PR 3»); npm test 6256/0, typecheck 0, HO TRO SMOKE OK hai khổ, e2e 72/72 (pwa sau sửa token). Chờ chủ duyệt ảnh + quyết lỗ phủ + `day-len` + `trien-khai` (nhật ký 2.35 tạm) |
 
 ## Ruling (quyết định trong lúc làm)
 
@@ -51,3 +51,22 @@ Sổ chi tiết R10–R25 ở `.superpowers/sdd/2026-10-25-hoa-hong-ho-tro-2-gia
 - `so-dai-ly-smoke` còn 10 bước đỏ có sẵn từ trước PR 1 (4-a/b/c, 5-a/b hai khổ).
 - `src/modules/tro-ly/bang-dieu-khien-route.test.ts` thỉnh thoảng đỏ ngẫu nhiên (khoá thử trùng) — ngoài PR.
 - Bước 2c của `hoa-hong-smoke` gieo dịch vụ tên dài bằng `INSERT` thẳng `catalog_item` trên D1 tạm.
+
+## Ruling của lượt thi công PR 3 (27/10)
+
+Sổ chi tiết R30–R46 ở `.superpowers/sdd/2026-10-25-hoa-hong-ho-tro-3-giao-dien-ho-tro/progress.md`; tóm tắt:
+- R35: thẻ «Việc của nhóm» hiện cho thành viên nhóm HOẶC Toàn quyền (chữ kế hoạch «mine.length > 0» làm Toàn quyền ngoài nhóm mất hàng đợi).
+- R37: bảng thống kê tuần × loại cũ thay bằng câu «Tuần này …» (kế hoạch T2); dòng «Việc của nhóm» không còn hiện loại yêu cầu (đúng bản vẽ).
+- R38: bộ lọc mặc định «Chưa ai nhận» theo bản vẽ; nhãn huy hiệu «N yêu cầu chưa đọc».
+- R39: chip trạng thái / ưu tiên / người xử lý mở hộp trượt (2 lần bấm).
+- R43: cột «Phụ trách» ở bảng nhóm là mô tả nhóm (bản vẽ).
+- R46 (chủ chê chậm): bảy kịch bản cũ chỉ ghi «thay bằng ho-tro-smoke» (không chuyển bước, không chạy lại); bộ kiểm dài chạy một lần.
+- Lệch chữ ADR-0066 điều 6 («xem Trợ giúp» → «xem Hướng dẫn») ghi `docs/SYSTEM-DESIGN.md` §16, chờ chủ ghi nhận.
+
+## Nợ PR 3
+
+- **Lỗ phủ kiểm giao diện (người kiểm cả nhánh I-1, DỰA VÀO KỶ LUẬT — chưa có máy canh):** khi bỏ `ve-ho-tro-smoke`, `ve-ho-tro-2a-smoke`, phần `/feedback` của `dot-c-smoke`, các ca sau không còn kịch bản Chrome nào chạy: (a) người ngoài nhóm mở thẳng yêu cầu ⇒ báo lỗi, không lộ tiêu đề; (b) Đối tác không có ô «Gửi tới nhóm»; (c) thành viên thường không có «Giao cho người khác»; (d) đang mở luồng mà yêu cầu bị chuyển nhóm ⇒ «không còn trong nhóm», ẩn ô trả lời, dừng làm mới; (e) qua vòng tự làm mới: ghi chú nội bộ không tới người gửi, bản nháp giữ, ẩn thẻ trình duyệt thì không gọi; (f) khoá tài khoản người giữ ⇒ «Chưa ai nhận» kèm tên mờ; (g) máy tính 1040: danh sách và luồng cùng hiện. Máy chủ vẫn chặn (a)(b)(c)(e) — bài `src/modules/feedback/*.test.ts` + e2e; phần giao diện chỉ đọc mã thấy đúng.
+- `help-smoke`, `trang-chu-smoke`, `quyen-thieu-quan-tri-smoke` đã đổi chữ «Trợ giúp» → «Hướng dẫn» trong phép kiểm nhưng chưa chạy lại.
+- `demTuanNay` khoá tuần giờ VN, máy chủ gom theo UTC — lệch tới 7 giờ sát nửa đêm Chủ nhật.
+- Danh sách nhóm trong hộp «Gửi yêu cầu» nạp lúc vào trang; công tắc «Nhạy cảm» ở hộp Sửa lưu theo nút Lưu còn ở bảng lưu ngay.
+- Hàng rào tệp luật (`guard-tep.mjs`) không chặn ghi tệp luật bằng trình thông dịch (python): người thi công đợt 3 đã sửa được `web/CLAUDE.md` rồi tự hoàn nguyên (không vào commit) — báo chủ.

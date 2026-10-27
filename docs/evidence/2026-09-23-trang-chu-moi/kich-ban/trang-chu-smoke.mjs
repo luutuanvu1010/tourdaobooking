@@ -1,4 +1,5 @@
 // GHI CHÚ 27/10/2026 (ADR-0135/0136): đỏ từ 27/10: hàm `createAndConfirm` nhận 409 `confirm_request_required` (chặng dưới mốc nay đi qua bước xác nhận / người lập tự đặt gấp trước). Phần xác nhận đơn thay bằng `docs/evidence/2026-10-26-xac-nhan-don/kich-ban/xac-nhan-smoke.mjs`; muốn chạy tiếp phải đặt gấp từng chặng rồi xác nhận lại (chưa sửa, ghi nợ).
+// 2026-10-27: phần kiểm trang Hỗ trợ (/feedback) của kịch bản này THAY BẰNG docs/evidence/2026-10-27-ho-tro-thiet-ke-lai/kich-ban/ho-tro-smoke.mjs; các phần khác còn dùng. KHÔNG chạy lại phần /feedback (chữ cũ «Hàng đợi nhóm», «Quản lý nhóm», «Trợ giúp»).
 // Kịch bản Chrome cho Task 3 ("Trang chủ mới", docs/superpowers/sdd/2026-09-23-trang-chu-moi/task-3-brief.md) — BẰNG CHỨNG HÀNH VI TRÌNH DUYỆT DUY NHẤT
 // cho Trang chủ (nay ở "/"; `npm test`/`test:e2e -- pwa` KHÔNG phủ DOM của web/home.ts, chỉ phủ luật thuần + manifest/service worker). Dùng lại NGUYÊN cơ chế CDP của A2
 // (startEnv()/ACCOUNTS/ok/vnDate từ ../../2026-09-20-a2/kich-ban/a2-cdp.mjs) theo mẫu cấu trúc của ../../2026-09-22-thiet-ke-lai-giao-dien-dot-c/kich-ban/dot-c-smoke.mjs.
@@ -652,7 +653,7 @@ try {
       ["Bán hàng", ["Tạo đơn", "Đơn hàng", "Danh bạ"]],
       ["Quản lý", ["Dịch vụ & giá", "Quản lý tài khoản", "Địa điểm", "Loại giấy tờ cá nhân"]],
       ["Vận chuyển", ["Điều phối xe", "Bảng giá thuê xe", "Bảng kê chi phí xe", "Xe", "Giấy tờ sắp hết hạn", "Loại giấy tờ xe", "Chính sách điều phối", "Lý do điều phối"]], // ADR-0128 Q1 (17/10): Quản trị có «Chính sách điều phối» — kịch bản đỏ sẵn ở đây trước Task 12 sổ đại lý đợt 2 (19/10), sửa theo số đo
-      ["Của tôi", ["Tôi", "Hỗ trợ", "Trợ giúp"]],
+      ["Của tôi", ["Tôi", "Hỗ trợ", "Hướng dẫn"]],
     ], `Hộp Tất cả (máy tính): bốn nhóm đúng quyền Quản trị, có ô Tôi — ${JSON.stringify(hop)}`);
     assert.equal(hop.phu, "18 chức năng theo quyền Quản trị", `Hộp Tất cả (máy tính): dòng phụ — ${JSON.stringify(hop)}`);
     assert.equal(hop.soDon, "1", `Hộp Tất cả (máy tính): huy hiệu Đơn hàng — ${JSON.stringify(hop)}`);
@@ -668,10 +669,10 @@ try {
   }
 
   // Đợt D Task 4 (ADR-0015): thanh ngang (`.topnav`, 9 mục) đổi thành thanh điều hướng dọc (`#sidebar`) — ĐỔI
-  // CÓ CHỦ ĐÍCH, không phải lỗi. Nay ADMIN có 11 mục: 9 mục cũ + "Của tôi" (trước 1.10 tên "Tài khoản") + "Trợ giúp" (từ 1.4) (trước là `.who` hiện tên nhân
+  // CÓ CHỦ ĐÍCH, không phải lỗi. Nay ADMIN có 11 mục: 9 mục cũ + "Của tôi" (trước 1.10 tên "Tài khoản") + "Hướng dẫn" (từ 1.4) (trước là `.who` hiện tên nhân
   // viên riêng, không tính vào danh sách link; nay là MỘT MỤC CÓ NHÃN trong nhóm TÔI, đúng bản mẫu). Đo cả
   // #sidebar (không tràn) lẫn #topbar (thanh công việc mới: breadcrumb + tìm kiếm + nút, không tràn).
-  // Phát hành 1.4 (gộp nhánh Trợ giúp): nhóm TÔI thêm mục "Trợ giúp" (mọi tài khoản) ⇒ ADMIN 11 mục, FIELD 3 mục.
+  // Phát hành 1.4 (gộp nhánh Hướng dẫn): nhóm TÔI thêm mục "Hướng dẫn" (mọi tài khoản) ⇒ ADMIN 11 mục, FIELD 3 mục.
   // Vận chuyển 1a (ADR-0040, bản vẽ 00; Ruling R23 của điều phối 2026-09-28): nhóm QUẢN TRỊ thêm mục cha "Vận chuyển" + hai mục con "Xe", "Sắp hết hạn"
   // (ô vehicle.manage) ⇒ +3. CHỈ cộng phần 1a: từ ADR-0038 mục "Nhật ký" chỉ còn ở Toàn quyền nên Quản trị thiếu 1 mục so với số 11 cũ — ĐỎ SẴN trên main,
   // không do 1a, chưa sửa ở đây (kịch bản còn đỏ sẵn ở :450 trước dòng này).
@@ -692,7 +693,7 @@ try {
     "Điều phối xe", "Xe đang chạy", "Đề nghị chuyển khách", "Xe & giấy tờ", "Giá & chi phí",
     "Điều chỉnh công nợ", "Hoa hồng đối tác", "Người bán dịch vụ", "Chụp bù mức", // sổ đại lý đợt 2 Task 12 (19/10): + "Chụp bù mức" (ô order.terms.override) ⇒ 21 mục, Thiết lập 9
     "Dịch vụ & giá", "Địa điểm", "Loại giấy tờ cá nhân", "Loại giấy tờ xe", "Lý do điều phối", "Chính sách điều phối", "Quản lý tài khoản", // ADR-0128 Q1 (17/10): Quản trị có «Chính sách điều phối» — đỏ sẵn trước Task 12, sửa theo số đo 19/10
-    "Của tôi", "Hỗ trợ", "Trợ giúp",
+    "Của tôi", "Hỗ trợ", "Hướng dẫn",
   ];
   const navMeasure = await p.ev(`(() => {
     const links = [...document.querySelectorAll('#sidebar .sidebar-item')];
@@ -752,7 +753,7 @@ try {
     ok(`Bản vẽ 2026-09-30 (1a): thẻ số liệu 2×2 — hàng ${JSON.stringify([t0, t2])}, cột ${JSON.stringify([l0, l1])}, nằm trên "Chuyến đón" (top=${soMeasure.todayTop})`);
   }
   {
-    // Bản vẽ 2026-09-30 (1a) KHÔNG có logo ở đầu Trang chủ điện thoại: dải đầu trang là ảnh đại diện + "Xin chào," + tên + ngày, chuông, Trợ giúp. (Task 7
+    // Bản vẽ 2026-09-30 (1a) KHÔNG có logo ở đầu Trang chủ điện thoại: dải đầu trang là ảnh đại diện + "Xin chào," + tên + ngày, chuông, Hướng dẫn. (Task 7
     // phần A — logo tròn hết cỡ — vẫn đúng ở các trang khác: khẳng định C-1 bên dưới đo logo HIỆN ở 390px của /orders, /order-form….)
     const brand = await p.ev(`(() => { const b = document.querySelector('#topbar .brand'); return { shown: b ? b.offsetParent !== null : null, radius: getComputedStyle(document.querySelector('#topbar .brand-logo')).borderRadius }; })()`);
     assert.equal(brand.shown, false, `Trang chủ (điện thoại): logo/tên app KHÔNG hiện ở dải đầu Trang chủ (bản vẽ 2026-09-30) — ${JSON.stringify(brand)}`);
@@ -762,7 +763,7 @@ try {
   {
     // ==================================================================================================
     // K) TRANG CHỦ ĐIỆN THOẠI THEO BẢN VẼ 2026-09-30 ("Trang chu dien thoai.dc.html" 1a–1c, Claude Design): dải đầu trang = #topbar đổi kiểu
-    //    (không dính, nền chuyển xanh), lời chào theo buổi + ngày · vai (bản vẽ 1.73), chuông + Trợ giúp; ô tìm đơn 16px nổi; lưới MỘT hàng 4 chỗ không lặp
+    //    (không dính, nền chuyển xanh), lời chào theo buổi + ngày · vai (bản vẽ 1.73), chuông + Hướng dẫn; ô tìm đơn 16px nổi; lưới MỘT hàng 4 chỗ không lặp
     //    ô đã có tab (bản vẽ 1.73 — Quản trị: Danh bạ, Điều phối xe, Xe + "Tất cả"); huy hiệu dùng lại số đã có (Đơn hàng = số đơn chưa xác nhận, Dịch vụ & giá =
     //    số dịch vụ lệch Sheet — nay đo trong bảng trượt); bảng trượt "Tất cả chức năng" bốn nhóm.
     // ==================================================================================================
@@ -786,7 +787,7 @@ try {
     })()`);
     assert.equal(k.topbarPosition, "static", `K: dải đầu Trang chủ điện thoại cuộn theo trang (không dính) — ${JSON.stringify(k)}`);
     assert.ok(k.chaoShown && /^Chào buổi (sáng|trưa|chiều|tối),$/.test(k.chao[0]) && k.chao[1] === ACCOUNTS.admin.name && /^(Thứ \S+|Chủ nhật|Chủ Nhật), \d{2}\/\d{2} · Quản trị$/.test(k.chao[2]), `K: lời chào "Chào buổi …," + tên + "Thứ …, dd/mm · Quản trị" (bản vẽ 1.73) — ${JSON.stringify(k.chao)}`);
-    assert.ok(k.bellShown && k.helpShown && k.helpHref === "/help", `K: chuông + nút Trợ giúp (/help) hiện trên dải đầu trang — ${JSON.stringify(k)}`);
+    assert.ok(k.bellShown && k.helpShown && k.helpHref === "/help", `K: chuông + nút Hướng dẫn (/help) hiện trên dải đầu trang — ${JSON.stringify(k)}`);
     assert.ok(k.timShown && k.timFont === "16px" && k.timPlaceholder === "Tìm mã đơn, tên khách, SĐT…", `K: ô tìm đơn hiện, chữ 16px (chống iOS tự phóng to) — ${JSON.stringify(k)}`);
     assert.deepEqual(k.o.map((x) => x.nhan), ["Danh bạ", "Điều phối xe", "Xe", "Tất cả"], `K: lưới Quản trị = 3 ô chưa có tab + "Tất cả" (bản vẽ 1.73, 1c) — ${JSON.stringify(k.o)}`);
     assert.ok(k.o.every((x) => x.shown), `K: mọi ô hiển thị thật — ${JSON.stringify(k.o)}`);
@@ -811,7 +812,7 @@ try {
         ["Bán hàng", ["Tạo đơn", "Đơn hàng", "Danh bạ"]],
         ["Quản lý", ["Dịch vụ & giá", "Quản lý tài khoản", "Địa điểm", "Loại giấy tờ cá nhân"]],
         ["Vận chuyển", ["Điều phối xe", "Bảng giá thuê xe", "Bảng kê chi phí xe", "Xe", "Giấy tờ sắp hết hạn", "Loại giấy tờ xe", "Chính sách điều phối", "Lý do điều phối"]], // ADR-0128 Q1 — đỏ sẵn trước Task 12, sửa theo số đo 19/10
-        ["Của tôi", ["Hỗ trợ", "Trợ giúp"]],
+        ["Của tôi", ["Hỗ trợ", "Hướng dẫn"]],
       ],
       `K: bốn nhóm của bảng trượt Quản trị — ${JSON.stringify(sheet.nhom)}`,
     );
@@ -1022,7 +1023,7 @@ try {
     })()`);
     assert.equal(fieldNav.sidebarShown, true, `D-1 (FIELD, 1040px): thanh bên phải hiển thị thật — ${JSON.stringify(fieldNav)}`);
     assert.deepEqual(fieldNav.groupTitles, [], `D-1 (FIELD): thanh bên không có tiêu đề nhóm nào (menu theo việc 15/10: HẰNG NGÀY/CHÂN MENU không tiêu đề; nhóm VẬN CHUYỂN/TIỀN/THIẾT LẬP rỗng phải ẩn CẢ tiêu đề) — ${JSON.stringify(fieldNav)}`);
-    assert.deepEqual(fieldNav.labels, ["Đơn hàng", "Của tôi", "Hỗ trợ", "Trợ giúp"], `D-1 (FIELD): thanh bên đúng 4 mục — "Đơn hàng" (HẰNG NGÀY, chỉ-FIELD đọc đơn mình phụ trách) + 3 mục CHÂN MENU — ${JSON.stringify(fieldNav)}`);
+    assert.deepEqual(fieldNav.labels, ["Đơn hàng", "Của tôi", "Hỗ trợ", "Hướng dẫn"], `D-1 (FIELD): thanh bên đúng 4 mục — "Đơn hàng" (HẰNG NGÀY, chỉ-FIELD đọc đơn mình phụ trách) + 3 mục CHÂN MENU — ${JSON.stringify(fieldNav)}`);
     assert.equal(fieldNav.logoutShown, true, `D-1 (FIELD): "Đăng xuất" phải hiển thị thật trong thanh bên — ${JSON.stringify(fieldNav)}`);
     await shot(pErr, "task-4-sidebar-field-may-tinh.png");
     ok(`D-1) Thanh bên của tài khoản chỉ FIELD (1040px): không tiêu đề nhóm nào ${JSON.stringify(fieldNav.groupTitles)}, đúng 4 mục ${JSON.stringify(fieldNav.labels)}, có "Đăng xuất", không huy hiệu nào (${fieldNav.badgeCount})`);
