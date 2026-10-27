@@ -1,0 +1,1106 @@
+{
+ "nhan": "nhieu",
+ "luc": "2026-10-27T08:49:44.684Z",
+ "base": "http://localhost:8795",
+ "xong": true,
+ "ketQua": [
+  {
+   "bo": "SALES",
+   "trang": "/help",
+   "loai": null,
+   "ho": "thiết lập",
+   "kho": 390,
+   "url": "/help",
+   "do": {
+    "vw": 390,
+    "vh": 844,
+    "caoTrang": 55489,
+    "soManCuon": 65.7,
+    "tranNgang": false,
+    "thoRa": [],
+    "tieuDe": "Hướng dẫn — Island Booking System",
+    "h1": [
+     {
+      "chu": "Hướng dẫn",
+      "co": "24px",
+      "dam": "500",
+      "lop": "",
+      "cha": ""
+     }
+    ],
+    "h2": [
+     "H2|17.6px/500",
+     "H3|16px/500"
+    ],
+    "soTuongTac": 36,
+    "nhoHon44": [],
+    "soNhoHon44": 0,
+    "oGoNho": [],
+    "oGoKieu": [],
+    "oKhongNhan": [],
+    "nutKieu": [
+     {
+      "lop": "bell",
+      "ten": "Thông báo, 14 tin chưa đọc",
+      "sig": "44h|r8px|bgrgba(0, 0, 0, 0)|crgb(12, 74, 110)|b0px none|13.3333px/400"
+     },
+     {
+      "lop": "",
+      "ten": "Đọc và bấm Đã hiểu",
+      "sig": "44h|r8px|bgrgb(255, 255, 255)|crgb(12, 74, 110)|b1px solid|14px/500"
+     },
+     {
+      "lop": "btn.btn-primary",
+      "ten": "Hỗ trợ",
+      "sig": "46h|r8px|bgrgb(220, 235, 246)|crgb(12, 74, 110)|b1px solid|16px/500"
+     },
+     {
+      "lop": "tl-fab",
+      "ten": "Trợ lý",
+      "sig": "44h|r999px|bgrgb(220, 235, 246)|crgb(12, 74, 110)|b0px none|14px/500"
+     }
+    ],
+    "nutChinhTrongManDau": [],
+    "huyHieuKieu": [
+     {
+      "chu": "Mới cập nhật",
+      "lop": "badge.badge-new",
+      "sig": "r999px|bgrgb(253, 233, 238)|crgb(142, 14, 43)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Mới",
+      "lop": "badge.badge-confirmed",
+      "sig": "r999px|bgrgb(220, 252, 231)|crgb(22, 101, 52)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Mới",
+      "lop": "badge.badge-confirmed",
+      "sig": "r999px|bgrgb(220, 252, 231)|crgb(22, 101, 52)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Thay đổi",
+      "lop": "badge.badge-cancelled",
+      "sig": "r999px|bgrgb(242, 245, 249)|crgb(71, 85, 105)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Thay đổi",
+      "lop": "badge.badge-cancelled",
+      "sig": "r999px|bgrgb(242, 245, 249)|crgb(71, 85, 105)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Mới",
+      "lop": "badge.badge-confirmed",
+      "sig": "r999px|bgrgb(220, 252, 231)|crgb(22, 101, 52)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Mới",
+      "lop": "badge.badge-confirmed",
+      "sig": "r999px|bgrgb(220, 252, 231)|crgb(22, 101, 52)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Mới",
+      "lop": "badge.badge-confirmed",
+      "sig": "r999px|bgrgb(220, 252, 231)|crgb(22, 101, 52)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Mới",
+      "lop": "badge.badge-confirmed",
+      "sig": "r999px|bgrgb(220, 252, 231)|crgb(22, 101, 52)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Thay đổi",
+      "lop": "badge.badge-cancelled",
+      "sig": "r999px|bgrgb(242, 245, 249)|crgb(71, 85, 105)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Mới",
+      "lop": "badge.badge-confirmed",
+      "sig": "r999px|bgrgb(220, 252, 231)|crgb(22, 101, 52)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Mới",
+      "lop": "badge.badge-confirmed",
+      "sig": "r999px|bgrgb(220, 252, 231)|crgb(22, 101, 52)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Mới",
+      "lop": "badge.badge-confirmed",
+      "sig": "r999px|bgrgb(220, 252, 231)|crgb(22, 101, 52)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Thay đổi",
+      "lop": "badge.badge-cancelled",
+      "sig": "r999px|bgrgb(242, 245, 249)|crgb(71, 85, 105)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Thay đổi",
+      "lop": "badge.badge-cancelled",
+      "sig": "r999px|bgrgb(242, 245, 249)|crgb(71, 85, 105)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Đã sửa",
+      "lop": "badge.badge-draft",
+      "sig": "r999px|bgrgb(251, 227, 179)|crgb(90, 65, 9)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Đã sửa",
+      "lop": "badge.badge-draft",
+      "sig": "r999px|bgrgb(251, 227, 179)|crgb(90, 65, 9)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Thay đổi",
+      "lop": "badge.badge-cancelled",
+      "sig": "r999px|bgrgb(242, 245, 249)|crgb(71, 85, 105)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Thay đổi",
+      "lop": "badge.badge-cancelled",
+      "sig": "r999px|bgrgb(242, 245, 249)|crgb(71, 85, 105)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Thay đổi",
+      "lop": "badge.badge-cancelled",
+      "sig": "r999px|bgrgb(242, 245, 249)|crgb(71, 85, 105)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Thay đổi",
+      "lop": "badge.badge-cancelled",
+      "sig": "r999px|bgrgb(242, 245, 249)|crgb(71, 85, 105)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Thay đổi",
+      "lop": "badge.badge-cancelled",
+      "sig": "r999px|bgrgb(242, 245, 249)|crgb(71, 85, 105)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Mới",
+      "lop": "badge.badge-confirmed",
+      "sig": "r999px|bgrgb(220, 252, 231)|crgb(22, 101, 52)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Mới",
+      "lop": "badge.badge-confirmed",
+      "sig": "r999px|bgrgb(220, 252, 231)|crgb(22, 101, 52)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Thay đổi",
+      "lop": "badge.badge-cancelled",
+      "sig": "r999px|bgrgb(242, 245, 249)|crgb(71, 85, 105)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Thay đổi",
+      "lop": "badge.badge-cancelled",
+      "sig": "r999px|bgrgb(242, 245, 249)|crgb(71, 85, 105)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Mới",
+      "lop": "badge.badge-confirmed",
+      "sig": "r999px|bgrgb(220, 252, 231)|crgb(22, 101, 52)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Thay đổi",
+      "lop": "badge.badge-cancelled",
+      "sig": "r999px|bgrgb(242, 245, 249)|crgb(71, 85, 105)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Mới",
+      "lop": "badge.badge-confirmed",
+      "sig": "r999px|bgrgb(220, 252, 231)|crgb(22, 101, 52)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Mới",
+      "lop": "badge.badge-confirmed",
+      "sig": "r999px|bgrgb(220, 252, 231)|crgb(22, 101, 52)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Mới",
+      "lop": "badge.badge-confirmed",
+      "sig": "r999px|bgrgb(220, 252, 231)|crgb(22, 101, 52)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Thay đổi",
+      "lop": "badge.badge-cancelled",
+      "sig": "r999px|bgrgb(242, 245, 249)|crgb(71, 85, 105)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Thay đổi",
+      "lop": "badge.badge-cancelled",
+      "sig": "r999px|bgrgb(242, 245, 249)|crgb(71, 85, 105)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Đã sửa",
+      "lop": "badge.badge-draft",
+      "sig": "r999px|bgrgb(251, 227, 179)|crgb(90, 65, 9)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Thay đổi",
+      "lop": "badge.badge-cancelled",
+      "sig": "r999px|bgrgb(242, 245, 249)|crgb(71, 85, 105)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Mới",
+      "lop": "badge.badge-confirmed",
+      "sig": "r999px|bgrgb(220, 252, 231)|crgb(22, 101, 52)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Mới",
+      "lop": "badge.badge-confirmed",
+      "sig": "r999px|bgrgb(220, 252, 231)|crgb(22, 101, 52)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Thay đổi",
+      "lop": "badge.badge-cancelled",
+      "sig": "r999px|bgrgb(242, 245, 249)|crgb(71, 85, 105)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Mới",
+      "lop": "badge.badge-confirmed",
+      "sig": "r999px|bgrgb(220, 252, 231)|crgb(22, 101, 52)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Mới",
+      "lop": "badge.badge-confirmed",
+      "sig": "r999px|bgrgb(220, 252, 231)|crgb(22, 101, 52)|12.8px/500|b0px"
+     }
+    ],
+    "theKieu": [
+     {
+      "lop": "card",
+      "sig": "r12px|bgrgb(255, 255, 255)|b0px rgb(15, 23, 42)|sh1|p16px"
+     },
+     {
+      "lop": "card",
+      "sig": "r12px|bgrgb(255, 255, 255)|b0px rgb(15, 23, 42)|sh1|p16px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     }
+    ],
+    "catChu": [
+     "Hướng dẫn"
+    ],
+    "tuAnh": [
+     "Admin"
+    ],
+    "nav": [],
+    "coSidebar": false,
+    "coTabbar": false,
+    "dinh": [
+     "HEADER:sticky:0",
+     "NAV:fixed:785",
+     "tl-fab:fixed:732"
+    ],
+    "rong": [],
+    "bang": [],
+    "phong": "\"Be Vietnam Pro\"",
+    "chuDau": "Hướng dẫn\n\nIsland Booking System · Phiên bản 2.36 · ngày 27 tháng 10 năm 2026\n\nHướng dẫn cho bạn\n\nĐọc \"Bắt đầu nhanh\" theo vai trò của bạn trước, rồi mở từng mục khi cần. Chữ trong khung xám là tên nút hoặc chữ đúng như trên màn hình.\n\nBán hàng · khoảng 21 phút đọc\n\nBạn nhận khách, lập đơn dịch vụ từ danh mục, ghi giờ và nơi đón, rồi xác nhận đơn và gửi ảnh biên nhận cho khách. Bạn xem được mọi đơ"
+   },
+   "axe": [
+    {
+     "id": "meta-viewport",
+     "impact": "moderate",
+     "n": 1,
+     "vd": [
+      "meta[name=\"viewport\"]"
+     ]
+    }
+   ],
+   "anh": "~/tourdao-ux-2026-10-27-v2/anh/nhieu/SALES/help-390.jpg",
+   "loiConsole": []
+  },
+  {
+   "bo": "SALES",
+   "trang": "/help",
+   "loai": null,
+   "ho": "thiết lập",
+   "kho": 1040,
+   "url": "/help",
+   "do": {
+    "vw": 1040,
+    "vh": 800,
+    "caoTrang": 31653,
+    "soManCuon": 39.6,
+    "tranNgang": false,
+    "thoRa": [],
+    "tieuDe": "Hướng dẫn — Island Booking System",
+    "h1": [
+     {
+      "chu": "Hướng dẫn",
+      "co": "24px",
+      "dam": "500",
+      "lop": "",
+      "cha": ""
+     }
+    ],
+    "h2": [
+     "H2|17.6px/500",
+     "H3|16px/500"
+    ],
+    "soTuongTac": 45,
+    "nhoHon44": [
+     {
+      "ten": "Tạo đơn",
+      "lop": "sidebar-new",
+      "w": 223,
+      "h": 40,
+      "the": "a"
+     },
+     {
+      "ten": "Trang chủ",
+      "lop": "sidebar-item",
+      "w": 223,
+      "h": 40,
+      "the": "a"
+     },
+     {
+      "ten": "Đơn hàng 4",
+      "lop": "sidebar-item",
+      "w": 223,
+      "h": 40,
+      "the": "a"
+     },
+     {
+      "ten": "Danh bạ",
+      "lop": "sidebar-item",
+      "w": 223,
+      "h": 40,
+      "the": "a"
+     },
+     {
+      "ten": "Điều phối xe",
+      "lop": "sidebar-item",
+      "w": 223,
+      "h": 40,
+      "the": "a"
+     },
+     {
+      "ten": "Xe đang chạy",
+      "lop": "sidebar-item",
+      "w": 223,
+      "h": 40,
+      "the": "a"
+     },
+     {
+      "ten": "THIẾT LẬP 1",
+      "lop": "sidebar-group-toggle",
+      "w": 223,
+      "h": 36,
+      "the": "button"
+     },
+     {
+      "ten": "Của tôi",
+      "lop": "sidebar-item",
+      "w": 223,
+      "h": 36,
+      "the": "a"
+     },
+     {
+      "ten": "Hỗ trợ",
+      "lop": "sidebar-item",
+      "w": 223,
+      "h": 36,
+      "the": "a"
+     },
+     {
+      "ten": "Hướng dẫn",
+      "lop": "sidebar-item",
+      "w": 223,
+      "h": 36,
+      "the": "a"
+     },
+     {
+      "ten": "Đăng xuất",
+      "lop": "sidebar-logout",
+      "w": 88,
+      "h": 36,
+      "the": "button"
+     }
+    ],
+    "soNhoHon44": 11,
+    "oGoNho": [],
+    "oGoKieu": [
+     "46h|r8px|b1px rgb(201, 212, 224)|bgrgb(255, 255, 255)|16px"
+    ],
+    "oKhongNhan": [],
+    "nutKieu": [
+     {
+      "lop": "sidebar-group-toggle",
+      "ten": "THIẾT LẬP 1",
+      "sig": "36h|r8px|bgrgba(0, 0, 0, 0)|crgb(71, 85, 105)|b0px none|14px/500"
+     },
+     {
+      "lop": "sidebar-logout",
+      "ten": "Đăng xuất",
+      "sig": "36h|r8px|bgrgba(0, 0, 0, 0)|crgb(71, 85, 105)|b0px none|14px/500"
+     },
+     {
+      "lop": "bell",
+      "ten": "Thông báo, 14 tin chưa đọc",
+      "sig": "44h|r8px|bgrgba(0, 0, 0, 0)|crgb(12, 74, 110)|b0px none|13.3333px/400"
+     },
+     {
+      "lop": "btn.btn-accent.topbar-new",
+      "ten": "Tạo đơn",
+      "sig": "46h|r8px|bgrgb(192, 57, 43)|crgb(255, 255, 255)|b1px solid|16px/500"
+     },
+     {
+      "lop": "",
+      "ten": "Đọc và bấm Đã hiểu",
+      "sig": "44h|r8px|bgrgb(255, 255, 255)|crgb(12, 74, 110)|b1px solid|14px/500"
+     },
+     {
+      "lop": "btn.btn-primary",
+      "ten": "Hỗ trợ",
+      "sig": "46h|r8px|bgrgb(220, 235, 246)|crgb(12, 74, 110)|b1px solid|16px/500"
+     },
+     {
+      "lop": "tl-fab",
+      "ten": "Trợ lý",
+      "sig": "44h|r999px|bgrgb(220, 235, 246)|crgb(12, 74, 110)|b0px none|14px/500"
+     }
+    ],
+    "nutChinhTrongManDau": [
+     "Tạo đơn"
+    ],
+    "huyHieuKieu": [
+     {
+      "chu": "4",
+      "lop": "sidebar-item-badge",
+      "sig": "r999px|bgrgb(220, 235, 246)|crgb(12, 74, 110)|12px/500|b0px"
+     },
+     {
+      "chu": "Mới",
+      "lop": "badge.badge-confirmed",
+      "sig": "r999px|bgrgb(220, 252, 231)|crgb(22, 101, 52)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Mới",
+      "lop": "badge.badge-confirmed",
+      "sig": "r999px|bgrgb(220, 252, 231)|crgb(22, 101, 52)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Thay đổi",
+      "lop": "badge.badge-cancelled",
+      "sig": "r999px|bgrgb(242, 245, 249)|crgb(71, 85, 105)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Thay đổi",
+      "lop": "badge.badge-cancelled",
+      "sig": "r999px|bgrgb(242, 245, 249)|crgb(71, 85, 105)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Mới",
+      "lop": "badge.badge-confirmed",
+      "sig": "r999px|bgrgb(220, 252, 231)|crgb(22, 101, 52)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Mới",
+      "lop": "badge.badge-confirmed",
+      "sig": "r999px|bgrgb(220, 252, 231)|crgb(22, 101, 52)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Mới",
+      "lop": "badge.badge-confirmed",
+      "sig": "r999px|bgrgb(220, 252, 231)|crgb(22, 101, 52)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Mới",
+      "lop": "badge.badge-confirmed",
+      "sig": "r999px|bgrgb(220, 252, 231)|crgb(22, 101, 52)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Thay đổi",
+      "lop": "badge.badge-cancelled",
+      "sig": "r999px|bgrgb(242, 245, 249)|crgb(71, 85, 105)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Mới",
+      "lop": "badge.badge-confirmed",
+      "sig": "r999px|bgrgb(220, 252, 231)|crgb(22, 101, 52)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Mới",
+      "lop": "badge.badge-confirmed",
+      "sig": "r999px|bgrgb(220, 252, 231)|crgb(22, 101, 52)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Mới",
+      "lop": "badge.badge-confirmed",
+      "sig": "r999px|bgrgb(220, 252, 231)|crgb(22, 101, 52)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Thay đổi",
+      "lop": "badge.badge-cancelled",
+      "sig": "r999px|bgrgb(242, 245, 249)|crgb(71, 85, 105)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Thay đổi",
+      "lop": "badge.badge-cancelled",
+      "sig": "r999px|bgrgb(242, 245, 249)|crgb(71, 85, 105)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Đã sửa",
+      "lop": "badge.badge-draft",
+      "sig": "r999px|bgrgb(251, 227, 179)|crgb(90, 65, 9)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Đã sửa",
+      "lop": "badge.badge-draft",
+      "sig": "r999px|bgrgb(251, 227, 179)|crgb(90, 65, 9)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Thay đổi",
+      "lop": "badge.badge-cancelled",
+      "sig": "r999px|bgrgb(242, 245, 249)|crgb(71, 85, 105)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Thay đổi",
+      "lop": "badge.badge-cancelled",
+      "sig": "r999px|bgrgb(242, 245, 249)|crgb(71, 85, 105)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Thay đổi",
+      "lop": "badge.badge-cancelled",
+      "sig": "r999px|bgrgb(242, 245, 249)|crgb(71, 85, 105)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Thay đổi",
+      "lop": "badge.badge-cancelled",
+      "sig": "r999px|bgrgb(242, 245, 249)|crgb(71, 85, 105)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Thay đổi",
+      "lop": "badge.badge-cancelled",
+      "sig": "r999px|bgrgb(242, 245, 249)|crgb(71, 85, 105)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Mới",
+      "lop": "badge.badge-confirmed",
+      "sig": "r999px|bgrgb(220, 252, 231)|crgb(22, 101, 52)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Mới",
+      "lop": "badge.badge-confirmed",
+      "sig": "r999px|bgrgb(220, 252, 231)|crgb(22, 101, 52)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Thay đổi",
+      "lop": "badge.badge-cancelled",
+      "sig": "r999px|bgrgb(242, 245, 249)|crgb(71, 85, 105)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Thay đổi",
+      "lop": "badge.badge-cancelled",
+      "sig": "r999px|bgrgb(242, 245, 249)|crgb(71, 85, 105)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Mới",
+      "lop": "badge.badge-confirmed",
+      "sig": "r999px|bgrgb(220, 252, 231)|crgb(22, 101, 52)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Thay đổi",
+      "lop": "badge.badge-cancelled",
+      "sig": "r999px|bgrgb(242, 245, 249)|crgb(71, 85, 105)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Mới",
+      "lop": "badge.badge-confirmed",
+      "sig": "r999px|bgrgb(220, 252, 231)|crgb(22, 101, 52)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Mới",
+      "lop": "badge.badge-confirmed",
+      "sig": "r999px|bgrgb(220, 252, 231)|crgb(22, 101, 52)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Mới",
+      "lop": "badge.badge-confirmed",
+      "sig": "r999px|bgrgb(220, 252, 231)|crgb(22, 101, 52)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Thay đổi",
+      "lop": "badge.badge-cancelled",
+      "sig": "r999px|bgrgb(242, 245, 249)|crgb(71, 85, 105)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Thay đổi",
+      "lop": "badge.badge-cancelled",
+      "sig": "r999px|bgrgb(242, 245, 249)|crgb(71, 85, 105)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Đã sửa",
+      "lop": "badge.badge-draft",
+      "sig": "r999px|bgrgb(251, 227, 179)|crgb(90, 65, 9)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Thay đổi",
+      "lop": "badge.badge-cancelled",
+      "sig": "r999px|bgrgb(242, 245, 249)|crgb(71, 85, 105)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Mới",
+      "lop": "badge.badge-confirmed",
+      "sig": "r999px|bgrgb(220, 252, 231)|crgb(22, 101, 52)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Mới",
+      "lop": "badge.badge-confirmed",
+      "sig": "r999px|bgrgb(220, 252, 231)|crgb(22, 101, 52)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Thay đổi",
+      "lop": "badge.badge-cancelled",
+      "sig": "r999px|bgrgb(242, 245, 249)|crgb(71, 85, 105)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Mới",
+      "lop": "badge.badge-confirmed",
+      "sig": "r999px|bgrgb(220, 252, 231)|crgb(22, 101, 52)|12.8px/500|b0px"
+     },
+     {
+      "chu": "Mới",
+      "lop": "badge.badge-confirmed",
+      "sig": "r999px|bgrgb(220, 252, 231)|crgb(22, 101, 52)|12.8px/500|b0px"
+     }
+    ],
+    "theKieu": [
+     {
+      "lop": "card",
+      "sig": "r12px|bgrgb(255, 255, 255)|b0px rgb(15, 23, 42)|sh1|p16px"
+     },
+     {
+      "lop": "card",
+      "sig": "r12px|bgrgb(255, 255, 255)|b0px rgb(15, 23, 42)|sh1|p16px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     },
+     {
+      "lop": "release-note",
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px"
+     }
+    ],
+    "catChu": [
+     "Bán Hàng Thử"
+    ],
+    "tuAnh": [
+     "Admin"
+    ],
+    "nav": [
+     {
+      "ten": "Trang chủ",
+      "sang": false
+     },
+     {
+      "ten": "Đơn hàng 4",
+      "sang": false
+     },
+     {
+      "ten": "Danh bạ",
+      "sang": false
+     },
+     {
+      "ten": "Điều phối xe",
+      "sang": false
+     },
+     {
+      "ten": "Xe đang chạy",
+      "sang": false
+     },
+     {
+      "ten": "Của tôi",
+      "sang": false
+     },
+     {
+      "ten": "Hỗ trợ",
+      "sang": false
+     },
+     {
+      "ten": "Hướng dẫn",
+      "sang": true
+     }
+    ],
+    "coSidebar": false,
+    "coTabbar": false,
+    "dinh": [
+     "NAV:sticky:0",
+     "sidebar-group:sticky:425",
+     "tl-fab:fixed:732"
+    ],
+    "rong": [],
+    "bang": [],
+    "phong": "\"Be Vietnam Pro\"",
+    "chuDau": "Hướng dẫn\n\nIsland Booking System · Phiên bản 2.36 · ngày 27 tháng 10 năm 2026\n\nHướng dẫn cho bạn\n\nĐọc \"Bắt đầu nhanh\" theo vai trò của bạn trước, rồi mở từng mục khi cần. Chữ trong khung xám là tên nút hoặc chữ đúng như trên màn hình.\n\nBán hàng · khoảng 21 phút đọc\n\nBạn nhận khách, lập đơn dịch vụ từ danh mục, ghi giờ và nơi đón, rồi xác nhận đơn và gửi ảnh biên nhận cho khách. Bạn xem được mọi đơ"
+   },
+   "axe": [
+    {
+     "id": "meta-viewport",
+     "impact": "moderate",
+     "n": 1,
+     "vd": [
+      "meta[name=\"viewport\"]"
+     ]
+    }
+   ],
+   "anh": "~/tourdao-ux-2026-10-27-v2/anh/nhieu/SALES/help-1040.jpg",
+   "focus": [
+    {
+     "ten": "Island Booking System",
+     "thay": true,
+     "vien": "2px rgb(12, 74, 110)"
+    },
+    {
+     "ten": "Tạo đơn",
+     "thay": true,
+     "vien": "3px rgb(12, 74, 110)"
+    },
+    {
+     "ten": "Trang chủ",
+     "thay": true,
+     "vien": "3px rgb(12, 74, 110)"
+    },
+    {
+     "ten": "Đơn hàng\n4",
+     "thay": true,
+     "vien": "3px rgb(12, 74, 110)"
+    },
+    {
+     "ten": "Danh bạ",
+     "thay": true,
+     "vien": "3px rgb(12, 74, 110)"
+    },
+    {
+     "ten": "Điều phối xe",
+     "thay": true,
+     "vien": "3px rgb(12, 74, 110)"
+    },
+    {
+     "ten": "Xe đang chạy",
+     "thay": true,
+     "vien": "3px rgb(12, 74, 110)"
+    },
+    {
+     "ten": "THIẾT LẬP\n1",
+     "thay": true,
+     "vien": "3px rgb(12, 74, 110)"
+    },
+    {
+     "ten": "Của tôi",
+     "thay": true,
+     "vien": "3px rgb(12, 74, 110)"
+    },
+    {
+     "ten": "Hỗ trợ",
+     "thay": true,
+     "vien": "3px rgb(12, 74, 110)"
+    },
+    {
+     "ten": "Hướng dẫn",
+     "thay": true,
+     "vien": "3px rgb(12, 74, 110)"
+    },
+    {
+     "ten": "Đăng xuất",
+     "thay": true,
+     "vien": "3px rgb(12, 74, 110)"
+    }
+   ],
+   "loiConsole": []
+  }
+ ]
+}
