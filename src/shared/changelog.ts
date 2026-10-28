@@ -17,7 +17,7 @@ export const CHANGELOG: readonly ReleaseNote[] = [
     version: "2.39",
     date: "2026-10-28",
     items: [
-      { kind: "moi", text: "Quản trị bật hoặc tắt phần Đưa đón cho từng nhóm dịch vụ ở trang Dịch vụ. Nhóm tắt thì dịch vụ của nhóm không còn phần Đưa đón khi lập đơn và được ghi là «Không đón»." },
+      { kind: "moi", text: "Quản trị bật hoặc tắt phần Đưa đón cho từng nhóm ở trang Dịch vụ & giá. Nhóm tắt thì dịch vụ của nhóm không có phần Đưa đón khi lập đơn, ghi là «Không đón»." },
       { kind: "moi", text: "Ở form Tạo đơn, dưới ô Nơi trả (chiều đi) và Nơi đón (chiều về) có nút bấm nhanh cho những điểm hay dùng như Bến cảng Vinpearl." },
       { kind: "moi", text: "Quản trị chọn điểm nào hiện thành nút bấm nhanh và xếp thứ tự ở trang Địa điểm, cột Chọn nhanh." },
       { kind: "doi", text: "Nhóm vừa tắt Đưa đón: đơn đã xác nhận chỉ bỏ được lượt đưa đón, không thêm hay sửa; đơn nháp phải bỏ lượt đưa đón rồi mới xác nhận hoặc gửi được." },

@@ -72,7 +72,28 @@ test("(B) orders/index.ts: mọi route có lời gọi ghi chặng đi qua một
   assert.deepEqual(thieu, [], `route ghi chặng không qua cửa có chốt «nhóm tắt đưa đón»: ${thieu.join(" | ")}`);
   const xacNhan = routes.find((r) => r.ten === "POST /api/orders/:id/status");
   assert.ok(xacNhan, "không thấy route trạng thái");
-  assert.match(xacNhan!.than, /kiemNhomChoPhepDuaDon\(/, "route xác nhận mất chốt chặn «nhóm tắt đưa đón»");
+  // Dựng lại trên main 28/10: cửa xác nhận đi qua cổng chung `kiemCongXacNhan` (Task 3.2b, ADR-0136) — chốt nằm trong cổng đó (bài kế tiếp).
+  assert.match(xacNhan!.than, /kiemCongXacNhan\(/, "route xác nhận không còn đi qua cổng chung có chốt «nhóm tắt đưa đón»");
   const trip = routes.find((r) => r.ten === "PUT /api/orders/:id/trip");
   assert.match(trip!.than, /kiemNhomChoPhepDuaDon\(/, "route sửa chuyến (cửa thứ sáu, Ruling R-T) mất chốt chặn");
+});
+
+test("(C) mọi cửa XÁC NHẬN ra đời sau 14/10 có chốt «nhóm tắt đưa đón» đứng TRƯỚC cổng chọn đón (ADR-0118 Đ3 (b) × ADR-0134 Đ2; dựng lại trên main 28/10)", () => {
+  const chung = doc("src/modules/orders/xac-nhan-chung.ts");
+  const cong = thanHam(chung, "kiemCongXacNhan");
+  const iChot = cong.search(/congNhomTatDuaDon\(/);
+  const iChon = cong.search(/thieuChonDon\(/);
+  assert.ok(iChot > 0 && iChon > 0 && iChot < iChon, "kiemCongXacNhan: chốt nhóm tắt phải có và đứng trước cổng chọn đón");
+  assert.match(thanHam(chung, "congNhomTatDuaDon"), /kiemNhomChoPhepDuaDon\(/, "congNhomTatDuaDon phải gọi hàm chốt một nguồn");
+  const routes = cacRoute(doc("src/modules/orders/xac-nhan-route.ts"));
+  const gxn = routes.find((r) => r.ten === "POST /api/orders/:id/gui-xac-nhan");
+  assert.ok(gxn, "không thấy route Gửi xác nhận");
+  const a = gxn!.than.search(/congNhomTatDuaDon\(/);
+  const b = gxn!.than.search(/thieuChonDon\(/);
+  assert.ok(a > 0 && b > 0 && a < b, "Gửi xác nhận (không qua kiemCongXacNhan): phải gọi congNhomTatDuaDon trước cổng chọn đón");
+  for (const ten of ["POST /api/orders/:id/quyet-dinh", "POST /api/orders/:id/gui-don"]) {
+    const r = routes.find((x) => x.ten === ten);
+    assert.ok(r, `không thấy route ${ten}`);
+    assert.match(r!.than, /kiemCongXacNhan\(/, `${ten} phải đi qua cổng chung có chốt`);
+  }
 });

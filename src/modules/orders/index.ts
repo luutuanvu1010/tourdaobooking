@@ -59,7 +59,7 @@ import {
   validationContext,
   type OrderValidationContext,
 } from "./service";
-import { CAN_YEU_CAU, GIA_DANH_MUC, MOC_CHUA_CO, RACED, STALE, TRAN_GIAM_GIA, catChoXetDuyet, chanDoanXacNhan, chayLoNoiChuyen, dichLoiXacNhan, kemChupXacNhan, khoaKhiCho, kiemCongXacNhan, tienChoHoaHong, tinhCanXacNhan, xacNhanTrenDon, type KetQuaLenhDon } from "./xac-nhan-chung";
+import { CAN_YEU_CAU, GIA_DANH_MUC, MOC_CHUA_CO, RACED, STALE, TRANSFER_DISABLED, TRAN_GIAM_GIA, catChoXetDuyet, chanDoanXacNhan, chayLoNoiChuyen, dichLoiXacNhan, kemChupXacNhan, khoaKhiCho, kiemCongXacNhan, tienChoHoaHong, tinhCanXacNhan, xacNhanTrenDon, type KetQuaLenhDon } from "./xac-nhan-chung";
 import { PHAI_GUI_DON, phaiGuiDon, xacNhanRoutes } from "./xac-nhan-route";
 import { yeuCauMoCuaDon } from "./xac-nhan-repo";
 import { describeTripUpdates, giaiOPhuNhap, validateTripUpdate } from "./service-rules";
@@ -210,8 +210,6 @@ function legFailure(f: { code: "invalid_input" | "leg_not_found" | "leg_closed" 
   return error(400, "invalid_input", f.message);
 }
 
-/** ADR-0118 Đ3 (Ruling R-D): nhóm dịch vụ đã tắt đưa đón → 409 `transfer_disabled`, câu nêu tên dịch vụ + nhóm + cách sửa (từ `kiemNhomChoPhepDuaDon`). */
-const TRANSFER_DISABLED = (message: string): Response => error(409, "transfer_disabled", message);
 /** Kết quả `resolveLegPlaces` lỗi → phản hồi: chốt chặn đưa đón 409; điểm danh mục không còn dùng 400. */
 const loiViTriChang = (p: { message: string; code?: "transfer_disabled" }): Response => (p.code === "transfer_disabled" ? TRANSFER_DISABLED(p.message) : error(400, "invalid_input", p.message));
 

@@ -251,19 +251,23 @@ export function orderCodePrefix(now: Date): string {
 
 // ---- Đưa đón theo nhóm dịch vụ (ADR-0118 Đ3) ----------------------------------------------------------------------------------------------------
 
-/** Cửa nào đang bị chốt chặn — chỉ để chọn câu hướng dẫn: `luu` (lập / lưu nháp: chặng đi trong thân), `sua` (đơn đã có: thêm / sửa / thay chặng, sửa chuyến), `xac-nhan`. */
-export type CuaDuaDon = "luu" | "sua" | "xac-nhan";
+/**
+ * Cửa nào đang bị chốt chặn — chỉ để chọn câu hướng dẫn: `luu` (lập / lưu nháp: chặng đi trong thân), `sua` (đơn đã có: thêm / sửa / thay chặng, sửa chuyến), `xac-nhan`
+ * (người lập: Xác nhận đơn, Gửi xác nhận, Gửi đơn), `xet-duyet` (người xét duyệt bấm Còn vé — không sửa được nháp của người khác, ADR-0135, nên câu nói người lập Rút lại).
+ */
+export type CuaDuaDon = "luu" | "sua" | "xac-nhan" | "xet-duyet";
 
 const HUONG_DAN_DUA_DON: Record<CuaDuaDon, string> = {
-  luu: "Bỏ chặng đưa đón của dịch vụ đó khỏi đơn rồi lưu lại.",
-  sua: "Chặng đang có chỉ còn bỏ được (nút Bỏ chặng), không thêm hay sửa chặng. Muốn có đưa đón, nhờ Quản trị bật lại «Có đưa đón» của nhóm ở màn Danh mục.",
-  "xac-nhan": "Bỏ chặng đưa đón của dịch vụ đó khỏi đơn nháp rồi xác nhận lại.",
+  luu: "Bỏ lượt đưa đón của dịch vụ đó khỏi đơn rồi lưu lại.",
+  sua: "Lượt đang có chỉ còn bỏ được (nút Bỏ lượt), không thêm hay sửa. Muốn có đưa đón, nhờ Quản trị bật lại «Có đưa đón» của nhóm ở trang Dịch vụ & giá.",
+  "xac-nhan": "Bỏ lượt đưa đón của dịch vụ đó khỏi đơn nháp (chọn Không đón), lưu rồi gửi lại.",
+  "xet-duyet": "Người lập đơn cần Rút lại yêu cầu, bỏ lượt đưa đón của dịch vụ đó rồi gửi lại.",
 };
 
 /** Câu báo `transfer_disabled` (ADR-0118 Đ3): nêu TÊN dịch vụ và TÊN nhóm, rồi cách sửa. `nhom` null (không đọc được tên) → bỏ phần «(nhóm …)». */
 export function cauNhomTatDuaDon(dichVu: readonly { ten: string; nhom: string | null }[], cua: CuaDuaDon): string {
   const ds = dichVu.map((d) => (d.nhom === null ? `“${d.ten}”` : `“${d.ten}” (nhóm “${d.nhom}”)`)).join(", ");
-  return `Nhóm dịch vụ đã tắt đưa đón nên không ghi được chặng đưa đón cho: ${ds}. ${HUONG_DAN_DUA_DON[cua]}`;
+  return `Nhóm dịch vụ đã tắt đưa đón nên không ghi được lượt đưa đón cho: ${ds}. ${HUONG_DAN_DUA_DON[cua]}`;
 }
 
 /** Dịch vụ CÓ mã danh mục (nhập tay: `catalogCode` rỗng — luôn cho đưa đón) và CÓ chặng mở: những dịch vụ cần hỏi cờ nhóm. */

@@ -56,7 +56,16 @@ async function tao(w: any, services: unknown[], extra: Record<string, unknown> =
   assert.equal(r.status, 201, r.text);
   return r.json.order;
 }
-const xacNhan = (w: any, id: string, as = SALES) => w.call("POST", `/api/orders/${id}/status`, { as, body: { status: "confirmed" } });
+/**
+ * ADR-0134 Đ2 (có SAU khi bài này viết 14/10): cửa xác nhận đòi mỗi dịch vụ chọn Đón (có lượt mở) hoặc Không đón. Bài này canh ADR-0118, không canh ADR-0134,
+ * nên trước khi xác nhận ghi thẳng lựa chọn KHỚP số lượt mở — như người lập đã bấm đúng nút. Chốt «nhóm tắt» đứng TRƯỚC cổng chọn đón nên không bị che.
+ */
+const chonDonKhopLuot = (w: any, id: string) =>
+  w.sqlite.prepare("UPDATE order_service SET pickup_choice = CASE WHEN EXISTS (SELECT 1 FROM ord_transfer_leg l WHERE l.order_service_id = order_service.id AND l.closed_at IS NULL) THEN 'DON' ELSE 'KHONG_DON' END WHERE order_id = ?").run(id);
+const xacNhan = (w: any, id: string, as = SALES) => {
+  chonDonKhopLuot(w, id);
+  return w.call("POST", `/api/orders/${id}/status`, { as, body: { status: "confirmed" } });
+};
 const lay = async (w: any, id: string) => (await w.call("GET", `/api/orders/${id}`, { as: ADM })).json.order;
 const biTuChoi = (r: any, ten = "Tour đảo") => {
   assert.equal(r.status, 409, r.text);

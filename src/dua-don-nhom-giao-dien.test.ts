@@ -20,8 +20,10 @@ test("N-17: khối Đưa đón dựng hàng nút «Chọn nhanh» bằng luật 
   const kd = boChuThich(doc("web/khoi-dua-don.ts"));
   assert.match(kd, /apChonNhanh\(legs, i, d\.id\)/);
   assert.match(kd, /oChonNhanhCuaChang\(l\) !== loai/);
-  assert.match(kd, /hangChonNhanh\(l, i, "don"\)/);
-  assert.match(kd, /hangChonNhanh\(l, i, "tra"\)/);
+  // Màn Tạo đơn thiết kế lại 18/10: nơi đón / nơi trả của form là MỘT ô có gợi ý (`cotNoiMotO`) — hàng nút nằm trong cột đó, cho CẢ hai ô (dựng lại trên main 28/10).
+  assert.match(kd, /function cotNoiMotO[\s\S]*?hangChonNhanh\(l, i, loai\)[\s\S]*?\n  \}\n/, "cột nơi một ô của form mang hàng nút chọn nhanh");
+  assert.match(kd, /cotNoiMotO\(l, i, "don"/);
+  assert.match(kd, /cotNoiMotO\(l, i, "tra"/);
   assert.match(kd, /"data-action": "chon-nhanh"/);
   assert.match(kd, /"Chọn nhanh nơi trả"/);
   assert.match(kd, /"Chọn nhanh nơi đón"/);
@@ -36,8 +38,14 @@ test("N-17: khối Đưa đón dựng hàng nút «Chọn nhanh» bằng luật 
 test("N-19: nhóm tắt đưa đón — form ẩn khối, không tạo chặng sẵn, bỏ chặng của nháp cũ và sau 409 transfer_disabled; thẻ tự ẩn/hiện theo cờ", () => {
   const of = boChuThich(doc("web/order-form.ts"));
   assert.match(of, /for \(const c of res\.items\) choDuaDon\.set\(c\.code, c\.transferEnabled\)/);
-  assert.match(of, /choDuaDon\.get\(item\.code\) === false \? \{ legs: \[\] as ChangNhap\[\], taoSan: null \}/);
-  assert.match(of, /boChangKhiTatDuaDon\(nhap\.legs, coDuaDon\(nhap\)\)/);
+  assert.match(of, /const tatDuaDon = choDuaDon\.get\(item\.code\) === false;/);
+  assert.match(of, /tatDuaDon \? \{ legs: \[\] as ChangNhap\[\], taoSan: null \}/);
+  // Một hàm cho nháp nạp lại và cho sau 409: bỏ chặng + «Không đón» (Ruling R-K, ghép ADR-0118 với ADR-0134 — 28/10).
+  assert.match(of, /function theoNhomDuaDon\(d: ServiceDraft\)[\s\S]*?boChangKhiTatDuaDon\(d\.legs, false\)[\s\S]*?pickupChoice: chonDonTheoNhom\(false, d\.pickupChoice\)/);
+  assert.match(of, /const nap = theoNhomDuaDon\(draftFromDto\(s, live, newKey\(\)\)\)/, "nạp nháp đi qua theoNhomDuaDon");
+  assert.match(of, /const nap = theoNhomDuaDon\(en\.draft\)/, "sau 409 transfer_disabled đi qua theoNhomDuaDon");
+  assert.match(of, /pickupChoice: chonDonTheoNhom\(!tatDuaDon, chonDonGoiY\(tao\.legs\.length\)\)/, "thêm dịch vụ nhóm tắt → «Không đón»");
+  assert.match(of, /toServiceInput\(\{ \.\.\.e\.draft, pickupChoice: chonDonTheoNhom\(coDuaDon\(e\.draft\), e\.draft\.pickupChoice\) \}, suaSoVe\)/, "gói gửi máy chủ: dịch vụ nhóm tắt luôn «Không đón»");
   assert.match(of, /coDuaDon: \(\) => coDuaDon\(entry\.draft\)/);
   assert.match(of, /err\.code === "transfer_disabled" \? await boChangNhomVuaTat\(\)/);
   const sc = boChuThich(doc("web/service-card.ts"));
