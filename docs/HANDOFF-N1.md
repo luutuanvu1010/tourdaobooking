@@ -2,11 +2,21 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## ĐANG CHỜ PHÁT HÀNH — Bước xác nhận đơn + «Gửi đơn» + nháp riêng tư (ADR-0135, ADR-0136), bản kế tiếp 2.36 (số tạm) — CHƯA triển khai
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.38 ĐÃ LÊN PRODUCTION (rà chữ Trang chủ: «Đơn đi», «ghi ngày …»; Hoa hồng đối tác «Có sẵn»; ẩn hai ô «Doanh thu của tôi» / «Đơn nháp» với người không lập được đơn; «Sheet đã đổi giá: <tên dịch vụ>»; trợ giúp Kế toán khớp màn hình; dải nhắc bảo mật hai lớp trên điện thoại không còn bị ô tìm che) — KHÔNG migration — triển khai 2026-10-28 14:03 (giờ VN)
+
+Ghi 28/10/2026 từ khối tóm tắt của `npm run trien-khai` (chủ chạy `day-len` + `trien-khai`) và một lệnh CHỈ ĐỌC của phiên rà chữ Trang chủ (nhánh `claude/partner-commission-menu-logic-6f9db3`):
+- Commit `main` = `origin/main`: `431bb82f`. Worker Version ID: `556acf7b-8d6e-4189-a2ea-366d0fddbf05`. e2e xanh; migration đã áp: không có.
+- Cổng phiên bản trước và sau deploy: ĐẠT. `audit-invariants --db remote`: «Mọi bất biến đạt, 5 cảnh báo». `GET /api/auth/config` → `version 2.38`, bảo trì tắt.
+- Nghiệm thu: chỉ phần chỉ đọc; chưa thử trang có đăng nhập trên production, chưa thử trên iPhone thật.
+- Bản 2.36 và 2.37 (27/10) đã lên production nhưng không có mục trạng thái trong sổ này; nội dung xem nhật ký thay đổi `src/shared/changelog.ts`.
+
+## ĐÃ PHÁT HÀNH ở bản 2.36 (27/10/2026) — Bước xác nhận đơn + «Gửi đơn» + nháp riêng tư (ADR-0135, ADR-0136)
+
+Ghi chú 28/10: tiêu đề cũ của mục này là «ĐANG CHỜ PHÁT HÀNH … CHƯA triển khai»; production đã qua 2.36 và 2.37 trước lần 2.38. Đoạn dưới là ghi chú gốc lúc chờ, giữ nguyên.
 
 Ghi 27/10/2026 (nhánh `claude/xac-nhan-don-thi-cong`, chưa vào `main`; KHÔNG phải trạng thái production). Khi phát hành: **cần `npm run trien-khai`, CÓ migration `0119_yeu_cau_xac_nhan`** (ba bảng); phiên phát hành kiểm lại số migration (`ls migrations`, mọi nhánh chưa gộp) và số phiên bản ở bước A.0 (mục nhật ký đầu `src/shared/changelog.ts`, kỳ vọng ở `src/shared/app-info.test.ts`). Trước khi chạy `trien-khai`, chủ đếm nháp cũ đã có khoản thu (lệnh ở kế hoạch `docs/superpowers/plans/2026-10-19-xac-nhan-don.md`, Task 2.2 Step 0). Task 3.3b (sửa tiền khi đơn chờ) HOÃN — bản này chạy Hướng 2. Sau phát hành: Toàn quyền đánh dấu dịch vụ / nhóm cần xác nhận qua `POST /api/cai-dat/xac-nhan-don` (giao diện cài đặt chờ Đợt 5; mặc định chưa đánh dấu nên đa số đơn Đối tác đi nhánh B). Việc treo: kịch bản Chrome cũ nhắc ô «Thanh toán trước» (ghi chú đầu tệp), ba lệch chữ ADR ở `docs/SYSTEM-DESIGN.md` §16 chờ chủ.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.35 ĐÃ LÊN PRODUCTION (PR 3 «Hoa hồng + Hỗ trợ»: trang Hỗ trợ làm lại — ba thẻ, danh sách hai cột, luồng trao đổi, Gửi yêu cầu, Nhóm hỗ trợ dạng bảng; bảng từ lượt 4: «Việc của nhóm», «Hướng dẫn») — KHÔNG migration — triển khai 2026-10-27 10:32 (giờ VN)
+## TRẠNG THÁI TRIỂN KHAI (cũ) — Phiên bản 2.35 ĐÃ LÊN PRODUCTION (PR 3 «Hoa hồng + Hỗ trợ»: trang Hỗ trợ làm lại — ba thẻ, danh sách hai cột, luồng trao đổi, Gửi yêu cầu, Nhóm hỗ trợ dạng bảng; bảng từ lượt 4: «Việc của nhóm», «Hướng dẫn») — KHÔNG migration — triển khai 2026-10-27 10:32 (giờ VN)
 
 Ghi 27/10/2026 bằng lệnh CHỈ ĐỌC (người kiểm độc lập, phiên Hoa hồng + Hỗ trợ; chủ chạy `day-len` + `trien-khai`):
 - Commit `main` = `origin/main`: `33e226eb`. Worker Version ID: `0024b0ba-197e-4042-a6ec-63e08d41c63d` (tạo 2026-10-27T03:32:14Z). Bản liền trước: `0bc2e81d-25b9-4f06-8caa-1802ac6eb362` (2.34).
