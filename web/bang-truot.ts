@@ -81,7 +81,7 @@ export function moBangTruot(o: {
   };
 }
 
-/** Hộp hỏi xác nhận một chiều thay `confirm()`: Esc / chạm nền / nút giữ → false; nút nguy hiểm → true; đang mở bảng khác → false (không làm gì). */
+/** Hộp hỏi xác nhận một chiều thay `confirm()`: Esc / chạm nền / nút giữ → false; nút nguy hiểm → true; đang mở bảng khác → false (không làm gì), nên đừng gọi từ bên trong một bảng đang mở. */
 export function hoiXacNhan(o: { tieuDe: string; hauQua: string; nhanNguyHiem: string; nhanGiu?: string; opener?: HTMLElement | null }): Promise<boolean> {
   return new Promise((resolve) => {
     const giu = h("button", { type: "button", class: "btn" }, o.nhanGiu ?? "Giữ nguyên");

@@ -5,6 +5,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
 
+// Giới hạn đã biết: chuỗi chứa « //» đứng trước lời gọi thì phần sau bị coi là chú thích; dòng bắt đầu bằng `*` (tiếp theo chú thích khối) bị bỏ qua.
 const TRAN = 16;
 const THU_MUC = join(import.meta.dirname, "..", "web");
 
@@ -21,7 +22,7 @@ test("số chỗ gọi confirm()/alert() trong web/ không vượt trần", () =
     readFileSync(join(THU_MUC, ten), "utf8")
       .split("\n")
       .forEach((dong, i) => {
-        const n = chiMa(dong).match(/\b(?:confirm|alert)\(/g)?.length ?? 0;
+        const n = chiMa(dong).match(/\b(?:confirm|alert)\s*\(/g)?.length ?? 0;
         for (let k = 0; k < n; k++) chua.push(`web/${ten}:${i + 1}`);
       });
   }

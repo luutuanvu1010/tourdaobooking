@@ -4050,3 +4050,6 @@ body.tabbar-an .vc-bottom-bar { bottom: 0; }
 @media (min-width: 641px) {
   .sheet-foot.sheet-foot-xac-nhan { flex-direction: row; justify-content: space-between; }
 }
+.sheet-foot-xac-nhan .btn-danger { color: var(--c-on-dark); background: var(--c-danger); border-color: var(--c-danger); }
+.sheet-foot-xac-nhan .btn-danger:hover { background: var(--c-danger-text); border-color: var(--c-danger-text); }
+.sheet-foot-xac-nhan .btn-danger:focus-visible { outline: var(--focus-ring) solid var(--c-focus); outline-offset: var(--focus-ring); }
