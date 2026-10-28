@@ -23,6 +23,8 @@ import {
   ghepDoiTacRieng,
   dongRiengDoiTac,
   nutDoiNgung,
+  ngayDoiSomNhat,
+  cauDoiTuNgayMai,
   tomTatMuc,
   xepLoai,
   canXacNhanDongDieuKhoan,
@@ -222,14 +224,24 @@ test("PR2 T1: nhanLoaiDoiTac — loại có sẵn, chỉ «Đã tắt» khi tắ
   assert.equal(nhanLoaiDoiTac({ ten: "X", coSan: false, dangBat: true }).trangThai, "");
 });
 
-test("PR2 T1: nutDoiNgung — năm ca", () => {
+test("PR2 T1: nutDoiNgung — các ca hiện / ẩn nút", () => {
   const d = (o: object) => ({ tuNgay: "2026-01-01", denNgay: null, conHieuLuc: true, ...o });
   assert.deepEqual(nutDoiNgung(d({}), HOM_NAY), { hien: true });
   assert.deepEqual(nutDoiNgung(d({ tuNgay: "2026-11-01", conHieuLuc: false }), HOM_NAY), { hien: false, ghiChu: "chưa tới ngày" });
   assert.deepEqual(nutDoiNgung(d({ denNgay: "2026-12-31" }), HOM_NAY), { hien: false, ghiChu: "ngừng sau 31/12/2026" });
   assert.deepEqual(nutDoiNgung(d({ denNgay: "2026-10-08", conHieuLuc: false }), HOM_NAY), { hien: false, ghiChu: "" });
-  // Dòng bắt đầu HÔM NAY: không nút (bàn giao 25/10 §4), nhưng phải nói khi nào làm được — trước 28/10 dòng này trống trơn, trông như bị khoá.
-  assert.deepEqual(nutDoiNgung(d({ tuNgay: HOM_NAY }), HOM_NAY), { hien: false, ghiChu: "đổi hoặc ngừng từ ngày mai" });
+  // Dòng bắt đầu HÔM NAY: có nút (chủ dự án 28/10 đổi bàn giao 25/10 §4 — trước đó chỉ ghi «đổi hoặc ngừng từ ngày mai», người dùng không tìm thấy nút).
+  // Máy chủ đã cho: Đổi từ ngày mai (`kiemDoi`), Ngừng đến hết hôm nay (`kiemNgayDong`). Ngày sớm nhất của hộp Đổi: `ngayDoiSomNhat`.
+  assert.deepEqual(nutDoiNgung(d({ tuNgay: HOM_NAY }), HOM_NAY), { hien: true });
+  // Bắt đầu hôm nay nhưng đã hẹn ngày ngừng: vẫn ghi ngày ngừng, không nút.
+  assert.deepEqual(nutDoiNgung(d({ tuNgay: HOM_NAY, denNgay: "2026-12-31" }), HOM_NAY), { hien: false, ghiChu: "ngừng sau 31/12/2026" });
+});
+
+test("Đổi mức bắt đầu hôm nay: ngày sớm nhất là ngày mai, kèm câu nói vì sao", () => {
+  assert.equal(ngayDoiSomNhat(HOM_NAY, HOM_NAY), "2026-10-10");
+  assert.equal(ngayDoiSomNhat("2026-10-01", HOM_NAY), HOM_NAY);
+  assert.equal(cauDoiTuNgayMai(HOM_NAY, HOM_NAY), "Mức cũ bắt đầu hôm nay nên mức mới áp dụng sớm nhất từ ngày mai; đơn xác nhận trong hôm nay vẫn tính theo mức cũ.");
+  assert.equal(cauDoiTuNgayMai("2026-10-01", HOM_NAY), "");
 });
 
 test("PR2 T1: tomTatMuc — số đứng trước, tên dài vẫn bắt đầu bằng số", () => {

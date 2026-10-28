@@ -12,6 +12,16 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Hoa hồng đối tác (chủ dự án 28/10, bấm «Cho hiện ngay»): dòng mức bắt đầu hôm nay nay có nút «Đổi» / «Ngừng»; hộp Đổi chọn ngày từ ngày mai (máy chủ đã cho từ trước, `kiemDoi`).
+    // Chỉ giao diện, KHÔNG migration. Số 2.41 và ngày là TẠM (main có 2.40 tạm của ADR-0144 lúc nhập) — phiên phát hành kiểm lại ở bước A.0 của docs/HANDOFF-N1.md.
+    version: "2.41",
+    date: "2026-10-28",
+    items: [
+      { kind: "sua", text: "Hoa hồng đối tác: mức vừa thêm trong hôm nay đã có nút «Đổi» và «Ngừng» ngay, không phải chờ sang hôm sau." },
+      { kind: "sua", text: "Đổi một mức thêm trong hôm nay thì mức mới áp dụng từ ngày mai; đơn xác nhận trong hôm nay vẫn tính theo mức cũ." },
+    ],
+  },
+  {
     // Đính kèm tệp trong vé hỗ trợ (ADR-0144; kế hoạch docs/superpowers/plans/2026-10-28-dinh-kem-ve-ho-tro.md). CÓ migration 0124 và kho R2 MỚI `tourdao-sales-ho-tro`
     // (chủ tạo kho TRƯỚC npm run trien-khai — docs/HANDOFF-N1.md). Số 2.40 và ngày là TẠM (production 2.38, main có 2.39 tạm của ADR-0118 lúc làm) — phiên phát hành kiểm lại ở bước A.0.
     version: "2.40",

@@ -6,13 +6,13 @@ Vé hỗ trợ đợt 2a (trò chuyện tự làm mới, mức ưu tiên, đơn 
 
 Tệp kèm tin vé hỗ trợ: ADR-0144 · đặc tả `docs/superpowers/specs/2026-10-28-dinh-kem-ve-ho-tro/README.md` (kèm trang ghép) · kế hoạch `docs/superpowers/plans/2026-10-28-dinh-kem-ve-ho-tro.md`.
 
-## Tệp kèm tin vé hỗ trợ (2026-10-28, nhánh `claude/modest-sanderson-b148ce`, CHƯA gộp, CHƯA lên production)
+## Tệp kèm tin vé hỗ trợ (2026-10-28, ĐÃ LÊN PRODUCTION bản 2.40 lúc 21:55, `main` `d9cf8adb` — trạng thái ở `docs/HANDOFF-N1.md`)
 - **Làm gì:** nút «Đính kèm» ở hộp «Gửi yêu cầu» và ô trả lời; tối đa 5 tệp, tổng 10 MB một tin, 20 tệp / giờ / tài khoản; ảnh JPG, PNG, HEIC và PDF. Ảnh được vẽ lại trên máy người gửi (cạnh dài 2000, JPG — bỏ toạ độ chụp); HEIC trình duyệt không mở được và PDF gửi nguyên. Mọi tài khoản gửi được tin thì đính kèm được (chủ dự án 28/10), kể cả Đối tác và Tài xế đối tác (vẫn chỉ gửi nhóm Kỹ thuật). Ai đọc được tin thì xem được tệp. Toàn quyền gỡ được tệp gửi nhầm.
 - **Tuyến** (chi tiết `docs/SYSTEM-DESIGN.md` §7): `POST /api/feedback` và `POST /api/feedback/:id/messages` nhận thêm `tep`, phản hồi 201 kèm `tepLoi`; mới: `GET /api/feedback/:id/tep/:tid`, `POST /api/feedback/:id/tep/:tid/go`, `GET /api/feedback/tep-cho-xoa`, `POST /api/feedback/tep-cho-xoa/chay-lai`.
 - **Dữ liệu và kho:** migration `0124_ve_ho_tro_tep.sql` (bảng `fbk_attachment`); kho R2 MỚI `tourdao-sales-ho-tro` (binding `HO_TRO`). Công thức sửa: `docs/CHANGE-GUIDE.md` z29.
 - **Kiểm:** bài `src/modules/feedback/{kho-tep,tep-route,tep-xem-route,rules}.test.ts`, `src/shared/tep-{dinh-kem,hien-thi}.test.ts`, `src/migrations-ve-ho-tro-tep.test.ts`, hàng rào `src/kho-tep-ho-tro.test.ts`; e2e `npm run test:e2e -- feedback ve-ho-tro-tep`; Chrome `ho-tro-smoke.mjs` bước T1, T2 (ảnh 28/10 hai khổ: `docs/evidence/2026-10-28-tep-kem-ve-ho-tro/`; chạy với `OUT=` khác để không ghi đè ảnh 27/10). Dòng hàng rào ở `docs/SO-HANG-RAO.md` (các dòng ADR-0144).
 - **Kiểm tay trên iPhone thật — CHƯA làm:** (1) chọn ảnh từ Thư viện (ảnh HEIC của iPhone) rồi gửi → ảnh hiện xem trước; (2) chụp ảnh mới bằng máy ảnh ngay trong hộp chọn; (3) chọn PDF từ ứng dụng Tệp, bấm «Tải về» trong Nền tảng đã cài; (4) mạng yếu: hiện «Đang gửi tệp…», tắt mạng giữa chừng rồi bấm Gửi lại → chỉ MỘT tin.
-- **Việc của chủ:** tạo kho TRƯỚC `npm run trien-khai` (lệnh ở `docs/HANDOFF-N1.md`, mục «ĐANG CHỜ PHÁT HÀNH 2.40 (số tạm) — Tệp kèm vé hỗ trợ»), rồi `npm run day-len` và `npm run trien-khai` (có migration ⇒ cần triển khai).
+- **Việc của chủ:** kho `tourdao-sales-ho-tro` đã tạo và bản 2.40 đã triển khai 28/10; còn thử tay trên iPhone thật (danh sách ngay trên) và quyết `BL-VE-TEP-DOC-SAU-LO`.
 - **Nợ:** `docs/BACKLOG.md` mục 52 (`BL-VE-TEP-…`).
 
 ## Vé hỗ trợ đợt 2a (2026-10-17, nhánh `claude/support-ticket-module-eb6445`, CHƯA gộp, CHƯA lên production)
