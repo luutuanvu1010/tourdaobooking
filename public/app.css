@@ -1976,6 +1976,9 @@ body.login-page main.login { display: flex; flex-direction: column; flex: 1; min
   .dash-so-mt, .dash-xuong-mt-so { grid-area: stats; }
   .dash-review { grid-area: review; }
   .dash-loi-tat { grid-area: loitat; }
+  /* Người không lập được đơn (Kế toán…) không có thẻ số liệu (#dash-so-mt ẩn — coOSoCuaToi, chủ 28/10): bỏ vùng "stats" để không chừa khoảng trống đầu trang. */
+  .dash-grid:has(> .dash-so-mt[hidden]) { grid-template-areas: "review" "trips" "loitat"; }
+  .dash-grid:has(> .dash-so-mt[hidden]):has(> .dash-review[hidden]) { grid-template-areas: "trips" "loitat"; }
 
   /* Khung xương lúc tải (bản vẽ v2 "Đang tải"): ô chức năng đã hiện, thẻ Chuyến đón + thẻ số liệu xám. */
   body.trang-chu #loading { margin: 0; }
@@ -2148,6 +2151,9 @@ body.login-page main.login { display: flex; flex-direction: column; flex: 1; min
      vẫn sát nhau). Không có "Cần xem lại" → Lối tắt lên đầu cột phải. */
   .dash-grid { grid-template-columns: minmax(0, 1fr) var(--w-home-side); grid-template-rows: auto auto 1fr; grid-template-areas: "stats stats" "trips review" "trips loitat"; }
   .dash-grid:has(> .dash-review[hidden]) { grid-template-rows: auto auto 1fr; grid-template-areas: "stats stats" "trips loitat" "trips ."; }
+  /* Không thẻ số liệu (xem khối ≥641px): hai cột bắt đầu ngay từ hàng đầu; luật này đứng SAU luật cùng độ ưu tiên của khối ≥641px nên thắng. */
+  .dash-grid:has(> .dash-so-mt[hidden]) { grid-template-rows: auto 1fr; grid-template-areas: "trips review" "trips loitat"; }
+  .dash-grid:has(> .dash-so-mt[hidden]):has(> .dash-review[hidden]) { grid-template-rows: auto 1fr; grid-template-areas: "trips loitat" "trips ."; }
   .dash-xuong-mt { grid-template-columns: minmax(0, 1fr) var(--w-home-side); grid-template-areas: "stats stats" "trips ."; }
   .dash-xuong-mt-so { flex-direction: row; }
   .dash-xuong-mt-so > div { flex: 1; }

@@ -60,6 +60,12 @@ const xemDon = (who: PermissionHolder): boolean => seesAllOrders(who);
 const quanTri = (who: PermissionHolder): boolean => can(who, "admin.manage");
 const khong = (): boolean => false;
 
+/**
+ * Hai ô «Của tôi» ở Trang chủ — «Doanh thu của tôi» (máy tính + điện thoại) và «Đơn nháp» (điện thoại) — chỉ đếm đơn do CHÍNH người xem lập
+ * (`revenueWeek`, `countDrafts` theo `staff_id`). Ai không lập được đơn (Kế toán, Hướng dẫn viên…) thì hai số luôn 0 ⇒ không hiện (chủ chọn 28/10).
+ */
+export const coOSoCuaToi = (who: PermissionHolder): boolean => can(who, "order.create");
+
 const THE: readonly MoTa[] = [
   { khoa: "xemLai", uuTien: () => 1, hien: quanTri, nhan: "Cần xem lại", nut: () => "Xem lại", href: "#dash-review", tone: "cat", chot: khong,
     phu: () => "Những điều Nền tảng đang nhắc Quản trị" },

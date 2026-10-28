@@ -13,7 +13,7 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // Rà chữ Trang chủ (chủ 28/10): «Chuyến đón» → «Đơn đi», «khai <ngày>» → «ghi ngày <ngày>» (chủ chọn trong hộp hỏi), nhãn «Công ty thu – chuyển khoản» sai cho khoản tiền mặt.
-    // Chỉ chữ giao diện, KHÔNG migration. Số 2.38 và ngày là TẠM — phiên phát hành kiểm lại ở bước A.0 của docs/HANDOFF-N1.md.
+    // Lượt 3 (chủ 28/10): ẩn hai ô «Của tôi» với người không lập được đơn; cảnh báo đổi giá ghi tên dịch vụ. Chỉ giao diện, KHÔNG migration. Số 2.38 và ngày là TẠM — phiên phát hành kiểm lại ở bước A.0 của docs/HANDOFF-N1.md.
     version: "2.38",
     date: "2026-10-28",
     items: [
@@ -21,6 +21,8 @@ export const CHANGELOG: readonly ReleaseNote[] = [
       { kind: "sua", text: "Trang chủ Kế toán, khối Chờ đối chiếu: chữ «khai 18/10» nay ghi «ghi ngày 18/10»; khoản tiền mặt chưa nộp về công ty không còn bị ghi nhầm là «chuyển khoản»." },
       { kind: "sua", text: "Hoa hồng đối tác: «Loại gốc» đổi thành «Có sẵn», kèm câu nói vì sao không tắt được; mức bắt đầu hôm nay ghi «đổi hoặc ngừng từ ngày mai» thay vì để trống." },
       { kind: "sua", text: "Danh bạ, khối Hoa hồng hiện hành của đại lý: chính sách gắn riêng nay gọi đúng là «Chính sách riêng», không còn lẫn với «mức riêng»." },
+      { kind: "sua", text: "Trang chủ Kế toán không còn hai ô «Doanh thu của tôi» và «Đơn nháp», vì hai ô này chỉ đếm đơn do chính người xem lập nên với Kế toán luôn bằng 0." },
+      { kind: "sua", text: "Trang chủ Quản trị, khối Cần xem lại: dòng «Sheet đã đổi giá» nay ghi tên dịch vụ thay cho mã dịch vụ." },
     ],
   },
   {

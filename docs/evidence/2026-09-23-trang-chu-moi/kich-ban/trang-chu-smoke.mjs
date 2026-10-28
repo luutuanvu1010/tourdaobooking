@@ -568,7 +568,7 @@ try {
     // lại" của Quản trị chỉ còn dòng Sheet đổi giá; hai góp ý MỚI (fb1, fb2) vẫn được dựng để khẳng định chúng KHÔNG lọt vào khối này của Quản trị.
     // (Trước 29/9 kịch bản chờ 2 dòng — đỏ sẵn từ ADR-0038, sửa khi làm xanh kịch bản ở Phần B ADR-0049.)
     assert.equal(m.review.rows.length, 1, `${label}: Quản trị có đúng 1 dòng cảnh báo (Sheet đổi giá) — góp ý chỉ Toàn quyền (ADR-0038) — ${JSON.stringify(m.review)}`);
-    assert.equal(m.review.rows[0].title, "Sheet đã đổi giá TD101", `${label}: dòng 1 phải là cảnh báo Sheet đổi giá đúng mã TD101 — ${JSON.stringify(m.review)}`);
+    assert.equal(m.review.rows[0].title, "Sheet đã đổi giá: Tour 4 đảo Nha Trang", `${label}: dòng 1 phải là cảnh báo Sheet đổi giá ghi TÊN dịch vụ TD101 (chủ 28/10), không ghi mã — ${JSON.stringify(m.review)}`);
     assert.equal(
       m.review.rows[0].sub,
       "1.200.000 ₫ → 1.350.000 ₫ · giá ghi đè vẫn đang bán",

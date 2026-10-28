@@ -17,7 +17,7 @@ import { homeRedirect } from "../src/shared/start-page";
 import { conLai, dongThoiGian, loiChao, phutVN, type DongThoiGian, type LoaiChuyen } from "../src/shared/trang-chu-may-tinh";
 import { loiTatMayTinh, luoiDienThoai, mauO, nhomMayTinh, type KhoaO, type LuoiTrangChu, type OChucNang } from "../src/shared/trang-chu-o";
 import { vnToday } from "../src/shared/vn-date";
-import { cauConLai, cauTomTatViec, KHOA_PHAM_VI, nguonCanTai, soTuKetQua, soXemLai, viecCuaBan, type KhoaThe, type NguonSo, type TheViec } from "../src/shared/viec-cua-ban";
+import { cauConLai, cauTomTatViec, coOSoCuaToi, KHOA_PHAM_VI, nguonCanTai, soTuKetQua, soXemLai, viecCuaBan, type KhoaThe, type NguonSo, type TheViec } from "../src/shared/viec-cua-ban";
 import { NHAN_PHAM_VI, PHAM_VI_O_TRANG_CHU, type PhamVi } from "../src/shared/pham-vi-so";
 
 const SHORT_WEEKDAY = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"]; // chỉ số = Date.getUTCDay() (0 = Chủ nhật)
@@ -86,13 +86,21 @@ function oSoMayTinh(lopO: string, iconName: IconName, nhan: string, phamVi: Pham
 
 /**
  * Thẻ số liệu máy tính: từ bản "Menu máy tính theo việc" (15/10) chỉ còn MỘT ô "Doanh thu của tôi" (tuần, biểu đồ bên phải). Ba ô cũ (Còn thiếu tiền, Chờ xác nhận,
- * Chưa phụ trách) nay là thẻ trong khối "Việc của bạn" (renderViec) — cùng số, lấy từ cùng nguồn. Điện thoại không đổi: #dash-so vẫn đủ bốn ô (renderSoDienThoai).
+ * Chưa phụ trách) nay là thẻ trong khối "Việc của bạn" (renderViec) — cùng số, lấy từ cùng nguồn. Điện thoại: #dash-so bốn ô, hoặc hai ô với người không lập được đơn (renderSoDienThoai, `coOSoCuaToi`).
  * Số đầy đủ ("12.500.000 ₫"), khác thẻ điện thoại (số rút gọn). Nhãn phạm vi "Của tôi" từ bảng chung `PHAM_VI_O_TRANG_CHU` (src/shared/pham-vi-so.ts).
  */
-function renderSoMayTinh(data: Api.DashboardResponse): void {
+function renderSoMayTinh(staff: Staff, data: Api.DashboardResponse): void {
   const rev = data.revenueWeek;
+  // Ô duy nhất của thẻ là «Doanh thu của tôi»: người không lập được đơn (Kế toán…) luôn 0 ⇒ ẩn cả thẻ (chủ 28/10). Lưới máy tính đổi vùng theo
+  // `.dash-grid:has(> .dash-so-mt[hidden])` ở app.css (không chừa khoảng trống đầu trang).
+  const the = byId("dash-so-mt");
+  the.hidden = !coOSoCuaToi(staff);
+  if (the.hidden) {
+    replaceChildren(the);
+    return;
+  }
   replaceChildren(
-    byId("dash-so-mt"),
+    the,
     oSoMayTinh("dash-smt-o-dt", "chart", "Doanh thu của tôi", PHAM_VI_O_TRANG_CHU.doanhThu, vnd(rev.total), `Tuần này · ${ngayNganHomNay(rev.from)}–${ngayNganHomNay(rev.to)} · ${rev.count} đơn`, {
       lop: "dash-smt-doanh-thu", ben: revenueChart(rev.daily),
     }),
@@ -363,7 +371,7 @@ function renderReview(alerts: ReviewAlerts | null): void {
   if (alerts.catalogConflict) {
     const c = alerts.catalogConflict;
     const range = `${c.base === null ? "—" : vnd(c.base)} → ${c.current === null ? "—" : vnd(c.current)} · ${c.hidden ? "đã ẩn, không bán" : "giá ghi đè vẫn đang bán"}`;
-    rows.push(reviewRow("dash-review-icon-sand", "alert", "/catalog", `Sheet đã đổi giá ${c.code}`, c.moreCount > 0 ? `${range} · +${c.moreCount} dịch vụ khác` : range));
+    rows.push(reviewRow("dash-review-icon-sand", "alert", "/catalog", `Sheet đã đổi giá: ${c.name}`, c.moreCount > 0 ? `${range} · +${c.moreCount} dịch vụ khác` : range));
   }
   if (alerts.expiringDocs) {
     rows.push(reviewRow("dash-review-icon-sand", "truck", "/giay-to-sap-het-han", `${alerts.expiringDocs.count} giấy tờ sắp hết hạn`, "Vận chuyển · Giấy tờ sắp hết hạn"));
@@ -712,15 +720,21 @@ function oSo(iconName: IconName, nhan: string, phamVi: PhamVi, giaTri: string, p
 }
 
 /** Thứ tự bản vẽ: Còn thiếu · Doanh thu của tôi · Chờ xác nhận · Chưa phụ trách — cùng số với thẻ số liệu máy tính (renderSoMayTinh), số rút gọn. */
-function renderSoDienThoai(data: Api.DashboardResponse, unpaid: Api.UnpaidSummaryResponse | null): void {
+function renderSoDienThoai(staff: Staff, data: Api.DashboardResponse, unpaid: Api.UnpaidSummaryResponse | null): void {
   const rev = data.revenueWeek;
+  // Hai ô «Của tôi» chỉ cho người lập được đơn (coOSoCuaToi, chủ 28/10); Kế toán còn hai ô «Còn thiếu», «Chưa phụ trách» trên một hàng.
+  const cuaToi = coOSoCuaToi(staff);
   replaceChildren(
     byId("dash-so"),
     unpaid
       ? oSo("money", "Còn thiếu", PHAM_VI_O_TRANG_CHU.conThieu, `${vndShort(unpaid.total)} ₫`, unpaid.count === 0 ? "Không có đơn nào" : `${unpaid.count} đơn`, "dash-so-thieu")
       : oSo("money", "Còn thiếu", PHAM_VI_O_TRANG_CHU.conThieu, "—", "Chưa tải được số"),
-    oSo("chart", "Doanh thu của tôi", PHAM_VI_O_TRANG_CHU.doanhThu, `${vndShort(rev.total)} ₫`, `Tuần này · ${rev.count} đơn`, "dash-so-doanh-thu"),
-    oSo("doc-check", "Đơn nháp", PHAM_VI_O_TRANG_CHU.donNhap, String(data.draftCount), "Nháp của bạn, chưa xác nhận"),
+    ...(cuaToi
+      ? [
+          oSo("chart", "Doanh thu của tôi", PHAM_VI_O_TRANG_CHU.doanhThu, `${vndShort(rev.total)} ₫`, `Tuần này · ${rev.count} đơn`, "dash-so-doanh-thu"),
+          oSo("doc-check", "Đơn nháp", PHAM_VI_O_TRANG_CHU.donNhap, String(data.draftCount), "Nháp của bạn, chưa xác nhận"),
+        ]
+      : []),
     oSo("assign", "Chưa phụ trách", PHAM_VI_O_TRANG_CHU.chuaPhuTrach, String(data.unassignedCount), "Chờ người nhận"),
   );
   byId("dash-so").hidden = false;
@@ -859,8 +873,8 @@ async function taiDashboard(staff: Staff, lamMoi = false, taiMoi = false): Promi
     baoLoi(unpaid || (khoiHien() && viecCuaBan(staff, nguon).the.some((t) => t.khoa === "conThieu")) ? null : LOI_SO_LIEU);
     datTomTatDai(data.today.length, canTai.length > 0 ? renderViec(staff, nguon) : null);
     datHuyHieu("don-hang", data.draftCount); // huy hiệu ô "Đơn hàng" = số đơn chưa xác nhận (quyết định 8 của chủ dự án — cùng số huy hiệu thanh bên)
-    renderSoMayTinh(data);
-    renderSoDienThoai(data, unpaid);
+    renderSoMayTinh(staff, data);
+    renderSoDienThoai(staff, data, unpaid);
     renderToday(data, tien);
     // Chỉ hiện khối nội dung SAU KHI dựng xong dữ liệu thật — lúc đang tải/lỗi giữ ẩn (tránh khối rỗng đọng lại cạnh skeleton/banner lỗi).
     byId("dash-grid").hidden = false;
