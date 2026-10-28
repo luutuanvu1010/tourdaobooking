@@ -101,7 +101,7 @@ Tìm: gõ tên hoặc số điện thoại, lọc theo loại, công việc, nơ
 4. Tạm ngưng bán: [[Ẩn]]. Bán lại: [[Hiện lại]].
 
 ### Nhóm dịch vụ (không lấy từ Sheet)
-Khối [[Nhóm dịch vụ]]: [[Thêm nhóm]], [[Lên]], [[Xuống]], [[Tắt]] (nhóm phải trống; dùng lại: [[Bật]]). Chuyển nhóm: tick ô chọn (tối đa 50), chọn nhóm đích; một dịch vụ: [[Sửa giá]] → [[Đổi nhóm]], có lịch sử. Công tắc [[Có đưa đón]] của nhóm: tắt thì dịch vụ nhóm đó không còn phần Đưa đón ở form Tạo đơn.
+Khối [[Nhóm dịch vụ]]: [[Thêm nhóm]], [[Lên]], [[Xuống]], [[Tắt]] (nhóm phải trống; dùng lại: [[Bật]]). Chuyển nhóm: tick ô chọn (tối đa 50), chọn nhóm đích; một dịch vụ: [[Sửa giá]] → [[Đổi nhóm]], có lịch sử. Tắt [[Có đưa đón]] thì dịch vụ của nhóm không còn phần Đưa đón.
 
 Lọc: [[Đang ghi đè giá]], [[Sheet đã đổi giá (cần xem)]], [[Đã ẩn]], [[Không còn trong Sheet]]. Đơn đã lập luôn giữ giá lúc lập.`,
     },
@@ -114,7 +114,7 @@ Người đang lo đơn tự trả bằng [[Từ chối đơn]]: đơn về Ch�
     },
     {
       tieuDe: "Đặt gấp (giờ đón đã qua hạn chốt)",
-      noiDung: `Đơn có giờ đón quá sát vẫn lưu nháp được, nhưng muốn xác nhận thì phải đặt gấp lượt đưa đón đó (nhân viên bán hàng cũng tự làm được). Lượt chưa qua hạn chốt thì không đặt gấp được.
+      noiDung: `Giờ đón quá sát vẫn lưu nháp được, nhưng muốn xác nhận phải đặt gấp lượt đó (Bán hàng cũng tự làm được). Lượt chưa qua hạn chốt thì không đặt gấp được.
 
 1. Mở đơn, bấm [[Đặt gấp]] ở dải vàng.
 2. Chọn lý do: [[Khách đoàn gọi gấp]], [[Chuyến bay đổi giờ]], [[Đơn bù cho khách bị lỡ chuyến]] hoặc [[Lý do khác]]. Gõ [[Ghi chú ngắn]] nếu cần.
@@ -126,12 +126,12 @@ Người đang lo đơn tự trả bằng [[Từ chối đơn]]: đơn về Ch�
       tieuDe: "Xe và giấy tờ xe",
       noiDung: `1. Vào [[Xe]], bấm [[Thêm xe]].
 2. Gõ [[Biển số]], [[Số khung]], [[Tên / đời xe]], chọn [[Chủ xe]] (công ty hoặc nhà xe đối tác), [[Số người được chở (không kể tài xế)]], trạng thái. Bấm [[Lưu xe]].
-3. Mở xe, bấm [[Thêm giấy tờ]]. Tối thiểu phải có Kiểm định và Bảo hiểm trách nhiệm dân sự, thiếu thì không cho xe chạy được.
+3. Mở xe, bấm [[Thêm giấy tờ]]. Phải có Kiểm định và Bảo hiểm trách nhiệm dân sự, thiếu thì xe không chạy được.
 4. Giấy mới: [[Gia hạn]]. Ghi sai: [[Sửa sai]].
 5. Không dùng xe nữa: [[Sửa thông tin xe]], [[Ngừng dùng xe]], rồi [[Ngừng dùng]]. Xe không bị xoá; dùng lại bằng [[Dùng lại xe]].
 
 ### Giấy tờ sắp hết hạn
-Mở [[Xe & giấy tờ]], chọn [[Giấy tờ sắp hết hạn]] (điện thoại: ở trang Tôi). Danh sách gồm giấy của xe và tài xế, cả giấy đã hết hạn. Bấm một dòng để mở rồi gia hạn.`,
+Mở [[Xe & giấy tờ]], chọn [[Giấy tờ sắp hết hạn]] (điện thoại: ở trang Tôi). Gồm giấy của xe và tài xế, cả giấy đã hết hạn; bấm một dòng để gia hạn.`,
     },
     {
       tieuDe: "Điều chỉnh khẩn cấp và phá lệ",
@@ -156,7 +156,7 @@ Mở [[Xe & giấy tờ]], chọn [[Giấy tờ sắp hết hạn]] (điện tho
 - Quản trị chỉ duyệt, không gửi yêu cầu, không thấy sổ công nợ hay yêu cầu đã quyết.
 - Quá 7 ngày không ai quyết thì yêu cầu hết hạn, số dư giữ nguyên.
 - Lúc bạn bấm [[Duyệt]], máy kiểm lại trần và số dư; không đạt thì không đổi.
-- Toàn quyền có thêm khối gửi yêu cầu nhưng không tự duyệt yêu cầu của mình.`,
+- Toàn quyền gửi được yêu cầu nhưng không tự duyệt yêu cầu của mình.`,
     },
     {
       tieuDe: "Các danh mục cài đặt",
@@ -164,7 +164,7 @@ Mở [[Xe & giấy tờ]], chọn [[Giấy tờ sắp hết hạn]] (điện tho
 1. [[Địa điểm]], khung [[Thêm địa điểm]]: gõ mã (chữ HOA, số, gạch dưới), tên, loại, địa chỉ, thứ tự, [[Thêm]].
 2. Sửa: [[Sửa]], [[Lưu]]. Mã không đổi được.
 3. Không dùng nữa: bỏ tick [[Đang dùng]], Lưu (không xoá được).
-4. Ô "Chọn nhanh (1–99)": điền số thì điểm thành nút ở form Tạo đơn.
+4. Ô "Chọn nhanh (1–99)": điểm có số thành nút ở form Tạo đơn.
 
 ### Loại giấy tờ, hạng bằng lái
 Mở [[Loại giấy tờ cá nhân]] (có cả [[Hạng giấy phép lái xe]]) hoặc [[Loại giấy tờ xe]]. Thêm: gõ mã, tên, tick [[Có ngày hết hạn]] nếu cần, thứ tự, [[Thêm]]. Sửa: [[Sửa]], [[Lưu]]. Không xoá, chỉ ngưng dùng.

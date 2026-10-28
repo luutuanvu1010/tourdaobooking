@@ -16,7 +16,8 @@ const LOC = "a941dd7d-faab-4098-9ab9-1df7fa6dd551"; // Bến tàu du lịch Nha 
 const OUT = { direction: "OUT", pickupDate: "", pickupTime: "06:30", pickupLocationId: null, pickupPlace: "Khách sạn Dò Tìm E2E", dropoffLocationId: LOC, dropoffPlace: "" };
 const RET = { direction: "RETURN", pickupDate: vnDate(8), pickupTime: "16:00", pickupLocationId: LOC, pickupPlace: "", dropoffLocationId: null, dropoffPlace: "Khách sạn Dò Tìm E2E" };
 const svc = (extra = {}) => catalogService({ pax: { adult: 2 }, departDate: D, ...extra });
-const lay = async (id) => (await call(ADMIN, "GET", `/api/orders/${id}`)).body.order;
+// Đọc bằng NGƯỜI LẬP: từ ADR-0135 (bản 2.36) đơn nháp chỉ người lập đọc được — Quản trị nhận 404 (dựng lại trên main 28/10).
+const lay = async (id) => (await call(SALES, "GET", `/api/orders/${id}`)).body.order;
 const nhomHTA = async () => (await call(ADMIN, "GET", "/api/catalog/groups")).body.groups.find((g) => g.code === "HTA");
 const datNhom = async (transferEnabled) => {
   const g = await nhomHTA();
