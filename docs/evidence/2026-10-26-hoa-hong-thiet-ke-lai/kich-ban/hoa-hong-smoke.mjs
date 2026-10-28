@@ -6,6 +6,7 @@
 //   3) Kế toán: «Đổi» dòng mức riêng bắt đầu trước hôm nay, Từ = hôm nay → dòng cũ ngừng hôm qua; Từ = hôm nay + 5 → dòng cũ ngừng hôm nay + 4 (kiểm bằng API);
 //   4) Đổi bị từ chối: dòng bị ngừng bằng API giữa lúc mở hộp và lúc bấm → hộp còn mở, câu của máy chủ hiện, «Huỷ» bấm được;
 //   5) Dòng sắp áp dụng: không nút, «chưa tới ngày»; dòng có ngày ngừng tương lai: «ngừng sau <ngày>», không nút;
+//  5b) (chủ dự án 28/10) Dòng bắt đầu HÔM NAY có «Đổi»: ô «Từ» mặc định và sớm nhất là ngày mai, kèm câu vì sao; đổi xong dòng cũ ngừng hết hôm nay, dòng mới từ ngày mai;
 //   6) Thẻ Thiết lập: «Có sẵn» (trước 28/10: «Loại gốc») không nút Tắt/Bật, có câu lý do; thêm loại; thêm chính sách; «Áp dụng cho loại…» với loại còn mức riêng → khung vàng;
 //   7) Bán hàng: cùng trang, không một nút ghi nào; Tra nhanh theo tên vẫn chạy;
 //   8) Tài khoản Đối tác: câu «Bạn không có quyền xem trang này.» (hoặc không vào được trang);
@@ -38,6 +39,7 @@ const PHA = process.env.HH_PHA ?? "";
 // Chữ phải KHỚP NGUYÊN VĂN với src/shared/hoa-hong-hien-thi.ts và web/hoa-hong*.ts (viết lại có chủ đích: đổi chữ mà quên kịch bản ⇒ đỏ).
 const CAU_TRA_THEO_LOAI = "Đang tra theo loại. Một đối tác cụ thể của loại này có thể có mức riêng hoặc chính sách riêng — gõ tên đối tác để chắc.";
 const CAU_KHONG_CO_QUYEN_XEM = "Bạn không có quyền xem trang này.";
+const CAU_DOI_TU_NGAY_MAI = "Mức cũ bắt đầu hôm nay nên mức mới áp dụng sớm nhất từ ngày mai; đơn xác nhận trong hôm nay vẫn tính theo mức cũ.";
 const CAU_THONG_BAO_DONG_RIENG = "Ngừng các mức riêng đó ở thẻ «Mức đang áp dụng».";
 const CHU_ANH = /\b(MT_[A-Z]{8}|LD_[A-Z]{8}|muc_trung|muc_tat|prc_tier_\w+|prc_\w+|stale|invalid_input|forbidden|undefined|null|NaN|Internal Server Error)\b|\[object/;
 // 28/10: chủ chọn quay lại «Có sẵn» (bỏ khỏi danh sách cấm), «Loại gốc» thành chữ cấm.
@@ -188,9 +190,11 @@ try {
       await ruleMoi(L_E, vnDate(10)); // sắp áp dụng
       await ruleMoi(L_F, vnDate(-10)); // sẽ bị ngừng sau
       await ruleMoi(L_G, HOM_NAY, { phamVi: "ALL" }); // còn mức riêng khi chính sách được áp dụng cho loại (bước 6)
+      const L_H = await loaiMoi("Đại lý vé");
+      await ruleMoi(L_H, HOM_NAY); // dòng bắt đầu hôm nay: có «Đổi», đổi từ ngày mai (bước 5b)
       const ds = phai(await call(ACCOUNTS.accounting, "GET", "/api/pricing/hoa-hong"), 200, "danh sách mức").dong;
       const dongCua = (l) => ds.find((r) => r.doiTuong.loai === "VAI" && r.doiTuong.code === l.code);
-      const [R_A, R_B, R_C, R_D, R_E, R_F] = [L_A, L_B, L_C, L_D, L_E, L_F].map(dongCua);
+      const [R_A, R_B, R_C, R_D, R_E, R_F, R_H] = [L_A, L_B, L_C, L_D, L_E, L_F, L_H].map(dongCua);
       phai(await call(ACCOUNTS.accounting, "POST", `/api/pricing/hoa-hong/${R_F.id}/dong`, { denNgay: vnDate(7) }), 200, "ngừng sau cho dòng cửa hàng");
       const orgMoi = async (ten, loai) => {
         const o = phai(await call(ACCOUNTS.accounting, "POST", "/api/parties", { kind: "ORGANIZATION", displayName: ten }), 201, `hồ sơ ${ten}`).party;
@@ -392,6 +396,35 @@ try {
             await bocucSach(p, `bước 5 ${kho}`);
             await axeKiem(p, `dòng sắp / ngừng sau ${kho}`);
             await chup(p, `09-dong-sap-va-ngung-sau-${tenKho}`);
+          });
+
+          // Chủ dự án 28/10: dòng bắt đầu hôm nay có «Đổi» / «Ngừng» (trước đó chỉ ghi «đổi hoặc ngừng từ ngày mai», người dùng không tìm thấy nút).
+          await buoc(`5b${kho}`, "Dòng bắt đầu hôm nay: có «Đổi»; hộp Đổi từ ngày mai kèm câu vì sao; đổi xong cũ ngừng hết hôm nay, mới từ ngày mai", async () => {
+            const MAI = vnDate(1);
+            await moLoai(p, L_H.code);
+            const h0 = await hang(p, R_H.id);
+            assert.ok(h0 && !h0.chu.includes("ngày mai"), `không còn chữ xám «… từ ngày mai»: ${JSON.stringify(h0)}`);
+            if (tenKho !== "390") assert.deepEqual(h0.nut, ["Đổi", "Ngừng"], "máy tính: nút Đổi và Ngừng trong dòng");
+            await moDoi(p, R_H.id, tenKho);
+            assert.deepEqual(await p.ev("(() => { const t = document.getElementById('hh-doi-tu-ngay'); return { v: t.value, min: t.min }; })()"), { v: MAI, min: MAI }, "ô Từ mặc định và sớm nhất là ngày mai");
+            assert.ok(await p.ev(`[...document.querySelectorAll('.sheet .hint')].some((x) => x.textContent.trim() === ${JSON.stringify(CAU_DOI_TU_NGAY_MAI)})`), "câu vì sao mức mới từ ngày mai");
+            const homNayVN = HOM_NAY.split("-").reverse().join("/");
+            assert.ok((await p.ev("document.querySelector('.sheet .hint[aria-live]').textContent")).endsWith(`đến hết ${homNayVN}.`), "mức cũ ngừng hết hôm nay");
+            await p.ev(setInput("document.getElementById('hh-doi-ty-le')", "25"));
+            await bocucSach(p, `bước 5b hộp Đổi ${kho}`);
+            await axeKiem(p, `hộp Đổi dòng bắt đầu hôm nay ${kho}`);
+            await chup(p, `09b-hop-doi-dong-hom-nay-${tenKho}`, false);
+            assert.equal(await clickTrong(p, ".sheet", "Đổi mức"), true);
+            await choOk(p, "Đã đổi mức.");
+            await choDongHop(p);
+            const dong = await cacDong(p);
+            const moiH = dong.find((r) => r.doiTuong.code === L_H.code && r.id !== R_H.id);
+            assert.equal(dong.find((r) => r.id === R_H.id).denNgay, HOM_NAY, "dòng cũ ngừng hết hôm nay");
+            assert.equal(moiH?.tuNgay, MAI, "dòng mới từ ngày mai");
+            await moLoai(p, L_H.code);
+            const hCu = await hang(p, R_H.id);
+            assert.ok(hCu.chu.includes("ngừng sau") && hCu.nut.length === 0, `dòng cũ «ngừng sau…», không nút: ${JSON.stringify(hCu)}`);
+            await bocucSach(p, `bước 5b ${kho}`);
           });
 
           // Nhãn «Có sẵn» (chủ chọn 28/10, thay «Loại gốc») + câu lý do dưới danh sách.
