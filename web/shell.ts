@@ -1,5 +1,5 @@
 import { ApiError, api, datNguoiDangNhap, type Staff, type Api } from "./api";
-import { BO_CHON_THANH_DINH, coThanhDinhHien } from "../src/shared/thanh-dinh-day";
+import { BO_CHON_THANH_DINH, boTheoDoi, thanhDinhHien } from "../src/shared/thanh-dinh-day";
 import { PERMISSION_LABEL } from "../src/shared/permissions";
 import {
   KHUNG_MAT_MANG,
@@ -520,28 +520,24 @@ export function datThanhTab(hien: boolean): void {
  */
 function theoDoiThanhDinh(): void {
   if (typeof MutationObserver === "undefined") return;
-  let truoc: boolean | null = null;
+  const doi = boTheoDoi((co) => datThanhTab(!co));
+  let cu = "";
   const capNhat = () => {
-    const ds = [...document.querySelectorAll<HTMLElement>(BO_CHON_THANH_DINH)];
-    const co = coThanhDinhHien(ds);
-    if (co !== truoc) {
-      truoc = co;
-      datThanhTab(!co);
-    }
+    const e = thanhDinhHien(document.querySelectorAll<HTMLElement>(BO_CHON_THANH_DINH));
+    doi(!!e);
     const tb = document.getElementById("tabbar");
-    const dich = co ? ds.find((e) => !e.closest(".sheet-root") && e.getClientRects().length > 0) : tb && tb.getClientRects().length > 0 ? tb : null;
-    document.body.style.setProperty("--day-dinh", `${dich ? Math.round(dich.getBoundingClientRect().height) : 0}px`);
+    const dich = e ?? (tb && tb.getClientRects().length > 0 ? tb : null);
+    const moi = `${dich ? Math.round(dich.getBoundingClientRect().height) : 0}px`;
+    if (moi !== cu) document.body.style.setProperty("--day-dinh", (cu = moi));
   };
   let cho = false;
-  const chay = () => {
-    cho = false;
-    capNhat();
-  };
   const lich = () => {
     if (cho) return;
     cho = true;
-    if (typeof requestAnimationFrame === "undefined") chay();
-    else requestAnimationFrame(chay);
+    requestAnimationFrame(() => {
+      cho = false;
+      capNhat();
+    });
   };
   capNhat();
   const mo = new MutationObserver(lich);

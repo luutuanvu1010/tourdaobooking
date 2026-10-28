@@ -16,7 +16,7 @@ Sau Task 2: 96.929 byte (vượt trần 96.700; trần không đổi, nới mộ
 Sau Task 3: 96.929 byte (chỉ thêm CSS và bài, gói không đổi; vẫn vượt trần, trần không đổi).
 Sau Task 4: 97.027 byte (bài đo; +98 so với Task 3, chỉ phần đọc `body[data-trang-thai]` ở `shell.ts`; `trang-thai-he-thong.ts` không vào gói Đơn hàng; vẫn vượt trần, trần không đổi).
 Sau Task 5: 97.749 byte (+722 so với Task 4: bảng THANH_TAB viết lại với các vị từ và nhãn mới, dòng TRANG.thietLap; vẫn vượt trần, trần không đổi).
-Sau Task 6: 98.675 byte (+926 so với Task 5: `theoDoiThanhDinh` ở shell và hàm thuần `thanh-dinh-day`; vẫn vượt trần, trần không đổi).
+Sau Task 6: 98.635 byte (+886 so với Task 5: `theoDoiThanhDinh` ở shell và hàm thuần `thanh-dinh-day`; sau vòng sửa 1 giảm 40 so với 98.675; vẫn vượt trần, trần không đổi).
 
 ## Lệch so với đặc tả
 

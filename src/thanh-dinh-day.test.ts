@@ -3,7 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { BO_CHON_THANH_DINH, coThanhDinhHien } from "./shared/thanh-dinh-day.ts";
+import { BO_CHON_THANH_DINH, boTheoDoi, coThanhDinhHien, thanhDinhHien } from "./shared/thanh-dinh-day.ts";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 
@@ -19,10 +19,24 @@ test("BO_CHON_THANH_DINH loại .dp-run-end", () => {
   assert.match(BO_CHON_THANH_DINH, /^\.thanh-hanh-dong-cuoi:not\(\.dp-run-end\)$/);
 });
 
+test("boTheoDoi: chỉ gọi khi giá trị đổi (lần đầu luôn gọi)", () => {
+  const goi: boolean[] = [];
+  const cap = boTheoDoi((co) => goi.push(co));
+  for (const co of [false, false, true, true, false]) cap(co);
+  assert.deepEqual(goi, [false, true, false]);
+});
+
+test("thanhDinhHien trả đúng phần tử đầu tiên đang hiện", () => {
+  const an = { getClientRects: () => [], closest: () => null };
+  const hien = { getClientRects: () => [1], closest: () => null };
+  assert.equal(thanhDinhHien([an, hien]), hien);
+  assert.equal(thanhDinhHien([an]), null);
+});
+
 test("shell.ts: có rào MutationObserver, không quan sát thuộc tính của body (tránh vòng tự kích)", () => {
   const src = readFileSync(`${ROOT}web/shell.ts`, "utf8");
   assert.match(src, /typeof MutationObserver/);
-  assert.match(src, /typeof requestAnimationFrame/);
+  assert.match(src, /boTheoDoi\(/);
   const i = src.indexOf("function theoDoiThanhDinh");
   assert.ok(i > 0);
   const ham = src.slice(i, src.indexOf("\n}\n", i));
