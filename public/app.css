@@ -641,7 +641,7 @@ textarea { min-height: 72px; resize: vertical; }
 :is(.btn-primary[type="submit"], .btn-primary.btn-chinh, .sheet-foot .btn-primary, .login-actions .login-submit):disabled:not(.is-loading):not(.vc-btn) { color: var(--c-btn-soft-text); background: var(--c-btn-soft-bg); border-color: var(--c-btn-soft-border); box-shadow: none; } /* nút Vận chuyển khoá giữ kiểu xám riêng (.vc-btn:disabled) */
 .btn-accent { color: #fff; background: var(--c-accent); border-color: var(--c-accent); box-shadow: var(--shadow-btn-accent); }
 @media (hover: hover) {
-  .btn:not(:disabled):not(.btn-primary):not(.btn-accent):not(.btn-link):not([aria-pressed="true"]):hover { background: var(--c-soft-hover); } /* nút đang chọn (aria-pressed) giữ nền chọn khi rê */
+  .btn:not(:disabled):not(.btn-primary):not(.btn-accent):not(.btn-link):not([aria-pressed="true"]):not(.sheet-foot-xac-nhan .btn-danger):hover { background: var(--c-soft-hover); } /* nút đang chọn (aria-pressed) giữ nền chọn khi rê */
   .btn-primary:not(:disabled):hover { background: var(--c-btn-soft-hover-bg); border-color: var(--c-btn-soft-hover-bg); }
   :is(.btn-primary[type="submit"], .btn-primary.btn-chinh, .sheet-foot .btn-primary, .login-actions .login-submit):not(:disabled):hover { background: var(--c-btn-primary-hover-bg); border-color: var(--c-btn-primary-hover-bg); }
   .btn-accent:not(:disabled):hover { background: var(--c-accent-strong); border-color: var(--c-accent-strong); }
@@ -4051,5 +4051,7 @@ body.tabbar-an .vc-bottom-bar { bottom: 0; }
   .sheet-foot.sheet-foot-xac-nhan { flex-direction: row; justify-content: space-between; }
 }
 .sheet-foot-xac-nhan .btn-danger { color: var(--c-on-dark); background: var(--c-danger); border-color: var(--c-danger); }
-.sheet-foot-xac-nhan .btn-danger:hover { background: var(--c-danger-text); border-color: var(--c-danger-text); }
+@media (hover: hover) {
+  .sheet-foot-xac-nhan .btn-danger:hover { background: var(--c-danger-text); border-color: var(--c-danger-text); }
+}
 .sheet-foot-xac-nhan .btn-danger:focus-visible { outline: var(--focus-ring) solid var(--c-focus); outline-offset: var(--focus-ring); }
