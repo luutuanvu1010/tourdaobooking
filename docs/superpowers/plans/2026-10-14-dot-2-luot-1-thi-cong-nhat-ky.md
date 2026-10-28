@@ -49,3 +49,18 @@
 ## Sau kiểm độc lập (14/10/2026; kết luận «ĐỦ có điều kiện», không có mục Chặn)
 - **Bài hành vi cho nhánh NHÁP của `PUT /api/orders/:id/legs/:legId`** (sửa «số người chiều về», Ruling R-E): thêm bài `N-10b` ở `src/modules/orders/dua-don-nhom-tat.test.ts` (đơn nháp, nhóm tắt → 409 `transfer_disabled`, không ghi, không nhật ký; nhóm bật lại → 200). Đã quan sát: bỏ chốt ở `planPaxOverrideNhap` ⇒ `not ok 11 - N-10b …` (trước đó 14/14 bài hành vi vẫn xanh); hoàn nguyên ⇒ 15/15. Đã sửa câu đầu tệp bài và dòng sổ hàng rào (không còn ghi sai là lớp hành vi phủ nhánh nháp từ đầu).
 - **Chữ hiển thị:** nhật ký thay đổi 1.97 nói đúng hai trường hợp (đơn đã xác nhận chỉ đóng được chặng; đơn nháp bỏ chặng trong form rồi mới xác nhận) — Ruling R-L, câu cũ «phải đóng chặng trước» sai cho đơn nháp. Trợ giúp Quản trị: «Chọn nhanh (1–99)» là ô nhập nên bỏ `[[ ]]` (không nâng trần chữ).
+
+## Dựng lại trên main (28/10/2026, nhánh `claude/service-group-pickup-setup-ae4465`)
+
+Bối cảnh: nhánh 14/10 (`claude/tour-dao-booking-audit-bc6c77`, đầu `d7495a77`) chưa từng `day-len`; main đi thêm 792 lần lưu (2.38). Chủ 28/10: «hãy rà lại để nhập … vào bản chính». Cách làm: **merge** nhánh cũ vào một nhánh dựng từ main `60aadbf9` (không rebase — AI bị chặn rebase, và merge vẫn nối thẳng từ main cho `day-len`), gỡ 14 tệp va nhau.
+
+| # | Ruling | Lý do | Hệ quả |
+|---|---|---|---|
+| R-M | Dịch vụ thuộc nhóm tắt đưa đón: form ghi «Không đón» (`chonDonTheoNhom`, `src/shared/chon-nhanh.ts`) ở ba chỗ — thêm dịch vụ, nạp nháp, sau 409 `transfer_disabled` — và ở gói gửi máy chủ | ADR-0134 Đ2 (có sau 14/10) đòi mọi cửa xác nhận có lựa chọn Đón / Không đón, mà ADR-0118 Đ5 ẩn cả khối có hai nút đó ⇒ ghép nguyên văn thì dịch vụ nhóm tắt không bao giờ xác nhận được | **Ngoại lệ hẹp của ADR-0134 Đ7** («không mặc định Không đón»), chỉ khi nhóm tắt; không migration, đảo được; máy chủ không đổi. **Chờ chủ xác nhận** (ghi trong báo cáo cuối việc). Lần lưu nhập đầu gọi tên này là «R-K» (trùng R-K cũ ở bảng trên) — đổi thành R-M ở lần lưu tài liệu |
+| R-N | Chốt `congNhomTatDuaDon` đặt trong `kiemCongXacNhan` (xác nhận đơn, Còn vé, Gửi đơn hai nhánh) và gọi riêng ở Gửi xác nhận; đứng TRƯỚC cổng chọn đón | Ba cửa xác nhận của ADR-0136 ra đời sau 14/10: bốn bài mới đỏ trước (200/201) | Câu báo bốn kiểu: `luu`, `sua`, `xac-nhan`, `xet-duyet` (Còn vé: người xét duyệt không sửa được nháp người khác, ADR-0135 ⇒ câu nói người lập Rút lại) |
+| R-O | Số: migration `0098` → `0121`, phiên bản 1.97 → **2.39**, mục CHANGE-GUIDE z16 → z28; ADR giữ số **0118** (main bỏ trống số này cho nhánh) | max+1 lúc dựng lại; đã quét mọi nhánh chưa gộp (không nhánh nào giữ migration > 0120 hay phiên bản > 2.38) | Vẫn là số TẠM — phiên phát hành kiểm lại ở bước A.0 |
+| R-P | Chữ giao diện theo bản chính (rà soát ngôn ngữ 2.19): «lượt đưa đón», nút «Bỏ lượt», trang «Dịch vụ & giá» | Câu báo của nhánh cũ còn «chặng», «màn Danh mục» | `cauNhomTatDuaDon`, `cauBoChangNhomTat`, nhật ký thay đổi, bài kiểm câu |
+
+Kiểm kê mọi câu GHI `ord_transfer_leg` trên main 28/10 (`chang-hanh-khach-repo.ts`, `xac-nhan-repo.ts`): chèn / sửa / số người chiều về / thay — qua các cửa có chốt của nhánh cũ; đóng lượt và dấu đặt gấp — đường được phép (Đ3 c); điền ngày khi xác nhận và đổi ngày / giờ ở Còn vé — nằm SAU `kiemCongXacNhan`. Không module nào ngoài `orders` ghi bảng này.
+Hàng nút «Chọn nhanh» gắn vào `cotNoiMotO` (ô nơi một ô của màn Tạo đơn 18/10), cho cả nơi đón và nơi trả; bảng «Sửa đưa đón» vẫn không có (không truyền `diemNhanh`).
+Câu «Bảng ở trang quản trị có thể phải kéo ngang.» ở Trợ giúp Quản trị bị bỏ để câu công tắc «Có đưa đón» vừa trần chữ (cách nhánh cũ đã làm).

@@ -173,7 +173,7 @@ let diemNhanh: DiemNhanh[] = [];
 const choDuaDon = new Map<string, boolean>();
 const coDuaDon = (d: ServiceDraft): boolean => (d.kind === "catalog" ? choDuaDon.get(d.code) !== false : true);
 /**
- * Dịch vụ thuộc nhóm TẮT đưa đón (ADR-0118 Đ5): bỏ mọi chặng của bản nháp và ghi «Không đón» (Ruling R-K — khối Đưa đón bị ẩn nên không có nút để chọn). Nhóm bật →
+ * Dịch vụ thuộc nhóm TẮT đưa đón (ADR-0118 Đ5): bỏ mọi chặng của bản nháp và ghi «Không đón» (Ruling R-M — khối Đưa đón bị ẩn nên không có nút để chọn). Nhóm bật →
  * trả nguyên bản nháp. `soBo` = số chặng vừa bỏ (để báo người lập).
  */
 function theoNhomDuaDon(d: ServiceDraft): { draft: ServiceDraft; soBo: number } {
@@ -227,7 +227,7 @@ const picker = createCatalogPicker({
     const tao = tatDuaDon ? { legs: [] as ChangNhap[], taoSan: null } : changTaoSan(mauChang.get(item.code) ?? null, orderDate, newKey);
     // Thiết kế lại 18/10 (mục 3C): thẻ vừa thêm MỞ (người lập phải điền), thẻ đang mở khác tự gập — trừ thẻ có lỗi chặn Lưu (`mustStayOpen`). Thẻ nằm dưới khung danh sách nên gập không xê dịch khung.
     // ADR-0134 Đ7: mẫu một chiều / khứ hồi (đã tạo sẵn chặng) → gợi ý "Đón" (đổi được); không mẫu → CHƯA chọn (không mặc định "Không đón").
-    chiMoMot(mount({ ...withOrderDate(newCatalogDraft(item, newKey())), legs: tao.legs, taoSan: tao.taoSan, pickupChoice: chonDonTheoNhom(!tatDuaDon, chonDonGoiY(tao.legs.length)) }, true)); // Ruling R-K: nhóm tắt → «Không đón»
+    chiMoMot(mount({ ...withOrderDate(newCatalogDraft(item, newKey())), legs: tao.legs, taoSan: tao.taoSan, pickupChoice: chonDonTheoNhom(!tatDuaDon, chonDonGoiY(tao.legs.length)) }, true)); // Ruling R-M: nhóm tắt → «Không đón»
     // Thiết kế lại 18/10 (đặc tả mục 3A): KHÔNG cuộn trang tới thẻ mới và KHÔNG thông báo nổi — khung danh sách đứng yên để thêm nhiều dịch vụ liền tay;
     // dòng vừa chạm hiện "✓ đã thêm" và vùng aria-live của ô chọn đọc "Đã thêm <tên>" (web/catalog-picker.ts). Thẻ mới nằm ngay dưới khung.
   },
@@ -542,7 +542,7 @@ function collect(): OrderInput {
     customerPhone: field("customerPhone").value,
     customerEmail: field("customerEmail").value,
     customerNote: field("customerNote").value,
-    services: entries.map((e) => toServiceInput({ ...e.draft, pickupChoice: chonDonTheoNhom(coDuaDon(e.draft), e.draft.pickupChoice) }, suaSoVe)), // Ruling R-K
+    services: entries.map((e) => toServiceInput({ ...e.draft, pickupChoice: chonDonTheoNhom(coDuaDon(e.draft), e.draft.pickupChoice) }, suaSoVe)), // Ruling R-M
     // ADR-0047 R1: khoá `passengers` CHỈ khi khối hành khách đang dựng (có ô + đã tải được danh sách) — vắng = máy chủ giữ danh sách đang lưu.
     ...(hk ? { passengers: passengersNhap(hk.rows()) } : {}),
     discount: num("discount"),

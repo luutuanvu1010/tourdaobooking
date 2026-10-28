@@ -4,7 +4,7 @@
 // - `oChonNhanhCuaChang`: nút chọn nhanh điền ô nào — chiều đi → «Nơi trả», chiều về → «Nơi đón» (đầu kia của chặng thường là khách sạn / địa chỉ khách).
 // - `apChonNhanh`: điền điểm vào ô đó bằng đúng `suaChang` (giữ luật chiều về đi theo chiều đi); không đụng ô kia.
 // - `boChangKhiTatDuaDon`: nhóm tắt đưa đón → bỏ MỌI chặng của dịch vụ (kèm số chặng bỏ để báo người lập).
-// - `chonDonTheoNhom`: nhóm tắt đưa đón → lựa chọn đón của dịch vụ là «Không đón» (Ruling R-K: khối Đưa đón bị ẩn nên không có nút Đón / Không đón để bấm).
+// - `chonDonTheoNhom`: nhóm tắt đưa đón → lựa chọn đón của dịch vụ là «Không đón» (Ruling R-M: khối Đưa đón bị ẩn nên không có nút Đón / Không đón để bấm).
 import { suaChang, type ChangNhap } from "./chang-form.ts";
 import type { LuaChonDon } from "./khung-gio-don.ts";
 
@@ -62,7 +62,7 @@ export function cauBoChangNhomTat(tenDichVu: string, soBo: number): string {
 }
 
 /**
- * Ruling R-K (28/10, ghép ADR-0118 với ADR-0134): dịch vụ thuộc nhóm tắt đưa đón (`choPhep = false`) có khối Đưa đón bị ẩn — không có nút Đón / Không đón để
+ * Ruling R-M (28/10, ghép ADR-0118 với ADR-0134): dịch vụ thuộc nhóm tắt đưa đón (`choPhep = false`) có khối Đưa đón bị ẩn — không có nút Đón / Không đón để
  * bấm, mà mọi cửa xác nhận đòi lựa chọn (409 `pickup_choice_required`) ⇒ form ghi «Không đón». Ngoại lệ hẹp của ADR-0134 Đ7 («không mặc định Không đón»): chỉ
  * khi nhóm tắt. Nhóm bật → giữ đúng lựa chọn đang có (kể cả chưa chọn). Chỉ là giá trị form gửi lên; máy chủ vẫn kiểm như cũ.
  */

@@ -40,7 +40,7 @@ test("N-19: nhóm tắt đưa đón — form ẩn khối, không tạo chặng s
   assert.match(of, /for \(const c of res\.items\) choDuaDon\.set\(c\.code, c\.transferEnabled\)/);
   assert.match(of, /const tatDuaDon = choDuaDon\.get\(item\.code\) === false;/);
   assert.match(of, /tatDuaDon \? \{ legs: \[\] as ChangNhap\[\], taoSan: null \}/);
-  // Một hàm cho nháp nạp lại và cho sau 409: bỏ chặng + «Không đón» (Ruling R-K, ghép ADR-0118 với ADR-0134 — 28/10).
+  // Một hàm cho nháp nạp lại và cho sau 409: bỏ chặng + «Không đón» (Ruling R-M, ghép ADR-0118 với ADR-0134 — 28/10).
   assert.match(of, /function theoNhomDuaDon\(d: ServiceDraft\)[\s\S]*?boChangKhiTatDuaDon\(d\.legs, false\)[\s\S]*?pickupChoice: chonDonTheoNhom\(false, d\.pickupChoice\)/);
   assert.match(of, /const nap = theoNhomDuaDon\(draftFromDto\(s, live, newKey\(\)\)\)/, "nạp nháp đi qua theoNhomDuaDon");
   assert.match(of, /const nap = theoNhomDuaDon\(en\.draft\)/, "sau 409 transfer_disabled đi qua theoNhomDuaDon");

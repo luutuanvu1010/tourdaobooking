@@ -10,6 +10,12 @@ Ghi 28/10/2026 từ khối tóm tắt của `npm run trien-khai` (chủ chạy `
 - Nghiệm thu: chỉ phần chỉ đọc; chưa thử trang có đăng nhập trên production, chưa thử trên iPhone thật.
 - Bản 2.36 và 2.37 (27/10) đã lên production nhưng không có mục trạng thái trong sổ này; nội dung xem nhật ký thay đổi `src/shared/changelog.ts`.
 
+## ĐANG CHỜ PHÁT HÀNH 2.39 (số tạm) — Đưa đón theo nhóm dịch vụ + điểm «Chọn nhanh» (ADR-0118) — CÓ migration `0121_dua_don_theo_nhom_va_diem_nhanh` (số tạm)
+
+- Nhánh `claude/service-group-pickup-setup-ae4465`: nhánh 14/10 (`claude/tour-dao-booking-audit-bc6c77`) dựng lại trên main 2.38 ngày 28/10; ruling R-M…R-P ở `docs/superpowers/plans/2026-10-14-dot-2-luot-1-thi-cong-nhat-ky.md` mục «Dựng lại trên main».
+- Cần `npm run trien-khai` sau `day-len` (migration chỉ THÊM: hai cột, một view, gieo hai điểm chọn nhanh). Trước phát hành chủ chạy câu đếm chỉ-đọc hai mã `CANG_VINPEARL`, `BEN_TAU_NHA_TRANG` (lệnh trong báo cáo cuối việc).
+- Sau phát hành mọi nhóm vẫn **bật** đưa đón (mặc định 1) ⇒ không ai thấy đổi cho tới khi Quản trị tắt một nhóm. Tắt nhóm có đơn đã xác nhận còn lượt thì đơn đó chỉ bỏ được lượt (Ruling R-T) — nên đếm trước khi tắt.
+
 ## ĐÃ PHÁT HÀNH ở bản 2.36 (27/10/2026) — Bước xác nhận đơn + «Gửi đơn» + nháp riêng tư (ADR-0135, ADR-0136)
 
 Ghi chú 28/10: tiêu đề cũ của mục này là «ĐANG CHỜ PHÁT HÀNH … CHƯA triển khai»; production đã qua 2.36 và 2.37 trước lần 2.38. Đoạn dưới là ghi chú gốc lúc chờ, giữ nguyên.

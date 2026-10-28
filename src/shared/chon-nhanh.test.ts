@@ -96,7 +96,7 @@ test("N-20: docChonNhanh — trống → null (bỏ); 1–99 (cả '07', có kho
   }
 });
 
-test("Ruling R-K (ADR-0118 × ADR-0134): nhóm tắt đưa đón → «Không đón» (khối bị ẩn, không có nút để bấm); nhóm bật → giữ đúng lựa chọn đang có", () => {
+test("Ruling R-M (ADR-0118 × ADR-0134): nhóm tắt đưa đón → «Không đón» (khối bị ẩn, không có nút để bấm); nhóm bật → giữ đúng lựa chọn đang có", () => {
   assert.equal(chonDonTheoNhom(false, null), "KHONG_DON");
   assert.equal(chonDonTheoNhom(false, "DON"), "KHONG_DON");
   assert.equal(chonDonTheoNhom(false, "KHONG_DON"), "KHONG_DON");
