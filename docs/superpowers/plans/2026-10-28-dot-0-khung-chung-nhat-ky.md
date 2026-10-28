@@ -13,6 +13,8 @@ Trần hiện hành `TRAN_ORDERS` = 96.700 byte (nới một lần ở Task 16).
 
 Sau Task 2: 96.929 byte (vượt trần 96.700; trần không đổi, nới một lần ở Task 16).
 
+Sau Task 3: 96.929 byte (chỉ thêm CSS và bài, gói không đổi; vẫn vượt trần, trần không đổi).
+
 ## Lệch so với đặc tả
 
 - Task 1: kho chính không có `.env`; đã chép `.dev.vars` (tương đương của dự án) vào worktree.
