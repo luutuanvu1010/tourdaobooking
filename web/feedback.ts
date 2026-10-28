@@ -2,6 +2,8 @@
 // thành viên nhóm (và Toàn quyền) có thẻ "Việc của nhóm" (lọc, nhận việc); Toàn quyền có thêm thẻ "Nhóm hỗ trợ". Luồng ở ho-tro-luong.ts, hộp gửi ở ho-tro-gui.ts.
 // Dữ liệu qua /api/feedback*. Chuỗi từ người dùng chỉ đi qua h()/textContent. Địa chỉ: /feedback (danh sách), ?id=<uuid> (luồng), ?new=1&from=<đường dẫn> (mở form).
 // Giao diện chỉ ẩn/hiện theo `teams` / `perms` máy chủ trả về; máy chủ (quyenPhieu) luôn kiểm lại.
+import { can } from "../src/shared/permissions";
+import { cauTepLoi } from "../src/shared/tep-hien-thi";
 import { NHAN_TAB, nhomHangDoi, tabHoTro, type TabHoTro } from "../src/shared/ve-ho-tro-hien-thi";
 import { ApiError, api, type Api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
@@ -164,6 +166,7 @@ byId("ht-gui").addEventListener("click", () => moForm(byId("ht-gui")));
 const ngCanh: NgCanhLuong = {
   staffId: staff.id,
   teams,
+  coGoTep: can(staff, "feedback.triage"), // gỡ tệp gửi nhầm: chỉ Toàn quyền (ADR-0144 đ6); máy chủ kiểm lại
   dong: () => dongLuong(),
   napLaiDs: () => {
     dsDangDung?.napLai();
@@ -178,13 +181,13 @@ function danhDauDangMo(id: string | null): void {
 }
 
 /** Hiện luồng của `id` (không đụng địa chỉ). Điện thoại: toàn màn và ẩn thanh tab. */
-function hienLuong(id: string): void {
+function hienLuong(id: string, canhBao?: string | null): void {
   danhDauDangMo(id);
   document.body.classList.add("ht-luong-mo");
   datThanhTab(false);
   const goc = byId("ht-luong");
   goc.hidden = false;
-  moLuong(goc, id, ngCanh);
+  moLuong(goc, id, ngCanh, canhBao);
 }
 
 /** Ẩn luồng (không đụng địa chỉ): mọi đường đóng đều đi qua đây nên thanh tab luôn hiện lại. */
@@ -221,7 +224,12 @@ window.addEventListener("popstate", () => {
   else anLuong();
 });
 
-if (idDangMo) hienLuong(idDangMo);
+if (idDangMo) {
+  // Vừa gửi yêu cầu mà có tệp chưa lên kho (`&tepLoi=n` do hộp gửi thêm): báo MỘT lần trong luồng rồi bỏ khỏi địa chỉ (tải lại trang không báo nữa).
+  const canhBao = cauTepLoi(Number(params.get("tepLoi")) || 0);
+  if (params.has("tepLoi")) history.replaceState(history.state, "", `/feedback?id=${encodeURIComponent(idDangMo)}`);
+  hienLuong(idDangMo, canhBao);
+}
 void loadList();
 if (!idDangMo) {
   if (params.get("chuyen") === "1") byId("ht-tabs").before(h("p", { class: "muted", role: "status", id: "fb-da-chuyen" }, "Đã chuyển nhóm."));

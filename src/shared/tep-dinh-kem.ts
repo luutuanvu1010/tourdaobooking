@@ -45,7 +45,8 @@ export function taoKhoaNgauNhien(tienTo: "pty" | "fbk"): string {
   return `${tienTo}/${hex(crypto.getRandomValues(new Uint8Array(16)))}`;
 }
 export async function bamSha256(b: Uint8Array): Promise<string> {
-  return hex(new Uint8Array(await crypto.subtle.digest("SHA-256", b)));
+  // Ép kiểu chỉ cho trình kiểm kiểu của web/ (thư viện DOM đòi ArrayBuffer thường): mảng ở đây do giaiBase64 / đọc tệp tạo, không bao giờ là SharedArrayBuffer.
+  return hex(new Uint8Array(await crypto.subtle.digest("SHA-256", b as Uint8Array<ArrayBuffer>)));
 }
 
 /** Header tải xuống (ADR-0123 đ3). Không tên tệp gốc; ảnh xem tại chỗ, PDF tải về; không bao giờ phục vụ loại chạy được. */
