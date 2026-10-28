@@ -107,6 +107,12 @@
       "kind": "lookup"
     },
     {
+      "name": "fbk_attachment",
+      "module": "feedback",
+      "kind": "table",
+      "note": "tệp đính kèm tin của vé hỗ trợ (ảnh / PDF) ở kho R2 riêng HO_TRO (ADR-0144; migration 0124): mỗi tệp thuộc đúng một tin (message_id, người tải = tác giả tin, tối đa 5 tệp mỗi tin); khoá kho ngẫu nhiên fbk/<32 hex>, loại theo chữ ký, cỡ, băm SHA-256; KHÔNG tên tệp gốc; không xoá dòng — ba mốc một chiều stored_at / purged_at (+ lý do TAI_LEN_LOI / TAI_LEN_DO_DANG / GO_TEP, băm về rỗng) / r2_deleted_at"
+    },
+    {
       "name": "fbk_kind",
       "module": "feedback",
       "kind": "lookup"
@@ -1359,6 +1365,10 @@
     "dsp_release_event": { "id": "N1", "seq": "N1", "party_id": "N1", "order_id": "N1", "kind_code": "N1", "reason_code": "N1", "occurred_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "dsp_release_kind": { "code": "N1", "name": "N1", "sort_order": "N1", "active": "N1" },
     "dsp_task_kind": { "code": "N1", "name": "N1", "sort_order": "N1", "active": "N1" },
+    "fbk_attachment": {
+      "id": "N1", "message_id": "N1", "storage_key": "N3", "content_kind": "N1", "byte_size": "N1", "content_hash": "N3", "stored_at": "N1",
+      "purged_at": "N1", "purge_reason": "N1", "r2_deleted_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1"
+    },
     "fbk_kind": { "code": "N1", "name": "N1", "sort_order": "N1", "active": "N1" },
     "fbk_message": { "id": "N1", "ticket_id": "N1", "author_id": "N1", "body": "N2", "internal": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "team_id": "N1" },
     "fbk_status": { "code": "N1", "name": "N1", "sort_order": "N1", "active": "N1" },

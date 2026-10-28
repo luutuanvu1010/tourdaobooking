@@ -2,11 +2,13 @@
 // Không import feedback.ts (top-level await) nên người xem và danh sách nhóm đi vào qua `TuyChonHopGui`. Lối vào `/feedback?new=1&from=<trang>` do trang gọi `moHopGui`.
 import { FEEDBACK_KINDS, FEEDBACK_KIND_NAME } from "../src/shared/feedback-catalog";
 import { can } from "../src/shared/permissions";
+import { CAU_CAN_CHU, CAU_DANG_CHUAN_BI, CAU_DANG_GUI_TEP, HEN_GIO_GUI_TEP_MS } from "../src/shared/tep-hien-thi";
 import { NHOM_KY_THUAT_ID } from "../src/shared/ve-ho-tro";
 import { donDienSan, nhanDonChon } from "../src/shared/ve-ho-tro-hien-thi";
 import { ApiError, api, type Api, type Staff } from "./api";
 import { moBangTruot } from "./bang-truot";
 import { h, replaceChildren } from "./dom";
+import { taoOChonTep, thanTep } from "./ho-tro-tep";
 
 declare const __BUILD_ID__: string | undefined;
 
@@ -52,6 +54,9 @@ export function moHopGui(o: TuyChonHopGui): void {
   const chonDon = h("select", { id: "new-order" }, h("option", { value: "" }, "Không gắn đơn"));
   const nhanDon = h("label", { id: "new-order-label", hidden: true }, "Đơn liên quan (không bắt buộc)", chonDon);
   const moTa = h("textarea", { id: "new-body", rows: 5, maxLength: 4000, required: true });
+  // Tệp kèm (ADR-0144): mọi tài khoản gửi được yêu cầu đều đính kèm được (chủ dự án 28/10); máy chủ kiểm lại loại, cỡ, trần mỗi giờ.
+  const oTep = taoOChonTep({ ban: [], khiDoi: () => undefined, hienLoi, id: "new-tep" });
+  const dangGui = h("p", { class: "muted", role: "status", id: "new-dang-gui", hidden: true }, CAU_DANG_GUI_TEP);
   const gui = h("button", { type: "button", id: "new-submit", class: "btn btn-primary" }, "Gửi");
   const huy = h("button", { type: "button", id: "new-cancel", class: "btn btn-link" }, "Huỷ");
 
@@ -60,12 +65,14 @@ export function moHopGui(o: TuyChonHopGui): void {
     opener: o.opener ?? null,
     body: [
       loi,
+      dangGui,
       h("div", { class: "grid ht-gui" },
         coChonNhom ? h("label", { id: "new-team-label" }, "Gửi tới nhóm", chonNhom, goiY) : null,
         h("label", null, "Loại", chonLoai),
         h("label", null, "Tiêu đề", tieuDe),
         nhanDon,
         h("label", null, "Mô tả", moTa),
+        oTep.khoi,
         h("p", { class: "muted", id: "new-context" }, `Sẽ đính kèm tự động: ${ctx.path ? `trang ${ctx.path}, ` : ""}thiết bị của bạn${ctx.standalone ? " (Nền tảng đã cài)" : ""}${ctx.appVersion ? `, phiên bản ${ctx.appVersion}` : ""}.`)),
     ],
     foot: [huy, gui],
@@ -97,20 +104,28 @@ export function moHopGui(o: TuyChonHopGui): void {
 
   gui.addEventListener("click", async () => {
     if (gui.disabled) return;
+    if (oTep.dangChuanBi()) return hienLoi(CAU_DANG_CHUAN_BI);
+    const tep = oTep.ds();
+    if (tieuDe.value.trim() && !moTa.value.trim() && tep.length > 0) return hienLoi(CAU_CAN_CHU);
     if (!tieuDe.value.trim() || !moTa.value.trim()) return hienLoi("Điền tiêu đề và mô tả.");
     hienLoi(null);
     gui.disabled = true;
     bt.setBusy(true);
+    dangGui.hidden = tep.length === 0;
     const body: Api.FeedbackCreateInput = { kind: chonLoai.value as Api.FeedbackKind, title: tieuDe.value, body: moTa.value, clientRequestId, context: ctx };
     if (coChonNhom && chonNhom.value) body.teamId = chonNhom.value;
     if (!nhanDon.hidden && chonDon.value) body.orderId = chonDon.value;
+    if (tep.length > 0) body.tep = thanTep(tep); // base64 mã một lần lúc chọn: Gửi lại gửi đúng từng byte cũ (cùng vé chống ghi trùng)
     try {
-      const r = await api<Api.FeedbackDetailResponse>("/api/feedback", { method: "POST", body });
+      const r = await api<Api.FeedbackGuiResponse>("/api/feedback", { method: "POST", body, henGioMs: tep.length > 0 ? HEN_GIO_GUI_TEP_MS : undefined });
       clientRequestId = crypto.randomUUID();
-      location.replace(`/feedback?id=${r.ticket.id}`); // không assign: Back/bfcache không được đưa về hộp đã gửi (tránh gửi trùng yêu cầu)
+      // không assign: Back/bfcache không được đưa về hộp đã gửi (tránh gửi trùng yêu cầu). Tệp chưa lên kho (`tepLoi`) mang qua địa chỉ để luồng báo một lần.
+      const tepLoi = typeof r.tepLoi === "number" && r.tepLoi > 0 ? `&tepLoi=${r.tepLoi}` : "";
+      location.replace(`/feedback?id=${r.ticket.id}${tepLoi}`);
     } catch (err) {
-      hienLoi(err instanceof ApiError ? err.message : "Không kết nối được máy chủ."); // giữ nguyên clientRequestId: bấm Gửi lại không tạo trùng
+      hienLoi(err instanceof ApiError ? err.message : "Không kết nối được máy chủ."); // giữ nguyên clientRequestId và tệp: bấm Gửi lại không tạo trùng
       gui.disabled = false;
+      dangGui.hidden = true;
       bt.setBusy(false);
     }
   });

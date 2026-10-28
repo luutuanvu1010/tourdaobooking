@@ -146,6 +146,10 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "GET", path: "/api/feedback/my-orders", access: "staff" }, // ADR-0127 Việc 3 — đơn do chính mình lập để gắn vào phiếu (can order.view, ownerId = người gọi)
   { method: "GET", path: "/api/feedback/teams/:id/members", access: "staff" }, // ADR-0127 Việc 4 — ứng viên giao việc (quyenPhieu giaoViecChoNguoiKhac của nhóm đó; chỉ đọc)
   { method: "GET", path: "/api/feedback/:id/messages", access: "staff" }, // ADR-0127 Việc 4 — tuyến làm mới khung trò chuyện (quyenPhieu doc như chi tiết; KHÔNG ghi mốc đã xem)
+  { method: "GET", path: "/api/feedback/:id/tep/:tid", access: "staff" }, // ADR-0144 đ3, đ4 — mở tệp kèm tin (quyenPhieu doc + cùng đoạn lọc ghi chú nội bộ; nhật ký trước đọc kho)
+  { method: "POST", path: "/api/feedback/:id/tep/:tid/go", access: "staff" }, // ADR-0144 đ6 — gỡ tệp gửi nhầm (CHỈ Toàn quyền: can feedback.triage)
+  { method: "GET", path: "/api/feedback/tep-cho-xoa", access: "staff" }, // ADR-0144 đ5 — hàng chờ xoá kho tệp vé (can feedback.triage), DTO chỉ mã
+  { method: "POST", path: "/api/feedback/tep-cho-xoa/chay-lai", access: "staff" }, // chạy lại xoá kho SAU lô quyết xoá (Hiến chương 5.16) — can feedback.triage
   { method: "GET", path: "/api/feedback/queue", access: "staff" },
   { method: "GET", path: "/api/feedback/admin/teams", access: "staff" },
   { method: "POST", path: "/api/feedback/admin/teams", access: "staff" },
@@ -636,6 +640,7 @@ test("mức truy cập của 382 route hiện có khớp ảnh chụp đã duy�
   // 2026-10-25 (Hoa hồng + Hỗ trợ PR 1, Task 5): + POST /api/pricing/muc-ta/gan/:id/doi (office, partner.commission.write) = 375.
   // 2026-10-26 (ADR-0136 Task 3.3 lát 1–3): + POST gui-xac-nhan, POST rut-xac-nhan, POST quyet-dinh, GET cho-xac-nhan (orders) = 379.
   // + GET, POST /api/cai-dat/xac-nhan-don (admin; lát 4) = 381. 2026-10-26 (Task 3.4): + POST /api/orders/:id/gui-don (orders) = 382.
-  assert.equal(actual.length, 382, "số route thực tế lệch 382 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 382, "SNAPSHOT phải có đúng 382 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // 2026-10-28 (ADR-0144 Task 5): + GET /api/feedback/:id/tep/:tid, POST …/tep/:tid/go, GET /api/feedback/tep-cho-xoa, POST …/tep-cho-xoa/chay-lai (staff; quyenPhieu / can feedback.triage) = 386.
+  assert.equal(actual.length, 386, "số route thực tế lệch 386 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 386, "SNAPSHOT phải có đúng 386 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

@@ -52,7 +52,7 @@ Ngoài ra có quản trị danh bạ, danh mục dịch vụ, tài khoản và q
 |---|---|
 | Trải nghiệm | Ứng dụng web cài lên iPhone như một ứng dụng ("Tour Đảo Booking"), giao diện tiếng Việt |
 | Ứng dụng | Một máy chủ Cloudflare Worker, chia thành nhiều phần (module) có ranh giới được máy kiểm; phần lớn có đường API, vài phần là thư viện |
-| Dữ liệu | Một cơ sở dữ liệu D1 (SQLite) gồm bảng và view công bố; kèm một kho tệp R2 cho ảnh giấy tờ |
+| Dữ liệu | Một cơ sở dữ liệu D1 (SQLite) gồm bảng và view công bố; kèm hai kho tệp R2: ảnh giấy tờ, tệp kèm vé hỗ trợ |
 | Tích hợp | Google Sheet danh mục dịch vụ (chỉ đọc), Cloudflare Turnstile, thông báo đẩy Web Push, email, OpenAI (trợ lý Hỗ trợ) |
 | Vận hành | Lịch chạy 15 phút, Bảng tin thời gian thực, chế độ bảo trì, lớp chống ghi trùng, nhật ký thao tác, quy trình phát hành có cổng kiểm |
 
@@ -89,7 +89,7 @@ flowchart LR
   TS["Cloudflare Turnstile<br/>chống máy dò mã PIN"]
   WP["Dịch vụ thông báo đẩy<br/>của trình duyệt, điện thoại"]
   EM["Email Cloudflare<br/>báo góp ý, mã đăng nhập hai lớp"]
-  KT["Kho tệp R2<br/>ảnh giấy tờ"]
+  KT["Kho tệp R2<br/>ảnh giấy tờ, tệp kèm vé hỗ trợ"]
   AI["OpenAI<br/>trợ lý Hỗ trợ trả lời cách dùng"]
   VP --> TDB
   HT --> TDB
@@ -109,6 +109,7 @@ flowchart LR
 | Web Push | Thông báo tới điện thoại, máy tính | máy chủ gọi | Khoá VAPID; phần `thongbao` |
 | Email (binding `send_email`) | Báo góp ý, báo lỗi cho người xử lý; gửi mã đăng nhập hai lớp bằng email | máy chủ gọi | Phần `feedback` (`notify.ts`) và phần `auth` (`mfa-email.ts`); thiếu địa chỉ cấu hình thì phần báo góp ý tự tắt |
 | Kho tệp R2 (binding `HO_SO`) | Ảnh giấy tờ của người; dấu vết phiếu xoá | máy chủ ghi, đọc, xoá | Chỉ phần `parties` (`kho-tep.ts`); xem §4 |
+| Kho tệp R2 vé hỗ trợ (binding `HO_TRO`) | Ảnh, tệp PDF kèm tin của vé hỗ trợ (ADR-0144) | máy chủ ghi, đọc, xoá | Chỉ phần `feedback` (`kho-tep.ts`); xem §4 |
 | OpenAI | Trợ lý Hỗ trợ trả lời cách dùng Nền tảng | máy chủ gọi | Khoá `OPENAI_API_KEY` (bí mật); câu hỏi bị che dãy số trước khi gửi; không đọc đơn, khách, tiền; phần `tro-ly` (ADR-0066, ADR-0069) |
 
 Mã QR thanh toán (VietQR) không gọi dịch vụ ngoài: máy chủ dựng chuỗi từ tài khoản nhận tiền của công ty (`src/shared/vietqr.ts`), trình duyệt chỉ vẽ ảnh.
@@ -130,6 +131,7 @@ flowchart LR
     CR["Cron */15 * * * *"]
     DB[("D1 tourdao-sales-db<br/>SQLite")]
     R2[("Kho tệp R2 HO_SO<br/>ảnh giấy tờ")]
+    R2B[("Kho tệp R2 HO_TRO<br/>tệp kèm vé hỗ trợ")]
   end
   UI --> SW
   SW -->|"trang, tệp tĩnh"| AS
@@ -139,6 +141,7 @@ flowchart LR
   CR --> WK
   WK --> DB
   WK -->|"ghi, đọc, xoá ảnh giấy tờ"| R2
+  WK -->|"ghi, đọc, xoá tệp kèm vé"| R2B
 ```
 
 | Khối | Công nghệ | Trách nhiệm | Mã |
@@ -151,6 +154,7 @@ flowchart LR
 | Lịch | Cloudflare Cron | Kéo danh mục dịch vụ 15 phút một lần | `scheduled()` trong `src/index.ts` |
 | Cơ sở dữ liệu | Cloudflare D1 (SQLite) | Nguồn sự thật; trigger giữ luật lõi | `migrations/*.sql` |
 | Kho tệp | Cloudflare R2, binding `HO_SO` (bucket `tourdao-sales-ho-so`) | Giữ ảnh giấy tờ của người (căn cước, bằng lái…) và dấu vết ngoài D1 của phiếu xoá (chỉ mã và thời điểm, không tên, không số); chỉ phần `parties` chạm kho (bài `src/kho-tep-ho-so.test.ts`); không công khai, đọc qua đường API của `parties` | `src/modules/parties/kho-tep.ts` |
+| Kho tệp vé hỗ trợ | Cloudflare R2, binding `HO_TRO` (bucket `tourdao-sales-ho-tro`, ADR-0144) | Giữ ảnh, tệp PDF kèm tin của vé hỗ trợ; ai đọc được tin thì xem được tệp; chỉ phần `feedback` chạm kho (bài `src/kho-tep-ho-tro.test.ts`); không công khai, đọc qua đường API của `feedback` (ghi nhật ký trước khi đọc kho) | `src/modules/feedback/kho-tep.ts` |
 
 - Một tên miền duy nhất. `run_worker_first: ["/api/*", "/giao-dien.css"]` đưa mọi `/api` và tệp màu giao diện công ty (máy chủ dựng từ D1) vào máy chủ trước.
 - Địa chỉ `workers.dev` tắt có chủ ý.

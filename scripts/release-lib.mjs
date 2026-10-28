@@ -19,25 +19,32 @@ export const KHOA_BAT_BUOC = ["SESSION_SECRET", "LAN_GUI_SECRET"];
  * thao tác lớp hai (không ai bật được; hết ân hạn 14 ngày thì tài khoản nội bộ không đăng nhập PIN được). Khoá phải ĐÚNG 32 byte (`openssl rand -base64 32`).
  */
 export const KHOA_HAI_LOP = "MFA_ENCRYPTION_KEY";
-/** Binding kho tệp hồ sơ R2 (ADR-0123). Tên kho đọc từ wrangler.jsonc — MỘT nguồn (kế hoạch H-2 kho tệp, ruling R2, R10). */
-export const BINDING_HO_SO = "HO_SO";
 /**
- * Tên kho R2 của binding HO_SO trong nội dung wrangler.jsonc, hoặc null. Chỉ bỏ chú thích CẢ DÒNG (luật của tệp — như src/cau-hinh-toc-do.test.ts);
- * chú thích cuối dòng làm JSON hỏng ⇒ null ⇒ cổng dừng (không đoán).
+ * Kho R2 của Worker (cổng 1e): ADR-0123 kho tệp hồ sơ (`HO_SO`), ADR-0144 kho tệp vé hỗ trợ (`HO_TRO`). Tên kho đọc từ wrangler.jsonc — MỘT nguồn (kế hoạch H-2
+ * kho tệp, ruling R2, R10). Nhãn để in câu dừng; binding chưa có nhãn vẫn được kiểm (nhãn chung).
  */
-export function docKhoHoSoTuCauHinh(text) {
+export const NHAN_KHO = { HO_SO: "kho tệp hồ sơ", HO_TRO: "kho tệp vé hỗ trợ" };
+const HAU_QUA_THIEU_KHO = { HO_SO: "ảnh giấy tờ không tải lên hay mở được", HO_TRO: "tệp đính kèm vé hỗ trợ không gửi hay mở được" };
+const nhanKho = (binding) => NHAN_KHO[binding] ?? `kho R2 ${binding}`;
+/**
+ * MỌI kho R2 trong nội dung wrangler.jsonc theo thứ tự khai (`[{ binding, ten }]`), hoặc null. Chỉ bỏ chú thích CẢ DÒNG (luật của tệp — như
+ * src/cau-hinh-toc-do.test.ts); chú thích cuối dòng làm JSON hỏng ⇒ null. Mục rỗng, hay MỘT mục thiếu binding / tên sai khuôn ⇒ null ⇒ cổng dừng (không đoán).
+ */
+export function docCacKhoTuCauHinh(text) {
   try {
     const cfg = JSON.parse(String(text).split("\n").filter((d) => !/^\s*\/\//.test(d)).join("\n"));
-    const kho = Array.isArray(cfg?.r2_buckets) ? cfg.r2_buckets.find((b) => b?.binding === BINDING_HO_SO) : undefined;
-    return typeof kho?.bucket_name === "string" && /^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$/.test(kho.bucket_name) ? kho.bucket_name : null;
+    const ds = Array.isArray(cfg?.r2_buckets) ? cfg.r2_buckets : [];
+    const ra = ds.map((b) => ({ binding: b?.binding, ten: b?.bucket_name }));
+    const hopLe = (k) => typeof k.binding === "string" && /^[A-Z][A-Z0-9_]*$/.test(k.binding) && typeof k.ten === "string" && /^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$/.test(k.ten);
+    return ra.length > 0 && ra.every(hopLe) ? ra : null;
   } catch {
     return null;
   }
 }
-/** Đọc tệp thật (bài src/release-lib.test.ts "docKhoHoSoTuCauHinh" ghim kết quả). */
-export async function docKhoHoSoMacDinh() {
+/** Đọc tệp thật (bài src/release-lib.test.ts "docCacKhoTuCauHinh" ghim kết quả). */
+export async function docCacKhoMacDinh() {
   const { readFile } = await import("node:fs/promises");
-  return docKhoHoSoTuCauHinh(await readFile(new URL("../wrangler.jsonc", import.meta.url), "utf8"));
+  return docCacKhoTuCauHinh(await readFile(new URL("../wrangler.jsonc", import.meta.url), "utf8"));
 }
 
 /** Tên khoá từ `wrangler secret list --format json` (mảng `{ name, type }`), hoặc null nếu đầu ra không đọc được. Không bao giờ đọc giá trị khoá. */
@@ -333,9 +340,9 @@ const RETRY_7403_MS = 5_000;
 /**
  * @param version số phiên bản ở máy (mục đầu CHANGELOG) — vỏ scripts/trien-khai.mjs truyền vào; lib không tự import mã ứng dụng.
  * @param sleep chờ trước khi thử lại cổng sau; test truyền hàm tức thì.
- * @param docKhoHoSo đọc tên kho tệp hồ sơ; test truyền hàm giả.
+ * @param docCacKho đọc các kho R2 khai trong wrangler.jsonc; test truyền hàm giả.
  */
-export async function trienKhai({ run, ask, isTTY, log, now = () => new Date(), sleep = realSleep, version, docMocTinDoi = docMocTinDoiMacDinh, docKhoHoSo = docKhoHoSoMacDinh }) {
+export async function trienKhai({ run, ask, isTTY, log, now = () => new Date(), sleep = realSleep, version, docMocTinDoi = docMocTinDoiMacDinh, docCacKho = docCacKhoMacDinh }) {
   const stop = makeStop(log);
   if (!isTTY) return stop(NOT_TTY);
 
@@ -381,39 +388,42 @@ export async function trienKhai({ run, ask, isTTY, log, now = () => new Date(), 
   }
   log(`Đã có đủ khoá: ${[...KHOA_BAT_BUOC, KHOA_HAI_LOP].join(", ")}.`);
 
-  // 1e. cổng chỉ-đọc: kho tệp hồ sơ R2 (ADR-0123) đã được CHỦ tạo chưa. Tên kho đọc từ wrangler.jsonc (binding HO_SO — một nguồn). Chưa có kho thì Worker mới
-  // không tải lên / mở được ảnh giấy tờ (Cloudflare có từ chối deploy hay không: chưa kiểm). Lệnh lỗi (kể cả 7403) hay không thấy đúng tên ⇒ DỪNG, không thử lại.
-  // KHÔNG BAO GIỜ tự tạo kho — chỉ in lệnh cho chủ.
-  log("\n▶ Cổng chỉ-đọc: kho tệp hồ sơ đã tạo trên Cloudflare chưa");
-  let tenKho = null;
+  // 1e. cổng chỉ-đọc: MỌI kho R2 khai trong wrangler.jsonc (ADR-0123 kho tệp hồ sơ; ADR-0144 kho tệp vé hỗ trợ) đã được CHỦ tạo chưa. Tên kho đọc từ
+  // wrangler.jsonc (một nguồn). Thiếu một kho thì Worker mới không gửi / mở được tệp của kho đó (Cloudflare có từ chối deploy hay không: chưa kiểm). Lệnh lỗi
+  // (kể cả 7403) hay không thấy đúng tên ⇒ DỪNG, không thử lại. KHÔNG BAO GIỜ tự tạo kho — chỉ in lệnh cho chủ.
+  log("\n▶ Cổng chỉ-đọc: các kho tệp đã tạo trên Cloudflare chưa");
+  let cacKho = null;
   try {
-    tenKho = await docKhoHoSo();
+    cacKho = await docCacKho();
   } catch {
-    tenKho = null;
+    cacKho = null;
   }
-  if (!tenKho) {
-    return stop("không đọc được tên kho tệp hồ sơ (mục r2_buckets, binding HO_SO) trong wrangler.jsonc — CHƯA có gì bị đổi trên production.", "Báo AI kiểm lại wrangler.jsonc rồi chạy lại `npm run trien-khai`.");
+  if (!cacKho || cacKho.length === 0) {
+    return stop("không đọc được tên kho tệp (mục r2_buckets) trong wrangler.jsonc — CHƯA có gì bị đổi trên production.", "Báo AI kiểm lại wrangler.jsonc rồi chạy lại `npm run trien-khai`.");
   }
   const kho = await run("npx", ["wrangler", "r2", "bucket", "list"], { env: CI });
   if (kho.code !== 0) {
-    return stop("`wrangler r2 bucket list` lỗi — chưa kiểm được kho tệp hồ sơ nên KHÔNG đi tiếp. CHƯA có gì bị đổi trên production.", String(kho.stderr ?? "").trim().slice(0, 400));
+    return stop("`wrangler r2 bucket list` lỗi — chưa kiểm được các kho tệp nên KHÔNG đi tiếp. CHƯA có gì bị đổi trên production.", String(kho.stderr ?? "").trim().slice(0, 400));
   }
   const tenCacKho = parseR2BucketNames(String(kho.stdout ?? ""));
   // Không đọc ra tên kho nào (đầu ra lạ — wrangler đổi dạng — hoặc tài khoản chưa có kho nào): câu RIÊNG, không khẳng định "chưa có kho" (m2 vòng sửa cuối H-2).
   if (tenCacKho.length === 0) {
+    const ten = cacKho.map((k) => k.ten);
     return stop(
-      "không đọc được đầu ra của `wrangler r2 bucket list` (không thấy dòng \"name: …\" nào — dạng đầu ra lạ, hoặc tài khoản chưa có kho nào) — chưa kiểm được kho tệp hồ sơ nên KHÔNG đi tiếp. CHƯA có gì bị đổi trên production.",
-      `Chạy trong Terminal, ở thư mục tourdao-sales, để xem tận mắt:\n  npx wrangler r2 bucket list\nKhông có dòng "name: ${tenKho}" thì tạo kho:\n  npx wrangler r2 bucket create ${tenKho}\nrồi chạy lại \`npm run trien-khai\`. CÓ dòng đó mà lệnh vẫn dừng ở đây thì báo AI (dạng đầu ra của wrangler đã đổi).\n` +
+      "không đọc được đầu ra của `wrangler r2 bucket list` (không thấy dòng \"name: …\" nào — dạng đầu ra lạ, hoặc tài khoản chưa có kho nào) — chưa kiểm được các kho tệp nên KHÔNG đi tiếp. CHƯA có gì bị đổi trên production.",
+      `Chạy trong Terminal, ở thư mục tourdao-sales, để xem tận mắt:\n  npx wrangler r2 bucket list\nThiếu dòng "name: …" của kho nào thì tạo kho đó:\n${ten.map((t) => `  npx wrangler r2 bucket create ${t}`).join("\n")}\nrồi chạy lại \`npm run trien-khai\`. CÓ đủ các dòng đó mà lệnh vẫn dừng ở đây thì báo AI (dạng đầu ra của wrangler đã đổi).\n` +
         String(kho.stdout ?? "").slice(0, 400),
     );
   }
-  if (!tenCacKho.includes(tenKho)) {
+  const thieu = cacKho.find((k) => !tenCacKho.includes(k.ten));
+  if (thieu) {
+    const hauQua = HAU_QUA_THIEU_KHO[thieu.binding] ?? "tệp của kho này không lưu hay mở được";
     return stop(
-      `Chưa có kho tệp hồ sơ ${tenKho} trên Cloudflare — triển khai lúc này thì ảnh giấy tờ không tải lên hay mở được. CHƯA có gì bị đổi trên production.`,
-      `Chạy trong Terminal, ở thư mục tourdao-sales:\n  npx wrangler r2 bucket create ${tenKho}\nKiểm lại (phải thấy dòng "name: ${tenKho}"):\n  npx wrangler r2 bucket list\nrồi chạy lại \`npm run trien-khai\`.`,
+      `Chưa có ${nhanKho(thieu.binding)} ${thieu.ten} trên Cloudflare — triển khai lúc này thì ${hauQua}. CHƯA có gì bị đổi trên production.`,
+      `Chạy trong Terminal, ở thư mục tourdao-sales:\n  npx wrangler r2 bucket create ${thieu.ten}\nKiểm lại (phải thấy dòng "name: ${thieu.ten}"):\n  npx wrangler r2 bucket list\nrồi chạy lại \`npm run trien-khai\`.`,
     );
   }
-  log(`Đã có kho tệp hồ sơ: ${tenKho}.`);
+  for (const k of cacKho) log(`Đã có ${nhanKho(k.binding)}: ${k.ten}.`);
 
   // 2. cổng chỉ-đọc: migration nào chưa áp. Lỗi 7403 ở bước CHỈ ĐỌC này được thử lại đúng MỘT lần; bước ghi (áp migration, deploy) không bao giờ tự thử lại.
   log("\n▶ Cổng chỉ-đọc: migration nào chưa áp trên production");

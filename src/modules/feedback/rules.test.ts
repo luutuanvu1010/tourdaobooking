@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { FEEDBACK_KINDS, FEEDBACK_KIND_NAME, FEEDBACK_STATUSES, FEEDBACK_STATUS_NAME } from "../../shared/feedback-catalog.ts";
 import { LAM_MOI_TRAN } from "../../shared/ve-ho-tro-hien-thi.ts";
 import {
-  BODY_MAX, CAU_DON_LIEN_QUAN_SAI, parseTimHangDoi, parseTrangThaiHangDoi, MESSAGES_SINCE_LIMIT, TITLE_MAX, parseContext, parseSince, sanitizeContext, validateMemberRole, validateMessageInput, validatePatchInput, validateTeamInput, validateTeamPatch, validateTicketInput, windowStart, maNhomTuTen,
+  BODY_MAX, CAU_DON_LIEN_QUAN_SAI, LY_DO_XOA_TEP_VE, trangThaiTep, parseTimHangDoi, parseTrangThaiHangDoi, MESSAGES_SINCE_LIMIT, TITLE_MAX, parseContext, parseSince, sanitizeContext, validateMemberRole, validateMessageInput, validatePatchInput, validateTeamInput, validateTeamPatch, validateTicketInput, windowStart, maNhomTuTen,
 } from "./rules.ts";
 
 const REQ = "0b8f6f2e-3c1a-4f6e-9a55-2b6f4d1c7e10";
@@ -192,4 +192,21 @@ test("parseTimHangDoi: bỏ khoảng trắng hai đầu, rỗng = không tìm, q
   assert.deepEqual(parseTimHangDoi("  YC-0007 "), { ok: true, value: "YC-0007" });
   assert.deepEqual(parseTimHangDoi("   "), { ok: true, value: null });
   assert.deepEqual(parseTimHangDoi("a".repeat(61)), { ok: true, value: "a".repeat(60) });
+});
+
+test("trangThaiTep (ADR-0144 đ5, đ6): đã lưu ⇒ DA_LUU; chưa lưu ⇒ DANG_TAI tới 10 phút rồi CHUA_TAI_DUOC; gỡ ⇒ DA_GO; quyết xoá vì tải hỏng / dở dang ⇒ không hiện", () => {
+  const tao = "2026-10-28T01:00:00.000Z";
+  const t0 = Date.parse(tao);
+  const dong = (o: Partial<{ stored_at: string | null; purged_at: string | null; purge_reason: string | null }>) =>
+    ({ stored_at: null, purged_at: null, purge_reason: null, created_at: tao, ...o });
+  assert.equal(trangThaiTep(dong({ stored_at: tao }), t0 + 60 * 60 * 1000), "DA_LUU");
+  assert.equal(trangThaiTep(dong({}), t0 + 5_000), "DANG_TAI");
+  assert.equal(trangThaiTep(dong({}), t0 + 10 * 60 * 1000), "DANG_TAI", "đúng 10 phút vẫn còn đang tải");
+  assert.equal(trangThaiTep(dong({}), t0 + 10 * 60 * 1000 + 1), "CHUA_TAI_DUOC");
+  assert.equal(trangThaiTep(dong({ purged_at: tao, purge_reason: LY_DO_XOA_TEP_VE.GO_TEP }), t0), "DA_GO");
+  assert.equal(trangThaiTep(dong({ stored_at: tao, purged_at: tao, purge_reason: LY_DO_XOA_TEP_VE.GO_TEP }), t0), "DA_GO", "đã lưu rồi bị gỡ vẫn là đã gỡ");
+  for (const lyDo of [LY_DO_XOA_TEP_VE.TAI_LEN_LOI, LY_DO_XOA_TEP_VE.TAI_LEN_DO_DANG, "MA_LA"]) {
+    assert.equal(trangThaiTep(dong({ purged_at: tao, purge_reason: lyDo }), t0), null, lyDo);
+  }
+  assert.deepEqual(Object.values(LY_DO_XOA_TEP_VE).sort(), ["GO_TEP", "TAI_LEN_DO_DANG", "TAI_LEN_LOI"]);
 });

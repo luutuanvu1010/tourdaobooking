@@ -107,6 +107,7 @@ const MIEN_200: Record<string, string> = {
   "/api/ledger/ben/:partyId": "Sổ công nợ P1 (25/10): chi tiết MỘT bên chỉ có khi bên đó có dòng sổ — bài này không đưa đơn B tới «Đã giao» nên B và nhà cung cấp chưa có dòng hoa hồng / giá vốn ⇒ 404 cho người được xem, 403 cho người giữ quyền Đối tác; vẫn GỌI để thân được quét. 200 và nội dung kiểm ở src/modules/billing/so-cong-no-ben.test.ts",
   "/api/parties/:id/documents/:did/tep": "ADR-0123 (lát H-2 kho tệp): danh sách ảnh của MỘT dòng giấy tờ người — chỉ Toàn quyền; bài này không gieo giấy tờ + ảnh; DTO chỉ mã / loại / cỡ / mốc, không chở tiền; bangDien gọi bằng mã lạ nên thân 4xx vẫn được quét",
   "/api/parties/:id/documents/:did/tep/:tid": "ADR-0123: thân là byte ảnh / PDF giấy tờ (không phải JSON, không chở tiền) — chỉ Toàn quyền, cần tệp đã tải lên; bài này không gieo ảnh; bangDien gọi bằng mã lạ nên thân 4xx vẫn được quét",
+  "/api/feedback/:id/tep/:tid": "ADR-0144: thân là byte ảnh / PDF kèm tin vé (không phải JSON, không chở tiền) — cần tệp đã tải lên; bài này không gieo tệp; bangDien gọi vé thật với mã tệp lạ nên thân 404 vẫn được quét",
   "/api/parties/xac-minh/:pid": "ADR-0125 (lát H-4): chi tiết MỘT phiếu tự khai đang chờ — cần phiếu gieo sẵn (bài này không gieo); DTO chỉ ngày sinh / địa chỉ / số che / cờ, không chở tiền; bangDien gọi bằng mã lạ nên thân 404 vẫn được quét",
   "/api/parties/phieu-xoa/:pid": "ADR-0126 (lát H-5 việc 5): xem trước MỘT phiếu yêu cầu xoá đang chờ — cần phiếu gieo sẵn (bài này không gieo); DTO chỉ tên hồ sơ, hạn và SỐ ĐẾM, không chở tiền; bangDien gọi bằng mã lạ nên thân 404 vẫn được quét",
 };
@@ -154,6 +155,8 @@ function bangDien(g: Gieo): Record<string, string[]> {
     // ADR-0127 Việc 4: tuyến làm mới (cần ?since — người gửi B và Toàn quyền nhận 200) và ứng viên giao việc của nhóm Kỹ thuật (Toàn quyền nhận 200).
     "/api/feedback/:id/messages": [`/api/feedback/${g.gopY}/messages?since=2000-01-01T00:00:00.000Z`],
     "/api/feedback/teams/:id/members": [`/api/feedback/teams/fbk-team-ky-thuat/members?ticket=${g.gopY}`],
+    // ADR-0144: mở tệp kèm tin — bài không gieo tệp ⇒ mã tệp lạ trên vé thật của B (404 cho mọi người) — vẫn GỌI để thân được quét (MIEN_200 chỉ miễn 200).
+    "/api/feedback/:id/tep/:tid": [`/api/feedback/${g.gopY}/tep/${uuid()}`],
     "/api/catalog/:code/group-history": ["/api/catalog/SLX/group-history"],
     "/api/parties/:id": [`/api/parties/${PTY_B}`, "/api/parties/pty-ncc"],
     "/api/parties/:id/documents": [`/api/parties/${PTY_B}/documents`],
