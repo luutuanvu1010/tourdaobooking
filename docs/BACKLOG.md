@@ -622,4 +622,5 @@ Ghi 25/10 khi đóng phiên ADR-0133 (bản 2.25 + vá 2.26, migration `0116`). 
 - **BL-VE-TEP-ANH-MO-CHU** · **Trạng thái:** `biết trước`. Ảnh chụp màn hình dài thu về cạnh dài 2000 điểm ảnh làm chữ nhỏ trong ảnh hơi mờ.
 - **BL-VE-TEP-WORKER-CHET** · **Trạng thái:** `biết trước`. Worker chết giữa lúc đặt kho không bắt được: dòng tệp nằm «đang tải», sau 10 phút thành «chưa tải được» và vào hàng chờ xoá; `POST /api/feedback/tep-cho-xoa/chay-lai` (Toàn quyền) dọn.
 - **BL-VE-TEP-EMAIL** · **Trạng thái:** `không làm` (đặc tả 3.7). Email báo nhóm không kèm tệp.
+- **BL-VE-TEP-DOC-SAU-LO** · **Trạng thái:** `chưa làm` (người kiểm độc lập 28/10, N1). Hai route gửi tin còn các lần đọc D1 SAU lô có từ trước ADR-0144 (`findByRequest`, `messageExists`, `getTicket`, `detail` — nay `detail` đọc thêm `listTepCuaTin`) không nằm trong khối bắt lỗi: D1 hỏng đúng lúc đó vẫn trả 500, vé chống ghi trùng phát lại «đã ghi» với `ket_qua: null` (cùng triệu chứng `BL-TEP-PHAT-LAI-500`). Phần tệp (`datTepCuaTin`) thì không ném. Muốn bọc hết phải định nghĩa phản hồi 201 khi không dựng được chi tiết (đổi hợp đồng `FeedbackGuiResponse`) — cần chủ quyết.
 

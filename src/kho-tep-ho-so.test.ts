@@ -68,9 +68,12 @@ test("(5) khoá kho `xoa/` chỉ xuất hiện trong chepBanNgoai (kho-tep.ts); 
   assert.equal(soDat, 2, "chỗ đặt vào kho thứ ba trong parties — phải có tên ở đây");
 });
 
-// (6) ADR-0144: từ khi có kho thứ hai, (4)(5) đếm trong parties — bài này giữ phần "toàn src/" cũ: chỗ đặt vào kho R2 chỉ được nằm trong HAI module có kho
-// (parties: HO_SO; feedback: HO_TRO — đếm riêng ở src/kho-tep-ho-tro.test.ts). Module thứ ba đặt vào kho ⇒ đỏ.
-test("(6) chỗ đặt vào kho R2 chỉ ở parties và feedback", () => {
-  const ngoai = TEP.filter((f) => /\b(?:kho|r2|HO_SO|HO_TRO)\.put\(/.test(f.src) && !f.p.startsWith("modules/parties/") && !f.p.startsWith("modules/feedback/")).map((f) => f.p);
-  assert.deepEqual(ngoai, []);
+// (6) ADR-0144: từ khi có kho thứ hai, (4)(5) đếm trong parties — bài này giữ phần "toàn src/" cũ và SIẾT hơn bản cũ (bản cũ chỉ bắt `.put(key` và ba tên biến;
+// người kiểm độc lập 28/10 C1: biến tên khác lọt): ngoài HAI module có kho (parties: HO_SO; feedback: HO_TRO — đếm riêng ở src/kho-tep-ho-tro.test.ts) KHÔNG có
+// lời gọi `.put(` nào, bất kể tên biến / tên khoá. Ngoại lệ có tên duy nhất: kho trạng thái Durable Object của trạm Bảng tin (`this.ctx.storage.put(`, không phải R2).
+test("(6) ngoài parties và feedback không có lời gọi .put( nào (trừ kho trạng thái Durable Object `this.ctx.storage.put(`)", () => {
+  const ngoai = TEP.filter((f) => !f.p.startsWith("modules/parties/") && !f.p.startsWith("modules/feedback/"))
+    .filter((f) => /\.put\(/.test(f.src.replaceAll("this.ctx.storage.put(", ""))).map((f) => f.p);
+  assert.deepEqual(ngoai, [], "chỗ đặt vào kho ngoài hai module có kho");
+  assert.ok(TEP.some((f) => f.src.includes("this.ctx.storage.put(")), "chống bài rỗng: ngoại lệ còn khớp mã thật (trạm Bảng tin)");
 });

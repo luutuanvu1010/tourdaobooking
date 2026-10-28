@@ -52,7 +52,8 @@ test("(3) gửi tin kèm tệp: chặn Content-Length TRƯỚC khi đọc thân;
     assert.ok(vt(s, "TOI_DA_THAN_TIN_CO_TEP") !== -1 && vt(s, "TOI_DA_THAN_TIN_CO_TEP") < vt(s, "readJson("), `${p}: chặn cỡ phải đứng trước đọc thân`);
     assert.ok(vt(s, "env.DB.batch(") !== -1 && vt(s, "datTepCuaTin(") !== -1 && vt(s, "env.DB.batch(") < vt(s, "datTepCuaTin("), `${p}: lô D1 phải đứng trước đặt kho`);
   }
-  assert.equal(dem(/\bkho\.put\(/g), 1, "chỗ đặt kho thứ hai trong feedback — phải có tên ở đây");
+  // Đếm MỌI lời gọi `.put(` trong feedback, bất kể tên biến (người kiểm độc lập 28/10 C1: chỉ đếm `kho.put(` thì biến tên khác lọt).
+  assert.equal(dem(/\.put\(/g), 1, "chỗ đặt kho thứ hai trong feedback — phải có tên ở đây");
 });
 
 test("(4) gỡ tệp: ô feedback.triage → lô D1 quyết xoá → MỚI xoá kho; trong feedback chỉ MỘT chỗ xoá kho", () => {
