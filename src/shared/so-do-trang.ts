@@ -69,4 +69,5 @@ export const SO_DO_TRANG: readonly TrangSoDo[] = [
   {"duongDan":"/de-nghi","tieuDe":"Đề nghị chuyển khách","menu":["Đề nghị chuyển khách"],"nhomMenu":["VẬN CHUYỂN"],"nut":["Đề nghị khác trong ngày","Quay lại","Duyệt","Bác"],"boCuc":[],"khiChay":{"muc":["Đề nghị khác trong ngày"],"nut":["Quay lại","Duyệt","Bác"]}},
   {"duongDan":"/ban","tieuDe":"Báo bận của tôi","menu":["Báo bận","Báo bận của tôi"],"nhomMenu":["HẰNG NGÀY"],"nut":["Báo bận của tôi","Ghi khung bận","Khung bận đang có","Lưu khung bận","Rút khung bận","Không rút"],"boCuc":[],"khiChay":{"muc":["Ghi khung bận","Khung bận đang có"],"nut":["Lưu khung bận","Rút khung bận","Không rút"]}},
   {"duongDan":"/thiet-lap","tieuDe":"Thiết lập","menu":["Thiết lập"],"nhomMenu":[],"nut":["Thiết lập"],"boCuc":[],"khiChay":{"muc":[],"nut":[]}},
+  {"duongDan":"/404","tieuDe":"Không có trang","menu":[],"nhomMenu":[],"nut":[],"boCuc":[],"khiChay":{"muc":[],"nut":[]}},
 ];
