@@ -16,13 +16,13 @@ export const CHANGELOG: readonly ReleaseNote[] = [
     version: "2.39",
     date: "2026-10-28",
     items: [
-      { kind: "doi", text: "Thanh tab dưới cùng trên điện thoại nay hiện đúng những việc hay dùng nhất của từng vai, tối đa năm mục, thay vì bốn mục cố định." },
-      { kind: "doi", text: "Thanh bên trên máy tính gom các mục cùng nhóm vào khối gập (ví dụ các mục về xe), mở khối nào thì nhớ khối đó; nút Trợ lý chuyển lên thanh trên cùng." },
-      { kind: "moi", text: "Khi mất mạng hoặc máy chủ đang bảo trì, Nền tảng hiện một dải thông báo gọn ở đầu trang và vẫn giữ nội dung đã xem, không còn thay cả trang bằng dòng chữ lỗi." },
+      { kind: "doi", text: "Thanh tab dưới cùng trên điện thoại nay hiện những việc hay dùng nhất của từng vai, tối đa năm mục, thay vì bốn mục cố định." },
+      { kind: "doi", text: "Thanh bên trên máy tính gom các mục cùng nhóm vào khối gập; khối chứa trang bạn đang xem tự mở sẵn. Nút Trợ lý chuyển lên thanh trên cùng." },
+      { kind: "moi", text: "Khi mất mạng, Nền tảng hiện một dải thông báo gọn ở đầu trang và vẫn giữ nội dung đã xem, không còn thay cả trang bằng dòng chữ lỗi." },
       { kind: "moi", text: "Mở một địa chỉ không có thì hiện trang «Không tìm thấy» có sẵn thanh điều hướng, thay vì trang trắng." },
       { kind: "moi", text: "Mất mạng khi mở một trang chưa từng xem thì hiện trang «Đang ngoài mạng» với hướng dẫn thử lại." },
-      { kind: "doi", text: "Thông báo ngắn (toast) có màu theo mức độ, có nút đóng, và nút «Hoàn tác» ở những việc hoàn tác được." },
-      { kind: "doi", text: "Các câu hỏi xác nhận trước khi xoá hoặc gỡ nay hiện thành hộp thoại của Nền tảng, đồng nhất chữ và nút, thay cho hộp hỏi mặc định của trình duyệt." },
+      { kind: "doi", text: "Các thông báo ngắn hiện ở góc màn hình nay có nút đóng, và thông báo lỗi hiện màu đỏ cho dễ thấy." },
+      { kind: "doi", text: "Một số câu hỏi xác nhận trước khi xoá hoặc gỡ nay hiện thành hộp thoại của Nền tảng, đồng nhất chữ và nút, thay cho hộp hỏi mặc định của trình duyệt." },
     ],
   },
   {
