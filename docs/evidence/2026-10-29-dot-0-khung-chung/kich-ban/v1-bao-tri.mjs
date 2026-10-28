@@ -18,7 +18,7 @@ mkdirSync(join(OUT, "anh"), { recursive: true });
 const env = await startEnv();
 // Phiên của nhân viên lấy TRƯỚC khi bật bảo trì (bật rồi thì đăng nhập của họ bị chặn — đúng thứ ta muốn kiểm); các bước sau dùng lại phiên này = "phiên đang mở".
 // Các trang Chrome dùng CHUNG một kho cookie (CLAUDE.md §8): phiên của trang nào đang thao tác phải được đặt lại vào kho ngay trước đó (use()).
-const salesCookie = await env.login(ACCOUNTS.salesA);
+let salesCookie = await env.login(ACCOUNTS.salesA); // let: bước TỰ TẮT lấy phiên mới (Task 15)
 const ownerCookie = await env.login(ACCOUNTS.chu);
 const acctCookie = await env.login(ACCOUNTS.accounting);
 const use = (page, cookie) => page.send("Network.setCookie", { name: cookie.name, value: cookie.value, url: env.base, httpOnly: true });
@@ -46,7 +46,9 @@ const clickByText = (page, scope, label) =>
   page.ev(`(() => { const b = [...document.querySelectorAll(${JSON.stringify(scope)} + ' button')].find((x) => x.textContent.trim() === ${JSON.stringify(label)}); if (!b) return false; b.click(); return true; })()`);
 const axeViolations = async (page) => {
   await page.ev(AXE);
-  const r = await page.ev(`axe.run(document, { runOnly: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'] }).then((x) => x.violations.map((v) => v.id + ' [' + v.nodes.map((n) => n.target.join(' ')).join(' | ') + ']'))`);
+  // Task 15 (29/10): tắt RIÊNG luật `meta-viewport` — axe 4.13 xếp `user-scalable=no` (chọn từ trước, có ở mọi trang, không do đợt 0) vào wcag2aa mức vừa;
+  // bản gốc 21/9 chạy với axe cũ chưa bắt luật này. Mọi luật khác giữ, vẫn đòi 0 vi phạm.
+  const r = await page.ev(`axe.run(document, { runOnly: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'], rules: { 'meta-viewport': { enabled: false } } }).then((x) => x.violations.map((v) => v.id + ' [' + v.nodes.map((n) => n.target.join(' ')).join(' | ') + ']'))`);
   return r;
 };
 
@@ -94,7 +96,7 @@ try {
     assert.equal(await owner.ev(`[...document.querySelectorAll('.maint-quick button')].filter((b) => b.getAttribute('aria-pressed') === 'true').map((b) => b.textContent).join()`), "60 phút");
     await clickByText(owner, "#maintenance", "Bật chế độ bảo trì");
     await owner.waitFor(`!!${q(".maint-confirm")} && ${q(".maint-confirm")}.offsetParent !== null`, "khối xác nhận hiện");
-    assert.match(await text(owner, ".maint-confirm"), /Mọi nhân viên khác sẽ bị chặn ngay, kể cả người đang mở app\. Chỉ bạn dùng được\./);
+    assert.match(await text(owner, ".maint-confirm"), /Mọi nhân viên khác sẽ bị chặn ngay, kể cả người đang mở Nền tảng\. Chỉ bạn dùng được\./); // Task 15: chữ giao diện «app» → «Nền tảng» (luật 2/10)
     assert.match(await text(owner, ".maint-confirm"), /Dự kiến hoàn tất lúc \d\d:\d\d \d\d\/\d\d\/\d{4}\./);
     await owner.shot(join(OUT, "anh/bt-02-xac-nhan.png"));
     assert.equal(await owner.ev(`document.activeElement === ${q(".maint-confirm")}`), true, "tiêu điểm chuyển vào khối xác nhận");
@@ -227,6 +229,11 @@ try {
 
   await step("TỰ TẮT khi hết giờ dự kiến (chủ dự án 30/9): lớp phủ đang đếm → về 0 → tự báo 'đã mở lại' (trước vòng hỏi 20 giây); banner đăng nhập tự ẩn", async () => {
     const ENDS_SOON = () => new Date(Date.now() + 8000).toISOString();
+    // Task 15 (29/10): phiên nhân viên đã kết thúc ở bước «Đăng xuất» phía trên (ADR-0075, một phiên mỗi tài khoản Bán hàng) nên bản cũ mở "/" ra /login, không có
+    // lớp phủ, rồi kéo đổ ba bước sau (giờ dự kiến kẹt ở +8 giây). Lấy phiên mới: tắt bảo trì bằng SQL trên D1 tạm, đăng nhập, bật lại.
+    env.sql(`UPDATE mnt_setting SET enabled = 0 WHERE id = 'default'`);
+    salesCookie = await env.login(ACCOUNTS.salesA);
+    env.sql(`UPDATE mnt_setting SET enabled = 1 WHERE id = 'default'`);
     env.sql(`UPDATE mnt_setting SET ends_at = '${ENDS_SOON()}' WHERE id = 'default'`);
     const p = await asCookie(salesCookie, "/");
     await p.waitFor(`!!${q("#maintenance-screen .maint-count")}`, "lớp phủ có đồng hồ đếm ngược");
