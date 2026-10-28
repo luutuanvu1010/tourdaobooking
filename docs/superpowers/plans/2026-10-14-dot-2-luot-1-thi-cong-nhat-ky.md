@@ -82,3 +82,11 @@ Người kiểm độc lập (chỉ đọc, đột biến trên bản sao `git a
 | L-8 phạm vi nở | Nhánh cũ kéo theo ~12 tài liệu ngoài ADR-0118 (bảng việc, prompt kiểm toán, prompt Claude Design, đặc tả «Khách có mặt», đặc tả đợt 2 giá đưa đón, tờ đối chiếu 25 ca kèm PDF 1,7 MB…). Giữ nguyên vì chủ bảo nhập nguyên nhánh; báo chủ. |
 | L-9 cắt Hướng dẫn Quản trị không khai đủ | Năm chỗ cắt gọn để vừa trần 30 phút (nghĩa giữ nguyên): mục điểm «Chọn nhanh» bước 4, câu giấy tờ xe, câu đặt gấp, câu giấy tờ sắp hết hạn, dòng Toàn quyền xem công nợ. |
 | e2e đỏ khi chạy đủ bộ | `dua-don-theo-nhom.mjs` gieo ZE1 TRƯỚC lần đọc danh mục đầu tiên ⇒ lần đọc đó kéo Sheet thật, đặt `in_sheet = 0` cho ZE1. Sửa: đọc một lần trước rồi mới gieo (khuôn `dispatch.mjs`). Tái hiện đỏ khi chạy một mình, sửa xong xanh. |
+
+### Xem giao diện trên trình duyệt (28/10/2026, người thi công; D1 tạm 127.0.0.1, đồng bộ Sheet thật, xoá sau khi xem)
+
+- Màn «Dịch vụ & giá»: công tắc «Có đưa đón — nhóm <tên>» ở cả 14 nhóm, mặc định Bật; bấm → «Tắt».
+- Form Tạo đơn, nhóm Hòn Tằm TẮT, vé SD1 gán vào nhóm: thẻ SD1 không có khối Đưa đón (khối nằm trong phần `[hidden]`, nút «Không đón» `aria-pressed=true`); vé SD4 (Chưa phân loại) có khối Đưa đón, chưa chọn. Bấm «Đón» ở SD4: chiều đi có hàng «Chọn nhanh nơi trả: Bến cảng Vinpearl, Bến tàu du lịch Nha Trang» (đúng thứ tự 1, 2), bấm nút điền ô Nơi trả; thêm chiều về: hàng «Chọn nhanh nơi đón» cùng hai nút.
+- **R-M trọn vòng:** đơn chỉ có SD1 (nhóm tắt) → «Lưu, chờ xác nhận» → máy chủ lưu `pickupChoice = KHONG_DON`, 0 lượt → «Xác nhận đơn» → `POST /status` 200, đơn `confirmed`.
+- Kịch bản Chrome `a2-smoke-form.mjs` (bảng `web/CLAUDE.md` cho `web/order-form.ts`): `UI SMOKE FORM OK`.
+- Chưa xem trên trình duyệt: dòng báo «đã bỏ N lượt đưa đón» khi mở lại nháp cũ có lượt của nhóm vừa tắt (chỉ có bài văn bản N-19 + luật thuần canh); iPhone thật.
