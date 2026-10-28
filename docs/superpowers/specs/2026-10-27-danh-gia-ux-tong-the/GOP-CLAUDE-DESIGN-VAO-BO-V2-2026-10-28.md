@@ -77,7 +77,7 @@ Design chia ba tệp `goc.css` (72) / `y-nghia.css` (88) / `thanh-phan.css` (59)
 |---|---|---|
 | **Từ mã** 9 nhóm (40 màu, 14 bậc, 7 khoảng, bo 8/12/18/999, 3 bóng, đường cong + 44/52/60 + z, phông, 37 biểu tượng, số đo app.css) | Từ mã | Đồng thuận, trừ "37 biểu tượng" (mục 4) và "3 bóng" (Design mức 2 là `shadow-float` đã BỎ) |
 | **MỚI** `vanh-cach`, gói đệm (pad-the, le-trang, gap-khoi, nut/o/chip/tab-pad), huy hiệu 24, tich-vien, cong-tac-tat-bg, o-nhieu-dong 96, thanh-tab-mo/den, tay cầm, cd-xuong, minus, ngưỡng 768, .ib-khung, 23 trạng thái | Xem 2b | 15 dòng: **lấy 10** (vanh-cach, hai dòng đệm, huy hiệu 24, tich-vien, cong-tac-tat-bg, ô nhiều dòng 96, tay cầm, minus, 23 trạng thái); **đồng thuận sẵn 2** (thanh-tab-mo/den, cd-xuong); **không lấy 3** (chip 36, ngưỡng 768, .ib-khung) |
-| **BỎ · gộp** bo 6 → 8; bo 14 (ô số liệu) → 12 | bộ BỎ `radius-xs` 6 (→ `bo-control`); bo 14 bộ giữ trong Gốc | Đồng thuận bo 6; **bo 14 → 12: lấy** (ô số liệu là thẻ — bộ The đã ghi "ô số liệu" là biến thể thẻ bo 12; đánh dấu BỎ `radius-lg` 14 ở mục 11, expand–contract) |
+| **BỎ · gộp** bo 6 → 8; bo 14 (ô số liệu) → 12 | bộ BỎ `radius-xs` 6 (→ `bo-control`); bo 14 bộ giữ trong Gốc | Đồng thuận bo 6; **bo 14 → 12: lấy** (ô số liệu là thẻ — bộ The đã ghi "ô số liệu" là biến thể thẻ bo 12; đánh dấu BỎ `radius-tile` 14 ở mục 11, expand–contract. *Sửa 28/10 sau khi gộp: bản đầu ghi nhầm tên token là `radius-lg` — trong bộ `radius-lg` là 18 (bảng trượt), bo 14 là `radius-tile`; phiên dựng bộ đã BỎ đúng `radius-tile`.*) |
 | **BỎ** bóng thẻ rê, bóng nút đặc, quầng đầm phá | giữ | **Không lấy** (chốt 6) |
 | **BỎ · gộp (đề nghị)** #f1f5f9 rê dòng ≈ #f2f5f9 nền phụ | giữ cả hai (từ mã) | Không lấy đợt này; ghi nhận là gợi ý dọn khi 7c đồng bộ từ mã |
 | **BỎ** độ đậm 700/800 không nạp | bộ giữ 700 (`fw-home-stat` 700, núm "Độ đậm" của chủ tới 800) | **Không lấy** (mã đang dùng 700/800) |
@@ -161,12 +161,16 @@ Cột "Kết luận": **Lấy Design** = diện mạo nhìn thấy đổi theo D
 ## 9. Việc cho phiên "Design System v2" khi gộp (checklist)
 
 - [ ] `tokens.json`: thêm 10 đệm + ô nhiều dòng 96 (mục 6a) + `c-check-border` = {c-text-muted} + `c-switch-off-bg` = {c-input-border-hover}, mỗi dòng "MỚI · từ Claude Design"; ghi chú `focus-ring` 3 / cách 2.
-- [ ] README mục 11: thêm các MỚI trên; ĐỔI thêm "toast nền tối (từ mã trắng vạch trái) — lý do"; BỎ thêm `radius-lg` 14 → 12; phím tắt bỏ `N` ("để sau", cổng 2a); mục 7 bỏ `N`.
+- [ ] README mục 11: thêm các MỚI trên; ĐỔI thêm "toast nền tối (từ mã trắng vạch trái) — lý do"; BỎ thêm `radius-tile` 14 → 12 (bản đầu ghi nhầm `radius-lg`); phím tắt bỏ `N` ("để sau", cổng 2a); mục 7 bỏ `N`.
 - [ ] README mục 12: bỏ "thanh trên, thanh tab, thanh bên, trang 403/404/mất mạng" khỏi "chưa đưa vào bộ" (giữ "bảo trì, năm khuôn trang"); ghi "6 thành phần MỚI · diện mạo từ Claude Design, 7b có thể sửa".
 - [ ] Thành phần sửa: `OChon` (04), `HopThoai` (13), `ThongBao` toast (15), `TrangThaiRong` (23); sửa câu "chờ tấm vẽ Claude Design" ở ThongBao.
 - [ ] Thành phần thêm (6): `DauTrang`, `ThanhTren`, `ThanhTabDuoi` (+ nút tròn san hô giữa thanh theo E1), `ThanhBen` (+ ghi chú gọn 56 chờ 7b), `TrangMatMang`, `TrangLoi` — README + `preview.html` HTML tĩnh, **không** `.jsx`.
 - [ ] `bundle.css`: thêm lớp cho 6 thành phần mới và đệm; giữ tên lớp của bộ (`.nut`, `.o-nhap`…), không `.ib-*`.
 - [ ] Xuất bản, báo mã phiên bản mới; phiên kiểm chạy lại `doi-chieu-bo-v2.mjs` (88 giá trị) trên bản mới trước khi gộp nhánh.
+
+## Kiểm lại sau khi gộp (28/10, bộ bản 8 `1793155409-bf46`)
+
+Phiên Design System v2 gộp xong (commit `7f365693` trên `chang-2-ds-v2`). Phiên kiểm chạy lại `doi-chieu-bo-v2.mjs` trên `so-lieu/bo-v2-tokens-1793155409-bf46.json`: **220 token; 86/88 giá trị chép từ mã khớp** — hai THIẾU vẫn là hai chỗ BỎ có lý do từ bản 5 (`lh-heading` 1,16; bóng `shadow-float`); **MỚI 36** (19 của bộ + 17 "từ Claude Design": 13 đệm họ `dem`, `h-o-nhieu-dong`, `vanh-cach`, `c-check-border`, `c-switch-off-bg`), ĐỔI 8 (thêm toast nền tối `c-toast-bg`). README bản 8 kiểm bằng grep: phím `N` "để sau" (mục 7), gói đệm (mục 5), bo 14 BỎ (mục 5), mục 11 có khối "MỚI · từ Claude Design", mục 12 ghi sáu thành phần đã vào bộ, danh sách 26 thành phần (mục 10). Lệch nhỏ so với checklist mục 9: tên token bo 14 là `radius-tile` (không phải `radius-lg` 18) — phiên dựng bộ BỎ đúng `radius-tile`, bảng này đã sửa. Giới hạn của kịch bản: so theo **giá trị** nên "bo góc 14px" vẫn ĐẠT nhờ cỡ chữ 14 px, không phát hiện được `radius-tile` đã bỏ; việc BỎ đó kiểm bằng README.
 
 ## 10. Chưa đề xuất
 
