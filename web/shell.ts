@@ -40,6 +40,11 @@ import { daiNhacHaiLop } from "../src/shared/hai-lop-hien-thi";
   | (typeof THANH_TAB)[number]["bieuTuong"]
 )[]) satisfies readonly IconName[];
 
+/** Trang đang vẽ 403/404 (web/trang-thai-he-thong.ts đặt `body[data-trang-thai]`): không sáng mục nào. Chỉ đọc thuộc tính, không nhập tệp đó. */
+function khongSangMuc(): boolean {
+  return /^40[34]$/.test(document.body?.dataset?.trangThai ?? "");
+}
+
 /**
  * Thanh tab dưới đáy (điện thoại). Tab nào hiện cho ai: `thanhTab()` của bảng mục (src/shared/muc-giao-dien.ts — THANH_TAB). Tóm tắt hôm nay: văn phòng lập được đơn
  * có Trang chủ / Đơn hàng / Tạo đơn; Kế toán (xem đơn, không lập — ADR-0007) không có Tạo đơn; Đối tác, Thực tập: Đơn hàng (đơn của họ — lỗi báo 30/9 L3) + Tạo đơn;
@@ -47,6 +52,7 @@ import { daiNhacHaiLop } from "../src/shared/hai-lop-hien-thi";
  * mở /cuoc từ trang Tôi; Quản trị thêm Dịch vụ, ô account.view thêm Tài khoản (ADR-0071); ai cũng có "Tôi" (sáng ở các trang mở từ trang Tôi — `sangTabToi`).
  */
 function tabBar(n: NguoiXem, path: string): HTMLElement {
+  const khongSang = khongSangMuc();
   const tabs = thanhTab(n);
   const coTabCuoc = tabs.some((t) => t.trang === "cuoc");
   return h(
@@ -57,7 +63,7 @@ function tabBar(n: NguoiXem, path: string): HTMLElement {
       const sang = t.trang === "toi" ? sangTabToi(path, coTabCuoc) : sangTai(t.trang, path);
       return h(
         "a",
-        { href: t.href, class: t.bieuTuong === "plus" ? "tab tab-new" : "tab", "aria-current": sang ? "page" : false },
+        { href: t.href, class: t.bieuTuong === "plus" ? "tab tab-new" : "tab", "aria-current": sang && !khongSang ? "page" : false },
         h("span", { class: "tab-icon" }, icon(t.bieuTuong as IconName), t.trang === "toi" && helpHasNews() && newDot()),
         h("span", null, t.nhan),
       );
@@ -243,10 +249,11 @@ function trinhBay(k: KhoaTrang, seesAll: boolean): { badge?: () => Promise<numbe
  * ở khổ điện thoại thanh bên bị CSS ẩn nên các lời gọi kia chỉ tốn mạng trên chính thiết bị yếu nhất. Mục gộp sáng khi đứng ở trang của BẤT KỲ trang nào nó gom.
  */
 function sidebarItem(m: Muc, path: string, loaders: (() => void)[], seesAll: boolean): HTMLElement {
+  const khongSang = khongSangMuc();
   const { badge, badgeClass, dot } = trinhBay(m.trang, seesAll);
   const a = h(
     "a",
-    { class: "sidebar-item", href: m.href, "aria-current": sangTaiMuc(m, path) ? "page" : false },
+    { class: "sidebar-item", href: m.href, "aria-current": !khongSang && sangTaiMuc(m, path) ? "page" : false },
     m.bieuTuong && h("span", { class: "sidebar-item-icon" }, icon(m.bieuTuong as IconName, 18)),
     h("span", { class: "sidebar-item-label" }, m.nhan, dot?.() && newDot()),
   );

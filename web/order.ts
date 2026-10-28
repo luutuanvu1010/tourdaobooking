@@ -15,7 +15,9 @@ import { goiSom } from "./goi-som";
 import { layKhungNho } from "./khung-nho";
 import { luuHoacChiaSe } from "./luu-anh";
 import { dungAnhQr, veMaQr } from "./qr-ve";
+import { TRANG } from "../src/shared/muc-giao-dien";
 import { initShell, setBarTitle } from "./shell";
+import { trangThaiToanTrang } from "./trang-thai-he-thong";
 import { openTripSheet } from "./trip-sheet";
 import { khoiCanhBaoMoc, khoiNhanDatGap } from "./dat-gap-ui";
 import { khoiNhapKeToan } from "./nhap-ke-toan-ui";
@@ -1686,7 +1688,7 @@ function layNguoiPhuTrach(orderId: string): Promise<Handler> {
   return layNguoiPhuTrachSom ? layNguoiPhuTrachSom() : loadHandler(orderId);
 }
 staff = await initShell();
-if (!id) show(banner("danger", "Thiếu mã đơn."));
+if (!id) trangThaiToanTrang("thieu-ma", { doiTuong: "đơn", trangCha: { nhan: "Đơn hàng", href: TRANG.donHang.duong } });
 else {
   await load();
   // Đăng ký MỘT lần, sau lần tải đầu (tin đến trong lúc tải đầu thì lần tải đầu đã đọc dữ liệu mới nhất). Tin về đơn KHÁC thì bỏ qua; tin về đơn

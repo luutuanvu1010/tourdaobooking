@@ -32,7 +32,9 @@ import { moBangTruot } from "./bang-truot";
 import { taoKhoiChiPhi } from "./chi-phi-chuyen";
 import { datCrumb, loiCua } from "./giay-to-ui";
 import { icon } from "./icons";
+import { TRANG } from "../src/shared/muc-giao-dien";
 import { initShell, setBarTitle, showError } from "./shell";
+import { trangThaiToanTrang } from "./trang-thai-he-thong";
 import { taoBoLamMoi } from "./lam-moi-logic";
 import type { SuKienChuyen } from "../src/shared/bang-tin";
 import { cauLoiTienDo, dongMoc, moKhaiGio, veDiemChay, type LenhDiem } from "./tien-do-ui";
@@ -1283,7 +1285,10 @@ function huy(nut: HTMLButtonElement): void {
 
 async function main(): Promise<void> {
   if (!can(staff, "trip.view")) return showError(errorEl, "Tài khoản này không xem được lịch xe.");
-  if (!id) return showError(errorEl, "Thiếu mã chuyến.");
+  if (!id) {
+    trangThaiToanTrang("thieu-ma", { doiTuong: "chuyến", trangCha: { nhan: "Điều phối xe", href: TRANG.dieuPhoi.duong } });
+    return;
+  }
   try {
     await nap();
   } catch (e) {

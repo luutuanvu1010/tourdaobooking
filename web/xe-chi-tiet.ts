@@ -8,7 +8,9 @@ import { ApiError, api, type Api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
 import { alertEl, chipEl, chipTrangThaiXe, datCrumb, loiCua, moFormGiayTo, type GiayToDong } from "./giay-to-ui";
 import { icon } from "./icons";
+import { TRANG } from "../src/shared/muc-giao-dien";
 import { initShell, showError } from "./shell";
+import { trangThaiToanTrang } from "./trang-thai-he-thong";
 
 const errorEl = byId("error");
 const headEl = byId("xe-head");
@@ -193,14 +195,18 @@ async function napLai(): Promise<void> {
 await initShell();
 themDay.prepend(icon("plus", 20));
 themDay.addEventListener("click", () => moBang("add", themDay));
-try {
-  const [r, m] = await Promise.all([api<Api.VehicleResponse>(url), api<Api.VanChuyenMetaResponse>("/api/van-chuyen/meta")]);
-  xe = r.vehicle;
-  docs = r.documents;
-  meta = m;
-  datCrumb("Vận chuyển › Xe", xe.plateNumber);
-  document.title = `${xe.plateNumber} — Island Booking System`;
-  ve();
-} catch (err) {
-  showError(errorEl, loiCua(err));
+if (!id) {
+  trangThaiToanTrang("thieu-ma", { doiTuong: "xe", trangCha: { nhan: "Xe & giấy tờ", href: TRANG.xe.duong } });
+} else {
+  try {
+    const [r, m] = await Promise.all([api<Api.VehicleResponse>(url), api<Api.VanChuyenMetaResponse>("/api/van-chuyen/meta")]);
+    xe = r.vehicle;
+    docs = r.documents;
+    meta = m;
+    datCrumb("Vận chuyển › Xe", xe.plateNumber);
+    document.title = `${xe.plateNumber} — Island Booking System`;
+    ve();
+  } catch (err) {
+    showError(errorEl, loiCua(err));
+  }
 }

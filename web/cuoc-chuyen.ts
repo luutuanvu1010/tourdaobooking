@@ -44,7 +44,9 @@ import { byId, h, replaceChildren, type Child } from "./dom";
 import { chip, dai, nhomChon, taoLenh } from "./dieu-phoi-ui";
 import { loiCua } from "./giay-to-ui";
 import { icon } from "./icons";
+import { TRANG } from "../src/shared/muc-giao-dien";
 import { initShell, setBarTitle, showError } from "./shell";
+import { trangThaiToanTrang } from "./trang-thai-he-thong";
 import { daiMatMang, loiTaiNenAnTrang, taoBoLamMoi } from "./lam-moi-logic";
 import type { SuKienChuyen } from "../src/shared/bang-tin";
 import { cauLoiTienDo, dongMoc, veDiemChay, type LenhDiem } from "./tien-do-ui";
@@ -983,7 +985,10 @@ async function main(): Promise<void> {
   coBoSungTen = can(staff, "trip.passenger.add", { assigned: true });
   coChuyenKhach = can(staff, "trip.transfer", { assigned: true });
   congTy = !can(staff, "trip.refuse", { assigned: true });
-  if (!id) return showError(errorEl, "Thiếu mã chuyến.");
+  if (!id) {
+    trangThaiToanTrang("thieu-ma", { doiTuong: "chuyến", trangCha: { nhan: "Cuốc của tôi", href: TRANG.cuoc.duong } });
+    return;
+  }
   try {
     await nap();
   } catch (e) {
