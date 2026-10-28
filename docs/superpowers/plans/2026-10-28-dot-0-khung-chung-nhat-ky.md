@@ -25,10 +25,12 @@ Sau Task 10: 100.388 byte (sau vòng sửa 1; trước đó 100.362; +374 so v�
 Sau Task 11: 100.418 byte (+30 so với Task 10: `hoiXacNhan` vào gói qua `bang-truot`, bù phần lớn bằng việc bỏ `closeBtn` điều kiện; vẫn vượt trần 96.700, trần không đổi).
 Sau Task 12: 100.418 byte (không đổi: trang 404 là gói riêng, không vào gói Đơn hàng; vẫn vượt trần 96.700, trần không đổi).
 
-Sau Task 13: 101.471 byte (+1.053: nhánh mất mạng của shell dùng `thanNgoaiMang` + `datDai`, `ganNgoaiMang()` trong `initShell`, tín hiệu `ngoai-mang` ở `api.ts`; vẫn vượt trần 96.700, trần không đổi).
+Sau Task 13: 101.515 byte (+1.097 so với Task 12: nhánh mất mạng của shell, `ganNgoaiMang()`, tín hiệu `ngoai-mang` ở `api.ts`, `veThanNgoaiMang`; vẫn vượt trần 96.700, trần không đổi).
 
 ## Lệch so với đặc tả
 
+- Task 13: §6.3 — tắt nút gửi/«Tải thêm» khi ngoài mạng và trang nghe `co-mang` để tự tải lại — chưa làm ở đợt 0 (kế hoạch không giao), chờ chủ/QA2.
+- Task 13: Bước 4 (kiểm tay CDP với dev-iphone + Chrome) KHÔNG làm: wrangler của phiên khác chiếm cổng 8795/8797 và bộ kiểm chạy song song. Task 15 `mat-mang-smoke.mjs` phủ; kịch bản đó phải xoá cả mục `/ngoai-mang` khỏi bộ đệm một lần để kiểm nhánh 503 chữ.
 - Task 1: kho chính không có `.env`; đã chép `.dev.vars` (tương đương của dự án) vào worktree.
 - Task 1: kế hoạch ghi "còn đúng 16 số z-index cứng sau dấu mốc PWA"; đếm thật trên `app.css` sau khi đổi năm luật là **15** (đặc tả kể cả `.bell::before` và lối "Bỏ qua", không có luật z-index cứng nào như vậy sau dấu mốc). Bài `src/token-dot-0.test.ts` khoá 15.
 - Task 1: bài `src/shared/giao-dien.test.ts` và `src/giao-dien-mac-dinh.test.ts` không phải sửa ca nào; chúng đọc `KEO_THEO`/`MAC_DINH` từ mã nên tự khớp (`dam-tieu-de` 600 = `--fw-heading`; `dam-nhan` vẫn 500 = `--fw-semibold`).

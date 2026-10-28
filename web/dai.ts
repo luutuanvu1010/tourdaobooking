@@ -1,9 +1,9 @@
 // Dải trên trang — MỘT chủ sở hữu (đặc tả đợt 0, §5.6): bảo trì › ngoài mạng › thông báo › bảo mật, mỗi lúc chỉ hiện một dải trong `#strips`.
 // Shell, Thông báo và (sau này) lớp mạng chỉ gọi `datDai`; luật chọn và chữ ở src/shared/dai-chu.ts. Mã này đi vào gói mọi trang: giữ gọn.
-import { CAU_NGOAI_MANG, KHOA_DAI_BAO_MAT_DA_DONG, TONG_DAI, chonDai, type LoaiDai } from "../src/shared/dai-chu";
-import { CAU_MAT_MANG_CHUA_NAP, CAU_MAT_MANG_TIEU_DE, CAU_MAT_MANG_TU_THU, NHAN_THU_LAI } from "../src/shared/trang-thai-he-thong-chu";
-import { h } from "./dom";
-import { icon } from "./icons";
+import { CAU_NGOAI_MANG, KHOA_DAI_BAO_MAT_DA_DONG, TONG_DAI, chonDai, type LoaiDai } from "../src/shared/dai-chu.ts";
+import { CAU_MAT_MANG_CHUA_NAP, CAU_MAT_MANG_TIEU_DE, CAU_MAT_MANG_TU_THU, NHAN_THU_LAI } from "../src/shared/trang-thai-he-thong-chu.ts";
+import { h } from "./dom.ts";
+import { icon } from "./icons.ts";
 
 export interface NoiDungDai {
   cau: string;
@@ -65,10 +65,15 @@ export function datDai(loai: LoaiDai, noiDung: NoiDungDai | null): void {
   ve();
 }
 
+/** Hiện dải «ngoài mạng» (kèm nút Thử lại tải lại trang). */
+export function hienDaiNgoaiMang(): void {
+  datDai("ngoai-mang", { cau: CAU_NGOAI_MANG, nut: { nhan: NHAN_THU_LAI, khiBam: () => location.reload() } });
+}
+
 /** Nghe tín hiệu mạng: `"ngoai-mang"` (lớp mạng phát) → dải; `"online"` → gỡ dải và phát `"co-mang"` cho trang tự tải lại dữ liệu. */
 export function ganNgoaiMang(): void {
   if (typeof window === "undefined" || typeof window.addEventListener !== "function") return;
-  window.addEventListener("ngoai-mang", () => datDai("ngoai-mang", { cau: CAU_NGOAI_MANG, nut: { nhan: NHAN_THU_LAI, khiBam: () => location.reload() } }));
+  window.addEventListener("ngoai-mang", hienDaiNgoaiMang);
   window.addEventListener("online", () => {
     datDai("ngoai-mang", null);
     window.dispatchEvent(new Event("co-mang"));
@@ -88,4 +93,9 @@ export function thanNgoaiMang(thuLai: () => void): HTMLElement {
     h("p", { class: "trang-thai-phu" }, CAU_MAT_MANG_TU_THU),
     nut,
   );
+}
+
+/** Thay thân `<main>` bằng khối «chưa có dữ liệu» — trừ khi trang đã tự vẽ một khối trạng thái hệ thống (vd /ngoai-mang). Chỉ gọi ở nhánh mất mạng của initShell (không bao giờ quay lại vẽ tiếp). */
+export function veThanNgoaiMang(chinh: Element | null, thuLai: () => void): void {
+  if (chinh && !chinh.querySelector("[data-loai]")) chinh.replaceChildren(thanNgoaiMang(thuLai));
 }
