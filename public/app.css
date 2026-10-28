@@ -3984,8 +3984,7 @@ body.co-nut-ho-tro:not(.cc-dang-chay) main { padding-bottom: calc(var(--s5) + va
 
 .o-tich { flex: none; margin: 0; width: var(--h-control); height: var(--h-control); accent-color: var(--c-primary); border-color: var(--c-check-border); }
 .o-chon-mot { flex: none; margin: 0; width: var(--h-control); height: var(--h-control); accent-color: var(--c-primary); border-color: var(--c-check-border); }
-.cong-tac { flex: none; margin: 0; accent-color: var(--c-primary); border-color: var(--c-check-border); }
-.cong-tac { appearance: none; width: var(--h-control); height: var(--s5); border-radius: var(--radius-pill); background: var(--c-switch-off-bg); cursor: pointer; transition: background-color var(--t-nhanh) var(--ease-out); }
+.cong-tac { flex: none; margin: 0; appearance: none; width: var(--h-control); height: var(--s5); border-radius: var(--radius-pill); background: var(--c-switch-off-bg); cursor: pointer; transition: background-color var(--t-nhanh) var(--ease-out); }
 .cong-tac:checked, .cong-tac[aria-checked="true"] { background: var(--c-primary); }
 .o-tich:focus-visible, .o-chon-mot:focus-visible, .cong-tac:focus-visible { outline: var(--focus-ring) solid var(--c-focus); outline-offset: var(--vanh-cach); }
 
@@ -4040,9 +4039,9 @@ body.co-nut-ho-tro:not(.cc-dang-chay) main { padding-bottom: calc(var(--s5) + va
 
 .rong { display: flex; flex-direction: column; align-items: center; gap: var(--s3); padding: var(--nhip-khoi) var(--le-trang); text-align: center; color: var(--c-text-muted); }
 
-.toast { display: flex; align-items: center; gap: var(--s3); max-width: var(--w-toast); padding: var(--s3) var(--s4); font-size: var(--fs-label); color: var(--c-on-dark); background: var(--c-toast-bg); border-radius: var(--radius-md); box-shadow: var(--shadow-overlay); z-index: var(--z-tren-cung); }
+.toast[data-tong] { display: flex; align-items: center; gap: var(--s3); max-width: var(--w-toast); padding: var(--s3) var(--s4); font-size: var(--fs-label); color: var(--c-on-dark); background: var(--c-toast-bg); border-radius: var(--radius-md); box-shadow: var(--shadow-overlay); z-index: var(--z-tren-cung); }
 .toast[data-tong="loi"] { background: var(--c-danger); }
-.toast .nut[data-cap="loi"] { color: var(--c-hoan-tac); }
+.toast[data-tong] .nut[data-cap="loi"] { color: var(--c-hoan-tac); }
 
 .bo-qua { position: absolute; top: var(--s2); left: var(--s2); z-index: var(--z-tren-cung); padding: var(--s3) var(--s4); color: var(--c-on-dark); background: var(--c-primary-strong); border-radius: var(--bo-control); transform: translateY(-200%); }
 .bo-qua:focus-visible { transform: translateY(0); outline: var(--focus-ring) solid var(--c-focus); outline-offset: var(--vanh-cach); }

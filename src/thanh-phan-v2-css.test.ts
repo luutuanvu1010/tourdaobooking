@@ -46,6 +46,11 @@ test(".dai, .chan-dinh, .bo-qua dùng đúng token", () => {
   assert.match(luat(".bo-qua"), /var\(--z-tren-cung\)/);
 });
 
+test("khối v2 không có bộ chọn .toast trần (tránh đè thông báo Bảng tin cũ)", () => {
+  assert.ok(!/(^|\n)\.toast\s*[{,:]/.test(khoiSach), "khối v2 có .toast trần");
+  assert.ok(!/(^|\n)\.toast\s+\./.test(khoiSach), "khối v2 có .toast con trần");
+});
+
 test("tông .dai và .toast đủ biến thể, nhịp .xuong tắt khi giảm chuyển động, vỏ .trang-thai", () => {
   assert.ok(khoiSach.includes(".dai[data-tong="), "thiếu .dai[data-tong]");
   assert.ok(khoiSach.includes(".toast[data-tong="), "thiếu .toast[data-tong]");
