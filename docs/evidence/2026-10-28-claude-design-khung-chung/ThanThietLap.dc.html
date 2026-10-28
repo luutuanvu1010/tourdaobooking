@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="_ds/island-booking-system-design-system-v2-449f87cb-ea95-4f4c-a868-ac49dceb167e/tokens/fonts.css">
+  <link rel="stylesheet" href="_ds/island-booking-system-design-system-v2-449f87cb-ea95-4f4c-a868-ac49dceb167e/tokens/goc.css">
+  <link rel="stylesheet" href="_ds/island-booking-system-design-system-v2-449f87cb-ea95-4f4c-a868-ac49dceb167e/tokens/y-nghia.css">
+  <link rel="stylesheet" href="_ds/island-booking-system-design-system-v2-449f87cb-ea95-4f4c-a868-ac49dceb167e/tokens/thanh-phan.css">
+  <link rel="stylesheet" href="_ds/island-booking-system-design-system-v2-449f87cb-ea95-4f4c-a868-ac49dceb167e/tokens/nen-tang.css">
+  <link rel="stylesheet" href="_ds/island-booking-system-design-system-v2-449f87cb-ea95-4f4c-a868-ac49dceb167e/components/hanh-dong/hanh-dong.css">
+  <link rel="stylesheet" href="_ds/island-booking-system-design-system-v2-449f87cb-ea95-4f4c-a868-ac49dceb167e/components/nhap/nhap.css">
+  <link rel="stylesheet" href="_ds/island-booking-system-design-system-v2-449f87cb-ea95-4f4c-a868-ac49dceb167e/components/hien-thi/hien-thi.css">
+  <link rel="stylesheet" href="_ds/island-booking-system-design-system-v2-449f87cb-ea95-4f4c-a868-ac49dceb167e/components/dieu-huong/dieu-huong.css">
+  <link rel="stylesheet" href="_ds/island-booking-system-design-system-v2-449f87cb-ea95-4f4c-a868-ac49dceb167e/components/phan-hoi/phan-hoi.css">
+  <script src="_ds/island-booking-system-design-system-v2-449f87cb-ea95-4f4c-a868-ac49dceb167e/_ds_bundle.js"></script>
+  <script src="ib-icon.js"></script>
+</helmet>
+<div style="max-width:var(--w-thiet-lap);margin:0 auto;padding:{{ dem }};display:flex;flex-direction:column;gap:var(--kc-4)">
+  <section class="ib-the" aria-label="Nguồn dữ liệu">
+    <p style="margin:0;text-wrap:pretty">Nguồn chính là Google Sheet. Ở đây có thể <strong style="font-weight:var(--fw-tieu-de)">ghi đè giá</strong> hoặc <strong style="font-weight:var(--fw-tieu-de)">ẩn</strong> một dịch vụ; ghi đè chỉ có hiệu lực trong hệ thống này và không bị lần đồng bộ sau đè mất. Đơn đã lập luôn giữ giá lúc lập.</p>
+    <p class="ib-the__phu">{{ dongBo }}</p>
+    <div><button type="button" class="ib-nut ib-nut--phu">Đồng bộ ngay từ Google Sheet</button></div>
+  </section>
+
+  <sc-if value="{{ coDuLieu }}" hint-placeholder-val="{{ true }}">
+    <section class="ib-the" aria-labelledby="tl-nhom">
+      <div class="ib-the__dau"><div class="ib-the__dau-chu"><h2 class="ib-the__tieu-de" id="tl-nhom">Nhóm dịch vụ</h2><p class="ib-the__phu">Nhóm giúp người lập đơn lọc nhanh dịch vụ. Nhóm không xoá được: không dùng nữa thì chuyển hết dịch vụ sang nhóm khác rồi tắt.</p></div></div>
+      <ul style="list-style:none;margin:0;padding:0">
+        <sc-for list="{{ nhom }}" as="n" hint-placeholder-count="4">
+          <li style="display:flex;flex-wrap:wrap;align-items:center;gap:var(--kc-1) var(--kc-3);padding:var(--kc-2) 0;border-top:1px solid var(--c-vien)">
+            <span style="flex:1 1 160px;min-width:0;font-weight:var(--fw-nhan)">{{ n.ten }} <span style="font-weight:var(--fw-noi-dung);font-size:var(--fs-phu);color:var(--c-chu-phu)">· {{ n.dem }}</span></span>
+            <span style="display:flex;gap:var(--kc-1);margin-right:calc(-1 * var(--kc-2))">
+              <button type="button" class="ib-nut ib-nut--loi-nho" style="white-space:nowrap"><span class="ib-nut__chu">Đổi tên</span></button>
+              <sc-if value="{{ n.coLen }}"><button type="button" class="ib-nut ib-nut--loi-nho" style="white-space:nowrap"><span class="ib-nut__chu">Lên</span></button></sc-if>
+              <sc-if value="{{ n.khongLen }}"><button type="button" class="ib-nut ib-nut--loi-nho" aria-disabled="true" title="Nhóm đã ở đầu" style="white-space:nowrap"><span class="ib-nut__chu">Lên</span></button></sc-if>
+              <button type="button" class="ib-nut ib-nut--loi-nho" style="white-space:nowrap"><span class="ib-nut__chu">Xuống</span></button>
+              <button type="button" class="ib-nut ib-nut--loi-nho" style="white-space:nowrap"><span class="ib-nut__chu">Tắt</span></button>
+            </span>
+          </li>
+        </sc-for>
+      </ul>
+    </section>
+
+    <section aria-labelledby="tl-dv" style="display:flex;flex-direction:column;gap:var(--kc-3)">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:var(--kc-3)"><h2 id="tl-dv" style="margin:0;font-size:var(--fs-tieu-de-khoi-rong);line-height:var(--lh-noi-dung);font-weight:var(--fw-tieu-de)">Dịch vụ</h2><span style="font-size:var(--fs-phu);color:var(--c-chu-phu)">{{ demChu }}</span></div>
+      <sc-if value="{{ coTim }}">
+        <div style="display:flex;flex-wrap:wrap;align-items:flex-end;gap:var(--kc-2)">
+          <div class="ib-o" style="flex:1 1 240px">
+            <div class="ib-o__khung">
+              <span class="ib-tim__kinh" style="display:inline-flex"><ib-icon ten="search" co="20"></ib-icon></span>
+              <input class="ib-o__dieu-khien ib-tim__o" type="search" placeholder="Tìm theo mã hoặc tên dịch vụ…" aria-label="Tìm dịch vụ">
+            </div>
+          </div>
+          <div class="ib-o" style="flex:0 1 220px">
+            <div class="ib-o__khung"><select class="ib-o__dieu-khien ib-o__chon" aria-label="Lọc dịch vụ"><option>Tất cả</option><option>Đang ghi đè giá</option><option>Sheet đã đổi giá (cần xem)</option><option>Đã ẩn</option><option>Không còn trong Sheet</option></select><span class="ib-o__mui" style="display:inline-flex"><ib-icon ten="chevron-down" co="20"></ib-icon></span></div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ hep }}">
+        <div class="ib-bang__the" style="display:flex">
+          <sc-for list="{{ dichVu }}" as="d" hint-placeholder-count="4">
+            <div class="ib-bang__muc">
+              <div class="ib-bang__d1"><span class="ib-bang__d1-chu">{{ d.ten }}</span><span style="flex:none;font-size:var(--fs-phu);font-weight:var(--fw-noi-dung);color:var(--c-chu-phu)">{{ d.ma }}</span></div>
+              <div class="ib-bang__d2">{{ d.nhom }} · đơn vị {{ d.donVi }}</div>
+              <div class="ib-bang__d3">
+                <span style="font-size:var(--fs-phu);line-height:var(--lh-phu)">Người lớn {{ d.nl }} · Trẻ em {{ d.te }}</span>
+                <span class="ib-bang__d3-hd"><button type="button" class="ib-nut ib-nut--loi-nho" style="white-space:nowrap"><span class="ib-nut__chu">Sửa giá</span></button></span>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+      <sc-if value="{{ rong }}">
+        <div class="ib-bang__cuon" style="display:block">
+          <table class="ib-bang__bang" style="display:table">
+            <thead><tr><th scope="col"><span class="ib-an">Chọn</span></th><th scope="col">Mã</th><th scope="col">Dịch vụ</th><th scope="col">Nhóm</th><th scope="col">Đơn vị</th><th scope="col" class="is-phai">Người lớn</th><th scope="col" class="is-phai">Trẻ em</th><th scope="col" class="is-phai">Người cao tuổi</th><th scope="col" class="is-phai">Em bé</th><th scope="col" class="ib-bang__hd"><span class="ib-an">Việc</span></th></tr></thead>
+            <tbody>
+              <sc-for list="{{ dichVu }}" as="d" hint-placeholder-count="6">
+                <tr>
+                  <td style="width:1%"><span class="ib-chon__hop ib-chon__hop--tich" aria-hidden="true"></span></td>
+                  <td class="is-gon" style="color:var(--c-chu-phu);font-size:var(--fs-phu)">{{ d.ma }}</td>
+                  <td style="min-width:180px">{{ d.ten }}</td>
+                  <td class="is-gon">{{ d.nhom }}</td>
+                  <td class="is-gon">{{ d.donVi }}</td>
+                  <td class="is-phai">{{ d.nl }}</td>
+                  <td class="is-phai">{{ d.te }}</td>
+                  <td class="is-phai">{{ d.ct }}</td>
+                  <td class="is-phai">{{ d.eb }}</td>
+                  <td class="ib-bang__hd"><button type="button" class="ib-nut ib-nut--loi-nho" style="white-space:nowrap"><span class="ib-nut__chu">Sửa giá</span></button></td>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table>
+        </div>
+      </sc-if>
+      <div class="ib-tai-them">
+        <span class="ib-tai-them__het">{{ cuoiChu }}</span>
+        <sc-if value="{{ coTaiThem }}"><button type="button" class="ib-nut ib-nut--phu ib-nut--rong">Tải thêm 50 dịch vụ</button></sc-if>
+      </div>
+    </section>
+  </sc-if>
+
+  <sc-if value="{{ laRong }}" hint-placeholder-val="{{ false }}">
+    <div class="ib-rong">
+      <span class="ib-rong__bt"><ib-icon ten="services" co="24"></ib-icon></span>
+      <p class="ib-rong__cau">Chưa có dịch vụ nào — Sheet chưa đồng bộ lần nào</p>
+      <button type="button" class="ib-nut ib-nut--phu">Đồng bộ ngay từ Google Sheet</button>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ dangTai }}" hint-placeholder-val="{{ false }}">
+    <div aria-busy="true" aria-label="Đang tải danh mục" style="display:flex;flex-direction:column;gap:var(--kc-4)">
+      <div class="ib-the"><span class="ib-xuong__khoi ib-xuong__dong" style="width:30%;height:16px"></span><sc-for list="{{ bon }}" as="x" hint-placeholder-count="4"><div style="display:flex;justify-content:space-between;gap:var(--kc-3)"><span class="ib-xuong__khoi ib-xuong__dong" style="width:30%"></span><span class="ib-xuong__khoi ib-xuong__dong" style="width:35%"></span></div></sc-for></div>
+      <div class="ib-bang__the" style="display:flex"><sc-for list="{{ bon }}" as="x" hint-placeholder-count="4"><div class="ib-bang__muc" style="gap:var(--kc-2)"><span class="ib-xuong__khoi ib-xuong__dong" style="width:55%"></span><span class="ib-xuong__khoi ib-xuong__dong" style="width:40%"></span><span class="ib-xuong__khoi ib-xuong__dong" style="width:70%"></span></div></sc-for></div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ loi }}" hint-placeholder-val="{{ false }}">
+    <div class="ib-rong" role="alert">
+      <span class="ib-rong__bt" style="background:var(--tt-do-bg);color:var(--tt-do-chu)"><svg class="ib-bt" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true" style="stroke-linecap:round;stroke-linejoin:round"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4.5M12 16v.01"></path></svg></span>
+      <p class="ib-rong__cau">Chưa tải được danh mục dịch vụ</p>
+      <p class="ib-rong__phu">Máy chủ không trả lời. Giá ghi đè và nhóm vẫn còn nguyên.</p>
+      <button type="button" class="ib-nut ib-nut--phu">Thử lại</button>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const NHOM = [['Tour đảo', '12 dịch vụ'], ['Long Phú', '6 dịch vụ'], ['Hòn Tằm', '9 dịch vụ'], ['Harbour', '4 dịch vụ'], ['Vinwonders', '7 dịch vụ'], ['Du thuyền', '5 dịch vụ']];
+const DV = [
+  ['T4D-CANO', 'Tour 4 đảo · Cano', 'Tour đảo', 'khách', '400.000 ₫', '280.000 ₫', '400.000 ₫', '0 ₫'],
+  ['HT-CANO-BUN', 'Vé Hòn Tằm · Cano + tắm bùn', 'Hòn Tằm', 'khách', '620.000 ₫', '440.000 ₫', '620.000 ₫', '0 ₫'],
+  ['T3D-SANG', 'Tour 3 đảo – ca sáng', 'Tour đảo', 'khách', '350.000 ₫', '250.000 ₫', '350.000 ₫', '0 ₫'],
+  ['DT-HOANG-HON', 'Du thuyền ngắm hoàng hôn', 'Du thuyền', 'khách', '800.000 ₫', '600.000 ₫', '800.000 ₫', '0 ₫'],
+  ['VW-VE-NGAY', 'Vé Vinwonders cả ngày', 'Vinwonders', 'vé', '880.000 ₫', '700.000 ₫', '700.000 ₫', '0 ₫'],
+  ['LP-LAN-SAN-HO', 'Lặn ngắm san hô Long Phú', 'Long Phú', 'khách', '1.080.000 ₫', '750.000 ₫', '1.080.000 ₫', '0 ₫'],
+  ['HB-TAU-DEM', 'Tàu Harbour đêm', 'Harbour', 'khách', '450.000 ₫', '300.000 ₫', '450.000 ₫', '0 ₫'],
+  ['HT-VE-TAM-BUN', 'Vé tắm bùn Hòn Tằm', 'Hòn Tằm', 'vé', '320.000 ₫', '220.000 ₫', '320.000 ₫', '0 ₫'],
+];
+
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props;
+    const tt = p.trangThai || 'it';
+    const rong = !!p.rong;
+    const nhieu = tt === 'nhieu';
+    const ds = nhieu ? Array.from({ length: 50 }, (_, i) => DV[i % DV.length]) : tt === 'it' ? DV.slice(0, 3) : [];
+    const dichVu = ds.map((d, i) => ({ ma: nhieu && i >= DV.length ? d[0] + '-' + (Math.floor(i / DV.length) + 1) : d[0], ten: d[1], nhom: d[2], donVi: d[3], nl: d[4], te: d[5], ct: d[6], eb: d[7] }));
+    const nhom = (tt === 'it' ? NHOM.slice(0, 3).map(([t]) => [t, '1 dịch vụ']) : NHOM).map(([ten, dem], i) => ({ ten, dem, coLen: i > 0, khongLen: i === 0 }));
+    return {
+      hep: !rong, rong,
+      dem: rong ? 'var(--kc-5) var(--le-trang-rong) var(--kc-6)' : 'var(--kc-4) var(--le-trang) var(--kc-5)',
+      dongBo: tt === 'rong' ? 'Chưa đồng bộ lần nào. Hệ thống tự đồng bộ mỗi 15 phút.' : 'Đồng bộ thành công lần cuối: 15:25 28/10/2026 · ' + (nhieu ? '118' : '3') + ' dịch vụ trong Sheet. Hệ thống tự đồng bộ mỗi 15 phút.',
+      coDuLieu: tt === 'it' || nhieu, laRong: tt === 'rong', dangTai: tt === 'dang-tai', loi: tt === 'loi',
+      nhom, dichVu,
+      coTim: nhieu,
+      demChu: nhieu ? '118 dịch vụ' : '3 dịch vụ',
+      cuoiChu: nhieu ? 'Đang xem 50 / 118 dịch vụ' : 'Đã hiện hết 3 dịch vụ',
+      coTaiThem: nhieu,
+      bon: [1, 2, 3, 4],
+    };
+  }
+}
+</script>
+</body>
+</html>
