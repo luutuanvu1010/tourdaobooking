@@ -11,8 +11,9 @@ import { ACCOUNTS, call, catalogService, ensureFakeCatalog, orderInput, session,
 const SALES = await session(ACCOUNTS.salesA);
 const ADMIN = await session(ACCOUNTS.admin);
 // Trên D1 CHƯA TỪNG đồng bộ, lần đọc danh mục đầu tiên tự kéo Sheet thật (`bootstrapIfNeverSynced`) và đặt in_sheet = 0 cho mã giả — đọc một lần TRƯỚC rồi
-// mới gieo ZE1 (khuôn dispatch.mjs). Gieo trước thì bước (2) không thấy ZE1 trong for-order (đỏ khi kịch bản chạy một mình hoặc trước catalog — 28/10).
-await call(SALES, "GET", "/api/catalog/for-order");
+// mới gieo ZE1, để lần đồng bộ thật (nếu có) xảy ra TRƯỚC khi gieo. Gieo trước thì bước (2) không thấy ZE1 trong for-order (đỏ khi kịch bản chạy một mình
+// hoặc trước catalog — 28/10). (dispatch.mjs tránh bẫy này theo cách khác: chạy SAU catalog.mjs rồi gieo lại.)
+assert.equal((await call(SALES, "GET", "/api/catalog/for-order")).status, 200, "lần đọc danh mục đầu tiên");
 await ensureFakeCatalog();
 const D = vnDate(7);
 const LOC = "a941dd7d-faab-4098-9ab9-1df7fa6dd551"; // Bến tàu du lịch Nha Trang (migration 0010)

@@ -67,7 +67,7 @@ Câu «Bảng ở trang quản trị có thể phải kéo ngang.» ở Trợ gi
 
 ## Kiểm độc lập sau khi dựng lại (28/10/2026; kết luận «ĐẠT CÓ ĐIỀU KIỆN», không có mục HIGH)
 
-Người kiểm độc lập (chỉ đọc, đột biến trên bản sao `git archive`) đối chiếu MỌI đường ghi `ord_transfer_leg` và mọi cửa đưa đơn sang xác nhận: tất cả có chốt hoặc là đường thoát được phép; 19 đột biến đều đỏ đúng chỗ. Xử lý từng điểm:
+Người kiểm độc lập (chỉ đọc, đột biến trên bản sao `git archive`) đối chiếu MỌI đường ghi `ord_transfer_leg` và mọi cửa đưa đơn sang xác nhận: tất cả có chốt hoặc là đường thoát được phép; 15 đột biến đều đỏ đúng chỗ (báo cáo đầu của người kiểm ghi «19», người kiểm tự đếm lại 15). Xử lý từng điểm:
 
 | Điểm | Xử lý |
 |---|---|
@@ -79,9 +79,9 @@ Người kiểm độc lập (chỉ đọc, đột biến trên bản sao `git a
 | L-4 R-O «không nhánh nào giữ migration > 0120» đã cũ | Đúng lúc dựng lại, sai từ 15:42 cùng ngày: nhánh `claude/modest-sanderson-b148ce` (ADR-0144) có `0124_ve_ho_tro_tep.sql` và tự khai nhường `0121`; phiên bản 2.39 dễ trùng với nhánh đó — nhánh gộp SAU đổi số ở bước A.0. |
 | L-5 Còn vé: mốc đặt gấp đứng trước chốt nhóm tắt | **R-Q:** thêm `congNhomTatDuaDon(…, "xet-duyet")` trước khối (0) của route `quyet-dinh` — cùng thứ tự với `/status`. Bài mới viết trước, đỏ (`short_notice_required`), xanh sau sửa. |
 | L-6, L-7 | Không đổi (L-6 không phải hồi quy của nhánh; L-7 đã tự khai ở sổ hàng rào). |
-| L-8 phạm vi nở | Nhánh cũ kéo theo ~12 tài liệu ngoài ADR-0118 (bảng việc, prompt kiểm toán, prompt Claude Design, đặc tả «Khách có mặt», đặc tả đợt 2 giá đưa đón, tờ đối chiếu 25 ca kèm PDF 1,7 MB…). Giữ nguyên vì chủ bảo nhập nguyên nhánh; báo chủ. |
-| L-9 cắt Hướng dẫn Quản trị không khai đủ | Năm chỗ cắt gọn để vừa trần 30 phút (nghĩa giữ nguyên): mục điểm «Chọn nhanh» bước 4, câu giấy tờ xe, câu đặt gấp, câu giấy tờ sắp hết hạn, dòng Toàn quyền xem công nợ. |
-| e2e đỏ khi chạy đủ bộ | `dua-don-theo-nhom.mjs` gieo ZE1 TRƯỚC lần đọc danh mục đầu tiên ⇒ lần đọc đó kéo Sheet thật, đặt `in_sheet = 0` cho ZE1. Sửa: đọc một lần trước rồi mới gieo (khuôn `dispatch.mjs`). Tái hiện đỏ khi chạy một mình, sửa xong xanh. |
+| L-8 phạm vi nở | Nhánh cũ kéo theo ~12 tài liệu ngoài ADR-0118 (bảng việc, prompt kiểm toán, prompt Claude Design, đặc tả «Khách có mặt», đặc tả đợt 2 giá đưa đón, tờ đối chiếu 25 ca kèm PDF 1,7 MB…). Giữ nguyên: chủ giao «rà lại để nhập … nhánh claude/tour-dao-booking-audit-bc6c77 (đầu d7495a77) vào bản chính» — hiểu là nhập cả nhánh; báo chủ để chủ biết khi nhập. |
+| L-9 cắt Hướng dẫn Quản trị không khai đủ | Năm chỗ cắt gọn để vừa trần 30 phút (nghĩa giữ nguyên): câu «Bảng ở trang quản trị có thể phải kéo ngang» (đã khai ở mục «Dựng lại trên main»), câu đặt gấp, câu giấy tờ xe (bước 3), câu giấy tờ sắp hết hạn, dòng Toàn quyền xem công nợ. Mục điểm «Chọn nhanh» bước 4 là đoạn THÊM, không phải chỗ cắt (người kiểm chỉ ra 28/10). |
+| e2e đỏ khi chạy đủ bộ | `dua-don-theo-nhom.mjs` gieo ZE1 TRƯỚC lần đọc danh mục đầu tiên ⇒ lần đọc đó kéo Sheet thật, đặt `in_sheet = 0` cho ZE1. Sửa: đọc một lần trước (kèm kiểm 200) rồi mới gieo. Thông điệp commit `291754d1` ghi «khuôn `dispatch.mjs`» là viện dẫn sai — `dispatch.mjs` tránh bẫy bằng cách chạy SAU `catalog.mjs` rồi gieo lại. Tái hiện đỏ khi chạy một mình, sửa xong xanh. |
 
 ### Xem giao diện trên trình duyệt (28/10/2026, người thi công; D1 tạm 127.0.0.1, đồng bộ Sheet thật, xoá sau khi xem)
 
