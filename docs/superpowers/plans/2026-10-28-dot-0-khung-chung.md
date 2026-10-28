@@ -1,5 +1,7 @@
 # Đợt 0 — đưa khung chung vào mã: kế hoạch thi công
 
+> **Trạng thái:** chủ dự án duyệt 28/10 («theo đề xuất, nới trần có lý do»); cách thi công đã chốt: subagent-driven. Biên bản: `docs/superpowers/specs/2026-10-28-dot-0-khung-chung/QUYET-DINH-DUYET-KE-HOACH-2026-10-28.md`.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Mọi trang của Island Booking System mang cùng một vỏ mới (thanh trên, thanh tab theo bộ quyền, thanh bên có nhóm gập, dải trên trang, chân dính một kiểu, trang lỗi có vỏ, hộp xác nhận và thông báo ngắn kiểu mới, token mở rộng) mà không vẽ lại thân trang nào.
@@ -12,9 +14,9 @@
 
 ## Global Constraints
 
-- Nhánh `dot-0-khung-chung` (tách từ origin/main 1d3c67fd). Làm trong worktree riêng; `npm ci` nếu `node_modules` chưa có. **Không gộp vào `main`, không push `main`, không `wrangler deploy`** — gộp và phát hành là việc của chủ sau cổng phát hành đợt 0 (đặc tả mục 12).
+- Nhánh `dot-0-khung-chung` (tách từ origin/main 1d3c67fd). Làm trong worktree **có sẵn** `.claude/worktrees/dot-0-khung-chung` (nhánh đã checkout ở đó — không `git worktree add` nhánh này lần nữa, git từ chối); chép `.env` từ kho chính; `npm ci` nếu `node_modules` chưa có. **Không gộp vào `main`, không push `main`, không `wrangler deploy`** — gộp và phát hành là việc của chủ sau cổng phát hành đợt 0 (đặc tả mục 12).
 - Mỗi task kết thúc với `npm test`, `npm run typecheck` xanh và một commit (tiếng Việt, kết bằng dòng `Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>`). Task chạm `public/` hay `web/` chạy thêm `npm run build:web`.
-- **Trần gói trang Đơn hàng** (`src/goi-trang-nhe.test.ts`, `TRAN_ORDERS = 96_700`; đo 28/10 trên main: **96.678 byte, còn 22 byte**). Mọi mã thêm vào `web/shell.ts`, `web/dai.ts`, `web/toast.ts`, `web/api.ts`, `src/shared/muc-giao-dien.ts` đi vào gói này. Quy tắc: không tự nới trần; task nào làm đỏ bài này thì **dừng**, ghi số byte đo được vào `docs/superpowers/plans/2026-10-28-dot-0-khung-chung-nhat-ky.md` và hỏi chủ qua Main session (đặc tả 10.11). Chủ đã được hỏi trước ở cổng duyệt kế hoạch: nếu chủ chốt "nới theo số đo thật + lý do", sửa hằng `TRAN_ORDERS` đúng một lần ở Task 16 với dòng chú thích nêu số đo và lý do, như tiền lệ ADR-0120/0136.
+- **Trần gói trang Đơn hàng** (`src/goi-trang-nhe.test.ts`, `TRAN_ORDERS = 96_700`; đo 28/10 trên main: **96.678 byte, còn 22 byte**). Mọi mã thêm vào `web/shell.ts`, `web/dai.ts`, `web/toast.ts`, `web/api.ts`, `src/shared/muc-giao-dien.ts` đi vào gói này. Quy tắc: không tự nới trần; task nào làm đỏ bài này thì **dừng**, ghi số byte đo được vào `docs/superpowers/plans/2026-10-28-dot-0-khung-chung-nhat-ky.md` và hỏi chủ qua Main session (đặc tả 10.11). **Chủ đã chốt 28/10 («theo đề xuất, nới trần có lý do», biên bản `QUYET-DINH-DUYET-KE-HOACH-2026-10-28.md` cạnh đặc tả):** sửa hằng `TRAN_ORDERS` đúng một lần ở Task 16 với dòng chú thích nêu số đo và lý do, như tiền lệ ADR-0120/0136.
 - Không `innerHTML`; dựng DOM bằng `h()` của `web/dom.ts`; ẩn/hiện bằng `el.hidden`. Chữ tiếng Việt có dấu, không chữ Anh mới, không lộ JSON/mã kỹ thuật ra màn hình.
 - CSS: mọi giá trị mới là token ở `:root` (trước dấu mốc `/* ---------- app iPhone (PWA)` dòng ~875); luật mới đặt sau dấu mốc và **chỉ dùng token** (`tests/e2e/pwa.mjs` quét số px/hex; `src/token-giao-dien.test.ts` quét độ đậm). Mốc màn hình chỉ 640 / 900 / 1200 cho luật mới.
 - `web/shell.ts` và `web/account.ts` còn phải chạy được trên DOM giả của `scripts/chup-muc-giao-dien.mjs` (không có `MutationObserver`, `getClientRects`, `offsetParent`): mọi API trình duyệt ngoài `createElement/append/dataset/classList/querySelector*` phải bọc `typeof … !== "undefined"`.
