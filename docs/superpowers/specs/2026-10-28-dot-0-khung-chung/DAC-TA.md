@@ -1,6 +1,6 @@
 # Đặc tả đợt 0 — đưa khung chung vào mã (bản 3, 28/10/2026)
 
-Trạng thái: **bản 3 sau QA1 lần 2**, chờ QA1 lần 3 (chỉ kiểm ba chỗ sửa) rồi chủ duyệt. Bản 1 (930781cd) bị QA1 lần 1 trả về: 3 CHẶN / 11 SỬA / 16 MƠ HỒ / 6 PHẠM VI → bản 2 (0b76a29a) xử lý hết; QA1 lần 2 soát 27 mã: 24 ĐẠT, 3 CHƯA (A1 danh sách trang có thanh dính; B2 giá trị thật của token chiều cao và khung xương; B8 số hình) + 4 ghi chú nội tại — bản 3 sửa hết; bảng tra ở phụ lục B. Người soạn: Main session (vai lập kế hoạch và đặc tả, không thi công). Người đọc: phiên kiểm QA1 (chỉ đọc) → chủ dự án (tờ tóm tắt riêng, lời thường, một câu hỏi) → phiên lập kế hoạch (`superpowers:writing-plans`) → phiên thi công. Đây là **việc lớn** theo `CLAUDE.md` §3 (chạm triển khai: cấu hình 404; chạm khung mọi trang): đặc tả → chủ duyệt → kế hoạch → thi công trên nhánh → kiểm độc lập (QA2) → **cổng phát hành đợt 0** (bản local + tờ so sánh trước/sau) → chủ gộp → chủ phát hành.
+Trạng thái: **bản 3 — QA1 ĐẠT (lần 3, 28/10)**, chờ chủ dự án duyệt (tờ tóm tắt riêng, một câu hỏi: khung tải). Bản 1 (930781cd) bị QA1 lần 1 trả về: 3 CHẶN / 11 SỬA / 16 MƠ HỒ / 6 PHẠM VI → bản 2 (0b76a29a) xử lý hết; QA1 lần 2 soát 27 mã: 24 ĐẠT, 3 CHƯA (A1 danh sách trang có thanh dính; B2 giá trị thật của token chiều cao và khung xương; B8 số hình) + 4 ghi chú nội tại — bản 3 sửa hết; bảng tra ở phụ lục B. Người soạn: Main session (vai lập kế hoạch và đặc tả, không thi công). Người đọc: phiên kiểm QA1 (chỉ đọc) → chủ dự án (tờ tóm tắt riêng, lời thường, một câu hỏi) → phiên lập kế hoạch (`superpowers:writing-plans`) → phiên thi công. Đây là **việc lớn** theo `CLAUDE.md` §3 (chạm triển khai: cấu hình 404; chạm khung mọi trang): đặc tả → chủ duyệt → kế hoạch → thi công trên nhánh → kiểm độc lập (QA2) → **cổng phát hành đợt 0** (bản local + tờ so sánh trước/sau) → chủ gộp → chủ phát hành.
 
 ## 0. Tóm tắt và phạm vi
 
@@ -299,7 +299,7 @@ Khung tải (chờ ADR-0143; câu hỏi mục 3) · gộp lời gọi API · lư
 | A2 | mục 4: chỉ 5 số z-index; 16 số còn lại BACKLOG; 10.11 sửa |
 | A3 | mục 4 + 8: luật cũ của ô tích/ô chọn/công tắc đổi token sang `--c-check-border`; 10.12 giữ |
 | B1 | `--z-truot`; toast `--z-tren-cung`; `--z-tl-khung` → `--z-phu` |
-| B2 | bí danh chỉ khi bằng giá trị; 3 chiều cao + 8 skel + `--m-*` giữ giá trị |
+| B2 | bí danh chỉ khi bằng giá trị; 3 chiều cao + skel khác giá trị (bản 2 ghi 8, bản 3 đếm lại là 10) + `--m-*` giữ giá trị |
 | B3 | dùng `--bar-h`, `--tabbar-h`, `--w-sidebar`, `--w-sheet`, `--w-toast`; bỏ `--h-muc-thanh-ben`; thanh trên 60 |
 | B4 | 5.4 cơ chế `nhomGap` mới, lọc từng con, ≥ 2 mới gập; mục 13 |
 | B5 | "Đã hiểu" → ADR-0034 điều 8; bộ đệm → ADR-0035; Trợ lý → ADR-0073/0084 |
