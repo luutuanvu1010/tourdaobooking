@@ -57,3 +57,11 @@ Sau Task 13: 101.515 byte (+1.097 so với Task 12: nhánh mất mạng của sh
 - Giữ giá trị cũ, chờ Chặng 3 quyết theo họ: `--h-hdv-act` 48, `--row-h` 48, `--h-dp-tab` 40; mười `--skel-*` lẻ (`sm`, `title`, `tag`, `time`, `money`, `pill-mt`, `bar-mt`, `num-mt`, `time-mt`, `name-mt`); `--skel-money-mt` 96 (lề trên, không bí danh).
 - 15 số z-index cứng còn lại sau dấu mốc PWA (`.fb-step-dot`, `.ht-tra-loi`, `.sidebar-group`, `.catalog-muc`, `body.trang-chu::before`, `.vc-bottom-bar`, `.vc-filters`, `.dp-*`, `.xb-*`, `.buoc-*`): dọn theo họ ở Chặng 3.
 - Mốc màn hình cũ 960/1024/1400/720 giữ, dọn ở Chặng 3. `--z-tl-fab` 35 bỏ cùng nút nổi (task sau).
+
+## Task 14 (ghi 2026-10-28)
+
+- Hạt giống: `scripts/dev-iphone.mjs` thêm 5 tài khoản thử (Toàn quyền, Kế toán, Hướng dẫn viên, Tài xế, Tài xế đối tác; SĐT 0900000003–07); chạy thật trên D1 tạm, in đủ 7 tài khoản, đã tắt đúng tiến trình mình bật.
+- Số phiên bản `2.39` ở `src/shared/changelog.ts` là TẠM: nhánh ADR-0118 (đón nhóm) cũng tạm dùng 2.39; người phát hành đối chiếu ở bước A.0. Bài `src/shared/app-info.test.ts` (dòng phiên bản mới nhất) cập nhật theo 2.39.
+- `npm test` trước commit: chỉ đỏ `goi-trang-nhe` (gói Đơn hàng vượt trần, đã cho phép) và `app-info` (đã sửa ở trên).
+- Sổ hàng rào: thêm ba dòng (ratchet confirm/alert, thanh tab theo bộ quyền, nhóm gập thanh bên); hai quan sát mới làm 2026-10-28 (nhãn `THANH_TAB`, bỏ `nhomGap` của Điều phối xe), hoàn nguyên, `git diff src/shared/muc-giao-dien.ts` sạch.
+- Nợ: đã gom vào `docs/BACKLOG.md` §52.

@@ -12,6 +12,20 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Đợt 0 khung chung (chủ 28/10): khung chung của Nền tảng. Chỉ giao diện và service worker, KHÔNG migration. Số 2.39 và ngày là TẠM (nhánh ADR-0118 đón nhóm cũng tạm dùng 2.39) — phiên phát hành kiểm lại ở bước A.0 của docs/HANDOFF-N1.md.
+    version: "2.39",
+    date: "2026-10-28",
+    items: [
+      { kind: "doi", text: "Thanh tab dưới cùng trên điện thoại nay hiện đúng những việc hay dùng nhất của từng vai, tối đa năm mục, thay vì bốn mục cố định." },
+      { kind: "doi", text: "Thanh bên trên máy tính gom các mục cùng nhóm vào khối gập (ví dụ các mục về xe), mở khối nào thì nhớ khối đó; nút Trợ lý chuyển lên thanh trên cùng." },
+      { kind: "moi", text: "Khi mất mạng hoặc máy chủ đang bảo trì, Nền tảng hiện một dải thông báo gọn ở đầu trang và vẫn giữ nội dung đã xem, không còn thay cả trang bằng dòng chữ lỗi." },
+      { kind: "moi", text: "Mở một địa chỉ không có thì hiện trang «Không tìm thấy» có sẵn thanh điều hướng, thay vì trang trắng." },
+      { kind: "moi", text: "Mất mạng khi mở một trang chưa từng xem thì hiện trang «Đang ngoài mạng» với hướng dẫn thử lại." },
+      { kind: "doi", text: "Thông báo ngắn (toast) có màu theo mức độ, có nút đóng, và nút «Hoàn tác» ở những việc hoàn tác được." },
+      { kind: "doi", text: "Các câu hỏi xác nhận trước khi xoá hoặc gỡ nay hiện thành hộp thoại của Nền tảng, đồng nhất chữ và nút, thay cho hộp hỏi mặc định của trình duyệt." },
+    ],
+  },
+  {
     // Rà chữ Trang chủ (chủ 28/10): «Chuyến đón» → «Đơn đi», «khai <ngày>» → «ghi ngày <ngày>» (chủ chọn trong hộp hỏi), nhãn «Công ty thu – chuyển khoản» sai cho khoản tiền mặt.
     // Lượt 3 (chủ 28/10): ẩn hai ô «Của tôi» với người không lập được đơn; cảnh báo đổi giá ghi tên dịch vụ. Chỉ giao diện, KHÔNG migration. Số 2.38 và ngày là TẠM — phiên phát hành kiểm lại ở bước A.0 của docs/HANDOFF-N1.md.
     version: "2.38",
