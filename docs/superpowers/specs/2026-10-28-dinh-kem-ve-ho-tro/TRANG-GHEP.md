@@ -22,6 +22,7 @@ Không thêm ô nào vào `MATRIX`. Quyền đi qua hai ô có sẵn và hàm `q
 | Trả lời kèm tệp | theo `quyenPhieu.doc` | | | | **? (câu 1)** | | | | **? (câu 1)** | | vé đọc được | Ghi chú nội bộ kèm tệp: chỉ khi `quyenPhieu.xuLy` (như ghi chú chữ) |
 | Xem tệp (`GET …/tep/:tid`, mới) | theo `quyenPhieu.doc` + bộ lọc `noiBo` của tin chứa tệp | | | | own | any (Toàn quyền) | | | own | | tệp của tin đọc được | Không thêm đường tắt cho Quản trị/Nhân sự (giữ ADR-0119 đ4) |
 | Xem / chạy lại hàng «tải dở dang», «chờ xoá» (mới) | none | none | none | none | none | any | none | none | none | none | mọi dòng `fbk_attachment` | chỉ trạng thái và mã, không nội dung; như `GET /api/parties/tep-cho-xoa` |
+| Gỡ tệp gửi nhầm (mới, **nếu chủ chọn câu 3**) | none | none | none | none | none | any | none | none | none | none | mọi tệp của mọi vé | qua ô `feedback.triage` có sẵn (chỉ Toàn quyền); không mở cho trưởng nhóm, người gửi |
 
 ## 3. Cổng nào canh cửa nào
 
@@ -31,6 +32,7 @@ Không thêm ô nào vào `MATRIX`. Quyền đi qua hai ô có sẵn và hàm `q
 | `POST /api/feedback/:id/messages` (thêm `tep`) | `staff` | `quyenPhieu.doc` (404) → ghi chú nội bộ cần `xuLy` (403) → (câu 1) → kiểm tệp → lô D1 | Nút «Đính kèm» ở ô trả lời |
 | `GET /api/feedback/:id/tep/:tid` (mới) | `staff` | `sec-fetch-site` → kho có binding (503) → `quyenPhieu.doc` → tin chứa tệp qua bộ lọc `noiBo` → tệp đã lưu, chưa quyết xoá → **nhật ký** → đọc kho | Ảnh xem trước / nút «Tải về» chỉ vẽ cho tệp có trong DTO tin (DTO đã lọc theo quyền) |
 | `GET /api/feedback/tep-cho-xoa`, `POST …/chay-lai` (mới) | `staff` | `can(feedback.triage)` (chỉ Toàn quyền) | Chưa có màn; gọi bằng API như route cùng loại của `parties` |
+| `POST /api/feedback/:id/tep/:tid/go` (mới, nếu câu 3 chọn có nút gỡ) | `staff` | `can(feedback.triage)` → tệp thuộc vé `:id` → lô D1 quyết xoá + nhật ký chỉ mã → xoá kho sau lô | Nút «Gỡ tệp» cạnh tệp, chỉ vẽ khi `can(staff, "feedback.triage")` |
 | Đổi nghĩa chỗ giao diện ẩn/hiện có sẵn | — | — | Không: luồng tin chỉ thêm khối tệp dưới bong bóng, không đổi điều kiện hiện tin hay ghi chú nội bộ |
 
-**Ba cách hỏng cần bài chạy đường thật** (bài học 24/9): (1) thành viên nhóm khác mở tệp của vé không thuộc nhóm mình; (2) người gửi mở tệp trong ghi chú nội bộ của chính vé mình; (3) sau khi chuyển nhóm, nhóm mới mở tệp trong ghi chú của nhóm cũ. Cả ba phải 404.
+**Cách hỏng cần bài chạy đường thật** (bài học 24/9), đều phải 404: (1) thành viên nhóm khác mở tệp của vé không thuộc nhóm mình; (2) người gửi mở tệp trong ghi chú nội bộ của chính vé mình; (3) sau khi chuyển nhóm, nhóm mới mở tệp trong ghi chú của nhóm cũ; (4) Quản trị hoặc Nhân sự mở tệp vé nhóm nhạy cảm (ADR-0119 đ4: không đường tắt); (5) mã tệp của vé khác ghép với `:id` của vé mình; (6) tệp chưa lưu hoặc đã quyết xoá (không gọi kho). Thêm: người không xử lý được gửi ghi chú nội bộ kèm tệp ⇒ 403, không đặt R2. Danh sách tin, tuyến làm mới và route tải tệp dùng **một** đoạn lọc ghi chú nội bộ.
