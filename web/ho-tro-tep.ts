@@ -83,7 +83,8 @@ export function taoOChonTep(o: { ban: readonly TepNhap[]; khiDoi(ds: TepNhap[]):
   let ds: TepNhap[] = [...o.ban];
   let dangLam = 0;
   const input = h("input", { type: "file", multiple: true, accept: ACCEPT, hidden: true, id: `${o.id}-input`, "aria-hidden": "true", tabIndex: -1 });
-  const nut = h("button", { type: "button", class: "btn btn-link ht-tep-nut", id: `${o.id}-nut`, "aria-describedby": `${o.id}-nhac` }, icon("attach", 18), ` ${NHAN_DINH_KEM}`);
+  const nut = h("button", { type: "button", class: "btn btn-link ht-tep-nut", id: `${o.id}-nut`, "aria-describedby": `${o.id}-nhac` }, icon("filePlus", 18), ` ${NHAN_DINH_KEM}`);
+  // Hình «thêm tệp» có sẵn của bộ (không vẽ thêm kẹp giấy): trang Đơn hàng nhúng CẢ bộ biểu tượng, một hình mới làm gói vượt trần src/goi-trang-nhe.test.ts.
   const nhac = h("p", { class: "muted ht-tep-nhac", id: `${o.id}-nhac` }, CAU_NHAC_GIAY_TO);
   const dangCB = h("p", { class: "muted", role: "status", hidden: true }, CAU_DANG_CHUAN_BI);
   const danhSach = h("ul", { class: "ht-tep-ds", id: `${o.id}-ds`, "aria-label": "Tệp đã chọn" });

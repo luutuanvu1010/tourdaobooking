@@ -134,8 +134,6 @@ const SHAPES = {
   // Thùng rác của nút "Xoá dịch vụ …" ở đầu thẻ dịch vụ mở (màn Tạo đơn thiết kế lại 18/10/2026) — hình MỚI của bản vẽ docs/design/tao-don-2026-10-18/TaoDonForm.dc.html, chép ĐÚNG path,
   // cùng luật cả bộ: lưới 24, nét 1.8, không tô.
   trash: [["path", { d: "M4 7h16M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13M10 11v5.5M14 11v5.5" }]],
-  // Nút «Đính kèm» tệp ở trang Hỗ trợ (ADR-0144): kẹp giấy, cùng khuôn 24×24.
-  attach: [["path", { d: "M20.5 11.5l-8.2 8.2a5 5 0 0 1-7-7l8.2-8.2a3.4 3.4 0 0 1 4.8 4.8l-8.2 8.2a1.7 1.7 0 0 1-2.4-2.4l7.6-7.6" }]],
 } as const satisfies Record<string, readonly Shape[]>;
 
 export type IconName = keyof typeof SHAPES;
