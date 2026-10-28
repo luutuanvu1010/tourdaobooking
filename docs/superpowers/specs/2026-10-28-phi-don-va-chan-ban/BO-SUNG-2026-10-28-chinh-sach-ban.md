@@ -29,7 +29,7 @@ Các điều còn lại của bản 25/10 giữ nguyên: Đ1 (bảng chỉ có d
 
 ## Điều chủ cần biết (nói một lần)
 - Bán hàng gỡ được một luật rồi đặt đơn ngay cho bên đang bị chặn. Máy không ngăn việc này; chỉ nhật ký ghi tên người gỡ. Muốn ngăn thì bỏ Bán hàng khỏi ô mới: sửa một dòng mã, không cần migration.
-- Lượt duyệt này vẫn có 4 điều chạm quyền hoặc dữ liệu (Đ1, Đ3, Đ4, Đ5 mới). Ngày 25/10 chủ đã cho lượt này vượt trần. Lượt này **không gộp** với lượt phí đón.
+- Lượt duyệt này vẫn có 4 điều chạm quyền hoặc dữ liệu (Đ1, Đ3, Đ4, Đ5 mới). Ngày 25/10 chủ cho lượt này vượt trần, nhưng lúc đó Đ5 còn dùng ô có sẵn. Nay Đ5 thêm một ô mới cho Bán hàng, nên **chủ cần xác nhận lại**: giữ phép vượt trần, hoặc tách Đ5 thành lượt riêng. Lượt này **không gộp** với lượt phí đón.
 
 ## Tiêu chí nghiệm thu thêm (cộng vào 9 tiêu chí của bản 25/10)
 10. Bán hàng thêm luật nhận 201, kết thúc luật nhận 200, cả hai có nhật ký. Kế toán, Đối tác, Thực tập, Nhân sự làm hai việc đó thì nhận 403.

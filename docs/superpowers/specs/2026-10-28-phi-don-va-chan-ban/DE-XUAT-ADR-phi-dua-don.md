@@ -60,8 +60,9 @@
   - Đơn nháp được tính lại mỗi lần lưu và hiện «dự kiến».
   - Xác nhận (`/status`, Còn vé, Gửi đơn nhánh B) chụp dòng và mã quy tắc trong cùng lô xác nhận.
 - **Sau xác nhận** dòng đã chụp không đổi, vì trigger `0081` khoá dòng tiền và **không nới**.
-  - Thêm, bỏ hoặc thay chặng, hay sửa số khách, mà làm đổi phí thì máy ghi phần chênh bằng **dòng điều chỉnh tiền** sẵn có (`order_money_adjustment`). Đây là cùng đường với sửa số khách sau xác nhận hôm nay, và chạy trong cùng lô với lệnh.
-  - Chặng cũ và sửa số khách tính theo mức đã chụp (như ADR-0133 điều 3). Chặng mới tính theo bảng ngày hôm đó. Chặng mới thiếu mức thì nhận 409.
+  - **Sửa số khách**: phí theo khách tính lại theo mức đã chụp (như ADR-0133 điều 3), trong cùng hàm tiền hiệu lực `computeEffectiveMoney` mà sửa số khách đang dùng. Không thêm đường ghi nào, và vẫn chỉ người có ô `order.money.edit` làm được.
+  - **Thêm, bỏ hoặc thay chặng**: phí đã chụp **giữ nguyên**, không có dòng tiền nào được ghi. Muốn thu thêm hay trả bớt thì dùng điều chỉnh sổ công nợ, có người thứ hai duyệt (ADR-0115). [người soạn; xem «Điều chủ cần biết» 1]
+  - Lý do chọn cách này: dòng điều chỉnh `order_money_adjustment` hôm nay chỉ ghi **số khách** theo dịch vụ, chưa có dạng cho chặng. Ô sửa chặng sau xác nhận (`order.trip.edit`) cũng rộng hơn ô sửa tiền (`order.money.edit`): Bán hàng là người phụ trách mà không phải người lập thì sửa được chặng, nhưng không sửa được tiền. Cho chặng tự đổi tiền là mở cho họ một cửa đổi tiền mà họ không có quyền.
 - **Thiếu mức.**
   - `/status` và Còn vé nhận 409 `transfer_fee_missing`; đơn ở lại nháp. Câu báo nêu vùng và người phải xử lý.
   - Cửa **Gửi xác nhận** không đi qua hàm cổng chung, nên phải có chốt riêng, trả cùng 409, như ADR-0118 đã làm với nhóm tắt đưa đón.
@@ -76,13 +77,14 @@
 - Mã khuyến mại (chỉ chừa chỗ, gắn với Đợt 4). Phía chi (thuê xe) vẫn tách hẳn. Lãi lỗ theo chuyến.
 
 ## Điều chủ cần biết
-1. **Thứ tự bật phí đón:**
+1. **Đổi chặng sau xác nhận không tự đổi phí.** Khách thêm chặng về sau khi đơn đã xác nhận thì phí chặng đó không tự cộng; văn phòng phải ghi điều chỉnh sổ công nợ, có người thứ hai duyệt. Cách khác là mở rộng dòng điều chỉnh để mang cả phí theo chặng, nhưng cách đó đổi dữ liệu của một bảng tiền đã khoá và phải chốt lại ai được đổi. Người soạn khuyên làm cách đơn giản trước; nếu phát sinh nhiều thì làm ADR riêng.
+2. **Thứ tự bật phí đón:**
    1. Quản trị xếp vùng cho các điểm đón.
    2. Đặt mức cho mọi vùng và cho Ngoài vùng. Vùng không thu thì đặt 0 rõ ràng.
    3. Cuối cùng mới đặt ngày bắt đầu áp.
-2. **Kế toán chưa đọc.** Sổ vàng `golden/phi-dua-don.json` phải được Kế toán xác nhận **trước khi viết mã** (Hiến chương 5.17). Sổ có khoảng 12 ca: một vùng, hai chặng, có em bé, nơi đón gõ tay, xe riêng, hai dòng chồng nhau, đổi mức sau xác nhận, thêm chặng sau xác nhận, đơn đại lý, chia phần khi dịch vụ do người bán khác bán.
-3. **Chưa kiểm dữ liệu thật:** bao nhiêu nơi đón đang là chữ gõ tay. Cần một câu đếm chỉ đọc do chủ chạy trước khi bật.
-4. **Chủ tự quyết** có áp điều kiện «chỉ phát hành sau diễn tập khôi phục» (lỗ HC-5.19) cho lượt này hay không. Sổ đại lý đợt 2 từng gắn điều kiện đó cho một phát hành ghi tiền một chiều.
+3. **Kế toán chưa đọc.** Sổ vàng `golden/phi-dua-don.json` phải được Kế toán xác nhận **trước khi viết mã** (Hiến chương 5.17). Sổ có khoảng 12 ca: một vùng, hai chặng, có em bé, nơi đón gõ tay, xe riêng, hai dòng chồng nhau, đổi mức sau xác nhận, thêm chặng sau xác nhận, đơn đại lý, chia phần khi dịch vụ do người bán khác bán.
+4. **Chưa kiểm dữ liệu thật:** bao nhiêu nơi đón đang là chữ gõ tay. Cần một câu đếm chỉ đọc do chủ chạy trước khi bật.
+5. **Chủ tự quyết** có áp điều kiện «chỉ phát hành sau diễn tập khôi phục» (lỗ HC-5.19) cho lượt này hay không. Sổ đại lý đợt 2 từng gắn điều kiện đó cho một phát hành ghi tiền một chiều.
 
 ## Tiêu chí nghiệm thu (viết trước; đỏ trước, xanh sau)
 Giữ các tiêu chí 1, 2, 3, 4, 5, 8 của đặc tả 14/10 §3.5, bỏ phần giảm giá. Hai tiêu chí còn lại đổi như sau:
@@ -92,6 +94,6 @@ Giữ các tiêu chí 1, 2, 3, 4, 5, 8 của đặc tả 14/10 §3.5, bỏ phầ
 Thêm năm tiêu chí:
 - Chưa có ngày bắt đầu áp: đơn có chặng xác nhận như hôm nay, không có dòng phí.
 - Đối tác Gửi đơn có chặng thiếu mức: đơn vào «chờ xác nhận», không nhận 409. Văn phòng Gửi xác nhận cùng đơn đó: nhận 409 `transfer_fee_missing`.
-- Thêm chặng sau xác nhận: không dòng `order_item` nào bị sửa; phần chênh nằm ở một dòng điều chỉnh tiền.
+- Thêm chặng sau xác nhận: không dòng tiền nào được ghi và tổng đơn không đổi. Sửa số khách sau xác nhận: phí theo khách đổi đúng theo mức đã chụp; Bán hàng phụ trách mà không phải người lập thì nhận 403, như hôm nay.
 - Biên nhận của đơn có phí đón: mỗi chặng đúng một dòng «Phí đưa đón», đúng số đã chụp, nằm trong phần của Tour Đảo.
 - Thử tra trả cùng số với đơn thật.

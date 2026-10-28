@@ -14,6 +14,10 @@ Chi tiết riêng của CSB đã có ở `../2026-10-25-chinh-sach-ban-va-gui-do
 | A | PĐ: Đ1 vùng, Đ2 bảng phí, Đ3 dòng phí trên đơn | 3, đúng trần |
 | B | CSB: Đ1, Đ3, Đ4 của bản 25/10, cộng Đ5 thay ngày 28/10 | 4; chủ đã cho vượt trần ngày 25/10 |
 
+**Phép vượt trần của lượt B cần chủ xác nhận lại.** Ngày 25/10 chủ cho vượt trần khi Đ5 còn dùng ô có sẵn (`settings.ops`, chỉ Toàn quyền). Nay Đ5 thêm một ô mới cho Bán hàng, tức là đổi quyền lớn hơn. Chủ chọn một trong hai:
+- giữ phép vượt trần cho cả bốn điều;
+- tách Đ5 thành lượt riêng.
+
 Hai lượt không phụ thuộc nhau. Người soạn khuyên **duyệt B trước**, vì B không chạm tiền và không phải chờ Kế toán. Lượt A còn chờ hai việc:
 - Kế toán xác nhận sổ vàng;
 - chủ cho phép «xây trên lỗ TNV-G1».
@@ -22,12 +26,12 @@ Hai lượt không phụ thuộc nhau. Người soạn khuyên **duyệt B trư�
 | Bảng | Hôm nay chứa | Nhận thêm |
 |---|---|---|
 | `order_item` | dòng dịch vụ danh mục (có giá danh mục), dòng nhập tay (chỉ văn phòng, ADR-0061) | **dòng phí đưa đón** (PĐ Đ3): không phải dịch vụ, không có giá danh mục, mỗi chặng một dòng |
-| `order_money_adjustment` | điều chỉnh tiền sau xác nhận, ví dụ sửa số khách | phần chênh phí đón khi đổi chặng hoặc số khách sau xác nhận |
+| `order_money_adjustment` | dòng sửa số khách sau xác nhận (chỉ mang số khách theo dịch vụ) | **không nhận loại mới**; sửa số khách tính lại phí theo khách qua hàm tiền hiệu lực `computeEffectiveMoney` |
 | `loc_location` | địa điểm mọi loại; cờ chọn nhanh (ADR-0118) | vùng (PĐ Đ1) |
 | `loc_zone`; bảng quy tắc phí, bảng điều kiện, bảng khoá điều kiện; ngày bắt đầu áp | (mới) | (PĐ Đ1, Đ2) |
 | `prc_sales_block` | (mới) | dòng chặn: loại đối tác × nhóm hoặc dịch vụ (CSB Đ1) |
 
-**Trigger `0081` giữ nguyên.** Khi đơn hết nháp, trigger cấm thêm, sửa, xoá dòng `order_item`, và cấm đổi tạm tính, giảm giá, tổng. Vì vậy mọi thay đổi phí sau xác nhận đi qua dòng điều chỉnh, không đụng `order_item`.
+**Trigger `0081` giữ nguyên.** Khi đơn hết nháp, trigger cấm thêm, sửa, xoá dòng `order_item`, và cấm đổi tạm tính, giảm giá, tổng. Vì vậy sau xác nhận chỉ có một chỗ phí đón đổi được: khi sửa số khách, qua đường sẵn có. Đổi chặng sau xác nhận không đổi phí (PĐ Đ3).
 
 Mọi chỗ đọc `order_item` phải biết loại dòng mới. Cách xử lý ở từng chỗ là ý người soạn, và sổ vàng phải phủ đủ:
 - **Tính vào:** tổng đơn; phải thu; biên nhận; phép so tổng với các dòng của `0081`.
@@ -43,6 +47,11 @@ Mọi chỗ đọc `order_item` phải biết loại dòng mới. Cách xử lý
 | `order.create`, `order.modify`, xác nhận | như hôm nay | không đổi ô; chỉ thêm cổng (mục 3) |
 
 Dòng phí trên đơn hiện cho người đã xem được tiền của đơn theo `money.view`; không thêm ô.
+
+**Chỗ hai ô lệch nhau (đã tránh, không phải chờ chủ quyết).**
+- Sửa chặng sau xác nhận dùng ô `order.trip.edit`: Bán hàng `ownOrAssigned`, tức cả người phụ trách.
+- Sửa tiền sau xác nhận dùng ô `order.money.edit`: Bán hàng chỉ `own`, tức người lập.
+- Nếu đổi chặng kéo theo đổi phí, người phụ trách mà không phải người lập sẽ đổi được tiền. PĐ Đ3 chặn điều này từ gốc: đổi chặng sau xác nhận không đổi tiền.
 
 **Cạnh phụ thuộc giữa phân hệ: không thêm cạnh nào.**
 - `orders` đã import `pricing` và `locations` từ trước. Nó đọc vùng qua view của `locations`, rồi gọi hàm chọn mức qua `index.ts` của `pricing`.
@@ -69,8 +78,8 @@ Dòng phí trên đơn hiện cho người đã xem được tiền của đơn 
 | `/status` xác nhận, Còn vé | 409 | thiếu mức → 409, đơn ở lại nháp |
 | Gửi đơn của Đối tác | 409, ở lại nháp | thiếu mức → **nhánh A, chờ xác nhận** (không 409; sửa ADR-0136 Đ13.2 và Đ13.3) |
 | Đổi bên đặt (kể cả đơn đã xác nhận) | 409 | không xét lại phí |
-| Thêm, bỏ, thay chặng sau xác nhận | không xét (không thêm dịch vụ) | phần chênh ghi bằng dòng điều chỉnh; chặng mới thiếu mức → 409 |
-| Sửa số khách sau xác nhận | không xét | phần chênh theo mức đã chụp, ghi bằng dòng điều chỉnh |
+| Thêm, bỏ, thay chặng sau xác nhận | không xét (không thêm dịch vụ) | phí đã chụp giữ nguyên, không ghi dòng tiền; thu thêm thì dùng điều chỉnh sổ công nợ (ADR-0115, người thứ hai duyệt) |
+| Sửa số khách sau xác nhận | không xét | tính lại theo mức đã chụp, qua đường sửa số khách sẵn có (ô `order.money.edit`) |
 
 Cả hai cổng mới đều nằm ở **máy chủ**. Giao diện chỉ ẩn hoặc hiện để tiện dùng, không phải cổng.
 
@@ -85,7 +94,11 @@ Cả hai cổng mới đều nằm ở **máy chủ**. Giao diện chỉ ẩn ho
 - **PĐ** xây trên **TNV-G1** (đơn huỷ còn tiền đã thu, hạn 30/11), vì dòng phí vào tổng đơn và biên nhận. Chủ phải ghi «cho xây» kèm lý do khi duyệt, hoặc chờ lỗ được vá.
 - **HC-5.19** (chưa diễn tập khôi phục) không nằm trên đường của PĐ. Nhưng sổ đại lý đợt 2 từng gắn điều kiện «chỉ phát hành sau diễn tập» cho một phát hành ghi tiền một chiều. Chủ tự quyết có áp điều kiện đó cho PĐ không.
 - **CSB** không chạm lỗ nào.
-- Các lỗ HIGH còn lại (TNV-G3, TNV-G4, HC-4.2, HC-5.11) không nằm trên hai đường này.
+- **TNV-G4 và HC-4.2 nằm ngoài đường của PĐ**, kèm lý do.
+  - PĐ không sinh dòng điều chỉnh tự động nào, và không ghi gì vào sổ công nợ.
+  - Phần thu thêm sau xác nhận đi qua điều chỉnh sổ công nợ đã có người thứ hai duyệt (ADR-0115), tức chính phần vá của HC-4.2.
+  - Phí theo khách đổi khi sửa số khách đi qua đường sẵn có, không thêm cửa.
+- TNV-G3 và HC-5.11 không nằm trên hai đường này.
 
 ## 5. Hai quyết định đụng nhau ở đâu
 - **Cùng một hàm cổng:** cả hai thêm cổng vào hàm cổng xác nhận chung, và cả hai thêm chốt riêng ở Gửi xác nhận. Thứ tự đã chốt ở mục 3.
