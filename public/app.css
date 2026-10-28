@@ -1859,8 +1859,10 @@ body.login-page main.login { display: flex; flex-direction: column; flex: 1; min
   .dash-tim input { flex: 1; min-width: 0; height: 100%; min-height: 0; margin: 0; padding: 0; font: inherit; font-size: var(--fs-step-5); font-weight: var(--fw-medium, 500); color: var(--c-text); background: none; border: 0; border-radius: 0; outline: none; box-shadow: none; -webkit-appearance: none; appearance: none; }
   .dash-tim input { text-overflow: ellipsis; }
   .dash-tim input::placeholder { color: var(--c-text-muted); opacity: 1; }
-  /* Thông báo quan trọng (.ntf-strip) chen giữa dải đầu trang và ô tìm: ô tìm thôi đè lên (nếu không sẽ che dải thông báo). */
-  body.trang-chu #strips:has(.ntf-strip) ~ main .dash-tim { margin-top: var(--s3); }
+  /* Có dải nào đang hiện trong #strips (thông báo quan trọng .ntf-strip, nhắc bảo mật hai lớp .mfa-strip, hay dải thêm sau này) chen giữa dải đầu trang và ô tìm:
+     ô tìm thôi đè lên, nếu không sẽ che chữ của dải. Luật CHUNG, không liệt kê tên dải: trước 28/10 chỉ có .ntf-strip nên .mfa-strip (ADR-0074) bị che.
+     Trừ .maint-strip — ở Trang chủ điện thoại nó ẩn (luật trên), thay bằng viên trong dải đầu trang. */
+  body.trang-chu #strips:has(> :not(.maint-strip):not([hidden])) ~ main .dash-tim { margin-top: var(--s3); }
   .dash-o { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); row-gap: var(--s3); column-gap: calc(var(--s1) / 2); padding: var(--s4) var(--s1) var(--s3); background: var(--c-card); border: 1px solid var(--c-border); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); }
 
   /* Dải báo lỗi (bản vẽ 1f): dưới lưới, biểu tượng + câu + "Thử lại". */

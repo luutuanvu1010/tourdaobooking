@@ -23,6 +23,7 @@ export const CHANGELOG: readonly ReleaseNote[] = [
       { kind: "sua", text: "Danh bạ, khối Hoa hồng hiện hành của đại lý: chính sách gắn riêng nay gọi đúng là «Chính sách riêng», không còn lẫn với «mức riêng»." },
       { kind: "sua", text: "Trang chủ Kế toán không còn hai ô «Doanh thu của tôi» và «Đơn nháp», vì hai ô này chỉ đếm đơn do chính người xem lập nên với Kế toán luôn bằng 0." },
       { kind: "sua", text: "Trang chủ Quản trị, khối Cần xem lại: dòng «Sheet đã đổi giá» nay ghi tên dịch vụ thay cho mã dịch vụ." },
+      { kind: "sua", text: "Trang chủ trên điện thoại: dải nhắc «Còn … ngày để bật bảo mật hai lớp» không còn bị ô tìm kiếm che mất chữ." },
     ],
   },
   {
