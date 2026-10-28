@@ -42,7 +42,7 @@ import { world, seedStaff } from "./harness.mjs";
 import { PERMISSION_CODES, can, canAccessOrders, hasPermission, isOffice, seesAllOrders } from "../../src/shared/permissions.ts";
 import { chiTaiXe, coCuocCuaToi, homeRedirect } from "../../src/shared/start-page.ts";
 import { PAGES } from "../../src/shared/sw-policy.ts";
-import { KHOA_TRANG, THANH_BEN, THANH_TAB, THANH_TREN, TRANG, TRANG_TOI, coKhungNho, moTrang, sangTai, thanhBen, thanhTab, thanhTren, trangToi } from "../../src/shared/muc-giao-dien.ts";
+import { KHOA_TRANG, THANH_BEN, THANH_TAB, THANH_TREN, TRANG, TRANG_TOI, coHien, coKhungNho, moTrang, sangTai, thanhBen, thanhTab, thanhTren, trangToi } from "../../src/shared/muc-giao-dien.ts";
 import { O_TOI, O_TRANG_CHU, nhomMayTinh } from "../../src/shared/trang-chu-o.ts";
 // Đường gọi chính tách khỏi TRANG (Ruling R-P27, sổ đại lý đợt 2 Task 12): cùng giá trị, chỉ đổi nguồn.
 import { GOI_CHINH } from "../../src/shared/muc-giao-dien-goi.ts";
@@ -92,7 +92,8 @@ const TU_CHOI_BANG_404 = new Set();
 // Giữ "Cuốc của tôi" = ô trip.view ĐÚNG BẰNG assigned: tài xế công ty (DRIVER) và, từ A4 (ADR-0053 D7.1), tài xế đối tác (DRIVER_PARTNER) — ghép main 1c471990, 12/10.
 const coDriver = (s) => coCuocCuaToi(s);
 // Tab bị cắt vì thanh tab tối đa 5 mục (thanhTab: giữ 4 mục đầu + Tôi) — tài khoản gộp nhiều quyền; lối vào khác vẫn còn (thanh bên, trang Tôi).
-const biCatTab = (s, k) => !thanhTab({ staff: s }).some((t) => t.trang === k);
+// "Bị cắt" = qua vị từ hiện TRƯỚC trần 5 tab nhưng vắng SAU trần (không phải chỉ "vắng": vị từ hỏng cũng làm vắng, dòng sẽ tự chứng minh).
+const biCatTab = (s, k) => THANH_TAB.some((c) => c.trang === k && coHien(c, { staff: s })) && !thanhTab({ staff: s }).some((t) => t.trang === k);
 const DUOC_MA_AN = [
   // Dòng "HDV chỉ-FIELD không thấy mục Đơn hàng" đã BỎ 15/10: chủ quyết hiện mục cho HDV (ADR-0017); trang /orders của HDV = đơn mình phụ trách.
   {

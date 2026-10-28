@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { PERMISSION_CODES, type PermissionCode } from "./shared/permissions.ts";
+import { PERMISSION_CODES, can, seesAllOrders, type PermissionCode } from "./shared/permissions.ts";
 import { sangTabToi, sangTai, thanhTab, type KhoaTrang } from "./shared/muc-giao-dien.ts";
 
 const holder = (permissions: readonly PermissionCode[]) => ({ id: "x", permissions });
@@ -33,9 +33,13 @@ test("mọi tập con quyền: tối đa 5 mục, cuối là Tôi, Tạo đơn �
     assert.ok(t.length <= 5, `${p}: ${t}`);
     assert.equal(t[t.length - 1], "Tôi", `${p}`);
     const i = t.indexOf("Tạo đơn");
-    // Năm mục mà không có "Trang chủ" (Thực tập / Đối tác kiêm Nhân sự…): thứ tự khai một chiều cho "Tạo đơn" thứ hai — ghi ở báo cáo Task 5, không phải bộ quyền thật.
-    const ngoaiLe = t.length === 5 && t[0] !== "Trang chủ";
-    if (i >= 0 && !ngoaiLe) assert.equal(i, t.length === 5 ? 2 : 1, `${p}: ${t}`);
+    // Ngoại lệ DUY NHẤT (đặc tả 5.2 tự mâu thuẫn với "Tạo đơn thứ 3" cho tổ hợp Nhân sự + lập đơn, không có Trang chủ): đúng hình này, Tạo đơn thứ 2.
+    // (INTERN+HR tạo được; chỉ PARTNER+HR không tồn tại.) Mọi tập khác giữ luật 3/5 – 2/4.
+    const hrKhongTrangChu = can(holder(p), "account.view") && !can(holder(p), "admin.manage") && can(holder(p), "order.create") && !seesAllOrders(holder(p));
+    if (hrKhongTrangChu) {
+      assert.deepEqual(t, ["Đơn hàng", "Tạo đơn", "Tài khoản", "Hỗ trợ", "Tôi"], `${p}`);
+      assert.equal(i, 1);
+    } else if (i >= 0) assert.equal(i, t.length === 5 ? 2 : 1, `${p}: ${t}`);
   }
 });
 

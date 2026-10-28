@@ -120,11 +120,11 @@ export const TRANG = {
   toi: { duong: "/account", hien: luonCo, tam: luonCo },
   gopY: { duong: "/feedback", hien: luonCo, tam: luonCo },
   troGiup: { duong: "/help", hien: luonCo, tam: luonCo },
-  // Trang mục lục Thiết lập (điện thoại, đợt 0 Task 5): sáng ở mọi trang nhóm THIẾT LẬP của thanh bên. Danh sách đường ở đây khớp THANH_BEN (bài thanh-tab-theo-bo-quyen ép).
+  // Trang mục lục Thiết lập (điện thoại, đợt 0 Task 5): sáng ở mọi trang nhóm THIẾT LẬP của thanh bên. Danh sách đường lấy từ mọi dòng THIẾT LẬP của THANH_BEN (kèm trang mở từ chúng).
   thietLap: {
     duong: "/thiet-lap",
     get cungSang(): readonly string[] {
-      return [...(THANH_BEN as readonly ChoThanhBen[]).filter((c) => c.nhom === "THIẾT LẬP").map((c) => TRANG[c.trang].duong), "/dieu-kien-xuat-ben"];
+      return [...(THANH_BEN as readonly ChoThanhBen[]).filter((c) => c.nhom === "THIẾT LẬP").flatMap((c) => [TRANG[c.trang].duong, ...((TRANG[c.trang] as TrangDich).cungSang ?? [])])];
     },
     hien: (s) => can(s, "admin.manage"),
     moTrang: (s) => can(s, "admin.manage"),

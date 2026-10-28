@@ -13,10 +13,10 @@ if (!moTrang("thietLap", staff)) {
   const muc = thanhBen({ staff }, "/thiet-lap").find((g) => g.nhom === "THIẾT LẬP")?.muc ?? [];
   for (const m of muc) {
     const a = h("a", { class: "dong", href: m.href }, h("span", null, m.nhan));
-    const badge = trinhBay(m.trang, false).badge;
+    const { badge, badgeClass } = trinhBay(m.trang, false);
     if (m.trang === "dichVu" && badge)
       void badge().then((n) => {
-        if (n > 0) a.append(h("span", { class: "sidebar-item-badge sidebar-item-badge-sand" }, String(n)));
+        if (n > 0) a.append(h("span", { class: `sidebar-item-badge ${badgeClass ?? ""}` }, String(n)));
       });
     nav.append(a);
   }
