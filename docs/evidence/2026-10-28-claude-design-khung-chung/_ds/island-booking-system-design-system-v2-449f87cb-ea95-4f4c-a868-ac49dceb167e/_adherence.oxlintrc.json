@@ -1,0 +1,778 @@
+{
+  "plugins": [
+    "react",
+    "import"
+  ],
+  "rules": {
+    "react/forbid-elements": [
+      "warn",
+      {
+        "forbid": []
+      }
+    ],
+    "no-restricted-imports": [
+      "warn",
+      {
+        "patterns": [
+          {
+            "group": [
+              "components/dieu-huong/cum-tim-loc/**",
+              "components/dieu-huong/dau-trang/**",
+              "components/dieu-huong/phan-trang/**",
+              "components/dieu-huong/thanh-ben/**",
+              "components/dieu-huong/thanh-dinh-day/**",
+              "components/dieu-huong/thanh-tab-duoi/**",
+              "components/dieu-huong/thanh-tren/**",
+              "components/hanh-dong/chip/**",
+              "components/hanh-dong/nut/**",
+              "components/hanh-dong/tab/**",
+              "components/hien-thi/bang-du-lieu/**",
+              "components/hien-thi/bieu-tuong/**",
+              "components/hien-thi/dong-danh-sach/**",
+              "components/hien-thi/huy-hieu/**",
+              "components/hien-thi/khung-xuong/**",
+              "components/hien-thi/the/**",
+              "components/nhap/bo-dem/**",
+              "components/nhap/o-chon/**",
+              "components/nhap/o-nhap/**",
+              "components/phan-hoi/bang-truot/**",
+              "components/phan-hoi/bao-xong/**",
+              "components/phan-hoi/dai-thong-bao/**",
+              "components/phan-hoi/dai-tren-trang/**",
+              "components/phan-hoi/hop-xac-nhan/**",
+              "components/phan-hoi/trang-rong/**",
+              "components/trang/trang-loi/**",
+              "components/trang/trang-mat-mang/**",
+              "guidelines/trang/**"
+            ],
+            "message": "Import design-system components from 'index.js', not component internals."
+          }
+        ]
+      }
+    ],
+    "no-restricted-syntax": [
+      "warn",
+      {
+        "selector": "Literal[value=/#[0-9a-fA-F]{3,8}\\b/]",
+        "message": "Raw hex color — use a design-system color token via var()."
+      },
+      {
+        "selector": "Literal[value=/\\b\\d+px\\b/]",
+        "message": "Raw px value — use a design-system spacing token via var()."
+      },
+      {
+        "selector": "Literal[value=/font-family\\s*:\\s*(?!['\\\"]?(?:Be Vietnam Pro|Nunito|Lexend|Noto Sans))/i]",
+        "message": "Font not provided by the design system. Available: Be Vietnam Pro, Nunito, Lexend, Noto Sans."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Cot'] > JSXAttribute > JSXIdentifier[name!=/^(?:khoa|nhan|can|gon|rong|hien|key|ref|className|style|children)$/]",
+        "message": "<Cot> doesn't accept that prop. Declared props: khoa, nhan, can, gon, rong, hien."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Cot'] > JSXAttribute[name.name='can'] > Literal[value!=/^(?:trai|phai)$/]",
+        "message": "<Cot> can must be one of 'trai' | 'phai'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='NutChan'] > JSXAttribute > JSXIdentifier[name!=/^(?:nhan|key|ref|className|style|children)$/]",
+        "message": "<NutChan> doesn't accept that prop. Declared props: nhan."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='BaoXong'] > JSXAttribute > JSXIdentifier[name!=/^(?:mo|hoanTac|onDong|thoiGian|giuNguyen|trongKhung|className|children|key|ref|className|style|children)$/]",
+        "message": "<BaoXong> doesn't accept that prop. Declared props: mo, hoanTac, onDong, thoiGian, giuNguyen, trongKhung, className, children."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='BieuTuong'] > JSXAttribute > JSXIdentifier[name!=/^(?:ten|co|nhan|className|style|key|ref|className|style|children)$/]",
+        "message": "<BieuTuong> doesn't accept that prop. Declared props: ten, co, nhan, className, style."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='BoDem'] > JSXAttribute > JSXIdentifier[name!=/^(?:nhan|giaTri|min|max|onDoi|huongDan|tat|lyDoTat|className|key|ref|className|style|children)$/]",
+        "message": "<BoDem> doesn't accept that prop. Declared props: nhan, giaTri, min, max, onDoi, huongDan, tat, lyDoTat, className."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Chip'] > JSXAttribute > JSXIdentifier[name!=/^(?:chon|tat|dem|bieuTuong|onClick|className|children|key|ref|className|style|children)$/]",
+        "message": "<Chip> doesn't accept that prop. Declared props: chon, tat, dem, bieuTuong, onClick, className, children."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='CongTac'] > JSXAttribute > JSXIdentifier[name!=/^(?:nhan|moTa|bat|macDinh|onDoi|tat|lyDoTat|ten|className|key|ref|className|style|children)$/]",
+        "message": "<CongTac> doesn't accept that prop. Declared props: nhan, moTa, bat, macDinh, onDoi, tat, lyDoTat, ten, className."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='LocMuc'] > JSXAttribute > JSXIdentifier[name!=/^(?:id|nhan|dem|key|ref|className|style|children)$/]",
+        "message": "<LocMuc> doesn't accept that prop. Declared props: id, nhan, dem."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='DaiThongBao'] > JSXAttribute > JSXIdentifier[name!=/^(?:ton|tieuDe|hanhDong|onDong|className|children|key|ref|className|style|children)$/]",
+        "message": "<DaiThongBao> doesn't accept that prop. Declared props: ton, tieuDe, hanhDong, onDong, className, children."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='DaiThongBao'] > JSXAttribute[name.name='ton'] > Literal[value!=/^(?:bien|cat|do)$/]",
+        "message": "<DaiThongBao> ton must be one of 'bien' | 'cat' | 'do'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='DaiTrenTrang'] > JSXAttribute > JSXIdentifier[name!=/^(?:ton|chiTiet|hanhDong|thuGon|macDinhThuGon|onThuGon|className|children|key|ref|className|style|children)$/]",
+        "message": "<DaiTrenTrang> doesn't accept that prop. Declared props: ton, chiTiet, hanhDong, thuGon, macDinhThuGon, onThuGon, className, children."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='DaiTrenTrang'] > JSXAttribute[name.name='ton'] > Literal[value!=/^(?:bien|cat|do)$/]",
+        "message": "<DaiTrenTrang> ton must be one of 'bien' | 'cat' | 'do'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='DauTrang'] > JSXAttribute > JSXIdentifier[name!=/^(?:tieuDe|phu|quayLai|huyHieu|hanhDong|className|key|ref|className|style|children)$/]",
+        "message": "<DauTrang> doesn't accept that prop. Declared props: tieuDe, phu, quayLai, huyHieu, hanhDong, className."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='DongDanhSach'] > JSXAttribute > JSXIdentifier[name!=/^(?:tieuDe|phu|dong3|truoc|sau|bamDuoc|href|onClick|chuaDoc|className|key|ref|className|style|children)$/]",
+        "message": "<DongDanhSach> doesn't accept that prop. Declared props: tieuDe, phu, dong3, truoc, sau, bamDuoc, href, onClick, chuaDoc, className."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='HopXacNhan'] > JSXAttribute > JSXIdentifier[name!=/^(?:mo|tieuDe|noiDung|hauQua|nhanXacNhan|nhanHuy|onXacNhan|onHuy|dangTai|tatXacNhan|lyDoTat|trongKhung|children|key|ref|className|style|children)$/]",
+        "message": "<HopXacNhan> doesn't accept that prop. Declared props: mo, tieuDe, noiDung, hauQua, nhanXacNhan, nhanHuy, onXacNhan, onHuy, dangTai, tatXacNhan, lyDoTat, trongKhung, children."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='HuyHieu'] > JSXAttribute > JSXIdentifier[name!=/^(?:trangThai|ton|children|className|key|ref|className|style|children)$/]",
+        "message": "<HuyHieu> doesn't accept that prop. Declared props: trangThai, ton, children, className."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='KhungXuong'] > JSXAttribute > JSXIdentifier[name!=/^(?:kieu|soDong|rong|nhan|className|key|ref|className|style|children)$/]",
+        "message": "<KhungXuong> doesn't accept that prop. Declared props: kieu, soDong, rong, nhan, className."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='KhungXuong'] > JSXAttribute[name.name='kieu'] > Literal[value!=/^(?:dong|so|vien)$/]",
+        "message": "<KhungXuong> kieu must be one of 'dong' | 'so' | 'vien'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Nut'] > JSXAttribute > JSXIdentifier[name!=/^(?:cap|co|bieuTuong|dangTai|tat|lyDoTat|rong|nhan|href|type|onClick|className|children|key|ref|className|style|children)$/]",
+        "message": "<Nut> doesn't accept that prop. Declared props: cap, co, bieuTuong, dangTai, tat, lyDoTat, rong, nhan, href, type, onClick, className, children."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Nut'] > JSXAttribute[name.name='cap'] > Literal[value!=/^(?:chinh|san-ho|phu|phu-nguy-hiem|loi-nho|do-dac)$/]",
+        "message": "<Nut> cap must be one of 'chinh' | 'san-ho' | 'phu' | 'phu-nguy-hiem' | 'loi-nho' | 'do-dac'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Nut'] > JSXAttribute[name.name='co'] > Literal[value!=/^(?:thuong|lon)$/]",
+        "message": "<Nut> co must be one of 'thuong' | 'lon'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Nut'] > JSXAttribute[name.name='type'] > Literal[value!=/^(?:button|submit|reset)$/]",
+        "message": "<Nut> type must be one of 'button' | 'submit' | 'reset'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='OChonMot'] > JSXAttribute > JSXIdentifier[name!=/^(?:nhan|moTa|ten|giaTri|chon|macDinh|onDoi|tat|lyDoTat|loi|className|key|ref|className|style|children)$/]",
+        "message": "<OChonMot> doesn't accept that prop. Declared props: nhan, moTa, ten, giaTri, chon, macDinh, onDoi, tat, lyDoTat, loi, className."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='ONhap'] > JSXAttribute > JSXIdentifier[name!=/^(?:nhan|kieu|tuyChon|goiY|giaTri|macDinh|onDoi|loi|huongDan|tat|lyDoTat|dangTai|luaChon|co|id|ten|className|key|ref|className|style|children)$/]",
+        "message": "<ONhap> doesn't accept that prop. Declared props: nhan, kieu, tuyChon, goiY, giaTri, macDinh, onDoi, loi, huongDan, tat, lyDoTat, dangTai, luaChon, co, id, ten, className."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='ONhap'] > JSXAttribute[name.name='kieu'] > Literal[value!=/^(?:chu|so|tien|sdt|ngay|gio|chon|nhieu-dong)$/]",
+        "message": "<ONhap> kieu must be one of 'chu' | 'so' | 'tien' | 'sdt' | 'ngay' | 'gio' | 'chon' | 'nhieu-dong'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='ONhap'] > JSXAttribute[name.name='co'] > Literal[value!=/^(?:thuong|lon)$/]",
+        "message": "<ONhap> co must be one of 'thuong' | 'lon'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='OTich'] > JSXAttribute > JSXIdentifier[name!=/^(?:nhan|moTa|chon|macDinh|onDoi|tat|lyDoTat|loi|ten|giaTri|className|key|ref|className|style|children)$/]",
+        "message": "<OTich> doesn't accept that prop. Declared props: nhan, moTa, chon, macDinh, onDoi, tat, lyDoTat, loi, ten, giaTri, className."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='PhanTrang'] > JSXAttribute > JSXIdentifier[name!=/^(?:kieu|daHien|tong|donVi|dangTai|onTaiThem|trang|coTrang|onTrang|className|key|ref|className|style|children)$/]",
+        "message": "<PhanTrang> doesn't accept that prop. Declared props: kieu, daHien, tong, donVi, dangTai, onTaiThem, trang, coTrang, onTrang, className."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='PhanTrang'] > JSXAttribute[name.name='kieu'] > Literal[value!=/^(?:tai-them|so-trang)$/]",
+        "message": "<PhanTrang> kieu must be one of 'tai-them' | 'so-trang'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='TabMuc'] > JSXAttribute > JSXIdentifier[name!=/^(?:id|nhan|dem|key|ref|className|style|children)$/]",
+        "message": "<TabMuc> doesn't accept that prop. Declared props: id, nhan, dem."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='ThanhBenMuc'] > JSXAttribute > JSXIdentifier[name!=/^(?:id|nhan|bieuTuong|dem|href|key|ref|className|style|children)$/]",
+        "message": "<ThanhBenMuc> doesn't accept that prop. Declared props: id, nhan, bieuTuong, dem, href."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='ThanhDinhDay'] > JSXAttribute > JSXIdentifier[name!=/^(?:tomTat|children|className|key|ref|className|style|children)$/]",
+        "message": "<ThanhDinhDay> doesn't accept that prop. Declared props: tomTat, children, className."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='TabDuoiMuc'] > JSXAttribute > JSXIdentifier[name!=/^(?:id|nhan|bieuTuong|dem|href|key|ref|className|style|children)$/]",
+        "message": "<TabDuoiMuc> doesn't accept that prop. Declared props: id, nhan, bieuTuong, dem, href."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='ThanhTren'] > JSXAttribute > JSXIdentifier[name!=/^(?:ten|logo|onTaoDon|soThongBao|chuTat|onTroLy|onChuong|onTaiKhoan|className|key|ref|className|style|children)$/]",
+        "message": "<ThanhTren> doesn't accept that prop. Declared props: ten, logo, onTaoDon, soThongBao, chuTat, onTroLy, onChuong, onTaiKhoan, className."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='The'] > JSXAttribute > JSXIdentifier[name!=/^(?:tieuDe|phu|sau|chan|bamDuoc|href|onClick|dangTai|className|children|key|ref|className|style|children)$/]",
+        "message": "<The> doesn't accept that prop. Declared props: tieuDe, phu, sau, chan, bamDuoc, href, onClick, dangTai, className, children."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='TrangLoi'] > JSXAttribute > JSXIdentifier[name!=/^(?:loai|duongDan|onVeTrangChu|onPhu|className|key|ref|className|style|children)$/]",
+        "message": "<TrangLoi> doesn't accept that prop. Declared props: loai, duongDan, onVeTrangChu, onPhu, className."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='TrangLoi'] > JSXAttribute[name.name='loai'] > Literal[value!=/^(?:khong-co-trang|khong-quyen)$/]",
+        "message": "<TrangLoi> loai must be one of 'khong-co-trang' | 'khong-quyen'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='TrangMatMang'] > JSXAttribute > JSXIdentifier[name!=/^(?:lanXemCuoi|dangThu|onThuLai|className|key|ref|className|style|children)$/]",
+        "message": "<TrangMatMang> doesn't accept that prop. Declared props: lanXemCuoi, dangThu, onThuLai, className."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='TrangRong'] > JSXAttribute > JSXIdentifier[name!=/^(?:bieuTuong|cau|phu|hanhDong|className|key|ref|className|style|children)$/]",
+        "message": "<TrangRong> doesn't accept that prop. Declared props: bieuTuong, cau, phu, hanhDong, className."
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": [
+        "**/index.js"
+      ],
+      "rules": {
+        "no-restricted-imports": "off"
+      }
+    }
+  ],
+  "x-omelette": {
+    "components": {
+      "Cot": {
+        "replaces": []
+      },
+      "NutChan": {
+        "replaces": []
+      },
+      "BaoXong": {
+        "replaces": []
+      },
+      "BieuTuong": {
+        "replaces": []
+      },
+      "BoDem": {
+        "replaces": []
+      },
+      "Chip": {
+        "replaces": []
+      },
+      "CongTac": {
+        "replaces": []
+      },
+      "LocMuc": {
+        "replaces": []
+      },
+      "DaiThongBao": {
+        "replaces": []
+      },
+      "DaiTrenTrang": {
+        "replaces": []
+      },
+      "DauTrang": {
+        "replaces": []
+      },
+      "DongDanhSach": {
+        "replaces": []
+      },
+      "HopXacNhan": {
+        "replaces": []
+      },
+      "HuyHieu": {
+        "replaces": []
+      },
+      "KhungXuong": {
+        "replaces": []
+      },
+      "Nut": {
+        "replaces": []
+      },
+      "OChonMot": {
+        "replaces": []
+      },
+      "ONhap": {
+        "replaces": []
+      },
+      "OTich": {
+        "replaces": []
+      },
+      "PhanTrang": {
+        "replaces": []
+      },
+      "TabMuc": {
+        "replaces": []
+      },
+      "ThanhBenMuc": {
+        "replaces": []
+      },
+      "ThanhDinhDay": {
+        "replaces": []
+      },
+      "TabDuoiMuc": {
+        "replaces": []
+      },
+      "ThanhTren": {
+        "replaces": []
+      },
+      "The": {
+        "replaces": []
+      },
+      "TrangLoi": {
+        "replaces": []
+      },
+      "TrangMatMang": {
+        "replaces": []
+      },
+      "TrangRong": {
+        "replaces": []
+      }
+    },
+    "tokens": [
+      "--bang-hang-h",
+      "--bang-man",
+      "--bang-tay-cam",
+      "--bao-xong-tg",
+      "--bo-12",
+      "--bo-18",
+      "--bo-8",
+      "--bo-999",
+      "--bong-1",
+      "--bong-2",
+      "--bong-3",
+      "--bt-co",
+      "--bt-co-lon",
+      "--bt-net",
+      "--c-chinh",
+      "--c-chinh-dam",
+      "--c-chinh-nhat",
+      "--c-chinh-nhat-re",
+      "--c-chinh-re",
+      "--c-chu",
+      "--c-chu-goi-y",
+      "--c-chu-phu",
+      "--c-chu-tren-chinh",
+      "--c-chu-tren-toi",
+      "--c-nen",
+      "--c-nen-phu",
+      "--c-nen-re",
+      "--c-nen-toi",
+      "--c-nguy-hiem",
+      "--c-nguy-hiem-re",
+      "--c-nhan",
+      "--c-nhan-re",
+      "--c-tieu-diem",
+      "--c-vien",
+      "--c-vien-o",
+      "--c-vien-o-re",
+      "--cd-cong",
+      "--cd-nhanh",
+      "--cd-quay",
+      "--cd-vua",
+      "--cd-xuong",
+      "--chip-h",
+      "--chip-pad",
+      "--chon-mot-co",
+      "--chon-mot-vanh",
+      "--co-1",
+      "--co-10",
+      "--co-11",
+      "--co-12",
+      "--co-13",
+      "--co-14",
+      "--co-2",
+      "--co-3",
+      "--co-4",
+      "--co-5",
+      "--co-6",
+      "--co-7",
+      "--co-8",
+      "--co-9",
+      "--cong-tac-cach",
+      "--cong-tac-h",
+      "--cong-tac-num",
+      "--cong-tac-tat-bg",
+      "--cong-tac-w",
+      "--dai-tren-h",
+      "--dam-400",
+      "--dam-500",
+      "--dam-600",
+      "--dem-fs",
+      "--dem-nut",
+      "--dem-o",
+      "--dong-18",
+      "--dong-20",
+      "--dong-22",
+      "--dong-24",
+      "--dong-tieu-de",
+      "--f-chinh",
+      "--f-so",
+      "--fs-huy-hieu",
+      "--fs-noi-dung",
+      "--fs-phu",
+      "--fs-so-lon",
+      "--fs-tieu-de-khoi",
+      "--fs-tieu-de-khoi-rong",
+      "--fs-tieu-de-trang",
+      "--fs-tieu-de-trang-rong",
+      "--fw-nhan",
+      "--fw-noi-dung",
+      "--fw-tieu-de",
+      "--gap-khoi",
+      "--h-cham",
+      "--h-dieu-khien",
+      "--h-dieu-khien-lon",
+      "--h-dong",
+      "--h-thanh-tab",
+      "--h-thanh-tren",
+      "--huy-hieu-bt",
+      "--huy-hieu-pad",
+      "--kc-1",
+      "--kc-2",
+      "--kc-3",
+      "--kc-4",
+      "--kc-5",
+      "--kc-6",
+      "--kc-7",
+      "--le-trang",
+      "--le-trang-rong",
+      "--lh-huy-hieu",
+      "--lh-noi-dung",
+      "--lh-phu",
+      "--lh-tieu-de",
+      "--lich-xe-ban-bg",
+      "--mau-bien",
+      "--mau-bien-dam",
+      "--mau-bien-nhat",
+      "--mau-bien-nhat-re",
+      "--mau-bien-re",
+      "--mau-cat",
+      "--mau-cat-chu",
+      "--mau-cat-nhat",
+      "--mau-cat-vien",
+      "--mau-dam-pha",
+      "--mau-dam-pha-dam",
+      "--mau-dam-pha-nhat",
+      "--mau-dam-pha-ruc",
+      "--mau-do",
+      "--mau-do-chu",
+      "--mau-do-nhat",
+      "--mau-do-vien",
+      "--mau-kinh",
+      "--mau-la-chu",
+      "--mau-la-nhat",
+      "--mau-la-vien",
+      "--mau-man-mo",
+      "--mau-san-ho",
+      "--mau-san-ho-nhat",
+      "--mau-san-ho-re",
+      "--mau-trang",
+      "--mau-xam-100",
+      "--mau-xam-200",
+      "--mau-xam-300",
+      "--mau-xam-400",
+      "--mau-xam-50",
+      "--mau-xam-600",
+      "--mau-xam-75",
+      "--mau-xam-900",
+      "--nut-chinh-bg",
+      "--nut-chinh-bg-re",
+      "--nut-h",
+      "--nut-h-lon",
+      "--nut-nguy-hiem",
+      "--nut-pad",
+      "--nut-phu-bg-re",
+      "--nut-phu-vien",
+      "--nut-quay",
+      "--nut-quay-mo",
+      "--nut-quay-net",
+      "--nut-san-ho-bg",
+      "--nut-san-ho-bg-re",
+      "--nut-tat-bg",
+      "--nut-tat-chu",
+      "--o-cua-toi-bg",
+      "--o-h",
+      "--o-h-lon",
+      "--o-nhan-cach",
+      "--o-nhieu-dong-h",
+      "--o-pad",
+      "--o-so-lieu-bg",
+      "--o-so-lieu-chu",
+      "--o-tat-ca-bg",
+      "--o-vien",
+      "--o-vien-loi",
+      "--o-vien-re",
+      "--pad-dong",
+      "--pad-the",
+      "--pad-the-rong",
+      "--phong-chinh",
+      "--phong-so",
+      "--r-bang-truot",
+      "--r-dieu-khien",
+      "--r-the",
+      "--r-tron",
+      "--sh-lop-phu",
+      "--sh-noi",
+      "--sh-the",
+      "--so-con-thu-tren-toi",
+      "--tab-pad",
+      "--thanh-ben-muc-h",
+      "--thanh-ben-vach",
+      "--thanh-tab-bg",
+      "--thanh-tab-den",
+      "--thanh-tab-mo",
+      "--thong-bao-chua-doc-bg",
+      "--tich-co",
+      "--tich-vien",
+      "--tt-bien-bg",
+      "--tt-bien-chu",
+      "--tt-cat-bg",
+      "--tt-cat-chu",
+      "--tt-do-bg",
+      "--tt-do-chu",
+      "--tt-la-bg",
+      "--tt-la-chu",
+      "--tt-xam-bg",
+      "--tt-xam-chu",
+      "--vanh-cach",
+      "--vanh-tieu-diem",
+      "--vo-bg",
+      "--vo-chu",
+      "--vo-vien",
+      "--w-bang-truot",
+      "--w-bao-xong",
+      "--w-noi-dung",
+      "--w-thanh-ben",
+      "--z-bang-truot",
+      "--z-dinh",
+      "--z-phu",
+      "--z-tab",
+      "--z-tren-cung"
+    ],
+    "tokenKinds": {
+      "--mau-bien": "color",
+      "--mau-bien-dam": "color",
+      "--mau-bien-nhat": "color",
+      "--mau-bien-nhat-re": "color",
+      "--mau-bien-re": "color",
+      "--mau-san-ho": "color",
+      "--mau-san-ho-re": "color",
+      "--mau-san-ho-nhat": "color",
+      "--mau-cat": "color",
+      "--mau-cat-nhat": "color",
+      "--mau-cat-chu": "color",
+      "--mau-cat-vien": "color",
+      "--mau-la-nhat": "color",
+      "--mau-la-chu": "color",
+      "--mau-la-vien": "color",
+      "--mau-do": "color",
+      "--mau-do-chu": "color",
+      "--mau-do-nhat": "color",
+      "--mau-do-vien": "color",
+      "--mau-dam-pha": "color",
+      "--mau-dam-pha-dam": "color",
+      "--mau-dam-pha-nhat": "color",
+      "--mau-dam-pha-ruc": "color",
+      "--mau-trang": "color",
+      "--mau-xam-50": "color",
+      "--mau-xam-75": "color",
+      "--mau-xam-100": "color",
+      "--mau-xam-200": "color",
+      "--mau-xam-300": "color",
+      "--mau-xam-400": "color",
+      "--mau-xam-600": "color",
+      "--mau-xam-900": "color",
+      "--mau-man-mo": "color",
+      "--mau-kinh": "color",
+      "--phong-chinh": "font",
+      "--phong-so": "font",
+      "--co-1": "spacing",
+      "--co-2": "spacing",
+      "--co-3": "spacing",
+      "--co-4": "spacing",
+      "--co-5": "spacing",
+      "--co-6": "spacing",
+      "--co-7": "spacing",
+      "--co-8": "spacing",
+      "--co-9": "spacing",
+      "--co-10": "spacing",
+      "--co-11": "spacing",
+      "--co-12": "spacing",
+      "--co-13": "spacing",
+      "--co-14": "spacing",
+      "--dong-tieu-de": "font",
+      "--dong-18": "font",
+      "--dong-20": "font",
+      "--dong-22": "font",
+      "--dong-24": "font",
+      "--dam-400": "font",
+      "--dam-500": "font",
+      "--dam-600": "font",
+      "--kc-1": "spacing",
+      "--kc-2": "spacing",
+      "--kc-3": "spacing",
+      "--kc-4": "spacing",
+      "--kc-5": "spacing",
+      "--kc-6": "spacing",
+      "--kc-7": "spacing",
+      "--bo-8": "spacing",
+      "--bo-12": "spacing",
+      "--bo-18": "spacing",
+      "--bo-999": "spacing",
+      "--bong-1": "shadow",
+      "--bong-2": "shadow",
+      "--bong-3": "shadow",
+      "--c-nen": "color",
+      "--c-nen-phu": "color",
+      "--c-nen-re": "color",
+      "--c-nen-toi": "color",
+      "--c-chu": "color",
+      "--c-chu-phu": "color",
+      "--c-chu-goi-y": "color",
+      "--c-chu-tren-toi": "color",
+      "--c-chu-tren-chinh": "color",
+      "--c-vien": "color",
+      "--c-vien-o": "color",
+      "--c-vien-o-re": "color",
+      "--c-chinh": "color",
+      "--c-chinh-re": "color",
+      "--c-chinh-dam": "color",
+      "--c-chinh-nhat": "color",
+      "--c-chinh-nhat-re": "color",
+      "--c-nhan": "color",
+      "--c-nhan-re": "color",
+      "--c-nguy-hiem": "color",
+      "--c-nguy-hiem-re": "color",
+      "--tt-cat-bg": "color",
+      "--tt-cat-chu": "color",
+      "--tt-bien-bg": "color",
+      "--tt-bien-chu": "color",
+      "--tt-la-bg": "color",
+      "--tt-la-chu": "color",
+      "--tt-do-bg": "color",
+      "--tt-do-chu": "color",
+      "--tt-xam-bg": "color",
+      "--tt-xam-chu": "color",
+      "--c-tieu-diem": "color",
+      "--vanh-tieu-diem": "spacing",
+      "--vanh-cach": "spacing",
+      "--f-chinh": "font",
+      "--f-so": "font",
+      "--fs-tieu-de-trang": "color",
+      "--fs-tieu-de-trang-rong": "color",
+      "--fs-tieu-de-khoi": "color",
+      "--fs-tieu-de-khoi-rong": "color",
+      "--fs-noi-dung": "color",
+      "--fs-phu": "color",
+      "--fs-huy-hieu": "color",
+      "--fs-so-lon": "color",
+      "--lh-noi-dung": "font",
+      "--lh-phu": "font",
+      "--lh-huy-hieu": "font",
+      "--lh-tieu-de": "font",
+      "--fw-noi-dung": "font",
+      "--fw-nhan": "font",
+      "--fw-tieu-de": "font",
+      "--r-dieu-khien": "color",
+      "--r-the": "color",
+      "--r-bang-truot": "color",
+      "--r-tron": "color",
+      "--sh-the": "color",
+      "--sh-noi": "color",
+      "--sh-lop-phu": "color",
+      "--pad-dong": "spacing",
+      "--pad-the": "spacing",
+      "--pad-the-rong": "spacing",
+      "--le-trang": "color",
+      "--le-trang-rong": "color",
+      "--gap-khoi": "spacing",
+      "--h-cham": "spacing",
+      "--h-dieu-khien": "spacing",
+      "--h-dieu-khien-lon": "spacing",
+      "--h-thanh-tren": "spacing",
+      "--h-thanh-tab": "spacing",
+      "--h-dong": "spacing",
+      "--w-noi-dung": "spacing",
+      "--w-thanh-ben": "spacing",
+      "--w-bang-truot": "spacing",
+      "--w-bao-xong": "spacing",
+      "--z-dinh": "other",
+      "--z-tab": "other",
+      "--z-bang-truot": "other",
+      "--z-phu": "other",
+      "--z-tren-cung": "other",
+      "--cd-cong": "other",
+      "--cd-nhanh": "other",
+      "--cd-vua": "other",
+      "--bt-co": "spacing",
+      "--bt-co-lon": "spacing",
+      "--bt-net": "other",
+      "--vo-bg": "color",
+      "--vo-chu": "color",
+      "--vo-vien": "color",
+      "--nut-h": "color",
+      "--nut-h-lon": "color",
+      "--nut-pad": "spacing",
+      "--nut-chinh-bg": "color",
+      "--nut-chinh-bg-re": "color",
+      "--nut-san-ho-bg": "color",
+      "--nut-san-ho-bg-re": "color",
+      "--nut-phu-vien": "color",
+      "--nut-phu-bg-re": "color",
+      "--nut-nguy-hiem": "color",
+      "--nut-tat-bg": "color",
+      "--nut-tat-chu": "color",
+      "--nut-quay": "spacing",
+      "--nut-quay-net": "spacing",
+      "--nut-quay-mo": "color",
+      "--cd-quay": "other",
+      "--o-h": "color",
+      "--o-h-lon": "color",
+      "--o-pad": "spacing",
+      "--o-vien": "color",
+      "--o-vien-re": "color",
+      "--o-vien-loi": "color",
+      "--o-nhan-cach": "spacing",
+      "--o-nhieu-dong-h": "spacing",
+      "--tich-vien": "color",
+      "--cong-tac-tat-bg": "color",
+      "--tich-co": "spacing",
+      "--chon-mot-co": "spacing",
+      "--chon-mot-vanh": "spacing",
+      "--cong-tac-w": "spacing",
+      "--cong-tac-h": "spacing",
+      "--cong-tac-num": "spacing",
+      "--cong-tac-cach": "spacing",
+      "--dem-nut": "spacing",
+      "--dem-o": "spacing",
+      "--dem-fs": "color",
+      "--chip-h": "spacing",
+      "--chip-pad": "spacing",
+      "--tab-pad": "spacing",
+      "--huy-hieu-pad": "spacing",
+      "--huy-hieu-bt": "spacing",
+      "--thanh-tab-bg": "color",
+      "--thanh-tab-mo": "spacing",
+      "--thanh-tab-den": "other",
+      "--thanh-ben-muc-h": "spacing",
+      "--thanh-ben-vach": "spacing",
+      "--bang-man": "color",
+      "--bang-tay-cam": "other",
+      "--bang-hang-h": "color",
+      "--dai-tren-h": "color",
+      "--bao-xong-tg": "other",
+      "--cd-xuong": "other",
+      "--so-con-thu-tren-toi": "color",
+      "--thong-bao-chua-doc-bg": "color",
+      "--lich-xe-ban-bg": "color",
+      "--o-cua-toi-bg": "color",
+      "--o-tat-ca-bg": "color",
+      "--o-so-lieu-bg": "color",
+      "--o-so-lieu-chu": "color"
+    },
+    "fontFamilies": [
+      "Be Vietnam Pro",
+      "Lexend",
+      "Noto Sans",
+      "Nunito"
+    ]
+  }
+}
