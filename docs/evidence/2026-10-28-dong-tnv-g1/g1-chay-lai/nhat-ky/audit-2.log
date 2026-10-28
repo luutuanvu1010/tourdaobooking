@@ -1,0 +1,176 @@
+✓ R-N1-1   mọi tài khoản có party_id
+✓ R-N1-1   một hồ sơ tối đa một tài khoản
+✓ R-ADR13-1 tài khoản đang hoạt động ⇒ hồ sơ của nó đang hoạt động (ADR-0013 điều 5; chiều ngược lại là 'tạm khoá', hợp lệ)
+✓ R-N1-2   cá nhân ⇔ có pty_person (không có pty_organization); tổ chức ngược lại
+✓ R-N1-3   display_name của cá nhân = họ + tên đệm + tên
+✓ R-N1-4   vai trò hồ sơ không chồng lấn (cùng hồ sơ, vai trò, nơi)
+✓ R-N1-4   quan hệ hồ sơ không chồng lấn
+✓ R-N1-5   còn ít nhất một quản trị viên đang hoạt động
+✓ R-N1-10  khoá ngoại toàn vẹn (PRAGMA foreign_key_check)
+✓ R-N1-13  SĐT đăng nhập không được sao chép thành liên hệ do hệ thống tạo
+✓ thông tin nhân sự đã có hồ sơ nhưng không có vai STAFF (cũ) hay vai nội bộ/bên ngoài nào đang mở (ADR-0018)
+✓ thông tin tài khoản đang hoạt động không có quyền nào (đăng nhập được nhưng không làm được gì)
+✓ thông tin đơn còn lần thu người thu chưa rõ (cọc cũ chuyển sang sổ — Kế toán đảo rồi ghi lại đúng người thu)
+✓ R-LC-1   tài khoản có vai bên ngoài đang mở chỉ giữ quyền bên ngoài (Đối tác hoặc Tài xế đối tác)
+✓ R-LC-1b  tài khoản giữ quyền Tài xế đối tác không giữ thêm quyền nào khác (không tài khoản lai)
+✓ R-LC-3   một hồ sơ không giữ cùng lúc vai nội bộ và vai bên ngoài đang mở
+✓ R-PTY-1  đúng một hồ sơ đang mở vai công ty chủ (OWNER_COMPANY)
+✓ R-PTY-MERGE-1 không chuỗi gộp: hồ sơ đích của một lần gộp không tự gộp tiếp; hai đầu đều là hồ sơ cá nhân
+✓ R-PTY-MERGE-2 hồ sơ đã gộp: ngưng dùng, có mốc gộp, không còn liên hệ / công việc / quan hệ mở sau ngày gộp
+✓ R-PTY-MERGE-3 hồ sơ đã gộp không gắn tài khoản
+✓ R-PTY-MERGE-4 hồ sơ đã gộp không còn là người phụ trách đơn chưa xong, tài xế / người đi kèm / nhà xe của chuyến chưa chốt, chủ xe chưa ngừng
+✓ R-PTY-MERGE-5 đơn chưa giao, chưa huỷ không còn người đặt là hồ sơ đã gộp
+✓ R-BIL-1  đơn Đã giao: tổng lần thu còn hiệu lực bằng phải thu phiếu Đã giao đã chụp, mọi lúc (ghi từ mốc 0083)
+✓ R-BIL-1w đơn Đã giao lệch tiền (đã thu khác phải thu lúc giao) — dữ liệu TRƯỚC mốc 0083 (Kế toán sửa bằng “Thay lần thu”)
+✓ R-BIL-3a lần thu đảo khớp lần thu gốc (cùng đơn, cùng loại, cùng số; gốc không phải dòng đảo)
+✓ R-BIL-3b dòng nợ đảo khớp dòng gốc (cùng số, đổi chỗ hai bên, cùng loại, cùng nguồn)
+✓ R-BIL-4a đơn Đã giao có đúng một phiếu Đã giao; đơn chưa Đã giao không có phiếu Đã giao
+✓ R-BIL-4b đơn Hoàn thành có đúng một phiếu Hoàn thành; đơn chưa Hoàn thành không có phiếu Hoàn thành
+✓ R-BIL-6  đơn Đã giao không còn lần thu người thu chưa rõ
+✓ R-BIL-S9 mọi khoản thu ghi trước lúc áp 0112 'thu cho' công ty chủ (lượt 1)
+✓ R-BIL-12 khoản thu ghi từ lúc áp 0112: 'thu cho' là công ty chủ hoặc người bán của đơn; người thu tiền là nhà cung cấp thì là nhà cung cấp của đơn, thu cho chính mình
+✓ R-BIL-M1 đơn Hoàn thành thì đã Đã giao
+✓ R-BIL-M2 đơn Đã giao vẫn ở trạng thái đã xác nhận
+✓ R-BIL-2  phiếu Đã giao ghi từ mốc 0112: dòng hoa hồng / giá vốn đúng số tính lại từ bản chụp (từng dòng dịch vụ)
+✓ R-BIL-2w đơn Đã giao trước lúc áp 0112 thiếu / lệch giá vốn hoặc hoa hồng so với bản chụp (Kế toán bổ sung bằng điều chỉnh có duyệt)
+✓ R-BIL-5  đơn Đã giao (phiếu ghi từ mốc 0112): mọi dòng dịch vụ có bản chụp hiện hành với người bán
+✓ R-BIL-5w đơn Đã giao TRƯỚC mốc 0112 có dòng dịch vụ chưa có bản chụp người bán (đơn giao ở lượt 1 — chỉ ghi nhận)
+✓ R-BIL-16 phiếu Đã giao (từ lúc áp 0112): đơn có người hưởng giảm giá > 0 có đúng một dòng giảm giá bên đặt đúng số, người hưởng nợ công ty chủ; đơn khác không có dòng; trước giảm không nhỏ hơn phải thu
+✓ R-BIL-17 phiếu Đã giao ghi từ mốc 0112 có thành tiền trước giảm đã chụp
+✓ R-BIL-18 dòng hoa hồng / giảm giá bên đặt / giá vốn gốc chỉ nằm trên phiếu Đã giao hoặc phiếu điều chỉnh
+✓ R-BIL-19 khoản thu đã huỷ (huỷ ghi từ lúc áp 0112) không còn dòng tiền chưa nộp về công ty của nó mà chưa huỷ
+✓ R-BIL-20 không có dòng huỷ riêng của dòng hoa hồng / giảm giá bên đặt / giá vốn (chỉ đổi qua yêu cầu điều chỉnh có duyệt)
+✓ R-BIL-19w khoản thu đã huỷ TRƯỚC lúc áp 0112 còn dòng tiền chưa nộp về công ty chưa huỷ (Kế toán huỷ dòng đó)
+✓ R-ORD-DC1 đơn có người hưởng xác nhận từ mốc 0112: giảm giá không vượt tổng hoa hồng
+✓ R-ORD-DC1w đơn có người hưởng xác nhận TRƯỚC mốc 0112 có giảm giá vượt tổng hoa hồng (rà tay theo mã đơn)
+✓ R-ORD-H1 đơn huỷ có dòng lý do huỷ, và dòng lý do chỉ thuộc đơn đã huỷ
+✓ R-BIL-C1 đơn huỷ: đã chi + đã chuyển ≤ đã duyệt ≤ tiền còn giữ lúc huỷ
+✓ R-BIL-C2 đơn huỷ (sau bản cọc) không có lần trả lại khách tự do ghi sau lúc huỷ
+✓ R-BIL-C3 tách người: người chi / chuyển khác người duyệt; người xác nhận dòng hoàn ngoài khác người ghi
+✓ R-BIL-C4 mỗi đơn tối đa một dòng đã hoàn ngoài hệ thống đang hiệu lực, chỉ đơn huỷ cũ
+✓ R-BIL-C5 chuyển tiền sang đơn mới đủ hai nửa (đơn nhận, cùng số, cùng người giữ) — nửa chi còn hiệu lực ⇔ nửa thu khớp còn hiệu lực
+✓ R-ORD-15 đơn đã xác nhận có tạm tính khác tổng thành tiền các dòng (xác nhận từ mốc 0080/0081)
+✓ R-ORD-15w đơn đã xác nhận có tạm tính khác tổng thành tiền các dòng — xác nhận TRƯỚC mốc 0080/0081 (rà tay theo mã đơn)
+✓ R-BIL-8  đã thu ròng của đơn không âm (đơn có lần thu ghi từ mốc 0082)
+✓ R-BIL-8w đã thu ròng của đơn âm — chỉ có lần thu TRƯỚC mốc 0082 (Kế toán sửa bằng lệnh đảo lần hoàn)
+✓ R-BIL-13 số dư người giữ tiền trên đơn không âm do nộp / tất toán giữ hộ hai lần (ghi từ mốc 0080)
+✓ R-BIL-13w số dư người giữ tiền âm do nộp / tất toán giữ hộ hai lần — dữ liệu TRƯỚC mốc 0080 (Kế toán sửa bằng lệnh đảo lần nộp)
+✓ R-BIL-14 phiếu điều chỉnh công nợ ghi từ mốc 0094 đều có yêu cầu đã được người khác duyệt
+✓ R-BIL-14w phiếu điều chỉnh công nợ TRƯỚC mốc 0094 (không qua duyệt) — chỉ ghi nhận, không sửa
+✓ R-BIL-15 tổng điều chỉnh tăng nợ còn hiệu lực của đơn không vượt trần chụp lúc duyệt
+✓ R-BIL-D6a mỗi mã giao dịch ngân hàng: cùng số thực chuyển, không trùng đơn, tổng lần thu không vượt số thực chuyển
+✓ R-BIL-D6b lần thu chuyển khoản – Công ty thu ghi từ mốc 0088 đã được công ty nhận đều có mã giao dịch ngân hàng
+✓ R-BIL-C6 khoản duyệt hoàn cọc của đơn khách huỷ nằm trong hạn
+✓ R-PTY-2  một số CCCD thuộc đúng một người (dòng chưa huỷ)
+✓ R-PTY-3  dòng gia hạn giấy tờ của người cùng người, cùng loại với dòng trước; mỗi dòng tối đa một dòng gia hạn chưa huỷ
+✓ R-PTY-4  nhật ký không chứa số giấy tờ của người (CCCD, bằng lái…)
+✓ R-PD-1   nhật ký không chứa giá trị cột hạng N3 (nơi cấp giấy tờ, giấy phép tổ chức…)
+✓ R-PTY-5  quan hệ 'Tài xế của' đang mở đi từ hồ sơ cá nhân (người lái), không từ hồ sơ tổ chức
+✓ R-PTY-6  vai hồ sơ / quan hệ hồ sơ có ngày kết thúc sau hôm nay (giờ Việt Nam)
+✓ R-PTY-7  một số giấy chứng nhận đăng ký kinh doanh thuộc đúng một tổ chức (dòng chưa huỷ)
+✓ R-PTY-8  dòng gia hạn giấy tờ tổ chức cùng tổ chức, cùng loại với dòng trước; mỗi dòng tối đa một dòng gia hạn chưa huỷ
+✓ R-PTY-9  mỗi dòng xác minh trỏ đúng dòng giấy tờ / liên hệ của đúng hồ sơ
+✓ R-PTY-10 liên hệ địa chỉ (ADDRESS) chỉ ở hồ sơ cá nhân
+✓ R-PTY-11 mỗi tệp hồ sơ có ít nhất một dòng nối tới dòng giấy tờ
+✓ R-PTY-12 tệp hồ sơ chờ xoá khỏi kho R2, hoặc tải lên dở dang quá 1 giờ (chạy lại ở POST /api/parties/tep-cho-xoa/chay-lai)
+✓ R-FBK-1  tệp kèm vé hỗ trợ chờ xoá khỏi kho R2, hoặc tải lên dở dang quá 1 giờ (chạy lại ở POST /api/feedback/tep-cho-xoa/chay-lai)
+✓ R-PTY-13 phiếu tự khai đang chờ của người đã rút (hoặc chưa từng) đồng ý chính sách ghi trên phiếu
+✓ R-PTY-14 phiếu tự khai đã chấp nhận mà không có dòng xác minh khớp (cùng mã, đã xác minh, cùng người, cùng lúc)
+✓ R-PTY-15 phiếu tự khai được chấp nhận hoặc từ chối bởi chính người khai
+✓ R-PTY-16 dòng xác minh không mang cờ "đã chạm tài khoản" dù người xác minh từng tạo / chạm tài khoản người khai (lính gác bị lách)
+✓ R-PTY-17 dòng giấy tờ hoặc phiếu tự khai đã ẩn danh mà số không phải dấu ẩn danh hoặc còn nơi cấp
+✓ R-PTY-18 phiếu yêu cầu xoá đã thực hiện mà còn giấy tờ, phiếu tự khai, liên hệ, ngày sinh hoặc ảnh chưa ẩn danh / chưa quyết xoá
+✓ R-PTY-19 phiếu yêu cầu xoá đã thực hiện quá 1 giờ mà chưa chép bản ngoài D1 (chạy lại ở POST /api/parties/phieu-xoa/chay-lai)
+✓ R-PTY-20 phiên đăng nhập cấp trước khi thực hiện phiếu xoá mà còn IP hoặc User-Agent
+✓ R-VC-1   biển số không trùng giữa các xe chưa ngừng
+✓ R-VC-2   dòng gia hạn giấy tờ xe cùng xe, cùng loại với dòng trước; mỗi dòng tối đa một dòng gia hạn chưa huỷ
+✓ R-VC-11  xe chưa ngừng có từ 2 dòng giấy tờ HIỆN HÀNH cùng loại trở lên (hai chuỗi giấy tờ song song)
+✓ R-VC-3   chặng có số suất khách MỞ nhiều hơn số người của chặng (L-D1; chặng về có số người riêng — ADR-0054 D10.3)
+✓ R-VC-4   bản chốt danh sách lúc xuất bến ít dòng hơn suất khách có tên + người đi kèm đang mở lúc đó (L-B1)
+✓ R-VC-5a  chuyến ĐANG CHẠY có tài xế không đủ điều kiện lái (GPLX thiếu / hết hạn trước giờ kết thúc / hạng không chở đủ số chỗ) (L-B2)
+✓ R-VC-5b  chuyến CHƯA CHẠY xuất bến trong 48 giờ tới có tài xế không đủ điều kiện lái (L-B2)
+✓ R-VC-6   sự kiện chuyến không có dòng nhật ký cùng id, hoặc nhật ký lệnh chuyến không có sự kiện cùng id
+✓ R-VC-7   chặng của đơn đã xác nhận, giờ đón đã vào mốc tối thiểu mà chưa xếp đủ khách lên xe
+✓ R-VC-8   chuyến chưa kết thúc dùng xe của nhà xe đã thôi hợp tác, hoặc tài xế không còn là tài xế của nhà xe đó (B1.5)
+✓ R-VC-9   chuyến chưa kết thúc chở quá số chỗ của xe, hoặc hai điểm dừng còn dùng trùng thứ tự
+✓ R-VC-10  bản chốt trỏ dòng hành khách không thuộc đơn của chặng / không phải người của suất
+✓ R-VC-12  cột giờ nghiệp vụ (xuất bến, kết thúc, đã tới, xong điểm) khác giờ xảy ra của sự kiện tương ứng
+✓ R-VC-13  kết thúc khai lùi quá 15 phút mà chuyến kế cùng xe / tài xế đã xuất bến trong khoảng nghỉ tính theo GIỜ GHI NHẬN
+✓ R-VC-14  xe chưa ngừng thiếu dòng hiện hành của một loại giấy tờ đang là điều kiện xuất bến
+✓ R-VC-15  sự kiện của suất xảy ra sớm hơn lúc mở suất, hoặc 'đã tới' xảy ra sớm hơn lần đổi thứ tự điểm ghi trước nó
+✓ R-VC-16  suất khách mở của chuyến chưa kết thúc có điểm DANH MỤC khác nơi đón / trả hiện hành của chặng (không phủ chữ tự do)
+✓ R-VC-17  suất khách đang mở mà chặng không có dòng mốc giờ hẹn nào
+✓ R-VC-18  chuỗi mốc giờ hẹn của chặng hỏng: không bắt đầu từ seq 1 / đứt đoạn, seq 1 không phải XEP, giờ 'trước' lệch giờ của dòng trước
+✓ R-VC-19  tham chiếu logic từ vận chuyển sang chặng / khách của đơn bị treo: suất trỏ chặng không còn hoặc người (passenger_key) không có dòng ord_passenger nào thuộc đơn của chặng; dòng mốc giờ hẹn trỏ chặng không còn
+✓ R-VC-20  dịch vụ có mẫu đưa đón hiện hành trỏ nơi trả mặc định đã ngưng dùng (Quản trị cài lại ở màn Danh mục)
+✓ R-VC-RATE-1 dòng giá thuê xe còn hiệu lực của hồ sơ đã thôi vai nhà xe
+✓ R-VC-COST-1 chuyến xe thuê chưa huỷ có nhiều hơn một nguồn giá còn hiệu lực
+✓ R-VC-COST-1b chuyến xe thuê chưa xuất bến đang thiếu giá (thông tin cho Kế toán)
+✓ R-VC-COST-2 dòng đảo không đối dấu đúng dòng gốc cùng chuyến
+✓ R-VC-COST-3 chuyến không phải xe thuê còn nguồn giá chưa đảo hoặc tổng chi phí khác 0 (ngoài phí huỷ muộn cho nhà xe cũ)
+✓ R-VC-COST-4 chuyến đã huỷ có tiền chi phí còn treo từ trước lúc huỷ (tổng khác tổng các dòng ghi sau lúc huỷ)
+✓ R-VC-COST-5 chuyến xe thuê đã xuất bến mà không có nguồn giá còn hiệu lực
+✓ R-VC-COST-6 chuyến chưa huỷ không đánh dấu xe thuê mà chủ xe không phải công ty chủ hiện tại (kẽ C2a — nợ N-T1)
+✓ R-VC-COST-8 phí huỷ muộn của nhà xe cũ bị đảo tự động khi đổi / huỷ chuyến mà chưa ghi lại (ADR-0095 Q5b)
+✓ R-VC-21  chuyến chưa kết thúc chồng lịch xe bận còn hiệu lực
+✓ R-VC-22  suất mang cờ văn phòng báo huỷ không có sự kiện báo huỷ đúng suất, hoặc đặt khi khách đã có kết quả
+✓ R-VC-23  điểm mang cờ thêm khi xe đang chạy trên chuyến chưa xuất bến, hoặc tạo trước giờ xuất bến
+✓ R-VC-24  suất đổi điểm khi xe đang chạy bị đóng mà không mở lại cùng người, cùng chặng, cùng lệnh
+✓ R-VC-25  chuyến đang chạy / đã chạy trái cam kết xe riêng hoặc số chỗ tối thiểu của khách mà không có phá lệ cam kết
+✓ R-VC-26  dòng lái đóng 'tài xế từ chối' mà người đóng không phải chính tài xế
+✓ R-VC-27  tài xế từ chối chuyến lúc hoặc sau giờ xuất bến thật
+✓ R-VC-28  chuyến chưa kết thúc đang xếp cho tài xế chồng khung báo bận còn hiệu lực của chính người đó
+✓ R-VC-29  dòng lái đang mở thiếu hạn từ chối của cặp tài xế – chuyến
+✓ R-VC-30  chuyến chưa chạy xuất bến trong 48 giờ tới mà chưa có tài xế
+✓ R-VC-THU-TU chuyến đang chạy có khách chờ lên mà điểm trả đứng trước điểm đón (ADR-0096 Đ1)
+✓ R-VC-SUA-1 điều chỉnh kết quả khách thiếu / thừa suất thay thế hoặc bản chốt; thu hồi xuất bến sau khi đã có tiến độ (ADR-0097)
+✓ R-VC-31  đề nghị chuyển khách đã xác nhận mà số suất đóng ở xe nhờ khác số suất mở ở xe nhận
+✓ R-VC-32  suất chuyển khách (đóng TRANSFERRED / mở theo đề nghị) thiếu đề nghị hoặc trỏ đề nghị chưa xác nhận
+✓ R-VC-33  đề nghị chuyển khách đã xác nhận dù điều kiện bắt buộc (tầng lỗi) không đạt ở lần quyết
+✓ R-VC-34  dòng kiểm chuyển khách ghi tầng lệch danh mục điều kiện
+✓ R-VC-35  đề nghị chuyển khách còn chờ / leo thang dù điểm nguồn đã qua hoặc xe nhờ / xe nhận đã kết thúc, huỷ
+✓ R-DSP-1  mỗi đơn tối đa một người phụ trách (HANDLE) đang mở
+✓ R-DSP-2a người phụ trách đang mở là hồ sơ có tài khoản còn quyền Bán hàng/Quản trị/Hướng dẫn viên
+✓ R-DSP-2b người phụ trách đang mở có tài khoản đã ngưng hoạt động
+✓ R-DSP-3  các dòng người phụ trách (HANDLE) của một đơn không chồng lấn theo khoảng nửa mở [từ, đến)
+✓ R-DSP-4  đơn từng có người phụ trách mà nay không có ai phải do chính người phụ trách Từ chối (LC-8 mới, ADR-0030 điều 1)
+✓ R-DSP-5  lần Từ chối (REFUSE) nào cũng có lần nhận / được giao (CLAIM/ASSIGN) trước đó cùng người, cùng đơn (ADR-0032)
+✓ R-DSP-6  mọi dòng người phụ trách mở sau ngày phát hành hạn mức có sự kiện nhận / được giao cùng mốc (ADR-0032)
+✓ R-DSP-7  dòng gieo cài đặt hạn mức Từ chối (gieo-han-muc) còn nguyên
+✓ R-ORD-4  seq của order_money_adjustment liên tục từ 1 theo từng đơn
+✓ R-ORD-5  after_json của điều chỉnh gần nhất liệt kê ĐÚNG tập dịch vụ từ danh mục của đơn (không thiếu, không thừa, không trùng) — CHỈ đếm số lượng + đối chiếu serviceId, KHÔNG kiểm bên trong pax
+✓ R-ORD-6a dòng điều chỉnh ĐẦU TIÊN (seq=1) của một đơn: subtotal_before phải khớp orders.subtotal đã lưu (trước khi có điều chỉnh nào, tiền chưa đổi gì)
+✓ R-ORD-6b chuỗi tiền của một đơn liên tục: subtotal_before của dòng SAU phải khớp subtotal_after của dòng NGAY TRƯỚC (không có gì xen giữa)
+✓ R-ORD-NT1 đơn có dịch vụ nhập tay do tài khoản đang giữ quyền Đối tác lập, tạo sau mốc phát hành ADR-0061
+✓ R-ORD-7  hai cột cũ pickup_time/pickup_place của dịch vụ = dẫn xuất của chặng chiều đi đầu còn mở (ghi kép phát hành 1 — ADR-0047 R3)
+✓ R-ORD-8  chặng mở của đơn đã xác nhận, ngày đón từ hôm nay trở đi, chưa chốt nơi trả (văn phòng bổ sung)
+✓ R-ORD-9  đơn có số người có tên (dòng hiện hành) nhiều hơn số khách hiệu lực của dịch vụ đông nhất (cờ cho văn phòng — ADR-0047 L-A1)
+✓ R-ORD-10 nhật ký order_passenger_changed ĐÚNG khuôn 'thêm N, sửa N, huỷ N khách' (không tên, không năm sinh)
+✓ R-ORD-11 chuỗi hành khách đúng (dòng thay thế cùng đơn + person_key; dòng đầu person_key = id); dòng nguồn DRIVER là đầu chuỗi và có sự kiện tài xế bổ sung tên
+✓ R-ORD-12 chặng mở của đơn chưa huỷ còn nơi đón tạm '(chưa ghi nơi đón)' (văn phòng bổ sung)
+✓ R-ORD-13 chặng có số người riêng (pax_override) mà không phải chiều về
+✓ R-ORD-14 chặng về còn mở của đơn chưa huỷ có số người riêng nhiều hơn số khách hiệu lực của dịch vụ (L-R1)
+✓ R-ORD-16w đơn đã xác nhận có tổng người đi kèm (người lớn + người cao tuổi, mọi dịch vụ, số khách hiệu lực) bằng 0 — chỉ còn trẻ em / em bé (ADR-0114 D3)
+✓ R-AUT-1  không có Face ID còn hiệu lực của tài khoản đã ngưng
+✓ R-AUT-SESSION-1 không tài khoản một máy nào có hơn một phiên đăng nhập sống
+✓ R-AUT-SESSION-2 không có phiên đăng nhập chưa kết thúc của tài khoản đã ngưng
+✓ R-AUT-SESSION-3 tài khoản theo chính sách hiện hành là một máy mà có hơn một phiên sống
+✓ R-AUT-MFA-1 mọi tài khoản nội bộ đang hoạt động có bảo mật hai lớp, hoặc hạn ân hạn / cửa sổ bật lại
+✓ R-AUT-MFA-2 không ai có hai yếu tố hai lớp cùng loại còn hiệu lực
+✓ R-AUT-MFA-3 không có máy được tin còn hiệu lực của tài khoản đã ngưng
+✓ R-AUT-MFA-4 không tài khoản Quản trị / Toàn quyền / Kế toán nào có yếu tố email còn hiệu lực
+⚠ R-CTL-1  dịch vụ đang hiện mà chưa phân loại nhóm (Quản trị gán nhóm ở màn Danh mục) — 2 vi phạm (cảnh báo (không chặn phát hành): Quản trị gán nhóm cho các dịch vụ này ở màn Danh mục)
+✓ R-PRC-1  không có hai dòng mức hoa hồng cùng đối tượng (hồ sơ, vai hoặc mức TA), cùng phạm vi và mã mà khoảng hiệu lực chồng nhau; không loại nào mang hai mức TA cùng một ngày; không hồ sơ nào mang hai mức TA gắn riêng cùng một ngày
+✓ R-PRC-2  dòng mức hoa hồng còn hiệu lực theo vai mà vai đó không còn trong danh sách vai được hưởng đang bật, hoặc theo mức TA không tồn tại
+✓ R-PRC-3  điều khoản người bán còn hiệu lực sai luật: có tỷ lệ mua lại mà người bán là công ty chủ; hoặc người bán khác công ty chủ mà không mang vai Nhà cung cấp; hoặc người bán khác công ty chủ mà không có tỷ lệ mua lại
+✓ R-PRC-4  điều khoản còn hiệu lực có tỷ lệ mua lại cho nhóm Thuê xe (TXE) hoặc cho dịch vụ đang thuộc nhóm Thuê xe
+✓ R-PRC-5  dòng mức hoa hồng (hoặc mức TA gắn riêng — ADR-0138) còn hiệu lực hôm nay theo hồ sơ mà hồ sơ đó không còn mở vai được hưởng hoa hồng nào
+✓ R-PRC-6  hồ sơ mang loại đối tác (được hưởng hoa hồng) mà còn vai nội bộ đang mở hoặc có tài khoản giữ quyền nội bộ; hoặc danh sách vai được hưởng hoa hồng chứa vai nội bộ / vai nhóm OTHER không phải loại đối tác
+✓ R-ORD-T1 dòng dịch vụ của đơn đã xác nhận sau ân hạn 60 phút kể từ mốc áp migration 0090 mà không có đúng một bản chụp thương mại hiện hành (mốc thiếu cũng tính lỗi)
+✓ R-ORD-T1w đơn đã xác nhận, chưa Đã giao, xác nhận trước hết ân hạn mốc 0090, còn dòng dịch vụ chưa có bản chụp thương mại (đơn cũ — đợt 2 chụp bù); liệt kê mã đơn
+✓ R-ORD-T2 bản chụp thương mại do tay ghi (MANUAL) mà lý do rỗng, hoặc hoa hồng đã có mức (SET) mà không có đúng một trong tỷ lệ và số đồng mỗi khách
+✓ R-KY-1   không có lần thu, phiếu sổ, khoản hoàn ngoài hay chi phí xe nào thuộc tháng đã khoá sổ mà ghi SAU lúc khoá
+✓ R-KY-2   các tháng đã khoá sổ liền nhau, không có tháng hở ở giữa
+· R-BIL-7  đúng một hồ sơ công ty chủ — dùng lại R-PTY-1 (không kiểm trùng)
+
+Mọi bất biến đạt, 1 cảnh báo (D1 local).
