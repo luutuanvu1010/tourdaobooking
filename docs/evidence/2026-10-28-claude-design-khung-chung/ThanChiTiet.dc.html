@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="_ds/island-booking-system-design-system-v2-449f87cb-ea95-4f4c-a868-ac49dceb167e/tokens/fonts.css">
+  <link rel="stylesheet" href="_ds/island-booking-system-design-system-v2-449f87cb-ea95-4f4c-a868-ac49dceb167e/tokens/goc.css">
+  <link rel="stylesheet" href="_ds/island-booking-system-design-system-v2-449f87cb-ea95-4f4c-a868-ac49dceb167e/tokens/y-nghia.css">
+  <link rel="stylesheet" href="_ds/island-booking-system-design-system-v2-449f87cb-ea95-4f4c-a868-ac49dceb167e/tokens/thanh-phan.css">
+  <link rel="stylesheet" href="_ds/island-booking-system-design-system-v2-449f87cb-ea95-4f4c-a868-ac49dceb167e/tokens/nen-tang.css">
+  <link rel="stylesheet" href="_ds/island-booking-system-design-system-v2-449f87cb-ea95-4f4c-a868-ac49dceb167e/components/hanh-dong/hanh-dong.css">
+  <link rel="stylesheet" href="_ds/island-booking-system-design-system-v2-449f87cb-ea95-4f4c-a868-ac49dceb167e/components/hien-thi/hien-thi.css">
+  <link rel="stylesheet" href="_ds/island-booking-system-design-system-v2-449f87cb-ea95-4f4c-a868-ac49dceb167e/components/phan-hoi/phan-hoi.css">
+  <script src="_ds/island-booking-system-design-system-v2-449f87cb-ea95-4f4c-a868-ac49dceb167e/_ds_bundle.js"></script>
+  <script src="ib-icon.js"></script>
+</helmet>
+<div>
+  <sc-if value="{{ coNoiDung }}" hint-placeholder-val="{{ true }}">
+    <div style="max-width:var(--w-noi-dung);margin:0 auto;padding:{{ dem }}">
+      <div style="display:grid;grid-template-columns:{{ cot }};gap:var(--kc-4) var(--kc-5);align-items:start">
+
+        <div style="display:flex;flex-direction:column;gap:var(--kc-4);min-width:0;order:{{ thuTuPhai }}">
+          <section class="ib-the" aria-label="Tóm tắt đơn">
+            <div style="display:flex;flex-wrap:wrap;align-items:center;gap:var(--kc-2)">
+              <sc-if value="{{ hep }}">
+                <span class="{{ hhLop }}"><ib-icon ten="{{ hhBt }}" co="14"></ib-icon>{{ hhChu }}</span>
+              </sc-if>
+              <span style="font-size:var(--fs-phu);line-height:var(--lh-phu);color:var(--c-chu-phu)">{{ lap }}</span>
+            </div>
+            <dl style="margin:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--kc-3) var(--kc-4)">
+              <sc-for list="{{ tomTat }}" as="k" hint-placeholder-count="4">
+                <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                  <dt style="font-size:var(--fs-phu);line-height:var(--lh-phu);color:var(--c-chu-phu)">{{ k.nhan }}</dt>
+                  <dd class="{{ k.lop }}" style="margin:0;font-weight:var(--fw-tieu-de)">{{ k.gt }}</dd>
+                  <dd style="margin:0;font-size:var(--fs-phu);line-height:var(--lh-phu);color:var(--c-chu-phu)">{{ k.phu }}</dd>
+                </div>
+              </sc-for>
+            </dl>
+            <div style="display:flex;flex-direction:column;gap:var(--kc-2)">
+              <sc-if value="{{ nutChinhCot }}">
+                <button type="button" class="ib-nut ib-nut--san-ho ib-nut--rong" style="box-shadow:var(--shadow-btn-accent)">Xác nhận đơn để gửi khách</button>
+              </sc-if>
+              <sc-if value="{{ nutChinhCotTat }}">
+                <span class="ib-nut-boc ib-nut-boc--rong">
+                  <button type="button" class="ib-nut ib-nut--rong" aria-disabled="true" aria-describedby="ly-do-xac-nhan">Xác nhận đơn để gửi khách</button>
+                  <span class="ib-nut__ly-do" id="ly-do-xac-nhan">Thêm ít nhất một dịch vụ để xác nhận</span>
+                </span>
+              </sc-if>
+              <div style="display:flex;flex-wrap:wrap;gap:var(--kc-2)">
+                <button type="button" class="ib-nut ib-nut--phu" style="flex:1 1 auto;white-space:nowrap">Sửa thông tin chuyến</button>
+                <button type="button" class="ib-nut ib-nut--phu" style="flex:1 1 auto;white-space:nowrap">Sửa số khách dịch vụ</button>
+                <button type="button" class="ib-nut ib-nut--phu ib-nut--hinh" aria-label="Việc khác: Xem biên nhận, Huỷ đơn" aria-haspopup="menu" style="flex:none;font-size:var(--co-7)">…</button>
+              </div>
+            </div>
+          </section>
+          <sc-if value="{{ rong }}">
+            <section class="ib-the" aria-labelledby="ct-tt">
+              <h2 class="ib-the__tieu-de" id="ct-tt">Thanh toán</h2>
+              <dl style="margin:0;display:flex;flex-direction:column;gap:var(--kc-2)">
+                <sc-for list="{{ thanhToan }}" as="k" hint-placeholder-count="5">
+                  <div style="display:flex;justify-content:space-between;gap:var(--kc-3)"><dt style="color:var(--c-chu-phu)">{{ k.nhan }}</dt><dd class="ib-tien" style="margin:0;font-weight:{{ k.dam }}">{{ k.gt }}</dd></div>
+                </sc-for>
+              </dl>
+              <p style="margin:0;font-size:var(--fs-phu);line-height:var(--lh-phu);color:var(--c-chu-phu)">Ghi chú thanh toán: {{ ghiChuTT }}</p>
+            </section>
+            <section class="ib-the" aria-labelledby="ct-pt">
+              <h2 class="ib-the__tieu-de" id="ct-pt">Người phụ trách</h2>
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:var(--kc-3)"><span style="font-weight:var(--fw-nhan)">Nguyễn Văn An</span><button type="button" class="ib-nut ib-nut--loi-nho"><span class="ib-nut__chu">Đổi người phụ trách</span></button></div>
+            </section>
+          </sc-if>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:var(--kc-4);min-width:0">
+          <section class="ib-the" aria-labelledby="ct-dv">
+            <h2 class="ib-the__tieu-de" id="ct-dv">Dịch vụ</h2>
+            <sc-if value="{{ coDichVu }}">
+              <div style="display:flex;flex-direction:column">
+                <sc-for list="{{ dichVu }}" as="s" hint-placeholder-count="1">
+                  <div style="display:flex;flex-direction:column;gap:var(--kc-1);padding:var(--kc-3) 0;border-top:1px solid var(--c-vien)">
+                    <div style="display:flex;justify-content:space-between;gap:var(--kc-3);font-weight:var(--fw-nhan)"><span>{{ s.ten }}</span><span class="ib-tien">{{ s.tien }}</span></div>
+                    <span style="font-size:var(--fs-phu);line-height:var(--lh-phu);color:var(--c-chu-phu)">Ngày đi {{ s.ngay }} · {{ s.so }} · {{ s.gia }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+            <sc-if value="{{ khongDichVu }}">
+              <div class="ib-rong" style="padding:var(--kc-4) 0">
+                <span class="ib-rong__bt"><ib-icon ten="services" co="24"></ib-icon></span>
+                <p class="ib-rong__cau">Đơn chưa có dịch vụ nào</p>
+                <button type="button" class="ib-nut ib-nut--phu"><ib-icon ten="plus" co="20"></ib-icon><span>Thêm dịch vụ</span></button>
+              </div>
+            </sc-if>
+          </section>
+          <sc-if value="{{ coDichVu }}">
+            <section class="ib-the" aria-labelledby="ct-dd">
+              <h2 class="ib-the__tieu-de" id="ct-dd">Đưa đón</h2>
+              <div style="display:flex;flex-direction:column;gap:var(--kc-3)">
+                <div style="display:flex;flex-direction:column;gap:2px"><span style="font-weight:var(--fw-nhan)">Chiều đi · 29/10/2026 07:30</span><span style="font-size:var(--fs-phu);line-height:var(--lh-phu);color:var(--c-chu-phu)">Khách sạn Mường Thanh, 60 Trần Phú → Cảng Vinpearl</span></div>
+                <div style="display:flex;flex-direction:column;gap:2px"><span style="font-weight:var(--fw-nhan)">Chiều về · 29/10/2026 15:30</span><span style="font-size:var(--fs-phu);line-height:var(--lh-phu);color:var(--c-chu-phu)">Cảng Vinpearl → Khách sạn Mường Thanh, 60 Trần Phú</span></div>
+              </div>
+            </section>
+          </sc-if>
+          <section class="ib-the" aria-labelledby="ct-hk">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:var(--kc-3)"><h2 class="ib-the__tieu-de" id="ct-hk">Hành khách</h2><span style="font-size:var(--fs-phu);color:var(--c-chu-phu)">{{ hkDem }}</span></div>
+            <sc-if value="{{ coHanhKhach }}">
+              <ul style="list-style:none;margin:0;padding:0">
+                <sc-for list="{{ hanhKhach }}" as="h" hint-placeholder-count="3">
+                  <li style="display:flex;justify-content:space-between;gap:var(--kc-3);padding:var(--kc-2) 0;border-top:1px solid var(--c-vien)"><span>{{ h.ten }}</span><span style="font-size:var(--fs-phu);color:var(--c-chu-phu)">{{ h.loai }}</span></li>
+                </sc-for>
+              </ul>
+            </sc-if>
+            <sc-if value="{{ khongHanhKhach }}"><p style="margin:0;font-size:var(--fs-phu);line-height:var(--lh-phu);color:var(--c-chu-phu)">Chưa có tên hành khách — thêm khi đã có dịch vụ.</p></sc-if>
+          </section>
+          <sc-if value="{{ hep }}">
+            <section class="ib-the" aria-labelledby="ct-tt2">
+              <h2 class="ib-the__tieu-de" id="ct-tt2">Thanh toán</h2>
+              <dl style="margin:0;display:flex;flex-direction:column;gap:var(--kc-2)">
+                <sc-for list="{{ thanhToan }}" as="k" hint-placeholder-count="5">
+                  <div style="display:flex;justify-content:space-between;gap:var(--kc-3)"><dt style="color:var(--c-chu-phu)">{{ k.nhan }}</dt><dd class="ib-tien" style="margin:0;font-weight:{{ k.dam }}">{{ k.gt }}</dd></div>
+                </sc-for>
+              </dl>
+              <p style="margin:0;font-size:var(--fs-phu);line-height:var(--lh-phu);color:var(--c-chu-phu)">Ghi chú thanh toán: {{ ghiChuTT }}</p>
+            </section>
+            <section class="ib-the" aria-labelledby="ct-pt2">
+              <h2 class="ib-the__tieu-de" id="ct-pt2">Người phụ trách</h2>
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:var(--kc-3)"><span style="font-weight:var(--fw-nhan)">Nguyễn Văn An</span><button type="button" class="ib-nut ib-nut--loi-nho"><span class="ib-nut__chu">Đổi người phụ trách</span></button></div>
+            </section>
+          </sc-if>
+          <section class="ib-the" aria-labelledby="ct-kh">
+            <h2 class="ib-the__tieu-de" id="ct-kh">Khách hàng</h2>
+            <dl style="margin:0;display:grid;grid-template-columns:auto minmax(0,1fr);gap:var(--kc-2) var(--kc-4)">
+              <dt style="color:var(--c-chu-phu)">Tên</dt><dd style="margin:0">Hoàng Thị Gấm</dd>
+              <dt style="color:var(--c-chu-phu)">Số điện thoại</dt><dd style="margin:0">0905123456</dd>
+              <dt style="color:var(--c-chu-phu)">Email</dt><dd style="margin:0;color:var(--c-chu-phu)">Chưa có</dd>
+              <dt style="color:var(--c-chu-phu)">Ghi chú</dt><dd style="margin:0">Khách đi cùng trẻ 6 tuổi</dd>
+            </dl>
+          </section>
+          <section class="ib-the" aria-labelledby="ct-ls">
+            <h2 class="ib-the__tieu-de" id="ct-ls">Lịch sử</h2>
+            <ol style="list-style:none;margin:0;padding:0">
+              <sc-for list="{{ lichSu }}" as="l" hint-placeholder-count="3">
+                <li style="display:flex;flex-direction:column;gap:2px;padding:var(--kc-2) 0;border-top:1px solid var(--c-vien)"><span>{{ l.viec }}</span><span style="font-size:var(--fs-phu);line-height:var(--lh-phu);color:var(--c-chu-phu)">{{ l.luc }}</span></li>
+              </sc-for>
+            </ol>
+          </section>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ dangTai }}" hint-placeholder-val="{{ false }}">
+    <div aria-busy="true" aria-label="Đang tải đơn" style="max-width:var(--w-noi-dung);margin:0 auto;padding:{{ dem }}">
+      <div style="display:grid;grid-template-columns:{{ cot }};gap:var(--kc-4) var(--kc-5);align-items:start">
+        <div class="ib-the" style="order:{{ thuTuPhai }}">
+          <span class="ib-xuong__khoi ib-xuong__vien"></span>
+          <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--kc-3) var(--kc-4)">
+            <sc-for list="{{ bon }}" as="x" hint-placeholder-count="4"><div><span class="ib-xuong__khoi ib-xuong__dong" style="width:50%"></span><span class="ib-xuong__khoi ib-xuong__dong" style="width:85%"></span></div></sc-for>
+          </div>
+          <span class="ib-xuong__khoi" style="height:var(--h-dieu-khien);border-radius:var(--r-dieu-khien)"></span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:var(--kc-4)">
+          <sc-for list="{{ ba }}" as="x" hint-placeholder-count="3">
+            <div class="ib-the"><span class="ib-xuong__khoi ib-xuong__dong" style="width:30%;height:16px"></span><span class="ib-xuong__khoi ib-xuong__dong" style="width:90%"></span><span class="ib-xuong__khoi ib-xuong__dong" style="width:70%"></span></div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ loi }}" hint-placeholder-val="{{ false }}">
+    <div class="ib-rong" role="alert" style="padding-top:var(--kc-7)">
+      <span class="ib-rong__bt" style="background:var(--tt-do-bg);color:var(--tt-do-chu)"><svg class="ib-bt" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true" style="stroke-linecap:round;stroke-linejoin:round"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4.5M12 16v.01"></path></svg></span>
+      <p class="ib-rong__cau">Chưa tải được đơn TD-20261029-0012</p>
+      <p class="ib-rong__phu">Máy chủ không trả lời trong 15 giây. Đơn vẫn còn nguyên, chưa có gì thay đổi.</p>
+      <button type="button" class="ib-nut ib-nut--phu">Thử lại</button>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const DV_IT = [{ ten: 'Tour 4 đảo · Cano', ngay: '29/10/2026', so: '2 NL · 1 TE', gia: 'NL 400.000 ₫ · TE 280.000 ₫', tien: '1.080.000 ₫' }];
+const DV_NHIEU = [
+  { ten: 'Tour 4 đảo · Cano', ngay: '29/10/2026', so: '4 NL · 3 TE', gia: 'NL 400.000 ₫ · TE 280.000 ₫', tien: '2.440.000 ₫' },
+  { ten: 'Vé Hòn Tằm · Cano + tắm bùn', ngay: '30/10/2026', so: '4 NL · 3 TE', gia: 'NL 620.000 ₫ · TE 440.000 ₫', tien: '3.800.000 ₫' },
+  { ten: 'Du thuyền ngắm hoàng hôn', ngay: '31/10/2026', so: '4 NL · 3 TE', gia: 'NL 800.000 ₫ · TE 600.000 ₫', tien: '5.000.000 ₫' },
+];
+const HK_IT = [{ ten: 'Hoàng Thị Gấm', loai: 'Người lớn' }, { ten: 'Trần Văn Hưng', loai: 'Người lớn' }, { ten: 'Trần Gia Bảo', loai: 'Trẻ em' }];
+const HK_NHIEU = HK_IT.concat([{ ten: 'Lê Thu Hà', loai: 'Người lớn' }, { ten: 'Lê Quang Minh', loai: 'Người lớn' }, { ten: 'Lê Bảo An', loai: 'Trẻ em' }, { ten: 'Lê Bảo Ngọc', loai: 'Trẻ em' }]);
+const LS_IT = [
+  { viec: 'Lập đơn', luc: '15:26 28/10/2026 · Nguyễn Văn An' },
+  { viec: 'Thêm 3 tên hành khách', luc: '15:31 28/10/2026 · Nguyễn Văn An' },
+  { viec: 'Đổi giờ đón 07:15 → 07:30', luc: '16:02 28/10/2026 · Nguyễn Văn An' },
+];
+const LS_NHIEU = LS_IT.concat([
+  { viec: 'Thêm dịch vụ Vé Hòn Tằm · Cano + tắm bùn', luc: '16:10 28/10/2026 · Nguyễn Văn An' },
+  { viec: 'Thêm dịch vụ Du thuyền ngắm hoàng hôn', luc: '16:12 28/10/2026 · Nguyễn Văn An' },
+  { viec: 'Sửa số khách 2 NL · 1 TE → 4 NL · 3 TE', luc: '16:20 28/10/2026 · Nguyễn Văn An' },
+  { viec: 'Thu trước 2.000.000 ₫ — chuyển khoản', luc: '16:41 28/10/2026 · Trần Thị Bích' },
+  { viec: 'Thêm 4 tên hành khách', luc: '17:05 28/10/2026 · Nguyễn Văn An' },
+]);
+const tien = (tt, tong, thu, con) => [
+  { nhan: 'Tạm tính', gt: tt }, { nhan: 'Giảm giá', gt: '0 ₫' }, { nhan: 'Tổng cộng', gt: tong }, { nhan: 'Đã thu', gt: thu }, { nhan: 'Còn lại', gt: con, dam: 'var(--fw-tieu-de)' },
+].map((k) => ({ ...k, dam: k.dam || 'var(--fw-noi-dung)' }));
+
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props;
+    const tt = p.trangThai || 'it';
+    const rong = !!p.rong;
+    const nhieu = tt === 'nhieu', trong = tt === 'rong';
+    const tomTat = [
+      { nhan: 'Đón', gt: trong ? 'Chưa có' : '29/10/2026 07:30', phu: trong ? 'Chọn dịch vụ để có giờ đón' : 'Khách sạn Mường Thanh, 60 Trần Phú' },
+      { nhan: 'Khách', gt: 'Hoàng Thị Gấm', phu: '0905123456' },
+      { nhan: 'Số khách', gt: trong ? 'Chưa có' : nhieu ? '4 NL · 3 TE' : '2 NL · 1 TE', phu: trong ? 'Chưa có dịch vụ' : nhieu ? '3 dịch vụ' : 'Tour 4 đảo · Cano' },
+      { nhan: 'Còn lại', gt: trong ? '0 ₫' : nhieu ? '9.240.000 ₫' : '1.080.000 ₫', phu: trong ? 'Tổng 0 ₫' : nhieu ? 'Tổng 11.240.000 ₫ · đã trả trước 2.000.000 ₫' : 'Tổng 1.080.000 ₫ · đã trả trước 0 ₫', lop: 'ib-tien' },
+    ].map((k) => ({ ...k, lop: k.lop || '' }));
+    const dichVu = trong ? [] : nhieu ? DV_NHIEU : DV_IT;
+    const hanhKhach = trong ? [] : nhieu ? HK_NHIEU : HK_IT;
+    return {
+      hep: !rong, rong,
+      coNoiDung: tt === 'it' || tt === 'nhieu' || trong, dangTai: tt === 'dang-tai', loi: tt === 'loi',
+      dem: rong ? 'var(--kc-5) var(--le-trang-rong) var(--kc-6)' : 'var(--kc-4) var(--le-trang) var(--kc-5)',
+      cot: rong ? 'minmax(0,1fr) var(--w-cot-phai)' : 'minmax(0,1fr)',
+      thuTuPhai: rong ? 2 : 0,
+      hhLop: trong ? 'ib-hh ib-hh--xam' : 'ib-hh ib-hh--cat', hhBt: trong ? 'minus' : 'clock', hhChu: trong ? 'Nháp' : 'Chờ xác nhận',
+      lap: 'Lập 15:26 28/10/2026 bởi Nguyễn Văn An',
+      tomTat,
+      nutChinhCot: rong && !trong, nutChinhCotTat: rong && trong,
+      dichVu, coDichVu: dichVu.length > 0, khongDichVu: dichVu.length === 0,
+      hanhKhach, coHanhKhach: hanhKhach.length > 0, khongHanhKhach: hanhKhach.length === 0,
+      hkDem: trong ? '0 tên' : hanhKhach.length + '/' + hanhKhach.length + ' tên',
+      thanhToan: trong ? tien('0 ₫', '0 ₫', '0 ₫', '0 ₫') : nhieu ? tien('11.240.000 ₫', '11.240.000 ₫', '2.000.000 ₫', '9.240.000 ₫') : tien('1.080.000 ₫', '1.080.000 ₫', '0 ₫', '1.080.000 ₫'),
+      ghiChuTT: nhieu ? 'Phần còn lại khách chuyển khoản trước 30/10' : 'Khách trả tiền mặt khi lên tàu',
+      lichSu: trong ? [{ viec: 'Lập đơn nháp', luc: '15:26 28/10/2026 · Nguyễn Văn An' }] : nhieu ? LS_NHIEU : LS_IT,
+      bon: [1, 2, 3, 4], ba: [1, 2, 3],
+    };
+  }
+}
+</script>
+</body>
+</html>

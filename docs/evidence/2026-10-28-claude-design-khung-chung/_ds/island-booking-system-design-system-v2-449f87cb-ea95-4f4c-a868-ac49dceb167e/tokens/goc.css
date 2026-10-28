@@ -1,0 +1,93 @@
+/* TẦNG 1 — GỐC. Giá trị thô, chép nguyên từ mã đang chạy (public/app.css) hoặc mục 8 đề bài.
+   Thành phần KHÔNG dùng trực tiếp tầng này — chỉ tầng Ý nghĩa trỏ vào đây.
+   Định dạng chú thích: công dụng | nguồn */
+:root{
+/* == Màu · Biển (màu chính) == */
+  --mau-bien: #0c4a6e; /* Biển chính — nền nút chính, chữ nhấn | từ mã */
+  --mau-bien-dam: #082f49; /* Biển đậm — nền tối của báo xong ngắn | từ mã */
+  --mau-bien-nhat: #dcebf6; /* Biển nhạt — nền mục đang chọn, huy hiệu Biển | từ mã */
+  --mau-bien-nhat-re: #c9def0; /* Biển nhạt khi rê mục đang chọn | từ mã */
+  --mau-bien-re: #0b5c84; /* Biển khi rê nút chính | từ mã */
+/* == Màu · San hô (nhấn mạnh) == */
+  --mau-san-ho: #c0392b; /* San hô — chỉ hai nút chốt | từ mã */
+  --mau-san-ho-re: #96271a; /* San hô khi rê | từ mã */
+  --mau-san-ho-nhat: #fef2f0; /* San hô nhạt — nền nhấn rất hiếm | từ mã */
+/* == Màu · Cát == */
+  --mau-cat: #f5a623; /* Cát đặc — số nổi trên nền tối | từ mã */
+  --mau-cat-nhat: #fbe3b3; /* Cát nhạt — nền tông Cát | từ mã */
+  --mau-cat-chu: #5a4109; /* Chữ trên nền Cát nhạt | từ mã */
+  --mau-cat-vien: #e9d3a4; /* Viền tông Cát | từ mã */
+/* == Màu · Xanh lá == */
+  --mau-la-nhat: #dcfce7; /* Nền tông Xanh lá | từ mã */
+  --mau-la-chu: #166534; /* Chữ tông Xanh lá | từ mã */
+  --mau-la-vien: #a7e3bc; /* Viền tông Xanh lá | từ mã */
+/* == Màu · Đỏ == */
+  --mau-do: #b01235; /* Đỏ — viền ô lỗi, nút nguy hiểm | từ mã */
+  --mau-do-chu: #8e0e2b; /* Chữ tông Đỏ, nút đỏ đặc khi rê | từ mã */
+  --mau-do-nhat: #fde9ee; /* Nền tông Đỏ | từ mã */
+  --mau-do-vien: #f1c3cf; /* Viền tông Đỏ | từ mã */
+/* == Màu · Đầm phá == */
+  --mau-dam-pha: #0e7490; /* Đầm phá — số liệu vận chuyển | từ mã */
+  --mau-dam-pha-dam: #155e75; /* Đầm phá đậm — chữ trên ô số liệu | từ mã */
+  --mau-dam-pha-nhat: #e0f2f7; /* Đầm phá nhạt — nền ô số liệu | từ mã */
+  --mau-dam-pha-ruc: #0891b2; /* Đầm phá rực — vành tiêu điểm, vạch chỉ báo | từ mã */
+/* == Màu · Trung tính == */
+  --mau-trang: #ffffff; /* Trắng — trang, thẻ, chữ trên nút chính | từ mã */
+  --mau-xam-50: #f8fafc; /* Chữ trên nền tối | từ mã */
+  --mau-xam-75: #f2f5f9; /* Nền phụ — thanh bên, khối, huy hiệu Xám | từ mã */
+  --mau-xam-100: #f1f5f9; /* Nền khi rê dòng | từ mã */
+  --mau-xam-200: #e1e7ef; /* Viền thẻ, kẻ dòng | từ mã */
+  --mau-xam-300: #c9d4e0; /* Viền ô nhập | từ mã */
+  --mau-xam-400: #94a3b8; /* Viền ô khi rê, chữ gợi ý | từ mã */
+  --mau-xam-600: #475569; /* Chữ phụ, nhãn | từ mã */
+  --mau-xam-900: #0f172a; /* Chữ chính | từ mã */
+/* == Màu · Màn mờ == */
+  --mau-man-mo: rgba(15,23,42,.45); /* Màn mờ sau bảng trượt | từ mã */
+  --mau-kinh: rgba(255,255,255,.86); /* Kính mờ thanh tab dưới | từ mã */
+
+/* == Phông == */
+  --phong-chinh: "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif; /* @kind font */ /* Phông giao diện | từ mã */
+  --phong-so: ui-monospace, Menlo, Consolas, monospace; /* @kind font */ /* Mã đơn, số kỹ thuật | từ mã */
+/* == Cỡ chữ · 14 bậc == */
+  --co-1: 12px; /* Bậc 1 — huy hiệu, nhãn tab dưới | từ mã */
+  --co-2: 13px; /* Bậc 2 | từ mã */
+  --co-3: 14px; /* Bậc 3 — chữ phụ, nhãn ô | từ mã */
+  --co-4: 15px; /* Bậc 4 | từ mã */
+  --co-5: 16px; /* Bậc 5 — nội dung, nút, ô nhập | từ mã */
+  --co-6: 17px; /* Bậc 6 | từ mã */
+  --co-7: 18px; /* Bậc 7 — tiêu đề khối (máy tính), tiêu đề bảng trượt | từ mã */
+  --co-8: 19px; /* Bậc 8 | từ mã */
+  --co-9: 20px; /* Bậc 9 — tiêu đề trang (điện thoại), số bộ đếm | từ mã */
+  --co-10: 22px; /* Bậc 10 | từ mã */
+  --co-11: 24px; /* Bậc 11 — tiêu đề trang (máy tính) | từ mã */
+  --co-12: 26px; /* Bậc 12 — số lớn | từ mã */
+  --co-13: 28px; /* Bậc 13 | từ mã */
+  --co-14: 32px; /* Bậc 14 | từ mã */
+/* == Dòng == */
+  --dong-tieu-de: 1.16; /* @kind font */ /* Hệ số dòng tiêu đề | từ mã */
+  --dong-18: 18px; /* @kind font */ /* Dòng cho chữ 12 | từ mã */
+  --dong-20: 20px; /* @kind font */ /* Dòng cho chữ 14 | từ mã */
+  --dong-22: 22px; /* @kind font */ /* Dòng cho chữ 15–16 dày | từ mã */
+  --dong-24: 24px; /* @kind font */ /* Dòng cho chữ 16 nội dung | từ mã */
+/* == Độ đậm == */
+  --dam-400: 400; /* @kind font */ /* Nội dung | chốt §5 */
+  --dam-500: 500; /* @kind font */ /* Nhãn và nút | chốt §5 */
+  --dam-600: 600; /* @kind font */ /* Tiêu đề và số lớn | chốt §5 */
+/* == Khoảng cách == */
+  --kc-1: 4px; /* Khoảng 1 | từ mã */
+  --kc-2: 8px; /* Khoảng 2 | từ mã */
+  --kc-3: 12px; /* Khoảng 3 | từ mã */
+  --kc-4: 16px; /* Khoảng 4 | từ mã */
+  --kc-5: 24px; /* Khoảng 5 | từ mã */
+  --kc-6: 32px; /* Khoảng 6 | từ mã */
+  --kc-7: 48px; /* Khoảng 7 | từ mã */
+/* == Bo góc == */
+  --bo-8: 8px; /* Bo vừa — nút, ô | từ mã */
+  --bo-12: 12px; /* Bo thẻ | từ mã */
+  --bo-18: 18px; /* Bo bảng trượt | từ mã */
+  --bo-999: 999px; /* Bo tròn — chip, tab, huy hiệu | từ mã */
+/* == Bóng · 3 mức == */
+  --bong-1: 0 1px 2px rgba(15,23,42,.04), 0 3px 10px rgba(15,23,42,.05); /* Mức 1 — thẻ | từ mã */
+  --bong-2: 0 4px 14px rgba(15,23,42,.12), 0 1px 3px rgba(15,23,42,.08); /* Mức 2 — nổi (báo xong, bảng chọn) | từ mã */
+  --bong-3: 0 16px 48px rgba(15,23,42,.18), 0 2px 8px rgba(15,23,42,.06); /* Mức 3 — lớp phủ (bảng trượt, hộp thoại) | từ mã */
+}

@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <meta name="design_doc_mode" content="canvas">
+  <link rel="stylesheet" href="_ds/island-booking-system-design-system-v2-449f87cb-ea95-4f4c-a868-ac49dceb167e/tokens/fonts.css">
+  <link rel="stylesheet" href="_ds/island-booking-system-design-system-v2-449f87cb-ea95-4f4c-a868-ac49dceb167e/tokens/goc.css">
+  <link rel="stylesheet" href="_ds/island-booking-system-design-system-v2-449f87cb-ea95-4f4c-a868-ac49dceb167e/tokens/y-nghia.css">
+  <link rel="stylesheet" href="_ds/island-booking-system-design-system-v2-449f87cb-ea95-4f4c-a868-ac49dceb167e/tokens/thanh-phan.css">
+  <link rel="stylesheet" href="_ds/island-booking-system-design-system-v2-449f87cb-ea95-4f4c-a868-ac49dceb167e/tokens/nen-tang.css">
+  <link rel="stylesheet" href="_ds/island-booking-system-design-system-v2-449f87cb-ea95-4f4c-a868-ac49dceb167e/components/hanh-dong/hanh-dong.css">
+  <link rel="stylesheet" href="_ds/island-booking-system-design-system-v2-449f87cb-ea95-4f4c-a868-ac49dceb167e/components/nhap/nhap.css">
+  <link rel="stylesheet" href="_ds/island-booking-system-design-system-v2-449f87cb-ea95-4f4c-a868-ac49dceb167e/components/hien-thi/hien-thi.css">
+  <link rel="stylesheet" href="_ds/island-booking-system-design-system-v2-449f87cb-ea95-4f4c-a868-ac49dceb167e/components/dieu-huong/dieu-huong.css">
+  <link rel="stylesheet" href="_ds/island-booking-system-design-system-v2-449f87cb-ea95-4f4c-a868-ac49dceb167e/components/phan-hoi/phan-hoi.css">
+  <link rel="stylesheet" href="_ds/island-booking-system-design-system-v2-449f87cb-ea95-4f4c-a868-ac49dceb167e/components/trang/trang.css">
+  <script src="_ds/island-booking-system-design-system-v2-449f87cb-ea95-4f4c-a868-ac49dceb167e/_ds_bundle.js"></script>
+  <script src="ib-icon.js"></script>
+  <style>body{margin:0;background:#e1e7ef}a{color:#0c4a6e}a:hover{color:#0b5c84}</style>
+</helmet>
+<div class="ib-goc" style="width:4400px;padding:96px 96px 160px;background:var(--mau-xam-200);display:flex;flex-direction:column;gap:120px">
+
+  <header style="display:flex;flex-direction:column;gap:var(--kc-5);max-width:1400px">
+    <span style="font-size:var(--co-7);font-weight:var(--fw-nhan);color:var(--c-chu-phu)">Island Booking System · bản vẽ duyệt · 28/10/2026 · Design System v2 (cổng 2a) + điều chỉnh mục 8</span>
+    <h1 style="margin:0;font-size:56px;line-height:var(--lh-tieu-de);font-weight:var(--fw-tieu-de);color:var(--c-chu)">Khung chung và năm khuôn trang</h1>
+    <p style="margin:0;font-size:var(--co-9);line-height:1.5;color:var(--c-chu-phu);max-width:1100px;text-wrap:pretty">Một khung cho mọi màn: người dùng luôn biết mình đang ở đâu, hành động chính của màn ở đúng một chỗ, khung không bao giờ che nội dung. Điện thoại 390 trước, rồi 1040; kiểm thêm 768 và 1440. Dữ liệu giả, đúng cấu trúc trang đang chạy.</p>
+    <div style="display:flex;flex-direction:column;gap:var(--kc-2)">
+      <nav aria-label="Phần của bản vẽ" style="display:flex;flex-wrap:wrap;gap:var(--kc-2)">
+        <sc-for list="{{ mucLuc }}" as="m" hint-placeholder-count="9">
+          <button type="button" class="{{ m.lop }}" aria-pressed="{{ m.chonChu }}" onClick="{{ m.bam }}" style="height:44px;font-size:var(--co-5)">{{ m.nhan }}</button>
+        </sc-for>
+      </nav>
+      <span style="font-size:var(--co-3);color:var(--c-chu-phu)">Mỗi lần dựng một phần (tối đa 21 artboard) để bản vẽ luôn mượt. Trong từng khuôn T1–T5 có công tắc Rỗng · Ít · Nhiều · Đang tải · Lỗi.</span>
+    </div>
+    <section aria-labelledby="vi-sao" class="ib-the" style="max-width:1100px;padding:var(--kc-5) var(--kc-6);gap:var(--kc-3)">
+      <h2 id="vi-sao" style="margin:0;font-size:var(--co-11);font-weight:var(--fw-tieu-de)">Vì sao khung này giúp làm nhanh hơn</h2>
+      <ol style="margin:0;padding-left:var(--kc-5);display:flex;flex-direction:column;gap:var(--kc-2);font-size:var(--co-7);line-height:1.5">
+        <sc-for list="{{ viSao }}" as="v" hint-placeholder-count="5"><li>{{ v }}</li></sc-for>
+      </ol>
+    </section>
+  </header>
+
+  <sc-if value="{{ la.k1 }}" hint-placeholder-val="{{ false }}">
+  <section id="k1" data-screen-label="K1 Khung điện thoại 390" style="display:flex;flex-direction:column;gap:var(--kc-6)">
+    <div style="display:flex;flex-direction:column;gap:var(--kc-2);max-width:1400px">
+      <h2 style="margin:0;font-size:44px;line-height:var(--lh-tieu-de);font-weight:var(--fw-tieu-de)">K1 · Khung điện thoại 390 × 10 bộ quyền</h2>
+      <p style="margin:0;font-size:var(--co-7);line-height:1.5;color:var(--c-chu-phu)">Mỗi artboard là trang đầu của bộ đó. Thanh tab 4–5 mục theo đề cương; "+" san hô ở giữa cho bộ có quyền tạo đơn. Chuông và Trợ lý nằm trên thanh trên, không còn nút nổi. Bán hàng có dải nhắc bảo mật để thấy ô tìm không đè dải.</p>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:64px 40px;align-items:flex-start">
+      <sc-for list="{{ k1 }}" as="a" hint-placeholder-count="10">
+        <div id="{{ a.id }}" style="flex:none;width:390px;display:flex;flex-direction:column;gap:var(--kc-3)">
+          <div style="display:flex;align-items:center;gap:var(--kc-3)"><span style="flex:none;padding:4px 12px;border-radius:var(--r-tron);background:var(--c-chinh);color:var(--c-chu-tren-chinh);font-size:var(--co-3);font-weight:var(--fw-tieu-de)">{{ a.ma }}</span><span style="font-size:var(--co-7);font-weight:var(--fw-tieu-de)">{{ a.ten }}</span></div>
+          <p style="margin:0;min-height:60px;font-size:var(--co-3);line-height:var(--lh-phu);color:var(--c-chu-phu)">{{ a.phu }}</p>
+          <div style="width:390px;height:844px"><dc-import name="KhungApp" kho="390" bo="{{ a.bo }}" trang="{{ a.trang }}" trang-thai="{{ a.tt }}" dai="{{ a.dai }}" lop="{{ a.lop }}" style="width:100%;height:100%" hint-size="390px,844px"></dc-import></div>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+  </sc-if>
+
+  <sc-if value="{{ la.k2k4 }}" hint-placeholder-val="{{ false }}">
+  <section id="k2" data-screen-label="K2 Khung 768" style="display:flex;flex-direction:column;gap:var(--kc-6)">
+    <div style="display:flex;flex-direction:column;gap:var(--kc-2);max-width:1400px">
+      <h2 style="margin:0;font-size:44px;line-height:var(--lh-tieu-de);font-weight:var(--fw-tieu-de)">K2 · Khung 768 (641–899): hai phương án</h2>
+      <p style="margin:0;font-size:var(--co-7);line-height:1.5;color:var(--c-chu-phu)">Cùng Toàn quyền, cùng trang Đơn hàng (nhiều). Thân là thẻ ba dòng hai cột ở cả hai. Chủ dự án chọn sau khi nhìn thật.</p>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:64px 40px;align-items:flex-start">
+      <div id="k2-a" style="flex:none;width:768px;display:flex;flex-direction:column;gap:var(--kc-3)">
+        <div style="display:flex;align-items:center;gap:var(--kc-3)"><span style="flex:none;padding:4px 12px;border-radius:var(--r-tron);background:var(--c-chinh);color:var(--c-chu-tren-chinh);font-size:var(--co-3);font-weight:var(--fw-tieu-de)">K2·A</span><span style="font-size:var(--co-7);font-weight:var(--fw-tieu-de)">Thanh bên thu gọn 56</span></div>
+        <p style="margin:0;min-height:60px;font-size:var(--co-3);line-height:var(--lh-phu);color:var(--c-chu-phu)">Chỉ biểu tượng; rê hoặc chạm vào thanh thì xổ nhãn đè lên nội dung (không đẩy). "+ Tạo đơn" lên thanh trên vì không có thanh tab.</p>
+        <div style="width:768px;height:1080px"><dc-import name="KhungApp" kho="768a" bo="SUPER_ADMIN" trang="don-hang" trang-thai="nhieu" co-nut-xo="{{ true }}" style="width:100%;height:100%" hint-size="768px,1080px"></dc-import></div>
+      </div>
+      <div id="k2-b" style="flex:none;width:768px;display:flex;flex-direction:column;gap:var(--kc-3)">
+        <div style="display:flex;align-items:center;gap:var(--kc-3)"><span style="flex:none;padding:4px 12px;border-radius:var(--r-tron);background:var(--c-chinh);color:var(--c-chu-tren-chinh);font-size:var(--co-3);font-weight:var(--fw-tieu-de)">K2·B</span><span style="font-size:var(--co-7);font-weight:var(--fw-tieu-de)">Giữ thanh tab dưới như điện thoại</span></div>
+        <p style="margin:0;min-height:60px;font-size:var(--co-3);line-height:var(--lh-phu);color:var(--c-chu-phu)">Cùng thanh tab và thanh trên của điện thoại; nội dung được cả 768. Hộp thoại giữa màn từ 768.</p>
+        <div style="width:768px;height:1024px"><dc-import name="KhungApp" kho="768b" bo="SUPER_ADMIN" trang="don-hang" trang-thai="nhieu" style="width:100%;height:100%" hint-size="768px,1024px"></dc-import></div>
+      </div>
+    </div>
+  </section>
+  </sc-if>
+
+  <sc-if value="{{ la.k3 }}" hint-placeholder-val="{{ false }}">
+  <section id="k3" data-screen-label="K3 Khung máy tính 1040" style="display:flex;flex-direction:column;gap:var(--kc-6)">
+    <div style="display:flex;flex-direction:column;gap:var(--kc-2);max-width:1400px">
+      <h2 style="margin:0;font-size:44px;line-height:var(--lh-tieu-de);font-weight:var(--fw-tieu-de)">K3 · Khung máy tính 1040 × 10 bộ quyền</h2>
+      <p style="margin:0;font-size:var(--co-7);line-height:1.5;color:var(--c-chu-phu)">Thanh bên đúng số đo của mã, bỏ "Tạo đơn" (lên thanh trên) và gộp "Đề nghị chuyển khách" vào nhóm gập "Điều phối". Phần giữa thanh bên cuộn, chân menu dính đáy riêng. Ô "Tìm đơn" chỉ có ở bộ xem được mọi đơn. Thêm phương án B tiêu đề tách và trạng thái bấm Tab lần đầu.</p>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:64px 40px;align-items:flex-start">
+      <sc-for list="{{ k3 }}" as="a" hint-placeholder-count="12">
+        <div id="{{ a.id }}" style="flex:none;width:1040px;display:flex;flex-direction:column;gap:var(--kc-3)">
+          <div style="display:flex;align-items:center;gap:var(--kc-3)"><span style="flex:none;padding:4px 12px;border-radius:var(--r-tron);background:var(--c-chinh);color:var(--c-chu-tren-chinh);font-size:var(--co-3);font-weight:var(--fw-tieu-de)">{{ a.ma }}</span><span style="font-size:var(--co-7);font-weight:var(--fw-tieu-de)">{{ a.ten }}</span></div>
+          <p style="margin:0;min-height:40px;font-size:var(--co-3);line-height:var(--lh-phu);color:var(--c-chu-phu)">{{ a.phu }}</p>
+          <div style="width:1040px;height:800px"><dc-import name="KhungApp" kho="1040" bo="{{ a.bo }}" trang="{{ a.trang }}" trang-thai="{{ a.tt }}" dai="{{ a.dai }}" lop="{{ a.lop }}" tieu-de-tach="{{ a.tach }}" bo-qua="{{ a.boQua }}" style="width:100%;height:100%" hint-size="1040px,800px"></dc-import></div>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+  </sc-if>
+
+  <sc-if value="{{ la.k2k4 }}" hint-placeholder-val="{{ false }}">
+  <section id="k4" data-screen-label="K4 Khung 1440" style="display:flex;flex-direction:column;gap:var(--kc-6)">
+    <div style="display:flex;flex-direction:column;gap:var(--kc-2);max-width:1400px">
+      <h2 style="margin:0;font-size:44px;line-height:var(--lh-tieu-de);font-weight:var(--fw-tieu-de)">K4 · Khung 1440 (nội dung tối đa 1280, căn giữa)</h2>
+      <p style="margin:0;font-size:var(--co-7);line-height:1.5;color:var(--c-chu-phu)">Chung ba mốc 640 / 900 / 1200 cho mọi trang (bỏ mốc riêng 1400 của Trang chủ). Từ 1200: Trang chủ hai cột, Danh sách có ngăn chi tiết phải khi chọn dòng, bảng không kéo giãn.</p>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:64px 40px;align-items:flex-start">
+      <sc-for list="{{ k4 }}" as="a" hint-placeholder-count="3">
+        <div id="{{ a.id }}" style="flex:none;width:1440px;display:flex;flex-direction:column;gap:var(--kc-3)">
+          <div style="display:flex;align-items:center;gap:var(--kc-3)"><span style="flex:none;padding:4px 12px;border-radius:var(--r-tron);background:var(--c-chinh);color:var(--c-chu-tren-chinh);font-size:var(--co-3);font-weight:var(--fw-tieu-de)">{{ a.ma }}</span><span style="font-size:var(--co-7);font-weight:var(--fw-tieu-de)">{{ a.ten }}</span></div>
+          <p style="margin:0;min-height:40px;font-size:var(--co-3);line-height:var(--lh-phu);color:var(--c-chu-phu)">{{ a.phu }}</p>
+          <div style="width:1440px;height:900px"><dc-import name="KhungApp" kho="1440" bo="{{ a.bo }}" trang="{{ a.trang }}" trang-thai="{{ a.tt }}" dai="{{ a.dai }}" lop="{{ a.lop }}" chon-dong="{{ a.chon }}" style="width:100%;height:100%" hint-size="1440px,900px"></dc-import></div>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+  </sc-if>
+
+  <sc-if value="{{ la.k5 }}" hint-placeholder-val="{{ false }}">
+  <section id="k5" data-screen-label="K5 Trạng thái hệ thống" style="display:flex;flex-direction:column;gap:var(--kc-6)">
+    <div style="display:flex;flex-direction:column;gap:var(--kc-2);max-width:1400px">
+      <h2 style="margin:0;font-size:44px;line-height:var(--lh-tieu-de);font-weight:var(--fw-tieu-de)">K5 · Trạng thái hệ thống — mỗi trạng thái có vỏ</h2>
+      <p style="margin:0;font-size:var(--co-7);line-height:1.5;color:var(--c-chu-phu)">Bán hàng (trừ dải bảo trì của Toàn quyền). Trang lỗi giữ thanh trên, thanh tab / thanh bên và lối về; không dựng ô tìm hay bộ lọc của trang; không mục nào sáng khi trang không thuộc mục nào.</p>
+    </div>
+    <sc-if value="{{ la.k5a }}" hint-placeholder-val="{{ false }}">
+    <h3 style="margin:0;font-size:var(--co-11);font-weight:var(--fw-tieu-de)">Điện thoại 390</h3>
+    <div style="display:flex;flex-wrap:wrap;gap:64px 40px;align-items:flex-start">
+      <sc-for list="{{ k5a }}" as="a" hint-placeholder-count="10">
+        <div id="{{ a.id }}" style="flex:none;width:390px;display:flex;flex-direction:column;gap:var(--kc-3)">
+          <div style="display:flex;align-items:center;gap:var(--kc-3)"><span style="flex:none;padding:4px 12px;border-radius:var(--r-tron);background:var(--c-chinh);color:var(--c-chu-tren-chinh);font-size:var(--co-3);font-weight:var(--fw-tieu-de)">{{ a.ma }}</span><span style="font-size:var(--co-7);font-weight:var(--fw-tieu-de)">{{ a.ten }}</span></div>
+          <p style="margin:0;min-height:60px;font-size:var(--co-3);line-height:var(--lh-phu);color:var(--c-chu-phu)">{{ a.phu }}</p>
+          <div style="width:390px;height:844px"><dc-import name="KhungApp" kho="390" bo="{{ a.bo }}" trang="{{ a.trang }}" trang-thai="{{ a.tt }}" dai="{{ a.dai }}" lop="{{ a.lop }}" style="width:100%;height:100%" hint-size="390px,844px"></dc-import></div>
+        </div>
+      </sc-for>
+    </div>
+    </sc-if>
+    <sc-if value="{{ la.k5b }}" hint-placeholder-val="{{ false }}">
+    <h3 style="margin:0;font-size:var(--co-11);font-weight:var(--fw-tieu-de)">Máy tính 1040 (và một bản 1440)</h3>
+    <div style="display:flex;flex-wrap:wrap;gap:64px 40px;align-items:flex-start">
+      <sc-for list="{{ k5b }}" as="a" hint-placeholder-count="10">
+        <div id="{{ a.id }}" style="flex:none;width:1040px;display:flex;flex-direction:column;gap:var(--kc-3)">
+          <div style="display:flex;align-items:center;gap:var(--kc-3)"><span style="flex:none;padding:4px 12px;border-radius:var(--r-tron);background:var(--c-chinh);color:var(--c-chu-tren-chinh);font-size:var(--co-3);font-weight:var(--fw-tieu-de)">{{ a.ma }}</span><span style="font-size:var(--co-7);font-weight:var(--fw-tieu-de)">{{ a.ten }}</span></div>
+          <div style="width:1040px;height:800px"><dc-import name="KhungApp" kho="1040" bo="{{ a.bo }}" trang="{{ a.trang }}" trang-thai="{{ a.tt }}" dai="{{ a.dai }}" lop="{{ a.lop }}" style="width:100%;height:100%" hint-size="1040px,800px"></dc-import></div>
+        </div>
+      </sc-for>
+      <div id="k5-1440" style="flex:none;width:1440px;display:flex;flex-direction:column;gap:var(--kc-3)">
+        <div style="display:flex;align-items:center;gap:var(--kc-3)"><span style="flex:none;padding:4px 12px;border-radius:var(--r-tron);background:var(--c-chinh);color:var(--c-chu-tren-chinh);font-size:var(--co-3);font-weight:var(--fw-tieu-de)">K5·1440</span><span style="font-size:var(--co-7);font-weight:var(--fw-tieu-de)">Không có quyền ở 1440 — thanh bên không sáng mục nào</span></div>
+        <div style="width:1440px;height:900px"><dc-import name="KhungApp" kho="1440" bo="SALES" trang="403" style="width:100%;height:100%" hint-size="1440px,900px"></dc-import></div>
+      </div>
+    </div>
+    </sc-if>
+  </section>
+  </sc-if>
+
+  <sc-if value="{{ la.k6 }}" hint-placeholder-val="{{ false }}">
+  <section id="k6" data-screen-label="K6 Lớp phủ, thông báo, dải" style="display:flex;flex-direction:column;gap:var(--kc-6)">
+    <div style="display:flex;flex-direction:column;gap:var(--kc-2);max-width:1400px">
+      <h2 style="margin:0;font-size:44px;line-height:var(--lh-tieu-de);font-weight:var(--fw-tieu-de)">K6 · Bảng trượt, hộp thoại, xác nhận, thông báo ngắn, dải trên trang</h2>
+      <p style="margin:0;font-size:var(--co-7);line-height:1.5;color:var(--c-chu-phu)">Một khuôn lớp phủ: trượt từ đáy ở điện thoại, giữa màn (520) từ 768. Đầu có tiêu đề + nút đóng (Esc), thân cuộn, chân một Chính + một Phụ. Hộp xác nhận một chiều nói hậu quả, vòng Đỏ, nút nguy hiểm tách riêng. Thông báo ngắn nền tối, tự tắt 3 giây, nằm trên thanh dính chứ không đè.</p>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:64px 40px;align-items:flex-start">
+      <sc-for list="{{ k6a }}" as="a" hint-placeholder-count="3">
+        <div id="{{ a.id }}" style="flex:none;width:390px;display:flex;flex-direction:column;gap:var(--kc-3)">
+          <div style="display:flex;align-items:center;gap:var(--kc-3)"><span style="flex:none;padding:4px 12px;border-radius:var(--r-tron);background:var(--c-chinh);color:var(--c-chu-tren-chinh);font-size:var(--co-3);font-weight:var(--fw-tieu-de)">{{ a.ma }}</span><span style="font-size:var(--co-7);font-weight:var(--fw-tieu-de)">{{ a.ten }}</span></div>
+          <p style="margin:0;min-height:60px;font-size:var(--co-3);line-height:var(--lh-phu);color:var(--c-chu-phu)">{{ a.phu }}</p>
+          <div style="width:390px;height:844px"><dc-import name="KhungApp" kho="390" bo="{{ a.bo }}" trang="{{ a.trang }}" trang-thai="{{ a.tt }}" lop="{{ a.lop }}" style="width:100%;height:100%" hint-size="390px,844px"></dc-import></div>
+        </div>
+      </sc-for>
+      <sc-for list="{{ k6b }}" as="a" hint-placeholder-count="3">
+        <div id="{{ a.id }}" style="flex:none;width:1040px;display:flex;flex-direction:column;gap:var(--kc-3)">
+          <div style="display:flex;align-items:center;gap:var(--kc-3)"><span style="flex:none;padding:4px 12px;border-radius:var(--r-tron);background:var(--c-chinh);color:var(--c-chu-tren-chinh);font-size:var(--co-3);font-weight:var(--fw-tieu-de)">{{ a.ma }}</span><span style="font-size:var(--co-7);font-weight:var(--fw-tieu-de)">{{ a.ten }}</span></div>
+          <p style="margin:0;min-height:60px;font-size:var(--co-3);line-height:var(--lh-phu);color:var(--c-chu-phu)">{{ a.phu }}</p>
+          <div style="width:1040px;height:800px"><dc-import name="KhungApp" kho="1040" bo="{{ a.bo }}" trang="{{ a.trang }}" trang-thai="{{ a.tt }}" lop="{{ a.lop }}" style="width:100%;height:100%" hint-size="1040px,800px"></dc-import></div>
+        </div>
+      </sc-for>
+      <div id="k6-1440" style="flex:none;width:1440px;display:flex;flex-direction:column;gap:var(--kc-3)">
+        <div style="display:flex;align-items:center;gap:var(--kc-3)"><span style="flex:none;padding:4px 12px;border-radius:var(--r-tron);background:var(--c-chinh);color:var(--c-chu-tren-chinh);font-size:var(--co-3);font-weight:var(--fw-tieu-de)">K6·1440</span><span style="font-size:var(--co-7);font-weight:var(--fw-tieu-de)">Hộp thoại ở 1440 — vẫn 520, giữa màn</span></div>
+        <div style="width:1440px;height:900px"><dc-import name="KhungApp" kho="1440" bo="SUPER_ADMIN" trang="don-hang" trang-thai="nhieu" lop="loc" style="width:100%;height:100%" hint-size="1440px,900px"></dc-import></div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-wrap:wrap;gap:64px 40px;align-items:flex-start">
+      <div id="k6-dai" style="flex:none;display:flex;flex-direction:column;gap:var(--kc-3)">
+        <div style="display:flex;align-items:center;gap:var(--kc-3)"><span style="flex:none;padding:4px 12px;border-radius:var(--r-tron);background:var(--c-chinh);color:var(--c-chu-tren-chinh);font-size:var(--co-3);font-weight:var(--fw-tieu-de)">K6·Dải</span><span style="font-size:var(--co-7);font-weight:var(--fw-tieu-de)">Dải trên trang — bốn loại (mẫu xếp chồng; trên trang chỉ một)</span></div>
+        <p style="margin:0;font-size:var(--co-3);line-height:var(--lh-phu);color:var(--c-chu-phu);max-width:1040px">Thứ tự ưu tiên: bảo trì › thông báo quan trọng › nhắc bảo mật. Cao một dòng 44 ở máy tính; ở 390 câu xuống dòng thay vì cắt. "Đã hiểu" / đóng thì nhớ theo phiên. Không hiện nhắc bảo mật khi đang ở biểu mẫu.</p>
+        <div style="display:flex;gap:40px;align-items:flex-start">
+          <div class="ib-khung" style="width:390px;background:var(--c-nen);border-radius:var(--r-the);overflow:hidden;box-shadow:var(--sh-the);display:flex;flex-direction:column;gap:1px">
+            <sc-for list="{{ daiMau }}" as="d" hint-placeholder-count="4">
+              <div class="ib-dai-tren ib-dai-tren--{{ d.tong }}" role="{{ d.vai }}">
+                <div class="ib-dai-tren__ruot">
+                  <sc-if value="{{ d.laDo }}"><svg class="ib-bt ib-dai-tren__bt" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true" style="stroke-linecap:round;stroke-linejoin:round"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4.5M12 16v.01"></path></svg></sc-if>
+                  <sc-if value="{{ d.khacDo }}"><ib-icon ten="{{ d.bt }}" co="20" lop="ib-dai-tren__bt"></ib-icon></sc-if>
+                  <div class="ib-dai-tren__chu"><p class="ib-dai-tren__cau">{{ d.cau }}</p></div>
+                  <button type="button" class="ib-nut ib-nut--loi-nho ib-dai-tren__hd" style="flex:none;white-space:nowrap"><span class="ib-nut__chu">{{ d.nut }}</span></button>
+                  <sc-if value="{{ d.coDong }}"><button type="button" class="ib-nut ib-nut--loi-nho ib-nut--hinh" aria-label="Để sau" style="flex:none"><ib-icon ten="close" co="20"></ib-icon></button></sc-if>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+          <div class="ib-khung" style="width:1040px;background:var(--c-nen);border-radius:var(--r-the);overflow:hidden;box-shadow:var(--sh-the);display:flex;flex-direction:column;gap:1px">
+            <sc-for list="{{ daiMau }}" as="d" hint-placeholder-count="4">
+              <div class="ib-dai-tren ib-dai-tren--{{ d.tong }}" role="{{ d.vai }}">
+                <div class="ib-dai-tren__ruot">
+                  <sc-if value="{{ d.laDo }}"><svg class="ib-bt ib-dai-tren__bt" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true" style="stroke-linecap:round;stroke-linejoin:round"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4.5M12 16v.01"></path></svg></sc-if>
+                  <sc-if value="{{ d.khacDo }}"><ib-icon ten="{{ d.bt }}" co="20" lop="ib-dai-tren__bt"></ib-icon></sc-if>
+                  <div class="ib-dai-tren__chu"><p class="ib-dai-tren__cau">{{ d.cau }}</p></div>
+                  <button type="button" class="ib-nut ib-nut--loi-nho ib-dai-tren__hd" style="flex:none;white-space:nowrap"><span class="ib-nut__chu">{{ d.nut }}</span></button>
+                  <sc-if value="{{ d.coDong }}"><button type="button" class="ib-nut ib-nut--loi-nho ib-nut--hinh" aria-label="Để sau" style="flex:none"><ib-icon ten="close" co="20"></ib-icon></button></sc-if>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+
+      <div id="k6-tong" style="flex:none;width:560px;display:flex;flex-direction:column;gap:var(--kc-3)">
+        <div style="display:flex;align-items:center;gap:var(--kc-3)"><span style="flex:none;padding:4px 12px;border-radius:var(--r-tron);background:var(--c-chinh);color:var(--c-chu-tren-chinh);font-size:var(--co-3);font-weight:var(--fw-tieu-de)">K6·Tông</span><span style="font-size:var(--co-7);font-weight:var(--fw-tieu-de)">Năm tông trạng thái — mỗi tông một hình</span></div>
+        <div class="ib-the" style="padding:var(--kc-5);gap:var(--kc-3)">
+          <sc-for list="{{ tongMau }}" as="t" hint-placeholder-count="5">
+            <div style="display:flex;align-items:center;gap:var(--kc-4);min-height:44px;border-bottom:1px solid var(--c-vien)">
+              <span style="width:120px;font-size:var(--co-3);font-weight:var(--fw-nhan);color:var(--c-chu-phu)">{{ t.ten }}</span>
+              <span class="ib-hh ib-hh--{{ t.tong }}">
+                <sc-if value="{{ t.laDo }}"><svg class="ib-bt" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true" style="stroke-linecap:round;stroke-linejoin:round"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4.5M12 16v.01"></path></svg></sc-if>
+                <sc-if value="{{ t.khacDo }}"><ib-icon ten="{{ t.bt }}" co="14"></ib-icon></sc-if>
+                {{ t.vd }}
+              </span>
+              <span style="margin-left:auto;font-size:var(--co-3);color:var(--c-chu-phu)">{{ t.hinh }} · {{ t.nghia }}</span>
+            </div>
+          </sc-for>
+          <p style="margin:0;font-size:var(--co-3);line-height:var(--lh-phu);color:var(--c-chu-phu)">alertCircle là biểu tượng MỚI (xem bảng token MỚI); bốn hình còn lại có sẵn trong mã.</p>
+        </div>
+      </div>
+
+      <div id="k6-tab" style="flex:none;width:1040px;display:flex;flex-direction:column;gap:var(--kc-3)">
+        <div style="display:flex;align-items:center;gap:var(--kc-3)"><span style="flex:none;padding:4px 12px;border-radius:var(--r-tron);background:var(--c-chinh);color:var(--c-chu-tren-chinh);font-size:var(--co-3);font-weight:var(--fw-tieu-de)">K6·Tab</span><span style="font-size:var(--co-7);font-weight:var(--fw-tieu-de)">Một thành phần Tab, hai biến thể</span></div>
+        <div class="ib-the" style="padding:var(--kc-5);gap:var(--kc-5)">
+          <div style="display:flex;flex-direction:column;gap:var(--kc-2)">
+            <span style="font-size:var(--co-3);color:var(--c-chu-phu)">Máy tính — gạch chân. Mở sẵn tab có việc của vai (Quản trị có 2 giấy tờ sắp hết hạn).</span>
+            <div role="tablist" aria-label="Xe và giấy tờ" style="display:flex;gap:var(--kc-1);border-bottom:1px solid var(--c-vien)">
+              <button type="button" role="tab" aria-selected="false" class="ib-tab__muc" style="border-radius:var(--r-dieu-khien) var(--r-dieu-khien) 0 0">Xe</button>
+              <button type="button" role="tab" aria-selected="false" class="ib-tab__muc" style="border-radius:var(--r-dieu-khien) var(--r-dieu-khien) 0 0">Lịch xe bận</button>
+              <button type="button" role="tab" aria-selected="true" class="ib-tab__muc" style="color:var(--c-chinh);border-radius:var(--r-dieu-khien) var(--r-dieu-khien) 0 0;box-shadow:inset 0 calc(-1 * var(--tab-gach, 3px)) 0 var(--c-chinh)">Giấy tờ sắp hết hạn <span class="ib-tab__dem" style="background:var(--tt-cat-bg);color:var(--tt-cat-chu)">2</span></button>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:var(--kc-2)">
+            <span style="font-size:var(--co-3);color:var(--c-chu-phu)">Điện thoại — viên thuốc cuộn ngang, mép phải mờ báo còn tab (bộ không có giấy tờ sắp hết hạn nên mở sẵn tab đầu).</span>
+            <div style="width:358px;padding:var(--kc-1) 0">
+              <div role="tablist" aria-label="Xe và giấy tờ" class="ib-tab ib-tab--rong" style="-webkit-mask-image:linear-gradient(to right,#000 calc(100% - var(--tab-mo-mep, 32px)),transparent);mask-image:linear-gradient(to right,#000 calc(100% - var(--tab-mo-mep, 32px)),transparent)">
+                <button type="button" role="tab" aria-selected="true" class="ib-tab__muc is-chon" style="flex:none">Xe</button>
+                <button type="button" role="tab" aria-selected="false" class="ib-tab__muc" style="flex:none">Lịch xe bận</button>
+                <button type="button" role="tab" aria-selected="false" class="ib-tab__muc" style="flex:none">Giấy tờ sắp hết hạn</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+  </sc-if>
+
+  <sc-if value="{{ la.t }}" hint-placeholder-val="{{ false }}">
+  <sc-for list="{{ khuon }}" as="k" hint-placeholder-count="5">
+    <section id="{{ k.id }}" data-screen-label="{{ k.ma }} {{ k.ten }}" style="display:flex;flex-direction:column;gap:var(--kc-6)">
+      <div style="display:flex;flex-direction:column;gap:var(--kc-2);max-width:1400px">
+        <h2 style="margin:0;font-size:44px;line-height:var(--lh-tieu-de);font-weight:var(--fw-tieu-de)">{{ k.ma }} · Khuôn {{ k.ten }}</h2>
+        <p style="margin:0;font-size:var(--co-7);line-height:1.5;color:var(--c-chu-phu)">{{ k.phu }}</p>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:64px 40px;align-items:flex-start">
+        <div id="{{ k.id }}-390" style="flex:none;width:390px;display:flex;flex-direction:column;gap:var(--kc-3)">
+          <div style="display:flex;align-items:center;gap:var(--kc-3)"><span style="flex:none;padding:4px 12px;border-radius:var(--r-tron);background:var(--c-chinh);color:var(--c-chu-tren-chinh);font-size:var(--co-3);font-weight:var(--fw-tieu-de)">{{ k.ma }}·390</span><span style="font-size:var(--co-7);font-weight:var(--fw-tieu-de)">Điện thoại</span></div>
+          <div style="width:390px;height:900px"><dc-import name="KhungApp" kho="390" bo="{{ k.bo }}" trang="{{ k.trang }}" trang-thai="{{ k.tt390 }}" co-cong-tac="{{ true }}" style="width:100%;height:100%" hint-size="390px,900px"></dc-import></div>
+        </div>
+        <div id="{{ k.id }}-1040" style="flex:none;width:1040px;display:flex;flex-direction:column;gap:var(--kc-3)">
+          <div style="display:flex;align-items:center;gap:var(--kc-3)"><span style="flex:none;padding:4px 12px;border-radius:var(--r-tron);background:var(--c-chinh);color:var(--c-chu-tren-chinh);font-size:var(--co-3);font-weight:var(--fw-tieu-de)">{{ k.ma }}·1040</span><span style="font-size:var(--co-7);font-weight:var(--fw-tieu-de)">Máy tính</span></div>
+          <div style="width:1040px;height:856px"><dc-import name="KhungApp" kho="1040" bo="{{ k.bo }}" trang="{{ k.trang }}" trang-thai="{{ k.tt1040 }}" co-cong-tac="{{ true }}" style="width:100%;height:100%" hint-size="1040px,856px"></dc-import></div>
+        </div>
+        <sc-for list="{{ k.them }}" as="a" hint-placeholder-count="0">
+          <div id="{{ a.id }}" style="flex:none;width:390px;display:flex;flex-direction:column;gap:var(--kc-3)">
+            <div style="display:flex;align-items:center;gap:var(--kc-3)"><span style="flex:none;padding:4px 12px;border-radius:var(--r-tron);background:var(--c-chinh);color:var(--c-chu-tren-chinh);font-size:var(--co-3);font-weight:var(--fw-tieu-de)">{{ a.ma }}</span><span style="font-size:var(--co-7);font-weight:var(--fw-tieu-de)">{{ a.ten }}</span></div>
+            <p style="margin:0;min-height:44px;font-size:var(--co-3);line-height:var(--lh-phu);color:var(--c-chu-phu)">{{ a.phu }}</p>
+            <div style="width:390px;height:844px"><dc-import name="KhungApp" kho="390" bo="{{ a.bo }}" trang="{{ a.trang }}" trang-thai="{{ a.tt }}" style="width:100%;height:100%" hint-size="390px,844px"></dc-import></div>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+  </sc-for>
+  </sc-if>
+
+  <sc-if value="{{ la.token }}" hint-placeholder-val="{{ false }}">
+  <section id="token" data-screen-label="Bảng token" style="display:flex;flex-direction:column;gap:var(--kc-6)">
+    <h2 style="margin:0;font-size:44px;line-height:var(--lh-tieu-de);font-weight:var(--fw-tieu-de)">Token đã dùng (tên theo mã) và Token MỚI đề xuất</h2>
+    <div style="display:flex;flex-wrap:wrap;gap:64px;align-items:flex-start">
+      <div class="ib-the" style="width:1560px;padding:var(--kc-5) var(--kc-6)">
+        <h3 style="margin:0;font-size:var(--co-11);font-weight:var(--fw-tieu-de)">Token đã dùng</h3>
+        <table style="width:100%;border-collapse:collapse;font-size:var(--co-5);line-height:var(--lh-noi-dung)">
+          <thead><tr style="text-align:left;color:var(--c-chu-phu);font-size:var(--co-3)"><th style="padding:8px 12px;border-bottom:1px solid var(--c-vien);font-weight:var(--fw-nhan)">Tên trong mã</th><th style="padding:8px 12px;border-bottom:1px solid var(--c-vien);font-weight:var(--fw-nhan)">Tên hiển thị trong bộ</th><th style="padding:8px 12px;border-bottom:1px solid var(--c-vien);font-weight:var(--fw-nhan)">Giá trị</th><th style="padding:8px 12px;border-bottom:1px solid var(--c-vien);font-weight:var(--fw-nhan)">Dùng ở khung</th></tr></thead>
+          <tbody>
+            <sc-for list="{{ tokenDung }}" as="t" hint-placeholder-count="0">
+              <tr>
+                <td style="padding:8px 12px;border-bottom:1px solid var(--c-vien);white-space:nowrap;font-weight:var(--fw-nhan)">{{ t.ma }}</td>
+                <td style="padding:8px 12px;border-bottom:1px solid var(--c-vien);color:var(--c-chu-phu)">{{ t.bo }}</td>
+                <td style="padding:8px 12px;border-bottom:1px solid var(--c-vien);white-space:nowrap"><span style="display:inline-flex;align-items:center;gap:8px"><sc-if value="{{ t.coMau }}"><span style="width:20px;height:20px;border-radius:6px;box-shadow:inset 0 0 0 1px rgba(15,23,42,.12);background:{{ t.gt }}"></span></sc-if>{{ t.gt }}</span></td>
+                <td style="padding:8px 12px;border-bottom:1px solid var(--c-vien)">{{ t.dung }}</td>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </div>
+      <div class="ib-the" style="width:1100px;padding:var(--kc-5) var(--kc-6)">
+        <h3 style="margin:0;font-size:var(--co-11);font-weight:var(--fw-tieu-de)">Token MỚI đề xuất</h3>
+        <table style="width:100%;border-collapse:collapse;font-size:var(--co-5);line-height:var(--lh-noi-dung)">
+          <thead><tr style="text-align:left;color:var(--c-chu-phu);font-size:var(--co-3)"><th style="padding:8px 12px;border-bottom:1px solid var(--c-vien);font-weight:var(--fw-nhan)">Tên đề xuất</th><th style="padding:8px 12px;border-bottom:1px solid var(--c-vien);font-weight:var(--fw-nhan)">Giá trị</th><th style="padding:8px 12px;border-bottom:1px solid var(--c-vien);font-weight:var(--fw-nhan)">Lý do</th></tr></thead>
+          <tbody>
+            <sc-for list="{{ tokenMoi }}" as="t" hint-placeholder-count="0">
+              <tr>
+                <td style="padding:8px 12px;border-bottom:1px solid var(--c-vien);white-space:nowrap;font-weight:var(--fw-nhan)"><span class="ib-hh ib-hh--cat" style="margin-right:8px">MỚI</span>{{ t.ma }}</td>
+                <td style="padding:8px 12px;border-bottom:1px solid var(--c-vien);white-space:nowrap">{{ t.gt }}</td>
+                <td style="padding:8px 12px;border-bottom:1px solid var(--c-vien)">{{ t.lyDo }}</td>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+  </sc-if>
+
+  <sc-if value="{{ la.token }}" hint-placeholder-val="{{ false }}">
+  <section id="ghi-chu" data-screen-label="Ghi chú" class="ib-the" style="max-width:1400px;padding:var(--kc-5) var(--kc-6);gap:var(--kc-3)">
+    <h2 style="margin:0;font-size:var(--co-11);font-weight:var(--fw-tieu-de)">Ghi chú — chỗ bản vẽ phải tự quyết hoặc khác đề bài một chút</h2>
+    <ol style="margin:0;padding-left:var(--kc-5);display:flex;flex-direction:column;gap:var(--kc-2);font-size:var(--co-5);line-height:1.55">
+      <sc-for list="{{ ghiChu }}" as="g" hint-placeholder-count="12"><li>{{ g }}</li></sc-for>
+    </ol>
+  </section>
+  </sc-if>
+
+  <sc-if value="{{ la.hienTrang }}" hint-placeholder-val="{{ false }}">
+  <section id="hien-trang" data-screen-label="Hiện trạng" style="display:flex;flex-direction:column;gap:var(--kc-6)">
+    <div style="display:flex;flex-direction:column;gap:var(--kc-2);max-width:1400px">
+      <h2 style="margin:0;font-size:44px;line-height:var(--lh-tieu-de);font-weight:var(--fw-tieu-de)">Hiện trạng — ảnh chụp từ trang đang chạy</h2>
+      <p style="margin:0;font-size:var(--co-7);line-height:1.5;color:var(--c-chu-phu)">Chép từ docs/evidence/2026-10-27-danh-gia-ux-tong-the/anh/ để đối chiếu. Số đầu dòng là số của mục 4 đề bài.</p>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:48px 32px;align-items:flex-start">
+      <sc-for list="{{ anh }}" as="h" hint-placeholder-count="0">
+        <figure style="margin:0;flex:none;width:{{ h.w }}px;display:flex;flex-direction:column;gap:var(--kc-2)">
+          <div role="img" aria-label="{{ h.chu }}" style="width:100%;aspect-ratio:{{ h.tl }};border-radius:var(--r-the);box-shadow:var(--sh-the);background:var(--c-nen) {{ h.nen }} top / contain no-repeat"></div>
+          <figcaption style="font-size:var(--co-3);line-height:var(--lh-phu);color:var(--c-chu-phu)">{{ h.chu }}</figcaption>
+        </figure>
+      </sc-for>
+    </div>
+  </section>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const TT = [['rong', 'Rỗng'], ['it', 'Ít'], ['nhieu', 'Nhiều'], ['dang-tai', 'Đang tải'], ['loi', 'Lỗi']];
+const BO10 = [
+  ['SUPER_ADMIN', 'Toàn quyền', 'Trang chủ', 'Trang chủ · Đơn hàng · + Tạo đơn · Thiết lập · Tôi', 'Trang chủ · Đơn hàng · Danh bạ | Điều phối (gập) · Xe đang chạy · Xe & giấy tờ (gập) · Giá & chi phí (gập) | Điều chỉnh công nợ · Sổ công nợ & khoá sổ (gập) | Thiết lập (gập 15) = 10 mục'],
+  ['ADMIN', 'Quản trị', 'Trang chủ', 'Trang chủ · Đơn hàng · + Tạo đơn · Thiết lập · Tôi', 'Như Toàn quyền, không có Sổ công nợ & khoá sổ; Thiết lập 10 mục'],
+  ['ACCOUNTING', 'Kế toán', 'Trang chủ', 'Trang chủ · Đơn hàng · Sổ công nợ · Tôi — không tạo đơn', 'Trang chủ · Đơn hàng · Danh bạ | Điều phối xe · Xe đang chạy · Giá & chi phí (gập) | Điều chỉnh công nợ · Sổ công nợ & khoá sổ (gập) | Thiết lập (gập 3)'],
+  ['SALES', 'Bán hàng', 'Trang chủ', 'Trang chủ · Đơn hàng · + Tạo đơn · Danh bạ · Tôi', 'Trang chủ · Đơn hàng · Danh bạ | Điều phối xe · Xe đang chạy | Thiết lập (gập: Hoa hồng đối tác)'],
+  ['INTERN', 'Thực tập', 'Đơn hàng', 'Đơn hàng · + Tạo đơn · Hỗ trợ · Tôi', 'Đơn hàng · chân menu — ô tìm nằm trong thân (không có ô Tìm đơn trên thanh trên)'],
+  ['FIELD', 'Hướng dẫn viên', 'Đơn hàng', 'Đơn hàng · Hỗ trợ · Hướng dẫn · Tôi', 'Đơn hàng · chân menu'],
+  ['PARTNER', 'Đối tác', 'Đơn hàng', 'Đơn hàng · + Tạo đơn · Hỗ trợ · Tôi', 'Đơn hàng · chân menu'],
+  ['HR', 'Nhân sự', 'Quản lý tài khoản', 'Tài khoản · Hỗ trợ · Hướng dẫn · Tôi — thân: khung xương khuôn Danh sách', 'Quản lý tài khoản (nhóm Thiết lập mở sẵn) · chân menu — "+ Thêm tài khoản" ở góc phải'],
+  ['DRIVER', 'Tài xế công ty', 'Cuốc của tôi', 'Trang chủ · Cuốc của tôi · Hỗ trợ · Tôi — thân: khung xương khuôn Danh sách', 'Trang chủ (tài xế) · Cuốc của tôi · chân menu'],
+  ['DRIVER_PARTNER', 'Tài xế đối tác', 'Cuốc của tôi', 'Trang chủ · Cuốc của tôi · Báo bận · Hỗ trợ · Tôi — thân: khung xương khuôn Danh sách', 'Trang chủ (tài xế) · Cuốc của tôi · Báo bận của tôi · chân menu'],
+];
+const pad = (n) => String(n).padStart(2, '0');
+const A = (o) => ({ dai: '', lop: '', tt: 'it', tach: false, chon: false, boQua: false, ...o });
+const K5 = [
+  ['Mất mạng — trang đã nạp', 'don-hang', 'it', 'ngoai-mang', '', 'Giữ vỏ và dữ liệu lần xem gần nhất, dải Cát + Thử lại; khung xương không chạy; thanh tab vẫn dùng được; "Tải thêm" tắt kèm lý do.'],
+  ['Mất mạng — trang chưa nạp', 'mat-mang-chua-nap', 'it', '', '', 'Vỏ + hình + câu nói vì sao trống + Thử lại; tự thử lại khi có mạng.'],
+  ['Bảo trì — lớp phủ khi đang mở phiên', 'don-hang', 'it', '', 'bao-tri', 'Người không phải Toàn quyền: lớp phủ toàn trang, đếm ngược, Thử lại và Đăng xuất; trang bên dưới giữ nguyên (không nhận bàn phím).'],
+  ['Bảo trì — màn Đăng nhập', 'dang-nhap', 'it', '', '', 'Chưa đăng nhập: dải đếm ngược cùng câu của máy; biểu mẫu vẫn dùng được để Toàn quyền vào.'],
+  ['Bảo trì — dải của Toàn quyền', 'trang-chu', 'it', 'bao-tri', '', 'Chỉ Toàn quyền thấy dải Biển "Đang bảo trì, dự kiến xong 23:30"; "Xem" mở bảng trượt có nút tắt bảo trì.', 'SUPER_ADMIN'],
+  ['Không có quyền (403)', '403', 'it', '', '', 'Một câu chung + "Về trang đầu của bạn". Không ô tìm, không bộ lọc; thanh tab không sáng mục nào.'],
+  ['Không có trang (404)', '404', 'it', '', '', 'Câu tiếng Việt + lối về; không bao giờ lộ JSON hay chữ Anh.'],
+  ['Thiếu mã', 'thieu-ma', 'it', '', '', 'Mở chi tiết không có mã: trang con của Đơn hàng nên mục Đơn hàng vẫn sáng; nút về Đơn hàng.'],
+  ['Đang tải — khung xương', 'trang-chu', 'dang-tai', '', '', 'Vỏ vẽ ngay; thân là khung xương đúng hình ô số liệu và lối tắt; không chữ "Đang tải…" trần.'],
+  ['Lỗi máy chủ', 'don-hang', 'loi', '', '', 'Câu nói đúng lý do + Thử lại; vùng tìm và Lọc giữ chỗ để không nhảy bố cục khi tải lại.'],
+];
+
+class Component extends DCLogic {
+  componentDidMount() {
+    const h = (location.hash || '').slice(1);
+    const map = [['k1', 'k1'], ['k2', 'k2k4'], ['k4', 'k2k4'], ['k3', 'k3'], ['k5-390', 'k5a'], ['k5-1040', 'k5b'], ['k5-1440', 'k5b'], ['k5', 'k5a'], ['k6', 'k6'], ['t', 't'], ['token', 'token'], ['ghi-chu', 'token'], ['hien-trang', 'hien-trang']];
+    let phan = null;
+    for (const [p, v] of map) if (h.startsWith(p)) { phan = v; break; }
+    if (!phan) { try { phan = localStorage.getItem('ib-khung-phan'); } catch (e) { /* bỏ qua */ } }
+    if (phan && phan !== this.state.phan) this.setState({ phan });
+  }
+
+  state = {
+    phan: 'k1',
+    tt: { 't1-390': 'nhieu', 't1-1040': 'nhieu', 't2-390': 'it', 't2-1040': 'it', 't3-390': 'nhieu', 't3-1040': 'nhieu', 't4-390': 'it', 't4-1040': 'it', 't5-390': 'it', 't5-1040': 'it' },
+  };
+
+  renderVals() {
+    const k1 = BO10.map(([bo, vai, dau, tab], i) => A({
+      id: 'k1-' + pad(i + 1), ma: 'K1·' + pad(i + 1), ten: vai + ' — ' + dau, phu: 'Thanh tab: ' + tab, bo, trang: 'trang-dau',
+      dai: bo === 'SALES' ? 'bao-mat' : '',
+    }));
+    const k3 = BO10.map(([bo, vai, dau, , ben], i) => A({
+      id: 'k3-' + pad(i + 1), ma: 'K3·' + pad(i + 1), ten: vai + ' — ' + dau, phu: 'Thanh bên: ' + ben, bo, trang: 'trang-dau',
+      dai: bo === 'ACCOUNTING' ? 'quan-trong' : '',
+    }));
+    k3.push(A({ id: 'k3-11', ma: 'K3·11', ten: 'Toàn quyền — Đơn hàng, phương án B: tiêu đề tách khỏi thanh trên', phu: 'Tiêu đề 24 thành dòng riêng dưới thanh; thanh trên chỉ còn ô tìm và nút. Mọi artboard khác dùng phương án A (tiêu đề 18 trên thanh).', bo: 'SUPER_ADMIN', trang: 'don-hang', tt: 'nhieu', tach: true }));
+    k3.push(A({ id: 'k3-12', ma: 'K3·12', ten: 'Toàn quyền — bấm Tab lần đầu', phu: 'Lối "Bỏ qua tới nội dung chính" hiện ở lần Tab đầu, vành tiêu điểm 3 px; phím "/" nhảy vào ô Tìm đơn, Esc đóng bảng trượt / hộp thoại.', bo: 'SUPER_ADMIN', trang: 'trang-chu', boQua: true }));
+    const k4 = [
+      A({ id: 'k4-01', ma: 'K4·01', ten: 'Toàn quyền — Trang chủ hai cột (≥ 1200)', phu: 'Việc của bạn bên trái; doanh thu và lối tắt bên phải. Chung mốc 1200 với mọi trang.', bo: 'SUPER_ADMIN', trang: 'trang-chu' }),
+      A({ id: 'k4-02', ma: 'K4·02', ten: 'Kế toán — Đơn hàng (nhiều), đang chọn một dòng', phu: 'Bảng giữ bề rộng cột, ngăn chi tiết phải 360 khi chọn dòng; Esc đóng ngăn. Kế toán không có "+ Tạo đơn".', bo: 'ACCOUNTING', trang: 'don-hang', tt: 'nhieu', chon: true }),
+      A({ id: 'k4-03', ma: 'K4·03', ten: 'Bán hàng — Chi tiết đơn hai cột', phu: 'Thân trái; tóm tắt và hành động dính bên phải; một nút san hô duy nhất trên màn.', bo: 'SALES', trang: 'chi-tiet' }),
+    ];
+    const k5 = (kho) => K5.map(([ten, trang, tt, dai, lop, phu, bo], i) => A({ id: 'k5-' + kho + '-' + pad(i + 1), ma: 'K5·' + pad(i + 1) + (kho === '390' ? '' : '·' + kho), ten, phu, trang, tt, dai, lop, bo: bo || 'SALES' }));
+    const k6a = [
+      A({ id: 'k6-01', ma: 'K6·01', ten: 'Bảng trượt từ đáy — Lọc đơn', phu: 'Tay cầm, tiêu đề + đóng, thân cuộn, chân "Xoá lọc" + "Xem 12 đơn" cao 52.', bo: 'SALES', trang: 'don-hang', tt: 'nhieu', lop: 'loc' }),
+      A({ id: 'k6-03', ma: 'K6·03', ten: 'Hộp xác nhận một chiều — Huỷ đơn', phu: 'Nói hậu quả, vòng Đỏ; "Huỷ đơn" đỏ đặc tách xa "Giữ đơn" (nút an toàn sát ngón cái).', bo: 'SALES', trang: 'chi-tiet', lop: 'xac-nhan' }),
+      A({ id: 'k6-05', ma: 'K6·05', ten: 'Thông báo ngắn — năm tông (mẫu xếp chồng)', phu: 'Thật chỉ một cái, tự tắt sau 3 giây, nằm trên chân dính. "Hoàn tác" màu cát.', bo: 'SALES', trang: 'chi-tiet', lop: 'bao-xong' }),
+    ];
+    const k6b = [
+      A({ id: 'k6-02', ma: 'K6·02', ten: 'Hộp thoại giữa màn — Lọc đơn', phu: 'Cùng khuôn với bảng trượt; rộng 520, chân canh phải. Thay cho 5 cách dựng và hộp xác nhận của hệ điều hành.', bo: 'SALES', trang: 'don-hang', tt: 'nhieu', lop: 'loc' }),
+      A({ id: 'k6-04', ma: 'K6·04', ten: 'Hộp xác nhận một chiều ở máy tính', phu: '"Giữ đơn" bên trái, "Huỷ đơn" đỏ đặc bên phải, cách xa nhau.', bo: 'SALES', trang: 'chi-tiet', lop: 'xac-nhan' }),
+      A({ id: 'k6-06', ma: 'K6·06', ten: 'Thông báo ngắn ở máy tính', phu: 'Đáy vùng nội dung, không đè thanh bên.', bo: 'SALES', trang: 'don-hang', lop: 'bao-xong' }),
+    ];
+    const khuonDef = [
+      { id: 't1', ma: 'T1', ten: 'Danh sách — Đơn hàng', trang: 'don-hang', bo: 'SALES', phu: 'Đầu trang: tiêu đề + "+ Tạo đơn" (góc phải thanh trên ở máy tính; "+" giữa thanh tab ở điện thoại). Vùng hành động: tìm + Lọc, chip đang lọc hiện dưới. Thân: thẻ ba dòng (≤ 899) / bảng (≥ 900), 50 dòng + "Tải thêm", số tiền canh phải, hành động dòng ở cột cuối. Không có chân dính.' },
+      { id: 't2', ma: 'T2', ten: 'Chi tiết — Chi tiết đơn', trang: 'chi-tiet', bo: 'SALES', phu: 'Đầu trang: quay lại + mã đơn + huy hiệu. Dải hành động: 1 chính + 2 phụ + "…" (Xem biên nhận, Huỷ đơn). Thân: tóm tắt → dịch vụ, đưa đón, hành khách, thanh toán, người phụ trách, khách hàng → lịch sử. Điện thoại: chân dính "Xác nhận đơn để gửi khách" thay thanh tab. Máy tính: hai cột, tóm tắt và hành động dính bên phải.' },
+      { id: 't3', ma: 'T3', ten: 'Biểu mẫu — Tạo / sửa chuyến', trang: 'bieu-mau', bo: 'SUPER_ADMIN', phu: 'Đúng các trường của trang đang chạy (Xe, Tuyến, Tài xế, Giờ bắt đầu, Giờ kết thúc) chia hai nhóm có tiêu đề; nhãn trên ô, luôn thấy; lỗi dưới ô kèm cách sửa; nút chính tắt kèm lý do khi thiếu điều bắt buộc. Điện thoại: chân dính "Quay lại" + "Lưu chuyến". Máy tính: hai cột, nút ở góc phải thanh trên; không hiện dải nhắc bảo mật.', them: [{ id: 't3-buoc', ma: 'T3·Bước', ten: 'Biến thể thanh bước (≥ 3 nhóm)', phu: 'Chỉ để thấy hình dạng: thanh bước Bước 1 · Bước 2 · Bước 3, chân "Quay lại" + "Tiếp tục". Trang Tạo / sửa chuyến không dùng thanh bước.', bo: 'SUPER_ADMIN', trang: 'buoc', tt: 'it' }] },
+      { id: 't4', ma: 'T4', ten: 'Bảng điều khiển — Trang chủ (Bán hàng)', trang: 'trang-chu', bo: 'SALES', phu: 'Đầu trang: dải chào (giữ bản đang chạy). Vùng hành động: ô tìm đơn (trong thân ở điện thoại, trên thanh trên ở máy tính). Thân: lưới ô số liệu bấm được → "Việc của bạn" (máy tính; Bán hàng không có thẻ "Cần xem lại") → lối tắt. Hai cột từ 1200 (xem K4·01).' },
+      { id: 't5', ma: 'T5', ten: 'Thiết lập — Dịch vụ & giá', trang: 'thiet-lap', bo: 'SUPER_ADMIN', phu: 'Đầu trang: tiêu đề + "+ Thêm nhóm". Thanh tìm chỉ hiện khi > 20 mục (trạng thái Nhiều). Thân: nguồn Google Sheet, Nhóm dịch vụ, bảng dịch vụ đúng cột trang đang chạy. Một cột tối đa 900. Điện thoại: "+" trên thanh trên mở bảng trượt; đây là trang con của mục Thiết lập.' },
+    ];
+    const khuon = khuonDef.map((k) => ({
+      ...k, them: (k.them || []), tt390: this.state.tt[k.id + '-390'], tt1040: this.state.tt[k.id + '-1040'],
+      
+    }));
+    const daiMau = [
+      { tong: 'bien', bt: 'history', cau: 'Đang bảo trì, dự kiến xong 23:30', nut: 'Xem' },
+      { tong: 'cat', bt: 'clock', cau: 'Từ 1/11 đổi giờ đón tại Cảng Vinpearl — đọc và bấm Đã hiểu', nut: 'Xem' },
+      { tong: 'do', cau: 'Còn 14 ngày để bật bảo mật hai lớp', nut: 'Bật ngay', coDong: true },
+      { tong: 'cat', bt: 'clock', cau: 'Đang ngoài mạng — dữ liệu lần xem gần nhất', nut: 'Thử lại' },
+    ].map((d) => ({ ...d, laDo: d.tong === 'do', khacDo: d.tong !== 'do', coDong: !!d.coDong, vai: d.tong === 'do' ? 'alert' : 'status' }));
+    const tongMau = [
+      { ten: 'Biển', tong: 'bien', bt: 'history', vd: 'Đang đi', hinh: 'history', nghia: 'đang diễn ra' },
+      { ten: 'Xanh lá', tong: 'la', bt: 'check', vd: 'Đã xác nhận', hinh: 'check', nghia: 'xong' },
+      { ten: 'Cát', tong: 'cat', bt: 'clock', vd: 'Chờ xác nhận', hinh: 'clock', nghia: 'đang chờ' },
+      { ten: 'Đỏ', tong: 'do', bt: '', vd: 'Quá hạn thanh toán', hinh: 'alertCircle', nghia: 'cần xử lý' },
+      { ten: 'Xám', tong: 'xam', bt: 'minus', vd: 'Đã huỷ', hinh: 'minus', nghia: 'đã huỷ / không áp dụng' },
+    ].map((t) => ({ ...t, laDo: t.tong === 'do', khacDo: t.tong !== 'do' }));
+    const T = (ma, bo, gt, dung) => ({ ma, bo, gt, dung, coMau: /^(#|rgba)/.test(gt) });
+    const tokenDung = [
+      T('--c-primary', 'Biển · --c-chinh', '#0c4a6e', 'Nút Chính, chữ và biểu tượng thanh trên, mục đang chọn, đường dẫn'),
+      T('--c-primary-strong', '--c-nen-toi / --c-chinh-dam', '#082f49', 'Nền thông báo ngắn; nút Chính khi bấm giữ'),
+      T('--c-primary-soft', '--c-chinh-nhat · tông Biển', '#dcebf6', 'Nền mục / tab / chip đang chọn, viên chỉ báo thanh tab, huy hiệu Biển'),
+      T('--c-accent', 'San hô · --c-nhan', '#c0392b', 'Chỉ "+ Tạo đơn" (thanh trên, nút tròn thanh tab) và "Xác nhận đơn để gửi khách"'),
+      T('--c-sand', 'Cát · --mau-cat', '#f5a623', '"Hoàn tác" trên nền tối (qua --c-hoan-tac), hình Cát trên thông báo ngắn'),
+      T('--c-sand-soft / --c-sand-text', 'tông Cát · --tt-cat-*', '#fbe3b3', 'Huy hiệu Cát, dải ngoài mạng, dải thông báo quan trọng, số đếm thanh bên'),
+      T('--c-green-soft / --c-green-text', 'tông Xanh lá · --tt-la-*', '#dcfce7', 'Huy hiệu Xanh lá, vòng "không còn việc"'),
+      T('--c-danger', 'Đỏ · --c-nguy-hiem', '#b01235', 'Viền ô lỗi, nút đỏ đặc (chỉ trong hộp xác nhận), số trên chuông'),
+      T('--c-danger-soft / --c-danger-text', 'tông Đỏ · --tt-do-*', '#fde9ee', 'Huy hiệu Đỏ, dải nhắc bảo mật, vòng cảnh báo hộp xác nhận, câu lỗi'),
+      T('--c-surface', '--c-nen', '#ffffff', 'Nền trang, thẻ, thanh trên'),
+      T('--c-surface-alt', 'Xám mây · --c-nen-phu · tông Xám', '#f2f5f9', 'Thanh bên, khung xương, nút tắt, huy hiệu Xám, nền lớp phủ bảo trì'),
+      T('--c-soft-hover', '--c-nen-re', '#f1f5f9', 'Rê dòng, rê nút Phụ, dòng đang chọn trong bảng'),
+      T('--c-text', '--c-chu', '#0f172a', 'Chữ chính'),
+      T('--c-text-muted', '--c-chu-phu', '#475569', 'Chữ phụ, nhãn ô, tên nhóm thanh bên, viền ô chọn và công tắc (đạt 3:1 — mục 8)'),
+      T('--c-border', '--c-vien', '#e1e7ef', 'Kẻ dưới thanh trên, kẻ dòng, viền thanh bên'),
+      T('--c-input-border', '--c-vien-o', '#c9d4e0', 'Viền ô gõ, ô tìm, chip chưa chọn'),
+      T('--c-focus', 'Đầm phá rực · --c-tieu-diem', '#0891b2', 'Vành tiêu điểm 3 px, vạch 3 px của mục thanh bên đang chọn'),
+      T('--c-focus-ring', '— (bộ đã bỏ, giữ theo mục 8)', 'rgba(8,145,178,.2)', 'Vành mờ quanh ô gõ khi nhận tiêu điểm'),
+      T('--c-scrim', '--bang-man', 'rgba(15,23,42,.45)', 'Màn mờ sau bảng trượt và hộp thoại'),
+      T('--c-tabbar-glass', '--thanh-tab-bg', 'rgba(255,255,255,.86)', 'Kính mờ thanh tab dưới'),
+      T('--font', '--f-chinh', 'Be Vietnam Pro', 'Mọi chữ; mã đơn dùng phông thường; phông máy chỉ cho mã PIN và mã hai lớp'),
+      T('--fs-step-1 / 3 / 5', '--co-1 / --co-3 / --co-5', '12 / 14 / 16', 'Nhãn tab và huy hiệu · chữ phụ, nhãn ô · nội dung, nút, ô gõ (16 để iOS không phóng to)'),
+      T('--fs-step-7 / 9 / 11 / 12', '--co-7 / --co-9 / --co-11 / --co-12', '18 / 20 / 24 / 26', 'Tiêu đề thanh trên · tiêu đề trang báo, số ô điện thoại · tiêu đề tách (phương án B), lời chào · số lớn'),
+      T('--fw-regular / --fw-medium / --fw-bold', '--fw-noi-dung / --fw-nhan / --fw-tieu-de', '400 / 500 / 600', 'Nội dung · nhãn và nút · tiêu đề và số lớn (--fw-semibold = 500)'),
+      T('--s1 … --s7', '--kc-1 … --kc-7', '4 / 8 / 12 / 16 / 24 / 32 / 48', 'Lề trang 16 (điện thoại) / 32 (máy tính), đệm thẻ 16 / 24, khoảng giữa khối 24'),
+      T('--radius-sm / md / lg / pill', '--r-dieu-khien / --r-the / --r-bang-truot / --r-tron', '8 / 12 / 18 / 999', 'Nút và ô · thẻ, dải · bảng trượt · chip, tab, huy hiệu'),
+      T('--shadow-card / --shadow-card-hover', '--sh-the / (bộ đã bỏ, giữ)', '0 1px 2px … / 0 2px 6px …', 'Thẻ · thẻ bấm được khi rê (Việc của bạn, doanh thu)'),
+      T('--shadow-overlay / --shadow-float', '--sh-lop-phu / --sh-noi', '0 16px 48px … / 0 4px 14px …', 'Bảng trượt, hộp thoại · thông báo ngắn, lối "Bỏ qua"'),
+      T('--shadow-btn-solid / --shadow-btn-accent / --shadow-tab-new', '— (bộ đã bỏ, giữ theo mục 8)', '0 1px 2px … / 0 2px 8px …', 'Nút Chính đặc · nút san hô · nút tròn "+" thanh tab'),
+      T('--focus-ring', '--vanh-tieu-diem + --vanh-cach', '3px (mã 2px) cách 2px', 'Mọi điều khiển khi dùng bàn phím'),
+      T('--h-control / --h-control-lon', '--h-dieu-khien / --h-dieu-khien-lon', '44 / 52', 'Nút, ô, mục điều hướng · nút chân dính, Đăng nhập'),
+      T('(bộ) --h-thanh-tren / --h-thanh-tab / --dai-tren-h', 'thanh trên · thanh tab · dải trên trang', '60 / 56 + vùng an toàn / 44', 'Khung cố định — mã chưa có tên riêng'),
+      T('(bộ) --w-thanh-ben / --thanh-ben-muc-h', 'thanh bên', '248 / 40', 'Thanh bên máy tính và mục của nó'),
+      T('--z-dinh … --z-tren-cung', '--z-dinh 10 · --z-tab 20 · --z-bang-truot 30 · --z-phu 40 · --z-tren-cung 50', '10 → 50', 'Thanh trên · thanh tab · bảng trượt / thanh bên xổ · thông báo ngắn · lớp phủ bảo trì, lối "Bỏ qua"'),
+      T('--t-nhanh / --t-vua', '--cd-nhanh / --cd-vua · --cd-cong', '150 / 200 ms, ease-out', 'Rê, bấm · mở bảng trượt, gập nhóm thanh bên, xổ thanh bên gọn'),
+      T('(bộ) --cd-xuong', 'nhịp khung xương', '1,2 s', 'Một bộ khung xương cho mọi trang (--c-surface-alt, --radius-pill)'),
+      T('--w-noi-dung-max', '--w-noi-dung', '1280', 'Nội dung tối đa, căn giữa ở màn rộng; mốc 640 / 900 / 1200'),
+      T('(bộ) --w-bang-truot / --w-bao-xong', 'hộp thoại · thông báo ngắn', '520 / 360', 'Hộp thoại giữa màn từ 768 · bề rộng tối đa thông báo ngắn'),
+    ];
+    const tokenMoi = [
+      { ma: '--w-thanh-ben-gon', gt: '56px', lyDo: 'Thanh bên thu gọn chỉ biểu tượng ở khổ 641–899 (K2 phương án A). Mã và bộ chưa có khổ này.' },
+      { ma: '--c-hoan-tac', gt: 'var(--c-sand)', lyDo: 'Đề bài chốt "Hoàn tác" màu cát trên nền tối; bộ đang dùng --c-chinh-nhat. Đặt tên riêng để không dùng --c-sand trực tiếp.' },
+      { ma: '--tab-gach', gt: '3px', lyDo: 'Gạch chân tab đang chọn (biến thể máy tính, 5.6). Bộ chỉ có tab viên thuốc.' },
+      { ma: '--tab-mo-mep', gt: '32px', lyDo: 'Độ dài vùng mờ ở mép tab cuộn ngang (điện thoại) báo còn tab bên phải. Dùng mặt nạ trong suốt, không phải dải màu.' },
+      { ma: '--w-ngan-chi-tiet', gt: '360px', lyDo: 'Ngăn chi tiết phải của khuôn Danh sách khi chọn dòng (K4·02).' },
+      { ma: '--w-cot-phai', gt: '340px', lyDo: 'Cột phải dính của khuôn Chi tiết (tóm tắt + hành động) từ 900.' },
+      { ma: '--w-thiet-lap', gt: '900px', lyDo: 'Bề rộng tối đa của khuôn Thiết lập (một cột, 5.10).' },
+      { ma: '--w-tim-thanh-tren', gt: '280px (co tới 160)', lyDo: 'Ô "Tìm đơn" trên thanh trên; co lại trước để tiêu đề trang không bị cắt.' },
+      { ma: 'biểu tượng alertCircle', gt: 'vòng r 9 + chấm than', lyDo: 'Mục 8 chốt tông Đỏ dùng alertCircle; mã (web/icons.ts) và bộ chưa có. Dựng cùng khuôn 24, nét 2 như checkCircle và ban.' },
+    ];
+    const ghiChu = [
+      'Ở máy tính, ô "Tìm đơn" trên thanh trên chính là ô tìm của trang Đơn hàng (bộ xem mọi đơn) nên thân trang không có thêm ô tìm — tránh hai ô tìm trên một màn. Thực tập, Đối tác, Hướng dẫn viên không có ô trên thanh trên nên ô tìm nằm trong thân.',
+      'Ô nút chính ở góc phải thanh trên là nút chính của trang: "+ Tạo đơn" cho Trang chủ và Đơn hàng, "Lưu chuyến" cho biểu mẫu, "+ Thêm nhóm" / "+ Thêm tài khoản" cho thiết lập. Chi tiết đơn ở máy tính để thanh trên trống vì nút chính nằm ở cột phải — không bao giờ hai nút san hô trên một màn.',
+      'Biểu mẫu ở máy tính: đề bài chỉ nêu chân dính cho điện thoại; bản vẽ đặt "Huỷ bỏ" + "Lưu chuyến" ở góc phải thanh trên cho đúng luật "hành động chính ở một trong hai chỗ". Nút tắt kèm câu lý do ở cuối biểu mẫu.',
+      'Trang chủ điện thoại giữ dải chào làm thanh trên; bên phải là chuông + Trợ lý (thay nút "?" Hướng dẫn hiện nay — Hướng dẫn vẫn ở trang Tôi và chân menu máy tính).',
+      'Hỗ trợ dùng hình handset, Trợ lý dùng chat (một hình một nghĩa theo bộ). Mã hiện dùng chat cho cả Hỗ trợ và nút Trợ lý.',
+      'Tông của dải: bảo trì Biển (đang diễn ra), thông báo quan trọng Cát (chờ bạn đọc), nhắc bảo mật Đỏ (cần xử lý), ngoài mạng Cát (theo đề bài). Ở 390 câu dải xuống hai dòng thay vì cắt — cắt chữ chỉ dành cho tiêu đề.',
+      'Ở 1440 vùng nội dung là 1440 − 248 = 1192, hẹp hơn 1280, nên nội dung chiếm đủ bề rộng; từ 1528 trở lên nội dung đứng giữa. Bảng không kéo giãn nhờ ngăn chi tiết phải (Danh sách) và hai cột (Trang chủ, Chi tiết).',
+      'Số trên ô số liệu điện thoại dùng 20 (--fs-step-9) để "18.450.000 ₫" vừa nửa màn mà không phải cắt hay viết tắt; máy tính dùng 26.',
+      'Thông báo ngắn tông Đỏ có trong bản vẽ vì đề bài yêu cầu năm tông; bộ ghi "báo xong không báo lỗi" — đề nghị chỉ dùng Đỏ cho việc gửi chưa thành mà không chặn trang.',
+      'Khuôn Biểu mẫu: thêm hai tiêu đề nhóm "Xe và tài xế", "Giờ chạy" để có "nhóm trường có tiêu đề"; không thêm trường. Ô giờ là nút mở bộ chọn giờ (không hiện "--:--").',
+      'Thanh bên: mục gập đang đóng mà chứa trang đang mở thì hiện chấm Biển; nhóm THIẾT LẬP mở sẵn khi trang thuộc nhóm hoặc bộ chỉ có nhóm này (Nhân sự) — như mã. "Đăng xuất" giữ ở chân thanh bên, dòng riêng dưới tên người.',
+      'Nhân sự và hai bộ tài xế: thân là khung xương khuôn Danh sách vì màn nghiệp vụ chưa vẽ. Vùng an toàn đáy mô phỏng 34 px (iPhone) trong artboard; mã dùng env(safe-area-inset-bottom).',
+    ];
+    const H = (f, w, chu) => ({ nen: 'url("hien-trang/' + f + '")', tl: w > 400 ? '1040 / 800' : '390 / 844', w, chu });
+    const anh = [
+      H('nhieu-SUPER_ADMIN-trang-chu-390.jpg', 300, '1 · Trang chủ 390 — nút nổi "Trợ lý" che chữ; dải bảo mật và ô tìm nổi chồng nhau.'),
+      H('nhieu-SUPER_ADMIN-trang-chu-1040.jpg', 640, '3 · Trang chủ 1040 — hai lối "Tạo đơn", dải bảo mật chiếm chỗ.'),
+      H('nhieu-SALES-403-audit-390.jpg', 300, '6 · Không có quyền — dựng nguyên vỏ trang, ô tìm và bộ lọc còn bấm được, tab sáng nhầm "Tôi".'),
+      H('nhieu-SALES-matmang-trang-chu-390.jpg', 300, '8 · Mất mạng — câu đỏ nhưng khung xương nhấp nháy mãi, không "Thử lại".'),
+      H('nhieu-ADMIN-lich-xe-ban-1040.jpg', 640, '11 · Thanh bên cuộn — mục bị nhóm Thiết lập đè cắt nửa chữ; ba nút đỏ đặc.'),
+      H('nhieu-SUPER_ADMIN-orders-390.jpg', 300, 'Đơn hàng 390 — trường cho khuôn Danh sách.'),
+      H('nhieu-SUPER_ADMIN-orders-1040.jpg', 640, 'Đơn hàng 1040 — ba lối "Tạo đơn" trên một màn.'),
+      H('nhieu-SALES-order-390.jpg', 300, 'Chi tiết đơn 390 — khối cho khuôn Chi tiết.'),
+      H('nhieu-SALES-order-1040.jpg', 640, 'Chi tiết đơn 1040.'),
+      H('nhieu-SUPER_ADMIN-chuyen-sua-390.jpg', 300, 'Chuyến mới 390 — trường cho khuôn Biểu mẫu.'),
+      H('nhieu-SUPER_ADMIN-chuyen-sua-1040.jpg', 640, 'Chuyến mới 1040 — cột "Xe trong ngày".'),
+      H('nhieu-SUPER_ADMIN-catalog-390.jpg', 300, 'Dịch vụ 390 — mục cho khuôn Thiết lập.'),
+      H('nhieu-SUPER_ADMIN-catalog-1040.jpg', 640, 'Dịch vụ 1040.'),
+    ];
+    const viSao = [
+      'Người bán hàng: "+ Tạo đơn" luôn ở một chỗ — giữa thanh tab ở điện thoại, góc phải thanh trên ở máy tính — một chạm khi khách đang chờ; không nút nổi che chữ, không hai dải chồng nhau đẩy nội dung xuống gần 30 % màn.',
+      'Kế toán: "Sổ công nợ" nằm sẵn trên thanh tab và thanh bên; bảng giữ bề rộng cột, tiền canh phải, chọn dòng mở ngăn chi tiết ngay bên cạnh; phím "/" vào ô tìm — đối chiếu cả ngày ít cuộn, ít mở trang.',
+      'Tài xế: hai mục cố định, nút chốt ở chân dính 52 px trong tầm ngón cái, không thanh nào chồng lên; mất mạng vẫn thấy dữ liệu lần trước với dải Cát và nút "Thử lại".',
+      'Mọi người: mục đang mở luôn sáng, tiêu đề trùng nhãn mục, trang lỗi luôn có vỏ và lối về — không còn JSON trần, hộp đỏ giữa bộ lọc hay tab sáng nhầm.',
+      'Mọi trang mở bằng khung xương đúng hình nội dung, vỏ không nhảy, không chớp — cảm giác nhanh hơn ngay cả trên 4G yếu.',
+    ];
+    const phan = this.state.phan;
+    const mucLuc = [['k1', 'K1 · Điện thoại 390'], ['k2k4', 'K2 · 768 và K4 · 1440'], ['k3', 'K3 · Máy tính 1040'], ['k5a', 'K5 · Trạng thái hệ thống 390'], ['k5b', 'K5 · Trạng thái 1040 / 1440'], ['k6', 'K6 · Lớp phủ, thông báo, dải'], ['t', 'T1–T5 · Năm khuôn trang'], ['token', 'Token và ghi chú'], ['hien-trang', 'Hiện trạng']].map(([id, nhan]) => ({
+      nhan, chonChu: phan === id ? 'true' : 'false', lop: 'ib-chip' + (phan === id ? ' is-chon' : ''),
+      bam: () => { this.setState({ phan: id }); try { localStorage.setItem('ib-khung-phan', id); } catch (e) { /* bỏ qua */ } },
+    }));
+    const la = { k1: phan === 'k1', k2k4: phan === 'k2k4', k3: phan === 'k3', k5: phan === 'k5a' || phan === 'k5b', k5a: phan === 'k5a', k5b: phan === 'k5b', k6: phan === 'k6', t: phan === 't', token: phan === 'token', hienTrang: phan === 'hien-trang' };
+    return {
+      la, mucLuc, viSao, k1, k3, k4, k5a: k5('390'), k5b: k5('1040'), k6a, k6b, khuon, daiMau, tongMau, tokenDung, tokenMoi, ghiChu, anh,
+    };
+  }
+}
+</script>
+</body>
+</html>
