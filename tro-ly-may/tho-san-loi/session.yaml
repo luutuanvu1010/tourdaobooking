@@ -1,0 +1,20 @@
+# Thân lệnh mở phiên cho lượt thử của ADR-0145 Đ4: chỉ phân hệ tiền, trần $10 giá niêm yết ("1000" = 1000 cent).
+# chay-thu.sh thêm trợ lý, môi trường và tệp mã bằng cờ dòng lệnh; tệp này chỉ giữ trần tiền và lời giao việc.
+title: Thợ săn lỗi — chạy thử phân hệ tiền
+budget:
+  type: limit
+  max_list_cost:
+    currency: USD
+    amount: "1000"
+initial_events:
+  - type: user.message
+    content:
+      - type: text
+        text: |-
+          Việc 0, trước mọi việc khác: kiểm máy này không có mạng. Chạy đúng một lệnh
+          curl -sS -m 5 -o /dev/null -w '%{http_code}' https://example.com; echo " mã thoát $?"
+          và chép nguyên kết quả vào dòng đầu tiên của báo cáo. Đừng thử máy nào khác.
+
+          Mã nằm trong tệp nén /mnt/session/uploads/ma-nguon.tar.gz. Giải nén vào /workspace (ra /workspace/ma-nguon) và đọc NGUON.txt.
+
+          Chỉ săn lỗi trong: src/modules/billing, src/modules/pricing, src/modules/receipt và tệp src/shared/order-lines.ts (bỏ qua các tệp *.test.ts). Phần còn lại chỉ để đọc tham khảo.

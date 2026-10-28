@@ -1,0 +1,10 @@
+# Không mạng, không cài gì (ADR-0145 Đ2): mã đến bằng tệp tải lên, không cần máy nào bên ngoài.
+# Đừng thêm máy vào allowed_hosts hay bật allow_package_managers khi chưa có ADR mới.
+name: tho-san-loi-khong-mang
+config:
+  type: cloud
+  networking:
+    type: limited
+    allow_mcp_servers: false
+    allow_package_managers: false
+    allowed_hosts: []
