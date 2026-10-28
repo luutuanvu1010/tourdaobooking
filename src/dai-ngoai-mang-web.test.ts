@@ -24,6 +24,19 @@ test("trang đã tự vẽ khối trạng thái (vd /ngoai-mang) ⇒ giữ nguy�
   assert.equal(main.children[0], co);
 });
 
+// Task 15 (help-smoke.mjs bước e đỏ trên nhánh, xanh ở gốc 1d3c67fd): /help vẽ nhật ký thay đổi TRƯỚC initShell để đọc được khi mất mạng (đặc tả 6.3:
+// chỉ thay thân khi trang «chưa kịp vẽ gì»). Trang tự vẽ trước shell khai `<main data-ve-truoc-shell>` ⇒ giữ nội dung, chỉ có dải ngoài mạng.
+test("trang khai data-ve-truoc-shell (vd /help) ⇒ giữ nội dung đã vẽ, không thay thân", () => {
+  const main = new NutGia("main");
+  main.setAttribute("data-ve-truoc-shell", "");
+  const nhatKy = new NutGia("section");
+  main.append(nhatKy);
+  veThanNgoaiMang(main as unknown as Element, () => undefined);
+  assert.equal(main.children.length, 1);
+  assert.equal(main.children[0], nhatKy);
+  assert.equal(main.querySelectorAll("[data-loai]").length, 0);
+});
+
 test("không có <main> ⇒ không ném", () => {
   veThanNgoaiMang(null, () => undefined);
 });

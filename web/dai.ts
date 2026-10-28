@@ -95,7 +95,8 @@ export function thanNgoaiMang(thuLai: () => void): HTMLElement {
   );
 }
 
-/** Thay thân `<main>` bằng khối «chưa có dữ liệu» — trừ khi trang đã tự vẽ một khối trạng thái hệ thống (vd /ngoai-mang). Chỉ gọi ở nhánh mất mạng của initShell (không bao giờ quay lại vẽ tiếp). */
+/** Thay thân `<main>` bằng khối «chưa có dữ liệu» — trừ khi trang đã tự vẽ một khối trạng thái hệ thống (vd /ngoai-mang) hoặc khai `data-ve-truoc-shell`
+ * (trang tự vẽ nội dung TRƯỚC initShell, vd /help đọc được nhật ký khi mất mạng). Chỉ gọi ở nhánh mất mạng của initShell (không bao giờ quay lại vẽ tiếp). */
 export function veThanNgoaiMang(chinh: Element | null, thuLai: () => void): void {
-  if (chinh && !chinh.querySelector("[data-loai]")) chinh.replaceChildren(thanNgoaiMang(thuLai));
+  if (chinh && !chinh.hasAttribute("data-ve-truoc-shell") && !chinh.querySelector("[data-loai]")) chinh.replaceChildren(thanNgoaiMang(thuLai));
 }
