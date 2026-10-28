@@ -25,6 +25,8 @@ Sau Task 10: 100.388 byte (sau vòng sửa 1; trước đó 100.362; +374 so v�
 Sau Task 11: 100.418 byte (+30 so với Task 10: `hoiXacNhan` vào gói qua `bang-truot`, bù phần lớn bằng việc bỏ `closeBtn` điều kiện; vẫn vượt trần 96.700, trần không đổi).
 Sau Task 12: 100.418 byte (không đổi: trang 404 là gói riêng, không vào gói Đơn hàng; vẫn vượt trần 96.700, trần không đổi).
 
+Sau Task 13: 101.471 byte (+1.053: nhánh mất mạng của shell dùng `thanNgoaiMang` + `datDai`, `ganNgoaiMang()` trong `initShell`, tín hiệu `ngoai-mang` ở `api.ts`; vẫn vượt trần 96.700, trần không đổi).
+
 ## Lệch so với đặc tả
 
 - Task 1: kho chính không có `.env`; đã chép `.dev.vars` (tương đương của dự án) vào worktree.

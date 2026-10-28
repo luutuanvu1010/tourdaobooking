@@ -2,7 +2,6 @@ import { ApiError, api, datNguoiDangNhap, type Staff, type Api } from "./api";
 import { BO_CHON_THANH_DINH, boTheoDoi, thanhDinhHien } from "../src/shared/thanh-dinh-day";
 import { PERMISSION_LABEL } from "../src/shared/permissions";
 import {
-  KHUNG_MAT_MANG,
   THANH_BEN,
   THANH_TAB,
   coKhungNho,
@@ -21,8 +20,9 @@ import {
   type NguoiXem,
   type NhomThanhBen,
 } from "../src/shared/muc-giao-dien";
-import { cauBaoTri, KHOA_DAI_BAO_MAT_DA_DONG } from "../src/shared/dai-chu";
-import { datDai } from "./dai";
+import { CAU_NGOAI_MANG, cauBaoTri, KHOA_DAI_BAO_MAT_DA_DONG } from "../src/shared/dai-chu";
+import { NHAN_THU_LAI } from "../src/shared/trang-thai-he-thong-chu";
+import { datDai, ganNgoaiMang, thanNgoaiMang } from "./dai";
 import { append, byId, h, replaceChildren } from "./dom";
 import { initials } from "./format";
 import { batDauBangTin } from "./bangtin";
@@ -378,6 +378,7 @@ export function setBarTitle(text: string): void {
  */
 export async function initShell(): Promise<Staff> {
   registerServiceWorker();
+  ganNgoaiMang();
   // Nút lùi (history.back) phục hồi trang từ bộ đệm lùi/tiến NGUYÊN TRẠNG, kể cả chấm đỏ vẽ lúc chưa xem /help (tiền lệ: pageshow ở order-form.ts).
   // Trang được phục hồi mà nay đã xem bản mới nhất ⇒ gỡ mọi chấm "Có bản mới" của Hướng dẫn (tab Tôi, dòng ở trang Tôi, menu máy tính).
   window.addEventListener("pageshow", (e) => {
@@ -486,12 +487,11 @@ export async function initShell(): Promise<Staff> {
       document.body.classList.remove("has-sidebar", "has-tabbar");
       throw err;
     }
-    // Mất mạng (khung vẫn mở được từ cache): báo rõ thay vì để trang trống, rồi giữ lời gọi treo như goLogin() ở api.ts.
-    const el = document.getElementById("error");
-    if (el) showError(el, "Không có kết nối mạng. Kiểm tra Wi-Fi hoặc 4G rồi mở lại Nền tảng.");
-    // Không biết vai khi mất mạng: hiện 4 tab cơ bản để còn điều hướng (QA2 Q2-04); không dựng sidebar (thiếu staff cho chân thanh).
-    // Có khung tạm từ bản nhớ (ADR-0035) thì giữ nó — đủ mục đúng vai hơn 4 tab cơ bản.
-    if (!nho) addNav({ khungNho: KHUNG_MAT_MANG }, null, null);
+    // Mất mạng (khung vẫn mở được từ cache): dải «ngoài mạng» (do api.ts phát tín hiệu) + thân báo rõ nếu trang chưa có gì; giữ lời gọi treo như goLogin() ở api.ts.
+    // Có khung tạm từ bản nhớ (ADR-0035) thì giữ nó; không có thì KHÔNG dựng điều hướng đoán mò.
+    datDai("ngoai-mang", { cau: CAU_NGOAI_MANG, nut: { nhan: NHAN_THU_LAI, khiBam: () => location.reload() } });
+    const chinhMM = document.querySelector("main");
+    if (chinhMM && !chinhMM.firstChild) chinhMM.append(thanNgoaiMang(() => location.reload()));
     return new Promise<never>(() => undefined);
   }
   const { staff } = me;

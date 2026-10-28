@@ -190,6 +190,10 @@ async function guiMotLan<T>(path: string, method: string, than: string | undefin
       // bỏ qua
     }
     return { dangXuLy: false, ket: () => Promise.resolve(data as T) };
+  } catch (e) {
+    // Mất mạng (TypeError của fetch) hoặc hết giờ: báo cho dải «ngoài mạng» (web/dai.ts) rồi ném lại như cũ.
+    if (!(e instanceof ApiError) && (e instanceof TypeError || controller.signal.aborted) && typeof window !== "undefined") window.dispatchEvent(new Event("ngoai-mang"));
+    throw e;
   } finally {
     clearTimeout(timer);
   }

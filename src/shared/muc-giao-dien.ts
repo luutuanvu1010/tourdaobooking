@@ -418,5 +418,5 @@ export function coKhungNho(s: PermissionHolder): CoKhungNho {
   return { admin: can(s, "admin.manage"), seesAll: seesAllOrders(s), office: isOffice(s), canCreate: can(s, "order.create") };
 }
 
-/** Mất mạng lúc mở trang, chưa có bản nhớ khung (QA2 Q2-04): không biết vai — bốn tab cơ bản để còn điều hướng; không dựng thanh bên. */
+/** KHÔNG CÒN DÙNG ở shell (Đợt 0 Task 13: mất mạng thì không dựng điều hướng đoán mò); giữ xuất cho bài ảnh chụp và kịch bản `--so-sanh`. Cũ: mất mạng lúc mở trang, chưa có bản nhớ khung (QA2 Q2-04): không biết vai — bốn tab cơ bản để còn điều hướng; không dựng thanh bên. */
 export const KHUNG_MAT_MANG: CoKhungNho = { admin: false, seesAll: true, office: true, canCreate: true };

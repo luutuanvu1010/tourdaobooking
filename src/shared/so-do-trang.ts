@@ -70,4 +70,5 @@ export const SO_DO_TRANG: readonly TrangSoDo[] = [
   {"duongDan":"/ban","tieuDe":"Báo bận của tôi","menu":["Báo bận","Báo bận của tôi"],"nhomMenu":["HẰNG NGÀY"],"nut":["Báo bận của tôi","Ghi khung bận","Khung bận đang có","Lưu khung bận","Rút khung bận","Không rút"],"boCuc":[],"khiChay":{"muc":["Ghi khung bận","Khung bận đang có"],"nut":["Lưu khung bận","Rút khung bận","Không rút"]}},
   {"duongDan":"/thiet-lap","tieuDe":"Thiết lập","menu":["Thiết lập"],"nhomMenu":[],"nut":["Thiết lập"],"boCuc":[],"khiChay":{"muc":[],"nut":[]}},
   {"duongDan":"/404","tieuDe":"Không có trang","menu":[],"nhomMenu":[],"nut":[],"boCuc":[],"khiChay":{"muc":[],"nut":[]}},
+  {"duongDan":"/ngoai-mang","tieuDe":"Ngoài mạng","menu":[],"nhomMenu":[],"nut":[],"boCuc":[],"khiChay":{"muc":[],"nut":[]}},
 ];

@@ -1,6 +1,7 @@
 import { ApiError, api, safeNext, type Api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
 import { registerServiceWorker } from "./pwa";
+import { KHOA_DAI_BAO_MAT_DA_DONG } from "../src/shared/dai-chu";
 import { KHOA_NHAC_HAI_LOP, showError } from "./shell";
 import { APP_RELEASE_DATE, APP_VERSION } from "./phien-ban";
 import { chanTrangCongTy } from "../src/shared/cong-ty-chu";
@@ -120,6 +121,7 @@ pinToggle?.addEventListener("click", () => {
 try {
   sessionStorage.removeItem(KHOA_GAN_PHIEN_THONG_BAO);
   sessionStorage.removeItem(KHOA_NHAC_HAI_LOP); // dải nhắc bật bảo mật hai lớp (web/shell.ts) hỏi lại máy chủ cho phiên mới
+  sessionStorage.removeItem(KHOA_DAI_BAO_MAT_DA_DONG); // tài khoản khác đăng nhập cùng thẻ thì thấy lại dải bảo mật
 } catch {
   // bỏ qua
 }
