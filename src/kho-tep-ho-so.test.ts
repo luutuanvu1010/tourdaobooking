@@ -1,7 +1,7 @@
 // HÀNG RÀO KHO TỆP HỒ SƠ (ADR-0123; Hiến chương 5.22; kế hoạch 2026-10-16-goi-2-h2-kho-tep). Phân tích TĨNH trên mã thật:
 //   (1) chỉ tệp trong src/modules/parties/ (không kể *.test.ts) nhắc tới binding HO_SO — module khác muốn tệp thì gọi hàm công bố của parties;
 //   (2) không có đường dẫn ký sẵn (presign / X-Amz-) ở bất kỳ đâu trong src/ — đường dẫn ký sẵn qua mặt can() lúc tải.
-// Task 4 thêm (3), (4): thứ tự trong route tải xuống / tải lên.
+// Task 4 thêm (3), (4): thứ tự trong route tải xuống / tải lên. ADR-0144 (kho thứ hai HO_TRO): (4)(5) đếm trong parties, (6) canh phần toàn src/.
 // GIỚI HẠN: canh QUÊN, không canh CỐ Ý (đổi tên biến env, gọi qua hàm trung gian ở tệp khác của parties vẫn qua) — đọc mã vẫn là việc của người kiểm.
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -47,22 +47,33 @@ test("(3) tải xuống: hỏi ô → ghi nhật ký → MỚI đọc kho; trong
   assert.equal(soLanDoc, 1, "đường đọc kho thứ hai trong parties — phải đi qua cùng cổng nhật ký");
 });
 
-test("(4) tải lên: chặn Content-Length TRƯỚC khi đọc thân; lô D1 TRƯỚC khi đặt kho; trong src chỉ MỘT chỗ đặt kho", () => {
+test("(4) tải lên: chặn Content-Length TRƯỚC khi đọc thân; lô D1 TRƯỚC khi đặt kho; trong parties chỉ MỘT chỗ đặt kho", () => {
   const s = thanRoute("POST", "/api/parties/:id/documents/:did/tep");
   assert.ok(vt(s, "TOI_DA_THAN") !== -1 && vt(s, "TOI_DA_THAN") < vt(s, "readJson("), "chặn cỡ phải đứng trước đọc thân");
   assert.ok(vt(s, "env.DB.batch(") !== -1 && vt(s, "env.DB.batch(") < vt(s, "kho.put("), "lô D1 phải đứng trước đặt kho (ruling Q2)");
-  const soLanDat = TEP.reduce((n, f) => n + (f.src.match(/\.put\(\s*key\b/g)?.length ?? 0), 0);
+  // ADR-0144: đếm trong parties (kho vé hỗ trợ có hàng rào riêng ở src/kho-tep-ho-tro.test.ts; (6) dưới canh chỗ đặt kho ngoài hai module).
+  const soLanDat = TEP.filter((f) => f.p.startsWith("modules/parties/")).reduce((n, f) => n + (f.src.match(/\.put\(\s*key\b/g)?.length ?? 0), 0);
   assert.equal(soLanDat, 1);
 });
 
 // (5) ADR-0126 đ7 (lát H-5): ngoại lệ có tên duy nhất cho khoá kho ngoài `pty/` — bản ngoài D1 của phiếu xoá `xoa/<mã phiếu>.json`, ghi ở ĐÚNG một hàm (chepBanNgoai, kho-tep.ts) và chỉ chứa
-// ba khoá { phieu, hoSo, luc } (mã + thời điểm, không tên / số). Tổng số chỗ ĐẶT vào kho trong src/ = 2 (tải ảnh lên + bản ngoài).
-test("(5) khoá kho `xoa/` chỉ xuất hiện trong chepBanNgoai (kho-tep.ts); tổng chỗ đặt vào kho = 2; nội dung bản ngoài đúng ba khoá", () => {
+// ba khoá { phieu, hoSo, luc } (mã + thời điểm, không tên / số). Tổng số chỗ ĐẶT vào kho trong parties = 2 (tải ảnh lên + bản ngoài).
+test("(5) khoá kho `xoa/` chỉ xuất hiện trong chepBanNgoai (kho-tep.ts); tổng chỗ đặt vào kho trong parties = 2; nội dung bản ngoài đúng ba khoá", () => {
   const coXoa = TEP.filter((f) => /["'`]xoa\//.test(f.src)).map((f) => f.p);
   assert.deepEqual(coXoa, ["modules/parties/kho-tep.ts"]);
   const kho = TEP.find((f) => f.p === "modules/parties/kho-tep.ts")!.src;
   const ham = /export async function chepBanNgoai\b[\s\S]*?\n\}\n/.exec(kho)?.[0] ?? "";
   assert.match(ham, /kho\.put\(`xoa\/\$\{v\.id\}\.json`, JSON\.stringify\(\{ phieu: v\.id, hoSo: v\.partyId, luc: v\.luc \}\)/, "ba khoá, không khoá nào khác");
-  const soDat = TEP.reduce((n, f) => n + (f.src.match(/\b(?:kho|r2|HO_SO)\.put\(/g)?.length ?? 0), 0);
-  assert.equal(soDat, 2, "chỗ đặt vào kho thứ ba trong src/ — phải có tên ở đây");
+  const soDat = TEP.filter((f) => f.p.startsWith("modules/parties/")).reduce((n, f) => n + (f.src.match(/\b(?:kho|r2|HO_SO)\.put\(/g)?.length ?? 0), 0);
+  assert.equal(soDat, 2, "chỗ đặt vào kho thứ ba trong parties — phải có tên ở đây");
+});
+
+// (6) ADR-0144: từ khi có kho thứ hai, (4)(5) đếm trong parties — bài này giữ phần "toàn src/" cũ và SIẾT hơn bản cũ (bản cũ chỉ bắt `.put(key` và ba tên biến;
+// người kiểm độc lập 28/10 C1: biến tên khác lọt): ngoài HAI module có kho (parties: HO_SO; feedback: HO_TRO — đếm riêng ở src/kho-tep-ho-tro.test.ts) KHÔNG có
+// lời gọi `.put(` nào, bất kể tên biến / tên khoá. Ngoại lệ có tên duy nhất: kho trạng thái Durable Object của trạm Bảng tin (`this.ctx.storage.put(`, không phải R2).
+test("(6) ngoài parties và feedback không có lời gọi .put( nào (trừ kho trạng thái Durable Object `this.ctx.storage.put(`)", () => {
+  const ngoai = TEP.filter((f) => !f.p.startsWith("modules/parties/") && !f.p.startsWith("modules/feedback/"))
+    .filter((f) => /\.put\(/.test(f.src.replaceAll("this.ctx.storage.put(", ""))).map((f) => f.p);
+  assert.deepEqual(ngoai, [], "chỗ đặt vào kho ngoài hai module có kho");
+  assert.ok(TEP.some((f) => f.src.includes("this.ctx.storage.put(")), "chống bài rỗng: ngoại lệ còn khớp mã thật (trạm Bảng tin)");
 });

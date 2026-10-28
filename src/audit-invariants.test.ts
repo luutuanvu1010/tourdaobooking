@@ -1095,6 +1095,29 @@ test("R-PTY-12 vòng đời 'tải lỗi': quyết xoá khi stored_at còn rỗn
   assert.equal(violations(db, c), 0, "đã xoá khỏi kho — hết cảnh báo dù stored_at rỗng");
 });
 
+test("R-FBK-1 (ADR-0144 đ5, Hiến chương 5.16): tệp kèm vé chờ xoá khỏi kho hoặc tải dở dang quá 1 giờ — mức warn; đã lưu / đã xoá khỏi kho / vừa tạo ⇒ không tính", () => {
+  const c = one("R-FBK-1");
+  assert.equal(c.level, "warn");
+  const db = build();
+  db.prepare(`INSERT INTO fbk_ticket (id, seq, kind_code, status_code, title, context, submitter_id, client_request_id, last_activity_at, created_at, updated_at, team_id)
+    VALUES ('v-tep', 1, 'QUESTION', 'NEW', 't', '{}', 's-an', '99999999-9999-4999-8999-999999999999', ?, ?, ?, 'fbk-team-ky-thuat')`).run(T1, T1, T1);
+  db.prepare("INSERT INTO fbk_message (id, ticket_id, author_id, body, internal, created_at, updated_at, team_id) VALUES ('m-tep', 'v-tep', 's-an', 'x', 0, ?, ?, 'fbk-team-ky-thuat')").run(T1, T1);
+  const tep = (id: string, n: number, at: string) =>
+    db.prepare(`INSERT INTO fbk_attachment (id, message_id, storage_key, content_kind, byte_size, content_hash, created_at, created_by, updated_at, updated_by)
+      VALUES (?, 'm-tep', ?, 'png', 3, ?, ?, 's-an', ?, 's-an')`).run(id, `fbk/${String(n).repeat(32)}`, String(n).repeat(64), at, at);
+  const xaRoi = new Date(Date.now() - 2 * 3600e3).toISOString();
+  tep("t-moi", 1, new Date().toISOString()); // tải dở dang VỪA tạo — chưa tính
+  assert.equal(violations(db, c), 0);
+  tep("t-do-dang", 2, xaRoi);
+  assert.equal(violations(db, c), 1, "dở dang quá 1 giờ");
+  db.prepare("UPDATE fbk_attachment SET stored_at = ? WHERE id = 't-do-dang'").run(xaRoi);
+  assert.equal(violations(db, c), 0, "đã lưu");
+  db.prepare("UPDATE fbk_attachment SET purged_at = ?, purge_reason = 'GO_TEP', content_hash = NULL WHERE id = 't-do-dang'").run(xaRoi);
+  assert.equal(violations(db, c), 1, "đã gỡ, kho chưa xoá");
+  db.prepare("UPDATE fbk_attachment SET r2_deleted_at = ? WHERE id = 't-do-dang'").run(xaRoi);
+  assert.equal(violations(db, c), 0, "đã xoá khỏi kho");
+});
+
 test("R-PTY-13 (ADR-0124 đ3, Hiến chương 5.21): phiếu tự khai ĐANG CHỜ của người đã rút / chưa từng đồng ý phiên bản ghi trên phiếu — fail", () => {
   const c = one("R-PTY-13");
   assert.equal(c.level, "fail");

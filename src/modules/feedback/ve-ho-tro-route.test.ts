@@ -1114,7 +1114,8 @@ test("tuyến làm mới: chỉ tin created_at > since (bằng since thì không
   assert.equal(dau.json.messages[99].id, "m-099");
   const sau = await moi(w, id, SALES, dau.json.messages[99].createdAt);
   assert.deepEqual(sau.json.messages.map((m: any) => m.id), ["m-100", "m-101", "m-102", "m-103", "m-104"]);
-  assert.deepEqual(Object.keys(sau.json.messages[0]).sort(), ["authorId", "authorName", "body", "createdAt", "id", "internal", "mine"]);
+  // ADR-0144: thêm `tep` (tệp kèm tin — chỉ mã, loại, cỡ, trạng thái; không khoá kho, không băm).
+  assert.deepEqual(Object.keys(sau.json.messages[0]).sort(), ["authorId", "authorName", "body", "createdAt", "id", "internal", "mine", "tep"]);
 });
 
 test("ca ghi lệch thứ tự dấu giờ: tin ghi xong SAU mang dấu SỚM hơn vẫn tới khách nhờ lùi 30 giây + bỏ trùng theo id (không mất tin)", async () => {

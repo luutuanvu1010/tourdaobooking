@@ -13,6 +13,11 @@
 //   8) (390) mở yêu cầu → thanh tab ẩn; đóng bằng nút «‹», nút quay lại của trình duyệt, phím Esc → thanh tab hiện lại; hit-test tâm «Gửi», «Nhận việc», «＋ Gửi yêu cầu»
 //      không trúng `.tl-fab`; ô trả lời 16px;
 //   9) Chuỗi cấm không có trong chữ nhìn thấy: «Hàng đợi nhóm», «Trợ giúp», «phiếu/Phiếu», «Mozilla/5.0» (khi «chuỗi gốc» chưa mở); mở «chuỗi gốc» thì có.
+// Thêm 2026-10-28 (tệp kèm, ADR-0144; chạy TRƯỚC bước 1 nên `HT_DUNG=T2` chạy riêng phần tệp):
+//   T1) Bán hàng Hai chọn cùng lúc ảnh PNG 3000×1500, PDF, tệp chữ đổi đuôi .png → tệp giả bị từ chối bằng câu tiếng Việt, hai tệp vào danh sách; «Bỏ» rồi chọn lại
+//       đúng tệp; tệp mà để trống mô tả → «Hãy viết vài chữ kèm tệp.»; gửi → ảnh lưu ở dạng JPG cạnh dài 2000 (đã thu nhỏ trên máy), thẻ «Tệp PDF» có «Tải về»,
+//       không nút «Gỡ tệp»; MỖI ẢNH TẢI ĐÚNG MỘT LẦN (đếm yêu cầu của trình duyệt + dòng nhật ký «xem tệp») qua hai vòng tự làm mới VÀ sau khi gửi thêm một tin;
+//   T2) Toàn quyền gỡ ảnh: hộp xác nhận → tin còn dòng «Tệp đã được gỡ», máy chủ trả 404 cho tệp đó, PDF vẫn tải được.
 // Mỗi bước: không tràn ngang, ô gõ ≥ 16px, không chữ Anh / mã thô, không chuỗi cấm, axe-core (critical / serious ⇒ đỏ; thiếu AXE_JS ⇒ dừng ngay), chụp ảnh.
 // PHÁ THỬ (P16, KHÔNG sửa mã sản phẩm — chỉ bọc trình duyệt):
 //   HT_PHA=lo-noi-bo — lớp bọc `fetch` đổi `perms.xuLy` thành true ở chi tiết yêu cầu của người gửi ⇒ giao diện dựng nút «Ghi chú nội bộ» + chip ⇒ bước 2 ĐỎ;
@@ -44,6 +49,8 @@ const CHU_CAM = [/Hàng đợi nhóm/, /Trợ giúp/, /[Pp]hiếu/, /Mozilla\/5\
 
 const PHA_TRANG = `
   window.confirm = () => true; window.alert = () => {};
+  window.__htTaiTep = [];
+  try { new PerformanceObserver((l) => { for (const e of l.getEntries()) { const d = new URL(e.name).pathname; if (d.startsWith('/api/feedback/') && d.split('/').length === 6 && d.split('/')[4] === 'tep') window.__htTaiTep.push(d); } }).observe({ type: 'resource', buffered: true }); } catch {}
   ${PHA === "tab" ? "{ const t = DOMTokenList.prototype.toggle; DOMTokenList.prototype.toggle = function (tok, force) { if (tok === 'tabbar-an' && force === false) return false; return t.call(this, tok, force); }; }" : ""}
   { const f = window.fetch.bind(window);
     window.fetch = async (u, o) => {
@@ -194,6 +201,112 @@ try {
       const gio = (i) => new Date(Date.UTC(2026, 9, 20, 0, 0, 0) + i * 60_000).toISOString();
       env.sql(`INSERT INTO fbk_ticket (id, seq, kind_code, status_code, title, submitter_id, assignee_id, client_request_id, last_activity_at, created_at, updated_at, team_id) VALUES ${hang.map((d, i) =>
         `('${crypto.randomUUID()}', ${mx + 1 + i}, 'QUESTION', '${d.status}', 'Hỏi về công nợ số ${i + 1}', '${ID.sA}', ${d.giu ? `'${d.giu}'` : "NULL"}, '${crypto.randomUUID()}', '${gio(i)}', '2026-01-01T00:00:00.000Z', '${gio(i)}', '${X.id}')`).join(",")}`);
+
+      // ======================= Tệp kèm (ADR-0144): T1 Bán hàng Hai gửi + xem, T2 Toàn quyền gỡ =======================
+      // Bán hàng HAI gửi: Bán hàng Một dùng đủ trần 5 yêu cầu / giờ cho bước 1. Yêu cầu đi nhóm Kỹ thuật (mặc định), không chạm số đếm của nhóm X ở bước 3.
+      const CAU_SAI_LOAI = "Chỉ nhận ảnh JPG, PNG, HEIC hoặc tệp PDF."; // khớp NGUYÊN VĂN src/shared/tep-dinh-kem.ts
+      const CAU_CAN_CHU = "Hãy viết vài chữ kèm tệp."; // khớp NGUYÊN VĂN src/shared/tep-hien-thi.ts
+      let VE_TEP = null;
+      let TEP_ANH = null;
+      let TEP_PDF = null;
+      {
+        const p = await moTrang(ACCOUNTS.salesB, "/feedback?new=1", vp);
+        try {
+          await buoc(`T1${kho}`, "Gửi kèm ảnh + PDF: tệp sai loại bị từ chối, ảnh thu nhỏ còn JPG cạnh dài 2000, mỗi ảnh tải MỘT lần qua làm mới và gửi thêm tin", async () => {
+            await choSheet(p, "#new-tep-nut");
+            const chonTep = (ds) => p.ev(`(async () => {
+              const c = document.createElement('canvas'); c.width = 3000; c.height = 1500;
+              const g = c.getContext('2d'); g.fillStyle = '#0a6'; g.fillRect(0, 0, 1500, 1500); // nửa phải trong suốt: phải ra nền trắng
+              const png = await new Promise((r) => c.toBlob(r, 'image/png'));
+              const tep = { png: new File([png], 'man-hinh.png', { type: 'image/png' }), pdf: new File(['%PDF-1.4\\n1 0 obj<<>>endobj\\ntrailer<<>>\\n%%EOF\\n'], 'bien-nhan.pdf', { type: 'application/pdf' }), gia: new File(['xin chao'], 'gia-anh.png', { type: 'image/png' }) };
+              const dt = new DataTransfer(); for (const k of ${JSON.stringify(ds)}) dt.items.add(tep[k]);
+              const i = document.getElementById('new-tep-input'); i.files = dt.files; i.dispatchEvent(new Event('change')); return true; })()`);
+            const dsChon = () => p.ev("[...document.querySelectorAll('#new-tep-ds [data-tep-chon]')].map((e) => e.firstElementChild.textContent)");
+            const xongChon = (n) => p.waitFor(`document.querySelectorAll('#new-tep-ds [data-tep-chon]').length === ${n} && !document.getElementById('new-tep-nut').disabled`, `${n} tệp trong danh sách`);
+            await chonTep(["png", "pdf", "gia"]);
+            await xongChon(2);
+            assert.equal(await text(p, ".sheet p.alert"), CAU_SAI_LOAI, "tệp chữ đổi đuôi .png bị từ chối bằng câu tiếng Việt");
+            let nhan = await dsChon();
+            assert.match(nhan[0], /^Ảnh 1 · \d+ KB$/, `nhãn ảnh: ${nhan[0]}`);
+            assert.equal(nhan[1], "Tệp PDF · 1 KB");
+            // «Bỏ» PDF rồi chọn lại đúng tệp đó (ô chọn được đặt lại sau mỗi lần chọn)
+            assert.equal(await p.ev("(() => { const b = document.querySelector('#new-tep-ds [data-tep-chon]:nth-child(2) .ht-tep-bo'); b.click(); return true; })()"), true);
+            await xongChon(1);
+            await chonTep(["pdf"]);
+            await xongChon(2);
+            nhan = await dsChon();
+            assert.equal(nhan[1], "Tệp PDF · 1 KB");
+            assert.equal(await p.ev("[...document.querySelectorAll('.sheet [role=status]')].some((e) => e.offsetParent !== null && e.textContent.includes('chuẩn bị'))"), false, "chuẩn bị xong thì không còn dòng «Đang chuẩn bị tệp…»");
+            await kiem(p, `bước T1 hộp gửi ${kho}`);
+            await chup(p, `20-hop-gui-kem-tep-${tenKho}`, false);
+            // tệp mà mô tả trống ⇒ câu riêng, không gửi gì
+            await p.ev(setInput("document.getElementById('new-title')", `Màn hình báo lỗi lạ ${D}`));
+            assert.equal(await bam(p, "#new-submit"), true);
+            await p.waitFor(`document.querySelector('.sheet p.alert')?.textContent === ${JSON.stringify(CAU_CAN_CHU)}`, "câu «Hãy viết vài chữ kèm tệp.»");
+            await p.ev(setInput("document.getElementById('new-body')", "Ảnh màn hình và biên nhận đính kèm."));
+            assert.equal(await bam(p, "#new-submit"), true);
+            await p.waitFor("/[?&]id=/.test(location.search) && !!document.querySelector('#fb-tin-ds .ht-tep-anh img') && document.querySelector('#fb-tin-ds .ht-tep-anh img').complete && document.querySelector('#fb-tin-ds .ht-tep-anh img').naturalWidth > 0", "luồng mở, ảnh xem trước đã tải", 60_000);
+            const id = await p.ev("new URLSearchParams(location.search).get('id')");
+            assert.equal(await p.ev("new URLSearchParams(location.search).has('tepLoi')"), false, "không tệp lỗi ⇒ địa chỉ không mang tepLoi");
+            const d = (await goiTrongTrang(p, "GET", `/api/feedback/${id}`)).json;
+            const tepTin = d.messages[0].tep;
+            assert.deepEqual(tepTin.map((t) => [t.loai, t.trangThai]), [["jpg", "DA_LUU"], ["pdf", "DA_LUU"]], "PNG gửi lên đã thành JPG (vẽ lại trên máy), cả hai đã lưu");
+            [TEP_ANH, TEP_PDF] = tepTin;
+            VE_TEP = d.ticket;
+            const coAnh = await p.ev("(() => { const i = document.querySelector('#fb-tin-ds .ht-tep-anh img'); return [i.naturalWidth, i.naturalHeight]; })()");
+            assert.deepEqual(coAnh, [2000, 1000], "ảnh đã lưu có cạnh dài 2000 (từ 3000×1500)");
+            assert.match(await text(p, `#fb-tin-ds [data-tep="${TEP_PDF.id}"]`), /Tệp PDF · 1 KB/);
+            assert.equal(await p.ev(`document.querySelector('#fb-tin-ds [data-tep="${TEP_PDF.id}"] a').getAttribute('href')`), `/api/feedback/${id}/tep/${TEP_PDF.id}`);
+            assert.equal(await p.ev("document.querySelector('[data-go-tep]')"), null, "người gửi không có nút «Gỡ tệp»");
+            await kiem(p, `bước T1 luồng ${kho}`);
+            await p.ev("document.querySelector('#fb-tin-ds .ht-tep-tin').scrollIntoView({ block: 'center' }), true");
+            await chup(p, `21-luong-co-tep-${tenKho}`, false);
+            // hai vòng tự làm mới (5 giây / vòng) rồi gửi thêm một tin (dựng lại cả luồng): ảnh vẫn chỉ tải MỘT lần, và vẫn là ĐÚNG thẻ ảnh cũ (bảng cấp trang
+            // theo mã tệp, đặc tả 3.6). Chrome tự dùng lại ảnh cùng địa chỉ trong một trang nên chỉ đếm yêu cầu thì không bắt được việc bỏ bảng — phá thử 28/10.
+            await p.ev("(document.querySelector('#fb-tin-ds .ht-tep-anh img').__htDau = 'cu', true)");
+            await sleep(11_000);
+            await p.ev(setInput("document.querySelector('#fb-tra-loi textarea')", `Bổ sung thêm thông tin ${D}`));
+            assert.equal(await bam(p, "#fb-tra-loi .btn-chinh"), true);
+            await p.waitFor(`[...document.querySelectorAll('#fb-tin-ds .fb-tin p')].some((e) => e.textContent === ${JSON.stringify(`Bổ sung thêm thông tin ${D}`)})`, "tin thứ hai đã vào luồng");
+            await sleep(6_000);
+            assert.equal(await p.ev("document.querySelector('#fb-tin-ds .ht-tep-anh img').__htDau ?? null"), "cu", "luồng dựng lại phải gắn lại ĐÚNG thẻ ảnh cũ, không tạo thẻ mới");
+            const duongAnh = `/api/feedback/${id}/tep/${TEP_ANH.id}`;
+            const lanTai = await p.ev("window.__htTaiTep");
+            assert.equal(lanTai.filter((x) => x === duongAnh).length, 1, `ảnh tải đúng một lần (trình duyệt): ${JSON.stringify(lanTai)}`);
+            assert.equal(await p.ev("document.querySelectorAll('#fb-tin-ds .ht-tep-anh img').length"), 1);
+            const [{ n }] = env.sql(`SELECT count(*) AS n FROM audit_log WHERE action = 'feedback_attachment_viewed' AND detail LIKE '%${TEP_ANH.id}'`);
+            assert.equal(Number(n), 1, "đúng một dòng nhật ký «xem tệp» cho ảnh");
+          });
+          if (p.consoleErrors.length) loi.push(`lỗi console (Bán hàng Hai, tệp ${kho}): ${p.consoleErrors.join(" | ").slice(0, 300)}`);
+        } finally {
+          p.close();
+        }
+      }
+      if (VE_TEP) {
+        const p = await moTrang(ACCOUNTS.chu, `/feedback?id=${VE_TEP.id}`, vp);
+        try {
+          await buoc(`T2${kho}`, "Toàn quyền gỡ ảnh gửi nhầm: hộp xác nhận, tin còn «Tệp đã được gỡ», máy chủ trả 404, PDF vẫn tải được", async () => {
+            await choLuong(p);
+            await p.waitFor(`!!document.querySelector('[data-go-tep="${TEP_ANH.id}"]')`, "nút «Gỡ tệp» của ảnh");
+            assert.equal(await bam(p, `[data-go-tep="${TEP_ANH.id}"]`), true);
+            await choSheet(p, `[data-xac-nhan-go="${TEP_ANH.id}"]`);
+            await bocucSach(p, `bước T2 hộp gỡ ${kho}`);
+            await chup(p, `22-hop-go-tep-${tenKho}`, false);
+            assert.equal(await bam(p, `[data-xac-nhan-go="${TEP_ANH.id}"]`), true);
+            await choDongSheet(p);
+            await p.waitFor(`document.querySelector('#fb-tin-ds [data-tep="${TEP_ANH.id}"]')?.textContent === 'Tệp đã được gỡ'`, "dòng «Tệp đã được gỡ»");
+            assert.equal(await p.ev("document.querySelectorAll('#fb-tin-ds .ht-tep-anh img').length"), 0, "không còn ảnh");
+            assert.equal((await goiTrongTrang(p, "GET", `/api/feedback/${VE_TEP.id}/tep/${TEP_ANH.id}`)).status, 404, "máy chủ không trả tệp đã gỡ");
+            assert.equal(await p.ev(`fetch('/api/feedback/${VE_TEP.id}/tep/${TEP_PDF.id}').then((r) => r.status)`), 200, "PDF vẫn tải được");
+            await kiem(p, `bước T2 ${kho}`);
+            await p.ev("document.querySelector('#fb-tin-ds .ht-tep-tin').scrollIntoView({ block: 'center' }), true");
+            await chup(p, `23-da-go-tep-${tenKho}`, false);
+          });
+          if (p.consoleErrors.length) loi.push(`lỗi console (Toàn quyền, gỡ tệp ${kho}): ${p.consoleErrors.join(" | ").slice(0, 300)}`);
+        } finally {
+          p.close();
+        }
+      }
 
       // ======================= Bán hàng Một: bước 1, 2, 8, 9 =======================
       let T1 = null;

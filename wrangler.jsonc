@@ -40,7 +40,13 @@
   // chỉ module parties chạm binding này (bài src/kho-tep-ho-so.test.ts). Kho THẬT do CHỦ tạo một lần: `npx wrangler r2 bucket create tourdao-sales-ho-so`
   // (docs/HANDOFF-N1.md); `npm run trien-khai` DỪNG ở bước 1e nếu kho chưa có — tên kho đọc từ đúng dòng dưới (một nguồn). `wrangler dev` và e2e tự mô phỏng
   // kho ở máy (thư mục --persist-to), không cần mạng, không chạm kho thật.
-  "r2_buckets": [{ "binding": "HO_SO", "bucket_name": "tourdao-sales-ho-so" }],
+  // KHO TỆP VÉ HỖ TRỢ (ADR-0144): ảnh / PDF kèm tin của vé — kho R2 RIÊNG thứ hai (Hiến chương 5.22: không chung kho hồ sơ), khoá `fbk/<ngẫu nhiên>`, KHÔNG
+  // đường dẫn công khai; chỉ module feedback chạm (bài src/kho-tep-ho-tro.test.ts). Kho THẬT do CHỦ tạo một lần: `npx wrangler r2 bucket create
+  // tourdao-sales-ho-tro`; cổng 1e của `npm run trien-khai` kiểm MỌI kho trong mảng dưới.
+  "r2_buckets": [
+    { "binding": "HO_SO", "bucket_name": "tourdao-sales-ho-so" },
+    { "binding": "HO_TRO", "bucket_name": "tourdao-sales-ho-tro" }
+  ],
   // Email Service (beta, gói Workers Paid): binding EMAIL theo developers.cloudflare.com/email-service (khoá `send_email`). KHÔNG khai `remote`: tài liệu nói `wrangler dev` không dùng remote binding thì chạy bộ mô phỏng cục bộ (không cần đăng nhập/mạng), nên `npm run dev` và e2e chạy offline được. Muốn thử gửi thư thật khi dev thì tạm đổi thành { "name": "EMAIL", "remote": true } (cần đăng nhập Cloudflare), đừng commit. Thiếu binding hoặc thiếu hai secret FEEDBACK_NOTIFY_EMAIL / FEEDBACK_MAIL_FROM thì email tự tắt; yêu cầu Góp ý vẫn lưu và hàng đợi báo "chưa gửi được email". Nếu `wrangler deploy` báo lỗi vì binding này (chưa bật Email Service/chưa xác minh tên miền — CHƯA kiểm chứng), gỡ khối `send_email` rồi deploy lại.
   "send_email": [{ "name": "EMAIL" }],
   // BẢNG TIN (ADR-0022): trạm WebSocket = Durable Object `BangTin` (src/modules/bangtin/tram.ts, export từ src/index.ts). MỘT trạm duy nhất tên "cong-ty"

@@ -90,3 +90,11 @@ Người kiểm độc lập (chỉ đọc, đột biến trên bản sao `git a
 - **R-M trọn vòng:** đơn chỉ có SD1 (nhóm tắt) → «Lưu, chờ xác nhận» → máy chủ lưu `pickupChoice = KHONG_DON`, 0 lượt → «Xác nhận đơn» → `POST /status` 200, đơn `confirmed`.
 - Kịch bản Chrome `a2-smoke-form.mjs` (bảng `web/CLAUDE.md` cho `web/order-form.ts`): `UI SMOKE FORM OK`.
 - Chưa xem trên trình duyệt: dòng báo «đã bỏ N lượt đưa đón» khi mở lại nháp cũ có lượt của nhóm vừa tắt (chỉ có bài văn bản N-19 + luật thuần canh); iPhone thật.
+
+## Chủ quyết (28/10/2026)
+
+Chủ dự án trả lời câu hỏi cuối việc «Bạn đồng ý cả hai cách xử lý R-M và R-T để nhập nhánh chứ?» bằng nguyên văn: «Đồng ý cả hai».
+- **R-M** (form tự ghi «Không đón» cho dịch vụ thuộc nhóm đã tắt đưa đón — lệch chữ ADR-0134 Đ7): giữ như mã; dòng `docs/SYSTEM-DESIGN.md` §16 đổi sang «CHỦ GẬT ĐẦU 2026-10-28». Chữ ADR-0134 không sửa (ADR đã duyệt; theo khuôn các dòng §16 khác).
+- **R-T** (đơn đã xác nhận còn lượt của nhóm tắt thì đổi ngày đi bị chặn tới khi bấm «Bỏ lượt»): giữ cách đọc chặt, không miễn trừ thao tác dời ngày. Mã không đổi.
+
+Kiểm ngay sau câu trả lời (lệnh chỉ đọc): `main` = `origin/main` = `714fe749` (chủ đã chạy `day-len`), `npm run trien-khai` đang chạy, production còn `version 2.38`; trạng thái production ghi ở `docs/HANDOFF-N1.md` sau khi lệnh xong, từ khối tóm tắt của lệnh và lệnh chỉ đọc.
