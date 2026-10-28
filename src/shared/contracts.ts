@@ -1442,7 +1442,7 @@ export interface FeedbackMyOrdersResponse { orders: { id: string; orderCode: str
 // "chuyen": tin chuyến xe (ADR-0052 D6, kể cả MQ-07 "giờ hẹn chặng đổi khi đã xếp"); "tai_khoan": ngưng tài khoản giữ tiền — chỉ Toàn quyền nhận (ADR-0090 đ3);
 // "doi_sau_xac_nhan": đơn đã xác nhận đổi giờ / nơi đón / số khách / chặng (ADR-0062);
 // "dieu_chinh": yêu cầu điều chỉnh công nợ — có yêu cầu mới / đã duyệt / bị từ chối / được rút / số dư của bạn đổi (ADR-0115)
-export type LoaiTin = "thu_cong" | "lap" | "cho_nhan" | "nhan" | "giao" | "xac_nhan" | "huy" | "chuyen" | "tai_khoan" | "doi_sau_xac_nhan" | "dieu_chinh" | "cho_xac_nhan";
+export type LoaiTin = "thu_cong" | "lap" | "cho_nhan" | "nhan" | "giao" | "xac_nhan" | "huy" | "chuyen" | "tai_khoan" | "doi_sau_xac_nhan" | "dieu_chinh" | "cho_xac_nhan" | "duyet_hoan";
 export interface TinDto {
   id: string;
   loai: LoaiTin;
@@ -2270,6 +2270,8 @@ export interface CocDonDto {
   nhanPhu: string | null;
   daTra: number;
   dangDoiChieu: number;
+  /** Đã trả lại khách TRƯỚC khi huỷ (trả dư) — chủ 28/10, ca SV-DH-13 «ghi đủ các dòng»: không có dòng này thì đã trả − còn giữ không khớp. */
+  hoanTruocHuy: number;
   daDuyet: number;
   daChi: number;
   daChuyen: number;
@@ -2512,9 +2514,10 @@ export interface ReceiptDto {
   conLai: number;
   /**
    * ADR-0089 đ9a: tiền của ĐƠN HUỶ cho "thông báo huỷ" (null với đơn không huỷ) — danh sách trắng, chỉ số + nhóm + hạn. `daTra` = khách đã trả (đã xác nhận),
-   * `dangDoiChieu` = khoản khai chuyển khoản chưa xác nhận, `daDuyet` / `daChi` / `daChuyen` theo khoản duyệt, `han` = hạn hoàn cọc (chỉ nhóm khách huỷ hứa ngày).
+   * `dangDoiChieu` = khoản khai chuyển khoản chưa xác nhận, `hoanTruocHuy` = đã trả lại khách trước khi huỷ (chủ 28/10), `daDuyet` / `daChi` / `daChuyen` theo khoản
+   * duyệt, `han` = hạn hoàn cọc (chỉ nhóm khách huỷ hứa ngày).
    */
-  huy: { nhom: "KHACH_HUY" | "CONG_TY_HUY" | "LAP_LAI" | "CHUA_KET_LUAN"; daTra: number; dangDoiChieu: number; daDuyet: number; daChi: number; daChuyen: number; daDuyetChuyen: number; han: string } | null;
+  huy: { nhom: "KHACH_HUY" | "CONG_TY_HUY" | "LAP_LAI" | "CHUA_KET_LUAN"; daTra: number; dangDoiChieu: number; hoanTruocHuy: number; daDuyet: number; daChi: number; daChuyen: number; daDuyetChuyen: number; han: string } | null;
   /**
    * Sổ đại lý đợt 2 (ADR-0078 điều 10; đặc tả P5): các phần của biên nhận, MỖI NGƯỜI BÁN một phần — phần Tour Đảo đứng đầu, rồi nhà cung cấp theo thứ tự dịch vụ.
    * Đơn chỉ một người bán ⇒ một phần; đơn huỷ ⇒ mảng rỗng (biên nhận huỷ đọc `huy`). Danh sách trắng KHÔNG đổi: không a%, giá vốn, hoa hồng, tên người thu, hình thức.

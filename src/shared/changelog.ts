@@ -12,6 +12,19 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Đóng lỗ TNV-G1 (ADR-0089; chủ 28/10 «vá luôn lỗi»): ô đếm + khối «Thu trước của đơn huỷ» trên Trang chủ Kế toán (NT-V6), tin «đã được duyệt hoàn» cho người
+    // ghi chi hoàn (NT-V7), hai dòng tiền chủ chọn 28/10. CÓ migration 0125 (dựng lại view hộp thư) nên cần npm run trien-khai. Số 2.41 và ngày là TẠM (main có
+    // 2.40 tạm của tệp kèm vé lúc làm) — phiên phát hành kiểm lại ở bước A.0 của docs/HANDOFF-N1.md.
+    version: "2.41",
+    date: "2026-10-28",
+    items: [
+      { kind: "moi", text: "Trang chủ Kế toán: mục «Cần xem lại» đếm khoản thu trước đã duyệt chờ chi, đơn huỷ sắp hết hạn hoàn và đơn huỷ còn người chưa nộp tiền." },
+      { kind: "moi", text: "Trang chủ Kế toán có khối «Thu trước của đơn huỷ» liệt kê từng việc kèm mã đơn; bấm mã đơn để mở và ghi chi hoàn." },
+      { kind: "moi", text: "Khi Quản trị duyệt hoàn thu trước, Kế toán nhận tin «đã được duyệt hoàn thu trước cho khách, chờ ghi chi hoàn» trong hộp thông báo." },
+      { kind: "doi", text: "Đơn huỷ: trang đơn và thông báo gửi khách ghi «Đã hoàn trả» thay «Đã hoàn», và thêm dòng «Đã trả lại khách trước khi huỷ» khi có." },
+    ],
+  },
+  {
     // Đính kèm tệp trong vé hỗ trợ (ADR-0144; kế hoạch docs/superpowers/plans/2026-10-28-dinh-kem-ve-ho-tro.md). CÓ migration 0124 và kho R2 MỚI `tourdao-sales-ho-tro`
     // (chủ tạo kho TRƯỚC npm run trien-khai — docs/HANDOFF-N1.md). Số 2.40 và ngày là TẠM (production 2.38, main có 2.39 tạm của ADR-0118 lúc làm) — phiên phát hành kiểm lại ở bước A.0.
     version: "2.40",
