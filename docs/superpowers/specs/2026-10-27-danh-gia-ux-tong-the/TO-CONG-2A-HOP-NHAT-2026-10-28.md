@@ -31,9 +31,14 @@ Kết quả kiểm độc lập (bước 2c, bằng kịch bản so với giá t
 
 ## 5. Gộp gì từ Claude Design vào bộ v2
 
-_(Điền khi tấm vẽ từ đề bài số 0 về: thành phần nào lấy diện mạo của Claude Design, cái nào giữ của bộ, vì sao. Hai chỗ đã để dành cho Claude Design quyết: đệm và bố cục bên trong thành phần; diện mạo thông báo ngắn — bộ hiện tự đổi toast sang nền tối, mã đang dùng nền trắng viền trái xanh biển.)_
+_(Điền 28/10, sau khi bản xuất Claude Design về máy lúc 09:08.)_ Bảng đầy đủ: `GOP-CLAUDE-DESIGN-VAO-BO-V2-2026-10-28.md`; bản xuất ở `docs/evidence/2026-10-28-claude-design-bo-v2/`. Tóm tắt:
 
-Nếu tới lúc duyệt mà tấm vẽ chưa có, **chủ chọn một trong hai đường**: **(a) duyệt ngay với bộ hiện tại**, bảng gộp làm thành tờ bổ sung sau — *khuyến nghị*, vì đề bài khung chung chỉ cần bảng token và danh sách thành phần, diện mạo gộp sau không làm đề bài đó phải viết lại; **(b) chờ tấm vẽ rồi duyệt một lần** — chắc hơn nhưng Chặng 2 đứng chờ Claude Design.
+- Claude Design dựng đủ bộ (219 token, 27 thành phần, 38 hình), đọc đúng mã: giữ 85/88 giá trị chép từ mã; ba giá trị nó bỏ (vành mờ ô gõ, bóng thẻ khi rê, bóng nút chính) **giữ theo mã**. Kết luận không đổi: **một bộ duy nhất** trên Claude; mã React của Design **không** mang vào bộ hay mã.
+- 27 thành phần: **lấy diện mạo Design 4** (ô tích/ô chọn một/công tắc; hộp xác nhận một chiều; báo xong nền tối; trạng thái rỗng) · **giữ theo mã 17** · **mới, bộ chưa có 6** (đầu trang tách khỏi thanh trên, thanh trên, thanh tab dưới, thanh bên, trang mất mạng, trang 403/404 — đánh dấu "từ Claude Design, 7b có thể sửa").
+- Hai chỗ để dành: **đệm và bố cục bên trong** lấy gói 10 giá trị đệm của Design (nút, ô, chip, tab, huy hiệu, thẻ, lề trang, nhịp khối) + ô nhiều dòng 96; **báo xong ngắn** lấy nền tối, ghi là ĐỔI so với mã.
+- Không lấy: tên token tiếng Việt, chip thấp 36, kiểu tab "rãnh", số trang 1…n, nút phẳng, bỏ in hoa (để 7b), mốc 768 (giữ 640), ba hình tông khác. Một lỗi thật tìm ra theo mã: viền vòng chọn một chỉ ≈ 1,25:1 (B-VIEN-O-CHON-TUONG-PHAN), sửa ở đợt 0.
+
+_(Đoạn dưới đã hết nghĩa vì bản xuất về trước khi chủ duyệt; giữ để truy vết.)_ Nếu tới lúc duyệt mà tấm vẽ chưa có, **chủ chọn một trong hai đường**: **(a) duyệt ngay với bộ hiện tại**, bảng gộp làm thành tờ bổ sung sau — *khuyến nghị*, vì đề bài khung chung chỉ cần bảng token và danh sách thành phần, diện mạo gộp sau không làm đề bài đó phải viết lại; **(b) chờ tấm vẽ rồi duyệt một lần** — chắc hơn nhưng Chặng 2 đứng chờ Claude Design.
 
 ## 6. Sau cổng 2a
 
