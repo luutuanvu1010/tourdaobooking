@@ -198,7 +198,7 @@ function veChuaXep(): void {
   const ds = locChangChuaXep(tatCa, boLoc);
   const hien = new Set(ds.map((x) => x.chang.legId));
   daChon = new Set([...daChon].filter((id) => hien.has(id))); // chặng bị lọc ẩn / vừa được người khác xếp thì rời lựa chọn
-  thanhChonEl = co.dieuPhoi && ds.length ? h("div", { class: "dp-nhieu", "data-role": "thanh-chon" }) : null;
+  thanhChonEl = co.dieuPhoi && ds.length ? h("div", { class: "dp-nhieu thanh-hanh-dong-cuoi", "data-role": "thanh-chon" }) : null;
   replaceChildren(
     cotChua,
     dauCot("Chưa xếp", tatCa.length),

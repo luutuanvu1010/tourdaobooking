@@ -92,7 +92,7 @@ export function boCucHtml(html) {
     muc = { muc: ten, nut: [] };
     out.push(muc);
   };
-  const re = /<(h[1-3])\b[^>]*>([^<]*)<\/\1>|<button\b[^>]*>([^<]+)<\/button>|<a\b[^>]*class="[^"]*\bbtn\b[^"]*"[^>]*>([^<]+)<\/a>|class="[^"]*\b(?:form-actions|vc-bottom-bar)\b/g;
+  const re = /<(h[1-3])\b[^>]*>([^<]*)<\/\1>|<button\b[^>]*>([^<]+)<\/button>|<a\b[^>]*class="[^"]*\bbtn\b[^"]*"[^>]*>([^<]+)<\/a>|class="[^"]*\b(?:form-actions|vc-bottom-bar|chan-dinh)\b/g;
   for (const m of s.matchAll(re)) {
     if (m[1]) {
       if (m[1] === "h1") continue; // tiêu đề trang

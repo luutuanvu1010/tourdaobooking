@@ -1,4 +1,5 @@
 import { ApiError, api, datNguoiDangNhap, type Staff, type Api } from "./api";
+import { BO_CHON_THANH_DINH, coThanhDinhHien } from "../src/shared/thanh-dinh-day";
 import { PERMISSION_LABEL } from "../src/shared/permissions";
 import {
   KHUNG_MAT_MANG,
@@ -438,6 +439,7 @@ export async function initShell(): Promise<Staff> {
     if (tatTam !== null) tabs.dataset.khungTam = "1";
     document.body.append(tabs);
     document.body.classList.add("has-tabbar");
+    theoDoiThanhDinh();
   };
   /** Thanh công việc: avatar (điện thoại) + ô tìm + nút "Tạo đơn" — cùng một cách dựng cho khung tạm và khung thật. */
   const thanhCongViec = (tat: string, n: NguoiXem, tam: boolean) => {
@@ -510,6 +512,42 @@ export async function initShell(): Promise<Staff> {
  */
 export function datThanhTab(hien: boolean): void {
   document.body.classList.toggle("tabbar-an", !hien);
+}
+
+/**
+ * Thanh dính đáy (`.thanh-hanh-dong-cuoi`) đang hiện thì ẩn thanh tab; đặt `--day-dinh` = chiều cao vùng dính đáy (toast né). Chỉ quan sát `main` (thuộc tính + cây con)
+ * và con trực tiếp của body: KHÔNG quan sát thuộc tính body, vì chính ta đổi lớp `tabbar-an` ở đó (sẽ tự kích lại).
+ */
+function theoDoiThanhDinh(): void {
+  if (typeof MutationObserver === "undefined") return;
+  let truoc: boolean | null = null;
+  const capNhat = () => {
+    const ds = [...document.querySelectorAll<HTMLElement>(BO_CHON_THANH_DINH)];
+    const co = coThanhDinhHien(ds);
+    if (co !== truoc) {
+      truoc = co;
+      datThanhTab(!co);
+    }
+    const tb = document.getElementById("tabbar");
+    const dich = co ? ds.find((e) => !e.closest(".sheet-root") && e.getClientRects().length > 0) : tb && tb.getClientRects().length > 0 ? tb : null;
+    document.body.style.setProperty("--day-dinh", `${dich ? Math.round(dich.getBoundingClientRect().height) : 0}px`);
+  };
+  let cho = false;
+  const chay = () => {
+    cho = false;
+    capNhat();
+  };
+  const lich = () => {
+    if (cho) return;
+    cho = true;
+    if (typeof requestAnimationFrame === "undefined") chay();
+    else requestAnimationFrame(chay);
+  };
+  capNhat();
+  const mo = new MutationObserver(lich);
+  const main = document.querySelector("main");
+  if (main) mo.observe(main, { subtree: true, childList: true, attributes: true, attributeFilter: ["hidden", "class", "style"] });
+  mo.observe(document.body, { childList: true });
 }
 
 export function showError(el: HTMLElement, message: string | null): void {

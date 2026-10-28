@@ -4054,3 +4054,8 @@ body.co-nut-ho-tro:not(.cc-dang-chay) main { padding-bottom: calc(var(--s5) + va
 .trang-thai { display: flex; flex-direction: column; align-items: center; gap: var(--s3); max-width: var(--w-thiet-lap-max); margin: 0 auto; padding: var(--le-trang-rong) var(--le-trang); text-align: center; }
 .trang-thai[data-loai] > .vong { display: flex; align-items: center; justify-content: center; width: var(--vong-trang-thai); height: var(--vong-trang-thai); border-radius: 50%; color: var(--c-primary); background: var(--c-primary-soft); }
 .trang-thai[data-loai="loi-may-chu"] > .vong, .trang-thai[data-loai="403"] > .vong { color: var(--c-danger); background: var(--c-danger-soft); }
+
+/* Chân dính một kiểu (đợt 0, K4): một thanh dính đáy duy nhất; thanh tab tự ẩn khi thanh dính đang hiện (web/shell.ts theoDoiThanhDinh) */
+.form-actions, .vc-bottom-bar, .vc-form-actions, .chan-dinh { background: var(--c-surface); border-top: 1px solid var(--c-border); padding-bottom: calc(var(--s3) + env(safe-area-inset-bottom)); z-index: var(--z-dinh); }
+.form-actions .btn, .form-actions button, .vc-bottom-bar .vc-btn, .vc-bottom-bar button, .vc-form-actions .btn, .vc-form-actions button, .chan-dinh .nut, .chan-dinh button { min-height: var(--h-control-lon); }
+body.tabbar-an .vc-bottom-bar { bottom: 0; }
