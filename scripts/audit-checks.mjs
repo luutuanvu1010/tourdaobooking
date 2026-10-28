@@ -162,6 +162,8 @@ const GHI_SAU_KHOA = (bang) =>
  * N4 dò ở bài chạy cả ứng dụng (tests/audit/nhat-ky-hang.mjs).
  */
 export const COT_N3_NHAT_KY = {
+  "fbk_attachment.content_hash": { kiem: "R-PD-1", chuanHoa: false }, // ADR-0144: băm tệp kèm vé hỗ trợ — nhật ký chỉ mang mã tệp
+  "fbk_attachment.storage_key": { kiem: "R-PD-1", chuanHoa: false }, // khoá kho R2 vé hỗ trợ — không bao giờ vào nhật ký
   "pty_attachment.content_hash": { kiem: "R-PD-1", chuanHoa: false }, // ADR-0123 (lát H-2 Gói 2): băm ảnh giấy tờ — nhật ký chỉ mang mã tệp
   "pty_attachment.storage_key": { kiem: "R-PD-1", chuanHoa: false }, // khoá kho R2 — không bao giờ vào nhật ký
   "pty_organization_document.document_number": { kiem: "R-PD-1", chuanHoa: false },
