@@ -69,7 +69,8 @@ test("nút «Chụp bù» trong khối Phần đối tác: chỉ đơn đã xác
 test("nhãn loại khoản chờ đối chiếu (Trang chủ Kế toán): ba loại; nút xác nhận đúng route", () => {
   assert.equal(B.nhanKhoanDoiChieu({ loai: "ben_dat", benKia: "Đại Lý A" }), "Khách trả cho đại lý Đại Lý A");
   assert.equal(B.nhanKhoanDoiChieu({ loai: "nha_cung_cap", benKia: "i-resort" }), "Khách trả tại quầy i-resort");
-  assert.equal(B.nhanKhoanDoiChieu({ loai: "cong_ty", benKia: null }), "Công ty thu – chuyển khoản");
+  // «Công ty thu» gồm cả khoản tiền mặt người ghi chưa nộp về công ty (nhánh HELD của `PENDING_COMPANY`) — nhãn không được nói «chuyển khoản» (rà chữ Trang chủ 28/10).
+  assert.equal(B.nhanKhoanDoiChieu({ loai: "cong_ty", benKia: null }), "Công ty thu");
   assert.equal(B.nutXacNhanDoiChieu("ben_dat"), "Bên kia đã nhận");
   assert.equal(B.nutXacNhanDoiChieu("nha_cung_cap"), "Bên kia đã nhận");
   assert.equal(B.nutXacNhanDoiChieu("cong_ty"), null, "khoản Công ty thu cần mã giao dịch — xác nhận ở trang đơn");

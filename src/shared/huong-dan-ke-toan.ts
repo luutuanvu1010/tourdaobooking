@@ -40,10 +40,10 @@ Thanh tab dưới đáy có [[Trang chủ]], [[Đơn hàng]] và [[Tôi]]. Các 
    - [[Điều chỉnh công nợ chờ duyệt]] (nhãn **Của tôi**): yêu cầu đang chờ chính bạn duyệt.
    - [[Đơn còn thiếu tiền]] (nhãn **Toàn công ty**): tổng tiền khách còn phải trả của các đơn đã xác nhận.
    - [[Đơn nháp]] (nhãn **Toàn công ty**): đơn đã lưu nhưng chưa chốt; bạn chỉ xem.
-   - [[Chuyến hôm nay]]: số chuyến đi hôm nay.
+   - [[Đơn đi hôm nay]]: số đơn đi hôm nay.
    Điện thoại: các ô số **Còn thiếu tiền**, **Chờ xác nhận**, **Chưa phụ trách** (cả công ty).
    Khối **Chờ đối chiếu** liệt kê khoản đang chờ bạn đối chiếu (mục "Đối chiếu tiền trên trang đơn").
-3. Xem thẻ **Chuyến đón**: các đơn đã xác nhận có giờ đón hôm nay (bấm Ngày mai, Ngày kia để xem tiếp).
+3. Xem thẻ **Đơn đi**: các đơn đã xác nhận có ngày đi hôm nay (bấm Ngày mai, Ngày kia để xem tiếp).
 
 > Lưu ý: Ô **Doanh thu của tôi** chỉ tính đơn do chính bạn lập. Kế toán không lập đơn nên ô này luôn bằng không. Không phải lỗi.`,
     },

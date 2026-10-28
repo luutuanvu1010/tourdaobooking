@@ -178,8 +178,8 @@ try {
   assert.equal(so(k.quanTri, "xemLai"), "1");
   // Nút: chỉ hành động chốt mới san hô (btn-accent) — "Xác nhận đơn" của thẻ Đơn nháp khi người này sửa được đơn nháp của mình/của đơn.
   const nutThe = (m) => m.the.map((t) => `${t.khoa}:${t.nut[0].chu}${t.nut[0].san ? "*" : ""}`);
-  assert.deepEqual(nutThe(k.keToan), ["dieuChinh:Duyệt", "nhap:Xem đơn nháp", "conThieu:Ghi thu", "chuyenHomNay:Xem chuyến"], `Kế toán: nút theo quyền, không san hô — ${JSON.stringify(nutThe(k.keToan))}`);
-  assert.deepEqual(nutThe(k.quanTri), ["xemLai:Xem lại", "nhap:Xác nhận đơn*", "chuaPhuTrach:Phân công", "chuyenHomNay:Xem chuyến"], `Quản trị: nút san hô CHỈ ở thẻ thứ hai "Xác nhận đơn" — ${JSON.stringify(nutThe(k.quanTri))}`);
+  assert.deepEqual(nutThe(k.keToan), ["dieuChinh:Duyệt", "nhap:Xem đơn nháp", "conThieu:Ghi thu", "chuyenHomNay:Xem đơn"], `Kế toán: nút theo quyền, không san hô — ${JSON.stringify(nutThe(k.keToan))}`);
+  assert.deepEqual(nutThe(k.quanTri), ["xemLai:Xem lại", "nhap:Xác nhận đơn*", "chuaPhuTrach:Phân công", "chuyenHomNay:Xem đơn"], `Quản trị: nút san hô CHỈ ở thẻ thứ hai "Xác nhận đơn" — ${JSON.stringify(nutThe(k.quanTri))}`);
   assert.deepEqual(k.quanTri.the.map((t) => t.nut[0].chinh), [true, false, false, false], "Quản trị: btn-primary chỉ ở thẻ đầu");
   assert.equal(k.quanTri.con, "Còn 2 việc nữa: điều chỉnh công nợ chờ duyệt (2).", `Quản trị: việc bị dồn được nói thẳng — ${k.quanTri.con}`);
   assert.equal(k.keToan.con, null, "Kế toán: vừa đủ 4 thẻ, không dòng 'Còn'");

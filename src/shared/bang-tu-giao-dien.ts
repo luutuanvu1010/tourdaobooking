@@ -40,6 +40,10 @@ export const TU_DA_LOAI: readonly TuDaLoai[] = [
   // Lượt 4 — hỗ trợ (chủ 2026-10-25, bàn giao Hoa hồng + Hỗ trợ). Trùng tên «Hỗ trợ» (trang / Trợ lý / vé): BACKLOG BL-VE-TRUNG-TEN.
   { cam: /Hàng đợi nhóm/u, thay: "Việc của nhóm", nguon: "chủ 2026-10-25 (bàn giao Hoa hồng + Hỗ trợ)" },
   { cam: /[Tt]rợ giúp|TRỢ GIÚP/u, thay: "Hướng dẫn", nguon: "chủ 2026-10-25 (bàn giao Hoa hồng + Hỗ trợ)" },
+  // Lượt 5 — Trang chủ (chủ 2026-10-28, hộp hỏi rà chữ Trang chủ). Khối và thẻ này đếm ĐƠN có ngày đi, không phải chuyến xe của Điều phối — mẫu chặn hẹp, «các chuyến hôm nay»
+  // của tài xế (chuyến xe thật) giữ nguyên. «khai <ngày>» ở khối Chờ đối chiếu: mảnh chuỗi mẫu « · khai » đứng ngay trước ngày.
+  { cam: /[Cc]huyến đón|Chuyến hôm nay|Không có chuyến nào (?:hôm nay|ngày mai|ngày kia)/u, thay: "Đơn đi (Đơn đi hôm nay · Không có đơn nào đi hôm nay)", nguon: "chủ 2026-10-28 (rà chữ Trang chủ)" },
+  { cam: /·\s*khai\s*$/u, thay: "ghi ngày <ngày>", nguon: "chủ 2026-10-28 (rà chữ Trang chủ)" },
 ];
 
 /** Chữ «đảo» là hòn đảo (tên công ty, tên tour) — gỡ khỏi chuỗi trước khi so với dòng «Đảo» ở trên. */

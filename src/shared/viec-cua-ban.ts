@@ -75,8 +75,8 @@ const THE: readonly MoTa[] = [
     tone: "cat", chot: khong, phu: (n) => (n.conThieu ? `Còn phải thu ${vndShort(n.conThieu.total)} ₫` : "Chưa tải được số tiền còn thu") },
   { khoa: "chuaPhuTrach", uuTien: () => 5, hien: (w) => xemDon(w) && (can(w, "order.create") || quanTri(w)), nhan: "Đơn chưa có người phụ trách",
     nut: (w) => (quanTri(w) ? "Phân công" : "Nhận phụ trách"), href: "/orders", tone: "xanh", chot: khong, phu: () => "Chưa ai nhận chăm sóc khách" },
-  { khoa: "chuyenHomNay", uuTien: () => 6, hien: xemDon, nhan: "Chuyến hôm nay", nut: () => "Xem chuyến", href: "#dash-today", tone: "xanh", chot: khong,
-    phu: () => "Các chuyến có ngày đi hôm nay" },
+  { khoa: "chuyenHomNay", uuTien: () => 6, hien: xemDon, nhan: "Đơn đi hôm nay", nut: () => "Xem đơn", href: "#dash-today", tone: "xanh", chot: khong,
+    phu: () => "Các đơn có ngày đi hôm nay" },
   { khoa: "gopY", uuTien: () => 10, hien: (w) => can(w, "feedback.triage"), nhan: "Góp ý chờ xử lý", nut: () => "Xử lý", href: "/feedback", tone: "xanh", chot: khong,
     phu: () => "Góp ý có tin mới chưa đọc" },
 ];

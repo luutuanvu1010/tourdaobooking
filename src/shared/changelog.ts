@@ -12,6 +12,16 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Rà chữ Trang chủ (chủ 28/10): «Chuyến đón» → «Đơn đi», «khai <ngày>» → «ghi ngày <ngày>» (chủ chọn trong hộp hỏi), nhãn «Công ty thu – chuyển khoản» sai cho khoản tiền mặt.
+    // Chỉ chữ giao diện, KHÔNG migration. Số 2.38 và ngày là TẠM — phiên phát hành kiểm lại ở bước A.0 của docs/HANDOFF-N1.md.
+    version: "2.38",
+    date: "2026-10-28",
+    items: [
+      { kind: "sua", text: "Trang chủ: khối «Chuyến đón» đổi tên thành «Đơn đi», thẻ «Chuyến hôm nay» thành «Đơn đi hôm nay», vì các số ở đây đếm đơn có ngày đi, không phải chuyến xe." },
+      { kind: "sua", text: "Trang chủ Kế toán, khối Chờ đối chiếu: chữ «khai 18/10» nay ghi «ghi ngày 18/10»; khoản tiền mặt chưa nộp về công ty không còn bị ghi nhầm là «chuyển khoản»." },
+    ],
+  },
+  {
     // Sửa lỗi 2.36 (ADR-0136 Đ10): tin «đang chờ xác nhận» không vào hộp thông báo, màn hình khoá đọc nhầm tin cũ. CÓ migration 0120 (dựng lại view hộp thư)
     // nên cần npm run trien-khai. Số 2.37 và ngày là TẠM (production 2.36 lúc làm — GET /api/auth/config 27/10) — phiên phát hành kiểm lại ở bước A.0 của docs/HANDOFF-N1.md.
     version: "2.37",

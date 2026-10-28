@@ -176,9 +176,9 @@ function todayRow(o: OrderSummary, tien: { conLai: number } | undefined, loai: L
 
 /** Ba ngày của khối "Chuyến đón" (góp ý YC-0007 — chủ chọn cách A 30/9: một khối, ba nút chuyển ngày; cùng người xem, cùng dòng như hôm nay). */
 const NGAY_DON = [
-  { khoa: "today", nhan: "Hôm nay", trong: "Không có chuyến nào hôm nay." },
-  { khoa: "tomorrow", nhan: "Ngày mai", trong: "Không có chuyến nào ngày mai." },
-  { khoa: "dayAfter", nhan: "Ngày kia", trong: "Không có chuyến nào ngày kia." },
+  { khoa: "today", nhan: "Hôm nay", trong: "Không có đơn nào đi hôm nay." },
+  { khoa: "tomorrow", nhan: "Ngày mai", trong: "Không có đơn nào đi ngày mai." },
+  { khoa: "dayAfter", nhan: "Ngày kia", trong: "Không có đơn nào đi ngày kia." },
 ] as const;
 /** Ngày đang chọn — giữ qua các lần làm mới lặng lẽ (không nhớ qua lần mở trang: mở lại luôn là Hôm nay). */
 let ngayDonChon = 0;
@@ -337,7 +337,7 @@ async function taiDoiChieu(staff: Staff): Promise<void> {
       "li",
       { "data-receipt-id": k.receiptId, "data-loai": k.loai },
       h("a", { href: `/order?id=${encodeURIComponent(k.orderId)}` }, k.maDon),
-      ` · ${nhanKhoanDoiChieu(k)} · ${vnd(k.soTien)} · khai ${ngayNganHomNay(k.ngayKhai)}`,
+      ` · ${nhanKhoanDoiChieu(k)} · ${vnd(k.soTien)} · ghi ngày ${ngayNganHomNay(k.ngayKhai)}`,
       k.qua3Ngay ? h("span", { class: "dd-canh-xn is-do" }, " · quá 3 ngày") : null,
       nut ? " " : null,
       nut,
@@ -636,7 +636,7 @@ function veDai(staff: Staff): void {
 function datTomTatDai(soChuyen: number, cauViec: string | null): void {
   const el = document.getElementById("dash-dai-tom");
   if (!el) return;
-  el.textContent = cauViec ?? (soViecXemLai > 0 ? `${soChuyen} chuyến đón hôm nay · ${soViecXemLai} việc cần xem lại` : `${soChuyen} chuyến đón hôm nay`);
+  el.textContent = cauViec ?? (soViecXemLai > 0 ? `${soChuyen} đơn đi hôm nay · ${soViecXemLai} việc cần xem lại` : `${soChuyen} đơn đi hôm nay`);
   el.hidden = false;
 }
 

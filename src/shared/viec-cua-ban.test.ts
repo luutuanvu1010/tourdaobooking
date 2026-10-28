@@ -58,6 +58,10 @@ test("thẻ chuaPhuTrach: Bán hàng 'Nhận phụ trách', Quản trị 'Phân 
   assert.equal(viecCuaBan(who("SALES"), day).the.find((t) => t.khoa === "chuaPhuTrach")?.nut, "Nhận phụ trách");
   assert.equal(viecCuaBan(who("ADMIN"), { chuaPhuTrach: 2 }).the[0]?.nut, "Phân công");
 });
+test("thẻ chuyenHomNay đếm ĐƠN, không phải chuyến xe: «Đơn đi hôm nay» (chủ chọn 28/10)", () => {
+  const t = viecCuaBan(who("SALES"), day).the.find((x) => x.khoa === "chuyenHomNay");
+  assert.deepEqual([t?.nhan, t?.nut, t?.phu], ["Đơn đi hôm nay", "Xem đơn", "Các đơn có ngày đi hôm nay"]);
+});
 test("nguonCanTai: chỉ nguồn người này dùng; không nguồn quản trị cho Bán hàng/Kế toán", () => {
   assert.deepEqual([...nguonCanTai(who("SALES"))], ["donCho", "nhap", "conThieu", "chuaPhuTrach", "chuyenHomNay"]);
   assert.deepEqual([...nguonCanTai(who("ACCOUNTING"))], ["donCho", "dieuChinh", "nhap", "conThieu", "chuyenHomNay"]);
