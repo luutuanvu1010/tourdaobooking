@@ -7,6 +7,7 @@ import { GIOI_HAN_TRO_LY as G } from "../src/shared/tro-ly-gioi-han";
 import { uocMotCauMicroUsd } from "../src/shared/tro-ly-mau";
 import { PERMISSION_CODES, PERMISSION_LABEL, can, type PermissionCode } from "../src/shared/permissions";
 import { ApiError, api, type Api } from "./api";
+import { hoiXacNhan } from "./bang-truot";
 import { byId, h, replaceChildren } from "./dom";
 import { chuInDam } from "./tro-ly-in-dam";
 import { dateTime } from "./format";
@@ -217,9 +218,9 @@ function veBoNao(d: Api.TroLyBoNaoResponse, daLuu = false): void {
   const bao = dongBao();
   const gui = async (body: Api.TroLyBoNao): Promise<void> => veBoNao(await api<Api.TroLyBoNaoResponse>("/api/tro-ly/bo-nao", { method: "PUT", body }), true);
   // Khôi phục chỉ đưa bản mặc định vào Ô LỜI NHẮC (không lưu, không đụng mẫu / mức / độ dài); người dùng bấm "Lưu bộ não" để dùng.
-  khoiPhuc.addEventListener("click", () => {
+  khoiPhuc.addEventListener("click", async () => {
     if (boNaoBan) return;
-    if (loiNhac.value !== hh.loiNhac && !confirm("Lời nhắc trong ô đang có chỗ sửa chưa lưu. Thay bằng bản mặc định?")) return;
+    if (loiNhac.value !== hh.loiNhac && !(await hoiXacNhan({ tieuDe: "Thay bằng bản mặc định?", hauQua: "Lời nhắc trong ô đang có chỗ sửa chưa lưu. Thay bằng bản mặc định?", nhanNguyHiem: "Thay", nhanGiu: "Giữ chỗ đang sửa", opener: khoiPhuc }))) return;
     loiNhac.value = d.loiNhacMacDinh;
     veDem();
     bao.ok("Đã đưa bản mặc định vào ô lời nhắc — bấm “Lưu bộ não” để dùng.");

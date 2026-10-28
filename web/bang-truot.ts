@@ -16,7 +16,18 @@ export interface BangTruot {
 
 let dem = 0;
 
-export function moBangTruot(o: { title: string; body: Child[]; foot: Child[]; footClass?: string; opener?: HTMLElement | null; onClosed?: () => void }): BangTruot | null {
+export function moBangTruot(o: {
+  title: string;
+  body: Child[];
+  foot: Child[];
+  footClass?: string;
+  opener?: HTMLElement | null;
+  onClosed?: () => void;
+  /** `alertdialog` cho hộp hỏi xác nhận (đọc to cả nội dung khi mở). Mặc định `dialog`. */
+  vaiTro?: "dialog" | "alertdialog";
+  /** Hộp xác nhận không có nút ✕ (đã có hai nút ở chân); Esc / chạm nền vẫn đóng. */
+  khongNutDong?: true;
+}): BangTruot | null {
   if (document.querySelector(".sheet-root")) return null; // bấm đúp không mở hai bảng
   const id = `vc-sheet-${++dem}`;
   let busy = false;
@@ -27,8 +38,8 @@ export function moBangTruot(o: { title: string; body: Child[]; foot: Child[]; fo
   const foot = h("div", { class: `sheet-foot ${o.footClass ?? ""}`.trim() }, ...o.foot);
   const dialog = h(
     "div",
-    { class: "sheet", role: "dialog", "aria-modal": "true", "aria-labelledby": `${id}-title`, tabindex: -1 },
-    h("div", { class: "sheet-head" }, h("h2", { id: `${id}-title`, class: "sheet-title" }, o.title), closeBtn),
+    { class: "sheet", role: o.vaiTro ?? "dialog", "aria-modal": "true", "aria-labelledby": `${id}-title`, tabindex: -1 },
+    h("div", { class: "sheet-head" }, h("h2", { id: `${id}-title`, class: "sheet-title" }, o.title), o.khongNutDong ? null : closeBtn),
     body,
     foot,
   );
@@ -68,4 +79,29 @@ export function moBangTruot(o: { title: string; body: Child[]; foot: Child[]; fo
       closeBtn.disabled = value;
     },
   };
+}
+
+/** Hộp hỏi xác nhận một chiều thay `confirm()`: Esc / chạm nền / nút giữ → false; nút nguy hiểm → true; đang mở bảng khác → false (không làm gì). */
+export function hoiXacNhan(o: { tieuDe: string; hauQua: string; nhanNguyHiem: string; nhanGiu?: string; opener?: HTMLElement | null }): Promise<boolean> {
+  return new Promise((resolve) => {
+    const giu = h("button", { type: "button", class: "btn" }, o.nhanGiu ?? "Giữ nguyên");
+    const nguy = h("button", { type: "button", class: "btn btn-danger" }, o.nhanNguyHiem);
+    let kq = false;
+    const bang = moBangTruot({
+      title: o.tieuDe,
+      body: [h("div", { class: "sheet-canh-bao" }, icon("alertCircle", 24)), h("p", null, o.hauQua)],
+      foot: [giu, nguy],
+      footClass: "sheet-foot-xac-nhan",
+      opener: o.opener,
+      vaiTro: "alertdialog",
+      khongNutDong: true,
+      onClosed: () => resolve(kq),
+    });
+    if (!bang) return resolve(false);
+    giu.addEventListener("click", () => bang.close());
+    nguy.addEventListener("click", () => {
+      kq = true;
+      bang.close();
+    });
+  });
 }

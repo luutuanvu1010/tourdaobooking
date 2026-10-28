@@ -22,6 +22,7 @@ Sau Task 8: 98.785 byte (sau vòng sửa 1; trước đó 98.816; −387 so vớ
 
 Sau Task 9: 100.014 byte (+1.229 so với Task 8: `web/dai.ts` mới (sổ dải, `thanNgoaiMang`, `ganNgoaiMang`) và chữ Task 4 kéo vào gói, trừ ba bản dải cũ ở shell/thông báo; vẫn vượt trần 96.700, trần không đổi).
 Sau Task 10: 100.388 byte (sau vòng sửa 1; trước đó 100.362; +374 so với Task 9: `web/toast.ts` viết lại với tông, Hoàn tác, nút đóng và hai biểu tượng; vẫn vượt trần 96.700, trần không đổi).
+Sau Task 11: 100.418 byte (+30 so với Task 10: `hoiXacNhan` vào gói qua `bang-truot`, bù phần lớn bằng việc bỏ `closeBtn` điều kiện; vẫn vượt trần 96.700, trần không đổi).
 
 ## Lệch so với đặc tả
 
@@ -40,6 +41,8 @@ Sau Task 10: 100.388 byte (sau vòng sửa 1; trước đó 100.362; +374 so v�
 - Task 7: `THANH_BEN` đổi thứ tự «Đề nghị chuyển khách» lên liền sau «Điều phối xe» (để gom được); chỉ đổi thứ tự hiển thị, không đổi ai thấy gì (ảnh chụp: chỉ mất «Tạo đơn», mặt nạ quyền các mục còn lại giữ nguyên). Bài lối vào bỏ `taoDon` khỏi danh sách trang thanh bên cũ (nút ở thanh trên/tab).
 - Task 4: `web/api.ts` dùng "parameter property" nên node không nhập được `ApiError`; bài thuần dùng lớp giả cùng hình (Error có `status`), `cauLoiMayChu` nhận biết lỗi máy chủ bằng `status` số.
 - Task 4: khoá `TRANG` thật: `donHang`, `dieuPhoi`, `cuoc`, `xe` (đúng tên brief gợi ý, trừ `donHang` cho /orders).
+- Task 11: đặc tả 7.1 kể «account.ts (bật/tắt bảo trì)» làm chỗ mẫu, nhưng chỗ đó đã là xác nhận trong trang (dòng 716, chỉ còn chú thích nhắc `confirm()`); chọn `account.ts` «Gỡ Face ID trên mọi máy» làm chỗ mẫu thứ năm. Bài ratchet không đếm dòng chú thích (`//`, `/*`, `*`, hay phần sau ` //`).
+- Task 11: quan sát hàng rào confirm/alert (P16), 2026-10-28 (Task 14 chép sang `docs/SO-HANG-RAO.md`): thêm tạm `confirm("x");` vào cuối `web/home.ts` → `node --test src/ratchet-confirm-alert.test.ts` ĐỎ với «17 chỗ gọi confirm()/alert() > trần 16 … web/home.ts:884»; hoàn nguyên → XANH (16). Trước khi sửa năm chỗ: ĐỎ 21 > 16.
 
 ## Nợ ghi BACKLOG
 

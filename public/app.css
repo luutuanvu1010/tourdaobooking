@@ -4043,3 +4043,10 @@ body.tabbar-an .vc-bottom-bar { bottom: 0; }
 .login-alert.dai { margin: var(--s5) 0 0; border-radius: var(--radius-sm); }
 .login-alert.dai p { flex: 1; }
 .maint-phu { margin: 0 0 var(--s4); color: var(--c-text-muted); font-size: var(--fs-label); }
+/* Hộp xác nhận một chiều hoiXacNhan (đợt 0, Task 11): điện thoại xếp dọc — nút giữ dưới cùng, nút nguy hiểm trên; từ 641 hai đầu */
+.sheet-canh-bao { display: flex; align-items: center; justify-content: center; width: var(--tap-min); height: var(--tap-min); margin: 0 auto var(--s3); color: var(--c-danger-text); background: var(--c-danger-soft); border: 1px solid var(--c-danger-border); border-radius: var(--radius-pill); }
+.sheet-foot.sheet-foot-xac-nhan { display: flex; flex-direction: column-reverse; gap: var(--s2); }
+.sheet-foot-xac-nhan .btn { min-height: var(--tap-min); }
+@media (min-width: 641px) {
+  .sheet-foot.sheet-foot-xac-nhan { flex-direction: row; justify-content: space-between; }
+}

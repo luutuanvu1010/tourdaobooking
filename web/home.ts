@@ -1,5 +1,6 @@
 import { ApiError, api, type Api, type OrderSummary, type Staff } from "./api";
-import { moBangTruot } from "./bang-truot";
+import { hoiXacNhan, moBangTruot } from "./bang-truot";
+import { hienBaoNgan } from "./toast";
 import { byId, h, replaceChildren, type Child } from "./dom";
 import { initials, ngayNganHomNay, paxCountsShort, vnd, vndShort } from "./format";
 import { helpHasNews } from "./help-seen";
@@ -332,12 +333,12 @@ async function taiDoiChieu(staff: Staff): Promise<void> {
     const nutNhan = nutXacNhanDoiChieu(k.loai);
     const nut = nutNhan ? h("button", { type: "button", class: "btn btn-link", "data-action": "ben-kia-da-nhan", "data-receipt-id": k.receiptId }, nutNhan) : null;
     nut?.addEventListener("click", async () => {
-      if (!confirm(`${nhanKhoanDoiChieu(k)}: đã đối chiếu, bên nhận tiền xác nhận đã nhận ${vnd(k.soTien)} (đơn ${k.maDon})?`)) return;
+      if (!(await hoiXacNhan({ tieuDe: "Xác nhận bên nhận đã nhận tiền", hauQua: `${nhanKhoanDoiChieu(k)}: đã đối chiếu, bên nhận tiền xác nhận đã nhận ${vnd(k.soTien)} (đơn ${k.maDon})?`, nhanNguyHiem: "Xác nhận đã nhận", opener: nut }))) return;
       nut.disabled = true;
       try {
         await api(`/api/ledger/counterparty-receipts/${encodeURIComponent(k.receiptId)}/confirm`, { method: "POST", body: {} });
       } catch (err) {
-        alert(err instanceof ApiError ? err.message : "Không ghi được — kiểm tra mạng rồi thử lại.");
+        hienBaoNgan(err instanceof ApiError ? err.message : "Không ghi được — kiểm tra mạng rồi thử lại.", { tong: "do" });
       }
       await taiDoiChieu(staff);
     });

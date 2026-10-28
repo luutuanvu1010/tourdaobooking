@@ -7,6 +7,7 @@ import { ngayVN } from "../src/shared/giay-to-hien-thi";
 import { can } from "../src/shared/permissions";
 import { msToVnLocal } from "../src/shared/vn-date";
 import { ApiError, api, type Api } from "./api";
+import { hoiXacNhan } from "./bang-truot";
 import { byId, h, replaceChildren } from "./dom";
 import { datCrumb, loiCua } from "./giay-to-ui";
 import { initShell, showError } from "./shell";
@@ -78,8 +79,8 @@ function veDieuKien(): void {
   const dong = (r: Api.DepartureRuleDto): HTMLElement => {
     const nhan = nhanDieuKien(r, tenNguoi);
     const nut = r.active ? h("button", { type: "button", class: "vc-btn vc-btn-text", "data-action": "dong-dieu-kien", "aria-label": `Đóng điều kiện ${nhan}` }, "Đóng") : null;
-    nut?.addEventListener("click", () => {
-      if (!confirm(`Đóng điều kiện “${nhan}”? Từ lúc này xe không còn phải có giấy này mới được chạy. Không mở lại được — muốn áp lại thì thêm điều kiện mới.`)) return;
+    nut?.addEventListener("click", async () => {
+      if (!(await hoiXacNhan({ tieuDe: `Đóng điều kiện “${nhan}”`, hauQua: "Từ lúc này xe không còn phải có giấy này mới được chạy. Không mở lại được — muốn áp lại thì thêm điều kiện mới.", nhanNguyHiem: "Đóng điều kiện", opener: nut }))) return;
       void ghi(async () => {
         rules = (await api<Api.DepartureRuleListResponse>(`/api/van-chuyen/dieu-kien/${encodeURIComponent(r.id)}/dong`, { method: "POST" })).rules;
         return `Đã ngừng điều kiện “${nhan}”.`;
