@@ -40,6 +40,11 @@ test("không nhận: Quản trị (kể cả người khác người duyệt), B
     assert.equal(hop(s, [don()], "cua-toi").tin.length, 0, s.id);
   }
   assert.equal(hop(DT, [don({ ownerId: "dt" })], "tat-ca").tin.length, 0, "Đối tác lập đơn cũng không nhận (tin là việc của Kế toán)");
+  // Người kiểm độc lập 28/10 (V1): Đối tác một mình đã rớt ô payment.refund, nên cổng «không Đối tác» chỉ được thử thật bằng tài khoản LAI (chủ 23/10: không được tồn tại,
+  // nhưng R-LC-1 chưa chặn hết) — bỏ `|| holdsPartner(staff)` ở nhánh duyet_hoan thì bài này đỏ.
+  const KTDT = ai("ktdt", "ACCOUNTING", "PARTNER");
+  assert.equal(hop(KTDT, [don()], "tat-ca").tin.length, 0, "tài khoản lai Kế toán + Đối tác không nhận");
+  assert.equal(hop(KTDT, [don()], "cua-toi").tin.length, 0, "tài khoản lai Kế toán + Đối tác không nhận (ngăn Của tôi)");
 });
 
 test("câu: không số tiền, không «cọc»; tên người duyệt chỉ cho Toàn quyền (ADR-0131 đ3), Kế toán đọc câu không tên", () => {
