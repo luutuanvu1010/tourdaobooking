@@ -21,7 +21,7 @@ export const HD_KE_TOAN: NhomHuongDan = {
 Thanh menu dọc bên trái có:
 - Đầu menu: [[Trang chủ]], [[Đơn hàng]], [[Danh bạ]].
 - Nhóm VẬN CHUYỂN: [[Điều phối xe]], [[Xe đang chạy]], [[Giá & chi phí]].
-- Nhóm TIỀN: [[Điều chỉnh công nợ]], [[Khoá sổ tháng]].
+- Nhóm TIỀN: [[Điều chỉnh công nợ]], [[Sổ công nợ & khoá sổ]].
 - Nhóm THIẾT LẬP (bấm để mở, thu gọn): [[Hoa hồng đối tác]], [[Người bán dịch vụ]], [[Chụp bù mức]].
 - Chân menu: [[Của tôi]], [[Hỗ trợ]], [[Hướng dẫn]].
 
@@ -39,7 +39,7 @@ Thanh tab dưới đáy có [[Trang chủ]], [[Đơn hàng]] và [[Tôi]]. Các 
 2. Máy tính: nhìn khối [[Việc của bạn]] dưới lời chào. Mỗi thẻ có số và một nút bấm:
    - [[Đơn chờ xác nhận]] (nhãn **Toàn công ty**): số đơn đang chờ xác nhận.
    - [[Điều chỉnh công nợ chờ duyệt]] (nhãn **Của tôi**): yêu cầu đang chờ chính bạn duyệt.
-   - [[Đơn còn thiếu tiền]] (nhãn **Toàn công ty**): tổng tiền khách còn phải trả của các đơn đã xác nhận.
+   - [[Đơn còn thiếu tiền]] (nhãn **Toàn công ty**): số đơn đã xác nhận mà khách còn nợ; dòng nhỏ ghi tổng tiền còn phải thu.
    - [[Đơn đi hôm nay]]: số đơn đi hôm nay.
    Điện thoại: hai ô **Còn thiếu**, **Chưa phụ trách** (cả công ty), thêm một dải khi có đơn chờ xác nhận.
    Khối **Chờ đối chiếu** liệt kê khoản đang chờ bạn đối chiếu (mục "Đối chiếu tiền trên trang đơn").
