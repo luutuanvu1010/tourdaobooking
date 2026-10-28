@@ -1366,6 +1366,10 @@ export interface FeedbackTepGuiDto { noiDung: string }
 export interface FeedbackReplyInput { body: string; internal?: boolean; tep?: FeedbackTepGuiDto[] }
 /** Phản hồi 201 của gửi vé / trả lời: chi tiết như GET kèm số tệp chưa lưu được (kho lỗi — tin vẫn đã lưu). Phát lại cùng clientRequestId (200) không có `tepLoi`. */
 export interface FeedbackGuiResponse extends FeedbackDetailResponse { tepLoi: number }
+/** GET /api/feedback/tep-cho-xoa (chỉ Toàn quyền): cùng hình dạng hàng chờ xoá của tệp hồ sơ — chỉ mã tệp, trạng thái, mã lý do, mốc; không khoá kho. */
+export type FeedbackTepChoXoaResponse = HoSoTepChoXoaResponse;
+/** POST /api/feedback/tep-cho-xoa/chay-lai. */
+export type FeedbackTepChayLaiResponse = HoSoTepChayLaiResponse;
 
 export interface FeedbackStatRow {
   /** Tuần theo strftime('%Y-%W') của created_at. */

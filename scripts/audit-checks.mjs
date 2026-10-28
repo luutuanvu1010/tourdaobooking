@@ -888,6 +888,15 @@ export const CHECKS = [
             OR (purged_at IS NULL AND stored_at IS NULL AND created_at < strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-1 hour'))`,
     level: "warn",
   },
+  // R-FBK-1 (ADR-0144 đ5; Hiến chương 5.16): như R-PTY-12 cho tệp kèm tin vé hỗ trợ (kho HO_TRO) — đã quyết xoá mà kho chưa xoá, hoặc tải dở dang quá 1 giờ. Mức warn:
+  // thấy được ở mỗi lần audit-invariants, chạy lại bằng POST /api/feedback/tep-cho-xoa/chay-lai; không chặn phát hành.
+  {
+    code: "R-FBK-1",
+    what: "tệp kèm vé hỗ trợ chờ xoá khỏi kho R2, hoặc tải lên dở dang quá 1 giờ (chạy lại ở POST /api/feedback/tep-cho-xoa/chay-lai)",
+    sql: `SELECT count(*) FROM fbk_attachment WHERE (purged_at IS NOT NULL AND r2_deleted_at IS NULL)
+            OR (purged_at IS NULL AND stored_at IS NULL AND created_at < strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-1 hour'))`,
+    level: "warn",
+  },
   // R-PTY-13 (ADR-0124 đ3, Hiến chương 5.21; lát H-3 Gói 2): phiếu tự khai ĐANG CHỜ mà quyết định đồng ý mới nhất của chủ phiếu với ĐÚNG phiên bản ghi trên phiếu không còn là
   // DONG_Y. Rút đồng ý phải rút phiếu cùng lô (route POST /api/parties/cua-toi/dong-y — ruling Q2). fail: người xác minh (lát H-4) không được xử lý phiếu như vậy.
   {
