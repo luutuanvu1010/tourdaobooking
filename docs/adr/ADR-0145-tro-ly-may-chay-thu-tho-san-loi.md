@@ -1,6 +1,6 @@
 # ADR-0145 — Trợ lý AI chạy trên máy chủ Anthropic (Managed Agents): chạy thử «Thợ săn lỗi» chỉ đọc
 
-- **Trạng thái:** **proposed** — AI soạn 2026-10-28 sau khi chủ dự án bấm «Chuẩn bị chạy thử». Ba điều về dữ liệu, tiền và quyền ghi dưới đây (Đ1, Đ3, Đ4) lấy theo khuyến nghị AI đã nêu trong phiên, **chưa được chủ duyệt bằng lời**: chúng có hiệu lực cùng lúc chủ duyệt ADR này. Chưa chạy gì trên mây; lượt thử chỉ bắt đầu khi chủ duyệt và **tự chạy lệnh** theo `tro-ly-may/README.md`.
+- **Trạng thái:** **accepted** — chủ dự án, chat 2026-10-28: *«Duyệt cả ba»*, trả lời câu «Bạn duyệt ADR-0145 với ba khuyến nghị không?» sau khi xem báo cáo cuối việc (kiểm độc lập lượt 3 ĐẠT). Ba khuyến nghị được duyệt: mã chỉ gửi cho lượt thử, đọc xong xoá phiên (Đ3, Đ5); trần $10 mỗi phiên, khuyến nghị trần tháng $30 (Đ4); trợ lý chỉ đọc, không khoá, không đẩy mã, không triển khai (Đ1, Đ2). AI soạn bản đề xuất cùng ngày sau khi chủ bấm «Chuẩn bị chạy thử». Lượt thử chỉ bắt đầu khi chủ **tự chạy lệnh** theo `tro-ly-may/README.md`; tới lúc duyệt chưa chạy gì trên mây.
 - **Ngày:** 2026-10-28.
 - **Loại:** công cụ làm việc của AI, có dữ liệu đi ra ngoài (việc lớn: luật + dữ liệu). **Cửa:** hỗn hợp — cấu hình gỡ được (xoá thư mục `tro-ly-may/`, lưu trữ trợ lý trên Console); bản mã đã gửi lên là **một chiều mềm**: xoá được phiên và tệp, nhưng không thu lại được việc nhà cung cấp đã nhận.
 - **Số:** 0145 — 0143 là số lớn nhất trên `main` ngày 28/10; 0144 đang dùng ở nhánh `claude/modest-sanderson-b148ce` (chưa gộp); 0140, 0142 như ghi ở mục lục.
@@ -14,7 +14,7 @@
 - Kho có dữ liệu thật: mã Sheet trong `wrangler.jsonc`; số điện thoại hỗ trợ kỹ thuật (trong mã bảo trì và nhật ký thay đổi, viết cả liền lẫn cách quãng); tên, mã số thuế, địa chỉ, hotline của công ty chủ trong `migrations/0002_company_profile.sql` và vài bài kiểm; email dạng thật trong bài kiểm và một migration; tên chủ trong dữ liệu thử; đường dẫn tài khoản máy của chủ trong ca thử của hook; số điện thoại thật trong tài liệu và kịch bản.
 - Mã (không kể bài kiểm) khoảng 100 nghìn dòng. Mẫu «Bug hunter» của Anthropic phủ khoảng 30 nghìn dòng mỗi lượt (tối đa 20 phần × ~1.500 dòng).
 
-## Quyết định (đề xuất)
+## Quyết định
 
 **Đ1 — Chỉ đọc kho thật, chỉ báo cáo.** Trợ lý trên mây không có khoá Cloudflare, không có quyền GitHub, không đẩy mã, không triển khai. Trong máy ảo nó được chạy lệnh và ghi tệp (mẫu cần để chạy thử nghiệm), nhưng chỉ trên bản sao của gói. Sản phẩm duy nhất mang về là tệp báo cáo trong thư mục kết quả của phiên. Sửa mã vẫn theo §8: bản sao riêng trên máy, `npm run day-len`.
 
