@@ -1,4 +1,4 @@
-// Trợ lý "Hỗ trợ" (ADR-0066 điều 9): nút nổi ở mọi trang sau đăng nhập (gắn từ initShell ở web/shell.ts — không ở /login; có cả khi bảo trì cho người được phép) + khung hỏi đáp
+// Trợ lý "Hỗ trợ" (ADR-0066 điều 9): nút «Trợ lý» ở thanh trên mọi trang sau đăng nhập (gắn từ initShell ở web/shell.ts — không ở /login; có cả khi bảo trì cho người được phép) + khung hỏi đáp
 // (khung nổi KHÔNG modal ở góc phải dưới mọi khổ — kéo, đổi cỡ, nhớ theo máy; 1/10, docs/superpowers/plans/2026-10-01-khung-tro-ly-keo-doi-co.md). Cài đặt
 // của Toàn quyền ở trang riêng /tro-ly-cai-dat (ADR-0069).
 // ADR-0069: nút chỉ dựng khi `GET /api/tro-ly/khung` báo tài khoản được dùng (vai đang bật — máy chủ vẫn chặn lại); câu chào + câu hỏi mẫu theo lời dặn
@@ -6,8 +6,7 @@
 // Không innerHTML: câu trả lời hiện bằng nút chữ / h("strong") qua chuInDam (cặp ** → in đậm; xuống dòng giữ bằng CSS). Đoạn hội thoại trên màn hình chỉ nằm trong bộ nhớ của trang (không lưu máy);
 // máy chủ lưu câu hỏi ĐÃ CHE + câu trả lời vào lịch sử chỉ Toàn quyền xem (ADR-0069 điều 5) — khung ghi rõ cho người dùng.
 // ADR-0073 Đ4: gửi kèm mã cuộc trò chuyện (KHÔNG gửi nội dung lượt trước; mã chỉ trong bộ nhớ trang, mở khung lúc chưa có tin ⇒ mã mới); "Cuộc trò chuyện mới" xoá đoạn trên màn hình và sinh mã mới.
-// Vị trí nút: góc phải dưới, trên thanh tab điện thoại; khi thanh nút dính đáy của trang (`.form-actions`, `.vc-bottom-bar`) đè vùng của nút thì nút nâng
-// lên khỏi thanh đó (đo lúc chạy — giả định bề mặt ghi ở đặc tả, đảo ngược được).
+// Vị trí nút: cuối cụm nút phải của #topbar (đợt 0 K6, cổng 1 câu 4); khung mở ở góc phải dưới vùng nội dung, trên thanh tab điện thoại.
 import { ApiError, api, type Api, type Staff } from "./api";
 import { h, replaceChildren } from "./dom";
 import { icon } from "./icons";
@@ -154,18 +153,18 @@ function moKhung(fab: HTMLElement, khung: Api.TroLyKhungResponse): void {
     hop.style.setProperty("--tl-w", `${b.w}px`);
     hop.style.setProperty("--tl-h", `${b.h}px`);
   };
-  /** Vị trí mặc định bám nút "Hỗ trợ" (nút có thể đã nâng khỏi thanh nút dính đáy của trang). */
-  const macDinhTheoNut = (kn: KhungNhin, at: VungAnToan): ViTri => {
-    const f = fab.getBoundingClientRect();
-    if (!f.width) return macDinh(kn, at, LE, LE);
-    return macDinh(kn, at, Math.round(kn.y + kn.h - f.top + LE), Math.round(kn.x + kn.w - f.right));
+  /** Vị trí mặc định: góc phải dưới vùng nội dung; điện thoại thì nằm trên thanh tab (K6 — nút Trợ lý nay ở thanh trên nên không còn bám nút). */
+  const macDinhGocDuoi = (kn: KhungNhin, at: VungAnToan): ViTri => {
+    const tab = document.getElementById("tabbar")?.getBoundingClientRect();
+    const chua = tab && tab.height && tab.top > kn.y + kn.h / 2 ? Math.round(kn.y + kn.h - tab.top + LE) : LE;
+    return macDinh(kn, at, chua, LE);
   };
-  /** Kẹp lại vào khung nhìn (xoay máy, đổi cỡ cửa sổ, bàn phím ảo, nút vừa nâng) — KHÔNG ghi bộ nhớ; bỏ qua khi đang kéo. */
+  /** Kẹp lại vào khung nhìn (xoay máy, đổi cỡ cửa sổ, bàn phím ảo) — KHÔNG ghi bộ nhớ; bỏ qua khi đang kéo. */
   const kepLai = (): void => {
     if (hop.classList.contains("is-keo")) return;
     const kn = khungNhin();
     const at = vungAnToan(doAnToan);
-    ve(hopTuViTri(luu ?? macDinhTheoNut(kn, at), kn, at));
+    ve(hopTuViTri(luu ?? macDinhGocDuoi(kn, at), kn, at));
   };
   const chot = (): void => {
     luu = viTriTuHop(hienTai, khungNhin());
@@ -277,8 +276,6 @@ function moKhung(fab: HTMLElement, khung: Api.TroLyKhungResponse): void {
   vv?.addEventListener("scroll", kepLai);
   document.body.append(doAnToan, hop);
   kepLai();
-  // Nút có thể được nâng ở khung hình sau (nangTheoThanhDay chạy trong requestAnimationFrame) ⇒ kẹp lại một lần nữa.
-  requestAnimationFrame(kepLai);
   fab.setAttribute("aria-expanded", "true");
   dongKhungDangMo = dongKhung;
   kepKhungDangMo = kepLai;
@@ -316,35 +313,12 @@ function moKhung(fab: HTMLElement, khung: Api.TroLyKhungResponse): void {
   o.focus();
 }
 
-/** Khoảng hở giữa nút và thanh bị né (đơn vị điểm ảnh CSS của trình duyệt — đo lúc chạy, không phải giá trị CSS). */
-const HO = 8;
-
-/**
- * Nâng nút lên khỏi thanh nút cuối trang NẾU thanh đang đè vùng của nút: đo vị trí nút ở chỗ mặc định, đo thanh, có giao nhau thì đặt `--tl-nang` = phần cần
- * nâng. Thanh dính thay đổi vị trí khi cuộn (cột tóm tắt của form lập đơn ở máy tính) nên đo lại khi cuộn. Kiểu D (kiểm theo vai 2/10 — V1.5a): né MỌI phần
- * tử mang MỘT lớp chung `.thanh-hanh-dong-cuoi` (thanh dính đáy `.form-actions`, `.vc-bottom-bar`, `.dp-ct-bottom` và khối cuối danh sách `.dp-run-end`) —
- * không còn danh sách bộ chọn đóng (nút "Kết thúc chuyến" từng bị đè ở khổ 390). Thanh mới: thêm lớp chung (bài src/thanh-hanh-dong-cuoi.test.ts).
- */
-function nangTheoThanhDay(fab: HTMLElement): void {
-  fab.style.removeProperty("--tl-nang");
-  const f = fab.getBoundingClientRect();
-  let nang = 0;
-  for (const el of document.querySelectorAll<HTMLElement>(".thanh-hanh-dong-cuoi")) {
-    if (el.offsetParent === null || el.closest(".sheet-root")) continue;
-    const b = el.getBoundingClientRect();
-    const ngang = b.left < f.right && b.right > f.left;
-    const doc = b.top < f.bottom + HO && b.bottom > f.top - HO;
-    if (ngang && doc) nang = Math.max(nang, Math.ceil(f.bottom - b.top + HO));
-  }
-  if (nang > 0) fab.style.setProperty("--tl-nang", `${nang}px`);
-}
-
 /**
  * Gắn nút "Hỗ trợ" (một lần mỗi trang) SAU KHI máy chủ báo tài khoản được dùng (ADR-0069 điều 3 — vai tắt: không có nút, không nhấp nháy); có cờ một-lần sau
  * đăng nhập thì tự mở khung. Cờ luôn được đọc (và xoá) kể cả khi không dựng nút. Lỗi mạng khi hỏi cờ ⇒ không dựng nút (không đoán).
  */
 export async function ganTroLy(_staff: Staff): Promise<void> {
-  if (document.getElementById("tl-fab")) return;
+  if (document.getElementById("tl-nut")) return;
   const tuMo = layCoTuMo();
   let khung: Api.TroLyKhungResponse;
   try {
@@ -352,24 +326,13 @@ export async function ganTroLy(_staff: Staff): Promise<void> {
   } catch {
     return;
   }
-  if (!khung.duocDung || document.getElementById("tl-fab")) return;
-  const fab = h("button", { id: "tl-fab", class: "tl-fab", type: "button", "aria-haspopup": "dialog", "aria-expanded": "false" }, icon("chat", 20), h("span", null, "Trợ lý"));
+  if (!khung.duocDung || document.getElementById("tl-nut")) return;
+  const fab = h("button", { id: "tl-nut", class: "bar-tro-ly", type: "button", "aria-haspopup": "dialog", "aria-expanded": "false", "aria-label": "Trợ lý", title: "Trợ lý" }, icon("chat", 22));
   // Bấm nút khi khung đang mở = đóng khung.
   fab.addEventListener("click", () => (dongKhungDangMo ? dongKhungDangMo() : moKhung(fab, khung)));
-  document.body.append(fab);
-  // C61 (lỗi cũ BH-23 / VP-13): nút nổi từng che dòng / liên kết cuối trang ở khổ 390 — CSS chừa đệm đáy bằng chiều cao nút khi nút có mặt (`body.co-nut-ho-tro`).
-  document.body.classList.add("co-nut-ho-tro");
-  let hen = 0;
-  const doLai = (): void => {
-    cancelAnimationFrame(hen);
-    hen = requestAnimationFrame(() => {
-      nangTheoThanhDay(fab);
-      kepKhungDangMo?.(); // khung ở vị trí mặc định bám theo nút vừa nâng / hạ
-    });
-  };
-  new MutationObserver(doLai).observe(document.body, { childList: true, subtree: true });
-  window.addEventListener("resize", doLai);
-  window.addEventListener("scroll", doLai, { passive: true });
-  doLai();
+  const thanhTren = document.getElementById("topbar");
+  if (!thanhTren) return;
+  thanhTren.append(fab); // cuối cụm nút phải: sau chuông (đặc tả 5.1, 5.8)
+  window.addEventListener("resize", () => kepKhungDangMo?.());
   if (tuMo) moKhung(fab, khung);
 }

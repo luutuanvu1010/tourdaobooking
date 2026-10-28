@@ -222,8 +222,6 @@
   --ntf-badge-ring: 2px;       /* viền quanh huy hiệu số đỏ (tách khỏi nền chuông) */
   --ntf-tab-underline: 3px;    /* gạch chân tab đang chọn trong ngăn thông báo */
   /* Trợ lý Hỗ trợ (ADR-0066 điều 9) — riêng của Tour Đảo Booking; màu đều là token sẵn có (không màu mới). */
-  --z-tl-fab: 35;              /* nút nổi "Hỗ trợ": trên thanh tab (30), dưới toast (40), ngăn thông báo (45), bảng trượt (50) */
-  --tl-nang-0: 0px;            /* mặc định của --tl-nang (JS đặt = chiều cao thanh nút dính đáy của trang, nếu có) */
   --z-tl-khung: var(--z-phu);  /* khung Hỗ trợ nổi (không modal): bậc "phủ" (đợt 0: 36 → 40) */
   --tl-cham-co: 6px;           /* chấm nhấp nháy của bong bóng "Mai đang trả lời…" (khung Hỗ trợ) */
   --tl-cham-nhip: 1.2s;        /* một nhịp nhấp nháy của ba chấm */
@@ -1180,7 +1178,7 @@ body.login-page::before { content: ""; display: block; height: env(safe-area-ins
   body[data-title] #topbar .brand { display: none; }
   /* `body[data-title]` (C-1): từ nay `.bar-title` LUÔN được dựng để máy tính có breadcrumb trên mọi trang — ở khổ
      điện thoại chỉ trang tự khai `data-title` mới hiện nó (và mới ẩn logo), đúng như trước, không đổi một chút nào. */
-  body[data-title] .bar-title { display: block; flex: 1; min-width: 0; margin: 0; font-size: var(--fs-bar-title); font-weight: var(--fw-heavy); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  body[data-title] .bar-title { display: block; flex: 1; min-width: 0; margin: 0; font-size: var(--fs-bar-title); font-weight: var(--fw-heading); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .bar-back { display: flex; align-items: center; justify-content: center; flex: none; width: var(--tap-min); height: var(--tap-min); margin-left: calc(-1 * var(--s3)); color: var(--c-on-bar); }
   /* Tiêu đề đã nằm trên thanh đầu trang nên h1 của trang chỉ ẩn khỏi mắt, KHÔNG display:none: trình đọc màn hình vẫn cần một h1 mỗi trang (axe page-has-heading-one). (.detail-head h1 ẩn ở MỌI khổ — quy tắc riêng cạnh .detail-head, không lặp ở đây.) */
   body[data-title] main > h1 { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
@@ -2208,10 +2206,6 @@ body.login-page main.login { display: flex; flex-direction: column; flex: 1; min
      "10.400.000 ₫" bị cắt ở 1280 khi giữ đúng tỉ lệ. Ô Doanh thu vẫn cho xuống dòng: số rất lớn thì biểu đồ xuống dưới, không cắt số. */
   .dash-smt-o { padding: var(--s4); gap: var(--s3); }
 }
-@media (min-width: 1400px) {
-  .dash-grid, .dash-xuong-mt { grid-template-columns: minmax(0, 1fr) var(--w-home-side-lg); }
-  .dash-today-row, .dash-xuong-mt-dong { grid-template-columns: var(--w-trip-time-mt-lg) minmax(0, 1fr) auto; }
-}
 
 /* Trang Hướng dẫn + chấm đỏ "có bản mới" (đặc tả nhật ký thay đổi 2026-09-23) */
 .new-dot { display: inline-block; width: var(--dot-size); height: var(--dot-size); margin-left: var(--s1); vertical-align: middle; border-radius: var(--radius-pill); background: var(--c-danger); }
@@ -3169,13 +3163,6 @@ body:has(.buoc-thanh) .toast-vung { bottom: auto; top: calc(var(--toast-tren, va
 .dn-ds-leo { display: flex; flex-direction: column; gap: var(--s3); margin-bottom: var(--s3); }
 
 /* ---------- Trợ lý Hỗ trợ (ADR-0066 điều 9; web/tro-ly.ts) — chỉ token ---------- */
-.tl-fab { position: fixed; z-index: var(--z-tl-fab); right: max(var(--s4), env(safe-area-inset-right)); bottom: calc(var(--s5) + var(--tl-nang, var(--tl-nang-0))); display: inline-flex; align-items: center; gap: var(--s1); min-height: var(--tap-min); padding: 0 var(--s4); font: inherit; font-size: var(--fs-label); font-weight: var(--fw-bold); color: var(--c-fab-text); background: var(--c-fab-bg); border: 0; border-radius: var(--radius-pill); box-shadow: var(--shadow-float); cursor: pointer; }
-.tl-fab:hover { background: var(--c-fab-hover-bg); }
-body.sheet-open .tl-fab { visibility: hidden; }
-@media (max-width: 640px) {
-  body.has-tabbar .tl-fab { bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + var(--s3) + var(--tl-nang, var(--tl-nang-0))); }
-  body.has-tabbar.tabbar-an .tl-fab { bottom: calc(env(safe-area-inset-bottom) + var(--s3) + var(--tl-nang, var(--tl-nang-0))); }
-}
 /* Khung nổi góc phải dưới ở MỌI khổ (1/10): không nền tối, không trượt từ đáy; kéo bằng thanh tiêu đề, đổi cỡ bằng tay nắm góc trên-trái. */
 .tl-khung { position: fixed; z-index: var(--z-tl-khung); left: var(--tl-x); top: var(--tl-y); width: var(--tl-w); height: var(--tl-h); display: flex; flex-direction: column; overflow: hidden; background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius-lg); box-shadow: var(--shadow-overlay); }
 .tl-khung.is-ve-goc { animation: tl-ve-goc-nhay var(--tl-nhay) ease-out; }
@@ -3615,12 +3602,6 @@ a.bk-hang:hover, a.bk-the:hover { background: var(--c-soft-hover); }
 .dp-cc-xong-text { display: flex; flex: 1; flex-direction: column; min-width: 0; overflow-wrap: anywhere; }
 .dp-vua-ghi-dau { margin: 0 0 var(--s3); }
 #cc-day .dp-cc-viec { width: 100%; }
-body.cc-dang-chay .tl-fab { display: none; } /* C61: đang chạy thì không nút nổi "Hỗ trợ" (nút dính đáy là việc chính) */
-/* C61 (lỗi cũ BH-23 / VP-13): nút nổi "Hỗ trợ" từng che dòng / liên kết cuối trang ở khổ 390 — khi nút có mặt (web/tro-ly.ts đặt lớp), đệm đáy của <main> chừa đúng chiều cao nút. Không áp khi nút ẩn. */
-body.co-nut-ho-tro:not(.cc-dang-chay) main { padding-bottom: calc(var(--s5) + var(--tap-min) + var(--s3)); }
-@media (max-width: 640px) {
-  body.has-tabbar.co-nut-ho-tro:not(.cc-dang-chay) main { padding-bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + var(--s3) + var(--tap-min) + var(--s4)); }
-}
 
 /* ---------- Bảng điều phối: gói C3 (đánh giá ERP 7/10 C32–C37) — chọn nhiều chặng, lọc, tổng, tải, hộp chọn chuyến, giờ từng đoàn. CHỈ token sẵn có. ---------- */
 .dp-tong { padding: var(--s2) var(--s4); font-size: var(--fs-label); font-weight: var(--fw-semibold); line-height: 1.5; font-variant-numeric: tabular-nums; border-bottom: 1px solid var(--c-border); }
@@ -4060,3 +4041,19 @@ body.co-nut-ho-tro:not(.cc-dang-chay) main { padding-bottom: calc(var(--s5) + va
 .form-actions, .vc-bottom-bar, .vc-form-actions, .chan-dinh { background: var(--c-surface); border-top: 1px solid var(--c-border); padding-bottom: calc(var(--s3) + env(safe-area-inset-bottom)); z-index: var(--z-dinh); }
 .form-actions .btn, .form-actions button, .vc-bottom-bar .vc-btn, .vc-bottom-bar button, .vc-form-actions .btn, .vc-form-actions button, .chan-dinh .nut, .chan-dinh button { min-height: var(--h-control-lon); }
 body.tabbar-an .vc-bottom-bar { bottom: 0; }
+
+/* ---------- Đợt 0 Task 8 (K1, K6): thanh trên một kiểu; Trợ lý ở cuối cụm nút phải ---------- */
+.bar-duong { display: none; }
+.bar-tro-ly { position: relative; display: flex; align-items: center; justify-content: center; flex: none; order: 3; width: var(--tap-min); height: var(--tap-min); padding: 0; color: var(--c-on-bar); background: none; border: 0; border-radius: var(--radius-sm); cursor: pointer; }
+.bar-tro-ly:hover { background: var(--c-soft-hover); }
+.bar-tro-ly[aria-expanded="true"] { background: var(--c-primary-soft); }
+@media (min-width: 641px) {
+  .bar-tro-ly { order: 0; }
+}
+@media (min-width: 900px) {
+  .bar-duong { display: inline; flex: none; color: var(--c-muted); font-size: var(--fs-label); white-space: nowrap; text-decoration: none; }
+  .bar-duong:hover { color: var(--c-text); text-decoration: underline; }
+  body.has-sidebar #topbar .bar-title { font-size: var(--fs-step-7); font-weight: var(--fw-heading); }
+  /* Ô tìm co trước (hệ số co lớn) tới bề rộng nhỏ nhất, rồi mới tới tiêu đề bị cắt "…". */
+  .topbar-search { flex: 0 1000 var(--w-tim-thanh-tren); min-width: var(--w-tim-thanh-tren-min); max-width: var(--w-tim-thanh-tren); }
+}

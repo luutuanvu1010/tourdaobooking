@@ -8,6 +8,7 @@ import {
   coKhungNho,
   gomNhomGap,
   nhanTheoDuong,
+  trangChaCua,
   sangTabToi,
   sangTai,
   sangTaiMuc,
@@ -404,6 +405,7 @@ export async function initShell(): Promise<Staff> {
   const { title, back, tabbar } = document.body.dataset;
   const path = location.pathname.replace(/\/+$/, "") || "/";
 
+  const cha = trangChaCua(path);
   const backLink = back ? h("a", { class: "bar-back", href: back, "aria-label": "Quay lại" }, icon("back", 26)) : null;
   backLink?.addEventListener("click", (e) => {
     if (history.length > 1) {
@@ -417,6 +419,8 @@ export async function initShell(): Promise<Staff> {
     h("a", { class: "brand", href: "/" }, h("img", { class: "brand-logo", src: "/icons/logo-96.png", alt: "", width: 30, height: 30, decoding: "sync" }), h("span", { class: "brand-name" }, "Island Booking ", h("span", null, "System"))),
     // LUÔN dựng (C-1): ở máy tính đây là breadcrumb của mọi trang. Giao diện điện thoại KHÔNG đổi — luật hiển thị ở
     // khổ ≤640px vẫn đòi `body[data-title]`, nên trang không khai `data-title` vẫn hiện logo và không hiện breadcrumb.
+    // Máy tính (CSS chỉ hiện ≥ 900): trang con có «Trang cha ›» trước tiêu đề; trang cấp một thì không.
+    cha ? h("a", { class: "bar-duong", href: cha.href }, `${cha.nhan} ›`) : null,
     h("span", { class: "bar-title", id: "bar-title" }, barTitleFor(path, title)),
   );
 

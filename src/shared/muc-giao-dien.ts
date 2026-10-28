@@ -371,6 +371,14 @@ export function nhanTheoDuong(duong: string): string | null {
   return (THANH_BEN as readonly ChoThanhBen[]).find((c) => sangTaiMuc(c, duong))?.nhan ?? null;
 }
 
+/** Trang cha của trang con (đường đi «Trang cha ›» ở thanh trên máy tính): khoá ĐẦU TIÊN theo thứ tự TRANG có `cungSang` chứa đường; trang cấp một → null. */
+export function trangChaCua(duong: string): { nhan: string; href: string } | null {
+  const k = KHOA_TRANG.find((x) => ((TRANG[x] as TrangDich).cungSang ?? []).includes(duong));
+  if (!k) return null;
+  const nhan = nhanTheoDuong(TRANG[k].duong) ?? (TRANG_TOI as readonly ChoTrangToi[]).find((c) => c.trang === k)?.nhan ?? THANH_TAB.find((c) => c.trang === k)?.nhan ?? "";
+  return { nhan, href: TRANG[k].duong };
+}
+
 export interface MucHien {
   readonly trang: KhoaTrang;
   readonly nhan: string;
