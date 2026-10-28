@@ -142,10 +142,11 @@ test("dãy số dài hơn số điện thoại không bị đụng tới", () =>
 
 test("tự quét lại: chỉ ra dòng còn chuỗi giống số điện thoại chưa che (kể cả dạng bộ che không bắt), không ra số giả", () => {
   const vb =
-    "a: 0987 654 321\nb: 0987_654_321\nc: (098) 7654-321\nd: 0987\t654\t321\ne: không có số; ngày 08 28/10/2026\nf: 0258_3812_345";
+    "a: 0987 654 321\nb: 0987_654_321\nc: (098) 7654-321\nd: 0987\t654\t321\ne: không có số; ngày 08 28/10/2026\nf: 0258_3812_345\n" +
+    "g: 0258\t3812\t345\nh: 0258 3812 345";
   const bo = taoBoChe([vb]);
   const daChe = bo.che(vb).text;
-  assert.deepEqual(bo.conSot(daChe), [2, 4, 6], "a, c đã che; b, d, f (số bàn) bộ che không bắt nên tự quét phải chỉ ra; e không phải số");
+  assert.deepEqual(bo.conSot(daChe), [2, 4, 6, 7, 8], "a, c đã che; b, d, f, g, h (f–h số bàn) bộ che không bắt nên tự quét phải chỉ ra; e không phải số");
   assert.deepEqual(bo.conSot(bo.che("x 0912345678").text), []);
 });
 
