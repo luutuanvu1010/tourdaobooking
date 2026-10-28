@@ -66,6 +66,7 @@ const retryBtn = byId<HTMLButtonElement>("turnstile-retry");
 // Tuỳ chọn có chủ ý: service worker làm mới HTML và JS riêng rẽ, HTML cũ trong cache đi với login.js mới không được làm chết trang đăng nhập (byId ném lỗi khi thiếu).
 const maintenanceEl = document.getElementById("maintenance-banner");
 const maintenanceText = document.getElementById("maintenance-text");
+maintenanceEl?.prepend(icon("history", 18)); // dải kiểu chung `.dai` (đặc tả đợt 0, §5.7)
 // Đăng nhập bằng Face ID (ADR-0016): tuỳ chọn cùng lý do trên — HTML cũ trong cache có thể chưa có các phần tử này.
 const passkeyBtn = document.getElementById("passkey-login") as HTMLButtonElement | null;
 const hintEl = document.getElementById("passkey-hint");

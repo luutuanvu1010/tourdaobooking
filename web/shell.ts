@@ -21,6 +21,8 @@ import {
   type NguoiXem,
   type NhomThanhBen,
 } from "../src/shared/muc-giao-dien";
+import { cauBaoTri, KHOA_DAI_BAO_MAT_DA_DONG } from "../src/shared/dai-chu";
+import { datDai } from "./dai";
 import { append, byId, h, replaceChildren } from "./dom";
 import { initials } from "./format";
 import { batDauBangTin } from "./bangtin";
@@ -74,24 +76,13 @@ function tabBar(n: NguoiXem, path: string): HTMLElement {
   );
 }
 
-const MAINTENANCE_STRIP_ID = "maint-strip";
 /**
- * Dải mảnh dưới thanh đầu trang: "Đang ở chế độ bảo trì — chỉ tài khoản Toàn quyền dùng được" (liên kết tới trang Tôi, nơi tắt). Chỉ tài khoản Toàn quyền (ADR-0071) tới được app lúc bảo trì nên chỉ họ thấy dải này;
- * gọi lại với `on = false` để gỡ (trang Tôi gọi ngay sau khi bật/tắt, khỏi phải tải lại trang).
+ * Dải bảo trì: chỉ tài khoản Toàn quyền (ADR-0071) tới được Nền tảng lúc bảo trì nên chỉ họ thấy; gọi lại với `on = false` để gỡ (trang Tôi gọi ngay sau khi bật/tắt).
+ * Dải là của `web/dai.ts` (một chủ sở hữu); `endsAt` (ISO UTC) cho giờ dự kiến theo giờ Việt Nam, thiếu thì chỉ báo "Đang bảo trì".
  */
-/** `#strips` (dải mảnh dưới thanh đầu trang, dùng chung với `.ntf-strip` của Thông báo — ADR-0034) — tạo lười, cái nào chạy trước tạo (R7). */
-function stripsEl(): HTMLElement {
-  let el = document.getElementById("strips");
-  if (!el) {
-    el = h("div", { id: "strips" });
-    document.getElementById("topbar")?.after(el);
-  }
-  return el;
-}
-
-export function setMaintenanceStrip(on: boolean): void {
-  document.getElementById(MAINTENANCE_STRIP_ID)?.remove();
-  if (on) stripsEl().append(h("a", { class: "maint-strip", id: MAINTENANCE_STRIP_ID, href: "/account" }, "Đang ở chế độ bảo trì — chỉ tài khoản Toàn quyền dùng được"));
+export function setMaintenanceStrip(on: boolean, endsAt: string | null = null): void {
+  const t = endsAt ? Date.parse(endsAt) : NaN;
+  datDai("bao-tri", on ? { cau: cauBaoTri(Number.isNaN(t) ? null : new Date(t + 7 * 3600_000).toISOString().slice(11, 16)), nut: { nhan: "Xem", href: TRANG.toi.duong } } : null);
 }
 
 /**
@@ -101,16 +92,14 @@ export function setMaintenanceStrip(on: boolean): void {
  * hỏi NỀN sau khi khung đã vẽ, nhớ kết quả trong sessionStorage (một lần mỗi phiên của thẻ, theo id tài khoản); trang đăng nhập và trang Tôi (sau khi bật) xoá.
  */
 export const KHOA_NHAC_HAI_LOP = "td_mfa_nhac";
-const MFA_STRIP_ID = "mfa-strip";
-
 function setMfaStrip(text: string | null): void {
-  document.getElementById(MFA_STRIP_ID)?.remove();
   // Đích lấy từ bảng mục (trang Tôi — ai cũng mở được), không viết tay đường dẫn (tests/audit/muc-hien-mo-duoc-khung.mjs bài (6)); `#mfa` = mục Bảo mật đăng nhập.
-  if (text) stripsEl().append(h("a", { class: "mfa-strip", id: MFA_STRIP_ID, href: TRANG.toi.duong + "#mfa" }, text));
+  datDai("bao-mat", text ? { cau: text, nut: { nhan: "Bật ngay", href: TRANG.toi.duong + "#mfa" }, dongDuoc: true } : null);
 }
 
 async function ganDaiNhacHaiLop(id: string): Promise<void> {
   try {
+    if (sessionStorage.getItem(KHOA_DAI_BAO_MAT_DA_DONG)) return; // người dùng đã đóng dải trong phiên này
     // Số ngày tính lại theo giờ máy mỗi lần vẽ (từ `graceUntil`), nên nhớ cả phiên của thẻ không làm số cũ đi; `required` đổi khi bật → trang Tôi xoá.
     let m = JSON.parse(sessionStorage.getItem(KHOA_NHAC_HAI_LOP) || "0") as { id: string; required: boolean; graceUntil: string | null } | 0;
     if (!m || m.id !== id) {
@@ -508,7 +497,7 @@ export async function initShell(): Promise<Staff> {
   const { staff } = me;
   benDatMayChuEp = me.benDatCuaToi ?? null;
   datNguoiDangNhap(staff.id); // ADR-0094: vé chống ghi trùng giữ qua "tải lại trang" theo ngăn của tài khoản này
-  if (me.maintenance?.on) setMaintenanceStrip(true);
+  if (me.maintenance?.on) setMaintenanceStrip(true, me.maintenance.endsAt);
   // Bốn cờ của bản nhớ khung hỏi CÙNG bảng quyền với máy chủ (ADR-0072 mục 4a: `admin` là ô admin.manage, không hỏi mã Quản trị) — `coKhungNho` của bảng mục.
   luuKhungNho({ tat: initials(staff.fullName), ...coKhungNho(staff) });
   // Gỡ khung tạm (nếu có) rồi vẽ khung thật trong CÙNG một lượt chạy — trình duyệt không vẽ khung trống ở giữa.

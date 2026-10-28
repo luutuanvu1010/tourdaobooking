@@ -20,6 +20,8 @@ Sau Task 6: 98.635 byte (+886 so với Task 5: `theoDoiThanhDinh` ở shell và 
 Sau Task 7: 99.172 byte (+537 so với Task 6: `nutGap`, `gomNhomGap`, lối «Bỏ qua» ở shell, bớt nút `.sidebar-new`; vẫn vượt trần, trần không đổi).
 Sau Task 8: 98.785 byte (sau vòng sửa 1; trước đó 98.816; −387 so với Task 7: bỏ hàm nâng nút nổi và MutationObserver ở tro-ly.ts, thêm trangChaCua và đường dẫn một cấp; vẫn vượt trần 96.700, trần không đổi).
 
+Sau Task 9: 100.014 byte (+1.229 so với Task 8: `web/dai.ts` mới (sổ dải, `thanNgoaiMang`, `ganNgoaiMang`) và chữ Task 4 kéo vào gói, trừ ba bản dải cũ ở shell/thông báo; vẫn vượt trần 96.700, trần không đổi).
+
 ## Lệch so với đặc tả
 
 - Task 1: kho chính không có `.env`; đã chép `.dev.vars` (tương đương của dự án) vào worktree.

@@ -629,8 +629,6 @@ function veDai(staff: Staff): void {
     h(
       "div",
       { class: "dash-dai-nhan" },
-      // Đang bảo trì: viên cát thay cho dải mảnh chung của khung (như điện thoại 1g), dẫn tới trang Tôi — nơi tắt bảo trì.
-      document.querySelector(".maint-strip") && h("a", { class: "dash-dai-bao-tri", href: "/account" }, icon("alert", 16), "Đang ở chế độ bảo trì"),
       h("span", { class: "dash-dai-vai" }, vaiCua(staff)),
     ),
   );
@@ -694,9 +692,6 @@ function dungDauTrang(staff: Staff): void {
   if (avatar) avatar.after(chao);
   else topbar.append(chao);
   topbar.append(h("a", { class: "dash-hero-nut", href: "/help", "aria-label": "Hướng dẫn" }, icon("help")));
-  // Đang bảo trì (bản vẽ 1g): viên thuốc cát thay cho dải mảnh chung của khung ở khổ này; vẫn dẫn tới trang Tôi, nơi tắt bảo trì (như dải mảnh).
-  // Hàng riêng (`.dash-hero-dong` trải hết bề ngang) để viên thuốc xuống dưới lời chào mà vẫn chỉ rộng bằng chữ.
-  if (document.querySelector(".maint-strip")) topbar.append(h("div", { class: "dash-hero-dong" }, h("a", { class: "dash-hero-bao-tri", href: "/account" }, icon("alert", 16), "Đang ở chế độ bảo trì")));
 }
 
 function ganOTim(): void {

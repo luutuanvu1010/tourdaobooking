@@ -113,7 +113,7 @@ Nền tảng chỉ cho xác nhận khi mỗi dịch vụ đã chọn Đón hoặ
       tieuDe: "Thông báo",
       noiDung: `- Bấm chuông để xem hai ngăn [[Của tôi]] và [[Tất cả]]. Mở ra là coi như đã đọc; bấm một tin để mở đúng đơn.
 - Bạn được báo khi có người nhận, giao, xác nhận hay huỷ đơn liên quan tới bạn, và khi có đơn vừa xác nhận mà chưa có người phụ trách. Lưu đơn nháp **không** báo ai.
-- Tin quan trọng của công ty hiện dải nhắc: bấm [[Đọc và bấm Đã hiểu]], rồi [[Đã hiểu]].
+- Tin quan trọng của công ty hiện dải nhắc: bấm [[Xem]], rồi [[Đã hiểu]].
 - Muốn nhận thông báo trên màn hình khoá: vào [[Tôi]] → [[Bật thông báo trên điện thoại]] → cho phép. Trên iPhone phải mở Nền tảng từ biểu tượng ngoài màn hình chính.
 - Danh sách đơn và trang đơn tự làm mới khi người khác sửa đơn.`,
     },
