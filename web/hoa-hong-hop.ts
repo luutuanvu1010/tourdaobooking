@@ -6,10 +6,12 @@ import {
   CAU_THEO_LOAI_KHACH,
   cauCanhBaoDongRieng,
   cauCanhBaoTheoChinhSach,
+  cauDoiTuNgayMai,
   cauMucCuSeNgung,
   cauSeTao,
   chinhSachCuaLoai,
   coTheTimDoiTac,
+  ngayDoiSomNhat,
   nhanDoiTuong,
   nhanMucDto,
   nhanPhamVi,
@@ -302,9 +304,11 @@ export function taoMoHop(ctx: NguCanhHop): MoHop {
   function doi(dong: Api.CommissionRuleDto): void {
     const d = ctx.lay();
     const loi = taoBangLoi();
-    const ct = dungCachTinh({ tienTo: "hh-doi", loi, homNay: d.homNay, tuMacDinh: d.homNay, tuMin: d.homNay, san: dong });
+    const tuSom = ngayDoiSomNhat(dong.tuNgay, d.homNay); // mức cũ bắt đầu hôm nay ⇒ ngày mai (chủ dự án 28/10)
+    const ct = dungCachTinh({ tienTo: "hh-doi", loi, homNay: d.homNay, tuMacDinh: tuSom, tuMin: tuSom, san: dong });
     const mucCu = nhanMucDto(dong);
-    const cauCu = h("p", { class: "hint", "aria-live": "polite" }, cauMucCuSeNgung(mucCu, d.homNay));
+    const cauCu = h("p", { class: "hint", "aria-live": "polite" }, cauMucCuSeNgung(mucCu, tuSom));
+    const cauMai = cauDoiTuNgayMai(dong.tuNgay, d.homNay);
     ct.khiDoi(() => {
       const tu = ct.doc().tuNgay;
       cauCu.textContent = /^\d{4}-\d{2}-\d{2}$/.test(tu) ? cauMucCuSeNgung(mucCu, tu) : "";
@@ -317,6 +321,7 @@ export function taoMoHop(ctx: NguCanhHop): MoHop {
         h("p", null, h("span", { class: "hh-nhan-nho" }, "Dịch vụ"), h("strong", null, nhanPhamVi(dong, d.ten))),
         ct.root,
         cauCu,
+        ...(cauMai ? [h("p", { class: "hint" }, cauMai)] : []),
       ],
       nhan: "Đổi mức",
       chuan() {

@@ -12,6 +12,16 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Hoa hồng đối tác (chủ dự án 28/10, bấm «Cho hiện ngay»): dòng mức bắt đầu hôm nay nay có nút «Đổi» / «Ngừng»; hộp Đổi chọn ngày từ ngày mai (máy chủ đã cho từ trước, `kiemDoi`).
+    // Chỉ giao diện, KHÔNG migration. Số 2.40 và ngày là TẠM — phiên phát hành kiểm lại ở bước A.0 của docs/HANDOFF-N1.md.
+    version: "2.40",
+    date: "2026-10-28",
+    items: [
+      { kind: "sua", text: "Hoa hồng đối tác: mức vừa thêm trong hôm nay đã có nút «Đổi» và «Ngừng» ngay, không phải chờ sang hôm sau." },
+      { kind: "sua", text: "Đổi một mức thêm trong hôm nay thì mức mới áp dụng từ ngày mai; đơn xác nhận trong hôm nay vẫn tính theo mức cũ." },
+    ],
+  },
+  {
     // Đưa đón theo nhóm dịch vụ + điểm «Chọn nhanh» (ADR-0118, chủ duyệt 14/10; thi công 14/10 trên nhánh claude/tour-dao-booking-audit-bc6c77, dựng lại trên main 28/10).
     // CÓ migration 0121 (đổi từ số tạm 0098) nên cần npm run trien-khai sau day-len. Số 2.39 và ngày là TẠM — phiên phát hành kiểm lại ở bước A.0 của docs/HANDOFF-N1.md.
     version: "2.39",

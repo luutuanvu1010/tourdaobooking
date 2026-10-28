@@ -338,6 +338,8 @@ test("kiemNgayDong: ngày đóng ≥ ngày bắt đầu của dòng", () => {
   assert.ok(kiemNgayDong({ denNgay: "2026-10-31" }, "2026-10-01").ok);
   assert.equal(kiemNgayDong({ denNgay: "2026-09-30" }, "2026-10-01").ok, false);
   assert.equal(kiemNgayDong({}, "2026-10-01").ok, false);
+  // Ngày đóng = ngày bắt đầu phải nhận: dòng bắt đầu hôm nay có nút «Ngừng» với ngày mặc định và sớm nhất là hôm nay (chủ dự án 28/10 — `nutDoiNgung`).
+  assert.deepEqual(kiemNgayDong({ denNgay: "2026-10-01" }, "2026-10-01"), { ok: true, value: "2026-10-01" });
 });
 
 test("moTaMuc: lời thường cho nhật ký, không SĐT, tỷ lệ bỏ số 0 thừa", () => {
