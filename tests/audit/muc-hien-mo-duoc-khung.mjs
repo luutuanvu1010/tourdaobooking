@@ -183,6 +183,7 @@ const CHO_CHU_TRANG_DAU = new Map([
 const LIEN_KET_VIET_TAY = [
   { tep: "web/shell.ts", href: "/", lan: 2, lyDo: "logo ở đầu thanh bên và thanh trên — về trang đầu; bài (5) kiểm trang đầu của mọi tập" },
   { tep: "web/shell.ts", href: "/account", lan: 1, lyDo: "dải 'Đang ở chế độ bảo trì' — trang Tôi, ai cũng mở được (TRANG.toi; bài kiểm ở phần gọi /api/auth/me)" },
+  { tep: "web/shell.ts", href: "#noi-dung-chinh", lan: 1, lyDo: "lối «Bỏ qua tới nội dung chính» — neo trong trang, không phải trang đích" },
 ];
 
 /**

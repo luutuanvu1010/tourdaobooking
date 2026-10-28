@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { PERMISSION_CODES, type PermissionCode } from "./shared/permissions.ts";
-import { THANH_BEN, TRANG, coHien, thanhBen, thietLapMoSan, type KhoaTrang } from "./shared/muc-giao-dien.ts";
+import { THANH_BEN, TRANG, coHien, demMucHienSan, thanhBen, thietLapMoSan, type KhoaTrang } from "./shared/muc-giao-dien.ts";
 
-// Mọi trang có mặt ở thanh bên TRƯỚC khi đổi (34 khoá, cây 14/10) — lối vào không được mất.
+// Mọi trang có mặt ở thanh bên TRƯỚC khi đổi (cây 14/10) — lối vào không được mất. «Tạo đơn» đã BỎ khỏi thanh bên (Đợt 0, 7/16): nút đó nằm ở thanh trên và tab (THANH_TREN, THANH_TAB).
 const TRANG_THANH_BEN_CU: readonly KhoaTrang[] = [
-  "trangChu", "donHang", "taoDon", "danhBa", "dichVu", "taiKhoan", "phien", "diaDiem", "loaiGiayToNguoi", "dieuPhoi", "xeDangChay", "deNghi",
+  "trangChu", "donHang", "danhBa", "dichVu", "taiKhoan", "phien", "diaDiem", "loaiGiayToNguoi", "dieuPhoi", "xeDangChay", "deNghi",
   "bangGiaXe", "bangKeXe", "xe", "lichXeBan", "sapHetHan", "loaiGiayToXe", "chinhSachDieuPhoi", "lyDoDieuPhoi", "khoaThang", "dieuChinhCongNo",
   "hoaHong", "nguoiBan", "nhatKy", "guiThongBao", "troLy", "giaoDien", "trangTaiXe", "cuoc", "ban", "toi", "gopY", "troGiup",
   // Thêm sau ảnh chụp 14/10 (trang mới, có chủ đích): sổ đại lý đợt 2 Task 12 — «Chụp bù mức» (ô order.terms.override, không Đối tác).
@@ -39,10 +39,9 @@ test("MỌI tập quyền: bảng thanh bên (kể cả gom) khớp điều ki�
   }
 });
 
-const SO_MUC_HIEN_SAN = (p: readonly PermissionCode[]): number =>
-  thanhBen({ staff: holder(p) }, "/").filter((g) => g.nhom !== "THIẾT LẬP" && g.nhom !== "CHÂN MENU").flatMap((g) => g.muc).filter((m) => !m.noiBat).length;
+const SO_MUC_HIEN_SAN = (p: readonly PermissionCode[]): number => demMucHienSan(thanhBen({ staff: holder(p) }, "/"));
 
-test("trần 10 mục hiện sẵn (không tính nút Tạo đơn, Thiết lập, chân menu) cho các vai thật", () => {
+test("trần 10 khối hiện sẵn (nhóm gập đếm 1, Thiết lập đếm 1, không tính chân menu) cho các vai thật", () => {
   const vai: Record<string, PermissionCode[]> = {
     "Bán hàng": ["SALES"], "Kế toán": ["ACCOUNTING"], "Quản trị": ["ADMIN"], "Toàn quyền": ["ADMIN", "SUPER_ADMIN"], "Bán hàng+Kế toán": ["SALES", "ACCOUNTING"],
     "Tài xế": ["DRIVER"], "Tài xế đối tác": ["DRIVER_PARTNER"], "Hướng dẫn viên": ["FIELD"], "Đối tác": ["PARTNER"], "Thực tập": ["INTERN"], "Nhân sự": ["HR"],

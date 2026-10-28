@@ -1232,20 +1232,17 @@ body.login-page::before { content: ""; display: block; height: env(safe-area-ins
 .sidebar-head .brand-logo { border-radius: var(--radius-pill); } /* từ Đợt D Task 7, `.brand-logo` gốc (:116) CŨNG đã bo tròn hết cỡ — luật riêng này thành thừa số nhưng giữ lại để ý định tường minh (logo sidebar PHẢI tròn theo bản mẫu, không phụ thuộc luật gốc đổi lại) */
 /* `min-height: 0`: trong cột flex cao đúng một khung nhìn, phần danh sách mục phải CO ĐƯỢC thì `overflow-y: auto`
    mới cuộn (mặc định `min-height: auto` giữ nguyên chiều cao nội dung và đẩy chân thanh ra khỏi khung nhìn). */
-.sidebar-groups { display: flex; flex-direction: column; gap: var(--s5); padding: var(--s4) var(--s3); overflow-y: auto; min-height: 0; }
+.sidebar-groups { display: flex; flex-direction: column; gap: var(--s5); padding: var(--s4) var(--s3); overflow-y: auto; min-height: 0; -webkit-mask-image: linear-gradient(to bottom, currentColor calc(100% - var(--w-tab-mo-mep)), transparent); mask-image: linear-gradient(to bottom, currentColor calc(100% - var(--w-tab-mo-mep)), transparent); } /* mép dưới mờ dần: báo còn mục để cuộn */
 .sidebar-group { display: flex; flex-direction: column; gap: var(--s1); }
 /* Nút Thiết lập ĐÓNG dính đáy vùng cuộn: màn thấp (700–900px) vẫn luôn thấy lối vào Thiết lập, không phải cuộn tìm (sửa vòng 2, 7b). Khi nhóm MỞ thì trôi theo dòng như thường. */
-.sidebar-group:has(> .sidebar-group-toggle[aria-expanded="false"]) { position: sticky; bottom: calc(-1 * var(--s4)); z-index: 1; margin-bottom: calc(-1 * var(--s4)); padding: var(--s1) 0 var(--s4); background: var(--c-sidebar-bg); }
+.sidebar-group:has(> .sidebar-gap > .sidebar-group-toggle[aria-expanded="false"]) { position: sticky; bottom: calc(-1 * var(--s4)); z-index: 1; margin-bottom: calc(-1 * var(--s4)); padding: var(--s1) 0 var(--s4); background: var(--c-sidebar-bg); }
 .sidebar-group-title { padding: 0 var(--s3) var(--s1); font-size: var(--fs-badge); font-weight: var(--fw-bold); letter-spacing: var(--ls-eyebrow); color: var(--c-sidebar-title); text-transform: uppercase; }
 .sidebar-group-items { display: flex; flex-direction: column; gap: var(--gap-muc-menu); }
 .sidebar-group-items[hidden] { display: none; } /* thuộc tính hidden của nhóm Thiết lập thu gọn thắng `display: flex` ở trên */
-.sidebar-new { display: flex; align-items: center; justify-content: center; gap: var(--s2); min-height: var(--h-muc-menu); margin-bottom: var(--s2); padding: var(--s2) var(--s4); font-size: var(--fs-step-4); font-weight: var(--fw-bold); color: var(--c-text-inverse); text-decoration: none; background: var(--c-accent); border-radius: var(--radius-sm); box-shadow: var(--shadow-btn-accent); transition: background-color var(--m-fast) var(--ease-out); }
-@media (hover: hover) { .sidebar-new:hover { background: var(--c-accent-strong); } }
-.sidebar-new[aria-current="page"] { background: var(--c-accent-strong); }
 .sidebar-item { display: flex; align-items: center; gap: var(--s3); min-height: var(--h-muc-menu); padding: var(--s2) var(--s3); font-size: var(--fs-label); font-weight: var(--fw-semibold); color: var(--c-sidebar-item); text-decoration: none; border-radius: var(--radius-sm); transition: background-color var(--m-fast) var(--ease-out), color var(--m-fast) var(--ease-out); }
 .sidebar-item[aria-current="page"] { color: var(--c-sidebar-text-on); font-weight: var(--fw-bold); background: var(--c-sidebar-active); box-shadow: inset var(--bw-indicator) 0 0 var(--c-indicator); } /* 1.70: vạch ngọc bên trái mục đang chọn */
 @media (hover: hover) { .sidebar-item:not([aria-current="page"]):hover { color: var(--c-text); background: var(--c-sidebar-hover); } }
-.sidebar-new:focus-visible, .sidebar-item:focus-visible, .sidebar-group-toggle:focus-visible, .sidebar-logout:focus-visible { outline: var(--bw-indicator) solid var(--c-sidebar-text-on); outline-offset: calc(var(--bw-indicator) * -1); }
+.sidebar-item:focus-visible, .sidebar-group-toggle:focus-visible, .sidebar-logout:focus-visible { outline: var(--bw-indicator) solid var(--c-sidebar-text-on); outline-offset: calc(var(--bw-indicator) * -1); }
 .sidebar-item-icon { flex: none; display: flex; }
 .sidebar-item-label { flex: 1; min-width: 0; }
 .sidebar-item-badge { flex: none; min-width: var(--s5); padding: 1px var(--s2); font-size: var(--fs-badge); font-weight: var(--fw-bold); text-align: center; color: var(--c-sidebar-badge-text); background: var(--c-sidebar-badge); border-radius: var(--radius-pill); }
@@ -1255,13 +1252,16 @@ body.login-page::before { content: ""; display: block; height: env(safe-area-ins
 .sidebar-group-toggle { display: flex; align-items: center; gap: var(--s2); min-height: var(--h-muc-nho); padding: var(--s1) var(--s3); font: inherit; font-size: var(--fs-label); font-weight: var(--fw-bold); letter-spacing: var(--ls-eyebrow); text-transform: uppercase; text-align: left; white-space: nowrap; color: var(--c-sidebar-title); background: none; border: 0; border-radius: var(--radius-sm); cursor: pointer; transition: background-color var(--m-fast) var(--ease-out), color var(--m-fast) var(--ease-out); }
 @media (hover: hover) { .sidebar-group-toggle:hover { color: var(--c-text); background: var(--c-sidebar-hover); } }
 .sidebar-group-count { margin-left: auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--fs-badge); font-weight: var(--fw-semibold); letter-spacing: 0; text-transform: none; }
-.sidebar-chevron { display: flex; transition: transform var(--m-fast) var(--ease-out); }
+.sidebar-cham { flex: none; width: var(--dot-size); height: var(--dot-size); border-radius: var(--radius-pill); background: var(--c-btn-primary-bg); } /* chấm Biển: nhóm đóng có trang đang mở */
+.sidebar-cham[hidden] { display: none; }
+.sidebar-chevron { margin-left: auto; display: flex; transition: transform var(--m-fast) var(--ease-out); }
+.sidebar-group-count + .sidebar-chevron { margin-left: 0; }
 .sidebar-group-toggle[aria-expanded="false"] .sidebar-chevron { transform: rotate(-90deg); }
-#nhom-thiet-lap .sidebar-item { min-height: var(--h-muc-nho); padding-top: var(--s1); padding-bottom: var(--s1); padding-left: var(--sidebar-sub-indent); font-weight: var(--fw-regular); }
+.sidebar-gap .sidebar-item { min-height: var(--h-muc-nho); padding-top: var(--s1); padding-bottom: var(--s1); padding-left: var(--sidebar-sub-indent); font-weight: var(--fw-regular); }
 #nhom-thiet-lap .sidebar-item[aria-current="page"] { font-weight: var(--fw-bold); }
 /* Chân thanh: ba mục chân menu, rồi người dùng, rồi Đăng xuất */
 /* Chân gọn (sửa vòng 2, 7b): Đăng xuất đứng CÙNG hàng với người dùng (lưới hai cột) thay vì một hàng riêng — bớt ~44px để vùng danh sách mục có chỗ ở màn thấp. */
-.sidebar-foot { margin-top: auto; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: var(--s2); row-gap: var(--s1); padding: var(--s2) var(--s3); border-top: 1px solid var(--c-sidebar-border); }
+.sidebar-foot { position: sticky; bottom: 0; background: var(--c-sidebar-bg); margin-top: auto; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: var(--s2); row-gap: var(--s1); padding: var(--s2) var(--s3); border-top: 1px solid var(--c-sidebar-border); }
 .sidebar-foot > .sidebar-group-items { grid-column: 1 / -1; }
 .sidebar-foot > .sidebar-user { grid-column: 1; }
 .sidebar-foot > .sidebar-logout { grid-column: 2; }

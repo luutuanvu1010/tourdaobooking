@@ -117,16 +117,16 @@ test("M-3: bước Xác nhận đơn không nói sai 'chỉ còn sửa được 
   assert.match(b2, /hướng dẫn viên đang phụ trách vẫn sửa được số khách tới hết ngày đi/);
 });
 
-test("Đ2 kho (e): Tạo đơn — ở đầu menu (nhóm HẰNG NGÀY trong mã), mục theo thứ tự, nút 'Lưu, chờ xác nhận' ở thanh nút cuối trang (sau Tóm tắt)", () => {
+test("Đ2 kho (e): Tạo đơn — không còn trong menu bên (Đợt 0 7/16: nút ở thanh trên và tab), mục theo thứ tự, nút 'Lưu, chờ xác nhận' ở thanh nút cuối trang (sau Tóm tắt)", () => {
   const t = SO_DO_TRANG.find((x) => x.duongDan === "/order-form")!;
-  assert.deepEqual(t.nhomMenu, ["HẰNG NGÀY"]);
+  assert.deepEqual(t.nhomMenu, []);
   // 14/10/2026 (Tạo đơn bốn bước): khách lên đầu và ô Ngày khởi hành nằm TRONG khối khách — không còn thẻ "Chọn ngày" riêng ⇒ năm mục, không sáu (số mục trong kho sinh ra đổi theo; luật sinh không đổi).
   assert.deepEqual(t.boCuc.map((m) => m.muc), ["Khách hàng", "Dịch vụ", "Thanh toán", "Tóm tắt", "Thanh nút cuối trang"]);
   assert.deepEqual(t.boCuc.at(-1)!.nut, ["Lưu, chờ xác nhận", "Quay lại"]);
   assert.deepEqual(SO_DO_TRANG.find((x) => x.duongDan === "/dieu-phoi")!.nhomMenu, ["VẬN CHUYỂN"]);
   assert.deepEqual(SO_DO_TRANG.find((x) => x.duongDan === "/help")!.nhomMenu, ["CHÂN MENU"]);
   const doan = chiaKho().find((d) => d.ten === "Sơ đồ trang › Tạo đơn")!;
-  assert.match(doan.chu, /Trong menu: ở đầu menu, mục Tạo đơn/);
+  assert.ok(!/Trong menu:/.test(doan.chu), "Tạo đơn không còn mục ở menu bên");
   assert.ok(!/nhóm HẰNG NGÀY|nhóm CHÂN MENU/.test(doan.chu), "nhóm không có tiêu đề trên màn hình thì không nhắc tên");
   assert.match(doan.chu, /Tóm tắt\. 5\. Thanh nút cuối trang — nút: Lưu, chờ xác nhận, Quay lại\./);
   // Phần dựng bằng web/*.ts: không gán nút vào mục (thứ tự trong mã ≠ vị trí trên màn hình — bản đầu nói sai "Lịch sử — nút: … Sửa thông tin chuyến").

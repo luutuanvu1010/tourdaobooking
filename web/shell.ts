@@ -6,6 +6,7 @@ import {
   THANH_BEN,
   THANH_TAB,
   coKhungNho,
+  gomNhomGap,
   nhanTheoDuong,
   sangTabToi,
   sangTai,
@@ -269,39 +270,47 @@ function sidebarItem(m: Muc, path: string, loaders: (() => void)[], seesAll: boo
 }
 
 /**
- * Một nhóm của thanh bên (nhóm do `thanhBen()` của bảng mục trả, cùng bảng quyền với máy chủ — src/shared/muc-giao-dien.ts). Nhóm rỗng ẩn CẢ tiêu đề (đặc tả §3.1) —
- * trả `null`. HẰNG NGÀY không có tiêu đề và đứng đầu với nút "Tạo đơn" nổi bật; THIẾT LẬP là nút thu gọn (`aria-expanded`) mở sẵn theo `thietLapMoSan`, kèm số mục và
- * số "dịch vụ lệch giá" (khi > 0) để việc đó không biến mất khi nhóm đóng.
+ * Nút gập dùng chung (THIẾT LẬP và nhóm gập như Điều phối): `button[aria-expanded]` điều khiển `div#id[hidden]`. `dangChua` = nhóm chứa trang đang mở: khi nhóm đóng
+ * hiện chấm Biển để người dùng biết mình đang ở trong đó.
  */
-function sidebarGroup(nhom: NhomThanhBen, muc: readonly Muc[], path: string, loaders: (() => void)[], seesAll: boolean, moSan: boolean): HTMLElement | null {
-  const noiBat = muc.find((m) => m.noiBat);
-  const rows = muc.filter((m) => !m.noiBat).map((m) => sidebarItem(m, path, loaders, seesAll));
-  if (rows.length === 0 && !noiBat) return null;
-  const nutMoi = noiBat && h("a", { class: "sidebar-new", href: noiBat.href, "aria-current": sangTaiMuc(noiBat, path) ? "page" : false }, icon("plus", 18), h("span", null, noiBat.nhan));
-  if (nhom !== "THIẾT LẬP") {
-    return h("div", { class: "sidebar-group" }, nutMoi, nhom !== "HẰNG NGÀY" && h("div", { class: "sidebar-group-title" }, nhom), h("div", { class: "sidebar-group-items" }, ...rows));
-  }
-  const dem = h("span", { class: "sidebar-group-count" }, String(rows.length));
-  const toggle = h(
-    "button",
-    { type: "button", class: "sidebar-group-toggle", "aria-expanded": String(moSan), "aria-controls": "nhom-thiet-lap" },
-    "Thiết lập",
-    dem,
-    h("span", { class: "sidebar-chevron" }, icon("chevron-down", 16)),
-  );
-  const body = h("div", { id: "nhom-thiet-lap", class: "sidebar-group-items", hidden: !moSan }, ...rows);
+function nutGap(id: string, nhan: string, rows: HTMLElement[], moSan: boolean, dangChua: boolean, dem?: HTMLElement): HTMLElement {
+  const cham = dangChua && h("span", { class: "sidebar-cham", hidden: moSan });
+  const toggle = h("button", { type: "button", class: "sidebar-group-toggle", "aria-expanded": String(moSan), "aria-controls": id }, nhan, cham, dem, h("span", { class: "sidebar-chevron" }, icon("chevron-down", 16)));
+  const body = h("div", { id, class: "sidebar-group-items", hidden: !moSan }, ...rows);
   toggle.addEventListener("click", () => {
     const mo = toggle.getAttribute("aria-expanded") !== "true";
     toggle.setAttribute("aria-expanded", String(mo));
     body.hidden = !mo;
+    if (cham) cham.hidden = mo;
   });
+  return h("div", { class: "sidebar-gap" }, toggle, body);
+}
+
+/**
+ * Một nhóm của thanh bên (nhóm do `thanhBen()` của bảng mục trả, cùng bảng quyền với máy chủ — src/shared/muc-giao-dien.ts). Nhóm rỗng ẩn CẢ tiêu đề (đặc tả §3.1) —
+ * trả `null`. HẰNG NGÀY không có tiêu đề; các mục liền nhau cùng `nhomGap` (Điều phối) gập thành một nút; THIẾT LẬP là nút gập mở sẵn theo `thietLapMoSan`, kèm số mục và
+ * số "dịch vụ lệch giá" (khi > 0) để việc đó không biến mất khi nhóm đóng.
+ */
+function sidebarGroup(nhom: NhomThanhBen, muc: readonly Muc[], path: string, loaders: (() => void)[], seesAll: boolean, moSan: boolean): HTMLElement | null {
+  if (muc.length === 0) return null;
+  const dong = (m: Muc) => sidebarItem(m, path, loaders, seesAll);
+  if (nhom !== "THIẾT LẬP") {
+    const khoi = gomNhomGap(muc).map((k) => {
+      if (!("muc" in k)) return dong(k);
+      const co = k.muc.some((m) => sangTaiMuc(m, path));
+      return nutGap(`nhom-gap-${k.nhomGap.ma}`, k.nhomGap.nhan, k.muc.map(dong), co, co);
+    });
+    return h("div", { class: "sidebar-group" }, nhom !== "HẰNG NGÀY" && h("div", { class: "sidebar-group-title" }, nhom), h("div", { class: "sidebar-group-items" }, ...khoi));
+  }
+  const rows = muc.map(dong);
+  const dem = h("span", { class: "sidebar-group-count" }, String(rows.length));
   if (muc.some((m) => m.trang === "dichVu"))
     loaders.push(() => {
       void catalogConflictBadge().then((n) => {
         if (n > 0) dem.textContent = `${rows.length} · ${n} lệch giá`;
       });
     });
-  return h("div", { class: "sidebar-group" }, toggle, body);
+  return h("div", { class: "sidebar-group" }, nutGap("nhom-thiet-lap", "Thiết lập", rows, moSan, muc.some((m) => sangTaiMuc(m, path)), dem));
 }
 
 /**
@@ -384,6 +393,14 @@ export async function initShell(): Promise<Staff> {
   window.addEventListener("pageshow", (e) => {
     if (e.persisted && !helpHasNews()) for (const dot of document.querySelectorAll(".new-dot")) dot.remove();
   });
+  // Lối «Bỏ qua»: phần tử ĐẦU body (addNav chèn thanh bên rồi đặt nó lại lên đầu); đích là <main>.
+  const boQua = h("a", { class: "bo-qua", href: "#noi-dung-chinh" }, "Bỏ qua tới nội dung chính");
+  document.body.prepend(boQua);
+  const chinh = document.querySelector("main");
+  if (chinh) {
+    chinh.id ||= "noi-dung-chinh";
+    chinh.setAttribute("tabindex", "-1");
+  }
   const { title, back, tabbar } = document.body.dataset;
   const path = location.pathname.replace(/\/+$/, "") || "/";
 
@@ -414,6 +431,7 @@ export async function initShell(): Promise<Staff> {
       const badgeLoaders: (() => void)[] = [];
       const nav = sidebar(n, path, staff, badgeLoaders, tatTam ?? "");
       document.body.prepend(nav);
+      document.body.prepend(boQua);
       document.body.classList.add("has-sidebar");
       // Huy hiệu chỉ nạp khi thanh bên ĐANG HIỂN THỊ THẬT (`offsetParent` null khi CSS ẩn nó ở khổ hẹp). Hỏi chính
       // trình duyệt thay vì chép mốc 641px sang JS: chép số thì lần sửa CSS sau sẽ làm hai nơi lệch nhau mà không ai biết.

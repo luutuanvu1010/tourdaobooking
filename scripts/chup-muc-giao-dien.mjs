@@ -331,11 +331,9 @@ function docMuc(body, chiKhungTam = false) {
   const thanhBen = [];
   const sb = lay("sidebar");
   if (sb) {
-    // Chuỗi `nhóm|kiểu|nhãn|href` — kiểu "noi-bat" cho nút "Tạo đơn", còn lại rỗng. HẰNG NGÀY không có tiêu đề; THIẾT LẬP là nút thu gọn; CHÂN MENU nằm ở chân thanh.
+    // Chuỗi `nhóm||nhãn|href` (ô giữa để trống từ khi bỏ nút "Tạo đơn" nổi bật). HẰNG NGÀY không có tiêu đề; THIẾT LẬP là nút thu gọn; CHÂN MENU nằm ở chân thanh.
     const mucCuaNhom = (nhom, o) => {
-      const nut = o.querySelector(".sidebar-new");
-      if (nut) thanhBen.push(`${nhom}|noi-bat|${nut.children.at(-1).textContent}|${nut.getAttribute("href") ?? ""}`);
-      for (const it of o.querySelector(".sidebar-group-items").children) {
+      for (const it of o.querySelectorAll(".sidebar-item")) {
         thanhBen.push(`${nhom}||${it.querySelector(".sidebar-item-label").childNodes.filter((c) => c instanceof ChuGia).map((c) => c.data).join("")}|${it.getAttribute("href") ?? ""}`);
       }
     };

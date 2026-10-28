@@ -159,12 +159,18 @@ export interface ChoDat {
 export const NHOM_THANH_BEN = ["HẰNG NGÀY", "VẬN CHUYỂN", "TIỀN", "THIẾT LẬP", "CHÂN MENU"] as const;
 export type NhomThanhBen = (typeof NHOM_THANH_BEN)[number];
 
+export interface NhomGap {
+  readonly ma: string;
+  readonly nhan: string;
+}
+const DIEU_PHOI: NhomGap = { ma: "dieu-phoi", nhan: "Điều phối" };
+
 export interface ChoThanhBen extends ChoDat {
   readonly nhom: NhomThanhBen;
   /** Tên biểu tượng ở web/icons.ts (web/shell.ts kiểm kiểu lúc biên dịch). */
   readonly bieuTuong?: string;
-  /** Nút nổi bật đứng đầu thanh (san hô, "Tạo đơn") — vẽ riêng, không tính vào trần 10 mục hiện sẵn. */
-  readonly noiBat?: true;
+  /** Các mục LIỀN NHAU cùng `ma` gập thành một nhóm (web/shell.ts `nutGap`); nhóm chỉ còn một mục hiện thì hiện phẳng. */
+  readonly nhomGap?: NhomGap;
   /** Mục gộp: sáng ở trang của BẤT KỲ khoá nào trong `gom` (và trang của chính nó). Các trang gom phải CÙNG điều kiện hiện với mục (bài tập quyền ép). */
   readonly gom?: readonly KhoaTrang[];
   /** Địa chỉ mở riêng theo trang đang đứng (Góp ý: mở form mới, kèm nơi quay về). */
@@ -172,7 +178,6 @@ export interface ChoThanhBen extends ChoDat {
 }
 
 export const THANH_BEN = [
-  { nhom: "HẰNG NGÀY", trang: "taoDon", nhan: "Tạo đơn", bieuTuong: "plus", noiBat: true },
   { nhom: "HẰNG NGÀY", trang: "trangChu", nhan: "Trang chủ", bieuTuong: "home" },
   // Tài xế: "Trang chủ" của họ là /tai-xe; "Cuốc của tôi" cho mọi tài khoản tài xế công ty (kể cả kiêm văn phòng — K2b T2).
   { nhom: "HẰNG NGÀY", trang: "trangTaiXe", nhan: "Trang chủ", bieuTuong: "home" },
@@ -180,9 +185,9 @@ export const THANH_BEN = [
   { nhom: "HẰNG NGÀY", trang: "danhBa", nhan: "Danh bạ", bieuTuong: "contact-card" },
   { nhom: "HẰNG NGÀY", trang: "cuoc", nhan: "Cuốc của tôi", bieuTuong: "assign" },
   { nhom: "HẰNG NGÀY", trang: "ban", nhan: "Báo bận của tôi", bieuTuong: "clock" },
-  { nhom: "VẬN CHUYỂN", trang: "dieuPhoi", nhan: "Điều phối xe", bieuTuong: "truck" },
+  { nhom: "VẬN CHUYỂN", trang: "dieuPhoi", nhan: "Điều phối xe", bieuTuong: "truck", nhomGap: DIEU_PHOI },
+  { nhom: "VẬN CHUYỂN", trang: "deNghi", nhan: "Đề nghị chuyển khách", bieuTuong: "swap", nhomGap: DIEU_PHOI },
   { nhom: "VẬN CHUYỂN", trang: "xeDangChay", nhan: "Xe đang chạy", bieuTuong: "pin" },
-  { nhom: "VẬN CHUYỂN", trang: "deNghi", nhan: "Đề nghị chuyển khách", bieuTuong: "swap" },
   { nhom: "VẬN CHUYỂN", trang: "xe", nhan: "Xe & giấy tờ", bieuTuong: "doc-check", gom: ["xe", "lichXeBan", "sapHetHan"] },
   // Kiểm số 15/10: hai trang có cùng điều kiện hiện trên mọi tập quyền (tập lệch: 0) nên gộp được.
   { nhom: "VẬN CHUYỂN", trang: "bangGiaXe", nhan: "Giá & chi phí", bieuTuong: "money", gom: ["bangGiaXe", "bangKeXe"] },
@@ -315,8 +320,8 @@ export interface MucThanhBen {
   readonly nhan: string;
   readonly href: string;
   readonly bieuTuong?: string;
-  readonly noiBat?: boolean;
   readonly gom?: readonly KhoaTrang[];
+  readonly nhomGap?: NhomGap;
 }
 
 /** Mục thanh bên sáng ở đường này: trang của chính nó hoặc của BẤT KỲ khoá nào trong `gom` (mục gộp "Xe & giấy tờ", "Giá & chi phí"). */
@@ -330,8 +335,26 @@ export function thanhBen(n: NguoiXem, duongHienTai: string): { nhom: NhomThanhBe
     nhom,
     muc: (THANH_BEN as readonly ChoThanhBen[])
       .filter((c) => c.nhom === nhom && coHien(c, n))
-      .map((c): MucThanhBen => ({ trang: c.trang, nhan: c.nhan, href: c.moTu ? c.moTu(duongHienTai) : TRANG[c.trang].duong, bieuTuong: c.bieuTuong, noiBat: c.noiBat, gom: c.gom })),
+      .map((c): MucThanhBen => ({ trang: c.trang, nhan: c.nhan, href: c.moTu ? c.moTu(duongHienTai) : TRANG[c.trang].duong, bieuTuong: c.bieuTuong, gom: c.gom, nhomGap: c.nhomGap })),
   }));
+}
+
+export type KhoiThanhBen = MucThanhBen | { readonly nhomGap: NhomGap; readonly muc: MucThanhBen[] };
+
+/** Gom các mục liền nhau cùng `nhomGap.ma` thành một khối; nhóm chỉ có một mục trả mục phẳng. */
+export function gomNhomGap(muc: readonly MucThanhBen[]): KhoiThanhBen[] {
+  const kq: KhoiThanhBen[] = [];
+  for (let i = 0, j; i < muc.length; i = j) {
+    const g = muc[i]!.nhomGap;
+    for (j = i + 1; g && muc[j]?.nhomGap?.ma === g.ma; j++);
+    kq.push(g && j - i > 1 ? { nhomGap: g, muc: muc.slice(i, j) } : muc[i]!);
+  }
+  return kq;
+}
+
+/** Số khối hiện sẵn trên thanh bên (trần 10): mọi nhóm trừ CHÂN MENU, mỗi nhóm gập đếm 1, THIẾT LẬP đếm 1 khi có mục. */
+export function demMucHienSan(nhomHien: ReturnType<typeof thanhBen>): number {
+  return nhomHien.reduce((t, g) => t + (g.nhom === "CHÂN MENU" ? 0 : g.nhom === "THIẾT LẬP" ? +!!g.muc.length : gomNhomGap(g.muc).length), 0);
 }
 
 /**

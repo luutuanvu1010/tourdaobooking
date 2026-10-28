@@ -17,6 +17,7 @@ Sau Task 3: 96.929 byte (chỉ thêm CSS và bài, gói không đổi; vẫn vư
 Sau Task 4: 97.027 byte (bài đo; +98 so với Task 3, chỉ phần đọc `body[data-trang-thai]` ở `shell.ts`; `trang-thai-he-thong.ts` không vào gói Đơn hàng; vẫn vượt trần, trần không đổi).
 Sau Task 5: 97.749 byte (+722 so với Task 4: bảng THANH_TAB viết lại với các vị từ và nhãn mới, dòng TRANG.thietLap; vẫn vượt trần, trần không đổi).
 Sau Task 6: 98.635 byte (+886 so với Task 5: `theoDoiThanhDinh` ở shell và hàm thuần `thanh-dinh-day`; sau vòng sửa 1 giảm 40 so với 98.675; vẫn vượt trần, trần không đổi).
+Sau Task 7: 99.172 byte (+537 so với Task 6: `nutGap`, `gomNhomGap`, lối «Bỏ qua» ở shell, bớt nút `.sidebar-new`; vẫn vượt trần, trần không đổi).
 
 ## Lệch so với đặc tả
 
@@ -30,6 +31,9 @@ Sau Task 6: 98.635 byte (+886 so với Task 5: `theoDoiThanhDinh` ở shell và 
 - Task 5: `gopY` không khai `chiKhi.tam` (khung tạm không vẽ "Hỗ trợ") và `danhBa` không có `tam` — bài rào "khung tạm ⊆ khung thật" đỏ nếu khung tạm vẽ tab bị trần 5 cắt ở khung thật; mất mạng chưa có bản nhớ vẫn đúng bốn tab cũ.
 - Task 5: ảnh hiện trạng `muc-giao-dien-hien-trang.json` ở HEAD đã lệch sẵn (thiếu dòng "Đơn chờ xác nhận" ở trang Tôi, không do Task 5); chụp lại đã gộp dòng đó.
 
+- Task 7: kế hoạch ghi Kế toán có nhóm VẬN CHUYỂN sau gom là `["Điều phối xe"]`; thật ra Kế toán còn thấy «Xe đang chạy» và «Giá & chi phí». Bài chỉ khoá phần đúng: «Điều phối xe» đứng phẳng, không khối gập.
+- Task 7: kế hoạch ghi «mọi tập quyền: demMucHienSan ≤ 10»; 240/1024 tập ra 11 (đều kèm quyền tài xế, kể cả `DRIVER_PARTNER` ghép với quyền khác — không phải vai thật). Bài mới bỏ các tập có quyền tài xế (bài trần 10 cho vai thật giữ nguyên); mọi tập còn lại ≤ 10.
+- Task 7: `THANH_BEN` đổi thứ tự «Đề nghị chuyển khách» lên liền sau «Điều phối xe» (để gom được); chỉ đổi thứ tự hiển thị, không đổi ai thấy gì (ảnh chụp: chỉ mất «Tạo đơn», mặt nạ quyền các mục còn lại giữ nguyên). Bài lối vào bỏ `taoDon` khỏi danh sách trang thanh bên cũ (nút ở thanh trên/tab).
 - Task 4: `web/api.ts` dùng "parameter property" nên node không nhập được `ApiError`; bài thuần dùng lớp giả cùng hình (Error có `status`), `cauLoiMayChu` nhận biết lỗi máy chủ bằng `status` số.
 - Task 4: khoá `TRANG` thật: `donHang`, `dieuPhoi`, `cuoc`, `xe` (đúng tên brief gợi ý, trừ `donHang` cho /orders).
 
