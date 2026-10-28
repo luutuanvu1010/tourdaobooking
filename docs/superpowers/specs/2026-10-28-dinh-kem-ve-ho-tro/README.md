@@ -88,7 +88,7 @@ Lý do chọn cách này thay vì «tải từng tệp trước»: (a) tệp g�
 
 ## 7. Ba lựa chọn chờ chủ (một lần hỏi)
 
-1. **Ai được gửi tệp kèm tin?** Khuyến nghị: **chỉ tài khoản nội bộ trước**; Đối tác và Tài xế đối tác vẫn **xem** được tệp Nền tảng gửi cho họ trong vé của họ, mở quyền gửi sau. Phương án khác: mọi người gửi được tin đều gửi được tệp (thêm khoảng 1000 tài khoản bên ngoài tải tệp lên kho).
+1. **Ai được gửi tệp kèm tin?** Khuyến nghị: **chỉ tài khoản nội bộ trước**; Đối tác và Tài xế đối tác vẫn **xem** được tệp nhân viên gửi cho họ trong vé của họ, mở quyền gửi sau. Phương án khác: mọi người gửi được tin đều gửi được tệp (thêm khoảng 1000 tài khoản bên ngoài tải tệp lên kho).
 2. **Loại và cỡ:** Khuyến nghị: **ảnh JPG, PNG, HEIC và PDF; tối đa 5 tệp, tổng 10 MB mỗi tin; ảnh tự thu nhỏ trước khi gửi** (đúng loại của khuôn đã chạy). Phương án khác: thêm Word, Excel — phải viết thêm phần kiểm nội dung, tệp có thể chứa macro.
 3. **Gỡ tệp gửi nhầm:** Khuyến nghị: **Toàn quyền gỡ được tệp** (xoá hẳn khỏi kho; tin còn dòng «Tệp đã được gỡ»; nhật ký chỉ mã), dùng lại đường quyết xoá có sẵn của ADR-0123; ngoài ra tệp giữ cùng vé như chữ trong tin, thời hạn giữ chung theo chính sách lưu giữ khi luật sư trả lời (Hiến chương 5.25). Phương án khác: đợt này chưa có nút gỡ — ít việc hơn, nhưng ảnh căn cước gửi nhầm sẽ nằm trong kho không có cách gỡ.
 
