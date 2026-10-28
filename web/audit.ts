@@ -3,7 +3,9 @@ import { can } from "../src/shared/permissions";
 import { ApiError, api, type AuditRecord, type Api } from "./api";
 import { append, byId, h, replaceChildren } from "./dom";
 import { actionLabel, dateTime } from "./format";
+import { homeRedirect } from "../src/shared/start-page";
 import { initShell, showError } from "./shell";
+import { trangThaiToanTrang } from "./trang-thai-he-thong";
 
 const PAGE = 50;
 const qInput = byId<HTMLInputElement>("q");
@@ -106,5 +108,6 @@ actionSel.addEventListener("change", () => void load(true));
 moreBtn.addEventListener("click", () => void load(false));
 
 const staff = await initShell();
-if (!can(staff, "audit.view")) showError(errorEl, "Trang Nhật ký chỉ người phụ trách hệ thống xem được."); // ADR-0038 điều 6
+// ADR-0038 điều 6 (chỉ Toàn quyền); đặc tả đợt 0 tiêu chí 10.5: không có quyền ⇒ trạng thái 403 có vỏ thay thân trang (bộ lọc không còn).
+if (!can(staff, "audit.view")) trangThaiToanTrang("403", { trangDau: homeRedirect(staff) ?? "/" });
 else await load(true);
