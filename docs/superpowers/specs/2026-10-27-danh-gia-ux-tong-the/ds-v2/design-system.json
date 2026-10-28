@@ -360,8 +360,8 @@
   },
   "lastChange": {
     "by": "Claude",
-    "at": "2026-10-27T23:20:11.402Z",
+    "at": "2026-10-28T02:43:21.700Z",
     "via": "Claude Code",
-    "note": "28/10: sửa 7 chỗ theo bảng lệch 2c (DOI-CHIEU-BO-V2-2026-10-28.md): A2 thêm họ co-chu fs-step-1…14; A3 ghi BỎ lh-heading + chiều cao dòng theo vai; B4 năm trang thành phần về khuôn bốn mục; E5 phạm vi mono; F3 fs-field 17→16 ở 8 ô gõ; F4 thêm fw-home-stat 700; F7 dấu MỚI từng mốc. Toast tạm giữ diện mạo theo mã (F6)."
+    "note": "28/10 lần 2: gộp Claude Design theo GOP-CLAUDE-DESIGN-VAO-BO-V2-2026-10-28.md — gói đệm (họ dem) + ô nhiều dòng 96 + vanh-cach; c-check-border, c-switch-off-bg; toast nền tối c-toast-bg (ĐỔI); BỎ radius-tile 14; diện mạo OChon, HopThoai, toast, TrangThaiRong theo Design; 6 thành phần MỚI DauTrang, ThanhTren, ThanhTabDuoi, ThanhBen, TrangMatMang, TrangLoi; phím tắt bỏ N (cổng 2a)."
   }
 }

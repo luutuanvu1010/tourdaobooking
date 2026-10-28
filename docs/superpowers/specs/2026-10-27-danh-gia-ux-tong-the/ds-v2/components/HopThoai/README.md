@@ -4,7 +4,7 @@ Hộp xác nhận hành động **một chiều** (huỷ đơn, xoá, đăng xu�
 Mọi việc không hoàn tác được hoặc tốn tiền/ảnh hưởng người khác. Việc hoàn tác được thì **không hỏi**, làm ngay và cho «Hoàn tác» trong toast (ThongBao). Việc cần lý do (huỷ đơn) thêm một ô chọn lý do trong thân; nút chính tắt kèm «Chọn lý do để huỷ» cho tới khi chọn.
 
 ## Nội dung
-Tiêu đề = câu hỏi ngắn («Huỷ đơn TD-26-0412?»); thân = hậu quả bằng lời thường («Khách sẽ nhận tin huỷ. Tiền trả trước 2.000.000 ₫ chuyển sang chờ hoàn.»); nút chính = «Huỷ đơn», không «OK»/«Có». Máy tính rộng tối đa `w-sheet`; điện thoại vẫn trượt từ đáy.
+**Diện mạo thân lấy từ Claude Design (bảng gộp 28/10, dòng 13):** đầu thân là **vòng tròn 44 tông Đỏ** (`c-danger-soft` · `c-danger-text`, biểu tượng `alert`) + khối chữ: câu nội dung 16 rồi **câu hậu quả 14/500 `c-danger-text`** — để hộp một chiều khác hẳn bảng trượt thường. Tiêu đề = câu hỏi ngắn («Huỷ đơn TD-26-0412?»); câu hậu quả bằng lời thường («Không hoàn tác được.»); nút chính = «Huỷ đơn», không «OK»/«Có». Máy tính rộng tối đa `w-sheet`; điện thoại vẫn trượt từ đáy.
 
 ## Trạng thái
 Mở (bẫy tiêu điểm, tiêu điểm mặc định ở nút **phụ**) · đang gửi (nút chính `data-dang-tai`) · lỗi: dải lỗi đầu thân, giữ hộp mở.

@@ -7,7 +7,9 @@
 - Nhóm nhiều ô đặt trong `<fieldset class="nhom-chon">` với `<legend>` là nhãn nhóm.
 
 ## Trạng thái
-Bình thường viền `c-input-border` · đã chọn nền/viền `c-primary` (dấu tích `c-on-dark`; ô chọn một viền dày `vc-radio-on`; công tắc nền `c-primary`, núm `c-on-dark`) · tiêu điểm vành `c-focus` · tắt nền `c-surface-alt` · lỗi viền `c-danger` + câu dưới nhóm.
+**Diện mạo lấy từ Claude Design (bảng gộp 28/10, dòng 04).** Chưa chọn: viền **2 px `c-check-border`** (= `c-text-muted`, 7,6:1 — mã đang 1,5:1 và 1,25:1, phát hiện B-VIEN-O-CHON-TUONG-PHAN) · ô tích bo `bo-control` 8 (bản xuất ghi cứng 6, không chép) · rê: nền `c-soft-hover` · đã chọn: nền/viền `c-primary`, dấu tích `c-on-dark`; ô chọn một viền dày `vc-radio-on` · công tắc tắt nền **`c-switch-off-bg`**, bật `c-primary`, núm trắng có bóng nhẹ, trượt `t-vua` 200 ms · tiêu điểm vành `focus-ring` màu `c-focus`, cách `vanh-cach` · tắt: nền `c-surface-alt`, viền `c-input-border`, chữ `c-text-muted` · lỗi viền `c-danger` + câu dưới nhóm, thụt theo ô.
+
+Bố cục một dòng: cao tối thiểu `h-control` 44 (đệm dọc 10), ô đứng trước, nhãn 16 bên phải, **mô tả** 14 `c-text-muted` dưới nhãn (`.o-chon-chu` > `.o-chon-mo-ta`); công tắc đảo chiều — nhãn trái, công tắc sát phải.
 
 ## Người dùng truyền gì
 Nhãn là chữ bên phải ô (toàn dòng bấm được, cao `h-control` 44); `name` chung cho một nhóm ô chọn một; `aria-describedby` trỏ câu lỗi của nhóm.

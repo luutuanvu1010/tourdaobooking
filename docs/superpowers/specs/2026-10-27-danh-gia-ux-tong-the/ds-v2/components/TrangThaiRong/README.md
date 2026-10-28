@@ -9,7 +9,7 @@ Trạng thái rỗng: một biểu tượng, một câu, và **một** nút vi�
 ## Trạng thái
 Ba biến thể theo nguyên nhân: chưa có dữ liệu · không khớp lọc · lỗi trang (403/404/thiếu mã); mỗi biến thể một biểu tượng và một nút. Không có trạng thái rê chuột hay tắt.
 
-Cấu tạo: Biểu tượng 48 nét 1,5 màu `c-text-muted` (`orders`, `search`, `lock`, `alert`) · tiêu đề 18/600 · câu 14 `c-text-muted` nói chuyện gì và làm gì tiếp · một nút (chính nếu là việc chính của vai, phụ nếu là «Xoá lọc»/«Về trang đầu»). Rộng tối đa `w-narrow` 420, căn giữa, đệm `s6`.
+Cấu tạo (**diện mạo lấy từ Claude Design**, bảng gộp 28/10 dòng 23): **vòng tròn 56 nền `c-surface-alt`** chứa biểu tượng 24 màu `c-text-muted` (`orders`, `search`, `lock`, `alert`) · câu chính **16/500** `c-text` · câu phụ 14 `c-text-muted`, tối đa 36 ký tự mỗi dòng, nói làm gì tiếp · một nút (chính nếu là việc chính của vai, phụ nếu là «Xoá lọc»/«Về trang đầu»). Rộng tối đa `w-narrow` 420, căn giữa, đệm `s6` × `s4`. Trang lỗi trọn vỏ (403/404) dùng thành phần TrangLoi; trang mất mạng khi chưa có bản lưu dùng TrangMatMang.
 
 ## Người dùng truyền gì
 Biểu tượng, tiêu đề, câu, nhãn + đích của nút; vai hiện tại (để ẩn nút tạo khi không có quyền — nút ẩn, không tắt).
