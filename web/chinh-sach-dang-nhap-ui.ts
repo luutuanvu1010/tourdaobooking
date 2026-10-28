@@ -68,7 +68,7 @@ export async function dungMucChinhSach(el: HTMLElement): Promise<void> {
     if (!isQuyenDatDuoc(r.permissionCode)) return h("tr", null);
     const code = r.permissionCode;
     const radio = (multi: boolean, label: string) => {
-      const i = h("input", { type: "radio", name: `pol-${code}`, value: multi ? "1" : "0", checked: chon.get(code) === multi, disabled: dangGui });
+      const i = h("input", { type: "radio", class: "o-tick", name: `pol-${code}`, value: multi ? "1" : "0", checked: chon.get(code) === multi, disabled: dangGui });
       i.addEventListener("change", () => { chon.set(code, multi); xemTruoc = null; render(); });
       return h("label", { class: "check" }, i, label);
     };

@@ -107,7 +107,7 @@ function dungCachTinh(o: { tienTo: string; loi: BangLoi; homNay: string; tuMacDi
   const tyLe = h("input", { id: `${p}-ty-le`, type: "text", inputMode: "decimal", maxLength: 7, placeholder: "12,5", autocomplete: "off" });
   const moiKhach = h("input", { id: `${p}-moi-khach`, type: "text", inputMode: "numeric", maxLength: 12, placeholder: "50.000", autocomplete: "off" });
   const nhanMoiKhach = h("span", null, "Số tiền mỗi khách (đồng)");
-  const bat = h("input", { id: `${p}-theo-loai`, type: "checkbox" });
+  const bat = h("input", { id: `${p}-theo-loai`, type: "checkbox", class: "o-tick" });
   const treEm = h("input", { id: `${p}-tre-em`, type: "text", inputMode: "numeric", maxLength: 12, placeholder: "Bắt buộc", autocomplete: "off" });
   const nguoiCaoTuoi = h("input", { id: `${p}-nguoi-cao-tuoi`, type: "text", inputMode: "numeric", maxLength: 12, placeholder: "Bắt buộc", autocomplete: "off" });
   const khuTyLe = h("label", null, "Phần trăm (%)", tyLe);

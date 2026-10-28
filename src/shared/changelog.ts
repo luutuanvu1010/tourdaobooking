@@ -19,6 +19,7 @@ export const CHANGELOG: readonly ReleaseNote[] = [
     items: [
       { kind: "sua", text: "Hoa hồng đối tác: mức vừa thêm trong hôm nay đã có nút «Đổi» và «Ngừng» ngay, không phải chờ sang hôm sau." },
       { kind: "sua", text: "Đổi một mức thêm trong hôm nay thì mức mới áp dụng từ ngày mai; đơn xác nhận trong hôm nay vẫn tính theo mức cũ." },
+      { kind: "sua", text: "Ô tích «Tách theo loại khách» ở Hoa hồng đối tác và ô chọn ở Đơn hàng, Chính sách đăng nhập không còn nằm lệch giữa dòng." },
     ],
   },
   {

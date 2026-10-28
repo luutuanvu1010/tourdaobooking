@@ -342,7 +342,7 @@ function moBoLoc(): void {
   // «Người phụ trách» (YC-0013): chỉ người xem mọi đơn — cùng nghĩa ô «Chưa phụ trách» của Trang chủ (máy chủ 403 với người khác).
   const phuTrach = seesAllOrders(who)
     ? h("label", { class: "check", "data-nhom": "phuTrach" },
-        h("input", { type: "checkbox", id: "loc-chua-phu-trach", checked: nhap.phuTrach === "chua", onchange: (e: Event) => {
+        h("input", { type: "checkbox", id: "loc-chua-phu-trach", class: "o-tick", checked: nhap.phuTrach === "chua", onchange: (e: Event) => {
           nhap.phuTrach = (e.target as HTMLInputElement).checked ? "chua" : null;
         } }),
         "Chỉ đơn chưa có người phụ trách")

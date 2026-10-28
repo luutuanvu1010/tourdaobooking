@@ -2,7 +2,7 @@
 // (src/shared/hoa-hong-hien-thi.ts…) và máy chủ, `npm run test:e2e` canh HTTP, nhưng không bài nào mở trang. THAY cho các kịch bản cũ khoá chữ/chỗ cũ
 // (muc-ta-smoke, loai-doi-tac-smoke, so-dai-ly-smoke — phần trang /hoa-hong) từ 2026-10-26. Mười bước, mỗi khổ 390 và 1040 (bước 9 chỉ có ở 390):
 //   1) Kế toán: hai thẻ hiện; Tra nhanh theo TÊN đối tác → số + câu máy chủ; theo LOẠI → câu «Đang tra theo loại…»; «Xem dòng ↓» cuộn tới dòng (trong loại đang tra);
-//   2) Kế toán: «＋ Thêm mức» → «Một đối tác» → tạo → đối tác hiện ở mục «Đối tác có mức riêng…»;
+//   2) Kế toán: «＋ Thêm mức» → «Một đối tác» → tạo → đối tác hiện ở mục «Đối tác có mức riêng…»; ô «Tách theo loại khách» không bị kéo dài (≤ 32px, chủ dự án 29/10);
 //   3) Kế toán: «Đổi» dòng mức riêng bắt đầu trước hôm nay, Từ = hôm nay → dòng cũ ngừng hôm qua; Từ = hôm nay + 5 → dòng cũ ngừng hôm nay + 4 (kiểm bằng API);
 //   4) Đổi bị từ chối: dòng bị ngừng bằng API giữa lúc mở hộp và lúc bấm → hộp còn mở, câu của máy chủ hiện, «Huỷ» bấm được;
 //   5) Dòng sắp áp dụng: không nút, «chưa tới ngày»; dòng có ngày ngừng tương lai: «ngừng sau <ngày>», không nút;
@@ -259,6 +259,12 @@ try {
             await p.waitFor(`!!document.querySelector('.sheet button[data-party="${ORG2.id}"]')`, "kết quả tìm có đối tác");
             await bam(p, `.sheet button[data-party="${ORG2.id}"]`);
             await p.ev("(() => { const s = document.getElementById('hh-hop-dich-vu'); s.value = 'TD101'; s.dispatchEvent(new Event('change', { bubbles: true })); return true; })()");
+            // (chủ dự án 29/10) ô «Tách theo loại khách» không bị luật chung `input { width: 100% }` kéo dài giữa dòng: bật ô, đo bề rộng, trả hộp về như cũ.
+            await p.ev("(() => { const k = document.getElementById('hh-hop-kieu'); k.value = 'PER_PAX'; k.dispatchEvent(new Event('change', { bubbles: true })); document.getElementById('hh-hop-theo-loai').click(); return true; })()");
+            const rongO = await p.ev("document.getElementById('hh-hop-theo-loai').getBoundingClientRect().width");
+            assert.ok(rongO > 0 && rongO <= 32, `ô «Tách theo loại khách» rộng ${rongO}px — bị kéo dài (thiếu lớp o-tick)`);
+            await chup(p, `05b-o-tach-theo-loai-${tenKho}`, false);
+            await p.ev("(() => { document.getElementById('hh-hop-theo-loai').click(); const k = document.getElementById('hh-hop-kieu'); k.value = 'RATE'; k.dispatchEvent(new Event('change', { bubbles: true })); return true; })()");
             await p.ev(setInput("document.getElementById('hh-hop-ty-le')", "12,5"));
             await p.waitFor("!document.querySelector('.sheet .hint[aria-live]').hidden", "câu «Sẽ tạo…» hiện");
             assert.match(await p.ev("document.querySelector('.sheet .hint[aria-live]').textContent"), /^Sẽ tạo: .*12,5\s*%.*không thời hạn\.$/);
