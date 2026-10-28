@@ -1281,19 +1281,12 @@ body.login-page::before { content: ""; display: block; height: env(safe-area-ins
   /* `flex: none` + `white-space: nowrap` (vòng sửa 2, mục 1 biện pháp 2): khi thanh chật, phần co lại phải là
      BREADCRUMB, không phải nút. Mặc định phần tử flex là `flex: 0 1 auto` nên nút cũng co theo tỉ lệ bề rộng
      (ở 900px nó mất ~3px) — đủ để chữ "Lập đơn mới" gãy hai dòng, nút cao 70px và thanh lại tràn. */
-  .topbar-new { display: inline-block; flex: none; white-space: nowrap; } /* margin-left:auto chuyển sang .bell bên dưới (ADR-0034 R8) — chuông luôn đứng trước nút này trong DOM nên nó mới là phần tử đầu cụm cần tự đẩy sang phải */
-  .bell { margin-left: auto; } /* chưa có ô tìm kiếm (chỉ hiện ≥900px) thì CHÍNH chuông đẩy cả cụm (chuông + Tạo đơn) sang phải */
+  .topbar-new { display: inline-block; flex: none; margin-left: auto; white-space: nowrap; } /* thứ tự phải: ô tìm → Tạo đơn → chuông → Trợ lý; phần tử ĐẦU cụm tự đẩy sang phải (ô tìm ≥ 900, không có ô tìm thì nút Tạo đơn) */
+  #topbar:not(:has(> .topbar-new)) .bell { margin-left: auto; } /* vai không có Tạo đơn (Kế toán, Hướng dẫn viên, Đối tác): chính chuông đứng đầu cụm (≥ 900 mà có ô tìm thì ô tìm nhận, xem dưới) */
 }
 @media (min-width: 900px) {
   .topbar-search { display: block; flex: 1 1 auto; max-width: var(--w-search); margin: 0; margin-left: auto; }
-  .topbar-new { margin-left: 0; } /* ô tìm kiếm đã nhận margin-left:auto — để cả hai cùng auto thì chỗ trống bị chia đôi, ô tìm rơi ra giữa */
-  /* Chỉ bỏ margin-left:auto của chuông khi Ô TÌM THẬT SỰ CÓ MẶT trong DOM (vai thấy được "Đơn hàng" — `seesAll`): ô
-     tìm đã nhận margin-left:auto nên nó mới là phần tử đầu cụm cần tự đẩy sang phải. Vai KHÔNG có ô tìm (Hướng dẫn
-     viên/Đối tác — `seesAll` sai): `web/shell.ts` `thanhCongViec()` không dựng `<input class="topbar-search">` cho
-     họ nên phần tử này vắng mặt HẲN trong DOM, không phải chỉ bị CSS ẩn — phải GIỮ margin-left:auto ở chính chuông,
-     nếu không cụm chuông (+ nút Tạo đơn nếu có) mất chỗ dựa để tự đẩy phải và rơi lại ngay sau tiêu đề (đo thật
-     trước khi sửa: Hướng dẫn viên/Đối tác ở 1280px chuông cách mép phải ~900px thay vì ~16–138px như Toàn quyền/Bán hàng). */
-  #topbar:has(> .topbar-search) .bell { margin-left: 0; }
+  #topbar:has(> .topbar-search) .bell, #topbar:has(> .topbar-search) .topbar-new { margin-left: 0; } /* ô tìm kiếm đã nhận margin-left:auto — để cả hai cùng auto thì chỗ trống bị chia đôi */
 }
 /* Ngưỡng 641px (không phải 900px như bản Task 4 đầu tiên — quyết định 9 của chủ dự án): ở dải 641–899px bản cũ còn
    thanh ngang đủ 9 mục, nếu thanh bên chỉ hiện từ 900px thì dải đó MẤT hết lối điều hướng lẫn nút Đăng xuất.

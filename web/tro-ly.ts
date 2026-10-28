@@ -153,10 +153,11 @@ function moKhung(fab: HTMLElement, khung: Api.TroLyKhungResponse): void {
     hop.style.setProperty("--tl-w", `${b.w}px`);
     hop.style.setProperty("--tl-h", `${b.h}px`);
   };
-  /** Vị trí mặc định: góc phải dưới vùng nội dung; điện thoại thì nằm trên thanh tab (K6 — nút Trợ lý nay ở thanh trên nên không còn bám nút). */
+  /** Vị trí mặc định: góc phải dưới vùng nội dung; nằm trên thanh dính đáy / thanh tab đang hiện (K6 — nút Trợ lý nay ở thanh trên nên không còn bám nút). */
   const macDinhGocDuoi = (kn: KhungNhin, at: VungAnToan): ViTri => {
-    const tab = document.getElementById("tabbar")?.getBoundingClientRect();
-    const chua = tab && tab.height && tab.top > kn.y + kn.h / 2 ? Math.round(kn.y + kn.h - tab.top + LE) : LE;
+    // `--day-dinh` (web/shell.ts theoDoiThanhDinh) = chiều cao thanh dính đáy đang hiện, hoặc thanh tab nếu không có thanh dính; 0 ở máy tính không có.
+    const day = parseFloat(document.body.style.getPropertyValue("--day-dinh")) || 0;
+    const chua = day > 0 ? Math.round(day + LE) : LE;
     return macDinh(kn, at, chua, LE);
   };
   /** Kẹp lại vào khung nhìn (xoay máy, đổi cỡ cửa sổ, bàn phím ảo) — KHÔNG ghi bộ nhớ; bỏ qua khi đang kéo. */

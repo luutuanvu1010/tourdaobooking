@@ -200,7 +200,7 @@ export function ganThongBao(topbar: HTMLElement, staff: Staff): void {
   const count = h("span", { class: "bell-count", hidden: true });
   bell.append(count);
   const newBtn = topbar.querySelector(".topbar-new");
-  if (newBtn) newBtn.before(bell);
+  if (newBtn) newBtn.after(bell); // thứ tự phải: ô tìm → Tạo đơn → chuông → Trợ lý (đợt 0 K1)
   else topbar.append(bell);
 
   let panelRoot: HTMLElement | null = null;

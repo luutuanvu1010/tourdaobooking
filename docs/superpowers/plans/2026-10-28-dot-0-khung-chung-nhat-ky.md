@@ -18,7 +18,7 @@ Sau Task 4: 97.027 byte (bài đo; +98 so với Task 3, chỉ phần đọc `bod
 Sau Task 5: 97.749 byte (+722 so với Task 4: bảng THANH_TAB viết lại với các vị từ và nhãn mới, dòng TRANG.thietLap; vẫn vượt trần, trần không đổi).
 Sau Task 6: 98.635 byte (+886 so với Task 5: `theoDoiThanhDinh` ở shell và hàm thuần `thanh-dinh-day`; sau vòng sửa 1 giảm 40 so với 98.675; vẫn vượt trần, trần không đổi).
 Sau Task 7: 99.172 byte (+537 so với Task 6: `nutGap`, `gomNhomGap`, lối «Bỏ qua» ở shell, bớt nút `.sidebar-new`; vẫn vượt trần, trần không đổi).
-Sau Task 8: 98.816 byte (−356 so với Task 7: bỏ hàm nâng nút nổi và MutationObserver ở tro-ly.ts, thêm trangChaCua và đường dẫn một cấp; vẫn vượt trần 96.700, trần không đổi).
+Sau Task 8: 98.785 byte (sau vòng sửa 1; trước đó 98.816; −387 so với Task 7: bỏ hàm nâng nút nổi và MutationObserver ở tro-ly.ts, thêm trangChaCua và đường dẫn một cấp; vẫn vượt trần 96.700, trần không đổi).
 
 ## Lệch so với đặc tả
 
