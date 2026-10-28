@@ -611,3 +611,15 @@ Ghi 25/10 khi đóng phiên ADR-0133 (bản 2.25 + vá 2.26, migration `0116`). 
 | Mã | Cần chủ quyết | Khuyến nghị | Nếu để nguyên |
 |---|---|---|---|
 | BL-UX-HOA-HONG-DT | Đối tác xem được hoa hồng từng đơn nhưng không có chỗ xem tổng theo tháng (quyền `partner.commission.view` hiện "none" cho Đối tác). Chủ 27/10: chưa thêm, chỉ làm khi có ADR riêng vì chạm tiền và quyền. | Khi mở lại: ADR nêu ai được xem tổng, tổng tính từ nguồn nào (sổ hoa hồng), có kèm đối chiếu công nợ không. | Đối tác tự cộng tay từng đơn; không sai số liệu, chỉ bất tiện. |
+
+## 52. Tệp kèm tin vé hỗ trợ — nợ (mã `BL-VE-TEP-…`; ADR-0144, 2026-10-28)
+
+- **BL-VE-TEP-WORD-EXCEL** · **Trạng thái:** `chưa làm` · **Cần ADR mới.** Word, Excel, văn bản thô chưa nhận (phải kiểm nội dung, tệp có thể chứa macro). Đặc tả 3.7.
+- **BL-VE-TEP-PHIEU-XOA** · **Trạng thái:** `chưa làm`. Phiếu yêu cầu xoá dữ liệu cá nhân (ADR-0126) chưa quét vé hỗ trợ — cả chữ trong tin (nợ có sẵn) lẫn tệp kèm (mới). Ảnh giấy tờ gửi nhầm hôm nay chỉ gỡ được bằng tay (Toàn quyền, nút «Gỡ tệp»).
+- **BL-VE-TEP-THAN-LON** · **Trạng thái:** `chưa làm`. Cùng rủi ro `BL-TEP-THAN-HAI-LAN` nhưng tuyến mở cho mọi tài khoản (cả ~1000 tài khoản bên ngoài): lớp chống ghi trùng đọc trọn thân để lấy dấu vé TRƯỚC khi route chặn 413; lệnh gửi không có `Content-Length` (thân chia khúc) đi qua được chốt `Content-Length` của route, chỉ bị chặn sau khi đã đọc thân. Bộ nhớ Worker thật với thân ~14 MB chưa đo.
+- **BL-VE-TEP-HEIC-MAY-TINH** · **Trạng thái:** `biết trước`. Ảnh HEIC không xem trước được trên trình duyệt máy tính (chỉ Safari mở) — hiện nút «Tải về»; mỗi lần mở trang tốn một lần tải và một dòng nhật ký «xem tệp».
+- **BL-VE-TEP-DOI-CU** · **Trạng thái:** `chưa làm`. Vòng tự làm mới chỉ lấy lại tin của 30 giây gần nhất: tệp của tin cũ hơn đổi trạng thái (Toàn quyền gỡ, quá 10 phút thành «chưa tải được») chỉ hiện với người xem khác khi họ mở lại luồng.
+- **BL-VE-TEP-ANH-MO-CHU** · **Trạng thái:** `biết trước`. Ảnh chụp màn hình dài thu về cạnh dài 2000 điểm ảnh làm chữ nhỏ trong ảnh hơi mờ.
+- **BL-VE-TEP-WORKER-CHET** · **Trạng thái:** `biết trước`. Worker chết giữa lúc đặt kho không bắt được: dòng tệp nằm «đang tải», sau 10 phút thành «chưa tải được» và vào hàng chờ xoá; `POST /api/feedback/tep-cho-xoa/chay-lai` (Toàn quyền) dọn.
+- **BL-VE-TEP-EMAIL** · **Trạng thái:** `không làm` (đặc tả 3.7). Email báo nhóm không kèm tệp.
+

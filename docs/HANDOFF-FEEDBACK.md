@@ -4,6 +4,17 @@ Spec: `docs/superpowers/specs/2026-09-21-gop-y-bao-loi-design.md` · Kế hoạc
 Vé hỗ trợ đợt 1 (nhóm hỗ trợ, quyền theo nhóm): ADR-0119 · đặc tả `docs/superpowers/specs/2026-10-14-ve-ho-tro-design.md` · kế hoạch `docs/superpowers/plans/2026-10-15-ve-ho-tro-dot-1.md`.
 Vé hỗ trợ đợt 2a (trò chuyện tự làm mới, mức ưu tiên, đơn liên quan, giao việc): ADR-0127 · đặc tả `docs/superpowers/specs/2026-10-16-ve-ho-tro-dot-2a-design.md` · kế hoạch `docs/superpowers/plans/2026-10-16-ve-ho-tro-dot-2a.md` · nhật ký thi công `docs/superpowers/plans/2026-10-16-ve-ho-tro-dot-2a-thi-cong-nhat-ky.md`.
 
+Tệp kèm tin vé hỗ trợ: ADR-0144 · đặc tả `docs/superpowers/specs/2026-10-28-dinh-kem-ve-ho-tro/README.md` (kèm trang ghép) · kế hoạch `docs/superpowers/plans/2026-10-28-dinh-kem-ve-ho-tro.md`.
+
+## Tệp kèm tin vé hỗ trợ (2026-10-28, nhánh `claude/modest-sanderson-b148ce`, CHƯA gộp, CHƯA lên production)
+- **Làm gì:** nút «Đính kèm» ở hộp «Gửi yêu cầu» và ô trả lời; tối đa 5 tệp, tổng 10 MB một tin, 20 tệp / giờ / tài khoản; ảnh JPG, PNG, HEIC và PDF. Ảnh được vẽ lại trên máy người gửi (cạnh dài 2000, JPG — bỏ toạ độ chụp); HEIC trình duyệt không mở được và PDF gửi nguyên. Mọi tài khoản gửi được tin thì đính kèm được (chủ dự án 28/10), kể cả Đối tác và Tài xế đối tác (vẫn chỉ gửi nhóm Kỹ thuật). Ai đọc được tin thì xem được tệp. Toàn quyền gỡ được tệp gửi nhầm.
+- **Tuyến** (chi tiết `docs/SYSTEM-DESIGN.md` §7): `POST /api/feedback` và `POST /api/feedback/:id/messages` nhận thêm `tep`, phản hồi 201 kèm `tepLoi`; mới: `GET /api/feedback/:id/tep/:tid`, `POST /api/feedback/:id/tep/:tid/go`, `GET /api/feedback/tep-cho-xoa`, `POST /api/feedback/tep-cho-xoa/chay-lai`.
+- **Dữ liệu và kho:** migration `0124_ve_ho_tro_tep.sql` (bảng `fbk_attachment`); kho R2 MỚI `tourdao-sales-ho-tro` (binding `HO_TRO`). Công thức sửa: `docs/CHANGE-GUIDE.md` z28.
+- **Kiểm:** bài `src/modules/feedback/{kho-tep,tep-route,tep-xem-route,rules}.test.ts`, `src/shared/tep-{dinh-kem,hien-thi}.test.ts`, `src/migrations-ve-ho-tro-tep.test.ts`, hàng rào `src/kho-tep-ho-tro.test.ts`; e2e `npm run test:e2e -- feedback ve-ho-tro-tep`; Chrome `ho-tro-smoke.mjs` bước T1, T2. Dòng hàng rào ở `docs/SO-HANG-RAO.md` (các dòng ADR-0144).
+- **Kiểm tay trên iPhone thật — CHƯA làm:** (1) chọn ảnh từ Thư viện (ảnh HEIC của iPhone) rồi gửi → ảnh hiện xem trước; (2) chụp ảnh mới bằng máy ảnh ngay trong hộp chọn; (3) chọn PDF từ ứng dụng Tệp, bấm «Tải về» trong Nền tảng đã cài; (4) mạng yếu: hiện «Đang gửi tệp…», tắt mạng giữa chừng rồi bấm Gửi lại → chỉ MỘT tin.
+- **Việc của chủ:** tạo kho TRƯỚC `npm run trien-khai` (lệnh ở `docs/HANDOFF-N1.md`, mục «ĐANG CHỜ PHÁT HÀNH — Tệp kèm vé hỗ trợ»), rồi `npm run day-len` và `npm run trien-khai` (có migration ⇒ cần triển khai).
+- **Nợ:** `docs/BACKLOG.md` mục 52 (`BL-VE-TEP-…`).
+
 ## Vé hỗ trợ đợt 2a (2026-10-17, nhánh `claude/support-ticket-module-eb6445`, CHƯA gộp, CHƯA lên production)
 - **Làm gì:** khung trao đổi dạng bong bóng tự hiện tin mới (gọi ngầm 5 giây một lần khi tab đang mở, 30 giây khi phiếu đã đóng, dừng khi tab ẩn); người xử lý đặt mức ưu tiên Thường / Cao / Khẩn (hàng đợi nhóm và hàng đợi Toàn quyền xếp Khẩn → Cao → Thường); người gửi gắn được MỘT đơn do chính mình lập lúc gửi (mã đơn chụp vào phiếu); Trưởng nhóm / Toàn quyền có nút «Giao cho người khác» với danh sách thành viên nhóm.
 - **Tuyến mới** (cổng `staff`, khai trước `GET /api/feedback/:id`; chi tiết `docs/SYSTEM-DESIGN.md` §7):

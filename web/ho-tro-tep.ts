@@ -132,7 +132,7 @@ export function taoOChonTep(o: { ban: readonly TepNhap[]; khiDoi(ds: TepNhap[]):
       }
     } finally {
       dangLam--;
-      dangCB.hidden = dangLam > 0;
+      dangCB.hidden = dangLam === 0;
       nut.disabled = dangLam > 0;
       o.khiDoi(ds);
       ve();
