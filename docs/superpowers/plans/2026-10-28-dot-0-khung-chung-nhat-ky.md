@@ -1,0 +1,26 @@
+# Đợt 0 khung chung: nhật ký thi công
+
+Sổ sống của đợt 0 (kế hoạch 16 việc). Mỗi task ghi dòng vào ba mục dưới đây.
+
+## Số đo gói trang Đơn hàng theo task
+
+Trần hiện hành `TRAN_ORDERS` = 96.700 byte (nới một lần ở Task 16). Đo `web/orders.ts` đã rút gọn, chưa nén.
+
+| Sau task | Byte | Ghi chú |
+|---|---|---|
+| Trước Task 1 | 96.678 | đo 28/10 |
+| Task 1 | 96.678 | chỉ đổi CSS và `giao-dien.ts` (không nằm trong gói Đơn hàng); bài `goi-trang-nhe` xanh |
+
+## Lệch so với đặc tả
+
+- Task 1: kho chính không có `.env`; đã chép `.dev.vars` (tương đương của dự án) vào worktree.
+- Task 1: kế hoạch ghi "còn đúng 16 số z-index cứng sau dấu mốc PWA"; đếm thật trên `app.css` sau khi đổi năm luật là **15** (đặc tả kể cả `.bell::before` và lối "Bỏ qua", không có luật z-index cứng nào như vậy sau dấu mốc). Bài `src/token-dot-0.test.ts` khoá 15.
+- Task 1: bài `src/shared/giao-dien.test.ts` và `src/giao-dien-mac-dinh.test.ts` không phải sửa ca nào; chúng đọc `KEO_THEO`/`MAC_DINH` từ mã nên tự khớp (`dam-tieu-de` 600 = `--fw-heading`; `dam-nhan` vẫn 500 = `--fw-semibold`).
+- Task 1: bài `src/phong-chu.test.ts` (thang cỡ chữ) chỉ cho `--fs-ui` dùng công thức `max(16px, var(--fs-step-5))`; đặc tả đổi `--fs-field` sang đúng công thức đó nên đã thêm `--fs-field` vào ngoại lệ (cùng lý do sàn 16px chống zoom iOS).
+- Task 1: thứ bậc lớp xếp đổi có chủ ý theo đặc tả mục 4 (ngăn thông báo và khung Hỗ trợ nay bậc 40, toast và màn bảo trì bậc 50, bảng trượt 30). Chưa kiểm `thong-bao-ui.ts` có mở bảng trượt từ ngăn thông báo hay không: việc đó thuộc task sau.
+
+## Nợ ghi BACKLOG
+
+- Giữ giá trị cũ, chờ Chặng 3 quyết theo họ: `--h-hdv-act` 48, `--row-h` 48, `--h-dp-tab` 40; mười `--skel-*` lẻ (`sm`, `title`, `tag`, `time`, `money`, `pill-mt`, `bar-mt`, `num-mt`, `time-mt`, `name-mt`); `--skel-money-mt` 96 (lề trên, không bí danh).
+- 15 số z-index cứng còn lại sau dấu mốc PWA (`.fb-step-dot`, `.ht-tra-loi`, `.sidebar-group`, `.catalog-muc`, `body.trang-chu::before`, `.vc-bottom-bar`, `.vc-filters`, `.dp-*`, `.xb-*`, `.buoc-*`): dọn theo họ ở Chặng 3.
+- Mốc màn hình cũ 960/1024/1400/720 giữ, dọn ở Chặng 3. `--z-tl-fab` 35 bỏ cùng nút nổi (task sau).
