@@ -177,14 +177,22 @@ export const boDongMucTa = (dong: readonly CommissionRuleDto[]): CommissionRuleD
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------
 // Trang «Hoa hồng đối tác» thiết kế lại (PR 2): nút Đổi/Ngừng, dòng tóm tắt, câu nhắc, xếp loại, ghép đối tác có mức riêng
 
-/** Nút «Đổi» / «Ngừng» chỉ cho dòng đang áp dụng, đã bắt đầu trước hôm nay và chưa có ngày ngừng; ngược lại trả ghi chú (có thể rỗng). */
+/**
+ * Nút «Đổi» / «Ngừng» chỉ cho dòng đang áp dụng (kể cả dòng bắt đầu hôm nay — chủ dự án 28/10) và chưa có ngày ngừng; ngược lại trả ghi chú (có thể rỗng).
+ * Dòng bắt đầu hôm nay: Đổi sớm nhất từ ngày mai (`ngayDoiSomNhat`, khớp `kiemDoi` của máy chủ), Ngừng sớm nhất đến hết hôm nay (`kiemNgayDong`).
+ */
 export function nutDoiNgung(d: { tuNgay: string; denNgay: string | null; conHieuLuc: boolean }, homNay: string): { hien: true } | { hien: false; ghiChu: string } {
-  if (d.conHieuLuc && d.tuNgay < homNay && d.denNgay === null) return { hien: true };
+  if (d.conHieuLuc && d.tuNgay <= homNay && d.denNgay === null) return { hien: true };
   if (!d.conHieuLuc && d.tuNgay > homNay) return { hien: false, ghiChu: "chưa tới ngày" };
   if (d.conHieuLuc && d.denNgay !== null && d.denNgay >= homNay) return { hien: false, ghiChu: `ngừng sau ${ngayVN(d.denNgay)}` };
-  if (d.conHieuLuc && d.tuNgay === homNay) return { hien: false, ghiChu: "đổi hoặc ngừng từ ngày mai" };
   return { hien: false, ghiChu: "" };
 }
+
+/** Ô «Từ» của hộp «Đổi»: không trước hôm nay và phải sau ngày bắt đầu của mức cũ (máy chủ: `kiemDoi`). Mức cũ bắt đầu hôm nay ⇒ ngày mai. */
+export const ngayDoiSomNhat = (tuNgayCu: string, homNay: string): string => (tuNgayCu >= homNay ? addDays(tuNgayCu, 1) : homNay);
+/** Câu dưới hộp «Đổi» khi mức cũ bắt đầu hôm nay (rỗng nếu không): vì sao ô «Từ» không chọn được hôm nay, và đơn xác nhận hôm nay vẫn chốt theo mức cũ. */
+export const cauDoiTuNgayMai = (tuNgayCu: string, homNay: string): string =>
+  tuNgayCu >= homNay ? "Mức cũ bắt đầu hôm nay nên mức mới áp dụng sớm nhất từ ngày mai; đơn xác nhận trong hôm nay vẫn tính theo mức cũ." : "";
 
 /** Tóm tắt các dòng đang áp dụng: số đứng trước (tên dịch vụ dài bị cắt ở giao diện, không mất số), nối bằng « · ». */
 export function tomTatMuc(dong: readonly CommissionRuleDto[], ten: TenDanhMuc): string {
