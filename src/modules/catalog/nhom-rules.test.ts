@@ -1,7 +1,7 @@
 // Luật thuần của nhóm dịch vụ (ADR-0058 Đ2, Đ5; kế hoạch §5.3).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { kiemLoGan, kiemTenNhom, moTaDoiNhom, nhomChoForm } from "./nhom-rules.ts";
+import { choPhepDuaDon, kiemLoGan, kiemTenNhom, moTaDoiNhom, nhomChoForm } from "./nhom-rules.ts";
 
 test("kiemTenNhom: cắt khoảng trắng hai đầu, 1–40 ký tự, không rỗng", () => {
   assert.deepEqual(kiemTenNhom("  Tour đảo  "), { ok: true, value: "Tour đảo" });
@@ -60,4 +60,18 @@ test("moTaDoiNhom: nhóm cũ → nhóm mới; null là Chưa phân loại", () =
   assert.equal(moTaDoiNhom("Tour đảo", "Thể thao biển"), "Tour đảo → Thể thao biển");
   assert.equal(moTaDoiNhom(null, "Tour đảo"), "Chưa phân loại → Tour đảo");
   assert.equal(moTaDoiNhom("Tour đảo", null), "Tour đảo → Chưa phân loại");
+});
+
+test("choPhepDuaDon (ADR-0118 Đ1): Chưa phân loại, mã nhóm lạ, nhóm NGƯNG DÙNG → luôn cho; nhóm đang dùng → theo cờ", () => {
+  const nhoms = [
+    { code: "bat", active: true, transferEnabled: true },
+    { code: "tat", active: true, transferEnabled: false },
+    { code: "ngung", active: false, transferEnabled: false },
+  ];
+  assert.equal(choPhepDuaDon(null, nhoms), true, "Chưa phân loại");
+  assert.equal(choPhepDuaDon("bat", nhoms), true);
+  assert.equal(choPhepDuaDon("tat", nhoms), false);
+  assert.equal(choPhepDuaDon("ngung", nhoms), true, "nhóm ngưng dùng coi như Chưa phân loại — cùng luật view v_ctl_service_transfer và nhomChoForm");
+  assert.equal(choPhepDuaDon("khong-co", nhoms), true, "mã nhóm không có trong danh sách");
+  assert.equal(choPhepDuaDon("tat", []), true);
 });

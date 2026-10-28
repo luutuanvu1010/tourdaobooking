@@ -12,6 +12,18 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Đưa đón theo nhóm dịch vụ + điểm «Chọn nhanh» (ADR-0118, chủ duyệt 14/10; thi công 14/10 trên nhánh claude/tour-dao-booking-audit-bc6c77, dựng lại trên main 28/10).
+    // CÓ migration 0121 (đổi từ số tạm 0098) nên cần npm run trien-khai sau day-len. Số 2.39 và ngày là TẠM — phiên phát hành kiểm lại ở bước A.0 của docs/HANDOFF-N1.md.
+    version: "2.39",
+    date: "2026-10-28",
+    items: [
+      { kind: "moi", text: "Quản trị bật hoặc tắt phần Đưa đón cho từng nhóm dịch vụ ở trang Dịch vụ. Nhóm tắt thì dịch vụ của nhóm không còn phần Đưa đón khi lập đơn và được ghi là «Không đón»." },
+      { kind: "moi", text: "Ở form Tạo đơn, dưới ô Nơi trả (chiều đi) và Nơi đón (chiều về) có nút bấm nhanh cho những điểm hay dùng như Bến cảng Vinpearl." },
+      { kind: "moi", text: "Quản trị chọn điểm nào hiện thành nút bấm nhanh và xếp thứ tự ở trang Địa điểm, cột Chọn nhanh." },
+      { kind: "doi", text: "Nhóm vừa tắt Đưa đón: đơn đã xác nhận chỉ bỏ được lượt đưa đón, không thêm hay sửa; đơn nháp phải bỏ lượt đưa đón rồi mới xác nhận hoặc gửi được." },
+    ],
+  },
+  {
     // Rà chữ Trang chủ (chủ 28/10): «Chuyến đón» → «Đơn đi», «khai <ngày>» → «ghi ngày <ngày>» (chủ chọn trong hộp hỏi), nhãn «Công ty thu – chuyển khoản» sai cho khoản tiền mặt.
     // Lượt 3 (chủ 28/10): ẩn hai ô «Của tôi» với người không lập được đơn; cảnh báo đổi giá ghi tên dịch vụ. Chỉ giao diện, KHÔNG migration. Số 2.38 và ngày là TẠM — phiên phát hành kiểm lại ở bước A.0 của docs/HANDOFF-N1.md.
     version: "2.38",

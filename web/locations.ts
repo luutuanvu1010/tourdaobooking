@@ -1,4 +1,5 @@
 // Trang Địa điểm (chỉ quản trị viên): xem, thêm, sửa, ngưng dùng. Dữ liệu qua /api/locations; sửa có khoá lạc quan (expectedUpdatedAt).
+import { docChonNhanh } from "../src/shared/chon-nhanh";
 import { moTrang } from "../src/shared/muc-giao-dien";
 import { ApiError, api, type Api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
@@ -48,6 +49,7 @@ function row(l: Api.LocationDto): HTMLElement {
     h("td", null, l.locationTypeName),
     h("td", { class: "muted" }, l.address ?? ""),
     h("td", null, String(l.sortOrder)),
+    h("td", null, l.quickPickOrder === null ? "" : String(l.quickPickOrder)),
     h("td", { class: "row-actions" }, edit),
   );
 }
@@ -66,6 +68,7 @@ function card(l: Api.LocationDto): HTMLElement {
         ? h("div", null, h("span", { class: "badge badge-cancelled" }, "Ngưng dùng"))
         : h("div", { class: "muted" }, l.code, " · ", l.locationTypeName),
       l.active && l.address && h("div", { class: "muted" }, l.address),
+      l.active && l.quickPickOrder !== null && h("div", { class: "muted" }, `Chọn nhanh: số ${l.quickPickOrder}`),
     ),
     edit,
   );
@@ -76,12 +79,16 @@ function openEdit(l: Api.LocationDto): void {
   const type = h("select", null, ...typeOptions(l.locationTypeCode));
   const address = h("input", { type: "text", value: l.address ?? "", maxLength: 300 });
   const sort = h("input", { type: "number", value: String(l.sortOrder), min: 0, max: 9999 });
+  const nhanh = h("input", { type: "text", inputMode: "numeric", maxLength: 2, autocomplete: "off", placeholder: "Trống = không", value: l.quickPickOrder === null ? "" : String(l.quickPickOrder) });
   const active = h("input", { type: "checkbox", checked: l.active, style: "width:auto;display:inline;margin:0 6px 0 0" });
   const save = h("button", { type: "button", class: "btn btn-primary btn-chinh" }, "Lưu");
   const close = h("button", { type: "button", class: "btn" }, "Đóng");
   close.addEventListener("click", () => (editEl.hidden = true));
   save.addEventListener("click", async () => {
-    const body = { name: name.value, locationTypeCode: type.value, address: address.value || null, sortOrder: Number(sort.value), active: active.checked, expectedUpdatedAt: l.updatedAt };
+    const q = docChonNhanh(nhanh.value);
+    if (!q.ok) return showError(errorEl, q.message);
+    // `quickPickOrder` LUÔN gửi (số hoặc null): ô trống = người dùng muốn bỏ chọn nhanh (khoá vắng mới là «giữ» — dành cho màn bản cũ).
+    const body = { name: name.value, locationTypeCode: type.value, address: address.value || null, sortOrder: Number(sort.value), active: active.checked, quickPickOrder: q.value, expectedUpdatedAt: l.updatedAt };
     await act(
       async () => {
         await api<Api.LocationResponse>(`/api/locations/${l.id}`, { method: "PUT", body });
@@ -101,7 +108,8 @@ function openEdit(l: Api.LocationDto): void {
   replaceChildren(
     editEl,
     h("h2", null, `Sửa: ${l.code}`),
-    h("div", { class: "grid three" }, h("label", null, "Tên", name), h("label", null, "Loại", type), h("label", null, "Địa chỉ", address), h("label", null, "Thứ tự", sort), h("label", { class: "check" }, active, "Đang dùng")),
+    h("div", { class: "grid three" }, h("label", null, "Tên", name), h("label", null, "Loại", type), h("label", null, "Địa chỉ", address), h("label", null, "Thứ tự", sort), h("label", null, "Chọn nhanh (1–99)", nhanh), h("label", { class: "check" }, active, "Đang dùng")),
+    h("p", { class: "muted" }, "Chọn nhanh: điền số (1–99) thì địa điểm này hiện thành nút bấm ở form Tạo đơn — dưới ô Nơi trả của chiều đi và ô Nơi đón của chiều về, xếp theo số nhỏ trước. Để trống nếu không cần."),
     h("p", { class: "muted" }, "Mã là định danh, không đổi được. Địa điểm đã dùng ở vai trò hồ sơ không xoá được — chỉ ngưng dùng."),
     h("div", { class: "actions" }, save, close),
   );

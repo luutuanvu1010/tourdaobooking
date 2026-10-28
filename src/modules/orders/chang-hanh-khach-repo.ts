@@ -116,6 +116,22 @@ export async function activeLocations(db: D1Database, ids: readonly string[]): P
   return new Map(results.map((r) => [r.id, r.name] as const));
 }
 
+/**
+ * ADR-0118 Đ2: mã dịch vụ (trong danh sách) mà nhóm HIỆN HÀNH tắt đưa đón — đọc view công bố `v_ctl_service_transfer` của `catalog` (chỉ khoá + cờ), KHÔNG đọc `ctl_group`
+ * (bài src/orders-khong-doc-nhom-truc-tiep.test.ts). Chưa phân loại / nhóm ngưng dùng / mã không có trong danh mục: không có dòng `transfer_enabled = 0` ⇒ cho đưa đón.
+ */
+const DICH_VU_TAT_DUA_DON = defineSql(
+  "orders",
+  "service_transfer_disabled",
+  `SELECT catalog_code FROM v_ctl_service_transfer WHERE transfer_enabled = 0 AND catalog_code IN (SELECT value FROM json_each(?1))`,
+);
+
+export async function dichVuTatDuaDon(db: D1Database, codes: readonly string[]): Promise<Set<string>> {
+  if (codes.length === 0) return new Set();
+  const { results } = await db.prepare(DICH_VU_TAT_DUA_DON).bind(JSON.stringify([...new Set(codes)])).all<{ catalog_code: string }>();
+  return new Set(results.map((r) => r.catalog_code));
+}
+
 // ---- Ghi chặng ---------------------------------------------------------------------------------------------------------------------------------
 
 /** Giá trị ghi của một chặng (dạng GHI, rỗng → null). */

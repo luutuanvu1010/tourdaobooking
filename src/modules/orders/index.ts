@@ -55,7 +55,7 @@ import { canhBaoGiamGiaDon, cauDoiBenDatVuotHoaHong, duocNhapTay, holdsPartner, 
 import { chiNguoiLapGhiNhap, ketQuaXemDon } from "../../shared/xem-don-nhap";
 import { canTransition, hasHandlerPick, parseHandlerPick, validateBookerChange, validateOrder, type Failure, type OrderStatus, type ValidOrder } from "./rules";
 import {
-  keHoachChangTrip, loadOrderView, passengerList, planAddLeg, planCloseLeg, planEditLeg, planPassengerChange, planPaxOverrideNhap, planReplaceLeg, resolveBooker, resolveLegPlaces,
+  keHoachChangTrip, kiemNhomChoPhepDuaDon, loadOrderView, passengerList, planAddLeg, planCloseLeg, planEditLeg, planPassengerChange, planPaxOverrideNhap, planReplaceLeg, resolveBooker, resolveLegPlaces,
   validationContext,
   type OrderValidationContext,
 } from "./service";
@@ -63,6 +63,9 @@ import { CAN_YEU_CAU, GIA_DANH_MUC, MOC_CHUA_CO, RACED, STALE, TRAN_GIAM_GIA, ca
 import { PHAI_GUI_DON, phaiGuiDon, xacNhanRoutes } from "./xac-nhan-route";
 import { yeuCauMoCuaDon } from "./xac-nhan-repo";
 import { describeTripUpdates, giaiOPhuNhap, validateTripUpdate } from "./service-rules";
+
+/** `soNguoi` (ADR-0104 Đ2 điểm gọi 4): số người hiệu lực của chặng trước / sau — chỉ khi lệnh đụng số người chiều về. */
+type LenhChang = { res: Response } | { sua: Parameters<typeof changeLeg>[4] | null; soNguoi?: { truoc: number; sau: number } };
 
 const FORBIDDEN = () => error(403, "forbidden", "Chỉ người lập đơn, người phụ trách đơn hoặc quản trị viên mới được thay đổi đơn này.");
 const CANNOT_CREATE = () => error(403, "forbidden", "Tài khoản này không được lập đơn.");
@@ -200,14 +203,17 @@ async function phanHoiMoc(db: D1Database, orderId: string, order: OrderDetailDto
 const hasPassengersKey = (body: Record<string, unknown> | null): boolean => body !== null && typeof body === "object" && "passengers" in body;
 
 /** Lỗi lập kế hoạch sửa/đóng chặng → phản hồi. */
-function legFailure(f: { code: "invalid_input" | "leg_not_found" | "leg_closed"; message: string }): Response {
+function legFailure(f: { code: "invalid_input" | "leg_not_found" | "leg_closed" | "transfer_disabled"; message: string }): Response {
   if (f.code === "leg_not_found") return LEG_NOT_FOUND();
   if (f.code === "leg_closed") return LEG_CLOSED(f.message);
+  if (f.code === "transfer_disabled") return TRANSFER_DISABLED(f.message); // ADR-0118 Đ3
   return error(400, "invalid_input", f.message);
 }
 
-/** `soNguoi` (ADR-0104 Đ2 điểm gọi 4): số người hiệu lực của chặng trước / sau — chỉ khi lệnh đụng số người chiều về. */
-type LenhChang = { res: Response } | { sua: Parameters<typeof changeLeg>[4] | null; soNguoi?: { truoc: number; sau: number } };
+/** ADR-0118 Đ3 (Ruling R-D): nhóm dịch vụ đã tắt đưa đón → 409 `transfer_disabled`, câu nêu tên dịch vụ + nhóm + cách sửa (từ `kiemNhomChoPhepDuaDon`). */
+const TRANSFER_DISABLED = (message: string): Response => error(409, "transfer_disabled", message);
+/** Kết quả `resolveLegPlaces` lỗi → phản hồi: chốt chặn đưa đón 409; điểm danh mục không còn dùng 400. */
+const loiViTriChang = (p: { message: string; code?: "transfer_disabled" }): Response => (p.code === "transfer_disabled" ? TRANSFER_DISABLED(p.message) : error(400, "invalid_input", p.message));
 
 /** Đầu vào `sau` + `tangTheoChang` của máy đồng bộ chuyến cho lệnh SỬA chặng (ADR-0104 Đ2 điểm gọi 4): chỉ số người; giờ / nơi theo VK1-B (giữ + nút). */
 function sauSuaChang(trangThai: string, legId: string, sn: { truoc: number; sau: number } | undefined) {
@@ -1119,7 +1125,7 @@ export const ordersModule: AppModule = {
       if (guard) return guard;
       // ADR-0047 (R7, R3): điểm danh mục của chặng phải đang dùng; đặt hai khoá cũ = dẫn xuất từ chặng (ghi kép vào cột cũ).
       const placed0 = await resolveLegPlaces(env.DB, parsed.value, ctx);
-      if (!placed0.ok) return error(400, "invalid_input", placed0.message);
+      if (!placed0.ok) return loiViTriChang(placed0);
       const placed = oPhuNhap(staff, { ownerId: staff.id, assigned: false }, placed0.value, []); // kế hoạch ô mới Task 3.3
       if (!placed.ok) return placed.res;
       // Sổ đại lý đợt 1 (ADR-0077 đ3 (i), thu hẹp): Đối tác có hồ sơ được hưởng ⇒ bên đặt luôn là hồ sơ của tài khoản, bỏ qua điều trình duyệt gửi.
@@ -1241,8 +1247,8 @@ export const ordersModule: AppModule = {
       if (!parsed.ok) return failure(parsed);
       const guard = priceGuard(staff, parsed.value, ctx, (await manualPolicy(env.DB, new Date().toISOString())).bat); // ADR-0061: công tắc đọc một lần
       if (guard) return guard;
-      const placed0 = await resolveLegPlaces(env.DB, parsed.value, ctx); // ADR-0047 (R7, R3)
-      if (!placed0.ok) return error(400, "invalid_input", placed0.message);
+      const placed0 = await resolveLegPlaces(env.DB, parsed.value, ctx); // ADR-0047 (R7, R3); ADR-0118 Đ3: cũng là chốt chặn «nhóm tắt đưa đón»
+      if (!placed0.ok) return loiViTriChang(placed0);
       // Kế hoạch ô mới Task 3.3: số hiệu chuyến bay / số người chiều về — khoá vắng = chép giá trị đang lưu của chặng cùng id; đổi số người cần order.trip.edit.
       const placed = oPhuNhap(staff, { ownerId: meta.staffId, assigned }, placed0.value, ctx.stored.flatMap((s) => s.legs));
       if (!placed.ok) return placed.res;
@@ -1299,6 +1305,14 @@ export const ordersModule: AppModule = {
       if (!parsed.ok) return error(400, "invalid_input", parsed.message);
       // ADR-0047 (R2c, R4e, R3): trộn hai khoá cũ CÓ MẶT vào chặng chiều đi đầu, dời chặng theo ngày đi mới; `trip` mang giá trị dẫn xuất (ghi kép + nhật ký).
       const planned = keHoachChangTrip(stored, parsed.value.updates);
+      // ADR-0118 Đ3 (Ruling R-T): thao tác THÊM / SỬA chặng của dịch vụ nhóm tắt đưa đón bị từ chối (đóng chặng và thân không đụng chặng vẫn qua) — TRƯỚC mọi ghi.
+      const dichVuDoiChang = planned.ops.flatMap((op) => {
+        if (op.kind === "close") return [];
+        const sv = op.kind === "insert" ? stored.find((x) => x.id === op.serviceId) : stored.find((x) => x.legs.some((l) => l.id === op.legId));
+        return sv ? [sv] : [];
+      });
+      const camSuaChuyen = await kiemNhomChoPhepDuaDon(env.DB, dichVuDoiChang, "sua");
+      if (!camSuaChuyen.ok) return TRANSFER_DISABLED(camSuaChuyen.message);
       const moTa = describeTripUpdates(stored, planned.updates) ?? (planned.ops.length ? "cập nhật chặng đưa đón" : null);
       if (moTa === null) return json({ order: (await loadOrderView(env.DB, id, xemDuDatGap(staff)))! } satisfies OrderResponse); // không đổi gì
       // ADR-0049 I14: đơn ĐÃ XÁC NHẬN mà lệnh đổi / thêm chặng dưới mốc (min giờ cũ, giờ mới) → cần `datGap` (ô `order.leg.short_notice`). ADR-0107 ý (ii), G11:
@@ -1347,7 +1361,7 @@ export const ordersModule: AppModule = {
       if (meta.status === "cancelled") return CANCELLED();
       const body = await readJson(request);
       const plan = await planAddLeg(env.DB, id, body, vnToday(new Date()));
-      if (!plan.ok) return error(400, "invalid_input", plan.message);
+      if (!plan.ok) return legFailure(plan); // invalid_input → 400; transfer_disabled → 409 (ADR-0118 Đ3)
       // ADR-0049 I14: chặng MỚI dưới mốc → cần `datGap` (dấu ghi cùng dòng); ADR-0107: chặng mới trên mốc kèm `datGap` → 409 `short_notice_not_needed`.
       const moc = await mocToiThieu();
       if (!moc) return MOC_CHUA_CO();
@@ -1681,7 +1695,7 @@ export const ordersModule: AppModule = {
       } else {
         const order = await findOrder(env.DB, id);
         if (!order) return NOT_FOUND();
-        // Task 3.2b: các cổng (R2 giá, người lớn, chọn đón, mốc, R3 trần) gom ở `kiemCongXacNhan` (xac-nhan-chung.ts) — cùng thứ tự, cùng câu lỗi như trước.
+        // Task 3.2b: các cổng (R2 giá, người lớn, nhóm tắt đưa đón — ADR-0118 Đ3 (b), chọn đón, mốc, R3 trần) gom ở `kiemCongXacNhan` (xac-nhan-chung.ts).
         // MỘT mốc (`ctx.mocToiThieu`, TC-26) cho cổng, câu ghi và việc đọc lại lý do; chưa có → 503 (cổng trả).
         const moc = await mocToiThieu();
         const nowMs = Date.now();
