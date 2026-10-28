@@ -760,6 +760,7 @@ h3 { font-size: var(--fs-step-5); margin: var(--s4) 0 var(--s2); color: var(--c-
 .nhom-dong .nhom-ten { flex: 1 1 10rem; min-width: 0; font-weight: var(--fw-bold); overflow-wrap: anywhere; }
 .nhom-dong .nhom-so { font-size: var(--fs-label); color: var(--c-text-muted); white-space: nowrap; }
 .nhom-dong .badge { margin-left: 0; }
+.nhom-dua-don { display: flex; align-items: center; gap: var(--s2); } /* công tắc «Có đưa đón» của nhóm (ADR-0118) */
 .nhom-dong.nhom-tat .nhom-ten { color: var(--c-text-muted); }
 .nhom-dong .nhom-ten-sua { flex: 1 1 12rem; min-width: 0; width: auto; margin: 0; }
 .nhom-nut { display: flex; flex-wrap: wrap; gap: 0 var(--s1); }
@@ -3722,6 +3723,10 @@ body.co-nut-ho-tro:not(.cc-dang-chay) main { padding-bottom: calc(var(--s5) + va
 .o-noi-khung > :is(input, textarea)::placeholder { color: transparent; }
 .o-noi-khung > :is(input, textarea):focus::placeholder { color: var(--c-placeholder); }
 .dd-khac-ngay { align-self: start; justify-self: start; min-height: var(--h-field); padding: 0 var(--s2); } /* "Đón khác ngày" (đợt 1 #9): nằm cạnh ô giờ, ngang hàng với khung ô */
+/* «Chọn nhanh» nơi đưa đón (ADR-0118 Đ5): hàng nút điểm thường dùng dưới ô Nơi trả (chiều đi) / Nơi đón (chiều về); chỉ token. */
+.dd-nhanh { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); }
+.dd-nhanh-nhan { font-size: var(--fs-label); color: var(--c-muted); }
+.dd-nhanh-nut[aria-pressed="true"] { color: var(--c-on-dark); background: var(--c-primary); }
 .o-noi-khung.dd-gio .dd-gio-mo { top: calc(var(--s4) + var(--s2)); } /* chữ mờ "Chưa chốt giờ" chỉ phủ phần giá trị của ô giờ, không đè nhãn nổi */
 .o-noi-khung .dd-hau-to { top: calc(var(--s4) + var(--s2)); }
 

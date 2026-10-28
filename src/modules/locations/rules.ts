@@ -16,7 +16,13 @@ export interface LocationUpdate {
   sortOrder: number;
   active: boolean;
   expectedUpdatedAt: string;
+  /** ADR-0118 Đ4: thứ tự «Chọn nhanh» 1–99; `null` = bỏ chọn nhanh; `undefined` (khoá VẮNG) = GIỮ giá trị đang lưu (Ruling R-G). */
+  quickPickOrder?: number | null;
 }
+
+export const CHON_NHANH_TOI_THIEU = 1;
+export const CHON_NHANH_TOI_DA = 99;
+const LOI_CHON_NHANH = `Thứ tự chọn nhanh phải là số nguyên từ ${CHON_NHANH_TOI_THIEU} đến ${CHON_NHANH_TOI_DA}, hoặc để trống nếu không chọn nhanh.`;
 
 /** Mã địa điểm: chữ HOA, số, gạch dưới; 2–40 ký tự; bắt đầu bằng chữ (khớp CHECK của migration 0010). */
 export const LOCATION_CODE_RE = /^[A-Z][A-Z0-9_]{1,39}$/;
@@ -59,5 +65,14 @@ export function validateLocationUpdate(body: Record<string, unknown> | null): Re
   if (typeof body.expectedUpdatedAt !== "string" || !body.expectedUpdatedAt) return fail("Thiếu mốc cập nhật (expectedUpdatedAt) — hãy tải lại trang.");
   if (typeof body.active !== "boolean") return fail("Trạng thái hoạt động phải là true/false.");
   const c = common(body);
-  return c.ok ? { ok: true, value: { ...c.value, active: body.active, expectedUpdatedAt: body.expectedUpdatedAt } } : c;
+  if (!c.ok) return c;
+  // ADR-0118 Đ4: khoá vắng = giữ (undefined); null = bỏ; số nguyên 1–99.
+  let quickPickOrder: number | null | undefined;
+  if ("quickPickOrder" in body && body.quickPickOrder !== undefined) {
+    const q = body.quickPickOrder;
+    if (q === null) quickPickOrder = null;
+    else if (typeof q === "number" && Number.isInteger(q) && q >= CHON_NHANH_TOI_THIEU && q <= CHON_NHANH_TOI_DA) quickPickOrder = q;
+    else return fail(LOI_CHON_NHANH);
+  }
+  return { ok: true, value: { ...c.value, active: body.active, expectedUpdatedAt: body.expectedUpdatedAt, ...(quickPickOrder !== undefined ? { quickPickOrder } : {}) } };
 }

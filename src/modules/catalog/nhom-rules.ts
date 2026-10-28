@@ -29,6 +29,20 @@ export function kiemLoGan(raw: unknown): Kiem<{ codes: string[]; groupCode: stri
 
 export interface NhomChoForm { code: string; name: string; sortOrder: number; active: boolean }
 
+/** Nhóm cho luật đưa đón (ADR-0118 Đ1): đủ mã, trạng thái dùng và cờ «Có đưa đón». */
+export interface NhomDuaDon { code: string; active: boolean; transferEnabled: boolean }
+
+/**
+ * ADR-0118 Đ1–Đ2: dịch vụ ở nhóm `groupCode` có được ghi chặng đưa đón không — NGUỒN DUY NHẤT cho `transferEnabled` của DTO (form đơn). Chưa phân loại (`null`), mã nhóm không có,
+ * hoặc nhóm đã NGƯNG DÙNG (không còn nghĩa — coi như Chưa phân loại, cùng luật `nhomChoForm`) → LUÔN cho; nhóm đang dùng → theo cờ của nó. Máy chủ (`orders`) quyết bằng view
+ * `v_ctl_service_transfer` cùng luật này (bài `src/migrations-dua-don-nhom.test.ts`, `dua-don-nhom-route.test.ts`).
+ */
+export function choPhepDuaDon(groupCode: string | null, nhoms: readonly NhomDuaDon[]): boolean {
+  if (groupCode === null) return true;
+  const g = nhoms.find((x) => x.code === groupCode);
+  return g === undefined || !g.active || g.transferEnabled;
+}
+
 /**
  * Nhóm cho form đơn (ADR-0058 Đ5): `items` là các dịch vụ ĐANG HIỆN kèm nhóm hiện hành. Dịch vụ thuộc nhóm tắt (hoặc mã nhóm không có) → `groupCode: null`.
  * `groups` chỉ gồm nhóm còn bật có ≥ 1 dịch vụ đang hiện, xếp `sortOrder` rồi tên.

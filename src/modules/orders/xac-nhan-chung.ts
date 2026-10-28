@@ -21,6 +21,8 @@ import { viPhamGiaDanhMuc, viPhamTranGiamGia } from "./price-guards";
 import { cauChupChuoi } from "./thuong-mai-repo";
 import { donChoTran, dongGhiTuChup, moTaChup } from "./thuong-mai";
 import { confirmGaps, summarizeDeviations } from "./service-rules";
+import { kiemNhomChoPhepDuaDon } from "./service";
+import { dichVuCanHoiDuaDon, type CuaDuaDon } from "./rules";
 
 /** Đơn đã nạp đầy đủ (dịch vụ, chặng, dòng tiền) — kết quả `findOrder`. */
 export type DonXacNhan = NonNullable<Awaited<ReturnType<typeof findOrder>>>;
@@ -34,6 +36,17 @@ export const GIA_DANH_MUC = (cau: string) => error(403, "forbidden", cau);
 export const TRAN_GIAM_GIA = (v: NonNullable<ReturnType<typeof viPhamTranGiamGia>>) => error(v.status, v.code, v.cau);
 /** Mốc tối thiểu chưa có (bảng chính sách rỗng / môi trường không tiêm) — CHẶN lệnh cần mốc, không đoán con số (I25). */
 export const MOC_CHUA_CO = () => error(503, "moc_toi_thieu_chua_co", "Chưa có chính sách điều phối đang hiệu lực (hạn chốt trước giờ đón) — báo người phụ trách hệ thống.");
+/** ADR-0118 Đ3 (Ruling R-D): nhóm dịch vụ đã tắt đưa đón → 409 `transfer_disabled`, câu nêu tên dịch vụ + nhóm + cách sửa (từ `kiemNhomChoPhepDuaDon`). */
+export const TRANSFER_DISABLED = (message: string): Response => error(409, "transfer_disabled", message);
+
+/**
+ * ADR-0118 Đ3 (b) — MỘT chốt cho mọi cửa xác nhận (Xác nhận đơn, Gửi xác nhận, Còn vé, Gửi đơn cả hai nhánh): đơn nháp còn lượt đưa đón MỞ của dịch vụ thuộc nhóm đã
+ * TẮT đưa đón → 409, đọc cờ TRƯỚC mọi ghi (Ruling R-F). `cua` chỉ chọn câu hướng dẫn. Trả `null` khi qua.
+ */
+export async function congNhomTatDuaDon(db: D1Database, order: DonXacNhan, cua: CuaDuaDon): Promise<Response | null> {
+  const cam = await kiemNhomChoPhepDuaDon(db, dichVuCanHoiDuaDon(order.services), cua);
+  return cam.ok ? null : TRANSFER_DISABLED(cam.message);
+}
 
 /**
  * Thành tiền (Σ thành tiền dòng, trước giảm giá cấp đơn) và số khách tính hoa hồng (`soKhachTinhHoaHong`) của MỘT dịch vụ — MỘT công thức cho phần thương mại (`phanThuongMaiCuaDon`)
@@ -62,14 +75,14 @@ export async function chayLoNoiChuyen(db: D1Database, dong: DongBoTheoDon, thang
 }
 
 /**
- * CÁC CỔNG trước khi xác nhận — gom từ thân nhánh `confirmed` của `POST /status`, GIỮ NGUYÊN thứ tự: R2 giá danh mục (Đối tác / Thực tập) → thiếu người lớn (ADR-0114 D3) →
- * chọn Đón/Không đón (ADR-0134 Đ2) → [mốc tối thiểu, chỉ khi `kiemMoc`: chưa có → 503] → dựng bản chụp mức hoa hồng theo bảng HÔM NAY → R3 trần giảm giá theo bản chụp vừa tính.
+ * CÁC CỔNG trước khi xác nhận — gom từ thân nhánh `confirmed` của `POST /status`, theo thứ tự: R2 giá danh mục (Đối tác / Thực tập) → thiếu người lớn (ADR-0114 D3) →
+ * nhóm tắt đưa đón (ADR-0118 Đ3 (b), thêm 28/10 — đứng TRƯỚC cổng chọn đón để câu báo nói đúng việc phải làm) → chọn Đón/Không đón (ADR-0134 Đ2) → [mốc tối thiểu, chỉ khi `kiemMoc`: chưa có → 503] → dựng bản chụp mức hoa hồng theo bảng HÔM NAY → R3 trần giảm giá theo bản chụp vừa tính.
  * `kiemMoc` = lô sau đó có vế mốc trong câu xác nhận (Còn vé, `/status`); lúc chỉ GỬI yêu cầu thì không đòi mốc (mốc chỉ chặn ở Còn vé — Review Focus 10).
  * Trả `{ loi }` (Response đã dịch) hoặc `{ ok, chup, detail, today }`: `chup` + `detail` đưa vào `kemChupXacNhan` / `soanXacNhan`.
  */
 export async function kiemCongXacNhan(
   db: D1Database,
-  i: { actor: StaffProfile; order: DonXacNhan; kiemMoc: boolean; mocToiThieu: MocToiThieu | null },
+  i: { actor: StaffProfile; order: DonXacNhan; kiemMoc: boolean; mocToiThieu: MocToiThieu | null; cuaDuaDon?: CuaDuaDon },
 ): Promise<{ loi: Response } | { ok: true; chup: BanChup[]; detail: string | undefined; today: string }> {
   const { actor, order } = i;
   const today = vnToday(new Date());
@@ -79,6 +92,9 @@ export async function kiemCongXacNhan(
   if (giaLoi) return { loi: GIA_DANH_MUC(giaLoi) };
   // ADR-0114 D3: cửa xác nhận đọc số khách ĐÃ LƯU (nháp cũ lập trước ADR có thể không có người lớn); lập đơn / lưu nháp đã chặn ở `validateOrder`.
   if (donThieuNguoiLon(order.services.map((s) => s.pax))) return { loi: error(409, "thieu_nguoi_lon", CAU_THIEU_NGUOI_LON) };
+  // ADR-0118 Đ3 (b): nhóm đã tắt đưa đón mà nháp còn lượt mở → chặn (Còn vé truyền `xet-duyet`: câu nói người lập Rút lại).
+  const tatDuaDon = await congNhomTatDuaDon(db, order, i.cuaDuaDon ?? "xac-nhan");
+  if (tatDuaDon) return { loi: tatDuaDon };
   // ADR-0134 Đ2: mỗi dịch vụ phải chọn Đón (có chặng mở) hoặc Không đón (không chặng mở). Đọc từ `order` đã nạp (dịch vụ + chặng CÒN HIỆU LỰC).
   const thieuDon = thieuChonDon(order.services.map((s) => ({ pickupChoice: s.pickupChoice, soChangMo: s.legs.length })));
   if (thieuDon.length > 0) return { loi: error(409, "pickup_choice_required", cauThieuChonDon(thieuDon[0]!)) };

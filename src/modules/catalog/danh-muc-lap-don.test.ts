@@ -45,7 +45,7 @@ function setup() {
   return w;
 }
 
-test("ADR-0033: Đối tác, Thực tập, Bán hàng, Quản trị, Toàn quyền đọc được GET /api/catalog/for-order — đúng bảy khoá mỗi dịch vụ (thêm groupCode — ADR-0058 Đ5), cùng nội dung và thứ tự như Bán hàng thấy ở GET /api/catalog, không có dịch vụ ẩn", async () => {
+test("ADR-0033: Đối tác, Thực tập, Bán hàng, Quản trị, Toàn quyền đọc được GET /api/catalog/for-order — đúng tám khoá mỗi dịch vụ (thêm groupCode — ADR-0058 Đ5; transferEnabled — ADR-0118 Đ1), cùng nội dung và thứ tự như Bán hàng thấy ở GET /api/catalog, không có dịch vụ ẩn", async () => {
   const w = setup();
   const sales = await w.call("GET", "/api/catalog", { as: SALES });
   assert.equal(sales.status, 200, sales.text);
@@ -56,7 +56,7 @@ test("ADR-0033: Đối tác, Thực tập, Bán hàng, Quản trị, Toàn quy�
     // ADR-0058 Đ5 (Task A3): thêm ĐÚNG `groups` ở cấp trên và `groupCode` mỗi dịch vụ — không khoá nào khác (không giá gốc, không cột Sheet).
     assert.deepEqual(Object.keys(r.json).sort(), ["groups", "items", "sync"], `${NAME[as]}: phản hồi chỉ có groups + items + sync`);
     assert.deepEqual(Object.keys(r.json.sync).sort(), ["error", "lastSuccessAt"], `${NAME[as]}: sync chỉ có hai khoá`);
-    for (const item of r.json.items) assert.deepEqual(Object.keys(item).sort(), ["code", "groupCode", "name", "notes", "prices", "supported", "unit"], `${NAME[as]} ${item.code}`);
+    for (const item of r.json.items) assert.deepEqual(Object.keys(item).sort(), ["code", "groupCode", "name", "notes", "prices", "supported", "transferEnabled", "unit"], `${NAME[as]} ${item.code}`);
     for (const g of r.json.groups) assert.deepEqual(Object.keys(g).sort(), ["code", "name"], `${NAME[as]}: nhóm cho form chỉ có mã + tên`);
     assert.deepEqual(r.json.items, sales.json.items, `${NAME[as]}: danh mục phải ĐÚNG như Bán hàng thấy ở GET /api/catalog (cùng giá, cùng thứ tự)`);
     assert.deepEqual(r.json.groups, sales.json.groups, `${NAME[as]}: danh sách nhóm phải ĐÚNG như Bán hàng thấy ở GET /api/catalog`);
@@ -170,7 +170,7 @@ test("ADR-0058 Đ5: nhóm đang TẮT → dịch vụ của nó groupCode null �
   assert.ok(ttb, "danh sách quản trị có cả nhóm tắt");
   assert.equal(ttb.active, false);
   assert.equal(ttb.soDichVu, 1);
-  assert.deepEqual(Object.keys(ttb).sort(), ["active", "code", "name", "soDichVu", "sortOrder", "updatedAt"]);
+  assert.deepEqual(Object.keys(ttb).sort(), ["active", "code", "name", "soDichVu", "sortOrder", "transferEnabled", "updatedAt"]);
   assert.equal(adm.json.groups.length, 14, "đủ 14 nhóm gieo");
   assert.equal(adm.json.items.find((i: any) => i.code === "PHAO").groupCode, "TTB", "quản trị thấy nhóm hiện hành thật (kể cả nhóm tắt)");
   assert.equal(adm.json.items.find((i: any) => i.code === "AN").groupCode, null);

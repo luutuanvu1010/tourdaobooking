@@ -18,6 +18,7 @@ const toDto = (r: LocationRow): LocationDto => ({
   address: r.address,
   sortOrder: r.sort_order,
   active: r.active === 1,
+  quickPickOrder: r.quick_pick_order,
   updatedAt: r.updated_at,
 });
 
@@ -61,10 +62,13 @@ export const locationsModule: AppModule = {
       if (!parsed.ok) return error(400, "invalid_input", parsed.message);
       if (!(await locationTypeExists(env.DB, parsed.value.locationTypeCode))) return BAD_TYPE();
       const at = new Date().toISOString();
+      // ADR-0118 Đ4 / Ruling R-G: khoá `quickPickOrder` VẮNG = giữ số đang lưu (màn Địa điểm bản cũ không biết khoá này); `null` = bỏ chọn nhanh.
+      const quickPick = parsed.value.quickPickOrder === undefined ? current.quick_pick_order : parsed.value.quickPickOrder;
+      const detail = quickPick === current.quick_pick_order ? current.code : `${current.code} — chọn nhanh: ${current.quick_pick_order ?? "chưa có"} → ${quickPick ?? "bỏ"}`;
       const results = await env.DB.batch([
-        updateLocationStatement(env.DB, id, parsed.value, staff.id, at),
+        updateLocationStatement(env.DB, id, parsed.value, quickPick, staff.id, at),
         // Chỉ ghi nhật ký khi UPDATE thật sự áp dụng (thắng khoá lạc quan).
-        auditStatement(env.DB, { staffId: staff.id, action: "location_updated", at, targetType: "location", targetId: id, detail: current.code }, "changes() > 0"),
+        auditStatement(env.DB, { staffId: staff.id, action: "location_updated", at, targetType: "location", targetId: id, detail }, "changes() > 0"),
       ]);
       if ((results[0]!.meta.changes ?? 0) === 0) return error(409, "stale", "Địa điểm vừa được người khác sửa, hãy tải lại rồi sửa tiếp.");
       return json({ location: toDto((await findLocation(env.DB, id))!) } satisfies LocationResponse);

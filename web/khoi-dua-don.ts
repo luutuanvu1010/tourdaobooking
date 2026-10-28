@@ -11,6 +11,7 @@ import { NHAN_LUA_CHON_DON, nhanKhung, type KhungGio, type LuaChonDon } from "..
 import type { MauChang } from "../src/shared/chang-mac-dinh";
 import { KHONG_DUA_DON } from "../src/shared/dong-gap-the";
 import { cachDungLaiHen } from "../src/shared/goi-y-noi";
+import { apChonNhanh, oChonNhanhCuaChang, type DiemNhanh } from "../src/shared/chon-nhanh";
 import { locDiem } from "../src/shared/loc-diem";
 import { h, replaceChildren } from "./dom";
 import { icon } from "./icons";
@@ -43,6 +44,10 @@ export interface KhoiDuaDonOptions {
   soKhach: () => number;
   mau: () => MauChang | null;
   diem: () => readonly DiemChon[];
+  /**
+   * ADR-0118 Đ5: điểm «Chọn nhanh» (đã lọc đang dùng + xếp theo số) — hàng nút dưới «Nơi trả» của chiều đi và «Nơi đón» của chiều về. Vắng / rỗng → không hiện hàng nút (bảng «Sửa đưa đón» của trang đơn không truyền).
+   */
+  diemNhanh?: () => readonly DiemNhanh[];
   /** Văn phòng (ô `order.trip.edit`): sửa được "Số người chiều về"; người khác chỉ xem. */
   suaSoVe: boolean;
   newKey: () => string;
@@ -219,7 +224,7 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
         if (cham && document.activeElement instanceof HTMLElement && root.contains(document.activeElement)) document.activeElement.blur(); // chạm cảm ứng: bàn phím ảo không bật lại sau khi dựng lại
       },
     });
-    return { w, cot: h("div", { class: "dd-cot" }, h("label", { for: oid, class: "o-noi" }, khungNhanNoi(ten, w.o)), w.ds, w.bao, loi, hintTuDo, hintGoiY) };
+    return { w, cot: h("div", { class: "dd-cot" }, h("label", { for: oid, class: "o-noi" }, khungNhanNoi(ten, w.o)), w.ds, w.bao, loi, hintTuDo, hintGoiY, hangChonNhanh(l, i, loai)) }; // ADR-0118 Đ5: hàng nút «Chọn nhanh»
   }
 
   const hint = (text: string) => h("span", { class: "hint" }, text);
@@ -267,6 +272,19 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
       h("span", { class: "hint" }, "Lượt đã bỏ không mất — xem trong lịch sử đơn."),
       h("div", { class: "dd-nut" }, bo, thoi),
     );
+  }
+
+  /** Hàng nút «Chọn nhanh» dưới ô `loai` của chặng `l` (chỉ chiều đi → «Nơi trả», chiều về → «Nơi đón»); bấm = điền điểm danh mục đó vào ô. Không có điểm → null. */
+  function hangChonNhanh(l: ChangNhap, i: number, loai: "don" | "tra"): HTMLElement | null {
+    if (oChonNhanhCuaChang(l) !== loai) return null;
+    const ds = o.diemNhanh?.() ?? [];
+    if (ds.length === 0) return null;
+    const nut = ds.map((d) => {
+      const b = h("button", { type: "button", class: "pill-btn dd-nhanh-nut", "data-action": "chon-nhanh", "data-diem": d.id, "data-o": `${l.key}:nhanh-${d.id}`, "aria-pressed": String(l[loai] === d.id) }, d.ten);
+      b.addEventListener("click", () => commit(apChonNhanh(legs, i, d.id), true));
+      return b;
+    });
+    return h("div", { class: "dd-nhanh", role: "group", "aria-label": loai === "tra" ? "Chọn nhanh nơi trả" : "Chọn nhanh nơi đón" }, h("span", { class: "dd-nhanh-nhan" }, "Chọn nhanh"), ...nut);
   }
 
   /** Nhãn ngắn của điểm danh mục ("<tên> · <loại>" → "<tên>") cho dòng tóm tắt chặng gọn. */
