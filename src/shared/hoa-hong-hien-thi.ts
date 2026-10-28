@@ -134,14 +134,17 @@ export const canXacNhanDongDieuKhoan = (d: SupplyTermDto): boolean => d.phamVi =
 // Loại đối tác (ADR-0117 lần 1): mục «Loại đối tác» ở /hoa-hong
 
 export const CAU_KHONG_CO_LOAI = "Chưa có loại đối tác nào.";
-export const NHAN_LOAI_GOC = "Loại gốc";
+/** Nhãn năm loại có từ đầu (chủ chọn «Có sẵn» 28/10); tên hằng giữ như cũ (mã nội bộ không đổi theo bảng từ). */
+export const NHAN_LOAI_GOC = "Có sẵn";
+/** Câu dưới danh sách loại khi có loại có sẵn: nói lý do chúng không có nút Tắt / Bật. */
+export const CAU_LOAI_CO_SAN = "Loại có sẵn đi kèm tài khoản đăng nhập của đối tác nên không tắt được.";
 export const NHAN_LOAI_DANG_DUNG = "Đang dùng";
 export const NHAN_LOAI_DA_TAT = "Đã tắt";
 /**
  * Chữ và nút của một dòng loại đối tác. Nút «Tắt» / «Bật» CHỈ có ở loại do Kế toán thêm (`coSan` = false, cờ do máy chủ trả — năm vai bên ngoài có sẵn là vai đăng nhập, máy chủ
  * từ chối đổi chúng); giao diện không tự suy loại nào "do Kế toán thêm". Quyền ghi (`partner.commission.write`) do trang kiểm riêng bằng `can`.
  */
-export function nhanLoaiDoiTac(l: Pick<LoaiDoiTacDto, "ten" | "coSan" | "dangBat">): { nguon: "Loại gốc" | ""; trangThai: "Đã tắt" | ""; nut: { hanhDong: "tat" | "bat"; nhan: string; ariaLabel: string } | null } {
+export function nhanLoaiDoiTac(l: Pick<LoaiDoiTacDto, "ten" | "coSan" | "dangBat">): { nguon: typeof NHAN_LOAI_GOC | ""; trangThai: "Đã tắt" | ""; nut: { hanhDong: "tat" | "bat"; nhan: string; ariaLabel: string } | null } {
   return {
     nguon: l.coSan ? NHAN_LOAI_GOC : "",
     trangThai: l.dangBat ? "" : NHAN_LOAI_DA_TAT,
@@ -179,6 +182,7 @@ export function nutDoiNgung(d: { tuNgay: string; denNgay: string | null; conHieu
   if (d.conHieuLuc && d.tuNgay < homNay && d.denNgay === null) return { hien: true };
   if (!d.conHieuLuc && d.tuNgay > homNay) return { hien: false, ghiChu: "chưa tới ngày" };
   if (d.conHieuLuc && d.denNgay !== null && d.denNgay >= homNay) return { hien: false, ghiChu: `ngừng sau ${ngayVN(d.denNgay)}` };
+  if (d.conHieuLuc && d.tuNgay === homNay) return { hien: false, ghiChu: "đổi hoặc ngừng từ ngày mai" };
   return { hien: false, ghiChu: "" };
 }
 

@@ -753,12 +753,12 @@ async function veHoaHongHienHanh(sec: HTMLElement, p: Api.PartyDto, tin?: string
   const tieuDe = h("h3", { id: "hhhh-title", tabindex: -1 }, "Hoa hồng hiện hành");
   const dong = r.vai.map((v) =>
     h("tr", null, h("td", null, v.loai.ten),
-      h("td", null, v.muc ? h("span", null, v.muc.ten, " (theo loại)", v.muc.dangBat ? "" : h("span", { class: "muted" }, " (mức đã tắt)")) : h("span", { class: "muted" }, "Chưa gắn mức"),
+      h("td", null, v.muc ? h("span", null, v.muc.ten, " (theo loại)", v.muc.dangBat ? "" : h("span", { class: "muted" }, " (chính sách đã tắt)")) : h("span", { class: "muted" }, "Chưa áp dụng chính sách"),
         rieng ? h("span", { class: "muted" }, " — không áp cho đại lý này") : ""),
       h("td", { class: "muted" }, v.tuNgay ? `từ ${ngayVN(v.tuNgay)}` : "")));
   const khoiRieng = rieng
-    ? h("p", { "data-khoi": "muc-rieng" }, h("strong", null, `Mức riêng: ${rieng.muc.ten} (gắn riêng)`), rieng.muc.dangBat ? "" : h("span", { class: "muted" }, " (mức đã tắt)"),
-        ` — từ ${ngayVN(rieng.tuNgay)}${rieng.denNgay ? ` đến ${ngayVN(rieng.denNgay)}` : ""}. Mức theo loại không áp cho đại lý này.`)
+    ? h("p", { "data-khoi": "muc-rieng" }, h("strong", null, `Chính sách riêng: ${rieng.muc.ten}`), rieng.muc.dangBat ? "" : h("span", { class: "muted" }, " (chính sách đã tắt)"),
+        ` — từ ${ngayVN(rieng.tuNgay)}${rieng.denNgay ? ` đến ${ngayVN(rieng.denNgay)}` : ""}. Chính sách theo loại không áp cho đại lý này.`)
     : null;
   const nhac: Child[] = [];
   if (r.xungDot) nhac.push(h("p", { class: "alert warn", role: "status" }, "Hồ sơ mang hai loại theo hai chính sách khác nhau — với dịch vụ mà hai mức cho hai kết quả khác nhau, đơn có thể bị giữ cho tới khi gỡ bớt một loại, gắn cùng một mức, hoặc gắn một mức riêng cho đại lý này. Dùng «Tra nhanh» ở trang Hoa hồng đối tác để xem từng dịch vụ."));
@@ -794,14 +794,14 @@ async function veHoaHongHienHanh(sec: HTMLElement, p: Api.PartyDto, tin?: string
     if (bat.length === 0) return baoLoi("Chưa có chính sách nào đang bật — tạo chính sách ở trang Hoa hồng đối tác trước.");
     const oMuc = select([{ value: "", label: "Chọn chính sách" }, ...bat.map((m) => ({ value: m.code, label: m.ten }))], "");
     const oTu = input(r.homNay, { type: "date" }) as HTMLInputElement;
-    const luu = button("Lưu mức riêng", (b) => {
+    const luu = button("Lưu chính sách riêng", (b) => {
       if (!oMuc.value) return baoLoi("Chọn chính sách.");
-      guiLenh(b, `/api/pricing/ho-so/${encodeURIComponent(p.id)}/muc-rieng`, { muc: oMuc.value, tuNgay: oTu.value }, "Đã gắn mức riêng cho đại lý này.");
+      guiLenh(b, `/api/pricing/ho-so/${encodeURIComponent(p.id)}/muc-rieng`, { muc: oMuc.value, tuNgay: oTu.value }, "Đã áp dụng chính sách riêng cho đại lý này.");
     }, "btn btn-primary");
     replaceChildren(khuLenh,
       h("div", { class: "grid three" }, field("Chính sách riêng", oMuc), field("Áp dụng từ ngày", oTu)),
       r.dongRiengDoiTac > 0 ? h("p", { class: "alert warn", role: "status" }, `Lưu ý: đại lý này có ${r.dongRiengDoiTac} mức riêng — mức riêng vẫn thắng chính sách riêng.`) : null,
-      h("p", { class: "muted" }, "Từ ngày áp dụng, đơn của đại lý này tính theo mức riêng, không theo mức của loại nữa. Đơn đã xác nhận không đổi."),
+      h("p", { class: "muted" }, "Từ ngày áp dụng, đơn của đại lý này tính theo chính sách riêng, không theo chính sách của loại nữa. Đơn đã xác nhận không đổi."),
       h("div", { class: "actions" }, luu, button("Huỷ", () => replaceChildren(khuLenh), "btn")));
     oMuc.focus();
   };

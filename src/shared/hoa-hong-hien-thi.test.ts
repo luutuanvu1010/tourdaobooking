@@ -12,6 +12,7 @@ import {
   nhanMucTa,
   NHAN_TRANG_THAI,
   NHAN_LOAI_GOC,
+  CAU_LOAI_CO_SAN,
   CAU_CHUA_CO_MUC_LOAI,
   NHAN_CHUA_CO_MUC,
   CAU_NHAC_UU_TIEN,
@@ -167,7 +168,7 @@ test("coTheTimDoiTac: Kế toán tìm được, Đối tác và lai thì không 
 });
 
 test("ADR-0117: nhanLoaiDoiTac — nút Tắt / Bật chỉ ở loại do Kế toán thêm, theo cờ đang bật; loại có sẵn không có nút", () => {
-  assert.deepEqual(nhanLoaiDoiTac({ ten: "Công ty lữ hành", coSan: true, dangBat: true }), { nguon: "Loại gốc", trangThai: "", nut: null });
+  assert.deepEqual(nhanLoaiDoiTac({ ten: "Công ty lữ hành", coSan: true, dangBat: true }), { nguon: "Có sẵn", trangThai: "", nut: null });
   assert.equal(nhanLoaiDoiTac({ ten: "Khách sạn", coSan: true, dangBat: false }).nut, null, "loại có sẵn dù lệch cờ cũng không có nút");
   assert.deepEqual(nhanLoaiDoiTac({ ten: "Nhân viên spa", coSan: false, dangBat: true }), { nguon: "", trangThai: "", nut: { hanhDong: "tat", nhan: "Tắt", ariaLabel: "Tắt loại: Nhân viên spa" } });
   assert.deepEqual(nhanLoaiDoiTac({ ten: "Nhân viên spa", coSan: false, dangBat: false }), { nguon: "", trangThai: "Đã tắt", nut: { hanhDong: "bat", nhan: "Bật", ariaLabel: "Bật loại: Nhân viên spa" } });
@@ -202,7 +203,9 @@ test("ADR-0117 lần 2: câu cảnh báo khi gắn mức cho loại còn dòng r
 });
 
 test("PR2 T1: nhãn mới và các câu nguyên văn", () => {
-  assert.equal(NHAN_LOAI_GOC, "Loại gốc");
+  // Chủ chọn 28/10 (thay «Loại gốc»): nhãn ngắn + một câu nói lý do không tắt được.
+  assert.equal(NHAN_LOAI_GOC, "Có sẵn");
+  assert.equal(CAU_LOAI_CO_SAN, "Loại có sẵn đi kèm tài khoản đăng nhập của đối tác nên không tắt được.");
   assert.equal(CAU_CHUA_CO_MUC_LOAI, "Đơn của loại này sẽ bị giữ ở bước Đã giao cho tới khi có mức");
   assert.equal(NHAN_CHUA_CO_MUC, "Chưa có mức");
   assert.equal(CAU_NHAC_UU_TIEN, "Mức riêng được ưu tiên hơn chính sách. Mức nào áp cho một đối tác cụ thể: dùng Tra nhanh.");
@@ -213,8 +216,8 @@ test("PR2 T1: nhãn mới và các câu nguyên văn", () => {
   assert.equal(cauCanhBaoTheoChinhSach("Cấp 1"), "Loại này đang theo chính sách Cấp 1. Mức riêng được ưu tiên hơn chính sách.");
 });
 
-test("PR2 T1: nhanLoaiDoiTac — loại gốc, chỉ «Đã tắt» khi tắt", () => {
-  assert.equal(nhanLoaiDoiTac({ ten: "X", coSan: true, dangBat: true }).nguon, "Loại gốc");
+test("PR2 T1: nhanLoaiDoiTac — loại có sẵn, chỉ «Đã tắt» khi tắt", () => {
+  assert.equal(nhanLoaiDoiTac({ ten: "X", coSan: true, dangBat: true }).nguon, "Có sẵn");
   assert.equal(nhanLoaiDoiTac({ ten: "X", coSan: false, dangBat: false }).trangThai, "Đã tắt");
   assert.equal(nhanLoaiDoiTac({ ten: "X", coSan: false, dangBat: true }).trangThai, "");
 });
@@ -225,7 +228,8 @@ test("PR2 T1: nutDoiNgung — năm ca", () => {
   assert.deepEqual(nutDoiNgung(d({ tuNgay: "2026-11-01", conHieuLuc: false }), HOM_NAY), { hien: false, ghiChu: "chưa tới ngày" });
   assert.deepEqual(nutDoiNgung(d({ denNgay: "2026-12-31" }), HOM_NAY), { hien: false, ghiChu: "ngừng sau 31/12/2026" });
   assert.deepEqual(nutDoiNgung(d({ denNgay: "2026-10-08", conHieuLuc: false }), HOM_NAY), { hien: false, ghiChu: "" });
-  assert.deepEqual(nutDoiNgung(d({ tuNgay: HOM_NAY }), HOM_NAY), { hien: false, ghiChu: "" });
+  // Dòng bắt đầu HÔM NAY: không nút (bàn giao 25/10 §4), nhưng phải nói khi nào làm được — trước 28/10 dòng này trống trơn, trông như bị khoá.
+  assert.deepEqual(nutDoiNgung(d({ tuNgay: HOM_NAY }), HOM_NAY), { hien: false, ghiChu: "đổi hoặc ngừng từ ngày mai" });
 });
 
 test("PR2 T1: tomTatMuc — số đứng trước, tên dài vẫn bắt đầu bằng số", () => {

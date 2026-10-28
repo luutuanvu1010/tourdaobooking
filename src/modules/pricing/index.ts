@@ -444,7 +444,7 @@ export const pricingModule: AppModule = {
       if (!can(staff, "partner.commission.write") || holdsPartner(staff)) return FORBIDDEN();
       const id = params.id!;
       const row = PARTY_RE.test(id) ? await partyTierById(env.DB, id) : null;
-      if (!row) return error(404, "not_found", "Không tìm thấy mức riêng này.");
+      if (!row) return error(404, "not_found", "Không tìm thấy chính sách riêng này.");
       const den = kiemNgayDong(await readJson(request), row.valid_from_date);
       if (!den.ok) return error(400, "invalid_input", den.message);
       const muc = await rateTierByCode(env.DB, row.tier_code);
@@ -454,7 +454,7 @@ export const pricingModule: AppModule = {
         auditStatement(env.DB, { staffId: staff.id, action: "prc_party_tier_closed", at, detail: `mức riêng ${muc?.name ?? row.tier_code} · đến ${den.value}` }, "changes() > 0"),
       ]);
       if (res instanceof Response) return res;
-      if (dongDaDong(res)) return error(409, "stale", "Mức riêng này vừa được ngừng — tải lại.");
+      if (dongDaDong(res)) return error(409, "stale", "Chính sách riêng này vừa được ngừng — tải lại.");
       return json(await hoaHongHoSo(env.DB, row.party_id));
     }),
     // "Thử tra" cho văn phòng: một đối tác + một dịch vụ + một ngày ⇒ mức nào thắng (cùng hàm `chonMuc` với lúc Xác nhận đơn, cùng `gan` của `docBangChoChup`). Chỉ đọc.

@@ -19,6 +19,8 @@ export const CHANGELOG: readonly ReleaseNote[] = [
     items: [
       { kind: "sua", text: "Trang chủ: khối «Chuyến đón» đổi tên thành «Đơn đi», thẻ «Chuyến hôm nay» thành «Đơn đi hôm nay», vì các số ở đây đếm đơn có ngày đi, không phải chuyến xe." },
       { kind: "sua", text: "Trang chủ Kế toán, khối Chờ đối chiếu: chữ «khai 18/10» nay ghi «ghi ngày 18/10»; khoản tiền mặt chưa nộp về công ty không còn bị ghi nhầm là «chuyển khoản»." },
+      { kind: "sua", text: "Hoa hồng đối tác: «Loại gốc» đổi thành «Có sẵn», kèm câu nói vì sao không tắt được; mức bắt đầu hôm nay ghi «đổi hoặc ngừng từ ngày mai» thay vì để trống." },
+      { kind: "sua", text: "Danh bạ, khối Hoa hồng hiện hành của đại lý: chính sách gắn riêng nay gọi đúng là «Chính sách riêng», không còn lẫn với «mức riêng»." },
     ],
   },
   {

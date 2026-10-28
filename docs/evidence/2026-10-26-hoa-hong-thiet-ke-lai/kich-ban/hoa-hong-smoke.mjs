@@ -6,11 +6,11 @@
 //   3) Kế toán: «Đổi» dòng mức riêng bắt đầu trước hôm nay, Từ = hôm nay → dòng cũ ngừng hôm qua; Từ = hôm nay + 5 → dòng cũ ngừng hôm nay + 4 (kiểm bằng API);
 //   4) Đổi bị từ chối: dòng bị ngừng bằng API giữa lúc mở hộp và lúc bấm → hộp còn mở, câu của máy chủ hiện, «Huỷ» bấm được;
 //   5) Dòng sắp áp dụng: không nút, «chưa tới ngày»; dòng có ngày ngừng tương lai: «ngừng sau <ngày>», không nút;
-//   6) Thẻ Thiết lập: «Loại gốc» không nút Tắt/Bật; thêm loại; thêm chính sách; «Áp dụng cho loại…» với loại còn mức riêng → khung vàng;
+//   6) Thẻ Thiết lập: «Có sẵn» (trước 28/10: «Loại gốc») không nút Tắt/Bật, có câu lý do; thêm loại; thêm chính sách; «Áp dụng cho loại…» với loại còn mức riêng → khung vàng;
 //   7) Bán hàng: cùng trang, không một nút ghi nào; Tra nhanh theo tên vẫn chạy;
 //   8) Tài khoản Đối tác: câu «Bạn không có quyền xem trang này.» (hoặc không vào được trang);
 //   9) (390) Hit-test: tâm nút «＋ Thêm mức» ở thanh đáy trả đúng nút đó, không phải nút nổi Trợ lý; hộp mở → nút Trợ lý ẩn;
-//  10) Chuỗi cấm không có trong chữ nhìn thấy: «Mức TA», «Đóng mức», «Kết thúc gắn», «Đang áp» (không theo «dụng»), «Sắp áp» (không theo «dụng»), «Có sẵn», «Do Kế toán thêm».
+//  10) Chuỗi cấm không có trong chữ nhìn thấy: «Mức TA», «Đóng mức», «Kết thúc gắn», «Đang áp» (không theo «dụng»), «Sắp áp» (không theo «dụng»), «Loại gốc» (từ 28/10; trước đó «Có sẵn»), «Do Kế toán thêm».
 // Mỗi bước: không tràn ngang, ô gõ ≥ 16px, không chữ Anh / mã thô, axe-core (critical / serious ⇒ đỏ; thiếu AXE_JS ⇒ dừng ngay), chụp ảnh.
 // Môi trường: D1 tạm + wrangler dev + Chrome headless qua CDP (docs/evidence/2026-09-20-a2/kich-ban/a2-cdp.mjs) — Turnstile TẮT, không --remote, không gọi production.
 // Quy tắc ADR-0074/0075: dữ liệu dựng bằng API TRƯỚC khi mở trang; mỗi lúc chỉ một trang mở cho mỗi tài khoản; trong lúc trang mở thì ghi bằng chính trang (fetch trong trang).
@@ -40,7 +40,8 @@ const CAU_TRA_THEO_LOAI = "Đang tra theo loại. Một đối tác cụ thể c
 const CAU_KHONG_CO_QUYEN_XEM = "Bạn không có quyền xem trang này.";
 const CAU_THONG_BAO_DONG_RIENG = "Ngừng các mức riêng đó ở thẻ «Mức đang áp dụng».";
 const CHU_ANH = /\b(MT_[A-Z]{8}|LD_[A-Z]{8}|muc_trung|muc_tat|prc_tier_\w+|prc_\w+|stale|invalid_input|forbidden|undefined|null|NaN|Internal Server Error)\b|\[object/;
-const CHU_CAM = [/Mức TA/, /Đóng mức/, /Kết thúc gắn/, /Đang áp(?! dụng)/, /Sắp áp(?! dụng)/, /Đã đóng/, /Có sẵn/, /Do Kế toán thêm/];
+// 28/10: chủ chọn quay lại «Có sẵn» (bỏ khỏi danh sách cấm), «Loại gốc» thành chữ cấm.
+const CHU_CAM = [/Mức TA/, /Đóng mức/, /Kết thúc gắn/, /Đang áp(?! dụng)/, /Sắp áp(?! dụng)/, /Đã đóng/, /[Ll]oại gốc/, /Do Kế toán thêm/];
 // Nút ghi mà Bán hàng KHÔNG được thấy (chữ đầu của nút).
 const NUT_GHI = /^(＋|Thêm|Đổi|Ngừng|Tắt|Bật|Áp dụng)/;
 
@@ -393,11 +394,13 @@ try {
             await chup(p, `09-dong-sap-va-ngung-sau-${tenKho}`);
           });
 
-          await buoc(`6${kho}`, "Thẻ Thiết lập: «Loại gốc» không Tắt/Bật; thêm loại; thêm chính sách; «Áp dụng cho loại…» với loại còn mức riêng → khung vàng", async () => {
+          // Nhãn «Có sẵn» (chủ chọn 28/10, thay «Loại gốc») + câu lý do dưới danh sách.
+          await buoc(`6${kho}`, "Thẻ Thiết lập: «Có sẵn» không Tắt/Bật, có câu lý do; thêm loại; thêm chính sách; «Áp dụng cho loại…» với loại còn mức riêng → khung vàng", async () => {
             await chuyenThe(p, "thiet-lap");
-            const goc = await p.ev("[...document.querySelectorAll('.hh-tl-dong')].filter((li) => li.innerText.includes('Loại gốc')).map((li) => [...li.querySelectorAll('button')].map((b) => b.textContent.trim()))");
-            assert.ok(goc.length > 0, "có loại mang nhãn «Loại gốc»");
-            for (const nut of goc) assert.ok(!nut.some((t) => /^(Tắt|Bật)$/.test(t)), `«Loại gốc» không có Tắt/Bật: ${nut}`);
+            const goc = await p.ev("[...document.querySelectorAll('.hh-tl-dong')].filter((li) => [...li.querySelectorAll('.badge')].some((b) => b.textContent.trim() === 'Có sẵn')).map((li) => [...li.querySelectorAll('button')].map((b) => b.textContent.trim()))");
+            assert.ok(goc.length > 0, "có loại mang nhãn «Có sẵn»");
+            for (const nut of goc) assert.ok(!nut.some((t) => /^(Tắt|Bật)$/.test(t)), `«Có sẵn» không có Tắt/Bật: ${nut}`);
+            assert.ok(await p.ev("[...document.querySelectorAll('.hint')].some((x) => x.textContent.trim() === 'Loại có sẵn đi kèm tài khoản đăng nhập của đối tác nên không tắt được.')"), "câu lý do dưới danh sách loại");
             await bocucSach(p, `bước 6 Thiết lập ${kho}`);
             await axeKiem(p, `thẻ Thiết lập ${kho}`);
             await chup(p, `10-thiet-lap-${tenKho}`);

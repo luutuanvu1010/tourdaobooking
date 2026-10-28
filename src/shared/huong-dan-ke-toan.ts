@@ -132,7 +132,7 @@ Người bán dịch vụ làm tương tự ở trang [[Người bán dịch v�
 
 1. Bấm [[Hoa hồng đối tác]], thẻ **Thiết lập**, bấm [[＋ Thêm loại]] và gõ tên.
 2. Đặt mức cho loại mới bằng [[＋ Thêm mức]].
-3. Không dùng nữa thì bấm [[Tắt]] ở dòng loại đó; cần lại thì bấm [[Bật]]. Các loại gốc (ghi **Loại gốc**) thì không tắt được.
+3. Không dùng nữa thì bấm [[Tắt]] ở dòng loại đó; cần lại thì bấm [[Bật]]. Các loại có sẵn (ghi **Có sẵn**) thì không tắt được.
 
 Gắn loại cho hồ sơ ở Danh bạ là việc của Quản trị hoặc Toàn quyền. Loại đã tắt thì không gắn thêm, nhưng đơn đã xác nhận vẫn giữ nguyên hoa hồng.`,
     },

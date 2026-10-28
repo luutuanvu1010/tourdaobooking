@@ -1,6 +1,6 @@
 // Thẻ «Thiết lập» của trang «Hoa hồng đối tác»: (a) loại đối tác được hưởng hoa hồng và chính sách mỗi loại đang theo, (b) các chính sách hoa hồng dùng chung (bảng mức, áp dụng cho loại, tắt/bật).
 // Trang không tính tiền, không chọn mức: số và lời đến từ máy chủ / luật thuần ở src/shared/hoa-hong-hien-thi.ts. Mọi nút ghi chỉ dựng cho người có `partner.commission.write` (máy chủ kiểm lại).
-import { CAU_KHONG_CO_LOAI, CAU_KHONG_CO_MUC, CAU_KHONG_CO_MUC_TA, NHAN_LOAI_DA_TAT, chinhSachCuaLoai, nhanLoaiDoiTac, trangThaiDong } from "../src/shared/hoa-hong-hien-thi";
+import { CAU_KHONG_CO_LOAI, CAU_KHONG_CO_MUC, CAU_KHONG_CO_MUC_TA, CAU_LOAI_CO_SAN, NHAN_LOAI_DA_TAT, chinhSachCuaLoai, nhanLoaiDoiTac, trangThaiDong } from "../src/shared/hoa-hong-hien-thi";
 import { can } from "../src/shared/permissions";
 import { ngayDayDu } from "../src/shared/vn-date";
 import type { Api } from "./api";
@@ -63,7 +63,7 @@ function mucLoai(d: DuLieuHoaHong, mo: MoHop, ghi: boolean): HTMLElement {
       ),
     );
   }
-  muc.append(loiEl, h("p", { class: "hint" }, CAU_XEP_LOAI));
+  muc.append(loiEl, ...(d.loai.some((l) => l.coSan) ? [h("p", { class: "hint" }, CAU_LOAI_CO_SAN)] : []), h("p", { class: "hint" }, CAU_XEP_LOAI));
   if (ghi) {
     const them = h("button", { type: "button", class: "btn" }, "＋ Thêm loại");
     them.addEventListener("click", () => mo.themLoai());
