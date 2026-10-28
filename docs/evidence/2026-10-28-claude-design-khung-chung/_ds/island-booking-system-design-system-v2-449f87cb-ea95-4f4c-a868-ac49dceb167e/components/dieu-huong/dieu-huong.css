@@ -1,0 +1,99 @@
+/* ===== 11 Cụm Tìm + Lọc + Sắp xếp ===== */
+.ib-tim-loc{display:flex;flex-direction:column;gap:var(--kc-3);min-width:0}
+.ib-tim-loc__hang{display:flex;flex-wrap:wrap;align-items:flex-end;gap:var(--kc-3)}
+.ib-tim{flex:1 1 100%}
+.ib-tim__kinh{position:absolute;left:var(--kc-3);color:var(--c-chu-phu);pointer-events:none}
+.ib-tim__o{padding-left:calc(var(--kc-3) + 28px);padding-right:var(--h-cham)}
+.ib-tim__o::-webkit-search-cancel-button{display:none}
+.ib-tim__xoa{position:absolute;right:0;display:inline-flex;align-items:center;justify-content:center;width:var(--h-cham);height:var(--h-cham);padding:0;border:0;background:none;color:var(--c-chu-phu);cursor:pointer}
+.ib-sap{display:flex;align-items:center;gap:var(--kc-1);margin-left:auto}
+.ib-sap__nhan{font-size:var(--fs-phu);line-height:var(--lh-phu);color:var(--c-chu-phu);font-weight:var(--fw-nhan)}
+.ib-sap__chon{min-height:var(--h-cham);padding:0 calc(var(--kc-2) + 22px) 0 var(--kc-2);border:0;border-radius:var(--r-dieu-khien);background:transparent;color:var(--c-chinh);font-family:var(--f-chinh);font-size:var(--fs-noi-dung);font-weight:var(--fw-nhan);appearance:none;-webkit-appearance:none;cursor:pointer}
+@media (hover:hover){.ib-sap__chon:hover{background:var(--c-nen-re)}}
+.ib-sap__mui{position:absolute;right:var(--kc-2);color:var(--c-chinh);pointer-events:none}
+.ib-tim-loc__chip{display:flex;gap:var(--kc-2);overflow-x:auto;padding:4px 0;margin:-4px 0;scrollbar-width:none}
+.ib-tim-loc__chip::-webkit-scrollbar{display:none}
+.ib-tim-loc__ket-qua{display:flex;align-items:center;gap:var(--kc-2);min-height:var(--h-cham);font-size:var(--fs-phu);color:var(--c-chu-phu)}
+.ib-tim-loc__ket-qua .ib-nut{font-size:var(--fs-phu)}
+@container ib (min-width:900px){.ib-tim{flex:0 1 420px}.ib-tim-loc__chip{flex-wrap:wrap;overflow:visible}}
+
+/* ===== 24 Phân trang / tải thêm ===== */
+.ib-tai-them{display:flex;flex-direction:column;align-items:center;gap:var(--kc-2);padding:var(--kc-4) 0}
+.ib-tai-them .ib-nut{max-width:360px}
+.ib-tai-them__het{display:inline-flex;align-items:center;gap:6px;min-height:var(--h-cham);color:var(--c-chu-phu);font-size:var(--fs-phu)}
+.ib-phan-trang{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--kc-3);padding:var(--kc-2) 0}
+.ib-phan-trang__dem{font-size:var(--fs-phu);line-height:var(--lh-phu);color:var(--c-chu-phu);font-variant-numeric:tabular-nums}
+.ib-phan-trang__so{display:flex;align-items:center;gap:2px}
+.ib-phan-trang__nut{min-width:var(--h-cham);height:var(--h-cham);padding:0 var(--kc-2);border:0;border-radius:var(--r-dieu-khien);background:transparent;color:var(--c-chu);font-family:var(--f-chinh);font-size:var(--fs-noi-dung);font-weight:var(--fw-nhan);font-variant-numeric:tabular-nums;cursor:pointer}
+@media (hover:hover){.ib-phan-trang__nut:not(.is-chon):hover{background:var(--c-nen-re)}}
+.ib-phan-trang__nut.is-chon{background:var(--c-chinh-nhat);color:var(--c-chinh);box-shadow:inset 0 -2px 0 var(--c-chinh)}
+.ib-phan-trang__cach{min-width:24px;text-align:center;color:var(--c-chu-phu)}
+
+/* ===== 17 Đầu trang ===== */
+.ib-dau-trang{display:flex;flex-direction:column;gap:var(--kc-2);min-width:0}
+.ib-dau-trang__lui{display:inline-flex;align-self:flex-start;align-items:center;gap:var(--kc-1);min-height:var(--h-cham);margin:calc(-1 * var(--kc-2)) 0 calc(-1 * var(--kc-2)) calc(-1 * var(--kc-1));padding:0 var(--kc-2) 0 var(--kc-1);border:0;border-radius:var(--r-dieu-khien);background:none;color:var(--c-chinh);font-family:var(--f-chinh);font-size:var(--fs-noi-dung);font-weight:var(--fw-nhan);text-decoration:none;cursor:pointer}
+@media (hover:hover){.ib-dau-trang__lui:hover{text-decoration:underline;text-underline-offset:3px}}
+.ib-dau-trang__hang{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:var(--kc-3)}
+.ib-dau-trang__chu{min-width:0;flex:1 1 240px;display:flex;flex-direction:column;gap:var(--kc-1)}
+.ib-dau-trang__tieu-de{display:flex;flex-wrap:wrap;align-items:center;gap:var(--kc-2);margin:0;font-size:var(--fs-tieu-de-trang);line-height:var(--lh-tieu-de);font-weight:var(--fw-tieu-de);color:var(--c-chu);text-wrap:balance}
+.ib-dau-trang__phu{margin:0;font-size:var(--fs-phu);line-height:var(--lh-phu);color:var(--c-chu-phu)}
+.ib-dau-trang__hd{display:flex;flex-wrap:wrap;gap:var(--kc-2)}
+@container ib (min-width:900px){.ib-dau-trang__tieu-de{font-size:var(--fs-tieu-de-trang-rong)}}
+
+/* ===== 18 Thanh dính đáy ===== */
+.ib-chan-dinh{position:sticky;bottom:0;z-index:var(--z-dinh);background:var(--c-nen);border-top:1px solid var(--c-vien);padding:var(--kc-3) var(--le-trang) calc(var(--kc-3) + env(safe-area-inset-bottom))}
+.ib-chan-dinh__ruot{display:flex;flex-direction:column;gap:var(--kc-2);max-width:var(--w-noi-dung);margin:0 auto}
+.ib-chan-dinh__tom-tat{display:flex;align-items:baseline;justify-content:space-between;gap:var(--kc-3);font-size:var(--fs-phu);line-height:var(--lh-phu);color:var(--c-chu-phu)}
+.ib-chan-dinh__nut{display:flex;align-items:flex-start;gap:var(--kc-3)}
+.ib-chan-dinh__nut>*{flex:1 1 0;min-width:0}
+.ib-chan-dinh__nut .ib-nut-boc>.ib-nut{width:100%}
+.ib-chan-dinh__nut .ib-nut{min-height:var(--nut-h-lon)}
+@container ib (min-width:768px){.ib-chan-dinh{padding:var(--kc-3) var(--le-trang-rong)}.ib-chan-dinh__ruot{flex-direction:row;align-items:center;justify-content:space-between;gap:var(--kc-5)}.ib-chan-dinh__nut{margin-left:auto}.ib-chan-dinh__nut .ib-nut{min-height:var(--nut-h)}.ib-chan-dinh__nut>*{flex:none}}
+
+/* ===== 19 Thanh trên ===== */
+.ib-thanh-tren{position:sticky;top:0;z-index:var(--z-dinh);display:flex;align-items:center;justify-content:space-between;gap:var(--kc-2);height:var(--h-thanh-tren);padding:0 var(--kc-1) 0 var(--kc-4);background:var(--vo-bg);color:var(--vo-chu);border-bottom:1px solid var(--vo-vien)}
+.ib-thanh-tren__hieu{display:flex;align-items:center;gap:var(--kc-2);min-width:0;color:inherit;text-decoration:none;border-radius:var(--r-dieu-khien)}
+.ib-thanh-tren__logo{flex:none;width:30px;height:30px;border-radius:var(--r-dieu-khien)}
+.ib-thanh-tren__ten{font-size:var(--co-5);line-height:var(--lh-noi-dung);font-weight:var(--fw-tieu-de);color:inherit;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ib-thanh-tren__phai{display:flex;align-items:center;gap:0;flex:none}
+.ib-thanh-tren__tao{display:none;margin-right:var(--kc-2)}
+.ib-thanh-tren__nut{position:relative;display:inline-flex;align-items:center;justify-content:center;width:var(--h-cham);height:var(--h-cham);padding:0;border:0;border-radius:var(--r-tron);background:transparent;color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:background-color var(--cd-nhanh) var(--cd-cong)}
+@media (hover:hover){.ib-thanh-tren__nut:hover{background:color-mix(in srgb,currentColor 10%,transparent)}}
+.ib-thanh-tren__so{position:absolute;top:4px;right:2px;min-width:18px;height:18px;padding:0 5px;border-radius:var(--r-tron);background:var(--c-nguy-hiem);color:var(--c-chu-tren-chinh);font-size:var(--fs-huy-hieu);line-height:18px;font-weight:var(--fw-nhan);box-shadow:0 0 0 2px var(--vo-bg);font-variant-numeric:tabular-nums}
+.ib-thanh-tren__nguoi{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;border:1.5px solid currentColor;font-size:var(--fs-phu);font-weight:var(--fw-tieu-de);line-height:1}
+@container ib (min-width:768px){.ib-thanh-tren{padding:0 var(--kc-4) 0 var(--kc-5)}.ib-thanh-tren__ten{font-size:var(--co-6)}.ib-thanh-tren__phai{gap:var(--kc-1)}.ib-thanh-tren__tao{display:inline-flex}}
+
+/* ===== 20 Thanh tab dưới ===== */
+.ib-thanh-tab{position:sticky;bottom:0;z-index:var(--z-tab);display:flex;align-items:stretch;min-height:calc(var(--h-thanh-tab) + env(safe-area-inset-bottom));padding:0 var(--kc-1) env(safe-area-inset-bottom);background:var(--thanh-tab-bg);-webkit-backdrop-filter:blur(var(--thanh-tab-mo)) saturate(1.4);backdrop-filter:blur(var(--thanh-tab-mo)) saturate(1.4);border-top:1px solid var(--c-vien)}
+.ib-thanh-tab__muc{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:4px 0 6px;color:var(--c-chu-phu);text-decoration:none;-webkit-tap-highlight-color:transparent}
+.ib-thanh-tab__vien{position:relative;display:flex;align-items:center;justify-content:center;width:56px;height:32px;border-radius:var(--r-tron);transition:background-color var(--cd-nhanh) var(--cd-cong)}
+.ib-thanh-tab__nhan{font-size:var(--fs-huy-hieu);line-height:var(--lh-huy-hieu);font-weight:var(--fw-nhan);white-space:nowrap}
+.ib-thanh-tab__muc.is-chon{color:var(--c-chinh)}
+.ib-thanh-tab__muc.is-chon .ib-thanh-tab__vien{background:var(--c-chinh-nhat)}
+.ib-thanh-tab__dem{position:absolute;top:0;left:32px;min-width:18px;height:18px;padding:0 5px;border-radius:var(--r-tron);background:var(--c-nguy-hiem);color:var(--c-chu-tren-chinh);font-size:var(--fs-huy-hieu);line-height:18px;font-weight:var(--fw-nhan);box-shadow:0 0 0 2px var(--c-nen);font-variant-numeric:tabular-nums}
+
+/* ===== 21 Thanh bên nhóm gập ===== */
+.ib-thanh-ben{display:flex;flex-direction:column;width:var(--w-thanh-ben);height:100%;background:var(--c-nen-phu);color:var(--c-chu)}
+.ib-thanh-ben__cuon{flex:1;overflow:auto;padding:var(--kc-3) var(--kc-3) var(--kc-2)}
+.ib-thanh-ben__ds{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+.ib-thanh-ben__nhom{margin-top:var(--kc-3)}
+.ib-thanh-ben__dau-nhom{display:flex;align-items:center;gap:var(--kc-2);width:100%;height:36px;padding:0 var(--kc-3);border:0;border-radius:var(--r-dieu-khien);background:none;color:var(--c-chu-phu);font-family:var(--f-chinh);font-size:var(--fs-phu);font-weight:var(--fw-nhan);text-align:left;cursor:pointer}
+.ib-thanh-ben__dau-nhom>span:first-child{flex:1}
+.ib-thanh-ben__mui{transition:transform var(--cd-vua) var(--cd-cong);transform:rotate(-90deg)}
+.ib-thanh-ben__mui.is-mo{transform:none}
+.ib-thanh-ben__cham{width:6px;height:6px;border-radius:50%;background:var(--c-chinh)}
+.ib-thanh-ben__muc{position:relative;display:flex;align-items:center;gap:var(--kc-3);min-height:var(--thanh-ben-muc-h);padding:0 var(--kc-3);border-radius:var(--r-dieu-khien);color:var(--c-chu);font-size:var(--fs-noi-dung);line-height:var(--lh-phu);font-weight:var(--fw-nhan);text-decoration:none;transition:background-color var(--cd-nhanh) var(--cd-cong)}
+.ib-thanh-ben__muc .ib-bt{color:var(--c-chu-phu)}
+.ib-thanh-ben__thut{width:20px;flex:none}
+.ib-thanh-ben__nhan{flex:1;min-width:0}
+@media (hover:hover){.ib-thanh-ben__muc:not(.is-chon):hover,.ib-thanh-ben__dau-nhom:hover{background:var(--c-nen)}.ib-thanh-ben__muc.is-chon:hover{background:var(--c-chinh-nhat-re)}}
+.ib-thanh-ben__muc.ib-xem-re:not(.is-chon){background:var(--c-nen)}
+.ib-thanh-ben__muc.is-chon{background:var(--c-chinh-nhat);color:var(--c-chinh)}
+.ib-thanh-ben__muc.is-chon .ib-bt{color:var(--c-chinh)}
+.ib-thanh-ben__muc.is-chon::before{content:"";position:absolute;left:0;top:10px;bottom:10px;width:var(--thanh-ben-vach);border-radius:var(--r-tron);background:var(--c-tieu-diem)}
+.ib-thanh-ben__dem{min-width:22px;padding:0 6px;border-radius:var(--r-tron);background:var(--tt-cat-bg);color:var(--tt-cat-chu);font-size:var(--fs-huy-hieu);line-height:var(--lh-huy-hieu);font-weight:var(--fw-nhan);text-align:center;font-variant-numeric:tabular-nums}
+.ib-thanh-ben__chan{padding:var(--kc-2) var(--kc-3) var(--kc-3);border-top:1px solid var(--c-vien)}
+.ib-thanh-ben__nguoi{display:flex;align-items:center;gap:var(--kc-3);margin-top:var(--kc-2);padding:var(--kc-2) var(--kc-3)}
+.ib-thanh-ben__chu-tat{flex:none;display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;background:var(--c-chinh-nhat);color:var(--c-chinh);font-size:var(--fs-phu);font-weight:var(--fw-tieu-de)}
+.ib-thanh-ben__ten{display:flex;flex-direction:column;min-width:0;font-size:var(--fs-phu);line-height:var(--lh-phu);font-weight:var(--fw-nhan)}
+.ib-thanh-ben__vai{color:var(--c-chu-phu);font-weight:var(--fw-noi-dung)}

@@ -1,0 +1,367 @@
+{
+  "v": 3,
+  "layout": "files",
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-10-27T22:14:49.692Z"
+  },
+  "title": "Island Booking System — Design System v2",
+  "namespace": "IslandBookingSystemV2",
+  "libraries": [],
+  "sections": {},
+  "groups": [
+    "Logos",
+    "Icons"
+  ],
+  "assetGroups": {
+    "Logos": {
+      "name": "Logos",
+      "tile": "l",
+      "order": [
+        "logo-96.png",
+        "icon-192.png",
+        "icon-512.png",
+        "apple-touch-icon.png"
+      ],
+      "files": {
+        "apple-touch-icon.png": {
+          "name": "apple-touch-icon.png",
+          "blob": "b1c3b6245ecd67492a2660c698400e17",
+          "size": 7303,
+          "type": "image/png"
+        },
+        "icon-192.png": {
+          "name": "icon-192.png",
+          "blob": "b4476b9df493a9601b92e5e902488b21",
+          "size": 7868,
+          "type": "image/png"
+        },
+        "icon-512.png": {
+          "name": "icon-512.png",
+          "blob": "7f4cb74f9416b025aea7d0841f32ba4f",
+          "size": 20946,
+          "type": "image/png"
+        },
+        "logo-96.png": {
+          "name": "logo-96.png",
+          "blob": "a2e56e2765c9dd699ddc38cc622b02ea",
+          "size": 3607,
+          "type": "image/png"
+        }
+      }
+    },
+    "Icons": {
+      "name": "Icons",
+      "tile": "s",
+      "order": [
+        "alert.svg",
+        "alertCircle.svg",
+        "assign.svg",
+        "back.svg",
+        "ban.svg",
+        "bell.svg",
+        "chart.svg",
+        "chat.svg",
+        "check.svg",
+        "checkCircle.svg",
+        "chevron-down.svg",
+        "clock.svg",
+        "close.svg",
+        "contact-card.svg",
+        "doc-check.svg",
+        "eye.svg",
+        "face.svg",
+        "filePlus.svg",
+        "grid.svg",
+        "guests.svg",
+        "handset.svg",
+        "help.svg",
+        "history.svg",
+        "home.svg",
+        "lock.svg",
+        "me.svg",
+        "megaphone.svg",
+        "minus.svg",
+        "money.svg",
+        "next.svg",
+        "orders.svg",
+        "palette.svg",
+        "pin.svg",
+        "plus.svg",
+        "resize.svg",
+        "search.svg",
+        "services.svg",
+        "staff.svg",
+        "swap.svg",
+        "trash.svg",
+        "truck.svg",
+        "userPlus.svg"
+      ],
+      "files": {
+        "alert.svg": {
+          "name": "alert.svg",
+          "blob": "148f88315b2bb991816a033460bbba47",
+          "size": 282,
+          "type": "image/svg+xml"
+        },
+        "alertCircle.svg": {
+          "name": "alertCircle.svg",
+          "blob": "332b95613b1a5b997c3080f0c87f0d59",
+          "size": 290,
+          "type": "image/svg+xml"
+        },
+        "assign.svg": {
+          "name": "assign.svg",
+          "blob": "27bd64224685db78356f6529c4bff6fc",
+          "size": 388,
+          "type": "image/svg+xml"
+        },
+        "back.svg": {
+          "name": "back.svg",
+          "blob": "669a52e19b47decec16f6f7fbb750c28",
+          "size": 239,
+          "type": "image/svg+xml"
+        },
+        "ban.svg": {
+          "name": "ban.svg",
+          "blob": "559a7b08bda7ed7c61a57dbc5847cf1c",
+          "size": 277,
+          "type": "image/svg+xml"
+        },
+        "bell.svg": {
+          "name": "bell.svg",
+          "blob": "594bb954ff15594b1aa68d0c5bbe942d",
+          "size": 317,
+          "type": "image/svg+xml"
+        },
+        "chart.svg": {
+          "name": "chart.svg",
+          "blob": "2d5e8339ff9316a8211ab751d8c17119",
+          "size": 325,
+          "type": "image/svg+xml"
+        },
+        "chat.svg": {
+          "name": "chat.svg",
+          "blob": "1275cdb5f24ce09bd82881a9a2587ada",
+          "size": 299,
+          "type": "image/svg+xml"
+        },
+        "check.svg": {
+          "name": "check.svg",
+          "blob": "44cfa4c77582b002a3d9114f651c2252",
+          "size": 239,
+          "type": "image/svg+xml"
+        },
+        "checkCircle.svg": {
+          "name": "checkCircle.svg",
+          "blob": "70c798f92cd5e806d53e98ade270fe0a",
+          "size": 280,
+          "type": "image/svg+xml"
+        },
+        "chevron-down.svg": {
+          "name": "chevron-down.svg",
+          "blob": "ff332a963ec5d8e627c54ba64b38b6d8",
+          "size": 237,
+          "type": "image/svg+xml"
+        },
+        "clock.svg": {
+          "name": "clock.svg",
+          "blob": "ecb8120b87fbe40e64cdfc9e181792aa",
+          "size": 286,
+          "type": "image/svg+xml"
+        },
+        "close.svg": {
+          "name": "close.svg",
+          "blob": "c5380134f1d0065b61c42450c2a543f4",
+          "size": 245,
+          "type": "image/svg+xml"
+        },
+        "contact-card.svg": {
+          "name": "contact-card.svg",
+          "blob": "6b07fb2390f4795335b1e1a38239ded0",
+          "size": 398,
+          "type": "image/svg+xml"
+        },
+        "doc-check.svg": {
+          "name": "doc-check.svg",
+          "blob": "ef25dda0f384aa4bd9f97691c4fb0574",
+          "size": 300,
+          "type": "image/svg+xml"
+        },
+        "eye.svg": {
+          "name": "eye.svg",
+          "blob": "bc1b47efa2bf49e3f20573fcc9fbd850",
+          "size": 308,
+          "type": "image/svg+xml"
+        },
+        "face.svg": {
+          "name": "face.svg",
+          "blob": "7524ba65b69b1e775b3dffad1e53da9f",
+          "size": 558,
+          "type": "image/svg+xml"
+        },
+        "filePlus.svg": {
+          "name": "filePlus.svg",
+          "blob": "0a530a8c1548dabc775fd1fe272e57f3",
+          "size": 328,
+          "type": "image/svg+xml"
+        },
+        "grid.svg": {
+          "name": "grid.svg",
+          "blob": "da86a5e4f0131be0192eba77472f57f5",
+          "size": 464,
+          "type": "image/svg+xml"
+        },
+        "guests.svg": {
+          "name": "guests.svg",
+          "blob": "6f3428186527c0f052787c9c02902227",
+          "size": 301,
+          "type": "image/svg+xml"
+        },
+        "handset.svg": {
+          "name": "handset.svg",
+          "blob": "d94bb9abba1d75b7a36c2156d1e26c97",
+          "size": 452,
+          "type": "image/svg+xml"
+        },
+        "help.svg": {
+          "name": "help.svg",
+          "blob": "a28b1f714af80c0354d9d1f6321f28de",
+          "size": 350,
+          "type": "image/svg+xml"
+        },
+        "history.svg": {
+          "name": "history.svg",
+          "blob": "9846aa0f1b7f076f6e2bdf85b76fda77",
+          "size": 330,
+          "type": "image/svg+xml"
+        },
+        "home.svg": {
+          "name": "home.svg",
+          "blob": "8a32a8326ee18278270a8f0cdcef906c",
+          "size": 281,
+          "type": "image/svg+xml"
+        },
+        "lock.svg": {
+          "name": "lock.svg",
+          "blob": "d0f09e74d294031e3f8d6052d9eb6d6e",
+          "size": 306,
+          "type": "image/svg+xml"
+        },
+        "me.svg": {
+          "name": "me.svg",
+          "blob": "cd0bb482abfaf304cfff2c6d5913ae35",
+          "size": 293,
+          "type": "image/svg+xml"
+        },
+        "megaphone.svg": {
+          "name": "megaphone.svg",
+          "blob": "55d6702cf7f77e445c0ee6ef64893d02",
+          "size": 336,
+          "type": "image/svg+xml"
+        },
+        "minus.svg": {
+          "name": "minus.svg",
+          "blob": "93e5cc6b31ff84b182e4cd793759a870",
+          "size": 233,
+          "type": "image/svg+xml"
+        },
+        "money.svg": {
+          "name": "money.svg",
+          "blob": "2c5979877460d3d8fc3f6997bae05b04",
+          "size": 368,
+          "type": "image/svg+xml"
+        },
+        "next.svg": {
+          "name": "next.svg",
+          "blob": "3dc5a998ba5c260b4fd1aec7b38bbf36",
+          "size": 237,
+          "type": "image/svg+xml"
+        },
+        "orders.svg": {
+          "name": "orders.svg",
+          "blob": "898b0973ec42f9ccb5d76525c9acf602",
+          "size": 303,
+          "type": "image/svg+xml"
+        },
+        "palette.svg": {
+          "name": "palette.svg",
+          "blob": "12490a6ae198426d2c3e78b168541329",
+          "size": 485,
+          "type": "image/svg+xml"
+        },
+        "pin.svg": {
+          "name": "pin.svg",
+          "blob": "2d85654914d49186c6bfbec1981d4a16",
+          "size": 318,
+          "type": "image/svg+xml"
+        },
+        "plus.svg": {
+          "name": "plus.svg",
+          "blob": "c645aa78bcbcd331aeed161449733029",
+          "size": 241,
+          "type": "image/svg+xml"
+        },
+        "resize.svg": {
+          "name": "resize.svg",
+          "blob": "7e408f8fd9637d7a43199edb7b8ea582",
+          "size": 272,
+          "type": "image/svg+xml"
+        },
+        "search.svg": {
+          "name": "search.svg",
+          "blob": "2e3ae1288e0b57442647731b49b8bc0c",
+          "size": 283,
+          "type": "image/svg+xml"
+        },
+        "services.svg": {
+          "name": "services.svg",
+          "blob": "adf46a833a4d696de61dfac4fde2a152",
+          "size": 296,
+          "type": "image/svg+xml"
+        },
+        "staff.svg": {
+          "name": "staff.svg",
+          "blob": "f76a284cc931a8f85ee2675b81208c62",
+          "size": 398,
+          "type": "image/svg+xml"
+        },
+        "swap.svg": {
+          "name": "swap.svg",
+          "blob": "5a4d6ded4d6db06f9d8d76a776076216",
+          "size": 249,
+          "type": "image/svg+xml"
+        },
+        "trash.svg": {
+          "name": "trash.svg",
+          "blob": "dcfe5593197b776785bf2286a88c30ba",
+          "size": 284,
+          "type": "image/svg+xml"
+        },
+        "truck.svg": {
+          "name": "truck.svg",
+          "blob": "8b28bbc5b48c716a99bfff3530899448",
+          "size": 338,
+          "type": "image/svg+xml"
+        },
+        "userPlus.svg": {
+          "name": "userPlus.svg",
+          "blob": "23ba2485cafdebc653d9ee452d22fe40",
+          "size": 300,
+          "type": "image/svg+xml"
+        }
+      }
+    }
+  },
+  "blobs": {},
+  "docs": {
+    "readme": "project/README.md",
+    "sections": []
+  },
+  "lastChange": {
+    "by": "Claude",
+    "at": "2026-10-28T02:43:21.700Z",
+    "via": "Claude Code",
+    "note": "28/10 lần 2: gộp Claude Design theo GOP-CLAUDE-DESIGN-VAO-BO-V2-2026-10-28.md — gói đệm (họ dem) + ô nhiều dòng 96 + vanh-cach; c-check-border, c-switch-off-bg; toast nền tối c-toast-bg (ĐỔI); BỎ radius-tile 14; diện mạo OChon, HopThoai, toast, TrangThaiRong theo Design; 6 thành phần MỚI DauTrang, ThanhTren, ThanhTabDuoi, ThanhBen, TrangMatMang, TrangLoi; phím tắt bỏ N (cổng 2a)."
+  }
+}

@@ -2,13 +2,43 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.36 ĐÃ LÊN PRODUCTION (bước xác nhận đơn + «Gửi đơn» + nháp riêng tư — ADR-0135, ADR-0136) — migration `0119_yeu_cau_xac_nhan` đã áp — triển khai 2026-10-27 (giờ chưa ghi)
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.40 ĐÃ LÊN PRODUCTION (Tệp kèm tin vé hỗ trợ: ảnh JPG / PNG / HEIC hoặc PDF, tối đa 5 tệp và 10 MB mỗi tin, 20 tệp / giờ mỗi tài khoản; ảnh thu nhỏ trên máy người gửi; Toàn quyền gỡ được tệp gửi nhầm — ADR-0144) — CÓ migration `0124_ve_ho_tro_tep` + kho R2 MỚI `tourdao-sales-ho-tro` — triển khai 2026-10-28 21:55 (giờ VN)
+
+Ghi 28/10/2026 từ khối tóm tắt của `npm run trien-khai` (chủ chạy `day-len`, tạo kho, `trien-khai`) và lệnh CHỈ ĐỌC của phiên thi công (nhánh `claude/modest-sanderson-b148ce`):
+- Commit `main` = `origin/main`: `d9cf8adb`. Worker Version ID: `133922a5-8a79-4aa4-85a4-6137f9ac1cc4`. Điểm khôi phục Time Travel trước khi áp: `00001c30-00000000-00005112-42a90e2baf7dbdc37b2cb61907f98fe8`.
+- Migration đã áp: `0124_ve_ho_tro_tep.sql` (`d1 migrations list --remote` → «No migrations to apply!»). Binding lúc deploy có `env.HO_TRO (tourdao-sales-ho-tro)` cạnh `env.HO_SO`. Cổng phiên bản trước và sau deploy: ĐẠT. `audit-invariants --db remote`: «Mọi bất biến đạt, 5 cảnh báo».
+- e2e 76/77 xanh. ĐỎ `chong-ghi-trung` ở bước T14 (`POST /api/orders` không vé → 500, kỳ vọng 201) khi chạy 3 nhóm song song, cùng lúc máy có ba `wrangler dev` của phiên khác. Chạy RIÊNG lại trên đúng mã `d9cf8adb` ngay sau đó: 4/4 xanh, T14 xanh ⇒ coi là lỗi môi trường dưới tải (khuôn «500 không thân» của proxy `wrangler dev` — CHƯA chứng minh, vì đầu ra e2e không in thân phản hồi). Đợt này không đổi mã lập đơn hay router. Chủ chọn tiếp tục.
+- `GET /api/auth/config` → `version 2.40`; **bảo trì BẬT** (`endsAt` 2026-10-31T14:48Z) — đã bật từ trước lần phát hành này, không do nó. `GET /js/feedback.js` là bản mới (có nút đính kèm `ht-tep-nut`, `image/heic`, `tepLoi`).
+- Tạo kho: `npx wrangler r2 bucket create tourdao-sales-ho-tro`. Wrangler 4.147 hỏi thêm «Would you like Wrangler to add it on your behalf?» — trả lời **No**. Lần này trả lời yes ⇒ wrangler viết lại `wrangler.jsonc` ở checkout gốc (thêm binding thừa `remote: true` trỏ kho thật, đổi thụt lề) và `trien-khai` dừng «cây làm việc còn thay đổi»; chủ `git restore wrangler.jsonc` rồi chạy lại.
+- Nghiệm thu: chỉ phần chỉ đọc; chưa thử trang có đăng nhập trên production, **chưa thử trên iPhone thật** (danh sách ở `docs/HANDOFF-FEEDBACK.md`, mục «Tệp kèm tin vé hỗ trợ»). Cảnh báo `R-FBK-1` của `audit-invariants` (tệp tải dở hay chờ xoá kho) dọn bằng `POST /api/feedback/tep-cho-xoa/chay-lai` (Toàn quyền). Nợ: `docs/BACKLOG.md` mục 52 (`BL-VE-TEP-…`); `BL-VE-TEP-DOC-SAU-LO` chờ chủ quyết.
+- **Hoàn tác:** `wrangler rollback` — bảng `fbk_attachment` thừa ra không làm hỏng mã cũ; tệp đã gửi nằm lại trong kho (mã cũ không đọc).
+
+## TRẠNG THÁI TRIỂN KHAI (cũ) — Phiên bản 2.39 ĐÃ LÊN PRODUCTION (Đưa đón theo nhóm dịch vụ: Quản trị bật / tắt «Có đưa đón» cho từng nhóm ở màn Dịch vụ; hàng «Chọn nhanh» Bến cảng Vinpearl / Bến tàu Nha Trang ở form lập đơn — ADR-0118) — CÓ migration `0121_dua_don_theo_nhom_va_diem_nhanh` — triển khai 2026-10-28 18:19 (giờ VN)
+
+Ghi 28/10/2026 từ khối tóm tắt của `npm run trien-khai` (chủ chạy `day-len` + `trien-khai`) và lệnh CHỈ ĐỌC của phiên dựng lại ADR-0118 (nhánh `claude/service-group-pickup-setup-ae4465`, nhánh 14/10 `claude/tour-dao-booking-audit-bc6c77` dựng lại trên main 2.38; ruling ở `docs/superpowers/plans/2026-10-14-dot-2-luot-1-thi-cong-nhat-ky.md`):
+- Commit `main` = `origin/main`: `714fe749`. Worker Version ID: `628ed5a5-4690-4f1d-8d39-54bdde7180ab`. Điểm khôi phục Time Travel trước khi áp: `00001c04-00000004-00005112-085e36ff094d86ac8f3af3a774f63ae5`.
+- e2e xanh; migration đã áp: `0121_dua_don_theo_nhom_va_diem_nhanh.sql` (`d1 migrations list --remote` → «No migrations to apply!»). Cổng phiên bản trước và sau deploy: ĐẠT. `audit-invariants --db remote`: «Mọi bất biến đạt, 5 cảnh báo».
+- `GET /api/auth/config` → `version 2.39`, bảo trì tắt; `GET /js/order-form.js` là bản mới (có `transferEnabled`, `quickPickOrder`).
+- Chủ đồng ý Ruling R-M và R-T ngày 28/10 (sổ thi công mục «Chủ quyết»). Mọi nhóm vẫn **bật** đưa đón (mặc định 1) ⇒ không ai thấy đổi cho tới khi Quản trị tắt một nhóm. Tắt nhóm có đơn đã xác nhận còn lượt thì đơn đó chỉ bỏ được lượt, và không đổi được ngày đi cho tới khi bỏ (R-T) — nên đếm trước khi tắt.
+- Nghiệm thu: chỉ phần chỉ đọc; chưa thử trang có đăng nhập trên production, chưa thử trên iPhone thật. Câu đếm chỉ-đọc hai mã `CANG_VINPEARL`, `BEN_TAU_NHA_TRANG` trước phát hành: phiên này không thấy kết quả (chưa kiểm).
+
+## TRẠNG THÁI TRIỂN KHAI (cũ) — Phiên bản 2.38 ĐÃ LÊN PRODUCTION (rà chữ Trang chủ: «Đơn đi», «ghi ngày …»; Hoa hồng đối tác «Có sẵn»; ẩn hai ô «Doanh thu của tôi» / «Đơn nháp» với người không lập được đơn; «Sheet đã đổi giá: <tên dịch vụ>»; trợ giúp Kế toán khớp màn hình; dải nhắc bảo mật hai lớp trên điện thoại không còn bị ô tìm che) — KHÔNG migration — triển khai 2026-10-28 14:03 (giờ VN)
+
+Ghi 28/10/2026 từ khối tóm tắt của `npm run trien-khai` (chủ chạy `day-len` + `trien-khai`) và một lệnh CHỈ ĐỌC của phiên rà chữ Trang chủ (nhánh `claude/partner-commission-menu-logic-6f9db3`):
+- Commit `main` = `origin/main`: `431bb82f`. Worker Version ID: `556acf7b-8d6e-4189-a2ea-366d0fddbf05`. e2e xanh; migration đã áp: không có.
+- Cổng phiên bản trước và sau deploy: ĐẠT. `audit-invariants --db remote`: «Mọi bất biến đạt, 5 cảnh báo». `GET /api/auth/config` → `version 2.38`, bảo trì tắt.
+- Nghiệm thu: chỉ phần chỉ đọc; chưa thử trang có đăng nhập trên production, chưa thử trên iPhone thật.
+- Bản 2.36 và 2.37 (27/10) đã lên production nhưng không có mục trạng thái trong sổ này; nội dung xem nhật ký thay đổi `src/shared/changelog.ts`.
+
+## ĐÃ PHÁT HÀNH ở bản 2.36 (27/10/2026) — Bước xác nhận đơn + «Gửi đơn» + nháp riêng tư (ADR-0135, ADR-0136)
+
+Ghi chú 28/10: tiêu đề cũ của mục này là «ĐANG CHỜ PHÁT HÀNH … CHƯA triển khai»; production đã qua 2.36 và 2.37 trước lần 2.38. Đoạn dưới là ghi chú gốc lúc chờ, giữ nguyên.
 
 Ghi 27/10/2026 bằng lệnh CHỈ ĐỌC (phiên xác nhận đơn; chủ chạy `day-len` + `trien-khai`): `origin/main` = `7b5c8218`; `GET /api/auth/config` → `version 2.36`; `d1 migrations list --remote` → không còn migration chờ; `audit-invariants --db remote` đạt, 5 cảnh báo cũ; trang chủ 200, API không phiên 401. Worker Version ID chưa ghi. Chế độ bảo trì đang bật (tới 2026-10-30) nên **chưa thử luồng có đăng nhập** trên production. C0 (đếm nháp cũ đã có khoản thu) chưa chạy: hàng rào chặn AI chạy `d1 execute --remote`, chủ tự chạy. Phần dưới là ghi chú lúc chờ phát hành, giữ để tra.
 
 Ghi 27/10/2026 (lúc chờ phát hành; nhánh `claude/xac-nhan-don-thi-cong`). Khi phát hành: **cần `npm run trien-khai`, CÓ migration `0119_yeu_cau_xac_nhan`** (ba bảng); phiên phát hành kiểm lại số migration (`ls migrations`, mọi nhánh chưa gộp) và số phiên bản ở bước A.0 (mục nhật ký đầu `src/shared/changelog.ts`, kỳ vọng ở `src/shared/app-info.test.ts`). Trước khi chạy `trien-khai`, chủ đếm nháp cũ đã có khoản thu (lệnh ở kế hoạch `docs/superpowers/plans/2026-10-19-xac-nhan-don.md`, Task 2.2 Step 0). Task 3.3b (sửa tiền khi đơn chờ) HOÃN — bản này chạy Hướng 2. Sau phát hành: Toàn quyền đánh dấu dịch vụ / nhóm cần xác nhận qua `POST /api/cai-dat/xac-nhan-don` (giao diện cài đặt chờ Đợt 5; mặc định chưa đánh dấu nên đa số đơn Đối tác đi nhánh B). Việc treo: kịch bản Chrome cũ nhắc ô «Thanh toán trước» (ghi chú đầu tệp), ba lệch chữ ADR ở `docs/SYSTEM-DESIGN.md` §16 chờ chủ.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.35 ĐÃ LÊN PRODUCTION (PR 3 «Hoa hồng + Hỗ trợ»: trang Hỗ trợ làm lại — ba thẻ, danh sách hai cột, luồng trao đổi, Gửi yêu cầu, Nhóm hỗ trợ dạng bảng; bảng từ lượt 4: «Việc của nhóm», «Hướng dẫn») — KHÔNG migration — triển khai 2026-10-27 10:32 (giờ VN)
+## TRẠNG THÁI TRIỂN KHAI (cũ) — Phiên bản 2.35 ĐÃ LÊN PRODUCTION (PR 3 «Hoa hồng + Hỗ trợ»: trang Hỗ trợ làm lại — ba thẻ, danh sách hai cột, luồng trao đổi, Gửi yêu cầu, Nhóm hỗ trợ dạng bảng; bảng từ lượt 4: «Việc của nhóm», «Hướng dẫn») — KHÔNG migration — triển khai 2026-10-27 10:32 (giờ VN)
 
 Ghi 27/10/2026 bằng lệnh CHỈ ĐỌC (người kiểm độc lập, phiên Hoa hồng + Hỗ trợ; chủ chạy `day-len` + `trien-khai`):
 - Commit `main` = `origin/main`: `33e226eb`. Worker Version ID: `0024b0ba-197e-4042-a6ec-63e08d41c63d` (tạo 2026-10-27T03:32:14Z). Bản liền trước: `0bc2e81d-25b9-4f06-8caa-1802ac6eb362` (2.34).
@@ -245,6 +275,16 @@ Khối do `npm run trien-khai` in ra (chủ chạy), kèm phần AI tự kiểm 
 - **Hoàn tác:** migration 0095 chỉ THÊM (một cột, hai view, sáu trigger), không sửa hay xoá dữ liệu cũ. Chưa diễn tập quay Worker về bản trước sau khi đã có loại mới trong dữ liệu — AI chưa kiểm hành vi bản cũ với dữ liệu đó; cần quay lại thì dùng điểm Time Travel ở trên và xem phần Hoàn tác của tệp này.
 - **Chưa kiểm:** bộ e2e đầy đủ và kịch bản Chrome sau lượt sửa cuối của nhánh (người kiểm độc lập không tự chạy; khối `trien-khai` báo e2e xanh nhưng AI chưa đọc chi tiết); màn «Loại đối tác» và ô «Thêm công việc» ở Danh bạ bằng tài khoản thật; iPhone; dữ liệu thật về vai cũ `STAFF` / `SALES` (xem `BL-ADR0117-VAI-CU`).
 - **Còn mở:** lỗi tương phản màu của dòng loại «đã tắt» (`.row-off`, CSS dùng chung; ghi ở README bằng chứng `docs/evidence/2026-10-14-loai-doi-tac/`); hố vai cũ `STAFF` / `SALES` kết thúc ngày tương lai (`docs/BACKLOG.md` `BL-ADR0117-VAI-CU`); **lần 2 của ADR-0117 (mức TA dùng chung, dựng lại bảng `prc_commission_rule`) CHƯA duyệt, không làm**; năm mục sổ hoãn hạn 2026-10-31 (`docs/quyen-hoan.json`: TNV-G1/G3/G4, HC-4.2, HC-5.19) cần chủ gia hạn hoặc đóng trước khi `npm test` đỏ từ 1/11.
+
+## TRẠNG THÁI TRIỂN KHAI (cũ) — Phiên bản 1.95 ĐÃ LÊN PRODUCTION (màn Tạo đơn bốn bước: thanh tiến độ dính, khách lên đầu, gập các ô ít dùng; chữ «Check-in» đổi thành «Khách có mặt», phiếu gửi khách ghi «Xe đón khách») — không migration (2026-10-14 05:16 giờ VN)
+
+Chủ chạy `day-len` rồi `trien-khai` (khối kết quả của lệnh, dán lại ở đây theo yêu cầu của lệnh):
+
+- **Commit:** `52f4c123` (= `main` lúc triển khai). Không migration nên không có điểm khôi phục Time Travel mới.
+- **Worker Version ID:** `583ab741-8235-4c2d-be6e-a906fcb97381` (2026-10-13T22:16Z).
+- **Kiểm lúc triển khai:** e2e 60/60 kịch bản xanh; `audit-invariants --db remote` ĐẠT (4 cảnh báo, không chặn); cổng phiên bản trước và sau deploy ĐẠT (production chạy đúng 1.95).
+- **Chưa kiểm:** iPhone thật và VoiceOver với màn bốn bước; 25 ca sổ vàng vẫn chờ Kế toán. Bản này đã có hai lượt kiểm độc lập (đạt) trước khi gộp; số đo và ảnh ở `docs/evidence/2026-10-14-tao-don-bon-buoc/`.
+- Bản 1.96 (ADR-0117 lần 1) lên sau bản này; trạng thái hiện hành ở mục trên cùng.
 
 ## TRẠNG THÁI TRIỂN KHAI (cũ) — Phiên bản 1.94 ĐÃ LÊN PRODUCTION (sửa nút «Gửi yêu cầu» của màn «Điều chỉnh công nợ»; Trợ giúp Kế toán và Quản trị cho màn đó; kèm bản 1.93 — sửa số khách, ADR-0114: nhắc khuyến mại khi bớt khách, lịch sử số khách, mỗi đơn có ít nhất một người lớn) — không migration (2026-10-13 khoảng 23:13 giờ VN)
 

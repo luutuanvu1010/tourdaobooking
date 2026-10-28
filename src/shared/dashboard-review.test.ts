@@ -64,7 +64,7 @@ test("reviewAlerts: Toàn quyền + dữ liệu có cả hai cảnh báo → tr�
   const tickets = [ticket("YC-0042", "NEW", "Báo lỗi"), ticket("YC-0041", "NEW", "Đề xuất"), ticket("YC-0040", "ACK")];
   const r = reviewAlerts(SUPER_ADMIN, { catalogItems: items, tickets });
   assert.deepEqual(r, {
-    catalogConflict: { code: "CANO_RIENG", base: 2_400_000, current: 2_600_000, moreCount: 0, hidden: false },
+    catalogConflict: { code: "CANO_RIENG", name: "Dịch vụ CANO_RIENG", base: 2_400_000, current: 2_600_000, moreCount: 0, hidden: false },
     feedbackQueue: { count: 2, items: [{ id: "YC-0042", code: "YC-0042", kindName: "Báo lỗi" }, { id: "YC-0041", code: "YC-0041", kindName: "Đề xuất" }] },
     expiringDocs: null,
     doiChieu: null,
@@ -107,7 +107,7 @@ test("reviewAlerts: nhiều dịch vụ lệch Sheet → lấy dịch vụ ĐẦ
     catalogItem("C", [{ code: "adult", base: 5, current: 6, override: 5 }]),
   ];
   const r = reviewAlerts(ADMIN, { catalogItems: items, tickets: [] });
-  assert.deepEqual(r?.catalogConflict, { code: "A", base: 1, current: 2, moreCount: 2, hidden: false });
+  assert.deepEqual(r?.catalogConflict, { code: "A", name: "Dịch vụ A", base: 1, current: 2, moreCount: 2, hidden: false });
 });
 
 test("reviewAlerts: góp ý ĐÃ ĐỌC (unread=false) nhưng còn trạng thái NEW vẫn tính là 'chưa trả lời' — không dùng cờ unread (admin mở xem nhưng chưa trả lời)", () => {
@@ -140,14 +140,14 @@ test("reviewAlerts: chỉ có cảnh báo góp ý (không có cảnh báo giá) 
 test("reviewAlerts: dịch vụ ĐÃ ẨN (không bán) mà vẫn có cảnh báo lệch Sheet → catalogConflict.hidden = true (Important fix: KHÔNG được báo 'vẫn đang bán' cho dịch vụ đã ẩn)", () => {
   const items = [catalogItem("CANO_RIENG", [{ code: "adult", base: 2_400_000, current: 2_600_000, override: 2_500_000 }], true)];
   const r = reviewAlerts(ADMIN, { catalogItems: items, tickets: [] });
-  assert.deepEqual(r?.catalogConflict, { code: "CANO_RIENG", base: 2_400_000, current: 2_600_000, moreCount: 0, hidden: true });
+  assert.deepEqual(r?.catalogConflict, { code: "CANO_RIENG", name: "Dịch vụ CANO_RIENG", base: 2_400_000, current: 2_600_000, moreCount: 0, hidden: true });
 });
 
 test("reviewAlerts (ADR-0038): Quản trị KHÔNG thấy cảnh báo góp ý DÙ dữ liệu có góp ý Mới — chỉ Toàn quyền xử lý Góp ý; cảnh báo giá vẫn giữ", () => {
   const items = [catalogItem("CANO_RIENG", [{ code: "adult", base: 2_400_000, current: 2_600_000, override: 2_500_000 }])];
   const tickets = [ticket("YC-0042", "NEW")];
   assert.deepEqual(reviewAlerts(ADMIN, { catalogItems: items, tickets }), {
-    catalogConflict: { code: "CANO_RIENG", base: 2_400_000, current: 2_600_000, moreCount: 0, hidden: false },
+    catalogConflict: { code: "CANO_RIENG", name: "Dịch vụ CANO_RIENG", base: 2_400_000, current: 2_600_000, moreCount: 0, hidden: false },
     feedbackQueue: null,
     expiringDocs: null,
     doiChieu: null,

@@ -12,6 +12,54 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Hoa hồng đối tác (chủ dự án 28/10, bấm «Cho hiện ngay»): dòng mức bắt đầu hôm nay nay có nút «Đổi» / «Ngừng»; hộp Đổi chọn ngày từ ngày mai (máy chủ đã cho từ trước, `kiemDoi`).
+    // Chỉ giao diện, KHÔNG migration. Số 2.41 và ngày là TẠM (main có 2.40 tạm của ADR-0144 lúc nhập) — phiên phát hành kiểm lại ở bước A.0 của docs/HANDOFF-N1.md.
+    version: "2.41",
+    date: "2026-10-28",
+    items: [
+      { kind: "sua", text: "Hoa hồng đối tác: mức vừa thêm trong hôm nay đã có nút «Đổi» và «Ngừng» ngay, không phải chờ sang hôm sau." },
+      { kind: "sua", text: "Đổi một mức thêm trong hôm nay thì mức mới áp dụng từ ngày mai; đơn xác nhận trong hôm nay vẫn tính theo mức cũ." },
+    ],
+  },
+  {
+    // Đính kèm tệp trong vé hỗ trợ (ADR-0144; kế hoạch docs/superpowers/plans/2026-10-28-dinh-kem-ve-ho-tro.md). CÓ migration 0124 và kho R2 MỚI `tourdao-sales-ho-tro`
+    // (chủ tạo kho TRƯỚC npm run trien-khai — docs/HANDOFF-N1.md). Số 2.40 và ngày là TẠM (production 2.38, main có 2.39 tạm của ADR-0118 lúc làm) — phiên phát hành kiểm lại ở bước A.0.
+    version: "2.40",
+    date: "2026-10-28",
+    items: [
+      { kind: "moi", text: "Hỗ trợ: bấm «Đính kèm» để gửi kèm tới 5 ảnh (JPG, PNG, HEIC) hoặc tệp PDF, tổng tối đa 10 MB một tin. Ảnh chụp tự thu nhỏ trước khi gửi." },
+      { kind: "moi", text: "Trong cuộc trao đổi, ảnh hiện xem trước ngay dưới tin, tệp PDF có nút «Tải về». Ai đọc được tin thì xem được tệp kèm tin đó." },
+      { kind: "moi", text: "Toàn quyền gỡ được tệp gửi nhầm; tin vẫn giữ dòng «Tệp đã được gỡ»." },
+    ],
+  },
+  {
+    // Đưa đón theo nhóm dịch vụ + điểm «Chọn nhanh» (ADR-0118, chủ duyệt 14/10; thi công 14/10 trên nhánh claude/tour-dao-booking-audit-bc6c77, dựng lại trên main 28/10).
+    // CÓ migration 0121 (đổi từ số tạm 0098) nên cần npm run trien-khai sau day-len. Số 2.39 và ngày là TẠM — phiên phát hành kiểm lại ở bước A.0 của docs/HANDOFF-N1.md.
+    version: "2.39",
+    date: "2026-10-28",
+    items: [
+      { kind: "moi", text: "Quản trị bật hoặc tắt phần Đưa đón cho từng nhóm ở trang Dịch vụ & giá. Nhóm tắt thì dịch vụ của nhóm không có phần Đưa đón khi lập đơn, ghi là «Không đón»." },
+      { kind: "moi", text: "Ở form Tạo đơn, dưới ô Nơi trả (chiều đi) và Nơi đón (chiều về) có nút bấm nhanh cho những điểm hay dùng như Bến cảng Vinpearl." },
+      { kind: "moi", text: "Quản trị chọn điểm nào hiện thành nút bấm nhanh và xếp thứ tự ở trang Địa điểm, cột Chọn nhanh." },
+      { kind: "doi", text: "Nhóm vừa tắt Đưa đón: đơn đã xác nhận chỉ bỏ được lượt đưa đón, không thêm hay sửa; đơn nháp phải bỏ lượt đưa đón rồi mới xác nhận hoặc gửi được." },
+    ],
+  },
+  {
+    // Rà chữ Trang chủ (chủ 28/10): «Chuyến đón» → «Đơn đi», «khai <ngày>» → «ghi ngày <ngày>» (chủ chọn trong hộp hỏi), nhãn «Công ty thu – chuyển khoản» sai cho khoản tiền mặt.
+    // Lượt 3 (chủ 28/10): ẩn hai ô «Của tôi» với người không lập được đơn; cảnh báo đổi giá ghi tên dịch vụ. Chỉ giao diện, KHÔNG migration. Số 2.38 và ngày là TẠM — phiên phát hành kiểm lại ở bước A.0 của docs/HANDOFF-N1.md.
+    version: "2.38",
+    date: "2026-10-28",
+    items: [
+      { kind: "sua", text: "Trang chủ: khối «Chuyến đón» đổi tên thành «Đơn đi», thẻ «Chuyến hôm nay» thành «Đơn đi hôm nay», vì các số ở đây đếm đơn có ngày đi, không phải chuyến xe." },
+      { kind: "sua", text: "Trang chủ Kế toán, khối Chờ đối chiếu: chữ «khai 18/10» nay ghi «ghi ngày 18/10»; khoản tiền mặt chưa nộp về công ty không còn bị ghi nhầm là «chuyển khoản»." },
+      { kind: "sua", text: "Hoa hồng đối tác: «Loại gốc» đổi thành «Có sẵn», kèm câu nói vì sao không tắt được; mức bắt đầu hôm nay ghi «đổi hoặc ngừng từ ngày mai» thay vì để trống." },
+      { kind: "sua", text: "Danh bạ, khối Hoa hồng hiện hành của đại lý: chính sách gắn riêng nay gọi đúng là «Chính sách riêng», không còn lẫn với «mức riêng»." },
+      { kind: "sua", text: "Trang chủ Kế toán không còn hai ô «Doanh thu của tôi» và «Đơn nháp», vì hai ô này chỉ đếm đơn do chính người xem lập nên với Kế toán luôn bằng 0." },
+      { kind: "sua", text: "Trang chủ Quản trị, khối Cần xem lại: dòng «Sheet đã đổi giá» nay ghi tên dịch vụ thay cho mã dịch vụ." },
+      { kind: "sua", text: "Trang chủ trên điện thoại: dải nhắc «Còn … ngày để bật bảo mật hai lớp» không còn bị ô tìm kiếm che mất chữ." },
+    ],
+  },
+  {
     // Sửa lỗi 2.36 (ADR-0136 Đ10): tin «đang chờ xác nhận» không vào hộp thông báo, màn hình khoá đọc nhầm tin cũ. CÓ migration 0120 (dựng lại view hộp thư)
     // nên cần npm run trien-khai. Số 2.37 và ngày là TẠM (production 2.36 lúc làm — GET /api/auth/config 27/10) — phiên phát hành kiểm lại ở bước A.0 của docs/HANDOFF-N1.md.
     version: "2.37",

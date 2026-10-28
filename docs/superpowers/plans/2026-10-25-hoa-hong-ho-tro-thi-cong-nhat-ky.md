@@ -70,3 +70,9 @@ Sổ chi tiết R30–R46 ở `.superpowers/sdd/2026-10-25-hoa-hong-ho-tro-3-gia
 - `demTuanNay` khoá tuần giờ VN, máy chủ gom theo UTC — lệch tới 7 giờ sát nửa đêm Chủ nhật.
 - Danh sách nhóm trong hộp «Gửi yêu cầu» nạp lúc vào trang; công tắc «Nhạy cảm» ở hộp Sửa lưu theo nút Lưu còn ở bảng lưu ngay.
 - Hàng rào tệp luật (`guard-tep.mjs`) không chặn ghi tệp luật bằng trình thông dịch (python): người thi công đợt 3 đã sửa được `web/CLAUDE.md` rồi tự hoàn nguyên (không vào commit) — báo chủ.
+
+## Ruling sau phát hành (28/10)
+
+- R-28.10-a (chủ dự án 28/10, bấm «Cho hiện ngay»: «Cho nút Đổi hiện ngay với mức tạo hôm nay, mức mới áp từ ngày mai»): đổi `BAN-GIAO.md` §4 (dòng 43 «chỉ ở dòng … bắt đầu trước hôm nay»; dòng 48 «ô Từ mặc định hôm nay»). Dòng mức bắt đầu hôm nay, chưa có ngày ngừng, nay có «Đổi» / «Ngừng» (`nutDoiNgung`); hộp Đổi của dòng đó mặc định và sớm nhất là ngày mai (`ngayDoiSomNhat`, bài đối chiếu với `kiemDoi` ở `pricing/doi-muc.test.ts`) kèm câu `cauDoiTuNgayMai`. Máy chủ không đổi. Lý do: chủ không tìm thấy nút, chỉ thấy chữ xám «đổi hoặc ngừng từ ngày mai».
+- R-28.10-b (người thi công tự quyết, đảo ngược được): «Ngừng» hiện cùng «Đổi» (chung một hàm, chung hộp hai việc ở điện thoại); Ngừng dòng bắt đầu hôm nay = mức chạy hết hôm nay. Người kiểm độc lập khuyến nghị giữ. Bài `pricing/rules.test.ts` ghim máy chủ nhận ngày đóng = ngày bắt đầu (quan sát đỏ khi siết `<` thành `<=`, 28/10).
+- Kịch bản Chrome `hoa-hong-smoke.mjs` thêm bước 5b. Lần chạy đầu 28/10: 390 đạt cả 13 bước; 1040 đỏ ở 5b vì axe đo tương phản đầu hộp lúc hộp còn trượt (kéo bước 6 đỏ theo vì hộp còn mở); chạy lại riêng 1040 đạt 12/12. Nợ nhỏ: axe trong kịch bản không chờ hộp trượt xong — có thể chập chờn ở bước khác.

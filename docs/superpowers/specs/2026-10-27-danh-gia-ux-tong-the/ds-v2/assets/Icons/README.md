@@ -1,0 +1,3 @@
+42 biểu tượng nét của Island Booking System: 40 chép đúng path/circle/rect từ `web/icons.ts` (lưới 24 × 24, nét 1,8; `plus`, `back`, `check` nét 2,2; đầu nét tròn; không tô đặc) và 2 MỚI cho tông trạng thái (`alertCircle` cho tông Đỏ, `minus` cho tông Xám), vẽ cùng luật.
+
+Màu nét trong tệp là `c-text` (#0f172a) vì trang bộ hiện SVG qua `<img>`; trong mã biểu tượng lấy `currentColor` của phần tử cha (ví dụ `c-on-bar` trên thanh trên, `c-sand-text` trong huy hiệu tông Cát). Cỡ 24 khi đứng một mình hay trong thanh tab / thanh bên, `icon-md` 20 trước chữ trong nút, 14 trong huy hiệu. Tên tệp = tên khoá trong `web/icons.ts`; thêm hình mới thì thêm vào đó trước, bộ chép sau.

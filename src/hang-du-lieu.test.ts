@@ -41,6 +41,7 @@ const NGOAI_LE_TEN: Record<string, string> = {
   "vc_vehicle_document.document_number": "số giấy tờ XE — ADR-0040 D2 chỉ coi giấy tờ của người là dữ liệu cá nhân",
 };
 const N3_GHIM = [
+  "fbk_attachment.content_hash", "fbk_attachment.storage_key", // ADR-0144: tệp kèm vé có thể là ảnh giấy tờ gửi nhầm — cùng hạng với pty_attachment
   "pty_attachment.content_hash", "pty_attachment.storage_key",
   "pty_organization_document.document_number", "pty_organization_document.issued_place", "pty_organization_document.number_key",
   "pty_person_document.document_number", "pty_person_document.issued_place", "pty_person_document.number_key",

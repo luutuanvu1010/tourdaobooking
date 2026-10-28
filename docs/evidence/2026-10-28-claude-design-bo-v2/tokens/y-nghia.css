@@ -1,0 +1,111 @@
+/* TẦNG 2 — Ý NGHĨA. Mỗi token nói "dùng để làm gì", trỏ về tầng Gốc.
+   Thành phần chỉ đọc tầng này (hoặc tầng Thành phần khi cần giá trị khác).
+   Định dạng chú thích: công dụng | nguồn */
+:root{
+/* == Nền == */
+  --c-nen: var(--mau-trang); /* Nền trang và thẻ | từ mã */
+  --c-nen-phu: var(--mau-xam-75); /* Nền phụ: thanh bên, khối, ô tắt | từ mã */
+  --c-nen-re: var(--mau-xam-100); /* Nền khi rê dòng, nút phụ | từ mã */
+  --c-nen-toi: var(--mau-bien-dam); /* Nền tối duy nhất — báo xong ngắn | từ mã */
+/* == Chữ == */
+  --c-chu: var(--mau-xam-900); /* Chữ chính | từ mã */
+  --c-chu-phu: var(--mau-xam-600); /* Chữ phụ, nhãn ô, thông tin thứ yếu | từ mã */
+  --c-chu-goi-y: var(--mau-xam-400); /* Chữ gợi ý trong ô (không dùng cho chữ thật) | từ mã */
+  --c-chu-tren-toi: var(--mau-xam-50); /* Chữ trên nền tối | từ mã */
+  --c-chu-tren-chinh: var(--mau-trang); /* Chữ trên nút chính, san hô, đỏ đặc | từ mã */
+/* == Viền == */
+  --c-vien: var(--mau-xam-200); /* Viền thẻ, kẻ dòng | từ mã */
+  --c-vien-o: var(--mau-xam-300); /* Viền ô nhập | từ mã */
+  --c-vien-o-re: var(--mau-xam-400); /* Viền ô nhập khi rê | từ mã */
+/* == Màu chính == */
+  --c-chinh: var(--mau-bien); /* Màu chính: nút chính, chữ nhấn, mục đang chọn | từ mã */
+  --c-chinh-re: var(--mau-bien-re); /* Màu chính khi rê | từ mã */
+  --c-chinh-dam: var(--mau-bien-dam); /* Màu chính khi bấm giữ | từ mã */
+  --c-chinh-nhat: var(--mau-bien-nhat); /* Nền mục / tab / chip đang chọn | từ mã */
+  --c-chinh-nhat-re: var(--mau-bien-nhat-re); /* Nền mục đang chọn khi rê | từ mã */
+/* == Nhấn (san hô) == */
+  --c-nhan: var(--mau-san-ho); /* CHỈ "Xác nhận đơn để gửi khách" và "+ Tạo đơn" | từ mã */
+  --c-nhan-re: var(--mau-san-ho-re); /* San hô khi rê | từ mã */
+/* == Nguy hiểm == */
+  --c-nguy-hiem: var(--mau-do); /* Viền ô lỗi, chữ/viền nút nguy hiểm, nút đỏ đặc | từ mã */
+  --c-nguy-hiem-re: var(--mau-do-chu); /* Nút đỏ đặc khi rê | từ mã */
+/* == Trạng thái · năm tông (nền / chữ) == */
+  --tt-cat-bg: var(--mau-cat-nhat); /* Cát — chờ, cần làm | từ mã */
+  --tt-cat-chu: var(--mau-cat-chu); /* Chữ tông Cát | từ mã */
+  --tt-bien-bg: var(--mau-bien-nhat); /* Biển — đang diễn ra | từ mã */
+  --tt-bien-chu: var(--mau-bien); /* Chữ tông Biển | từ mã */
+  --tt-la-bg: var(--mau-la-nhat); /* Xanh lá — xong, tốt | từ mã */
+  --tt-la-chu: var(--mau-la-chu); /* Chữ tông Xanh lá | từ mã */
+  --tt-do-bg: var(--mau-do-nhat); /* Đỏ — huỷ, lỗi, quá hạn | từ mã */
+  --tt-do-chu: var(--mau-do-chu); /* Chữ tông Đỏ | từ mã */
+  --tt-xam-bg: var(--mau-xam-75); /* Xám — nháp, ngưng, khoá | từ mã */
+  --tt-xam-chu: var(--mau-xam-600); /* Chữ tông Xám | từ mã */
+/* == Tiêu điểm == */
+  --c-tieu-diem: var(--mau-dam-pha-ruc); /* Vành tiêu điểm bàn phím, vạch chỉ báo mục đang chọn | từ mã */
+  --vanh-tieu-diem: 3px; /* Độ dày vành tiêu điểm (mã cũ 2px) | chốt §3 */
+  --vanh-cach: 2px; /* Khe giữa vành tiêu điểm và điều khiển | MỚI: vành không đè lên viền ô */
+/* == Chữ theo vai == */
+  --f-chinh: var(--phong-chinh); /* @kind font */ /* Phông giao diện — đổi được ở màn Giao diện | từ mã */
+  --f-so: var(--phong-so); /* @kind font */ /* Mã đơn, biển số, số kỹ thuật | từ mã */
+  --fs-tieu-de-trang: var(--co-9); /* Tiêu đề trang, điện thoại (20) | chốt §5 */
+  --fs-tieu-de-trang-rong: var(--co-11); /* Tiêu đề trang, máy tính (24) | chốt §5 */
+  --fs-tieu-de-khoi: var(--co-5); /* Tiêu đề khối, điện thoại (16) | chốt §5 */
+  --fs-tieu-de-khoi-rong: var(--co-7); /* Tiêu đề khối, máy tính và bảng trượt (18) | chốt §5 */
+  --fs-noi-dung: var(--co-5); /* Nội dung, nút, ô nhập (16) | chốt §5 */
+  --fs-phu: var(--co-3); /* Chữ phụ, nhãn ô, câu lỗi (14) | chốt §5 */
+  --fs-huy-hieu: var(--co-1); /* Huy hiệu, nhãn tab dưới (12) | chốt §5 */
+  --fs-so-lon: var(--co-12); /* Số lớn trên ô số liệu (26) | từ mã */
+  --lh-noi-dung: var(--dong-24); /* @kind font */ /* Dòng của chữ nội dung 16 | từ mã */
+  --lh-phu: var(--dong-20); /* @kind font */ /* Dòng của chữ phụ 14 | từ mã */
+  --lh-huy-hieu: var(--dong-18); /* @kind font */ /* Dòng của chữ 12 | từ mã */
+  --lh-tieu-de: var(--dong-tieu-de); /* @kind font */ /* Dòng tiêu đề 1,16 | từ mã */
+  --fw-noi-dung: var(--dam-400); /* @kind font */ /* Nội dung | chốt §5 */
+  --fw-nhan: var(--dam-500); /* @kind font */ /* Nhãn, nút, huy hiệu | chốt §5 */
+  --fw-tieu-de: var(--dam-600); /* @kind font */ /* Tiêu đề, số lớn | chốt §5 */
+/* == Hình khối == */
+  --r-dieu-khien: var(--bo-8); /* Bo nút, ô nhập, ô tích | từ mã */
+  --r-the: var(--bo-12); /* Bo thẻ, dải thông báo, báo xong | từ mã */
+  --r-bang-truot: var(--bo-18); /* Bo bảng trượt / hộp thoại | từ mã */
+  --r-tron: var(--bo-999); /* Bo chip, tab, huy hiệu, công tắc | từ mã */
+  --sh-the: var(--bong-1); /* Bóng thẻ — bóng nhẹ duy nhất trong nội dung | từ mã */
+  --sh-noi: var(--bong-2); /* Bóng vật nổi: báo xong, bảng chọn thả xuống | từ mã */
+  --sh-lop-phu: var(--bong-3); /* Bóng bảng trượt, hộp thoại | từ mã */
+/* == Khoảng cách theo vai == */
+  --pad-dong: var(--kc-3) var(--kc-4); /* Đệm dòng danh sách 12×16 | chốt §5 */
+  --pad-the: var(--kc-4); /* Đệm thẻ, điện thoại | MỚI: một đệm thẻ cho mọi thẻ */
+  --pad-the-rong: var(--kc-5); /* Đệm thẻ, máy tính | MỚI: một đệm thẻ cho mọi thẻ */
+  --le-trang: var(--kc-4); /* Lề trang, điện thoại | MỚI: lề chung cho mọi trang */
+  --le-trang-rong: var(--kc-6); /* Lề trang, máy tính | MỚI: lề chung cho mọi trang */
+  --gap-khoi: var(--kc-5); /* Khoảng giữa các khối trong trang | MỚI: nhịp dọc chung */
+/* == Chiều cao == */
+  --h-cham: 44px; /* Vùng chạm tối thiểu | từ mã */
+  --h-dieu-khien: 44px; /* Nút, ô nhập, tab, hàng bảng | từ mã */
+  --h-dieu-khien-lon: 52px; /* Nút / ô ở chân dính điện thoại, Đăng nhập | từ mã */
+  --h-thanh-tren: 60px; /* Thanh trên | từ mã */
+  --h-thanh-tab: 56px; /* Thanh tab dưới, chưa tính vùng an toàn | từ mã */
+  --h-dong: 44px; /* Dòng danh sách tối thiểu | chốt §5 */
+/* == Bề rộng == */
+  --w-noi-dung: 1280px; /* Nội dung tối đa ở khổ 1440 | chốt §5 */
+  --w-thanh-ben: 248px; /* Thanh bên máy tính | từ mã */
+  --w-bang-truot: 520px; /* Hộp thoại giữa màn ở máy tính | từ mã */
+  --w-bao-xong: 360px; /* Báo xong ngắn tối đa | từ mã */
+/* == Lớp xếp == */
+  --z-dinh: 10; /* @kind other */ /* Thanh trên, tiêu đề bảng dính, thanh dính đáy | từ mã */
+  --z-tab: 20; /* @kind other */ /* Thanh tab dưới | từ mã */
+  --z-bang-truot: 30; /* @kind other */ /* Bảng trượt, hộp thoại | từ mã */
+  --z-phu: 40; /* @kind other */ /* Báo xong ngắn | từ mã */
+  --z-tren-cung: 50; /* @kind other */ /* Dải trên trang khi khẩn, bảo trì | từ mã */
+/* == Chuyển động == */
+  --cd-cong: cubic-bezier(.22,1,.36,1); /* @kind other */ /* Đường cong duy nhất | từ mã */
+  --cd-nhanh: 150ms; /* @kind other */ /* Rê, bấm, đổi màu (mã cũ 180ms) | chốt §3 */
+  --cd-vua: 200ms; /* @kind other */ /* Mở bảng trượt, báo xong, gập nhóm (mã cũ 300ms) | chốt §3 */
+/* == Biểu tượng == */
+  --bt-co: 20px; /* Cỡ biểu tượng trong nút, ô, dòng | chốt §5 */
+  --bt-co-lon: 24px; /* Cỡ biểu tượng thanh trên, thanh tab, trạng thái rỗng | từ mã */
+  --bt-net: 2; /* @kind other */ /* Nét vẽ (mã cũ 1.8 và 2.2) | chốt §8 */
+/* == Vỏ ngoài (Toàn quyền đổi được) == */
+  --vo-bg: var(--mau-trang); /* Nền thanh trên + thanh trạng thái | từ mã */
+  --vo-chu: var(--mau-bien); /* Chữ, biểu tượng trên thanh trên | từ mã */
+  --vo-vien: var(--mau-xam-200); /* Kẻ dưới thanh trên | từ mã */
+}
+@media (prefers-reduced-motion: reduce){:root{--cd-nhanh:0ms; /* @kind other */ --cd-vua:0ms; /* @kind other */}}

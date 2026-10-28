@@ -1,0 +1,11 @@
+@import url("tokens/fonts.css");
+@import url("tokens/goc.css");
+@import url("tokens/y-nghia.css");
+@import url("tokens/thanh-phan.css");
+@import url("tokens/nen-tang.css");
+@import url("components/hanh-dong/hanh-dong.css");
+@import url("components/nhap/nhap.css");
+@import url("components/hien-thi/hien-thi.css");
+@import url("components/dieu-huong/dieu-huong.css");
+@import url("components/phan-hoi/phan-hoi.css");
+@import url("components/trang/trang.css");

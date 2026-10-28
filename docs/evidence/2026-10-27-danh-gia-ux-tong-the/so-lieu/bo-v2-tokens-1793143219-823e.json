@@ -1,0 +1,1450 @@
+{
+  "name": "Island Booking System — Design System v2",
+  "version": 1,
+  "meta": {
+    "source": "github",
+    "repo": "luutuanvu1010/tourdaobooking",
+    "ref": "main@2847b6c2",
+    "paths": {
+      "tokens": [
+        "public/app.css (:root, dòng 26–558)"
+      ],
+      "fonts": [
+        "public/fonts/"
+      ],
+      "assets": [
+        "public/icons/",
+        "web/icons.ts"
+      ],
+      "docs": [
+        "docs/superpowers/specs/2026-10-27-danh-gia-ux-tong-the/HE-THONG-HOP-NHAT.md"
+      ]
+    },
+    "synced": "2026-10-27",
+    "ghiChu": "Giá trị chép từ mã; cấu trúc ba tầng (gốc → ý nghĩa → thành phần) theo đề cương đã duyệt ở cổng 1. Token đánh dấu MỚI / ĐỔI chưa vào mã; token BỎ không có mặt ở đây, liệt kê trong README.md."
+  },
+  "color": {
+    "themes": [
+      {
+        "id": "light",
+        "name": "Sáng (duy nhất)"
+      }
+    ],
+    "tokens": [
+      {
+        "name": "c-primary",
+        "value": "#0c4a6e",
+        "usage": "Gốc · tourdaovn. Biển đậm: nút chính, chữ nhấn, mục đang chọn, dải tóm tắt. Chữ trắng (c-on-dark) trên nền này 10,9:1."
+      },
+      {
+        "name": "c-primary-strong",
+        "value": "#082f49",
+        "usage": "Gốc · tourdaovn. Biển đậm hơn: chữ tiêu đề trên nền nhạt khi cần nhấn, bóng nút chính."
+      },
+      {
+        "name": "c-primary-soft",
+        "value": "#dcebf6",
+        "usage": "Gốc · tourdaovn. Biển nhạt: nền mục đang chọn, nền nút phụ nhạt, nền huy hiệu tông Biển. Chữ c-primary trên nền này 7,9:1."
+      },
+      {
+        "name": "c-accent",
+        "value": "#c0392b",
+        "usage": "Gốc · tourdaovn. San hô: CHỈ hành động chốt («Xác nhận đơn để gửi khách»), nút tròn «+ Tạo đơn» thanh tab, nhãn giá. Không dùng cho lỗi hay xoá. Chữ trắng 5,4:1."
+      },
+      {
+        "name": "c-accent-strong",
+        "value": "#96271a",
+        "usage": "Gốc · tourdaovn. San hô đậm: rê chuột nút san hô, chữ giá trên nền san hô nhạt."
+      },
+      {
+        "name": "c-accent-soft",
+        "value": "#fef2f0",
+        "usage": "Gốc · tourdaovn. San hô nhạt: nền nhãn giá, nền nhắc «đặt gấp» đi kèm chữ c-accent-strong."
+      },
+      {
+        "name": "c-sand",
+        "value": "#f5a623",
+        "usage": "Gốc · tourdaovn. Cát: số «Còn lại» trên khối tổng cộng đậm, biểu tượng nhắc. Không làm chữ trên trắng (2,0:1)."
+      },
+      {
+        "name": "c-sand-soft",
+        "value": "#fbe3b3",
+        "usage": "Gốc · tourdaovn. Nền huy hiệu và dải tông Cát (chờ, cần làm, cảnh báo nhẹ) cùng chữ c-sand-text (7,6:1)."
+      },
+      {
+        "name": "c-sand-text",
+        "value": "#5a4109",
+        "usage": "Gốc · tourdaovn. Chữ trên nền c-sand-soft và c-tile-toi-bg."
+      },
+      {
+        "name": "c-sand-border",
+        "value": "#e9d3a4",
+        "usage": "Gốc · tourdaovn. Viền dải cảnh báo nhẹ tông Cát (chỉ khi dải cần viền)."
+      },
+      {
+        "name": "c-surface",
+        "value": "#ffffff",
+        "usage": "Gốc · tourdaovn. Nền thẻ, nền thanh trên, nền bảng trượt, nền ô nhập. Gộp c-card và c-bg (bí danh BỎ)."
+      },
+      {
+        "name": "c-surface-alt",
+        "value": "#f2f5f9",
+        "usage": "Gốc · Thị giác 1.70 (2/10). Nền trang, nền thanh bên, nền huy hiệu tông Xám, nền màn che bảo trì. Lệch tourdaovn có chủ đích."
+      },
+      {
+        "name": "c-text",
+        "value": "#0f172a",
+        "usage": "Gốc · tourdaovn. Chữ nội dung trên c-surface và c-surface-alt (16,9:1). Cũng là màu nét của 40 biểu tượng khi hiện qua <img>."
+      },
+      {
+        "name": "c-text-muted",
+        "value": "#475569",
+        "usage": "Gốc · tourdaovn. Chữ phụ, nhãn ô, mã, tiêu đề nhóm thanh bên; chữ huy hiệu tông Xám. Trên c-surface 7,5:1, trên c-surface-alt 6,8:1."
+      },
+      {
+        "name": "c-text-inverse",
+        "value": "#f8fafc",
+        "usage": "Gốc · tourdaovn. Chữ trên nền tối (hiếm dùng; nút chính dùng c-on-dark)."
+      },
+      {
+        "name": "c-border",
+        "value": "#e1e7ef",
+        "usage": "Gốc · Thị giác 1.70. Viền thẻ, kẻ dòng danh sách, đường mảnh dưới thanh trên, viền thanh bên. Gộp c-line (bí danh BỎ)."
+      },
+      {
+        "name": "c-green-soft",
+        "value": "#dcfce7",
+        "usage": "Gốc · tourdaovn. Nền huy hiệu và dải tông Xanh lá (xong, tốt) cùng chữ c-green-text (6,7:1)."
+      },
+      {
+        "name": "c-green-text",
+        "value": "#166534",
+        "usage": "Gốc · tourdaovn. Chữ trên c-green-soft; biểu tượng dấu tích tông Xanh lá."
+      },
+      {
+        "name": "c-green-border",
+        "value": "#a7e3bc",
+        "usage": "Gốc · đã trong mã (20/9). Viền dải tông Xanh lá khi cần viền."
+      },
+      {
+        "name": "c-danger",
+        "value": "#b01235",
+        "usage": "Gốc · đã trong mã (20/9). Nền nút nguy hiểm trong hộp xác nhận (chữ trắng 7,6:1), viền ô đang lỗi, biểu tượng lỗi."
+      },
+      {
+        "name": "c-danger-text",
+        "value": "#8e0e2b",
+        "usage": "Gốc · đã trong mã. Chữ lỗi dưới ô, chữ huy hiệu tông Đỏ trên c-danger-soft (8,0:1)."
+      },
+      {
+        "name": "c-danger-soft",
+        "value": "#fde9ee",
+        "usage": "Gốc · đã trong mã. Nền huy hiệu, dải lỗi chặn, nền dòng xoá trong hộp xác nhận."
+      },
+      {
+        "name": "c-danger-border",
+        "value": "#f1c3cf",
+        "usage": "Gốc · đã trong mã. Viền dải lỗi chặn."
+      },
+      {
+        "name": "c-lagoon",
+        "value": "#0e7490",
+        "usage": "Gốc · Thị giác 1.70. Ngọc: chữ và biểu tượng nhấn phụ, cột biểu đồ. Trên trắng 5,4:1."
+      },
+      {
+        "name": "c-lagoon-strong",
+        "value": "#155e75",
+        "usage": "Gốc · Thị giác 1.70. Ngọc đậm: chữ trên c-lagoon-soft (6,3:1), đầu cuối dải tóm tắt đơn."
+      },
+      {
+        "name": "c-lagoon-soft",
+        "value": "#e0f2f7",
+        "usage": "Gốc · Thị giác 1.70. Ngọc nhạt: nền ô nhóm Vận chuyển ở Trang chủ."
+      },
+      {
+        "name": "c-lagoon-vivid",
+        "value": "#0891b2",
+        "usage": "Gốc · Thị giác 1.70. Ngọc tươi: vạch chỉ báo, viền ô đang gõ — KHÔNG làm chữ (3,7:1; chỉ đủ cho viền, vạch)."
+      },
+      {
+        "name": "c-on-dark",
+        "value": "#ffffff",
+        "usage": "Gốc · đã trong mã. Chữ và biểu tượng trên nền c-primary, c-accent, c-danger. Khác ý nghĩa với c-surface nên giữ riêng."
+      },
+      {
+        "name": "c-primary-soft-hover",
+        "value": "#c9def0",
+        "usage": "Gốc · đã trong mã. Nền rê chuột của nút phụ nhạt và mục đang chọn; chữ c-primary trên nền này ≥ 4,5:1."
+      },
+      {
+        "name": "c-soft-hover",
+        "value": "#f1f5f9",
+        "usage": "Gốc · đã trong mã. Nền rê chuột nút lối nhỏ, nút biểu tượng trên thanh trên, dòng bảng."
+      },
+      {
+        "name": "c-placeholder",
+        "value": "#94a3b8",
+        "usage": "Gốc · đã trong mã. Chữ gợi ý trong ô nhập (3,1:1 — chỉ gợi ý, nhãn thật luôn nằm trên ô)."
+      },
+      {
+        "name": "c-input-border",
+        "value": "#c9d4e0",
+        "usage": "Gốc · Thị giác 1.70. Viền ô nhập, ô chọn, bộ đếm: đậm hơn viền thẻ một bậc để ô gõ rõ ràng."
+      },
+      {
+        "name": "c-input-border-hover",
+        "value": "#94a3b8",
+        "usage": "Gốc · Thị giác 1.70. Viền ô nhập khi rê chuột."
+      },
+      {
+        "name": "c-btn-primary-hover-bg",
+        "value": "#0b5c84",
+        "usage": "Gốc · đã trong mã. Nền rê chuột nút chính đặc (chữ trắng 7,3:1)."
+      },
+      {
+        "name": "c-status-bar",
+        "value": "#ffffff",
+        "usage": "Gốc · đã trong mã. Thanh trạng thái iPhone: PHẢI là hex, khớp theme-color của mọi HTML và theme_color của manifest."
+      },
+      {
+        "name": "c-scrim",
+        "value": "rgba(15, 23, 42, 0.45)",
+        "usage": "Gốc · đã trong mã. Lớp phủ sau bảng trượt và hộp thoại."
+      },
+      {
+        "name": "c-focus-ring",
+        "value": "rgba(8, 145, 178, 0.2)",
+        "usage": "Gốc · Thị giác 1.70. Vành nhạt quanh ô đang gõ, dày ring-field."
+      },
+      {
+        "name": "c-tabbar-glass",
+        "value": "rgba(255, 255, 255, 0.86)",
+        "usage": "Gốc · Thị giác 1.70. Nền mờ kính của thanh tab điện thoại (kèm blur-glass)."
+      },
+      {
+        "name": "c-spinner-track",
+        "value": "rgba(255, 255, 255, 0.3)",
+        "usage": "Gốc · đã trong mã. Vòng mờ của vòng quay trên nút chính đặc màu."
+      },
+      {
+        "name": "c-ntf-unread",
+        "value": "#f4f9fd",
+        "usage": "Gốc · đã trong mã (ADR-0034). Nền tin chưa đọc trong ngăn thông báo."
+      },
+      {
+        "name": "c-xe-ban-bg",
+        "value": "#fef3c7",
+        "usage": "Gốc · đã trong mã (ADR-0055). Nền thẻ «Xe bận» và dải bận trên dòng thời gian điều phối."
+      },
+      {
+        "name": "c-summary-due",
+        "value": "#fcd34d",
+        "usage": "Gốc · Thị giác 1.70. Vàng «Còn lại» trên dải tóm tắt đơn (đầu cuối dải là ngọc đậm để đạt 5,0:1)."
+      },
+      {
+        "name": "c-receipt-surface-alt",
+        "value": "#eaf2f8",
+        "usage": "Gốc · ảnh biên nhận gửi khách giữ nền cũ, ngoài phạm vi núm Giao diện (ADR-0087 điều 7). Không đổi."
+      },
+      {
+        "name": "c-receipt-border",
+        "value": "#d3e1ec",
+        "usage": "Gốc · viền trong ảnh biên nhận gửi khách. Không đổi."
+      },
+      {
+        "name": "c-tile-toi-bg",
+        "value": "#fdf1d8",
+        "usage": "Thành phần · ô chức năng nhóm «Tôi» ở Trang chủ (chữ c-tile-toi)."
+      },
+      {
+        "name": "c-tile-all-bg",
+        "value": "#eef2f6",
+        "usage": "Thành phần · ô «Tất cả» ở Trang chủ (chữ c-tile-all)."
+      },
+      {
+        "name": "c-bar-bg",
+        "value": "{c-surface}",
+        "usage": "Ý nghĩa · nền thanh trên (điện thoại và máy tính) và dải vùng an toàn trang Đăng nhập. Núm «Thanh trên» ở Giao diện công ty đổi giá trị này."
+      },
+      {
+        "name": "c-on-bar",
+        "value": "{c-primary}",
+        "usage": "Ý nghĩa · chữ, biểu tượng, chuông, nút quay lại, biểu tượng Trợ lý trên thanh trên."
+      },
+      {
+        "name": "c-bar-border",
+        "value": "{c-border}",
+        "usage": "Ý nghĩa · đường mảnh dưới thanh trên (vẽ bằng bóng trong, không đổi chiều cao)."
+      },
+      {
+        "name": "c-icon-hover-on-bar",
+        "value": "{c-soft-hover}",
+        "usage": "Ý nghĩa · nền rê chuột nút biểu tượng trên thanh trên."
+      },
+      {
+        "name": "c-sidebar-bg",
+        "value": "{c-surface-alt}",
+        "usage": "Ý nghĩa · nền thanh bên máy tính = nền trang (chủ chọn 2/10); viền phải c-sidebar-border tách khỏi nội dung."
+      },
+      {
+        "name": "c-sidebar-hover",
+        "value": "{c-surface}",
+        "usage": "Ý nghĩa · nền rê chuột mục thanh bên (thẻ trắng nổi trên nền thanh bên)."
+      },
+      {
+        "name": "c-sidebar-item",
+        "value": "{c-text-muted}",
+        "usage": "Ý nghĩa · chữ mục thanh bên chưa chọn."
+      },
+      {
+        "name": "c-sidebar-active",
+        "value": "{c-primary-soft}",
+        "usage": "Ý nghĩa · nền mục thanh bên đang chọn (kèm vạch c-indicator)."
+      },
+      {
+        "name": "c-sidebar-text-on",
+        "value": "{c-primary}",
+        "usage": "Ý nghĩa · chữ mục đang chọn, đầu thanh, tên người ở chân thanh bên."
+      },
+      {
+        "name": "c-sidebar-title",
+        "value": "{c-text-muted}",
+        "usage": "Ý nghĩa · tiêu đề nhóm thanh bên viết hoa (HẰNG NGÀY, VẬN CHUYỂN, TIỀN, THIẾT LẬP), giãn chữ ls-eyebrow."
+      },
+      {
+        "name": "c-sidebar-border",
+        "value": "{c-border}",
+        "usage": "Ý nghĩa · viền mảnh đầu/chân thanh bên và viền phải."
+      },
+      {
+        "name": "c-sidebar-badge",
+        "value": "{c-primary-soft}",
+        "usage": "Ý nghĩa · nền huy hiệu số đếm trên thanh bên (chữ c-sidebar-badge-text)."
+      },
+      {
+        "name": "c-sidebar-badge-text",
+        "value": "{c-primary}",
+        "usage": "Ý nghĩa · chữ huy hiệu số đếm trên thanh bên."
+      },
+      {
+        "name": "c-btn-primary-bg",
+        "value": "{c-primary}",
+        "usage": "Ý nghĩa · nền nút CHÍNH (cấp 1). Núm «Nền nút lưu, xác nhận» đổi giá trị này; kéo theo c-btn-primary-border và c-btn-primary-hover-bg."
+      },
+      {
+        "name": "c-btn-primary-text",
+        "value": "{c-on-dark}",
+        "usage": "Ý nghĩa · chữ nút CHÍNH."
+      },
+      {
+        "name": "c-btn-primary-border",
+        "value": "{c-primary}",
+        "usage": "Ý nghĩa · viền nút CHÍNH (= nền, giữ cùng chiều cao với nút phụ có viền)."
+      },
+      {
+        "name": "c-btn-soft-bg",
+        "value": "{c-primary-soft}",
+        "usage": "Ý nghĩa · nền nút nhạt (chỉ còn dùng cho mục đang chọn và huy hiệu tông Biển; nút PHỤ cấp 2 là nền trắng viền c-primary)."
+      },
+      {
+        "name": "c-btn-soft-text",
+        "value": "{c-primary}",
+        "usage": "Ý nghĩa · chữ nút nhạt."
+      },
+      {
+        "name": "c-btn-soft-border",
+        "value": "{c-primary-soft}",
+        "usage": "Ý nghĩa · viền nút nhạt."
+      },
+      {
+        "name": "c-btn-soft-hover-bg",
+        "value": "{c-primary-soft-hover}",
+        "usage": "Ý nghĩa · nền rê chuột nút nhạt."
+      },
+      {
+        "name": "c-selected-bg",
+        "value": "{c-primary-soft}",
+        "usage": "Ý nghĩa · nền chip lọc, viên ngày, lựa chọn nhanh ĐANG chọn."
+      },
+      {
+        "name": "c-selected-text",
+        "value": "{c-primary}",
+        "usage": "Ý nghĩa · chữ của lựa chọn đang chọn."
+      },
+      {
+        "name": "c-selected-border",
+        "value": "{c-primary-soft}",
+        "usage": "Ý nghĩa · viền của lựa chọn đang chọn."
+      },
+      {
+        "name": "c-tab-new-bg",
+        "value": "{c-accent}",
+        "usage": "Ý nghĩa · nền nút tròn «+ Tạo đơn» giữa thanh tab điện thoại (dấu cộng c-tab-new-icon, 5,4:1)."
+      },
+      {
+        "name": "c-tab-new-icon",
+        "value": "{c-on-dark}",
+        "usage": "Ý nghĩa · dấu cộng trên nút tròn «+ Tạo đơn»."
+      },
+      {
+        "name": "c-tab-active-bg",
+        "value": "{c-primary-soft}",
+        "usage": "Ý nghĩa · viên nền nhạt sau biểu tượng mục ĐANG chọn ở thanh tab (dấu hiệu ngoài màu, chủ 2/10)."
+      },
+      {
+        "name": "c-tab-active-text",
+        "value": "{c-primary}",
+        "usage": "Ý nghĩa · chữ và biểu tượng mục đang chọn ở thanh tab."
+      },
+      {
+        "name": "c-band-bg",
+        "value": "{c-primary-soft}",
+        "usage": "Ý nghĩa · mảng nhạt: đầu ngăn thông báo ở điện thoại, dải thông tin tông Biển."
+      },
+      {
+        "name": "c-on-band",
+        "value": "{c-primary}",
+        "usage": "Ý nghĩa · chữ trên mảng nhạt c-band-bg."
+      },
+      {
+        "name": "c-maint-bg",
+        "value": "{c-surface-alt}",
+        "usage": "Ý nghĩa · nền màn che bảo trì (chữ nằm trên thẻ trắng)."
+      },
+      {
+        "name": "c-avatar-bg",
+        "value": "{c-primary-soft}",
+        "usage": "Ý nghĩa · nền ảnh đại diện chữ cái (trang Tôi, chân thanh bên, Hỗ trợ)."
+      },
+      {
+        "name": "c-avatar-text",
+        "value": "{c-primary}",
+        "usage": "Ý nghĩa · chữ cái trong ảnh đại diện."
+      },
+      {
+        "name": "c-pill-on-bg",
+        "value": "{c-primary}",
+        "usage": "Ý nghĩa · nền tab viên thuốc ĐANG chọn (biến thể điện thoại của Tab)."
+      },
+      {
+        "name": "c-pill-on-text",
+        "value": "{c-on-dark}",
+        "usage": "Ý nghĩa · chữ tab viên thuốc đang chọn."
+      },
+      {
+        "name": "c-total-bg",
+        "value": "{c-primary}",
+        "usage": "Ý nghĩa · nền khối «TỔNG CỘNG» đậm của bảng kê (chữ c-on-total, số c-total-num)."
+      },
+      {
+        "name": "c-on-total",
+        "value": "{c-on-dark}",
+        "usage": "Ý nghĩa · chữ trên khối tổng cộng đậm."
+      },
+      {
+        "name": "c-total-num",
+        "value": "{c-sand}",
+        "usage": "Ý nghĩa · số tiền trên khối tổng cộng đậm (cát trên biển đậm 5,9:1)."
+      },
+      {
+        "name": "hero-bg",
+        "value": "{c-bar-bg}",
+        "usage": "Ý nghĩa · nền dải chào Trang chủ = nền thanh trên (chủ chọn 2/10)."
+      },
+      {
+        "name": "c-on-hero",
+        "value": "{c-on-bar}",
+        "usage": "Ý nghĩa · tên, chuông, chữ phụ trên dải chào Trang chủ."
+      },
+      {
+        "name": "c-hero-ring",
+        "value": "{c-bar-bg}",
+        "usage": "Ý nghĩa · viền quanh số đỏ trên chuông (tách số khỏi nền dải)."
+      },
+      {
+        "name": "c-hero-edge",
+        "value": "{c-status-bar}",
+        "usage": "Ý nghĩa · dải cố định sau thanh trạng thái iPhone khi dải chào đã cuộn đi."
+      },
+      {
+        "name": "c-focus",
+        "value": "{c-lagoon-vivid}",
+        "usage": "Ý nghĩa · viền ô đang gõ và vành :focus-visible (3 px) của mọi thứ bấm được. Đủ ≥ 3:1 trên trắng và trên nền trang."
+      },
+      {
+        "name": "c-indicator",
+        "value": "{c-lagoon-vivid}",
+        "usage": "Ý nghĩa · vạch chỉ báo mục đang chọn ở thanh bên (dày bw-indicator) và gạch chân tab đang chọn."
+      },
+      {
+        "name": "c-summary-bg",
+        "value": "{c-primary}",
+        "usage": "Ý nghĩa · đầu dải tóm tắt trang chi tiết đơn (dải màu tới c-summary-bg-2)."
+      },
+      {
+        "name": "c-summary-bg-2",
+        "value": "{c-lagoon-strong}",
+        "usage": "Ý nghĩa · cuối dải tóm tắt đơn; chữ phải đọc được trên CẢ HAI đầu."
+      },
+      {
+        "name": "c-on-summary",
+        "value": "{c-on-dark}",
+        "usage": "Ý nghĩa · chữ trên dải tóm tắt đơn."
+      },
+      {
+        "name": "c-mat-mang-bg",
+        "value": "{c-sand-soft}",
+        "usage": "MỚI · Ý nghĩa · nền dải «Đang ngoài mạng — dữ liệu lần xem gần nhất» (chữ c-sand-text). Lý do: trạng thái mất mạng chưa có token, hiện mượn câu đỏ (H-MAT-MANG)."
+      },
+      {
+        "name": "c-tile-vc-bg",
+        "value": "{c-lagoon-soft}",
+        "usage": "Thành phần · ô chức năng nhóm Vận chuyển ở Trang chủ (chữ c-tile-vc)."
+      },
+      {
+        "name": "c-tile-vc",
+        "value": "{c-lagoon-strong}",
+        "usage": "Thành phần · chữ và biểu tượng ô nhóm Vận chuyển."
+      },
+      {
+        "name": "c-tile-toi",
+        "value": "{c-sand-text}",
+        "usage": "Thành phần · chữ ô nhóm «Tôi» ở Trang chủ."
+      },
+      {
+        "name": "c-tile-all",
+        "value": "{c-text-muted}",
+        "usage": "Thành phần · chữ ô «Tất cả» ở Trang chủ."
+      }
+    ]
+  },
+  "type": {
+    "fonts": [
+      {
+        "family": "Be Vietnam Pro",
+        "file": "fonts/be-vietnam-pro-400.woff2",
+        "weight": "400",
+        "style": "normal"
+      },
+      {
+        "family": "Be Vietnam Pro",
+        "file": "fonts/be-vietnam-pro-500.woff2",
+        "weight": "500",
+        "style": "normal"
+      },
+      {
+        "family": "Be Vietnam Pro",
+        "file": "fonts/be-vietnam-pro-600.woff2",
+        "weight": "600",
+        "style": "normal"
+      },
+      {
+        "family": "Be Vietnam Pro",
+        "file": "fonts/be-vietnam-pro-700.woff2",
+        "weight": "700",
+        "style": "normal"
+      },
+      {
+        "family": "Be Vietnam Pro",
+        "file": "fonts/be-vietnam-pro-800.woff2",
+        "weight": "800",
+        "style": "normal"
+      },
+      {
+        "family": "Nunito",
+        "file": "fonts/nunito-400.woff2",
+        "weight": "400",
+        "style": "normal"
+      },
+      {
+        "family": "Nunito",
+        "file": "fonts/nunito-500.woff2",
+        "weight": "500",
+        "style": "normal"
+      },
+      {
+        "family": "Nunito",
+        "file": "fonts/nunito-600.woff2",
+        "weight": "600",
+        "style": "normal"
+      },
+      {
+        "family": "Nunito",
+        "file": "fonts/nunito-700.woff2",
+        "weight": "700",
+        "style": "normal"
+      },
+      {
+        "family": "Lexend",
+        "file": "fonts/lexend-400.woff2",
+        "weight": "400",
+        "style": "normal"
+      },
+      {
+        "family": "Lexend",
+        "file": "fonts/lexend-500.woff2",
+        "weight": "500",
+        "style": "normal"
+      },
+      {
+        "family": "Lexend",
+        "file": "fonts/lexend-600.woff2",
+        "weight": "600",
+        "style": "normal"
+      },
+      {
+        "family": "Lexend",
+        "file": "fonts/lexend-700.woff2",
+        "weight": "700",
+        "style": "normal"
+      },
+      {
+        "family": "Noto Sans",
+        "file": "fonts/noto-sans-400.woff2",
+        "weight": "400",
+        "style": "normal"
+      },
+      {
+        "family": "Noto Sans",
+        "file": "fonts/noto-sans-500.woff2",
+        "weight": "500",
+        "style": "normal"
+      },
+      {
+        "family": "Noto Sans",
+        "file": "fonts/noto-sans-600.woff2",
+        "weight": "600",
+        "style": "normal"
+      },
+      {
+        "family": "Noto Sans",
+        "file": "fonts/noto-sans-700.woff2",
+        "weight": "700",
+        "style": "normal"
+      }
+    ],
+    "families": {
+      "sans": "\"Be Vietnam Pro\", system-ui, -apple-system, \"Segoe UI\", \"Segoe UI Symbol\", Roboto, \"Noto Sans\", sans-serif",
+      "mono": "ui-monospace, Menlo, Consolas, \"Courier New\", monospace",
+      "nunito": "\"Nunito\", system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif",
+      "lexend": "\"Lexend\", system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif",
+      "noto": "\"Noto Sans\", system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif"
+    },
+    "groups": [
+      {
+        "name": "Vai chữ (dùng hằng ngày)",
+        "family": "sans",
+        "styles": [
+          {
+            "name": "than",
+            "fontSize": "16px",
+            "lineHeight": 1.5,
+            "fontWeight": 400,
+            "sample": "Khách đã xác nhận giờ đón 07:30 tại Khách sạn Biển Xanh.",
+            "usage": "Chữ nội dung mặc định của mọi trang (fs-ui = bậc 5, fw-regular). Núm «Độ đậm chữ nội dung» đổi độ đậm."
+          },
+          {
+            "name": "nhan",
+            "fontSize": "14px",
+            "lineHeight": 1.5,
+            "fontWeight": 500,
+            "sample": "Số điện thoại khách",
+            "usage": "Nhãn ô nhập (luôn nằm trên ô, màu c-text-muted hoặc c-text), nhãn cột bảng, chữ phụ cần nhấn nhẹ (fs-label = bậc 3, fw-medium)."
+          },
+          {
+            "name": "nut",
+            "fontSize": "16px",
+            "lineHeight": 1.5,
+            "fontWeight": 500,
+            "sample": "Lưu, chờ xác nhận",
+            "usage": "Chữ trong nút ba cấp và tab (bậc 5, fw-medium; núm «Độ đậm chữ nhấn» đổi fw-semibold)."
+          },
+          {
+            "name": "huy-hieu",
+            "fontSize": "12px",
+            "lineHeight": 1.35,
+            "fontWeight": 500,
+            "sample": "Chờ xác nhận",
+            "usage": "Chữ huy hiệu trạng thái và chip nhỏ (fs-badge = bậc 1, nhỏ nhất 12 px để dấu tiếng Việt không nhoè)."
+          },
+          {
+            "name": "chu-phu",
+            "fontSize": "13px",
+            "lineHeight": 1.5,
+            "fontWeight": 400,
+            "sample": "Mã đơn TD-26-0412 · 27/10/2026",
+            "usage": "Dòng phụ dưới tên: mã, ngày, ghi chú ngắn (bậc 2, màu c-text-muted)."
+          },
+          {
+            "name": "chu-nho",
+            "fontSize": "12px",
+            "lineHeight": 1.5,
+            "fontWeight": 400,
+            "sample": "Áp cho mọi dịch vụ trong đơn",
+            "usage": "Chú thích dưới ô, nhãn thanh tab (fs-tab = bậc 1)."
+          },
+          {
+            "name": "tieu-de-trang",
+            "fontSize": "18px",
+            "lineHeight": 1.3,
+            "fontWeight": 600,
+            "sample": "Đơn hàng",
+            "usage": "Tiêu đề trang trên thanh trên (fs-title, fs-bar-title = bậc 7; cắt một dòng bằng «…»). ĐỔI: độ đậm 500 → 600 (QĐ2 cổng 1, fw-heading)."
+          },
+          {
+            "name": "tieu-de-khoi",
+            "fontSize": "16px",
+            "lineHeight": 1.4,
+            "fontWeight": 600,
+            "sample": "Chuyến đón hôm nay",
+            "usage": "Tiêu đề khối, tiêu đề thẻ, tên khách trong dòng (fw-bold). ĐỔI 500 → 600 (QĐ2)."
+          },
+          {
+            "name": "tieu-de-lon",
+            "fontSize": "24px",
+            "lineHeight": 1.25,
+            "fontWeight": 600,
+            "sample": "Chào buổi sáng, Lan",
+            "usage": "Tiêu đề cấp 1 trong thân trang (fs-h1 1,5 rem → bậc 11; ĐỔI: về bậc thang và độ đậm 600). Siết chữ ls-tight."
+          },
+          {
+            "name": "so-lon",
+            "fontSize": "26px",
+            "lineHeight": 1.2,
+            "fontWeight": 600,
+            "sample": "9.300.000 ₫",
+            "usage": "Số liệu lớn ở ô số liệu, doanh thu (fs-stat = bậc 12, fw-heavy). ĐỔI 500 → 600 (QĐ2). Siết chữ ls-tight; dấu chấm ngăn nghìn."
+          },
+          {
+            "name": "so-lon-hep",
+            "fontSize": "20px",
+            "lineHeight": 1.2,
+            "fontWeight": 600,
+            "sample": "1.080.000 ₫",
+            "usage": "Số liệu lớn ở lưới 2 cột khổ ≤ 640 (fs-stat-sm = bậc 9) để «₫» không rơi xuống dòng riêng."
+          },
+          {
+            "name": "o-go",
+            "fontSize": "16px",
+            "lineHeight": 1.5,
+            "fontWeight": 400,
+            "sample": "0905 123 456",
+            "usage": "Chữ gõ trong ô nhập: KHÔNG dưới 16 px (iOS tự phóng to nếu nhỏ hơn). ĐỔI: gộp 17 px của Đăng nhập (fs-field) về 16 px (đề cương mục 3)."
+          },
+          {
+            "name": "eyebrow",
+            "fontSize": "12px",
+            "lineHeight": 1.5,
+            "fontWeight": 600,
+            "letterSpacing": "0.08em",
+            "sample": "VẬN CHUYỂN",
+            "usage": "CHỈ cho tiêu đề nhóm thanh bên và tiêu đề mục nhỏ trong danh sách (in hoa + giãn ls-eyebrow). Mọi nhãn khác viết thường (luật B-NHAN-IN-HOA)."
+          },
+          {
+            "name": "ma-pin",
+            "fontSize": "20px",
+            "lineHeight": 1.5,
+            "fontWeight": 500,
+            "family": "mono",
+            "sample": "4 8 1 9 2 7",
+            "usage": "Mã PIN tạm và mã số cần đọc từng chữ số (fs-pin 1,25 rem → bậc 9; font-mono)."
+          }
+        ]
+      },
+      {
+        "name": "Thang 14 bậc (mọi cỡ chữ của Nền tảng là một bậc ở đây)",
+        "family": "sans",
+        "styles": [
+          {
+            "name": "fs-step-1",
+            "fontSize": "12px",
+            "lineHeight": 1.5,
+            "fontWeight": 400,
+            "usage": "Bậc nhỏ nhất: huy hiệu, nhãn thanh tab, chú thích. Dưới 12 px dấu tiếng Việt chồng hai tầng nhoè trên Windows."
+          },
+          {
+            "name": "fs-step-2",
+            "fontSize": "13px",
+            "lineHeight": 1.5,
+            "fontWeight": 400,
+            "usage": "Chữ phụ, số trong vòng điểm dừng, biển số cột trái."
+          },
+          {
+            "name": "fs-step-3",
+            "fontSize": "14px",
+            "lineHeight": 1.5,
+            "fontWeight": 400,
+            "usage": "Nhãn ô, cột bảng, chữ trong thẻ gập."
+          },
+          {
+            "name": "fs-step-4",
+            "fontSize": "15px",
+            "lineHeight": 1.5,
+            "fontWeight": 400,
+            "usage": "Chữ phụ của khối Vận chuyển, HDV (fs-vc-sm, fs-hdv-sm)."
+          },
+          {
+            "name": "fs-step-5",
+            "fontSize": "16px",
+            "lineHeight": 1.5,
+            "fontWeight": 400,
+            "usage": "Nội dung, nút, ô gõ (fs-ui)."
+          },
+          {
+            "name": "fs-step-6",
+            "fontSize": "17px",
+            "lineHeight": 1.5,
+            "fontWeight": 400,
+            "usage": "Tên dịch vụ, tên khách trong thẻ (fs-hdv-md, fs-vc-md)."
+          },
+          {
+            "name": "fs-step-7",
+            "fontSize": "18px",
+            "lineHeight": 1.5,
+            "fontWeight": 400,
+            "usage": "Tiêu đề trang trên thanh trên, tiêu đề cấp 2 (fs-title, fs-h2 1,1 rem → ĐỔI về bậc này)."
+          },
+          {
+            "name": "fs-step-8",
+            "fontSize": "19px",
+            "lineHeight": 1.5,
+            "fontWeight": 400,
+            "usage": "Ngày đi, giờ đón, biển số trên thẻ (fs-hdv-lg, fs-vc-lg)."
+          },
+          {
+            "name": "fs-step-9",
+            "fontSize": "20px",
+            "lineHeight": 1.5,
+            "fontWeight": 400,
+            "usage": "Bộ đếm, số liệu nhỏ, mã PIN, tiêu đề khối HDV (fs-counter, fs-stat-sm, fs-dp-stat)."
+          },
+          {
+            "name": "fs-step-10",
+            "fontSize": "22px",
+            "lineHeight": 1.5,
+            "fontWeight": 400,
+            "usage": "Dấu − / + của bộ đếm, tiêu đề «HDV: tên»."
+          },
+          {
+            "name": "fs-step-11",
+            "fontSize": "24px",
+            "lineHeight": 1.5,
+            "fontWeight": 400,
+            "usage": "Tiêu đề cấp 1 trong thân trang, biển số đầu chi tiết xe (điện thoại)."
+          },
+          {
+            "name": "fs-step-12",
+            "fontSize": "26px",
+            "lineHeight": 1.5,
+            "fontWeight": 400,
+            "usage": "Số liệu lớn, tiêu đề Đăng nhập điện thoại, tiêu đề trang Vận chuyển máy tính (fs-stat, fs-login-title, fs-vc-h)."
+          },
+          {
+            "name": "fs-step-13",
+            "fontSize": "28px",
+            "lineHeight": 1.5,
+            "fontWeight": 400,
+            "usage": "Số lớn thẻ số liệu máy tính, biển số đầu chi tiết xe (máy tính)."
+          },
+          {
+            "name": "fs-step-14",
+            "fontSize": "32px",
+            "lineHeight": 1.5,
+            "fontWeight": 400,
+            "usage": "Bậc lớn nhất: lời chào Trang chủ máy tính, tiêu đề Đăng nhập ≥ 900, số lớn thẻ Việc của bạn."
+          }
+        ]
+      }
+    ]
+  },
+  "co-chu": {
+    "note": "Gốc · thang cỡ chữ 14 bậc của app.css. Mọi cỡ chữ của Nền tảng là một bậc ở đây; vai chữ (type) chỉ dùng 8 bậc, sáu bậc 15/17/19/22/28/32 hiện dùng ở các màn riêng (Hướng dẫn viên, Vận chuyển, Đăng nhập). Thêm 28/10 theo bảng lệch 2c dòng A2.",
+    "tokens": [
+      {
+        "name": "fs-step-1",
+        "value": "12px",
+        "usage": "Gốc · thang cỡ chữ bậc 1 = 12 px (app.css :root, src/phong-chu.test.ts canh). Vai chữ dùng bậc này: chu-nho, huy-hieu, eyebrow. Bậc nhỏ nhất: dưới 12 px dấu tiếng Việt chồng hai tầng."
+      },
+      {
+        "name": "fs-step-2",
+        "value": "13px",
+        "usage": "Gốc · thang cỡ chữ bậc 2 = 13 px (app.css :root, src/phong-chu.test.ts canh). Vai chữ dùng bậc này: chu-phu."
+      },
+      {
+        "name": "fs-step-3",
+        "value": "14px",
+        "usage": "Gốc · thang cỡ chữ bậc 3 = 14 px (app.css :root, src/phong-chu.test.ts canh). Vai chữ dùng bậc này: nhan."
+      },
+      {
+        "name": "fs-step-4",
+        "value": "15px",
+        "usage": "Gốc · thang cỡ chữ bậc 4 = 15 px (app.css :root, src/phong-chu.test.ts canh). Chưa có vai chữ trong bộ; mã: fs-hdv-sm, fs-vc-sm (chữ phụ Hướng dẫn viên, Vận chuyển). Giữ để thi công đợt 0 trỏ var(--fs-step-4) thay số lẻ."
+      },
+      {
+        "name": "fs-step-5",
+        "value": "16px",
+        "usage": "Gốc · thang cỡ chữ bậc 5 = 16 px (app.css :root, src/phong-chu.test.ts canh). Vai chữ dùng bậc này: than, nut, o-go."
+      },
+      {
+        "name": "fs-step-6",
+        "value": "17px",
+        "usage": "Gốc · thang cỡ chữ bậc 6 = 17 px (app.css :root, src/phong-chu.test.ts canh). Chưa có vai chữ trong bộ; mã: fs-field (ô gõ — ĐỔI về bậc 5, xem o-go), fs-hdv-md, fs-vc-md. Giữ để thi công đợt 0 trỏ var(--fs-step-6) thay số lẻ."
+      },
+      {
+        "name": "fs-step-7",
+        "value": "18px",
+        "usage": "Gốc · thang cỡ chữ bậc 7 = 18 px (app.css :root, src/phong-chu.test.ts canh). Vai chữ dùng bậc này: tieu-de-trang."
+      },
+      {
+        "name": "fs-step-8",
+        "value": "19px",
+        "usage": "Gốc · thang cỡ chữ bậc 8 = 19 px (app.css :root, src/phong-chu.test.ts canh). Chưa có vai chữ trong bộ; mã: fs-hdv-lg, fs-vc-lg. Giữ để thi công đợt 0 trỏ var(--fs-step-8) thay số lẻ."
+      },
+      {
+        "name": "fs-step-9",
+        "value": "20px",
+        "usage": "Gốc · thang cỡ chữ bậc 9 = 20 px (app.css :root, src/phong-chu.test.ts canh). Vai chữ dùng bậc này: so-lon-hep, ma-pin."
+      },
+      {
+        "name": "fs-step-10",
+        "value": "22px",
+        "usage": "Gốc · thang cỡ chữ bậc 10 = 22 px (app.css :root, src/phong-chu.test.ts canh). Chưa có vai chữ trong bộ; mã: fs-hdv-title, fs-vc-step. Giữ để thi công đợt 0 trỏ var(--fs-step-10) thay số lẻ."
+      },
+      {
+        "name": "fs-step-11",
+        "value": "24px",
+        "usage": "Gốc · thang cỡ chữ bậc 11 = 24 px (app.css :root, src/phong-chu.test.ts canh). Vai chữ dùng bậc này: tieu-de-lon."
+      },
+      {
+        "name": "fs-step-12",
+        "value": "26px",
+        "usage": "Gốc · thang cỡ chữ bậc 12 = 26 px (app.css :root, src/phong-chu.test.ts canh). Vai chữ dùng bậc này: so-lon."
+      },
+      {
+        "name": "fs-step-13",
+        "value": "28px",
+        "usage": "Gốc · thang cỡ chữ bậc 13 = 28 px (app.css :root, src/phong-chu.test.ts canh). Chưa có vai chữ trong bộ; mã: chưa thấy chỗ dùng trực tiếp trong :root. Giữ để thi công đợt 0 trỏ var(--fs-step-13) thay số lẻ."
+      },
+      {
+        "name": "fs-step-14",
+        "value": "32px",
+        "usage": "Gốc · thang cỡ chữ bậc 14 = 32 px (app.css :root, src/phong-chu.test.ts canh). Chưa có vai chữ trong bộ; mã: fs-login-title-wide (tiêu đề Đăng nhập ≥ 900). Giữ để thi công đợt 0 trỏ var(--fs-step-14) thay số lẻ."
+      }
+    ]
+  },
+  "spacing": {
+    "note": "Gốc · tourdaovn, giữ nguyên. Khoảng cách, đệm, khe lưới chỉ lấy từ bảy bậc này; không viết số lẻ (6 px, 10 px) trong thành phần mới.",
+    "tokens": [
+      {
+        "name": "s1",
+        "value": "4px",
+        "usage": "Khe giữa biểu tượng và chữ trong huy hiệu, khoảng giữa hai chip liền nhau."
+      },
+      {
+        "name": "s2",
+        "value": "8px",
+        "usage": "Khe giữa biểu tượng 20 và chữ trong nút; đệm dọc huy hiệu; khoảng nhãn ↔ ô."
+      },
+      {
+        "name": "s3",
+        "value": "12px",
+        "usage": "Đệm dọc dòng danh sách (12 × 16); khe giữa các ô trong lưới 2 cột; khe giữa hai nút."
+      },
+      {
+        "name": "s4",
+        "value": "16px",
+        "usage": "Lề trang điện thoại; đệm thẻ; đệm ngang dòng danh sách và ô nhập; khe giữa các khối."
+      },
+      {
+        "name": "s5",
+        "value": "24px",
+        "usage": "Lề trang máy tính trong khung nội dung; khoảng giữa hai nhóm trường của biểu mẫu; đệm bảng trượt."
+      },
+      {
+        "name": "s6",
+        "value": "32px",
+        "usage": "Khoảng giữa các dải lớn của trang; đệm trên dưới trạng thái rỗng."
+      },
+      {
+        "name": "s7",
+        "value": "48px",
+        "usage": "Khoảng trống lớn: đáy trang trước chân dính, đầu trang chi tiết máy tính."
+      }
+    ]
+  },
+  "radius": {
+    "note": "Gốc · tourdaovn giữ 8/12/18/999. Bo 6 (radius-xs, radius-dp-tab, radius-dp-khoi) và bo 4 của Điều phối BỎ: về 8.",
+    "tokens": [
+      {
+        "name": "radius-sm",
+        "value": "8px",
+        "usage": "Bo nút, ô nhập, ô chọn, bộ đếm, chip vuông, ô bảng trượt nhỏ (= bo-control)."
+      },
+      {
+        "name": "radius-md",
+        "value": "12px",
+        "usage": "Bo thẻ, dải thông báo, hộp thoại máy tính, khung danh sách."
+      },
+      {
+        "name": "radius-lg",
+        "value": "18px",
+        "usage": "Bo góc trên của bảng trượt điện thoại, ảnh đại diện lớn."
+      },
+      {
+        "name": "radius-pill",
+        "value": "999px",
+        "usage": "Viên thuốc: CHỈ huy hiệu trạng thái, chip lọc, tab viên thuốc điện thoại, nút tròn «+ Tạo đơn»."
+      },
+      {
+        "name": "bo-control",
+        "value": "8px",
+        "usage": "MỚI · Ý nghĩa · một bo góc cho mọi nút và ô (= radius-sm). Lý do: mã đang dùng 4 giá trị bo cho nút/ô (H-NUT, H-O-NHAP)."
+      },
+      {
+        "name": "radius-tile",
+        "value": "14px",
+        "usage": "Thành phần · ô vuông biểu tượng của lưới chức năng Trang chủ (bản vẽ 1.73, chủ duyệt)."
+      },
+      {
+        "name": "radius-icon",
+        "value": "22.37%",
+        "usage": "Thành phần · độ bo của biểu tượng ứng dụng kiểu iOS (logo trong thẻ, trang Đăng nhập)."
+      }
+    ]
+  },
+  "shadow": {
+    "note": "Ba mức dùng chung (thẻ, thẻ rê chuột, lớp nổi) + bóng riêng của nút đặc. Bóng nút nổi Hỗ trợ (shadow-float) BỎ vì Trợ lý lên thanh trên (câu 4).",
+    "tokens": [
+      {
+        "name": "shadow-card",
+        "value": "0 1px 2px rgba(15, 23, 42, 0.04), 0 3px 10px rgba(15, 23, 42, 0.05)",
+        "usage": "Gốc · Thị giác 1.70. Mức 1: thẻ, ô nhập không viền, thanh dính đáy."
+      },
+      {
+        "name": "shadow-card-hover",
+        "value": "0 2px 6px rgba(15, 23, 42, 0.06), 0 12px 28px rgba(15, 23, 42, 0.1)",
+        "usage": "Gốc · Thị giác 1.70. Mức 2: thẻ bấm được khi rê chuột (kèm nhấc lift)."
+      },
+      {
+        "name": "shadow-overlay",
+        "value": "0 16px 48px rgba(15, 23, 42, 0.18), 0 2px 8px rgba(15, 23, 42, 0.06)",
+        "usage": "Gốc · Thị giác 1.70. Mức 3: bảng trượt, hộp thoại, ngăn thông báo, toast."
+      },
+      {
+        "name": "ring-card",
+        "value": "0 0 0 1px rgba(15, 23, 42, 0.05)",
+        "usage": "Gốc · Thị giác 1.70. Viền thẻ vẽ bằng bóng: không đổi kích thước thẻ khi thêm/bỏ viền."
+      },
+      {
+        "name": "shadow-btn-solid",
+        "value": "0 1px 2px rgba(8, 47, 73, 0.22), 0 4px 14px rgba(12, 74, 110, 0.24)",
+        "usage": "Thành phần · nút CHÍNH đặc biển và dải tóm tắt đơn."
+      },
+      {
+        "name": "shadow-btn-accent",
+        "value": "0 1px 2px rgba(150, 39, 26, 0.18), 0 4px 12px rgba(192, 57, 43, 0.22)",
+        "usage": "Thành phần · nút san hô (hành động chốt)."
+      },
+      {
+        "name": "shadow-tab-new",
+        "value": "0 2px 8px rgba(192, 57, 43, 0.3)",
+        "usage": "Thành phần · nút tròn «+ Tạo đơn» ở thanh tab."
+      },
+      {
+        "name": "shadow-tile",
+        "value": "inset 0 0 0 1px rgba(12, 74, 110, 0.06), 0 1px 2px rgba(15, 23, 42, 0.06)",
+        "usage": "Thành phần · ô chức năng Trang chủ."
+      },
+      {
+        "name": "shadow-search",
+        "value": "0 1px 3px rgba(15, 23, 42, 0.08), 0 4px 12px rgba(8, 47, 73, 0.1)",
+        "usage": "Thành phần · ô tìm nổi đè lên dải chào Trang chủ."
+      }
+    ]
+  },
+  "kich-thuoc": {
+    "note": "Kích thước dùng chung của khung và điều khiển. Số đo riêng một màn (126 token --w-* / --h-* của Vận chuyển, Điều phối, Trang chủ, Tạo đơn…) BỎ khỏi tầng token: trở thành luật bố cục trong CSS của thành phần (đề cương mục 7).",
+    "tokens": [
+      {
+        "name": "h-control",
+        "value": "44px",
+        "usage": "MỚI · Ý nghĩa · chiều cao nút, ô nhập, chip, tab, dòng danh sách tối thiểu = vùng chạm. Lý do: thay 9 token cùng họ (tap-min, counter-btn, h-field 46/44, search-h, row-h, h-dp-tab…) — H-NUT, H-CHAM-44."
+      },
+      {
+        "name": "h-control-lon",
+        "value": "52px",
+        "usage": "MỚI · Ý nghĩa · nút chính ở chân dính điện thoại, ô và nút Đăng nhập, nút «Nhận» của HDV (thay h-field, h-field-wide, h-hdv-btn)."
+      },
+      {
+        "name": "bar-h",
+        "value": "60px",
+        "usage": "Gốc · đã trong mã. Chiều cao thanh trên, chưa tính vùng an toàn."
+      },
+      {
+        "name": "tabbar-h",
+        "value": "56px",
+        "usage": "Gốc · đã trong mã. Chiều cao thanh tab điện thoại, chưa tính vùng an toàn (safe-area-inset-bottom)."
+      },
+      {
+        "name": "tab-icon",
+        "value": "36px",
+        "usage": "Gốc · đã trong mã. Viên nền sau biểu tượng mục thanh tab (biểu tượng 24 bên trong)."
+      },
+      {
+        "name": "w-sidebar",
+        "value": "248px",
+        "usage": "Gốc · đã trong mã (bản vẽ menu 15/10). Bề rộng thanh bên ≥ 900; 641–899 thu gọn còn w-sidebar-gon."
+      },
+      {
+        "name": "w-sidebar-gon",
+        "value": "56px",
+        "usage": "MỚI · Ý nghĩa · thanh bên thu gọn chỉ biểu tượng ở 641–899 (iPad dọc). Lý do: đề cương mục 4; mã chưa có token."
+      },
+      {
+        "name": "h-muc-menu",
+        "value": "40px",
+        "usage": "Gốc · đã trong mã. Mục thanh bên (vùng bấm ≥ 36)."
+      },
+      {
+        "name": "h-muc-nho",
+        "value": "36px",
+        "usage": "Gốc · đã trong mã. Mục con trong nhóm Thiết lập, mục chân thanh bên."
+      },
+      {
+        "name": "sidebar-sub-indent",
+        "value": "42px",
+        "usage": "Gốc · đã trong mã. Thụt lề mục con nhóm Thiết lập."
+      },
+      {
+        "name": "w-noi-dung-max",
+        "value": "1280px",
+        "usage": "MỚI · Ý nghĩa · bề rộng tối đa nội dung ở ≥ 1200, căn giữa; thay w-main 1200 và mốc 1400 riêng của Trang chủ. Lý do: đề cương mục 4 (1440 không kéo giãn bảng)."
+      },
+      {
+        "name": "w-sheet",
+        "value": "520px",
+        "usage": "Gốc · đã trong mã. Bề rộng tối đa bảng trượt / hộp thoại ở máy tính."
+      },
+      {
+        "name": "w-confirm",
+        "value": "640px",
+        "usage": "Gốc · đã trong mã. Hộp thoại «Xác nhận đơn để gửi khách» và bảng trượt hành khách (ảnh xem trước còn đọc được)."
+      },
+      {
+        "name": "w-narrow",
+        "value": "420px",
+        "usage": "Gốc · đã trong mã. Thẻ hẹp một cột (trang Tôi, trang 403/404, trạng thái rỗng)."
+      },
+      {
+        "name": "w-search",
+        "value": "280px",
+        "usage": "Gốc · đã trong mã. Ô tìm trên thanh trên máy tính."
+      },
+      {
+        "name": "w-toast",
+        "value": "360px",
+        "usage": "Gốc · đã trong mã. Bề rộng tối đa toast."
+      },
+      {
+        "name": "w-login",
+        "value": "400px",
+        "usage": "Gốc · đã trong mã (bản vẽ 24/9). Cột giữa trang Đăng nhập."
+      },
+      {
+        "name": "icon-md",
+        "value": "20px",
+        "usage": "Gốc · đã trong mã. Biểu tượng trong nút và trước tiêu đề khối (biểu tượng đứng một mình: 24)."
+      },
+      {
+        "name": "avatar",
+        "value": "48px",
+        "usage": "Gốc · đã trong mã. Ảnh đại diện chữ cái ở trang Tôi; chân thanh bên dùng 28 (ht-av)."
+      },
+      {
+        "name": "logo-bar",
+        "value": "30px",
+        "usage": "Gốc · đã trong mã. Logo trên thanh bên / thanh trên."
+      },
+      {
+        "name": "focus-ring",
+        "value": "3px",
+        "usage": "Ý nghĩa · vành :focus-visible màu c-focus quanh mọi thứ bấm được. ĐỔI 2 → 3 px (đề cương mục 3: «vành 3px c-focus»)."
+      },
+      {
+        "name": "ring-field",
+        "value": "3px",
+        "usage": "Gốc · đã trong mã. Vành nhạt c-focus-ring quanh ô đang gõ."
+      },
+      {
+        "name": "bw-indicator",
+        "value": "3px",
+        "usage": "Gốc · đã trong mã. Vạch c-indicator ở mục thanh bên đang chọn và gạch chân tab."
+      },
+      {
+        "name": "counter-field",
+        "value": "48px",
+        "usage": "Gốc · đã trong mã. Ô số giữa hai nút − / + của bộ đếm."
+      },
+      {
+        "name": "ntf-badge",
+        "value": "18px",
+        "usage": "Gốc · đã trong mã. Huy hiệu số đỏ trên chuông."
+      },
+      {
+        "name": "w-switch",
+        "value": "44px",
+        "usage": "Gốc · đã trong mã. Công tắc bật/tắt (cao h-switch, núm switch-knob)."
+      },
+      {
+        "name": "h-switch",
+        "value": "26px",
+        "usage": "Gốc · đã trong mã. Chiều cao công tắc."
+      },
+      {
+        "name": "switch-knob",
+        "value": "20px",
+        "usage": "Gốc · đã trong mã. Núm tròn trong công tắc (cách mép switch-inset)."
+      },
+      {
+        "name": "switch-inset",
+        "value": "3px",
+        "usage": "Gốc · đã trong mã. Khoảng từ mép công tắc tới núm."
+      },
+      {
+        "name": "vc-check",
+        "value": "22px",
+        "usage": "Gốc · đã trong mã. Ô tích vuông (bo radius-sm nhỏ hơn: 4 px là ngoại lệ hình học bên trong ô 22)."
+      },
+      {
+        "name": "vc-radio",
+        "value": "20px",
+        "usage": "Gốc · đã trong mã. Ô chọn một hình tròn; chấm trong vc-radio-on."
+      },
+      {
+        "name": "vc-radio-on",
+        "value": "6px",
+        "usage": "Gốc · đã trong mã. Bề dày viền ô chọn một khi đã chọn."
+      },
+      {
+        "name": "skel-dong",
+        "value": "16px",
+        "usage": "MỚI · Ý nghĩa · thanh khung xương cho một dòng chữ (thay skel-sm/md/title/tag/name-mt: 14–22). Lý do: 14 token khung xương gom về 3 (H-TAI-RONG)."
+      },
+      {
+        "name": "skel-so",
+        "value": "26px",
+        "usage": "MỚI · Ý nghĩa · thanh khung xương cho số lớn (thay skel-num, skel-num-mt)."
+      },
+      {
+        "name": "skel-vien",
+        "value": "96px",
+        "usage": "MỚI · Ý nghĩa · bề rộng thanh khung xương dạng viên (giờ, tiền, chip) (thay skel-pill, skel-money, skel-time…)."
+      }
+    ]
+  },
+  "z-index": {
+    "note": "MỚI · Ý nghĩa · năm bậc thay cho 13 giá trị rời (0…60) và ba token z-* lẻ (z-ntf 45, z-tl-fab 35, z-tl-khung 36). Lý do: H-HOP-THOAI, H-THONG-BAO — các lớp đè nhau không có thứ tự chung.",
+    "tokens": [
+      {
+        "name": "z-dinh",
+        "value": "10",
+        "usage": "MỚI · thanh trên dính, chân dính của trang, tiêu đề bảng dính."
+      },
+      {
+        "name": "z-tab",
+        "value": "20",
+        "usage": "MỚI · thanh tab điện thoại, thanh bên máy tính."
+      },
+      {
+        "name": "z-truot",
+        "value": "30",
+        "usage": "MỚI · lớp phủ c-scrim + bảng trượt / hộp thoại (một khuôn moBangTruot)."
+      },
+      {
+        "name": "z-phu",
+        "value": "40",
+        "usage": "MỚI · ngăn thông báo, hộp gợi ý dưới ô, menu «⋯», khung Trợ lý khi mở."
+      },
+      {
+        "name": "z-tren-cung",
+        "value": "50",
+        "usage": "MỚI · toast, dải bảo trì, màn che bảo trì — luôn thấy, kể cả khi bảng trượt mở."
+      }
+    ]
+  },
+  "chuyen-dong": {
+    "note": "Chuyển động chỉ khi rê, bấm, mở bảng — không có hiệu ứng lúc tải trang. Máy đặt «Giảm chuyển động» thì mọi thời lượng về 0.",
+    "tokens": [
+      {
+        "name": "t-nhanh",
+        "value": "150ms",
+        "usage": "MỚI · Ý nghĩa · rê chuột, bấm lún, đổi màu, toast hiện/ẩn. Lý do: mặt 11 đòi chuyển động 150–200 ms lấy từ token; mã chỉ có m-fast 180 và m-base 300."
+      },
+      {
+        "name": "t-vua",
+        "value": "200ms",
+        "usage": "MỚI · Ý nghĩa · bảng trượt lên/xuống, hộp thoại hiện, mở/gập thẻ, chip lọc hiện."
+      },
+      {
+        "name": "m-fast",
+        "value": "180ms",
+        "usage": "Gốc · tourdaovn, giữ nguyên giá trị. Chuyển động nhanh của mã hiện tại; thành phần mới dùng t-nhanh."
+      },
+      {
+        "name": "m-base",
+        "value": "300ms",
+        "usage": "Gốc · tourdaovn, giữ nguyên. Chuyển trang (View Transitions giữa tài liệu) và trượt dài."
+      },
+      {
+        "name": "m-spin",
+        "value": "700ms",
+        "usage": "Gốc · đã trong mã. Một vòng của vòng quay «Đang …» trong nút."
+      },
+      {
+        "name": "ease-out",
+        "value": "cubic-bezier(0.22, 1, 0.36, 1)",
+        "usage": "Ý nghĩa · MỘT đường cong cho mọi chuyển động (đề cương đề xuất cubic-bezier(.2,.8,.2,1) MỚI; bộ v2 giữ đường cong đã có trong mã vì cùng tác dụng — không thêm giá trị mới khi mã đã có)."
+      },
+      {
+        "name": "t-reveal",
+        "value": "10s",
+        "usage": "Thành phần · Vận chuyển: thời gian số CCCD / GPLX hiện đủ trước khi tự che (web/giay-to-ui.ts đọc token này)."
+      }
+    ]
+  },
+  "hieu-ung": {
+    "note": "Hiệu ứng nhỏ và độ mờ. Dải màu (grad-*) ghi giá trị đã khai triển vì bộ không nhận var() trong token; trong mã chúng trỏ token màu.",
+    "tokens": [
+      {
+        "name": "lift",
+        "value": "-2px",
+        "usage": "Thẻ bấm được nhấc lên khi rê chuột (kèm shadow-card-hover)."
+      },
+      {
+        "name": "press",
+        "value": "0.97",
+        "usage": "Tỉ lệ co của nút khi bấm (transform: scale)."
+      },
+      {
+        "name": "press-tile",
+        "value": "0.95",
+        "usage": "Tỉ lệ co của ô chức năng và mục thanh tab khi bấm."
+      },
+      {
+        "name": "hero-muted",
+        "value": "0.8",
+        "usage": "Độ đậm (opacity) chữ phụ trên dải chào so với màu chữ của dải."
+      },
+      {
+        "name": "hero-btn-tint",
+        "value": "0.12",
+        "usage": "Nền tròn nút chuông / trợ giúp trên dải chào = màu chữ của dải ở độ mờ này."
+      },
+      {
+        "name": "blur-glass",
+        "value": "saturate(180%) blur(16px)",
+        "usage": "Hiệu ứng mờ kính của thanh tab điện thoại (backdrop-filter, nền c-tabbar-glass)."
+      },
+      {
+        "name": "grad-brand",
+        "value": "linear-gradient(120deg, #0c4a6e 0%, #155e75 100%)",
+        "usage": "Viên ngày đang chọn ở Trang chủ: c-primary → c-lagoon-strong (chữ trắng ≥ 7:1 cả hai đầu)."
+      },
+      {
+        "name": "grad-brand-v",
+        "value": "linear-gradient(180deg, #0e7490 0%, #0c4a6e 100%)",
+        "usage": "Cột biểu đồ hôm nay: c-lagoon → c-primary (không có chữ)."
+      },
+      {
+        "name": "grad-summary",
+        "value": "linear-gradient(120deg, #0c4a6e 0%, #155e75 100%)",
+        "usage": "Dải tóm tắt đầu trang chi tiết đơn: c-summary-bg → c-summary-bg-2."
+      },
+      {
+        "name": "grad-gloss",
+        "value": "linear-gradient(180deg, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0) 100%)",
+        "usage": "Độ bóng nhẹ của ô chức năng Trang chủ."
+      }
+    ]
+  },
+  "do-dam": {
+    "note": "ĐỔI theo QĐ2 cổng 1 (27/10): mở ba mức 400 / 500 / 600 bằng token, không chạm mã trang; ba núm «Độ đậm …» ở Giao diện công ty (src/shared/giao-dien.ts) giữ nguyên — núm «tiêu đề» trỏ fw-heading, «nội dung» trỏ fw-regular, «chữ nhấn» trỏ fw-semibold và kéo theo fw-bold, fw-heavy (thi công xem lại phần kéo theo để giữ chênh một bậc). «Chữ mảnh» chốt ở bản 1.65 (2/10).",
+    "tokens": [
+      {
+        "name": "fw-regular",
+        "value": "400",
+        "usage": "Chữ nội dung (than, chu-phu, o-go). Giữ 400."
+      },
+      {
+        "name": "fw-medium",
+        "value": "500",
+        "usage": "Nhãn, nút, chip, huy hiệu (nhan, nut, huy-hieu). Giữ 500."
+      },
+      {
+        "name": "fw-semibold",
+        "value": "500",
+        "usage": "Chữ nhấn nhẹ: tên trong dòng, số tiền trong danh sách. Giữ 500 (= fw-medium; hai tên vì núm «chữ nhấn» trỏ tên này)."
+      },
+      {
+        "name": "fw-bold",
+        "value": "600",
+        "usage": "ĐỔI 500 → 600: tiêu đề khối, tên khách ở thẻ, th của bảng, b/strong."
+      },
+      {
+        "name": "fw-heavy",
+        "value": "600",
+        "usage": "ĐỔI 500 → 600: số lớn, tiêu đề nổi nhất (fw-home-stat = heavy + 100, tối đa 800)."
+      },
+      {
+        "name": "fw-home-stat",
+        "value": "700",
+        "usage": "ĐỔI 600 → 700 (theo fw-heavy): số lớn của thẻ số liệu Trang chủ (.dash-smt-gt, .dash-viec-so). Mã ghi min(calc(var(--fw-heavy) + 100), 800) — khai triển với fw-heavy 600 mới ra 700; thi công giữ công thức, không ghi số. Thêm 28/10 (bảng lệch 2c F4)."
+      },
+      {
+        "name": "fw-heading",
+        "value": "600",
+        "usage": "ĐỔI 500 → 600: h1–h6 (núm «Độ đậm tiêu đề», 400–700)."
+      }
+    ]
+  },
+  "khoang-chu": {
+    "note": "Giãn / siết chữ.",
+    "tokens": [
+      {
+        "name": "ls-eyebrow",
+        "value": "0.08em",
+        "usage": "Tiêu đề nhóm thanh bên viết hoa và tiêu đề mục nhỏ viết hoa (kiểu chữ eyebrow)."
+      },
+      {
+        "name": "ls-chip",
+        "value": "0.04em",
+        "usage": "Chữ 12 px trong chip và huy hiệu viên thuốc; gộp ls-vc-no (BỎ)."
+      },
+      {
+        "name": "ls-tight",
+        "value": "-0.01em",
+        "usage": "Siết tiêu đề trang và số lớn."
+      }
+    ]
+  },
+  "moc-dap-ung": {
+    "note": "MỚI · Ý nghĩa · CHỈ BA mốc (đề cương mục 4). CSS không đọc var() trong @media nên ba số này là luật để tra, không phải biến dùng được; thi công ghi cùng số trong app.css và chú thích trỏ về đây. Bỏ 720/1024 (Sổ công nợ), 959/960 (Tạo đơn), 1400 (Trang chủ); sửa khối (min-width: 640px) lệch 1 px (H-MOC).",
+    "tokens": [
+      {
+        "name": "moc-dien-thoai",
+        "value": "640px",
+        "usage": "MỚI · ≤ 640: điện thoại — thanh tab, chân dính, bảng trượt từ đáy, một cột, thẻ thay bảng."
+      },
+      {
+        "name": "moc-may-tinh",
+        "value": "900px",
+        "usage": "MỚI · ≥ 900: bảng thay thẻ, hai cột chi tiết / biểu mẫu, ô tìm lên thanh trên, thanh bên đủ rộng. 641–899 (iPad dọc): thanh bên thu gọn w-sidebar-gon + thẻ."
+      },
+      {
+        "name": "moc-rong",
+        "value": "1200px",
+        "usage": "MỚI · ≥ 1200: ba cột điều phối, hai cột Trang chủ; nội dung tối đa w-noi-dung-max căn giữa."
+      }
+    ]
+  }
+}

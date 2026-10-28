@@ -58,6 +58,14 @@ export async function gieoDuLieu(env, call) {
       for (const { legId } of x.json.error.legs) assert.equal((await call(admin, "POST", `/api/orders/${id}/legs/${legId}/short-notice`, { lyDo: "KHAC", ghiChu: null })).status, 200);
       x = await call(admin, "POST", `/api/orders/${id}/status`, { status: "confirmed" });
     }
+    // ADR-0136 (bản 2.36): chặng dưới hạn chốt nay trả 409 `confirm_request_required`, không kèm `legs` — đặt gấp từng chặng của đơn vừa tạo rồi xác nhận lại
+    // (cùng đường của trang-chu-smoke.mjs và tests/e2e/chang-hanh-khach.mjs (9)).
+    if (x.status === 409 && x.json?.error?.code === "confirm_request_required") {
+      for (const sv of c.json.order.services) for (const leg of sv.legs ?? []) {
+        await call(admin, "POST", `/api/orders/${id}/legs/${leg.id}/short-notice`, { lyDo: "KHAC", ghiChu: null });
+      }
+      x = await call(admin, "POST", `/api/orders/${id}/status`, { status: "confirmed" });
+    }
     assert.equal(x.status, 200, `xác nhận ${id}: ${JSON.stringify(x.json)}`);
     return x.json.order;
   };

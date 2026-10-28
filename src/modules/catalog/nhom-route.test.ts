@@ -100,7 +100,7 @@ test("GET /api/catalog/groups: mọi nhóm (kể cả tắt) + số dịch vụ 
   assert.deepEqual(Object.keys(g.json).sort(), ["chuaPhanLoai", "groups"]);
   assert.equal(g.json.groups.length, 14);
   assert.deepEqual(g.json.groups.map((x: any) => x.sortOrder), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]);
-  assert.deepEqual(Object.keys(g.json.groups[0]).sort(), ["active", "code", "name", "soDichVu", "sortOrder", "updatedAt"]);
+  assert.deepEqual(Object.keys(g.json.groups[0]).sort(), ["active", "code", "name", "soDichVu", "sortOrder", "transferEnabled", "updatedAt"]);
   assert.equal(g.json.groups.find((x: any) => x.code === "TTB").soDichVu, 1, "TTBPC đã về Chưa phân loại — chỉ TTBSNO còn");
   assert.equal(g.json.chuaPhanLoai, 4, "5 dịch vụ − 1 đang ở TTB");
 });

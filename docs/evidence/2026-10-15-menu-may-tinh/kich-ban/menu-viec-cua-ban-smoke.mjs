@@ -1,3 +1,6 @@
+// GHI CHÚ 28/10/2026: ĐỎ ở bước 3 từ bản 2.36 (ADR-0135 Đ3: đơn nháp chỉ người lập thấy, «chưa phụ trách» chỉ đếm đơn đã xác nhận) — kỳ vọng thẻ theo vai ở bước 3
+// và câu SQL `soChuaPhuTrach` còn theo luật cũ. Bước gieo (409 `confirm_request_required`) ĐÃ VÁ ở menu-lib.mjs; bước 1, 1b, 2 xanh. Chưa sửa bước 3, ghi nợ: tính lại
+// thẻ của bốn vai theo ADR-0135 rồi mới đổi kỳ vọng (không chép kết quả máy đang ra). Lần chạy 28/10 đọc được thẻ thật của Bán hàng: «Đơn đi hôm nay» / nút «Xem đơn».
 // Kịch bản Chrome (Việc 7b, 15/10) cho hai thay đổi: (1) dải chuyển nhanh giữa trang anh em `nav.dai-anh-em` ở 5 trang xe / giá; (2) khối "Việc của bạn" ở Trang chủ
 // máy tính của bốn vai văn phòng (Bán hàng, Kế toán, Quản trị, Toàn quyền). Bằng chứng hành vi DUY NHẤT cho hai thứ này (bài đơn vị chỉ phủ luật thuần).
 //  1) dải anh em: có ở đúng 5 trang, đầu <main>, nhãn/đường dẫn đúng nhóm, trang đang đứng sáng (aria-current), không tràn, không đè nội dung, ở 1440 + 390; ẩn khi chỉ ≤ 1 liên kết.
@@ -178,8 +181,8 @@ try {
   assert.equal(so(k.quanTri, "xemLai"), "1");
   // Nút: chỉ hành động chốt mới san hô (btn-accent) — "Xác nhận đơn" của thẻ Đơn nháp khi người này sửa được đơn nháp của mình/của đơn.
   const nutThe = (m) => m.the.map((t) => `${t.khoa}:${t.nut[0].chu}${t.nut[0].san ? "*" : ""}`);
-  assert.deepEqual(nutThe(k.keToan), ["dieuChinh:Duyệt", "nhap:Xem đơn nháp", "conThieu:Ghi thu", "chuyenHomNay:Xem chuyến"], `Kế toán: nút theo quyền, không san hô — ${JSON.stringify(nutThe(k.keToan))}`);
-  assert.deepEqual(nutThe(k.quanTri), ["xemLai:Xem lại", "nhap:Xác nhận đơn*", "chuaPhuTrach:Phân công", "chuyenHomNay:Xem chuyến"], `Quản trị: nút san hô CHỈ ở thẻ thứ hai "Xác nhận đơn" — ${JSON.stringify(nutThe(k.quanTri))}`);
+  assert.deepEqual(nutThe(k.keToan), ["dieuChinh:Duyệt", "nhap:Xem đơn nháp", "conThieu:Ghi thu", "chuyenHomNay:Xem đơn"], `Kế toán: nút theo quyền, không san hô — ${JSON.stringify(nutThe(k.keToan))}`);
+  assert.deepEqual(nutThe(k.quanTri), ["xemLai:Xem lại", "nhap:Xác nhận đơn*", "chuaPhuTrach:Phân công", "chuyenHomNay:Xem đơn"], `Quản trị: nút san hô CHỈ ở thẻ thứ hai "Xác nhận đơn" — ${JSON.stringify(nutThe(k.quanTri))}`);
   assert.deepEqual(k.quanTri.the.map((t) => t.nut[0].chinh), [true, false, false, false], "Quản trị: btn-primary chỉ ở thẻ đầu");
   assert.equal(k.quanTri.con, "Còn 2 việc nữa: điều chỉnh công nợ chờ duyệt (2).", `Quản trị: việc bị dồn được nói thẳng — ${k.quanTri.con}`);
   assert.equal(k.keToan.con, null, "Kế toán: vừa đủ 4 thẻ, không dòng 'Còn'");

@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="_ds/island-booking-system-design-system-v2-449f87cb-ea95-4f4c-a868-ac49dceb167e/tokens/fonts.css">
+  <link rel="stylesheet" href="_ds/island-booking-system-design-system-v2-449f87cb-ea95-4f4c-a868-ac49dceb167e/tokens/goc.css">
+  <link rel="stylesheet" href="_ds/island-booking-system-design-system-v2-449f87cb-ea95-4f4c-a868-ac49dceb167e/tokens/y-nghia.css">
+  <link rel="stylesheet" href="_ds/island-booking-system-design-system-v2-449f87cb-ea95-4f4c-a868-ac49dceb167e/tokens/thanh-phan.css">
+  <link rel="stylesheet" href="_ds/island-booking-system-design-system-v2-449f87cb-ea95-4f4c-a868-ac49dceb167e/tokens/nen-tang.css">
+  <link rel="stylesheet" href="_ds/island-booking-system-design-system-v2-449f87cb-ea95-4f4c-a868-ac49dceb167e/components/hanh-dong/hanh-dong.css">
+  <link rel="stylesheet" href="_ds/island-booking-system-design-system-v2-449f87cb-ea95-4f4c-a868-ac49dceb167e/components/nhap/nhap.css">
+  <link rel="stylesheet" href="_ds/island-booking-system-design-system-v2-449f87cb-ea95-4f4c-a868-ac49dceb167e/components/hien-thi/hien-thi.css">
+  <link rel="stylesheet" href="_ds/island-booking-system-design-system-v2-449f87cb-ea95-4f4c-a868-ac49dceb167e/components/phan-hoi/phan-hoi.css">
+  <script src="_ds/island-booking-system-design-system-v2-449f87cb-ea95-4f4c-a868-ac49dceb167e/_ds_bundle.js"></script>
+  <script src="ib-icon.js"></script>
+</helmet>
+<div style="max-width:var(--w-noi-dung);margin:0 auto;padding:{{ dem }}">
+  <sc-if value="{{ coBuoc }}" hint-placeholder-val="{{ false }}">
+    <ol aria-label="Các bước" style="list-style:none;margin:0 0 var(--kc-4);padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--kc-2)">
+      <li aria-current="step" style="display:flex;flex-direction:column;gap:var(--kc-2)"><span style="height:var(--kc-1);border-radius:var(--r-tron);background:var(--c-chinh)"></span><span style="font-size:var(--fs-phu);line-height:var(--lh-phu);font-weight:var(--fw-nhan);color:var(--c-chinh)">Bước 1</span></li>
+      <li style="display:flex;flex-direction:column;gap:var(--kc-2)"><span style="height:var(--kc-1);border-radius:var(--r-tron);background:var(--c-vien)"></span><span style="font-size:var(--fs-phu);line-height:var(--lh-phu);font-weight:var(--fw-nhan);color:var(--c-chu-phu)">Bước 2</span></li>
+      <li style="display:flex;flex-direction:column;gap:var(--kc-2)"><span style="height:var(--kc-1);border-radius:var(--r-tron);background:var(--c-vien)"></span><span style="font-size:var(--fs-phu);line-height:var(--lh-phu);font-weight:var(--fw-nhan);color:var(--c-chu-phu)">Bước 3</span></li>
+    </ol>
+  </sc-if>
+
+  <sc-if value="{{ coForm }}" hint-placeholder-val="{{ true }}">
+    <div style="display:grid;grid-template-columns:{{ cot }};gap:var(--kc-4) var(--kc-5);align-items:start">
+      <div style="display:flex;flex-direction:column;gap:var(--kc-4);min-width:0">
+        <sc-for list="{{ nhom }}" as="g" hint-placeholder-count="2">
+          <fieldset class="ib-the" style="border:0;margin:0;min-width:0">
+            <legend class="ib-the__tieu-de" style="float:left;width:100%;padding:0">{{ g.ten }}</legend>
+            <div style="display:grid;grid-template-columns:{{ g.cot }};gap:var(--kc-4) var(--kc-3)">
+              <sc-for list="{{ g.truong }}" as="f" hint-placeholder-count="3">
+                <div class="{{ f.lopO }}">
+                  <label class="ib-o__nhan" for="{{ f.id }}">{{ f.nhan }}</label>
+                  <div class="ib-o__khung">
+                    <sc-if value="{{ f.chon }}">
+                      <select id="{{ f.id }}" class="ib-o__dieu-khien ib-o__chon" aria-invalid="{{ f.saiChu }}"><option>{{ f.gt }}</option></select>
+                      <span class="ib-o__mui" style="display:inline-flex"><ib-icon ten="chevron-down" co="20"></ib-icon></span>
+                    </sc-if>
+                    <sc-if value="{{ f.gio }}">
+                      <button type="button" id="{{ f.id }}" class="ib-o__dieu-khien" aria-invalid="{{ f.saiChu }}" aria-describedby="{{ f.idLoi }}" style="display:flex;align-items:center;text-align:left;cursor:pointer;color:{{ f.mau }}">{{ f.hien }}</button>
+                      <span class="ib-o__mui" style="display:inline-flex"><ib-icon ten="clock" co="20"></ib-icon></span>
+                    </sc-if>
+                  </div>
+                  <sc-if value="{{ f.coHD }}"><p class="ib-o__huong-dan">{{ f.hd }}</p></sc-if>
+                  <sc-if value="{{ f.coLoi }}">
+                    <p class="ib-o__loi" id="{{ f.idLoi }}"><svg class="ib-bt" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true" style="stroke-linecap:round;stroke-linejoin:round"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4.5M12 16v.01"></path></svg><span>{{ f.loi }}</span></p>
+                  </sc-if>
+                </div>
+              </sc-for>
+            </div>
+          </fieldset>
+        </sc-for>
+        <sc-if value="{{ coLyDoMay }}"><p id="ly-do-nut-chinh" style="margin:0;font-size:var(--fs-phu);line-height:var(--lh-phu);color:var(--c-chu-phu)">Nút “Lưu chuyến” mở khi đã chọn xe và giờ bắt đầu.</p></sc-if>
+      </div>
+
+      <sc-if value="{{ rong }}">
+        <section class="ib-the" aria-labelledby="bm-xe-ngay" style="position:sticky;top:var(--kc-5)">
+          <h2 class="ib-the__tieu-de" id="bm-xe-ngay">{{ xeNgayTieuDe }}</h2>
+          <sc-if value="{{ coChuyenNgay }}">
+            <ul style="list-style:none;margin:0;padding:0">
+              <sc-for list="{{ chuyenNgay }}" as="c" hint-placeholder-count="2">
+                <li style="display:flex;align-items:center;justify-content:space-between;gap:var(--kc-3);padding:var(--kc-2) 0;border-top:1px solid var(--c-vien)">
+                  <span style="display:flex;flex-direction:column"><span style="font-weight:var(--fw-nhan)">{{ c.ma }}</span><span style="font-size:var(--fs-phu);line-height:var(--lh-phu);color:var(--c-chu-phu)">{{ c.gio }}</span></span>
+                  <sc-if value="{{ c.trung }}"><span class="ib-hh ib-hh--do"><svg class="ib-bt" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true" style="stroke-linecap:round;stroke-linejoin:round"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4.5M12 16v.01"></path></svg>Trùng giờ</span></sc-if>
+                </li>
+              </sc-for>
+            </ul>
+          </sc-if>
+          <sc-if value="{{ khongChuyenNgay }}"><p class="ib-the__phu">Chọn xe để xem các chuyến trong ngày.</p></sc-if>
+        </section>
+      </sc-if>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ dangTai }}" hint-placeholder-val="{{ false }}">
+    <div aria-busy="true" aria-label="Đang tải biểu mẫu" style="display:grid;grid-template-columns:{{ cot }};gap:var(--kc-4) var(--kc-5);align-items:start">
+      <div style="display:flex;flex-direction:column;gap:var(--kc-4)">
+        <sc-for list="{{ hai }}" as="x" hint-placeholder-count="2">
+          <div class="ib-the">
+            <span class="ib-xuong__khoi ib-xuong__dong" style="width:35%;height:16px"></span>
+            <sc-for list="{{ ba }}" as="y" hint-placeholder-count="3">
+              <div style="display:flex;flex-direction:column;gap:var(--o-nhan-cach)"><span class="ib-xuong__khoi ib-xuong__dong" style="width:20%;margin:3px 0"></span><span class="ib-xuong__khoi" style="height:var(--h-dieu-khien);border-radius:var(--r-dieu-khien)"></span></div>
+            </sc-for>
+          </div>
+        </sc-for>
+      </div>
+      <sc-if value="{{ rong }}"><div class="ib-the"><span class="ib-xuong__khoi ib-xuong__dong" style="width:50%;height:16px"></span><span class="ib-xuong__khoi ib-xuong__dong" style="width:85%"></span></div></sc-if>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ loi }}" hint-placeholder-val="{{ false }}">
+    <div class="ib-rong" role="alert" style="padding-top:var(--kc-7)">
+      <span class="ib-rong__bt" style="background:var(--tt-do-bg);color:var(--tt-do-chu)"><svg class="ib-bt" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true" style="stroke-linecap:round;stroke-linejoin:round"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4.5M12 16v.01"></path></svg></span>
+      <p class="ib-rong__cau">Chưa tải được danh sách xe và tài xế</p>
+      <p class="ib-rong__phu">Máy chủ không trả lời nên chưa lập được chuyến. Chưa có gì bị lưu.</p>
+      <button type="button" class="ib-nut ib-nut--phu">Thử lại</button>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const chon = (id, nhan, gt, extra) => ({ id, nhan, gt, chon: true, gio: false, ...extra });
+const gio = (id, nhan, gt, extra) => ({ id, nhan, gt, chon: false, gio: true, ...extra });
+
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props;
+    const tt = p.trangThai || 'it';
+    const rong = !!p.rong;
+    const buoc = !!p.buoc;
+    const trong = tt === 'rong', nhieu = tt === 'nhieu';
+    const xe = trong ? 'Chọn xe' : '79B-123.45 – 16 chỗ';
+    const nhomXe = {
+      ten: 'Xe và tài xế', cot: 'minmax(0,1fr)',
+      truong: [
+        chon('bm-xe', 'Xe', xe),
+        chon('bm-tuyen', 'Tuyến', nhieu ? 'Nha Trang – Cảng Vinpearl' : 'Chưa chọn tuyến', { hd: 'Xe thuê của nhà xe lấy giá theo tuyến và cỡ xe.' }),
+        chon('bm-tai-xe', 'Tài xế', trong ? 'Chọn tài xế' : 'Trương Văn Khoa'),
+      ],
+    };
+    const nhomGio = {
+      ten: 'Giờ chạy', cot: 'repeat(2,minmax(0,1fr))',
+      truong: [
+        gio('bm-bat-dau', 'Giờ bắt đầu', trong ? '' : nhieu ? '07:15' : '07:00'),
+        gio('bm-ket-thuc', 'Giờ kết thúc', trong ? '' : nhieu ? '10:00' : '11:30', nhieu ? { loi: 'Trùng chuyến CX-2910-02 (09:30–12:00) của xe này. Chọn giờ kết thúc trước 09:30 hoặc đổi xe.' } : {}),
+      ],
+    };
+    const nhom = (buoc ? [nhomXe] : [nhomXe, nhomGio]).map((g) => ({
+      ...g,
+      truong: g.truong.map((f) => ({
+        ...f, coHD: !!f.hd, coLoi: !!f.loi, idLoi: f.loi ? f.id + '-loi' : undefined, saiChu: f.loi ? 'true' : 'false',
+        lopO: 'ib-o' + (f.loi ? ' is-loi' : ''), hien: f.gt || 'Chọn giờ', mau: f.gt ? 'var(--c-chu)' : 'var(--c-chu-goi-y)',
+      })),
+    }));
+    const chuyenNgay = trong ? [] : nhieu
+      ? [{ ma: 'CX-2910-01', gio: '05:30–07:00' }, { ma: 'CX-2910-02', gio: '09:30–12:00', trung: true }, { ma: 'CX-2910-03', gio: '13:30–16:00' }, { ma: 'CX-2910-04', gio: '21:50–23:50' }]
+      : [{ ma: 'CX-2910-03', gio: '13:30–16:00' }];
+    return {
+      rong, coBuoc: buoc,
+      dem: rong ? 'var(--kc-5) var(--le-trang-rong) var(--kc-6)' : 'var(--kc-4) var(--le-trang) var(--kc-5)',
+      cot: rong ? 'minmax(0,1.6fr) minmax(0,1fr)' : 'minmax(0,1fr)',
+      coForm: tt === 'it' || tt === 'nhieu' || trong, dangTai: tt === 'dang-tai', loi: tt === 'loi',
+      nhom, coLyDoMay: rong && trong,
+      xeNgayTieuDe: trong ? 'Xe trong ngày' : '79B-123.45 trong ngày',
+      chuyenNgay: chuyenNgay.map((c) => ({ ...c, trung: !!c.trung })), coChuyenNgay: chuyenNgay.length > 0, khongChuyenNgay: chuyenNgay.length === 0,
+      hai: [1, 2], ba: [1, 2, 3],
+    };
+  }
+}
+</script>
+</body>
+</html>

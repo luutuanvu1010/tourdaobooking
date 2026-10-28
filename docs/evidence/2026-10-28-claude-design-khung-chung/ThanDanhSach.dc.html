@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="_ds/island-booking-system-design-system-v2-449f87cb-ea95-4f4c-a868-ac49dceb167e/tokens/fonts.css">
+  <link rel="stylesheet" href="_ds/island-booking-system-design-system-v2-449f87cb-ea95-4f4c-a868-ac49dceb167e/tokens/goc.css">
+  <link rel="stylesheet" href="_ds/island-booking-system-design-system-v2-449f87cb-ea95-4f4c-a868-ac49dceb167e/tokens/y-nghia.css">
+  <link rel="stylesheet" href="_ds/island-booking-system-design-system-v2-449f87cb-ea95-4f4c-a868-ac49dceb167e/tokens/thanh-phan.css">
+  <link rel="stylesheet" href="_ds/island-booking-system-design-system-v2-449f87cb-ea95-4f4c-a868-ac49dceb167e/tokens/nen-tang.css">
+  <link rel="stylesheet" href="_ds/island-booking-system-design-system-v2-449f87cb-ea95-4f4c-a868-ac49dceb167e/components/hanh-dong/hanh-dong.css">
+  <link rel="stylesheet" href="_ds/island-booking-system-design-system-v2-449f87cb-ea95-4f4c-a868-ac49dceb167e/components/nhap/nhap.css">
+  <link rel="stylesheet" href="_ds/island-booking-system-design-system-v2-449f87cb-ea95-4f4c-a868-ac49dceb167e/components/hien-thi/hien-thi.css">
+  <link rel="stylesheet" href="_ds/island-booking-system-design-system-v2-449f87cb-ea95-4f4c-a868-ac49dceb167e/components/dieu-huong/dieu-huong.css">
+  <link rel="stylesheet" href="_ds/island-booking-system-design-system-v2-449f87cb-ea95-4f4c-a868-ac49dceb167e/components/phan-hoi/phan-hoi.css">
+  <script src="_ds/island-booking-system-design-system-v2-449f87cb-ea95-4f4c-a868-ac49dceb167e/_ds_bundle.js"></script>
+  <script src="ib-icon.js"></script>
+</helmet>
+<div>
+  <sc-if value="{{ hep }}" hint-placeholder-val="{{ true }}">
+    <div style="display:flex;flex-direction:column;gap:var(--kc-3);padding:var(--kc-4) var(--le-trang) var(--kc-5)">
+      <div style="display:flex;align-items:flex-end;gap:var(--kc-2)">
+        <div class="ib-o" style="flex:1">
+          <div class="ib-o__khung">
+            <span class="ib-tim__kinh" style="display:inline-flex"><ib-icon ten="search" co="20"></ib-icon></span>
+            <input class="ib-o__dieu-khien ib-tim__o" type="search" placeholder="Tìm mã đơn, tên, SĐT…" aria-label="Tìm mã đơn, tên khách, SĐT">
+          </div>
+        </div>
+        <button type="button" class="ib-nut ib-nut--phu">{{ nhanLoc }}</button>
+      </div>
+      <sc-if value="{{ coChip }}">
+        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:var(--kc-2)">
+          <button type="button" class="ib-chip is-chon" aria-label="Bỏ lọc Ngày đi: tuần này">Ngày đi: tuần này <ib-icon ten="close" co="16"></ib-icon></button>
+          <button type="button" class="ib-nut ib-nut--loi-nho" style="font-size:var(--fs-phu)"><span class="ib-nut__chu">Xoá lọc</span></button>
+        </div>
+      </sc-if>
+      <sc-if value="{{ coDuLieu }}">
+        <span style="font-size:var(--fs-phu);line-height:var(--lh-phu);color:var(--c-chu-phu)">{{ demChu }}</span>
+        <sc-if value="{{ motCot }}">
+          <div class="ib-bang__the" style="display:flex">
+            <sc-for list="{{ dong }}" as="r" hint-placeholder-count="5">
+              <a href="#" class="ib-bang__muc" style="color:inherit;text-decoration:none" style-hover="background:var(--c-nen-re)">
+                <div class="ib-bang__d1">
+                  <span class="ib-bang__d1-chu">{{ r.khach }}</span>
+                  <span class="ib-hh ib-hh--{{ r.tong }}">
+                    <sc-if value="{{ r.laDo }}"><svg class="ib-bt" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true" style="stroke-linecap:round;stroke-linejoin:round"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4.5M12 16v.01"></path></svg></sc-if>
+                    <sc-if value="{{ r.khacDo }}"><ib-icon ten="{{ r.bt }}" co="14"></ib-icon></sc-if>
+                    {{ r.tt }}
+                  </span>
+                </div>
+                <div class="ib-bang__d2">{{ r.ma }} · {{ r.ngay }}</div>
+                <div class="ib-bang__d3">
+                  <span style="font-size:var(--fs-phu);line-height:var(--lh-phu);color:var(--c-chu-phu)">{{ r.dv }} · {{ r.so }}</span>
+                  <span class="ib-tien" style="font-weight:var(--fw-nhan)">{{ r.tien }}</span>
+                </div>
+              </a>
+            </sc-for>
+          </div>
+        </sc-if>
+        <sc-if value="{{ haiCot }}">
+          <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--kc-3)">
+            <sc-for list="{{ dong }}" as="r" hint-placeholder-count="6">
+              <a href="#" class="ib-bang__the" style="display:flex;color:inherit;text-decoration:none" style-hover="background:var(--c-nen-re)">
+                <div class="ib-bang__muc" style="border-bottom:0">
+                  <div class="ib-bang__d1">
+                    <span class="ib-bang__d1-chu">{{ r.khach }}</span>
+                    <span class="ib-hh ib-hh--{{ r.tong }}">
+                      <sc-if value="{{ r.laDo }}"><svg class="ib-bt" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true" style="stroke-linecap:round;stroke-linejoin:round"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4.5M12 16v.01"></path></svg></sc-if>
+                      <sc-if value="{{ r.khacDo }}"><ib-icon ten="{{ r.bt }}" co="14"></ib-icon></sc-if>
+                      {{ r.tt }}
+                    </span>
+                  </div>
+                  <div class="ib-bang__d2">{{ r.ma }} · {{ r.ngay }}</div>
+                  <div class="ib-bang__d3">
+                    <span style="font-size:var(--fs-phu);line-height:var(--lh-phu);color:var(--c-chu-phu)">{{ r.dv }} · {{ r.so }}</span>
+                    <span class="ib-tien" style="font-weight:var(--fw-nhan)">{{ r.tien }}</span>
+                  </div>
+                </div>
+              </a>
+            </sc-for>
+          </div>
+        </sc-if>
+        <div class="ib-tai-them">
+          <span class="ib-tai-them__het">{{ cuoiChu }}</span>
+          <sc-if value="{{ coTaiThem }}"><button type="button" class="ib-nut ib-nut--phu ib-nut--rong">Tải thêm 50 đơn</button></sc-if>
+          <sc-if value="{{ taiThemTat }}">
+            <span class="ib-nut-boc ib-nut-boc--rong" style="max-width:360px;align-items:center">
+              <button type="button" class="ib-nut ib-nut--rong" aria-disabled="true" aria-describedby="ly-do-tai-them">Tải thêm 50 đơn</button>
+              <span class="ib-nut__ly-do" id="ly-do-tai-them">Cần có mạng để tải thêm</span>
+            </span>
+          </sc-if>
+        </div>
+      </sc-if>
+      <sc-if value="{{ laRong }}">
+        <div class="ib-rong">
+          <span class="ib-rong__bt"><ib-icon ten="orders" co="24"></ib-icon></span>
+          <p class="ib-rong__cau">Chưa có đơn nào hôm nay</p>
+          <sc-if value="{{ coTao }}"><button type="button" class="ib-nut ib-nut--phu"><ib-icon ten="plus" co="20"></ib-icon><span>Tạo đơn đầu tiên</span></button></sc-if>
+        </div>
+      </sc-if>
+      <sc-if value="{{ dangTai }}">
+        <div class="ib-bang__the" style="display:flex" aria-busy="true" aria-label="Đang tải danh sách đơn">
+          <sc-for list="{{ xuong }}" as="x" hint-placeholder-count="6">
+            <div class="ib-bang__muc" style="gap:var(--kc-2)">
+              <div style="display:flex;justify-content:space-between;gap:var(--kc-3)"><span class="ib-xuong__khoi ib-xuong__dong" style="width:45%;margin:5px 0"></span><span class="ib-xuong__khoi ib-xuong__vien"></span></div>
+              <span class="ib-xuong__khoi ib-xuong__dong" style="width:70%;margin:2px 0"></span>
+              <div style="display:flex;justify-content:space-between;gap:var(--kc-3)"><span class="ib-xuong__khoi ib-xuong__dong" style="width:50%;margin:4px 0"></span><span class="ib-xuong__khoi ib-xuong__dong" style="width:22%;margin:4px 0"></span></div>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+      <sc-if value="{{ loi }}">
+        <div class="ib-rong" role="alert">
+          <span class="ib-rong__bt" style="background:var(--tt-do-bg);color:var(--tt-do-chu)"><svg class="ib-bt" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true" style="stroke-linecap:round;stroke-linejoin:round"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4.5M12 16v.01"></path></svg></span>
+          <p class="ib-rong__cau">Chưa tải được danh sách đơn</p>
+          <p class="ib-rong__phu">Máy chủ không trả lời trong 15 giây. Dữ liệu của bạn không mất.</p>
+          <button type="button" class="ib-nut ib-nut--phu">Thử lại</button>
+        </div>
+      </sc-if>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ rong }}" hint-placeholder-val="{{ false }}">
+    <div style="max-width:var(--w-noi-dung);margin:0 auto;padding:var(--kc-5) var(--le-trang-rong) var(--kc-6)">
+      <div style="display:grid;grid-template-columns:{{ cotLuoi }};gap:var(--kc-5);align-items:start">
+        <div style="display:flex;flex-direction:column;gap:var(--kc-4);min-width:0">
+          <div style="display:flex;flex-wrap:wrap;align-items:center;gap:var(--kc-3)">
+            <sc-if value="{{ coTimThan }}">
+              <div class="ib-o" style="flex:0 1 420px">
+                <div class="ib-o__khung">
+                  <span class="ib-tim__kinh" style="display:inline-flex"><ib-icon ten="search" co="20"></ib-icon></span>
+                  <input class="ib-o__dieu-khien ib-tim__o" type="search" placeholder="Tìm mã đơn, tên khách, SĐT…" aria-label="Tìm đơn">
+                </div>
+              </div>
+            </sc-if>
+            <button type="button" class="ib-nut ib-nut--phu">{{ nhanLoc }}</button>
+            <sc-if value="{{ coChip }}">
+              <button type="button" class="ib-chip is-chon" aria-label="Bỏ lọc Ngày đi: tuần này">Ngày đi: tuần này <ib-icon ten="close" co="16"></ib-icon></button>
+              <button type="button" class="ib-nut ib-nut--loi-nho" style="font-size:var(--fs-phu)"><span class="ib-nut__chu">Xoá lọc</span></button>
+            </sc-if>
+            <sc-if value="{{ coDuLieu }}"><span style="margin-left:auto;font-size:var(--fs-phu);line-height:var(--lh-phu);color:var(--c-chu-phu)">{{ demChu }}</span></sc-if>
+          </div>
+
+          <div class="ib-bang__cuon" style="display:block">
+            <table class="ib-bang__bang" style="display:table">
+              <thead>
+                <tr><th scope="col">Khách</th><th scope="col">Dịch vụ</th><th scope="col" class="is-phai">Tiền</th><th scope="col">Trạng thái</th><th scope="col" class="ib-bang__hd"><span class="ib-an">Mở đơn</span></th></tr>
+              </thead>
+              <tbody>
+                <sc-if value="{{ coDuLieu }}">
+                  <sc-for list="{{ dong }}" as="r" hint-placeholder-count="8">
+                    <tr class="{{ r.lopTr }}" aria-selected="{{ r.chon }}">
+                      <td><div style="display:flex;flex-direction:column"><span style="font-weight:var(--fw-nhan)">{{ r.khach }}</span><span style="font-size:var(--fs-phu);line-height:var(--lh-phu);color:var(--c-chu-phu);white-space:nowrap">{{ r.ma }}</span></div></td>
+                      <td><div style="display:flex;flex-direction:column"><span>{{ r.dv }}</span><span style="font-size:var(--fs-phu);line-height:var(--lh-phu);color:var(--c-chu-phu)">{{ r.ngay }} · {{ r.so }}</span></div></td>
+                      <td class="is-phai">{{ r.tien }}</td>
+                      <td>
+                        <span class="ib-hh ib-hh--{{ r.tong }}">
+                          <sc-if value="{{ r.laDo }}"><svg class="ib-bt" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true" style="stroke-linecap:round;stroke-linejoin:round"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4.5M12 16v.01"></path></svg></sc-if>
+                          <sc-if value="{{ r.khacDo }}"><ib-icon ten="{{ r.bt }}" co="14"></ib-icon></sc-if>
+                          {{ r.tt }}
+                        </span>
+                      </td>
+                      <td class="ib-bang__hd"><a href="#" class="ib-nut ib-nut--loi-nho ib-nut--hinh" aria-label="Mở đơn {{ r.ma }}"><ib-icon ten="next" co="20"></ib-icon></a></td>
+                    </tr>
+                  </sc-for>
+                </sc-if>
+                <sc-if value="{{ dangTai }}">
+                  <sc-for list="{{ xuongBang }}" as="x" hint-placeholder-count="8">
+                    <tr aria-hidden="true">
+                      <td><span class="ib-xuong__khoi ib-xuong__dong" style="width:140px"></span><span class="ib-xuong__khoi ib-xuong__dong" style="width:110px"></span></td>
+                      <td><span class="ib-xuong__khoi ib-xuong__dong" style="width:150px"></span><span class="ib-xuong__khoi ib-xuong__dong" style="width:100px"></span></td>
+                                            <td><span class="ib-xuong__khoi ib-xuong__dong" style="width:90px;margin-left:auto"></span></td>
+                      <td><span class="ib-xuong__khoi ib-xuong__vien" style="display:block"></span></td>
+                      <td class="ib-bang__hd"></td>
+                    </tr>
+                  </sc-for>
+                </sc-if>
+                <sc-if value="{{ laRong }}">
+                  <tr><td colspan="5" class="ib-bang__rong">
+                    <div class="ib-rong" style="padding:0">
+                      <span class="ib-rong__bt"><ib-icon ten="orders" co="24"></ib-icon></span>
+                      <p class="ib-rong__cau">Chưa có đơn nào hôm nay</p>
+                      <sc-if value="{{ coTao }}"><button type="button" class="ib-nut ib-nut--phu"><ib-icon ten="plus" co="20"></ib-icon><span>Tạo đơn đầu tiên</span></button></sc-if>
+                    </div>
+                  </td></tr>
+                </sc-if>
+                <sc-if value="{{ loi }}">
+                  <tr><td colspan="5" class="ib-bang__rong">
+                    <div class="ib-rong" role="alert" style="padding:0">
+                      <span class="ib-rong__bt" style="background:var(--tt-do-bg);color:var(--tt-do-chu)"><svg class="ib-bt" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true" style="stroke-linecap:round;stroke-linejoin:round"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4.5M12 16v.01"></path></svg></span>
+                      <p class="ib-rong__cau">Chưa tải được danh sách đơn</p>
+                      <p class="ib-rong__phu">Máy chủ không trả lời trong 15 giây. Dữ liệu của bạn không mất.</p>
+                      <button type="button" class="ib-nut ib-nut--phu">Thử lại</button>
+                    </div>
+                  </td></tr>
+                </sc-if>
+              </tbody>
+            </table>
+          </div>
+          <sc-if value="{{ coDuLieu }}">
+            <div class="ib-tai-them">
+              <span class="ib-tai-them__het">{{ cuoiChu }}</span>
+              <sc-if value="{{ coTaiThem }}"><button type="button" class="ib-nut ib-nut--phu ib-nut--rong">Tải thêm 50 đơn</button></sc-if>
+            </div>
+          </sc-if>
+        </div>
+
+        <sc-if value="{{ coNgan }}">
+          <aside class="ib-the" aria-label="Đơn đang chọn" style="position:sticky;top:var(--kc-5);gap:var(--kc-4)">
+            <div style="display:flex;align-items:flex-start;gap:var(--kc-2)">
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:var(--kc-2);align-items:flex-start">
+                <h2 style="margin:0;font-size:var(--fs-tieu-de-khoi-rong);line-height:var(--lh-noi-dung);font-weight:var(--fw-tieu-de)">TD-20261029-0012</h2>
+                <span class="ib-hh ib-hh--cat"><ib-icon ten="clock" co="14"></ib-icon>Chờ xác nhận</span>
+              </div>
+              <button type="button" class="ib-nut ib-nut--loi-nho ib-nut--hinh" aria-label="Đóng ngăn chi tiết" aria-keyshortcuts="Escape" style="margin:-8px -8px 0 0"><ib-icon ten="close" co="20"></ib-icon></button>
+            </div>
+            <dl style="margin:0;display:grid;grid-template-columns:auto minmax(0,1fr);gap:var(--kc-2) var(--kc-4);font-size:var(--fs-phu);line-height:var(--lh-phu)">
+              <dt style="color:var(--c-chu-phu)">Khách</dt><dd style="margin:0;font-weight:var(--fw-nhan)">Hoàng Thị Gấm · 0905123456</dd>
+              <dt style="color:var(--c-chu-phu)">Dịch vụ</dt><dd style="margin:0">Tour 4 đảo · Cano</dd>
+              <dt style="color:var(--c-chu-phu)">Ngày đi</dt><dd style="margin:0">29/10/2026 07:30</dd>
+              <dt style="color:var(--c-chu-phu)">Đón</dt><dd style="margin:0">Khách sạn Mường Thanh, 60 Trần Phú</dd>
+              <dt style="color:var(--c-chu-phu)">Số khách</dt><dd style="margin:0">2 NL · 1 TE</dd>
+              <dt style="color:var(--c-chu-phu)">Còn phải thu</dt><dd class="ib-tien" style="margin:0;font-size:var(--fs-noi-dung);font-weight:var(--fw-tieu-de)">1.080.000 ₫</dd>
+            </dl>
+            <button type="button" class="ib-nut ib-nut--phu ib-nut--rong">Mở trang đơn</button>
+          </aside>
+        </sc-if>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const KHACH = ['Hoàng Thị Gấm', 'Ngô Thị Mai', 'Hồ Văn Sơn', 'Đỗ Bảo Ngọc', 'Bùi Tuấn Kiệt', 'Đặng Khánh Vy', 'Võ Đức Anh', 'Phan Thu Trang', 'Lâm Gia Huy', 'Trịnh Mỹ Duyên', 'Huỳnh Quốc Bảo', 'Mai Thanh Tâm', 'Tạ Minh Khôi', 'Lý Hồng Nhung', 'Dương Văn Tài', 'Châu Ngọc Ánh', 'Kiều Anh Thư'];
+const DV = [['Tour 4 đảo · Cano', '2 NL · 1 TE', '1.080.000 ₫'], ['Vé Hòn Tằm · Cano + tắm bùn', '2 NL', '1.240.000 ₫'], ['Tour 3 đảo – ca sáng', '4 NL · 2 TE', '2.760.000 ₫'], ['Du thuyền ngắm hoàng hôn', '2 NL', '1.900.000 ₫'], ['Lặn ngắm san hô Hòn Mun', '1 NL · 1 TE', '720.000 ₫'], ['Tour 4 đảo · Cano', '6 NL', '2.400.000 ₫']];
+const TT = [['Chờ xác nhận', 'cat', 'clock'], ['Đã xác nhận', 'la', 'check'], ['Đang đi', 'bien', 'history'], ['Quá hạn thanh toán', 'do', ''], ['Đã huỷ', 'xam', 'minus'], ['Đã xác nhận', 'la', 'check'], ['Đã xác nhận', 'la', 'check']];
+const GIO = ['07:30', '08:00', '07:15', '16:30', '13:00', '07:45'];
+const NGAY = ['29/10', '29/10', '28/10', '28/10', '27/10', '27/10', '26/10', '26/10', '25/10', '24/10'];
+const pad = (n, w) => String(n).padStart(w, '0');
+const IT = [
+  { ma: 'TD-20261029-0012', khach: 'Hoàng Thị Gấm', dv: 'Tour 4 đảo · Cano', ngay: '29/10/2026 07:30', so: '2 NL · 1 TE', tien: '1.080.000 ₫', tt: TT[0] },
+  { ma: 'TD-20261030-0004', khach: 'Ngô Thị Mai', dv: 'Vé Hòn Tằm · Cano + tắm bùn', ngay: '30/10/2026 08:00', so: '2 NL', tien: '1.240.000 ₫', tt: TT[1] },
+  { ma: 'TD-20261101-0002', khach: 'Hồ Văn Sơn', dv: 'Tour 3 đảo – ca sáng', ngay: '01/11/2026 07:15', so: '4 NL · 2 TE', tien: '2.760.000 ₫', tt: TT[3] },
+];
+function nhieu() {
+  const ds = [];
+  for (let i = 0; i < 50; i++) {
+    const d = DV[i % DV.length];
+    const nd = NGAY[Math.floor(i / 5) % NGAY.length];
+    const [dd, mm] = nd.split('/');
+    ds.push({ ma: i === 0 ? 'TD-20261029-0012' : 'TD-2026' + mm + dd + '-' + pad(60 - i, 4), khach: KHACH[i % KHACH.length], dv: d[0], ngay: nd + '/2026 ' + GIO[i % GIO.length], so: d[1], tien: d[2], tt: TT[i % TT.length] });
+  }
+  return ds;
+}
+const SEES = ['SUPER_ADMIN', 'ADMIN', 'ACCOUNTING', 'SALES'];
+const TAO = ['SUPER_ADMIN', 'ADMIN', 'SALES', 'INTERN', 'PARTNER'];
+
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props;
+    const tt = p.trangThai || 'it';
+    const bo = p.bo || 'SALES';
+    const rong = !!p.rong;
+    const haiCot = !rong && !!p.haiCot;
+    const goc = tt === 'nhieu' ? nhieu() : tt === 'it' ? IT : [];
+    const chonDong = rong && !!p.chonDong && goc.length > 0;
+    const dong = goc.map((r, i) => ({
+      ...r, tt: r.tt[0], tong: r.tt[1], bt: r.tt[2], laDo: r.tt[1] === 'do', khacDo: r.tt[1] !== 'do',
+      lopTr: chonDong && i === 0 ? 'ib-xem-re' : '', chon: chonDong && i === 0 ? 'true' : 'false',
+    }));
+    const coDuLieu = tt === 'it' || tt === 'nhieu';
+    const ngoaiMang = !!p.ngoaiMang;
+    return {
+      hep: !rong, rong, motCot: !haiCot, haiCot,
+      dong, coDuLieu, laRong: tt === 'rong', dangTai: tt === 'dang-tai', loi: tt === 'loi',
+      coChip: tt === 'it',
+      nhanLoc: tt === 'it' ? 'Lọc · 1' : 'Lọc',
+      demChu: tt === 'nhieu' ? 'Đang xem 50 / 128 đơn' : '3 đơn',
+      cuoiChu: tt === 'nhieu' ? 'Đang xem 50 / 128 đơn' : 'Đã hiện hết 3 đơn',
+      coTaiThem: tt === 'nhieu' && !(ngoaiMang && !rong),
+      taiThemTat: tt === 'nhieu' && ngoaiMang && !rong,
+      coTao: TAO.includes(bo),
+      coTimThan: !SEES.includes(bo),
+      coNgan: chonDong,
+      cotLuoi: chonDong ? 'minmax(0,1fr) var(--w-ngan-chi-tiet)' : 'minmax(0,1fr)',
+      xuong: [1, 2, 3, 4, 5, 6], xuongBang: [1, 2, 3, 4, 5, 6, 7, 8],
+    };
+  }
+}
+</script>
+</body>
+</html>

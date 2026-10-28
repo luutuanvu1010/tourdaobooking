@@ -8,7 +8,7 @@ export const HD_KE_TOAN: NhomHuongDan = {
   gioiThieu:
     "Bạn là kế toán của công ty. Bạn xem được mọi đơn: khách, dịch vụ, số khách, tiền, lịch sử sửa đơn, và mở được biên nhận để gửi khách. Trên trang đơn, bạn ghi và đối chiếu tiền, bấm Hoàn thành, đánh dấu đã nhập phần mềm kế toán. Bạn không lập, không sửa, không xác nhận, không huỷ đơn; riêng số khách của đơn đã xác nhận thì bạn sửa được.",
   batDauNhanh: `1. Mở Nền tảng, vào thẳng [[Trang chủ]].
-2. Nhìn khối [[Việc của bạn]]: các thẻ [[Điều chỉnh công nợ chờ duyệt]], [[Đơn còn thiếu tiền]], [[Đơn nháp]]. Thẻ có nhãn **Toàn công ty** là số của cả công ty.
+2. Nhìn khối [[Việc của bạn]]: mỗi thẻ là một việc đang chờ. Thẻ có nhãn **Toàn công ty** là số của cả công ty.
 3. Bấm [[Đơn hàng]] để xem danh sách đơn.
 4. Gõ tên khách, số điện thoại hoặc mã đơn vào ô tìm kiếm của danh sách.
 5. Bấm vào một đơn, xem khối **Thanh toán** để biết tổng tiền, đã thu và còn lại.
@@ -19,9 +19,9 @@ export const HD_KE_TOAN: NhomHuongDan = {
       noiDung: `### Trên máy tính
 
 Thanh menu dọc bên trái có:
-- Đầu menu: [[Trang chủ]], [[Đơn hàng]], [[Danh bạ]]. Cạnh [[Đơn hàng]] có số nhỏ, là số đơn chưa xác nhận.
+- Đầu menu: [[Trang chủ]], [[Đơn hàng]], [[Danh bạ]].
 - Nhóm VẬN CHUYỂN: [[Điều phối xe]], [[Xe đang chạy]], [[Giá & chi phí]].
-- Nhóm TIỀN: [[Điều chỉnh công nợ]], [[Khoá sổ tháng]].
+- Nhóm TIỀN: [[Điều chỉnh công nợ]], [[Sổ công nợ & khoá sổ]].
 - Nhóm THIẾT LẬP (bấm để mở, thu gọn): [[Hoa hồng đối tác]], [[Người bán dịch vụ]], [[Chụp bù mức]].
 - Chân menu: [[Của tôi]], [[Hỗ trợ]], [[Hướng dẫn]].
 
@@ -37,15 +37,15 @@ Thanh tab dưới đáy có [[Trang chủ]], [[Đơn hàng]] và [[Tôi]]. Các 
       tieuDe: "Xem tình hình chung ở Trang chủ",
       noiDung: `1. Mở Nền tảng, vào thẳng [[Trang chủ]].
 2. Máy tính: nhìn khối [[Việc của bạn]] dưới lời chào. Mỗi thẻ có số và một nút bấm:
+   - [[Đơn chờ xác nhận]] (nhãn **Toàn công ty**): số đơn đang chờ xác nhận.
    - [[Điều chỉnh công nợ chờ duyệt]] (nhãn **Của tôi**): yêu cầu đang chờ chính bạn duyệt.
-   - [[Đơn còn thiếu tiền]] (nhãn **Toàn công ty**): tổng tiền khách còn phải trả của các đơn đã xác nhận.
-   - [[Đơn nháp]] (nhãn **Toàn công ty**): đơn đã lưu nhưng chưa chốt; bạn chỉ xem.
-   - [[Chuyến hôm nay]]: số chuyến đi hôm nay.
-   Điện thoại: các ô số **Còn thiếu tiền**, **Chờ xác nhận**, **Chưa phụ trách** (cả công ty).
+   - [[Đơn còn thiếu tiền]] (nhãn **Toàn công ty**): số đơn đã xác nhận mà khách còn nợ; dòng nhỏ ghi tổng tiền còn phải thu.
+   - [[Đơn đi hôm nay]]: số đơn đi hôm nay.
+   Điện thoại: hai ô **Còn thiếu**, **Chưa phụ trách** (cả công ty), thêm một dải khi có đơn chờ xác nhận.
    Khối **Chờ đối chiếu** liệt kê khoản đang chờ bạn đối chiếu (mục "Đối chiếu tiền trên trang đơn").
-3. Xem thẻ **Chuyến đón**: các đơn đã xác nhận có giờ đón hôm nay (bấm Ngày mai, Ngày kia để xem tiếp).
+3. Xem thẻ **Đơn đi**: các đơn đã xác nhận có ngày đi hôm nay (bấm Ngày mai, Ngày kia để xem tiếp).
 
-> Lưu ý: Ô **Doanh thu của tôi** chỉ tính đơn do chính bạn lập. Kế toán không lập đơn nên ô này luôn bằng không. Không phải lỗi.`,
+> Lưu ý: Bạn không có ô **Doanh thu của tôi**, **Đơn nháp**, vì hai ô đó chỉ đếm đơn người xem tự lập.`,
     },
     {
       tieuDe: "Tìm và lọc đơn",
@@ -132,7 +132,7 @@ Người bán dịch vụ làm tương tự ở trang [[Người bán dịch v�
 
 1. Bấm [[Hoa hồng đối tác]], thẻ **Thiết lập**, bấm [[＋ Thêm loại]] và gõ tên.
 2. Đặt mức cho loại mới bằng [[＋ Thêm mức]].
-3. Không dùng nữa thì bấm [[Tắt]] ở dòng loại đó; cần lại thì bấm [[Bật]]. Các loại gốc (ghi **Loại gốc**) thì không tắt được.
+3. Không dùng nữa thì bấm [[Tắt]] ở dòng loại đó; cần lại thì bấm [[Bật]]. Các loại có sẵn (ghi **Có sẵn**) thì không tắt được.
 
 Gắn loại cho hồ sơ ở Danh bạ là việc của Quản trị hoặc Toàn quyền. Loại đã tắt thì không gắn thêm, nhưng đơn đã xác nhận vẫn giữ nguyên hoa hồng.`,
     },

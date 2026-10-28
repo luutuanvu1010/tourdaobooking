@@ -60,6 +60,12 @@ const xemDon = (who: PermissionHolder): boolean => seesAllOrders(who);
 const quanTri = (who: PermissionHolder): boolean => can(who, "admin.manage");
 const khong = (): boolean => false;
 
+/**
+ * Hai ô «Của tôi» ở Trang chủ — «Doanh thu của tôi» (máy tính + điện thoại) và «Đơn nháp» (điện thoại) — chỉ đếm đơn do CHÍNH người xem lập
+ * (`revenueWeek`, `countDrafts` theo `staff_id`). Ai không lập được đơn (Kế toán, Hướng dẫn viên…) thì hai số luôn 0 ⇒ không hiện (chủ chọn 28/10).
+ */
+export const coOSoCuaToi = (who: PermissionHolder): boolean => can(who, "order.create");
+
 const THE: readonly MoTa[] = [
   { khoa: "xemLai", uuTien: () => 1, hien: quanTri, nhan: "Cần xem lại", nut: () => "Xem lại", href: "#dash-review", tone: "cat", chot: khong,
     phu: () => "Những điều Nền tảng đang nhắc Quản trị" },
@@ -75,8 +81,8 @@ const THE: readonly MoTa[] = [
     tone: "cat", chot: khong, phu: (n) => (n.conThieu ? `Còn phải thu ${vndShort(n.conThieu.total)} ₫` : "Chưa tải được số tiền còn thu") },
   { khoa: "chuaPhuTrach", uuTien: () => 5, hien: (w) => xemDon(w) && (can(w, "order.create") || quanTri(w)), nhan: "Đơn chưa có người phụ trách",
     nut: (w) => (quanTri(w) ? "Phân công" : "Nhận phụ trách"), href: "/orders", tone: "xanh", chot: khong, phu: () => "Chưa ai nhận chăm sóc khách" },
-  { khoa: "chuyenHomNay", uuTien: () => 6, hien: xemDon, nhan: "Chuyến hôm nay", nut: () => "Xem chuyến", href: "#dash-today", tone: "xanh", chot: khong,
-    phu: () => "Các chuyến có ngày đi hôm nay" },
+  { khoa: "chuyenHomNay", uuTien: () => 6, hien: xemDon, nhan: "Đơn đi hôm nay", nut: () => "Xem đơn", href: "#dash-today", tone: "xanh", chot: khong,
+    phu: () => "Các đơn có ngày đi hôm nay" },
   { khoa: "gopY", uuTien: () => 10, hien: (w) => can(w, "feedback.triage"), nhan: "Góp ý chờ xử lý", nut: () => "Xử lý", href: "/feedback", tone: "xanh", chot: khong,
     phu: () => "Góp ý có tin mới chưa đọc" },
 ];

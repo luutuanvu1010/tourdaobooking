@@ -40,6 +40,17 @@ export const TU_DA_LOAI: readonly TuDaLoai[] = [
   // Lượt 4 — hỗ trợ (chủ 2026-10-25, bàn giao Hoa hồng + Hỗ trợ). Trùng tên «Hỗ trợ» (trang / Trợ lý / vé): BACKLOG BL-VE-TRUNG-TEN.
   { cam: /Hàng đợi nhóm/u, thay: "Việc của nhóm", nguon: "chủ 2026-10-25 (bàn giao Hoa hồng + Hỗ trợ)" },
   { cam: /[Tt]rợ giúp|TRỢ GIÚP/u, thay: "Hướng dẫn", nguon: "chủ 2026-10-25 (bàn giao Hoa hồng + Hỗ trợ)" },
+  // Lượt 5 — Trang chủ (chủ 2026-10-28, hộp hỏi rà chữ Trang chủ). Khối và thẻ này đếm ĐƠN có ngày đi, không phải chuyến xe của Điều phối — mẫu chặn hẹp, «các chuyến hôm nay»
+  // của tài xế (chuyến xe thật) giữ nguyên. «khai <ngày>» ở khối Chờ đối chiếu: mảnh chuỗi mẫu « · khai » đứng ngay trước ngày.
+  { cam: /[Cc]huyến đón|Chuyến hôm nay|Không có chuyến nào (?:hôm nay|ngày mai|ngày kia)/u, thay: "Đơn đi (Đơn đi hôm nay · Không có đơn nào đi hôm nay)", nguon: "chủ 2026-10-28 (rà chữ Trang chủ)" },
+  { cam: /·\s*khai\s*$/u, thay: "ghi ngày <ngày>", nguon: "chủ 2026-10-28 (rà chữ Trang chủ)" },
+  // Dòng «Cần xem lại» của Quản trị ghi TÊN dịch vụ, không ghi mã trần sau «Sheet đã đổi giá» (mẫu chỉ bắt mảnh chữ đứng ngay trước `${…}`; nhãn bộ lọc
+  // «Sheet đã đổi giá (cần xem)» ở Danh mục không dính).
+  { cam: /Sheet đã đổi giá\s+$/u, thay: "Sheet đã đổi giá: <tên dịch vụ>", nguon: "chủ 2026-10-28 (hộp hỏi lượt 3 rà chữ Trang chủ)" },
+  // Hoa hồng (chủ 2026-10-28): năm loại có từ đầu, đi kèm tài khoản đăng nhập của đối tác. Và mức TA gắn riêng cho một đối tác (ADR-0138) là «chính sách riêng»
+  // theo lượt 3 — «mức riêng» chỉ dành cho một dòng mức đặt lẻ; ở Danh bạ chữ cũ còn gọi chính sách riêng là «Mức riêng: … (gắn riêng)».
+  { cam: /[Ll]oại gốc/u, thay: "Có sẵn (kèm câu «Loại có sẵn đi kèm tài khoản đăng nhập của đối tác nên không tắt được.»)", nguon: "chủ 2026-10-28 (hộp hỏi, chọn «Có sẵn»)" },
+  { cam: /\(gắn riêng\)|Lưu mức riêng|gắn mức riêng/u, thay: "chính sách riêng", nguon: "chủ 2026-10-25 (lượt 3), áp ở Danh bạ 2026-10-28" },
 ];
 
 /** Chữ «đảo» là hòn đảo (tên công ty, tên tour) — gỡ khỏi chuỗi trước khi so với dòng «Đảo» ở trên. */

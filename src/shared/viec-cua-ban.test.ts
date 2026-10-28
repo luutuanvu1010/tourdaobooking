@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { cauConLai, cauTomTatViec, KHOA_PHAM_VI, nguonCanTai, soTuKetQua, soXemLai, viecCuaBan } from "./viec-cua-ban.ts";
+import { cauConLai, cauTomTatViec, coOSoCuaToi, KHOA_PHAM_VI, nguonCanTai, soTuKetQua, soXemLai, viecCuaBan } from "./viec-cua-ban.ts";
 import { PHAM_VI_O_TRANG_CHU } from "./pham-vi-so.ts";
 import { PERMISSION_CODES, seesAllOrders } from "./permissions.ts";
 import type { PermissionCode } from "./permissions.ts";
@@ -15,6 +15,12 @@ test("Bán hàng: nhap · conThieu · chuaPhuTrach · chuyenHomNay, không thẻ
 // Thẻ cọc bị bỏ khỏi đợt 1 (chưa có trang cọc), nên Kế toán còn bốn thẻ này.
 test("Kế toán: dieuChinh · nhap · conThieu · chuyenHomNay, không chuaPhuTrach", () => {
   assert.deepEqual(viecCuaBan(who("ACCOUNTING"), day).the.map((t) => t.khoa), ["dieuChinh", "nhap", "conThieu", "chuyenHomNay"]);
+});
+// Chủ 28/10: hai ô «Của tôi» (Doanh thu của tôi, Đơn nháp) chỉ đếm đơn do chính người xem lập — ai không lập được đơn thì luôn 0, nên ẩn.
+test("coOSoCuaToi: chỉ người lập được đơn mới có ô «Doanh thu của tôi» và «Đơn nháp»", () => {
+  for (const p of ["ACCOUNTING", "FIELD"] as const) assert.equal(coOSoCuaToi(who(p)), false, p);
+  for (const p of ["SALES", "ADMIN", "SUPER_ADMIN", "INTERN", "PARTNER"] as const) assert.equal(coOSoCuaToi(who(p)), true, p);
+  assert.equal(coOSoCuaToi(who("ACCOUNTING", "SALES")), true, "Kế toán kiêm Bán hàng lập được đơn");
 });
 // Đặc tả §9.3: bốn thẻ Quản trị đợt 1 = Cần xem lại · Đơn nháp · Chưa phụ trách · Chuyến hôm nay (dieuChinh, conThieu xếp sau).
 test("Quản trị: đúng bốn thẻ xemLai · nhap · chuaPhuTrach · chuyenHomNay; không Góp ý", () => {
@@ -57,6 +63,10 @@ test("câu phụ thẻ conThieu nói số tiền còn thu; nguồn lỗi thì kh
 test("thẻ chuaPhuTrach: Bán hàng 'Nhận phụ trách', Quản trị 'Phân công'", () => {
   assert.equal(viecCuaBan(who("SALES"), day).the.find((t) => t.khoa === "chuaPhuTrach")?.nut, "Nhận phụ trách");
   assert.equal(viecCuaBan(who("ADMIN"), { chuaPhuTrach: 2 }).the[0]?.nut, "Phân công");
+});
+test("thẻ chuyenHomNay đếm ĐƠN, không phải chuyến xe: «Đơn đi hôm nay» (chủ chọn 28/10)", () => {
+  const t = viecCuaBan(who("SALES"), day).the.find((x) => x.khoa === "chuyenHomNay");
+  assert.deepEqual([t?.nhan, t?.nut, t?.phu], ["Đơn đi hôm nay", "Xem đơn", "Các đơn có ngày đi hôm nay"]);
 });
 test("nguonCanTai: chỉ nguồn người này dùng; không nguồn quản trị cho Bán hàng/Kế toán", () => {
   assert.deepEqual([...nguonCanTai(who("SALES"))], ["donCho", "nhap", "conThieu", "chuaPhuTrach", "chuyenHomNay"]);

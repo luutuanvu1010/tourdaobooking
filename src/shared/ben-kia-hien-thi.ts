@@ -68,7 +68,8 @@ export type LoaiDoiChieu = "cong_ty" | "ben_dat" | "nha_cung_cap";
 export function nhanKhoanDoiChieu(k: { loai: LoaiDoiChieu; benKia: string | null }): string {
   if (k.loai === "ben_dat") return `Khách trả cho đại lý ${k.benKia ?? ""}`.trim();
   if (k.loai === "nha_cung_cap") return `Khách trả tại quầy ${k.benKia ?? "nhà cung cấp"}`;
-  return "Công ty thu – chuyển khoản";
+  // Không ghi «chuyển khoản»: loại `cong_ty` gồm cả khoản tiền mặt người ghi chưa nộp về công ty (nhánh HELD của `PENDING_COMPANY`, billing/repository.ts).
+  return "Công ty thu";
 }
 
 /** Nút xác nhận ngay trong danh sách: chỉ khoản bên kia («Bên kia đã nhận»); khoản Công ty thu cần mã giao dịch ngân hàng ⇒ xác nhận ở trang đơn. */

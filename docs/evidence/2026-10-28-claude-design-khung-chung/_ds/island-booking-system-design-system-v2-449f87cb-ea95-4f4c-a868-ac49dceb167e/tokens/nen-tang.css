@@ -1,0 +1,25 @@
+/* Nền tảng: đặt lại tối thiểu, tiêu điểm chung, đổi phông, giảm chuyển động, hoạt ảnh dùng chung. */
+:root{color-scheme:light}
+.ib-goc,.ib-goc *{box-sizing:border-box}
+.ib-goc{font-family:var(--f-chinh);font-size:var(--fs-noi-dung);line-height:var(--lh-noi-dung);font-weight:var(--fw-noi-dung);color:var(--c-chu);background:var(--c-nen);-webkit-font-smoothing:antialiased;-webkit-text-size-adjust:100%;font-synthesis:none}
+:where(.ib-goc) :where(button,input,select,textarea){font:inherit;color:inherit}
+/* Khung ứng dụng: thành phần đọc bề rộng khung này (container "ib") để đổi điện thoại ↔ máy tính. Không có khung = bố cục điện thoại. */
+.ib-khung{container:ib/inline-size;position:relative}
+:where(.ib-goc a:not([class*="ib-"])){color:var(--c-chinh);font-weight:var(--fw-nhan);text-underline-offset:3px}
+:where(.ib-goc a:not([class*="ib-"]):hover){color:var(--c-chinh-re)}
+/* Đổi phông công ty — mọi thành phần chỉ đọc --f-chinh */
+[data-phong="nunito"]{--f-chinh:"Nunito",system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif; /* @kind font */}
+[data-phong="lexend"]{--f-chinh:"Lexend",system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif; /* @kind font */}
+[data-phong="noto-sans"]{--f-chinh:"Noto Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; /* @kind font */}
+/* Tiêu điểm bàn phím — một hình cho mọi điều khiển */
+[class*="ib-"]:focus-visible,.ib-xem-tieu-diem{outline:var(--vanh-tieu-diem) solid var(--c-tieu-diem);outline-offset:var(--vanh-cach)}
+[class*="ib-"]:focus:not(:focus-visible){outline:none}
+.ib-an{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.ib-so{font-family:var(--f-so);font-size:.94em;letter-spacing:0;white-space:nowrap}
+.ib-tien{font-variant-numeric:tabular-nums;white-space:nowrap}
+@keyframes ib-quay{to{transform:rotate(360deg)}}
+@keyframes ib-nhip{0%,100%{opacity:1}50%{opacity:.55}}
+@keyframes ib-len{from{transform:translateY(100%)}to{transform:none}}
+@keyframes ib-hien{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:none}}
+@keyframes ib-mo{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){.ib-goc *,.ib-goc *::before,.ib-goc *::after{animation-duration:0ms!important;animation-iteration-count:1!important;transition-duration:0ms!important}}

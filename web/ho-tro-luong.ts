@@ -3,6 +3,7 @@
 // Mở tại chỗ (không tải lại trang): máy tính ở cột phải, điện thoại toàn màn. Quyền chỉ đọc từ `perms` của máy chủ; chỉ ẩn/hiện, máy chủ luôn kiểm lại.
 // Không import feedback.ts (nó có top-level await) nên mọi thứ của trang đi vào qua `NgCanhLuong`.
 import { FEEDBACK_STATUS_NAME, SAC_TRANG_THAI, buocGopY, nhanNutChuyen, statusAfterSubmitterReply } from "../src/shared/feedback-catalog";
+import { CAU_CAN_CHU, CAU_DANG_CHUAN_BI, CAU_DANG_GUI_TEP, HEN_GIO_GUI_TEP_MS, NHAN_GO_TEP, cauTepLoi, tinDoiTep } from "../src/shared/tep-hien-thi";
 import { tomTatThietBi } from "../src/shared/thoi-gian-tuong-doi";
 import { PRIORITIES, PRIORITY_NAME, TEAM_ROLE_NAME, type Priority } from "../src/shared/ve-ho-tro";
 import {
@@ -12,6 +13,7 @@ import {
 import { ApiError, api, type Api } from "./api";
 import { moBangTruot, type BangTruot } from "./bang-truot";
 import { h, replaceChildren, type Child } from "./dom";
+import { quenAnh, taoOChonTep, thanTep, veTepTin, type TepNhap } from "./ho-tro-tep";
 import { icon } from "./icons";
 
 /** Thứ trang đưa cho luồng (luồng không tự biết trang đang ở thẻ nào, ai đang xem). */
@@ -24,6 +26,8 @@ export interface NgCanhLuong {
   napLaiDs(): void;
   /** Đã chuyển nhóm xong: người chuyển thường mất quyền xem. */
   chuyenXong(): void;
+  /** Có nút «Gỡ tệp» (trang hỏi `can(staff, "feedback.triage")` — chỉ Toàn quyền, ADR-0144 đ6; máy chủ kiểm lại). */
+  coGoTep: boolean;
 }
 
 type Perms = Api.FeedbackDetailResponse["perms"];
@@ -36,8 +40,8 @@ const gioVN = (iso: string): string => new Date(iso).toLocaleTimeString("vi-VN",
 const thongBao = (err: unknown): string => (err instanceof ApiError ? err.message : "Không kết nối được máy chủ.");
 const dangMo = (t: Pick<Api.FeedbackTicketDto, "status">): boolean => t.status !== "DONE" && t.status !== "DECLINED";
 
-/** Bản nháp ô trả lời theo yêu cầu: giữ qua mọi lần dựng lại (đổi trạng thái, giao việc…) — chỉ xoá khi gửi thành công. */
-const banNhap = new Map<string, { body: string; internal: boolean }>();
+/** Bản nháp ô trả lời theo yêu cầu: giữ qua mọi lần dựng lại (đổi trạng thái, giao việc…) — chỉ xoá khi gửi thành công. Tệp giữ nguyên base64 đã mã (Gửi lại cùng vé). */
+const banNhap = new Map<string, { body: string; internal: boolean; tep: TepNhap[] }>();
 /** Yêu cầu đã gửi được tin lý do từ chối mà chưa đổi được trạng thái: bấm Từ chối lại thì KHÔNG gửi lý do lần nữa (Task 4). */
 const lyDoDaGui = new Set<string>();
 
@@ -80,7 +84,7 @@ interface LamMoi {
   dangGoi: boolean;
   dung: boolean;
   daDoiNhom: boolean;
-  ve: (r: Api.FeedbackMessagesSinceResponse, moi: Api.FeedbackMessageDto[]) => void;
+  ve: (r: Api.FeedbackMessagesSinceResponse, moi: Api.FeedbackMessageDto[], doiTep: boolean) => void;
   dungVi: () => void;
 }
 let doiLuong = 0;
@@ -124,11 +128,12 @@ async function vongLamMoi(s: LamMoi, lanGoiNgay = 0): Promise<void> {
   }
   s.dangGoi = false;
   if (s.doi !== doiLuong || s.dung) return;
+  const doiTep = tinDoiTep(s.tin, r.messages); // tin cũ vừa lưu xong / mất tệp: tính TRƯỚC khi gộp (gộp thay bản cũ theo id)
   const b = buocLamMoi(s.tin, r.messages, s.macDinh);
   s.tin = b.tin;
   s.since = b.since;
   for (const e of r.suKien ?? []) s.suKien.set(e.id, e);
-  s.ve(r, b.moi);
+  s.ve(r, b.moi, doiTep);
   s.dau = r.ticket;
   if (b.goiNgay && lanGoiNgay < LAM_MOI_GOI_NGAY_TOI_DA) return void vongLamMoi(s, lanGoiNgay + 1);
   henLamMoi(s);
@@ -325,6 +330,21 @@ export function tuChoi(t: Api.FeedbackTicketDto, lyDoDaGui: Set<string>, sau: ()
   });
 }
 
+/** Gỡ một tệp gửi nhầm (Toàn quyền): xoá hẳn khỏi kho, tin còn dòng «Tệp đã được gỡ». 409 (đã gỡ / còn đang tải lên) hiện câu máy chủ trong hộp. */
+function hopGoTep(ticketId: string, tp: Api.FeedbackTepDto, nhan: string, opener: HTMLElement, sau: () => void): void {
+  mo(NHAN_GO_TEP, opener, (hop) => {
+    const nut = h("button", { type: "button", class: "btn btn-danger", "data-xac-nhan-go": tp.id }, NHAN_GO_TEP);
+    nut.addEventListener("click", async () => {
+      const r = await chay(async () => (await api<Api.FeedbackDetailResponse>(`/api/feedback/${ticketId}/tep/${tp.id}/go`, { method: "POST" }), true), nut, hop.hienLoi);
+      if (!r) return;
+      quenAnh(tp.id);
+      hop.bt?.close(false);
+      sau();
+    });
+    return [h("p", null, `${nhan} sẽ bị xoá khỏi kho, không khôi phục được. Tin vẫn còn dòng «Tệp đã được gỡ».`), nut];
+  });
+}
+
 // ---- Đầu yêu cầu ---------------------------------------------------------------------------------------------------------------------
 function dungChiTiet(b: Bo): HTMLElement {
   const { t, perms } = b;
@@ -401,22 +421,25 @@ function dungDau(b: Bo): HTMLElement[] {
 }
 
 // ---- Luồng tin ---------------------------------------------------------------------------------------------------------------------------
-/** Một bong bóng tin. Giữ lớp `card` + `data-tin` (kịch bản Chrome tìm tin theo `#thread .card`). */
-const bongBong = (m: Api.FeedbackMessageDto): HTMLElement =>
-  h("div", { class: `card fb-tin${m.mine ? " is-minh" : ""}${m.internal ? " is-noi-bo" : ""}`, "data-tin": m.id }, h("p", null, m.body));
+/** Vẽ khối tệp của một tin (null = tin không có tệp). */
+type VeTep = (m: Api.FeedbackMessageDto) => HTMLElement | null;
 
-function veCum(c: CumTin): HTMLElement {
+/** Một bong bóng tin. Giữ lớp `card` + `data-tin` (kịch bản Chrome tìm tin theo `#thread .card`). Tệp nằm dưới chữ, trong cùng bong bóng. */
+const bongBong = (m: Api.FeedbackMessageDto, veTep: VeTep): HTMLElement =>
+  h("div", { class: `card fb-tin${m.mine ? " is-minh" : ""}${m.internal ? " is-noi-bo" : ""}`, "data-tin": m.id }, h("p", null, m.body), veTep(m));
+
+function veCum(c: CumTin, veTep: VeTep): HTMLElement {
   return h(
     "div",
     { class: `ht-cum${c.cuaToi ? " is-minh" : ""}${c.noiBo ? " is-noi-bo" : ""}` },
     h("div", { class: "muted fb-tin-dau" }, `${c.tacGia} · ${gioVN(c.luc)}`,
       c.noiBo && h("span", { class: "badge badge-draft ht-noi-bo" }, icon("lock", 14), " Ghi chú nội bộ · người gửi không thấy")),
-    ...c.tin.map(bongBong),
+    ...c.tin.map((m) => bongBong(m, veTep)),
   );
 }
 
 /** Dựng lại cả luồng (cụm + dòng hệ thống + mốc ngày). Ô trả lời nằm ngoài khối này nên bản nháp không mất. */
-function veLuong(ds: HTMLElement, tin: readonly Api.FeedbackMessageDto[], suKien: readonly Api.FeedbackEventDto[], staffId: string, coSuKien: boolean): void {
+function veLuong(ds: HTMLElement, tin: readonly Api.FeedbackMessageDto[], suKien: readonly Api.FeedbackEventDto[], staffId: string, coSuKien: boolean, veTep: VeTep): void {
   const hom = ngayVN(new Date().toISOString());
   let ngayTruoc = "";
   const ra: Child[] = [];
@@ -432,7 +455,7 @@ function veLuong(ds: HTMLElement, tin: readonly Api.FeedbackMessageDto[], suKien
       ra.push(h("p", { class: "ht-he-thong muted", role: "note", "data-su-kien": it.suKien.id }, `${it.cau} · ${gioVN(it.suKien.at)}`));
     } else {
       modNgay(it.luc);
-      ra.push(veCum(it));
+      ra.push(veCum(it, veTep));
     }
   }
   replaceChildren(ds, ...ra);
@@ -441,13 +464,13 @@ function veLuong(ds: HTMLElement, tin: readonly Api.FeedbackMessageDto[], suKien
 /** Người xem đang ở gần cuối trang (đọc tin mới nhất / đang gõ trả lời) — chỉ khi đó mới cuộn theo tin mới. */
 const oCuoiTrang = (): boolean => window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 160;
 
-/** Mở luồng của một yêu cầu trong `goc` (cột phải ở máy tính, toàn màn ở điện thoại). Gọi lại với cùng hay khác `id` đều dựng lại từ đầu. */
-export function moLuong(goc: HTMLElement, id: string, o: NgCanhLuong): void {
+/** Mở luồng của một yêu cầu trong `goc` (cột phải ở máy tính, toàn màn ở điện thoại). Gọi lại với cùng hay khác `id` đều dựng lại từ đầu. `canhBao`: câu báo một lần sau khi dựng. */
+export function moLuong(goc: HTMLElement, id: string, o: NgCanhLuong, canhBao?: string | null): void {
   dongHienTai = o.dong;
-  void loadThread(goc, id, o, true);
+  void loadThread(goc, id, o, true, canhBao);
 }
 
-async function loadThread(box: HTMLElement, id: string, o: NgCanhLuong, dauTien: boolean): Promise<void> {
+async function loadThread(box: HTMLElement, id: string, o: NgCanhLuong, dauTien: boolean, canhBao?: string | null): Promise<void> {
   const doiNay = ++doiLuong;
   if (lm) {
     clearTimeout(lm.hen);
@@ -481,11 +504,14 @@ async function loadThread(box: HTMLElement, id: string, o: NgCanhLuong, dauTien:
   const reload = (): void => void loadThread(box, id, o, false);
   const b: Bo = { t, perms, o, reload, hienLoi };
 
-  const nhap = banNhap.get(id) ?? { body: "", internal: false };
+  const nhap = banNhap.get(id) ?? { body: "", internal: false, tep: [] };
   let noiBo = perms.xuLy && nhap.internal;
+  let tepNhap = nhap.tep;
   const body = h("textarea", { rows: 3, maxLength: 4000, placeholder: "Viết phản hồi…", "aria-label": "Nội dung trả lời", value: nhap.body });
-  const luuNhap = (): void => void banNhap.set(id, { body: body.value, internal: noiBo });
+  const luuNhap = (): void => void banNhap.set(id, { body: body.value, internal: noiBo, tep: tepNhap });
   body.addEventListener("input", luuNhap);
+  const oTep = taoOChonTep({ ban: tepNhap, khiDoi: (ds) => ((tepNhap = ds), luuNhap()), hienLoi, id: "fb-tep" });
+  const dangGui = h("p", { class: "muted", role: "status", id: "fb-dang-gui", hidden: true }, CAU_DANG_GUI_TEP);
   const send = h("button", { type: "button", class: "btn btn-primary btn-chinh" }, "Gửi");
   const nutCong = h("button", { type: "button", class: "ht-che-do", "aria-pressed": "false" }, "Trả lời người gửi");
   const nutNoiBo = h("button", { type: "button", class: "ht-che-do", "aria-pressed": "false", hidden: !perms.xuLy }, "Ghi chú nội bộ");
@@ -494,6 +520,8 @@ async function loadThread(box: HTMLElement, id: string, o: NgCanhLuong, dauTien:
     h("div", { class: "ht-che-do-hang", role: "group", "aria-label": "Kiểu tin" }, nutCong, nutNoiBo),
     cauMoLai,
     body,
+    oTep.khoi,
+    dangGui,
     send);
   /** Dòng «Gửi sẽ mở lại…» hiện TRƯỚC khi bấm: chỉ người gửi, yêu cầu đã xong / từ chối, đang ở kiểu công khai. */
   const veCheDo = (): void => {
@@ -514,10 +542,18 @@ async function loadThread(box: HTMLElement, id: string, o: NgCanhLuong, dauTien:
   });
   veCheDo();
   send.addEventListener("click", async () => {
-    const r = await chay(async () => (await api<Api.FeedbackDetailResponse>(`/api/feedback/${id}/messages`, { method: "POST", body: { body: body.value, internal: perms.xuLy && noiBo } }), true), send, hienLoi);
+    if (send.disabled) return;
+    if (oTep.dangChuanBi()) return hienLoi(CAU_DANG_CHUAN_BI);
+    const tep = oTep.ds();
+    if (tep.length > 0 && !body.value.trim()) return hienLoi(CAU_CAN_CHU);
+    const than: Api.FeedbackReplyInput = { body: body.value, internal: perms.xuLy && noiBo };
+    if (tep.length > 0) than.tep = thanTep(tep); // base64 đã mã lúc chọn: Gửi lại gửi đúng từng byte cũ ⇒ cùng vé, không thành hai tin
+    dangGui.hidden = tep.length === 0;
+    const r = await chay(() => api<Api.FeedbackGuiResponse>(`/api/feedback/${id}/messages`, { method: "POST", body: than, henGioMs: tep.length > 0 ? HEN_GIO_GUI_TEP_MS : undefined }), send, hienLoi);
+    dangGui.hidden = true;
     if (!r) return;
     banNhap.delete(id);
-    void loadThread(box, id, o, true); // gửi xong cuộn xuống tin vừa gửi (điện thoại)
+    void loadThread(box, id, o, true, cauTepLoi(typeof r.tepLoi === "number" ? r.tepLoi : 0)); // gửi xong cuộn xuống tin vừa gửi (điện thoại); tệp chưa lên kho thì báo ngay
   });
 
   const khoiDau = h("div", { id: "fb-dau", class: "ht-dau-luong" }, ...dungDau(b));
@@ -525,7 +561,9 @@ async function loadThread(box: HTMLElement, id: string, o: NgCanhLuong, dauTien:
   const suKien = new Map<string, Api.FeedbackEventDto>();
   for (const e of d.suKien ?? []) suKien.set(e.id, e);
   const coSuKien = perms.xuLy; // Q2: người gửi không xử lý không có dòng hệ thống (máy chủ cũng không trả `suKien` cho họ)
-  const ve = (tin: readonly Api.FeedbackMessageDto[]): void => veLuong(ds, tin, [...suKien.values()], o.staffId, coSuKien);
+  const goTep = o.coGoTep ? (tp: Api.FeedbackTepDto, nut: HTMLButtonElement, nhan: string): void => hopGoTep(id, tp, nhan, nut, reload) : null;
+  const veTep: VeTep = (m) => veTepTin(id, m.tep, goTep);
+  const ve = (tin: readonly Api.FeedbackMessageDto[]): void => veLuong(ds, tin, [...suKien.values()], o.staffId, coSuKien, veTep);
   ve(d.messages);
   const baoDung = h("p", { class: "alert", role: "status", id: "fb-lam-moi-dung", hidden: true });
   const nutTaiLai = h("button", { type: "button", class: "btn btn-link", onclick: reload }, NHAN_TAI_LAI);
@@ -544,8 +582,8 @@ async function loadThread(box: HTMLElement, id: string, o: NgCanhLuong, dauTien:
     dangGoi: false,
     dung: false,
     daDoiNhom: false,
-    ve: (r, moi) => {
-      if (moi.length || (r.suKien?.length ?? 0) > 0) {
+    ve: (r, moi, doiTep) => {
+      if (moi.length || (r.suKien?.length ?? 0) > 0 || doiTep) {
         const cuoi = oCuoiTrang();
         ve(s.tin);
         if (cuoi) window.scrollTo({ top: document.documentElement.scrollHeight });
@@ -575,4 +613,5 @@ async function loadThread(box: HTMLElement, id: string, o: NgCanhLuong, dauTien:
   lm = s;
   henLamMoi(s);
   if (dauTien && !wide()) window.scrollTo({ top: document.documentElement.scrollHeight });
+  if (canhBao) hienLoi(canhBao);
 }

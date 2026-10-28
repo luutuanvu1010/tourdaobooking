@@ -1,4 +1,5 @@
 // GHI CHÚ 27/10/2026 (ADR-0135/0136): đỏ từ 27/10: hàm `createAndConfirm` nhận 409 `confirm_request_required` (chặng dưới mốc nay đi qua bước xác nhận / người lập tự đặt gấp trước). Phần xác nhận đơn thay bằng `docs/evidence/2026-10-26-xac-nhan-don/kich-ban/xac-nhan-smoke.mjs`; muốn chạy tiếp phải đặt gấp từng chặng rồi xác nhận lại (chưa sửa, ghi nợ).
+// GHI CHÚ 28/10/2026: nợ trên ĐÃ VÁ — `createAndConfirm` đặt gấp từng chặng rồi xác nhận lại; sửa thêm hai chỗ cũ từ ADR-0135 (S20-13 chỉ đếm đơn đã xác nhận, ô «Đơn nháp» điện thoại). Chạy xanh lại (44 bước, có axe).
 // 2026-10-27: phần kiểm trang Hỗ trợ (/feedback) của kịch bản này THAY BẰNG docs/evidence/2026-10-27-ho-tro-thiet-ke-lai/kich-ban/ho-tro-smoke.mjs; các phần khác còn dùng. KHÔNG chạy lại phần /feedback (chữ cũ «Hàng đợi nhóm», «Quản lý nhóm», «Trợ giúp»).
 // Kịch bản Chrome cho Task 3 ("Trang chủ mới", docs/superpowers/sdd/2026-09-23-trang-chu-moi/task-3-brief.md) — BẰNG CHỨNG HÀNH VI TRÌNH DUYỆT DUY NHẤT
 // cho Trang chủ (nay ở "/"; `npm test`/`test:e2e -- pwa` KHÔNG phủ DOM của web/home.ts, chỉ phủ luật thuần + manifest/service worker). Dùng lại NGUYÊN cơ chế CDP của A2
@@ -150,6 +151,15 @@ try {
       }
       confirmed = await call(ACCOUNTS.admin, "POST", `/api/orders/${id}/status`, { status: "confirmed" });
     }
+    // ADR-0136 (bản 2.36): lượt đón dưới hạn chốt đưa đơn vào diện cần xác nhận — 409 `confirm_request_required`, không còn kèm `legs`. Cùng đường của
+    // tests/e2e/chang-hanh-khach.mjs (9): đặt gấp từng lượt của đơn rồi xác nhận lại. Lượt ngoài hạn chốt bị máy chủ từ chối đặt gấp (ADR-0107 ý (ii)) — bỏ qua,
+    // câu xác nhận lại bên dưới vẫn phải ra 200.
+    if (confirmed.status === 409 && confirmed.json?.error?.code === "confirm_request_required") {
+      for (const sv of created.json.order.services) for (const leg of sv.legs ?? []) {
+        await call(ACCOUNTS.admin, "POST", `/api/orders/${id}/legs/${leg.id}/short-notice`, { lyDo: "KHAC", ghiChu: null });
+      }
+      confirmed = await call(ACCOUNTS.admin, "POST", `/api/orders/${id}/status`, { status: "confirmed" });
+    }
     assert.equal(confirmed.status, 200, `xác nhận đơn ${id}: ${JSON.stringify(confirmed.json)}`);
     return confirmed.json.order;
   };
@@ -222,12 +232,13 @@ try {
   // S20-13 (ADR-0030; kế hoạch 2026-09-27 Task 1.2) + ADR-0020 điều 7 M1 = A: ô "Chưa phụ trách" đếm CẢ đơn nháp. Từ Task 1.3 (ADR-0030 S20-4)
   // đơn mới lập không chọn ai thì KHÔNG có người phụ trách — R2 (nháp) tự nhiên là đơn nháp chưa có người, không cần câu SQL đóng dòng phụ trách
   // nữa. Đáp án đối chiếu ở mục 2 tự tính bằng SQL đọc THẲNG bảng phân công — nguồn độc lập với mã đang kiểm.
+  // ADR-0135 Đ3 (26/10, commit 00ecef1f): nháp là vùng riêng của người lập, KHÔNG còn là việc chờ ai nhận — ô chỉ đếm đơn ĐÃ XÁC NHẬN; R2 (nháp) phải KHÔNG có trong đáp án.
   // ==================================================================================================
   const unassignedTruth = env.sql(
-    `SELECT o.id FROM orders o WHERE o.status IN ('draft', 'confirmed') AND NOT EXISTS (SELECT 1 FROM dsp_assignment a WHERE a.order_id = o.id AND a.task_kind_code = 'HANDLE' AND a.valid_to_at IS NULL)`,
+    `SELECT o.id FROM orders o WHERE o.status = 'confirmed' AND NOT EXISTS (SELECT 1 FROM dsp_assignment a WHERE a.order_id = o.id AND a.task_kind_code = 'HANDLE' AND a.valid_to_at IS NULL)`,
   ).map((r) => r.id);
-  assert.ok(unassignedTruth.includes(r2.id), `S20-13: R2 (nháp, lập không chọn người phụ trách) phải là đơn chưa có người — ${JSON.stringify(unassignedTruth)}`);
-  ok(`S20-13: đáp án tự tính bằng SQL — ${unassignedTruth.length} đơn nháp/đã xác nhận chưa có người phụ trách, gồm R2 (nháp)`);
+  assert.ok(!unassignedTruth.includes(r2.id), `S20-13 + ADR-0135 Đ3: R2 (nháp) KHÔNG được đếm là đơn chờ người phụ trách — ${JSON.stringify(unassignedTruth)}`);
+  ok(`S20-13 + ADR-0135 Đ3: đáp án tự tính bằng SQL — ${unassignedTruth.length} đơn đã xác nhận chưa có người phụ trách, không gồm R2 (nháp)`);
 
   // ==================================================================================================
   // F) Ghim thứ tự khai route: GET /api/orders/dashboard PHẢI trả dữ liệu thật (không phải 404 do bị route
@@ -254,8 +265,8 @@ try {
   assert.deepEqual(data.today[0].trip, { departDate: TODAY, pickupTime: "06:15", pickupPlace: "Bến Cầu Đá" }, `trip của R1 trong API phải là dịch vụ QUYẾT ĐỊNH (sort_order=1, hôm nay), KHÔNG phải sort_order=0 (mai) — ${JSON.stringify(data.today[0].trip)}`);
   assert.equal(data.revenueWeek.count, 2, `revenueWeek.count phải = 2 (R1 + R3, cùng người lập, cùng tuần) — ${JSON.stringify(data.revenueWeek)}`);
   assert.equal(data.revenueWeek.total, 300_000 + 12_345_000, `revenueWeek.total phải = 12.645.000 — ${JSON.stringify(data.revenueWeek)}`);
-  assert.equal(data.unassignedCount, unassignedTruth.length, `S20-13: unassignedCount phải = số đơn NHÁP + ĐÃ XÁC NHẬN chưa có người (SQL tự tính: ${JSON.stringify(unassignedTruth)}) — API trả ${data.unassignedCount}`);
-  ok(`API GET /api/orders/dashboard khớp số tự tính: draftCount=1, unpaid=1 đơn/12.345.000, today=[R1] (trip đúng dịch vụ quyết định), revenueWeek=2 đơn/12.645.000; unassignedCount=${data.unassignedCount} = đáp án SQL (đếm cả đơn nháp R2 — ADR-0030 S20-13; DOM đối chiếu bên dưới)`);
+  assert.equal(data.unassignedCount, unassignedTruth.length, `S20-13 + ADR-0135 Đ3: unassignedCount phải = số đơn ĐÃ XÁC NHẬN chưa có người (SQL tự tính: ${JSON.stringify(unassignedTruth)}) — API trả ${data.unassignedCount}`);
+  ok(`API GET /api/orders/dashboard khớp số tự tính: draftCount=1, unpaid=1 đơn/12.345.000, today=[R1] (trip đúng dịch vụ quyết định), revenueWeek=2 đơn/12.645.000; unassignedCount=${data.unassignedCount} = đáp án SQL (chỉ đơn đã xác nhận, không đếm nháp R2 — ADR-0135 Đ3; DOM đối chiếu bên dưới)`);
 
   // ==================================================================================================
   // Đợt D Task 2 (biểu đồ cột 7 ngày): R1 + R3 đều tạo "bây giờ" (createAndConfirm không truyền created_at riêng) nên
@@ -459,7 +470,7 @@ try {
       assert.deepEqual(m.viec.the.map((t) => t.khoa), ["xemLai", "nhap", "chuaPhuTrach", "chuyenHomNay"], `${label}: thẻ Việc của bạn (Quản trị) đúng thứ tự độ gấp — ${JSON.stringify(m.viec.the)}`);
       assert.deepEqual(m.viec.the.map((t) => t.so), ["1", "1", String(data.unassignedCount), "1"], `${label}: số trên thẻ khớp dữ liệu thử (cần xem lại 1, đơn nháp 1, chưa phụ trách = API ${data.unassignedCount}, chuyến hôm nay 1) — ${JSON.stringify(m.viec.the)}`);
       assert.ok(m.viec.the.every((t) => t.so !== "0" && t.so !== "" && t.soNut === 1 && t.nut.length === 1 && t.nut[0].describedby && t.phamVi), `${label}: thẻ chỉ hiện khi số > 0, mỗi thẻ ĐÚNG MỘT nút (có aria-describedby trỏ nhãn) và có nhãn phạm vi — ${JSON.stringify(m.viec.the)}`);
-      assert.deepEqual(m.viec.the.map((t) => t.nut[0].chu), ["Xem lại", "Xác nhận đơn", "Phân công", "Xem chuyến"], `${label}: chữ nút từng thẻ (Quản trị) — ${JSON.stringify(m.viec.the)}`);
+      assert.deepEqual(m.viec.the.map((t) => t.nut[0].chu), ["Xem lại", "Xác nhận đơn", "Phân công", "Xem đơn"], `${label}: chữ nút từng thẻ (Quản trị) — ${JSON.stringify(m.viec.the)}`);
       assert.deepEqual(m.viec.the.map((t) => /\bbtn-accent\b/.test(t.nut[0].lop)), [false, true, false, false], `${label}: nút san hô (btn-accent) CHỈ ở hành động chốt (thẻ thứ hai "Xác nhận đơn") — ${JSON.stringify(m.viec.the)}`);
       assert.match(m.viec.the[0].nut[0].lop, /\bbtn-primary\b/, `${label}: nút thẻ đầu nhấn bằng btn-primary — ${JSON.stringify(m.viec.the[0])}`);
       assert.equal(m.viec.con, "Còn 1 việc nữa: đơn còn thiếu tiền (1).", `${label}: việc dồn ra ngoài bốn thẻ được nói thẳng — ${JSON.stringify(m.viec)}`);
@@ -531,9 +542,10 @@ try {
       assert.equal(m.loiTatShown, false, `${label}: thẻ Lối tắt (chỉ máy tính) phải ẨN ở khổ điện thoại — ${JSON.stringify(m)}`);
       assert.equal(m.tlShown, false, `${label}: dòng thời gian (chỉ máy tính) phải ẨN ở khổ điện thoại — ${JSON.stringify(m)}`);
       assert.equal(m.soShown, true, `${label}: khối số liệu 2×2 (#dash-so) phải hiển thị thật — ${JSON.stringify(m)}`);
-      assert.deepEqual(m.so.map((s) => s.label), ["Còn thiếu", "Doanh thu của tôi", "Chờ xác nhận", "Chưa phụ trách"], `${label}: bốn ô số liệu đúng thứ tự bản vẽ — ${JSON.stringify(m.so)}`);
+      // Ô thứ ba «Đơn nháp» / «Nháp của bạn, chưa xác nhận» (đổi từ «Chờ xác nhận» ở commit 00ecef1f, ADR-0135 nháp riêng tư, 26/10).
+      assert.deepEqual(m.so.map((s) => s.label), ["Còn thiếu", "Doanh thu của tôi", "Đơn nháp", "Chưa phụ trách"], `${label}: bốn ô số liệu đúng thứ tự bản vẽ — ${JSON.stringify(m.so)}`);
       assert.deepEqual(m.so.map((s) => s.value), ["12,34tr ₫", "12,64tr ₫", "1", String(data.unassignedCount)], `${label}: giá trị bốn ô (tiền rút gọn vndShort; số đơn nháp; số chưa phụ trách khớp API) — ${JSON.stringify(m.so)}`);
-      assert.deepEqual(m.so.map((s) => s.sub), ["1 đơn", "Tuần này · 2 đơn", "Cần xác nhận đơn", "Chờ người nhận"], `${label}: dòng phụ bốn ô — ${JSON.stringify(m.so)}`);
+      assert.deepEqual(m.so.map((s) => s.sub), ["1 đơn", "Tuần này · 2 đơn", "Nháp của bạn, chưa xác nhận", "Chờ người nhận"], `${label}: dòng phụ bốn ô — ${JSON.stringify(m.so)}`);
       assert.ok(m.so.every((s) => s.shown && s.href === "/orders"), `${label}: bốn ô hiển thị thật và dẫn tới /orders — ${JSON.stringify(m.so)}`);
       assert.deepEqual(m.so.filter((s) => s.wrapped), [], `${label}: số của ô (.dash-so-gt) không được xuống dòng ("₫" rơi khỏi số — kiểm gộp I-3) — ${JSON.stringify(m.so)}`);
 
@@ -556,7 +568,7 @@ try {
     // lại" của Quản trị chỉ còn dòng Sheet đổi giá; hai góp ý MỚI (fb1, fb2) vẫn được dựng để khẳng định chúng KHÔNG lọt vào khối này của Quản trị.
     // (Trước 29/9 kịch bản chờ 2 dòng — đỏ sẵn từ ADR-0038, sửa khi làm xanh kịch bản ở Phần B ADR-0049.)
     assert.equal(m.review.rows.length, 1, `${label}: Quản trị có đúng 1 dòng cảnh báo (Sheet đổi giá) — góp ý chỉ Toàn quyền (ADR-0038) — ${JSON.stringify(m.review)}`);
-    assert.equal(m.review.rows[0].title, "Sheet đã đổi giá TD101", `${label}: dòng 1 phải là cảnh báo Sheet đổi giá đúng mã TD101 — ${JSON.stringify(m.review)}`);
+    assert.equal(m.review.rows[0].title, "Sheet đã đổi giá: Tour 4 đảo Nha Trang", `${label}: dòng 1 phải là cảnh báo Sheet đổi giá ghi TÊN dịch vụ TD101 (chủ 28/10), không ghi mã — ${JSON.stringify(m.review)}`);
     assert.equal(
       m.review.rows[0].sub,
       "1.200.000 ₫ → 1.350.000 ₫ · giá ghi đè vẫn đang bán",
@@ -1637,9 +1649,9 @@ try {
       assert.ok(s.hasSvg && s.ariaHidden === "true", `J: ô số liệu #${i} (${icons.statLabels[i]}) phải có biểu tượng aria-hidden — ${JSON.stringify(s)}`);
       assert.ok(s.text && s.text.length > 0, `J: ô số liệu #${i} phải còn chữ đi kèm biểu tượng (không đứng một mình) — ${JSON.stringify(s)}`);
     });
-    // Góp ý YC-0007 (chủ chọn cách A, 30/9): tiêu đề khối nay là "Chuyến đón" + ba nút Hôm nay / Ngày mai / Ngày kia.
+    // Góp ý YC-0007 (chủ chọn cách A, 30/9): tiêu đề khối + ba nút Hôm nay / Ngày mai / Ngày kia. Tên khối «Đơn đi» (chủ chọn 28/10, thay «Chuyến đón»: khối đếm đơn, không phải chuyến xe).
     // "Doanh thu của tôi" nay là một ô của thẻ số liệu (biểu tượng đã đo ở vòng ô số liệu bên trên).
-    for (const [name, x] of [["Chuyến đón", icons.todayTitle], ["Cần xem lại", icons.reviewHeading]]) {
+    for (const [name, x] of [["Đơn đi", icons.todayTitle], ["Cần xem lại", icons.reviewHeading]]) {
       assert.ok(x.hasSvg && x.ariaHidden === "true", `J: tiêu đề "${name}" phải có biểu tượng aria-hidden — ${JSON.stringify(x)}`);
       assert.equal(x.text, name, `J: tiêu đề phải còn đúng chữ gốc "${name}" — ${JSON.stringify(x)}`);
     }

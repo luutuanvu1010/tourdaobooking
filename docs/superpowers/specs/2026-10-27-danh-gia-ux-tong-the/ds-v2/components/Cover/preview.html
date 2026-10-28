@@ -1,0 +1,63 @@
+<!-- @dsCard height=288 -->
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Island Booking System</title>
+<style>
+  html, body { margin: 0; height: 100%; }
+  body { background: var(--c-surface); color: var(--c-text); font-family: var(--font-sans); overflow: hidden; }
+  .cover { position: relative; width: 960px; height: 288px; overflow: hidden; }
+  .art { position: absolute; top: 0; left: 0; width: 960px; height: 112px; }
+  .art svg { display: block; width: 960px; height: 112px; }
+  .bien { fill: var(--c-primary); }
+  .ngoc { fill: var(--c-lagoon); }
+  .sanho { fill: var(--c-accent); }
+  .cat { fill: var(--c-sand); }
+  .nhat { fill: var(--c-primary-soft); }
+  .song { fill: var(--c-primary-soft); }
+  .song-ngoc { fill: var(--c-lagoon-soft); }
+  .words { position: absolute; left: 48px; bottom: 32px; max-width: 864px; }
+  .name { margin: 0; font-size: 64px; line-height: .95; font-weight: 600; letter-spacing: var(--ls-tight); color: var(--c-text); white-space: nowrap; }
+  .tag { margin: 12px 0 0 2px; font-size: 14px; line-height: 20px; color: var(--c-text-muted); max-width: 440px; }
+</style>
+</head>
+<body>
+<div class="cover">
+<div class="art" aria-hidden="true">
+<svg viewBox="0 0 960 112" width="960" height="112">
+<!--
+  blocks      c-primary 480×112 (biển đậm, màu nhận ra thương hiệu, lớn nhất) · c-lagoon 192×112 (ngọc) · c-accent 96×112 (san hô, hành động chốt, nhỏ vì chỉ dùng cho một việc) · c-sand 96×112 (cát) · c-primary-soft 96×112 (một tông nhạt làm chỗ nghỉ) — một dải ngang full-width ≈ 39 % của 960×288 (khung dải trên: tên quá rộng cho khung 480)
+  arrangement dải các khối không đều, sát nhau, bám mép trên; tên 64px bên dưới, một dòng (21 ký tự × 0,6 × 64 ≈ 806 < 864)
+  pattern     nửa hình tròn = "sóng": hình ảnh đảo của thương hiệu (biển, ngọc, san hô, cát) → arcs/half-rounds từ thang bo; 10 nửa đĩa r = s5 (24) đặt theo nhịp s7 (48) dọc mép dưới khối biển, cắt bằng chính mép khối; 2 nửa đĩa ngọc nhạt trên khối ngọc
+  scales      cạnh khối là bội của s7 (48): 480 = 10×48, 192 = 4×48, 96 = 2×48; cao 112 = s7 + s6 + s6 (48+32+32); bán kính sóng s5 (24); nhịp sóng s7 (48); góc vuông (hệ thống bo 8–18 nhỏ so với khối, giữ khối phẳng như dải tóm tắt đơn)
+-->
+<clipPath id="dai"><rect x="0" y="0" width="960" height="112"/></clipPath>
+<g clip-path="url(#dai)">
+  <rect class="bien" x="0" y="0" width="480" height="112"/>
+  <rect class="ngoc" x="480" y="0" width="192" height="112"/>
+  <rect class="sanho" x="672" y="0" width="96" height="112"/>
+  <rect class="cat" x="768" y="0" width="96" height="112"/>
+  <rect class="nhat" x="864" y="0" width="96" height="112"/>
+  <circle class="song" cx="24" cy="112" r="24"/>
+  <circle class="song" cx="72" cy="112" r="24"/>
+  <circle class="song" cx="120" cy="112" r="24"/>
+  <circle class="song" cx="168" cy="112" r="24"/>
+  <circle class="song" cx="216" cy="112" r="24"/>
+  <circle class="song" cx="264" cy="112" r="24"/>
+  <circle class="song" cx="312" cy="112" r="24"/>
+  <circle class="song" cx="360" cy="112" r="24"/>
+  <circle class="song" cx="408" cy="112" r="24"/>
+  <circle class="song" cx="456" cy="112" r="24"/>
+  <circle class="song-ngoc" cx="528" cy="112" r="24"/>
+  <circle class="song-ngoc" cx="624" cy="112" r="24"/>
+</g>
+</svg>
+</div>
+<div class="words">
+<h1 class="name">Island Booking System</h1>
+<p class="tag">Một ngôn ngữ thiết kế cho mọi màn của Nền tảng — nhanh, dễ nhìn, nhìn là hiểu.</p>
+</div>
+</div>
+</body>
+</html>

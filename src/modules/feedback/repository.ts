@@ -2,6 +2,7 @@
 // SQL của các bảng module feedback sở hữu (fbk_*). Mọi câu đi qua defineSql (ADR-0002 điều 8(b)); câu SQL TĨNH, tham số đánh số ?N.
 // Tên người đọc CHỈ qua view công bố v_stf_staff_label (module staff). Không có DELETE (R-N1-9).
 import { defineSql } from "../../shared/sql-registry.ts";
+import type { LoaiTep } from "../../shared/tep-dinh-kem.ts";
 import type { Membership } from "./quyen.ts";
 
 export interface TicketRow {
@@ -497,3 +498,118 @@ export const endMemberStatement = (db: D1Database, a: { teamId: string; staffId:
   db.prepare(END_MEMBER).bind(a.teamId, a.staffId, a.now, a.by);
 export const insertMemberStatement = (db: D1Database, a: { id: string; teamId: string; staffId: string; role: "LEAD" | "MEMBER"; now: string; by: string }) =>
   db.prepare(INSERT_MEMBER).bind(a.id, a.teamId, a.staffId, a.role, a.now, a.by);
+
+// ---- Tệp kèm tin (ADR-0144; migration 0124) — storage_key và content_hash là N3: CHỈ đi trong câu lệnh, KHÔNG BAO GIỜ ra DTO, nhật ký, câu lỗi. ---------------
+// Gửi tin kèm tệp ghi D1 TRƯỚC (dòng tệp trong CÙNG lô với tin, stored_at rỗng) rồi mới đặt kho (kho-tep.ts), rồi đánh dấu đã lưu — khuôn ADR-0123.
+// Đọc tệp cho người xem (LIST_TEP_CUA_TIN) CHỈ theo danh sách mã tin mà route đã đọc qua TIN_CHO_NGUOI_XEM: tin người xem không đọc được thì tệp của nó không bao giờ
+// được hỏi — một đoạn lọc ghi chú nội bộ cho cả chữ lẫn tệp (ADR-0144 đ3).
+export interface TepTinRow {
+  id: string; message_id: string; content_kind: LoaiTep; byte_size: number; stored_at: string | null; purged_at: string | null; purge_reason: string | null; created_at: string;
+}
+export interface TepCanXoaRow { id: string; storage_key: string }
+// Chèn một tệp: CHỈ khi tin ?2 có mặt và do chính người tải ?8 viết (tin không chèn — trần, gửi lại, đổi nhóm — thì tệp cũng không), VÀ người tải còn dưới trần tệp
+// trong cửa sổ (?9 đầu cửa sổ, ?10 trần). Đếm và chèn trong cùng câu nên các câu cùng lô thấy nhau. Trigger 0124 là lưới thứ hai (tác giả, tối đa 5 tệp mỗi tin).
+// ?1 id, ?2 tin, ?3 khoá kho, ?4 loại, ?5 cỡ, ?6 băm, ?7 bây giờ, ?8 người tải.
+const INSERT_TEP = defineSql(
+  "feedback",
+  "insert_attachment",
+  `INSERT INTO fbk_attachment (id, message_id, storage_key, content_kind, byte_size, content_hash, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?7, ?8
+   WHERE EXISTS (SELECT 1 FROM fbk_message WHERE id = ?2 AND author_id = ?8)
+     AND (SELECT count(*) FROM fbk_attachment WHERE created_by = ?8 AND created_at > ?9) < ?10`,
+);
+// Đếm trước lô (route chặn 429 khi cộng thêm sẽ quá trần — không tạo vé / tin rồi mới thiếu tệp). ?1 người tải, ?2 đầu cửa sổ.
+const DEM_TEP_GAN_DAY = defineSql("feedback", "count_recent_attachments", "SELECT count(*) AS n FROM fbk_attachment WHERE created_by = ?1 AND created_at > ?2");
+// Đọc lại sau lô: dòng tệp CÓ THẬT của tin ?1 còn chờ đặt kho — chỉ những dòng này được đặt (mọi đối tượng trong kho luôn có dòng — lời hứa của 0104/0124).
+const TEP_CHO_DAT = defineSql(
+  "feedback",
+  "list_attachments_to_store",
+  "SELECT id, storage_key FROM fbk_attachment WHERE message_id = ?1 AND stored_at IS NULL AND purged_at IS NULL ORDER BY created_at, rowid",
+);
+const MARK_TEP_STORED = defineSql(
+  "feedback",
+  "mark_attachment_stored",
+  "UPDATE fbk_attachment SET stored_at = ?2, updated_at = ?2 WHERE id = ?1 AND stored_at IS NULL AND purged_at IS NULL",
+);
+// Quyết xoá (ADR-0144 đ2, đ6): purged_at + mã lý do + băm về rỗng, MỘT lần (trigger một chiều). ?5 = điều kiện thêm cho tệp tải dở dang: NULL = không điều kiện;
+// có giá trị = chỉ khi stored_at còn rỗng và created_at < ?5 (tệp vừa lưu xong trong khe KHÔNG bị quyết xoá). ?1 tệp, ?2 bây giờ, ?3 lý do, ?4 người làm.
+const PURGE_TEP = defineSql(
+  "feedback",
+  "purge_attachment",
+  `UPDATE fbk_attachment SET purged_at = ?2, purge_reason = ?3, content_hash = NULL, updated_at = ?2, updated_by = ?4
+   WHERE id = ?1 AND purged_at IS NULL AND (?5 IS NULL OR (stored_at IS NULL AND created_at < ?5))`,
+);
+const MARK_TEP_R2_DELETED = defineSql(
+  "feedback",
+  "mark_attachment_r2_deleted",
+  "UPDATE fbk_attachment SET r2_deleted_at = ?2, updated_at = ?2 WHERE id = ?1 AND purged_at IS NOT NULL AND r2_deleted_at IS NULL",
+);
+// Tệp của các tin ?1 (mảng JSON mã tin — route đã lọc tin theo người xem). Không chọn storage_key / content_hash.
+const LIST_TEP_CUA_TIN = defineSql(
+  "feedback",
+  "list_attachments_of_messages",
+  `SELECT a.id, a.message_id, a.content_kind, a.byte_size, a.stored_at, a.purged_at, a.purge_reason, a.created_at FROM fbk_attachment a
+   WHERE a.message_id IN (SELECT value FROM json_each(?1)) ORDER BY a.created_at, a.rowid`,
+);
+
+export const insertTepStatement = (
+  db: D1Database,
+  v: { id: string; messageId: string; key: string; loai: LoaiTep; kichThuoc: number; bam: string; at: string; actorId: string; windowStart: string; limit: number },
+): D1PreparedStatement => db.prepare(INSERT_TEP).bind(v.id, v.messageId, v.key, v.loai, v.kichThuoc, v.bam, v.at, v.actorId, v.windowStart, v.limit);
+export async function demTepGanDay(db: D1Database, staffId: string, windowStart: string): Promise<number> {
+  return (await db.prepare(DEM_TEP_GAN_DAY).bind(staffId, windowStart).first<{ n: number }>())?.n ?? 0;
+}
+export async function listTepChoDat(db: D1Database, messageId: string): Promise<TepCanXoaRow[]> {
+  return (await db.prepare(TEP_CHO_DAT).bind(messageId).all<TepCanXoaRow>()).results;
+}
+export async function markTepStored(db: D1Database, id: string, at: string): Promise<number> {
+  return (await db.prepare(MARK_TEP_STORED).bind(id, at).run()).meta.changes ?? 0;
+}
+export const datChoXoaTepStatement = (db: D1Database, v: { id: string; lyDo: string; at: string; actorId: string; doDangTruoc?: string }): D1PreparedStatement =>
+  db.prepare(PURGE_TEP).bind(v.id, v.at, v.lyDo, v.actorId, v.doDangTruoc ?? null);
+export async function markTepR2Deleted(db: D1Database, id: string, at: string): Promise<number> {
+  return (await db.prepare(MARK_TEP_R2_DELETED).bind(id, at).run()).meta.changes ?? 0;
+}
+export async function listTepCuaTin(db: D1Database, messageIds: readonly string[]): Promise<TepTinRow[]> {
+  if (messageIds.length === 0) return [];
+  return (await db.prepare(LIST_TEP_CUA_TIN).bind(JSON.stringify(messageIds)).all<TepTinRow>()).results;
+}
+// Tải xuống (route GET /api/feedback/:id/tep/:tid, SAU quyenPhieu): tệp ?4 thuộc một tin của ĐÚNG vé ?1 mà người xem ĐỌC ĐƯỢC — CÙNG đoạn TIN_CHO_NGUOI_XEM
+// (?2 noiBo, ?3 nhóm đang giữ phiếu) với danh sách tin, nên tệp không bao giờ lọc khác chữ; đã lưu, chưa quyết xoá. Không thấy = không có / không thuộc vé / không
+// được đọc tin / chưa lưu / đã gỡ — route trả CÙNG một 404. storage_key chỉ để đọc kho, không ra DTO.
+export interface TepTaiRow { id: string; storage_key: string; content_kind: LoaiTep }
+const FIND_TEP_DE_TAI = defineSql(
+  "feedback",
+  "find_attachment_for_download",
+  `SELECT a.id, a.storage_key, a.content_kind FROM fbk_attachment a
+   WHERE a.id = ?4 AND a.stored_at IS NOT NULL AND a.purged_at IS NULL AND a.message_id IN (SELECT x.id FROM (${TIN_CHO_NGUOI_XEM}) x)`,
+);
+// Gỡ (Toàn quyền, route đã hỏi ô feedback.triage): tệp ?2 thuộc một tin của vé ?1, mọi trạng thái — route quyết theo purged_at / stored_at.
+const FIND_TEP_CUA_VE = defineSql(
+  "feedback",
+  "find_attachment_of_ticket",
+  "SELECT a.id, a.storage_key, a.stored_at, a.purged_at FROM fbk_attachment a JOIN fbk_message m ON m.id = a.message_id WHERE a.id = ?2 AND m.ticket_id = ?1",
+);
+export interface TepChoXoaRow { id: string; ticket_id: string; storage_key: string; purged_at: string | null; purge_reason: string | null; created_at: string }
+/** Trần một lượt của hàng "chờ xoá" (như parties): cũ trước; câu đọc lấy thêm MỘT dòng để biết "còn nữa". */
+export const TEP_CHO_XOA_MOT_LUOT = 50;
+// Hàng "chờ xoá" (Hiến chương 5.16): đã quyết xoá mà kho chưa xoá xong, HOẶC tải dở dang (chưa lưu, chưa quyết xoá) tạo trước ?1. Tối đa 50 dòng (+1), cũ trước.
+// ticket_id để nhật ký quyết xoá gắn đúng vé; storage_key chỉ để lệnh chạy lại xoá kho — route KHÔNG đưa ra DTO.
+const LIST_TEP_CHO_XOA = defineSql(
+  "feedback",
+  "list_attachments_pending_purge",
+  `SELECT a.id, m.ticket_id, a.storage_key, a.purged_at, a.purge_reason, a.created_at FROM fbk_attachment a JOIN fbk_message m ON m.id = a.message_id
+   WHERE a.r2_deleted_at IS NULL AND (a.purged_at IS NOT NULL OR (a.stored_at IS NULL AND a.created_at < ?1))
+   ORDER BY a.created_at, a.id LIMIT 51`,
+);
+export function findTepDeTai(db: D1Database, v: { ticketId: string; tepId: string; noiBo: "none" | "team" | "all"; teamId: string }): Promise<TepTaiRow | null> {
+  return db.prepare(FIND_TEP_DE_TAI).bind(v.ticketId, v.noiBo, v.teamId, v.tepId).first<TepTaiRow>();
+}
+export function findTepCuaVe(db: D1Database, ticketId: string, tepId: string): Promise<{ id: string; storage_key: string; stored_at: string | null; purged_at: string | null } | null> {
+  return db.prepare(FIND_TEP_CUA_VE).bind(ticketId, tepId).first();
+}
+/** Tối đa `TEP_CHO_XOA_MOT_LUOT` dòng cũ nhất; `conNua` = còn dòng sau lượt này. */
+export async function listTepChoXoa(db: D1Database, doDangTruoc: string): Promise<{ ds: TepChoXoaRow[]; conNua: boolean }> {
+  const r = (await db.prepare(LIST_TEP_CHO_XOA).bind(doDangTruoc).all<TepChoXoaRow>()).results;
+  return { ds: r.slice(0, TEP_CHO_XOA_MOT_LUOT), conNua: r.length > TEP_CHO_XOA_MOT_LUOT };
+}

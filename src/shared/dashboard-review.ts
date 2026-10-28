@@ -17,6 +17,8 @@ import { can, type PermissionHolder } from "./permissions.ts";
 export interface ReviewCatalogAlert {
   /** Mã dịch vụ có ghi đè lệch Sheet — dịch vụ ĐẦU TIÊN theo thứ tự `items` truyền vào (đủ cho một dòng tóm tắt; xem đủ chi tiết ở trang Dịch vụ & giá). */
   code: string;
+  /** Tên dịch vụ đó — dòng «Cần xem lại» hiện tên, không hiện mã (chủ chọn 28/10: «Sheet đã đổi giá: <tên>»). */
+  name: string;
   base: number | null;
   current: number | null;
   /** Số dịch vụ KHÁC cũng đang lệch Sheet (0 = chỉ một). */
@@ -52,7 +54,7 @@ function summarizeCatalogConflicts(items: readonly CatalogAdminItemDto[]): Revie
   if (withConflicts.length === 0) return null;
   const first = withConflicts[0]!;
   const c = first.conflicts[0]!;
-  return { code: first.code, base: c.base, current: c.current, moreCount: withConflicts.length - 1, hidden: first.hidden };
+  return { code: first.code, name: first.name, base: c.base, current: c.current, moreCount: withConflicts.length - 1, hidden: first.hidden };
 }
 
 /**

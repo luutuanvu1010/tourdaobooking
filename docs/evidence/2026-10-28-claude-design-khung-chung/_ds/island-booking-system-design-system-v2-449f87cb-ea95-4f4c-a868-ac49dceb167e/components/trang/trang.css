@@ -1,0 +1,10 @@
+/* ===== 25 Trang mất mạng · 26 Trang không quyền / không có trang — một khuôn "trang báo" ===== */
+.ib-trang-bao{display:flex;flex-direction:column;align-items:center;gap:var(--kc-3);max-width:440px;margin:0 auto;padding:var(--kc-7) var(--le-trang);text-align:center}
+.ib-trang-bao__bt{display:inline-flex;align-items:center;justify-content:center;width:64px;height:64px;margin-bottom:var(--kc-2);border-radius:50%;background:var(--c-nen-phu);color:var(--c-chu-phu)}
+.ib-trang-bao__bt--cat{background:var(--tt-cat-bg);color:var(--tt-cat-chu)}
+.ib-trang-bao__tieu-de{margin:0;font-size:var(--fs-tieu-de-trang);line-height:var(--lh-tieu-de);font-weight:var(--fw-tieu-de);color:var(--c-chu);text-wrap:balance}
+.ib-trang-bao__cau{margin:0;font-size:var(--fs-noi-dung);line-height:var(--lh-noi-dung);color:var(--c-chu-phu);text-wrap:pretty}
+.ib-trang-bao__phu{margin:0;font-size:var(--fs-phu);line-height:var(--lh-phu);color:var(--c-chu-phu)}
+.ib-trang-bao__nut{display:flex;flex-direction:column;align-items:stretch;gap:var(--kc-2);width:100%;max-width:320px;margin-top:var(--kc-3)}
+.ib-trang-bao__ma{margin:var(--kc-4) 0 0;font-size:var(--fs-phu);line-height:var(--lh-phu);color:var(--c-chu-phu)}
+@container ib (min-width:768px){.ib-trang-bao{padding-top:96px}.ib-trang-bao__tieu-de{font-size:var(--fs-tieu-de-trang-rong)}.ib-trang-bao__nut{flex-direction:row;justify-content:center;max-width:none}}
