@@ -1,5 +1,6 @@
-// Thông báo nổi của Bảng tin (ADR-0022, TD-4): vùng `div.toast-vung` (aria-live="polite") gắn MỘT lần vào body; mỗi thông báo là một `.toast[data-tong]` (Bảng tin: liên kết `a.toast`; báo ngắn: `div.toast`) dựng bằng h() (không innerHTML), tự ẩn sau ~6 giây, tối đa 3 cái cùng lúc (cái cũ nhất bị đẩy ra). Quyết định "có hiện không / câu gì /
-// bấm đi đâu" nằm ở src/shared/bang-tin.ts (thongBaoNoi); ở đây chỉ vẽ.
+// Thông báo nổi: vùng `div.toast-vung` (aria-live="polite") gắn MỘT lần vào body; mỗi thông báo là `.toast[data-tong]` dựng bằng h() (không innerHTML), tối đa 3 cái
+// (cái cũ nhất bị đẩy ra). Báo ngắn `hienBaoNgan`: 3 giây, hoặc 5 giây khi có «Hoàn tác» (bấm một lần là gỡ ngay rồi gọi). Bảng tin `hienThongBao` (ADR-0022): liên kết, 6 giây.
+// Quyết định "có hiện không / câu gì / bấm đi đâu" của Bảng tin nằm ở src/shared/bang-tin.ts (thongBaoNoi); ở đây chỉ vẽ.
 import type { ThongBaoNoi } from "../src/shared/bang-tin.ts";
 import { ganThongBao } from "./bangtin-logic.ts";
 import { h } from "./dom.ts";
@@ -52,7 +53,11 @@ export function hienBaoNgan(cau: string, o: { tong?: "la" | "do" | "bien" | "cat
     { class: o.hoanTac ? "toast toast-bam-duoc" : "toast", "data-tong": tong },
     icon(tong === "do" ? "alertCircle" : "check", 18),
     h("span", { class: "toast-cau" }, cau),
-    o.hoanTac && h("button", { type: "button", class: "toast-hoan-tac", onclick: () => o.hoanTac!.khiBam() }, o.hoanTac.nhan ?? "Hoàn tác"),
+    o.hoanTac && h("button", { type: "button", class: "toast-hoan-tac", onclick: () => {
+      if (!hienCo.includes(el)) return; // đã gỡ: không gọi lần hai
+      go(el);
+      o.hoanTac!.khiBam();
+    } }, o.hoanTac.nhan ?? "Hoàn tác"),
     h("button", { type: "button", class: "toast-dong", "aria-label": "Đóng", onclick: () => go(el) }, icon("close", 16)),
   );
   dua(el, o.hoanTac ? TU_AN_HOAN_TAC_MS : TU_AN_NGAN_MS);

@@ -48,8 +48,10 @@ describe("web/toast.ts", () => {
     assert.equal(nut.textContent, "Hoàn tác");
     nut.click();
     assert.equal(n, 1);
+    assert.equal(toasts().length, 0, "bấm Hoàn tác thì thông báo mất ngay");
+    nut.click();
+    assert.equal(n, 1, "bấm lần hai không gọi lại");
     mock.timers.tick(1);
-    assert.equal(toasts().length, 0);
   });
 
   it("nút đóng gỡ ngay", () => {

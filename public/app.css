@@ -3999,6 +3999,7 @@ a.toast[data-tong], .toast-bam-duoc { pointer-events: auto; }
 .toast-cau { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .toast-hoan-tac, .toast-dong { flex: none; min-height: var(--tap-min); padding: 0 var(--s2); color: inherit; background: none; border: 0; cursor: pointer; font: inherit; }
 .toast-hoan-tac { color: var(--c-hoan-tac); font-weight: var(--fw-semibold); }
+.toast-hoan-tac:focus-visible, .toast-dong:focus-visible, a.toast[data-tong]:focus-visible { outline: var(--focus-ring) solid var(--c-on-dark); outline-offset: 0; }
 .toast-dong { display: inline-flex; align-items: center; pointer-events: auto; }
 
 .bo-qua { position: absolute; top: var(--s2); left: var(--s2); z-index: var(--z-tren-cung); padding: var(--s3) var(--s4); color: var(--c-on-dark); background: var(--c-primary-strong); border-radius: var(--bo-control); transform: translateY(-200%); }
