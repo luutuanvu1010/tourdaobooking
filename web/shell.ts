@@ -49,21 +49,21 @@ function khongSangMuc(): boolean {
  * Thanh tab dưới đáy (điện thoại). Tab nào hiện cho ai: `thanhTab()` của bảng mục (src/shared/muc-giao-dien.ts — THANH_TAB). Tóm tắt hôm nay: văn phòng lập được đơn
  * có Trang chủ / Đơn hàng / Tạo đơn; Kế toán (xem đơn, không lập — ADR-0007) không có Tạo đơn; Đối tác, Thực tập: Đơn hàng (đơn của họ — lỗi báo 30/9 L3) + Tạo đơn;
  * tài khoản "chỉ tài xế" (ADR-0040 D3): Trang chủ (/tai-xe), tài xế công ty thêm "Cuốc của tôi" (Q5); tài khoản vừa tài xế vừa văn phòng KHÔNG thêm tab (GA-K2b-T2),
- * mở /cuoc từ trang Tôi; Quản trị thêm Dịch vụ, ô account.view thêm Tài khoản (ADR-0071); ai cũng có "Tôi" (sáng ở các trang mở từ trang Tôi — `sangTabToi`).
+ * mở /cuoc từ trang Tôi; Quản trị thêm Thiết lập (trang mục lục /thiet-lap), Nhân sự có Tài khoản (ADR-0071); tối đa 5 tab; ai cũng có "Tôi" (sáng ở các trang mở từ trang Tôi — `sangTabToi`).
  */
 function tabBar(n: NguoiXem, path: string): HTMLElement {
   const khongSang = khongSangMuc();
   const tabs = thanhTab(n);
-  const coTabCuoc = tabs.some((t) => t.trang === "cuoc");
+  const tabHien = tabs.map((t) => t.trang);
   return h(
     "nav",
     { id: "tabbar", "aria-label": "Điều hướng chính" },
     ...tabs.map((t) => {
       // active của "/" khớp CHÍNH XÁC "/" (sangTai so bằng, không so tiền tố) để không sáng đèn cho mọi đường dẫn.
-      const sang = t.trang === "toi" ? sangTabToi(path, coTabCuoc) : sangTai(t.trang, path);
+      const sang = t.trang === "toi" ? sangTabToi(path, tabHien) : sangTai(t.trang, path);
       return h(
         "a",
-        { href: t.href, class: t.bieuTuong === "plus" ? "tab tab-new" : "tab", "aria-current": sang && !khongSang ? "page" : false },
+        { href: t.href, class: t.trang === "taoDon" ? "tab tab-new" : "tab", "aria-current": sang && !khongSang ? "page" : false },
         h("span", { class: "tab-icon" }, icon(t.bieuTuong as IconName), t.trang === "toi" && helpHasNews() && newDot()),
         h("span", null, t.nhan),
       );
@@ -227,7 +227,7 @@ type Muc = ReturnType<typeof thanhBen>[number]["muc"][number];
  * Thực tập (lỗi báo 30/9 L3) không có huy hiệu. "Xe & giấy tờ" (ADR-0040 D1) = số giấy đã hết + sắp hết. "Dịch vụ & giá" nằm trong nhóm Thiết lập (thu gọn): số lệch giá còn cộng vào nút Thiết lập.
  * Chỉ gắn khi có NGUỒN THẬT (route đã có sẵn số đó) — không mục nào được vẽ số giả.
  */
-function trinhBay(k: KhoaTrang, seesAll: boolean): { badge?: () => Promise<number>; badgeClass?: string; dot?: () => boolean } {
+export function trinhBay(k: KhoaTrang, seesAll: boolean): { badge?: () => Promise<number>; badgeClass?: string; dot?: () => boolean } {
   switch (k) {
     case "donHang":
       return seesAll ? { badge: draftOrderBadge } : {};

@@ -39,7 +39,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
 import { world, seedStaff } from "./harness.mjs";
-import { PERMISSION_CODES, can, canAccessOrders, hasPermission, seesAllOrders } from "../../src/shared/permissions.ts";
+import { PERMISSION_CODES, can, canAccessOrders, hasPermission, isOffice, seesAllOrders } from "../../src/shared/permissions.ts";
 import { chiTaiXe, coCuocCuaToi, homeRedirect } from "../../src/shared/start-page.ts";
 import { PAGES } from "../../src/shared/sw-policy.ts";
 import { KHOA_TRANG, THANH_BEN, THANH_TAB, THANH_TREN, TRANG, TRANG_TOI, coKhungNho, moTrang, sangTai, thanhBen, thanhTab, thanhTren, trangToi } from "../../src/shared/muc-giao-dien.ts";
@@ -91,6 +91,8 @@ const TU_CHOI_BANG_404 = new Set();
  */
 // Giữ "Cuốc của tôi" = ô trip.view ĐÚNG BẰNG assigned: tài xế công ty (DRIVER) và, từ A4 (ADR-0053 D7.1), tài xế đối tác (DRIVER_PARTNER) — ghép main 1c471990, 12/10.
 const coDriver = (s) => coCuocCuaToi(s);
+// Tab bị cắt vì thanh tab tối đa 5 mục (thanhTab: giữ 4 mục đầu + Tôi) — tài khoản gộp nhiều quyền; lối vào khác vẫn còn (thanh bên, trang Tôi).
+const biCatTab = (s, k) => !thanhTab({ staff: s }).some((t) => t.trang === k);
 const DUOC_MA_AN = [
   // Dòng "HDV chỉ-FIELD không thấy mục Đơn hàng" đã BỎ 15/10: chủ quyết hiện mục cho HDV (ADR-0017); trang /orders của HDV = đơn mình phụ trách.
   {
@@ -134,6 +136,37 @@ const DUOC_MA_AN = [
     lyDo:
       "A4 T9 (ADR-0053 D9, G-A4-16): 'Báo bận của tôi' chỉ hiện cho tài khoản 'chỉ tài xế' (có tab riêng); Toàn quyền, tài khoản tài xế đối tác kiêm văn phòng gọi được " +
       "GET /api/van-chuyen/ban/cua-toi nhưng không có mục (văn phòng xem dải 'Tài xế bận' ở Điều phối xe, không ghi thay). Giữ như mã A4 (ghép main 1c471990, 12/10). Chờ chủ (giữ là hợp lý).",
+  },
+  // Đợt 0 Task 5: thanh tab theo bộ quyền (đặc tả 5.2). Năm dòng "được mà ẩn" ở tab, kèm lối vào khác.
+  {
+    noi: ["thanh-tab"],
+    trang: "taiKhoan",
+    khi: (s) => can(s, "account.view") && can(s, "admin.manage"),
+    lyDo: "Quản trị, Toàn quyền vào Quản lý tài khoản qua tab Thiết lập (trang mục lục); tab Tài khoản chỉ cho người giữ account.view mà không admin.manage (Nhân sự). Chờ chủ (giữ là hợp lý).",
+  },
+  {
+    noi: ["thanh-tab"],
+    trang: "soCongNo",
+    khi: (s) => can(s, "ledger.view") && can(s, "order.create"),
+    lyDo: "Tab Sổ công nợ chỉ cho người xem sổ mà không lập đơn (Kế toán); Toàn quyền vào qua thanh bên và trang Tôi. Chờ chủ (giữ là hợp lý).",
+  },
+  {
+    noi: ["thanh-tab"],
+    trang: "danhBa",
+    khi: (s) => isOffice(s) && (!can(s, "order.create") || can(s, "admin.manage") || biCatTab(s, "danhBa")),
+    lyDo: "Tab Danh bạ chỉ cho người lập đơn mà không quản trị (Bán hàng); Kế toán, Quản trị, Toàn quyền vào qua thanh bên / trang Tôi; tài khoản gộp nhiều quyền bị cắt bởi trần 5 tab. Chờ chủ (giữ là hợp lý).",
+  },
+  {
+    noi: ["thanh-tab"],
+    trang: "gopY",
+    khi: (s) => seesAllOrders(s) || biCatTab(s, "gopY"),
+    lyDo: "Tab Hỗ trợ chỉ cho người không xem mọi đơn (và bị cắt khi quá 5 tab); vào qua trang Tôi và chân thanh bên. Chờ chủ (giữ là hợp lý).",
+  },
+  {
+    noi: ["thanh-tab"],
+    trang: "troGiup",
+    khi: (s) => seesAllOrders(s) || can(s, "order.create") || chiTaiXe(s),
+    lyDo: "Tab Hướng dẫn chỉ cho HDV, Nhân sự (không xem mọi đơn, không lập đơn, không chỉ tài xế); mọi bộ khác vào qua trang Tôi và chân thanh bên. Chờ chủ (giữ là hợp lý).",
   },
 ];
 

@@ -4046,6 +4046,11 @@ body.co-nut-ho-tro:not(.cc-dang-chay) main { padding-bottom: calc(var(--s5) + va
 .bo-qua { position: absolute; top: var(--s2); left: var(--s2); z-index: var(--z-tren-cung); padding: var(--s3) var(--s4); color: var(--c-on-dark); background: var(--c-primary-strong); border-radius: var(--bo-control); transform: translateY(-200%); }
 .bo-qua:focus-visible { transform: translateY(0); outline: var(--focus-ring) solid var(--c-focus); outline-offset: var(--vanh-cach); }
 
+.trang-thai-phu { color: var(--c-text-muted); }
+.trang-thai-xuong { display: flex; flex-direction: column; gap: var(--s2); }
+.tl-muc { display: flex; flex-direction: column; max-width: var(--w-thiet-lap-max); }
+.tl-muc > .dong { justify-content: space-between; color: inherit; text-decoration: none; }
+
 .trang-thai { display: flex; flex-direction: column; align-items: center; gap: var(--s3); max-width: var(--w-thiet-lap-max); margin: 0 auto; padding: var(--le-trang-rong) var(--le-trang); text-align: center; }
 .trang-thai[data-loai] > .vong { display: flex; align-items: center; justify-content: center; width: var(--vong-trang-thai); height: var(--vong-trang-thai); border-radius: 50%; color: var(--c-primary); background: var(--c-primary-soft); }
 .trang-thai[data-loai="loi-may-chu"] > .vong, .trang-thai[data-loai="403"] > .vong { color: var(--c-danger); background: var(--c-danger-soft); }

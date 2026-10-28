@@ -15,6 +15,7 @@ Sau Task 2: 96.929 byte (vượt trần 96.700; trần không đổi, nới mộ
 
 Sau Task 3: 96.929 byte (chỉ thêm CSS và bài, gói không đổi; vẫn vượt trần, trần không đổi).
 Sau Task 4: 97.027 byte (bài đo; +98 so với Task 3, chỉ phần đọc `body[data-trang-thai]` ở `shell.ts`; `trang-thai-he-thong.ts` không vào gói Đơn hàng; vẫn vượt trần, trần không đổi).
+Sau Task 5: 97.738 byte (+711 so với Task 4: bảng THANH_TAB viết lại với các vị từ và nhãn mới, dòng TRANG.thietLap; vẫn vượt trần, trần không đổi).
 
 ## Lệch so với đặc tả
 
@@ -23,6 +24,9 @@ Sau Task 4: 97.027 byte (bài đo; +98 so với Task 3, chỉ phần đọc `bod
 - Task 1: bài `src/shared/giao-dien.test.ts` và `src/giao-dien-mac-dinh.test.ts` không phải sửa ca nào; chúng đọc `KEO_THEO`/`MAC_DINH` từ mã nên tự khớp (`dam-tieu-de` 600 = `--fw-heading`; `dam-nhan` vẫn 500 = `--fw-semibold`).
 - Task 1: bài `src/phong-chu.test.ts` (thang cỡ chữ) chỉ cho `--fs-ui` dùng công thức `max(16px, var(--fs-step-5))`; đặc tả đổi `--fs-field` sang đúng công thức đó nên đã thêm `--fs-field` vào ngoại lệ (cùng lý do sàn 16px chống zoom iOS).
 - Task 1: thứ bậc lớp xếp đổi có chủ ý theo đặc tả mục 4 (ngăn thông báo và khung Hỗ trợ nay bậc 40, toast và màn bảo trì bậc 50, bảng trượt 30). Chưa kiểm `thong-bao-ui.ts` có mở bảng trượt từ ngăn thông báo hay không: việc đó thuộc task sau.
+- Task 5: trong `THANH_TAB`, `taiKhoan` đặt SAU `taoDon` (bảng kế hoạch để trước). Lý do: ảnh chụp hiện trạng đòi một thứ tự toàn cục không mâu thuẫn, và "Tạo đơn thứ 3 khi 5 mục" chỉ đúng với Bán hàng+Nhân sự nếu `taiKhoan` đứng sau. Hệ quả: tổ hợp 5 mục không có "Trang chủ" (Thực tập/Đối tác kiêm Nhân sự; không phải bộ quyền thật) có "Tạo đơn" thứ 2; bài 1024 tập bỏ qua đúng trường hợp đó.
+- Task 5: `gopY` không khai `chiKhi.tam` (khung tạm không vẽ "Hỗ trợ") và `danhBa` không có `tam` — bài rào "khung tạm ⊆ khung thật" đỏ nếu khung tạm vẽ tab bị trần 5 cắt ở khung thật; mất mạng chưa có bản nhớ vẫn đúng bốn tab cũ.
+- Task 5: ảnh hiện trạng `muc-giao-dien-hien-trang.json` ở HEAD đã lệch sẵn (thiếu dòng "Đơn chờ xác nhận" ở trang Tôi, không do Task 5); chụp lại đã gộp dòng đó.
 
 - Task 4: `web/api.ts` dùng "parameter property" nên node không nhập được `ApiError`; bài thuần dùng lớp giả cùng hình (Error có `status`), `cauLoiMayChu` nhận biết lỗi máy chủ bằng `status` số.
 - Task 4: khoá `TRANG` thật: `donHang`, `dieuPhoi`, `cuoc`, `xe` (đúng tên brief gợi ý, trừ `donHang` cho /orders).

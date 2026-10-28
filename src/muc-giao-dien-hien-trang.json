@@ -89,22 +89,30 @@
     "Trang chủ|/",
     "Đơn hàng|/orders",
     "Tạo đơn|/order-form",
-    "Dịch vụ|/catalog",
+    "Danh bạ|/parties",
+    "Thiết lập|/thiet-lap",
     "Trang chủ|/tai-xe",
-    "Cuốc của tôi|/cuoc",
-    "Báo bận của tôi|/ban",
     "Tài khoản|/staff",
+    "Sổ công nợ|/so-cong-no",
+    "Cuốc của tôi|/cuoc",
+    "Báo bận|/ban",
+    "Hỗ trợ|/feedback",
+    "Hướng dẫn|/help",
     "Tôi|/account"
    ],
    "tap": [
     "/v7+/v/////+/v7+//////7+/v7//////v7+/v/////+/v7+//////7+/v7//////v7+/v/////+/v7+//////7+/v7//////v7+/v/////+/v7+//////7+/v7//////v7+/v/////+/v7+//////7+/v7//////v7+/v////8=",
     "/v////////////////////7////////////////////+/////////////////////v////////////////////7////////////////////+/////////////////////v////////////////////7///////////////////8=",
     "+vr///////////////////r6///////////////////6+v//////////////////+vr///////////////////r6///////////////////6+v//////////////////+vr///////////////////r6//////////////////8=",
+    "CgoODgAAAAAODg4OAAAAAAoKDg4AAAAADg4ODgAAAAAKCg4OAAAAAA4ODg4AAAAACgoODgAAAAAODg4OAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
     "8PDw8P/////w8PDw//////Dw8PD/////8PDw8P/////w8PDw//////Dw8PD/////8PDw8P/////w8PDw//////Dw8PD/////8PDw8P/////w8PDw//////Dw8PD/////8PDw8P/////w8PDw//////Dw8PD/////8PDw8P////8=",
     "AAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAA=",
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA8PDw8AAAAADw8PDwAAAAAPDw8PAAAAAA8PDw8AAAAADw8PDwAAAAAPDw8PAAAAAA8PDw8AAAAADw8PDwAAAAA=",
+    "BAQAAAAAAAAAAAAAAAAAAAQEAAAAAAAAAAAAAAAAAAAEBAAAAAAAAAAAAAAAAAAABAQAAAAAAAAAAAAAAAAAAAQEAAAAAAAAAAAAAAAAAAAEBAAAAAAAAAAAAAAAAAAABAQAAAAAAAAAAAAAAAAAAAQEAAAAAAAAAAAAAAAAAAA=",
     "AAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAA=",
     "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAA=",
-    "8PDw8P/////w8PDw//////Dw8PD/////8PDw8P/////w8PDw//////Dw8PD/////8PDw8P/////w8PDw//////////////////////////////////////////////////////////////////////////////////////////8=",
+    "AQEBAQAAAAABAQEBAAAAAAEBAQEAAAAAAQEBAQAAAAABAQEBAAAAAAEBAQEAAAAAAQEBAQAAAAABAQEBAAAAAAEBAQEAAAAAAQEBAQAAAAABAQEBAAAAAAEBAQEAAAAAAAEBAQAAAAABAQEBAAAAAAABAQEAAAAAAQEBAQAAAAA=",
+    "AQEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAEBAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAA=",
     "//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////8="
    ]
   },
@@ -121,6 +129,7 @@
   "trang-toi": {
    "muc": [
     "links-top|Danh bạ|/parties",
+    "links-top|Đơn chờ xác nhận|/cho-xac-nhan",
     "links-top|Địa điểm|/locations",
     "links-top|Loại giấy tờ cá nhân|/loai-giay-to-nguoi",
     "vc-links|Điều phối xe|/dieu-phoi",
@@ -128,6 +137,7 @@
     "vc-links|Đề nghị chuyển khách|/de-nghi",
     "vc-links|Bảng giá thuê xe|/bang-gia-xe",
     "vc-links|Bảng kê chi phí xe|/bang-ke-xe",
+    "links|Đơn chờ xác nhận|/cho-xac-nhan",
     "vc-links|Cuốc của tôi|/cuoc",
     "vc-links|Xe|/xe",
     "vc-links|Lịch xe bận|/lich-xe-ban",
@@ -151,6 +161,7 @@
    ],
    "tap": [
     "/v7+/v/////+/v7+//////7+/v7//////v7+/v/////+/v7+//////7+/v7//////v7+/v/////+/v7+//////7+/v7//////v7+/v/////+/v7+//////7+/v7//////v7+/v/////+/v7+//////7+/v7//////v7+/v////8=",
+    "/v7+/v/////+/v7+//////7+/v7//////v7+/v/////+/v7+//////7+/v7//////v7+/v/////+/v7+//////7+/v7//////v7+/v/////+/v7+//////7+/v7//////v7+/v/////+/v7+//////7+/v7//////v7+/v////8=",
     "8PDw8P/////w8PDw//////Dw8PD/////8PDw8P/////w8PDw//////Dw8PD/////8PDw8P/////w8PDw//////Dw8PD/////8PDw8P/////w8PDw//////Dw8PD/////8PDw8P/////w8PDw//////Dw8PD/////8PDw8P////8=",
     "8PDw8P/////w8PDw//////Dw8PD/////8PDw8P/////w8PDw//////Dw8PD/////8PDw8P/////w8PDw//////Dw8PD/////8PDw8P/////w8PDw//////Dw8PD/////8PDw8P/////w8PDw//////Dw8PD/////8PDw8P////8=",
     "/v7+/v/////+/v7+//////7+/v7//////v7+/v/////+/v7+//////7+/v7//////v7+/v/////+/v7+//////7+/v7//////v7+/v/////+/v7+//////7+/v7//////v7+/v/////+/v7+//////7+/v7//////v7+/v////8=",
@@ -158,6 +169,7 @@
     "8PDw8P/////w8PDw//////Dw8PD/////8PDw8P/////w8PDw//////Dw8PD/////8PDw8P/////w8PDw//////Dw8PD/////8PDw8P/////w8PDw//////Dw8PD/////8PDw8P/////w8PDw//////Dw8PD/////8PDw8P////8=",
     "/Pz8/P/////8/Pz8//////z8/Pz//////Pz8/P/////8/Pz8//////z8/Pz//////Pz8/P/////8/Pz8//////z8/Pz//////Pz8/P/////8/Pz8//////z8/Pz//////Pz8/P/////8/Pz8//////z8/Pz//////Pz8/P////8=",
     "/Pz8/P/////8/Pz8//////z8/Pz//////Pz8/P/////8/Pz8//////z8/Pz//////Pz8/P/////8/Pz8//////z8/Pz//////Pz8/P/////8/Pz8//////z8/Pz//////Pz8/P/////8/Pz8//////z8/Pz//////Pz8/P////8=",
+    "AAEAAQAAAAAAAQABAAAAAAABAAEAAAAAAAEAAQAAAAAAAQABAAAAAAABAAEAAAAAAAEAAQAAAAAAAQABAAAAAAABAAEAAAAAAAEAAQAAAAAAAQABAAAAAAABAAEAAAAAAAEAAQAAAAAAAQABAAAAAAABAAEAAAAAAAEAAQAAAAA=",
     "AAAAAAAAAAAAAAAAAAAAAP7+/v7//////v7+/v/////+/v7+//////7+/v7//////v7+/v/////+/v7+/////wAAAAAAAAAAAAAAAAAAAAD+/v7+//////7+/v7//////v7+/v/////+/v7+//////7+/v7//////v7+/v////8=",
     "8PDw8P/////w8PDw//////Dw8PD/////8PDw8P/////w8PDw//////Dw8PD/////8PDw8P/////w8PDw//////Dw8PD/////8PDw8P/////w8PDw//////Dw8PD/////8PDw8P/////w8PDw//////Dw8PD/////8PDw8P////8=",
     "8PDw8P/////w8PDw//////Dw8PD/////8PDw8P/////w8PDw//////Dw8PD/////8PDw8P/////w8PDw//////Dw8PD/////8PDw8P/////w8PDw//////Dw8PD/////8PDw8P/////w8PDw//////Dw8PD/////8PDw8P////8=",
@@ -265,15 +277,13 @@
     "Trang chủ|/",
     "Đơn hàng|/orders",
     "Tạo đơn|/order-form",
-    "Dịch vụ|/catalog",
-    "Tài khoản|/staff",
+    "Thiết lập|/thiet-lap",
     "Tôi|/account"
    ],
    "tap": [
     "/v7+/v/////+/v7+//////7+/v7//////v7+/v/////+/v7+//////7+/v7//////v7+/v/////+/v7+//////7+/v7//////v7+/v/////+/v7+//////7+/v7//////v7+/v/////+/v7+//////7+/v7//////v7+/v////8=",
     "/v7///////////////////7+///////////////////+/v///////////////////v7///////////////////7+///////////////////+/v///////////////////v7///////////////////7+//////////////////8=",
     "+vr///////////////////r6///////////////////6+v//////////////////+vr///////////////////r6///////////////////6+v//////////////////+vr///////////////////r6//////////////////8=",
-    "8PDw8P/////w8PDw//////Dw8PD/////8PDw8P/////w8PDw//////Dw8PD/////8PDw8P/////w8PDw//////Dw8PD/////8PDw8P/////w8PDw//////Dw8PD/////8PDw8P/////w8PDw//////Dw8PD/////8PDw8P////8=",
     "8PDw8P/////w8PDw//////Dw8PD/////8PDw8P/////w8PDw//////Dw8PD/////8PDw8P/////w8PDw//////Dw8PD/////8PDw8P/////w8PDw//////Dw8PD/////8PDw8P/////w8PDw//////Dw8PD/////8PDw8P////8=",
     "//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////8="
    ]

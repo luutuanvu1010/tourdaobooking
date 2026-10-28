@@ -120,6 +120,16 @@ export const TRANG = {
   toi: { duong: "/account", hien: luonCo, tam: luonCo },
   gopY: { duong: "/feedback", hien: luonCo, tam: luonCo },
   troGiup: { duong: "/help", hien: luonCo, tam: luonCo },
+  // Trang mục lục Thiết lập (điện thoại, đợt 0 Task 5): sáng ở mọi trang nhóm THIẾT LẬP của thanh bên. Danh sách đường ở đây khớp THANH_BEN (bài thanh-tab-theo-bo-quyen ép).
+  thietLap: {
+    duong: "/thiet-lap",
+    get cungSang(): readonly string[] {
+      return [...(THANH_BEN as readonly ChoThanhBen[]).filter((c) => c.nhom === "THIẾT LẬP").map((c) => TRANG[c.trang].duong), "/dieu-kien-xuat-ben"];
+    },
+    hien: (s) => can(s, "admin.manage"),
+    moTrang: (s) => can(s, "admin.manage"),
+    tam: (k) => k.admin,
+  },
 } as const satisfies Record<string, TrangDich>;
 
 export type KhoaTrang = keyof typeof TRANG;
@@ -208,15 +218,17 @@ export interface ChoThanhTab extends ChoDat {
 
 export const THANH_TAB = [
   { trang: "trangChu", nhan: "Trang chủ", bieuTuong: "home" },
+  { trang: "trangTaiXe", nhan: "Trang chủ", bieuTuong: "home" },
   { trang: "donHang", nhan: "Đơn hàng", bieuTuong: "orders" },
   { trang: "taoDon", nhan: "Tạo đơn", bieuTuong: "plus" },
-  { trang: "trangTaiXe", nhan: "Trang chủ", bieuTuong: "home" },
-  // Tab "Cuốc của tôi" CHỈ cho tài khoản "chỉ tài xế" (Q5); tài khoản vừa tài xế vừa văn phòng mở /cuoc từ trang Tôi (GA-K2b-T2: không thêm tab).
+  { trang: "taiKhoan", nhan: "Tài khoản", bieuTuong: "staff", chiKhi: { that: (s: PermissionHolder) => !can(s, "admin.manage") } },
+  { trang: "soCongNo", nhan: "Sổ công nợ", bieuTuong: "lock", chiKhi: { that: (s: PermissionHolder) => !can(s, "order.create") } },
+  { trang: "danhBa", nhan: "Danh bạ", bieuTuong: "contact-card", chiKhi: { that: (s: PermissionHolder) => can(s, "order.create") && !can(s, "admin.manage") } },
+  { trang: "thietLap", nhan: "Thiết lập", bieuTuong: "settings" },
   { trang: "cuoc", nhan: "Cuốc của tôi", bieuTuong: "assign", chiKhi: { that: chiTaiXe } },
-  // A4 T9: tab "Báo bận của tôi" ngay sau Cuốc, cùng đối tượng "chỉ tài xế"; không có ở khung tạm (bản nhớ khung chỉ 4 cờ đã duyệt, ADR-0035) — thiếu một nhịp như tiền lệ tài xế.
-  { trang: "ban", nhan: "Báo bận của tôi", bieuTuong: "clock" },
-  { trang: "dichVu", nhan: "Dịch vụ", bieuTuong: "services" },
-  { trang: "taiKhoan", nhan: "Tài khoản", bieuTuong: "staff" },
+  { trang: "ban", nhan: "Báo bận", bieuTuong: "clock" },
+  { trang: "gopY", nhan: "Hỗ trợ", bieuTuong: "chat", chiKhi: { that: (s: PermissionHolder) => !seesAllOrders(s) } },
+  { trang: "troGiup", nhan: "Hướng dẫn", bieuTuong: "help", chiKhi: { that: (s: PermissionHolder) => !seesAllOrders(s) && !can(s, "order.create") && !chiTaiXe(s) } },
   { trang: "toi", nhan: "Tôi", bieuTuong: "me" },
 ] as const satisfies readonly ChoThanhTab[];
 
@@ -343,18 +355,20 @@ export interface MucHien {
 }
 const hienRa = (c: ChoDat): MucHien => ({ trang: c.trang, nhan: c.nhan, href: TRANG[c.trang].duong });
 
+/** Tối đa 5 tab: nhiều hơn thì giữ 4 mục đầu + "Tôi"; "Tạo đơn" đứng giữa nhờ thứ tự khai (bài thanh-tab-theo-bo-quyen). */
 export function thanhTab(n: NguoiXem): (MucHien & { readonly bieuTuong: string })[] {
-  return (THANH_TAB as readonly ChoThanhTab[]).filter((c) => coHien(c, n)).map((c) => ({ ...hienRa(c), bieuTuong: c.bieuTuong }));
+  const t = (THANH_TAB as readonly ChoThanhTab[]).filter((c) => coHien(c, n)).map((c) => ({ ...hienRa(c), bieuTuong: c.bieuTuong }));
+  return t.length > 5 ? t.slice(0, 4).concat(t.slice(-1)) : t;
 }
 
 export function thanhTren(n: NguoiXem): (MucHien & { readonly kieu: ChoThanhTren["kieu"] })[] {
   return (THANH_TREN as readonly ChoThanhTren[]).filter((c) => coHien(c, n)).map((c) => ({ ...hienRa(c), kieu: c.kieu }));
 }
 
-/** Tab "Tôi" sáng ở trang Tôi và các trang mở từ trang Tôi (trừ dòng `khongSangTabToi`); trang của "Cuốc của tôi" chỉ khi không có tab Cuốc riêng. */
-export function sangTabToi(duong: string, coTabCuoc: boolean): boolean {
+/** Tab "Tôi" sáng ở trang Tôi và các trang mở từ trang Tôi (trừ dòng `khongSangTabToi`) mà người xem KHÔNG có tab riêng (`tabHien` = khoá các tab đang hiện). */
+export function sangTabToi(duong: string, tabHien: readonly KhoaTrang[]): boolean {
   if (duong === TRANG.toi.duong) return true;
-  return (TRANG_TOI as readonly ChoTrangToi[]).some((c) => !c.khongSangTabToi && !(c.trang === "cuoc" && coTabCuoc) && sangTai(c.trang, duong));
+  return !tabHien.some((k) => sangTai(k, duong)) && (TRANG_TOI as readonly ChoTrangToi[]).some((c) => !c.khongSangTabToi && sangTai(c.trang, duong));
 }
 
 /** Trang Tôi: `vanChuyen` null = không dựng nhóm VẬN CHUYỂN (không dòng nào mở nhóm hiện) — khối đầu và khối sau gộp một danh sách như cũ. */
