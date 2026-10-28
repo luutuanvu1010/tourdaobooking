@@ -53,6 +53,9 @@ export class NutGia {
   private datLop(l: string[]): void {
     this.attributes.set("class", l.join(" "));
   }
+  get isConnected(): boolean {
+    return this.tag === "body" || (!!this.parent && this.parent.isConnected);
+  }
   get className(): string {
     return this.attributes.get("class") ?? "";
   }

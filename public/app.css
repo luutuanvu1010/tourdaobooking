@@ -2218,17 +2218,12 @@ body.login-page main.login { display: flex; flex-direction: column; flex: 1; min
 .hd-ghi-chu { padding: var(--s2) var(--s3); background: var(--c-sand-soft); color: var(--c-sand-text); border-left: var(--s1) solid var(--c-sand); border-radius: var(--radius-sm); }
 .hd-nut { display: inline; padding: 0 var(--s1); border: 1px solid var(--c-border); border-radius: var(--radius-sm); background: var(--c-surface-alt); font-weight: var(--fw-semibold); overflow-wrap: anywhere; -webkit-box-decoration-break: clone; box-decoration-break: clone; } /* inline: tên nút dài được xuống dòng, không tràn ngang ở màn hẹp nhất */
 
-/* Bảng tin (ADR-0022, TD-4): thông báo nổi khi có đơn đổi. Vùng cố định không chắn thao tác (pointer-events chỉ bật ở từng thông báo); điện thoại: ngay trên thanh tab; máy tính: góc trên phải, dưới thanh công việc. z-index 40 = trên thanh tab (30), dưới bảng trượt (50). */
-.toast-vung { position: fixed; z-index: var(--z-tren-cung); display: flex; flex-direction: column; gap: var(--s2); pointer-events: none; left: max(var(--s4), env(safe-area-inset-left)); right: max(var(--s4), env(safe-area-inset-right)); bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + var(--s3)); }
-.toast { pointer-events: auto; display: flex; align-items: center; min-height: var(--tap-min); padding: var(--s2) var(--s4); font-size: var(--fs-label); font-weight: var(--fw-semibold); line-height: 1.35; text-decoration: none; color: var(--c-text); background: var(--c-surface); border: 1px solid var(--c-border); border-left: var(--s1) solid var(--c-primary); border-radius: var(--radius-md); box-shadow: var(--shadow-overlay); }
-.toast:hover { background: var(--c-soft-hover); }
-.toast-bao, .toast-bao:hover { pointer-events: none; background: var(--c-surface); } /* bản 1.39: báo ngắn, không bấm được */
-/* Trang không có thanh tab (form lập đơn: thanh Lưu dính đáy): điện thoại đặt thông báo ở TRÊN, dưới thanh đầu trang — không che nút Lưu. */
-@media (max-width: 640px) {
-  body[data-tabbar="off"] .toast-vung { bottom: auto; top: calc(var(--bar-h) + env(safe-area-inset-top) + var(--s3)); }
-}
+/* Thông báo ngắn (Đợt 0 L2, ADR-0022): vùng cố định không chắn thao tác (pointer-events chỉ bật ở từng thông báo). Điện thoại: đáy, TRÊN thanh dính / thanh tab đang hiện (`--day-dinh` do web/shell.ts đo);
+   máy tính: đáy vùng nội dung, căn giữa, không đè thanh bên. z-index tầng trên cùng. Bảng tin (`a.toast`) và báo ngắn (`div.toast`) cùng một thành phần nền tối, kiểu v2 ở khối "Thành phần chung v2". */
+.toast-vung { position: fixed; z-index: var(--z-tren-cung); display: flex; flex-direction: column; align-items: center; gap: var(--s2); pointer-events: none; left: max(var(--s4), env(safe-area-inset-left)); right: max(var(--s4), env(safe-area-inset-right)); bottom: calc(var(--day-dinh, var(--tabbar-h)) + env(safe-area-inset-bottom) + var(--s3)); }
 @media (min-width: 641px) {
-  .toast-vung { left: auto; right: var(--s4); bottom: auto; top: calc(var(--bar-h) + var(--s3)); width: var(--w-toast); max-width: calc(100vw - 2 * var(--s4)); }
+  .toast-vung { left: 0; right: 0; }
+  body.has-sidebar .toast-vung { left: var(--w-sidebar); right: 0; align-items: center; }
 }
 /* Trang có thanh bước dính (form Tạo đơn — vòng sửa 1 của việc 8, M-3): thông báo nằm NGAY DƯỚI thanh bước, không che nó, ở mọi khổ. `--toast-tren` = đáy thanh bước do
    web/order-form.ts đo lúc chạy (đang dính hay bị dải nhắc đẩy xuống); chưa đo thì lấy phần đầu dính của form. Đặt SAU hai luật trên (cùng độ ưu tiên với luật ≤ 640px). */
@@ -3998,9 +3993,13 @@ a.bk-hang:hover, a.bk-the:hover { background: var(--c-soft-hover); }
 
 .rong { display: flex; flex-direction: column; align-items: center; gap: var(--s3); padding: var(--nhip-khoi) var(--le-trang); text-align: center; color: var(--c-text-muted); }
 
-.toast[data-tong] { display: flex; align-items: center; gap: var(--s3); max-width: var(--w-toast); padding: var(--s3) var(--s4); font-size: var(--fs-label); color: var(--c-on-dark); background: var(--c-toast-bg); border-radius: var(--radius-md); box-shadow: var(--shadow-overlay); z-index: var(--z-tren-cung); }
-.toast[data-tong="loi"] { background: var(--c-danger); }
-.toast[data-tong] .nut[data-cap="loi"] { color: var(--c-hoan-tac); }
+.toast[data-tong] { display: flex; align-items: center; gap: var(--s3); width: 100%; max-width: var(--w-toast); padding: var(--s3) var(--s4); font-size: var(--fs-label); line-height: 1.35; text-decoration: none; color: var(--c-on-dark); background: var(--c-toast-bg); border-radius: var(--radius-md); box-shadow: var(--shadow-overlay); pointer-events: none; }
+a.toast[data-tong], .toast-bam-duoc { pointer-events: auto; }
+.toast[data-tong="do"] { background: var(--c-danger); }
+.toast-cau { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.toast-hoan-tac, .toast-dong { flex: none; min-height: var(--tap-min); padding: 0 var(--s2); color: inherit; background: none; border: 0; cursor: pointer; font: inherit; }
+.toast-hoan-tac { color: var(--c-hoan-tac); font-weight: var(--fw-semibold); }
+.toast-dong { display: inline-flex; align-items: center; pointer-events: auto; }
 
 .bo-qua { position: absolute; top: var(--s2); left: var(--s2); z-index: var(--z-tren-cung); padding: var(--s3) var(--s4); color: var(--c-on-dark); background: var(--c-primary-strong); border-radius: var(--bo-control); transform: translateY(-200%); }
 .bo-qua:focus-visible { transform: translateY(0); outline: var(--focus-ring) solid var(--c-focus); outline-offset: var(--vanh-cach); }

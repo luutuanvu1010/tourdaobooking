@@ -1,11 +1,13 @@
-// Thông báo nổi của Bảng tin (ADR-0022, TD-4): vùng `div.toast-vung` (aria-live="polite") gắn MỘT lần vào body; mỗi thông báo là một liên kết
-// `a.toast` dựng bằng h() (không innerHTML), tự ẩn sau ~6 giây, tối đa 3 cái cùng lúc (cái cũ nhất bị đẩy ra). Quyết định "có hiện không / câu gì /
+// Thông báo nổi của Bảng tin (ADR-0022, TD-4): vùng `div.toast-vung` (aria-live="polite") gắn MỘT lần vào body; mỗi thông báo là một `.toast[data-tong]` (Bảng tin: liên kết `a.toast`; báo ngắn: `div.toast`) dựng bằng h() (không innerHTML), tự ẩn sau ~6 giây, tối đa 3 cái cùng lúc (cái cũ nhất bị đẩy ra). Quyết định "có hiện không / câu gì /
 // bấm đi đâu" nằm ở src/shared/bang-tin.ts (thongBaoNoi); ở đây chỉ vẽ.
-import type { ThongBaoNoi } from "../src/shared/bang-tin";
-import { ganThongBao } from "./bangtin-logic";
-import { h } from "./dom";
+import type { ThongBaoNoi } from "../src/shared/bang-tin.ts";
+import { ganThongBao } from "./bangtin-logic.ts";
+import { h } from "./dom.ts";
+import { icon } from "./icons.ts";
 
-const TU_AN_MS = 6000;
+export const TU_AN_NGAN_MS = 3000;
+export const TU_AN_HOAN_TAC_MS = 5000;
+export const TU_AN_MS = 6000; // Bảng tin
 const hienCo: HTMLElement[] = [];
 let vung: HTMLElement | null = null;
 
@@ -27,24 +29,31 @@ function go(el: HTMLElement): void {
   el.remove();
 }
 
-export function hienThongBao(tb: ThongBaoNoi): void {
-  const el = h("a", { class: "toast", href: tb.lienKet }, tb.cau);
+function dua(el: HTMLElement, ms: number): void {
   const { con, bo } = ganThongBao(hienCo, el);
   for (const cu of bo) cu.remove();
   hienCo.splice(0, hienCo.length, ...con);
   vungThongBao().append(el);
-  setTimeout(() => go(el), TU_AN_MS);
+  setTimeout(() => go(el), ms);
+}
+
+export function hienThongBao(tb: ThongBaoNoi): void {
+  dua(h("a", { class: "toast", "data-tong": "bien", href: tb.lienKet }, h("span", { class: "toast-cau" }, tb.cau)), TU_AN_MS);
 }
 
 /**
- * Báo ngắn KHÔNG phải liên kết (bản 1.39, form lập đơn: "Đã thêm … — đơn có N dịch vụ"): `div.toast.toast-bao`, cùng vùng aria-live, cùng thời gian tự ẩn
- * và trần 3 cái như thông báo Bảng tin. Không bấm được (CSS `pointer-events: none`) — trang đang có dữ liệu nhập dở, không được dẫn đi nơi khác.
+ * Báo ngắn KHÔNG phải liên kết (form lập đơn, "Lần bấm trước đã được ghi."): `div.toast[data-tong]` nền tối, hình theo tông (lá = dấu tích, đỏ = chấm than),
+ * tự tắt sau 3 giây; có `hoanTac` thì 5 giây và bấm được (lớp `toast-bam-duoc`). Cùng vùng aria-live và trần 3 cái như Bảng tin.
  */
-export function hienBaoNgan(cau: string): void {
-  const el = h("div", { class: "toast toast-bao" }, cau);
-  const { con, bo } = ganThongBao(hienCo, el);
-  for (const cu of bo) cu.remove();
-  hienCo.splice(0, hienCo.length, ...con);
-  vungThongBao().append(el);
-  setTimeout(() => go(el), TU_AN_MS);
+export function hienBaoNgan(cau: string, o: { tong?: "la" | "do" | "bien" | "cat"; hoanTac?: { nhan?: string; khiBam: () => void } } = {}): void {
+  const tong = o.tong ?? "la";
+  const el = h(
+    "div",
+    { class: o.hoanTac ? "toast toast-bam-duoc" : "toast", "data-tong": tong },
+    icon(tong === "do" ? "alertCircle" : "check", 18),
+    h("span", { class: "toast-cau" }, cau),
+    o.hoanTac && h("button", { type: "button", class: "toast-hoan-tac", onclick: () => o.hoanTac!.khiBam() }, o.hoanTac.nhan ?? "Hoàn tác"),
+    h("button", { type: "button", class: "toast-dong", "aria-label": "Đóng", onclick: () => go(el) }, icon("close", 16)),
+  );
+  dua(el, o.hoanTac ? TU_AN_HOAN_TAC_MS : TU_AN_NGAN_MS);
 }
