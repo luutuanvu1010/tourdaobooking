@@ -2,7 +2,7 @@
 
 Thư mục này giữ cấu hình các trợ lý chạy trên máy chủ Anthropic, theo **ADR-0145** (`docs/adr/ADR-0145-tro-ly-may-chay-thu-tho-san-loi.md`). Hiện có một trợ lý: **Thợ săn lỗi** (`tho-san-loi/`), dựng từ mẫu «Bug hunter» của Anthropic. Trợ lý chỉ đọc kho thật và viết báo cáo: nó làm việc trên một bản sao đã che dữ liệu, trong máy ảo được cấu hình không mạng (chỉ coi là hàng rào sau khi lượt thử quan sát chặn thật), không có khoá nào, không đẩy mã, không triển khai.
 
-**Chỉ chạy sau khi chủ dự án duyệt ADR-0145.** Mọi lệnh dưới đây do chủ dự án tự gõ ở ô Terminal, đứng ở thư mục gốc của bản mã (nơi có thư mục `tro-ly-may/`), và chạy **trong cùng một cửa sổ Terminal**.
+**Chỉ chạy sau khi chủ dự án duyệt ADR-0145.** Mọi lệnh dưới đây do chủ dự án tự gõ trong **một ô Terminal mở riêng** — không gõ bằng `!` trong ô trò chuyện với AI, vì phím `y` sẽ không tới được câu hỏi của lệnh. Đứng ở **thư mục AI đưa** (bản sao riêng của phiên làm việc, không phải thư mục gốc `tourdao-sales/`): tệp `claude-lock.json` sinh ra ở thư mục đang đứng, và AI chỉ lưu được nó trên nhánh riêng. Chạy mọi bước trong cùng một cửa sổ Terminal, và giữ phiên làm việc với AI mở tới khi báo cáo được tải về.
 
 ## Chuẩn bị (một lần)
 
