@@ -189,8 +189,15 @@ const createOrder = async (account, customer) => {
     services: [{ kind: "catalog", pickupChoice: "KHONG_DON", catalogCode: "TTB06", pax: pax(3), catalogPriceSeen: { adult: 800000 }, ...NO_TRIP, departDate: vnDate(7), departTime: "07:30" }],
   });
   assert.equal(r.status, 201, `dựng đơn: ${r.status} ${JSON.stringify(r.json)}`);
+  await confirmVia(account, r.json.order.id);
   await assignVia(account, r.json.order.id, account);
   return r.json.order;
+};
+/** 28/10/2026 (ADR-0135 Đ2, Đ6): đơn NHÁP là vùng riêng của người lập — người khác 404, chính người lập cũng không tự nhận được (409 `order_not_confirmed`). Mọi đơn
+ * dựng sẵn được người lập XÁC NHẬN ngay sau khi lập (đủ chuyến: có ngày, không đón) rồi mới giao. */
+const confirmVia = async (account, orderId) => {
+  const r = await call(account, "POST", `/api/orders/${orderId}/status`, { status: "confirmed" });
+  assert.equal(r.status, 200, `xác nhận đơn dựng sẵn: ${r.status} ${JSON.stringify(r.json)}`);
 };
 /** Trả đơn về "chưa có người phụ trách" cho các bước cần trạng thái đó (đơn qua `createOrder`/`getMain` nay LUÔN có người ngay sau khi dựng — xem chú
  * thích ở `createOrder`): đóng dòng HANDLE đang mở (`valid_to_at` = `valid_from_at` thoả CHECK, chỉ mục duy nhất chỉ ràng dòng đang mở). */
@@ -275,6 +282,9 @@ function getMain() {
     await p.ev("document.querySelector('#catalog-list .catalog-pick').click(); true");
     await p.waitFor(`${cards}.length === 1`, "thẻ danh mục TTB06");
     await p.ev(setInput(`${card}.querySelector('.counter-field[aria-label="Người lớn"]')`, "3"));
+    // 28/10/2026 (ADR-0134 Đ1): phải chọn «Đón» / «Không đón» (không mặc định) — máy chủ chặn xác nhận khi chưa chọn (409 `pickup_choice_required`).
+    await p.waitFor(`${card}.querySelector('[data-action="chon-khong-don"]') !== null`, "nút «Không đón»");
+    await p.ev(`${card}.querySelector('[data-action="chon-khong-don"]').click(); true`);
     await p.ev(`${card}.querySelector('details.trip > summary').click(); true`);
     await p.waitFor(`${card}.querySelector('details.trip').open`, "mở khối chuyến");
     await p.ev(setInput("document.getElementById('orderDate')", vnDate(7))); // ADR-0021: một ngày cho cả đơn
@@ -288,6 +298,7 @@ function getMain() {
     // ADR-0030 S20-4 (Task 1.7): form lập đơn CHƯA có ô chọn HDV (Task 1.8, chờ bản thiết kế của chủ) → đơn vừa lưu
     // chưa có người phụ trách; tự giao lại cho A ngay đây (như `createOrder`) để "main" ở đúng trạng thái các bước
     // dưới (b, d, e…) cần — mô phỏng bước thủ công "vào trang đơn bấm Chọn người phụ trách".
+    await confirmVia(A, id); // ADR-0135 Đ6: nháp không nhận phụ trách được (xem `confirmVia`)
     await assignVia(A, id, A);
     return (await call(A, "GET", `/api/orders/${id}`)).json.order;
   })();
