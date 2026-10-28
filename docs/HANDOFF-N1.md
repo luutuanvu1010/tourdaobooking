@@ -10,9 +10,15 @@ Ghi 28/10/2026 từ khối tóm tắt của `npm run trien-khai` (chủ chạy `
 - Nghiệm thu: chỉ phần chỉ đọc; chưa thử trang có đăng nhập trên production, chưa thử trên iPhone thật.
 - Bản 2.36 và 2.37 (27/10) đã lên production nhưng không có mục trạng thái trong sổ này; nội dung xem nhật ký thay đổi `src/shared/changelog.ts`.
 
-## ĐANG CHỜ PHÁT HÀNH — Tệp kèm vé hỗ trợ (ADR-0144; migration `0124`; kho R2 MỚI)
+## ĐANG CHỜ PHÁT HÀNH 2.39 (số tạm) — Đưa đón theo nhóm dịch vụ + điểm «Chọn nhanh» (ADR-0118) — CÓ migration `0121_dua_don_theo_nhom_va_diem_nhanh` (số tạm)
 
-Ghi 28/10/2026 (nhánh `claude/modest-sanderson-b148ce`, chưa vào `main`; KHÔNG phải trạng thái production). Khi phát hành: **cần `npm run trien-khai`**, CÓ migration `0124_ve_ho_tro_tep` (chỉ thêm bảng) và một kho R2 mới. Số bản 2.39 trong nhật ký thay đổi là TẠM — kiểm lại ở bước A.0 (các nhánh `0121`–`0123` chưa gộp có thể lên trước).
+- Nhánh `claude/service-group-pickup-setup-ae4465`: nhánh 14/10 (`claude/tour-dao-booking-audit-bc6c77`) dựng lại trên main 2.38 ngày 28/10; ruling R-M…R-P ở `docs/superpowers/plans/2026-10-14-dot-2-luot-1-thi-cong-nhat-ky.md` mục «Dựng lại trên main».
+- Cần `npm run trien-khai` sau `day-len` (migration chỉ THÊM: hai cột, một view, gieo hai điểm chọn nhanh). Trước phát hành chủ chạy câu đếm chỉ-đọc hai mã `CANG_VINPEARL`, `BEN_TAU_NHA_TRANG` (lệnh trong báo cáo cuối việc).
+- Sau phát hành mọi nhóm vẫn **bật** đưa đón (mặc định 1) ⇒ không ai thấy đổi cho tới khi Quản trị tắt một nhóm. Tắt nhóm có đơn đã xác nhận còn lượt thì đơn đó chỉ bỏ được lượt (Ruling R-T) — nên đếm trước khi tắt.
+
+## ĐANG CHỜ PHÁT HÀNH 2.40 (số tạm) — Tệp kèm vé hỗ trợ (ADR-0144; migration `0124`; kho R2 MỚI)
+
+Ghi 28/10/2026 (nhánh `claude/modest-sanderson-b148ce`, chưa vào `main`; KHÔNG phải trạng thái production). Khi phát hành: **cần `npm run trien-khai`**, CÓ migration `0124_ve_ho_tro_tep` (chỉ thêm bảng) và một kho R2 mới. Số bản 2.40 trong nhật ký thay đổi là TẠM — kiểm lại ở bước A.0 (2.39 tạm là đưa đón theo nhóm, `0121`, mục ngay trên; `0122`–`0123` của nhánh khác chưa gộp có thể lên trước).
 
 **Việc của chủ — làm MỘT lần, TRƯỚC `npm run trien-khai`** (AI không được tạo kho — CLAUDE.md §8; `npm run trien-khai` dừng ở cổng 1e và in lại đúng lệnh này nếu chưa làm). Đứng ở thư mục `tourdao-sales`, trong Terminal:
 
@@ -275,6 +281,16 @@ Khối do `npm run trien-khai` in ra (chủ chạy), kèm phần AI tự kiểm 
 - **Hoàn tác:** migration 0095 chỉ THÊM (một cột, hai view, sáu trigger), không sửa hay xoá dữ liệu cũ. Chưa diễn tập quay Worker về bản trước sau khi đã có loại mới trong dữ liệu — AI chưa kiểm hành vi bản cũ với dữ liệu đó; cần quay lại thì dùng điểm Time Travel ở trên và xem phần Hoàn tác của tệp này.
 - **Chưa kiểm:** bộ e2e đầy đủ và kịch bản Chrome sau lượt sửa cuối của nhánh (người kiểm độc lập không tự chạy; khối `trien-khai` báo e2e xanh nhưng AI chưa đọc chi tiết); màn «Loại đối tác» và ô «Thêm công việc» ở Danh bạ bằng tài khoản thật; iPhone; dữ liệu thật về vai cũ `STAFF` / `SALES` (xem `BL-ADR0117-VAI-CU`).
 - **Còn mở:** lỗi tương phản màu của dòng loại «đã tắt» (`.row-off`, CSS dùng chung; ghi ở README bằng chứng `docs/evidence/2026-10-14-loai-doi-tac/`); hố vai cũ `STAFF` / `SALES` kết thúc ngày tương lai (`docs/BACKLOG.md` `BL-ADR0117-VAI-CU`); **lần 2 của ADR-0117 (mức TA dùng chung, dựng lại bảng `prc_commission_rule`) CHƯA duyệt, không làm**; năm mục sổ hoãn hạn 2026-10-31 (`docs/quyen-hoan.json`: TNV-G1/G3/G4, HC-4.2, HC-5.19) cần chủ gia hạn hoặc đóng trước khi `npm test` đỏ từ 1/11.
+
+## TRẠNG THÁI TRIỂN KHAI (cũ) — Phiên bản 1.95 ĐÃ LÊN PRODUCTION (màn Tạo đơn bốn bước: thanh tiến độ dính, khách lên đầu, gập các ô ít dùng; chữ «Check-in» đổi thành «Khách có mặt», phiếu gửi khách ghi «Xe đón khách») — không migration (2026-10-14 05:16 giờ VN)
+
+Chủ chạy `day-len` rồi `trien-khai` (khối kết quả của lệnh, dán lại ở đây theo yêu cầu của lệnh):
+
+- **Commit:** `52f4c123` (= `main` lúc triển khai). Không migration nên không có điểm khôi phục Time Travel mới.
+- **Worker Version ID:** `583ab741-8235-4c2d-be6e-a906fcb97381` (2026-10-13T22:16Z).
+- **Kiểm lúc triển khai:** e2e 60/60 kịch bản xanh; `audit-invariants --db remote` ĐẠT (4 cảnh báo, không chặn); cổng phiên bản trước và sau deploy ĐẠT (production chạy đúng 1.95).
+- **Chưa kiểm:** iPhone thật và VoiceOver với màn bốn bước; 25 ca sổ vàng vẫn chờ Kế toán. Bản này đã có hai lượt kiểm độc lập (đạt) trước khi gộp; số đo và ảnh ở `docs/evidence/2026-10-14-tao-don-bon-buoc/`.
+- Bản 1.96 (ADR-0117 lần 1) lên sau bản này; trạng thái hiện hành ở mục trên cùng.
 
 ## TRẠNG THÁI TRIỂN KHAI (cũ) — Phiên bản 1.94 ĐÃ LÊN PRODUCTION (sửa nút «Gửi yêu cầu» của màn «Điều chỉnh công nợ»; Trợ giúp Kế toán và Quản trị cho màn đó; kèm bản 1.93 — sửa số khách, ADR-0114: nhắc khuyến mại khi bớt khách, lịch sử số khách, mỗi đơn có ít nhất một người lớn) — không migration (2026-10-13 khoảng 23:13 giờ VN)
 

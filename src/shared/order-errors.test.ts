@@ -115,6 +115,7 @@ test("409 thieu_nguoi_lon (ADR-0114 D3): nguy hiểm, tiêu đề là ĐÚNG câ
   const b = e(409, "thieu_nguoi_lon", CAU_THIEU_NGUOI_LON);
   assert.deepEqual([b.tone, b.title, b.action, b.lines], ["danger", CAU_THIEU_NGUOI_LON, "none", []]);
   assert.equal(LOI_409_KHONG_CU.has("thieu_nguoi_lon"), true);
+  assert.equal(LOI_409_KHONG_CU.has("transfer_disabled"), true, "ADR-0118: nhóm tắt đưa đón — tải lại sẽ xoá chữ đang gõ, câu máy chủ đã đủ việc cần làm");
   for (const cu of ["stale", "not_editable", "invalid_transition", "short_notice_required", "catalog_changed"]) assert.equal(LOI_409_KHONG_CU.has(cu), false, `${cu} vẫn là màn hình đã cũ`);
 });
 
@@ -123,6 +124,12 @@ test("409 pickup_choice_required (ADR-0134 Đ2): cảnh báo, tiêu đề = câu
   assert.deepEqual([b.tone, b.title, b.action, b.focusService], ["warning", "Dịch vụ thứ 2 chưa chọn Đón hay Không đón.", "none", 1]);
   assert.deepEqual(b.lines.map((l) => l.text), ["Mở dịch vụ đó, chọn Đón hoặc Không đón, lưu rồi xác nhận lại."]);
   assert.equal(LOI_409_KHONG_CU.has("pickup_choice_required"), true);
+});
+
+test("409 transfer_disabled (ADR-0118 Đ3): nguy hiểm, tiêu đề là ĐÚNG câu máy chủ gửi (tên dịch vụ + nhóm + cách sửa), không nút tải lại", () => {
+  const cau = "Nhóm dịch vụ đã tắt đưa đón nên không ghi được lượt đưa đón cho: “Tour đảo” (nhóm “Hòn Tằm”). Bỏ lượt đưa đón của dịch vụ đó khỏi đơn rồi lưu lại.";
+  const b = e(409, "transfer_disabled", cau);
+  assert.deepEqual([b.tone, b.title, b.action, b.lines], ["danger", cau, "none", []]);
 });
 
 test("400 invalid_input với câu thiếu người lớn (lập đơn / lưu nháp): hiện đúng câu máy chủ gửi", () => {

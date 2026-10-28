@@ -13,13 +13,25 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // Đính kèm tệp trong vé hỗ trợ (ADR-0144; kế hoạch docs/superpowers/plans/2026-10-28-dinh-kem-ve-ho-tro.md). CÓ migration 0124 và kho R2 MỚI `tourdao-sales-ho-tro`
-    // (chủ tạo kho TRƯỚC npm run trien-khai — docs/HANDOFF-N1.md). Số 2.39 và ngày là TẠM (production 2.38 lúc làm) — phiên phát hành kiểm lại ở bước A.0.
-    version: "2.39",
+    // (chủ tạo kho TRƯỚC npm run trien-khai — docs/HANDOFF-N1.md). Số 2.40 và ngày là TẠM (production 2.38, main có 2.39 tạm của ADR-0118 lúc làm) — phiên phát hành kiểm lại ở bước A.0.
+    version: "2.40",
     date: "2026-10-28",
     items: [
       { kind: "moi", text: "Hỗ trợ: bấm «Đính kèm» để gửi kèm tới 5 ảnh (JPG, PNG, HEIC) hoặc tệp PDF, tổng tối đa 10 MB một tin. Ảnh chụp tự thu nhỏ trước khi gửi." },
       { kind: "moi", text: "Trong cuộc trao đổi, ảnh hiện xem trước ngay dưới tin, tệp PDF có nút «Tải về». Ai đọc được tin thì xem được tệp kèm tin đó." },
       { kind: "moi", text: "Toàn quyền gỡ được tệp gửi nhầm; tin vẫn giữ dòng «Tệp đã được gỡ»." },
+    ],
+  },
+  {
+    // Đưa đón theo nhóm dịch vụ + điểm «Chọn nhanh» (ADR-0118, chủ duyệt 14/10; thi công 14/10 trên nhánh claude/tour-dao-booking-audit-bc6c77, dựng lại trên main 28/10).
+    // CÓ migration 0121 (đổi từ số tạm 0098) nên cần npm run trien-khai sau day-len. Số 2.39 và ngày là TẠM — phiên phát hành kiểm lại ở bước A.0 của docs/HANDOFF-N1.md.
+    version: "2.39",
+    date: "2026-10-28",
+    items: [
+      { kind: "moi", text: "Quản trị bật hoặc tắt phần Đưa đón cho từng nhóm ở trang Dịch vụ & giá. Nhóm tắt thì dịch vụ của nhóm không có phần Đưa đón khi lập đơn, ghi là «Không đón»." },
+      { kind: "moi", text: "Ở form Tạo đơn, dưới ô Nơi trả (chiều đi) và Nơi đón (chiều về) có nút bấm nhanh cho những điểm hay dùng như Bến cảng Vinpearl." },
+      { kind: "moi", text: "Quản trị chọn điểm nào hiện thành nút bấm nhanh và xếp thứ tự ở trang Địa điểm, cột Chọn nhanh." },
+      { kind: "doi", text: "Nhóm vừa tắt Đưa đón: đơn đã xác nhận chỉ bỏ được lượt đưa đón, không thêm hay sửa; đơn nháp phải bỏ lượt đưa đón rồi mới xác nhận hoặc gửi được." },
     ],
   },
   {
