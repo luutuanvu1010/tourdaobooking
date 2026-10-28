@@ -8,9 +8,12 @@
 import assert from "node:assert/strict";
 import { ACCOUNTS, call, catalogService, ensureFakeCatalog, orderInput, session, sqlRows, vnDate } from "./lib.mjs";
 
-await ensureFakeCatalog();
 const SALES = await session(ACCOUNTS.salesA);
 const ADMIN = await session(ACCOUNTS.admin);
+// Trên D1 CHƯA TỪNG đồng bộ, lần đọc danh mục đầu tiên tự kéo Sheet thật (`bootstrapIfNeverSynced`) và đặt in_sheet = 0 cho mã giả — đọc một lần TRƯỚC rồi
+// mới gieo ZE1 (khuôn dispatch.mjs). Gieo trước thì bước (2) không thấy ZE1 trong for-order (đỏ khi kịch bản chạy một mình hoặc trước catalog — 28/10).
+await call(SALES, "GET", "/api/catalog/for-order");
+await ensureFakeCatalog();
 const D = vnDate(7);
 const LOC = "a941dd7d-faab-4098-9ab9-1df7fa6dd551"; // Bến tàu du lịch Nha Trang (migration 0010)
 const OUT = { direction: "OUT", pickupDate: "", pickupTime: "06:30", pickupLocationId: null, pickupPlace: "Khách sạn Dò Tìm E2E", dropoffLocationId: LOC, dropoffPlace: "" };
