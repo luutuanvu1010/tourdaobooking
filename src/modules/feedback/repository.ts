@@ -584,11 +584,11 @@ const FIND_TEP_DE_TAI = defineSql(
   `SELECT a.id, a.storage_key, a.content_kind FROM fbk_attachment a
    WHERE a.id = ?4 AND a.stored_at IS NOT NULL AND a.purged_at IS NULL AND a.message_id IN (SELECT x.id FROM (${TIN_CHO_NGUOI_XEM}) x)`,
 );
-// Gỡ (Toàn quyền, route đã hỏi ô feedback.triage): tệp ?2 thuộc một tin của vé ?1, mọi trạng thái — route quyết theo purged_at.
+// Gỡ (Toàn quyền, route đã hỏi ô feedback.triage): tệp ?2 thuộc một tin của vé ?1, mọi trạng thái — route quyết theo purged_at / stored_at.
 const FIND_TEP_CUA_VE = defineSql(
   "feedback",
   "find_attachment_of_ticket",
-  "SELECT a.id, a.storage_key, a.purged_at FROM fbk_attachment a JOIN fbk_message m ON m.id = a.message_id WHERE a.id = ?2 AND m.ticket_id = ?1",
+  "SELECT a.id, a.storage_key, a.stored_at, a.purged_at FROM fbk_attachment a JOIN fbk_message m ON m.id = a.message_id WHERE a.id = ?2 AND m.ticket_id = ?1",
 );
 export interface TepChoXoaRow { id: string; ticket_id: string; storage_key: string; purged_at: string | null; purge_reason: string | null; created_at: string }
 /** Trần một lượt của hàng "chờ xoá" (như parties): cũ trước; câu đọc lấy thêm MỘT dòng để biết "còn nữa". */
@@ -605,7 +605,7 @@ const LIST_TEP_CHO_XOA = defineSql(
 export function findTepDeTai(db: D1Database, v: { ticketId: string; tepId: string; noiBo: "none" | "team" | "all"; teamId: string }): Promise<TepTaiRow | null> {
   return db.prepare(FIND_TEP_DE_TAI).bind(v.ticketId, v.noiBo, v.teamId, v.tepId).first<TepTaiRow>();
 }
-export function findTepCuaVe(db: D1Database, ticketId: string, tepId: string): Promise<{ id: string; storage_key: string; purged_at: string | null } | null> {
+export function findTepCuaVe(db: D1Database, ticketId: string, tepId: string): Promise<{ id: string; storage_key: string; stored_at: string | null; purged_at: string | null } | null> {
   return db.prepare(FIND_TEP_CUA_VE).bind(ticketId, tepId).first();
 }
 /** Tối đa `TEP_CHO_XOA_MOT_LUOT` dòng cũ nhất; `conNua` = còn dòng sau lượt này. */

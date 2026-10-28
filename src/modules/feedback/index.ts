@@ -671,7 +671,9 @@ export const feedbackModule: AppModule = {
       return new Response(obj.body, { status: 200, headers: dauPhanHoiTepChung({ id: tep.id, loai: tep.content_kind, tenDau: "ho-tro" }) });
     }),
     // Gỡ tệp gửi nhầm (ADR-0144 đ6; Hiến chương 5.24): CHỈ Toàn quyền (ô feedback.triage — không phải Trưởng nhóm), một lệnh có tên, đi một chiều. Thứ tự: ô → 503 kho
-    // → mã → vé → tệp thuộc tin của ĐÚNG vé (mọi trạng thái; đã quyết xoá ⇒ 409) → LÔ D1 quyết xoá GO_TEP + nhật ký chỉ mã (gác changes() > 0; câu đầu không đổi
+    // → mã → vé → tệp thuộc tin của ĐÚNG vé (đã quyết xoá ⇒ 409; CHƯA LƯU ⇒ 409 «đang tải»: lệnh gửi có thể đang ở giữa lúc đọc lại và lúc đặt kho — gỡ lúc đó
+    // sẽ xoá kho trước khi đối tượng tới, để lại đối tượng không dòng nào theo dõi; stored_at chỉ đi một chiều nên kiểm này bền; dòng kẹt do lệnh chạy lại
+    // dọn sau CHUA_TAI_DUOC_SAU_MS) → LÔ D1 quyết xoá GO_TEP + nhật ký chỉ mã (gác changes() > 0; câu đầu không đổi
     // dòng ⇒ 409 — người khác vừa gỡ) → xoá kho SAU lô (kho-tep.ts — lỗi không ném, dòng còn «chờ xoá» ở GET /api/feedback/tep-cho-xoa). Tin còn dòng «Tệp đã được gỡ».
     // Bài src/kho-tep-ho-tro.test.ts (4) ghim thứ tự ô → lô D1 → xoá kho.
     route("POST", "/api/feedback/:id/tep/:tid/go", "staff", async ({ env, staff, params }) => {
@@ -685,6 +687,7 @@ export const feedbackModule: AppModule = {
       if (!tep) return TEP_NOT_FOUND();
       const DA_GO = () => error(409, "conflict", "Tệp này đã được gỡ hoặc đã xoá.");
       if (tep.purged_at !== null) return DA_GO();
+      if (tep.stored_at === null) return error(409, "uploading", "Tệp này đang được tải lên. Thử lại sau ít phút.");
       const at = new Date().toISOString();
       const lyDo = LY_DO_XOA_TEP_VE.GO_TEP;
       const res = await env.DB.batch(cauDatChoXoa(env.DB, datChoXoaTepStatement(env.DB, { id: tid, lyDo, at, actorId: staff.id }), { tepId: tid, ticketId: id, lyDo, at, staffId: staff.id }));

@@ -256,3 +256,17 @@ test("nhật ký không chứa khoá kho / băm (mở, gỡ, chạy lại)", asy
   assert.deepEqual(ds.rong, []);
   assert.deepEqual(ds.lo, [], "nhật ký chứa giá trị hạng N3");
 });
+
+test("gỡ tệp đang tải (chưa lưu, chưa quyết xoá) ⇒ 409 «đang tải», không đổi gì — tránh đối tượng kho mồ côi khi lệnh gỡ chen giữa lúc đọc lại và lúc đặt kho", async () => {
+  const w = setup();
+  const v = await veCoTep(w);
+  w.sqlite.exec("CREATE TRIGGER thu_chua_luu BEFORE UPDATE OF stored_at ON fbk_attachment BEGIN SELECT RAISE(ABORT, 'thu'); END");
+  const dd = (await traLoi(w, v.id, SALES, [PDF])).json.messages.at(-1).tep[0].id as string;
+  w.sqlite.exec("DROP TRIGGER thu_chua_luu");
+  const r = await go(w, v.id, dd, SUPER);
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.message, "Tệp này đang được tải lên. Thử lại sau ít phút.");
+  const d = w.q("SELECT purged_at, r2_deleted_at FROM fbk_attachment WHERE id = ?", dd)[0];
+  assert.deepEqual([d.purged_at, d.r2_deleted_at], [null, null]);
+  assert.equal(w.r2HoTro.soLan.delete, 0);
+});
