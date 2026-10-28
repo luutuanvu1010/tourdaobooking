@@ -32,11 +32,12 @@ test("thanh bên không còn dòng nổi bật và không còn mục Tạo đơn
   assert.ok(!THANH_BEN.some((c) => c.trang === "taoDon"));
 });
 
-// Tập có quyền tài xế bị bỏ: "Cuốc của tôi" + "Báo bận" cộng với bộ văn phòng cho 11 khối (tổ hợp không phải vai thật; DRIVER_PARTNER phải đứng một mình).
-test("MỌI tập quyền không kèm quyền tài xế: số khối hiện sẵn không quá 10", () => {
+// Tài xế công ty kiêm văn phòng là tổ hợp có chủ đích: "Cuốc của tôi" + "Báo bận" cộng bộ văn phòng ⇒ 11 khối (có từ trước, ghi nợ nhật ký). Chỉ DRIVER_PARTNER phải đứng một mình.
+// Đặc tả §5.4 chỉ cố định 10 cho Toàn quyền; mọi tập không kèm quyền tài xế ≤ 10, tập kèm ≤ 11.
+test("MỌI tập quyền: số khối hiện sẵn ≤ 10 (không quyền tài xế) hoặc ≤ 11 (có quyền tài xế)", () => {
   for (let m = 0; m < 1 << PERMISSION_CODES.length; m++) {
     const p = PERMISSION_CODES.filter((_, i) => m & (1 << i));
-    if (p.some((x) => x.startsWith("DRIVER"))) continue;
-    assert.ok(demMucHienSan(thanhBen({ staff: holder(p) }, "/")) <= 10, p.join("+"));
+    const tran = p.some((x) => x.startsWith("DRIVER")) ? 11 : 10;
+    assert.ok(demMucHienSan(thanhBen({ staff: holder(p) }, "/")) <= tran, p.join("+"));
   }
 });

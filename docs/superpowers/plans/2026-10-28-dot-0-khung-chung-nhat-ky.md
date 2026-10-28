@@ -39,6 +39,9 @@ Sau Task 7: 99.172 byte (+537 so với Task 6: `nutGap`, `gomNhomGap`, lối «B
 
 ## Nợ ghi BACKLOG
 
+- Tài xế công ty kiêm văn phòng: thanh bên 11 khối (có từ trước Task 7), chờ chủ quyết.
+- `docs/evidence/2026-09-23-trang-chu-moi/kich-ban/trang-chu-smoke.mjs` hỏng với thanh bên mới (nút gập đầu tiên nay là Điều phối; 22 mục; nút Tạo đơn không còn ở thanh bên) — Task 15 chép và sửa.
+
 - Giữ giá trị cũ, chờ Chặng 3 quyết theo họ: `--h-hdv-act` 48, `--row-h` 48, `--h-dp-tab` 40; mười `--skel-*` lẻ (`sm`, `title`, `tag`, `time`, `money`, `pill-mt`, `bar-mt`, `num-mt`, `time-mt`, `name-mt`); `--skel-money-mt` 96 (lề trên, không bí danh).
 - 15 số z-index cứng còn lại sau dấu mốc PWA (`.fb-step-dot`, `.ht-tra-loi`, `.sidebar-group`, `.catalog-muc`, `body.trang-chu::before`, `.vc-bottom-bar`, `.vc-filters`, `.dp-*`, `.xb-*`, `.buoc-*`): dọn theo họ ở Chặng 3.
 - Mốc màn hình cũ 960/1024/1400/720 giữ, dọn ở Chặng 3. `--z-tl-fab` 35 bỏ cùng nút nổi (task sau).

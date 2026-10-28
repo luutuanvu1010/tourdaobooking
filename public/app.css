@@ -372,6 +372,7 @@
   --c-icon-hover-on-bar: var(--c-soft-hover); /* nền rê chuột nút biểu tượng trên mảng đậm (đầu bảng thông báo ở điện thoại) */
   --c-sidebar-bg: var(--c-surface-alt); /* nền thanh bên máy tính = nền trang (lời chủ 2/10 khi gửi bản vẽ Đợt 4: "đổi lại nền cho thanh bên trái … thành màu nền toàn trang"); viền phải tách khỏi nội dung */
   --c-sidebar-hover: var(--c-card); /* nền khi rê chuột mục thanh bên — nền thẻ (trắng) nổi trên nền thanh bên (= nền trang); --c-soft-hover gần trùng nền trang nên không dùng được ở đây (vòng vá 1 Đợt 4, L1) */
+  --c-sidebar-cham: var(--c-indicator); /* chấm trên nút nhóm gập đang đóng mà chứa trang đang mở — cùng màu vạch mục đang chọn */
   --c-sidebar-text-on: var(--c-primary); /* chữ mục đang chọn, đầu thanh, tên người ở chân thanh bên */
   --c-sidebar-title: var(--c-text-muted); /* tiêu đề nhóm (VẬN CHUYỂN, TIỀN, THIẾT LẬP) */
   --c-sidebar-badge-text: var(--c-primary); /* chữ huy hiệu số đếm mặc định trên thanh bên */
@@ -1252,13 +1253,13 @@ body.login-page::before { content: ""; display: block; height: env(safe-area-ins
 .sidebar-group-toggle { display: flex; align-items: center; gap: var(--s2); min-height: var(--h-muc-nho); padding: var(--s1) var(--s3); font: inherit; font-size: var(--fs-label); font-weight: var(--fw-bold); letter-spacing: var(--ls-eyebrow); text-transform: uppercase; text-align: left; white-space: nowrap; color: var(--c-sidebar-title); background: none; border: 0; border-radius: var(--radius-sm); cursor: pointer; transition: background-color var(--m-fast) var(--ease-out), color var(--m-fast) var(--ease-out); }
 @media (hover: hover) { .sidebar-group-toggle:hover { color: var(--c-text); background: var(--c-sidebar-hover); } }
 .sidebar-group-count { margin-left: auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--fs-badge); font-weight: var(--fw-semibold); letter-spacing: 0; text-transform: none; }
-.sidebar-cham { flex: none; width: var(--dot-size); height: var(--dot-size); border-radius: var(--radius-pill); background: var(--c-btn-primary-bg); } /* chấm Biển: nhóm đóng có trang đang mở */
+.sidebar-cham { flex: none; width: var(--dot-size); height: var(--dot-size); border-radius: var(--radius-pill); background: var(--c-sidebar-cham); } /* chấm báo: nhóm đóng có trang đang mở */
 .sidebar-cham[hidden] { display: none; }
 .sidebar-chevron { margin-left: auto; display: flex; transition: transform var(--m-fast) var(--ease-out); }
 .sidebar-group-count + .sidebar-chevron { margin-left: 0; }
 .sidebar-group-toggle[aria-expanded="false"] .sidebar-chevron { transform: rotate(-90deg); }
 .sidebar-gap .sidebar-item { min-height: var(--h-muc-nho); padding-top: var(--s1); padding-bottom: var(--s1); padding-left: var(--sidebar-sub-indent); font-weight: var(--fw-regular); }
-#nhom-thiet-lap .sidebar-item[aria-current="page"] { font-weight: var(--fw-bold); }
+.sidebar-gap .sidebar-item[aria-current="page"] { font-weight: var(--fw-bold); }
 /* Chân thanh: ba mục chân menu, rồi người dùng, rồi Đăng xuất */
 /* Chân gọn (sửa vòng 2, 7b): Đăng xuất đứng CÙNG hàng với người dùng (lưới hai cột) thay vì một hàng riêng — bớt ~44px để vùng danh sách mục có chỗ ở màn thấp. */
 .sidebar-foot { position: sticky; bottom: 0; background: var(--c-sidebar-bg); margin-top: auto; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: var(--s2); row-gap: var(--s1); padding: var(--s2) var(--s3); border-top: 1px solid var(--c-sidebar-border); }
