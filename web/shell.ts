@@ -522,15 +522,20 @@ export async function initShell(): Promise<Staff> {
  */
 export function datThanhTab(hien: boolean): void {
   document.body.classList.toggle("tabbar-an", !hien);
+  // Đo lại thanh dính ngay sau đoạn mã đang chạy (trang thường gỡ ô trả lời ngay sau lệnh này) để `tabbar-dinh` không đọng tới khung hình sau.
+  if (kiemThanhDinh) queueMicrotask(kiemThanhDinh);
 }
+
+let kiemThanhDinh: (() => void) | null = null;
 
 /**
  * Thanh dính đáy (`.thanh-hanh-dong-cuoi`) đang hiện thì ẩn thanh tab; đặt `--day-dinh` = chiều cao vùng dính đáy (toast né). Chỉ quan sát `main` (thuộc tính + cây con)
- * và con trực tiếp của body: KHÔNG quan sát thuộc tính body, vì chính ta đổi lớp `tabbar-an` ở đó (sẽ tự kích lại).
+ * và con trực tiếp của body: KHÔNG quan sát thuộc tính body, vì chính ta đổi lớp `tabbar-dinh` ở đó (sẽ tự kích lại).
  */
 function theoDoiThanhDinh(): void {
   if (typeof MutationObserver === "undefined") return;
-  const doi = boTheoDoi((co) => datThanhTab(!co));
+  // Lớp RIÊNG `tabbar-dinh` (không qua datThanhTab): trang tự ẩn thanh tab bằng `tabbar-an` (Hỗ trợ mở luồng) — ô trả lời ẩn đi không được bật lại thanh tab của trang.
+  const doi = boTheoDoi((co) => document.body.classList.toggle("tabbar-dinh", co));
   let cu = "";
   const capNhat = () => {
     const e = thanhDinhHien(document.querySelectorAll<HTMLElement>(BO_CHON_THANH_DINH));
@@ -550,6 +555,7 @@ function theoDoiThanhDinh(): void {
     });
   };
   capNhat();
+  kiemThanhDinh = capNhat;
   const mo = new MutationObserver(lich);
   const main = document.querySelector("main");
   if (main) mo.observe(main, { subtree: true, childList: true, attributes: true, attributeFilter: ["hidden", "class", "style"] });

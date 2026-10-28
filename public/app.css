@@ -1192,8 +1192,8 @@ body.login-page::before { content: ""; display: block; height: env(safe-area-ins
   #tabbar .tab-new .tab-icon { width: var(--tab-icon); border-radius: 50%; color: var(--c-tab-new-icon); background: var(--c-tab-new-bg); box-shadow: var(--shadow-tab-new); }
   body.has-tabbar main { padding-bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + var(--s4)); }
   body.has-tabbar { min-height: var(--h-trang-toi-thieu); }
-  body.tabbar-an #tabbar { display: none; } /* trang Hỗ trợ mở một yêu cầu toàn màn: web/shell.ts datThanhTab(false) */
-  body.has-tabbar.tabbar-an main { padding-bottom: calc(env(safe-area-inset-bottom) + var(--s4)); }
+  body.tabbar-an #tabbar, body.tabbar-dinh #tabbar { display: none; } /* tabbar-an: trang tự ẩn (datThanhTab(false), vd Hỗ trợ mở luồng); tabbar-dinh: shell ẩn khi thanh dính đáy đang hiện (theoDoiThanhDinh) — hai lớp riêng để không xoá nhau */
+  body.has-tabbar.tabbar-an main, body.has-tabbar.tabbar-dinh main { padding-bottom: calc(env(safe-area-inset-bottom) + var(--s4)); }
 
   .btn:not(.btn-link) { min-height: var(--tap-min); }
   .toolbar input { flex: 1 1 0; min-width: 0; }
@@ -4017,7 +4017,7 @@ a.toast[data-tong], .toast-bam-duoc { pointer-events: auto; }
 /* Chân dính một kiểu (đợt 0, K4): một thanh dính đáy duy nhất; thanh tab tự ẩn khi thanh dính đang hiện (web/shell.ts theoDoiThanhDinh) */
 .form-actions, .vc-bottom-bar, .vc-form-actions, .chan-dinh { background: var(--c-surface); border-top: 1px solid var(--c-border); padding-bottom: calc(var(--s3) + env(safe-area-inset-bottom)); z-index: var(--z-dinh); }
 .form-actions .btn, .form-actions button, .vc-bottom-bar .vc-btn, .vc-bottom-bar button, .vc-form-actions .btn, .vc-form-actions button, .chan-dinh .nut, .chan-dinh button { min-height: var(--h-control-lon); }
-body.tabbar-an .vc-bottom-bar { bottom: 0; }
+body.tabbar-an .vc-bottom-bar, body.tabbar-dinh .vc-bottom-bar { bottom: 0; }
 
 /* ---------- Đợt 0 Task 8 (K1, K6): thanh trên một kiểu; Trợ lý ở cuối cụm nút phải ---------- */
 .bar-duong { display: none; }
