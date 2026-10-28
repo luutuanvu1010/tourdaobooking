@@ -64,3 +64,21 @@ Bối cảnh: nhánh 14/10 (`claude/tour-dao-booking-audit-bc6c77`, đầu `d749
 Kiểm kê mọi câu GHI `ord_transfer_leg` trên main 28/10 (`chang-hanh-khach-repo.ts`, `xac-nhan-repo.ts`): chèn / sửa / số người chiều về / thay — qua các cửa có chốt của nhánh cũ; đóng lượt và dấu đặt gấp — đường được phép (Đ3 c); điền ngày khi xác nhận và đổi ngày / giờ ở Còn vé — nằm SAU `kiemCongXacNhan`. Không module nào ngoài `orders` ghi bảng này.
 Hàng nút «Chọn nhanh» gắn vào `cotNoiMotO` (ô nơi một ô của màn Tạo đơn 18/10), cho cả nơi đón và nơi trả; bảng «Sửa đưa đón» vẫn không có (không truyền `diemNhanh`).
 Câu «Bảng ở trang quản trị có thể phải kéo ngang.» ở Trợ giúp Quản trị bị bỏ để câu công tắc «Có đưa đón» vừa trần chữ (cách nhánh cũ đã làm).
+
+## Kiểm độc lập sau khi dựng lại (28/10/2026; kết luận «ĐẠT CÓ ĐIỀU KIỆN», không có mục HIGH)
+
+Người kiểm độc lập (chỉ đọc, đột biến trên bản sao `git archive`) đối chiếu MỌI đường ghi `ord_transfer_leg` và mọi cửa đưa đơn sang xác nhận: tất cả có chốt hoặc là đường thoát được phép; 19 đột biến đều đỏ đúng chỗ. Xử lý từng điểm:
+
+| Điểm | Xử lý |
+|---|---|
+| M-1 R-M trái chữ ADR-0134 Đ7 | Ghi vào `docs/SYSTEM-DESIGN.md` §16 «LỆCH CÓ CHỦ Ý, CHỜ CHỦ XÁC NHẬN»; trình chủ trước khi gộp. Chủ bác ⇒ đổi mã + chữ nhật ký 2.39. |
+| M-2 R-T: đổi ngày đi của đơn đã xác nhận bị chặn khi nhóm tắt mà đơn còn lượt (dời ngày sinh thao tác `update` chặng) | Trình chủ: giữ cách đọc chặt (Quản trị bấm Bỏ lượt trước khi dời ngày) hay cho dời ngày lượt có sẵn. Chưa đổi mã. |
+| L-1 CHANGE-GUIDE §1 trỏ z16 | Sửa thành z28 (lời khai R-O «đã đổi» trước đó sai ở hàng bảng §1). |
+| L-2 mô tả cửa xác nhận thiếu | `SYSTEM-DESIGN.md` (đoạn «Đưa đón theo nhóm») + CHANGE-GUIDE z28 thêm luật «cửa xác nhận mới phải có chốt»; route xác nhận MỚI quên cổng thì bài (C) không bắt — ghi «dựa vào kỷ luật». |
+| L-3 chú thích R-H sai («mọi dịch vụ kể cả ẩn») | Sửa chú thích ở `web/order-form.ts` (for-order chỉ trả dịch vụ đang hiện). |
+| L-4 R-O «không nhánh nào giữ migration > 0120» đã cũ | Đúng lúc dựng lại, sai từ 15:42 cùng ngày: nhánh `claude/modest-sanderson-b148ce` (ADR-0144) có `0124_ve_ho_tro_tep.sql` và tự khai nhường `0121`; phiên bản 2.39 dễ trùng với nhánh đó — nhánh gộp SAU đổi số ở bước A.0. |
+| L-5 Còn vé: mốc đặt gấp đứng trước chốt nhóm tắt | **R-Q:** thêm `congNhomTatDuaDon(…, "xet-duyet")` trước khối (0) của route `quyet-dinh` — cùng thứ tự với `/status`. Bài mới viết trước, đỏ (`short_notice_required`), xanh sau sửa. |
+| L-6, L-7 | Không đổi (L-6 không phải hồi quy của nhánh; L-7 đã tự khai ở sổ hàng rào). |
+| L-8 phạm vi nở | Nhánh cũ kéo theo ~12 tài liệu ngoài ADR-0118 (bảng việc, prompt kiểm toán, prompt Claude Design, đặc tả «Khách có mặt», đặc tả đợt 2 giá đưa đón, tờ đối chiếu 25 ca kèm PDF 1,7 MB…). Giữ nguyên vì chủ bảo nhập nguyên nhánh; báo chủ. |
+| L-9 cắt Hướng dẫn Quản trị không khai đủ | Năm chỗ cắt gọn để vừa trần 30 phút (nghĩa giữ nguyên): mục điểm «Chọn nhanh» bước 4, câu giấy tờ xe, câu đặt gấp, câu giấy tờ sắp hết hạn, dòng Toàn quyền xem công nợ. |
+| e2e đỏ khi chạy đủ bộ | `dua-don-theo-nhom.mjs` gieo ZE1 TRƯỚC lần đọc danh mục đầu tiên ⇒ lần đọc đó kéo Sheet thật, đặt `in_sheet = 0` cho ZE1. Sửa: đọc một lần trước rồi mới gieo (khuôn `dispatch.mjs`). Tái hiện đỏ khi chạy một mình, sửa xong xanh. |

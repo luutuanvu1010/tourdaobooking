@@ -167,8 +167,9 @@ let diem: DiemChon[] = [];
 /** ADR-0118 Đ4: điểm «Chọn nhanh» (đang dùng, đã xếp theo số) — cùng lời gọi `/api/locations` với `diem`. Lỗi → rỗng (không hiện hàng nút). */
 let diemNhanh: DiemNhanh[] = [];
 /**
- * ADR-0118 Đ5 / Ruling R-H: mã dịch vụ → «nhóm của nó có cho đưa đón không» (từ `GET /api/catalog/for-order`, mọi dịch vụ kể cả ẩn). Chỉ để ẨN khối Đưa đón và bỏ chặng; cổng thật là máy chủ (409 `transfer_disabled`).
- * Mã vắng (dịch vụ nhập tay, đã rời danh mục) → coi là cho đưa đón.
+ * ADR-0118 Đ5 / Ruling R-H: mã dịch vụ → «nhóm của nó có cho đưa đón không» (từ `GET /api/catalog/for-order` — CHỈ dịch vụ đang hiện). Chỉ để ẨN khối Đưa đón và bỏ chặng; cổng thật là máy chủ (409 `transfer_disabled`).
+ * Mã vắng (dịch vụ nhập tay, đã rời danh mục, đã bị Quản trị ẩn) → coi là cho đưa đón: nháp cũ của dịch vụ đã ẩn mà thuộc nhóm tắt thì khối vẫn hiện,
+ * máy chủ chặn và người dùng tự bỏ lượt theo câu báo.
  */
 const choDuaDon = new Map<string, boolean>();
 const coDuaDon = (d: ServiceDraft): boolean => (d.kind === "catalog" ? choDuaDon.get(d.code) !== false : true);

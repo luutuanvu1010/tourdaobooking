@@ -4,7 +4,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
-import { A, ADM, PARTNER, datCo, inDays, lap, leg, setup, svc } from "../../../tests/audit/xac-nhan-khung.mjs";
+import { A, ADM, PARTNER, datCo, inDays, lap, leg, setup, svc, vnSau } from "../../../tests/audit/xac-nhan-khung.mjs";
 
 const AT = "2026-09-01T00:00:00.000Z";
 const D = inDays(3);
@@ -57,6 +57,20 @@ test("Còn vé: yêu cầu đã mở, nhóm tắt SAU khi gửi → người xé
   const ok = await w.call("POST", `/api/orders/${o.id}/quyet-dinh`, { as: ADM, body: { ketQua: "CON_VE", yeuCauId: y.id, updatedAt: capNhat(w, o.id) } });
   assert.equal(ok.status, 200, ok.text);
   assert.equal(trangThai(w, o.id), "confirmed");
+});
+
+test("Còn vé: lượt dưới mốc 6 giờ CHƯA đặt gấp, nhóm tắt → 409 transfer_disabled TRƯỚC short_notice_required (không đẩy người xét duyệt đi đặt gấp cho lượt sắp phải bỏ — cùng thứ tự với /status); lượt không bị đóng dấu đặt gấp", async () => {
+  const w = setup();
+  nhomZA1(w, true);
+  datCo(w, "SERVICE", "ZA1", true);
+  const gio = vnSau(60);
+  const o = await lap(w, A, [svc("ZA1", gio.date, [leg(gio.date, gio.time)])]);
+  assert.equal((await w.call("POST", `/api/orders/${o.id}/gui-xac-nhan`, { as: A, body: {} })).status, 201);
+  const y = yeuCauMo(w, o.id)[0];
+  nhomZA1(w, false);
+  const r = await w.call("POST", `/api/orders/${o.id}/quyet-dinh`, { as: ADM, body: { ketQua: "CON_VE", yeuCauId: y.id, updatedAt: capNhat(w, o.id) } });
+  biChan(r, /Rút lại/);
+  assert.equal(w.q("SELECT COUNT(*) AS c FROM ord_transfer_leg WHERE order_id = ? AND short_notice_at IS NOT NULL", o.id)[0].c, 0);
 });
 
 test("Gửi đơn của Đối tác — nhánh B (không cần xác nhận): nhóm tắt → 409 transfer_disabled, đơn VẪN nháp; nhánh A (cần xác nhận) cũng 409, không mở yêu cầu", async () => {
