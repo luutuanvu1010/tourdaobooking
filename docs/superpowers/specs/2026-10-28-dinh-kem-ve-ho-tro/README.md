@@ -1,6 +1,6 @@
 # Đặc tả ngắn — Đính kèm tệp trong vé hỗ trợ (2026-10-28)
 
-> Hồ sơ có ngày. **Trạng thái: bản 2, CHỜ CHỦ DUYỆT** (ba lựa chọn ở mục 7). Chưa có kế hoạch, chưa có mã.
+> Hồ sơ có ngày. **Trạng thái: bản 2, ĐÃ DUYỆT** — chủ, chat 2026-10-28: *«Duyệt cả 3, cho phép tất cả tài khoản được phép gửi đính kèm»* (câu 1 đổi: mọi tài khoản gửi tệp; câu 2, 3 theo khuyến nghị). Quyết định chính thức: `docs/adr/ADR-0144-dinh-kem-tep-trong-ve-ho-tro.md`.
 > Bản 1 (commit `6b04bbc5`) đã qua một vòng người kiểm độc lập chỉ đọc; bản này sửa theo các phát hiện đó (mục 8).
 > Văn bản đề xuất quyết định: `DE-XUAT-ADR.md` (số tạm ADR-0144). Trang ghép (CLAUDE.md §9): `TRANG-GHEP.md`.
 > Yêu cầu của chủ (28/10, qua phiên điều phối): cho người dùng đính kèm tệp (ảnh, tài liệu) khi gửi vé hỗ trợ, lưu ở Cloudflare R2 **theo đúng cách hệ thống từng làm**.
