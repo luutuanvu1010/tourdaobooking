@@ -10,7 +10,7 @@ export const CHAT_LUONG_JPG = 0.85;
 /** Hạn chờ lời gọi gửi tin CÓ tệp (ADR-0144 đ7) — lời gọi thường 45 giây. */
 export const HEN_GIO_GUI_TEP_MS = 120_000;
 
-export const CAU_NHAC_GIAY_TO = "Đừng gửi ảnh căn cước, bằng lái qua đây.";
+export const CAU_NHAC_GIAY_TO = "Đính kèm ảnh hoặc tài liệu.";
 export const CAU_CAN_CHU = "Hãy viết vài chữ kèm tệp.";
 export const CAU_DANG_GUI_TEP = "Đang gửi tệp…";
 export const CAU_DANG_CHUAN_BI = "Đang chuẩn bị tệp…";
