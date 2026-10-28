@@ -1,10 +1,11 @@
 # ADR-0147 — Phí đưa đón do Quản trị đặt: vùng đón, bảng phí có hiệu lực, dòng phí trên đơn chụp lúc xác nhận
 
-- **Trạng thái:** **accepted** 2026-10-28 — chủ dự án trong chat. Lần duyệt này nối sau ADR-0146 (chính sách bán); xem dòng Trạng thái của ADR-0146 về cách ghi hai lần duyệt nối tiếp.
+- **Trạng thái:** **accepted** 2026-10-28 — chủ dự án trong chat. Người chép ghi lần duyệt này nối sau ADR-0146 (chính sách bán); xem dòng Trạng thái của ADR-0146 về cách ghi sổ hai lần duyệt nối tiếp (cách ghi của người chép, không phải lời chủ).
   - Phiên soạn hỏi «Bạn muốn duyệt lượt nào trước?» (hai nút: chặn bán trước, phí đón trước). Chủ gõ, nguyên văn: *«cả chặn bán và phí đón»*.
   - Hộp chọn cùng ngày, câu «Phí đón thêm một dòng tiền vào đơn, mà phần đó còn dính lỗ «đơn huỷ vẫn hiện tiền còn nợ» (hạn vá 30/11). Bạn có cho xây phí đón trên lỗ này không?». Chủ gõ, ngoài hai phương án được đưa ra («Chưa cho, chờ lỗ vá», «Cho phép, có ghi lý do»), nguyên văn: *«vá luôn lỗi và thêm dòng tiền vào đơn»*. Xem dòng «Xây trên lỗ đang hở».
   - Câu «Có đặt điều kiện «phí đón chỉ được phát hành sau khi đã diễn tập khôi phục dữ liệu» như lần sổ đại lý đợt 2 không?»: chủ chọn *«Không đặt điều kiện này»*.
-  - Ba điều chạm dữ liệu hoặc tiền (Đ1, Đ2, Đ3), đúng trần 3 (`CLAUDE.md` §9). Các chỗ đánh dấu **[người soạn]** được duyệt theo khuyến nghị của người soạn. Bốn chỗ người soạn tự chọn đã được nêu với chủ trước khi duyệt: tách giảm giá ra ADR sau; phí đón vào phần của Tour Đảo; vùng theo đầu khách sạn, điểm chưa xếp vùng tính Ngoài vùng; đổi chặng sau xác nhận không tự đổi phí.
+  - Ba điều chạm dữ liệu hoặc tiền (Đ1, Đ2, Đ3), đúng trần 3 (`CLAUDE.md` §9).
+  - Ngay trước câu duyệt, tin nhắn cuối của người soạn trong chat (28/10) đã nêu với chủ bốn chỗ người soạn tự chọn, mời chủ xem: tách giảm giá ra ADR sau; phí đón vào phần của Tour Đảo; vùng theo đầu khách sạn, điểm chưa xếp vùng tính Ngoài vùng; đổi chặng sau xác nhận không tự đổi phí. Chủ không nói riêng về chúng. Người chép ghi các chỗ **[người soạn]** là duyệt cùng văn bản, theo khuyến nghị của người soạn — cách ghi của người chép. «Đã nêu» không có nghĩa chủ đã xác nhận từng giả định (ví dụ Đ1 vẫn ghi giả định vùng là «chủ chưa xác nhận»).
   - AI soạn và chép, không tự duyệt (Hiến pháp N3). Người kiểm độc lập chỉ đọc đã soát sự thật bản nguồn một vòng ngày 28/10. Lần sửa cuối của bản nguồn (commit `e7ba6e80`: đổi chặng sau xác nhận không đổi phí) được soát ở vòng kiểm bản chép này.
 - **Số và nguồn:** ADR này là đề xuất `docs/superpowers/specs/2026-10-28-phi-don-va-chan-ban/DE-XUAT-ADR-phi-dua-don.md` (28/10, hồ sơ có ngày, không sửa). Trang ghép: `docs/superpowers/specs/2026-10-28-phi-don-va-chan-ban/TRANG-GHEP.md`.
   - Số 0147 kiểm còn trống ngày 28/10. Chính sách bán duyệt trước nên lấy 0146, đúng như dòng đầu của đề xuất đã định.
@@ -28,6 +29,7 @@
   - Các lỗ HIGH khác không nằm trên đường này (đọc sổ ngày 28/10).
   - **Lời chủ 28/10:** *«vá luôn lỗi và thêm dòng tiền vào đơn»* (dòng Trạng thái). Đã ghi vào `xay_tren_cho_phep` của mục TNV-G1. Việc vá lỗ chạy ở một phiên riêng, nhánh riêng. Người chép hiểu lời này là: duyệt phí đón ngay, vá lỗ ngay, và **phí đón không phát hành trước khi mục TNV-G1 được đóng** trong `docs/quyen-hoan.json`. Đây là cách hiểu chặt hơn, đảo được; chủ muốn khác thì sửa bằng một câu. [chép 28/10]
 - **Phát hành và thi công** [chép 28/10]:
+  - **Không phát hành trước khi mục TNV-G1 được đóng** trong `docs/quyen-hoan.json` (cách hiểu của người chép ở dòng «Xây trên lỗ đang hở»). Người chạy phát hành kiểm mục này trước.
   - Mã chỉ bắt đầu viết sau khi sổ vàng `golden/phi-dua-don.json` được Kế toán (hoặc chủ thay Kế toán) xác nhận (Hiến chương 5.17; «Điều chủ cần biết» 3).
   - Không đặt điều kiện «phát hành sau diễn tập khôi phục» (lỗ HC-5.19); đó là lựa chọn của chủ ngày 28/10 («Điều chủ cần biết» 5).
   - Không phụ thuộc ADR-0146.
@@ -75,7 +77,7 @@
   - Đơn nháp được tính lại mỗi lần lưu và hiện «dự kiến».
   - Xác nhận (`/status`, Còn vé, Gửi đơn nhánh B) chụp dòng và mã quy tắc trong cùng lô xác nhận.
 - **Sau xác nhận** dòng đã chụp không đổi, vì trigger `0081` khoá dòng tiền và **không nới**.
-  - **Sửa số khách**: phí theo khách tính lại theo mức đã chụp (như ADR-0133 điều 3), trong cùng hàm tiền hiệu lực `computeEffectiveMoney` mà sửa số khách đang dùng. Không thêm đường ghi nào, và vẫn chỉ người có ô `order.money.edit` làm được.
+  - **Sửa số khách**: phí theo khách tính lại theo mức đã chụp (như ADR-0133 điều 3), trong cùng hàm tiền hiệu lực `computeEffectiveMoney` mà sửa số khách đang dùng. Không thêm đường ghi nào, và vẫn chỉ người có ô `order.money.edit` làm được. [chép 28/10: người kiểm độc lập 28/10 báo tên hàm sai — `computeEffectiveMoney` không nằm trên đường ghi sửa số khách; nguồn tính thật là `effectiveService` / `effectiveSubtotal` ở `src/modules/orders/money-adjustment.ts`. Dòng điều chỉnh chỉ mang `serviceId` + `pax`, và `effectiveService` lùi về tổng đã lưu khi một dòng của dịch vụ thiếu `pax_code` / `catalog_price`. Kế hoạch phải sửa các hàm tính đó, nối chặng → dịch vụ, và sổ vàng phải có ca này. Ý của câu (không thêm đường ghi, không thêm quyền) không đổi.]
   - **Thêm, bỏ hoặc thay chặng**: phí đã chụp **giữ nguyên**, không có dòng tiền nào được ghi. Muốn thu thêm hay trả bớt thì dùng điều chỉnh sổ công nợ, có người thứ hai duyệt (ADR-0115). [người soạn; xem «Điều chủ cần biết» 1]
   - Lý do chọn cách này: dòng điều chỉnh `order_money_adjustment` hôm nay chỉ ghi **số khách** theo dịch vụ, chưa có dạng cho chặng. Ô sửa chặng sau xác nhận (`order.trip.edit`) cũng rộng hơn ô sửa tiền (`order.money.edit`): Bán hàng là người phụ trách mà không phải người lập thì sửa được chặng, nhưng không sửa được tiền. Cho chặng tự đổi tiền là mở cho họ một cửa đổi tiền mà họ không có quyền.
 - **Thiếu mức.**
