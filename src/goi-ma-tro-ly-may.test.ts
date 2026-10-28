@@ -5,7 +5,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { tmpdir, userInfo } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { boDau, duocGui, taoBoChe, timChuoiCam } from "../scripts/goi-ma-tro-ly-may-lib.mjs";
@@ -93,12 +93,37 @@ test("số viết có dấu cách, chấm, gạch hay +84 cách quãng: che như
   }
 });
 
-test("đầu số: che 03, 05, 07, 08, 09; để nguyên 01, 02, 04, 06", () => {
-  const che = ["0312345678", "0512345678", "0712345678", "0812345678", "0912345678"];
-  const de = ["0112345678", "0212345678", "0412345678", "0612345678"];
+test("đầu số: che di động 03, 05, 07, 08, 09 và số bàn 02 (10 hay 11 chữ số); để nguyên 01, 04, 06", () => {
+  const che = ["0312345678", "0512345678", "0712345678", "0812345678", "0912345678", "0212345678", "02123456789"];
+  const de = ["0112345678", "0412345678", "0612345678"];
   const bo = taoBoChe([che.join(" "), de.join(" ")]);
   for (const s of che) assert.notEqual(bo.che(s).text, s, s);
   for (const s of de) assert.equal(bo.che(s).text, s, s);
+});
+
+test("số bàn: giữ mã vùng và cách viết, cùng số (0… hay +84…) cùng số giả", () => {
+  assert.equal(taoBoChe(["02583812345"]).che("02583812345").text, "02580000001");
+  assert.equal(taoBoChe(["0258381234"]).che("0258381234").text, "0258000001");
+  const dang = ["02583812345", "(0258) 3812 345", "0258.3812.345", "+84 258 3812 345", "84 258 3812 345"];
+  const ra = taoBoChe([dang.join("\n")]).che(dang.join("\n"));
+  assert.equal(ra.soSdt, dang.length);
+  const dong = ra.text.split("\n");
+  const chuSo = (s) => s.replace(/^\+?84/, "").replace(/[^0-9]/g, "").replace(/^0/, "");
+  for (let i = 0; i < dang.length; i++) {
+    assert.equal(dong[i].replace(/[0-9]/g, "#"), dang[i].replace(/[0-9]/g, "#"), `giữ cách viết: ${dang[i]}`);
+    assert.equal(chuSo(dong[i]), chuSo(dong[0]), `cùng số giả: ${dang[i]}`);
+    assert.ok(chuSo(dong[i]).startsWith("258"), `giữ mã vùng: ${dong[i]}`);
+    assert.ok(!dong[i].replace(/[^0-9]/g, "").includes("3812345"), `còn số gốc: ${dong[i]}`);
+  }
+});
+
+test("dãy số nằm trong một UUID không bị che, kể cả khi trông như số +84 viết liền; tự quét cũng bỏ qua", () => {
+  const vb = "id 123e4567-e89b-42d3-a456-842583123456\nsố 842583123456";
+  const bo = taoBoChe([vb]);
+  const dong = bo.che(vb).text.split("\n");
+  assert.equal(dong[0], "id 123e4567-e89b-42d3-a456-842583123456");
+  assert.notEqual(dong[1], "số 842583123456", "cùng dãy đứng riêng là số điện thoại, phải che");
+  assert.deepEqual(bo.conSot(dong.join("\n")), []);
 });
 
 test("số giả không trùng bất kỳ số gốc nào, kể cả khi số gốc đã giống số thử", () => {
@@ -116,10 +141,11 @@ test("dãy số dài hơn số điện thoại không bị đụng tới", () =>
 });
 
 test("tự quét lại: chỉ ra dòng còn chuỗi giống số điện thoại chưa che (kể cả dạng bộ che không bắt), không ra số giả", () => {
-  const vb = "a: 0987 654 321\nb: 0987_654_321\nc: (098) 7654-321\nd: 0987\t654\t321\ne: không có số; ngày 08 28/10/2026";
+  const vb =
+    "a: 0987 654 321\nb: 0987_654_321\nc: (098) 7654-321\nd: 0987\t654\t321\ne: không có số; ngày 08 28/10/2026\nf: 0258_3812_345";
   const bo = taoBoChe([vb]);
   const daChe = bo.che(vb).text;
-  assert.deepEqual(bo.conSot(daChe), [2, 4], "dòng a, c đã che; b, d bộ che không bắt nên tự quét phải chỉ ra; e không phải số");
+  assert.deepEqual(bo.conSot(daChe), [2, 4, 6], "a, c đã che; b, d, f (số bàn) bộ che không bắt nên tự quét phải chỉ ra; e không phải số");
   assert.deepEqual(bo.conSot(bo.che("x 0912345678").text), []);
 });
 
@@ -147,6 +173,12 @@ test("email: phần trước @ thay bằng tên giả nhất quán (không phân
   assert.equal(dong[5], '"@anthropic-ai/sdk" esbuild@0.25.0 wrangler@latest');
   assert.ok(dong[6].endsWith("@xexample.com") && !dong[6].includes("lo@"), "miền chỉ GIỐNG example vẫn phải che");
   assert.equal(soEmail, 4);
+});
+
+test("email: không che chuỗi chỉ giống email ở biên (miền dính chữ số, phần trước @ dính ngay sau một email khác)", () => {
+  const bo = taoBoChe([]);
+  assert.equal(bo.che("ma a@b.co1").text, "ma a@b.co1");
+  assert.equal(bo.che("a@b.com_c@d.com").text, "nguoi1@b.com_c@d.com");
 });
 
 test("thay chuỗi thêm (tên chủ, đường dẫn tài khoản máy): cả bản có dấu, bản bỏ dấu, không phân biệt hoa thường", () => {
@@ -183,8 +215,11 @@ function khoTam(tep) {
   git("init", "-q", "-b", "main");
   git("add", "-A");
   git("commit", "-q", "-m", "thử");
+  // Tên chủ mà kịch bản đọc (`git config user.name`): đặt riêng cho kho tạm, để bài không phụ thuộc cấu hình máy.
+  spawnSync("git", ["config", "user.name", TEN_CHU_THU], { cwd: dir });
   return dir;
 }
+const TEN_CHU_THU = "Người Thử Nghiệm";
 const WRANGLER = '{ "vars": { "SERVICES_SHEET_ID": "SHEETMAUXYZ123" } }';
 function chayKichBan(dir) {
   const ra = join(dir, "ra.tar.gz");
@@ -209,6 +244,36 @@ test("kịch bản: gói đúng phạm vi, đã che, có NGUON.txt", () => {
     assert.ok(existsSync(join(x, "ma-nguon/NGUON.txt")));
     assert.ok(!existsSync(join(x, "ma-nguon/docs/HANDOFF-N1.md")));
     assert.ok(!existsSync(join(x, "ma-nguon/wrangler.jsonc")));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("kịch bản: che tên chủ (git user.name, có dấu và không dấu) và đường dẫn tài khoản máy", () => {
+  const nha = `/Users/${userInfo().username}/kho`;
+  const dir = khoTam({
+    "wrangler.jsonc": WRANGLER,
+    "src/a.ts": `// ${TEN_CHU_THU}; ${boDau(TEN_CHU_THU).toUpperCase()}; ${nha}\n`,
+  });
+  try {
+    const r = chayKichBan(dir);
+    assert.equal(r.status, 0, r.stderr);
+    const x = join(dir, "x");
+    mkdirSync(x);
+    assert.equal(spawnSync("tar", ["-xzf", r.ra, "-C", x]).status, 0);
+    assert.equal(readFileSync(join(x, "ma-nguon/src/a.ts"), "utf8"), "// Chủ Dự Án; Chủ Dự Án; /Users/nguoi-dung/kho\n");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("kịch bản: dừng khi không đọc được tên chủ (git user.name rỗng), vì khi đó tên chủ không được che", () => {
+  const dir = khoTam({ "wrangler.jsonc": WRANGLER, "src/a.ts": "export const A = 1;\n" });
+  try {
+    spawnSync("git", ["config", "user.name", ""], { cwd: dir });
+    const r = chayKichBan(dir);
+    assert.equal(r.status, 1);
+    assert.ok(!existsSync(r.ra));
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

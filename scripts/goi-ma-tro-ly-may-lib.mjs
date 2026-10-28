@@ -25,14 +25,16 @@ export function duocGui(p) {
   return TEP_DUOC_GUI.has(p) || THU_MUC_DUOC_GUI.some((d) => p.startsWith(d));
 }
 
-// Số điện thoại Việt Nam: 0, 84, +84 hay (+84), rồi 9 chữ số bắt đầu 3/5/7/8/9; giữa hai chữ số được có tới 3 ký tự cách,
-// chấm, gạch, ngoặc ("0987 654 321", "0987.654.321", "(098) 7654-321", "+84 987 654 321", "84987654321"). Không dính vào dãy
-// số dài hơn, và không dính chữ cái hay gạch dưới (để không đụng mã băm, mã nhận dạng); dãy nằm trong một UUID cũng bỏ qua.
-const SDT = /(?<![0-9A-Za-z_+])(\(?(?:\+ ?)?84\)?[ .\-]?|\(?0)([35789](?:[ .\-()]{0,3}[0-9]){8})(?![0-9A-Za-z_])/g;
+// Số điện thoại Việt Nam: 0, 84, +84 hay (+84), rồi số di động (9 chữ số bắt đầu 3/5/7/8/9) hoặc số bàn (mã vùng bắt đầu 2,
+// 9 hay 10 chữ số: "(0258) 3812 345"); giữa hai chữ số được có tới 3 ký tự cách, chấm, gạch, ngoặc ("0987 654 321",
+// "0987.654.321", "(098) 7654-321", "+84 987 654 321", "84987654321"). Không dính vào dãy số dài hơn, và không dính chữ cái
+// hay gạch dưới (để không đụng mã băm, mã nhận dạng); dãy nằm trong một UUID cũng bỏ qua.
+const SDT =
+  /(?<![0-9A-Za-z_+])(\(?(?:\+ ?)?84\)?[ .\-]?|\(?0)([35789](?:[ .\-()]{0,3}[0-9]){8}|2(?:[ .\-()]{0,3}[0-9]){8,9})(?![0-9A-Za-z_])/g;
 // Bộ tự quét sau khi che: rộng hơn bộ che (thêm tab, cách không ngắt, gạch dưới làm dấu phân cách). Mọi chuỗi nó bắt phải là số giả.
 // Không gồm dấu "/" để ngày tháng ("08 28/10/2026") không bị nhận nhầm.
 const SDT_RONG =
-  /(?<![0-9A-Za-z_])(\(?(?:\+[ \t ]?)?84\)?[ .\-()\t _]{0,3}|\(?0)([35789](?:[ .\-()\t _]{0,3}[0-9]){8})(?![0-9A-Za-z_])/g;
+  /(?<![0-9A-Za-z_])(\(?(?:\+[ \t\u00a0]?)?84\)?[ .\-()\t\u00a0_]{0,3}|\(?0)([35789](?:[ .\-()\t\u00a0_]{0,3}[0-9]){8}|2(?:[ .\-()\t\u00a0_]{0,3}[0-9]){8,9})(?![0-9A-Za-z_])/g;
 const UUID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
 // Email; phần trước @ được thay, miền giữ nguyên. Miền example.* là miền thử theo chuẩn, để nguyên.
 const EMAIL = /(?<![A-Za-z0-9._%+-])([A-Za-z0-9._%+-]+)@((?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,})(?![A-Za-z0-9-])/g;
@@ -51,8 +53,9 @@ const thoat = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 /**
  * Dựng bộ che từ TOÀN BỘ văn bản sẽ gửi, để số giả không bao giờ trùng một số gốc ở bất kỳ tệp nào.
- * Cùng một số (viết liền hay có dấu phân cách, dạng 0… hay +84…) luôn ra cùng số giả, giữ hai chữ số đầu sau mã vùng
- * (đầu số nhà mạng), độ dài và cách viết; cùng một email (không phân biệt hoa thường) luôn ra cùng tên giả.
+ * Cùng một số (viết liền hay có dấu phân cách, dạng 0… hay +84…) luôn ra cùng số giả, giữ hai chữ số đầu sau mã nước
+ * (đầu số nhà mạng; số bàn giữ ba chữ số = mã vùng), độ dài và cách viết; cùng một email (không phân biệt hoa thường)
+ * luôn ra cùng tên giả.
  * `thayChuoi`: cặp [chuỗi gốc, chuỗi thay] thay thêm (tên chủ, đường dẫn tài khoản máy), cả bản bỏ dấu, không phân biệt hoa thường.
  * @param {string[]} vanBan
  * @param {{ thayChuoi?: [string, string][] }} [tuyChon]
@@ -71,13 +74,14 @@ export function taoBoChe(vanBan, tuyChon = {}) {
   const soGia = new Map();
   const daDung = new Set();
   let dem = 0;
-  const giaChoSo = (chin) => {
-    let g = soGia.get(chin);
+  const giaChoSo = (so) => {
+    let g = soGia.get(so);
     if (g) return g;
-    do g = chin.slice(0, 2) + String(++dem).padStart(7, "0");
+    const giu = so[0] === "2" ? 3 : 2;
+    do g = so.slice(0, giu) + String(++dem).padStart(so.length - giu, "0");
     while (goc.has(g) || daDung.has(g));
     daDung.add(g);
-    soGia.set(chin, g);
+    soGia.set(so, g);
     return g;
   };
   const tenGia = new Map();

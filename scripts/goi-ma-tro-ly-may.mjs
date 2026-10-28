@@ -53,6 +53,7 @@ const chuoiCam = [...wrangler.matchAll(/"[A-Z_]*SHEET[A-Z_]*_ID"\s*:\s*"([^"]+)"
 if (chuoiCam.length === 0) dung("không đọc được mã Sheet nào từ wrangler.jsonc, nên không kiểm được gói có còn mã Sheet hay không.");
 
 const tenChu = spawnSync("git", ["config", "user.name"]).stdout?.toString().trim() ?? "";
+if (!tenChu) dung("không đọc được tên chủ (git config user.name), nên không che được tên chủ trong gói.");
 const taiKhoan = userInfo().username;
 const laNhiPhan = (b) => b.subarray(0, 8000).includes(0);
 const vanBan = [...noiDung].filter(([, b]) => !laNhiPhan(b)).map(([p, b]) => [p, b.toString("utf8")]);
