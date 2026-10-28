@@ -1,0 +1,19 @@
+<!-- @dsCard group="Biểu mẫu" height=330 -->
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><title>Xem trước</title></head><body>
+<div class="xem" data-huong="doc" style="max-width:560px">
+  <div class="hang-truong">
+    <div class="truong"><label for="a1">Tên khách đi tour</label><input id="a1" class="o-nhap" type="text" placeholder="Nguyễn Văn A" autocomplete="off"></div>
+    <div class="truong"><label for="a2">Số điện thoại</label><input id="a2" class="o-nhap" type="tel" inputmode="tel" value="0905 123 456"></div>
+  </div>
+  <div class="hang-truong">
+    <div class="truong" data-loi="true"><label for="a3">Số khách tối đa</label><input id="a3" class="o-nhap" data-kieu="so" type="text" inputmode="numeric" value="62" aria-invalid="true" aria-describedby="a3-loi"><span class="loi-o" id="a3-loi"><svg class="bt" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.5v.01"/></svg> Tối đa 50 khách một dịch vụ. Giảm số khách hoặc thêm dịch vụ thứ hai.</span></div>
+    <div class="truong"><label for="a4">Giảm giá <span class="tuy-chon">(tuỳ chọn)</span></label><div class="o-co-hau"><input id="a4" class="o-nhap" data-kieu="tien" type="text" inputmode="numeric" value="200.000"><span class="hau">₫</span></div><span class="chu-thich-o">Trừ thẳng vào tổng đơn.</span></div>
+  </div>
+  <div class="hang-truong">
+    <div class="truong"><label for="a5">Hình thức</label><select id="a5" class="o-nhap"><option>Chuyển khoản</option><option>Tiền mặt</option></select></div>
+    <div class="truong"><label for="a6">Người nhận tiền</label><input id="a6" class="o-nhap" type="text" value="Kế toán" disabled></div>
+  </div>
+  <div class="truong"><label for="a7">Ghi chú thanh toán <span class="tuy-chon">(tuỳ chọn)</span></label><textarea id="a7" class="o-nhap" rows="2" placeholder="Ví dụ: khách chuyển khoản trước 50 %"></textarea></div>
+</div>
+</body></html>
