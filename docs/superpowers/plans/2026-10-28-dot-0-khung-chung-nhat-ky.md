@@ -23,6 +23,7 @@ Sau Task 8: 98.785 byte (sau vòng sửa 1; trước đó 98.816; −387 so vớ
 Sau Task 9: 100.014 byte (+1.229 so với Task 8: `web/dai.ts` mới (sổ dải, `thanNgoaiMang`, `ganNgoaiMang`) và chữ Task 4 kéo vào gói, trừ ba bản dải cũ ở shell/thông báo; vẫn vượt trần 96.700, trần không đổi).
 Sau Task 10: 100.388 byte (sau vòng sửa 1; trước đó 100.362; +374 so với Task 9: `web/toast.ts` viết lại với tông, Hoàn tác, nút đóng và hai biểu tượng; vẫn vượt trần 96.700, trần không đổi).
 Sau Task 11: 100.418 byte (+30 so với Task 10: `hoiXacNhan` vào gói qua `bang-truot`, bù phần lớn bằng việc bỏ `closeBtn` điều kiện; vẫn vượt trần 96.700, trần không đổi).
+Sau Task 12: 100.418 byte (không đổi: trang 404 là gói riêng, không vào gói Đơn hàng; vẫn vượt trần 96.700, trần không đổi).
 
 ## Lệch so với đặc tả
 
