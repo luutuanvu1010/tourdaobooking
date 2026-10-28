@@ -1302,6 +1302,8 @@ export interface FeedbackCreateInput {
   teamId?: string;
   /** Đơn liên quan (ADR-0127): chỉ đơn do chính người gửi lập; máy chủ chụp mã đơn lúc gửi. Người gửi KHÔNG đặt được mức ưu tiên (trường `priority` gửi kèm bị bỏ qua). */
   orderId?: string;
+  /** Tệp kèm tin mô tả ban đầu (ADR-0144). */
+  tep?: FeedbackTepGuiDto[];
 }
 
 /** Thân PATCH /api/feedback/:id/xu-ly (và tuyến cũ PATCH /api/feedback/:id): mọi trường tuỳ chọn, phải có ít nhất một thay đổi. */
@@ -1359,7 +1361,25 @@ export interface FeedbackMessageDto {
   internal: boolean;
   createdAt: string;
   mine: boolean;
+  /** Tệp kèm tin (ADR-0144), theo thứ tự gửi; rỗng khi không kèm. Ai đọc được tin thì thấy tệp của tin. */
+  tep: FeedbackTepDto[];
 }
+// ---- Tệp kèm tin vé hỗ trợ (ADR-0144) — KHÔNG tên tệp gốc, KHÔNG khoá kho, KHÔNG băm (N3). Thân tệp chỉ ở GET /api/feedback/:id/tep/:tid. ----
+/**
+ * DA_LUU = mở được; DANG_TAI = vừa gửi, kho chưa xong (vài giây); CHUA_TAI_DUOC = quá 10 phút vẫn chưa lưu; DA_GO = Toàn quyền đã gỡ (tin hiện «Tệp đã được gỡ»).
+ * Tệp tải hỏng (đã quyết xoá lúc gửi) không có mặt. Loại cùng danh sách với tệp hồ sơ (ADR-0123).
+ */
+export interface FeedbackTepDto { id: string; loai: LoaiTepHoSo; kichThuoc: number; trangThai: "DA_LUU" | "DANG_TAI" | "CHUA_TAI_DUOC" | "DA_GO" }
+/** Một tệp trong thân gửi vé / trả lời: base64 chuẩn của nội dung, không tiền tố `data:`. Tối đa 5 tệp, tổng ≤ 10 MB mỗi tin — máy chủ kiểm lại. */
+export interface FeedbackTepGuiDto { noiDung: string }
+/** Thân POST /api/feedback/:id/messages. */
+export interface FeedbackReplyInput { body: string; internal?: boolean; tep?: FeedbackTepGuiDto[] }
+/** Phản hồi 201 của gửi vé / trả lời: chi tiết như GET kèm số tệp chưa lưu được (kho lỗi — tin vẫn đã lưu). Phát lại cùng clientRequestId (200) không có `tepLoi`. */
+export interface FeedbackGuiResponse extends FeedbackDetailResponse { tepLoi: number }
+/** GET /api/feedback/tep-cho-xoa (chỉ Toàn quyền): cùng hình dạng hàng chờ xoá của tệp hồ sơ — chỉ mã tệp, trạng thái, mã lý do, mốc; không khoá kho. */
+export type FeedbackTepChoXoaResponse = HoSoTepChoXoaResponse;
+/** POST /api/feedback/tep-cho-xoa/chay-lai. */
+export type FeedbackTepChayLaiResponse = HoSoTepChayLaiResponse;
 
 export interface FeedbackStatRow {
   /** Tuần theo strftime('%Y-%W') của created_at. */

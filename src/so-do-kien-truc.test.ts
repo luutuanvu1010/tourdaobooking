@@ -91,7 +91,10 @@ test("kien-truc.json: mọi doc_chi_tiet là tệp có thật", () => {
 test("kien-truc.json: khoi_ngoai khớp wrangler.jsonc (binding R2, email, Durable Object, D1) và phan_dung trỏ phần có thật", () => {
   const wr = readFileSync(join(ROOT, "wrangler.jsonc"), "utf8");
   const ten = new Set(kt.khoi_ngoai.map((k) => k.ten));
-  for (const binding of ["HO_SO", "EMAIL", "BANG_TIN", "DB"]) {
+  // Mọi kho R2 đọc THẲNG từ wrangler.jsonc (ADR-0144: kho thứ hai HO_TRO lọt qua danh sách cứng cũ — người kiểm độc lập 28/10).
+  const khoR2 = [...wr.matchAll(/\{\s*"binding":\s*"([A-Z_]+)",\s*"bucket_name"/g)].map((m) => m[1]!);
+  assert.ok(khoR2.includes("HO_SO"), "chống bài rỗng: đọc được kho R2 từ wrangler.jsonc");
+  for (const binding of new Set([...khoR2, "EMAIL", "BANG_TIN", "DB"])) {
     if (wr.includes(`"${binding}"`)) assert.ok([...ten].some((t) => t.includes(binding)), `binding ${binding} có ở wrangler.jsonc nhưng chưa có khối ngoài nhắc tới`);
   }
   for (const k of kt.khoi_ngoai) for (const m of k.phan_dung ?? []) assert.ok(THU_MUC_PHAN.includes(m), `khối ngoài ${k.ten}: phần "${m}" không có`);

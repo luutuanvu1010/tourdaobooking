@@ -19,6 +19,28 @@ Ghi 28/10/2026 từ khối tóm tắt của `npm run trien-khai` (chủ chạy `
 - Nghiệm thu: chỉ phần chỉ đọc; chưa thử trang có đăng nhập trên production, chưa thử trên iPhone thật.
 - Bản 2.36 và 2.37 (27/10) đã lên production nhưng không có mục trạng thái trong sổ này; nội dung xem nhật ký thay đổi `src/shared/changelog.ts`.
 
+## ĐANG CHỜ PHÁT HÀNH 2.40 (số tạm) — Tệp kèm vé hỗ trợ (ADR-0144; migration `0124`; kho R2 MỚI)
+
+Ghi 28/10/2026 (nhánh `claude/modest-sanderson-b148ce`, chưa vào `main`; KHÔNG phải trạng thái production). Khi phát hành: **cần `npm run trien-khai`**, CÓ migration `0124_ve_ho_tro_tep` (chỉ thêm bảng) và một kho R2 mới. Số bản 2.40 trong nhật ký thay đổi là TẠM — kiểm lại ở bước A.0 (2.39 — đưa đón theo nhóm, `0121` — đã lên production 28/10, mục trạng thái ở đầu tệp; `0122`–`0123` của nhánh khác chưa gộp có thể lên trước).
+
+**Việc của chủ — làm MỘT lần, TRƯỚC `npm run trien-khai`** (AI không được tạo kho — CLAUDE.md §8; `npm run trien-khai` dừng ở cổng 1e và in lại đúng lệnh này nếu chưa làm). Đứng ở thư mục `tourdao-sales`, trong Terminal:
+
+1. Tạo kho tệp vé hỗ trợ (kho riêng, không công khai):
+
+```
+npx wrangler r2 bucket create tourdao-sales-ho-tro
+```
+
+2. Kiểm đã có kho (phải thấy dòng `name: tourdao-sales-ho-tro`, cạnh `tourdao-sales-ho-so`):
+
+```
+npx wrangler r2 bucket list
+```
+
+3. Chạy `npm run trien-khai` như thường lệ.
+
+**Sau phát hành, chủ thử một lần trên iPhone** (danh sách ở `docs/HANDOFF-FEEDBACK.md`, mục «Tệp kèm tin vé hỗ trợ»). `audit-invariants --db remote` có thêm cảnh báo `R-FBK-1` (tệp tải dở hay chờ xoá kho) — dọn bằng `POST /api/feedback/tep-cho-xoa/chay-lai` (Toàn quyền). **Hoàn tác:** `wrangler rollback` — bảng `fbk_attachment` thừa ra không làm hỏng mã cũ; tệp đã gửi nằm lại trong kho (mã cũ không đọc).
+
 ## ĐÃ PHÁT HÀNH ở bản 2.36 (27/10/2026) — Bước xác nhận đơn + «Gửi đơn» + nháp riêng tư (ADR-0135, ADR-0136)
 
 Ghi chú 28/10: tiêu đề cũ của mục này là «ĐANG CHỜ PHÁT HÀNH … CHƯA triển khai»; production đã qua 2.36 và 2.37 trước lần 2.38. Đoạn dưới là ghi chú gốc lúc chờ, giữ nguyên.

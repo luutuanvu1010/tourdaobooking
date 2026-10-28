@@ -6,23 +6,27 @@
 import { auditStatement } from "../audit";
 import { getStaffAccount } from "../staff";
 import type {
-  FeedbackAdminTeamDto, FeedbackAdminTeamsResponse, FeedbackBadgeResponse, FeedbackDetailResponse, FeedbackEventDto, FeedbackMembersResponse, FeedbackMessageDto, FeedbackMessagesSinceResponse, FeedbackMyOrdersResponse, FeedbackQueueResponse, FeedbackTeamsResponse,
-  FeedbackTicketDto, OrderStatus,
+  FeedbackAdminTeamDto, FeedbackAdminTeamsResponse, FeedbackBadgeResponse, FeedbackDetailResponse, FeedbackEventDto, FeedbackGuiResponse, FeedbackMembersResponse, FeedbackMessageDto, FeedbackMessagesSinceResponse,
+  FeedbackMyOrdersResponse, FeedbackQueueResponse, FeedbackTeamsResponse, FeedbackTepChayLaiResponse, FeedbackTepChoXoaResponse, FeedbackTepDto, FeedbackTicketDto, OrderStatus,
 } from "../../shared/contracts";
 import { FEEDBACK_KIND_NAME, FEEDBACK_STATUS_NAME, canTransition, feedbackCode, isFeedbackKind, isFeedbackStatus, type FeedbackKind, type FeedbackStatus } from "../../shared/feedback-catalog";
 import { UUID_RE, error, intParam, json, mauLikeChua, readJson } from "../../shared/http";
 import { can, isExternalPermission, type PermissionHolder } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
+import {
+  CAU_QUA_TONG, CHUA_TAI_DUOC_SAU_MS, TEP_MOI_GIO, TOI_DA_THAN_TIN_CO_TEP, bamSha256, dauPhanHoiTepChung, kiemTepCuaTin, taoKhoaNgauNhien, type TepDaKiem,
+} from "../../shared/tep-dinh-kem";
 import { NHOM_KY_THUAT_ID, isLocHangDoi, isPriority } from "../../shared/ve-ho-tro";
+import { datTepCuaTin, xoaKhoiKho, type TepChuanBi } from "./kho-tep";
 import { mailConfig, notifyAdmins, type NotifyEvent } from "./notify";
 import { choPhepNhomGui, quyenPhieu, type Membership, type QuyenPhieu } from "./quyen";
 import {
-  badgeCounts, claimStatement, endMemberStatement, findByRequest, getDonCuaToi, getTeam, getTicket, insertEventStatement, insertFirstMessageStatement, insertMemberStatement, insertReplyStatement, insertTeamStatement,
+  badgeCounts, claimStatement, datChoXoaTepStatement, demTepGanDay, endMemberStatement, findByRequest, findTepCuaVe, findTepDeTai, getDonCuaToi, insertTepStatement, listTepChoXoa, listTepCuaTin, getTeam, getTicket, insertEventStatement, insertFirstMessageStatement, insertMemberStatement, insertReplyStatement, insertTeamStatement,
   insertTicketStatement, insertTransferNoteStatement, listAssignable, listDonCuaToi, listEvents, listEventsSince, listMembersAll, listMessages, listMessagesSince, listMine, listQueue, listQueueTeam, countQueueTeam, listTeamsActive, listTeamsAll, markSeen, markSeenAfterWriteStatement,
   membershipsOf, messageExists, patchTeamStatement, patchTicketStatement, setNotified, statsTeam, touchAfterReplyStatement, transferStatement, weeklyStats, type EventRow, type MessageRow, type TeamMemberRow, type TeamRow, type TicketRow,
 } from "./repository";
 import {
-  CAU_DON_LIEN_QUAN_SAI, MESSAGE_LIMIT_PER_HOUR, MESSAGES_SINCE_LIMIT, TEAM_ID_RE, TICKET_LIMIT_PER_HOUR, parseContext, parseTimHangDoi, parseTrangThaiHangDoi, validateMemberRole, validateMessageInput, validatePatchInput, validateTeamInput, validateTeamPatch,
+  CAU_DON_LIEN_QUAN_SAI, LY_DO_XOA_TEP_VE, MESSAGE_LIMIT_PER_HOUR, trangThaiTep, MESSAGES_SINCE_LIMIT, TEAM_ID_RE, TICKET_LIMIT_PER_HOUR, parseContext, parseTimHangDoi, parseTrangThaiHangDoi, validateMemberRole, validateMessageInput, validatePatchInput, validateTeamInput, validateTeamPatch,
   parseSince, validateTicketInput, validateTransferInput, windowStart, type PatchInput,
 } from "./rules";
 
@@ -34,6 +38,14 @@ const CLOSED_NO_TRANSFER = () => error(409, "conflict", "Yêu cầu đã đóng,
 const BAD_JSON = () => error(400, "invalid_input", "Nội dung gửi lên không hợp lệ.");
 const TEAM_FORBIDDEN = () => error(403, "forbidden", "Chỉ người phụ trách hệ thống được quản lý nhóm hỗ trợ.");
 const TEAM_NOT_FOUND = () => error(404, "not_found", "Không tìm thấy nhóm hỗ trợ.");
+// Tệp kèm tin (ADR-0144).
+const QUA_CO_THAN = () => error(413, "file_too_large", CAU_QUA_TONG);
+const QUA_TRAN_TEP = () => error(429, "rate_limited", "Bạn gửi quá nhiều tệp trong một giờ, hãy thử lại sau.");
+const KHO_HO_TRO_CHUA_BAT = () => error(503, "storage_unavailable", "Chưa gửi được tệp kèm vì kho tệp chưa sẵn sàng. Hãy gửi tin không kèm tệp, hoặc báo quản trị viên.");
+const KHO_HO_TRO_TAT = () => error(503, "storage_unavailable", "Kho tệp hỗ trợ chưa sẵn sàng. Hãy báo quản trị viên.");
+const TEP_NOT_FOUND = () => error(404, "not_found", "Không tìm thấy tệp này.");
+const TEP_TRANG_KHAC = () => error(403, "forbidden", "Không mở được tệp từ trang khác. Hãy mở yêu cầu trong Nền tảng rồi bấm vào tệp.");
+const TEP_CHI_TOAN_QUYEN = () => error(403, "forbidden", "Chỉ người phụ trách hệ thống được gỡ tệp hay dọn kho tệp.");
 
 const toAdminTeam = (t: TeamRow, members: readonly TeamMemberRow[]): FeedbackAdminTeamDto => ({
   id: t.id,
@@ -73,7 +85,7 @@ const toTicket = (r: TicketRow, showMail: boolean): FeedbackTicketDto => ({
   orderCode: r.order_code,
 });
 const toEvent = (e: EventRow): FeedbackEventDto => ({ id: e.id, loai: e.type as FeedbackEventDto["loai"], at: e.at, nguoi: e.actor_name, tu: e.from_name, den: e.to_name });
-const toMessage = (m: MessageRow, viewerId: string): FeedbackMessageDto => ({
+const toMessage = (m: MessageRow, viewerId: string, tep: FeedbackTepDto[]): FeedbackMessageDto => ({
   id: m.id,
   authorId: m.author_id,
   authorName: m.author_name,
@@ -81,7 +93,50 @@ const toMessage = (m: MessageRow, viewerId: string): FeedbackMessageDto => ({
   internal: m.internal === 1,
   createdAt: m.created_at,
   mine: m.author_id === viewerId,
+  tep,
 });
+/**
+ * Tin cho người xem kèm tệp của từng tin (ADR-0144 đ3): `rows` là tin ĐÃ lọc theo người xem (TIN_CHO_NGUOI_XEM) — tệp chỉ được hỏi theo đúng các mã tin đó, nên ai đọc
+ * được tin thì thấy tệp, không đọc được tin thì không bao giờ thấy tệp (một đoạn lọc cho cả hai). MỌI tuyến trả tin (chi tiết, làm mới, chuyển nhóm) đi qua đây.
+ */
+async function tinChoNguoiXem(db: D1Database, rows: readonly MessageRow[], viewerId: string): Promise<FeedbackMessageDto[]> {
+  const nowMs = Date.now();
+  const theoTin = new Map<string, FeedbackTepDto[]>();
+  for (const r of await listTepCuaTin(db, rows.map((m) => m.id))) {
+    const trangThai = trangThaiTep(r, nowMs);
+    if (trangThai === null) continue;
+    theoTin.set(r.message_id, [...(theoTin.get(r.message_id) ?? []), { id: r.id, loai: r.content_kind, kichThuoc: r.byte_size, trangThai }]);
+  }
+  return rows.map((m) => toMessage(m, viewerId, theoTin.get(m.id) ?? []));
+}
+
+/** Tệp đã kiểm + mã, khoá kho ngẫu nhiên `fbk/…`, băm — dựng TRƯỚC lô để câu chèn có đủ giá trị. Khoá kho chỉ đi vào câu lệnh (N3). */
+interface TepSeGui extends TepChuanBi { key: string; bam: string }
+const chuanBiTep = (tep: readonly TepDaKiem[]): Promise<TepSeGui[]> =>
+  Promise.all(tep.map(async (t) => ({ id: crypto.randomUUID(), key: taoKhoaNgauNhien("fbk"), bam: await bamSha256(t.bytes), bytes: t.bytes, loai: t.loai })));
+/**
+ * Câu lệnh tệp cho lô gửi tin (ADR-0144 đ2): mỗi tệp một cặp — câu chèn (có điều kiện tin đã chèn + trần tệp, repository.ts) rồi nhật ký CHỈ MÃ gác `changes() > 0`
+ * của chính câu chèn đó. Đặt CUỐI lô (không chen giữa các câu có cổng changes() của tin). `code` = mã vé khi đã biết (trả lời); gửi vé mới chưa có mã (số do câu chèn sinh).
+ */
+function cauChenTep(db: D1Database, a: { messageId: string; ticketId: string; code: string | null; tep: readonly TepSeGui[]; staffId: string; at: string; windowStart: string }): D1PreparedStatement[] {
+  return a.tep.flatMap((t) => [
+    insertTepStatement(db, { id: t.id, messageId: a.messageId, key: t.key, loai: t.loai, kichThuoc: t.bytes.length, bam: t.bam, at: a.at, actorId: a.staffId, windowStart: a.windowStart, limit: TEP_MOI_GIO }),
+    auditStatement(db, { staffId: a.staffId, action: "feedback_attachment_added", at: a.at, targetType: "feedback", targetId: a.ticketId, detail: a.code ? `${a.code} · tệp ${t.id}` : `tệp ${t.id}` }, "changes() > 0"),
+  ]);
+}
+/**
+ * Lô "quyết xoá" MỘT tệp (ADR-0144 đ2, đ6; khuôn cauDatChoXoa của parties): câu đặt purged_at (do nơi gọi dựng — có / không điều kiện dở dang) + nhật ký CHỈ MÃ,
+ * ghi khi câu đầu đổi được dòng. Dùng chung: đặt kho hỏng lúc gửi, gỡ tệp, chạy lại. Xoá kho chạy SAU lô này (kho-tep.ts).
+ */
+function cauDatChoXoa(db: D1Database, cau: D1PreparedStatement, a: { tepId: string; ticketId: string; lyDo: string; at: string; staffId: string }): D1PreparedStatement[] {
+  return [
+    cau,
+    auditStatement(db, { staffId: a.staffId, action: "feedback_attachment_purged", at: a.at, targetType: "feedback", targetId: a.ticketId, detail: `tệp ${a.tepId} · ${a.lyDo}` }, "changes() > 0"),
+  ];
+}
+/** Hàm `loQuyetXoa` cho datTepCuaTin: đặt kho hỏng lúc gửi ⇒ quyết xoá TAI_LEN_LOI, người làm = người gửi. */
+const quyetXoaKhiTaiHong = (db: D1Database, ticketId: string, staffId: string) => (tepId: string, at: string): D1PreparedStatement[] =>
+  cauDatChoXoa(db, datChoXoaTepStatement(db, { id: tepId, lyDo: LY_DO_XOA_TEP_VE.TAI_LEN_LOI, at, actorId: staffId }), { tepId, ticketId, lyDo: LY_DO_XOA_TEP_VE.TAI_LEN_LOI, at, staffId });
 
 /**
  * Quyền đọc kiểu cũ (chủ phiếu ô `own`, Toàn quyền ô `any`). Từ Việc 5a các route theo id dùng quyenPhieu; giữ lại cho tới khi gỡ tuyến cũ
@@ -137,7 +192,7 @@ async function detail(db: D1Database, who: PermissionHolder, id: string): Promis
   if (!q.doc) return null;
   return {
     ticket: toTicket(t, q.xuLy),
-    messages: (await listMessages(db, id, q.noiBo, t.team_id)).map((m) => toMessage(m, who.id)),
+    messages: await tinChoNguoiXem(db, await listMessages(db, id, q.noiBo, t.team_id), who.id),
     suKien: q.xuLy ? (await listEvents(db, id)).map(toEvent) : [],
     canTriage: q.xuLy,
     perms: { xuLy: q.xuLy, giaoViec: q.giaoViecChoNguoiKhac, chuyenNhom: q.chuyenNhom },
@@ -160,8 +215,12 @@ export const feedbackModule: AppModule = {
   name: "feedback",
   routes: [
     // Tạo yêu cầu. Idempotent theo clientRequestId; trần 5/giờ bằng INSERT có điều kiện (xem repository.ts).
+    // Tệp kèm tin mô tả (ADR-0144 đ2, đ3): chặn Content-Length TRƯỚC khi đọc thân → kiểm tệp (sau quyền nhóm / đơn) → trần tệp (đếm trước) → MỘT lô (vé + tin + dòng tệp
+    // có điều kiện tin đã chèn + nhật ký chỉ mã) → đọc lại → đặt kho → đánh dấu. Phần sau lô (datTepCuaTin) không ném, không 5xx: kho hỏng chỉ tăng `tepLoi`.
+    // Bài src/kho-tep-ho-tro.test.ts (3) ghim thứ tự TOI_DA_THAN_TIN_CO_TEP → readJson, env.DB.batch → datTepCuaTin.
     route("POST", "/api/feedback", "staff", async ({ request, env, exec, staff }) => {
       if (!can(staff, "feedback.submit")) return error(403, "forbidden", "Không có quyền gửi yêu cầu.");
+      if (Number(request.headers.get("content-length") ?? "0") > TOI_DA_THAN_TIN_CO_TEP) return QUA_CO_THAN();
       const raw = await readJson(request);
       if (!raw) return BAD_JSON();
       const v = validateTicketInput(raw);
@@ -179,23 +238,36 @@ export const feedbackModule: AppModule = {
         if (!don) return error(400, "invalid_input", CAU_DON_LIEN_QUAN_SAI);
         order = { id: don.id, code: don.order_code };
       }
+      const k = kiemTepCuaTin(raw.tep);
+      if (!k.ok) return error(k.status, k.code, k.message);
+      const kho = env.HO_TRO;
+      if (k.tep.length > 0 && !kho) return KHO_HO_TRO_CHUA_BAT();
       const now = new Date();
       const at = now.toISOString();
+      if (k.tep.length > 0 && (await demTepGanDay(env.DB, staff.id, windowStart(now))) + k.tep.length > TEP_MOI_GIO) return QUA_TRAN_TEP();
       const id = crypto.randomUUID();
+      const messageId = crypto.randomUUID();
+      const tep = await chuanBiTep(k.tep);
       await env.DB.batch([
         insertTicketStatement(env.DB, { id, kind: v.value.kind, title: v.value.title, context: v.value.context, submitterId: staff.id, clientRequestId: v.value.clientRequestId, now: at, windowStart: windowStart(now), limit: TICKET_LIMIT_PER_HOUR, teamId, order }),
-        insertFirstMessageStatement(env.DB, { id: crypto.randomUUID(), ticketId: id, authorId: staff.id, body: v.value.body, now: at }),
+        insertFirstMessageStatement(env.DB, { id: messageId, ticketId: id, authorId: staff.id, body: v.value.body, now: at }),
         auditStatement(env.DB, { staffId: staff.id, action: "feedback_created", at, targetType: "feedback", targetId: id, detail: team.sensitive === 1 ? "yêu cầu nhóm nhạy cảm" : v.value.title.slice(0, 100) }, `EXISTS (SELECT 1 FROM fbk_ticket WHERE id = '${id}')`),
+        ...cauChenTep(env.DB, { messageId, ticketId: id, code: null, tep, staffId: staff.id, at, windowStart: windowStart(now) }),
       ]);
       const mine = await findByRequest(env.DB, staff.id, v.value.clientRequestId);
       if (!mine) return RATE_LIMITED(); // không chèn được và cũng không phải gửi lại → chạm trần
-      const d = await detail(env.DB, staff, mine.id);
+      if (mine.id !== id) {
+        // Gửi lại cùng clientRequestId: trả yêu cầu cũ (kèm tệp của lần đầu), không gửi email, không đặt kho lần nữa (dòng tệp mới không chèn — tin mới không có).
+        const cu = await detail(env.DB, staff, mine.id);
+        return cu ? json(cu, 200) : NOT_FOUND();
+      }
+      const tepLoi = kho ? await datTepCuaTin(env.DB, kho, { messageId, tep, loQuyetXoa: quyetXoaKhiTaiHong(env.DB, id, staff.id), luc: () => new Date().toISOString() }) : 0;
+      const d = await detail(env.DB, staff, id);
       if (!d) return NOT_FOUND();
-      if (mine.id !== id) return json(d, 200); // gửi lại cùng clientRequestId: trả yêu cầu cũ, không gửi email lần nữa
       scheduleMail(env, exec, request, id, {
         type: "created", code: d.ticket.code, kindName: FEEDBACK_KIND_NAME[d.ticket.kind], title: d.ticket.title, submitterName: staff.fullName, excerpt: v.value.body, teamName: team.name, sensitive: team.sensitive === 1,
       });
-      return json(d, 201, { location: "/feedback" });
+      return json({ ...d, tepLoi } satisfies FeedbackGuiResponse, 201, { location: "/feedback" });
     }),
 
     // Tuyến TĨNH khai trước tuyến có :id để "mine"/"badge"/"teams" không bị hiểu là id.
@@ -326,6 +398,38 @@ export const feedbackModule: AppModule = {
       if ((res[0]?.meta.changes ?? 0) === 0) return error(404, "not_found", "Người này không phải thành viên nhóm.");
       const members = await listMembersAll(env.DB);
       return json({ team: toAdminTeam(team, members) });
+    }),
+
+    // ---- Hàng chờ xoá kho tệp vé (ADR-0144 đ5; Hiến chương 5.16): CHỈ Toàn quyền (ô feedback.triage). Tuyến tĩnh, khai trước /api/feedback/:id. ----------
+    route("GET", "/api/feedback/tep-cho-xoa", "staff", async ({ env, staff }) => {
+      if (!can(staff, "feedback.triage")) return TEP_CHI_TOAN_QUYEN();
+      const { ds, conNua } = await listTepChoXoa(env.DB, new Date(Date.now() - CHUA_TAI_DUOC_SAU_MS).toISOString());
+      return json({
+        tep: ds.map((t) => ({ id: t.id, trangThai: t.purged_at === null ? ("TAI_DO_DANG" as const) : ("CHO_XOA" as const), lyDo: t.purge_reason, luc: t.purged_at ?? t.created_at })),
+        conNua,
+      } satisfies FeedbackTepChoXoaResponse);
+    }),
+    // Chạy lại (khuôn POST /api/parties/tep-cho-xoa/chay-lai): (1) tệp tải dở dang ⇒ MỘT lô quyết xoá TAI_LEN_DO_DANG (câu có điều kiện: còn chưa lưu, còn quá mốc —
+    // tệp vừa lưu xong trong khe không bị đụng) + nhật ký chỉ mã; (2) ĐỌC LẠI hàng chờ, chỉ lấy dòng ĐÃ quyết xoá; (3) xoá kho rồi đánh dấu (kho-tep.ts — lỗi không
+    // ném); (4) một dòng nhật ký tổng. Không bao giờ xoá kho cho dòng chưa quyết xoá trong CSDL (bước 2). Không có việc ⇒ không ghi nhật ký.
+    route("POST", "/api/feedback/tep-cho-xoa/chay-lai", "staff", async ({ env, staff }) => {
+      if (!can(staff, "feedback.triage")) return TEP_CHI_TOAN_QUYEN();
+      const kho = env.HO_TRO;
+      if (!kho) return KHO_HO_TRO_TAT();
+      const moc = new Date(Date.now() - CHUA_TAI_DUOC_SAU_MS).toISOString();
+      const at = new Date().toISOString();
+      const lyDo = LY_DO_XOA_TEP_VE.TAI_LEN_DO_DANG;
+      const lo = (await listTepChoXoa(env.DB, moc)).ds
+        .filter((t) => t.purged_at === null)
+        .flatMap((t) => cauDatChoXoa(env.DB, datChoXoaTepStatement(env.DB, { id: t.id, lyDo, at, actorId: staff.id, doDangTruoc: moc }), { tepId: t.id, ticketId: t.ticket_id, lyDo, at, staffId: staff.id }));
+      if (lo.length > 0) await env.DB.batch(lo);
+      const canXoa = (await listTepChoXoa(env.DB, moc)).ds.filter((t) => t.purged_at !== null);
+      const kq = await xoaKhoiKho(env.DB, kho, canXoa, () => new Date().toISOString());
+      if (lo.length === 0 && canXoa.length === 0) return json({ daXoa: 0, conLai: 0 } satisfies FeedbackTepChayLaiResponse);
+      await env.DB.batch([
+        auditStatement(env.DB, { staffId: staff.id, action: "feedback_attachment_purge_retried", at: new Date().toISOString(), targetType: "system", targetId: "ho-tro-tep", detail: `đã xoá ${kq.daXoa}, còn ${kq.loi}` }),
+      ]);
+      return json({ daXoa: kq.daXoa, conLai: kq.loi } satisfies FeedbackTepChayLaiResponse);
     }),
 
     route("GET", "/api/feedback/mine", "staff", async ({ env, staff, url }) => {
@@ -508,7 +612,7 @@ export const feedbackModule: AppModule = {
       if (!sau) return NOT_FOUND();
       return json({
         ticket: toTicket(sau, false),
-        messages: (await listMessages(env.DB, id, "none", sau.team_id)).map((m) => toMessage(m, staff.id)),
+        messages: await tinChoNguoiXem(env.DB, await listMessages(env.DB, id, "none", sau.team_id), staff.id),
         suKien: [],
         canTriage: false,
         perms: { xuLy: false, giaoViec: false, chuyenNhom: false },
@@ -531,10 +635,66 @@ export const feedbackModule: AppModule = {
       const p = toTicket(t, false);
       const suKien = q.xuLy ? (await listEventsSince(env.DB, id, since, MESSAGES_SINCE_LIMIT)).map(toEvent) : [];
       return json({
-        messages: rows.map((m) => toMessage(m, staff.id)),
+        messages: await tinChoNguoiXem(env.DB, rows, staff.id),
         suKien,
         ticket: { status: p.status, assigneeId: p.assigneeId, assigneeName: p.assigneeName, assigneeActive: p.assigneeActive, priority: p.priority, teamId: p.teamId },
       } satisfies FeedbackMessagesSinceResponse);
+    }),
+
+    // Mở tệp kèm tin (ADR-0144 đ3, đ4; khuôn GET /api/parties/:id/documents/:did/tep/:tid của ADR-0123): GET — thẻ ảnh dùng được, KHÔNG đi qua lớp vé (lớp đó lưu
+    // kết quả để phát lại). Thứ tự: sec-fetch-site (danh sách cho phép: same-origin, none, vắng) → 503 kho → hình dạng mã → vé → quyenPhieu (không đọc được vé ⇒ 404,
+    // như mọi route vé) → tệp thuộc tin CỦA ĐÚNG vé :id mà người xem đọc được (CÙNG đoạn lọc ghi chú nội bộ với danh sách tin), đã lưu, chưa quyết xoá — mọi cách
+    // hỏng ⇒ CÙNG một 404 → GHI NHẬT KÝ chỉ mã → đọc kho → thân + header no-store, nosniff, CSP sandbox. Ghi nhật ký lỗi thì ném lên (500), KHÔNG đọc kho.
+    // Bài src/kho-tep-ho-tro.test.ts (2) ghim thứ tự quyenPhieu → auditStatement → đọc kho (bài đếm chữ hàm đọc kho kèm ngoặc — chú thích đừng viết kèm ngoặc).
+    route("GET", "/api/feedback/:id/tep/:tid", "staff", async ({ request, env, staff, params }) => {
+      const sfs = request.headers.get("sec-fetch-site");
+      if (sfs !== null && sfs !== "same-origin" && sfs !== "none") return TEP_TRANG_KHAC();
+      const kho = env.HO_TRO;
+      if (!kho) return KHO_HO_TRO_TAT();
+      const id = params.id!;
+      const tid = params.tid!;
+      if (!UUID_RE.test(id) || !UUID_RE.test(tid)) return TEP_NOT_FOUND();
+      const t = await getTicket(env.DB, id);
+      if (!t) return TEP_NOT_FOUND();
+      const q = quyenPhieu({ who: staff, submitterId: t.submitter_id, ticketTeamId: t.team_id, memberships: await memberships(env.DB, staff) });
+      if (!q.doc) return TEP_NOT_FOUND();
+      const tep = await findTepDeTai(env.DB, { ticketId: id, tepId: tid, noiBo: q.noiBo, teamId: t.team_id });
+      if (!tep) return TEP_NOT_FOUND();
+      await env.DB.batch([
+        auditStatement(env.DB, { staffId: staff.id, action: "feedback_attachment_viewed", at: new Date().toISOString(), targetType: "feedback", targetId: id, detail: `${feedbackCode(t.seq)} · tệp ${tep.id}` }),
+      ]);
+      const obj = await kho.get(tep.storage_key);
+      if (!obj) {
+        console.error(JSON.stringify({ level: "error", event: "ho_tro_tep_thieu_doi_tuong", tepId: tep.id }));
+        return TEP_NOT_FOUND();
+      }
+      return new Response(obj.body, { status: 200, headers: dauPhanHoiTepChung({ id: tep.id, loai: tep.content_kind, tenDau: "ho-tro" }) });
+    }),
+    // Gỡ tệp gửi nhầm (ADR-0144 đ6; Hiến chương 5.24): CHỈ Toàn quyền (ô feedback.triage — không phải Trưởng nhóm), một lệnh có tên, đi một chiều. Thứ tự: ô → 503 kho
+    // → mã → vé → tệp thuộc tin của ĐÚNG vé (đã quyết xoá ⇒ 409; CHƯA LƯU ⇒ 409 «đang tải»: lệnh gửi có thể đang ở giữa lúc đọc lại và lúc đặt kho — gỡ lúc đó
+    // sẽ xoá kho trước khi đối tượng tới, để lại đối tượng không dòng nào theo dõi; stored_at chỉ đi một chiều nên kiểm này bền; dòng kẹt do lệnh chạy lại
+    // dọn sau CHUA_TAI_DUOC_SAU_MS) → LÔ D1 quyết xoá GO_TEP + nhật ký chỉ mã (gác changes() > 0; câu đầu không đổi
+    // dòng ⇒ 409 — người khác vừa gỡ) → xoá kho SAU lô (kho-tep.ts — lỗi không ném, dòng còn «chờ xoá» ở GET /api/feedback/tep-cho-xoa). Tin còn dòng «Tệp đã được gỡ».
+    // Bài src/kho-tep-ho-tro.test.ts (4) ghim thứ tự ô → lô D1 → xoá kho.
+    route("POST", "/api/feedback/:id/tep/:tid/go", "staff", async ({ env, staff, params }) => {
+      if (!can(staff, "feedback.triage")) return TEP_CHI_TOAN_QUYEN();
+      const kho = env.HO_TRO;
+      if (!kho) return KHO_HO_TRO_TAT();
+      const id = params.id!;
+      const tid = params.tid!;
+      if (!UUID_RE.test(id) || !UUID_RE.test(tid)) return TEP_NOT_FOUND();
+      const tep = await findTepCuaVe(env.DB, id, tid);
+      if (!tep) return TEP_NOT_FOUND();
+      const DA_GO = () => error(409, "conflict", "Tệp này đã được gỡ hoặc đã xoá.");
+      if (tep.purged_at !== null) return DA_GO();
+      if (tep.stored_at === null) return error(409, "uploading", "Tệp này đang được tải lên. Thử lại sau ít phút.");
+      const at = new Date().toISOString();
+      const lyDo = LY_DO_XOA_TEP_VE.GO_TEP;
+      const res = await env.DB.batch(cauDatChoXoa(env.DB, datChoXoaTepStatement(env.DB, { id: tid, lyDo, at, actorId: staff.id }), { tepId: tid, ticketId: id, lyDo, at, staffId: staff.id }));
+      if ((res[0]?.meta.changes ?? 0) === 0) return DA_GO();
+      await xoaKhoiKho(env.DB, kho, [{ id: tid, storage_key: tep.storage_key }], () => new Date().toISOString());
+      const d = await detail(env.DB, staff, id);
+      return d ? json(d) : NOT_FOUND();
     }),
 
     route("GET", "/api/feedback/:id", "staff", async ({ env, staff, params }) => {
@@ -557,34 +717,46 @@ export const feedbackModule: AppModule = {
       if (!t) return NOT_FOUND();
       const q = quyenPhieu({ who: staff, submitterId: t.submitter_id, ticketTeamId: t.team_id, memberships: await memberships(env.DB, staff) });
       if (!q.doc) return NOT_FOUND();
+      // Tệp kèm tin trả lời (ADR-0144 đ2, đ3): cùng khuôn POST /api/feedback — chặn Content-Length TRƯỚC khi đọc thân, lô D1 TRƯỚC khi đặt kho.
+      if (Number(request.headers.get("content-length") ?? "0") > TOI_DA_THAN_TIN_CO_TEP) return QUA_CO_THAN();
       const raw = await readJson(request);
       if (!raw) return BAD_JSON();
       const v = validateMessageInput(raw);
       if (!v.ok) return error(400, "invalid_input", v.message);
-      // Ghi chú nội bộ: chỉ người xử lý được phiếu (Toàn quyền hoặc thành viên nhóm đang giữ phiếu, KHÔNG phải người gửi — R2).
+      // Ghi chú nội bộ: chỉ người xử lý được phiếu (Toàn quyền hoặc thành viên nhóm đang giữ phiếu, KHÔNG phải người gửi — R2). Kèm tệp hay không cũng vậy:
+      // kiểm TRƯỚC khi giải tệp.
       if (v.value.internal && !q.xuLy) return error(403, "forbidden", "Chỉ nhóm xử lý được ghi chú nội bộ.");
+      const k = kiemTepCuaTin(raw.tep);
+      if (!k.ok) return error(k.status, k.code, k.message);
+      const kho = env.HO_TRO;
+      if (k.tep.length > 0 && !kho) return KHO_HO_TRO_CHUA_BAT();
       const now = new Date();
       const at = now.toISOString();
+      if (k.tep.length > 0 && (await demTepGanDay(env.DB, staff.id, windowStart(now))) + k.tep.length > TEP_MOI_GIO) return QUA_TRAN_TEP();
       const messageId = crypto.randomUUID();
+      const tep = await chuanBiTep(k.tep);
       await env.DB.batch([
         insertReplyStatement(env.DB, { id: messageId, ticketId: id, authorId: staff.id, body: v.value.body, internal: v.value.internal, now: at, windowStart: windowStart(now), limit: MESSAGE_LIMIT_PER_HOUR, teamId: t.team_id }),
         touchAfterReplyStatement(env.DB, { ticketId: id, messageId, now: at, internal: v.value.internal, authorId: staff.id }),
         auditStatement(env.DB, { staffId: staff.id, action: "feedback_replied", at, targetType: "feedback", targetId: id, detail: feedbackCode(t.seq) }, `EXISTS (SELECT 1 FROM fbk_message WHERE id = '${messageId}')`),
         markSeenAfterWriteStatement(env.DB, { ticketId: id, staffId: staff.id, now: at }),
+        ...cauChenTep(env.DB, { messageId, ticketId: id, code: feedbackCode(t.seq), tep, staffId: staff.id, at, windowStart: windowStart(now) }),
       ]);
       if (!(await messageExists(env.DB, messageId))) {
         // Không chèn: hoặc phiếu vừa đổi nhóm sau lúc kiểm quyền (R11 — điều kiện nhóm của INSERT_REPLY), hoặc chạm trần tin nhắn. Đọc lại phiếu để phân biệt.
+        // Dòng tệp cũng không chèn (điều kiện tin có mặt của câu chèn tệp).
         const lai = await getTicket(env.DB, id);
         if (!lai || lai.team_id !== t.team_id) return STALE_TEAM();
         return RATE_LIMITED();
       }
+      const tepLoi = kho ? await datTepCuaTin(env.DB, kho, { messageId, tep, loQuyetXoa: quyetXoaKhiTaiHong(env.DB, id, staff.id), luc: () => new Date().toISOString() }) : 0;
       if (staff.id === t.submitter_id) {
         scheduleMail(env, exec, request, id, {
           type: "user_replied", code: feedbackCode(t.seq), kindName: FEEDBACK_KIND_NAME[t.kind_code as FeedbackKind], title: t.title, submitterName: staff.fullName, excerpt: v.value.body, teamName: t.team_name, sensitive: t.team_sensitive === 1,
         });
       }
       const d = await detail(env.DB, staff, id);
-      return d ? json(d, 201, { location: "/feedback" }) : NOT_FOUND();
+      return d ? json({ ...d, tepLoi } satisfies FeedbackGuiResponse, 201, { location: "/feedback" }) : NOT_FOUND();
     }),
 
     // Admin đổi trạng thái / người xử lý. Trạng thái đi theo bảng luật (canTransition); khoá lạc quan theo trạng thái cũ.

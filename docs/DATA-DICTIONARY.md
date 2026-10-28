@@ -87,6 +87,7 @@
 
 | Đối tượng | Loại | Ghi chú |
 |---|---|---|
+| `fbk_attachment` | bảng | tệp đính kèm tin của vé hỗ trợ (ảnh / PDF) ở kho R2 riêng HO_TRO (ADR-0144; migration 0124): mỗi tệp thuộc đúng một tin (message_id, người tải = tác giả tin, tối đa 5 tệp mỗi tin); khoá kho ngẫu nhiên fbk/<32 hex>, loại theo chữ ký, cỡ, băm SHA-256; KHÔNG tên tệp gốc; không xoá dòng — ba mốc một chiều stored_at / purged_at (+ lý do TAI_LEN_LOI / TAI_LEN_DO_DANG / GO_TEP, băm về rỗng) / r2_deleted_at |
 | `fbk_kind` | bảng tra cứu |  |
 | `fbk_message` | bảng |  |
 | `fbk_status` | bảng tra cứu |  |
@@ -312,6 +313,7 @@
 | `bil_payment_receipt` |  | `note` |  |  |
 | `bil_posting` |  | `reason` |  |  |
 | `dsp_assignment` |  | `place_text` |  |  |
+| `fbk_attachment` |  |  | `storage_key`, `content_hash` |  |
 | `fbk_message` |  | `body` |  |  |
 | `fbk_ticket` |  | `title`, `context` |  |  |
 | `ky_period_close` |  | `note` |  |  |

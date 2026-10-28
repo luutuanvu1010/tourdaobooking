@@ -286,6 +286,12 @@ export const AUDIT_ACTIONS = {
   feedback_team_changed: { label: "Chuyển nhóm yêu cầu hỗ trợ", group: "feedback" },
   // ADR-0127 (đợt 2a): đổi mức ưu tiên; targetId = id phiếu, detail CHỈ mã phiếu + mức cũ → mới (vd "YC-0007: NORMAL → URGENT") — không tiêu đề, không mã đơn.
   feedback_priority_changed: { label: "Đổi mức ưu tiên yêu cầu hỗ trợ", group: "feedback" },
+  // ADR-0144: tệp kèm tin vé hỗ trợ — targetId = id phiếu; detail CHỈ mã phiếu (khi đã có) + mã tệp (+ mã lý do khi quyết xoá) — không tên tệp, không khoá kho,
+  // không băm (N3), không nội dung. Mở tệp: một dòng mỗi lần, ghi TRƯỚC khi đọc kho (Hiến chương 5.22). Chạy lại: targetType "system", detail chỉ số đếm.
+  feedback_attachment_added: { label: "Đính kèm tệp vào yêu cầu hỗ trợ", group: "feedback" },
+  feedback_attachment_viewed: { label: "Mở tệp kèm yêu cầu hỗ trợ", group: "feedback" },
+  feedback_attachment_purged: { label: "Gỡ hoặc quyết xoá tệp kèm yêu cầu hỗ trợ", group: "feedback" },
+  feedback_attachment_purge_retried: { label: "Chạy lại xoá tệp vé hỗ trợ khỏi kho", group: "system" },
   // ADR-0119 (Vé hỗ trợ đợt 1): targetId = id nhóm; detail CHỈ mã nhóm (+ vai với thành viên) — KHÔNG tên/mô tả nhóm, KHÔNG tên người, SĐT.
   feedback_team_created: { label: "Tạo nhóm hỗ trợ", group: "feedback" },
   feedback_team_updated: { label: "Sửa nhóm hỗ trợ", group: "feedback" },

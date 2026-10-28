@@ -162,6 +162,8 @@ const GHI_SAU_KHOA = (bang) =>
  * N4 dò ở bài chạy cả ứng dụng (tests/audit/nhat-ky-hang.mjs).
  */
 export const COT_N3_NHAT_KY = {
+  "fbk_attachment.content_hash": { kiem: "R-PD-1", chuanHoa: false }, // ADR-0144: băm tệp kèm vé hỗ trợ — nhật ký chỉ mang mã tệp
+  "fbk_attachment.storage_key": { kiem: "R-PD-1", chuanHoa: false }, // khoá kho R2 vé hỗ trợ — không bao giờ vào nhật ký
   "pty_attachment.content_hash": { kiem: "R-PD-1", chuanHoa: false }, // ADR-0123 (lát H-2 Gói 2): băm ảnh giấy tờ — nhật ký chỉ mang mã tệp
   "pty_attachment.storage_key": { kiem: "R-PD-1", chuanHoa: false }, // khoá kho R2 — không bao giờ vào nhật ký
   "pty_organization_document.document_number": { kiem: "R-PD-1", chuanHoa: false },
@@ -883,6 +885,15 @@ export const CHECKS = [
     code: "R-PTY-12",
     what: "tệp hồ sơ chờ xoá khỏi kho R2, hoặc tải lên dở dang quá 1 giờ (chạy lại ở POST /api/parties/tep-cho-xoa/chay-lai)",
     sql: `SELECT count(*) FROM pty_attachment WHERE (purged_at IS NOT NULL AND r2_deleted_at IS NULL)
+            OR (purged_at IS NULL AND stored_at IS NULL AND created_at < strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-1 hour'))`,
+    level: "warn",
+  },
+  // R-FBK-1 (ADR-0144 đ5; Hiến chương 5.16): như R-PTY-12 cho tệp kèm tin vé hỗ trợ (kho HO_TRO) — đã quyết xoá mà kho chưa xoá, hoặc tải dở dang quá 1 giờ. Mức warn:
+  // thấy được ở mỗi lần audit-invariants, chạy lại bằng POST /api/feedback/tep-cho-xoa/chay-lai; không chặn phát hành.
+  {
+    code: "R-FBK-1",
+    what: "tệp kèm vé hỗ trợ chờ xoá khỏi kho R2, hoặc tải lên dở dang quá 1 giờ (chạy lại ở POST /api/feedback/tep-cho-xoa/chay-lai)",
+    sql: `SELECT count(*) FROM fbk_attachment WHERE (purged_at IS NOT NULL AND r2_deleted_at IS NULL)
             OR (purged_at IS NULL AND stored_at IS NULL AND created_at < strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-1 hour'))`,
     level: "warn",
   },

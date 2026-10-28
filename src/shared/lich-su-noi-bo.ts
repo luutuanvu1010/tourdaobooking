@@ -99,6 +99,7 @@ export const LICH_SU_NOI_BO_AN = [
   "catalog_groups_seeded", "feedback_created", "feedback_replied", "feedback_status_changed", "feedback_assigned", "feedback_claimed",
   "feedback_team_changed", "feedback_priority_changed", "feedback_team_created", "feedback_team_updated", "feedback_team_member_changed", "notice_sent",
   "notice_revoked", "notice_acknowledged",
+  "feedback_attachment_added", "feedback_attachment_viewed", "feedback_attachment_purged", "feedback_attachment_purge_retried", // ADR-0144: tệp kèm vé — không gắn đơn
   // Sổ đại lý đợt 2 (chụp bù — ADR-0079 điều 7 b2; «Bên kia đã nhận» — ADR-0132 điều 2): loại dòng MỚI nên mặc định ẩn cho tới khi chủ dự án xếp loại (ADR-0131
   // «Nói thẳng hệ quả»). Chuyển sang `LICH_SU_NOI_BO_CHO_PHEP` = đổi bản chủ duyệt trong `lich-su-noi-bo.test.ts` cùng lúc.
   "ord_terms_backfilled", "ledger_counterparty_confirmed",
