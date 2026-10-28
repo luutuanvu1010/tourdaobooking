@@ -1,0 +1,71 @@
+/* TẦNG 3 — THÀNH PHẦN. Chỉ có khi thành phần cần giá trị khác tầng Ý nghĩa,
+   hoặc là "điểm lẻ" trong mã (mục 8) được giữ lại cho đúng một chỗ dùng.
+   Định dạng chú thích: công dụng | nguồn */
+:root{
+/* == Nút == */
+  --nut-h: var(--h-dieu-khien); /* Cao nút thường 44 | chốt §5 */
+  --nut-h-lon: var(--h-dieu-khien-lon); /* Cao nút ở chân dính điện thoại, Đăng nhập 52 | chốt §5 */
+  --nut-pad: 0 var(--kc-4); /* Đệm ngang nút 16 | MỚI: một đệm cho mọi cấp */
+  --nut-chinh-bg: var(--c-chinh); /* Nền nút Chính | chốt §5 */
+  --nut-chinh-bg-re: var(--c-chinh-re); /* Nền nút Chính khi rê | từ mã */
+  --nut-san-ho-bg: var(--c-nhan); /* Nền nút San hô (2 chỗ dùng) | chốt §5 */
+  --nut-san-ho-bg-re: var(--c-nhan-re); /* Nền nút San hô khi rê | từ mã */
+  --nut-phu-vien: var(--c-chinh); /* Viền + chữ nút Phụ | chốt §5 */
+  --nut-phu-bg-re: var(--c-nen-re); /* Nền nút Phụ khi rê | từ mã */
+  --nut-nguy-hiem: var(--c-nguy-hiem); /* Viền + chữ nút Phụ nguy hiểm, nền nút đỏ đặc | chốt §5 */
+  --nut-tat-bg: var(--c-nen-phu); /* Nền nút tắt — xám phẳng, không mờ | chốt §5 */
+  --nut-tat-chu: var(--c-chu-phu); /* Chữ nút tắt (tương phản 7:1) | chốt §5 */
+  --nut-quay: 16px; /* Vòng quay trong nút | từ mã */
+  --nut-quay-net: 2px; /* Nét vòng quay | từ mã */
+  --nut-quay-mo: rgba(255,255,255,.3); /* Vòng mờ của vòng quay trên nút đặc | từ mã */
+  --cd-quay: 700ms; /* @kind other */ /* Một vòng quay | từ mã */
+/* == Ô nhập == */
+  --o-h: var(--h-dieu-khien); /* Cao ô 44 | chốt §5 */
+  --o-h-lon: var(--h-dieu-khien-lon); /* Cao ô ở chân dính 52 | chốt §5 */
+  --o-pad: 0 var(--kc-3); /* Đệm ngang trong ô 12 | MỚI: chữ cách viền 12 */
+  --o-vien: var(--c-vien-o); /* Viền ô | từ mã */
+  --o-vien-re: var(--c-vien-o-re); /* Viền ô khi rê | từ mã */
+  --o-vien-loi: var(--c-nguy-hiem); /* Viền ô lỗi (đậm 2 bằng bóng trong, không nhảy) | từ mã */
+  --o-nhan-cach: 6px; /* Nhãn ↔ ô | từ mã */
+  --o-nhieu-dong-h: 96px; /* Cao tối thiểu ô nhiều dòng (4 dòng) | MỚI: mã có 72px cho 3 dòng, nâng cho ghi chú đơn */
+/* == Ô tích, ô chọn một, công tắc == */
+  --tich-vien: var(--c-chu-phu); /* Viền ô tích, ô chọn một khi chưa chọn | MỚI: #c9d4e0 chỉ 1,5:1 trên trắng, không đạt 3:1 cho điều khiển nhỏ */
+  --cong-tac-tat-bg: var(--c-vien-o-re); /* Nền công tắc khi tắt | MỚI: núm trắng cần nền đậm hơn viền ô */
+  --tich-co: 22px; /* Ô tích | từ mã */
+  --chon-mot-co: 20px; /* Ô chọn một | từ mã */
+  --chon-mot-vanh: 6px; /* Viền vòng chọn khi đã chọn | từ mã */
+  --cong-tac-w: 44px; /* Công tắc rộng | từ mã */
+  --cong-tac-h: 26px; /* Công tắc cao | từ mã */
+  --cong-tac-num: 20px; /* Núm tròn | từ mã */
+  --cong-tac-cach: 3px; /* Mép công tắc → núm | từ mã */
+/* == Bộ đếm == */
+  --dem-nut: 44px; /* Nút − / + | từ mã */
+  --dem-o: 48px; /* Ô số giữa | từ mã */
+  --dem-fs: var(--co-9); /* Cỡ số đếm 20 | từ mã */
+/* == Chip, tab, huy hiệu == */
+  --chip-h: 36px; /* Cao chip (vùng chạm vẫn 44 bằng lề vô hình) | MỚI: chip gọn hơn ô, dùng --h-muc-nho 36 của mã */
+  --chip-pad: 0 var(--kc-3); /* Đệm ngang chip | MỚI: theo thang khoảng cách */
+  --tab-pad: 0 var(--kc-4); /* Đệm ngang tab | MỚI: theo thang khoảng cách */
+  --huy-hieu-pad: 3px var(--kc-2) 3px 6px; /* Đệm huy hiệu — cao 24 | MỚI: huy hiệu cao 24 vừa dòng 44 */
+  --huy-hieu-bt: 14px; /* Biểu tượng trong huy hiệu | MỚI: biểu tượng bằng cỡ chữ + 2 */
+/* == Thanh, bảng == */
+  --thanh-tab-bg: var(--mau-kinh); /* Kính mờ thanh tab dưới | từ mã */
+  --thanh-tab-mo: 16px; /* Độ nhoè kính sau thanh tab | MỚI: kính mờ nhẹ, một lớp */
+  --thanh-tab-den: 56px 32px; /* @kind other */ /* Viên chỉ báo quanh biểu tượng tab đang chọn | MỚI: không chỉ dựa màu */
+  --thanh-ben-muc-h: 40px; /* Mục thanh bên máy tính | từ mã */
+  --thanh-ben-vach: 3px; /* Vạch chỉ báo mục đang chọn | từ mã */
+  --bang-man: var(--mau-man-mo); /* Màn mờ sau bảng trượt | từ mã */
+  --bang-tay-cam: 36px 5px; /* @kind other */ /* Tay cầm đầu bảng trượt điện thoại | MỚI: báo kéo được, chuẩn iOS */
+  --bang-hang-h: var(--h-dieu-khien); /* Hàng bảng máy tính 44 | chốt §5 */
+  --dai-tren-h: var(--h-cham); /* Dải trên trang khi thu gọn — một dòng | chốt §5 */
+  --bao-xong-tg: 3s; /* @kind other */ /* Báo xong tự đóng | chốt §10 */
+  --cd-xuong: 1.2s; /* @kind other */ /* Nhịp sáng/tối của khung xương | MỚI: vòng lặp, không theo 150/200 */
+/* == Điểm lẻ (giữ đúng một chỗ dùng) == */
+  --so-con-thu-tren-toi: #fcd34d; /* Số "còn phải thu" trên nền tối | từ mã */
+  --thong-bao-chua-doc-bg: #f4f9fd; /* Dòng thông báo chưa đọc | từ mã */
+  --lich-xe-ban-bg: #fef3c7; /* Ô lịch xe bận | từ mã */
+  --o-cua-toi-bg: #fdf1d8; /* Ô số liệu "của tôi" | từ mã */
+  --o-tat-ca-bg: #eef2f6; /* Ô số liệu "tất cả" | từ mã */
+  --o-so-lieu-bg: var(--mau-dam-pha-nhat); /* Ô số liệu vận chuyển | từ mã */
+  --o-so-lieu-chu: var(--mau-dam-pha-dam); /* Chữ ô số liệu vận chuyển | từ mã */
+}

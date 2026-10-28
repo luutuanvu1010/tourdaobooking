@@ -1,0 +1,18 @@
+<!-- @dsCard group="Chuyển động" viewport="700x230" name="Chuyển động" subtitle="Một đường cong, hai thời lượng, tắt khi giảm chuyển động" -->
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><title>Chuyển động</title>
+<link rel="stylesheet" href="../../styles.css">
+<style>
+body{margin:0;padding:24px 28px;background:var(--c-nen)}
+.l{display:flex;flex-wrap:wrap;gap:12px}
+.sw{display:flex;flex-direction:column;gap:3px;width:120px;font-size:12px;line-height:16px;color:var(--c-chu-phu)}
+.sw .c{height:56px;border-radius:10px;box-shadow:inset 0 0 0 1px rgba(15,23,42,.08);margin-bottom:4px}
+.sw b{font-family:var(--f-so);font-weight:400;font-size:11.5px;color:var(--c-chu)}
+.m{font-family:var(--f-so);font-size:12px;color:var(--c-chu-phu)}
+.bt{display:inline-block;width:var(--s,20px);height:var(--s,20px);background:currentColor;-webkit-mask:var(--u) center/contain no-repeat;mask:var(--u) center/contain no-repeat;flex:none}
+table{border-collapse:collapse;width:100%;font-size:14px;line-height:20px}
+td,th{padding:7px 10px 7px 0;border-bottom:1px solid var(--c-vien);text-align:left;vertical-align:middle}
+th{font-size:12px;font-weight:500;color:var(--c-chu-phu)}
+
+</style></head><body class="ib-goc">
+<div style="display:flex;gap:28px;align-items:center"><svg width="150" height="150" viewBox="0 0 100 100" style="flex:none;background:var(--c-nen-phu);border-radius:12px"><path d="M10 90 C 32 10, 46 10, 90 10" fill="none" stroke="var(--c-chinh)" stroke-width="2.5"/></svg><div style="display:flex;flex-direction:column;gap:10px;font-size:14px"><div><span class="m" style="color:var(--c-chu)">--cd-cong</span> cubic-bezier(.22, 1, .36, 1) — ra nhanh, dừng êm</div><div><span class="m" style="color:var(--c-chu)">--cd-nhanh 150 ms</span> rê, bấm, đổi màu</div><div><span class="m" style="color:var(--c-chu)">--cd-vua 200 ms</span> mở bảng trượt, báo xong, gập nhóm</div><div style="color:var(--c-chu-phu)">Không nảy, không lắc, không trượt dài. Khi người dùng bật giảm chuyển động: cả hai về 0 ms.</div></div></div></body></html>
