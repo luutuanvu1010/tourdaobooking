@@ -134,6 +134,13 @@ const SHAPES = {
   // Thùng rác của nút "Xoá dịch vụ …" ở đầu thẻ dịch vụ mở (màn Tạo đơn thiết kế lại 18/10/2026) — hình MỚI của bản vẽ docs/design/tao-don-2026-10-18/TaoDonForm.dc.html, chép ĐÚNG path,
   // cùng luật cả bộ: lưới 24, nét 1.8, không tô.
   trash: [["path", { d: "M4 7h16M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13M10 11v5.5M14 11v5.5" }]],
+  // Ba hình của Đợt 0 khung chung (Task 2): cảnh báo trạng thái, dải "Thu gọn"/dấu trừ trên trang, bánh răng của thanh tab Thiết lập. Cùng luật: lưới 24, nét 1.8, không tô.
+  alertCircle: [["circle", { cx: 12, cy: 12, r: 9 }], ["path", { d: "M12 8v5M12 16v.01" }]],
+  minus: [["path", { d: "M5 12h14" }]],
+  settings: [
+    ["circle", { cx: 12, cy: 12, r: 3 }],
+    ["path", { d: "M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4" }],
+  ],
 } as const satisfies Record<string, readonly Shape[]>;
 
 export type IconName = keyof typeof SHAPES;
