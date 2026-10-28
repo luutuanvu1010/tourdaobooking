@@ -1,4 +1,5 @@
 // GHI CHÚ 27/10/2026 (ADR-0135/0136): đỏ từ 27/10: hàm `createAndConfirm` nhận 409 `confirm_request_required` (chặng dưới mốc nay đi qua bước xác nhận / người lập tự đặt gấp trước). Phần xác nhận đơn thay bằng `docs/evidence/2026-10-26-xac-nhan-don/kich-ban/xac-nhan-smoke.mjs`; muốn chạy tiếp phải đặt gấp từng chặng rồi xác nhận lại (chưa sửa, ghi nợ).
+// GHI CHÚ 28/10/2026: nợ trên ĐÃ VÁ — `createAndConfirm` đặt gấp từng chặng rồi xác nhận lại; sửa thêm hai chỗ cũ từ ADR-0135 (S20-13 chỉ đếm đơn đã xác nhận, ô «Đơn nháp» điện thoại). Chạy xanh lại (44 bước, có axe).
 // 2026-10-27: phần kiểm trang Hỗ trợ (/feedback) của kịch bản này THAY BẰNG docs/evidence/2026-10-27-ho-tro-thiet-ke-lai/kich-ban/ho-tro-smoke.mjs; các phần khác còn dùng. KHÔNG chạy lại phần /feedback (chữ cũ «Hàng đợi nhóm», «Quản lý nhóm», «Trợ giúp»).
 // Kịch bản Chrome cho Task 3 ("Trang chủ mới", docs/superpowers/sdd/2026-09-23-trang-chu-moi/task-3-brief.md) — BẰNG CHỨNG HÀNH VI TRÌNH DUYỆT DUY NHẤT
 // cho Trang chủ (nay ở "/"; `npm test`/`test:e2e -- pwa` KHÔNG phủ DOM của web/home.ts, chỉ phủ luật thuần + manifest/service worker). Dùng lại NGUYÊN cơ chế CDP của A2

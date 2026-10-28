@@ -1,3 +1,6 @@
+// GHI CHÚ 28/10/2026: ĐỎ ở bước 3 từ bản 2.36 (ADR-0135 Đ3: đơn nháp chỉ người lập thấy, «chưa phụ trách» chỉ đếm đơn đã xác nhận) — kỳ vọng thẻ theo vai ở bước 3
+// và câu SQL `soChuaPhuTrach` còn theo luật cũ. Bước gieo (409 `confirm_request_required`) ĐÃ VÁ ở menu-lib.mjs; bước 1, 1b, 2 xanh. Chưa sửa bước 3, ghi nợ: tính lại
+// thẻ của bốn vai theo ADR-0135 rồi mới đổi kỳ vọng (không chép kết quả máy đang ra). Lần chạy 28/10 đọc được thẻ thật của Bán hàng: «Đơn đi hôm nay» / nút «Xem đơn».
 // Kịch bản Chrome (Việc 7b, 15/10) cho hai thay đổi: (1) dải chuyển nhanh giữa trang anh em `nav.dai-anh-em` ở 5 trang xe / giá; (2) khối "Việc của bạn" ở Trang chủ
 // máy tính của bốn vai văn phòng (Bán hàng, Kế toán, Quản trị, Toàn quyền). Bằng chứng hành vi DUY NHẤT cho hai thứ này (bài đơn vị chỉ phủ luật thuần).
 //  1) dải anh em: có ở đúng 5 trang, đầu <main>, nhãn/đường dẫn đúng nhóm, trang đang đứng sáng (aria-current), không tràn, không đè nội dung, ở 1440 + 390; ẩn khi chỉ ≤ 1 liên kết.
