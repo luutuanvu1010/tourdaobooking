@@ -12,7 +12,7 @@ import { route, type AppModule, type HoiDaChup } from "../../shared/router";
 import { CAU_X3_THUE_XE, NHAN_LY_DO_THIEU } from "../../shared/so-dai-ly-nhan";
 import { vnToday } from "../../shared/vn-date";
 import { cauDoiChinhSach, cauSuaGanLoai, cauSuaGanRieng, cauSuaMuc, partyTiersCurrent, cauDoiMuc, allRules, allTerms, beneficiaryRoles, beneficiaryRolesAll, closeRoleTierStatement, closeRuleStatement, closeTermStatement, findBeneficiaries, groupsOf, huongCuaHoSo, insertBeneficiaryStatement,
-  insertRateTierStatement, insertRoleTierStatement, insertRulePaxStatement, insertRuleStatement, insertTermStatement, isBeneficiary, openRolesOf, partyTiersOf, partyTierById, insertPartyTierStatement, closePartyTierStatement, rateTierByCode, rateTiers, roleRulesForTierLink, roleTierById, roleTiersAll,
+  insertRateTierStatement, insertRoleTierStatement, insertRulePaxStatement, insertRuleStatement, insertTermStatement, isBeneficiary, openRolesOf, partyTiersHistory, partyTiersOf, partyTierById, insertPartyTierStatement, closePartyTierStatement, rateTierByCode, rateTiers, roleRulesForTierLink, roleTierById, roleTiersAll,
   roleTiersOn, ruleById, rulesOn, setBeneficiaryActiveStatement, setRateTierActiveStatement, suppliers, termById, termsOn, type PartyTierRow, type RoleTierRow, type RuleRow, type TermRow, type TierRow, type XuLyDongCu } from "./repository";
 import { MA_RE, MUC_TA_RE, PARTY_RE, chonMuc, cungMuc, hieuLuc, tomTatHoaHongHoSo, kiemDoi, kiemNgayDong, kiemNgung, kiemSua, xemTruocSua, kiemThanDoiChinhSach, kiemThanDieuKhoan, kiemThanDoiMuc, kiemThanDongMucTa, kiemThanGan, kiemThanGanRieng, kiemThanMuc, kiemTenMucTa, laNgay, maMucTa, moTaMuc, nguoiHuongCua,
   type DongDieuKhoan, type DongMuc, type GanLoaiMuc, type GanRieng, type MucTheoLoai, type NguoiHuong } from "./rules";
@@ -165,8 +165,8 @@ async function doiTrangThaiLoai(db: D1Database, code: string, bat: boolean, staf
 /** Khối «Hoa hồng hiện hành» của một hồ sơ (YC-0020; ADR-0138 thêm mức riêng) — dùng chung cho GET và phản hồi hai lệnh gắn / kết thúc mức riêng. Chỉ đọc. */
 async function hoaHongHoSo(db: D1Database, id: string): Promise<HoaHongHoSoResponse> {
   const homNay = vnToday(new Date());
-  const [vaiMo, duocHuong, gan, muc, tenMuc, tenVai, ganRieng] = await Promise.all([
-    openRolesOf(db, id), beneficiaryRoles(db), roleTiersOn(db, homNay), rulesOn(db, homNay), rateTiers(db), tenLoaiVai(db), partyTiersOf(db, id),
+  const [vaiMo, duocHuong, gan, muc, tenMuc, tenVai, ganRieng, lichSu] = await Promise.all([
+    openRolesOf(db, id), beneficiaryRoles(db), roleTiersOn(db, homNay), rulesOn(db, homNay), rateTiers(db), tenLoaiVai(db), partyTiersOf(db, id), partyTiersHistory(db, id),
   ]);
   const t = tomTatHoaHongHoSo({ partyId: id, vaiMo: vaiMo.map((r) => r.role_type_code), vaiDuocHuong: new Set(duocHuong), gan: gan.map(dongGan), ganRieng: ganRieng.map(dongGanRieng), muc: muc.map(dongMuc), ngay: homNay });
   const tenCuaMuc = new Map(tenMuc.map((m) => [m.code, m]));
@@ -178,6 +178,12 @@ async function hoaHongHoSo(db: D1Database, id: string): Promise<HoaHongHoSoRespo
     vai: t.vai.map((x) => {
       const m = x.mucCode ? tenCuaMuc.get(x.mucCode) : undefined;
       return { loai: { code: x.loaiCode, ten: tenVai.get(x.loaiCode) ?? x.loaiCode }, muc: m ? { code: m.code, ten: m.name, dangBat: m.active === 1 } : null, tuNgay: x.tuNgay };
+    }),
+    // N5: lịch sử chỉ để hiển thị — đọc bằng câu riêng (`party_tiers_history`), không trộn vào phần tra ở trên.
+    ganRieng: lichSu.map((g) => {
+      const m = tenCuaMuc.get(g.tier_code);
+      return { id: g.id, muc: { code: g.tier_code, ten: m?.name ?? g.tier_code, dangBat: m?.active === 1 }, tuNgay: g.valid_from_date, denNgay: g.valid_to_date,
+        conHieuLuc: g.voided_at === null && hieuLuc({ validFrom: g.valid_from_date, validTo: g.valid_to_date }, homNay), daHuy: g.voided_at !== null };
     }),
   } satisfies HoaHongHoSoResponse;
 }

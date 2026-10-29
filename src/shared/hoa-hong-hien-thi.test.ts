@@ -333,3 +333,38 @@ test("ADR-0148: câu xem trước của hộp Sửa theo đường máy chủ tr
   assert.equal(m.cauXemTruocSua({ homNay: HOM_NAY, duong: "TU_NGAY", tuNgaySomNhat: "2026-10-10", denNgayToiDa: null }), "Đã có đơn dùng mức này — phần sửa áp từ ngày 10/10/2026; đơn cũ giữ mức cũ.");
   assert.equal(m.cauXemTruocSua({ homNay: HOM_NAY, duong: "HUY_THAY" }, "chính sách này"), "Chưa có đơn nào dùng chính sách này — sửa sẽ thay hẳn.");
 });
+
+// N5 (kế hoạch docs/superpowers/plans/2026-10-29-sua-muc-n5-ke-hoach.md, Task 2): một hàm chia lần gắn dùng chung cho màn «Mức TA» (R1, R2) và hồ sơ Danh bạ (R3).
+test("N5 chiaLanGan: đang áp giữ thứ tự máy chủ; sắp áp ngày bắt đầu sớm trước; lịch sử = đã ngừng + đã huỷ, mới → cũ (trùng ngày giữ thứ tự máy chủ)", async () => {
+  const m = await import("./hoa-hong-hien-thi.ts");
+  const g = (id: string, o: { tuNgay: string; denNgay?: string | null; conHieuLuc?: boolean; daHuy?: boolean }) => ({ id, denNgay: null, conHieuLuc: false, daHuy: false, ...o });
+  const ds = [
+    g("dang-1", { tuNgay: "2026-09-01", conHieuLuc: true }),
+    g("sap-xa", { tuNgay: "2026-12-01" }),
+    g("ngung-cu", { tuNgay: "2026-01-01", denNgay: "2026-03-31" }),
+    g("sap-gan", { tuNgay: "2026-10-20", denNgay: "2026-11-30" }),
+    g("dang-2", { tuNgay: "2026-10-01", denNgay: "2026-10-31", conHieuLuc: true }),
+    g("thay", { tuNgay: "2026-11-05" }), // lần thay (chưa huỷ) đứng TRƯỚC lần bị huỷ cùng ngày — máy chủ đã xếp vậy
+    g("huy", { tuNgay: "2026-11-05", daHuy: true }),
+    g("ngung-moi", { tuNgay: "2026-04-01", denNgay: "2026-08-31" }),
+    g("huy-cu", { tuNgay: "2026-09-01", denNgay: "2026-12-31", daHuy: true }),
+  ];
+  const k = m.chiaLanGan(ds, HOM_NAY);
+  assert.deepEqual(k.dangAp.map((x) => x.id), ["dang-1", "dang-2"]);
+  assert.deepEqual(k.sapAp.map((x) => x.id), ["sap-gan", "thay", "sap-xa"]);
+  assert.deepEqual(k.lichSu.map((x) => x.id), ["huy", "huy-cu", "ngung-moi", "ngung-cu"]);
+  assert.equal(k.dangAp.length + k.sapAp.length + k.lichSu.length, ds.length, "không mất, không lặp lần nào");
+  assert.deepEqual(m.chiaLanGan([], HOM_NAY), { dangAp: [], sapAp: [], lichSu: [] });
+  // Khớp đúng bộ lọc «Đang và sắp áp dụng» của bảng mức: mọi lần trong lịch sử là lần conApHoacSap loại bỏ.
+  for (const x of ds) assert.equal(k.lichSu.includes(x), !m.conApHoacSap(x, HOM_NAY), x.id);
+});
+
+test("N5 nhãn: «Sắp áp dụng từ <ngày>» (kèm «đến» khi có ngày kết thúc); nút bật lịch sử không bắt đầu bằng chữ của nút ghi", async () => {
+  const m = await import("./hoa-hong-hien-thi.ts");
+  assert.equal(m.nhanSapAp({ tuNgay: "2026-11-01", denNgay: null }), "Sắp áp dụng từ 01/11/2026");
+  assert.equal(m.nhanSapAp({ tuNgay: "2026-11-01", denNgay: "2027-01-31" }), "Sắp áp dụng từ 01/11/2026 đến 31/01/2027");
+  assert.equal(m.nhanNutLichSu(3, false), "Xem lịch sử (3)");
+  assert.equal(m.nhanNutLichSu(3, true), "Ẩn lịch sử");
+  // Kịch bản Chrome đếm nút ghi theo chữ đầu (＋, Thêm, Đổi, Ngừng, Sửa, Tắt, Bật, Áp dụng): nút bật lịch sử là nút xem, không được trùng.
+  for (const t of [m.nhanNutLichSu(1, false), m.nhanNutLichSu(1, true)]) assert.ok(!/^(＋|Thêm|Đổi|Ngừng|Sửa|Tắt|Bật|Áp dụng)/.test(t), t);
+});

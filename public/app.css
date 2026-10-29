@@ -3932,6 +3932,9 @@ a.bk-hang:hover, a.bk-the:hover { background: var(--c-soft-hover); }
 .hh-tl-cs-dau h3 { margin: 0 0 var(--s1); }
 .hh-tl-gan li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s2); min-height: var(--tap-min); border-top: 1px solid var(--c-line); }
 .hh-tl-gan .btn, .hh-tl-dong .btn, .hh-tl-cs .actions .btn { min-height: var(--tap-min); }
+/* N5: nút «Xem lịch sử (n)» các lần áp dụng chính sách đã ngừng / đã huỷ (màn «Mức TA» và hồ sơ Danh bạ — web/hoa-hong-lich-su.ts). */
+.hh-lich-su-khoi { margin: 0 0 var(--s2); }
+.hh-lich-su-khoi > .btn { min-height: var(--tap-min); }
 /* Trong thẻ Thiết lập nút Tắt/Bật/Đổi chính sách luôn hiện (kể cả điện thoại; ở thẻ Áp dụng nút nhỏ trong dòng mức bị ẩn). */
 .hh-tl-act .btn { display: inline-flex; }
 

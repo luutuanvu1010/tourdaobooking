@@ -131,3 +131,10 @@ Bản giao: `.superpowers/sdd/2026-10-28-dot-0-khung-chung/final-fix-brief.md`; 
 - **Số phiên bản:** bản giao ghi «2.43» nhưng main 29/10 đã có 2.43 và 2.44 (tạm) ⇒ dùng **2.45**, ngày 2026-10-29 (giả định bề mặt, đảo ngược được; phiên phát hành kiểm lại ở A.0).
 - **Chú thích:** shell ≤640/641 → ≤899/900; `.lbl-short` (mốc 640 nay không trùng thanh tab); `--z-tl-khung` là khung Trợ lý; chú thích z-index của `.maint-screen`. `KHUNG_MAT_MANG` GIỮ: `src/muc-giao-dien-hien-trang.test.ts` còn import.
 - **Đo:** gói Đơn hàng 101.701 byte (trần 101.719 không nới). `npm test` 6515 đạt / 0 đỏ; typecheck 0 lỗi; `mat-mang-smoke` 3/3 (thêm kiểm dải không nút, đúng một nút Thử lại ở bước A) và `dot-0-smoke` SMOKE OK, cả hai có axe.
+
+## Nhập main và cách đọc ngưỡng 10.16 (2026-10-29)
+
+- Chủ duyệt («ok duyệt», «duyệt và nhập đi») nhập `main` vào nhánh, cấp lại số ADR và lô sửa tệp luật. Nhập hai lần vì `main` đi tiếp trong lúc chạy bộ kiểm (lần hai tới `bd395034`, bản 2.46 đã lên production).
+- Số phiên bản đợt 0: **2.47** (main có 2.45 tạm, 2.46). ADR service worker trang ngoài mạng: **ADR-0150** (soạn dưới 0146; main đã cấp 0146–0149); chủ tự `git rm` tệp cũ vì hook chặn xoá ở `docs/adr/`.
+- Tệp vênh đã gỡ: `docs/BACKLOG.md` (nợ đợt 0 thành §53), `docs/SO-HANG-RAO.md` (gộp dòng hai bên), `docs/adr/README.md`, `src/shared/changelog.ts`, `src/shared/app-info.test.ts`. `web/CLAUDE.md` sửa: `cauLoiMayChu` ở `src/shared/trang-thai-he-thong-chu.ts`, ngoại lệ HR + lập đơn, `dot-0-smoke` 20 bước, ADR-0150, BACKLOG §53.
+- **Cách đọc ngưỡng 10.16 (điều phối chốt, chủ duyệt khuyến nghị):** đọc theo TRUNG VỊ toàn Nền tảng (bản 27/10 chỉ đo một lần nên ±5 % từng trang nằm trong nhiễu đo) ⇒ ĐẠT. Ba trang `/orders`, `/nguoi-ban`, `/feedback` +5,1…5,3 % ghi «theo dõi ở đợt 0b», không chặn cổng. Tờ `SO-SANH-TRUOC-SAU.md` là hồ sơ có ngày, không sửa.

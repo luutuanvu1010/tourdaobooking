@@ -9,7 +9,7 @@ import { describeBookerChange, type BookerInput } from "../../shared/booker";
 import { vnToday } from "../../shared/vn-date";
 import { auditStatement } from "../audit";
 import { datGapTheoVai } from "./dat-gap";
-import { getEffectiveServices, tenNhomHienHanh } from "../catalog";
+import { getEffectiveServices, maDatKhongDon, tenNhomHienHanh } from "../catalog";
 import { composePersonName, newPersonStatements, validatePersonFullName, type ContactInput, type RoleInput } from "../parties";
 import { laNguoiHuong } from "../pricing";
 import {
@@ -424,9 +424,10 @@ export async function kiemNhomChoPhepDuaDon(
   const tat = await dichVuTatDuaDon(db, coMa.map((d) => d.catalogCode));
   if (tat.size === 0) return { ok: true };
   const phamLoi = coMa.filter((d) => tat.has(d.catalogCode));
-  const tenNhom = await tenNhomHienHanh(db, phamLoi.map((d) => d.catalogCode));
+  const maLoi = phamLoi.map((d) => d.catalogCode);
+  const [tenNhom, khongDon] = await Promise.all([tenNhomHienHanh(db, maLoi), maDatKhongDon(db, maLoi)]); // ADR-0149 R-0149-B: chỉ để viết câu đúng lý do; cổng là view ở trên
   const duyet = new Set<string>();
-  const ds = phamLoi.filter((d) => !duyet.has(d.name) && !!duyet.add(d.name)).map((d) => ({ ten: d.name, nhom: tenNhom.get(d.catalogCode) ?? null }));
+  const ds = phamLoi.filter((d) => !duyet.has(d.name) && !!duyet.add(d.name)).map((d) => ({ ten: d.name, nhom: tenNhom.get(d.catalogCode) ?? null, rieng: khongDon.has(d.catalogCode) }));
   return { ok: false, code: "transfer_disabled", message: cauNhomTatDuaDon(ds, cua) };
 }
 

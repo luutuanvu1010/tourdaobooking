@@ -10,6 +10,7 @@ import type { PermissionCode } from "./permissions.ts";
 import type { RoleCode } from "./roles.ts";
 import type { BanChup } from "./hoa-hong-dong.ts";
 import type { KhungGio, LuaChonDon } from "./khung-gio-don.ts";
+import type { QuyTacDuaDon } from "./dua-don-dich-vu.ts";
 import type { CaiDatHanMuc } from "./han-muc-tu-choi.ts";
 import type { MaLyDoTuChoi } from "./ly-do-tu-choi.ts";
 
@@ -752,7 +753,11 @@ export interface CatalogAdminItemDto {
   updatedAt: string;
   /** ADR-0058 Đ5: nhóm hiện hành thật (kể cả nhóm đang tắt); `null` = chưa phân loại. */
   groupCode: string | null;
+  /** ADR-0149 Đ1: ô «Được đón không» của dịch vụ — GROUP (theo nhóm) / ALWAYS / NEVER; thắng cờ đưa đón của nhóm. */
+  transferRule: QuyTacDuaDon;
 }
+/** `PUT /api/catalog/:code/transfer-rule` — `expectedTransferRule` = lựa chọn người dùng đang thấy (khoá lạc quan); trả `CatalogItemResponse`. */
+export interface CatalogTransferRuleRequest { transferRule: QuyTacDuaDon; expectedTransferRule: QuyTacDuaDon }
 
 export interface CatalogSyncStateDto {
   lastAttemptAt: string | null;
@@ -2813,6 +2818,15 @@ export interface HoaHongHoSoResponse {
   dongRiengDoiTac: number;
   /** ADR-0138: mức TA gắn RIÊNG cho hồ sơ, đang hiệu lực hôm nay (null = không) — có thì mức theo loại bị bỏ qua cho hồ sơ này. `id` cho nút «Kết thúc». */
   mucRieng: { id: string; muc: { code: string; ten: string; dangBat: boolean }; tuNgay: string; denNgay: string | null } | null;
+  /** N5 (ADR-0148 Đ1): MỌI lần gắn riêng của hồ sơ — đang áp, sắp áp, đã ngừng, đã huỷ — mới → cũ. Chỉ để HIỂN THỊ (nút «Sửa» lần sắp áp, lịch sử); không phải câu tra. */
+  ganRieng: GanRiengLichSuDto[];
+}
+/**
+ * Một lần gắn riêng trong lịch sử của hồ sơ (N5). Cùng dạng `mucRieng` + cờ trạng thái. Chỉ mã, tên chính sách, ngày, cờ — không SĐT/email/MST, và KHÔNG lý do sửa / mã dòng
+ * thay (khác GanLoaiMucDto): khối này Bán hàng cũng đọc được (`partner.commission.view`), lý do sửa là chữ tự do gắn với MỘT đại lý, giao diện không hiện (người kiểm N5, 29/10).
+ */
+export interface GanRiengLichSuDto {
+  id: string; muc: { code: string; ten: string; dangBat: boolean }; tuNgay: string; denNgay: string | null; conHieuLuc: boolean; daHuy: boolean;
 }
 /**
  * ADR-0148 Đ1: xem trước «Sửa» một dòng có ngày (mức, gắn loại, gắn đối tác — `GET …/:id/sua`). HUY_THAY = chưa đơn nào dùng dòng này: sửa sẽ huỷ dòng cũ và thay hẳn. TU_NGAY = đã có

@@ -61,6 +61,7 @@
 | `catalog_sync` | bảng | tên cũ, giữ nguyên (ADR-0002 điều 2) |
 | `ctl_group` | bảng tra cứu | nhóm dịch vụ của danh mục (ADR-0058, 0055): gieo 14 nhóm từ ảnh chụp Sheet 30/9, sau đó Quản trị quản lý trong app. Không xoá (trigger ctl_group_no_delete — tắt bằng active = 0); tên chỉ cấm trùng giữa các nhóm đang dùng (chỉ mục duy nhất một phần ctl_group_name_active). Cột transfer_enabled (0121, ADR-0118): cờ «Có đưa đón» của nhóm, mặc định 1; 0 = máy chủ từ chối ghi / xác nhận chặng đưa đón cho dịch vụ thuộc nhóm — module khác đọc qua view v_ctl_service_transfer, không đọc bảng này |
 | `ctl_service_group` | bảng | LỊCH SỬ gán nhóm cho từng dịch vụ (ADR-0058, 0055): chỉ thêm (trigger cấm sửa/xoá), seq tăng theo từng dịch vụ, dòng seq lớn nhất là nhóm hiện hành, group_code NULL = Chưa phân loại. Gán vào nhóm đang tắt bị trigger ctl_service_group_active_group chặn; service_code phải có trong catalog_item |
+| `ctl_service_transfer_rule` | bảng | Ô «Được đón không» của từng dịch vụ (ADR-0149 Đ1, 0127): mode ALWAYS (Luôn đón) / NEVER (Không đón) thắng cờ transfer_enabled của nhóm; KHÔNG có dòng mở (valid_to_at NULL) = Theo nhóm. Chỉ thêm: trigger cấm xoá, chỉ cho đóng dòng mở một lần; chỉ mục duy nhất một phần = tối đa một dòng mở mỗi service_code. Module khác đọc qua view v_ctl_service_transfer; đồng bộ Sheet không ghi bảng này |
 | `v_ctl_service_group` | view công bố | cột: catalog_code, group_code |
 | `v_ctl_service_transfer` | view công bố | cột: catalog_code, transfer_enabled |
 

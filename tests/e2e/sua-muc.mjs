@@ -121,13 +121,17 @@ const ORG2 = await taoToChuc(`Lữ hành Sửa Mức E2E ${CHU}`, LOAI2);
 phai(await call(ACC, "POST", `/api/pricing/ho-so/${ORG2.id}/muc-rieng`, { muc: TA1, tuNgay: TU_VD }), 201, "chính sách riêng cho hồ sơ");
 const [rieng] = await sqlRows(`SELECT id FROM prc_party_tier WHERE party_id = '${ORG2.id}' AND voided_at IS NULL`);
 assert.deepEqual(phai(await xemSua("muc-rieng", rieng.id), 200, "xem trước chính sách riêng"), { homNay: HOM_NAY, duong: "HUY_THAY" });
-phai(await sua("muc-rieng", rieng.id, { muc: TA2, tuNgay: TU_VD, lyDo: LY_DO }), 200, "sửa chính sách riêng");
+const khoiRieng = phai(await sua("muc-rieng", rieng.id, { muc: TA2, tuNgay: TU_VD, lyDo: LY_DO }), 200, "sửa chính sách riêng");
+// N5 (R4): phản hồi = khối hồ sơ, kèm lịch sử gắn riêng — lần thay (sắp áp) rồi lần đã huỷ; phần tra `mucRieng` không có lần đã huỷ.
+assert.deepEqual(khoiRieng.ganRieng.map((g) => [g.muc.code, g.daHuy, g.conHieuLuc]), [[TA2, false, false], [TA1, true, false]], "lịch sử gắn riêng");
+assert.ok(!JSON.stringify(khoiRieng).includes(LY_DO), "khối hồ sơ không mang lý do sửa (Bán hàng cũng đọc khối này)");
+assert.notEqual(khoiRieng.mucRieng?.id, rieng.id, "mucRieng không bao giờ là lần đã huỷ");
 const sauRieng = await sqlRows(`SELECT id, tier_code, voided_at, replaces_id, change_reason FROM prc_party_tier WHERE party_id = '${ORG2.id}' ORDER BY created_at, rowid`);
 assert.equal(sauRieng.length, 2);
 assert.ok(sauRieng.find((x) => x.id === rieng.id).voided_at, "chính sách riêng cũ đã huỷ");
 const moiRieng = sauRieng.find((x) => x.id !== rieng.id);
 assert.deepEqual([moiRieng.tier_code, moiRieng.replaces_id, moiRieng.change_reason, moiRieng.voided_at], [TA2, rieng.id, LY_DO, null]);
-console.log("✓ 4) Gắn loại ↔ chính sách và chính sách riêng của hồ sơ: Sửa huỷ–thay ⇒ 200, dòng cũ đã huỷ, dòng mới mang dòng cũ + lý do");
+console.log("✓ 4) Gắn loại ↔ chính sách và chính sách riêng của hồ sơ: Sửa huỷ–thay ⇒ 200, dòng cũ đã huỷ, dòng mới mang dòng cũ + lý do; khối hồ sơ có lịch sử gắn riêng (N5)");
 
 assert.deepEqual((await sqlRows("SELECT party_id FROM v_pty_owner_company")).map((x) => x.party_id), congTyTruoc, "công ty chủ không đổi");
 console.log("✓ 5) Công ty chủ không đổi");

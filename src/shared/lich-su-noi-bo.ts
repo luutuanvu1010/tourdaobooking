@@ -96,7 +96,7 @@ export const LICH_SU_NOI_BO_AN = [
   "rental_rate_closed", "route_saved", "vehicle_size_saved", "location_created", "location_updated", "maintenance_changed",
   "manual_service_policy_changed", "pickup_slot_policy_changed", "confirm_flag_changed", "confirm_policy_changed", "tro_ly_settings_changed", "giao_dien_changed", "client_outdated_body", "catalog_synced", "catalog_overridden",
   "catalog_override_cleared", "catalog_hidden", "catalog_unhidden", "catalog_group_created", "catalog_group_updated", "catalog_group_assigned",
-  "catalog_groups_seeded", "feedback_created", "feedback_replied", "feedback_status_changed", "feedback_assigned", "feedback_claimed",
+  "catalog_groups_seeded", "catalog_service_transfer_set", "feedback_created", "feedback_replied", "feedback_status_changed", "feedback_assigned", "feedback_claimed",
   "feedback_team_changed", "feedback_priority_changed", "feedback_team_created", "feedback_team_updated", "feedback_team_member_changed", "notice_sent",
   "notice_revoked", "notice_acknowledged",
   "feedback_attachment_added", "feedback_attachment_viewed", "feedback_attachment_purged", "feedback_attachment_purge_retried", // ADR-0144: tệp kèm vé — không gắn đơn
