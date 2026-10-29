@@ -183,7 +183,7 @@ async function hoaHongHoSo(db: D1Database, id: string): Promise<HoaHongHoSoRespo
     ganRieng: lichSu.map((g) => {
       const m = tenCuaMuc.get(g.tier_code);
       return { id: g.id, muc: { code: g.tier_code, ten: m?.name ?? g.tier_code, dangBat: m?.active === 1 }, tuNgay: g.valid_from_date, denNgay: g.valid_to_date,
-        conHieuLuc: g.voided_at === null && hieuLuc({ validFrom: g.valid_from_date, validTo: g.valid_to_date }, homNay), daHuy: g.voided_at !== null, thayCho: g.replaces_id, lyDoSua: g.change_reason };
+        conHieuLuc: g.voided_at === null && hieuLuc({ validFrom: g.valid_from_date, validTo: g.valid_to_date }, homNay), daHuy: g.voided_at !== null };
     }),
   } satisfies HoaHongHoSoResponse;
 }

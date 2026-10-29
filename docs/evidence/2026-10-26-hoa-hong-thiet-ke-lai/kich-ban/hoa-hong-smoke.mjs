@@ -17,6 +17,7 @@
 //  13) (N5, 29/10) Thẻ Thiết lập — lần áp dụng chính sách cho loại SẮP tới hiện dưới chính sách: «Sắp áp dụng từ <ngày>» + chỉ «Sửa»; Sửa (chưa có đơn ⇒ «sẽ thay hẳn»)
 //      đổi chính sách ⇒ lần cũ vào «Xem lịch sử» với nhãn «Đã huỷ — thay bằng dòng khác», không nút; lần mới hiện dưới chính sách mới; Bán hàng (bước 7) thấy dòng, không nút;
 //  14) (N5, 29/10) Danh bạ — Quản trị mở hồ sơ đại lý có chính sách riêng SẮP áp dụng: dòng «Sắp áp dụng từ …» kèm «Sửa»; sửa ⇒ lịch sử có lần cũ «Đã huỷ…», lần mới sắp áp;
+// 14b) (N5, người kiểm 29/10) Danh bạ — Bán hàng (chỉ xem hoa hồng) mở hai hồ sơ đó: thấy chính sách riêng sắp áp / đang áp và nút «Xem lịch sử», KHÔNG một nút ghi nào trong mục;
 //  10) Chuỗi cấm không có trong chữ nhìn thấy: «Mức TA», «Đóng mức», «Kết thúc gắn», «Đang áp» (không theo «dụng»), «Sắp áp» (không theo «dụng»), «Loại gốc» (từ 28/10; trước đó «Có sẵn»), «Do Kế toán thêm».
 // Mỗi bước: không tràn ngang, ô gõ ≥ 16px, không chữ Anh / mã thô, axe-core (critical / serious ⇒ đỏ; thiếu AXE_JS ⇒ dừng ngay), chụp ảnh.
 // Môi trường: D1 tạm + wrangler dev + Chrome headless qua CDP (docs/evidence/2026-09-20-a2/kich-ban/a2-cdp.mjs) — Turnstile TẮT, không --remote, không gọi production.
@@ -779,6 +780,35 @@ try {
             await chup(p, `15-ban-hang-chi-xem-${tenKho}`, tenKho !== "390");
           });
           if (p.consoleErrors.length) loi.push(`lỗi console (Bán hàng ${kho}): ${p.consoleErrors.join(" | ").slice(0, 300)}`);
+        } finally {
+          p.close();
+        }
+      }
+
+      // ======================= Bán hàng — Danh bạ (N5, người kiểm 29/10: «Sửa» ở Danh bạ cho người chỉ xem chưa có hàng rào nào ngoài máy chủ) =======================
+      {
+        const p = await moTrang(ACCOUNTS.salesA, `/parties?id=${encodeURIComponent(ORG5.id)}`, vp);
+        try {
+          await buoc(`14b${kho}`, "N5 — Danh bạ (Bán hàng, chỉ xem): thấy chính sách riêng sắp áp và «Xem lịch sử», không một nút ghi nào; hồ sơ có chính sách riêng đang áp cũng không nút", async () => {
+            const SEC = "#hoa-hong-hien-hanh";
+            const docMuc = () => p.ev(`(() => { const s = document.querySelector('${SEC}'); if (!s || s.hidden) return null;
+              return { chu: s.innerText, ghi: [...s.querySelectorAll('button')].map((b) => b.textContent.trim()).filter((t) => /${NUT_GHI.source}/.test(t)),
+                sap: s.querySelectorAll('[data-khoi="gan-rieng-sap"] li').length, lichSu: !!s.querySelector('.hh-lich-su-khoi button') }; })()`);
+            await p.waitFor(`(() => { const s = document.querySelector('${SEC}'); return !!s && !s.hidden && !!s.querySelector('[data-khoi="gan-rieng-sap"]'); })()`, "mục Hoa hồng hiện hành (Bán hàng)");
+            const a = await docMuc();
+            assert.ok(a && a.sap === 1 && a.chu.includes(`Chính sách riêng: ${TEN_CS_2}`) && a.chu.includes("Sắp áp dụng từ"), `Bán hàng thấy lần sắp áp: ${JSON.stringify(a)}`);
+            assert.equal(a.lichSu, true, "Bán hàng thấy nút «Xem lịch sử» (nút xem)");
+            assert.deepEqual(a.ghi, [], "Bán hàng: không nút ghi nào trong mục (kể cả «Sửa» lần sắp áp)");
+            await p.ev(`document.querySelector('${SEC}').scrollIntoView({ block: 'start' }), true`);
+            await axeKiem(p, `Danh bạ — Bán hàng chỉ xem ${kho}`);
+            await chup(p, `28-danh-ba-ban-hang-chi-xem-${tenKho}`);
+            // Hồ sơ có chính sách riêng ĐANG áp (bước 12 đã sửa sang CS_2): nút «Ngừng áp dụng» / «Sửa» của lượt 1 cũng không hiện.
+            await p.send("Page.navigate", { url: env.base + `/parties?id=${encodeURIComponent(ORG4.id)}` });
+            await p.waitFor(`(() => { const s = document.querySelector('${SEC}'); return !!s && !s.hidden && s.innerText.includes('Chính sách riêng: ${TEN_CS_2}'); })()`, "mục Hoa hồng hiện hành của hồ sơ đang áp (Bán hàng)");
+            const b = await docMuc();
+            assert.deepEqual(b?.ghi, [], `Bán hàng: hồ sơ đang áp không nút ghi: ${JSON.stringify(b)}`);
+          });
+          if (p.consoleErrors.length) loi.push(`lỗi console (Bán hàng Danh bạ ${kho}): ${p.consoleErrors.join(" | ").slice(0, 300)}`);
         } finally {
           p.close();
         }

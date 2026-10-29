@@ -8,9 +8,9 @@
 
 ## Task 1 — Máy chủ, R4 (xong, commit 752f7b26)
 - Câu LỊCH SỬ mới `party_tiers_history` (`pricing/repository.ts`, `defineSql`, EXPLAIN qua `architecture.test.ts`): mọi lần gắn riêng của một hồ sơ, kể cả đã huỷ, `ORDER BY valid_from_date DESC, (voided_at IS NOT NULL), created_at DESC, id`. Câu tra `party_tiers_of` giữ nguyên.
-- `HoaHongHoSoResponse.ganRieng: GanRiengLichSuDto[]` (`src/shared/contracts.ts`): `id, muc {code, ten, dangBat}, tuNgay, denNgay, conHieuLuc, daHuy, thayCho, lyDoSua` — không SĐT/email/MST. `conHieuLuc` = chưa huỷ và trong khoảng ngày (cùng công thức `dtoGan`). `mucRieng`, route, cổng, quyền không đổi. Ba lệnh ghi gắn riêng (gắn, kết thúc, sửa) trả khối qua cùng hàm nên cũng mang lịch sử.
+- `HoaHongHoSoResponse.ganRieng: GanRiengLichSuDto[]` (`src/shared/contracts.ts`): lúc đầu theo R4 `id, muc {code, ten, dangBat}, tuNgay, denNgay, conHieuLuc, daHuy, thayCho, lyDoSua`; sau kiểm độc lập bỏ `thayCho`, `lyDoSua` (T5-6) — không SĐT/email/MST. `conHieuLuc` = chưa huỷ và trong khoảng ngày (cùng công thức `dtoGan`). `mucRieng`, route, cổng, quyền không đổi. Ba lệnh ghi gắn riêng (gắn, kết thúc, sửa) trả khối qua cùng hàm nên cũng mang lịch sử.
 - Bài đỏ trước: bài mới «N5 (R4)…» (đã ngừng + đang áp + sắp áp ⇒ sửa lần sắp áp ⇒ lịch sử bốn dòng đúng thứ tự, đúng cờ, đúng tập trường; `mucRieng` không đổi; thử tra hôm nay / 01/11). Bài cũ «gắn đối tác huỷ–thay sang ngày sau…» viết lại (khối nay có lịch sử nên không thể «không nhắc gắn huỷ» trên cả phản hồi): `mucRieng` null, `vai` theo TA1, phần tra của khối (mọi trường trừ `ganRieng`) không nhắc gắn huỷ, lịch sử có gắn huỷ mang cờ. Đỏ 2/2 trước khi có trường; xanh 14/14 sau.
-- Quan sát chặn thật (P16, 29/10): (1) câu tra `party_tiers_of` bỏ `voided_at IS NULL` ⇒ bài viết lại đỏ; (2) câu lịch sử thêm `voided_at IS NULL` ⇒ cả hai bài đỏ; hoàn nguyên ⇒ xanh 14/14. (3) gỡ vế `(voided_at IS NOT NULL)` khỏi thứ tự ⇒ bài vẫn XANH (xem NO-N5-2).
+- Quan sát chặn thật (P16, 29/10): (1) câu tra `party_tiers_of` bỏ `voided_at IS NULL` ⇒ bài viết lại đỏ; (2) câu lịch sử thêm `voided_at IS NULL` ⇒ cả hai bài đỏ; hoàn nguyên ⇒ xanh 14/14. (3) gỡ vế `(voided_at IS NOT NULL)` khỏi thứ tự ⇒ bài đỏ NGẪU NHIÊN (người thi công chạy một lần: xanh; người kiểm chạy 8 lần: đỏ 3, xanh 5 — mã dòng ngẫu nhiên quyết định) ⇒ không tính là hàng rào (xem NO-N5-2).
 - `docs/SYSTEM-DESIGN.md` §7: một câu mô tả trường mới. `docs/SO-HANG-RAO.md`: một dòng mới.
 
 ## Task 2 — Luật hiển thị thuần (xong, commit 25764f6a)
@@ -38,7 +38,7 @@
 
 ## Nợ có tên (không sửa trong việc này)
 - **NO-N5-1:** đại lý chỉ có chính sách riêng SẮP áp (chưa có lần đang áp) vẫn hiện nút «Áp dụng chính sách riêng» như hôm nay (R3 giữ nút); gắn thêm từ hôm nay không thời hạn sẽ chồng ngày với lần sắp áp ⇒ máy chủ từ chối bằng câu tiếng Việt (409 «đã có một mức riêng trong khoảng ngày này»). Không sai dữ liệu, chỉ thừa một đường bấm.
-- **NO-N5-2:** thứ tự «lần thay trước lần bị huỷ cùng ngày» không có hàng rào chắc (P16 lần 3 không đỏ) — dựa vào kỷ luật; đã ghi ở `docs/SO-HANG-RAO.md`.
+- **NO-N5-2:** thứ tự «lần thay trước lần bị huỷ cùng ngày» không có hàng rào chắc (gỡ vế thứ tự thì bài đỏ ngẫu nhiên, không ổn định) — dựa vào kỷ luật; đã ghi ở `docs/SO-HANG-RAO.md`.
 - **NO-N5-3:** chỉ chạy kịch bản Chrome `hoa-hong-smoke.mjs` (bước 12, 14 phủ khối Hoa hồng của `web/parties.ts`). Các kịch bản khác của `web/parties.ts` trong bảng `web/CLAUDE.md` (Danh bạ t2b, Đợt A, Giấy tờ, Nhà xe) phủ các mục KHÁC của trang, không chạy lại.
 
 ## Bộ kiểm dài (chạy một lần ở cuối, 29/10, cây 2266c93b)
@@ -51,3 +51,14 @@
 
 ## Ghi chú bề mặt (không sửa, để chủ xem ảnh)
 - **NO-N5-4:** dòng tóm tắt đầu thẻ chính sách vẫn nói «Chưa áp dụng cho loại nào» khi chính sách chỉ có lần áp dụng SẮP tới (dòng sắp áp hiện ngay bên dưới, ảnh 23/25). Đúng nghĩa «hôm nay», nhưng có thể thêm «· sắp áp dụng cho n loại» nếu chủ muốn.
+
+## Kiểm độc lập (Task 7, subagent `nguoi-kiem-doc-lap`, 29/10)
+- Kết luận: **ĐẠT CÓ ĐIỀU KIỆN**, không mục CHẶN. Tự chạy lại 9 tệp bài được giao (142 đạt) + mở rộng (`route-access`, `route-write-guard`, `so-la-*`, `hoa-hong-mot-nguon`, `token-giao-dien`, `bang-tu-giao-dien`, mọi bài `pricing`: 243 đạt), typecheck 0 lỗi; `git diff 327ac5cf..HEAD -- migrations src/shared/permissions.ts` rỗng; ghép bài mới với mã máy chủ cũ ⇒ 2 bài đỏ (đỏ trước thật). Phá thử trên bản sao `git archive`: bỏ lọc huỷ ở câu tra / dựng lịch sử từ câu tra / câu lịch sử lọc huỷ ⇒ đỏ; đưa lịch sử vào phần tóm tắt ⇒ KHÔNG bài nào đỏ (NÊN SỬA 2); bỏ `coQuyenSua` ở Danh bạ ⇒ không hàng rào nào bắt (NÊN SỬA 3). Xác nhận T5-1 (Bán hàng = 200 từ trước, bài `ho-so-hoa-hong.test.ts` ghim).
+- **NÊN SỬA 1 — đã làm (T5-6):** Bán hàng đọc được khối hồ sơ ⇒ lý do sửa (chữ tự do gắn với MỘT đại lý) và mã dòng thay của gắn riêng là loại dữ liệu MỚI lộ cho Bán hàng (`/api/pricing/muc-ta` không trả lý do của gắn riêng). Giao diện không dùng hai trường này ⇒ bỏ khỏi `GanRiengLichSuDto` (an toàn, đảo ngược được: muốn có lại thì thêm hai trường). Bài «N5 (R4)…» nay so nguyên văn bốn dòng KHÔNG có hai trường, thêm «khối hồ sơ không mang lý do sửa ở bất kỳ trường nào» và «liên kết thay + lý do vẫn nằm trong CSDL»; e2e `sua-muc` bước 4 thêm câu kiểm tương tự. Lệch chữ R4 của kế hoạch — báo phiên điều phối.
+- **NÊN SỬA 2 — đã làm:** bài mới «N5 (R4): gắn riêng đã huỷ không che cảnh báo "hai loại theo hai chính sách"…» (hồ sơ hai loại theo hai chính sách, gắn riêng huỷ–thay sang ngày sau ⇒ hôm nay `xungDot` = true). Quan sát chặn thật 29/10: `tomTatHoaHongHoSo` nhận `lichSu` thay câu tra ⇒ bài đó đỏ (14/15); hoàn nguyên ⇒ 15/15. Sổ hàng rào sửa phạm vi cho khớp.
+- **NÊN SỬA 3 — đã làm:** kịch bản Chrome thêm bước 14b — Bán hàng mở hồ sơ đại lý có chính sách riêng sắp áp (thấy dòng + «Xem lịch sử», không nút ghi nào trong mục) và hồ sơ có chính sách riêng đang áp (không nút ghi). Quan sát chặn thật bằng chế độ phá có sẵn của kịch bản (`HH_PHA=lo-nut`: giả quyền Kế toán cho Bán hàng ở giao diện) — kết quả ghi ở mục dưới.
+- **GHI NHẬN:** (1) chữ «vẫn xanh» của phá thử thứ tự — đã sửa ở sổ này và sổ hàng rào; (2) tên `ganRieng` có ở hai DTO với hai hình khác nhau (`MucTaListResponse.ganRieng: GanRiengDto[]` — đang / sắp, mọi hồ sơ; `HoaHongHoSoResponse.ganRieng: GanRiengLichSuDto[]` — lịch sử MỘT hồ sơ) — để nguyên, ghi chú ở đây; (3) khối hồ sơ đọc câu tra và câu lịch sử bằng hai truy vấn song song, một lệnh Sửa chen giữa có thể cho một lần vẽ lệch (chỉ hiển thị, tải lại là đúng); (4) đồng ý NO-N5-1, NO-N5-4; (5) T5-3 chấp nhận được.
+
+## Chạy lại sau phần NÊN SỬA
+_(ghi sau khi chạy)_
+

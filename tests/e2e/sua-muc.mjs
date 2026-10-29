@@ -123,7 +123,8 @@ const [rieng] = await sqlRows(`SELECT id FROM prc_party_tier WHERE party_id = '$
 assert.deepEqual(phai(await xemSua("muc-rieng", rieng.id), 200, "xem trước chính sách riêng"), { homNay: HOM_NAY, duong: "HUY_THAY" });
 const khoiRieng = phai(await sua("muc-rieng", rieng.id, { muc: TA2, tuNgay: TU_VD, lyDo: LY_DO }), 200, "sửa chính sách riêng");
 // N5 (R4): phản hồi = khối hồ sơ, kèm lịch sử gắn riêng — lần thay (sắp áp) rồi lần đã huỷ; phần tra `mucRieng` không có lần đã huỷ.
-assert.deepEqual(khoiRieng.ganRieng.map((g) => [g.muc.code, g.daHuy, g.conHieuLuc, g.thayCho]), [[TA2, false, false, rieng.id], [TA1, true, false, null]], "lịch sử gắn riêng");
+assert.deepEqual(khoiRieng.ganRieng.map((g) => [g.muc.code, g.daHuy, g.conHieuLuc]), [[TA2, false, false], [TA1, true, false]], "lịch sử gắn riêng");
+assert.ok(!JSON.stringify(khoiRieng).includes(LY_DO), "khối hồ sơ không mang lý do sửa (Bán hàng cũng đọc khối này)");
 assert.notEqual(khoiRieng.mucRieng?.id, rieng.id, "mucRieng không bao giờ là lần đã huỷ");
 const sauRieng = await sqlRows(`SELECT id, tier_code, voided_at, replaces_id, change_reason FROM prc_party_tier WHERE party_id = '${ORG2.id}' ORDER BY created_at, rowid`);
 assert.equal(sauRieng.length, 2);
