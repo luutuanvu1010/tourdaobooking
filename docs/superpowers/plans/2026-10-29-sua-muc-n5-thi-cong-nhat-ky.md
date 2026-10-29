@@ -41,5 +41,13 @@
 - **NO-N5-2:** thứ tự «lần thay trước lần bị huỷ cùng ngày» không có hàng rào chắc (P16 lần 3 không đỏ) — dựa vào kỷ luật; đã ghi ở `docs/SO-HANG-RAO.md`.
 - **NO-N5-3:** chỉ chạy kịch bản Chrome `hoa-hong-smoke.mjs` (bước 12, 14 phủ khối Hoa hồng của `web/parties.ts`). Các kịch bản khác của `web/parties.ts` trong bảng `web/CLAUDE.md` (Danh bạ t2b, Đợt A, Giấy tờ, Nhà xe) phủ các mục KHÁC của trang, không chạy lại.
 
-## Bộ kiểm dài (chạy một lần ở cuối)
-_(ghi sau khi chạy)_
+## Bộ kiểm dài (chạy một lần ở cuối, 29/10, cây 2266c93b)
+- `npm run typecheck`: 0 lỗi (server, `web/`, `web/sw/`).
+- `npm test`: **xanh** — bước 1: 6631 bài, 6627 đạt, 0 đỏ, 4 todo; bước 2 (bài đo giờ hook, chạy một mình) đạt; thoát 0.
+- `npm run test:e2e`: **78/78 kịch bản xanh** (885 giây), gồm `sua-muc` (câu kiểm mới về lịch sử gắn riêng), `muc-ta`, `so-dai-ly`, `audit-invariants` cuối.
+- Kịch bản Chrome `hoa-hong-smoke.mjs` (`AXE_JS` = axe-core 4.13.0, `OUT=docs/evidence/2026-10-29-sua-muc-n5/anh`): **HOA HONG SMOKE OK** ngay lần đầu — 33 bước ở hai khổ 390 + 1040 (gồm 13, 14 mới và câu kiểm mới ở bước 7); axe nhẹ chỉ có «region — #strips» (moderate, có từ trước). Người thi công tự xem ảnh 25 (1040) và 27 (390): lần sắp áp + một nút «Sửa», lịch sử mở ra có nhãn xám «Đã huỷ — thay bằng dòng khác», không nút.
+- Ảnh: chỉ lưu 10 ảnh của phần N5 (bước 13, 14: tệp `23-…` tới `27-…`, 4,8 MB); 47 ảnh còn lại trùng nội dung bằng chứng lượt 1 (`docs/evidence/2026-10-29-sua-muc/anh/`) nên không lưu.
+- Production lúc kiểm (GET công khai `/api/auth/config`, 29/10): bản **2.44**, đang bật bảo trì tới 31/10 ⇒ bản 2.45 (ADR-0149, migration 0127) đã ở main nhưng CHƯA triển khai; `npm run trien-khai` sau khi nhập nhánh này sẽ mang cả 2.45 (có migration 0127) lẫn 2.46.
+
+## Ghi chú bề mặt (không sửa, để chủ xem ảnh)
+- **NO-N5-4:** dòng tóm tắt đầu thẻ chính sách vẫn nói «Chưa áp dụng cho loại nào» khi chính sách chỉ có lần áp dụng SẮP tới (dòng sắp áp hiện ngay bên dưới, ảnh 23/25). Đúng nghĩa «hôm nay», nhưng có thể thêm «· sắp áp dụng cho n loại» nếu chủ muốn.
