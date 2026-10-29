@@ -22,6 +22,8 @@ export const CHANGELOG: readonly ReleaseNote[] = [
       { kind: "moi", text: "Trang chủ Kế toán có khối «Thu trước của đơn huỷ» liệt kê từng việc kèm mã đơn; bấm mã đơn để mở và ghi chi hoàn." },
       { kind: "moi", text: "Khi Quản trị duyệt hoàn thu trước, Kế toán nhận tin «đã được duyệt hoàn thu trước cho khách, chờ ghi chi hoàn» trong hộp thông báo." },
       { kind: "doi", text: "Đơn huỷ: trang đơn và thông báo gửi khách ghi «Đã hoàn trả» thay «Đã hoàn», và thêm dòng «Đã trả lại khách trước khi huỷ» khi có." },
+      // Sửa ô tích (nhánh claude/pricing-age-discount-config-328499): production đã lên 2.41 KHÔNG có phần này (29/10) nên dời từ mục 2.41 sang đây.
+      { kind: "sua", text: "Ô tích «Tách theo loại khách» ở Hoa hồng đối tác và ô chọn ở Đơn hàng, Chính sách đăng nhập không còn nằm lệch giữa dòng." },
     ],
   },
   {
@@ -32,7 +34,6 @@ export const CHANGELOG: readonly ReleaseNote[] = [
     items: [
       { kind: "sua", text: "Hoa hồng đối tác: mức vừa thêm trong hôm nay đã có nút «Đổi» và «Ngừng» ngay, không phải chờ sang hôm sau." },
       { kind: "sua", text: "Đổi một mức thêm trong hôm nay thì mức mới áp dụng từ ngày mai; đơn xác nhận trong hôm nay vẫn tính theo mức cũ." },
-      { kind: "sua", text: "Ô tích «Tách theo loại khách» ở Hoa hồng đối tác và ô chọn ở Đơn hàng, Chính sách đăng nhập không còn nằm lệch giữa dòng." },
     ],
   },
   {
