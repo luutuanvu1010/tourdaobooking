@@ -129,8 +129,10 @@ try {
 
   const CHI = process.env.CHI_VAI ? process.env.CHI_VAI.split(",") : null;
   for (const [vai, account] of VAI.filter(([v]) => !CHI || CHI.includes(v))) {
-    for (const [kho, vp] of KHO) {
+    for (const [kho, vp] of KHO.filter(([k]) => !process.env.CHI_KHO || process.env.CHI_KHO.split(",").includes(k))) { // QA2: CHI_KHO=768,899 chạy vài khổ
       const p = await env.as(account, "/order-form", vp);
+      // QA2 29/10: PHA_CHE=1 chèn lúc chạy một luật CSS tắt scroll-padding-top / scroll-margin-top (KHÔNG sửa app.css) để quan sát hàng rào đỏ ở mốc mới.
+      if (process.env.PHA_CHE) await p.ev("(() => { const s = document.createElement('style'); s.textContent = 'html, html * { scroll-padding-top: 0 !important; scroll-margin-top: 0 !important; }'; document.head.append(s); return true; })()");
       await san(p);
       await chonTd101(p);
       for (const trangThai of ["mac-dinh", "mo-het"]) {

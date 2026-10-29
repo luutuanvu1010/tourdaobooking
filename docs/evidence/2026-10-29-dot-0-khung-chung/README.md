@@ -41,3 +41,12 @@ AXE_JS=<…/axe.min.js> CHROME_BIN=$PWD/docs/evidence/2026-09-20-a2/kich-ban/chr
 Kịch bản cũ còn đỏ sẵn từ trước đợt 0 (đỏ y hệt ở gốc nhánh) và lý do: nhật ký thi công `docs/superpowers/plans/2026-10-28-dot-0-khung-chung-nhat-ky.md`, mục «Task 15».
 
 Ảnh (`anh/`): `dot-0-smoke.mjs` và `mat-mang-smoke.mjs` chạy với `OUT=docs/evidence/2026-10-29-dot-0-khung-chung`.
+
+## Đo trước/sau (QA2, 29/10/2026 — đặc tả mục 10.16, 11, 12.2)
+
+Bản chép kịch bản đo của `2026-10-27-danh-gia-ux-tong-the/kich-ban/` (cổng 8805, D1 tạm `~/tourdao-ux-dot-0/d1` trạng thái NHIỀU: 45 đơn, 12 tài khoản, 8 chuyến). Chỉ đo kho NHIỀU; kho ÍT và RỖNG **không** dựng lại (bảng D của 27/10 không so). Tờ so sánh: `../2026-10-29-dot-0-so-sanh/SO-SANH-TRUOC-SAU.md`.
+
+- `ma-tran-quyen.json` **sinh lại** từ mã nhánh (`ma-tran-quyen.mjs`): bản đã commit là bản 27/10, chưa có `/thiet-lap`.
+- `do-toc-do.mjs` thêm cờ (không đổi điều kiện đo; trang thêm chạy SAU mọi trang gốc): `--them /khong-co-trang-nay` (đo trang 404 mới), `--hau-to <chuỗi>` (đuôi tên tệp kết quả), `--chi-chuyen` + `--lap-chuyen N` (chỉ đo chuyển trang + chạm, lặp N lần). Bộ chọn chuyển trang giữ nguyên 27/10 nên 1040 → `/order-form` báo «không thấy mục» (thanh bên Toàn quyền không còn mục Tạo đơn — đổi có chủ đích ở đợt 0) và 390 → `/` không có cả hai lần.
+- `so-toc-do.mjs` (mới): bảng so 27/10 ↔ mới theo ngưỡng 10.16 → `so-lieu/so-toc-do.md`.
+- Số liệu: `so-lieu/toc-do.json` (lượt chính, máy rảnh, tải 1 phút trung vị 2,1), `toc-do-lan1.json` (lượt đầu, BỎ: tải máy lên ~10 do phiên khác), `toc-do-tung-trang-lap3.json` (4 trang lệch > 5 % đo lại ba lần), `toc-do-chuyen-lap3.json` (chuyển trang ba lần, máy rảnh), `toc-do-chuyen-lap3-tai-cao.json` (BỎ: tải lên 12 giữa chừng), `nhieu.json` (quét mọi trang × bộ × khổ, `do-trang.mjs`), `tong-hop.md/json`.

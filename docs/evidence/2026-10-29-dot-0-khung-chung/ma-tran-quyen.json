@@ -192,10 +192,12 @@
     "/dieu-chinh-cong-no",
     "/nguoi-ban",
     "/de-nghi",
-    "/ban"
+    "/ban",
+    "/thiet-lap",
+    "/404",
+    "/ngoai-mang"
    ],
    "thanhBen": [
-    "HẰNG NGÀY: Tạo đơn",
     "HẰNG NGÀY: Trang chủ",
     "HẰNG NGÀY: Đơn hàng",
     "HẰNG NGÀY: Danh bạ",
@@ -262,10 +264,12 @@
     "/hoa-hong",
     "/nguoi-ban",
     "/de-nghi",
-    "/ban"
+    "/ban",
+    "/thiet-lap",
+    "/404",
+    "/ngoai-mang"
    ],
    "thanhBen": [
-    "HẰNG NGÀY: Tạo đơn",
     "HẰNG NGÀY: Đơn hàng",
     "CHÂN MENU: Của tôi",
     "CHÂN MENU: Hỗ trợ",
@@ -327,7 +331,10 @@
     "/giao-dien",
     "/lich-xe-ban",
     "/de-nghi",
-    "/ban"
+    "/ban",
+    "/thiet-lap",
+    "/404",
+    "/ngoai-mang"
    ],
    "thanhBen": [
     "HẰNG NGÀY: Trang chủ",
@@ -385,32 +392,34 @@
     "/cho-xac-nhan",
     "/account",
     "/feedback",
-    "/help"
+    "/help",
+    "/thiet-lap",
+    "/sessions",
+    "/audit",
+    "/gui-thong-bao",
+    "/tro-ly-cai-dat",
+    "/giao-dien"
    ],
    "khongLoiVao": [
     "/home",
     "/login",
-    "/audit",
-    "/gui-thong-bao",
     "/tai-xe",
     "/danh-muc-giay-to",
     "/cuoc",
     "/cuoc-chuyen",
-    "/tro-ly-cai-dat",
-    "/sessions",
-    "/giao-dien",
     "/khoa-thang",
     "/so-cong-no",
-    "/ban"
+    "/ban",
+    "/404",
+    "/ngoai-mang"
    ],
    "thanhBen": [
-    "HẰNG NGÀY: Tạo đơn",
     "HẰNG NGÀY: Trang chủ",
     "HẰNG NGÀY: Đơn hàng",
     "HẰNG NGÀY: Danh bạ",
     "VẬN CHUYỂN: Điều phối xe",
-    "VẬN CHUYỂN: Xe đang chạy",
     "VẬN CHUYỂN: Đề nghị chuyển khách",
+    "VẬN CHUYỂN: Xe đang chạy",
     "VẬN CHUYỂN: Xe & giấy tờ",
     "VẬN CHUYỂN: Giá & chi phí",
     "TIỀN: Điều chỉnh công nợ",
@@ -484,7 +493,10 @@
     "/hoa-hong",
     "/nguoi-ban",
     "/de-nghi",
-    "/ban"
+    "/ban",
+    "/thiet-lap",
+    "/404",
+    "/ngoai-mang"
    ],
    "thanhBen": [
     "HẰNG NGÀY: Đơn hàng",
@@ -548,10 +560,12 @@
     "/hoa-hong",
     "/nguoi-ban",
     "/de-nghi",
-    "/ban"
+    "/ban",
+    "/thiet-lap",
+    "/404",
+    "/ngoai-mang"
    ],
    "thanhBen": [
-    "HẰNG NGÀY: Tạo đơn",
     "HẰNG NGÀY: Đơn hàng",
     "CHÂN MENU: Của tôi",
     "CHÂN MENU: Hỗ trợ",
@@ -605,7 +619,8 @@
     "/giao-dien",
     "/account",
     "/feedback",
-    "/help"
+    "/help",
+    "/thiet-lap"
    ],
    "khongLoiVao": [
     "/home",
@@ -614,16 +629,17 @@
     "/danh-muc-giay-to",
     "/cuoc",
     "/cuoc-chuyen",
-    "/ban"
+    "/ban",
+    "/404",
+    "/ngoai-mang"
    ],
    "thanhBen": [
-    "HẰNG NGÀY: Tạo đơn",
     "HẰNG NGÀY: Trang chủ",
     "HẰNG NGÀY: Đơn hàng",
     "HẰNG NGÀY: Danh bạ",
     "VẬN CHUYỂN: Điều phối xe",
-    "VẬN CHUYỂN: Xe đang chạy",
     "VẬN CHUYỂN: Đề nghị chuyển khách",
+    "VẬN CHUYỂN: Xe đang chạy",
     "VẬN CHUYỂN: Xe & giấy tờ",
     "VẬN CHUYỂN: Giá & chi phí",
     "TIỀN: Điều chỉnh công nợ",
@@ -703,7 +719,10 @@
     "/hoa-hong",
     "/nguoi-ban",
     "/de-nghi",
-    "/ban"
+    "/ban",
+    "/thiet-lap",
+    "/404",
+    "/ngoai-mang"
    ],
    "thanhBen": [
     "HẰNG NGÀY: Trang chủ",
@@ -768,7 +787,10 @@
     "/dieu-chinh-cong-no",
     "/hoa-hong",
     "/nguoi-ban",
-    "/de-nghi"
+    "/de-nghi",
+    "/thiet-lap",
+    "/404",
+    "/ngoai-mang"
    ],
    "thanhBen": [
     "HẰNG NGÀY: Trang chủ",
@@ -834,7 +856,10 @@
     "/hoa-hong",
     "/nguoi-ban",
     "/de-nghi",
-    "/ban"
+    "/ban",
+    "/thiet-lap",
+    "/404",
+    "/ngoai-mang"
    ],
    "thanhBen": [
     "THIẾT LẬP: Quản lý tài khoản",

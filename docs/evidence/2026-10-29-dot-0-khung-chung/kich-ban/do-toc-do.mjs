@@ -24,6 +24,11 @@ const D1 = arg("--d1", join(homedir(), "tourdao-ux-dot-0", "d1"));
 const LAP = Number(arg("--lap", "1"));
 const CHI_BO = arg("--bo", "SUPER_ADMIN,DRIVER_PARTNER").split(",");
 const CHI_TRANG = arg("--trang") ? arg("--trang").split(",") : null;
+// QA2 đợt 0 (29/10): --them /a,/b — thêm đường ngoài ma trận (vd trang 404 /khong-co-trang-nay) vào lượt của bộ đầu, để đo CLS lạnh ở trang mới.
+const THEM = arg("--them") ? arg("--them").split(",") : [];
+// QA2: --chi-chuyen bỏ lượt từng trang, chỉ đo chuyển trang + chạm; --lap-chuyen N lặp phần đó N lần (so A/B với gốc nhánh).
+const CHI_CHUYEN = process.argv.includes("--chi-chuyen");
+const LAP_CHUYEN = Number(arg("--lap-chuyen", "1"));
 const maTran = JSON.parse(readFileSync(join(EVID, "ma-tran-quyen.json"), "utf8"));
 const dsTk = JSON.parse(readFileSync(arg("--tk", join(HERE, "tai-khoan.json")), "utf8")).taiKhoan;
 const tkTheoBo = {};
@@ -89,12 +94,12 @@ const chrome = await moChrome();
 const ketQua = [];
 const r = (x) => (x == null ? "—" : Math.round(x));
 try {
-  for (const bo of CHI_BO) {
+  for (const bo of CHI_CHUYEN ? [] : CHI_BO) {
     const tk = tkTheoBo[bo];
     if (!tk) { console.log(`⚠ thiếu tài khoản ${bo}`); continue; }
     const info = maTran.bo[bo];
     const dsTrang = (bo === CHI_BO[0] ? info.trang : info.trang.filter((p) => !maTran.bo[CHI_BO[0]].trang.includes(p))).filter((p) => !["/home", "/danh-muc-giay-to"].includes(p));
-    for (const duong of [...dsTrang, ...(bo === CHI_BO[0] ? ["/login"] : [])]) {
+    for (const duong of [...dsTrang, ...(bo === CHI_BO[0] ? ["/login", ...THEM] : [])]) {
       if (CHI_TRANG && !CHI_TRANG.includes(duong)) continue;
       for (let lan = 0; lan < LAP; lan++) {
         const ngan = await chrome.moNgan();
@@ -141,7 +146,7 @@ try {
   // Bỏ qua khi chạy thử từng trang (--trang) để không đăng nhập (đăng nhập đá phiên của lượt quét đang chạy — ADR-0075).
   const tk = tkTheoBo[CHI_BO[0]];
   const chuyen = [];
-  for (const [w, h, mobile, chonLink] of CHI_TRANG ? [] : [[390, 844, true, "#tabbar a[href='/orders'], #tabbar a[href='/order-form'], #tabbar a[href='/']"], [1040, 800, false, "#sidebar a[href='/orders'], #sidebar a[href='/order-form'], #sidebar a[href='/']"]]) {
+  for (const [w, h, mobile, chonLink] of CHI_TRANG ? [] : Array.from({ length: LAP_CHUYEN }, () => [[390, 844, true, "#tabbar a[href='/orders'], #tabbar a[href='/order-form'], #tabbar a[href='/']"], [1040, 800, false, "#sidebar a[href='/orders'], #sidebar a[href='/order-form'], #sidebar a[href='/']"]]).flat()) {
     const ngan = await chrome.moNgan();
     try {
       await ngan.s("Page.addScriptToEvaluateOnNewDocument", { source: CAI_SAN });
@@ -177,7 +182,7 @@ try {
 } finally {
   await chrome.tat();
   mkdirSync(join(EVID, "so-lieu"), { recursive: true });
-  const ra = join(EVID, "so-lieu", `toc-do${CHI_TRANG ? "-tung-trang" : ""}.json`);
+  const ra = join(EVID, "so-lieu", `toc-do${CHI_TRANG ? "-tung-trang" : ""}${arg("--hau-to") ?? ""}.json`);
   writeFileSync(ra, JSON.stringify({ luc: new Date().toISOString(), base: BASE, dieuKien: { mang: "4G chậm (Lighthouse di động): 1,6 Mbit/s xuống, 750 kbit/s lên, trễ 150 ms", cpu: "chậm 4×", khung: "390×844 di động" }, ketQua }, null, 1));
   console.log(`Ghi ${ra}`);
 }

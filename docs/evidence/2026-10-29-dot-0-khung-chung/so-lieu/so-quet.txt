@@ -1,0 +1,67 @@
+ô 27/10 474 ô mới 492 ô chung 472 ô chỉ mới 20
+
+[390] 170 ô chung
+  vùng chạm <44 (tổng): 251 → 237
+  ô tràn ngang: 9 → 1
+  ô gõ <16px: 0 → 0
+  ô gõ không nhãn: 27 → 16
+  chữ bị cắt: 203 → 196
+  từ Anh: 54 → 34
+  số màn cuộn (tổng): 1073.1000000000001 → 1134.8000000000004
+  axe nghiêm trọng+: 30 → 10
+  axe mọi mức: 190 → 180
+  lỗi console: 0 → 0
+  số vùng dính: 499 → 344
+  h1 nhiều hơn 1: 0 → 0
+
+[1040] 170 ô chung
+  vùng chạm <44 (tổng): 2151 → 2160
+  ô tràn ngang: 0 → 0
+  ô gõ <16px: 0 → 0
+  ô gõ không nhãn: 27 → 16
+  chữ bị cắt: 248 → 257
+  từ Anh: 54 → 34
+  số màn cuộn (tổng): 741.5000000000001 → 762.1999999999999
+  axe nghiêm trọng+: 30 → 10
+  axe mọi mức: 190 → 180
+  lỗi console: 0 → 0
+  số vùng dính: 469 → 494
+  h1 nhiều hơn 1: 0 → 0
+
+[768] 66 ô chung
+  vùng chạm <44 (tổng): 961 → 96
+  ô tràn ngang: 0 → 0
+  ô gõ <16px: 0 → 0
+  ô gõ không nhãn: 10 → 10
+  chữ bị cắt: 98 → 29
+  từ Anh: 0 → 0
+  số màn cuộn (tổng): 114.8 → 139.40000000000003
+  axe nghiêm trọng+: 0 → 0
+  axe mọi mức: 66 → 66
+  lỗi console: 0 → 0
+  số vùng dính: 191 → 138
+  h1 nhiều hơn 1: 0 → 0
+
+[1440] 66 ô chung
+  vùng chạm <44 (tổng): 940 → 881
+  ô tràn ngang: 0 → 0
+  ô gõ <16px: 0 → 0
+  ô gõ không nhãn: 10 → 10
+  chữ bị cắt: 106 → 106
+  từ Anh: 0 → 0
+  số màn cuộn (tổng): 97.69999999999999 → 103.49999999999996
+  axe nghiêm trọng+: 0 → 0
+  axe mọi mức: 66 → 66
+  lỗi console: 0 → 0
+  số vùng dính: 229 → 229
+  h1 nhiều hơn 1: 0 → 0
+
+Tăng vùng chạm<44 nhiều nhất: SUPER_ADMIN|/khong-co-trang-nay|1040|404 14; ACCOUNTING|/khong-co-trang-nay|1040|404 13; ADMIN|/khong-co-trang-nay|1040|404 13; SALES|/khong-co-trang-nay|1040|404 10; DRIVER_PARTNER|/khong-co-trang-nay|1040|404 7; DRIVER|/khong-co-trang-nay|1040|404 6; HR|/khong-co-trang-nay|1040|404 6; INTERN|/khong-co-trang-nay|1040|404 5; FIELD|/khong-co-trang-nay|1040|404 5; PARTNER|/khong-co-trang-nay|1040|404 5
+Giảm nhiều nhất: SUPER_ADMIN|/feedback|768| -16; SUPER_ADMIN|/cho-xac-nhan|768| -17; ADMIN|/staff|768| -20; ADMIN|/hoa-hong|768| -20; SUPER_ADMIN|/sessions|768| -26; SUPER_ADMIN|/hoa-hong|768| -26; SUPER_ADMIN|/audit|768| -26; SUPER_ADMIN|/staff|768| -29
+Tràn MỚI: 
+Hết tràn: SALES|/audit|390|403; INTERN|/audit|390|403; ACCOUNTING|/audit|390|403; FIELD|/audit|390|403; PARTNER|/audit|390|403; DRIVER|/audit|390|403; DRIVER_PARTNER|/audit|390|403; HR|/audit|390|403
+Cắt chữ MỚI: 18 SALES|/order|390| ["TD-20261029-0045","TD-20261029-0045"]; SALES|/khong-co-trang-nay|1040|404 ["Bán Hàng Thử"]; INTERN|/khong-co-trang-nay|1040|404 ["Thực Tập Thử"]; ACCOUNTING|/order|390| ["TD-20261029-0045","TD-20261029-0045"]; ACCOUNTING|/khong-co-trang-nay|1040|404 ["Kế Toán Thử"]; ADMIN|/order|390| ["TD-20261029-0045","TD-20261029-0045"]; ADMIN|/loai-giay-to-nguoi|390| []; ADMIN|/khong-co-trang-nay|1040|404 ["Quản Trị Thử"]; FIELD|/khong-co-trang-nay|1040|404 ["Hướng Dẫn Thử","Hướng dẫn viên"]; PARTNER|/khong-co-trang-nay|1040|404 ["Cộng Tác Thử"]; SUPER_ADMIN|/|390| ["Toàn Quyền Thử"]; SUPER_ADMIN|/order|390| ["TD-20261029-0045","TD-20261029-0045"]; SUPER_ADMIN|/sessions|390| []; SUPER_ADMIN|/loai-giay-to-nguoi|390| []; SUPER_ADMIN|/khong-co-trang-nay|1040|404 ["Toàn Quyền Thử","Quản trị · Toàn quyền"]
+axe nghiêm trọng MỚI: 
+axe nghiêm trọng HẾT: SALES|/khong-co-trang-nay|390|404; SALES|/khong-co-trang-nay|1040|404; INTERN|/khong-co-trang-nay|390|404; INTERN|/khong-co-trang-nay|1040|404; ACCOUNTING|/khong-co-trang-nay|390|404; ACCOUNTING|/khong-co-trang-nay|1040|404; ADMIN|/khong-co-trang-nay|390|404; ADMIN|/khong-co-trang-nay|1040|404; FIELD|/khong-co-trang-nay|390|404; FIELD|/khong-co-trang-nay|1040|404; PARTNER|/khong-co-trang-nay|390|404; PARTNER|/khong-co-trang-nay|1040|404; SUPER_ADMIN|/khong-co-trang-nay|390|404; SUPER_ADMIN|/khong-co-trang-nay|1040|404; DRIVER|/khong-co-trang-nay|390|404; DRIVER|/khong-co-trang-nay|1040|404; DRIVER_PARTNER|/khong-co-trang-nay|390|404; DRIVER_PARTNER|/khong-co-trang-nay|1040|404; HR|/khong-co-trang-nay|390|404; HR|/khong-co-trang-nay|1040|404
+Ô chỉ có ở mới: ADMIN|/thiet-lap|390|; ADMIN|/thiet-lap|1040|; ADMIN|/sessions|390|; ADMIN|/sessions|1040|; ADMIN|/sessions|768|; ADMIN|/sessions|1440|; ADMIN|/audit|390|; ADMIN|/audit|1040|; ADMIN|/audit|768|; ADMIN|/audit|1440|; ADMIN|/gui-thong-bao|390|; ADMIN|/gui-thong-bao|1040|; ADMIN|/tro-ly-cai-dat|390|; ADMIN|/tro-ly-cai-dat|1040|; ADMIN|/giao-dien|390|; ADMIN|/giao-dien|1040|; ADMIN|/so-cong-no|390|403; ADMIN|/so-cong-no|1040|403; SUPER_ADMIN|/thiet-lap|390|; SUPER_ADMIN|/thiet-lap|1040|
+Ô chỉ có ở 27/10: ADMIN|/audit|390|403; ADMIN|/audit|1040|403

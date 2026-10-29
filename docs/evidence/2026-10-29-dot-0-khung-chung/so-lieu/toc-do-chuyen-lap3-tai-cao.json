@@ -1,0 +1,243 @@
+{
+ "luc": "2026-10-29T03:05:48.932Z",
+ "base": "http://localhost:8805",
+ "dieuKien": {
+  "mang": "4G chậm (Lighthouse di động): 1,6 Mbit/s xuống, 750 kbit/s lên, trễ 150 ms",
+  "cpu": "chậm 4×",
+  "khung": "390×844 di động"
+ },
+ "ketQua": [
+  {
+   "chuyenTrang": [
+    {
+     "kho": 390,
+     "dich": "/orders",
+     "chuyenTrangFcp": 69,
+     "chuyenTrangNoiDung": 418,
+     "fcp": 68,
+     "noiDungXong": 416.9000000357628
+    },
+    {
+     "kho": 390,
+     "dich": "/order-form",
+     "chuyenTrangFcp": 61,
+     "chuyenTrangNoiDung": 619,
+     "fcp": 60,
+     "noiDungXong": 617.3999999761581
+    },
+    {
+     "kho": 390,
+     "dich": "/",
+     "loi": "không thấy mục điều hướng #tabbar a[href='/']"
+    },
+    {
+     "kho": 390,
+     "cham": [
+      {
+       "kho": 390,
+       "trang": "/orders",
+       "nut": "Lọc",
+       "ms": 16
+      },
+      {
+       "kho": 390,
+       "trang": "/",
+       "nut": "Tất cả",
+       "ms": 14
+      }
+     ]
+    },
+    {
+     "kho": 1040,
+     "dich": "/orders",
+     "chuyenTrangFcp": 57,
+     "chuyenTrangNoiDung": 583,
+     "fcp": 56,
+     "noiDungXong": 581.8000000119209
+    },
+    {
+     "kho": 1040,
+     "dich": "/order-form",
+     "loi": "không thấy mục điều hướng #sidebar a[href='/order-form']"
+    },
+    {
+     "kho": 1040,
+     "dich": "/",
+     "chuyenTrangFcp": 77,
+     "chuyenTrangNoiDung": 895,
+     "fcp": 76,
+     "noiDungXong": 893.8999999761581
+    },
+    {
+     "kho": 1040,
+     "cham": [
+      {
+       "kho": 1040,
+       "trang": "/orders",
+       "nut": "Lọc",
+       "ms": 28
+      },
+      {
+       "kho": 1040,
+       "trang": "/",
+       "nut": "Tất cả",
+       "ms": 24
+      }
+     ]
+    },
+    {
+     "kho": 390,
+     "dich": "/orders",
+     "chuyenTrangFcp": 125,
+     "chuyenTrangNoiDung": 505,
+     "fcp": 124,
+     "noiDungXong": 504.5
+    },
+    {
+     "kho": 390,
+     "dich": "/order-form",
+     "chuyenTrangFcp": 165,
+     "chuyenTrangNoiDung": 714,
+     "fcp": 164,
+     "noiDungXong": 712.7999999523163
+    },
+    {
+     "kho": 390,
+     "dich": "/",
+     "loi": "không thấy mục điều hướng #tabbar a[href='/']"
+    },
+    {
+     "kho": 390,
+     "cham": [
+      {
+       "kho": 390,
+       "trang": "/orders",
+       "nut": "Lọc",
+       "ms": 21
+      },
+      {
+       "kho": 390,
+       "trang": "/",
+       "nut": "Tất cả",
+       "ms": 21
+      }
+     ]
+    },
+    {
+     "kho": 1040,
+     "dich": "/orders",
+     "chuyenTrangFcp": 69,
+     "chuyenTrangNoiDung": 621,
+     "fcp": 68,
+     "noiDungXong": 620.3000000119209
+    },
+    {
+     "kho": 1040,
+     "dich": "/order-form",
+     "loi": "không thấy mục điều hướng #sidebar a[href='/order-form']"
+    },
+    {
+     "kho": 1040,
+     "dich": "/",
+     "chuyenTrangFcp": 113,
+     "chuyenTrangNoiDung": 946,
+     "fcp": 112,
+     "noiDungXong": 944.1999999880791
+    },
+    {
+     "kho": 1040,
+     "cham": [
+      {
+       "kho": 1040,
+       "trang": "/orders",
+       "nut": "Lọc",
+       "ms": 47
+      },
+      {
+       "kho": 1040,
+       "trang": "/",
+       "nut": "Tất cả",
+       "ms": 42
+      }
+     ]
+    },
+    {
+     "kho": 390,
+     "dich": "/orders",
+     "chuyenTrangFcp": 149,
+     "chuyenTrangNoiDung": 651,
+     "fcp": 148,
+     "noiDungXong": 649.1999999880791
+    },
+    {
+     "kho": 390,
+     "dich": "/order-form",
+     "chuyenTrangFcp": 190,
+     "chuyenTrangNoiDung": 955,
+     "fcp": 188,
+     "noiDungXong": 952.8999999761581
+    },
+    {
+     "kho": 390,
+     "dich": "/",
+     "loi": "không thấy mục điều hướng #tabbar a[href='/']"
+    },
+    {
+     "kho": 390,
+     "cham": [
+      {
+       "kho": 390,
+       "trang": "/orders",
+       "nut": "Lọc",
+       "ms": 53
+      },
+      {
+       "kho": 390,
+       "trang": "/",
+       "nut": "Tất cả",
+       "ms": 50
+      }
+     ]
+    },
+    {
+     "kho": 1040,
+     "dich": "/orders",
+     "chuyenTrangFcp": 207,
+     "chuyenTrangNoiDung": 724,
+     "fcp": 204,
+     "noiDungXong": 721.1999999880791
+    },
+    {
+     "kho": 1040,
+     "dich": "/order-form",
+     "loi": "không thấy mục điều hướng #sidebar a[href='/order-form']"
+    },
+    {
+     "kho": 1040,
+     "dich": "/",
+     "chuyenTrangFcp": 189,
+     "chuyenTrangNoiDung": 1031,
+     "fcp": 188,
+     "noiDungXong": 1030.199999988079
+    },
+    {
+     "kho": 1040,
+     "cham": [
+      {
+       "kho": 1040,
+       "trang": "/orders",
+       "nut": "Lọc",
+       "ms": 73
+      },
+      {
+       "kho": 1040,
+       "trang": "/",
+       "nut": "Tất cả",
+       "ms": 54
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

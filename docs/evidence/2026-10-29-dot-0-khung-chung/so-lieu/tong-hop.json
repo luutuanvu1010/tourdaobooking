@@ -1,0 +1,7892 @@
+{
+ "luc": "2026-10-29T04:55:05.708Z",
+ "tongO": {
+  "nhieu": 492
+ },
+ "loiO": {
+  "nhieu": 0
+ },
+ "trang": {
+  "/": {
+   "ho": "bảng điều khiển",
+   "tieuDe": "Trang chủ",
+   "bo": [
+    "SUPER_ADMIN",
+    "ADMIN",
+    "ACCOUNTING",
+    "SALES"
+   ],
+   "anh390": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/trang-chu-390.jpg",
+   "anh1040": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/trang-chu-1040.jpg",
+   "boAnh": "SUPER_ADMIN",
+   "do390": {
+    "soManCuon": 2.2,
+    "soTuongTac": 33,
+    "soNhoHon44": 0,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "—",
+    "nutChinh": [],
+    "h1": [
+     "24px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "NAV:fixed:785"
+    ],
+    "catChu": [
+     "Toàn Quyền Thử",
+     "Trang chủ"
+    ],
+    "thoRa": []
+   },
+   "do1040": {
+    "soManCuon": 3,
+    "soTuongTac": 47,
+    "soNhoHon44": 14,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "12/12",
+    "nutChinh": [
+     "Tạo đơn"
+    ],
+    "h1": [
+     "24px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "NAV:sticky:0",
+     "sidebar-group:sticky:554",
+     "sidebar-foot:sticky:610"
+    ],
+    "catChu": [
+     "Toàn Quyền Thử",
+     "Quản trị · Toàn quyền",
+     "Trang chủ"
+    ],
+    "thoRa": []
+   }
+  },
+  "/bang-ke-xe": {
+   "ho": "bảng điều khiển",
+   "tieuDe": "Bảng kê chi phí xe thuê",
+   "bo": [
+    "SUPER_ADMIN",
+    "ADMIN",
+    "ACCOUNTING"
+   ],
+   "anh390": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/bang-ke-xe-390.jpg",
+   "anh1040": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/bang-ke-xe-1040.jpg",
+   "boAnh": "SUPER_ADMIN",
+   "do390": {
+    "soManCuon": 1.1,
+    "soTuongTac": 16,
+    "soNhoHon44": 0,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "—",
+    "nutChinh": [],
+    "h1": [
+     "24px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "HEADER:sticky:0",
+     "NAV:fixed:785"
+    ],
+    "catChu": [
+     "Bảng kê chi phí xe thuê"
+    ],
+    "thoRa": []
+   },
+   "do1040": {
+    "soManCuon": 1,
+    "soTuongTac": 29,
+    "soNhoHon44": 14,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "12/12",
+    "nutChinh": [
+     "Tạo đơn"
+    ],
+    "h1": [
+     "24px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "NAV:sticky:0",
+     "sidebar-group:sticky:554",
+     "sidebar-foot:sticky:610"
+    ],
+    "catChu": [
+     "Toàn Quyền Thử",
+     "Quản trị · Toàn quyền"
+    ],
+    "thoRa": []
+   }
+  },
+  "/dieu-phoi": {
+   "ho": "bảng điều khiển",
+   "tieuDe": "Điều phối xe",
+   "bo": [
+    "SUPER_ADMIN",
+    "ADMIN",
+    "ACCOUNTING",
+    "SALES"
+   ],
+   "anh390": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/dieu-phoi-390.jpg",
+   "anh1040": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/dieu-phoi-1040.jpg",
+   "boAnh": "SUPER_ADMIN",
+   "do390": {
+    "soManCuon": 1,
+    "soTuongTac": 18,
+    "soNhoHon44": 3,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "—",
+    "nutChinh": [
+     "+ Chuyến mới"
+    ],
+    "h1": [
+     "24px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "HEADER:sticky:0",
+     "NAV:fixed:785"
+    ],
+    "catChu": [],
+    "thoRa": []
+   },
+   "do1040": {
+    "soManCuon": 1.4,
+    "soTuongTac": 33,
+    "soNhoHon44": 14,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "12/12",
+    "nutChinh": [
+     "Tạo đơn",
+     "+ Chuyến mới",
+     "CX-2910-02, 08:40–10:30, Đang chạy, tải "
+    ],
+    "h1": [
+     "24px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "NAV:sticky:0",
+     "sidebar-group:sticky:554",
+     "sidebar-foot:sticky:610",
+     "dp-tl-nhan:sticky:514",
+     "dp-tl-nhom-t:sticky:543",
+     "dp-tl-nhan:sticky:570",
+     "dp-tl-nhan:sticky:634",
+     "dp-tl-nhan:sticky:698",
+     "dp-tl-nhan:sticky:762",
+     "dp-tl-nhan:sticky:826",
+     "dp-tl-nhom-t:sticky:891",
+     "dp-tl-nhan:sticky:918"
+    ],
+    "catChu": [
+     "Toàn Quyền Thử",
+     "Quản trị · Toàn quyền",
+     "Tài Xế Công Ty Thử",
+     "Tài Xế Đối Tác Thử"
+    ],
+    "thoRa": []
+   }
+  },
+  "/hoa-hong": {
+   "ho": "bảng điều khiển",
+   "tieuDe": "Hoa hồng đối tác",
+   "bo": [
+    "SUPER_ADMIN",
+    "ADMIN",
+    "ACCOUNTING",
+    "SALES"
+   ],
+   "anh390": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/hoa-hong-390.jpg",
+   "anh1040": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/hoa-hong-1040.jpg",
+   "boAnh": "SUPER_ADMIN",
+   "do390": {
+    "soManCuon": 1.5,
+    "soTuongTac": 17,
+    "soNhoHon44": 0,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "—",
+    "nutChinh": [
+     "Mức đang áp dụng",
+     "＋ Thêm mức"
+    ],
+    "h1": [
+     "24px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "HEADER:sticky:0",
+     "vc-bottom-bar.thanh-hanh-dong-cuoi:sticky:767"
+    ],
+    "catChu": [],
+    "thoRa": []
+   },
+   "do1040": {
+    "soManCuon": 1.4,
+    "soTuongTac": 53,
+    "soNhoHon44": 25,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "12/12",
+    "nutChinh": [
+     "Tạo đơn",
+     "＋ Thêm mức",
+     "Mức đang áp dụng",
+     "Tra"
+    ],
+    "h1": [
+     "24px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "NAV:sticky:0",
+     "sidebar-foot:sticky:610"
+    ],
+    "catChu": [
+     "Toàn Quyền Thử",
+     "Quản trị · Toàn quyền"
+    ],
+    "thoRa": []
+   }
+  },
+  "/khoa-thang": {
+   "ho": "bảng điều khiển",
+   "tieuDe": "Khoá sổ tháng",
+   "bo": [
+    "SUPER_ADMIN",
+    "ACCOUNTING"
+   ],
+   "anh390": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/khoa-thang-390.jpg",
+   "anh1040": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/khoa-thang-1040.jpg",
+   "boAnh": "SUPER_ADMIN",
+   "do390": {
+    "soManCuon": 1,
+    "soTuongTac": 11,
+    "soNhoHon44": 0,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "—",
+    "nutChinh": [],
+    "h1": [
+     "24px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "HEADER:sticky:0",
+     "NAV:fixed:785"
+    ],
+    "catChu": [
+     "Khoá sổ tháng"
+    ],
+    "thoRa": []
+   },
+   "do1040": {
+    "soManCuon": 1,
+    "soTuongTac": 24,
+    "soNhoHon44": 14,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "12/12",
+    "nutChinh": [
+     "Tạo đơn"
+    ],
+    "h1": [
+     "24px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "NAV:sticky:0",
+     "sidebar-group:sticky:554",
+     "sidebar-foot:sticky:610"
+    ],
+    "catChu": [
+     "Toàn Quyền Thử",
+     "Quản trị · Toàn quyền"
+    ],
+    "thoRa": []
+   }
+  },
+  "/lich-xe-ban": {
+   "ho": "bảng điều khiển",
+   "tieuDe": "Lịch xe bận",
+   "bo": [
+    "SUPER_ADMIN",
+    "ADMIN"
+   ],
+   "anh390": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/lich-xe-ban-390.jpg",
+   "anh1040": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/lich-xe-ban-1040.jpg",
+   "boAnh": "SUPER_ADMIN",
+   "do390": {
+    "soManCuon": 1.3,
+    "soTuongTac": 21,
+    "soNhoHon44": 0,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "—",
+    "nutChinh": [
+     "Thêm lịch bận"
+    ],
+    "h1": [
+     "24px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "HEADER:sticky:0",
+     "xb-dau-xe.xb-eyebrow:sticky:338",
+     "xb-xe:sticky:405",
+     "xb-xe:sticky:625",
+     "xb-xe:sticky:697",
+     "xb-xe:sticky:769",
+     "xb-xe:sticky:841",
+     "xb-xe:sticky:913",
+     "NAV:fixed:785"
+    ],
+    "catChu": [],
+    "thoRa": []
+   },
+   "do1040": {
+    "soManCuon": 1.3,
+    "soTuongTac": 35,
+    "soNhoHon44": 14,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "12/12",
+    "nutChinh": [
+     "Tạo đơn",
+     "Thêm lịch bận"
+    ],
+    "h1": [
+     "24px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "NAV:sticky:0",
+     "sidebar-group:sticky:554",
+     "sidebar-foot:sticky:610",
+     "xb-dau-xe.xb-eyebrow:sticky:271",
+     "xb-xe:sticky:338",
+     "xb-xe:sticky:558",
+     "xb-xe:sticky:630",
+     "xb-xe:sticky:702",
+     "xb-xe:sticky:774",
+     "xb-xe:sticky:846"
+    ],
+    "catChu": [
+     "Toàn Quyền Thử",
+     "Quản trị · Toàn quyền"
+    ],
+    "thoRa": []
+   }
+  },
+  "/so-cong-no": {
+   "ho": "bảng điều khiển",
+   "tieuDe": "Sổ công nợ",
+   "bo": [
+    "SUPER_ADMIN",
+    "ACCOUNTING"
+   ],
+   "anh390": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/so-cong-no-390.jpg",
+   "anh1040": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/so-cong-no-1040.jpg",
+   "boAnh": "SUPER_ADMIN",
+   "do390": {
+    "soManCuon": 1,
+    "soTuongTac": 19,
+    "soNhoHon44": 1,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "—",
+    "nutChinh": [
+     "Tất cả (2)"
+    ],
+    "h1": [
+     "24px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "HEADER:sticky:0",
+     "NAV:fixed:785"
+    ],
+    "catChu": [
+     "Sổ công nợ",
+     "Danh sách các bên",
+     "Tìm theo tên bên"
+    ],
+    "thoRa": []
+   },
+   "do1040": {
+    "soManCuon": 1,
+    "soTuongTac": 32,
+    "soNhoHon44": 15,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "12/12",
+    "nutChinh": [
+     "Tạo đơn",
+     "Tất cả (2)"
+    ],
+    "h1": [
+     "24px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "NAV:sticky:0",
+     "sidebar-group:sticky:554",
+     "sidebar-foot:sticky:610",
+     "card.scn-ct-khu:sticky:400"
+    ],
+    "catChu": [
+     "Toàn Quyền Thử",
+     "Quản trị · Toàn quyền",
+     "Danh sách các bên",
+     "Tìm theo tên bên"
+    ],
+    "thoRa": []
+   }
+  },
+  "/tai-xe": {
+   "ho": "bảng điều khiển",
+   "tieuDe": "Trang chủ",
+   "bo": [
+    "DRIVER",
+    "DRIVER_PARTNER"
+   ],
+   "anh390": "~/tourdao-ux-dot-0/anh/nhieu/DRIVER/tai-xe-390.jpg",
+   "anh1040": "~/tourdao-ux-dot-0/anh/nhieu/DRIVER/tai-xe-1040.jpg",
+   "boAnh": "DRIVER",
+   "do390": {
+    "soManCuon": 1,
+    "soTuongTac": 12,
+    "soNhoHon44": 0,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "—",
+    "nutChinh": [],
+    "h1": [
+     "26px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "HEADER:sticky:0",
+     "NAV:fixed:785"
+    ],
+    "catChu": [],
+    "thoRa": []
+   },
+   "do1040": {
+    "soManCuon": 1,
+    "soTuongTac": 14,
+    "soNhoHon44": 6,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "12/12",
+    "nutChinh": [],
+    "h1": [
+     "26px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "NAV:sticky:0",
+     "sidebar-foot:sticky:610"
+    ],
+    "catChu": [
+     "Tài Xế Công Ty Thử"
+    ],
+    "thoRa": []
+   }
+  },
+  "/audit": {
+   "ho": "danh sách",
+   "tieuDe": "Nhật ký",
+   "bo": [
+    "SUPER_ADMIN",
+    "ADMIN"
+   ],
+   "anh390": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/audit-390.jpg",
+   "anh1040": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/audit-1040.jpg",
+   "boAnh": "SUPER_ADMIN",
+   "do390": {
+    "soManCuon": 9.5,
+    "soTuongTac": 39,
+    "soNhoHon44": 25,
+    "oGoNho": 0,
+    "oKhongNhan": 1,
+    "tranNgang": true,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "—",
+    "nutChinh": [],
+    "h1": [
+     "24px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "HEADER:sticky:0",
+     "NAV:fixed:785"
+    ],
+    "catChu": [
+     "Nhật ký hệ thống"
+    ],
+    "thoRa": []
+   },
+   "do1040": {
+    "soManCuon": 5.6,
+    "soTuongTac": 66,
+    "soNhoHon44": 25,
+    "oGoNho": 0,
+    "oKhongNhan": 1,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "12/12",
+    "nutChinh": [
+     "Tạo đơn"
+    ],
+    "h1": [
+     "24px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "NAV:sticky:0",
+     "sidebar-foot:sticky:610"
+    ],
+    "catChu": [
+     "Toàn Quyền Thử",
+     "Quản trị · Toàn quyền"
+    ],
+    "thoRa": []
+   }
+  },
+  "/cho-xac-nhan": {
+   "ho": "danh sách",
+   "tieuDe": "Đơn chờ xác nhận",
+   "bo": [
+    "SUPER_ADMIN",
+    "ADMIN",
+    "ACCOUNTING",
+    "SALES",
+    "FIELD"
+   ],
+   "anh390": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/cho-xac-nhan-390.jpg",
+   "anh1040": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/cho-xac-nhan-1040.jpg",
+   "boAnh": "SUPER_ADMIN",
+   "do390": {
+    "soManCuon": 1.6,
+    "soTuongTac": 19,
+    "soNhoHon44": 3,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "—",
+    "nutChinh": [
+     "Kiểm vé",
+     "Kiểm vé"
+    ],
+    "h1": [
+     "24px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "HEADER:sticky:0",
+     "NAV:fixed:785"
+    ],
+    "catChu": [
+     "Đơn chờ xác nhận"
+    ],
+    "thoRa": []
+   },
+   "do1040": {
+    "soManCuon": 1.5,
+    "soTuongTac": 30,
+    "soNhoHon44": 18,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "12/12",
+    "nutChinh": [
+     "Tạo đơn",
+     "Kiểm vé",
+     "Kiểm vé"
+    ],
+    "h1": [
+     "24px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "NAV:sticky:0",
+     "sidebar-group:sticky:554",
+     "sidebar-foot:sticky:610"
+    ],
+    "catChu": [
+     "Toàn Quyền Thử",
+     "Quản trị · Toàn quyền"
+    ],
+    "thoRa": []
+   }
+  },
+  "/cuoc": {
+   "ho": "danh sách",
+   "tieuDe": "Cuốc của tôi",
+   "bo": [
+    "DRIVER",
+    "DRIVER_PARTNER"
+   ],
+   "anh390": "~/tourdao-ux-dot-0/anh/nhieu/DRIVER/cuoc-390.jpg",
+   "anh1040": "~/tourdao-ux-dot-0/anh/nhieu/DRIVER/cuoc-1040.jpg",
+   "boAnh": "DRIVER",
+   "do390": {
+    "soManCuon": 1.2,
+    "soTuongTac": 12,
+    "soNhoHon44": 0,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "—",
+    "nutChinh": [],
+    "h1": [
+     "26px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "HEADER:sticky:0",
+     "NAV:fixed:785"
+    ],
+    "catChu": [],
+    "thoRa": []
+   },
+   "do1040": {
+    "soManCuon": 1,
+    "soTuongTac": 15,
+    "soNhoHon44": 6,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "12/12",
+    "nutChinh": [],
+    "h1": [
+     "26px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "NAV:sticky:0",
+     "sidebar-foot:sticky:610"
+    ],
+    "catChu": [
+     "Tài Xế Công Ty Thử"
+    ],
+    "thoRa": []
+   }
+  },
+  "/de-nghi": {
+   "ho": "danh sách",
+   "tieuDe": "Đề nghị chuyển khách",
+   "bo": [
+    "SUPER_ADMIN",
+    "ADMIN"
+   ],
+   "anh390": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/de-nghi-390.jpg",
+   "anh1040": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/de-nghi-1040.jpg",
+   "boAnh": "SUPER_ADMIN",
+   "do390": {
+    "soManCuon": 1,
+    "soTuongTac": 11,
+    "soNhoHon44": 0,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "—",
+    "nutChinh": [],
+    "h1": [
+     "24px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "HEADER:sticky:0",
+     "NAV:fixed:785"
+    ],
+    "catChu": [],
+    "thoRa": []
+   },
+   "do1040": {
+    "soManCuon": 1,
+    "soTuongTac": 25,
+    "soNhoHon44": 13,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "12/12",
+    "nutChinh": [
+     "Tạo đơn"
+    ],
+    "h1": [
+     "26px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "NAV:sticky:0",
+     "sidebar-group:sticky:554",
+     "sidebar-foot:sticky:610"
+    ],
+    "catChu": [
+     "Toàn Quyền Thử",
+     "Quản trị · Toàn quyền"
+    ],
+    "thoRa": []
+   }
+  },
+  "/feedback": {
+   "ho": "danh sách",
+   "tieuDe": "Hỗ trợ",
+   "bo": [
+    "SUPER_ADMIN",
+    "ADMIN",
+    "ACCOUNTING",
+    "SALES",
+    "FIELD",
+    "PARTNER",
+    "INTERN",
+    "HR",
+    "DRIVER",
+    "DRIVER_PARTNER"
+   ],
+   "anh390": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/feedback-390.jpg",
+   "anh1040": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/feedback-1040.jpg",
+   "boAnh": "SUPER_ADMIN",
+   "do390": {
+    "soManCuon": 1.1,
+    "soTuongTac": 16,
+    "soNhoHon44": 0,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "—",
+    "nutChinh": [
+     "Trạng thái: Mới",
+     "Gửi"
+    ],
+    "h1": [],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "HEADER:sticky:0",
+     "ht-tra-loi.thanh-hanh-dong-cuoi:sticky:567"
+    ],
+    "catChu": [],
+    "thoRa": []
+   },
+   "do1040": {
+    "soManCuon": 1.1,
+    "soTuongTac": 35,
+    "soNhoHon44": 14,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "12/12",
+    "nutChinh": [
+     "Tạo đơn",
+     "Trạng thái: Mới",
+     "Gửi"
+    ],
+    "h1": [
+     "24px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "NAV:sticky:0",
+     "sidebar-group:sticky:554",
+     "sidebar-foot:sticky:610",
+     "ht-tra-loi.thanh-hanh-dong-cuoi:sticky:571"
+    ],
+    "catChu": [
+     "Toàn Quyền Thử",
+     "Quản trị · Toàn quyền"
+    ],
+    "thoRa": []
+   }
+  },
+  "/giay-to-sap-het-han": {
+   "ho": "danh sách",
+   "tieuDe": "Giấy tờ sắp hết hạn",
+   "bo": [
+    "SUPER_ADMIN",
+    "ADMIN"
+   ],
+   "anh390": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/giay-to-sap-het-han-390.jpg",
+   "anh1040": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/giay-to-sap-het-han-1040.jpg",
+   "boAnh": "SUPER_ADMIN",
+   "do390": {
+    "soManCuon": 1,
+    "soTuongTac": 14,
+    "soNhoHon44": 0,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "—",
+    "nutChinh": [],
+    "h1": [
+     "18px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "HEADER:sticky:0",
+     "NAV:fixed:785"
+    ],
+    "catChu": [],
+    "thoRa": []
+   },
+   "do1040": {
+    "soManCuon": 1,
+    "soTuongTac": 28,
+    "soNhoHon44": 14,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "12/12",
+    "nutChinh": [
+     "Tạo đơn"
+    ],
+    "h1": [
+     "26px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "NAV:sticky:0",
+     "sidebar-group:sticky:554",
+     "sidebar-foot:sticky:610"
+    ],
+    "catChu": [
+     "Toàn Quyền Thử",
+     "Quản trị · Toàn quyền"
+    ],
+    "thoRa": []
+   }
+  },
+  "/orders": {
+   "ho": "danh sách",
+   "tieuDe": "Đơn hàng",
+   "bo": [
+    "SUPER_ADMIN",
+    "ADMIN",
+    "ACCOUNTING",
+    "SALES",
+    "FIELD",
+    "PARTNER",
+    "INTERN"
+   ],
+   "anh390": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/orders-390.jpg",
+   "anh1040": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/orders-1040.jpg",
+   "boAnh": "SUPER_ADMIN",
+   "do390": {
+    "soManCuon": 3.6,
+    "soTuongTac": 74,
+    "soNhoHon44": 0,
+    "oGoNho": 0,
+    "oKhongNhan": 1,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "—",
+    "nutChinh": [],
+    "h1": [
+     "24px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "HEADER:sticky:0",
+     "NAV:fixed:785"
+    ],
+    "catChu": [
+     "Ngô Thị Mai",
+     "Đón tại Khách sạn Vinpearl Beachfront, 78 Trần Phú",
+     "Hồ Văn Sơn",
+     "Đón tại Khách sạn Havana, 38 Trần Phú",
+     "Vũ Mỹ Linh",
+     "Phan Hữu Phước",
+     "Huỳnh Thanh Tâm",
+     "Phạm Ngọc Trâm",
+     "Khách của Lữ Hành Thử 13",
+     "Khách của Lữ Hành Thử 6",
+     "Khách của Cộng Tác Thử 11",
+     "Khách của Cộng Tác Thử 4",
+     "Trần Văn Bình",
+     "Nguyễn Thị Lan Anh",
+     "Lý Phương Thảo"
+    ],
+    "thoRa": []
+   },
+   "do1040": {
+    "soManCuon": 3.7,
+    "soTuongTac": 86,
+    "soNhoHon44": 14,
+    "oGoNho": 0,
+    "oKhongNhan": 1,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "12/12",
+    "nutChinh": [
+     "Tạo đơn"
+    ],
+    "h1": [
+     "24px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "NAV:sticky:0",
+     "sidebar-group:sticky:554",
+     "sidebar-foot:sticky:610"
+    ],
+    "catChu": [
+     "Toàn Quyền Thử",
+     "Quản trị · Toàn quyền"
+    ],
+    "thoRa": []
+   }
+  },
+  "/parties": {
+   "ho": "danh sách",
+   "tieuDe": "Danh bạ",
+   "bo": [
+    "SUPER_ADMIN",
+    "ADMIN",
+    "ACCOUNTING",
+    "SALES"
+   ],
+   "anh390": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/parties-390.jpg",
+   "anh1040": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/parties-1040.jpg",
+   "boAnh": "SUPER_ADMIN",
+   "do390": {
+    "soManCuon": 5.2,
+    "soTuongTac": 24,
+    "soNhoHon44": 1,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "—",
+    "nutChinh": [
+     "Tìm"
+    ],
+    "h1": [
+     "24px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "HEADER:sticky:0",
+     "NAV:fixed:785"
+    ],
+    "catChu": [
+     "Danh bạ"
+    ],
+    "thoRa": []
+   },
+   "do1040": {
+    "soManCuon": 2.6,
+    "soTuongTac": 36,
+    "soNhoHon44": 14,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "12/12",
+    "nutChinh": [
+     "Tạo đơn",
+     "Tìm"
+    ],
+    "h1": [
+     "24px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "NAV:sticky:0",
+     "sidebar-group:sticky:554",
+     "sidebar-foot:sticky:610"
+    ],
+    "catChu": [
+     "Toàn Quyền Thử",
+     "Quản trị · Toàn quyền"
+    ],
+    "thoRa": []
+   }
+  },
+  "/sessions": {
+   "ho": "danh sách",
+   "tieuDe": "Máy đang đăng nhập",
+   "bo": [
+    "SUPER_ADMIN",
+    "ADMIN"
+   ],
+   "anh390": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/sessions-390.jpg",
+   "anh1040": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/sessions-1040.jpg",
+   "boAnh": "SUPER_ADMIN",
+   "do390": {
+    "soManCuon": 46.7,
+    "soTuongTac": 171,
+    "soNhoHon44": 0,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "—",
+    "nutChinh": [],
+    "h1": [
+     "24px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "HEADER:sticky:0",
+     "NAV:fixed:785"
+    ],
+    "catChu": [
+     "Máy đang đăng nhập",
+     "Máy đang đăng nhập"
+    ],
+    "thoRa": []
+   },
+   "do1040": {
+    "soManCuon": 16.4,
+    "soTuongTac": 198,
+    "soNhoHon44": 25,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "12/12",
+    "nutChinh": [
+     "Tạo đơn"
+    ],
+    "h1": [
+     "24px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "NAV:sticky:0",
+     "sidebar-foot:sticky:610"
+    ],
+    "catChu": [
+     "Toàn Quyền Thử",
+     "Quản trị · Toàn quyền"
+    ],
+    "thoRa": []
+   }
+  },
+  "/staff": {
+   "ho": "danh sách",
+   "tieuDe": "Quản lý tài khoản",
+   "bo": [
+    "SUPER_ADMIN",
+    "ADMIN",
+    "HR"
+   ],
+   "anh390": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/staff-390.jpg",
+   "anh1040": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/staff-1040.jpg",
+   "boAnh": "SUPER_ADMIN",
+   "do390": {
+    "soManCuon": 5.8,
+    "soTuongTac": 97,
+    "soNhoHon44": 33,
+    "oGoNho": 0,
+    "oKhongNhan": 1,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "—",
+    "nutChinh": [],
+    "h1": [
+     "24px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "HEADER:sticky:0",
+     "NAV:fixed:785"
+    ],
+    "catChu": [
+     "Quản lý tài khoản"
+    ],
+    "thoRa": []
+   },
+   "do1040": {
+    "soManCuon": 3.7,
+    "soTuongTac": 125,
+    "soNhoHon44": 59,
+    "oGoNho": 0,
+    "oKhongNhan": 1,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "12/12",
+    "nutChinh": [
+     "Tạo đơn",
+     "Tạo tài khoản"
+    ],
+    "h1": [
+     "24px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "NAV:sticky:0",
+     "sidebar-foot:sticky:610"
+    ],
+    "catChu": [
+     "Toàn Quyền Thử",
+     "Quản trị · Toàn quyền"
+    ],
+    "thoRa": []
+   }
+  },
+  "/xe": {
+   "ho": "danh sách",
+   "tieuDe": "Xe",
+   "bo": [
+    "SUPER_ADMIN",
+    "ADMIN"
+   ],
+   "anh390": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/xe-390.jpg",
+   "anh1040": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/xe-1040.jpg",
+   "boAnh": "SUPER_ADMIN",
+   "do390": {
+    "soManCuon": 1.4,
+    "soTuongTac": 18,
+    "soNhoHon44": 0,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "—",
+    "nutChinh": [],
+    "h1": [
+     "26px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "HEADER:sticky:0",
+     "vc-filters:sticky:140",
+     "vc-bottom-bar.thanh-hanh-dong-cuoi:sticky:767"
+    ],
+    "catChu": [
+     "Xe"
+    ],
+    "thoRa": []
+   },
+   "do1040": {
+    "soManCuon": 1.1,
+    "soTuongTac": 37,
+    "soNhoHon44": 14,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "12/12",
+    "nutChinh": [
+     "Tạo đơn"
+    ],
+    "h1": [
+     "26px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "NAV:sticky:0",
+     "sidebar-group:sticky:554",
+     "sidebar-foot:sticky:610"
+    ],
+    "catChu": [
+     "Toàn Quyền Thử",
+     "Quản trị · Toàn quyền"
+    ],
+    "thoRa": []
+   }
+  },
+  "/xe-dang-chay": {
+   "ho": "danh sách",
+   "tieuDe": "Xe đang chạy",
+   "bo": [
+    "SUPER_ADMIN",
+    "ADMIN",
+    "ACCOUNTING",
+    "SALES"
+   ],
+   "anh390": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/xe-dang-chay-390.jpg",
+   "anh1040": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/xe-dang-chay-1040.jpg",
+   "boAnh": "SUPER_ADMIN",
+   "do390": {
+    "soManCuon": 1,
+    "soTuongTac": 12,
+    "soNhoHon44": 0,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "—",
+    "nutChinh": [],
+    "h1": [
+     "24px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "HEADER:sticky:0",
+     "NAV:fixed:785"
+    ],
+    "catChu": [],
+    "thoRa": []
+   },
+   "do1040": {
+    "soManCuon": 1,
+    "soTuongTac": 24,
+    "soNhoHon44": 14,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "12/12",
+    "nutChinh": [
+     "Tạo đơn"
+    ],
+    "h1": [
+     "26px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "NAV:sticky:0",
+     "sidebar-group:sticky:554",
+     "sidebar-foot:sticky:610"
+    ],
+    "catChu": [
+     "Toàn Quyền Thử",
+     "Quản trị · Toàn quyền"
+    ],
+    "thoRa": []
+   }
+  },
+  "/chuyen": {
+   "ho": "chi tiết",
+   "tieuDe": "CX-2910-03",
+   "bo": [
+    "SUPER_ADMIN",
+    "ADMIN",
+    "ACCOUNTING",
+    "SALES"
+   ],
+   "anh390": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/chuyen-390.jpg",
+   "anh1040": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/chuyen-1040.jpg",
+   "boAnh": "SUPER_ADMIN",
+   "do390": {
+    "soManCuon": 3.5,
+    "soTuongTac": 26,
+    "soNhoHon44": 0,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "—",
+    "nutChinh": [
+     "Cứu hộ"
+    ],
+    "h1": [
+     "24px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "HEADER:sticky:0",
+     "NAV:fixed:785"
+    ],
+    "catChu": [],
+    "thoRa": []
+   },
+   "do1040": {
+    "soManCuon": 2.8,
+    "soTuongTac": 41,
+    "soNhoHon44": 14,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "12/12",
+    "nutChinh": [
+     "Tạo đơn",
+     "Cứu hộ"
+    ],
+    "h1": [
+     "26px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "NAV:sticky:0",
+     "sidebar-group:sticky:554",
+     "sidebar-foot:sticky:610"
+    ],
+    "catChu": [
+     "Toàn Quyền Thử",
+     "Quản trị · Toàn quyền"
+    ],
+    "thoRa": []
+   }
+  },
+  "/cuoc-chuyen": {
+   "ho": "chi tiết",
+   "tieuDe": "Chuyến của tôi",
+   "bo": [
+    "DRIVER",
+    "DRIVER_PARTNER"
+   ],
+   "anh390": "~/tourdao-ux-dot-0/anh/nhieu/DRIVER/cuoc-chuyen-390.jpg",
+   "anh1040": "~/tourdao-ux-dot-0/anh/nhieu/DRIVER/cuoc-chuyen-1040.jpg",
+   "boAnh": "DRIVER",
+   "do390": {
+    "soManCuon": 1,
+    "soTuongTac": 10,
+    "soNhoHon44": 0,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "—",
+    "nutChinh": [],
+    "h1": [],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "HEADER:sticky:0",
+     "NAV:fixed:785"
+    ],
+    "catChu": [],
+    "thoRa": []
+   },
+   "do1040": {
+    "soManCuon": 1,
+    "soTuongTac": 14,
+    "soNhoHon44": 7,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "12/12",
+    "nutChinh": [],
+    "h1": [],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "NAV:sticky:0",
+     "sidebar-foot:sticky:610"
+    ],
+    "catChu": [
+     "Tài Xế Công Ty Thử"
+    ],
+    "thoRa": []
+   }
+  },
+  "/order": {
+   "ho": "chi tiết",
+   "tieuDe": "TD-20261029-0045",
+   "bo": [
+    "SUPER_ADMIN",
+    "ADMIN",
+    "ACCOUNTING",
+    "SALES",
+    "FIELD",
+    "PARTNER",
+    "INTERN"
+   ],
+   "anh390": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/order-390.jpg",
+   "anh1040": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/order-1040.jpg",
+   "boAnh": "SUPER_ADMIN",
+   "do390": {
+    "soManCuon": 4.8,
+    "soTuongTac": 25,
+    "soNhoHon44": 0,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "—",
+    "nutChinh": [],
+    "h1": [
+     "24px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "HEADER:sticky:0",
+     "NAV:fixed:785"
+    ],
+    "catChu": [
+     "TD-20261029-0045",
+     "TD-20261029-0045"
+    ],
+    "thoRa": []
+   },
+   "do1040": {
+    "soManCuon": 3.7,
+    "soTuongTac": 37,
+    "soNhoHon44": 15,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "12/12",
+    "nutChinh": [
+     "Tạo đơn"
+    ],
+    "h1": [
+     "24px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "NAV:sticky:0",
+     "sidebar-group:sticky:554",
+     "sidebar-foot:sticky:610",
+     "side:sticky:701"
+    ],
+    "catChu": [
+     "Toàn Quyền Thử",
+     "Quản trị · Toàn quyền",
+     "TD-20261029-0045"
+    ],
+    "thoRa": []
+   }
+  },
+  "/xe-chi-tiet": {
+   "ho": "chi tiết",
+   "tieuDe": "79B-123.45",
+   "bo": [
+    "SUPER_ADMIN",
+    "ADMIN"
+   ],
+   "anh390": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/xe-chi-tiet-390.jpg",
+   "anh1040": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/xe-chi-tiet-1040.jpg",
+   "boAnh": "SUPER_ADMIN",
+   "do390": {
+    "soManCuon": 1,
+    "soTuongTac": 12,
+    "soNhoHon44": 0,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "—",
+    "nutChinh": [],
+    "h1": [
+     "24px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "HEADER:sticky:0",
+     "vc-bottom-bar.thanh-hanh-dong-cuoi:sticky:746"
+    ],
+    "catChu": [],
+    "thoRa": []
+   },
+   "do1040": {
+    "soManCuon": 1,
+    "soTuongTac": 30,
+    "soNhoHon44": 15,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "12/12",
+    "nutChinh": [
+     "Tạo đơn"
+    ],
+    "h1": [
+     "28px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "NAV:sticky:0",
+     "sidebar-group:sticky:554",
+     "sidebar-foot:sticky:610"
+    ],
+    "catChu": [
+     "Toàn Quyền Thử",
+     "Quản trị · Toàn quyền"
+    ],
+    "thoRa": []
+   }
+  },
+  "/ban": {
+   "ho": "biểu mẫu",
+   "tieuDe": "Báo bận của tôi",
+   "bo": [
+    "DRIVER_PARTNER"
+   ],
+   "anh390": "~/tourdao-ux-dot-0/anh/nhieu/DRIVER_PARTNER/ban-390.jpg",
+   "anh1040": "~/tourdao-ux-dot-0/anh/nhieu/DRIVER_PARTNER/ban-1040.jpg",
+   "boAnh": "DRIVER_PARTNER",
+   "do390": {
+    "soManCuon": 1,
+    "soTuongTac": 15,
+    "soNhoHon44": 0,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "—",
+    "nutChinh": [],
+    "h1": [
+     "26px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "HEADER:sticky:0",
+     "NAV:fixed:785"
+    ],
+    "catChu": [],
+    "thoRa": []
+   },
+   "do1040": {
+    "soManCuon": 1,
+    "soTuongTac": 18,
+    "soNhoHon44": 7,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "12/12",
+    "nutChinh": [],
+    "h1": [
+     "26px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "NAV:sticky:0",
+     "sidebar-foot:sticky:610"
+    ],
+    "catChu": [
+     "Tài Xế Đối Tác Thử",
+     "Tài xế đối tác"
+    ],
+    "thoRa": []
+   }
+  },
+  "/chup-bu": {
+   "ho": "biểu mẫu",
+   "tieuDe": "Chụp bù mức",
+   "bo": [
+    "SUPER_ADMIN",
+    "ADMIN",
+    "ACCOUNTING"
+   ],
+   "anh390": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/chup-bu-390.jpg",
+   "anh1040": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/chup-bu-1040.jpg",
+   "boAnh": "SUPER_ADMIN",
+   "do390": {
+    "soManCuon": 1,
+    "soTuongTac": 9,
+    "soNhoHon44": 0,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "—",
+    "nutChinh": [],
+    "h1": [
+     "24px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "HEADER:sticky:0",
+     "NAV:fixed:785"
+    ],
+    "catChu": [
+     "Chụp bù mức"
+    ],
+    "thoRa": []
+   },
+   "do1040": {
+    "soManCuon": 1,
+    "soTuongTac": 36,
+    "soNhoHon44": 25,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "12/12",
+    "nutChinh": [
+     "Tạo đơn"
+    ],
+    "h1": [
+     "24px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "NAV:sticky:0",
+     "sidebar-foot:sticky:610"
+    ],
+    "catChu": [
+     "Toàn Quyền Thử",
+     "Quản trị · Toàn quyền"
+    ],
+    "thoRa": []
+   }
+  },
+  "/chuyen-sua": {
+   "ho": "biểu mẫu",
+   "tieuDe": "Chuyến mới · 29/10",
+   "bo": [
+    "SUPER_ADMIN",
+    "ADMIN",
+    "ACCOUNTING",
+    "SALES"
+   ],
+   "anh390": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/chuyen-sua-390.jpg",
+   "anh1040": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/chuyen-sua-1040.jpg",
+   "boAnh": "SUPER_ADMIN",
+   "do390": {
+    "soManCuon": 1,
+    "soTuongTac": 11,
+    "soNhoHon44": 0,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "—",
+    "nutChinh": [
+     "Lưu chuyến"
+    ],
+    "h1": [
+     "26px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "HEADER:sticky:0",
+     "vc-bottom-bar.dp-cx-bottom.thanh-hanh-dong-cuoi:sticky:529"
+    ],
+    "catChu": [
+     "Chuyến mới · 29/10"
+    ],
+    "thoRa": []
+   },
+   "do1040": {
+    "soManCuon": 1,
+    "soTuongTac": 31,
+    "soNhoHon44": 14,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "12/12",
+    "nutChinh": [
+     "Tạo đơn",
+     "Lưu chuyến"
+    ],
+    "h1": [
+     "26px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "NAV:sticky:0",
+     "sidebar-group:sticky:554",
+     "sidebar-foot:sticky:610"
+    ],
+    "catChu": [
+     "Toàn Quyền Thử",
+     "Quản trị · Toàn quyền"
+    ],
+    "thoRa": []
+   }
+  },
+  "/dieu-chinh-cong-no": {
+   "ho": "biểu mẫu",
+   "tieuDe": "Điều chỉnh công nợ",
+   "bo": [
+    "SUPER_ADMIN",
+    "ADMIN",
+    "ACCOUNTING"
+   ],
+   "anh390": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/dieu-chinh-cong-no-390.jpg",
+   "anh1040": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/dieu-chinh-cong-no-1040.jpg",
+   "boAnh": "SUPER_ADMIN",
+   "do390": {
+    "soManCuon": 1.8,
+    "soTuongTac": 18,
+    "soNhoHon44": 0,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "—",
+    "nutChinh": [],
+    "h1": [
+     "24px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "HEADER:sticky:0",
+     "NAV:fixed:785"
+    ],
+    "catChu": [
+     "Điều chỉnh công nợ"
+    ],
+    "thoRa": []
+   },
+   "do1040": {
+    "soManCuon": 1.7,
+    "soTuongTac": 29,
+    "soNhoHon44": 14,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "12/12",
+    "nutChinh": [
+     "Tạo đơn"
+    ],
+    "h1": [
+     "24px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "NAV:sticky:0",
+     "sidebar-group:sticky:554",
+     "sidebar-foot:sticky:610"
+    ],
+    "catChu": [
+     "Toàn Quyền Thử",
+     "Quản trị · Toàn quyền"
+    ],
+    "thoRa": []
+   }
+  },
+  "/order-form": {
+   "ho": "biểu mẫu",
+   "tieuDe": "Tạo đơn",
+   "bo": [
+    "SUPER_ADMIN",
+    "ADMIN",
+    "SALES",
+    "PARTNER",
+    "INTERN"
+   ],
+   "anh390": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/order-form-390.jpg",
+   "anh1040": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/order-form-1040.jpg",
+   "boAnh": "SUPER_ADMIN",
+   "do390": {
+    "soManCuon": 2.5,
+    "soTuongTac": 258,
+    "soNhoHon44": 0,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "—",
+    "nutChinh": [
+     "Lưu, chờ xác nhận"
+    ],
+    "h1": [
+     "24px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "HEADER:sticky:0",
+     "buoc-thanh:sticky:76",
+     "form-actions.thanh-hanh-dong-cuoi:sticky:707"
+    ],
+    "catChu": [
+     "Tạo đơn",
+     ", bước 1",
+     ", bước 2",
+     ", bước 3",
+     ", bước 4"
+    ],
+    "thoRa": []
+   },
+   "do1040": {
+    "soManCuon": 2.4,
+    "soTuongTac": 274,
+    "soNhoHon44": 14,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "12/12",
+    "nutChinh": [
+     "Tạo đơn",
+     "Lưu, chờ xác nhận"
+    ],
+    "h1": [
+     "24px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "NAV:sticky:0",
+     "sidebar-group:sticky:554",
+     "sidebar-foot:sticky:610",
+     "buoc-thanh:sticky:124",
+     "form-side:sticky:124"
+    ],
+    "catChu": [
+     "Toàn Quyền Thử",
+     "Quản trị · Toàn quyền",
+     ", bước 1",
+     ", bước 2",
+     ", bước 3",
+     ", bước 4"
+    ],
+    "thoRa": []
+   }
+  },
+  "/xe-sua": {
+   "ho": "biểu mẫu",
+   "tieuDe": "Thêm xe",
+   "bo": [
+    "SUPER_ADMIN",
+    "ADMIN"
+   ],
+   "anh390": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/xe-sua-390.jpg",
+   "anh1040": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/xe-sua-1040.jpg",
+   "boAnh": "SUPER_ADMIN",
+   "do390": {
+    "soManCuon": 1,
+    "soTuongTac": 13,
+    "soNhoHon44": 0,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "—",
+    "nutChinh": [
+     "Lưu xe"
+    ],
+    "h1": [
+     "26px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "HEADER:sticky:0",
+     "vc-bottom-bar.thanh-hanh-dong-cuoi:sticky:693"
+    ],
+    "catChu": [
+     "Thêm xe"
+    ],
+    "thoRa": []
+   },
+   "do1040": {
+    "soManCuon": 1,
+    "soTuongTac": 32,
+    "soNhoHon44": 15,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "12/12",
+    "nutChinh": [
+     "Tạo đơn",
+     "Lưu xe"
+    ],
+    "h1": [
+     "26px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "NAV:sticky:0",
+     "sidebar-group:sticky:554",
+     "sidebar-foot:sticky:610"
+    ],
+    "catChu": [
+     "Toàn Quyền Thử",
+     "Quản trị · Toàn quyền"
+    ],
+    "thoRa": []
+   }
+  },
+  "/account": {
+   "ho": "thiết lập",
+   "tieuDe": "Tôi",
+   "bo": [
+    "SUPER_ADMIN",
+    "ADMIN",
+    "ACCOUNTING",
+    "SALES",
+    "FIELD",
+    "PARTNER",
+    "INTERN",
+    "HR",
+    "DRIVER",
+    "DRIVER_PARTNER"
+   ],
+   "anh390": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/account-390.jpg",
+   "anh1040": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/account-1040.jpg",
+   "boAnh": "SUPER_ADMIN",
+   "do390": {
+    "soManCuon": 10.6,
+    "soTuongTac": 58,
+    "soNhoHon44": 1,
+    "oGoNho": 0,
+    "oKhongNhan": 4,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "—",
+    "nutChinh": [],
+    "h1": [
+     "24px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "HEADER:sticky:0",
+     "NAV:fixed:785"
+    ],
+    "catChu": [
+     "Tôi"
+    ],
+    "thoRa": []
+   },
+   "do1040": {
+    "soManCuon": 10.3,
+    "soTuongTac": 70,
+    "soNhoHon44": 15,
+    "oGoNho": 0,
+    "oKhongNhan": 4,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "12/12",
+    "nutChinh": [
+     "Tạo đơn"
+    ],
+    "h1": [
+     "24px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "NAV:sticky:0",
+     "sidebar-group:sticky:554",
+     "sidebar-foot:sticky:610"
+    ],
+    "catChu": [
+     "Toàn Quyền Thử",
+     "Quản trị · Toàn quyền"
+    ],
+    "thoRa": []
+   }
+  },
+  "/bang-gia-xe": {
+   "ho": "thiết lập",
+   "tieuDe": "Bảng giá thuê xe",
+   "bo": [
+    "SUPER_ADMIN",
+    "ADMIN",
+    "ACCOUNTING"
+   ],
+   "anh390": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/bang-gia-xe-390.jpg",
+   "anh1040": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/bang-gia-xe-1040.jpg",
+   "boAnh": "SUPER_ADMIN",
+   "do390": {
+    "soManCuon": 1,
+    "soTuongTac": 18,
+    "soNhoHon44": 0,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "—",
+    "nutChinh": [
+     "Thêm giá",
+     "Giá thuê",
+     "Thêm giá"
+    ],
+    "h1": [
+     "24px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "HEADER:sticky:0",
+     "NAV:fixed:785"
+    ],
+    "catChu": [],
+    "thoRa": []
+   },
+   "do1040": {
+    "soManCuon": 1,
+    "soTuongTac": 31,
+    "soNhoHon44": 14,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "12/12",
+    "nutChinh": [
+     "Tạo đơn",
+     "Thêm giá",
+     "Giá thuê",
+     "Thêm giá"
+    ],
+    "h1": [
+     "24px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "NAV:sticky:0",
+     "sidebar-group:sticky:554",
+     "sidebar-foot:sticky:610"
+    ],
+    "catChu": [
+     "Toàn Quyền Thử",
+     "Quản trị · Toàn quyền"
+    ],
+    "thoRa": []
+   }
+  },
+  "/catalog": {
+   "ho": "thiết lập",
+   "tieuDe": "Dịch vụ",
+   "bo": [
+    "SUPER_ADMIN",
+    "ADMIN"
+   ],
+   "anh390": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/catalog-390.jpg",
+   "anh1040": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/catalog-1040.jpg",
+   "boAnh": "SUPER_ADMIN",
+   "do390": {
+    "soManCuon": 43.6,
+    "soTuongTac": 543,
+    "soNhoHon44": 0,
+    "oGoNho": 0,
+    "oKhongNhan": 1,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "—",
+    "nutChinh": [],
+    "h1": [
+     "24px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "HEADER:sticky:0",
+     "NAV:fixed:785"
+    ],
+    "catChu": [
+     "Danh mục dịch vụ & giá"
+    ],
+    "thoRa": []
+   },
+   "do1040": {
+    "soManCuon": 24.8,
+    "soTuongTac": 571,
+    "soNhoHon44": 25,
+    "oGoNho": 0,
+    "oKhongNhan": 1,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "12/12",
+    "nutChinh": [
+     "Tạo đơn"
+    ],
+    "h1": [
+     "24px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "NAV:sticky:0",
+     "sidebar-foot:sticky:610"
+    ],
+    "catChu": [
+     "Toàn Quyền Thử",
+     "Quản trị · Toàn quyền"
+    ],
+    "thoRa": []
+   }
+  },
+  "/chinh-sach-dieu-phoi": {
+   "ho": "thiết lập",
+   "tieuDe": "Chính sách điều phối",
+   "bo": [
+    "SUPER_ADMIN",
+    "ADMIN"
+   ],
+   "anh390": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/chinh-sach-dieu-phoi-390.jpg",
+   "anh1040": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/chinh-sach-dieu-phoi-1040.jpg",
+   "boAnh": "SUPER_ADMIN",
+   "do390": {
+    "soManCuon": 3.9,
+    "soTuongTac": 26,
+    "soNhoHon44": 3,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "—",
+    "nutChinh": [
+     "Lưu thành bản mới"
+    ],
+    "h1": [
+     "26px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "HEADER:sticky:0",
+     "vc-bottom-bar.thanh-hanh-dong-cuoi:sticky:767"
+    ],
+    "catChu": [
+     "Chính sách điều phối"
+    ],
+    "thoRa": []
+   },
+   "do1040": {
+    "soManCuon": 2.8,
+    "soTuongTac": 58,
+    "soNhoHon44": 28,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "12/12",
+    "nutChinh": [
+     "Tạo đơn"
+    ],
+    "h1": [
+     "26px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "NAV:sticky:0",
+     "sidebar-foot:sticky:610"
+    ],
+    "catChu": [
+     "Toàn Quyền Thử",
+     "Quản trị · Toàn quyền"
+    ],
+    "thoRa": []
+   }
+  },
+  "/dieu-kien-xuat-ben": {
+   "ho": "thiết lập",
+   "tieuDe": "Điều kiện cho xe chạy",
+   "bo": [
+    "SUPER_ADMIN",
+    "ADMIN"
+   ],
+   "anh390": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/dieu-kien-xuat-ben-390.jpg",
+   "anh1040": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/dieu-kien-xuat-ben-1040.jpg",
+   "boAnh": "SUPER_ADMIN",
+   "do390": {
+    "soManCuon": 1.7,
+    "soTuongTac": 25,
+    "soNhoHon44": 8,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "—",
+    "nutChinh": [
+     "Thêm điều kiện"
+    ],
+    "h1": [
+     "26px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "HEADER:sticky:0",
+     "NAV:fixed:785"
+    ],
+    "catChu": [
+     "Điều kiện cho xe chạy"
+    ],
+    "thoRa": []
+   },
+   "do1040": {
+    "soManCuon": 1.5,
+    "soTuongTac": 53,
+    "soNhoHon44": 25,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "12/12",
+    "nutChinh": [
+     "Tạo đơn",
+     "Thêm điều kiện"
+    ],
+    "h1": [
+     "26px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "NAV:sticky:0",
+     "sidebar-foot:sticky:610"
+    ],
+    "catChu": [
+     "Toàn Quyền Thử",
+     "Quản trị · Toàn quyền"
+    ],
+    "thoRa": []
+   }
+  },
+  "/giao-dien": {
+   "ho": "thiết lập",
+   "tieuDe": "Giao diện",
+   "bo": [
+    "SUPER_ADMIN",
+    "ADMIN"
+   ],
+   "anh390": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/giao-dien-390.jpg",
+   "anh1040": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/giao-dien-1040.jpg",
+   "boAnh": "SUPER_ADMIN",
+   "do390": {
+    "soManCuon": 3.1,
+    "soTuongTac": 38,
+    "soNhoHon44": 0,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "—",
+    "nutChinh": [],
+    "h1": [
+     "24px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "HEADER:sticky:0",
+     "form-actions.gd-nut.thanh-hanh-dong-cuoi:sticky:767"
+    ],
+    "catChu": [
+     "Giao diện"
+    ],
+    "thoRa": []
+   },
+   "do1040": {
+    "soManCuon": 2.5,
+    "soTuongTac": 72,
+    "soNhoHon44": 25,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "12/12",
+    "nutChinh": [
+     "Tạo đơn",
+     "Lưu"
+    ],
+    "h1": [
+     "24px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "NAV:sticky:0",
+     "sidebar-foot:sticky:610",
+     "gd-xem.card:sticky:245",
+     "form-actions.gd-nut.thanh-hanh-dong-cuoi:sticky:723"
+    ],
+    "catChu": [
+     "Toàn Quyền Thử",
+     "Quản trị · Toàn quyền",
+     "Chị Nguyễn Thu Hà"
+    ],
+    "thoRa": []
+   }
+  },
+  "/gui-thong-bao": {
+   "ho": "thiết lập",
+   "tieuDe": "Gửi thông báo",
+   "bo": [
+    "SUPER_ADMIN",
+    "ADMIN"
+   ],
+   "anh390": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/gui-thong-bao-390.jpg",
+   "anh1040": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/gui-thong-bao-1040.jpg",
+   "boAnh": "SUPER_ADMIN",
+   "do390": {
+    "soManCuon": 1.7,
+    "soTuongTac": 30,
+    "soNhoHon44": 2,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 11,
+    "axeNang": "color-contrast×10",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "—",
+    "nutChinh": [
+     "Gửi thông báo"
+    ],
+    "h1": [
+     "24px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "HEADER:sticky:0",
+     "NAV:fixed:785"
+    ],
+    "catChu": [
+     "Gửi thông báo"
+    ],
+    "thoRa": []
+   },
+   "do1040": {
+    "soManCuon": 1.2,
+    "soTuongTac": 57,
+    "soNhoHon44": 27,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 11,
+    "axeNang": "color-contrast×10",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "12/12",
+    "nutChinh": [
+     "Tạo đơn"
+    ],
+    "h1": [
+     "24px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "NAV:sticky:0",
+     "sidebar-foot:sticky:610"
+    ],
+    "catChu": [
+     "Toàn Quyền Thử",
+     "Quản trị · Toàn quyền"
+    ],
+    "thoRa": []
+   }
+  },
+  "/help": {
+   "ho": "thiết lập",
+   "tieuDe": "Hướng dẫn",
+   "bo": [
+    "SUPER_ADMIN",
+    "ADMIN",
+    "ACCOUNTING",
+    "SALES",
+    "FIELD",
+    "PARTNER",
+    "INTERN",
+    "HR",
+    "DRIVER",
+    "DRIVER_PARTNER"
+   ],
+   "anh390": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/help-390.jpg",
+   "anh1040": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/help-1040.jpg",
+   "boAnh": "SUPER_ADMIN",
+   "do390": {
+    "soManCuon": 68.2,
+    "soTuongTac": 122,
+    "soNhoHon44": 0,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [
+     "Admin"
+    ],
+    "loiConsole": 0,
+    "focus": "—",
+    "nutChinh": [],
+    "h1": [
+     "24px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "HEADER:sticky:0",
+     "NAV:fixed:785"
+    ],
+    "catChu": [
+     "Hướng dẫn"
+    ],
+    "thoRa": []
+   },
+   "do1040": {
+    "soManCuon": 40.9,
+    "soTuongTac": 133,
+    "soNhoHon44": 14,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [
+     "Admin"
+    ],
+    "loiConsole": 0,
+    "focus": "12/12",
+    "nutChinh": [
+     "Tạo đơn"
+    ],
+    "h1": [
+     "24px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "NAV:sticky:0",
+     "sidebar-group:sticky:554",
+     "sidebar-foot:sticky:610"
+    ],
+    "catChu": [
+     "Toàn Quyền Thử",
+     "Quản trị · Toàn quyền"
+    ],
+    "thoRa": []
+   }
+  },
+  "/loai-giay-to-nguoi": {
+   "ho": "thiết lập",
+   "tieuDe": "Loại giấy tờ cá nhân",
+   "bo": [
+    "SUPER_ADMIN",
+    "ADMIN"
+   ],
+   "anh390": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/loai-giay-to-nguoi-390.jpg",
+   "anh1040": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/loai-giay-to-nguoi-1040.jpg",
+   "boAnh": "SUPER_ADMIN",
+   "do390": {
+    "soManCuon": 2.7,
+    "soTuongTac": 32,
+    "soNhoHon44": 1,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [
+     "HEALTH_CHECK",
+     "TRANSPORT_TRAINING",
+     "C_OLD",
+     "D_OLD",
+     "E_OLD"
+    ],
+    "loiConsole": 0,
+    "focus": "—",
+    "nutChinh": [],
+    "h1": [
+     "24px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "HEADER:sticky:0",
+     "NAV:fixed:785"
+    ],
+    "catChu": [
+     "Loại giấy tờ cá nhân",
+     "Loại giấy tờ cá nhân"
+    ],
+    "thoRa": []
+   },
+   "do1040": {
+    "soManCuon": 2.2,
+    "soTuongTac": 59,
+    "soNhoHon44": 25,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [
+     "HEALTH_CHECK",
+     "TRANSPORT_TRAINING",
+     "C_OLD",
+     "D_OLD",
+     "E_OLD"
+    ],
+    "loiConsole": 0,
+    "focus": "12/12",
+    "nutChinh": [
+     "Tạo đơn"
+    ],
+    "h1": [
+     "24px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "NAV:sticky:0",
+     "sidebar-foot:sticky:610"
+    ],
+    "catChu": [
+     "Toàn Quyền Thử",
+     "Quản trị · Toàn quyền"
+    ],
+    "thoRa": []
+   }
+  },
+  "/loai-giay-to-xe": {
+   "ho": "thiết lập",
+   "tieuDe": "Loại giấy tờ xe",
+   "bo": [
+    "SUPER_ADMIN",
+    "ADMIN"
+   ],
+   "anh390": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/loai-giay-to-xe-390.jpg",
+   "anh1040": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/loai-giay-to-xe-1040.jpg",
+   "boAnh": "SUPER_ADMIN",
+   "do390": {
+    "soManCuon": 1.5,
+    "soTuongTac": 22,
+    "soNhoHon44": 1,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [
+     "TPL_INSURANCE",
+     "CONTRACT_BADGE",
+     "TRIP_MON",
+     "DRIVER_CAMERA"
+    ],
+    "loiConsole": 0,
+    "focus": "—",
+    "nutChinh": [],
+    "h1": [
+     "24px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "HEADER:sticky:0",
+     "NAV:fixed:785"
+    ],
+    "catChu": [
+     "Loại giấy tờ xe"
+    ],
+    "thoRa": []
+   },
+   "do1040": {
+    "soManCuon": 1.2,
+    "soTuongTac": 49,
+    "soNhoHon44": 25,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [
+     "TPL_INSURANCE",
+     "CONTRACT_BADGE",
+     "TRIP_MON",
+     "DRIVER_CAMERA"
+    ],
+    "loiConsole": 0,
+    "focus": "12/12",
+    "nutChinh": [
+     "Tạo đơn"
+    ],
+    "h1": [
+     "24px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "NAV:sticky:0",
+     "sidebar-foot:sticky:610"
+    ],
+    "catChu": [
+     "Toàn Quyền Thử",
+     "Quản trị · Toàn quyền"
+    ],
+    "thoRa": []
+   }
+  },
+  "/locations": {
+   "ho": "thiết lập",
+   "tieuDe": "Địa điểm",
+   "bo": [
+    "SUPER_ADMIN",
+    "ADMIN"
+   ],
+   "anh390": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/locations-390.jpg",
+   "anh1040": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/locations-1040.jpg",
+   "boAnh": "SUPER_ADMIN",
+   "do390": {
+    "soManCuon": 1.8,
+    "soTuongTac": 24,
+    "soNhoHon44": 0,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [
+     "VP_TRAN_PHU",
+     "BEN_TAU_NHA_TRANG",
+     "CANG_VINPEARL"
+    ],
+    "loiConsole": 0,
+    "focus": "—",
+    "nutChinh": [
+     "Thêm"
+    ],
+    "h1": [
+     "24px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "HEADER:sticky:0",
+     "NAV:fixed:785"
+    ],
+    "catChu": [
+     "Địa điểm"
+    ],
+    "thoRa": []
+   },
+   "do1040": {
+    "soManCuon": 1.3,
+    "soTuongTac": 52,
+    "soNhoHon44": 25,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [
+     "VP_TRAN_PHU",
+     "BEN_TAU_NHA_TRANG",
+     "CANG_VINPEARL"
+    ],
+    "loiConsole": 0,
+    "focus": "12/12",
+    "nutChinh": [
+     "Tạo đơn",
+     "Thêm"
+    ],
+    "h1": [
+     "24px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "NAV:sticky:0",
+     "sidebar-foot:sticky:610"
+    ],
+    "catChu": [
+     "Toàn Quyền Thử",
+     "Quản trị · Toàn quyền"
+    ],
+    "thoRa": []
+   }
+  },
+  "/ly-do-dieu-phoi": {
+   "ho": "thiết lập",
+   "tieuDe": "Lý do điều phối",
+   "bo": [
+    "SUPER_ADMIN",
+    "ADMIN"
+   ],
+   "anh390": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/ly-do-dieu-phoi-390.jpg",
+   "anh1040": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/ly-do-dieu-phoi-1040.jpg",
+   "boAnh": "SUPER_ADMIN",
+   "do390": {
+    "soManCuon": 4.3,
+    "soTuongTac": 107,
+    "soNhoHon44": 43,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "—",
+    "nutChinh": [],
+    "h1": [
+     "26px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "HEADER:sticky:0",
+     "NAV:fixed:785"
+    ],
+    "catChu": [
+     "Lý do điều phối"
+    ],
+    "thoRa": []
+   },
+   "do1040": {
+    "soManCuon": 4.5,
+    "soTuongTac": 134,
+    "soNhoHon44": 25,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "12/12",
+    "nutChinh": [
+     "Tạo đơn"
+    ],
+    "h1": [
+     "26px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "NAV:sticky:0",
+     "sidebar-foot:sticky:610"
+    ],
+    "catChu": [
+     "Toàn Quyền Thử",
+     "Quản trị · Toàn quyền"
+    ],
+    "thoRa": []
+   }
+  },
+  "/nguoi-ban": {
+   "ho": "thiết lập",
+   "tieuDe": "Người bán dịch vụ",
+   "bo": [
+    "SUPER_ADMIN",
+    "ADMIN",
+    "ACCOUNTING"
+   ],
+   "anh390": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/nguoi-ban-390.jpg",
+   "anh1040": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/nguoi-ban-1040.jpg",
+   "boAnh": "SUPER_ADMIN",
+   "do390": {
+    "soManCuon": 1.7,
+    "soTuongTac": 21,
+    "soNhoHon44": 0,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "—",
+    "nutChinh": [],
+    "h1": [
+     "24px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "HEADER:sticky:0",
+     "NAV:fixed:785"
+    ],
+    "catChu": [
+     "Người bán dịch vụ"
+    ],
+    "thoRa": []
+   },
+   "do1040": {
+    "soManCuon": 1.5,
+    "soTuongTac": 48,
+    "soNhoHon44": 25,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "12/12",
+    "nutChinh": [
+     "Tạo đơn"
+    ],
+    "h1": [
+     "24px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "NAV:sticky:0",
+     "sidebar-foot:sticky:610"
+    ],
+    "catChu": [
+     "Toàn Quyền Thử",
+     "Quản trị · Toàn quyền"
+    ],
+    "thoRa": []
+   }
+  },
+  "/thiet-lap": {
+   "ho": "thiết lập",
+   "tieuDe": "Thiết lập",
+   "bo": [
+    "SUPER_ADMIN",
+    "ADMIN"
+   ],
+   "anh390": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/thiet-lap-390.jpg",
+   "anh1040": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/thiet-lap-1040.jpg",
+   "boAnh": "SUPER_ADMIN",
+   "do390": {
+    "soManCuon": 1.1,
+    "soTuongTac": 25,
+    "soNhoHon44": 0,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "—",
+    "nutChinh": [],
+    "h1": [
+     "24px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "HEADER:sticky:0",
+     "NAV:fixed:785"
+    ],
+    "catChu": [
+     "Thiết lập"
+    ],
+    "thoRa": []
+   },
+   "do1040": {
+    "soManCuon": 1.2,
+    "soTuongTac": 37,
+    "soNhoHon44": 14,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "12/12",
+    "nutChinh": [
+     "Tạo đơn"
+    ],
+    "h1": [
+     "24px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "NAV:sticky:0",
+     "sidebar-group:sticky:554",
+     "sidebar-foot:sticky:610"
+    ],
+    "catChu": [
+     "Toàn Quyền Thử",
+     "Quản trị · Toàn quyền"
+    ],
+    "thoRa": []
+   }
+  },
+  "/tro-ly-cai-dat": {
+   "ho": "thiết lập",
+   "tieuDe": "Trợ lý Hỗ trợ",
+   "bo": [
+    "SUPER_ADMIN",
+    "ADMIN"
+   ],
+   "anh390": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/tro-ly-cai-dat-390.jpg",
+   "anh1040": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/tro-ly-cai-dat-1040.jpg",
+   "boAnh": "SUPER_ADMIN",
+   "do390": {
+    "soManCuon": 6.3,
+    "soTuongTac": 55,
+    "soNhoHon44": 11,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "—",
+    "nutChinh": [
+     "Lưu"
+    ],
+    "h1": [
+     "24px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "HEADER:sticky:0",
+     "NAV:fixed:785"
+    ],
+    "catChu": [
+     "Trợ lý Hỗ trợ"
+    ],
+    "thoRa": []
+   },
+   "do1040": {
+    "soManCuon": 5.4,
+    "soTuongTac": 82,
+    "soNhoHon44": 36,
+    "oGoNho": 0,
+    "oKhongNhan": 0,
+    "tranNgang": false,
+    "axe": 1,
+    "axeNang": "",
+    "tuAnh": [],
+    "loiConsole": 0,
+    "focus": "12/12",
+    "nutChinh": [
+     "Tạo đơn",
+     "Lưu"
+    ],
+    "h1": [
+     "24px/600"
+    ],
+    "phong": "\"Be Vietnam Pro\"",
+    "dinh": [
+     "NAV:sticky:0",
+     "sidebar-foot:sticky:610"
+    ],
+    "catChu": [
+     "Toàn Quyền Thử",
+     "Quản trị · Toàn quyền"
+    ],
+    "thoRa": []
+   }
+  }
+ },
+ "soLech": {
+  "Nút": {
+   "soKieu": 93,
+   "kieu": [
+    {
+     "sig": "44h|r8px|bgrgba(0, 0, 0, 0)|crgb(12, 74, 110)|b0px none|13.3333px/400",
+     "soTrang": 130,
+     "trang": [
+      "/@390",
+      "/@1040",
+      "/@768",
+      "/@1440",
+      "/orders@390",
+      "/orders@1040",
+      "/orders@768",
+      "/orders@1440",
+      "/order@390",
+      "/order@1040",
+      "/order-form@390",
+      "/order-form@1040"
+     ],
+     "lop": [
+      "bar-tro-ly",
+      "bell"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "44h|r0px|bgrgba(0, 0, 0, 0)|crgb(176, 18, 53)|b0px none|13.3333px/400",
+     "soTrang": 118,
+     "trang": [
+      "/orders@390",
+      "/orders@1040",
+      "/orders@768",
+      "/orders@1440",
+      "/order@390",
+      "/order@1040",
+      "/account@390",
+      "/account@1040",
+      "/feedback@390",
+      "/feedback@1040",
+      "/feedback@768",
+      "/feedback@1440"
+     ],
+     "lop": [
+      "dai-dong"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "36h|r8px|bgrgba(0, 0, 0, 0)|crgb(71, 85, 105)|b0px none|14px/500",
+     "soTrang": 65,
+     "trang": [
+      "/@1040",
+      "/@1440",
+      "/orders@1040",
+      "/orders@1440",
+      "/order@1040",
+      "/order-form@1040",
+      "/parties@1040",
+      "/parties@1440",
+      "/dieu-phoi@1040",
+      "/dieu-phoi@1440",
+      "/chuyen@1040",
+      "/chuyen-sua@1040"
+     ],
+     "lop": [
+      "sidebar-logout"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "46h|r8px|bgrgb(192, 57, 43)|crgb(255, 255, 255)|b1px solid|16px/600",
+     "soTrang": 63,
+     "trang": [
+      "/@1040",
+      "/@1440",
+      "/orders@1040",
+      "/orders@1440",
+      "/order@1040",
+      "/order-form@1040",
+      "/parties@1040",
+      "/parties@1440",
+      "/dieu-phoi@1040",
+      "/dieu-phoi@1440",
+      "/chuyen@1040",
+      "/chuyen-sua@1040"
+     ],
+     "lop": [
+      "btn.btn-accent.topbar-new",
+      "btn.btn-accent.cx-ds-nut",
+      "btn.btn-accent"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "36h|r8px|bgrgba(0, 0, 0, 0)|crgb(71, 85, 105)|b0px none|14px/600",
+     "soTrang": 59,
+     "trang": [
+      "/@1040",
+      "/@1440",
+      "/orders@1040",
+      "/orders@1440",
+      "/order@1040",
+      "/order-form@1040",
+      "/parties@1040",
+      "/parties@1440",
+      "/dieu-phoi@1040",
+      "/dieu-phoi@1440",
+      "/chuyen@1040",
+      "/chuyen-sua@1040"
+     ],
+     "lop": [
+      "sidebar-group-toggle"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "44h|r8px|bgrgb(220, 235, 246)|crgb(12, 74, 110)|b1px solid|16px/500",
+     "soTrang": 44,
+     "trang": [
+      "/@390",
+      "/@1040",
+      "/@768",
+      "/@1440",
+      "/orders@390",
+      "/orders@1040",
+      "/orders@768",
+      "/orders@1440",
+      "/order@390",
+      "/order@1040",
+      "/order-form@390",
+      "/order-form@1040"
+     ],
+     "lop": [
+      "nut"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "46h|r8px|bgrgb(255, 255, 255)|crgb(12, 74, 110)|b1px solid|16px/600",
+     "soTrang": 39,
+     "trang": [
+      "/orders@390",
+      "/orders@1040",
+      "/orders@768",
+      "/orders@1440",
+      "/order@390",
+      "/order@1040",
+      "/parties@390",
+      "/parties@1040",
+      "/parties@768",
+      "/parties@1440",
+      "/hoa-hong@390",
+      "/account@1040"
+     ],
+     "lop": [
+      "btn.loc-mo",
+      "btn",
+      "btn.hh-tn-nut",
+      "btn.pdt-nut",
+      "btn.xm-tab",
+      "btn.hm-nut"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "46h|r8px|bgrgb(12, 74, 110)|crgb(255, 255, 255)|b1px solid|16px/600",
+     "soTrang": 33,
+     "trang": [
+      "/parties@390",
+      "/parties@1040",
+      "/parties@768",
+      "/parties@1440",
+      "/hoa-hong@1040",
+      "/hoa-hong@768",
+      "/hoa-hong@1440",
+      "/account@390",
+      "/account@1040",
+      "/dieu-chinh-cong-no@390",
+      "/dieu-chinh-cong-no@1040",
+      "/nguoi-ban@390"
+     ],
+     "lop": [
+      "btn.btn-primary",
+      "btn.btn-primary.btn-chinh"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "46h|r8px|bgrgb(220, 235, 246)|crgb(12, 74, 110)|b1px solid|16px/600",
+     "soTrang": 16,
+     "trang": [
+      "/orders@1040",
+      "/orders@1440",
+      "/order@390",
+      "/order@1040",
+      "/feedback@1040",
+      "/feedback@1440",
+      "/help@390",
+      "/help@1040",
+      "/catalog@390",
+      "/catalog@1040",
+      "/dieu-chinh-cong-no@390",
+      "/dieu-chinh-cong-no@1040"
+     ],
+     "lop": [
+      "btn.btn-primary",
+      "btn.btn-primary.btn-block"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "46h|r8px|bgrgb(255, 255, 255)|crgb(176, 18, 53)|b1px solid|16px/600",
+     "soTrang": 14,
+     "trang": [
+      "/order@390",
+      "/order@1040",
+      "/account@390",
+      "/account@1040",
+      "/parties@390",
+      "/parties@1040",
+      "/parties@768",
+      "/parties@1440",
+      "/sessions@390",
+      "/sessions@1040",
+      "/sessions@768",
+      "/sessions@1440"
+     ],
+     "lop": [
+      "btn.btn-danger"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "44h|r8px|bgrgba(0, 0, 0, 0)|crgb(12, 74, 110)|b0px none|16px/500",
+     "soTrang": 13,
+     "trang": [
+      "/order-form@390",
+      "/order-form@1040",
+      "/feedback@390",
+      "/feedback@768",
+      "/order@390",
+      "/order@1040",
+      "/catalog@390",
+      "/catalog@1040",
+      "/staff@1040",
+      "/staff@1440",
+      "/locations@1040",
+      "/loai-giay-to-nguoi@1040"
+     ],
+     "lop": [
+      "btn.btn-link",
+      "btn.btn-link.gap-nut",
+      "btn.btn-link.ht-quay"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "44h|r8px|bgrgb(192, 57, 43)|crgb(255, 255, 255)|b1px solid|16px/600",
+     "soTrang": 11,
+     "trang": [
+      "/dieu-phoi@390",
+      "/dieu-phoi@1040",
+      "/dieu-phoi@768",
+      "/dieu-phoi@1440",
+      "/chuyen-sua@1040",
+      "/bang-gia-xe@390",
+      "/bang-gia-xe@1040",
+      "/lich-xe-ban@390",
+      "/lich-xe-ban@1040",
+      "/lich-xe-ban@768",
+      "/lich-xe-ban@1440"
+     ],
+     "lop": [
+      "vc-btn.btn.btn-accent",
+      "btn.btn-accent.xb-them"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "44h|r8px|bgrgb(255, 255, 255)|crgb(12, 74, 110)|b1px solid|16px/600",
+     "soTrang": 9,
+     "trang": [
+      "/chuyen@390",
+      "/chuyen@1040",
+      "/chuyen-sua@1040",
+      "/xe-sua@1040",
+      "/xe-chi-tiet@1040",
+      "/cuoc-chuyen@390",
+      "/cuoc-chuyen@1040",
+      "/ban@390",
+      "/ban@1040"
+     ],
+     "lop": [
+      "vc-btn.vc-btn-ghost-primary"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "44h|r8px|bgrgb(255, 255, 255)|crgb(12, 74, 110)|b1px solid|14px/600",
+     "soTrang": 8,
+     "trang": [
+      "/@1040",
+      "/@768",
+      "/@1440",
+      "/xe-chi-tiet@1040",
+      "/lich-xe-ban@390",
+      "/lich-xe-ban@1040",
+      "/lich-xe-ban@768",
+      "/lich-xe-ban@1440"
+     ],
+     "lop": [
+      "btn",
+      "vc-btn.vc-btn-line",
+      "xb-nut"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "44h|r8px|bgrgb(220, 235, 246)|crgb(12, 74, 110)|b0px none|14px/500",
+     "soTrang": 8,
+     "trang": [
+      "/catalog@390",
+      "/staff@390",
+      "/staff@768",
+      "/locations@390",
+      "/loai-giay-to-nguoi@390",
+      "/loai-giay-to-xe@390",
+      "/ly-do-dieu-phoi@390",
+      "/ly-do-dieu-phoi@1040"
+     ],
+     "lop": [
+      "pill-btn",
+      "pill-btn.dp-group-add"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "44h|r8px|bgrgba(0, 0, 0, 0)|crgb(176, 18, 53)|b0px none|16px/500",
+     "soTrang": 7,
+     "trang": [
+      "/account@390",
+      "/account@1040",
+      "/catalog@1040",
+      "/staff@1040",
+      "/staff@1440",
+      "/sessions@1040",
+      "/sessions@1440"
+     ],
+     "lop": [
+      "btn.btn-link.danger"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "44h|r8px|bgrgba(0, 0, 0, 0)|crgb(71, 85, 105)|b0px none|13.3333px/400",
+     "soTrang": 6,
+     "trang": [
+      "/orders@390",
+      "/orders@1040",
+      "/orders@768",
+      "/orders@1440",
+      "/giao-dien@390",
+      "/giao-dien@1040"
+     ],
+     "lop": [
+      "order-card-toggle"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "44h|r8px|bgrgb(220, 235, 246)|crgb(12, 74, 110)|b1px solid|16px/600",
+     "soTrang": 6,
+     "trang": [
+      "/chuyen@390",
+      "/chuyen@1040",
+      "/xe@1040",
+      "/xe@768",
+      "/xe@1440",
+      "/xe-chi-tiet@1040"
+     ],
+     "lop": [
+      "vc-btn.btn.btn-primary"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "44h|r999px|bgrgb(12, 74, 110)|crgb(255, 255, 255)|b0px none|16px/600",
+     "soTrang": 6,
+     "trang": [
+      "/hoa-hong@390",
+      "/hoa-hong@1040",
+      "/hoa-hong@768",
+      "/hoa-hong@1440",
+      "/bang-gia-xe@390",
+      "/bang-gia-xe@1040"
+     ],
+     "lop": [
+      "tx-tab"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "44h|r999px|bgrgb(220, 235, 246)|crgb(12, 74, 110)|b0px none|16px/600",
+     "soTrang": 6,
+     "trang": [
+      "/hoa-hong@390",
+      "/hoa-hong@1040",
+      "/hoa-hong@768",
+      "/hoa-hong@1440",
+      "/bang-gia-xe@390",
+      "/bang-gia-xe@1040"
+     ],
+     "lop": [
+      "tx-tab"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "44h|r0px|bgrgba(0, 0, 0, 0)|crgb(12, 74, 110)|b0px none|14px/600",
+     "soTrang": 5,
+     "trang": [
+      "/@390",
+      "/feedback@390",
+      "/feedback@1040",
+      "/feedback@768",
+      "/feedback@1440"
+     ],
+     "lop": [
+      "dash-day",
+      "ht-che-do"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "44h|r8px|bgrgb(220, 235, 246)|crgb(12, 74, 110)|b1px solid|14px/600",
+     "soTrang": 5,
+     "trang": [
+      "/@1040",
+      "/@768",
+      "/@1440",
+      "/order-form@390",
+      "/order-form@1040"
+     ],
+     "lop": [
+      "btn.btn-primary",
+      "loc-nut"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "52h|r8px|bgrgb(192, 57, 43)|crgb(255, 255, 255)|b1px solid|17px/600",
+     "soTrang": 5,
+     "trang": [
+      "/chuyen@390",
+      "/chuyen@1040",
+      "/chuyen-sua@390",
+      "/cuoc-chuyen@390",
+      "/cuoc-chuyen@1040"
+     ],
+     "lop": [
+      "vc-btn.btn.btn-accent"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "44h|r8px|bgrgb(12, 74, 110)|crgb(255, 255, 255)|b1px solid|16px/600",
+     "soTrang": 5,
+     "trang": [
+      "/chuyen@390",
+      "/chuyen@1040",
+      "/chinh-sach-dieu-phoi@1040",
+      "/dieu-kien-xuat-ben@390",
+      "/dieu-kien-xuat-ben@1040"
+     ],
+     "lop": [
+      "vc-btn.btn.btn-primary"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "44h|r8px|bgrgb(254, 242, 240)|crgb(150, 39, 26)|b0px none|14px/500",
+     "soTrang": 5,
+     "trang": [
+      "/catalog@390",
+      "/staff@390",
+      "/staff@768",
+      "/sessions@390",
+      "/sessions@768"
+     ],
+     "lop": [
+      "pill-btn.pill-btn-danger"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "44h|r8px|bgrgba(0, 0, 0, 0)|crgb(12, 74, 110)|b0px none|14px/500",
+     "soTrang": 5,
+     "trang": [
+      "/giay-to-sap-het-han@390",
+      "/feedback@390",
+      "/feedback@1040",
+      "/feedback@768",
+      "/feedback@1440"
+     ],
+     "lop": [
+      "btn.btn-link.vc-due-doi-moc",
+      "btn.btn-link.ht-nut-chi-tiet"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "44h|r8px|bgrgb(255, 255, 255)|crgb(12, 74, 110)|b1px solid|19px/600",
+     "soTrang": 4,
+     "trang": [
+      "/dieu-phoi@390",
+      "/dieu-phoi@1040",
+      "/dieu-phoi@768",
+      "/dieu-phoi@1440"
+     ],
+     "lop": [
+      "vc-btn.vc-btn-ghost-primary.dp-date-btn"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "44h|r8px|bgrgb(242, 245, 249)|crgb(71, 85, 105)|b1px solid|17px/600",
+     "soTrang": 4,
+     "trang": [
+      "/chuyen@390",
+      "/chuyen@1040",
+      "/cuoc-chuyen@390",
+      "/cuoc-chuyen@1040"
+     ],
+     "lop": [
+      "vc-btn.vc-btn-ghost-primary.dp-thu-tu"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "52h|r8px|bgrgb(220, 235, 246)|crgb(12, 74, 110)|b1px solid|17px/600",
+     "soTrang": 4,
+     "trang": [
+      "/chuyen@390",
+      "/chuyen@1040",
+      "/xe@390",
+      "/xe-chi-tiet@390"
+     ],
+     "lop": [
+      "vc-btn.btn.btn-primary"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "74h|r0px|bgrgba(0, 0, 0, 0)|crgb(15, 23, 42)|b0px none|16px/400",
+     "soTrang": 4,
+     "trang": [
+      "/hoa-hong@390",
+      "/hoa-hong@1040",
+      "/hoa-hong@768",
+      "/hoa-hong@1440"
+     ],
+     "lop": [
+      "hh-loai-nut"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "44h|r999px|bgrgb(12, 74, 110)|crgb(248, 250, 252)|b1px solid|16px/600",
+     "soTrang": 4,
+     "trang": [
+      "/so-cong-no@390",
+      "/so-cong-no@1040",
+      "/so-cong-no@768",
+      "/so-cong-no@1440"
+     ],
+     "lop": [
+      "scn-loc-nut"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "44h|r999px|bgrgb(255, 255, 255)|crgb(12, 74, 110)|b1px solid|16px/600",
+     "soTrang": 4,
+     "trang": [
+      "/so-cong-no@390",
+      "/so-cong-no@1040",
+      "/so-cong-no@768",
+      "/so-cong-no@1440"
+     ],
+     "lop": [
+      "scn-loc-nut"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "49h|r0px|bgrgba(0, 0, 0, 0)|crgb(15, 23, 42)|b0px none|16px/400",
+     "soTrang": 4,
+     "trang": [
+      "/so-cong-no@390",
+      "/so-cong-no@1040",
+      "/so-cong-no@768",
+      "/so-cong-no@1440"
+     ],
+     "lop": [
+      "scn-ben"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "46h|r8px|bgrgb(12, 74, 110)|crgb(248, 250, 252)|b1px solid|16px/600",
+     "soTrang": 4,
+     "trang": [
+      "/staff@390",
+      "/staff@1040",
+      "/staff@768",
+      "/staff@1440"
+     ],
+     "lop": [
+      "btn.xm-tab"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "44h|r999px|bgrgb(220, 235, 246)|crgb(12, 74, 110)|b1px solid|15px/600",
+     "soTrang": 4,
+     "trang": [
+      "/xe@390",
+      "/xe@1040",
+      "/xe@768",
+      "/xe@1440"
+     ],
+     "lop": [
+      "vc-filter"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "44h|r999px|bgrgb(255, 255, 255)|crgb(12, 74, 110)|b1px solid|15px/600",
+     "soTrang": 4,
+     "trang": [
+      "/xe@390",
+      "/xe@1040",
+      "/xe@768",
+      "/xe@1440"
+     ],
+     "lop": [
+      "vc-filter"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "44h|r8px|bgrgb(255, 255, 255)|crgb(12, 74, 110)|b1px solid|20px/600",
+     "soTrang": 4,
+     "trang": [
+      "/lich-xe-ban@390",
+      "/lich-xe-ban@1040",
+      "/lich-xe-ban@768",
+      "/lich-xe-ban@1440"
+     ],
+     "lop": [
+      "xb-nut.xb-nut-tuan"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "44h|r8px|bgrgba(0, 0, 0, 0)|crgb(12, 74, 110)|b0px none|14px/600",
+     "soTrang": 4,
+     "trang": [
+      "/ly-do-dieu-phoi@390",
+      "/ly-do-dieu-phoi@1040",
+      "/dieu-kien-xuat-ben@390",
+      "/dieu-kien-xuat-ben@1040"
+     ],
+     "lop": [
+      "vc-btn.vc-btn-text"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "44h|r999px|bgrgb(251, 227, 179)|crgb(90, 65, 9)|b1px solid|14px/600",
+     "soTrang": 4,
+     "trang": [
+      "/feedback@390",
+      "/feedback@1040",
+      "/feedback@768",
+      "/feedback@1440"
+     ],
+     "lop": [
+      "ht-chip.is-moi"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "44h|r999px|bgrgb(255, 255, 255)|crgb(15, 23, 42)|b1px solid|14px/600",
+     "soTrang": 4,
+     "trang": [
+      "/feedback@390",
+      "/feedback@1040",
+      "/feedback@768",
+      "/feedback@1440"
+     ],
+     "lop": [
+      "ht-chip"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "44h|r0px|bgrgba(0, 0, 0, 0)|crgb(71, 85, 105)|b0px none|14px/400",
+     "soTrang": 4,
+     "trang": [
+      "/feedback@390",
+      "/feedback@1040",
+      "/feedback@768",
+      "/feedback@1440"
+     ],
+     "lop": [
+      "ht-che-do"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "44h|r999px|bgrgba(0, 0, 0, 0)|crgb(12, 74, 110)|b0px none|14px/600",
+     "soTrang": 3,
+     "trang": [
+      "/@1040",
+      "/@768",
+      "/@1440"
+     ],
+     "lop": [
+      "dash-day"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "44h|r999px|bgrgba(0, 0, 0, 0)|crgb(71, 85, 105)|b0px none|14px/600",
+     "soTrang": 3,
+     "trang": [
+      "/@1040",
+      "/@768",
+      "/@1440"
+     ],
+     "lop": [
+      "dash-day"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "44h|r8px|bgrgb(255, 255, 255)|crgb(15, 23, 42)|b1px solid|14px/600",
+     "soTrang": 3,
+     "trang": [
+      "/order-form@390",
+      "/order-form@1040",
+      "/xe-chi-tiet@1040"
+     ],
+     "lop": [
+      "loc-nut",
+      "vc-btn.vc-btn-ghost"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "52h|r8px|bgrgb(12, 74, 110)|crgb(255, 255, 255)|b1px solid|16px/600",
+     "soTrang": 3,
+     "trang": [
+      "/order-form@390",
+      "/order-form@1040",
+      "/xe-sua@1040"
+     ],
+     "lop": [
+      "btn.btn-primary",
+      "vc-btn.btn.btn-primary"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "52h|r8px|bgrgb(255, 255, 255)|crgb(12, 74, 110)|b1px solid|17px/600",
+     "soTrang": 3,
+     "trang": [
+      "/chuyen-sua@390",
+      "/cuoc-chuyen@390",
+      "/cuoc-chuyen@1040"
+     ],
+     "lop": [
+      "vc-btn.vc-btn-ghost-primary"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "73h|r0px|bgrgba(0, 0, 0, 0)|crgb(15, 23, 42)|b0px none|16px/400",
+     "soTrang": 3,
+     "trang": [
+      "/hoa-hong@1040",
+      "/hoa-hong@768",
+      "/hoa-hong@1440"
+     ],
+     "lop": [
+      "hh-loai-nut"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "44h|r0px|bgrgba(0, 0, 0, 0)|crgb(12, 74, 110)|b0px none|16px/600",
+     "soTrang": 3,
+     "trang": [
+      "/feedback@1040",
+      "/feedback@1440",
+      "/chinh-sach-dieu-phoi@390"
+     ],
+     "lop": [
+      "ht-tab.is-on",
+      "dp-hist-open"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "52h|r8px|bgrgb(12, 74, 110)|crgb(255, 255, 255)|b1px solid|17px/600",
+     "soTrang": 3,
+     "trang": [
+      "/hoa-hong@390",
+      "/xe-sua@390",
+      "/chinh-sach-dieu-phoi@390"
+     ],
+     "lop": [
+      "btn.btn-primary.btn-chinh",
+      "vc-btn.btn.btn-primary"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "100h|r12px|bgrgba(0, 0, 0, 0)|crgb(15, 23, 42)|b0px none|16px/400",
+     "soTrang": 3,
+     "trang": [
+      "/@1040",
+      "/@768",
+      "/@1440"
+     ],
+     "lop": [
+      "dash-o-muc"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "44h|r8px|bgrgba(0, 0, 0, 0)|crgb(12, 74, 110)|b0px none|15px/500",
+     "soTrang": 3,
+     "trang": [
+      "/giay-to-sap-het-han@1040",
+      "/giay-to-sap-het-han@768",
+      "/giay-to-sap-het-han@1440"
+     ],
+     "lop": [
+      "btn.btn-link.vc-due-doi-moc"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "58h|r0px|bgrgba(0, 0, 0, 0)|crgb(12, 74, 110)|b0px none|12px/600",
+     "soTrang": 2,
+     "trang": [
+      "/order-form@390",
+      "/order-form@1040"
+     ],
+     "lop": [
+      "buoc-nut"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "58h|r0px|bgrgba(0, 0, 0, 0)|crgb(71, 85, 105)|b0px none|12px/500",
+     "soTrang": 2,
+     "trang": [
+      "/order-form@390",
+      "/order-form@1040"
+     ],
+     "lop": [
+      "buoc-nut"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "103h|r0px|bgrgba(0, 0, 0, 0)|crgb(15, 23, 42)|b0px none|16px/400",
+     "soTrang": 2,
+     "trang": [
+      "/order-form@390",
+      "/order-form@1040"
+     ],
+     "lop": [
+      "catalog-ghim",
+      "catalog-pick"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "81h|r0px|bgrgba(0, 0, 0, 0)|crgb(15, 23, 42)|b0px none|16px/400",
+     "soTrang": 2,
+     "trang": [
+      "/order-form@390",
+      "/order-form@1040"
+     ],
+     "lop": [
+      "catalog-ghim",
+      "catalog-pick"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "60h|r0px|bgrgba(0, 0, 0, 0)|crgb(15, 23, 42)|b0px none|16px/400",
+     "soTrang": 2,
+     "trang": [
+      "/order-form@390",
+      "/order-form@1040"
+     ],
+     "lop": [
+      "catalog-ghim",
+      "catalog-pick"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "44h|r8px|bgrgb(255, 255, 255)|crgb(12, 74, 110)|b1px solid|14px/500",
+     "soTrang": 2,
+     "trang": [
+      "/order-form@390",
+      "/order-form@1040"
+     ],
+     "lop": [
+      "pill-btn"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "44h|r12px|bgrgb(255, 255, 255)|crgb(12, 74, 110)|b1px solid|16px/600",
+     "soTrang": 2,
+     "trang": [
+      "/order-form@390",
+      "/order-form@1040"
+     ],
+     "lop": [
+      "owner-pick"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "52h|r8px|bgrgb(255, 255, 255)|crgb(12, 74, 110)|b1px solid|16px/600",
+     "soTrang": 2,
+     "trang": [
+      "/order-form@1040",
+      "/giao-dien@1040"
+     ],
+     "lop": [
+      "btn"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "40h|r6px|bgrgb(255, 255, 255)|crgb(12, 74, 110)|b0px none|14px/600",
+     "soTrang": 2,
+     "trang": [
+      "/dieu-phoi@390",
+      "/dieu-phoi@768"
+     ],
+     "lop": [
+      "dp-tab"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "40h|r6px|bgrgba(0, 0, 0, 0)|crgb(12, 74, 110)|b0px none|14px/500",
+     "soTrang": 2,
+     "trang": [
+      "/dieu-phoi@390",
+      "/dieu-phoi@768"
+     ],
+     "lop": [
+      "dp-tab"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "47h|r6px|bgrgb(12, 74, 110)|crgb(255, 255, 255)|b1px solid|16px/400",
+     "soTrang": 2,
+     "trang": [
+      "/dieu-phoi@1040",
+      "/dieu-phoi@1440"
+     ],
+     "lop": [
+      "dp-khoi.is-run.is-tai-thoang"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "47h|r6px|bgrgb(253, 233, 238)|crgb(142, 14, 43)|b1px solid|16px/400",
+     "soTrang": 2,
+     "trang": [
+      "/dieu-phoi@1040",
+      "/dieu-phoi@1440"
+     ],
+     "lop": [
+      "dp-khoi.is-held.is-tai-thoang"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "44h|r8px|bgrgb(176, 18, 53)|crgb(255, 255, 255)|b1px solid|16px/600",
+     "soTrang": 2,
+     "trang": [
+      "/chuyen@390",
+      "/chuyen@1040"
+     ],
+     "lop": [
+      "vc-btn.vc-btn-danger"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "44h|r8px|bgrgba(0, 0, 0, 0)|crgb(142, 14, 43)|b0px none|14px/600",
+     "soTrang": 2,
+     "trang": [
+      "/chuyen@390",
+      "/chuyen@1040"
+     ],
+     "lop": [
+      "btn.btn-link.dp-bao-huy-link"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "52h|r8px|bgrgb(176, 18, 53)|crgb(255, 255, 255)|b1px solid|17px/600",
+     "soTrang": 2,
+     "trang": [
+      "/chuyen@390",
+      "/chuyen@1040"
+     ],
+     "lop": [
+      "vc-btn.vc-btn-danger"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "48h|r0px|bgrgba(0, 0, 0, 0)|crgb(176, 18, 53)|b0px none|16px/600",
+     "soTrang": 2,
+     "trang": [
+      "/account@390",
+      "/account@1040"
+     ],
+     "lop": [
+      "row-link.danger"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "44h|r8px|bgrgb(255, 255, 255)|crgb(12, 74, 110)|b1px solid|22px/600",
+     "soTrang": 2,
+     "trang": [
+      "/xe-sua@390",
+      "/xe-sua@1040"
+     ],
+     "lop": [
+      "vc-step-btn"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "44h|r0px|bgrgb(220, 235, 246)|crgb(12, 74, 110)|b0px none|15px/600",
+     "soTrang": 2,
+     "trang": [
+      "/xe-sua@390",
+      "/xe-sua@1040"
+     ],
+     "lop": [],
+     "chu": []
+    },
+    {
+     "sig": "44h|r0px|bgrgb(255, 255, 255)|crgb(71, 85, 105)|b0px none|15px/600",
+     "soTrang": 2,
+     "trang": [
+      "/xe-sua@390",
+      "/xe-sua@1040"
+     ],
+     "lop": [],
+     "chu": []
+    },
+    {
+     "sig": "52h|r12px|bgrgb(192, 57, 43)|crgb(255, 255, 255)|b1px solid|18px/600",
+     "soTrang": 2,
+     "trang": [
+      "/account@390",
+      "/account@1040"
+     ],
+     "lop": [
+      "btn.btn-accent.hdv-claim"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "48h|r12px|bgrgb(255, 255, 255)|crgb(12, 74, 110)|b1px solid|16px/600",
+     "soTrang": 2,
+     "trang": [
+      "/account@390",
+      "/account@1040"
+     ],
+     "lop": [
+      "btn.hdv-act.hdv-xem",
+      "btn.hdv-act.hdv-act-cancel",
+      "btn.hdv-act"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "48h|r12px|bgrgb(220, 235, 246)|crgb(12, 74, 110)|b1px solid|16px/600",
+     "soTrang": 2,
+     "trang": [
+      "/account@390",
+      "/account@1040"
+     ],
+     "lop": [
+      "btn.btn-primary.hdv-act"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "26h|r999px|bgrgb(12, 74, 110)|crgb(0, 0, 0)|b0px none|13.3333px/400",
+     "soTrang": 2,
+     "trang": [
+      "/chinh-sach-dieu-phoi@390",
+      "/chinh-sach-dieu-phoi@1040"
+     ],
+     "lop": [
+      "dp-switch"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "26h|r999px|bgrgb(148, 163, 184)|crgba(16, 16, 16, 0.3)|b0px none|13.3333px/400",
+     "soTrang": 2,
+     "trang": [
+      "/chinh-sach-dieu-phoi@390",
+      "/chinh-sach-dieu-phoi@1040"
+     ],
+     "lop": [
+      "dp-switch"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "52h|r8px|bgrgb(220, 235, 246)|crgb(12, 74, 110)|b1px solid|16px/600",
+     "soTrang": 2,
+     "trang": [
+      "/giao-dien@390",
+      "/giao-dien@1040"
+     ],
+     "lop": [
+      "btn.btn-primary"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "44h|r0px|bgrgba(0, 0, 0, 0)|crgb(71, 85, 105)|b0px none|16px/400",
+     "soTrang": 2,
+     "trang": [
+      "/feedback@1040",
+      "/feedback@1440"
+     ],
+     "lop": [
+      "ht-tab"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "44h|r8px|bgrgb(255, 255, 255)|crgb(142, 14, 43)|b1px solid|15px/600",
+     "soTrang": 2,
+     "trang": [
+      "/cuoc-chuyen@390",
+      "/cuoc-chuyen@1040"
+     ],
+     "lop": [
+      "vc-btn.vc-btn-stop.dp-gian-doan"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "44h|r0px|bgrgb(255, 255, 255)|crgb(15, 23, 42)|b0px none|16px/500",
+     "soTrang": 2,
+     "trang": [
+      "/ban@390",
+      "/ban@1040"
+     ],
+     "lop": [
+      "vc-reason"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "44h|r8px|bgrgb(242, 245, 249)|crgb(71, 85, 105)|b1px solid|16px/600",
+     "soTrang": 2,
+     "trang": [
+      "/ban@390",
+      "/ban@1040"
+     ],
+     "lop": [
+      "vc-btn.btn.btn-accent"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "44h|r999px|bgrgba(0, 0, 0, 0)|crgb(12, 74, 110)|b0px none|13.3333px/400",
+     "soTrang": 1,
+     "trang": [
+      "/@390"
+     ],
+     "lop": [
+      "bell"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "44h|r0px|bgrgba(0, 0, 0, 0)|crgb(71, 85, 105)|b0px none|14px/600",
+     "soTrang": 1,
+     "trang": [
+      "/@390"
+     ],
+     "lop": [
+      "dash-day"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "94h|r8px|bgrgb(220, 235, 246)|crgb(12, 74, 110)|b1px solid|16px/600",
+     "soTrang": 1,
+     "trang": [
+      "/order@390"
+     ],
+     "lop": [
+      "btn.btn-primary"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "94h|r8px|bgrgb(255, 255, 255)|crgb(12, 74, 110)|b1px solid|16px/600",
+     "soTrang": 1,
+     "trang": [
+      "/order@390"
+     ],
+     "lop": [
+      "btn"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "52h|r0px|bgrgba(0, 0, 0, 0)|crgb(15, 23, 42)|b0px none|16px/400",
+     "soTrang": 1,
+     "trang": [
+      "/order-form@390"
+     ],
+     "lop": [
+      "mobile-sum-nut"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "76h|r0px|bgrgba(0, 0, 0, 0)|crgb(15, 23, 42)|b0px none|16px/400",
+     "soTrang": 1,
+     "trang": [
+      "/order-form@1040"
+     ],
+     "lop": [
+      "catalog-ghim",
+      "catalog-pick"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "121h|r0px|bgrgba(0, 0, 0, 0)|crgb(15, 23, 42)|b0px none|16px/400",
+     "soTrang": 1,
+     "trang": [
+      "/hoa-hong@390"
+     ],
+     "lop": [
+      "hh-loai-nut"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "94h|r0px|bgrgba(0, 0, 0, 0)|crgb(15, 23, 42)|b0px none|16px/400",
+     "soTrang": 1,
+     "trang": [
+      "/hoa-hong@390"
+     ],
+     "lop": [
+      "hh-loai-nut"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "70h|r8px|bgrgb(12, 74, 110)|crgb(255, 255, 255)|b1px solid|16px/600",
+     "soTrang": 1,
+     "trang": [
+      "/account@390"
+     ],
+     "lop": [
+      "btn.btn-primary.btn-chinh"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "70h|r8px|bgrgb(255, 255, 255)|crgb(12, 74, 110)|b1px solid|16px/600",
+     "soTrang": 1,
+     "trang": [
+      "/account@390"
+     ],
+     "lop": [
+      "btn"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "96h|r0px|bgrgba(0, 0, 0, 0)|crgb(15, 23, 42)|b0px none|16px/400",
+     "soTrang": 1,
+     "trang": [
+      "/@390"
+     ],
+     "lop": [
+      "dash-o-muc"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "44h|r8px|bgrgb(255, 255, 255)|crgb(12, 74, 110)|b1px solid|15px/600",
+     "soTrang": 1,
+     "trang": [
+      "/xe-chi-tiet@390"
+     ],
+     "lop": [
+      "vc-btn.vc-btn-line"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "44h|r8px|bgrgb(255, 255, 255)|crgb(15, 23, 42)|b1px solid|15px/600",
+     "soTrang": 1,
+     "trang": [
+      "/xe-chi-tiet@390"
+     ],
+     "lop": [
+      "vc-btn.vc-btn-ghost"
+     ],
+     "chu": []
+    }
+   ]
+  },
+  "Huy hiệu / thẻ trạng thái": {
+   "soKieu": 28,
+   "kieu": [
+    {
+     "sig": "r999px|bgrgb(251, 227, 179)|crgb(90, 65, 9)|12px/600|b0px",
+     "soTrang": 59,
+     "trang": [
+      "/@1040",
+      "/@1440",
+      "/orders@1040",
+      "/orders@1440",
+      "/order@1040",
+      "/order-form@1040",
+      "/parties@1040",
+      "/parties@1440",
+      "/catalog@1040",
+      "/staff@1040",
+      "/staff@1440",
+      "/locations@1040"
+     ],
+     "lop": [
+      "sidebar-item-badge.sidebar-item-badge-sand"
+     ],
+     "chu": [
+      "2"
+     ]
+    },
+    {
+     "sig": "r999px|bgrgb(192, 57, 43)|crgb(255, 255, 255)|12px/600|b0px",
+     "soTrang": 59,
+     "trang": [
+      "/@1040",
+      "/@1440",
+      "/orders@1040",
+      "/orders@1440",
+      "/order@1040",
+      "/order-form@1040",
+      "/parties@1040",
+      "/parties@1440",
+      "/catalog@1040",
+      "/staff@1040",
+      "/staff@1440",
+      "/sessions@1040"
+     ],
+     "lop": [
+      "sidebar-item-badge.sidebar-item-badge-accent"
+     ],
+     "chu": [
+      "5"
+     ]
+    },
+    {
+     "sig": "r999px|bgrgb(220, 235, 246)|crgb(12, 74, 110)|12px/600|b0px",
+     "soTrang": 22,
+     "trang": [
+      "/@1040",
+      "/@1440",
+      "/orders@1040",
+      "/orders@1440",
+      "/order@1040",
+      "/order-form@1040",
+      "/parties@1040",
+      "/parties@1440",
+      "/dieu-phoi@1040",
+      "/dieu-phoi@1440",
+      "/chuyen@1040",
+      "/chuyen-sua@1040"
+     ],
+     "lop": [
+      "sidebar-item-badge"
+     ],
+     "chu": [
+      "4"
+     ]
+    },
+    {
+     "sig": "r999px|bgrgb(220, 252, 231)|crgb(22, 101, 52)|12.8px/600|b0px",
+     "soTrang": 20,
+     "trang": [
+      "/orders@390",
+      "/orders@1040",
+      "/orders@768",
+      "/orders@1440",
+      "/order@390",
+      "/order@1040",
+      "/account@390",
+      "/account@1040",
+      "/help@390",
+      "/help@1040",
+      "/dieu-chinh-cong-no@390",
+      "/dieu-chinh-cong-no@1040"
+     ],
+     "lop": [
+      "badge.badge-confirmed"
+     ],
+     "chu": [
+      "Đã xác nhận",
+      "Đang hiệu lực",
+      "Mới",
+      "Đã duyệt",
+      "Đang áp dụng"
+     ]
+    },
+    {
+     "sig": "r999px|bgrgb(251, 227, 179)|crgb(90, 65, 9)|12.8px/600|b0px",
+     "soTrang": 20,
+     "trang": [
+      "/orders@390",
+      "/orders@1040",
+      "/orders@768",
+      "/orders@1440",
+      "/hoa-hong@390",
+      "/hoa-hong@1040",
+      "/hoa-hong@768",
+      "/hoa-hong@1440",
+      "/account@390",
+      "/account@1040",
+      "/feedback@1040",
+      "/feedback@1440"
+     ],
+     "lop": [
+      "badge.badge-draft",
+      "badge.fb-badge.is-moi",
+      "badge.badge-draft.mfa-badge"
+     ],
+     "chu": [
+      "Chờ xác nhận",
+      "Chưa có mức",
+      "Chưa bật",
+      "Máy này",
+      "Mới",
+      "Đã sửa"
+     ]
+    },
+    {
+     "sig": "r999px|bgrgb(220, 235, 246)|crgb(12, 74, 110)|12px/500|b0px",
+     "soTrang": 14,
+     "trang": [
+      "/order@390",
+      "/order@1040",
+      "/chuyen@390",
+      "/chuyen@1040",
+      "/chinh-sach-dieu-phoi@390",
+      "/chinh-sach-dieu-phoi@1040",
+      "/dieu-kien-xuat-ben@390",
+      "/dieu-kien-xuat-ben@1040",
+      "/cuoc@390",
+      "/cuoc@1040",
+      "/cuoc@768",
+      "/cuoc@1440"
+     ],
+     "lop": [
+      "chip.chip-unit",
+      "chip.dp-chip-unit.cp-chip-ai",
+      "chip.dp-chip-unit"
+     ],
+     "chu": [
+      "Chiều đi",
+      "theo người",
+      "Chỉ Kế toán · Quản trị",
+      "Kiểm định — mọi xe",
+      "Bảo hiểm trách nhiệm dân sự — mọi xe",
+      "Đang dùng"
+     ]
+    },
+    {
+     "sig": "r999px|bgrgb(242, 245, 249)|crgb(71, 85, 105)|12px/500|b0px",
+     "soTrang": 12,
+     "trang": [
+      "/order@390",
+      "/order@1040",
+      "/dieu-phoi@1040",
+      "/dieu-phoi@1440",
+      "/chuyen@390",
+      "/chuyen@1040",
+      "/catalog@390",
+      "/catalog@1040",
+      "/de-nghi@390",
+      "/de-nghi@1040",
+      "/de-nghi@768",
+      "/de-nghi@1440"
+     ],
+     "lop": [
+      "chip.chip-code",
+      "chip.dp-chip-muted",
+      "chip.chip-muted.dd-chip"
+     ],
+     "chu": [
+      "SM3",
+      "3 chuyến",
+      "Hết giờ chờ",
+      "Không đưa đón"
+     ]
+    },
+    {
+     "sig": "r999px|bgrgb(220, 252, 231)|crgb(22, 101, 52)|12px/600|b1px",
+     "soTrang": 12,
+     "trang": [
+      "/xe@390",
+      "/xe@1040",
+      "/xe@768",
+      "/xe@1440",
+      "/xe-chi-tiet@390",
+      "/xe-chi-tiet@1040",
+      "/tai-xe@390",
+      "/tai-xe@1040",
+      "/tai-xe@768",
+      "/tai-xe@1440",
+      "/account@390",
+      "/account@1040"
+     ],
+     "lop": [
+      "vc-chip.vc-chip-ok"
+     ],
+     "chu": [
+      "Đang dùng",
+      "Còn 250 ngày",
+      "Còn 300 ngày",
+      "Còn hạn"
+     ]
+    },
+    {
+     "sig": "r999px|bgrgb(12, 74, 110)|crgb(255, 255, 255)|12px/500|b0px",
+     "soTrang": 10,
+     "trang": [
+      "/chuyen@390",
+      "/chuyen@1040",
+      "/xe-dang-chay@390",
+      "/xe-dang-chay@1040",
+      "/xe-dang-chay@768",
+      "/xe-dang-chay@1440",
+      "/bang-ke-xe@390",
+      "/bang-ke-xe@1040",
+      "/bang-ke-xe@768",
+      "/bang-ke-xe@1440"
+     ],
+     "lop": [
+      "chip.dp-chip-navy"
+     ],
+     "chu": [
+      "Đang chạy"
+     ]
+    },
+    {
+     "sig": "r999px|bgrgb(242, 245, 249)|crgb(71, 85, 105)|12.8px/600|b0px",
+     "soTrang": 8,
+     "trang": [
+      "/orders@390",
+      "/orders@1040",
+      "/orders@768",
+      "/orders@1440",
+      "/help@390",
+      "/help@1040",
+      "/account@390",
+      "/account@1040"
+     ],
+     "lop": [
+      "badge.badge-cancelled"
+     ],
+     "chu": [
+      "Đã huỷ",
+      "Thay đổi",
+      "5",
+      "Đang tắt"
+     ]
+    },
+    {
+     "sig": "r8px|bgrgb(220, 235, 246)|crgb(12, 74, 110)|14px/500|b0px",
+     "soTrang": 8,
+     "trang": [
+      "/catalog@390",
+      "/staff@390",
+      "/staff@768",
+      "/locations@390",
+      "/loai-giay-to-nguoi@390",
+      "/loai-giay-to-xe@390",
+      "/ly-do-dieu-phoi@390",
+      "/ly-do-dieu-phoi@1040"
+     ],
+     "lop": [
+      "pill-btn",
+      "pill-btn.dp-group-add"
+     ],
+     "chu": [
+      "Sửa giá",
+      "Đưa đón",
+      "Sửa",
+      "Đặt lại PIN",
+      "+ Thêm lý do"
+     ]
+    },
+    {
+     "sig": "r0px|bgrgba(0, 0, 0, 0)|crgb(15, 23, 42)|16px/400|b0px",
+     "soTrang": 7,
+     "trang": [
+      "/order@390",
+      "/order@1040",
+      "/chuyen@390",
+      "/chuyen@1040",
+      "/bang-ke-xe@390",
+      "/bang-ke-xe@768",
+      "/catalog@1040"
+     ],
+     "lop": [
+      "svc-chips",
+      "cp-chips",
+      "bk-the-chip",
+      "dd-chip-dong"
+     ],
+     "chu": [
+      "theo người SM3",
+      "Giá thoả thuận",
+      "Đang chạy Giá thoả thuận",
+      "Không đưa đón"
+     ]
+    },
+    {
+     "sig": "r999px|bgrgb(251, 227, 179)|crgb(90, 65, 9)|12px/600|b1px",
+     "soTrang": 6,
+     "trang": [
+      "/giay-to-sap-het-han@390",
+      "/giay-to-sap-het-han@1040",
+      "/giay-to-sap-het-han@768",
+      "/giay-to-sap-het-han@1440",
+      "/gui-thong-bao@390",
+      "/gui-thong-bao@1040"
+     ],
+     "lop": [
+      "vc-chip.vc-chip-warn",
+      "ntf-chip.ntf-chip-qt"
+     ],
+     "chu": [
+      "Còn 9 ngày",
+      "Còn 20 ngày",
+      "Quan trọng"
+     ]
+    },
+    {
+     "sig": "r999px|bgrgb(220, 252, 231)|crgb(22, 101, 52)|12px/500|b0px",
+     "soTrang": 5,
+     "trang": [
+      "/@1040",
+      "/@768",
+      "/@1440",
+      "/chuyen@390",
+      "/chuyen@1040"
+     ],
+     "lop": [
+      "badge.badge-confirmed",
+      "chip.dp-chip-ok"
+     ],
+     "chu": [
+      "6",
+      "Đạt",
+      "Giá thoả thuận"
+     ]
+    },
+    {
+     "sig": "r8px|bgrgb(254, 242, 240)|crgb(150, 39, 26)|14px/500|b0px",
+     "soTrang": 5,
+     "trang": [
+      "/catalog@390",
+      "/staff@390",
+      "/staff@768",
+      "/sessions@390",
+      "/sessions@768"
+     ],
+     "lop": [
+      "pill-btn.pill-btn-danger"
+     ],
+     "chu": [
+      "Ẩn",
+      "Tắt bảo mật hai lớp",
+      "Ngưng",
+      "Đăng xuất máy này",
+      "Đăng xuất mọi máy + đặt lại PIN"
+     ]
+    },
+    {
+     "sig": "r999px|bgrgb(220, 235, 246)|crgb(8, 47, 73)|12.8px/600|b0px",
+     "soTrang": 4,
+     "trang": [
+      "/orders@390",
+      "/orders@1040",
+      "/orders@768",
+      "/orders@1440"
+     ],
+     "lop": [
+      "badge.badge-delivered"
+     ],
+     "chu": [
+      "Đã giao – đã thu đủ"
+     ]
+    },
+    {
+     "sig": "r999px|bgrgb(12, 74, 110)|crgb(248, 250, 252)|12.8px/600|b0px",
+     "soTrang": 4,
+     "trang": [
+      "/orders@390",
+      "/orders@1040",
+      "/orders@768",
+      "/orders@1440"
+     ],
+     "lop": [
+      "badge.badge-completed"
+     ],
+     "chu": [
+      "Hoàn thành"
+     ]
+    },
+    {
+     "sig": "r12px|bgrgb(251, 227, 179)|crgb(12, 74, 110)|14px/600|b1px",
+     "soTrang": 4,
+     "trang": [
+      "/order-form@390",
+      "/order-form@1040",
+      "/account@390",
+      "/account@1040"
+     ],
+     "lop": [
+      "chip.hdv-chip.chip-warn",
+      "chip.chip-warn.hdv-chip"
+     ],
+     "chu": [
+      "Chờ nhận"
+     ]
+    },
+    {
+     "sig": "r0px|bgrgba(0, 0, 0, 0)|crgb(12, 74, 110)|18px/600|b0px",
+     "soTrang": 4,
+     "trang": [
+      "/audit@390",
+      "/audit@1040",
+      "/audit@768",
+      "/audit@1440"
+     ],
+     "lop": [
+      "trang-thai-tieu-de"
+     ],
+     "chu": [
+      "Bạn không có quyền xem trang này."
+     ]
+    },
+    {
+     "sig": "r999px|bgrgb(251, 227, 179)|crgb(90, 65, 9)|14px/600|b1px",
+     "soTrang": 4,
+     "trang": [
+      "/feedback@390",
+      "/feedback@1040",
+      "/feedback@768",
+      "/feedback@1440"
+     ],
+     "lop": [
+      "ht-chip.is-moi"
+     ],
+     "chu": [
+      "Mới"
+     ]
+    },
+    {
+     "sig": "r999px|bgrgb(255, 255, 255)|crgb(15, 23, 42)|14px/600|b1px",
+     "soTrang": 4,
+     "trang": [
+      "/feedback@390",
+      "/feedback@1040",
+      "/feedback@768",
+      "/feedback@1440"
+     ],
+     "lop": [
+      "ht-chip"
+     ],
+     "chu": [
+      "Ưu tiên: Thường",
+      "Chưa ai nhận",
+      "Nhóm: Điều hành"
+     ]
+    },
+    {
+     "sig": "r999px|bgrgb(253, 233, 238)|crgb(142, 14, 43)|12px/500|b0px",
+     "soTrang": 4,
+     "trang": [
+      "/cuoc@390",
+      "/cuoc@1040",
+      "/cuoc@768",
+      "/cuoc@1440"
+     ],
+     "lop": [
+      "chip.dp-chip-danger"
+     ],
+     "chu": [
+      "Bị giữ"
+     ]
+    },
+    {
+     "sig": "r999px|bgrgb(251, 227, 179)|crgb(90, 65, 9)|14px/500|b1px",
+     "soTrang": 2,
+     "trang": [
+      "/order@390",
+      "/order@1040"
+     ],
+     "lop": [
+      "chip.chip-warn"
+     ],
+     "chu": [
+      "Chờ nhận"
+     ]
+    },
+    {
+     "sig": "r8px|bgrgb(255, 255, 255)|crgb(12, 74, 110)|14px/500|b1px",
+     "soTrang": 2,
+     "trang": [
+      "/order-form@390",
+      "/order-form@1040"
+     ],
+     "lop": [
+      "pill-btn"
+     ],
+     "chu": [
+      "+ Thêm hành khách"
+     ]
+    },
+    {
+     "sig": "r999px|bgrgb(245, 166, 35)|crgb(90, 65, 9)|12px/600|b0px",
+     "soTrang": 2,
+     "trang": [
+      "/account@390",
+      "/account@1040"
+     ],
+     "lop": [
+      "vc-badge"
+     ],
+     "chu": [
+      "2"
+     ]
+    },
+    {
+     "sig": "r12px|bgrgb(220, 235, 246)|crgb(12, 74, 110)|14px/600|b1px",
+     "soTrang": 2,
+     "trang": [
+      "/account@390",
+      "/account@1040"
+     ],
+     "lop": [
+      "chip.chip-unit.hdv-chip"
+     ],
+     "chu": [
+      "Đã xác nhận"
+     ]
+    },
+    {
+     "sig": "r999px|bgrgb(220, 252, 231)|crgb(22, 101, 52)|12px/600|b0px",
+     "soTrang": 1,
+     "trang": [
+      "/@390"
+     ],
+     "lop": [
+      "badge.badge-confirmed",
+      "badge.badge-confirmed.lbl-short"
+     ],
+     "chu": [
+      "6",
+      "Đủ tiền"
+     ]
+    },
+    {
+     "sig": "r999px|bgrgb(253, 233, 238)|crgb(142, 14, 43)|12.8px/600|b0px",
+     "soTrang": 1,
+     "trang": [
+      "/help@390"
+     ],
+     "lop": [
+      "badge.badge-new"
+     ],
+     "chu": [
+      "Mới cập nhật"
+     ]
+    }
+   ]
+  },
+  "Thẻ / khối": {
+   "soKieu": 26,
+   "kieu": [
+    {
+     "sig": "r12px|bgrgb(255, 255, 255)|b0px rgb(15, 23, 42)|sh1|p16px",
+     "soTrang": 59,
+     "trang": [
+      "/order@390",
+      "/order@1040",
+      "/order-form@390",
+      "/order-form@1040",
+      "/parties@390",
+      "/parties@1040",
+      "/parties@768",
+      "/parties@1440",
+      "/hoa-hong@1040",
+      "/hoa-hong@768",
+      "/hoa-hong@1440",
+      "/account@390"
+     ],
+     "lop": [
+      "card.handler-card",
+      "card",
+      "card.dd-card",
+      "card.hk-card-don",
+      "card.pdt",
+      "card.totals"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "r12px|bgrgb(255, 255, 255)|b1px rgb(225, 231, 239)|sh1|p0px",
+     "soTrang": 36,
+     "trang": [
+      "/dieu-phoi@390",
+      "/dieu-phoi@1040",
+      "/dieu-phoi@768",
+      "/dieu-phoi@1440",
+      "/chuyen@390",
+      "/chuyen@1040",
+      "/chuyen-sua@1040",
+      "/bang-gia-xe@390",
+      "/bang-gia-xe@1040",
+      "/bang-ke-xe@390",
+      "/bang-ke-xe@1040",
+      "/bang-ke-xe@768"
+     ],
+     "lop": [
+      "vc-card.dp-stats-m",
+      "vc-card.dp-col.dp-col-chua-xep",
+      "vc-card.dp-stats",
+      "vc-card.dp-tl-card",
+      "vc-card.dp-col.dp-col-cxl",
+      "vc-card.dp-viec-vp"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "r12px|bgrgb(255, 255, 255)|b1px rgb(225, 231, 239)|sh1|p16px",
+     "soTrang": 22,
+     "trang": [
+      "/order@390",
+      "/order@1040",
+      "/chuyen-sua@390",
+      "/chuyen-sua@1040",
+      "/bang-gia-xe@390",
+      "/bang-gia-xe@1040",
+      "/bang-ke-xe@390",
+      "/bang-ke-xe@1040",
+      "/bang-ke-xe@768",
+      "/bang-ke-xe@1440",
+      "/de-nghi@390",
+      "/de-nghi@1040"
+     ],
+     "lop": [
+      "svc.svc-view",
+      "vc-card.dp-cx-form",
+      "vc-card.tx-loc",
+      "vc-card.tx-loc.bk-loc",
+      "vc-card.xdc-rong",
+      "vc-card.vc-xe-card"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "r12px|bgrgb(255, 255, 255)|b1px rgb(225, 231, 239)|sh1|p12px",
+     "soTrang": 16,
+     "trang": [
+      "/orders@390",
+      "/orders@1040",
+      "/orders@768",
+      "/orders@1440",
+      "/xe-dang-chay@390",
+      "/xe-dang-chay@1040",
+      "/xe-dang-chay@768",
+      "/xe-dang-chay@1440",
+      "/giao-dien@390",
+      "/giao-dien@1040",
+      "/cuoc@390",
+      "/cuoc@1040"
+     ],
+     "lop": [
+      "order-card",
+      "vc-card.xdc-the",
+      "vc-card.dp-cuoc-the.is-chay",
+      "vc-card.dp-cuoc-the",
+      "vc-card.bb-khung"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "r12px|bgrgb(255, 255, 255)|b1px rgb(225, 231, 239)|sh0|p0px",
+     "soTrang": 4,
+     "trang": [
+      "/hoa-hong@390",
+      "/hoa-hong@1040",
+      "/hoa-hong@768",
+      "/hoa-hong@1440"
+     ],
+     "lop": [
+      "hh-lo"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "r12px|bgrgb(255, 255, 255)|b0px rgb(15, 23, 42)|sh1|p0px",
+     "soTrang": 4,
+     "trang": [
+      "/account@390",
+      "/account@1040",
+      "/feedback@1040",
+      "/feedback@1440"
+     ],
+     "lop": [
+      "card.list-card",
+      "card.ht-danh-sach",
+      "card.vc-mydocs"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "r12px|bgrgb(255, 255, 255)|b2px rgb(12, 74, 110)|sh1|p0px",
+     "soTrang": 4,
+     "trang": [
+      "/account@390",
+      "/account@1040",
+      "/cuoc-chuyen@390",
+      "/cuoc-chuyen@1040"
+     ],
+     "lop": [
+      "card.list-card",
+      "vc-card.dp-run.is-sau"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "r12px|bgrgb(12, 74, 110)|b0px rgb(255, 255, 255)|sh0|p16px",
+     "soTrang": 4,
+     "trang": [
+      "/bang-ke-xe@390",
+      "/bang-ke-xe@1040",
+      "/bang-ke-xe@768",
+      "/bang-ke-xe@1440"
+     ],
+     "lop": [
+      "bk-tong-cong"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "r18px|bgrgb(255, 255, 255)|b1px rgb(225, 231, 239)|sh0|p8px",
+     "soTrang": 4,
+     "trang": [
+      "/feedback@390",
+      "/feedback@1040",
+      "/feedback@768",
+      "/feedback@1440"
+     ],
+     "lop": [
+      "card.fb-tin"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "r18px|bgrgb(220, 235, 246)|b1px rgb(220, 235, 246)|sh0|p8px",
+     "soTrang": 4,
+     "trang": [
+      "/feedback@390",
+      "/feedback@1040",
+      "/feedback@768",
+      "/feedback@1440"
+     ],
+     "lop": [
+      "card.fb-tin.is-minh"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "r18px|bgrgb(255, 255, 255)|b1px rgb(233, 211, 164)|sh1|p24px",
+     "soTrang": 3,
+     "trang": [
+      "/@1040",
+      "/@768",
+      "/@1440"
+     ],
+     "lop": [
+      "dash-viec-the.dash-viec-the-cat"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "r18px|bgrgb(255, 255, 255)|b1px rgb(225, 231, 239)|sh1|p24px",
+     "soTrang": 3,
+     "trang": [
+      "/@1040",
+      "/@768",
+      "/@1440"
+     ],
+     "lop": [
+      "dash-viec-the.dash-viec-the-xanh"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "r18px|bgrgb(225, 231, 239)|b1px rgb(225, 231, 239)|sh1|p0px",
+     "soTrang": 3,
+     "trang": [
+      "/@1040",
+      "/@768",
+      "/@1440"
+     ],
+     "lop": [
+      "dash-so-mt"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "r18px|bgrgb(255, 255, 255)|b1px rgb(225, 231, 239)|sh1|p0px",
+     "soTrang": 3,
+     "trang": [
+      "/@1040",
+      "/@768",
+      "/@1440"
+     ],
+     "lop": [
+      "card.dash-today",
+      "card.dash-loi-tat",
+      "card.dash-review"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "r12px|bgrgb(255, 255, 255)|b1px rgb(225, 231, 239)|sh0|p48px",
+     "soTrang": 3,
+     "trang": [
+      "/tai-xe@1040",
+      "/tai-xe@768",
+      "/tai-xe@1440"
+     ],
+     "lop": [
+      "vc-cuoc"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "r8px|bgrgb(255, 255, 255)|b1px rgb(225, 231, 239)|sh0|p12px",
+     "soTrang": 2,
+     "trang": [
+      "/order@390",
+      "/order@1040"
+     ],
+     "lop": [
+      "pdt-dong"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "r12px|bgrgb(255, 255, 255)|b2px rgb(12, 74, 110)|sh1|p16px",
+     "soTrang": 2,
+     "trang": [
+      "/order-form@390",
+      "/order-form@1040"
+     ],
+     "lop": [
+      "card.owner-card.buoc"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "r0px|bgrgba(0, 0, 0, 0)|b1px rgb(225, 231, 239)|sh0|p12px",
+     "soTrang": 2,
+     "trang": [
+      "/help@390",
+      "/help@1040"
+     ],
+     "lop": [
+      "release-note"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "r12px|bgrgb(255, 255, 255)|b1px rgb(225, 231, 239)|sh1|p24px",
+     "soTrang": 2,
+     "trang": [
+      "/xe-sua@1040",
+      "/xe-chi-tiet@1040"
+     ],
+     "lop": [
+      "vc-card.vc-form",
+      "vc-card.vc-xe-head"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "r12px|bgrgb(251, 227, 179)|b0px rgb(12, 74, 110)|sh0|p0px",
+     "soTrang": 2,
+     "trang": [
+      "/account@390",
+      "/account@1040"
+     ],
+     "lop": [
+      "hdv-tile.hdv-tile-queue"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "r12px|bgrgb(220, 235, 246)|b0px rgb(12, 74, 110)|sh0|p0px",
+     "soTrang": 2,
+     "trang": [
+      "/account@390",
+      "/account@1040"
+     ],
+     "lop": [
+      "hdv-tile.hdv-tile-mine"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "r12px|bgrgb(255, 255, 255)|b1px rgb(225, 231, 239)|sh0|p16px",
+     "soTrang": 2,
+     "trang": [
+      "/account@390",
+      "/account@1040"
+     ],
+     "lop": [
+      "hdv-card"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "r0px|bgrgb(242, 245, 249)|b0px rgb(15, 23, 42)|sh0|p12px",
+     "soTrang": 2,
+     "trang": [
+      "/dieu-kien-xuat-ben@390",
+      "/dieu-kien-xuat-ben@1040"
+     ],
+     "lop": [
+      "dp-panel"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "r12px|bgrgb(255, 255, 255)|b2px rgb(239, 239, 239)|sh1|p16px",
+     "soTrang": 2,
+     "trang": [
+      "/giao-dien@390",
+      "/giao-dien@1040"
+     ],
+     "lop": [
+      "card.gd-nhom"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "r18px|bgrgb(255, 255, 255)|b1px rgb(225, 231, 239)|sh1|p8px",
+     "soTrang": 1,
+     "trang": [
+      "/@390"
+     ],
+     "lop": [
+      "card.dash-today",
+      "card.dash-review"
+     ],
+     "chu": []
+    },
+    {
+     "sig": "r12px|bgrgb(255, 255, 255)|b1px rgb(225, 231, 239)|sh0|p32px",
+     "soTrang": 1,
+     "trang": [
+      "/tai-xe@390"
+     ],
+     "lop": [
+      "vc-cuoc"
+     ],
+     "chu": []
+    }
+   ]
+  },
+  "Ô gõ": {
+   "soKieu": 13,
+   "kieu": [
+    {
+     "sig": "46h|r8px|b1px rgb(201, 212, 224)|bgrgb(255, 255, 255)|16px",
+     "soTrang": 84,
+     "trang": [
+      "/@1040",
+      "/@1440",
+      "/orders@390",
+      "/orders@1040",
+      "/orders@768",
+      "/orders@1440",
+      "/order@1040",
+      "/order-form@390",
+      "/order-form@1040",
+      "/parties@390",
+      "/parties@1040",
+      "/parties@768"
+     ],
+     "lop": [],
+     "chu": []
+    },
+    {
+     "sig": "52h|r8px|b1px rgb(225, 231, 239)|bgrgb(255, 255, 255)|16px",
+     "soTrang": 28,
+     "trang": [
+      "/dieu-phoi@390",
+      "/dieu-phoi@1040",
+      "/dieu-phoi@768",
+      "/dieu-phoi@1440",
+      "/chuyen-sua@390",
+      "/chuyen-sua@1040",
+      "/bang-gia-xe@390",
+      "/bang-gia-xe@1040",
+      "/bang-ke-xe@390",
+      "/bang-ke-xe@1040",
+      "/bang-ke-xe@768",
+      "/bang-ke-xe@1440"
+     ],
+     "lop": [],
+     "chu": []
+    },
+    {
+     "sig": "44h|r8px|b1px rgb(201, 212, 224)|bgrgb(255, 255, 255)|16px",
+     "soTrang": 23,
+     "trang": [
+      "/parties@390",
+      "/parties@1040",
+      "/parties@768",
+      "/parties@1440",
+      "/hoa-hong@390",
+      "/hoa-hong@1040",
+      "/hoa-hong@768",
+      "/hoa-hong@1440",
+      "/so-cong-no@390",
+      "/so-cong-no@1040",
+      "/so-cong-no@768",
+      "/so-cong-no@1440"
+     ],
+     "lop": [],
+     "chu": []
+    },
+    {
+     "sig": "48h|r8px|b1px rgb(201, 212, 224)|bgrgb(255, 255, 255)|16px",
+     "soTrang": 9,
+     "trang": [
+      "/hoa-hong@1040",
+      "/hoa-hong@768",
+      "/hoa-hong@1440",
+      "/nguoi-ban@390",
+      "/nguoi-ban@1040",
+      "/tro-ly-cai-dat@390",
+      "/tro-ly-cai-dat@1040",
+      "/account@390",
+      "/account@1040"
+     ],
+     "lop": [],
+     "chu": []
+    },
+    {
+     "sig": "72h|r8px|b1px rgb(201, 212, 224)|bgrgb(255, 255, 255)|16px",
+     "soTrang": 6,
+     "trang": [
+      "/dieu-chinh-cong-no@390",
+      "/dieu-chinh-cong-no@1040",
+      "/gui-thong-bao@390",
+      "/gui-thong-bao@1040",
+      "/tro-ly-cai-dat@390",
+      "/tro-ly-cai-dat@1040"
+     ],
+     "lop": [],
+     "chu": []
+    },
+    {
+     "sig": "94h|r8px|b1px rgb(201, 212, 224)|bgrgb(255, 255, 255)|16px",
+     "soTrang": 6,
+     "trang": [
+      "/account@390",
+      "/account@1040",
+      "/feedback@390",
+      "/feedback@1040",
+      "/feedback@768",
+      "/feedback@1440"
+     ],
+     "lop": [],
+     "chu": []
+    },
+    {
+     "sig": "56h|r8px|b1px rgb(201, 212, 224)|bgrgb(255, 255, 255)|16px",
+     "soTrang": 2,
+     "trang": [
+      "/order-form@390",
+      "/order-form@1040"
+     ],
+     "lop": [],
+     "chu": []
+    },
+    {
+     "sig": "54h|r8px|b1px rgb(201, 212, 224)|bgrgb(255, 255, 255)|16px",
+     "soTrang": 2,
+     "trang": [
+      "/order-form@390",
+      "/order-form@1040"
+     ],
+     "lop": [],
+     "chu": []
+    },
+    {
+     "sig": "78h|r8px|b1px rgb(201, 212, 224)|bgrgb(255, 255, 255)|16px",
+     "soTrang": 2,
+     "trang": [
+      "/order-form@390",
+      "/order-form@1040"
+     ],
+     "lop": [],
+     "chu": []
+    },
+    {
+     "sig": "358h|r8px|b1px rgb(201, 212, 224)|bgrgb(255, 255, 255)|16px",
+     "soTrang": 2,
+     "trang": [
+      "/tro-ly-cai-dat@390",
+      "/tro-ly-cai-dat@1040"
+     ],
+     "lop": [],
+     "chu": []
+    },
+    {
+     "sig": "118h|r8px|b1px rgb(201, 212, 224)|bgrgb(255, 255, 255)|16px",
+     "soTrang": 2,
+     "trang": [
+      "/tro-ly-cai-dat@390",
+      "/tro-ly-cai-dat@1040"
+     ],
+     "lop": [],
+     "chu": []
+    },
+    {
+     "sig": "214h|r8px|b1px rgb(201, 212, 224)|bgrgb(255, 255, 255)|16px",
+     "soTrang": 2,
+     "trang": [
+      "/account@390",
+      "/account@1040"
+     ],
+     "lop": [],
+     "chu": []
+    },
+    {
+     "sig": "50h|r0px|b0px rgb(15, 23, 42)|bgrgba(0, 0, 0, 0)|16px",
+     "soTrang": 1,
+     "trang": [
+      "/@390"
+     ],
+     "lop": [],
+     "chu": []
+    }
+   ]
+  },
+  "huyHieuCungChuKhacHinh": [
+   {
+    "chu": "Mới",
+    "soHinh": 3,
+    "hinh": [
+     {
+      "sig": "r999px|bgrgb(251, 227, 179)|crgb(90, 65, 9)|12.8px/600|b0px",
+      "trang": [
+       "/feedback@1040",
+       "/feedback@1440"
+      ]
+     },
+     {
+      "sig": "r999px|bgrgb(220, 252, 231)|crgb(22, 101, 52)|12.8px/600|b0px",
+      "trang": [
+       "/help@390",
+       "/help@1040"
+      ]
+     },
+     {
+      "sig": "r999px|bgrgb(251, 227, 179)|crgb(90, 65, 9)|14px/600|b1px",
+      "trang": [
+       "/feedback@390",
+       "/feedback@1040",
+       "/feedback@768",
+       "/feedback@1440"
+      ]
+     }
+    ]
+   },
+   {
+    "chu": "6",
+    "soHinh": 2,
+    "hinh": [
+     {
+      "sig": "r999px|bgrgb(220, 252, 231)|crgb(22, 101, 52)|12px/600|b0px",
+      "trang": [
+       "/@390"
+      ]
+     },
+     {
+      "sig": "r999px|bgrgb(220, 252, 231)|crgb(22, 101, 52)|12px/500|b0px",
+      "trang": [
+       "/@1040",
+       "/@768",
+       "/@1440"
+      ]
+     }
+    ]
+   },
+   {
+    "chu": "Đã xác nhận",
+    "soHinh": 2,
+    "hinh": [
+     {
+      "sig": "r999px|bgrgb(220, 252, 231)|crgb(22, 101, 52)|12.8px/600|b0px",
+      "trang": [
+       "/orders@390",
+       "/orders@1040",
+       "/orders@768",
+       "/orders@1440",
+       "/order@390",
+       "/order@1040"
+      ]
+     },
+     {
+      "sig": "r12px|bgrgb(220, 235, 246)|crgb(12, 74, 110)|14px/600|b1px",
+      "trang": [
+       "/account@390",
+       "/account@1040"
+      ]
+     }
+    ]
+   },
+   {
+    "chu": "Chờ nhận",
+    "soHinh": 2,
+    "hinh": [
+     {
+      "sig": "r999px|bgrgb(251, 227, 179)|crgb(90, 65, 9)|14px/500|b1px",
+      "trang": [
+       "/order@390",
+       "/order@1040"
+      ]
+     },
+     {
+      "sig": "r12px|bgrgb(251, 227, 179)|crgb(12, 74, 110)|14px/600|b1px",
+      "trang": [
+       "/order-form@390",
+       "/order-form@1040",
+       "/account@390",
+       "/account@1040"
+      ]
+     }
+    ]
+   },
+   {
+    "chu": "Đang chạy",
+    "soHinh": 2,
+    "hinh": [
+     {
+      "sig": "r999px|bgrgb(12, 74, 110)|crgb(255, 255, 255)|12px/500|b0px",
+      "trang": [
+       "/chuyen@390",
+       "/chuyen@1040",
+       "/xe-dang-chay@390",
+       "/xe-dang-chay@1040",
+       "/xe-dang-chay@768",
+       "/xe-dang-chay@1440"
+      ]
+     },
+     {
+      "sig": "r999px|bgrgb(220, 235, 246)|crgb(12, 74, 110)|12px/500|b0px",
+      "trang": [
+       "/cuoc@390",
+       "/cuoc@1040",
+       "/cuoc@768",
+       "/cuoc@1440",
+       "/cuoc-chuyen@390",
+       "/cuoc-chuyen@1040"
+      ]
+     }
+    ]
+   },
+   {
+    "chu": "Giá thoả thuận",
+    "soHinh": 2,
+    "hinh": [
+     {
+      "sig": "r999px|bgrgb(220, 252, 231)|crgb(22, 101, 52)|12px/500|b0px",
+      "trang": [
+       "/chuyen@390",
+       "/chuyen@1040"
+      ]
+     },
+     {
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|crgb(15, 23, 42)|16px/400|b0px",
+      "trang": [
+       "/chuyen@390",
+       "/chuyen@1040"
+      ]
+     }
+    ]
+   },
+   {
+    "chu": "Đang áp dụng",
+    "soHinh": 2,
+    "hinh": [
+     {
+      "sig": "r999px|bgrgb(220, 252, 231)|crgb(22, 101, 52)|12.8px/600|b0px",
+      "trang": [
+       "/nguoi-ban@390",
+       "/nguoi-ban@1040"
+      ]
+     },
+     {
+      "sig": "r999px|bgrgb(220, 235, 246)|crgb(12, 74, 110)|12px/500|b0px",
+      "trang": [
+       "/dieu-kien-xuat-ben@390",
+       "/dieu-kien-xuat-ben@1040"
+      ]
+     }
+    ]
+   },
+   {
+    "chu": "2",
+    "soHinh": 2,
+    "hinh": [
+     {
+      "sig": "r999px|bgrgb(251, 227, 179)|crgb(90, 65, 9)|12px/600|b0px",
+      "trang": [
+       "/@1040",
+       "/@1440",
+       "/orders@1040",
+       "/orders@1440",
+       "/order@1040",
+       "/order-form@1040"
+      ]
+     },
+     {
+      "sig": "r999px|bgrgb(245, 166, 35)|crgb(90, 65, 9)|12px/600|b0px",
+      "trang": [
+       "/account@390",
+       "/account@1040"
+      ]
+     }
+    ]
+   },
+   {
+    "chu": "Không đưa đón",
+    "soHinh": 2,
+    "hinh": [
+     {
+      "sig": "r999px|bgrgb(242, 245, 249)|crgb(71, 85, 105)|12px/500|b0px",
+      "trang": [
+       "/catalog@390",
+       "/catalog@1040"
+      ]
+     },
+     {
+      "sig": "r0px|bgrgba(0, 0, 0, 0)|crgb(15, 23, 42)|16px/400|b0px",
+      "trang": [
+       "/catalog@1040"
+      ]
+     }
+    ]
+   },
+   {
+    "chu": "Đang dùng",
+    "soHinh": 2,
+    "hinh": [
+     {
+      "sig": "r999px|bgrgb(220, 252, 231)|crgb(22, 101, 52)|12px/600|b1px",
+      "trang": [
+       "/xe@390",
+       "/xe@1040",
+       "/xe@768",
+       "/xe@1440",
+       "/xe-chi-tiet@390",
+       "/xe-chi-tiet@1040"
+      ]
+     },
+     {
+      "sig": "r999px|bgrgb(220, 235, 246)|crgb(12, 74, 110)|12px/500|b0px",
+      "trang": [
+       "/chinh-sach-dieu-phoi@1040"
+      ]
+     }
+    ]
+   },
+   {
+    "chu": "5",
+    "soHinh": 2,
+    "hinh": [
+     {
+      "sig": "r999px|bgrgb(192, 57, 43)|crgb(255, 255, 255)|12px/600|b0px",
+      "trang": [
+       "/@1040",
+       "/@1440",
+       "/orders@1040",
+       "/orders@1440",
+       "/order@1040",
+       "/order-form@1040"
+      ]
+     },
+     {
+      "sig": "r999px|bgrgb(242, 245, 249)|crgb(71, 85, 105)|12.8px/600|b0px",
+      "trang": [
+       "/account@390",
+       "/account@1040"
+      ]
+     }
+    ]
+   }
+  ],
+  "h1": [
+   {
+    "coDam": "24px/600",
+    "soTrang": 90,
+    "trang": [
+     "/@390",
+     "/@1040",
+     "/@768",
+     "/@1440",
+     "/orders@390",
+     "/orders@1040",
+     "/orders@768",
+     "/orders@1440",
+     "/order@390",
+     "/order@1040"
+    ]
+   },
+   {
+    "coDam": "26px/600",
+    "soTrang": 34,
+    "trang": [
+     "/chuyen@1040",
+     "/chuyen-sua@390",
+     "/chuyen-sua@1040",
+     "/xe-dang-chay@1040",
+     "/xe-dang-chay@768",
+     "/xe-dang-chay@1440",
+     "/de-nghi@1040",
+     "/de-nghi@768",
+     "/de-nghi@1440",
+     "/xe@390"
+    ]
+   },
+   {
+    "coDam": "28px/600",
+    "soTrang": 1,
+    "trang": [
+     "/xe-chi-tiet@1040"
+    ]
+   },
+   {
+    "coDam": "18px/600",
+    "soTrang": 1,
+    "trang": [
+     "/giay-to-sap-het-han@390"
+    ]
+   }
+  ],
+  "dinh": [
+   {
+    "kieu": "NAV:fixed",
+    "soTrang": 57
+   },
+   {
+    "kieu": "NAV:sticky",
+    "soTrang": 65
+   },
+   {
+    "kieu": "sidebar-group:sticky",
+    "soTrang": 46
+   },
+   {
+    "kieu": "sidebar-foot:sticky",
+    "soTrang": 65
+   },
+   {
+    "kieu": "HEADER:sticky",
+    "soTrang": 64
+   },
+   {
+    "kieu": "side:sticky",
+    "soTrang": 1
+   },
+   {
+    "kieu": "buoc-thanh:sticky",
+    "soTrang": 2
+   },
+   {
+    "kieu": "form-actions.thanh-hanh-dong-cuoi:sticky",
+    "soTrang": 1
+   },
+   {
+    "kieu": "form-side:sticky",
+    "soTrang": 1
+   },
+   {
+    "kieu": "dp-tl-nhan:sticky",
+    "soTrang": 2
+   },
+   {
+    "kieu": "dp-tl-nhom-t:sticky",
+    "soTrang": 2
+   },
+   {
+    "kieu": "vc-bottom-bar.dp-cx-bottom.thanh-hanh-dong-cuoi:sticky",
+    "soTrang": 1
+   },
+   {
+    "kieu": "card.scn-ct-khu:sticky",
+    "soTrang": 2
+   },
+   {
+    "kieu": "vc-bottom-bar.thanh-hanh-dong-cuoi:sticky",
+    "soTrang": 5
+   },
+   {
+    "kieu": "vc-filters:sticky",
+    "soTrang": 1
+   },
+   {
+    "kieu": "xb-dau-xe.xb-eyebrow:sticky",
+    "soTrang": 4
+   },
+   {
+    "kieu": "xb-xe:sticky",
+    "soTrang": 4
+   },
+   {
+    "kieu": "form-actions.gd-nut.thanh-hanh-dong-cuoi:sticky",
+    "soTrang": 2
+   },
+   {
+    "kieu": "gd-xem.card:sticky",
+    "soTrang": 1
+   },
+   {
+    "kieu": "ht-tra-loi.thanh-hanh-dong-cuoi:sticky",
+    "soTrang": 4
+   },
+   {
+    "kieu": "vc-bottom-bar.dp-cc-day.thanh-hanh-dong-cuoi:sticky",
+    "soTrang": 1
+   }
+  ],
+  "rong": [
+   {
+    "chu": "Tổng cộng\n1.080.000 ₫",
+    "trang": [
+     "/order"
+    ]
+   },
+   {
+    "chu": "Còn lại\n1.080.000 ₫",
+    "trang": [
+     "/order"
+    ]
+   },
+   {
+    "chu": "Chưa có dịch vụ. Chọn dịch vụ từ danh mục.",
+    "trang": [
+     "/order-form"
+    ]
+   },
+   {
+    "chu": "Chưa có hành khách nào.",
+    "trang": [
+     "/order-form"
+    ]
+   },
+   {
+    "chu": "Tổng cộng\n0 ₫",
+    "trang": [
+     "/order-form"
+    ]
+   },
+   {
+    "chu": "Không còn lượt đưa đón nào chưa xếp.",
+    "trang": [
+     "/dieu-phoi"
+    ]
+   },
+   {
+    "chu": "Nhà xe này chưa có giá\nThêm giá theo tuyến và cỡ xe để chuyến xe thuê tự lấy giá bảng.\nThêm giá",
+    "trang": [
+     "/bang-gia-xe"
+    ]
+   },
+   {
+    "chu": "Nhà xe này chưa có giá",
+    "trang": [
+     "/bang-gia-xe"
+    ]
+   },
+   {
+    "chu": "Thêm giá theo tuyến và cỡ xe để chuyến xe thuê tự lấy giá bảng.",
+    "trang": [
+     "/bang-gia-xe"
+    ]
+   },
+   {
+    "chu": "Chưa có đơn nào tuần này",
+    "trang": [
+     "/"
+    ]
+   },
+   {
+    "chu": "Không có đề nghị nào đang chờ văn phòng duyệt.",
+    "trang": [
+     "/de-nghi"
+    ]
+   },
+   {
+    "chu": "Bạn chưa gửi yêu cầu nào.",
+    "trang": [
+     "/feedback"
+    ]
+   },
+   {
+    "chu": "Không có cuốc nào.",
+    "trang": [
+     "/cuoc"
+    ]
+   }
+  ],
+  "phong": [
+   {
+    "phong": "\"Be Vietnam Pro\"",
+    "trang": [
+     "/",
+     "/orders",
+     "/order",
+     "/order-form",
+     "/parties",
+     "/dieu-phoi",
+     "/chuyen",
+     "/chuyen-sua",
+     "/xe-dang-chay",
+     "/hoa-hong",
+     "/cho-xac-nhan",
+     "/account",
+     "/feedback",
+     "/help",
+     "/bang-gia-xe",
+     "/bang-ke-xe",
+     "/khoa-thang",
+     "/so-cong-no",
+     "/dieu-chinh-cong-no",
+     "/nguoi-ban",
+     "/chup-bu",
+     "/catalog",
+     "/staff",
+     "/locations",
+     "/loai-giay-to-nguoi",
+     "/de-nghi",
+     "/xe",
+     "/xe-sua",
+     "/xe-chi-tiet",
+     "/lich-xe-ban",
+     "/giay-to-sap-het-han",
+     "/loai-giay-to-xe",
+     "/chinh-sach-dieu-phoi",
+     "/dieu-kien-xuat-ben",
+     "/ly-do-dieu-phoi",
+     "/thiet-lap",
+     "/sessions",
+     "/audit",
+     "/gui-thong-bao",
+     "/tro-ly-cai-dat",
+     "/giao-dien",
+     "/tai-xe",
+     "/cuoc",
+     "/cuoc-chuyen",
+     "/ban"
+    ]
+   }
+  ]
+ },
+ "axe": [
+  {
+   "id": "meta-viewport",
+   "impact": "moderate",
+   "n": 492,
+   "trang": [
+    "/@390",
+    "/@1040",
+    "/@768",
+    "/@1440",
+    "/orders@390",
+    "/orders@1040",
+    "/orders@768",
+    "/orders@1440",
+    "/order@390",
+    "/order@1040",
+    "/order-form@390",
+    "/order-form@1040",
+    "/parties@390",
+    "/parties@1040",
+    "/parties@768",
+    "/parties@1440",
+    "/dieu-phoi@390",
+    "/dieu-phoi@1040",
+    "/dieu-phoi@768",
+    "/dieu-phoi@1440",
+    "/chuyen@390",
+    "/chuyen@1040",
+    "/chuyen-sua@390",
+    "/chuyen-sua@1040",
+    "/xe-dang-chay@390",
+    "/xe-dang-chay@1040",
+    "/xe-dang-chay@768",
+    "/xe-dang-chay@1440",
+    "/hoa-hong@390",
+    "/hoa-hong@1040",
+    "/hoa-hong@768",
+    "/hoa-hong@1440",
+    "/cho-xac-nhan@390",
+    "/cho-xac-nhan@1040",
+    "/cho-xac-nhan@768",
+    "/cho-xac-nhan@1440",
+    "/account@390",
+    "/account@1040",
+    "/feedback@390",
+    "/feedback@1040",
+    "/feedback@768",
+    "/feedback@1440",
+    "/help@390",
+    "/help@1040",
+    "/audit@390:403",
+    "/audit@1040:403",
+    "/khong-co-trang-nay@390:404",
+    "/khong-co-trang-nay@1040:404",
+    "/@390:matmang",
+    "/@1040:matmang",
+    "/orders@390:matmang",
+    "/orders@1040:matmang",
+    "/bang-gia-xe@390",
+    "/bang-gia-xe@1040",
+    "/bang-ke-xe@390",
+    "/bang-ke-xe@1040",
+    "/bang-ke-xe@768",
+    "/bang-ke-xe@1440",
+    "/khoa-thang@390",
+    "/khoa-thang@1040",
+    "/khoa-thang@768",
+    "/khoa-thang@1440",
+    "/so-cong-no@390",
+    "/so-cong-no@1040",
+    "/so-cong-no@768",
+    "/so-cong-no@1440",
+    "/dieu-chinh-cong-no@390",
+    "/dieu-chinh-cong-no@1040",
+    "/nguoi-ban@390",
+    "/nguoi-ban@1040",
+    "/chup-bu@390",
+    "/chup-bu@1040",
+    "/catalog@390",
+    "/catalog@1040",
+    "/staff@390",
+    "/staff@1040",
+    "/staff@768",
+    "/staff@1440",
+    "/locations@390",
+    "/locations@1040",
+    "/loai-giay-to-nguoi@390",
+    "/loai-giay-to-nguoi@1040",
+    "/de-nghi@390",
+    "/de-nghi@1040",
+    "/de-nghi@768",
+    "/de-nghi@1440",
+    "/xe@390",
+    "/xe@1040",
+    "/xe@768",
+    "/xe@1440",
+    "/xe-sua@390",
+    "/xe-sua@1040",
+    "/xe-chi-tiet@390",
+    "/xe-chi-tiet@1040",
+    "/lich-xe-ban@390",
+    "/lich-xe-ban@1040",
+    "/lich-xe-ban@768",
+    "/lich-xe-ban@1440",
+    "/giay-to-sap-het-han@390",
+    "/giay-to-sap-het-han@1040",
+    "/giay-to-sap-het-han@768",
+    "/giay-to-sap-het-han@1440",
+    "/loai-giay-to-xe@390",
+    "/loai-giay-to-xe@1040",
+    "/chinh-sach-dieu-phoi@390",
+    "/chinh-sach-dieu-phoi@1040",
+    "/dieu-kien-xuat-ben@390",
+    "/dieu-kien-xuat-ben@1040",
+    "/ly-do-dieu-phoi@390",
+    "/ly-do-dieu-phoi@1040",
+    "/thiet-lap@390",
+    "/thiet-lap@1040",
+    "/sessions@390",
+    "/sessions@1040",
+    "/sessions@768",
+    "/sessions@1440",
+    "/audit@390",
+    "/audit@1040",
+    "/audit@768",
+    "/audit@1440",
+    "/gui-thong-bao@390",
+    "/gui-thong-bao@1040",
+    "/tro-ly-cai-dat@390",
+    "/tro-ly-cai-dat@1040",
+    "/giao-dien@390",
+    "/giao-dien@1040",
+    "/so-cong-no@390:403",
+    "/so-cong-no@1040:403",
+    "/tai-xe@390",
+    "/tai-xe@1040",
+    "/tai-xe@768",
+    "/tai-xe@1440",
+    "/cuoc@390",
+    "/cuoc@1040",
+    "/cuoc@768",
+    "/cuoc@1440",
+    "/cuoc-chuyen@390",
+    "/cuoc-chuyen@1040",
+    "/cuoc@390:matmang",
+    "/cuoc@1040:matmang",
+    "/ban@390",
+    "/ban@1040",
+    "/staff@390:matmang",
+    "/staff@1040:matmang"
+   ],
+   "vd": [
+    "meta[name=\"viewport\"]"
+   ]
+  },
+  {
+   "id": "color-contrast",
+   "impact": "serious",
+   "n": 20,
+   "trang": [
+    "/gui-thong-bao@390",
+    "/gui-thong-bao@1040"
+   ],
+   "vd": [
+    "label:nth-child(1)",
+    ".ntf-groups > label:nth-child(2)"
+   ]
+  }
+ ],
+ "tuAnh": [
+  {
+   "tu": "Admin",
+   "trang": [
+    "/help@390",
+    "/help@1040"
+   ]
+  },
+  {
+   "tu": "VP_TRAN_PHU",
+   "trang": [
+    "/locations@390",
+    "/locations@1040"
+   ]
+  },
+  {
+   "tu": "BEN_TAU_NHA_TRANG",
+   "trang": [
+    "/locations@390",
+    "/locations@1040"
+   ]
+  },
+  {
+   "tu": "CANG_VINPEARL",
+   "trang": [
+    "/locations@390",
+    "/locations@1040"
+   ]
+  },
+  {
+   "tu": "HEALTH_CHECK",
+   "trang": [
+    "/loai-giay-to-nguoi@390",
+    "/loai-giay-to-nguoi@1040"
+   ]
+  },
+  {
+   "tu": "TRANSPORT_TRAINING",
+   "trang": [
+    "/loai-giay-to-nguoi@390",
+    "/loai-giay-to-nguoi@1040"
+   ]
+  },
+  {
+   "tu": "C_OLD",
+   "trang": [
+    "/loai-giay-to-nguoi@390",
+    "/loai-giay-to-nguoi@1040"
+   ]
+  },
+  {
+   "tu": "D_OLD",
+   "trang": [
+    "/loai-giay-to-nguoi@390",
+    "/loai-giay-to-nguoi@1040"
+   ]
+  },
+  {
+   "tu": "E_OLD",
+   "trang": [
+    "/loai-giay-to-nguoi@390",
+    "/loai-giay-to-nguoi@1040"
+   ]
+  },
+  {
+   "tu": "TPL_INSURANCE",
+   "trang": [
+    "/loai-giay-to-xe@390",
+    "/loai-giay-to-xe@1040"
+   ]
+  },
+  {
+   "tu": "CONTRACT_BADGE",
+   "trang": [
+    "/loai-giay-to-xe@390",
+    "/loai-giay-to-xe@1040"
+   ]
+  },
+  {
+   "tu": "TRIP_MON",
+   "trang": [
+    "/loai-giay-to-xe@390",
+    "/loai-giay-to-xe@1040"
+   ]
+  },
+  {
+   "tu": "DRIVER_CAMERA",
+   "trang": [
+    "/loai-giay-to-xe@390",
+    "/loai-giay-to-xe@1040"
+   ]
+  }
+ ],
+ "console": [],
+ "nav": {
+  "SUPER_ADMIN": {
+   "trangDau": "/",
+   "nav390": [],
+   "nav1040": [
+    "Trang chủ",
+    "Đơn hàng",
+    "Danh bạ",
+    "Xe đang chạy",
+    "Xe & giấy tờ 2",
+    "Giá & chi phí",
+    "Điều chỉnh công nợ",
+    "Sổ công nợ & khoá sổ",
+    "Của tôi",
+    "Hỗ trợ 5",
+    "Hướng dẫn"
+   ],
+   "coTabbar": false,
+   "coSidebar": false
+  },
+  "ADMIN": {
+   "trangDau": "/",
+   "nav390": [],
+   "nav1040": [
+    "Trang chủ",
+    "Đơn hàng",
+    "Danh bạ",
+    "Xe đang chạy",
+    "Xe & giấy tờ 2",
+    "Giá & chi phí",
+    "Điều chỉnh công nợ",
+    "Của tôi",
+    "Hỗ trợ",
+    "Hướng dẫn"
+   ],
+   "coTabbar": false,
+   "coSidebar": false
+  },
+  "ACCOUNTING": {
+   "trangDau": "/",
+   "nav390": [],
+   "nav1040": [
+    "Trang chủ",
+    "Đơn hàng",
+    "Danh bạ",
+    "Điều phối xe",
+    "Xe đang chạy",
+    "Giá & chi phí",
+    "Điều chỉnh công nợ",
+    "Sổ công nợ & khoá sổ",
+    "Của tôi",
+    "Hỗ trợ",
+    "Hướng dẫn"
+   ],
+   "coTabbar": false,
+   "coSidebar": false
+  },
+  "SALES": {
+   "trangDau": "/",
+   "nav390": [],
+   "nav1040": [
+    "Trang chủ",
+    "Đơn hàng 4",
+    "Danh bạ",
+    "Điều phối xe",
+    "Xe đang chạy",
+    "Của tôi",
+    "Hỗ trợ",
+    "Hướng dẫn"
+   ],
+   "coTabbar": false,
+   "coSidebar": false
+  },
+  "FIELD": {
+   "trangDau": "/orders",
+   "nav390": [],
+   "nav1040": [
+    "Đơn hàng",
+    "Của tôi",
+    "Hỗ trợ",
+    "Hướng dẫn"
+   ],
+   "coTabbar": false,
+   "coSidebar": false
+  },
+  "PARTNER": {
+   "trangDau": "/orders",
+   "nav390": [],
+   "nav1040": [
+    "Đơn hàng",
+    "Của tôi",
+    "Hỗ trợ",
+    "Hướng dẫn"
+   ],
+   "coTabbar": false,
+   "coSidebar": false
+  },
+  "INTERN": {
+   "trangDau": "/orders",
+   "nav390": [],
+   "nav1040": [
+    "Đơn hàng",
+    "Của tôi",
+    "Hỗ trợ",
+    "Hướng dẫn"
+   ],
+   "coTabbar": false,
+   "coSidebar": false
+  },
+  "HR": {
+   "trangDau": "/staff",
+   "nav390": [],
+   "nav1040": [
+    "Quản lý tài khoản",
+    "Của tôi",
+    "Hỗ trợ",
+    "Hướng dẫn"
+   ],
+   "coTabbar": false,
+   "coSidebar": false
+  },
+  "DRIVER": {
+   "trangDau": "/cuoc",
+   "nav390": [],
+   "nav1040": [
+    "Trang chủ",
+    "Cuốc của tôi",
+    "Của tôi",
+    "Hỗ trợ",
+    "Hướng dẫn"
+   ],
+   "coTabbar": false,
+   "coSidebar": false
+  },
+  "DRIVER_PARTNER": {
+   "trangDau": "/cuoc",
+   "nav390": [],
+   "nav1040": [
+    "Trang chủ",
+    "Cuốc của tôi",
+    "Báo bận của tôi",
+    "Của tôi",
+    "Hỗ trợ",
+    "Hướng dẫn"
+   ],
+   "coTabbar": false,
+   "coSidebar": false
+  }
+ },
+ "trangThai": {
+  "403": [
+   {
+    "bo": "SALES",
+    "trang": "/audit",
+    "url": "/audit",
+    "chu": "Bạn không có quyền xem trang này.\nVề trang đầu của bạn",
+    "anh": "~/tourdao-ux-dot-0/anh/nhieu/SALES/403-audit-390.jpg"
+   },
+   {
+    "bo": "INTERN",
+    "trang": "/audit",
+    "url": "/audit",
+    "chu": "Bạn không có quyền xem trang này.\nVề trang đầu của bạn",
+    "anh": "~/tourdao-ux-dot-0/anh/nhieu/INTERN/403-audit-390.jpg"
+   },
+   {
+    "bo": "ACCOUNTING",
+    "trang": "/audit",
+    "url": "/audit",
+    "chu": "Bạn không có quyền xem trang này.\nVề trang đầu của bạn",
+    "anh": "~/tourdao-ux-dot-0/anh/nhieu/ACCOUNTING/403-audit-390.jpg"
+   },
+   {
+    "bo": "ADMIN",
+    "trang": "/so-cong-no",
+    "url": "/so-cong-no",
+    "chu": "Sổ công nợ\n\nMỗi bên còn bao nhiêu tiền chưa nộp về công ty, hoặc công ty còn nợ bên đó bao nhiêu. Bấm một bên để đối chiếu từng đơn. Khoá sổ tháng ›\n\nTrang Sổ công nợ chỉ Kế toán và Toàn quyền xem đượ",
+    "anh": "~/tourdao-ux-dot-0/anh/nhieu/ADMIN/403-so-cong-no-390.jpg"
+   },
+   {
+    "bo": "FIELD",
+    "trang": "/audit",
+    "url": "/audit",
+    "chu": "Bạn không có quyền xem trang này.\nVề trang đầu của bạn",
+    "anh": "~/tourdao-ux-dot-0/anh/nhieu/FIELD/403-audit-390.jpg"
+   },
+   {
+    "bo": "PARTNER",
+    "trang": "/audit",
+    "url": "/audit",
+    "chu": "Bạn không có quyền xem trang này.\nVề trang đầu của bạn",
+    "anh": "~/tourdao-ux-dot-0/anh/nhieu/PARTNER/403-audit-390.jpg"
+   },
+   {
+    "bo": "DRIVER",
+    "trang": "/audit",
+    "url": "/audit",
+    "chu": "Bạn không có quyền xem trang này.\nVề trang đầu của bạn",
+    "anh": "~/tourdao-ux-dot-0/anh/nhieu/DRIVER/403-audit-390.jpg"
+   },
+   {
+    "bo": "DRIVER_PARTNER",
+    "trang": "/audit",
+    "url": "/audit",
+    "chu": "Bạn không có quyền xem trang này.\nVề trang đầu của bạn",
+    "anh": "~/tourdao-ux-dot-0/anh/nhieu/DRIVER_PARTNER/403-audit-390.jpg"
+   },
+   {
+    "bo": "HR",
+    "trang": "/audit",
+    "url": "/audit",
+    "chu": "Bạn không có quyền xem trang này.\nVề trang đầu của bạn",
+    "anh": "~/tourdao-ux-dot-0/anh/nhieu/HR/403-audit-390.jpg"
+   }
+  ],
+  "404": [
+   {
+    "bo": "SALES",
+    "trang": "/khong-co-trang-nay",
+    "url": "/khong-co-trang-nay",
+    "chu": "Không có trang này.\n\nĐịa chỉ có thể đã đổi hoặc gõ sai.\n\nVề trang đầu của bạn",
+    "anh": "~/tourdao-ux-dot-0/anh/nhieu/SALES/404-khong-co-trang-nay-390.jpg"
+   },
+   {
+    "bo": "INTERN",
+    "trang": "/khong-co-trang-nay",
+    "url": "/khong-co-trang-nay",
+    "chu": "Không có trang này.\n\nĐịa chỉ có thể đã đổi hoặc gõ sai.\n\nVề trang đầu của bạn",
+    "anh": "~/tourdao-ux-dot-0/anh/nhieu/INTERN/404-khong-co-trang-nay-390.jpg"
+   },
+   {
+    "bo": "ACCOUNTING",
+    "trang": "/khong-co-trang-nay",
+    "url": "/khong-co-trang-nay",
+    "chu": "Không có trang này.\n\nĐịa chỉ có thể đã đổi hoặc gõ sai.\n\nVề trang đầu của bạn",
+    "anh": "~/tourdao-ux-dot-0/anh/nhieu/ACCOUNTING/404-khong-co-trang-nay-390.jpg"
+   },
+   {
+    "bo": "ADMIN",
+    "trang": "/khong-co-trang-nay",
+    "url": "/khong-co-trang-nay",
+    "chu": "Không có trang này.\n\nĐịa chỉ có thể đã đổi hoặc gõ sai.\n\nVề trang đầu của bạn",
+    "anh": "~/tourdao-ux-dot-0/anh/nhieu/ADMIN/404-khong-co-trang-nay-390.jpg"
+   },
+   {
+    "bo": "FIELD",
+    "trang": "/khong-co-trang-nay",
+    "url": "/khong-co-trang-nay",
+    "chu": "Không có trang này.\n\nĐịa chỉ có thể đã đổi hoặc gõ sai.\n\nVề trang đầu của bạn",
+    "anh": "~/tourdao-ux-dot-0/anh/nhieu/FIELD/404-khong-co-trang-nay-390.jpg"
+   },
+   {
+    "bo": "PARTNER",
+    "trang": "/khong-co-trang-nay",
+    "url": "/khong-co-trang-nay",
+    "chu": "Không có trang này.\n\nĐịa chỉ có thể đã đổi hoặc gõ sai.\n\nVề trang đầu của bạn",
+    "anh": "~/tourdao-ux-dot-0/anh/nhieu/PARTNER/404-khong-co-trang-nay-390.jpg"
+   },
+   {
+    "bo": "SUPER_ADMIN",
+    "trang": "/khong-co-trang-nay",
+    "url": "/khong-co-trang-nay",
+    "chu": "Không có trang này.\n\nĐịa chỉ có thể đã đổi hoặc gõ sai.\n\nVề trang đầu của bạn",
+    "anh": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/404-khong-co-trang-nay-390.jpg"
+   },
+   {
+    "bo": "DRIVER",
+    "trang": "/khong-co-trang-nay",
+    "url": "/khong-co-trang-nay",
+    "chu": "Không có trang này.\n\nĐịa chỉ có thể đã đổi hoặc gõ sai.\n\nVề trang đầu của bạn",
+    "anh": "~/tourdao-ux-dot-0/anh/nhieu/DRIVER/404-khong-co-trang-nay-390.jpg"
+   },
+   {
+    "bo": "DRIVER_PARTNER",
+    "trang": "/khong-co-trang-nay",
+    "url": "/khong-co-trang-nay",
+    "chu": "Không có trang này.\n\nĐịa chỉ có thể đã đổi hoặc gõ sai.\n\nVề trang đầu của bạn",
+    "anh": "~/tourdao-ux-dot-0/anh/nhieu/DRIVER_PARTNER/404-khong-co-trang-nay-390.jpg"
+   },
+   {
+    "bo": "HR",
+    "trang": "/khong-co-trang-nay",
+    "url": "/khong-co-trang-nay",
+    "chu": "Không có trang này.\n\nĐịa chỉ có thể đã đổi hoặc gõ sai.\n\nVề trang đầu của bạn",
+    "anh": "~/tourdao-ux-dot-0/anh/nhieu/HR/404-khong-co-trang-nay-390.jpg"
+   }
+  ],
+  "matmang": [
+   {
+    "bo": "SALES",
+    "trang": "/",
+    "url": "/",
+    "chu": "Không có kết nối mạng\n\nTrang này chưa mở lần nào trên máy nên chưa có dữ liệu để hiện. Kiểm tra Wi-Fi hoặc 4G rồi bấm Thử lại.\n\nNền tảng tự thử lại khi có mạng.\n\nThử lại",
+    "anh": "~/tourdao-ux-dot-0/anh/nhieu/SALES/matmang-trang-chu-390.jpg"
+   },
+   {
+    "bo": "INTERN",
+    "trang": "/orders",
+    "url": "/orders",
+    "chu": "Không có kết nối mạng\n\nTrang này chưa mở lần nào trên máy nên chưa có dữ liệu để hiện. Kiểm tra Wi-Fi hoặc 4G rồi bấm Thử lại.\n\nNền tảng tự thử lại khi có mạng.\n\nThử lại",
+    "anh": "~/tourdao-ux-dot-0/anh/nhieu/INTERN/matmang-orders-390.jpg"
+   },
+   {
+    "bo": "ACCOUNTING",
+    "trang": "/",
+    "url": "/",
+    "chu": "Không có kết nối mạng\n\nTrang này chưa mở lần nào trên máy nên chưa có dữ liệu để hiện. Kiểm tra Wi-Fi hoặc 4G rồi bấm Thử lại.\n\nNền tảng tự thử lại khi có mạng.\n\nThử lại",
+    "anh": "~/tourdao-ux-dot-0/anh/nhieu/ACCOUNTING/matmang-trang-chu-390.jpg"
+   },
+   {
+    "bo": "ADMIN",
+    "trang": "/",
+    "url": "/",
+    "chu": "Không có kết nối mạng\n\nTrang này chưa mở lần nào trên máy nên chưa có dữ liệu để hiện. Kiểm tra Wi-Fi hoặc 4G rồi bấm Thử lại.\n\nNền tảng tự thử lại khi có mạng.\n\nThử lại",
+    "anh": "~/tourdao-ux-dot-0/anh/nhieu/ADMIN/matmang-trang-chu-390.jpg"
+   },
+   {
+    "bo": "FIELD",
+    "trang": "/orders",
+    "url": "/orders",
+    "chu": "Không có kết nối mạng\n\nTrang này chưa mở lần nào trên máy nên chưa có dữ liệu để hiện. Kiểm tra Wi-Fi hoặc 4G rồi bấm Thử lại.\n\nNền tảng tự thử lại khi có mạng.\n\nThử lại",
+    "anh": "~/tourdao-ux-dot-0/anh/nhieu/FIELD/matmang-orders-390.jpg"
+   },
+   {
+    "bo": "PARTNER",
+    "trang": "/orders",
+    "url": "/orders",
+    "chu": "Không có kết nối mạng\n\nTrang này chưa mở lần nào trên máy nên chưa có dữ liệu để hiện. Kiểm tra Wi-Fi hoặc 4G rồi bấm Thử lại.\n\nNền tảng tự thử lại khi có mạng.\n\nThử lại",
+    "anh": "~/tourdao-ux-dot-0/anh/nhieu/PARTNER/matmang-orders-390.jpg"
+   },
+   {
+    "bo": "SUPER_ADMIN",
+    "trang": "/",
+    "url": "/",
+    "chu": "Không có kết nối mạng\n\nTrang này chưa mở lần nào trên máy nên chưa có dữ liệu để hiện. Kiểm tra Wi-Fi hoặc 4G rồi bấm Thử lại.\n\nNền tảng tự thử lại khi có mạng.\n\nThử lại",
+    "anh": "~/tourdao-ux-dot-0/anh/nhieu/SUPER_ADMIN/matmang-trang-chu-390.jpg"
+   },
+   {
+    "bo": "DRIVER",
+    "trang": "/cuoc",
+    "url": "/cuoc",
+    "chu": "Không có kết nối mạng\n\nTrang này chưa mở lần nào trên máy nên chưa có dữ liệu để hiện. Kiểm tra Wi-Fi hoặc 4G rồi bấm Thử lại.\n\nNền tảng tự thử lại khi có mạng.\n\nThử lại",
+    "anh": "~/tourdao-ux-dot-0/anh/nhieu/DRIVER/matmang-cuoc-390.jpg"
+   },
+   {
+    "bo": "DRIVER_PARTNER",
+    "trang": "/cuoc",
+    "url": "/cuoc",
+    "chu": "Không có kết nối mạng\n\nTrang này chưa mở lần nào trên máy nên chưa có dữ liệu để hiện. Kiểm tra Wi-Fi hoặc 4G rồi bấm Thử lại.\n\nNền tảng tự thử lại khi có mạng.\n\nThử lại",
+    "anh": "~/tourdao-ux-dot-0/anh/nhieu/DRIVER_PARTNER/matmang-cuoc-390.jpg"
+   },
+   {
+    "bo": "HR",
+    "trang": "/staff",
+    "url": "/staff",
+    "chu": "Không có kết nối mạng\n\nTrang này chưa mở lần nào trên máy nên chưa có dữ liệu để hiện. Kiểm tra Wi-Fi hoặc 4G rồi bấm Thử lại.\n\nNền tảng tự thử lại khi có mạng.\n\nThử lại",
+    "anh": "~/tourdao-ux-dot-0/anh/nhieu/HR/matmang-staff-390.jpg"
+   }
+  ]
+ },
+ "vaiTheoBo": {
+  "ADMIN": [
+   "DIRECTOR",
+   "OPERATIONS_MANAGER"
+  ],
+  "FIELD": [
+   "GUIDE_INTERNAL"
+  ],
+  "SALES": [
+   "SALES_STAFF"
+  ],
+  "INTERN": [
+   "INTERN"
+  ],
+  "ACCOUNTING": [
+   "ACCOUNTANT"
+  ],
+  "ADMIN+SUPER_ADMIN": [
+   "IT"
+  ],
+  "DRIVER": [
+   "DRIVER_INTERNAL"
+  ],
+  "HR": [
+   "HR_STAFF"
+  ],
+  "PARTNER": [
+   "TRAVEL_AGENCY",
+   "GUIDE_FREELANCE",
+   "HOTEL_RECEPTION",
+   "TAXI_DRIVER",
+   "COLLABORATOR"
+  ],
+  "DRIVER_PARTNER": [
+   "DRIVER_EXTERNAL"
+  ]
+ },
+ "tocDo": {
+  "/": {
+   "lanh": {
+    "fcp": 1008,
+    "lcp": 1404,
+    "khungXong": 981.1999999880791,
+    "noiDungXong": 1964.9000000357628,
+    "cls": 0.3223,
+    "tbt": 0,
+    "jsNen": 36780,
+    "jsGiai": 113018,
+    "cssNen": 93197,
+    "api": 14,
+    "khungXuong": true
+   },
+   "nong": {
+    "fcp": 72,
+    "noiDungXong": 772.3999999761581,
+    "cls": 0.0114
+   }
+  },
+  "/orders": {
+   "lanh": {
+    "fcp": 1000,
+    "lcp": 1384,
+    "khungXong": 965.8000000119209,
+    "noiDungXong": 1518.800000011921,
+    "cls": 0.0944,
+    "tbt": 0,
+    "jsNen": 33732,
+    "jsGiai": 101624,
+    "cssNen": 93197,
+    "api": 7,
+    "khungXuong": true
+   },
+   "nong": {
+    "fcp": 64,
+    "noiDungXong": 434.5999999642372,
+    "cls": 0
+   }
+  },
+  "/order": {
+   "lanh": {
+    "fcp": 1332,
+    "lcp": 2052,
+    "khungXong": 1303.7000000476837,
+    "noiDungXong": 2212,
+    "cls": 0.019,
+    "tbt": 0,
+    "jsNen": 101921,
+    "jsGiai": 327966,
+    "cssNen": 93197,
+    "api": 12,
+    "khungXuong": false
+   },
+   "nong": {
+    "fcp": 72,
+    "noiDungXong": 621.9000000357628,
+    "cls": 0
+   }
+  },
+  "/order-form": {
+   "lanh": {
+    "fcp": 1180,
+    "lcp": 1180,
+    "khungXong": 1154.6000000238419,
+    "noiDungXong": 2071.100000023842,
+    "cls": 0.0664,
+    "tbt": 0,
+    "jsNen": 66931,
+    "jsGiai": 205008,
+    "cssNen": 93197,
+    "api": 10,
+    "khungXuong": false
+   },
+   "nong": {
+    "fcp": 52,
+    "noiDungXong": 580.1000000238419,
+    "cls": 0
+   }
+  },
+  "/parties": {
+   "lanh": {
+    "fcp": 1056,
+    "lcp": 1056,
+    "khungXong": 1026.6000000238419,
+    "noiDungXong": 1762.6000000238419,
+    "cls": 0.2027,
+    "tbt": 0,
+    "jsNen": 44098,
+    "jsGiai": 138635,
+    "cssNen": 93197,
+    "api": 7,
+    "khungXuong": false
+   },
+   "nong": {
+    "fcp": 68,
+    "noiDungXong": 596.8999999761581,
+    "cls": 0.0908
+   }
+  },
+  "/catalog": {
+   "lanh": {
+    "fcp": 1012,
+    "lcp": 1012,
+    "khungXong": 983.6999999880791,
+    "noiDungXong": 1717.699999988079,
+    "cls": 0.654,
+    "tbt": 0,
+    "jsNen": 34833,
+    "jsGiai": 108209,
+    "cssNen": 93197,
+    "api": 8,
+    "khungXuong": false
+   },
+   "nong": {
+    "fcp": 68,
+    "noiDungXong": 470.0999999642372,
+    "cls": 0
+   }
+  },
+  "/staff": {
+   "lanh": {
+    "fcp": 1004,
+    "lcp": 1392,
+    "khungXong": 977.8000000119209,
+    "noiDungXong": 1570.4000000357628,
+    "cls": 0.0879,
+    "tbt": 0,
+    "jsNen": 35134,
+    "jsGiai": 112004,
+    "cssNen": 93197,
+    "api": 6,
+    "khungXuong": false
+   },
+   "nong": {
+    "fcp": 68,
+    "noiDungXong": 409.5,
+    "cls": 0
+   }
+  },
+  "/sessions": {
+   "lanh": {
+    "fcp": 980,
+    "lcp": 1520,
+    "khungXong": 956.6000000238419,
+    "noiDungXong": 1563.300000011921,
+    "cls": 0.0976,
+    "tbt": 0,
+    "jsNen": 29818,
+    "jsGiai": 92687,
+    "cssNen": 93197,
+    "api": 7,
+    "khungXuong": false
+   },
+   "nong": {
+    "fcp": 52,
+    "noiDungXong": 433.7999999523163,
+    "cls": 0
+   }
+  },
+  "/locations": {
+   "lanh": {
+    "fcp": 948,
+    "lcp": 948,
+    "khungXong": 956.5,
+    "noiDungXong": 1502.699999988079,
+    "cls": 0.0879,
+    "tbt": 0,
+    "jsNen": 27219,
+    "jsGiai": 84053,
+    "cssNen": 93197,
+    "api": 5,
+    "khungXuong": false
+   },
+   "nong": {
+    "fcp": 56,
+    "noiDungXong": 421.19999998807907,
+    "cls": 0
+   }
+  },
+  "/loai-giay-to-nguoi": {
+   "lanh": {
+    "fcp": 960,
+    "lcp": 960,
+    "khungXong": 937.5,
+    "noiDungXong": 1495.699999988079,
+    "cls": 0.0452,
+    "tbt": 0,
+    "jsNen": 27729,
+    "jsGiai": 85020,
+    "cssNen": 93197,
+    "api": 5,
+    "khungXuong": false
+   },
+   "nong": {
+    "fcp": 64,
+    "noiDungXong": 427.7999999523163,
+    "cls": 0
+   }
+  },
+  "/dieu-phoi": {
+   "lanh": {
+    "fcp": 1068,
+    "lcp": 1648,
+    "khungXong": 1030,
+    "noiDungXong": 1637.699999988079,
+    "cls": 0.0457,
+    "tbt": 0,
+    "jsNen": 43845,
+    "jsGiai": 136550,
+    "cssNen": 93197,
+    "api": 7,
+    "khungXuong": false
+   },
+   "nong": {
+    "fcp": 76,
+    "noiDungXong": 446.5,
+    "cls": 0
+   }
+  },
+  "/chuyen": {
+   "lanh": {
+    "fcp": 1084,
+    "lcp": 1820,
+    "khungXong": 1063.199999988079,
+    "noiDungXong": 1796.7999999523163,
+    "cls": 0.0172,
+    "tbt": 0,
+    "jsNen": 54978,
+    "jsGiai": 178605,
+    "cssNen": 93197,
+    "api": 7,
+    "khungXuong": false
+   },
+   "nong": {
+    "fcp": 68,
+    "noiDungXong": 587.8999999761581,
+    "cls": 0
+   }
+  },
+  "/chuyen-sua": {
+   "lanh": {
+    "fcp": 1000,
+    "lcp": 1936,
+    "khungXong": 968.5,
+    "noiDungXong": 1923.6000000238419,
+    "cls": 0.0009,
+    "tbt": 0,
+    "jsNen": 31926,
+    "jsGiai": 97626,
+    "cssNen": 93197,
+    "api": 8,
+    "khungXuong": false
+   },
+   "nong": {
+    "fcp": 92,
+    "noiDungXong": 909.1999999880791,
+    "cls": 0
+   }
+  },
+  "/xe-dang-chay": {
+   "lanh": {
+    "fcp": 968,
+    "lcp": 1580,
+    "khungXong": 942.1999999880791,
+    "noiDungXong": 1150.8999999761581,
+    "cls": 0.0247,
+    "tbt": 0,
+    "jsNen": 27099,
+    "jsGiai": 82705,
+    "cssNen": 93197,
+    "api": 7,
+    "khungXuong": false
+   },
+   "nong": {
+    "fcp": 64,
+    "noiDungXong": 398.0999999642372,
+    "cls": 0
+   }
+  },
+  "/de-nghi": {
+   "lanh": {
+    "fcp": 984,
+    "lcp": 1540,
+    "khungXong": 959.4000000357628,
+    "noiDungXong": 1524.800000011921,
+    "cls": 0.0262,
+    "tbt": 0,
+    "jsNen": 29639,
+    "jsGiai": 90247,
+    "cssNen": 93197,
+    "api": 5,
+    "khungXuong": false
+   },
+   "nong": {
+    "fcp": 72,
+    "noiDungXong": 391.10000002384186,
+    "cls": 0
+   }
+  },
+  "/bang-gia-xe": {
+   "lanh": {
+    "fcp": 988,
+    "lcp": 1692,
+    "khungXong": 968.5999999642372,
+    "noiDungXong": 1681.2999999523163,
+    "cls": 0.0472,
+    "tbt": 0,
+    "jsNen": 32084,
+    "jsGiai": 99247,
+    "cssNen": 93197,
+    "api": 6,
+    "khungXuong": false
+   },
+   "nong": {
+    "fcp": 72,
+    "noiDungXong": 579,
+    "cls": 0.0132
+   }
+  },
+  "/bang-ke-xe": {
+   "lanh": {
+    "fcp": 984,
+    "lcp": 1168,
+    "khungXong": 948.7000000476837,
+    "noiDungXong": 1500,
+    "cls": 0.0705,
+    "tbt": 0,
+    "jsNen": 29079,
+    "jsGiai": 88162,
+    "cssNen": 93197,
+    "api": 5,
+    "khungXuong": false
+   },
+   "nong": {
+    "fcp": 76,
+    "noiDungXong": 422.0999999642372,
+    "cls": 0
+   }
+  },
+  "/xe": {
+   "lanh": {
+    "fcp": 984,
+    "lcp": 1516,
+    "khungXong": 947.8000000119209,
+    "noiDungXong": 1509,
+    "cls": 0.1236,
+    "tbt": 0,
+    "jsNen": 28022,
+    "jsGiai": 84847,
+    "cssNen": 93197,
+    "api": 6,
+    "khungXuong": false
+   },
+   "nong": {
+    "fcp": 72,
+    "noiDungXong": 422.19999998807907,
+    "cls": 0
+   }
+  },
+  "/xe-sua": {
+   "lanh": {
+    "fcp": 996,
+    "lcp": 1408,
+    "khungXong": 967.1999999880791,
+    "noiDungXong": 1379.1000000238419,
+    "cls": 0.0009,
+    "tbt": 0,
+    "jsNen": 29150,
+    "jsGiai": 89429,
+    "cssNen": 93197,
+    "api": 5,
+    "khungXuong": false
+   },
+   "nong": {
+    "fcp": 80,
+    "noiDungXong": 392.89999997615814,
+    "cls": 0
+   }
+  },
+  "/xe-chi-tiet": {
+   "lanh": {
+    "fcp": 984,
+    "lcp": 1536,
+    "khungXong": 960.3999999761581,
+    "noiDungXong": 1519.1000000238419,
+    "cls": 0.0206,
+    "tbt": 0,
+    "jsNen": 32292,
+    "jsGiai": 98309,
+    "cssNen": 93197,
+    "api": 6,
+    "khungXuong": false
+   },
+   "nong": {
+    "fcp": 68,
+    "noiDungXong": 413.39999997615814,
+    "cls": 0
+   }
+  },
+  "/lich-xe-ban": {
+   "lanh": {
+    "fcp": 948,
+    "lcp": 1376,
+    "khungXong": 965.9000000357628,
+    "noiDungXong": 1507,
+    "cls": 0.0367,
+    "tbt": 0,
+    "jsNen": 30759,
+    "jsGiai": 93321,
+    "cssNen": 93197,
+    "api": 5,
+    "khungXuong": false
+   },
+   "nong": {
+    "fcp": 64,
+    "noiDungXong": 407.30000001192093,
+    "cls": 0
+   }
+  },
+  "/giay-to-sap-het-han": {
+   "lanh": {
+    "fcp": 936,
+    "lcp": 1488,
+    "khungXong": 952.5,
+    "noiDungXong": 1477.6000000238419,
+    "cls": 0.0304,
+    "tbt": 0,
+    "jsNen": 28275,
+    "jsGiai": 86609,
+    "cssNen": 93197,
+    "api": 5,
+    "khungXuong": false
+   },
+   "nong": {
+    "fcp": 64,
+    "noiDungXong": 407.69999998807907,
+    "cls": 0
+   }
+  },
+  "/loai-giay-to-xe": {
+   "lanh": {
+    "fcp": 964,
+    "lcp": 964,
+    "khungXong": 941.1000000238419,
+    "noiDungXong": 1500.699999988079,
+    "cls": 0.0434,
+    "tbt": 0,
+    "jsNen": 27735,
+    "jsGiai": 84919,
+    "cssNen": 93197,
+    "api": 5,
+    "khungXuong": false
+   },
+   "nong": {
+    "fcp": 64,
+    "noiDungXong": 415.80000001192093,
+    "cls": 0
+   }
+  },
+  "/chinh-sach-dieu-phoi": {
+   "lanh": {
+    "fcp": 1004,
+    "lcp": 1572,
+    "khungXong": 989.8000000119209,
+    "noiDungXong": 1552.300000011921,
+    "cls": 0.8622,
+    "tbt": 0,
+    "jsNen": 34647,
+    "jsGiai": 109291,
+    "cssNen": 93197,
+    "api": 7,
+    "khungXuong": false
+   },
+   "nong": {
+    "fcp": 76,
+    "noiDungXong": 430.10000002384186,
+    "cls": 0
+   }
+  },
+  "/dieu-kien-xuat-ben": {
+   "lanh": {
+    "fcp": 968,
+    "lcp": 968,
+    "khungXong": 940.4000000357628,
+    "noiDungXong": 1628,
+    "cls": 0.0276,
+    "tbt": 0,
+    "jsNen": 29268,
+    "jsGiai": 89859,
+    "cssNen": 93197,
+    "api": 8,
+    "khungXuong": false
+   },
+   "nong": {
+    "fcp": 64,
+    "noiDungXong": 414.39999997615814,
+    "cls": 0
+   }
+  },
+  "/ly-do-dieu-phoi": {
+   "lanh": {
+    "fcp": 964,
+    "lcp": 1536,
+    "khungXong": 939.8000000119209,
+    "noiDungXong": 1518.7000000476837,
+    "cls": 0.0335,
+    "tbt": 0,
+    "jsNen": 28647,
+    "jsGiai": 87602,
+    "cssNen": 93197,
+    "api": 5,
+    "khungXuong": false
+   },
+   "nong": {
+    "fcp": 88,
+    "noiDungXong": 421.39999997615814,
+    "cls": 0
+   }
+  },
+  "/khoa-thang": {
+   "lanh": {
+    "fcp": 984,
+    "lcp": 984,
+    "khungXong": 949,
+    "noiDungXong": 1498.199999988079,
+    "cls": 0.059,
+    "tbt": 0,
+    "jsNen": 28125,
+    "jsGiai": 85564,
+    "cssNen": 93197,
+    "api": 5,
+    "khungXuong": false
+   },
+   "nong": {
+    "fcp": 56,
+    "noiDungXong": 406.10000002384186,
+    "cls": 0
+   }
+  },
+  "/so-cong-no": {
+   "lanh": {
+    "fcp": 976,
+    "lcp": 976,
+    "khungXong": 950.5999999642372,
+    "noiDungXong": 1502.800000011921,
+    "cls": 0.252,
+    "tbt": 0,
+    "jsNen": 28844,
+    "jsGiai": 87402,
+    "cssNen": 93197,
+    "api": 5,
+    "khungXuong": false
+   },
+   "nong": {
+    "fcp": 64,
+    "noiDungXong": 406.89999997615814,
+    "cls": 0
+   }
+  },
+  "/dieu-chinh-cong-no": {
+   "lanh": {
+    "fcp": 984,
+    "lcp": 1164,
+    "khungXong": 946.6000000238419,
+    "noiDungXong": 1141.9000000357628,
+    "cls": 0.2302,
+    "tbt": 0,
+    "jsNen": 28821,
+    "jsGiai": 87571,
+    "cssNen": 93197,
+    "api": 5,
+    "khungXuong": false
+   },
+   "nong": {
+    "fcp": 64,
+    "noiDungXong": 216.5,
+    "cls": 0
+   }
+  },
+  "/hoa-hong": {
+   "lanh": {
+    "fcp": 1020,
+    "lcp": 1784,
+    "khungXong": 996.9000000357628,
+    "noiDungXong": 1767.199999988079,
+    "cls": 0.0267,
+    "tbt": 16,
+    "jsNen": 41130,
+    "jsGiai": 132165,
+    "cssNen": 93197,
+    "api": 8,
+    "khungXuong": false
+   },
+   "nong": {
+    "fcp": 68,
+    "noiDungXong": 450.39999997615814,
+    "cls": 0
+   }
+  },
+  "/nguoi-ban": {
+   "lanh": {
+    "fcp": 984,
+    "lcp": 984,
+    "khungXong": 961.5,
+    "noiDungXong": 1560.5,
+    "cls": 0.0417,
+    "tbt": 0,
+    "jsNen": 31036,
+    "jsGiai": 94305,
+    "cssNen": 93197,
+    "api": 6,
+    "khungXuong": false
+   },
+   "nong": {
+    "fcp": 92,
+    "noiDungXong": 430.5,
+    "cls": 0
+   }
+  },
+  "/chup-bu": {
+   "lanh": {
+    "fcp": 940,
+    "lcp": 940,
+    "khungXong": 955.5,
+    "noiDungXong": 1156,
+    "cls": 0.0009,
+    "tbt": 0,
+    "jsNen": 27319,
+    "jsGiai": 83233,
+    "cssNen": 93197,
+    "api": 5,
+    "khungXuong": false
+   },
+   "nong": {
+    "fcp": 72,
+    "noiDungXong": 240.89999997615814,
+    "cls": 0
+   }
+  },
+  "/cho-xac-nhan": {
+   "lanh": {
+    "fcp": 944,
+    "lcp": 944,
+    "khungXong": 959,
+    "noiDungXong": 1494.699999988079,
+    "cls": 0.0437,
+    "tbt": 0,
+    "jsNen": 26965,
+    "jsGiai": 82147,
+    "cssNen": 93197,
+    "api": 5,
+    "khungXuong": false
+   },
+   "nong": {
+    "fcp": 68,
+    "noiDungXong": 419.5,
+    "cls": 0
+   }
+  },
+  "/audit": {
+   "lanh": {
+    "fcp": 968,
+    "lcp": 1424,
+    "khungXong": 985.3000000119209,
+    "noiDungXong": 1583.800000011921,
+    "cls": 0.0603,
+    "tbt": 0,
+    "jsNen": 31629,
+    "jsGiai": 104988,
+    "cssNen": 93197,
+    "api": 5,
+    "khungXuong": false
+   },
+   "nong": {
+    "fcp": 96,
+    "noiDungXong": 454.5999999642372,
+    "cls": 0
+   }
+  },
+  "/gui-thong-bao": {
+   "lanh": {
+    "fcp": 948,
+    "lcp": 1184,
+    "khungXong": 961.3999999761581,
+    "noiDungXong": 1159.3999999761581,
+    "cls": 0.1838,
+    "tbt": 0,
+    "jsNen": 28150,
+    "jsGiai": 86378,
+    "cssNen": 93197,
+    "api": 5,
+    "khungXuong": false
+   },
+   "nong": {
+    "fcp": 64,
+    "noiDungXong": 398.69999998807907,
+    "cls": 0
+   }
+  },
+  "/tro-ly-cai-dat": {
+   "lanh": {
+    "fcp": 1004,
+    "lcp": 1720,
+    "khungXong": 972.1999999880791,
+    "noiDungXong": 1693.5999999642372,
+    "cls": 0.0227,
+    "tbt": 0,
+    "jsNen": 32924,
+    "jsGiai": 102464,
+    "cssNen": 93197,
+    "api": 9,
+    "khungXuong": false
+   },
+   "nong": {
+    "fcp": 108,
+    "noiDungXong": 466.9000000357628,
+    "cls": 0
+   }
+  },
+  "/giao-dien": {
+   "lanh": {
+    "fcp": 988,
+    "lcp": 988,
+    "khungXong": 962.8999999761581,
+    "noiDungXong": 1516.5999999642372,
+    "cls": 0.806,
+    "tbt": 0,
+    "jsNen": 31630,
+    "jsGiai": 96601,
+    "cssNen": 93197,
+    "api": 5,
+    "khungXuong": false
+   },
+   "nong": {
+    "fcp": 56,
+    "noiDungXong": 415.69999998807907,
+    "cls": 0
+   }
+  },
+  "/account": {
+   "lanh": {
+    "fcp": 1100,
+    "lcp": 1768,
+    "khungXong": 1107.699999988079,
+    "noiDungXong": 1908.7999999523163,
+    "cls": 1.2835,
+    "tbt": 0,
+    "jsNen": 57969,
+    "jsGiai": 181913,
+    "cssNen": 93197,
+    "api": 14,
+    "khungXuong": false
+   },
+   "nong": {
+    "fcp": 76,
+    "noiDungXong": 585.5,
+    "cls": 0
+   }
+  },
+  "/feedback": {
+   "lanh": {
+    "fcp": 1052,
+    "lcp": 1760,
+    "khungXong": 1003.8000000119209,
+    "noiDungXong": 1755.800000011921,
+    "cls": 0.0463,
+    "tbt": 0,
+    "jsNen": 40266,
+    "jsGiai": 121871,
+    "cssNen": 93197,
+    "api": 10,
+    "khungXuong": false
+   },
+   "nong": {
+    "fcp": 84,
+    "noiDungXong": 612.3999999761581,
+    "cls": 0
+   }
+  },
+  "/help": {
+   "lanh": {
+    "fcp": 1336,
+    "lcp": 1552,
+    "khungXong": 1231.5,
+    "noiDungXong": 1523.199999988079,
+    "cls": 0.8326,
+    "tbt": 10,
+    "jsNen": 87217,
+    "jsGiai": 373774,
+    "cssNen": 93197,
+    "api": 4,
+    "khungXuong": false
+   },
+   "nong": {
+    "fcp": 68,
+    "noiDungXong": 448.89999997615814,
+    "cls": 0
+   }
+  },
+  "/thiet-lap": {
+   "lanh": {
+    "fcp": 964,
+    "lcp": 1356,
+    "khungXong": 951,
+    "noiDungXong": 1149.699999988079,
+    "cls": 0.0879,
+    "tbt": 0,
+    "jsNen": 26900,
+    "jsGiai": 82931,
+    "cssNen": 93197,
+    "api": 5,
+    "khungXuong": false
+   },
+   "nong": {
+    "fcp": 76,
+    "noiDungXong": 393.19999998807907,
+    "cls": 0
+   }
+  },
+  "/login": {
+   "lanh": {
+    "fcp": 1016,
+    "lcp": 1016,
+    "khungXong": null,
+    "noiDungXong": 1207.6000000238419,
+    "cls": 0.0006,
+    "tbt": 0,
+    "jsNen": 27939,
+    "jsGiai": 82730,
+    "cssNen": 93197,
+    "api": 2,
+    "khungXuong": false
+   },
+   "nong": {
+    "fcp": 48,
+    "noiDungXong": 215.60000002384186,
+    "cls": 0
+   }
+  },
+  "/khong-co-trang-nay": {
+   "lanh": {
+    "fcp": 976,
+    "lcp": 1352,
+    "khungXong": 946.8000000119209,
+    "noiDungXong": 1144.800000011921,
+    "cls": 0.051,
+    "tbt": 0,
+    "jsNen": 27039,
+    "jsGiai": 82520,
+    "cssNen": 93197,
+    "api": 4,
+    "khungXuong": false
+   },
+   "nong": {
+    "fcp": 216,
+    "noiDungXong": 535.8000000119209,
+    "cls": 0
+   }
+  },
+  "/tai-xe": {
+   "lanh": {
+    "fcp": 944,
+    "lcp": 1160,
+    "khungXong": 948.3000000119209,
+    "noiDungXong": 1145,
+    "cls": 0.0428,
+    "tbt": 0,
+    "jsNen": 26906,
+    "jsGiai": 82536,
+    "cssNen": 93197,
+    "api": 5,
+    "khungXuong": false
+   },
+   "nong": {
+    "fcp": 52,
+    "noiDungXong": 226.60000002384186,
+    "cls": 0
+   }
+  },
+  "/cuoc": {
+   "lanh": {
+    "fcp": 932,
+    "lcp": 1488,
+    "khungXong": 942.1000000238419,
+    "noiDungXong": 1474.6000000238419,
+    "cls": 0.0011,
+    "tbt": 0,
+    "jsNen": 27688,
+    "jsGiai": 84543,
+    "cssNen": 93197,
+    "api": 5,
+    "khungXuong": false
+   },
+   "nong": {
+    "fcp": 56,
+    "noiDungXong": 392.60000002384186,
+    "cls": 0
+   }
+  },
+  "/cuoc-chuyen": {
+   "lanh": {
+    "fcp": 1040,
+    "lcp": 1748,
+    "khungXong": 1019.5,
+    "noiDungXong": 1722.8999999761581,
+    "cls": 0.0009,
+    "tbt": 0,
+    "jsNen": 45238,
+    "jsGiai": 143256,
+    "cssNen": 93197,
+    "api": 6,
+    "khungXuong": false
+   },
+   "nong": {
+    "fcp": 68,
+    "noiDungXong": 559.3000000119209,
+    "cls": 0
+   }
+  },
+  "/ban": {
+   "lanh": {
+    "fcp": 960,
+    "lcp": 1512,
+    "khungXong": 942,
+    "noiDungXong": 1132.2999999523163,
+    "cls": 0.0009,
+    "tbt": 0,
+    "jsNen": 28423,
+    "jsGiai": 86523,
+    "cssNen": 93197,
+    "api": 5,
+    "khungXuong": false
+   },
+   "nong": {
+    "fcp": 60,
+    "noiDungXong": 224.30000001192093,
+    "cls": 0
+   }
+  }
+ },
+ "chuyenTrang": [
+  {
+   "kho": 390,
+   "dich": "/orders",
+   "chuyenTrangFcp": 36,
+   "chuyenTrangNoiDung": 415,
+   "fcp": 36,
+   "noiDungXong": 414.9000000357628
+  },
+  {
+   "kho": 390,
+   "dich": "/order-form",
+   "chuyenTrangFcp": 97,
+   "chuyenTrangNoiDung": 618,
+   "fcp": 96,
+   "noiDungXong": 616.8999999761581
+  },
+  {
+   "kho": 390,
+   "dich": "/",
+   "loi": "không thấy mục điều hướng #tabbar a[href='/']"
+  },
+  {
+   "kho": 390,
+   "cham": [
+    {
+     "kho": 390,
+     "trang": "/orders",
+     "nut": "Lọc",
+     "ms": 14
+    },
+    {
+     "kho": 390,
+     "trang": "/",
+     "nut": "Tất cả",
+     "ms": 11
+    }
+   ]
+  },
+  {
+   "kho": 1040,
+   "dich": "/orders",
+   "chuyenTrangFcp": 41,
+   "chuyenTrangNoiDung": 555,
+   "fcp": 40,
+   "noiDungXong": 554
+  },
+  {
+   "kho": 1040,
+   "dich": "/order-form",
+   "loi": "không thấy mục điều hướng #sidebar a[href='/order-form']"
+  },
+  {
+   "kho": 1040,
+   "dich": "/",
+   "chuyenTrangFcp": 69,
+   "chuyenTrangNoiDung": 881,
+   "fcp": 68,
+   "noiDungXong": 879.8999999761581
+  },
+  {
+   "kho": 1040,
+   "cham": [
+    {
+     "kho": 1040,
+     "trang": "/orders",
+     "nut": "Lọc",
+     "ms": 19
+    },
+    {
+     "kho": 1040,
+     "trang": "/",
+     "nut": "Tất cả",
+     "ms": 13
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,1298 @@
+{
+ "luc": "2026-10-29T03:02:53.755Z",
+ "base": "http://localhost:8805",
+ "dieuKien": {
+  "mang": "4G chậm (Lighthouse di động): 1,6 Mbit/s xuống, 750 kbit/s lên, trễ 150 ms",
+  "cpu": "chậm 4×",
+  "khung": "390×844 di động"
+ },
+ "ketQua": [
+  {
+   "bo": "SUPER_ADMIN",
+   "trang": "/orders",
+   "lan": 0,
+   "lanh": {
+    "ttfb": 2.600000023841858,
+    "fcp": 996,
+    "lcp": 1372,
+    "dcl": 982.5,
+    "load": 1644.699999988079,
+    "khungXong": 967.6999999880791,
+    "noiDungXong": 1524.199999988079,
+    "apiCuoiVe": 1522.300000011921,
+    "cls": 0.1678,
+    "tbt": 0,
+    "soLongTask": 0,
+    "khungXuong": true,
+    "dangTai": false,
+    "taiLieuByte": 1092,
+    "tai": {
+     "css": {
+      "so": 2,
+      "byte": 93197,
+      "giai": 438842
+     },
+     "js": {
+      "so": 1,
+      "byte": 33732,
+      "giai": 101624
+     },
+     "api": {
+      "so": 7,
+      "byte": 7310,
+      "giai": 22282
+     },
+     "phong": {
+      "so": 3,
+      "byte": 84788,
+      "giai": 83888
+     },
+     "anh": {
+      "so": 2,
+      "byte": 12075,
+      "giai": 11475
+     }
+    },
+    "bam": 0,
+    "chuyenTrangFcp": null,
+    "chuyenTrangNoiDung": null,
+    "tieuDe": "Đơn hàng — Island Booking System",
+    "duong": "/orders"
+   },
+   "napSan": {
+    "soMuc": 108,
+    "choMs": 2532,
+    "coSW": true
+   },
+   "nong": {
+    "ttfb": 4.199999988079071,
+    "fcp": 76,
+    "lcp": 292,
+    "dcl": 73.29999995231628,
+    "load": 80.69999998807907,
+    "khungXong": 71.69999998807907,
+    "noiDungXong": 433.39999997615814,
+    "apiCuoiVe": 431.5999999642372,
+    "cls": 0,
+    "tbt": 0,
+    "soLongTask": 0,
+    "khungXuong": true,
+    "dangTai": false,
+    "taiLieuByte": 0,
+    "tai": {
+     "css": {
+      "so": 2,
+      "byte": 0,
+      "giai": 438842
+     },
+     "js": {
+      "so": 1,
+      "byte": 0,
+      "giai": 101624
+     },
+     "phong": {
+      "so": 3,
+      "byte": 0,
+      "giai": 83888
+     },
+     "api": {
+      "so": 6,
+      "byte": 6876,
+      "giai": 22156
+     },
+     "anh": {
+      "so": 2,
+      "byte": 0,
+      "giai": 11475
+     }
+    },
+    "bam": 0,
+    "chuyenTrangFcp": null,
+    "chuyenTrangNoiDung": null,
+    "tieuDe": "Đơn hàng — Island Booking System",
+    "duong": "/orders"
+   },
+   "loiConsole": []
+  },
+  {
+   "bo": "SUPER_ADMIN",
+   "trang": "/orders",
+   "lan": 1,
+   "lanh": {
+    "ttfb": 1.800000011920929,
+    "fcp": 988,
+    "lcp": 1384,
+    "dcl": 976.3000000119209,
+    "load": 1637.1000000238419,
+    "khungXong": 961.2000000476837,
+    "noiDungXong": 1516.300000011921,
+    "apiCuoiVe": 1514.5,
+    "cls": 0.0944,
+    "tbt": 0,
+    "soLongTask": 0,
+    "khungXuong": true,
+    "dangTai": false,
+    "taiLieuByte": 1092,
+    "tai": {
+     "css": {
+      "so": 2,
+      "byte": 93197,
+      "giai": 438842
+     },
+     "js": {
+      "so": 1,
+      "byte": 33732,
+      "giai": 101624
+     },
+     "api": {
+      "so": 7,
+      "byte": 7310,
+      "giai": 22282
+     },
+     "phong": {
+      "so": 3,
+      "byte": 84788,
+      "giai": 83888
+     },
+     "anh": {
+      "so": 2,
+      "byte": 12075,
+      "giai": 11475
+     }
+    },
+    "bam": 0,
+    "chuyenTrangFcp": null,
+    "chuyenTrangNoiDung": null,
+    "tieuDe": "Đơn hàng — Island Booking System",
+    "duong": "/orders"
+   },
+   "napSan": {
+    "soMuc": 108,
+    "choMs": 2529,
+    "coSW": true
+   },
+   "nong": {
+    "ttfb": 2.199999988079071,
+    "fcp": 52,
+    "lcp": 268,
+    "dcl": 53.39999997615814,
+    "load": 61.19999998807907,
+    "khungXong": 51.19999998807907,
+    "noiDungXong": 421.30000001192093,
+    "apiCuoiVe": 419.5999999642372,
+    "cls": 0,
+    "tbt": 0,
+    "soLongTask": 0,
+    "khungXuong": true,
+    "dangTai": false,
+    "taiLieuByte": 0,
+    "tai": {
+     "css": {
+      "so": 2,
+      "byte": 0,
+      "giai": 438842
+     },
+     "js": {
+      "so": 1,
+      "byte": 0,
+      "giai": 101624
+     },
+     "phong": {
+      "so": 3,
+      "byte": 0,
+      "giai": 83888
+     },
+     "api": {
+      "so": 6,
+      "byte": 6876,
+      "giai": 22156
+     },
+     "anh": {
+      "so": 2,
+      "byte": 0,
+      "giai": 11475
+     }
+    },
+    "bam": 0,
+    "chuyenTrangFcp": null,
+    "chuyenTrangNoiDung": null,
+    "tieuDe": "Đơn hàng — Island Booking System",
+    "duong": "/orders"
+   },
+   "loiConsole": []
+  },
+  {
+   "bo": "SUPER_ADMIN",
+   "trang": "/orders",
+   "lan": 2,
+   "lanh": {
+    "ttfb": 3,
+    "fcp": 996,
+    "lcp": 1372,
+    "dcl": 982.6999999880791,
+    "load": 1644.8999999761581,
+    "khungXong": 968.1999999880791,
+    "noiDungXong": 1515.5,
+    "apiCuoiVe": 1512.8999999761581,
+    "cls": 0.1678,
+    "tbt": 0,
+    "soLongTask": 0,
+    "khungXuong": true,
+    "dangTai": false,
+    "taiLieuByte": 1092,
+    "tai": {
+     "css": {
+      "so": 2,
+      "byte": 93197,
+      "giai": 438842
+     },
+     "js": {
+      "so": 1,
+      "byte": 33732,
+      "giai": 101624
+     },
+     "api": {
+      "so": 7,
+      "byte": 7310,
+      "giai": 22282
+     },
+     "phong": {
+      "so": 3,
+      "byte": 84788,
+      "giai": 83888
+     },
+     "anh": {
+      "so": 2,
+      "byte": 12075,
+      "giai": 11475
+     }
+    },
+    "bam": 0,
+    "chuyenTrangFcp": null,
+    "chuyenTrangNoiDung": null,
+    "tieuDe": "Đơn hàng — Island Booking System",
+    "duong": "/orders"
+   },
+   "napSan": {
+    "soMuc": 108,
+    "choMs": 2533,
+    "coSW": true
+   },
+   "nong": {
+    "ttfb": 3.100000023841858,
+    "fcp": 92,
+    "lcp": 292,
+    "dcl": 77.40000003576279,
+    "load": 85.70000004768372,
+    "khungXong": 75.10000002384186,
+    "noiDungXong": 433.4000000357628,
+    "apiCuoiVe": 432.80000001192093,
+    "cls": 0,
+    "tbt": 0,
+    "soLongTask": 0,
+    "khungXuong": true,
+    "dangTai": false,
+    "taiLieuByte": 0,
+    "tai": {
+     "css": {
+      "so": 2,
+      "byte": 0,
+      "giai": 438842
+     },
+     "js": {
+      "so": 1,
+      "byte": 0,
+      "giai": 101624
+     },
+     "phong": {
+      "so": 3,
+      "byte": 0,
+      "giai": 83888
+     },
+     "api": {
+      "so": 6,
+      "byte": 6876,
+      "giai": 22156
+     },
+     "anh": {
+      "so": 2,
+      "byte": 0,
+      "giai": 11475
+     }
+    },
+    "bam": 0,
+    "chuyenTrangFcp": null,
+    "chuyenTrangNoiDung": null,
+    "tieuDe": "Đơn hàng — Island Booking System",
+    "duong": "/orders"
+   },
+   "loiConsole": []
+  },
+  {
+   "bo": "SUPER_ADMIN",
+   "trang": "/xe-sua",
+   "lan": 0,
+   "lanh": {
+    "ttfb": 2.100000023841858,
+    "fcp": 972,
+    "lcp": 1372,
+    "dcl": 961.1000000238419,
+    "load": 1451.300000011921,
+    "khungXong": 947.6000000238419,
+    "noiDungXong": 1345.300000011921,
+    "apiCuoiVe": 1343.1000000238419,
+    "cls": 0.0009,
+    "tbt": 0,
+    "soLongTask": 0,
+    "khungXuong": false,
+    "dangTai": false,
+    "taiLieuByte": 1048,
+    "tai": {
+     "css": {
+      "so": 2,
+      "byte": 93197,
+      "giai": 438842
+     },
+     "js": {
+      "so": 1,
+      "byte": 29150,
+      "giai": 89429
+     },
+     "phong": {
+      "so": 2,
+      "byte": 56112,
+      "giai": 55512
+     },
+     "anh": {
+      "so": 2,
+      "byte": 12075,
+      "giai": 11475
+     },
+     "api": {
+      "so": 5,
+      "byte": 2362,
+      "giai": 877
+     }
+    },
+    "bam": 0,
+    "chuyenTrangFcp": null,
+    "chuyenTrangNoiDung": null,
+    "tieuDe": "Thêm xe — Island Booking System",
+    "duong": "/xe-sua"
+   },
+   "napSan": {
+    "soMuc": 108,
+    "choMs": 2525,
+    "coSW": true
+   },
+   "nong": {
+    "ttfb": 2.199999988079071,
+    "fcp": 56,
+    "lcp": 388,
+    "dcl": 41,
+    "load": 48,
+    "khungXong": 38.69999998807907,
+    "noiDungXong": 377.60000002384186,
+    "apiCuoiVe": 376.69999998807907,
+    "cls": 0,
+    "tbt": 0,
+    "soLongTask": 0,
+    "khungXuong": false,
+    "dangTai": false,
+    "taiLieuByte": 0,
+    "tai": {
+     "css": {
+      "so": 2,
+      "byte": 0,
+      "giai": 438842
+     },
+     "js": {
+      "so": 1,
+      "byte": 0,
+      "giai": 89429
+     },
+     "phong": {
+      "so": 2,
+      "byte": 0,
+      "giai": 55512
+     },
+     "anh": {
+      "so": 2,
+      "byte": 0,
+      "giai": 11475
+     },
+     "api": {
+      "so": 4,
+      "byte": 1928,
+      "giai": 751
+     }
+    },
+    "bam": 0,
+    "chuyenTrangFcp": null,
+    "chuyenTrangNoiDung": null,
+    "tieuDe": "Thêm xe — Island Booking System",
+    "duong": "/xe-sua"
+   },
+   "loiConsole": []
+  },
+  {
+   "bo": "SUPER_ADMIN",
+   "trang": "/xe-sua",
+   "lan": 1,
+   "lanh": {
+    "ttfb": 1.699999988079071,
+    "fcp": 964,
+    "lcp": 1368,
+    "dcl": 955.6000000238419,
+    "load": 1424,
+    "khungXong": 949.3000000119209,
+    "noiDungXong": 1345.300000011921,
+    "apiCuoiVe": 1343,
+    "cls": 0.0009,
+    "tbt": 0,
+    "soLongTask": 0,
+    "khungXuong": false,
+    "dangTai": false,
+    "taiLieuByte": 1048,
+    "tai": {
+     "css": {
+      "so": 2,
+      "byte": 93197,
+      "giai": 438842
+     },
+     "js": {
+      "so": 1,
+      "byte": 29150,
+      "giai": 89429
+     },
+     "phong": {
+      "so": 2,
+      "byte": 56112,
+      "giai": 55512
+     },
+     "anh": {
+      "so": 2,
+      "byte": 12075,
+      "giai": 11475
+     },
+     "api": {
+      "so": 5,
+      "byte": 2362,
+      "giai": 877
+     }
+    },
+    "bam": 0,
+    "chuyenTrangFcp": null,
+    "chuyenTrangNoiDung": null,
+    "tieuDe": "Thêm xe — Island Booking System",
+    "duong": "/xe-sua"
+   },
+   "napSan": {
+    "soMuc": 108,
+    "choMs": 2535,
+    "coSW": true
+   },
+   "nong": {
+    "ttfb": 3,
+    "fcp": 84,
+    "lcp": 404,
+    "dcl": 45.69999998807907,
+    "load": 50.5,
+    "khungXong": 42.69999998807907,
+    "noiDungXong": 391.5,
+    "apiCuoiVe": 390.39999997615814,
+    "cls": 0,
+    "tbt": 0,
+    "soLongTask": 0,
+    "khungXuong": false,
+    "dangTai": false,
+    "taiLieuByte": 0,
+    "tai": {
+     "css": {
+      "so": 2,
+      "byte": 0,
+      "giai": 438842
+     },
+     "js": {
+      "so": 1,
+      "byte": 0,
+      "giai": 89429
+     },
+     "phong": {
+      "so": 2,
+      "byte": 0,
+      "giai": 55512
+     },
+     "anh": {
+      "so": 2,
+      "byte": 0,
+      "giai": 11475
+     },
+     "api": {
+      "so": 4,
+      "byte": 1928,
+      "giai": 751
+     }
+    },
+    "bam": 0,
+    "chuyenTrangFcp": null,
+    "chuyenTrangNoiDung": null,
+    "tieuDe": "Thêm xe — Island Booking System",
+    "duong": "/xe-sua"
+   },
+   "loiConsole": []
+  },
+  {
+   "bo": "SUPER_ADMIN",
+   "trang": "/xe-sua",
+   "lan": 2,
+   "lanh": {
+    "ttfb": 2.100000023841858,
+    "fcp": 960,
+    "lcp": 1372,
+    "dcl": 955,
+    "load": 1425,
+    "khungXong": 948.9000000357628,
+    "noiDungXong": 1347,
+    "apiCuoiVe": 1343.4000000357628,
+    "cls": 0.0009,
+    "tbt": 0,
+    "soLongTask": 0,
+    "khungXuong": false,
+    "dangTai": false,
+    "taiLieuByte": 1048,
+    "tai": {
+     "css": {
+      "so": 2,
+      "byte": 93197,
+      "giai": 438842
+     },
+     "js": {
+      "so": 1,
+      "byte": 29150,
+      "giai": 89429
+     },
+     "phong": {
+      "so": 2,
+      "byte": 56112,
+      "giai": 55512
+     },
+     "anh": {
+      "so": 2,
+      "byte": 12075,
+      "giai": 11475
+     },
+     "api": {
+      "so": 5,
+      "byte": 2362,
+      "giai": 877
+     }
+    },
+    "bam": 0,
+    "chuyenTrangFcp": null,
+    "chuyenTrangNoiDung": null,
+    "tieuDe": "Thêm xe — Island Booking System",
+    "duong": "/xe-sua"
+   },
+   "napSan": {
+    "soMuc": 108,
+    "choMs": 2537,
+    "coSW": true
+   },
+   "nong": {
+    "ttfb": 3.600000023841858,
+    "fcp": 80,
+    "lcp": 404,
+    "dcl": 56.200000047683716,
+    "load": 63.40000003576279,
+    "khungXong": 52.60000002384186,
+    "noiDungXong": 392,
+    "apiCuoiVe": 390.9000000357628,
+    "cls": 0,
+    "tbt": 0,
+    "soLongTask": 0,
+    "khungXuong": false,
+    "dangTai": false,
+    "taiLieuByte": 0,
+    "tai": {
+     "css": {
+      "so": 2,
+      "byte": 0,
+      "giai": 438842
+     },
+     "js": {
+      "so": 1,
+      "byte": 0,
+      "giai": 89429
+     },
+     "phong": {
+      "so": 2,
+      "byte": 0,
+      "giai": 55512
+     },
+     "anh": {
+      "so": 2,
+      "byte": 0,
+      "giai": 11475
+     },
+     "api": {
+      "so": 4,
+      "byte": 1928,
+      "giai": 751
+     }
+    },
+    "bam": 0,
+    "chuyenTrangFcp": null,
+    "chuyenTrangNoiDung": null,
+    "tieuDe": "Thêm xe — Island Booking System",
+    "duong": "/xe-sua"
+   },
+   "loiConsole": []
+  },
+  {
+   "bo": "SUPER_ADMIN",
+   "trang": "/nguoi-ban",
+   "lan": 0,
+   "lanh": {
+    "ttfb": 3.800000011920929,
+    "fcp": 956,
+    "lcp": 956,
+    "dcl": 975.9000000357628,
+    "load": 1608.4000000357628,
+    "khungXong": 970.6999999880791,
+    "noiDungXong": 1550.300000011921,
+    "apiCuoiVe": 1542.4000000357628,
+    "cls": 0.0417,
+    "tbt": 0,
+    "soLongTask": 0,
+    "khungXuong": false,
+    "dangTai": false,
+    "taiLieuByte": 1695,
+    "tai": {
+     "css": {
+      "so": 2,
+      "byte": 93197,
+      "giai": 438842
+     },
+     "js": {
+      "so": 1,
+      "byte": 31036,
+      "giai": 94305
+     },
+     "phong": {
+      "so": 3,
+      "byte": 84788,
+      "giai": 83888
+     },
+     "anh": {
+      "so": 2,
+      "byte": 12075,
+      "giai": 11475
+     },
+     "api": {
+      "so": 6,
+      "byte": 5797,
+      "giai": 39101
+     }
+    },
+    "bam": 0,
+    "chuyenTrangFcp": null,
+    "chuyenTrangNoiDung": null,
+    "tieuDe": "Người bán dịch vụ — Island Booking System",
+    "duong": "/nguoi-ban"
+   },
+   "napSan": {
+    "soMuc": 108,
+    "choMs": 2528,
+    "coSW": true
+   },
+   "nong": {
+    "ttfb": 2.700000047683716,
+    "fcp": 52,
+    "lcp": 52,
+    "dcl": 62,
+    "load": 66.90000003576279,
+    "khungXong": 59.80000001192093,
+    "noiDungXong": 430.60000002384186,
+    "apiCuoiVe": 427,
+    "cls": 0,
+    "tbt": 0,
+    "soLongTask": 0,
+    "khungXuong": false,
+    "dangTai": false,
+    "taiLieuByte": 0,
+    "tai": {
+     "css": {
+      "so": 2,
+      "byte": 0,
+      "giai": 438842
+     },
+     "js": {
+      "so": 1,
+      "byte": 0,
+      "giai": 94305
+     },
+     "phong": {
+      "so": 3,
+      "byte": 0,
+      "giai": 83888
+     },
+     "anh": {
+      "so": 2,
+      "byte": 0,
+      "giai": 11475
+     },
+     "api": {
+      "so": 5,
+      "byte": 5363,
+      "giai": 38975
+     }
+    },
+    "bam": 0,
+    "chuyenTrangFcp": null,
+    "chuyenTrangNoiDung": null,
+    "tieuDe": "Người bán dịch vụ — Island Booking System",
+    "duong": "/nguoi-ban"
+   },
+   "loiConsole": []
+  },
+  {
+   "bo": "SUPER_ADMIN",
+   "trang": "/nguoi-ban",
+   "lan": 1,
+   "lanh": {
+    "ttfb": 2.100000023841858,
+    "fcp": 984,
+    "lcp": 984,
+    "dcl": 975.2000000476837,
+    "load": 1631.2000000476837,
+    "khungXong": 961.7000000476837,
+    "noiDungXong": 1560.5,
+    "apiCuoiVe": 1551.800000011921,
+    "cls": 0.0417,
+    "tbt": 0,
+    "soLongTask": 0,
+    "khungXuong": false,
+    "dangTai": false,
+    "taiLieuByte": 1695,
+    "tai": {
+     "css": {
+      "so": 2,
+      "byte": 93197,
+      "giai": 438842
+     },
+     "js": {
+      "so": 1,
+      "byte": 31036,
+      "giai": 94305
+     },
+     "phong": {
+      "so": 3,
+      "byte": 84788,
+      "giai": 83888
+     },
+     "anh": {
+      "so": 2,
+      "byte": 12075,
+      "giai": 11475
+     },
+     "api": {
+      "so": 6,
+      "byte": 5797,
+      "giai": 39101
+     }
+    },
+    "bam": 0,
+    "chuyenTrangFcp": null,
+    "chuyenTrangNoiDung": null,
+    "tieuDe": "Người bán dịch vụ — Island Booking System",
+    "duong": "/nguoi-ban"
+   },
+   "napSan": {
+    "soMuc": 108,
+    "choMs": 2525,
+    "coSW": true
+   },
+   "nong": {
+    "ttfb": 3,
+    "fcp": 92,
+    "lcp": 92,
+    "dcl": 72.40000003576279,
+    "load": 79.90000003576279,
+    "khungXong": 70.60000002384186,
+    "noiDungXong": 437.60000002384186,
+    "apiCuoiVe": 434.10000002384186,
+    "cls": 0,
+    "tbt": 0,
+    "soLongTask": 0,
+    "khungXuong": false,
+    "dangTai": false,
+    "taiLieuByte": 0,
+    "tai": {
+     "css": {
+      "so": 2,
+      "byte": 0,
+      "giai": 438842
+     },
+     "js": {
+      "so": 1,
+      "byte": 0,
+      "giai": 94305
+     },
+     "phong": {
+      "so": 3,
+      "byte": 0,
+      "giai": 83888
+     },
+     "anh": {
+      "so": 2,
+      "byte": 0,
+      "giai": 11475
+     },
+     "api": {
+      "so": 5,
+      "byte": 5363,
+      "giai": 38975
+     }
+    },
+    "bam": 0,
+    "chuyenTrangFcp": null,
+    "chuyenTrangNoiDung": null,
+    "tieuDe": "Người bán dịch vụ — Island Booking System",
+    "duong": "/nguoi-ban"
+   },
+   "loiConsole": []
+  },
+  {
+   "bo": "SUPER_ADMIN",
+   "trang": "/nguoi-ban",
+   "lan": 2,
+   "lanh": {
+    "ttfb": 3.099999964237213,
+    "fcp": 988,
+    "lcp": 988,
+    "dcl": 977.3999999761581,
+    "load": 1633.7999999523163,
+    "khungXong": 963.3999999761581,
+    "noiDungXong": 1562.5999999642372,
+    "apiCuoiVe": 1554.5999999642372,
+    "cls": 0.0417,
+    "tbt": 0,
+    "soLongTask": 0,
+    "khungXuong": false,
+    "dangTai": false,
+    "taiLieuByte": 1695,
+    "tai": {
+     "css": {
+      "so": 2,
+      "byte": 93197,
+      "giai": 438842
+     },
+     "js": {
+      "so": 1,
+      "byte": 31036,
+      "giai": 94305
+     },
+     "phong": {
+      "so": 3,
+      "byte": 84788,
+      "giai": 83888
+     },
+     "anh": {
+      "so": 2,
+      "byte": 12075,
+      "giai": 11475
+     },
+     "api": {
+      "so": 6,
+      "byte": 5797,
+      "giai": 39101
+     }
+    },
+    "bam": 0,
+    "chuyenTrangFcp": null,
+    "chuyenTrangNoiDung": null,
+    "tieuDe": "Người bán dịch vụ — Island Booking System",
+    "duong": "/nguoi-ban"
+   },
+   "napSan": {
+    "soMuc": 108,
+    "choMs": 2532,
+    "coSW": true
+   },
+   "nong": {
+    "ttfb": 1.5999999642372131,
+    "fcp": 36,
+    "lcp": 36,
+    "dcl": 40.89999997615814,
+    "load": 47.59999996423721,
+    "khungXong": 39.39999997615814,
+    "noiDungXong": 410.80000001192093,
+    "apiCuoiVe": 407.5,
+    "cls": 0,
+    "tbt": 0,
+    "soLongTask": 0,
+    "khungXuong": false,
+    "dangTai": false,
+    "taiLieuByte": 0,
+    "tai": {
+     "css": {
+      "so": 2,
+      "byte": 0,
+      "giai": 438842
+     },
+     "js": {
+      "so": 1,
+      "byte": 0,
+      "giai": 94305
+     },
+     "phong": {
+      "so": 3,
+      "byte": 0,
+      "giai": 83888
+     },
+     "anh": {
+      "so": 2,
+      "byte": 0,
+      "giai": 11475
+     },
+     "api": {
+      "so": 5,
+      "byte": 5363,
+      "giai": 38975
+     }
+    },
+    "bam": 0,
+    "chuyenTrangFcp": null,
+    "chuyenTrangNoiDung": null,
+    "tieuDe": "Người bán dịch vụ — Island Booking System",
+    "duong": "/nguoi-ban"
+   },
+   "loiConsole": []
+  },
+  {
+   "bo": "SUPER_ADMIN",
+   "trang": "/feedback",
+   "lan": 0,
+   "lanh": {
+    "ttfb": 2.5,
+    "fcp": 1040,
+    "lcp": 1752,
+    "dcl": 1029.2000000476837,
+    "load": 1668,
+    "khungXong": 998.7000000476837,
+    "noiDungXong": 1750.2000000476837,
+    "apiCuoiVe": 1910.4000000357628,
+    "cls": 0.0463,
+    "tbt": 0,
+    "soLongTask": 0,
+    "khungXuong": false,
+    "dangTai": false,
+    "taiLieuByte": 1082,
+    "tai": {
+     "css": {
+      "so": 2,
+      "byte": 93197,
+      "giai": 438842
+     },
+     "js": {
+      "so": 1,
+      "byte": 40266,
+      "giai": 121871
+     },
+     "phong": {
+      "so": 3,
+      "byte": 84788,
+      "giai": 83888
+     },
+     "anh": {
+      "so": 2,
+      "byte": 12075,
+      "giai": 11475
+     },
+     "api": {
+      "so": 10,
+      "byte": 4776,
+      "giai": 2373
+     }
+    },
+    "bam": 0,
+    "chuyenTrangFcp": null,
+    "chuyenTrangNoiDung": null,
+    "tieuDe": "Hỗ trợ — Island Booking System",
+    "duong": "/feedback"
+   },
+   "napSan": {
+    "soMuc": 108,
+    "choMs": 2528,
+    "coSW": true
+   },
+   "nong": {
+    "ttfb": 3.100000023841858,
+    "fcp": 96,
+    "lcp": 612,
+    "dcl": 98.80000001192093,
+    "load": 107,
+    "khungXong": 96.5,
+    "noiDungXong": 613.1000000238419,
+    "apiCuoiVe": 769.6999999880791,
+    "cls": 0,
+    "tbt": 0,
+    "soLongTask": 0,
+    "khungXuong": false,
+    "dangTai": false,
+    "taiLieuByte": 0,
+    "tai": {
+     "css": {
+      "so": 2,
+      "byte": 0,
+      "giai": 438842
+     },
+     "js": {
+      "so": 1,
+      "byte": 0,
+      "giai": 121871
+     },
+     "phong": {
+      "so": 4,
+      "byte": 0,
+      "giai": 101512
+     },
+     "anh": {
+      "so": 2,
+      "byte": 0,
+      "giai": 11475
+     },
+     "api": {
+      "so": 9,
+      "byte": 4342,
+      "giai": 2247
+     }
+    },
+    "bam": 0,
+    "chuyenTrangFcp": null,
+    "chuyenTrangNoiDung": null,
+    "tieuDe": "Hỗ trợ — Island Booking System",
+    "duong": "/feedback"
+   },
+   "loiConsole": []
+  },
+  {
+   "bo": "SUPER_ADMIN",
+   "trang": "/feedback",
+   "lan": 1,
+   "lanh": {
+    "ttfb": 4.300000011920929,
+    "fcp": 1024,
+    "lcp": 1768,
+    "dcl": 1042.800000011921,
+    "load": 1842,
+    "khungXong": 1035.9000000357628,
+    "noiDungXong": 1765.7000000476837,
+    "apiCuoiVe": 1918.7000000476837,
+    "cls": 0.0464,
+    "tbt": 0,
+    "soLongTask": 0,
+    "khungXuong": false,
+    "dangTai": false,
+    "taiLieuByte": 1082,
+    "tai": {
+     "css": {
+      "so": 2,
+      "byte": 93197,
+      "giai": 438842
+     },
+     "js": {
+      "so": 1,
+      "byte": 40266,
+      "giai": 121871
+     },
+     "phong": {
+      "so": 4,
+      "byte": 102712,
+      "giai": 101512
+     },
+     "anh": {
+      "so": 2,
+      "byte": 12075,
+      "giai": 11475
+     },
+     "api": {
+      "so": 10,
+      "byte": 4776,
+      "giai": 2373
+     }
+    },
+    "bam": 0,
+    "chuyenTrangFcp": null,
+    "chuyenTrangNoiDung": null,
+    "tieuDe": "Hỗ trợ — Island Booking System",
+    "duong": "/feedback"
+   },
+   "napSan": {
+    "soMuc": 108,
+    "choMs": 2532,
+    "coSW": true
+   },
+   "nong": {
+    "ttfb": 3.099999964237213,
+    "fcp": 72,
+    "lcp": 588,
+    "dcl": 66.5,
+    "load": 71.5,
+    "khungXong": 64.79999995231628,
+    "noiDungXong": 591.6999999880791,
+    "apiCuoiVe": 747.7999999523163,
+    "cls": 0,
+    "tbt": 0,
+    "soLongTask": 0,
+    "khungXuong": false,
+    "dangTai": false,
+    "taiLieuByte": 0,
+    "tai": {
+     "css": {
+      "so": 2,
+      "byte": 0,
+      "giai": 438842
+     },
+     "js": {
+      "so": 1,
+      "byte": 0,
+      "giai": 121871
+     },
+     "phong": {
+      "so": 4,
+      "byte": 0,
+      "giai": 101512
+     },
+     "anh": {
+      "so": 2,
+      "byte": 0,
+      "giai": 11475
+     },
+     "api": {
+      "so": 9,
+      "byte": 4342,
+      "giai": 2247
+     }
+    },
+    "bam": 0,
+    "chuyenTrangFcp": null,
+    "chuyenTrangNoiDung": null,
+    "tieuDe": "Hỗ trợ — Island Booking System",
+    "duong": "/feedback"
+   },
+   "loiConsole": []
+  },
+  {
+   "bo": "SUPER_ADMIN",
+   "trang": "/feedback",
+   "lan": 2,
+   "lanh": {
+    "ttfb": 3.300000011920929,
+    "fcp": 1048,
+    "lcp": 1756,
+    "dcl": 1038.800000011921,
+    "load": 1678.800000011921,
+    "khungXong": 1008.6000000238419,
+    "noiDungXong": 1753.4000000357628,
+    "apiCuoiVe": 1914.2000000476837,
+    "cls": 0.0463,
+    "tbt": 0,
+    "soLongTask": 0,
+    "khungXuong": false,
+    "dangTai": false,
+    "taiLieuByte": 1082,
+    "tai": {
+     "css": {
+      "so": 2,
+      "byte": 93197,
+      "giai": 438842
+     },
+     "js": {
+      "so": 1,
+      "byte": 40266,
+      "giai": 121871
+     },
+     "phong": {
+      "so": 3,
+      "byte": 84788,
+      "giai": 83888
+     },
+     "anh": {
+      "so": 2,
+      "byte": 12075,
+      "giai": 11475
+     },
+     "api": {
+      "so": 10,
+      "byte": 4776,
+      "giai": 2373
+     }
+    },
+    "bam": 0,
+    "chuyenTrangFcp": null,
+    "chuyenTrangNoiDung": null,
+    "tieuDe": "Hỗ trợ — Island Booking System",
+    "duong": "/feedback"
+   },
+   "napSan": {
+    "soMuc": 108,
+    "choMs": 2528,
+    "coSW": true
+   },
+   "nong": {
+    "ttfb": 2.599999964237213,
+    "fcp": 92,
+    "lcp": 600,
+    "dcl": 93.09999996423721,
+    "load": 101.5,
+    "khungXong": 91,
+    "noiDungXong": 600.5999999642372,
+    "apiCuoiVe": 757.2999999523163,
+    "cls": 0,
+    "tbt": 0,
+    "soLongTask": 0,
+    "khungXuong": false,
+    "dangTai": false,
+    "taiLieuByte": 0,
+    "tai": {
+     "css": {
+      "so": 2,
+      "byte": 0,
+      "giai": 438842
+     },
+     "js": {
+      "so": 1,
+      "byte": 0,
+      "giai": 121871
+     },
+     "phong": {
+      "so": 4,
+      "byte": 0,
+      "giai": 101512
+     },
+     "anh": {
+      "so": 2,
+      "byte": 0,
+      "giai": 11475
+     },
+     "api": {
+      "so": 9,
+      "byte": 4342,
+      "giai": 2247
+     }
+    },
+    "bam": 0,
+    "chuyenTrangFcp": null,
+    "chuyenTrangNoiDung": null,
+    "tieuDe": "Hỗ trợ — Island Booking System",
+    "duong": "/feedback"
+   },
+   "loiConsole": []
+  },
+  {
+   "chuyenTrang": []
+  }
+ ]
+}
