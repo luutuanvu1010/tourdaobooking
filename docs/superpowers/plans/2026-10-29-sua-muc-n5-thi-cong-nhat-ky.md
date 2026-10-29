@@ -66,6 +66,11 @@
 - Kịch bản Chrome đủ (`AXE_JS`): **HOA HONG SMOKE OK**, 35 bước ở hai khổ (thêm 14b). Quan sát chặn thật 14b (P16): `HH_PHA=lo-nut HH_KHO=1040` (giả quyền Kế toán cho Bán hàng ở giao diện) ⇒ bước 7 và **14b ĐỎ** («Bán hàng: không nút ghi nào trong mục (kể cả «Sửa» lần sắp áp)»); không phá ⇒ xanh.
 - Ảnh lưu: 12 tệp `23-…` tới `28-…` ở `docs/evidence/2026-10-29-sua-muc-n5/anh/` (lượt chạy cuối).
 
+## Kiểm lại của người kiểm độc lập (29/10, sau b639cc97 + 58d17df9)
+- Kết luận của người kiểm: **ĐẠT** — không CHẶN, không NÊN SỬA mới. Tự chạy lại 52 bài (`sua-muc-route`, `ho-so-hoa-hong`, `hoa-hong-hien-thi`) + typecheck 0 lỗi. Phá thử trên bản sao: thêm lại `lyDoSua` vào lịch sử ⇒ bài «N5 (R4)…» đỏ; tóm tắt đọc lịch sử ⇒ đúng bài cờ xung đột đỏ (32/33). Bước 14b xác nhận bằng đọc mã + ảnh 28 (không chạy Chrome).
+- Hai mục «Kiểm độc lập» ở trên là bản tóm tắt của NGƯỜI THI CÔNG; nguồn nghiệm thu chính thức là báo cáo của người kiểm (đã chuyển nguyên cho phiên điều phối).
+- Người kiểm không chạy lại `npm test` đủ bộ, e2e, Chrome (lời khai của người thi công ở mục trên); không kiểm production.
+
 ## Trạng thái giao (29/10)
 - Nhánh `claude/sua-muc-n5-bcfa1e` đã chứa main 10db5cb5; không migration; mục nhật ký 2.46 tạm. Sau `day-len` cần `npm run trien-khai` (đổi mã máy chủ + giao diện) — production đang 2.44 nên lần triển khai mang cả 2.45 (migration 0127) lẫn 2.46.
 - Chờ chủ / phiên điều phối: T5-1 + T5-6 (Bán hàng đọc khối hồ sơ; đã bỏ lý do sửa khỏi lịch sử gắn riêng — muốn có lại là quyết định mới), NO-N5-4 (chữ «Chưa áp dụng cho loại nào» cạnh dòng sắp áp).
