@@ -1,21 +1,13 @@
-<!-- @dsCard group="Biểu mẫu" height=300 -->
+<!-- @dsCard group="Biểu mẫu" height=260 -->
 <!doctype html>
 <html lang="vi"><head><meta charset="utf-8"><title>Xem trước</title></head><body>
-<div class="xem">
-  <fieldset class="nhom-chon"><legend>Lý do sửa</legend>
-    <label class="o-chon-mot"><input type="radio" name="ly-do" checked><span class="o-chon-chu">Sửa sai<span class="o-chon-mo-ta">Giá hoặc tên nhập nhầm</span></span></label>
-    <label class="o-chon-mot"><input type="radio" name="ly-do"> Khách đổi ý</label>
-    <label class="o-chon-mot"><input type="radio" name="ly-do" disabled> Khác (tắt)</label>
-  </fieldset>
-  <fieldset class="nhom-chon"><legend>Giấy tờ</legend>
-    <label class="o-tich"><input type="checkbox" checked> Giấy này không có hạn</label>
-    <label class="o-tich"><input type="checkbox"> Đã gửi bản chụp</label>
-    <label class="o-tich" data-loi="true"><input type="checkbox" aria-invalid="true"> Tôi đã kiểm số CCCD</label>
-  </fieldset>
-  <fieldset class="nhom-chon"><legend>Điều kiện xuất bến</legend>
-    <label class="cong-tac"><input type="checkbox" role="switch" checked><span class="o-chon-chu">Phải đủ danh sách khách<span class="o-chon-mo-ta">Chưa đủ thì không cho xe chạy</span></span></label>
-    <label class="cong-tac"><input type="checkbox" role="switch"> Phải có hợp đồng</label>
-    <label class="cong-tac"><input type="checkbox" role="switch" disabled> Khoá sau 21:00 (tắt)</label>
-  </fieldset>
+<div class="xem" data-huong="doc">
+  <label class="xem-hang"><input class="o-tich" type="checkbox" checked> Gửi tin xác nhận cho khách</label>
+  <div class="xem-hang" role="radiogroup" aria-label="Hình thức thu">
+    <label class="xem-hang"><input class="o-chon-mot" type="radio" name="thu" checked> Tiền mặt</label>
+    <label class="xem-hang"><input class="o-chon-mot" type="radio" name="thu"> Chuyển khoản</label>
+  </div>
+  <label class="xem-hang"><input class="cong-tac" type="checkbox" role="switch" checked> Bật nhắc giờ đón</label>
+  <label class="xem-hang"><input class="cong-tac" type="checkbox" role="switch"> Tự xếp xe</label>
 </div>
 </body></html>

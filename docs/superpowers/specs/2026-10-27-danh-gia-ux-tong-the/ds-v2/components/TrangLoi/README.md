@@ -1,13 +1,9 @@
-Trang lỗi trọn vỏ cho **không có quyền (403)** và **không tìm thấy trang (404)** — cùng khuôn `.trang-bao` với TrangMatMang: vòng 64 nền `c-surface-alt`, biểu tượng `lock` / `search`, tiêu đề 20 / 24, câu cố định, **một** nút «Về trang đầu», dòng nhỏ «Mã 404 · /đường-dẫn» 14. **MỚI · diện mạo từ Claude Design (28/10), 7b có thể sửa.**
+Trang lỗi dùng khuôn `.trang-thai[data-loai]`: vòng hình 56 + câu tiêu đề + câu phụ (nếu có) + một nút. `403` (hình `lock`), `404` (`alertCircle`), `thieu-ma`, `loi-may-chu` (`alertCircle`, vòng tông đỏ `c-danger-soft`).
 
-## Khi nào dùng
-Địa chỉ không có trang, vai không có quyền, chi tiết thiếu mã (H-403, H-404, C-CHI-TIET-THIEU-MA). Vỏ đầy đủ (thanh trên, thanh tab sáng mục cha). Câu 10 cổng 1: kiểm tự động địa chỉ lạ cần dòng mã lỗi này.
+**Trong mã:** `trangThaiHeThong` / `trangThaiToanTrang` ở `web/trang-thai-he-thong.ts`; chữ ở `src/shared/trang-thai-he-thong-chu.ts`. 403/404 không sáng mục nào ở thanh tab / thanh bên và bỏ ô tìm của thanh trên.
 
-## Trạng thái
-Tĩnh. Không dựng nguyên vỏ trang bị cấm rồi gắn hộp đỏ.
+## Câu (nguồn duy nhất trong mã)
+404 «Không có trang này.» + «Địa chỉ có thể đã đổi hoặc gõ sai.» · 403 «Bạn không có quyền xem trang này.» · thiếu mã «Thiếu mã … Mở từ danh sách để xem đúng …» · lỗi máy chủ: thông điệp của máy chủ, hết giờ «Máy chủ không trả lời trong 45 giây.». Nút: «Về trang đầu của bạn» hoặc «Thử lại».
 
-## Người dùng truyền gì
-Mã lỗi (403 / 404), đường dẫn đã mở, đích «Về trang đầu» theo vai.
-
-## Đừng
-Không nút thứ hai — bản xuất có lối nhỏ «Nhờ cấp quyền» / «Báo địa chỉ sai» nhưng hai việc đó chưa có luồng, **không lấy**; không câu kỹ thuật («not_found»), không JSON thô.
+## Lệch đã biết
+Nút là `<a class="nut">` nên đang bị gạch chân (BACKLOG `B-NUT-LIEN-KET-GACH-CHAN`).

@@ -1,13 +1,9 @@
-Thanh trên của khung chung: logo + tên hệ thống bên trái; bên phải nút «+ Tạo đơn» san hô (≥ 641), Trợ lý, chuông có số chưa đọc, tài khoản. **MỚI · diện mạo từ Claude Design (28/10), 7b có thể sửa.** Giá trị lấy theo token của mã: `bar-h` 60, `c-bar-bg` / `c-on-bar` / `c-bar-border`, `logo-bar` 30, số chưa đọc `ntf-badge` 18 nền `c-danger`.
+Thanh trên `#topbar` **một kiểu** cho mọi trang trong: cao `bar-h` 60, nền `c-bar-bg`, kẻ dưới `c-bar-border`, dính (`z-dinh`). Tiêu đề trang nằm **trên thanh** (cổng 2b chọn A), `fs-title` 18 / `fw-heading` 600, một dòng, cắt «…».
 
-## Khi nào dùng
-Mọi trang, lớp `z-dinh`, dính đầu. Ở điện thoại «+ Tạo đơn» **không** nằm ở đây mà là nút tròn giữa thanh tab (E1); từ 641 trở lên nút lên thanh trên. Đi cùng DauTrang (kiểu B). Nếu 7b chọn kiểu A thì thanh trên mang tiêu đề trang (ThanhDinh `.dau-trang`) thay cho tên hệ thống.
+**Trong mã:** `web/shell.ts` `initShell` (`.bar-back`, `.brand`, `.bar-duong`, `.bar-title`, `thanhCongViec`: `.bar-avatar`, `.topbar-search`, `.topbar-new`; chuông `ganThongBao`; Trợ lý `.bar-tro-ly` từ `web/tro-ly.ts`); mục do `THANH_TREN` của `src/shared/muc-giao-dien.ts` quyết. Bản xem trước vẽ lại bằng lớp riêng của bộ vì CSS thật gắn `#topbar` và `body.has-sidebar`.
 
-## Trạng thái
-Nút biểu tượng 44 tròn, rê nền `c-icon-hover-on-bar`, tiêu điểm vành `c-focus`; chuông có số → `aria-label` «Thông báo, 3 chưa đọc»; tài khoản là chữ tắt 32 viền `currentColor`. Tên hệ thống cắt «…» khi hẹp.
-
-## Người dùng truyền gì
-Số thông báo chưa đọc, chữ tắt tên người dùng, vai (để ẩn «+ Tạo đơn» khi không có quyền — ẩn, không tắt).
+## Trái → phải
+Trang cấp một: logo + «Island Booking System». Trang con: điện thoại nút lùi `.bar-back` (26, vùng chạm 44); máy tính đường dẫn một cấp «Trang cha ›» (`.bar-duong`, `c-muted`). Tiêu đề. Ô «Tìm đơn» (≥ 900, chỉ người xem mọi đơn; `w-tim-thanh-tren` 280 co tới `w-tim-thanh-tren-min` 160 trước khi tiêu đề bị cắt). Nút «Tạo đơn» san hô (≥ 900, có `order.create`). Chuông. Trợ lý (hình `chat`, 44). Chữ tắt tài khoản (điện thoại).
 
 ## Đừng
-Không nút nổi Trợ lý (câu 4 cổng 1: Trợ lý ở đây); không hai nút chính; không đọc thẳng token gốc cho cỡ tên (bản xuất đọc `--co-5/6`; bộ dùng 16 / 17 theo thang).
+Không nút chính thứ hai; không ô tìm trên thanh ở điện thoại (Trang chủ, Đơn hàng có ô tìm trong thân).

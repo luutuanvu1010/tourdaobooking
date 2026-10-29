@@ -1,14 +1,15 @@
-Chip là lựa chọn **bấm được**: lọc nhanh, chọn nhóm dịch vụ, viên ngày; cao `h-control` 44, bo `radius-pill`, chữ 14/500. Khác huy hiệu (không bấm được). Gộp 7 họ chip của mã (H-CHIP).
+Chip `.vien` là lựa chọn **bấm được**: cao `h-control` 44, đệm `pad-chip`, bo `radius-pill`, chữ `fs-label` 14; đang chọn `aria-pressed="true"` nền `c-primary-soft`, chữ `c-primary-strong`, viền `c-primary`.
+
+**Trong mã:** khối «Thành phần chung v2» của `public/app.css` (tên lớp `.vien`, không phải `.chip`). Bảy họ chip cũ giữ tới Chặng 3.
 
 ## Khi nào dùng
-- **Chọn một trong một hàng** (`aria-pressed`): hàng nhóm dịch vụ cuộn ngang «Tất cả · Tour · Vé Hòn Tằm…», viên «Hôm nay · Ngày mai». Hàng dài dùng `.hang-chip[data-mo-mep="true"]`: mép phải mờ dần (`s7`) báo còn mục phía sau; chip đang chọn luôn được cuộn vào tầm nhìn.
-- **Chip đang lọc** (có nút ✕ `.xoa`): hiện dưới ô tìm sau khi áp bộ lọc («Chờ xác nhận ✕», «Tháng 10 ✕») trong `.dang-loc`, kèm chip «Xoá lọc».
+Hàng nhóm dịch vụ «Tất cả · Tour · Vé Hòn Tằm…», viên ngày «Hôm nay · Ngày mai», chip đang lọc dưới ô tìm (xem TimLoc). Hàng dài cuộn ngang thì dùng Tab kiểu viên (`.tab-phu[data-kieu=vien]`, có mờ mép).
 
 ## Trạng thái
-Bình thường nền `c-surface` viền `c-border` · rê chuột `c-soft-hover` · **đang chọn** nền `c-selected-bg` chữ `c-selected-text` viền `c-selected-border` · tiêu điểm `c-focus` · tắt nền `c-surface-alt` chữ `c-text-muted`.
+Bình thường · đang chọn (`aria-pressed`) · tiêu điểm vành `c-focus`.
 
 ## Người dùng truyền gì
-Nhãn ngắn (1–3 từ), `aria-pressed` hay `data-chon`; chip xoá cần `aria-label` «Bỏ lọc Chờ xác nhận». Không số đếm trên chip nhóm (quyết định Tạo đơn 17/10).
+Nhãn 1–3 từ; chip xoá lọc cần `aria-label` («Bỏ lọc Chờ xác nhận»).
 
 ## Đừng
-Không dùng chip để hiện trạng thái (đó là HuyHieu); không chip thấp hơn 44 ở điện thoại; không mở bảng tick thay cho hàng chip.
+Không dùng chip để hiện trạng thái (đó là HuyHieu).
