@@ -1,0 +1,198 @@
+{
+  "dichVu": {
+    "duThuyen": "DTE1",
+    "bus": "BCT4",
+    "atv": "ATV",
+    "dem": "BFN1",
+    "bus24": "BCT24"
+  },
+  "khachLe": [
+    {
+      "id": "5b220406-d15a-43ae-a38e-a824b92202aa",
+      "ten": "Nguyễn Thị Lan Anh",
+      "sdt": "0912000101"
+    },
+    {
+      "id": "5e4d58aa-3f50-40a5-911a-497b87354867",
+      "ten": "Trần Văn Bình",
+      "sdt": "0912000102"
+    },
+    {
+      "id": "a052d10f-b172-4cfd-9e8b-6cedd00d099c",
+      "ten": "Lê Hoàng Châu",
+      "sdt": "0912000103"
+    },
+    {
+      "id": "8c1d4e95-fbb5-481f-ba99-2729601e0473",
+      "ten": "Phạm Minh Đức",
+      "sdt": "0912000104"
+    },
+    {
+      "id": "cd3c314a-df13-47d2-978c-b60e459bbbeb",
+      "ten": "Võ Thị Hồng Nhung",
+      "sdt": "0912000105"
+    },
+    {
+      "id": "5c6998f5-2a9c-4f97-8053-330df4cef6d1",
+      "ten": "Nguyễn Minh Khang",
+      "sdt": "0912000200"
+    },
+    {
+      "id": "f85b631f-9666-4330-b561-36920ca0b155",
+      "ten": "Trần Thu Hà",
+      "sdt": "0913000201"
+    },
+    {
+      "id": "d3813ae1-c7a6-4534-aba8-bc174e6c34db",
+      "ten": "Lê Quốc Bảo",
+      "sdt": "0914000202"
+    },
+    {
+      "id": "19d27932-05ae-49bc-822f-40bad58e9ab7",
+      "ten": "Phạm Ngọc Trâm",
+      "sdt": "0912000203"
+    },
+    {
+      "id": "b0745b78-c161-4ca1-b838-a7772dcb2cc5",
+      "ten": "Hoàng Gia Huy",
+      "sdt": "0913000204"
+    },
+    {
+      "id": "af10594a-9361-4b03-b4ee-125ad8ccbd7e",
+      "ten": "Huỳnh Thanh Tâm",
+      "sdt": "0914000205"
+    },
+    {
+      "id": "ad75832c-7393-4880-b5a1-b46d5c5efebc",
+      "ten": "Phan Hữu Phước",
+      "sdt": "0912000206"
+    },
+    {
+      "id": "a83bbb64-ff29-4578-810b-09567e8b6fe4",
+      "ten": "Vũ Mỹ Linh",
+      "sdt": "0913000207"
+    },
+    {
+      "id": "01370fb9-028d-4b48-9719-dca3ade0ebb9",
+      "ten": "Võ Đức Anh",
+      "sdt": "0914000208"
+    },
+    {
+      "id": "c92f1309-6664-473a-bba5-2354a150eed1",
+      "ten": "Đặng Khánh Vy",
+      "sdt": "0912000209"
+    },
+    {
+      "id": "dc27d8b5-606a-4014-a2e7-c41927f41607",
+      "ten": "Bùi Tuấn Kiệt",
+      "sdt": "0913000210"
+    },
+    {
+      "id": "cf665ceb-b209-4207-be27-d7afb70cb544",
+      "ten": "Đỗ Bảo Ngọc",
+      "sdt": "0914000211"
+    },
+    {
+      "id": "47b17a18-f199-460f-b384-1205c40d00d0",
+      "ten": "Hồ Văn Sơn",
+      "sdt": "0912000212"
+    },
+    {
+      "id": "cf4c33f7-d4bb-41c6-9f22-ef0e72ed6ed7",
+      "ten": "Ngô Thị Mai",
+      "sdt": "0913000213"
+    },
+    {
+      "id": "30c8ad72-0002-49ec-b966-5a10d81d968c",
+      "ten": "Dương Hải Đăng",
+      "sdt": "0914000214"
+    },
+    {
+      "id": "22852afa-df86-4b55-98be-d8b5d8d20154",
+      "ten": "Lý Phương Thảo",
+      "sdt": "0912000215"
+    }
+  ],
+  "daiLyToChuc": {
+    "id": "456bcdee-74e7-4b86-8a53-97da3857b49e",
+    "ganVai": 409,
+    "loi": {
+      "code": "role_via_account",
+      "message": "Vai trò này quyết định quyền đăng nhập nên chỉ gán hoặc gỡ ở màn Quản lý tài khoản."
+    }
+  },
+  "nhaXe": "7e5d11d0-2a5e-414f-9170-3049b5701226",
+  "xe": {
+    "xe1": "469d7ad8-ce23-403e-85d9-126bad9e83c0",
+    "xe2": "bacd61b0-9d53-4aa3-9314-460c3048ad58",
+    "xe3": "978cdf3e-323f-4374-963f-0dd3e5598aa3",
+    "xe4": "92aec78e-6528-484d-a10f-5b28fa4ab7f1",
+    "xe5": "7b785893-5373-4ee7-93b0-f88931d6d675",
+    "xe6": "83466954-f012-4dca-a591-cfb999d1df0f"
+  },
+  "don": {
+    "nhap": "2937c319-67f2-4cc7-98a3-c9138106827f",
+    "choXacNhan": "2fab1fbf-c253-491c-bca4-f8fc73868641",
+    "baDichVu": "6f57f860-ab81-4b5c-bb7e-fb0c7b5aab4a",
+    "homNay": "d37889a8-4f95-4182-8244-fda58899bfe0",
+    "doiTac": "3c85f009-a822-471e-b5cb-e0bb72e02624"
+  },
+  "gioDonHomNay": {
+    "gio": "15:00",
+    "datGap": false
+  },
+  "chuyenHomNay": "71bd68dd-c880-4bee-8778-a2c852ee4c2e",
+  "chuyen": {
+    "mai": "78511e85-9403-4f1a-9690-3a8613934c1e",
+    "ngay1": "5079bcf0-edf9-4b19-8bc4-0531450a320b",
+    "ngay4": "0b33ef9b-b804-4a70-9f24-664d2945ec17",
+    "ngay7": "88217ced-3c2c-4bab-87c7-e6cf7ca0ce24",
+    "ngay10": "ae3d72bc-0d8b-4409-b512-ab5218d76384",
+    "gapA": "50338a82-ff1f-4d44-b543-8b6dbf7fac1c",
+    "gapB": "5057b48c-0324-4d45-b529-95bc7fd27150"
+  },
+  "nhieu": {
+    "donTheoViec": [],
+    "hoanThanh": [
+      {
+        "id": "6748c1e5-d904-426f-b660-850a65ffd824",
+        "ngay": "2026-10-29",
+        "daGiao": true,
+        "hoanThanh": true
+      },
+      {
+        "id": "776bd821-12ff-406d-bafa-ee0b8af5218a",
+        "ngay": "2026-10-29",
+        "daGiao": true,
+        "hoanThanh": true
+      },
+      {
+        "id": "404c448e-f0a1-4ffe-b010-f7225b02e863",
+        "ngay": "2026-10-29",
+        "daGiao": true,
+        "hoanThanh": false
+      }
+    ],
+    "deNghi": {
+      "status": 200,
+      "ketQua": "DA_GUI",
+      "trangThai": "PENDING"
+    },
+    "congNo": {
+      "bookerPartyId": "12d97df1-eec6-4e79-ae1b-aa1692380786",
+      "yeuCau1": {
+        "status": 201,
+        "id": "72becdbc-143f-4beb-b402-ab5651b3b865",
+        "dang": "giảm nợ (SETTLEMENT)"
+      },
+      "yeuCau2": {
+        "status": 201,
+        "id": "405788f1-721b-4622-8b17-b822dc8c510a"
+      },
+      "duyet2": {
+        "status": 201
+      }
+    },
+    "donMoi": 40
+  }
+}
