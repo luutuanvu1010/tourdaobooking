@@ -1,5 +1,5 @@
 {
- "luc": "2026-10-29T17:33:11.615Z",
+ "luc": "2026-10-29T18:04:47.962Z",
  "base": "http://localhost:8810",
  "kho": "~/tourdao-ux-luoi/d1",
  "xong": true,
@@ -195,23 +195,14 @@
     },
     "f": {
      "thanhTren": "Trang chủ",
-     "tieuDeThan": [
-      {
-       "phanTu": "h1.visually-hidden",
-       "chu": "Trang chủ",
-       "co": "24px",
-       "dam": "600"
-      }
-     ],
-     "coTieuDeLonTrongThan": true,
-     "lap": true,
-     "lapChu": [
-      "Trang chủ"
-     ]
+     "tieuDeThan": [],
+     "coTieuDeLonTrongThan": false,
+     "lap": false,
+     "lapChu": []
     },
     "catDoc": false
    },
-   "msDo": 49
+   "msDo": 31
   },
   {
    "trang": "/",
@@ -372,23 +363,14 @@
     },
     "f": {
      "thanhTren": "Trang chủ",
-     "tieuDeThan": [
-      {
-       "phanTu": "h1.visually-hidden",
-       "chu": "Trang chủ",
-       "co": "24px",
-       "dam": "600"
-      }
-     ],
-     "coTieuDeLonTrongThan": true,
-     "lap": true,
-     "lapChu": [
-      "Trang chủ"
-     ]
+     "tieuDeThan": [],
+     "coTieuDeLonTrongThan": false,
+     "lap": false,
+     "lapChu": []
     },
     "catDoc": false
    },
-   "msDo": 42
+   "msDo": 14
   },
   {
    "trang": "/",
@@ -533,21 +515,14 @@
     },
     "f": {
      "thanhTren": "",
-     "tieuDeThan": [
-      {
-       "phanTu": "h1.visually-hidden",
-       "chu": "Trang chủ",
-       "co": "24px",
-       "dam": "600"
-      }
-     ],
-     "coTieuDeLonTrongThan": true,
+     "tieuDeThan": [],
+     "coTieuDeLonTrongThan": false,
      "lap": false,
      "lapChu": []
     },
     "catDoc": false
    },
-   "msDo": 38
+   "msDo": 22
   },
   {
    "trang": "/orders",
@@ -852,7 +827,7 @@
     },
     "catDoc": false
    },
-   "msDo": 59
+   "msDo": 40
   },
   {
    "trang": "/orders",
@@ -1157,7 +1132,7 @@
     },
     "catDoc": false
    },
-   "msDo": 77
+   "msDo": 40
   },
   {
    "trang": "/orders",
@@ -1294,7 +1269,7 @@
     },
     "catDoc": false
    },
-   "msDo": 51
+   "msDo": 37
   },
   {
    "trang": "/order",
@@ -1595,23 +1570,14 @@
     },
     "f": {
      "thanhTren": "TD-20261027-0003",
-     "tieuDeThan": [
-      {
-       "phanTu": "h1",
-       "chu": "TD-20261027-0003",
-       "co": "24px",
-       "dam": "600"
-      }
-     ],
-     "coTieuDeLonTrongThan": true,
-     "lap": true,
-     "lapChu": [
-      "TD-20261027-0003"
-     ]
+     "tieuDeThan": [],
+     "coTieuDeLonTrongThan": false,
+     "lap": false,
+     "lapChu": []
     },
     "catDoc": false
    },
-   "msDo": 41
+   "msDo": 33
   },
   {
    "trang": "/order",
@@ -1903,23 +1869,14 @@
     },
     "f": {
      "thanhTren": "TD-20261027-0003",
-     "tieuDeThan": [
-      {
-       "phanTu": "h1",
-       "chu": "TD-20261027-0003",
-       "co": "24px",
-       "dam": "600"
-      }
-     ],
-     "coTieuDeLonTrongThan": true,
-     "lap": true,
-     "lapChu": [
-      "TD-20261027-0003"
-     ]
+     "tieuDeThan": [],
+     "coTieuDeLonTrongThan": false,
+     "lap": false,
+     "lapChu": []
     },
     "catDoc": false
    },
-   "msDo": 51
+   "msDo": 33
   },
   {
    "trang": "/order",
@@ -2220,23 +2177,14 @@
     },
     "f": {
      "thanhTren": "TD-20261027-0003",
-     "tieuDeThan": [
-      {
-       "phanTu": "h1",
-       "chu": "TD-20261027-0003",
-       "co": "24px",
-       "dam": "600"
-      }
-     ],
-     "coTieuDeLonTrongThan": true,
-     "lap": true,
-     "lapChu": [
-      "TD-20261027-0003"
-     ]
+     "tieuDeThan": [],
+     "coTieuDeLonTrongThan": false,
+     "lap": false,
+     "lapChu": []
     },
     "catDoc": true
    },
-   "msDo": 37
+   "msDo": 15
   },
   {
    "trang": "/order-form",
@@ -2457,7 +2405,7 @@
     },
     "catDoc": false
    },
-   "msDo": 82
+   "msDo": 49
   },
   {
    "trang": "/order-form",
@@ -2823,7 +2771,7 @@
     },
     "catDoc": false
    },
-   "msDo": 96
+   "msDo": 56
   },
   {
    "trang": "/order-form",
@@ -2976,23 +2924,14 @@
     },
     "f": {
      "thanhTren": "Tạo đơn",
-     "tieuDeThan": [
-      {
-       "phanTu": "h1#form-title",
-       "chu": "Tạo đơn",
-       "co": "24px",
-       "dam": "600"
-      }
-     ],
-     "coTieuDeLonTrongThan": true,
-     "lap": true,
-     "lapChu": [
-      "Tạo đơn"
-     ]
+     "tieuDeThan": [],
+     "coTieuDeLonTrongThan": false,
+     "lap": false,
+     "lapChu": []
     },
     "catDoc": false
    },
-   "msDo": 79
+   "msDo": 46
   },
   {
    "trang": "/parties",
@@ -3165,7 +3104,7 @@
     },
     "catDoc": false
    },
-   "msDo": 53
+   "msDo": 35
   },
   {
    "trang": "/parties",
@@ -3338,7 +3277,7 @@
     },
     "catDoc": false
    },
-   "msDo": 55
+   "msDo": 31
   },
   {
    "trang": "/parties",
@@ -3651,23 +3590,14 @@
     },
     "f": {
      "thanhTren": "Danh bạ",
-     "tieuDeThan": [
-      {
-       "phanTu": "h1",
-       "chu": "Danh bạ",
-       "co": "24px",
-       "dam": "600"
-      }
-     ],
-     "coTieuDeLonTrongThan": true,
-     "lap": true,
-     "lapChu": [
-      "Danh bạ"
-     ]
+     "tieuDeThan": [],
+     "coTieuDeLonTrongThan": false,
+     "lap": false,
+     "lapChu": []
     },
     "catDoc": false
    },
-   "msDo": 50
+   "msDo": 36
   },
   {
    "trang": "/catalog",
@@ -3971,7 +3901,7 @@
     },
     "catDoc": true
    },
-   "msDo": 107
+   "msDo": 64
   },
   {
    "trang": "/catalog",
@@ -4275,7 +4205,7 @@
     },
     "catDoc": true
    },
-   "msDo": 112
+   "msDo": 55
   },
   {
    "trang": "/catalog",
@@ -4410,21 +4340,14 @@
     },
     "f": {
      "thanhTren": "Dịch vụ",
-     "tieuDeThan": [
-      {
-       "phanTu": "h1",
-       "chu": "Danh mục dịch vụ & giá",
-       "co": "24px",
-       "dam": "600"
-      }
-     ],
-     "coTieuDeLonTrongThan": true,
+     "tieuDeThan": [],
+     "coTieuDeLonTrongThan": false,
      "lap": false,
      "lapChu": []
     },
     "catDoc": true
    },
-   "msDo": 123
+   "msDo": 60
   },
   {
    "trang": "/staff",
@@ -4598,7 +4521,7 @@
     },
     "catDoc": false
    },
-   "msDo": 56
+   "msDo": 34
   },
   {
    "trang": "/staff",
@@ -4772,7 +4695,7 @@
     },
     "catDoc": false
    },
-   "msDo": 52
+   "msDo": 27
   },
   {
    "trang": "/staff",
@@ -4907,23 +4830,14 @@
     },
     "f": {
      "thanhTren": "Quản lý tài khoản",
-     "tieuDeThan": [
-      {
-       "phanTu": "h1",
-       "chu": "Quản lý tài khoản",
-       "co": "24px",
-       "dam": "600"
-      }
-     ],
-     "coTieuDeLonTrongThan": true,
-     "lap": true,
-     "lapChu": [
-      "Quản lý tài khoản"
-     ]
+     "tieuDeThan": [],
+     "coTieuDeLonTrongThan": false,
+     "lap": false,
+     "lapChu": []
     },
     "catDoc": true
    },
-   "msDo": 46
+   "msDo": 32
   },
   {
    "trang": "/sessions",
@@ -4934,7 +4848,7 @@
    "do": {
     "vw": 1040,
     "vh": 900,
-    "caoTrang": 8454,
+    "caoTrang": 8632,
     "url": "/sessions",
     "a": {
      "vw": 1040,
@@ -4962,7 +4876,7 @@
       {
        "phanTu": "section#table-card.card.table-wrap.phien-bang",
        "rong": 760,
-       "cao": 7216,
+       "cao": 7394,
        "maxWidth": "none"
       }
      ],
@@ -5068,7 +4982,7 @@
     },
     "catDoc": true
    },
-   "msDo": 62
+   "msDo": 40
   },
   {
    "trang": "/sessions",
@@ -5079,7 +4993,7 @@
    "do": {
     "vw": 1440,
     "vh": 900,
-    "caoTrang": 6762,
+    "caoTrang": 6892,
     "url": "/sessions",
     "a": {
      "vw": 1440,
@@ -5107,7 +5021,7 @@
       {
        "phanTu": "section#table-card.card.table-wrap.phien-bang",
        "rong": 1160,
-       "cao": 5567,
+       "cao": 5697,
        "maxWidth": "none"
       }
      ],
@@ -5213,7 +5127,7 @@
     },
     "catDoc": true
    },
-   "msDo": 66
+   "msDo": 46
   },
   {
    "trang": "/sessions",
@@ -5224,7 +5138,7 @@
    "do": {
     "vw": 390,
     "vh": 844,
-    "caoTrang": 24548,
+    "caoTrang": 25133,
     "url": "/sessions",
     "a": {
      "vw": 390,
@@ -5252,7 +5166,7 @@
       {
        "phanTu": "div#list-cards.card-list",
        "rong": 358,
-       "cao": 23044,
+       "cao": 23630,
        "maxWidth": "none"
       }
      ],
@@ -5342,23 +5256,14 @@
     },
     "f": {
      "thanhTren": "Máy đang đăng nhập",
-     "tieuDeThan": [
-      {
-       "phanTu": "h1",
-       "chu": "Máy đang đăng nhập",
-       "co": "24px",
-       "dam": "600"
-      }
-     ],
-     "coTieuDeLonTrongThan": true,
-     "lap": true,
-     "lapChu": [
-      "Máy đang đăng nhập"
-     ]
+     "tieuDeThan": [],
+     "coTieuDeLonTrongThan": false,
+     "lap": false,
+     "lapChu": []
     },
     "catDoc": true
    },
-   "msDo": 64
+   "msDo": 38
   },
   {
    "trang": "/locations",
@@ -5515,7 +5420,7 @@
     },
     "catDoc": false
    },
-   "msDo": 32
+   "msDo": 14
   },
   {
    "trang": "/locations",
@@ -5684,7 +5589,7 @@
     },
     "catDoc": false
    },
-   "msDo": 37
+   "msDo": 23
   },
   {
    "trang": "/locations",
@@ -5835,23 +5740,14 @@
     },
     "f": {
      "thanhTren": "Địa điểm",
-     "tieuDeThan": [
-      {
-       "phanTu": "h1",
-       "chu": "Địa điểm",
-       "co": "24px",
-       "dam": "600"
-      }
-     ],
-     "coTieuDeLonTrongThan": true,
-     "lap": true,
-     "lapChu": [
-      "Địa điểm"
-     ]
+     "tieuDeThan": [],
+     "coTieuDeLonTrongThan": false,
+     "lap": false,
+     "lapChu": []
     },
     "catDoc": false
    },
-   "msDo": 37
+   "msDo": 14
   },
   {
    "trang": "/loai-giay-to-nguoi",
@@ -6034,7 +5930,7 @@
     },
     "catDoc": false
    },
-   "msDo": 56
+   "msDo": 19
   },
   {
    "trang": "/loai-giay-to-nguoi",
@@ -6217,7 +6113,7 @@
     },
     "catDoc": false
    },
-   "msDo": 30
+   "msDo": 15
   },
   {
    "trang": "/loai-giay-to-nguoi",
@@ -6472,23 +6368,14 @@
     },
     "f": {
      "thanhTren": "Loại giấy tờ cá nhân",
-     "tieuDeThan": [
-      {
-       "phanTu": "h1",
-       "chu": "Loại giấy tờ cá nhân",
-       "co": "24px",
-       "dam": "600"
-      }
-     ],
-     "coTieuDeLonTrongThan": true,
-     "lap": true,
-     "lapChu": [
-      "Loại giấy tờ cá nhân"
-     ]
+     "tieuDeThan": [],
+     "coTieuDeLonTrongThan": false,
+     "lap": false,
+     "lapChu": []
     },
     "catDoc": false
    },
-   "msDo": 42
+   "msDo": 16
   },
   {
    "trang": "/dieu-phoi",
@@ -6631,7 +6518,7 @@
     },
     "catDoc": false
    },
-   "msDo": 35
+   "msDo": 18
   },
   {
    "trang": "/dieu-phoi",
@@ -6787,7 +6674,7 @@
     },
     "catDoc": false
    },
-   "msDo": 32
+   "msDo": 18
   },
   {
    "trang": "/dieu-phoi",
@@ -6920,7 +6807,7 @@
     },
     "catDoc": false
    },
-   "msDo": 28
+   "msDo": 22
   },
   {
    "trang": "/chuyen",
@@ -7169,7 +7056,7 @@
     },
     "catDoc": false
    },
-   "msDo": 18
+   "msDo": 33
   },
   {
    "trang": "/chuyen",
@@ -7411,7 +7298,7 @@
     },
     "catDoc": false
    },
-   "msDo": 28
+   "msDo": 26
   },
   {
    "trang": "/chuyen",
@@ -7589,7 +7476,7 @@
     },
     "catDoc": false
    },
-   "msDo": 10
+   "msDo": 26
   },
   {
    "trang": "/chuyen-sua",
@@ -7766,7 +7653,7 @@
     },
     "catDoc": false
    },
-   "msDo": 11
+   "msDo": 30
   },
   {
    "trang": "/chuyen-sua",
@@ -7943,7 +7830,7 @@
     },
     "catDoc": false
    },
-   "msDo": 28
+   "msDo": 31
   },
   {
    "trang": "/chuyen-sua",
@@ -8084,23 +7971,14 @@
     },
     "f": {
      "thanhTren": "Chuyến mới",
-     "tieuDeThan": [
-      {
-       "phanTu": "h1#cx-title",
-       "chu": "Chuyến mới · 30/10",
-       "co": "26px",
-       "dam": "600"
-      }
-     ],
-     "coTieuDeLonTrongThan": true,
-     "lap": true,
-     "lapChu": [
-      "Chuyến mới · 30/10"
-     ]
+     "tieuDeThan": [],
+     "coTieuDeLonTrongThan": false,
+     "lap": false,
+     "lapChu": []
     },
     "catDoc": false
    },
-   "msDo": 23
+   "msDo": 31
   },
   {
    "trang": "/xe-dang-chay",
@@ -8232,7 +8110,7 @@
     },
     "catDoc": false
    },
-   "msDo": 20
+   "msDo": 11
   },
   {
    "trang": "/xe-dang-chay",
@@ -8496,7 +8374,7 @@
     },
     "catDoc": false
    },
-   "msDo": 22
+   "msDo": 11
   },
   {
    "trang": "/de-nghi",
@@ -8630,7 +8508,7 @@
     },
     "catDoc": false
    },
-   "msDo": 18
+   "msDo": 25
   },
   {
    "trang": "/de-nghi",
@@ -8891,7 +8769,7 @@
     },
     "catDoc": false
    },
-   "msDo": 21
+   "msDo": 22
   },
   {
    "trang": "/bang-gia-xe",
@@ -9055,7 +8933,7 @@
     },
     "catDoc": false
    },
-   "msDo": 27
+   "msDo": 26
   },
   {
    "trang": "/bang-gia-xe",
@@ -9226,7 +9104,7 @@
     },
     "catDoc": false
    },
-   "msDo": 29
+   "msDo": 28
   },
   {
    "trang": "/bang-gia-xe",
@@ -9365,7 +9243,7 @@
     },
     "catDoc": false
    },
-   "msDo": 22
+   "msDo": 24
   },
   {
    "trang": "/bang-ke-xe",
@@ -9568,7 +9446,7 @@
     },
     "catDoc": false
    },
-   "msDo": 26
+   "msDo": 27
   },
   {
    "trang": "/bang-ke-xe",
@@ -9782,7 +9660,7 @@
     },
     "catDoc": false
    },
-   "msDo": 25
+   "msDo": 27
   },
   {
    "trang": "/bang-ke-xe",
@@ -9923,23 +9801,14 @@
     },
     "f": {
      "thanhTren": "Bảng kê chi phí xe",
-     "tieuDeThan": [
-      {
-       "phanTu": "h1",
-       "chu": "Bảng kê chi phí xe thuê",
-       "co": "24px",
-       "dam": "600"
-      }
-     ],
-     "coTieuDeLonTrongThan": true,
-     "lap": true,
-     "lapChu": [
-      "Bảng kê chi phí xe thuê"
-     ]
+     "tieuDeThan": [],
+     "coTieuDeLonTrongThan": false,
+     "lap": false,
+     "lapChu": []
     },
     "catDoc": false
    },
-   "msDo": 26
+   "msDo": 24
   },
   {
    "trang": "/xe",
@@ -10127,7 +9996,7 @@
     },
     "catDoc": false
    },
-   "msDo": 27
+   "msDo": 29
   },
   {
    "trang": "/xe",
@@ -10381,7 +10250,7 @@
     },
     "catDoc": false
    },
-   "msDo": 27
+   "msDo": 16
   },
   {
    "trang": "/xe",
@@ -10577,23 +10446,14 @@
     },
     "f": {
      "thanhTren": "Xe",
-     "tieuDeThan": [
-      {
-       "phanTu": "h1",
-       "chu": "Xe",
-       "co": "26px",
-       "dam": "600"
-      }
-     ],
-     "coTieuDeLonTrongThan": true,
-     "lap": true,
-     "lapChu": [
-      "Xe"
-     ]
+     "tieuDeThan": [],
+     "coTieuDeLonTrongThan": false,
+     "lap": false,
+     "lapChu": []
     },
     "catDoc": false
    },
-   "msDo": 17
+   "msDo": 26
   },
   {
    "trang": "/xe-sua",
@@ -10763,7 +10623,7 @@
     },
     "catDoc": false
    },
-   "msDo": 16
+   "msDo": 23
   },
   {
    "trang": "/xe-sua",
@@ -10933,7 +10793,7 @@
     },
     "catDoc": false
    },
-   "msDo": 38
+   "msDo": 27
   },
   {
    "trang": "/xe-sua",
@@ -11068,23 +10928,14 @@
     },
     "f": {
      "thanhTren": "Thêm xe",
-     "tieuDeThan": [
-      {
-       "phanTu": "h1#xe-title",
-       "chu": "Thêm xe",
-       "co": "26px",
-       "dam": "600"
-      }
-     ],
-     "coTieuDeLonTrongThan": true,
-     "lap": true,
-     "lapChu": [
-      "Thêm xe"
-     ]
+     "tieuDeThan": [],
+     "coTieuDeLonTrongThan": false,
+     "lap": false,
+     "lapChu": []
     },
     "catDoc": false
    },
-   "msDo": 25
+   "msDo": 24
   },
   {
    "trang": "/xe-chi-tiet",
@@ -11233,7 +11084,7 @@
     },
     "catDoc": false
    },
-   "msDo": 32
+   "msDo": 14
   },
   {
    "trang": "/xe-chi-tiet",
@@ -11393,7 +11244,7 @@
     },
     "catDoc": false
    },
-   "msDo": 29
+   "msDo": 19
   },
   {
    "trang": "/xe-chi-tiet",
@@ -11537,7 +11388,7 @@
     },
     "catDoc": false
    },
-   "msDo": 23
+   "msDo": 20
   },
   {
    "trang": "/lich-xe-ban",
@@ -11688,7 +11539,7 @@
     },
     "catDoc": false
    },
-   "msDo": 71
+   "msDo": 31
   },
   {
    "trang": "/lich-xe-ban",
@@ -11839,7 +11690,7 @@
     },
     "catDoc": false
    },
-   "msDo": 46
+   "msDo": 36
   },
   {
    "trang": "/lich-xe-ban",
@@ -12002,7 +11853,7 @@
     },
     "catDoc": false
    },
-   "msDo": 76
+   "msDo": 34
   },
   {
    "trang": "/giay-to-sap-het-han",
@@ -12139,7 +11990,7 @@
     },
     "catDoc": false
    },
-   "msDo": 32
+   "msDo": 26
   },
   {
    "trang": "/giay-to-sap-het-han",
@@ -12310,7 +12161,7 @@
     },
     "catDoc": false
    },
-   "msDo": 82
+   "msDo": 26
   },
   {
    "trang": "/giay-to-sap-het-han",
@@ -12437,7 +12288,7 @@
     },
     "catDoc": false
    },
-   "msDo": 33
+   "msDo": 22
   },
   {
    "trang": "/loai-giay-to-xe",
@@ -12587,7 +12438,7 @@
     },
     "catDoc": false
    },
-   "msDo": 42
+   "msDo": 22
   },
   {
    "trang": "/loai-giay-to-xe",
@@ -12737,7 +12588,7 @@
     },
     "catDoc": false
    },
-   "msDo": 59
+   "msDo": 26
   },
   {
    "trang": "/loai-giay-to-xe",
@@ -12870,23 +12721,14 @@
     },
     "f": {
      "thanhTren": "Loại giấy tờ xe",
-     "tieuDeThan": [
-      {
-       "phanTu": "h1",
-       "chu": "Loại giấy tờ xe",
-       "co": "24px",
-       "dam": "600"
-      }
-     ],
-     "coTieuDeLonTrongThan": true,
-     "lap": true,
-     "lapChu": [
-      "Loại giấy tờ xe"
-     ]
+     "tieuDeThan": [],
+     "coTieuDeLonTrongThan": false,
+     "lap": false,
+     "lapChu": []
     },
     "catDoc": false
    },
-   "msDo": 45
+   "msDo": 24
   },
   {
    "trang": "/chinh-sach-dieu-phoi",
@@ -13133,7 +12975,7 @@
     },
     "catDoc": false
    },
-   "msDo": 72
+   "msDo": 11
   },
   {
    "trang": "/chinh-sach-dieu-phoi",
@@ -13426,7 +13268,7 @@
     },
     "catDoc": false
    },
-   "msDo": 39
+   "msDo": 29
   },
   {
    "trang": "/chinh-sach-dieu-phoi",
@@ -13621,23 +13463,14 @@
     },
     "f": {
      "thanhTren": "Chính sách điều phối",
-     "tieuDeThan": [
-      {
-       "phanTu": "h1",
-       "chu": "Chính sách điều phối",
-       "co": "26px",
-       "dam": "600"
-      }
-     ],
-     "coTieuDeLonTrongThan": true,
-     "lap": true,
-     "lapChu": [
-      "Chính sách điều phối"
-     ]
+     "tieuDeThan": [],
+     "coTieuDeLonTrongThan": false,
+     "lap": false,
+     "lapChu": []
     },
     "catDoc": false
    },
-   "msDo": 33
+   "msDo": 29
   },
   {
    "trang": "/dieu-kien-xuat-ben",
@@ -13899,7 +13732,7 @@
     },
     "catDoc": false
    },
-   "msDo": 33
+   "msDo": 22
   },
   {
    "trang": "/dieu-kien-xuat-ben",
@@ -14161,7 +13994,7 @@
     },
     "catDoc": false
    },
-   "msDo": 35
+   "msDo": 26
   },
   {
    "trang": "/dieu-kien-xuat-ben",
@@ -14290,23 +14123,14 @@
     },
     "f": {
      "thanhTren": "Điều kiện cho xe chạy",
-     "tieuDeThan": [
-      {
-       "phanTu": "h1",
-       "chu": "Điều kiện cho xe chạy",
-       "co": "26px",
-       "dam": "600"
-      }
-     ],
-     "coTieuDeLonTrongThan": true,
-     "lap": true,
-     "lapChu": [
-      "Điều kiện cho xe chạy"
-     ]
+     "tieuDeThan": [],
+     "coTieuDeLonTrongThan": false,
+     "lap": false,
+     "lapChu": []
     },
     "catDoc": false
    },
-   "msDo": 54
+   "msDo": 27
   },
   {
    "trang": "/ly-do-dieu-phoi",
@@ -14598,7 +14422,7 @@
     },
     "catDoc": false
    },
-   "msDo": 51
+   "msDo": 33
   },
   {
    "trang": "/ly-do-dieu-phoi",
@@ -14890,7 +14714,7 @@
     },
     "catDoc": false
    },
-   "msDo": 37
+   "msDo": 31
   },
   {
    "trang": "/ly-do-dieu-phoi",
@@ -15105,23 +14929,14 @@
     },
     "f": {
      "thanhTren": "Lý do điều phối",
-     "tieuDeThan": [
-      {
-       "phanTu": "h1",
-       "chu": "Lý do điều phối",
-       "co": "26px",
-       "dam": "600"
-      }
-     ],
-     "coTieuDeLonTrongThan": true,
-     "lap": true,
-     "lapChu": [
-      "Lý do điều phối"
-     ]
+     "tieuDeThan": [],
+     "coTieuDeLonTrongThan": false,
+     "lap": false,
+     "lapChu": []
     },
     "catDoc": false
    },
-   "msDo": 21
+   "msDo": 29
   },
   {
    "trang": "/khoa-thang",
@@ -15254,7 +15069,7 @@
     },
     "catDoc": false
    },
-   "msDo": 13
+   "msDo": 27
   },
   {
    "trang": "/khoa-thang",
@@ -15387,7 +15202,7 @@
     },
     "catDoc": false
    },
-   "msDo": 35
+   "msDo": 14
   },
   {
    "trang": "/khoa-thang",
@@ -15491,23 +15306,14 @@
     },
     "f": {
      "thanhTren": "Khoá sổ tháng",
-     "tieuDeThan": [
-      {
-       "phanTu": "h1",
-       "chu": "Khoá sổ tháng",
-       "co": "24px",
-       "dam": "600"
-      }
-     ],
-     "coTieuDeLonTrongThan": true,
-     "lap": true,
-     "lapChu": [
-      "Khoá sổ tháng"
-     ]
+     "tieuDeThan": [],
+     "coTieuDeLonTrongThan": false,
+     "lap": false,
+     "lapChu": []
     },
     "catDoc": false
    },
-   "msDo": 24
+   "msDo": 13
   },
   {
    "trang": "/so-cong-no",
@@ -15687,7 +15493,7 @@
     },
     "catDoc": false
    },
-   "msDo": 29
+   "msDo": 14
   },
   {
    "trang": "/so-cong-no",
@@ -15873,7 +15679,7 @@
     },
     "catDoc": false
    },
-   "msDo": 42
+   "msDo": 21
   },
   {
    "trang": "/so-cong-no",
@@ -16029,23 +15835,14 @@
     },
     "f": {
      "thanhTren": "Sổ công nợ",
-     "tieuDeThan": [
-      {
-       "phanTu": "h1",
-       "chu": "Sổ công nợ",
-       "co": "24px",
-       "dam": "600"
-      }
-     ],
-     "coTieuDeLonTrongThan": true,
-     "lap": true,
-     "lapChu": [
-      "Sổ công nợ"
-     ]
+     "tieuDeThan": [],
+     "coTieuDeLonTrongThan": false,
+     "lap": false,
+     "lapChu": []
     },
     "catDoc": false
    },
-   "msDo": 55
+   "msDo": 29
   },
   {
    "trang": "/dieu-chinh-cong-no",
@@ -16219,7 +16016,7 @@
     },
     "catDoc": false
    },
-   "msDo": 30
+   "msDo": 15
   },
   {
    "trang": "/dieu-chinh-cong-no",
@@ -16393,7 +16190,7 @@
     },
     "catDoc": false
    },
-   "msDo": 45
+   "msDo": 23
   },
   {
    "trang": "/dieu-chinh-cong-no",
@@ -16534,23 +16331,14 @@
     },
     "f": {
      "thanhTren": "Điều chỉnh công nợ",
-     "tieuDeThan": [
-      {
-       "phanTu": "h1",
-       "chu": "Điều chỉnh công nợ",
-       "co": "24px",
-       "dam": "600"
-      }
-     ],
-     "coTieuDeLonTrongThan": true,
-     "lap": true,
-     "lapChu": [
-      "Điều chỉnh công nợ"
-     ]
+     "tieuDeThan": [],
+     "coTieuDeLonTrongThan": false,
+     "lap": false,
+     "lapChu": []
     },
     "catDoc": false
    },
-   "msDo": 31
+   "msDo": 15
   },
   {
    "trang": "/hoa-hong",
@@ -16725,7 +16513,7 @@
     },
     "catDoc": false
    },
-   "msDo": 45
+   "msDo": 20
   },
   {
    "trang": "/hoa-hong",
@@ -16900,7 +16688,7 @@
     },
     "catDoc": false
    },
-   "msDo": 43
+   "msDo": 21
   },
   {
    "trang": "/hoa-hong",
@@ -17045,7 +16833,7 @@
     },
     "catDoc": false
    },
-   "msDo": 28
+   "msDo": 21
   },
   {
    "trang": "/nguoi-ban",
@@ -17233,7 +17021,7 @@
     },
     "catDoc": false
    },
-   "msDo": 47
+   "msDo": 24
   },
   {
    "trang": "/nguoi-ban",
@@ -17444,7 +17232,7 @@
     },
     "catDoc": false
    },
-   "msDo": 31
+   "msDo": 24
   },
   {
    "trang": "/nguoi-ban",
@@ -17597,23 +17385,14 @@
     },
     "f": {
      "thanhTren": "Người bán dịch vụ",
-     "tieuDeThan": [
-      {
-       "phanTu": "h1",
-       "chu": "Người bán dịch vụ",
-       "co": "24px",
-       "dam": "600"
-      }
-     ],
-     "coTieuDeLonTrongThan": true,
-     "lap": true,
-     "lapChu": [
-      "Người bán dịch vụ"
-     ]
+     "tieuDeThan": [],
+     "coTieuDeLonTrongThan": false,
+     "lap": false,
+     "lapChu": []
     },
     "catDoc": false
    },
-   "msDo": 35
+   "msDo": 31
   },
   {
    "trang": "/chup-bu",
@@ -17733,7 +17512,7 @@
     },
     "catDoc": false
    },
-   "msDo": 27
+   "msDo": 18
   },
   {
    "trang": "/chup-bu",
@@ -17853,7 +17632,7 @@
     },
     "catDoc": false
    },
-   "msDo": 49
+   "msDo": 12
   },
   {
    "trang": "/chup-bu",
@@ -17957,23 +17736,14 @@
     },
     "f": {
      "thanhTren": "Chụp bù mức",
-     "tieuDeThan": [
-      {
-       "phanTu": "h1",
-       "chu": "Chụp bù mức",
-       "co": "24px",
-       "dam": "600"
-      }
-     ],
-     "coTieuDeLonTrongThan": true,
-     "lap": true,
-     "lapChu": [
-      "Chụp bù mức"
-     ]
+     "tieuDeThan": [],
+     "coTieuDeLonTrongThan": false,
+     "lap": false,
+     "lapChu": []
     },
     "catDoc": false
    },
-   "msDo": 43
+   "msDo": 23
   },
   {
    "trang": "/cho-xac-nhan",
@@ -18116,7 +17886,7 @@
     },
     "catDoc": false
    },
-   "msDo": 38
+   "msDo": 24
   },
   {
    "trang": "/cho-xac-nhan",
@@ -18259,7 +18029,7 @@
     },
     "catDoc": false
    },
-   "msDo": 59
+   "msDo": 12
   },
   {
    "trang": "/cho-xac-nhan",
@@ -18363,23 +18133,14 @@
     },
     "f": {
      "thanhTren": "Đơn chờ xác nhận",
-     "tieuDeThan": [
-      {
-       "phanTu": "h1",
-       "chu": "Đơn chờ xác nhận",
-       "co": "24px",
-       "dam": "600"
-      }
-     ],
-     "coTieuDeLonTrongThan": true,
-     "lap": true,
-     "lapChu": [
-      "Đơn chờ xác nhận"
-     ]
+     "tieuDeThan": [],
+     "coTieuDeLonTrongThan": false,
+     "lap": false,
+     "lapChu": []
     },
     "catDoc": false
    },
-   "msDo": 27
+   "msDo": 25
   },
   {
    "trang": "/audit",
@@ -18524,7 +18285,7 @@
     },
     "catDoc": false
    },
-   "msDo": 49
+   "msDo": 33
   },
   {
    "trang": "/audit",
@@ -18669,7 +18430,7 @@
     },
     "catDoc": false
    },
-   "msDo": 47
+   "msDo": 26
   },
   {
    "trang": "/audit",
@@ -18969,23 +18730,14 @@
     },
     "f": {
      "thanhTren": "Nhật ký",
-     "tieuDeThan": [
-      {
-       "phanTu": "h1",
-       "chu": "Nhật ký hệ thống",
-       "co": "24px",
-       "dam": "600"
-      }
-     ],
-     "coTieuDeLonTrongThan": true,
-     "lap": true,
-     "lapChu": [
-      "Nhật ký hệ thống"
-     ]
+     "tieuDeThan": [],
+     "coTieuDeLonTrongThan": false,
+     "lap": false,
+     "lapChu": []
     },
     "catDoc": true
    },
-   "msDo": 54
+   "msDo": 32
   },
   {
    "trang": "/gui-thong-bao",
@@ -19118,7 +18870,7 @@
     },
     "catDoc": false
    },
-   "msDo": 30
+   "msDo": 24
   },
   {
    "trang": "/gui-thong-bao",
@@ -19251,7 +19003,7 @@
     },
     "catDoc": false
    },
-   "msDo": 33
+   "msDo": 16
   },
   {
    "trang": "/gui-thong-bao",
@@ -19368,23 +19120,14 @@
     },
     "f": {
      "thanhTren": "Gửi thông báo",
-     "tieuDeThan": [
-      {
-       "phanTu": "h1",
-       "chu": "Gửi thông báo",
-       "co": "24px",
-       "dam": "600"
-      }
-     ],
-     "coTieuDeLonTrongThan": true,
-     "lap": true,
-     "lapChu": [
-      "Gửi thông báo"
-     ]
+     "tieuDeThan": [],
+     "coTieuDeLonTrongThan": false,
+     "lap": false,
+     "lapChu": []
     },
     "catDoc": false
    },
-   "msDo": 11
+   "msDo": 16
   },
   {
    "trang": "/tro-ly-cai-dat",
@@ -19651,7 +19394,7 @@
     },
     "catDoc": false
    },
-   "msDo": 34
+   "msDo": 27
   },
   {
    "trang": "/tro-ly-cai-dat",
@@ -19927,7 +19670,7 @@
     },
     "catDoc": false
    },
-   "msDo": 44
+   "msDo": 29
   },
   {
    "trang": "/tro-ly-cai-dat",
@@ -20140,23 +19883,14 @@
     },
     "f": {
      "thanhTren": "Trợ lý Hỗ trợ",
-     "tieuDeThan": [
-      {
-       "phanTu": "h1",
-       "chu": "Trợ lý Hỗ trợ",
-       "co": "24px",
-       "dam": "600"
-      }
-     ],
-     "coTieuDeLonTrongThan": true,
-     "lap": true,
-     "lapChu": [
-      "Trợ lý Hỗ trợ"
-     ]
+     "tieuDeThan": [],
+     "coTieuDeLonTrongThan": false,
+     "lap": false,
+     "lapChu": []
     },
     "catDoc": true
    },
-   "msDo": 31
+   "msDo": 30
   },
   {
    "trang": "/giao-dien",
@@ -20584,7 +20318,7 @@
     },
     "catDoc": false
    },
-   "msDo": 29
+   "msDo": 53
   },
   {
    "trang": "/giao-dien",
@@ -21045,7 +20779,7 @@
     },
     "catDoc": false
    },
-   "msDo": 28
+   "msDo": 33
   },
   {
    "trang": "/giao-dien",
@@ -21457,23 +21191,14 @@
     },
     "f": {
      "thanhTren": "Giao diện",
-     "tieuDeThan": [
-      {
-       "phanTu": "h1",
-       "chu": "Giao diện",
-       "co": "24px",
-       "dam": "600"
-      }
-     ],
-     "coTieuDeLonTrongThan": true,
-     "lap": true,
-     "lapChu": [
-      "Giao diện"
-     ]
+     "tieuDeThan": [],
+     "coTieuDeLonTrongThan": false,
+     "lap": false,
+     "lapChu": []
     },
     "catDoc": false
    },
-   "msDo": 26
+   "msDo": 33
   },
   {
    "trang": "/account",
@@ -21780,7 +21505,7 @@
     },
     "catDoc": true
    },
-   "msDo": 43
+   "msDo": 61
   },
   {
    "trang": "/account",
@@ -22093,7 +21818,7 @@
     },
     "catDoc": true
    },
-   "msDo": 47
+   "msDo": 42
   },
   {
    "trang": "/account",
@@ -22361,23 +22086,14 @@
     },
     "f": {
      "thanhTren": "Tôi",
-     "tieuDeThan": [
-      {
-       "phanTu": "h1",
-       "chu": "Tôi",
-       "co": "24px",
-       "dam": "600"
-      }
-     ],
-     "coTieuDeLonTrongThan": true,
-     "lap": true,
-     "lapChu": [
-      "Tôi"
-     ]
+     "tieuDeThan": [],
+     "coTieuDeLonTrongThan": false,
+     "lap": false,
+     "lapChu": []
     },
     "catDoc": true
    },
-   "msDo": 40
+   "msDo": 44
   },
   {
    "trang": "/feedback",
@@ -22521,7 +22237,7 @@
     },
     "catDoc": false
    },
-   "msDo": 29
+   "msDo": 26
   },
   {
    "trang": "/feedback",
@@ -22665,7 +22381,7 @@
     },
     "catDoc": false
    },
-   "msDo": 28
+   "msDo": 27
   },
   {
    "trang": "/feedback",
@@ -22941,7 +22657,7 @@
     },
     "catDoc": true
    },
-   "msDo": 263
+   "msDo": 259
   },
   {
    "trang": "/help",
@@ -23073,7 +22789,7 @@
     },
     "catDoc": true
    },
-   "msDo": 262
+   "msDo": 90
   },
   {
    "trang": "/help",
@@ -23189,23 +22905,14 @@
     },
     "f": {
      "thanhTren": "Hướng dẫn",
-     "tieuDeThan": [
-      {
-       "phanTu": "h1",
-       "chu": "Hướng dẫn",
-       "co": "24px",
-       "dam": "600"
-      }
-     ],
-     "coTieuDeLonTrongThan": true,
-     "lap": true,
-     "lapChu": [
-      "Hướng dẫn"
-     ]
+     "tieuDeThan": [],
+     "coTieuDeLonTrongThan": false,
+     "lap": false,
+     "lapChu": []
     },
     "catDoc": true
    },
-   "msDo": 265
+   "msDo": 109
   },
   {
    "trang": "/thiet-lap",
@@ -23318,7 +23025,7 @@
     },
     "catDoc": false
    },
-   "msDo": 26
+   "msDo": 25
   },
   {
    "trang": "/thiet-lap",
@@ -23448,7 +23155,7 @@
     },
     "catDoc": false
    },
-   "msDo": 41
+   "msDo": 10
   },
   {
    "trang": "/thiet-lap",
@@ -23560,23 +23267,14 @@
     },
     "f": {
      "thanhTren": "Thiết lập",
-     "tieuDeThan": [
-      {
-       "phanTu": "h1",
-       "chu": "Thiết lập",
-       "co": "24px",
-       "dam": "600"
-      }
-     ],
-     "coTieuDeLonTrongThan": true,
-     "lap": true,
-     "lapChu": [
-      "Thiết lập"
-     ]
+     "tieuDeThan": [],
+     "coTieuDeLonTrongThan": false,
+     "lap": false,
+     "lapChu": []
     },
     "catDoc": false
    },
-   "msDo": 42
+   "msDo": 9
   },
   {
    "trang": "/tai-xe",
@@ -23710,7 +23408,7 @@
     },
     "catDoc": false
    },
-   "msDo": 31
+   "msDo": 17
   },
   {
    "trang": "/tai-xe",
@@ -23878,7 +23576,7 @@
     },
     "catDoc": false
    },
-   "msDo": 31
+   "msDo": 9
   },
   {
    "trang": "/tai-xe",
@@ -24002,7 +23700,7 @@
     },
     "catDoc": false
    },
-   "msDo": 25
+   "msDo": 11
   },
   {
    "trang": "/cuoc",
@@ -24152,7 +23850,7 @@
     },
     "catDoc": false
    },
-   "msDo": 27
+   "msDo": 13
   },
   {
    "trang": "/cuoc",
@@ -24313,7 +24011,7 @@
     },
     "catDoc": false
    },
-   "msDo": 43
+   "msDo": 21
   },
   {
    "trang": "/cuoc",
@@ -24457,7 +24155,7 @@
     },
     "catDoc": false
    },
-   "msDo": 26
+   "msDo": 20
   },
   {
    "trang": "/cuoc-chuyen",
@@ -24624,7 +24322,7 @@
     },
     "catDoc": false
    },
-   "msDo": 33
+   "msDo": 22
   },
   {
    "trang": "/cuoc-chuyen",
@@ -24791,7 +24489,7 @@
     },
     "catDoc": false
    },
-   "msDo": 32
+   "msDo": 22
   },
   {
    "trang": "/cuoc-chuyen",
@@ -24924,7 +24622,7 @@
     },
     "catDoc": false
    },
-   "msDo": 27
+   "msDo": 9
   },
   {
    "trang": "/ban",
@@ -25075,7 +24773,7 @@
     },
     "catDoc": false
    },
-   "msDo": 40
+   "msDo": 11
   },
   {
    "trang": "/ban",
@@ -25239,7 +24937,7 @@
     },
     "catDoc": false
    },
-   "msDo": 27
+   "msDo": 9
   },
   {
    "trang": "/ban",
@@ -25378,7 +25076,7 @@
     },
     "catDoc": false
    },
-   "msDo": 43
+   "msDo": 9
   }
  ]
 }

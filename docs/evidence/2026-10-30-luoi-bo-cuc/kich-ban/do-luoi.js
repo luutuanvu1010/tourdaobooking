@@ -161,11 +161,11 @@
     if (khacCao || xuongDongLe) hangNut.push({ phanTu: duong(el), soNut: nut.length, dong, cao: caos, nut: nut.map((n) => chu(n).slice(0, 18)) });
   }
 
-  // ---------- f) Tên trang lặp ----------
+  // ---------- f) Tên trang lặp ---------- (bỏ h1 «ẩn khỏi mắt» kiểu hộp 1×1 px + clip, vd .visually-hidden, .detail-head h1)
   const bt = document.getElementById("bar-title"); const btChu = bt && thay(bt) ? chu(bt) : "";
   const doanCuoi = btChu.split(/[›>\/]/).map((x) => x.trim()).filter(Boolean).pop() ?? "";
   const chuan = (x) => x.toLowerCase().replace(/[^\p{L}\p{N} ]/gu, "").replace(/\s+/g, " ").trim();
-  const tieuDeThan = [...main.querySelectorAll("h1, h2, .page-title, [class*=tieu-de], [class*=title]")].filter((e) => thay(e) && R(e).top < mr.top + 260 && parseFloat(cs(e).fontSize) >= 20 && chu(e).length < 80).map((e) => ({ phanTu: chon(e), chu: chu(e), co: cs(e).fontSize, dam: cs(e).fontWeight }));
+  const tieuDeThan = [...main.querySelectorAll("h1, h2, .page-title, [class*=tieu-de], [class*=title]")].filter((e) => thay(e) && R(e).width > 4 && R(e).height > 4 && !/rect\(0px,? 0px,? 0px,? 0px\)/.test(cs(e).clip) && R(e).top < mr.top + 260 && parseFloat(cs(e).fontSize) >= 20 && chu(e).length < 80).map((e) => ({ phanTu: chon(e), chu: chu(e), co: cs(e).fontSize, dam: cs(e).fontWeight }));
   const lap = tieuDeThan.filter((t) => doanCuoi && (chuan(t.chu) === chuan(doanCuoi) || chuan(btChu).endsWith(chuan(t.chu)) || chuan(t.chu).startsWith(chuan(doanCuoi))));
 
   return {

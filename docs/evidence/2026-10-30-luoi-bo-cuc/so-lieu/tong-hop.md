@@ -1,4 +1,4 @@
-# Tổng hợp số đo lưới bố cục — sinh tự động từ so-lieu/luoi.json (2026-10-29T17:33:11.615Z)
+# Tổng hợp số đo lưới bố cục — sinh tự động từ so-lieu/luoi.json (2026-10-29T18:04:47.962Z)
 
 ## 1. Theo khuôn trang
 
@@ -6,7 +6,7 @@
 |---|---|---|---|---|---|---|---|---|---|---|
 | bảng điều khiển | 8 | 744, 760 | 1144, 1160 | — / — | 7 · 3 | 14 | 0 · 1 | 4 | 0 · 2 | 7 · 6 |
 | danh sách | 12 | 760 | 1160 | 420px --w-narrow=--w-ntf-panel / 420px --w-narrow=--w-ntf-panel | 35 · 5 | 40 | 1 · 1 | 1 | 1 · 0 | 12 · 11 |
-| chi tiết | 4 | 760 | 1160 | — / — | 11 · 3 | 28 | 0 · 0 | 2 | 0 · 2 | 3 · 3 |
+| chi tiết | 4 | 760 | 1160 | — / — | 11 · 3 | 28 | 0 · 0 | 2 | 0 · 2 | 2 · 2 |
 | biểu mẫu | 6 | 760 | 1088, 1160 | 640px --w-confirm=--w-vc-form=--w-sheet-hk / 1120px --w-form; 640px --w-confirm=--w-vc-form=--w-sheet-hk | 1 · 1 | 45 | 1 · 2 | 1 | 0 · 0 | 6 · 6 |
 | thiết lập | 15 | 760 | 1160 | — / 900px --w-thiet-lap-max | 59 · 5 | 107 | 5 · 10 | 0 | 0 · 1 | 15 · 14 |
 
@@ -18,7 +18,7 @@ Ghi: bề rộng khối nội dung là khối cấp một lớn nhất trong `ma
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | `/` | bảng điều khiển | SUPER_ADMIN | 792 · 1192 | 744 · 1144 | — | 32 | 4 (512) | 3 (755) | 4 | 0 · 0 | 1 | không · 0 | không | — |  |
 | `/orders` | danh sách | SUPER_ADMIN | 792 · 1192 | 760 · 1160 | — | 33 | 30 (451) | 30 (851) | 30 | 0 · 0 | 0 | không · 0 | có | trùng |  |
-| `/order` | chi tiết | SUPER_ADMIN | 792 · 1192 | 760 · 1160 | — | 32 | 2 (312) | 12 (712) | 10 | 0 · 0 | 2 | không · 0 | có | trùng |  |
+| `/order` | chi tiết | SUPER_ADMIN | 792 · 1192 | 760 · 1160 | — | 32 | 2 (312) | 12 (712) | 10 | 0 · 0 | 2 | không · 0 | không | — |  |
 | `/order-form` | biểu mẫu | SUPER_ADMIN | 792 · 1120 | 760 · 1088 | 1120px --w-form | 88 | 0 (224) | 44 (451) | 4 | 0 · 0 | 0 | không · 0 | có | trùng |  |
 | `/parties` | danh sách | SUPER_ADMIN | 792 · 1192 | 760 · 1160 | — | 32 | 0 (0) | 0 (0) | 0 | 0 · 0 | 1 | không · 0 | có | trùng |  |
 | `/catalog` | thiết lập | SUPER_ADMIN | 792 · 1192 | 760 · 1160 | — | 16 | 0 (177) | 14 (577) | 7 | 0 · 0 | 0 | không · 0 | có | — | có |
@@ -140,7 +140,6 @@ Ghi: bề rộng khối nội dung là khối cấp một lớn nhất trong `ma
 ### (f) Tiêu đề lớn trong thân (1040)
 
 - `/orders` thanh trên «Đơn hàng» — thân: «Đơn hàng» 24px/600 — TRÙNG
-- `/order` thanh trên «TD-20261027-0003» — thân: «TD-20261027-0003» 24px/600 — TRÙNG
 - `/order-form` thanh trên «Tạo đơn» — thân: «Tạo đơn» 24px/600 — TRÙNG
 - `/parties` thanh trên «Danh bạ» — thân: «Danh bạ» 24px/600 — TRÙNG
 - `/catalog` thanh trên «Dịch vụ» — thân: «Danh mục dịch vụ & giá» 24px/600
