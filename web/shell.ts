@@ -1,11 +1,13 @@
 import { ApiError, api, datNguoiDangNhap, type Staff, type Api } from "./api";
+import { BO_CHON_THANH_DINH, boTheoDoi, thanhDinhHien } from "../src/shared/thanh-dinh-day";
 import { PERMISSION_LABEL } from "../src/shared/permissions";
 import {
-  KHUNG_MAT_MANG,
   THANH_BEN,
   THANH_TAB,
   coKhungNho,
+  gomNhomGap,
   nhanTheoDuong,
+  trangChaCua,
   sangTabToi,
   sangTai,
   sangTaiMuc,
@@ -18,6 +20,8 @@ import {
   type NguoiXem,
   type NhomThanhBen,
 } from "../src/shared/muc-giao-dien";
+import { cauBaoTri, KHOA_DAI_BAO_MAT_DA_DONG } from "../src/shared/dai-chu";
+import { datDai, ganNgoaiMang, hienDaiNgoaiMang, taiLai, veThanNgoaiMang } from "./dai";
 import { append, byId, h, replaceChildren } from "./dom";
 import { initials } from "./format";
 import { batDauBangTin } from "./bangtin";
@@ -40,24 +44,30 @@ import { daiNhacHaiLop } from "../src/shared/hai-lop-hien-thi";
   | (typeof THANH_TAB)[number]["bieuTuong"]
 )[]) satisfies readonly IconName[];
 
+/** Trang đang vẽ 403/404 (web/trang-thai-he-thong.ts đặt `body[data-trang-thai]`): không sáng mục nào. Chỉ đọc thuộc tính, không nhập tệp đó. */
+function khongSangMuc(): boolean {
+  return /^40[34]$/.test(document.body?.dataset?.trangThai ?? "");
+}
+
 /**
  * Thanh tab dưới đáy (điện thoại). Tab nào hiện cho ai: `thanhTab()` của bảng mục (src/shared/muc-giao-dien.ts — THANH_TAB). Tóm tắt hôm nay: văn phòng lập được đơn
  * có Trang chủ / Đơn hàng / Tạo đơn; Kế toán (xem đơn, không lập — ADR-0007) không có Tạo đơn; Đối tác, Thực tập: Đơn hàng (đơn của họ — lỗi báo 30/9 L3) + Tạo đơn;
  * tài khoản "chỉ tài xế" (ADR-0040 D3): Trang chủ (/tai-xe), tài xế công ty thêm "Cuốc của tôi" (Q5); tài khoản vừa tài xế vừa văn phòng KHÔNG thêm tab (GA-K2b-T2),
- * mở /cuoc từ trang Tôi; Quản trị thêm Dịch vụ, ô account.view thêm Tài khoản (ADR-0071); ai cũng có "Tôi" (sáng ở các trang mở từ trang Tôi — `sangTabToi`).
+ * mở /cuoc từ trang Tôi; Quản trị thêm Thiết lập (trang mục lục /thiet-lap), Nhân sự có Tài khoản (ADR-0071); tối đa 5 tab; ai cũng có "Tôi" (sáng ở các trang mở từ trang Tôi — `sangTabToi`).
  */
 function tabBar(n: NguoiXem, path: string): HTMLElement {
+  const khongSang = khongSangMuc();
   const tabs = thanhTab(n);
-  const coTabCuoc = tabs.some((t) => t.trang === "cuoc");
+  const tabHien = tabs.map((t) => t.trang);
   return h(
     "nav",
     { id: "tabbar", "aria-label": "Điều hướng chính" },
     ...tabs.map((t) => {
       // active của "/" khớp CHÍNH XÁC "/" (sangTai so bằng, không so tiền tố) để không sáng đèn cho mọi đường dẫn.
-      const sang = t.trang === "toi" ? sangTabToi(path, coTabCuoc) : sangTai(t.trang, path);
+      const sang = t.trang === "toi" ? sangTabToi(path, tabHien) : sangTai(t.trang, path);
       return h(
         "a",
-        { href: t.href, class: t.bieuTuong === "plus" ? "tab tab-new" : "tab", "aria-current": sang ? "page" : false },
+        { href: t.href, class: t.trang === "taoDon" ? "tab tab-new" : "tab", "aria-current": sang && !khongSang ? "page" : false },
         h("span", { class: "tab-icon" }, icon(t.bieuTuong as IconName), t.trang === "toi" && helpHasNews() && newDot()),
         h("span", null, t.nhan),
       );
@@ -65,24 +75,13 @@ function tabBar(n: NguoiXem, path: string): HTMLElement {
   );
 }
 
-const MAINTENANCE_STRIP_ID = "maint-strip";
 /**
- * Dải mảnh dưới thanh đầu trang: "Đang ở chế độ bảo trì — chỉ tài khoản Toàn quyền dùng được" (liên kết tới trang Tôi, nơi tắt). Chỉ tài khoản Toàn quyền (ADR-0071) tới được app lúc bảo trì nên chỉ họ thấy dải này;
- * gọi lại với `on = false` để gỡ (trang Tôi gọi ngay sau khi bật/tắt, khỏi phải tải lại trang).
+ * Dải bảo trì: chỉ tài khoản Toàn quyền (ADR-0071) tới được Nền tảng lúc bảo trì nên chỉ họ thấy; gọi lại với `on = false` để gỡ (trang Tôi gọi ngay sau khi bật/tắt).
+ * Dải là của `web/dai.ts` (một chủ sở hữu); `endsAt` (ISO UTC) cho giờ dự kiến theo giờ Việt Nam, thiếu thì chỉ báo "Đang bảo trì".
  */
-/** `#strips` (dải mảnh dưới thanh đầu trang, dùng chung với `.ntf-strip` của Thông báo — ADR-0034) — tạo lười, cái nào chạy trước tạo (R7). */
-function stripsEl(): HTMLElement {
-  let el = document.getElementById("strips");
-  if (!el) {
-    el = h("div", { id: "strips" });
-    document.getElementById("topbar")?.after(el);
-  }
-  return el;
-}
-
-export function setMaintenanceStrip(on: boolean): void {
-  document.getElementById(MAINTENANCE_STRIP_ID)?.remove();
-  if (on) stripsEl().append(h("a", { class: "maint-strip", id: MAINTENANCE_STRIP_ID, href: "/account" }, "Đang ở chế độ bảo trì — chỉ tài khoản Toàn quyền dùng được"));
+export function setMaintenanceStrip(on: boolean, endsAt: string | null = null): void {
+  const t = endsAt ? Date.parse(endsAt) : NaN;
+  datDai("bao-tri", on ? { cau: cauBaoTri(Number.isNaN(t) ? null : new Date(t + 7 * 3600_000).toISOString().slice(11, 16)), nut: { nhan: "Xem", href: TRANG.toi.duong } } : null);
 }
 
 /**
@@ -92,16 +91,14 @@ export function setMaintenanceStrip(on: boolean): void {
  * hỏi NỀN sau khi khung đã vẽ, nhớ kết quả trong sessionStorage (một lần mỗi phiên của thẻ, theo id tài khoản); trang đăng nhập và trang Tôi (sau khi bật) xoá.
  */
 export const KHOA_NHAC_HAI_LOP = "td_mfa_nhac";
-const MFA_STRIP_ID = "mfa-strip";
-
 function setMfaStrip(text: string | null): void {
-  document.getElementById(MFA_STRIP_ID)?.remove();
   // Đích lấy từ bảng mục (trang Tôi — ai cũng mở được), không viết tay đường dẫn (tests/audit/muc-hien-mo-duoc-khung.mjs bài (6)); `#mfa` = mục Bảo mật đăng nhập.
-  if (text) stripsEl().append(h("a", { class: "mfa-strip", id: MFA_STRIP_ID, href: TRANG.toi.duong + "#mfa" }, text));
+  datDai("bao-mat", text ? { cau: text, nut: { nhan: "Bật ngay", href: TRANG.toi.duong + "#mfa" }, dongDuoc: true } : null);
 }
 
 async function ganDaiNhacHaiLop(id: string): Promise<void> {
   try {
+    if (sessionStorage.getItem(KHOA_DAI_BAO_MAT_DA_DONG)) return; // người dùng đã đóng dải trong phiên này
     // Số ngày tính lại theo giờ máy mỗi lần vẽ (từ `graceUntil`), nên nhớ cả phiên của thẻ không làm số cũ đi; `required` đổi khi bật → trang Tôi xoá.
     let m = JSON.parse(sessionStorage.getItem(KHOA_NHAC_HAI_LOP) || "0") as { id: string; required: boolean; graceUntil: string | null } | 0;
     if (!m || m.id !== id) {
@@ -221,7 +218,7 @@ type Muc = ReturnType<typeof thanhBen>[number]["muc"][number];
  * Thực tập (lỗi báo 30/9 L3) không có huy hiệu. "Xe & giấy tờ" (ADR-0040 D1) = số giấy đã hết + sắp hết. "Dịch vụ & giá" nằm trong nhóm Thiết lập (thu gọn): số lệch giá còn cộng vào nút Thiết lập.
  * Chỉ gắn khi có NGUỒN THẬT (route đã có sẵn số đó) — không mục nào được vẽ số giả.
  */
-function trinhBay(k: KhoaTrang, seesAll: boolean): { badge?: () => Promise<number>; badgeClass?: string; dot?: () => boolean } {
+export function trinhBay(k: KhoaTrang, seesAll: boolean): { badge?: () => Promise<number>; badgeClass?: string; dot?: () => boolean } {
   switch (k) {
     case "donHang":
       return seesAll ? { badge: draftOrderBadge } : {};
@@ -243,10 +240,11 @@ function trinhBay(k: KhoaTrang, seesAll: boolean): { badge?: () => Promise<numbe
  * ở khổ điện thoại thanh bên bị CSS ẩn nên các lời gọi kia chỉ tốn mạng trên chính thiết bị yếu nhất. Mục gộp sáng khi đứng ở trang của BẤT KỲ trang nào nó gom.
  */
 function sidebarItem(m: Muc, path: string, loaders: (() => void)[], seesAll: boolean): HTMLElement {
+  const khongSang = khongSangMuc();
   const { badge, badgeClass, dot } = trinhBay(m.trang, seesAll);
   const a = h(
     "a",
-    { class: "sidebar-item", href: m.href, "aria-current": sangTaiMuc(m, path) ? "page" : false },
+    { class: "sidebar-item", href: m.href, "aria-current": !khongSang && sangTaiMuc(m, path) ? "page" : false },
     m.bieuTuong && h("span", { class: "sidebar-item-icon" }, icon(m.bieuTuong as IconName, 18)),
     h("span", { class: "sidebar-item-label" }, m.nhan, dot?.() && newDot()),
   );
@@ -261,39 +259,47 @@ function sidebarItem(m: Muc, path: string, loaders: (() => void)[], seesAll: boo
 }
 
 /**
- * Một nhóm của thanh bên (nhóm do `thanhBen()` của bảng mục trả, cùng bảng quyền với máy chủ — src/shared/muc-giao-dien.ts). Nhóm rỗng ẩn CẢ tiêu đề (đặc tả §3.1) —
- * trả `null`. HẰNG NGÀY không có tiêu đề và đứng đầu với nút "Tạo đơn" nổi bật; THIẾT LẬP là nút thu gọn (`aria-expanded`) mở sẵn theo `thietLapMoSan`, kèm số mục và
- * số "dịch vụ lệch giá" (khi > 0) để việc đó không biến mất khi nhóm đóng.
+ * Nút gập dùng chung (THIẾT LẬP và nhóm gập như Điều phối): `button[aria-expanded]` điều khiển `div#id[hidden]`. `dangChua` = nhóm chứa trang đang mở: khi nhóm đóng
+ * hiện chấm Biển để người dùng biết mình đang ở trong đó.
  */
-function sidebarGroup(nhom: NhomThanhBen, muc: readonly Muc[], path: string, loaders: (() => void)[], seesAll: boolean, moSan: boolean): HTMLElement | null {
-  const noiBat = muc.find((m) => m.noiBat);
-  const rows = muc.filter((m) => !m.noiBat).map((m) => sidebarItem(m, path, loaders, seesAll));
-  if (rows.length === 0 && !noiBat) return null;
-  const nutMoi = noiBat && h("a", { class: "sidebar-new", href: noiBat.href, "aria-current": sangTaiMuc(noiBat, path) ? "page" : false }, icon("plus", 18), h("span", null, noiBat.nhan));
-  if (nhom !== "THIẾT LẬP") {
-    return h("div", { class: "sidebar-group" }, nutMoi, nhom !== "HẰNG NGÀY" && h("div", { class: "sidebar-group-title" }, nhom), h("div", { class: "sidebar-group-items" }, ...rows));
-  }
-  const dem = h("span", { class: "sidebar-group-count" }, String(rows.length));
-  const toggle = h(
-    "button",
-    { type: "button", class: "sidebar-group-toggle", "aria-expanded": String(moSan), "aria-controls": "nhom-thiet-lap" },
-    "Thiết lập",
-    dem,
-    h("span", { class: "sidebar-chevron" }, icon("chevron-down", 16)),
-  );
-  const body = h("div", { id: "nhom-thiet-lap", class: "sidebar-group-items", hidden: !moSan }, ...rows);
+function nutGap(id: string, nhan: string, rows: HTMLElement[], moSan: boolean, dangChua: boolean, dem?: HTMLElement): HTMLElement {
+  const cham = dangChua && h("span", { class: "sidebar-cham", hidden: moSan });
+  const toggle = h("button", { type: "button", class: "sidebar-group-toggle", "aria-expanded": String(moSan), "aria-controls": id }, nhan, cham, dem, h("span", { class: "sidebar-chevron" }, icon("chevron-down", 16)));
+  const body = h("div", { id, class: "sidebar-group-items", hidden: !moSan }, ...rows);
   toggle.addEventListener("click", () => {
     const mo = toggle.getAttribute("aria-expanded") !== "true";
     toggle.setAttribute("aria-expanded", String(mo));
     body.hidden = !mo;
+    if (cham) cham.hidden = mo;
   });
+  return h("div", { class: "sidebar-gap" }, toggle, body);
+}
+
+/**
+ * Một nhóm của thanh bên (nhóm do `thanhBen()` của bảng mục trả, cùng bảng quyền với máy chủ — src/shared/muc-giao-dien.ts). Nhóm rỗng ẩn CẢ tiêu đề (đặc tả §3.1) —
+ * trả `null`. HẰNG NGÀY không có tiêu đề; các mục liền nhau cùng `nhomGap` (Điều phối) gập thành một nút; THIẾT LẬP là nút gập mở sẵn theo `thietLapMoSan`, kèm số mục và
+ * số "dịch vụ lệch giá" (khi > 0) để việc đó không biến mất khi nhóm đóng.
+ */
+function sidebarGroup(nhom: NhomThanhBen, muc: readonly Muc[], path: string, loaders: (() => void)[], seesAll: boolean, moSan: boolean): HTMLElement | null {
+  if (muc.length === 0) return null;
+  const dong = (m: Muc) => sidebarItem(m, path, loaders, seesAll);
+  if (nhom !== "THIẾT LẬP") {
+    const khoi = gomNhomGap(muc).map((k) => {
+      if (!("muc" in k)) return dong(k);
+      const co = k.muc.some((m) => sangTaiMuc(m, path));
+      return nutGap(`nhom-gap-${k.nhomGap.ma}`, k.nhomGap.nhan, k.muc.map(dong), co, co);
+    });
+    return h("div", { class: "sidebar-group" }, nhom !== "HẰNG NGÀY" && h("div", { class: "sidebar-group-title" }, nhom), h("div", { class: "sidebar-group-items" }, ...khoi));
+  }
+  const rows = muc.map(dong);
+  const dem = h("span", { class: "sidebar-group-count" }, String(rows.length));
   if (muc.some((m) => m.trang === "dichVu"))
     loaders.push(() => {
       void catalogConflictBadge().then((n) => {
         if (n > 0) dem.textContent = `${rows.length} · ${n} lệch giá`;
       });
     });
-  return h("div", { class: "sidebar-group" }, toggle, body);
+  return h("div", { class: "sidebar-group" }, nutGap("nhom-thiet-lap", "Thiết lập", rows, moSan, muc.some((m) => sangTaiMuc(m, path)), dem));
 }
 
 /**
@@ -371,14 +377,25 @@ export function setBarTitle(text: string): void {
  */
 export async function initShell(): Promise<Staff> {
   registerServiceWorker();
+  ganNgoaiMang();
+  if (typeof navigator !== "undefined" && navigator.onLine === false) hienDaiNgoaiMang(); // đã biết ngoài mạng ngay từ đầu: hiện dải trước khi có lời gọi nào
   // Nút lùi (history.back) phục hồi trang từ bộ đệm lùi/tiến NGUYÊN TRẠNG, kể cả chấm đỏ vẽ lúc chưa xem /help (tiền lệ: pageshow ở order-form.ts).
   // Trang được phục hồi mà nay đã xem bản mới nhất ⇒ gỡ mọi chấm "Có bản mới" của Hướng dẫn (tab Tôi, dòng ở trang Tôi, menu máy tính).
   window.addEventListener("pageshow", (e) => {
     if (e.persisted && !helpHasNews()) for (const dot of document.querySelectorAll(".new-dot")) dot.remove();
   });
+  // Lối «Bỏ qua»: phần tử ĐẦU body (addNav chèn thanh bên rồi đặt nó lại lên đầu); đích là <main>.
+  const boQua = h("a", { class: "bo-qua", href: "#noi-dung-chinh" }, "Bỏ qua tới nội dung chính");
+  document.body.prepend(boQua);
+  const chinh = document.querySelector("main");
+  if (chinh) {
+    chinh.id ||= "noi-dung-chinh";
+    chinh.setAttribute("tabindex", "-1");
+  }
   const { title, back, tabbar } = document.body.dataset;
   const path = location.pathname.replace(/\/+$/, "") || "/";
 
+  const cha = trangChaCua(path);
   const backLink = back ? h("a", { class: "bar-back", href: back, "aria-label": "Quay lại" }, icon("back", 26)) : null;
   backLink?.addEventListener("click", (e) => {
     if (history.length > 1) {
@@ -391,7 +408,9 @@ export async function initShell(): Promise<Staff> {
     backLink,
     h("a", { class: "brand", href: "/" }, h("img", { class: "brand-logo", src: "/icons/logo-96.png", alt: "", width: 30, height: 30, decoding: "sync" }), h("span", { class: "brand-name" }, "Island Booking ", h("span", null, "System"))),
     // LUÔN dựng (C-1): ở máy tính đây là breadcrumb của mọi trang. Giao diện điện thoại KHÔNG đổi — luật hiển thị ở
-    // khổ ≤640px vẫn đòi `body[data-title]`, nên trang không khai `data-title` vẫn hiện logo và không hiện breadcrumb.
+    // khổ ≤899px vẫn đòi `body[data-title]`, nên trang không khai `data-title` vẫn hiện logo và không hiện breadcrumb.
+    // Máy tính (CSS chỉ hiện ≥ 900): trang con có «Trang cha ›» trước tiêu đề; trang cấp một thì không.
+    cha ? h("a", { class: "bar-duong", href: cha.href }, `${cha.nhan} ›`) : null,
     h("span", { class: "bar-title", id: "bar-title" }, barTitleFor(path, title)),
   );
 
@@ -406,9 +425,10 @@ export async function initShell(): Promise<Staff> {
       const badgeLoaders: (() => void)[] = [];
       const nav = sidebar(n, path, staff, badgeLoaders, tatTam ?? "");
       document.body.prepend(nav);
+      document.body.prepend(boQua);
       document.body.classList.add("has-sidebar");
       // Huy hiệu chỉ nạp khi thanh bên ĐANG HIỂN THỊ THẬT (`offsetParent` null khi CSS ẩn nó ở khổ hẹp). Hỏi chính
-      // trình duyệt thay vì chép mốc 641px sang JS: chép số thì lần sửa CSS sau sẽ làm hai nơi lệch nhau mà không ai biết.
+      // trình duyệt thay vì chép mốc 900px sang JS: chép số thì lần sửa CSS sau sẽ làm hai nơi lệch nhau mà không ai biết.
       const loadBadges = () => {
         for (const load of badgeLoaders) load();
       };
@@ -431,6 +451,7 @@ export async function initShell(): Promise<Staff> {
     if (tatTam !== null) tabs.dataset.khungTam = "1";
     document.body.append(tabs);
     document.body.classList.add("has-tabbar");
+    theoDoiThanhDinh();
   };
   /** Thanh công việc: avatar (điện thoại) + ô tìm + nút "Tạo đơn" — cùng một cách dựng cho khung tạm và khung thật. */
   const thanhCongViec = (tat: string, n: NguoiXem, tam: boolean) => {
@@ -466,18 +487,18 @@ export async function initShell(): Promise<Staff> {
       document.body.classList.remove("has-sidebar", "has-tabbar");
       throw err;
     }
-    // Mất mạng (khung vẫn mở được từ cache): báo rõ thay vì để trang trống, rồi giữ lời gọi treo như goLogin() ở api.ts.
-    const el = document.getElementById("error");
-    if (el) showError(el, "Không có kết nối mạng. Kiểm tra Wi-Fi hoặc 4G rồi mở lại Nền tảng.");
-    // Không biết vai khi mất mạng: hiện 4 tab cơ bản để còn điều hướng (QA2 Q2-04); không dựng sidebar (thiếu staff cho chân thanh).
-    // Có khung tạm từ bản nhớ (ADR-0035) thì giữ nó — đủ mục đúng vai hơn 4 tab cơ bản.
-    if (!nho) addNav({ khungNho: KHUNG_MAT_MANG }, null, null);
+    // Mất mạng (khung vẫn mở được từ cache): dải «ngoài mạng» (do api.ts phát tín hiệu) + thân báo rõ nếu trang chưa có gì; giữ lời gọi treo như goLogin() ở api.ts.
+    // Có khung tạm từ bản nhớ (ADR-0035) thì giữ nó; không có thì KHÔNG dựng điều hướng đoán mò.
+    // Vẽ thân TRƯỚC dải: thân «chưa nạp» đã có nút Thử lại thì dải chỉ báo ngắn. Có mạng lại ⇒ tự tải lại (lời hứa «tự thử lại khi có mạng»).
+    veThanNgoaiMang(document.querySelector("main"), taiLai);
+    window.addEventListener("online", taiLai); // tải lại là rời trang: không cần { once }
+    hienDaiNgoaiMang();
     return new Promise<never>(() => undefined);
   }
   const { staff } = me;
   benDatMayChuEp = me.benDatCuaToi ?? null;
   datNguoiDangNhap(staff.id); // ADR-0094: vé chống ghi trùng giữ qua "tải lại trang" theo ngăn của tài khoản này
-  if (me.maintenance?.on) setMaintenanceStrip(true);
+  if (me.maintenance?.on) setMaintenanceStrip(true, me.maintenance.endsAt);
   // Bốn cờ của bản nhớ khung hỏi CÙNG bảng quyền với máy chủ (ADR-0072 mục 4a: `admin` là ô admin.manage, không hỏi mã Quản trị) — `coKhungNho` của bảng mục.
   luuKhungNho({ tat: initials(staff.fullName), ...coKhungNho(staff) });
   // Gỡ khung tạm (nếu có) rồi vẽ khung thật trong CÙNG một lượt chạy — trình duyệt không vẽ khung trống ở giữa.
@@ -499,10 +520,49 @@ export async function initShell(): Promise<Staff> {
 
 /**
  * Ẩn / hiện thanh tab dưới đáy (điện thoại). Trang Hỗ trợ ẩn nó khi mở một yêu cầu toàn màn để ô trả lời dính đáy không chồng lên; mọi đường đóng
- * (nút quay lại, Esc, nút «‹») phải gọi lại với `true`. Chỉ đổi lớp `tabbar-an` của body; luật CSS nằm ở khối điện thoại của app.css.
+ * (nút quay lại, Esc, nút «‹») phải gọi lại với `true`. Đổi lớp `tabbar-an` của body rồi xếp một lần đo lại thanh dính (`queueMicrotask`) để lớp `tabbar-dinh`
+ * khớp ngay trước lần vẽ kế; luật CSS nằm ở khối ≤ 899 (bố cục điện thoại, Q-2) của app.css.
  */
 export function datThanhTab(hien: boolean): void {
   document.body.classList.toggle("tabbar-an", !hien);
+  // Đo lại thanh dính ngay sau đoạn mã đang chạy (trang thường gỡ ô trả lời ngay sau lệnh này) để `tabbar-dinh` không đọng tới khung hình sau.
+  if (kiemThanhDinh) queueMicrotask(kiemThanhDinh);
+}
+
+let kiemThanhDinh: (() => void) | null = null;
+
+/**
+ * Thanh dính đáy (`.thanh-hanh-dong-cuoi`) đang hiện thì ẩn thanh tab; đặt `--day-dinh` = chiều cao vùng dính đáy (toast né). Chỉ quan sát `main` (thuộc tính + cây con)
+ * và con trực tiếp của body: KHÔNG quan sát thuộc tính body, vì chính ta đổi lớp `tabbar-dinh` ở đó (sẽ tự kích lại).
+ */
+function theoDoiThanhDinh(): void {
+  if (typeof MutationObserver === "undefined") return;
+  // Lớp RIÊNG `tabbar-dinh` (không qua datThanhTab): trang tự ẩn thanh tab bằng `tabbar-an` (Hỗ trợ mở luồng) — ô trả lời ẩn đi không được bật lại thanh tab của trang.
+  const doi = boTheoDoi((co) => document.body.classList.toggle("tabbar-dinh", co));
+  let cu = "";
+  const capNhat = () => {
+    const e = thanhDinhHien(document.querySelectorAll<HTMLElement>(BO_CHON_THANH_DINH), (x) => getComputedStyle(x).position);
+    doi(!!e);
+    const tb = document.getElementById("tabbar");
+    const dich = e ?? (tb && tb.getClientRects().length > 0 ? tb : null);
+    const moi = `${dich ? Math.round(dich.getBoundingClientRect().height) : 0}px`;
+    if (moi !== cu) document.body.style.setProperty("--day-dinh", (cu = moi));
+  };
+  let cho = false;
+  const lich = () => {
+    if (cho) return;
+    cho = true;
+    requestAnimationFrame(() => {
+      cho = false;
+      capNhat();
+    });
+  };
+  capNhat();
+  kiemThanhDinh = capNhat;
+  const mo = new MutationObserver(lich);
+  const main = document.querySelector("main");
+  if (main) mo.observe(main, { subtree: true, childList: true, attributes: true, attributeFilter: ["hidden", "class", "style"] });
+  mo.observe(document.body, { childList: true });
 }
 
 export function showError(el: HTMLElement, message: string | null): void {

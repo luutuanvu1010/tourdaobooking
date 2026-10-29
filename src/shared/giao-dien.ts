@@ -42,8 +42,8 @@ export const NUM: readonly Num[] = [
   { khoa: "dam-noi-dung", nhan: "Độ đậm chữ nội dung", nhom: "chu", loai: "dam", token: "--fw-regular", min: 400, max: 500 },
   { khoa: "dam-nhan", nhan: "Độ đậm chữ nhấn (nút, tên, số tiền)", nhom: "chu", loai: "dam", token: "--fw-semibold", min: 400, max: 700 },
 ];
-/** Núm "dam-nhan" kéo cả ba mức nhấn (đặc tả §2). */
-export const KEO_THEO: Readonly<Record<string, readonly string[]>> = { "dam-nhan": ["--fw-bold", "--fw-heavy"], "nen-nut-chinh": ["--c-btn-primary-border", "--c-btn-primary-hover-bg"] };
+/** Núm "dam-tieu-de" (--fw-heading) kéo thêm --fw-bold, --fw-heavy (đợt 0, cổng 1 câu 2, đặc tả mục 4); "dam-nhan" chỉ còn --fw-semibold. */
+export const KEO_THEO: Readonly<Record<string, readonly string[]>> = { "dam-tieu-de": ["--fw-bold", "--fw-heavy"], "nen-nut-chinh": ["--c-btn-primary-border", "--c-btn-primary-hover-bg"] };
 
 /**
  * Núm con -> núm cha: token của núm con trong app.css :root là `var(token của núm cha)`, nên đổi cha thì con đi theo (CSS tự thừa kế).
@@ -68,7 +68,7 @@ export const MAC_DINH: Readonly<Record<string, string>> = {
   // --fs-h1 = 1.5rem = 24px; --fs-h2 = 1.1rem = 17,6px (làm tròn 18 — mặc định KHÔNG ghi đè nên trang vẫn 17,6px; chỉ khi Toàn quyền chọn mới thành số nguyên);
   // --fs-step-5 = 16px; --fs-label → --fs-step-3 = 14px (đo 2026-10-02 trên nhánh thanh-sang-chu-manh).
   "co-tieu-de-trang": "24", "co-tieu-de-muc": "18", "co-noi-dung": "16", "co-nhan": "14",
-  "dam-tieu-de": "500", "dam-noi-dung": "400", "dam-nhan": "500",
+  "dam-tieu-de": "600", "dam-noi-dung": "400", "dam-nhan": "500",
 };
 
 /** Cặp [chữ, nền] phải ≥ 4,5:1 — theo khoá núm, hoặc hex cố định (chữ trắng trên nút chốt). */

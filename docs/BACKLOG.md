@@ -625,3 +625,25 @@ Ghi 25/10 khi đóng phiên ADR-0133 (bản 2.25 + vá 2.26, migration `0116`). 
 - **BL-VE-TEP-EMAIL** · **Trạng thái:** `không làm` (đặc tả 3.7). Email báo nhóm không kèm tệp.
 - **BL-VE-TEP-DOC-SAU-LO** · **Trạng thái:** `chưa làm` (người kiểm độc lập 28/10, N1). Hai route gửi tin còn các lần đọc D1 SAU lô có từ trước ADR-0144 (`findByRequest`, `messageExists`, `getTicket`, `detail` — nay `detail` đọc thêm `listTepCuaTin`) không nằm trong khối bắt lỗi: D1 hỏng đúng lúc đó vẫn trả 500, vé chống ghi trùng phát lại «đã ghi» với `ket_qua: null` (cùng triệu chứng `BL-TEP-PHAT-LAI-500`). Phần tệp (`datTepCuaTin`) thì không ném. Muốn bọc hết phải định nghĩa phản hồi 201 khi không dựng được chi tiết (đổi hợp đồng `FeedbackGuiResponse`) — cần chủ quyết.
 
+## 53. Nợ đợt 0 khung chung (mã `BL-D0-…`)
+
+Ghi 2026-10-28 khi đóng đợt 0 (nhật ký thi công `docs/superpowers/plans/2026-10-28-dot-0-khung-chung-nhat-ky.md`). Phần lớn dọn ở Chặng 3 theo họ; hai mục ghi "chờ chủ" cần chủ quyết.
+
+- Tám bảng trượt vẫn tự dựng riêng, chưa dùng khung chung `bang-truot`.
+- Xác nhận ngay trong trang (nút đổi thành «Chắc chắn?») chưa quy về hộp xác nhận chung.
+- 16 chỗ `confirm()`/`alert()` còn lại (trần khoá bằng `src/ratchet-confirm-alert.test.ts`, chỉ được giảm); giới hạn đã biết của bài đếm: chuỗi chứa ` //` đứng trước lời gọi, và dòng bắt đầu bằng `*` bị bỏ qua.
+- Khoảng 20 câu «Đã lưu» hiện tại chỗ chưa chuyển sang toast chung.
+- Tiêu đề lặp (tiêu đề trang và tiêu đề khối trùng nhau) chưa dọn.
+- 15 số z-index cứng còn lại sau dấu mốc PWA (`.fb-step-dot`, `.ht-tra-loi`, `.sidebar-group`, `.catalog-muc`, `body.trang-chu::before`, `.vc-bottom-bar`, `.vc-filters`, `.dp-*`, `.xb-*`, `.buoc-*`).
+- Mười `--skel-*` lẻ và ba chiều cao khác giá trị (`--h-hdv-act` 48, `--row-h` 48, `--h-dp-tab` 40; `--skel-money-mt` 96 giữ nguyên) chờ Chặng 3 quyết theo họ.
+- Bỏ các tên bí danh token cũ ở lần phát hành 2.
+- Luật giao diện cũ ở các mốc màn hình 960/1024/1400/720 giữ nguyên, dọn ở Chặng 3.
+- Lớp CSS nghi đã chết (chưa xác minh bằng quét) chưa xoá.
+- Token không có chỗ dùng: `--w-home-side-lg`, `--w-trip-time-mt-lg`, `--c-fab-*` (và `--z-tl-fab` 35 đã bỏ cùng nút nổi).
+- (chờ chủ) Tài xế công ty kiêm văn phòng thấy thanh bên 11 khối (có từ trước Task 7).
+- (chờ chủ / QA2) Đặc tả §6.3: tắt nút gửi và «Tải thêm» khi ngoài mạng, và để trang tự tải lại khi có tín hiệu `co-mang`; đợt 0 chưa làm.
+- Trang `/404` trong kho Trợ lý với thực đơn rỗng (khung 404 không có mục nào để Trợ lý đọc).
+- Toast tông «do» chưa đặt `aria-live="assertive"`; bộ đọc màn hình hiện đọc như tin thường.
+- Kịch bản `docs/evidence/2026-09-23-trang-chu-moi/kich-ban/trang-chu-smoke.mjs` hỏng với thanh bên mới (nút gập đầu tiên nay là Điều phối; 22 mục; nút Tạo đơn không còn ở thanh bên); bản sửa nằm trong kịch bản đợt 0 (Task 15).
+- Task 13 bước kiểm tay CDP không làm được (cổng 8795/8797 bị phiên khác chiếm); `mat-mang-smoke.mjs` phủ thay, phải xoá mục `/ngoai-mang` khỏi bộ đệm để kiểm nhánh 503 chữ.
+

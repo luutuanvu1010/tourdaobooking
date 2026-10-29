@@ -16,8 +16,8 @@ test("Smart Placement bật: Worker được đặt gần cơ sở dữ liệu t
   assert.deepEqual(cauHinh.placement, { mode: "smart" });
 });
 
-test("run_worker_first gồm /api/* VÀ /giao-dien.css (tệp màu do Worker dựng từ D1, không phải tệp tĩnh)", () => {
-  assert.deepEqual(cauHinh.assets?.run_worker_first, ["/api/*", "/giao-dien.css"]);
+test("run_worker_first gồm /api/*, /giao-dien.css (tệp màu do Worker dựng từ D1) VÀ /__scheduled (wrangler dev --test-scheduled: không có thì not_found_handling 404-page trả trang 404, e2e catalog đỏ 29/10)", () => {
+  assert.deepEqual(cauHinh.assets?.run_worker_first, ["/api/*", "/giao-dien.css", "/__scheduled"]);
 });
 
 test("không khai placement kiểu vùng (`region`/`host`): D1 không có mã vùng AWS/GCP/Azure để nhắm; chỉ chế độ smart là dùng được", () => {

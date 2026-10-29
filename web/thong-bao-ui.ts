@@ -3,7 +3,8 @@
 // ở src/shared/thong-bao.ts); ở đây chỉ vẽ và gọi 4 route đọc/ghi tự phục vụ. Không innerHTML — dựng bằng h().
 import type { HopThongBaoResponse, LoaiTin, StaffProfile as Staff, TinDto, TomTatThongBaoResponse } from "../src/shared/contracts";
 import { ApiError, api } from "./api";
-import { byId, h, replaceChildren } from "./dom";
+import { datDai } from "./dai";
+import { h, replaceChildren } from "./dom";
 import { icon, type IconName } from "./icons";
 import { taoBoLamMoi } from "./lam-moi-logic";
 import type { SuKienChuyen } from "../src/shared/bang-tin";
@@ -40,16 +41,6 @@ const KIND_BADGE_CLASS: Partial<Record<LoaiTin, "tin" | "cho" | "nhan" | "huy">>
 };
 const MINE_NOTE = "Tin công ty gửi bạn, đơn bạn lập hoặc phụ trách, đơn chờ nhận, chuyến xe liên quan tới bạn.";
 const ALL_NOTE = "Thêm tin về mọi đơn bạn được xem. Số đỏ trên chuông không đếm ngăn này.";
-
-/** `#strips` (dải mảnh dưới thanh đầu trang, dùng chung với `.maint-strip`) — tạo lười, cái nào chạy trước tạo (R7). */
-function strips(): HTMLElement {
-  let el = document.getElementById("strips");
-  if (!el) {
-    el = h("div", { id: "strips" });
-    byId("topbar").after(el);
-  }
-  return el;
-}
 
 function tinBadge(t: TinDto): HTMLElement {
   const qt = t.loai === "thu_cong" && t.quanTrong ? " ntf-badge-tin-qt" : "";
@@ -173,28 +164,15 @@ function openTinDialog(t: TinDto, nhan: string, onAcked: () => void): void {
   requestAnimationFrame(() => requestAnimationFrame(() => root.classList.add("open")));
 }
 
-/** Dải "Tin quan trọng" (`.ntf-strip`, cạnh `.maint-strip` trong `#strips`) — vẽ lại mỗi lần tóm tắt về; rỗng thì gỡ. */
+/** Dải "Tin quan trọng" — chỗ vẽ là `web/dai.ts` (một dải một lúc); "Đã hiểu" vẫn chỉ ở trong ngăn (ADR-0034 điều 8). */
 function veDai(danh: TomTatThongBaoResponse["quanTrongChuaHieu"], moTheoId: (id: string) => void): void {
-  document.getElementById("ntf-strip")?.remove();
   const n = danh[0];
-  if (!n) return;
-  const con = danh.slice(1);
-  const btn = h("button", { type: "button" }, "Đọc và bấm Đã hiểu");
-  btn.addEventListener("click", () => moTheoId(n.id));
-  strips().append(
-    h(
-      "div",
-      { class: "ntf-strip", id: "ntf-strip", role: "status" },
-      h("span", { class: "ntf-strip-ico" }, icon("megaphone", 18)),
-      h(
-        "div",
-        { class: "ntf-strip-text" },
-        h("b", null, `Tin quan trọng: ${n.tieuDe}`),
-        h("span", null, `${n.nguoiGui} gửi lúc ${gioVN(n.luc)}${con.length > 0 ? ` · còn ${con.length} tin quan trọng khác` : ""}`),
-      ),
-      btn,
-    ),
-  );
+  if (!n) return datDai("thong-bao", null);
+  const con = danh.length - 1;
+  datDai("thong-bao", {
+    cau: `Tin quan trọng: ${n.tieuDe} — ${n.nguoiGui} gửi lúc ${gioVN(n.luc)}${con > 0 ? ` · còn ${con} tin quan trọng khác` : ""}`,
+    nut: { nhan: "Xem", khiBam: () => moTheoId(n.id) },
+  });
 }
 
 export function ganThongBao(topbar: HTMLElement, staff: Staff): void {
@@ -204,7 +182,7 @@ export function ganThongBao(topbar: HTMLElement, staff: Staff): void {
   const count = h("span", { class: "bell-count", hidden: true });
   bell.append(count);
   const newBtn = topbar.querySelector(".topbar-new");
-  if (newBtn) newBtn.before(bell);
+  if (newBtn) newBtn.after(bell); // thứ tự phải: ô tìm → Tạo đơn → chuông → Trợ lý (đợt 0 K1)
   else topbar.append(bell);
 
   let panelRoot: HTMLElement | null = null;
@@ -322,7 +300,7 @@ export function ganThongBao(topbar: HTMLElement, staff: Staff): void {
     tabMine.addEventListener("click", () => void selectTab("cua-toi"));
     tabAll.addEventListener("click", () => void selectTab("tat-ca"));
 
-    const wide = window.matchMedia("(min-width: 641px)").matches;
+    const wide = window.matchMedia("(min-width: 900px)").matches; // cùng mốc khối .ntf-panel máy tính của app.css (Q-2: dưới 900 là bố cục điện thoại)
     panelRoot = h(
       "div",
       { class: "ntf-panel", role: "dialog", "aria-label": "Thông báo" },

@@ -1,6 +1,6 @@
 // Kiểu D (kiểm theo vai 2/10 — lộ trình 3/10 V1.5a): nút "Hỗ trợ" nổi né thanh nút cuối trang theo MỘT lớp chung `thanh-hanh-dong-cuoi`, không theo danh
 // sách bộ chọn đóng (bài học: nút "Kết thúc chuyến" nằm trong `.dp-run-end` — không thuộc danh sách — bị nút nổi đè ở khổ 390).
-// (1) web/tro-ly.ts chỉ đo đúng lớp chung; (2) mọi khối mang lớp thanh cuối trang đã biết (HTML tĩnh + chuỗi lớp trong h(…) của web/*.ts) đều mang lớp chung.
+// (1) web/tro-ly.ts không còn hàm né (đợt 0 Task 8: nút Trợ lý lên thanh trên; lớp chung vẫn dùng cho thanh dính khác); (2) mọi khối mang lớp thanh cuối trang đã biết (HTML tĩnh + chuỗi lớp trong h(…) của web/*.ts) đều mang lớp chung.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
@@ -12,11 +12,10 @@ const LOP_CHUNG = "thanh-hanh-dong-cuoi";
 /** Lớp riêng của các thanh nút cuối trang / cuối danh sách hiện có. Thanh mới: thêm lớp chung (bài này không đoán được lớp mới — dựa vào kỷ luật). */
 const LOP_THANH = ["form-actions", "vc-bottom-bar", "dp-run-end", "dp-ct-bottom", "ht-tra-loi"];
 
-test("tro-ly.ts: hàm né của nút nổi đo ĐÚNG lớp chung, không còn danh sách bộ chọn đóng", () => {
+test("tro-ly.ts: nút Trợ lý ở thanh trên (đợt 0 K6) — không còn nút nổi nên không còn hàm né thanh nút cuối trang", () => {
   const src = readFileSync(join(ROOT, "web", "tro-ly.ts"), "utf8");
-  const ham = src.slice(src.indexOf("function nangTheoThanhDay"), src.indexOf("export async function ganTroLy"));
-  assert.match(ham, new RegExp(`querySelectorAll<HTMLElement>\\("\\.${LOP_CHUNG}"\\)`));
-  for (const lop of LOP_THANH) assert.doesNotMatch(ham, new RegExp(`querySelectorAll[^\\n]*\\.${lop}\\b`), `không đo riêng .${lop}`);
+  assert.doesNotMatch(src, /nangTheoThanhDay|tl-fab|tl-nang/);
+  assert.match(src, /getElementById\("topbar"\)/);
 });
 
 test("mọi khối mang lớp thanh cuối trang đã biết cũng mang lớp chung (HTML + h() của web/*.ts)", () => {

@@ -119,4 +119,13 @@ const REST = NAME.slice(SHORT.length).trim();
 const esc = (s) => s.replace(/[^\x00-\x7f]/g, (c) => "\\u" + c.charCodeAt(0).toString(16).toUpperCase().padStart(4, "0"));
 assert.ok(shellBundle.includes(`"${esc(SHORT)} "`) && shellBundle.includes(`"${esc(REST)}"`), "web/shell.ts phải dựng brand đúng tên trong manifest");
 console.log(`✓ thẻ meta iOS, tên và màu nhất quán trên ${PAGES.length} trang`);
+// Địa chỉ lạ ngoài /api: Workers Assets trả public/404.html (vỏ Nền tảng, status 404); /api/* lạ vẫn là JSON 404 của máy chủ (Đợt 0, Task 12).
+const lạ = await get("/khong-co-trang-nay");
+assert.equal(lạ.status, 404, "địa chỉ lạ phải 404");
+assert.match(lạ.headers.get("content-type") ?? "", /^text\/html/, "địa chỉ lạ phải trả HTML");
+assert.ok((await lạ.text()).includes('data-title="Không có trang"'), "địa chỉ lạ phải trả trang 404 có vỏ");
+const apiLạ = await get("/api/khong-co");
+assert.equal(apiLạ.status, 404, "/api lạ phải 404");
+assert.match(apiLạ.headers.get("content-type") ?? "", /json/, "/api lạ phải trả JSON");
+console.log("✓ 404 có vỏ cho địa chỉ lạ; /api lạ vẫn JSON");
 console.log("E2E PWA OK");

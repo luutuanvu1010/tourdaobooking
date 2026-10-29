@@ -120,6 +120,16 @@ export const TRANG = {
   toi: { duong: "/account", hien: luonCo, tam: luonCo },
   gopY: { duong: "/feedback", hien: luonCo, tam: luonCo },
   troGiup: { duong: "/help", hien: luonCo, tam: luonCo },
+  // Trang mục lục Thiết lập (điện thoại, đợt 0 Task 5): sáng ở mọi trang nhóm THIẾT LẬP của thanh bên. Danh sách đường lấy từ mọi dòng THIẾT LẬP của THANH_BEN (kèm trang mở từ chúng).
+  thietLap: {
+    duong: "/thiet-lap",
+    get cungSang(): readonly string[] {
+      return [...(THANH_BEN as readonly ChoThanhBen[]).filter((c) => c.nhom === "THIẾT LẬP").flatMap((c) => [TRANG[c.trang].duong, ...((TRANG[c.trang] as TrangDich).cungSang ?? [])])];
+    },
+    hien: (s) => can(s, "admin.manage"),
+    moTrang: (s) => can(s, "admin.manage"),
+    tam: (k) => k.admin,
+  },
 } as const satisfies Record<string, TrangDich>;
 
 export type KhoaTrang = keyof typeof TRANG;
@@ -149,12 +159,18 @@ export interface ChoDat {
 export const NHOM_THANH_BEN = ["HẰNG NGÀY", "VẬN CHUYỂN", "TIỀN", "THIẾT LẬP", "CHÂN MENU"] as const;
 export type NhomThanhBen = (typeof NHOM_THANH_BEN)[number];
 
+export interface NhomGap {
+  readonly ma: string;
+  readonly nhan: string;
+}
+const DIEU_PHOI: NhomGap = { ma: "dieu-phoi", nhan: "Điều phối" };
+
 export interface ChoThanhBen extends ChoDat {
   readonly nhom: NhomThanhBen;
   /** Tên biểu tượng ở web/icons.ts (web/shell.ts kiểm kiểu lúc biên dịch). */
   readonly bieuTuong?: string;
-  /** Nút nổi bật đứng đầu thanh (san hô, "Tạo đơn") — vẽ riêng, không tính vào trần 10 mục hiện sẵn. */
-  readonly noiBat?: true;
+  /** Các mục LIỀN NHAU cùng `ma` gập thành một nhóm (web/shell.ts `nutGap`); nhóm chỉ còn một mục hiện thì hiện phẳng. */
+  readonly nhomGap?: NhomGap;
   /** Mục gộp: sáng ở trang của BẤT KỲ khoá nào trong `gom` (và trang của chính nó). Các trang gom phải CÙNG điều kiện hiện với mục (bài tập quyền ép). */
   readonly gom?: readonly KhoaTrang[];
   /** Địa chỉ mở riêng theo trang đang đứng (Góp ý: mở form mới, kèm nơi quay về). */
@@ -162,7 +178,6 @@ export interface ChoThanhBen extends ChoDat {
 }
 
 export const THANH_BEN = [
-  { nhom: "HẰNG NGÀY", trang: "taoDon", nhan: "Tạo đơn", bieuTuong: "plus", noiBat: true },
   { nhom: "HẰNG NGÀY", trang: "trangChu", nhan: "Trang chủ", bieuTuong: "home" },
   // Tài xế: "Trang chủ" của họ là /tai-xe; "Cuốc của tôi" cho mọi tài khoản tài xế công ty (kể cả kiêm văn phòng — K2b T2).
   { nhom: "HẰNG NGÀY", trang: "trangTaiXe", nhan: "Trang chủ", bieuTuong: "home" },
@@ -170,9 +185,9 @@ export const THANH_BEN = [
   { nhom: "HẰNG NGÀY", trang: "danhBa", nhan: "Danh bạ", bieuTuong: "contact-card" },
   { nhom: "HẰNG NGÀY", trang: "cuoc", nhan: "Cuốc của tôi", bieuTuong: "assign" },
   { nhom: "HẰNG NGÀY", trang: "ban", nhan: "Báo bận của tôi", bieuTuong: "clock" },
-  { nhom: "VẬN CHUYỂN", trang: "dieuPhoi", nhan: "Điều phối xe", bieuTuong: "truck" },
+  { nhom: "VẬN CHUYỂN", trang: "dieuPhoi", nhan: "Điều phối xe", bieuTuong: "truck", nhomGap: DIEU_PHOI },
+  { nhom: "VẬN CHUYỂN", trang: "deNghi", nhan: "Đề nghị chuyển khách", bieuTuong: "swap", nhomGap: DIEU_PHOI },
   { nhom: "VẬN CHUYỂN", trang: "xeDangChay", nhan: "Xe đang chạy", bieuTuong: "pin" },
-  { nhom: "VẬN CHUYỂN", trang: "deNghi", nhan: "Đề nghị chuyển khách", bieuTuong: "swap" },
   { nhom: "VẬN CHUYỂN", trang: "xe", nhan: "Xe & giấy tờ", bieuTuong: "doc-check", gom: ["xe", "lichXeBan", "sapHetHan"] },
   // Kiểm số 15/10: hai trang có cùng điều kiện hiện trên mọi tập quyền (tập lệch: 0) nên gộp được.
   { nhom: "VẬN CHUYỂN", trang: "bangGiaXe", nhan: "Giá & chi phí", bieuTuong: "money", gom: ["bangGiaXe", "bangKeXe"] },
@@ -195,7 +210,7 @@ export const THANH_BEN = [
   { nhom: "THIẾT LẬP", trang: "troLy", nhan: "Trợ lý Hỗ trợ" },
   { nhom: "THIẾT LẬP", trang: "giaoDien", nhan: "Giao diện" },
   { nhom: "CHÂN MENU", trang: "toi", nhan: "Của tôi", bieuTuong: "me" },
-  { nhom: "CHÂN MENU", trang: "gopY", nhan: "Hỗ trợ", bieuTuong: "chat", moTu: (p: string) => `/feedback?new=1&from=${encodeURIComponent(p)}` },
+  { nhom: "CHÂN MENU", trang: "gopY", nhan: "Hỗ trợ", bieuTuong: "handset", moTu: (p: string) => `/feedback?new=1&from=${encodeURIComponent(p)}` },
   { nhom: "CHÂN MENU", trang: "troGiup", nhan: "Hướng dẫn", bieuTuong: "help" },
 ] as const satisfies readonly ChoThanhBen[];
 
@@ -208,15 +223,17 @@ export interface ChoThanhTab extends ChoDat {
 
 export const THANH_TAB = [
   { trang: "trangChu", nhan: "Trang chủ", bieuTuong: "home" },
+  { trang: "trangTaiXe", nhan: "Trang chủ", bieuTuong: "home" },
   { trang: "donHang", nhan: "Đơn hàng", bieuTuong: "orders" },
   { trang: "taoDon", nhan: "Tạo đơn", bieuTuong: "plus" },
-  { trang: "trangTaiXe", nhan: "Trang chủ", bieuTuong: "home" },
-  // Tab "Cuốc của tôi" CHỈ cho tài khoản "chỉ tài xế" (Q5); tài khoản vừa tài xế vừa văn phòng mở /cuoc từ trang Tôi (GA-K2b-T2: không thêm tab).
+  { trang: "taiKhoan", nhan: "Tài khoản", bieuTuong: "staff", chiKhi: { that: (s: PermissionHolder) => !can(s, "admin.manage") } },
+  { trang: "soCongNo", nhan: "Sổ công nợ", bieuTuong: "lock", chiKhi: { that: (s: PermissionHolder) => !can(s, "order.create") } },
+  { trang: "danhBa", nhan: "Danh bạ", bieuTuong: "contact-card", chiKhi: { that: (s: PermissionHolder) => can(s, "order.create") && !can(s, "admin.manage") } },
+  { trang: "thietLap", nhan: "Thiết lập", bieuTuong: "settings" },
   { trang: "cuoc", nhan: "Cuốc của tôi", bieuTuong: "assign", chiKhi: { that: chiTaiXe } },
-  // A4 T9: tab "Báo bận của tôi" ngay sau Cuốc, cùng đối tượng "chỉ tài xế"; không có ở khung tạm (bản nhớ khung chỉ 4 cờ đã duyệt, ADR-0035) — thiếu một nhịp như tiền lệ tài xế.
-  { trang: "ban", nhan: "Báo bận của tôi", bieuTuong: "clock" },
-  { trang: "dichVu", nhan: "Dịch vụ", bieuTuong: "services" },
-  { trang: "taiKhoan", nhan: "Tài khoản", bieuTuong: "staff" },
+  { trang: "ban", nhan: "Báo bận", bieuTuong: "clock" },
+  { trang: "gopY", nhan: "Hỗ trợ", bieuTuong: "handset", chiKhi: { that: (s: PermissionHolder) => !seesAllOrders(s) } },
+  { trang: "troGiup", nhan: "Hướng dẫn", bieuTuong: "help", chiKhi: { that: (s: PermissionHolder) => !seesAllOrders(s) && !can(s, "order.create") && !chiTaiXe(s) } },
   { trang: "toi", nhan: "Tôi", bieuTuong: "me" },
 ] as const satisfies readonly ChoThanhTab[];
 
@@ -303,8 +320,8 @@ export interface MucThanhBen {
   readonly nhan: string;
   readonly href: string;
   readonly bieuTuong?: string;
-  readonly noiBat?: boolean;
   readonly gom?: readonly KhoaTrang[];
+  readonly nhomGap?: NhomGap;
 }
 
 /** Mục thanh bên sáng ở đường này: trang của chính nó hoặc của BẤT KỲ khoá nào trong `gom` (mục gộp "Xe & giấy tờ", "Giá & chi phí"). */
@@ -318,8 +335,26 @@ export function thanhBen(n: NguoiXem, duongHienTai: string): { nhom: NhomThanhBe
     nhom,
     muc: (THANH_BEN as readonly ChoThanhBen[])
       .filter((c) => c.nhom === nhom && coHien(c, n))
-      .map((c): MucThanhBen => ({ trang: c.trang, nhan: c.nhan, href: c.moTu ? c.moTu(duongHienTai) : TRANG[c.trang].duong, bieuTuong: c.bieuTuong, noiBat: c.noiBat, gom: c.gom })),
+      .map((c): MucThanhBen => ({ trang: c.trang, nhan: c.nhan, href: c.moTu ? c.moTu(duongHienTai) : TRANG[c.trang].duong, bieuTuong: c.bieuTuong, gom: c.gom, nhomGap: c.nhomGap })),
   }));
+}
+
+export type KhoiThanhBen = MucThanhBen | { readonly nhomGap: NhomGap; readonly muc: MucThanhBen[] };
+
+/** Gom các mục liền nhau cùng `nhomGap.ma` thành một khối; nhóm chỉ có một mục trả mục phẳng. */
+export function gomNhomGap(muc: readonly MucThanhBen[]): KhoiThanhBen[] {
+  const kq: KhoiThanhBen[] = [];
+  for (let i = 0, j; i < muc.length; i = j) {
+    const g = muc[i]!.nhomGap;
+    for (j = i + 1; g && muc[j]?.nhomGap?.ma === g.ma; j++);
+    kq.push(g && j - i > 1 ? { nhomGap: g, muc: muc.slice(i, j) } : muc[i]!);
+  }
+  return kq;
+}
+
+/** Số khối hiện sẵn trên thanh bên (trần 10): mọi nhóm trừ CHÂN MENU, mỗi nhóm gập đếm 1, THIẾT LẬP đếm 1 khi có mục. */
+export function demMucHienSan(nhomHien: ReturnType<typeof thanhBen>): number {
+  return nhomHien.reduce((t, g) => t + (g.nhom === "CHÂN MENU" ? 0 : g.nhom === "THIẾT LẬP" ? +!!g.muc.length : gomNhomGap(g.muc).length), 0);
 }
 
 /**
@@ -336,6 +371,17 @@ export function nhanTheoDuong(duong: string): string | null {
   return (THANH_BEN as readonly ChoThanhBen[]).find((c) => sangTaiMuc(c, duong))?.nhan ?? null;
 }
 
+/**
+ * Trang cha của trang con (đường đi «Trang cha ›» ở thanh trên máy tính): khoá ĐẦU TIÊN theo thứ tự TRANG có `cungSang` chứa đường; trang cấp một → null.
+ * Bỏ qua `thietLap`: `cungSang` của nó chỉ tô sáng tab, /thiet-lap chỉ mở cho Quản trị (đặc tả 5.1).
+ */
+export function trangChaCua(duong: string): { nhan: string; href: string } | null {
+  const k = KHOA_TRANG.find((x) => x !== "thietLap" && ((TRANG[x] as TrangDich).cungSang ?? []).includes(duong));
+  if (!k) return null;
+  const nhan = nhanTheoDuong(TRANG[k].duong) ?? (TRANG_TOI as readonly ChoTrangToi[]).find((c) => c.trang === k)?.nhan ?? THANH_TAB.find((c) => c.trang === k)?.nhan ?? "";
+  return { nhan, href: TRANG[k].duong };
+}
+
 export interface MucHien {
   readonly trang: KhoaTrang;
   readonly nhan: string;
@@ -343,18 +389,20 @@ export interface MucHien {
 }
 const hienRa = (c: ChoDat): MucHien => ({ trang: c.trang, nhan: c.nhan, href: TRANG[c.trang].duong });
 
+/** Tối đa 5 tab: nhiều hơn thì giữ 4 mục đầu + "Tôi"; "Tạo đơn" đứng giữa nhờ thứ tự khai (bài thanh-tab-theo-bo-quyen). */
 export function thanhTab(n: NguoiXem): (MucHien & { readonly bieuTuong: string })[] {
-  return (THANH_TAB as readonly ChoThanhTab[]).filter((c) => coHien(c, n)).map((c) => ({ ...hienRa(c), bieuTuong: c.bieuTuong }));
+  const t = (THANH_TAB as readonly ChoThanhTab[]).filter((c) => coHien(c, n)).map((c) => ({ ...hienRa(c), bieuTuong: c.bieuTuong }));
+  return t.length > 5 ? t.slice(0, 4).concat(t.slice(-1)) : t;
 }
 
 export function thanhTren(n: NguoiXem): (MucHien & { readonly kieu: ChoThanhTren["kieu"] })[] {
   return (THANH_TREN as readonly ChoThanhTren[]).filter((c) => coHien(c, n)).map((c) => ({ ...hienRa(c), kieu: c.kieu }));
 }
 
-/** Tab "Tôi" sáng ở trang Tôi và các trang mở từ trang Tôi (trừ dòng `khongSangTabToi`); trang của "Cuốc của tôi" chỉ khi không có tab Cuốc riêng. */
-export function sangTabToi(duong: string, coTabCuoc: boolean): boolean {
+/** Tab "Tôi" sáng ở trang Tôi và các trang mở từ trang Tôi (trừ dòng `khongSangTabToi`) mà người xem KHÔNG có tab riêng (`tabHien` = khoá các tab đang hiện). */
+export function sangTabToi(duong: string, tabHien: readonly KhoaTrang[]): boolean {
   if (duong === TRANG.toi.duong) return true;
-  return (TRANG_TOI as readonly ChoTrangToi[]).some((c) => !c.khongSangTabToi && !(c.trang === "cuoc" && coTabCuoc) && sangTai(c.trang, duong));
+  return !tabHien.some((k) => sangTai(k, duong)) && (TRANG_TOI as readonly ChoTrangToi[]).some((c) => !c.khongSangTabToi && sangTai(c.trang, duong));
 }
 
 /** Trang Tôi: `vanChuyen` null = không dựng nhóm VẬN CHUYỂN (không dòng nào mở nhóm hiện) — khối đầu và khối sau gộp một danh sách như cũ. */
@@ -373,5 +421,5 @@ export function coKhungNho(s: PermissionHolder): CoKhungNho {
   return { admin: can(s, "admin.manage"), seesAll: seesAllOrders(s), office: isOffice(s), canCreate: can(s, "order.create") };
 }
 
-/** Mất mạng lúc mở trang, chưa có bản nhớ khung (QA2 Q2-04): không biết vai — bốn tab cơ bản để còn điều hướng; không dựng thanh bên. */
+/** KHÔNG CÒN DÙNG ở shell (Đợt 0 Task 13: mất mạng thì không dựng điều hướng đoán mò); giữ xuất cho bài ảnh chụp và kịch bản `--so-sanh`. Cũ: mất mạng lúc mở trang, chưa có bản nhớ khung (QA2 Q2-04): không biết vai — bốn tab cơ bản để còn điều hướng; không dựng thanh bên. */
 export const KHUNG_MAT_MANG: CoKhungNho = { admin: false, seesAll: true, office: true, canCreate: true };

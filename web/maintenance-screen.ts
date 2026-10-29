@@ -97,7 +97,7 @@ export function showMaintenanceScreen(endsAt: string | null): Promise<never> {
     const screen = h(
       "div",
       { class: "maint-screen", id: SCREEN_ID, role: "alertdialog", "aria-modal": "true", "aria-labelledby": "maintenance-title", "aria-describedby": "maintenance-message" },
-      h("div", { class: "maint-card" }, h("div", { class: "maint-icon", "aria-hidden": "true" }, icon("alert", 40)), h("h2", { class: "maint-title", id: "maintenance-title" }, "Đang bảo trì"), message, retry, logoutBtn),
+      h("div", { class: "maint-card" }, h("div", { class: "maint-icon", "aria-hidden": "true" }, icon("history", 40)), h("h2", { class: "maint-title", id: "maintenance-title" }, "Đang bảo trì"), message, h("p", { class: "maint-phu" }, "Khi hệ thống mở lại, tải lại trang để tiếp tục; phần chưa lưu trên trang này sẽ mất."), retry, logoutBtn),
     );
     for (const el of Array.from(document.body.children)) el.setAttribute("inert", ""); // trang bên dưới không nhận focus/đọc được nữa, nhưng vẫn nguyên vẹn
     document.body.append(screen);

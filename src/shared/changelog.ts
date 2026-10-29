@@ -12,6 +12,20 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Đợt 0 khung chung (chủ 28/10): khung chung của Nền tảng. Chỉ giao diện và service worker, KHÔNG migration. Số 2.47 và ngày là TẠM (29/10 main đã có tới 2.46) — phiên phát hành kiểm lại ở bước A.0 của docs/HANDOFF-N1.md.
+    version: "2.47",
+    date: "2026-10-29",
+    items: [
+      { kind: "doi", text: "Thanh tab dưới cùng trên điện thoại nay hiện những việc hay dùng nhất của từng vai, tối đa năm mục, thay vì bốn mục cố định." },
+      { kind: "doi", text: "Thanh bên trên máy tính gom các mục cùng nhóm vào khối gập; khối chứa trang bạn đang xem tự mở sẵn. Nút Trợ lý chuyển lên thanh trên cùng." },
+      { kind: "moi", text: "Khi mất mạng, Nền tảng hiện một dải thông báo gọn ở đầu trang và vẫn giữ nội dung đã xem, không còn thay cả trang bằng dòng chữ lỗi." },
+      { kind: "moi", text: "Mở một địa chỉ không có thì hiện trang «Không tìm thấy» có sẵn thanh điều hướng, thay vì trang trắng." },
+      { kind: "moi", text: "Mất mạng khi mở một trang chưa từng xem thì hiện trang «Đang ngoài mạng» với hướng dẫn thử lại." },
+      { kind: "doi", text: "Các thông báo ngắn hiện ở góc màn hình nay có nút đóng, và thông báo lỗi hiện màu đỏ cho dễ thấy." },
+      { kind: "doi", text: "Một số câu hỏi xác nhận trước khi xoá hoặc gỡ nay hiện thành hộp thoại của Nền tảng, đồng nhất chữ và nút, thay cho hộp hỏi mặc định của trình duyệt." },
+    ],
+  },
+  {
     // «Sửa» cho lần áp dụng chính sách SẮP tới + lịch sử «Đã huỷ» của hai loại gắn (ADR-0148 Đ1 phần N5, kế hoạch docs/superpowers/plans/2026-10-29-sua-muc-n5-ke-hoach.md).
     // KHÔNG migration; đổi mã máy chủ (trường `ganRieng` của khối hồ sơ) + giao diện nên cần npm run trien-khai. Số 2.46 và ngày là TẠM (main có 2.45 tạm của đưa đón theo dịch vụ
     // lúc làm, 29/10) — phiên phát hành kiểm lại ở bước A.0 của docs/HANDOFF-N1.md.

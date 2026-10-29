@@ -5,13 +5,15 @@
 // Đối tác (403 ⇒ «Bạn không có quyền xem trang này.»). Điều khoản không sửa, không xoá — chỉ thêm và đóng. Luật nghiệp vụ nằm ở máy chủ (nhóm Thuê xe không ghi nhà cung cấp mua lại,
 // dòng «Mọi dịch vụ» chỉ của Tour Đảo, không trùng khoảng ngày): trang hiện đúng câu tiếng Việt máy chủ trả, không chép lại luật. Chữ ở src/shared/hoa-hong-hien-thi.ts, đọc ô ở
 // src/shared/so-dai-ly-nhap.ts (có bài kiểm); khối chung ở web/so-dai-ly-ui.ts.
-import { CAU_DONG_DONG_MAC_DINH, CAU_KHONG_CO_DIEU_KHOAN, CAU_KHONG_CO_QUYEN_XEM, CAU_KHONG_KHOP_LOC, NHAN_CONG_TY, NHAN_TRANG_THAI, canXacNhanDongDieuKhoan, dongDongDuoc, locDieuKhoan, nhanNguoiBan, nhanPhamVi, nhanTyLeMua, trangThaiDong } from "../src/shared/hoa-hong-hien-thi";
+import { CAU_DONG_DONG_MAC_DINH, CAU_KHONG_CO_DIEU_KHOAN, CAU_KHONG_KHOP_LOC, NHAN_CONG_TY, NHAN_TRANG_THAI, canXacNhanDongDieuKhoan, dongDongDuoc, locDieuKhoan, nhanNguoiBan, nhanPhamVi, nhanTyLeMua, trangThaiDong } from "../src/shared/hoa-hong-hien-thi";
 import { can } from "../src/shared/permissions";
+import { homeRedirect } from "../src/shared/start-page";
 import { docThanDieuKhoan } from "../src/shared/so-dai-ly-nhap";
 import { ngayDayDu } from "../src/shared/vn-date";
 import { ApiError, api, type Api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
 import { initShell, showError } from "./shell";
+import { trangThaiToanTrang } from "./trang-thai-he-thong";
 import { lyDoLoi, taiDanhMuc, taoBangLoi, taoChonPhamVi, veHopDong, type DanhMuc } from "./so-dai-ly-ui";
 
 const errorEl = byId("error");
@@ -42,7 +44,8 @@ async function main(): Promise<void> {
   try {
     [ds, dm] = await Promise.all([api<Api.SupplyTermListResponse>("/api/pricing/cung-ung"), taiDanhMuc()]);
   } catch (err) {
-    showError(errorEl, err instanceof ApiError && err.status === 403 ? CAU_KHONG_CO_QUYEN_XEM : lyDoLoi(err));
+    if (err instanceof ApiError && err.status === 403) trangThaiToanTrang("403", { trangDau: homeRedirect(staff) ?? "/" });
+    else showError(errorEl, lyDoLoi(err));
     return;
   }
   const duocGhi = can(staff, "supply.terms.write");

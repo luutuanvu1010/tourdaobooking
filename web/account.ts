@@ -6,6 +6,7 @@ import { coPhanTaiXe } from "../src/shared/start-page";
 import { trangToi, type MucHien } from "../src/shared/muc-giao-dien";
 import { canHuyDangKyCu } from "../src/shared/push-khoa";
 import { vnDateTimeText, vnLocalToIso } from "../src/shared/vn-date";
+import { hoiXacNhan } from "./bang-truot";
 import { byId, h, replaceChildren } from "./dom";
 import { initials } from "./format";
 import { helpHasNews, newDot } from "./help-seen";
@@ -230,7 +231,7 @@ async function renderPasskeys(opts?: { afterPinChange?: boolean }): Promise<void
     if (list.length === 0) return null;
     const b = h("button", { class: "btn btn-link danger", type: "button" }, "Gỡ tất cả");
     b.addEventListener("click", async () => {
-      if (!confirm("Gỡ Face ID trên mọi máy? Máy này vẫn giữ đăng nhập; các máy khác sẽ bị đăng xuất. Lần sau đăng nhập bằng số điện thoại và PIN.")) return;
+      if (!(await hoiXacNhan({ tieuDe: "Gỡ Face ID trên mọi máy", hauQua: "Gỡ Face ID trên mọi máy? Máy này vẫn giữ đăng nhập; các máy khác sẽ bị đăng xuất. Lần sau đăng nhập bằng số điện thoại và PIN.", nhanNguyHiem: "Gỡ Face ID", opener: b }))) return;
       showError(errorBox, null);
       try {
         await api("/api/account/passkeys/remove-all", { method: "POST" });

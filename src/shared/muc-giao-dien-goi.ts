@@ -42,6 +42,7 @@ export const GOI_CHINH = {
   cuoc: "GET /api/van-chuyen/cuoc-cua-toi",
   ban: "GET /api/van-chuyen/ban/cua-toi",
   toi: "GET /api/auth/me",
+  thietLap: "GET /api/catalog/admin",
   gopY: "GET /api/feedback/mine",
   troGiup: "GET /api/auth/me",
 } as const satisfies Record<KhoaTrang, GoiChinh | null>;

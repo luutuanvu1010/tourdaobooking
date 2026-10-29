@@ -2,8 +2,9 @@
 // Gọi (chỉ đọc, ở đây): GET /api/pricing/hoa-hong (CommissionRuleListResponse), /api/pricing/muc-ta (MucTaListResponse), /api/pricing/loai-doi-tac (LoaiDoiTacListResponse), /api/catalog.
 // Ẩn/hiện hỏi bảng quyền (`can`): xem = partner.commission.view, thêm mức = partner.commission.write; máy chủ kiểm lại (403 ⇒ «Bạn không có quyền xem trang này.»).
 // Trang không tính tiền, không chọn mức: số và lời từ máy chủ / luật thuần ở src/shared/hoa-hong-hien-thi.ts. Thẻ «Mức đang áp dụng»: web/hoa-hong-tra-nhanh.ts, -bang.ts, -hop.ts; thẻ «Thiết lập»: web/hoa-hong-thiet-lap.ts.
-import { CAU_KHONG_CO_QUYEN_XEM, type TenDanhMuc } from "../src/shared/hoa-hong-hien-thi";
+import { type TenDanhMuc } from "../src/shared/hoa-hong-hien-thi";
 import { can, type PermissionHolder } from "../src/shared/permissions";
+import { homeRedirect } from "../src/shared/start-page";
 import { ApiError, api, type Api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
 import { cuonToiDong, veBangApDung } from "./hoa-hong-bang";
@@ -11,6 +12,7 @@ import { taoMoHop } from "./hoa-hong-hop";
 import { veThietLap } from "./hoa-hong-thiet-lap";
 import { veTraNhanh } from "./hoa-hong-tra-nhanh";
 import { initShell, showError } from "./shell";
+import { trangThaiToanTrang } from "./trang-thai-he-thong";
 import { lyDoLoi, taiDanhMuc, type DanhMuc } from "./so-dai-ly-ui";
 
 /** Dữ liệu một lần nạp, truyền cho mọi khối. Ghi xong gọi `napLai` để nạp lại và vẽ lại cả hai thẻ. */
@@ -61,7 +63,11 @@ const moHop = taoMoHop({
 
 /** Hiện câu lỗi ở đầu trang và cuộn tới nó. */
 function baoLoi(err: unknown): void {
-  showError(errorEl, err instanceof ApiError && err.status === 403 ? CAU_KHONG_CO_QUYEN_XEM : lyDoLoi(err));
+  if (err instanceof ApiError && err.status === 403) {
+    trangThaiToanTrang("403", { trangDau: homeRedirect(staff) ?? "/" });
+    return;
+  }
+  showError(errorEl, lyDoLoi(err));
   errorEl.scrollIntoView({ block: "nearest" });
 }
 

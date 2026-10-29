@@ -1,5 +1,6 @@
 import { ApiError, api, type Api, type OrderSummary, type Staff } from "./api";
-import { moBangTruot } from "./bang-truot";
+import { hoiXacNhan, moBangTruot } from "./bang-truot";
+import { hienBaoNgan } from "./toast";
 import { byId, h, replaceChildren, type Child } from "./dom";
 import { initials, ngayNganHomNay, paxCountsShort, vnd, vndShort } from "./format";
 import { helpHasNews } from "./help-seen";
@@ -334,12 +335,12 @@ async function taiDoiChieu(staff: Staff): Promise<void> {
     const nutNhan = nutXacNhanDoiChieu(k.loai);
     const nut = nutNhan ? h("button", { type: "button", class: "btn btn-link", "data-action": "ben-kia-da-nhan", "data-receipt-id": k.receiptId }, nutNhan) : null;
     nut?.addEventListener("click", async () => {
-      if (!confirm(`${nhanKhoanDoiChieu(k)}: đã đối chiếu, bên nhận tiền xác nhận đã nhận ${vnd(k.soTien)} (đơn ${k.maDon})?`)) return;
+      if (!(await hoiXacNhan({ tieuDe: "Xác nhận bên nhận đã nhận tiền", hauQua: `${nhanKhoanDoiChieu(k)}: đã đối chiếu, bên nhận tiền xác nhận đã nhận ${vnd(k.soTien)} (đơn ${k.maDon})?`, nhanNguyHiem: "Xác nhận đã nhận", opener: nut }))) return;
       nut.disabled = true;
       try {
         await api(`/api/ledger/counterparty-receipts/${encodeURIComponent(k.receiptId)}/confirm`, { method: "POST", body: {} });
       } catch (err) {
-        alert(err instanceof ApiError ? err.message : "Không ghi được — kiểm tra mạng rồi thử lại.");
+        hienBaoNgan(err instanceof ApiError ? err.message : "Không ghi được — kiểm tra mạng rồi thử lại.", { tong: "do" });
       }
       await taiDoiChieu(staff);
     });
@@ -679,8 +680,6 @@ function veDai(staff: Staff): void {
     h(
       "div",
       { class: "dash-dai-nhan" },
-      // Đang bảo trì: viên cát thay cho dải mảnh chung của khung (như điện thoại 1g), dẫn tới trang Tôi — nơi tắt bảo trì.
-      document.querySelector(".maint-strip") && h("a", { class: "dash-dai-bao-tri", href: "/account" }, icon("alert", 16), "Đang ở chế độ bảo trì"),
       h("span", { class: "dash-dai-vai" }, vaiCua(staff)),
     ),
   );
@@ -744,9 +743,6 @@ function dungDauTrang(staff: Staff): void {
   if (avatar) avatar.after(chao);
   else topbar.append(chao);
   topbar.append(h("a", { class: "dash-hero-nut", href: "/help", "aria-label": "Hướng dẫn" }, icon("help")));
-  // Đang bảo trì (bản vẽ 1g): viên thuốc cát thay cho dải mảnh chung của khung ở khổ này; vẫn dẫn tới trang Tôi, nơi tắt bảo trì (như dải mảnh).
-  // Hàng riêng (`.dash-hero-dong` trải hết bề ngang) để viên thuốc xuống dưới lời chào mà vẫn chỉ rộng bằng chữ.
-  if (document.querySelector(".maint-strip")) topbar.append(h("div", { class: "dash-hero-dong" }, h("a", { class: "dash-hero-bao-tri", href: "/account" }, icon("alert", 16), "Đang ở chế độ bảo trì")));
 }
 
 function ganOTim(): void {

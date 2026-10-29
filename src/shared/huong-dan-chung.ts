@@ -64,7 +64,7 @@ Bật sau cũng được: trang **Tôi**, mục [[Đăng nhập bằng Face ID]]
       tieuDe: "Chuông thông báo và Bảng tin",
       noiDung: `1. Bấm hình chuông ở đầu trang. Số đỏ là tin chưa đọc.
 2. Ngăn [[Của tôi]]: tin công ty gửi bạn, đơn bạn lập hoặc phụ trách, đơn chờ nhận. Ngăn [[Tất cả]]: thêm tin về mọi đơn bạn xem được.
-3. Tin quan trọng hiện một dải ở đầu mọi trang. Bấm [[Đọc và bấm Đã hiểu]], đọc xong bấm [[Đã hiểu]]. Chưa đọc được thì bấm [[Để sau]].
+3. Tin quan trọng hiện một dải ở đầu mọi trang. Bấm [[Xem]], đọc xong bấm [[Đã hiểu]]. Chưa đọc được thì bấm [[Để sau]].
 
 Khi đang mở Nền tảng, danh sách đơn tự cập nhật, không cần tải lại. Có thể hiện dòng báo nhỏ như "Đơn vừa có người nhận" hay "Đơn đã được xác nhận". Tin giữ trong 30 ngày.`,
     },

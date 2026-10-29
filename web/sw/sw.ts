@@ -108,5 +108,12 @@ async function staleWhileRevalidate(event: FetchEvent): Promise<Response> {
     event.waitUntil(refresh.catch(() => undefined));
     return cached;
   }
-  return refresh.catch(() => new Response("Không có kết nối mạng.", { status: 503, headers: { "content-type": "text/plain; charset=utf-8" } }));
+  return refresh.catch(async () => {
+    // Mở trang mà hết bộ đệm và mất mạng: trả trang «Ngoài mạng» đã tiền nhớ; chưa có thì rơi về 503 chữ như cũ (không bao giờ ném).
+    if (event.request.mode === "navigate") {
+      const fb = await cache.match(cacheKey(self.location.origin + "/ngoai-mang")).catch(() => undefined);
+      if (fb) return fb;
+    }
+    return new Response("Không có kết nối mạng.", { status: 503, headers: { "content-type": "text/plain; charset=utf-8" } });
+  });
 }

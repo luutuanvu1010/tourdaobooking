@@ -1,0 +1,249 @@
+{
+  "chang": "it",
+  "luc": "2026-10-29T01:11:14.816Z",
+  "soLenhGhi": 38,
+  "loiGap": [
+    {
+      "viec": "gán vai Công ty lữ hành cho hồ sơ TỔ CHỨC",
+      "method": "POST",
+      "path": "/api/parties/456bcdee-74e7-4b86-8a53-97da3857b49e/roles",
+      "status": 409,
+      "code": "role_via_account",
+      "message": "Vai trò này quyết định quyền đăng nhập nên chỉ gán hoặc gỡ ở màn Quản lý tài khoản."
+    }
+  ],
+  "lenh": [
+    {
+      "viec": "cờ cần xác nhận cho DTE1",
+      "method": "POST",
+      "path": "/api/cai-dat/xac-nhan-don",
+      "status": 200
+    },
+    {
+      "viec": "mức hoa hồng 10% Cộng tác viên",
+      "method": "POST",
+      "path": "/api/pricing/hoa-hong",
+      "status": 201
+    },
+    {
+      "viec": "mức hoa hồng 12% Công ty lữ hành",
+      "method": "POST",
+      "path": "/api/pricing/hoa-hong",
+      "status": 201
+    },
+    {
+      "viec": "hồ sơ khách lẻ Nguyễn Thị Lan Anh",
+      "method": "POST",
+      "path": "/api/parties",
+      "status": 201
+    },
+    {
+      "viec": "hồ sơ khách lẻ Trần Văn Bình",
+      "method": "POST",
+      "path": "/api/parties",
+      "status": 201
+    },
+    {
+      "viec": "hồ sơ khách lẻ Lê Hoàng Châu",
+      "method": "POST",
+      "path": "/api/parties",
+      "status": 201
+    },
+    {
+      "viec": "hồ sơ khách lẻ Phạm Minh Đức",
+      "method": "POST",
+      "path": "/api/parties",
+      "status": 201
+    },
+    {
+      "viec": "hồ sơ khách lẻ Võ Thị Hồng Nhung",
+      "method": "POST",
+      "path": "/api/parties",
+      "status": 201
+    },
+    {
+      "viec": "hồ sơ đại lý tổ chức",
+      "method": "POST",
+      "path": "/api/parties",
+      "status": 201
+    },
+    {
+      "viec": "gán vai Công ty lữ hành cho hồ sơ TỔ CHỨC",
+      "method": "POST",
+      "path": "/api/parties/456bcdee-74e7-4b86-8a53-97da3857b49e/roles",
+      "status": 409,
+      "loi": {
+        "code": "role_via_account",
+        "message": "Vai trò này quyết định quyền đăng nhập nên chỉ gán hoặc gỡ ở màn Quản lý tài khoản."
+      }
+    },
+    {
+      "viec": "hồ sơ nhà xe đối tác",
+      "method": "POST",
+      "path": "/api/parties",
+      "status": 201
+    },
+    {
+      "viec": "gán vai Nhà xe đối tác",
+      "method": "POST",
+      "path": "/api/parties/7e5d11d0-2a5e-414f-9170-3049b5701226/roles",
+      "status": 201
+    },
+    {
+      "viec": "Tài xế đối tác → Tài xế của nhà xe",
+      "method": "POST",
+      "path": "/api/parties/7e5d11d0-2a5e-414f-9170-3049b5701226/relationships",
+      "status": 201
+    },
+    {
+      "viec": "liên hệ nhà xe",
+      "method": "POST",
+      "path": "/api/parties/7e5d11d0-2a5e-414f-9170-3049b5701226/contacts",
+      "status": 201
+    },
+    {
+      "viec": "GPLX Tài Xế Công Ty Thử",
+      "method": "POST",
+      "path": "/api/parties/253d82ff-24da-4328-ab84-5f7e3e962507/documents",
+      "status": 201
+    },
+    {
+      "viec": "GPLX Tài Xế Đối Tác Thử",
+      "method": "POST",
+      "path": "/api/parties/99589a99-82f1-49f7-99ca-72e39c70d659/documents",
+      "status": 201
+    },
+    {
+      "viec": "xe công ty 1",
+      "method": "POST",
+      "path": "/api/van-chuyen/xe",
+      "status": 201
+    },
+    {
+      "viec": "xe công ty 1: giấy tờ INSPECTION",
+      "method": "POST",
+      "path": "/api/van-chuyen/xe/469d7ad8-ce23-403e-85d9-126bad9e83c0/giay-to",
+      "status": 201
+    },
+    {
+      "viec": "xe công ty 1: giấy tờ TPL_INSURANCE",
+      "method": "POST",
+      "path": "/api/van-chuyen/xe/469d7ad8-ce23-403e-85d9-126bad9e83c0/giay-to",
+      "status": 201
+    },
+    {
+      "viec": "xe công ty 2",
+      "method": "POST",
+      "path": "/api/van-chuyen/xe",
+      "status": 201
+    },
+    {
+      "viec": "xe công ty 2: giấy tờ INSPECTION",
+      "method": "POST",
+      "path": "/api/van-chuyen/xe/bacd61b0-9d53-4aa3-9314-460c3048ad58/giay-to",
+      "status": 201
+    },
+    {
+      "viec": "xe công ty 2: giấy tờ TPL_INSURANCE",
+      "method": "POST",
+      "path": "/api/van-chuyen/xe/bacd61b0-9d53-4aa3-9314-460c3048ad58/giay-to",
+      "status": 201
+    },
+    {
+      "viec": "xe công ty 3 (giấy tờ sắp hết hạn)",
+      "method": "POST",
+      "path": "/api/van-chuyen/xe",
+      "status": 201
+    },
+    {
+      "viec": "xe công ty 3 (giấy tờ sắp hết hạn): giấy tờ INSPECTION",
+      "method": "POST",
+      "path": "/api/van-chuyen/xe/978cdf3e-323f-4374-963f-0dd3e5598aa3/giay-to",
+      "status": 201
+    },
+    {
+      "viec": "xe công ty 3 (giấy tờ sắp hết hạn): giấy tờ TPL_INSURANCE",
+      "method": "POST",
+      "path": "/api/van-chuyen/xe/978cdf3e-323f-4374-963f-0dd3e5598aa3/giay-to",
+      "status": 201
+    },
+    {
+      "viec": "đơn nháp",
+      "method": "POST",
+      "path": "/api/orders",
+      "status": 201
+    },
+    {
+      "viec": "đơn chờ xác nhận",
+      "method": "POST",
+      "path": "/api/orders",
+      "status": 201
+    },
+    {
+      "viec": "gửi xác nhận",
+      "method": "POST",
+      "path": "/api/orders/2fab1fbf-c253-491c-bca4-f8fc73868641/gui-xac-nhan",
+      "status": 201
+    },
+    {
+      "viec": "đơn ba dịch vụ đã xác nhận (gán HDV)",
+      "method": "POST",
+      "path": "/api/orders",
+      "status": 201
+    },
+    {
+      "viec": "xác nhận đơn ba dịch vụ",
+      "method": "POST",
+      "path": "/api/orders/6f57f860-ab81-4b5c-bb7e-fb0c7b5aab4a/status",
+      "status": 200
+    },
+    {
+      "viec": "đơn đưa đón hôm nay",
+      "method": "POST",
+      "path": "/api/orders",
+      "status": 201
+    },
+    {
+      "viec": "xác nhận đơn hôm nay",
+      "method": "POST",
+      "path": "/api/orders/d37889a8-4f95-4182-8244-fda58899bfe0/status",
+      "status": 200
+    },
+    {
+      "viec": "chuyến hôm nay (tài xế công ty)",
+      "method": "POST",
+      "path": "/api/van-chuyen/chuyen",
+      "status": 201
+    },
+    {
+      "viec": "chuyến hôm nay (tài xế công ty): xếp khách",
+      "method": "POST",
+      "path": "/api/van-chuyen/chuyen/71bd68dd-c880-4bee-8778-a2c852ee4c2e/phan-bo",
+      "status": 200
+    },
+    {
+      "viec": "đơn của Đối tác (Cộng tác viên)",
+      "method": "POST",
+      "path": "/api/orders",
+      "status": 201
+    },
+    {
+      "viec": "Đối tác gửi đơn",
+      "method": "POST",
+      "path": "/api/orders/3c85f009-a822-471e-b5cb-e0bb72e02624/gui-don",
+      "status": 200
+    },
+    {
+      "viec": "vé hỗ trợ",
+      "method": "POST",
+      "path": "/api/feedback",
+      "status": 201
+    },
+    {
+      "viec": "thông báo hệ thống",
+      "method": "POST",
+      "path": "/api/thong-bao",
+      "status": 201
+    }
+  ]
+}
