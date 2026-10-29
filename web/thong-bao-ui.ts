@@ -296,7 +296,7 @@ export function ganThongBao(topbar: HTMLElement, staff: Staff): void {
     tabMine.addEventListener("click", () => void selectTab("cua-toi"));
     tabAll.addEventListener("click", () => void selectTab("tat-ca"));
 
-    const wide = window.matchMedia("(min-width: 641px)").matches;
+    const wide = window.matchMedia("(min-width: 900px)").matches; // cùng mốc khối .ntf-panel máy tính của app.css (Q-2: dưới 900 là bố cục điện thoại)
     panelRoot = h(
       "div",
       { class: "ntf-panel", role: "dialog", "aria-label": "Thông báo" },

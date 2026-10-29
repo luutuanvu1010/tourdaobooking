@@ -71,3 +71,28 @@ test("datThanhTab xếp đo lại thanh dính bằng queueMicrotask (không ch�
   assert.match(ham, /queueMicrotask\(kiemThanhDinh\)/);
   assert.match(src, /kiemThanhDinh = capNhat;/);
 });
+
+// Task 15b (Q-2): ở 641–899 thanh tab hiện, nhưng vài thanh `.thanh-hanh-dong-cuoi` chỉ dính ở ≤ 640 (vd `.dp-cc-day` tĩnh từ 641) — vẫn có hộp hiển thị
+// nên bộ theo dõi bật `tabbar-dinh` và thanh tab biến mất dù không có thanh dính nào. Chỉ đếm phần tử đang `fixed` / `sticky` (khi đọc được vị trí).
+test("thanhDinhHien: có hàm đọc vị trí ⇒ bỏ phần tử tĩnh, giữ fixed / sticky", () => {
+  const tinh = { getClientRects: () => [1], closest: () => null, vt: "static" };
+  const dinh = { getClientRects: () => [1], closest: () => null, vt: "sticky" };
+  const coDinh = { getClientRects: () => [1], closest: () => null, vt: "fixed" };
+  const vt = (e: { vt: string }) => e.vt;
+  assert.equal(thanhDinhHien([tinh], vt), null);
+  assert.equal(thanhDinhHien([tinh, dinh], vt), dinh);
+  assert.equal(thanhDinhHien([coDinh], vt), coDinh);
+  assert.equal(thanhDinhHien([tinh]), tinh, "không có hàm đọc vị trí (DOM giả) ⇒ như cũ");
+});
+
+test("shell.ts: bộ theo dõi đọc vị trí bằng getComputedStyle", () => {
+  const src = readFileSync(`${ROOT}web/shell.ts`, "utf8");
+  const i = src.indexOf("function theoDoiThanhDinh");
+  const ham = src.slice(i, src.indexOf("\n}\n", i));
+  assert.match(ham, /thanhDinhHien\([^;]*getComputedStyle\([^)]*\)\.position/);
+});
+
+// Task 15b: /help vẽ thân trước shell; thiếu thuộc tính này thì mất mạng thay cả thân trang Trợ giúp (web/dai.ts thanNgoaiMang).
+test("public/help.html khai <main data-ve-truoc-shell>", () => {
+  assert.match(readFileSync(`${ROOT}public/help.html`, "utf8"), /<main[^>]*\bdata-ve-truoc-shell\b/);
+});

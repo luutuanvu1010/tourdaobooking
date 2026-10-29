@@ -518,7 +518,8 @@ export async function initShell(): Promise<Staff> {
 
 /**
  * Ẩn / hiện thanh tab dưới đáy (điện thoại). Trang Hỗ trợ ẩn nó khi mở một yêu cầu toàn màn để ô trả lời dính đáy không chồng lên; mọi đường đóng
- * (nút quay lại, Esc, nút «‹») phải gọi lại với `true`. Chỉ đổi lớp `tabbar-an` của body; luật CSS nằm ở khối điện thoại của app.css.
+ * (nút quay lại, Esc, nút «‹») phải gọi lại với `true`. Đổi lớp `tabbar-an` của body rồi xếp một lần đo lại thanh dính (`queueMicrotask`) để lớp `tabbar-dinh`
+ * khớp ngay trước lần vẽ kế; luật CSS nằm ở khối ≤ 899 (bố cục điện thoại, Q-2) của app.css.
  */
 export function datThanhTab(hien: boolean): void {
   document.body.classList.toggle("tabbar-an", !hien);
@@ -538,7 +539,7 @@ function theoDoiThanhDinh(): void {
   const doi = boTheoDoi((co) => document.body.classList.toggle("tabbar-dinh", co));
   let cu = "";
   const capNhat = () => {
-    const e = thanhDinhHien(document.querySelectorAll<HTMLElement>(BO_CHON_THANH_DINH));
+    const e = thanhDinhHien(document.querySelectorAll<HTMLElement>(BO_CHON_THANH_DINH), (x) => getComputedStyle(x).position);
     doi(!!e);
     const tb = document.getElementById("tabbar");
     const dich = e ?? (tb && tb.getClientRects().length > 0 ? tb : null);

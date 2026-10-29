@@ -66,7 +66,7 @@ test("màu theo vai: thanh, nút chính, mảng đậm không trỏ thẳng màu
   for (const m of luat.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
     const sel = m[1]!.trim().split("\n").pop()!.trim();
     if (sel === ".sidebar-item-badge-accent") continue; // huy hiệu san hô "Góp ý / Báo lỗi": chữ trắng trên san hô cố định, giữ có chủ đích
-    if (sel === ".ntf-panel-head h3" && m[2]!.includes("var(--c-primary)")) continue; // khối @media ≥641px: đầu bảng thông báo nền trắng, tiêu đề chữ xanh
+    if (sel === ".ntf-panel-head h3" && m[2]!.includes("var(--c-primary)")) continue; // khối @media ≥900px: đầu bảng thông báo nền trắng, tiêu đề chữ xanh
     if (!boChon.some((b) => sel.includes(b))) continue;
     if (cam.test(m[2]!)) loi.push(sel);
   }
