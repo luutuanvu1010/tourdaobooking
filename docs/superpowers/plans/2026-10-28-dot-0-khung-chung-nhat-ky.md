@@ -96,3 +96,16 @@ Kịch bản và bản chép ở `docs/evidence/2026-10-29-dot-0-khung-chung/` (
 - **Chập chờn mới gặp ở `npm test`:** `src/hanh-khach-khong-lo-ten.test.ts` ca «khối vế hạn NGOÀI khung (ADR-0113)» đỏ một lần vì mã ngẫu nhiên (UUID) chứa chuỗi «1922» trùng năm sinh thử; chạy lại tệp xanh 6/6. Nợ: bài so năm sinh theo ranh giới từ.
 - **Không sửa được (tệp luật):** bảng ở `web/CLAUDE.md` ghi «`dot-0-smoke.mjs` (17 bước, 390 + 700 + 1040)» — nay 20 bước, thêm 768/899/900/1024/1280. Đề xuất cho chủ/điều phối sửa.
 - **Kết quả chạy:** `dot-0-smoke` 20/20 bước (19 ✓ + bước 9 hai khổ; bước 14 «◦» soát mắt) có axe; `trang-chu-smoke` 44 ✓ (G-1 lật đúng ở 899/900); `mat-mang-smoke` ✓; `a2-smoke-form` ✓ (form Tạo đơn 641–959); `npm run test:e2e -- pwa` ✓ (quét px/hex khối PWA). `npm test`: đỏ `goi-trang-nhe` (được phép) + chập chờn trên (chạy lại xanh); `npm run typecheck` 0 lỗi; `npm run build:web` ✓.
+
+## Bàn giao cho QA2 (chủ dự án 2026-10-29: «giao phần còn lại cho QA2»)
+
+Phiên thi công dừng theo lệnh chủ (hạn 5 phút) ở commit "Đợt 0 (16): chép kịch bản đo…". Phần còn lại giao QA2:
+
+1. **Đo trước/sau (đặc tả 10.16):** kịch bản đã chép ở `docs/evidence/2026-10-29-dot-0-khung-chung/kich-ban/` (cổng 8805, D1 tạm `~/tourdao-ux-dot-0`; không dùng 8795–8797 của phiên khác). Mới xong chặng `nhieu` (`so-lieu/nhieu.json`); chưa chạy chặng `it` (kịch bản báo «Cần chạy chặng "it" trước»), chưa `do-toc-do.mjs`, chưa `tong-hop.mjs`. Đối chiếu: FCP lạnh / "khung xong" không xấu hơn 5 %; CLS ≤ 0,1 ở `/thiet-lap`, `/404`; chuyển trang ≤ 101 ms.
+2. **Tổng kiểm sau nới trần** (trần mới 101.719 byte, commit 18fae032; bài trần đã xanh): `npm test` đủ, `npm run typecheck`, `npm run build:web`, `npm run test:e2e -- pwa`, `dot-0-smoke` (20 bước) và `mat-mang-smoke` với AXE_JS. Bài chập chờn đã biết: `so-la-thuong-mai-toan-nen-tang`, `hanh-khach-khong-lo-ten`.
+3. **Hàng rào WCAG 2.4.11:** chép `docs/evidence/2026-10-14-tao-don-bon-buoc/kich-ban/diem-dung-bi-che.mjs` vào thư mục đợt 0, thêm khổ 768×1024 và 899×800 (người kiểm Task 15b đã chạy tay 768/899 cho Bán hàng + Toàn quyền: xanh; chưa chạy Thực tập, Đối tác); cập nhật dòng "Điểm dừng bàn phím…" ở `docs/SO-HANG-RAO.md`.
+4. **Bản local:** `node scripts/dev-iphone.mjs` (7 tài khoản thử) + 10 việc thử (đặc tả 12.1).
+5. **Kiểm cả nhánh** từ `main` tới HEAD, kèm các minor đã hoãn (sổ `.superpowers/sdd/2026-10-28-dot-0-khung-chung/progress.md`, dòng "minor (deferred)" / "→ final"), nổi bật: trang mất mạng — dải "dữ liệu lần xem gần nhất" mâu thuẫn thân "chưa có dữ liệu" (nhân viên thấy); chú thích mốc cũ 640/641 ở `web/shell.ts` (~410, ~431) và `public/app.css` (`.lbl-short`).
+6. **Lô sửa tệp luật (chủ duyệt):** `docs/adr/README.md` "số kế tiếp" 0144 → 0147; `web/CLAUDE.md`: `cauLoiMayChu` ở `src/shared/trang-thai-he-thong-chu.ts`, câu "Tạo đơn 3/5 hoặc 2/4" thêm ngoại lệ HR + lập đơn, dòng `dot-0-smoke` "17 bước" → 20 bước + khổ 768/899/900.
+7. **Trước khi gộp:** số phiên bản 2.39 trong `src/shared/changelog.ts` trùng nhánh ADR-0118 (đã lên production) → đổi số.
+8. **Chủ xem:** ảnh `docs/evidence/2026-10-29-dot-0-khung-chung/anh/19c-ban-hang-trang-chu-768.png` (Trang chủ khổ iPad dọc: không vỡ, nhưng thanh trên điện thoại + nội dung kiểu máy tính).
