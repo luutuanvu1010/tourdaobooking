@@ -60,7 +60,7 @@ Nguyên tắc vàng: **mọi khoảng trống đều có lý do** — chỉ đ�
 
 ### 5.3 Luật đặt chỗ (mỗi luật vẽ một cặp sai/đúng ở L2)
 - **Nút đứng cạnh thứ nó tác động.** Hành động của một hàng nằm ngay sau nội dung hàng đó hoặc trong cột hành động cố định của bảng — không dạt về mép phải một hàng rộng.
-- **Nút chính riêng của trang** (ví dụ «Thêm xe», «+ Thêm mức», «+ Hồ sơ mới») ở máy tính nằm trong **hàng công cụ đầu thân** — cùng hàng với ô tìm và nút Lọc nếu có, đứng ngay sau chúng — không dạt về mép phải đầu trang. Trang không có ô tìm thì hàng công cụ chỉ có nút đó, căn trái. Ở điện thoại giữ như khung chung (chân dính hoặc nút «+» của thanh tab).
+- **Nút chính riêng của trang** (ví dụ «Thêm xe», «+ Thêm mức», «+ Hồ sơ mới») — *đề xuất, chủ duyệt ở cổng*: ở máy tính nằm trong **hàng công cụ đầu thân** (chính là «vùng hành động chính = thanh tìm + nút Lọc» của khuôn Danh sách đã duyệt), đứng ngay sau ô tìm và nút Lọc nếu có, không dạt về mép phải. Trang không có ô tìm thì hàng công cụ chỉ có nút đó, căn trái. Ở 390 nút đó cũng đứng đầu hàng công cụ, ngay dưới thanh trên, kín bề rộng nếu trang không có ô tìm, cạnh ô tìm nếu có (thanh tab «+» chỉ dành cho Tạo đơn; khuôn Danh sách không có chân dính).
 - **Trạng thái đứng cạnh tên** (huy hiệu ngay sau tên/mã), không dạt mép phải thẻ.
 - **Danh sách ở ≥ 900 là dòng bảng** có cột (như khuôn Danh sách đã duyệt), không phải thẻ giãn kín bề rộng.
 - **Vùng chỉ hiện khi có nội dung.** Ngăn chi tiết chỉ mở khi đã chọn một dòng; trước đó danh sách chiếm hết bề rộng. Cột bảng hầu như rỗng thì gộp vào cột khác hoặc thành dòng phụ.
@@ -81,11 +81,11 @@ Mã hiện có khoảng 550 nút; nhiều động từ mang hai–năm nghĩa. H
 - **Đóng** = đóng hộp/bảng trượt, không lưu (thay «Huỷ», «Thôi» khi nghĩa là đóng). Ngoại lệ đã duyệt: «Huỷ bỏ» trên thanh trên biểu mẫu máy tính (rời biểu mẫu không lưu).
 - **Huỷ <đối tượng>** = huỷ một bản ghi nghiệp vụ (Huỷ đơn, Huỷ chuyến). Không dùng «Huỷ» trơn. Luôn hỏi lại.
 - **Lưu** = ghi thay đổi. «Lưu ảnh» (chỉ tải ảnh QR) thành «Tải ảnh QR».
-- **Sửa** = mở biểu mẫu sửa. Chữa chỗ ghi nhầm, bắt lý do: «Sửa sai» ở Danh bạ và Xe; ở Hoa hồng giữ «Sửa» như đã duyệt.
+- **Sửa** = mở biểu mẫu sửa. Chữa chỗ ghi nhầm, bắt lý do: «Sửa sai» ở Giấy tờ (xe và người); ở Hoa hồng giữ «Sửa» như đã duyệt.
 - **Đổi** = chọn lại một thứ khác (Đổi khách, Đổi người phụ trách); **Đổi tên** giữ.
-- **Ngừng** = đặt ngày cuối hiệu lực, giữ lịch sử (Hoa hồng giữ «Ngừng / Ngừng áp dụng» như đã duyệt). **Kết thúc** giữ nghĩa riêng: kết thúc ngay (chuyến, gián đoạn, vai và quan hệ trong Danh bạ). Một cách viết «Ngừng» (bỏ «Ngưng») trên nút; chữ trạng thái giữ như máy chủ trả.
-- **Tắt / Bật** = công tắc trạng thái đảo được; **tình trạng hiện bằng nhãn trạng thái, nút ghi hành động** — không trộn. Bật lại một thứ đã tắt thống nhất một chữ (đề xuất «Bật lại»), giữ «Ẩn / Hiện» cho việc ẩn khỏi danh sách bán.
-- **Gỡ** = bỏ một thứ đang gắn (thiết bị, thành viên, giá riêng); **Bỏ** chỉ cho thao tác trên màn hình (Bỏ chọn, Bỏ lọc); **Xoá** chỉ cho dữ liệu chưa lưu và ảnh.
+- **Ngừng** = đặt ngày cuối hiệu lực, giữ lịch sử (Hoa hồng giữ «Ngừng / Ngừng áp dụng» như đã duyệt). **Kết thúc** giữ nghĩa riêng: kết thúc ngay (chuyến, gián đoạn, vai và quan hệ trong Danh bạ). «Kết thúc giá» ở Bảng giá xe cho chọn ngày cuối nên thuộc nghĩa «Ngừng» — đề xuất đổi thành «Ngừng giá». Một cách viết «Ngừng» (bỏ «Ngưng») trên nút; chữ trạng thái giữ như máy chủ trả.
+- **Tắt / Bật** = công tắc trạng thái đảo được; **tình trạng hiện bằng nhãn trạng thái, nút ghi hành động** — không trộn. Bật lại một thứ đã tắt thống nhất một chữ (đề xuất «Bật lại»), giữ «Ẩn / Hiện» cho việc ẩn khỏi danh sách bán. Hai nút «Tắt / Bật» của Hoa hồng (loại đối tác, chính sách) giữ như hiện có — tên của chúng do đề bài Hoa hồng để chủ chọn.
+- **Gỡ** = bỏ một thứ đang gắn (thiết bị, thành viên, giá riêng); **Bỏ** chỉ cho thao tác trên màn hình (Bỏ chọn, Bỏ lọc) — «Bỏ lượt» đón (mất dữ liệu, bắt lý do) đề xuất thành «Huỷ lượt đón»; **Xoá** chỉ cho dữ liệu chưa lưu và ảnh.
 - **Duyệt / Từ chối** cho đề nghị và yêu cầu (gộp «Chấp nhận», «Bác»); «Đồng ý» chỉ cho đồng ý điều khoản.
 - **+ Tạo …** cho bản ghi mới ở khuôn Danh sách (đơn, chuyến, tài khoản, hồ sơ); **+ Thêm …** cho mục thiết lập và dòng trong một khối (như đề cương đã duyệt). «+ Chuyến mới» và «Tạo chuyến» thành một chữ.
 - **Rút** = lấy lại thứ mình đã gửi; **Thu hồi** = lấy lại thứ đã phát cho người khác. «Quay lại bản này» (khôi phục cấu hình) thành «Khôi phục bản này».
@@ -110,14 +110,14 @@ Một HTML tương tác, artboard đặt tên rõ và đánh số:
 - **L2** Luật đặt chỗ mục 5.3: mỗi luật một cặp **sai** (cắt từ ảnh mục 4) / **đúng**, ở 1040.
 - **L3** Thang bề rộng ô và lưới biểu mẫu (bao nhiêu ô một hàng ở 1040 và 1440), một biểu mẫu mẫu ở 390 / 1040 / 1440.
 - **L4** Bảng đề xuất từ điển động từ mục 6 kèm góp ý của bạn, và hộp xác nhận mẫu «Tắt loại đối tác».
-- **L5** **Minh hoạ** lưới trên mười trang ở ảnh 1–25 (Đơn hàng, Danh bạ, Xe, Chi tiết đơn, Chi tiết chuyến, Tạo đơn, Quản lý tài khoản, Sổ công nợ, Hoa hồng, Dịch vụ; Trang chủ nếu đủ sức), mỗi trang ở 1040 và 1440; Đơn hàng, Chi tiết đơn, Tạo đơn thêm 390; Đơn hàng thêm 1920. Được đổi: vị trí, bề rộng, căn hàng, và những gì luật mục 5.3–5.4 đòi (thẻ thành dòng bảng ở ≥ 900, ẩn vùng rỗng, ô theo thang, bỏ tiêu đề lặp). Giữ nguyên: khối, trường, dữ liệu, thứ tự khối và **chữ nút hiện có** (từ điển chưa duyệt). Khi luật lưới và «giữ nguyên» va nhau thì luật lưới thắng, ghi chú chỗ đó.
+- **L5** **Minh hoạ** lưới trên mười trang ở ảnh 1–25 (Đơn hàng, Danh bạ, Xe, Chi tiết đơn, Chi tiết chuyến, Tạo đơn, Quản lý tài khoản, Sổ công nợ, Hoa hồng, Dịch vụ; Trang chủ nếu đủ sức), mỗi trang ở 1040 và 1440; Đơn hàng, Chi tiết đơn, Tạo đơn thêm 390; Đơn hàng thêm 1920. Được đổi: vị trí, bề rộng, căn hàng, và những gì luật mục 5.1–5.4 đòi (thẻ thành dòng bảng ở ≥ 900, ẩn vùng rỗng, ô theo thang, bỏ tiêu đề lặp và nút «Tạo đơn» trùng, dải hành động Chi tiết quá 1 chính + 2 phụ thì phần dư vào «⋯»). Giữ nguyên: khối, trường, dữ liệu, thứ tự khối và **chữ nút hiện có** (từ điển chưa duyệt). Khi luật lưới và «giữ nguyên» va nhau thì luật lưới thắng, ghi chú chỗ đó.
 - **L6** Khung xương năm khuôn ở 1040 và 390 nằm đúng lưới (mục 5.5).
 - Bảng **«Token đã dùng»** (tên theo mã) và bảng **«Token MỚI đề xuất»** (lưới, ba mức bề rộng, thang ô) kèm lý do.
 - 3–5 dòng giải thích vì sao lưới này làm màn hình mạch lạc hơn cho kế toán ngồi máy tính và bán hàng cầm điện thoại.
 
 ## 10. Đừng làm
 
-Không vẽ lại khung (thanh trên, thanh tab, thanh bên, dải, hộp thoại). Không đổi mô hình điều hướng. Không thiết kế lại nghĩa hay luồng của màn nghiệp vụ (kể cả Hoa hồng — trang đó sẽ có đề bài riêng; ở đây chỉ minh hoạ chỗ đặt). Không thêm hay bỏ trường, tính năng, luật nghiệp vụ, bước hỏi. Không màu hay phông mới. Không chế độ tối. Không chữ Anh trên màn hình. Không dữ liệu thật. Không nút nổi. Không mã React hay mã chạy được: sản phẩm là bản vẽ tương tác để duyệt.
+Không vẽ lại khung (thanh trên, thanh tab, thanh bên, dải, hộp thoại). Không đổi mô hình điều hướng. Không thiết kế lại nghĩa hay luồng của màn nghiệp vụ (kể cả Hoa hồng — trang đó sẽ có đề bài riêng; ở đây chỉ minh hoạ chỗ đặt). Không thêm hay bỏ trường, tính năng, luật nghiệp vụ, bước hỏi trên L5 (hộp xác nhận mới cho việc nguy chỉ là đề xuất ở L4). Không màu hay phông mới. Không chế độ tối. Không chữ Anh trên màn hình. Không dữ liệu thật. Không nút nổi. Không mã React hay mã chạy được: sản phẩm là bản vẽ tương tác để duyệt.
 
 ## 11. Nếu thiếu thông tin quan trọng, hỏi tôi TRƯỚC khi vẽ, tối đa 3 câu.
 
@@ -142,8 +142,11 @@ Thứ tự ưu tiên khi lệch: quyết định ở mục 5 thắng bản vẽ;
 2. **Nút chính riêng của trang ở máy tính** đặt ở hàng công cụ đầu thân, cạnh ô tìm (5.3) — lấp chỗ trống của khung chung (thanh trên chỉ một nút «+ Tạo đơn»). Hoàn tác: chọn chỗ khác ở cổng.
 3. **Mười trang minh hoạ** chọn theo số đo (trang có nhiều khoảng trống nhất mỗi khuôn) cộng ba trang đại diện của khuôn; Hoa hồng chỉ minh hoạ chỗ đặt, phần nghĩa để đề bài họ Bảng điều khiển (số 5) dùng đề bài Hoa hồng 29/10 làm đầu vào.
 4. **Khuôn đối tượng «bản ghi có hiệu lực theo ngày»** (gợi ý của bàn giao 29/10 mục 4) chưa đưa vào; làm ở đề bài họ màn khi gặp.
-5. Đề bài đặt số **1b** (sau đề bài khung chung số 1, trước đề bài họ màn số 2) để giữ số 2–6 của `LO-TRINH.md`.
+5. **Căn giữa cho mọi mức bề rộng** (5.2): quyết định đã duyệt chỉ nói mức 1280; Main session mở rộng sang các mức hẹp cho thống nhất, còn hàng công cụ trong vùng nội dung căn trái. Hoàn tác: chọn căn trái cho mức hẹp ở cổng.
+6. Đề bài đặt số **1b** (sau đề bài khung chung số 1, trước đề bài họ màn số 2) để giữ số 2–6 của `LO-TRINH.md`.
 
 ## Đối chiếu kiểm độc lập
 
 **Lần 1 (bản 1 25ef6650) → bản 2.** KHÔNG ĐẠT, 5 chặn: (1) đề bài mở lại «1280 căn giữa» đã duyệt → ghi lại thành đã chốt, thêm khổ 1920, ghi chỗ mã lệch; (2) từ điển động từ đứng trong «đã chốt» và đè chữ đã duyệt của Hoa hồng → tách thành mục 6 «đề xuất», L5 giữ chữ hiện có, chừa chữ Hoa hồng; (3) gộp «Kết thúc» vào «Ngừng» đổi nghĩa → giữ «Kết thúc»; (4) mô tả ảnh Hoa hồng sai → viết lại theo ảnh 09; (5) nút chính riêng của trang không có chỗ ở máy tính → luật hàng công cụ đầu thân (tự quyết 2). Sửa: đủ ảnh hai khổ + 390 Tạo đơn + ảnh tài xế 27/10; thanh trên Chi tiết đơn «Đơn hàng»; L5 là minh hoạ, luật lưới thắng; bàn giao chỉ bắt buộc L1–L4, L6; thang nút ba cấp nêu rõ; từ điển bỏ mâu thuẫn «Dùng lại», thêm danh sách giữ nguyên; bàn giao thêm chữ máy chủ, ADR-0148, cổng phát hành; token đi kèm 640/420 và 720; sửa chữ số đo (119 khai báo, «vài chỗ», ảnh 16, ngày ảnh 27); ≤ 899 ô kín; khung xương ghi «kế hoạch 0b, chưa vào mã».
+
+**Lần 2 (bản 2 8640d294) → ĐẠT, 0 chặn.** Năm sửa đã vá thành bản 3: hàng công cụ ghi «đề xuất» và trích căn cứ khuôn Danh sách, thêm chỗ ở 390; «Kết thúc giá» → đề xuất «Ngừng giá»; Tắt/Bật Hoa hồng vào ngoại lệ; «Bỏ lượt» → «Huỷ lượt đón»; «Sửa sai» ở Giấy tờ; mục 10 cấm bước hỏi chỉ áp L5. Ghi: L5 trích 5.1–5.4; tự quyết 5 «căn giữa mọi mức».
