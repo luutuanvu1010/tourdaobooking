@@ -6,6 +6,8 @@ export const CAU_404 = "Không có trang này.";
 export const CAU_404_PHU = "Địa chỉ có thể đã đổi hoặc gõ sai.";
 export const CAU_MAT_MANG_TIEU_DE = "Không có kết nối mạng";
 export const CAU_MAT_MANG_CHUA_NAP = "Trang này chưa mở lần nào trên máy nên chưa có dữ liệu để hiện. Kiểm tra Wi-Fi hoặc 4G rồi bấm Thử lại.";
+/** Trang đã có trong bộ đệm nhưng không hỏi được máy chủ (nhánh mất mạng của initShell) — khác trang /ngoai-mang (chưa mở lần nào). */
+export const CAU_MAT_MANG_CHUA_TAI = "Trang này chưa tải được dữ liệu. Kiểm tra Wi-Fi hoặc 4G rồi bấm Thử lại.";
 export const CAU_MAT_MANG_TU_THU = "Nền tảng tự thử lại khi có mạng.";
 export const NHAN_VE_TRANG_DAU = "Về trang đầu của bạn";
 export const NHAN_THU_LAI = "Thử lại";

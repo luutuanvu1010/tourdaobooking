@@ -21,7 +21,7 @@ import {
   type NhomThanhBen,
 } from "../src/shared/muc-giao-dien";
 import { cauBaoTri, KHOA_DAI_BAO_MAT_DA_DONG } from "../src/shared/dai-chu";
-import { datDai, ganNgoaiMang, hienDaiNgoaiMang, veThanNgoaiMang } from "./dai";
+import { datDai, ganNgoaiMang, hienDaiNgoaiMang, taiLai, veThanNgoaiMang } from "./dai";
 import { append, byId, h, replaceChildren } from "./dom";
 import { initials } from "./format";
 import { batDauBangTin } from "./bangtin";
@@ -408,7 +408,7 @@ export async function initShell(): Promise<Staff> {
     backLink,
     h("a", { class: "brand", href: "/" }, h("img", { class: "brand-logo", src: "/icons/logo-96.png", alt: "", width: 30, height: 30, decoding: "sync" }), h("span", { class: "brand-name" }, "Island Booking ", h("span", null, "System"))),
     // LUÔN dựng (C-1): ở máy tính đây là breadcrumb của mọi trang. Giao diện điện thoại KHÔNG đổi — luật hiển thị ở
-    // khổ ≤640px vẫn đòi `body[data-title]`, nên trang không khai `data-title` vẫn hiện logo và không hiện breadcrumb.
+    // khổ ≤899px vẫn đòi `body[data-title]`, nên trang không khai `data-title` vẫn hiện logo và không hiện breadcrumb.
     // Máy tính (CSS chỉ hiện ≥ 900): trang con có «Trang cha ›» trước tiêu đề; trang cấp một thì không.
     cha ? h("a", { class: "bar-duong", href: cha.href }, `${cha.nhan} ›`) : null,
     h("span", { class: "bar-title", id: "bar-title" }, barTitleFor(path, title)),
@@ -428,7 +428,7 @@ export async function initShell(): Promise<Staff> {
       document.body.prepend(boQua);
       document.body.classList.add("has-sidebar");
       // Huy hiệu chỉ nạp khi thanh bên ĐANG HIỂN THỊ THẬT (`offsetParent` null khi CSS ẩn nó ở khổ hẹp). Hỏi chính
-      // trình duyệt thay vì chép mốc 641px sang JS: chép số thì lần sửa CSS sau sẽ làm hai nơi lệch nhau mà không ai biết.
+      // trình duyệt thay vì chép mốc 900px sang JS: chép số thì lần sửa CSS sau sẽ làm hai nơi lệch nhau mà không ai biết.
       const loadBadges = () => {
         for (const load of badgeLoaders) load();
       };
@@ -489,8 +489,10 @@ export async function initShell(): Promise<Staff> {
     }
     // Mất mạng (khung vẫn mở được từ cache): dải «ngoài mạng» (do api.ts phát tín hiệu) + thân báo rõ nếu trang chưa có gì; giữ lời gọi treo như goLogin() ở api.ts.
     // Có khung tạm từ bản nhớ (ADR-0035) thì giữ nó; không có thì KHÔNG dựng điều hướng đoán mò.
+    // Vẽ thân TRƯỚC dải: thân «chưa nạp» đã có nút Thử lại thì dải chỉ báo ngắn. Có mạng lại ⇒ tự tải lại (lời hứa «tự thử lại khi có mạng»).
+    veThanNgoaiMang(document.querySelector("main"), taiLai);
+    window.addEventListener("online", taiLai); // tải lại là rời trang: không cần { once }
     hienDaiNgoaiMang();
-    veThanNgoaiMang(document.querySelector("main"), () => location.reload());
     return new Promise<never>(() => undefined);
   }
   const { staff } = me;

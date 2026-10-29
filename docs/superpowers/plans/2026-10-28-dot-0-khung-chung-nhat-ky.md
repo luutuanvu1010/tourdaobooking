@@ -31,6 +31,8 @@ Sau Task 15: 101.548 byte (+33: hai lỗi nhỏ sửa ở shell/dải — lớp 
 
 Sau Task 15b: 101.619 byte (+71: bộ theo dõi thanh dính đọc `getComputedStyle(…).position`, tham số `viTri` của `thanhDinhHien`, mốc 900 của ngăn thông báo; vẫn vượt trần 96.700, trần không đổi).
 
+Sau lượt sửa cuối: 101.701 byte (+82 so với 101.619; trần 101.719 KHÔNG nới, bài trần xanh). Lần thử đầu đo 101.822 (đỏ) ⇒ viết gọn: một hàm `taiLai` dùng chung, `goDaiNgoaiMang` gọi thẳng từ `api.ts` thay cho sự kiện + bộ nghe, câu dải dài ghép từ câu ngắn, nút của `thanNgoaiMang` khai `onclick` trong `h()`.
+
 ## Lệch so với đặc tả
 
 - Task 13: §6.3 — tắt nút gửi/«Tải thêm» khi ngoài mạng và trang nghe `co-mang` để tự tải lại — chưa làm ở đợt 0 (kế hoạch không giao), chờ chủ/QA2.
@@ -118,3 +120,14 @@ Phiên thi công dừng theo lệnh chủ (hạn 5 phút) ở commit "Đợt 0 (
 - **Hàng rào WCAG 2.4.11 (việc 3):** bản chép `diem-dung-bi-che.mjs` xanh 4 vai × 390/768/899/1040 × 2 trạng thái; quan sát chặn ở mốc mới bằng chèn CSS lúc chạy (`PHA_CHE=1`) → đỏ ở 390/768/899, bỏ chèn → xanh; dòng «Điểm dừng bàn phím…» ở `docs/SO-HANG-RAO.md` đã ghi ngày 2026-10-29.
 - **Bản local (việc 4):** `node scripts/dev-iphone.mjs` dựng D1 tạm, in đủ 7 tài khoản, đăng nhập thử Toàn quyền 200; đã tắt bằng Ctrl+C. Chạy ở thư mục worktree `dot-0-khung-chung` (bản trên nhánh, chưa gộp).
 - **Việc 8:** ảnh `19c` vẫn ở thư mục bằng chứng; chủ xem.
+
+## Lượt sửa cuối (ghi 2026-10-29) — sau kiểm cả nhánh
+
+Bản giao: `.superpowers/sdd/2026-10-28-dot-0-khung-chung/final-fix-brief.md`; báo cáo đủ: `final-fix-report.md` cùng thư mục. Mỗi mục có bài đỏ trước → xanh.
+- **I1** `trangChaCua` bỏ qua khoá `thietLap` ⇒ không còn «Thiết lập ›» dẫn tới /thiet-lap 403 (Kế toán, Bán hàng, Nhân sự); /staff và mọi mục THIẾT LẬP không có trang cha. Bài `src/trang-cha-cua.test.ts` quét 1024 tập quyền: trang cha trả về phải hiện với tập mở được trang con (đỏ trước: `[SALES]` ở /hoa-hong).
+- **I2** thân «chưa nạp» đã vẽ (nhánh mất mạng của shell, trang /ngoai-mang) ⇒ dải chỉ «Đang ngoài mạng», không nút; câu thân nhánh shell «Trang này chưa tải được dữ liệu…» (trang /ngoai-mang giữ «chưa mở lần nào»); nhánh shell nghe `online` ⇒ tải lại. Shell vẽ thân TRƯỚC dải.
+- **I3** `web/api.ts` gọi `goDaiNgoaiMang()` (web/dai.ts) ngay khi máy chủ trả lời (mọi mã trạng thái) ⇒ dải kẹt sau một lần hết giờ 45 giây được gỡ. Gọi thẳng hàm thay cho sự kiện riêng để vừa trần gói.
+- **I4** biểu tượng Hỗ trợ (thanh bên, tab) `chat` → `handset`; bài ở `src/icons-dot-0.test.ts`.
+- **Số phiên bản:** bản giao ghi «2.43» nhưng main 29/10 đã có 2.43 và 2.44 (tạm) ⇒ dùng **2.45**, ngày 2026-10-29 (giả định bề mặt, đảo ngược được; phiên phát hành kiểm lại ở A.0).
+- **Chú thích:** shell ≤640/641 → ≤899/900; `.lbl-short` (mốc 640 nay không trùng thanh tab); `--z-tl-khung` là khung Trợ lý; chú thích z-index của `.maint-screen`. `KHUNG_MAT_MANG` GIỮ: `src/muc-giao-dien-hien-trang.test.ts` còn import.
+- **Đo:** gói Đơn hàng 101.701 byte (trần 101.719 không nới). `npm test` 6515 đạt / 0 đỏ; typecheck 0 lỗi; `mat-mang-smoke` 3/3 (thêm kiểm dải không nút, đúng một nút Thử lại ở bước A) và `dot-0-smoke` SMOKE OK, cả hai có axe.

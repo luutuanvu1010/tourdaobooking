@@ -16,7 +16,9 @@ export const TONG_DAI: Record<LoaiDai, { tong: "bien" | "cat" | "do"; hinh: "his
   "bao-mat": { tong: "do", hinh: "alertCircle" },
 };
 
-export const CAU_NGOAI_MANG = "Đang ngoài mạng — dữ liệu lần xem gần nhất";
+/** Khi thân trang đã là khối «chưa nạp» (không có dữ liệu cũ, đã có nút Thử lại riêng): dải chỉ báo ngắn, không nút. */
+export const CAU_NGOAI_MANG_NGAN = "Đang ngoài mạng";
+export const CAU_NGOAI_MANG = CAU_NGOAI_MANG_NGAN + " — dữ liệu lần xem gần nhất";
 export const KHOA_DAI_BAO_MAT_DA_DONG = "dai-bao-mat-da-dong";
 
 export function cauBaoTri(gioDuKien: string | null): string {

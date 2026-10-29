@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { readFileSync } from "node:fs";
 import { dungDomGia, NutGia } from "./dom-gia.ts";
 
 dungDomGia();
@@ -39,4 +40,50 @@ test("trang khai data-ve-truoc-shell (vd /help) ⇒ giữ nội dung đã vẽ, 
 
 test("không có <main> ⇒ không ném", () => {
   veThanNgoaiMang(null, () => undefined);
+});
+
+// Lượt sửa cuối (I2, I3): thân «chưa nạp» đã vẽ ⇒ dải chỉ báo ngắn, không nút (không hai nút «Thử lại»); một lần gọi API có trả lời ⇒ gỡ dải.
+const { thanNgoaiMang, hienDaiNgoaiMang, ganNgoaiMang, goDaiNgoaiMang } = await import("../web/dai.ts");
+const body = (globalThis as unknown as { document: { body: NutGia } }).document.body;
+const strips = new NutGia("div");
+strips.setAttribute("id", "strips");
+body.append(strips);
+const dai = (): NutGia | null => strips.querySelector(".dai");
+
+test("thân nhánh shell nói «chưa tải được dữ liệu», không nói «chưa mở lần nào»", () => {
+  const chu = (thanNgoaiMang(() => undefined) as unknown as NutGia).textContent;
+  assert.match(chu, /chưa tải được dữ liệu/);
+  assert.doesNotMatch(chu, /chưa mở lần nào/);
+});
+
+test("chưa có thân «chưa nạp» ⇒ dải kèm nút Thử lại; đã có ⇒ dải «Đang ngoài mạng», không nút", () => {
+  hienDaiNgoaiMang();
+  assert.equal(dai()!.querySelectorAll("button").length, 1);
+  const main = body.querySelector("main")!;
+  main.replaceChildren(thanNgoaiMang(() => undefined) as unknown as NutGia);
+  hienDaiNgoaiMang();
+  assert.equal(dai()!.querySelector(".dai-cau")!.textContent, "Đang ngoài mạng");
+  assert.equal(dai()!.querySelectorAll("button").length + dai()!.querySelectorAll("a").length, 0);
+  main.replaceChildren();
+});
+
+test("tín hiệu ngoai-mang hiện dải; goDaiNgoaiMang (máy chủ đã trả lời) gỡ dải", () => {
+  ganNgoaiMang();
+  const w = (globalThis as unknown as { window: { dispatchEvent: (e: { type: string }) => boolean } }).window;
+  w.dispatchEvent({ type: "ngoai-mang" });
+  assert.ok(dai());
+  goDaiNgoaiMang();
+  assert.equal(dai(), null);
+  goDaiNgoaiMang(); // không có dải: không ném
+});
+
+test("api.ts gỡ dải khi máy chủ trả lời; nhánh mất mạng của shell nghe online một lần ⇒ tải lại", () => {
+  const api = readFileSync(new URL("../web/api.ts", import.meta.url), "utf8");
+  const sauFetch = api.slice(api.indexOf("const res = await fetch("), api.indexOf("vongDoiVe.ketThuc(ve, { status"));
+  assert.match(sauFetch, /\bgoDaiNgoaiMang\(\)/);
+  const shell = readFileSync(new URL("../web/shell.ts", import.meta.url), "utf8");
+  const i = shell.indexOf('veThanNgoaiMang(document.querySelector("main")');
+  const nhanh = shell.slice(i, shell.indexOf("return new Promise<never>", i));
+  assert.match(nhanh, /addEventListener\("online", taiLai\)/);
+  assert.match(readFileSync(new URL("../web/dai.ts", import.meta.url), "utf8"), /export const taiLai = \(\): void => location\.reload\(\);/);
 });

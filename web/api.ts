@@ -4,6 +4,7 @@ import { MAINTENANCE_CODE } from "../src/shared/maintenance";
 import { safeNext } from "../src/shared/safe-next";
 import { SESSION_ENDED_KEY, parseSessionEnded } from "../src/shared/session-ended";
 import { donTuDuongDan, laTaoDonMoi, taoSoTuLam } from "./bangtin-logic";
+import { goDaiNgoaiMang } from "./dai";
 import { xoaKhungNho } from "./khung-nho";
 import { endsAtFrom, showMaintenanceScreen } from "./maintenance-screen";
 import { hienBaoNgan } from "./toast";
@@ -160,6 +161,7 @@ async function guiMotLan<T>(path: string, method: string, than: string | undefin
       credentials: "same-origin",
       signal: controller.signal,
     });
+    goDaiNgoaiMang(); // máy chủ đã trả lời ⇒ gỡ dải «ngoài mạng» (vd sau một lần hết giờ)
     const data = (await res.json().catch((e: unknown) => {
       if (controller.signal.aborted) throw e; // hết giờ giữa lúc đọc thân: đừng nuốt thành "thân rỗng"
       return null;

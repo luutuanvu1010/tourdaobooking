@@ -222,7 +222,7 @@
   --ntf-badge-ring: 2px;       /* viền quanh huy hiệu số đỏ (tách khỏi nền chuông) */
   --ntf-tab-underline: 3px;    /* gạch chân tab đang chọn trong ngăn thông báo */
   /* Trợ lý Hỗ trợ (ADR-0066 điều 9) — riêng của Tour Đảo Booking; màu đều là token sẵn có (không màu mới). */
-  --z-tl-khung: var(--z-phu);  /* khung Hỗ trợ nổi (không modal): bậc "phủ" (đợt 0: 36 → 40) */
+  --z-tl-khung: var(--z-phu);  /* khung Trợ lý nổi `.tl-khung` (không modal): bậc "phủ" (đợt 0: 36 → 40) */
   --tl-cham-co: 6px;           /* chấm nhấp nháy của bong bóng "Mai đang trả lời…" (khung Hỗ trợ) */
   --tl-cham-nhip: 1.2s;        /* một nhịp nhấp nháy của ba chấm */
   --tl-nhay: 0.7s;             /* nháy viền khung Hỗ trợ khi bấm "Về góc" (báo nút đã nhận, kể cả khi khung đã ở góc) */
@@ -1691,7 +1691,7 @@ body.sheet-open { overflow: hidden; }
 
 /* ---------- chế độ bảo trì (lớp phủ web/maintenance-screen.ts, banner ở đăng nhập, dải ở web/shell.ts, mục ở trang Tôi web/account.ts) — chỉ token ---------- */
 body.maint-open { overflow: hidden; }
-.maint-screen { position: fixed; inset: 0; z-index: var(--z-tren-cung); display: flex; align-items: center; justify-content: center; overflow-y: auto; padding: max(var(--s4), env(safe-area-inset-top)) max(var(--s4), env(safe-area-inset-right)) max(var(--s4), env(safe-area-inset-bottom)) max(var(--s4), env(safe-area-inset-left)); background: var(--c-maint-bg); } /* che kín trang bên dưới (nội dung đang gõ vẫn còn trong trang); z-index cao hơn bảng trượt (50) và thanh tab (30) */
+.maint-screen { position: fixed; inset: 0; z-index: var(--z-tren-cung); display: flex; align-items: center; justify-content: center; overflow-y: auto; padding: max(var(--s4), env(safe-area-inset-top)) max(var(--s4), env(safe-area-inset-right)) max(var(--s4), env(safe-area-inset-bottom)) max(var(--s4), env(safe-area-inset-left)); background: var(--c-maint-bg); } /* che kín trang bên dưới (nội dung đang gõ vẫn còn trong trang); bậc trên cùng (--z-tren-cung), cao hơn bảng trượt (--z-truot) và thanh tab (--z-tab) */
 .maint-card { width: 100%; max-width: var(--w-narrow); margin: auto; padding: var(--s5); text-align: center; background: var(--c-surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-overlay); }
 .maint-icon { display: flex; justify-content: center; margin-bottom: var(--s3); color: var(--c-sand-text); }
 .maint-title { margin: 0 0 var(--s3); font-size: var(--fs-title); }
@@ -1791,7 +1791,7 @@ body.login-page main.login { display: flex; flex-direction: column; flex: 1; min
 .visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 /* Nhãn/ô đầy đủ (máy tính) — .lbl-short ẩn theo mặc định; đảo ngược ở khổ ≤640px. Dùng lại ở nhiều chỗ của Trang chủ
    (nhãn ô số liệu, "Xem tất cả", tiền rút gọn…) — hai bản luôn cùng có mặt trong DOM, CSS chỉ ẩn/hiện, không đổi bằng JS.
-   Mốc 640 (trước 639): cùng mốc với thanh tab / thanh đầu trang điện thoại — ở đúng 640px trước đây có thanh tab mà Trang chủ vẫn hiện nhãn máy tính. */
+   Mốc 640 (trước 639): khổ điện thoại hẹp. Từ đợt 0 thanh tab hiện tới 899px nên mốc này KHÔNG còn trùng mốc thanh tab (641–899: có thanh tab, nhãn đầy đủ). */
 .lbl-short { display: none; }
 @media (max-width: 640px) {
   .lbl-full { display: none; }

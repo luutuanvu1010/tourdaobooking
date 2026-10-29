@@ -1,7 +1,7 @@
 // Dải trên trang — MỘT chủ sở hữu (đặc tả đợt 0, §5.6): bảo trì › ngoài mạng › thông báo › bảo mật, mỗi lúc chỉ hiện một dải trong `#strips`.
 // Shell, Thông báo và (sau này) lớp mạng chỉ gọi `datDai`; luật chọn và chữ ở src/shared/dai-chu.ts. Mã này đi vào gói mọi trang: giữ gọn.
-import { CAU_NGOAI_MANG, KHOA_DAI_BAO_MAT_DA_DONG, TONG_DAI, chonDai, type LoaiDai } from "../src/shared/dai-chu.ts";
-import { CAU_MAT_MANG_CHUA_NAP, CAU_MAT_MANG_TIEU_DE, CAU_MAT_MANG_TU_THU, NHAN_THU_LAI } from "../src/shared/trang-thai-he-thong-chu.ts";
+import { CAU_NGOAI_MANG, CAU_NGOAI_MANG_NGAN, KHOA_DAI_BAO_MAT_DA_DONG, TONG_DAI, chonDai, type LoaiDai } from "../src/shared/dai-chu.ts";
+import { CAU_MAT_MANG_CHUA_TAI, CAU_MAT_MANG_TIEU_DE, CAU_MAT_MANG_TU_THU, NHAN_THU_LAI } from "../src/shared/trang-thai-he-thong-chu.ts";
 import { h } from "./dom.ts";
 import { icon } from "./icons.ts";
 
@@ -65,9 +65,17 @@ export function datDai(loai: LoaiDai, noiDung: NoiDungDai | null): void {
   ve();
 }
 
-/** Hiện dải «ngoài mạng» (kèm nút Thử lại tải lại trang). */
+/** Hiện dải «ngoài mạng» (kèm nút Thử lại tải lại trang); thân đã là khối «chưa nạp» (có nút Thử lại riêng) thì chỉ câu ngắn, không nút. */
 export function hienDaiNgoaiMang(): void {
-  datDai("ngoai-mang", { cau: CAU_NGOAI_MANG, nut: { nhan: NHAN_THU_LAI, khiBam: () => location.reload() } });
+  datDai("ngoai-mang", document.querySelector('[data-loai="mat-mang-chua-nap"]') ? { cau: CAU_NGOAI_MANG_NGAN } : { cau: CAU_NGOAI_MANG, nut: { nhan: NHAN_THU_LAI, khiBam: taiLai } });
+}
+
+/** Tải lại trang (nút Thử lại, có mạng lại ở nhánh mất mạng của shell) — một hàm dùng chung cho gọn gói. */
+export const taiLai = (): void => location.reload();
+
+/** Máy chủ vừa trả lời một lần gọi (web/api.ts) ⇒ đã có mạng: gỡ dải «ngoài mạng» nếu đang hiện (vd sau một lần hết giờ 45 giây). */
+export function goDaiNgoaiMang(): void {
+  if (so.delete("ngoai-mang")) ve();
 }
 
 /** Nghe tín hiệu mạng: `"ngoai-mang"` (lớp mạng phát) → dải; `"online"` → gỡ dải và phát `"co-mang"` cho trang tự tải lại dữ liệu. */
@@ -75,23 +83,21 @@ export function ganNgoaiMang(): void {
   if (typeof window === "undefined" || typeof window.addEventListener !== "function") return;
   window.addEventListener("ngoai-mang", hienDaiNgoaiMang);
   window.addEventListener("online", () => {
-    datDai("ngoai-mang", null);
+    goDaiNgoaiMang();
     window.dispatchEvent(new Event("co-mang"));
   });
 }
 
 /** Khối "chưa có dữ liệu để hiện khi ngoài mạng" — chữ của Task 4, dựng riêng để không kéo `trang-thai-he-thong.ts` vào gói mọi trang. */
 export function thanNgoaiMang(thuLai: () => void): HTMLElement {
-  const nut = h("button", { class: "btn btn-primary", type: "button" }, NHAN_THU_LAI);
-  nut.addEventListener("click", thuLai);
   return h(
     "section",
     { class: "trang-thai", "data-loai": "mat-mang-chua-nap" },
     icon("clock", 40),
     h("h2", null, CAU_MAT_MANG_TIEU_DE),
-    h("p", null, CAU_MAT_MANG_CHUA_NAP),
+    h("p", null, CAU_MAT_MANG_CHUA_TAI),
     h("p", { class: "trang-thai-phu" }, CAU_MAT_MANG_TU_THU),
-    nut,
+    h("button", { class: "btn btn-primary", type: "button", onclick: thuLai }, NHAN_THU_LAI),
   );
 }
 

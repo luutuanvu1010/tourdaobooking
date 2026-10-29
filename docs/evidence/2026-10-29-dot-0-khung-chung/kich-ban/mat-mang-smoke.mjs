@@ -121,6 +121,11 @@ try {
     assert.match(tai.title, /^Ngoài mạng/);
     assert.equal(await p.ev(`caches.keys().then(async (ks) => { for (const k of ks) if (await (await caches.open(k)).match(location.origin + '/xe')) return true; return false; })`), false, "service worker không lấy được /xe từ mạng (thật sự ngoài mạng)");
     assert.ok((await p.ev("[...document.querySelectorAll('main button, main a')].map((b) => b.textContent.trim())")).includes("Thử lại"));
+    // Lượt sửa cuối (I2): thân đã có nút Thử lại ⇒ dải chỉ «Đang ngoài mạng», không nút (không hai nút Thử lại trên một màn).
+    await p.waitFor("!!document.querySelector('.dai[data-loai=\"ngoai-mang\"]')", "dải ngoài mạng ở trang Ngoài mạng", 10000);
+    assert.equal(await p.ev("document.querySelector('.dai .dai-cau').textContent"), "Đang ngoài mạng");
+    assert.equal(await p.ev("document.querySelectorAll('.dai button, .dai a').length"), 0, "dải không có nút");
+    assert.equal(await p.ev("[...document.querySelectorAll('button, a')].filter((b) => b.textContent.trim() === 'Thử lại').length"), 1, "đúng một nút Thử lại");
     assert.equal(await p.ev("document.getElementById('topbar')?.children.length > 0"), true, "có vỏ (thanh trên)");
     const loiScript = p.consoleErrors.slice(loiTruoc).filter((e) => !/Failed to load resource|net::ERR_INTERNET_DISCONNECTED/.test(e));
     assert.deepEqual(loiScript, [], "không lỗi script");

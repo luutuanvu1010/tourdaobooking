@@ -12,9 +12,9 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
-    // Đợt 0 khung chung (chủ 28/10): khung chung của Nền tảng. Chỉ giao diện và service worker, KHÔNG migration. Số 2.39 và ngày là TẠM (nhánh ADR-0118 đón nhóm cũng tạm dùng 2.39) — phiên phát hành kiểm lại ở bước A.0 của docs/HANDOFF-N1.md.
-    version: "2.39",
-    date: "2026-10-28",
+    // Đợt 0 khung chung (chủ 28/10): khung chung của Nền tảng. Chỉ giao diện và service worker, KHÔNG migration. Số 2.45 và ngày là TẠM (29/10 main đã có 2.43, 2.44 tạm) — phiên phát hành kiểm lại ở bước A.0 của docs/HANDOFF-N1.md.
+    version: "2.45",
+    date: "2026-10-29",
     items: [
       { kind: "doi", text: "Thanh tab dưới cùng trên điện thoại nay hiện những việc hay dùng nhất của từng vai, tối đa năm mục, thay vì bốn mục cố định." },
       { kind: "doi", text: "Thanh bên trên máy tính gom các mục cùng nhóm vào khối gập; khối chứa trang bạn đang xem tự mở sẵn. Nút Trợ lý chuyển lên thanh trên cùng." },

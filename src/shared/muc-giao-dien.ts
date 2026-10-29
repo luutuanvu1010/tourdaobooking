@@ -210,7 +210,7 @@ export const THANH_BEN = [
   { nhom: "THIẾT LẬP", trang: "troLy", nhan: "Trợ lý Hỗ trợ" },
   { nhom: "THIẾT LẬP", trang: "giaoDien", nhan: "Giao diện" },
   { nhom: "CHÂN MENU", trang: "toi", nhan: "Của tôi", bieuTuong: "me" },
-  { nhom: "CHÂN MENU", trang: "gopY", nhan: "Hỗ trợ", bieuTuong: "chat", moTu: (p: string) => `/feedback?new=1&from=${encodeURIComponent(p)}` },
+  { nhom: "CHÂN MENU", trang: "gopY", nhan: "Hỗ trợ", bieuTuong: "handset", moTu: (p: string) => `/feedback?new=1&from=${encodeURIComponent(p)}` },
   { nhom: "CHÂN MENU", trang: "troGiup", nhan: "Hướng dẫn", bieuTuong: "help" },
 ] as const satisfies readonly ChoThanhBen[];
 
@@ -232,7 +232,7 @@ export const THANH_TAB = [
   { trang: "thietLap", nhan: "Thiết lập", bieuTuong: "settings" },
   { trang: "cuoc", nhan: "Cuốc của tôi", bieuTuong: "assign", chiKhi: { that: chiTaiXe } },
   { trang: "ban", nhan: "Báo bận", bieuTuong: "clock" },
-  { trang: "gopY", nhan: "Hỗ trợ", bieuTuong: "chat", chiKhi: { that: (s: PermissionHolder) => !seesAllOrders(s) } },
+  { trang: "gopY", nhan: "Hỗ trợ", bieuTuong: "handset", chiKhi: { that: (s: PermissionHolder) => !seesAllOrders(s) } },
   { trang: "troGiup", nhan: "Hướng dẫn", bieuTuong: "help", chiKhi: { that: (s: PermissionHolder) => !seesAllOrders(s) && !can(s, "order.create") && !chiTaiXe(s) } },
   { trang: "toi", nhan: "Tôi", bieuTuong: "me" },
 ] as const satisfies readonly ChoThanhTab[];
@@ -371,9 +371,12 @@ export function nhanTheoDuong(duong: string): string | null {
   return (THANH_BEN as readonly ChoThanhBen[]).find((c) => sangTaiMuc(c, duong))?.nhan ?? null;
 }
 
-/** Trang cha của trang con (đường đi «Trang cha ›» ở thanh trên máy tính): khoá ĐẦU TIÊN theo thứ tự TRANG có `cungSang` chứa đường; trang cấp một → null. */
+/**
+ * Trang cha của trang con (đường đi «Trang cha ›» ở thanh trên máy tính): khoá ĐẦU TIÊN theo thứ tự TRANG có `cungSang` chứa đường; trang cấp một → null.
+ * Bỏ qua `thietLap`: `cungSang` của nó chỉ tô sáng tab, /thiet-lap chỉ mở cho Quản trị (đặc tả 5.1).
+ */
 export function trangChaCua(duong: string): { nhan: string; href: string } | null {
-  const k = KHOA_TRANG.find((x) => ((TRANG[x] as TrangDich).cungSang ?? []).includes(duong));
+  const k = KHOA_TRANG.find((x) => x !== "thietLap" && ((TRANG[x] as TrangDich).cungSang ?? []).includes(duong));
   if (!k) return null;
   const nhan = nhanTheoDuong(TRANG[k].duong) ?? (TRANG_TOI as readonly ChoTrangToi[]).find((c) => c.trang === k)?.nhan ?? THANH_TAB.find((c) => c.trang === k)?.nhan ?? "";
   return { nhan, href: TRANG[k].duong };
