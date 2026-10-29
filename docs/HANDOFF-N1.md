@@ -2,7 +2,18 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.39 ĐÃ LÊN PRODUCTION (Đưa đón theo nhóm dịch vụ: Quản trị bật / tắt «Có đưa đón» cho từng nhóm ở màn Dịch vụ; hàng «Chọn nhanh» Bến cảng Vinpearl / Bến tàu Nha Trang ở form lập đơn — ADR-0118) — CÓ migration `0121_dua_don_theo_nhom_va_diem_nhanh` — triển khai 2026-10-28 18:19 (giờ VN)
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.40 ĐÃ LÊN PRODUCTION (Tệp kèm tin vé hỗ trợ: ảnh JPG / PNG / HEIC hoặc PDF, tối đa 5 tệp và 10 MB mỗi tin, 20 tệp / giờ mỗi tài khoản; ảnh thu nhỏ trên máy người gửi; Toàn quyền gỡ được tệp gửi nhầm — ADR-0144) — CÓ migration `0124_ve_ho_tro_tep` + kho R2 MỚI `tourdao-sales-ho-tro` — triển khai 2026-10-28 21:55 (giờ VN)
+
+Ghi 28/10/2026 từ khối tóm tắt của `npm run trien-khai` (chủ chạy `day-len`, tạo kho, `trien-khai`) và lệnh CHỈ ĐỌC của phiên thi công (nhánh `claude/modest-sanderson-b148ce`):
+- Commit `main` = `origin/main`: `d9cf8adb`. Worker Version ID: `133922a5-8a79-4aa4-85a4-6137f9ac1cc4`. Điểm khôi phục Time Travel trước khi áp: `00001c30-00000000-00005112-42a90e2baf7dbdc37b2cb61907f98fe8`.
+- Migration đã áp: `0124_ve_ho_tro_tep.sql` (`d1 migrations list --remote` → «No migrations to apply!»). Binding lúc deploy có `env.HO_TRO (tourdao-sales-ho-tro)` cạnh `env.HO_SO`. Cổng phiên bản trước và sau deploy: ĐẠT. `audit-invariants --db remote`: «Mọi bất biến đạt, 5 cảnh báo».
+- e2e 76/77 xanh. ĐỎ `chong-ghi-trung` ở bước T14 (`POST /api/orders` không vé → 500, kỳ vọng 201) khi chạy 3 nhóm song song, cùng lúc máy có ba `wrangler dev` của phiên khác. Chạy RIÊNG lại trên đúng mã `d9cf8adb` ngay sau đó: 4/4 xanh, T14 xanh ⇒ coi là lỗi môi trường dưới tải (khuôn «500 không thân» của proxy `wrangler dev` — CHƯA chứng minh, vì đầu ra e2e không in thân phản hồi). Đợt này không đổi mã lập đơn hay router. Chủ chọn tiếp tục.
+- `GET /api/auth/config` → `version 2.40`; **bảo trì BẬT** (`endsAt` 2026-10-31T14:48Z) — đã bật từ trước lần phát hành này, không do nó. `GET /js/feedback.js` là bản mới (có nút đính kèm `ht-tep-nut`, `image/heic`, `tepLoi`).
+- Tạo kho: `npx wrangler r2 bucket create tourdao-sales-ho-tro`. Wrangler 4.147 hỏi thêm «Would you like Wrangler to add it on your behalf?» — trả lời **No**. Lần này trả lời yes ⇒ wrangler viết lại `wrangler.jsonc` ở checkout gốc (thêm binding thừa `remote: true` trỏ kho thật, đổi thụt lề) và `trien-khai` dừng «cây làm việc còn thay đổi»; chủ `git restore wrangler.jsonc` rồi chạy lại.
+- Nghiệm thu: chỉ phần chỉ đọc; chưa thử trang có đăng nhập trên production, **chưa thử trên iPhone thật** (danh sách ở `docs/HANDOFF-FEEDBACK.md`, mục «Tệp kèm tin vé hỗ trợ»). Cảnh báo `R-FBK-1` của `audit-invariants` (tệp tải dở hay chờ xoá kho) dọn bằng `POST /api/feedback/tep-cho-xoa/chay-lai` (Toàn quyền). Nợ: `docs/BACKLOG.md` mục 52 (`BL-VE-TEP-…`); `BL-VE-TEP-DOC-SAU-LO` chờ chủ quyết.
+- **Hoàn tác:** `wrangler rollback` — bảng `fbk_attachment` thừa ra không làm hỏng mã cũ; tệp đã gửi nằm lại trong kho (mã cũ không đọc).
+
+## TRẠNG THÁI TRIỂN KHAI (cũ) — Phiên bản 2.39 ĐÃ LÊN PRODUCTION (Đưa đón theo nhóm dịch vụ: Quản trị bật / tắt «Có đưa đón» cho từng nhóm ở màn Dịch vụ; hàng «Chọn nhanh» Bến cảng Vinpearl / Bến tàu Nha Trang ở form lập đơn — ADR-0118) — CÓ migration `0121_dua_don_theo_nhom_va_diem_nhanh` — triển khai 2026-10-28 18:19 (giờ VN)
 
 Ghi 28/10/2026 từ khối tóm tắt của `npm run trien-khai` (chủ chạy `day-len` + `trien-khai`) và lệnh CHỈ ĐỌC của phiên dựng lại ADR-0118 (nhánh `claude/service-group-pickup-setup-ae4465`, nhánh 14/10 `claude/tour-dao-booking-audit-bc6c77` dựng lại trên main 2.38; ruling ở `docs/superpowers/plans/2026-10-14-dot-2-luot-1-thi-cong-nhat-ky.md`):
 - Commit `main` = `origin/main`: `714fe749`. Worker Version ID: `628ed5a5-4690-4f1d-8d39-54bdde7180ab`. Điểm khôi phục Time Travel trước khi áp: `00001c04-00000004-00005112-085e36ff094d86ac8f3af3a774f63ae5`.
@@ -22,28 +33,6 @@ Ghi 28/10/2026 từ khối tóm tắt của `npm run trien-khai` (chủ chạy `
 ## ĐANG CHỜ PHÁT HÀNH 2.42 (số tạm) — Đóng dần lỗ TNV-G1: ô đếm thu trước trên Trang chủ Kế toán, tin «đã duyệt hoàn», hai dòng tiền đơn huỷ (ADR-0089; migration `0125`)
 
 Ghi 28/10/2026 (nhánh `claude/nostalgic-aryabhata-066936`, chưa vào `main`; KHÔNG phải trạng thái production). Khi phát hành: **cần `npm run trien-khai`**, CÓ migration `0125_tin_duyet_hoan_thu_truoc` (chỉ dựng lại view hộp thư `v_aud_order_event`, thêm một hành động — không đụng dòng dữ liệu). Phải lên SAU 2.40 (`0124`); số bản và số migration là TẠM — số 2.41 TRÙNG nhánh `claude/pricing-age-discount-config-328499` (nút Đổi cho mức tạo hôm nay, cũng 2.41 tạm) — nhánh đó ĐÃ vào `main` trên máy (a6720431, 28/10, chưa lên GitHub), nên nhánh NÀY là nhánh gộp sau: khi nhập `main` vào nhánh, đổi mục nhật ký thay đổi của nhánh này thành **2.42** và sửa `src/shared/app-info.test.ts`. Ghép thử trong bộ nhớ (`git merge-tree`, 28/10): chỉ vướng `src/shared/changelog.ts`; gói trang Đơn hàng sau ghép 96.681 byte, dưới trần 96.700 (kiểm 28/10: chưa nhánh nào khác giữ `0125`; `wrangler d1 migrations list --remote` cho thấy CSDL production đã áp tới `0124`, chỉ còn `0125`). Sau khi triển khai, nhắc Kế toán / Toàn quyền **tải lại Nền tảng**: bản giao diện cũ không biết loại tin mới nên ngăn thông báo báo lỗi tới khi tải lại (như tin «chờ xác nhận» ở 0120). **Chưa đóng TNV-G1**: còn 6 ca sổ vàng `golden/don-huy-coc.json` chờ chủ xác nhận (01, 02, 04, 08, 13 đã viết lại chữ 28/10; 07 chờ đặc tả chứng từ `docs/superpowers/specs/2026-10-28-dong-tnv-g1/dac-ta-chung-tu-hoan-ngoai.md`). Hoàn tác: `wrangler rollback` — view có thêm một hành động thì mã cũ chỉ bỏ qua dòng đó (loại tin lạ trả `null`).
-
-## ĐANG CHỜ PHÁT HÀNH 2.40 (số tạm) — Tệp kèm vé hỗ trợ (ADR-0144; migration `0124`; kho R2 MỚI)
-
-Ghi 28/10/2026 (nhánh `claude/modest-sanderson-b148ce`, chưa vào `main`; KHÔNG phải trạng thái production). Khi phát hành: **cần `npm run trien-khai`**, CÓ migration `0124_ve_ho_tro_tep` (chỉ thêm bảng) và một kho R2 mới. Số bản 2.40 trong nhật ký thay đổi là TẠM — kiểm lại ở bước A.0 (2.39 — đưa đón theo nhóm, `0121` — đã lên production 28/10, mục trạng thái ở đầu tệp; `0122`–`0123` của nhánh khác chưa gộp có thể lên trước).
-
-**Việc của chủ — làm MỘT lần, TRƯỚC `npm run trien-khai`** (AI không được tạo kho — CLAUDE.md §8; `npm run trien-khai` dừng ở cổng 1e và in lại đúng lệnh này nếu chưa làm). Đứng ở thư mục `tourdao-sales`, trong Terminal:
-
-1. Tạo kho tệp vé hỗ trợ (kho riêng, không công khai):
-
-```
-npx wrangler r2 bucket create tourdao-sales-ho-tro
-```
-
-2. Kiểm đã có kho (phải thấy dòng `name: tourdao-sales-ho-tro`, cạnh `tourdao-sales-ho-so`):
-
-```
-npx wrangler r2 bucket list
-```
-
-3. Chạy `npm run trien-khai` như thường lệ.
-
-**Sau phát hành, chủ thử một lần trên iPhone** (danh sách ở `docs/HANDOFF-FEEDBACK.md`, mục «Tệp kèm tin vé hỗ trợ»). `audit-invariants --db remote` có thêm cảnh báo `R-FBK-1` (tệp tải dở hay chờ xoá kho) — dọn bằng `POST /api/feedback/tep-cho-xoa/chay-lai` (Toàn quyền). **Hoàn tác:** `wrangler rollback` — bảng `fbk_attachment` thừa ra không làm hỏng mã cũ; tệp đã gửi nằm lại trong kho (mã cũ không đọc).
 
 ## ĐÃ PHÁT HÀNH ở bản 2.36 (27/10/2026) — Bước xác nhận đơn + «Gửi đơn» + nháp riêng tư (ADR-0135, ADR-0136)
 
