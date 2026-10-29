@@ -6,7 +6,7 @@ import { addDays } from "../../shared/vn-date.ts";
 import { cungMuc, kiemDoi, kiemThanDoiMuc, type DongMuc } from "./rules.ts";
 
 const HOM_NAY = "2026-10-25";
-const doi = (validFrom: string, validTo: string | null, tuNgay: unknown) => kiemDoi({ cu: { validFrom, validTo }, tuNgay, homNay: HOM_NAY });
+const doi = (validFrom: string, validTo: string | null, tuNgay: unknown) => kiemDoi({ cu: { validFrom, validTo }, tuNgay, homNay: HOM_NAY, ngayChup: null });
 
 test("kiemDoi câu 1: dòng cũ đã có ngày ngừng ⇒ không đổi được", () => {
   const r = doi("2026-01-01", "2026-12-31", addDays(HOM_NAY, 1));

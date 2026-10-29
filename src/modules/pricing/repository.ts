@@ -26,7 +26,7 @@ const COT_DK = `t.id, t.scope, t.catalog_code, t.group_code, t.seller_party_id, 
 const MUC_TAT_CA = defineSql("pricing", "rules_all",
   `SELECT ${COT_MUC}, l.display_name AS target_name, mt.name AS tier_name FROM prc_commission_rule r LEFT JOIN prc_commission_rule_pax p ON p.rule_id = r.id LEFT JOIN v_pty_party_label l ON l.id = r.target_party_id
      LEFT JOIN prc_rate_tier mt ON mt.code = r.target_tier_code
-   ORDER BY (r.valid_to_date IS NOT NULL), r.valid_from_date DESC, r.id`);
+   ORDER BY (r.voided_at IS NOT NULL), (r.valid_to_date IS NOT NULL), r.valid_from_date DESC, r.id`);
 const MUC_NGAY = defineSql("pricing", "rules_on",
   `SELECT ${COT_MUC}, NULL AS target_name, NULL AS tier_name FROM prc_commission_rule r LEFT JOIN prc_commission_rule_pax p ON p.rule_id = r.id
    WHERE r.voided_at IS NULL AND r.valid_from_date <= ?1 AND (r.valid_to_date IS NULL OR r.valid_to_date >= ?1)`);
@@ -102,7 +102,7 @@ const MUC_TA_THEM = defineSql("pricing", "rate_tier_insert",
 // Chỉ đổi dòng khi mức CHƯA ở trạng thái đích ⇒ bên thua một lượt tranh chấp không ghi gì (nhật ký đi theo `changes() > 0`).
 const MUC_TA_DAT = defineSql("pricing", "rate_tier_set_active", "UPDATE prc_rate_tier SET active = ?2, updated_at = ?3, updated_by = ?4 WHERE code = ?1 AND active <> ?2");
 const COT_GAN = "g.id, g.role_type_code, g.tier_code, g.valid_from_date, g.valid_to_date, g.voided_at, g.replaces_id, g.change_reason";
-const GAN_TAT_CA = defineSql("pricing", "role_tiers_all", `SELECT ${COT_GAN} FROM prc_role_tier g ORDER BY (g.valid_to_date IS NOT NULL), g.valid_from_date DESC, g.id`);
+const GAN_TAT_CA = defineSql("pricing", "role_tiers_all", `SELECT ${COT_GAN} FROM prc_role_tier g ORDER BY (g.voided_at IS NOT NULL), (g.valid_to_date IS NOT NULL), g.valid_from_date DESC, g.id`);
 // Gắn hiệu lực ở ?1 (cho `chonMuc`): KHÔNG lọc theo `prc_rate_tier.active` — mức đã tắt vẫn áp cho gắn đang có (N-23).
 const GAN_NGAY = defineSql("pricing", "role_tiers_on",
   `SELECT ${COT_GAN} FROM prc_role_tier g WHERE g.voided_at IS NULL AND g.valid_from_date <= ?1 AND (g.valid_to_date IS NULL OR g.valid_to_date >= ?1)`);

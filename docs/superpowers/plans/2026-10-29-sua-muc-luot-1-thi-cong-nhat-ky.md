@@ -20,3 +20,30 @@
 - **T-1** Route Sửa của gắn đối tác là `POST /api/pricing/muc-rieng/:id/sua` (khớp route «Ngừng» sẵn có `/api/pricing/muc-rieng/:id/ket-thuc`), không phải `ho-so/muc-rieng/:id/sua` như chữ kế hoạch.
 - **T-2** Có dòng cũ ⇔ có lý do (cả hai chiều, trigger `*_replaces_ok`) — chặt hơn chữ kế hoạch («có `replaces_id` thì phải có lý do»).
 - **T-3** «Đã chụp» (`ngayChupGanNhat`) đếm MỌI bản chụp có `commission_rule_id`, cả bản MANUAL (ghi tay chỉ đổi người bán chép mã dòng của bản trước — `apGhiTay`) và bản đã bị thay: thừa chứ không thiếu (Q1). R-PRC-7 chỉ xét bản AUTO (ngày chụp của bản MANUAL là ngày ghi tay).
+
+## Task 2 — Phân loại câu đọc + R-PRC-7 (xong, commit e1173b66)
+- Câu **tra** (chọn mức, thử tra, bản chụp, khối hồ sơ) lọc `voided_at IS NULL`; câu **lịch sử** (bảng mức, danh sách gắn) giữ dòng huỷ, xếp dòng huỷ cuối, DTO thêm `daHuy`, `thayCho`, `lyDoSua`. Khoá lạc quan của câu đóng / huỷ: `valid_to_date IS <ngày đã đọc>`.
+- R-PRC-1 / 2 / 5 bỏ dòng huỷ; R-PRC-7 đủ hai vế (dòng chưa huỷ + khoảng ngày chứa ngày chụp). Bài `src/audit-invariants.test.ts` (ca đỏ đi đường trigger cho phép).
+
+## Task 3 — Hàm tiêm «ngày chụp gần nhất» (xong, commit ce14982c)
+- `orders` công bố `ngayChupGanNhat`; gốc lắp ráp tiêm `ctx.hoiDaChup`; vắng ⇒ route trả 503 `chua_kiem_chup` (từ chối kín). Khung thử: `khongTiemDaChup`, `ngayChupGia`.
+- Siết `src/architecture.test.ts`: chỉ `src/index.ts` + `src/modules/orders` nhắc tên hàm. Quan sát đỏ 29/10 (thêm tên vào `pricing/rules.ts` → đỏ → hoàn nguyên).
+
+## Task 4 — Luật thuần + route (xong)
+- `rules.ts`: `ngaySomNhat` (Q2), `xemTruocSua`, `kiemSua` (Q3, Q5), `docLyDoSua` (10–300 ký tự, cấm dãy số dài), `kiemNgung` (Q4), `kiemDoi` thêm `ngayChup`. Bài thuần `sua-muc.test.ts` 9 bài.
+- Sáu route mới (GET xem trước + POST Sửa) cho dòng mức, gắn loại (`/api/pricing/muc-ta/gan/:id/sua`), gắn đối tác (`/api/pricing/muc-rieng/:id/sua`, T-1). Bài `sua-muc-route.test.ts` 10 bài (tiêu chí 1–5; đường thật ở cả ba loại dòng; `ngayChupGia` chỉ cho ca dòng có ngày kết thúc đã có đơn; `khongTiemDaChup` ⇒ 503 ở Sửa / Đổi / Ngừng).
+- Quan sát chặn thật (P16, 29/10): (1) bỏ `voided_at IS NULL` ở câu tra mức (`MUC_NGAY`) → bài 1, 2 đỏ; (2) route Sửa dòng mức truyền `ngayChup: null` → bài 3, 4 đỏ; hoàn nguyên → xanh 10/10.
+- Bài cũ sửa cho khớp luật mới (không nới): ba bài «đóng lần hai ⇒ 409» thành 400 câu «phải sớm hơn» / «đã hết hạn» (kế hoạch Task 4: 409 «vừa được đóng» chỉ còn cho cuộc đua thật); ca vàng N-13 / SV-TA-03 và N-12 đóng dòng / gắn tới hôm qua NGAY sau khi đơn chụp hôm nay — đúng lỗ đang vá — nay chạy trên đồng hồ giả, việc đóng sang ngày hôm sau (ý ca vàng giữ: A 10%, B 240.000đ, C 15%, A và B giữ nguyên). Ba bài chung thêm sáu route: ảnh chụp mức truy cập (386 → 392), số route ghi qua lớp vé (230 → 233), bài «số lạ» (bảng điền dòng mức B + gắn loại; gắn riêng gọi mã lạ, có lý do miễn).
+
+## Quyết định thi công tự áp (tiếp)
+- **T-4** «Ngừng»: dòng chưa có đơn chụp giữ sàn cũ (≥ ngày bắt đầu); dòng đã chụp sàn = `X − 1` (Q2); dòng đã có ngày kết thúc chỉ rút ngắn, và chỉ khi ngày kết thúc **chưa qua** (ADR Đ1.3 «rút ngắn ngày kết thúc chưa qua») — dòng đã hết hạn ⇒ 400 «Mức này đã hết hạn nên không ngừng được.». Ngừng lần hai cùng ngày (tuần tự) ⇒ 400.
+- **T-5** Mã nhật ký mới `prc_commission_rule_voided`, `prc_role_tier_voided`, `prc_party_tier_voided` (có nhãn, ẩn với Đối tác ở cả hai danh sách lịch sử). Sửa đường «từ ngày» dùng lại `_closed` + `_added` / `_set`. Chi tiết nhật ký không chép lý do.
+- **T-6** GET xem trước đòi ô `partner.commission.write` (không phải `view`): chỉ hộp Sửa dùng.
+- **T-7** Thân Sửa dòng mức = thân «Đổi» + `lyDo` (không đổi đối tượng / phạm vi — muốn đổi thì Thêm). Thân Sửa gắn = `{ muc, tuNgay, denNgay?, lyDo }` (đích loại / hồ sơ giữ nguyên).
+
+## Nợ có tên (không sửa trong lượt này)
+- **NO-1** Điều khoản nhà cung cấp (`prc_supply_term`) «Ngừng» vẫn đóng lùi được qua ngày chụp (giá vốn) — ADR-0148 không phủ; R-PRC-7 chỉ canh hoa hồng.
+- **NO-2** Đơn đã xác nhận nhưng chưa có bản chụp (chờ «Chụp bù») không được tính «đã chụp» ⇒ Sửa huỷ–thay được dòng; Chụp bù sau đó theo dòng mới (Q5 giữ ngày bắt đầu cũ nên phần ngày đã qua vẫn có mức) hoặc báo thiếu mức — không ra số sai.
+- **NO-3** «Đã chụp» của gắn (Q1) JOIN view `v_prc_commission_rule` (chỉ dòng chưa huỷ) ⇒ bản chụp trên dòng mức đã huỷ không được đếm — chỉ xảy ra qua cuộc đua Q7 (R-PRC-7 bắt).
+- **NO-4** Gắn đối tác đã huỷ không hiện ở khối hồ sơ (câu khối hồ sơ là câu tra) — chưa có chỗ xem lịch sử gắn riêng.
+- **NO-5** Hộp «Ngừng» trên giao diện vẫn cho chọn từ ngày bắt đầu; máy chủ chặn và báo câu có ngày sớm nhất.
