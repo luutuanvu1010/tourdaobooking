@@ -203,6 +203,25 @@ export function nutDoiNgung(d: { tuNgay: string; denNgay: string | null; conHieu
  * hạn thì không (máy chủ: «Mức này đã hết hạn nên không sửa được»). Đường huỷ–thay hay «từ ngày» do máy chủ trả ở bước xem trước, giao diện không đoán.
  */
 export const nutSua = (d: { denNgay: string | null; daHuy?: boolean }, homNay: string): boolean => !d.daHuy && (d.denNgay === null || d.denNgay >= homNay);
+/**
+ * N5 (ADR-0148 Đ1): chia các lần áp dụng chính sách — gắn loại của MỘT chính sách (màn «Mức TA»), hoặc gắn riêng của MỘT hồ sơ (Danh bạ) — thành ba cụm theo `trangThaiDong`:
+ * đang áp (giữ thứ tự máy chủ), sắp áp (ngày bắt đầu sớm trước), lịch sử = đã ngừng + đã huỷ (mới → cũ theo ngày bắt đầu; trùng ngày giữ thứ tự máy chủ). Lịch sử đúng là phần
+ * bộ lọc «Đang và sắp áp dụng» (`conApHoacSap`) loại bỏ — một khuôn với bảng dòng mức.
+ */
+export function chiaLanGan<T extends { tuNgay: string; denNgay: string | null; conHieuLuc: boolean; daHuy?: boolean }>(ds: readonly T[], homNay: string): { dangAp: T[]; sapAp: T[]; lichSu: T[] } {
+  const k: { dangAp: T[]; sapAp: T[]; lichSu: T[] } = { dangAp: [], sapAp: [], lichSu: [] };
+  for (const g of ds) {
+    const tt = trangThaiDong(g, homNay);
+    (tt === "DANG_AP" ? k.dangAp : tt === "SAP_AP" ? k.sapAp : k.lichSu).push(g);
+  }
+  k.sapAp.sort((a, b) => a.tuNgay.localeCompare(b.tuNgay));
+  k.lichSu.sort((a, b) => b.tuNgay.localeCompare(a.tuNgay));
+  return k;
+}
+/** Nhãn một lần áp dụng sắp tới (R1, R3). */
+export const nhanSapAp = (g: { tuNgay: string; denNgay: string | null }): string => `Sắp áp dụng từ ${ngayVN(g.tuNgay)}${g.denNgay === null ? "" : ` đến ${ngayVN(g.denNgay)}`}`;
+/** Chữ nút bật lịch sử (R2, R3) — nút XEM, không bắt đầu bằng chữ của nút ghi. */
+export const nhanNutLichSu = (soLan: number, dangMo: boolean): string => (dangMo ? "Ẩn lịch sử" : `Xem lịch sử (${soLan})`);
 /** Ai thấy nút «Sửa» (tiêu chí 4): người ghi bảng mức (`partner.commission.write`) KHÔNG mang quyền Đối tác — cùng cổng với route Sửa của máy chủ. */
 export const coQuyenSua = (s: PermissionHolder): boolean => can(s, "partner.commission.write") && !holdsPartner(s);
 /** Câu đầu hộp Sửa, theo đường máy chủ trả ở `GET …/sua`. `cai` = «mức này» (dòng mức) hoặc «chính sách này» (lần áp dụng chính sách). */
