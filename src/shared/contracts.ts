@@ -10,6 +10,7 @@ import type { PermissionCode } from "./permissions.ts";
 import type { RoleCode } from "./roles.ts";
 import type { BanChup } from "./hoa-hong-dong.ts";
 import type { KhungGio, LuaChonDon } from "./khung-gio-don.ts";
+import type { QuyTacDuaDon } from "./dua-don-dich-vu.ts";
 import type { CaiDatHanMuc } from "./han-muc-tu-choi.ts";
 import type { MaLyDoTuChoi } from "./ly-do-tu-choi.ts";
 
@@ -752,7 +753,11 @@ export interface CatalogAdminItemDto {
   updatedAt: string;
   /** ADR-0058 Đ5: nhóm hiện hành thật (kể cả nhóm đang tắt); `null` = chưa phân loại. */
   groupCode: string | null;
+  /** ADR-0149 Đ1: ô «Được đón không» của dịch vụ — GROUP (theo nhóm) / ALWAYS / NEVER; thắng cờ đưa đón của nhóm. */
+  transferRule: QuyTacDuaDon;
 }
+/** `PUT /api/catalog/:code/transfer-rule` — `expectedTransferRule` = lựa chọn người dùng đang thấy (khoá lạc quan); trả `CatalogItemResponse`. */
+export interface CatalogTransferRuleRequest { transferRule: QuyTacDuaDon; expectedTransferRule: QuyTacDuaDon }
 
 export interface CatalogSyncStateDto {
   lastAttemptAt: string | null;

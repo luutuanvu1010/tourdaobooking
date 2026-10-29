@@ -280,7 +280,9 @@ export const AUDIT_ACTIONS = {
   catalog_group_created: { label: "Thêm nhóm dịch vụ", group: "catalog" },
   catalog_group_updated: { label: "Sửa nhóm dịch vụ", group: "catalog" },
   catalog_group_assigned: { label: "Đổi nhóm của dịch vụ", group: "catalog" },
-  catalog_groups_seeded: { label: "Gieo nhóm dịch vụ", group: "catalog" }, // do migration 0055 ghi một lần (detail "gieo 14 nhóm, N dịch vụ")
+  catalog_groups_seeded: { label: "Gieo nhóm dịch vụ", group: "catalog" },
+  // ADR-0149 Đ1: ô «Được đón không» của một dịch vụ — targetId = mã dịch vụ, detail "Theo nhóm → Không đón" (nhãn; không dữ liệu cá nhân).
+  catalog_service_transfer_set: { label: "Đổi đưa đón của dịch vụ", group: "catalog" }, // do migration 0055 ghi một lần (detail "gieo 14 nhóm, N dịch vụ")
   feedback_created: { label: "Gửi yêu cầu góp ý", group: "feedback" },
   feedback_replied: { label: "Trả lời yêu cầu góp ý", group: "feedback" },
   feedback_status_changed: { label: "Đổi trạng thái yêu cầu góp ý", group: "feedback" },

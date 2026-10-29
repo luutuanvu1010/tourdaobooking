@@ -251,3 +251,12 @@ test("ADR-0118 Đ3: dichVuCanHoiDuaDon — chỉ dịch vụ CÓ mã danh mục 
   assert.deepEqual(dichVuCanHoiDuaDon(ds).map((s) => s.catalogCode), ["A", "C"]);
   assert.deepEqual(dichVuCanHoiDuaDon([]), []);
 });
+
+test("ADR-0149 R-0149-B: cauNhomTatDuaDon — dịch vụ bị chặn vì ô riêng «Không đón» có câu riêng (không nói nhóm tắt); cửa `sua` thì hướng dẫn nói cả nhóm lẫn dịch vụ; chỉ do nhóm thì câu cũ giữ nguyên", () => {
+  const rieng = cauNhomTatDuaDon([{ ten: "Tour đảo", nhom: "Hòn Tằm", rieng: true }], "sua");
+  assert.doesNotMatch(rieng, /Nhóm dịch vụ đã tắt/);
+  assert.match(rieng, /^Dịch vụ đã đặt «Không đón» nên không ghi được lượt đưa đón cho: “Tour đảo”\./);
+  assert.match(rieng, /của nhóm hoặc của dịch vụ/);
+  const nhom = cauNhomTatDuaDon([{ ten: "Tour đảo", nhom: "Hòn Tằm" }], "sua");
+  assert.equal(nhom, "Nhóm dịch vụ đã tắt đưa đón nên không ghi được lượt đưa đón cho: “Tour đảo” (nhóm “Hòn Tằm”). Lượt đang có chỉ còn bỏ được (nút Bỏ lượt), không thêm hay sửa. Muốn có đưa đón, nhờ Quản trị bật lại «Có đưa đón» của nhóm ở trang Dịch vụ & giá.");
+});

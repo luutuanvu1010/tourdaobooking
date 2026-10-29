@@ -5,6 +5,7 @@
 // (index.ts) ghép vào lô — các hàm `*Statement`/`themNhom`/`suaNhom`/`ganNhomStatements` chỉ TRẢ câu chuẩn bị, không tự chạy.
 // `catalog` chỉ được phụ thuộc `audit`: KHÔNG JOIN view của `staff` ở đây — lịch sử nhóm trả `created_by` (id), tên người do tầng trên ghép.
 import { defineSql } from "../../shared/sql-registry.ts";
+import type { QuyTacDuaDon } from "../../shared/dua-don-dich-vu.ts";
 
 // ---- Kiểu dòng ------------------------------------------------------------------------------------------------------------------------------
 
@@ -80,6 +81,28 @@ const SERVICE_GROUP_HISTORY = defineSql(
    WHERE s.service_code = ?1 ORDER BY s.seq DESC`,
 );
 
+// ---- Ô «Được đón không» của dịch vụ (ADR-0149 Đ1, bảng `ctl_service_transfer_rule`, migration 0127). Dòng MỞ (`valid_to_at IS NULL`) = hiệu lực; không dòng mở = Theo nhóm.
+const TRANSFER_RULE_OPEN_ALL = defineSql("catalog", "transfer_rule_open_all", `SELECT service_code, mode FROM ctl_service_transfer_rule WHERE valid_to_at IS NULL`);
+const TRANSFER_RULE_OPEN_ONE = defineSql("catalog", "transfer_rule_open_one", `SELECT mode FROM ctl_service_transfer_rule WHERE service_code = ?1 AND valid_to_at IS NULL`);
+const TRANSFER_RULE_NEVER_IN = defineSql(
+  "catalog",
+  "transfer_rule_never_in",
+  `SELECT service_code FROM ctl_service_transfer_rule WHERE valid_to_at IS NULL AND mode = 'NEVER' AND service_code IN (SELECT value FROM json_each(?1))`,
+);
+// Đóng dòng mở — chỉ khi nó vẫn là lựa chọn người dùng đã thấy (?4): khoá lạc quan theo GIÁ TRỊ, `changes = 0` = người khác vừa đổi.
+const TRANSFER_RULE_CLOSE = defineSql(
+  "catalog",
+  "transfer_rule_close",
+  `UPDATE ctl_service_transfer_rule SET valid_to_at = ?2, ended_by = ?3 WHERE service_code = ?1 AND valid_to_at IS NULL AND mode = ?4`,
+);
+// Mở dòng mới — chỉ khi không còn dòng mở (đóng ở câu trước cùng lô, hoặc đang Theo nhóm). Hai lệnh đua: chỉ mục duy nhất một phần chặn lệnh sau.
+const TRANSFER_RULE_OPEN = defineSql(
+  "catalog",
+  "transfer_rule_open",
+  `INSERT INTO ctl_service_transfer_rule (id, service_code, mode, valid_from_at, created_by)
+   SELECT ?1, ?2, ?3, ?4, ?5 WHERE NOT EXISTS (SELECT 1 FROM ctl_service_transfer_rule WHERE service_code = ?2 AND valid_to_at IS NULL)`,
+);
+
 // ---- Đọc ------------------------------------------------------------------------------------------------------------------------------------
 
 /** Mọi nhóm (cả nhóm đã tắt) kèm số dịch vụ hiện hành, xếp `sort_order` rồi tên. */
@@ -115,7 +138,40 @@ export async function lichSuNhom(db: D1Database, serviceCode: string): Promise<L
   return (await db.prepare(SERVICE_GROUP_HISTORY).bind(serviceCode).all<LichSuNhomRow>()).results;
 }
 
+/** `service_code → ALWAYS | NEVER` của mọi dịch vụ có dòng mở; mã vắng = Theo nhóm. */
+export async function quyTacDuaDonTheoMa(db: D1Database): Promise<Map<string, QuyTacDuaDon>> {
+  const rows = (await db.prepare(TRANSFER_RULE_OPEN_ALL).all<{ service_code: string; mode: QuyTacDuaDon }>()).results;
+  return new Map(rows.map((r) => [r.service_code, r.mode]));
+}
+
+/** Ô «Được đón không» hiện hành của MỘT dịch vụ. */
+export async function quyTacDuaDonCua(db: D1Database, serviceCode: string): Promise<QuyTacDuaDon> {
+  return (await db.prepare(TRANSFER_RULE_OPEN_ONE).bind(serviceCode).first<{ mode: QuyTacDuaDon }>())?.mode ?? "GROUP";
+}
+
+/** Mã nào trong danh sách đang đặt «Không đón» (để `orders` viết câu báo đúng lý do — Ruling R-0149-B). Rỗng → không truy vấn. */
+export async function maDangKhongDon(db: D1Database, codes: readonly string[]): Promise<Set<string>> {
+  if (codes.length === 0) return new Set();
+  const rows = (await db.prepare(TRANSFER_RULE_NEVER_IN).bind(JSON.stringify([...new Set(codes)])).all<{ service_code: string }>()).results;
+  return new Set(rows.map((r) => r.service_code));
+}
+
 // ---- Ghi (chỉ dựng câu; nơi gọi ghép câu nhật ký rồi chạy MỘT `db.batch`) ------------------------------------------------------------------------
+
+/**
+ * Đổi ô «Được đón không» từ `cu` sang `moi` (khác nhau). Trả câu theo thứ tự lô và chỉ số câu `chot` mà `changes > 0` nghĩa là đã đổi thật — nơi gọi đặt câu nhật ký
+ * (điều kiện `changes() > 0`) NGAY SAU câu cuối, và báo 409 khi câu chốt không đổi dòng nào (người khác vừa đổi).
+ * - Theo nhóm → X: [mở]  · X → Theo nhóm: [đóng]  · X → Y: [đóng, mở] (đóng hụt thì dòng mở cũ còn đó nên câu mở cũng hụt).
+ */
+export function doiQuyTacDuaDonStatements(
+  db: D1Database,
+  i: { serviceCode: string; cu: QuyTacDuaDon; moi: QuyTacDuaDon; staffId: string; now: string },
+): { statements: D1PreparedStatement[]; chot: number } {
+  const statements: D1PreparedStatement[] = [];
+  if (i.cu !== "GROUP") statements.push(db.prepare(TRANSFER_RULE_CLOSE).bind(i.serviceCode, i.now, i.staffId, i.cu));
+  if (i.moi !== "GROUP") statements.push(db.prepare(TRANSFER_RULE_OPEN).bind(crypto.randomUUID(), i.serviceCode, i.moi, i.now, i.staffId));
+  return { statements, chot: statements.length - 1 };
+}
 
 /** Mã nhóm mới do máy chủ sinh (không bao giờ đổi, không hiện cho người dùng). */
 export const maNhomMoi = (): string => `g${crypto.randomUUID().replace(/-/g, "").slice(0, 12)}`;
