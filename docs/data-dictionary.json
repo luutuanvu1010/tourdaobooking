@@ -74,6 +74,12 @@
       "note": "LỊCH SỬ gán nhóm cho từng dịch vụ (ADR-0058, 0055): chỉ thêm (trigger cấm sửa/xoá), seq tăng theo từng dịch vụ, dòng seq lớn nhất là nhóm hiện hành, group_code NULL = Chưa phân loại. Gán vào nhóm đang tắt bị trigger ctl_service_group_active_group chặn; service_code phải có trong catalog_item"
     },
     {
+      "name": "ctl_service_transfer_rule",
+      "module": "catalog",
+      "kind": "table",
+      "note": "Ô «Được đón không» của từng dịch vụ (ADR-0149 Đ1, 0127): mode ALWAYS (Luôn đón) / NEVER (Không đón) thắng cờ transfer_enabled của nhóm; KHÔNG có dòng mở (valid_to_at NULL) = Theo nhóm. Chỉ thêm: trigger cấm xoá, chỉ cho đóng dòng mở một lần; chỉ mục duy nhất một phần = tối đa một dòng mở mỗi service_code. Module khác đọc qua view v_ctl_service_transfer; đồng bộ Sheet không ghi bảng này"
+    },
+    {
       "name": "dsp_assignment",
       "module": "dispatch",
       "kind": "table"
