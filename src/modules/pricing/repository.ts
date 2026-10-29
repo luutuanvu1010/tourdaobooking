@@ -134,6 +134,10 @@ const DONG_RIENG_CHO_GAN = defineSql("pricing", "role_rules_for_tier_link",
 const COT_GAN_RIENG = "g.id, g.party_id, g.tier_code, g.valid_from_date, g.valid_to_date, g.voided_at, g.replaces_id, g.change_reason";
 const GAN_RIENG_HO_SO = defineSql("pricing", "party_tiers_of",
   `SELECT ${COT_GAN_RIENG} FROM prc_party_tier g WHERE g.party_id = ?1 AND g.voided_at IS NULL ORDER BY (g.valid_to_date IS NOT NULL), g.valid_from_date DESC, g.id`);
+// Câu LỊCH SỬ (khối hồ sơ, trường `ganRieng` — N5): MỌI lần gắn riêng của MỘT hồ sơ, kể cả đã huỷ, mới → cũ; cùng ngày bắt đầu (huỷ–thay giữ ngày cũ) thì lần chưa huỷ đứng
+// trước. Không bao giờ đưa vào `chonMuc` / `tomTatHoaHongHoSo` — câu tra là GAN_RIENG_HO_SO ở trên.
+const GAN_RIENG_LICH_SU = defineSql("pricing", "party_tiers_history",
+  `SELECT ${COT_GAN_RIENG} FROM prc_party_tier g WHERE g.party_id = ?1 ORDER BY g.valid_from_date DESC, (g.voided_at IS NOT NULL), g.created_at DESC, g.id`);
 const GAN_RIENG_ID = defineSql("pricing", "party_tier_by_id", `SELECT ${COT_GAN_RIENG} FROM prc_party_tier g WHERE g.id = ?1`);
 const GAN_RIENG_THEM = defineSql("pricing", "party_tier_insert",
   `INSERT INTO prc_party_tier (id, party_id, tier_code, valid_from_date, valid_to_date, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?6, ?7)`);
@@ -237,6 +241,7 @@ export const cauSuaGanLoai = (db: D1Database, cuId: string, denDaDoc: string | n
   db.prepare(GAN_SUA_THEM).bind(moiId, roleTypeCode, v.tierCode, v.validFrom, v.validTo, at, by, cuId, lyDo),
 ];
 export const partyTiersOf = async (db: D1Database, partyId: string) => (await db.prepare(GAN_RIENG_HO_SO).bind(partyId).all<PartyTierRow>()).results;
+export const partyTiersHistory = async (db: D1Database, partyId: string) => (await db.prepare(GAN_RIENG_LICH_SU).bind(partyId).all<PartyTierRow>()).results;
 export interface GanRiengRow { id: string; party_id: string; party_name: string; tier_code: string; tier_name: string; valid_from_date: string; valid_to_date: string | null }
 export const partyTiersCurrent = async (db: D1Database, homNay: string) => (await db.prepare(GAN_RIENG_DANG_SAP).bind(homNay).all<GanRiengRow>()).results;
 export const partyTierById = (db: D1Database, id: string) => db.prepare(GAN_RIENG_ID).bind(id).first<PartyTierRow>();
