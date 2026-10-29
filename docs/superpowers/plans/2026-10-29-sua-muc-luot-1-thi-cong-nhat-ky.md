@@ -64,3 +64,7 @@
 
 ## Nợ có tên (tiếp)
 - **NO-6** Gắn loại BẮT ĐẦU trong tương lai không hiện ở chỗ nào trên giao diện (bảng chỉ hiện gắn đang áp) ⇒ chưa có nút «Sửa» cho nó; máy chủ vẫn nhận (route `…/muc-ta/gan/:id/sua`).
+
+## Bộ kiểm dài (chạy một lần, 29/10)
+- `npm run typecheck`: 0 lỗi.
+- `npm test` lần 1: bước 1 đỏ đúng MỘT bài — N-15 «dữ liệu còn nguyên…» (`src/migrations-dung-lai-muc.test.ts`): `no such column: r.voided_at`. Gốc: bài dựng CSDL ngay sau 0097 (loại 0126 — Task 1) rồi chạy MỌI kiểm định kỳ, mà Task 2 cho R-PRC-1/2/5/7 đọc `voided_at`; sau Task 2 người thi công không chạy lại tệp này. Sửa (không nới): trước 0097 bỏ qua thêm kiểm nhắc `voided_at` (cùng khuôn `target_tier_code`); sau 0097 áp tiếp 0126 — đúng thứ tự production — rồi chạy ĐỦ mọi kiểm. Tệp chạy lại xanh 8/8. Bước 2 (bài đo giờ hook) xanh.
