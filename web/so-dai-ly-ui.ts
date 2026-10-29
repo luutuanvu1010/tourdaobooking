@@ -23,7 +23,7 @@ export interface TheoLoaiForm {
   datLai(): void;
 }
 export function taoTheoLoai(idTienTo: string): TheoLoaiForm {
-  const bat = h("input", { id: `${idTienTo}-theo-loai`, type: "checkbox" });
+  const bat = h("input", { id: `${idTienTo}-theo-loai`, type: "checkbox", class: "o-tick" });
   const treEm = h("input", { id: `${idTienTo}-tre-em`, type: "text", inputMode: "numeric", maxLength: 12, placeholder: "Bắt buộc", autocomplete: "off" });
   const nguoiCaoTuoi = h("input", { id: `${idTienTo}-nguoi-cao-tuoi`, type: "text", inputMode: "numeric", maxLength: 12, placeholder: "Bắt buộc", autocomplete: "off" });
   const haiO = h(
