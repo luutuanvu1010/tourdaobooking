@@ -2,6 +2,8 @@
 
 > Hồ sơ có ngày. Phiên con chỉ đọc lập trên `main` 25f127d1 theo đề bài của Main session; không sửa tệp nào. Số dòng ghi ở đây là ảnh chụp ngày 29/10, kế hoạch thi công đọc lại mã trước khi dùng.
 
+> **Đính chính 29/10 (QA1 lần 1):** mục 5 ghi «@font-face dòng 8–25» — thực ra 18 khai báo trải từ dòng 8 tới 414 của `public/app.css`. Mục 10: `shell.ts:418` chú thích «236px» là số cũ, token `--w-sidebar` hiện 248 px (`app.css:184`). Cỡ `public/js` không kiểm được trong worktree chưa dựng; số 101.700 byte lấy từ biên bản cổng phát hành đợt 0.
+
 Kho: /Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales, main = 25f127d1. Tôi chỉ đọc, không sửa tệp nào.
 
 ## 1. Cách dựng gói hiện nay
