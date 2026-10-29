@@ -6,8 +6,10 @@
 import { OWNER_COMPANY_ROLE } from "../src/shared/cong-ty-chu";
 import { chipHan, lichSuCua, ngayVN, tenGiayTo, xepTheoHan } from "../src/shared/giay-to-hien-thi";
 import { NHAN_LY_DO_KHOP, chuanHoaTen } from "../src/shared/ho-so-trung";
+import { cauXemTruocSua, coQuyenSua, nutSua } from "../src/shared/hoa-hong-hien-thi";
 import { nhanLoaiLienHe } from "../src/shared/lien-he";
 import { can } from "../src/shared/permissions";
+import { docLyDoSua } from "../src/shared/so-dai-ly-nhap";
 import { GIOI_TINH, GIOI_TINH_NHAN } from "../src/shared/xung-ho";
 import { ApiError, api, type Api, type Staff } from "./api";
 import { byId, h, replaceChildren, type Child } from "./dom";
@@ -738,7 +740,8 @@ const TIN_TKNT_DA_CU = "Có người vừa đổi tài khoản nhận tiền nê
 /**
  * Mục «Hoa hồng hiện hành» của hồ sơ (YC-0020): loại đối tác hồ sơ đang mang và mức TA mỗi loại gắn hôm nay. Có ba tình huống cần nói rõ vì nhân viên hay hỏi «sao đại lý
  * này lấy khác»: chưa gắn mức, hai loại gắn hai mức khác nhau (đơn bị giữ), dòng riêng đè lên mức (dòng riêng luôn thắng mức TA).
- * ADR-0138: người giữ `partner.commission.write` gắn / kết thúc MỨC TA RIÊNG ngay ở đây; mục nói rõ nguồn («gắn riêng» hay «theo loại»). Máy chủ kiểm lại quyền; mọi câu lỗi
+ * ADR-0138: người giữ `partner.commission.write` gắn / kết thúc MỨC TA RIÊNG ngay ở đây; mục nói rõ nguồn («gắn riêng» hay «theo loại»). ADR-0148: «Sửa» chính sách riêng (hỏi
+ * máy chủ đường huỷ–thay / «từ ngày» trước, lý do bắt buộc) cho người ghi bảng mức không mang quyền Đối tác. Máy chủ kiểm lại quyền; mọi câu lỗi
  * hiện trong mục. `tin` = dòng báo sau một lần lưu; `daCo` = phản hồi lệnh (cùng dạng GET) để khỏi đọc lại.
  */
 async function veHoaHongHienHanh(sec: HTMLElement, p: Api.PartyDto, tin?: string, daCo?: Api.HoaHongHoSoResponse): Promise<void> {
@@ -814,17 +817,52 @@ async function veHoaHongHienHanh(sec: HTMLElement, p: Api.PartyDto, tin?: string
       h("div", { class: "actions" }, luu, button("Huỷ", () => replaceChildren(khuLenh), "btn")));
     oDen.focus();
   };
+  // ADR-0148 Đ1: «Sửa» chính sách riêng — GET xem trước (đường do máy chủ quyết) rồi form điền sẵn; huỷ–thay giữ được ngày bắt đầu cũ, «từ ngày» chỉ từ ngày sớm nhất.
+  const moSua = async (mr: NonNullable<Api.HoaHongHoSoResponse["mucRieng"]>) => {
+    const url = `/api/pricing/muc-rieng/${encodeURIComponent(mr.id)}/sua`;
+    let xt: Api.SuaXemTruocResponse;
+    let mt: Api.MucTaListResponse;
+    try {
+      [xt, mt] = await Promise.all([api<Api.SuaXemTruocResponse>(url), api<Api.MucTaListResponse>("/api/pricing/muc-ta")]);
+    } catch (err) {
+      return baoLoi(err instanceof ApiError ? err.message : "Không kết nối được máy chủ.");
+    }
+    const bat = mt.muc.filter((m) => m.dangBat);
+    const oMuc = select([{ value: "", label: "Chọn chính sách" }, ...bat.map((m) => ({ value: m.code, label: m.ten }))], bat.some((m) => m.code === mr.muc.code) ? mr.muc.code : "");
+    oMuc.id = "hhhh-sua-muc";
+    const oTu = input(xt.duong === "HUY_THAY" ? mr.tuNgay : xt.tuNgaySomNhat, { type: "date", id: "hhhh-sua-tu" }) as HTMLInputElement;
+    if (xt.duong === "TU_NGAY") {
+      oTu.min = xt.tuNgaySomNhat;
+      if (xt.denNgayToiDa) oTu.max = xt.denNgayToiDa;
+    }
+    const oDen = input(mr.denNgay ?? "", { type: "date", id: "hhhh-sua-den" }) as HTMLInputElement;
+    const oLyDo = input("", { id: "hhhh-sua-ly-do", maxLength: 300, autocomplete: "off", required: true }) as HTMLInputElement;
+    const luu = button("Lưu sửa", (b) => {
+      if (!oMuc.value) return baoLoi("Chọn chính sách.");
+      const ld = docLyDoSua(oLyDo.value);
+      if (!ld.ok) return baoLoi(ld.message);
+      guiLenh(b, url, { muc: oMuc.value, tuNgay: oTu.value, ...(oDen.value ? { denNgay: oDen.value } : {}), lyDo: ld.value }, "Đã sửa chính sách riêng của đại lý này.");
+    }, "btn btn-primary");
+    replaceChildren(khuLenh,
+      h("p", { class: "hint", role: "status" }, h("strong", null, cauXemTruocSua(xt, "chính sách này"))),
+      h("div", { class: "grid three" }, field("Chính sách riêng", oMuc), field("Áp dụng từ ngày", oTu), field("Đến hết ngày (để trống = không thời hạn)", oDen)),
+      field("Lý do sửa (bắt buộc)", oLyDo),
+      h("div", { class: "actions" }, luu, button("Huỷ", () => replaceChildren(khuLenh), "btn")));
+    oMuc.focus();
+  };
   const duocGhi = can(me, "partner.commission.write");
-  const nut = !duocGhi ? null
-    : rieng ? (rieng.denNgay === null ? button("Ngừng áp dụng", () => moKetThuc(rieng), "btn") : null)
-    : button("Áp dụng chính sách riêng", () => void moGan(), "btn");
+  const nutNgung = rieng && rieng.denNgay === null ? button("Ngừng áp dụng", () => moKetThuc(rieng), "btn") : null;
+  const nutSuaRieng = rieng && coQuyenSua(me) && nutSua(rieng, r.homNay) ? button("Sửa", () => void moSua(rieng), "btn") : null;
+  const nut: HTMLElement[] = !duocGhi ? []
+    : rieng ? [nutNgung, nutSuaRieng].filter((x): x is HTMLButtonElement => x !== null)
+    : [button("Áp dụng chính sách riêng", () => void moGan(), "btn")];
   replaceChildren(sec,
     tieuDe,
     khoiRieng,
     h("table", { class: "items" }, h("tbody", null, ...dong)),
     ...nhac,
     khuTin,
-    nut ? h("div", { class: "actions" }, nut) : null,
+    nut.length > 0 ? h("div", { class: "actions" }, ...nut) : null,
     khuLenh,
     h("p", null, h("a", { href: "/hoa-hong" }, "Xem hoặc đổi mức ở trang Hoa hồng đối tác")));
   sec.hidden = false;

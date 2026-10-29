@@ -4,9 +4,8 @@
 import { parseUnit, payingGuests, type PaxCounts } from "../../shared/order-lines.ts";
 import { giaVonDong, hoaHongDong, lamTronNuaLen, tinhDongDoiTac, type BanChup, type DongPhanDoiTac, type KieuMuc, type LyDoThieu, type MucTheoLoai } from "../../shared/hoa-hong-dong.ts";
 import { nhanMuc } from "../../shared/so-dai-ly-nhan.ts";
-import { MOI_KHACH_TOI_DA } from "../../shared/so-dai-ly-nhap.ts"; // trần «Số tiền mỗi khách»: MỘT hằng cho giao diện và máy chủ (Task 14, nợ (a))
+import { MOI_KHACH_TOI_DA, docLyDoSua } from "../../shared/so-dai-ly-nhap.ts"; // trần «Số tiền mỗi khách» và lý do «Sửa» (ADR-0148): MỘT luật cho giao diện và máy chủ
 import { khoaTen } from "../../shared/khoa-ten.ts";
-import { hasLongDigitRun, PHONE_IN_TEXT_MESSAGE } from "../../shared/text-guards.ts";
 import { addDays, ngayDayDu } from "../../shared/vn-date.ts";
 
 // Phép tính tiền MỘT dòng (làm tròn nửa lên, hoa hồng, giá vốn, `tinhDongDoiTac`) và kiểu bản chụp nằm ở src/shared/hoa-hong-dong.ts để `orders/thuong-mai.ts` (DTO) chạy được bằng node trực tiếp
@@ -282,13 +281,6 @@ export function xemTruocSua(v: { cu: DongCoNgay; ngayChup: string | null; homNay
   return { ok: true, duong: "TU_NGAY", tuNgaySomNhat: x, denNgayToiDa: v.cu.validTo };
 }
 /** Lý do sửa: cắt khoảng trắng, 10–300 ký tự, không dãy số dài (cùng khuôn lý do «Ghi mức tay» — `orders/thuong-mai.ts` `kiemThanGhiTay`). */
-function docLyDoSua(raw: unknown): Ket<string> {
-  const s = typeof raw === "string" ? raw.trim() : "";
-  if (s.length < 10) return { ok: false, message: "Ghi lý do sửa (ít nhất 10 ký tự)." };
-  if (s.length > 300) return { ok: false, message: "Lý do tối đa 300 ký tự." };
-  if (hasLongDigitRun(s)) return { ok: false, message: PHONE_IN_TEXT_MESSAGE };
-  return { ok: true, value: s };
-}
 export type KetSua = { ok: true; duong: "HUY_THAY"; lyDo: string } | { ok: true; duong: "TU_NGAY"; denNgayCu: string; tuNgay: string; lyDo: string } | { ok: false; error: string };
 /**
  * «Sửa» một dòng có ngày (mức, gắn loại, gắn đối tác — cùng luật, tiêu chí 5). `moi` = khoảng ngày của dòng mới (đã qua `docKhoangNgay`); `giongSo` = phần không phải ngày

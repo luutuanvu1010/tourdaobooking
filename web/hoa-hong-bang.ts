@@ -1,6 +1,7 @@
 // Bảng «ai hưởng gì» của thẻ «Mức đang áp dụng»: hàng lọc, mục «Theo loại đối tác» (mỗi loại một dòng gập, mở ra hai cụm: mức riêng của loại và chính sách đang theo),
 // mục «Đối tác có mức riêng hoặc chính sách riêng» (mỗi đối tác một dòng mở được). Trang không tính tiền, không chọn mức: số và lời đến từ máy chủ / luật thuần ở src/shared/hoa-hong-hien-thi.ts.
-// Nút ghi (Đổi, Ngừng, Thêm mức riêng, Đổi chính sách) chỉ hiện cho người có `partner.commission.write` (máy chủ kiểm lại). Điện thoại: không nút nhỏ trong dòng — chạm dòng mở hộp hai việc.
+// Nút ghi (Đổi, Ngừng, Sửa, Thêm mức riêng, Đổi chính sách) chỉ hiện cho người có `partner.commission.write` (Sửa: thêm điều kiện không mang quyền Đối tác — ADR-0148; máy chủ
+// kiểm lại). Điện thoại: không nút nhỏ trong dòng — chạm dòng mở hộp các việc của dòng.
 import {
   CAU_CHUA_CO_MUC_LOAI,
   CAU_KHONG_CO_LOAI,
@@ -10,6 +11,8 @@ import {
   NHAN_CHUA_CO_MUC,
   NHAN_TRANG_THAI,
   chinhSachCuaLoai,
+  coQuyenSua,
+  conApHoacSap,
   dongRiengDoiTac,
   ghepDoiTacRieng,
   locBangLoai,
@@ -17,6 +20,7 @@ import {
   nhanMucDto,
   nhanPhamVi,
   nutDoiNgung,
+  nutSua,
   tomTatMuc,
   trangThaiDong,
   xepLoai,
@@ -41,14 +45,19 @@ let duHienTai: DuLieuHoaHong | null = null;
 let veLai: (() => void) | null = null;
 
 const huyHieuTrangThai = (tt: ReturnType<typeof trangThaiDong>): HTMLElement =>
-  h("span", { class: tt === "DANG_AP" ? "badge badge-confirmed" : tt === "SAP_AP" ? "badge badge-draft" : "badge badge-cancelled" }, NHAN_TRANG_THAI[tt]);
+  h("span", { class: tt === "DANG_AP" ? "badge badge-confirmed" : tt === "SAP_AP" ? "badge badge-draft" : "badge badge-cancelled" }, NHAN_TRANG_THAI[tt]); // DA_DONG, DA_HUY: xám
 
 export const urlNgung = (r: Api.CommissionRuleDto): string => `/api/pricing/hoa-hong/${encodeURIComponent(r.id)}/dong`;
 
-/** Một dòng mức: Dịch vụ · Mức · Hiệu lực · Trạng thái · (Đổi/Ngừng). `hanhDong` false = dòng chỉ xem (mức của chính sách). */
+/** «Đổi, Ngừng hoặc Sửa» / «Sửa» — tên các việc của một dòng cho nhãn đọc màn hình của vùng chạm (điện thoại). */
+const noiViec = (viec: readonly string[]): string => (viec.length <= 1 ? (viec[0] ?? "") : `${viec.slice(0, -1).join(", ")} hoặc ${viec.at(-1)}`);
+
+/** Một dòng mức: Dịch vụ · Mức · Hiệu lực · Trạng thái · (Đổi/Ngừng/Sửa). `hanhDong` false = dòng chỉ xem (mức của chính sách). */
 export function dongMuc(r: Api.CommissionRuleDto, d: DuLieuHoaHong, mo: MoHop, hanhDong: boolean): HTMLElement {
   const phamVi = nhanPhamVi(r, d.ten);
   const nut = hanhDong ? nutDoiNgung(r, d.homNay) : ({ hien: false, ghiChu: "" } as const);
+  // ADR-0148: «Sửa» có cả ở dòng chưa tới ngày và dòng đã hẹn ngày ngừng (ví dụ 2027 → 2028 của chủ) — luật riêng, không theo `nutDoiNgung`.
+  const sua = hanhDong && coQuyenSua(d.nguoiDung) && nutSua(r, d.homNay);
   const act = h("div", { class: "hh-m-act" });
   if (hanhDong && nut.hien) {
     const doi = h("button", { type: "button", class: "btn", "aria-label": `Đổi: ${phamVi}` }, "Đổi");
@@ -57,6 +66,11 @@ export function dongMuc(r: Api.CommissionRuleDto, d: DuLieuHoaHong, mo: MoHop, h
     ngung.addEventListener("click", () => mo.ngung(r, urlNgung(r)));
     act.append(doi, ngung);
   } else if (!nut.hien && nut.ghiChu !== "") act.append(h("span", { class: "muted" }, nut.ghiChu));
+  if (sua) {
+    const nutS = h("button", { type: "button", class: "btn", "aria-label": `Sửa: ${phamVi}` }, "Sửa");
+    nutS.addEventListener("click", () => mo.sua(r));
+    act.append(nutS);
+  }
   const li = h(
     "li",
     { class: "hh-m", "data-dong-id": r.id },
@@ -66,32 +80,35 @@ export function dongMuc(r: Api.CommissionRuleDto, d: DuLieuHoaHong, mo: MoHop, h
     h("div", { class: "hh-m-tt" }, huyHieuTrangThai(trangThaiDong(r, d.homNay))),
     act,
   );
-  if (hanhDong && nut.hien) {
-    // Điện thoại: chạm dòng mở hộp hai việc (Đổi, Ngừng); nút nhỏ trong dòng bị CSS ẩn.
+  const viec = [...(hanhDong && nut.hien ? ["Đổi", "Ngừng"] : []), ...(sua ? ["Sửa"] : [])];
+  if (viec.length > 0) {
+    // Điện thoại: chạm dòng mở hộp các việc của dòng (Đổi, Ngừng, Sửa — có việc nào thì hiện việc đó); nút nhỏ trong dòng bị CSS ẩn.
     li.classList.add("hh-m-cham");
-    // Điện thoại: một nút thật phủ cả dòng (CSS chỉ hiện nó ở ≤ 640px, nơi nút Đổi/Ngừng bị ẩn). Dòng vẫn là mục danh sách; ở máy tính không có vai nút nào chứa nút.
-    const vung = h("button", { type: "button", class: "hh-m-vung", "aria-label": `${phamVi} · ${nhanMucDto(r)}: Đổi hoặc Ngừng` });
+    // Điện thoại: một nút thật phủ cả dòng (CSS chỉ hiện nó ở ≤ 640px, nơi nút trong dòng bị ẩn). Dòng vẫn là mục danh sách; ở máy tính không có vai nút nào chứa nút.
+    const vung = h("button", { type: "button", class: "hh-m-vung", "aria-label": `${phamVi} · ${nhanMucDto(r)}: ${noiViec(viec)}` });
     li.append(vung);
     const mot = (): void => {
       if (!window.matchMedia("(max-width: 640px)").matches) return;
-      const doi = h("button", { type: "button", class: "btn btn-primary" }, "Đổi");
-      const ngung = h("button", { type: "button", class: "btn" }, "Ngừng");
+      const viecNut: [string, () => void][] = [
+        ...(nut.hien ? ([["Ngừng", () => mo.ngung(r, urlNgung(r))], ["Đổi", () => mo.doi(r)]] as [string, () => void][]) : []),
+        ...(sua ? ([["Sửa", () => mo.sua(r)]] as [string, () => void][]) : []),
+      ];
+      const chinh = nut.hien ? "Đổi" : "Sửa";
+      const cacNut = viecNut.map(([ten]) => h("button", { type: "button", class: ten === chinh ? "btn btn-primary" : "btn" }, ten));
       const sheet = moBangTruot({
         title: phamVi,
-        body: [h("p", null, h("strong", null, nhanMucDto(r))), h("p", { class: "muted" }, nhanHieuLuc(r))],
-        foot: [ngung, doi],
+        body: [h("p", null, h("strong", null, nhanMucDto(r))), h("p", { class: "muted" }, nhanHieuLuc(r)), ...(nut.hien || nut.ghiChu === "" ? [] : [h("p", { class: "muted" }, nut.ghiChu)])],
+        foot: cacNut,
         footClass: "loc-foot",
         opener: vung,
       });
       if (!sheet) return;
-      doi.addEventListener("click", () => {
-        sheet.close(false);
-        mo.doi(r);
-      });
-      ngung.addEventListener("click", () => {
-        sheet.close(false);
-        mo.ngung(r, urlNgung(r));
-      });
+      cacNut.forEach((b, i) =>
+        b.addEventListener("click", () => {
+          sheet.close(false);
+          viecNut[i]![1]();
+        }),
+      );
     };
     vung.addEventListener("click", mot);
   }
@@ -125,7 +142,7 @@ function cumLoai(item: { loai: Api.LoaiDoiTacDto; dong: Api.CommissionRuleDto[];
   if (item.dong.length > 0) ct.append(dauBang(), h("ul", { class: "hh-mrows" }, ...item.dong.map((r) => dongMuc(r, d, mo, ghi))));
   else ct.append(h("p", { class: "muted" }, item.tatCa.length > 0 ? CAU_KHONG_KHOP_LOC : CAU_KHONG_CO_MUC));
   if (cs) {
-    const dongCs = cs.muc.dong.filter((r) => loc.chiConHieuLuc ? trangThaiDong(r, d.homNay) !== "DA_DONG" : true);
+    const dongCs = cs.muc.dong.filter((r) => (loc.chiConHieuLuc ? conApHoacSap(r, d.homNay) : true));
     const sua = chuyenThe ? h("button", { type: "button", class: "btn btn-link" }, "sửa ở Thiết lập ›") : null;
     sua?.addEventListener("click", chuyenThe!);
     ct.append(h("h3", null, `Theo chính sách ${cs.muc.ten} · áp dụng từ ${ngayDayDu(cs.gan.tuNgay)}`, " ", sua));
@@ -142,6 +159,11 @@ function cumLoai(item: { loai: Api.LoaiDoiTacDto; dong: Api.CommissionRuleDto[];
       const ngungCs = h("button", { type: "button", class: "btn" }, "Ngừng áp dụng");
       ngungCs.addEventListener("click", () => mo.ngungApDung(cs.gan));
       hang.append(doiCs, ngungCs);
+      if (coQuyenSua(d.nguoiDung) && nutSua(cs.gan, d.homNay)) {
+        const suaCs = h("button", { type: "button", class: "btn", "aria-label": `Sửa áp dụng chính sách: ${loai.ten}` }, "Sửa");
+        suaCs.addEventListener("click", () => mo.suaApDung(cs.gan));
+        hang.append(suaCs);
+      }
     }
     ct.append(hang);
   }
@@ -177,7 +199,7 @@ function cumDoiTac(x: ReturnType<typeof ghepDoiTacRieng>[number], d: DuLieuHoaHo
   if (gan) {
     ct.append(h("h3", null, `Chính sách riêng ${gan.tenMuc} · áp dụng từ ${ngayDayDu(gan.tuNgay)}`));
     const mt = d.mucTa.muc.find((m) => m.code === gan.muc);
-    const dongCs = (mt?.dong ?? []).filter((r) => (loc.chiConHieuLuc ? trangThaiDong(r, d.homNay) !== "DA_DONG" : true));
+    const dongCs = (mt?.dong ?? []).filter((r) => (loc.chiConHieuLuc ? conApHoacSap(r, d.homNay) : true));
     ct.append(dongCs.length > 0 ? h("ul", { class: "hh-mrows" }, ...dongCs.map((r) => dongMuc(r, d, mo, false))) : h("p", { class: "muted" }, CAU_KHONG_CO_MUC));
   }
   ct.append(h("p", { class: "hint" }, h("a", { href: `/parties?id=${encodeURIComponent(x.partyId)}` }, "Mở hồ sơ ở Danh bạ ›")));
