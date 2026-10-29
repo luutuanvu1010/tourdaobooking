@@ -3,7 +3,9 @@
 //  2) Kế toán thêm dòng cho mức: dịch vụ ZE1 15% (thay «Du thuyền 15%» của kế hoạch: danh mục giả của e2e chỉ có ZE1/ZE2, không có nhóm Du thuyền) ⇒ dòng mang đối tượng «Mức TA» + tên mức;
 //  3) gắn loại MỚI (dùng một lần, không có dòng riêng) vào mức từ hôm qua ⇒ 201, `dongRieng` rỗng; Bán hàng «Thử tra» ⇒ bậc 7 + tên mức + 15%;
 //  4) Bán hàng lập đơn A với bên đặt là tổ chức mang loại đó, xác nhận ⇒ bản chụp AUTO/SET 1500 trỏ ĐÚNG dòng của mức (đối chiếu SQL);
-//  5) đổi mức: kết thúc gắn cũ tới hôm qua, gắn «Đại lý cấp 2 …» (10%) từ hôm nay ⇒ đơn B xác nhận ra 10%, trỏ dòng của mức mới; đơn A GIỮ nguyên bản chụp (SQL trước / sau) và hoa hồng;
+//  5) đổi mức (ADR-0148 Q4 — đơn A đã chụp HÔM NAY nên đổi chỉ áp từ NGÀY MAI): kết thúc gắn cũ tới hôm qua ⇒ 400 câu tiếng Việt (không đóng lùi qua ngày đơn đã chụp);
+//     kết thúc tới hôm nay ⇒ 200, lần hai cùng ngày ⇒ 400; gắn «Đại lý cấp 2 …» (10%) từ ngày mai ⇒ Thử tra ngày mai ra dòng của mức mới; đơn B xác nhận HÔM NAY vẫn theo
+//     mức cũ 15%; đơn A GIỮ nguyên bản chụp (SQL trước / sau) và hoa hồng. (Đơn xác nhận ngày mai theo mức mới: bài máy chủ N-13 / SV-TA-03 chạy đồng hồ giả.)
 //  6) cảnh báo N-17: loại thứ hai còn dòng riêng «mọi dịch vụ» 8% ⇒ gắn vào mức vẫn 201 (không chặn) và `dongRieng` có đúng dòng đó;
 //  7) tắt mức ⇒ gắn mới 409 muc_tat, thêm dòng 409 muc_tat; dòng / gắn đang có vẫn áp (Thử tra loại cũ vẫn bậc 7); bật lại ⇒ gắn được; mọi câu lỗi không lộ mã thô.
 // Dùng accountant / admin / salesA / field (không đổi tài khoản dùng chung). Tên loại, tên mức và hồ sơ dùng một lần (hậu tố chữ suy từ Date.now() — tên không được chứa dãy ≥ 8 chữ số;
@@ -100,7 +102,7 @@ let vp = await thuongMai(donA.id);
 assert.deepEqual([vp.tong.thanhTien, vp.tong.hoaHong, vp.tong.giaDaiLy], [thanhTien, hhA, thanhTien - hhA]);
 console.log(`✓ 4) Đơn A (bên đặt mang loại gắn mức) xác nhận ⇒ bản chụp AUTO/SET 1500 trỏ đúng dòng của mức; hoa hồng ${hhA.toLocaleString("vi-VN")}đ`);
 
-// ---- 5) Đổi mức: kết thúc gắn cũ tới hôm qua, gắn mức mới từ hôm nay ⇒ đơn B theo mức mới, đơn A giữ
+// ---- 5) Đổi mức sau khi đơn A đã chụp hôm nay ⇒ chỉ áp từ ngày mai; đơn B hôm nay theo mức cũ, đơn A giữ
 const TA2 = phai(await call(ACC, "POST", "/api/pricing/muc-ta", { ten: TEN_TA2 }), 201, "tạo mức 2").muc.code;
 const DONG_TA2 = phai(await call(ACC, "POST", `/api/pricing/muc-ta/${TA2}/dong`, { phamVi: "SERVICE", catalogCode: "ZE1", kieu: "RATE", tyLeBp: 1000, tuNgay: HOM_QUA }), 201, "dòng mức 2").dong;
 // cùng ngày: gắn mức 2 khi gắn cũ còn mở ⇒ chồng ngày, 409 (một loại một mức tại một ngày)
@@ -108,21 +110,26 @@ r = await call(ACC, "POST", "/api/pricing/muc-ta/gan", { loai: LOAI, muc: TA2, t
 assert.equal(r.status, 409, `gắn chồng ngày phải 409: ${JSON.stringify(r.body)}`);
 assert.doesNotMatch(thongBao(r), MA_THO);
 r = await call(ACC, "POST", `/api/pricing/muc-ta/gan/${GAN1.id}/ket-thuc`, { denNgay: HOM_QUA });
-phai(r, 200, "kết thúc gắn cũ tới hôm qua");
-assert.deepEqual([r.body.gan.denNgay, r.body.gan.conHieuLuc], [HOM_QUA, false]);
-assert.equal((await call(ACC, "POST", `/api/pricing/muc-ta/gan/${GAN1.id}/ket-thuc`, { denNgay: HOM_QUA })).status, 409, "kết thúc lần hai ⇒ 409");
-phai(await call(ACC, "POST", "/api/pricing/muc-ta/gan", { loai: LOAI, muc: TA2, tuNgay: HOM_NAY }), 201, "gắn mức mới từ hôm nay");
+assert.equal(r.status, 400, `kết thúc gắn cũ tới hôm qua sau khi đơn A chụp hôm nay ⇒ 400: ${JSON.stringify(r.body)}`);
+assert.match(thongBao(r), /^Đã có đơn dùng mức này tới ngày .* — ngày kết thúc sớm nhất là /);
+assert.doesNotMatch(thongBao(r), MA_THO);
+r = await call(ACC, "POST", `/api/pricing/muc-ta/gan/${GAN1.id}/ket-thuc`, { denNgay: HOM_NAY });
+phai(r, 200, "kết thúc gắn cũ tới hôm nay");
+assert.deepEqual([r.body.gan.denNgay, r.body.gan.conHieuLuc], [HOM_NAY, true]);
+assert.equal((await call(ACC, "POST", `/api/pricing/muc-ta/gan/${GAN1.id}/ket-thuc`, { denNgay: HOM_NAY })).status, 400, "kết thúc lần hai cùng ngày ⇒ 400");
+phai(await call(ACC, "POST", "/api/pricing/muc-ta/gan", { loai: LOAI, muc: TA2, tuNgay: vnDate(1) }), 201, "gắn mức mới từ ngày mai");
 t = await thuTra(ORG.id);
-assert.deepEqual([t.ketQua.bac, t.ketQua.muc.id, t.ketQua.muc.doiTuong.ten], [7, DONG_TA2.id, TEN_TA2]);
+assert.deepEqual([t.ketQua.bac, t.ketQua.muc.id], [7, DONG_TA1.id], "hôm nay vẫn theo mức cũ");
+const traMai = phai(await call(A, "GET", `/api/pricing/thu-tra?doiTac=${ORG.id}&dichVu=ZE1&ngay=${vnDate(1)}`), 200, "thử tra ngày mai");
+assert.deepEqual([traMai.ketQua.bac, traMai.ketQua.muc.id, traMai.ketQua.muc.doiTuong.ten], [7, DONG_TA2.id, TEN_TA2], "ngày mai theo mức mới");
 const donB = await lapDon(ORG.id);
 await xacNhan(donB.id);
 const chupB = await banChup(donB.id);
-assert.deepEqual([chupB[0].st, chupB[0].bp, chupB[0].rule], ["SET", 1000, DONG_TA2.id], "đơn B theo mức mới");
+assert.deepEqual([chupB[0].st, chupB[0].bp, chupB[0].rule], ["SET", 1500, DONG_TA1.id], "đơn B xác nhận hôm nay theo mức cũ");
 assert.deepEqual(await banChup(donA.id), chupA, "đơn A GIỮ nguyên bản chụp (SQL trước / sau)");
 vp = await thuongMai(donA.id);
 assert.equal(vp.tong.hoaHong, hhA, "hoa hồng đơn A không đổi");
-assert.equal((await thuongMai(donB.id)).tong.hoaHong, lamTronNuaLen(1000 * thanhTien, 10000));
-console.log("✓ 5) Đổi mức (gắn chồng ngày 409; kết thúc gắn cũ tới hôm qua, lần hai 409; gắn mức 2 từ hôm nay) ⇒ đơn B 10% trỏ dòng mức 2; đơn A giữ nguyên bản chụp 15% và hoa hồng");
+console.log("✓ 5) Đổi mức sau khi đơn A chụp hôm nay (gắn chồng ngày 409; kết thúc tới hôm qua 400; tới hôm nay 200, lần hai 400; mức 2 từ ngày mai) ⇒ Thử tra ngày mai ra mức 2; đơn B hôm nay 15% mức cũ; đơn A giữ nguyên bản chụp và hoa hồng");
 
 // ---- 6) Cảnh báo N-17: loại còn dòng riêng ⇒ gắn vẫn 201, dongRieng có đúng dòng đó
 const RIENG = phai(await call(ACC, "POST", "/api/pricing/hoa-hong", { doiTuong: { loai: "VAI", code: LOAI2 }, phamVi: "ALL", kieu: "RATE", tyLeBp: 800, tuNgay: HOM_NAY }), 201, "dòng riêng loại 2").dong;

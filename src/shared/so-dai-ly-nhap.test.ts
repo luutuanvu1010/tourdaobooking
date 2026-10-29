@@ -115,3 +115,14 @@ test("docThanGan: { loai, muc, tuNgay, denNgay? } — thiếu loại / mức / n
   const nguoc = docThanGan({ loai: "LD_ABCDEFGH", muc: "MT_ABCDEFGH", tuNgay: "2026-10-15", denNgay: "2026-10-14" });
   assert.deepEqual(!nguoc.ok && nguoc.loi, [{ truong: "denNgay", message: "Ngày kết thúc không được trước ngày bắt đầu." }]);
 });
+
+test("ADR-0148: docLyDoSua — MỘT luật cho hộp Sửa và máy chủ: 10–300 ký tự sau khi bỏ khoảng trắng hai đầu, cấm dãy số dài (số điện thoại)", async () => {
+  const { docLyDoSua } = await import("./so-dai-ly-nhap.ts");
+  assert.deepEqual(docLyDoSua("  Nhập sai giá đại lý  "), { ok: true, value: "Nhập sai giá đại lý" });
+  for (const sai of [undefined, null, 12, "", "sai giá  ", "         x"]) assert.deepEqual(docLyDoSua(sai), { ok: false, message: "Ghi lý do sửa (ít nhất 10 ký tự)." }, String(sai));
+  assert.deepEqual(docLyDoSua("x".repeat(301)), { ok: false, message: "Lý do tối đa 300 ký tự." });
+  assert.equal(docLyDoSua("x".repeat(300)).ok, true);
+  const so = docLyDoSua("gọi lại 0901234567 hỏi giá");
+  assert.equal(so.ok, false);
+  assert.match(so.ok ? "" : so.message, /số điện thoại/);
+});

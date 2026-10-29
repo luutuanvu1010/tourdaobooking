@@ -1,6 +1,7 @@
 // SQL bản chụp thương mại (ord_service_terms — đặc tả §5). Tệp NỬA NGHIÊM của orders (src/architecture.test.ts NUA_NGHIEM): defineSql + EXPLAIN.
 // Câu chụp trong lô gác bằng CHUỖI changes() > 0 (CHANGE-GUIDE f) — không đọc audit_log. Riêng «Chụp bù» (đợt 2): câu cổng đầu lô so `updated_at` (khoá lạc quan của đơn).
 import { defineSql } from "../../shared/sql-registry.ts";
+import type { HoiDaChup } from "../../shared/router.ts";
 import type { DongGhiChup, TermRowDb } from "./thuong-mai.ts";
 
 const COT = `id, order_id, order_service_id, beneficiary_party_id, commission_status, missing_reason, commission_kind, commission_rate_bp, commission_per_pax, commission_rule_id,
@@ -49,6 +50,14 @@ const LA_NHA_CUNG_CAP = defineSql("orders", "is_supplier", "SELECT 1 AS ok FROM 
 // Nhóm hiện hành của một mã dịch vụ — CÙNG view công bố `v_ctl_service_group` mà trigger `prc_supply_term_x3` đọc, để luật X3 ở đường ghi tay và ở bảng điều khoản nhận nhóm theo một nguồn.
 const NHOM_CUA_MA = defineSql("orders", "service_group_of", "SELECT group_code FROM v_ctl_service_group WHERE catalog_code = ?1");
 
+// «Đã chụp chưa» (ADR-0148 Đ1, kế hoạch Q1): ngày chụp GẦN NHẤT. Đếm MỌI bản chụp trỏ dòng — cả bản đã bị thay và bản MANUAL (ghi tay chỉ đổi người bán chép mã dòng của bản
+// trước, `apGhiTay`): thừa chứ không thiếu — coi «đã chụp» khi thật ra chưa chỉ mất đường huỷ hẳn, không mất dữ liệu. Gắn ↔ chính sách: bản chụp không ghi gắn nào đã dùng ⇒ hỏi
+// qua dòng mức của chính sách (view công bố `v_prc_commission_rule`, chỉ khoá + mã), ngày chụp trong khoảng của gắn, (gắn đối tác) người hưởng = hồ sơ.
+const CHUP_GAN_NHAT_MUC = defineSql("orders", "terms_last_capture_rule", "SELECT MAX(captured_date) AS d FROM ord_service_terms WHERE commission_rule_id = ?1");
+const CHUP_GAN_NHAT_GAN = defineSql("orders", "terms_last_capture_tier",
+  `SELECT MAX(t.captured_date) AS d FROM ord_service_terms t JOIN v_prc_commission_rule r ON r.id = t.commission_rule_id
+   WHERE r.target_tier_code = ?1 AND t.captured_date >= ?2 AND t.captured_date <= COALESCE(?3, '9999-12-31') AND (?4 IS NULL OR t.beneficiary_party_id = ?4)`);
+
 const bindDong =(st: D1PreparedStatement, d: DongGhiChup) => st.bind(d.id, d.orderId, d.serviceId, d.beneficiaryPartyId, d.commissionStatus, d.missingReason, d.commissionKind, d.rateBp, d.perPax,
   d.ruleId, d.supplyStatus, d.sellerPartyId, d.supplierPartyId, d.costRateBp, d.termId, d.source, d.reason, d.supersedesId, d.capturedDate, d.at, d.by);
 /** Mỗi dòng một câu `INSERT … SELECT … WHERE changes() > 0`: đặt SAU câu nhật ký `confirmed` (chính nó `changes() > 0`) thì chuỗi nối từ câu `UPDATE orders` — lệnh thua không ghi gì. */
@@ -81,3 +90,10 @@ export const tenHoSo = async (db: D1Database, ids: readonly string[]): Promise<M
 /** Nhóm hiện hành của mã dịch vụ; null = Chưa phân loại hoặc mã không có trong danh mục. */
 export const nhomCuaMa = async (db: D1Database, catalogCode: string): Promise<string | null> => (await db.prepare(NHOM_CUA_MA).bind(catalogCode).first<{ group_code: string | null }>())?.group_code ?? null;
 export const laNhaCungCap = async(db: D1Database, partyId: string): Promise<boolean> => (await db.prepare(LA_NHA_CUNG_CAP).bind(partyId).first()) !== null;
+/**
+ * ADR-0148 Đ1: ngày chụp gần nhất của một dòng mức / một gắn ↔ chính sách (null = chưa có bản chụp nào). CHỈ gốc lắp ráp gọi (tiêm vào `ctx.hoiDaChup` cho route của pricing — bài
+ * siết ở src/architecture.test.ts). MỘT truy vấn.
+ */
+export const ngayChupGanNhat = async (db: D1Database, q: HoiDaChup): Promise<string | null> =>
+  (q.loai === "MUC" ? await db.prepare(CHUP_GAN_NHAT_MUC).bind(q.ruleId).first<{ d: string | null }>()
+    : await db.prepare(CHUP_GAN_NHAT_GAN).bind(q.tierCode, q.tu, q.den, q.partyId).first<{ d: string | null }>())?.d ?? null;

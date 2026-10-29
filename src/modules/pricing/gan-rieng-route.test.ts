@@ -158,7 +158,7 @@ test("ĐƯỜNG TÍNH THỬ ĐƠN NHÁP: bên đặt ORG gắn riêng TA2 ⇒ 12
   assert.equal(chup(w, id).length, 0);
 });
 
-test("TC4 kết thúc mức riêng ⇒ về mức theo loại (Thử tra bậc 9); kết thúc lần hai 409; nhật ký; gắn lại sau khi kết thúc được", async () => {
+test("TC4 kết thúc mức riêng ⇒ về mức theo loại (Thử tra bậc 9); kết thúc lần hai ⇒ 400 «đã hết hạn» (ADR-0148); nhật ký; gắn lại sau khi kết thúc được", async () => {
   const w = setup();
   const { ta2 } = await nen(w);
   const r = await ok(ganRieng(w, ORG, ta2), 201);
@@ -167,7 +167,8 @@ test("TC4 kết thúc mức riêng ⇒ về mức theo loại (Thử tra bậc 9
   const k = await ok(w.call("POST", `/api/pricing/muc-rieng/${id}/ket-thuc`, { as: ADM, body: { denNgay: homQua } }), 200, "kết thúc");
   assert.equal(k.json.mucRieng, null, "đã hết hiệu lực hôm nay");
   assert.deepEqual([(await thuTra(w, ORG)).ketQua.bac, (await thuTra(w, ORG)).ketQua.muc.tyLeBp], [9, 1000]);
-  assert.equal((await w.call("POST", `/api/pricing/muc-rieng/${id}/ket-thuc`, { as: ADM, body: { denNgay: homQua } })).status, 409);
+  const lai = await w.call("POST", `/api/pricing/muc-rieng/${id}/ket-thuc`, { as: ADM, body: { denNgay: homQua } });
+  assert.deepEqual([lai.status, lai.json.error.message], [400, "Mức này đã hết hạn nên không ngừng được."]);
   assert.equal(nhatKy(w, "prc_party_tier_closed").length, 1);
   await ok(ganRieng(w, ORG, ta2, vnHomNay(), SA), 201, "gắn lại từ hôm nay (Toàn quyền)");
 });
@@ -201,8 +202,10 @@ test("bảng chỉ-thêm (D1): CSDL chặn xoá gắn riêng, đổi mức / ng�
   loi("UPDATE prc_party_tier SET tier_code = ? WHERE id = ?", ta1, id);
   loi("UPDATE prc_party_tier SET valid_from_date = '2026-02-01' WHERE id = ?", id);
   w.sqlite.prepare("UPDATE prc_party_tier SET valid_to_date = '2026-12-31', updated_at = ? WHERE id = ?").run(AT, id); // đóng lần một: được
-  loi("UPDATE prc_party_tier SET valid_to_date = '2026-12-30' WHERE id = ?", id);
-  assert.deepEqual(w.q("SELECT tier_code, valid_from_date, valid_to_date FROM prc_party_tier").map((r: object) => ({ ...r })), [{ tier_code: ta2, valid_from_date: "2026-01-01", valid_to_date: "2026-12-31" }]);
+  loi("UPDATE prc_party_tier SET valid_to_date = '2027-01-01' WHERE id = ?", id); // kéo dài: chặn
+  // ADR-0148 (migration 0126) sửa câu ADR-0138 «chỉ đóng một lần»: RÚT NGẮN ngày kết thúc nay được (máy chủ giữ luật «không qua ngày đã chụp»).
+  w.sqlite.prepare("UPDATE prc_party_tier SET valid_to_date = '2026-12-30', updated_at = ? WHERE id = ?").run(AT, id);
+  assert.deepEqual(w.q("SELECT tier_code, valid_from_date, valid_to_date FROM prc_party_tier").map((r: object) => ({ ...r })), [{ tier_code: ta2, valid_from_date: "2026-01-01", valid_to_date: "2026-12-30" }]);
 });
 
 test("TC4 quyền (D2): Bán hàng, HDV, Nhân sự, Đối tác, Tài xế, Tài xế đối tác, lai Kế toán + Đối tác ⇒ 403 cả gắn lẫn kết thúc; Kế toán, Quản trị, Toàn quyền được", async () => {

@@ -2761,6 +2761,8 @@ export interface CommissionRuleDto {
   /** ADR-0133: ba số tiền «mỗi khách» theo loại (người lớn = moiKhach); null = dòng không khai theo loại. Chỉ văn phòng thấy (cùng tỷ lệ, không vào DTO Đối tác). */
   theoLoai: { nguoiLon: number; treEm: number; nguoiCaoTuoi: number } | null;
   tuNgay: string; denNgay: string | null; ghiChu: string | null; conHieuLuc: boolean;
+  /** ADR-0148: dòng đã huỷ (chưa đơn nào chụp, đã thay hẳn bằng dòng sửa) — không bao giờ áp, `conHieuLuc` luôn false; `thayCho` = mã dòng mà dòng này thay; `lyDoSua` = lý do của lần sửa đó. */
+  daHuy: boolean; thayCho: string | null; lyDoSua: string | null;
 }
 /** «Đổi mức» một bước: dòng cũ (đã có ngày ngừng) và dòng mới. */
 export interface DoiMucResponse { cu: CommissionRuleDto; moi: CommissionRuleDto }
@@ -2789,7 +2791,11 @@ export interface LoaiDoiTacResponse { loai: LoaiDoiTacDto }
  * Mức TA dùng chung (ADR-0117 lần 2): bộ hoa hồng có tên; loại đối tác gắn vào mức theo ngày (mỗi loại tối đa một mức tại một ngày). `dangBat` = false ⇒ không gắn mới,
  * không thêm dòng mới; dòng và gắn đang có VẪN áp (giả định kế hoạch, N-23). Chỉ văn phòng có `partner.commission.view` và KHÔNG giữ quyền Đối tác đọc được.
  */
-export interface GanLoaiMucDto { id: string; loai: { code: string; ten: string }; muc: { code: string; ten: string }; tuNgay: string; denNgay: string | null; conHieuLuc: boolean }
+export interface GanLoaiMucDto {
+  id: string; loai: { code: string; ten: string }; muc: { code: string; ten: string }; tuNgay: string; denNgay: string | null; conHieuLuc: boolean;
+  /** ADR-0148: như CommissionRuleDto. */
+  daHuy: boolean; thayCho: string | null; lyDoSua: string | null;
+}
 export interface MucTaDto { code: string; ten: string; dangBat: boolean; dong: CommissionRuleDto[]; gan: GanLoaiMucDto[] }
 /** Mức TA gắn RIÊNG cho một hồ sơ (ADR-0138), đang hoặc sắp hiệu lực. Chỉ mã, tên hồ sơ, tên mức, ngày — không SĐT/email. */
 export interface GanRiengDto { id: string; partyId: string; ten: string; muc: string; tenMuc: string; tuNgay: string; denNgay: string | null }
@@ -2808,6 +2814,15 @@ export interface HoaHongHoSoResponse {
   /** ADR-0138: mức TA gắn RIÊNG cho hồ sơ, đang hiệu lực hôm nay (null = không) — có thì mức theo loại bị bỏ qua cho hồ sơ này. `id` cho nút «Kết thúc». */
   mucRieng: { id: string; muc: { code: string; ten: string; dangBat: boolean }; tuNgay: string; denNgay: string | null } | null;
 }
+/**
+ * ADR-0148 Đ1: xem trước «Sửa» một dòng có ngày (mức, gắn loại, gắn đối tác — `GET …/:id/sua`). HUY_THAY = chưa đơn nào dùng dòng này: sửa sẽ huỷ dòng cũ và thay hẳn. TU_NGAY = đã có
+ * đơn dùng: phần sửa áp từ `tuNgaySomNhat`, bắt đầu không sau `denNgayToiDa` (ngày kết thúc của dòng cũ; null = không thời hạn); đơn cũ giữ mức cũ.
+ */
+export type SuaXemTruocResponse = { homNay: string } & ({ duong: "HUY_THAY" } | { duong: "TU_NGAY"; tuNgaySomNhat: string; denNgayToiDa: string | null });
+/** ADR-0148 Đ1: kết quả «Sửa» một dòng mức (dòng cũ đã huỷ hoặc đã đóng, dòng mới mang `thayCho`). */
+export interface SuaMucResponse { duong: "HUY_THAY" | "TU_NGAY"; cu: CommissionRuleDto; moi: CommissionRuleDto }
+/** ADR-0148 Đ1: kết quả «Sửa» một gắn loại ↔ chính sách; `dongRieng` như GanLoaiMucResponse (dòng riêng của loại thắng chính sách — cảnh báo). */
+export interface SuaGanLoaiResponse { duong: "HUY_THAY" | "TU_NGAY"; cu: GanLoaiMucDto; moi: GanLoaiMucDto; dongRieng: CommissionRuleDto[] }
 export interface NguoiHuongTimResponse { ketQua: { partyId: string; ten: string; loai: "PERSON" | "ORGANIZATION" }[] }
 
 // ===== Phần thương mại của đơn (sổ đại lý đợt 1 — ADR-0077 điều 10–11; đặc tả §6). HAI DTO danh sách trắng: văn phòng thấy mức, hoa hồng, giá đại lý, cờ thiếu mức;

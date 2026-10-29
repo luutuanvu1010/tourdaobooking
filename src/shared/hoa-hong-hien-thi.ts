@@ -1,7 +1,7 @@
 // Chữ và luật hiển thị thuần của hai màn «Hoa hồng đối tác» (/hoa-hong) và «Người bán dịch vụ» (/nguoi-ban) — web/hoa-hong.ts, web/nguoi-ban.ts (sổ đại lý đợt 1, Task 10).
 // Nhãn mức đi qua MỘT nguồn `nhanMuc` / `nhanTyLeBp` (so-dai-ly-nhan.ts); không mã thô (RATE, PER_PAX, MISSING, NONE…) ra người dùng. Giao diện không tính tiền, không chọn mức:
 // «mức nào thắng» do máy chủ trả (`bac`), ở đây chỉ dịch bậc ra lời.
-import type { CommissionRuleDto, DoiTuongMucDto, GanLoaiMucDto, LoaiDoiTacDto, MucTaDto, MucTaListResponse, SupplyTermDto, ThuTraResponse } from "./contracts.ts";
+import type { CommissionRuleDto, DoiTuongMucDto, GanLoaiMucDto, LoaiDoiTacDto, MucTaDto, MucTaListResponse, SuaXemTruocResponse, SupplyTermDto, ThuTraResponse } from "./contracts.ts";
 import { ngayVN } from "./giay-to-hien-thi.ts";
 import { can, holdsPartner, type PermissionHolder } from "./permissions.ts";
 import { CAU_THIEU_MUC, nhanMuc, nhanTyLeBp } from "./so-dai-ly-nhan.ts";
@@ -54,14 +54,23 @@ export function nhanDoiTuong(d: DoiTuongMucDto): { ten: string; loai: string } {
   return d.loai === "VAI" ? { ten: d.ten, loai: "Loại đối tác" } : d.loai === "MUC" ? { ten: d.ten, loai: "Chính sách" } : { ten: d.ten, loai: "Một đối tác" };
 }
 
-export type TrangThaiDong = "DANG_AP" | "SAP_AP" | "DA_DONG";
-export const NHAN_TRANG_THAI: Record<TrangThaiDong, string> = { DANG_AP: "Đang áp dụng", SAP_AP: "Sắp áp dụng", DA_DONG: "Đã ngừng" };
-/** Đang áp dụng = `conHieuLuc` của máy chủ; chưa tới ngày bắt đầu = «Sắp áp dụng»; còn lại (đã qua ngày kết thúc) = «Đã ngừng». */
-export function trangThaiDong(d: { conHieuLuc: boolean; denNgay: string | null }, homNay: string): TrangThaiDong {
+export type TrangThaiDong = "DANG_AP" | "SAP_AP" | "DA_DONG" | "DA_HUY";
+export const NHAN_TRANG_THAI: Record<TrangThaiDong, string> = { DANG_AP: "Đang áp dụng", SAP_AP: "Sắp áp dụng", DA_DONG: "Đã ngừng", DA_HUY: "Đã huỷ — thay bằng dòng khác" };
+/**
+ * Đang áp dụng = `conHieuLuc` của máy chủ; chưa tới ngày bắt đầu = «Sắp áp dụng»; còn lại (đã qua ngày kết thúc) = «Đã ngừng». ADR-0148: dòng đã huỷ (nhập sai, đã có dòng
+ * thay) = «Đã huỷ» — trước mọi ca khác (dòng huỷ mang ngày kết thúc tương lai hoặc trống, nếu không sẽ rơi vào «Sắp áp dụng»).
+ */
+export function trangThaiDong(d: { conHieuLuc: boolean; denNgay: string | null; daHuy?: boolean }, homNay: string): TrangThaiDong {
+  if (d.daHuy) return "DA_HUY";
   if (d.conHieuLuc) return "DANG_AP";
   return d.denNgay !== null && d.denNgay < homNay ? "DA_DONG" : "SAP_AP";
 }
-/** Nút «Đóng» chỉ cho dòng chưa có ngày kết thúc (máy chủ chỉ đóng dòng `valid_to` trống; dòng đã có ngày kết thúc thì 409). */
+/** Bộ lọc «Đang và sắp áp dụng» giữ dòng này? Bỏ dòng đã ngừng VÀ dòng đã huỷ (hai thứ chỉ hiện ở «Tất cả»). Mọi bộ lọc trạng thái của trang đi qua hàm này. */
+export const conApHoacSap = (d: { conHieuLuc: boolean; denNgay: string | null; daHuy?: boolean }, homNay: string): boolean => {
+  const tt = trangThaiDong(d, homNay);
+  return tt !== "DA_DONG" && tt !== "DA_HUY";
+};
+/** Dòng chưa có ngày kết thúc (điều khoản người bán: máy chủ chỉ đóng dòng `valid_to` trống). Dòng mức hoa hồng từ ADR-0148 rút ngắn được ngày kết thúc chưa qua (`kiemNgung`). */
 export const dongDongDuoc = (d: { denNgay: string | null }): boolean => d.denNgay === null;
 
 const chuanTim = (s: string): string => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/gi, "d").toLowerCase().trim();
@@ -79,12 +88,12 @@ export interface BoLoc {
 export function locMuc(dong: readonly CommissionRuleDto[], bo: BoLoc, homNay: string, ten: TenDanhMuc): CommissionRuleDto[] {
   const tim = chuanTim(bo.tim);
   return dong.filter(
-    (d) => (!bo.chiConHieuLuc || trangThaiDong(d, homNay) !== "DA_DONG") && (tim === "" || chuanTim(d.doiTuong.ten).includes(tim) || chuanTim(nhanPhamVi(d, ten)).includes(tim)),
+    (d) => (!bo.chiConHieuLuc || conApHoacSap(d, homNay)) && (tim === "" || chuanTim(d.doiTuong.ten).includes(tim) || chuanTim(nhanPhamVi(d, ten)).includes(tim)),
   );
 }
 /** Lọc danh sách điều khoản: theo trạng thái. */
 export function locDieuKhoan(dong: readonly SupplyTermDto[], chiConHieuLuc: boolean, homNay: string): SupplyTermDto[] {
-  return dong.filter((d) => !chiConHieuLuc || trangThaiDong(d, homNay) !== "DA_DONG");
+  return dong.filter((d) => !chiConHieuLuc || conApHoacSap(d, homNay));
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -181,12 +190,24 @@ export const boDongMucTa = (dong: readonly CommissionRuleDto[]): CommissionRuleD
  * Nút «Đổi» / «Ngừng» chỉ cho dòng đang áp dụng (kể cả dòng bắt đầu hôm nay — chủ dự án 28/10) và chưa có ngày ngừng; ngược lại trả ghi chú (có thể rỗng).
  * Dòng bắt đầu hôm nay: Đổi sớm nhất từ ngày mai (`ngayDoiSomNhat`, khớp `kiemDoi` của máy chủ), Ngừng sớm nhất đến hết hôm nay (`kiemNgayDong`).
  */
-export function nutDoiNgung(d: { tuNgay: string; denNgay: string | null; conHieuLuc: boolean }, homNay: string): { hien: true } | { hien: false; ghiChu: string } {
+export function nutDoiNgung(d: { tuNgay: string; denNgay: string | null; conHieuLuc: boolean; daHuy?: boolean }, homNay: string): { hien: true } | { hien: false; ghiChu: string } {
+  if (d.daHuy) return { hien: false, ghiChu: "" }; // ADR-0148: dòng đã huỷ chỉ còn ở lịch sử, không nút, không ghi chú «chưa tới ngày»
   if (d.conHieuLuc && d.tuNgay <= homNay && d.denNgay === null) return { hien: true };
   if (!d.conHieuLuc && d.tuNgay > homNay) return { hien: false, ghiChu: "chưa tới ngày" };
   if (d.conHieuLuc && d.denNgay !== null && d.denNgay >= homNay) return { hien: false, ghiChu: `ngừng sau ${ngayVN(d.denNgay)}` };
   return { hien: false, ghiChu: "" };
 }
+
+/**
+ * ADR-0148 Đ1: nút «Sửa» cho dòng chưa huỷ có ngày kết thúc trống hoặc CHƯA QUA — kể cả dòng chưa tới ngày (ví dụ 2027 → 2028 của chủ) và dòng đã hẹn ngày ngừng. Dòng đã hết
+ * hạn thì không (máy chủ: «Mức này đã hết hạn nên không sửa được»). Đường huỷ–thay hay «từ ngày» do máy chủ trả ở bước xem trước, giao diện không đoán.
+ */
+export const nutSua = (d: { denNgay: string | null; daHuy?: boolean }, homNay: string): boolean => !d.daHuy && (d.denNgay === null || d.denNgay >= homNay);
+/** Ai thấy nút «Sửa» (tiêu chí 4): người ghi bảng mức (`partner.commission.write`) KHÔNG mang quyền Đối tác — cùng cổng với route Sửa của máy chủ. */
+export const coQuyenSua = (s: PermissionHolder): boolean => can(s, "partner.commission.write") && !holdsPartner(s);
+/** Câu đầu hộp Sửa, theo đường máy chủ trả ở `GET …/sua`. `cai` = «mức này» (dòng mức) hoặc «chính sách này» (lần áp dụng chính sách). */
+export const cauXemTruocSua = (x: SuaXemTruocResponse, cai = "mức này"): string =>
+  x.duong === "HUY_THAY" ? `Chưa có đơn nào dùng ${cai} — sửa sẽ thay hẳn.` : `Đã có đơn dùng ${cai} — phần sửa áp từ ngày ${ngayVN(x.tuNgaySomNhat)}; đơn cũ giữ mức cũ.`;
 
 /** Ô «Từ» của hộp «Đổi»: không trước hôm nay và phải sau ngày bắt đầu của mức cũ (máy chủ: `kiemDoi`). Mức cũ bắt đầu hôm nay ⇒ ngày mai. */
 export const ngayDoiSomNhat = (tuNgayCu: string, homNay: string): string => (tuNgayCu >= homNay ? addDays(tuNgayCu, 1) : homNay);
@@ -217,7 +238,7 @@ export function xepLoai<T extends { ten: string; coMuc: boolean }>(ds: readonly 
 export function ghepDoiTacRieng(dong: readonly CommissionRuleDto[], ganRieng: MucTaListResponse["ganRieng"], homNay: string): { partyId: string; ten: string; mucRieng: boolean; chinhSach: string | null }[] {
   const m = new Map<string, { partyId: string; ten: string; mucRieng: boolean; chinhSach: string | null }>();
   for (const d of dong) {
-    if (d.doiTuong.loai !== "DOI_TAC" || trangThaiDong(d, homNay) === "DA_DONG") continue;
+    if (d.doiTuong.loai !== "DOI_TAC" || !conApHoacSap(d, homNay)) continue;
     m.set(d.doiTuong.partyId, { partyId: d.doiTuong.partyId, ten: d.doiTuong.ten, mucRieng: true, chinhSach: null });
   }
   for (const g of ganRieng) {
@@ -233,7 +254,7 @@ export function dongRiengDoiTac(dong: readonly CommissionRuleDto[], partyId: str
   const cua = dong.filter((d) => d.doiTuong.loai === "DOI_TAC" && d.doiTuong.partyId === partyId);
   const tim = chuanTim(bo.tim);
   const tenDt = cua[0]?.doiTuong.ten ?? "";
-  if (tim === "" || chuanTim(tenDt).includes(tim)) return cua.filter((d) => !bo.chiConHieuLuc || trangThaiDong(d, homNay) !== "DA_DONG");
+  if (tim === "" || chuanTim(tenDt).includes(tim)) return cua.filter((d) => !bo.chiConHieuLuc || conApHoacSap(d, homNay));
   return locMuc(cua, bo, homNay, ten);
 }
 
@@ -262,7 +283,7 @@ export function locBangLoai<L extends { code: string; ten: string }>(loai: reado
   const ra: { loai: L; dong: CommissionRuleDto[] }[] = [];
   for (const l of loai) {
     const cua = dong.filter((d) => d.doiTuong.loai === "VAI" && d.doiTuong.code === l.code);
-    const theoTrangThai = cua.filter((d) => !bo.chiConHieuLuc || trangThaiDong(d, homNay) !== "DA_DONG");
+    const theoTrangThai = cua.filter((d) => !bo.chiConHieuLuc || conApHoacSap(d, homNay));
     if (tim === "") ra.push({ loai: l, dong: theoTrangThai });
     else if (chuanTim(l.ten).includes(tim)) ra.push({ loai: l, dong: theoTrangThai });
     else {

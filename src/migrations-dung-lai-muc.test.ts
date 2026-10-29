@@ -30,7 +30,8 @@ function dungTruoc(): DatabaseSync {
   const db = new DatabaseSync(":memory:");
   db.exec("PRAGMA foreign_keys = OFF");
   // Trừ 0116 (ADR-0133): bảng phụ của nó trỏ `prc_commission_rule`, mà trên production luôn áp SAU 0097 — áp trước 0097 thì DROP bảng cha làm trigger của nó hỏng.
-  for (const f of files.filter((x) => x !== FILE && !x.endsWith("_chiet_khau_theo_loai_khach.sql"))) db.exec(readFileSync(new URL(f, DIR), "utf8"));
+  // Trừ 0126 (ADR-0148): thay trigger close_only / chồng ngày của bảng mức, đọc cột `target_tier_code` do 0097 thêm — production cũng luôn áp nó SAU 0097.
+  for (const f of files.filter((x) => x !== FILE && !x.endsWith("_chiet_khau_theo_loai_khach.sql") && !x.endsWith("_sua_muc_huy_thay.sql"))) db.exec(readFileSync(new URL(f, DIR), "utf8"));
   // Kiểm định kỳ (scripts/audit-checks.mjs) nay đọc ba số theo loại của bản chụp (ADR-0133): bảng rỗng, không khoá/trigger — để câu SQL chạy được ở trạng thái trước 0097 (0116 không áp ở đây).
   db.exec("CREATE TABLE ord_service_terms_pax (terms_id TEXT, adult_amount INTEGER, child_amount INTEGER, senior_amount INTEGER)");
   db.exec("PRAGMA foreign_keys = ON");
@@ -119,7 +120,7 @@ const fkCheck = (db: DatabaseSync) => all(db, "PRAGMA foreign_key_check");
 interface Check { code: string; sql: string; level: string; mode?: "rows" }
 const { CHECKS } = (await import(new URL("../scripts/audit-checks.mjs", import.meta.url).href)) as { CHECKS: Check[] };
 /** Kiểm định kỳ mức «fail» khác 0 — đúng cách scripts/audit-invariants.mjs đọc kết quả. */
-const auditDo = (db: DatabaseSync, boQua: RegExp | null = null): string[] => CHECKS.filter((c) => c.level === "fail" && !(boQua && boQua.test(c.sql))).flatMap((c) => {
+const auditDo = (db: DatabaseSync, boQua: ((c: Check) => boolean) | null = null): string[] => CHECKS.filter((c) => c.level === "fail" && !(boQua && boQua(c))).flatMap((c) => {
   const rows = all<Record<string, unknown>>(db, c.sql.replace(/\s+/g, " ").trim());
   const n = c.mode === "rows" ? rows.length : Number(Object.values(rows[0] ?? { n: 0 })[0]);
   return n > 0 ? [`${c.code}=${n}`] : [];
@@ -191,10 +192,14 @@ test("N-15: dữ liệu còn nguyên từng dòng, số dòng MỌI bảng trư�
     assert.notEqual(r.note, r.created_by); assert.notEqual(r.valid_from_date, r.created_at);
   }
   assert.deepEqual(fkCheck(db), [], "dữ liệu gieo phải sạch khoá ngoại TRƯỚC khi dựng");
-  // TRƯỚC 0097 bỏ qua hai kiểm cần cột mới (R-PRC-1/2 nhắc target_tier_code — chưa có cột thì câu lỗi); mọi kiểm mức fail còn lại phải sạch.
-  assert.deepEqual(auditDo(db, /target_tier_code/), [], "audit-invariants (mức fail) sạch trên dữ liệu gieo TRƯỚC khi dựng");
+  // TRƯỚC 0097 bỏ qua ĐÚNG các kiểm cần cột mới: nhắc target_tier_code (R-PRC-1/2), và kiểm R-PRC-* nhắc voided_at của 0126 (R-PRC-1/2/5/7) — chưa có cột thì câu lỗi.
+  // Kiểm của bảng khác cũng có cột voided_at riêng (R-PTY-*, R-VC-*) vẫn chạy. Mọi kiểm mức fail còn lại phải sạch.
+  const canCotMoi = (c: Check) => /target_tier_code/.test(c.sql) || (c.code.startsWith("R-PRC-") && /voided_at/.test(c.sql));
+  assert.deepEqual(auditDo(db, canCotMoi), [], "audit-invariants (mức fail) sạch trên dữ liệu gieo TRƯỚC khi dựng");
   apDungLai(db);
-  assert.deepEqual(auditDo(db), [], "audit-invariants (mức fail) sạch sau khi dựng — gồm R-PRC-1, R-PRC-2 mới");
+  // Production luôn áp 0126 (ADR-0148, dấu huỷ) SAU 0097 ⇒ áp tiếp rồi mới chạy ĐỦ mọi kiểm (câu kiểm nay đọc voided_at). 0126 chỉ thêm cột NULL + thay trigger: dữ liệu không đổi.
+  db.exec(readFileSync(new URL(files.find((f) => f.endsWith("_sua_muc_huy_thay.sql"))!, DIR), "utf8"));
+  assert.deepEqual(auditDo(db), [], "audit-invariants (mức fail) sạch sau khi dựng (và 0126) — gồm R-PRC-1, R-PRC-2 mới");
   assert.equal(db.isTransaction, false);
   assert.deepEqual(demMoiBang(db, ten), dem0, "số dòng mọi bảng trước = sau");
   assert.deepEqual(all(db, `SELECT ${COT_CU} FROM prc_commission_rule ORDER BY id`), muc0, "từng dòng mức giữ nguyên mọi cột cũ");

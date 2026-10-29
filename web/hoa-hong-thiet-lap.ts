@@ -1,6 +1,6 @@
 // Thẻ «Thiết lập» của trang «Hoa hồng đối tác»: (a) loại đối tác được hưởng hoa hồng và chính sách mỗi loại đang theo, (b) các chính sách hoa hồng dùng chung (bảng mức, áp dụng cho loại, tắt/bật).
 // Trang không tính tiền, không chọn mức: số và lời đến từ máy chủ / luật thuần ở src/shared/hoa-hong-hien-thi.ts. Mọi nút ghi chỉ dựng cho người có `partner.commission.write` (máy chủ kiểm lại).
-import { CAU_KHONG_CO_LOAI, CAU_KHONG_CO_MUC, CAU_KHONG_CO_MUC_TA, CAU_LOAI_CO_SAN, NHAN_LOAI_DA_TAT, chinhSachCuaLoai, nhanLoaiDoiTac, trangThaiDong } from "../src/shared/hoa-hong-hien-thi";
+import { CAU_KHONG_CO_LOAI, CAU_KHONG_CO_MUC, CAU_KHONG_CO_MUC_TA, CAU_LOAI_CO_SAN, NHAN_LOAI_DA_TAT, chinhSachCuaLoai, coQuyenSua, conApHoacSap, nhanLoaiDoiTac, nutSua } from "../src/shared/hoa-hong-hien-thi";
 import { can } from "../src/shared/permissions";
 import { ngayDayDu } from "../src/shared/vn-date";
 import type { Api } from "./api";
@@ -29,6 +29,13 @@ function nutBatTat(nhan: string, ariaLabel: string, path: string, ok: string, mo
   return n;
 }
 
+/** Nút «Sửa» một lần áp dụng chính sách cho loại (ADR-0148 Đ1). Nơi gọi đã hỏi `coQuyenSua` + `nutSua`. */
+function nutSuaGan(g: Api.GanLoaiMucDto, mo: MoHop): HTMLElement {
+  const n = h("button", { type: "button", class: "btn", "aria-label": `Sửa áp dụng chính sách: ${g.loai.ten}` }, "Sửa");
+  n.addEventListener("click", () => mo.suaApDung(g));
+  return n;
+}
+
 function mucLoai(d: DuLieuHoaHong, mo: MoHop, ghi: boolean): HTMLElement {
   const muc = h("section", { class: "hh-muc" }, h("h2", { class: "hh-muc-ten" }, "Loại đối tác được hưởng hoa hồng"));
   const loiEl = h("p", { class: "sheet-warn", role: "alert", hidden: true });
@@ -50,6 +57,7 @@ function mucLoai(d: DuLieuHoaHong, mo: MoHop, ghi: boolean): HTMLElement {
               const ngung = h("button", { type: "button", class: "btn", "aria-label": `Ngừng áp dụng: ${l.ten}` }, "Ngừng áp dụng");
               ngung.addEventListener("click", () => mo.ngungApDung(cs.gan));
               act.append(doi, ngung);
+              if (coQuyenSua(d.nguoiDung) && nutSua(cs.gan, d.homNay)) act.append(nutSuaGan(cs.gan, mo));
             }
           }
           return h(
@@ -75,7 +83,7 @@ function mucLoai(d: DuLieuHoaHong, mo: MoHop, ghi: boolean): HTMLElement {
 function theChinhSach(m: Api.MucTaDto, d: DuLieuHoaHong, mo: MoHop, ghi: boolean): HTMLElement {
   const dangAp = m.gan.filter((g) => g.conHieuLuc);
   const riengN = d.mucTa.ganRieng.filter((g) => g.muc === m.code).length;
-  const dongHien = m.dong.filter((r) => trangThaiDong(r, d.homNay) !== "DA_DONG");
+  const dongHien = m.dong.filter((r) => conApHoacSap(r, d.homNay));
   const loiEl = h("p", { class: "sheet-warn", role: "alert", hidden: true });
   const dau = h(
     "div",
@@ -108,7 +116,7 @@ function theChinhSach(m: Api.MucTaDto, d: DuLieuHoaHong, mo: MoHop, ghi: boolean
           ...dangAp.map((g) => {
             const n = h("button", { type: "button", class: "btn", "aria-label": `Ngừng áp dụng: ${g.loai.ten}` }, "Ngừng áp dụng");
             n.addEventListener("click", () => mo.ngungApDung(g));
-            return h("li", null, h("span", null, `${g.loai.ten} · từ ${ngayDayDu(g.tuNgay)}`), n);
+            return h("li", null, h("span", null, `${g.loai.ten} · từ ${ngayDayDu(g.tuNgay)}`), n, coQuyenSua(d.nguoiDung) && nutSua(g, d.homNay) ? nutSuaGan(g, mo) : null);
           }),
         ),
       );

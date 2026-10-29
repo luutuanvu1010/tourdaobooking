@@ -1120,6 +1120,16 @@ test("ADR-0049 D2 (siết, kế hoạch mục 1.6): chỉ gốc lắp ráp (src/
   assert.deepEqual(problems, [], "orders nhận mốc qua ctx.mocToiThieu — không gọi thẳng hàm công bố của van-chuyen");
 });
 
+test("ADR-0148 Đ1 (siết, kế hoạch 2026-10-29 Task 3): chỉ gốc lắp ráp (src/index.ts) và module orders nhắc `ngayChupGanNhat` trong mã (bỏ chú thích) — pricing hỏi qua ctx.hoiDaChup", () => {
+  const problems: string[] = [];
+  for (const file of walk(SRC)) {
+    const rel = relative(ROOT, file).split(sep).join("/");
+    if (rel === "src/index.ts" || rel.startsWith("src/modules/orders/")) continue;
+    if (/\bngayChupGanNhat\b/.test(maskSource(readFileSync(file, "utf8"), { strings: false, comments: true }))) problems.push(rel);
+  }
+  assert.deepEqual(problems, [], "pricing không phụ thuộc orders: «đã chụp chưa» đi qua ctx.hoiDaChup do gốc lắp ráp tiêm — không gọi thẳng hàm công bố của orders");
+});
+
 test("ADR-0104 Đ2.1 (siết): chỉ gốc lắp ráp (src/index.ts) và module van-chuyen nhắc `dongBoChuyenChoDon` trong mã (bỏ chú thích) — orders / dispatch nối qua ctx.dongBoChuyen", () => {
   const problems: string[] = [];
   for (const file of walk(SRC)) {

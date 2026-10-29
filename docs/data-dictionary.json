@@ -808,19 +808,19 @@
       "name": "prc_role_tier",
       "module": "pricing",
       "kind": "table",
-      "note": "gắn loại hồ sơ với mức TA theo ngày (ADR-0117 lần 2; migration 0096): chỉ thêm hoặc đóng một lần, mỗi loại tối đa một mức tại một ngày (prc_tier_overlap); loại phải nằm trong danh sách được hưởng còn bật (prc_tier_target), mức phải còn bật (prc_tier_inactive). Đổi mức = đóng gắn cũ, mở gắn mới"
+      "note": "gắn loại hồ sơ với mức TA theo ngày (ADR-0117 lần 2; migration 0096): chỉ thêm, đóng / rút ngắn ngày kết thúc, hoặc huỷ một lần khi chưa đơn nào chụp (ADR-0148, migration 0126 — voided_at/voided_by; dòng thay thế mang replaces_id + change_reason); mỗi loại tối đa một mức chưa huỷ tại một ngày (prc_tier_overlap); loại phải nằm trong danh sách được hưởng còn bật (prc_tier_target), mức phải còn bật (prc_tier_inactive). Đổi mức = đóng gắn cũ, mở gắn mới"
     },
     {
       "name": "prc_party_tier",
       "module": "pricing",
       "kind": "table",
-      "note": "mức TA gắn RIÊNG cho một hồ sơ đối tác theo ngày (ADR-0138; migration 0118): chỉ thêm hoặc đóng một lần, mỗi hồ sơ tối đa một mức riêng tại một ngày (prc_party_tier_overlap); hồ sơ phải đang mở vai thuộc loại được hưởng còn bật (prc_target_not_beneficiary, đọc v_pty_open_role), mức phải còn bật (prc_tier_inactive). Có gắn riêng thì `chonMuc` xét mức này ở bậc 10–12 và bỏ qua mức TA của loại"
+      "note": "mức TA gắn RIÊNG cho một hồ sơ đối tác theo ngày (ADR-0138; migration 0118): chỉ thêm, đóng / rút ngắn ngày kết thúc, hoặc huỷ một lần khi chưa đơn nào chụp (ADR-0148, migration 0126 — như prc_role_tier); mỗi hồ sơ tối đa một mức riêng chưa huỷ tại một ngày (prc_party_tier_overlap); hồ sơ phải đang mở vai thuộc loại được hưởng còn bật (prc_target_not_beneficiary, đọc v_pty_open_role), mức phải còn bật (prc_tier_inactive). Có gắn riêng thì `chonMuc` xét mức này ở bậc 10–12 và bỏ qua mức TA của loại"
     },
     {
       "name": "prc_commission_rule",
       "module": "pricing",
       "kind": "table",
-      "note": "bảng mức hoa hồng đối tác (ADR-0077 điều 4; migration 0090, dựng lại ở 0097 — ADR-0117 lần 2), chính sách có hiệu lực: áp cho đúng MỘT trong ba đích — một hồ sơ, một vai, hoặc một mức TA (target_tier_code → prc_rate_tier); phạm vi dịch vụ / nhóm / mọi dịch vụ; kiểu tỷ lệ (phần vạn) hoặc đ/khách. Không xoá, chỉ đóng hiệu lực một lần (không đổi số hay đích, kể cả mức), không hai dòng cùng đích + phạm vi chồng khoảng ngày (khoá gồm cả mức: hai mức khác nhau cùng có dòng mọi dịch vụ được); hồ sơ / vai phải đang được hưởng, mức phải còn bật (prc_tier_inactive). Tỷ lệ và đ/khách KHÔNG vào DTO của Đối tác (C9 = A)"
+      "note": "bảng mức hoa hồng đối tác (ADR-0077 điều 4; migration 0090, dựng lại ở 0097 — ADR-0117 lần 2), chính sách có hiệu lực: áp cho đúng MỘT trong ba đích — một hồ sơ, một vai, hoặc một mức TA (target_tier_code → prc_rate_tier); phạm vi dịch vụ / nhóm / mọi dịch vụ; kiểu tỷ lệ (phần vạn) hoặc đ/khách. Không xoá, không đổi số hay đích (kể cả mức); chỉ đóng / rút ngắn ngày kết thúc, hoặc HUỶ một lần (ADR-0148, migration 0126: voided_at/voided_by — máy chủ chỉ huỷ dòng chưa đơn nào chụp; dòng huỷ không bao giờ áp, view công bố loại nó). Nút «Sửa» thêm dòng mới mang replaces_id → dòng cũ + change_reason (10–500 ký tự). Không hai dòng CHƯA HUỶ cùng đích + phạm vi chồng khoảng ngày (khoá gồm cả mức: hai mức khác nhau cùng có dòng mọi dịch vụ được); hồ sơ / vai phải đang được hưởng, mức phải còn bật (prc_tier_inactive). Tỷ lệ và đ/khách KHÔNG vào DTO của Đối tác (C9 = A)"
     },
     {
       "name": "prc_commission_rule_pax",
@@ -1406,11 +1406,11 @@
     "order_service": { "id": "N1", "order_id": "N1", "sort_order": "N1", "catalog_code": "N1", "name": "N1", "unit": "N1", "pax_adult": "N1", "pax_child": "N1", "pax_senior": "N1", "pax_infant": "N1", "depart_date": "N1", "depart_time": "N1", "pickup_time": "N1", "pickup_place": "N2", "checkin_date": "N1", "checkin_time": "N1", "checkin_place": "N2", "note": "N2", "pickup_choice": "N1" },
     "orders": { "id": "N1", "order_code": "N1", "staff_id": "N1", "status": "N1", "customer_name": "N2", "customer_phone": "N2", "customer_email": "N2", "customer_note": "N2", "subtotal": "N1", "discount": "N1", "total": "N1", "deposit_amount": "N1", "deposit_method": "N1", "remaining_amount": "N1", "payment_note": "N2", "created_at": "N1", "updated_at": "N1", "confirmed_at": "N1", "booker_party_id": "N1", "delivered_at": "N1", "delivered_by": "N1", "completed_at": "N1", "completed_by": "N1" },
     "prc_beneficiary_role": { "role_type_code": "N1", "active": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
-    "prc_commission_rule": { "id": "N1", "target_party_id": "N1", "target_role_code": "N1", "scope": "N1", "catalog_code": "N1", "group_code": "N1", "kind": "N1", "rate_bp": "N1", "per_pax_amount": "N1", "valid_from_date": "N1", "valid_to_date": "N1", "note": "N2", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "target_tier_code": "N1" },
+    "prc_commission_rule": { "id": "N1", "target_party_id": "N1", "target_role_code": "N1", "scope": "N1", "catalog_code": "N1", "group_code": "N1", "kind": "N1", "rate_bp": "N1", "per_pax_amount": "N1", "valid_from_date": "N1", "valid_to_date": "N1", "note": "N2", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "target_tier_code": "N1", "voided_at": "N1", "voided_by": "N1", "replaces_id": "N1", "change_reason": "N2" },
     "prc_commission_rule_pax": { "rule_id": "N1", "adult_amount": "N1", "child_amount": "N1", "senior_amount": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "prc_rate_tier": { "code": "N1", "name": "N1", "name_key": "N1", "active": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
-    "prc_role_tier": { "id": "N1", "role_type_code": "N1", "tier_code": "N1", "valid_from_date": "N1", "valid_to_date": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
-    "prc_party_tier": { "id": "N1", "party_id": "N1", "tier_code": "N1", "valid_from_date": "N1", "valid_to_date": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "prc_role_tier": { "id": "N1", "role_type_code": "N1", "tier_code": "N1", "valid_from_date": "N1", "valid_to_date": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "voided_at": "N1", "voided_by": "N1", "replaces_id": "N1", "change_reason": "N2" },
+    "prc_party_tier": { "id": "N1", "party_id": "N1", "tier_code": "N1", "valid_from_date": "N1", "valid_to_date": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "voided_at": "N1", "voided_by": "N1", "replaces_id": "N1", "change_reason": "N2" },
     "prc_supply_term": { "id": "N1", "scope": "N1", "catalog_code": "N1", "group_code": "N1", "seller_party_id": "N1", "supplier_party_id": "N1", "cost_rate_bp": "N1", "valid_from_date": "N1", "valid_to_date": "N1", "note": "N2", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "pty_bank": { "code": "N1", "bin": "N1", "short_name": "N1", "name": "N1", "sort_order": "N1", "active": "N1" },
     "pty_bank_account": { "id": "N1", "party_id": "N1", "bank_code": "N1", "account_number": "N1", "account_name": "N1", "valid_from": "N1", "valid_to": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },

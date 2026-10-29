@@ -1,6 +1,7 @@
 // Đọc ô nhập của màn bảng mức / người bán (thuần). Tỷ lệ lưu bằng PHẦN VẠN nguyên (12,5% = 1250) — không số thực ở bất kỳ đâu.
 // Máy chủ vẫn kiểm lại mọi thân gửi (src/modules/pricing/rules.ts); ở đây chỉ để báo lỗi ngay dưới ô trước khi gửi, bằng chữ tiếng Việt.
 import { nhanDong } from "./so-dai-ly-nhan.ts";
+import { hasLongDigitRun, PHONE_IN_TEXT_MESSAGE } from "./text-guards.ts";
 import { isISODate } from "./vn-date.ts";
 
 export function docTyLePhanTram(raw: string): { ok: true; bp: number } | { ok: false; message: string } {
@@ -26,7 +27,7 @@ export function docTienMoiKhach(raw: string): { ok: true; dong: number } | { ok:
 // Đọc cả form thành thân gửi máy chủ. Lỗi gom theo ô (người dùng thấy hết một lượt, không phải sửa từng lỗi một); thân chỉ có khi KHÔNG có lỗi nào.
 
 export type PhamViForm = "SERVICE" | "GROUP" | "ALL";
-export type TruongLoi = "doiTuong" | "phamVi" | "muc" | "tuNgay" | "denNgay" | "ghiChu" | "nguoiBan" | "tyLeMua" | "loai" | "mucTa";
+export type TruongLoi = "doiTuong" | "phamVi" | "muc" | "tuNgay" | "denNgay" | "ghiChu" | "nguoiBan" | "tyLeMua" | "loai" | "mucTa" | "lyDo";
 export interface LoiO {
   readonly truong: TruongLoi;
   readonly message: string;
@@ -225,4 +226,16 @@ export function docNgayDong(raw: string, tuNgay: string): { ok: true; body: { de
   if (!isISODate(s)) return { ok: false, message: "Chọn ngày kết thúc." };
   if (s < tuNgay) return { ok: false, message: "Ngày kết thúc không được trước ngày bắt đầu của dòng." };
   return { ok: true, body: { denNgay: s } };
+}
+
+/**
+ * Lý do của nút «Sửa» (ADR-0148 Đ1): MỘT luật cho hộp Sửa ở giao diện và cho máy chủ (`kiemSua`, src/modules/pricing/rules.ts) — 10–300 ký tự sau khi bỏ khoảng trắng hai đầu,
+ * không dãy số dài (lý do lưu ở `change_reason`, không vào nhật ký).
+ */
+export function docLyDoSua(raw: unknown): { ok: true; value: string } | { ok: false; message: string } {
+  const s = typeof raw === "string" ? raw.trim() : "";
+  if (s.length < 10) return { ok: false, message: "Ghi lý do sửa (ít nhất 10 ký tự)." };
+  if (s.length > 300) return { ok: false, message: "Lý do tối đa 300 ký tự." };
+  if (hasLongDigitRun(s)) return { ok: false, message: PHONE_IN_TEXT_MESSAGE };
+  return { ok: true, value: s };
 }
