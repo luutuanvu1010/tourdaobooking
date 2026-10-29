@@ -25,8 +25,8 @@
     // `wrangler secret put`, không bao giờ vào tệp này. Lệch cặp → khoaVapid trả null, mục "Thông báo trên điện thoại" tự ẩn.
     "VAPID_PUBLIC_KEY": "BHV2LNBkriTGu-5WlSl21vx_6NvVaRbxVPUILrBbyuFfOINyaoNPq5sEPFnYAG2Yf4lca_VsMysTXLTCfaTbr3w"
   },
-  // UI tĩnh (public/) phục vụ qua Workers Assets; /api/* luôn vào Worker trước, và `/giao-dien.css` (màu giao diện công ty, ADR-0102 — do Worker dựng từ D1, không phải tệp tĩnh). JS trong public/js do `npm run build:web` sinh từ web/. `not_found_handling: 404-page` (Đợt 0 Task 12): địa chỉ lạ nhận public/404.html (status 404) thay vì rơi sang Worker; ngoài /api/* Worker chỉ có /giao-dien.css (đã nằm trong run_worker_first) nên không đường nào mất.
-  "assets": { "directory": "./public", "binding": "ASSETS", "run_worker_first": ["/api/*", "/giao-dien.css"], "not_found_handling": "404-page" },
+  // UI tĩnh (public/) phục vụ qua Workers Assets; /api/* luôn vào Worker trước, và `/giao-dien.css` (màu giao diện công ty, ADR-0102 — do Worker dựng từ D1, không phải tệp tĩnh). JS trong public/js do `npm run build:web` sinh từ web/. `not_found_handling: 404-page` (Đợt 0 Task 12): địa chỉ lạ nhận public/404.html (status 404) thay vì rơi sang Worker; ngoài /api/* Worker chỉ có /giao-dien.css (đã nằm trong run_worker_first) nên không đường nào mất; `/__scheduled` (điểm giả lập Cron của `wrangler dev --test-scheduled`, e2e dùng) cũng phải vào Worker trước, không thì nhận trang 404 — production Cron không đi qua HTTP nên đường này ở production chỉ trả 404 của Worker.
+  "assets": { "directory": "./public", "binding": "ASSETS", "run_worker_first": ["/api/*", "/giao-dien.css", "/__scheduled"], "not_found_handling": "404-page" },
   "build": { "command": "npm run build:web", "watch_dir": "web" },
   "d1_databases": [
     {
