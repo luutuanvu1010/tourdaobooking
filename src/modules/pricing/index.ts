@@ -229,7 +229,7 @@ export const pricingModule: AppModule = {
       const tenVai = await tenLoaiVai(env.DB);
       const at = new Date().toISOString();
       const res = await chayLo(env.DB, [
-        closeRuleStatement(env.DB, id, den.value, at, staff.id),
+        closeRuleStatement(env.DB, id, den.value, row.valid_to_date, at, staff.id),
         auditStatement(env.DB, { staffId: staff.id, action: "prc_commission_rule_closed", at,
           detail: `${moTaMuc({ doiTuong: tenDoiTuongNhatKy(row, tenVai), scope: row.scope, catalogCode: row.catalog_code, groupCode: row.group_code, kind: row.kind, rateBp: row.rate_bp, perPaxAmount: row.per_pax_amount, theoLoai: theoLoaiCua(row) })} · đến ${den.value}` }, "changes() > 0"),
       ]);
@@ -351,7 +351,7 @@ export const pricingModule: AppModule = {
       const tenMuc = new Map([[row.tier_code, muc?.name ?? row.tier_code]]);
       const at = new Date().toISOString();
       const res = await chayLo(env.DB, [
-        closeRoleTierStatement(env.DB, id, den.value, at, staff.id),
+        closeRoleTierStatement(env.DB, id, den.value, row.valid_to_date, at, staff.id),
         auditStatement(env.DB, { staffId: staff.id, action: "prc_role_tier_closed", at,
           detail: `${tenVai.get(row.role_type_code) ?? row.role_type_code} → ${tenMuc.get(row.tier_code)} · đến ${den.value}` }, "changes() > 0"),
       ]);
@@ -450,7 +450,7 @@ export const pricingModule: AppModule = {
       const muc = await rateTierByCode(env.DB, row.tier_code);
       const at = new Date().toISOString();
       const res = await chayLo(env.DB, [
-        closePartyTierStatement(env.DB, id, den.value, at, staff.id),
+        closePartyTierStatement(env.DB, id, den.value, row.valid_to_date, at, staff.id),
         auditStatement(env.DB, { staffId: staff.id, action: "prc_party_tier_closed", at, detail: `mức riêng ${muc?.name ?? row.tier_code} · đến ${den.value}` }, "changes() > 0"),
       ]);
       if (res instanceof Response) return res;

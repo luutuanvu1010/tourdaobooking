@@ -201,8 +201,10 @@ test("bảng chỉ-thêm (D1): CSDL chặn xoá gắn riêng, đổi mức / ng�
   loi("UPDATE prc_party_tier SET tier_code = ? WHERE id = ?", ta1, id);
   loi("UPDATE prc_party_tier SET valid_from_date = '2026-02-01' WHERE id = ?", id);
   w.sqlite.prepare("UPDATE prc_party_tier SET valid_to_date = '2026-12-31', updated_at = ? WHERE id = ?").run(AT, id); // đóng lần một: được
-  loi("UPDATE prc_party_tier SET valid_to_date = '2026-12-30' WHERE id = ?", id);
-  assert.deepEqual(w.q("SELECT tier_code, valid_from_date, valid_to_date FROM prc_party_tier").map((r: object) => ({ ...r })), [{ tier_code: ta2, valid_from_date: "2026-01-01", valid_to_date: "2026-12-31" }]);
+  loi("UPDATE prc_party_tier SET valid_to_date = '2027-01-01' WHERE id = ?", id); // kéo dài: chặn
+  // ADR-0148 (migration 0126) sửa câu ADR-0138 «chỉ đóng một lần»: RÚT NGẮN ngày kết thúc nay được (máy chủ giữ luật «không qua ngày đã chụp»).
+  w.sqlite.prepare("UPDATE prc_party_tier SET valid_to_date = '2026-12-30', updated_at = ? WHERE id = ?").run(AT, id);
+  assert.deepEqual(w.q("SELECT tier_code, valid_from_date, valid_to_date FROM prc_party_tier").map((r: object) => ({ ...r })), [{ tier_code: ta2, valid_from_date: "2026-01-01", valid_to_date: "2026-12-30" }]);
 });
 
 test("TC4 quyền (D2): Bán hàng, HDV, Nhân sự, Đối tác, Tài xế, Tài xế đối tác, lai Kế toán + Đối tác ⇒ 403 cả gắn lẫn kết thúc; Kế toán, Quản trị, Toàn quyền được", async () => {

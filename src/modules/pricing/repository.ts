@@ -9,23 +9,27 @@ export interface RuleRow {
   target_tier_code: string | null; tier_name: string | null;
   /** ADR-0133: số tiền trẻ em / người cao tuổi của dòng phụ `prc_commission_rule_pax` (người lớn = per_pax_amount). Cả hai null = dòng không khai theo loại. */
   pax_child: number | null; pax_senior: number | null;
+  /** ADR-0148 (migration 0126): dấu huỷ (dòng chưa đơn nào chụp, đã thay hẳn), dòng mà dòng này thay, lý do sửa. Câu «tra» loại dòng huỷ; câu «lịch sử» trả cả dòng huỷ. */
+  voided_at: string | null; replaces_id: string | null; change_reason: string | null;
 }
 export interface TierRow { code: string; name: string; active: number }
-export interface RoleTierRow { id: string; role_type_code: string; tier_code: string; valid_from_date: string; valid_to_date: string | null }
+export interface RoleTierRow { id: string; role_type_code: string; tier_code: string; valid_from_date: string; valid_to_date: string | null; voided_at: string | null; replaces_id: string | null; change_reason: string | null }
 /** ADR-0138 (migration 0118): mức TA gắn riêng cho một hồ sơ. */
-export interface PartyTierRow { id: string; party_id: string; tier_code: string; valid_from_date: string; valid_to_date: string | null }
+export interface PartyTierRow { id: string; party_id: string; tier_code: string; valid_from_date: string; valid_to_date: string | null; voided_at: string | null; replaces_id: string | null; change_reason: string | null }
 export interface TermRow {
   id: string; scope: "SERVICE" | "GROUP" | "ALL"; catalog_code: string | null; group_code: string | null; seller_party_id: string; supplier_party_id: string | null;
   cost_rate_bp: number | null; valid_from_date: string; valid_to_date: string | null; note: string | null; seller_name: string | null;
 }
-const COT_MUC = `r.id, r.target_party_id, r.target_role_code, r.scope, r.catalog_code, r.group_code, r.kind, r.rate_bp, r.per_pax_amount, r.valid_from_date, r.valid_to_date, r.note, r.target_tier_code, p.child_amount AS pax_child, p.senior_amount AS pax_senior`;
+const COT_MUC = `r.id, r.target_party_id, r.target_role_code, r.scope, r.catalog_code, r.group_code, r.kind, r.rate_bp, r.per_pax_amount, r.valid_from_date, r.valid_to_date, r.note, r.target_tier_code, p.child_amount AS pax_child, p.senior_amount AS pax_senior,
+  r.voided_at, r.replaces_id, r.change_reason`;
 const COT_DK = `t.id, t.scope, t.catalog_code, t.group_code, t.seller_party_id, t.supplier_party_id, t.cost_rate_bp, t.valid_from_date, t.valid_to_date, t.note`;
 const MUC_TAT_CA = defineSql("pricing", "rules_all",
   `SELECT ${COT_MUC}, l.display_name AS target_name, mt.name AS tier_name FROM prc_commission_rule r LEFT JOIN prc_commission_rule_pax p ON p.rule_id = r.id LEFT JOIN v_pty_party_label l ON l.id = r.target_party_id
      LEFT JOIN prc_rate_tier mt ON mt.code = r.target_tier_code
    ORDER BY (r.valid_to_date IS NOT NULL), r.valid_from_date DESC, r.id`);
 const MUC_NGAY = defineSql("pricing", "rules_on",
-  `SELECT ${COT_MUC}, NULL AS target_name, NULL AS tier_name FROM prc_commission_rule r LEFT JOIN prc_commission_rule_pax p ON p.rule_id = r.id WHERE r.valid_from_date <= ?1 AND (r.valid_to_date IS NULL OR r.valid_to_date >= ?1)`);
+  `SELECT ${COT_MUC}, NULL AS target_name, NULL AS tier_name FROM prc_commission_rule r LEFT JOIN prc_commission_rule_pax p ON p.rule_id = r.id
+   WHERE r.voided_at IS NULL AND r.valid_from_date <= ?1 AND (r.valid_to_date IS NULL OR r.valid_to_date >= ?1)`);
 const MUC_ID = defineSql("pricing", "rule_by_id", `SELECT ${COT_MUC}, l.display_name AS target_name, mt.name AS tier_name FROM prc_commission_rule r LEFT JOIN prc_commission_rule_pax p ON p.rule_id = r.id LEFT JOIN v_pty_party_label l ON l.id = r.target_party_id
    LEFT JOIN prc_rate_tier mt ON mt.code = r.target_tier_code WHERE r.id = ?1`);
 const MUC_THEM = defineSql("pricing", "rule_insert",
@@ -33,8 +37,17 @@ const MUC_THEM = defineSql("pricing", "rule_insert",
      created_at, created_by, updated_at, updated_by, target_tier_code) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?13, ?14, ?15)`);
 const MUC_PAX_THEM = defineSql("pricing", "rule_pax_insert",
   `INSERT INTO prc_commission_rule_pax (rule_id, adult_amount, child_amount, senior_amount, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?5, ?6)`);
+// Đóng / rút ngắn (ADR-0148): khoá lạc quan = ngày kết thúc ĐÃ ĐỌC (?5; NULL = chưa có) và chưa huỷ — người khác vừa đóng / rút ngắn / huỷ ⇒ 0 dòng ⇒ 409, không ghi đè.
 const MUC_DONG = defineSql("pricing", "rule_close",
-  `UPDATE prc_commission_rule SET valid_to_date = ?2, updated_at = ?3, updated_by = ?4 WHERE id = ?1 AND valid_to_date IS NULL`);
+  `UPDATE prc_commission_rule SET valid_to_date = ?2, updated_at = ?3, updated_by = ?4 WHERE id = ?1 AND voided_at IS NULL AND valid_to_date IS ?5`);
+// Huỷ (ADR-0148 Đ1.2 — chỉ dòng chưa đơn nào chụp; máy chủ hỏi trước qua `ctx`): cùng khoá lạc quan. Không đổi ngày (trigger close_only chặn đổi cột khác cùng lúc).
+const MUC_HUY = defineSql("pricing", "rule_void",
+  `UPDATE prc_commission_rule SET voided_at = ?2, voided_by = ?3, updated_at = ?2, updated_by = ?3 WHERE id = ?1 AND voided_at IS NULL AND valid_to_date IS ?4`);
+// Dòng thay thế của «Sửa»: ngày bắt đầu NOT NULL chỉ có khi câu huỷ / đóng đứng ngay trước đã đổi được dòng cũ (khuôn MUC_DOI_THEM — VALUES + CASE).
+const MUC_SUA_THEM = defineSql("pricing", "rule_edit_insert",
+  `INSERT INTO prc_commission_rule (id, target_party_id, target_role_code, scope, catalog_code, group_code, kind, rate_bp, per_pax_amount, valid_from_date, valid_to_date, note,
+     created_at, created_by, updated_at, updated_by, target_tier_code, replaces_id, change_reason)
+   VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, CASE WHEN changes() > 0 THEN ?10 END, ?11, ?12, ?13, ?14, ?13, ?14, ?15, ?16, ?17)`);
 // «Đổi mức» (một bước): dòng mới mang ĐÍCH (ba loại) + phạm vi của dòng cũ (nơi gọi truyền từ dòng đã đọc). Điều kiện `changes() > 0` = câu đóng ngay trước đã đóng được dòng cũ: nếu không,
 // `valid_from_date` thành NULL ⇒ vi phạm NOT NULL ⇒ cả lô bị huỷ (không dòng mới, không nhật ký) và route trả 409 `stale`. Dùng VALUES + CASE thay vì `INSERT … SELECT … WHERE changes() > 0`
 // vì dạng INSERT…SELECT vào bảng có con của module khác (ord_service_terms) bị `architecture.test.ts` tính là đọc xuyên module.
@@ -88,11 +101,11 @@ const MUC_TA_THEM = defineSql("pricing", "rate_tier_insert",
   `INSERT INTO prc_rate_tier (code, name, name_key, active, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, 1, ?4, ?5, ?4, ?5)`);
 // Chỉ đổi dòng khi mức CHƯA ở trạng thái đích ⇒ bên thua một lượt tranh chấp không ghi gì (nhật ký đi theo `changes() > 0`).
 const MUC_TA_DAT = defineSql("pricing", "rate_tier_set_active", "UPDATE prc_rate_tier SET active = ?2, updated_at = ?3, updated_by = ?4 WHERE code = ?1 AND active <> ?2");
-const COT_GAN = "g.id, g.role_type_code, g.tier_code, g.valid_from_date, g.valid_to_date";
+const COT_GAN = "g.id, g.role_type_code, g.tier_code, g.valid_from_date, g.valid_to_date, g.voided_at, g.replaces_id, g.change_reason";
 const GAN_TAT_CA = defineSql("pricing", "role_tiers_all", `SELECT ${COT_GAN} FROM prc_role_tier g ORDER BY (g.valid_to_date IS NOT NULL), g.valid_from_date DESC, g.id`);
 // Gắn hiệu lực ở ?1 (cho `chonMuc`): KHÔNG lọc theo `prc_rate_tier.active` — mức đã tắt vẫn áp cho gắn đang có (N-23).
 const GAN_NGAY = defineSql("pricing", "role_tiers_on",
-  `SELECT ${COT_GAN} FROM prc_role_tier g WHERE g.valid_from_date <= ?1 AND (g.valid_to_date IS NULL OR g.valid_to_date >= ?1)`);
+  `SELECT ${COT_GAN} FROM prc_role_tier g WHERE g.voided_at IS NULL AND g.valid_from_date <= ?1 AND (g.valid_to_date IS NULL OR g.valid_to_date >= ?1)`);
 const GAN_ID = defineSql("pricing", "role_tier_by_id", `SELECT ${COT_GAN} FROM prc_role_tier g WHERE g.id = ?1`);
 const GAN_THEM = defineSql("pricing", "role_tier_insert",
   `INSERT INTO prc_role_tier (id, role_type_code, tier_code, valid_from_date, valid_to_date, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?6, ?7)`);
@@ -101,30 +114,41 @@ const GAN_THEM = defineSql("pricing", "role_tier_insert",
 const GAN_DOI_THEM = defineSql("pricing", "role_tier_change_insert",
   `INSERT INTO prc_role_tier (id, role_type_code, tier_code, valid_from_date, valid_to_date, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, CASE WHEN changes() > 0 THEN ?4 END, NULL, ?5, ?6, ?5, ?6)`);
 const GAN_DONG = defineSql("pricing", "role_tier_close",
-  `UPDATE prc_role_tier SET valid_to_date = ?2, updated_at = ?3, updated_by = ?4 WHERE id = ?1 AND valid_to_date IS NULL`);
+  `UPDATE prc_role_tier SET valid_to_date = ?2, updated_at = ?3, updated_by = ?4 WHERE id = ?1 AND voided_at IS NULL AND valid_to_date IS ?5`);
+const GAN_HUY = defineSql("pricing", "role_tier_void",
+  `UPDATE prc_role_tier SET voided_at = ?2, voided_by = ?3, updated_at = ?2, updated_by = ?3 WHERE id = ?1 AND voided_at IS NULL AND valid_to_date IS ?4`);
+const GAN_SUA_THEM = defineSql("pricing", "role_tier_edit_insert",
+  `INSERT INTO prc_role_tier (id, role_type_code, tier_code, valid_from_date, valid_to_date, created_at, created_by, updated_at, updated_by, replaces_id, change_reason)
+   VALUES (?1, ?2, ?3, CASE WHEN changes() > 0 THEN ?4 END, ?5, ?6, ?7, ?6, ?7, ?8, ?9)`);
 // Cảnh báo N-17 (Ruling điều phối): dòng riêng theo LOẠI (bậc 4–6, thắng TA) còn hiệu lực trong khoảng [?2, ?3 | mãi], của loại ?1 VÀ của mọi loại mà một hồ sơ đang mang loại ?1
 // cũng đang mang (đọc qua view công bố v_pty_open_role) — với hồ sơ ấy, dòng riêng của loại kia vẫn thắng dòng TA.
 const DONG_RIENG_CHO_GAN = defineSql("pricing", "role_rules_for_tier_link",
   `SELECT ${COT_MUC}, NULL AS target_name, NULL AS tier_name FROM prc_commission_rule r LEFT JOIN prc_commission_rule_pax p ON p.rule_id = r.id
-   WHERE r.target_role_code IS NOT NULL
+   WHERE r.target_role_code IS NOT NULL AND r.voided_at IS NULL
      AND (r.target_role_code = ?1 OR r.target_role_code IN (SELECT o2.role_type_code FROM v_pty_open_role o1 JOIN v_pty_open_role o2 ON o2.party_id = o1.party_id WHERE o1.role_type_code = ?1))
      AND r.valid_from_date <= COALESCE(?3, '9999-12-31') AND COALESCE(r.valid_to_date, '9999-12-31') >= ?2
    ORDER BY r.target_role_code, r.valid_from_date, r.id`);
-// ADR-0138 (migration 0118): gắn mức RIÊNG của MỘT hồ sơ — mọi dòng (đang mở trước, rồi mới nhất). Ít dòng mỗi hồ sơ; lọc ngày ở `chonMuc` / `hieuLuc`.
+// ADR-0138 (migration 0118): gắn mức RIÊNG của MỘT hồ sơ — mọi dòng CHƯA HUỶ (đang mở trước, rồi mới nhất). Ít dòng mỗi hồ sơ; lọc ngày ở `chonMuc` / `hieuLuc`.
+// Câu TRA (docBangChoChup, khối «Hoa hồng hiện hành»): dòng huỷ (ADR-0148) không bao giờ vào `chonMuc` — CSDL không có lớp chặn cho gắn (bản chụp chỉ ghi mã dòng mức).
 // KHÔNG lọc theo `prc_rate_tier.active` — như gắn theo loại (N-23).
-const COT_GAN_RIENG = "g.id, g.party_id, g.tier_code, g.valid_from_date, g.valid_to_date";
+const COT_GAN_RIENG = "g.id, g.party_id, g.tier_code, g.valid_from_date, g.valid_to_date, g.voided_at, g.replaces_id, g.change_reason";
 const GAN_RIENG_HO_SO = defineSql("pricing", "party_tiers_of",
-  `SELECT ${COT_GAN_RIENG} FROM prc_party_tier g WHERE g.party_id = ?1 ORDER BY (g.valid_to_date IS NOT NULL), g.valid_from_date DESC, g.id`);
+  `SELECT ${COT_GAN_RIENG} FROM prc_party_tier g WHERE g.party_id = ?1 AND g.voided_at IS NULL ORDER BY (g.valid_to_date IS NOT NULL), g.valid_from_date DESC, g.id`);
 const GAN_RIENG_ID = defineSql("pricing", "party_tier_by_id", `SELECT ${COT_GAN_RIENG} FROM prc_party_tier g WHERE g.id = ?1`);
 const GAN_RIENG_THEM = defineSql("pricing", "party_tier_insert",
   `INSERT INTO prc_party_tier (id, party_id, tier_code, valid_from_date, valid_to_date, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?6, ?7)`);
 const GAN_RIENG_DONG = defineSql("pricing", "party_tier_close",
-  `UPDATE prc_party_tier SET valid_to_date = ?2, updated_at = ?3, updated_by = ?4 WHERE id = ?1 AND valid_to_date IS NULL`);
-// Màn «Mức TA»: gắn mức riêng đang và sắp hiệu lực (chưa ngừng, hoặc ngừng từ hôm nay trở đi). Tên hồ sơ qua view công bố v_pty_party_label; không SĐT/email.
+  `UPDATE prc_party_tier SET valid_to_date = ?2, updated_at = ?3, updated_by = ?4 WHERE id = ?1 AND voided_at IS NULL AND valid_to_date IS ?5`);
+const GAN_RIENG_HUY = defineSql("pricing", "party_tier_void",
+  `UPDATE prc_party_tier SET voided_at = ?2, voided_by = ?3, updated_at = ?2, updated_by = ?3 WHERE id = ?1 AND voided_at IS NULL AND valid_to_date IS ?4`);
+const GAN_RIENG_SUA_THEM = defineSql("pricing", "party_tier_edit_insert",
+  `INSERT INTO prc_party_tier (id, party_id, tier_code, valid_from_date, valid_to_date, created_at, created_by, updated_at, updated_by, replaces_id, change_reason)
+   VALUES (?1, ?2, ?3, CASE WHEN changes() > 0 THEN ?4 END, ?5, ?6, ?7, ?6, ?7, ?8, ?9)`);
+// Màn «Mức TA»: gắn mức riêng đang và sắp hiệu lực (chưa ngừng, hoặc ngừng từ hôm nay trở đi), chưa huỷ. Tên hồ sơ qua view công bố v_pty_party_label; không SĐT/email.
 const GAN_RIENG_DANG_SAP = defineSql("pricing", "party_tiers_current",
   `SELECT g.id, g.party_id, l.display_name AS party_name, g.tier_code, t.name AS tier_name, g.valid_from_date, g.valid_to_date
    FROM prc_party_tier g JOIN v_pty_party_label l ON l.id = g.party_id JOIN prc_rate_tier t ON t.code = g.tier_code
-   WHERE g.valid_to_date IS NULL OR g.valid_to_date >= ?1
+   WHERE g.voided_at IS NULL AND (g.valid_to_date IS NULL OR g.valid_to_date >= ?1)
    ORDER BY g.valid_from_date, l.display_name, g.id`);
 const NHA_CUNG_CAP = defineSql("pricing", "suppliers",
   `SELECT l.id, l.display_name FROM v_pty_party_label l WHERE l.active = 1 AND EXISTS (SELECT 1 FROM v_pty_open_role r WHERE r.party_id = l.id AND r.role_type_code = 'SUPPLIER')
@@ -147,11 +171,29 @@ export const cauDoiMuc = (db: D1Database, cuId: string, moiId: string, denNgayCu
   cu: { targetPartyId: string | null; targetRoleCode: string | null; targetTierCode: string | null; scope: string; catalogCode: string | null; groupCode: string | null },
   v: { kind: string; rateBp: number | null; perPaxAmount: number | null; theoLoai?: { adult: number; child: number; senior: number } | null; validFrom: string; validTo: string | null; note: string | null },
   at: string, by: string): D1PreparedStatement[] => [
-  db.prepare(MUC_DONG).bind(cuId, denNgayCu, at, by),
+  db.prepare(MUC_DONG).bind(cuId, denNgayCu, at, by, null),
   db.prepare(MUC_DOI_THEM).bind(moiId, cu.targetPartyId, cu.targetRoleCode, cu.scope, cu.catalogCode, cu.groupCode, v.kind, v.rateBp, v.perPaxAmount, v.validFrom, v.validTo, v.note, at, by, cu.targetTierCode),
   ...(v.theoLoai ? [db.prepare(MUC_DOI_PAX_THEM).bind(moiId, v.theoLoai.adult, v.theoLoai.child, v.theoLoai.senior, at, by)] : []),
 ];
-export const closeRuleStatement = (db: D1Database, id: string, den: string, at: string, by: string) => db.prepare(MUC_DONG).bind(id, den, at, by);
+/** Đóng / rút ngắn dòng mức về `den`; `denDaDoc` = ngày kết thúc lúc route đọc dòng (khoá lạc quan). */
+export const closeRuleStatement = (db: D1Database, id: string, den: string, denDaDoc: string | null, at: string, by: string) => db.prepare(MUC_DONG).bind(id, den, at, by, denDaDoc);
+/** Cách «Sửa» xử lý dòng cũ (ADR-0148 Đ1, luật `kiemSua`): HUY = huỷ (chưa đơn nào chụp); DONG = đóng / rút ngắn về `den` (đã có đơn chụp). */
+export type XuLyDongCu = { cach: "HUY" } | { cach: "DONG"; den: string };
+const cauDongCu = (db: D1Database, sqlHuy: string, sqlDong: string, cuId: string, denDaDoc: string | null, xl: XuLyDongCu, at: string, by: string): D1PreparedStatement =>
+  xl.cach === "HUY" ? db.prepare(sqlHuy).bind(cuId, at, by, denDaDoc) : db.prepare(sqlDong).bind(cuId, xl.den, at, by, denDaDoc);
+/**
+ * Lô «Sửa» dòng mức: [huỷ / đóng dòng cũ, chèn dòng mới mang `replaces_id` + lý do (đích + phạm vi chép từ dòng cũ), (dòng phụ theo loại)]. Nơi gọi nối nhật ký `changes() > 0` ngay sau.
+ * Dòng cũ đã bị người khác đổi (khoá lạc quan) ⇒ câu đầu 0 dòng ⇒ câu chèn lỗi NOT NULL / trigger, cả lô huỷ.
+ */
+export const cauSuaMuc = (db: D1Database, cuId: string, denDaDoc: string | null, xl: XuLyDongCu, moiId: string,
+  cu: { targetPartyId: string | null; targetRoleCode: string | null; targetTierCode: string | null; scope: string; catalogCode: string | null; groupCode: string | null },
+  v: { kind: string; rateBp: number | null; perPaxAmount: number | null; theoLoai?: { adult: number; child: number; senior: number } | null; validFrom: string; validTo: string | null; note: string | null },
+  lyDo: string, at: string, by: string): D1PreparedStatement[] => [
+  cauDongCu(db, MUC_HUY, MUC_DONG, cuId, denDaDoc, xl, at, by),
+  db.prepare(MUC_SUA_THEM).bind(moiId, cu.targetPartyId, cu.targetRoleCode, cu.scope, cu.catalogCode, cu.groupCode, v.kind, v.rateBp, v.perPaxAmount, v.validFrom, v.validTo, v.note, at, by,
+    cu.targetTierCode, cuId, lyDo),
+  ...(v.theoLoai ? [db.prepare(MUC_DOI_PAX_THEM).bind(moiId, v.theoLoai.adult, v.theoLoai.child, v.theoLoai.senior, at, by)] : []),
+];
 export const allTerms = async (db: D1Database) => (await db.prepare(DK_TAT_CA).all<TermRow>()).results;
 export const termsOn = async (db: D1Database, ngay: string) => (await db.prepare(DK_NGAY).bind(ngay).all<TermRow>()).results;
 export const termById = (db: D1Database, id: string) => db.prepare(DK_ID).bind(id).first<TermRow>();
@@ -184,16 +226,28 @@ export const insertRoleTierStatement = (db: D1Database, id: string, v: { roleTyp
   db.prepare(GAN_THEM).bind(id, v.roleTypeCode, v.tierCode, v.validFrom, v.validTo, at, by);
 /** Lô «Đổi chính sách»: [đóng gắn cũ hết `denNgayCu`, chèn gắn mới từ `tuNgay` cùng loại]. Nơi gọi nối nhật ký `changes() > 0` ngay sau. */
 export const cauDoiChinhSach = (db: D1Database, cuId: string, moiId: string, denNgayCu: string, roleTypeCode: string, tierCode: string, tuNgay: string, at: string, by: string): D1PreparedStatement[] => [
-  db.prepare(GAN_DONG).bind(cuId, denNgayCu, at, by),
+  db.prepare(GAN_DONG).bind(cuId, denNgayCu, at, by, null),
   db.prepare(GAN_DOI_THEM).bind(moiId, roleTypeCode, tierCode, tuNgay, at, by),
 ];
-export const closeRoleTierStatement = (db: D1Database, id: string, den: string, at: string, by: string) => db.prepare(GAN_DONG).bind(id, den, at, by);
+export const closeRoleTierStatement = (db: D1Database, id: string, den: string, denDaDoc: string | null, at: string, by: string) => db.prepare(GAN_DONG).bind(id, den, at, by, denDaDoc);
+/** Lô «Sửa» gắn loại ↔ chính sách: [huỷ / đóng gắn cũ, chèn gắn mới cùng loại mang `replaces_id` + lý do]. Nơi gọi nối nhật ký `changes() > 0`. */
+export const cauSuaGanLoai = (db: D1Database, cuId: string, denDaDoc: string | null, xl: XuLyDongCu, moiId: string, roleTypeCode: string,
+  v: { tierCode: string; validFrom: string; validTo: string | null }, lyDo: string, at: string, by: string): D1PreparedStatement[] => [
+  cauDongCu(db, GAN_HUY, GAN_DONG, cuId, denDaDoc, xl, at, by),
+  db.prepare(GAN_SUA_THEM).bind(moiId, roleTypeCode, v.tierCode, v.validFrom, v.validTo, at, by, cuId, lyDo),
+];
 export const partyTiersOf = async (db: D1Database, partyId: string) => (await db.prepare(GAN_RIENG_HO_SO).bind(partyId).all<PartyTierRow>()).results;
 export interface GanRiengRow { id: string; party_id: string; party_name: string; tier_code: string; tier_name: string; valid_from_date: string; valid_to_date: string | null }
 export const partyTiersCurrent = async (db: D1Database, homNay: string) => (await db.prepare(GAN_RIENG_DANG_SAP).bind(homNay).all<GanRiengRow>()).results;
 export const partyTierById = (db: D1Database, id: string) => db.prepare(GAN_RIENG_ID).bind(id).first<PartyTierRow>();
 export const insertPartyTierStatement = (db: D1Database, id: string, v: { partyId: string; tierCode: string; validFrom: string; validTo: string | null }, at: string, by: string) =>
   db.prepare(GAN_RIENG_THEM).bind(id, v.partyId, v.tierCode, v.validFrom, v.validTo, at, by);
-export const closePartyTierStatement = (db: D1Database, id: string, den: string, at: string, by: string) => db.prepare(GAN_RIENG_DONG).bind(id, den, at, by);
+export const closePartyTierStatement = (db: D1Database, id: string, den: string, denDaDoc: string | null, at: string, by: string) => db.prepare(GAN_RIENG_DONG).bind(id, den, at, by, denDaDoc);
+/** Lô «Sửa» gắn đối tác ↔ chính sách: [huỷ / đóng gắn cũ, chèn gắn mới cùng hồ sơ mang `replaces_id` + lý do]. Nơi gọi nối nhật ký `changes() > 0`. */
+export const cauSuaGanRieng = (db: D1Database, cuId: string, denDaDoc: string | null, xl: XuLyDongCu, moiId: string, partyId: string,
+  v: { tierCode: string; validFrom: string; validTo: string | null }, lyDo: string, at: string, by: string): D1PreparedStatement[] => [
+  cauDongCu(db, GAN_RIENG_HUY, GAN_RIENG_DONG, cuId, denDaDoc, xl, at, by),
+  db.prepare(GAN_RIENG_SUA_THEM).bind(moiId, partyId, v.tierCode, v.validFrom, v.validTo, at, by, cuId, lyDo),
+];
 export const roleRulesForTierLink = async (db: D1Database, roleTypeCode: string, tu: string, den: string | null) =>
   (await db.prepare(DONG_RIENG_CHO_GAN).bind(roleTypeCode, tu, den).all<RuleRow>()).results;
