@@ -30,7 +30,8 @@ function dungTruoc(): DatabaseSync {
   const db = new DatabaseSync(":memory:");
   db.exec("PRAGMA foreign_keys = OFF");
   // Trừ 0116 (ADR-0133): bảng phụ của nó trỏ `prc_commission_rule`, mà trên production luôn áp SAU 0097 — áp trước 0097 thì DROP bảng cha làm trigger của nó hỏng.
-  for (const f of files.filter((x) => x !== FILE && !x.endsWith("_chiet_khau_theo_loai_khach.sql"))) db.exec(readFileSync(new URL(f, DIR), "utf8"));
+  // Trừ 0126 (ADR-0148): thay trigger close_only / chồng ngày của bảng mức, đọc cột `target_tier_code` do 0097 thêm — production cũng luôn áp nó SAU 0097.
+  for (const f of files.filter((x) => x !== FILE && !x.endsWith("_chiet_khau_theo_loai_khach.sql") && !x.endsWith("_sua_muc_huy_thay.sql"))) db.exec(readFileSync(new URL(f, DIR), "utf8"));
   // Kiểm định kỳ (scripts/audit-checks.mjs) nay đọc ba số theo loại của bản chụp (ADR-0133): bảng rỗng, không khoá/trigger — để câu SQL chạy được ở trạng thái trước 0097 (0116 không áp ở đây).
   db.exec("CREATE TABLE ord_service_terms_pax (terms_id TEXT, adult_amount INTEGER, child_amount INTEGER, senior_amount INTEGER)");
   db.exec("PRAGMA foreign_keys = ON");
