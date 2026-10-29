@@ -12,6 +12,15 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Sửa ô tích lệch (nhánh claude/pricing-age-discount-config-328499, 29/10). Chỉ giao diện, KHÔNG migration. Dòng này từng ở mục 2.41 rồi 2.42 nhưng cả hai bản
+    // lên production không có phần sửa (29/10 chủ triển khai 2.42 từ main 195e9d3e) nên tách thành mục riêng. Số 2.43 và ngày là TẠM — phiên phát hành kiểm lại ở bước A.0.
+    version: "2.43",
+    date: "2026-10-29",
+    items: [
+      { kind: "sua", text: "Ô tích «Tách theo loại khách» ở Hoa hồng đối tác và ô chọn ở Đơn hàng, Chính sách đăng nhập không còn nằm lệch giữa dòng." },
+    ],
+  },
+  {
     // Đóng lỗ TNV-G1 (ADR-0089; chủ 28/10 «vá luôn lỗi»): ô đếm + khối «Thu trước của đơn huỷ» trên Trang chủ Kế toán (NT-V6), tin «đã được duyệt hoàn» cho người
     // ghi chi hoàn (NT-V7), hai dòng tiền chủ chọn 28/10. CÓ migration 0125 (dựng lại view hộp thư) nên cần npm run trien-khai. Số 2.42 và ngày là TẠM (2.41 = nút «Đổi» đã vào main; main có
     // 2.40 tạm của tệp kèm vé lúc làm) — phiên phát hành kiểm lại ở bước A.0 của docs/HANDOFF-N1.md.
@@ -22,8 +31,6 @@ export const CHANGELOG: readonly ReleaseNote[] = [
       { kind: "moi", text: "Trang chủ Kế toán có khối «Thu trước của đơn huỷ» liệt kê từng việc kèm mã đơn; bấm mã đơn để mở và ghi chi hoàn." },
       { kind: "moi", text: "Khi Quản trị duyệt hoàn thu trước, Kế toán nhận tin «đã được duyệt hoàn thu trước cho khách, chờ ghi chi hoàn» trong hộp thông báo." },
       { kind: "doi", text: "Đơn huỷ: trang đơn và thông báo gửi khách ghi «Đã hoàn trả» thay «Đã hoàn», và thêm dòng «Đã trả lại khách trước khi huỷ» khi có." },
-      // Sửa ô tích (nhánh claude/pricing-age-discount-config-328499): production đã lên 2.41 KHÔNG có phần này (29/10) nên dời từ mục 2.41 sang đây.
-      { kind: "sua", text: "Ô tích «Tách theo loại khách» ở Hoa hồng đối tác và ô chọn ở Đơn hàng, Chính sách đăng nhập không còn nằm lệch giữa dòng." },
     ],
   },
   {
