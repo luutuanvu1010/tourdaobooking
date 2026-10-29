@@ -47,3 +47,20 @@
 - **NO-3** «Đã chụp» của gắn (Q1) JOIN view `v_prc_commission_rule` (chỉ dòng chưa huỷ) ⇒ bản chụp trên dòng mức đã huỷ không được đếm — chỉ xảy ra qua cuộc đua Q7 (R-PRC-7 bắt).
 - **NO-4** Gắn đối tác đã huỷ không hiện ở khối hồ sơ (câu khối hồ sơ là câu tra) — chưa có chỗ xem lịch sử gắn riêng.
 - **NO-5** Hộp «Ngừng» trên giao diện vẫn cho chọn từ ngày bắt đầu; máy chủ chặn và báo câu có ngày sớm nhất.
+
+## Task 5 — Giao diện (xong, commit a0858f7e)
+- Luật hiển thị thuần `src/shared/hoa-hong-hien-thi.ts`: trạng thái `DA_HUY` «Đã huỷ — thay bằng dòng khác» (bộ lọc mặc định giấu như dòng đã ngừng — `conApHoacSap`); `nutSua` riêng với `nutDoiNgung` (dòng chưa tới ngày / hẹn ngừng cũng có «Sửa» — đúng ví dụ của chủ 2027 → 2028); `coQuyenSua` = ô `partner.commission.write` và không giữ quyền Đối tác; `cauXemTruocSua` theo đường máy chủ trả.
+- `docLyDoSua` chuyển từ `pricing/rules.ts` sang `src/shared/so-dai-ly-nhap.ts` (một luật cho hộp Sửa và máy chủ; `web/` không được import `src/modules/`).
+- Hộp «Sửa mức» (`web/hoa-hong-hop.ts`): hỏi GET `…/sua` trước, câu xem trước ở đầu hộp, điền sẵn số + HAI ngày cũ (`denMacDinh` — thiếu thì dòng thay lặng lẽ thành không thời hạn), ô Từ theo `tuNgaySomNhat` khi đã có đơn. «Sửa áp dụng chính sách» cho gắn loại; «Sửa» chính sách riêng ở hồ sơ Danh bạ (`web/parties.ts`). Điện thoại: vùng chạm của dòng có cả «Sửa».
+- Kịch bản Chrome `hoa-hong-smoke.mjs`: bước 11 (ví dụ chủ, ảnh 19–20), bước 12 (Danh bạ, ảnh 21–22); bước 3/5/5b chấp nhận nút «Sửa» mới. Hai e2e cũ khớp luật mới (`muc-ta` bước 5, `so-dai-ly` bước 5: đóng lần hai ⇒ 400).
+
+## Task 6 — Tài liệu, e2e (xong phần viết; bộ kiểm dài ghi ở mục dưới)
+- e2e mới `tests/e2e/sua-muc.mjs` (đăng ký ở `tests/e2e/run.mjs`, 10 phút): ví dụ của chủ (huỷ–thay, đọc D1 thấy dấu huỷ / dòng thay / lý do / một nhật ký huỷ); xác nhận đơn rồi Sửa ⇒ «từ ngày mai», dòng cũ đóng hết hôm nay, R-PRC-7 = 0; lý do 400, Bán hàng 403, Đối tác (tài khoản dùng một lần) 403 ở bảng mức và đường Sửa — không thấy dòng nào, kể cả dòng huỷ; Sửa gắn loại và chính sách riêng; công ty chủ không đổi.
+- Nhật ký thay đổi `2.43` (số TẠM, main 2.42), `app-info.test.ts` theo số mới. `docs/CHANGE-GUIDE.md`: dòng tra nhanh §1, mục «Sửa» trong z15, bẫy 86. `docs/SYSTEM-DESIGN.md` §5 (hai bảng + migration 0126) và §7 (sáu route). `docs/SO-HANG-RAO.md`: sáu dòng.
+- Quan sát chặn thật thêm (P16, 29/10): router trả `{ ngay: null }` khi vắng hàm tiêm ⇒ bài «từ chối kín» đỏ; R-PRC-7 bỏ vế «chưa huỷ» ⇒ đỏ; bỏ vế khoảng ngày ⇒ đỏ; hoàn nguyên → xanh.
+
+## Quyết định thi công tự áp (tiếp)
+- **T-8** Nhãn nút «Sửa» dùng chung cho dòng mức, gắn loại và chính sách riêng; tên đọc máy đủ nghĩa («Sửa: <phạm vi>», «Sửa áp dụng chính sách: <loại>»). Bề mặt — chủ đổi được khi xem ảnh (như Q6).
+
+## Nợ có tên (tiếp)
+- **NO-6** Gắn loại BẮT ĐẦU trong tương lai không hiện ở chỗ nào trên giao diện (bảng chỉ hiện gắn đang áp) ⇒ chưa có nút «Sửa» cho nó; máy chủ vẫn nhận (route `…/muc-ta/gan/:id/sua`).
