@@ -96,11 +96,13 @@ const TRANSFER_RULE_CLOSE = defineSql(
   `UPDATE ctl_service_transfer_rule SET valid_to_at = ?2, updated_at = ?2, updated_by = ?3 WHERE service_code = ?1 AND valid_to_at IS NULL AND mode = ?4`,
 );
 // Mở dòng mới — chỉ khi không còn dòng mở (đóng ở câu trước cùng lô, hoặc đang Theo nhóm). Hai lệnh đua: chỉ mục duy nhất một phần chặn lệnh sau.
+// ?6 = 1 khi câu NGAY TRƯỚC trong lô là câu đóng (X → Y): chỉ mở khi câu đóng đã đổi dòng (`changes() > 0`) — nếu không, người khác vừa đưa về Theo nhóm và lệnh này
+// không được lặng lẽ ghi đè lựa chọn chưa thấy (người kiểm độc lập 29/10, LOW-2). ?6 = 0 khi đang Theo nhóm (không có câu đóng).
 const TRANSFER_RULE_OPEN = defineSql(
   "catalog",
   "transfer_rule_open",
   `INSERT INTO ctl_service_transfer_rule (id, service_code, mode, valid_from_at, created_at, created_by, updated_at, updated_by)
-   SELECT ?1, ?2, ?3, ?4, ?4, ?5, ?4, ?5 WHERE NOT EXISTS (SELECT 1 FROM ctl_service_transfer_rule WHERE service_code = ?2 AND valid_to_at IS NULL)`,
+   SELECT ?1, ?2, ?3, ?4, ?4, ?5, ?4, ?5 WHERE (?6 = 0 OR changes() > 0) AND NOT EXISTS (SELECT 1 FROM ctl_service_transfer_rule WHERE service_code = ?2 AND valid_to_at IS NULL)`,
 );
 
 // ---- Đọc ------------------------------------------------------------------------------------------------------------------------------------
@@ -161,7 +163,7 @@ export async function maDangKhongDon(db: D1Database, codes: readonly string[]): 
 /**
  * Đổi ô «Được đón không» từ `cu` sang `moi` (khác nhau). Trả câu theo thứ tự lô và chỉ số câu `chot` mà `changes > 0` nghĩa là đã đổi thật — nơi gọi đặt câu nhật ký
  * (điều kiện `changes() > 0`) NGAY SAU câu cuối, và báo 409 khi câu chốt không đổi dòng nào (người khác vừa đổi).
- * - Theo nhóm → X: [mở]  · X → Theo nhóm: [đóng]  · X → Y: [đóng, mở] (đóng hụt thì dòng mở cũ còn đó nên câu mở cũng hụt).
+ * - Theo nhóm → X: [mở]  · X → Theo nhóm: [đóng]  · X → Y: [đóng, mở] (câu mở chỉ chạy khi câu đóng đã đổi dòng — đóng hụt thì mở cũng hụt, kể cả khi người khác vừa đưa về Theo nhóm).
  */
 export function doiQuyTacDuaDonStatements(
   db: D1Database,
@@ -169,7 +171,7 @@ export function doiQuyTacDuaDonStatements(
 ): { statements: D1PreparedStatement[]; chot: number } {
   const statements: D1PreparedStatement[] = [];
   if (i.cu !== "GROUP") statements.push(db.prepare(TRANSFER_RULE_CLOSE).bind(i.serviceCode, i.now, i.staffId, i.cu));
-  if (i.moi !== "GROUP") statements.push(db.prepare(TRANSFER_RULE_OPEN).bind(crypto.randomUUID(), i.serviceCode, i.moi, i.now, i.staffId));
+  if (i.moi !== "GROUP") statements.push(db.prepare(TRANSFER_RULE_OPEN).bind(crypto.randomUUID(), i.serviceCode, i.moi, i.now, i.staffId, i.cu !== "GROUP" ? 1 : 0));
   return { statements, chot: statements.length - 1 };
 }
 

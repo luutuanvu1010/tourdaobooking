@@ -105,3 +105,23 @@ test("form ↔ máy chủ một luật (tiêu chí 4): `choPhepDuaDon` cho cùng
     }
   }
 });
+
+test("đua X → Y (người kiểm độc lập 29/10, LOW-2): người khác vừa đưa về Theo nhóm nên câu đóng hụt → câu mở cũng KHÔNG chạy (không lặng lẽ ghi đè); bình thường X → Y đổi đúng", async () => {
+  const { doiQuyTacDuaDonStatements } = await import("./modules/catalog/nhom-repo.ts");
+  const d = db();
+  dichVu(d, "R1");
+  // Giả D1: ghi lại câu + tham số, rồi chạy lần lượt trên cùng kết nối SQLite (như một `db.batch`, `changes()` thấy câu ngay trước).
+  const gia = { prepare: (sql: string) => ({ bind: (...a: unknown[]) => ({ sql, a }) }) } as unknown as D1Database;
+  const chay = (st: unknown[]) => st.map((x) => { const { sql, a } = x as { sql: string; a: unknown[] }; return Number(d.prepare(sql).run(...(a as never[])).changes); });
+  datQuyTac(d, "R1", "NEVER");
+  dongQuyTac(d, "R1"); // người khác vừa đưa về Theo nhóm
+  const dua = doiQuyTacDuaDonStatements(gia, { serviceCode: "R1", cu: "NEVER", moi: "ALWAYS", staffId: "s", now: "2026-10-29T05:00:00.000Z" });
+  assert.deepEqual(chay(dua.statements), [0, 0], "đóng hụt ⇒ mở hụt");
+  assert.equal(cho(d, "R1"), 1, "vẫn Theo nhóm (Chưa phân loại → có đưa đón), không thành Luôn đón ngầm");
+  assert.equal((d.prepare("SELECT COUNT(*) AS n FROM ctl_service_transfer_rule WHERE service_code = 'R1' AND valid_to_at IS NULL").get() as { n: number }).n, 0);
+  datQuyTac(d, "R1", "NEVER");
+  const thuong = doiQuyTacDuaDonStatements(gia, { serviceCode: "R1", cu: "NEVER", moi: "ALWAYS", staffId: "s", now: "2026-10-29T06:00:00.000Z" });
+  assert.deepEqual(chay(thuong.statements), [1, 1]);
+  assert.equal(cho(d, "R1"), 1);
+  assert.equal((d.prepare("SELECT mode FROM ctl_service_transfer_rule WHERE service_code = 'R1' AND valid_to_at IS NULL").get() as { mode: string }).mode, "ALWAYS");
+});

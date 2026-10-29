@@ -17,3 +17,11 @@ Người thi công: phiên «so-cong-no-kiem» (nhánh `claude/service-group-pic
 6. Typecheck, `npm test`, e2e `dua-don-theo-nhom`; người kiểm độc lập.
 
 Tiêu chí 5 (đồng bộ Sheet không đụng bảng): dựa vào việc đồng bộ chỉ ghi `catalog_item` và `catalog_sync_state` — kiểm bằng bài quét câu SQL của đồng bộ.
+
+## Kết quả thi công (29/10)
+- Xong Task 1–5 trên nhánh `claude/service-group-pickup-setup-ae4465` (main + migration 0127). Chưa gộp, chưa triển khai.
+- `npm run typecheck` 0 lỗi. `npm test` (cây trước hai sửa LOW): 6.623 đạt, 0 đỏ. Sau sửa LOW-2/LOW-3 chạy lại các bài liên quan: xanh.
+- e2e `dua-don-theo-nhom`: xanh. Kịch bản Chrome mới `docs/evidence/2026-10-29-dua-don-theo-dich-vu/kich-ban/dua-don-dich-vu-smoke.mjs`: 4/4 (1040 + 390).
+- `dot-a-smoke.mjs` (kèm `AXE_JS`): `dich-vu` đạt hai khổ, axe không vi phạm; dừng ở bước `nhat-ky` — đỏ sẵn từ ADR-0038 (đã ghi ở `web/CLAUDE.md`).
+- `danh-muc-nhom-smoke.mjs`: đỏ ở bước 2 (`/api/catalog/groups: 401`) — **đỏ sẵn trên `origin/main` fb538739** (chạy lại trên bản sao sạch của main cùng ngày, cùng lỗi), không do việc này. Ghi nợ: kịch bản đăng nhập Quản trị hai lần, phiên đầu bị thay.
+- Người kiểm độc lập chỉ đọc (29/10): **ĐẠT CÓ ĐIỀU KIỆN**, không HIGH. LOW-2 (X → Y ghi đè «Theo nhóm» vừa đổi) đã sửa: câu mở đòi câu đóng đã đổi dòng; bài đua mới đỏ với mã cũ, xanh với mã mới. LOW-3 (chú thích gắn nhầm) đã sửa. LOW-1 (trigger không ép `updated_at` = `valid_to_at`) chấp nhận — nhật ký ghi người đổi thật.
