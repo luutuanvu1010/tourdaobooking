@@ -59,6 +59,14 @@
 - **NÊN SỬA 3 — đã làm:** kịch bản Chrome thêm bước 14b — Bán hàng mở hồ sơ đại lý có chính sách riêng sắp áp (thấy dòng + «Xem lịch sử», không nút ghi nào trong mục) và hồ sơ có chính sách riêng đang áp (không nút ghi). Quan sát chặn thật bằng chế độ phá có sẵn của kịch bản (`HH_PHA=lo-nut`: giả quyền Kế toán cho Bán hàng ở giao diện) — kết quả ghi ở mục dưới.
 - **GHI NHẬN:** (1) chữ «vẫn xanh» của phá thử thứ tự — đã sửa ở sổ này và sổ hàng rào; (2) tên `ganRieng` có ở hai DTO với hai hình khác nhau (`MucTaListResponse.ganRieng: GanRiengDto[]` — đang / sắp, mọi hồ sơ; `HoaHongHoSoResponse.ganRieng: GanRiengLichSuDto[]` — lịch sử MỘT hồ sơ) — để nguyên, ghi chú ở đây; (3) khối hồ sơ đọc câu tra và câu lịch sử bằng hai truy vấn song song, một lệnh Sửa chen giữa có thể cho một lần vẽ lệch (chỉ hiển thị, tải lại là đúng); (4) đồng ý NO-N5-1, NO-N5-4; (5) T5-3 chấp nhận được.
 
-## Chạy lại sau phần NÊN SỬA
-_(ghi sau khi chạy)_
+## Chạy lại sau phần NÊN SỬA (29/10, cây b639cc97)
+- `npm run typecheck`: 0 lỗi. Bài liên quan (mọi bài `pricing`, `hoa-hong-hien-thi`, `architecture`, `route-access`, `goi-trang-nhe`, `giao-dien-hoi-bang-quyen`, `hoa-hong-mot-nguon`, `changelog`, `app-info`): 312/312.
+- `npm test` lần 2 trên cây cuối: **xanh** — 6632 bài, 6628 đạt, 0 đỏ, 4 todo; bài đo giờ hook đạt.
+- `npm run test:e2e -- sua-muc`: 4/4 kịch bản xanh (gồm `audit-invariants`). e2e đủ 78/78 đã chạy trên 2266c93b; sau đó chỉ `sua-muc` đổi.
+- Kịch bản Chrome đủ (`AXE_JS`): **HOA HONG SMOKE OK**, 35 bước ở hai khổ (thêm 14b). Quan sát chặn thật 14b (P16): `HH_PHA=lo-nut HH_KHO=1040` (giả quyền Kế toán cho Bán hàng ở giao diện) ⇒ bước 7 và **14b ĐỎ** («Bán hàng: không nút ghi nào trong mục (kể cả «Sửa» lần sắp áp)»); không phá ⇒ xanh.
+- Ảnh lưu: 12 tệp `23-…` tới `28-…` ở `docs/evidence/2026-10-29-sua-muc-n5/anh/` (lượt chạy cuối).
+
+## Trạng thái giao (29/10)
+- Nhánh `claude/sua-muc-n5-bcfa1e` đã chứa main 10db5cb5; không migration; mục nhật ký 2.46 tạm. Sau `day-len` cần `npm run trien-khai` (đổi mã máy chủ + giao diện) — production đang 2.44 nên lần triển khai mang cả 2.45 (migration 0127) lẫn 2.46.
+- Chờ chủ / phiên điều phối: T5-1 + T5-6 (Bán hàng đọc khối hồ sơ; đã bỏ lý do sửa khỏi lịch sử gắn riêng — muốn có lại là quyết định mới), NO-N5-4 (chữ «Chưa áp dụng cho loại nào» cạnh dòng sắp áp).
 
