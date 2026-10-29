@@ -1986,7 +1986,7 @@ export const CHECKS = [
   },
   {
     // R-PRC-7 (ADR-0148 Đ1, kế hoạch 2026-10-29 tiêu chí 3): mọi bản chụp AUTO (kể cả bản đã bị bản mới thay) trỏ một dòng mức CHƯA HUỶ có khoảng ngày CHỨA ngày chụp. Trigger
-    // `ord_service_terms_rule_valid` chỉ kiểm lúc chèn bản chụp; «Đổi» / «Ngừng» trước bản 2.43 đóng được dòng mức qua ngày đã chụp (lỗ có sẵn từ 2.40), và «Sửa» hỏi «đã chụp chưa»
+    // `ord_service_terms_rule_valid` chỉ kiểm lúc chèn bản chụp; «Đổi» / «Ngừng» trước bản 2.44 (số tạm) đóng được dòng mức qua ngày đã chụp (lỗ có sẵn từ 2.40), và «Sửa» hỏi «đã chụp chưa»
     // rồi mới huỷ bằng hai lệnh (pricing không đọc được orders trong cùng lô) — một bản chụp lọt vào giữa hai lệnh đó chỉ kiểm này bắt (kế hoạch Q7: «dựa vào bất biến»).
     code: "R-PRC-7",
     what: "bản chụp hoa hồng tự động trỏ dòng mức đã huỷ hoặc có khoảng ngày không chứa ngày chụp",

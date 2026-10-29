@@ -80,3 +80,7 @@
 
 ## Trạng thái giao (29/10)
 - Nhánh `claude/recursing-kilby-af8ebc` chứa nhánh kế hoạch tới 11088c75 (kể cả hai lần sửa ô tích 14fb15f7, 0aed466d), CHƯA có hai commit nhật ký phiên bản mới của nhánh kế hoạch (a90205e1, b6d33108: phần sửa ô tích thành mục 2.43 tạm). Theo phiên điều phối: chủ nhập nhánh kế hoạch TRƯỚC; sau đó nhánh này đồng bộ main, đổi mục nút «Sửa» từ 2.43 tạm thành 2.44 tạm (giữ mục 2.43 ô tích, sửa `app-info.test.ts`), chạy lại bộ kiểm, rồi mới `day-len`. Có migration 0126 ⇒ sau `day-len` cần `npm run trien-khai`.
+
+## Đồng bộ main sau khi chủ nhập nhánh kế hoạch (29/10)
+- Chủ chạy `day-len` nhánh kế hoạch; GitHub (origin/main) = b6d33108. Công cụ đồng bộ của ứng dụng từ chối (lịch sử hai điểm gốc chung: nhánh này và nhánh kế hoạch đều từng nhập main) ⇒ người thi công tự `git merge origin/main` trên nhánh này.
+- Xung đột duy nhất ở `src/shared/changelog.ts`, gỡ theo lời dặn của phiên kế hoạch: mục nút «Sửa» nay **2.44 tạm** (đầu mảng), giữ mục **2.43 tạm** của phần sửa ô tích, mục 2.41 không còn dòng «Ô tích…» (đã do nhánh kế hoạch gỡ). `app-info.test.ts` theo 2.44. Mọi chỗ «2.43» ở các mục trên của sổ này là số tạm lúc đó của nút «Sửa» (nay 2.44); NO-7 đọc là «bản trước 2.44». Đổi kèm: dòng 0126 ở `docs/SYSTEM-DESIGN.md`, chú thích R-PRC-7 ở `scripts/audit-checks.mjs`.
