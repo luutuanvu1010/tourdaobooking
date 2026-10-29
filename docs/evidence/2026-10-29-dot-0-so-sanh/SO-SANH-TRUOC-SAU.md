@@ -5,11 +5,12 @@
 
 ## Kết luận
 
-**Cổng 10.16 ĐẠT** (lượt đo trên máy rảnh): trung vị FCP lạnh trên 45 trang chung 964 → 984 ms (+2,1 %), trung vị «khung xong» lạnh 949 → 962 ms (+1,4 %); CLS lạnh ở hai trang mới `/thiet-lap` 0,088 và 404 0,051 (≤ 0,1); chuyển trang «bấm → vẽ đầu» lớn nhất 97 ms qua ba lần lặp (≤ 101 ms).
+**Cổng 10.16 ĐẠT theo trung vị toàn Nền tảng; nếu đọc ngưỡng 5 % theo từng trang thì 3/45 trang vượt nhẹ (+5,1…5,3 % FCP lạnh, ≈ 50 ms, đo lặp ba lần).** Lượt đo trên máy rảnh: trung vị FCP lạnh trên 45 trang chung 964 → 984 ms (+2,1 %), trung vị «khung xong» lạnh 949 → 962 ms (+1,4 %); CLS lạnh ở hai trang mới `/thiet-lap` 0,088 và 404 0,051 (≤ 0,1); chuyển trang «bấm → vẽ đầu» lớn nhất 97 ms qua ba lần lặp (≤ 101 ms).
 
 Điểm cần chủ biết (không chặn cổng, ghi đúng như đo):
-- **Ba trang lệch FCP lạnh nhỉnh hơn 5 % khi đo lặp ba lần** (trung vị): `/orders` 948 → 996 (+5,1 %), `/nguoi-ban` 936 → 984 (+5,1 %), `/feedback` 988 → 1040 (+5,3 %); `/xe-sua` đo lặp chỉ +1,7 %. Mức lệch ≈ 50 ms, cùng cỡ nhiễu một lần đo của 27/10 (27/10 chỉ đo một lần). Nếu đọc ngưỡng 5 % theo **từng trang** thì ba trang này là «xấu đi»; theo **trung vị toàn Nền tảng** thì đạt. Đặc tả không nói rõ cách đọc — ghi để chủ/điều phối chốt.
-- **CLS lạnh xấu đi ở hai trang cũ** (không thuộc ngưỡng cổng, ngưỡng chỉ áp hai trang mới): Trang chủ 0,225 → 0,322; `/orders` 0,050 → 0,094 (hai trong ba lần lặp lên 0,168, vượt 0,1).
+- **Ba trang lệch FCP lạnh nhỉnh hơn 5 % khi đo lặp ba lần** (trung vị): `/orders` 948 → 996 (+5,1 %), `/nguoi-ban` 936 → 984 (+5,1 %), `/feedback` 988 → 1040 (+5,3 %); `/xe-sua` đo lặp chỉ +1,7 %. Mức lệch ≈ 50 ms, cùng cỡ nhiễu một lần đo của 27/10 (27/10 chỉ đo một lần). Nếu đọc ngưỡng 5 % theo **từng trang** thì ba trang này là «xấu đi»; theo **trung vị toàn Nền tảng** thì đạt. Đặc tả không nói rõ cách đọc — ghi để chủ/điều phối chốt. Đối chiếu cỡ tải lạnh (`lanh.tai`): ba trang này tăng **bằng trung vị** mọi trang (JS +1,8…2,5 KB; thêm một tệp phông đậm 600 ≈ 28 KB do `--fw-*` 600, chung cho 41/45 trang), và nhóm trang nạp thêm phông có trung vị ΔFCP chỉ +1,7 % ⇒ không quy được phần lệch riêng cho ba trang; nghiêng về nhiễu đo. Phát hiện kèm: mở lạnh mọi trang nay tải thêm ≈ 28 KB phông (Be Vietnam Pro 600).
+- CLS lạnh hai trang mới giống hệt ở cả hai lượt đo đầy đủ (kể cả lượt bị tải cao): `/thiet-lap` 0,0879, 404 0,051 — biên của `/thiet-lap` chỉ 0,012 so với ngưỡng 0,1.
+- **CLS lạnh xấu đi ở hai trang cũ** (không thuộc ngưỡng cổng, ngưỡng chỉ áp hai trang mới): Trang chủ 0,225 → 0,322 (một lần đo); `/orders` 0,050 → 0,094 (hai trong ba lần lặp lên 0,168, vượt 0,1).
 - Lượt đo đầu (`so-lieu/toc-do-lan1.json`) BỎ vì phiên khác đẩy tải máy lên ~10 giữa chừng (mọi trang chậm 5–17 %); đo lại khi tải trung vị 2,1. Ghi để người sau không dùng nhầm.
 
 ## 1. Tốc độ cảm nhận (mặt 11) — bảng K
@@ -40,6 +41,7 @@ Số ở cột 27/10 ↔ mới là tổng trên **472 ô chung** (cùng bộ, tr
 | # | Mặt | 27/10 | Mới | Đánh giá |
 |---|---|---|---|---|
 | 1 | Điều hướng, kiến trúc thông tin | Thanh bên 22 mục phẳng (QT); thanh tab không theo bộ; 403/404 không sáng đúng | Thanh bên 10 khối có nhóm gập (Điều phối, THIẾT LẬP 15); thanh tab theo bộ quyền (kịch bản `dot-0-smoke` bước 1, 18); trang `/thiet-lap` mới gom 15 trang thiết lập | **tốt lên** |
+| 1b | — số trang «có lối vào» của Quản trị theo ma trận | 33 | 39 (thêm `/thiet-lap`, `/audit`, `/sessions`, `/giao-dien`, `/tro-ly-cai-dat`, `/gui-thong-bao`) | **không đổi quyền thật**: `ma-tran-quyen.mjs` cộng `cungSang` của `/thiet-lap`, mà `cungSang` đó gồm MỌI trang nhóm THIẾT LẬP kể cả trang chỉ Toàn quyền (chỉ dùng để tô sáng mục). Trang Thiết lập của Quản trị hiện 10 mục, không có 5 trang trên; mở thẳng địa chỉ thì `/audit` ra vỏ 403, bốn trang còn lại ra dòng từ chối trong trang (mã trang không đổi ở đợt 0; chỉ tới được bằng gõ địa chỉ). Ghi để không đọc nhầm ma trận |
 | 2 | Mẫu trang | 47 trang tự dựng đầu trang; trang tập trung không nút lùi | Thanh trên một kiểu + nút lùi ở trang tập trung ≤ 899; thân trang chưa đổi (Chặng 3) | tốt lên (vỏ) / chưa đổi (thân) |
 | 3 | Danh sách, bảng | — | không chạm | chưa đổi |
 | 4 | Biểu mẫu | ô gõ không nhãn 27 (390) | 16 | tốt lên (chủ yếu do ô tìm/thanh trên mới có nhãn); thân form chưa đổi |
