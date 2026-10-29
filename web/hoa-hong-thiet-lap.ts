@@ -1,6 +1,6 @@
 // Thẻ «Thiết lập» của trang «Hoa hồng đối tác»: (a) loại đối tác được hưởng hoa hồng và chính sách mỗi loại đang theo, (b) các chính sách hoa hồng dùng chung (bảng mức, áp dụng cho loại, tắt/bật).
 // Trang không tính tiền, không chọn mức: số và lời đến từ máy chủ / luật thuần ở src/shared/hoa-hong-hien-thi.ts. Mọi nút ghi chỉ dựng cho người có `partner.commission.write` (máy chủ kiểm lại).
-import { CAU_KHONG_CO_LOAI, CAU_KHONG_CO_MUC, CAU_KHONG_CO_MUC_TA, CAU_LOAI_CO_SAN, NHAN_LOAI_DA_TAT, chinhSachCuaLoai, coQuyenSua, conApHoacSap, nhanLoaiDoiTac, nutSua } from "../src/shared/hoa-hong-hien-thi";
+import { CAU_KHONG_CO_LOAI, CAU_KHONG_CO_MUC, CAU_KHONG_CO_MUC_TA, CAU_LOAI_CO_SAN, NHAN_LOAI_DA_TAT, chiaLanGan, chinhSachCuaLoai, coQuyenSua, conApHoacSap, nhanLoaiDoiTac, nhanSapAp, nutSua } from "../src/shared/hoa-hong-hien-thi";
 import { can } from "../src/shared/permissions";
 import { ngayDayDu } from "../src/shared/vn-date";
 import type { Api } from "./api";
@@ -8,6 +8,7 @@ import { h, replaceChildren } from "./dom";
 import type { DuLieuHoaHong } from "./hoa-hong";
 import { dauBang, dongMuc } from "./hoa-hong-bang";
 import type { MoHop } from "./hoa-hong-hop";
+import { khoiLichSuGan } from "./hoa-hong-lich-su";
 
 const CAU_XEP_LOAI = "Xếp một đối tác vào loại: làm ở hồ sơ của đối tác trong Danh bạ (Quản trị, Toàn quyền).";
 const CAU_CHUA_AP_DUNG = "Chưa áp dụng chính sách nào";
@@ -80,8 +81,27 @@ function mucLoai(d: DuLieuHoaHong, mo: MoHop, ghi: boolean): HTMLElement {
   return muc;
 }
 
+/**
+ * Các lần áp dụng chính sách `m` cho loại (N5 — R1, R2): đang áp (Ngừng cho người ghi; Sửa theo `coQuyenSua` + `nutSua`), sắp áp («Sắp áp dụng từ …», chỉ Sửa — Đổi / Ngừng
+ * giữ luật `nutDoiNgung`: chưa tới ngày thì không), rồi nút «Xem lịch sử» các lần đã ngừng / đã huỷ. Người chỉ xem thấy dòng, không nút ghi.
+ */
+function lanApDung(m: Api.MucTaDto, k: ReturnType<typeof chiaLanGan<Api.GanLoaiMucDto>>, d: DuLieuHoaHong, mo: MoHop, ghi: boolean): HTMLElement[] {
+  const sua = (g: Api.GanLoaiMucDto) => (coQuyenSua(d.nguoiDung) && nutSua(g, d.homNay) ? nutSuaGan(g, mo) : null);
+  const dong = [
+    ...k.dangAp.map((g) => {
+      const ngung = ghi ? h("button", { type: "button", class: "btn", "aria-label": `Ngừng áp dụng: ${g.loai.ten}` }, "Ngừng áp dụng") : null;
+      ngung?.addEventListener("click", () => mo.ngungApDung(g));
+      return h("li", { "data-gan-id": g.id }, h("span", null, `${g.loai.ten} · từ ${ngayDayDu(g.tuNgay)}`), ngung, sua(g));
+    }),
+    ...k.sapAp.map((g) => h("li", { "data-gan-id": g.id, "data-sap-ap": "" }, h("span", null, `${g.loai.ten} · `, h("span", { class: "badge badge-draft" }, nhanSapAp(g))), sua(g))),
+  ];
+  const lichSu = khoiLichSuGan(k.lichSu, d.homNay, (g) => g.loai.ten, `hh-ls-gan-${m.code}`);
+  return [...(dong.length > 0 ? [h("ul", { class: "hh-tl-gan" }, ...dong)] : []), ...(lichSu ? [lichSu] : [])];
+}
+
 function theChinhSach(m: Api.MucTaDto, d: DuLieuHoaHong, mo: MoHop, ghi: boolean): HTMLElement {
-  const dangAp = m.gan.filter((g) => g.conHieuLuc);
+  const k = chiaLanGan(m.gan, d.homNay);
+  const dangAp = k.dangAp;
   const riengN = d.mucTa.ganRieng.filter((g) => g.muc === m.code).length;
   const dongHien = m.dong.filter((r) => conApHoacSap(r, d.homNay));
   const loiEl = h("p", { class: "sheet-warn", role: "alert", hidden: true });
@@ -107,21 +127,9 @@ function theChinhSach(m: Api.MucTaDto, d: DuLieuHoaHong, mo: MoHop, ghi: boolean
     const bt = m.dangBat ? { nhan: "Tắt", hd: "tat", ok: "Đã tắt chính sách." } : { nhan: "Bật", hd: "bat", ok: "Đã bật chính sách." };
     act.append(nutBatTat(bt.nhan, `${bt.nhan} chính sách: ${m.ten}`, `/api/pricing/muc-ta/${encodeURIComponent(m.code)}/${bt.hd}`, bt.ok, mo, loiEl));
     the.append(act);
-    // Các lần áp dụng đang có: ngừng từng lần.
-    if (dangAp.length > 0) {
-      the.append(
-        h(
-          "ul",
-          { class: "hh-tl-gan" },
-          ...dangAp.map((g) => {
-            const n = h("button", { type: "button", class: "btn", "aria-label": `Ngừng áp dụng: ${g.loai.ten}` }, "Ngừng áp dụng");
-            n.addEventListener("click", () => mo.ngungApDung(g));
-            return h("li", null, h("span", null, `${g.loai.ten} · từ ${ngayDayDu(g.tuNgay)}`), n, coQuyenSua(d.nguoiDung) && nutSua(g, d.homNay) ? nutSuaGan(g, mo) : null);
-          }),
-        ),
-      );
-    }
   }
+  // Các lần áp dụng (đang áp, sắp áp, lịch sử) — dưới thanh nút như trước; người chỉ xem cũng thấy (N5 tiêu chí 1).
+  the.append(...lanApDung(m, k, d, mo, ghi));
   return the;
 }
 

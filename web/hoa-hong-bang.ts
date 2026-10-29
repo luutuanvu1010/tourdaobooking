@@ -9,7 +9,6 @@ import {
   CAU_KHONG_KHOP_LOC,
   CAU_NHAC_UU_TIEN,
   NHAN_CHUA_CO_MUC,
-  NHAN_TRANG_THAI,
   chinhSachCuaLoai,
   coQuyenSua,
   conApHoacSap,
@@ -33,6 +32,7 @@ import { moBangTruot } from "./bang-truot";
 import { h, replaceChildren } from "./dom";
 import type { DuLieuHoaHong } from "./hoa-hong";
 import type { MoHop } from "./hoa-hong-hop";
+import { huyHieuTrangThai } from "./hoa-hong-lich-su";
 
 const chuanTim = (s: string): string => s.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/gi, "d").toLowerCase().trim();
 
@@ -43,9 +43,6 @@ const moSanDt = new Set<string>();
 let goc: HTMLElement | null = null;
 let duHienTai: DuLieuHoaHong | null = null;
 let veLai: (() => void) | null = null;
-
-const huyHieuTrangThai = (tt: ReturnType<typeof trangThaiDong>): HTMLElement =>
-  h("span", { class: tt === "DANG_AP" ? "badge badge-confirmed" : tt === "SAP_AP" ? "badge badge-draft" : "badge badge-cancelled" }, NHAN_TRANG_THAI[tt]); // DA_DONG, DA_HUY: xám
 
 export const urlNgung = (r: Api.CommissionRuleDto): string => `/api/pricing/hoa-hong/${encodeURIComponent(r.id)}/dong`;
 
