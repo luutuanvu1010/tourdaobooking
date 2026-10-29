@@ -68,7 +68,7 @@
 
 ## Kiểm lại của người kiểm độc lập (29/10, sau b639cc97 + 58d17df9)
 - Kết luận của người kiểm: **ĐẠT** — không CHẶN, không NÊN SỬA mới. Tự chạy lại 52 bài (`sua-muc-route`, `ho-so-hoa-hong`, `hoa-hong-hien-thi`) + typecheck 0 lỗi. Phá thử trên bản sao: thêm lại `lyDoSua` vào lịch sử ⇒ bài «N5 (R4)…» đỏ; tóm tắt đọc lịch sử ⇒ đúng bài cờ xung đột đỏ (32/33). Bước 14b xác nhận bằng đọc mã + ảnh 28 (không chạy Chrome).
-- Hai mục «Kiểm độc lập» ở trên là bản tóm tắt của NGƯỜI THI CÔNG; nguồn nghiệm thu chính thức là báo cáo của người kiểm (đã chuyển nguyên cho phiên điều phối).
+- Hai mục «Kiểm độc lập» ở trên là bản tóm tắt của NGƯỜI THI CÔNG; nguồn nghiệm thu chính thức là báo cáo của người kiểm, chép nguyên ở thư mục ghi chú chung của nhóm phiên (ngoài repo): `side-session-notes/local_d74c1c41-…/2026-10-29-n5-bao-cao-kiem-doc-lap.md`.
 - Người kiểm không chạy lại `npm test` đủ bộ, e2e, Chrome (lời khai của người thi công ở mục trên); không kiểm production.
 
 ## Trạng thái giao (29/10)
