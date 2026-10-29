@@ -1,0 +1,322 @@
+# Đợt 0b — khung tải: kế hoạch thi công
+
+> **Trạng thái:** bản 1 — 2026-10-29 — Main session soạn từ đặc tả bản 5 (chủ «ok duyệt» tối 29/10, biên bản `docs/superpowers/specs/2026-10-29-dot-0b-khung-tai/QUYET-DINH-DUYET-DAC-TA-0B-2026-10-29.md`). Chờ một vòng kiểm độc lập rồi chủ duyệt kế hoạch; cách thi công: subagent-driven như đợt 0.
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Trang của Island Booking System mở nhanh và nhẹ hơn ở lần mở đầu, chuyển trang không chớp, không nhảy bố cục — không đổi màn nào, không đổi API, không đổi quyền (ADR-0143 Đ0–Đ6, thu hẹp theo đặc tả).
+
+**Architecture:** Một kịch bản dựng duy nhất `scripts/dung-web.mjs` thay chuỗi lệnh `build:web`: esbuild tách gói chung (`chung-[hash].js`, phẳng trong `public/js/`), sinh **tệp kê** `public/js/danh-sach-goi.json` từ metafile, sinh `public/*.html` từ nguồn `web/html/` với head chung + `modulepreload` bao đóng + `preload` phông + khung xương tĩnh theo khuôn, rồi đóng gói service worker với tệp kê chèn qua `define`. Service worker nạp sẵn **vòng 1** (ba trang + khung) lúc cài và **vòng 2** theo vai khi shell gửi `postMessage` sau `load`; vòng 3 giữ nguyên. Shell gỡ khung xương bằng một `MutationObserver` nhỏ; CSS chừa chỗ khung từ `body[data-khung="co"]` để không nhảy bố cục. Mọi luật thuần (tệp kê, khuôn, trang theo vai, vòng 1) nằm ở `src/shared/` và có bài node; hành vi trình duyệt do kịch bản Chrome đo.
+
+**Tech Stack:** TypeScript + esbuild API (`splitting`, `metafile`, `define`), node:test, Cloudflare Worker + Workers Assets (`wrangler` 4.135; `wrangler.jsonc` không đổi), service worker tự viết, kịch bản Chrome qua CDP (`docs/evidence/2026-09-20-a2/kich-ban/a2-cdp.mjs`, `docs/evidence/2026-10-29-dot-0-khung-chung/kich-ban/cdp.mjs`), Speculation Rules (header), View Transitions (CSS).
+
+**Spec:** `docs/superpowers/specs/2026-10-29-dot-0b-khung-tai/DAC-TA.md` bản 5 (đóng băng) + phụ lục A (bản đồ mã), B (số dựng thử), biên bản duyệt. Đọc đặc tả trước; kế hoạch này chỉ ghi quyết định mà người thi công không tự suy ra được. Hai câu mục 3 đã chốt theo đề xuất: `/help` ngoại lệ CLS (nợ Chặng 3); thanh trên Chi tiết đơn ghi «Đơn hàng».
+
+## Global Constraints
+
+- **Nhánh `dot-0b-khung-tai`**, tách từ `dac-ta-dot-0b` (đã chứa đặc tả + kế hoạch này; nếu chủ đã `day-len` thì tách từ `main` — cùng nội dung). Worktree mới: `git worktree add .claude/worktrees/dot-0b-khung-tai -b dot-0b-khung-tai dac-ta-dot-0b`; chạy `npm ci` trong đó. Không cần `.dev.vars`: mọi kịch bản tự dựng D1 tạm.
+- Mỗi task kết thúc với `npm test` và `npm run typecheck` xanh và một commit (tiếng Việt, kết bằng dòng `Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>`). Task chạm `web/`, `public/`, `scripts/` chạy thêm `npm run build:web`. Thứ tự `trien-khai` là test → typecheck → build:web → e2e (`scripts/release-lib.mjs:477`): **bài kiểm không được phụ thuộc `public/js`** hay tệp kê thật; cần tệp kê thì dùng tệp mẫu `src/shared/__fixtures__/danh-sach-goi.json`.
+- Thu hẹp, không mở rộng Đ0–Đ6 của ADR-0143. Không chạm API, quyền, D1, migration, cách tính tiền, `src/shared/permissions.ts`, `wrangler.jsonc`, `isCacheable`, `STATIC_FILE`, cách đặt `CACHE_NAME`. Không thêm dependency. Không `import()` động trong `web/`. Không gộp API, không «lưu xong báo ngay».
+- CSS: giá trị mới là token ở `:root` (trước dấu mốc `/* ---------- app iPhone (PWA)` ~dòng 920); luật mới đặt sau dấu mốc, **chỉ token** (`tests/e2e/pwa.mjs` quét px/hex; `src/token-giao-dien.test.ts` quét độ đậm). Không thêm `--skel-*` mới (đặc tả mục 8).
+- Tệp `src/shared/*.ts` mà `scripts/*.mjs` import (như `in-phien-ban.mjs` import `app-info.ts` hôm nay) chạy dưới node type-stripping: chỉ `const`/hàm/kiểu, không `enum`, không parameter properties.
+- Không `innerHTML`; dựng DOM bằng `h()` của `web/dom.ts`; chữ tiếng Việt có dấu. `web/shell.ts`, `web/account.ts` vẫn phải chạy trên DOM giả của `scripts/chup-muc-giao-dien.mjs` (không `MutationObserver`, `getClientRects`, `offsetParent`): mọi API trình duyệt mới bọc `typeof X !== "undefined"`.
+- Hồ sơ có ngày (đặc tả, biên bản, evidence cũ) không sửa; lệch gì ghi vào nhật ký thi công `docs/superpowers/plans/2026-10-29-dot-0b-khung-tai-nhat-ky.md` (tạo ở Task 1). Thư mục bằng chứng của đợt: `EVID = docs/evidence/<ngày bắt đầu thi công>-dot-0b-khung-tai/` — chốt tên ở Task 1, ghi vào nhật ký, mọi task sau dùng đúng tên đó.
+- Số đo «trước» (Task 13) chạy trên `main` **ngay trước khi gộp**, cùng phiên, cùng máy, máy rảnh (tải trung bình < 3). Nếu `main` đổi sau khi đo thì đo lại.
+- Ngân sách gói Q-5 là **định nghĩa lại**, không nới: số đo thật vượt trần thì **dừng và báo Main session**, không tự sửa số.
+
+## Review Focus
+
+1. **Tệp kê thiếu trang** (một `tep` của `DIEM_VAO` không có output trong metafile, vd đổi tên tệp): `sinhDanhSachGoi` phải ném, không ghi tệp kê thiếu — kẻo bộ sinh HTML lặng lẽ sinh trang không `modulepreload`. Bài ở Task 1.
+2. **Tin `message` lạ tới service worker** (mọi cửa sổ cùng nguồn gửi được): `trang` không phải mảng chuỗi, hoặc chứa đường ngoài `PAGES` (`/api/...`, `//x`) — SW bỏ qua phần lạ, không ném, không bao giờ `cache.add` đường ngoài `PAGES`. Bài ở Task 5.
+3. **`data-xuong` giá trị lạ** trên `<body>` nguồn (vd `data-xuong="co"`), hay trang có khuôn mà `#error` không phải con trực tiếp của `<main>`, hay trang có `<script type="module">` nhưng vắng trong tệp kê: bộ sinh **dừng** với lỗi nêu tên tệp, không bỏ qua. Bài ở Task 7.
+4. **Trang `data-tabbar="off"` ở ≤ 899 px** (`/order-form`, `/chuyen-sua`, `/xe-sua`, `/giao-dien`) mang `data-khung="co"` nhưng **không** được chừa đáy cho thanh tab (bộ chọn `:not([data-tabbar="off"])`): đệm đáy của `main` lúc chưa có JS phải bằng lúc JS đã chạy. Bước h) của `dot-0b-smoke` (Task 12) đo `/order-form` 390 cả hai lúc.
+5. **Tệp kê mẫu lỗi thời** so với mã (thêm trang mới mà quên chép lại `src/shared/__fixtures__/danh-sach-goi.json`): bài thuần luôn chạy — tập khoá `trang` của tệp mẫu = tập `duong` của `DIEM_VAO`; bài so cấu trúc với tệp kê thật chỉ chạy khi `public/js/danh-sach-goi.json` tồn tại. Bài ở Task 3.
+
+---
+
+### Task 1: Điểm vào, kiểu tệp kê, hàm sinh tệp kê từ metafile, nhật ký thi công
+
+**Files:**
+- Create: `scripts/diem-vao.mjs`, `scripts/danh-sach-goi-lib.mjs`, `scripts/__fixtures__/metafile-mau.json`, `src/shared/danh-sach-goi.ts`, `src/diem-vao.test.ts`, `src/danh-sach-goi.test.ts`, `docs/superpowers/plans/2026-10-29-dot-0b-khung-tai-nhat-ky.md`
+- Test: `src/diem-vao.test.ts`, `src/danh-sach-goi.test.ts`
+
+**Interfaces:**
+- Produces: `scripts/diem-vao.mjs` — `export const DIEM_VAO = [{ duong: "/login", tep: "web/login.ts" }, …]` (48 mục, **đúng thứ tự** 48 tệp `web/*.ts` trong lệnh `build:web` hôm nay, `package.json`; `/` ↔ `web/home.ts`, `/404` ↔ `web/khong-co-trang.ts`), `export const COT_SW = "web/sw/sw.ts"`.
+- Produces: `src/shared/danh-sach-goi.ts` — `export interface DanhSachGoi { readonly buildId: string; readonly trang: Readonly<Record<string, readonly string[]>>; readonly chung: readonly string[] }`; `export function baoDong(ds: DanhSachGoi | null, duong: string): readonly string[]` (trang vắng hoặc `ds` null ⇒ `[]`). Thuần, không I/O.
+- Produces: `scripts/danh-sach-goi-lib.mjs` — `export function sinhDanhSachGoi(metafile, diemVao, buildId)` → `DanhSachGoi`. Với mỗi `{duong, tep}`: output có `entryPoint === tep` (thiếu ⇒ ném `Error` nêu `tep`); bao đóng = duyệt sâu `imports` có `kind === "import-statement"` (bỏ `external`), **lá trước, điểm vào cuối, không trùng**; đường `public/js/x.js` → `/js/x.js`. `chung` = mọi output không phải điểm vào xuất hiện trong bao đóng của ≥ 2 trang, sắp xếp chữ cái.
+- Nhật ký thi công: ba mục cố định — «Số đo gói theo task» (bảng: tổng riêng, tổng gói con, gói con lớn nhất, `orders.js`, `login.js`, bao đóng dài nhất), «Lệch so với đặc tả», «Quyết định tự chốt (mục 15)». Ghi tên `EVID` ở đầu.
+
+- [ ] **Step 1: Viết tệp mẫu metafile** `scripts/__fixtures__/metafile-mau.json` (viết tay, nhỏ): `outputs` gồm `public/js/a.js` (entryPoint `web/a.ts`, imports `chung-X`), `public/js/b.js` (entryPoint `web/b.ts`, imports `chung-X`), `public/js/c.js` (entryPoint `web/c.ts`, không imports), `public/js/chung-X.js` (imports `chung-Y`, `chung-Z`), `public/js/chung-Z.js` (imports `chung-Y`), `public/js/chung-Y.js` (không imports). Mỗi output có `bytes` và `imports: [{ path, kind: "import-statement" }]`.
+- [ ] **Step 2: Viết hai bài kiểm (đỏ)**
+
+`src/danh-sach-goi.test.ts` (import `../scripts/danh-sach-goi-lib.mjs`, `./shared/danh-sach-goi.ts`, tệp mẫu Step 1; `DIEM_VAO` thử `[/a, /b, /c]`):
+```ts
+test("bao đóng lá trước, không trùng, điểm vào cuối (hình thoi X→Y,Z; Z→Y)", () => assert.deepEqual(ds.trang["/a"], ["/js/chung-Y.js", "/js/chung-Z.js", "/js/chung-X.js", "/js/a.js"]));
+test("trang không nhập gì chỉ có chính nó", () => assert.deepEqual(ds.trang["/c"], ["/js/c.js"]));
+test("chung = gói con dùng ở ≥ 2 trang, sắp xếp", () => assert.deepEqual(ds.chung, ["/js/chung-X.js", "/js/chung-Y.js", "/js/chung-Z.js"]));
+test("buildId chép vào tệp kê", () => assert.equal(ds.buildId, "20260101000000"));
+test("điểm vào không có output trong metafile ⇒ ném, nêu tên tệp", () => assert.throws(() => sinhDanhSachGoi(meta, [...DIEM_VAO_THU, { duong: "/d", tep: "web/d.ts" }], "x"), /web\/d\.ts/));
+test("baoDong: trang vắng hoặc tệp kê null ⇒ []", () => { assert.deepEqual(baoDong(ds, "/home"), []); assert.deepEqual(baoDong(null, "/a"), []); });
+```
+`src/diem-vao.test.ts`:
+```ts
+test("tập đường của DIEM_VAO = PAGES trừ hai trang chuyển hướng (/home, /danh-muc-giay-to)", …deepEqual sorted…);
+test("mỗi tep tồn tại, không trùng đường, không trùng tệp, 48 mục", …);
+test("thứ tự DIEM_VAO đúng thứ tự 48 tệp web/*.ts trong build:web hôm nay", () => { /* đọc package.json scripts["build:web"], regex /web\/[a-z0-9-]+\.ts/g, so deepEqual với DIEM_VAO.map(d => d.tep) */ });
+test("COT_SW là web/sw/sw.ts và tồn tại", …);
+```
+(Bài «thứ tự» chỉ sống tới Task 2 — ở đó đổi thành so với bản chép cứng trong chính bài, vì `build:web` không còn liệt kê tệp.)
+- [ ] **Step 3: Chạy** `node --test src/danh-sach-goi.test.ts src/diem-vao.test.ts` → đỏ (module không tồn tại).
+- [ ] **Step 4: Viết** `src/shared/danh-sach-goi.ts`, `scripts/diem-vao.mjs`, `scripts/danh-sach-goi-lib.mjs` theo Interfaces.
+- [ ] **Step 5: Chạy lại** → xanh. `npm test`, `npm run typecheck` xanh.
+- [ ] **Step 6: Tạo nhật ký thi công** với ba mục, dòng `EVID = …`, dòng «Trước Task 1» ghi số nền phụ lục B.
+- [ ] **Step 7: Commit** — "Đợt 0b (1/13): điểm vào, kiểu tệp kê, sinh tệp kê từ metafile; nhật ký thi công".
+
+---
+
+### Task 2: `scripts/dung-web.mjs` thay `build:web` — tách gói chung, tệp kê, service worker nhận tệp kê
+
+**Files:**
+- Create: `scripts/dung-web.mjs`
+- Modify: `package.json` (`build:web` = `node scripts/dung-web.mjs`), `src/shared/tro-ly-cau-truc.test.ts:153–161`, `src/goi-trang-nhe.test.ts` (dòng 13–15, 41–44, 67–71), `src/muc-chup-bu.test.ts:35–40` (dòng `package.json`), `scripts/sinh-so-do-trang.mjs:185` (chú thích DAU: «tự chạy trong scripts/dung-web.mjs và npm test»)
+- Test: `src/dung-web.test.ts` (mới), ba bài trên
+
+**Interfaces:**
+- Consumes: `DIEM_VAO`, `COT_SW` (Task 1); `sinhDanhSachGoi` (Task 1); `ghiTatCa` (`scripts/sinh-so-do-trang.mjs`).
+- Produces: `scripts/dung-web.mjs` xuất ba hàm thuần + một hàm chạy:
+  - `tuyChonTrang(buildId)` → đối tượng truyền thẳng cho `esbuild.build`: `{ entryPoints: DIEM_VAO.map(d => d.tep), bundle: true, splitting: true, format: "esm", target: "es2022", minify: true, chunkNames: "chung-[hash]", outdir: "public/js", metafile: true, define: { __BUILD_ID__: JSON.stringify(buildId), __APP_VERSION__: JSON.stringify(APP_VERSION), __APP_RELEASE_DATE__: JSON.stringify(APP_RELEASE_DATE) } }` (`APP_VERSION`/`APP_RELEASE_DATE` import từ `../src/shared/app-info.ts` — bỏ `scripts/in-phien-ban.mjs` khỏi đường dựng, giữ tệp).
+  - `tuyChonSw(buildId, danhSach)` → `{ entryPoints: [COT_SW], bundle: true, format: "iife", target: "es2022", minify: true, outfile: "public/sw.js", define: { __BUILD_ID__: JSON.stringify(buildId), __DANH_SACH_GOI__: JSON.stringify(danhSach) } }`.
+  - `maBanDung()` → chuỗi 14 chữ số giờ máy (`YYYYMMDDHHmmss`, như `date +%Y%m%d%H%M%S`).
+  - `dungWeb()` thứ tự: (1) xoá `public/js/*.js` và `public/js/danh-sach-goi.json` (giữ thư mục); (2) `esbuild.build(tuyChonTrang(id))`; (3) `sinhDanhSachGoi(metafile, DIEM_VAO, id)` → ghi `public/js/danh-sach-goi.json`; (4) *(Task 7 chèn sinh HTML ở đây)*; (5) `ghiTatCa()` của `sinh-so-do-trang.mjs`; (6) `esbuild.build(tuyChonSw(id, danhSach))`. Chạy khi là tệp chính (`import.meta.url === pathToFileURL(process.argv[1]).href`, mẫu `sinh-so-do-trang.mjs:255`).
+- `web/sw/sw.ts` **chưa** đọc `__DANH_SACH_GOI__` ở task này (Task 4) — define thừa vô hại.
+
+- [ ] **Step 1: Viết bài** `src/dung-web.test.ts` (đỏ): `tuyChonTrang("20260101000000")` có `splitting === true`, `chunkNames === "chung-[hash]"`, `outdir === "public/js"`, `metafile === true`, `entryPoints` deepEqual `DIEM_VAO.map(d => d.tep)`, `define.__APP_VERSION__ === JSON.stringify(APP_VERSION)`, `define.__APP_RELEASE_DATE__ === JSON.stringify(APP_RELEASE_DATE)`, `define.__BUILD_ID__ === '"20260101000000"'`; `tuyChonSw("x", { buildId: "x", trang: {}, chung: [] }).define.__DANH_SACH_GOI__ === '{"buildId":"x","trang":{},"chung":[]}'`, `format === "iife"`, `outfile === "public/sw.js"`; `maBanDung()` khớp `/^\d{14}$/`; `package.json scripts["build:web"] === "node scripts/dung-web.mjs"`; thứ tự trong nguồn `dung-web.mjs`: chỉ số `rmSync(`/dọn < `tuyChonTrang(` < `sinhDanhSachGoi(` < `ghiTatCa(` < `tuyChonSw(`; **`web/**/*.ts` không có `import(` ngoài chú thích** (Q-9: mọi gói con nạp tĩnh, tab mở xuyên lần triển khai không cần cơ chế tải lại).
+- [ ] **Step 2: Sửa ba bài đang khoá hình dạng lệnh** (đỏ trước, xanh sau Step 4): `tro-ly-cau-truc.test.ts` Đ3 — thay regex dòng 156 bằng `assert.equal(pkg.scripts["build:web"], "node scripts/dung-web.mjs")` + thứ tự `sinhDanhSachGoi(` < `ghiTatCa(` trong `dung-web.mjs` (phần `chay-test.mjs` giữ); `goi-trang-nhe.test.ts` — `TRANG = DIEM_VAO.map(d => d.tep)` (import `../scripts/diem-vao.mjs`), bài «danh sách trang lấy được từ build:web» → «từ DIEM_VAO (≥ 30, có orders/help)», bài dòng 67 → `tuyChonTrang("x").define` có hai khoá `__APP_VERSION__`/`__APP_RELEASE_DATE__` đúng giá trị; `muc-chup-bu.test.ts:39` → `DIEM_VAO.some(d => d.tep === "web/chup-bu.ts")`; `diem-vao.test.ts` bài «thứ tự» → so với mảng 48 tên chép cứng trong bài (kèm chú thích «thứ tự build:web 29/10»).
+- [ ] **Step 3: Viết** `scripts/dung-web.mjs`; đổi `package.json`.
+- [ ] **Step 4: Chạy** `npm run build:web` → `public/js/` có 48 `<tên>.js` + `chung-*.js` + `danh-sach-goi.json`; `public/sw.js` chứa chuỗi `"trang":{"/orders"`. `npm test`, `npm run typecheck` xanh (`goi-trang-nhe` vẫn dựng từng trang không splitting, `TRAN_ORDERS` giữ tới Task 3). Mở `wrangler dev` 30 giây, `curl -s localhost:8787/orders | grep -c 'src="/js/orders.js"'` = 1 và `/js/orders.js` có dòng `import` tới `./chung-`.
+- [ ] **Step 5: Ghi nhật ký**: bảng số đo gói (đọc metafile: tổng riêng 48, tổng gói con, lớn nhất, `orders.js`, `login.js`, bao đóng dài nhất).
+- [ ] **Step 6: Commit** — "Đợt 0b (2/13): dung-web.mjs — tách gói chung chung-[hash], tệp kê danh-sach-goi.json, SW nhận tệp kê qua define".
+
+---
+
+### Task 3: Ngân sách gói Q-5 thay `TRAN_ORDERS`; tệp kê mẫu
+
+**Files:**
+- Modify: `src/goi-trang-nhe.test.ts` (bỏ `dung(trang)` từng trang + `TRAN_ORDERS`; dựng một lần cả 48 có splitting vào `mkdtemp`), `docs/SO-HANG-RAO.md` (dòng 412 «Gói giao diện gọn» ghi lại theo Q-5; thêm hàng «tệp kê khớp build» trỏ Task 3/7)
+- Create: `src/shared/__fixtures__/danh-sach-goi.json` (chép từ `public/js/danh-sach-goi.json` sau `npm run build:web`, đặt `buildId: "mau"`), `src/danh-sach-goi-mau.test.ts`
+- Test: hai bài trên
+
+**Interfaces:**
+- Produces: tệp mẫu `src/shared/__fixtures__/danh-sach-goi.json` — mọi task sau và `tests/e2e` dùng khi cần tệp kê ngoài bản dựng. **Chép lại** mỗi khi thêm/bớt trang (bài 5 Review Focus bắt).
+- Hằng ngân sách trong `goi-trang-nhe.test.ts` (chú thích lý do như hôm nay): `TONG_THO_TOI_DA = 1_600_000`, `GOI_CON_TOI_DA = 170_000`, `ORDERS_TOI_DA = 15_000`, `LOGIN_TOI_DA = 15_000`, `BAO_DONG_TOI_DA = 37`, `CHO_PHEP_NHAT_KY = new Set(["public/js/help.js"])`.
+
+- [ ] **Step 1: Viết lại** `src/goi-trang-nhe.test.ts` (đỏ vì chưa có tệp mẫu/hàm): một `buildSync({ ...tuyChonTrang("thu"), outdir: mkdtemp, write: true, logLevel: "silent" })` ở đầu tệp; `ds = sinhDanhSachGoi(r.metafile, DIEM_VAO, "thu")`. Bài: (a) `Σ bytes mọi output .js ≤ TONG_THO_TOI_DA`; (b) `max bytes output không entryPoint ≤ GOI_CON_TOI_DA`; (c) `bytes["public/js/orders.js"] ≤ ORDERS_TOI_DA`; (d) `login.js ≤ LOGIN_TOI_DA`; (e) tập output có input kết thúc `src/shared/changelog.ts` deepEqual `[...CHO_PHEP_NHAT_KY]` (gói con **không** được chứa nhật ký); (f) `max(ds.trang[*].length) ≤ BAO_DONG_TOI_DA`; giữ hai bài cũ «tên ứng dụng» và «trang nào nhập thẳng app-info/changelog». Thông điệp lỗi in số đo thật.
+- [ ] **Step 2: Viết** `src/danh-sach-goi-mau.test.ts`: (1) tập khoá `mau.trang` deepEqual tập `DIEM_VAO.map(d => d.duong)` sắp xếp; (2) mỗi `mau.trang[d]` phần tử cuối là `/js/<tên tệp>.js` của `tep`, mọi phần tử khớp `/^\/js\/[A-Za-z0-9_-]+\.js$/`, không trùng; (3) `mau.chung` ⊂ hợp mọi bao đóng; (4) **chỉ khi** `existsSync("public/js/danh-sach-goi.json")`: tập khoá `trang` và **độ dài** mỗi bao đóng của tệp thật bằng tệp mẫu (không so băm) — lệch ⇒ thông điệp «chép lại tệp mẫu».
+- [ ] **Step 3: Chạy** `npm run build:web`; chép tệp kê thật vào tệp mẫu, sửa `buildId` thành `"mau"`.
+- [ ] **Step 4: Chạy** `npm test` → xanh. **Nếu (a)–(f) đỏ vì số thật vượt trần: dừng, ghi số vào nhật ký, báo Main session** (đặc tả Q-5: không nới).
+- [ ] **Step 5: `docs/SO-HANG-RAO.md`**: sửa hàng «Gói giao diện gọn» (cơ chế mới, 6 trần, ngày), thêm hàng «Tệp kê mẫu khớp mã» (`danh-sach-goi-mau.test.ts`).
+- [ ] **Step 6: Commit** — "Đợt 0b (3/13): ngân sách gói Q-5 (a)–(f) thay TRAN_ORDERS; tệp kê mẫu".
+
+---
+
+### Task 4: Vòng 1 — `precacheVong1` thay `PRECACHE`; service worker cài theo tệp kê
+
+**Files:**
+- Modify: `src/shared/sw-policy.ts` (bỏ hằng `PRECACHE`, thêm `PAGES_VONG_1`, `TINH_VONG_1`, `precacheVong1`), `web/sw/sw.ts` (dòng 3, 14 + `declare const __DANH_SACH_GOI__`), `src/shared/sw-policy.test.ts` (dòng 4, 75, 116–127, 138), `src/sw-ngoai-mang.test.ts:10` (thêm define tệp mẫu), `src/phong-chu.test.ts:8,30–35`, `src/muc-chup-bu.test.ts:37`, `tests/e2e/pwa.mjs:3,65–66,84,116`, `tests/audit/muc-hien-mo-duoc-khung.mjs:366` (chữ: «`DIEM_VAO`, `PAGES`, `KHUON`, `web/html/<trang>.html`»)
+- Test: `src/shared/sw-policy.test.ts`, `src/sw-ngoai-mang.test.ts`, `src/phong-chu.test.ts`
+
+**Interfaces:**
+- Consumes: `DanhSachGoi`, `baoDong` (Task 1); tệp mẫu `mau` (Task 3).
+- Produces (`sw-policy.ts`): `export const PAGES_VONG_1: readonly string[] = ["/", "/login", "/ngoai-mang"]`; `export const TINH_VONG_1: readonly string[] = ["/app.css", "/giao-dien.css", "/manifest.webmanifest", "/icons/logo-96.png", "/icons/icon-192.png", "/fonts/be-vietnam-pro-400.woff2", "/fonts/be-vietnam-pro-500.woff2", "/fonts/be-vietnam-pro-600.woff2", "/fonts/be-vietnam-pro-700.woff2"]`; `export function precacheVong1(ds: DanhSachGoi | null): string[]` = `PAGES_VONG_1` + bao đóng JS của ba trang (thứ tự tệp kê, khử trùng) + `TINH_VONG_1`; không trùng.
+- `web/sw/sw.ts`: `declare const __DANH_SACH_GOI__: DanhSachGoi | undefined;` (import type từ `../../src/shared/danh-sach-goi`); `const DANH_SACH = typeof __DANH_SACH_GOI__ === "undefined" ? null : __DANH_SACH_GOI__;` `install` dùng `precacheVong1(DANH_SACH)` với `cache: "reload"` + `allSettled` như cũ.
+
+- [ ] **Step 1: Sửa/viết bài** (đỏ): `sw-policy.test.ts` — bài 116 «nạp sẵn không trùng, đều shell» và 75 «đường tương đối» chạy trên `precacheVong1(mau)`; bài 122 «nạp sẵn đủ…» **thay** bằng «vòng 1 = ba trang + bao đóng JS của chúng (từ tệp mẫu) + 9 tệp tĩnh; ≤ 30 mục; không có `/404`, không có trang nào khác, không phông 800/tuỳ chọn»; thêm «`precacheVong1(null)` = ba trang + tĩnh»; thêm vào bài «đóng theo mặc định» hai đường `/js/danh-sach-goi.json`, `/speculation-rules.json` ⇒ `pass`; bài 138 `/giao-dien.css` ∈ `precacheVong1(mau)`. `phong-chu.test.ts` — luật: Be Vietnam Pro 400/500/600/700 ∈ vòng 1, 800 và phông tuỳ chọn ∉; mọi phông trong vòng 1 có `@font-face`. `muc-chup-bu.test.ts:37` → `"/chup-bu" in mau.trang && mau.trang["/chup-bu"].includes("/js/chup-bu.js")`. `sw-ngoai-mang.test.ts` thêm `__DANH_SACH_GOI__: JSON.stringify(mau)` vào `define`, ba ca giữ.
+- [ ] **Step 2: Sửa** `sw-policy.ts`, `sw.ts`. `npm test`, `npm run typecheck` xanh.
+- [ ] **Step 3: Sửa `tests/e2e/pwa.mjs`**: đọc tệp kê thật `public/js/danh-sach-goi.json` (sau dựng luôn có), `V1 = precacheVong1(that)`; dòng 65–66 theo luật phông mới; dòng 84 vòng `PAGES ∪ V1`; dòng 116: tìm chuỗi thương hiệu trong **các tệp của bao đóng `/orders`** (ít nhất một tệp chứa cả `"${esc(SHORT)} "` và `"${esc(REST)}"`); thêm: `GET /js/danh-sach-goi.json` 200, `buildId` trùng mã 14 chữ số trong `/sw.js`.
+- [ ] **Step 4: Chạy** `npm run build:web && npm run test:e2e -- pwa` → «E2E PWA OK».
+- [ ] **Step 5: Commit** — "Đợt 0b (4/13): vòng 1 precacheVong1 (3 trang + bao đóng + 9 tĩnh) thay PRECACHE 108 mục; SW cài theo tệp kê".
+
+---
+
+### Task 5: Vòng 2 — trang theo vai, `message` ở service worker, shell gửi sau `load`
+
+**Files:**
+- Create: `src/shared/nap-theo-vai.ts`, `src/nap-theo-vai.test.ts`, `src/sw-nap-theo-vai.test.ts`
+- Modify: `src/shared/sw-policy.ts` (thêm `YeuCauNapTheoVai`, `laYeuCauNapTheoVai`, `urlTheoVai`), `src/shared/sw-policy.test.ts`, `web/sw/sw.ts` (handler `message`), `web/pwa.ts` (`guiNapTheoVai`), `web/shell.ts` (một dòng sau `luuKhungNho`, :502)
+- Test: ba bài mới + `src/shell-nap-theo-vai.test.ts` (tĩnh, mới)
+
+**Interfaces:**
+- Consumes: `precacheVong1`, `DANH_SACH` trong `sw.ts` (Task 4); `baoDong` (Task 1); tệp mẫu (Task 3); `homeRedirect`, `THANH_TAB`, `coHien`, `TRANG` có sẵn.
+- Produces (`nap-theo-vai.ts`): `export function trangTheoVai(staff: PermissionHolder): readonly string[]` = `[homeRedirect(staff) ?? "/", ...THANH_TAB.filter(c => coHien(c, { staff })).map(c => TRANG[c.trang].duong)]` khử trùng bằng `Set`, giữ thứ tự (import `homeRedirect` từ `start-page.ts`; `THANH_TAB`, `coHien`, `TRANG` từ `muc-giao-dien.ts`; **không** gọi `thanhTab()` vì nó cắt còn 5).
+- Produces (`sw-policy.ts`): `export interface YeuCauNapTheoVai { readonly loai: "nap-theo-vai"; readonly buildId: string; readonly trang: readonly string[] }`; `export function laYeuCauNapTheoVai(d: unknown): d is YeuCauNapTheoVai` (đúng ba trường, `trang` là mảng chuỗi); `export function urlTheoVai(ds: DanhSachGoi | null, trang: readonly string[]): string[]` = với mỗi `t ∈ trang ∩ PAGES`: `t` rồi `baoDong(ds, t)`; khử trùng; đường ∉ `PAGES` bị bỏ.
+- `web/sw/sw.ts`: `self.addEventListener("message", (event: ExtendableMessageEvent) => event.waitUntil(napTheoVai(event.data)))`; `napTheoVai`: không phải yêu cầu hợp lệ hoặc `buildId !== CACHE_VERSION` ⇒ return; mở `CACHE_NAME`; **tuần tự** từng url của `urlTheoVai(DANH_SACH, trang)`: `cache.match(url)` có ⇒ bỏ qua, không ⇒ `await cache.add(url)` trong `try {} catch {}` (lỗi một tệp không dừng vòng); không `cache: "reload"`.
+- `web/pwa.ts`: `export function guiNapTheoVai(trang: readonly string[]): void` — `declare const __BUILD_ID__: string | undefined` (mẫu `ho-tro-gui.ts:13,33`); bỏ qua khi `typeof __BUILD_ID__ === "undefined"`, khi `typeof navigator === "undefined"` hoặc thiếu `serviceWorker`; chờ `load` nếu `document.readyState !== "complete"` (listener `{ once: true }`), rồi `navigator.serviceWorker.ready.then(r => r.active?.postMessage({ loai: "nap-theo-vai", buildId: __BUILD_ID__, trang } satisfies YeuCauNapTheoVai))`, nuốt lỗi.
+- `web/shell.ts` `initShell`: ngay sau `luuKhungNho(...)` (:502): `guiNapTheoVai(trangTheoVai(staff));` — chỉ nhánh có `staff` (hai nhánh lỗi không tới đây).
+
+- [ ] **Step 1: Bài** `src/nap-theo-vai.test.ts` (đỏ): với 1024 tập con của `PERMISSION_CODES` (mẫu `src/thanh-tab-theo-bo-quyen.test.ts:30`): kết quả ⊂ `PAGES`; không trùng; phần tử đầu = `homeRedirect(s) ?? "/"`; chứa mọi `href` của `thanhTab({ staff: s })`; chứa mọi `TRANG[c.trang].duong` của `THANH_TAB` mà `coHien(c, { staff: s })` (kể cả khi > 5); mọi phần tử có trong `mau.trang` (tệp mẫu) — trừ `/` không cần (là trang vòng 1 nhưng vẫn phải có trong tệp kê: `assert.ok("/" in mau.trang)`); tập rỗng quyền ⇒ ít nhất `["/"]`.
+- [ ] **Step 2: Bài** trong `sw-policy.test.ts` (đỏ): `laYeuCauNapTheoVai` nhận đúng hình, từ chối `null`, thiếu trường, `trang` không phải mảng chuỗi, `loai` khác; `urlTheoVai(mau, ["/orders", "/api/orders", "//orders", "/khong-co", "/orders"])` = `["/orders", ...mau.trang["/orders"]]` (một lần); `urlTheoVai(null, ["/orders"])` = `["/orders"]`; mọi phần tử trả về đều `routeFor` = `shell`.
+- [ ] **Step 3: Bài** `src/sw-nap-theo-vai.test.ts` (đỏ; chép khung `dungSw` của `sw-ngoai-mang.test.ts`, `define` cả `__BUILD_ID__: '"test"'` và tệp mẫu; cache giả có `add` ghi vào `bo`, `keys`): (1) gọi `nghe.install({ waitUntil })`, chờ ⇒ tập url đã `add` deepEqual `precacheVong1(mau)` và `≤ 30`; (2) `nghe.message({ data: { loai: "nap-theo-vai", buildId: "test", trang: ["/orders", "/account"] }, waitUntil })` ⇒ cache có `/orders`, `/account` và mọi JS của hai bao đóng, không có gì khác; cùng tin với `buildId: "khac"` ⇒ không thêm gì; tin `{ loai: "nap-theo-vai", buildId: "test", trang: ["/api/orders", 5] }` ⇒ không ném, không thêm (Review Focus 2); (3) trang chưa nạp + mất mạng ⇒ `/ngoai-mang`; sau khi nhận tin nạp `/orders` + mất mạng ⇒ `lay("/orders","navigate")` trả bản cache.
+- [ ] **Step 4: Bài tĩnh** `src/shell-nap-theo-vai.test.ts`: `web/shell.ts` chứa đúng một `guiNapTheoVai(trangTheoVai(staff))`, đứng **sau** `luuKhungNho(` và **trước** `addNav({ staff }`; `web/pwa.ts` có `declare const __BUILD_ID__` + `typeof __BUILD_ID__` + `serviceWorker.ready` + `"load"`; không có `requestIdleCallback` trong `web/sw/sw.ts`.
+- [ ] **Step 5: Viết mã** theo Interfaces. `npm test`, `npm run typecheck`, `npm run build:web` xanh; `node scripts/chup-muc-giao-dien.mjs --so-sanh main` chạy được (pwa.ts là bản rỗng trên DOM giả).
+- [ ] **Step 6: Kiểm tay nhanh** trên `wrangler dev` + Chrome: đăng nhập, mở `/orders`, DevTools → Application → Cache Storage: sau vài giây có các trang của thanh tab. Ghi nhật ký.
+- [ ] **Step 7: Commit** — "Đợt 0b (5/13): nạp sẵn theo vai — trangTheoVai, message ở SW, shell gửi sau load (thay điều 1 ADR-0035)".
+
+---
+
+### Task 6: Bảng khuôn, năm mẫu khung xương, CSS `.xuong-trang`
+
+**Files:**
+- Create: `src/shared/khuon-trang.ts`, `src/khuon-trang.test.ts`, `web/html/_xuong/danh-sach.html`, `…/chi-tiet.html`, `…/bieu-mau.html`, `…/bang-dieu-khien.html`, `…/thiet-lap.html`, `src/xuong-trang.test.ts`
+- Modify: `public/app.css` (khối mới sau dấu mốc PWA, cạnh `.xuong` :4017: «Khung xương tĩnh (đợt 0b, Q-13)»)
+- Test: hai bài mới, `src/thanh-phan-v2-css.test.ts` (chạy lại), `tests/e2e/pwa.mjs` (quét px — chạy ở Task 12)
+
+**Interfaces:**
+- Produces (`khuon-trang.ts`): `export type Khuon = "danh-sach" | "chi-tiet" | "bieu-mau" | "bang-dieu-khien" | "thiet-lap" | "khong"`; `export const KHUON: Readonly<Record<string, Khuon>>` cho **50** đường của `PAGES`: theo bảng `KIEM-KE.md` mục 5 (8 bảng điều khiển, 12 danh sách, 4 chi tiết, 6 biểu mẫu, 14 thiết lập) + `/thiet-lap` = `thiet-lap`; `/login`, `/home`, `/danh-muc-giay-to`, `/404`, `/ngoai-mang` = `khong`. `export const SO_MANH: Readonly<Record<Exclude<Khuon,"khong">, { dong: number; so: number; vien: number }>>` = danh-sach `{dong:6, so:0, vien:1}`, chi-tiet `{dong:10, so:5, vien:1}` (5 khối × (1 số + 2 dòng) + dải tóm tắt), bieu-mau `{dong:0, so:5, vien:5}` (5 ô có nhãn), bang-dieu-khien `{dong:2, so:5, vien:0}` (4 ô số + 1 khối), thiet-lap `{dong:4, so:0, vien:0}`.
+- Mẫu `web/html/_xuong/<khuon>.html`: chỉ `<div>`/`<span>`; mảnh = `<span class="xuong"></span>` (dòng), `<span class="xuong" data-khuon="so"></span>`, `<span class="xuong" data-khuon="vien"></span>`; nhóm bằng `<div class="xuong-khoi">`; **không** `id`, không chữ, không `h1–h3`/`button`/`a` (bộ sinh sơ đồ `boCucHtml` không được bắt), không lớp `.thanh-hanh-dong-cuoi`, không `.xuong` trên vỏ.
+- CSS: `.xuong-trang { display: grid; gap: var(--s3); padding-block: var(--s3); }`, `.xuong-khoi { display: grid; gap: var(--s2); }`, `.xuong-trang .xuong[data-khuon="vien"]` giữ như `.xuong` v2; lưới bốn ô số ở ≥ 900: `.xuong-trang[data-khuon="bang-dieu-khien"] .xuong-khoi:first-child { grid-template-columns: repeat(4, minmax(0, 1fr)); }`; **chỉ token**, không `--skel-*` mới.
+
+- [ ] **Step 1: Bài** `src/khuon-trang.test.ts` (đỏ): mọi `PAGES` có khuôn; đếm theo khuôn = 8/12/4/6/**15** (14 + `/thiet-lap`)/5; 6 trang `data-khuon="bieu-mau"` trong HTML hôm nay (`ban`, `chuyen-sua`, `chup-bu`, `dieu-chinh-cong-no`, `order-form`, `xe-sua`) đúng là 6 trang `bieu-mau`; `/help` = `thiet-lap`; `/404`, `/ngoai-mang`, `/login` = `khong`.
+- [ ] **Step 2: Bài** `src/xuong-trang.test.ts` (đỏ): với mỗi khuôn ≠ `khong`, tệp mẫu tồn tại; đếm `<span class="xuong"></span>`, `data-khuon="so"`, `data-khuon="vien"` = `SO_MANH[khuon]`; chỉ có thẻ `div`/`span`; không `id=`, không chữ ngoài thẻ, không `thanh-hanh-dong-cuoi`, không `class="xuong "` trên `div`; CSS: khối `.xuong-trang` nằm **sau** dấu mốc PWA; `.xuong-trang`/`.xuong-khoi` không chứa số `px`/hex (regex như `pwa.mjs`).
+- [ ] **Step 3: Viết** bảng, năm mẫu, CSS. `npm test` xanh (`thanh-phan-v2-css.test.ts`, `token-dot-0.test.ts` không đỏ).
+- [ ] **Step 4: Commit** — "Đợt 0b (6/13): bảng khuôn KHUON (50 trang), năm mẫu khung xương, CSS .xuong-trang chỉ token".
+
+---
+
+### Task 7: HTML sinh từ nguồn `web/html/` — head chung, `modulepreload`, `preload` phông, `data-khuon`, khung xương, `data-khung`
+
+**Files:**
+- Move: `git mv public/<50 tệp>.html web/html/` ; Create: `web/html/_head.html`, `scripts/sinh-html-lib.mjs`, `src/html-sinh.test.ts`
+- Modify: `.gitignore` (+`public/*.html`), `scripts/chay-test.mjs` (bước 0: sinh HTML trước `ghiTatCa()`), `scripts/dung-web.mjs` (bước (4)), `src/shared/sw-policy.test.ts:84–88` (so `PAGES` với `web/html/*.html` trừ `_head.html` và thư mục `_xuong/`), `src/muc-chup-bu.test.ts:39` (`web/html/chup-bu.html`), `scripts/chup-muc-giao-dien.mjs:264,399` (đọc `web/html/<x>.html` nếu có trong nguồn, không thì `public/<x>.html`), `src/shared/tro-ly-cau-truc.test.ts` (thứ tự `dung-web.mjs`: thêm `sinhTatCaHtml(` giữa `sinhDanhSachGoi(` và `ghiTatCa(`), `src/dung-web.test.ts` (cùng thứ tự), 48 tệp nguồn (`<body>` thêm `data-khung`, và `data-xuong` ở 3 trang)
+- Test: `src/html-sinh.test.ts`, `src/giao-dien-the-link.test.ts`, `src/thanh-dinh-day.test.ts:96`, mọi bài đọc `public/*.html` (chạy sau bước 0)
+
+**Interfaces:**
+- Consumes: `KHUON`, `SO_MANH`, năm mẫu `_xuong` (Task 6); `baoDong` (Task 1); tệp mẫu (Task 3); `ghiNeuKhac` (`sinh-so-do-trang.mjs`).
+- **Định dạng nguồn** `web/html/<trang>.html`: dòng 1 = `<title>… — Island Booking System</title>`; từ dòng 2 = nguyên văn từ dòng 3 của tệp cũ (`<body …>` … `</body></html>`). `web/html/_head.html` = một dòng: đúng phần của dòng 2 cũ **giữa** `<head>` và `<title>` (từ `<meta charset="utf-8">` đến `<link rel="stylesheet" href="/giao-dien.css">`; 48 tệp hôm nay giống hệt nhau ở phần này — đo 29/10). Hai trang chuyển hướng (`home.html`, `danh-muc-giay-to.html`) giữ **nguyên văn** cả tệp: nguồn bắt đầu bằng `<!doctype html>` ⇒ bộ sinh chép y nguyên.
+- Produces (`sinh-html-lib.mjs`): `export function sinhHtml({ duong, nguon, head, danhSach, khuon, xuong })` → chuỗi HTML (`xuong` = map khuôn → nội dung mẫu). Kết quả: `<!doctype html>\n<html lang="vi"><head>` + `head` + `<link rel="modulepreload" href="…">` cho **từng** phần tử của `baoDong(danhSach, duong)` (thứ tự tệp kê; bỏ hết khi `danhSach` null) + `<link rel="preload" as="font" type="font/woff2" crossorigin href="/fonts/be-vietnam-pro-{400,500,600}.woff2">` (+700 khi `duong === "/"`) + `<title>` + `</head>\n` + thân đã xử lý. Thân: (i) `<body>` — có `data-khuon` thì phải bằng `khuon` (lệch ⇒ ném nêu `duong`), không có thì thêm `data-khuon="<khuon>"` (kể cả `khong`); phải có `data-khung="co"|"khong"` (thiếu ⇒ ném); (ii) khung xương khi `khuon !== "khong"` và `<body>` **không** có `data-xuong`: chèn `<div class="xuong-trang" data-xuong-tinh aria-hidden="true" data-khuon="<khuon>">` + mẫu + `</div>` **ngay trước dòng** `<div id="error"` đầu tiên sau `<main` (thiếu `id="error"`, hoặc có nhiều hơn một, hoặc dòng đó không ở mức con trực tiếp của `main` theo thụt lề 2 khoảng ⇒ ném), và thêm `aria-busy="true"` vào thẻ `<main …>`; `data-xuong="rieng"` hoặc `"khong"` ⇒ không chèn; giá trị khác ⇒ ném; (iii) `danhSach` khác null, thân có `<script type="module"` mà `duong ∉ danhSach.trang` ⇒ ném.
+- Produces: `export function sinhTatCaHtml({ goc = ROOT, danhSach })`: đọc `web/html/*.html` (trừ `_head.html`, `_xuong/`), `KHUON` từ `src/shared/khuon-trang.ts`, ghi `public/<tên>.html` bằng `ghiNeuKhac` (import từ `sinh-so-do-trang.mjs`); trả danh sách tệp đã đổi. Đường ↔ tên: `index.html` ↔ `/`, còn lại `/<tên>`.
+- `chay-test.mjs` bước 0: `sinhTatCaHtml({ danhSach: existsSync("public/js/danh-sach-goi.json") ? JSON.parse(...) : null })` **trước** `ghiTatCa()`; lỗi bộ sinh HTML ⇒ `npm test` đỏ như lỗi bộ sinh kho trợ lý (cùng nhánh `sinhLoi`).
+- Thuộc tính nguồn: `data-khung="co"` trên `<body>` của 47 trang gọi `initShell` (kể cả `404`, `ngoai-mang`); `data-khung="khong"` chỉ `login`; `data-xuong="rieng"` ở `index.html`, `orders.html`; `data-xuong="khong"` ở `help.html`. `data-tabbar="off"` giữ 4 trang.
+
+- [ ] **Step 1: Di chuyển và tách head** (một kịch bản tạm trong `$CLAUDE_JOB_DIR/tmp`, không commit): `git mv` 50 tệp; với 48 tệp thường ghi lại theo định dạng nguồn; trích `_head.html` từ `locations.html`. Kiểm: `for f in web/html/*.html; do …` 48 tệp có dòng 1 là `<title>`, 2 tệp bắt đầu `<!doctype`.
+- [ ] **Step 2: Bài** `src/html-sinh.test.ts` (đỏ) dùng tệp mẫu Task 3, `KHUON`, mẫu `_xuong`, `_head.html`, và một nguồn giả nhỏ trong bài: (1) `sinhHtml` với `danhSach: null`, khuôn `khong`, không `data-xuong` ⇒ không `modulepreload`, không khung xương, có 3 `preload` phông; (2) `/` có 4 preload (700), trang khác 3; (3) `modulepreload` đúng số và đúng thứ tự `mau.trang["/orders"]`, đứng **ngay sau** `<link rel="stylesheet" href="/giao-dien.css">`, trước preload phông; (4) cặp css liền nhau còn nguyên; `<title>` còn nguyên, là thẻ cuối trước `</head>`; (5) thân không `data-khuon` ⇒ thêm; `data-khuon="bieu-mau"` với khuôn `bieu-mau` ⇒ giữ; với khuôn `danh-sach` ⇒ ném `/data-khuon/`; (6) khung xương: chèn ngay trước `<div id="error"`, là con trực tiếp (`<main` … `\n  <div class="xuong-trang"` … `\n  <div id="error"`), `aria-busy="true"` trên `main`, `data-khuon` của vỏ khung = khuôn, nội dung = mẫu; (7) `data-xuong="rieng"`/`"khong"` ⇒ không chèn, không `aria-busy`; `data-xuong="co"` ⇒ ném; thiếu `#error` với khuôn ≠ `khong` ⇒ ném nêu `duong`; hai `id="error"` ⇒ ném; (8) thiếu `data-khung` ⇒ ném; (9) `danhSach` có nhưng trang có `<script type="module"` không trong `trang` ⇒ ném (Review Focus 3); (10) nguồn bắt đầu `<!doctype` ⇒ trả nguyên văn; (11) **toàn bộ 50 nguồn thật** qua `sinhHtml` với tệp mẫu không ném; 48 kết quả có `— Island Booking System</title>`; **42** có `data-xuong-tinh` (45 trang khuôn ≠ `khong` trừ 3 trang `data-xuong`); `help` có `data-ve-truoc-shell` và không khung xương; `login` **có** `modulepreload` (`login.ts` là điểm vào) nhưng `data-khung="khong"`; hai trang chuyển hướng bằng nguyên văn.
+- [ ] **Step 3: Viết** `sinh-html-lib.mjs`; nối vào `dung-web.mjs` bước (4) và `chay-test.mjs` bước 0; `.gitignore`; sửa `sw-policy.test.ts`, `muc-chup-bu.test.ts`, `chup-muc-giao-dien.mjs`, hai bài thứ tự.
+- [ ] **Step 4: Thêm** `data-khung`, `data-xuong` vào 48 nguồn (sed một lần, kiểm bằng bài (11)).
+- [ ] **Step 5: Chứng minh không đổi gì ngoài ý muốn** (kịch bản tạm trong `$CLAUDE_JOB_DIR/tmp`, không commit): gọi `sinhTatCaHtml({ danhSach: null })`; với 50 tệp, lấy `public/<x>.html` vừa sinh, **gỡ** đúng các phần thêm có chủ đích — dòng `rel="preload"`, khối từ `<div class="xuong-trang"` tới `</div>` đóng nó, thuộc tính ` data-khuon="…"` (ở trang cũ không có), ` data-khung="…"`, ` data-xuong="…"`, ` aria-busy="true"` — rồi so bằng `git show main:public/<x>.html`: **50/50 bằng nhau từng byte**. Lệch tệp nào ghi tên vào nhật ký và sửa bộ sinh. Sau đó `npm test` (bước 0 sinh HTML) xanh; `npm run build:web` xanh; `npm run typecheck` xanh; `node scripts/chup-muc-giao-dien.mjs --so-sanh main` chạy được, 0 khác.
+- [ ] **Step 6: Kiểm tay** `wrangler dev`: `curl -s localhost:8787/orders | head -3` có `modulepreload` + `preload`; `/xe` có `<div class="xuong-trang"` trước `#error`; `/home` nguyên văn.
+- [ ] **Step 7: Commit** — "Đợt 0b (7/13): HTML sinh từ web/html (head chung, modulepreload bao đóng, preload phông, data-khuon, khung xương tĩnh, data-khung); public/*.html vào .gitignore".
+
+---
+
+### Task 8: Shell gỡ khung xương tự động (Q-14) và giữ chỗ khung từ CSS (Q-15)
+
+**Files:**
+- Create: `web/xuong-trang.ts`, `src/xuong-trang-go.test.ts`, `src/khung-giu-cho-css.test.ts`
+- Modify: `web/shell.ts` (đầu `initShell` sau `const chinh = …` :392; hai nhánh lỗi :485–488, :489–496), `web/trang-thai-he-thong.ts` (`trangThaiToanTrang`), `web/dai.ts` (`veThanNgoaiMang`), `public/app.css` (13 luật đổi bộ chọn: 1213, 1214, 1216, 1319, 1333, 1334, 1338, 1344, 1345, 2247, 2262, 2263, 4061 — số dòng hôm nay, kiểm lại bằng `grep -n "body\.has-"`), `src/khung-dang-tai-css.test.ts` (~dòng 36 regex `body\.has-tabbar`)
+- Test: hai bài mới, `src/khung-dang-tai-css.test.ts`, `src/thanh-dinh-day.test.ts`
+
+**Interfaces:**
+- Produces (`web/xuong-trang.ts`):
+  - `export interface NutGia { readonly nodeType: number; matches?(sel: string): boolean }` và `export function boQuaBienDoi(m: { readonly type: string; readonly target: { closest?(sel: string): unknown } ; readonly addedNodes: ArrayLike<NutGia> }): boolean` — `true` khi `target.closest?.("[data-xuong-tinh]")` khác null, hoặc `type === "childList"` và `addedNodes.length > 0` và **mọi** nút thêm là phần tử (`nodeType === 1`) khớp `nav.dai-anh-em`. Thuần (không đụng `document`).
+  - `export function theoDoiXuongTrang(main: Element | null, anToanMs = 8000): void` — không có `[data-xuong-tinh]` trong `main`, hoặc `typeof MutationObserver === "undefined"` ⇒ không làm gì (không đặt timer). Ngược lại: `new MutationObserver(ds => { if (ds.some(m => !boQuaBienDoi(m))) goXuongTrang(main); }).observe(main, { childList: true, subtree: true, characterData: true })` + `setTimeout(() => goXuongTrang(main), anToanMs)`.
+  - `export function goXuongTrang(main: Element | null): void` — xoá mọi `[data-xuong-tinh]` trong `main`, `main.removeAttribute("aria-busy")`, ngắt observer + xoá timer (giữ trong biến mô-đun); gọi nhiều lần vô hại.
+- `web/shell.ts`: sau khi lấy `chinh`: `theoDoiXuongTrang(chinh)`; nhánh `ApiError` và nhánh mất mạng: thêm `document.body.dataset.khung = "khong"` (trước `throw` / trước `veThanNgoaiMang`). `trangThaiToanTrang` và `veThanNgoaiMang` gọi `goXuongTrang(main)` trước `replaceChildren`.
+- CSS: mọi `body.has-sidebar` ⇒ `body:is(.has-sidebar, [data-khung="co"])`; mọi `body.has-tabbar` ⇒ `body:is(.has-tabbar, [data-khung="co"]:not([data-tabbar="off"]))` (dòng 1216 có hai bộ chọn ghép `.tabbar-an`/`.tabbar-dinh`: giữ phần ghép sau `:is(...)`). JS vẫn gắn/gỡ `has-sidebar`/`has-tabbar` như cũ (mục 15.3 đã đọc mã 29/10: ngoài CSS chỉ `web/shell.ts` dùng hai lớp này, 5 chỗ — không chạm).
+
+- [ ] **Step 1: Bài** `src/xuong-trang-go.test.ts` (đỏ): `boQuaBienDoi` — biến đổi trong `[data-xuong-tinh]` ⇒ true; `childList` thêm đúng một `nav.dai-anh-em` ⇒ true; thêm `nav.dai-anh-em` + một nút khác ⇒ false; `characterData` ngoài khung ⇒ false; `childList` không thêm nút (chỉ xoá) ngoài khung ⇒ false. Bài tĩnh: `web/shell.ts` gọi `theoDoiXuongTrang(chinh)` **trước** `api<Api.MeResponse>("/api/auth/me")`; hai nhánh lỗi có `dataset.khung = "khong"`; `trangThaiToanTrang` và `veThanNgoaiMang` gọi `goXuongTrang(`; `xuong-trang.ts` bọc `typeof MutationObserver`.
+- [ ] **Step 2: Bài** `src/khung-giu-cho-css.test.ts` (đỏ): trong `public/app.css` **sau khi bỏ chú thích** (`/\/\*[\s\S]*?\*\//g`, như `pwa.mjs`) không còn bộ chọn `body.has-sidebar` hay `body.has-tabbar` (regex `/body\.has-(sidebar|tabbar)/` = 0 khớp); `body:is(.has-sidebar, [data-khung="co"])` ≥ 10 khớp; `body:is(.has-tabbar, [data-khung="co"]:not([data-tabbar="off"]))` ≥ 3; luật lưới ≥ 900 (`grid-template-columns: var(--w-sidebar) minmax(0, 1fr)`) nằm trong luật có bộ chọn mới. Sửa `khung-dang-tai-css.test.ts` regex `min-height` sang bộ chọn mới.
+- [ ] **Step 3: Viết mã + sửa CSS.** `npm test`, `npm run typecheck`, `npm run build:web` xanh; `node scripts/chup-muc-giao-dien.mjs --so-sanh main` 0 khác (DOM giả không có `MutationObserver` ⇒ không timer, tiến trình thoát).
+- [ ] **Step 4: Kiểm tay** Chrome 390 và 1040 trên `wrangler dev`: `/xe` (Toàn quyền) khung xương hiện rồi mất khi dữ liệu về; DevTools chặn `*/js/*` rồi mở `/orders` 1040: cột trái trống 248 px, `main` không nhảy khi bỏ chặn. Ghi nhật ký.
+- [ ] **Step 5: Commit** — "Đợt 0b (8/13): shell gỡ khung xương bằng MutationObserver (bỏ qua dai-anh-em, an toàn 8 s); CSS chừa chỗ khung theo body[data-khung]".
+
+---
+
+### Task 9: N1 — thanh trên Chi tiết đơn «Đơn hàng»; huy hiệu số đếm thanh bên đồng cỡ
+
+**Files:**
+- Modify: `web/order.ts:1328` (`setBarTitle("Đơn hàng")`), `public/app.css` (`.sidebar-item-badge` :1269, `-sand` :1270, `-accent` :1271, `.sidebar-group-count` :1275)
+- Create: `src/thanh-tren-tieu-de.test.ts`, `src/huy-hieu-thanh-ben-css.test.ts`
+
+**Interfaces:**
+- CSS đích: `.sidebar-item-badge { flex: none; min-width: var(--s5); padding: var(--pad-huy-hieu-doc) var(--pad-huy-hieu-ngang); font-size: var(--fs-badge); font-weight: var(--fw-semibold); line-height: var(--lh-16); text-align: center; color: var(--c-sidebar-badge-text); background: var(--c-sidebar-badge); border-radius: var(--radius-pill); }`; `-sand` chỉ `color: var(--c-sand-text); background: var(--c-sand-soft);` (bỏ `font-weight: var(--fw-heavy)`); `-accent` chỉ `color: var(--c-on-dark); background: var(--c-accent);`; `.sidebar-group-count` thêm `line-height: var(--lh-16)`, giữ `font-size: var(--fs-badge); font-weight: var(--fw-semibold)` và phần cắt chữ. JS không chạm.
+
+- [ ] **Step 1: Bài** `src/thanh-tren-tieu-de.test.ts` (đỏ): `web/order.ts` chứa `setBarTitle("Đơn hàng")`, không chứa `setBarTitle(order.orderCode)`, vẫn chứa ``document.title = `${order.orderCode} — ``; `web/chuyen.ts` và `web/cuoc-chuyen.ts` vẫn gọi `setBarTitle(` với biến (regex `/setBarTitle\([a-zA-Z]/`), không chứa `"Đơn hàng"` mới.
+- [ ] **Step 2: Bài** `src/huy-hieu-thanh-ben-css.test.ts` (đỏ): trích 4 luật; `.sidebar-item-badge` có đủ 7 khai báo token hình học (`min-width: var(--s5)`, `padding: var(--pad-huy-hieu-doc) var(--pad-huy-hieu-ngang)`, `font-size: var(--fs-badge)`, `font-weight: var(--fw-semibold)`, `line-height: var(--lh-16)`, `border-radius: var(--radius-pill)`, `text-align: center`); `-sand`/`-accent` **không** có `font-weight`, `padding`, `font-size` (giữ màu đúng 4 token như trên); `.sidebar-group-count` có `font-size: var(--fs-badge)`, `font-weight: var(--fw-semibold)`, `line-height: var(--lh-16)`; 4 luật không chứa số `px`; `web/shell.ts`, `web/thiet-lap.ts`, `web/giay-to-sap-het-han.ts` vẫn chứa `sidebar-item-badge`.
+- [ ] **Step 3: Sửa** mã + CSS. `npm test`, `npm run typecheck`, `npm run build:web` xanh.
+- [ ] **Step 4: Ảnh** (CDP, Toàn quyền): `/order?id=<đơn>` 390 thanh trên «Đơn hàng», mã đầy đủ ở thẻ tóm tắt; `/` 1040 thanh bên có ba huy hiệu cùng cao. Lưu `EVID/anh/n1-*.png`. Ghi nhật ký.
+- [ ] **Step 5: Commit** — "Đợt 0b (9/13): N1 — thanh trên Chi tiết đơn «Đơn hàng»; huy hiệu số đếm thanh bên đồng cỡ theo token huy hiệu v2".
+
+---
+
+### Task 10: G4 Speculation Rules (thử, không chặn) và G5 View Transitions
+
+**Files:**
+- Create: `public/speculation-rules.json`, `src/speculation-rules.test.ts`, `src/chuyen-trang-css.test.ts`
+- Modify: `public/_headers` (khối `/*` thêm `Speculation-Rules: "/speculation-rules.json"`; khối mới `/speculation-rules.json` → `Content-Type: application/speculationrules+json`), `public/app.css` (khối «Chuyển trang (đợt 0b, Q-12)» sau dấu mốc PWA)
+
+**Interfaces:**
+- `public/speculation-rules.json`: `{ "prefetch": [ { "where": { "selector_matches": "#tabbar a, #sidebar a" }, "eagerness": "moderate" } ] }`.
+- CSS: `@view-transition { navigation: auto; }`; `#topbar { view-transition-name: thanh-tren; }`; `#tabbar { view-transition-name: thanh-tab; }`; `#sidebar { view-transition-name: thanh-ben; }`; `::view-transition-old(root), ::view-transition-new(root) { animation-duration: var(--m-base); animation-timing-function: var(--ease-out); }`; `@media (prefers-reduced-motion: reduce) { @view-transition { navigation: none; } }`.
+
+- [ ] **Step 1: Bài** `src/speculation-rules.test.ts` (đỏ): JSON hợp lệ, khoá duy nhất `prefetch`, không `prerender`, đúng `selector_matches` và `eagerness`; `_headers` có dòng `Speculation-Rules: "/speculation-rules.json"` trong khối `/*` và khối `/speculation-rules.json` với `Content-Type: application/speculationrules+json`; dòng CSP không đổi so với bài `chi-duong-tinh.test.ts` (không chứa `speculation`).
+- [ ] **Step 2: Bài** `src/chuyen-trang-css.test.ts` (đỏ): các luật trên nằm sau dấu mốc PWA; `animation-duration: var(--m-base)`, `animation-timing-function: var(--ease-out)`; `navigation: none` trong khối reduced-motion; mỗi giá trị `view-transition-name` xuất hiện **đúng một lần** trong CSS và bộ chọn của nó đúng `#topbar`/`#tabbar`/`#sidebar`.
+- [ ] **Step 3: Viết** ba tệp. `npm test` xanh; `npm run build:web && npm run test:e2e -- pwa` xanh (quét px của khối PWA không bắt luật mới).
+- [ ] **Step 4: Thử G4 trên `wrangler dev`** (mục 15.2): `curl -sI localhost:8787/orders | grep -i speculation` và `curl -sI localhost:8787/speculation-rules.json | grep -i content-type`. Nếu Workers Assets không đè `Content-Type` ⇒ **bỏ** khối `/speculation-rules.json` trong `_headers`, sửa bài Step 1 tương ứng, ghi «G4 không chạy — lý do» vào nhật ký (không chặn). Chrome (CDP, `Network.enable` + sự kiện `Network.requestWillBeSentExtraInfo`): mở `/orders` đã đăng nhập, chờ 3 s, đếm yêu cầu tới các đường của thanh tab có header `sec-purpose` chứa `prefetch`; ghi «chạy / không (lý do nếu thấy, vd Chrome bỏ qua prefetch trên URL do service worker kiểm soát)» vào nhật ký và README bằng chứng — **không chặn nghiệm thu** (Q-11).
+- [ ] **Step 5: Commit** — "Đợt 0b (10/13): Speculation Rules qua header (thử) và View Transitions giữa tài liệu (thanh trên/tab/bên, --m-base, reduced-motion)".
+
+---
+
+### Task 11: Tài liệu, ADR, nhật ký thay đổi 2.48, sổ hàng rào, BACKLOG
+
+**Files:**
+- Modify: `docs/adr/ADR-0035-*.md` (dòng Trạng thái: thêm «Điều 1 thay bởi ADR-0143 (đợt 0b, <ngày>)»), `docs/adr/ADR-0150-*.md` (dòng Liên quan: «từ 0b, điều 1 ADR-0035 đã thay bởi ADR-0143; cơ chế trả `/ngoai-mang` giữ nguyên»), `docs/adr/ADR-0143-*.md` (dòng Trạng thái: «thi công đợt 0b <ngày>, kế hoạch …; ngoại lệ CLS chủ ký: `/help` 0,83 (câu 1 đặc tả) — QA2 bổ sung trang khác nếu có»), `docs/CHANGE-GUIDE.md` (bảng dòng 36 + công thức c: trang mới = `web/html/<trang>.html` (định dạng nguồn Task 7, `data-khung`, `data-xuong` nếu cần) + `scripts/diem-vao.mjs` + `PAGES` + `KHUON` + lối vào `muc-giao-dien.ts` + **chép lại tệp kê mẫu**; `PRECACHE` không còn; `tests/e2e/pwa.mjs` không cần sửa), `web/CLAUDE.md` (mục mới «Dựng web (đợt 0b)»: `dung-web.mjs`, tệp kê, HTML sinh từ `web/html/`, khung xương theo khuôn, nạp theo vai; bảng «Sửa tệp nào…» thêm dòng `web/html/*`, `web/sw/sw.ts`, `scripts/dung-web.mjs`, `src/shared/khuon-trang.ts` → `dot-0b-smoke.mjs` + `mat-mang-smoke.mjs` + `test:e2e -- pwa`), `docs/PWA-IPHONE.md` (mục 8: thêm «bấm Đơn → Tôi → Trang chủ: khung không chớp trắng, thanh tab đứng yên»), `docs/SO-HANG-RAO.md` (+ hàng «danh sách theo vai» `nap-theo-vai.test.ts`, «khung xương/khuôn» `html-sinh.test.ts`), `docs/BACKLOG.md` §53 (ghi «đã trả 0b» cho CLS Trang chủ/Đơn hàng, huy hiệu, mã đơn; **thêm** dòng nợ «xét lại `user-scalable=no`» (chủ giữ 29/10)), `src/shared/changelog.ts` (mục 2.48 tạm, ngày = ngày commit, lời thường: mở nhanh hơn, ít dữ liệu nạp sẵn hơn, chuyển trang mượt, không nhảy bố cục, thanh trên Chi tiết đơn)
+- Test: `src/shared/changelog.test.ts` (chạy), `src/shared/app-info.test.ts`
+
+- [ ] **Step 1: Sửa** các tệp trên. `npm test` xanh (`changelog.test.ts` chặn cách viết sai; `goi-trang-nhe` (e) vẫn xanh).
+- [ ] **Step 2: Commit** — "Đợt 0b (11/13): tài liệu — ADR-0035/0150/0143 dòng trạng thái, CHANGE-GUIDE công thức c, web/CLAUDE.md dựng web, SO-HANG-RAO, BACKLOG §53, nhật ký 2.48 tạm".
+
+---
+
+### Task 12: Kịch bản Chrome `dot-0b-smoke` a)–h), `mat-mang-smoke` ca D, chạy lại kịch bản cũ
+
+**Files:**
+- Create: `EVID/kich-ban/dot-0b-smoke.mjs`, `EVID/kich-ban/mat-mang-smoke.mjs` (chép bản 29/10 + ca D + đọc tệp kê), `EVID/README.md`
+- Chép (hồ sơ có ngày không sửa): `dot-0-smoke.mjs`, `trang-chu-smoke.mjs`, `v1-dang-nhap.mjs`, `help-smoke.mjs` từ `docs/evidence/2026-10-29-dot-0-khung-chung/kich-ban/` nếu đỏ vì đợt này (vỏ không đổi — dự kiến chỉ đỏ ở chỗ đếm mục cache / đọc `public/*.html` nguồn); sửa bản chép và ghi vào README bảng «Bản cũ → thay bằng».
+- Khung: `a2-cdp.mjs` (`startEnv`, `ACCOUNTS`: `salesA` = Bán hàng, `chu` = Toàn quyền), `buoc(id, ten, fn)`/`soatMat` + `MOB`/`DESK` chép từ `dot-0-smoke.mjs:18–47`; `ONLY=…`.
+- Consumes: `precacheVong1`, `urlTheoVai` (Task 4–5), `trangTheoVai` (Task 5), `baoDong` (Task 1); tệp kê thật `public/js/danh-sach-goi.json` (kịch bản chạy sau `build:web`).
+
+**`dot-0b-smoke.mjs` — mỗi bước một `assert`, ảnh vào `OUT/anh`:**
+- a) với mọi trang `PAGES` trừ hai chuyển hướng: `fetch` HTML ⇒ số `<link rel="modulepreload"` = `baoDong(tệp kê thật, duong).length`, số `<link rel="preload" as="font"` = 3 (4 ở `/`), `modulepreload` đứng ngay sau cặp css.
+- b) ngăn mới, mở `/login`, chờ `navigator.serviceWorker.ready` + 3 s ⇒ gọi tập mục của cache `td-shell-*` là `C` (`CacheStorage.requestEntries`): `precacheVong1(tệp kê thật) ⊆ C` và `C ⊆ precacheVong1 ∪ ({/login} ∪ baoDong(/login))` (phần dư chỉ là trang đang mở vào qua SWR); `|precacheVong1| ≤ 30`.
+- c) đăng nhập **Bán hàng**, mở `/orders`, chờ ≤ 10 s tới khi số mục cache ổn định 2 s ⇒ tập mục = vòng 1 ∪ `urlTheoVai(tệp kê, trangTheoVai({ id, permissions: ["SALES"] }))` ∪ {`/orders` + bao đóng} (suy từ hàm, không chép cứng); không mục nào bắt đầu `/api/`.
+- d) vẫn Bán hàng, ngoài mạng (đặt cả trên đích `service_worker` như `mat-mang-smoke`): mở `/xe` (ngoài tập) ⇒ `[data-loai="mat-mang-chua-nap"]`; mở `/account` (trong tập) ⇒ `#tabbar` hiện, không `[data-loai]`.
+- e) đăng nhập **Toàn quyền**; chặn đường gọi chính của `/xe` (`TRANG.xe.goiChinh` trong `muc-giao-dien.ts`, `Network.setBlockedURLs`), mở `/xe` 390 ⇒ trong 2 s: `main > .xuong-trang[data-xuong-tinh]` còn, `nav.dai-anh-em` đã có, `main[aria-busy="true"]`; bỏ chặn, tải lại ⇒ ≤ 3 s sau khi `#list`/bảng có dữ liệu: không còn `[data-xuong-tinh]`, `main` không `aria-busy`; ca lỗi: chọn một trang của Toàn quyền mà `web/<trang>.ts` ghi lỗi đường gọi chính vào `#error` (`showError(byId("error")`, vd `/staff`), chặn đường đó ⇒ `#error` hiện và khung xương biến mất ≤ 1 s sau; `/help` không có `[data-xuong-tinh]`; `/orders` có `#loading` riêng, không `[data-xuong-tinh]`; mở `/audit` bằng **Bán hàng** (403) ⇒ không `[data-xuong-tinh]`.
+- f) 390 và 1040, `/orders`: mỗi tên `view-transition-name` (`getComputedStyle(el).viewTransitionName`) xuất hiện ≤ 1 phần tử; không lỗi console.
+- g) `fetch("/khong-co-trang-nay")` 404 + `text/html`; sau khi mở nó đã đăng nhập ⇒ `[data-loai="404"]`; `caches` không có khoá nào chứa `/api/`.
+- h) giữ chỗ khung: chặn `*/js/*`, mở `/orders` 390 và 1040 ⇒ đo `main.getBoundingClientRect()` (`top`, `left`, `width`) và `#topbar` `height`; bỏ chặn, tải lại, chờ `#tabbar`/`#sidebar` ⇒ đo lại: lệch mỗi số ≤ 1 px; ở 1040 `main.left ≥ 248` cả hai lúc; **`/order-form` 390** (Review Focus 4): `getComputedStyle(main).paddingBottom` lúc chặn JS = lúc JS đã chạy; `#tabbar` không có.
+- i) axe (`AXE_JS`) 390/1040 trên `/orders` lúc **đang** có khung xương (chặn API) và sau khi nạp: không `critical`/`serious` (mục 15.6).
+
+**`mat-mang-smoke.mjs` bản chép — ca D «đổi bản dựng khi tab đang mở»:** mở `/orders` (Bán hàng), chờ vòng 2 xong; chạy `node scripts/dung-web.mjs` (cwd gốc) ⇒ `fetch("/sw.js", { cache: "no-store" })` mang mã bản dựng **mới** (nếu `wrangler dev` không phản ánh tệp mới sau 5 s: ghi «ca D không kiểm được tự động trên wrangler dev — lý do», bỏ ca, **không chặn**, nêu ở README và nhật ký); bấm tab «Tôi» ⇒ trang `/account` vẽ xong (`#topbar` có con, không lỗi console); tải lại ⇒ `caches.keys()` chỉ còn một `td-shell-<mã mới>`.
+
+- [ ] **Step 1: Viết hai kịch bản; chạy** `AXE_JS=… CHROME_BIN=$PWD/docs/evidence/2026-09-20-a2/kich-ban/chrome-wrap.sh OUT=… node EVID/kich-ban/dot-0b-smoke.mjs` → a)–i) `✓`; `mat-mang-smoke.mjs` A/B/C/D `✓`.
+- [ ] **Step 2: Chạy lại** `dot-0-smoke.mjs` (20 bước), `trang-chu-smoke.mjs`, `v1-dang-nhap.mjs`, `help-smoke.mjs` bản 29/10; đỏ vì đợt này ⇒ chép sang `EVID/kich-ban/`, sửa bản chép, ghi README. `npm run test:e2e -- pwa` xanh.
+- [ ] **Step 3: Commit** — "Đợt 0b (12/13): kịch bản Chrome dot-0b-smoke a)–i), mat-mang-smoke ca D; kịch bản cũ chạy lại".
+
+---
+
+### Task 13: Đo trước/sau hai khổ, nạp sẵn, cỡ gói; tổng kiểm theo thứ tự `trien-khai`; bản local
+
+**Files:**
+- Create: `EVID/kich-ban/do-toc-do.mjs` (chép bản 29/10 + `--kho 390|1040` + bộ dò `[data-xuong-tinh]` + `sources` của `layout-shift`), `EVID/kich-ban/so-toc-do.mjs` (chép + `--truoc <tệp> --sau <tệp>` + ngưỡng 11.4/11.5/11.6), `EVID/kich-ban/do-co-goi.sh` (chép bản 27/10, không sửa), `EVID/kich-ban/dem-nap-san.mjs` (mới), chép `may-chu.mjs`, `gieo-du-lieu.mjs`, `cdp.mjs`, `ma-tran-quyen.mjs`, `du-lieu-gieo-nhieu.json`, `tai-khoan.json` từ `2026-10-29-dot-0-khung-chung/kich-ban/` và `ma-tran-quyen.json` vào gốc `EVID/` (`do-toc-do.mjs` đọc `join(EVID, "ma-tran-quyen.json")`); cách gieo và chạy theo README đợt 0; `EVID/so-lieu/` (`toc-do-truoc-390.json`, `-1040`, `toc-do-sau-390.json`, `-1040`, `co-goi-truoc.txt`, `co-goi-sau.txt`, `nap-san-truoc.txt`, `nap-san-sau.txt`, `so-toc-do-390.md`, `-1040.md`), `EVID/README.md` (bổ sung: khác biệt kịch bản; «lạnh» của `do-toc-do` là ngăn mới **không** bản nhớ khung (mục 15.4); `speculationrules` trong HTML đếm 0 vì dùng header; `napSan.choMs` gồm cả vòng 2)
+
+**Interfaces:**
+- Consumes: `precacheVong1` (Task 4) cho «sau»; `PRECACHE` của kho `main` cho «trước»; kịch bản Task 12 chạy lại ở Step 4.
+- `do-toc-do.mjs` bản chép: `--kho 390` ⇒ `ngan.khung(390, 844, true)`, `--kho 1040` ⇒ `ngan.khung(1040, 900, false)` cho phần mở trang; `CAI_SAN`: bộ dò khung xương thêm `[data-xuong-tinh]`; `layout-shift` ghi thêm `S.clsNguon.push([e.value, (e.sources ?? []).map(s => tên nút: '#id' | 'thẻ.lớpđầu')])` và xuất trong `DOC_SO`; tệp ra `so-lieu/toc-do-<nhãn>-<khổ>.json` qua `--ra <tệp>`.
+- `so-toc-do.mjs` bản chép: đọc `--truoc`, `--sau`; bảng theo trang: FCP lạnh, khung xong, nội dung xong, CLS (kèm nguồn vỏ/thân), chuyển trang; dòng kết: trung vị FCP lạnh trước/sau và hiệu (đạt khi ≤ −150 ms), số trang FCP/nội dung xấu đi > 10 % (đạt khi 0), số trang CLS > 0,1 (liệt kê, kèm phần nhảy do vỏ hay thân), chuyển trang «khung xong» ≤ 100 ms.
+- `dem-nap-san.mjs --goc <thư mục kho> [--danh-sach <tệp kê>]`: in từng mục nạp sẵn + byte `gzip -c` + tổng; «trước» đọc `PRECACHE` của `src/shared/sw-policy.ts` ở kho `main`, «sau» đọc `precacheVong1(tệp kê)`.
+
+- [ ] **Step 1: «Trước» trên `main`**: `git worktree add --detach $CLAUDE_JOB_DIR/tmp/main-truoc main` (`main` đang checkout ở kho chính nên phải `--detach`); trong đó `npm ci && npm run build:web`; `node EVID/kich-ban/may-chu.mjs --port 8806 --d1 ~/tourdao-ux-dot-0b/d1` (cwd = worktree main) → `gieo-du-lieu.mjs` trạng thái NHIỀU → `do-toc-do.mjs --base http://localhost:8806 --d1 … --kho 390 --ra so-lieu/toc-do-truoc-390.json` rồi `--kho 1040`; `do-co-goi.sh <worktree main> > co-goi-truoc.txt`; `dem-nap-san.mjs --goc <worktree main> > nap-san-truoc.txt` (108 mục). Máy rảnh (`uptime` tải < 3). Ghi `main` SHA vào README.
+- [ ] **Step 2: «Sau» trên nhánh 0b** cùng phiên: cùng kho D1, cổng 8807, `--kho 390`, `--kho 1040`; `do-co-goi.sh . > co-goi-sau.txt`; `dem-nap-san.mjs --goc . --danh-sach public/js/danh-sach-goi.json > nap-san-sau.txt` (≤ 30 mục, ≤ 0,5 MB nén).
+- [ ] **Step 3: So**: `so-toc-do.mjs --truoc toc-do-truoc-390.json --sau toc-do-sau-390.json > so-toc-do-390.md` và 1040. Tiêu chí 11.1, 11.2 (tổng JS thô giảm ≥ 60 % so với 5,4 MB; ghi tổng riêng + tổng gói con), 11.4, 11.5, 11.6: trang CLS > 0,1 ngoài `/help` ⇒ liệt kê kèm số và nguồn nhảy (vỏ/thân) vào nhật ký — **không nới**, QA2 xin chủ ký. Chỉ tiêu không đạt do mã (vỏ nhảy, FCP xấu đi) ⇒ sửa trong đợt rồi đo lại «sau» (không đo lại «trước» trừ khi `main` đổi).
+- [ ] **Step 4: Tổng kiểm đúng thứ tự `trien-khai`**: `npm test` → `npm run typecheck` → `npm run build:web` → `npm run test:e2e -- pwa` → `dot-0b-smoke` → `dot-0-smoke` → `mat-mang-smoke` → `trang-chu-smoke` → `v1-dang-nhap` (bản chép). `git status` sạch (public/*.html, public/js, public/sw.js bị gitignore). Nhật ký có: bảng số đo gói cuối theo Q-5, 11.1–11.12 từng dòng đạt/không + nơi bằng chứng, mục 15.1–15.6 đã chốt thế nào, lệch so với đặc tả.
+- [ ] **Step 5: Bản local cho chủ**: `node scripts/dev-iphone.mjs` chạy được (in 7 tài khoản); ghi vào nhật ký đường dẫn + các việc thử (PWA-IPHONE mục 8 bổ sung, mục 1–7).
+- [ ] **Step 6: Commit** — "Đợt 0b (13/13): số đo trước/sau hai khổ, nạp sẵn, cỡ gói; tổng kiểm; bản local sẵn sàng cho QA2 và cổng phát hành 0b". Báo Main session: nhánh, số commit, số đo gói cuối, trung vị FCP trước/sau hai khổ, danh sách trang CLS > 0,1 (kèm nguồn), mục lệch — để mở QA2 (phiên kiểm độc lập lập `SO-SANH-TRUOC-SAU.md` theo bộ đo Chặng 1 + bảng K hai khổ) rồi cổng phát hành 0b.
