@@ -1,0 +1,41 @@
+BAT_DAU kiem-lai-09 k=1 http://127.0.0.1:52820 21:25:17 ma: 
+đơn TD-20261028-0002 tổng 200000
+xác nhận 200
+thu 50k 201
+huỷ 200 cancelled
+sổ đơn huỷ: {"phaiThu":200000,"daThu":50000,"conLai":0,"du":0}
+  khối cọc (/payments, Bán hàng): {"nhom":"KHACH_HUY","nhan":"Thu trước giữ lại – khách huỷ","nhanPhu":"còn có thể hoàn tới 31/12/2026","han":"2026-12-31","daTra":50000,"conGiu":50000,"daDuyet":0,"daChi":0,"choChi":0,"dangDoiChieu":0} coTheGhiThu= false
+biên nhận đơn huỷ: [
+  '"status":{"khoa":"cancelled"',
+  '"daTra":50000',
+  '"conLai":0',
+  '"daTra":50000'
+]
+  khối huy của biên nhận: {"nhom":"KHACH_HUY","daTra":50000,"dangDoiChieu":0,"daDuyet":0,"daChi":0,"daChuyen":0,"daDuyetChuyen":0,"han":"2026-12-31"}
+  ảnh gửi khách (buildConfirmation): {"tieuDe":"THÔNG BÁO HUỶ ĐƠN DỊCH VỤ [Đã huỷ]","dong":["Tạm tính=200.000 ₫","Giảm giá=0 ₫","Tổng cộng=200.000 ₫","Khách hàng đã trả trước=50.000 ₫"],"chu":"Theo chính sách của Tour Đảo, tiền cọc không được hoàn lại khi khách huỷ. / Cảm ơn quý khách đã tin tưởng và lựa chọn dịch vụ của chúng tôi. / Cần hỗ trợ, quý khách vui lòng liên hệ hotline 0845 256 256."}
+---- BỔ SUNG ADR-0089 ----
+[BS1] thẻ danh sách (POST /api/ledger/balances, Bán hàng): {"phaiThu":200000,"daThu":50000,"conLai":0,"du":0,"chuaRo":0,"daGiao":false,"hoanThanh":false}
+[BS2] /payments (Kế toán): conLai 0 du 0 coc {"nhom":"KHACH_HUY","nhan":"Thu trước giữ lại – khách huỷ","nhanPhu":"còn có thể hoàn tới 31/12/2026","han":"2026-12-31","daTra":50000,"conGiu":50000,"daDuyet":0,"daChi":0,"choChi":0,"dangDoiChieu":0} nguoiGiu [{"ten":"NV Bán A (test)","soTien":50000}] coTheDuyet false coTheChi false
+[BS3] Bán hàng ghi thêm lần thu 10.000 vào đơn đã huỷ: 403 forbidden «Đơn đã huỷ — chỉ Kế toán hoặc Toàn quyền ghi được khoản thu (khách chuyển khoản muộn).»
+[BS4] Quản trị ghi thêm lần thu 10.000 vào đơn đã huỷ: 403 forbidden «Đơn đã huỷ — chỉ Kế toán hoặc Toàn quyền ghi được khoản thu (khách chuyển khoản muộn).»
+[BS5] Kế toán ghi thêm lần thu 10.000 (CK muộn, công ty thu) vào đơn đã huỷ: 400 bank_txn_required «Nhập mã giao dịch ngân hàng và số tiền thực chuyển theo sao kê.»
+      sau BS5: daThu 50000 conLai 0 du 0 coc {"nhom":"KHACH_HUY","nhan":"Thu trước giữ lại – khách huỷ","nhanPhu":"còn có thể hoàn tới 31/12/2026","han":"2026-12-31","daTra":50000,"conGiu":50000,"daDuyet":0,"daChi":0,"choChi":0,"dangDoiChieu":0}
+[BS6] Kế toán trả dư tự do 20.000 trên đơn huỷ (POST /api/ledger/refunds): 409 coc_needs_approval «Đơn huỷ: hoàn qua “Duyệt hoàn thu trước” rồi “Ghi chi hoàn”.»
+[BS7] Bán hàng duyệt hoàn 20.000: 403 forbidden «Chỉ Quản trị hoặc Toàn quyền mới duyệt được hoàn thu trước / xác nhận dòng đã hoàn ngoài hệ thống.»
+[BS8] Quản trị duyệt hoàn 20.000: 201 duyetId ae1919b4-10d0-4619-b41c-6449634a0106
+[BS9] Quản trị tự chi khoản mình duyệt: 403 forbidden «Chỉ Kế toán hoặc Toàn quyền mới ghi được hoàn tiền cho khách.»
+[BS10] Kế toán chi hoàn 30.000 (vượt số duyệt 20.000): 409 coc_exceeds_approved «Vượt phần đã duyệt còn lại (20.000 ₫).»
+[BS11] Kế toán chi hoàn 20.000 theo khoản Quản trị duyệt: 201
+[BS12] Toàn quyền duyệt hoàn 10.000: 201
+[BS13] Toàn quyền tự chi khoản mình vừa duyệt: 409 coc_same_person «Người duyệt không tự chi / chuyển khoản này — cần một người khác (tách nhiệm vụ).»
+[BS14] Quản trị duyệt thêm 60.000 (vượt tiền còn giữ): 409 coc_exceeds_paid «Vượt số tiền còn giữ của đơn — còn duyệt được tối đa 20.000 ₫.»
+      sau duyệt/chi: daThu 30000 conLai 0 du 0 coc {"nhom":"KHACH_HUY","nhan":"Thu trước giữ lại – khách huỷ","nhanPhu":"còn có thể hoàn tới 31/12/2026","han":"2026-12-31","daTra":50000,"conGiu":30000,"daDuyet":30000,"daChi":20000,"choChi":10000,"dangDoiChieu":0}
+      biên nhận sau duyệt/chi: conLai 0 huy {"nhom":"KHACH_HUY","daTra":50000,"dangDoiChieu":0,"daDuyet":30000,"daChi":20000,"daChuyen":0,"daDuyetChuyen":0,"han":"2026-12-31"} ảnh {"tieuDe":"THÔNG BÁO HUỶ ĐƠN DỊCH VỤ [Đã huỷ]","dong":["Tạm tính=200.000 ₫","Giảm giá=0 ₫","Tổng cộng=200.000 ₫","Khách hàng đã trả trước=50.000 ₫","Tour Đảo hoàn (chậm nhất ngày 31/12/2026)=10.000 ₫","Đã hoàn=20.000 ₫"],"chu":"Cảm ơn quý khách đã tin tưởng và lựa chọn dịch vụ của chúng tôi. / Cần hỗ trợ, quý khách vui lòng liên hệ hotline 0845 256 256."}
+[BS15] Kế toán GET /api/ledger/coc: donHuyGiuCoc có đơn: {"orderId":"93011c7a-3cfa-4e07-b5ca-b989c5fddfb0","maDon":"TD-20261028-0002","nhom":"KHACH_HUY","nhomNhan":"Khách huỷ","conGiu":30000,"han":"2026-12-31","legacy":false,"sapHetHan":false} | canChi của đơn: [{"duyetId":"cc60a5d4-64f9-4166-97a4-f307fcbe3465","orderId":"93011c7a-3cfa-4e07-b5ca-b989c5fddfb0","maDon":"TD-20261028-0002","loai":"hoan","conLai":10000,"ngayDuyet":"2026-10-28","qua7Ngay":false,"donNhan":null}] | conNguoiGiu: [{"orderId":"93011c7a-3cfa-4e07-b5ca-b989c5fddfb0","maDon":"TD-20261028-0002","nguoi":"NV Bán A (test)","soTien":50000}]
+[BS16] Bán hàng GET /api/ledger/coc: 403 forbidden «Tài khoản này không được xem thông tin này.»
+[BS17] Bán hàng huỷ chọn lý do 'Thời tiết' (nhóm Công ty huỷ): 403 forbidden «Chỉ Quản trị hoặc Toàn quyền chọn được lý do thuộc nhóm “Công ty huỷ”.»
+[BS18] Bán hàng huỷ KHÔNG lý do: 400 invalid_input «Chọn lý do huỷ đơn.»
+[BS19] Quản trị huỷ lý do 'Thời tiết': 200
+      đơn công ty huỷ: daThu 40000 conLai 0 du 0 coc {"nhom":"CONG_TY_HUY","nhan":"Khách hàng đã trả trước","nhanPhu":null,"han":"2026-12-31","daTra":40000,"conGiu":40000,"daDuyet":0,"daChi":0,"choChi":0,"dangDoiChieu":0}
+      biên nhận đơn công ty huỷ: conLai 0 huy {"nhom":"CONG_TY_HUY","daTra":40000,"dangDoiChieu":0,"daDuyet":0,"daChi":0,"daChuyen":0,"daDuyetChuyen":0,"han":"2026-12-31"} ảnh {"tieuDe":"THÔNG BÁO HUỶ ĐƠN DỊCH VỤ [Đã huỷ]","dong":["Tạm tính=100.000 ₫","Giảm giá=0 ₫","Tổng cộng=100.000 ₫","Khách hàng đã trả trước=40.000 ₫"],"chu":"Cảm ơn quý khách đã tin tưởng và lựa chọn dịch vụ của chúng tôi. / Cần hỗ trợ, quý khách vui lòng liên hệ hotline 0845 256 256."}
+XONG kiem-lai-09 exit=0 21:25:19

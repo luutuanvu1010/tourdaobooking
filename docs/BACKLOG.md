@@ -343,6 +343,7 @@
 
 ## 30. Thẻ "Cọc cần chi hoàn" trên Việc của bạn — chờ có trang cọc
 
+- **Cập nhật 2026-10-28 (đóng TNV-G1, nhánh `claude/nostalgic-aryabhata-066936`):** Trang chủ nay có khối «Thu trước của đơn huỷ» (`#dash-thu-truoc`, gọi `GET /api/ledger/coc`) và dòng đếm ở «Cần xem lại» — đã có đích cho nút. Thẻ trên «Việc của bạn» (máy tính) VẪN chưa thêm: chờ chủ muốn thì thêm khoá `cocCanChi` trỏ `#dash-thu-truoc`.
 - **Ngày:** 2026-10-15 · **Trạng thái:** `chờ`. Thẻ "Cọc cần chi hoàn" trên Việc của bạn — chờ có trang cọc: route `GET /api/ledger/coc` có nhưng chưa trang web nào gọi nên nút "Chi hoàn" chưa có đích; khi có trang cọc thì thêm lại khoá `cocCanChi` (ưu tiên 6, điều kiện `ledger.view`) vào `src/shared/viec-cua-ban.ts`.
 
 ## 31. Menu máy tính theo việc và «Việc của bạn» — nợ sau đợt 1 (chủ chốt đợt 1 ngày 2026-10-15)

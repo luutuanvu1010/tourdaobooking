@@ -178,6 +178,34 @@ test("NT-H1/H2 (đ4a): duyệt hoàn — Quản trị, Toàn quyền 201 + Locat
   assert.equal(w.q("SELECT count(*) AS n FROM audit_log WHERE order_id = ? AND action = 'deposit_refund_approved'", id)[0]!.n, 2);
 });
 
+test("NT-V7 (Task 11; chủ 28/10): Quản trị duyệt hoàn → hộp thư «Của tôi» của Kế toán, Toàn quyền có tin «đã được duyệt hoàn thu trước … chờ ghi chi hoàn» (không số tiền); người duyệt, Bán hàng, HDV, Đối tác không", async () => {
+  const w = setup();
+  const id = await donHuyCoTien(w);
+  const ma = String(w.q("SELECT order_code FROM orders WHERE id = ?", id)[0]!.order_code);
+  assert.equal((await duyet(w, ADMIN, id, { loai: "hoan", soTien: 200_000, lyDo: "Khách xin lại một phần" })).status, 201);
+  const tinCua = async (as: string, ngan = "cua-toi") => {
+    const r = await w.call("GET", `/api/thong-bao?ngan=${ngan}`, { as });
+    assert.equal(r.status, 200, r.text);
+    return r.json.tin.filter((t: { loai: string; maDon: string | null }) => t.loai === "duyet_hoan" && t.maDon === ma);
+  };
+  for (const as of [KT, KT2, SA, QTKT]) {
+    const t = await tinCua(as);
+    assert.equal(t.length, 1, as);
+    assert.equal(t[0].lienKet, `/order?id=${id}`);
+    assert.ok(!/200\.000|₫/.test(t[0].cau), t[0].cau);
+  }
+  assert.equal((await tinCua(KT))[0].cau, `Đơn ${ma} đã được duyệt hoàn thu trước cho khách, chờ ghi chi hoàn`);
+  for (const as of [ADMIN, SALES, HDV, DT]) assert.equal((await tinCua(as, "tat-ca")).length, 0, as);
+  // Duyệt CHUYỂN không thành tin (chủ chỉ chọn tin duyệt hoàn).
+  const b = donDaXacNhan(w);
+  const a = await donHuyCoTien(w, { lyDo: "SAI_THONG_TIN" });
+  const maB = String(w.q("SELECT order_code FROM orders WHERE id = ?", b)[0]!.order_code);
+  assert.equal((await duyet(w, KT, a, { loai: "chuyen", soTien: 100_000, lyDo: "Lập lại đơn", donNhan: maB })).status, 201);
+  const maA = String(w.q("SELECT order_code FROM orders WHERE id = ?", a)[0]!.order_code);
+  const hopKt2 = await w.call("GET", "/api/thong-bao?ngan=tat-ca", { as: KT2 });
+  assert.equal(hopKt2.json.tin.filter((t: { maDon: string | null; loai: string }) => t.maDon === maA && t.loai === "duyet_hoan").length, 0);
+});
+
 test("NT-H3/H6 + SV-DH-02/09 (đ4b, đ4c): chi hoàn — Kế toán; vượt khoản → 409; tài khoản kiêm Quản trị + Kế toán tự chi khoản mình duyệt → 409; Kế toán khác → 201; huỷ duyệt chỉ phần chưa chi", async () => {
   const w = setup();
   const id = await donHuyCoTien(w);
@@ -210,6 +238,19 @@ test("NT-H5 (H-C7): trả dư tự do (POST /api/ledger/refunds) trên đơn HU�
   const x = donDaXacNhan(w, { total: 100_000 });
   assert.equal((await thu(w, KT, x, 150_000, "cong_ty")).status, 201);
   assert.equal((await w.call("POST", "/api/ledger/refunds", { as: KT, body: { orderId: x, soTien: 50_000, hinhThuc: "CASH", nguoiTra: "cong_ty" } })).status, 201);
+});
+
+test("SV-DH-13 (chủ 28/10 «ghi đủ các dòng»): khách trả dư, Kế toán trả lại dư TRƯỚC khi huỷ → trang đơn và biên nhận mang `hoanTruocHuy` (đã trả 1.200.000 − đã trả lại 200.000 = còn giữ 1.000.000)", async () => {
+  const w = setup();
+  const id = donDaXacNhan(w, { total: 1_000_000 });
+  assert.equal((await thu(w, KT, id, 1_200_000, "cong_ty")).status, 201);
+  assert.equal((await w.call("POST", "/api/ledger/refunds", { as: KT, body: { orderId: id, soTien: 200_000, hinhThuc: "CASH", nguoiTra: "cong_ty" } })).status, 201);
+  assert.equal((await huy(w, SALES, id)).status, 200);
+  const c = (await tien(w, KT, id)).coc;
+  assert.deepEqual([c.daTra, c.hoanTruocHuy, c.daChi, c.conGiu], [1_200_000, 200_000, 0, 1_000_000], "trang đơn");
+  const r = await w.call("GET", `/api/orders/${id}/receipt`, { as: SALES });
+  assert.equal(r.status, 200, r.text);
+  assert.deepEqual([r.json.receipt.huy.daTra, r.json.receipt.huy.hoanTruocHuy], [1_200_000, 200_000], "biên nhận gửi khách (danh sách trắng)");
 });
 
 test("NT-D2/D3 (đ5, H-C3): khách huỷ — duyệt sau hạn → 409 'Đã quá hạn hoàn thu trước'; công ty huỷ sau hạn → 201; nhóm chưa kết luận → 409 tới khi Quản trị phân loại (SV-DH-11)", async () => {

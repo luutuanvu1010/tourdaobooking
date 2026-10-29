@@ -66,6 +66,12 @@
     <h2 id="dash-doi-chieu-h">Chờ đối chiếu</h2>
     <div id="dash-doi-chieu-list"></div>
   </section>
+  <!-- Thu trước của đơn huỷ (ADR-0089 đ5, đ9c, đ11; NT-V6): khoản đã duyệt chờ chi / chờ chuyển, đơn khách huỷ sắp hết hạn hoàn, đơn còn người chưa nộp tiền.
+       Chỉ ô ledger.view any, không tài khoản giữ quyền Đối tác (có tên người giữ tiền); web/home.ts dựng từ GET /api/ledger/coc. Màn sổ Kế toán còn chờ bản vẽ. -->
+  <section id="dash-thu-truoc" class="card" aria-labelledby="dash-thu-truoc-h" hidden>
+    <h2 id="dash-thu-truoc-h">Thu trước của đơn huỷ</h2>
+    <div id="dash-thu-truoc-list"></div>
+  </section>
   <div id="dash-grid" class="dash-grid" hidden>
     <!-- Thứ tự DOM = thứ tự đọc ở điện thoại và máy tính một cột (bản vẽ 1.73): số liệu → Cần xem lại → Chuyến đón → Lối tắt. Hai cột (≥1200px) đặt chỗ bằng
          grid-template-areas, không dùng CSS order (bài học Đợt C).

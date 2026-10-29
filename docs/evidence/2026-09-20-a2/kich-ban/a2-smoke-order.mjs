@@ -1,3 +1,6 @@
+// GHI CHÚ 28/10/2026: đỏ có sẵn trên `main` ở bước 2 («hết giờ chờ: banner incomplete_trip»), không do mã sản phẩm sai. Gốc: (1) YC-0016 (24/10) khoá nút «Xác nhận đơn»
+// khi có dịch vụ chưa có ngày — bấm không gửi gì; (2) ADR-0135 Đ2 (26/10) — đơn nháp chỉ người lập đọc/ghi, Toàn quyền nay 404. Đã sửa phần dựng dữ liệu: bước 2 kiểm nút khoá
+// rồi dựng «trang cũ» (mở trang lúc đủ ngày, bỏ ngày bằng SQL rồi mới bấm) để vẫn gặp banner 409 của máy chủ; ba lời gọi `ACCOUNTS.chu` lên đơn NHÁP đi bằng chính trang salesA.
 // Kiểm trang đơn bằng Chrome thật (khổ iPhone 390×844). Chạy từ GỐC repo:
 //   npm run build:web && CHROME_BIN=<đường dẫn tuyệt đối tới kich-ban/chrome-wrap.sh> node docs/evidence/2026-09-20-a2/kich-ban/a2-smoke-order.mjs
 import assert from "node:assert/strict";
@@ -71,6 +74,15 @@ try {
   ok("đơn nháp: 2 khối dịch vụ, chip, số khách, chuyến, dòng tiền, nhãn lệch giá (chỉ dịch vụ danh mục), tổng, thanh toán, 3 nút");
 
   // ---- 2) xác nhận khi thiếu ngày → banner danh sách thiếu + liên kết Sửa; máy chủ không đổi gì ----
+  // 28/10/2026: từ YC-0016 (24/10) trang tự KHOÁ «Xác nhận đơn» khi có dịch vụ chưa có ngày (máy chủ vẫn chặn). Banner 409 `incomplete_trip` nay chỉ gặp ở trang CŨ:
+  // mở trang lúc đơn đã đủ ngày, rồi ngày bị bỏ ở nơi khác trước khi bấm — dựng đúng cảnh đó bằng SQL (giữ nguyên giá trị cũ để các bước sau không đổi).
+  assert.equal(await p.ev("[...document.querySelectorAll('#actions .btn')].find((b) => b.textContent === 'Xác nhận đơn').disabled"), true, "thiếu ngày: nút «Xác nhận đơn» bị khoá (YC-0016)");
+  assert.match(await p.ev("document.querySelector('#actions [data-chan=\"chua-co-ngay\"]')?.textContent ?? ''"), /Chưa chọn ngày khởi hành — chưa xác nhận được\. Bấm «Sửa» để chọn ngày\./);
+  const [{ depart_date: ngayCu }] = env.sql(`SELECT depart_date FROM order_service WHERE id = '${order.services[1].id}'`);
+  env.sql(`UPDATE order_service SET depart_date = '${vnDate(10)}' WHERE id = '${order.services[1].id}'`);
+  await p.send("Page.navigate", { url: `${env.base}/order?id=${order.id}` });
+  await p.waitFor("document.querySelectorAll('#order .svc-view').length === 2 && [...document.querySelectorAll('#actions .btn')].some((b) => b.textContent === 'Xác nhận đơn' && !b.disabled)", "trang mở lúc đơn đủ ngày: «Xác nhận đơn» bật");
+  env.sql(`UPDATE order_service SET depart_date = ${ngayCu === null ? "NULL" : `'${ngayCu}'`} WHERE id = '${order.services[1].id}'`);
   await p.ev("window.confirm = () => true; true");
   await p.ev(clickText("#actions", "Xác nhận đơn"));
   await p.waitFor("!document.getElementById('error').hidden && /Chưa đủ thông tin chuyến để xác nhận đơn\\./.test(document.getElementById('error').textContent)", "banner incomplete_trip");
@@ -82,7 +94,8 @@ try {
   assert.equal(editHref, `/order-form?id=${order.id}&focus=${order.services[1].id}`);
   assert.ok((await p.ev("(() => { const r = document.querySelector('#error .banner-edit').getBoundingClientRect(); return Math.min(r.width, r.height); })()")) >= 43.5, "liên kết Sửa rộng và cao ≥ 44px");
   assert.equal(await p.ev("[...document.querySelectorAll('#actions button')].every((b) => !b.disabled)"), true, "nút bật lại sau lỗi");
-  assert.equal((await call(ACCOUNTS.chu, "GET", `/api/orders/${order.id}`)).json.order.status, "draft", "xác nhận thất bại không đổi trạng thái"); // chu: `p` còn dùng ở bước 3
+  // ADR-0135 Đ2: đơn nháp chỉ người lập đọc được (Toàn quyền nay 404) → đọc bằng chính trang salesA (`p` còn dùng ở bước 3; gọi `call(salesA)` sẽ thay phiên của nó).
+  assert.equal(await p.ev(`fetch('/api/orders/${order.id}').then((r) => r.json()).then((j) => j.order.status)`), "draft", "xác nhận thất bại không đổi trạng thái");
   ok("xác nhận thiếu ngày: banner nguy hiểm, dòng 'Xe đưa đón riêng — chưa có ngày khởi hành' + liên kết Sửa đúng dịch vụ (KHÔNG có nút 'Tải lại đơn'), đơn vẫn nháp");
 
   // ---- 3) liên kết "Sửa" mở form đúng thẻ (khối chuyến mở sẵn) ----
@@ -121,7 +134,7 @@ try {
     await q.ev(setInput("document.querySelector('#services .svc .counter-field[aria-label=\"Số khách (chỉ để vận hành)\"]')", "4"));
     await q.ev("document.getElementById('save').click(); true");
     await q.waitFor("location.pathname === '/order'", "lưu thành công → trang đơn", 15000);
-    const saved = (await call(ACCOUNTS.chu, "GET", `/api/orders/${c3.json.order.id}`)).json.order; // chu: `q` còn mở (đọc lỗi console dưới)
+    const saved = await q.ev(`fetch('/api/orders/${c3.json.order.id}').then((r) => r.json()).then((j) => j.order)`); // ADR-0135 Đ2: nháp chỉ người lập đọc → đọc bằng trang `q` (salesA, còn mở để đọc lỗi console dưới)
     assert.deepEqual([saved.services[0].kind, saved.services[0].name, saved.services[0].pax.adult, saved.subtotal], ["manual", "Xe đưa đón riêng", 4, 800000], JSON.stringify(saved.services[0]));
     assert.deepEqual(saved.services[0].items.map((i) => [i.description, i.quantity, i.unitPrice]), [["Xe 7 chỗ 2 chiều", 1, 800000]]);
     assert.deepEqual(q.consoleErrors, []);
@@ -211,7 +224,9 @@ try {
   assert.equal(fourth.status, 201, JSON.stringify(fourth.json));
   p = await env.as(ACCOUNTS.salesA, `/order?id=${fourth.json.order.id}`);
   await p.waitFor("document.querySelectorAll('#order .svc-view').length === 1", "đơn nháp thứ tư");
-  assert.equal((await call(ACCOUNTS.chu, "POST", `/api/orders/${fourth.json.order.id}/status`, { status: "cancelled", lyDo: "KHACH_DOI_Y" })).status, 200, "đơn bị huỷ ở nơi khác"); // chu: `p` (salesA) còn mở
+  // ADR-0135 Đ2: chỉ người lập ghi được đơn nháp (Toàn quyền nay 404) → "nơi khác" là một lời gọi từ CHÍNH trang salesA (cùng phiên, như một thẻ trình duyệt thứ hai); trang
+  // vẫn đang vẽ đơn nháp nên lần bấm «Huỷ đơn» dưới vẫn gặp 409 invalid_transition.
+  assert.equal(await p.ev(`fetch('/api/orders/${fourth.json.order.id}/status', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ status: 'cancelled', lyDo: 'KHACH_DOI_Y' }) }).then((r) => r.status)`), 200, "đơn bị huỷ ở nơi khác");
   await p.ev("window.confirm = () => true; true");
   await p.ev(clickText("#actions", "Huỷ đơn")); // trang cũ vẫn tưởng đơn còn nháp → 409 invalid_transition
   await p.ev(`(() => { const f = document.querySelector('[data-khoi="huy-don"]'); f.querySelector('input[value="KHACH_DOI_Y"]').click(); f.querySelector('button[type=submit]').click(); return true; })()`); // ADR-0089 đ8: chọn lý do huỷ rồi bấm "Huỷ đơn" của hàng lý do

@@ -12,7 +12,7 @@
   "cac_ca": [
     {
       "ma": "SV-DH-01",
-      "mo_ta": "Khách huỷ, giữ cọc. Đơn 2.000.000, đi 10/11/2026. Kế toán ghi Công ty thu 500.000. Bán hàng huỷ, lý do “Khách đổi ý”.",
+      "mo_ta": "Khách huỷ, công ty giữ tiền thu trước. Đơn 2.000.000 đ, đi ngày 10/11/2026. Kế toán ghi khách chuyển trước 500.000 đ vào tài khoản công ty. Ngày 20/10 Bán hàng huỷ đơn, lý do «Khách đổi ý». Máy ghi: Thu trước giữ lại – khách huỷ 500.000 đ (còn có thể hoàn tới 09/01/2027) · khách còn nợ 0 đ · đã duyệt hoàn 0 đ · đã hoàn trả 0 đ · công ty còn giữ 500.000 đ. (Viết lại chữ 28/10 theo lời chủ 14/10: dùng «thu trước», ghi đủ các dòng; số không đổi.)",
       "nguon": "ADR-0089 đ1, đ2, đ5, đ9b",
       "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
       "dau_vao": {
@@ -29,7 +29,7 @@
     },
     {
       "ma": "SV-DH-02",
-      "mo_ta": "Hoàn một phần. Như SV-DH-01, rồi Quản trị duyệt hoàn 200.000; Kế toán chi 200.000 (Công ty, chuyển khoản); Kế toán chi thêm 1 đồng → bị từ chối (vượt phần đã duyệt).",
+      "mo_ta": "Hoàn một phần. Như SV-DH-01, sau đó Quản trị duyệt hoàn 200.000 đ; Kế toán ghi đã trả lại khách 200.000 đ bằng chuyển khoản từ tài khoản công ty. Kế toán ghi trả thêm dù chỉ 1 đồng thì máy từ chối, vì vượt số Quản trị đã duyệt. Máy ghi: khách còn nợ 0 đ · đã duyệt hoàn 200.000 đ · đã hoàn trả 200.000 đ · chờ chi 0 đ · công ty còn giữ 300.000 đ. (Viết lại chữ 28/10 theo lời chủ 14/10; số không đổi.)",
       "nguon": "ADR-0089 đ4a, đ4b, đ15",
       "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
       "dau_vao": {
@@ -69,7 +69,7 @@
     },
     {
       "ma": "SV-DH-04",
-      "mo_ta": "Công ty huỷ, hoàn toàn bộ. Kế toán ghi Công ty thu 500.000. Bán hàng huỷ chọn “Thời tiết / cấm biển” → bị từ chối (chỉ Quản trị, Toàn quyền chọn nhóm Công ty huỷ). Quản trị huỷ lý do đó. Ngày 20/01/2027 (sau hạn) Quản trị duyệt hoàn 500.000 → được; Kế toán chi 500.000.",
+      "mo_ta": "Công ty huỷ vì thời tiết, hoàn hết. Kế toán ghi khách chuyển trước 500.000 đ. Bán hàng chọn lý do «Thời tiết / cấm biển» thì bị từ chối (chỉ Quản trị, Toàn quyền chọn được nhóm «Công ty huỷ»). Quản trị huỷ đơn với lý do đó. Ngày 20/01/2027, dù đã qua hạn 60 ngày, Quản trị vẫn duyệt hoàn 500.000 đ được (công ty huỷ không bị hạn chặn); Kế toán ghi đã trả khách 500.000 đ. Máy ghi: nhãn giữ nguyên «Khách hàng đã trả trước 500.000 đ» · đã duyệt hoàn 500.000 đ · Đã hoàn trả 500.000 đ · công ty còn giữ 0 đ. (Viết lại chữ 28/10 theo lời chủ 14/10: nhãn không đổi sau khi hoàn hết, có dòng «Đã hoàn trả» — chữ chủ chọn 28/10; số không đổi.)",
       "nguon": "ADR-0089 đ6, đ8 (Đ-2), đ5 (công ty huỷ không bị hạn chặn)",
       "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
       "dau_vao": {
@@ -151,7 +151,7 @@
     },
     {
       "ma": "SV-DH-08",
-      "mo_ta": "Bất biến mọi lúc: Kế toán ghi Công ty thu 500.000; khách huỷ; Quản trị duyệt hoàn 400.000. Đảo lần thu 500.000 → bị từ chối (đã trả sẽ dưới tổng duyệt); huỷ duyệt 400.000 (chưa chi) → được; đảo lần thu → được.",
+      "mo_ta": "Không cho đảo lần thu khi đã duyệt hoàn. Kế toán ghi khách chuyển trước 500.000 đ; khách huỷ; Quản trị duyệt hoàn 400.000 đ. Kế toán bấm «Đảo» lần thu 500.000 đ thì bị từ chối, vì số khách đã trả sẽ thấp hơn số đã duyệt hoàn. Quản trị huỷ duyệt 400.000 đ (chưa chi đồng nào), sau đó Kế toán đảo được. Nền tảng KHÔNG xoá lần thu: «Đảo» ghi thêm một dòng ngược dấu, lần thu cũ và nhật ký (ai làm, lúc nào, lý do) vẫn còn. Máy ghi cuối cùng: khách đã trả 0 đ · đã duyệt 0 đ · công ty còn giữ 0 đ. (Viết lại chữ 28/10 theo lời chủ 14/10: không xoá lần thu, chỉ điều chỉnh có dấu vết; số không đổi.)",
       "nguon": "ADR-0089 đ15 (đúng mọi lúc, kể cả đảo lần thu)",
       "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
       "dau_vao": {
@@ -250,7 +250,7 @@
     },
     {
       "ma": "SV-DH-13",
-      "mo_ta": "Đã hoàn dư trước khi huỷ (lời chủ (c) 2026-10-02: giới hạn duyệt = tiền còn giữ lúc huỷ). Đơn 1.000.000, khách trả 1.200.000, Kế toán hoàn dư 200.000, rồi khách huỷ. Duyệt hoàn 1.000.000 → được; duyệt thêm 1 → bị từ chối.",
+      "mo_ta": "Khách trả dư, đã trả lại phần dư, rồi mới huỷ (lời chủ (c) 2/10: trần duyệt = tiền công ty còn giữ lúc huỷ). Đơn 1.000.000 đ, khách chuyển 1.200.000 đ, Kế toán trả lại phần dư 200.000 đ, sau đó khách huỷ. Quản trị duyệt hoàn 1.000.000 đ được; duyệt thêm 1 đồng thì bị từ chối, vì công ty chỉ còn giữ 1.000.000 đ. Máy ghi: Thu trước giữ lại – khách huỷ 1.200.000 đ (còn có thể hoàn tới 09/01/2027) · Đã trả lại khách trước khi huỷ 200.000 đ · đã duyệt hoàn 1.000.000 đ · chờ chi 1.000.000 đ · công ty còn giữ 1.000.000 đ. (Viết lại chữ 28/10 theo lời chủ 14/10: ghi đủ các dòng — dòng «Đã trả lại khách trước khi huỷ» chủ chọn 28/10 hiện ở trang đơn và thông báo gửi khách; số không đổi.)",
       "nguon": "ADR-0089 đ4a, đ15 + lời chủ (c)",
       "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
       "dau_vao": {

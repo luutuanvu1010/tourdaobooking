@@ -1,3 +1,6 @@
+// GHI CHÚ 28/10/2026 (đóng TNV-G1): sửa ba chỗ đỏ có sẵn — ghi thu SAU khi xác nhận (ADR-0135 Đ7: nháp không ghi thu được), nhãn nay là «Thu trước giữ lại – khách huỷ»
+// (đổi chữ «cọc»), dòng đã chi nay là «Đã hoàn trả» (chủ 28/10, SV-DH-04); `OUT=…` đổi thư mục ảnh để không ghi đè ảnh có ngày 5/10. Phần Trang chủ Kế toán và dòng
+// «Đã trả lại khách trước khi huỷ»: docs/evidence/2026-10-28-dong-tnv-g1/kich-ban/thu-truoc-smoke.mjs.
 // Đơn huỷ và cọc (ADR-0089; năm lỗi tiền Đợt 1 Phần C) — kiểm trang đơn bằng Chrome thật. Chạy từ GỐC repo:
 //   npm run build:web && CHROME_BIN=<đường dẫn tuyệt đối tới docs/evidence/2026-09-20-a2/kich-ban/chrome-wrap.sh> node docs/evidence/2026-10-05-nam-loi-tien/kich-ban/coc-don-huy-smoke.mjs
 // Phạm vi: hộp "Huỷ đơn" bắt chọn lý do (nhóm "Công ty huỷ" chỉ Quản trị thấy); trang đơn huỷ KHÔNG còn "Còn lại", có nhãn "Cọc giữ lại – khách huỷ";
@@ -7,7 +10,7 @@ import assert from "node:assert/strict";
 import { mkdirSync } from "node:fs";
 import { ACCOUNTS, ok, setInput, startEnv, vnDate } from "../../2026-09-20-a2/kich-ban/a2-cdp.mjs";
 
-const OUT = "docs/evidence/2026-10-05-nam-loi-tien/anh";
+const OUT = process.env.OUT ?? "docs/evidence/2026-10-05-nam-loi-tien/anh";
 mkdirSync(OUT, { recursive: true });
 const env = await startEnv();
 try {
@@ -26,8 +29,8 @@ try {
   });
   assert.equal(created.status, 201, JSON.stringify(created.json));
   const o = created.json.order;
-  assert.equal((await call(ACCOUNTS.accounting, "POST", `/api/orders/${o.id}/payments`, { soTien: 500000, hinhThuc: "BANK_TRANSFER", nguoiThu: "cong_ty", maGiaoDich: "FTCOC0001", soThucChuyen: 500000 })).status, 201); // Kế toán ghi CK – Công ty thu ⇒ đòi mã giao dịch (ADR-0092 Đ6)
   assert.equal((await call(ACCOUNTS.salesA, "POST", `/api/orders/${o.id}/status`, { status: "confirmed" })).status, 200);
+  assert.equal((await call(ACCOUNTS.accounting, "POST", `/api/orders/${o.id}/payments`, { soTien: 500000, hinhThuc: "BANK_TRANSFER", nguoiThu: "cong_ty", maGiaoDich: "FTCOC0001", soThucChuyen: 500000 })).status, 201); // Kế toán ghi CK – Công ty thu ⇒ đòi mã giao dịch (ADR-0092 Đ6)
 
   // ---- 1) Bán hàng: hộp Huỷ đơn bắt chọn lý do, KHÔNG có nhóm Công ty huỷ; huỷ "Khách đổi ý" ----
   let p = await env.as(ACCOUNTS.salesA, `/order?id=${o.id}`);
@@ -47,11 +50,11 @@ try {
   await p.waitFor("!!document.querySelector('[data-khoi=\"coc-don-huy\"]')", "khối tiền đơn huỷ");
   const text = await p.ev("document.querySelector('[data-khoi=\"thanh-toan\"]').textContent");
   assert.ok(!/Còn lại/.test(text), "trang đơn huỷ không còn 'Còn lại'");
-  assert.ok(/Cọc giữ lại – khách huỷ/.test(text) && /còn có thể hoàn tới/.test(text), text);
+  assert.ok(/Thu trước giữ lại – khách huỷ/.test(text) && /còn có thể hoàn tới/.test(text), text);
   assert.equal(await p.ev("!!document.querySelector('[data-action=\"coc-duyet\"]')"), false, "Bán hàng không thấy Duyệt hoàn cọc");
   await p.shot(`${OUT}/don-huy-ban-hang-390.png`);
   p.close();
-  ok("Bán hàng 390: huỷ bắt chọn lý do (không nhóm Công ty huỷ; Khác bắt ghi rõ); đơn huỷ không còn 'Còn lại', nhãn 'Cọc giữ lại – khách huỷ' + hạn; không nút tiền");
+  ok("Bán hàng 390: huỷ bắt chọn lý do (không nhóm Công ty huỷ; Khác bắt ghi rõ); đơn huỷ không còn 'Còn lại', nhãn 'Thu trước giữ lại – khách huỷ' + hạn; không nút tiền");
 
   // ---- 2) Quản trị: Duyệt hoàn cọc bằng giao diện ----
   p = await env.as(ACCOUNTS.admin, `/order?id=${o.id}`);
@@ -74,13 +77,13 @@ try {
   await p.ev("document.querySelector('[data-action=\"coc-chi\"]').click(), true");
   await p.waitFor("!!document.querySelector('[data-khoi=\"xac-nhan-coc-chi\"]')", "hàng chi");
   await p.ev("document.querySelector('[data-khoi=\"xac-nhan-coc-chi\"] button[type=submit]').click(), true");
-  await p.waitFor("/Đã hoàn/.test(document.querySelector('[data-khoi=\"coc-don-huy\"]').textContent) && !document.querySelector('[data-action=\"coc-chi\"]')", "đã chi");
+  await p.waitFor("/Đã hoàn trả/.test(document.querySelector('[data-khoi=\"coc-don-huy\"]').textContent) && !document.querySelector('[data-action=\"coc-chi\"]')", "đã chi");
   const ct = await p.ev("document.querySelector('[data-khoi=\"coc-don-huy\"]').textContent");
   assert.ok(/Công ty còn giữ300\.000/.test(ct.replace(/\s+/g, "")) || /300\.000/.test(ct), ct);
   assert.equal(await p.ev("document.documentElement.scrollWidth - document.documentElement.clientWidth"), 0, "không tràn ngang 1040");
   await p.shot(`${OUT}/don-huy-ke-toan-1040.png`);
   p.close();
-  ok("Kế toán 1040: Ghi chi hoàn theo khoản duyệt → 'Đã hoàn', công ty còn giữ 300.000; không tràn");
+  ok("Kế toán 1040: Ghi chi hoàn theo khoản duyệt → 'Đã hoàn trả', công ty còn giữ 300.000; không tràn");
 } finally {
   await env.stop();
 }
