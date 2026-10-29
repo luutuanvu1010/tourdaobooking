@@ -1,18 +1,12 @@
-Tab phụ trong trang — một thành phần, hai biến thể: **gạch chân** ở máy tính và **viên thuốc cuộn ngang** ở điện thoại (mép phải mờ báo còn tab). Thay 8 kiểu tab của mã / 11 kiểu đo được (H-TAB).
+Tab phụ trong trang `.tab-phu` (`role="tablist"`, mục `role="tab"` + `aria-selected`), hai kiểu: `data-kieu="gach"` — gạch chân `h-tab-gach` 3 px `c-primary` dưới mục đang chọn; `data-kieu="vien"` — viên cuộn ngang, mờ hai mép `w-tab-mo-mep` 32.
+
+**Trong mã:** khối «Thành phần chung v2» của `public/app.css`. (Lớp `.tab` trong mã là mục của thanh tab dưới `#tabbar`, không phải thành phần này.)
 
 ## Khi nào dùng
-Hỗ trợ («Việc của nhóm · Yêu cầu của tôi»), Thông báo, Điều phối (Chưa xếp · Xe · Cần xử lý), Tài xế, dải trang anh em, phân đoạn Xe, hai tab của Hoa hồng. **Tab mặc định là tab có việc của vai** (người xử lý mở «Việc của nhóm», không mở tab rỗng — C-FEEDBACK-TAB-MAC-DINH). Không dùng tab cho điều hướng chính (đó là thanh tab / thanh bên).
-
-## Biến thể
-- Mặc định `.tab`: chữ 16/500 `c-text-muted`, tab đang chọn chữ `c-primary` + gạch `bw-indicator` màu `c-indicator`.
-- `.tab[data-kieu="vien"]`: viên `radius-pill` 14/500, đang chọn nền `c-pill-on-bg` chữ `c-pill-on-text`; `data-mo-mep="true"` khi tràn; tab đang chọn luôn cuộn vào tầm nhìn.
-- Số đếm trong tab bằng `.huy-hieu-so` (tông Biển).
+Gạch chân: chia phần trong một trang chi tiết (Thông tin · Dịch vụ · Thanh toán). Viên: danh sách ngắn cuộn ngang ở điện thoại (tháng, nhóm).
 
 ## Trạng thái
-Bình thường · rê chuột (chữ đậm hơn) · đang chọn `aria-selected="true"` · tiêu điểm vành `c-focus`; mũi tên ← → chuyển tab khi tiêu điểm ở tab.
-
-## Người dùng truyền gì
-Danh sách tab (nhãn, số đếm tuỳ chọn, `href` hay panel), tab mặc định theo vai; cùng nhãn ở cả hai khổ.
+Đang chọn · bình thường · tiêu điểm vành `c-focus`. Mục cao `h-control` 44, đệm `pad-tab` (viên: `pad-chip`).
 
 ## Đừng
-Không hơn 5 tab; không tab cho một mục duy nhất; không đổi nhãn theo khổ màn hình.
+Không dùng tab phụ thay điều hướng chính (đó là thanh tab dưới / thanh bên).

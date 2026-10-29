@@ -1,23 +1,18 @@
-Huy hiệu trạng thái **không bấm được**: một chữ + một tông + một biểu tượng + một hình (12/500, `radius-pill`, nền nhạt chữ đậm, không viền). Gộp 7 họ huy hiệu của mã về một lớp `.huy-hieu[data-tong]` (H-CHIP, đề cương mục 5).
+Huy hiệu trạng thái `.huy-hieu[data-tong]` **không bấm được**: một chữ + một tông + một biểu tượng 14 (Q-11, luôn có hình); chữ `fs-badge` 12 / `fw-semibold`, dòng `lh-16`, đệm `pad-huy-hieu-doc` × `pad-huy-hieu-ngang`, bo `radius-pill`, không viền.
 
-## Khi nào dùng
-Năm tông trạng thái:
+**Trong mã:** khối «Thành phần chung v2» của `public/app.css`. Bảy họ huy hiệu cũ giữ tới Chặng 3.
 
-| `data-tong` | Nền · chữ | Biểu tượng | Dùng cho |
+## Năm tông
+| `data-tong` | Chữ · nền | Biểu tượng | Dùng cho |
 |---|---|---|---|
-| `cat` | `c-sand-soft` · `c-sand-text` | `clock` | Chờ xác nhận, Chưa xếp, Sắp hết hạn, Chưa ai nhận, Vé mới |
-| `bien` | `c-primary-soft` · `c-primary` | `history` | Đang xử lý, Đang chạy, Đã xếp, Đã giao |
-| `la` | `c-green-soft` · `c-green-text` | `check` | Đã xác nhận, Hoàn tất, Còn hạn, Đã thu đủ, Vé xong |
-| `do` | `c-danger-soft` · `c-danger-text` | `alertCircle` | Đã huỷ, Từ chối, Hết hạn, Quá hạn, Giữ lại |
-| `xam` | `c-surface-alt` · `c-text-muted` | `minus` | Nháp, Ngưng dùng, Đã khoá, Không còn trong Sheet |
-
-Thêm `gia` (`c-accent-soft` · `c-accent-strong`) cho nhãn giá «Khác giá danh mục». Số đếm trên chuông và thanh bên dùng `.huy-hieu-so` (tròn `ntf-badge` 18, nền `c-danger` hoặc `data-tong="bien"`).
-
-## Trạng thái
-Không có trạng thái rê chuột, tiêu điểm, tắt (huy hiệu không bấm được). Luật dùng: Chữ trạng thái lấy từ **một nguồn** ở `src/shared/` (như `order-status-label.ts`), không tự đặt. Một trạng thái một huy hiệu; «Đã giao – đã thu đủ» là một trạng thái. Biểu tượng 14 đứng trước chữ để không chỉ dựa vào màu. Trong thẻ 390, huy hiệu xuống dòng hai, không cắt tên khách.
+| `cat` | `c-sand-text` · `c-sand-soft` (7,6:1) | `clock` | Chờ xác nhận, Chưa xếp, Sắp hết hạn |
+| `bien` | `c-primary-strong` · `c-primary-soft` (11,4:1) | `history` | Đang xử lý, Đang chạy, Đã xếp |
+| `la` | `c-green-text` · `c-green-soft` (6,5:1) | `check` | Đã xác nhận, Hoàn tất, Đã thu đủ |
+| `do` | `c-danger` · `c-danger-soft` (6,1:1) | `alertCircle` | Đã huỷ, Từ chối, Quá hạn |
+| `xam` | `c-text-muted` · `c-surface-alt` (6,9:1) | `minus` | Nháp, Ngưng dùng, Đã khoá |
 
 ## Người dùng truyền gì
-Chữ trạng thái và tông; biểu tượng theo bảng (không đổi).
+Chữ trạng thái lấy từ một nguồn ở `src/shared/` (như `order-status-label.ts`); biểu tượng theo bảng (`icon(name, 14)`).
 
-## Đừng
-Không mượn tông Cát (`.badge-draft` cũ) cho ý nghĩa khác; không huy hiệu có viền; không huy hiệu bấm được (đó là Chip).
+## Chưa có trong mã
+Tông `gia` (nhãn «Khác giá danh mục») và số đếm tròn `huy-hieu-so` của bộ bản 8 chưa có lớp v2; mã còn dùng lớp cũ. Chặng 3 quyết.

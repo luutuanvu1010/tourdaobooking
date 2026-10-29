@@ -1,17 +1,22 @@
-Nút ba cấp của Island Booking System: **Chính** cho việc tiếp theo duy nhất của màn, **Phụ** cho việc thay thế hay quay lại, **Lối nhỏ** cho việc phụ trong khối. Gộp ≈ 48 kiểu nút của mã hiện tại (H-NUT) về một lớp `.nut` với biến thể bằng thuộc tính.
+Nút `.nut` một lớp gốc, biến thể bằng thuộc tính: `data-cap="chinh|phu|loi"`, `data-co="lon"`, `data-tong="san-ho|nguy-hiem"`; cao `h-control` 44 (lớn `h-control-lon` 52), đệm `pad-nut`, bo `bo-control`, chữ `fs-ui` 16 / `fw-semibold`.
+
+**Trong mã:** khối «Thành phần chung v2» của `public/app.css`; dùng ở khung, trạng thái hệ thống (`web/trang-thai-he-thong.ts`), dải (`web/dai.ts`), hai trang mới. Lớp cũ `.btn*` còn ở các trang chưa chuyển (Chặng 3).
 
 ## Khi nào dùng
-- `data-cap="chinh"`: **tối đa một** mỗi vùng (đầu trang, chân dính, chân bảng trượt). Nền `c-btn-primary-bg`, chữ `c-btn-primary-text`, bóng `shadow-btn-solid`. Thêm `data-tong="chot"` (san hô `c-accent`) **chỉ** cho «Xác nhận đơn để gửi khách» và «+ Tạo đơn» ở thanh trên; `data-tong="nguy-hiem"` (đỏ đặc `c-danger`) **chỉ** trong hộp xác nhận hành động một chiều.
-- `data-cap="phu"`: nền `c-surface`, viền và chữ `c-primary`; «Quay lại», «+ Chiều về», «Chọn người phụ trách». Biến thể `data-tong="nguy-hiem"` viền và chữ `c-danger` cho «Huỷ đơn» ngoài hộp xác nhận.
-- `data-cap="loi-nho"`: không nền không viền, chữ `c-primary` 500, gạch chân khi rê; «Xem tất cả», «Sửa giá», «+ Email, ghi chú».
-- `data-co="lon"`: cao `h-control-lon` 52 ở chân dính điện thoại và trang Đăng nhập. `data-rong="het"`: rộng hết.
-- Nút chỉ biểu tượng trên thanh trên dùng `.nut-bieu-tuong` (44 × 44, cần `aria-label`).
+- `chinh` — một việc chính của màn (Lưu chuyến, Thử lại). Tối đa một nút chính mỗi vùng.
+- `phu` — việc kèm (Quay lại, Xem, Lọc), nền `c-btn-soft-bg`.
+- `loi` — lối chữ trong bảng, thẻ (Mở, Xem chi tiết).
+- `data-tong="san-ho"` — hành động chốt (Xác nhận đơn, Tạo đơn); `data-tong="nguy-hiem"` — chỉ trong hộp xác nhận một chiều.
+- `data-co="lon"` — nút chính ở chân dính và bảng trượt điện thoại.
 
 ## Trạng thái
-Bình thường · rê chuột (chỉ khi `hover: hover`) · bấm lún `press` · tiêu điểm vành `focus-ring` màu `c-focus` · **tắt**: xám phẳng (`c-surface-alt`, chữ `c-text-muted`, không dùng opacity) và **phải kèm** `.nut-ly-do` nói vì sao tắt (C-BAO-BAN-NUT-TAT) · đang gửi `data-dang-tai="true"`: vòng quay `m-spin` trong nút, chữ ẩn, không bấm được.
+Rê chuột (chỉ khi `hover: hover`) · tiêu điểm vành `focus-ring` 3 px `c-focus` cách `vanh-cach` 2 · tắt `[disabled]` kèm `data-ly-do` (lý do vì sao tắt) · đang gửi `data-ban="true"`; cả hai mờ 50 %.
 
 ## Người dùng truyền gì
-Nhãn là động từ («Lưu, chờ xác nhận», «Tải thêm 50»); biểu tượng `icon-md` 20 đứng trước chữ (tuỳ chọn); `type="button"` hay `href`. Mọi nút cao `h-control` 44 từ lớp gốc, bo `bo-control` 8, chữ `nut` 16/500 — không vá `min-height` ở từng màn.
+Nhãn là động từ của việc («Lưu chuyến», không «OK»); biểu tượng 20 trước chữ khi cần (`icon(name, 20)`).
 
 ## Đừng
-Không nút viên thuốc, không nền xanh nhạt làm nút (nền nhạt chỉ cho mục đang chọn), không nét đứt, không hai nút chính cạnh nhau, không lặp cùng một nút chính ở hai nơi trên một màn (H-NUT-CHINH-TRUNG).
+Không hai nút chính cạnh nhau; không dùng `nguy-hiem` ngoài hộp xác nhận.
+
+## Lệch đã biết (nợ trong mã, chưa sửa)
+`<a class="nut">` bị gạch chân vì `.nut` chưa có `text-decoration: none` (thấy ở trang 404/403/lỗi máy chủ) — BACKLOG `B-NUT-LIEN-KET-GACH-CHAN`.

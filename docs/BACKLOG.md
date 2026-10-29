@@ -647,3 +647,13 @@ Ghi 2026-10-28 khi đóng đợt 0 (nhật ký thi công `docs/superpowers/plans
 - Kịch bản `docs/evidence/2026-09-23-trang-chu-moi/kich-ban/trang-chu-smoke.mjs` hỏng với thanh bên mới (nút gập đầu tiên nay là Điều phối; 22 mục; nút Tạo đơn không còn ở thanh bên); bản sửa nằm trong kịch bản đợt 0 (Task 15).
 - Task 13 bước kiểm tay CDP không làm được (cổng 8795/8797 bị phiên khác chiếm); `mat-mang-smoke.mjs` phủ thay, phải xoá mục `/ngoai-mang` khỏi bộ đệm để kiểm nhánh 503 chữ.
 
+
+## 54. Nợ thấy khi đồng bộ bộ v2 từ mã — 7c (mã `B-7C-…`)
+
+Ghi 2026-10-29 khi đồng bộ bộ «Island Booking System — Design System v2» từ `main@25f127d1` (tờ `docs/superpowers/specs/2026-10-27-danh-gia-ux-tong-the/BO-SUNG-BO-V2-2026-10-29-7c.md`). Đây là lệch **trong mã** thấy qua bản xem trước của bộ; 7c không sửa mã. Dọn ở Chặng 3 hoặc một đợt sửa nhỏ, theo quyết của Main session.
+
+- **B-NUT-LIEN-KET-GACH-CHAN** · `chưa làm`. `.nut` (khối «Thành phần chung v2» của `public/app.css`) không có `text-decoration: none`, nên `<a class="nut">` bị gạch chân: nút «Về trang đầu của bạn» / «Thử lại» của trang 403, 404, thiếu mã, lỗi máy chủ (`web/trang-thai-he-thong.ts` `nutHoacLienKet`) và nút liên kết của dải (`web/dai.ts`). Ảnh: `docs/evidence/2026-10-29-7c-dong-bo-bo-v2/TrangLoi.png`.
+- **B-HOP-XAC-NHAN-NUT-CU** · `chưa làm`. Hộp xác nhận một chiều `hoiXacNhan` (`web/bang-truot.ts`) dựng hai nút bằng lớp cũ `btn` / `btn btn-danger`, nút đóng bảng trượt là `btn btn-link sheet-close` — chưa dùng `.nut` của khối mới. Bộ vẽ bằng `.nut` và ghi lệch ở README thành phần HopThoai, BangTruot.
+- **B-7C-PHIM-TIM** · `đã duyệt, chưa làm` (cổng 2a 28/10). Phím `/` vào ô tìm chưa có trong mã (chỉ có `Esc` đóng bảng trượt). Bộ ghi «chưa có trong mã».
+- **B-7C-O-TICH-44** · `cần xem lại`. `.o-tich`, `.o-chon-mot` đặt `width/height: var(--h-control)` thẳng lên `<input>` nên ô tích gốc của trình duyệt to 44 px (vùng chạm đúng, hình to). Bản vẽ Claude Design vẽ ô 20–22 px trong vùng chạm 44. Chặng 3 quyết khi chuyển biểu mẫu sang lớp v2.
+- **B-7C-DE-XUAT-CHUA-CO** · `ý tưởng`. Bộ còn đề xuất chưa có lớp v2 trong mã: BoDem (`web/counter.ts` dùng `.counter-*`), TaiThem, vỏ TimLoc, thông báo trong trang `.thong-bao`, phần trong thẻ / dòng, huy hiệu tông `gia` và `huy-hieu-so`. Chặng 3 quyết đưa vào khối chung hay bỏ khỏi bộ.

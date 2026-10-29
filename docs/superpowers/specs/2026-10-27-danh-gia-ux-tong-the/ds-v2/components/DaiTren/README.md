@@ -1,17 +1,17 @@
-Dải trên trang: **tối đa một dải** ngay dưới thanh trên, cao một dòng (`h-control` 44), thứ tự ưu tiên bảo trì > thông báo quan trọng > nhắc bảo mật hai lớp > mất mạng; nút «Xem» mở BangTruot đọc đủ. Gộp dải bảo trì, thông báo quan trọng và nhắc hai lớp của mã (H-DAI-TREN, C-TRANG-CHU-DAI-DE).
+Dải trên trang `.dai[data-tong]` trong `#strips` ngay dưới thanh trên: **mỗi lúc một dải**, cao tối thiểu `h-dai-tren` 44, hình 18 + câu `.dai-cau` + một `.nut[data-cap=phu]` + nút đóng `.dai-dong` (nếu đóng được).
 
-## Khi nào dùng
-Bốn tông, mỗi lúc chỉ một dải:
-- `bao-tri` (`c-danger-soft`): «Đang bảo trì tới 22:00 — chỉ xem, không lưu được». Không đóng được.
-- `quan-trong` (`c-sand-soft`, `megaphone`): thông báo quản trị gửi; **bắt bấm «Đã hiểu»** (câu 8 cổng 1), sau đó nhớ theo phiên.
-- `nhac` (`c-band-bg`, `lock`): nhắc bật bảo mật hai lớp; đóng được, nhớ «đã đọc» theo phiên; **không hiện khi đang ở biểu mẫu** (Tạo đơn, Tạo chuyến).
-- `mat-mang` (`c-mat-mang-bg` MỚI): «Đang ngoài mạng — dữ liệu lần xem gần nhất» + «Thử lại»; tự ẩn khi có mạng.
+**Trong mã:** `web/dai.ts` (`datDai`, một chủ sở hữu), chữ và thứ tự ở `src/shared/dai-chu.ts` (`UU_TIEN`, `TONG_DAI`); CSS ở khối đợt 0 của `public/app.css`.
 
-## Trạng thái
-Chữ một dòng cắt «…» (đọc đủ qua «Xem»); không đè ô tìm nổi của Trang chủ; không đẩy nội dung nhảy khi xuất hiện (giữ chỗ 44 nếu đã biết sẽ có). Lớp bình thường (không dính); dải bảo trì dính theo thanh trên.
+## Bốn loại (ưu tiên trên → dưới)
+| Loại | Tông | Hình | Câu · nút |
+|---|---|---|---|
+| `bao-tri` | `bien` | `history` | «Đang bảo trì, dự kiến xong HH:MM» · Xem |
+| `ngoai-mang` | `cat` (`c-mat-mang-bg`) | `clock` | «Đang ngoài mạng — dữ liệu lần xem gần nhất» · Thử lại |
+| `thong-bao` | `cat` | `clock` | thông báo quan trọng · Xem / Đã hiểu |
+| `bao-mat` | `do` | `alertCircle` | nhắc bật bảo mật hai lớp · Bật ngay + đóng |
 
-## Người dùng truyền gì
-Tông, câu ngắn, nội dung đủ cho bảng trượt, nhãn nút («Xem», «Đã hiểu», «Thử lại», «Bật ngay»), khoá nhớ theo phiên.
+## Hành vi
+Nhắc bảo mật đóng được, nhớ theo phiên (`sessionStorage` `dai-bao-mat-da-dong`) và không hiện ở trang biểu mẫu (`body[data-khuon=bieu-mau]`). Ở ≤ 640 câu dài xuống hai dòng. Thân trang đã là khối «chưa nạp» thì dải ngoài mạng chỉ còn «Đang ngoài mạng», không nút.
 
 ## Đừng
-Không xếp chồng hai dải; không dải hai dòng; không dải nhắc trong biểu mẫu; không dùng dải thay toast.
+Không xếp chồng hai dải; không dùng dải thay thông báo ngắn.
