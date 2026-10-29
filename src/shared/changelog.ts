@@ -12,6 +12,18 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Đưa đón theo từng dịch vụ (ADR-0149 Đ1, kế hoạch docs/superpowers/plans/2026-10-29-adr-0149-dua-don-theo-dich-vu-ke-hoach.md). CÓ migration 0127 (bảng ô «Được đón không»
+    // + dựng lại view v_ctl_service_transfer) nên cần npm run trien-khai. Số 2.45 và ngày là TẠM (main có 2.44 tạm của nút «Sửa» lúc làm, 29/10) — phiên phát hành kiểm lại ở bước A.0
+    // của docs/HANDOFF-N1.md.
+    version: "2.45",
+    date: "2026-10-29",
+    items: [
+      { kind: "moi", text: "Dịch vụ & giá: khung «Đưa đón» của mỗi dịch vụ có ô «Được đón không» — Theo nhóm, Luôn đón hoặc Không đón. Ô của dịch vụ thắng cài đặt «Có đưa đón» của nhóm." },
+      { kind: "moi", text: "Dịch vụ đặt «Không đón» thì form lập đơn không mở phần đưa đón cho dịch vụ đó, kể cả khi nhóm của nó có đưa đón; đơn đã có lượt đưa đón không bị đổi." },
+      { kind: "doi", text: "Câu báo khi không ghi được lượt đưa đón nay nói rõ lý do: nhóm đã tắt đưa đón, hay dịch vụ đã đặt «Không đón»." },
+    ],
+  },
+  {
     // Nút «Sửa» mức hoa hồng, gắn loại theo chính sách và chính sách riêng (ADR-0148 Đ1, kế hoạch docs/superpowers/plans/2026-10-29-sua-muc-luot-1-ke-hoach.md).
     // CÓ migration 0126 (dấu huỷ + dòng thay thế cho ba bảng mức) nên cần npm run trien-khai. Số 2.44 và ngày là TẠM (main có 2.43 tạm của phần sửa ô tích lúc nhập, 29/10) —
     // phiên phát hành kiểm lại ở bước A.0 của docs/HANDOFF-N1.md.

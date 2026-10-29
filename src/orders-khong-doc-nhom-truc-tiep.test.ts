@@ -21,11 +21,11 @@ function tepOrders(dir = join(ROOT, "src/modules/orders")): string[] {
   });
 }
 
-test("(A) orders không đọc bảng ctl_group / ctl_service_group — chỉ view công bố v_ctl_* (ADR-0118 Đ2)", () => {
+test("(A) orders không đọc bảng ctl_group / ctl_service_group / ctl_service_transfer_rule (ADR-0149 tiêu chí 7) — chỉ view công bố v_ctl_* (ADR-0118 Đ2)", () => {
   const sai: string[] = [];
   for (const p of tepOrders()) {
     const src = boChuThich(readFileSync(p, "utf8"));
-    for (const m of src.matchAll(/\b(ctl_group|ctl_service_group)\b/g)) sai.push(`${p.slice(ROOT.length)}: ${m[1]}`);
+    for (const m of src.matchAll(/\b(ctl_group|ctl_service_group|ctl_service_transfer_rule)\b/g)) sai.push(`${p.slice(ROOT.length)}: ${m[1]}`);
   }
   assert.deepEqual(sai, [], `orders đọc thẳng bảng của catalog: ${sai.join("; ")}`);
 });

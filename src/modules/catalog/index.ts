@@ -12,8 +12,12 @@ import { CATALOG_CODE_RE as CODE_RE, MAX_AMOUNT_VND as MAX_PRICE, PAX_LABEL, PAX
 import { getSyncState, loadAll, loadOne, saveOverride, type StoredItem } from "./repository";
 import { acknowledge, applyOverride, money, patchOverride, toEffective, type OverridePatch } from "./rules";
 import { bootstrapIfNeverSynced, syncCatalog } from "./service";
-import { danhSachNhom, demDichVuCuaNhom, ganNhomStatements, lichSuNhom, maNhomMoi, nhomHienHanhTheoMa, nhomTheoMa, suaNhom, tenNhomCuaCacMa, themNhom, type NhomRow } from "./nhom-repo";
+import {
+  danhSachNhom, demDichVuCuaNhom, doiQuyTacDuaDonStatements, ganNhomStatements, lichSuNhom, maDangKhongDon, maNhomMoi, nhomHienHanhTheoMa, nhomTheoMa, quyTacDuaDonCua, quyTacDuaDonTheoMa,
+  suaNhom, tenNhomCuaCacMa, themNhom, type NhomRow,
+} from "./nhom-repo";
 import { choPhepDuaDon, kiemLoGan, kiemTenNhom, moTaDoiNhom, nhomChoForm } from "./nhom-rules";
+import { isQuyTacDuaDon, moTaDoiQuyTac, type QuyTacDuaDon } from "../../shared/dua-don-dich-vu";
 
 export type { EffectiveService };
 
@@ -35,13 +39,21 @@ export async function tenNhomHienHanh(db: D1Database, codes: readonly string[]):
   return tenNhomCuaCacMa(db, codes);
 }
 
+/**
+ * ADR-0149 Đ1 / Ruling R-0149-B: mã nào trong danh sách bị chặn đưa đón vì Ô RIÊNG của dịch vụ («Không đón»), không vì nhóm — cho `orders` viết câu báo đúng lý do.
+ * Hàm công bố hẹp (chỉ mã được hỏi); cổng chặn vẫn là view `v_ctl_service_transfer`.
+ */
+export async function maDatKhongDon(db: D1Database, codes: readonly string[]): Promise<Set<string>> {
+  return maDangKhongDon(db, codes);
+}
+
 /** Dịch vụ như nhân viên bán hàng thấy: giá hiệu lực (đã áp ghi đè), không lộ thông tin ghi đè hay Sheet. `transferEnabled` điền sau khi biết nhóm (ADR-0118). */
 function publicItem(e: EffectiveService, groupCode: string | null): Omit<CatalogServiceDto, "transferEnabled"> {
   return { code: e.code, name: e.name, unit: e.unit, prices: e.prices, notes: e.notes, supported: parseUnit(e.unit).kind !== "unknown", groupCode };
 }
 
 /** `groupCode`: nhóm hiện hành THẬT (ADR-0058 Đ5, kể cả nhóm đang tắt) — trộn ở đây từ nhom-repo, không sửa câu SELECT cũ của repository.ts. */
-function adminItem(s: StoredItem, groupCode: string | null): CatalogAdminItemDto {
+function adminItem(s: StoredItem, groupCode: string | null, transferRule: QuyTacDuaDon): CatalogAdminItemDto {
   const eff = applyOverride(s.prices, s.override);
   return {
     code: s.code,
@@ -58,12 +70,14 @@ function adminItem(s: StoredItem, groupCode: string | null): CatalogAdminItemDto
     overrideUpdatedAt: s.overrideUpdatedAt,
     updatedAt: s.updatedAt,
     groupCode,
+    transferRule,
   };
 }
 
 /** Một dịch vụ cho phản hồi của route quản trị một dịch vụ (PATCH/ack/bỏ ghi đè): kèm nhóm hiện hành để khớp `GET /api/catalog/admin`. */
 async function adminItemKemNhom(db: D1Database, s: StoredItem): Promise<CatalogAdminItemDto> {
-  return adminItem(s, (await nhomHienHanhTheoMa(db)).get(s.code) ?? null);
+  const [nhom, quyTac] = await Promise.all([nhomHienHanhTheoMa(db), quyTacDuaDonCua(db, s.code)]);
+  return adminItem(s, nhom.get(s.code) ?? null, quyTac);
 }
 
 // ---- Nhóm dịch vụ (ADR-0058) ------------------------------------------------------------------------------------------------------------
@@ -115,7 +129,7 @@ async function catalogForOrderForm(env: Env, { showSyncError }: { showSyncError:
   } catch {
     /* Sheet lỗi ở lần đầu: vẫn trả danh mục rỗng + cảnh báo bên dưới */
   }
-  const [items, state, nhomTheoDichVu, nhoms] = await Promise.all([loadAll(env.DB), getSyncState(env.DB), nhomHienHanhTheoMa(env.DB), danhSachNhom(env.DB)]);
+  const [items, state, nhomTheoDichVu, nhoms, quyTac] = await Promise.all([loadAll(env.DB), getSyncState(env.DB), nhomHienHanhTheoMa(env.DB), danhSachNhom(env.DB), quyTacDuaDonTheoMa(env.DB)]);
   const visible = items
     .map(toEffective)
     .filter((e) => e.visible)
@@ -126,8 +140,9 @@ async function catalogForOrderForm(env: Env, { showSyncError }: { showSyncError:
     visible,
   );
   // ADR-0118 Đ1: cờ «Có đưa đón» theo nhóm hiện hành đã qua `nhomChoForm` (nhóm tắt dùng → groupCode null → luôn cho). Cùng luật với view `v_ctl_service_transfer` mà máy chủ `orders` dùng.
+  // ADR-0149 Đ1: ô riêng của dịch vụ (Luôn đón / Không đón) thắng cờ nhóm — cùng hàm `choPhepDuaDon`, bài so khớp src/migrations-dua-don-dich-vu.test.ts.
   const nhomDuaDon = nhoms.map((g) => ({ code: g.code, active: g.active === 1, transferEnabled: g.transfer_enabled === 1 }));
-  const choForm: CatalogServiceDto[] = form.items.map((i) => ({ ...i, transferEnabled: choPhepDuaDon(i.groupCode, nhomDuaDon) }));
+  const choForm: CatalogServiceDto[] = form.items.map((i) => ({ ...i, transferEnabled: choPhepDuaDon(i.groupCode, nhomDuaDon, quyTac.get(i.code) ?? "GROUP") }));
   return { items: choForm, sync: { lastSuccessAt: state.lastSuccessAt, error: showSyncError ? state.lastError : null }, groups: form.groups };
 }
 
@@ -161,14 +176,14 @@ export const catalogModule: AppModule = {
     route("GET", "/api/catalog/dem-xung-dot", "admin", async ({ env, staff }) => {
       if (!can(staff, "admin.manage")) return error(403, "forbidden", "Chỉ quản trị viên được thực hiện thao tác này.");
       const items = await loadAll(env.DB);
-      return json({ conflictCount: items.filter((s) => adminItem(s, null).conflicts.length > 0).length } satisfies CatalogConflictCountResponse);
+      return json({ conflictCount: items.filter((s) => adminItem(s, null, "GROUP").conflicts.length > 0).length } satisfies CatalogConflictCountResponse);
     }),
 
     route("GET", "/api/catalog/admin", "admin", async ({ env, staff }) => {
       if (!can(staff, "admin.manage")) return error(403, "forbidden", "Chỉ quản trị viên được thực hiện thao tác này.");
-      const [items, state, nhomTheoDichVu, nhoms] = await Promise.all([loadAll(env.DB), getSyncState(env.DB), nhomHienHanhTheoMa(env.DB), danhSachNhom(env.DB)]);
+      const [items, state, nhomTheoDichVu, nhoms, quyTac] = await Promise.all([loadAll(env.DB), getSyncState(env.DB), nhomHienHanhTheoMa(env.DB), danhSachNhom(env.DB), quyTacDuaDonTheoMa(env.DB)]);
       return json({
-        items: items.map((s) => adminItem(s, nhomTheoDichVu.get(s.code) ?? null)),
+        items: items.map((s) => adminItem(s, nhomTheoDichVu.get(s.code) ?? null, quyTac.get(s.code) ?? "GROUP")),
         sync: state,
         groups: nhoms.map((g) => nhomDto(g, g.service_count)),
       } satisfies CatalogAdminResponse);
@@ -313,6 +328,35 @@ export const catalogModule: AppModule = {
       // `createdBy` là id tài khoản (null = Hệ thống gieo); tên người do màn Quản trị ghép từ GET /api/staff — `catalog` không phụ thuộc `staff`.
       const rows = await lichSuNhom(env.DB, item.code);
       return json({ items: rows.map((r) => ({ luc: r.valid_from_at, createdBy: r.created_by, nhom: r.group_code === null ? null : r.group_name })) } satisfies CatalogGroupHistoryResponse);
+    }),
+
+    // ADR-0149 Đ1: ô «Được đón không» của MỘT dịch vụ (Theo nhóm / Luôn đón / Không đón). Khoá lạc quan theo lựa chọn đang thấy (`expectedTransferRule`); dữ liệu + nhật ký MỘT lô,
+    // nhật ký chỉ ghi khi câu chốt đổi dòng (`changes() > 0`). Đơn đã có chặng không bị động tới (ADR-0118 Đ3(c) giữ nguyên).
+    route("PUT", "/api/catalog/:code/transfer-rule", "admin", async ({ env, request, params, staff }) => {
+      if (!can(staff, "admin.manage")) return error(403, "forbidden", "Chỉ quản trị viên được thực hiện thao tác này.");
+      const body = await readJson(request);
+      if (!body || !isQuyTacDuaDon(body.transferRule)) return error(400, "invalid_input", "Chọn một trong ba: Theo nhóm, Luôn đón, Không đón.");
+      if (!isQuyTacDuaDon(body.expectedTransferRule)) return error(400, "invalid_input", "Thiếu lựa chọn đưa đón đang có của dịch vụ — tải lại rồi thử lại.");
+      const item = await loadByParam(env.DB, params.code);
+      if (!item) return NOT_FOUND();
+      const cu = await quyTacDuaDonCua(env.DB, item.code);
+      if (cu !== body.expectedTransferRule) return error(409, "stale", "Đưa đón của dịch vụ vừa được người khác đổi. Tải lại rồi thử lại.");
+      const moi = body.transferRule;
+      if (moi === cu) return json({ item: await adminItemKemNhom(env.DB, item) } satisfies CatalogItemResponse); // không đổi gì
+      const now = new Date().toISOString();
+      const doi = doiQuyTacDuaDonStatements(env.DB, { serviceCode: item.code, cu, moi, staffId: staff.id, now });
+      let changes = 0;
+      try {
+        const res = await env.DB.batch([
+          ...doi.statements,
+          auditStatement(env.DB, { staffId: staff.id, action: "catalog_service_transfer_set", at: now, targetType: "catalog", targetId: item.code, detail: moTaDoiQuyTac(cu, moi) }, "changes() > 0"),
+        ]);
+        changes = res[doi.chot]?.meta.changes ?? 0;
+      } catch {
+        return error(409, "stale", "Đưa đón của dịch vụ vừa được người khác đổi. Tải lại rồi thử lại.");
+      }
+      if (changes === 0) return error(409, "stale", "Đưa đón của dịch vụ vừa được người khác đổi. Tải lại rồi thử lại.");
+      return json({ item: await adminItemKemNhom(env.DB, item) } satisfies CatalogItemResponse);
     }),
 
     route("POST", "/api/catalog/sync", "admin", async ({ env, request, staff }) => {

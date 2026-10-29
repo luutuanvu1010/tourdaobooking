@@ -6,6 +6,7 @@ import { PAX_LABEL, PAX_ORDER } from "../src/shared/order-lines";
 import { unitLabel } from "../src/shared/service-form";
 import { CHUA_PHAN_LOAI_TEN, dongLichSuNhom } from "../src/shared/lich-su-nhom";
 import { CHE_DO_DUA_DON, type CheDoDuaDon } from "../src/shared/chang-mac-dinh";
+import { QUY_TAC_DUA_DON, type QuyTacDuaDon } from "../src/shared/dua-don-dich-vu";
 import { dongLichSuMauChang, nhanCheDoCua } from "../src/shared/lich-su-mau-chang";
 import { moBangTruot } from "./bang-truot";
 import { initShell, showError } from "./shell";
@@ -106,7 +107,7 @@ function row(it: CatalogAdminItem): HTMLElement {
     { class: it.hidden || !it.inSheet ? "row-off" : "", "data-code": it.code },
     h("td", { class: "chon-td" }, oChon(it)),
     h("td", null, it.code),
-    h("td", null, it.name, chipDuaDon(it, "dd-chip-dong"), it.hidden && h("span", { class: "badge badge-cancelled" }, "Đã ẩn"), !it.inSheet && h("span", { class: "badge badge-draft" }, "Không còn trong Sheet"), !it.supported && h("span", { class: "badge badge-draft", title: "Chỉ nhập tay được" }, `Đơn vị ${it.unit} chưa hỗ trợ`), it.conflicts.length > 0 && h("div", { class: "alert warn", style: "margin:6px 0 0" }, `Sheet đã đổi giá kể từ khi ghi đè — ${conflicts}. Giá đang bán vẫn là giá ghi đè.`)),
+    h("td", null, it.name, chipDuaDon(it, "dd-chip-dong"), chipQuyTac(it), it.hidden && h("span", { class: "badge badge-cancelled" }, "Đã ẩn"), !it.inSheet && h("span", { class: "badge badge-draft" }, "Không còn trong Sheet"), !it.supported && h("span", { class: "badge badge-draft", title: "Chỉ nhập tay được" }, `Đơn vị ${it.unit} chưa hỗ trợ`), it.conflicts.length > 0 && h("div", { class: "alert warn", style: "margin:6px 0 0" }, `Sheet đã đổi giá kể từ khi ghi đè — ${conflicts}. Giá đang bán vẫn là giá ghi đè.`)),
     h("td", { class: "nhom-o" }, tenNhomCua(it)),
     h("td", { class: "muted" }, unitLabel(it.unit)),
     ...PAX_ORDER.map((c) => priceCell(it, c)),
@@ -147,7 +148,7 @@ function card(it: CatalogAdminItem): HTMLElement {
     "div",
     { class: it.hidden || !it.inSheet ? "card card-col row-off" : "card card-col", "data-code": it.code },
     h("div", { class: "the-dau" }, oChon(it), h("span", { class: "muted" }, it.code, " · ", unitLabel(it.unit))),
-    h("div", { class: "dd-ten-dong" }, h("strong", null, it.name), chipDuaDon(it), it.hidden && h("span", { class: "badge badge-cancelled" }, " Đã ẩn"), !it.inSheet && h("span", { class: "badge badge-draft" }, " Không còn trong Sheet"), !it.supported && h("span", { class: "badge badge-draft", title: "Chỉ nhập tay được" }, ` Đơn vị ${it.unit} chưa hỗ trợ`)),
+    h("div", { class: "dd-ten-dong" }, h("strong", null, it.name), chipDuaDon(it), chipQuyTac(it), it.hidden && h("span", { class: "badge badge-cancelled" }, " Đã ẩn"), !it.inSheet && h("span", { class: "badge badge-draft" }, " Không còn trong Sheet"), !it.supported && h("span", { class: "badge badge-draft", title: "Chỉ nhập tay được" }, ` Đơn vị ${it.unit} chưa hỗ trợ`)),
     h("div", { class: "nhom-o muted" }, `Nhóm: ${tenNhomCua(it)}`),
     h("div", null, priceLine(it), it.overridden.length > 0 && h("span", { class: "mark", style: "color:var(--c-accent);font-weight:var(--fw-bold)", title: "Có giá ghi đè" }, " ✎")),
     it.conflicts.length > 0 && h("div", { class: "alert warn" }, `Sheet đã đổi giá kể từ khi ghi đè — ${conflicts}. Giá đang bán vẫn là giá ghi đè.`),
@@ -567,6 +568,11 @@ function chipDuaDon(it: CatalogAdminItem, boc?: string): HTMLElement | null {
   const chip = h("span", { class: `chip ${mode && mode !== "NONE" ? "chip-unit" : "chip-muted"} dd-chip`, "data-dua-don-chip": it.code }, nhanCheDoCua(mode));
   return boc ? h("div", { class: boc }, chip) : chip;
 }
+/** ADR-0149 Đ1: chip ô «Được đón không» khi dịch vụ KHÔNG theo nhóm — «Không đón» (xám) / «Luôn đón» (xanh nhạt). Theo nhóm → không chip. */
+function chipQuyTac(it: CatalogAdminItem): HTMLElement | null {
+  if (it.transferRule === "GROUP") return null;
+  return h("span", { class: `badge ${it.transferRule === "NEVER" ? "badge-draft" : "badge-confirmed"}`, "data-quy-tac-chip": it.code }, it.transferRule === "NEVER" ? "Không đón" : "Luôn đón");
+}
 function nutDuaDon(b: HTMLButtonElement, code: string, noi: "bang" | "the"): HTMLButtonElement {
   b.dataset.duaDon = code;
   b.dataset.noi = noi;
@@ -642,6 +648,7 @@ function moDuaDon(it: CatalogAdminItem, opener: HTMLElement | null): void {
     );
   }
   const noiDung: HTMLElement[] = [
+    khoiQuyTac(it, luot),
     h("div", { class: "dd-nhom" }, h("span", { id: idNhom, class: "dd-nhan" }, "Khi lập đơn có dịch vụ này (chọn một)"), h("div", { class: "dd-che-do-ds", role: "radiogroup", "aria-labelledby": idNhom }, ...theCheDo)),
     h("div", { class: "dd-o-luoi" }, truongGio, truongTra),
   ];
@@ -715,6 +722,56 @@ function moDuaDon(it: CatalogAdminItem, opener: HTMLElement | null): void {
       }
     }
   })();
+}
+
+/**
+ * ADR-0149 Đ1 — ô «Được đón không» (Theo nhóm / Luôn đón / Không đón): thắng công tắc «Có đưa đón» của nhóm; KHÁC phần gợi ý bên dưới (mẫu chỉ gợi ý chặng — Ruling R-0149-A).
+ * Chọn = lưu ngay (`PUT /api/catalog/:code/transfer-rule`, khoá lạc quan theo lựa chọn đang thấy); lỗi → chọn lại giá trị cũ + câu lỗi của máy chủ.
+ */
+function khoiQuyTac(it: CatalogAdminItem, luot: number): HTMLElement {
+  let dang: QuyTacDuaDon = it.transferRule;
+  const id = `dd-qt-${luot}`;
+  const loi = h("div", { class: "alert", role: "alert", hidden: true });
+  const ghi = h("p", { class: "dd-ghi muted", role: "status" });
+  const radio = new Map<QuyTacDuaDon, HTMLInputElement>();
+  const nhom = (): string => {
+    const g = it.groupCode === null ? null : nhoms.find((x) => x.code === it.groupCode && x.active);
+    return g ? `Nhóm “${g.name}” đang ${g.transferEnabled ? "có" : "không có"} đưa đón.` : "Chưa phân loại: luôn có đưa đón.";
+  };
+  const ve = (): void => {
+    for (const [m, o] of radio) {
+      o.checked = m === dang;
+      o.closest("label")!.classList.toggle("dd-chon", m === dang);
+    }
+    ghi.textContent = dang === "GROUP" ? nhom() : dang === "NEVER" ? "Dịch vụ này không được ghi đưa đón, dù nhóm có bật. Phần gợi ý bên dưới không dùng." : "Dịch vụ này luôn được ghi đưa đón, dù nhóm có tắt.";
+  };
+  const the = (Object.keys(QUY_TAC_DUA_DON) as QuyTacDuaDon[]).map((m) => {
+    const o = h("input", { type: "radio", name: id, value: m, "data-quy-tac": m });
+    radio.set(m, o);
+    o.addEventListener("change", () => {
+      if (o.checked) void luu(m);
+    });
+    return h("label", { class: "dd-che-do" }, o, h("span", { class: "dd-che-do-cham", "aria-hidden": "true" }), h("span", null, QUY_TAC_DUA_DON[m]));
+  });
+  async function luu(moi: QuyTacDuaDon): Promise<void> {
+    if (moi === dang) return;
+    showError(loi, null);
+    for (const o of radio.values()) o.disabled = true;
+    try {
+      const r = await api<Api.CatalogItemResponse>(`/api/catalog/${encodeURIComponent(it.code)}/transfer-rule`, { method: "PUT", body: { transferRule: moi, expectedTransferRule: dang } });
+      items = items.map((x) => (x.code === r.item.code ? r.item : x));
+      it = r.item;
+      dang = r.item.transferRule;
+      render();
+    } catch (err) {
+      showError(loi, loiChu(err));
+    } finally {
+      for (const o of radio.values()) o.disabled = false;
+      ve();
+    }
+  }
+  ve();
+  return h("div", { class: "dd-nhom" }, h("span", { id: `${id}-nhan`, class: "dd-nhan" }, "Được đón không (thắng cài đặt của nhóm)"), loi, h("div", { class: "dd-che-do-ds", role: "radiogroup", "aria-labelledby": `${id}-nhan` }, ...the), ghi);
 }
 
 /** Sau khi lưu: chip của dòng / thẻ đổi theo bản hiện hành (không tải lại cả danh mục). */

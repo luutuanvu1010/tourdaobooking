@@ -264,10 +264,21 @@ const HUONG_DAN_DUA_DON: Record<CuaDuaDon, string> = {
   "xet-duyet": "Người lập đơn cần Rút lại yêu cầu, bỏ lượt đưa đón của dịch vụ đó rồi gửi lại.",
 };
 
-/** Câu báo `transfer_disabled` (ADR-0118 Đ3): nêu TÊN dịch vụ và TÊN nhóm, rồi cách sửa. `nhom` null (không đọc được tên) → bỏ phần «(nhóm …)». */
-export function cauNhomTatDuaDon(dichVu: readonly { ten: string; nhom: string | null }[], cua: CuaDuaDon): string {
-  const ds = dichVu.map((d) => (d.nhom === null ? `“${d.ten}”` : `“${d.ten}” (nhóm “${d.nhom}”)`)).join(", ");
-  return `Nhóm dịch vụ đã tắt đưa đón nên không ghi được lượt đưa đón cho: ${ds}. ${HUONG_DAN_DUA_DON[cua]}`;
+/** ADR-0149 Ruling R-0149-B: ở cửa `sua`, khi có dịch vụ bị chặn vì ô RIÊNG thì câu hướng dẫn không được chỉ nói «bật lại nhóm». */
+const HUONG_DAN_SUA_RIENG = "Lượt đang có chỉ còn bỏ được (nút Bỏ lượt), không thêm hay sửa. Muốn có đưa đón, nhờ Quản trị đổi cài đặt đưa đón của nhóm hoặc của dịch vụ ở trang Dịch vụ & giá.";
+
+/**
+ * Câu báo `transfer_disabled` (ADR-0118 Đ3): nêu TÊN dịch vụ và TÊN nhóm, rồi cách sửa. `nhom` null (không đọc được tên) → bỏ phần «(nhóm …)».
+ * ADR-0149 Đ1 (Ruling R-0149-B): dịch vụ có `rieng` = bị chặn vì ô «Không đón» của CHÍNH nó (không vì nhóm) → câu riêng; chỉ do nhóm thì câu giữ nguyên từng chữ như ADR-0118.
+ */
+export function cauNhomTatDuaDon(dichVu: readonly { ten: string; nhom: string | null; rieng?: boolean }[], cua: CuaDuaDon): string {
+  const theoNhom = dichVu.filter((d) => !d.rieng);
+  const rieng = dichVu.filter((d) => d.rieng);
+  const cau: string[] = [];
+  if (theoNhom.length > 0) cau.push(`Nhóm dịch vụ đã tắt đưa đón nên không ghi được lượt đưa đón cho: ${theoNhom.map((d) => (d.nhom === null ? `“${d.ten}”` : `“${d.ten}” (nhóm “${d.nhom}”)`)).join(", ")}.`);
+  if (rieng.length > 0) cau.push(`Dịch vụ đã đặt «Không đón» nên không ghi được lượt đưa đón cho: ${rieng.map((d) => `“${d.ten}”`).join(", ")}.`);
+  cau.push(cua === "sua" && rieng.length > 0 ? HUONG_DAN_SUA_RIENG : HUONG_DAN_DUA_DON[cua]);
+  return cau.join(" ");
 }
 
 /** Dịch vụ CÓ mã danh mục (nhập tay: `catalogCode` rỗng — luôn cho đưa đón) và CÓ chặng mở: những dịch vụ cần hỏi cờ nhóm. */

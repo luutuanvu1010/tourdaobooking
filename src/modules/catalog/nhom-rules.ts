@@ -1,5 +1,6 @@
 // Luật thuần của nhóm dịch vụ (ADR-0058 Đ2, Đ5): kiểm đầu vào, chọn nhóm cho form, chữ nhật ký. Không import gì ngoài `shared` (bài kiểm nạp thẳng bằng Node).
 import { CATALOG_CODE_RE } from "../../shared/order-lines.ts";
+import type { QuyTacDuaDon } from "../../shared/dua-don-dich-vu.ts";
 
 export const TEN_NHOM_TOI_DA = 40;
 export const LO_GAN_TOI_DA = 50;
@@ -36,8 +37,10 @@ export interface NhomDuaDon { code: string; active: boolean; transferEnabled: bo
  * ADR-0118 Đ1–Đ2: dịch vụ ở nhóm `groupCode` có được ghi chặng đưa đón không — NGUỒN DUY NHẤT cho `transferEnabled` của DTO (form đơn). Chưa phân loại (`null`), mã nhóm không có,
  * hoặc nhóm đã NGƯNG DÙNG (không còn nghĩa — coi như Chưa phân loại, cùng luật `nhomChoForm`) → LUÔN cho; nhóm đang dùng → theo cờ của nó. Máy chủ (`orders`) quyết bằng view
  * `v_ctl_service_transfer` cùng luật này (bài `src/migrations-dua-don-nhom.test.ts`, `dua-don-nhom-route.test.ts`).
+ * ADR-0149 Đ1: `quyTac` là ô riêng của dịch vụ — ALWAYS / NEVER thắng mọi điều trên; GROUP (mặc định) = như trên (bài so khớp `src/migrations-dua-don-dich-vu.test.ts`).
  */
-export function choPhepDuaDon(groupCode: string | null, nhoms: readonly NhomDuaDon[]): boolean {
+export function choPhepDuaDon(groupCode: string | null, nhoms: readonly NhomDuaDon[], quyTac: QuyTacDuaDon = "GROUP"): boolean {
+  if (quyTac !== "GROUP") return quyTac === "ALWAYS";
   if (groupCode === null) return true;
   const g = nhoms.find((x) => x.code === groupCode);
   return g === undefined || !g.active || g.transferEnabled;
