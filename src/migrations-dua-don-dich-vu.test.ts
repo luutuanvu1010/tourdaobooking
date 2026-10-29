@@ -27,9 +27,9 @@ const gan = (d: DatabaseSync, code: string, nhom: string | null) =>
   d.prepare(`INSERT INTO ctl_service_group (id, service_code, group_code, seq, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES (?, ?, ?, 1, ?, ?, NULL, ?, NULL)`)
     .run(`g-${++n}`, code, nhom, AT, AT, AT);
 const datQuyTac = (d: DatabaseSync, code: string, mode: string, id = `r-${++n}`) =>
-  d.prepare(`INSERT INTO ctl_service_transfer_rule (id, service_code, mode, valid_from_at, created_by) VALUES (?, ?, ?, ?, NULL)`).run(id, code, mode, AT);
+  d.prepare(`INSERT INTO ctl_service_transfer_rule (id, service_code, mode, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES (?, ?, ?, ?, ?, NULL, ?, NULL)`).run(id, code, mode, AT, AT, AT);
 const dongQuyTac = (d: DatabaseSync, code: string) =>
-  d.prepare(`UPDATE ctl_service_transfer_rule SET valid_to_at = ?, ended_by = NULL WHERE service_code = ? AND valid_to_at IS NULL`).run(SAU, code);
+  d.prepare(`UPDATE ctl_service_transfer_rule SET valid_to_at = ?, updated_at = ?, updated_by = NULL WHERE service_code = ? AND valid_to_at IS NULL`).run(SAU, SAU, code);
 const cho = (d: DatabaseSync, code: string): number | undefined =>
   (d.prepare("SELECT transfer_enabled FROM v_ctl_service_transfer WHERE catalog_code = ?").get(code) as { transfer_enabled: number } | undefined)?.transfer_enabled;
 

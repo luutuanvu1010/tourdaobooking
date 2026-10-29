@@ -93,14 +93,14 @@ const TRANSFER_RULE_NEVER_IN = defineSql(
 const TRANSFER_RULE_CLOSE = defineSql(
   "catalog",
   "transfer_rule_close",
-  `UPDATE ctl_service_transfer_rule SET valid_to_at = ?2, ended_by = ?3 WHERE service_code = ?1 AND valid_to_at IS NULL AND mode = ?4`,
+  `UPDATE ctl_service_transfer_rule SET valid_to_at = ?2, updated_at = ?2, updated_by = ?3 WHERE service_code = ?1 AND valid_to_at IS NULL AND mode = ?4`,
 );
 // Mở dòng mới — chỉ khi không còn dòng mở (đóng ở câu trước cùng lô, hoặc đang Theo nhóm). Hai lệnh đua: chỉ mục duy nhất một phần chặn lệnh sau.
 const TRANSFER_RULE_OPEN = defineSql(
   "catalog",
   "transfer_rule_open",
-  `INSERT INTO ctl_service_transfer_rule (id, service_code, mode, valid_from_at, created_by)
-   SELECT ?1, ?2, ?3, ?4, ?5 WHERE NOT EXISTS (SELECT 1 FROM ctl_service_transfer_rule WHERE service_code = ?2 AND valid_to_at IS NULL)`,
+  `INSERT INTO ctl_service_transfer_rule (id, service_code, mode, valid_from_at, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, ?3, ?4, ?4, ?5, ?4, ?5 WHERE NOT EXISTS (SELECT 1 FROM ctl_service_transfer_rule WHERE service_code = ?2 AND valid_to_at IS NULL)`,
 );
 
 // ---- Đọc ------------------------------------------------------------------------------------------------------------------------------------

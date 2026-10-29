@@ -10,18 +10,20 @@ CREATE TABLE ctl_service_transfer_rule (
   mode          TEXT NOT NULL CHECK (mode IN ('ALWAYS', 'NEVER')),
   valid_from_at TEXT NOT NULL,
   valid_to_at   TEXT,
+  created_at    TEXT NOT NULL,
   created_by    TEXT,
-  ended_by      TEXT,
+  updated_at    TEXT NOT NULL,
+  updated_by    TEXT,
   CHECK (valid_to_at IS NULL OR valid_to_at >= valid_from_at)
 );
 -- Tối đa MỘT dòng mở mỗi dịch vụ: view nối theo dòng mở nên không bao giờ nhân dòng; hai lệnh đua cùng mở dòng → lệnh sau bị chặn (→ 409).
 CREATE UNIQUE INDEX ctl_service_transfer_rule_open ON ctl_service_transfer_rule (service_code) WHERE valid_to_at IS NULL;
 CREATE TRIGGER ctl_service_transfer_rule_no_delete BEFORE DELETE ON ctl_service_transfer_rule
 BEGIN SELECT RAISE(ABORT, 'ctl_append_only: quy tắc đưa đón của dịch vụ chỉ thêm'); END;
--- Chỉ một kiểu sửa: ĐÓNG dòng đang mở (đặt `valid_to_at` + `ended_by`), mọi cột khác giữ nguyên; dòng đã đóng không sửa nữa.
+-- Chỉ một kiểu sửa: ĐÓNG dòng đang mở (đặt `valid_to_at` + `updated_at` / `updated_by` = người đóng), mọi cột khác giữ nguyên; dòng đã đóng không sửa nữa.
 CREATE TRIGGER ctl_service_transfer_rule_only_close BEFORE UPDATE ON ctl_service_transfer_rule
 WHEN OLD.valid_to_at IS NOT NULL OR NEW.valid_to_at IS NULL OR NEW.id IS NOT OLD.id OR NEW.service_code IS NOT OLD.service_code OR NEW.mode IS NOT OLD.mode
-  OR NEW.valid_from_at IS NOT OLD.valid_from_at OR NEW.created_by IS NOT OLD.created_by
+  OR NEW.valid_from_at IS NOT OLD.valid_from_at OR NEW.created_at IS NOT OLD.created_at OR NEW.created_by IS NOT OLD.created_by
 BEGIN SELECT RAISE(ABORT, 'ctl_append_only: chỉ được đóng dòng quy tắc đang mở'); END;
 
 -- ===== view công bố cho `orders` (ADR-0118 Đ2, ADR-0149 Đ1): ô riêng của dịch vụ nếu có dòng mở, nếu không thì đúng luật của 0121. =====================================
