@@ -1982,6 +1982,17 @@ export const CHECKS = [
     note: "ADR-0117 lần 1: gỡ vai nội bộ / quyền nội bộ khỏi hồ sơ mang loại đối tác, và xử lý dòng sai trong danh sách vai được hưởng hoa hồng (dòng lậu chỉ do SQL gõ tay; chủ duyệt cách dọn)",
   },
   {
+    // R-PRC-7 (ADR-0148 Đ1, kế hoạch 2026-10-29 tiêu chí 3): mọi bản chụp AUTO (kể cả bản đã bị bản mới thay) trỏ một dòng mức có khoảng ngày CHỨA ngày chụp. Trigger
+    // `ord_service_terms_rule_valid` chỉ kiểm lúc chèn bản chụp; «Đổi» / «Ngừng» trước bản 2.42 đóng được dòng mức qua ngày đã chụp (lỗ có sẵn từ 2.40) — kiểm này bắt cả dòng đó.
+    code: "R-PRC-7",
+    what: "bản chụp hoa hồng tự động trỏ dòng mức có khoảng ngày không chứa ngày chụp",
+    sql: `SELECT count(*) FROM ord_service_terms t WHERE t.source = 'AUTO' AND t.commission_rule_id IS NOT NULL
+       AND NOT EXISTS (SELECT 1 FROM prc_commission_rule r WHERE r.id = t.commission_rule_id
+         AND r.valid_from_date <= t.captured_date AND (r.valid_to_date IS NULL OR r.valid_to_date >= t.captured_date))`,
+    level: "fail",
+    note: "ADR-0148 Đ1: dòng mức bị đóng / huỷ qua ngày một đơn đã chụp — trình chủ dự án, không tự sửa dữ liệu",
+  },
+  {
     // R-ORD-T1 (đặc tả §9 sau kiểm độc lập N4): MỖI dòng dịch vụ của đơn đã xác nhận, xác nhận TỪ (mốc + 60 phút) trở đi, phải có ĐÚNG MỘT bản chụp hiện hành. Mốc = lúc áp migration
     // (bảng `ord_audit_cutoff`), KHÔNG suy từ bản chụp đầu — cách cũ tự tắt khi mã chụp không bao giờ chạy. 60 phút che quãng migration → deploy của runbook và lúc bản mới chưa lan tới
     // mọi nơi. Thiếu dòng mốc thì chính kiểm này báo 1 lỗi (không im lặng xanh; viết bằng `NOT EXISTS`, KHÔNG dùng `CASE … END)` — bộ tách câu của wrangler không đóng khối ở `END)` và nuốt mọi dấu `;` phía sau, xem bài «tách câu của wrangler»). Đếm theo DÒNG DỊCH VỤ. Hoàn tác Worker về bản cũ ⇒ đơn xác nhận lúc đó làm kiểm này đỏ tới đợt 2 (đúng tín hiệu).
