@@ -14,6 +14,9 @@
 //  11) (ADR-0148, 29/10) «Sửa» ví dụ của chủ: dòng 2027 → 2028 chưa có đơn — hộp Sửa nói «sẽ thay hẳn», điền sẵn số + HAI ngày cũ, thiếu lý do thì báo dưới ô;
 //      lưu ⇒ dòng mới mang dòng cũ + lý do; bộ lọc mặc định giấu dòng huỷ, «Tất cả» hiện «Đã huỷ — thay bằng dòng khác», không nút;
 //  12) (ADR-0148, 29/10) Danh bạ — Quản trị mở hồ sơ đại lý có chính sách riêng: «Sửa» cạnh «Ngừng áp dụng»; chưa có đơn ⇒ «sẽ thay hẳn»; đổi chính sách + lý do ⇒ lưu;
+//  13) (N5, 29/10) Thẻ Thiết lập — lần áp dụng chính sách cho loại SẮP tới hiện dưới chính sách: «Sắp áp dụng từ <ngày>» + chỉ «Sửa»; Sửa (chưa có đơn ⇒ «sẽ thay hẳn»)
+//      đổi chính sách ⇒ lần cũ vào «Xem lịch sử» với nhãn «Đã huỷ — thay bằng dòng khác», không nút; lần mới hiện dưới chính sách mới; Bán hàng (bước 7) thấy dòng, không nút;
+//  14) (N5, 29/10) Danh bạ — Quản trị mở hồ sơ đại lý có chính sách riêng SẮP áp dụng: dòng «Sắp áp dụng từ …» kèm «Sửa»; sửa ⇒ lịch sử có lần cũ «Đã huỷ…», lần mới sắp áp;
 //  10) Chuỗi cấm không có trong chữ nhìn thấy: «Mức TA», «Đóng mức», «Kết thúc gắn», «Đang áp» (không theo «dụng»), «Sắp áp» (không theo «dụng»), «Loại gốc» (từ 28/10; trước đó «Có sẵn»), «Do Kế toán thêm».
 // Mỗi bước: không tràn ngang, ô gõ ≥ 16px, không chữ Anh / mã thô, axe-core (critical / serious ⇒ đỏ; thiếu AXE_JS ⇒ dừng ngay), chụp ảnh.
 // Môi trường: D1 tạm + wrangler dev + Chrome headless qua CDP (docs/evidence/2026-09-20-a2/kich-ban/a2-cdp.mjs) — Turnstile TẮT, không --remote, không gọi production.
@@ -51,6 +54,9 @@ const CHU_CAM = [/Mức TA/, /Đóng mức/, /Kết thúc gắn/, /Đang áp(?! 
 const NUT_GHI = /^(＋|Thêm|Đổi|Ngừng|Sửa|Tắt|Bật|Áp dụng)/;
 const CAU_SUA_HUY_THAY = "Chưa có đơn nào dùng mức này — sửa sẽ thay hẳn.";
 const NHAN_DA_HUY = "Đã huỷ — thay bằng dòng khác";
+const CAU_SUA_CS_HUY_THAY = "Chưa có đơn nào dùng chính sách này — sửa sẽ thay hẳn.";
+/** 2026-11-03 ⇒ 03/11/2026 (ngayDayDu / ngayVN của src/shared). */
+const ngayVi = (iso) => iso.split("-").reverse().join("/");
 
 const PHA_TRANG = PHA === "lo-nut"
   ? `{ const f = window.fetch.bind(window);
@@ -244,6 +250,17 @@ try {
       const CS_1 = await csMoi(`Riêng một ${CHU} ${D}`, 900);
       const CS_2 = await csMoi(`Riêng hai ${CHU} ${D}`, 1100);
       phai(await call(ACCOUNTS.accounting, "POST", `/api/pricing/ho-so/${ORG4.id}/muc-rieng`, { muc: CS_1, tuNgay: HOM_NAY }), 201, "chính sách riêng cho đại lý");
+      // Bước 13 (N5): một loại áp dụng chính sách «Sắp tới» từ hôm nay + 5 (lần áp dụng SẮP tới, chưa có đơn).
+      const TU_SAP = vnDate(5);
+      const L_J = await loaiMoi("Đại lý tour");
+      const TEN_CS_3 = `Sắp tới ${CHU} ${D}`;
+      const CS_3 = await csMoi(TEN_CS_3, 950);
+      const G_J = phai(await call(ACCOUNTS.accounting, "POST", "/api/pricing/muc-ta/gan", { loai: L_J.code, muc: CS_3, tuNgay: TU_SAP }), 201, "áp dụng chính sách sắp tới cho loại").gan;
+      // Bước 14 (N5): một đại lý mang chính sách riêng SẮP áp dụng (từ hôm nay + 5), chưa có đơn.
+      const ORG5 = await orgMoi(`Đại lý Bình Minh ${CHU} ${D}`, L_A);
+      phai(await call(ACCOUNTS.accounting, "POST", `/api/pricing/ho-so/${ORG5.id}/muc-rieng`, { muc: CS_1, tuNgay: TU_SAP }), 201, "chính sách riêng sắp áp cho đại lý");
+      const TEN_CS_1 = `Riêng một ${CHU} ${D}`;
+      const TEN_CS_2 = `Riêng hai ${CHU} ${D}`;
 
       // ======================= Kế toán =======================
       {
@@ -553,6 +570,53 @@ try {
             await chup(p, `12-khung-vang-${tenKho}`);
           });
 
+          await buoc(`13${kho}`, "N5 — Thiết lập: lần áp dụng chính sách SẮP tới hiện dưới chính sách, «Sắp áp dụng từ …» + chỉ «Sửa»; sửa ⇒ lần cũ vào «Xem lịch sử» «Đã huỷ…», không nút", async () => {
+            await chuyenThe(p, "thiet-lap");
+            const the = (code) => `.hh-tl-cs[data-muc="${code}"]`;
+            const dongGan = (code, id) => p.ev(`(() => { const li = document.querySelector('${the(code)} li[data-gan-id="${id}"]'); if (!li) return null;
+              return { chu: li.innerText, an: !!li.closest('[hidden]'), sapAp: li.hasAttribute('data-sap-ap'), nut: [...li.querySelectorAll('button')].map((b) => b.textContent.trim()) }; })()`);
+            const g0 = await dongGan(CS_3, G_J.id);
+            assert.ok(g0 && !g0.an && g0.sapAp && g0.chu.includes(L_J.ten) && g0.chu.includes(`Sắp áp dụng từ ${ngayVi(TU_SAP)}`), `lần sắp áp hiện dưới chính sách: ${JSON.stringify(g0)}`);
+            assert.deepEqual(g0.nut, ["Sửa"], "lần sắp áp: chỉ «Sửa» (không Đổi / Ngừng — chưa tới ngày)");
+            assert.equal(await p.ev(`!!document.querySelector('${the(CS_3)} .hh-lich-su-khoi')`), false, "chưa có lịch sử ⇒ không nút «Xem lịch sử»");
+            await p.ev(`document.querySelector('${the(CS_3)}').scrollIntoView({ block: 'center' }), true`);
+            await bocucSach(p, `bước 13 Thiết lập ${kho}`);
+            await axeKiem(p, `Thiết lập — lần sắp áp ${kho}`);
+            await chup(p, `23-thiet-lap-lan-sap-ap-${tenKho}`);
+            assert.equal(await p.ev(`(() => { const b = document.querySelector('${the(CS_3)} li[data-gan-id="${G_J.id}"] button[aria-label^="Sửa áp dụng chính sách:"]'); if (!b) return false; b.click(); return true; })()`), true, "nút Sửa của lần sắp áp");
+            await choHop(p, "#hh-sua-gan-ly-do");
+            const o = await p.ev(`(() => ({ cau: document.querySelector('.sheet .hint[role=status]')?.textContent.trim() ?? '', muc: document.getElementById('hh-sua-gan-muc').value, tu: document.getElementById('hh-sua-gan-tu').value }))()`);
+            assert.deepEqual(o, { cau: CAU_SUA_CS_HUY_THAY, muc: CS_3, tu: TU_SAP }, "điền sẵn chính sách và ngày của lần cũ");
+            await p.ev(`(() => { const s = document.getElementById('hh-sua-gan-muc'); s.value = ${JSON.stringify(CS_2)}; s.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
+            await p.ev(setInput("document.getElementById('hh-sua-gan-ly-do')", "Chọn nhầm chính sách cho loại này"));
+            await bocucSach(p, `bước 13 hộp Sửa áp dụng ${kho}`);
+            await axeKiem(p, `hộp Sửa áp dụng ${kho}`);
+            await chup(p, `24-hop-sua-lan-sap-ap-${tenKho}`, false);
+            assert.equal(await clickTrong(p, ".sheet", "Lưu sửa"), true);
+            await choDongHop(p);
+            await p.waitFor(`(() => { const e = document.getElementById('ok'); return !e.hidden && e.textContent.startsWith('Đã sửa: loại «${L_J.ten}»'); })()`, "câu đã sửa áp dụng");
+            const mt = (await goiTrongTrang(p, "GET", "/api/pricing/muc-ta")).json.muc;
+            const cu = mt.find((m) => m.code === CS_3).gan.find((g) => g.id === G_J.id);
+            const moi = mt.find((m) => m.code === CS_2).gan.find((g) => g.thayCho === G_J.id);
+            assert.deepEqual([cu.daHuy, moi?.tuNgay, moi?.loai.code], [true, TU_SAP, L_J.code], "lần cũ đã huỷ, lần mới cùng loại, cùng ngày");
+            // Lần cũ: không còn ở danh sách hiện, nằm sau nút «Xem lịch sử (1)».
+            await p.waitFor(`!!document.querySelector('${the(CS_3)} .hh-lich-su-khoi button')`, "nút «Xem lịch sử» ở chính sách cũ");
+            const nutLs = await p.ev(`(() => { const b = document.querySelector('${the(CS_3)} .hh-lich-su-khoi button'); return { chu: b.textContent.trim(), mo: b.getAttribute('aria-expanded') }; })()`);
+            assert.deepEqual(nutLs, { chu: "Xem lịch sử (1)", mo: "false" });
+            assert.equal((await dongGan(CS_3, G_J.id))?.an, true, "mặc định lịch sử ẩn");
+            assert.equal(await p.ev(`(() => { const b = document.querySelector('${the(CS_3)} .hh-lich-su-khoi button'); b.click(); return b.getAttribute('aria-expanded'); })()`), "true");
+            const gHuy = await dongGan(CS_3, G_J.id);
+            assert.ok(gHuy && !gHuy.an && gHuy.chu.includes(NHAN_DA_HUY) && gHuy.chu.includes(L_J.ten), `lần đã huỷ trong lịch sử: ${JSON.stringify(gHuy)}`);
+            assert.deepEqual(gHuy.nut, [], "lịch sử: không nút");
+            assert.equal(await p.ev(`document.querySelector('${the(CS_3)} .hh-lich-su-khoi button').textContent.trim()`), "Ẩn lịch sử");
+            const gMoi = await dongGan(CS_2, moi.id);
+            assert.ok(gMoi && gMoi.sapAp && gMoi.chu.includes(`Sắp áp dụng từ ${ngayVi(TU_SAP)}`) && gMoi.nut.includes("Sửa"), `lần mới dưới chính sách mới: ${JSON.stringify(gMoi)}`);
+            await p.ev(`document.querySelector('${the(CS_3)}').scrollIntoView({ block: 'center' }), true`);
+            await bocucSach(p, `bước 13 lịch sử ${kho}`);
+            await axeKiem(p, `Thiết lập — lịch sử áp dụng ${kho}`);
+            await chup(p, `25-thiet-lap-lich-su-${tenKho}`);
+          });
+
           if (tenKho === "390") {
             await buoc(`9${kho}`, "Hit-test thanh đáy: «＋ Thêm mức» không bị nút Trợ lý che; hộp mở thì nút Trợ lý ẩn", async () => {
               await chuyenThe(p, "ap-dung");
@@ -627,6 +691,64 @@ try {
         }
       }
 
+      // ======================= Quản trị — Danh bạ (N5: chính sách riêng SẮP áp dụng có «Sửa»; lịch sử «Đã huỷ») =======================
+      {
+        const p = await moTrang(ACCOUNTS.admin, `/parties?id=${encodeURIComponent(ORG5.id)}`, vp);
+        try {
+          await buoc(`14${kho}`, "N5 — Danh bạ (Quản trị): chính sách riêng SẮP áp dụng hiện «Sắp áp dụng từ …» kèm «Sửa»; sửa ⇒ lần mới sắp áp, lần cũ trong «Xem lịch sử» «Đã huỷ…», không nút", async () => {
+            const SEC = "#hoa-hong-hien-hanh";
+            const SAP = `${SEC} [data-khoi="gan-rieng-sap"]`;
+            await p.waitFor(`(() => { const s = document.querySelector('${SEC}'); return !!s && !s.hidden && !!document.querySelector('${SAP}'); })()`, "mục Hoa hồng hiện hành có chính sách riêng sắp áp");
+            const sap0 = await p.ev(`[...document.querySelectorAll('${SAP} li')].map((li) => ({ chu: li.innerText, nut: [...li.querySelectorAll('button')].map((b) => b.textContent.trim()) }))`);
+            assert.equal(sap0.length, 1, `một lần sắp áp: ${JSON.stringify(sap0)}`);
+            assert.ok(sap0[0].chu.includes(`Chính sách riêng: ${TEN_CS_1}`) && sap0[0].chu.includes(`Sắp áp dụng từ ${ngayVi(TU_SAP)}`), `dòng sắp áp: ${sap0[0].chu}`);
+            assert.deepEqual(sap0[0].nut, ["Sửa"]);
+            assert.deepEqual(await p.ev(`[...document.querySelectorAll('${SEC} .actions button')].map((b) => b.textContent.trim())`), ["Áp dụng chính sách riêng"], "hôm nay chưa có chính sách riêng đang áp: nút như cũ");
+            assert.equal(await p.ev(`!!document.querySelector('${SEC} .hh-lich-su-khoi')`), false, "chưa có lịch sử");
+            const kiemMuc = async (nhan) => {
+              const m = await p.ev(`(() => ({ sw: document.documentElement.scrollWidth, iw: innerWidth,
+                nho: [...document.querySelectorAll('${SEC} input, ${SEC} select')].filter((e) => e.offsetParent !== null && parseFloat(getComputedStyle(e).fontSize) < 16).map((e) => e.id || e.tagName),
+                chu: document.querySelector('${SEC}').innerText }))()`);
+              assert.ok(m.sw <= m.iw + 1, `${nhan}: tràn ngang ${m.sw} > ${m.iw}`);
+              assert.deepEqual(m.nho, [], `${nhan}: ô gõ nhỏ hơn 16px`);
+              assert.ok(!CHU_ANH.test(m.chu), `${nhan}: lộ chữ Anh / mã thô: ${CHU_ANH.exec(m.chu)?.[0]}`);
+              for (const re of CHU_CAM) assert.ok(!re.test(m.chu), `${nhan}: còn chữ cũ «${re.exec(m.chu)?.[0]}»`);
+            };
+            await p.ev(`document.querySelector('${SEC}').scrollIntoView({ block: 'start' }), true`);
+            await kiemMuc(`bước 14 ${kho}`);
+            await axeKiem(p, `Danh bạ — chính sách riêng sắp áp ${kho}`);
+            await chup(p, `26-danh-ba-chinh-sach-rieng-sap-ap-${tenKho}`);
+            assert.equal(await clickTrong(p, SAP, "Sửa"), true, "nút Sửa của lần sắp áp");
+            await choHop(p, "#hhhh-sua-ly-do");
+            assert.equal(await p.ev(`document.querySelector('${SEC} .hint[role=status]').textContent.trim()`), CAU_SUA_CS_HUY_THAY);
+            assert.deepEqual(await p.ev("(() => ({ muc: document.getElementById('hhhh-sua-muc').value, tu: document.getElementById('hhhh-sua-tu').value, den: document.getElementById('hhhh-sua-den').value }))()"),
+              { muc: CS_1, tu: TU_SAP, den: "" }, "điền sẵn chính sách và ngày của lần sắp áp");
+            await p.ev(`(() => { const s = document.getElementById('hhhh-sua-muc'); s.value = ${JSON.stringify(CS_2)}; s.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
+            await p.ev(setInput("document.getElementById('hhhh-sua-ly-do')", "Chọn nhầm chính sách khi hẹn ngày áp dụng"));
+            assert.equal(await clickTrong(p, SEC, "Lưu sửa"), true);
+            await p.waitFor(`(() => { const e = document.querySelector('${SEC} .alert.ok'); return !!e && e.textContent.trim() === 'Đã sửa chính sách riêng của đại lý này.'; })()`, "câu đã sửa");
+            const r = (await goiTrongTrang(p, "GET", `/api/pricing/ho-so/${ORG5.id}/hoa-hong`)).json;
+            assert.equal(r.mucRieng, null, "hôm nay vẫn chưa có chính sách riêng đang áp");
+            assert.deepEqual(r.ganRieng.map((g) => [g.muc.code, g.daHuy, g.tuNgay]), [[CS_2, false, TU_SAP], [CS_1, true, TU_SAP]], "lịch sử: lần mới rồi lần đã huỷ");
+            const sap1 = await p.ev(`[...document.querySelectorAll('${SAP} li')].map((li) => li.innerText)`);
+            assert.ok(sap1.length === 1 && sap1[0].includes(`Chính sách riêng: ${TEN_CS_2}`) && sap1[0].includes("Sắp áp dụng từ"), `lần mới sắp áp: ${JSON.stringify(sap1)}`);
+            const NUT_LS = `${SEC} .hh-lich-su-khoi button`;
+            assert.equal(await p.ev(`document.querySelector('${NUT_LS}')?.textContent.trim()`), "Xem lịch sử (1)");
+            assert.equal(await p.ev(`document.querySelector('${SEC} .hh-lich-su').hidden`), true, "mặc định lịch sử ẩn");
+            await p.ev(`document.querySelector('${NUT_LS}').click(), true`);
+            const ls = await p.ev(`[...document.querySelectorAll('${SEC} .hh-lich-su li')].map((li) => ({ chu: li.innerText, nut: li.querySelectorAll('button').length, an: !!li.closest('[hidden]') }))`);
+            assert.equal(ls.length, 1, `một lần trong lịch sử: ${JSON.stringify(ls)}`);
+            assert.ok(!ls[0].an && ls[0].chu.includes(`Chính sách riêng: ${TEN_CS_1}`) && ls[0].chu.includes(NHAN_DA_HUY) && ls[0].nut === 0, `lần đã huỷ: ${JSON.stringify(ls[0])}`);
+            await kiemMuc(`bước 14 lịch sử ${kho}`);
+            await axeKiem(p, `Danh bạ — lịch sử chính sách riêng ${kho}`);
+            await chup(p, `27-danh-ba-lich-su-${tenKho}`);
+          });
+          if (p.consoleErrors.length) loi.push(`lỗi console (Quản trị Danh bạ N5 ${kho}): ${p.consoleErrors.join(" | ").slice(0, 300)}`);
+        } finally {
+          p.close();
+        }
+      }
+
       // ======================= Bán hàng =======================
       {
         const p = await moTrang(ACCOUNTS.salesA, "/hoa-hong", vp);
@@ -643,6 +765,11 @@ try {
               if (the === "ap-dung") await p.ev("(() => { for (const n of document.querySelectorAll('.hh-loai-nut')) if (n.getAttribute('aria-expanded') !== 'true') n.click(); return true; })()");
               const k = await demNut();
               assert.deepEqual(k, { nut: [], vaiNut: 0, an: [true, true] }, `Bán hàng thấy nút ghi ở thẻ ${the}: ${JSON.stringify(k)}`);
+              if (the === "thiet-lap") {
+                // N5 tiêu chí 1: người chỉ xem thấy lần áp dụng sắp tới (sau bước 13 nằm dưới chính sách CS_2), không nút nào trong dòng.
+                const sap = await p.ev(`[...document.querySelectorAll('.hh-tl-cs[data-muc="${CS_2}"] li[data-sap-ap]')].map((li) => ({ chu: li.innerText, nut: li.querySelectorAll('button').length }))`);
+                assert.ok(sap.length >= 1 && sap.every((x) => x.chu.includes("Sắp áp dụng từ") && x.nut === 0), `Bán hàng: lần sắp áp hiện, không nút: ${JSON.stringify(sap)}`);
+              }
             }
             await chuyenThe(p, "ap-dung");
             const scope = await traNhanh(p, tenKho, { q: `Biển Xanh ${CHU} ${D}`, goiY: `Khách sạn Biển Xanh ${CHU} ${D}` });

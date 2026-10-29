@@ -12,6 +12,17 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // «Sửa» cho lần áp dụng chính sách SẮP tới + lịch sử «Đã huỷ» của hai loại gắn (ADR-0148 Đ1 phần N5, kế hoạch docs/superpowers/plans/2026-10-29-sua-muc-n5-ke-hoach.md).
+    // KHÔNG migration; đổi mã máy chủ (trường `ganRieng` của khối hồ sơ) + giao diện nên cần npm run trien-khai. Số 2.46 và ngày là TẠM (main có 2.45 tạm của đưa đón theo dịch vụ
+    // lúc làm, 29/10) — phiên phát hành kiểm lại ở bước A.0 của docs/HANDOFF-N1.md.
+    version: "2.46",
+    date: "2026-10-29",
+    items: [
+      { kind: "moi", text: "Hoa hồng đối tác: chính sách hẹn áp dụng từ một ngày sắp tới (cho một loại đối tác hoặc riêng một đại lý) nay hiện ra, kèm nút «Sửa»." },
+      { kind: "moi", text: "Các lần áp dụng chính sách đã ngừng hoặc đã huỷ xem được bằng nút «Xem lịch sử»." },
+    ],
+  },
+  {
     // Đưa đón theo từng dịch vụ (ADR-0149 Đ1, kế hoạch docs/superpowers/plans/2026-10-29-adr-0149-dua-don-theo-dich-vu-ke-hoach.md). CÓ migration 0127 (bảng ô «Được đón không»
     // + dựng lại view v_ctl_service_transfer) nên cần npm run trien-khai. Số 2.45 và ngày là TẠM (main có 2.44 tạm của nút «Sửa» lúc làm, 29/10) — phiên phát hành kiểm lại ở bước A.0
     // của docs/HANDOFF-N1.md.
