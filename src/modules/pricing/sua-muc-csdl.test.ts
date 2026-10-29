@@ -37,13 +37,14 @@ function dlA(db: DatabaseSync): string {
   run(db, "INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES (?, ?, 'TRAVEL_AGENCY', '2026-01-01', ?, ?)", id("r"), p, AT, AT);
   return p;
 }
-/** Dòng mức đích mức TA `MT_AAAAAAAA`, một dịch vụ `ma`, đ/khách 100.000. */
-function muc(db: DatabaseSync, v: { ma?: string; tu?: string; den?: string | null; thay?: string | null; lyDo?: string | null; tier?: string } = {}): string {
+/** Dòng mức đ/khách 100.000. Mặc định đích mức TA `MT_AAAAAAAA` (hoặc `doiTac` hồ sơ / `vai` loại), một dịch vụ `ma` (hoặc `nhom` ⇒ phạm vi nhóm). */
+function muc(db: DatabaseSync, v: { ma?: string; nhom?: string; tu?: string; den?: string | null; thay?: string | null; lyDo?: string | null; tier?: string; doiTac?: string; vai?: string } = {}): string {
   const r = id("m");
-  run(db, `INSERT INTO prc_commission_rule (id, target_party_id, target_role_code, target_tier_code, scope, catalog_code, kind, rate_bp, per_pax_amount, valid_from_date, valid_to_date,
+  const dich = v.doiTac || v.vai ? [v.doiTac ?? null, v.vai ?? null, null] : [null, null, v.tier ?? "MT_AAAAAAAA"];
+  run(db, `INSERT INTO prc_commission_rule (id, target_party_id, target_role_code, target_tier_code, scope, catalog_code, group_code, kind, rate_bp, per_pax_amount, valid_from_date, valid_to_date,
       created_at, created_by, updated_at, updated_by, replaces_id, change_reason)
-    VALUES (?, NULL, NULL, ?, 'SERVICE', ?, 'PER_PAX', NULL, 100000, ?, ?, ?, 'kt', ?, 'kt', ?, ?)`,
-    r, v.tier ?? "MT_AAAAAAAA", v.ma ?? "VTC", v.tu ?? "2027-01-01", v.den === undefined ? "2028-01-01" : v.den, AT, AT, v.thay ?? null, v.lyDo ?? null);
+    VALUES (?, ?, ?, ?, ?, ?, ?, 'PER_PAX', NULL, 100000, ?, ?, ?, 'kt', ?, 'kt', ?, ?)`,
+    r, ...dich, v.nhom ? "GROUP" : "SERVICE", v.nhom ? null : (v.ma ?? "VTC"), v.nhom ?? null, v.tu ?? "2027-01-01", v.den === undefined ? "2028-01-01" : v.den, AT, AT, v.thay ?? null, v.lyDo ?? null);
   return r;
 }
 const huy = (db: DatabaseSync, bang: string, r: string, by: string | null = "kt") => run(db, `UPDATE ${bang} SET voided_at = ?, voided_by = ?, updated_at = ?, updated_by = ? WHERE id = ?`, AT, by, AT, by, r);
@@ -177,6 +178,53 @@ test("dòng thay thế (gắn loại, gắn đối tác): cùng loại / cùng h
   assert.throws(() => ganRieng(db, p, { tu: "2028-01-01", thay: gr, lyDo: LY_DO }), /prc_party_tier_overlap:|prc_replaces_mismatch:/, "dòng cũ còn mở");
   huy(db, "prc_party_tier", gr);
   ganRieng(db, p, { tier: "MT_BBBBBBBB", thay: gr, lyDo: LY_DO });
+});
+
+// Người kiểm độc lập 29/10 (N2): ở hai bài trên, ca đỏ nào cũng sai HAI điều kiện cùng lúc (khác đích VÀ dòng cũ còn mở), nên gỡ một vế của `*_replaces_ok` thì vế kia vẫn
+// chặn thay. Bài này: mỗi ca sai ĐÚNG MỘT vế — dòng cũ đã huỷ (vế «huỷ hoặc kết thúc trước» đúng) hoặc khoảng ngày mới không chồng dòng cũ (không lẫn với trigger chồng ngày) —
+// và mỗi vế có một ca đối chứng hợp lệ chỉ khác ở đúng vế đó.
+test("dòng thay thế: mỗi vế của *_replaces_ok có một ca đỏ riêng (chỉ sai đúng vế đó) và một ca xanh đối chứng (cả ba bảng)", () => {
+  const db = moi();
+  const p = dlA(db), q = dlA(db);
+  const sai = (f: () => unknown, ten: string) => assert.throws(f, /prc_replaces_mismatch:/, ten);
+  const daHuy = (bang: string, r: string) => { huy(db, bang, r); return r; };
+  const M = "prc_commission_rule";
+  // Bảng mức — dòng cũ đã huỷ, dòng mới đổi đúng một thứ.
+  sai(() => muc(db, { ma: "VTE", thay: daHuy(M, muc(db, { ma: "VTC" })), lyDo: LY_DO }), "mức: khác dịch vụ");
+  muc(db, { ma: "VTC", thay: daHuy(M, muc(db, { ma: "VTC", tu: "2030-01-01", den: null })), lyDo: LY_DO, tu: "2030-01-01", den: null });
+  sai(() => muc(db, { ma: "VTF", tier: "MT_BBBBBBBB", thay: daHuy(M, muc(db, { ma: "VTF" })), lyDo: LY_DO }), "mức: khác mức TA");
+  sai(() => muc(db, { ma: "VTG", doiTac: q, thay: daHuy(M, muc(db, { ma: "VTG", doiTac: p })), lyDo: LY_DO }), "mức: khác hồ sơ đích");
+  muc(db, { ma: "VTG", doiTac: p, thay: daHuy(M, muc(db, { ma: "VTG", doiTac: p, tu: "2031-01-01", den: null })), lyDo: LY_DO, tu: "2031-01-01", den: null });
+  sai(() => muc(db, { ma: "VTH", vai: "GUIDE_FREELANCE", thay: daHuy(M, muc(db, { ma: "VTH", vai: "TRAVEL_AGENCY" })), lyDo: LY_DO }), "mức: khác loại đích");
+  muc(db, { ma: "VTH", vai: "TRAVEL_AGENCY", thay: daHuy(M, muc(db, { ma: "VTH", vai: "TRAVEL_AGENCY", tu: "2031-01-01", den: null })), lyDo: LY_DO, tu: "2031-01-01", den: null });
+  sai(() => muc(db, { nhom: "TDA", thay: daHuy(M, muc(db, { ma: "VTI" })), lyDo: LY_DO }), "mức: khác phạm vi (dịch vụ → nhóm)");
+  sai(() => muc(db, { nhom: "LPH", thay: daHuy(M, muc(db, { nhom: "TDA", tu: "2032-01-01", den: null })), lyDo: LY_DO }), "mức: khác nhóm");
+  muc(db, { nhom: "TDA", thay: daHuy(M, muc(db, { nhom: "TDA", tu: "2033-01-01", den: null })), lyDo: LY_DO, tu: "2033-01-01", den: null });
+  // Dòng cũ CHƯA huỷ và KHÔNG kết thúc trước ngày mới (nằm sau, khoảng ngày không chồng): chặn — kể cả khi dòng cũ không có ngày kết thúc.
+  sai(() => muc(db, { ma: "VTJ", tu: "2027-01-01", den: "2027-06-30", thay: muc(db, { ma: "VTJ", tu: "2028-01-01", den: "2028-12-31" }), lyDo: LY_DO }), "mức: dòng cũ ở sau, chưa huỷ");
+  sai(() => muc(db, { ma: "VTK", tu: "2027-01-01", den: "2027-06-30", thay: muc(db, { ma: "VTK", tu: "2028-01-01", den: null }), lyDo: LY_DO }), "mức: dòng cũ ở sau, không thời hạn");
+  // Gắn loại.
+  const G = "prc_role_tier";
+  const ganVai = (vai: string, v: Parameters<typeof ganLoai>[1] = {}) => {
+    const r = id("g");
+    run(db, `INSERT INTO prc_role_tier (id, role_type_code, tier_code, valid_from_date, valid_to_date, created_at, created_by, updated_at, updated_by, replaces_id, change_reason)
+      VALUES (?, ?, ?, ?, ?, ?, 'kt', ?, 'kt', ?, ?)`, r, vai, v.tier ?? "MT_AAAAAAAA", v.tu ?? "2027-01-01", v.den === undefined ? null : v.den, AT, AT, v.thay ?? null, v.lyDo ?? null);
+    return r;
+  };
+  sai(() => ganVai("GUIDE_FREELANCE", { thay: daHuy(G, ganLoai(db, { tu: "2027-01-01", den: "2027-12-31" })), lyDo: LY_DO }), "gắn loại: khác loại");
+  const glCu = daHuy(G, ganLoai(db, { tu: "2028-01-01", den: "2028-12-31" }));
+  sai(() => ganLoai(db, { tu: "2028-01-01", den: "2028-12-31", thay: glCu }), "gắn loại: có gắn cũ mà thiếu lý do");
+  sai(() => ganLoai(db, { tu: "2028-01-01", den: "2028-12-31", lyDo: LY_DO }), "gắn loại: có lý do mà không trỏ gắn cũ");
+  ganLoai(db, { tu: "2028-01-01", den: "2028-12-31", thay: glCu, lyDo: LY_DO });
+  sai(() => ganLoai(db, { tu: "2029-01-01", den: "2029-06-30", thay: ganLoai(db, { tu: "2030-01-01", den: "2030-12-31" }), lyDo: LY_DO }), "gắn loại: gắn cũ ở sau, chưa huỷ");
+  // Gắn riêng.
+  const R = "prc_party_tier";
+  sai(() => ganRieng(db, q, { thay: daHuy(R, ganRieng(db, p, { den: "2027-12-31" })), lyDo: LY_DO }), "gắn riêng: khác hồ sơ");
+  const grCu = daHuy(R, ganRieng(db, p, { tu: "2028-01-01", den: "2028-12-31" }));
+  sai(() => ganRieng(db, p, { tu: "2028-01-01", den: "2028-12-31", thay: grCu }), "gắn riêng: có gắn cũ mà thiếu lý do");
+  sai(() => ganRieng(db, p, { tu: "2028-01-01", den: "2028-12-31", lyDo: LY_DO }), "gắn riêng: có lý do mà không trỏ gắn cũ");
+  ganRieng(db, p, { tu: "2028-01-01", den: "2028-12-31", thay: grCu, lyDo: LY_DO });
+  sai(() => ganRieng(db, p, { tu: "2029-01-01", den: "2029-06-30", thay: ganRieng(db, p, { tu: "2030-01-01", den: "2030-12-31" }), lyDo: LY_DO }), "gắn riêng: gắn cũ ở sau, chưa huỷ");
 });
 
 test("view mức loại dòng đã huỷ; bản chụp AUTO mới trỏ dòng đã huỷ bị CSDL chặn (terms_rule_stale)", () => {

@@ -87,6 +87,9 @@ async function chup(p, ten, toanTrang = true) {
 }
 async function axeKiem(p, nhan) {
   if (!(await p.ev("typeof axe !== 'undefined'"))) await p.ev(`${AXE}\n;true`);
+  // Đo màu ở trạng thái CUỐI: hộp ở khổ máy tính hiện dần bằng opacity (app.css `.sheet`), và trong lượt chạy dài Chrome headless có lúc dừng hiệu ứng giữa chừng
+  // (29/10: hộp Sửa [1040] đứng ở opacity 0,85 ⇒ axe đo nền xám #eaebed, tỷ lệ 4,19). Kết thúc mọi hiệu ứng có hồi kết trước khi đo; hiệu ứng lặp vô hạn bỏ qua.
+  await p.ev("document.getAnimations().forEach((a) => { try { a.finish(); } catch {} }); true");
   const vi = await p.ev(`axe.run(document, { runOnly: ['wcag2a', 'wcag2aa', 'best-practice'], rules: { 'meta-viewport': { enabled: false } } }).then((r) => r.violations.map((v) => ({ impact: v.impact, id: v.id, nodes: v.nodes.slice(0, 4).map((n) => n.target.join(' ')) })))`);
   const nang = vi.filter((v) => v.impact === "critical" || v.impact === "serious");
   for (const v of vi.filter((x) => !nang.includes(x))) axeNhe.push(`${nhan}: ${v.impact} ${v.id} — ${v.nodes.join(" | ")}`);
@@ -437,7 +440,7 @@ try {
             await moLoai(p, L_H.code);
             const h0 = await hang(p, R_H.id);
             assert.ok(h0 && !h0.chu.includes("ngày mai"), `không còn chữ xám «… từ ngày mai»: ${JSON.stringify(h0)}`);
-            if (tenKho !== "390") assert.deepEqual(h0.nut, ["Đổi", "Ngừng"], "máy tính: nút Đổi và Ngừng trong dòng");
+            if (tenKho !== "390") assert.deepEqual(h0.nut, ["Đổi", "Ngừng", "Sửa"], "máy tính: nút Đổi, Ngừng và Sửa (ADR-0148) trong dòng");
             await moDoi(p, R_H.id, tenKho);
             assert.deepEqual(await p.ev("(() => { const t = document.getElementById('hh-doi-tu-ngay'); return { v: t.value, min: t.min }; })()"), { v: MAI, min: MAI }, "ô Từ mặc định và sớm nhất là ngày mai");
             assert.ok(await p.ev(`[...document.querySelectorAll('.sheet .hint')].some((x) => x.textContent.trim() === ${JSON.stringify(CAU_DOI_TU_NGAY_MAI)})`), "câu vì sao mức mới từ ngày mai");

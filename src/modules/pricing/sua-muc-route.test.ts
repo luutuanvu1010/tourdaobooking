@@ -327,6 +327,63 @@ test("tiêu chí 5 — gắn đối tác: chưa có đơn ⇒ huỷ–thay giữ
   batBienSach(w);
 });
 
+// Người kiểm độc lập 29/10 (N1): ở bài trên gắn riêng cũ và mới cùng ngày bắt đầu nên không phân biệt được bên nào thắng. Ở đây gắn riêng bị huỷ–thay sang ngày SAU
+// ⇒ hôm nay KHÔNG còn gắn riêng nào: mọi câu TRA (thử tra, bản chụp lúc xác nhận, khối «Hoa hồng hiện hành» của hồ sơ, danh sách gắn riêng đang / sắp) phải rơi về gắn
+// theo loại — lọt gắn đã huỷ là ra mức của chính sách nhập nhầm (gắn không có lớp CSDL chặn, R-PRC-7 chỉ canh dòng mức).
+test("gắn đối tác huỷ–thay sang ngày sau: hôm nay mọi câu tra rơi về gắn theo loại, không về gắn riêng đã huỷ (thử tra, bản chụp, khối hồ sơ, danh sách)", async (t) => {
+  dongHo(t);
+  const w = setup();
+  const loai = await themLoai(w, "Lễ tân");
+  const ta1 = await taoMuc(w, "TA1", 1000);
+  const ta2 = await taoMuc(w, "TA2", 1200);
+  const ta3 = await taoMuc(w, "TA3", 1500);
+  await ganLoai(w, loai, ta1, "2026-01-01");
+  const rieng = await ganRieng(w, ta2, "2026-10-01");
+  assert.equal((await thuTra(w)).muc.tyLeBp, 1200, "trước khi sửa: gắn riêng TA2");
+  await ok(sua(w, "muc-rieng", rieng, { muc: ta3, tuNgay: "2026-11-01", lyDo: LY_DO }), 200, "huỷ–thay gắn riêng sang 01/11");
+  assert.equal(dongRieng(w, rieng).voided_by, KT);
+  assert.equal((await thuTra(w)).muc.tyLeBp, 1000, "hôm nay: gắn theo loại TA1, không phải gắn riêng đã huỷ");
+  assert.equal((await thuTra(w, "2026-11-01")).muc.tyLeBp, 1500, "từ 01/11: gắn riêng mới TA3");
+  const ds = (await ok(w.call("GET", "/api/pricing/muc-ta", { as: KT }), 200)).json.ganRieng as { muc: string }[];
+  assert.deepEqual(ds.map((g) => g.muc), [ta3], "danh sách gắn riêng đang / sắp: chỉ TA3");
+  const khoi = (await ok(w.call("GET", `/api/pricing/ho-so/${ORG}/hoa-hong`, { as: KT }), 200)).text;
+  assert.ok(!khoi.includes(ta2), `khối «Hoa hồng hiện hành» không nhắc gắn riêng đã huỷ: ${khoi}`);
+  const don = await xacNhan(w);
+  assert.equal(chup(w, don)[0].commission_rate_bp, 1000, "bản chụp hôm nay theo gắn loại TA1");
+  batBienSach(w);
+});
+
+test("cảnh báo «loại còn dòng riêng» khi gắn loại không tính dòng mức đã huỷ", async (t) => {
+  dongHo(t);
+  const w = setup();
+  const loai = await themLoai(w, "Lễ tân");
+  const ta1 = await taoMuc(w, "TA1", 1000);
+  const dongLoai = await themDongLoai(w, loai, 2000, "2027-01-01", "2027-12-31");
+  await ok(sua(w, "hoa-hong", dongLoai, { kieu: "RATE", tyLeBp: 2000, tuNgay: "2028-01-01", lyDo: LY_DO }), 200, "huỷ–thay dòng riêng của loại sang 2028");
+  const r = await ok(w.call("POST", "/api/pricing/muc-ta/gan", { as: KT, body: { loai, muc: ta1, tuNgay: "2027-01-01", denNgay: "2027-06-30" } }), 201, "gắn loại 2027");
+  assert.deepEqual(r.json.dongRieng, [], "dòng đã huỷ (2027) không gây cảnh báo; dòng thay bắt đầu 2028, ngoài khoảng gắn");
+});
+
+// Người kiểm độc lập 29/10 (N3): «đã chụp» của gắn tính cả hai ĐẦU khoảng ngày (Q1). Ca thật hay gặp: gắn bắt đầu hôm nay, đơn xác nhận ngay hôm nay — đếm hụt ⇒ huỷ được gắn đã có đơn.
+test("Q1 biên ngày: đơn chụp đúng NGÀY ĐẦU hoặc NGÀY CUỐI của lần gắn vẫn là «đã có đơn» (gắn loại, gắn đối tác)", async (t) => {
+  dongHo(t);
+  const coDon = async (duong: "muc-ta/gan" | "muc-rieng", dau: string, cuoi?: string) => {
+    assert.ok(duong === "muc-ta/gan" || cuoi === undefined, "ca gắn riêng chỉ thử ngày đầu");
+    const w = setup();
+    const loai = await themLoai(w, "Lễ tân");
+    const ta1 = await taoMuc(w, "TA1", 1000);
+    const id = duong === "muc-ta/gan" ? await ganLoai(w, loai, ta1, dau, cuoi) : (await ganLoai(w, loai, await taoMuc(w, "TA0", 500), "2026-01-01"), await ganRieng(w, ta1, dau));
+    const don = await xacNhan(w);
+    assert.equal(chup(w, don)[0].commission_rate_bp, 1000, `${duong}: bản chụp hôm nay theo lần gắn đang thử`);
+    return xem(w, duong, id);
+  };
+  assert.deepEqual((await ok(coDon("muc-ta/gan", HN), 200)).json, { homNay: HN, duong: "TU_NGAY", tuNgaySomNhat: "2026-10-30", denNgayToiDa: null }, "gắn loại bắt đầu hôm nay");
+  assert.deepEqual((await ok(coDon("muc-rieng", HN), 200)).json, { homNay: HN, duong: "TU_NGAY", tuNgaySomNhat: "2026-10-30", denNgayToiDa: null }, "gắn riêng bắt đầu hôm nay");
+  const r = await coDon("muc-ta/gan", "2026-10-01", HN);
+  assert.equal(r.status, 400, `gắn loại kết thúc hôm nay, đơn chụp hôm nay ⇒ không còn ngày để sửa (không phải huỷ–thay): ${r.text}`);
+  assert.match(r.json.error.message, /không còn ngày nào để sửa/);
+});
+
 test("tiêu chí 5 (Q4, đường thật): đơn chụp hôm nay ⇒ Ngừng tới hôm qua và Đổi từ hôm nay bị từ chối ở dòng mức, gắn loại, gắn riêng; Ngừng hôm nay / Đổi từ mai được; R-PRC-7 sạch", async (t) => {
   dongHo(t);
   const w = setup();

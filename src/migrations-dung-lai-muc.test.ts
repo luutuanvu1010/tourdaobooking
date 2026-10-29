@@ -120,7 +120,7 @@ const fkCheck = (db: DatabaseSync) => all(db, "PRAGMA foreign_key_check");
 interface Check { code: string; sql: string; level: string; mode?: "rows" }
 const { CHECKS } = (await import(new URL("../scripts/audit-checks.mjs", import.meta.url).href)) as { CHECKS: Check[] };
 /** Kiểm định kỳ mức «fail» khác 0 — đúng cách scripts/audit-invariants.mjs đọc kết quả. */
-const auditDo = (db: DatabaseSync, boQua: RegExp | null = null): string[] => CHECKS.filter((c) => c.level === "fail" && !(boQua && boQua.test(c.sql))).flatMap((c) => {
+const auditDo = (db: DatabaseSync, boQua: ((c: Check) => boolean) | null = null): string[] => CHECKS.filter((c) => c.level === "fail" && !(boQua && boQua(c))).flatMap((c) => {
   const rows = all<Record<string, unknown>>(db, c.sql.replace(/\s+/g, " ").trim());
   const n = c.mode === "rows" ? rows.length : Number(Object.values(rows[0] ?? { n: 0 })[0]);
   return n > 0 ? [`${c.code}=${n}`] : [];
@@ -192,8 +192,10 @@ test("N-15: dữ liệu còn nguyên từng dòng, số dòng MỌI bảng trư�
     assert.notEqual(r.note, r.created_by); assert.notEqual(r.valid_from_date, r.created_at);
   }
   assert.deepEqual(fkCheck(db), [], "dữ liệu gieo phải sạch khoá ngoại TRƯỚC khi dựng");
-  // TRƯỚC 0097 bỏ qua các kiểm cần cột mới (R-PRC-1/2 nhắc target_tier_code; R-PRC-1/2/5/7 nhắc voided_at của 0126 — chưa có cột thì câu lỗi); mọi kiểm mức fail còn lại phải sạch.
-  assert.deepEqual(auditDo(db, /target_tier_code|voided_at/), [], "audit-invariants (mức fail) sạch trên dữ liệu gieo TRƯỚC khi dựng");
+  // TRƯỚC 0097 bỏ qua ĐÚNG các kiểm cần cột mới: nhắc target_tier_code (R-PRC-1/2), và kiểm R-PRC-* nhắc voided_at của 0126 (R-PRC-1/2/5/7) — chưa có cột thì câu lỗi.
+  // Kiểm của bảng khác cũng có cột voided_at riêng (R-PTY-*, R-VC-*) vẫn chạy. Mọi kiểm mức fail còn lại phải sạch.
+  const canCotMoi = (c: Check) => /target_tier_code/.test(c.sql) || (c.code.startsWith("R-PRC-") && /voided_at/.test(c.sql));
+  assert.deepEqual(auditDo(db, canCotMoi), [], "audit-invariants (mức fail) sạch trên dữ liệu gieo TRƯỚC khi dựng");
   apDungLai(db);
   // Production luôn áp 0126 (ADR-0148, dấu huỷ) SAU 0097 ⇒ áp tiếp rồi mới chạy ĐỦ mọi kiểm (câu kiểm nay đọc voided_at). 0126 chỉ thêm cột NULL + thay trigger: dữ liệu không đổi.
   db.exec(readFileSync(new URL(files.find((f) => f.endsWith("_sua_muc_huy_thay.sql"))!, DIR), "utf8"));
