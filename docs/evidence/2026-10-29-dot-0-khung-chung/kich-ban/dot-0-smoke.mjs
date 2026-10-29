@@ -2,6 +2,7 @@
 // Mỗi bước một khối `buoc()` (✓/✗, không dừng ở bước hỏng đầu tiên), đo bằng getComputedStyle / getClientRects, chụp ảnh vào OUT/anh.
 // Thêm các điểm người kiểm các task trước để lại (bước 13–17): thứ tự thanh trên ở 700 và Trang chủ, mặt nạ mờ thanh bên (màn thấp/cao),
 // nút Trợ lý ở 390, thanh tab ở trang Hỗ trợ, nút nguy hiểm khi rê chuột và hai nút xếp dọc ở điện thoại.
+// Task 15b (bước 18–20, Q-2): 768×1024 mọi bộ quyền, biên 899/900, 1024×768 và 1280. Bước 14 chỉ chụp để soát mắt (in «◦», không «✓»).
 // Chạy từ GỐC repo, sau `npm run build:web`:
 //   AXE_JS=<…/axe.min.js> CHROME_BIN=$PWD/docs/evidence/2026-09-20-a2/kich-ban/chrome-wrap.sh [OUT=<thư mục>] node docs/evidence/2026-10-29-dot-0-khung-chung/kich-ban/dot-0-smoke.mjs
 // Thiếu AXE_JS ⇒ dừng ngay (không có bước "chưa chạy axe"). ONLY=1,4,9 chạy vài bước.
@@ -30,6 +31,17 @@ async function buoc(id, ten, fn) {
     const msg = String(e?.stack ?? e).split("\n").slice(0, 14).join("\n    ");
     loi.push(`${id}) ${ten}: ${String(e?.message ?? e).split("\n")[0]}`);
     console.log(`✗ ${id}) ${ten}\n    ${msg}`);
+  }
+}
+/** Bước chỉ chụp để soát bằng mắt: không đếm vào «✓»; lỗi chạy (không chụp được) vẫn tính đỏ. */
+async function soatMat(id, ten, fn) {
+  if (ONLY && !ONLY.has(String(id))) return;
+  try {
+    await fn();
+    console.log(`◦ ${id}) ${ten} (soát mắt — ảnh ở ${join(OUT, "anh")}, không phải phép kiểm)`);
+  } catch (e) {
+    loi.push(`${id}) ${ten}: ${String(e?.message ?? e).split("\n")[0]}`);
+    console.log(`✗ ${id}) ${ten}\n    ${String(e?.stack ?? e).split("\n").slice(0, 8).join("\n    ")}`);
   }
 }
 
@@ -241,7 +253,8 @@ try {
   await buoc(11, "390 Bán hàng /orders: báo ngắn .toast[data-tong=la] nằm trên thanh tab, tự tắt", async () => {
     // Brief ghi "/order-form thêm một dịch vụ" nhưng ô chọn dịch vụ cố ý KHÔNG bật thông báo nổi (web/catalog-picker.ts: vùng aria-live đọc "Đã thêm …"), và ở form
     // lập đơn vùng thông báo đứng DƯỚI thanh bước ở đầu trang (luật M-3), nên phép so với thanh tab không áp ở đó. Dùng đường thật duy nhất bật báo ngắn xanh lá:
-    // máy chủ trả "lần bấm trước đã được ghi" (header Idempotent-Replayed) — chỉ phản hồi được thay bằng Fetch của CDP, mã trang chạy nguyên (web/api.ts baoDaGhi).
+    // máy chủ trả "lần bấm trước đã được ghi" (header Idempotent-Replayed) — chỉ phản hồi được thay, bằng cách bọc `window.fetch` của trang cho đúng một lần gọi
+    // (không dùng miền Fetch của CDP); mã trang chạy nguyên (web/api.ts baoDaGhi).
     const p = await mo(ACCOUNTS.salesA, "/orders");
     await p.waitFor("document.getElementById('loading').hidden", "danh sách về");
     // Bọc fetch của trang chỉ cho MỘT lần gọi /api/orders kế tiếp (mã api.ts chạy nguyên).
@@ -268,7 +281,8 @@ try {
       await sleep(100);
     }
     const daTaiLai = await p.ev("performance.getEntriesByType('navigation')[0]?.type === 'reload'");
-    if (daTaiLai) console.log("    · trang đã tải lại (hộp «rời trang?» không hiện) — phép đo «tự tắt» chỉ còn nghĩa yếu");
+    // Trang tự tải lại thì báo ngắn biến mất vì trang mới, không phải vì tự tắt ⇒ phép đo bên dưới qua giả: cho bước ĐỎ.
+    assert.equal(daTaiLai, false, "trang đã tải lại (hộp «rời trang?» không chặn được) — không đo được «tự tắt»");
     assert.equal(await p.ev("document.querySelectorAll('.toast[data-tong=\"la\"]').length"), 0, "sau 3,5 s không còn báo ngắn");
     await dong(p);
   });
@@ -287,12 +301,17 @@ try {
   });
 
   // ---- Điểm người kiểm task trước để lại ----
-  await buoc(13, "thứ tự thanh trên ở 700 (Bán hàng /orders) và 1040 (Trang chủ Bán hàng): Tạo đơn → chuông → Trợ lý", async () => {
+  // 15b (Q-2): 700 nay là bố cục điện thoại — không nút Tạo đơn trên thanh trên (đã ở thanh tab), thứ tự NHÌN THẤY chuông → avatar → Trợ lý.
+  await buoc(13, "thanh trên ở 700 (Bán hàng /orders, kiểu điện thoại: chuông → avatar → Trợ lý, không Tạo đơn) và 1040 (Trang chủ Bán hàng): Tạo đơn → chuông → Trợ lý", async () => {
     for (const [ten, vp, path] of [["700", { width: 700, height: 900, mobile: false }, "/orders"], ["1040", DESK, "/"]]) {
       const p = await mo(ACCOUNTS.salesA, path, vp);
       await p.waitFor("!!document.querySelector('#topbar .bell') && !!document.getElementById('tl-nut')", "chuông + Trợ lý", 8000);
       const t = await p.ev(thuTuThanhTren);
-      assert.ok(t.tao < t.chuong && t.chuong < t.troLy && (t.tim < 0 || t.tim < t.tao), `${ten} ${path}: ${JSON.stringify(t)}`);
+      if (ten === "700") {
+        const x = await p.ev(`(() => { const l = (s) => { const e = document.querySelector(s); return e && e.getClientRects().length ? e.getBoundingClientRect().left : null; };
+          return { chuong: l('#topbar .bell'), avatar: l('#topbar .bar-avatar'), troLy: l('#tl-nut'), tao: l('#topbar .topbar-new') }; })()`);
+        assert.ok(x.tao === null && x.chuong < x.avatar && x.avatar < x.troLy, `700 ${path}: ${JSON.stringify(x)}`);
+      } else assert.ok(t.tao < t.chuong && t.chuong < t.troLy && (t.tim < 0 || t.tim < t.tao), `${ten} ${path}: ${JSON.stringify(t)}`);
       // khoảng cách chuông ↔ Trợ lý: hai nút không chồng nhau
       const kc = await p.ev("(() => { const b = document.querySelector('#topbar .bell').getBoundingClientRect(), t = document.getElementById('tl-nut').getBoundingClientRect(); return t.left - b.right; })()");
       assert.ok(kc >= 0, `${ten}: chuông và Trợ lý chồng nhau (${kc})`);
@@ -301,7 +320,8 @@ try {
     }
   });
 
-  await buoc(14, "1040 Toàn quyền: thanh bên màn thấp (600) và cao (1400) — chụp để soát mặt nạ mờ đè nút THIẾT LẬP", async () => {
+  // Bước 14 KHÔNG phải phép kiểm: chỉ chụp + in số đo để người soát bằng mắt (mặt nạ mờ có đè nút THIẾT LẬP không). In nhãn «◦ … (soát mắt)», không «✓».
+  await soatMat(14, "1040 Toàn quyền: thanh bên màn thấp (600) và cao (1400) — chụp để soát mặt nạ mờ đè nút THIẾT LẬP", async () => {
     for (const h of [600, 1400]) {
       const p = await mo(TQ, "/orders", { width: 1040, height: h, mobile: false });
       await p.waitFor("!!document.querySelector('#sidebar .sidebar-groups')", "thanh bên");
@@ -364,6 +384,71 @@ try {
     assert.equal(hai, true, "máy tính: hai nút cùng hàng, cách xa");
     await chup(p, "17-hop-xac-nhan-re-1040");
     await dong(p);
+  });
+
+  // ---- Task 15b: Q-2 — khổ 641–899 (iPad dọc) dùng bố cục điện thoại; thanh tab ≤ 899, thanh bên ≥ 900 ----
+  const IPAD = { width: 768, height: 1024, mobile: false };
+  const khung = `(() => { const v = (s) => { const e = document.querySelector(s); return !!e && getComputedStyle(e).display !== 'none' && e.getClientRects().length > 0; };
+    return { tab: v('#tabbar'), ben: v('#sidebar'), tao: v('#topbar .topbar-new'), tim: v('#topbar .topbar-search'), avatar: v('#topbar .bar-avatar'), dinh: document.body.classList.contains('tabbar-dinh') }; })()`;
+  const BO = [["Bán hàng", ACCOUNTS.salesA], ["Kế toán", ACCOUNTS.accounting], ["Quản trị", ACCOUNTS.admin], ["Toàn quyền", TQ]];
+
+  await buoc(18, "768×1024 mọi bộ quyền: thanh tab hiện, thanh bên ẩn, thanh trên kiểu điện thoại (avatar, không Tạo đơn/ô tìm); tab cuối «Tôi» → /account có «Đăng xuất»", async () => {
+    for (const [ten, acc] of BO) {
+      const p = await mo(acc, "/account", IPAD);
+      await p.waitFor("document.querySelectorAll('#tabbar a').length > 0", `${ten}: thanh tab`, 8000);
+      await sleep(800);
+      const k = await p.ev(khung);
+      assert.ok(k.tab && !k.ben && !k.tao && !k.tim && k.avatar, `${ten} 768: ${JSON.stringify(k)}`);
+      const cuoi = await p.ev("(() => { const a = [...document.querySelectorAll('#tabbar a')].pop(); return [a.querySelector(':scope > span:last-child').textContent.trim(), a.getAttribute('href')]; })()");
+      assert.deepEqual(cuoi, ["Tôi", "/account"], `${ten}: tab cuối`);
+      const ra = await p.ev("[...document.querySelectorAll('main button, main a')].filter((e) => e.textContent.trim() === 'Đăng xuất' && e.getClientRects().length > 0).length");
+      assert.ok(ra >= 1, `${ten}: /account không có nút «Đăng xuất» nhìn thấy`);
+      await chup(p, `18-768-${ten === "Bán hàng" ? "ban-hang" : ten === "Kế toán" ? "ke-toan" : ten === "Quản trị" ? "quan-tri" : "toan-quyen"}-account`);
+      await dong(p);
+    }
+  });
+
+  await buoc(19, "768 Bán hàng: /orders axe sạch; trang con /order có nút lùi (không đường dẫn «Đơn hàng ›»); thanh tĩnh không ẩn thanh tab, thanh dính thì ẩn", async () => {
+    const p = await mo(ACCOUNTS.salesA, "/orders", IPAD);
+    await p.waitFor("document.getElementById('loading').hidden", "danh sách về", 10000);
+    await sleep(600);
+    await axeKiem(p, "/orders 768");
+    assert.equal(await p.ev(hien("#new-order")), false, "768: «+ Tạo đơn» của thanh công cụ phải ẩn (đã có ở thanh tab, Q-4)");
+    await chup(p, "19a-ban-hang-orders-768");
+    // Thanh `.thanh-hanh-dong-cuoi` nằm TĨNH (như `.dp-cc-day` từ 641) không được bật `tabbar-dinh`; chuyển sang dính thì phải bật.
+    await p.ev("(() => { const d = document.createElement('div'); d.className = 'thanh-hanh-dong-cuoi'; d.id = 'thu-15b'; d.style.position = 'static'; d.textContent = 'thử'; document.querySelector('main').append(d); return true; })()");
+    await sleep(400);
+    assert.equal((await p.ev(khung)).tab, true, "thanh tĩnh làm ẩn thanh tab");
+    await p.ev("document.getElementById('thu-15b').style.position = 'sticky'; true");
+    await p.waitFor("document.body.classList.contains('tabbar-dinh')", "thanh dính ⇒ tabbar-dinh", 3000);
+    assert.equal((await p.ev(khung)).tab, false, "thanh dính mà thanh tab vẫn hiện");
+    await p.ev("document.getElementById('thu-15b').remove(); true");
+    await p.waitFor("!document.body.classList.contains('tabbar-dinh')", "gỡ thanh ⇒ thanh tab hiện lại", 3000);
+    await p.send("Page.navigate", { url: `${env.base}/order?id=${donId}` });
+    await p.waitFor("document.querySelector('.bar-back')?.getClientRects().length > 0", "nút lùi", 10000);
+    assert.equal(await p.ev("[...document.querySelectorAll('a.bar-duong')].some((a) => a.getClientRects().length > 0)"), false, "768 không có đường dẫn trang cha kiểu máy tính");
+    assert.equal(await p.ev(hien("#tabbar")), true);
+    await chup(p, "19b-ban-hang-don-768");
+    await p.send("Page.navigate", { url: `${env.base}/` });
+    await sleep(2500);
+    assert.equal(await p.ev(hien("#tabbar")), true, "Trang chủ 768 giữ thanh tab");
+    await chup(p, "19c-ban-hang-trang-chu-768");
+    await dong(p);
+  });
+
+  await buoc(20, "biên 899 / 900 (Toàn quyền /orders): 899 = điện thoại, 900 = thanh bên; 1024×768 và 1280×800 thanh bên + Đăng xuất ở chân thanh", async () => {
+    for (const [w, h, dienThoai] of [[899, 900, true], [900, 900, false], [1024, 768, false], [1280, 800, false]]) {
+      const p = await mo(TQ, "/orders", { width: w, height: h, mobile: false });
+      await sleep(800);
+      const k = await p.ev(khung);
+      if (dienThoai) assert.ok(k.tab && !k.ben && !k.tao && k.avatar, `${w}: ${JSON.stringify(k)}`);
+      else {
+        assert.ok(!k.tab && k.ben && k.tao && !k.avatar, `${w}: ${JSON.stringify(k)}`);
+        assert.equal(await p.ev(hien(".sidebar-logout")), true, `${w}: Đăng xuất ở chân thanh bên`);
+      }
+      await chup(p, `20-toan-quyen-orders-${w}`);
+      await dong(p);
+    }
   });
 } finally {
   await env.stop();

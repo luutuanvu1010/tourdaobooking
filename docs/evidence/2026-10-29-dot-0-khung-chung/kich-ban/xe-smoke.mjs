@@ -12,8 +12,11 @@
 // 7) 01 có xe: thẻ / bảng, trạng thái, cảnh báo giấy tờ có biểu tượng + chữ, bộ lọc có số đếm.  8) 02 sửa: "Ngừng dùng xe" → hộp xác nhận "không bị xoá" → Ngừng.
 // 9) "Dùng lại xe" khi biển đã thuộc xe khác → câu lỗi dưới ô biển số.
 // Chạy từ GỐC repo, sau `npm run build:web`:
-//   AXE_JS=<…/axe.min.js> CHROME_BIN=docs/evidence/2026-09-20-a2/kich-ban/chrome-wrap.sh OUT=<thư mục ảnh> node docs/evidence/2026-09-28-van-chuyen-1a/kich-ban/xe-smoke.mjs
-import { ACCOUNTS, DESK, MOB, apiCalls, assert, axe, axeNote, boDem, clickVisible, dungMoiTruong, shotFull, shotView, shown, sleep, txt, typeInto, vnDate } from "../../2026-09-28-van-chuyen-1a/kich-ban/vc-lib.mjs";
+//   AXE_JS=<…/axe.min.js> CHROME_BIN=docs/evidence/2026-09-20-a2/kich-ban/chrome-wrap.sh [OUT=<thư mục ảnh>] node docs/evidence/2026-10-29-dot-0-khung-chung/kich-ban/xe-smoke.mjs
+// OUT mặc định /tmp/dot-0-khung-chung-vc (KHÔNG phải thư mục có ngày 2026-09-28 mà vc-lib.mjs mặc định). vc-lib đọc OUT lúc nạp ⇒ đặt biến TRƯỚC rồi nạp động
+// (import tĩnh được kéo lên trước mọi câu lệnh, đặt biến ở trên dòng import không có tác dụng).
+process.env.OUT ??= "/tmp/dot-0-khung-chung-vc";
+const { ACCOUNTS, DESK, MOB, apiCalls, assert, axe, axeNote, boDem, clickVisible, dungMoiTruong, shotFull, shotView, shown, sleep, txt, typeInto, vnDate } = await import("../../2026-09-28-van-chuyen-1a/kich-ban/vc-lib.mjs");
 
 const dem = boDem("XE SMOKE");
 const { env, call, themXe, themGiayXe } = await dungMoiTruong([]);

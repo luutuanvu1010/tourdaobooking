@@ -16,11 +16,13 @@
 // Tài xế chỉ gọi route TÀI XẾ của Vận chuyển (/api/van-chuyen/cuoc-cua-toi*), không route văn phòng; vẫn không mục "Vận chuyển".
 // Dùng vc-lib.mjs (trên a2-cdp.mjs). Tài khoản tài xế gieo bằng scripts/staff-lib.mjs (SĐT giả) + vai "Tài xế công ty"; giấy tờ nhập bằng API của Quản trị (số GIẢ).
 // Chạy từ GỐC repo, sau `npm run build:web`:
-//   AXE_JS=<…/axe.min.js> CHROME_BIN=docs/evidence/2026-09-20-a2/kich-ban/chrome-wrap.sh OUT=<thư mục ảnh> node docs/evidence/2026-09-28-van-chuyen-1a/kich-ban/tai-xe-trang-dau-smoke.mjs
+//   AXE_JS=<…/axe.min.js> CHROME_BIN=docs/evidence/2026-09-20-a2/kich-ban/chrome-wrap.sh [OUT=<thư mục ảnh>] node docs/evidence/2026-10-29-dot-0-khung-chung/kich-ban/tai-xe-trang-dau-smoke.mjs
+// OUT mặc định /tmp/dot-0-khung-chung-vc (KHÔNG phải thư mục có ngày 2026-09-28 mà vc-lib.mjs mặc định). vc-lib đọc OUT lúc nạp ⇒ đặt biến TRƯỚC rồi nạp động.
 // Kịch bản tự theo hằng TRANG_DAU_TAI_XE (không viết cứng đường dẫn).
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
-import { ACCOUNTS, DESK, DRIVER, DRIVER2, MOB, apiCalls, assert, axe, axeNote, boDem, dungMoiTruong, shotFull, sleep, vnDate } from "../../2026-09-28-van-chuyen-1a/kich-ban/vc-lib.mjs";
+process.env.OUT ??= "/tmp/dot-0-khung-chung-vc";
+const { ACCOUNTS, DESK, DRIVER, DRIVER2, MOB, apiCalls, assert, axe, axeNote, boDem, dungMoiTruong, shotFull, sleep, vnDate } = await import("../../2026-09-28-van-chuyen-1a/kich-ban/vc-lib.mjs");
 
 const { TRANG_DAU_TAI_XE, TRANG_CUOC } = await import(pathToFileURL(join(process.cwd(), "src", "shared", "start-page.ts")).href);
 const SO_DU = ["001090000412", "790100000412"]; // số GIẢ — không bao giờ được nằm trong DOM của tài xế (chỉ số che)

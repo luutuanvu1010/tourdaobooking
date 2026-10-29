@@ -1085,6 +1085,8 @@ try {
         path: `/order-form?id=${r2.id}`,
         label: "/order-form?id=… (breadcrumb DÀI)",
         widths: [641, 700, 899, 900, 910, 929, 930, 1040, 1920],
+        // 15b (Q-2): data-tabbar="off" ⇒ ở 641–899 (bố cục điện thoại) không thanh tab, không thanh bên — lối ra là nút lùi «‹» trên thanh trên.
+        tabbarOff: true,
         // setBarTitle() ở web/order-form.ts chạy SAU khi đơn tải xong. Đo sớm = đo chữ tĩnh "Tạo đơn mới" (ngắn):
         // lỗi 900–928px không tái hiện được và lưới xanh giả.
         ready: `/^Sửa đơn TD-/.test(document.querySelector('.bar-title').textContent.trim())`,
@@ -1178,6 +1180,7 @@ try {
           barTitleShown: vis(document.querySelector('.bar-title')),
           barTitleText: document.querySelector('.bar-title')?.textContent.trim() ?? null,
           brandShown: vis(document.querySelector('#topbar .brand')),
+          barBackShown: vis(document.querySelector('#topbar .bar-back')),
           searchShown: vis(document.querySelector('.topbar-search')),
           newBtnShown: vis(document.querySelector('.topbar-new')),
           mainWidth: Math.round(mr.width),
@@ -1206,16 +1209,21 @@ try {
       // (d) không tràn ngang — ở MỌI khổ.
       assert.ok(f.scrollWidth <= f.innerWidth + 1, `${at}: tràn ngang — scrollWidth ${f.scrollWidth} > innerWidth ${f.innerWidth}`);
       // (a) luôn còn lối điều hướng nhìn thấy được (đây là chính lỗi A-2: ở 641–899px trước sửa, cả hai đều = 0).
-      assert.ok(f.navLinkCount > 0, `${at}: KHÔNG còn lối điều hướng nào nhìn thấy được (sidebar ${f.sidebarLinks}, tabbar ${f.tabbarLinks}) — ${JSON.stringify(f)}`);
-      // (b) luôn còn đường tới "Đăng xuất": ≥641px là nút ngay trong thanh bên; ≤640px là tab "Tôi" → trang /account (thiết kế điện thoại đã duyệt).
-      assert.ok(f.logoutShown || f.accountLinkShown, `${at}: mất cả nút "Đăng xuất" lẫn đường tới trang Tài khoản — ${JSON.stringify(f)}`);
+      //     Trang tập trung (data-tabbar="off", vd /order-form) ở bố cục điện thoại: lối ra là nút lùi «‹».
+      const laTapTrung = spec.tabbarOff && width <= 899;
+      assert.ok(f.navLinkCount > 0 || (laTapTrung && f.barBackShown), `${at}: KHÔNG còn lối điều hướng nào nhìn thấy được (sidebar ${f.sidebarLinks}, tabbar ${f.tabbarLinks}) — ${JSON.stringify(f)}`);
+      // (b) luôn còn đường tới "Đăng xuất": ≥900px là nút ngay trong thanh bên; ≤899px là tab "Tôi" → trang /account (thiết kế điện thoại đã duyệt; Q-2 gồm iPad dọc).
+      assert.ok(f.logoutShown || f.accountLinkShown || (laTapTrung && f.barBackShown), `${at}: mất cả nút "Đăng xuất" lẫn đường tới trang Tài khoản — ${JSON.stringify(f)}`);
 
-      if (width <= 640) {
-        assert.equal(f.sidebarShown, false, `${at}: thanh bên KHÔNG được hiện ở khổ điện thoại — ${JSON.stringify(f)}`);
-        assert.ok(f.tabbarLinks > 0, `${at}: phải còn thanh tab dưới đáy — ${JSON.stringify(f)}`);
-        assert.equal(f.newBtnShown, false, `${at}: nút "Tạo đơn" trên thanh công việc chỉ từ 641px (điện thoại đã có tab "Tạo đơn") — ${JSON.stringify(f)}`);
+      // 15b — Q-2 (đặc tả đợt 0, cổng 2b câu 1) THAY «quyết định 9» (thanh bên từ 641px): ≤ 899px bố cục điện thoại, thanh bên từ 900px.
+      if (width <= 899) {
+        assert.equal(f.sidebarShown, false, `${at}: thanh bên KHÔNG được hiện ở bố cục điện thoại (≤ 899px, Q-2) — ${JSON.stringify(f)}`);
+        if (laTapTrung) assert.equal(f.barBackShown, true, `${at}: trang tập trung phải có nút lùi — ${JSON.stringify(f)}`);
+        else assert.ok(f.tabbarLinks > 0, `${at}: phải còn thanh tab dưới đáy — ${JSON.stringify(f)}`);
+        assert.equal(f.newBtnShown, false, `${at}: nút "Tạo đơn" trên thanh công việc chỉ từ 900px (bố cục điện thoại đã có tab "Tạo đơn") — ${JSON.stringify(f)}`);
+        assert.equal(f.searchShown, false, `${at}: ô tìm thanh trên chỉ từ 900px — ${JSON.stringify(f)}`);
       } else {
-        assert.equal(f.sidebarShown, true, `${at}: thanh bên PHẢI hiện từ 641px (quyết định 9 của chủ dự án) — ${JSON.stringify(f)}`);
+        assert.equal(f.sidebarShown, true, `${at}: thanh bên PHẢI hiện từ 900px (Q-2) — ${JSON.stringify(f)}`);
         assert.equal(f.sidebarLinks, spec.sidebar, `${at}: thanh bên phải đủ ${spec.sidebar} mục .sidebar-item nhìn thấy của tài khoản mở trang (nhóm Thiết lập mở chỉ khi trang thuộc nhóm đó; số theo bảng THANH_BEN trừ nút Tạo đơn) — ${JSON.stringify(f)}`);
         assert.equal(f.tabbarLinks, 0, `${at}: thanh tab dưới đáy KHÔNG được hiện cùng thanh bên — ${JSON.stringify(f)}`);
         assert.equal(f.logoutShown, true, `${at}: "Đăng xuất" phải hiển thị thật trong thanh bên — ${JSON.stringify(f)}`);
@@ -1225,7 +1233,7 @@ try {
         // KHÔNG bắt được (người kiểm độc lập đột biến --w-sidebar → 300px, chạy lại toàn lưới: không đỏ). Khẳng
         // định dưới đây so với HẰNG SỐ ĐỘC LẬP viết thẳng trong kịch bản (đầu tệp) — đây mới là "nguồn độc lập" thật.
         assert.equal(f.sidebarWidth, SIDEBAR_WIDTH_MOCKUP_PX, `${at}: thanh bên phải rộng đúng ${SIDEBAR_WIDTH_MOCKUP_PX}px (bản mẫu/chủ dự án duyệt, hằng số ĐỘC LẬP trong kịch bản — không đọc từ CSS) — ${JSON.stringify(f)}`);
-        assert.equal(f.newBtnShown, true, `${at}: nút "Tạo đơn" phải hiện từ 641px — ${JSON.stringify(f)}`);
+        assert.equal(f.newBtnShown, true, `${at}: nút "Tạo đơn" phải hiện từ 900px — ${JSON.stringify(f)}`);
         // (lịch sử, không đổi tên) chiều cao thanh công việc đúng token --bar-h (từng là 71px vì nút cao 46px + đệm dọc quyết định chiều cao).
         assert.ok(Math.abs(f.topbarHeight - f.barToken) <= 1, `${at}: thanh công việc cao ${f.topbarHeight}px, token --bar-h = ${f.barToken}px — ${JSON.stringify(f)}`);
         // C-1 (Đợt D Task 7): cùng lỗ hổng — khẳng định trên tự so với chính CSS. So với hằng số ĐỘC LẬP viết thẳng
@@ -1279,7 +1287,7 @@ try {
       }
     }
     ok(
-      `G-1) Quét ${spec.widths.length} khổ màn hình trên ${spec.label} (${spec.account === ACCOUNTS.admin ? "Quản trị" : "Quản trị + Toàn quyền"}) — mốc thanh bên MỚI là 641px:\n` +
+      `G-1) Quét ${spec.widths.length} khổ màn hình trên ${spec.label} (${spec.account === ACCOUNTS.admin ? "Quản trị" : "Quản trị + Toàn quyền"}) — mốc thanh bên là 900px (Q-2):\n` +
         frameRows
           .map(
             (f) =>
