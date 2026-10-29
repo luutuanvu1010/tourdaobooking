@@ -6,7 +6,7 @@
 import { OWNER_COMPANY_ROLE } from "../src/shared/cong-ty-chu";
 import { chipHan, lichSuCua, ngayVN, tenGiayTo, xepTheoHan } from "../src/shared/giay-to-hien-thi";
 import { NHAN_LY_DO_KHOP, chuanHoaTen } from "../src/shared/ho-so-trung";
-import { cauXemTruocSua, coQuyenSua, nutSua } from "../src/shared/hoa-hong-hien-thi";
+import { cauXemTruocSua, chiaLanGan, coQuyenSua, nhanSapAp, nutSua } from "../src/shared/hoa-hong-hien-thi";
 import { nhanLoaiLienHe } from "../src/shared/lien-he";
 import { can } from "../src/shared/permissions";
 import { docLyDoSua } from "../src/shared/so-dai-ly-nhap";
@@ -15,6 +15,7 @@ import { ApiError, api, type Api, type Staff } from "./api";
 import { byId, h, replaceChildren, type Child } from "./dom";
 import { initials } from "./format";
 import { chipEl, loiCua, moFormGiayTo, moXacNhanXemSo, taoBoCheSo, type GiayToDong } from "./giay-to-ui";
+import { khoiLichSuGan } from "./hoa-hong-lich-su";
 import { icon } from "./icons";
 import { dungKhoiPhieuXoa } from "./phieu-xoa";
 import { initShell, showError } from "./shell";
@@ -741,8 +742,8 @@ const TIN_TKNT_DA_CU = "Có người vừa đổi tài khoản nhận tiền nê
  * Mục «Hoa hồng hiện hành» của hồ sơ (YC-0020): loại đối tác hồ sơ đang mang và mức TA mỗi loại gắn hôm nay. Có ba tình huống cần nói rõ vì nhân viên hay hỏi «sao đại lý
  * này lấy khác»: chưa gắn mức, hai loại gắn hai mức khác nhau (đơn bị giữ), dòng riêng đè lên mức (dòng riêng luôn thắng mức TA).
  * ADR-0138: người giữ `partner.commission.write` gắn / kết thúc MỨC TA RIÊNG ngay ở đây; mục nói rõ nguồn («gắn riêng» hay «theo loại»). ADR-0148: «Sửa» chính sách riêng (hỏi
- * máy chủ đường huỷ–thay / «từ ngày» trước, lý do bắt buộc) cho người ghi bảng mức không mang quyền Đối tác. Máy chủ kiểm lại quyền; mọi câu lỗi
- * hiện trong mục. `tin` = dòng báo sau một lần lưu; `daCo` = phản hồi lệnh (cùng dạng GET) để khỏi đọc lại.
+ * máy chủ đường huỷ–thay / «từ ngày» trước, lý do bắt buộc) cho người ghi bảng mức không mang quyền Đối tác. N5: chính sách riêng SẮP áp dụng hiện kèm «Sửa»; các lần đã
+ * ngừng / đã huỷ ẩn sau nút «Xem lịch sử» (chỉ xem). Máy chủ kiểm lại quyền; mọi câu lỗi hiện trong mục. `tin` = dòng báo sau một lần lưu; `daCo` = phản hồi lệnh (cùng dạng GET) để khỏi đọc lại.
  */
 async function veHoaHongHienHanh(sec: HTMLElement, p: Api.PartyDto, tin?: string, daCo?: Api.HoaHongHoSoResponse): Promise<void> {
   let r: Api.HoaHongHoSoResponse;
@@ -818,7 +819,7 @@ async function veHoaHongHienHanh(sec: HTMLElement, p: Api.PartyDto, tin?: string
     oDen.focus();
   };
   // ADR-0148 Đ1: «Sửa» chính sách riêng — GET xem trước (đường do máy chủ quyết) rồi form điền sẵn; huỷ–thay giữ được ngày bắt đầu cũ, «từ ngày» chỉ từ ngày sớm nhất.
-  const moSua = async (mr: NonNullable<Api.HoaHongHoSoResponse["mucRieng"]>) => {
+  const moSua = async (mr: Pick<Api.GanRiengLichSuDto, "id" | "muc" | "tuNgay" | "denNgay">) => {
     const url = `/api/pricing/muc-rieng/${encodeURIComponent(mr.id)}/sua`;
     let xt: Api.SuaXemTruocResponse;
     let mt: Api.MucTaListResponse;
@@ -856,14 +857,27 @@ async function veHoaHongHienHanh(sec: HTMLElement, p: Api.PartyDto, tin?: string
   const nut: HTMLElement[] = !duocGhi ? []
     : rieng ? [nutNgung, nutSuaRieng].filter((x): x is HTMLButtonElement => x !== null)
     : [button("Áp dụng chính sách riêng", () => void moGan(), "btn")];
+  // N5 (R3): lần gắn riêng đang áp vẫn đọc từ `mucRieng` (câu tra, nút như trên); `ganRieng` (lịch sử) chỉ cho lần sắp áp và nút «Xem lịch sử».
+  const lan = chiaLanGan(r.ganRieng, r.homNay);
+  const nutSuaSap = (g: Api.GanRiengLichSuDto): HTMLButtonElement => {
+    const b = button("Sửa", () => void moSua(g), "btn");
+    b.setAttribute("aria-label", `Sửa chính sách riêng sắp áp dụng: ${g.muc.ten}`);
+    return b;
+  };
+  const sapAp = lan.sapAp.length === 0 ? null : h("ul", { class: "hh-tl-gan", "data-khoi": "gan-rieng-sap" },
+    ...lan.sapAp.map((g) => h("li", { "data-gan-id": g.id },
+      h("span", null, h("strong", null, `Chính sách riêng: ${g.muc.ten}`), " ", h("span", { class: "badge badge-draft" }, nhanSapAp(g)), g.muc.dangBat ? "" : h("span", { class: "muted" }, " (chính sách đã tắt)")),
+      coQuyenSua(me) && nutSua(g, r.homNay) ? nutSuaSap(g) : null)));
   replaceChildren(sec,
     tieuDe,
     khoiRieng,
+    sapAp,
     h("table", { class: "items" }, h("tbody", null, ...dong)),
     ...nhac,
     khuTin,
     nut.length > 0 ? h("div", { class: "actions" }, ...nut) : null,
     khuLenh,
+    khoiLichSuGan(lan.lichSu, r.homNay, (g) => `Chính sách riêng: ${g.muc.ten}`, "hhhh-lich-su"),
     h("p", null, h("a", { href: "/hoa-hong" }, "Xem hoặc đổi mức ở trang Hoa hồng đối tác")));
   sec.hidden = false;
   if (tin) tieuDe.focus();

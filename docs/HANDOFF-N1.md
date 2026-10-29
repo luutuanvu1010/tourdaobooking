@@ -2,7 +2,18 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.44 ĐÃ LÊN PRODUCTION (Nút «Sửa» ở Hoa hồng đối tác cho mức, chính sách theo loại khách và chính sách riêng của đại lý, kèm ô lý do: mức chưa có đơn dùng thì huỷ–thay, mức đã có đơn dùng thì phần sửa áp từ ngày sau đơn cuối; «Đổi» / «Ngừng» không còn cắt qua ngày của đơn đã dùng mức — ADR-0148 Đ1; mang theo 2.43 sửa ô tích) — CÓ migration `0126_sua_muc_huy_thay` — triển khai 2026-10-29 13:08 (giờ VN)
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.46 ĐÃ LÊN PRODUCTION (Hoa hồng đối tác: nút «Sửa» cho lần áp dụng chính sách theo loại và chính sách riêng của đại lý SẮP bắt đầu; nút «Xem lịch sử» hiện các lần đã ngừng / đã huỷ, chỉ để xem — ADR-0148 Đ1 phần N5) — KHÔNG migration — triển khai 2026-10-29 15:31 (giờ VN)
+
+Ghi 29/10/2026 từ khối tóm tắt của `npm run trien-khai` (chủ chạy `day-len` nhánh `claude/sua-muc-n5-bcfa1e` + `trien-khai`) và lệnh CHỈ ĐỌC của phiên kế hoạch (kế hoạch `docs/superpowers/plans/2026-10-29-sua-muc-n5-ke-hoach.md`; sổ thi công `…-sua-muc-n5-thi-cong-nhat-ky.md`):
+- Commit `main` = `origin/main`: `f8e9bd25`. Worker Version ID: `4992102d-7923-4174-bfb9-7345243fce0b`. Điểm khôi phục Time Travel: không còn trong phần đầu ra đọc lại được (không có migration nên không cần).
+- e2e 78/78 xanh; `npm test` 6632 bài, 0 đỏ; migration đã áp: không có. Cổng phiên bản trước và sau deploy: ĐẠT. `audit-invariants --db remote`: «Mọi bất biến đạt, 5 cảnh báo» (kể cả `R-PRC-7`).
+- `GET /api/auth/config` → `version 2.46`; **bảo trì vẫn BẬT** (`endsAt` 2026-10-31T14:48Z) — bật từ trước, không do lần phát hành này.
+- Bản 2.45 (ADR-0149 Đ1 «Được đón không» theo dịch vụ, migration `0127`) đã lên production trước lần này nhưng không có mục trạng thái trong sổ này: `wrangler deployments list` cho thấy lần deploy 14:04 (Worker `ba3d7b56-0547-4a0e-9395-c794c1d6d263`) giữa 2.44 và 2.46; `d1 migrations list --remote` lúc phiên kế hoạch nghiệm thu N5 (trước lần deploy 15:31) đã «No migrations to apply!».
+- Đổi hợp đồng (thêm, không đổi): `GET /api/pricing/ho-so/:id/hoa-hong` trả thêm `ganRieng` (lịch sử gắn riêng, kể cả dòng huỷ; KHÔNG lý do sửa vì Bán hàng cũng đọc khối này). Route, quyền không đổi.
+- Nghiệm thu: phiên kế hoạch tự chạy lại 132 bài N5 + typecheck trên nhánh; người kiểm độc lập ĐẠT. Chưa bấm «Sửa» trên production (bấm là ghi thật), chưa thử iPhone thật. Còn chờ chủ: NO-N5-4 (chữ «Chưa áp dụng cho loại nào» cạnh dòng «Sắp áp dụng»), nợ NO-N5-1…3.
+- **Hoàn tác:** `wrangler rollback` về `ba3d7b56` (2.45) an toàn — 2.46 không đổi dữ liệu.
+
+## TRẠNG THÁI TRIỂN KHAI (cũ) — Phiên bản 2.44 ĐÃ LÊN PRODUCTION (Nút «Sửa» ở Hoa hồng đối tác cho mức, chính sách theo loại khách và chính sách riêng của đại lý, kèm ô lý do: mức chưa có đơn dùng thì huỷ–thay, mức đã có đơn dùng thì phần sửa áp từ ngày sau đơn cuối; «Đổi» / «Ngừng» không còn cắt qua ngày của đơn đã dùng mức — ADR-0148 Đ1; mang theo 2.43 sửa ô tích) — CÓ migration `0126_sua_muc_huy_thay` — triển khai 2026-10-29 13:08 (giờ VN)
 
 Ghi 29/10/2026 từ khối tóm tắt của `npm run trien-khai` (chủ chạy `day-len` + `trien-khai`) và lệnh CHỈ ĐỌC của phiên thi công (nhánh `claude/recursing-kilby-af8ebc`; sổ thi công `docs/superpowers/plans/2026-10-29-sua-muc-luot-1-thi-cong-nhat-ky.md`):
 - Commit `main` = `origin/main`: `fb538739`. Worker Version ID: `74496f9a-70c2-4b32-aee1-acb708f18c6f`. Điểm khôi phục Time Travel trước khi áp: `00001cbf-00000000-00005113-8255c023db5baa4623cd0d5900fd1a63`.

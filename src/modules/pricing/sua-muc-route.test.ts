@@ -346,11 +346,81 @@ test("gắn đối tác huỷ–thay sang ngày sau: hôm nay mọi câu tra rơ
   assert.equal((await thuTra(w, "2026-11-01")).muc.tyLeBp, 1500, "từ 01/11: gắn riêng mới TA3");
   const ds = (await ok(w.call("GET", "/api/pricing/muc-ta", { as: KT }), 200)).json.ganRieng as { muc: string }[];
   assert.deepEqual(ds.map((g) => g.muc), [ta3], "danh sách gắn riêng đang / sắp: chỉ TA3");
-  const khoi = (await ok(w.call("GET", `/api/pricing/ho-so/${ORG}/hoa-hong`, { as: KT }), 200)).text;
-  assert.ok(!khoi.includes(ta2), `khối «Hoa hồng hiện hành» không nhắc gắn riêng đã huỷ: ${khoi}`);
+  // N5 (29/10): khối hồ sơ nay có thêm trường LỊCH SỬ `ganRieng` (mọi lần gắn, kể cả đã huỷ). Phần TRA của khối (`mucRieng`, `vai`, số đếm) vẫn không bao giờ nhắc gắn
+  // đã huỷ; gắn đã huỷ chỉ đứng trong lịch sử, mang cờ huỷ, không hiệu lực.
+  const khoi = (await ok(w.call("GET", `/api/pricing/ho-so/${ORG}/hoa-hong`, { as: KT }), 200)).json;
+  const { ganRieng: lichSu, ...phanTra } = khoi;
+  assert.equal(khoi.mucRieng, null, "hôm nay không còn gắn riêng nào");
+  assert.deepEqual(khoi.vai.map((v: { muc: { code: string } | null }) => v.muc?.code), [ta1], "loại theo chính sách TA1");
+  assert.ok(!JSON.stringify(phanTra).includes(ta2), `phần tra của khối không nhắc gắn riêng đã huỷ: ${JSON.stringify(phanTra)}`);
+  assert.deepEqual(lichSu.map((g: { muc: { code: string }; daHuy: boolean; conHieuLuc: boolean }) => [g.muc.code, g.daHuy, g.conHieuLuc]), [[ta3, false, false], [ta2, true, false]]);
   const don = await xacNhan(w);
   assert.equal(chup(w, don)[0].commission_rate_bp, 1000, "bản chụp hôm nay theo gắn loại TA1");
   batBienSach(w);
+});
+
+// N5 (kế hoạch 2026-10-29-sua-muc-n5-ke-hoach.md, R4, tiêu chí 3–4): khối hồ sơ trả thêm `ganRieng` = MỌI lần gắn riêng của hồ sơ (đã ngừng, đang áp, sắp áp, đã huỷ), mới → cũ;
+// cùng ngày bắt đầu (huỷ–thay giữ ngày cũ) thì lần thay đứng trước lần bị huỷ. Chỉ mã, tên mức, ngày, cờ — không SĐT/email/MST, không lý do sửa (người kiểm N5). `mucRieng` không đổi.
+test("N5 (R4): khối hồ sơ có lịch sử gắn riêng đủ bốn trạng thái, mới → cũ, đúng cờ; `mucRieng` không đổi sau khi sửa lần sắp áp; không trường nào ngoài danh sách", async (t) => {
+  dongHo(t);
+  const w = setup();
+  const loai = await themLoai(w, "Lễ tân");
+  const ta1 = await taoMuc(w, "TA1", 1000);
+  const ta2 = await taoMuc(w, "TA2", 1200);
+  const ta3 = await taoMuc(w, "TA3", 1500);
+  await ganLoai(w, loai, ta1, "2026-01-01");
+  const gan = async (muc: string, tuNgay: string, denNgay?: string): Promise<string> => {
+    await ok(w.call("POST", `/api/pricing/ho-so/${ORG}/muc-rieng`, { as: KT, body: { muc, tuNgay, ...(denNgay === undefined ? {} : { denNgay }) } }), 201, `gắn riêng từ ${tuNgay}`);
+    return String(w.q("SELECT id FROM prc_party_tier WHERE party_id = ? AND valid_from_date = ? AND voided_at IS NULL", ORG, tuNgay)[0].id);
+  };
+  const daNgung = await gan(ta2, "2026-09-01", "2026-09-30");
+  const dangAp = await gan(ta2, "2026-10-01", "2026-10-31");
+  const sapAp = await gan(ta3, "2026-11-01");
+  const truoc = (await ok(w.call("GET", `/api/pricing/ho-so/${ORG}/hoa-hong`, { as: KT }), 200)).json;
+  assert.equal(truoc.mucRieng.id, dangAp, "mucRieng = lần gắn đang áp hôm nay");
+  // Sửa lần SẮP áp (chưa có đơn) ⇒ huỷ–thay, giữ ngày bắt đầu 01/11.
+  assert.deepEqual((await ok(xem(w, "muc-rieng", sapAp), 200)).json, { homNay: HN, duong: "HUY_THAY" });
+  await ok(sua(w, "muc-rieng", sapAp, { muc: ta1, tuNgay: "2026-11-01", lyDo: LY_DO }), 200, "sửa lần sắp áp");
+  const thay = String(w.q("SELECT id FROM prc_party_tier WHERE replaces_id = ?", sapAp)[0].id);
+  const sau = (await ok(w.call("GET", `/api/pricing/ho-so/${ORG}/hoa-hong`, { as: KT }), 200)).json;
+  assert.deepEqual(sau.mucRieng, truoc.mucRieng, "mucRieng không đổi");
+  const muc = (code: string, ten: string) => ({ code, ten, dangBat: true });
+  assert.deepEqual(sau.ganRieng, [
+    { id: thay, muc: muc(ta1, "TA1"), tuNgay: "2026-11-01", denNgay: null, conHieuLuc: false, daHuy: false },
+    { id: sapAp, muc: muc(ta3, "TA3"), tuNgay: "2026-11-01", denNgay: null, conHieuLuc: false, daHuy: true },
+    { id: dangAp, muc: muc(ta2, "TA2"), tuNgay: "2026-10-01", denNgay: "2026-10-31", conHieuLuc: true, daHuy: false },
+    { id: daNgung, muc: muc(ta2, "TA2"), tuNgay: "2026-09-01", denNgay: "2026-09-30", conHieuLuc: false, daHuy: false },
+  ], "lịch sử: không lý do sửa, không mã dòng thay (Bán hàng cũng đọc khối này)");
+  assert.ok(!JSON.stringify(sau).includes(LY_DO), "khối hồ sơ không mang lý do sửa ở bất kỳ trường nào");
+  assert.deepEqual([dongRieng(w, thay).replaces_id, dongRieng(w, thay).change_reason], [sapAp, LY_DO], "liên kết thay + lý do vẫn nằm trong CSDL");
+  // Thử tra hôm nay vẫn theo lần đang áp; từ 01/11 theo lần thay, không bao giờ theo lần đã huỷ.
+  assert.equal((await thuTra(w)).muc.tyLeBp, 1200);
+  assert.equal((await thuTra(w, "2026-11-01")).muc.tyLeBp, 1000);
+  // Phản hồi của lệnh Sửa / Ngừng / Gắn dùng chung hàm khối ⇒ cũng mang lịch sử.
+  const r = await ok(w.call("POST", `/api/pricing/muc-rieng/${dangAp}/ket-thuc`, { as: KT, body: { denNgay: "2026-10-30" } }), 200, "ngừng sớm lần đang áp");
+  assert.deepEqual(r.json.ganRieng.map((g: { id: string }) => g.id), [thay, sapAp, dangAp, daNgung]);
+  batBienSach(w);
+});
+
+// Người kiểm độc lập N5 (NÊN SỬA 2): bài trên không bắt được việc đưa LỊCH SỬ vào phần tóm tắt (`tomTatHoaHongHoSo`) — `mucRieng` vẫn đúng nhờ vòng tìm lại, nhưng một gắn
+// riêng ĐÃ HUỶ còn trong khoảng ngày hôm nay sẽ lặng lẽ tắt cảnh báo «hai loại theo hai chính sách» (`xungDot`). Ở đây hồ sơ mang hai loại theo hai chính sách khác nhau,
+// gắn riêng bị huỷ–thay sang ngày sau ⇒ hôm nay KHÔNG có gắn riêng ⇒ cảnh báo phải bật.
+test("N5 (R4): gắn riêng đã huỷ không che cảnh báo «hai loại theo hai chính sách» của khối hồ sơ (phần tóm tắt chỉ đọc câu tra)", async (t) => {
+  dongHo(t);
+  const w = setup();
+  const loai1 = await themLoai(w, "Lễ tân");
+  const loai2 = await themLoai(w, "Hướng dẫn");
+  const ta1 = await taoMuc(w, "TA1", 1000);
+  const ta2 = await taoMuc(w, "TA2", 1200);
+  const ta3 = await taoMuc(w, "TA3", 1500);
+  await ganLoai(w, loai1, ta1, "2026-01-01");
+  await ganLoai(w, loai2, ta2, "2026-01-01");
+  const rieng = await ganRieng(w, ta3, "2026-10-01");
+  assert.equal((await ok(w.call("GET", `/api/pricing/ho-so/${ORG}/hoa-hong`, { as: KT }), 200)).json.xungDot, false, "có gắn riêng đang áp ⇒ không xung đột");
+  await ok(sua(w, "muc-rieng", rieng, { muc: ta3, tuNgay: "2026-11-01", lyDo: LY_DO }), 200, "huỷ–thay gắn riêng sang 01/11");
+  const khoi = (await ok(w.call("GET", `/api/pricing/ho-so/${ORG}/hoa-hong`, { as: KT }), 200)).json;
+  assert.deepEqual([khoi.mucRieng, khoi.xungDot], [null, true], "hôm nay không còn gắn riêng ⇒ cảnh báo hai chính sách bật lại");
+  assert.equal(khoi.ganRieng.find((g: { id: string }) => g.id === rieng)?.daHuy, true, "gắn đã huỷ chỉ nằm trong lịch sử");
 });
 
 test("cảnh báo «loại còn dòng riêng» khi gắn loại không tính dòng mức đã huỷ", async (t) => {
