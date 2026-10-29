@@ -1,0 +1,8 @@
+huỷ 200
+[BS20] Kế toán ghi lần thu 10.000 tiền mặt (người thu = Kế toán) vào đơn đã huỷ: 201
+[BS21] Toàn quyền ghi lần thu 5.000 tiền mặt vào đơn đã huỷ: 201
+      sau BS20–21: daThu 45000 conLai 0 du 0 coc.daTra 45000 coc.conGiu 45000
+thu 150.000 vào đơn 100.000 đã xác nhận: 201
+      đơn trả dư: conLai 0 du 50000
+[BS22] GET /api/ledger/coc — đơn trả dư (không huỷ) trong canChi: [] | trong donHuyGiuCoc: [] | các khoá: canChi,donHuyGiuCoc,conNguoiGiu,doiChieu
+exit=0

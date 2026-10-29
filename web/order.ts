@@ -701,9 +701,11 @@ function khoiCoc(order: Order, c: Api.CocDonDto): HTMLElement {
     kv("Lý do huỷ", `${c.lyDoNhan} · ${c.nhomNhan} · ngày ${ngayDayDu(c.ngayHuy)}`),
     kv(c.nhan, `${vnd(c.daTra)}${c.nhanPhu ? ` — ${c.nhanPhu}` : ""}`, "strong"),
   ];
+  // Chủ 28/10: SV-DH-13 «ghi đủ các dòng» (dư đã trả lại trước khi huỷ), SV-DH-04 chữ «Đã hoàn trả» — cùng chữ với thông báo gửi khách.
+  if (c.hoanTruocHuy > 0) rows.push(kv("Đã trả lại khách trước khi huỷ", vnd(c.hoanTruocHuy)));
   if (c.dangDoiChieu > 0) rows.push(kv("Đang đối chiếu", `${vnd(c.dangDoiChieu)} (khách khai chuyển khoản, chưa xác nhận)`));
   if (c.daDuyet > 0) rows.push(kv("Đã duyệt hoàn / chuyển", vnd(c.daDuyet)));
-  if (c.daChi > 0) rows.push(kv("Đã hoàn", vnd(c.daChi)));
+  if (c.daChi > 0) rows.push(kv("Đã hoàn trả", vnd(c.daChi)));
   if (c.daChuyen > 0) rows.push(kv("Đã chuyển sang đơn mới", vnd(c.daChuyen)));
   if (c.choChi > 0) rows.push(kv("Chờ chi", vnd(c.choChi)));
   rows.push(kv("Công ty còn giữ", vnd(c.conGiu), "strong"));

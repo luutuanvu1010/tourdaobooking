@@ -11,7 +11,7 @@ import { phanDoiCuaTin, type PhanDoiTin } from "./tin-doi-don.ts";
  * Tập hành động của view hộp thư `v_aud_order_event` (khai MỘT nơi; bài src/migrations-tin-cho-xac-nhan.test.ts buộc view = ĐÚNG tập này, và mọi hành động gõ cửa
  * màn hình khoá phải thuộc tập). `order_confirm_withdrawn` không thành tin (loaiTinDon trả null) — chỉ để list_don biết yêu cầu xác nhận đã khép (migration 0120).
  */
-export const HANH_DONG_TIN_DON = ["created", "order_claimed", "order_handler_changed", "confirmed", "cancelled", "order_cancelled_by_field", "order_confirm_requested", "order_confirm_withdrawn"] as const;
+export const HANH_DONG_TIN_DON = ["created", "order_claimed", "order_handler_changed", "confirmed", "cancelled", "order_cancelled_by_field", "order_confirm_requested", "order_confirm_withdrawn", "deposit_refund_approved"] as const;
 /**
  * ADR-0062 Đ1 — tập nguồn ĐÓNG của tin "đơn đổi sau xác nhận" (khai MỘT nơi; view `v_aud_order_change` lọc đúng tập này — bài migrations-tin-doi-don):
  * sửa thông tin chuyến, sửa / thêm / bỏ chặng, và MỌI hành động mang cờ `doiSoKhach` (dẫn từ AUDIT_ACTIONS — không gõ tay).
@@ -90,6 +90,7 @@ export function loaiTinDon(d: DongDon): LoaiTinDon | null {
     case "confirmed": return d.phuTrach.coNguoi ? "xac_nhan" : "cho_nhan";
     case "cancelled": case "order_cancelled_by_field": return "huy";
     case "order_confirm_requested": return "cho_xac_nhan"; // ADR-0136 Đ10: người xét duyệt biết có đơn chờ kiểm vé
+    case "deposit_refund_approved": return "duyet_hoan"; // ADR-0089 (NT-V7; chủ 28/10): người ghi chi hoàn biết có khoản đã duyệt chờ chi
     // ADR-0062 Đ1: dòng đổi thành tin khi đơn ĐÃ xác nhận trước đó VÀ hàm đọc nhận ra phần đổi (mốc / cửa sổ do locHopThongBao xét).
     default: return laHanhDongTinDoi(d.action) && d.sauXacNhan === true && phanCua(d) !== null ? "doi_sau_xac_nhan" : null;
   }
@@ -103,6 +104,8 @@ const CAU: Record<Exclude<LoaiTinDon, "doi_sau_xac_nhan">, { coTen: (ten: string
   xac_nhan: { coTen: (t, m) => `${t} vừa xác nhận đơn ${m}`, khongTen: (m) => `Đơn ${m} vừa được xác nhận` },
   huy: { coTen: (t, m) => `${t} vừa huỷ đơn ${m}`, khongTen: (m) => `Đơn ${m} vừa bị huỷ` },
   cho_xac_nhan: { coTen: (_t, m) => `Đơn ${m} đang chờ xác nhận`, khongTen: (m) => `Đơn ${m} đang chờ xác nhận` }, // ADR-0136 Đ10: không bao giờ kèm tên người gửi
+  // ADR-0089 NT-V7: không số tiền (nhật ký duyệt chỉ ghi lý do — khuôn tin điều chỉnh ADR-0115), chữ «thu trước» không «cọc» (chủ 14/10).
+  duyet_hoan: { coTen: (t, m) => `${t} đã duyệt hoàn thu trước đơn ${m} cho khách, chờ ghi chi hoàn`, khongTen: (m) => `Đơn ${m} đã được duyệt hoàn thu trước cho khách, chờ ghi chi hoàn` },
 };
 /** Tin "giao" đọc bởi chính người đang phụ trách đơn: "cho người khác" dễ làm họ tưởng mình không phải đi (B-01). Chọn theo `d.phuTrach` (người HIỆN TẠI —
  * nhật ký chỉ ghi tên) VÀ dòng phải là lần đổi người MỚI NHẤT của đơn (giao / tự nhận; kiểm độc lập F-1): dòng giao cũ hơn đã có người khác nhận sau. */
@@ -192,6 +195,18 @@ export function locHopThongBao(
     if (loai === "cho_nhan" && !duocThayTinDon(staff, true)) loai = "xac_nhan";
     if (!loai || loai === "doi_sau_xac_nhan") continue; // dòng đổi đã rẽ nhánh ở trên
     if (loai === "cho_xac_nhan" && d.yeuCauDaKhep === true) continue; // hết chờ (rút lại / quyết định) → không còn tin «đang chờ»; đơn rút lại lại là nháp riêng tư (ADR-0135 Đ6)
+    // ADR-0089 NT-V7 (chủ 28/10): «đã duyệt hoàn thu trước» → người giữ ô ghi chi hoàn (`payment.refund` — Kế toán, Toàn quyền), trừ người duyệt (đã bỏ ở đầu vòng),
+    // không tài khoản giữ quyền Đối tác; luôn «Của tôi» (việc của họ), mở thẳng trang đơn. Không qua nhanSuKien: người nhận theo Ô, không theo quan hệ với đơn (khuôn ADR-0136 Đ10).
+    if (loai === "duyet_hoan") {
+      if (!can(staff, "payment.refund") || holdsPartner(staff)) continue;
+      const coTenHoan = d.tenNguoiLam !== null && xemTenNguoiLam(staff);
+      tat.push({
+        id: d.id, loai, maDon: d.maDon, noiDung: null, nguoiGui: null, nhomNhan: null, quanTrong: false, daHieuLuc: null,
+        cau: coTenHoan ? CAU.duyet_hoan.coTen(d.tenNguoiLam!, d.maDon) : CAU.duyet_hoan.khongTen(d.maDon),
+        lienKet: `/order?id=${d.orderId}`, luc: d.luc, cuaToi: true, chuaDoc: d.luc > vao.docDenLuc, mo: false,
+      });
+      continue;
+    }
     // ADR-0136 Đ10: (1) «đơn chờ xác nhận» chỉ cho người giữ ô xét duyệt; (2) người LẬP đơn (kể cả Đối tác, Thực tập) nhận tin xác nhận / huỷ của ĐƠN MÌNH — mọi loại tin khác vẫn theo `duocThayTinDon`.
     const laTinCuaChu = d.ownerId === staff.id && (loai === "xac_nhan" || loai === "huy") && can(staff, "order.view", { ownerId: d.ownerId });
     if (loai === "cho_xac_nhan" ? !can(staff, "order.confirm.review") : !duocThayTinDon(staff, loai === "cho_nhan") && !laTinCuaChu) continue;
