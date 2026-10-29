@@ -2,15 +2,18 @@
 // (src/shared/hoa-hong-hien-thi.ts…) và máy chủ, `npm run test:e2e` canh HTTP, nhưng không bài nào mở trang. THAY cho các kịch bản cũ khoá chữ/chỗ cũ
 // (muc-ta-smoke, loai-doi-tac-smoke, so-dai-ly-smoke — phần trang /hoa-hong) từ 2026-10-26. Mười bước, mỗi khổ 390 và 1040 (bước 9 chỉ có ở 390):
 //   1) Kế toán: hai thẻ hiện; Tra nhanh theo TÊN đối tác → số + câu máy chủ; theo LOẠI → câu «Đang tra theo loại…»; «Xem dòng ↓» cuộn tới dòng (trong loại đang tra);
-//   2) Kế toán: «＋ Thêm mức» → «Một đối tác» → tạo → đối tác hiện ở mục «Đối tác có mức riêng…»;
+//   2) Kế toán: «＋ Thêm mức» → «Một đối tác» → tạo → đối tác hiện ở mục «Đối tác có mức riêng…»; ô «Tách theo loại khách» không bị kéo dài (≤ 32px, chủ dự án 29/10);
 //   3) Kế toán: «Đổi» dòng mức riêng bắt đầu trước hôm nay, Từ = hôm nay → dòng cũ ngừng hôm qua; Từ = hôm nay + 5 → dòng cũ ngừng hôm nay + 4 (kiểm bằng API);
 //   4) Đổi bị từ chối: dòng bị ngừng bằng API giữa lúc mở hộp và lúc bấm → hộp còn mở, câu của máy chủ hiện, «Huỷ» bấm được;
-//   5) Dòng sắp áp dụng: không nút, «chưa tới ngày»; dòng có ngày ngừng tương lai: «ngừng sau <ngày>», không nút;
+//   5) Dòng sắp áp dụng: không Đổi / Ngừng, «chưa tới ngày»; dòng có ngày ngừng tương lai: «ngừng sau <ngày>», không Đổi / Ngừng — cả hai CÓ «Sửa» (ADR-0148, 29/10);
 //  5b) (chủ dự án 28/10) Dòng bắt đầu HÔM NAY có «Đổi»: ô «Từ» mặc định và sớm nhất là ngày mai, kèm câu vì sao; đổi xong dòng cũ ngừng hết hôm nay, dòng mới từ ngày mai;
 //   6) Thẻ Thiết lập: «Có sẵn» (trước 28/10: «Loại gốc») không nút Tắt/Bật, có câu lý do; thêm loại; thêm chính sách; «Áp dụng cho loại…» với loại còn mức riêng → khung vàng;
 //   7) Bán hàng: cùng trang, không một nút ghi nào; Tra nhanh theo tên vẫn chạy;
 //   8) Tài khoản Đối tác: câu «Bạn không có quyền xem trang này.» (hoặc không vào được trang);
 //   9) (390) Hit-test: tâm nút «＋ Thêm mức» ở thanh đáy trả đúng nút đó, không phải nút nổi Trợ lý; hộp mở → nút Trợ lý ẩn;
+//  11) (ADR-0148, 29/10) «Sửa» ví dụ của chủ: dòng 2027 → 2028 chưa có đơn — hộp Sửa nói «sẽ thay hẳn», điền sẵn số + HAI ngày cũ, thiếu lý do thì báo dưới ô;
+//      lưu ⇒ dòng mới mang dòng cũ + lý do; bộ lọc mặc định giấu dòng huỷ, «Tất cả» hiện «Đã huỷ — thay bằng dòng khác», không nút;
+//  12) (ADR-0148, 29/10) Danh bạ — Quản trị mở hồ sơ đại lý có chính sách riêng: «Sửa» cạnh «Ngừng áp dụng»; chưa có đơn ⇒ «sẽ thay hẳn»; đổi chính sách + lý do ⇒ lưu;
 //  10) Chuỗi cấm không có trong chữ nhìn thấy: «Mức TA», «Đóng mức», «Kết thúc gắn», «Đang áp» (không theo «dụng»), «Sắp áp» (không theo «dụng»), «Loại gốc» (từ 28/10; trước đó «Có sẵn»), «Do Kế toán thêm».
 // Mỗi bước: không tràn ngang, ô gõ ≥ 16px, không chữ Anh / mã thô, axe-core (critical / serious ⇒ đỏ; thiếu AXE_JS ⇒ dừng ngay), chụp ảnh.
 // Môi trường: D1 tạm + wrangler dev + Chrome headless qua CDP (docs/evidence/2026-09-20-a2/kich-ban/a2-cdp.mjs) — Turnstile TẮT, không --remote, không gọi production.
@@ -45,7 +48,9 @@ const CHU_ANH = /\b(MT_[A-Z]{8}|LD_[A-Z]{8}|muc_trung|muc_tat|prc_tier_\w+|prc_\
 // 28/10: chủ chọn quay lại «Có sẵn» (bỏ khỏi danh sách cấm), «Loại gốc» thành chữ cấm.
 const CHU_CAM = [/Mức TA/, /Đóng mức/, /Kết thúc gắn/, /Đang áp(?! dụng)/, /Sắp áp(?! dụng)/, /Đã đóng/, /[Ll]oại gốc/, /Do Kế toán thêm/];
 // Nút ghi mà Bán hàng KHÔNG được thấy (chữ đầu của nút).
-const NUT_GHI = /^(＋|Thêm|Đổi|Ngừng|Tắt|Bật|Áp dụng)/;
+const NUT_GHI = /^(＋|Thêm|Đổi|Ngừng|Sửa|Tắt|Bật|Áp dụng)/;
+const CAU_SUA_HUY_THAY = "Chưa có đơn nào dùng mức này — sửa sẽ thay hẳn.";
+const NHAN_DA_HUY = "Đã huỷ — thay bằng dòng khác";
 
 const PHA_TRANG = PHA === "lo-nut"
   ? `{ const f = window.fetch.bind(window);
@@ -82,6 +87,9 @@ async function chup(p, ten, toanTrang = true) {
 }
 async function axeKiem(p, nhan) {
   if (!(await p.ev("typeof axe !== 'undefined'"))) await p.ev(`${AXE}\n;true`);
+  // Đo màu ở trạng thái CUỐI: hộp ở khổ máy tính hiện dần bằng opacity (app.css `.sheet`), và trong lượt chạy dài Chrome headless có lúc dừng hiệu ứng giữa chừng
+  // (29/10: hộp Sửa [1040] đứng ở opacity 0,85 ⇒ axe đo nền xám #eaebed, tỷ lệ 4,19). Kết thúc mọi hiệu ứng có hồi kết trước khi đo; hiệu ứng lặp vô hạn bỏ qua.
+  await p.ev("document.getAnimations().forEach((a) => { try { a.finish(); } catch {} }); true");
   const vi = await p.ev(`axe.run(document, { runOnly: ['wcag2a', 'wcag2aa', 'best-practice'], rules: { 'meta-viewport': { enabled: false } } }).then((r) => r.violations.map((v) => ({ impact: v.impact, id: v.id, nodes: v.nodes.slice(0, 4).map((n) => n.target.join(' ')) })))`);
   const nang = vi.filter((v) => v.impact === "critical" || v.impact === "serious");
   for (const v of vi.filter((x) => !nang.includes(x))) axeNhe.push(`${nhan}: ${v.impact} ${v.id} — ${v.nodes.join(" | ")}`);
@@ -140,6 +148,11 @@ try {
   const locTatCa = async (p) => {
     await p.ev(`(() => { const s = document.getElementById('hh-loc-tt'); s.value = 'tat-ca'; s.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
   };
+  const locMacDinh = async (p) => {
+    await p.ev(`(() => { const s = document.getElementById('hh-loc-tt'); s.value = 'ap'; s.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
+  };
+  /** Chữ của các nút đang hiện trong dòng (bỏ vùng chạm cả dòng của điện thoại — nút không chữ). */
+  const nutChu = (x) => x.nut.filter((t) => t !== "");
   const hang = (p, id) => p.ev(`(() => { const li = document.querySelector('li[data-dong-id="${id}"]'); if (!li) return null; return { chu: li.innerText, nut: [...li.querySelectorAll('button')].filter((b) => b.offsetParent !== null).map((b) => b.textContent.trim()), role: li.getAttribute('role') }; })()`);
   const cacDong = async (p) => (await goiTrongTrang(p, "GET", "/api/pricing/hoa-hong")).json.dong;
   /** Mở hộp «Đổi» của một dòng: máy tính bấm nút «Đổi» trong dòng; điện thoại chạm dòng rồi bấm «Đổi» trong hộp hai việc. */
@@ -192,6 +205,10 @@ try {
       await ruleMoi(L_G, HOM_NAY, { phamVi: "ALL" }); // còn mức riêng khi chính sách được áp dụng cho loại (bước 6)
       const L_H = await loaiMoi("Đại lý vé");
       await ruleMoi(L_H, HOM_NAY); // dòng bắt đầu hôm nay: có «Đổi», đổi từ ngày mai (bước 5b)
+      // Bước 11 (ADR-0148): ví dụ của chủ — dòng 2027-01-01 → 2028-01-01 chưa có đơn (chạy sau 2027 thì dời sang hôm nay + 30 → + 395, cùng hình dạng).
+      const [TU_I, DEN_I] = HOM_NAY < "2027-01-01" ? ["2027-01-01", "2028-01-01"] : [vnDate(30), vnDate(395)];
+      const L_I = await loaiMoi("Đại lý tàu");
+      const R_I = phai(await call(ACCOUNTS.accounting, "POST", "/api/pricing/hoa-hong", { doiTuong: { loai: "VAI", code: L_I.code }, phamVi: "SERVICE", catalogCode: "TD101", kieu: "RATE", tyLeBp: 1000, tuNgay: TU_I, denNgay: DEN_I }), 201, "mức 2027 → 2028").dong;
       const ds = phai(await call(ACCOUNTS.accounting, "GET", "/api/pricing/hoa-hong"), 200, "danh sách mức").dong;
       const dongCua = (l) => ds.find((r) => r.doiTuong.loai === "VAI" && r.doiTuong.code === l.code);
       const [R_A, R_B, R_C, R_D, R_E, R_F, R_H] = [L_A, L_B, L_C, L_D, L_E, L_F, L_H].map(dongCua);
@@ -217,6 +234,16 @@ try {
       const R3_DOI = dsDt.find((r) => r.catalogCode === "TD101");
       const R3_NGUNG = dsDt.find((r) => r.phamVi === "ALL");
       assert.ok(R3_DOI && R3_NGUNG && dsDt.length === 3, `ba mức riêng của đối tác: ${dsDt.length}`);
+      // Bước 12 (ADR-0148): một đại lý mang chính sách riêng từ hôm nay (chưa có đơn) — hai chính sách để đổi qua lại.
+      const ORG4 = await orgMoi(`Đại lý Sóng Xanh ${CHU} ${D}`, L_A);
+      const csMoi = async (ten, tyLeBp) => {
+        const code = phai(await call(ACCOUNTS.accounting, "POST", "/api/pricing/muc-ta", { ten }), 201, `chính sách ${ten}`).muc.code;
+        phai(await call(ACCOUNTS.accounting, "POST", `/api/pricing/muc-ta/${code}/dong`, { phamVi: "ALL", kieu: "RATE", tyLeBp, tuNgay: "2026-01-01" }), 201, `dòng của ${ten}`);
+        return code;
+      };
+      const CS_1 = await csMoi(`Riêng một ${CHU} ${D}`, 900);
+      const CS_2 = await csMoi(`Riêng hai ${CHU} ${D}`, 1100);
+      phai(await call(ACCOUNTS.accounting, "POST", `/api/pricing/ho-so/${ORG4.id}/muc-rieng`, { muc: CS_1, tuNgay: HOM_NAY }), 201, "chính sách riêng cho đại lý");
 
       // ======================= Kế toán =======================
       {
@@ -259,6 +286,12 @@ try {
             await p.waitFor(`!!document.querySelector('.sheet button[data-party="${ORG2.id}"]')`, "kết quả tìm có đối tác");
             await bam(p, `.sheet button[data-party="${ORG2.id}"]`);
             await p.ev("(() => { const s = document.getElementById('hh-hop-dich-vu'); s.value = 'TD101'; s.dispatchEvent(new Event('change', { bubbles: true })); return true; })()");
+            // (chủ dự án 29/10) ô «Tách theo loại khách» không bị luật chung `input { width: 100% }` kéo dài giữa dòng: bật ô, đo bề rộng, trả hộp về như cũ.
+            await p.ev("(() => { const k = document.getElementById('hh-hop-kieu'); k.value = 'PER_PAX'; k.dispatchEvent(new Event('change', { bubbles: true })); document.getElementById('hh-hop-theo-loai').click(); return true; })()");
+            const rongO = await p.ev("document.getElementById('hh-hop-theo-loai').getBoundingClientRect().width");
+            assert.ok(rongO > 0 && rongO <= 32, `ô «Tách theo loại khách» rộng ${rongO}px — bị kéo dài (thiếu lớp o-tick)`);
+            await chup(p, `05b-o-tach-theo-loai-${tenKho}`, false);
+            await p.ev("(() => { document.getElementById('hh-hop-theo-loai').click(); const k = document.getElementById('hh-hop-kieu'); k.value = 'RATE'; k.dispatchEvent(new Event('change', { bubbles: true })); return true; })()");
             await p.ev(setInput("document.getElementById('hh-hop-ty-le')", "12,5"));
             await p.waitFor("!document.querySelector('.sheet .hint[aria-live]').hidden", "câu «Sẽ tạo…» hiện");
             assert.match(await p.ev("document.querySelector('.sheet .hint[aria-live]').textContent"), /^Sẽ tạo: .*12,5\s*%.*không thời hạn\.$/);
@@ -365,7 +398,8 @@ try {
             assert.equal(moiC.tuNgay, vnDate(5), "dòng mới từ hôm nay + 5");
             await moLoai(p, L_C.code);
             const hCu2 = await hang(p, R_C.id);
-            assert.ok(hCu2.chu.includes("ngừng sau") && hCu2.nut.length === 0, `dòng cũ «ngừng sau…», không nút: ${JSON.stringify(hCu2)}`);
+            assert.ok(hCu2.chu.includes("ngừng sau") && !nutChu(hCu2).some((t) => t === "Đổi" || t === "Ngừng"), `dòng cũ «ngừng sau…», không Đổi / Ngừng: ${JSON.stringify(hCu2)}`);
+            if (tenKho !== "390") assert.deepEqual(nutChu(hCu2), ["Sửa"], "ADR-0148: dòng đã hẹn ngày ngừng vẫn có «Sửa»");
             await bocucSach(p, `bước 3 ${kho}`);
           });
 
@@ -387,12 +421,14 @@ try {
             await choDongHop(p);
           });
 
-          await buoc(`5${kho}`, "Dòng sắp áp dụng: không nút, «chưa tới ngày»; dòng có ngày ngừng tương lai: «ngừng sau <ngày>»", async () => {
+          await buoc(`5${kho}`, "Dòng sắp áp dụng: không Đổi / Ngừng, «chưa tới ngày»; dòng có ngày ngừng tương lai: «ngừng sau <ngày>»; cả hai có «Sửa» (ADR-0148)", async () => {
             await moLoai(p, L_E.code);
             await moLoai(p, L_F.code);
             const [e, f] = [await hang(p, R_E.id), await hang(p, R_F.id)];
-            assert.ok(e.chu.includes("chưa tới ngày") && e.chu.includes("Sắp áp dụng") && e.nut.length === 0 && e.role === null, `dòng sắp áp dụng: ${JSON.stringify(e)}`);
-            assert.ok(f.chu.includes("ngừng sau") && f.nut.length === 0 && f.role === null, `dòng ngừng sau: ${JSON.stringify(f)}`);
+            const khongDoiNgung = (x) => !nutChu(x).some((t) => t === "Đổi" || t === "Ngừng");
+            assert.ok(e.chu.includes("chưa tới ngày") && e.chu.includes("Sắp áp dụng") && khongDoiNgung(e) && e.role === null, `dòng sắp áp dụng: ${JSON.stringify(e)}`);
+            assert.ok(f.chu.includes("ngừng sau") && khongDoiNgung(f) && f.role === null, `dòng ngừng sau: ${JSON.stringify(f)}`);
+            if (tenKho !== "390") for (const x of [e, f]) assert.deepEqual(nutChu(x), ["Sửa"], `máy tính: chỉ nút «Sửa»: ${JSON.stringify(x)}`);
             await bocucSach(p, `bước 5 ${kho}`);
             await axeKiem(p, `dòng sắp / ngừng sau ${kho}`);
             await chup(p, `09-dong-sap-va-ngung-sau-${tenKho}`);
@@ -404,7 +440,7 @@ try {
             await moLoai(p, L_H.code);
             const h0 = await hang(p, R_H.id);
             assert.ok(h0 && !h0.chu.includes("ngày mai"), `không còn chữ xám «… từ ngày mai»: ${JSON.stringify(h0)}`);
-            if (tenKho !== "390") assert.deepEqual(h0.nut, ["Đổi", "Ngừng"], "máy tính: nút Đổi và Ngừng trong dòng");
+            if (tenKho !== "390") assert.deepEqual(h0.nut, ["Đổi", "Ngừng", "Sửa"], "máy tính: nút Đổi, Ngừng và Sửa (ADR-0148) trong dòng");
             await moDoi(p, R_H.id, tenKho);
             assert.deepEqual(await p.ev("(() => { const t = document.getElementById('hh-doi-tu-ngay'); return { v: t.value, min: t.min }; })()"), { v: MAI, min: MAI }, "ô Từ mặc định và sớm nhất là ngày mai");
             assert.ok(await p.ev(`[...document.querySelectorAll('.sheet .hint')].some((x) => x.textContent.trim() === ${JSON.stringify(CAU_DOI_TU_NGAY_MAI)})`), "câu vì sao mức mới từ ngày mai");
@@ -423,8 +459,54 @@ try {
             assert.equal(moiH?.tuNgay, MAI, "dòng mới từ ngày mai");
             await moLoai(p, L_H.code);
             const hCu = await hang(p, R_H.id);
-            assert.ok(hCu.chu.includes("ngừng sau") && hCu.nut.length === 0, `dòng cũ «ngừng sau…», không nút: ${JSON.stringify(hCu)}`);
+            assert.ok(hCu.chu.includes("ngừng sau") && !nutChu(hCu).some((t) => t === "Đổi" || t === "Ngừng"), `dòng cũ «ngừng sau…», không Đổi / Ngừng: ${JSON.stringify(hCu)}`);
             await bocucSach(p, `bước 5b ${kho}`);
+          });
+
+          await buoc(`11${kho}`, "Sửa (ADR-0148, ví dụ chủ): dòng 2027 → 2028 chưa có đơn — «sẽ thay hẳn», điền sẵn số + hai ngày, lý do bắt buộc; lưu ⇒ dòng cũ «Đã huỷ — thay bằng dòng khác», không nút", async () => {
+            await locMacDinh(p);
+            await moLoai(p, L_I.code);
+            const h0 = await hang(p, R_I.id);
+            assert.ok(h0 && h0.chu.includes("chưa tới ngày") && h0.chu.includes("Sắp áp dụng"), `dòng 2027 → 2028: ${JSON.stringify(h0)}`);
+            if (tenKho === "390") {
+              assert.equal(await bam(p, `li[data-dong-id="${R_I.id}"] .hh-m-vung`), true, "chạm dòng (dòng chưa tới ngày nay có vùng chạm vì có «Sửa»)");
+              await choHop(p, ".sheet .sheet-foot");
+              assert.deepEqual(await p.ev("[...document.querySelectorAll('.sheet .sheet-foot button')].map((b) => b.textContent.trim())"), ["Sửa"], "hộp việc của dòng chỉ có «Sửa»");
+              assert.equal(await clickTrong(p, ".sheet", "Sửa"), true, "nút Sửa trong hộp việc");
+            } else {
+              assert.deepEqual(nutChu(h0), ["Sửa"], "máy tính: nút «Sửa» trong dòng");
+              assert.equal(await p.ev(`(() => { const b = document.querySelector('li[data-dong-id="${R_I.id}"] button[aria-label^="Sửa:"]'); if (!b) return false; b.click(); return true; })()`), true, "nút Sửa của dòng");
+            }
+            await choHop(p, "#hh-sua-ly-do");
+            const o = await p.ev(`(() => ({ cau: document.querySelector('.sheet .hint[role=status]')?.textContent.trim() ?? '', tu: document.getElementById('hh-sua-tu-ngay').value,
+              denChon: document.getElementById('hh-sua-den-chon').value, den: document.getElementById('hh-sua-den-ngay').value, tyLe: document.getElementById('hh-sua-ty-le').value }))()`);
+            assert.deepEqual(o, { cau: CAU_SUA_HUY_THAY, tu: TU_I, denChon: "NGAY", den: DEN_I, tyLe: "10" }, "điền sẵn số và HAI ngày của dòng cũ");
+            await p.ev(setInput("document.getElementById('hh-sua-ty-le')", "12"));
+            assert.equal(await clickTrong(p, ".sheet", "Lưu sửa"), true);
+            await p.waitFor("(() => { const e = document.querySelector('.sheet [data-loi=lyDo]'); return !!e && !e.hidden; })()", "lỗi lý do dưới ô");
+            assert.equal(await p.ev("document.querySelector('.sheet [data-loi=lyDo]').textContent"), "Ghi lý do sửa (ít nhất 10 ký tự).");
+            assert.equal(await p.ev("!!document.querySelector('.sheet')"), true, "thiếu lý do: hộp còn mở, không gửi");
+            await p.ev(setInput("document.getElementById('hh-sua-ly-do')", "Nhập sai giá đại lý của tour"));
+            await bocucSach(p, `bước 11 hộp Sửa ${kho}`);
+            await axeKiem(p, `hộp Sửa ${kho}`);
+            await chup(p, `19-hop-sua-huy-thay-${tenKho}`, false);
+            assert.equal(await clickTrong(p, ".sheet", "Lưu sửa"), true);
+            await choOk(p, "Đã sửa mức.");
+            await choDongHop(p);
+            const dong = await cacDong(p);
+            const cu = dong.find((r) => r.id === R_I.id);
+            const moi = dong.find((r) => r.thayCho === R_I.id);
+            assert.deepEqual([cu.daHuy, moi?.tyLeBp, moi?.tuNgay, moi?.denNgay, moi?.lyDoSua], [true, 1200, TU_I, DEN_I, "Nhập sai giá đại lý của tour"], "dòng mới giữ hai ngày, mang lý do");
+            await moLoai(p, L_I.code);
+            assert.equal(await hang(p, R_I.id), null, "bộ lọc «Đang và sắp áp dụng» giấu dòng đã huỷ");
+            assert.ok((await hang(p, moi.id))?.chu.includes("12"), "dòng mới 12% hiện");
+            await locTatCa(p);
+            await moLoai(p, L_I.code);
+            const hHuy = await hang(p, R_I.id);
+            assert.ok(hHuy && hHuy.chu.includes(NHAN_DA_HUY) && hHuy.nut.length === 0, `dòng huỷ ở «Tất cả»: «${NHAN_DA_HUY}», không nút: ${JSON.stringify(hHuy)}`);
+            await bocucSach(p, `bước 11 ${kho}`);
+            await axeKiem(p, `dòng đã huỷ ${kho}`);
+            await chup(p, `20-dong-da-huy-${tenKho}`);
           });
 
           // Nhãn «Có sẵn» (chủ chọn 28/10, thay «Loại gốc») + câu lý do dưới danh sách.
@@ -505,6 +587,41 @@ try {
             await chup(p, `14-tat-ca-dong-mo-${tenKho}`);
           });
           if (p.consoleErrors.length) loi.push(`lỗi console (Kế toán ${kho}): ${p.consoleErrors.join(" | ").slice(0, 300)}`);
+        } finally {
+          p.close();
+        }
+      }
+
+      // ======================= Quản trị — Danh bạ (ADR-0148: Sửa chính sách riêng của một đại lý) =======================
+      {
+        const p = await moTrang(ACCOUNTS.admin, `/parties?id=${encodeURIComponent(ORG4.id)}`, vp);
+        try {
+          await buoc(`12${kho}`, "Danh bạ (Quản trị): chính sách riêng có «Sửa» cạnh «Ngừng áp dụng»; chưa có đơn ⇒ «sẽ thay hẳn»; đổi chính sách + lý do ⇒ lưu, chính sách riêng mới", async () => {
+            const SEC = "#hoa-hong-hien-hanh";
+            await p.waitFor(`(() => { const s = document.querySelector('${SEC}'); return !!s && !s.hidden && s.innerText.includes('Chính sách riêng'); })()`, "mục Hoa hồng hiện hành");
+            assert.deepEqual(await p.ev(`[...document.querySelectorAll('${SEC} .actions button')].map((b) => b.textContent.trim())`), ["Ngừng áp dụng", "Sửa"]);
+            assert.equal(await clickTrong(p, SEC, "Sửa"), true);
+            await choHop(p, "#hhhh-sua-ly-do");
+            assert.equal(await p.ev(`document.querySelector('${SEC} .hint[role=status]').textContent.trim()`), "Chưa có đơn nào dùng chính sách này — sửa sẽ thay hẳn.");
+            assert.deepEqual(await p.ev("(() => ({ muc: document.getElementById('hhhh-sua-muc').value, tu: document.getElementById('hhhh-sua-tu').value, den: document.getElementById('hhhh-sua-den').value }))()"),
+              { muc: CS_1, tu: HOM_NAY, den: "" }, "điền sẵn chính sách và ngày của chính sách riêng cũ");
+            await p.ev(`(() => { const s = document.getElementById('hhhh-sua-muc'); s.value = ${JSON.stringify(CS_2)}; s.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
+            await p.ev(setInput("document.getElementById('hhhh-sua-ly-do')", "Chọn nhầm chính sách khi tạo hồ sơ"));
+            const m = await p.ev(`(() => ({ sw: document.documentElement.scrollWidth, iw: innerWidth,
+              nho: [...document.querySelectorAll('${SEC} input, ${SEC} select')].filter((e) => e.offsetParent !== null && parseFloat(getComputedStyle(e).fontSize) < 16).map((e) => e.id || e.tagName),
+              chu: document.querySelector('${SEC}').innerText }))()`);
+            assert.ok(m.sw <= m.iw + 1, `tràn ngang: ${m.sw} > ${m.iw}`);
+            assert.deepEqual(m.nho, [], "ô gõ nhỏ hơn 16px");
+            assert.ok(!CHU_ANH.test(m.chu), `lộ chữ Anh / mã thô: ${CHU_ANH.exec(m.chu)?.[0]}`);
+            await axeKiem(p, `Danh bạ — Sửa chính sách riêng ${kho}`);
+            await chup(p, `21-danh-ba-sua-chinh-sach-rieng-${tenKho}`);
+            assert.equal(await clickTrong(p, SEC, "Lưu sửa"), true);
+            await p.waitFor(`(() => { const e = document.querySelector('${SEC} .alert.ok'); return !!e && e.textContent.trim() === 'Đã sửa chính sách riêng của đại lý này.'; })()`, "câu đã sửa");
+            const r = await goiTrongTrang(p, "GET", `/api/pricing/ho-so/${ORG4.id}/hoa-hong`);
+            assert.equal(r.json.mucRieng?.muc.code, CS_2, `chính sách riêng mới: ${JSON.stringify(r.json.mucRieng)}`);
+            await chup(p, `22-danh-ba-sau-sua-${tenKho}`);
+          });
+          if (p.consoleErrors.length) loi.push(`lỗi console (Quản trị Danh bạ ${kho}): ${p.consoleErrors.join(" | ").slice(0, 300)}`);
         } finally {
           p.close();
         }

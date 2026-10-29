@@ -67,6 +67,13 @@ export interface GopHoSoNoi {
   soDangNhap: () => Promise<{ partyId: string; phone: string }[]>;
 }
 
+/**
+ * ADR-0148 Đ1 — câu hỏi «đã có bản chụp chưa» của route Sửa / Đổi / Ngừng ở trang Hoa hồng (kế hoạch 2026-10-29 Task 3, Q1). `MUC` = một dòng mức (bản chụp trỏ đúng mã dòng).
+ * `GAN` = một gắn loại / gắn đối tác ↔ chính sách: bản chụp không ghi gắn nào đã dùng, nên hỏi «có bản chụp trỏ dòng mức của chính sách `tierCode`, ngày chụp trong [tu, den]»
+ * (gắn đối tác: thêm người hưởng = hồ sơ) — thừa chứ không thiếu.
+ */
+export type HoiDaChup = { loai: "MUC"; ruleId: string } | { loai: "GAN"; tierCode: string; tu: string; den: string | null; partyId: string | null };
+
 export interface Ctx<A extends Access = Access> {
   request: Request;
   env: Env;
@@ -212,6 +219,12 @@ export interface Ctx<A extends Access = Access> {
    */
   daThuCuaDon: (orderId: string) => Promise<number | null>;
   /**
+   * «DÒNG NÀY ĐÃ ĐƯỢC CHỤP CHƯA» (ADR-0148 Đ1) — do gốc lắp ráp tiêm (`orders.ngayChupGanNhat`; `pricing` KHÔNG đọc bảng `ord_`, không phụ thuộc `orders` — sẽ thành vòng; khuôn
+   * `mocToiThieu`). `{ ngay }` = ngày chụp gần nhất, `ngay: null` = chưa có bản chụp nào (mở đường huỷ hẳn dòng). `null` = môi trường không tiêm ⇒ route TỪ CHỐI KÍN (503),
+   * KHÔNG BAO GIỜ đoán «chưa chụp». MỘT truy vấn mỗi lần gọi.
+   */
+  hoiDaChup: (q: HoiDaChup) => Promise<{ ngay: string | null } | null>;
+  /**
    * TIN CHUYẾN (ADR-0052 D6.3) — dữ kiện chuyến theo id (mã, ngày, khoảng lái, đơn của suất vắng) do gốc lắp ráp tiêm (`van-chuyen.chuyenChoTinTheoId`;
    * thongbao không import van-chuyen). Một lần gọi = ba truy vấn mảng JSON (mảng chuyến rỗng: không truy vấn). `null` = môi trường không tiêm (khung thử cố ý)
    * ⇒ không có tin chuyến. `legIds` (MQ-07, ADR-0052 D6.2): thêm suất khách của các chặng đó + dữ kiện chuyến của chúng.
@@ -349,6 +362,8 @@ export interface AppOptions {
     nhapKeToanCuaDon: (env: Env, orderIds: readonly string[]) => Promise<Set<string>>;
     /** ADR-0136 Đ3. BẮT BUỘC trong mã chạy thật (`src/index.ts`: `daThuCuaDon` của billing); thiếu (khung thử cố ý) → router trả `null`. */
     daThuCuaDon: (env: Env, orderId: string) => Promise<number | null>;
+    /** ADR-0148 Đ1. BẮT BUỘC trong mã chạy thật (`src/index.ts`: `ngayChupGanNhat` của orders); thiếu (khung thử cố ý) → router trả `null` (route Sửa / Đổi / Ngừng của pricing 503). */
+    hoiDaChup: (env: Env, q: HoiDaChup) => Promise<string | null>;
     /** TIN CHUYẾN (ADR-0052 D6.3). BẮT BUỘC trong mã chạy thật (`src/index.ts`: `chuyenChoTinTheoId` của van-chuyen); thiếu (khung thử cố ý) → router trả `null`. */
     chuyenChoTin: (env: Env, q: HoiChuyenChoTin) => Promise<ChuyenChoTin>;
     /**
@@ -488,6 +503,7 @@ export function createApp(opts: AppOptions) {
       nhapKeToanCuaDon: (ids) =>
         typeof opts.injected.nhapKeToanCuaDon !== "function" ? Promise.resolve(null) : ids.length === 0 ? Promise.resolve(new Set<string>()) : opts.injected.nhapKeToanCuaDon(envH, ids),
       daThuCuaDon: (id) => (typeof opts.injected.daThuCuaDon !== "function" ? Promise.resolve(null) : opts.injected.daThuCuaDon(envH, id)),
+      hoiDaChup: (q) => (typeof opts.injected.hoiDaChup !== "function" ? Promise.resolve(null) : opts.injected.hoiDaChup(envH, q).then((ngay) => ({ ngay }))),
       chuyenChoTin: (q) =>
         // Không hỏi chuyến NÀO và không hỏi chặng nào → không truy vấn. Hỏi CHỈ chặng (MQ-07) vẫn phải gọi hàm thật — chuyến suy từ suất của chặng.
         typeof opts.injected.chuyenChoTin !== "function" ? Promise.resolve(null)

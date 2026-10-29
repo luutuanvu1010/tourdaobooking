@@ -184,6 +184,9 @@ export function khoR2Gia() {
  * - `khongDongBoChuyen: true` — ADR-0104 Đ2 (kế hoạch N9 "đổi cách dựng, không nới luật"): bỏ hàm tiêm máy đồng bộ chuyến ⇒ router dùng `dongBoDiThang` (lô = câu
  *   đơn, phản hồi `capNhatTay`). CHỈ cho bài cần TRẠNG THÁI GIỮ (suất của đơn huỷ / khách đã đổi còn trên chuyến) để kiểm lý do giữ hay nút tay — bài đó vẫn phải
  *   thấy lý do giữ.
+ * - `khongTiemDaChup: true` — ADR-0148 Đ1: bỏ hàm tiêm «đã chụp chưa» ⇒ route Sửa / Đổi / Ngừng của trang Hoa hồng PHẢI trả 503 (từ chối kín, không đoán «chưa chụp»).
+ *   `ngayChupGia: "<YYYY-MM-DD>"` — hàm tiêm GIẢ trả ngày chụp gần nhất cố định (mọi câu hỏi), CHỈ cho ca «đã có đơn chụp» khó dựng bằng đơn thật (vd đơn chụp hôm nay của
+ *   dòng bắt đầu hôm qua); ít nhất một ca mỗi đường đi đường thật (xác nhận đơn rồi Sửa). Mặc định: hàm thật của gốc lắp ráp.
  * - `chenGiuaDocVaGhi: async ({ x }) => …` — ADR-0104 Đ2 (NT-5 "thua cổng"): máy đồng bộ THẬT đọc + lập khúc, rồi hàm này chạy TRƯỚC khi route chạy lô (giả một
  *   người khác vừa đổi chuyến / đơn giữa lúc đọc và lúc ghi). Không thay luật nào.
  */
@@ -213,6 +216,11 @@ export function world(tuyChon = {}) {
   } else if (tuyChon.daThuGia !== undefined) {
     const so = tuyChon.daThuGia;
     ungDung = app.taoAppChoKhungThu({ daThuCuaDon: async () => so });
+  } else if (tuyChon.khongTiemDaChup) {
+    ungDung = app.taoAppChoKhungThu({ hoiDaChup: undefined });
+  } else if (tuyChon.ngayChupGia !== undefined) {
+    const ngay = tuyChon.ngayChupGia;
+    ungDung = app.taoAppChoKhungThu({ hoiDaChup: async () => ngay });
   } else if (tuyChon.khongTiemAnDanhPhien) {
     ungDung = app.taoAppChoKhungThu({ cauAnDanhPhien: undefined });
   } else if (tuyChon.khongTiemNhan) {

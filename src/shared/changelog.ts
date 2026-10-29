@@ -12,6 +12,28 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Nút «Sửa» mức hoa hồng, gắn loại theo chính sách và chính sách riêng (ADR-0148 Đ1, kế hoạch docs/superpowers/plans/2026-10-29-sua-muc-luot-1-ke-hoach.md).
+    // CÓ migration 0126 (dấu huỷ + dòng thay thế cho ba bảng mức) nên cần npm run trien-khai. Số 2.44 và ngày là TẠM (main có 2.43 tạm của phần sửa ô tích lúc nhập, 29/10) —
+    // phiên phát hành kiểm lại ở bước A.0 của docs/HANDOFF-N1.md.
+    version: "2.44",
+    date: "2026-10-29",
+    items: [
+      { kind: "moi", text: "Hoa hồng đối tác: mức, chính sách theo loại khách và chính sách riêng của đại lý có nút «Sửa» khi gõ nhầm, kèm ô ghi lý do sửa." },
+      { kind: "moi", text: "Mức chưa có đơn nào dùng thì «Sửa» thay hẳn mức cũ; mức đã có đơn dùng thì phần sửa áp từ ngày sau đơn cuối, đơn cũ giữ mức cũ." },
+      { kind: "doi", text: "Dòng mức bị thay bằng nút «Sửa» hiện chữ «Đã huỷ — thay bằng dòng khác» và không còn dùng để tính hoa hồng." },
+      { kind: "doi", text: "«Đổi» và «Ngừng» không cho đặt ngày kết thúc trước ngày của đơn đã dùng mức đó; mức đã có ngày kết thúc vẫn rút ngắn được." },
+    ],
+  },
+  {
+    // Sửa ô tích lệch (nhánh claude/pricing-age-discount-config-328499, 29/10). Chỉ giao diện, KHÔNG migration. Dòng này từng ở mục 2.41 rồi 2.42 nhưng cả hai bản
+    // lên production không có phần sửa (29/10 chủ triển khai 2.42 từ main 195e9d3e) nên tách thành mục riêng. Số 2.43 và ngày là TẠM — phiên phát hành kiểm lại ở bước A.0.
+    version: "2.43",
+    date: "2026-10-29",
+    items: [
+      { kind: "sua", text: "Ô tích «Tách theo loại khách» ở Hoa hồng đối tác và ô chọn ở Đơn hàng, Chính sách đăng nhập không còn nằm lệch giữa dòng." },
+    ],
+  },
+  {
     // Đóng lỗ TNV-G1 (ADR-0089; chủ 28/10 «vá luôn lỗi»): ô đếm + khối «Thu trước của đơn huỷ» trên Trang chủ Kế toán (NT-V6), tin «đã được duyệt hoàn» cho người
     // ghi chi hoàn (NT-V7), hai dòng tiền chủ chọn 28/10. CÓ migration 0125 (dựng lại view hộp thư) nên cần npm run trien-khai. Số 2.42 và ngày là TẠM (2.41 = nút «Đổi» đã vào main; main có
     // 2.40 tạm của tệp kèm vé lúc làm) — phiên phát hành kiểm lại ở bước A.0 của docs/HANDOFF-N1.md.

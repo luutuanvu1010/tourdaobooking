@@ -1,7 +1,7 @@
 // ADR-0117 lần 2, Task 4 — MỨC TA dùng chung: Kế toán / Quản trị / Toàn quyền tạo mức (bộ hoa hồng có tên), thêm dòng cho mức, gắn loại đối tác vào mức theo ngày (route /api/pricing/muc-ta*);
 // «Thử tra» và lúc Xác nhận đơn chọn mức ở bậc 7–9 (cùng MỘT `chonMuc`). Tiêu chí N-12, N-13, N-17, N-19, N-23, N-24 và ca vàng SV-TA-06 của kế hoạch
 // docs/superpowers/plans/2026-10-14-adr-0117-lan-2-ke-hoach.md. Chạy CẢ ứng dụng trên SQLite thật (tests/audit/harness.mjs). Khuôn: loai-doi-tac.test.ts (lần 1).
-import { test } from "node:test";
+import { mock, test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { world, seedStaff } from "../../../tests/audit/harness.mjs";
@@ -108,7 +108,10 @@ for (const [ten, as] of [["Kế toán", KT], ["Quản trị", ADM], ["Toàn quy�
   });
 }
 
-test("N-12: thêm dòng cho mức (dịch vụ 12%, mọi dịch vụ 10%), gắn loại ⇒ «Thử tra» bậc 7 rồi bậc 9 kèm TÊN mức; bản chụp lúc Xác nhận trỏ đúng dòng đích mức; GET liệt kê mức, dòng, gắn", async () => {
+test("N-12: thêm dòng cho mức (dịch vụ 12%, mọi dịch vụ 10%), gắn loại ⇒ «Thử tra» bậc 7 rồi bậc 9 kèm TÊN mức; bản chụp lúc Xác nhận trỏ đúng dòng đích mức; GET liệt kê mức, dòng, gắn", async (t) => {
+  // Đồng hồ giả 10:00 giờ VN: đơn chụp hôm nay thì dòng / gắn chỉ đóng được từ hôm nay (ADR-0148 Q4) — phần đóng chạy vào HÔM SAU.
+  mock.timers.enable({ apis: ["Date"], now: Date.parse("2027-03-10T03:00:00.000Z") });
+  t.after(() => mock.timers.reset());
   const w = setup();
   const loai = await themLoai(w, "Lễ tân khách sạn nhỏ");
   await ganHoSo(w, ORG, loai);
@@ -127,7 +130,7 @@ test("N-12: thêm dòng cho mức (dịch vụ 12%, mọi dịch vụ 10%), gắ
 
   const g = await ganOk(w, loai, ta1);
   assert.deepEqual(g.json.dongRieng, [], "loại sạch ⇒ không cảnh báo");
-  assert.deepEqual({ ...g.json.gan, id: "x" }, { id: "x", loai: { code: loai, ten: "Lễ tân khách sạn nhỏ" }, muc: { code: ta1, ten: "TA1" }, tuNgay: "2026-01-01", denNgay: null, conHieuLuc: true });
+  assert.deepEqual({ ...g.json.gan, id: "x" }, { id: "x", loai: { code: loai, ten: "Lễ tân khách sạn nhỏ" }, muc: { code: ta1, ten: "TA1" }, tuNgay: "2026-01-01", denNgay: null, conHieuLuc: true, daHuy: false, thayCho: null, lyDoSua: null });
   assert.deepEqual(nhatKy(w, "prc_role_tier_set").map((x) => x.detail), ["Lễ tân khách sạn nhỏ → TA1 · từ 2026-01-01"]);
 
   const t7 = await thuTra(w, ORG);
@@ -157,7 +160,8 @@ test("N-12: thêm dòng cho mức (dịch vụ 12%, mọi dịch vụ 10%), gắ
   const hh = await ok(w.call("GET", "/api/pricing/hoa-hong", { as: SALES }), 200);
   assert.deepEqual(hh.json.dong.find((d: { id: string }) => d.id === dDv).doiTuong, { loai: "MUC", code: ta1, ten: "TA1" });
 
-  // Đóng dòng dịch vụ của mức (route đóng dòng chung) ⇒ «Thử tra» rơi về bậc 9; nhật ký ghi tên mức, không «đối tác null».
+  // Hôm sau — đóng dòng dịch vụ của mức (route đóng dòng chung) tới hôm qua ⇒ «Thử tra» rơi về bậc 9; nhật ký ghi tên mức, không «đối tác null».
+  mock.timers.tick(86_400_000);
   await ok(dongDong(w, dDv, inDays(-1)), 200, "đóng dòng của mức");
   assert.match(nhatKy(w, "prc_commission_rule_closed")[0]!.detail, /^chính sách TA1 · dịch vụ ZA1 · 12% · đến \d{4}-\d{2}-\d{2}$/);
   assert.equal((await thuTra(w, ORG)).ketQua.bac, 9);
@@ -203,11 +207,11 @@ test("N-12: kiểm đầu vào ⇒ 400 / 404 / 409 rõ nghĩa tiếng Việt, kh
     assert.match(r.json.error.message, cau, ten);
   }
   assert.deepEqual(bang(), truoc, "không ghi dòng nào, không nhật ký");
-  // Kết thúc gắn hai lần: lần hai 409 stale.
+  // Kết thúc gắn hai lần cùng ngày: ADR-0148 cho rút ngắn, nên lần hai (tuần tự) là 400 «phải sớm hơn»; 409 «vừa được đóng» chỉ còn cho cuộc đua thật.
   await ok(ketThucGan(w, g.json.gan.id, "2026-12-31"), 200);
   const lai = await ketThucGan(w, g.json.gan.id, "2026-12-31");
-  assert.equal(lai.status, 409, lai.text);
-  assert.equal(lai.json.error.code, "stale");
+  assert.equal(lai.status, 400, lai.text);
+  assert.equal(lai.json.error.message, "Ngày kết thúc mới phải sớm hơn ngày kết thúc hiện tại (31/12/2026).");
   assert.equal(nhatKy(w, "prc_role_tier_closed").length, 1);
 });
 
@@ -333,7 +337,12 @@ test("N-17 (Ruling): hồ sơ mang HAI loại — gắn mức cho loại sạch 
 // ---------------------------------------------------------------------------------------------------------------------------------------------
 // N-13 — đổi mức của loại hoặc sửa số mức ⇒ đơn đã chụp giữ số (so bản chụp bằng SQL trước / sau); đơn sau theo mức mới (ca vàng SV-TA-03)
 // ---------------------------------------------------------------------------------------------------------------------------------------------
-test("N-13 / SV-TA-03: đơn A xác nhận khi loại gắn TA1 (10%); đổi sang TA3 (12%) ⇒ đơn B 240.000đ, A giữ 10%; sửa số TA3 (đóng dòng, thêm 15%) ⇒ đơn C 15%, A và B giữ nguyên", async () => {
+// ADR-0148 Q4: dòng / gắn đã có đơn chụp HÔM NAY chỉ đổi được từ NGÀY MAI (bản chụp phải nằm trong khoảng ngày dòng của nó) — nên ba đơn A, B, C xác nhận ở
+// BA NGÀY liên tiếp (đồng hồ giả `mock.timers`, 10:00 giờ VN), đổi chính sách / sửa số áp từ ngày hôm sau. Ý của ca vàng giữ nguyên.
+test("N-13 / SV-TA-03: đơn A xác nhận khi loại gắn TA1 (10%); hôm sau đổi sang TA3 (12%) ⇒ đơn B 240.000đ, A giữ 10%; hôm sau nữa sửa số TA3 (đóng dòng, thêm 15%) ⇒ đơn C 15%, A và B giữ nguyên", async (t) => {
+  mock.timers.enable({ apis: ["Date"], now: Date.parse("2027-03-10T03:00:00.000Z") });
+  t.after(() => mock.timers.reset());
+  const sangHomSau = () => mock.timers.tick(86_400_000);
   const w = setup();
   const loai = await themLoai(w, "Lễ tân");
   await ganHoSo(w, ORG, loai);
@@ -347,7 +356,8 @@ test("N-13 / SV-TA-03: đơn A xác nhận khi loại gắn TA1 (10%); đổi sa
   assert.deepEqual([chupA[0].commission_rate_bp, chupA[0].commission_rule_id], [1000, d1]);
   assert.equal(await hoaHongVanPhong(w, a), 200_000);
 
-  // Đổi mức: đóng gắn cũ tới hôm qua, mở gắn mới từ hôm nay.
+  // Hôm sau — đổi mức: đóng gắn cũ tới hôm qua (ngày đơn A chụp), mở gắn mới từ hôm nay.
+  sangHomSau();
   await ok(ketThucGan(w, g1.json.gan.id, inDays(-1)), 200);
   await ganOk(w, loai, ta3, vnHomNay());
   const b = await xacNhan(w, ORG);
@@ -357,7 +367,8 @@ test("N-13 / SV-TA-03: đơn A xác nhận khi loại gắn TA1 (10%); đổi sa
   assert.deepEqual(chup(w, a), chupA, "đơn A giữ nguyên bản chụp (SQL trước / sau)");
   assert.equal(await hoaHongVanPhong(w, a), 200_000, "đơn A vẫn 10%");
 
-  // Sửa số mức = đóng dòng cũ, thêm dòng mới.
+  // Hôm sau nữa — sửa số mức = đóng dòng cũ tới hôm qua (ngày đơn B chụp), thêm dòng mới từ hôm nay.
+  sangHomSau();
   await ok(dongDong(w, d3, inDays(-1)), 200);
   const d3b = await dongTyLe(w, ta3, 1500, { tuNgay: vnHomNay() });
   const c = await xacNhan(w, ORG);
