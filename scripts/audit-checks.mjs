@@ -13,9 +13,12 @@
 import { demRBil2, dsRBil2w, dsRORDDC1 } from "./audit-thuong-mai.mjs";
 
 const OPEN_ADMIN = `SELECT s.id FROM staff s JOIN stf_permission p ON p.staff_id = s.id AND p.permission_type_code = 'ADMIN' AND p.valid_to_at IS NULL WHERE s.active = 1`;
-const overlap = (table, keyCols, from) =>
+// `boHuy` (ADR-0148, migration 0126): bảng có dấu huỷ `voided_at` — dòng đã huỷ không giữ chỗ (cùng nghĩa trigger chồng ngày của bảng đó). Bảng khác không truyền.
+const overlap = (table, keyCols, from, boHuy = false) =>
   `SELECT count(*) FROM ${table} a JOIN ${table} b ON a.id < b.id AND ${keyCols.map((c) => `IFNULL(a.${c}, '') = IFNULL(b.${c}, '')`).join(" AND ")}
-   AND NOT (COALESCE(a.valid_to_date, '9999-12-31') < b.${from} OR a.${from} > COALESCE(b.valid_to_date, '9999-12-31'))`;
+   AND NOT (COALESCE(a.valid_to_date, '9999-12-31') < b.${from} OR a.${from} > COALESCE(b.valid_to_date, '9999-12-31'))${boHuy ? " AND a.voided_at IS NULL AND b.voided_at IS NULL" : ""}`;
+/** Dòng mức / gắn chưa huỷ (ADR-0148, migration 0126): R-PRC-2/5 chỉ xét dòng còn có thể áp — dòng huỷ không bao giờ áp, và không có ngày kết thúc sẽ báo giả mãi. */
+const CHUA_HUY = (x) => `${x}.voided_at IS NULL`;
 
 /**
  * Điều kiện "hồ sơ của dòng phân công `a` có tài khoản còn quyền để làm người phụ trách đang hiệu lực" (dùng chung cho R-DSP-2a/2b) — đúng tập quyền
@@ -162,6 +165,8 @@ const GHI_SAU_KHOA = (bang) =>
  * N4 dò ở bài chạy cả ứng dụng (tests/audit/nhat-ky-hang.mjs).
  */
 export const COT_N3_NHAT_KY = {
+  "fbk_attachment.content_hash": { kiem: "R-PD-1", chuanHoa: false }, // ADR-0144: băm tệp kèm vé hỗ trợ — nhật ký chỉ mang mã tệp
+  "fbk_attachment.storage_key": { kiem: "R-PD-1", chuanHoa: false }, // khoá kho R2 vé hỗ trợ — không bao giờ vào nhật ký
   "pty_attachment.content_hash": { kiem: "R-PD-1", chuanHoa: false }, // ADR-0123 (lát H-2 Gói 2): băm ảnh giấy tờ — nhật ký chỉ mang mã tệp
   "pty_attachment.storage_key": { kiem: "R-PD-1", chuanHoa: false }, // khoá kho R2 — không bao giờ vào nhật ký
   "pty_organization_document.document_number": { kiem: "R-PD-1", chuanHoa: false },
@@ -883,6 +888,15 @@ export const CHECKS = [
     code: "R-PTY-12",
     what: "tệp hồ sơ chờ xoá khỏi kho R2, hoặc tải lên dở dang quá 1 giờ (chạy lại ở POST /api/parties/tep-cho-xoa/chay-lai)",
     sql: `SELECT count(*) FROM pty_attachment WHERE (purged_at IS NOT NULL AND r2_deleted_at IS NULL)
+            OR (purged_at IS NULL AND stored_at IS NULL AND created_at < strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-1 hour'))`,
+    level: "warn",
+  },
+  // R-FBK-1 (ADR-0144 đ5; Hiến chương 5.16): như R-PTY-12 cho tệp kèm tin vé hỗ trợ (kho HO_TRO) — đã quyết xoá mà kho chưa xoá, hoặc tải dở dang quá 1 giờ. Mức warn:
+  // thấy được ở mỗi lần audit-invariants, chạy lại bằng POST /api/feedback/tep-cho-xoa/chay-lai; không chặn phát hành.
+  {
+    code: "R-FBK-1",
+    what: "tệp kèm vé hỗ trợ chờ xoá khỏi kho R2, hoặc tải lên dở dang quá 1 giờ (chạy lại ở POST /api/feedback/tep-cho-xoa/chay-lai)",
+    sql: `SELECT count(*) FROM fbk_attachment WHERE (purged_at IS NOT NULL AND r2_deleted_at IS NULL)
             OR (purged_at IS NULL AND stored_at IS NULL AND created_at < strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-1 hour'))`,
     level: "warn",
   },
@@ -1900,9 +1914,9 @@ export const CHECKS = [
     // `prc_role_tier_overlap`): một loại tối đa MỘT mức tại một ngày.
     code: "R-PRC-1",
     what: "không có hai dòng mức hoa hồng cùng đối tượng (hồ sơ, vai hoặc mức TA), cùng phạm vi và mã mà khoảng hiệu lực chồng nhau; không loại nào mang hai mức TA cùng một ngày; không hồ sơ nào mang hai mức TA gắn riêng cùng một ngày",
-    sql: `SELECT (${overlap("prc_commission_rule", ["target_party_id", "target_role_code", "target_tier_code", "scope", "catalog_code", "group_code"], "valid_from_date")})
-       + (${overlap("prc_role_tier", ["role_type_code"], "valid_from_date")})
-       + (${overlap("prc_party_tier", ["party_id"], "valid_from_date")})`,
+    sql: `SELECT (${overlap("prc_commission_rule", ["target_party_id", "target_role_code", "target_tier_code", "scope", "catalog_code", "group_code"], "valid_from_date", true)})
+       + (${overlap("prc_role_tier", ["role_type_code"], "valid_from_date", true)})
+       + (${overlap("prc_party_tier", ["party_id"], "valid_from_date", true)})`,
     level: "fail",
     note: "đặc tả sổ đại lý đợt 1 §9: một đối tượng (hồ sơ, vai hoặc mức TA), một phạm vi, một mã chỉ có MỘT mức tại mỗi ngày; một loại chỉ mang MỘT mức TA tại mỗi ngày (ADR-0117 lần 2); một hồ sơ chỉ mang MỘT mức TA gắn riêng tại mỗi ngày (ADR-0138) — Kế toán đóng một trong hai dòng",
   },
@@ -1912,9 +1926,9 @@ export const CHECKS = [
     // tắt mức chỉ chặn gắn mới và thêm dòng mới, dòng đang áp vẫn áp (kế hoạch «Thiết kế chốt», N-23; ruling điều phối Task 2 vòng sửa 1) — muốn ngừng áp thì đóng dòng / gắn.
     code: "R-PRC-2",
     what: "dòng mức hoa hồng còn hiệu lực theo vai mà vai đó không còn trong danh sách vai được hưởng đang bật, hoặc theo mức TA không tồn tại",
-    sql: `SELECT (SELECT count(*) FROM prc_commission_rule r WHERE r.target_role_code IS NOT NULL AND ${CHUA_HET_HAN("r")}
+    sql: `SELECT (SELECT count(*) FROM prc_commission_rule r WHERE r.target_role_code IS NOT NULL AND ${CHUA_HET_HAN("r")} AND ${CHUA_HUY("r")}
        AND r.target_role_code NOT IN (SELECT role_type_code FROM v_prc_beneficiary_role))
-     + (SELECT count(*) FROM prc_commission_rule r WHERE r.target_tier_code IS NOT NULL AND ${CHUA_HET_HAN("r")}
+     + (SELECT count(*) FROM prc_commission_rule r WHERE r.target_tier_code IS NOT NULL AND ${CHUA_HET_HAN("r")} AND ${CHUA_HUY("r")}
        AND r.target_tier_code NOT IN (SELECT code FROM prc_rate_tier))`,
     level: "fail",
     note: "đặc tả sổ đại lý đợt 1 §9: vai bị tắt mà dòng mức còn hiệu lực — Kế toán đóng dòng mức đó (hoặc bật lại vai); dòng trỏ mức TA không tồn tại (ADR-0117 lần 2) — đóng dòng đó. Mức TA đã tắt không báo (dòng đang áp vẫn áp)",
@@ -1948,9 +1962,9 @@ export const CHECKS = [
     // Tình trạng nghiệp vụ hợp lệ (công ty lữ hành thôi hợp tác) cần người rà soát — mức warn VĨNH VIỄN, không bao giờ đỏ kể cả --strict.
     code: "R-PRC-5",
     what: "dòng mức hoa hồng (hoặc mức TA gắn riêng — ADR-0138) còn hiệu lực hôm nay theo hồ sơ mà hồ sơ đó không còn mở vai được hưởng hoa hồng nào",
-    sql: `SELECT (SELECT count(*) FROM prc_commission_rule r WHERE r.target_party_id IS NOT NULL AND r.valid_from_date <= ${HOM_NAY_VN} AND ${CHUA_HET_HAN("r")}
+    sql: `SELECT (SELECT count(*) FROM prc_commission_rule r WHERE r.target_party_id IS NOT NULL AND r.valid_from_date <= ${HOM_NAY_VN} AND ${CHUA_HET_HAN("r")} AND ${CHUA_HUY("r")}
        AND NOT EXISTS (SELECT 1 FROM v_pty_open_role o JOIN v_prc_beneficiary_role b ON b.role_type_code = o.role_type_code WHERE o.party_id = r.target_party_id))
-      + (SELECT count(*) FROM prc_party_tier g WHERE g.valid_from_date <= ${HOM_NAY_VN} AND ${CHUA_HET_HAN("g")}
+      + (SELECT count(*) FROM prc_party_tier g WHERE g.valid_from_date <= ${HOM_NAY_VN} AND ${CHUA_HET_HAN("g")} AND ${CHUA_HUY("g")}
        AND NOT EXISTS (SELECT 1 FROM v_pty_open_role o JOIN v_prc_beneficiary_role b ON b.role_type_code = o.role_type_code WHERE o.party_id = g.party_id))`,
     level: "warn",
     note: "cảnh báo, không chặn phát hành (đặc tả sổ đại lý đợt 1 §9): hồ sơ này thôi vai được hưởng mà mức còn hiệu lực — Kế toán xem lại và đóng dòng mức / mức riêng nếu không còn hưởng",
@@ -1969,6 +1983,18 @@ export const CHECKS = [
          WHERE t.role_group = 'INTERNAL' OR (t.role_group = 'OTHER' AND t.is_partner_label = 0))`,
     level: "fail",
     note: "ADR-0117 lần 1: gỡ vai nội bộ / quyền nội bộ khỏi hồ sơ mang loại đối tác, và xử lý dòng sai trong danh sách vai được hưởng hoa hồng (dòng lậu chỉ do SQL gõ tay; chủ duyệt cách dọn)",
+  },
+  {
+    // R-PRC-7 (ADR-0148 Đ1, kế hoạch 2026-10-29 tiêu chí 3): mọi bản chụp AUTO (kể cả bản đã bị bản mới thay) trỏ một dòng mức CHƯA HUỶ có khoảng ngày CHỨA ngày chụp. Trigger
+    // `ord_service_terms_rule_valid` chỉ kiểm lúc chèn bản chụp; «Đổi» / «Ngừng» trước bản 2.44 (số tạm) đóng được dòng mức qua ngày đã chụp (lỗ có sẵn từ 2.40), và «Sửa» hỏi «đã chụp chưa»
+    // rồi mới huỷ bằng hai lệnh (pricing không đọc được orders trong cùng lô) — một bản chụp lọt vào giữa hai lệnh đó chỉ kiểm này bắt (kế hoạch Q7: «dựa vào bất biến»).
+    code: "R-PRC-7",
+    what: "bản chụp hoa hồng tự động trỏ dòng mức đã huỷ hoặc có khoảng ngày không chứa ngày chụp",
+    sql: `SELECT count(*) FROM ord_service_terms t WHERE t.source = 'AUTO' AND t.commission_rule_id IS NOT NULL
+       AND NOT EXISTS (SELECT 1 FROM prc_commission_rule r WHERE r.id = t.commission_rule_id AND ${CHUA_HUY("r")}
+         AND r.valid_from_date <= t.captured_date AND (r.valid_to_date IS NULL OR r.valid_to_date >= t.captured_date))`,
+    level: "fail",
+    note: "ADR-0148 Đ1: dòng mức bị đóng / huỷ qua ngày một đơn đã chụp — trình chủ dự án, không tự sửa dữ liệu",
   },
   {
     // R-ORD-T1 (đặc tả §9 sau kiểm độc lập N4): MỖI dòng dịch vụ của đơn đã xác nhận, xác nhận TỪ (mốc + 60 phút) trở đi, phải có ĐÚNG MỘT bản chụp hiện hành. Mốc = lúc áp migration

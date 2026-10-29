@@ -101,6 +101,11 @@ const BANG_STAFF: Record<string, MucBang | { DRIVER: MucBang; DRIVER_PARTNER: Mu
   "GET /api/feedback/teams/:id/members": { ma: 404, ly_do: "ADR-0127 Việc 4: ứng viên giao việc — nhóm lạ → 404 trước quyền; nhóm có thật thì quyenPhieu giaoViecChoNguoiKhac (tài xế không có tư cách nhóm ⇒ 403); chỉ id / tên / vai, không dữ liệu đơn" },
   "GET /api/feedback/:id/messages": { ma: 404, ly_do: "ADR-0127 Việc 4: tuyến làm mới — phiếu lạ / không đọc được → 404 trước khi xét since (như GET /api/feedback/:id); không ghi mốc đã xem" },
   "GET /api/feedback/queue": { ma: 400, ly_do: "ADR-0119: hàng đợi MỘT nhóm hỗ trợ — thiếu ?team ⇒ 400 trước khi đọc gì; có team thì quyenPhieu chỉ cho thành viên nhóm / Toàn quyền (tài xế không có tư cách nhóm ⇒ 403; tài khoản bên ngoài luôn rỗng tư cách — R6b)" },
+  // ADR-0144 (tệp kèm tin vé): mở tệp theo cùng quyền đọc vé; gỡ tệp và hàng chờ xoá kho chỉ Toàn quyền (ô feedback.triage none ở cả hai cột tài xế).
+  "GET /api/feedback/:id/tep/:tid": { ma: 404, ly_do: "ADR-0144 đ4: mở tệp kèm tin — vé lạ / không đọc được (quyenPhieu doc = false) → 404 TRƯỚC khi ghi nhật ký và đọc kho; thân là byte tệp, không dữ liệu đơn" },
+  "POST /api/feedback/:id/tep/:tid/go": { ma: 403, ly_do: "ADR-0144 đ6: gỡ tệp gửi nhầm chỉ Toàn quyền — can() chặn đầu thân, trước mọi truy vấn" },
+  "GET /api/feedback/tep-cho-xoa": { ma: 403, ly_do: "ADR-0144 đ5: hàng chờ xoá kho tệp vé chỉ Toàn quyền — can() chặn đầu thân" },
+  "POST /api/feedback/tep-cho-xoa/chay-lai": { ma: 403, ly_do: "như trên" },
   "GET /api/ledger/mine": { ma: 403, ly_do: "sổ tiền lượt 1: \"Sổ của tôi\" — ô ledger.view của DRIVER, DRIVER_PARTNER là none (tài xế không thu tiền khách — bản làm mới §2)" },
   "GET /api/locations": { ma: 200, ly_do: "tên địa điểm (không nhạy cảm; mọi tài khoản đăng nhập — người làm hiện trường cũng cần)" },
   "POST /api/orders/:id/handler-cancel": { ma: 403, ly_do: "huỷ đơn đang phụ trách — ô order.cancel của DRIVER là none (đơn có thật → 403, không dữ liệu)" },

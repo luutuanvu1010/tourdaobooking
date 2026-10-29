@@ -1,7 +1,8 @@
-# ADR-0146 — Service worker trả trang «Đang ngoài mạng» khi điều hướng hết bộ đệm
+# ADR-0150 — Service worker trả trang «Đang ngoài mạng» khi điều hướng hết bộ đệm
 
 - **Trạng thái:** **proposed** — AI soạn 2026-10-28 trong đợt 0 khung chung; chủ duyệt cùng cổng phát hành đợt 0. Chưa có hiệu lực cho tới khi chủ duyệt.
 - **Ngày:** 2026-10-28.
+- **Số:** soạn dưới số 0146; đổi thành 0150 ngày 2026-10-29 khi nhập `main` vào nhánh `dot-0-khung-chung` (chủ duyệt), vì `main` đã cấp 0146–0148 và 0149 đang dùng ở nhánh chưa gộp.
 - **Loại:** service worker (chạm mọi trang). **Cửa:** hai chiều — không migration, không đổi API, quyền, dữ liệu hay cách tính tiền; gỡ bằng một commit đảo và một lần triển khai (service worker `no-store`, máy nhận bản gỡ ở lần mở kế tiếp).
 - **Liên quan:** không đổi điều 1 và điều 2 của ADR-0035 (nạp sẵn mọi trang; dữ liệu `/api/*` không bao giờ vào bộ đệm của service worker). Đặc tả: `docs/superpowers/specs/2026-10-28-dot-0-khung-chung/DAC-TA.md` mục 6.
 

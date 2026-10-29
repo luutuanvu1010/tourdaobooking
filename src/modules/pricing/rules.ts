@@ -4,7 +4,7 @@
 import { parseUnit, payingGuests, type PaxCounts } from "../../shared/order-lines.ts";
 import { giaVonDong, hoaHongDong, lamTronNuaLen, tinhDongDoiTac, type BanChup, type DongPhanDoiTac, type KieuMuc, type LyDoThieu, type MucTheoLoai } from "../../shared/hoa-hong-dong.ts";
 import { nhanMuc } from "../../shared/so-dai-ly-nhan.ts";
-import { MOI_KHACH_TOI_DA } from "../../shared/so-dai-ly-nhap.ts"; // trần «Số tiền mỗi khách»: MỘT hằng cho giao diện và máy chủ (Task 14, nợ (a))
+import { MOI_KHACH_TOI_DA, docLyDoSua } from "../../shared/so-dai-ly-nhap.ts"; // trần «Số tiền mỗi khách» và lý do «Sửa» (ADR-0148): MỘT luật cho giao diện và máy chủ
 import { khoaTen } from "../../shared/khoa-ten.ts";
 import { addDays, ngayDayDu } from "../../shared/vn-date.ts";
 
@@ -256,16 +256,89 @@ export function kiemThanDoiMuc(raw: unknown): Ket<PhanGia> {
   if (["doiTuong", "phamVi", "catalogCode", "groupCode"].some((k) => b[k] !== undefined)) return { ok: false, message: "Đổi mức không đổi được đối tượng hay dịch vụ." };
   return docPhanGia(b);
 }
+// ===== ADR-0148 Đ1 (lượt 1): nút «Sửa»; «Đổi» / «Ngừng» không còn đóng dòng qua ngày một đơn đã chụp (kế hoạch 2026-10-29 Q2–Q5). «Đã chụp» do route hỏi `ctx.hoiDaChup`. =====
+const CAU_DA_HUY = "Dòng này đã huỷ — sửa dòng thay cho nó.";
+/**
+ * Q2: ngày sớm nhất mà một thay đổi được áp cho dòng = lớn nhất của hôm nay, ngày chụp gần nhất + 1 (đơn đã chụp giữ mức cũ — Hiến chương 5.6), ngày bắt đầu dòng cũ + 1 (dòng cũ
+ * còn ít nhất một ngày). Dòng cũ đóng hết ngày liền trước.
+ */
+export const ngaySomNhat = (v: { homNay: string; ngayChup: string | null; validFrom: string }): string =>
+  [v.homNay, addDays(v.validFrom, 1), ...(v.ngayChup === null ? [] : [addDays(v.ngayChup, 1)])].reduce((a, b) => (b > a ? b : a));
+type DongCoNgay = { validFrom: string; validTo: string | null; daHuy: boolean };
+export type XemTruocSua = { ok: true; duong: "HUY_THAY" } | { ok: true; duong: "TU_NGAY"; tuNgaySomNhat: string; denNgayToiDa: string | null } | { ok: false; error: string };
+/**
+ * Đường của «Sửa» cho dòng `cu` (Q3, Q5) — cho cả ô xem trước của giao diện lẫn `kiemSua`. Chưa đơn nào chụp ⇒ HUY_THAY (huỷ dòng cũ, thêm dòng mới); đã có đơn chụp ⇒ TU_NGAY
+ * (đóng dòng cũ, dòng mới từ ngày sớm nhất `tuNgaySomNhat`, bắt đầu không sau ngày kết thúc cũ `denNgayToiDa`). Dòng đã huỷ / đã hết hạn thì không sửa.
+ */
+export function xemTruocSua(v: { cu: DongCoNgay; ngayChup: string | null; homNay: string }): XemTruocSua {
+  if (v.cu.daHuy) return { ok: false, error: CAU_DA_HUY };
+  if (v.cu.validTo !== null && v.cu.validTo < v.homNay) return { ok: false, error: "Mức này đã hết hạn nên không sửa được. Thêm mức mới nếu cần." };
+  if (v.ngayChup === null) return { ok: true, duong: "HUY_THAY" };
+  const x = ngaySomNhat({ homNay: v.homNay, ngayChup: v.ngayChup, validFrom: v.cu.validFrom });
+  if (v.cu.validTo !== null && x > v.cu.validTo) {
+    return { ok: false, error: `Đã có đơn dùng mức này tới ngày ${ngayDayDu(v.ngayChup)}, mà mức kết thúc ngày ${ngayDayDu(v.cu.validTo)} — không còn ngày nào để sửa. Thêm mức mới bắt đầu sau ngày kết thúc.` };
+  }
+  return { ok: true, duong: "TU_NGAY", tuNgaySomNhat: x, denNgayToiDa: v.cu.validTo };
+}
+/** Lý do sửa: cắt khoảng trắng, 10–300 ký tự, không dãy số dài (cùng khuôn lý do «Ghi mức tay» — `orders/thuong-mai.ts` `kiemThanGhiTay`). */
+export type KetSua = { ok: true; duong: "HUY_THAY"; lyDo: string } | { ok: true; duong: "TU_NGAY"; denNgayCu: string; tuNgay: string; lyDo: string } | { ok: false; error: string };
+/**
+ * «Sửa» một dòng có ngày (mức, gắn loại, gắn đối tác — cùng luật, tiêu chí 5). `moi` = khoảng ngày của dòng mới (đã qua `docKhoangNgay`); `giongSo` = phần không phải ngày
+ * (số / cách tính / chính sách) giống dòng cũ — nơi gọi so. Thứ tự kiểm cố định: đường (đã huỷ / hết hạn / hết ngày) → lý do → ngày của đường → «chưa đổi gì».
+ */
+export function kiemSua(v: { cu: DongCoNgay; moi: { validFrom: string; validTo: string | null }; ngayChup: string | null; homNay: string; lyDo: unknown; giongSo: boolean }): KetSua {
+  const xt = xemTruocSua(v);
+  if (!xt.ok) return xt;
+  const ld = docLyDoSua(v.lyDo);
+  if (!ld.ok) return { ok: false, error: ld.message };
+  if (xt.duong === "HUY_THAY") {
+    // Q5: giữ đúng ngày bắt đầu cũ (phần ngày đã qua còn cho «Chụp bù» của đơn xác nhận trước đây), hoặc bắt đầu từ hôm nay trở đi.
+    if (v.moi.validFrom < v.homNay && v.moi.validFrom !== v.cu.validFrom) {
+      return { ok: false, error: `Ngày bắt đầu mới không được trước hôm nay (hoặc giữ đúng ngày bắt đầu cũ ${ngayDayDu(v.cu.validFrom)}).` };
+    }
+    if (v.giongSo && v.moi.validFrom === v.cu.validFrom && v.moi.validTo === v.cu.validTo) return { ok: false, error: "Chưa có gì thay đổi so với mức cũ." };
+    return { ok: true, duong: "HUY_THAY", lyDo: ld.value };
+  }
+  if (v.moi.validFrom < xt.tuNgaySomNhat) return { ok: false, error: `Đã có đơn dùng mức này — phần sửa chỉ áp được từ ngày ${ngayDayDu(xt.tuNgaySomNhat)}; đơn cũ giữ mức cũ.` };
+  if (xt.denNgayToiDa !== null && v.moi.validFrom > xt.denNgayToiDa) {
+    return { ok: false, error: `Mức cũ kết thúc ngày ${ngayDayDu(xt.denNgayToiDa)} — phần sửa phải bắt đầu trong khoảng ngày của mức cũ. Muốn thêm mức sau ngày đó thì dùng Thêm.` };
+  }
+  if (v.giongSo && v.moi.validTo === v.cu.validTo) return { ok: false, error: "Phần sửa giống hệt mức cũ." };
+  return { ok: true, duong: "TU_NGAY", denNgayCu: addDays(v.moi.validFrom, -1), tuNgay: v.moi.validFrom, lyDo: ld.value };
+}
+/**
+ * «Ngừng» một dòng có ngày (Q4): đặt hoặc RÚT NGẮN ngày kết thúc (dòng đã có ngày kết thúc chỉ rút ngắn). Dòng chưa đơn nào chụp: như trước — không trước ngày bắt đầu (cùng tự do
+ * với đường huỷ–thay của «Sửa»). Dòng đã có đơn chụp: không trước ngày liền trước `ngaySomNhat` — không đóng qua ngày đã chụp, không đóng lùi trước hôm qua.
+ */
+export function kiemNgung(v: { raw: unknown; cu: DongCoNgay; ngayChup: string | null; homNay: string }): Ket<string> {
+  if (v.cu.daHuy) return { ok: false, message: CAU_DA_HUY };
+  // ADR-0148 Đ1.3: chỉ rút ngắn ngày kết thúc CHƯA QUA — dòng đã hết hạn là lịch sử, không viết lại.
+  if (v.cu.validTo !== null && v.cu.validTo < v.homNay) return { ok: false, message: "Mức này đã hết hạn nên không ngừng được." };
+  const d = kiemNgayDong(v.raw, v.cu.validFrom);
+  if (!d.ok) return d;
+  if (v.cu.validTo !== null && d.value >= v.cu.validTo) return { ok: false, message: `Ngày kết thúc mới phải sớm hơn ngày kết thúc hiện tại (${ngayDayDu(v.cu.validTo)}).` };
+  if (v.ngayChup !== null) {
+    const san = addDays(ngaySomNhat({ homNay: v.homNay, ngayChup: v.ngayChup, validFrom: v.cu.validFrom }), -1);
+    if (d.value < san) return { ok: false, message: `Đã có đơn dùng mức này tới ngày ${ngayDayDu(v.ngayChup)} — ngày kết thúc sớm nhất là ${ngayDayDu(san)}.` };
+  }
+  return d;
+}
+
 /**
  * «Đổi» một dòng mức đang áp dụng (đặc tả A3): đóng dòng cũ hết ngày liền trước `tuNgay`, mở dòng mới từ `tuNgay`. `homNay` do nơi gọi truyền (luật thuần không gọi đồng hồ).
- * Thứ tự kiểm cố định: đã ngừng → chưa tới ngày áp dụng → ngày mới không hợp lệ / trước hôm nay → mức cũ bắt đầu không trước ngày mới.
+ * Thứ tự kiểm cố định: đã huỷ → đã ngừng → chưa tới ngày áp dụng → ngày mới không hợp lệ / trước hôm nay → mức cũ bắt đầu không trước ngày mới → (ADR-0148 Q4) ngày mới không sau
+ * ngày chụp gần nhất.
  */
-export function kiemDoi(v: { cu: { validFrom: string; validTo: string | null }; tuNgay: unknown; homNay: string }): { ok: true; denNgayCu: string; tuNgay: string } | { ok: false; error: string } {
+export function kiemDoi(v: { cu: { validFrom: string; validTo: string | null; daHuy?: boolean }; tuNgay: unknown; homNay: string; ngayChup: string | null }): { ok: true; denNgayCu: string; tuNgay: string } | { ok: false; error: string } {
   const { cu, tuNgay, homNay } = v;
+  if (cu.daHuy) return { ok: false, error: CAU_DA_HUY };
   if (cu.validTo !== null) return { ok: false, error: "Dòng này đã có ngày ngừng nên không đổi được. Thêm mức mới bắt đầu sau ngày ngừng." };
   if (cu.validFrom > homNay) return { ok: false, error: "Mức này chưa tới ngày áp dụng nên không đổi được." };
   if (!laNgay(tuNgay) || tuNgay < homNay) return { ok: false, error: "Ngày bắt đầu của mức mới không được trước hôm nay." };
   if (cu.validFrom >= tuNgay) return { ok: false, error: `Mức cũ bắt đầu từ ${ngayDayDu(cu.validFrom)} nên không đổi được từ ngày ${ngayDayDu(tuNgay)}. Dùng Ngừng cho mức cũ, rồi Thêm mức mới.` };
+  if (v.ngayChup !== null && tuNgay <= v.ngayChup) {
+    return { ok: false, error: `Đã có đơn dùng mức này tới ngày ${ngayDayDu(v.ngayChup)} — mức mới chỉ áp được từ ngày ${ngayDayDu(ngaySomNhat({ homNay, ngayChup: v.ngayChup, validFrom: cu.validFrom }))}.` };
+  }
   return { ok: true, denNgayCu: addDays(tuNgay, -1), tuNgay };
 }
 /** Thân `POST /api/pricing/hoa-hong`: { doiTuong: { loai: "VAI", code } | { loai: "DOI_TAC", partyId }, phamVi, catalogCode?, groupCode?, kieu, tyLeBp? | moiKhach?, tuNgay, denNgay?, ghiChu? }. */

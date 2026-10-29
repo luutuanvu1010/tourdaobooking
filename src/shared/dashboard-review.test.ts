@@ -68,6 +68,7 @@ test("reviewAlerts: Toàn quyền + dữ liệu có cả hai cảnh báo → tr�
     feedbackQueue: { count: 2, items: [{ id: "YC-0042", code: "YC-0042", kindName: "Báo lỗi" }, { id: "YC-0041", code: "YC-0041", kindName: "Đề xuất" }] },
     expiringDocs: null,
     doiChieu: null,
+    thuTruoc: null,
   });
 });
 
@@ -151,6 +152,7 @@ test("reviewAlerts (ADR-0038): Quản trị KHÔNG thấy cảnh báo góp ý D�
     feedbackQueue: null,
     expiringDocs: null,
     doiChieu: null,
+    thuTruoc: null,
   });
   assert.equal(reviewAlerts(ADMIN, { catalogItems: [], tickets }), null, "chỉ có góp ý → ẩn cả khối với Quản trị");
 });
@@ -158,7 +160,7 @@ test("reviewAlerts (ADR-0038): Quản trị KHÔNG thấy cảnh báo góp ý D�
 // Bản vẽ "Trang chu Quan tri.dc.html" (1.73): "Cần xem lại" gom thêm giấy tờ sắp hết hạn (số `count` của GET /api/van-chuyen/sap-het-han — xe + tài xế).
 test("reviewAlerts 1.73: giấy tờ sắp hết hạn — Quản trị / Toàn quyền (ô vehicle.manage) thấy; một mình nó cũng đủ hiện khối; 0 hoặc chưa tải → không dòng", () => {
   for (const w of [ADMIN, SUPER_ADMIN]) {
-    assert.deepEqual(reviewAlerts(w, { catalogItems: [], tickets: [], expiringCount: 2 }), { catalogConflict: null, feedbackQueue: null, expiringDocs: { count: 2 }, doiChieu: null });
+    assert.deepEqual(reviewAlerts(w, { catalogItems: [], tickets: [], expiringCount: 2 }), { catalogConflict: null, feedbackQueue: null, expiringDocs: { count: 2 }, doiChieu: null, thuTruoc: null });
     assert.equal(reviewAlerts(w, { catalogItems: [], tickets: [], expiringCount: 0 }), null);
     assert.equal(reviewAlerts(w, { catalogItems: [], tickets: [], expiringCount: null }), null);
     assert.equal(reviewAlerts(w, { catalogItems: [], tickets: [] }), null);
@@ -172,10 +174,26 @@ test("reviewAlerts 1.73: Bán hàng / Kế toán / Nhân sự không nhận dòn
 test("reviewAlerts ADR-0120: Kế toán (ô ledger.view) thấy ĐÚNG dòng khoản đang đối chiếu quá hạn, không thấy dòng nào khác; Bán hàng / Quản trị không nhận dòng này", () => {
   const items = [catalogItem("CANO_RIENG", [{ code: "adult", base: 2_400_000, current: 2_600_000, override: 2_500_000 }])];
   const du = { catalogItems: items, tickets: [ticket("YC-1", "NEW")], expiringCount: 3, doiChieuQuaHan: 2 };
-  assert.deepEqual(reviewAlerts(ACCOUNTING, du), { catalogConflict: null, feedbackQueue: null, expiringDocs: null, doiChieu: { count: 2 } });
+  assert.deepEqual(reviewAlerts(ACCOUNTING, du), { catalogConflict: null, feedbackQueue: null, expiringDocs: null, doiChieu: { count: 2 }, thuTruoc: null });
   assert.equal(reviewAlerts(ACCOUNTING, { ...du, doiChieuQuaHan: 0 }), null, "không khoản nào quá hạn ⇒ ẩn khối");
   assert.equal(reviewAlerts(ACCOUNTING, null), null);
   assert.equal(reviewAlerts(SALES, du), null, "Bán hàng không có ô ledger.view any");
   assert.equal(reviewAlerts(ADMIN, du)?.doiChieu ?? null, null, "Quản trị không giữ ô ledger.view any");
   assert.deepEqual(reviewAlerts(SUPER_ADMIN, du)?.doiChieu, { count: 2 }, "Toàn quyền giữ cả hai");
+});
+
+// ADR-0089 đ5, đ9c, NT-V6 (đóng TNV-G1, 28/10): ô đếm thu trước của đơn huỷ trên Trang chủ Kế toán — số từ GET /api/ledger/coc/dem (cùng lời gọi dòng đối chiếu).
+test("reviewAlerts NT-V6: Kế toán / Toàn quyền (ô ledger.view any) nhận số thu trước đơn huỷ; số 0 hết → không dòng; Bán hàng / Quản trị không nhận", () => {
+  const dem = { canChi: 2, duyetQua7Ngay: 1, sapHetHan: 1, conNguoiGiu: 3 };
+  const du = { catalogItems: [], tickets: [], thuTruoc: dem };
+  assert.deepEqual(reviewAlerts(ACCOUNTING, du), {
+    catalogConflict: null, feedbackQueue: null, expiringDocs: null, doiChieu: null, thuTruoc: { canChi: 2, qua7Ngay: 1, sapHetHan: 1, conNguoiGiu: 3 },
+  });
+  assert.deepEqual(reviewAlerts(SUPER_ADMIN, du)?.thuTruoc, { canChi: 2, qua7Ngay: 1, sapHetHan: 1, conNguoiGiu: 3 });
+  assert.equal(reviewAlerts(ACCOUNTING, { ...du, thuTruoc: { canChi: 0, duyetQua7Ngay: 0, sapHetHan: 0, conNguoiGiu: 0 } }), null, "không việc nào ⇒ ẩn khối");
+  assert.equal(reviewAlerts(ACCOUNTING, { ...du, thuTruoc: null }), null, "chưa tải được ⇒ không dòng (không vẽ số giả)");
+  assert.deepEqual(reviewAlerts(ACCOUNTING, { ...du, thuTruoc: { canChi: 0, duyetQua7Ngay: 0, sapHetHan: 0, conNguoiGiu: 1 } })?.thuTruoc, { canChi: 0, qua7Ngay: 0, sapHetHan: 0, conNguoiGiu: 1 }, "một số > 0 là đủ");
+  assert.equal(reviewAlerts(SALES, du), null, "Bán hàng không có ô ledger.view any");
+  assert.equal(reviewAlerts(ADMIN, du), null, "Quản trị không giữ ô ledger.view any — chỉ có dòng thu trước thì ẩn cả khối");
+  assert.deepEqual(reviewAlerts(ACCOUNTING, { ...du, doiChieuQuaHan: 2 })?.doiChieu, { count: 2 }, "đi cùng dòng đối chiếu");
 });

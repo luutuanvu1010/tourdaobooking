@@ -155,7 +155,10 @@ console.log(`✓ 4) Xác nhận ⇒ 200; hoa hồng ${hh1.toLocaleString("vi-VN"
 r = await call(ACC, "POST", `/api/pricing/hoa-hong/${MUC_VAI.id}/dong`, { denNgay: HOM_NAY });
 assert.equal(r.status, 200, JSON.stringify(r.body));
 assert.equal(r.body.dong.denNgay, HOM_NAY);
-assert.equal((await call(ACC, "POST", `/api/pricing/hoa-hong/${MUC_VAI.id}/dong`, { denNgay: HOM_NAY })).status, 409, "đóng lần hai ⇒ 409");
+// ADR-0148 Đ1: «Ngừng» nay rút ngắn được ngày kết thúc chưa qua, nên đóng lần hai CÙNG ngày (tuần tự) là 400 «phải sớm hơn»; 409 chỉ còn cho cuộc đua thật.
+r = await call(ACC, "POST", `/api/pricing/hoa-hong/${MUC_VAI.id}/dong`, { denNgay: HOM_NAY });
+assert.equal(r.status, 400, `đóng lần hai cùng ngày ⇒ 400: ${JSON.stringify(r.body)}`);
+assert.match(r.body.error.message, /^Ngày kết thúc mới phải sớm hơn ngày kết thúc hiện tại/);
 r = await call(ACC, "POST", "/api/pricing/hoa-hong", { doiTuong: { loai: "DOI_TAC", partyId: DL.id }, phamVi: "ALL", kieu: "RATE", tyLeBp: 1500, tuNgay: HOM_NAY, ghiChu: "Mức riêng E2E" });
 assert.equal(r.status, 201, JSON.stringify(r.body));
 const MUC_RIENG = r.body.dong;
@@ -169,7 +172,7 @@ const don2 = await lapDon({ bookerPartyId: DL.id });
 tm = await thuongMai(A, don2.id);
 assert.equal(tm.vanPhong.duKien, true);
 khopTyLe(tm.vanPhong, thanhTienDong(don2), 1500, "đơn nháp mới sau khi đổi bảng");
-console.log("✓ 5) Đóng mức đến hôm nay ⇒ 200 (lần hai 409); thêm mức riêng 15% cho đại lý; đơn đã xác nhận vẫn 10% (bản chụp, A-3); Thử tra ra bậc 3; đơn nháp mới dự kiến 15%");
+console.log("✓ 5) Đóng mức đến hôm nay ⇒ 200 (lần hai cùng ngày 400); thêm mức riêng 15% cho đại lý; đơn đã xác nhận vẫn 10% (bản chụp, A-3); Thử tra ra bậc 3; đơn nháp mới dự kiến 15%");
 
 // ---- 6) Đơn khách lẻ (không bên đặt) xác nhận ⇒ không người hưởng
 const don3 = await lapDon();

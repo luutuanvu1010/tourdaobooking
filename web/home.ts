@@ -12,6 +12,7 @@ import { feedbackBadge, initShell } from "./shell";
 import { demSapHetHan, layDanhSachSapHet } from "./vc-dem";
 import { canSeeReviewAlerts, reviewAlerts, type ReviewAlerts } from "../src/shared/dashboard-review";
 import { tieuDeDemDoiChieu } from "../src/shared/doi-chieu-hien-thi";
+import { coKhoiThuTruoc, danhSachThuTruoc, dongThuTruoc } from "../src/shared/thu-truoc-hien-thi";
 import { coKhoiChoDoiChieu, nhanKhoanDoiChieu, nutXacNhanDoiChieu } from "../src/shared/ben-kia-hien-thi";
 import { PERMISSION_LABEL, can, holdsPartner } from "../src/shared/permissions";
 import { homeRedirect } from "../src/shared/start-page";
@@ -286,6 +287,7 @@ async function loadReview(staff: Staff, taiMoi: boolean): Promise<{ alerts: Revi
     tickets: feedbackRes.status === "fulfilled" ? (feedbackRes.value?.tickets ?? []) : [],
     expiringCount: sapHetRes.status === "fulfilled" ? sapHetRes.value : null,
     doiChieuQuaHan: doiChieuRes.status === "fulfilled" ? (doiChieuRes.value?.doiChieuQua3Ngay ?? null) : null,
+    thuTruoc: doiChieuRes.status === "fulfilled" ? (doiChieuRes.value ?? null) : null, // ADR-0089 NT-V6: cùng lời gọi /api/ledger/coc/dem
   });
   return { alerts, loi: catalogRes.status === "rejected" || sapHetRes.status === "rejected" };
 }
@@ -321,7 +323,7 @@ async function taiDoiChieu(staff: Staff): Promise<void> {
   }
   let ds: Api.CocListResponse["doiChieu"];
   try {
-    ds = (await api<Api.CocListResponse>("/api/ledger/coc")).doiChieu;
+    ds = (await layCoc()).doiChieu;
   } catch {
     return; // lỗi mạng: giữ nguyên khối đang hiện (lần làm mới sau thử lại); dòng «Cần xem lại» vẫn đếm khoản quá hạn
   }
@@ -357,6 +359,50 @@ async function taiDoiChieu(staff: Staff): Promise<void> {
   khoi.hidden = false;
 }
 
+/** Hai khối cùng đọc `GET /api/ledger/coc` trong một lượt tải: giữ lời hỏi ĐANG CHẠY (không nhớ kết quả — bấm «Bên kia đã nhận» xong tải lại phải hỏi mới). */
+let cocDangHoi: Promise<Api.CocListResponse> | null = null;
+function layCoc(): Promise<Api.CocListResponse> {
+  cocDangHoi ??= api<Api.CocListResponse>("/api/ledger/coc").finally(() => {
+    cocDangHoi = null;
+  });
+  return cocDangHoi;
+}
+
+// ---- «Thu trước của đơn huỷ» (ADR-0089 đ5, đ9c, đ11; NT-V6 — đóng TNV-G1) ------------------------------------------------------------------------------------
+// Màn sổ Kế toán còn chờ bản vẽ (đ9c): trong lúc chờ, Kế toán đi từ ô đếm («Cần xem lại») xuống khối này rồi mở từng đơn — nút Ghi chi hoàn / Chuyển ở trang đơn.
+// Nguồn: `GET /api/ledger/coc` (canChi, donHuyGiuCoc sắp hết hạn, conNguoiGiu); chữ ở src/shared/thu-truoc-hien-thi.ts. Cổng: ledger.view any, không quyền Đối tác.
+const THU_TRUOC_TOI_DA = 8;
+
+async function taiThuTruoc(staff: Staff): Promise<void> {
+  const khoi = byId("dash-thu-truoc");
+  if (!coKhoiThuTruoc(staff)) {
+    khoi.hidden = true;
+    return;
+  }
+  let muc: ReturnType<typeof danhSachThuTruoc>;
+  try {
+    muc = danhSachThuTruoc(await layCoc(), { tien: vnd, ngay: ngayNganHomNay });
+  } catch {
+    return; // lỗi mạng: giữ nguyên khối đang hiện; dòng «Cần xem lại» vẫn có số (lời gọi riêng)
+  }
+  if (muc.length === 0) {
+    khoi.hidden = true;
+    return;
+  }
+  const dong = muc.slice(0, THU_TRUOC_TOI_DA).map((m) =>
+    h(
+      "li",
+      { "data-order-id": m.orderId },
+      h("a", { href: `/order?id=${encodeURIComponent(m.orderId)}` }, m.maDon),
+      ` · ${m.chu}`,
+      m.canhBao ? h("span", { class: "dd-canh-xn is-do" }, ` · ${m.canhBao}`) : null,
+    ),
+  );
+  const them = muc.length > THU_TRUOC_TOI_DA ? h("p", { class: "muted" }, `Còn ${muc.length - THU_TRUOC_TOI_DA} việc nữa — mở từng đơn ở Đơn hàng.`) : null;
+  replaceChildren(byId("dash-thu-truoc-list"), h("ul", { class: "pay-list" }, ...dong), them);
+  khoi.hidden = false;
+}
+
 /** Số dòng "Cần xem lại" đang hiện — dòng tóm tắt dưới lời chào máy tính ("N việc cần xem lại", bản vẽ 1.73). */
 let soViecXemLai = 0;
 
@@ -380,6 +426,10 @@ function renderReview(alerts: ReviewAlerts | null): void {
   if (alerts.doiChieu) {
     // Task 12: dòng trỏ xuống khối «Chờ đối chiếu» của chính Trang chủ khi người xem có khối đó (ledger.write, không Đối tác); còn lại mở danh sách đơn như cũ.
     rows.push(reviewRow("dash-review-icon-sand", "money", coKhoiDoiChieu(staffDangXem) ? "#dash-doi-chieu" : "/orders", tieuDeDemDoiChieu(alerts.doiChieu.count), "Đối chiếu rồi bấm “Xác nhận đã nhận”, “Bên kia đã nhận” hoặc huỷ khoản thu"));
+  }
+  // ADR-0089 NT-V6: thu trước của đơn huỷ — dòng trỏ xuống khối «Thu trước của đơn huỷ» khi người xem có khối đó; còn lại mở danh sách đơn.
+  if (alerts.thuTruoc) {
+    for (const d of dongThuTruoc(alerts.thuTruoc)) rows.push(reviewRow("dash-review-icon-sand", "money", coKhoiThuTruoc(staffDangXem) ? "#dash-thu-truoc" : "/orders", d.tieuDe, d.phu));
   }
   if (alerts.feedbackQueue) {
     const f = alerts.feedbackQueue;
@@ -827,6 +877,7 @@ async function taiDashboard(staff: Staff, lamMoi = false, taiMoi = false): Promi
     const lay = !ngoaiDaTai && khoiHien();
     staffDangXem = staff;
     void taiDoiChieu(staff);
+    void taiThuTruoc(staff);
     // ADR-0136 Đ9: đơn chờ xác nhận — gọi mọi khổ (điện thoại cũng cần số cho dải riêng); chỉ người giữ ô xét duyệt (`nguonCanTai`). Lỗi → null ("—"), không phải 0.
     const layDonCho = canTai.includes("donCho")
       ? api<Api.DonChoXacNhanResponse>("/api/orders/cho-xac-nhan").then((r) => ({ count: r.don.length, quaHan: r.don.filter((d) => d.quaHan).length }), () => null)

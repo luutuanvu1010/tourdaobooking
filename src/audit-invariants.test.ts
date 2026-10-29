@@ -1095,6 +1095,29 @@ test("R-PTY-12 vòng đời 'tải lỗi': quyết xoá khi stored_at còn rỗn
   assert.equal(violations(db, c), 0, "đã xoá khỏi kho — hết cảnh báo dù stored_at rỗng");
 });
 
+test("R-FBK-1 (ADR-0144 đ5, Hiến chương 5.16): tệp kèm vé chờ xoá khỏi kho hoặc tải dở dang quá 1 giờ — mức warn; đã lưu / đã xoá khỏi kho / vừa tạo ⇒ không tính", () => {
+  const c = one("R-FBK-1");
+  assert.equal(c.level, "warn");
+  const db = build();
+  db.prepare(`INSERT INTO fbk_ticket (id, seq, kind_code, status_code, title, context, submitter_id, client_request_id, last_activity_at, created_at, updated_at, team_id)
+    VALUES ('v-tep', 1, 'QUESTION', 'NEW', 't', '{}', 's-an', '99999999-9999-4999-8999-999999999999', ?, ?, ?, 'fbk-team-ky-thuat')`).run(T1, T1, T1);
+  db.prepare("INSERT INTO fbk_message (id, ticket_id, author_id, body, internal, created_at, updated_at, team_id) VALUES ('m-tep', 'v-tep', 's-an', 'x', 0, ?, ?, 'fbk-team-ky-thuat')").run(T1, T1);
+  const tep = (id: string, n: number, at: string) =>
+    db.prepare(`INSERT INTO fbk_attachment (id, message_id, storage_key, content_kind, byte_size, content_hash, created_at, created_by, updated_at, updated_by)
+      VALUES (?, 'm-tep', ?, 'png', 3, ?, ?, 's-an', ?, 's-an')`).run(id, `fbk/${String(n).repeat(32)}`, String(n).repeat(64), at, at);
+  const xaRoi = new Date(Date.now() - 2 * 3600e3).toISOString();
+  tep("t-moi", 1, new Date().toISOString()); // tải dở dang VỪA tạo — chưa tính
+  assert.equal(violations(db, c), 0);
+  tep("t-do-dang", 2, xaRoi);
+  assert.equal(violations(db, c), 1, "dở dang quá 1 giờ");
+  db.prepare("UPDATE fbk_attachment SET stored_at = ? WHERE id = 't-do-dang'").run(xaRoi);
+  assert.equal(violations(db, c), 0, "đã lưu");
+  db.prepare("UPDATE fbk_attachment SET purged_at = ?, purge_reason = 'GO_TEP', content_hash = NULL WHERE id = 't-do-dang'").run(xaRoi);
+  assert.equal(violations(db, c), 1, "đã gỡ, kho chưa xoá");
+  db.prepare("UPDATE fbk_attachment SET r2_deleted_at = ? WHERE id = 't-do-dang'").run(xaRoi);
+  assert.equal(violations(db, c), 0, "đã xoá khỏi kho");
+});
+
 test("R-PTY-13 (ADR-0124 đ3, Hiến chương 5.21): phiếu tự khai ĐANG CHỜ của người đã rút / chưa từng đồng ý phiên bản ghi trên phiếu — fail", () => {
   const c = one("R-PTY-13");
   assert.equal(c.level, "fail");
@@ -4053,4 +4076,61 @@ test("R-DSP-7: dòng gieo `gieo-han-muc` còn → 0; mất (gỡ trigger chỉ-t
     db.exec("DELETE FROM dsp_refuse_policy WHERE id = 'gieo-han-muc'");
   });
   assert.equal(r.r7, 1);
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// ADR-0148 Đ1 (migration 0126): dấu huỷ ở ba bảng mức. R-PRC-7 = mọi bản chụp AUTO trỏ dòng mức CHƯA HUỶ chứa ngày chụp; R-PRC-1/2/5 bỏ qua dòng huỷ.
+// Ca đỏ của R-PRC-7 đi đường mà trigger CHO PHÉP (rút ngắn / huỷ dòng mức là quyết định của máy chủ — CSDL không biết «đã chụp»): đúng lỗ mà kiểm này canh.
+// ---------------------------------------------------------------------------------------------------------------------
+/** Bản chụp AUTO hoa hồng SET tỷ lệ 1000 trỏ dòng mức `rule`, người hưởng `ben`, ngày chụp `ngay`; `manual` = bản MANUAL (ghi tay chỉ đổi người bán vẫn chép mã dòng). */
+function chupMucSdl(db: DatabaseSync, o: { dv: string; rule: string; ben: string; ngay: string; supersedes?: string | null; manual?: boolean }): string {
+  const id = `bc-${++soBanChup}`;
+  const order = (db.prepare("SELECT order_id FROM order_service WHERE id = ?").get(o.dv) as { order_id: string }).order_id;
+  db.prepare(
+    `INSERT INTO ord_service_terms (id, order_id, order_service_id, beneficiary_party_id, commission_status, missing_reason, commission_kind, commission_rate_bp, commission_per_pax,
+       commission_rule_id, supply_status, seller_party_id, supplier_party_id, cost_rate_bp, supply_term_id, source, reason, supersedes_id, captured_date,
+       created_at, created_by, updated_at, updated_by) VALUES (?, ?, ?, ?, 'SET', NULL, 'RATE', 1000, NULL, ?, 'MISSING', NULL, NULL, NULL, NULL, ?, ?, ?, ?, ?, NULL, ?, NULL)`,
+  ).run(id, order, o.dv, o.ben, o.rule, o.manual ? "MANUAL" : "AUTO", o.manual ? "Đổi người bán sang nhà cung cấp" : null, o.supersedes ?? null, o.ngay, T1, T1);
+  return id;
+}
+const huySdl = (db: DatabaseSync, bang: string, id: string) =>
+  db.prepare(`UPDATE ${bang} SET voided_at = ?, voided_by = 'kt', updated_at = ?, updated_by = 'kt' WHERE id = ?`).run(T2, T2, id);
+
+test("R-PRC-7: bản chụp AUTO trong khoảng ngày dòng mức → 0; rút ngắn dòng qua ngày chụp → vi phạm; huỷ dòng đã chụp → vi phạm; bản đã bị thay vẫn tính; bản MANUAL không tính", () => {
+  const c = one("R-PRC-7");
+  assert.equal(c.level, "fail");
+  const db = build();
+  toChucSdl(db, "dl-7", "TRAVEL_AGENCY");
+  mucSdl(db, { id: "m7-a", party: "dl-7", scope: "SERVICE", catalog: "S1", tu: vnNgay(-30) });
+  mucSdl(db, { id: "m7-b", party: "dl-7", scope: "SERVICE", catalog: "S2", tu: vnNgay(-30) });
+  const [dv1] = donXacNhanSdl(db, "o-r7-1", T1);
+  const [dv2] = donXacNhanSdl(db, "o-r7-2", T1);
+  const bc1 = chupMucSdl(db, { dv: dv1!, rule: "m7-a", ben: "dl-7", ngay: vnNgay(-5) });
+  chupMucSdl(db, { dv: dv2!, rule: "m7-b", ben: "dl-7", ngay: vnNgay(-5) });
+  assert.equal(violations(db, c), 0, "ca xanh: hai bản chụp nằm trong khoảng ngày");
+  chupMucSdl(db, { dv: dv1!, rule: "m7-a", ben: "dl-7", ngay: vnNgay(0), supersedes: bc1, manual: true });
+  dongDongSdl(db, "prc_commission_rule", "m7-a", vnNgay(-3)); // đóng lùi: bản MANUAL hôm nay nằm ngoài, bản AUTO (đã bị thay) ngày −5 vẫn trong
+  assert.equal(violations(db, c), 0, "bản MANUAL không xét (ngày chụp của nó là ngày ghi tay)");
+  dongDongSdl(db, "prc_commission_rule", "m7-a", vnNgay(-6)); // rút ngắn tiếp: trigger cho (rút ngắn), nhưng bản AUTO ngày −5 nay nằm ngoài
+  assert.equal(violations(db, c), 1, "rút ngắn qua ngày chụp — bản đã bị thay vẫn tính");
+  huySdl(db, "prc_commission_rule", "m7-b");
+  assert.equal(violations(db, c), 2, "huỷ dòng đã có bản chụp");
+});
+
+test("R-PRC-1 / R-PRC-2 / R-PRC-5 bỏ qua dòng đã huỷ (ADR-0148): dòng huỷ chồng ngày, trỏ vai đã tắt, hay trỏ hồ sơ đã thôi vai đều không báo", () => {
+  const db = build();
+  toChucSdl(db, "dl-h", "TRAVEL_AGENCY");
+  mucSdl(db, { id: "mh-1", party: "dl-h", scope: "ALL" });
+  huySdl(db, "prc_commission_rule", "mh-1");
+  mucSdl(db, { id: "mh-2", party: "dl-h", scope: "ALL" }); // trigger cho chồng với dòng huỷ
+  assert.equal(violations(db, one("R-PRC-1")), 0, "R-PRC-1: dòng huỷ không giữ chỗ");
+  mucSdl(db, { id: "mh-3", role: "TAXI_DRIVER", scope: "ALL" });
+  db.prepare("UPDATE prc_beneficiary_role SET active = 0, updated_at = ? WHERE role_type_code = 'TAXI_DRIVER'").run(T2);
+  assert.equal(violations(db, one("R-PRC-2")), 1, "R-PRC-2: dòng chưa huỷ theo vai đã tắt vẫn báo");
+  huySdl(db, "prc_commission_rule", "mh-3");
+  assert.equal(violations(db, one("R-PRC-2")), 0, "R-PRC-2: dòng huỷ theo vai đã tắt không báo");
+  dongVaiSdl(db, "dl-h", "TRAVEL_AGENCY");
+  assert.equal(violations(db, one("R-PRC-5")), 1, "R-PRC-5: dòng chưa huỷ theo hồ sơ đã thôi vai vẫn báo");
+  huySdl(db, "prc_commission_rule", "mh-2");
+  assert.equal(violations(db, one("R-PRC-5")), 0, "R-PRC-5: dòng huỷ theo hồ sơ đã thôi vai không báo");
 });

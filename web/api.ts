@@ -113,7 +113,8 @@ function baoDaGhi(ketQua: unknown): Promise<never> {
   return new Promise<never>(() => undefined);
 }
 
-export async function api<T>(path: string, init?: { method?: string; body?: unknown }): Promise<T> {
+/** `henGioMs`: hạn chờ riêng (vd 120 giây cho tin kèm tệp — ADR-0144 đ7); vắng ⇒ `REQUEST_TIMEOUT_MS`. Không đổi vòng đời vé. */
+export async function api<T>(path: string, init?: { method?: string; body?: unknown; henGioMs?: number }): Promise<T> {
   const method = init?.method ?? "GET";
   const than = init?.body === undefined ? undefined : JSON.stringify(init.body);
   // Vé (ADR-0094): mở TRƯỚC khi gửi; không mở được (máy không có crypto.subtle — vd trang http qua IP LAN) ⇒ gửi không vé (giai đoạn 1 cho qua).
@@ -125,7 +126,7 @@ export async function api<T>(path: string, init?: { method?: string; body?: unkn
   }
   for (let lan = 0; ; lan++) {
     try {
-      const r = await guiMotLan<T>(path, method, than, ve);
+      const r = await guiMotLan<T>(path, method, than, ve, init?.henGioMs ?? REQUEST_TIMEOUT_MS);
       if (r.dangXuLy && lan < SO_LAN_CHO_DANG_XU_LY) {
         await new Promise((res) => setTimeout(res, CHO_DANG_XU_LY_MS));
         continue;
@@ -140,7 +141,7 @@ export async function api<T>(path: string, init?: { method?: string; body?: unkn
 }
 
 /** Một lần gửi. Trả `dangXuLy` khi gặp 409 `dang_xu_ly` (người gọi chờ rồi gửi lại cùng vé); `ket()` trả kết quả hoặc ném như cũ. */
-async function guiMotLan<T>(path: string, method: string, than: string | undefined, ve: VeMo | null): Promise<{ dangXuLy: boolean; ket: () => Promise<T> }> {
+async function guiMotLan<T>(path: string, method: string, than: string | undefined, ve: VeMo | null, henGioMs: number): Promise<{ dangXuLy: boolean; ket: () => Promise<T> }> {
   const controller = new AbortController();
   // Bảng tin: id lấy từ ĐƯỜNG DẪN thì ghi dấu ngay khi GỬI (máy chủ phát tin trước khi trả phản hồi nên tin có thể tới trước). Ghi thất bại thì không có tin nào — chặn thừa vô hại. Không bao giờ được làm hỏng lời gọi.
   try {
@@ -149,7 +150,7 @@ async function guiMotLan<T>(path: string, method: string, than: string | undefin
   } catch {
     // bỏ qua
   }
-  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS); // hết giờ: `fetch`/đọc thân ném AbortError (không phải ApiError) → nơi gọi xử lý như mất mạng
+  const timer = setTimeout(() => controller.abort(), henGioMs); // hết giờ: `fetch`/đọc thân ném AbortError (không phải ApiError) → nơi gọi xử lý như mất mạng
   try {
     const headers: Record<string, string> = {};
     if (than !== undefined) headers["content-type"] = "application/json";

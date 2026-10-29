@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { danhSachNhom, demDichVuCuaNhom, ganNhomStatements, lichSuNhom, maNhomMoi, nhomHienHanhTheoMa, nhomTheoMa, suaNhom, themNhom } from "./nhom-repo.ts";
+import { danhSachNhom, demDichVuCuaNhom, ganNhomStatements, lichSuNhom, maNhomMoi, nhomHienHanhTheoMa, nhomTheoMa, suaNhom, tenNhomCuaCacMa, themNhom } from "./nhom-repo.ts";
 
 const DIR = join(import.meta.dirname, "..", "..", "..", "migrations");
 const T1 = "2026-09-30T01:00:00.000Z";
@@ -137,4 +137,34 @@ test("F1 (vòng sửa A3): câu TẮT nhóm tự chặn khi nhóm còn dịch v�
   const [tat2] = await chay(db, [suaNhom(db, { code: "r", name: "Đua 2", sortOrder: 3, active: false, staffId: "u", now: "2026-09-30T03:00:00.000Z", updatedAtCu: T2 })]);
   assert.equal(tat2!.meta.changes, 1, "chỉ dòng HIỆN HÀNH tính — lịch sử cũ không cản");
   assert.equal((await nhomTheoMa(db, "r"))?.active, 0);
+});
+
+test("ADR-0118 Đ1: suaNhom ghi cờ đưa đón khi truyền; VẮNG = giữ cờ đang có (nơi gọi quên truyền không lặng lẽ đổi cờ); nhóm mới mặc định bật", async () => {
+  const { db } = moi();
+  await chay(db, [themNhom(db, { code: "dd", name: "Đưa đón", sortOrder: 1, staffId: "u", now: T1 })]);
+  assert.equal((await nhomTheoMa(db, "dd"))?.transfer_enabled, 1, "nhóm mới mặc định bật");
+  const [tat] = await chay(db, [suaNhom(db, { code: "dd", name: "Đưa đón", sortOrder: 1, active: true, transferEnabled: false, staffId: "u", now: T2, updatedAtCu: T1 })]);
+  assert.equal(tat!.meta.changes, 1);
+  assert.equal((await nhomTheoMa(db, "dd"))?.transfer_enabled, 0);
+  const T3 = "2026-09-30T03:00:00.000Z";
+  const [giu] = await chay(db, [suaNhom(db, { code: "dd", name: "Đổi tên", sortOrder: 1, active: true, staffId: "u", now: T3, updatedAtCu: T2 })]);
+  assert.equal(giu!.meta.changes, 1);
+  assert.equal((await nhomTheoMa(db, "dd"))?.transfer_enabled, 0, "không truyền cờ → giữ 0");
+  const T4 = "2026-09-30T04:00:00.000Z";
+  await chay(db, [suaNhom(db, { code: "dd", name: "Đổi tên", sortOrder: 1, active: true, transferEnabled: true, staffId: "u", now: T4, updatedAtCu: T3 })]);
+  assert.equal((await nhomTheoMa(db, "dd"))?.transfer_enabled, 1);
+  assert.equal((await danhSachNhom(db)).find((g) => g.code === "dd")?.transfer_enabled, 1, "danh sách mang cờ");
+});
+
+test("ADR-0118 Ruling R-C: tenNhomCuaCacMa — tên nhóm HIỆN HÀNH của các mã; Chưa phân loại / chưa gán không có khoá; rỗng → không truy vấn", async () => {
+  const { db, sqlite } = moi();
+  chenDichVu(sqlite, "A1");
+  chenDichVu(sqlite, "A2");
+  chenDichVu(sqlite, "A3");
+  await chay(db, [themNhom(db, { code: "k1", name: "Nhóm Một", sortOrder: 1, staffId: "u", now: T1 }), themNhom(db, { code: "k2", name: "Nhóm Hai", sortOrder: 2, staffId: "u", now: T1 })]);
+  await chay(db, (await ganNhomStatements(db, { codes: ["A1", "A2"], groupCode: "k1", staffId: "u", now: T1 })).statements);
+  await chay(db, (await ganNhomStatements(db, { codes: ["A2"], groupCode: "k2", staffId: "u", now: T2 })).statements);
+  await chay(db, (await ganNhomStatements(db, { codes: ["A3"], groupCode: null, staffId: "u", now: T2 })).statements);
+  assert.deepEqual([...(await tenNhomCuaCacMa(db, ["A1", "A2", "A3", "KHONG-CO"]))].sort(), [["A1", "Nhóm Một"], ["A2", "Nhóm Hai"]]);
+  assert.equal((await tenNhomCuaCacMa(db, [])).size, 0);
 });

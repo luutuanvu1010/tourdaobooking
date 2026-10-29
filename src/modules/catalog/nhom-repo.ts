@@ -13,12 +13,15 @@ export interface NhomRow {
   name: string;
   sort_order: number;
   active: number;
+  /** ADR-0118 Đ1 (0121): 1 = nhóm có đưa đón (mặc định), 0 = máy chủ từ chối ghi / xác nhận chặng đưa đón cho dịch vụ của nhóm. */
+  transfer_enabled: number;
   created_at: string;
   updated_at: string;
 }
 export interface NhomKemDemRow extends NhomRow { service_count: number }
 export interface GanHienHanhRow { service_code: string; group_code: string | null }
 export interface GanMoiNhatRow { service_code: string; seq: number; group_code: string | null }
+export interface TenNhomRow { service_code: string; group_name: string }
 export interface LichSuNhomRow { seq: number; valid_from_at: string; created_by: string | null; group_code: string | null; group_name: string | null }
 
 // ---- Câu SQL (đăng ký) ----------------------------------------------------------------------------------------------------------------------
@@ -29,12 +32,12 @@ const LATEST = `s.seq = (SELECT MAX(m.seq) FROM ctl_service_group m WHERE m.serv
 const GROUP_LIST_ALL = defineSql(
   "catalog",
   "group_list_all",
-  `SELECT g.code, g.name, g.sort_order, g.active, g.created_at, g.updated_at,
+  `SELECT g.code, g.name, g.sort_order, g.active, g.transfer_enabled, g.created_at, g.updated_at,
      (SELECT COUNT(*) FROM ctl_service_group s WHERE s.group_code = g.code AND ${LATEST}) AS service_count
    FROM ctl_group g ORDER BY g.sort_order, g.name`,
 );
 const GROUP_CURRENT_BY_SERVICE = defineSql("catalog", "group_current_by_service", `SELECT s.service_code, s.group_code FROM ctl_service_group s WHERE ${LATEST}`);
-const GROUP_GET = defineSql("catalog", "group_get", `SELECT code, name, sort_order, active, created_at, updated_at FROM ctl_group WHERE code = ?1`);
+const GROUP_GET = defineSql("catalog", "group_get", `SELECT code, name, sort_order, active, transfer_enabled, created_at, updated_at FROM ctl_group WHERE code = ?1`);
 const GROUP_COUNT_SERVICES = defineSql("catalog", "group_count_services", `SELECT COUNT(*) AS n FROM ctl_service_group s WHERE s.group_code = ?1 AND ${LATEST}`);
 const GROUP_INSERT = defineSql(
   "catalog",
@@ -44,16 +47,24 @@ const GROUP_INSERT = defineSql(
 // Khoá lạc quan: chỉ ghi khi `updated_at` còn đúng như lúc người dùng đọc (?7) — `changes = 0` là có người khác vừa sửa (hoặc mã không có).
 // Bất biến ADR-0058 "tắt nhóm còn dịch vụ → 409" giữ NGAY TRONG câu (vòng sửa A3, F1): khi tắt (?4 = 0) mà nhóm còn dịch vụ HIỆN HÀNH thì không ghi
 // (`changes = 0`) — chặn đua "tầng trên đếm 0 xong, một lô gán chen vào trước khi tắt". Bật / sửa tên (?4 = 1) không bị điều kiện cản.
+// ADR-0118 Đ1: ?8 = cờ «Có đưa đón» (0/1; NULL = GIỮ cờ đang có — nơi gọi quên truyền thì không lặng lẽ tắt đưa đón) — tham số THÊM, không động tới ?1–?7 nên điều kiện đua ở ?4 giữ nguyên.
 const GROUP_UPDATE = defineSql(
   "catalog",
   "group_update",
-  `UPDATE ctl_group SET name = ?2, sort_order = ?3, active = ?4, updated_at = ?5, updated_by = ?6 WHERE code = ?1 AND updated_at = ?7
+  `UPDATE ctl_group SET name = ?2, sort_order = ?3, active = ?4, transfer_enabled = COALESCE(?8, transfer_enabled), updated_at = ?5, updated_by = ?6 WHERE code = ?1 AND updated_at = ?7
      AND (?4 = 1 OR NOT EXISTS (SELECT 1 FROM ctl_service_group s WHERE s.group_code = ?1 AND ${LATEST}))`,
 );
 const SERVICE_GROUP_LATEST = defineSql(
   "catalog",
   "service_group_latest",
   `SELECT s.service_code, s.seq, s.group_code FROM ctl_service_group s WHERE s.service_code IN (SELECT value FROM json_each(?1)) AND ${LATEST}`,
+);
+// Tên nhóm HIỆN HÀNH của các mã dịch vụ (chỉ để viết câu báo lỗi cho `orders` qua hàm công bố ở index.ts — ADR-0118 Ruling R-C). Chưa phân loại / chưa gán: không có dòng.
+const SERVICE_GROUP_NAMES = defineSql(
+  "catalog",
+  "service_group_names",
+  `SELECT s.service_code, g.name AS group_name FROM ctl_service_group s JOIN ctl_group g ON g.code = s.group_code
+   WHERE s.service_code IN (SELECT value FROM json_each(?1)) AND ${LATEST}`,
 );
 const SERVICE_GROUP_INSERT = defineSql(
   "catalog",
@@ -92,6 +103,13 @@ export async function nhomHienHanhTheoMa(db: D1Database): Promise<Map<string, st
   return new Map(rows.map((r) => [r.service_code, r.group_code]));
 }
 
+/** Tên nhóm hiện hành của các mã dịch vụ (mã Chưa phân loại / chưa gán không có khoá). Rỗng → không truy vấn. */
+export async function tenNhomCuaCacMa(db: D1Database, codes: readonly string[]): Promise<Map<string, string>> {
+  if (codes.length === 0) return new Map();
+  const rows = (await db.prepare(SERVICE_GROUP_NAMES).bind(JSON.stringify([...new Set(codes)])).all<TenNhomRow>()).results;
+  return new Map(rows.map((r) => [r.service_code, r.group_name]));
+}
+
 /** Lịch sử nhóm của MỘT dịch vụ, mới nhất trước: lúc, id người sửa (`null` = hệ thống gieo), nhóm + tên nhóm (`null` = Chưa phân loại). */
 export async function lichSuNhom(db: D1Database, serviceCode: string): Promise<LichSuNhomRow[]> {
   return (await db.prepare(SERVICE_GROUP_HISTORY).bind(serviceCode).all<LichSuNhomRow>()).results;
@@ -108,13 +126,13 @@ export function themNhom(db: D1Database, i: ThemNhomInput): D1PreparedStatement 
   return db.prepare(GROUP_INSERT).bind(i.code, i.name, i.sortOrder, i.now, i.staffId);
 }
 
-export interface SuaNhomInput { code: string; name: string; sortOrder: number; active: boolean; staffId: string; now: string; updatedAtCu: string }
+export interface SuaNhomInput { code: string; name: string; sortOrder: number; active: boolean; /** Vắng = giữ cờ đưa đón đang có. */ transferEnabled?: boolean; staffId: string; now: string; updatedAtCu: string }
 /**
  * Sửa nhóm có khoá lạc quan theo `updated_at` cũ; `changes = 0` → người khác vừa sửa, HOẶC (khi tắt) nhóm còn dịch vụ hiện hành. Tầng trên đếm trước
  * (`demDichVuCuaNhom`) để trả câu có số; điều kiện trong câu là lưới chặn đua.
  */
 export function suaNhom(db: D1Database, i: SuaNhomInput): D1PreparedStatement {
-  return db.prepare(GROUP_UPDATE).bind(i.code, i.name, i.sortOrder, i.active ? 1 : 0, i.now, i.staffId, i.updatedAtCu);
+  return db.prepare(GROUP_UPDATE).bind(i.code, i.name, i.sortOrder, i.active ? 1 : 0, i.now, i.staffId, i.updatedAtCu, i.transferEnabled === undefined ? null : i.transferEnabled ? 1 : 0);
 }
 
 export interface DoiNhom { serviceCode: string; tuNhom: string | null; denNhom: string | null }

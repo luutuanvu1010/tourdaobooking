@@ -70,7 +70,7 @@ Sau lượt sửa cuối: 101.701 byte (+82 so với 101.619; trần 101.719 KH�
 - Số phiên bản `2.39` ở `src/shared/changelog.ts` là TẠM: nhánh ADR-0118 (đón nhóm) cũng tạm dùng 2.39; người phát hành đối chiếu ở bước A.0. Bài `src/shared/app-info.test.ts` (dòng phiên bản mới nhất) cập nhật theo 2.39.
 - `npm test` trước commit: chỉ đỏ `goi-trang-nhe` (gói Đơn hàng vượt trần, đã cho phép) và `app-info` (đã sửa ở trên).
 - Sổ hàng rào: thêm ba dòng (ratchet confirm/alert, thanh tab theo bộ quyền, nhóm gập thanh bên); hai quan sát mới làm 2026-10-28 (nhãn `THANH_TAB`, bỏ `nhomGap` của Điều phối xe), hoàn nguyên, `git diff src/shared/muc-giao-dien.ts` sạch.
-- Nợ: đã gom vào `docs/BACKLOG.md` §52.
+- Nợ: đã gom vào `docs/BACKLOG.md` §52 (sau khi nhập main 29/10 đổi thành §53, vì main đã dùng §52 cho vé hỗ trợ).
 
 ## Task 15 (ghi 2026-10-29)
 

@@ -24,24 +24,28 @@ const KIND_ICON: Record<LoaiTin, IconName> = {
   tai_khoan: "lock", // ngưng tài khoản giữ tiền — chỉ Toàn quyền nhận (ADR-0090 đ3)
   dieu_chinh: "checkCircle", // yêu cầu điều chỉnh công nợ (ADR-0115) — giữ màu mặc định `.ntf-badge`
   cho_xac_nhan: "clock", // ADR-0136 Đ10: đơn đang chờ người kiểm vé
+  duyet_hoan: "money", // ADR-0089 NT-V7: thu trước của đơn huỷ đã duyệt hoàn, chờ Kế toán ghi chi — màu cát như việc đang chờ
   doi_sau_xac_nhan: "history", // đơn đã xác nhận đổi giờ / nơi đón / số khách (ADR-0062) — giữ màu mặc định `.ntf-badge`
 };
-/** Màu vòng biểu tượng theo loại (đúng bản mẫu: chờ nhận = cát, nhận/xác nhận = xanh lá, huỷ = nguy hiểm, tin công ty = primary/cát đậm nếu quan trọng; "lập"/"giao" giữ màu mặc định `.ntf-badge`). */
-const KIND_BADGE_CLASS: Partial<Record<LoaiTin, string>> = {
-  thu_cong: "ntf-badge-tin",
-  cho_nhan: "ntf-badge-cho",
-  cho_xac_nhan: "ntf-badge-cho",
-  nhan: "ntf-badge-nhan",
-  xac_nhan: "ntf-badge-nhan",
-  huy: "ntf-badge-huy",
-  tai_khoan: "ntf-badge-huy",
+/** Màu vòng biểu tượng theo loại (đúng bản mẫu: chờ nhận = cát, nhận/xác nhận = xanh lá, huỷ = nguy hiểm, tin công ty = primary/cát đậm nếu quan trọng; "lập"/"giao" giữ màu mặc định `.ntf-badge`).
+ *  Giá trị là ĐUÔI của lớp `ntf-badge-<đuôi>` (`.ntf-badge-cho`… ở app.css) — viết gọn để gói Đơn hàng còn dưới trần `src/goi-trang-nhe.test.ts` khi thêm loại tin (28/10). */
+const KIND_BADGE_CLASS: Partial<Record<LoaiTin, "tin" | "cho" | "nhan" | "huy">> = {
+  thu_cong: "tin",
+  cho_nhan: "cho",
+  cho_xac_nhan: "cho",
+  duyet_hoan: "cho",
+  nhan: "nhan",
+  xac_nhan: "nhan",
+  huy: "huy",
+  tai_khoan: "huy",
 };
 const MINE_NOTE = "Tin công ty gửi bạn, đơn bạn lập hoặc phụ trách, đơn chờ nhận, chuyến xe liên quan tới bạn.";
 const ALL_NOTE = "Thêm tin về mọi đơn bạn được xem. Số đỏ trên chuông không đếm ngăn này.";
 
 function tinBadge(t: TinDto): HTMLElement {
   const qt = t.loai === "thu_cong" && t.quanTrong ? " ntf-badge-tin-qt" : "";
-  return h("span", { class: `ntf-badge ${KIND_BADGE_CLASS[t.loai] ?? ""}${qt}` }, icon(KIND_ICON[t.loai], 18));
+  const mau = KIND_BADGE_CLASS[t.loai];
+  return h("span", { class: `ntf-badge${mau ? ` ntf-badge-${mau}` : ""}${qt}` }, icon(KIND_ICON[t.loai], 18));
 }
 
 function tinMeta(t: TinDto, now: string): HTMLElement {

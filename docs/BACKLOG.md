@@ -343,6 +343,7 @@
 
 ## 30. Thẻ "Cọc cần chi hoàn" trên Việc của bạn — chờ có trang cọc
 
+- **Cập nhật 2026-10-28 (đóng TNV-G1, nhánh `claude/nostalgic-aryabhata-066936`):** Trang chủ nay có khối «Thu trước của đơn huỷ» (`#dash-thu-truoc`, gọi `GET /api/ledger/coc`) và dòng đếm ở «Cần xem lại» — đã có đích cho nút. Thẻ trên «Việc của bạn» (máy tính) VẪN chưa thêm: chờ chủ muốn thì thêm khoá `cocCanChi` trỏ `#dash-thu-truoc`.
 - **Ngày:** 2026-10-15 · **Trạng thái:** `chờ`. Thẻ "Cọc cần chi hoàn" trên Việc của bạn — chờ có trang cọc: route `GET /api/ledger/coc` có nhưng chưa trang web nào gọi nên nút "Chi hoàn" chưa có đích; khi có trang cọc thì thêm lại khoá `cocCanChi` (ưu tiên 6, điều kiện `ledger.view`) vào `src/shared/viec-cua-ban.ts`.
 
 ## 31. Menu máy tính theo việc và «Việc của bạn» — nợ sau đợt 1 (chủ chốt đợt 1 ngày 2026-10-15)
@@ -612,7 +613,19 @@ Ghi 25/10 khi đóng phiên ADR-0133 (bản 2.25 + vá 2.26, migration `0116`). 
 |---|---|---|---|
 | BL-UX-HOA-HONG-DT | Đối tác xem được hoa hồng từng đơn nhưng không có chỗ xem tổng theo tháng (quyền `partner.commission.view` hiện "none" cho Đối tác). Chủ 27/10: chưa thêm, chỉ làm khi có ADR riêng vì chạm tiền và quyền. | Khi mở lại: ADR nêu ai được xem tổng, tổng tính từ nguồn nào (sổ hoa hồng), có kèm đối chiếu công nợ không. | Đối tác tự cộng tay từng đơn; không sai số liệu, chỉ bất tiện. |
 
-## 52. Nợ đợt 0 khung chung (mã `BL-D0-…`)
+## 52. Tệp kèm tin vé hỗ trợ — nợ (mã `BL-VE-TEP-…`; ADR-0144, 2026-10-28)
+
+- **BL-VE-TEP-WORD-EXCEL** · **Trạng thái:** `chưa làm` · **Cần ADR mới.** Word, Excel, văn bản thô chưa nhận (phải kiểm nội dung, tệp có thể chứa macro). Đặc tả 3.7.
+- **BL-VE-TEP-PHIEU-XOA** · **Trạng thái:** `chưa làm`. Phiếu yêu cầu xoá dữ liệu cá nhân (ADR-0126) chưa quét vé hỗ trợ — cả chữ trong tin (nợ có sẵn) lẫn tệp kèm (mới). Ảnh giấy tờ gửi nhầm hôm nay chỉ gỡ được bằng tay (Toàn quyền, nút «Gỡ tệp»).
+- **BL-VE-TEP-THAN-LON** · **Trạng thái:** `chưa làm`. Cùng rủi ro `BL-TEP-THAN-HAI-LAN` nhưng tuyến mở cho mọi tài khoản (cả ~1000 tài khoản bên ngoài): lớp chống ghi trùng đọc trọn thân để lấy dấu vé TRƯỚC khi route chặn 413; lệnh gửi không có `Content-Length` (thân chia khúc) đi qua được chốt `Content-Length` của route, chỉ bị chặn sau khi đã đọc thân. Bộ nhớ Worker thật với thân ~14 MB chưa đo.
+- **BL-VE-TEP-HEIC-MAY-TINH** · **Trạng thái:** `biết trước`. Ảnh HEIC không xem trước được trên trình duyệt máy tính (chỉ Safari mở) — hiện nút «Tải về»; mỗi lần mở trang tốn một lần tải và một dòng nhật ký «xem tệp».
+- **BL-VE-TEP-DOI-CU** · **Trạng thái:** `chưa làm`. Vòng tự làm mới chỉ lấy lại tin của 30 giây gần nhất: tệp của tin cũ hơn đổi trạng thái (Toàn quyền gỡ, quá 10 phút thành «chưa tải được») chỉ hiện với người xem khác khi họ mở lại luồng.
+- **BL-VE-TEP-ANH-MO-CHU** · **Trạng thái:** `biết trước`. Ảnh chụp màn hình dài thu về cạnh dài 2000 điểm ảnh làm chữ nhỏ trong ảnh hơi mờ.
+- **BL-VE-TEP-WORKER-CHET** · **Trạng thái:** `biết trước`. Worker chết giữa lúc đặt kho không bắt được: dòng tệp nằm «đang tải», sau 10 phút thành «chưa tải được» và vào hàng chờ xoá; `POST /api/feedback/tep-cho-xoa/chay-lai` (Toàn quyền) dọn.
+- **BL-VE-TEP-EMAIL** · **Trạng thái:** `không làm` (đặc tả 3.7). Email báo nhóm không kèm tệp.
+- **BL-VE-TEP-DOC-SAU-LO** · **Trạng thái:** `chưa làm` (người kiểm độc lập 28/10, N1). Hai route gửi tin còn các lần đọc D1 SAU lô có từ trước ADR-0144 (`findByRequest`, `messageExists`, `getTicket`, `detail` — nay `detail` đọc thêm `listTepCuaTin`) không nằm trong khối bắt lỗi: D1 hỏng đúng lúc đó vẫn trả 500, vé chống ghi trùng phát lại «đã ghi» với `ket_qua: null` (cùng triệu chứng `BL-TEP-PHAT-LAI-500`). Phần tệp (`datTepCuaTin`) thì không ném. Muốn bọc hết phải định nghĩa phản hồi 201 khi không dựng được chi tiết (đổi hợp đồng `FeedbackGuiResponse`) — cần chủ quyết.
+
+## 53. Nợ đợt 0 khung chung (mã `BL-D0-…`)
 
 Ghi 2026-10-28 khi đóng đợt 0 (nhật ký thi công `docs/superpowers/plans/2026-10-28-dot-0-khung-chung-nhat-ky.md`). Phần lớn dọn ở Chặng 3 theo họ; hai mục ghi "chờ chủ" cần chủ quyết.
 
@@ -633,3 +646,4 @@ Ghi 2026-10-28 khi đóng đợt 0 (nhật ký thi công `docs/superpowers/plans
 - Toast tông «do» chưa đặt `aria-live="assertive"`; bộ đọc màn hình hiện đọc như tin thường.
 - Kịch bản `docs/evidence/2026-09-23-trang-chu-moi/kich-ban/trang-chu-smoke.mjs` hỏng với thanh bên mới (nút gập đầu tiên nay là Điều phối; 22 mục; nút Tạo đơn không còn ở thanh bên); bản sửa nằm trong kịch bản đợt 0 (Task 15).
 - Task 13 bước kiểm tay CDP không làm được (cổng 8795/8797 bị phiên khác chiếm); `mat-mang-smoke.mjs` phủ thay, phải xoá mục `/ngoai-mang` khỏi bộ đệm để kiểm nhánh 503 chữ.
+

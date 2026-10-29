@@ -326,6 +326,7 @@ function dongNhom(g: Nhom, i: number): HTMLElement {
     h("span", { class: "nhom-ten" }, g.name),
     h("span", { class: "nhom-so" }, `${g.soDichVu} dịch vụ`),
     !g.active && h("span", { class: "badge badge-cancelled" }, "Đã tắt"),
+    congTacDuaDon(g),
     h(
       "div",
       { class: "nhom-nut" },
@@ -337,6 +338,20 @@ function dongNhom(g: Nhom, i: number): HTMLElement {
         : nutNhom("Bật", "bat", () => void doiNhom(g, { active: true }), { aria: `Bật nhóm ${g.name}` }),
     ),
   );
+}
+
+/**
+ * Công tắc «Có đưa đón» của nhóm (ADR-0118 Đ1, Đ5): TẮT thì dịch vụ của nhóm không còn khối Đưa đón ở form Tạo đơn và máy chủ không nhận chặng mới
+ * (chặng cũ vẫn xem và đóng được). Bấm = PATCH `transferEnabled`; chữ «Bật» / «Tắt» đi kèm để không chỉ dựa vào màu.
+ */
+function congTacDuaDon(g: Nhom): HTMLElement {
+  const nut = h(
+    "button",
+    { type: "button", role: "switch", class: "dp-switch", "aria-checked": String(g.transferEnabled), "aria-label": `Có đưa đón — nhóm ${g.name}`, "data-action": "dua-don" },
+    h("span", { class: "dp-switch-knob", "aria-hidden": "true" }),
+  );
+  nut.addEventListener("click", () => void doiNhom(g, { transferEnabled: !g.transferEnabled }));
+  return h("div", { class: "nhom-dua-don" }, h("span", { class: "nhom-so" }, "Có đưa đón"), nut, h("span", { class: "nhom-so", "aria-hidden": "true" }, g.transferEnabled ? "Bật" : "Tắt"));
 }
 
 function renderNhom(): void {
@@ -404,7 +419,7 @@ async function themNhom(name: string): Promise<void> {
 }
 
 /** PATCH một nhóm kèm mốc sửa gần nhất (khoá lạc quan). 409 / 400 → hiện đúng câu tiếng Việt của máy chủ. */
-async function patchNhom(g: Nhom, body: { name?: string; sortOrder?: number; active?: boolean }): Promise<boolean> {
+async function patchNhom(g: Nhom, body: { name?: string; sortOrder?: number; active?: boolean; transferEnabled?: boolean }): Promise<boolean> {
   try {
     await api<Api.CatalogGroupResponse>(`/api/catalog/groups/${encodeURIComponent(g.code)}`, { method: "PATCH", body: { expectedUpdatedAt: g.updatedAt, ...body } });
     return true;
@@ -414,7 +429,7 @@ async function patchNhom(g: Nhom, body: { name?: string; sortOrder?: number; act
   }
 }
 
-async function doiNhom(g: Nhom, body: { name?: string; active?: boolean }, khiXong?: () => void): Promise<void> {
+async function doiNhom(g: Nhom, body: { name?: string; active?: boolean; transferEnabled?: boolean }, khiXong?: () => void): Promise<void> {
   if (await patchNhom(g, body)) {
     nhomLoi = "";
     khiXong?.();

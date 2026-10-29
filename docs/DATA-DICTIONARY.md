@@ -59,9 +59,10 @@
 | `catalog_item` | bảng | tên cũ, giữ nguyên (ADR-0002 điều 2) |
 | `catalog_override` | bảng | tên cũ, giữ nguyên (ADR-0002 điều 2) |
 | `catalog_sync` | bảng | tên cũ, giữ nguyên (ADR-0002 điều 2) |
-| `ctl_group` | bảng tra cứu | nhóm dịch vụ của danh mục (ADR-0058, 0055): gieo 14 nhóm từ ảnh chụp Sheet 30/9, sau đó Quản trị quản lý trong app. Không xoá (trigger ctl_group_no_delete — tắt bằng active = 0); tên chỉ cấm trùng giữa các nhóm đang dùng (chỉ mục duy nhất một phần ctl_group_name_active) |
+| `ctl_group` | bảng tra cứu | nhóm dịch vụ của danh mục (ADR-0058, 0055): gieo 14 nhóm từ ảnh chụp Sheet 30/9, sau đó Quản trị quản lý trong app. Không xoá (trigger ctl_group_no_delete — tắt bằng active = 0); tên chỉ cấm trùng giữa các nhóm đang dùng (chỉ mục duy nhất một phần ctl_group_name_active). Cột transfer_enabled (0121, ADR-0118): cờ «Có đưa đón» của nhóm, mặc định 1; 0 = máy chủ từ chối ghi / xác nhận chặng đưa đón cho dịch vụ thuộc nhóm — module khác đọc qua view v_ctl_service_transfer, không đọc bảng này |
 | `ctl_service_group` | bảng | LỊCH SỬ gán nhóm cho từng dịch vụ (ADR-0058, 0055): chỉ thêm (trigger cấm sửa/xoá), seq tăng theo từng dịch vụ, dòng seq lớn nhất là nhóm hiện hành, group_code NULL = Chưa phân loại. Gán vào nhóm đang tắt bị trigger ctl_service_group_active_group chặn; service_code phải có trong catalog_item |
 | `v_ctl_service_group` | view công bố | cột: catalog_code, group_code |
+| `v_ctl_service_transfer` | view công bố | cột: catalog_code, transfer_enabled |
 
 ## company
 
@@ -86,6 +87,7 @@
 
 | Đối tượng | Loại | Ghi chú |
 |---|---|---|
+| `fbk_attachment` | bảng | tệp đính kèm tin của vé hỗ trợ (ảnh / PDF) ở kho R2 riêng HO_TRO (ADR-0144; migration 0124): mỗi tệp thuộc đúng một tin (message_id, người tải = tác giả tin, tối đa 5 tệp mỗi tin); khoá kho ngẫu nhiên fbk/<32 hex>, loại theo chữ ký, cỡ, băm SHA-256; KHÔNG tên tệp gốc; không xoá dòng — ba mốc một chiều stored_at / purged_at (+ lý do TAI_LEN_LOI / TAI_LEN_DO_DANG / GO_TEP, băm về rỗng) / r2_deleted_at |
 | `fbk_kind` | bảng tra cứu |  |
 | `fbk_message` | bảng |  |
 | `fbk_status` | bảng tra cứu |  |
@@ -105,7 +107,7 @@
 
 | Đối tượng | Loại | Ghi chú |
 |---|---|---|
-| `loc_location` | bảng |  |
+| `loc_location` | bảng | địa điểm phát sinh nghiệp vụ. Cột quick_pick_order (0121, ADR-0118): thứ tự «Chọn nhanh» 1–99, NULL = không chọn nhanh; địa điểm đang dùng có số này hiện thành nút dưới ô Nơi trả (chiều đi) / Nơi đón (chiều về) ở form Tạo đơn — gieo Bến cảng Vinpearl = 1, Bến tàu du lịch Nha Trang = 2 |
 | `loc_location_type` | bảng tra cứu |  |
 | `v_loc_location_label` | view công bố | cột: id, code, name, location_type_code, active |
 | `v_loc_location_dia_chi` | view công bố | cột: id, address, active |
@@ -267,9 +269,9 @@
 |---|---|---|
 | `prc_beneficiary_role` | bảng | danh sách vai hồ sơ được hưởng hoa hồng (ADR-0077 điều 3, C3 = A; migration 0090): gieo năm vai (Công ty lữ hành, HDV độc lập, Lễ tân khách sạn, Tài xế taxi, Cộng tác viên). Không xoá, không đổi khoá hay cột tạo (trigger prc_beneficiary_role_update_scope); tắt một vai bằng active = 0 (dòng mức cũ vẫn giữ, R-PRC-2 báo) |
 | `prc_rate_tier` | bảng | mức TA dùng chung (ADR-0117 lần 2; migration 0096): tên do Kế toán đặt (TA1, TA2…), name_key duy nhất (khoá so tên, máy chủ ghi). Không xoá; chỉ đổi tên/active (trigger prc_rate_tier_update_scope); tắt mức = chặn gắn mới và thêm dòng mới, dòng đang áp vẫn áp |
-| `prc_role_tier` | bảng | gắn loại hồ sơ với mức TA theo ngày (ADR-0117 lần 2; migration 0096): chỉ thêm hoặc đóng một lần, mỗi loại tối đa một mức tại một ngày (prc_tier_overlap); loại phải nằm trong danh sách được hưởng còn bật (prc_tier_target), mức phải còn bật (prc_tier_inactive). Đổi mức = đóng gắn cũ, mở gắn mới |
-| `prc_party_tier` | bảng | mức TA gắn RIÊNG cho một hồ sơ đối tác theo ngày (ADR-0138; migration 0118): chỉ thêm hoặc đóng một lần, mỗi hồ sơ tối đa một mức riêng tại một ngày (prc_party_tier_overlap); hồ sơ phải đang mở vai thuộc loại được hưởng còn bật (prc_target_not_beneficiary, đọc v_pty_open_role), mức phải còn bật (prc_tier_inactive). Có gắn riêng thì `chonMuc` xét mức này ở bậc 10–12 và bỏ qua mức TA của loại |
-| `prc_commission_rule` | bảng | bảng mức hoa hồng đối tác (ADR-0077 điều 4; migration 0090, dựng lại ở 0097 — ADR-0117 lần 2), chính sách có hiệu lực: áp cho đúng MỘT trong ba đích — một hồ sơ, một vai, hoặc một mức TA (target_tier_code → prc_rate_tier); phạm vi dịch vụ / nhóm / mọi dịch vụ; kiểu tỷ lệ (phần vạn) hoặc đ/khách. Không xoá, chỉ đóng hiệu lực một lần (không đổi số hay đích, kể cả mức), không hai dòng cùng đích + phạm vi chồng khoảng ngày (khoá gồm cả mức: hai mức khác nhau cùng có dòng mọi dịch vụ được); hồ sơ / vai phải đang được hưởng, mức phải còn bật (prc_tier_inactive). Tỷ lệ và đ/khách KHÔNG vào DTO của Đối tác (C9 = A) |
+| `prc_role_tier` | bảng | gắn loại hồ sơ với mức TA theo ngày (ADR-0117 lần 2; migration 0096): chỉ thêm, đóng / rút ngắn ngày kết thúc, hoặc huỷ một lần khi chưa đơn nào chụp (ADR-0148, migration 0126 — voided_at/voided_by; dòng thay thế mang replaces_id + change_reason); mỗi loại tối đa một mức chưa huỷ tại một ngày (prc_tier_overlap); loại phải nằm trong danh sách được hưởng còn bật (prc_tier_target), mức phải còn bật (prc_tier_inactive). Đổi mức = đóng gắn cũ, mở gắn mới |
+| `prc_party_tier` | bảng | mức TA gắn RIÊNG cho một hồ sơ đối tác theo ngày (ADR-0138; migration 0118): chỉ thêm, đóng / rút ngắn ngày kết thúc, hoặc huỷ một lần khi chưa đơn nào chụp (ADR-0148, migration 0126 — như prc_role_tier); mỗi hồ sơ tối đa một mức riêng chưa huỷ tại một ngày (prc_party_tier_overlap); hồ sơ phải đang mở vai thuộc loại được hưởng còn bật (prc_target_not_beneficiary, đọc v_pty_open_role), mức phải còn bật (prc_tier_inactive). Có gắn riêng thì `chonMuc` xét mức này ở bậc 10–12 và bỏ qua mức TA của loại |
+| `prc_commission_rule` | bảng | bảng mức hoa hồng đối tác (ADR-0077 điều 4; migration 0090, dựng lại ở 0097 — ADR-0117 lần 2), chính sách có hiệu lực: áp cho đúng MỘT trong ba đích — một hồ sơ, một vai, hoặc một mức TA (target_tier_code → prc_rate_tier); phạm vi dịch vụ / nhóm / mọi dịch vụ; kiểu tỷ lệ (phần vạn) hoặc đ/khách. Không xoá, không đổi số hay đích (kể cả mức); chỉ đóng / rút ngắn ngày kết thúc, hoặc HUỶ một lần (ADR-0148, migration 0126: voided_at/voided_by — máy chủ chỉ huỷ dòng chưa đơn nào chụp; dòng huỷ không bao giờ áp, view công bố loại nó). Nút «Sửa» thêm dòng mới mang replaces_id → dòng cũ + change_reason (10–500 ký tự). Không hai dòng CHƯA HUỶ cùng đích + phạm vi chồng khoảng ngày (khoá gồm cả mức: hai mức khác nhau cùng có dòng mọi dịch vụ được); hồ sơ / vai phải đang được hưởng, mức phải còn bật (prc_tier_inactive). Tỷ lệ và đ/khách KHÔNG vào DTO của Đối tác (C9 = A) |
 | `prc_commission_rule_pax` | bảng | ba số tiền «mỗi khách» theo loại khách (người lớn, trẻ em, người cao tuổi; em bé luôn 0) của MỘT dòng mức kiểu đ/khách (ADR-0133; migration 0116), CHỈ-THÊM. Dòng PER_PAX có dòng phụ ⇒ tính theo ba số; không có ⇒ tính như cũ. Số người lớn luôn bằng per_pax_amount của dòng mức (trigger prc_pax_rule_mismatch); trẻ em và người cao tuổi bắt buộc điền (gõ 0 nếu không trả), không có «ô trống = 0». Không sửa, không xoá: đổi mức thì đóng dòng mức, thêm dòng mới. Số tiền KHÔNG vào DTO của Đối tác (C9 = A) |
 | `prc_supply_term` | bảng | điều khoản cung ứng — người bán của dịch vụ (ADR-0078 điều 2; migration 0090), chính sách có hiệu lực: phạm vi dịch vụ / nhóm / mọi dịch vụ. Người bán = công ty chủ thì không có nhà cung cấp; người bán khác phải đang mang vai SUPPLIER và có tỷ lệ mua lại a% (cost_rate_bp). Không xoá, chỉ đóng một lần, không chồng; dòng ALL chỉ cho công ty chủ; luật X3: không ghi a% cho nhóm Thuê xe (TXE). Gieo một dòng ALL của công ty chủ từ 2025-01-01. a% KHÔNG vào DTO của Đối tác |
 | `v_prc_beneficiary_role` | view công bố | cột: role_type_code |
@@ -311,6 +313,7 @@
 | `bil_payment_receipt` |  | `note` |  |  |
 | `bil_posting` |  | `reason` |  |  |
 | `dsp_assignment` |  | `place_text` |  |  |
+| `fbk_attachment` |  |  | `storage_key`, `content_hash` |  |
 | `fbk_message` |  | `body` |  |  |
 | `fbk_ticket` |  | `title`, `context` |  |  |
 | `ky_period_close` |  | `note` |  |  |
@@ -325,7 +328,9 @@
 | `ord_transfer_leg` |  | `pickup_place`, `dropoff_place`, `short_notice_note` |  |  |
 | `order_service` |  | `pickup_place`, `checkin_place`, `note` |  |  |
 | `orders` |  | `customer_name`, `customer_phone`, `customer_email`, `customer_note`, `payment_note` |  |  |
-| `prc_commission_rule` |  | `note` |  |  |
+| `prc_commission_rule` |  | `note`, `change_reason` |  |  |
+| `prc_role_tier` |  | `change_reason` |  |  |
+| `prc_party_tier` |  | `change_reason` |  |  |
 | `prc_supply_term` |  | `note` |  |  |
 | `pty_contact_point` |  | `value`, `value_normalized` |  |  |
 | `pty_organization` |  | `legal_name`, `tax_code`, `address`, `invoice_email` |  |  |

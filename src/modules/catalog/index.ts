@@ -12,8 +12,8 @@ import { CATALOG_CODE_RE as CODE_RE, MAX_AMOUNT_VND as MAX_PRICE, PAX_LABEL, PAX
 import { getSyncState, loadAll, loadOne, saveOverride, type StoredItem } from "./repository";
 import { acknowledge, applyOverride, money, patchOverride, toEffective, type OverridePatch } from "./rules";
 import { bootstrapIfNeverSynced, syncCatalog } from "./service";
-import { danhSachNhom, demDichVuCuaNhom, ganNhomStatements, lichSuNhom, maNhomMoi, nhomHienHanhTheoMa, nhomTheoMa, suaNhom, themNhom, type NhomRow } from "./nhom-repo";
-import { kiemLoGan, kiemTenNhom, moTaDoiNhom, nhomChoForm } from "./nhom-rules";
+import { danhSachNhom, demDichVuCuaNhom, ganNhomStatements, lichSuNhom, maNhomMoi, nhomHienHanhTheoMa, nhomTheoMa, suaNhom, tenNhomCuaCacMa, themNhom, type NhomRow } from "./nhom-repo";
+import { choPhepDuaDon, kiemLoGan, kiemTenNhom, moTaDoiNhom, nhomChoForm } from "./nhom-rules";
 
 export type { EffectiveService };
 
@@ -27,8 +27,16 @@ export async function getEffectiveServices(db: D1Database, codes?: readonly stri
   return new Map(all.filter((s) => !want || want.has(s.code)).map((s) => [s.code, toEffective(s)]));
 }
 
-/** Dịch vụ như nhân viên bán hàng thấy: giá hiệu lực (đã áp ghi đè), không lộ thông tin ghi đè hay Sheet. */
-function publicItem(e: EffectiveService, groupCode: string | null): CatalogServiceDto {
+/**
+ * ADR-0118 Đ2 / Ruling R-C: tên NHÓM HIỆN HÀNH của các mã dịch vụ, cho `orders` viết câu báo «nhóm này không có đưa đón». Hàm công bố hẹp (chỉ tên, chỉ mã được hỏi); CỔNG chặn/không
+ * chặn của `orders` đọc view `v_ctl_service_transfer`, không dựa vào hàm này. Chưa phân loại / chưa gán: không có khoá.
+ */
+export async function tenNhomHienHanh(db: D1Database, codes: readonly string[]): Promise<Map<string, string>> {
+  return tenNhomCuaCacMa(db, codes);
+}
+
+/** Dịch vụ như nhân viên bán hàng thấy: giá hiệu lực (đã áp ghi đè), không lộ thông tin ghi đè hay Sheet. `transferEnabled` điền sau khi biết nhóm (ADR-0118). */
+function publicItem(e: EffectiveService, groupCode: string | null): Omit<CatalogServiceDto, "transferEnabled"> {
   return { code: e.code, name: e.name, unit: e.unit, prices: e.prices, notes: e.notes, supported: parseUnit(e.unit).kind !== "unknown", groupCode };
 }
 
@@ -60,7 +68,7 @@ async function adminItemKemNhom(db: D1Database, s: StoredItem): Promise<CatalogA
 
 // ---- Nhóm dịch vụ (ADR-0058) ------------------------------------------------------------------------------------------------------------
 function nhomDto(g: NhomRow, soDichVu: number): CatalogAdminGroupDto {
-  return { code: g.code, name: g.name, sortOrder: g.sort_order, active: g.active === 1, soDichVu, updatedAt: g.updated_at };
+  return { code: g.code, name: g.name, sortOrder: g.sort_order, active: g.active === 1, transferEnabled: g.transfer_enabled === 1, soDichVu, updatedAt: g.updated_at };
 }
 const THU_TU_TOI_DA = 9999;
 const laThuTu = (v: unknown): v is number => typeof v === "number" && Number.isSafeInteger(v) && v >= 0 && v <= THU_TU_TOI_DA;
@@ -117,7 +125,10 @@ async function catalogForOrderForm(env: Env, { showSyncError }: { showSyncError:
     nhoms.map((g) => ({ code: g.code, name: g.name, sortOrder: g.sort_order, active: g.active === 1 })),
     visible,
   );
-  return { items: form.items, sync: { lastSuccessAt: state.lastSuccessAt, error: showSyncError ? state.lastError : null }, groups: form.groups };
+  // ADR-0118 Đ1: cờ «Có đưa đón» theo nhóm hiện hành đã qua `nhomChoForm` (nhóm tắt dùng → groupCode null → luôn cho). Cùng luật với view `v_ctl_service_transfer` mà máy chủ `orders` dùng.
+  const nhomDuaDon = nhoms.map((g) => ({ code: g.code, active: g.active === 1, transferEnabled: g.transfer_enabled === 1 }));
+  const choForm: CatalogServiceDto[] = form.items.map((i) => ({ ...i, transferEnabled: choPhepDuaDon(i.groupCode, nhomDuaDon) }));
+  return { items: choForm, sync: { lastSuccessAt: state.lastSuccessAt, error: showSyncError ? state.lastError : null }, groups: form.groups };
 }
 
 export const catalogModule: AppModule = {
@@ -212,16 +223,22 @@ export const catalogModule: AppModule = {
       }
       if (body.sortOrder !== undefined && !laThuTu(body.sortOrder)) return error(400, "invalid_input", LOI_THU_TU);
       if (body.active !== undefined && typeof body.active !== "boolean") return error(400, "invalid_input", "Trạng thái dùng / tắt không hợp lệ.");
-      if (name === undefined && body.sortOrder === undefined && body.active === undefined) return error(400, "invalid_input", "Không có gì để thay đổi.");
+      if (body.transferEnabled !== undefined && typeof body.transferEnabled !== "boolean") return error(400, "invalid_input", "Cờ «Có đưa đón» của nhóm phải là bật hoặc tắt.");
+      if (name === undefined && body.sortOrder === undefined && body.active === undefined && body.transferEnabled === undefined) return error(400, "invalid_input", "Không có gì để thay đổi.");
       const cu = params.code ? await nhomTheoMa(env.DB, params.code) : null;
       if (!cu) return KHONG_CO_NHOM();
       if (cu.updated_at !== expected) return NHOM_VUA_DOI();
       const dangBat = cu.active === 1;
-      const moi = { name: name ?? cu.name, sortOrder: laThuTu(body.sortOrder) ? body.sortOrder : cu.sort_order, active: typeof body.active === "boolean" ? body.active : dangBat };
+      const coDuaDon = cu.transfer_enabled === 1;
+      const moi = {
+        name: name ?? cu.name, sortOrder: laThuTu(body.sortOrder) ? body.sortOrder : cu.sort_order, active: typeof body.active === "boolean" ? body.active : dangBat,
+        transferEnabled: typeof body.transferEnabled === "boolean" ? body.transferEnabled : coDuaDon,
+      };
       const doi: string[] = [];
       if (moi.name !== cu.name) doi.push(`tên ${cu.name} → ${moi.name}`);
       if (moi.sortOrder !== cu.sort_order) doi.push(`thứ tự ${cu.sort_order} → ${moi.sortOrder}`);
       if (moi.active !== dangBat) doi.push(moi.active ? "đã tắt → đang dùng" : "đang dùng → đã tắt");
+      if (moi.transferEnabled !== coDuaDon) doi.push(moi.transferEnabled ? "đưa đón: tắt → bật" : "đưa đón: bật → tắt"); // ADR-0118 Đ1: dùng hành động nhật ký sẵn có
       if (doi.length === 0) return json({ group: nhomDto(cu, await demDichVuCuaNhom(env.DB, cu.code)) } satisfies CatalogGroupResponse); // không đổi gì
       if (moi.active && (moi.name !== cu.name || !dangBat)) {
         // Tên chỉ cấm trùng giữa các nhóm ĐANG DÙNG (chỉ mục duy nhất một phần WHERE active = 1): đổi tên, hoặc BẬT LẠI nhóm tắt, đều phải kiểm.
@@ -237,7 +254,7 @@ export const catalogModule: AppModule = {
       let changes = 0;
       try {
         const res = await env.DB.batch([
-          suaNhom(env.DB, { code: cu.code, name: moi.name, sortOrder: moi.sortOrder, active: moi.active, staffId: staff.id, now, updatedAtCu: expected }),
+          suaNhom(env.DB, { code: cu.code, name: moi.name, sortOrder: moi.sortOrder, active: moi.active, transferEnabled: moi.transferEnabled, staffId: staff.id, now, updatedAtCu: expected }),
           auditStatement(env.DB, { staffId: staff.id, action: "catalog_group_updated", at: now, targetType: "catalog", detail: `${cu.name}: ${doi.join("; ")}` }, "changes() > 0"),
         ]);
         changes = res[0]?.meta.changes ?? 0;

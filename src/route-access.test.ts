@@ -146,6 +146,10 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "GET", path: "/api/feedback/my-orders", access: "staff" }, // ADR-0127 Việc 3 — đơn do chính mình lập để gắn vào phiếu (can order.view, ownerId = người gọi)
   { method: "GET", path: "/api/feedback/teams/:id/members", access: "staff" }, // ADR-0127 Việc 4 — ứng viên giao việc (quyenPhieu giaoViecChoNguoiKhac của nhóm đó; chỉ đọc)
   { method: "GET", path: "/api/feedback/:id/messages", access: "staff" }, // ADR-0127 Việc 4 — tuyến làm mới khung trò chuyện (quyenPhieu doc như chi tiết; KHÔNG ghi mốc đã xem)
+  { method: "GET", path: "/api/feedback/:id/tep/:tid", access: "staff" }, // ADR-0144 đ3, đ4 — mở tệp kèm tin (quyenPhieu doc + cùng đoạn lọc ghi chú nội bộ; nhật ký trước đọc kho)
+  { method: "POST", path: "/api/feedback/:id/tep/:tid/go", access: "staff" }, // ADR-0144 đ6 — gỡ tệp gửi nhầm (CHỈ Toàn quyền: can feedback.triage)
+  { method: "GET", path: "/api/feedback/tep-cho-xoa", access: "staff" }, // ADR-0144 đ5 — hàng chờ xoá kho tệp vé (can feedback.triage), DTO chỉ mã
+  { method: "POST", path: "/api/feedback/tep-cho-xoa/chay-lai", access: "staff" }, // chạy lại xoá kho SAU lô quyết xoá (Hiến chương 5.16) — can feedback.triage
   { method: "GET", path: "/api/feedback/queue", access: "staff" },
   { method: "GET", path: "/api/feedback/admin/teams", access: "staff" },
   { method: "POST", path: "/api/feedback/admin/teams", access: "staff" },
@@ -204,10 +208,14 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/pricing/hoa-hong", access: "office" }, // partner.commission.write — thêm mức (chỉ thêm)
   { method: "POST", path: "/api/pricing/hoa-hong/:id/dong", access: "office" }, // partner.commission.write — đóng mức
   { method: "POST", path: "/api/pricing/hoa-hong/:id/doi", access: "office" }, // partner.commission.write — Đổi mức một bước (ngừng dòng cũ + mở dòng mới)
+  { method: "GET", path: "/api/pricing/hoa-hong/:id/sua", access: "office" }, // partner.commission.write + không giữ quyền Đối tác — ADR-0148 xem trước «Sửa» (đường, ngày sớm nhất)
+  { method: "POST", path: "/api/pricing/hoa-hong/:id/sua", access: "office" }, // partner.commission.write + không giữ quyền Đối tác — ADR-0148 Sửa (huỷ–thay hoặc từ ngày)
   { method: "GET", path: "/api/pricing/thu-tra", access: "office" }, // partner.commission.view — thử tra, chỉ đọc
   { method: "GET", path: "/api/pricing/ho-so/:id/hoa-hong", access: "office" }, // partner.commission.view — YC-0020 khối «Hoa hồng hiện hành» trên hồ sơ, chỉ đọc (mã, tên, số đếm; không tiền)
   { method: "POST", path: "/api/pricing/ho-so/:id/muc-rieng", access: "office" }, // partner.commission.write + không giữ quyền Đối tác — ADR-0138 gắn mức TA riêng
   { method: "POST", path: "/api/pricing/muc-rieng/:id/ket-thuc", access: "office" }, // partner.commission.write + không giữ quyền Đối tác — ADR-0138 kết thúc mức riêng
+  { method: "GET", path: "/api/pricing/muc-rieng/:id/sua", access: "office" }, // như trên — ADR-0148 xem trước «Sửa» gắn riêng
+  { method: "POST", path: "/api/pricing/muc-rieng/:id/sua", access: "office" }, // như trên — ADR-0148 Sửa gắn riêng
   { method: "GET", path: "/api/pricing/cung-ung", access: "office" }, // supply.terms.view — Bán hàng KHÔNG xem
   { method: "POST", path: "/api/pricing/cung-ung", access: "office" }, // supply.terms.write
   { method: "POST", path: "/api/pricing/cung-ung/:id/dong", access: "office" }, // supply.terms.write
@@ -222,6 +230,8 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/pricing/muc-ta/gan", access: "office" },
   { method: "POST", path: "/api/pricing/muc-ta/gan/:id/ket-thuc", access: "office" },
   { method: "POST", path: "/api/pricing/muc-ta/gan/:id/doi", access: "office" }, // partner.commission.write — Đổi chính sách của loại một bước
+  { method: "GET", path: "/api/pricing/muc-ta/gan/:id/sua", access: "office" }, // partner.commission.write + không giữ quyền Đối tác — ADR-0148 xem trước «Sửa» gắn loại
+  { method: "POST", path: "/api/pricing/muc-ta/gan/:id/sua", access: "office" }, // như trên — ADR-0148 Sửa gắn loại
   { method: "POST", path: "/api/pricing/muc-ta/:code/tat", access: "office" },
   { method: "POST", path: "/api/pricing/muc-ta/:code/bat", access: "office" },
   { method: "POST", path: "/api/pricing/muc-ta/:code/dong", access: "office" }, // thêm MỘT DÒNG cho mức (đóng dòng: POST /api/pricing/hoa-hong/:id/dong)
@@ -517,7 +527,7 @@ test("MODULES liệt kê ĐỦ mọi thư mục module có khai `...Module: AppM
   assert.deepEqual(routedDirs, listed, "có thư mục module khai AppModule nhưng chưa có trong MODULES của bài kiểm route-access này — thêm vào MODULES và SNAPSHOT");
 });
 
-test("mức truy cập của 382 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
+test("mức truy cập của 392 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
   const actual = await collectRealRoutes();
   // deepEqual TRƯỚC: khi có route mới/bị xoá, thông báo của nó chỉ ra ĐÚNG route lệch — hai assert.equal độ dài bên dưới chỉ để phòng hờ
   // (không bao giờ tự chạy tới nếu deepEqual đã trượt) và tài liệu hoá con số 86 để đối chiếu nhanh bằng mắt.
@@ -636,6 +646,8 @@ test("mức truy cập của 382 route hiện có khớp ảnh chụp đã duy�
   // 2026-10-25 (Hoa hồng + Hỗ trợ PR 1, Task 5): + POST /api/pricing/muc-ta/gan/:id/doi (office, partner.commission.write) = 375.
   // 2026-10-26 (ADR-0136 Task 3.3 lát 1–3): + POST gui-xac-nhan, POST rut-xac-nhan, POST quyet-dinh, GET cho-xac-nhan (orders) = 379.
   // + GET, POST /api/cai-dat/xac-nhan-don (admin; lát 4) = 381. 2026-10-26 (Task 3.4): + POST /api/orders/:id/gui-don (orders) = 382.
-  assert.equal(actual.length, 382, "số route thực tế lệch 382 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 382, "SNAPSHOT phải có đúng 382 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // 2026-10-28 (ADR-0144 Task 5): + GET /api/feedback/:id/tep/:tid, POST …/tep/:tid/go, GET /api/feedback/tep-cho-xoa, POST …/tep-cho-xoa/chay-lai (staff; quyenPhieu / can feedback.triage) = 386.
+  // 2026-10-29 (ADR-0148 Đ1, nút Sửa): + GET, POST /api/pricing/hoa-hong/:id/sua, /api/pricing/muc-ta/gan/:id/sua, /api/pricing/muc-rieng/:id/sua (office) = 392.
+  assert.equal(actual.length, 392, "số route thực tế lệch 392 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 392, "SNAPSHOT phải có đúng 392 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

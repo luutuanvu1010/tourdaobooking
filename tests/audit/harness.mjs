@@ -184,6 +184,9 @@ export function khoR2Gia() {
  * - `khongDongBoChuyen: true` — ADR-0104 Đ2 (kế hoạch N9 "đổi cách dựng, không nới luật"): bỏ hàm tiêm máy đồng bộ chuyến ⇒ router dùng `dongBoDiThang` (lô = câu
  *   đơn, phản hồi `capNhatTay`). CHỈ cho bài cần TRẠNG THÁI GIỮ (suất của đơn huỷ / khách đã đổi còn trên chuyến) để kiểm lý do giữ hay nút tay — bài đó vẫn phải
  *   thấy lý do giữ.
+ * - `khongTiemDaChup: true` — ADR-0148 Đ1: bỏ hàm tiêm «đã chụp chưa» ⇒ route Sửa / Đổi / Ngừng của trang Hoa hồng PHẢI trả 503 (từ chối kín, không đoán «chưa chụp»).
+ *   `ngayChupGia: "<YYYY-MM-DD>"` — hàm tiêm GIẢ trả ngày chụp gần nhất cố định (mọi câu hỏi), CHỈ cho ca «đã có đơn chụp» khó dựng bằng đơn thật (vd đơn chụp hôm nay của
+ *   dòng bắt đầu hôm qua); ít nhất một ca mỗi đường đi đường thật (xác nhận đơn rồi Sửa). Mặc định: hàm thật của gốc lắp ráp.
  * - `chenGiuaDocVaGhi: async ({ x }) => …` — ADR-0104 Đ2 (NT-5 "thua cổng"): máy đồng bộ THẬT đọc + lập khúc, rồi hàm này chạy TRƯỚC khi route chạy lô (giả một
  *   người khác vừa đổi chuyến / đơn giữa lúc đọc và lúc ghi). Không thay luật nào.
  */
@@ -213,6 +216,11 @@ export function world(tuyChon = {}) {
   } else if (tuyChon.daThuGia !== undefined) {
     const so = tuyChon.daThuGia;
     ungDung = app.taoAppChoKhungThu({ daThuCuaDon: async () => so });
+  } else if (tuyChon.khongTiemDaChup) {
+    ungDung = app.taoAppChoKhungThu({ hoiDaChup: undefined });
+  } else if (tuyChon.ngayChupGia !== undefined) {
+    const ngay = tuyChon.ngayChupGia;
+    ungDung = app.taoAppChoKhungThu({ hoiDaChup: async () => ngay });
   } else if (tuyChon.khongTiemAnDanhPhien) {
     ungDung = app.taoAppChoKhungThu({ cauAnDanhPhien: undefined });
   } else if (tuyChon.khongTiemNhan) {
@@ -273,7 +281,8 @@ export function world(tuyChon = {}) {
     }, 2000).unref?.();
   }
   const r2 = khoR2Gia();
-  const env = { DB: fakeD1(sqlite, moc), HO_SO: r2, SESSION_SECRET: SECRET, LAN_GUI_SECRET: LAN_GUI_SECRET_GIA, SERVICES_SHEET_ID: "x" };
+  const r2HoTro = khoR2Gia(); // kho tệp vé hỗ trợ (ADR-0144) — kho RIÊNG, không chung đối tượng với kho hồ sơ
+  const env = { DB: fakeD1(sqlite, moc), HO_SO: r2, HO_TRO: r2HoTro, SESSION_SECRET: SECRET, LAN_GUI_SECRET: LAN_GUI_SECRET_GIA, SERVICES_SHEET_ID: "x" };
   // Danh mục đã đồng bộ gần đây để POST /api/orders không đi gọi Google Sheet.
   sqlite.exec(`UPDATE catalog_sync SET last_attempt_at = '${new Date().toISOString()}', last_success_at = '${new Date().toISOString()}' WHERE id = 'default'`);
   // waitUntil THU promise (promise vốn đã chạy — bài cũ không đổi hành vi); `choNen()` chờ hết việc chạy nền (ADR-0094 L5: bước 6 cập nhật kết quả vé).
@@ -328,5 +337,5 @@ export function world(tuyChon = {}) {
     const laDoiTac = sqlite.prepare("SELECT 1 FROM stf_permission WHERE staff_id = ? AND permission_type_code = 'PARTNER' AND valid_to_at IS NULL").get(as) !== undefined;
     return laDoiTac ? call("POST", `/api/orders/${id}/gui-don`, { as, body: {} }) : call("POST", `/api/orders/${id}/status`, { as, body: { status: "confirmed" } });
   };
-  return { sqlite, env, r2, call, xacNhanDon, token, choNen, raoTraVe, chenTruocLo, q:(sql, ...a) => sqlite.prepare(sql).all(...a), soLanGoiMoc: () => soLanGoiMoc, soLanGoiNhan: () => goiNhan.length, goiNhan: () => goiNhan };
+  return { sqlite, env, r2, r2HoTro, call, xacNhanDon, token, choNen, raoTraVe, chenTruocLo, q:(sql, ...a) => sqlite.prepare(sql).all(...a), soLanGoiMoc: () => soLanGoiMoc, soLanGoiNhan: () => goiNhan.length, goiNhan: () => goiNhan };
 }

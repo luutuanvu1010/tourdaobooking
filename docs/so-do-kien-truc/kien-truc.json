@@ -203,6 +203,7 @@
   "khoi_ngoai": [
     { "ten": "Cơ sở dữ liệu D1 (binding DB)", "muc_dich": "Nguồn sự thật của mọi dữ liệu nghiệp vụ; trigger giữ các luật lõi ngay trong cơ sở dữ liệu.", "chieu": "máy chủ đọc và ghi", "phan_dung": [] },
     { "ten": "Kho tệp R2 (binding HO_SO)", "muc_dich": "Giữ ảnh giấy tờ của người và dấu vết phiếu xoá ngoài cơ sở dữ liệu; không công khai.", "chieu": "máy chủ ghi, đọc, xoá", "phan_dung": ["parties"] },
+    { "ten": "Kho tệp R2 vé hỗ trợ (binding HO_TRO)", "muc_dich": "Giữ ảnh và tệp PDF kèm tin của vé hỗ trợ ngoài cơ sở dữ liệu (ADR-0144); không công khai, mở qua máy chủ sau khi kiểm quyền.", "chieu": "máy chủ ghi, đọc, xoá", "phan_dung": ["feedback"] },
     { "ten": "Bảng tin (Durable Object, binding BANG_TIN)", "muc_dich": "Giữ kết nối WebSocket để báo tức thì cho màn hình đang mở; không lưu tin.", "chieu": "hai chiều", "phan_dung": ["bangtin"] },
     { "ten": "Email (binding EMAIL)", "muc_dich": "Gửi thư báo góp ý cho người xử lý và mã đăng nhập hai lớp.", "chieu": "máy chủ gọi ra", "phan_dung": ["feedback", "auth"] },
     { "ten": "Google Sheet danh mục dịch vụ", "muc_dich": "Nguồn danh sách dịch vụ và bảng giá, kéo mỗi 15 phút hoặc khi bấm đồng bộ.", "chieu": "chỉ đọc", "phan_dung": ["catalog"] },

@@ -49,12 +49,13 @@ test("thêm mức: Kế toán 201 + Location + nhật ký; trùng khoảng 409 c
   assert.equal((await w.call("POST", "/api/pricing/hoa-hong", { as: ADM, body: { ...mucVai, doiTuong: { loai: "VAI", code: "COLLABORATOR" } } })).status, 201);
 });
 
-test("mức riêng cho hồ sơ không mang vai được hưởng ⇒ 400; đóng mức ⇒ 200, đóng lần hai ⇒ 409", async () => {
+test("mức riêng cho hồ sơ không mang vai được hưởng ⇒ 400; đóng mức ⇒ 200, đóng lần hai cùng ngày ⇒ 400 (ADR-0148: chỉ rút ngắn)", async () => {
   const w = setup();
   assert.equal((await w.call("POST", "/api/pricing/hoa-hong", { as: KT, body: { ...mucVai, doiTuong: { loai: "DOI_TAC", partyId: `pty-${SALES}` } } })).status, 400);
   const id = (await w.call("POST", "/api/pricing/hoa-hong", { as: KT, body: { ...mucVai, doiTuong: { loai: "DOI_TAC", partyId: `pty-${DT}` } } })).json.dong.id;
   assert.equal((await w.call("POST", `/api/pricing/hoa-hong/${id}/dong`, { as: KT, body: { denNgay: "2026-12-31" } })).status, 200);
-  assert.equal((await w.call("POST", `/api/pricing/hoa-hong/${id}/dong`, { as: KT, body: { denNgay: "2026-12-31" } })).status, 409);
+  const lai = await w.call("POST", `/api/pricing/hoa-hong/${id}/dong`, { as: KT, body: { denNgay: "2026-12-31" } });
+  assert.deepEqual([lai.status, lai.json.error.message], [400, "Ngày kết thúc mới phải sớm hơn ngày kết thúc hiện tại (31/12/2026)."]);
 });
 
 test("thử tra: đối tác A + dịch vụ ⇒ mức thắng và bậc", async () => {

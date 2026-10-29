@@ -1,11 +1,12 @@
 // Hoa hồng «Đổi mức một bước» (Task 3, PR máy chủ): luật thuần — kiemDoi, kiemThanDoiMuc, cungMuc. Đặc tả A3.
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { ngayDoiSomNhat } from "../../shared/hoa-hong-hien-thi.ts";
 import { addDays } from "../../shared/vn-date.ts";
 import { cungMuc, kiemDoi, kiemThanDoiMuc, type DongMuc } from "./rules.ts";
 
 const HOM_NAY = "2026-10-25";
-const doi = (validFrom: string, validTo: string | null, tuNgay: unknown) => kiemDoi({ cu: { validFrom, validTo }, tuNgay, homNay: HOM_NAY });
+const doi = (validFrom: string, validTo: string | null, tuNgay: unknown) => kiemDoi({ cu: { validFrom, validTo }, tuNgay, homNay: HOM_NAY, ngayChup: null });
 
 test("kiemDoi câu 1: dòng cũ đã có ngày ngừng ⇒ không đổi được", () => {
   const r = doi("2026-01-01", "2026-12-31", addDays(HOM_NAY, 1));
@@ -39,6 +40,14 @@ test("kiemDoi: thứ tự kiểm — câu 1 thắng câu 2, câu 2 thắng câu 
 test("kiemDoi biên: cũ bắt đầu hôm nay, mức mới từ ngày mai ⇒ ok, đóng cũ hết hôm nay", () => {
   const tu = addDays(HOM_NAY, 1);
   assert.deepEqual(doi(HOM_NAY, null, tu), { ok: true, denNgayCu: HOM_NAY, tuNgay: tu });
+});
+
+test("ngayDoiSomNhat (ô «Từ» của hộp Đổi trên giao diện) khớp kiemDoi: máy chủ nhận đúng ngày đó, từ chối ngày liền trước", () => {
+  for (const cu of [HOM_NAY, addDays(HOM_NAY, -1), addDays(HOM_NAY, -30)]) {
+    const som = ngayDoiSomNhat(cu, HOM_NAY);
+    assert.equal(doi(cu, null, som).ok, true, `cũ từ ${cu}: phải nhận ${som}`);
+    assert.equal(doi(cu, null, addDays(som, -1)).ok, false, `cũ từ ${cu}: phải từ chối ngày trước ${som}`);
+  }
 });
 
 test("kiemDoi biên: mức mới từ hôm nay, cũ bắt đầu 3 ngày trước ⇒ ok, đóng cũ hết hôm qua", () => {

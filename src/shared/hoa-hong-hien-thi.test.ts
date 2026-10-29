@@ -23,6 +23,8 @@ import {
   ghepDoiTacRieng,
   dongRiengDoiTac,
   nutDoiNgung,
+  ngayDoiSomNhat,
+  cauDoiTuNgayMai,
   tomTatMuc,
   xepLoai,
   canXacNhanDongDieuKhoan,
@@ -83,7 +85,7 @@ test("trạng thái dòng: đang áp / sắp áp / đã đóng; chỉ dòng chư
   assert.equal(trangThaiDong({ conHieuLuc: false, denNgay: null }, HOM_NAY), "SAP_AP", "bắt đầu sau hôm nay, chưa có ngày kết thúc");
   assert.equal(trangThaiDong({ conHieuLuc: false, denNgay: "2026-12-31" }, HOM_NAY), "SAP_AP");
   assert.equal(trangThaiDong({ conHieuLuc: false, denNgay: "2026-10-08" }, HOM_NAY), "DA_DONG");
-  assert.deepEqual(NHAN_TRANG_THAI, { DANG_AP: "Đang áp dụng", SAP_AP: "Sắp áp dụng", DA_DONG: "Đã ngừng" });
+  assert.deepEqual(NHAN_TRANG_THAI, { DANG_AP: "Đang áp dụng", SAP_AP: "Sắp áp dụng", DA_DONG: "Đã ngừng", DA_HUY: "Đã huỷ — thay bằng dòng khác" }, "ADR-0148: thêm «Đã huỷ»");
   assert.equal(dongDongDuoc({ denNgay: null }), true);
   assert.equal(dongDongDuoc({ denNgay: "2026-12-31" }), false, "đã có ngày kết thúc: máy chủ trả 409 nếu đóng lại");
 });
@@ -222,14 +224,24 @@ test("PR2 T1: nhanLoaiDoiTac — loại có sẵn, chỉ «Đã tắt» khi tắ
   assert.equal(nhanLoaiDoiTac({ ten: "X", coSan: false, dangBat: true }).trangThai, "");
 });
 
-test("PR2 T1: nutDoiNgung — năm ca", () => {
+test("PR2 T1: nutDoiNgung — các ca hiện / ẩn nút", () => {
   const d = (o: object) => ({ tuNgay: "2026-01-01", denNgay: null, conHieuLuc: true, ...o });
   assert.deepEqual(nutDoiNgung(d({}), HOM_NAY), { hien: true });
   assert.deepEqual(nutDoiNgung(d({ tuNgay: "2026-11-01", conHieuLuc: false }), HOM_NAY), { hien: false, ghiChu: "chưa tới ngày" });
   assert.deepEqual(nutDoiNgung(d({ denNgay: "2026-12-31" }), HOM_NAY), { hien: false, ghiChu: "ngừng sau 31/12/2026" });
   assert.deepEqual(nutDoiNgung(d({ denNgay: "2026-10-08", conHieuLuc: false }), HOM_NAY), { hien: false, ghiChu: "" });
-  // Dòng bắt đầu HÔM NAY: không nút (bàn giao 25/10 §4), nhưng phải nói khi nào làm được — trước 28/10 dòng này trống trơn, trông như bị khoá.
-  assert.deepEqual(nutDoiNgung(d({ tuNgay: HOM_NAY }), HOM_NAY), { hien: false, ghiChu: "đổi hoặc ngừng từ ngày mai" });
+  // Dòng bắt đầu HÔM NAY: có nút (chủ dự án 28/10 đổi bàn giao 25/10 §4 — trước đó chỉ ghi «đổi hoặc ngừng từ ngày mai», người dùng không tìm thấy nút).
+  // Máy chủ đã cho: Đổi từ ngày mai (`kiemDoi`), Ngừng đến hết hôm nay (`kiemNgayDong`). Ngày sớm nhất của hộp Đổi: `ngayDoiSomNhat`.
+  assert.deepEqual(nutDoiNgung(d({ tuNgay: HOM_NAY }), HOM_NAY), { hien: true });
+  // Bắt đầu hôm nay nhưng đã hẹn ngày ngừng: vẫn ghi ngày ngừng, không nút.
+  assert.deepEqual(nutDoiNgung(d({ tuNgay: HOM_NAY, denNgay: "2026-12-31" }), HOM_NAY), { hien: false, ghiChu: "ngừng sau 31/12/2026" });
+});
+
+test("Đổi mức bắt đầu hôm nay: ngày sớm nhất là ngày mai, kèm câu nói vì sao", () => {
+  assert.equal(ngayDoiSomNhat(HOM_NAY, HOM_NAY), "2026-10-10");
+  assert.equal(ngayDoiSomNhat("2026-10-01", HOM_NAY), HOM_NAY);
+  assert.equal(cauDoiTuNgayMai(HOM_NAY, HOM_NAY), "Mức cũ bắt đầu hôm nay nên mức mới áp dụng sớm nhất từ ngày mai; đơn xác nhận trong hôm nay vẫn tính theo mức cũ.");
+  assert.equal(cauDoiTuNgayMai("2026-10-01", HOM_NAY), "");
 });
 
 test("PR2 T1: tomTatMuc — số đứng trước, tên dài vẫn bắt đầu bằng số", () => {
@@ -278,4 +290,46 @@ test("R25: dongRiengDoiTac — chỉ dòng của đúng đối tác, theo bộ l
   assert.deepEqual(dongRiengDoiTac(dong, "p1", { chiConHieuLuc: false, tim: "" }, homNay, ten).map((x) => x.id), ["a", "b"]);
   assert.deepEqual(dongRiengDoiTac(dong, "p1", { chiConHieuLuc: true, tim: "hoa nguyen" }, homNay, ten).map((x) => x.id), ["a"]);
   assert.deepEqual(dongRiengDoiTac(dong, "p2", { chiConHieuLuc: true, tim: "hoa nguyen" }, homNay, ten).map((x) => x.id), []);
+});
+
+// ---------------------------------------------------------------------------------------------------------------------------------------------------------
+// ADR-0148 Đ1 (lượt 1): nút «Sửa», dòng đã huỷ, câu xem trước
+test("ADR-0148: dòng đã huỷ có trạng thái riêng «Đã huỷ — thay bằng dòng khác», bị bộ lọc «Đang và sắp áp dụng» bỏ (như dòng đã ngừng), hiện ở «Tất cả»", async () => {
+  const m = await import("./hoa-hong-hien-thi.ts");
+  assert.equal(m.NHAN_TRANG_THAI.DA_HUY, "Đã huỷ — thay bằng dòng khác");
+  // Dòng huỷ mang conHieuLuc false + ngày kết thúc tương lai hoặc trống — trước đây rơi vào «Sắp áp dụng».
+  assert.equal(trangThaiDong({ conHieuLuc: false, denNgay: "2028-01-01", daHuy: true }, HOM_NAY), "DA_HUY");
+  assert.equal(trangThaiDong({ conHieuLuc: false, denNgay: null, daHuy: true }, HOM_NAY), "DA_HUY");
+  const huy = muc({ id: "huy", conHieuLuc: false, tuNgay: "2027-01-01", denNgay: "2028-01-01", daHuy: true });
+  const thay = muc({ id: "thay", conHieuLuc: false, tuNgay: "2027-02-01", denNgay: "2027-12-31", thayCho: "huy" });
+  assert.deepEqual(locMuc([huy, thay], { chiConHieuLuc: true, tim: "" }, HOM_NAY, ten).map((x) => x.id), ["thay"]);
+  assert.deepEqual(locMuc([huy, thay], { chiConHieuLuc: false, tim: "" }, HOM_NAY, ten).map((x) => x.id), ["huy", "thay"]);
+  // Đối tác chỉ còn dòng đã huỷ ⇒ không liệt kê ở «Đối tác có mức riêng…».
+  const dt = { loai: "DOI_TAC" as const, partyId: "p9", ten: "Chỉ còn dòng huỷ" };
+  assert.deepEqual(ghepDoiTacRieng([muc({ id: "x", doiTuong: dt, conHieuLuc: false, denNgay: null, daHuy: true })], [], HOM_NAY), []);
+  assert.deepEqual(dongRiengDoiTac([muc({ id: "x", doiTuong: dt, conHieuLuc: false, daHuy: true })], "p9", { chiConHieuLuc: true, tim: "" }, HOM_NAY, ten), []);
+  // Dòng huỷ không có Đổi / Ngừng, không ghi chú «chưa tới ngày».
+  assert.deepEqual(nutDoiNgung({ tuNgay: "2027-01-01", denNgay: "2028-01-01", conHieuLuc: false, daHuy: true }, HOM_NAY), { hien: false, ghiChu: "" });
+});
+
+test("ADR-0148: nút «Sửa» — dòng chưa huỷ, ngày kết thúc trống hoặc chưa qua (kể cả dòng chưa tới ngày, ví dụ 2027 → 2028 của chủ); quyền = ghi bảng mức và không mang quyền Đối tác", async () => {
+  const m = await import("./hoa-hong-hien-thi.ts");
+  const d = (o: object) => ({ tuNgay: "2026-01-01", denNgay: null, daHuy: false, ...o });
+  assert.equal(m.nutSua(d({ tuNgay: "2027-01-01", denNgay: "2028-01-01" }), HOM_NAY), true, "ví dụ chủ: chưa tới ngày vẫn có Sửa");
+  assert.equal(m.nutSua(d({}), HOM_NAY), true);
+  assert.equal(m.nutSua(d({ denNgay: HOM_NAY }), HOM_NAY), true, "kết thúc hôm nay = chưa qua");
+  assert.equal(m.nutSua(d({ denNgay: "2026-10-08" }), HOM_NAY), false, "đã hết hạn");
+  assert.equal(m.nutSua(d({ daHuy: true }), HOM_NAY), false, "đã huỷ");
+  const ai = (permissions: PermissionCode[]) => ({ permissions });
+  assert.equal(m.coQuyenSua(ai(["ACCOUNTING"])), true);
+  assert.equal(m.coQuyenSua(ai(["ADMIN"])), true);
+  assert.equal(m.coQuyenSua(ai(["SUPER_ADMIN"])), true);
+  for (const p of [["SALES"], ["FIELD"], ["HR"], ["PARTNER"], ["ACCOUNTING", "PARTNER"]] as PermissionCode[][]) assert.equal(m.coQuyenSua(ai(p)), false, p.join("+"));
+});
+
+test("ADR-0148: câu xem trước của hộp Sửa theo đường máy chủ trả", async () => {
+  const m = await import("./hoa-hong-hien-thi.ts");
+  assert.equal(m.cauXemTruocSua({ homNay: HOM_NAY, duong: "HUY_THAY" }), "Chưa có đơn nào dùng mức này — sửa sẽ thay hẳn.");
+  assert.equal(m.cauXemTruocSua({ homNay: HOM_NAY, duong: "TU_NGAY", tuNgaySomNhat: "2026-10-10", denNgayToiDa: null }), "Đã có đơn dùng mức này — phần sửa áp từ ngày 10/10/2026; đơn cũ giữ mức cũ.");
+  assert.equal(m.cauXemTruocSua({ homNay: HOM_NAY, duong: "HUY_THAY" }, "chính sách này"), "Chưa có đơn nào dùng chính sách này — sửa sẽ thay hẳn.");
 });

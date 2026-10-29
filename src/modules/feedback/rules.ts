@@ -2,8 +2,9 @@
 // Import bằng đuôi .ts để node --test chạy trực tiếp.
 import { FEEDBACK_STATUSES, isFeedbackKind, isFeedbackStatus, type FeedbackKind, type FeedbackStatus } from "../../shared/feedback-catalog.ts";
 import { isPriority, type Priority } from "../../shared/ve-ho-tro.ts";
-import type { FeedbackPatchRequest } from "../../shared/contracts.ts";
+import type { FeedbackPatchRequest, FeedbackTepDto } from "../../shared/contracts.ts";
 import { UUID_RE } from "../../shared/http.ts";
+import { CHUA_TAI_DUOC_SAU_MS } from "../../shared/tep-dinh-kem.ts";
 
 export const TITLE_MAX = 120;
 export const BODY_MAX = 4000;
@@ -13,6 +14,21 @@ export const MESSAGE_LIMIT_PER_HOUR = 30;
 export const RATE_WINDOW_MS = 60 * 60 * 1000;
 /** Đầu cửa sổ tần suất (ISO UTC) — so chuỗi với created_at (cũng ISO UTC). */
 export const windowStart = (now: Date): string => new Date(now.getTime() - RATE_WINDOW_MS).toISOString();
+
+// ---- Tệp kèm tin (ADR-0144) ------------------------------------------------------------------------------------------------------------------------------
+/** Mã lý do quyết xoá tệp vé (cột `fbk_attachment.purge_reason` — CHECK chỉ hình dạng; danh sách kiểm ở mã). */
+export const LY_DO_XOA_TEP_VE = { TAI_LEN_LOI: "TAI_LEN_LOI", TAI_LEN_DO_DANG: "TAI_LEN_DO_DANG", GO_TEP: "GO_TEP" } as const;
+/**
+ * Trạng thái một tệp với người xem (ADR-0144 đ5, đ6): đã quyết xoá vì GỠ ⇒ «Tệp đã được gỡ» (DA_GO); đã quyết xoá vì tải hỏng / dở dang ⇒ null (không hiện —
+ * người gửi đã được báo số tệp hỏng lúc gửi); đã lưu ⇒ DA_LUU; chưa lưu ⇒ DANG_TAI, quá `CHUA_TAI_DUOC_SAU_MS` (tính từ lúc tạo dòng) ⇒ CHUA_TAI_DUOC.
+ */
+export function trangThaiTep(
+  r: { stored_at: string | null; purged_at: string | null; purge_reason: string | null; created_at: string }, nowMs: number,
+): FeedbackTepDto["trangThai"] | null {
+  if (r.purged_at !== null) return r.purge_reason === LY_DO_XOA_TEP_VE.GO_TEP ? "DA_GO" : null;
+  if (r.stored_at !== null) return "DA_LUU";
+  return nowMs - Date.parse(r.created_at) > CHUA_TAI_DUOC_SAU_MS ? "CHUA_TAI_DUOC" : "DANG_TAI";
+}
 
 /** Tuyến làm mới (ADR-0127 quyết định 1): tối đa bấy nhiêu tin mỗi lần — đủ vì khách chỉ lấy phần chồng 30 giây sau tin cuối đã nhận. */
 export const MESSAGES_SINCE_LIMIT = 100;

@@ -194,6 +194,7 @@
   --ht-av: 28px;               /* PR 3 màn Nhóm hỗ trợ: ảnh đại diện chữ tắt của thành viên */
   --bw-ht-truong: 2px;         /* vành nhấn quanh ảnh đại diện của trưởng nhóm */
   --w-ht-cot-trai: 320px;      /* PR 3 trang Hỗ trợ: cột danh sách bên trái ở máy tính */
+  --w-ht-tep-anh: 160px;       /* ADR-0144: cạnh tối đa của ảnh xem trước trong bong bóng tin vé hỗ trợ */
   --w-fb-tin: 85%;             /* Vé hỗ trợ đợt 2a (ADR-0127): bề rộng tối đa một bong bóng tin — chừa lề phía bên kia để thấy rõ tin của ai */
   /* "Việc của tôi" của hướng dẫn viên (Task 1.8 ADR-0030) — số đo từ bản thiết kế "Viec cua toi - HDV v2.dc.html" (Claude Design 2026-09-27; chủ dự án
      yêu cầu làm đúng bản thiết kế — coi là duyệt các cỡ chữ/số đo dưới đây, cùng tiền lệ trang Đăng nhập). Màu đều là token sẵn có. */
@@ -803,6 +804,7 @@ h3 { font-size: var(--fs-step-5); margin: var(--s4) 0 var(--s2); color: var(--c-
 .nhom-dong .nhom-ten { flex: 1 1 10rem; min-width: 0; font-weight: var(--fw-bold); overflow-wrap: anywhere; }
 .nhom-dong .nhom-so { font-size: var(--fs-label); color: var(--c-text-muted); white-space: nowrap; }
 .nhom-dong .badge { margin-left: 0; }
+.nhom-dua-don { display: flex; align-items: center; gap: var(--s2); } /* công tắc «Có đưa đón» của nhóm (ADR-0118) */
 .nhom-dong.nhom-tat .nhom-ten { color: var(--c-text-muted); }
 .nhom-dong .nhom-ten-sua { flex: 1 1 12rem; min-width: 0; width: auto; margin: 0; }
 .nhom-nut { display: flex; flex-wrap: wrap; gap: 0 var(--s1); }
@@ -1068,6 +1070,21 @@ button.xm-the { min-height: var(--tap-min); cursor: pointer; }
 .ht-tra-loi { position: sticky; bottom: 0; z-index: 5; display: flex; flex-direction: column; gap: var(--s2); margin-top: var(--s3); padding: var(--s3); background: var(--c-surface-alt); border-top: 1px solid var(--c-border); }
 .ht-tra-loi.is-noi-bo { background: var(--c-sand-soft); }
 .ht-tra-loi textarea { width: 100%; font-size: var(--fs-field); }
+/* Tệp kèm tin vé hỗ trợ (ADR-0144): ô chọn ở hộp gửi / ô trả lời, khối tệp dưới chữ của bong bóng. Chỉ token. */
+.ht-tep-chon { display: flex; flex-direction: column; gap: var(--s1); }
+.ht-tep-hang { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s1) var(--s2); }
+.ht-tep-nut { display: inline-flex; align-items: center; gap: var(--s1); padding-left: 0; padding-right: 0; }
+.ht-tep-nhac { margin: 0; font-size: var(--fs-label); }
+.ht-tep-ds { display: flex; flex-direction: column; gap: var(--s1); margin: 0; padding: 0; list-style: none; }
+.ht-tep-muc { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s1) var(--s2); }
+.ht-tep-ten { overflow-wrap: anywhere; font-size: var(--fs-label); }
+.ht-tep-tin { display: flex; flex-wrap: wrap; align-items: flex-start; gap: var(--s2); margin-top: var(--s2); }
+.ht-tep-o { display: flex; flex-direction: column; align-items: flex-start; gap: var(--s1); }
+.ht-tep-anh { display: block; line-height: 0; }
+.ht-tep-anh img { display: block; max-width: var(--w-ht-tep-anh); max-height: var(--w-ht-tep-anh); border: 1px solid var(--c-border); border-radius: var(--radius-sm); background: var(--c-surface); }
+.ht-tep-the { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s1) var(--s2); padding: var(--s1) var(--s2); border: 1px solid var(--c-border); border-radius: var(--radius-sm); background: var(--c-surface); }
+.ht-tep-trang { margin: 0; font-size: var(--fs-label); }
+.ht-tep-go { padding-left: 0; padding-right: 0; color: var(--c-danger-text); }
 .ht-tra-loi .btn { min-height: var(--tap-min); }
 .ht-che-do-hang { display: flex; gap: var(--s2); }
 .ht-che-do { min-height: var(--tap-min); padding: 0 var(--s3); font: inherit; font-size: var(--fs-label); color: var(--c-text-muted); background: none; border: 0; border-bottom: var(--fb-line) solid transparent; cursor: pointer; }
@@ -3725,6 +3742,10 @@ a.bk-hang:hover, a.bk-the:hover { background: var(--c-soft-hover); }
 .o-noi-khung > :is(input, textarea)::placeholder { color: transparent; }
 .o-noi-khung > :is(input, textarea):focus::placeholder { color: var(--c-placeholder); }
 .dd-khac-ngay { align-self: start; justify-self: start; min-height: var(--h-field); padding: 0 var(--s2); } /* "Đón khác ngày" (đợt 1 #9): nằm cạnh ô giờ, ngang hàng với khung ô */
+/* «Chọn nhanh» nơi đưa đón (ADR-0118 Đ5): hàng nút điểm thường dùng dưới ô Nơi trả (chiều đi) / Nơi đón (chiều về); chỉ token. */
+.dd-nhanh { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); }
+.dd-nhanh-nhan { font-size: var(--fs-label); color: var(--c-muted); }
+.dd-nhanh-nut[aria-pressed="true"] { color: var(--c-on-dark); background: var(--c-primary); }
 .o-noi-khung.dd-gio .dd-gio-mo { top: calc(var(--s4) + var(--s2)); } /* chữ mờ "Chưa chốt giờ" chỉ phủ phần giá trị của ô giờ, không đè nhãn nổi */
 .o-noi-khung .dd-hau-to { top: calc(var(--s4) + var(--s2)); }
 

@@ -140,7 +140,7 @@ export async function cocCuaDon(db: D1Database, orderId: string, co: CoCoc): Pro
   return {
     nhom, nhomNhan: nhanNhomHuy(nhom), lyDoNhan: nhanLyDoHuy(d.huy.reason_code), ngayHuy: d.huy.cancelled_date, han: d.huy.refund_deadline,
     quaHan: nhom === "KHACH_HUY" && homNay > d.huy.refund_deadline, legacy: d.huy.legacy === 1, nhan: nh.nhan, nhanPhu: nh.phu,
-    daTra: d.coc.daTra, dangDoiChieu: d.coc.dangDoiChieu, daDuyet: d.coc.daDuyet, daChi: d.coc.daChi, daChuyen: d.coc.daChuyen, hoanNgoai: d.coc.hoanNgoai,
+    daTra: d.coc.daTra, dangDoiChieu: d.coc.dangDoiChieu, hoanTruocHuy: d.coc.hoanTruocHuy, daDuyet: d.coc.daDuyet, daChi: d.coc.daChi, daChuyen: d.coc.daChuyen, hoanNgoai: d.coc.hoanNgoai,
     conGiu: d.coc.conGiu, choChi: d.coc.choChi, khoanDuyet, hoanNgoaiDong, nguoiGiu,
     coThePhanLoai: co.coThePhanLoai && nhom === "CHUA_KET_LUAN",
     coTheDuyet: co.coTheDuyet && nhom !== "CHUA_KET_LUAN" && d.coc.conGiuLucHuy - d.coc.daDuyet > 0 && !(nhom === "KHACH_HUY" && homNay > d.huy.refund_deadline),
@@ -157,7 +157,7 @@ export async function cocChoBienNhan(db: D1Database, orderId: string): Promise<R
   const d = await docCoc(db, orderId);
   if (!d) return null;
   return {
-    nhom: d.huy.group_code as NhomHuy, daTra: d.coc.daTra, dangDoiChieu: d.coc.dangDoiChieu, daDuyet: d.coc.daDuyet, daChi: d.coc.daChi, daChuyen: d.coc.daChuyen,
+    nhom: d.huy.group_code as NhomHuy, daTra: d.coc.daTra, dangDoiChieu: d.coc.dangDoiChieu, hoanTruocHuy: d.coc.hoanTruocHuy, daDuyet: d.coc.daDuyet, daChi: d.coc.daChi, daChuyen: d.coc.daChuyen,
     daDuyetChuyen: d.coc.daDuyetChuyen, han: d.huy.refund_deadline,
   };
 }

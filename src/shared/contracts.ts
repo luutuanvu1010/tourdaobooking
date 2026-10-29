@@ -722,12 +722,17 @@ export interface CatalogServiceDto extends CatalogService {
   supported: boolean;
   /** ADR-0058 Đ5: nhóm hiện hành; `null` = chưa phân loại HOẶC nhóm đang tắt. */
   groupCode: string | null;
+  /**
+   * ADR-0118 Đ1: nhóm hiện hành của dịch vụ có đưa đón không — `false` thì form KHÔNG dựng khối đưa đón và máy chủ từ chối ghi / xác nhận chặng (`transfer_disabled`). Chưa phân loại, nhóm
+   * đang tắt dùng → `true`. Cùng giá trị cho mọi vai (cờ là dữ liệu, không theo vai).
+   */
+  transferEnabled: boolean;
 }
 
 /** ADR-0058 Đ5: nhóm cho form đơn — chỉ nhóm đang dùng có ≥ 1 dịch vụ đang hiện, xếp theo thứ tự. */
 export interface CatalogGroupDto { code: string; name: string }
 /** ADR-0058 Đ4: nhóm như Quản trị thấy (kể cả nhóm tắt); `soDichVu` = số dịch vụ hiện hành; `updatedAt` dùng làm `expectedUpdatedAt` khi sửa. */
-export interface CatalogAdminGroupDto extends CatalogGroupDto { sortOrder: number; active: boolean; soDichVu: number; updatedAt: string }
+export interface CatalogAdminGroupDto extends CatalogGroupDto { sortOrder: number; active: boolean; /** ADR-0118 Đ1: cờ «Có đưa đón» của nhóm (mặc định bật). */ transferEnabled: boolean; soDichVu: number; updatedAt: string }
 
 export interface CatalogConflictDto { code: PaxCode; base: number | null; current: number | null; override: number }
 
@@ -908,6 +913,11 @@ export interface LocationDto {
   address: string | null;
   sortOrder: number;
   active: boolean;
+  /**
+   * ADR-0118 Đ4: thứ tự «Chọn nhanh» 1–99 (`null` = không chọn nhanh). Điểm ĐANG DÙNG có số này hiện thành nút dưới ô Nơi trả (chiều đi) / Nơi đón (chiều về) ở form Tạo đơn;
+   * điểm ngưng dùng vẫn mang số nhưng giao diện lọc theo `active`. Gửi lên `PUT /api/locations/:id`: số 1–99 hoặc `null` (bỏ); KHOÁ VẮNG = giữ giá trị đang lưu.
+   */
+  quickPickOrder: number | null;
   /** Mốc cập nhật cuối — gửi lại làm `expectedUpdatedAt` khi sửa (khoá lạc quan). */
   updatedAt: string;
 }
@@ -1292,6 +1302,8 @@ export interface FeedbackCreateInput {
   teamId?: string;
   /** Đơn liên quan (ADR-0127): chỉ đơn do chính người gửi lập; máy chủ chụp mã đơn lúc gửi. Người gửi KHÔNG đặt được mức ưu tiên (trường `priority` gửi kèm bị bỏ qua). */
   orderId?: string;
+  /** Tệp kèm tin mô tả ban đầu (ADR-0144). */
+  tep?: FeedbackTepGuiDto[];
 }
 
 /** Thân PATCH /api/feedback/:id/xu-ly (và tuyến cũ PATCH /api/feedback/:id): mọi trường tuỳ chọn, phải có ít nhất một thay đổi. */
@@ -1349,7 +1361,25 @@ export interface FeedbackMessageDto {
   internal: boolean;
   createdAt: string;
   mine: boolean;
+  /** Tệp kèm tin (ADR-0144), theo thứ tự gửi; rỗng khi không kèm. Ai đọc được tin thì thấy tệp của tin. */
+  tep: FeedbackTepDto[];
 }
+// ---- Tệp kèm tin vé hỗ trợ (ADR-0144) — KHÔNG tên tệp gốc, KHÔNG khoá kho, KHÔNG băm (N3). Thân tệp chỉ ở GET /api/feedback/:id/tep/:tid. ----
+/**
+ * DA_LUU = mở được; DANG_TAI = vừa gửi, kho chưa xong (vài giây); CHUA_TAI_DUOC = quá 10 phút vẫn chưa lưu; DA_GO = Toàn quyền đã gỡ (tin hiện «Tệp đã được gỡ»).
+ * Tệp tải hỏng (đã quyết xoá lúc gửi) không có mặt. Loại cùng danh sách với tệp hồ sơ (ADR-0123).
+ */
+export interface FeedbackTepDto { id: string; loai: LoaiTepHoSo; kichThuoc: number; trangThai: "DA_LUU" | "DANG_TAI" | "CHUA_TAI_DUOC" | "DA_GO" }
+/** Một tệp trong thân gửi vé / trả lời: base64 chuẩn của nội dung, không tiền tố `data:`. Tối đa 5 tệp, tổng ≤ 10 MB mỗi tin — máy chủ kiểm lại. */
+export interface FeedbackTepGuiDto { noiDung: string }
+/** Thân POST /api/feedback/:id/messages. */
+export interface FeedbackReplyInput { body: string; internal?: boolean; tep?: FeedbackTepGuiDto[] }
+/** Phản hồi 201 của gửi vé / trả lời: chi tiết như GET kèm số tệp chưa lưu được (kho lỗi — tin vẫn đã lưu). Phát lại cùng clientRequestId (200) không có `tepLoi`. */
+export interface FeedbackGuiResponse extends FeedbackDetailResponse { tepLoi: number }
+/** GET /api/feedback/tep-cho-xoa (chỉ Toàn quyền): cùng hình dạng hàng chờ xoá của tệp hồ sơ — chỉ mã tệp, trạng thái, mã lý do, mốc; không khoá kho. */
+export type FeedbackTepChoXoaResponse = HoSoTepChoXoaResponse;
+/** POST /api/feedback/tep-cho-xoa/chay-lai. */
+export type FeedbackTepChayLaiResponse = HoSoTepChayLaiResponse;
 
 export interface FeedbackStatRow {
   /** Tuần theo strftime('%Y-%W') của created_at. */
@@ -1412,7 +1442,7 @@ export interface FeedbackMyOrdersResponse { orders: { id: string; orderCode: str
 // "chuyen": tin chuyến xe (ADR-0052 D6, kể cả MQ-07 "giờ hẹn chặng đổi khi đã xếp"); "tai_khoan": ngưng tài khoản giữ tiền — chỉ Toàn quyền nhận (ADR-0090 đ3);
 // "doi_sau_xac_nhan": đơn đã xác nhận đổi giờ / nơi đón / số khách / chặng (ADR-0062);
 // "dieu_chinh": yêu cầu điều chỉnh công nợ — có yêu cầu mới / đã duyệt / bị từ chối / được rút / số dư của bạn đổi (ADR-0115)
-export type LoaiTin = "thu_cong" | "lap" | "cho_nhan" | "nhan" | "giao" | "xac_nhan" | "huy" | "chuyen" | "tai_khoan" | "doi_sau_xac_nhan" | "dieu_chinh" | "cho_xac_nhan";
+export type LoaiTin = "thu_cong" | "lap" | "cho_nhan" | "nhan" | "giao" | "xac_nhan" | "huy" | "chuyen" | "tai_khoan" | "doi_sau_xac_nhan" | "dieu_chinh" | "cho_xac_nhan" | "duyet_hoan";
 export interface TinDto {
   id: string;
   loai: LoaiTin;
@@ -2240,6 +2270,8 @@ export interface CocDonDto {
   nhanPhu: string | null;
   daTra: number;
   dangDoiChieu: number;
+  /** Đã trả lại khách TRƯỚC khi huỷ (trả dư) — chủ 28/10, ca SV-DH-13 «ghi đủ các dòng»: không có dòng này thì đã trả − còn giữ không khớp. */
+  hoanTruocHuy: number;
   daDuyet: number;
   daChi: number;
   daChuyen: number;
@@ -2482,9 +2514,10 @@ export interface ReceiptDto {
   conLai: number;
   /**
    * ADR-0089 đ9a: tiền của ĐƠN HUỶ cho "thông báo huỷ" (null với đơn không huỷ) — danh sách trắng, chỉ số + nhóm + hạn. `daTra` = khách đã trả (đã xác nhận),
-   * `dangDoiChieu` = khoản khai chuyển khoản chưa xác nhận, `daDuyet` / `daChi` / `daChuyen` theo khoản duyệt, `han` = hạn hoàn cọc (chỉ nhóm khách huỷ hứa ngày).
+   * `dangDoiChieu` = khoản khai chuyển khoản chưa xác nhận, `hoanTruocHuy` = đã trả lại khách trước khi huỷ (chủ 28/10), `daDuyet` / `daChi` / `daChuyen` theo khoản
+   * duyệt, `han` = hạn hoàn cọc (chỉ nhóm khách huỷ hứa ngày).
    */
-  huy: { nhom: "KHACH_HUY" | "CONG_TY_HUY" | "LAP_LAI" | "CHUA_KET_LUAN"; daTra: number; dangDoiChieu: number; daDuyet: number; daChi: number; daChuyen: number; daDuyetChuyen: number; han: string } | null;
+  huy: { nhom: "KHACH_HUY" | "CONG_TY_HUY" | "LAP_LAI" | "CHUA_KET_LUAN"; daTra: number; dangDoiChieu: number; hoanTruocHuy: number; daDuyet: number; daChi: number; daChuyen: number; daDuyetChuyen: number; han: string } | null;
   /**
    * Sổ đại lý đợt 2 (ADR-0078 điều 10; đặc tả P5): các phần của biên nhận, MỖI NGƯỜI BÁN một phần — phần Tour Đảo đứng đầu, rồi nhà cung cấp theo thứ tự dịch vụ.
    * Đơn chỉ một người bán ⇒ một phần; đơn huỷ ⇒ mảng rỗng (biên nhận huỷ đọc `huy`). Danh sách trắng KHÔNG đổi: không a%, giá vốn, hoa hồng, tên người thu, hình thức.
@@ -2728,6 +2761,8 @@ export interface CommissionRuleDto {
   /** ADR-0133: ba số tiền «mỗi khách» theo loại (người lớn = moiKhach); null = dòng không khai theo loại. Chỉ văn phòng thấy (cùng tỷ lệ, không vào DTO Đối tác). */
   theoLoai: { nguoiLon: number; treEm: number; nguoiCaoTuoi: number } | null;
   tuNgay: string; denNgay: string | null; ghiChu: string | null; conHieuLuc: boolean;
+  /** ADR-0148: dòng đã huỷ (chưa đơn nào chụp, đã thay hẳn bằng dòng sửa) — không bao giờ áp, `conHieuLuc` luôn false; `thayCho` = mã dòng mà dòng này thay; `lyDoSua` = lý do của lần sửa đó. */
+  daHuy: boolean; thayCho: string | null; lyDoSua: string | null;
 }
 /** «Đổi mức» một bước: dòng cũ (đã có ngày ngừng) và dòng mới. */
 export interface DoiMucResponse { cu: CommissionRuleDto; moi: CommissionRuleDto }
@@ -2756,7 +2791,11 @@ export interface LoaiDoiTacResponse { loai: LoaiDoiTacDto }
  * Mức TA dùng chung (ADR-0117 lần 2): bộ hoa hồng có tên; loại đối tác gắn vào mức theo ngày (mỗi loại tối đa một mức tại một ngày). `dangBat` = false ⇒ không gắn mới,
  * không thêm dòng mới; dòng và gắn đang có VẪN áp (giả định kế hoạch, N-23). Chỉ văn phòng có `partner.commission.view` và KHÔNG giữ quyền Đối tác đọc được.
  */
-export interface GanLoaiMucDto { id: string; loai: { code: string; ten: string }; muc: { code: string; ten: string }; tuNgay: string; denNgay: string | null; conHieuLuc: boolean }
+export interface GanLoaiMucDto {
+  id: string; loai: { code: string; ten: string }; muc: { code: string; ten: string }; tuNgay: string; denNgay: string | null; conHieuLuc: boolean;
+  /** ADR-0148: như CommissionRuleDto. */
+  daHuy: boolean; thayCho: string | null; lyDoSua: string | null;
+}
 export interface MucTaDto { code: string; ten: string; dangBat: boolean; dong: CommissionRuleDto[]; gan: GanLoaiMucDto[] }
 /** Mức TA gắn RIÊNG cho một hồ sơ (ADR-0138), đang hoặc sắp hiệu lực. Chỉ mã, tên hồ sơ, tên mức, ngày — không SĐT/email. */
 export interface GanRiengDto { id: string; partyId: string; ten: string; muc: string; tenMuc: string; tuNgay: string; denNgay: string | null }
@@ -2775,6 +2814,15 @@ export interface HoaHongHoSoResponse {
   /** ADR-0138: mức TA gắn RIÊNG cho hồ sơ, đang hiệu lực hôm nay (null = không) — có thì mức theo loại bị bỏ qua cho hồ sơ này. `id` cho nút «Kết thúc». */
   mucRieng: { id: string; muc: { code: string; ten: string; dangBat: boolean }; tuNgay: string; denNgay: string | null } | null;
 }
+/**
+ * ADR-0148 Đ1: xem trước «Sửa» một dòng có ngày (mức, gắn loại, gắn đối tác — `GET …/:id/sua`). HUY_THAY = chưa đơn nào dùng dòng này: sửa sẽ huỷ dòng cũ và thay hẳn. TU_NGAY = đã có
+ * đơn dùng: phần sửa áp từ `tuNgaySomNhat`, bắt đầu không sau `denNgayToiDa` (ngày kết thúc của dòng cũ; null = không thời hạn); đơn cũ giữ mức cũ.
+ */
+export type SuaXemTruocResponse = { homNay: string } & ({ duong: "HUY_THAY" } | { duong: "TU_NGAY"; tuNgaySomNhat: string; denNgayToiDa: string | null });
+/** ADR-0148 Đ1: kết quả «Sửa» một dòng mức (dòng cũ đã huỷ hoặc đã đóng, dòng mới mang `thayCho`). */
+export interface SuaMucResponse { duong: "HUY_THAY" | "TU_NGAY"; cu: CommissionRuleDto; moi: CommissionRuleDto }
+/** ADR-0148 Đ1: kết quả «Sửa» một gắn loại ↔ chính sách; `dongRieng` như GanLoaiMucResponse (dòng riêng của loại thắng chính sách — cảnh báo). */
+export interface SuaGanLoaiResponse { duong: "HUY_THAY" | "TU_NGAY"; cu: GanLoaiMucDto; moi: GanLoaiMucDto; dongRieng: CommissionRuleDto[] }
 export interface NguoiHuongTimResponse { ketQua: { partyId: string; ten: string; loai: "PERSON" | "ORGANIZATION" }[] }
 
 // ===== Phần thương mại của đơn (sổ đại lý đợt 1 — ADR-0077 điều 10–11; đặc tả §6). HAI DTO danh sách trắng: văn phòng thấy mức, hoa hồng, giá đại lý, cờ thiếu mức;

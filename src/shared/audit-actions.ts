@@ -104,6 +104,11 @@ export const AUDIT_ACTIONS = {
   prc_role_tier_closed: { label: "Ngừng áp dụng chính sách hoa hồng cho loại", group: "ledger" },
   prc_party_tier_set: { label: "Áp dụng chính sách hoa hồng riêng cho đối tác", group: "ledger" },
   prc_party_tier_closed: { label: "Ngừng áp dụng chính sách hoa hồng riêng của đối tác", group: "ledger" },
+  // ADR-0148 Đ1: nút «Sửa» huỷ dòng chưa đơn nào chụp và thay hẳn bằng dòng mới (đi cùng `_added` / `_set` của dòng mới). `detail` = «sửa · dòng <cũ> → <mới> · huỷ dòng cũ» —
+  // KHÔNG chép lý do sửa (lý do ở cột `change_reason` của dòng mới). Sửa dòng ĐÃ có đơn chụp đóng dòng cũ ⇒ đi qua `_closed`.
+  prc_commission_rule_voided: { label: "Huỷ mức hoa hồng nhập sai (đã thay bằng dòng sửa)", group: "ledger" },
+  prc_role_tier_voided: { label: "Huỷ lần áp dụng chính sách cho loại (đã thay bằng dòng sửa)", group: "ledger" },
+  prc_party_tier_voided: { label: "Huỷ chính sách riêng của đối tác (đã thay bằng dòng sửa)", group: "ledger" },
   // Khoá sổ tháng (ADR-0080 D1; module ky-so — route ở billing): `order_id` NULL; `detail` = "Khoá sổ tháng MM/YYYY" (không tiền, không SĐT).
   ledger_period_closed: { label: "Khoá sổ tháng", group: "ledger" },
   order_handler_changed: { label: "Đổi người phụ trách", group: "order" },
@@ -286,6 +291,12 @@ export const AUDIT_ACTIONS = {
   feedback_team_changed: { label: "Chuyển nhóm yêu cầu hỗ trợ", group: "feedback" },
   // ADR-0127 (đợt 2a): đổi mức ưu tiên; targetId = id phiếu, detail CHỈ mã phiếu + mức cũ → mới (vd "YC-0007: NORMAL → URGENT") — không tiêu đề, không mã đơn.
   feedback_priority_changed: { label: "Đổi mức ưu tiên yêu cầu hỗ trợ", group: "feedback" },
+  // ADR-0144: tệp kèm tin vé hỗ trợ — targetId = id phiếu; detail CHỈ mã phiếu (khi đã có) + mã tệp (+ mã lý do khi quyết xoá) — không tên tệp, không khoá kho,
+  // không băm (N3), không nội dung. Mở tệp: một dòng mỗi lần, ghi TRƯỚC khi đọc kho (Hiến chương 5.22). Chạy lại: targetType "system", detail chỉ số đếm.
+  feedback_attachment_added: { label: "Đính kèm tệp vào yêu cầu hỗ trợ", group: "feedback" },
+  feedback_attachment_viewed: { label: "Mở tệp kèm yêu cầu hỗ trợ", group: "feedback" },
+  feedback_attachment_purged: { label: "Gỡ hoặc quyết xoá tệp kèm yêu cầu hỗ trợ", group: "feedback" },
+  feedback_attachment_purge_retried: { label: "Chạy lại xoá tệp vé hỗ trợ khỏi kho", group: "system" },
   // ADR-0119 (Vé hỗ trợ đợt 1): targetId = id nhóm; detail CHỈ mã nhóm (+ vai với thành viên) — KHÔNG tên/mô tả nhóm, KHÔNG tên người, SĐT.
   feedback_team_created: { label: "Tạo nhóm hỗ trợ", group: "feedback" },
   feedback_team_updated: { label: "Sửa nhóm hỗ trợ", group: "feedback" },

@@ -1,4 +1,4 @@
-// Kịch bản Chrome — mất mạng (đặc tả đợt 0 mục 6.3, tiêu chí 10.7; ADR-0146 đề xuất). Ba phần:
+// Kịch bản Chrome — mất mạng (đặc tả đợt 0 mục 6.3, tiêu chí 10.7; ADR-0150 đề xuất). Ba phần:
 //   A) bộ đệm hụt trang /xe (xoá mục qua CDP CacheStorage.deleteEntry) + ngoài mạng + mở /xe ⇒ service worker trả trang «Ngoài mạng» có vỏ:
 //      `[data-loai="mat-mang-chua-nap"]` + nút «Thử lại», không lỗi script;
 //   B) trang /orders đã vẽ, ngoài mạng, làm mới dữ liệu (gõ ô tìm ⇒ api.ts gọi /api/orders) ⇒ `.dai[data-loai="ngoai-mang"]` hiện, danh sách cũ còn nguyên,
@@ -115,7 +115,7 @@ try {
     await p.waitFor("!!document.querySelector('[data-loai=\"mat-mang-chua-nap\"]')", "trạng thái mất mạng chưa nạp", 10000);
     await sleep(800);
     assert.equal(await p.ev("location.pathname"), "/xe");
-    // Phải là TRANG «Ngoài mạng» do service worker trả (ADR-0146), không phải trang /xe thật tải về rồi nhánh mất mạng của shell vẽ cùng khối:
+    // Phải là TRANG «Ngoài mạng» do service worker trả (ADR-0150), không phải trang /xe thật tải về rồi nhánh mất mạng của shell vẽ cùng khối:
     const tai = await p.ev("({ title: document.title, scripts: [...document.scripts].map((s) => s.getAttribute('src')) })");
     assert.deepEqual(tai.scripts, ["/js/ngoai-mang.js"], JSON.stringify(tai));
     assert.match(tai.title, /^Ngoài mạng/);

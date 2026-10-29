@@ -107,8 +107,10 @@ const MIEN_200: Record<string, string> = {
   "/api/ledger/ben/:partyId": "Sổ công nợ P1 (25/10): chi tiết MỘT bên chỉ có khi bên đó có dòng sổ — bài này không đưa đơn B tới «Đã giao» nên B và nhà cung cấp chưa có dòng hoa hồng / giá vốn ⇒ 404 cho người được xem, 403 cho người giữ quyền Đối tác; vẫn GỌI để thân được quét. 200 và nội dung kiểm ở src/modules/billing/so-cong-no-ben.test.ts",
   "/api/parties/:id/documents/:did/tep": "ADR-0123 (lát H-2 kho tệp): danh sách ảnh của MỘT dòng giấy tờ người — chỉ Toàn quyền; bài này không gieo giấy tờ + ảnh; DTO chỉ mã / loại / cỡ / mốc, không chở tiền; bangDien gọi bằng mã lạ nên thân 4xx vẫn được quét",
   "/api/parties/:id/documents/:did/tep/:tid": "ADR-0123: thân là byte ảnh / PDF giấy tờ (không phải JSON, không chở tiền) — chỉ Toàn quyền, cần tệp đã tải lên; bài này không gieo ảnh; bangDien gọi bằng mã lạ nên thân 4xx vẫn được quét",
+  "/api/feedback/:id/tep/:tid": "ADR-0144: thân là byte ảnh / PDF kèm tin vé (không phải JSON, không chở tiền) — cần tệp đã tải lên; bài này không gieo tệp; bangDien gọi vé thật với mã tệp lạ nên thân 404 vẫn được quét",
   "/api/parties/xac-minh/:pid": "ADR-0125 (lát H-4): chi tiết MỘT phiếu tự khai đang chờ — cần phiếu gieo sẵn (bài này không gieo); DTO chỉ ngày sinh / địa chỉ / số che / cờ, không chở tiền; bangDien gọi bằng mã lạ nên thân 404 vẫn được quét",
   "/api/parties/phieu-xoa/:pid": "ADR-0126 (lát H-5 việc 5): xem trước MỘT phiếu yêu cầu xoá đang chờ — cần phiếu gieo sẵn (bài này không gieo); DTO chỉ tên hồ sơ, hạn và SỐ ĐẾM, không chở tiền; bangDien gọi bằng mã lạ nên thân 404 vẫn được quét",
+  "/api/pricing/muc-rieng/:id/sua": "ADR-0148 Đ1: xem trước «Sửa» MỘT gắn mức riêng của hồ sơ — bài này không gieo gắn riêng (gieo sẽ đổi bậc mức của B); DTO chỉ hôm nay / đường / hai ngày, không chở tiền; bangDien gọi bằng mã lạ nên thân 404 / 403 vẫn được quét",
 };
 
 /**
@@ -126,6 +128,7 @@ const mienThay = (beMat: string, tk: TaiKhoan): string | null => {
 /** Mọi id bài gieo (dùng cho bảng điền). */
 interface Gieo {
   cuaA: string; cuaB: string; nhapB: string; donLai: Map<string, string>; xe: string; chuyen: string; chuyenHong: string; donChuyen: string; nhaXe: string; congTy: string; gopY: string; tin: string;
+  dongMucB: string; ganTa: string;
 }
 /**
  * BẢNG ĐIỀN — route GET có `:tham số` (và route cần chuỗi truy vấn) → các đường cụ thể; ưu tiên id thuộc bên B. Route có tham số mà vắng ở đây và không ở MIỄN (a) ⇒ đỏ
@@ -154,6 +157,8 @@ function bangDien(g: Gieo): Record<string, string[]> {
     // ADR-0127 Việc 4: tuyến làm mới (cần ?since — người gửi B và Toàn quyền nhận 200) và ứng viên giao việc của nhóm Kỹ thuật (Toàn quyền nhận 200).
     "/api/feedback/:id/messages": [`/api/feedback/${g.gopY}/messages?since=2000-01-01T00:00:00.000Z`],
     "/api/feedback/teams/:id/members": [`/api/feedback/teams/fbk-team-ky-thuat/members?ticket=${g.gopY}`],
+    // ADR-0144: mở tệp kèm tin — bài không gieo tệp ⇒ mã tệp lạ trên vé thật của B (404 cho mọi người) — vẫn GỌI để thân được quét (MIEN_200 chỉ miễn 200).
+    "/api/feedback/:id/tep/:tid": [`/api/feedback/${g.gopY}/tep/${uuid()}`],
     "/api/catalog/:code/group-history": ["/api/catalog/SLX/group-history"],
     "/api/parties/:id": [`/api/parties/${PTY_B}`, "/api/parties/pty-ncc"],
     "/api/parties/:id/documents": [`/api/parties/${PTY_B}/documents`],
@@ -182,6 +187,10 @@ function bangDien(g: Gieo): Record<string, string[]> {
     "/api/pricing/thu-tra": [`/api/pricing/thu-tra?doiTac=${PTY_B}&dichVu=SLX&ngay=${NGAY}`, `/api/pricing/thu-tra?doiTac=${PTY_B}&dichVu=SLY&ngay=${NGAY}`],
     "/api/pricing/ho-so/:id/hoa-hong": [`/api/pricing/ho-so/${PTY_B}/hoa-hong`], // YC-0020: chỉ mã, tên mức, số đếm — văn phòng 200, Đối tác / tài khoản lai 403
     "/api/pricing/nguoi-huong": ["/api/pricing/nguoi-huong?q=Đại"],
+    // ADR-0148 Đ1: xem trước «Sửa» (chỉ hôm nay / đường / hai ngày) — dòng mức riêng 37,29% của B và gắn loại Đại lý lữ hành → mức TA lạ; văn phòng 200, Đối tác / lai 403.
+    "/api/pricing/hoa-hong/:id/sua": [`/api/pricing/hoa-hong/${g.dongMucB}/sua`],
+    "/api/pricing/muc-ta/gan/:id/sua": [`/api/pricing/muc-ta/gan/${g.ganTa}/sua`],
+    "/api/pricing/muc-rieng/:id/sua": [`/api/pricing/muc-rieng/${uuid()}/sua`],
     "/api/parties/lookup": ["/api/parties/lookup?phone=0913000001"],
     "/api/sessions/policy/preview": ["/api/sessions/policy/preview?nhieuMay="],
     "/api/van-chuyen/lich": [`/api/van-chuyen/lich?ngay=${NGAY}`],
@@ -243,13 +252,13 @@ async function gieo(w: W): Promise<Gieo> {
   const muc = (body: Record<string, unknown>) => KQ(w.call("POST", "/api/pricing/hoa-hong", { as: ACC, body: { tuNgay: "2026-01-01", ...body } }), 201, `mức ${JSON.stringify(body)}`);
   await muc({ doiTuong: { loai: "VAI", code: "TRAVEL_AGENCY" }, phamVi: "ALL", kieu: "RATE", tyLeBp: 1000 });
   await muc({ doiTuong: { loai: "DOI_TAC", partyId: PTY_B }, phamVi: "SERVICE", catalogCode: "SLX", kieu: "PER_PAX", moiKhach: 370_913 });
-  await muc({ doiTuong: { loai: "DOI_TAC", partyId: PTY_B }, phamVi: "ALL", kieu: "RATE", tyLeBp: 3729 });
+  const dongMucB = (await muc({ doiTuong: { loai: "DOI_TAC", partyId: PTY_B }, phamVi: "ALL", kieu: "RATE", tyLeBp: 3729 })).json.dong.id as string;
   await KQ(w.call("POST", "/api/pricing/cung-ung", { as: ACC, body: { tuNgay: "2026-01-01", phamVi: "SERVICE", catalogCode: "SLX", nguoiBanPartyId: "pty-ncc", tyLeMuaBp: 6173 } }), 201, "điều khoản nhà cung cấp");
   // ADR-0117 lần 2: một mức TA có dòng 42,61% (số lạ), gắn cho loại Đại lý lữ hành. Dòng riêng 10% của loại (bậc 6) thắng dòng TA (bậc 9) nên không số tiền nào đổi —
   // số lạ chỉ có thể hiện ở bề mặt đọc bảng mức (/api/pricing/hoa-hong, /api/pricing/muc-ta) và nhật ký: văn phòng được phép thấy, tài khoản giữ PARTNER không bao giờ.
   const mucTa = (await KQ(w.call("POST", "/api/pricing/muc-ta", { as: ACC, body: { ten: "Mức TA Lạ" } }), 201, "tạo mức TA")).json.muc.code as string;
   await KQ(w.call("POST", `/api/pricing/muc-ta/${mucTa}/dong`, { as: ACC, body: { tuNgay: "2026-01-01", phamVi: "ALL", kieu: "RATE", tyLeBp: 4261 } }), 201, "dòng của mức TA");
-  await KQ(w.call("POST", "/api/pricing/muc-ta/gan", { as: ACC, body: { loai: "TRAVEL_AGENCY", muc: mucTa, tuNgay: "2026-01-01" } }), 201, "gắn loại vào mức TA");
+  const ganTa = (await KQ(w.call("POST", "/api/pricing/muc-ta/gan", { as: ACC, body: { loai: "TRAVEL_AGENCY", muc: mucTa, tuNgay: "2026-01-01" } }), 201, "gắn loại vào mức TA")).json.gan.id as string;
 
   const xacNhan = (id: string, as: string) => KQ(w.xacNhanDon(id, as), 200, `xác nhận ${id}`); // ADR-0136 Đ13.5
   const cuaA = nhap(w, PARTNER, `pty-${PARTNER}`, [["ZA1", 777_000]]);
@@ -281,7 +290,7 @@ async function gieo(w: W): Promise<Gieo> {
   w.env.PASSKEY_ORIGIN = "https://booking.tourdao.vn";
   return {
     cuaA, cuaB, nhapB, donLai, xe: x, chuyen: c.id, chuyenHong: hong.id, donChuyen: c.don.id, nhaXe, congTy,
-    gopY: String(w.q("SELECT id FROM fbk_ticket LIMIT 1")[0].id), tin: String(w.q("SELECT id FROM ntf_notice LIMIT 1")[0].id),
+    gopY: String(w.q("SELECT id FROM fbk_ticket LIMIT 1")[0].id), tin: String(w.q("SELECT id FROM ntf_notice LIMIT 1")[0].id), dongMucB, ganTa,
   };
 }
 
