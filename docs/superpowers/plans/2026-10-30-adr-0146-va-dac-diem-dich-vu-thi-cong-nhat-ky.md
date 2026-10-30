@@ -276,3 +276,9 @@ index 42a77e28..c744d755 100644
 - Cùng lúc sửa sau rà soát: hai câu Trợ giúp Quản trị bị cắt cụt khi rút gọn («… thêm các việc dưới đây.», «… đã tắt thành «Không phủ dịch vụ nào» …» — 3143 → 3147 chữ, vẫn 21 phút); runbook HANDOFF thêm khối `cd` + `git commit` cho bước đổi tên tệp ADR và `cd` thư mục gốc cho bước 2.
 - `npm run db:migrate:local`: «No migrations to apply!». `node scripts/audit-invariants.mjs --db local`: thoát 0, «Mọi bất biến đạt, 1 cảnh báo (D1 local)»; `R-PRC-8`, `R-CTL-1`, `R-CTL-2`, `R-CTL-3` ✓.
 - `npm run test:e2e` ĐỦ BỘ: **79/79 kịch bản xanh** (3 nhóm, 637 giây), đuôi `audit-invariants` ✔, không `day_loi`, H5 ✔, không lỗi lạ bảng vé, không nội dung trợ lý trong log.
+
+## KĐL-3 (30/10) — ĐẠT CÓ ĐIỀU KIỆN
+Báo cáo: `docs/superpowers/specs/2026-10-30-tinh-trang-ban-va-phu-thu/KIEM-THI-CONG-A/KDL-3.md`. Chủ yêu cầu làm nhanh giữa chừng ⇒ người kiểm bỏ e2e đủ bộ (dừng ở 73 ✔ / 0 ✖); `npm test` đủ bộ người kiểm đã tự chạy xong: 6884 bài, 0 đỏ.
+- NÊN SỬA 1 (bước `git mv` máy không canh): đã nhấn mạnh trong runbook `docs/HANDOFF-N1.md`.
+- **NỢ-TRO-GIUP-RUT-GON** (NÊN SỬA 2, 3 — chưa sửa, chờ chủ): rút gọn Trợ giúp ở T15 để vừa trần đọc đã làm mất vài câu nghĩa ở `src/shared/huong-dan-ban-hang.ts` (hạn chốt đặt gấp; phạm vi trạng thái khi huỷ; «thêm ghế khi xe còn chỗ»; HDV nhận tin) và `src/shared/huong-dan-quan-tri.ts` (nhập tay vào nháp Đối tác ⇒ văn phòng xác nhận thay; tài khoản nhiều vai trò; «Thử key»; Toàn quyền vẫn dùng khi bảo trì; mục chỉ ở trang Tôi Toàn quyền). Danh sách đủ ở KĐL-3 mục 6.
+- Ghi nhận: ảnh `luat-ban-4-hop-ket-thuc-390.png` bị toast che — nên chụp lại.

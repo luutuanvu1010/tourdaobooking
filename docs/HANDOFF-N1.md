@@ -15,10 +15,10 @@ Ghi 29/10/2026 từ khối tóm tắt của `npm run trien-khai` (chủ chạy `
 
 ## Lần phát hành kế tiếp: Luật bán theo loại đối tác + đặc điểm dịch vụ (ADR-0146, ADR-0152; migration `0128_dac_diem_dich_vu`, `0129_luat_ban`; nhật ký thay đổi 2.49 — số tạm) — CHƯA gộp, CHƯA lên production — RUNBOOK
 
-**Trạng thái (ghi 30/10/2026, người thi công T14–T15):** nhánh `claude/tinh-trang-ban-va-phu-thu`, CHƯA gộp `main`, CHƯA lên production; KĐL-3 (người kiểm độc lập trước phát hành) CHƯA làm. Kế hoạch `docs/superpowers/plans/2026-10-30-adr-0146-va-dac-diem-dich-vu-ke-hoach.md` (mục 9 là nguồn của runbook này), sổ `…-thi-cong-nhat-ky.md`. AI không chạy bước nào có `--remote`, `day-len`, `trien-khai`; chủ chạy mọi lệnh dưới đây ở **thư mục gốc dự án** (checkout gốc, không phải worktree), trong Terminal.
+**Trạng thái (ghi 30/10/2026, người thi công T14–T15):** nhánh `claude/tinh-trang-ban-va-phu-thu`, CHƯA gộp `main`, CHƯA lên production; KĐL-3 (người kiểm độc lập trước phát hành) **ĐẠT CÓ ĐIỀU KIỆN** 30/10 (`docs/superpowers/specs/2026-10-30-tinh-trang-ban-va-phu-thu/KIEM-THI-CONG-A/KDL-3.md`; điều kiện: bước đổi tên tệp ADR dưới đây, và chủ quyết nợ chữ Trợ giúp). Kế hoạch `docs/superpowers/plans/2026-10-30-adr-0146-va-dac-diem-dich-vu-ke-hoach.md` (mục 9 là nguồn của runbook này), sổ `…-thi-cong-nhat-ky.md`. AI không chạy bước nào có `--remote`, `day-len`, `trien-khai`; chủ chạy mọi lệnh dưới đây ở **thư mục gốc dự án** (checkout gốc, không phải worktree), trong Terminal.
 
 0. **Điều kiện trước:** KĐL-3 «đạt». Ngày phát hành từ **06/11** trở đi: mục HC-5.19 (diễn tập khôi phục) đã diễn tập hoặc gia hạn, không thì `npm test` đỏ và `trien-khai` dừng. Không trong «cửa sổ đóng băng» (phần Hoàn tác).
-   **Đổi tên tệp ADR (chủ chạy, TRƯỚC `day-len`)** — mục lục ADR đã trỏ `ADR-0152-…`, tệp còn tên cũ (hàng rào cấm AI đổi tên tệp luật bằng dòng lệnh). Chạy ở thư mục worktree, ba khối theo thứ tự (đi tới thư mục; đổi tên tệp; lưu lần đổi tên):
+   **Đổi tên tệp ADR (chủ chạy, TRƯỚC `day-len`) — CHƯA đổi tên thì ĐỪNG `day-len`:** máy KHÔNG canh bước này (`npm test` vẫn xanh); quên thì `main` có hai tệp cùng số 0151 và mục lục trỏ tệp không tồn tại. Mục lục ADR đã trỏ `ADR-0152-…`, tệp còn tên cũ (hàng rào cấm AI đổi tên tệp luật bằng dòng lệnh). Chạy ở thư mục worktree, ba khối theo thứ tự (đi tới thư mục; đổi tên tệp; lưu lần đổi tên):
    ```
    cd /Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/tinh-trang-ban-va-phu-thu
    ```
