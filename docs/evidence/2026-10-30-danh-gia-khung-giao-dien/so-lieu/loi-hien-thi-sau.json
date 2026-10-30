@@ -1158,39 +1158,27 @@
   "che": [
    {
     "el": "a.sidebar-item",
-    "chu": "Loại giấy tờ cá nhân",
+    "chu": "Nhật ký",
     "biChe": "div.sidebar-foot",
-    "y": 676
+    "y": 694
    },
    {
     "el": "a.sidebar-item",
-    "chu": "Loại giấy tờ xe",
+    "chu": "Gửi thông báo",
     "biChe": "div.sidebar-foot",
-    "y": 714
+    "y": 732
    },
    {
     "el": "a.sidebar-item",
-    "chu": "Lý do điều phối",
+    "chu": "Trợ lý Hỗ trợ",
     "biChe": "div.sidebar-foot",
-    "y": 752
+    "y": 770
    },
    {
     "el": "a.sidebar-item",
-    "chu": "Chính sách điều phối",
+    "chu": "Giao diện",
     "biChe": "div.sidebar-foot",
-    "y": 790
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Quản lý tài khoản",
-    "biChe": "div.sidebar-foot",
-    "y": 828
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Máy đang đăng nhập",
-    "biChe": "div.sidebar-foot",
-    "y": 866
+    "y": 808
    }
   ],
   "tran": [],
@@ -1217,32 +1205,7 @@
     "can": 170
    }
   ],
-  "che": [
-   {
-    "el": "a.sidebar-item",
-    "chu": "Nhật ký",
-    "biChe": "div.sidebar-foot",
-    "y": 676
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Gửi thông báo",
-    "biChe": "div.sidebar-foot",
-    "y": 714
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Trợ lý Hỗ trợ",
-    "biChe": "div.sidebar-foot",
-    "y": 752
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Giao diện",
-    "biChe": "div.sidebar-foot",
-    "y": 790
-   }
-  ],
+  "che": [],
   "tran": [],
   "rong": [
    {
@@ -1267,26 +1230,7 @@
     "can": 206
    }
   ],
-  "che": [
-   {
-    "el": "a.sidebar-item",
-    "chu": "Gửi thông báo",
-    "biChe": "div.sidebar-foot",
-    "y": 676
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Trợ lý Hỗ trợ",
-    "biChe": "div.sidebar-foot",
-    "y": 714
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Giao diện",
-    "biChe": "div.sidebar-foot",
-    "y": 752
-   }
-  ],
+  "che": [],
   "tran": [],
   "rong": []
  },
@@ -1306,39 +1250,21 @@
   "che": [
    {
     "el": "a.sidebar-item",
-    "chu": "Loại giấy tờ xe",
+    "chu": "Gửi thông báo",
     "biChe": "div.sidebar-foot",
-    "y": 676
+    "y": 694
    },
    {
     "el": "a.sidebar-item",
-    "chu": "Lý do điều phối",
+    "chu": "Trợ lý Hỗ trợ",
     "biChe": "div.sidebar-foot",
-    "y": 714
+    "y": 732
    },
    {
     "el": "a.sidebar-item",
-    "chu": "Chính sách điều phối",
+    "chu": "Giao diện",
     "biChe": "div.sidebar-foot",
-    "y": 752
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Quản lý tài khoản",
-    "biChe": "div.sidebar-foot",
-    "y": 790
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Máy đang đăng nhập",
-    "biChe": "div.sidebar-foot",
-    "y": 828
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Nhật ký",
-    "biChe": "div.sidebar-foot",
-    "y": 866
+    "y": 770
    }
   ],
   "tran": [],
@@ -1360,39 +1286,15 @@
   "che": [
    {
     "el": "a.sidebar-item",
-    "chu": "Lý do điều phối",
+    "chu": "Trợ lý Hỗ trợ",
     "biChe": "div.sidebar-foot",
-    "y": 676
+    "y": 694
    },
    {
     "el": "a.sidebar-item",
-    "chu": "Chính sách điều phối",
+    "chu": "Giao diện",
     "biChe": "div.sidebar-foot",
-    "y": 714
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Quản lý tài khoản",
-    "biChe": "div.sidebar-foot",
-    "y": 752
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Máy đang đăng nhập",
-    "biChe": "div.sidebar-foot",
-    "y": 790
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Nhật ký",
-    "biChe": "div.sidebar-foot",
-    "y": 828
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Gửi thông báo",
-    "biChe": "div.sidebar-foot",
-    "y": 866
+    "y": 732
    }
   ],
   "tran": [],
@@ -1814,39 +1716,9 @@
   "che": [
    {
     "el": "a.sidebar-item",
-    "chu": "Chính sách điều phối",
+    "chu": "Giao diện",
     "biChe": "div.sidebar-foot",
-    "y": 676
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Quản lý tài khoản",
-    "biChe": "div.sidebar-foot",
-    "y": 714
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Máy đang đăng nhập",
-    "biChe": "div.sidebar-foot",
-    "y": 752
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Nhật ký",
-    "biChe": "div.sidebar-foot",
-    "y": 790
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Gửi thông báo",
-    "biChe": "div.sidebar-foot",
-    "y": 828
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Trợ lý Hỗ trợ",
-    "biChe": "div.sidebar-foot",
-    "y": 866
+    "y": 694
    }
   ],
   "tran": [],
@@ -1865,38 +1737,7 @@
     "can": 264
    }
   ],
-  "che": [
-   {
-    "el": "a.sidebar-item",
-    "chu": "Máy đang đăng nhập",
-    "biChe": "div.sidebar-foot",
-    "y": 676
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Nhật ký",
-    "biChe": "div.sidebar-foot",
-    "y": 714
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Gửi thông báo",
-    "biChe": "div.sidebar-foot",
-    "y": 752
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Trợ lý Hỗ trợ",
-    "biChe": "div.sidebar-foot",
-    "y": 790
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Giao diện",
-    "biChe": "div.sidebar-foot",
-    "y": 828
-   }
-  ],
+  "che": [],
   "tran": [],
   "rong": []
  },
@@ -1919,38 +1760,7 @@
     "can": 274
    }
   ],
-  "che": [
-   {
-    "el": "a.sidebar-item",
-    "chu": "Máy đang đăng nhập",
-    "biChe": "div.sidebar-foot",
-    "y": 676
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Nhật ký",
-    "biChe": "div.sidebar-foot",
-    "y": 714
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Gửi thông báo",
-    "biChe": "div.sidebar-foot",
-    "y": 752
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Trợ lý Hỗ trợ",
-    "biChe": "div.sidebar-foot",
-    "y": 790
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Giao diện",
-    "biChe": "div.sidebar-foot",
-    "y": 828
-   }
-  ],
+  "che": [],
   "tran": [],
   "rong": [
    {
@@ -2038,44 +1848,7 @@
     "can": 193
    }
   ],
-  "che": [
-   {
-    "el": "a.sidebar-item",
-    "chu": "Quản lý tài khoản",
-    "biChe": "div.sidebar-foot",
-    "y": 676
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Máy đang đăng nhập",
-    "biChe": "div.sidebar-foot",
-    "y": 714
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Nhật ký",
-    "biChe": "div.sidebar-foot",
-    "y": 752
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Gửi thông báo",
-    "biChe": "div.sidebar-foot",
-    "y": 790
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Trợ lý Hỗ trợ",
-    "biChe": "div.sidebar-foot",
-    "y": 828
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Giao diện",
-    "biChe": "div.sidebar-foot",
-    "y": 866
-   }
-  ],
+  "che": [],
   "tran": [],
   "rong": [
    {
@@ -2266,39 +2039,33 @@
   "che": [
    {
     "el": "a.sidebar-item",
-    "chu": "Người bán dịch vụ",
+    "chu": "Chính sách điều phối",
     "biChe": "div.sidebar-foot",
-    "y": 678
+    "y": 694
    },
    {
     "el": "a.sidebar-item",
-    "chu": "Chụp bù mức",
+    "chu": "Quản lý tài khoản",
     "biChe": "div.sidebar-foot",
-    "y": 716
+    "y": 732
    },
    {
     "el": "a.sidebar-item",
-    "chu": "Dịch vụ & giá",
+    "chu": "Máy đang đăng nhập",
     "biChe": "div.sidebar-foot",
-    "y": 754
+    "y": 770
    },
    {
     "el": "a.sidebar-item",
-    "chu": "Địa điểm",
+    "chu": "Nhật ký",
     "biChe": "div.sidebar-foot",
-    "y": 792
+    "y": 808
    },
    {
     "el": "a.sidebar-item",
-    "chu": "Loại giấy tờ cá nhân",
+    "chu": "Gửi thông báo",
     "biChe": "div.sidebar-foot",
-    "y": 830
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Loại giấy tờ xe",
-    "biChe": "div.sidebar-foot",
-    "y": 868
+    "y": 846
    }
   ],
   "tran": [],
@@ -2328,39 +2095,33 @@
   "che": [
    {
     "el": "a.sidebar-item",
-    "chu": "Dịch vụ & giá",
+    "chu": "Quản lý tài khoản",
     "biChe": "div.sidebar-foot",
-    "y": 676
+    "y": 694
    },
    {
     "el": "a.sidebar-item",
-    "chu": "Địa điểm",
+    "chu": "Máy đang đăng nhập",
     "biChe": "div.sidebar-foot",
-    "y": 714
+    "y": 732
    },
    {
     "el": "a.sidebar-item",
-    "chu": "Loại giấy tờ cá nhân",
+    "chu": "Nhật ký",
     "biChe": "div.sidebar-foot",
-    "y": 752
+    "y": 770
    },
    {
     "el": "a.sidebar-item",
-    "chu": "Loại giấy tờ xe",
+    "chu": "Gửi thông báo",
     "biChe": "div.sidebar-foot",
-    "y": 790
+    "y": 808
    },
    {
     "el": "a.sidebar-item",
-    "chu": "Lý do điều phối",
+    "chu": "Trợ lý Hỗ trợ",
     "biChe": "div.sidebar-foot",
-    "y": 828
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Chính sách điều phối",
-    "biChe": "div.sidebar-foot",
-    "y": 866
+    "y": 846
    }
   ],
   "tran": [],
@@ -2382,39 +2143,33 @@
   "che": [
    {
     "el": "a.sidebar-item",
-    "chu": "Địa điểm",
+    "chu": "Máy đang đăng nhập",
     "biChe": "div.sidebar-foot",
-    "y": 676
+    "y": 694
    },
    {
     "el": "a.sidebar-item",
-    "chu": "Loại giấy tờ cá nhân",
+    "chu": "Nhật ký",
     "biChe": "div.sidebar-foot",
-    "y": 714
+    "y": 732
    },
    {
     "el": "a.sidebar-item",
-    "chu": "Loại giấy tờ xe",
+    "chu": "Gửi thông báo",
     "biChe": "div.sidebar-foot",
-    "y": 752
+    "y": 770
    },
    {
     "el": "a.sidebar-item",
-    "chu": "Lý do điều phối",
+    "chu": "Trợ lý Hỗ trợ",
     "biChe": "div.sidebar-foot",
-    "y": 790
+    "y": 808
    },
    {
     "el": "a.sidebar-item",
-    "chu": "Chính sách điều phối",
+    "chu": "Giao diện",
     "biChe": "div.sidebar-foot",
-    "y": 828
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Quản lý tài khoản",
-    "biChe": "div.sidebar-foot",
-    "y": 866
+    "y": 846
    }
   ],
   "tran": [],
@@ -2458,20 +2213,7 @@
     "can": 165
    }
   ],
-  "che": [
-   {
-    "el": "a.sidebar-item",
-    "chu": "Trợ lý Hỗ trợ",
-    "biChe": "div.sidebar-foot",
-    "y": 676
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Giao diện",
-    "biChe": "div.sidebar-foot",
-    "y": 714
-   }
-  ],
+  "che": [],
   "tran": [],
   "rong": []
  },
@@ -2488,14 +2230,7 @@
     "can": 139
    }
   ],
-  "che": [
-   {
-    "el": "a.sidebar-item",
-    "chu": "Giao diện",
-    "biChe": "div.sidebar-foot",
-    "y": 676
-   }
-  ],
+  "che": [],
   "tran": [],
   "rong": []
  },
@@ -2982,39 +2717,27 @@
   "che": [
    {
     "el": "a.sidebar-item",
-    "chu": "Loại giấy tờ cá nhân",
+    "chu": "Nhật ký",
     "biChe": "div.sidebar-foot",
-    "y": 676
+    "y": 694
    },
    {
     "el": "a.sidebar-item",
-    "chu": "Loại giấy tờ xe",
+    "chu": "Gửi thông báo",
     "biChe": "div.sidebar-foot",
-    "y": 714
+    "y": 732
    },
    {
     "el": "a.sidebar-item",
-    "chu": "Lý do điều phối",
+    "chu": "Trợ lý Hỗ trợ",
     "biChe": "div.sidebar-foot",
-    "y": 752
+    "y": 770
    },
    {
     "el": "a.sidebar-item",
-    "chu": "Chính sách điều phối",
+    "chu": "Giao diện",
     "biChe": "div.sidebar-foot",
-    "y": 790
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Quản lý tài khoản",
-    "biChe": "div.sidebar-foot",
-    "y": 828
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Máy đang đăng nhập",
-    "biChe": "div.sidebar-foot",
-    "y": 866
+    "y": 808
    }
   ],
   "tran": [],
@@ -3041,32 +2764,7 @@
     "can": 170
    }
   ],
-  "che": [
-   {
-    "el": "a.sidebar-item",
-    "chu": "Nhật ký",
-    "biChe": "div.sidebar-foot",
-    "y": 676
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Gửi thông báo",
-    "biChe": "div.sidebar-foot",
-    "y": 714
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Trợ lý Hỗ trợ",
-    "biChe": "div.sidebar-foot",
-    "y": 752
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Giao diện",
-    "biChe": "div.sidebar-foot",
-    "y": 790
-   }
-  ],
+  "che": [],
   "tran": [],
   "rong": [
    {
@@ -3098,26 +2796,7 @@
     "can": 206
    }
   ],
-  "che": [
-   {
-    "el": "a.sidebar-item",
-    "chu": "Gửi thông báo",
-    "biChe": "div.sidebar-foot",
-    "y": 676
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Trợ lý Hỗ trợ",
-    "biChe": "div.sidebar-foot",
-    "y": 714
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Giao diện",
-    "biChe": "div.sidebar-foot",
-    "y": 752
-   }
-  ],
+  "che": [],
   "tran": [],
   "rong": []
  },
@@ -3137,39 +2816,21 @@
   "che": [
    {
     "el": "a.sidebar-item",
-    "chu": "Loại giấy tờ xe",
+    "chu": "Gửi thông báo",
     "biChe": "div.sidebar-foot",
-    "y": 676
+    "y": 694
    },
    {
     "el": "a.sidebar-item",
-    "chu": "Lý do điều phối",
+    "chu": "Trợ lý Hỗ trợ",
     "biChe": "div.sidebar-foot",
-    "y": 714
+    "y": 732
    },
    {
     "el": "a.sidebar-item",
-    "chu": "Chính sách điều phối",
+    "chu": "Giao diện",
     "biChe": "div.sidebar-foot",
-    "y": 752
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Quản lý tài khoản",
-    "biChe": "div.sidebar-foot",
-    "y": 790
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Máy đang đăng nhập",
-    "biChe": "div.sidebar-foot",
-    "y": 828
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Nhật ký",
-    "biChe": "div.sidebar-foot",
-    "y": 866
+    "y": 770
    }
   ],
   "tran": [],
@@ -3191,39 +2852,15 @@
   "che": [
    {
     "el": "a.sidebar-item",
-    "chu": "Lý do điều phối",
+    "chu": "Trợ lý Hỗ trợ",
     "biChe": "div.sidebar-foot",
-    "y": 676
+    "y": 694
    },
    {
     "el": "a.sidebar-item",
-    "chu": "Chính sách điều phối",
+    "chu": "Giao diện",
     "biChe": "div.sidebar-foot",
-    "y": 714
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Quản lý tài khoản",
-    "biChe": "div.sidebar-foot",
-    "y": 752
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Máy đang đăng nhập",
-    "biChe": "div.sidebar-foot",
-    "y": 790
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Nhật ký",
-    "biChe": "div.sidebar-foot",
-    "y": 828
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Gửi thông báo",
-    "biChe": "div.sidebar-foot",
-    "y": 866
+    "y": 732
    }
   ],
   "tran": [],
@@ -3639,39 +3276,9 @@
   "che": [
    {
     "el": "a.sidebar-item",
-    "chu": "Chính sách điều phối",
+    "chu": "Giao diện",
     "biChe": "div.sidebar-foot",
-    "y": 676
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Quản lý tài khoản",
-    "biChe": "div.sidebar-foot",
-    "y": 714
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Máy đang đăng nhập",
-    "biChe": "div.sidebar-foot",
-    "y": 752
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Nhật ký",
-    "biChe": "div.sidebar-foot",
-    "y": 790
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Gửi thông báo",
-    "biChe": "div.sidebar-foot",
-    "y": 828
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Trợ lý Hỗ trợ",
-    "biChe": "div.sidebar-foot",
-    "y": 866
+    "y": 694
    }
   ],
   "tran": [],
@@ -3690,38 +3297,7 @@
     "can": 264
    }
   ],
-  "che": [
-   {
-    "el": "a.sidebar-item",
-    "chu": "Máy đang đăng nhập",
-    "biChe": "div.sidebar-foot",
-    "y": 676
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Nhật ký",
-    "biChe": "div.sidebar-foot",
-    "y": 714
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Gửi thông báo",
-    "biChe": "div.sidebar-foot",
-    "y": 752
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Trợ lý Hỗ trợ",
-    "biChe": "div.sidebar-foot",
-    "y": 790
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Giao diện",
-    "biChe": "div.sidebar-foot",
-    "y": 828
-   }
-  ],
+  "che": [],
   "tran": [],
   "rong": []
  },
@@ -3738,38 +3314,7 @@
     "can": 274
    }
   ],
-  "che": [
-   {
-    "el": "a.sidebar-item",
-    "chu": "Máy đang đăng nhập",
-    "biChe": "div.sidebar-foot",
-    "y": 676
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Nhật ký",
-    "biChe": "div.sidebar-foot",
-    "y": 714
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Gửi thông báo",
-    "biChe": "div.sidebar-foot",
-    "y": 752
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Trợ lý Hỗ trợ",
-    "biChe": "div.sidebar-foot",
-    "y": 790
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Giao diện",
-    "biChe": "div.sidebar-foot",
-    "y": 828
-   }
-  ],
+  "che": [],
   "tran": [],
   "rong": [
    {
@@ -3864,44 +3409,7 @@
     "can": 193
    }
   ],
-  "che": [
-   {
-    "el": "a.sidebar-item",
-    "chu": "Quản lý tài khoản",
-    "biChe": "div.sidebar-foot",
-    "y": 676
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Máy đang đăng nhập",
-    "biChe": "div.sidebar-foot",
-    "y": 714
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Nhật ký",
-    "biChe": "div.sidebar-foot",
-    "y": 752
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Gửi thông báo",
-    "biChe": "div.sidebar-foot",
-    "y": 790
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Trợ lý Hỗ trợ",
-    "biChe": "div.sidebar-foot",
-    "y": 828
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Giao diện",
-    "biChe": "div.sidebar-foot",
-    "y": 866
-   }
-  ],
+  "che": [],
   "tran": [],
   "rong": [
    {
@@ -4121,39 +3629,33 @@
   "che": [
    {
     "el": "a.sidebar-item",
-    "chu": "Người bán dịch vụ",
+    "chu": "Chính sách điều phối",
     "biChe": "div.sidebar-foot",
-    "y": 678
+    "y": 694
    },
    {
     "el": "a.sidebar-item",
-    "chu": "Chụp bù mức",
+    "chu": "Quản lý tài khoản",
     "biChe": "div.sidebar-foot",
-    "y": 716
+    "y": 732
    },
    {
     "el": "a.sidebar-item",
-    "chu": "Dịch vụ & giá",
+    "chu": "Máy đang đăng nhập",
     "biChe": "div.sidebar-foot",
-    "y": 754
+    "y": 770
    },
    {
     "el": "a.sidebar-item",
-    "chu": "Địa điểm",
+    "chu": "Nhật ký",
     "biChe": "div.sidebar-foot",
-    "y": 792
+    "y": 808
    },
    {
     "el": "a.sidebar-item",
-    "chu": "Loại giấy tờ cá nhân",
+    "chu": "Gửi thông báo",
     "biChe": "div.sidebar-foot",
-    "y": 830
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Loại giấy tờ xe",
-    "biChe": "div.sidebar-foot",
-    "y": 868
+    "y": 846
    }
   ],
   "tran": [],
@@ -4197,39 +3699,33 @@
   "che": [
    {
     "el": "a.sidebar-item",
-    "chu": "Dịch vụ & giá",
+    "chu": "Quản lý tài khoản",
     "biChe": "div.sidebar-foot",
-    "y": 676
+    "y": 694
    },
    {
     "el": "a.sidebar-item",
-    "chu": "Địa điểm",
+    "chu": "Máy đang đăng nhập",
     "biChe": "div.sidebar-foot",
-    "y": 714
+    "y": 732
    },
    {
     "el": "a.sidebar-item",
-    "chu": "Loại giấy tờ cá nhân",
+    "chu": "Nhật ký",
     "biChe": "div.sidebar-foot",
-    "y": 752
+    "y": 770
    },
    {
     "el": "a.sidebar-item",
-    "chu": "Loại giấy tờ xe",
+    "chu": "Gửi thông báo",
     "biChe": "div.sidebar-foot",
-    "y": 790
+    "y": 808
    },
    {
     "el": "a.sidebar-item",
-    "chu": "Lý do điều phối",
+    "chu": "Trợ lý Hỗ trợ",
     "biChe": "div.sidebar-foot",
-    "y": 828
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Chính sách điều phối",
-    "biChe": "div.sidebar-foot",
-    "y": 866
+    "y": 846
    }
   ],
   "tran": [],
@@ -4251,39 +3747,33 @@
   "che": [
    {
     "el": "a.sidebar-item",
-    "chu": "Địa điểm",
+    "chu": "Máy đang đăng nhập",
     "biChe": "div.sidebar-foot",
-    "y": 676
+    "y": 694
    },
    {
     "el": "a.sidebar-item",
-    "chu": "Loại giấy tờ cá nhân",
+    "chu": "Nhật ký",
     "biChe": "div.sidebar-foot",
-    "y": 714
+    "y": 732
    },
    {
     "el": "a.sidebar-item",
-    "chu": "Loại giấy tờ xe",
+    "chu": "Gửi thông báo",
     "biChe": "div.sidebar-foot",
-    "y": 752
+    "y": 770
    },
    {
     "el": "a.sidebar-item",
-    "chu": "Lý do điều phối",
+    "chu": "Trợ lý Hỗ trợ",
     "biChe": "div.sidebar-foot",
-    "y": 790
+    "y": 808
    },
    {
     "el": "a.sidebar-item",
-    "chu": "Chính sách điều phối",
+    "chu": "Giao diện",
     "biChe": "div.sidebar-foot",
-    "y": 828
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Quản lý tài khoản",
-    "biChe": "div.sidebar-foot",
-    "y": 866
+    "y": 846
    }
   ],
   "tran": [],
@@ -4356,20 +3846,7 @@
     "can": 165
    }
   ],
-  "che": [
-   {
-    "el": "a.sidebar-item",
-    "chu": "Trợ lý Hỗ trợ",
-    "biChe": "div.sidebar-foot",
-    "y": 676
-   },
-   {
-    "el": "a.sidebar-item",
-    "chu": "Giao diện",
-    "biChe": "div.sidebar-foot",
-    "y": 714
-   }
-  ],
+  "che": [],
   "tran": [],
   "rong": []
  },
@@ -4386,14 +3863,7 @@
     "can": 139
    }
   ],
-  "che": [
-   {
-    "el": "a.sidebar-item",
-    "chu": "Giao diện",
-    "biChe": "div.sidebar-foot",
-    "y": 676
-   }
-  ],
+  "che": [],
   "tran": [],
   "rong": []
  },
