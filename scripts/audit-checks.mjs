@@ -1917,6 +1917,18 @@ export const CHECKS = [
     level: "fail",
     note: "ADR-0152 Đ1: dòng lậu chỉ do SQL chạy tay — trình chủ dự án, không tự sửa dữ liệu (đóng dòng gắn hoặc bật lại đặc điểm / giá trị trên màn Đặc điểm dịch vụ)",
   },
+  // R-CTL-3 (ADR-0152 Đ1; chủ chọn 30/10 — câu chờ gom 2 ⇒ (b)): dòng gắn đặc điểm THEO NHÓM đang mở mà nhóm đang TẮT. Đường hợp lệ (route nhóm chỉ chặn tắt nhóm còn
+  // dịch vụ; view `v_ctl_service_attribute` bỏ qua nhóm tắt, trigger chặn gắn MỚI vào nhóm tắt) ⇒ dòng vô hại nhưng thừa — mức warn (in số, không bao giờ đỏ). Tách khỏi
+  // R-CTL-2 (fail) để không đỏ giả trên dữ liệu hợp lệ.
+  {
+    code: "R-CTL-3",
+    what: "dòng gắn đặc điểm theo nhóm còn mở trong khi nhóm đã tắt (dòng thừa, không ảnh hưởng luật bán)",
+    sql: `SELECT count(*) FROM ctl_attribute_assignment s
+      WHERE s.valid_to_at IS NULL AND s.group_code IS NOT NULL
+        AND NOT EXISTS (SELECT 1 FROM ctl_group g WHERE g.code = s.group_code AND g.active = 1)`,
+    level: "warn",
+    note: "cảnh báo (không chặn phát hành): bật lại nhóm rồi bỏ giá trị theo nhóm ở màn Đặc điểm dịch vụ, hoặc để nguyên (view đã bỏ qua nhóm tắt)",
+  },
 
   // ---- Sổ đại lý đợt 1 (đặc tả 2026-10-08 §9; migration 0090). Trigger / CHECK của 0090 là đường chặn thứ nhất; các kiểm này là LƯỚI THỨ HAI cho SQL chạy tay và cho
   // chuyện đổi SAU khi ghi (tắt vai, đổi nhóm dịch vụ, đổi công ty chủ) — thứ trigger lúc chèn không nhìn thấy. Bảng mức / điều khoản / bản chụp chỉ-thêm: dòng sai không sửa

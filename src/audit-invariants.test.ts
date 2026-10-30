@@ -2452,6 +2452,29 @@ test("R-CTL-2 (ADR-0152 Đ1, R-8): dữ liệu khoẻ → 0; dòng mở trỏ gi
   assert.equal(violations(db, c), 0, "dòng đã đóng không đếm");
 });
 
+// ADR-0152 Đ1; chủ chọn 30/10 (câu chờ gom 2 ⇒ (b)): R-CTL-3 — dòng gắn đặc điểm THEO NHÓM đang mở mà nhóm đang TẮT. Đường hợp lệ (tắt nhóm rỗng còn dòng gắn theo
+// nhóm — route nhóm chỉ chặn nhóm còn dịch vụ; view bỏ qua nhóm tắt) ⇒ mức `warn`: in số cho người rà soát, không bao giờ đỏ. Tách mã riêng để R-CTL-2 (`fail`) giữ nguyên.
+test("R-CTL-3 (ADR-0152 Đ1, chủ chọn (b) 30/10): dữ liệu khoẻ → 0; dòng gắn theo nhóm mở trỏ nhóm đang tắt → đếm, mức warn; dòng đã đóng / gắn theo dịch vụ không đếm", () => {
+  const c = one("R-CTL-3");
+  assert.equal(c.level, "warn");
+  assert.ok(c.note, "mức warn có ghi chú");
+  const db = build();
+  db.prepare(`INSERT INTO catalog_item (code, name, unit, price_adult, in_sheet, first_seen_at, updated_at) VALUES ('Q1', 'Dịch vụ thử', 'perPax', 100000, 1, ?, ?)`).run(T1, T1);
+  db.prepare(`INSERT INTO ctl_attribute (code, name, sort_order, active, created_at, updated_at) VALUES ('aX', 'Đặc điểm aX', 1, 1, ?, ?)`).run(T1, T1);
+  db.prepare(`INSERT INTO ctl_attribute_value (code, attribute_code, name, sort_order, active, created_at, updated_at) VALUES ('x1', 'aX', 'Giá trị x1', 1, 1, ?, ?)`).run(T1, T1);
+  const gan = (id: string, o: { service?: string; group?: string }) =>
+    db.prepare(`INSERT INTO ctl_attribute_assignment (id, service_code, group_code, attribute_code, value_code, valid_from_at, created_at, updated_at) VALUES (?, ?, ?, 'aX', 'x1', ?, ?, ?)`)
+      .run(id, o.service ?? null, o.group ?? null, T1, T1, T1);
+  gan("k1", { service: "Q1" });
+  gan("k2", { group: "HTA" });
+  assert.equal(violations(db, c), 0, "dữ liệu khoẻ (nhóm đang dùng)");
+  db.prepare("UPDATE ctl_group SET active = 0 WHERE code = 'HTA'").run();
+  assert.equal(violations(db, c), 1, "dòng gắn theo nhóm mở trỏ nhóm đang tắt → 1");
+  assert.equal(violations(db, one("R-CTL-2")), 0, "R-CTL-2 (fail) không đổi vì nhóm tắt");
+  db.prepare("UPDATE ctl_attribute_assignment SET valid_to_at = ?, updated_at = ? WHERE id = 'k2'").run(T2, T2);
+  assert.equal(violations(db, c), 0, "dòng đã đóng không đếm");
+});
+
 // ---------------------------------------------------------------------------------------------------------------------
 // R-ORD-NT1 (ADR-0061 điều 8, A-9 — lớp bù cho lệch 5.1 thu hẹp): đơn có dịch vụ nhập tay (order_service.catalog_code NULL) mà người lập (orders.staff_id)
 // đang giữ quyền PARTNER còn hiệu lực, và đơn tạo SAU mốc phát hành ADR-0061 (= created_at của dòng đầu bảng ord_manual_service_policy — dòng gieo 0052).
