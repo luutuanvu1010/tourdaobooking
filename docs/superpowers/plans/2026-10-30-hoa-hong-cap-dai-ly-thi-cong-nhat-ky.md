@@ -192,3 +192,9 @@ Mười bảy «câu hôm nay» của §6.1 đều có nguyên văn trong `index
 - (ii) thêm chỗ thứ ba `` `chính sách ${1}` `` vào `pricing/index.ts`: ĐỎ `not ok 5` (`mảnh «chính sách » ở src/modules/pricing/index.ts phải đúng 2 lần`) và `not ok 3 - lượt 6 ca âm` (đòi đúng 2 mảnh).
 - (iii) đổi một trong hai chỗ thành `` `cấp ${…}` ``: ĐỎ `not ok 5` (cùng câu «phải đúng 2 lần») và `not ok 3`.
 - Hoàn nguyên: `git status` chỉ còn các tệp của task; 5/5 xanh.
+
+## Task 13 — Nhật ký thay đổi phần 1
+
+Mục `2.48` (ngày 2026-10-30, TẠM) thêm vào đầu `src/shared/changelog.ts`: một mục duy nhất, 4 dòng (đổi tên + ba thẻ, dải loại thiếu mức theo dịch vụ, đặt cấp riêng trên trang, «Khoá cấp» kèm hộp nói rõ vẫn chi). Task 17 thêm dòng «Đổi cấp» vào chính mục này. Bài ghim `app-info.test.ts` sang «Phiên bản 2.48 · ngày 30 tháng 10 năm 2026»: đỏ 1/6 trước khi thêm mục, xanh sau.
+
+**Sửa mang sang từ review Task 12**: ca âm lượt 6 trong `src/bang-tu-giao-dien.test.ts` không còn chọn 6a/6b bằng `TU_DA_LOAI.slice(-2)`; nay lọc theo nguồn («quyết định 3, 7») và mẫu «chính sách hoa hồng/riêng», kèm khẳng định đúng 2 mục để thêm luật về sau không làm lệch ca.

@@ -153,11 +153,14 @@ test("lượt 6 ca âm", () => {
   for (const c of ["chính sách riêng tư", "Chính sách điều phối", "đặt chính sách đăng nhập"]) {
     assert.deepEqual(viPhamTheoTep("web/hoa-hong-gia.ts", `const x = "${c}";`), [], c);
   }
+  // chọn 6a/6b theo nguồn, không theo vị trí cuối mảng: thêm luật về sau không làm lệch ca âm
+  const mucChinhSach = TU_DA_LOAI.filter((m) => /hính sách (?:hoa hồng|riêng)/u.test(m.cam.source) && m.nguon.includes("quyết định 3, 7"));
+  assert.equal(mucChinhSach.length, 2);
   for (const c of [
     "Theo chính sách của Tour Đảo, tiền cọc không được hoàn lại khi khách huỷ.", "Chính sách vừa được người khác đổi — tải lại.",
     "Vừa có người đổi chính sách, tải lại rồi thử lại.", "Vừa có phiên bản chính sách khác được đăng. Tải lại rồi thử lại.", "Lưu chính sách",
   ]) {
-    for (const t of TU_DA_LOAI.slice(-2)) assert.ok(!t.cam.test(c), `${t.cam} khớp «${c}»`);
+    for (const t of mucChinhSach) assert.ok(!t.cam.test(c), `${t.cam} khớp «${c}»`);
   }
   // hai mảnh «chính sách » đọc thật từ nhật ký của pricing/index.ts đi qua đúng danh sách cho phép
   const tep = "src/modules/pricing/index.ts";
