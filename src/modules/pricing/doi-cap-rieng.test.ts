@@ -205,3 +205,35 @@ test("ghim hai phía X1/X2 ⇔ kiemDoi", async (t) => {
     else assert.equal(r.json.error.message, ca.mong(hn), ca.ten);
   });
 });
+
+test("Đua thật qua route: cấp riêng cũ bị ngừng NGAY TRƯỚC lô ghi ⇒ 409 stale, không dòng mới, không nhật ký; hồ sơ còn đúng một cấp riêng hiệu lực ở mỗi ngày", async () => {
+  const w = setup();
+  const hn = H();
+  const { ta2, rieng } = await nen(w, addDays(hn, -10));
+  const truoc = dem(w);
+  let chen = false;
+  w.chenTruocLo((s: { sql: string }[]) => s.some((x) => /INSERT INTO prc_party_tier/.test(x.sql) && !/replaces_id/.test(x.sql)), () => {
+    chen = true;
+    w.sqlite.prepare("UPDATE prc_party_tier SET valid_to_date = ? WHERE id = ?").run(addDays(hn, 3), rieng);
+  });
+  const r = await doi(w, rieng, { muc: ta2, tuNgay: hn });
+  assert.ok(chen, "khung thử đã chen lệnh ngừng trước lô");
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "stale");
+  assert.deepEqual(dem(w), truoc, "không dòng mới, không nhật ký");
+  for (const ngay of [addDays(hn, -5), hn, addDays(hn, 3)]) {
+    const n = Number(w.q("SELECT count(*) AS n FROM prc_party_tier WHERE party_id = ? AND voided_at IS NULL AND valid_from_date <= ? AND (valid_to_date IS NULL OR valid_to_date >= ?)", ORG, ngay, ngay)[0].n);
+    assert.equal(n, 1, `hiệu lực ngày ${ngay}`);
+  }
+});
+
+test("đổi hai lần tuần tự: lần hai trên dòng cũ đã có ngày ngừng ⇒ 400 câu X1, không ghi gì", async () => {
+  const w = setup();
+  const hn = H();
+  const { ta1, ta2, rieng } = await nen(w, addDays(hn, -10));
+  await ok(doi(w, rieng, { muc: ta2, tuNgay: hn }), 200, "lần một");
+  const truoc = dem(w);
+  const r = await doi(w, rieng, { muc: ta1, tuNgay: hn });
+  assert.deepEqual([r.status, r.json.error.message], [400, CAU_X1]);
+  assert.deepEqual(dem(w), truoc);
+});

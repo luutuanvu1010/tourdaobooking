@@ -232,3 +232,12 @@ Lần lưu `6df6e81f`: `GAN_RIENG_DOI_THEM` (`party_tier_change_insert`) + `cauD
 - Câu của lưới dự phòng 409 `stale` (câu đóng báo 0 dòng) do người làm chọn, chép khuôn route «Sửa» anh em: «Cấp riêng này vừa được người khác sửa hoặc ngừng. Tải lại trang.» Kế hoạch chỉ chốt mã `stale`. Đua thật thường không tới lưới này: câu chèn lỗi NOT NULL `prc_party_tier.valid_from_date` và `loiBang` (`index.ts:76`, nhánh đã có) trả trước câu «Dòng này vừa được người khác sửa hoặc ngừng. Tải lại trang.»
 
 **Lệch so với kế hoạch:** không.
+
+## Task 16 — quyền, đua thật, sổ hàng rào, tài liệu route
+
+Thêm bài quyền «Đổi cấp riêng (ADR-0151)» ở `src/so-dai-ly-quyen-route.test.ts` (một `test(...)` mới, `muoiHaiRoute` vẫn 12), bài «Đua thật qua route» và «đổi hai lần tuần tự» ở `doi-cap-rieng.test.ts`, một dòng sổ hàng rào, một dòng bảng route. Không đổi mã sản phẩm.
+
+**P16** (sửa tạm, không commit, hoàn nguyên bằng bản chép):
+- 2026-10-30 13:16: đổi `CASE WHEN changes() > 0 THEN ?4 END` thành `?4` ở `GAN_RIENG_DOI_THEM` ⇒ ĐỎ `not ok 8 - Đua thật qua route: cấp riêng cũ bị ngừng NGAY TRƯỚC lô ghi …` — `expected: 'stale'`, `actual: 'prc_tier_overlap'` (lưới chống chồng ngày của CSDL chặn thay, 409 mã khác). Hoàn nguyên: 22/22 xanh.
+- Lần thử đầu bộ chen khớp theo đúng chữ `CASE WHEN … ?4` nên đột biến làm bộ chen không chạy (đỏ vì `chen` false); đã đổi khớp theo `INSERT INTO prc_party_tier` không có `replaces_id` để đột biến đỏ đúng chỗ.
+

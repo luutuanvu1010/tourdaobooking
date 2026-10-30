@@ -185,3 +185,34 @@ test("tìm người hưởng (ADR-0141): Kế toán 200; Đối tác, lai Kế t
     assert.equal(r.status, 403, `${nhan}: ${r.status} ${r.text}`);
   }
 });
+
+// ADR-0151 tiêu chí 3: cổng `POST /api/pricing/muc-rieng/:id/doi` (ô partner.commission.write, không cho tài khoản giữ quyền Đối tác). Id là một cấp riêng CÓ THẬT, thân hợp lệ.
+test("Đổi cấp riêng (ADR-0151): Tài xế công ty, Tài xế đối tác, Nhân sự, HDV, Đối tác, lai Kế toán + Đối tác, Bán hàng ⇒ 403 `forbidden`, không ghi dòng; Kế toán ⇒ 200", async () => {
+  const { w } = await dungThe();
+  const them = (id: string, phone: string, perms: string[]) => seedStaff(w.sqlite, { id, phone, name: `Thử ${phone}`, perms });
+  const DT = "66666666-6666-4666-8666-666666666681", LAI = "66666666-6666-4666-8666-666666666682", HDV = "66666666-6666-4666-8666-666666666683";
+  them(DT, "0900000031", ["PARTNER"]); them(LAI, "0900000032", ["ACCOUNTING", "PARTNER"]); them(HDV, "0900000033", ["FIELD"]);
+  const hn = vnHomNay();
+  const taoMuc = async (ten: string): Promise<string> => {
+    const m = await w.call("POST", "/api/pricing/muc-ta", { as: KT, body: { ten } });
+    assert.equal(m.status, 201, m.text);
+    const d = await w.call("POST", `/api/pricing/muc-ta/${m.json.muc.code}/dong`, { as: KT, body: { phamVi: "ALL", kieu: "RATE", tyLeBp: 1000, tuNgay: "2026-01-01" } });
+    assert.equal(d.status, 201, d.text);
+    return m.json.muc.code as string;
+  };
+  const ta1 = await taoMuc("TA quyền 1"), ta2 = await taoMuc("TA quyền 2");
+  const dat = await w.call("POST", "/api/pricing/ho-so/pty-dla/muc-rieng", { as: KT, body: { muc: ta1, tuNgay: "2026-01-01" } });
+  assert.equal(dat.status, 201, dat.text);
+  const rieng = String(w.q("SELECT id FROM prc_party_tier WHERE party_id = 'pty-dla' AND voided_at IS NULL")[0].id);
+  const dem2 = () => [Number(w.q("SELECT count(*) AS n FROM prc_party_tier")[0].n), Number(w.q("SELECT count(*) AS n FROM audit_log")[0].n)];
+  const truoc = dem2();
+  for (const [nhan, as] of [["Tài xế công ty", TXC], ["Tài xế đối tác", TXDT], ["Nhân sự", NS], ["HDV", HDV], ["Đối tác", DT], ["lai Kế toán + Đối tác", LAI], ["Bán hàng", SALES]] as const) {
+    const r = await w.call("POST", `/api/pricing/muc-rieng/${rieng}/doi`, { as, body: { muc: ta2, tuNgay: hn } });
+    assert.equal(r.status, 403, `${nhan}: ${r.status} ${r.text}`);
+    assert.equal(r.json.error.code, "forbidden", nhan);
+  }
+  assert.deepEqual(dem2(), truoc, "không lời gọi nào để lại dòng ở prc_party_tier, audit_log");
+  assert.equal(w.q("SELECT valid_to_date FROM prc_party_tier WHERE id = ?", rieng)[0].valid_to_date, null);
+  const kt = await w.call("POST", `/api/pricing/muc-rieng/${rieng}/doi`, { as: KT, body: { muc: ta2, tuNgay: hn } });
+  assert.equal(kt.status, 200, kt.text);
+});
