@@ -171,6 +171,8 @@ const NUA_NGHIEM: readonly { module: string; file: string }[] = [
   { module: "orders", file: "modules/orders/xac-nhan-repo.ts" },
   // ADR-0058 Đ6: SQL MỚI của `catalog` (hai bảng `ctl_`) chỉ ở tệp này; `repository.ts` cũ còn LEGACY tới CATALOG_LEGACY_HAN.
   { module: "catalog", file: "modules/catalog/nhom-repo.ts" },
+  // ADR-0152 Đ1, Đ6 (f): SQL của ba bảng đặc điểm dịch vụ (`ctl_attribute*`, migration 0128) chỉ ở tệp này — bài (f) `src/dac-diem-chi-mot-tep.test.ts` canh phần còn lại.
+  { module: "catalog", file: "modules/catalog/dac-diem-repo.ts" },
 ];
 
 /**

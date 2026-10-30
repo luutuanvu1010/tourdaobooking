@@ -17,6 +17,7 @@ import {
   suaNhom, tenNhomCuaCacMa, themNhom, type NhomRow,
 } from "./nhom-repo";
 import { choPhepDuaDon, kiemLoGan, kiemTenNhom, moTaDoiNhom, nhomChoForm } from "./nhom-rules";
+import { tenCuaGiaTri } from "./dac-diem-repo";
 import { isQuyTacDuaDon, moTaDoiQuyTac, type QuyTacDuaDon } from "../../shared/dua-don-dich-vu";
 
 export type { EffectiveService };
@@ -37,6 +38,14 @@ export async function getEffectiveServices(db: D1Database, codes?: readonly stri
  */
 export async function tenNhomHienHanh(db: D1Database, codes: readonly string[]): Promise<Map<string, string>> {
   return tenNhomCuaCacMa(db, codes);
+}
+
+/**
+ * ADR-0152 Đ2 (kế hoạch R-3): tên đặc điểm và tên giá trị của các MÃ GIÁ TRỊ, cho câu 409 `sales_blocked` «(<đặc điểm>: <giá trị>)». Hàm công bố hẹp — câu DUY NHẤT ngoài
+ * `catalog` dùng được tên đặc điểm (view công bố chỉ có khoá, hàng rào (l2)); không dùng để rẽ nhánh (l3). Mã không có: không có khoá.
+ */
+export async function tenDacDiemTheoMa(db: D1Database, valueCodes: readonly string[]): Promise<Map<string, { dacDiem: string; giaTri: string }>> {
+  return tenCuaGiaTri(db, valueCodes);
 }
 
 /**
