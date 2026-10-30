@@ -47,3 +47,19 @@ Bốn khe hở đặc tả gặp khi soạn kế hoạch, kèm phán quyết c�
 4. Tệp mới `src/shared/hoa-hong-phu-muc.ts` nằm ngoài bộ tệp của luật cấm theo tệp (đặc tả §6.2). Phán quyết: tệp này không chứa chữ người dùng thấy; mọi chữ nằm ở `hoa-hong-hien-thi.ts`.
 
 Ghi thêm từ kế hoạch (không phải khe đặc tả): kịch bản Chrome cần Chrome và `AXE_JS` ngoài repo, e2e cần mạng; thiếu thì ghi «chưa kiểm», không tính đạt.
+
+## Task 4 (chữ máy chủ §6.1, bài ghim §6.3)
+
+Mười bảy «câu hôm nay» của §6.1 đều có nguyên văn trong `index.ts` và `rules.ts`; không câu nào thiếu.
+
+**Chỗ ghim tìm được** (grep trên `src/`, `tests/`, `web/`, `scripts/`, `docs/evidence/*/kich-ban/`; đã sửa sang câu mới):
+- `muc-ta.test.ts`: «Không tìm thấy chính sách» (4 ca, bảng kiểm đầu vào), «đã theo một chính sách trong khoảng ngày này», «Chọn loại đối tác và chính sách», «Đã có chính sách với tên này.», «Chính sách này đã tắt» (N-23), và **một chỗ ghim ngoài danh sách §6.3**: ca «bật mức đang bật» khớp `/đang bật/` vào câu `:221` cũ «Mức này đang bật rồi»; đổi thành `/đang mở rồi/`.
+- `gan-rieng-route.test.ts:187`: câu chồng ngày của cấp riêng.
+- `doi-chinh-sach.test.ts`: «Mức mới giống hệt mức đang gắn.», «Chính sách này đã tắt — …», «Lần áp dụng chính sách này vừa được người khác ngừng hoặc đổi…».
+- `tests/e2e/*`, `docs/evidence/*/kich-ban/`, `web/`, `scripts/`: không có kịch bản nào ghim các câu này (`sua-muc.mjs` chỉ có nhãn kiểm «chính sách riêng» trong `assert`, không phải câu máy chủ; không đổi). Chuỗi `hoa-hong-hien-thi.ts:170` «ngừng áp dụng chính sách cũ» là chữ giao diện, thuộc task khác.
+- Không tìm thấy bài nào ghim: «Không tìm thấy lần áp dụng…», «Không tìm thấy chính sách riêng này», «Chính sách riêng này vừa…», «Tên chính sách…», «Chọn chính sách.», `:221` (nên thêm ca mới).
+- Chi tiết nhật ký không đổi: `muc-ta.test.ts:125,166` ghim `chính sách TA1 · …` (khuôn cũ, quyết định 8); `gan-rieng-route.test.ts:124` ghim `mức riêng TA2 · …`.
+
+**Bài đỏ trước khi sửa mã**: ba tệp (`muc-ta`, `gan-rieng-route`, `doi-chinh-sach`) 27 xanh / 7 đỏ (trong đó ca mới `khoá cấp đang khoá / mở lại cấp đang mở ⇒ 409 đúng câu (§6.1 :221)`). Sau khi đổi chuỗi: `npm test` thoát 0, 6735 xanh / 0 đỏ (bộ chính) + 1/1 (bài đo giờ); `npm run typecheck` 0 lỗi. Bảng-từ giao diện (`src/bang-tu-giao-dien.test.ts`) không đỏ trên câu mới nào.
+
+**Tiêu chí 9 phần máy chủ**: đã đọc từng dòng `git diff HEAD -- src/modules/ ':!*.test.ts'` (20 dòng đổi ở `index.ts`, 6 ở `rules.ts`): mọi dòng đổi chỉ khác bên trong một chuỗi chữ; phần mã, biểu thức chính quy, chú thích cuối dòng (dòng `:73`, «câu chèn của Đổi chính sách») giữ nguyên. `rules.ts` đổi đúng 6 dòng (`kiemTenMucTa` ×3, `kiemThanGan`, `kiemThanDoiChinhSach`, `kiemThanGanRieng`); không hunk nào chạm `kiemDoi` hay `kiemSua`. Hai chuỗi nhật ký `chính sách ${…}` (`index.ts:129`, `:535`) và các chi tiết «mức riêng …» (`:561`, `:579`, `:615`, `:617`) không đổi.

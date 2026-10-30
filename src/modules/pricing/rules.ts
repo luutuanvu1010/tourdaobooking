@@ -371,10 +371,10 @@ export function kiemThanDongMucTa(raw: unknown, tierCode: string): Ket<ThanMuc> 
  */
 export function kiemTenMucTa(raw: unknown): Ket<{ ten: string; khoa: string }> {
   const ten = typeof raw === "string" ? raw.trim().replace(/\s+/g, " ") : "";
-  if (ten.length < 2 || ten.length > 60) return { ok: false, message: "Tên chính sách dài từ 2 đến 60 ký tự." };
-  if (/\d{8,}/.test(ten.replace(/[\s.]/g, "")) || /\d{9,}/.test(ten.replace(/[\s.-]/g, "")) || ten.includes("@")) return { ok: false, message: "Tên chính sách không được chứa số điện thoại, số tài khoản hay địa chỉ email." };
+  if (ten.length < 2 || ten.length > 60) return { ok: false, message: "Tên cấp đại lý dài từ 2 đến 60 ký tự." };
+  if (/\d{8,}/.test(ten.replace(/[\s.]/g, "")) || /\d{9,}/.test(ten.replace(/[\s.-]/g, "")) || ten.includes("@")) return { ok: false, message: "Tên cấp đại lý không được chứa số điện thoại, số tài khoản hay địa chỉ email." };
   const khoa = khoaTen(ten);
-  if (khoa.length < 2) return { ok: false, message: "Tên chính sách dài từ 2 đến 60 ký tự." };
+  if (khoa.length < 2) return { ok: false, message: "Tên cấp đại lý dài từ 2 đến 60 ký tự." };
   return { ok: true, value: { ten, khoa } };
 }
 /** Mã mức TA máy chủ sinh: `MT_` + 8 chữ hoa (không bao giờ trùng đoạn đường cố định như «gan»; khớp `MA_RE`). `bytes` lấy từ `crypto.getRandomValues` ở nơi gọi. */
@@ -383,7 +383,7 @@ export const MUC_TA_RE = /^MT_[A-Z]{8}$/;
 /** Thân `POST /api/pricing/muc-ta/gan`: { loai, muc, tuNgay, denNgay? }. */
 export function kiemThanGan(raw: unknown): Ket<{ roleTypeCode: string; tierCode: string; validFrom: string; validTo: string | null }> {
   const b = raw && typeof raw === "object" && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};
-  if (typeof b.loai !== "string" || !MA_RE.test(b.loai) || typeof b.muc !== "string" || !MA_RE.test(b.muc)) return { ok: false, message: "Chọn loại đối tác và chính sách." };
+  if (typeof b.loai !== "string" || !MA_RE.test(b.loai) || typeof b.muc !== "string" || !MA_RE.test(b.muc)) return { ok: false, message: "Chọn loại đối tác và cấp đại lý." };
   const kn = docKhoangNgay(b);
   if (!kn.ok) return kn;
   return { ok: true, value: { roleTypeCode: b.loai, tierCode: b.muc, ...kn.value } };
@@ -392,14 +392,14 @@ export function kiemThanGan(raw: unknown): Ket<{ roleTypeCode: string; tierCode:
 /** Thân `POST /api/pricing/muc-ta/gan/:id/doi` (Đổi chính sách của loại): { muc, tuNgay } — loại lấy từ gắn cũ; ngày kiểm ở `kiemDoi`. */
 export function kiemThanDoiChinhSach(raw: unknown): Ket<{ tierCode: string; tuNgay: unknown }> {
   const b = raw && typeof raw === "object" && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};
-  if (typeof b.muc !== "string" || !MA_RE.test(b.muc)) return { ok: false, message: "Chọn chính sách." };
+  if (typeof b.muc !== "string" || !MA_RE.test(b.muc)) return { ok: false, message: "Chọn cấp đại lý." };
   return { ok: true, value: { tierCode: b.muc, tuNgay: b.tuNgay } };
 }
 
 /** Thân `POST /api/pricing/ho-so/:id/muc-rieng` (ADR-0138): { muc, tuNgay, denNgay? } — hồ sơ lấy từ đường dẫn. */
 export function kiemThanGanRieng(raw: unknown): Ket<{ tierCode: string; validFrom: string; validTo: string | null }> {
   const b = raw && typeof raw === "object" && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};
-  if (typeof b.muc !== "string" || !MA_RE.test(b.muc)) return { ok: false, message: "Chọn chính sách." };
+  if (typeof b.muc !== "string" || !MA_RE.test(b.muc)) return { ok: false, message: "Chọn cấp đại lý." };
   const kn = docKhoangNgay(b);
   if (!kn.ok) return kn;
   return { ok: true, value: { tierCode: b.muc, ...kn.value } };
