@@ -143,6 +143,10 @@ const GAN_RIENG_THEM = defineSql("pricing", "party_tier_insert",
   `INSERT INTO prc_party_tier (id, party_id, tier_code, valid_from_date, valid_to_date, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?6, ?7)`);
 const GAN_RIENG_DONG = defineSql("pricing", "party_tier_close",
   `UPDATE prc_party_tier SET valid_to_date = ?2, updated_at = ?3, updated_by = ?4 WHERE id = ?1 AND voided_at IS NULL AND valid_to_date IS ?5`);
+// ADR-0151 «Đổi cấp riêng»: khuôn GAN_DOI_THEM — chèn cấp riêng mới ngay sau câu đóng cấp riêng cũ (GAN_RIENG_DONG) trong cùng lô; ngày bắt đầu NOT NULL chỉ có khi câu đóng
+// đổi được dòng ⇒ dòng cũ đã bị ngừng / sửa / đổi bằng đường khác thì cả lô lỗi NOT NULL. Không `replaces_id`, không lý do: đây là chuyển cấp, không phải sửa sai.
+const GAN_RIENG_DOI_THEM = defineSql("pricing", "party_tier_change_insert",
+  `INSERT INTO prc_party_tier (id, party_id, tier_code, valid_from_date, valid_to_date, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, CASE WHEN changes() > 0 THEN ?4 END, NULL, ?5, ?6, ?5, ?6)`);
 const GAN_RIENG_HUY = defineSql("pricing", "party_tier_void",
   `UPDATE prc_party_tier SET voided_at = ?2, voided_by = ?3, updated_at = ?2, updated_by = ?3 WHERE id = ?1 AND voided_at IS NULL AND valid_to_date IS ?4`);
 const GAN_RIENG_SUA_THEM = defineSql("pricing", "party_tier_edit_insert",
@@ -248,6 +252,11 @@ export const partyTierById = (db: D1Database, id: string) => db.prepare(GAN_RIEN
 export const insertPartyTierStatement = (db: D1Database, id: string, v: { partyId: string; tierCode: string; validFrom: string; validTo: string | null }, at: string, by: string) =>
   db.prepare(GAN_RIENG_THEM).bind(id, v.partyId, v.tierCode, v.validFrom, v.validTo, at, by);
 export const closePartyTierStatement = (db: D1Database, id: string, den: string, denDaDoc: string | null, at: string, by: string) => db.prepare(GAN_RIENG_DONG).bind(id, den, at, by, denDaDoc);
+/** Lô «Đổi cấp riêng» (ADR-0151 Đ4): [đóng cấp riêng cũ hết `denNgayCu` (khoá lạc quan: chưa có ngày ngừng), chèn cấp riêng mới từ `tuNgay` cùng hồ sơ]. Nơi gọi nối nhật ký `changes() > 0`. */
+export const cauDoiCapRieng = (db: D1Database, cuId: string, moiId: string, denNgayCu: string, partyId: string, tierCode: string, tuNgay: string, at: string, by: string): D1PreparedStatement[] => [
+  db.prepare(GAN_RIENG_DONG).bind(cuId, denNgayCu, at, by, null),
+  db.prepare(GAN_RIENG_DOI_THEM).bind(moiId, partyId, tierCode, tuNgay, at, by),
+];
 /** Lô «Sửa» gắn đối tác ↔ chính sách: [huỷ / đóng gắn cũ, chèn gắn mới cùng hồ sơ mang `replaces_id` + lý do]. Nơi gọi nối nhật ký `changes() > 0`. */
 export const cauSuaGanRieng = (db: D1Database, cuId: string, denDaDoc: string | null, xl: XuLyDongCu, moiId: string, partyId: string,
   v: { tierCode: string; validFrom: string; validTo: string | null }, lyDo: string, at: string, by: string): D1PreparedStatement[] => [
