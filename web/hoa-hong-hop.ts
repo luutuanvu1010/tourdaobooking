@@ -683,8 +683,8 @@ export function taoMoHop(ctx: NguCanhHop): MoHop {
       tuNgay: g.tuNgay,
       moTa: cauNgungCapRieng(g.muc.ten, ten),
       url: `/api/pricing/muc-rieng/${encodeURIComponent(g.id)}/ket-thuc`,
-      title: "Ngừng áp dụng",
-      nhan: "Ngừng áp dụng",
+      title: "Thôi theo cấp này",
+      nhan: "Lưu",
       daXong: cauDaNgungCapRieng(g.muc.ten, ten),
       truocNap: (r) => ctx.hoSoMoi(partyId, r as Api.HoaHongHoSoResponse),
     });

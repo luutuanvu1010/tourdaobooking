@@ -10,7 +10,7 @@
 | A2 | Đã làm | Nút ở chi tiết cấp: «Thêm loại vào cấp này» |
 | A3 | Đã làm | Tiêu đề hộp «Chọn cấp cho loại» khi mở từ thẻ loại, «Thêm loại vào cấp» khi mở từ cấp (cùng một hộp, chọn theo nơi bấm); nút xác nhận «Lưu» |
 | A4 | Đã làm | «Loại «Y» đã theo cấp «X» từ ngày …» |
-| A5 | Đã làm | Nút/mục menu «Thôi theo cấp này»; hộp: tiêu đề «Thôi theo cấp này», câu «Loại «Y» thôi theo cấp «X» đến hết ngày:», nút «Lưu». «Ngừng áp dụng» của cấp riêng của đối tác (hộp ở trang Hoa hồng và nút ở Danh bạ) giữ nguyên vì bảng chỉ nói cấp của loại; «Ngừng» của mức giữ nguyên |
+| A5 | Đã làm | Nút/mục menu «Thôi theo cấp này»; hộp: tiêu đề «Thôi theo cấp này», câu «Loại «Y» thôi theo cấp «X» đến hết ngày:», nút «Lưu». Mục menu «⋯» của cấp riêng của đối tác dùng chung hàm với cấp của loại nên cũng thành «Thôi theo cấp này»; để khỏi lệch, hộp ngừng cấp riêng ở trang Hoa hồng đổi theo (tiêu đề «Thôi theo cấp này», nút «Lưu») — việc nhỏ ngoài chữ bảng, chủ có thể bỏ. Nút «Ngừng áp dụng» ở Danh bạ (`web/parties.ts`) giữ nguyên (ngoài trang này); «Ngừng» của mức giữ nguyên |
 | A6 | Đã làm | «Loại «Y» đã thôi theo cấp «X».» |
 | A7 | Đã làm | «Chọn cấp riêng cho đối tác» (hai nút + tiêu đề hộp + `aria-label`); nút xác nhận «Lưu» |
 | A8 | Đã làm | «Đổi cấp» giữ; nút xác nhận trong hộp đổi cấp của loại và đổi cấp riêng thành «Lưu» |
@@ -51,5 +51,12 @@ Chỗ chữ bảng ngắn hơn chữ cũ (đã theo bảng, nêu để chủ bi�
 ## Nợ và điều chưa chắc
 
 - Nhãn «Ngày cuối hiệu lực» (ô ngày cuối của hộp Ngừng/Sửa) còn chữ «hiệu lực»; bảng B4 chỉ nói cột và nhãn «Hiệu lực» nên không đổi. Đề xuất: «Ngày cuối áp dụng» nếu chủ muốn nhất quán.
-- Cấp riêng của đối tác còn «Ngừng áp dụng» (hộp, menu, nút ở Danh bạ), trong khi cấp của loại đã là «Thôi theo cấp này»: hai chữ khác nhau cho việc tương tự; bảng không nêu.
+- Nút «Ngừng áp dụng» của cấp riêng ở Danh bạ (`web/parties.ts`) còn chữ cũ, trong khi cùng việc ở trang Hoa hồng đã là «Thôi theo cấp này»; Danh bạ không thuộc phạm vi bảng.
 - Thông báo cấp riêng («Đã đặt cấp riêng …», «Đã ngừng cấp riêng …») và tiêu đề «Sửa áp dụng cấp» chưa đổi vì không có trong bảng.
+
+## Kiểm (người thi công tự chạy, chưa có người kiểm độc lập)
+
+- `npm run typecheck` 0 lỗi; `npm run build:web` xong; `node --test` các bài liên quan xanh.
+- `npm test`: bộ chính 6880 bài, MỘT bài đỏ lần đầu («CHANGELOG thật hợp lệ»: dòng đầu mục 2.50 dài 220 ký tự, tối đa 160) — đã rút ngắn, chạy lại riêng `changelog.test.ts` và `app-info.test.ts` xanh; chưa chạy lại cả bộ sau chỗ sửa này. Bài đo giờ của hook xanh.
+- Chrome `hoa-hong-smoke.mjs`, hai khổ 390 + 1040, `AXE_JS` = axe-core 4.12.1 ngoài repo: «HOA HONG SMOKE OK», 53 bước ✓. Lần chạy đầu đỏ 4 bước (câu ghim của dải §5.1 chưa chép lại + menu cấp riêng) — đã sửa kịch bản/hộp, chạy lại xanh.
+- Ảnh: `docs/evidence/2026-10-30-ra-soat-ngon-ngu-hoa-hong/anh/` (hộp «Chọn cấp cho loại» `13-…`, «Thêm loại vào cấp» `11-…`, «Thôi theo cấp này» `05k-hop-thoi-theo-cap-…`, «Chọn cấp riêng cho đối tác» `07c-…`, «Khoá cấp» `05k-hop-khoa-cap-…`, «Tắt loại» `05t-…`; mỗi hộp hai khổ).

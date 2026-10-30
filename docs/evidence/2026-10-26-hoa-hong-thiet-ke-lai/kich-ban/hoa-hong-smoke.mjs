@@ -72,7 +72,7 @@ const CAU_KHONG_CO_QUYEN_XEM = "Bạn không có quyền xem trang này.";
 const CAU_DOI_TU_NGAY_MAI = "Mức cũ bắt đầu hôm nay nên mức mới áp dụng sớm nhất từ ngày mai; đơn xác nhận trong hôm nay vẫn tính theo mức cũ.";
 const CAU_THONG_BAO_DONG_RIENG = "Ngừng các mức riêng đó ở thẻ «Loại đối tác».";
 // §5.1
-const CAU_THAN_DAI = "Đối tác chỉ mang loại này, không có mức riêng hay cấp riêng, sẽ bị giữ đơn ở bước Đã giao nếu đơn xác nhận từ hôm nay có dịch vụ chưa có mức. Đối tác mang thêm một loại khác có mức thì vẫn được tính theo loại đó. Đơn đã xác nhận trước đó không tự thả khi thêm mức: Kế toán dùng Ghi mức tay cho từng đơn.";
+const CAU_THAN_DAI = "Đối tác chỉ thuộc loại này và chưa có mức riêng hay cấp riêng sẽ bị chờ ở bước «Đã giao» nếu đơn xác nhận từ hôm nay có dịch vụ chưa có mức. Đối tác thuộc thêm loại khác có mức thì vẫn tính theo loại đó. Đơn đã xác nhận trước đó không tự tính lại khi thêm mức: Kế toán dùng «Ghi mức tay» cho từng đơn.";
 const cauTieuDeDai = (n) => `Có ${n} loại đối tác còn thiếu mức hôm nay`;
 const cauLoaiTatDai = (m) => `${m} loại đã tắt: đối tác chỉ mang loại đã tắt không được hưởng hoa hồng, đơn của họ bị giữ ở bước Đã giao.`;
 const CAU_DAI_CHUA_KIEM = "Chưa kiểm được loại nào thiếu mức vì không tải được danh mục dịch vụ. Tải lại trang.";
@@ -755,7 +755,7 @@ try {
             const g1 = await p.ev(`(() => { const li = document.querySelector('${cum} .hh-tl-gan li[data-gan-id]'); return { id: li.dataset.ganId, chu: li.innerText }; })()`);
             assert.ok(g1.chu.includes(`Cấp riêng: ${C_A.ten}`), `dòng cấp riêng: ${g1.chu}`);
             const vg = await viecCua(p, `${cum} li[data-gan-id="${g1.id}"]`);
-            assert.deepEqual([vg.nut.length > 0 ? vg.nut : vg.menu.slice(0, 1), vg.menu.filter((x) => x !== "Đổi cấp")], [["Đổi cấp"], ["Sửa", "Ngừng áp dụng"]], `cấp riêng (ADR-0151): «Đổi cấp» (nút ở máy tính / đầu «⋯» ở điện thoại), «⋯» còn Sửa, Ngừng áp dụng: ${JSON.stringify(vg)}`);
+            assert.deepEqual([vg.nut.length > 0 ? vg.nut : vg.menu.slice(0, 1), vg.menu.filter((x) => x !== "Đổi cấp")], [["Đổi cấp"], ["Sửa", "Thôi theo cấp này"]], `cấp riêng (ADR-0151): «Đổi cấp» (nút ở máy tính / đầu «⋯» ở điện thoại), «⋯» còn Sửa, Ngừng áp dụng: ${JSON.stringify(vg)}`);
             await cuonToi(p, cum);
             await bocucSach(p, `bước CR sau Đặt ${kho}`);
             await chup(p, `07c-sau-dat-cap-rieng-${tenKho}`);
@@ -772,10 +772,10 @@ try {
             await p.waitFor(`[...document.querySelectorAll('${DS_HIEN}')].some((li) => li.innerText.includes('Cấp riêng: ${C_B.ten}'))`, "cấp riêng mới (Bạc) hiện");
             const g2 = await p.ev(`[...document.querySelectorAll('${DS_HIEN}')].find((li) => li.innerText.includes('Cấp riêng: ${C_B.ten}')).dataset.ganId`);
             assert.equal(await p.ev(`document.querySelector('${cum} .hh-lich-su-khoi button')?.textContent.trim()`), "Xem lịch sử (1)", "lần cũ vào lịch sử");
-            await chayViec(p, `${cum} li[data-gan-id="${g2}"]`, "Ngừng áp dụng");
+            await chayViec(p, `${cum} li[data-gan-id="${g2}"]`, "Thôi theo cấp này");
             await choHop(p, "#hh-ngung-ngay");
             await bocucSach(p, `bước CR hộp Ngừng ${kho}`);
-            assert.equal(await clickTrong(p, ".sheet .sheet-foot", "Ngừng áp dụng"), true);
+            assert.equal(await clickTrong(p, ".sheet .sheet-foot", "Lưu"), true);
             await choOk(p, cauDaNgungCapRieng(C_B.ten, ORG7.ten));
             const r = (await goiTrongTrang(p, "GET", `/api/pricing/ho-so/${ORG7.id}/hoa-hong`)).json;
             assert.ok(r.ganRieng.find((g) => g.id === g2)?.denNgay, `cấp riêng đã có ngày ngừng: ${JSON.stringify(r.ganRieng)}`);
@@ -1150,7 +1150,7 @@ try {
             const g0 = await dongGan(G_J.id);
             assert.ok(g0 && !g0.an && g0.sapAp && g0.chu.includes(L_J.ten) && g0.chu.includes(`Sắp áp dụng từ ${ngayVi(TU_SAP)}`), `lần sắp áp hiện dưới cấp: ${JSON.stringify(g0)}`);
             const v0 = await viecCua(p, `#hh-cap-ct li[data-gan-id="${G_J.id}"]`);
-            assert.deepEqual([v0.nut, v0.menu], [[], ["Sửa"]], "lần sắp áp: chỉ «Sửa» (không Đổi cấp / Ngừng áp dụng — chưa tới ngày)");
+            assert.deepEqual([v0.nut, v0.menu], [[], ["Sửa"]], "lần sắp áp: chỉ «Sửa» (không Đổi cấp / Thôi theo cấp này — chưa tới ngày)");
             assert.equal(await p.ev("!!document.querySelector('#hh-cap-ct .hh-lich-su-khoi')"), false, "chưa có lịch sử ⇒ không nút «Xem lịch sử»");
             await bocucSach(p, `bước 13 chi tiết cấp ${kho}`);
             await axeKiem(p, `chi tiết cấp — lần sắp áp ${kho}`);
