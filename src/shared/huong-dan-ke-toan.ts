@@ -116,7 +116,7 @@ Kế toán có nút [[+ Hồ sơ mới]] và được thêm, sửa hồ sơ khá
       tieuDe: "Đặt mức hoa hồng cho đối tác",
       noiDung: `Hoa hồng là tiền Công ty trả cho đại lý hoặc cộng tác viên đặt đơn. Khi đơn được xác nhận, Nền tảng lấy mức đang áp trong bảng, tính hoa hồng một lần rồi giữ nguyên.
 
-1. Bấm [[Hoa hồng đối tác]]: thẻ **Mức đang áp dụng** cho biết từng loại đang hưởng mức nào; ô **Tra nhanh** cho biết mức áp cho một đối tác.
+1. Bấm [[Hoa hồng đối tác]]: ô **Tra nhanh** ở đầu trang cho biết mức áp cho một đối tác; thẻ **Loại đối tác** cho biết từng loại đang hưởng mức nào.
 2. Bấm [[＋ Thêm mức]], chọn áp cho một loại đối tác, chọn dịch vụ (một dịch vụ, một nhóm dịch vụ hoặc mọi dịch vụ), chọn **Phần trăm** hoặc **Số tiền mỗi khách**, nhập ngày bắt đầu rồi bấm [[Thêm mức]].
 3. Đổi mức: bấm [[Đổi]] ở dòng đó, nhập mức mới và ngày bắt đầu; mức cũ tự ngừng. Hết dùng hẳn: bấm [[Ngừng]] và chọn ngày cuối. Mức không sửa, không xoá được.
 
@@ -130,21 +130,23 @@ Người bán dịch vụ làm tương tự ở trang [[Người bán dịch v�
       tieuDe: "Thêm loại đối tác",
       noiDung: `Loại đối tác là nhóm được hưởng hoa hồng, như Công ty lữ hành hay Lễ tân khách sạn. Cần loại mới thì bạn tự thêm.
 
-1. Bấm [[Hoa hồng đối tác]], thẻ **Thiết lập**, bấm [[＋ Thêm loại]] và gõ tên.
+1. Bấm [[Hoa hồng đối tác]], bấm [[＋ Thêm loại]] và gõ tên.
 2. Đặt mức cho loại mới bằng [[＋ Thêm mức]].
 3. Không dùng nữa thì bấm [[Tắt]] ở dòng loại đó; cần lại thì bấm [[Bật]]. Các loại có sẵn (ghi **Có sẵn**) thì không tắt được.
 
 Gắn loại cho hồ sơ ở Danh bạ là việc của Quản trị hoặc Toàn quyền. Loại đã tắt thì không gắn thêm, nhưng đơn đã xác nhận vẫn giữ nguyên hoa hồng.`,
     },
     {
-      tieuDe: "Chính sách hoa hồng",
-      noiDung: `Chính sách hoa hồng là bộ mức có tên, dùng chung cho nhiều loại.
+      tieuDe: "Cấp đại lý",
+      noiDung: `Cấp đại lý là bộ mức có tên, dùng chung cho nhiều loại đối tác.
 
-1. Ở thẻ **Thiết lập**, bấm [[＋ Thêm chính sách]] và gõ tên.
-2. [[＋ Thêm mức vào chính sách]]: chọn dịch vụ và mức.
-3. [[Áp dụng cho loại…]]: chọn loại và ngày bắt đầu.
+1. [[＋ Thêm cấp đại lý]], gõ tên.
+2. Mở cấp, bấm [[＋ Thêm mức vào cấp]]: chọn dịch vụ và mức.
+3. [[Áp dụng cấp cho loại]]: chọn loại và ngày bắt đầu.
 
-Mức riêng luôn thắng chính sách. Đổi chính sách của một loại: [[Đổi chính sách]]. Không dùng nữa: [[Ngừng áp dụng]].`,
+Cấp của loại xét sau cùng. Đổi sang cấp khác: [[Đổi cấp]]. Ngừng chi: [[Ngừng áp dụng]]. [[Khoá cấp]] chặn thêm loại và mức mới, loại đang theo vẫn được tính; dùng lại: [[Mở lại cấp]].
+
+Cấp riêng: thẻ **Riêng từng đối tác**, bấm [[Đặt cấp riêng cho đối tác]]; mở đối tác để bấm [[Đổi cấp]], sửa hoặc ngừng.`,
     },
     {
       tieuDe: "Chụp bù, ghi mức tay cho một đơn",
@@ -225,7 +227,6 @@ Bấm nút **Lọc**, chọn **Đã huỷ** rồi bấm [[Áp dụng]]. Khối *
 - Nhận phụ trách, giao đơn cho người khác: không. Nhờ nhân viên bán hàng hoặc Quản trị.
 - Bấm "Đặt gấp": không. Nhờ nhân viên bán hàng hoặc Quản trị.
 - Tự duyệt yêu cầu điều chỉnh công nợ của chính mình: không. Nhờ Quản trị, Toàn quyền hoặc một Kế toán khác.
-- Đặt mức riêng cho một đối tác, thử tra mức: chưa, vì tài khoản Kế toán không tìm được đối tác theo tên. Nhờ Quản trị hoặc Toàn quyền.
 - Xếp xe, tạo chuyến, bấm tiến độ chuyến: không, bạn chỉ xem. Nhờ nhân viên bán hàng hoặc Quản trị.
 - Bấm **Đã giao – đã thu đủ**: không. Hướng dẫn viên đang phụ trách đơn hoặc Quản trị bấm.
 - Xuất hoá đơn: không có. Xuất ở phần mềm kế toán rồi đánh dấu trên đơn.

@@ -1,4 +1,4 @@
-# ADR-0151 — Đặc điểm dịch vụ là dữ liệu; luật bán theo loại đối tác là khả năng chung: không cho phép loại đối tác bất kỳ đặt dịch vụ, nhóm hoặc đặc điểm dịch vụ bất kỳ (sửa một phần ADR-0146)
+# ADR-0152 — Đặc điểm dịch vụ là dữ liệu; luật bán theo loại đối tác là khả năng chung: không cho phép loại đối tác bất kỳ đặt dịch vụ, nhóm hoặc đặc điểm dịch vụ bất kỳ (sửa một phần ADR-0146)
 
 - **Trạng thái:** **accepted** 2026-10-30 — chủ dự án trong chat.
   - Lượt 4, chủ nói rõ yêu cầu là khả năng chung, nguyên văn: *«không phải là chặn Hòn Tằm, đó hãy coi như là 1 ca vàng thôi, 1 ví dụ . Ý của tôi có thể hiểu rộng là : Cho phép đặt/không cho phép đặt dịch vụ cụ thể với vai trò cụ thể (ví dụ: lễ tân khách sạn không thể đặt dịch vụ nào của Hòn Tằm mà không gồm vận chuyển từ đất liền ra đảo và ngược lại ), bạn hiểu ý tôi chứ»*.
@@ -8,6 +8,7 @@
   - AI soạn và chép, không tự duyệt (Hiến pháp N3).
 - **Số và nguồn:** ADR này là đề xuất `docs/superpowers/specs/2026-10-30-tinh-trang-ban-va-phu-thu/A-dac-diem-dich-vu/DE-XUAT-ADR.md` (hồ sơ có ngày, không sửa) kèm trang ghép `TRANG-GHEP.md` cùng thư mục. Đầu vào đã chốt: `…/00-dau-vao/QUYET-DINH-CHU-2026-10-30-LUOT-3-PHU-THU-VA-DAC-DIEM.md`, `…/00-dau-vao/BO-SUNG-2026-10-30-DAC-DIEM-VA-PHU-THU.md` và bản ghi lượt 4 ở trên.
   - Số 0151 kiểm còn trống ngày 30/10: lớn nhất trong `docs/adr/` của `main`, của worktree `tinh-trang-ban` và của mọi nhánh trong máy là 0150.
+  - **Đổi số 0151 → 0152 ngày 30/10** [phiên thi công, chủ chọn trong chat]: cùng ngày `main` đã cấp 0151 cho «Đổi cấp riêng của đối tác» (`ADR-0151-doi-cap-rieng-cua-doi-tac-mot-lo.md`, lên production bản 2.48). Không đổi chữ nào khác. Hồ sơ có ngày viết trước khi đổi (kế hoạch, bàn giao, báo cáo kiểm ở `docs/superpowers/`) còn ghi «ADR-0151» cho văn bản này — đọc là ADR-0152.
   - **Phần đầu** (các dòng phía trên «Bối cảnh») do người chép viết theo khuôn ADR-0146 / ADR-0149.
   - **Từ «Bối cảnh» trở xuống** giữ từng chữ của đề xuất đã sửa (sau vòng 3). Chữ người chép thêm đánh dấu **[chép 30/10]**. Đường dẫn tương đối trong phần giữ chữ (`../00-dau-vao/…`, `../B-dong-ban/…`, `TRANG-GHEP.md`) trỏ từ thư mục `docs/superpowers/specs/2026-10-30-tinh-trang-ban-va-phu-thu/A-dac-diem-dich-vu/`. Các chữ «ADR-<số>» và «lượt này» trong phần giữ chữ chỉ ADR này. [chép 30/10]
 - **Ngày:** 2026-10-30 (đề xuất, ba vòng kiểm, duyệt).

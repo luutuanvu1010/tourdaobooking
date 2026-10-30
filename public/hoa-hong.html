@@ -4,7 +4,7 @@
 <header id="topbar"></header>
 <main>
   <!-- Hoa hồng đối tác (thiết kế lại, PR 2). Xem: partner.commission.view; thêm / ngừng mức: partner.commission.write. Tài khoản giữ quyền Đối tác không vào được (máy chủ 403).
-       web/hoa-hong.ts nạp dữ liệu và chuyển hai thẻ; nội dung từng thẻ do các khối web/hoa-hong-*.ts vẽ vào #hh-the-ap-dung, #hh-the-thiet-lap. -->
+       web/hoa-hong.ts nạp dữ liệu và chuyển ba thẻ; dải cảnh báo (web/hoa-hong-dai.ts) vẽ vào #hh-dai, Tra nhanh vào #hh-tra-nhanh, nội dung từng thẻ do các khối web/hoa-hong-*.ts vẽ vào #hh-the-cap, #hh-the-loai, #hh-the-doi-tac. -->
   <div class="hh-dau">
     <h1>Hoa hồng đối tác</h1>
     <button type="button" id="hh-them-muc" class="btn btn-primary btn-chinh" hidden>＋ Thêm mức</button>
@@ -13,12 +13,16 @@
   <div id="ok" class="alert ok" role="status" hidden></div>
   <!-- Ẩn cho tới khi máy chủ trả dữ liệu (khỏi hiện khung trống cho tài khoản không có quyền xem). -->
   <div id="hh-noi-dung" hidden>
-    <div class="tx-tabs hh-the" role="tablist" aria-label="Hoa hồng đối tác">
-      <button type="button" role="tab" id="hh-tab-ap-dung" class="tx-tab" aria-selected="true" aria-controls="hh-the-ap-dung" tabindex="0" data-the="ap-dung">Mức đang áp dụng</button>
-      <button type="button" role="tab" id="hh-tab-thiet-lap" class="tx-tab" aria-selected="false" aria-controls="hh-the-thiet-lap" tabindex="-1" data-the="thiet-lap">Thiết lập</button>
+    <div id="hh-dai" hidden></div>
+    <div id="hh-tra-nhanh"></div>
+    <div class="tab-phu hh-the" data-kieu="gach" role="tablist" aria-label="Hoa hồng đối tác">
+      <button type="button" role="tab" id="hh-tab-cap" aria-selected="true" aria-controls="hh-the-cap" tabindex="0" data-the="cap">Các cấp đại lý</button>
+      <button type="button" role="tab" id="hh-tab-loai" aria-selected="false" aria-controls="hh-the-loai" tabindex="-1" data-the="loai">Loại đối tác</button>
+      <button type="button" role="tab" id="hh-tab-doi-tac" aria-selected="false" aria-controls="hh-the-doi-tac" tabindex="-1" data-the="doi-tac">Riêng từng đối tác</button>
     </div>
-    <section id="hh-the-ap-dung" role="tabpanel" aria-labelledby="hh-tab-ap-dung"></section>
-    <section id="hh-the-thiet-lap" role="tabpanel" aria-labelledby="hh-tab-thiet-lap" hidden></section>
+    <section id="hh-the-cap" role="tabpanel" aria-labelledby="hh-tab-cap"></section>
+    <section id="hh-the-loai" role="tabpanel" aria-labelledby="hh-tab-loai" hidden></section>
+    <section id="hh-the-doi-tac" role="tabpanel" aria-labelledby="hh-tab-doi-tac" hidden></section>
   </div>
   <div id="hh-thanh-cuoi" class="vc-bottom-bar thanh-hanh-dong-cuoi" hidden></div>
 </main>
