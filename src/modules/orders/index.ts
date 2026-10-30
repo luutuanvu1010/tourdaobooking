@@ -61,6 +61,7 @@ import {
 } from "./service";
 import { CAN_YEU_CAU, GIA_DANH_MUC, MOC_CHUA_CO, RACED, STALE, TRANSFER_DISABLED, TRAN_GIAM_GIA, catChoXetDuyet, chanDoanXacNhan, chayLoNoiChuyen, dichLoiXacNhan, kemChupXacNhan, khoaKhiCho, kiemCongXacNhan, tienChoHoaHong, tinhCanXacNhan, xacNhanTrenDon, type KetQuaLenhDon } from "./xac-nhan-chung";
 import { PHAI_GUI_DON, phaiGuiDon, xacNhanRoutes } from "./xac-nhan-route";
+import { congLuatBan } from "./cong-ban";
 import { yeuCauMoCuaDon } from "./xac-nhan-repo";
 import { describeTripUpdates, giaiOPhuNhap, validateTripUpdate } from "./service-rules";
 
@@ -1131,6 +1132,9 @@ export const ordersModule: AppModule = {
       if (!ben.ok) return ben.res;
       const booker = await resolveBooker(env.DB, ben.booker, staff.id, new Date());
       if (!booker.ok) return error(400, "invalid_input", booker.message);
+      // ADR-0146 Đ3 (cửa 1 — lập đơn): luật bán theo loại đối tác của bên đặt đã chốt; 409 không ghi dòng nào.
+      const chanBanLap = await congLuatBan(env.DB, { bookerPartyId: booker.write.partyId, dong: placed.value.services });
+      if (chanBanLap) return chanBanLap;
       const tranLoi = await tranGiamGiaNhap(env.DB, staff, placed.value, booker.write.partyId); // Task 7: trần giảm giá theo người hưởng của đơn
       if (tranLoi) return tranLoi;
       // ADR-0049 D2 (I25, I27): nháp CÓ chặng cần mốc tối thiểu để cảnh báo (không chặn lưu) — gọi ĐÚNG MỘT lần; chưa có mốc → 503 (không đoán).
@@ -1263,6 +1267,9 @@ export const ordersModule: AppModule = {
         ? { ok: true as const, write: { partyId: meta.bookerPartyId, before: [], note: null } }
         : await resolveBooker(env.DB, ben.booker, staff.id, new Date(), { id: meta.bookerPartyId, name: meta.bookerName });
       if (!booker.ok) return error(400, "invalid_input", booker.message);
+      // ADR-0146 Đ3 (cửa 2 — lưu nháp): xét lại cả nháp lập trước luật («nháp cũ bị chặn khi lưu»).
+      const chanBanLuu = await congLuatBan(env.DB, { bookerPartyId: booker.write.partyId, dong: placed.value.services });
+      if (chanBanLuu) return chanBanLuu;
       const tranLoi = await tranGiamGiaNhap(env.DB, staff, placed.value, booker.write.partyId); // Task 7: trần giảm giá theo người hưởng của đơn
       if (tranLoi) return tranLoi;
       // ADR-0047: lưu nháp xoá–chèn lại chặng — giữ `created_*` của chặng gửi lại cùng id.
@@ -1611,6 +1618,13 @@ export const ordersModule: AppModule = {
       if (cam) return cam;
       const booker = await resolveBooker(env.DB, v.booker, staff.id, new Date(), { id: meta.bookerPartyId, name: meta.bookerName });
       if (!booker.ok) return error(400, "invalid_input", booker.message);
+      // ADR-0146 Đ3 tiêu chí 3 (cửa 3 — đổi bên đặt): chỉ khi bên đặt ĐỔI THẬT, cả nháp lẫn đơn đã xác nhận; không đổi bên đặt ⇒ không xét.
+      if (booker.write.partyId !== meta.bookerPartyId && booker.write.partyId) {
+        const donBen = await findOrder(env.DB, id);
+        if (!donBen) return NOT_FOUND();
+        const chanBanBen = await congLuatBan(env.DB, { bookerPartyId: booker.write.partyId, dong: donBen.services });
+        if (chanBanBen) return chanBanBen;
+      }
       const snapshotChanged = v.customerName !== meta.customerName || v.customerPhone !== meta.customerPhone;
       const detail = [booker.write.note, snapshotChanged ? "sửa tên/SĐT khách trên đơn" : null].filter(Boolean).join(" | ");
       if (!detail) return json({ order: (await loadOrderView(env.DB, id, xemDuDatGap(staff)))! } satisfies OrderResponse); // không đổi gì
@@ -1699,6 +1713,10 @@ export const ordersModule: AppModule = {
         const nowMs = Date.now();
         // ADR-0136 Đ3: đơn thuộc diện cần xác nhận (cờ dịch vụ / nhóm, hoặc chặng dưới mốc chưa đặt gấp) không xác nhận thẳng được — phải Gửi xác nhận. Đứng SAU `can()`/khoá khi chờ,
         // TRƯỚC mọi cổng của lô xác nhận. (Cổng 409 `partner_submit_required` đã đặt ngay sau `can()` ở trên.) Mốc chưa có thì chỉ xét cờ; `kiemCongXacNhan` sẽ trả 503 sau.
+        // ADR-0146 Đ3 + Q-1 (a) của chủ: luật bán đứng TRƯỚC «cần xác nhận» — đơn vừa cần xác nhận vừa bị chặn nhận `sales_blocked`, không bị đẩy sang Gửi xác nhận vô ích.
+        // (`kiemCongXacNhan` gọi lại ở dòng đầu — cửa Gửi đơn / Còn vé dùng chung; lần gọi thứ hai chỉ là đọc.)
+        const chanBanXn = await congLuatBan(env.DB, { bookerPartyId: order.bookerPartyId, dong: order.services });
+        if (chanBanXn) return chanBanXn;
         if ((await tinhCanXacNhan(env.DB, order, moc, nowMs)).can) return CAN_YEU_CAU();
         const cong = await kiemCongXacNhan(env.DB, { actor: staff, order, kiemMoc: true, mocToiThieu: moc });
         if ("loi" in cong) return cong.loi;
