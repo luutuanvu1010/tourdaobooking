@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { CatalogDacDiemResponse, LuatBanDto } from "./contracts.ts";
-import { CAU_CHUA_KIEM_LUAT, canhBaoBatLai, canhBaoDoiGiaTri, canhBaoDoiTen, nhanNguon, trangThaiTuMan } from "./dac-diem-hien-thi.ts";
+import { CAU_CHUA_KIEM_LUAT, CAU_CHUA_KIEM_NHOM, canhBaoBatLai, canhBaoDoiNhom, canhBaoDoiGiaTri, canhBaoDoiTen, nhanNguon, trangThaiTuMan } from "./dac-diem-hien-thi.ts";
 
 const luat = (o: Partial<LuatBanDto>): LuatBanDto => ({
   id: "l", loai: "LT", tenLoai: "Lễ tân khách sạn", phamVi: "ATTRIBUTE", catalogCode: null, tenDichVu: null, groupCode: null, tenNhom: null,
@@ -80,4 +80,36 @@ test("ADR-0152 Đ4 mục 4: đổi TÊN giá trị có luật trỏ tới ⇒ c�
   );
   assert.equal(canhBaoDoiTen({ luat: CV3, ma: "vGOM", la: "GIA_TRI", tenCu: "Gồm", tenMoi: "Có gồm" }), null);
   assert.match(canhBaoDoiTen({ luat: CV3, ma: "aVC", la: "DAC_DIEM", tenCu: "Vận chuyển", tenMoi: "Đưa đón" }) ?? "", /^Đặc điểm «Vận chuyển» đang có 2 luật bán/);
+});
+
+// ---- T13: màn gán nhóm (ADR-0146 Đ3 «Màn gán nhóm phải cảnh báo»; ADR-0152 Đ4 (c)) ----
+const dm2: CatalogDacDiemResponse = {
+  ...dm,
+  dichVu: [...dm.dichVu, { code: "M1", ten: "Tour Mới", dangBan: true, groupCode: "gKHAC", giaTri: { aVC: { valueCode: "vGOM", nguon: "GROUP" } } }],
+  nhom: [...dm.nhom, { code: "gKHAC", ten: "Đảo Khác", dangDung: true, giaTri: { aVC: "vGOM" } }, { code: "gRONG", ten: "Nhóm Rỗng", dangDung: true, giaTri: {} }],
+};
+const nhomLuat = (g: string, ten: string, loai = "Lễ tân khách sạn") => luat({ id: `n-${g}`, phamVi: "GROUP", groupCode: g, tenNhom: ten, attributeCode: null, valueCode: null, tenLoai: loai });
+
+test("T13: nhóm CŨ có luật «cả nhóm» ⇒ «thôi chặn»; nhóm MỚI có luật ⇒ «bắt đầu chặn»", () => {
+  const cu = canhBaoDoiNhom({ luat: [nhomLuat("gKHAC", "Đảo Khác")], dm: dm2, codes: ["M1"], nhomMoi: "gRONG" });
+  assert.match(cu ?? "", /^Chuyển nhóm sẽ thôi chặn «Tour Mới» cho: Lễ tân khách sạn\./);
+  const moi = canhBaoDoiNhom({ luat: [nhomLuat("gRONG", "Nhóm Rỗng", "Tài xế taxi")], dm: dm2, codes: ["M1"], nhomMoi: "gRONG" });
+  assert.match(moi ?? "", /^Chuyển nhóm sẽ bắt đầu chặn «Tour Mới» cho: Tài xế taxi\./);
+});
+
+test("T13: giá trị thừa hưởng đổi ⇒ nêu đặc điểm cũ → mới; kéo theo luật theo đặc điểm trong nhóm (CV-3) ⇒ nêu bắt đầu chặn", () => {
+  // M1 (thừa hưởng «Gồm» từ Đảo Khác) sang Hòn Tằm (chung «Không gồm») ⇒ CV-3 bắt đầu chặn.
+  const c = canhBaoDoiNhom({ luat: CV3, dm: dm2, codes: ["M1"], nhomMoi: "gHT" }) ?? "";
+  assert.match(c, /bắt đầu chặn «Tour Mới» cho: Lễ tân khách sạn, Tài xế taxi\./);
+  assert.match(c, /Giá trị thừa hưởng đổi: Vận chuyển cảng–đảo: Gồm → Không gồm \(«Tour Mới»\)\./);
+  // Không luật nào, chỉ giá trị thừa hưởng đổi ⇒ vẫn cảnh báo (nêu đặc điểm).
+  assert.equal(canhBaoDoiNhom({ luat: [], dm: dm2, codes: ["M1"], nhomMoi: null }), "Giá trị thừa hưởng đổi: Vận chuyển cảng–đảo: Gồm → chưa khai («Tour Mới»).");
+  // Dịch vụ có giá trị riêng: không thừa hưởng, không đổi gì ⇒ null.
+  assert.equal(canhBaoDoiNhom({ luat: [], dm: dm2, codes: ["H2"], nhomMoi: "gKHAC" }), null);
+});
+
+test("T13: không tải được luật hoặc đặc điểm ⇒ câu «chưa kiểm được»", () => {
+  assert.equal(canhBaoDoiNhom({ luat: null, dm: dm2, codes: ["M1"], nhomMoi: "gHT" }), CAU_CHUA_KIEM_NHOM);
+  assert.equal(canhBaoDoiNhom({ luat: [], dm: null, codes: ["M1"], nhomMoi: "gHT" }), CAU_CHUA_KIEM_NHOM);
+  assert.match(CAU_CHUA_KIEM_NHOM, /^Chưa kiểm được/);
 });

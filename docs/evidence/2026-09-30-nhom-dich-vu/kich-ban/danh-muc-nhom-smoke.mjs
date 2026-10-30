@@ -75,8 +75,16 @@ try {
   env.sql(`INSERT INTO ctl_service_group (id,service_code,group_code,seq,valid_from_at,created_at,created_by,updated_at,updated_by) VALUES
     ('ls-td101-1','TD101','TDA',1,'2026-09-30T07:05:00.000Z','2026-09-30T07:05:00.000Z',NULL,'2026-09-30T07:05:00.000Z',NULL),
     ('ls-td101-2','TD101','LPH',2,'2026-09-30T08:10:00.000Z','2026-09-30T08:10:00.000Z','tai-khoan-da-bi-xoa','2026-09-30T08:10:00.000Z','tai-khoan-da-bi-xoa')`);
-  const ad = await env.login(ACCOUNTS.admin);
+  // 30/10 (T13): đăng nhập mới của cùng tài khoản làm phiên cũ hết dùng (401) — kịch bản cũ giữ một vé từ đầu rồi mở trang (đăng nhập lần hai) nên đỏ ở bước 2.
+  // Nay: trước khi có trang thì đăng nhập riêng; có trang rồi thì gọi TỪ TRONG trang (cùng phiên của trang).
+  let trangApi = null;
   const apiGet = async (path) => {
+    if (trangApi) {
+      const r = await trangApi.ev(`fetch(${JSON.stringify(path)}).then(async (r) => ({ status: r.status, json: await r.json() }))`);
+      assert.equal(r.status, 200, `${path}: ${r.status}`);
+      return r.json;
+    }
+    const ad = await env.login(ACCOUNTS.admin);
     const r = await fetch(`${env.base}${path}`, { headers: { cookie: `${ad.name}=${ad.value}` } });
     assert.equal(r.status, 200, `${path}: ${r.status}`);
     return r.json();
@@ -91,6 +99,7 @@ try {
 
   // ================= Máy tính 1040 =================
   const d = await env.as(ACCOUNTS.admin, "/catalog", DESK);
+  trangApi = d;
 
   await step("1", "1040: khối 'Nhóm dịch vụ' ở đầu trang — 14 nhóm theo thứ tự, số dịch vụ mỗi nhóm, dòng 'Chưa phân loại (kể cả dịch vụ ẩn): 55 dịch vụ' khớp máy chủ", async () => {
     await d.waitFor("!!document.getElementById('nhom-dv') && document.querySelectorAll('#nhom-dv .nhom-dong').length > 0", "không thấy khối Nhóm dịch vụ", 10000);
@@ -279,6 +288,38 @@ try {
     assert.ok((await m.ev(coChu("#nhom-dv .nhom-ten-sua"))) >= 16, "ô đổi tên ≥ 16px");
     assert.ok(await m.ev(khongTranNgang), "390: đang đổi tên không tràn ngang");
     await m.ev("document.querySelector('#nhom-dv [data-act=\"huy-ten\"]').click(); true");
+  });
+
+  // T13 (kế hoạch 2026-10-30; ADR-0146 Đ3, ADR-0152 Đ4 (c)): có luật bán «cả nhóm» Thể thao biển ⇒ chuyển NDV01 ra khỏi nhóm phải HỎI LẠI kèm câu
+  // «thôi chặn … cho: <loại>»; «Không chuyển» = không gửi PUT; «Vẫn chuyển» = đúng một PUT.
+  await step("11", "390: luật bán cả nhóm Thể thao biển ⇒ 'Chuyển 1 dịch vụ' sang Hòn Tằm hỏi lại «Chuyển nhóm sẽ thôi chặn «Dịch vụ thử 1» cho: …»; Không chuyển = không PUT; Vẫn chuyển = một PUT", async () => {
+    // Gọi từ trong trang (cùng phiên của trang — đăng nhập lại từ ngoài sẽ làm phiên trang hết dùng).
+    const goi = (method, path, body) => m.ev(`fetch(${JSON.stringify(path)}, { method: ${JSON.stringify(method)}, headers: { "content-type": "application/json" }, body: ${body ? JSON.stringify(JSON.stringify(body)) : "undefined"} }).then(async (r) => ({ status: r.status, json: await r.json() }))`);
+    const loai = (await goi("GET", "/api/pricing/loai-doi-tac")).json.loai.find((l) => l.dangBat);
+    const r = await goi("POST", "/api/pricing/luat-ban", { loai: loai.code, phamVi: "GROUP", groupCode: "TTB" });
+    assert.equal(r.status, 201, JSON.stringify(r.json));
+    await m.ev("document.getElementById('bo-chon')?.click(); true");
+    await m.waitFor("document.getElementById('chon-dem').textContent === ''", "bỏ chọn");
+    await m.ev(`document.querySelector('#list-cards input.chon-dv[data-code="NDV01"]').click(); true`);
+    await m.waitFor("document.getElementById('chon-dem').textContent === 'Đã chọn 1 dịch vụ'", "đếm 1");
+    assert.ok(await m.ev("(() => { const s = document.getElementById('chuyen-nhom'); s.value = 'HTA'; s.dispatchEvent(new Event('change', { bubbles: true })); return s.value === 'HTA'; })()"));
+    const put0 = soPut(m);
+    const cau = `Chuyển nhóm sẽ thôi chặn «Dịch vụ thử 1» cho: ${loai.ten}.`;
+    await m.ev("document.getElementById('chuyen-nut').click(); true");
+    await m.waitFor("!!document.querySelector('.sheet-root.open .sheet')", "hộp hỏi lại mở", 10000);
+    assert.equal(await m.ev("document.querySelector('.sheet-root.open .sheet p').textContent"), cau);
+    assert.ok(await m.ev(khongTranNgang), "390: hộp hỏi không tràn ngang");
+    await shot(m, "danh-muc-nhom-390-canh-bao-luat-ban.png");
+    await m.ev("[...document.querySelectorAll('.sheet-foot .btn')].find((b) => b.textContent === 'Không chuyển').click(); true");
+    await m.waitFor("!document.querySelector('.sheet-root')", "hộp đóng");
+    await sleep(400);
+    assert.equal(soPut(m), put0, "Không chuyển: không gửi PUT");
+    assert.equal(await m.ev("document.getElementById('chon-dem').textContent"), "Đã chọn 1 dịch vụ", "vẫn giữ chọn");
+    await m.ev("document.getElementById('chuyen-nut').click(); true");
+    await m.waitFor("!!document.querySelector('.sheet-root.open .sheet')", "hộp hỏi lại mở lần 2", 10000);
+    await m.ev("document.querySelector('.sheet-foot .btn-danger').click(); true");
+    await m.waitFor("document.getElementById('notice').textContent === 'Đã chuyển 1 dịch vụ sang nhóm Hòn Tằm.'", "đã chuyển", 10000);
+    assert.equal(soPut(m), put0 + 1, "Vẫn chuyển: đúng một PUT");
   });
   dong(m);
   assert.deepEqual(loiConsole, [], "không lỗi console ở mọi trang");

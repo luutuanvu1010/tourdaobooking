@@ -97,3 +97,36 @@ export function canhBaoDoiTen(v: { luat: readonly LuatBanDto[] | null; ma: strin
   if (tro.length === 0) return null;
   return `${v.la === "GIA_TRI" ? "Giá trị" : "Đặc điểm"} «${v.tenCu}» đang có ${tro.length} luật bán trỏ tới (${xepTen(tro.map((l) => l.tenLoai)).join(", ")}). Đổi tên thành «${v.tenMoi}» không đổi dịch vụ nào bị chặn, nhưng các luật đó sẽ hiện tên mới — kiểm tra tên mới vẫn đúng nghĩa.`;
 }
+
+export const CAU_CHUA_KIEM_NHOM =
+  "Chưa kiểm được luật bán và đặc điểm (không tải được danh sách). Chuyển nhóm có thể thôi chặn hoặc bắt đầu chặn dịch vụ cho một loại đối tác — tải lại trang để xem trước khi chuyển.";
+
+/**
+ * ADR-0146 Đ3 (màn gán nhóm phải cảnh báo), ADR-0152 Đ4 (c); kế hoạch T13: chuyển `codes` sang nhóm `nhomMoi` (`null` = rời nhóm). So trước / sau bằng cùng phép phủ của máy chủ:
+ * loại nào thôi / bắt đầu bị chặn (luật cả nhóm, và luật theo đặc điểm vì giá trị thừa hưởng đổi), rồi nêu giá trị thừa hưởng đổi theo đặc điểm. `luat` hoặc `dm` = null ⇒ câu «chưa kiểm được».
+ * Không gì đổi ⇒ null. Giao diện chỉ hỏi lại, máy chủ không ép.
+ */
+export function canhBaoDoiNhom(v: { luat: readonly LuatBanDto[] | null; dm: CatalogDacDiemResponse | null; codes: readonly string[]; nhomMoi: string | null }): string | null {
+  if (v.luat === null || v.dm === null) return CAU_CHUA_KIEM_NHOM;
+  const dm = v.dm;
+  const truoc = v.codes.map((c) => trangThaiTuMan(dm, c));
+  const sau = v.codes.map((c) => trangThaiTuMan(dm, c, { nhom: v.nhomMoi }));
+  const chan = cauSoChan(v.luat, truoc, sau, "Chuyển nhóm", "thôi chặn", "");
+  const tenDd = (a: string) => dm.dacDiem.find((d) => d.code === a);
+  const tenGt = (a: string, g: string | undefined) => (g === undefined ? "chưa khai" : (tenDd(a)?.giaTri.find((x) => x.code === g)?.ten ?? g));
+  const doi = new Map<string, string[]>();
+  truoc.forEach((t, i) => {
+    const s = sau[i]!;
+    for (const a of new Set([...t.giaTri.keys(), ...s.giaTri.keys()])) {
+      if (t.giaTri.get(a) === s.giaTri.get(a)) continue;
+      const k = `${tenDd(a)?.ten ?? a}: ${tenGt(a, t.giaTri.get(a))} → ${tenGt(a, s.giaTri.get(a))}`;
+      doi.set(k, [...(doi.get(k) ?? []), t.ten]);
+    }
+  });
+  const giaTri = [...doi.keys()].sort((x, y) => x.localeCompare(y, "vi")).map((k) => {
+    const ten = xepTen(doi.get(k)!);
+    return `${k} (${ten.slice(0, 3).map((t) => `«${t}»`).join(", ")}${ten.length > 3 ? `, … ${ten.length} dịch vụ` : ""})`;
+  });
+  const phan = [chan, giaTri.length ? `Giá trị thừa hưởng đổi: ${giaTri.join("; ")}.` : null].filter((x): x is string => x !== null);
+  return phan.length ? phan.join(" ") : null;
+}
