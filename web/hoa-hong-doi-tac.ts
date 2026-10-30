@@ -209,13 +209,13 @@ export function veTheDoiTac(goc: HTMLElement, d: DuLieuHoaHong, mo: MoHop): void
   vuaGhi.clear();
 }
 
-/** Đưa bộ lọc của thẻ về mặc định («Đang và sắp áp dụng», ô tìm rỗng) và vẽ lại — Task 11 gọi khi «Xem dòng ↓» không thấy dòng. */
+/** Đưa bộ lọc của thẻ về mặc định («Đang và sắp áp dụng», ô tìm rỗng) và vẽ lại — `nhayToiDong` (web/hoa-hong.ts) gọi khi «Xem dòng ↓» không thấy dòng. */
 export function datLaiLocDoiTac(): void {
   loc = { chiConHieuLuc: true, tim: "" };
   hienTai?.ve();
 }
 
-/** Mở cụm của đối tác `partyId` (đưa bộ lọc về mặc định nếu đang giấu nó), chờ GET hồ sơ xong, trả cụm — Task 11 dùng. Null khi thẻ chưa vẽ hay đối tác không có trong danh sách. */
+/** Mở cụm của đối tác `partyId` (đưa bộ lọc về mặc định nếu đang giấu nó), chờ GET hồ sơ xong, trả cụm — `nhayToiDong` (web/hoa-hong.ts) dùng. Null khi thẻ chưa vẽ hay đối tác không có trong danh sách. */
 export async function moDoiTac(partyId: string): Promise<HTMLElement | null> {
   if (!hienTai) return null;
   const tim = (): HTMLElement | null => hienTai?.goc.querySelector<HTMLElement>(selCum(partyId)) ?? null;
@@ -233,14 +233,4 @@ export async function moDoiTac(partyId: string): Promise<HTMLElement | null> {
   }
   await napHoSo(partyId);
   return tim();
-}
-
-/** «Xem dòng ↓» của Tra nhanh cho dòng của đối tác (tạm tới Task 11): mở cụm của đối tác rồi cuộn tới dòng. */
-export async function cuonToiDongDoiTac(partyId: string, dongId: string): Promise<void> {
-  const cum = await moDoiTac(partyId);
-  const el = cum?.querySelector<HTMLElement>(`[data-dong-id="${CSS.escape(dongId)}"]`) ?? cum;
-  if (!el) return;
-  el.scrollIntoView({ block: "center" });
-  el.classList.add("hh-nhay");
-  window.setTimeout(() => el.classList.remove("hh-nhay"), 2400);
 }

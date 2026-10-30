@@ -3,19 +3,20 @@
 // Thẻ «Riêng từng đối tác» gọi thêm GET /api/pricing/ho-so/:id/hoa-hong khi mở một đối tác; hộp cấp riêng gọi GET /api/pricing/nguoi-huong (tìm đối tác) và ba route ghi cấp riêng.
 // Ẩn/hiện hỏi bảng quyền (`can`): xem = partner.commission.view, thêm mức = partner.commission.write; máy chủ kiểm lại (403 ⇒ «Bạn không có quyền xem trang này.»).
 // Trang không tính tiền, không chọn mức: số và lời từ máy chủ / luật thuần ở src/shared/hoa-hong-hien-thi.ts. Tra nhanh (đứng trên ba thẻ): web/hoa-hong-tra-nhanh.ts; dải: -dai.ts; hộp: -hop.ts. Thẻ «Các cấp đại lý» = -cap.ts (menu «⋯»: -menu.ts). Thẻ «Loại đối tác» = -loai.ts. Thẻ «Riêng từng đối tác» = -doi-tac.ts.
-import { docThe, type TenDanhMuc, type TheHoaHong } from "../src/shared/hoa-hong-hien-thi";
+import { CAU_CAP_RIENG_DANG_TRA, CAU_KHONG_THAY_DONG, docThe, theChoKetQua, type TenDanhMuc, type TheHoaHong } from "../src/shared/hoa-hong-hien-thi";
 import type { DichVuPhu } from "../src/shared/hoa-hong-phu-muc";
 import { can, type PermissionHolder } from "../src/shared/permissions";
 import { homeRedirect } from "../src/shared/start-page";
 import { ApiError, api, type Api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
-import { veTheCap } from "./hoa-hong-cap";
+import { moChiTietCap, veTheCap } from "./hoa-hong-cap";
 import { veDai } from "./hoa-hong-dai";
-import { cuonToiDongDoiTac, nhanHoSoMoi, veTheDoiTac } from "./hoa-hong-doi-tac";
+import { datLaiLocDoiTac, moDoiTac, nhanHoSoMoi, veTheDoiTac } from "./hoa-hong-doi-tac";
 import { taoMoHop } from "./hoa-hong-hop";
-import { cuonToiDongLoai, veTheLoai } from "./hoa-hong-loai";
+import { datLaiLocLoai, veTheLoai } from "./hoa-hong-loai";
 import { veTraNhanh } from "./hoa-hong-tra-nhanh";
 import { initShell, showError } from "./shell";
+import { hienBaoNgan } from "./toast";
 import { trangThaiToanTrang } from "./trang-thai-he-thong";
 import { lyDoLoi, taiDanhMuc, type DanhMuc } from "./so-dai-ly-ui";
 
@@ -108,16 +109,54 @@ function chonThe(t: The, lay = false): void {
 
 // ---- Các khối nội dung (hoa-hong-dai / -tra-nhanh / -cap / -loai / -doi-tac / -hop) ----------------------------------------------
 // Thẻ «cap» = veTheCap (Task 8), «loai» = veTheLoai (Task 9), «doi-tac» = veTheDoiTac (Task 10).
-/** «Xem dòng ↓» của Tra nhanh: mở thẻ chứa dòng rồi cuộn tới (dòng của đối tác ở thẻ «Riêng từng đối tác», còn lại ở thẻ «Loại đối tác»). */
-function cuonToi(dongId: string, loai?: string): void {
-  const dt = du?.dong.find((r) => r.id === dongId)?.doiTuong;
-  chonThe(dt?.loai === "DOI_TAC" ? "doi-tac" : "loai");
-  if (dt?.loai === "DOI_TAC") void cuonToiDongDoiTac(dt.partyId, dongId);
-  else cuonToiDongLoai(panelEl.loai, dongId, loai);
+/** Đưa mắt tới một dòng: cuộn, tô sáng một lúc, đặt tiêu điểm (dòng không phải ô nhập nên cho nhận tiêu điểm bằng tabindex -1). */
+function nhinDong(el: HTMLElement): void {
+  el.scrollIntoView({ block: "center" });
+  if (!el.hasAttribute("tabindex")) el.tabIndex = -1;
+  el.focus({ preventScroll: true });
+  el.classList.add("hh-nhay");
+  window.setTimeout(() => el.classList.remove("hh-nhay"), 2400);
+}
+/**
+ * «Xem dòng ↓» của Tra nhanh (đặc tả §3.3): chuyển đúng thẻ (ghi `sessionStorage` như bấm thẻ), mở cụm / chi tiết chứa dòng, đặt tiêu điểm vào dòng.
+ * Bộ lọc đang giấu dòng thì đưa về mặc định rồi thử lại; vẫn không thấy thì toast tông `bien`. Thẻ «Các cấp đại lý» không có bộ lọc dòng.
+ */
+export async function nhayToiDong(k: Api.ThuTraResponse["ketQua"]): Promise<void> {
+  const t = theChoKetQua(k);
+  if (!t) return;
+  chonThe(t.the);
+  const sel = `[data-dong-id="${CSS.escape(t.dongId)}"]`;
+  let el: HTMLElement | null = null;
+  if (t.doiTuong.loai === "DOI_TAC") {
+    const tim = (): HTMLElement | null => panelEl["doi-tac"].querySelector<HTMLElement>(`.hh-dt[data-party="${CSS.escape(t.doiTuong.loai === "DOI_TAC" ? t.doiTuong.partyId : "")}"] ${sel}`);
+    await moDoiTac(t.doiTuong.partyId);
+    el = tim();
+    if (!el) {
+      datLaiLocDoiTac();
+      await moDoiTac(t.doiTuong.partyId);
+      el = tim();
+    }
+  } else if (t.doiTuong.loai === "VAI") {
+    const tim = (): HTMLElement | null => panelEl.loai.querySelector<HTMLElement>(`[data-loai="${CSS.escape(t.doiTuong.loai === "VAI" ? t.doiTuong.code : "")}"] ${sel}`);
+    el = tim();
+    if (!el) {
+      datLaiLocLoai();
+      el = tim();
+    }
+  } else {
+    const khung = moChiTietCap(t.doiTuong.code);
+    el = khung?.querySelector<HTMLElement>(sel) ?? null;
+    if (el && t.capRieng) khung!.prepend(h("p", { class: "hint hh-cap-rieng-tra" }, h("strong", null, t.doiTuong.ten), ` ${CAU_CAP_RIENG_DANG_TRA}`));
+  }
+  if (!el) {
+    hienBaoNgan(CAU_KHONG_THAY_DONG, { tong: "bien" });
+    return;
+  }
+  nhinDong(el);
 }
 function veTraNhanhVaDai(d: DuLieuHoaHong): void {
   veDai(daiEl, d);
-  veTraNhanh(traNhanhEl, d, cuonToi);
+  veTraNhanh(traNhanhEl, d, (k) => void nhayToiDong(k));
 }
 /** Mở hộp «Thêm mức» (nút đầu trang và thanh dính đáy). */
 function moThemMuc(): void {

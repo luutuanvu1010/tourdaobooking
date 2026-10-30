@@ -407,6 +407,8 @@ export const cauNgungCapRieng = (tenCap: string, tenDoiTac: string): string => `
 export const cauDaNgungCapRieng = (tenCap: string, tenDoiTac: string): string => `Đã ngừng cấp riêng «${tenCap}» của «${tenDoiTac}».`;
 /** §3.3 toast tông `bien` khi «Xem dòng ↓» không còn thấy dòng. */
 export const CAU_KHONG_THAY_DONG = "Không thấy dòng này trên trang — tải lại trang.";
+/** §3.3: dòng thắng ở bậc 10–12 là cấp riêng của đối tác đang tra, nên đứng ở chi tiết cấp (thẻ «Các cấp đại lý») kèm câu này sau tên cấp. */
+export const CAU_CAP_RIENG_DANG_TRA = "— cấp riêng của đối tác đang tra";
 
 // §3.1 đối tượng → việc làm được; §3.2 thứ tự trong menu «⋯»
 export type Viec = "DOI" | "SUA" | "NGUNG";
@@ -434,6 +436,13 @@ export const thuTuMenu = (viec: readonly Viec[], dienThoai: boolean): Viec[] => 
 // Thẻ đang mở của trang; giá trị cũ hay lạ trong sessionStorage («ap-dung», «thiet-lap», rác, null) mở thẻ «Các cấp đại lý».
 export type TheHoaHong = "cap" | "loai" | "doi-tac";
 export const docThe = (gia: string | null): TheHoaHong => (gia === "loai" || gia === "doi-tac" ? gia : "cap");
+
+/** §3.3 «Xem dòng ↓»: dòng thắng nằm ở thẻ nào và tìm bằng gì. Bậc 1–3 ⇒ «doi-tac», 4–6 ⇒ «loai», 7–12 ⇒ «cap» (10–12 là cấp riêng của đối tác). Null khi kết quả không phải SET (không có dòng để xem). */
+export function theChoKetQua(k: ThuTraResponse["ketQua"]): { the: TheHoaHong; dongId: string; doiTuong: CommissionRuleDto["doiTuong"]; capRieng: boolean } | null {
+  if (k.trangThai !== "SET") return null;
+  const the: TheHoaHong = k.bac <= 3 ? "doi-tac" : k.bac <= 6 ? "loai" : "cap";
+  return { the, dongId: k.muc.id, doiTuong: k.muc.doiTuong, capRieng: k.bac >= 10 };
+}
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------
 // Thẻ «Các cấp đại lý» (đặc tả hoa-hong-cap-dai-ly §3, Q-4, Q-6, §5.4): ma trận, bảng «Mức của cấp», đếm, nhãn việc. Không suy con số: ô chỉ là dòng có thật của đúng phạm vi đó.

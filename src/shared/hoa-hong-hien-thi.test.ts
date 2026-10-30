@@ -639,3 +639,17 @@ test("Task 10 — thẻ «Riêng từng đối tác»: câu cố định, nhãn 
   assert.equal(HT.cauDaNgungCapRieng("Vàng", "Công ty A"), "Đã ngừng cấp riêng «Vàng» của «Công ty A».");
   for (const s of [HT.CAU_KHONG_CO_DOI_TAC_RIENG, HT.CAU_DAT_CAP_RIENG, HT.nhanCapRieng("x"), HT.cauNgungCapRieng("x", "y")]) assert.ok(!/chính sách/i.test(s), s);
 });
+
+test("Task 11 — theChoKetQua: «Xem dòng ↓» nhảy đúng thẻ theo bậc; chỉ khi SET; cấp riêng chỉ ở bậc 10–12", () => {
+  const set = (bac: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12, doiTuong: CommissionRuleDto["doiTuong"]) => ({ trangThai: "SET" as const, bac, muc: muc({ id: "d1", doiTuong }) });
+  assert.deepEqual(HT.theChoKetQua(set(2, { loai: "DOI_TAC", partyId: "p1", ten: "A" })), { the: "doi-tac", dongId: "d1", doiTuong: { loai: "DOI_TAC", partyId: "p1", ten: "A" }, capRieng: false });
+  assert.deepEqual(HT.theChoKetQua(set(5, { loai: "VAI", code: "TRAVEL_AGENCY", ten: "Đại lý" })), { the: "loai", dongId: "d1", doiTuong: { loai: "VAI", code: "TRAVEL_AGENCY", ten: "Đại lý" }, capRieng: false });
+  const m8 = HT.theChoKetQua(set(8, { loai: "MUC", code: "MT_ABCDEFGH", ten: "Vàng" }));
+  assert.equal(m8?.the, "cap");
+  assert.equal(m8?.capRieng, false);
+  const m11 = HT.theChoKetQua(set(11, { loai: "MUC", code: "MT_ABCDEFGH", ten: "Vàng" }));
+  assert.equal(m11?.the, "cap");
+  assert.equal(m11?.capRieng, true);
+  assert.equal(HT.theChoKetQua({ trangThai: "MISSING", lyDo: "x" }), null);
+  assert.equal(HT.CAU_CAP_RIENG_DANG_TRA, "— cấp riêng của đối tác đang tra");
+});

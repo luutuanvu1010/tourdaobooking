@@ -5,6 +5,7 @@ import {
   cauThuTra,
   coTheTimDoiTac,
   nhanMucDto,
+  theChoKetQua,
   thuTraThieuMuc,
 } from "../src/shared/hoa-hong-hien-thi";
 import { api, type Api } from "./api";
@@ -18,7 +19,7 @@ const chuanTim = (s: string): string => s.normalize("NFD").replace(/[̀-ͯ]/g, "
 type Chon = { kieu: "loai"; code: string; ten: string } | { kieu: "doi-tac"; partyId: string; ten: string };
 let dem = 0;
 
-function dungForm(d: DuLieuHoaHong, cuonToi: (dongId: string, loai?: string) => void, truocKhiCuon: () => void): HTMLElement {
+function dungForm(d: DuLieuHoaHong, cuonToi: (k: Api.ThuTraResponse["ketQua"]) => void, truocKhiCuon: () => void): HTMLElement {
   const id = `hh-tn${++dem}`;
   const duocTimTen = coTheTimDoiTac(d.nguoiDung);
   let chon: Chon | null = null;
@@ -127,12 +128,11 @@ function dungForm(d: DuLieuHoaHong, cuonToi: (dongId: string, loai?: string) => 
     try {
       const r = await api<Api.ThuTraResponse>(`/api/pricing/thu-tra?${q.toString()}`);
       const k = r.ketQua;
-      const xem = k.trangThai === "SET" ? h("button", { type: "button", class: "btn btn-link", "data-xem-dong": k.muc.id }, "Xem dòng ↓") : null;
-      const dongId = k.trangThai === "SET" ? k.muc.id : "";
-      const loaiDangTra = chon.kieu === "loai" ? chon.code : undefined;
+      // «Xem dòng ↓» chỉ khi có dòng thắng (SET); thẻ và cách tìm dòng do `nhayToiDong` (web/hoa-hong.ts) quyết theo `theChoKetQua`.
+      const xem = theChoKetQua(k) !== null ? h("button", { type: "button", class: "btn btn-link", "data-xem-dong": k.trangThai === "SET" ? k.muc.id : "" }, "Xem dòng ↓") : null;
       xem?.addEventListener("click", () => {
         truocKhiCuon();
-        cuonToi(dongId, loaiDangTra);
+        cuonToi(k);
       });
       replaceChildren(
         ketQua,
@@ -152,8 +152,8 @@ function dungForm(d: DuLieuHoaHong, cuonToi: (dongId: string, loai?: string) => 
   return form;
 }
 
-/** Vẽ «Tra nhanh» vào `goc`: khối nằm sẵn (máy tính) hoặc nút mở hộp trượt (điện thoại). `cuonToi(dongId)` cuộn tới dòng mức trong bảng và mở cụm chứa nó. */
-export function veTraNhanh(goc: HTMLElement, d: DuLieuHoaHong, cuonToi: (dongId: string, loai?: string) => void): void {
+/** Vẽ «Tra nhanh» vào `goc`: khối nằm sẵn (máy tính) hoặc nút mở hộp trượt (điện thoại). `cuonToi(ketQua)` chuyển đúng thẻ, mở và cuộn tới dòng thắng (SET). */
+export function veTraNhanh(goc: HTMLElement, d: DuLieuHoaHong, cuonToi: (k: Api.ThuTraResponse["ketQua"]) => void): void {
   if (window.matchMedia("(max-width: 640px)").matches) {
     const nut = h("button", { type: "button", class: "btn hh-tn-nut", id: "hh-tra-nhanh-nut" }, "Tra nhanh");
     nut.addEventListener("click", () => {

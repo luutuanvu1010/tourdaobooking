@@ -161,23 +161,8 @@ export function veTheLoai(goc: HTMLElement, d: DuLieuHoaHong, mo: MoHop): void {
   ve();
 }
 
-/** Đưa bộ lọc của thẻ về mặc định («Đang và sắp áp dụng», ô tìm rỗng) và vẽ lại — Task 11 gọi khi «Xem dòng ↓» không thấy dòng. */
+/** Đưa bộ lọc của thẻ về mặc định («Đang và sắp áp dụng», ô tìm rỗng) và vẽ lại — `nhayToiDong` (web/hoa-hong.ts) gọi khi «Xem dòng ↓» không thấy dòng. */
 export function datLaiLocLoai(): void {
   loc = { chiConHieuLuc: true, tim: "" };
   hienTai?.ve();
-}
-
-/** «Xem dòng ↓» của Tra nhanh cho dòng của loại (tạm tới Task 11): cuộn tới dòng trong cụm của loại. */
-export function cuonToiDongLoai(goc: HTMLElement, dongId: string, loai?: string): void {
-  const sel = `[data-dong-id="${CSS.escape(dongId)}"]`;
-  const tim = (): HTMLElement | null => (loai ? goc.querySelector<HTMLElement>(`[data-loai="${CSS.escape(loai)}"] ${sel}`) : null) ?? goc.querySelector<HTMLElement>(sel);
-  let el = tim();
-  if (!el) {
-    datLaiLocLoai();
-    el = tim();
-  }
-  if (!el) return;
-  el.scrollIntoView({ block: "center" });
-  el.classList.add("hh-nhay");
-  window.setTimeout(() => el.classList.remove("hh-nhay"), 2400);
 }

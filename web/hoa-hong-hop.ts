@@ -99,7 +99,12 @@ function moHop(ctx: NguCanhHop, o: { title: string; body: Child[]; nhan: string;
       const r = await api<unknown>(req.path, { method: "POST", body: req.body });
       sheet.setBusy(false);
       sheet.close(false);
-      o.truocNap?.(r);
+      try {
+        o.truocNap?.(r);
+      } catch (e) {
+        // Lần ghi đã thành công: lỗi vẽ trước không được hiện như lỗi ghi. `napLai` ngay dưới vẽ lại từ dữ liệu máy chủ.
+        console.error(e);
+      }
       await ctx.napLai();
       o.xong(r);
     } catch (err) {

@@ -161,3 +161,18 @@ Mười bảy «câu hôm nay» của §6.1 đều có nguyên văn trong `index
 - `docs/SYSTEM-DESIGN.md` §9 dòng «Hoa hồng đối tác»: thêm GET `/ho-so/:id/hoa-hong`, `/nguoi-huong` và ba route ghi cấp riêng của thẻ mới.
 
 **Lệch so với kế hoạch**: sửa thêm `src/shared/so-dai-ly-nhap.ts` (+ bài) và `public/app.css` (một bộ chọn) — ngoài danh sách tệp, cần cho hàm đọc ô chung và chữ không tràn. Kịch bản `hoa-hong-smoke.mjs` (bước 322–339 dựa vào `.hh-dt`, «Mức riêng», `.hh-tom-tat`) chưa chạy; vỏ `.hh-dt[data-party]` và `.hh-tom-tat` giữ nguyên tên. Chưa kiểm bằng Chrome (tiêu chí 5, 7: Task 14).
+
+## Task 11 — «Xem dòng ↓» theo ba thẻ, dọn mã cũ
+
+**Bài đỏ trước**: ca `theChoKetQua` (`hoa-hong-hien-thi.test.ts`, `HT.theChoKetQua is not a function`) đỏ 1/52, rồi xanh 52/52. Năm ca của brief: bậc 2 ⇒ `doi-tac`, bậc 5 ⇒ `loai`, bậc 8 ⇒ `cap` + `capRieng false`, bậc 11 ⇒ `cap` + `capRieng true`, `MISSING` ⇒ `null`; thêm một dòng khoá chữ `CAU_CAP_RIENG_DANG_TRA`.
+
+**Lựa chọn tự áp**
+- `theChoKetQua` chọn thẻ theo `bac` (1–3 / 4–6 / 7–12), trả nguyên `muc.doiTuong` (đã có `ten`), `capRieng` = `bac >= 10`. Chữ «— cấp riêng của đối tác đang tra» ở `src/shared` (`CAU_CAP_RIENG_DANG_TRA`); giao diện thêm một dòng `<p class="hint hh-cap-rieng-tra">` «<tên cấp> — cấp riêng của đối tác đang tra» đầu khung chi tiết cấp khi nhảy tới bậc 10–12 (mất khi trang vẽ lại, có chủ đích: gợi ý một lần).
+- `nhayToiDong(k)` (xuất từ `web/hoa-hong.ts`): `chonThe` (ghi `sessionStorage`) ⇒ đối tác: `moDoiTac`, không thấy thì `datLaiLocDoiTac()` rồi `moDoiTac` lại; loại: tìm trong `[data-loai]`, không thấy thì `datLaiLocLoai()`; cấp: `moChiTietCap(code)` (thẻ cấp không có bộ lọc dòng nên không có bước đặt lại). Vẫn không thấy ⇒ `hienBaoNgan(CAU_KHONG_THAY_DONG, { tong: "bien" })`. Thấy ⇒ cuộn, tô `hh-nhay`, `tabindex=-1` + `focus({ preventScroll })`.
+- Tra nhanh chỉ dựng nút «Xem dòng ↓» khi `theChoKetQua(k) !== null`; truyền nguyên `ketQua` cho `nhayToiDong` (bỏ tham số `loai`).
+- Mã chết đã xoá: `cuonToiDong`, `dongMuc`, `dauBang`, các biến `loc` / `cac` / `duHienTai` ở `hoa-hong-bang.ts` (chỉ còn `urlNgung`, thẻ cấp dùng — tệp không rỗng nên giữ); `cuonToiDongDoiTac`, `cuonToiDongLoai`. `web/hoa-hong-thiet-lap.ts` không còn trong cây (đã đi từ trước), không có gì để xoá. `xepLoai` và bài của nó giữ nguyên.
+- `grep "coMuc\|cuonToiDong" web/`: hết `cuonToiDong`; còn `coMucGiayToCuaToi` ở `web/account.ts`, `web/tai-xe.ts` (không liên quan hoa hồng, có từ trước) — tiêu chí hiểu là không còn chỗ dùng tên cũ.
+
+**Sửa mang sang từ review Task 10**: `web/hoa-hong-hop.ts`, `moHop`: `truocNap` nay nằm trong try/catch riêng (lỗi ghi `console.error`, không chạm hộp), nên lỗi vẽ trước không bị hiện như lỗi ghi sau khi ghi đã thành công; `napLai()` vẫn luôn chạy.
+
+**Lệch so với kế hoạch**: `docs/SYSTEM-DESIGN.md` §9 còn nhắc `hoa-hong-bang.ts` / `hoa-hong-thiet-lap.ts` là mô tả cũ — không sửa ở task này (dòng tự ghi là của giao diện cũ). Chưa kiểm bằng Chrome (Task 14).
