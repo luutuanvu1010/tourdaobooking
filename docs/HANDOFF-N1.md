@@ -18,12 +18,21 @@ Ghi 29/10/2026 từ khối tóm tắt của `npm run trien-khai` (chủ chạy `
 **Trạng thái (ghi 30/10/2026, người thi công T14–T15):** nhánh `claude/tinh-trang-ban-va-phu-thu`, CHƯA gộp `main`, CHƯA lên production; KĐL-3 (người kiểm độc lập trước phát hành) CHƯA làm. Kế hoạch `docs/superpowers/plans/2026-10-30-adr-0146-va-dac-diem-dich-vu-ke-hoach.md` (mục 9 là nguồn của runbook này), sổ `…-thi-cong-nhat-ky.md`. AI không chạy bước nào có `--remote`, `day-len`, `trien-khai`; chủ chạy mọi lệnh dưới đây ở **thư mục gốc dự án** (checkout gốc, không phải worktree), trong Terminal.
 
 0. **Điều kiện trước:** KĐL-3 «đạt». Ngày phát hành từ **06/11** trở đi: mục HC-5.19 (diễn tập khôi phục) đã diễn tập hoặc gia hạn, không thì `npm test` đỏ và `trien-khai` dừng. Không trong «cửa sổ đóng băng» (phần Hoàn tác).
-   **Đổi tên tệp ADR (chủ chạy, TRƯỚC `day-len`)** — mục lục ADR đã trỏ `ADR-0152-…`, tệp còn tên cũ (hàng rào cấm AI đổi tên tệp luật bằng dòng lệnh). Chạy ở thư mục worktree `.claude/worktrees/tinh-trang-ban-va-phu-thu`, rồi commit:
+   **Đổi tên tệp ADR (chủ chạy, TRƯỚC `day-len`)** — mục lục ADR đã trỏ `ADR-0152-…`, tệp còn tên cũ (hàng rào cấm AI đổi tên tệp luật bằng dòng lệnh). Chạy ở thư mục worktree, ba khối theo thứ tự (đi tới thư mục; đổi tên tệp; lưu lần đổi tên):
+   ```
+   cd /Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/tinh-trang-ban-va-phu-thu
+   ```
    ```
    git mv docs/adr/ADR-0151-dac-diem-dich-vu-va-luat-ban-theo-dac-diem.md docs/adr/ADR-0152-dac-diem-dich-vu-va-luat-ban-theo-dac-diem.md
    ```
+   ```
+   git commit -m "Đổi tên tệp ADR đặc điểm dịch vụ sang số 0152 (khớp mục lục)"
+   ```
 1. **Số migration và số bản lúc gộp** (người thi công làm, báo chủ): lặp lại bước lấy số trên `main` mới nhất và mọi nhánh / worktree chưa gộp (`ls migrations`, `git ls-tree --name-only <nhánh> migrations/`). `0128` / `0129` đã bị dùng ⇒ đổi tên hai tệp sang hai số kế tiếp liền nhau, `_dac_diem_dich_vu` trước `_luat_ban` (bài tìm theo đuôi tên; sửa dòng số ở `docs/SYSTEM-DESIGN.md` §5). Số nhật ký thay đổi = mục đầu của `main` + 1 (`src/shared/changelog.ts`).
-2. **Đẩy và triển khai:**
+2. **Đẩy và triển khai** (ở thư mục gốc dự án):
+   ```
+   cd /Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales
+   ```
    ```
    npm run day-len -- claude/tinh-trang-ban-va-phu-thu
    ```

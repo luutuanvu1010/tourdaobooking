@@ -109,7 +109,7 @@ Lọc: [[Đang ghi đè giá]], [[Sheet đã đổi giá (cần xem)]], [[Đã �
       tieuDe: "Đặc điểm dịch vụ và luật bán",
       noiDung: `Đặc điểm (ví dụ «Gồm vé tàu: Có / Không») chỉ dùng cho luật bán.
 
-1. [[Đặc điểm dịch vụ]], thẻ **Định nghĩa**: thêm, đổi tên, tắt đặc điểm và giá trị (tắt khi không còn dịch vụ, nhóm nào mang). Luật trỏ giá trị đã tắt «Không phủ dịch vụ nào» cho tới khi [[Bật lại]].
+1. [[Đặc điểm dịch vụ]], thẻ **Định nghĩa**: thêm, đổi tên, tắt đặc điểm và giá trị (tắt khi không còn dịch vụ, nhóm nào mang). Luật trỏ giá trị đã tắt thành «Không phủ dịch vụ nào» cho tới khi [[Bật lại]].
 2. Thẻ **Theo nhóm**: giá trị chung; giá trị riêng của dịch vụ thắng. Khai đủ thẻ «Chưa khai» trước khi đặt luật — dịch vụ chưa khai không bị chặn.
 3. [[Luật bán]]: [[Kết thúc ngay]] thôi chặn từ bây giờ; [[Hẹn ngày kết thúc]] thì vẫn chặn tới hết ngày đó. Loại còn luật không tắt được.
 4. Chuyển nhóm làm đổi luật bán: Nền tảng hỏi lại ([[Vẫn chuyển]]).`,
@@ -222,7 +222,7 @@ Mở [[Lý do điều phối]]. Lý do chia nhóm, như [[Đổi giờ xe tới]
     },
     {
       tieuDe: "Chỉ tài khoản Toàn quyền",
-      noiDung: `Toàn quyền làm mọi việc của Quản trị, thêm: Menu có thêm [[Chính sách điều phối]], [[Nhật ký]], [[Gửi thông báo]], [[Máy đang đăng nhập]].
+      noiDung: `Toàn quyền làm mọi việc của Quản trị, thêm các việc dưới đây. Menu có thêm [[Chính sách điều phối]], [[Nhật ký]], [[Gửi thông báo]], [[Máy đang đăng nhập]].
 
 ### Tài khoản
 - Gán được vai trò Giám đốc, Điều hành chung, IT, Hành chính nhân sự; sửa được cả tài khoản Quản trị và Hành chính nhân sự.
