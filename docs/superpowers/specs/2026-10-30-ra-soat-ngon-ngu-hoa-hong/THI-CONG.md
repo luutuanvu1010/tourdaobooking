@@ -48,11 +48,14 @@ Chỗ chữ bảng ngắn hơn chữ cũ (đã theo bảng, nêu để chủ bi�
 - Nhật ký thay đổi: mục 2.50 (số tạm, kiểm lại ở bước A.0 khi phát hành). `app-info.test.ts` sửa theo.
 - `web/CLAUDE.md` dòng Hoa hồng: không nhắc chữ cũ, **không cần đề xuất sửa**.
 
-## Nợ và điều chưa chắc
+## Vòng 2 (chủ duyệt «theo đề xuất»)
 
-- Nhãn «Ngày cuối hiệu lực» (ô ngày cuối của hộp Ngừng/Sửa) còn chữ «hiệu lực»; bảng B4 chỉ nói cột và nhãn «Hiệu lực» nên không đổi. Đề xuất: «Ngày cuối áp dụng» nếu chủ muốn nhất quán.
-- Nút «Ngừng áp dụng» của cấp riêng ở Danh bạ (`web/parties.ts`) còn chữ cũ, trong khi cùng việc ở trang Hoa hồng đã là «Thôi theo cấp này»; Danh bạ không thuộc phạm vi bảng.
-- Thông báo cấp riêng («Đã đặt cấp riêng …», «Đã ngừng cấp riêng …») và tiêu đề «Sửa áp dụng cấp» chưa đổi vì không có trong bảng.
+- Khôi phục: C1 có lại «Đối tác có cấp riêng thì không xét cấp của loại.»; C4 có lại «(hoặc loại khác mà cùng đối tác đang mang)» đúng chỗ cũ. Bài `hoa-hong-hien-thi.test.ts` sửa trước (đỏ 3), sửa mã xong xanh 53/53.
+- «Ngày cuối hiệu lực» thành «Ngày cuối áp dụng» (nhãn và `aria-label` mọi hộp); tiêu đề «Sửa áp dụng cấp» thành «Sửa cấp của loại».
+- Nút «Ngừng áp dụng» của cấp riêng ở Danh bạ (`web/parties.ts`, hai nút) thành «Thôi theo cấp này». Câu báo cũ của Danh bạ «Đã ngừng áp dụng cấp riêng — …» không đổi (ngoài danh sách chủ nêu).
+- Thông báo cấp riêng: ««Y» đã theo cấp riêng «X» từ ngày …», ««Y» đã thôi theo cấp riêng «X».», ««Y» đã chuyển sang cấp riêng «X» từ ngày …». «Đã sửa cấp riêng.» và nhật ký giữ nguyên.
+- Bảng từ: thêm «Ngày cuối hiệu lực» và «Sửa áp dụng cấp» (chỉ cụm đầy đủ; chữ «hiệu lực» nơi khác không bị cấm); đã cho đỏ thật rồi hoàn nguyên, ghi vào sổ hàng rào.
+- Kịch bản `hoa-hong-smoke.mjs` (gồm bước Danh bạ số 12) chép lại chữ mới. Nhật ký 2.50 không nhắc các chữ này nên không đổi.
 
 ## Kiểm (người thi công tự chạy, chưa có người kiểm độc lập)
 

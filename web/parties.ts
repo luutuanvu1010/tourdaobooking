@@ -811,7 +811,7 @@ async function veHoaHongHienHanh(sec: HTMLElement, p: Api.PartyDto, tin?: string
   };
   const moKetThuc = (mr: NonNullable<Api.HoaHongHoSoResponse["mucRieng"]>) => {
     const oDen = input(r.homNay < mr.tuNgay ? mr.tuNgay : r.homNay, { type: "date" }) as HTMLInputElement;
-    const luu = button("Ngừng áp dụng", (b) =>
+    const luu = button("Thôi theo cấp này", (b) =>
       guiLenh(b, `/api/pricing/muc-rieng/${encodeURIComponent(mr.id)}/ket-thuc`, { denNgay: oDen.value }, "Đã ngừng áp dụng cấp riêng — sau ngày cuối, đại lý về cấp đại lý theo loại."), "btn btn-primary");
     replaceChildren(khuLenh,
       h("div", { class: "grid three" }, field("Áp dụng đến hết ngày", oDen)),
@@ -852,7 +852,7 @@ async function veHoaHongHienHanh(sec: HTMLElement, p: Api.PartyDto, tin?: string
     oMuc.focus();
   };
   const duocGhi = can(me, "partner.commission.write");
-  const nutNgung = rieng && rieng.denNgay === null ? button("Ngừng áp dụng", () => moKetThuc(rieng), "btn") : null;
+  const nutNgung = rieng && rieng.denNgay === null ? button("Thôi theo cấp này", () => moKetThuc(rieng), "btn") : null;
   const nutSuaRieng = rieng && coQuyenSua(me) && nutSua(rieng, r.homNay) ? button("Sửa", () => void moSua(rieng), "btn") : null;
   const nut: HTMLElement[] = !duocGhi ? []
     : rieng ? [nutNgung, nutSuaRieng].filter((x): x is HTMLButtonElement => x !== null)

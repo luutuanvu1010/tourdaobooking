@@ -59,6 +59,7 @@ export const TU_DA_LOAI: readonly TuDaLoai[] = [
   // Nhãn nhật ký «Ngừng áp dụng cấp đại lý cho loại» / «… cấp riêng của đối tác» (audit-actions.ts), nút «Ngừng áp dụng» của cấp riêng ở Danh bạ và câu máy chủ «ngừng áp dụng cấp cũ trước» giữ nguyên — mẫu chặn hẹp: chỉ cụm «… cấp cho loại» và mảnh «Ngừng áp dụng cấp ‹tên›» (chuỗi mẫu cũ của hộp).
   // «Hoa hồng riêng của loại» (B3 của bảng chữ mới) được phép: luật «riêng của loại» ở lượt 3 nhắm câu «mức riêng của loại» trần, không phải tiêu đề này.
   { cam: /[Áá]p dụng cấp cho loại|[Nn]gừng áp dụng cấp(?:\s+cho loại|\s*«?\s*$)/u, thay: "Chọn cấp cho loại này · Thêm loại vào cấp này · Thôi theo cấp này", nguon: "chủ 2026-10-30 (rà soát ngôn ngữ Hoa hồng)" },
+  { cam: /Ngày cuối hiệu lực|Sửa áp dụng cấp/u, thay: "Ngày cuối áp dụng · Sửa cấp của loại", nguon: "chủ 2026-10-30 (rà soát ngôn ngữ Hoa hồng)" },
 ];
 
 /** Chữ «đảo» là hòn đảo (tên công ty, tên tour) — gỡ khỏi chuỗi trước khi so với dòng «Đảo» ở trên. */
