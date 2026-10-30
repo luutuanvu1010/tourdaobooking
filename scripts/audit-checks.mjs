@@ -2015,7 +2015,8 @@ export const CHECKS = [
     // CHUA_HET_HAN giống R-PRC-2 (đếm cả luật SẮP áp dụng: tắt loại làm nó mất tác dụng lúc tới ngày); route 409 phải dùng CÙNG vị từ (sổ thi công T3).
     code: "R-PRC-8",
     what: "luật bán (không bán cho loại đối tác) chưa hết hạn trỏ loại đối tác không còn bật trong danh sách được hưởng",
-    sql: `SELECT count(*) FROM prc_sales_block b WHERE ${CHUA_HET_HAN("b")}
+    // Khoảng rỗng (`valid_to_date < valid_from_date` — «Kết thúc ngay» luật sắp áp dụng) coi như đã kết thúc (R-1, ruling điều phối 30/10) — cùng vế với route tắt loại.
+    sql: `SELECT count(*) FROM prc_sales_block b WHERE ${CHUA_HET_HAN("b")} AND (b.valid_to_date IS NULL OR b.valid_to_date >= b.valid_from_date)
        AND b.role_type_code NOT IN (SELECT role_type_code FROM v_prc_beneficiary_role)`,
     level: "fail",
     note: "ADR-0146 Đ1: loại bị tắt khi còn luật bán — Đối tác loại đó để trống bên đặt là luật mất tác dụng; kết thúc luật hoặc bật lại loại (trình chủ dự án, không tự sửa dữ liệu)",

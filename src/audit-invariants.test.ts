@@ -4185,6 +4185,7 @@ test("R-PRC-8 (ADR-0146 Đ1): luật bán chưa hết hạn trỏ loại đang t
   luat("sb-1", "TAXI_DRIVER", vnNgay(-10), null);
   luat("sb-2", "HOTEL_RECEPTION", vnNgay(-10), vnNgay(-1)); // đã kết thúc từ hôm nay
   luat("sb-3", "COLLABORATOR", vnNgay(5), null); // sắp áp dụng
+  luat("sb-4", "COLLABORATOR", vnNgay(5), vnNgay(4)); // sắp áp dụng rồi «Kết thúc ngay» ⇒ khoảng rỗng (R-1, ruling điều phối 30/10): coi như đã kết thúc
   assert.equal(violations(db, c), 0, "mọi loại đang bật");
   const tat = (role: string) => db.prepare("UPDATE prc_beneficiary_role SET active = 0, updated_at = ? WHERE role_type_code = ?").run(T2, role);
   tat("TAXI_DRIVER");
@@ -4192,7 +4193,7 @@ test("R-PRC-8 (ADR-0146 Đ1): luật bán chưa hết hạn trỏ loại đang t
   tat("HOTEL_RECEPTION");
   assert.equal(violations(db, c), 1, "luật đã kết thúc không đếm");
   tat("COLLABORATOR");
-  assert.equal(violations(db, c), 2, "luật sắp áp dụng vẫn đếm (tắt loại sẽ làm nó mất tác dụng lúc tới ngày)");
+  assert.equal(violations(db, c), 2, "luật sắp áp dụng vẫn đếm (tắt loại sẽ làm nó mất tác dụng lúc tới ngày); luật khoảng rỗng KHÔNG đếm");
   db.prepare("UPDATE prc_sales_block SET valid_to_date = ?, updated_at = ? WHERE id = 'sb-1'").run(vnNgay(-1), T3);
   assert.equal(violations(db, c), 1, "kết thúc luật → hết báo");
 });

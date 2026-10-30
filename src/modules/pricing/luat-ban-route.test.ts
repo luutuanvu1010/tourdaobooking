@@ -6,6 +6,7 @@ import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { world, seedStaff } from "../../../tests/audit/harness.mjs";
 import { addDays, vnToday } from "../../shared/vn-date.ts";
+import { readFileSync } from "node:fs";
 
 const SALES = "11111111-1111-4111-8111-111111111111";
 const HDV = "22222222-2222-4222-8222-222222222222";
@@ -95,11 +96,13 @@ test("ADR-0146 tiêu chí 8 + Đ1: tắt loại còn luật đang hoặc SẮP �
   await w.call("POST", `/api/pricing/luat-ban/${dang}/ket-thuc`, { as: SALES, body: {} });
   const conMot = await w.call("POST", `/api/pricing/loai-doi-tac/${loai}/tat`, { as: KT });
   assert.match(conMot.json.error.message, /1 luật bán/, "luật sắp áp dụng vẫn chặn tắt loại (cùng vị từ R-PRC-8)");
-  // GHI NHẬN (sổ thi công T6, câu chờ chủ): luật SẮP áp dụng bấm «Kết thúc ngay» ⇒ ngày kết thúc = ngày bắt đầu − 1 (khoảng rỗng, không bao giờ chặn) nhưng vẫn ≥ hôm nay ⇒
-  // theo vị từ R-PRC-8 (điều phối chốt dùng CÙNG vị từ) vẫn tính «chưa hết hạn» ⇒ chưa tắt được loại tới ngày bắt đầu cũ. Bài ghim hành vi hôm nay để đổi là có chủ ý.
+  // Ruling người điều phối 30/10 (áp R-1 «khoảng rỗng thay cho huỷ»): luật SẮP áp dụng bấm «Kết thúc ngay» ⇒ ngày kết thúc = ngày bắt đầu − 1 (≥ hôm nay) — khoảng rỗng
+  // coi như đã kết thúc ⇒ KHÔNG còn chặn tắt loại (cùng vị từ với R-PRC-8 và trạng thái «Đã kết thúc» của màn Luật bán).
   const kt = await w.call("POST", `/api/pricing/luat-ban/${sap.json.luat.id}/ket-thuc`, { as: SALES, body: {} });
   assert.equal(kt.json.luat.denNgay, addDays(homNay(), 2));
-  assert.equal((await w.call("POST", `/api/pricing/loai-doi-tac/${loai}/tat`, { as: KT })).status, 409);
+  assert.equal(kt.json.luat.trangThai, "DA_KET_THUC");
+  const tatDuoc = await w.call("POST", `/api/pricing/loai-doi-tac/${loai}/tat`, { as: KT });
+  assert.equal(tatDuoc.status, 200, `khoảng rỗng không chặn tắt loại: ${tatDuoc.text}`);
   // Loại chỉ có luật đang áp dụng: kết thúc ngay (hôm qua) rồi tắt ⇒ 200; thêm luật cho loại đang tắt ⇒ từ chối (ADR-0146 Đ1), không ghi.
   const loai2 = (await w.call("POST", "/api/pricing/loai-doi-tac", { as: KT, body: { ten: "Lễ tân thử" } })).json.loai.code;
   const l2 = (await w.call("POST", "/api/pricing/luat-ban", { as: SALES, body: { loai: loai2, phamVi: "SERVICE", catalogCode: "IRESORT" } })).json.luat.id;
@@ -123,4 +126,13 @@ test("kiểm thân: thiếu loại / phạm vi lạ / dịch vụ không có tro
     assert.doesNotMatch(r.json.error.message, /chính sách/);
   }
   assert.equal(Number(w.q("SELECT count(*) AS n FROM prc_sales_block")[0].n), 0);
+});
+
+test("R-1 (ruling điều phối 30/10): vị từ «còn luật» của route tắt loại và của kiểm định kỳ R-PRC-8 cùng có vế khoảng rỗng (valid_to_date >= valid_from_date)", () => {
+  const repo = readFileSync(new URL("./luat-ban-repo.ts", import.meta.url), "utf8");
+  const kiem = readFileSync(new URL("../../../scripts/audit-checks.mjs", import.meta.url), "utf8");
+  const dem = repo.match(/sales_block_count_live", `([^`]+)`/)?.[1] ?? "";
+  assert.match(dem, /valid_to_date IS NULL OR valid_to_date >= \?2\) AND \(valid_to_date IS NULL OR valid_to_date >= valid_from_date\)/);
+  const r8 = kiem.slice(kiem.indexOf('code: "R-PRC-8"'));
+  assert.match(r8.slice(0, r8.indexOf("level:")), /CHUA_HET_HAN\("b"\)\} AND \(b\.valid_to_date IS NULL OR b\.valid_to_date >= b\.valid_from_date\)/);
 });

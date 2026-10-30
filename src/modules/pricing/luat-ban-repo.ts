@@ -21,7 +21,9 @@ const LB_ON = defineSql(
 );
 // ADR-0146 Đ1 (409 tắt loại): luật CHƯA HẾT HẠN của một loại — CÙNG vị từ với kiểm định kỳ R-PRC-8 (`CHUA_HET_HAN` của scripts/audit-checks.mjs: kết thúc trống hoặc ≥ hôm nay),
 // kể cả luật SẮP áp dụng. Lệch vị từ thì một lần tắt loại hợp lệ theo route sẽ làm kiểm định kỳ đỏ (sổ thi công T3, T6).
-const LB_DEM_CHUA_HET_HAN = defineSql("pricing", "sales_block_count_live", `SELECT COUNT(*) AS n FROM prc_sales_block WHERE role_type_code = ?1 AND (valid_to_date IS NULL OR valid_to_date >= ?2)`);
+const LB_DEM_CHUA_HET_HAN = defineSql("pricing", "sales_block_count_live", `SELECT COUNT(*) AS n FROM prc_sales_block WHERE role_type_code = ?1 AND (valid_to_date IS NULL OR valid_to_date >= ?2) AND (valid_to_date IS NULL OR valid_to_date >= valid_from_date)`);
+// ↑ «còn luật» = chưa hết hạn VÀ không phải khoảng rỗng (R-1, ruling điều phối 30/10: «Kết thúc ngay» luật sắp áp dụng ⇒ đến = từ − 1 ⇒ coi như đã kết thúc). CÙNG vị từ
+//   với kiểm định kỳ R-PRC-8 (`scripts/audit-checks.mjs`) và trạng thái «Đã kết thúc» (`trangThaiLuat` ở index.ts); bài ở luat-ban-route.test.ts ghim hai câu SQL trùng vế.
 const LB_INSERT = defineSql(
   "pricing",
   "sales_block_insert",
