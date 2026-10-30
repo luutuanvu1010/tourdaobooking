@@ -137,18 +137,22 @@ const FORBIDDEN_PRICES = () => error(403, "forbidden", "Tài khoản này không
  * giá bán lẻ hiệu lực (đã áp ghi đè), ghi chú cho khách, chỉ dịch vụ đang hiện; không giá gốc Sheet/thông tin ghi đè/cột nội bộ.
  * Lần gọi đầu khi CHƯA TỪNG đồng bộ tự kéo Sheet (`bootstrapIfNeverSynced`) — nên người gọi phải kiểm quyền TRƯỚC khi gọi hàm này.
  * `showSyncError`: chữ lỗi đồng bộ Sheet là chuyện vận hành nội bộ — chỉ trả cho người qua cổng office; người khác nhận `null`.
+ * `biChan` (ADR-0146 Đ4; T9): hàm tiêm `ctx.dichVuBiChanChoToi` — mã dịch vụ luật bán chặn cho bên đặt máy chủ ép của người gọi; bỏ TRƯỚC `nhomChoForm` để chip nhóm không còn dịch vụ
+ * cũng biến mất. Văn phòng (`GET /api/catalog`) không truyền ⇒ không lọc.
  */
-async function catalogForOrderForm(env: Env, { showSyncError }: { showSyncError: boolean }): Promise<CatalogPublicResponse> {
+async function catalogForOrderForm(
+  env: Env,
+  { showSyncError, biChan }: { showSyncError: boolean; biChan?: (codes: readonly string[]) => Promise<ReadonlySet<string>> },
+): Promise<CatalogPublicResponse> {
   try {
     await bootstrapIfNeverSynced(env);
   } catch {
     /* Sheet lỗi ở lần đầu: vẫn trả danh mục rỗng + cảnh báo bên dưới */
   }
   const [items, state, nhomTheoDichVu, nhoms, quyTac] = await Promise.all([loadAll(env.DB), getSyncState(env.DB), nhomHienHanhTheoMa(env.DB), danhSachNhom(env.DB), quyTacDuaDonTheoMa(env.DB)]);
-  const visible = items
-    .map(toEffective)
-    .filter((e) => e.visible)
-    .map((e) => publicItem(e, nhomTheoDichVu.get(e.code) ?? null));
+  const dangHien = items.map(toEffective).filter((e) => e.visible);
+  const bo = biChan ? await biChan(dangHien.map((e) => e.code)) : new Set<string>();
+  const visible = dangHien.filter((e) => !bo.has(e.code)).map((e) => publicItem(e, nhomTheoDichVu.get(e.code) ?? null));
   // ADR-0058 Đ5: dịch vụ của nhóm đang tắt → groupCode null; `groups` chỉ nhóm đang dùng có ≥ 1 dịch vụ đang hiện, xếp sort_order.
   const form = nhomChoForm(
     nhoms.map((g) => ({ code: g.code, name: g.name, sortOrder: g.sort_order, active: g.active === 1 })),
@@ -179,10 +183,11 @@ export const catalogModule: AppModule = {
     // đúng ADR-0019 điều 3 "hướng dẫn viên không đọc danh mục giá cho form lập đơn". Rồi mới hỏi `money.view` phạm vi "của mình" (người lập đơn
     // thấy giá của đơn mình lập; Đối tác/Thực tập `own` qua — bài khoá "order.create ⇒ money.view" ở src/shared/permissions.test.ts).
     // CHỈ ĐỌC, cùng nội dung văn phòng thấy (ADR-0028 điều 2 giữ); chữ lỗi đồng bộ Sheet chỉ cho người văn phòng.
-    route("GET", "/api/catalog/for-order", "orders", async ({ env, staff }) => {
+    route("GET", "/api/catalog/for-order", "orders", async ({ env, staff, dichVuBiChanChoToi }) => {
       if (!can(staff, "order.create")) return error(403, "forbidden", "Tài khoản này không lập đơn nên không xem được danh mục dịch vụ.");
       if (!can(staff, "money.view", { ownerId: staff.id })) return FORBIDDEN_PRICES();
-      return json((await catalogForOrderForm(env, { showSyncError: isOffice(staff) })) satisfies CatalogPublicResponse);
+      // ADR-0146 Đ4: Đối tác (kể cả lai) bị ép bên đặt không thấy dịch vụ luật bán chặn cho loại của mình.
+      return json((await catalogForOrderForm(env, { showSyncError: isOffice(staff), biChan: dichVuBiChanChoToi })) satisfies CatalogPublicResponse);
     }),
 
     // ---- Đặc điểm dịch vụ (ADR-0152; kế hoạch 2026-10-30 T7) — khai TRƯỚC mọi route `/api/catalog/:code…` ----------------------------
