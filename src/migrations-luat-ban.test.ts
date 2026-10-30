@@ -98,6 +98,17 @@ test("ADR-0152 tiêu chí 13 (trigger): giá trị không thuộc đặc điểm
   assert.doesNotThrow(() => them(d, { scope: "ATTRIBUTE", attr: "aY", value: "y1" }));
 });
 
+test("KĐL-1 NÊN SỬA 1 (siết): giá trị đang bật nhưng ĐẶC ĐIỂM CHA đang tắt → trigger từ chối; view v_ctl_attribute_value mang cờ attribute_active (chỉ cờ, không tên)", () => {
+  const d = db();
+  d.prepare("UPDATE ctl_attribute SET active = 0 WHERE code = 'aY'").run(); // không còn dòng gắn mở nên trigger R-8 cho tắt; giá trị y1 vẫn active = 1
+  const cot = (d.prepare("PRAGMA table_info(v_ctl_attribute_value)").all() as { name: string }[]).map((c) => c.name);
+  assert.deepEqual(cot, ["attribute_code", "code", "active", "attribute_active"]);
+  assert.deepEqual({ ...(d.prepare("SELECT active, attribute_active FROM v_ctl_attribute_value WHERE code = 'y1'").get() as object) }, { active: 1, attribute_active: 0 });
+  assert.throws(() => them(d, { scope: "ATTRIBUTE", attr: "aY", value: "y1" }), /prc_sales_block_value/, "đặc điểm cha đang tắt");
+  d.prepare("UPDATE ctl_attribute SET active = 1 WHERE code = 'aY'").run();
+  assert.doesNotThrow(() => them(d, { scope: "ATTRIBUTE", attr: "aY", value: "y1" }), "bật lại đặc điểm ⇒ được");
+});
+
 test("ADR-0146 Đ1 bất biến (lớp CSDL): loại không trong danh sách được hưởng, hoặc đang tắt → từ chối; bật lại → được", () => {
   const d = db();
   assert.throws(() => them(d, { role: "SUPPLIER", scope: "SERVICE", catalog: "D1" }), /FOREIGN KEY constraint failed|prc_sales_block_target/, "không trong danh sách");

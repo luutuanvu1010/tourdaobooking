@@ -183,7 +183,7 @@ test("(h) bảng chân trị v_ctl_service_attribute: {riêng có / không} × {
   assert.deepEqual(hieuLuc(d, "SRC-dung", "aX").map((r) => [r.value_code, r.source]), [["xC", "GROUP"]]);
   // View chỉ có khoá (không cột tên — hàng rào (l2)).
   assert.deepEqual((d.prepare("PRAGMA table_info(v_ctl_service_attribute)").all() as { name: string }[]).map((c) => c.name), ["catalog_code", "attribute_code", "value_code", "source"]);
-  assert.deepEqual((d.prepare("PRAGMA table_info(v_ctl_attribute_value)").all() as { name: string }[]).map((c) => c.name), ["attribute_code", "code", "active"]);
+  assert.deepEqual((d.prepare("PRAGMA table_info(v_ctl_attribute_value)").all() as { name: string }[]).map((c) => c.name), ["attribute_code", "code", "active", "attribute_active"]);
 });
 
 test("v_ctl_service_attribute: tối đa MỘT dòng mỗi (dịch vụ, đặc điểm) — hai đặc điểm, nhóm chung và riêng cùng lúc không nhân dòng", () => {

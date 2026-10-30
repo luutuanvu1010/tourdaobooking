@@ -44,8 +44,8 @@ BEGIN SELECT RAISE(ABORT, 'prc_append_only: luật bán chỉ được đặt ng
 CREATE TRIGGER prc_sales_block_role_ok BEFORE INSERT ON prc_sales_block
 WHEN NOT EXISTS (SELECT 1 FROM prc_beneficiary_role b WHERE b.role_type_code = NEW.role_type_code AND b.active = 1)
 BEGIN SELECT RAISE(ABORT, 'prc_sales_block_target: loại đối tác không nằm trong danh sách được hưởng hoặc đã tắt'); END;
--- ADR-0152 Đ2 bất biến (lớp CSDL, lúc thêm): giá trị thuộc ĐÚNG đặc điểm ghi trên dòng và đang dùng — đọc view công bố của catalog (pricing → catalog đã khai).
--- Thiếu đặc điểm / giá trị thì để CHECK của bảng báo (trigger BEFORE chạy trước CHECK).
+-- ADR-0152 Đ2 bất biến (lớp CSDL, lúc thêm): giá trị thuộc ĐÚNG đặc điểm ghi trên dòng, giá trị đang dùng VÀ đặc điểm cha đang dùng (siết sau KĐL-1) — đọc view công bố
+-- của catalog (pricing → catalog đã khai). Thiếu đặc điểm / giá trị thì để CHECK của bảng báo (trigger BEFORE chạy trước CHECK).
 CREATE TRIGGER prc_sales_block_value_ok BEFORE INSERT ON prc_sales_block
-WHEN NEW.scope = 'ATTRIBUTE' AND NEW.attribute_code IS NOT NULL AND NEW.value_code IS NOT NULL AND NOT EXISTS (SELECT 1 FROM v_ctl_attribute_value v WHERE v.code = NEW.value_code AND v.attribute_code = NEW.attribute_code AND v.active = 1)
-BEGIN SELECT RAISE(ABORT, 'prc_sales_block_value: giá trị không thuộc đặc điểm hoặc đang tắt'); END;
+WHEN NEW.scope = 'ATTRIBUTE' AND NEW.attribute_code IS NOT NULL AND NEW.value_code IS NOT NULL AND NOT EXISTS (SELECT 1 FROM v_ctl_attribute_value v WHERE v.code = NEW.value_code AND v.attribute_code = NEW.attribute_code AND v.active = 1 AND v.attribute_active = 1)
+BEGIN SELECT RAISE(ABORT, 'prc_sales_block_value: giá trị không thuộc đặc điểm, hoặc giá trị hay đặc điểm đang tắt'); END;

@@ -102,6 +102,7 @@ CREATE VIEW v_ctl_service_attribute AS
   LEFT JOIN ctl_attribute_assignment g ON g.group_code = gr.code AND g.attribute_code = a.code AND g.valid_to_at IS NULL
   WHERE COALESCE(s.value_code, g.value_code) IS NOT NULL;
 
--- Để `pricing` kiểm «luật trỏ giá trị đang dùng, thuộc đúng đặc điểm» (ADR-0152 Đ2) mà không đọc bảng của `catalog`.
+-- Để `pricing` kiểm «luật trỏ giá trị đang dùng, thuộc đúng đặc điểm, và đặc điểm cha cũng đang dùng» (ADR-0152 Đ2; siết sau KĐL-1) mà không đọc bảng của `catalog`.
+-- Chỉ khoá và cờ, không tên (hàng rào (l2)).
 CREATE VIEW v_ctl_attribute_value AS
-  SELECT attribute_code, code, active FROM ctl_attribute_value;
+  SELECT v.attribute_code, v.code, v.active, a.active AS attribute_active FROM ctl_attribute_value v JOIN ctl_attribute a ON a.code = v.attribute_code;

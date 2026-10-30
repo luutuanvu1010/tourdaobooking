@@ -832,7 +832,7 @@
       "name": "prc_sales_block",
       "module": "pricing",
       "kind": "table",
-      "note": "Luật bán theo loại đối tác (ADR-0146 Đ1, ADR-0152 Đ2; migration 0129): mỗi dòng = «loại đối tác KHÔNG được đặt [phạm vi]» trong khoảng ngày (ngày dân sự VN, gồm cả hai đầu). Chỉ có dòng chặn — không cột / giá trị «cho phép», không phạm vi «mọi dịch vụ». scope: SERVICE (catalog_code, không khoá ngoại), GROUP (group_code), ATTRIBUTE (attribute_code + value_code, group_code tuỳ chọn) — tập đóng, CHECK. Chỉ thêm: cấm xoá, chỉ đặt ngày kết thúc một lần; ngày kết thúc ≥ ngày bắt đầu − 1 («Kết thúc ngay» = hôm qua, kế hoạch R-1). Thêm luật: loại phải được hưởng và đang bật (prc_sales_block_target), giá trị phải thuộc đặc điểm và đang dùng (prc_sales_block_value, đọc view v_ctl_attribute_value). Kiểm định kỳ R-PRC-8. Module khác không đọc bảng này — hàm công bố của pricing"
+      "note": "Luật bán theo loại đối tác (ADR-0146 Đ1, ADR-0152 Đ2; migration 0129): mỗi dòng = «loại đối tác KHÔNG được đặt [phạm vi]» trong khoảng ngày (ngày dân sự VN, gồm cả hai đầu). Chỉ có dòng chặn — không cột / giá trị «cho phép», không phạm vi «mọi dịch vụ». scope: SERVICE (catalog_code, không khoá ngoại), GROUP (group_code), ATTRIBUTE (attribute_code + value_code, group_code tuỳ chọn) — tập đóng, CHECK. Chỉ thêm: cấm xoá, chỉ đặt ngày kết thúc một lần; ngày kết thúc ≥ ngày bắt đầu − 1 («Kết thúc ngay» = hôm qua, kế hoạch R-1). Thêm luật: loại phải được hưởng và đang bật (prc_sales_block_target), giá trị phải thuộc đặc điểm, giá trị và đặc điểm cha đang dùng (prc_sales_block_value, đọc view v_ctl_attribute_value — cờ active, attribute_active). Kiểm định kỳ R-PRC-8. Module khác không đọc bảng này — hàm công bố của pricing"
     },
     {
       "name": "prc_role_tier",
@@ -1279,7 +1279,8 @@
       "columns": [
         "attribute_code",
         "code",
-        "active"
+        "active",
+        "attribute_active"
       ]
     },
     {
@@ -1523,7 +1524,7 @@
     "v_ctl_service_group": { "catalog_code": "N1", "group_code": "N1" },
     "v_ctl_service_transfer": { "catalog_code": "N1", "transfer_enabled": "N1" },
     "v_ctl_service_attribute": { "catalog_code": "N1", "attribute_code": "N1", "value_code": "N1", "source": "N1" },
-    "v_ctl_attribute_value": { "attribute_code": "N1", "code": "N1", "active": "N1" },
+    "v_ctl_attribute_value": { "attribute_code": "N1", "code": "N1", "active": "N1", "attribute_active": "N1" },
     "v_dsp_first_handler": { "order_id": "N1", "first_at": "N1" },
     "v_dsp_order_handler": { "order_id": "N1", "party_id": "N1", "staff_id": "N1", "label": "N2", "since": "N1" },
     "v_ky_closed_period": { "period": "N1" },
