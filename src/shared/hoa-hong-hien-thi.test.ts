@@ -475,3 +475,43 @@ test("§3.2 thuTuMenu và docThe", () => {
   assert.equal(HT.docThe("loai"), "loai");
   assert.equal(HT.docThe("doi-tac"), "doi-tac");
 });
+
+// ---- Task 7: cauDai (dải §5.1) ----
+test("dải: danh mục lỗi ⇒ chỉ câu chưa kiểm, không số", () => {
+  const kq = HT.cauDai([
+    { ten: "A", ketQua: { kieu: "CHUA_KIEM" }, sapApTu: null },
+    { ten: "B", ketQua: { kieu: "TAT" }, sapApTu: null },
+    { ten: "C", ketQua: { kieu: "CHUA_KIEM" }, sapApTu: null },
+  ]);
+  assert.deepEqual(kq, { tieuDe: null, than: null, dong: [], tat: null, chuaKiem: HT.CAU_DAI_CHUA_KIEM });
+  assert.ok(!/\d/.test(HT.CAU_DAI_CHUA_KIEM));
+});
+
+test("dải: không có gì để báo ⇒ null (ẩn hẳn)", () => {
+  assert.equal(HT.cauDai([]), null);
+  assert.equal(HT.cauDai([{ ten: "A", ketQua: { kieu: "DU" }, sapApTu: null }]), null);
+});
+
+test("dải: đếm loại thiếu, xếp KHONG_CO trước THIEU, kèm dòng loại tắt", () => {
+  const kq = HT.cauDai([
+    { ten: "Z", ketQua: { kieu: "THIEU", thieu: [dv("a", "A")] }, sapApTu: null },
+    { ten: "Y", ketQua: { kieu: "KHONG_CO", thieu: [dv("a", "A")] }, sapApTu: null },
+    { ten: "X", ketQua: { kieu: "DU" }, sapApTu: null },
+    { ten: "W", ketQua: { kieu: "TAT" }, sapApTu: null },
+  ]);
+  assert.ok(kq);
+  assert.equal(kq.tieuDe, "Có 2 loại đối tác còn thiếu mức hôm nay");
+  assert.equal(kq.than, HT.CAU_THAN_DAI);
+  assert.deepEqual(kq.dong, ["Y: chưa có mức cho dịch vụ nào", "Z: thiếu mức cho 1 dịch vụ (A)"]);
+  assert.equal(kq.tat, HT.cauLoaiTatDai(1));
+  assert.equal(kq.chuaKiem, null);
+});
+
+test("dải: chỉ có loại tắt ⇒ chỉ dòng loại tắt, không tiêu đề", () => {
+  const kq = HT.cauDai([{ ten: "W", ketQua: { kieu: "TAT" }, sapApTu: null }]);
+  assert.deepEqual(kq, { tieuDe: null, than: null, dong: [], tat: HT.cauLoaiTatDai(1), chuaKiem: null });
+});
+
+test("§3.2 docThe: khoá cũ và rác mở thẻ cấp", () => {
+  for (const g of ["ap-dung", "thiet-lap", "rác", "", null]) assert.equal(HT.docThe(g), "cap");
+});

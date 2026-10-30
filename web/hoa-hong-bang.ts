@@ -1,4 +1,4 @@
-// Bảng «ai hưởng gì» của thẻ «Mức đang áp dụng»: hàng lọc, mục «Theo loại đối tác» (mỗi loại một dòng gập, mở ra hai cụm: mức riêng của loại và chính sách đang theo),
+// Bảng «ai hưởng gì» (tạm: hai phần, mỗi phần một thẻ — «Loại đối tác», «Riêng từng đối tác»): hàng lọc, mục «Theo loại đối tác» (mỗi loại một dòng gập, mở ra hai cụm: mức riêng của loại và chính sách đang theo),
 // mục «Đối tác có mức riêng hoặc chính sách riêng» (mỗi đối tác một dòng mở được). Trang không tính tiền, không chọn mức: số và lời đến từ máy chủ / luật thuần ở src/shared/hoa-hong-hien-thi.ts.
 // Nút ghi (Đổi, Ngừng, Sửa, Thêm mức riêng, Đổi chính sách) chỉ hiện cho người có `partner.commission.write` (Sửa: thêm điều kiện không mang quyền Đối tác — ADR-0148; máy chủ
 // kiểm lại). Điện thoại: không nút nhỏ trong dòng — chạm dòng mở hộp các việc của dòng.
@@ -40,9 +40,10 @@ const chuanTim = (s: string): string => s.normalize("NFD").replace(/[̀-ͯ]/g, "
 let loc: BoLoc = { chiConHieuLuc: true, tim: "" };
 const moSan = new Set<string>();
 const moSanDt = new Set<string>();
-let goc: HTMLElement | null = null;
+/** Tạm (Task 7): bảng cũ chia hai phần, mỗi phần vẽ vào một thẻ; Task 9–10 thay từng phần. */
+type Phan = "loai" | "doi-tac";
+const cac = new Map<Phan, { goc: HTMLElement; veLai: () => void }>();
 let duHienTai: DuLieuHoaHong | null = null;
-let veLai: (() => void) | null = null;
 
 export const urlNgung = (r: Api.CommissionRuleDto): string => `/api/pricing/hoa-hong/${encodeURIComponent(r.id)}/dong`;
 
@@ -140,7 +141,7 @@ function cumLoai(item: { loai: Api.LoaiDoiTacDto; dong: Api.CommissionRuleDto[];
   else ct.append(h("p", { class: "muted" }, item.tatCa.length > 0 ? CAU_KHONG_KHOP_LOC : CAU_KHONG_CO_MUC));
   if (cs) {
     const dongCs = cs.muc.dong.filter((r) => (loc.chiConHieuLuc ? conApHoacSap(r, d.homNay) : true));
-    const sua = chuyenThe ? h("button", { type: "button", class: "btn btn-link" }, "sửa ở Thiết lập ›") : null;
+    const sua = chuyenThe ? h("button", { type: "button", class: "btn btn-link" }, "sửa ở Các cấp đại lý ›") : null;
     sua?.addEventListener("click", chuyenThe!);
     ct.append(h("h3", null, `Theo chính sách ${cs.muc.ten} · áp dụng từ ${ngayDayDu(cs.gan.tuNgay)}`, " ", sua));
     ct.append(dongCs.length > 0 ? h("ul", { class: "hh-mrows" }, ...dongCs.map((r) => dongMuc(r, d, mo, false))) : h("p", { class: "muted" }, CAU_KHONG_CO_MUC));
@@ -203,7 +204,7 @@ function cumDoiTac(x: ReturnType<typeof ghepDoiTacRieng>[number], d: DuLieuHoaHo
   return h("article", { class: "hh-lo hh-dt", "data-party": x.partyId }, nut, ct);
 }
 
-function veNoiDung(noi: HTMLElement, d: DuLieuHoaHong, mo: MoHop, chuyenThe?: () => void): void {
+function veNoiDung(noi: HTMLElement, d: DuLieuHoaHong, mo: MoHop, phan: Phan, chuyenThe?: () => void): void {
   const ghi = can(d.nguoiDung, "partner.commission.write");
   const coDongRieng = (code: string): boolean => d.dong.some((r) => r.doiTuong.loai === "VAI" && r.doiTuong.code === code && r.conHieuLuc);
   const loaiHien = d.loai.filter((l) => l.dangBat || coDongRieng(l.code));
@@ -225,33 +226,38 @@ function veNoiDung(noi: HTMLElement, d: DuLieuHoaHong, mo: MoHop, chuyenThe?: ()
   const muc2 = h("section", { class: "hh-muc" }, h("h2", { class: "hh-muc-ten" }, "Đối tác có mức riêng hoặc chính sách riêng"));
   if (doiTac.length === 0) muc2.append(h("p", { class: "muted" }, tim === "" ? "Chưa có đối tác nào có mức riêng hoặc chính sách riêng." : CAU_KHONG_KHOP_LOC));
   else muc2.append(...doiTac.map((x) => cumDoiTac(x, d, mo, ghi)));
-  replaceChildren(noi, muc1, muc2);
+  replaceChildren(noi, phan === "loai" ? muc1 : muc2);
 }
 
-/** Vẽ hàng lọc + bảng vào `g`. `chuyenThe` (nếu có) chuyển sang thẻ «Thiết lập» cho liên kết «sửa ở Thiết lập ›». */
-export function veBangApDung(g: HTMLElement, d: DuLieuHoaHong, mo: MoHop, chuyenThe?: () => void): void {
-  goc = g;
+/** Vẽ hàng lọc + một phần của bảng vào `g` (`phan`: theo loại, hoặc đối tác có mức riêng). `chuyenThe` (nếu có) chuyển sang thẻ «Các cấp đại lý» cho liên kết «sửa ở Các cấp đại lý ›». */
+export function veBangApDung(g: HTMLElement, d: DuLieuHoaHong, mo: MoHop, phan: Phan, chuyenThe?: () => void): void {
   duHienTai = d;
-  const o = h("input", { id: "hh-loc-tim", type: "search", autocomplete: "off", placeholder: "Tìm loại, đối tác hoặc dịch vụ", "aria-label": "Tìm loại, đối tác hoặc dịch vụ", value: loc.tim });
-  const tt = h("select", { id: "hh-loc-tt", "aria-label": "Trạng thái" }, h("option", { value: "ap" }, "Đang và sắp áp dụng"), h("option", { value: "tat-ca" }, "Tất cả"));
+  const o = h("input", { id: `hh-loc-tim-${phan}`, type: "search", autocomplete: "off", placeholder: "Tìm loại, đối tác hoặc dịch vụ", "aria-label": "Tìm loại, đối tác hoặc dịch vụ", value: loc.tim });
+  const tt = h("select", { id: `hh-loc-tt-${phan}`, "aria-label": "Trạng thái" }, h("option", { value: "ap" }, "Đang và sắp áp dụng"), h("option", { value: "tat-ca" }, "Tất cả"));
   tt.value = loc.chiConHieuLuc ? "ap" : "tat-ca";
   const noi = h("div", { class: "hh-bang" });
-  const ve = (): void => veNoiDung(noi, d, mo, chuyenThe);
-  veLai = () => {
-    o.value = loc.tim;
-    tt.value = loc.chiConHieuLuc ? "ap" : "tat-ca";
-    ve();
+  const ve = (): void => veNoiDung(noi, d, mo, phan, chuyenThe);
+  const veCa = (): void => {
+    for (const x of cac.values()) x.veLai();
   };
+  cac.set(phan, {
+    goc: g,
+    veLai: () => {
+      o.value = loc.tim;
+      tt.value = loc.chiConHieuLuc ? "ap" : "tat-ca";
+      ve();
+    },
+  });
   o.addEventListener("input", () => {
     loc = { ...loc, tim: o.value };
-    ve();
+    veCa();
   });
   o.addEventListener("keydown", (e) => {
     if (e.key === "Enter") e.preventDefault();
   });
   tt.addEventListener("change", () => {
     loc = { ...loc, chiConHieuLuc: tt.value !== "tat-ca" };
-    ve();
+    veCa();
   });
   replaceChildren(g, h("div", { class: "hh-loc" }, h("label", null, "Tìm", o), h("label", null, "Trạng thái", tt)), noi);
   ve();
@@ -259,18 +265,19 @@ export function veBangApDung(g: HTMLElement, d: DuLieuHoaHong, mo: MoHop, chuyen
 
 /** «Xem dòng ↓» của Tra nhanh: cuộn tới dòng mức, mở cụm chứa nó. Bộ lọc đang giấu dòng đó thì trả về mặc định rồi thử lại. */
 export function cuonToiDong(dongId: string, loai?: string): void {
-  if (!goc || !duHienTai) return;
+  if (cac.size === 0 || !duHienTai) return;
   const dt = duHienTai.dong.find((r) => r.id === dongId)?.doiTuong;
   // Ưu tiên dòng nằm trong loại đang tra (cùng một dòng chính sách hiện ở nhiều loại).
+  const goc = (cac.get(dt?.loai === "DOI_TAC" ? "doi-tac" : "loai") ?? [...cac.values()][0]!).goc;
   const chon = (): HTMLElement | null => {
-    if (dt?.loai === "DOI_TAC") return goc!.querySelector(`.hh-dt[data-party="${CSS.escape(dt.partyId)}"] [data-dong-id="${CSS.escape(dongId)}"]`) ?? goc!.querySelector(`.hh-dt[data-party="${CSS.escape(dt.partyId)}"]`);
+    if (dt?.loai === "DOI_TAC") return goc.querySelector(`.hh-dt[data-party="${CSS.escape(dt.partyId)}"] [data-dong-id="${CSS.escape(dongId)}"]`) ?? goc.querySelector(`.hh-dt[data-party="${CSS.escape(dt.partyId)}"]`);
     const sel = `[data-dong-id="${CSS.escape(dongId)}"]`;
-    return (loai ? goc!.querySelector<HTMLElement>(`.hh-lo[data-loai="${CSS.escape(loai)}"] ${sel}`) : null) ?? goc!.querySelector(sel);
+    return (loai ? goc.querySelector<HTMLElement>(`.hh-lo[data-loai="${CSS.escape(loai)}"] ${sel}`) : null) ?? goc.querySelector(sel);
   };
   let el = chon();
-  if (!el && veLai) {
+  if (!el) {
     loc = { chiConHieuLuc: true, tim: "" };
-    veLai();
+    for (const x of cac.values()) x.veLai();
     el = chon();
   }
   if (!el) return;

@@ -194,7 +194,7 @@ function khungDongRieng(r: Api.GanLoaiMucResponse, d: DuLieuHoaHong): HTMLElemen
   return h(
     "div",
     { class: "sheet-warn", role: "status" },
-    h("div", null, h("p", null, h("strong", null, cauCanhBaoDongRieng(r.gan.loai.ten, r.gan.muc.ten, r.dongRieng.length))), h("ul", { class: "hh-mucta-dong-rieng" }, ...r.dongRieng.map((x) => h("li", null, `${nhanDoiTuong(x.doiTuong).ten} · ${nhanPhamVi(x, d.ten)} · ${nhanMucDto(x)}`))), h("p", null, "Ngừng các mức riêng đó ở thẻ «Mức đang áp dụng».")),
+    h("div", null, h("p", null, h("strong", null, cauCanhBaoDongRieng(r.gan.loai.ten, r.gan.muc.ten, r.dongRieng.length))), h("ul", { class: "hh-mucta-dong-rieng" }, ...r.dongRieng.map((x) => h("li", null, `${nhanDoiTuong(x.doiTuong).ten} · ${nhanPhamVi(x, d.ten)} · ${nhanMucDto(x)}`))), h("p", null, "Ngừng các mức riêng đó ở thẻ «Loại đối tác».")),
   );
 }
 

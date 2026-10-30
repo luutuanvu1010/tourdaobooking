@@ -3,7 +3,7 @@
 // «mức nào thắng» do máy chủ trả (`bac`), ở đây chỉ dịch bậc ra lời.
 import type { CommissionRuleDto, DoiTuongMucDto, GanLoaiMucDto, LoaiDoiTacDto, MucTaDto, MucTaListResponse, SuaXemTruocResponse, SupplyTermDto, ThuTraResponse } from "./contracts.ts";
 import { ngayVN } from "./giay-to-hien-thi.ts";
-import type { DichVuPhu, KetQuaCap, KetQuaPhu } from "./hoa-hong-phu-muc.ts";
+import { demDai, xepTheoPhu, type DichVuPhu, type KetQuaCap, type KetQuaPhu } from "./hoa-hong-phu-muc.ts";
 import { can, holdsPartner, type PermissionHolder } from "./permissions.ts";
 import { CAU_THIEU_MUC, nhanMuc, nhanTyLeBp } from "./so-dai-ly-nhan.ts";
 import { addDays } from "./vn-date.ts";
@@ -340,6 +340,17 @@ export function cauDongLoaiDai(ten: string, kq: KetQuaPhu, sapApTu: string | nul
 }
 export const cauLoaiTatDai = (m: number): string => `${m} loại đã tắt: đối tác chỉ mang loại đã tắt không được hưởng hoa hồng, đơn của họ bị giữ ở bước Đã giao.`;
 export const CAU_DAI_CHUA_KIEM = "Chưa kiểm được loại nào thiếu mức vì không tải được danh mục dịch vụ. Tải lại trang.";
+
+export interface NoiDungDai { tieuDe: string | null; than: string | null; dong: string[]; tat: string | null; chuaKiem: string | null }
+/** Chọn câu cho dải §5.1. null = ẩn hẳn. Có loại chưa kiểm được (danh mục lỗi) ⇒ chỉ câu «chưa kiểm được», không số nào. */
+export function cauDai(ds: readonly { ten: string; ketQua: KetQuaPhu; sapApTu: string | null }[]): NoiDungDai | null {
+  const dem = demDai(ds.map((x) => x.ketQua));
+  if (dem.chuaKiem) return { tieuDe: null, than: null, dong: [], tat: null, chuaKiem: CAU_DAI_CHUA_KIEM };
+  const dong = xepTheoPhu(ds).map((x) => cauDongLoaiDai(x.ten, x.ketQua, x.sapApTu)).filter((c) => c !== "");
+  const tat = dem.tat > 0 ? cauLoaiTatDai(dem.tat) : null;
+  if (dem.thieu === 0 && tat === null) return null;
+  return { tieuDe: dem.thieu > 0 ? cauTieuDeDai(dem.thieu) : null, than: dem.thieu > 0 ? CAU_THAN_DAI : null, dong, tat, chuaKiem: null };
+}
 
 // §4.3 / §4.4 câu nhắc của một cấp (chỉ ở chi tiết cấp)
 export function cauNhacCap(kq: KetQuaCap): string | null {

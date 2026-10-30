@@ -83,3 +83,14 @@ Mười bảy «câu hôm nay» của §6.1 đều có nguyên văn trong `index
 
 **Lệch so với kế hoạch**
 - Miễn bảng từ: thêm `CAU_O_TRONG` vào `CHUOI_GIU_NGUYEN` (`src/bang-tu-giao-dien.test.ts`). Luật `/[Dd]òng riêng|…/` bắt «dòng riêng» trong câu §5.4 nguyên văn («cấp không có dòng riêng cho ô này»); ở đây nghĩa là dòng của riêng cấp cho ô đó, không phải «mức riêng của loại», nên là báo nhầm.
+
+## Task 7 — khung ba thẻ và dải cảnh báo phủ mức
+
+**Nội dung tạm (Task 8–10 thay từng thẻ)**
+- Thẻ «Các cấp đại lý» (`#hh-the-cap`) vẽ `veThietLap` (cả «Loại đối tác» lẫn «Chính sách» cũ của `hoa-hong-thiet-lap.ts`). Thẻ «Loại đối tác» (`#hh-the-loai`) vẽ phần «Theo loại đối tác» của `veBangApDung`; thẻ «Riêng từng đối tác» (`#hh-the-doi-tac`) vẽ phần «Đối tác có mức riêng hoặc chính sách riêng». Tra nhanh đứng trên ba thẻ (`#hh-tra-nhanh`), dải ở `#hh-dai`.
+- Lựa chọn tự áp: `veBangApDung(g, d, mo, phan, chuyenThe)` thêm tham số `phan` ("loai" | "doi-tac"), trạng thái module thành `Map` theo phần; id hàng lọc đổi `hh-loc-tim`/`hh-loc-tt` thành `…-loai`/`…-doi-tac` (tránh trùng id). Bộ lọc dùng chung: gõ ở thẻ này thì thẻ kia lọc theo. Nút «sửa ở Thiết lập ›» đổi chữ thành «sửa ở Các cấp đại lý ›» và chuyển về thẻ «cap».
+- «Xem dòng ↓» của Tra nhanh: `hoa-hong.ts` mở thẻ «doi-tac» (dòng của đối tác) hoặc «loai» (còn lại) rồi gọi `cuonToiDong`. Task 11 thay bằng luật bậc 10–12 và toast.
+- Chữ: `hoa-hong-hop.ts` «Ngừng các mức riêng đó ở thẻ «Mức đang áp dụng»» đổi thành «…thẻ «Loại đối tác»» (mức riêng của loại hiện ở thẻ đó). Hướng dẫn kế toán: bỏ tên hai thẻ cũ; «＋ Thêm loại» không nêu tên thẻ vì Task 9 mới chuyển nó sang thẻ «Loại đối tác» (hiện còn ở thẻ «Các cấp đại lý»).
+- `cauDai(ds)` (thuần, `hoa-hong-hien-thi.ts`) trả `{tieuDe, than, dong[], tat, chuaKiem}` hoặc `null` (ẩn hẳn); có loại `CHUA_KIEM` thì chỉ `chuaKiem`. Bài đỏ trước (4 ca `cauDai is not a function`), xanh sau.
+- `docThe`: đã có bài ở Task 6; thêm ca gộp khoá cũ `ap-dung`, `thiet-lap`, rác, rỗng, null ⇒ «cap».
+- Nợ cho Task 14: kịch bản `docs/evidence/2026-10-26-hoa-hong-thiet-ke-lai/kich-ban/hoa-hong-smoke.mjs` còn id `hh-loc-tt`, `hh-tab-ap-dung` cũ (hồ sơ có ngày, không sửa; kịch bản mới viết ở Task 14).

@@ -1,4 +1,4 @@
-// «Tra nhanh» ở đầu thẻ «Mức đang áp dụng»: chọn một đối tác (hoặc một loại đối tác) + một dịch vụ + một ngày, máy chủ trả mức nào áp và lý do (GET /api/pricing/thu-tra).
+// «Tra nhanh» ở đầu trang, đứng trên ba thẻ: chọn một đối tác (hoặc một loại đối tác) + một dịch vụ + một ngày, máy chủ trả mức nào áp và lý do (GET /api/pricing/thu-tra).
 // Trang không tính tiền, không chọn mức: số to là `nhanMucDto` của dòng máy chủ trả, câu nguồn là `cauThuTra` (12 bậc). Máy tính: khối nằm sẵn trong thẻ; điện thoại (< 641px): nút mở hộp trượt.
 import {
   CAU_TRA_THEO_LOAI,

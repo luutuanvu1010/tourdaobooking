@@ -116,7 +116,7 @@ Kế toán có nút [[+ Hồ sơ mới]] và được thêm, sửa hồ sơ khá
       tieuDe: "Đặt mức hoa hồng cho đối tác",
       noiDung: `Hoa hồng là tiền Công ty trả cho đại lý hoặc cộng tác viên đặt đơn. Khi đơn được xác nhận, Nền tảng lấy mức đang áp trong bảng, tính hoa hồng một lần rồi giữ nguyên.
 
-1. Bấm [[Hoa hồng đối tác]]: thẻ **Mức đang áp dụng** cho biết từng loại đang hưởng mức nào; ô **Tra nhanh** cho biết mức áp cho một đối tác.
+1. Bấm [[Hoa hồng đối tác]]: ô **Tra nhanh** ở đầu trang cho biết mức áp cho một đối tác; thẻ **Loại đối tác** cho biết từng loại đang hưởng mức nào.
 2. Bấm [[＋ Thêm mức]], chọn áp cho một loại đối tác, chọn dịch vụ (một dịch vụ, một nhóm dịch vụ hoặc mọi dịch vụ), chọn **Phần trăm** hoặc **Số tiền mỗi khách**, nhập ngày bắt đầu rồi bấm [[Thêm mức]].
 3. Đổi mức: bấm [[Đổi]] ở dòng đó, nhập mức mới và ngày bắt đầu; mức cũ tự ngừng. Hết dùng hẳn: bấm [[Ngừng]] và chọn ngày cuối. Mức không sửa, không xoá được.
 
@@ -130,7 +130,7 @@ Người bán dịch vụ làm tương tự ở trang [[Người bán dịch v�
       tieuDe: "Thêm loại đối tác",
       noiDung: `Loại đối tác là nhóm được hưởng hoa hồng, như Công ty lữ hành hay Lễ tân khách sạn. Cần loại mới thì bạn tự thêm.
 
-1. Bấm [[Hoa hồng đối tác]], thẻ **Thiết lập**, bấm [[＋ Thêm loại]] và gõ tên.
+1. Bấm [[Hoa hồng đối tác]], bấm [[＋ Thêm loại]] và gõ tên.
 2. Đặt mức cho loại mới bằng [[＋ Thêm mức]].
 3. Không dùng nữa thì bấm [[Tắt]] ở dòng loại đó; cần lại thì bấm [[Bật]]. Các loại có sẵn (ghi **Có sẵn**) thì không tắt được.
 
@@ -140,7 +140,7 @@ Gắn loại cho hồ sơ ở Danh bạ là việc của Quản trị hoặc To�
       tieuDe: "Chính sách hoa hồng",
       noiDung: `Chính sách hoa hồng là bộ mức có tên, dùng chung cho nhiều loại.
 
-1. Ở thẻ **Thiết lập**, bấm [[＋ Thêm chính sách]] và gõ tên.
+1. Ở thẻ **Các cấp đại lý**, bấm [[＋ Thêm chính sách]] và gõ tên.
 2. [[＋ Thêm mức vào chính sách]]: chọn dịch vụ và mức.
 3. [[Áp dụng cho loại…]]: chọn loại và ngày bắt đầu.
 
