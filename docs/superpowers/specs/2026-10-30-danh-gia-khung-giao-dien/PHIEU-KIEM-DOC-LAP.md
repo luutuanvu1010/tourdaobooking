@@ -44,4 +44,29 @@
 
 ## Kết quả kiểm
 
-(người kiểm độc lập ghi ở đây)
+**Kết luận: ĐẠT CÓ ĐIỀU KIỆN** (người kiểm độc lập, 31/10/2026, chỉ đọc, máy macOS, mã `e1295452`; không đọc `.env`, không dùng khoá nào).
+
+Điều kiện bắt buộc trước khi day-len: **nhánh đã lỗi thời so với `origin/main`.** `git rev-list --count HEAD..origin/main` = 41 commit; `git merge-tree --write-tree HEAD origin/main`
+báo xung đột nội dung ở `public/app.css`, `src/goi-trang-nhe.test.ts`, `src/shared/app-info.test.ts`, `src/shared/changelog.ts` (`web/shell.ts` tự gộp được). Dòng đầu phiếu
+«nối thẳng được `origin/main`» không còn đúng. Hệ quả: trên `origin/main` mục đầu CHANGELOG nay đã là **2.50** (và production báo **2.49**, đo `GET /api/auth/config` 31/10),
+nên mục 2.49 của nhánh này trùng số đã phát hành. Cần gộp `main` vào nhánh, giải xung đột, đánh lại số bản, nới trần gói Đơn hàng tính lại trên mã đã gộp, rồi chạy lại mục 1–2 và 6.
+
+| # | Mục | Kết quả | Bằng chứng |
+|---|---|---|---|
+| 1 | `npm test` | ĐẠT | «bước 1 thoát 0, bước 2 thoát 0»; `# fail 0` ở cả hai bước (bước 1 chạy 187 s) |
+| 2a | `npm run typecheck` | ĐẠT | 3 lượt `tsc --noEmit` thoát 0 |
+| 2b | `kiem-phien-ban.mjs` | **LỆCH** | in «CHƯA ĐẠT: bản ở máy 2.49 không mới hơn production 2.49» — vì production đã lên 2.49 sau khi phiếu viết. Đây là hệ quả của điều kiện trên, không phải lỗi mã nhánh |
+| 3 | Tiền | ĐẠT | `git diff 3468fc1..HEAD -- web/order.ts` rỗng; `web/order-card.ts` chỉ thêm 3 dòng chú thích; khối CSS [1], [2], [14] chỉ xếp lại ô (grid, wrap); `.order-row-remaining`, `.grid4` không bị `display:none`; chỉ ẩn nhãn chữ «MÃ ĐƠN» (≥ 641px), giá trị mã đơn + trạng thái vẫn hiện; 4 ô tiền của dải tóm tắt còn đủ |
+| 4 | Quyền | ĐẠT | `git diff 3468fc1..HEAD -- src/shared/permissions.ts src/modules` rỗng; không dòng thêm/bớt nào chứa `can(` hay `permissions`. Quy tắc ẩn `#new-order` dùng `:has(#topbar .topbar-new)` đúng như phiếu |
+| 5 | Trợ năng | ĐẠT | h1 ẩn bằng 1px + clip + `overflow:hidden` (không `display:none`); `dot-0-smoke.mjs` 20/20 «SMOKE OK (có axe)» gồm bước 4 (Tab đầu vào «Bỏ qua»); thanh bên cuộn bằng `scrollTop`, không `scrollIntoView` |
+| 6 | CSS chỉ token | ĐẠT | `node --test src/thanh-phan-v2-css.test.ts src/token-dot-0.test.ts`: 11/11 |
+| 7 | Phạm vi luật bảng | ĐẠT | mọi quy tắc bảng ở [14] đều `#list > .order-card …` hoặc `.don-bang-dau`, bọc `@media (min-width:1100px)`; `v1-nguoi-phu-trach` bản chép 17/17 (thẻ ở «Việc của tôi» giữ dạng thẻ) |
+| 8 | Kịch bản Chrome | ĐẠT (có lưu ý flake) | Chromium: Google Chrome macOS, axe-core 4.13.0. `dot-0-smoke` 20/20 OK; `xac-nhan-smoke` OK 10 bước; bản chép `v1-nguoi-phu-trach` **17/17** ở lượt 3 (lượt 1 đỏ ở bước o, lượt 2 đỏ ở p, q — cả hai là `wrangler d1 execute` gieo dữ liệu thất bại, bẫy đã ghi ở kế hoạch; không phải phép kiểm). Bản gốc `2026-09-21-v1-0` trên mã gốc `3468fc1`: 17 ✓; trên nhánh: đỏ a và m — đúng như người thi công nêu. `xe-smoke` (đợt 0): đỏ bước 2, 8b, 9 **y hệt** ở cả nhánh và mã gốc. `a2-smoke-order`: «hết giờ chờ: banner thiếu mã» **y hệt** ở cả hai. Hai bản chép chỉ đổi phép kiểm a, m (v1) theo luật 6 — đọc đầu tệp thấy khớp mô tả, không nới ngoài phạm vi. Chưa chạy lại: `dot-c-smoke` bản chép, `chuyen-smoke`, `hdv-viec-cua-toi-smoke`, `mat-mang`, `trang-chu`, `quyen-thieu-quan-tri`, `hoa-hong`, `giao-dien`, `ho-tro`, `a2-smoke-form` (ngoài phạm vi tối thiểu phiếu) |
+| 9 | Số đo `do-loi.py`, `soi-thanh-ben.py` | **CHƯA KIỂM ĐƯỢC** | cần Python Playwright (máy kiểm chưa có), Chromium của Playwright, kho D1 giống production và gieo dữ liệu qua mạng (bản CSV Google Sheet) — không dựng được trong phiên này; chủ hoặc phiên khác chạy theo `docs/evidence/2026-10-30-danh-gia-khung-giao-dien/README.md`. Chỉ đối chiếu được tệp số liệu đã commit: `loi-hien-thi-sau.json` có đúng 11 chỗ chữ cắt (6 địa chỉ `order-row-place`, 4 tên tài xế `dp-tl-tx` ở Điều phối, 1 tiêu đề `bar-title` «Điều kiện cho xe chạy»), 0 trang tràn ngang; `thanh-ben-1366x650-sau.txt` 0/32 · 0/14 (và 0/7 Bán hàng). Đây chỉ là đọc lại số của người thi công, không phải đo độc lập |
+| 10 | Lệch quyết định cũ | ĐẠT | cả ba lệch có ghi: «đúng 2 dòng» (kế hoạch mục [2] + `XEM-TRUOC.md` dòng 37), dải nhắc cát/đỏ (kế hoạch nhật ký [23] + `XEM-TRUOC.md` dòng 39), tiêu đề lớn ẩn ở máy tính (kế hoạch [7] + `XEM-TRUOC.md` dòng 40). Mã `tongDaiNhacHaiLop` khớp: > 3 ngày → cát, ≤ 3 ngày hoặc quá hạn → đỏ |
+
+Ghi chú nhỏ, không chặn (để người thi công / chủ quyết):
+- `XEM-TRUOC.md` dòng 18 và 45 còn ghi «1 đỏ chờ chủ duyệt» và «chưa chạy các kịch bản Chrome cũ» — lỗi thời so với kế hoạch (trần đã nới, kịch bản đã chạy). Hồ sơ có ngày nên chỉ cần biết, không cần sửa.
+- Mục [15] kế hoạch viết «bỏ ô tìm và nút + Tạo đơn trùng với thanh trên», nhưng mã CSS ẩn ô tìm **của thanh trên** (`#topbar > .topbar-search`) và giữ ô `#q` của trang, còn nút «+ Tạo đơn» của trang bị ẩn khi thanh trên có `.topbar-new`. Hai kịch bản cùng hợp lý; nên ghi rõ bên nào bị bỏ để người đọc không đoán.
+- Không có kịch bản nào được sửa mã sản phẩm trong lúc kiểm; worktree chỉ build `dist` (không theo dõi bởi git).
+
