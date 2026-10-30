@@ -390,6 +390,21 @@ export const NHAN_XUNG_DOT = "Xung đột mức";
 export const CAU_XUNG_DOT =
   "Đối tác này mang hai loại ra hai mức khác nhau cho cùng một dịch vụ. Đơn của dịch vụ đó bị giữ ở bước Đã giao cho tới khi đặt mức riêng hoặc cấp riêng cho đối tác này.";
 export const CAU_DUOI_DS_DOI_TAC = "Đối tác không có mức riêng hay cấp riêng không nằm ở đây. Muốn biết một đối tác đang ra mức nào: dùng Tra nhanh.";
+export const CAU_KHONG_CO_DOI_TAC_RIENG = "Chưa có đối tác nào có mức riêng hoặc cấp riêng.";
+export const CAU_DT_CHUA_CO_MUC_RIENG = "Đối tác này chưa có mức riêng.";
+export const CAU_DT_CHUA_CO_CAP_RIENG = "Đối tác này chưa có cấp riêng.";
+/** Khi hồ sơ đang có cấp riêng (§5.3: «Đối tác có cấp riêng thì không xét cấp của loại»). */
+export const CAU_CAP_RIENG_BO_CAP_LOAI = "Đối tác có cấp riêng nên không xét cấp của loại.";
+/** Câu dưới các ô của hộp «Đặt cấp riêng cho đối tác». */
+export const CAU_DAT_CAP_RIENG = "Từ ngày áp dụng, đơn của đối tác này tính theo cấp riêng, không xét cấp của loại nữa. Đơn đã xác nhận không đổi.";
+export const nhanCapRieng = (tenCap: string): string => `Cấp riêng: ${tenCap}`;
+/** Một loại hồ sơ đang mang (`HoaHongHoSoResponse.vai[]`): cấp của loại đó hôm nay, hoặc chưa theo cấp nào. */
+export const cauVaiHoSo = (v: { muc: { ten: string } | null; tuNgay: string | null }): string =>
+  v.muc === null ? CAU_LOAI_CHUA_THEO_CAP : v.tuNgay === null ? `Đang theo cấp ${v.muc.ten}` : cauLoaiTheoCap(v.muc.ten, v.tuNgay);
+export const cauDaDatCapRieng = (tenCap: string, tenDoiTac: string, tuNgay: string): string => `Đã đặt cấp riêng «${tenCap}» cho «${tenDoiTac}» từ ngày ${ngayVN(tuNgay)}.`;
+export const CAU_DA_SUA_CAP_RIENG = "Đã sửa cấp riêng.";
+export const cauNgungCapRieng = (tenCap: string, tenDoiTac: string): string => `Ngừng cấp riêng ${tenCap} của ${tenDoiTac}`;
+export const cauDaNgungCapRieng = (tenCap: string, tenDoiTac: string): string => `Đã ngừng cấp riêng «${tenCap}» của «${tenDoiTac}».`;
 /** §3.3 toast tông `bien` khi «Xem dòng ↓» không còn thấy dòng. */
 export const CAU_KHONG_THAY_DONG = "Không thấy dòng này trên trang — tải lại trang.";
 

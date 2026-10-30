@@ -176,18 +176,41 @@ export type ThanGanGui = { loai: string; muc: string; tuNgay: string; denNgay?: 
 export function docThanGan(f: FormGan): KetDocForm<ThanGanGui> {
   const loi: LoiO[] = [];
   const loai = f.loai.trim();
+  if (loai === "") loi.push({ truong: "loai", message: "Chọn một loại đối tác." });
+  const cn = docCapNgay(f, loi);
+  if (loi.length > 0) return { ok: false, loi };
+  return { ok: true, body: { loai, ...cn } };
+}
+
+/** Phần chung của gắn loại và gắn riêng: mã cấp (rỗng = chưa chọn), ngày bắt đầu, ngày kết thúc (không bắt buộc, không trước ngày bắt đầu). Lỗi đẩy vào `loi`. */
+function docCapNgay(f: { muc: string; tuNgay: string; denNgay: string }, loi: LoiO[]): { muc: string; tuNgay: string; denNgay?: string } {
   const muc = f.muc.trim();
   const tu = f.tuNgay.trim();
   const den = f.denNgay.trim();
-  if (loai === "") loi.push({ truong: "loai", message: "Chọn một loại đối tác." });
   if (muc === "") loi.push({ truong: "mucTa", message: "Chọn một cấp đại lý." });
   if (!isISODate(tu)) loi.push({ truong: "tuNgay", message: "Chọn ngày bắt đầu." });
   if (den !== "") {
     if (!isISODate(den)) loi.push({ truong: "denNgay", message: "Ngày kết thúc không hợp lệ." });
     else if (isISODate(tu) && den < tu) loi.push({ truong: "denNgay", message: "Ngày kết thúc không được trước ngày bắt đầu." });
   }
+  return den === "" ? { muc, tuNgay: tu } : { muc, tuNgay: tu, denNgay: den };
+}
+
+/** Ô của hộp «Đặt cấp riêng cho đối tác» / «Sửa cấp riêng»: hồ sơ đối tác (rỗng = chưa chọn), mã cấp, hai ngày. */
+export interface FormGanRieng {
+  partyId: string;
+  muc: string;
+  tuNgay: string;
+  denNgay: string;
+}
+export type ThanGanRiengGui = { muc: string; tuNgay: string; denNgay?: string };
+/** Thân `POST /api/pricing/ho-so/:id/muc-rieng` và (thêm `lyDo`) `POST /api/pricing/muc-rieng/:id/sua` (máy chủ: `kiemThanGanRieng`). Mã hồ sơ nằm ở đường dẫn, không vào thân. */
+export function docThanGanRieng(f: FormGanRieng): KetDocForm<ThanGanRiengGui> {
+  const loi: LoiO[] = [];
+  if (f.partyId.trim() === "") loi.push({ truong: "doiTuong", message: "Chọn một đối tác." });
+  const cn = docCapNgay(f, loi);
   if (loi.length > 0) return { ok: false, loi };
-  return { ok: true, body: den === "" ? { loai, muc, tuNgay: tu } : { loai, muc, tuNgay: tu, denNgay: den } };
+  return { ok: true, body: cn };
 }
 
 export interface FormDieuKhoan extends FormPhamViNgay {

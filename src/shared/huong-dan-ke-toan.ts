@@ -144,7 +144,9 @@ Gắn loại cho hồ sơ ở Danh bạ là việc của Quản trị hoặc To�
 2. Mở cấp, bấm [[＋ Thêm mức vào cấp]]: chọn dịch vụ và mức.
 3. [[Áp dụng cấp cho loại]]: chọn loại và ngày bắt đầu.
 
-Cấp của loại xét sau cùng. Đổi sang cấp khác: [[Đổi cấp]]. Ngừng chi: [[Ngừng áp dụng]]. [[Khoá cấp]] chặn thêm loại và mức mới, loại đang theo vẫn được tính; dùng lại: [[Mở lại cấp]].`,
+Cấp của loại xét sau cùng. Đổi sang cấp khác: [[Đổi cấp]]. Ngừng chi: [[Ngừng áp dụng]]. [[Khoá cấp]] chặn thêm loại và mức mới, loại đang theo vẫn được tính; dùng lại: [[Mở lại cấp]].
+
+Cấp riêng cho một đối tác: thẻ **Riêng từng đối tác**, bấm [[Đặt cấp riêng cho đối tác]]; mở đối tác để sửa hoặc ngừng.`,
     },
     {
       tieuDe: "Chụp bù, ghi mức tay cho một đơn",
@@ -225,7 +227,6 @@ Bấm nút **Lọc**, chọn **Đã huỷ** rồi bấm [[Áp dụng]]. Khối *
 - Nhận phụ trách, giao đơn cho người khác: không. Nhờ nhân viên bán hàng hoặc Quản trị.
 - Bấm "Đặt gấp": không. Nhờ nhân viên bán hàng hoặc Quản trị.
 - Tự duyệt yêu cầu điều chỉnh công nợ của chính mình: không. Nhờ Quản trị, Toàn quyền hoặc một Kế toán khác.
-- Đặt mức riêng cho một đối tác, thử tra mức: chưa, vì tài khoản Kế toán không tìm được đối tác theo tên. Nhờ Quản trị hoặc Toàn quyền.
 - Xếp xe, tạo chuyến, bấm tiến độ chuyến: không, bạn chỉ xem. Nhờ nhân viên bán hàng hoặc Quản trị.
 - Bấm **Đã giao – đã thu đủ**: không. Hướng dẫn viên đang phụ trách đơn hoặc Quản trị bấm.
 - Xuất hoá đơn: không có. Xuất ở phần mềm kế toán rồi đánh dấu trên đơn.

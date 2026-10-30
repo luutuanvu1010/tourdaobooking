@@ -622,3 +622,20 @@ test("locBangLoai: «Tất cả» hiện cả dòng đã ngừng và đã huỷ 
   assert.deepEqual(HT.locBangLoai(loai, dong, { chiConHieuLuc: true, tim: "" }, homNay, ten)[0]!.dong.map((x) => x.id), ["a"]);
   assert.deepEqual(HT.locBangLoai(loai, dong, { chiConHieuLuc: false, tim: "" }, homNay, ten)[0]!.dong.map((x) => x.id), ["a", "b", "c"]);
 });
+
+test("Task 10 — thẻ «Riêng từng đối tác»: câu cố định, nhãn cấp riêng, dòng loại của hồ sơ, câu hộp Đặt / Sửa / Ngừng cấp riêng", () => {
+  assert.equal(HT.CAU_KHONG_CO_DOI_TAC_RIENG, "Chưa có đối tác nào có mức riêng hoặc cấp riêng.");
+  assert.equal(HT.CAU_DT_CHUA_CO_MUC_RIENG, "Đối tác này chưa có mức riêng.");
+  assert.equal(HT.CAU_DT_CHUA_CO_CAP_RIENG, "Đối tác này chưa có cấp riêng.");
+  assert.equal(HT.CAU_CAP_RIENG_BO_CAP_LOAI, "Đối tác có cấp riêng nên không xét cấp của loại.");
+  assert.equal(HT.CAU_DAT_CAP_RIENG, "Từ ngày áp dụng, đơn của đối tác này tính theo cấp riêng, không xét cấp của loại nữa. Đơn đã xác nhận không đổi.");
+  assert.equal(HT.nhanCapRieng("Vàng"), "Cấp riêng: Vàng");
+  assert.equal(HT.cauVaiHoSo({ muc: { code: "A", ten: "Vàng", dangBat: true }, tuNgay: "2026-10-01" }), "Đang theo cấp Vàng · áp dụng từ 01/10/2026");
+  assert.equal(HT.cauVaiHoSo({ muc: { code: "A", ten: "Vàng", dangBat: true }, tuNgay: null }), "Đang theo cấp Vàng");
+  assert.equal(HT.cauVaiHoSo({ muc: null, tuNgay: null }), "Chưa theo cấp đại lý nào");
+  assert.equal(HT.cauDaDatCapRieng("Vàng", "Công ty A", "2026-11-01"), "Đã đặt cấp riêng «Vàng» cho «Công ty A» từ ngày 01/11/2026.");
+  assert.equal(HT.CAU_DA_SUA_CAP_RIENG, "Đã sửa cấp riêng.");
+  assert.equal(HT.cauNgungCapRieng("Vàng", "Công ty A"), "Ngừng cấp riêng Vàng của Công ty A");
+  assert.equal(HT.cauDaNgungCapRieng("Vàng", "Công ty A"), "Đã ngừng cấp riêng «Vàng» của «Công ty A».");
+  for (const s of [HT.CAU_KHONG_CO_DOI_TAC_RIENG, HT.CAU_DAT_CAP_RIENG, HT.nhanCapRieng("x"), HT.cauNgungCapRieng("x", "y")]) assert.ok(!/chính sách/i.test(s), s);
+});

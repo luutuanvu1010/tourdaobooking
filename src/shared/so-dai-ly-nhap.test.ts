@@ -126,3 +126,17 @@ test("ADR-0148: docLyDoSua — MỘT luật cho hộp Sửa và máy chủ: 10�
   assert.equal(so.ok, false);
   assert.match(so.ok ? "" : so.message, /số điện thoại/);
 });
+
+test("docThanGanRieng (Task 10): thân Đặt / Sửa cấp riêng { muc, tuNgay, denNgay? } — thiếu đối tác / cấp / ngày báo dưới đúng ô; mã hồ sơ không vào thân", async () => {
+  const { docThanGanRieng } = await import("./so-dai-ly-nhap.ts");
+  assert.deepEqual(docThanGanRieng({ partyId: "p1", muc: "MT_ABCDEFGH", tuNgay: "2026-10-30", denNgay: "" }), { ok: true, body: { muc: "MT_ABCDEFGH", tuNgay: "2026-10-30" } });
+  assert.deepEqual(docThanGanRieng({ partyId: "p1", muc: " MT_ABCDEFGH ", tuNgay: "2026-10-30", denNgay: "2026-12-31" }), { ok: true, body: { muc: "MT_ABCDEFGH", tuNgay: "2026-10-30", denNgay: "2026-12-31" } });
+  const r = docThanGanRieng({ partyId: " ", muc: "", tuNgay: "", denNgay: "" });
+  assert.deepEqual(!r.ok && r.loi, [
+    { truong: "doiTuong", message: "Chọn một đối tác." },
+    { truong: "mucTa", message: "Chọn một cấp đại lý." },
+    { truong: "tuNgay", message: "Chọn ngày bắt đầu." },
+  ]);
+  const nguoc = docThanGanRieng({ partyId: "p1", muc: "MT_ABCDEFGH", tuNgay: "2026-10-30", denNgay: "2026-10-29" });
+  assert.deepEqual(!nguoc.ok && nguoc.loi, [{ truong: "denNgay", message: "Ngày kết thúc không được trước ngày bắt đầu." }]);
+});

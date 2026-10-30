@@ -3966,7 +3966,7 @@ a.bk-hang:hover, a.bk-the:hover { background: var(--c-soft-hover); }
 .nut.hh-viec-khac { min-width: var(--h-control); padding: 0; font-size: var(--fs-h2); line-height: 1; }
 .hh-viec-ds { display: grid; gap: var(--s2); }
 .hh-viec-nut { width: 100%; }
-.hh-cap .hh-tl-gan li > span { min-width: 0; overflow-wrap: anywhere; }
+.hh-cap .hh-tl-gan li > span, .hh-dt .hh-tl-gan li > span { min-width: 0; overflow-wrap: anywhere; }
 @media (min-width: 900px) {
   .hh-cap .tab-phu.hh-cap-chon { display: none; }
   .hh-viec-khac[data-chi-dien-thoai] { display: none; }

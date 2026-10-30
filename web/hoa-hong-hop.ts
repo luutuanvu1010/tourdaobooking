@@ -1,14 +1,21 @@
-// Hộp trượt của trang «Hoa hồng đối tác» (PR 2, đợt 2): Thêm mức, Đổi, Ngừng, Sửa (ADR-0148), Đổi cấp, Áp dụng cấp cho loại. Mỗi hộp là `moBangTruot`; gửi xong thì đóng hộp, `napLai`
-// vẽ lại trang; lỗi máy chủ (400/409) hiện NGUYÊN câu của máy chủ trong hộp (`.sheet-warn`), hộp giữ mở, nút bấm lại được.
+// Hộp trượt của trang «Hoa hồng đối tác» (PR 2, đợt 2): Thêm mức, Đổi, Ngừng, Sửa (ADR-0148), Đổi cấp, Áp dụng cấp cho loại, Đặt / Sửa / Ngừng cấp riêng của một đối tác (đặc tả
+// hoa-hong-cap-dai-ly Q-8). Mỗi hộp là `moBangTruot`; gửi xong thì đóng hộp, `napLai` vẽ lại trang; lỗi máy chủ (400/409) hiện NGUYÊN câu của máy chủ trong hộp (`.sheet-warn`), hộp
+// giữ mở, nút bấm lại được. Hộp cấp riêng: route trả `HoaHongHoSoResponse`, trang vẽ lại cụm đối tác từ phản hồi đó (`ctx.hoSoMoi`) TRƯỚC khi `napLai`.
 // Gọi (ghi): POST /api/pricing/hoa-hong, /hoa-hong/:id/doi, /hoa-hong/:id/dong, /hoa-hong/:id/sua, /muc-ta/:code/dong, /muc-ta/gan, /muc-ta/gan/:id/doi, /muc-ta/gan/:id/ket-thuc,
-// /muc-ta/gan/:id/sua. Đọc trước khi mở hộp Sửa: GET /hoa-hong/:id/sua, /muc-ta/gan/:id/sua (đường huỷ–thay hay «từ ngày» do máy chủ quyết, giao diện không đoán).
+// /muc-ta/gan/:id/sua, /ho-so/:id/muc-rieng, /muc-rieng/:id/sua, /muc-rieng/:id/ket-thuc. Đọc trước khi mở hộp Sửa: GET /hoa-hong/:id/sua, /muc-ta/gan/:id/sua, /muc-rieng/:id/sua
+// (đường huỷ–thay hay «từ ngày» do máy chủ quyết, giao diện không đoán). Ô tìm đối tác: GET /nguoi-huong (`taoTimDoiTac`, cổng `coTheTimDoiTac`).
 // Trang không tính tiền, không chọn mức: ô đọc bằng src/shared/so-dai-ly-nhap.ts, chữ ở src/shared/hoa-hong-hien-thi.ts; máy chủ kiểm lại tất cả.
 import {
+  CAU_DA_SUA_CAP_RIENG,
+  CAU_DAT_CAP_RIENG,
   CAU_THEO_LOAI_KHACH,
   cauCanhBaoDongRieng,
   cauCanhBaoTheoChinhSach,
+  cauDaDatCapRieng,
+  cauDaNgungCapRieng,
   cauDoiTuNgayMai,
   cauMucCuSeNgung,
+  cauNgungCapRieng,
   cauSeTao,
   cauXemTruocSua,
   chinhSachCuaLoai,
@@ -20,7 +27,7 @@ import {
 } from "../src/shared/hoa-hong-hien-thi";
 import type { PermissionHolder } from "../src/shared/permissions";
 import { nhanDong, nhanTyLeBp } from "../src/shared/so-dai-ly-nhan";
-import { docLyDoSua, docNgayDong, docThanDoiMuc, docThanDongMucTa, docThanGan, docThanMuc, ngayDongMacDinh, type FormMuc, type LoiO, type PhamViForm } from "../src/shared/so-dai-ly-nhap";
+import { docLyDoSua, docNgayDong, docThanDoiMuc, docThanDongMucTa, docThanGan, docThanGanRieng, docThanMuc, ngayDongMacDinh, type FormMuc, type LoiO, type PhamViForm } from "../src/shared/so-dai-ly-nhap";
 import { addDays, ngayDayDu } from "../src/shared/vn-date";
 import { api, type Api } from "./api";
 import { moBangTruot } from "./bang-truot";
@@ -48,6 +55,12 @@ export interface MoHop {
   themChinhSach(): void;
   /** Lệnh một bước không cần hộp (Tắt / Bật): gửi, nạp lại trang; trả câu lỗi nguyên văn của máy chủ, hoặc null nếu xong. */
   guiNhanh(path: string, thongBao: string): Promise<string | null>;
+  /** Q-8: đặt cấp riêng cho một đối tác (`POST /api/pricing/ho-so/:id/muc-rieng`). `dien` = đối tác đã chọn sẵn (mở từ cụm của đối tác đó); không có thì tìm theo tên. */
+  datCapRieng(dien?: { partyId: string; ten: string }): void;
+  /** ADR-0148 Đ1: Sửa một lần gắn cấp riêng (GET rồi POST `/api/pricing/muc-rieng/:id/sua`), lý do bắt buộc. */
+  suaCapRieng(g: Api.GanRiengLichSuDto, partyId: string): void;
+  /** Ngừng một lần gắn cấp riêng: chọn ngày cuối, `POST /api/pricing/muc-rieng/:id/ket-thuc`. */
+  ngungCapRieng(g: Api.GanRiengLichSuDto, partyId: string): void;
 }
 
 export interface NguCanhHop {
@@ -58,12 +71,14 @@ export interface NguCanhHop {
   baoOk(text: string | null): void;
   /** Khung vàng giữ sau khi đóng hộp (null = xoá). */
   canhBao(node: HTMLElement | null): void;
+  /** Hộp cấp riêng ghi xong: khối «hoa hồng của hồ sơ» máy chủ trả — trang vẽ lại cụm của đối tác đó từ phản hồi này, rồi mới `napLai`. */
+  hoSoMoi(partyId: string, r: Api.HoaHongHoSoResponse): void;
 }
 
 const MA_NGAY = (s: string): string => ngayDayDu(s);
 
-/** Mở một hộp một-bước: `chuan` đọc ô (hiện lỗi ô nếu sai, trả null), `xong` chạy sau khi đã đóng hộp và vẽ lại trang. */
-function moHop(ctx: NguCanhHop, o: { title: string; body: Child[]; nhan: string; chuan: () => { path: string; body: unknown } | null; xong: (r: unknown) => void }): void {
+/** Mở một hộp một-bước: `chuan` đọc ô (hiện lỗi ô nếu sai, trả null), `truocNap` (nếu có) nhận phản hồi ngay sau khi đóng hộp, TRƯỚC `napLai`; `xong` chạy sau khi đã vẽ lại trang. */
+function moHop(ctx: NguCanhHop, o: { title: string; body: Child[]; nhan: string; chuan: () => { path: string; body: unknown } | null; truocNap?: (r: unknown) => void; xong: (r: unknown) => void }): void {
   const loiEl = h("p", { class: "sheet-warn", role: "alert", hidden: true });
   const gui = h("button", { type: "button", class: "btn btn-primary" }, o.nhan);
   const huy = h("button", { type: "button", class: "btn" }, "Huỷ");
@@ -84,6 +99,7 @@ function moHop(ctx: NguCanhHop, o: { title: string; body: Child[]; nhan: string;
       const r = await api<unknown>(req.path, { method: "POST", body: req.body });
       sheet.setBusy(false);
       sheet.close(false);
+      o.truocNap?.(r);
       await ctx.napLai();
       o.xong(r);
     } catch (err) {
@@ -460,7 +476,7 @@ export function taoMoHop(ctx: NguCanhHop): MoHop {
   }
 
   /** Hộp «chọn ngày cuối hiệu lực» dùng chung cho Ngừng một mức và Ngừng áp dụng một cấp đại lý. */
-  function hopNgay(o: { tuNgay: string; moTa: string; url: string; title: string; nhan: string; daXong: string }): void {
+  function hopNgay(o: { tuNgay: string; moTa: string; url: string; title: string; nhan: string; daXong: string; truocNap?: (r: unknown) => void }): void {
     const d = ctx.lay();
     const ngay = h("input", { id: "hh-ngung-ngay", type: "date", value: ngayDongMacDinh(d.homNay, o.tuNgay), min: o.tuNgay });
     const loi = h("p", { class: "field-error", role: "alert", hidden: true });
@@ -478,6 +494,7 @@ export function taoMoHop(ctx: NguCanhHop): MoHop {
         loi.hidden = true;
         return { path: o.url, body: kq.body };
       },
+      truocNap: o.truocNap,
       xong: () => ctx.baoOk(o.daXong),
     });
   }
@@ -547,6 +564,118 @@ export function taoMoHop(ctx: NguCanhHop): MoHop {
     });
   }
 
+  // ---- Cấp riêng của một đối tác (Q-8, §3.1 hàng «Cấp riêng của đối tác»). Ô cấp chỉ liệt kê cấp đang mở (§3.1 «Cấp đang khoá»).
+  const tenDoiTac = (partyId: string): string => {
+    const d = ctx.lay();
+    return d.mucTa.ganRieng.find((g) => g.partyId === partyId)?.ten ?? d.dong.find((r) => r.doiTuong.loai === "DOI_TAC" && r.doiTuong.partyId === partyId)?.doiTuong.ten ?? "";
+  };
+  const oCapMo = (id: string, chonSan: string): HTMLSelectElement => {
+    const mo = ctx.lay().mucTa.muc.filter((m) => m.dangBat);
+    const s = h("select", { id, "aria-label": "Cấp đại lý" }, h("option", { value: "" }, "— Chọn cấp đại lý —"), ...mo.map((m) => h("option", { value: m.code }, m.ten)));
+    s.value = mo.some((m) => m.code === chonSan) ? chonSan : "";
+    return s;
+  };
+  /** Hai ô «Từ» / «Đến» (không thời hạn hoặc chọn ngày) dùng chung cho Đặt và Sửa cấp riêng. */
+  const oHieuLuc = (p: string, loi: BangLoi, tuMacDinh: string, denMacDinh: string | null): { root: HTMLElement; tu: HTMLInputElement; den: () => string } => {
+    const tu = h("input", { id: `${p}-tu`, type: "date", value: tuMacDinh });
+    const denChon = h("select", { id: `${p}-den-chon`, "aria-label": "Đến" }, h("option", { value: "" }, "không thời hạn"), h("option", { value: "NGAY" }, "chọn ngày…"));
+    const den = h("input", { id: `${p}-den`, type: "date", "aria-label": "Ngày cuối hiệu lực", value: denMacDinh ?? "", hidden: denMacDinh === null });
+    denChon.value = denMacDinh === null ? "" : "NGAY";
+    denChon.addEventListener("change", () => (den.hidden = denChon.value !== "NGAY"));
+    const root = h("fieldset", { class: "hh-nhom" }, h("legend", null, "Hiệu lực"),
+      h("div", { class: "grid two" }, h("div", null, h("label", null, "Từ", tu), loi.dong("tuNgay")), h("div", null, h("label", null, "Đến", denChon), den, loi.dong("denNgay"))));
+    return { root, tu, den: () => (denChon.value === "NGAY" ? den.value : "") };
+  };
+
+  function datCapRieng(dien?: { partyId: string; ten: string }): void {
+    const d = ctx.lay();
+    const loi = taoBangLoi();
+    const tim = dien ? null : taoTimDoiTac({ choPhep: duocTimTen, id: "hh-dcr-doi-tac" });
+    tim?.khiDoi(() => loi.xoa());
+    const doc = (): { partyId: string; ten: string } => dien ?? { partyId: tim?.chon()?.partyId ?? "", ten: tim?.chon()?.ten ?? "" };
+    const cap = oCapMo("hh-dcr-muc", "");
+    const hl = oHieuLuc("hh-dcr", loi, d.homNay, null);
+    let gui = "";
+    moHop(ctx, {
+      title: "Đặt cấp riêng cho đối tác",
+      body: [
+        dien
+          ? h("p", null, h("span", { class: "hh-nhan-nho" }, "Đối tác"), h("strong", null, dien.ten))
+          : h("fieldset", { class: "hh-nhom" }, h("legend", null, "Đối tác"), tim!.root, loi.dong("doiTuong")),
+        h("div", null, h("label", null, "Cấp đại lý", cap), loi.dong("mucTa")),
+        hl.root,
+        h("p", { class: "hint" }, CAU_DAT_CAP_RIENG),
+      ],
+      nhan: "Đặt cấp riêng",
+      chuan() {
+        const dt = doc();
+        const kq = docThanGanRieng({ partyId: dt.partyId, muc: cap.value, tuNgay: hl.tu.value, denNgay: hl.den() });
+        if (!kq.ok) {
+          loi.hien(kq.loi);
+          return null;
+        }
+        loi.xoa();
+        gui = dt.partyId;
+        return { path: `/api/pricing/ho-so/${encodeURIComponent(dt.partyId)}/muc-rieng`, body: kq.body };
+      },
+      truocNap: (r) => ctx.hoSoMoi(gui, r as Api.HoaHongHoSoResponse),
+      xong: () => {
+        const tenCap = cap.selectedOptions[0]?.textContent ?? "";
+        ctx.baoOk(cauDaDatCapRieng(tenCap, doc().ten, hl.tu.value));
+      },
+    });
+  }
+
+  async function suaCapRieng(g: Api.GanRiengLichSuDto, partyId: string): Promise<void> {
+    const url = `/api/pricing/muc-rieng/${encodeURIComponent(g.id)}/sua`;
+    const xt = await xemTruocSua(url);
+    if (!xt) return;
+    const loi = taoBangLoi();
+    const cap = oCapMo("hh-scr-muc", g.muc.code);
+    const hl = oHieuLuc("hh-scr", loi, xt.duong === "HUY_THAY" ? g.tuNgay : xt.tuNgaySomNhat, g.denNgay);
+    if (xt.duong === "TU_NGAY") {
+      hl.tu.min = xt.tuNgaySomNhat;
+      if (xt.denNgayToiDa) hl.tu.max = xt.denNgayToiDa;
+    }
+    const lyDo = oLyDo("hh-scr-ly-do", loi);
+    moHop(ctx, {
+      title: "Sửa cấp riêng",
+      body: [
+        h("p", { class: "hint", role: "status" }, h("strong", null, cauXemTruocSua(xt, "cấp riêng này"))),
+        h("p", null, h("span", { class: "hh-nhan-nho" }, "Đối tác"), h("strong", null, tenDoiTac(partyId))),
+        h("div", null, h("label", null, "Cấp đại lý", cap), loi.dong("mucTa")),
+        hl.root,
+        lyDo.root,
+      ],
+      nhan: "Lưu sửa",
+      chuan() {
+        const kq = docThanGanRieng({ partyId, muc: cap.value, tuNgay: hl.tu.value, denNgay: hl.den() });
+        const ld = lyDo.doc();
+        if (!kq.ok || !ld.ok) {
+          loi.hien([...(kq.ok ? [] : kq.loi), ...(ld.ok ? [] : [{ truong: "lyDo", message: ld.message } satisfies LoiO])]);
+          return null;
+        }
+        loi.xoa();
+        return { path: url, body: { ...kq.body, lyDo: ld.value } };
+      },
+      truocNap: (r) => ctx.hoSoMoi(partyId, r as Api.HoaHongHoSoResponse),
+      xong: () => ctx.baoOk(CAU_DA_SUA_CAP_RIENG),
+    });
+  }
+
+  function ngungCapRieng(g: Api.GanRiengLichSuDto, partyId: string): void {
+    const ten = tenDoiTac(partyId);
+    hopNgay({
+      tuNgay: g.tuNgay,
+      moTa: cauNgungCapRieng(g.muc.ten, ten),
+      url: `/api/pricing/muc-rieng/${encodeURIComponent(g.id)}/ket-thuc`,
+      title: "Ngừng áp dụng",
+      nhan: "Ngừng áp dụng",
+      daXong: cauDaNgungCapRieng(g.muc.ten, ten),
+      truocNap: (r) => ctx.hoSoMoi(partyId, r as Api.HoaHongHoSoResponse),
+    });
+  }
+
   function hoiTen(o: { title: string; nhan: string; nhanO: string; path: string; xong: string }): void {
     const ten = h("input", { id: "hh-hoi-ten", type: "text", maxLength: 80, autocomplete: "off" });
     const loi = h("p", { class: "field-error", role: "alert", hidden: true });
@@ -585,5 +714,8 @@ export function taoMoHop(ctx: NguCanhHop): MoHop {
     else ctx.baoOk(`Đã áp dụng cấp «${r.gan.muc.ten}» cho loại «${r.gan.loai.ten}» từ ngày ${MA_NGAY(r.gan.tuNgay)}.`);
   }
 
-  return { themMuc, doi, sua: (x) => void sua(x), suaApDung: (x) => void suaApDung(x), ngung, ngungApDung, doiChinhSach, apDungChinhSach, themLoai, themChinhSach, guiNhanh };
+  return {
+    themMuc, doi, sua: (x) => void sua(x), suaApDung: (x) => void suaApDung(x), ngung, ngungApDung, doiChinhSach, apDungChinhSach, themLoai, themChinhSach, guiNhanh,
+    datCapRieng, suaCapRieng: (g, partyId) => void suaCapRieng(g, partyId), ngungCapRieng,
+  };
 }
