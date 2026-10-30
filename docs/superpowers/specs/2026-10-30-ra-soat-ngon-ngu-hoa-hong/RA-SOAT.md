@@ -71,3 +71,6 @@ Viết lại theo A1–A7: «1. ＋ Thêm cấp đại lý. 2. Mở cấp, bấm
 ## Điều chưa kiểm
 - Màn thật chưa xem ảnh; câu C2 cần đối chiếu máy chủ còn chặn đổi cấp trong cùng ngày không (chữ «Áp dụng từ hôm nay thì không đổi được trong cùng ngày» hiện có trong mã).
 - Chuỗi dựng từ nhiều mảnh (template nhiều dòng) có thể ngoài quét; thi công sẽ quét lại bằng bài cấm từ.
+
+## Chủ duyệt 30/10/2026
+Chủ chọn phương án 1 «Duyệt cả bộ»: thi công đúng bảng A–E ở trên. Mục A5 và C2: nếu máy chủ còn chặn đổi cấp trong cùng ngày thì giữ câu bổ sung.
