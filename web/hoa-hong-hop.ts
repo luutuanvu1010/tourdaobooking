@@ -12,6 +12,11 @@ import {
   cauCanhBaoDongRieng,
   cauCanhBaoTheoChinhSach,
   cauCapCuDangKhoa,
+  cauCapCuSeNgung,
+  CAU_CHON_NGAY_BAT_DAU,
+  NHAN_CAP_MOI,
+  NHAN_TU_NGAY,
+  TIEU_DE_DOI_CAP_RIENG,
   cauDaDatCapRieng,
   cauDaDoiCapRieng,
   cauDaNgungCapRieng,
@@ -30,7 +35,7 @@ import {
 import type { PermissionHolder } from "../src/shared/permissions";
 import { nhanDong, nhanTyLeBp } from "../src/shared/so-dai-ly-nhan";
 import { docLyDoSua, docNgayDong, docThanDoiMuc, docThanDongMucTa, docThanGan, docThanGanRieng, docThanMuc, ngayDongMacDinh, type FormMuc, type LoiO, type PhamViForm } from "../src/shared/so-dai-ly-nhap";
-import { addDays, ngayDayDu } from "../src/shared/vn-date";
+import { ngayDayDu } from "../src/shared/vn-date";
 import { api, type Api } from "./api";
 import { moBangTruot } from "./bang-truot";
 import { h, type Child } from "./dom";
@@ -529,16 +534,16 @@ export function taoMoHop(ctx: NguCanhHop): MoHop {
     const chon = h("select", { id: "hh-dcs-muc", "aria-label": "Cấp đại lý" }, h("option", { value: "" }, "— Chọn cấp đại lý —"), ...d.mucTa.muc.filter((m) => m.dangBat && m.code !== gan.muc.code).map((m) => h("option", { value: m.code }, m.ten)));
     const tu = h("input", { id: "hh-dcs-tu", type: "date", value: d.homNay, min: d.homNay });
     const loi = h("p", { class: "field-error", role: "alert", hidden: true });
-    const cauCu = (t: string): string => (/^\d{4}-\d{2}-\d{2}$/.test(t) ? `Cấp cũ ${gan.muc.ten} sẽ ngừng, đến hết ${MA_NGAY(addDays(t, -1))}.` : "");
+    const cauCu = (t: string): string => cauCapCuSeNgung(gan.muc.ten, t);
     const dong = h("p", { class: "hint", "aria-live": "polite" }, cauCu(d.homNay));
     tu.addEventListener("input", () => (dong.textContent = cauCu(tu.value)));
     moHop(ctx, {
       title: "Đổi cấp",
-      body: [h("p", null, h("span", { class: "hh-nhan-nho" }, "Loại đối tác"), h("strong", null, gan.loai.ten)), h("label", null, "Cấp mới", chon), h("label", null, "Từ", tu), dong, loi],
+      body: [h("p", null, h("span", { class: "hh-nhan-nho" }, "Loại đối tác"), h("strong", null, gan.loai.ten)), h("label", null, NHAN_CAP_MOI, chon), h("label", null, NHAN_TU_NGAY, tu), dong, loi],
       nhan: "Đổi cấp",
       chuan() {
         if (chon.value === "" || !/^\d{4}-\d{2}-\d{2}$/.test(tu.value)) {
-          loi.textContent = chon.value === "" ? "Chọn cấp đại lý." : "Chọn ngày bắt đầu.";
+          loi.textContent = chon.value === "" ? "Chọn cấp đại lý." : CAU_CHON_NGAY_BAT_DAU;
           loi.hidden = false;
           return null;
         }
@@ -689,20 +694,20 @@ export function taoMoHop(ctx: NguCanhHop): MoHop {
     const d = ctx.lay();
     const ten = tenDoiTac(partyId);
     const tuSom = ngayDoiSomNhat(g.tuNgay, d.homNay);
-    const chon = h("select", { id: "hh-dcr2-muc", "aria-label": "Cấp mới" }, h("option", { value: "" }, "— Chọn cấp đại lý —"), ...d.mucTa.muc.filter((m) => m.dangBat && m.code !== g.muc.code).map((m) => h("option", { value: m.code }, m.ten)));
+    const chon = h("select", { id: "hh-dcr2-muc", "aria-label": NHAN_CAP_MOI }, h("option", { value: "" }, "— Chọn cấp đại lý —"), ...d.mucTa.muc.filter((m) => m.dangBat && m.code !== g.muc.code).map((m) => h("option", { value: m.code }, m.ten)));
     const tu = h("input", { id: "hh-dcr2-tu", type: "date", value: tuSom, min: tuSom });
     const loi = h("p", { class: "field-error", role: "alert", hidden: true });
-    const cauCu = (t: string): string => (/^\d{4}-\d{2}-\d{2}$/.test(t) ? `Cấp cũ ${g.muc.ten} sẽ ngừng, đến hết ${MA_NGAY(addDays(t, -1))}.` : "");
+    const cauCu = (t: string): string => cauCapCuSeNgung(g.muc.ten, t);
     const dong = h("p", { class: "hint", "aria-live": "polite" }, cauCu(tuSom));
     tu.addEventListener("input", () => (dong.textContent = cauCu(tu.value)));
     const cauMai = cauDoiTuNgayMai(g.tuNgay, d.homNay);
     moHop(ctx, {
-      title: "Đổi cấp riêng",
+      title: TIEU_DE_DOI_CAP_RIENG,
       body: [
         h("p", null, h("span", { class: "hh-nhan-nho" }, "Đối tác"), h("strong", null, ten)),
         ...(g.muc.dangBat ? [] : [h("p", { class: "hint", role: "status" }, h("strong", null, cauCapCuDangKhoa(g.muc.ten)))]),
-        h("label", null, "Cấp mới", chon),
-        h("label", null, "Từ", tu),
+        h("label", null, NHAN_CAP_MOI, chon),
+        h("label", null, NHAN_TU_NGAY, tu),
         dong,
         ...(cauMai ? [h("p", { class: "hint" }, cauMai)] : []),
         loi,
@@ -710,7 +715,7 @@ export function taoMoHop(ctx: NguCanhHop): MoHop {
       nhan: "Đổi cấp",
       chuan() {
         if (chon.value === "" || !/^\d{4}-\d{2}-\d{2}$/.test(tu.value)) {
-          loi.textContent = chon.value === "" ? "Chọn cấp đại lý." : "Chọn ngày bắt đầu.";
+          loi.textContent = chon.value === "" ? "Chọn cấp đại lý." : CAU_CHON_NGAY_BAT_DAU;
           loi.hidden = false;
           return null;
         }

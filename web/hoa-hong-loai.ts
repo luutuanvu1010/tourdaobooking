@@ -10,7 +10,7 @@ import {
   CAU_LOAI_CO_SAN,
   CAU_NHAC_UU_TIEN,
   CAU_XEP_LOAI,
-  NHAN_CAP_KHOA_NGAN,
+  NHAN_CAP_DA_KHOA,
   cauLoaiTheoCap,
   cauSapApLoai,
   chiaLanGan,
@@ -76,7 +76,7 @@ function cumLoai(it: { loai: DuLieuHoaHong["loai"][number]; dong: Api.Commission
     const sua = coQuyenSua(d.nguoiDung);
     const viec = oViec(loai.ten, viecLanGan(cs.gan, { homNay: d.homNay, ghi, sua, coDoi: true }), "gan", { DOI: () => mo.doiChinhSach(cs.gan), SUA: () => mo.suaApDung(cs.gan), NGUNG: () => mo.ngungApDung(cs.gan) });
     dongCap.append(h("span", null, cauLoaiTheoCap(cs.muc.ten, cs.gan.tuNgay)));
-    if (!cs.muc.dangBat) dongCap.append(h("span", { class: "huy-hieu", "data-tong": "cat" }, icon("lock", 14), NHAN_CAP_KHOA_NGAN));
+    if (!cs.muc.dangBat) dongCap.append(h("span", { class: "huy-hieu", "data-tong": "cat" }, icon("lock", 14), NHAN_CAP_DA_KHOA));
     if (viec) dongCap.append(viec);
   } else {
     dongCap.append(h("span", { class: "muted" }, CAU_LOAI_CHUA_THEO_CAP));

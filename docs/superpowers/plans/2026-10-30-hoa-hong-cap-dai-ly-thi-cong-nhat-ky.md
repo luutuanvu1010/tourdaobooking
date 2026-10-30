@@ -258,3 +258,10 @@ Bằng chứng: `docs/evidence/2026-10-30-hoa-hong-cap-dai-ly/ket-qua-phan-2.md`
 
 **Step 4 — `git diff 67a19357 --stat`** (mốc = commit Task 13): 109 tệp, gồm (1) tệp ADR-0151 «Tệp được chạm»: `src/modules/pricing/{index,repository}.ts`, `doi-cap-rieng.test.ts`, `so-dai-ly-quyen-route.test.ts`, `route-access.test.ts`, `lan-gui-phu-route.test.ts`, `docs/SO-HANG-RAO.md`, `docs/SYSTEM-DESIGN.md`, `huong-dan-ke-toan.ts`, `changelog.ts`, `hoa-hong-hien-thi(.test).ts`, `web/hoa-hong-hop.ts`, `web/hoa-hong-doi-tac.ts`, `hoa-hong-smoke.mjs`; (2) bằng chứng và nhật ký đã ghi từ Task 14 và 17 (`docs/evidence/2026-10-30-hoa-hong-cap-dai-ly/`, nhật ký này); (3) lệch hỗ trợ `web/hoa-hong-cap.ts`. `rules.ts`, `migrations/`, `contracts.ts`, `permissions.ts`, `web/parties.ts` không có trong diff. Không có tệp nào ngoài ba nhóm.
 
+
+## Sửa sau QA2
+
+Hai phát hiện của QA2 độc lập (`docs/evidence/2026-10-30-hoa-hong-cap-dai-ly/QA2.md`, S2 và S3). Không đổi mã máy chủ, `rules.ts`, `migrations/`, `contracts.ts`, `permissions.ts`.
+
+- **S2 — chữ hộp «Đổi cấp» ra khỏi `web/`.** Thêm vào `src/shared/hoa-hong-hien-thi.ts`: `TIEU_DE_DOI_CAP_RIENG`, `NHAN_CAP_MOI`, `NHAN_TU_NGAY`, `CAU_CHON_NGAY_BAT_DAU` và hàm `cauCapCuSeNgung(tenCapCu, tuNgay)` dùng chung cho hai hộp (`doiChinhSach`, `doiCapRieng`), thay hai bản `cauCu` chép đôi ở `web/hoa-hong-hop.ts`. Ghim chữ bằng bài ở `hoa-hong-hien-thi.test.ts`. Không đổi hành vi hay câu chữ.
+- **S3 — huy hiệu cấp khoá đầy đủ.** `web/hoa-hong-loai.ts` (thẻ loại) và `web/hoa-hong-doi-tac.ts` (hai chỗ: cấp riêng, loại đối tác) dùng `NHAN_CAP_DA_KHOA` thay `NHAN_CAP_KHOA_NGAN`. Chữ ngắn chỉ còn ở tiêu đề cột ma trận và chip điện thoại của `web/hoa-hong-cap.ts`. Không thêm hàm chọn dạng nên không có bài đỏ mới; kịch bản smoke không khẳng định chữ ngắn ở các thẻ này (đã grep), nên không sửa và không chạy lại Chrome.

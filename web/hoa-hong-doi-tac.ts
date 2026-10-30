@@ -12,7 +12,7 @@ import {
   CAU_KHONG_CO_DOI_TAC_RIENG,
   CAU_KHONG_KHOP_LOC,
   CAU_XUNG_DOT,
-  NHAN_CAP_KHOA_NGAN,
+  NHAN_CAP_DA_KHOA,
   NHAN_XUNG_DOT,
   cauVaiHoSo,
   chiaLanGan,
@@ -64,7 +64,7 @@ function khoiCapRieng(r: Api.HoaHongHoSoResponse, x: DoiTacRieng, d: DuLieuHoaHo
       "li",
       { "data-gan-id": g.id, "data-sap-ap": sap ? "" : null },
       h("span", null, h("strong", null, nhanCapRieng(g.muc.ten)), " · ", sap ? h("span", { class: "badge badge-draft" }, nhanSapAp(g)) : h("span", { class: "muted" }, nhanHieuLuc(g))),
-      !g.muc.dangBat && huyHieu("cat", "lock", NHAN_CAP_KHOA_NGAN),
+      !g.muc.dangBat && huyHieu("cat", "lock", NHAN_CAP_DA_KHOA),
       oViec(nhanCapRieng(g.muc.ten), viecLanGan(g, { homNay: r.homNay, ghi, sua, coDoi: true }), "gan", { DOI: () => mo.doiCapRieng(g, x.partyId), SUA: () => mo.suaCapRieng(g, x.partyId), NGUNG: () => mo.ngungCapRieng(g, x.partyId) }),
     );
   const ds = [...k.dangAp.map((g) => dong(g, false)), ...k.sapAp.map((g) => dong(g, true))];
@@ -92,7 +92,7 @@ function noiDungCum(x: DoiTacRieng, d: DuLieuHoaHong, mo: MoHop): Child[] {
     if (r.vai.length > 0) {
       out.push(
         h("h3", null, "Loại đối tác"),
-        h("ul", { class: "hh-tl-gan" }, ...r.vai.map((v) => h("li", null, h("span", null, h("strong", null, v.loai.ten), " · ", h("span", { class: "muted" }, cauVaiHoSo(v))), v.muc !== null && !v.muc.dangBat && huyHieu("cat", "lock", NHAN_CAP_KHOA_NGAN)))),
+        h("ul", { class: "hh-tl-gan" }, ...r.vai.map((v) => h("li", null, h("span", null, h("strong", null, v.loai.ten), " · ", h("span", { class: "muted" }, cauVaiHoSo(v))), v.muc !== null && !v.muc.dangBat && huyHieu("cat", "lock", NHAN_CAP_DA_KHOA)))),
       );
     }
     if (r.mucRieng) out.push(h("p", { class: "hint" }, CAU_CAP_RIENG_BO_CAP_LOAI));

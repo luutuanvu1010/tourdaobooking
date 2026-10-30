@@ -429,6 +429,13 @@ test("§5.2 §5.4 §3 §3.3 câu hộp, huy hiệu, ô trống, xung đột, toa
     nhanNguyHiem: "Tắt loại",
   });
   assert.equal(HT.NHAN_CAP_DA_KHOA, "Đã khoá — vẫn áp cho loại và đối tác đang theo");
+  assert.equal(HT.TIEU_DE_DOI_CAP_RIENG, "Đổi cấp riêng");
+  assert.equal(HT.NHAN_CAP_MOI, "Cấp mới");
+  assert.equal(HT.NHAN_TU_NGAY, "Từ");
+  assert.equal(HT.CAU_CHON_NGAY_BAT_DAU, "Chọn ngày bắt đầu.");
+  assert.equal(HT.cauCapCuSeNgung("Cấp 3", "2026-11-01"), "Cấp cũ Cấp 3 sẽ ngừng, đến hết 31/10/2026.");
+  assert.equal(HT.cauCapCuSeNgung("Cấp 3", ""), "");
+  assert.equal(HT.cauCapCuSeNgung("Cấp 3", "2026-11"), "");
   assert.equal(HT.CAU_O_TRONG, "Ô «—»: cấp không có dòng riêng cho ô này; đơn sẽ theo dòng rộng hơn của cấp (nhóm dịch vụ hoặc mọi dịch vụ) nếu có. Muốn biết mức chắc chắn: dùng Tra nhanh.");
   assert.equal(HT.NHAN_XUNG_DOT, "Xung đột mức");
   assert.equal(

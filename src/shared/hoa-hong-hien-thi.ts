@@ -6,7 +6,7 @@ import { ngayVN } from "./giay-to-hien-thi.ts";
 import { demDai, xepTheoPhu, type DichVuPhu, type KetQuaCap, type KetQuaPhu } from "./hoa-hong-phu-muc.ts";
 import { can, holdsPartner, type PermissionHolder } from "./permissions.ts";
 import { CAU_THIEU_MUC, nhanDong, nhanMuc, nhanTyLeBp } from "./so-dai-ly-nhan.ts";
-import { addDays } from "./vn-date.ts";
+import { addDays, ngayDayDu } from "./vn-date.ts";
 
 export const CAU_KHONG_CO_QUYEN_XEM = "Bạn không có quyền xem trang này.";
 /** Thay ô tìm đối tác ở người không qua cổng của route tìm người hưởng (xem `coTheTimDoiTac`). */
@@ -548,3 +548,12 @@ export const CAU_XEP_LOAI = "Xếp một đối tác vào loại: làm ở hồ 
 export const CAU_LOAI_CHUA_THEO_CAP = "Chưa theo cấp đại lý nào";
 export const CAU_LOAI_CHUA_CO_MUC_RIENG = "Loại này chưa có mức riêng.";
 export const cauLoaiTheoCap = (tenCap: string, tuNgay: string): string => `Đang theo cấp ${tenCap} · áp dụng từ ${ngayVN(tuNgay)}`;
+
+// Hộp «Đổi cấp» (loại) và «Đổi cấp riêng» (đối tác) dùng chung: chữ ở đây, web/ chỉ dựng ô.
+export const TIEU_DE_DOI_CAP_RIENG = "Đổi cấp riêng";
+export const NHAN_CAP_MOI = "Cấp mới";
+export const NHAN_TU_NGAY = "Từ";
+export const CAU_CHON_NGAY_BAT_DAU = "Chọn ngày bắt đầu.";
+/** Câu dưới ô «Từ»: cấp cũ ngừng đến hết ngày trước ngày bắt đầu; ngày chưa hợp lệ thì để trống. */
+export const cauCapCuSeNgung = (tenCapCu: string, tuNgay: string): string =>
+  /^\d{4}-\d{2}-\d{2}$/.test(tuNgay) ? `Cấp cũ ${tenCapCu} sẽ ngừng, đến hết ${ngayDayDu(addDays(tuNgay, -1))}.` : "";
