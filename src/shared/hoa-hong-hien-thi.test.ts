@@ -515,3 +515,90 @@ test("dải: chỉ có loại tắt ⇒ chỉ dòng loại tắt, không tiêu �
 test("§3.2 docThe: khoá cũ và rác mở thẻ cấp", () => {
   for (const g of ["ap-dung", "thiet-lap", "rác", "", null]) assert.equal(HT.docThe(g), "cap");
 });
+
+// ---- Task 8: ma trận các cấp đại lý (đặc tả hoa-hong-cap-dai-ly Q-4, §5.4, tiêu chí 1) ----
+import type { GanLoaiMucDto, MucTaDto } from "./contracts.ts";
+
+const dongCap = (cap: string, o: Partial<CommissionRuleDto>): CommissionRuleDto => ({
+  id: `${cap}-${o.id ?? "x"}`, doiTuong: { loai: "MUC", code: cap, ten: cap }, phamVi: "ALL", catalogCode: null, groupCode: null, kieu: "RATE", tyLeBp: 1000, moiKhach: null,
+  theoLoai: null, tuNgay: "2026-01-01", denNgay: null, ghiChu: null, conHieuLuc: true, daHuy: false, thayCho: null, lyDoSua: null, ...o,
+});
+const cap = (code: string, ten: string, dong: CommissionRuleDto[], dangBat = true): MucTaDto => ({ code, ten, dangBat, dong, gan: [] });
+const DM_DV = [
+  { code: "S1", name: "Hòn Tằm", groupCode: "G1" },
+  { code: "S2", name: "Hòn Mun", groupCode: "G1" },
+  { code: "S3", name: "Xe đón", groupCode: "G2" },
+];
+const DM_NHOM = [{ code: "G1", name: "Đảo" }, { code: "G2", name: "Xe" }];
+
+test("tiêu chí 1: cấp chỉ có dòng nhóm G1 ⇒ ô Mọi dịch vụ và ô dịch vụ của G1 là null", () => {
+  const a = cap("A", "Cấp A", [dongCap("A", { id: "g1", phamVi: "GROUP", groupCode: "G1", tyLeBp: 1500 })]);
+  // Cấp B có dòng ở dịch vụ S1 (thuộc G1) và ở «Mọi dịch vụ» ⇒ hai hàng đó có mặt; ô của cấp A ở đó phải «—», không kế thừa dòng nhóm.
+  const b = cap("B", "Cấp B", [dongCap("B", { id: "s1", phamVi: "SERVICE", catalogCode: "S1", tyLeBp: 800 }), dongCap("B", { id: "all", tyLeBp: 500 })]);
+  const mt = HT.maTranCap({ muc: [a, b], dichVu: DM_DV, nhom: DM_NHOM, homNay: HOM_NAY });
+  const iA = mt.cot.findIndex((c) => c.code === "A");
+  const hang = (pv: string, code: string | null) => mt.hang.find((x) => x.phamVi === pv && x.code === code);
+  assert.ok(hang("ALL", null), "hàng «Mọi dịch vụ» luôn có");
+  assert.equal(hang("ALL", null)!.ten, "Mọi dịch vụ");
+  assert.equal(hang("ALL", null)!.o[iA]!.nhan, null);
+  assert.ok(hang("SERVICE", "S1"), "hàng dịch vụ S1 có vì cấp B có dòng ở đó");
+  assert.equal(hang("SERVICE", "S1")!.o[iA]!.nhan, null);
+  assert.deepEqual(hang("GROUP", "G1")!.o[iA]!.nhan, ["15%"]);
+  // Hàng không ai có dòng thì không hiện.
+  assert.equal(hang("SERVICE", "S2"), undefined);
+  assert.equal(hang("GROUP", "G2"), undefined);
+  assert.deepEqual(mt.hang.map((x) => `${x.phamVi}:${x.code ?? ""}`), ["ALL:", "GROUP:G1", "SERVICE:S1"]);
+});
+
+test("cột theo tên, so số tự nhiên: Cấp 2 trước Cấp 10", () => {
+  const c10 = cap("C10", "Cấp 10", [dongCap("C10", { id: "a", tyLeBp: 1000 })], false);
+  const c2 = cap("C2", "Cấp 2", [dongCap("C2", { id: "a", tyLeBp: 200 })]);
+  const mt = HT.maTranCap({ muc: [c10, c2], dichVu: DM_DV, nhom: DM_NHOM, homNay: HOM_NAY });
+  assert.deepEqual(mt.cot, [{ code: "C2", ten: "Cấp 2", dangBat: true }, { code: "C10", ten: "Cấp 10", dangBat: false }]);
+  assert.deepEqual(mt.hang[0]!.o.map((x) => x.nhan), [["2%"], ["10%"]], "ô thẳng hàng với cột đã xếp, không theo thứ tự đầu vào");
+});
+
+test("dòng sắp áp có nhãn từ ngày; dòng đã ngừng, đã huỷ không vào ô", () => {
+  const a = cap("A", "Cấp A", [
+    dongCap("A", { id: "dang", tyLeBp: 1000 }),
+    dongCap("A", { id: "sap", tyLeBp: 1200, tuNgay: "2026-11-01", conHieuLuc: false }),
+    dongCap("A", { id: "ngung", tyLeBp: 900, tuNgay: "2025-01-01", denNgay: "2025-12-31", conHieuLuc: false }),
+    dongCap("A", { id: "huy", tyLeBp: 700, denNgay: null, conHieuLuc: false, daHuy: true }),
+    dongCap("A", { id: "huy-dv", phamVi: "SERVICE", catalogCode: "S3", tyLeBp: 700, conHieuLuc: false, daHuy: true }),
+  ]);
+  const mt = HT.maTranCap({ muc: [a], dichVu: DM_DV, nhom: DM_NHOM, homNay: HOM_NAY });
+  assert.deepEqual(mt.hang.map((x) => x.phamVi), ["ALL"], "dòng đã huỷ không làm hiện hàng dịch vụ");
+  assert.deepEqual(mt.hang[0]!.o[0]!.nhan, ["10%", "12% từ 01/11/2026"]);
+});
+
+test("ma trận: dòng trỏ nhóm hay dịch vụ không còn trong danh mục vẫn có hàng (không giấu mức có thật)", () => {
+  const a = cap("A", "Cấp A", [dongCap("A", { id: "x", phamVi: "SERVICE", catalogCode: "CU", tyLeBp: 300 })]);
+  const mt = HT.maTranCap({ muc: [a], dichVu: DM_DV, nhom: DM_NHOM, homNay: HOM_NAY });
+  const h = mt.hang.find((x) => x.code === "CU");
+  assert.ok(h);
+  assert.deepEqual(h.o[0]!.nhan, ["3%"]);
+});
+
+test("bảng «Mức của cấp»: cách tính và ba cột người lớn · trẻ em · người cao tuổi; không theo loại khách thì hai cột sau «—»", () => {
+  assert.deepEqual(HT.cotMucCap(dongCap("A", { kieu: "RATE", tyLeBp: 1250 })), { cachTinh: "Phần trăm", nguoiLon: "12,5%", treEm: "—", nguoiCaoTuoi: "—" });
+  assert.deepEqual(HT.cotMucCap(dongCap("A", { kieu: "PER_PAX", tyLeBp: null, moiKhach: 50000 })), { cachTinh: "Số tiền mỗi khách", nguoiLon: "50.000đ", treEm: "—", nguoiCaoTuoi: "—" });
+  assert.deepEqual(
+    HT.cotMucCap(dongCap("A", { kieu: "PER_PAX", tyLeBp: null, moiKhach: 50000, theoLoai: { nguoiLon: 50000, treEm: 30000, nguoiCaoTuoi: 0 } })),
+    { cachTinh: "Số tiền mỗi khách", nguoiLon: "50.000đ", treEm: "30.000đ", nguoiCaoTuoi: "0đ" },
+  );
+});
+
+test("chi tiết cấp: đếm loại đang theo và đối tác có cấp riêng hôm nay; câu đếm, nhãn việc", () => {
+  const g = (id: string, o: Partial<GanLoaiMucDto>): GanLoaiMucDto => ({ id, loai: { code: id, ten: id }, muc: { code: "A", ten: "Cấp A" }, tuNgay: "2026-01-01", denNgay: null, conHieuLuc: true, daHuy: false, thayCho: null, lyDoSua: null, ...o });
+  const a: MucTaDto = { ...cap("A", "Cấp A", []), gan: [g("L1", {}), g("L2", { tuNgay: "2026-12-01", conHieuLuc: false }), g("L3", { conHieuLuc: false, denNgay: "2026-01-31" })] };
+  const rieng = [
+    { id: "r1", partyId: "p1", ten: "P1", muc: "A", tenMuc: "Cấp A", tuNgay: "2026-01-01", denNgay: null },
+    { id: "r2", partyId: "p2", ten: "P2", muc: "A", tenMuc: "Cấp A", tuNgay: "2026-12-01", denNgay: null },
+    { id: "r3", partyId: "p3", ten: "P3", muc: "B", tenMuc: "Cấp B", tuNgay: "2026-01-01", denNgay: null },
+  ];
+  assert.deepEqual(HT.demTheoCap(a, rieng, HOM_NAY), { loai: 1, doiTac: 1 });
+  assert.equal(HT.cauDemCap({ loai: 1, doiTac: 0 }), "Đang áp dụng cho 1 loại đối tác và 0 đối tác có cấp riêng.");
+  assert.deepEqual([HT.nhanViec("DOI", "dong"), HT.nhanViec("SUA", "dong"), HT.nhanViec("NGUNG", "dong")], ["Đổi", "Sửa", "Ngừng"]);
+  assert.deepEqual([HT.nhanViec("DOI", "gan"), HT.nhanViec("SUA", "gan"), HT.nhanViec("NGUNG", "gan")], ["Đổi cấp", "Sửa", "Ngừng áp dụng"]);
+  assert.equal(HT.nhanViecKhac("Mọi dịch vụ"), "Việc khác: Mọi dịch vụ");
+});

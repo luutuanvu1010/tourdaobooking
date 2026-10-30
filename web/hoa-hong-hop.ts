@@ -1,4 +1,4 @@
-// Hộp trượt của trang «Hoa hồng đối tác» (PR 2, đợt 2): Thêm mức, Đổi, Ngừng, Sửa (ADR-0148), Đổi chính sách, Áp dụng chính sách cho loại. Mỗi hộp là `moBangTruot`; gửi xong thì đóng hộp, `napLai`
+// Hộp trượt của trang «Hoa hồng đối tác» (PR 2, đợt 2): Thêm mức, Đổi, Ngừng, Sửa (ADR-0148), Đổi cấp, Áp dụng cấp cho loại. Mỗi hộp là `moBangTruot`; gửi xong thì đóng hộp, `napLai`
 // vẽ lại trang; lỗi máy chủ (400/409) hiện NGUYÊN câu của máy chủ trong hộp (`.sheet-warn`), hộp giữ mở, nút bấm lại được.
 // Gọi (ghi): POST /api/pricing/hoa-hong, /hoa-hong/:id/doi, /hoa-hong/:id/dong, /hoa-hong/:id/sua, /muc-ta/:code/dong, /muc-ta/gan, /muc-ta/gan/:id/doi, /muc-ta/gan/:id/ket-thuc,
 // /muc-ta/gan/:id/sua. Đọc trước khi mở hộp Sửa: GET /hoa-hong/:id/sua, /muc-ta/gan/:id/sua (đường huỷ–thay hay «từ ngày» do máy chủ quyết, giao diện không đoán).
@@ -33,17 +33,17 @@ export interface MoHop {
   doi(d: Api.CommissionRuleDto): void;
   /** ADR-0148 Đ1: hỏi máy chủ đường Sửa (GET …/sua) rồi mở hộp Sửa điền sẵn mức cũ; lý do bắt buộc. */
   sua(d: Api.CommissionRuleDto): void;
-  /** ADR-0148 Đ1: Sửa một lần áp dụng chính sách cho loại (chính sách + hai ngày), lý do bắt buộc. */
+  /** ADR-0148 Đ1: Sửa một lần áp dụng cấp đại lý cho loại (cấp + hai ngày), lý do bắt buộc. */
   suaApDung(gan: Api.GanLoaiMucDto): void;
-  /** `moTa` thay câu mô tả mặc định khi không có dòng mức để mô tả (vd ngừng một lần áp dụng chính sách cho loại). */
+  /** `moTa` thay câu mô tả mặc định khi không có dòng mức để mô tả (vd ngừng một lần áp dụng cấp đại lý cho loại). */
   ngung(d: Api.CommissionRuleDto, url: string, moTa?: string): void;
-  /** Ngừng một lần áp dụng chính sách cho loại (R21): chọn ngày cuối, `POST /api/pricing/muc-ta/gan/:id/ket-thuc`. */
+  /** Ngừng một lần áp dụng cấp đại lý cho loại (R21): chọn ngày cuối, `POST /api/pricing/muc-ta/gan/:id/ket-thuc`. */
   ngungApDung(gan: Api.GanLoaiMucDto): void;
   doiChinhSach(gan: Api.GanLoaiMucDto): void;
   apDungChinhSach(muc: Api.MucTaDto): void;
   /** Hộp chỉ hỏi tên → thêm loại đối tác (`POST /api/pricing/loai-doi-tac`). */
   themLoai(): void;
-  /** Hộp chỉ hỏi tên → thêm chính sách (`POST /api/pricing/muc-ta`). */
+  /** Hộp chỉ hỏi tên → thêm cấp đại lý (`POST /api/pricing/muc-ta`). */
   themChinhSach(): void;
   /** Lệnh một bước không cần hộp (Tắt / Bật): gửi, nạp lại trang; trả câu lỗi nguyên văn của máy chủ, hoặc null nếu xong. */
   guiNhanh(path: string, thongBao: string): Promise<string | null>;
@@ -189,7 +189,7 @@ function dungCachTinh(o: { tienTo: string; loi: BangLoi; homNay: string; tuMacDi
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------
 
-/** Khung vàng sau khi áp dụng chính sách mà máy chủ báo còn mức riêng thắng (`dongRieng`). */
+/** Khung vàng sau khi áp dụng cấp đại lý mà máy chủ báo còn mức riêng thắng (`dongRieng`). */
 function khungDongRieng(r: Api.GanLoaiMucResponse, d: DuLieuHoaHong): HTMLElement {
   return h(
     "div",
@@ -213,8 +213,8 @@ export function taoMoHop(ctx: NguCanhHop): MoHop {
     let tuLoai: () => string | null = () => null;
     if (dich?.loai === "MUC") {
       const tenMuc = d.mucTa.muc.find((m) => m.code === dich.code)?.ten ?? "";
-      ai = h("p", null, h("strong", null, `Chính sách ${tenMuc}`));
-      tenAi = () => `Chính sách ${tenMuc}`;
+      ai = h("p", null, h("strong", null, `Cấp ${tenMuc}`));
+      tenAi = () => `Cấp ${tenMuc}`;
     } else {
       const loaiVai = h("input", { type: "radio", class: "o-tick", name: "hh-hop-ai", value: "VAI", checked: dich?.loai !== "DOI_TAC" });
       const loaiDt = h("input", { type: "radio", class: "o-tick", name: "hh-hop-ai", value: "DOI_TAC", checked: dich?.loai === "DOI_TAC" });
@@ -284,7 +284,7 @@ export function taoMoHop(ctx: NguCanhHop): MoHop {
       canh.hidden = cs === null;
     };
     moHop(ctx, {
-      title: laMuc ? "Thêm mức vào chính sách" : "Thêm mức",
+      title: laMuc ? "Thêm mức vào cấp" : "Thêm mức",
       body: [
         h("fieldset", { class: "hh-nhom" }, h("legend", null, "Ai được hưởng"), ai, loi.dong("doiTuong")),
         dichVu,
@@ -305,7 +305,7 @@ export function taoMoHop(ctx: NguCanhHop): MoHop {
       },
       xong: () => ctx.baoOk("Đã thêm mức."),
     });
-    // Câu «Sẽ tạo» và cảnh báo chính sách cập nhật theo mọi thay đổi ở ba khối ô.
+    // Câu «Sẽ tạo» và cảnh báo cấp đại lý cập nhật theo mọi thay đổi ở ba khối ô.
     for (const k of [ai, dichVu, ct.root]) {
       k.addEventListener("input", veCau);
       k.addEventListener("change", veCau);
@@ -416,7 +416,7 @@ export function taoMoHop(ctx: NguCanhHop): MoHop {
     if (!xt) return;
     const d = ctx.lay();
     const loi = taoBangLoi();
-    const chon = h("select", { id: "hh-sua-gan-muc", "aria-label": "Chính sách" }, h("option", { value: "" }, "— Chọn chính sách —"), ...d.mucTa.muc.filter((m) => m.dangBat).map((m) => h("option", { value: m.code }, m.ten)));
+    const chon = h("select", { id: "hh-sua-gan-muc", "aria-label": "Cấp đại lý" }, h("option", { value: "" }, "— Chọn cấp đại lý —"), ...d.mucTa.muc.filter((m) => m.dangBat).map((m) => h("option", { value: m.code }, m.ten)));
     chon.value = d.mucTa.muc.some((m) => m.dangBat && m.code === gan.muc.code) ? gan.muc.code : "";
     const tu = h("input", { id: "hh-sua-gan-tu", type: "date", value: xt.duong === "HUY_THAY" ? gan.tuNgay : xt.tuNgaySomNhat });
     if (xt.duong === "TU_NGAY") {
@@ -429,11 +429,11 @@ export function taoMoHop(ctx: NguCanhHop): MoHop {
     denChon.addEventListener("change", () => (den.hidden = denChon.value !== "NGAY"));
     const lyDo = oLyDo("hh-sua-gan-ly-do", loi);
     moHop(ctx, {
-      title: "Sửa áp dụng chính sách",
+      title: "Sửa áp dụng cấp",
       body: [
-        h("p", { class: "hint", role: "status" }, h("strong", null, cauXemTruocSua(xt, "chính sách này"))),
+        h("p", { class: "hint", role: "status" }, h("strong", null, cauXemTruocSua(xt, "cấp đại lý này"))),
         h("p", null, h("span", { class: "hh-nhan-nho" }, "Loại đối tác"), h("strong", null, gan.loai.ten)),
-        h("div", null, h("label", null, "Chính sách", chon), loi.dong("mucTa")),
+        h("div", null, h("label", null, "Cấp đại lý", chon), loi.dong("mucTa")),
         h("fieldset", { class: "hh-nhom" }, h("legend", null, "Hiệu lực"),
           h("div", { class: "grid two" }, h("div", null, h("label", null, "Từ", tu), loi.dong("tuNgay")), h("div", null, h("label", null, "Đến", denChon), den, loi.dong("denNgay")))),
         lyDo.root,
@@ -453,12 +453,12 @@ export function taoMoHop(ctx: NguCanhHop): MoHop {
       xong: (r) => {
         const x = r as Api.SuaGanLoaiResponse;
         if (x.dongRieng.length > 0) ctx.canhBao(khungDongRieng({ gan: x.moi, dongRieng: x.dongRieng }, ctx.lay()));
-        else ctx.baoOk(`Đã sửa: loại «${x.moi.loai.ten}» theo chính sách «${x.moi.muc.ten}» từ ngày ${MA_NGAY(x.moi.tuNgay)}.`);
+        else ctx.baoOk(`Đã sửa: loại «${x.moi.loai.ten}» theo cấp «${x.moi.muc.ten}» từ ngày ${MA_NGAY(x.moi.tuNgay)}.`);
       },
     });
   }
 
-  /** Hộp «chọn ngày cuối hiệu lực» dùng chung cho Ngừng một mức và Ngừng áp dụng một chính sách. */
+  /** Hộp «chọn ngày cuối hiệu lực» dùng chung cho Ngừng một mức và Ngừng áp dụng một cấp đại lý. */
   function hopNgay(o: { tuNgay: string; moTa: string; url: string; title: string; nhan: string; daXong: string }): void {
     const d = ctx.lay();
     const ngay = h("input", { id: "hh-ngung-ngay", type: "date", value: ngayDongMacDinh(d.homNay, o.tuNgay), min: o.tuNgay });
@@ -489,29 +489,29 @@ export function taoMoHop(ctx: NguCanhHop): MoHop {
   function ngungApDung(gan: Api.GanLoaiMucDto): void {
     hopNgay({
       tuNgay: gan.tuNgay,
-      moTa: `Ngừng áp dụng chính sách ${gan.muc.ten} cho loại ${gan.loai.ten}`,
+      moTa: `Ngừng áp dụng cấp ${gan.muc.ten} cho loại ${gan.loai.ten}`,
       url: `/api/pricing/muc-ta/gan/${encodeURIComponent(gan.id)}/ket-thuc`,
       title: "Ngừng áp dụng",
       nhan: "Ngừng áp dụng",
-      daXong: `Đã ngừng áp dụng chính sách «${gan.muc.ten}» cho loại «${gan.loai.ten}».`,
+      daXong: `Đã ngừng áp dụng cấp «${gan.muc.ten}» cho loại «${gan.loai.ten}».`,
     });
   }
 
   function doiChinhSach(gan: Api.GanLoaiMucDto): void {
     const d = ctx.lay();
-    const chon = h("select", { id: "hh-dcs-muc", "aria-label": "Chính sách" }, h("option", { value: "" }, "— Chọn chính sách —"), ...d.mucTa.muc.filter((m) => m.dangBat && m.code !== gan.muc.code).map((m) => h("option", { value: m.code }, m.ten)));
+    const chon = h("select", { id: "hh-dcs-muc", "aria-label": "Cấp đại lý" }, h("option", { value: "" }, "— Chọn cấp đại lý —"), ...d.mucTa.muc.filter((m) => m.dangBat && m.code !== gan.muc.code).map((m) => h("option", { value: m.code }, m.ten)));
     const tu = h("input", { id: "hh-dcs-tu", type: "date", value: d.homNay, min: d.homNay });
     const loi = h("p", { class: "field-error", role: "alert", hidden: true });
-    const cauCu = (t: string): string => (/^\d{4}-\d{2}-\d{2}$/.test(t) ? `Chính sách cũ ${gan.muc.ten} sẽ ngừng, đến hết ${MA_NGAY(addDays(t, -1))}.` : "");
+    const cauCu = (t: string): string => (/^\d{4}-\d{2}-\d{2}$/.test(t) ? `Cấp cũ ${gan.muc.ten} sẽ ngừng, đến hết ${MA_NGAY(addDays(t, -1))}.` : "");
     const dong = h("p", { class: "hint", "aria-live": "polite" }, cauCu(d.homNay));
     tu.addEventListener("input", () => (dong.textContent = cauCu(tu.value)));
     moHop(ctx, {
-      title: "Đổi chính sách",
-      body: [h("p", null, h("span", { class: "hh-nhan-nho" }, "Loại đối tác"), h("strong", null, gan.loai.ten)), h("label", null, "Chính sách mới", chon), h("label", null, "Từ", tu), dong, loi],
-      nhan: "Đổi chính sách",
+      title: "Đổi cấp",
+      body: [h("p", null, h("span", { class: "hh-nhan-nho" }, "Loại đối tác"), h("strong", null, gan.loai.ten)), h("label", null, "Cấp mới", chon), h("label", null, "Từ", tu), dong, loi],
+      nhan: "Đổi cấp",
       chuan() {
         if (chon.value === "" || !/^\d{4}-\d{2}-\d{2}$/.test(tu.value)) {
-          loi.textContent = chon.value === "" ? "Chọn chính sách." : "Chọn ngày bắt đầu.";
+          loi.textContent = chon.value === "" ? "Chọn cấp đại lý." : "Chọn ngày bắt đầu.";
           loi.hidden = false;
           return null;
         }
@@ -528,8 +528,8 @@ export function taoMoHop(ctx: NguCanhHop): MoHop {
     const tu = h("input", { id: "hh-adcs-tu", type: "date", value: d.homNay });
     const loi = h("p", { class: "field-error", role: "alert", hidden: true });
     moHop(ctx, {
-      title: "Áp dụng chính sách cho loại",
-      body: [h("p", null, h("span", { class: "hh-nhan-nho" }, "Chính sách"), h("strong", null, muc.ten)), h("label", null, "Loại đối tác", loai), h("label", null, "Từ", tu), loi],
+      title: "Áp dụng cấp cho loại",
+      body: [h("p", null, h("span", { class: "hh-nhan-nho" }, "Cấp đại lý"), h("strong", null, muc.ten)), h("label", null, "Loại đối tác", loai), h("label", null, "Từ", tu), loi],
       nhan: "Áp dụng",
       chuan() {
         const kq = docThanGan({ loai: loai.value, muc: muc.code, tuNgay: tu.value, denNgay: "" });
@@ -565,7 +565,7 @@ export function taoMoHop(ctx: NguCanhHop): MoHop {
     });
   }
   const themLoai = (): void => hoiTen({ title: "Thêm loại", nhan: "Thêm loại", nhanO: "Tên loại đối tác", path: "/api/pricing/loai-doi-tac", xong: "Đã thêm loại." });
-  const themChinhSach = (): void => hoiTen({ title: "Thêm chính sách", nhan: "Thêm chính sách", nhanO: "Tên chính sách", path: "/api/pricing/muc-ta", xong: "Đã thêm chính sách." });
+  const themChinhSach = (): void => hoiTen({ title: "Thêm cấp đại lý", nhan: "Thêm cấp đại lý", nhanO: "Tên cấp đại lý", path: "/api/pricing/muc-ta", xong: "Đã thêm cấp đại lý." });
   async function guiNhanh(path: string, thongBao: string): Promise<string | null> {
     ctx.baoOk(null);
     try {
@@ -580,7 +580,7 @@ export function taoMoHop(ctx: NguCanhHop): MoHop {
 
   function ketQuaGan(r: Api.GanLoaiMucResponse): void {
     if (r.dongRieng.length > 0) ctx.canhBao(khungDongRieng(r, ctx.lay()));
-    else ctx.baoOk(`Đã áp dụng chính sách «${r.gan.muc.ten}» cho loại «${r.gan.loai.ten}» từ ngày ${MA_NGAY(r.gan.tuNgay)}.`);
+    else ctx.baoOk(`Đã áp dụng cấp «${r.gan.muc.ten}» cho loại «${r.gan.loai.ten}» từ ngày ${MA_NGAY(r.gan.tuNgay)}.`);
   }
 
   return { themMuc, doi, sua: (x) => void sua(x), suaApDung: (x) => void suaApDung(x), ngung, ngungApDung, doiChinhSach, apDungChinhSach, themLoai, themChinhSach, guiNhanh };

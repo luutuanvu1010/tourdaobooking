@@ -137,14 +137,14 @@ Người bán dịch vụ làm tương tự ở trang [[Người bán dịch v�
 Gắn loại cho hồ sơ ở Danh bạ là việc của Quản trị hoặc Toàn quyền. Loại đã tắt thì không gắn thêm, nhưng đơn đã xác nhận vẫn giữ nguyên hoa hồng.`,
     },
     {
-      tieuDe: "Chính sách hoa hồng",
-      noiDung: `Chính sách hoa hồng là bộ mức có tên, dùng chung cho nhiều loại.
+      tieuDe: "Cấp đại lý",
+      noiDung: `Cấp đại lý là bộ mức có tên, dùng chung cho nhiều loại đối tác.
 
-1. Ở thẻ **Các cấp đại lý**, bấm [[＋ Thêm chính sách]] và gõ tên.
-2. [[＋ Thêm mức vào chính sách]]: chọn dịch vụ và mức.
-3. [[Áp dụng cho loại…]]: chọn loại và ngày bắt đầu.
+1. [[＋ Thêm cấp đại lý]], gõ tên.
+2. Mở cấp, bấm [[＋ Thêm mức vào cấp]]: chọn dịch vụ và mức.
+3. [[Áp dụng cấp cho loại]]: chọn loại và ngày bắt đầu.
 
-Mức riêng luôn thắng chính sách. Đổi chính sách của một loại: [[Đổi chính sách]]. Không dùng nữa: [[Ngừng áp dụng]].`,
+Mức riêng được ưu tiên hơn cấp. Đổi sang cấp khác: [[Đổi cấp]]. Ngừng chi: [[Ngừng áp dụng]]. [[Khoá cấp]] chặn thêm loại và mức mới, loại đang theo vẫn được tính; dùng lại: [[Mở lại cấp]].`,
     },
     {
       tieuDe: "Chụp bù, ghi mức tay cho một đơn",

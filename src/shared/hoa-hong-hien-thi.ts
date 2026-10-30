@@ -1,11 +1,11 @@
 // Chữ và luật hiển thị thuần của hai màn «Hoa hồng đối tác» (/hoa-hong) và «Người bán dịch vụ» (/nguoi-ban) — web/hoa-hong.ts, web/nguoi-ban.ts (sổ đại lý đợt 1, Task 10).
 // Nhãn mức đi qua MỘT nguồn `nhanMuc` / `nhanTyLeBp` (so-dai-ly-nhan.ts); không mã thô (RATE, PER_PAX, MISSING, NONE…) ra người dùng. Giao diện không tính tiền, không chọn mức:
 // «mức nào thắng» do máy chủ trả (`bac`), ở đây chỉ dịch bậc ra lời.
-import type { CommissionRuleDto, DoiTuongMucDto, GanLoaiMucDto, LoaiDoiTacDto, MucTaDto, MucTaListResponse, SuaXemTruocResponse, SupplyTermDto, ThuTraResponse } from "./contracts.ts";
+import type { CommissionRuleDto, DoiTuongMucDto, GanLoaiMucDto, GanRiengDto, LoaiDoiTacDto, MucTaDto, MucTaListResponse, SuaXemTruocResponse, SupplyTermDto, ThuTraResponse } from "./contracts.ts";
 import { ngayVN } from "./giay-to-hien-thi.ts";
 import { demDai, xepTheoPhu, type DichVuPhu, type KetQuaCap, type KetQuaPhu } from "./hoa-hong-phu-muc.ts";
 import { can, holdsPartner, type PermissionHolder } from "./permissions.ts";
-import { CAU_THIEU_MUC, nhanMuc, nhanTyLeBp } from "./so-dai-ly-nhan.ts";
+import { CAU_THIEU_MUC, nhanDong, nhanMuc, nhanTyLeBp } from "./so-dai-ly-nhan.ts";
 import { addDays } from "./vn-date.ts";
 
 export const CAU_KHONG_CO_QUYEN_XEM = "Bạn không có quyền xem trang này.";
@@ -419,3 +419,81 @@ export const thuTuMenu = (viec: readonly Viec[], dienThoai: boolean): Viec[] => 
 // Thẻ đang mở của trang; giá trị cũ hay lạ trong sessionStorage («ap-dung», «thiet-lap», rác, null) mở thẻ «Các cấp đại lý».
 export type TheHoaHong = "cap" | "loai" | "doi-tac";
 export const docThe = (gia: string | null): TheHoaHong => (gia === "loai" || gia === "doi-tac" ? gia : "cap");
+
+// ---------------------------------------------------------------------------------------------------------------------------------------------------------
+// Thẻ «Các cấp đại lý» (đặc tả hoa-hong-cap-dai-ly §3, Q-4, Q-6, §5.4): ma trận, bảng «Mức của cấp», đếm, nhãn việc. Không suy con số: ô chỉ là dòng có thật của đúng phạm vi đó.
+
+/** Một ô ma trận: nhãn các dòng đang áp và sắp áp của cấp ở đúng phạm vi đó; null ⇒ «—» (không kế thừa từ phạm vi rộng hơn — quyết định 2). */
+export interface OMaTran { nhan: string[] | null }
+type HangMaTran = { phamVi: "ALL" | "GROUP" | "SERVICE"; code: string | null; ten: string; o: OMaTran[] };
+
+/**
+ * Ma trận cấp × dịch vụ. Cột: các cấp, xếp theo tên (so số tự nhiên: «Cấp 2» trước «Cấp 10»). Hàng: «Mọi dịch vụ» luôn có; rồi hàng nhóm (thứ tự danh mục), rồi hàng dịch vụ
+ * (thứ tự danh mục) — chỉ hàng có ít nhất một cấp có dòng; dòng trỏ nhóm/dịch vụ không còn trong danh mục vẫn có hàng (tên = mã, như `nhanPhamVi`), đứng cuối nhóm của nó.
+ * Ô khớp ĐÚNG phạm vi (mã nhóm cho GROUP, mã dịch vụ cho SERVICE), không dùng luật khớp rộng; dòng sắp áp kèm «từ <ngày>»; dòng đã ngừng, đã huỷ bỏ.
+ */
+export function maTranCap(v: { muc: readonly MucTaDto[]; dichVu: readonly { code: string; name: string; groupCode: string | null }[]; nhom: readonly { code: string; name: string }[]; homNay: string }): {
+  cot: { code: string; ten: string; dangBat: boolean }[];
+  hang: HangMaTran[];
+} {
+  const cap = [...v.muc].sort((a, b) => a.ten.localeCompare(b.ten, "vi", { numeric: true }));
+  const dongCon = cap.map((m) => m.dong.filter((r) => conApHoacSap(r, v.homNay)));
+  const nhanDongO = (r: CommissionRuleDto): string => (trangThaiDong(r, v.homNay) === "SAP_AP" ? `${nhanMucDto(r)} từ ${ngayVN(r.tuNgay)}` : nhanMucDto(r));
+  const khop = (pv: HangMaTran["phamVi"], code: string | null) => (r: CommissionRuleDto): boolean =>
+    r.phamVi === pv && (pv === "ALL" || (pv === "GROUP" ? r.groupCode === code : r.catalogCode === code));
+  const dungHang = (pv: HangMaTran["phamVi"], code: string | null, ten: string): HangMaTran => ({
+    phamVi: pv,
+    code,
+    ten,
+    o: dongCon.map((ds) => {
+      const nhan = ds.filter(khop(pv, code)).map(nhanDongO);
+      return { nhan: nhan.length > 0 ? nhan : null };
+    }),
+  });
+  const coDong = (x: HangMaTran): boolean => x.o.some((o) => o.nhan !== null);
+  const maTrongDong = (pv: "GROUP" | "SERVICE"): string[] => [...new Set(dongCon.flat().filter((r) => r.phamVi === pv).map((r) => (pv === "GROUP" ? r.groupCode : r.catalogCode)).filter((c): c is string => c !== null))];
+  const tenNhom = new Map(v.nhom.map((g) => [g.code, g.name]));
+  const tenDv = new Map(v.dichVu.map((s) => [s.code, s.name]));
+  const maNhom = [...v.nhom.map((g) => g.code), ...maTrongDong("GROUP").filter((c) => !tenNhom.has(c))];
+  const maDv = [...v.dichVu.map((s) => s.code), ...maTrongDong("SERVICE").filter((c) => !tenDv.has(c))];
+  return {
+    cot: cap.map((m) => ({ code: m.code, ten: m.ten, dangBat: m.dangBat })),
+    hang: [
+      dungHang("ALL", null, "Mọi dịch vụ"),
+      ...maNhom.map((c) => dungHang("GROUP", c, `Nhóm ${tenNhom.get(c) ?? c}`)).filter(coDong),
+      ...maDv.map((c) => dungHang("SERVICE", c, tenDv.get(c) ?? c)).filter(coDong),
+    ],
+  };
+}
+
+/** Cột của bảng «Mức của cấp»: cách tính, rồi mức người lớn (hoặc phần trăm) · trẻ em · người cao tuổi. Không khai theo loại khách ⇒ hai cột sau «—» (không chép số người lớn sang). */
+export function cotMucCap(r: Pick<CommissionRuleDto, "kieu" | "tyLeBp" | "moiKhach" | "theoLoai">): { cachTinh: string; nguoiLon: string; treEm: string; nguoiCaoTuoi: string } {
+  if (r.kieu === "RATE") return { cachTinh: "Phần trăm", nguoiLon: nhanTyLeBp(r.tyLeBp ?? 0), treEm: "—", nguoiCaoTuoi: "—" };
+  const tien = (n: number): string => `${nhanDong(n)}đ`;
+  return {
+    cachTinh: "Số tiền mỗi khách",
+    nguoiLon: tien(r.moiKhach ?? 0),
+    treEm: r.theoLoai ? tien(r.theoLoai.treEm) : "—",
+    nguoiCaoTuoi: r.theoLoai ? tien(r.theoLoai.nguoiCaoTuoi) : "—",
+  };
+}
+
+/** Đếm theo một cấp: số loại đang theo cấp hôm nay (lần xếp còn hiệu lực) và số đối tác có cấp riêng này hôm nay (`ganRieng` gồm cả lần sắp áp; chỉ đếm lần đã bắt đầu). */
+export function demTheoCap(m: Pick<MucTaDto, "code" | "gan">, ganRieng: readonly GanRiengDto[], homNay: string): { loai: number; doiTac: number } {
+  return {
+    loai: m.gan.filter((g) => trangThaiDong(g, homNay) === "DANG_AP").length,
+    doiTac: ganRieng.filter((g) => g.muc === m.code && g.tuNgay <= homNay && (g.denNgay === null || g.denNgay >= homNay)).length,
+  };
+}
+export const cauDemCap = (n: { loai: number; doiTac: number }): string => `Đang áp dụng cho ${n.loai} loại đối tác và ${n.doiTac} đối tác có cấp riêng.`;
+
+/** Nhãn một việc (§3.1): dòng mức «Đổi» · «Sửa» · «Ngừng»; lần xếp loại vào cấp «Đổi cấp» · «Sửa» · «Ngừng áp dụng» (Q-12). */
+export const nhanViec = (v: Viec, doiTuong: "dong" | "gan"): string =>
+  v === "SUA" ? "Sửa" : doiTuong === "dong" ? (v === "DOI" ? "Đổi" : "Ngừng") : v === "DOI" ? "Đổi cấp" : "Ngừng áp dụng";
+/** `aria-label` của nút «⋯» (§3.2). */
+export const nhanViecKhac = (tenDong: string): string => `Việc khác: ${tenDong}`;
+export const CAU_DA_KHOA_CAP = "Đã khoá cấp.";
+export const CAU_DA_MO_LAI_CAP = "Đã mở lại cấp.";
+/** Chữ nhỏ cạnh tên cấp đã khoá ở đầu cột ma trận (huy hiệu đầy đủ `NHAN_CAP_DA_KHOA` ở chi tiết cấp). */
+export const NHAN_CAP_KHOA_NGAN = "Đã khoá";
+export const CAU_CAP_CHUA_AP_LOAI = "Cấp này chưa áp dụng cho loại nào.";

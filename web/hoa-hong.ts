@@ -1,7 +1,7 @@
 // Trang «Hoa hồng đối tác» (thiết kế lại, PR 2) — KHUNG: nạp dữ liệu, vẽ dải cảnh báo, chuyển ba thẻ «Các cấp đại lý» / «Loại đối tác» / «Riêng từng đối tác», truyền dữ liệu cho các khối nội dung.
 // Gọi (chỉ đọc, ở đây): GET /api/pricing/hoa-hong (CommissionRuleListResponse), /api/pricing/muc-ta (MucTaListResponse), /api/pricing/loai-doi-tac (LoaiDoiTacListResponse), /api/catalog.
 // Ẩn/hiện hỏi bảng quyền (`can`): xem = partner.commission.view, thêm mức = partner.commission.write; máy chủ kiểm lại (403 ⇒ «Bạn không có quyền xem trang này.»).
-// Trang không tính tiền, không chọn mức: số và lời từ máy chủ / luật thuần ở src/shared/hoa-hong-hien-thi.ts. Tra nhanh (đứng trên ba thẻ): web/hoa-hong-tra-nhanh.ts; dải: -dai.ts; hộp: -hop.ts. Nội dung ba thẻ hiện là TẠM (Task 8–10 thay): «Các cấp đại lý» = -thiet-lap.ts, «Loại đối tác» và «Riêng từng đối tác» = hai phần của -bang.ts.
+// Trang không tính tiền, không chọn mức: số và lời từ máy chủ / luật thuần ở src/shared/hoa-hong-hien-thi.ts. Tra nhanh (đứng trên ba thẻ): web/hoa-hong-tra-nhanh.ts; dải: -dai.ts; hộp: -hop.ts. Thẻ «Các cấp đại lý» = -cap.ts (menu «⋯»: -menu.ts). Nội dung hai thẻ còn lại là TẠM (Task 9–10 thay): «Loại đối tác» = phần loại của -bang.ts + khối loại của -thiet-lap.ts, «Riêng từng đối tác» = phần đối tác của -bang.ts.
 import { docThe, type TenDanhMuc, type TheHoaHong } from "../src/shared/hoa-hong-hien-thi";
 import type { DichVuPhu } from "../src/shared/hoa-hong-phu-muc";
 import { can, type PermissionHolder } from "../src/shared/permissions";
@@ -9,6 +9,7 @@ import { homeRedirect } from "../src/shared/start-page";
 import { ApiError, api, type Api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
 import { cuonToiDong, veBangApDung } from "./hoa-hong-bang";
+import { veTheCap } from "./hoa-hong-cap";
 import { veDai } from "./hoa-hong-dai";
 import { taoMoHop } from "./hoa-hong-hop";
 import { veThietLap } from "./hoa-hong-thiet-lap";
@@ -50,7 +51,7 @@ const staff = await initShell();
 let du: DuLieuHoaHong | null = null;
 
 const okEl = byId("ok");
-/** Khung vàng giữ sau khi đóng hộp (cảnh báo mức riêng thắng chính sách); nằm ngoài ba thẻ nên không mất khi vẽ lại. */
+/** Khung vàng giữ sau khi đóng hộp (cảnh báo mức riêng thắng cấp đại lý); nằm ngoài ba thẻ nên không mất khi vẽ lại. */
 const canhBaoEl = h("div", { hidden: true });
 noiDungEl.prepend(canhBaoEl);
 const moHop = taoMoHop({
@@ -103,8 +104,12 @@ function chonThe(t: The, lay = false): void {
   if (lay) tabEl[t].focus();
 }
 
-// ---- Các khối nội dung (hoa-hong-dai / -tra-nhanh / -bang / -hop / -thiet-lap) ----------------------------------------------
-// Tạm (Task 7): mỗi thẻ vẽ nội dung cũ; Task 8 thay thẻ «cap», Task 9 thay «loai», Task 10 thay «doi-tac».
+// ---- Các khối nội dung (hoa-hong-dai / -tra-nhanh / -cap / -bang / -hop / -thiet-lap) ----------------------------------------------
+// Thẻ «cap» = veTheCap (Task 8). Tạm: thẻ «loai» vẽ bảng cũ + khối loại của -thiet-lap.ts (Task 9 thay), «doi-tac» vẽ bảng cũ (Task 10 thay).
+/** Thẻ «Loại đối tác» tạm chia hai khung: bảng cũ (veBangApDung thay hết con của khung nó nhận) và khối loại (Tắt / Bật, ＋ Thêm loại). */
+const loaiBangEl = h("div", null);
+const loaiThietLapEl = h("div", null);
+panelEl.loai.append(loaiBangEl, loaiThietLapEl);
 /** «Xem dòng ↓» của Tra nhanh: mở thẻ chứa dòng rồi cuộn tới (dòng của đối tác ở thẻ «Riêng từng đối tác», còn lại ở thẻ «Loại đối tác»). */
 function cuonToi(dongId: string, loai?: string): void {
   chonThe(du?.dong.find((r) => r.id === dongId)?.doiTuong.loai === "DOI_TAC" ? "doi-tac" : "loai");
@@ -121,8 +126,9 @@ function moThemMuc(): void {
 
 function veTatCa(d: DuLieuHoaHong): void {
   veTraNhanhVaDai(d);
-  veThietLap(panelEl.cap, d, moHop);
-  veBangApDung(panelEl.loai, d, moHop, "loai", () => chonThe("cap", true));
+  veTheCap(panelEl.cap, d, moHop);
+  veBangApDung(loaiBangEl, d, moHop, "loai", () => chonThe("cap", true));
+  veThietLap(loaiThietLapEl, d, moHop);
   veBangApDung(panelEl["doi-tac"], d, moHop, "doi-tac", () => chonThe("cap", true));
 }
 
