@@ -80,3 +80,5 @@ KH ghi `npm test` sau từng task. Theo ý chủ 27/10 («bộ kiểm dài chạ
 - **Ghi cho T6:** `kiemLuatBan` đọc dòng `prc_sales_block` của các loại bên đặt + `v_ctl_service_group` + `v_ctl_service_attribute` cho các mã của đơn, rồi gọi `chanBan` với `ngay = vnToday(new Date())`.
 
 ### Đo cuối T1–T4 (một lần, theo ruling «bộ kiểm dài chạy một lần»)
+- HEAD `44d01ab2` (30/10): `npm test` thoát 0 — bước 1: **6831 bài, 6827 qua, 0 đỏ, 4 todo** (nền T0: 6789 → +42 bài mới); bước 2 (bài đo giờ hook): 1/1 qua. `npm run typecheck`: 0 lỗi. e2e chưa chạy (KH: đủ bộ trước KĐL-3).
+- Chờ điều phối: (1) vế «nhóm tắt» của R-CTL-2 (mục T1); (2) giao KĐL-1 cho người kiểm độc lập (người thi công không tự nghiệm thu).
