@@ -4140,3 +4140,20 @@ body.tabbar-an .vc-bottom-bar, body.tabbar-dinh .vc-bottom-bar { bottom: 0; }
   .sheet-foot-xac-nhan .btn-danger:hover { background: var(--c-danger-text); border-color: var(--c-danger-text); }
 }
 .sheet-foot-xac-nhan .btn-danger:focus-visible { outline: var(--focus-ring) solid var(--c-focus); outline-offset: var(--focus-ring); }
+
+/* ---------- Luật bán (ADR-0146 Đ5, T11) — chỉ token; thành phần chung v2 (.nut, .o, .nhan, .bang, .the, .tab-phu, .huy-hieu) ---------- */
+.lb-dau { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s2) var(--s4); }
+.lb-dau h1 { margin: 0; }
+.lb-the { margin-top: var(--s4); }
+.lb-the .card-list { gap: var(--s3); }
+.lb-dong { display: flex; flex-direction: column; gap: var(--s2); }
+.lb-dong p { margin: 0; overflow-wrap: anywhere; }
+.lb-dong-dau { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s2); }
+.lb-pv { font-weight: var(--fw-semibold); }
+.lb-pv::after { content: " ·"; }
+.lb-viec { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.bang .lb-viec { justify-content: flex-end; }
+.lb-the .huy-hieu { white-space: nowrap; }
+.lb-the .bang td { vertical-align: top; }
+.lb-truong { margin-bottom: var(--s3); }
+.lb-truong .hint { margin-top: var(--s1); }

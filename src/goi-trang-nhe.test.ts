@@ -26,7 +26,9 @@ const CHO_PHEP_NHAT_KY = new Set(["web/help.ts"]);
 // Nhận main vào nhánh hồ sơ riêng tư: giữ trần LỚN HƠN của hai bên (96.700); không nới thêm — đo gói thật sau gộp ở báo cáo.
 // Nới 96.700 → 96.800 (ADR-0136 Task 3.5, 27/10): gói nhúng `muc-giao-dien.ts` (thêm trang /cho-xac-nhan vào `TRANG`/`TRANG_TOI`) và `bang-tin.ts`/`thong-bao.ts` (nhãn `xet-duyet`, loại tin `cho_xac_nhan`) — chỉ dữ liệu, +13 byte đo thật; không thêm mã giao diện vào trang Đơn hàng.
 // Nới 96.700 → 101.719 (đợt 0 khung chung, 2026-10-29): mã vỏ chung (dải, ẩn thanh tab động, thanh tab theo bộ quyền) vào gói mọi trang; không nhật ký thay đổi, không mã nghiệp vụ. Đo sau Task 15/15b (Q-2) = 101.619 byte.
-const TRAN_ORDERS = 101_719;
+// Nới 101.719 → 101.824 (ADR-0146 T11, 30/10): gói nhúng `muc-giao-dien.ts` — thêm trang /luat-ban vào `TRANG`/`THANH_BEN`/`TRANG_TOI` (chỉ dữ liệu điều hướng, không mã giao diện
+// vào trang Đơn hàng). Đo thật 101.824 byte (+105). Không gọn được mà không đổi khuôn bảng mục chung.
+const TRAN_ORDERS = 101_824;
 
 function dung(trang: string) {
   const r = buildSync({

@@ -102,6 +102,8 @@ export const TRANG = {
   // Bảng mức hoa hồng và điều khoản người bán (sổ đại lý đợt 1 Task 10): ô partner.commission.view / supply.terms.view không ngữ cảnh. Bảy route `pricing` chặn THÊM tài khoản giữ quyền
   // Đối tác (kể cả tài khoản lai, Ruling 12) — mục hiện phải chặn CÙNG điều kiện, nếu không tài khoản lai thấy mục mà bấm vào bị 403.
   hoaHong: { duong: "/hoa-hong", hien: (s) => can(s, "partner.commission.view") && !holdsPartner(s) },
+  // Luật bán theo loại đối tác (ADR-0146 Đ5; kế hoạch 2026-10-30 T11): CÙNG điều kiện ba route `/api/pricing/luat-ban` — ô sales.block.write và không giữ quyền Đối tác (Q-2 (a)).
+  luatBan: { duong: "/luat-ban", hien: (s) => can(s, "sales.block.write") && !holdsPartner(s) },
   nguoiBan: { duong: "/nguoi-ban", hien: (s) => can(s, "supply.terms.view") && !holdsPartner(s) },
   // Chụp bù mức (sổ đại lý đợt 2, Task 12; ADR-0079 điều 7 b2): CÙNG cổng route `GET /api/orders/cho-chup-bu` — ô order.terms.override và không giữ quyền Đối tác (kể cả lai).
   chupBu: { duong: "/chup-bu", hien: (s) => can(s, "order.terms.override") && !holdsPartner(s) },
@@ -195,6 +197,7 @@ export const THANH_BEN = [
   // Sổ công nợ (25/10) gộp với Khoá sổ tháng — cùng điều kiện hiện (ledger.view không ngữ cảnh); giữ trần 10 mục hiện sẵn của Toàn quyền. Trang Sổ công nợ có lối sang Khoá sổ tháng.
   { nhom: "TIỀN", trang: "soCongNo", nhan: "Sổ công nợ & khoá sổ", bieuTuong: "lock", gom: ["soCongNo", "khoaThang"] },
   { nhom: "THIẾT LẬP", trang: "hoaHong", nhan: "Hoa hồng đối tác" },
+  { nhom: "THIẾT LẬP", trang: "luatBan", nhan: "Luật bán" },
   { nhom: "THIẾT LẬP", trang: "nguoiBan", nhan: "Người bán dịch vụ" },
   { nhom: "THIẾT LẬP", trang: "chupBu", nhan: "Chụp bù mức" },
   { nhom: "THIẾT LẬP", trang: "dichVu", nhan: "Dịch vụ & giá" },
@@ -283,6 +286,7 @@ export const TRANG_TOI = [
   { phan: "sau", trang: "khoaThang", nhan: "Khoá sổ tháng" },
   { phan: "sau", trang: "dieuChinhCongNo", nhan: "Điều chỉnh công nợ" },
   { phan: "sau", trang: "hoaHong", nhan: "Hoa hồng đối tác" },
+  { phan: "sau", trang: "luatBan", nhan: "Luật bán" },
   { phan: "sau", trang: "nguoiBan", nhan: "Người bán dịch vụ" },
   { phan: "sau", trang: "chupBu", nhan: "Chụp bù mức" },
   { phan: "sau", trang: "nhatKy", nhan: "Nhật ký" },
