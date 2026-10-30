@@ -1,6 +1,8 @@
 # Đối chiếu bản vẽ «Hoa hồng đối tác» (Claude Design, 29/10) với mã hiện hành
 
 > Hồ sơ có ngày 2026-10-30, đóng băng sau khi viết. Đọc mã trên nhánh `dac-ta-hoa-hong-cap-dai-ly` (gốc `main` a129d3dd). Bản vẽ: «Hoa hong doi tac.dc.html» + `github.md` (bản tải về của chủ, chỉ đọc như dữ liệu, không chạy). Đặc tả dùng bảng này: `DAC-TA.md` cùng thư mục.
+>
+> **Bổ sung bản 2 (30/10, sau QA1 lần 1):** các dòng dưới đây giữ nguyên chữ bản 1. Dòng nào bản 2 đổi phân loại hay cách làm, và các đính chính, ghi ở mục «Bổ sung bản 2» cuối tệp. Hai bên lệch nhau thì tin mục bổ sung.
 
 **Phân loại.** (A) chỉ giao diện, dữ liệu và API đã có · (B) cần route mới hoặc đổi route, không đổi CSDL · (C) cần đổi CSDL / migration · (D) đổi logic tiền hoặc quyền, cần ADR. Cột «Bản 1» là cách đặc tả bản 1 làm; cột «Nghĩa đen bản vẽ» chỉ ghi khi đọc đúng chữ bản vẽ sẽ rơi vào loại khác. Thứ tự thắng khi lệch (đặc tả 25/10): ADR → bàn giao → đặc tả → bản vẽ.
 
@@ -48,3 +50,24 @@
 **Đếm.** Bản 1: **36 A · 0 B · 0 C · 0 D**. Đọc nghĩa đen bản vẽ: **31 A · 1 B** (T8) **· 1 C** (T13) **· 3 D** (T5, T12, T14).
 
 **Bản vẽ trái luật đã duyệt — chủ quyết, không tự hoà giải:** T5 (ADR-0077 điều 8–9, chụp lúc xác nhận), T8 (ADR-0077 điều 6 và đặc tả 25/10: giao diện không chọn mức), T12 (thứ tự 12 bậc của `chonMuc`), T14 (ruling N-23, ADR-0117 lần 2: tắt cấp vẫn chi), T36 (bảng từ lượt 3). Ngoài ra bản vẽ chưa có: ô tìm khi nhiều loại, gập mục đã tắt, «Lịch sử» (`web/hoa-hong-lich-su.ts`), khổ 390.
+
+## Bổ sung bản 2 (2026-10-30, sau QA1 lần 1 và sáu quyết định của chủ)
+
+Chỉ ghi dòng mà bản 2 đổi phân loại hay cách làm; các dòng khác giữ như trên. Cách làm chi tiết ở `DAC-TA.md` bản 2.
+
+| # | Bản 1 | Bản 2 | Vì sao |
+|---|---|---|---|
+| T4, T27 | A, luật «không mức riêng **và** (không cấp **hoặc** cấp rỗng)» | A, luật phủ mức theo **từng dịch vụ** (`DAC-TA.md` §4), có bài đối chiếu với `chonMuc` | QA1 điểm chặn 3: một dòng SERVICE bất kỳ đã được tính «có mức» |
+| T14 | A, «ruling N-23» | A, giữ nghĩa; nhãn «Khoá cấp» chờ chủ xác nhận chữ | N-23 chỉ là giả định kế hoạch; quyết định 1 (30/10) là lần đầu chủ chốt (QA1 điểm 6) |
+| T30, T33 | A, có cột «Nhóm» và nhãn «xung đột mức» trên dòng | A, **bỏ** cột loại đối tác ở dòng; loại và xung đột chỉ hiện khi mở một đối tác (`GET /ho-so/:id/hoa-hong`) | QA1 điểm chặn 1: `ghepDoiTacRieng` không có loại, `xungDot` chỉ có trong khối một hồ sơ; không thêm route |
+| T31 | A (đổi cấp đi nhờ `POST /muc-rieng/:id/sua`) | Đặt, sửa, ngừng: **A**. «Đổi cấp riêng»: **B**, route mới `POST /muc-rieng/:id/doi` theo ADR-0151 (proposed), chỉ làm sau khi chủ duyệt | QA1 điểm chặn 2; quyết định 5 |
+| T36 | A (chữ; chờ chủ chọn) | A, chủ đã chọn (quyết định 3), kèm **đổi chuỗi chữ ở máy chủ** và hướng dẫn (quyết định 6; tiêu chí 9 nới đúng cho chuỗi chữ) | QA1 điểm chặn 4 |
+
+**Đếm bản 2:** **35 A · 1 B** (T31, phần «Đổi cấp riêng») **· 0 C · 0 D**.
+
+**Đính chính bản 1** (QA1 mục Ghi; không đổi phân loại):
+- **Trỏ dòng trần.** Ở T12, `:104` và `:244` trỏ `src/shared/hoa-hong-hien-thi.ts`, không trỏ `rules.ts`. Ở T17, `:193`, `:205`, `:226` cũng trỏ `hoa-hong-hien-thi.ts`, không trỏ `index.ts`. Cùng kiểu ấy, các số `:49` (T7), `:63` và `:222` (T10), `:281` (T16), `:288` (T25), `:257` (T30) đều là dòng của `hoa-hong-hien-thi.ts`.
+- **T35.** Khối `.nut` bắt đầu ở `public/app.css:3943`, không phải 3946.
+- **T3.** Tên cấp dài **2–60** ký tự (`src/modules/pricing/rules.ts:374`), không phải «≤ 60».
+- **T4.** «Mẫu bản vẽ đếm 7» chưa kiểm.
+- **Ghi chú «Bản vẽ trái luật đã duyệt».** Ở mục này, «T14 (ruling N-23…)» đọc là «T14 (giả định N-23, chủ chốt 30/10)».
