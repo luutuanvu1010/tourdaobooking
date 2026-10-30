@@ -20,7 +20,7 @@ export const HD_BAN_HANG: NhomHuongDan = {
 
 - **Đầu menu**: [[Tạo đơn]], [[Trang chủ]], [[Đơn hàng]] (số nhỏ bên cạnh là số đơn đang chờ xác nhận), [[Danh bạ]].
 - Nhóm **VẬN CHUYỂN**: [[Điều phối xe]], [[Xe đang chạy]].
-- Nhóm **THIẾT LẬP** (bấm để mở, thu gọn): [[Hoa hồng đối tác]] (chỉ xem).
+- Nhóm **THIẾT LẬP** (bấm để mở, thu gọn): [[Hoa hồng đối tác]] (chỉ xem), [[Luật bán]], [[Đặc điểm dịch vụ]].
 - **Chân menu**: [[Của tôi]], [[Hỗ trợ]], [[Hướng dẫn]]. Nút [[Đăng xuất]] ở dưới cùng.
 - Thanh trên cùng: ô tìm đơn, nút [[Tạo đơn]] và cái chuông thông báo.
 
@@ -128,6 +128,14 @@ Xe đã chạy: mở [[Xe đang chạy]], bấm chuyến. Thêm khách: [[Thêm 
 Mục "Giờ hẹn đổi — gọi báo khách" ở [[Cần xử lý]]: gọi khách rồi bấm [[Đã gọi báo]], chỉ cho đơn bạn lập hoặc phụ trách.`,
     },
     {
+      tieuDe: "Luật bán và đặc điểm dịch vụ",
+      noiDung: `**Luật bán**: loại đối tác không được đặt một dịch vụ, một nhóm, hoặc dịch vụ mang một đặc điểm; đơn có dịch vụ bị chặn thì không lập, lưu, xác nhận hay gửi được.
+
+1. [[Luật bán]], [[Thêm luật]]: chọn loại, phạm vi, ngày.
+2. [[Kết thúc ngay]]: thôi chặn từ bây giờ. [[Hẹn ngày kết thúc]]: ngày đó **tính trọn** — hẹn đến hôm nay vẫn chặn tới hết hôm nay.
+3. [[Đặc điểm dịch vụ]]: chọn giá trị cho từng dịch vụ. Dịch vụ «Chưa khai» không bị chặn theo đặc điểm. Đổi giá trị làm đổi luật bán thì Nền tảng hỏi lại ([[Vẫn lưu]]).`,
+    },
+    {
       tieuDe: "Tình huống hay gặp",
       noiDung: `### Khách đổi giờ đón (đơn đã xác nhận)
 
@@ -149,7 +157,7 @@ Sau xác nhận, dịch vụ và tiền **bị khoá**. Số khách của đơn 
 2. Bấm **+** hoặc **−**; dịch vụ nhập tay chỉ để xem.
 3. Chọn lý do ([[Khách thêm người]], [[Khách bớt người]], [[Đổi dịch vụ]], [[Khác]]) rồi bấm [[Lưu số khách]].
 
-Nền tảng tự tính lại tiền (giảm giá giữ nguyên), ghi vào [[Lịch sử]] và báo người phụ trách. Đơn đã xếp xe chưa chạy: Nền tảng tự trả ghế, thêm ghế khi xe còn chỗ. Đơn người khác lập: nhờ người lập, Kế toán hoặc Quản trị.
+Nền tảng tự tính lại tiền (giảm giá giữ nguyên), ghi [[Lịch sử]], báo người phụ trách, tự trả hoặc thêm ghế trên xe đã xếp. Đơn người khác lập: nhờ người lập, Kế toán hoặc Quản trị.
 
 ### Đơn sát giờ — Đặt gấp
 
@@ -159,7 +167,7 @@ Nền tảng tự tính lại tiền (giảm giá giữ nguyên), ghi vào [[L�
 2. Bấm [[Đặt gấp]], chọn lý do, bấm [[Duyệt đặt gấp]]. Nền tảng lưu đơn rồi đóng dấu cho lượt đó.
 3. Lượt đó mang nhãn "Điều chỉnh khẩn cấp". Lúc này bạn bấm [[Xác nhận đơn]].
 
-> Lưu ý: chỉ đặt gấp được khi lượt đó thật sự đã qua hạn chốt. Sửa ngày, giờ hoặc nơi đón của lượt đã đặt gấp (khi đơn còn chờ xác nhận) thì dấu mất — đặt gấp lại nếu vẫn sát giờ.
+> Lưu ý: sửa ngày, giờ hoặc nơi đón của lượt đã đặt gấp (đơn còn chờ xác nhận) thì dấu mất — đặt gấp lại nếu vẫn sát giờ.
 
 ### Thiếu thông tin chuyến
 
@@ -169,15 +177,14 @@ Nền tảng tự tính lại tiền (giảm giá giữ nguyên), ghi vào [[L�
 
 1. Mở đơn → bấm [[Huỷ đơn]].
 2. Chọn lý do (bắt buộc) → bấm [[Huỷ đơn]]. Không hoàn tác được.
-3. Đơn chuyển sang [[Đã huỷ]]. Khách đặt lại thì lập đơn mới.
+3. Đơn thành [[Đã huỷ]]; khách đặt lại thì lập đơn mới.
 
-Huỷ được đơn chờ xác nhận lẫn đã xác nhận mà bạn lập hoặc đang phụ trách. Đơn đã xếp xe chưa chạy: Nền tảng tự trả ghế; xe đang chạy: văn phòng bấm [[Báo huỷ]].
+Huỷ được đơn bạn lập hoặc đang phụ trách. Đơn đã xếp xe chưa chạy: Nền tảng tự trả ghế; xe đang chạy: văn phòng bấm [[Báo huỷ]].
 
 ### Hướng dẫn viên nhận, huỷ, sửa đơn — bạn thấy gì
 
-- **HDV bấm Nhận**: thẻ đơn đổi từ [[Chờ nhận]] sang "HDV: tên"; bạn nhận tin nếu đơn liên quan tới bạn.
-- **HDV huỷ đơn** (họ phải chọn lý do): đơn thành [[Đã huỷ]], bạn nhận tin huỷ; khối [[Lịch sử]] của trang đơn có dòng huỷ đơn kèm lý do.
-- **HDV sửa số khách**: bạn nhận tin đơn đổi; khối [[Lịch sử]] có dòng sửa kèm lý do.
+- **HDV bấm Nhận**: thẻ đơn đổi từ [[Chờ nhận]] sang "HDV: tên".
+- **HDV huỷ đơn** hoặc **sửa số khách**: bạn nhận tin; khối [[Lịch sử]] có dòng kèm lý do. Đơn huỷ thành [[Đã huỷ]].
 - **HDV, bạn bấm [[Từ chối đơn]]**: đơn về Chờ nhận ("được trả lại").`,
     },
     {
@@ -187,9 +194,9 @@ Huỷ được đơn chờ xác nhận lẫn đã xác nhận mà bạn lập ho
 - **Chỉ thấy đơn mình lập.** Mở đơn người khác bị từ chối.
 - **Menu hẹp hơn**: không có [[Trang chủ]], [[Danh bạ]], [[Điều phối xe]]. Mục [[Đơn hàng]] chỉ có đơn bạn lập. Trên điện thoại có tab [[Đơn hàng]], [[Tạo đơn]] và [[Tôi]]. Mở Nền tảng tự vào danh sách đơn của bạn.
 - **Không chọn người phụ trách** khi lập đơn: khối [[Người phụ trách]] không hiện, đơn luôn ở [[Chờ nhận]].
-- **Không thấy ai phụ trách đơn**: không có khối Người phụ trách, không có dòng "HDV: tên", ảnh biên nhận cũng không có.
+- **Không thấy ai phụ trách đơn** (cả trên ảnh biên nhận).
 - Ô tra hồ sơ khách có thể báo không tra được — vẫn lưu đơn.
-- **Sau khi xác nhận, Thực tập không sửa được thông tin chuyến, không đổi khách, không sửa số khách.** Trang đơn không có nút [[Sửa thông tin chuyến]], [[Đổi khách]] và [[Sửa số khách dịch vụ]]. Cần đổi giờ đón nhờ Bán hàng phụ trách hoặc Quản trị.
+- **Sau khi xác nhận, Thực tập không có nút** [[Sửa thông tin chuyến]], [[Đổi khách]], [[Sửa số khách dịch vụ]] — nhờ Bán hàng phụ trách hoặc Quản trị.
 - **Thực tập không nhận phụ trách và không giao đơn**: không có nút [[Nhận phụ trách]]; cần người phụ trách thì nhờ Bán hàng.
 - **Chỉ giá danh mục, không giảm giá**: không có [[Sửa giá]], ô giảm giá chỉ đọc; cần giá khác nhờ Bán hàng.`,
     },

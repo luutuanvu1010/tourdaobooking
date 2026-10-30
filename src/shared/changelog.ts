@@ -12,6 +12,18 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Luật bán theo loại đối tác + đặc điểm dịch vụ (ADR-0146, ADR-0152; kế hoạch docs/superpowers/plans/2026-10-30-adr-0146-va-dac-diem-dich-vu-ke-hoach.md). CÓ migration 0128, 0129
+    // nên cần npm run trien-khai. Số 2.49 và ngày là TẠM (mục đầu lúc làm: 2.48) — phiên phát hành kiểm lại ở bước A.0 của docs/HANDOFF-N1.md.
+    version: "2.49",
+    date: "2026-10-30",
+    items: [
+      { kind: "moi", text: "Trang «Luật bán» trong Thiết lập: đặt quy tắc «loại đối tác này không được đặt một dịch vụ, một nhóm, hoặc dịch vụ mang một đặc điểm», có hạn ngày." },
+      { kind: "moi", text: "Đơn có dịch vụ bị luật bán chặn với bên đặt thì không lập, lưu, xác nhận hay gửi được, kèm câu báo rõ dịch vụ nào. Đối tác không thấy các dịch vụ đó." },
+      { kind: "moi", text: "Trang «Đặc điểm dịch vụ»: Quản trị định nghĩa đặc điểm (ví dụ «Gồm vé tàu: Có / Không»), Bán hàng gắn giá trị cho từng dịch vụ, có danh sách «Chưa khai»." },
+      { kind: "moi", text: "Đổi giá trị đặc điểm hoặc chuyển nhóm làm đổi luật bán thì Nền tảng hỏi lại trước khi lưu, nói rõ loại đối tác nào bắt đầu hoặc thôi bị chặn." },
+    ],
+  },
+  {
     // Hoa hồng theo cấp đại lý (chủ 30/10, quyết định 14: MỘT lần phát hành). Số 2.48 và ngày là TẠM — phiên phát hành kiểm lại ở bước A.0 của docs/HANDOFF-N1.md.
     // Nếu phần 2 phát hành cùng lần thì Task 17 thêm dòng «Đổi cấp» vào CHÍNH mục này, không tách mục.
     version: "2.48",

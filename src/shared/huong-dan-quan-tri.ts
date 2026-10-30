@@ -18,7 +18,7 @@ export const HD_QUAN_TRI: NhomHuongDan = {
 - **Đầu menu**: [[Tạo đơn]], [[Trang chủ]], [[Đơn hàng]], [[Danh bạ]].
 - Nhóm **VẬN CHUYỂN**: [[Điều phối xe]], [[Xe đang chạy]], [[Đề nghị chuyển khách]], [[Xe & giấy tờ]] (gộp [[Xe]], [[Lịch xe bận]], [[Giấy tờ sắp hết hạn]]) và [[Giá & chi phí]].
 - Nhóm **TIỀN**: [[Điều chỉnh công nợ]]; [[Khoá sổ tháng]] chỉ Toàn quyền thấy.
-- Nhóm **THIẾT LẬP** (bấm để mở, thu gọn): [[Hoa hồng đối tác]], [[Người bán dịch vụ]], [[Dịch vụ & giá]], [[Địa điểm]], [[Loại giấy tờ cá nhân]], [[Loại giấy tờ xe]], [[Lý do điều phối]], [[Quản lý tài khoản]].
+- Nhóm **THIẾT LẬP** (bấm để mở, thu gọn): [[Hoa hồng đối tác]], [[Luật bán]], [[Người bán dịch vụ]], [[Dịch vụ & giá]], [[Đặc điểm dịch vụ]], [[Địa điểm]], [[Loại giấy tờ cá nhân]], [[Loại giấy tờ xe]], [[Lý do điều phối]], [[Quản lý tài khoản]].
 - Số nhỏ cạnh Dịch vụ & giá: dịch vụ có giá Sheet vừa đổi; cạnh Xe & giấy tờ: giấy tờ đã hoặc sắp hết hạn.
 
 ### Trên điện thoại
@@ -106,6 +106,15 @@ Khối [[Nhóm dịch vụ]]: [[Thêm nhóm]], [[Lên]], [[Xuống]], [[Tắt]] 
 Lọc: [[Đang ghi đè giá]], [[Sheet đã đổi giá (cần xem)]], [[Đã ẩn]], [[Không còn trong Sheet]]. Đơn đã lập luôn giữ giá lúc lập.`,
     },
     {
+      tieuDe: "Đặc điểm dịch vụ và luật bán",
+      noiDung: `Đặc điểm (ví dụ «Gồm vé tàu: Có / Không») chỉ dùng cho luật bán.
+
+1. [[Đặc điểm dịch vụ]], thẻ **Định nghĩa**: thêm, đổi tên, tắt đặc điểm và giá trị (tắt khi không còn dịch vụ, nhóm nào mang). Luật trỏ giá trị đã tắt «Không phủ dịch vụ nào» cho tới khi [[Bật lại]].
+2. Thẻ **Theo nhóm**: giá trị chung; giá trị riêng của dịch vụ thắng. Khai đủ thẻ «Chưa khai» trước khi đặt luật — dịch vụ chưa khai không bị chặn.
+3. [[Luật bán]]: [[Kết thúc ngay]] thôi chặn từ bây giờ; [[Hẹn ngày kết thúc]] thì vẫn chặn tới hết ngày đó. Loại còn luật không tắt được.
+4. Chuyển nhóm làm đổi luật bán: Nền tảng hỏi lại ([[Vẫn chuyển]]).`,
+    },
+    {
       tieuDe: "Người phụ trách đơn",
       noiDung: `1. Mở đơn, tìm khối [[Người phụ trách]]. Đơn chưa có ai hiện [[Chờ nhận]].
 2. Bấm [[Chọn người phụ trách]] hoặc [[Đổi người phụ trách]], chọn người, bấm [[Lưu người phụ trách]].
@@ -170,19 +179,19 @@ Mở [[Xe & giấy tờ]], chọn [[Giấy tờ sắp hết hạn]] (điện tho
 Mở [[Loại giấy tờ cá nhân]] (có cả [[Hạng giấy phép lái xe]]) hoặc [[Loại giấy tờ xe]]. Thêm: gõ mã, tên, tick [[Có ngày hết hạn]] nếu cần, thứ tự, [[Thêm]]. Sửa: [[Sửa]], [[Lưu]]. Không xoá, chỉ ngưng dùng.
 
 ### Trợ lý Hỗ trợ (chỉ Toàn quyền)
-Mở [[Trợ lý Hỗ trợ]] ở nhóm THIẾT LẬP (điện thoại: trang **Tôi**). Bảy phần, lưu riêng từng phần, hiệu lực ngay:
-1. **Tình trạng**: bật / tắt cả công ty, trần chi phí tháng, chi phí, số câu, lượt thử. [[Thử key]] cho biết key còn dùng được, sai hay hết tiền. Đổi key làm ngoài Nền tảng.
-2. **Ai được dùng**: bật / tắt theo vai trò, số câu mỗi người mỗi ngày, [[Lưu]]. Tài khoản nhiều vai trò: một vai trò bật là dùng được.
-3. **Bộ não**: chọn mẫu AI (có giá ước tính), mức suy nghĩ, độ dài; sửa lời nhắc, [[Lưu bộ não]]. [[Khôi phục mặc định]] chỉ đưa lời nhắc gốc vào ô soạn, phải bấm [[Lưu bộ não]] thì mới có hiệu lực; mở Lịch sử bản, [[Quay lại bản này]].
-4. **Thử trước khi lưu**: chọn vai trò, gõ câu hỏi, bấm [[Thử với cấu hình đang soạn]].
+Mở [[Trợ lý Hỗ trợ]] ở nhóm THIẾT LẬP (điện thoại: trang **Tôi**). Bảy phần, lưu riêng, hiệu lực ngay:
+1. **Tình trạng**: bật / tắt, trần chi phí tháng, số câu. [[Thử key]] cho biết key còn dùng được không.
+2. **Ai được dùng**: theo vai trò, số câu mỗi ngày, [[Lưu]].
+3. **Bộ não**: mẫu AI, mức suy nghĩ, lời nhắc, [[Lưu bộ não]]. [[Khôi phục mặc định]] chỉ đưa lời nhắc gốc vào ô soạn; Lịch sử bản có [[Quay lại bản này]].
+4. **Thử trước khi lưu**: [[Thử với cấu hình đang soạn]].
 5. **Lời dặn**: câu chào, câu hỏi mẫu, [[Lưu thành bản mới]].
-6. **Ngữ cảnh bổ sung**: gõ tiêu đề và nội dung, [[Thêm đoạn]]; bỏ tick **Đang dùng** để tắt một đoạn.
-7. **Lịch sử hỏi đáp**: lọc theo ngày, người, vai trò hoặc tìm chữ, [[Lọc]]. Không xoá được.
+6. **Ngữ cảnh bổ sung**: [[Thêm đoạn]]; bỏ tick **Đang dùng** để tắt.
+7. **Lịch sử hỏi đáp**: lọc, [[Lọc]]. Không xoá được.
 
-Chữ tuỳ chỉnh không được có số điện thoại, email, số tiền. Dù lời nhắc bị sửa, máy vẫn che số điện thoại, ẩn số tiền, giữ trần tiền và quyền xem.
+Chữ tuỳ chỉnh không được có số điện thoại, email, số tiền; máy vẫn che chúng dù lời nhắc bị sửa.
 
 ### Dịch vụ nhập tay (chỉ Toàn quyền bật / tắt)
-Trang **Tôi**, khối **Dịch vụ nhập tay**: [[Bật dịch vụ nhập tay]] hoặc [[Tắt dịch vụ nhập tay]]. Mặc định tắt. Khi bật: Bán hàng, Quản trị, Toàn quyền thêm được dịch vụ gõ tên và giá tay ở form lập đơn ([[+ Dịch vụ nhập tay]]). Tài khoản có quyền Đối tác luôn không dùng được. Khi tắt: dịch vụ nhập tay đã có trên đơn vẫn giữ, chỉ xem. Văn phòng thêm dịch vụ nhập tay vào đơn nháp của Đối tác thì Đối tác không tự xác nhận được — văn phòng xác nhận thay.
+Trang **Tôi**, khối **Dịch vụ nhập tay**: [[Bật dịch vụ nhập tay]] hoặc [[Tắt dịch vụ nhập tay]] (mặc định tắt). Khi bật, văn phòng thêm được dịch vụ gõ tay ở form lập đơn ([[+ Dịch vụ nhập tay]]); Đối tác thì không. Khi tắt, dịch vụ nhập tay đã có vẫn giữ, chỉ xem.
 
 ### Lý do điều phối
 Mở [[Lý do điều phối]]. Lý do chia nhóm, như [[Đổi giờ xe tới]], [[Huỷ chuyến]], [[Điều chỉnh khẩn cấp, phá lệ]]. Thêm: [[+ Thêm lý do]] ở nhóm cần, gõ lý do, [[Thêm]]. Sửa tên: [[Sửa]]. Không dùng nữa: [[Ngưng]]; dùng lại: [[Dùng lại]]. Lý do hệ thống tự dùng không ngưng được.`,
@@ -213,14 +222,14 @@ Mở [[Lý do điều phối]]. Lý do chia nhóm, như [[Đổi giờ xe tới]
     },
     {
       tieuDe: "Chỉ tài khoản Toàn quyền",
-      noiDung: `Toàn quyền làm được mọi việc của Quản trị, thêm các việc dưới đây. Menu có thêm [[Chính sách điều phối]], [[Nhật ký]], [[Gửi thông báo]], [[Máy đang đăng nhập]].
+      noiDung: `Toàn quyền làm mọi việc của Quản trị, thêm: Menu có thêm [[Chính sách điều phối]], [[Nhật ký]], [[Gửi thông báo]], [[Máy đang đăng nhập]].
 
 ### Tài khoản
 - Gán được vai trò Giám đốc, Điều hành chung, IT, Hành chính nhân sự; sửa được cả tài khoản Quản trị và Hành chính nhân sự.
 - Tạo tài khoản ở khung [[Thêm tài khoản]], như Hành chính nhân sự.
 
 ### Chế độ bảo trì
-Chỉ hiện ở trang Tôi của tài khoản Toàn quyền. Khi bật, mọi tài khoản khác (kể cả Quản trị) thấy màn hình bảo trì; tài khoản Toàn quyền vẫn dùng bình thường.
+Ở trang Tôi. Khi bật, mọi tài khoản khác (kể cả Quản trị) thấy màn hình bảo trì.
 1. Mục [[Chế độ bảo trì]]: chọn **30 phút**, **60 phút**, **120 phút** hoặc giờ dự kiến hoàn tất.
 2. Bấm [[Bật chế độ bảo trì]], đọc cảnh báo, bấm [[Xác nhận bật]] (hoặc [[Quay lại]]).
 3. Đổi giờ: [[Cập nhật giờ dự kiến]]. Mở lại: [[Tắt chế độ bảo trì]].
