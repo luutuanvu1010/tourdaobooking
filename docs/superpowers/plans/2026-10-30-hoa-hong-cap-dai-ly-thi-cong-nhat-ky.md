@@ -35,7 +35,7 @@ Mỗi lần sửa cố ý rồi hoàn nguyên; chạy ba tệp `phu-muc-doi-chie
 
 ## Mốc cuối phần 1
 
-(để trống, Task 14 điền)
+`67a19357dc1ea82c0eec3ac09ac8880e672d7aad` (commit Task 13, mã giao diện phần 1 xong; theo kế hoạch). Task 14 chỉ thêm kịch bản Chrome và bằng chứng (commit Task 14, xem git log).
 
 ## Việc treo
 
@@ -198,3 +198,23 @@ Mười bảy «câu hôm nay» của §6.1 đều có nguyên văn trong `index
 Mục `2.48` (ngày 2026-10-30, TẠM) thêm vào đầu `src/shared/changelog.ts`: một mục duy nhất, 4 dòng (đổi tên + ba thẻ, dải loại thiếu mức theo dịch vụ, đặt cấp riêng trên trang, «Khoá cấp» kèm hộp nói rõ vẫn chi). Task 17 thêm dòng «Đổi cấp» vào chính mục này. Bài ghim `app-info.test.ts` sang «Phiên bản 2.48 · ngày 30 tháng 10 năm 2026»: đỏ 1/6 trước khi thêm mục, xanh sau.
 
 **Sửa mang sang từ review Task 12**: ca âm lượt 6 trong `src/bang-tu-giao-dien.test.ts` không còn chọn 6a/6b bằng `TU_DA_LOAI.slice(-2)`; nay lọc theo nguồn («quyết định 3, 7») và mẫu «chính sách hoa hồng/riêng», kèm khẳng định đúng 2 mục để thêm luật về sau không làm lệch ca.
+
+## Task 14 — bằng chứng giao diện phần 1
+
+Kết quả từng lệnh: `docs/evidence/2026-10-30-hoa-hong-cap-dai-ly/ket-qua-phan-1.md`; ảnh ở `anh/` cùng thư mục. Kịch bản `hoa-hong-smoke.mjs` viết lại (đầu tệp kể từng bước đổi và vì sao): `HOA HONG SMOKE OK`, 51 bước ở 390 + 1040.
+
+**P16** (không sửa mã, không commit): `HH_PHA=lo-nut HH_KHO=1040` ⇒ `HOA HONG SMOKE ĐỎ — 2 bước:` — `7[1040]) Bán hàng: … Bán hàng thấy nút ghi ở thẻ cap: {"nut":["＋ Thêm mức","＋ Thêm cấp đại lý","Áp dụng cấp cho loại","＋ Thêm mức vào cấp","Khoá cấp","Đổi","Đổi cấp","＋ Thêm mức"],"viec":49,…}` và `14b[1040]) … Bán hàng: không nút ghi nào trong mục (kể cả «Sửa» lần sắp áp)`. Chạy lại không có công tắc: xanh.
+
+**Lựa chọn tự áp**
+- Ca toast «Không thấy dòng này trên trang»: xoá dòng bằng API giữa chừng không chạm được toast (trang giữ dữ liệu cũ tới `napLai`, mà `napLai` vẽ lại Tra nhanh nên mất kết quả). Kịch bản dùng dòng của một cấp đã ngừng bằng API trước khi mở trang, Tra nhanh hỏi ngày cũ; thẻ cấp không vẽ dòng đã ngừng ⇒ toast.
+- Vùng chạm ≥ 44px có dung sai 0,5px (số lẻ của trình duyệt); hai phần tử lọt nhờ dung sai được in ở mục ghi nhận (nút ✕ của hộp, ô «Đến» của hộp Sửa áp dụng cấp).
+- Bước 9 (390): nút nổi Trợ lý `#tl-fab` không còn từ đợt 0 (`644ba653`, Trợ lý lên thanh trên) ⇒ bước đo «không còn nút nổi» + tâm «＋ Thêm mức» không bị che. Công tắc `HH_PHA=fab` không còn tác dụng (ghi ở đầu tệp).
+- Trong lúc trang của Kế toán đang mở, kịch bản đọc API bằng fetch trong trang: gọi `call()` của cùng tài khoản là đăng nhập lại và đá phiên trang ra `/login` (đo được ở lượt chạy đầu).
+
+**Việc cần người kiểm / chủ quyết**
+- Tiêu chí 8 nói «Tab tiếp theo tới nút đầu của danh sách»; đo thật: Tab đầu tới nút ✕ «Đóng» của `moBangTruot` (thành phần dùng chung, có trước đợt này), Tab thứ hai mới tới nút đầu danh sách. Không sửa thành phần dùng chung trong task này.
+- axe nhẹ `aria-allowed-role` ở `#hh-cap-ct` (`article role="tabpanel"`), mọi khổ; không chặn.
+
+**Lệch so với kế hoạch**
+- `t2b-danh-ba-smoke.mjs` ghi đè hai ảnh của `docs/evidence/2026-10-01-tro-ly-mai/anh/` dù có `OUT`; đã hoàn nguyên, không vào lần lưu.
+- `dot-a-smoke.mjs` đỏ sẵn ở «nhat-ky: thẻ đã dựng xong (máy tính)» (ADR-0038, như `web/CLAUDE.md` ghi); các bước trước đó xanh.
