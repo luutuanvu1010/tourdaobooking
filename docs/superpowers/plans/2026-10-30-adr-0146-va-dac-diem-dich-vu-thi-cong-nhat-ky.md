@@ -44,6 +44,7 @@ KH ghi `npm test` sau từng task. Theo ý chủ 27/10 («bộ kiểm dài chạ
 
 ## Câu chờ gom (hỏi chủ một lần, chậm nhất đầu T15)
 1. **Q-6 và số ADR:** các dòng đề xuất cho `src/CLAUDE.md`, `web/CLAUDE.md`, `docs/ARCHITECTURE.md` lấy từ ADR-0146 Hệ quả và `TRANG-GHEP.md` mục 7, có thể ghi «ADR-0151». Q-6 cho thêm **nguyên văn**; đổi chữ phải hỏi. Khuyến nghị: chỉ đổi «0151» → «0152», còn lại nguyên văn.
+2. **R-CTL-2 bỏ vế «nhóm đang tắt»** (người thi công T1): route tắt nhóm chỉ chặn nhóm còn dịch vụ ⇒ nhóm rỗng có dòng gắn đặc điểm mở vẫn tắt được hợp lệ (view bỏ nhóm tắt nên vô hại) ⇒ vế đó ở mức `fail` sẽ báo sai. Phương án: (a) chặn tắt nhóm còn dòng gắn mở (đổi hợp đồng route nhóm); (b) thêm vế nhóm ở mức `warn`; (c) giữ như đã làm. Khuyến nghị **(b)**: vẫn thấy dòng thừa mà không đỏ.
 
 ## Nhật ký theo task
 
