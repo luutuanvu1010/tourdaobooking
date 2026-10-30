@@ -58,6 +58,9 @@ const tuPhucVu = (): Row => row("own", "own", "own", "own", "own", "any", "own",
 const quanTri = (): Row => row("none", "none", "any", "none", "none", "any", "none", "none", "none", "none");
 /** Hàng "Quản trị + Toàn quyền + Nhân sự" (ba cột của cổng accounts): như trên, thêm HR `any`. */
 const quanTriNhanSu = (): Row => row("none", "none", "any", "none", "none", "any", "none", "none", "none", "any");
+/** Hàng "Bán hàng + Quản trị + Toàn quyền": SALES, ADMIN, SUPER_ADMIN `any`, mọi cột khác `none`. Hàm dùng chung để gói giao diện gọn (trần gói Đơn hàng — src/goi-trang-nhe.test.ts,
+ * KHÔNG nới; thêm ô `sales.block.write` 30/10). Giá trị y như viết tay `row("any", "none", "any", "none", "none", "any", "none", "none", "none", "none")`; bài ghim từng ô ở permissions.test.ts canh. */
+const banHangQuanTri = (): Row => row("any", "none", "any", "none", "none", "any", "none", "none", "none", "none");
 
 /**
  * Bản đồ ADR-0007 điều 1 (ADMIN làm được mọi thao tác) đã đổi theo ADR-0009, ADR-0014 (thêm PARTNER/SUPER_ADMIN, bốn thao tác mới), cộng 3 thao tác
@@ -95,7 +98,7 @@ export const MATRIX = {
   // ADR-0049 D3: ĐẶT GẤP chặng dưới mốc tối thiểu (route POST /api/orders/:id/legs/:legId/short-notice + nhánh `datGap` của lệnh sửa / thêm / thay chặng và
   // `PUT …/trip`). ADR-0107 ý (i) (accepted 2026-10-08 — NỚI có tên, Điều 9.4): Bán hàng, Quản trị, Toàn quyền. Không phạm vi đơn: đặt gấp cho mọi đơn; bốn
   // lệnh sửa vẫn hỏi `order.trip.edit` theo phạm vi trước. Ý (ii): dấu chỉ ghi lên chặng ĐANG dưới mốc — canh ở `xetDatGapSua` (orders/index.ts), không ở ô này.
-  "order.leg.short_notice": row("any", "none", "any", "none", "none", "any", "none", "none", "none", "none"),
+  "order.leg.short_notice": banHangQuanTri(),
   // Chủ trả lời H4 / N-14 (29/9 tối, "Trả lời lần 12"): XEM ĐỦ dấu đặt gấp trên chi tiết đơn (mã + nhãn lý do, tên người duyệt, lúc duyệt, ghi chú đã che
   // số) — văn phòng (Bán hàng, Kế toán, Quản trị, Toàn quyền). Mã khác xem được đơn (Đối tác, HDV, Thực tập) chỉ nhận cờ "Điều chỉnh khẩn cấp (văn phòng)"
   // (`legs[].datGap = { daDuyet: true }`). Không phạm vi đơn: phạm vi đã do order.view quyết. Hỏi ở `loadOrderView` qua `xemDuDatGap` (orders/index.ts).
@@ -160,6 +163,8 @@ export const MATRIX = {
   // Sổ đại lý đợt 1 (ADR-0077 điều 11, ADR-0078 điều 6; đặc tả 2026-10-08 §6). Cột HR = none (ADR-0071). Route: /api/pricing/* (module pricing).
   "partner.commission.view": row("any", "any", "any", "none", "none", "any", "none", "none", "none", "none"),
   "partner.commission.write": row("none", "any", "any", "none", "none", "any", "none", "none", "none", "none"),
+  // ADR-0146 Đ5 (bổ sung 28/10): đặt / kết thúc LUẬT BÁN theo loại đối tác (route /api/pricing/luat-ban*, cổng office) — Bán hàng, Quản trị, Toàn quyền `any` (luật không có người sở hữu).
+  "sales.block.write": banHangQuanTri(),
   "supply.terms.view": row("none", "any", "any", "none", "none", "any", "none", "none", "none", "none"), // Bán hàng KHÔNG xem tỷ lệ mua lại của nhà cung cấp
   "supply.terms.write": row("none", "any", "any", "none", "none", "any", "none", "none", "none", "none"),
   // Phần đối tác của đơn (đặc tả §6; Task 5): xem = bằng `order.view` ở MỌI cột (supply.terms.view ⊆ order.terms.view ⊆ money.view — bài khoá ở permissions.test.ts), nhưng tài khoản giữ
@@ -264,14 +269,14 @@ export const MATRIX = {
   // — phá lệ luật CẤU HÌNH (khoảng nghỉ, cam kết KHI chuyến ngoài mốc — ADR-0104 Đ1 thay ĐP3) — chỉ Quản trị, Toàn quyền. Luật lõi LC-01…21 không ai vượt.
   // ADR-0053 D7.1 (kế hoạch A4 T6): tài xế đối tác `assigned` — chỉ chuyến mình có dòng lái mở (route tài xế), như tài xế công ty.
   "trip.view": row("any", "any", "any", "none", "none", "any", "none", "assigned", "assigned", "none"),
-  "trip.dispatch": row("any", "none", "any", "none", "none", "any", "none", "none", "none", "none"),
+  "trip.dispatch": banHangQuanTri(),
   "trip.override": quanTri(),
   // ADR-0104 Đ1 (accepted 2026-10-08, Q-1 b): "Điều chỉnh khẩn cấp" — vượt mốc ở MỌI lệnh bị khoá (xếp, rút, dời, thêm khách khi xe chạy, đổi xe, đổi tài
   // xế, huỷ chuyến còn khách); vượt khoảng nghỉ, cam kết KHI chuyến dưới mốc (ngoài mốc vẫn `trip.override`). Bán hàng, Quản trị, Toàn quyền — bằng
   // `trip.dispatch`; bài ghim: không rộng hơn `trip.dispatch` ở mọi cột. Lớp quyết ở `src/shared/moc-toi-thieu.ts` (lopVuotMoc / lopVuotNghiCamKet).
   // ADR-0128 Q1 (chủ duyệt 2026-10-17): đặt MỐC RA LỆNH (mốc tối thiểu, cảnh báo sát mốc) — Quản trị, Toàn quyền; các cột khác của chính sách điều phối vẫn chỉ `settings.ops`.
   "dispatch.policy.lead": row("none", "none", "any", "none", "none", "any", "none", "none", "none", "none"),
-  "trip.urgent_adjust": row("any", "none", "any", "none", "none", "any", "none", "none", "none", "none"),
+  "trip.urgent_adjust": banHangQuanTri(),
   // ADR-0049 D3 (Task A15): lệnh TIẾN ĐỘ (xuất bến, đã tới, đã đón, vắng, khách huỷ, đã trả, kết thúc, kết thúc gián đoạn, đổi thứ tự điểm khi đang chạy).
   // Tài xế công ty: CHỈ chuyến mình đang lái (`assigned` — route tài xế `…/cuoc-cua-toi/*`, cổng staff). Văn phòng (Bán hàng, Quản trị, Toàn quyền) bấm thay
   // qua route RIÊNG `…/chuyen/:id/<lệnh>` (cổng office — R-P1), cùng một hàm xử lý. Kế toán: không. NỚI bài ghim hàng DRIVER — ĐÃ DUYỆT 2026-09-30 (lần 17) (đề xuất luật mục 2).

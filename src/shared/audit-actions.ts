@@ -95,6 +95,10 @@ export const AUDIT_ACTIONS = {
   prc_partner_type_added: { label: "Thêm loại đối tác", group: "ledger" },
   prc_partner_type_off: { label: "Tắt loại đối tác", group: "ledger" },
   prc_partner_type_on: { label: "Bật lại loại đối tác", group: "ledger" },
+  // ADR-0146 Đ5: Bán hàng / Quản trị / Toàn quyền thêm và kết thúc LUẬT BÁN theo loại đối tác — `detail` = tên + mã loại, phạm vi (mã dịch vụ / mã nhóm / mã đặc điểm = mã giá trị),
+  // ngày (ADR-0146 Đ5 «nhật ký ghi mã loại, mã nhóm hoặc dịch vụ, ngày»); không thông tin cá nhân.
+  prc_sales_block_added: { label: "Thêm luật bán", group: "ledger" },
+  prc_sales_block_ended: { label: "Kết thúc luật bán", group: "ledger" },
   // ADR-0117 lần 2: mức TA dùng chung — `detail` = tên mức / «tên loại → tên mức · từ … đến …» (tên đã cấm số điện thoại / email), không mã thô. Dòng của mức đi qua
   // `prc_commission_rule_added` / `_closed` (đối tượng «mức TA <tên>»).
   prc_rate_tier_added: { label: "Thêm cấp đại lý", group: "ledger" },

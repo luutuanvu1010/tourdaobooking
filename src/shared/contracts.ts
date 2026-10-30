@@ -2793,6 +2793,33 @@ export interface LoaiDoiTacDto { code: string; ten: string; coSan: boolean; dang
 export interface LoaiDoiTacListResponse { loai: LoaiDoiTacDto[] }
 export interface LoaiDoiTacResponse { loai: LoaiDoiTacDto }
 /**
+ * Luật bán theo loại đối tác (ADR-0146 Đ1, Đ5; ADR-0152 Đ2): «loại `loai` KHÔNG được đặt [dịch vụ | nhóm | dịch vụ mang giá trị đặc điểm (kèm nhóm tuỳ chọn)]» từ `tuNgay` đến
+ * `denNgay` (ngày dân sự VN, gồm cả hai đầu; `null` = chưa hẹn). Chỉ Bán hàng, Quản trị, Toàn quyền (ô `sales.block.write`, không giữ quyền Đối tác) đọc được. Mã chỉ để gửi lại
+ * máy chủ; giao diện hiện TÊN. `khongPhu` = luật theo đặc điểm trỏ giá trị hoặc đặc điểm đang tắt ⇒ «Không phủ dịch vụ nào» (ADR-0152, trang ghép 3b).
+ */
+export type TrangThaiLuatBan = "DANG_AP_DUNG" | "SAP_AP_DUNG" | "DA_KET_THUC";
+export interface LuatBanDto {
+  id: string;
+  loai: string;
+  tenLoai: string;
+  phamVi: "SERVICE" | "GROUP" | "ATTRIBUTE";
+  catalogCode: string | null;
+  tenDichVu: string | null;
+  groupCode: string | null;
+  tenNhom: string | null;
+  attributeCode: string | null;
+  valueCode: string | null;
+  tenDacDiem: string | null;
+  tenGiaTri: string | null;
+  tuNgay: string;
+  denNgay: string | null;
+  ghiChu: string | null;
+  trangThai: TrangThaiLuatBan;
+  khongPhu: boolean;
+}
+export interface LuatBanListResponse { homNay: string; luat: LuatBanDto[] }
+export interface LuatBanResponse { luat: LuatBanDto }
+/**
  * Mức TA dùng chung (ADR-0117 lần 2): bộ hoa hồng có tên; loại đối tác gắn vào mức theo ngày (mỗi loại tối đa một mức tại một ngày). `dangBat` = false ⇒ không gắn mới,
  * không thêm dòng mới; dòng và gắn đang có VẪN áp (giả định kế hoạch, N-23). Chỉ văn phòng có `partner.commission.view` và KHÔNG giữ quyền Đối tác đọc được.
  */

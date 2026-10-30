@@ -48,6 +48,11 @@ export async function tenDacDiemTheoMa(db: D1Database, valueCodes: readonly stri
   return tenCuaGiaTri(db, valueCodes);
 }
 
+/** Kế hoạch 2026-10-30 T6 (màn Luật bán): tên của MỌI nhóm (kể cả nhóm tắt) theo mã — chỉ để hiện tên nhóm trên danh sách luật bán. Hàm công bố hẹp (chỉ mã + tên). */
+export async function tenCacNhom(db: D1Database): Promise<Map<string, string>> {
+  return new Map((await danhSachNhom(db)).map((g) => [g.code, g.name]));
+}
+
 /**
  * ADR-0149 Đ1 / Ruling R-0149-B: mã nào trong danh sách bị chặn đưa đón vì Ô RIÊNG của dịch vụ («Không đón»), không vì nhóm — cho `orders` viết câu báo đúng lý do.
  * Hàm công bố hẹp (chỉ mã được hỏi); cổng chặn vẫn là view `v_ctl_service_transfer`.

@@ -94,6 +94,7 @@ const STRICT: readonly { module: string; file: string }[] = [
   { module: "maintenance", file: "modules/maintenance/repository.ts" },
   { module: "parties", file: "modules/parties/repository.ts" },
   { module: "pricing", file: "modules/pricing/repository.ts" }, // ADR-0077 — sổ đại lý đợt 1: bảng mức, điều khoản người bán
+  { module: "pricing", file: "modules/pricing/luat-ban-repo.ts" }, // ADR-0146 Đ6 (a) — luật bán theo loại đối tác: tệp DUY NHẤT nhắc prc_sales_block
   { module: "staff", file: "modules/staff/repository.ts" },
   { module: "thongbao", file: "modules/thongbao/repository.ts" },
   { module: "van-chuyen", file: "modules/van-chuyen/repository.ts" }, // ADR-0040 D1 (siết: SQL đi qua defineSql, EXPLAIN)
