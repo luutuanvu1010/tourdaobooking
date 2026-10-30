@@ -433,10 +433,13 @@ export async function initShell(): Promise<Staff> {
         for (const load of badgeLoaders) load();
       };
       // Luật khung 30/10 [4]: mục của trang đang mở phải thấy được — laptop thấp + nhóm Thiết lập dài từng đẩy nó xuống dưới mép (19/32 trang của Toàn quyền,
-      // docs/evidence/2026-10-30-danh-gia-khung-giao-dien/so-lieu/thanh-ben-1366x650.txt). `nearest`: chỉ cuộn vùng cuộn riêng của thanh bên (thanh bên dính, luôn
-      // trọn trong khung nhìn nên trang không cuộn); thanh bên bị CSS ẩn (điện thoại) thì lệnh không làm gì; chừa mép mờ bằng `scroll-margin` ở app.css.
+      // docs/evidence/2026-10-30-danh-gia-khung-giao-dien/so-lieu/thanh-ben-1366x650.txt). Đặt thẳng `scrollTop` của vùng cuộn riêng của thanh bên cho mục nằm giữa
+      // (mục ở nửa trên thì phép tính âm, trình duyệt kẹp về 0 — không cuộn; mục trong nhóm gập có offsetTop 0 ⇒ cũng về 0). KHÔNG dùng scrollIntoView: Chrome dời «điểm xuất phát của phím Tab» tới mục đó, Tab
+      // đầu tiên bỏ qua lối «Bỏ qua tới nội dung chính» (dot-0-smoke bước 4 bắt được). Thanh bên bị CSS ẩn (điện thoại) thì mọi số đo bằng 0 — không làm gì.
       // Gọn có chủ ý: dòng này vào gói MỌI trang (trần dung lượng trang Đơn hàng, src/goi-trang-nhe.test.ts).
-      nav.querySelector("[aria-current=page]")?.scrollIntoView({ block: "nearest" });
+      const vung = nav.querySelector<HTMLElement>(".sidebar-groups");
+      const mucMo = vung?.querySelector<HTMLElement>("[aria-current=page]");
+      if (vung && mucMo) vung.scrollTop = mucMo.offsetTop - vung.offsetTop - vung.clientHeight / 2; // cùng gốc đo #sidebar (sticky = có định vị)
       if (tatTam !== null) nav.dataset.khungTam = "1";
       else if (nav.offsetParent !== null) loadBadges();
       else {

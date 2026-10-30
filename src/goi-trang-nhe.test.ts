@@ -26,7 +26,11 @@ const CHO_PHEP_NHAT_KY = new Set(["web/help.ts"]);
 // Nhận main vào nhánh hồ sơ riêng tư: giữ trần LỚN HƠN của hai bên (96.700); không nới thêm — đo gói thật sau gộp ở báo cáo.
 // Nới 96.700 → 96.800 (ADR-0136 Task 3.5, 27/10): gói nhúng `muc-giao-dien.ts` (thêm trang /cho-xac-nhan vào `TRANG`/`TRANG_TOI`) và `bang-tin.ts`/`thong-bao.ts` (nhãn `xet-duyet`, loại tin `cho_xac_nhan`) — chỉ dữ liệu, +13 byte đo thật; không thêm mã giao diện vào trang Đơn hàng.
 // Nới 96.700 → 101.719 (đợt 0 khung chung, 2026-10-29): mã vỏ chung (dải, ẩn thanh tab động, thanh tab theo bộ quyền) vào gói mọi trang; không nhật ký thay đổi, không mã nghiệp vụ. Đo sau Task 15/15b (Q-2) = 101.619 byte.
-const TRAN_ORDERS = 101_719;
+// Nới 101.719 → 101.933 (luật khung 30/10/2026 — chủ dự án duyệt nguyên văn «đồng ý theo đề xuất của bạn, thi công» cho câu «nới 101.719 → 101.933 byte»):
+// trước đợt này gói đo 101.695 byte (dư 24); đợt thêm 138 byte vào khung chung (một dòng thanh bên tự cuộn tới mục đang mở ở web/shell.ts, hàm tông dải nhắc
+// bảo mật `tongDaiNhacHaiLop`, trừ 21 byte chữ lặp «— Bật ngay») ⇒ 101.833; trần = số đo + 100. Không nhật ký thay đổi, không mã nghiệp vụ.
+// Kế hoạch: docs/superpowers/plans/2026-10-30-sua-hien-thi-va-luat-khung.md.
+const TRAN_ORDERS = 101_933;
 
 function dung(trang: string) {
   const r = buildSync({

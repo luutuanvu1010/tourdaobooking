@@ -277,16 +277,13 @@ body.tabbar-an .vc-bottom-bar, body.tabbar-dinh .vc-bottom-bar { bottom: 0; }
   .don-bang-dau:has(+ #list:empty), .don-bang-dau[hidden] { display: none; }
 }
 
-/* [15] Đơn hàng máy tính: thanh trên đã có ô tìm và nút «Tạo đơn» — bỏ bản trùng; trang Tạo đơn: bỏ nút «Tạo đơn» của thanh trên (đang ở chính trang đó). */
+/* [15] Đơn hàng máy tính: thanh trên đã có ô tìm và nút «Tạo đơn» — bỏ bản trùng. (Trang Tạo / Sửa đơn GIỮ nút «Tạo đơn» của thanh trên: ở trang sửa đơn cũ nó
+   vẫn là lối lập đơn khác; CSS không phân biệt được hai trường hợp — trang-chu-smoke bản đợt 0 canh nút này từ 900px.) */
 @media (min-width: 900px) {
   body.has-sidebar:has(#topbar .topbar-new):has(main #loc-mo) #new-order { display: none; }
   body.has-sidebar:has(main #loc-mo) #topbar > .topbar-search { display: none; }
   body.has-sidebar:has(main #loc-mo) #topbar > .topbar-search + * { margin-left: auto; } /* ô tìm giữ margin-left:auto đẩy cụm nút sang phải — ẩn ô thì phần tử kế nhận lại */
-  body.has-sidebar:has(main #form-title) #topbar .topbar-new { display: none; }
 }
-
-/* [4] Thanh bên tự cuộn tới mục đang mở (web/shell.ts `cuonToiMucDangMo`, scrollIntoView «nearest»): chừa khoảng trên mép mờ dần của vùng cuộn. */
-.sidebar-groups [aria-current="page"] { scroll-margin-block: var(--s7); }
 
 /* [3] Chân thanh bên: tên và vai của người dùng không bị cắt; «Đăng xuất» một hàng riêng. */
 @media (min-width: 900px) {

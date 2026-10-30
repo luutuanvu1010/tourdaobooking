@@ -12,6 +12,22 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Luật khung 30/10 (chủ duyệt gói khuyến nghị của bản đánh giá khung giao diện; kế hoạch docs/superpowers/plans/2026-10-30-sua-hien-thi-va-luat-khung.md).
+    // Chỉ giao diện, KHÔNG migration, không đổi máy chủ. Production báo 2.48 (GET công khai /api/auth/config, 30/10). Ngày là TẠM — phiên phát hành kiểm lại ở bước A.0.
+    version: "2.49",
+    date: "2026-10-30",
+    items: [
+      { kind: "doi", text: "Danh sách Đơn hàng trên máy tính nay xếp thành bảng thẳng cột: ngày đi, khách, điện thoại, số khách, còn thu, trạng thái." },
+      { kind: "sua", text: "Trên điện thoại, thẻ đơn hiện đủ tên khách, số khách và số tiền còn thu, không còn bị cắt bằng dấu ba chấm." },
+      { kind: "sua", text: "Chi tiết đơn trên laptop: dải tóm tắt đầu đơn không còn xuống dòng từng chữ; các nút gom một hàng, nút Huỷ đơn tách sang bên phải." },
+      { kind: "sua", text: "Thanh bên trên máy tính tự cuộn tới mục bạn đang mở; tên và vai của bạn ở cuối thanh bên hiện đủ, không bị cắt." },
+      { kind: "doi", text: "Tên trang chỉ hiện một lần ở thanh trên cùng, không lặp lại ở đầu trang." },
+      { kind: "doi", text: "Sổ công nợ trên máy tính tự mở bên đầu tiên trong danh sách. Trang Tôi xếp gọn thành hai cột, không còn khoảng trống lớn." },
+      { kind: "doi", text: "Dải nhắc bật bảo mật hai lớp hiện màu vàng nhạt khi còn hơn 3 ngày, chuyển sang đỏ khi sắp hết hạn." },
+      { kind: "doi", text: "Tiêu đề các khối đổi sang màu chữ đen cho dễ đọc; màu xanh dành cho những chỗ bấm được." },
+    ],
+  },
+  {
     // Hoa hồng theo cấp đại lý (chủ 30/10, quyết định 14: MỘT lần phát hành). Số 2.48 và ngày là TẠM — phiên phát hành kiểm lại ở bước A.0 của docs/HANDOFF-N1.md.
     // Nếu phần 2 phát hành cùng lần thì Task 17 thêm dòng «Đổi cấp» vào CHÍNH mục này, không tách mục.
     version: "2.48",
