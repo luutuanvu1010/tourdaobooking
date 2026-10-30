@@ -71,3 +71,15 @@ Mười bảy «câu hôm nay» của §6.1 đều có nguyên văn trong `index
 - `web/so-dai-ly-ui.ts`: `DanhMuc.dichVu` giữ `groupCode`; typecheck 0 lỗi nên mọi nơi dùng `dm.dichVu` vẫn khớp.
 - `huong-dan-ke-toan.ts`: không có `[[Tên nút]]` nào trùng chuỗi đã đổi (nó dùng `[[Tắt]]`, `[[Bật]]` của loại và các nút chính sách của Task 6); không sửa. `huong-dan.test.ts` xanh. Bảng từ không đỏ. `so-do-trang.ts` không đổi.
 - Phát hiện cho task sau: `web/hoa-hong-thiet-lap.ts:127` còn nhãn «Tắt»/«Bật» + «Đã tắt chính sách.» của nút mức TA, chưa đồng bộ nhãn «Khoá cấp»/«Mở lại cấp» (thuộc task giao diện).
+
+## Task 6 — câu cố định §5 và luật việc của dòng
+
+**Lựa chọn tự áp**
+- `cauDongLoaiDai`: phụ chú §4.2 nối sau dòng bằng « — Có thay đổi sắp áp dụng từ <dd/mm/yyyy>» (đặc tả không nói dấu nối); ngày qua `ngayVN`. Loại không thiếu mức (TAT, DU, CHUA_KIEM) trả chuỗi rỗng.
+- «<tối đa 3 tên>[ và <k> dịch vụ khác]»: ba tên nối bằng «, », rồi « và k dịch vụ khác» nếu hơn ba (một dạng cho cả §4.2 và §4.3).
+- `cauNhacCap`: ca `CHUA_AP` với `sapApTu = null` ra «Hôm nay cấp này chưa áp mức nào.» (dòng thứ ba của bảng §4.3).
+- `thuTuMenu`: khổ máy tính giữ nguyên thứ tự đầu vào; điện thoại đưa `DOI` lên đầu.
+- `docThe`: chỉ «loai» và «doi-tac» mở đúng thẻ; mọi giá trị khác (kể cả «cap») ra «cap».
+
+**Lệch so với kế hoạch**
+- Miễn bảng từ: thêm `CAU_O_TRONG` vào `CHUOI_GIU_NGUYEN` (`src/bang-tu-giao-dien.test.ts`). Luật `/[Dd]òng riêng|…/` bắt «dòng riêng» trong câu §5.4 nguyên văn («cấp không có dòng riêng cho ô này»); ở đây nghĩa là dòng của riêng cấp cho ô đó, không phải «mức riêng của loại», nên là báo nhầm.

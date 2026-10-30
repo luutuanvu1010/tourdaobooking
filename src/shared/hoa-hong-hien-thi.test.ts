@@ -373,3 +373,105 @@ test("N5 nhãn: «Sắp áp dụng từ <ngày>» (kèm «đến» khi có ngày
 test("câu thứ tự áp mức ghim nguyên văn §5.3", () => {
   assert.equal(CAU_THU_TU_AP_MUC, "Mức nào áp cho một đơn: mức riêng của đối tác → cấp riêng của đối tác → mức riêng của loại đối tác → cấp đại lý của loại. Trong mỗi bước: dịch vụ đó → nhóm dịch vụ → mọi dịch vụ. Đối tác có cấp riêng thì không xét cấp của loại. Muốn biết chắc cho một đối tác: dùng Tra nhanh.");
 });
+
+// ---- Task 6: câu cố định §5 và luật việc của dòng (đặc tả hoa-hong-cap-dai-ly) ----
+import * as HT from "./hoa-hong-hien-thi.ts";
+
+const dv = (code: string, ten: string) => ({ code, groupCode: null, ten });
+
+test("§5.1 dải cảnh báo: câu ghim nguyên văn", () => {
+  assert.equal(HT.cauTieuDeDai(3), "Có 3 loại đối tác còn thiếu mức hôm nay");
+  assert.equal(
+    HT.CAU_THAN_DAI,
+    "Đối tác chỉ mang loại này, không có mức riêng hay cấp riêng, sẽ bị giữ đơn ở bước Đã giao nếu đơn xác nhận từ hôm nay có dịch vụ chưa có mức. Đối tác mang thêm một loại khác có mức thì vẫn được tính theo loại đó. Đơn đã xác nhận trước đó không tự thả khi thêm mức: Kế toán dùng Ghi mức tay cho từng đơn.",
+  );
+  assert.equal(HT.cauLoaiTatDai(2), "2 loại đã tắt: đối tác chỉ mang loại đã tắt không được hưởng hoa hồng, đơn của họ bị giữ ở bước Đã giao.");
+  assert.equal(HT.CAU_DAI_CHUA_KIEM, "Chưa kiểm được loại nào thiếu mức vì không tải được danh mục dịch vụ. Tải lại trang.");
+  for (const c of [HT.cauTieuDeDai(1), HT.CAU_THAN_DAI, HT.cauLoaiTatDai(1), HT.CAU_DAI_CHUA_KIEM, HT.cauDongLoaiDai("L", { kieu: "KHONG_CO", thieu: [] }, null)]) {
+    assert.ok(!/mở khoá|tự động/u.test(c), c);
+  }
+});
+
+test("§5.1 cauDongLoaiDai: hai dạng và phụ chú §4.2", () => {
+  assert.equal(HT.cauDongLoaiDai("Đại lý", { kieu: "KHONG_CO", thieu: [dv("a", "A")] }, null), "Đại lý: chưa có mức cho dịch vụ nào");
+  assert.equal(HT.cauDongLoaiDai("Đại lý", { kieu: "THIEU", thieu: [dv("a", "A"), dv("b", "B")] }, null), "Đại lý: thiếu mức cho 2 dịch vụ (A, B)");
+  assert.equal(
+    HT.cauDongLoaiDai("Đại lý", { kieu: "THIEU", thieu: [dv("a", "A"), dv("b", "B"), dv("c", "C"), dv("d", "D"), dv("e", "E")] }, null),
+    "Đại lý: thiếu mức cho 5 dịch vụ (A, B, C và 2 dịch vụ khác)",
+  );
+  assert.equal(HT.cauDongLoaiDai("Đại lý", { kieu: "KHONG_CO", thieu: [] }, "2026-11-02"), "Đại lý: chưa có mức cho dịch vụ nào — Có thay đổi sắp áp dụng từ 02/11/2026");
+});
+
+test("§4.3 / §4.4 cauNhacCap: năm câu", () => {
+  assert.equal(HT.cauNhacCap({ kieu: "DU" }), null);
+  assert.equal(HT.cauNhacCap({ kieu: "CHUA_KIEM" }), null);
+  assert.equal(HT.cauNhacCap({ kieu: "RONG" }), "Cấp này chưa có mức nào.");
+  assert.equal(HT.cauNhacCap({ kieu: "CHUA_AP", sapApTu: "2026-11-02" }), "Hôm nay cấp này chưa áp mức nào; mức đầu tiên áp dụng từ 02/11/2026.");
+  assert.equal(HT.cauNhacCap({ kieu: "CHUA_AP", sapApTu: null }), "Hôm nay cấp này chưa áp mức nào.");
+  assert.equal(HT.cauNhacCap({ kieu: "THIEU", thieu: [dv("d", "D'")] }), "1 dịch vụ chưa có mức trong cấp này: D'.");
+  assert.equal(
+    HT.cauNhacCap({ kieu: "THIEU", thieu: [dv("a", "A"), dv("b", "B"), dv("c", "C"), dv("d", "D"), dv("e", "E"), dv("f", "F")] }),
+    "6 dịch vụ chưa có mức trong cấp này: A, B, C và 3 dịch vụ khác.",
+  );
+});
+
+test("§5.2 §5.4 §3 §3.3 câu hộp, huy hiệu, ô trống, xung đột, toast: nguyên văn", () => {
+  assert.deepEqual(HT.hopKhoaCap("Đại lý 1"), {
+    tieuDe: "Khoá cấp «Đại lý 1»?",
+    hauQua:
+      "Sau khi khoá, cấp này không nhận thêm loại hay đối tác nào, không thêm mức mới, và các mức đang có của cấp không Đổi hay Sửa được nữa, chỉ Ngừng được. Các loại và đối tác đang theo cấp này vẫn được tính hoa hồng như cũ. Muốn ngừng chi cho một loại thì dùng Ngừng áp dụng ở lần áp dụng của loại đó; muốn chuyển loại sang cấp khác thì dùng Đổi cấp.",
+    nhanNguyHiem: "Khoá cấp",
+  });
+  assert.deepEqual(HT.hopTatLoai("Đại lý"), {
+    tieuDe: "Tắt loại «Đại lý»?",
+    hauQua:
+      "Sau khi tắt, đối tác chỉ mang loại này không được hưởng hoa hồng nữa: đơn họ đặt, xác nhận từ lúc tắt, bị giữ ở bước Đã giao cho tới khi Kế toán dùng Ghi mức tay. Đối tác mang thêm một loại khác còn bật vẫn được tính theo loại đó, nếu loại đó có mức cho dịch vụ của đơn. Đơn đã xác nhận trước lúc tắt giữ nguyên hoa hồng.",
+    nhanNguyHiem: "Tắt loại",
+  });
+  assert.equal(HT.NHAN_CAP_DA_KHOA, "Đã khoá — vẫn áp cho loại và đối tác đang theo");
+  assert.equal(HT.CAU_O_TRONG, "Ô «—»: cấp không có dòng riêng cho ô này; đơn sẽ theo dòng rộng hơn của cấp (nhóm dịch vụ hoặc mọi dịch vụ) nếu có. Muốn biết mức chắc chắn: dùng Tra nhanh.");
+  assert.equal(HT.NHAN_XUNG_DOT, "Xung đột mức");
+  assert.equal(
+    HT.CAU_XUNG_DOT,
+    "Đối tác này mang hai loại ra hai mức khác nhau cho cùng một dịch vụ. Đơn của dịch vụ đó bị giữ ở bước Đã giao cho tới khi đặt mức riêng hoặc cấp riêng cho đối tác này.",
+  );
+  assert.equal(HT.CAU_DUOI_DS_DOI_TAC, "Đối tác không có mức riêng hay cấp riêng không nằm ở đây. Muốn biết một đối tác đang ra mức nào: dùng Tra nhanh.");
+  assert.equal(HT.CAU_KHONG_THAY_DONG, "Không thấy dòng này trên trang — tải lại trang.");
+});
+
+const DONG_AP = muc({ tuNgay: "2026-01-01", denNgay: null, conHieuLuc: true });
+const DONG_SAP = muc({ tuNgay: "2027-01-01", denNgay: null, conHieuLuc: false });
+
+test("§3.1 viecDongMuc", () => {
+  const v = { homNay: HOM_NAY, capDangBat: true, ghi: true, sua: true };
+  assert.deepEqual(HT.viecDongMuc(DONG_AP, v), ["DOI", "SUA", "NGUNG"]);
+  assert.deepEqual(HT.viecDongMuc(DONG_AP, { ...v, capDangBat: null }), ["DOI", "SUA", "NGUNG"]);
+  assert.deepEqual(HT.viecDongMuc(DONG_AP, { ...v, capDangBat: false }), ["NGUNG"]); // cấp đang khoá: chỉ còn Ngừng
+  assert.deepEqual(HT.viecDongMuc(DONG_AP, { ...v, ghi: false, sua: false }), []); // Bán hàng
+  assert.deepEqual(HT.viecDongMuc(DONG_AP, { ...v, sua: false }), ["DOI", "NGUNG"]);
+  assert.deepEqual(HT.viecDongMuc(DONG_SAP, v), ["SUA"]); // dòng sắp áp
+  assert.deepEqual(HT.viecDongMuc(muc({ daHuy: true }), v), []);
+});
+
+test("§3.1 viecLanGan: không lọc theo cấp khoá", () => {
+  const v = { homNay: HOM_NAY, ghi: true, sua: true, coDoi: true };
+  const ap = { tuNgay: "2026-01-01", denNgay: null, conHieuLuc: true };
+  assert.deepEqual(HT.viecLanGan(ap, v), ["DOI", "SUA", "NGUNG"]);
+  assert.deepEqual(HT.viecLanGan(ap, { ...v, coDoi: false }), ["SUA", "NGUNG"]);
+  assert.deepEqual(HT.viecLanGan(ap, { ...v, ghi: false }), []);
+  assert.deepEqual(HT.viecLanGan({ tuNgay: "2027-01-01", denNgay: null, conHieuLuc: false }, v), ["SUA"]);
+  assert.deepEqual(HT.viecLanGan({ ...ap, daHuy: true }, v), []);
+});
+
+test("§3.2 thuTuMenu và docThe", () => {
+  assert.equal(HT.thuTuMenu(["SUA", "NGUNG", "DOI"], true)[0], "DOI");
+  assert.deepEqual(HT.thuTuMenu(["SUA", "NGUNG"], true), ["SUA", "NGUNG"]);
+  assert.deepEqual(HT.thuTuMenu(["SUA", "NGUNG", "DOI"], false), ["SUA", "NGUNG", "DOI"]);
+  assert.equal(HT.docThe("ap-dung"), "cap");
+  assert.equal(HT.docThe("thiet-lap"), "cap");
+  assert.equal(HT.docThe(null), "cap");
+  assert.equal(HT.docThe("rác"), "cap");
+  assert.equal(HT.docThe("cap"), "cap");
+  assert.equal(HT.docThe("loai"), "loai");
+  assert.equal(HT.docThe("doi-tac"), "doi-tac");
+});

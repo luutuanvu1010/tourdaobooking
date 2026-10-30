@@ -3,6 +3,7 @@
 // «mức nào thắng» do máy chủ trả (`bac`), ở đây chỉ dịch bậc ra lời.
 import type { CommissionRuleDto, DoiTuongMucDto, GanLoaiMucDto, LoaiDoiTacDto, MucTaDto, MucTaListResponse, SuaXemTruocResponse, SupplyTermDto, ThuTraResponse } from "./contracts.ts";
 import { ngayVN } from "./giay-to-hien-thi.ts";
+import type { DichVuPhu, KetQuaCap, KetQuaPhu } from "./hoa-hong-phu-muc.ts";
 import { can, holdsPartner, type PermissionHolder } from "./permissions.ts";
 import { CAU_THIEU_MUC, nhanMuc, nhanTyLeBp } from "./so-dai-ly-nhan.ts";
 import { addDays } from "./vn-date.ts";
@@ -314,3 +315,96 @@ export function locBangLoai<L extends { code: string; ten: string }>(loai: reado
   }
   return ra;
 }
+
+// ---------------------------------------------------------------------------------------------------------------------------------------------------------
+// Câu cố định của trang «Hoa hồng đối tác» xếp theo cấp đại lý và luật việc của dòng — nguyên văn đặc tả hoa-hong-cap-dai-ly §3, §4.3, §5.
+// Giao diện chỉ hiện chữ ở đây; không hàm nào chọn mức hay suy con số.
+
+/** Tối đa 3 tên dịch vụ, còn lại ghi « và <k> dịch vụ khác» (§4.2, §4.3). */
+const tenThieu = (thieu: readonly DichVuPhu[]): string => {
+  const ten = thieu.slice(0, 3).map((s) => s.ten).join(", ");
+  return thieu.length > 3 ? `${ten} và ${thieu.length - 3} dịch vụ khác` : ten;
+};
+
+// §5.1 dải cảnh báo đầu trang
+export const cauTieuDeDai = (n: number): string => `Có ${n} loại đối tác còn thiếu mức hôm nay`;
+export const CAU_THAN_DAI =
+  "Đối tác chỉ mang loại này, không có mức riêng hay cấp riêng, sẽ bị giữ đơn ở bước Đã giao nếu đơn xác nhận từ hôm nay có dịch vụ chưa có mức. Đối tác mang thêm một loại khác có mức thì vẫn được tính theo loại đó. Đơn đã xác nhận trước đó không tự thả khi thêm mức: Kế toán dùng Ghi mức tay cho từng đơn.";
+/** Một dòng cho mỗi loại thiếu mức; phụ chú §4.2 «Có thay đổi sắp áp dụng từ <ngày>» nối sau dấu «—». Loại không thiếu (TAT, DU, CHUA_KIEM) không có dòng: trả rỗng. */
+export function cauDongLoaiDai(ten: string, kq: KetQuaPhu, sapApTu: string | null): string {
+  let dong: string;
+  if (kq.kieu === "KHONG_CO") dong = `${ten}: chưa có mức cho dịch vụ nào`;
+  else if (kq.kieu === "THIEU") dong = `${ten}: thiếu mức cho ${kq.thieu.length} dịch vụ (${tenThieu(kq.thieu)})`;
+  else return "";
+  return sapApTu === null ? dong : `${dong} — Có thay đổi sắp áp dụng từ ${ngayVN(sapApTu)}`;
+}
+export const cauLoaiTatDai = (m: number): string => `${m} loại đã tắt: đối tác chỉ mang loại đã tắt không được hưởng hoa hồng, đơn của họ bị giữ ở bước Đã giao.`;
+export const CAU_DAI_CHUA_KIEM = "Chưa kiểm được loại nào thiếu mức vì không tải được danh mục dịch vụ. Tải lại trang.";
+
+// §4.3 / §4.4 câu nhắc của một cấp (chỉ ở chi tiết cấp)
+export function cauNhacCap(kq: KetQuaCap): string | null {
+  switch (kq.kieu) {
+    case "RONG":
+      return "Cấp này chưa có mức nào.";
+    case "CHUA_AP":
+      return kq.sapApTu === null ? "Hôm nay cấp này chưa áp mức nào." : `Hôm nay cấp này chưa áp mức nào; mức đầu tiên áp dụng từ ${ngayVN(kq.sapApTu)}.`;
+    case "THIEU":
+      return `${kq.thieu.length} dịch vụ chưa có mức trong cấp này: ${tenThieu(kq.thieu)}.`;
+    default:
+      return null;
+  }
+}
+
+// §5.4 ô trống của ma trận
+export const CAU_O_TRONG = "Ô «—»: cấp không có dòng riêng cho ô này; đơn sẽ theo dòng rộng hơn của cấp (nhóm dịch vụ hoặc mọi dịch vụ) nếu có. Muốn biết mức chắc chắn: dùng Tra nhanh.";
+
+// §5.2 hộp hỏi lại
+export const hopKhoaCap = (ten: string): { tieuDe: string; hauQua: string; nhanNguyHiem: string } => ({
+  tieuDe: `Khoá cấp «${ten}»?`,
+  hauQua:
+    "Sau khi khoá, cấp này không nhận thêm loại hay đối tác nào, không thêm mức mới, và các mức đang có của cấp không Đổi hay Sửa được nữa, chỉ Ngừng được. Các loại và đối tác đang theo cấp này vẫn được tính hoa hồng như cũ. Muốn ngừng chi cho một loại thì dùng Ngừng áp dụng ở lần áp dụng của loại đó; muốn chuyển loại sang cấp khác thì dùng Đổi cấp.",
+  nhanNguyHiem: "Khoá cấp",
+});
+export const hopTatLoai = (ten: string): { tieuDe: string; hauQua: string; nhanNguyHiem: string } => ({
+  tieuDe: `Tắt loại «${ten}»?`,
+  hauQua:
+    "Sau khi tắt, đối tác chỉ mang loại này không được hưởng hoa hồng nữa: đơn họ đặt, xác nhận từ lúc tắt, bị giữ ở bước Đã giao cho tới khi Kế toán dùng Ghi mức tay. Đối tác mang thêm một loại khác còn bật vẫn được tính theo loại đó, nếu loại đó có mức cho dịch vụ của đơn. Đơn đã xác nhận trước lúc tắt giữ nguyên hoa hồng.",
+  nhanNguyHiem: "Tắt loại",
+});
+/** Huy hiệu tông `cat` của cấp đã khoá. */
+export const NHAN_CAP_DA_KHOA = "Đã khoá — vẫn áp cho loại và đối tác đang theo";
+
+// §3 thẻ «Riêng từng đối tác»
+export const NHAN_XUNG_DOT = "Xung đột mức";
+export const CAU_XUNG_DOT =
+  "Đối tác này mang hai loại ra hai mức khác nhau cho cùng một dịch vụ. Đơn của dịch vụ đó bị giữ ở bước Đã giao cho tới khi đặt mức riêng hoặc cấp riêng cho đối tác này.";
+export const CAU_DUOI_DS_DOI_TAC = "Đối tác không có mức riêng hay cấp riêng không nằm ở đây. Muốn biết một đối tác đang ra mức nào: dùng Tra nhanh.";
+/** §3.3 toast tông `bien` khi «Xem dòng ↓» không còn thấy dòng. */
+export const CAU_KHONG_THAY_DONG = "Không thấy dòng này trên trang — tải lại trang.";
+
+// §3.1 đối tượng → việc làm được; §3.2 thứ tự trong menu «⋯»
+export type Viec = "DOI" | "SUA" | "NGUNG";
+function viecChung(d: { tuNgay: string; denNgay: string | null; conHieuLuc: boolean; daHuy?: boolean }, homNay: string, coDoi: boolean, sua: boolean): Viec[] {
+  const dn = nutDoiNgung(d, homNay).hien;
+  const ra: Viec[] = [];
+  if (dn && coDoi) ra.push("DOI");
+  if (sua && nutSua(d, homNay)) ra.push("SUA");
+  if (dn) ra.push("NGUNG");
+  return ra;
+}
+/** Việc của một dòng mức. Cấp đang khoá (`capDangBat === false`): «Đổi» và «Sửa» đều chèn dòng mới nên ẩn, chỉ còn «Ngừng» (§3.1 «Cấp đang khoá»). */
+export function viecDongMuc(d: CommissionRuleDto, v: { homNay: string; capDangBat: boolean | null; ghi: boolean; sua: boolean }): Viec[] {
+  if (!v.ghi) return [];
+  const ra = viecChung(d, v.homNay, true, v.sua);
+  return v.capDangBat === false ? ra.filter((x) => x === "NGUNG") : ra;
+}
+/** Việc của một lần xếp loại (`coDoi: true`) hoặc cấp riêng (`coDoi: false` ở phần 1). Không lọc theo cấp khoá: chuyển sang cấp khác vẫn được. */
+export function viecLanGan(g: { tuNgay: string; denNgay: string | null; conHieuLuc: boolean; daHuy?: boolean }, v: { homNay: string; ghi: boolean; sua: boolean; coDoi: boolean }): Viec[] {
+  return v.ghi ? viecChung(g, v.homNay, v.coDoi, v.sua) : [];
+}
+/** Khổ điện thoại: «Đổi» đứng đầu; các việc còn lại giữ thứ tự. */
+export const thuTuMenu = (viec: readonly Viec[], dienThoai: boolean): Viec[] => (dienThoai && viec.includes("DOI") ? ["DOI", ...viec.filter((x) => x !== "DOI")] : [...viec]);
+
+// Thẻ đang mở của trang; giá trị cũ hay lạ trong sessionStorage («ap-dung», «thiet-lap», rác, null) mở thẻ «Các cấp đại lý».
+export type TheHoaHong = "cap" | "loai" | "doi-tac";
+export const docThe = (gia: string | null): TheHoaHong => (gia === "loai" || gia === "doi-tac" ? gia : "cap");
