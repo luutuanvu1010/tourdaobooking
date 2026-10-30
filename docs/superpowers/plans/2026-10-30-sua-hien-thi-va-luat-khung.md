@@ -77,3 +77,37 @@
 - **Trần gói trang Đơn hàng** (`src/goi-trang-nhe.test.ts`, sổ hàng rào ghi «nới có chủ ý chờ chủ duyệt»): mã gốc 101.695 byte (dư 24 byte so với trần 101.719); sau đợt này 101.833 byte (+138: dòng cuộn thanh bên, hàm tông dải nhắc; bỏ được 21 byte chữ lặp). **Bài này để ĐỎ, không tự nới** — chờ chủ duyệt trần mới (theo lệ «số đo + 100»: 101.933).
 - Tấm gương bộ v2 (`src/bo-v2-khop-ma.test.ts`): sinh lại phần CHÉP TỪ MÃ (`node scripts/sinh-bundle-bo-v2.mjs`), sửa `tokens.json` (bậc 4, 8; mười token mới) → `node scripts/so-bo-v2-voi-ma.mjs` 0 lệch. Bộ trên Claude Design chưa xuất bản lại.
 - Nhãn núm màn Giao diện công ty: «Màu chính (tiêu đề, liên kết, chữ nhấn)» → «Màu chính (liên kết, nút, chữ nhấn)» vì tiêu đề nay theo «Chữ chính».
+
+## Thi công sau duyệt (chủ 30/10 tối: «đồng ý theo đề xuất của bạn, thi công»)
+- Trần gói trang Đơn hàng nới 101.719 → 101.933 (`src/goi-trang-nhe.test.ts`, dòng sổ hàng rào «Gói giao diện gọn»).
+- Mục nhật ký **2.49** (production báo 2.48 — GET công khai `/api/auth/config`); `node scripts/kiem-phien-ban.mjs` ĐẠT «2.49 mới hơn 2.48».
+- **Lỗi trợ năng do lượt thi công gây ra, kịch bản cũ bắt được:** `scrollIntoView` (cuộn thanh bên tới mục mở) dời «điểm xuất phát của phím Tab» của Chrome tới mục
+  đó ⇒ Tab đầu tiên vào «Đơn hàng» thay vì «Bỏ qua tới nội dung chính» (`dot-0-smoke.mjs` bước 4 đỏ; cùng bước trên mã gốc `3468fc1` xanh). Sửa: đặt thẳng
+  `scrollTop` của `.sidebar-groups` (`offsetTop` cùng gốc `#sidebar`); bỏ `scroll-margin-block`. Gói 101.909 byte ≤ trần mới; `soi-thanh-ben.py` vẫn 0/32 · 0/14.
+- Bỏ quy tắc ẩn nút «Tạo đơn» của thanh trên ở trang Tạo / Sửa đơn: ở trang sửa đơn cũ nút đó vẫn là lối lập đơn khác, CSS không phân biệt được hai trường hợp
+  (`trang-chu-smoke.mjs` bản đợt 0 canh nút này từ 900px).
+
+## Kịch bản Chrome đã chạy (30/10 tối; Chromium 141 headless `--no-sandbox`, axe-core 4.13.0 ngoài kho; mỗi kịch bản tự dựng D1 tạm + wrangler dev)
+
+| Kịch bản | Nhánh | Mã gốc `3468fc1` | Ghi chú |
+|---|---|---|---|
+| `2026-10-29-dot-0-khung-chung/…/dot-0-smoke.mjs` | ✅ 20/20 «SMOKE OK (có axe)» | — | sau khi sửa lỗi phím Tab ở trên |
+| `…/mat-mang-smoke.mjs` | ✅ 3/3 | — | |
+| `…/trang-chu-smoke.mjs` (bản đợt 0) | ✅ thoát 0 | — | lượt đầu đỏ ở nút «Tạo đơn» trang sửa đơn → bỏ quy tắc ẩn |
+| `…/quyen-thieu-quan-tri-smoke.mjs` | ✅ 20 | — | |
+| `…/xe-smoke.mjs` | ❌ bước 2, 8b, 9 | ❌ **y hệt** | lỗi có từ trước: danh sách trang Tôi nay có «Đơn chờ xác nhận» (ADR-0136); phiên bị đá ở 8b/9 |
+| `2026-10-26-xac-nhan-don/…/xac-nhan-smoke.mjs` | ✅ 10/10 | — | |
+| `2026-10-26-hoa-hong-thiet-ke-lai/…/hoa-hong-smoke.mjs` | ✅ 53 | — | |
+| `2026-10-02-giao-dien/…/giao-dien-smoke.mjs` | ✅ 11 | — | |
+| `2026-10-27-ho-tro-thiet-ke-lai/…/ho-tro-smoke.mjs` | ✅ 23 | — | |
+| `2026-09-20-a2/…/a2-smoke-form.mjs` | ✅ 25 | — | |
+| `2026-09-20-a2/…/a2-smoke-order.mjs` | ❌ 9 ✓ rồi dừng «banner thiếu mã» | ❌ **y hệt** | lỗi có từ trước (đợt 0 thay banner bằng trang trạng thái) |
+| `2026-09-29-adr-0049/…/chuyen-smoke.mjs` | ❌ gieo dữ liệu 404 | ❌ **y hệt** | lỗi có từ trước, trước mọi bước giao diện |
+| `2026-09-27-tu-choi-huy-hdv/…/hdv-viec-cua-toi-smoke.mjs` | ❌ «lần thu …» | ❌ **y hệt** | lỗi có từ trước, khâu gieo |
+| `2026-09-21-v1-0/…/v1-nguoi-phu-trach.mjs` (bản gốc) | ❌ a, m (+ l dây chuyền) | ✅ 17 | **đỏ đúng dự kiến**: ghim «đúng 2 dòng» / «tên dài phải bị cắt» — luật 6 thay |
+| **bản chép** `2026-10-30-danh-gia-khung-giao-dien/kich-ban/v1-nguoi-phu-trach.mjs` | ✅ **17/17** «V1 NGUOI PHU TRACH OK» (lượt 3, chạy riêng) | — | đổi a, m theo luật 6; đếm hàng dòng 2 bằng gom đỉnh (lượt 2 đỏ a ở 1040 vì so đỉnh tuyệt đối + đếm ô «Còn thu» đang ẩn; chiều cao thẻ 104px khớp một hàng) |
+| `2026-09-22-…-dot-c/…/dot-c-smoke.mjs` (bản gốc) | ❌ «phải display:grid» | ❌ phần `/feedback` (sau bước trang Tôi) | **đỏ đúng dự kiến** ở trang Tôi (cột báo thay lưới) |
+| **bản chép** `…/2026-10-30-danh-gia-khung-giao-dien/kich-ban/dot-c-smoke.mjs` | ✅ mọi bước trang Tôi; ❌ phần `/feedback` | ❌ phần `/feedback` y hệt | phần `/feedback` của dot-c đã thay bằng `ho-tro-smoke.mjs` (web/CLAUDE.md) |
+
+Lỗi gieo dữ liệu chập chờn: `wrangler d1 execute` (lệnh SQL ghi thẳng D1 tạm của kịch bản) đôi khi thất bại khi máy chạy song song nhiều kịch bản — bản chép
+«Người phụ trách» lượt 1 hỏng ở p, q; lượt 2 (chạy riêng) p, q xanh nhưng o hỏng cùng kiểu (bẫy «database is locked» của CLAUDE.md §10).

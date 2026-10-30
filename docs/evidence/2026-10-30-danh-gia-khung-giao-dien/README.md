@@ -64,3 +64,14 @@ Kế hoạch + nhật ký: `docs/superpowers/plans/2026-10-30-sua-hien-thi-va-lu
 - `anh/xem-truoc/`: 15 ảnh đôi trước / sau (`kich-ban/ghep-xem-truoc.py`).
 - Phép dò bắt được hai lỗi do chính lượt thi công gây ra và đã sửa trước khi chốt: thanh trên tràn ở trang con sâu (đặt `flex-shrink` nhỏ hơn 1 cho tiêu đề — chuẩn
   flexbox §9.7 chỉ chia một phần phần thiếu) và luật bảng Đơn hàng áp nhầm vào thẻ đơn mẫu ở ô xem trước của màn Giao diện công ty.
+
+## Bản chép kịch bản Chrome («thay bằng»), lượt 3 — sau khi chủ duyệt thi công
+
+| Bản cũ (giữ nguyên) | Thay bằng (thư mục này) | Sửa gì |
+|---|---|---|
+| `docs/evidence/2026-09-21-v1-0/kich-ban/v1-nguoi-phu-trach.mjs` | `kich-ban/v1-nguoi-phu-trach.mjs` | bước a: bỏ trần 84px «đúng 2 dòng», thêm «không cắt tên / số khách», trần mới 170px (390) / 130px (1040), đếm hàng dòng 2 bằng gom đỉnh; bước m: tên dài KHÔNG bị cắt. Kết quả 17/17 |
+| `docs/evidence/2026-09-22-thiet-ke-lai-giao-dien-dot-c/kich-ban/dot-c-smoke.mjs` | `kich-ban/dot-c-smoke.mjs` | trang Tôi máy tính: cột báo (`columns: 2 520px`, một cột ở 1040) thay lưới hai cột. Mọi bước trang Tôi xanh; phần `/feedback` đỏ y hệt bản gốc trên mã gốc (đã thay bằng `ho-tro-smoke.mjs`) |
+
+Cách chạy: như README đợt 0 (`AXE_JS` = axe-core 4.13 ngoài kho, `CHROME_BIN`; trên máy Linux chạy dưới root cần bọc Chrome bằng `--no-sandbox`). Đề xuất trỏ bảng của
+`web/CLAUDE.md` tới hai bản chép: `docs/superpowers/specs/2026-10-30-danh-gia-khung-giao-dien/DE-XUAT-SUA-WEB-CLAUDE.md` (tệp luật — chờ chủ duyệt).
+Kết quả đủ các kịch bản (nhánh và mã gốc): mục «Kịch bản Chrome đã chạy» của `docs/superpowers/plans/2026-10-30-sua-hien-thi-va-luat-khung.md`.
