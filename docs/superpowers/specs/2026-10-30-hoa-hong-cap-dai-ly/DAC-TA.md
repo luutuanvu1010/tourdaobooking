@@ -1,6 +1,6 @@
 # Đặc tả — trang «Hoa hồng đối tác» xếp theo cấp đại lý (thiết kế lại từ bản vẽ 29/10)
 
-> **bản 4 — 2026-10-30 — chờ QA1 lần 4 và chủ duyệt.** Chưa thi công, chưa lập kế hoạch. Bản 4 sửa điểm Chặn và hai điểm Sửa của `QA1-LAN-3.md`: luật cấm chữ «chính sách» nay đi theo bộ tệp hoa hồng (§6.2), có số đo thật. Bản 3 (lần lưu `3d9f26bb`) sửa điểm Chặn và bảy điểm Sửa của `QA1-LAN-2.md` và áp quyết định 7–9 (`QUYET-DINH-CHU-2026-10-30-LAN-3.md`). Bản 2 (lần lưu `353230c2`) đã sửa mọi điểm của `QA1-LAN-1.md` và áp quyết định 1–6 (`QUYET-DINH-CHU-2026-10-30.md`, `QUYET-DINH-CHU-2026-10-30-LAN-2.md`). Bản 1 nằm ở lần lưu `4d97c025`. Đối chiếu bản vẽ: `DOI-CHIEU-MOCKUP.md` (mã T1–T36; các mục «Bổ sung bản 2», «Bổ sung bản 3» ở cuối tệp). Đề xuất kiến trúc đi kèm: `docs/adr/ADR-0151-doi-cap-rieng-cua-doi-tac-mot-lo.md` (proposed). Mỗi số dòng mã trích ở đây đọc trên nhánh `dac-ta-hoa-hong-cap-dai-ly` (gốc `main` a129d3dd) ngày 30/10.
+> **bản 5 — 2026-10-30 — chủ đã duyệt cả hai phần** (quyết định 10–12, `BIEN-BAN-DUYET-2026-10-30.md`), sau khi QA1 lần 4 ĐẠT (`QA1-LAN-4.md`, trên bản 4 lần lưu `37c6638c`). Chưa thi công. Bước kế tiếp: viết kế hoạch thi công cho phần 1 và phần 2, đưa chủ duyệt kế hoạch trước khi viết mã (quyết định 10). Bản 5 chỉ chép ba quyết định đó vào §0, §1.1, §8, §10, §12, và thêm hai ghi chú «Ghi» của QA1 lần 4 vào §6.2; không đổi luật nào khác. Bản 4 sửa điểm Chặn và hai điểm Sửa của `QA1-LAN-3.md`: luật cấm chữ «chính sách» nay đi theo bộ tệp hoa hồng (§6.2), có số đo thật. Bản 3 (lần lưu `3d9f26bb`) sửa điểm Chặn và bảy điểm Sửa của `QA1-LAN-2.md` và áp quyết định 7–9 (`QUYET-DINH-CHU-2026-10-30-LAN-3.md`). Bản 2 (lần lưu `353230c2`) đã sửa mọi điểm của `QA1-LAN-1.md` và áp quyết định 1–6 (`QUYET-DINH-CHU-2026-10-30.md`, `QUYET-DINH-CHU-2026-10-30-LAN-2.md`). Bản 1 nằm ở lần lưu `4d97c025`. Đối chiếu bản vẽ: `DOI-CHIEU-MOCKUP.md` (mã T1–T36; các mục «Bổ sung bản 2», «Bổ sung bản 3» ở cuối tệp). Đề xuất kiến trúc đi kèm: `docs/adr/ADR-0151-doi-cap-rieng-cua-doi-tac-mot-lo.md` (accepted 30/10, quyết định 11; bản 3 chép quyết định 12). Mỗi số dòng mã trích ở đây đọc trên nhánh `dac-ta-hoa-hong-cap-dai-ly` (gốc `main` a129d3dd) ngày 30/10.
 
 ## 0. Mục tiêu và phạm vi
 
@@ -9,13 +9,13 @@ Lời chủ (nguyên văn): «thể hiện rõ từng cấp độ đại lý, t�
 Việc chia làm **hai phần**, thi công trên `main` ngay (quyết định 4).
 
 - **Phần 1 — giao diện và chữ (loại A).** Gồm bốn việc. (1) Dựng lại `web/hoa-hong*.ts` và `public/hoa-hong.html` theo bản vẽ, thành ba thẻ «Các cấp đại lý · Loại đối tác · Riêng từng đối tác». (2) Thêm lối vào «đặt cấp riêng cho một đối tác» ngay trên trang (hôm nay chỉ có ở Danh bạ), dùng các route đặt, sửa, ngừng đang có. (3) Sửa các chỗ bản vẽ nói sai luật tiền (T5, T8, T12, T14). (4) Đổi tên theo quyết định 3 trên mọi màn, gồm cả câu báo lỗi của máy chủ và phần hướng dẫn (quyết định 6, danh sách ở §6).
-- **Phần 2 — nút «Đổi cấp» cho cấp riêng (loại B).** Route mới theo ADR-0151. **Mọi việc thi công của phần 2 nằm sau cổng «chủ duyệt ADR-0151»** (quyết định 5). Chưa duyệt thì kế hoạch không được xếp việc nào của phần 2 vào hàng chạy, và trang phần 1 **không** có nút «Đổi cấp» cho cấp riêng.
+- **Phần 2 — nút «Đổi cấp» cho cấp riêng (loại B).** Route mới theo ADR-0151. Cổng «chủ duyệt ADR-0151» (quyết định 5) **đã qua** ngày 30/10 (quyết định 11): phần 2 được đưa vào kế hoạch thi công cùng phần 1. Câu báo lỗi của route mới theo quyết định 12 (ADR-0151 Đ3, §10). Cổng còn lại cho cả hai phần là chủ duyệt kế hoạch thi công trước khi viết mã (quyết định 10).
 - **Ngoài phạm vi:** cách tính tiền, quyền, CSDL, `src/shared/contracts.ts`. Cũng ngoài phạm vi: ADR-0148 lượt 2 (cách tính «Giá đại lý»), BL-UX-HOA-HONG-DT (đối tác xem tổng tháng), lịch sử đầy đủ «ai sửa gì», số đơn đang bị giữ, nút «Đổi cấp» ở Danh bạ, và các trang khác ngoài Hoa hồng (trừ chữ, §6).
 - **Xây trên lỗ đang hở:** không (`docs/quyen-hoan.json` 30/10 không có mục chạm phần giá hay hoa hồng).
 
 ## 1. Quyết định đã chốt và lựa chọn của người soạn
 
-### 1.1 Sáu quyết định của chủ (30/10, ràng buộc)
+### 1.1 Các quyết định của chủ (30/10, ràng buộc; 1–6 lượt đầu, 7–9 lượt 3, 10–12 biên bản duyệt)
 
 | # | Quyết định | Đặc tả áp ở |
 |---|---|---|
@@ -28,6 +28,9 @@ Việc chia làm **hai phần**, thi công trên `main` ngay (quyết định 4)
 | 7 | Nhãn nút của cấp: «Khoá cấp» / «Mở lại cấp», kèm huy hiệu và hộp hỏi lại theo §5.2. | Q-7, §5.2, §6 |
 | 8 | Chi tiết nhật ký giữ khuôn cũ («mức riêng …», «chính sách <tên>»); chỉ nhãn hành động trên trang Nhật ký đổi chữ. | §6.1, §6.2 |
 | 9 | Không đụng `kiemDoi`, không thêm tham số; câu «Mức…» giữ nguyên từng chữ và ghi thành lệch có tên. | §10, ADR-0151 Đ3 |
+| 10 | Phần 1 đã duyệt; được viết kế hoạch thi công, kế hoạch đưa chủ duyệt trước khi viết mã. | §0 |
+| 11 | ADR-0151 đã duyệt; phần 2 vào kế hoạch thi công cùng phần 1. | §0 phần 2, ADR-0151 |
+| 12 | Route «Đổi cấp» tự xét hai điều kiện «đã có ngày ngừng» và «ngày bắt đầu cũ ≥ ngày mới» trước `kiemDoi`, trả câu đúng cho cấp riêng; `kiemDoi` giữ nguyên; bài ghim cả hai phía. Thay phần «lệch có tên» của quyết định 9, chỉ ở route mới. | §10, ADR-0151 Đ3 và tiêu chí 1 |
 
 **Về N-23** (QA1 điểm 6). Trước ngày 30/10, N-23 («tắt cấp: không xếp mới, không thêm dòng mới, dòng đang áp vẫn áp») **chưa phải luật đã duyệt**. Nó chỉ là giả định kế hoạch, ghi ở `docs/superpowers/plans/2026-10-14-adr-0117-lan-2-ke-hoach.md` (bảng giả định, dòng N-23). Nhật ký thi công ADR-0117 lần 2 vẫn để nó trong «Việc treo chờ chủ», và chú thích ở `contracts.ts` (`MucTaDto`) cũng ghi «giả định kế hoạch, N-23». **Quyết định 1 ngày 30/10 là lần đầu chủ chốt N-23.** Bản 1 gọi nó là «ruling» là sai sự thật; bản 2 bỏ chữ đó.
 
@@ -281,6 +284,8 @@ Câu `:72` và `:221` đi theo nhãn «Khoá cấp» / «Mở lại cấp» (quy
   - **Biểu thức** (nguyên văn): `/[Cc]hính sách(?! (?:riêng tư|điều phối|đăng nhập))|CHÍNH SÁCH(?! (?:RIÊNG TƯ|ĐIỀU PHỐI|ĐĂNG NHẬP))/u`. Áp lên từng mảnh chuỗi mà `chuoiTrongMa` trả cho các tệp trên. Trong bộ tệp này, mọi «chính sách» không đi ngay trước «riêng tư», «điều phối» hay «đăng nhập» đều bị cấm. `thay`: «cấp đại lý · cấp · cấp riêng (quyết định 3)».
   - **Ngoại lệ có tên, đúng hai** (quyết định 8: chi tiết nhật ký giữ khuôn cũ), ghi trong một danh sách cho phép **theo tệp và mảnh chuỗi, không theo số dòng**: `{ tep: "src/modules/pricing/index.ts", manh: "chính sách ", soLan: 2, ly_do: "chi tiết nhật ký tenDoiTuongNhatKy và prc_commission_rule_added (quyết định 8)" }`. Mảnh phải khớp **nguyên chuỗi** (mảnh «chính sách » đứng ngay trước `${` của `` `chính sách ${r.tier_name ?? …}` `` và `` `chính sách ${muc.name}` ``). Bài đếm số lần mảnh đó xuất hiện trong tệp và đòi **đúng 2**: thêm một chỗ thứ ba dùng khuôn này là đỏ, bỏ một chỗ cũng đỏ (khi đó phải sửa danh sách cho phép có chủ đích). Không ngoại lệ nào khác.
   - **Cơ chế ở mã:** `bang-tu-giao-dien.ts` thêm hai hằng xuất `CAM_THEO_TEP` (mẫu tên tệp, `cam`, `thay`, `nguon`) và `CHO_PHEP_THEO_TEP` (danh sách cho phép trên). `src/bang-tu-giao-dien.test.ts` thêm một bài: với mỗi tệp khớp `CAM_THEO_TEP`, mỗi mảnh khớp `cam` mà không có trong danh sách cho phép thì đỏ, kèm tệp:dòng; rồi kiểm số lần của từng mục cho phép.
+    - **Chú thích ngay cạnh `CAM_THEO_TEP`** (QA1 lần 4, Ghi 1), viết một câu đại ý: bộ tệp lấy **trọn tệp**, nên nếu sau này `audit-actions.ts`, `web/parties.ts` hay `huong-dan-ke-toan.ts` có thêm một chuỗi «chính sách» không thuộc hoa hồng mà không có «riêng tư», «điều phối» hay «đăng nhập» theo sau (ví dụ «chính sách huỷ»), bài sẽ đỏ; khi đó người làm nới luật có chủ đích (thêm lookahead hoặc mục cho phép), không xoá luật.
+    - **Hàm kiểm nhận (đường dẫn tệp, nội dung)** (QA1 lần 4, Ghi 2). Tách phần xét ra một hàm thuần nhận hai đầu vào này và trả danh sách vi phạm; bài thật gọi nó với nội dung đọc từ đĩa, ca dương gọi nó với một đường dẫn giả nằm trong bộ tệp (ví dụ `web/hoa-hong-gia.ts`) và nội dung giả. Bài hôm nay chỉ đọc tệp thật trên đĩa, nên tách hàm ngay từ đầu.
   - **Đo trên mã 30/10** (kịch bản tạm, nhập chính `chuoiTrongMa` của bài, 14 tệp): luật bắt **129 chuỗi (142 lần khớp)**, cộng 2 chuỗi được miễn (`index.ts:129`, `:535`). Chia theo tệp: `web/parties.ts` 30, `web/hoa-hong-hop.ts` 25, `src/shared/hoa-hong-hien-thi.ts` 18, `pricing/index.ts` 17, `web/hoa-hong-thiet-lap.ts` 11, `web/hoa-hong-bang.ts` 10, `audit-actions.ts` 9, `pricing/rules.ts` 6, `huong-dan-ke-toan.ts` 2, `so-dai-ly-nhap.ts` 1. Đủ cả 25 chuỗi mà ba biểu thức của bản 3 bỏ lọt (`QA1-LAN-3.md` Chặn 1), gồm `audit-actions.ts:110` và `hoa-hong-hien-thi.ts:111–113`, `:167`, `:176`, `:180`, `:181`.
   - **Danh sách việc của phần 1:** 129 chuỗi trên là toàn bộ chỗ còn chữ «chính sách» theo nghĩa cấp trong bộ tệp hoa hồng. Làm xong phần 1 thì luật theo tệp bắt **0 chuỗi**, chỉ còn 2 chuỗi trong danh sách cho phép, và 6a, 6b bắt 0 chuỗi trên mọi tệp. Chữ «mức riêng» khi nói về cấp riêng (như `index.ts:69`) và câu không chứa «chính sách» thì luật này không thấy; chúng do bảng §6.1 và các bài §6.3 canh.
   - **Ca kiểm âm** (không mục nào của lượt 6 được khớp): «chính sách » đọc thật từ hai dòng nhật ký `index.ts` qua `chuoiTrongMa`, và đòi chúng đi qua đúng danh sách cho phép; «chính sách riêng tư»; «Chính sách điều phối»; «đặt chính sách đăng nhập». Ngoài bộ tệp hoa hồng, 6a, 6b không được khớp: «Theo chính sách của Tour Đảo, tiền cọc không được hoàn lại khi khách huỷ.», «Chính sách vừa được người khác đổi — tải lại.», «Vừa có người đổi chính sách, tải lại rồi thử lại.», «Vừa có phiên bản chính sách khác được đăng. Tải lại rồi thử lại.», «Lưu chính sách».
@@ -311,7 +316,7 @@ Không đổi. Xem = `partner.commission.view` (Bán hàng, Kế toán, Quản t
 2. **Câu thứ tự áp mức.** Câu §5.3 được ghim nguyên văn. Bài trong `src/modules/pricing/` dựng ba ca bằng `chonMuc` và đối chiếu với thứ tự câu nêu: bậc 10–12 thắng 4–6; có cấp riêng thì 7–9 không được xét (ra `NO_RULE` dù cấp của loại có dòng); hai loại ra hai số ở cùng bậc thì `RULE_CONFLICT`. Sửa cố ý → đỏ → hoàn nguyên.
 3. **Luật phủ mức.** Bài thuần ra đúng **từng** kết quả và số dịch vụ thiếu của bảng §4.4 (L1–L14, T1–T6, hai ca `CHUA_KIEM`). Dải đếm 8 loại thiếu (5 `KHONG_CO`, 3 `THIEU`) và 1 loại tắt. Câu của dải ghim nguyên văn §5.1, không chứa «mở khoá». Bài đối chiếu với `chonMuc` ở §4.4 xanh, và đã thấy đỏ một lần khi sửa cố ý.
 4. **Khoá cấp, tắt loại.** Hộp hỏi lại ra đúng nguyên văn §5.2. Huy hiệu khác tông: cấp khoá `cat`, loại tắt `xam`; loại thiếu mức `do`, `cat`. Trên cấp đang khoá: dòng mức chỉ còn «Ngừng» (không «Đổi», «Sửa» ở cả nút lẫn «⋯»); lần xếp của cấp đó còn «Đổi» sang cấp khác và đổi được thật (200). Kiểm bằng kịch bản Chrome.
-5. **Cấp riêng ngay trên trang.** Đặt, sửa, ngừng chạy được. Câu 400/409 của máy chủ hiện nguyên văn, và đã là chữ mới §6.1. Kịch bản Chrome chạy trên D1 tạm. Phần 2, chỉ sau khi ADR-0151 được duyệt: «Đổi cấp» chạy được và tiêu chí của ADR-0151 đạt.
+5. **Cấp riêng ngay trên trang.** Đặt, sửa, ngừng chạy được. Câu 400/409 của máy chủ hiện nguyên văn, và đã là chữ mới §6.1. Kịch bản Chrome chạy trên D1 tạm. Phần 2 (ADR-0151 đã duyệt, quyết định 11): «Đổi cấp» chạy được, hai câu xét trước của quyết định 12 hiện nguyên văn, và mọi tiêu chí của ADR-0151 đạt, gồm bài ghim hai phía.
 6. **Luật hiện nút có sẵn.** Đổi, Sửa, Ngừng hiện đúng §3.1. `src/shared/hoa-hong-hien-thi.test.ts` xanh mà không sửa ca cũ, trừ các ca chỉ đổi chữ theo §6.
 7. **Quyền.** Bán hàng thấy trang, không thấy nút ghi. Đối tác nhận trang 403. Kịch bản Chrome, mở tài khoản đối tác sau cùng.
 8. **Khổ màn và bàn phím.** Ở 390 và 1040: `document.documentElement.scrollWidth ≤ innerWidth`; vùng chạm ≥ 44px; axe không lỗi nghiêm trọng. Menu «⋯»:
@@ -323,7 +328,7 @@ Không đổi. Xem = `partner.commission.view` (Bán hàng, Kế toán, Quản t
    Ba thẻ dùng phím mũi tên như `.tab-phu` hiện nay. «Xem dòng ↓» nhảy đúng thẻ cho ba ca của §3.3.
 9. **Phạm vi diff.** `git diff main --stat` không chạm `migrations/`, `src/shared/permissions.ts`, `src/shared/contracts.ts`.
    - **Phần 1:** dưới `src/modules/` chỉ có các chuỗi chữ của §6.1 đổi. Người kiểm đọc `git diff main -- src/modules/ ':!*.test.ts'` và xác nhận mọi dòng đổi chỉ khác nhau ở bên trong một chuỗi chữ. Các bài kiểm của §6.3 được đổi theo.
-   - **Phần 2:** chỉ chạm đúng các tệp trong **danh sách tệp duy nhất ở ADR-0151 mục «Tệp được chạm»** (máy chủ, giao diện, bài kiểm, tài liệu). Đặc tả không chép lại danh sách đó. Chỉ làm sau khi ADR-0151 chuyển `accepted`.
+   - **Phần 2:** chỉ chạm đúng các tệp trong **danh sách tệp duy nhất ở ADR-0151 mục «Tệp được chạm»** (máy chủ, giao diện, bài kiểm, tài liệu). Đặc tả không chép lại danh sách đó. ADR-0151 đã `accepted` (quyết định 11); `src/modules/pricing/rules.ts` không nằm trong danh sách đó.
 
 **Nhật ký thay đổi:** mỗi lần phát hành của phần 1 và phần 2 cần một mục mới ở `src/shared/changelog.ts` (bước A.0 của `docs/HANDOFF-N1.md`). Tệp này được bài bảng từ miễn quét, nên mục cũ giữ chữ lúc phát hành; mục mới viết theo chữ mới.
 
@@ -351,11 +356,13 @@ Việc có đổi câu ở máy chủ (phần 1) và route mới (phần 2) đ�
 - **ADR-0077: tóm tắt lệch điều 9** (QA1 điểm 7). «Tóm tắt cho chủ» mục 4 viết đơn thiếu mức bị giữ «cho tới khi Kế toán **cài mức** hoặc ghi mức tay». Ví dụ A-4 cũng viết «Kế toán cài mức hoặc ghi mức tay». Nhưng điều 9 không có ca «chụp lại khi bảng mức đổi», và mã cũng vậy: chụp bù trả 409 khi đơn đã có bản chụp (`orders/index.ts:957`). Tức là **cài mức không thả đơn đã xác nhận**; chỉ «Ghi mức tay» thả được. Mã đúng theo điều 9. Chủ có thể đã hiểu theo câu tóm tắt, nên câu ở §5.1 nói thẳng điều này. Việc kèm theo: thêm một dòng vào sổ lệch `docs/SYSTEM-DESIGN.md` §16 (tài liệu sống) ở việc đầu của kế hoạch. ADR-0077 không sửa.
 - **N-23** (§1.1): `contracts.ts` (chú thích `MucTaDto`) còn ghi «giả định kế hoạch, N-23». Tiêu chí 9 cấm chạm `contracts.ts` nên để nguyên. Sẽ sửa chú thích ở lần chạm `contracts.ts` hợp lệ kế tiếp.
 - **Hướng dẫn Kế toán dòng 228** lệch ADR-0141 (§6.2): sửa trong phần 1.
-- **Lệch có tên «câu `kiemDoi` cho cấp riêng»** (quyết định 9; QA1 lần 2 điểm 8). `kiemDoi` và `kiemSua` nói «mức» cho cả dòng mức lẫn lần xếp, và route «Đổi cấp» của phần 2 dùng nguyên `kiemDoi`, không thêm tham số. Hai câu còn **chỉ sai đường** cho cấp riêng:
+- **Lệch có tên «câu `kiemDoi` cho cấp riêng»** (quyết định 9; QA1 lần 2 điểm 8; ở route mới đã gỡ theo quyết định 12, xem đoạn «Bản 5» dưới). `kiemDoi` và `kiemSua` nói «mức» cho cả dòng mức lẫn lần xếp, và route «Đổi cấp» của phần 2 dùng nguyên `kiemDoi`, không thêm tham số. Hai câu còn **chỉ sai đường** cho cấp riêng:
   - `rules.ts:335`: «Dòng này đã có ngày ngừng nên không đổi được. Thêm mức mới bắt đầu sau ngày ngừng.»;
   - `rules.ts:338` (QA1 ghi `:339`, câu nằm ở `:338`): «Mức cũ bắt đầu từ … nên không đổi được từ ngày …. Dùng Ngừng cho mức cũ, rồi Thêm mức mới.»
 
-  Cấp riêng không có việc «Thêm mức»; việc đúng là «Sửa», hoặc «Ngừng» rồi «Đặt cấp riêng». Bản 3 ghi đây là lệch có tên, không đặt cách lách. Trên giao diện, hai câu này khó gặp: nút «Đổi cấp» chỉ hiện cho cấp riêng chưa có ngày ngừng (`nutDoiNgung`), và ô ngày chặn ngày sớm hơn `ngayDoiSomNhat`. Người dùng chỉ thấy chúng khi có người khác vừa đổi dòng cũ, hoặc khi gọi thẳng API. Bài kiểm của ADR-0151 ghim nguyên văn các câu này để lệch không đổi lặng lẽ.
+  Cấp riêng không có việc «Thêm mức»; việc đúng là «Sửa», hoặc «Ngừng» rồi «Đặt cấp riêng». Bản 3 ghi đây là lệch có tên.
+
+  **Bản 5: hai câu này đã được gỡ ở route mới** (quyết định 12). Route «Đổi cấp» tự xét hai điều kiện đó ngay trước `kiemDoi` và trả câu riêng cho cấp riêng; câu nguyên văn và thứ tự xét nằm ở ADR-0151 Đ3 (ca X1, X2), đặc tả không chép lại. `kiemDoi` và hai câu của nó giữ nguyên từng chữ (quyết định 9), nên chúng vẫn còn cho «Đổi chính sách» của loại, là nơi chữ «mức» và việc «Thêm mức» đúng nghĩa. Cái giá: hai điều kiện thành nguồn thứ hai; bài ghim hai phía ở ADR-0151 tiêu chí 1 canh để hai bên không lệch nhau. Các câu còn lại của `kiemDoi` («Mức này chưa tới ngày…», «Ngày bắt đầu của mức mới…», «Đã có đơn dùng mức này…») vẫn tới người dùng cấp riêng với chữ «mức»: đó vẫn là lệch có tên theo quyết định 9, nhưng không câu nào chỉ sai đường.
 - **Chụp số bản vẽ:** «mẫu bản vẽ đếm 7 nhóm» (DOI-CHIEU T4) chưa kiểm, không dùng làm số mong đợi.
 
 ## 11. Phụ thuộc và rủi ro
@@ -371,4 +378,9 @@ Việc có đổi câu ở máy chủ (phần 1) và route mới (phần 2) đ�
 Ba câu của §12 bản 2 đã có trả lời ở `QUYET-DINH-CHU-2026-10-30-LAN-3.md`, chủ chọn phương án khuyến nghị cho cả ba:
 - **Quyết định 7:** nhãn nút của cấp là «Khoá cấp» / «Mở lại cấp», huy hiệu «Đã khoá — vẫn áp cho loại và đối tác đang theo» (§5.2). Đây là tên mới thứ ba của lượt chữ mới (lượt 6 của bảng từ, §6.2), vẫn trong trần ba tên.
 - **Quyết định 8:** chi tiết nhật ký giữ khuôn cũ; chỉ nhãn hành động ở `audit-actions.ts` đổi chữ (§6.1, §6.2).
-- **Quyết định 9:** không đụng `kiemDoi`, không thêm tham số; câu «Mức…» là lệch có tên (§10).
+- **Quyết định 9:** không đụng `kiemDoi`, không thêm tham số; câu «Mức…» là lệch có tên (§10). Ở route mới, phần «lệch có tên» cho hai câu chỉ sai đường đã được quyết định 12 thay.
+
+Sau QA1 lần 4 (ĐẠT), chủ duyệt ở `BIEN-BAN-DUYET-2026-10-30.md`:
+- **Quyết định 10:** phần 1 đã duyệt. Được viết kế hoạch thi công; kế hoạch đưa chủ duyệt trước khi viết mã.
+- **Quyết định 11:** ADR-0151 đã duyệt (nay `accepted`); phần 2 vào kế hoạch thi công cùng phần 1.
+- **Quyết định 12:** route «Đổi cấp» xét trước hai điều kiện rồi mới gọi `kiemDoi`, trả câu đúng cho cấp riêng; `kiemDoi` giữ nguyên, phần 2 không chạm `rules.ts`; bài ghim hai phía (ADR-0151 Đ3, tiêu chí 1; §10).
