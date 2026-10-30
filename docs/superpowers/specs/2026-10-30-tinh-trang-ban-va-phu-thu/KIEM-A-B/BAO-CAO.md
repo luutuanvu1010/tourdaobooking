@@ -385,3 +385,80 @@ Trang ghép: cả hai có đủ ba phần (1) loại thực thể, (2) bản đ�
 - Không thấy lỗi sự thật mới. Các số dòng mới đều khớp mã tại `a129d3d`: `index.ts:1595, 1602, 1610`; `xac-nhan-route.ts:150, 156, 162, 255, 296, 309, 312–314`; `xac-nhan-repo.ts:83`.
 - Đếm trần: được trình đúng, 3 hoặc 4 tuỳ câu C6. Phương án tách B-lõi (Đ1, Đ3, Đ5) / B-hiển thị (Đ4) hợp lệ: không điều nào của B-lõi cần Đ4 để đúng. Cái giá là Đối tác có thể gặp 409 khi B-hiển thị chưa lên; người soạn đã ghi «phát hành cùng».
 - Kẽ duy nhất do bản sửa sinh ra là R2B-1, vì ngoại lệ trong `CHECK` là phần mới.
+
+---
+
+## Vòng 3 — A (bản viết lại theo lượt 4 của chủ, 30/10)
+
+- **Phạm vi:** `A-dac-diem-dich-vu/DE-XUAT-ADR.md` (330 dòng) và `TRANG-GHEP.md` (126 dòng), đối chiếu với bản ghi `00-dau-vao/QUYET-DINH-CHU-2026-10-30-LUOT-4-LUAT-BAN-CHUNG.md`. Chỉ đọc.
+- **Cách đối chiếu:** `diff` giữa bản viết lại và bản trước lượt 4 (`/tmp/A-DE-XUAT-truoc-L4.md`, `/tmp/A-TRANG-GHEP-truoc-L4.md`). Tôi đã kiểm hai bản `/tmp` này trùng từng byte với bản trong commit `417c1fe` (`git show HEAD:… | diff -q` không ra gì).
+- **Kết luận: ĐẠT.** Không có phát hiện CHẶN. 1 NÊN SỬA (R3-1, ca vàng CV-4), 3 GHI NHẬN.
+
+### (1) Bản viết lại có đổi nghĩa kỹ thuật không
+
+**Không.** Mọi dòng khác nhau trong `diff` đều thuộc ba loại:
+- dòng trạng thái và các câu «chủ đã chọn …»;
+- câu trình bày khả năng chung (tiêu đề, khối «Khả năng chung», tóm tắt, đoạn mở Đ2);
+- đưa ví dụ Hòn Tằm ra khỏi thân bài, sang mục «Ca vàng».
+
+Từng phần kỹ thuật được giữ nguyên:
+- **Bảng, trigger:** Đ1 (ba bảng, khoá ngoại một cột, trigger, view, tắt / bật lại) và Đ2 (bảng kiểu phạm vi, `CHECK`, trigger đọc `v_ctl_attribute_value`, cách xét ba vế) không đổi chữ nào, trừ câu ví dụ về miễn một vé. Câu đó vẫn cùng nghĩa: không có ngoại lệ «chặn nhóm trừ một vé»; muốn miễn một vé thì dùng luật `ATTRIBUTE` kèm nhóm cùng giá trị riêng.
+- **Quyền, cổng:** Đ3, Đ4 và phần «Cổng» của Đ2 không đổi. Riêng câu 409, ví dụ cụ thể được thay bằng «(<tên đặc điểm>: <tên giá trị>)».
+- **Hàng rào, đếm:** Đ6 (e)–(l) không đổi. Đếm vẫn **3** cộng một mục lệch 5.2. Câu «nếu C2 = (b) thì vượt trần» được thay bằng «chủ đã chọn A-C2 = (a)»; đây là hệ quả của lựa chọn, không phải đổi nghĩa.
+- **Trang ghép:** chỉ đổi tiêu đề, thêm hai dòng trạng thái và khả năng chung, đổi chữ ở dòng đếm và hai câu ví dụ đưa đón. Mục 1–3 (thực thể, quyền, cổng) không đổi.
+- **Các bản sửa sau vòng 2** (đã có trong `417c1fe`, nay mới được soát): đã đóng R2-1 đến R2-4.
+  - C4 / A-C4 có đủ năm giới hạn, kể cả giới hạn 5 (định nghĩa không có ngày hiệu lực).
+  - (l) tách thành (l1) quét được, (l2) trên sổ `defineSql`, (l3) dựa vào kỷ luật.
+  - Có nguồn tên cho câu 409: lấy qua hàm hẹp của `catalog`, không thêm cột tên vào view.
+  - (i) có thêm vế `admin.manage ⊆ sales.block.write`.
+  - Ghi chú về (l2): vế này gần trùng với những gì bài 8(b) và (e), (f) đã chặn. Lý do: `pricing` không đọc được bảng `ctl_*`, và `orders` không được nhắc tên bảng. Vì vậy (l2) gần như tự đúng nhưng vô hại.
+
+### (2) Các lựa chọn của chủ ghi có đúng bản ghi lượt 4 không
+
+**Đúng.** Bảng «Chủ đã chọn 30/10» khớp từng mục L4-0, L4-1, L4-2, L4-3, A-C1, A-C2, A-C3, A-C4 của bản ghi:
+- L4-2 ghi đúng là «chưa chọn», hai nghĩa đều là dữ liệu;
+- A-C4 «kèm năm giới hạn» khớp năm giới hạn ở Đ1 và ở C4 của bản trước (bản chủ đã đọc);
+- lời chủ chép đúng nguyên văn, kể cả chính tả «ôk».
+
+Bảng ghi rõ cột «Đã chọn» là cách người ghi chép ghi lại, không phải lời chủ.
+
+### (3) Tám ca vàng có đúng theo luật trong đề xuất không
+
+| Ca | Đánh giá |
+|---|---|
+| CV-1 | Đúng: Đ2 vế 1, ADR-0146 Đ4 (chỉ danh mục của tài khoản Đối tác bị ép bên đặt mới bỏ vé) |
+| CV-2 | Đúng: vế 2; gán nhóm là cửa đổi kết quả, Đ4 (c) |
+| CV-3 | Đúng: vế 3 kèm nhóm. Vé mới vào nhóm thừa hưởng giá trị chung qua view (nhóm phải đang dùng). H1 đặt riêng nên thoát luật (riêng thắng chung). Vé «Không gồm» ngoài nhóm không bị chặn |
+| CV-4 | **Kết quả đúng**; xem R3-1 về cách dựng dữ liệu. **Hai dòng luật hợp với «mỗi luật một điều kiện đặc điểm»**: điều cấm là gộp nhiều điều kiện vào **một** dòng («A = x **và** B = y», Đ2). Hai dòng, mỗi dòng một giá trị, là hai luật riêng, cộng dồn theo «chặn thắng» (Đ2: không có thứ tự ưu tiên). Kết quả là phép **hoặc** giữa các giá trị, đúng như ca mô tả |
+| CV-5 | Đúng: hai luật cho hai loại khác nhau, độc lập. Xem R3-2 |
+| CV-6 | Đúng: Đ5 (không giá trị hiệu lực thì vế 3 không phủ); danh sách chưa khai tính lúc đọc. Ghi thêm: nếu nhóm Hòn Tằm đã gắn chung «Không gồm» (dữ liệu của CV-3) thì chỉ cần gán H9 vào nhóm là bị chặn; khai riêng là thừa nhưng không sai |
+| CV-7 | Đúng theo ADR-0146 Đ1 / tiêu chí 5. Xem R3-3 |
+| CV-8 | Đúng: Đ4 (a), A-C2. Nháp bị xét ở lần lưu kế tiếp; đơn đã xác nhận giữ nguyên. «Đổi ngược lại» (đặt riêng «Không gồm», hoặc đóng dòng riêng để theo nhóm) đều đưa giá trị hiệu lực về «Không gồm», nên đúng |
+
+### (4) Tiêu chí 10b, 12b có kiểm được không
+
+- **10b: kiểm được** bằng bài route: dựng hồ sơ bên đặt mang `L` / `L2`, gọi lập đơn, nhận 201 hoặc 409. Thiếu vế nhóm của CV-4 / CV-5, nhưng tiêu chí 9 đã phủ vế nhóm. Có thể thêm ca bên đặt mang cả `L` lẫn `L2` (R3-2).
+- **12b: kiểm được**, nhưng trùng tiêu chí 5 của ADR-0146. Chữ «ngay» phụ thuộc cách hiểu «ngày kết thúc» (R3-3).
+
+### Phát hiện vòng 3
+
+#### R3-1 — NÊN SỬA — CV-4 dựng một đặc điểm **trùng tên** với CV-3 nhưng khác bộ giá trị; hai bộ dữ liệu không cùng tồn tại được
+- **Bằng chứng:**
+  - Đ1 mục 1: «Tên trùng chỉ cấm giữa các đặc điểm đang dùng (chỉ mục duy nhất một phần)».
+  - CV-3 dùng «Vận chuyển cảng–đảo» = {Gồm, Không gồm}. CV-4 dùng «Vận chuyển cảng–đảo» = {Khứ hồi, Một chiều, Không gồm}.
+  - CV-5 lại viện dẫn «theo CV-3».
+- **Hệ quả:** người đọc (và người viết bài e2e theo ca vàng) dễ hiểu CV-4 là bộ dữ liệu cộng thêm vào CV-3, trong khi CSDL sẽ từ chối.
+- **Câu sửa đề nghị:** ghi ở CV-4: «**Bộ dữ liệu thay cho CV-3** nếu chủ chọn nghĩa (i). Cách làm trên màn: thêm giá trị «Một chiều» vào đặc điểm có sẵn, và (nếu muốn) đổi tên «Gồm» thành «Khứ hồi». Đổi tên một giá trị đang bị luật trỏ tới thì màn cảnh báo (Đ4 mục 4); mã không đổi.» Bài kiểm vẫn dùng tên tự sinh, nên không bị ảnh hưởng.
+
+#### R3-2 — GHI NHẬN — CV-5 nói «cộng dồn kiểu chặn thắng», nhưng ca này chỉ có cộng dồn khi một bên đặt mang cả hai loại
+- Hai luật của CV-5 thuộc hai loại khác nhau. Một hồ sơ chỉ mang một loại thì chỉ chịu một luật. Hồ sơ mang **cả** Lễ tân khách sạn lẫn Công ty lữ hành thì không đặt được vé Hòn Tằm nào, dù «Gồm» hay «Không gồm». Đây là hệ quả đúng của Đ2, nhưng nên nói ra.
+- Đề nghị thêm vế đó vào 10b: «bên đặt mang cả `L` và `L2` ⇒ không đặt được vé `x1`, `x2`, `x3`».
+
+#### R3-3 — GHI NHẬN — «Đặt lại được **ngay**» (CV-7, 12b) phụ thuộc nghĩa «ngày kết thúc» của ADR-0146 Đ1
+- ADR-0146 Đ1 ghi «ngày kết thúc», còn Đ2 ghi «xét theo ngày giờ Việt Nam lúc thao tác». Nếu ngày kết thúc là ngày dân sự tính **trọn** ngày, thì kết thúc luật «hôm nay» vẫn còn chặn tới hết hôm nay, và «ngay» không đúng.
+- Câu này kế thừa nguyên từ ADR-0146 tiêu chí 5, không phải lỗi của bản viết lại. Kế hoạch thi công ADR-0146 phải chốt một nghĩa: mốc giờ, hay ngày tính trọn / không tính trọn. Tiêu chí 12b phải theo nghĩa đó.
+
+#### R3-4 — GHI NHẬN — Chữ nhỏ
+- Bảng «Đếm», dòng lệch 5.2, vẫn ghi «không — nhưng chủ phải duyệt riêng», trong khi các chỗ khác ghi «đã duyệt». Nên đổi thành «không — đã duyệt riêng (A-C4)».
+- Khối «Khả năng chung» viết «Quản trị / Bán hàng nhập». Ô `sales.block.write` gồm Bán hàng, Quản trị, **Toàn quyền**.
+- Tóm tắt mục 1 viết «Mỗi quy tắc có ngày bắt đầu, ngày kết thúc». Nên thêm «ngày kết thúc có thể để trống», đúng ADR-0146 Đ1.

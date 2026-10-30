@@ -1,6 +1,8 @@
-# Trang ghép — Lượt A: Đặc điểm dịch vụ + phạm vi theo đặc điểm cho luật bán (sửa ADR-0146), 30/10/2026
+# Trang ghép — Lượt A: luật bán theo loại đối tác là khả năng chung (dịch vụ / nhóm / đặc điểm) + «Đặc điểm dịch vụ» là dữ liệu (sửa ADR-0146), 30/10/2026
 
 > Theo `CLAUDE.md` §9 «Bước ghép khi duyệt»: lượt này có ba quyết định chạm quyền / dữ liệu (Đ1, Đ2, Đ3 của `DE-XUAT-ADR.md`), **và** bảng `prc_sales_block` (đã duyệt ở ADR-0146, chưa xây) nhận thêm một loại dữ liệu mới (luật theo đặc điểm).
+> Trạng thái: chủ **duyệt về nội dung** 30/10 (lượt 4, `../00-dau-vao/QUYET-DINH-CHU-2026-10-30-LUOT-4-LUAT-BAN-CHUNG.md`). Bản này viết lại phần trình bày theo khả năng chung; không đổi bảng, trigger, quyền, cổng hay số đếm so với bản đã qua người kiểm vòng 2.
+> Khả năng chung: «loại đối tác `L` không được đặt [một dịch vụ | một nhóm | dịch vụ mang đặc điểm `X = x`, kèm nhóm tuỳ chọn] trong [hiệu lực]», chỉ có quy tắc «không cho phép» (L4-1), theo loại đối tác (L4-3). Ví dụ cụ thể ở mục «Ca vàng» của `DE-XUAT-ADR.md`.
 > Thứ tự đọc: `DE-XUAT-ADR.md` (mục «Tóm tắt cho chủ», «Chỗ dễ nhầm») → trang này → ADR-0146 (`docs/adr/ADR-0146-chinh-sach-ban-theo-loai-doi-tac.md`).
 > Tên tệp, route, hàm, dòng: đúng tại HEAD `a129d3d` (cùng `main`). Tên mới (bảng, view, ô, mã lỗi) là tên tạm.
 
@@ -14,9 +16,9 @@
 | Đ4 — cửa đổi kết quả luật: cảnh báo + nhật ký, cổng giữ nguyên | không bảng / cột / ô | không |
 | Đ5 — danh sách chưa khai | chỉ đọc | không |
 | Đ6 — hàng rào | chỉ siết | không |
-| Lệch có chủ ý, hẹp, điều 5.2 Hiến chương (câu C4) | không thêm dữ liệu ngoài Đ1 | không — nhưng là **mục chủ duyệt thêm** (Điều 6.1) |
+| Lệch có chủ ý, hẹp, điều 5.2 Hiến chương (A-C4) | không thêm dữ liệu ngoài Đ1 | không — **mục chủ duyệt thêm** (Điều 6.1), **đã duyệt 30/10** |
 
-**3 / 3 — đúng trần, không cần tách.** Đếm theo **điều**, như trang ghép 24/10 và 25/10. Bốn điều của ADR-0146 gốc đã duyệt 28/10 (kèm phép vượt trần), không duyệt lại ở lượt này. Ngoài 3 quyết định, chủ duyệt thêm **một mục**: lệch có chủ ý điều 5.2 (C4). Khoá ngoại sửa theo báo cáo kiểm A-1 bằng trigger, không nới hàng rào, nên không thêm mục. Nếu chủ chọn C2 = (b), thành 4 ⇒ tách phần siết của C2 ra lượt riêng (`DE-XUAT-ADR.md`, mục «Đếm»).
+**3 / 3 — đúng trần, không cần tách.** Đếm theo **điều**, như trang ghép 24/10 và 25/10. Bốn điều của ADR-0146 gốc đã duyệt 28/10 (kèm phép vượt trần), không duyệt lại ở lượt này. Ngoài 3 quyết định, chủ duyệt thêm **một mục**: lệch có chủ ý điều 5.2 — đã duyệt (A-C4). Khoá ngoại sửa theo báo cáo kiểm A-1 bằng trigger, không nới hàng rào, nên không thêm mục. Chủ chọn A-C2 = (a), nên không có trường hợp vượt trần.
 
 **Không gộp** với Lượt B (Đóng bán) hay C, D: hai người soạn khác đang viết riêng; chỗ đụng nhau ghi ở mục 5.
 
@@ -33,7 +35,7 @@
 | `ctl_group` | catalog | nhóm, cờ đưa đón (0121) | **không đổi cột**; nay còn là **đích** của dòng gắn đặc điểm |
 | `ctl_service_group` / `v_ctl_service_group` | catalog | lịch sử gán nhóm / nhóm hiện hành | không đổi; nay quyết định giá trị thừa hưởng và vế «nhóm» của luật `ATTRIBUTE` |
 | `catalog_item` | catalog (đồng bộ Sheet ghi) | dịch vụ | **không đổi**; đồng bộ không đụng bảng `ctl_*` (`catalog/repository.ts:112–132`) |
-| `ctl_service_transfer_rule`, `v_ctl_service_transfer` | catalog | đưa đón khách sạn ↔ cảng (ADR-0118, ADR-0149) | **không đọc, không sửa** — khác nghĩa «vận chuyển cảng–đảo» (Đ-1) |
+| `ctl_service_transfer_rule`, `v_ctl_service_transfer` | catalog | đưa đón khách sạn ↔ cảng (ADR-0118, ADR-0149) | **không đọc, không sửa** — đặc điểm dịch vụ (ví dụ ca vàng «vận chuyển cảng–đảo») khác nghĩa đưa đón (Đ-1) |
 | `prc_beneficiary_role` | pricing | loại được hưởng | không đổi (bất biến «loại còn luật thì không tắt được» của ADR-0146 Đ1 phủ cả luật theo đặc điểm) |
 | `audit_log` | audit | — | + hành động: tạo / sửa / tắt đặc điểm; tạo / sửa / tắt giá trị; đổi giá trị của dịch vụ; đổi giá trị của nhóm. Luật theo đặc điểm dùng hai hành động thêm / kết thúc luật của ADR-0146. Không thông tin cá nhân |
 
@@ -98,7 +100,7 @@ Không mã quyền mới. Kế toán (cổng văn phòng) **không** có ô mớ
 2. **ADR-0146 Đ3 (ba cửa đổi kết quả) ↔ Đ4:** thêm ba cửa mới (đổi giá trị của dịch vụ, của nhóm, **bật lại** giá trị đã tắt) và cửa gán nhóm có sẵn mang thêm nghĩa ⇒ sáu cửa, cùng cách «chấp nhận, cảnh báo, ghi nhật ký; đơn đã xác nhận không xét lại». Gán nhóm nay đổi kết quả qua **hai** đường (luật `GROUP` và giá trị thừa hưởng).
 3. **ADR-0146 Đ5 ↔ Đ3:** hai ô khác nhau cùng giao cho Bán hàng, Quản trị, Toàn quyền. Ràng buộc ⊆ (Đ6-i) giữ chúng không lệch theo chiều nguy hiểm.
 4. **ADR-0146 «Việc bắt buộc trước khi đặt luật đầu tiên» ↔ Đ5:** thêm bước: khai giá trị cho mọi vé của nhóm dùng trong luật theo đặc điểm, danh sách chưa khai của nhóm đó bằng 0.
-5. **ADR-0118 / ADR-0149 (đưa đón):** **không đụng**. Một vé có thể «Không gồm vận chuyển cảng–đảo» mà vẫn «Luôn đón» khách sạn ↔ cảng, hoặc ngược lại. Hai trục độc lập; luật bán không đọc `v_ctl_service_transfer`, cổng ghi chặng không đọc đặc điểm.
+5. **ADR-0118 / ADR-0149 (đưa đón):** **không đụng**. Giá trị đặc điểm của một vé (ví dụ ca vàng: «Vận chuyển cảng–đảo = Không gồm») độc lập với ô đưa đón của nó («Luôn đón» khách sạn ↔ cảng), và ngược lại. Hai trục độc lập; luật bán không đọc `v_ctl_service_transfer`, cổng ghi chặng không đọc đặc điểm.
 6. **ADR-0136 (cờ cần xác nhận theo dịch vụ / nhóm):** không đổi; cờ không có phạm vi đặc điểm ở lượt này. Thứ tự cổng giữ: luật bán đứng đầu.
 7. **Lượt B (Đóng bán, `../B-dong-ban/`):**
    - Phạm vi theo đặc điểm cho đóng bán: nếu có, đọc cùng view `v_ctl_service_attribute`, không dựng nguồn thứ hai. Lượt A không quyết thay.
