@@ -42,7 +42,11 @@ Chủ đã trả lời 30/10, bảng «Chủ đã chọn» ở KH mục 3: Q-1 (
 ### Cách chạy bộ kiểm dài (ruling của người thi công)
 KH ghi `npm test` sau từng task. Theo ý chủ 27/10 («bộ kiểm dài chạy một lần», bộ nhớ phiên), giữa chừng chỉ chạy `node --test <tệp liên quan>` + `npm run typecheck`; `npm test` chạy **một lần cuối mỗi đợt giao** (trước mỗi KĐL); người kiểm KĐL-1/2 dùng số đó và chạy bài liên quan; KĐL-3 chạy lại đủ bộ, kể cả e2e.
 
-## Câu chờ gom (hỏi chủ một lần, chậm nhất đầu T15)
+## Câu chờ gom — ĐÃ HỎI 30/10 (một lần, hộp hỏi; chủ chọn phương án khuyến nghị cả hai câu — có thể do hết giờ chờ, theo luật chung của chủ)
+- Câu 1 ⇒ **ghi theo đề xuất, trích ADR-0152**: dòng ADR-0146 Hệ quả nguyên văn; câu đặc điểm theo ví dụ của `TRANG-GHEP.md` mục 7; dòng lệch 5.2 ở `docs/ARCHITECTURE.md` viết ngắn; mọi chỗ trích ADR-0152. Báo cáo cuối dán nguyên diff (N9). Hoàn tác: bỏ commit T15 phần tệp luật.
+- Câu 2 ⇒ **(b)**: thêm vế «dòng gắn mở trỏ nhóm đang tắt» vào kiểm định kỳ ở mức `warn` (mã riêng hoặc nhánh `warn` của R-CTL-2 — người thi công T14/T15 chọn, ghi sổ). Hoàn tác: bỏ nhánh.
+
+### Nội dung câu đã hỏi
 1. **Q-6 và số ADR:** các dòng đề xuất cho `src/CLAUDE.md`, `web/CLAUDE.md`, `docs/ARCHITECTURE.md` lấy từ ADR-0146 Hệ quả và `TRANG-GHEP.md` mục 7, có thể ghi «ADR-0151». Q-6 cho thêm **nguyên văn**; đổi chữ phải hỏi. Khuyến nghị: chỉ đổi «0151» → «0152», còn lại nguyên văn.
 2. **R-CTL-2 bỏ vế «nhóm đang tắt»** (người thi công T1): route tắt nhóm chỉ chặn nhóm còn dịch vụ ⇒ nhóm rỗng có dòng gắn đặc điểm mở vẫn tắt được hợp lệ (view bỏ nhóm tắt nên vô hại) ⇒ vế đó ở mức `fail` sẽ báo sai. Phương án: (a) chặn tắt nhóm còn dòng gắn mở (đổi hợp đồng route nhóm); (b) thêm vế nhóm ở mức `warn`; (c) giữ như đã làm. Khuyến nghị **(b)**: vẫn thấy dòng thừa mà không đỏ.
 
@@ -180,4 +184,22 @@ KH ghi `npm test` sau từng task. Theo ý chủ 27/10 («bộ kiểm dài chạ
 
 ### Số mục thanh bên trong kịch bản cũ (30/10)
 - `trang-chu-smoke.mjs` (bản ở `docs/evidence/2026-10-29-dot-0-khung-chung/kich-ban/`) ghi cứng số mục thanh bên ⇒ cập nhật CÓ CHỦ ĐÍCH (+2: «Luật bán» sau «Hoa hồng đối tác», «Đặc điểm dịch vụ» sau «Dịch vụ & giá»): `ADMIN_NAV` 22 → 24 mục, đếm Thiết lập «10 · 1 lệch giá» → «12 · 1 lệch giá», mục ẩn 12 → 14, `/staff` (Quản trị, Thiết lập mở) 20 → 22, `/audit` (Toàn quyền, Thiết lập mở) 26 → 28; `/order-form` (Thiết lập đóng) giữ 10. Chạy một lần sau sửa: **44 ✓, «TRANG CHU SMOKE OK»**, axe 0 nghiêm trọng (AXE_JS 4.12.1 ngoài repo); ảnh ghi ra thư mục tạm, không commit.
-- `dot-0-smoke.mjs`: **chưa chạy** — chỉ so các khối cấp trên của thanh bên (Thiết lập đếm 1), không liệt kê mục trong Thiết lập ⇒ không bị hai trang mới đổi. Kịch bản khác có ghi số mục (ví dụ `help-smoke`, `quyen-thieu-quan-tri-smoke`): **chưa chạy** — không chạy lại hàng loạt theo kế hoạch; nếu đỏ ở số mục Thiết lập thì là +2 có chủ đích này.
+- `dot-0-smoke.mjs`: **chưa chạy** — chỉ so các khối cấp trên của thanh bên (Thiết lập đếm 1), không liệt kê mục trong Thiết lập ⇒ không bị hai trang mới đổi. Các kịch bản cũ khác nhắc mục thanh bên (≥ 20 tệp khớp `sidebar-item` / «Hoa hồng đối tác» trong `docs/evidence/*/kich-ban/`, ví dụ `quyen-thieu-quan-tri-smoke`, `so-dai-ly-dot-2-smoke`, `dieu-chinh-smoke`): **chưa chạy** — không chạy lại hàng loạt theo kế hoạch; nếu đỏ ở số mục Thiết lập thì là +2 có chủ đích này.
+
+### Đề xuất dòng bảng `web/CLAUDE.md` (để T15 xử lý — KHÔNG tự sửa tệp luật, N9)
+Thêm hai dòng mới vào bảng «Sửa | Chạy»:
+
+```
+| Màn Luật bán (ADR-0146 Đ5, T11): `web/luat-ban.ts`, `public/luat-ban.html`, `src/shared/luat-ban-hien-thi.ts`, khối `.lb-*` của `public/app.css` | `luat-ban-smoke.mjs` ở `docs/evidence/2026-10-30-luat-ban-dac-diem/kich-ban/` (6 bước × 390 + 1040, cần `AXE_JS`, không cần mạng ngoài; phá thử `LB_PHA=khong-phu`, `LB_PHA=r1`) |
+| Màn Đặc điểm dịch vụ (ADR-0152 Đ1, Đ3–Đ5, T12): `web/dac-diem-dich-vu.ts`, `public/dac-diem-dich-vu.html`, `src/shared/dac-diem-hien-thi.ts`, `src/shared/luat-ban-phu.ts`, nhánh `dacDiem` của `trinhBay` ở `web/shell.ts`, khối `.dd-*` của `public/app.css` | `dac-diem-smoke.mjs` ở `docs/evidence/2026-10-30-luat-ban-dac-diem/kich-ban/` (7 bước × 390 + 1040, cần `AXE_JS`, không cần mạng ngoài; phá thử `LB_PHA=luat-rong`) + `danh-muc-nhom-smoke.mjs` (bước 8b, khi sửa `canhBaoDoiNhom`) |
+```
+
+Sửa dòng có sẵn «Màn Danh mục — nhóm dịch vụ»: thêm `src/shared/dac-diem-hien-thi.ts` (`canhBaoDoiNhom`, T13) vào cột «Sửa»; cột «Chạy» đổi «(10 bước, …)» thành «(11 bước — bước 8b: hỏi lại khi chuyển nhóm đổi luật bán (T13), đặt trước bước 9 để chạy tới được; bước 9, 10 đỏ sẵn ở nút khối nhóm 26px — NỢ-NHOM-DV-44PX; …)».
+`luat-ban-phu.ts` dùng ở CẢ máy chủ (`pricing/luat-ban-rules.ts`) ⇒ sửa nó còn phải chạy `node --test src/modules/pricing/luat-ban-rules.test.ts` (đã có trong `npm test`).
+
+### T13 — sửa sau rà soát (30/10)
+- **Bước T13 dời lên trước bước 9** (theo rà soát): bản commit đầu đặt bước «11» SAU bước 9 vốn đỏ sẵn ⇒ không bao giờ chạy tới; lần xanh và lần phá thử trước đó chạy trên bản chép TẠM (đã xoá). Nay bước **8b** (1040, trang `d`, ngay sau bước 8; NDV01 đã ở Thể thao biển từ bước 7, chuyển sang Hòn Tằm không đổi số đếm của bước 10). Chạy **tệp commit**: 1–8 ✓, **8b ✓**, 9 ✗ (đỏ sẵn `#nhom-dv button` 26px — NỢ-NHOM-DV-44PX). Phá thử P16 TRÊN TỆP COMMIT: `dongYDoiNhom` luôn trả `true` ⇒ **8b ĐỎ** («hết giờ chờ: hộp hỏi lại mở») ⇒ hoàn nguyên `web/catalog.ts`, dựng lại. Ảnh `danh-muc-nhom-1040-canh-bao-luat-ban.png` (tiêu đề «Chuyển 1 dịch vụ sang Hòn Tằm?»); bỏ ảnh 390 cũ (chụp từ bản tạm, tiêu đề cũ). Không dùng công tắc bỏ bước, không bỏ phép kiểm 44px của bước 9/10 (không nới rào cũ).
+- **Dòng sổ hàng rào** `docs/SO-HANG-RAO.md` cho bước 8b (ngày quan sát chặn thật 30/10).
+- **`npm test` (một lần): 6878/6883 trước sửa — 1 đỏ `src/bo-v2-khop-ma.test.ts`** (bộ Design System v2 là gương của `public/app.css`: phần «CHÉP TỪ MÃ» của `ds-v2/components/bundle.css` lệch vì khối `.lb-*`/`.dd-*` mới — DO NHÁNH NÀY). Sửa theo README bộ mục 12: `node scripts/sinh-bundle-bo-v2.mjs` (chép lại 26 dòng), rồi bài báo tiếp «w-o-hep dùng trong bộ nhưng không phải token của bộ» ⇒ thêm `w-o-hep` (12rem, token CÓ SẴN trong mã, không phải token mới) vào `ds-v2/tokens.json`. Bài 3/3 xanh. **Việc của chủ:** xuất bản lại bộ v2 trên Claude (README bộ mục 12) — AI không làm.
+- Lần chạy `npm test` duy nhất: bộ chính 6883 bài — 6878 xanh, 1 đỏ (trên), còn lại bỏ qua/todo có sẵn; bài đo giờ chạy riêng 1/1. Sau sửa CHỈ chạy lại `bo-v2-khop-ma` (3/3) + các bài nhắc sổ hàng rào — **không chạy lại `npm test` toàn bộ** (bộ kiểm dài chạy một lần). `so-do-trang.ts` không đổi (đã commit ở T11/T12).
+- **Lệch kế hoạch (nói rõ cho KĐL-3):** (1) `dongYDoiNhom` gọi `/api/pricing/luat-ban` KHÔNG kèm cổng `can(staff,"sales.block.write")` như kế hoạch ghi — màn `/catalog` chỉ cho `admin.manage`, mọi người giữ ô này đều giữ `sales.block.write`; nếu 403 thì rơi vào câu «chưa kiểm được», không im lặng. (2) Đường «Đổi nhóm» một dịch vụ (`renderNhomSua`) **chưa kiểm bằng Chrome** — chỉ đường «Chuyển N dịch vụ»; cùng hàm `dongYDoiNhom`. (3) Sửa mã kịch bản cũ: `danh-muc-nhom-smoke` (lối gọi API qua trang — vé cũ hết dùng khi đăng nhập lại), `trang-chu-smoke` (+2 mục thanh bên có chủ đích).

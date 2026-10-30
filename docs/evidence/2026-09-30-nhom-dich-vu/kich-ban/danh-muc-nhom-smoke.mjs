@@ -245,6 +245,38 @@ try {
     await shot(d, "danh-muc-nhom-1040-sua-lich-su.png", "#edit");
   });
 
+  // T13 (kế hoạch 2026-10-30; ADR-0146 Đ3, ADR-0152 Đ4 (c)): có luật bán «cả nhóm» Thể thao biển ⇒ chuyển NDV01 ra khỏi nhóm phải HỎI LẠI kèm câu
+  // «thôi chặn … cho: <loại>»; «Không chuyển» = không gửi PUT; «Vẫn chuyển» = đúng một PUT.
+  // Đặt TRƯỚC bước 9 (bước 9, 10 đỏ sẵn ở nút khối nhóm 26px — NỢ-NHOM-DV-44PX) để kịch bản commit chạy tới được bước này.
+  await step("8b", "1040: luật bán cả nhóm Thể thao biển ⇒ 'Chuyển 1 dịch vụ' sang Hòn Tằm hỏi lại «Chuyển nhóm sẽ thôi chặn «Dịch vụ thử 1» cho: …»; Không chuyển = không PUT; Vẫn chuyển = một PUT", async () => {
+    // Gọi từ trong trang (cùng phiên của trang — đăng nhập lại từ ngoài sẽ làm phiên trang hết dùng).
+    const goi = (method, path, body) => d.ev(`fetch(${JSON.stringify(path)}, { method: ${JSON.stringify(method)}, headers: { "content-type": "application/json" }, body: ${body ? JSON.stringify(JSON.stringify(body)) : "undefined"} }).then(async (r) => ({ status: r.status, json: await r.json() }))`);
+    const loai = (await goi("GET", "/api/pricing/loai-doi-tac")).json.loai.find((l) => l.dangBat);
+    const r = await goi("POST", "/api/pricing/luat-ban", { loai: loai.code, phamVi: "GROUP", groupCode: "TTB" });
+    assert.equal(r.status, 201, JSON.stringify(r.json));
+    await d.ev("document.getElementById('bo-chon')?.click(); true");
+    await d.waitFor("document.getElementById('chon-dem').textContent === ''", "bỏ chọn");
+    await d.ev(`document.querySelector('#list input.chon-dv[data-code="NDV01"]').click(); true`);
+    await d.waitFor("document.getElementById('chon-dem').textContent === 'Đã chọn 1 dịch vụ'", "đếm 1");
+    assert.ok(await d.ev("(() => { const s = document.getElementById('chuyen-nhom'); s.value = 'HTA'; s.dispatchEvent(new Event('change', { bubbles: true })); return s.value === 'HTA'; })()"));
+    const put0 = soPut(d);
+    const cau = `Chuyển nhóm sẽ thôi chặn «Dịch vụ thử 1» cho: ${loai.ten}.`;
+    await d.ev("document.getElementById('chuyen-nut').click(); true");
+    await d.waitFor("!!document.querySelector('.sheet-root.open .sheet')", "hộp hỏi lại mở", 10000);
+    assert.equal(await d.ev("document.querySelector('.sheet-root.open .sheet p').textContent"), cau);
+    assert.ok(await d.ev(khongTranNgang), "1040: hộp hỏi không tràn ngang");
+    await shot(d, "danh-muc-nhom-1040-canh-bao-luat-ban.png");
+    await d.ev("[...document.querySelectorAll('.sheet-foot .btn')].find((b) => b.textContent === 'Không chuyển').click(); true");
+    await d.waitFor("!document.querySelector('.sheet-root')", "hộp đóng");
+    await sleep(400);
+    assert.equal(soPut(d), put0, "Không chuyển: không gửi PUT");
+    assert.equal(await d.ev("document.getElementById('chon-dem').textContent"), "Đã chọn 1 dịch vụ", "vẫn giữ chọn");
+    await d.ev("document.getElementById('chuyen-nut').click(); true");
+    await d.waitFor("!!document.querySelector('.sheet-root.open .sheet')", "hộp hỏi lại mở lần 2", 10000);
+    await d.ev("document.querySelector('.sheet-foot .btn-danger').click(); true");
+    await d.waitFor("document.getElementById('notice').textContent === 'Đã chuyển 1 dịch vụ sang nhóm Hòn Tằm.'", "đã chuyển", 10000);
+    assert.equal(soPut(d), put0 + 1, "Vẫn chuyển: đúng một PUT");
+  });
   await step("9", "1040: vùng bấm ≥ 44px (nút khối nhóm, ô chọn, nút chuyển), cỡ chữ ô gõ / ô chọn mới ≥ 16px, không tràn ngang, không lỗi console", async () => {
     await d.ev("document.querySelector('#list input.chon-dv[data-code=\"NDV10\"]').click(); true");
     await d.waitFor("!!document.getElementById('chuyen-nhom')", "thanh chuyển hiện khi có chọn");
@@ -290,37 +322,6 @@ try {
     await m.ev("document.querySelector('#nhom-dv [data-act=\"huy-ten\"]').click(); true");
   });
 
-  // T13 (kế hoạch 2026-10-30; ADR-0146 Đ3, ADR-0152 Đ4 (c)): có luật bán «cả nhóm» Thể thao biển ⇒ chuyển NDV01 ra khỏi nhóm phải HỎI LẠI kèm câu
-  // «thôi chặn … cho: <loại>»; «Không chuyển» = không gửi PUT; «Vẫn chuyển» = đúng một PUT.
-  await step("11", "390: luật bán cả nhóm Thể thao biển ⇒ 'Chuyển 1 dịch vụ' sang Hòn Tằm hỏi lại «Chuyển nhóm sẽ thôi chặn «Dịch vụ thử 1» cho: …»; Không chuyển = không PUT; Vẫn chuyển = một PUT", async () => {
-    // Gọi từ trong trang (cùng phiên của trang — đăng nhập lại từ ngoài sẽ làm phiên trang hết dùng).
-    const goi = (method, path, body) => m.ev(`fetch(${JSON.stringify(path)}, { method: ${JSON.stringify(method)}, headers: { "content-type": "application/json" }, body: ${body ? JSON.stringify(JSON.stringify(body)) : "undefined"} }).then(async (r) => ({ status: r.status, json: await r.json() }))`);
-    const loai = (await goi("GET", "/api/pricing/loai-doi-tac")).json.loai.find((l) => l.dangBat);
-    const r = await goi("POST", "/api/pricing/luat-ban", { loai: loai.code, phamVi: "GROUP", groupCode: "TTB" });
-    assert.equal(r.status, 201, JSON.stringify(r.json));
-    await m.ev("document.getElementById('bo-chon')?.click(); true");
-    await m.waitFor("document.getElementById('chon-dem').textContent === ''", "bỏ chọn");
-    await m.ev(`document.querySelector('#list-cards input.chon-dv[data-code="NDV01"]').click(); true`);
-    await m.waitFor("document.getElementById('chon-dem').textContent === 'Đã chọn 1 dịch vụ'", "đếm 1");
-    assert.ok(await m.ev("(() => { const s = document.getElementById('chuyen-nhom'); s.value = 'HTA'; s.dispatchEvent(new Event('change', { bubbles: true })); return s.value === 'HTA'; })()"));
-    const put0 = soPut(m);
-    const cau = `Chuyển nhóm sẽ thôi chặn «Dịch vụ thử 1» cho: ${loai.ten}.`;
-    await m.ev("document.getElementById('chuyen-nut').click(); true");
-    await m.waitFor("!!document.querySelector('.sheet-root.open .sheet')", "hộp hỏi lại mở", 10000);
-    assert.equal(await m.ev("document.querySelector('.sheet-root.open .sheet p').textContent"), cau);
-    assert.ok(await m.ev(khongTranNgang), "390: hộp hỏi không tràn ngang");
-    await shot(m, "danh-muc-nhom-390-canh-bao-luat-ban.png");
-    await m.ev("[...document.querySelectorAll('.sheet-foot .btn')].find((b) => b.textContent === 'Không chuyển').click(); true");
-    await m.waitFor("!document.querySelector('.sheet-root')", "hộp đóng");
-    await sleep(400);
-    assert.equal(soPut(m), put0, "Không chuyển: không gửi PUT");
-    assert.equal(await m.ev("document.getElementById('chon-dem').textContent"), "Đã chọn 1 dịch vụ", "vẫn giữ chọn");
-    await m.ev("document.getElementById('chuyen-nut').click(); true");
-    await m.waitFor("!!document.querySelector('.sheet-root.open .sheet')", "hộp hỏi lại mở lần 2", 10000);
-    await m.ev("document.querySelector('.sheet-foot .btn-danger').click(); true");
-    await m.waitFor("document.getElementById('notice').textContent === 'Đã chuyển 1 dịch vụ sang nhóm Hòn Tằm.'", "đã chuyển", 10000);
-    assert.equal(soPut(m), put0 + 1, "Vẫn chuyển: đúng một PUT");
-  });
   dong(m);
   assert.deepEqual(loiConsole, [], "không lỗi console ở mọi trang");
   console.log(`${passed} bước ✓, 0 bước ✗`);
