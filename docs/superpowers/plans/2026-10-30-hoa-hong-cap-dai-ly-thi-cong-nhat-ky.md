@@ -63,3 +63,11 @@ Mười bảy «câu hôm nay» của §6.1 đều có nguyên văn trong `index
 **Bài đỏ trước khi sửa mã**: ba tệp (`muc-ta`, `gan-rieng-route`, `doi-chinh-sach`) 27 xanh / 7 đỏ (trong đó ca mới `khoá cấp đang khoá / mở lại cấp đang mở ⇒ 409 đúng câu (§6.1 :221)`). Sau khi đổi chuỗi: `npm test` thoát 0, 6735 xanh / 0 đỏ (bộ chính) + 1/1 (bài đo giờ); `npm run typecheck` 0 lỗi. Bảng-từ giao diện (`src/bang-tu-giao-dien.test.ts`) không đỏ trên câu mới nào.
 
 **Tiêu chí 9 phần máy chủ**: đã đọc từng dòng `git diff HEAD -- src/modules/ ':!*.test.ts'` (20 dòng đổi ở `index.ts`, 6 ở `rules.ts`): mọi dòng đổi chỉ khác bên trong một chuỗi chữ; phần mã, biểu thức chính quy, chú thích cuối dòng (dòng `:73`, «câu chèn của Đổi chính sách») giữ nguyên. `rules.ts` đổi đúng 6 dòng (`kiemTenMucTa` ×3, `kiemThanGan`, `kiemThanDoiChinhSach`, `kiemThanGanRieng`); không hunk nào chạm `kiemDoi` hay `kiemSua`. Hai chuỗi nhật ký `chính sách ${…}` (`index.ts:129`, `:535`) và các chi tiết «mức riêng …» (`:561`, `:579`, `:615`, `:617`) không đổi.
+
+### Task 5 — chữ ở `src/shared/` (trừ hướng dẫn) + `groupCode`
+
+- Đổi chữ ở `hoa-hong-hien-thi.ts` (kể cả chú thích cùng nghĩa), `audit-actions.ts`, `so-dai-ly-nhap.ts` và ba tệp bài; nhãn nút `nhanMucTa` thành «Khoá cấp» / «Mở lại cấp» (quyết định 7); `prc_rate_tier_off`/`_on` thành «Khoá cấp đại lý» / «Mở lại cấp đại lý». Chữ trước `nhanLoaiDoiTac` («Tắt»/«Bật» loại) giữ nguyên theo kế hoạch.
+- Lựa chọn tự áp: `prc_rate_tier_added` → «Thêm cấp đại lý»; `prc_party_tier_*` → «… cấp riêng …»; `nhanDoiTuong` loại MUC → «Cấp đại lý»; hai câu chứa «chính sách» trơn trong ghi chú hộp Sửa (`cai`) đổi thành «cấp đại lý này».
+- `web/so-dai-ly-ui.ts`: `DanhMuc.dichVu` giữ `groupCode`; typecheck 0 lỗi nên mọi nơi dùng `dm.dichVu` vẫn khớp.
+- `huong-dan-ke-toan.ts`: không có `[[Tên nút]]` nào trùng chuỗi đã đổi (nó dùng `[[Tắt]]`, `[[Bật]]` của loại và các nút chính sách của Task 6); không sửa. `huong-dan.test.ts` xanh. Bảng từ không đỏ. `so-do-trang.ts` không đổi.
+- Phát hiện cho task sau: `web/hoa-hong-thiet-lap.ts:127` còn nhãn «Tắt»/«Bật» + «Đã tắt chính sách.» của nút mức TA, chưa đồng bộ nhãn «Khoá cấp»/«Mở lại cấp» (thuộc task giao diện).

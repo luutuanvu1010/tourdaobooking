@@ -180,7 +180,7 @@ export function docThanGan(f: FormGan): KetDocForm<ThanGanGui> {
   const tu = f.tuNgay.trim();
   const den = f.denNgay.trim();
   if (loai === "") loi.push({ truong: "loai", message: "Chọn một loại đối tác." });
-  if (muc === "") loi.push({ truong: "mucTa", message: "Chọn một chính sách." });
+  if (muc === "") loi.push({ truong: "mucTa", message: "Chọn một cấp đại lý." });
   if (!isISODate(tu)) loi.push({ truong: "tuNgay", message: "Chọn ngày bắt đầu." });
   if (den !== "") {
     if (!isISODate(den)) loi.push({ truong: "denNgay", message: "Ngày kết thúc không hợp lệ." });

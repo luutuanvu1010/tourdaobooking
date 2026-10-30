@@ -53,7 +53,7 @@ const chuanTim = (s: string): string => s.normalize("NFD").replace(/[\u0300-\u03
 // Danh mục dịch vụ và nhóm
 
 export interface DanhMuc {
-  readonly dichVu: readonly { code: string; name: string }[];
+  readonly dichVu: readonly { code: string; name: string; groupCode: string | null }[];
   readonly nhom: readonly { code: string; name: string }[];
   readonly ten: TenDanhMuc;
   /** Câu lỗi khi không tải được danh mục (khi đó ô chọn trống; tên hiện bằng mã). */
@@ -67,7 +67,7 @@ export interface DanhMuc {
 export async function taiDanhMuc(): Promise<DanhMuc> {
   try {
     const r = await api<Api.CatalogPublicResponse>("/api/catalog");
-    const dichVu = r.items.map((i) => ({ code: i.code, name: i.name })).sort((a, b) => a.name.localeCompare(b.name, "vi"));
+    const dichVu = r.items.map((i) => ({ code: i.code, name: i.name, groupCode: i.groupCode })).sort((a, b) => a.name.localeCompare(b.name, "vi"));
     const tenDv = new Map(dichVu.map((d) => [d.code, d.name]));
     const tenNhom = new Map(r.groups.map((g) => [g.code, g.name]));
     return { dichVu, nhom: r.groups, ten: { dichVu: (c) => tenDv.get(c), nhom: (c) => tenNhom.get(c) }, loi: null };

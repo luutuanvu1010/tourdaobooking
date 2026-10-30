@@ -109,7 +109,7 @@ test("docThanGan: { loai, muc, tuNgay, denNgay? } — thiếu loại / mức / n
   const r = docThanGan({ loai: "", muc: " ", tuNgay: "", denNgay: "" });
   assert.deepEqual(!r.ok && r.loi, [
     { truong: "loai", message: "Chọn một loại đối tác." },
-    { truong: "mucTa", message: "Chọn một chính sách." },
+    { truong: "mucTa", message: "Chọn một cấp đại lý." },
     { truong: "tuNgay", message: "Chọn ngày bắt đầu." },
   ]);
   const nguoc = docThanGan({ loai: "LD_ABCDEFGH", muc: "MT_ABCDEFGH", tuNgay: "2026-10-15", denNgay: "2026-10-14" });

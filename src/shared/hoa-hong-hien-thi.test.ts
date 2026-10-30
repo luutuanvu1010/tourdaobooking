@@ -77,7 +77,7 @@ test("nhanMucDto đổi khuôn DTO sang nhanMuc: phần trăm và đồng mỗi 
 test("nhanDoiTuong: vai và đối tác cụ thể phân biệt bằng chữ nhỏ (hai thứ có thể trùng tên)", () => {
   assert.deepEqual(nhanDoiTuong({ loai: "VAI", code: "TRAVEL_AGENCY", ten: "Đại lý du lịch" }), { ten: "Đại lý du lịch", loai: "Loại đối tác" });
   assert.deepEqual(nhanDoiTuong({ loai: "DOI_TAC", partyId: "pty-1", ten: "Đại Lý A" }), { ten: "Đại Lý A", loai: "Một đối tác" });
-  assert.deepEqual(nhanDoiTuong({ loai: "MUC", code: "MT_ABCDEFGH", ten: "TA1" }), { ten: "TA1", loai: "Chính sách" }, "ADR-0117 lần 2: dòng của mức TA");
+  assert.deepEqual(nhanDoiTuong({ loai: "MUC", code: "MT_ABCDEFGH", ten: "TA1" }), { ten: "TA1", loai: "Cấp đại lý" }, "ADR-0117 lần 2: dòng của mức TA");
 });
 
 test("trạng thái dòng: đang áp / sắp áp / đã đóng; chỉ dòng chưa có ngày kết thúc mới đóng được", () => {
@@ -127,9 +127,9 @@ test("cauThuTra: chín bậc có lời riêng, thiếu mức dùng câu của m�
   const co = (bac: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9): ThuTraResponse => ({ ...base, ketQua: { trangThai: "SET", bac, muc: muc({}) } });
   assert.equal(cauThuTra(co(3)), "Áp mức 12,5% — mức riêng của đối tác cho mọi dịch vụ");
   assert.equal(cauThuTra(co(6)), "Áp mức 12,5% — mức của loại đối tác cho mọi dịch vụ");
-  assert.equal(cauThuTra(co(7)), "Áp mức 12,5% — chính sách của loại đối tác cho dịch vụ này");
-  assert.equal(cauThuTra(co(8)), "Áp mức 12,5% — chính sách của loại đối tác cho nhóm");
-  assert.equal(cauThuTra(co(9)), "Áp mức 12,5% — chính sách của loại đối tác cho mọi dịch vụ");
+  assert.equal(cauThuTra(co(7)), "Áp mức 12,5% — cấp đại lý của loại đối tác cho dịch vụ này");
+  assert.equal(cauThuTra(co(8)), "Áp mức 12,5% — cấp đại lý của loại đối tác cho nhóm");
+  assert.equal(cauThuTra(co(9)), "Áp mức 12,5% — cấp đại lý của loại đối tác cho mọi dịch vụ");
   const loi = new Set<string>();
   for (const b of [1, 2, 3, 4, 5, 6, 7, 8, 9] as const) loi.add(LOI_BAC[b]);
   assert.equal(loi.size, 9, "mỗi bậc một lời khác nhau");
@@ -180,15 +180,15 @@ test("ADR-0117: nhanLoaiDoiTac — nút Tắt / Bật chỉ ở loại do Kế t
 test("ADR-0117 lần 2: «Thử tra» thắng ở bậc 7–9 ⇒ câu kèm TÊN mức TA (N-12); bậc khác không thêm tên", () => {
   const base = { ngay: HOM_NAY, nguoiHuong: { loai: "HUONG" as const, vai: ["Lễ tân khách sạn"] } };
   const dongMuc = muc({ doiTuong: { loai: "MUC", code: "MT_ABCDEFGH", ten: "Đại lý cấp 1" }, phamVi: "SERVICE", catalogCode: "HONTAM", tyLeBp: 1500 });
-  assert.equal(cauThuTra({ ...base, ketQua: { trangThai: "SET", bac: 7, muc: dongMuc } }), "Áp mức 15% — chính sách của loại đối tác cho dịch vụ này: «Đại lý cấp 1»");
-  assert.equal(cauThuTra({ ...base, ketQua: { trangThai: "SET", bac: 9, muc: { ...dongMuc, phamVi: "ALL", catalogCode: null } } }), "Áp mức 15% — chính sách của loại đối tác cho mọi dịch vụ: «Đại lý cấp 1»");
+  assert.equal(cauThuTra({ ...base, ketQua: { trangThai: "SET", bac: 7, muc: dongMuc } }), "Áp mức 15% — cấp đại lý của loại đối tác cho dịch vụ này: «Đại lý cấp 1»");
+  assert.equal(cauThuTra({ ...base, ketQua: { trangThai: "SET", bac: 9, muc: { ...dongMuc, phamVi: "ALL", catalogCode: null } } }), "Áp mức 15% — cấp đại lý của loại đối tác cho mọi dịch vụ: «Đại lý cấp 1»");
   assert.doesNotMatch(cauThuTra({ ...base, ketQua: { trangThai: "SET", bac: 7, muc: dongMuc } }), /MT_[A-Z]{8}/, "không lộ mã mức");
   assert.equal(cauThuTra({ ...base, ketQua: { trangThai: "SET", bac: 6, muc: muc({}) } }), "Áp mức 12,5% — mức của loại đối tác cho mọi dịch vụ", "bậc riêng: không thêm tên");
 });
 
 test("ADR-0117 lần 2: nhanMucTa — «Đang dùng» + nút Tắt / «Đã tắt» + nút Bật (theo cờ máy chủ), nhãn nút có tên mức, không mã", () => {
-  assert.deepEqual(nhanMucTa({ ten: "Đại lý cấp 1", dangBat: true }), { trangThai: "Đang dùng", nut: { hanhDong: "tat", nhan: "Tắt", ariaLabel: "Tắt chính sách: Đại lý cấp 1" } });
-  assert.deepEqual(nhanMucTa({ ten: "Đại lý cấp 1", dangBat: false }), { trangThai: "Đã tắt", nut: { hanhDong: "bat", nhan: "Bật", ariaLabel: "Bật chính sách: Đại lý cấp 1" } });
+  assert.deepEqual(nhanMucTa({ ten: "Đại lý cấp 1", dangBat: true }), { trangThai: "Đang dùng", nut: { hanhDong: "tat", nhan: "Khoá cấp", ariaLabel: "Khoá cấp: Đại lý cấp 1" } });
+  assert.deepEqual(nhanMucTa({ ten: "Đại lý cấp 1", dangBat: false }), { trangThai: "Đã tắt", nut: { hanhDong: "bat", nhan: "Mở lại cấp", ariaLabel: "Mở lại cấp: Đại lý cấp 1" } });
 });
 
 test("ADR-0117 lần 2: boDongMucTa — dòng của mức TA chỉ hiện ở mục «Mức TA», không lặp ở «Các mức hiện có»; giữ thứ tự", () => {
@@ -199,10 +199,10 @@ test("ADR-0117 lần 2: boDongMucTa — dòng của mức TA chỉ hiện ở m�
 test("ADR-0117 lần 2: câu cảnh báo khi gắn mức cho loại còn dòng riêng (N-17) và câu luật đổi mức trong ngày — nguyên văn", () => {
   assert.equal(
     cauCanhBaoDongRieng("Lễ tân khách sạn", "Đại lý cấp 1", 2),
-    "Đã áp dụng chính sách, nhưng loại «Lễ tân khách sạn» (hoặc loại khác mà cùng đối tác đang mang) còn 2 mức riêng đang áp dụng. Mức riêng được ưu tiên hơn chính sách «Đại lý cấp 1». Ngừng các mức riêng này nếu muốn dùng chính sách.",
+    "Đã áp dụng cấp đại lý, nhưng loại «Lễ tân khách sạn» (hoặc loại khác mà cùng đối tác đang mang) còn 2 mức riêng đang áp dụng. Mức riêng được ưu tiên hơn cấp đại lý «Đại lý cấp 1». Ngừng các mức riêng này nếu muốn dùng cấp đại lý.",
   );
-  assert.match(cauCanhBaoDongRieng("A", "B", 1), /Ngừng các mức riêng này nếu muốn dùng chính sách\.$/);
-  assert.equal(CAU_DOI_MUC_TRONG_NGAY, "Mỗi loại chỉ theo một chính sách trong một ngày. Muốn đổi sang chính sách khác từ hôm nay: ngừng áp dụng chính sách cũ đến hết hôm qua, rồi áp dụng chính sách mới từ hôm nay. Áp dụng từ hôm nay thì không đổi được trong cùng ngày.");
+  assert.match(cauCanhBaoDongRieng("A", "B", 1), /Ngừng các mức riêng này nếu muốn dùng cấp đại lý\.$/);
+  assert.equal(CAU_DOI_MUC_TRONG_NGAY, "Mỗi loại chỉ theo một cấp đại lý trong một ngày. Muốn đổi sang cấp khác từ hôm nay: ngừng áp dụng cấp cũ đến hết hôm qua, rồi áp dụng cấp mới từ hôm nay. Áp dụng từ hôm nay thì không đổi được trong cùng ngày.");
 });
 
 test("PR2 T1: nhãn mới và các câu nguyên văn", () => {
@@ -211,12 +211,12 @@ test("PR2 T1: nhãn mới và các câu nguyên văn", () => {
   assert.equal(CAU_LOAI_CO_SAN, "Loại có sẵn đi kèm tài khoản đăng nhập của đối tác nên không tắt được.");
   assert.equal(CAU_CHUA_CO_MUC_LOAI, "Đơn của loại này sẽ bị giữ ở bước Đã giao cho tới khi có mức");
   assert.equal(NHAN_CHUA_CO_MUC, "Chưa có mức");
-  assert.equal(CAU_NHAC_UU_TIEN, "Mức riêng được ưu tiên hơn chính sách. Mức nào áp cho một đối tác cụ thể: dùng Tra nhanh.");
-  assert.equal(CAU_TRA_THEO_LOAI, "Đang tra theo loại. Một đối tác cụ thể của loại này có thể có mức riêng hoặc chính sách riêng — gõ tên đối tác để chắc.");
+  assert.equal(CAU_NHAC_UU_TIEN, "Mức riêng được ưu tiên hơn cấp đại lý. Mức nào áp cho một đối tác cụ thể: dùng Tra nhanh.");
+  assert.equal(CAU_TRA_THEO_LOAI, "Đang tra theo loại. Một đối tác cụ thể của loại này có thể có mức riêng hoặc cấp riêng — gõ tên đối tác để chắc.");
   assert.equal(cauMucCuSeNgung("10%", "2026-11-01"), "Mức cũ 10% sẽ ngừng, đến hết 31/10/2026.");
   assert.equal(cauSeTao({ ai: "Đại lý A", dichVu: "Mọi dịch vụ", muc: "10%", tu: "2026-11-01", den: null }), "Sẽ tạo: Đại lý A · Mọi dịch vụ · 10% · từ 01/11/2026, không thời hạn.");
   assert.equal(cauSeTao({ ai: "A", dichVu: "B", muc: "5%", tu: "2026-11-01", den: "2026-12-31" }), "Sẽ tạo: A · B · 5% · từ 01/11/2026 đến 31/12/2026.");
-  assert.equal(cauCanhBaoTheoChinhSach("Cấp 1"), "Loại này đang theo chính sách Cấp 1. Mức riêng được ưu tiên hơn chính sách.");
+  assert.equal(cauCanhBaoTheoChinhSach("Cấp 1"), "Loại này đang theo cấp đại lý Cấp 1. Mức riêng được ưu tiên hơn cấp đại lý.");
 });
 
 test("PR2 T1: nhanLoaiDoiTac — loại có sẵn, chỉ «Đã tắt» khi tắt", () => {
@@ -332,7 +332,7 @@ test("ADR-0148: câu xem trước của hộp Sửa theo đường máy chủ tr
   const m = await import("./hoa-hong-hien-thi.ts");
   assert.equal(m.cauXemTruocSua({ homNay: HOM_NAY, duong: "HUY_THAY" }), "Chưa có đơn nào dùng mức này — sửa sẽ thay hẳn.");
   assert.equal(m.cauXemTruocSua({ homNay: HOM_NAY, duong: "TU_NGAY", tuNgaySomNhat: "2026-10-10", denNgayToiDa: null }), "Đã có đơn dùng mức này — phần sửa áp từ ngày 10/10/2026; đơn cũ giữ mức cũ.");
-  assert.equal(m.cauXemTruocSua({ homNay: HOM_NAY, duong: "HUY_THAY" }, "chính sách này"), "Chưa có đơn nào dùng chính sách này — sửa sẽ thay hẳn.");
+  assert.equal(m.cauXemTruocSua({ homNay: HOM_NAY, duong: "HUY_THAY" }, "cấp đại lý này"), "Chưa có đơn nào dùng cấp đại lý này — sửa sẽ thay hẳn.");
 });
 
 // N5 (kế hoạch docs/superpowers/plans/2026-10-29-sua-muc-n5-ke-hoach.md, Task 2): một hàm chia lần gắn dùng chung cho màn «Mức TA» (R1, R2) và hồ sơ Danh bạ (R3).
