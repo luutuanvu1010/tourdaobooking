@@ -80,6 +80,24 @@
       "note": "Ô «Được đón không» của từng dịch vụ (ADR-0149 Đ1, 0127): mode ALWAYS (Luôn đón) / NEVER (Không đón) thắng cờ transfer_enabled của nhóm; KHÔNG có dòng mở (valid_to_at NULL) = Theo nhóm. Chỉ thêm: trigger cấm xoá, chỉ cho đóng dòng mở một lần; chỉ mục duy nhất một phần = tối đa một dòng mở mỗi service_code. Module khác đọc qua view v_ctl_service_transfer; đồng bộ Sheet không ghi bảng này"
     },
     {
+      "name": "ctl_attribute",
+      "module": "catalog",
+      "kind": "lookup",
+      "note": "Đặc điểm dịch vụ (ADR-0152 Đ1, 0128): một đặc điểm do Quản trị đặt tên trên màn (mã máy sinh tiền tố a); KHÔNG gieo dữ liệu, mã chạy không biết đặc điểm nào. Không xoá (trigger) — tắt bằng active = 0, chỉ khi không còn dòng gắn mở (trigger ctl_attribute_off_in_use); tên chỉ cấm trùng giữa đặc điểm đang dùng. Chỉ dùng làm điều kiện của luật đã có ADR (lượt này: luật bán ADR-0146) — lệch có chủ ý hẹp Hiến chương 5.2"
+    },
+    {
+      "name": "ctl_attribute_value",
+      "module": "catalog",
+      "kind": "lookup",
+      "note": "Giá trị của một đặc điểm (ADR-0152 Đ1, 0128): mã máy sinh tiền tố v, duy nhất toàn bảng; không đổi mã / đặc điểm; không xoá — tắt bằng active = 0 chỉ khi không còn dòng gắn mở (trigger ctl_attribute_value_off_in_use); tên chỉ cấm trùng giữa giá trị đang dùng của cùng đặc điểm. Module khác đọc qua view v_ctl_attribute_value (chỉ khoá)"
+    },
+    {
+      "name": "ctl_attribute_assignment",
+      "module": "catalog",
+      "kind": "table",
+      "note": "Gắn giá trị đặc điểm cho MỘT dịch vụ hoặc MỘT nhóm (ADR-0152 Đ1, 0128; khuôn 0127): dòng mở = valid_to_at NULL, tối đa một dòng mở mỗi (dịch vụ, đặc điểm) và (nhóm, đặc điểm); «theo nhóm» = dịch vụ không có dòng mở. Chỉ thêm: cấm xoá, chỉ cho đóng dòng mở một lần; trigger chặn giá trị không thuộc đặc điểm và chèn khi đặc điểm / giá trị / nhóm đang tắt. Module khác đọc giá trị hiệu lực qua view v_ctl_service_attribute; đồng bộ Sheet không ghi bảng này"
+    },
+    {
       "name": "dsp_assignment",
       "module": "dispatch",
       "kind": "table"
@@ -1240,6 +1258,25 @@
       ]
     },
     {
+      "name": "v_ctl_service_attribute",
+      "module": "catalog",
+      "columns": [
+        "catalog_code",
+        "attribute_code",
+        "value_code",
+        "source"
+      ]
+    },
+    {
+      "name": "v_ctl_attribute_value",
+      "module": "catalog",
+      "columns": [
+        "attribute_code",
+        "code",
+        "active"
+      ]
+    },
+    {
       "name": "v_prc_beneficiary_role",
       "module": "pricing",
       "columns": [
@@ -1366,6 +1403,9 @@
     "ctl_group": { "code": "N1", "name": "N1", "sort_order": "N1", "active": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" , "transfer_enabled": "N1"},
     "ctl_service_group": { "id": "N1", "service_code": "N1", "group_code": "N1", "seq": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "ctl_service_transfer_rule": { "id": "N1", "service_code": "N1", "mode": "N1", "valid_from_at": "N1", "valid_to_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "ctl_attribute": { "code": "N1", "name": "N1", "sort_order": "N1", "active": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "ctl_attribute_value": { "code": "N1", "attribute_code": "N1", "name": "N1", "sort_order": "N1", "active": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "ctl_attribute_assignment": { "id": "N1", "service_code": "N1", "group_code": "N1", "attribute_code": "N1", "value_code": "N1", "valid_from_at": "N1", "valid_to_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "dsp_assignment": { "id": "N1", "order_id": "N1", "order_service_id": "N1", "task_kind_code": "N1", "party_id": "N1", "role_type_code": "N1", "location_id": "N1", "place_text": "N2", "scheduled_date": "N1", "scheduled_time": "N1", "status_code": "N1", "done_at": "N1", "valid_from_at": "N1", "valid_to_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "dsp_assignment_status": { "code": "N1", "name": "N1", "sort_order": "N1", "active": "N1" },
     "dsp_refuse_policy": { "id": "N1", "mode": "N1", "max_consecutive": "N1", "max_per_week": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
@@ -1475,6 +1515,8 @@
     "v_bil_party_balance": { "party_id": "N1", "counterparty_id": "N1", "order_id": "N1", "balance": "N1" },
     "v_ctl_service_group": { "catalog_code": "N1", "group_code": "N1" },
     "v_ctl_service_transfer": { "catalog_code": "N1", "transfer_enabled": "N1" },
+    "v_ctl_service_attribute": { "catalog_code": "N1", "attribute_code": "N1", "value_code": "N1", "source": "N1" },
+    "v_ctl_attribute_value": { "attribute_code": "N1", "code": "N1", "active": "N1" },
     "v_dsp_first_handler": { "order_id": "N1", "first_at": "N1" },
     "v_dsp_order_handler": { "order_id": "N1", "party_id": "N1", "staff_id": "N1", "label": "N2", "since": "N1" },
     "v_ky_closed_period": { "period": "N1" },

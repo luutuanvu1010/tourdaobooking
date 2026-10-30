@@ -2418,6 +2418,40 @@ test("R-CTL-1 (ADR-0058 NT-A11): dịch vụ đang hiện chưa có nhóm hiện
   assert.equal(violations(db, c), 1, "đã rời Sheet (in_sheet = 0) → không đếm");
 });
 
+// ADR-0152 Đ1 + kế hoạch R-8 (T1): R-CTL-2 — dòng gắn đặc điểm ĐANG MỞ trỏ đặc điểm / giá trị đang tắt, hoặc giá trị không thuộc đặc điểm ghi trên dòng. Lưới thứ hai sau
+// trigger chèn (`ctl_attribute_assignment_*`) và trigger tắt (`*_off_in_use`): ca đỏ gỡ ĐÚNG trigger đang chặn — như SQL gõ tay trên D1. Nhánh «nhóm đang tắt» KHÔNG có:
+// tắt nhóm rỗng còn dòng gắn theo nhóm là đường hợp lệ của route nhóm hôm nay (view bỏ qua nhóm tắt) — ghi ở sổ thi công, chờ điều phối.
+test("R-CTL-2 (ADR-0152 Đ1, R-8): dữ liệu khoẻ → 0; dòng mở trỏ giá trị tắt / đặc điểm tắt / giá trị lệch đặc điểm → đếm; dòng đã đóng không đếm", () => {
+  const c = one("R-CTL-2");
+  assert.equal(c.level, "fail");
+  const db = build();
+  db.prepare(`INSERT INTO catalog_item (code, name, unit, price_adult, in_sheet, first_seen_at, updated_at) VALUES ('Q1', 'Dịch vụ thử', 'perPax', 100000, 1, ?, ?)`).run(T1, T1);
+  for (const a of ["aX", "aY"]) db.prepare(`INSERT INTO ctl_attribute (code, name, sort_order, active, created_at, updated_at) VALUES (?, ?, 1, 1, ?, ?)`).run(a, `Đặc điểm ${a}`, T1, T1);
+  for (const [v, a] of [["x1", "aX"], ["x2", "aX"], ["y1", "aY"]]) db.prepare(`INSERT INTO ctl_attribute_value (code, attribute_code, name, sort_order, active, created_at, updated_at) VALUES (?, ?, ?, 1, 1, ?, ?)`).run(v, a, `Giá trị ${v}`, T1, T1);
+  const gan = (id: string, o: { service?: string; group?: string; attr: string; value: string }) =>
+    db.prepare(`INSERT INTO ctl_attribute_assignment (id, service_code, group_code, attribute_code, value_code, valid_from_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
+      .run(id, o.service ?? null, o.group ?? null, o.attr, o.value, T1, T1, T1);
+  gan("k1", { service: "Q1", attr: "aX", value: "x1" });
+  gan("k2", { group: "HTA", attr: "aY", value: "y1" });
+  assert.equal(violations(db, c), 0, "dữ liệu khoẻ");
+  db.exec("DROP TRIGGER ctl_attribute_value_off_in_use");
+  db.prepare("UPDATE ctl_attribute_value SET active = 0 WHERE code = 'x1'").run();
+  assert.equal(violations(db, c), 1, "dòng mở trỏ giá trị đang tắt");
+  db.exec("DROP TRIGGER ctl_attribute_off_in_use");
+  db.prepare("UPDATE ctl_attribute SET active = 0 WHERE code = 'aY'").run();
+  assert.equal(violations(db, c), 2, "dòng mở (theo nhóm) trỏ đặc điểm đang tắt");
+  db.prepare("UPDATE ctl_attribute SET active = 1 WHERE code = 'aY'").run();
+  db.prepare("UPDATE ctl_attribute_value SET active = 1 WHERE code = 'x1'").run();
+  assert.equal(violations(db, c), 0, "bật lại → 0");
+  db.exec("DROP TRIGGER ctl_attribute_assignment_value_of_attribute");
+  gan("k3", { service: "Q1", attr: "aY", value: "x2" }); // x2 thuộc aX
+  assert.equal(violations(db, c), 1, "dòng mở có giá trị không thuộc đặc điểm ghi trên dòng");
+  db.prepare("UPDATE ctl_attribute_assignment SET valid_to_at = ?, updated_at = ? WHERE id = 'k3'").run(T2, T2);
+  db.prepare("UPDATE ctl_attribute_assignment SET valid_to_at = ?, updated_at = ? WHERE id = 'k1'").run(T2, T2);
+  db.prepare("UPDATE ctl_attribute_value SET active = 0 WHERE code = 'x1'").run();
+  assert.equal(violations(db, c), 0, "dòng đã đóng không đếm");
+});
+
 // ---------------------------------------------------------------------------------------------------------------------
 // R-ORD-NT1 (ADR-0061 điều 8, A-9 — lớp bù cho lệch 5.1 thu hẹp): đơn có dịch vụ nhập tay (order_service.catalog_code NULL) mà người lập (orders.staff_id)
 // đang giữ quyền PARTNER còn hiệu lực, và đơn tạo SAU mốc phát hành ADR-0061 (= created_at của dòng đầu bảng ord_manual_service_policy — dòng gieo 0052).
