@@ -160,9 +160,9 @@ export function bangDongMuc(tatCa: readonly Api.CommissionRuleDto[], capDangBat:
         h("th", { scope: "col", "data-so": "" }, coTheoLoai ? "Người lớn" : "Mức"),
         coTheoLoai && h("th", { scope: "col", "data-so": "" }, "Trẻ em"),
         coTheoLoai && h("th", { scope: "col", "data-so": "" }, "Người cao tuổi"),
-        h("th", { scope: "col" }, "Hiệu lực"),
+        h("th", { scope: "col" }, "Thời gian áp dụng"),
         h("th", { scope: "col" }, "Trạng thái"),
-        h("th", { scope: "col" }, h("span", { class: "visually-hidden" }, "Việc")),
+        h("th", { scope: "col" }, h("span", { class: "visually-hidden" }, "Thao tác")),
       ),
     ),
     h(
@@ -235,9 +235,9 @@ function chiTietCap(m: Api.MucTaDto, d: DuLieuHoaHong, mo: MoHop): HTMLElement {
   const nut = h("div", { class: "hh-cap-nut" });
   if (ghi) {
     if (m.dangBat) {
-      const ad = h("button", { type: "button", class: "nut", "data-cap": "phu" }, "Áp dụng cấp cho loại");
+      const ad = h("button", { type: "button", class: "nut", "data-cap": "phu" }, "Thêm loại vào cấp này");
       ad.addEventListener("click", () => mo.apDungChinhSach(m));
-      const them = h("button", { type: "button", class: "nut", "data-cap": "phu" }, "＋ Thêm mức vào cấp");
+      const them = h("button", { type: "button", class: "nut", "data-cap": "phu" }, "＋ Thêm hoa hồng cho dịch vụ");
       them.addEventListener("click", () => mo.themMuc({ ai: { loai: "MUC", code: m.code } }));
       nut.append(ad, them);
     }
@@ -257,9 +257,9 @@ function chiTietCap(m: Api.MucTaDto, d: DuLieuHoaHong, mo: MoHop): HTMLElement {
     h("p", { class: "muted" }, cauDemCap(demTheoCap(m, d.mucTa.ganRieng, d.homNay))),
     ghi && nut,
     loiEl,
-    h("h4", null, "Mức của cấp"),
+    h("h4", null, "Hoa hồng của cấp theo dịch vụ"),
     bang ? h("div", { class: "hh-muc-cap-khung" }, bang) : h("p", { class: "muted" }, CAU_KHONG_CO_MUC),
-    h("h4", null, "Loại đối tác theo cấp này"),
+    h("h4", null, "Loại đối tác đang theo cấp này"),
     ...lanXepLoai(m, d, ghi, mo),
   );
 }

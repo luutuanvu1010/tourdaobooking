@@ -72,7 +72,7 @@ function khoiCapRieng(r: Api.HoaHongHoSoResponse, x: DoiTacRieng, d: DuLieuHoaHo
   const lichSu = khoiLichSuGan(k.lichSu, r.homNay, (g) => nhanCapRieng(g.muc.ten), `hh-ls-rieng-${x.partyId}`);
   if (lichSu) out.push(lichSu);
   if (ghi && ds.length === 0 && d.mucTa.muc.some((m) => m.dangBat)) {
-    const dat = h("button", { type: "button", class: "nut", "data-cap": "phu", "aria-label": `Đặt cấp riêng cho đối tác: ${x.ten}` }, "Đặt cấp riêng cho đối tác");
+    const dat = h("button", { type: "button", class: "nut", "data-cap": "phu", "aria-label": `Chọn cấp riêng cho đối tác: ${x.ten}` }, "Chọn cấp riêng cho đối tác");
     dat.addEventListener("click", () => mo.datCapRieng({ partyId: x.partyId, ten: x.ten }));
     out.push(h("div", { class: "hh-cap-nut" }, dat));
   }
@@ -169,7 +169,7 @@ export function veTheDoiTac(goc: HTMLElement, d: DuLieuHoaHong, mo: MoHop): void
   const ghi = can(d.nguoiDung, "partner.commission.write");
   const dau = h("div", { class: "hh-cap-dau" }, h("h2", { class: "hh-muc-ten" }, "Riêng từng đối tác"));
   if (ghi && d.mucTa.muc.some((m) => m.dangBat)) {
-    const dat = h("button", { type: "button", class: "nut", "data-cap": "chinh" }, "Đặt cấp riêng cho đối tác");
+    const dat = h("button", { type: "button", class: "nut", "data-cap": "chinh" }, "Chọn cấp riêng cho đối tác");
     dat.addEventListener("click", () => mo.datCapRieng());
     dau.append(dat);
   }

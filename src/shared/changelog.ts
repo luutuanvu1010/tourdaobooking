@@ -12,6 +12,16 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Rà soát ngôn ngữ trang Hoa hồng đối tác (chủ duyệt 30/10, hồ sơ docs/superpowers/specs/2026-10-30-ra-soat-ngon-ngu-hoa-hong/). Chỉ đổi chữ, KHÔNG migration, không đổi hành vi.
+    // Số 2.50 và ngày là TẠM (mục đầu lúc làm: 2.49) — phiên phát hành kiểm lại ở bước A.0 của docs/HANDOFF-N1.md.
+    version: "2.50",
+    date: "2026-10-30",
+    items: [
+      { kind: "doi", text: "Trang Hoa hồng đối tác: đổi chữ cho dễ hiểu (Chọn cấp cho loại này, Thôi theo cấp này, Kiểm tra hoa hồng…)." },
+      { kind: "doi", text: "Các hộp chọn cấp nay dùng nút «Lưu», ô ngày ghi «Từ ngày», «Đến ngày», và các câu giải thích ngắn gọn hơn." },
+    ],
+  },
+  {
     // Luật bán theo loại đối tác + đặc điểm dịch vụ (ADR-0146, ADR-0152; kế hoạch docs/superpowers/plans/2026-10-30-adr-0146-va-dac-diem-dich-vu-ke-hoach.md). CÓ migration 0128, 0129
     // nên cần npm run trien-khai. Số 2.49 và ngày là TẠM (mục đầu lúc làm: 2.48) — phiên phát hành kiểm lại ở bước A.0 của docs/HANDOFF-N1.md.
     version: "2.49",

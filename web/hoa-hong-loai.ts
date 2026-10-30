@@ -82,8 +82,8 @@ function cumLoai(it: { loai: DuLieuHoaHong["loai"][number]; dong: Api.Commission
     dongCap.append(h("span", { class: "muted" }, CAU_LOAI_CHUA_THEO_CAP));
     const capMo = d.mucTa.muc.filter((m) => m.dangBat);
     if (ghi && capMo.length > 0) {
-      const ad = h("button", { type: "button", class: "nut", "data-cap": "phu", "aria-label": `Áp dụng cấp cho loại: ${loai.ten}` }, "Áp dụng cấp cho loại");
-      ad.addEventListener("click", () => moViecKhac({ tenDong: `Áp dụng cấp cho loại ${loai.ten}`, opener: ad, viec: capMo.map((m) => ({ nhan: m.ten, chay: () => mo.apDungChinhSach(m, loai.code) })) }));
+      const ad = h("button", { type: "button", class: "nut", "data-cap": "phu", "aria-label": `Chọn cấp cho loại này: ${loai.ten}` }, "Chọn cấp cho loại này");
+      ad.addEventListener("click", () => moViecKhac({ tenDong: `Chọn cấp cho loại ${loai.ten}`, opener: ad, viec: capMo.map((m) => ({ nhan: m.ten, chay: () => mo.apDungChinhSach(m, loai.code) })) }));
       dongCap.append(ad);
     }
   }
@@ -102,7 +102,7 @@ function cumLoai(it: { loai: DuLieuHoaHong["loai"][number]; dong: Api.Commission
     ketQua.kieu === "KHONG_CO" && h("p", { class: "hh-cap-nhac" }, CAU_CHUA_CO_MUC_LOAI),
     dongCap,
     lichSu,
-    h("h4", null, "Mức của loại"),
+    h("h4", null, "Hoa hồng riêng của loại"),
     bang ? h("div", { class: "hh-muc-cap-khung" }, bang) : h("p", { class: "muted" }, CAU_LOAI_CHUA_CO_MUC_RIENG),
     them && h("div", { class: "hh-cap-nut" }, them),
     loiEl,

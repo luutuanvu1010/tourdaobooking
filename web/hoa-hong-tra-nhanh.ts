@@ -129,7 +129,7 @@ function dungForm(d: DuLieuHoaHong, cuonToi: (k: Api.ThuTraResponse["ketQua"]) =
       const r = await api<Api.ThuTraResponse>(`/api/pricing/thu-tra?${q.toString()}`);
       const k = r.ketQua;
       // «Xem dòng ↓» chỉ khi có dòng thắng (SET); thẻ và cách tìm dòng do `nhayToiDong` (web/hoa-hong.ts) quyết theo `theChoKetQua`.
-      const xem = theChoKetQua(k) !== null ? h("button", { type: "button", class: "btn btn-link", "data-xem-dong": k.trangThai === "SET" ? k.muc.id : "" }, "Xem dòng ↓") : null;
+      const xem = theChoKetQua(k) !== null ? h("button", { type: "button", class: "btn btn-link", "data-xem-dong": k.trangThai === "SET" ? k.muc.id : "" }, "Xem mức này ↓") : null;
       xem?.addEventListener("click", () => {
         truocKhiCuon();
         cuonToi(k);
@@ -155,12 +155,12 @@ function dungForm(d: DuLieuHoaHong, cuonToi: (k: Api.ThuTraResponse["ketQua"]) =
 /** Vẽ «Tra nhanh» vào `goc`: khối nằm sẵn (máy tính) hoặc nút mở hộp trượt (điện thoại). `cuonToi(ketQua)` chuyển đúng thẻ, mở và cuộn tới dòng thắng (SET). */
 export function veTraNhanh(goc: HTMLElement, d: DuLieuHoaHong, cuonToi: (k: Api.ThuTraResponse["ketQua"]) => void): void {
   if (window.matchMedia("(max-width: 640px)").matches) {
-    const nut = h("button", { type: "button", class: "btn hh-tn-nut", id: "hh-tra-nhanh-nut" }, "Tra nhanh");
+    const nut = h("button", { type: "button", class: "btn hh-tn-nut", id: "hh-tra-nhanh-nut" }, "Kiểm tra hoa hồng");
     nut.addEventListener("click", () => {
       let dong: (() => void) | null = null;
       const form = dungForm(d, cuonToi, () => dong?.());
       const dongNut = h("button", { type: "button", class: "btn" }, "Đóng");
-      const sheet = moBangTruot({ title: "Tra nhanh", body: [form], foot: [dongNut], opener: nut });
+      const sheet = moBangTruot({ title: "Kiểm tra hoa hồng", body: [form], foot: [dongNut], opener: nut });
       if (!sheet) return;
       dong = () => sheet.close(false);
       dongNut.addEventListener("click", () => sheet.close());
@@ -168,5 +168,5 @@ export function veTraNhanh(goc: HTMLElement, d: DuLieuHoaHong, cuonToi: (k: Api.
     replaceChildren(goc, nut);
     return;
   }
-  replaceChildren(goc, h("section", { class: "card hh-tra-nhanh", "aria-label": "Tra nhanh" }, h("h2", null, "Tra nhanh"), dungForm(d, cuonToi, () => undefined)));
+  replaceChildren(goc, h("section", { class: "card hh-tra-nhanh", "aria-label": "Kiểm tra hoa hồng" }, h("h2", null, "Kiểm tra hoa hồng"), dungForm(d, cuonToi, () => undefined)));
 }

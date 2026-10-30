@@ -154,7 +154,7 @@ function dungCachTinh(o: { tienTo: string; loi: BangLoi; homNay: string; tuMacDi
   const tu = h("input", { id: `${p}-tu-ngay`, type: "date", value: o.tuMacDinh });
   if (o.tuMin !== null) tu.min = o.tuMin;
   if (o.tuMax) tu.max = o.tuMax;
-  const denChon = h("select", { id: `${p}-den-chon`, "aria-label": "Đến" }, h("option", { value: "" }, "không thời hạn"), h("option", { value: "NGAY" }, "chọn ngày…"));
+  const denChon = h("select", { id: `${p}-den-chon`, "aria-label": "Đến ngày" }, h("option", { value: "" }, "không thời hạn"), h("option", { value: "NGAY" }, "chọn ngày…"));
   const den = h("input", { id: `${p}-den-ngay`, type: "date", "aria-label": "Ngày cuối hiệu lực", hidden: true });
   if (o.denMacDinh) {
     denChon.value = "NGAY";
@@ -193,8 +193,8 @@ function dungCachTinh(o: { tienTo: string; loi: BangLoi; homNay: string; tuMacDi
     h(
       "fieldset",
       { class: "hh-nhom" },
-      h("legend", null, "Hiệu lực"),
-      h("div", { class: "grid two" }, h("div", null, h("label", null, "Từ", tu), o.loi.dong("tuNgay")), h("div", null, h("label", null, "Đến", denChon), den, o.loi.dong("denNgay"))),
+      h("legend", null, "Thời gian áp dụng"),
+      h("div", { class: "grid two" }, h("div", null, h("label", null, "Từ ngày", tu), o.loi.dong("tuNgay")), h("div", null, h("label", null, "Đến ngày", denChon), den, o.loi.dong("denNgay"))),
     ),
     h("div", null, h("label", null, "Ghi chú (không bắt buộc)", ghiChu), o.loi.dong("ghiChu")),
   );
@@ -315,7 +315,7 @@ export function taoMoHop(ctx: NguCanhHop): MoHop {
       canh.hidden = cs === null;
     };
     moHop(ctx, {
-      title: laMuc ? "Thêm mức vào cấp" : "Thêm mức",
+      title: laMuc ? "Thêm hoa hồng cho dịch vụ" : "Thêm mức hoa hồng",
       body: [
         h("fieldset", { class: "hh-nhom" }, h("legend", null, "Ai được hưởng"), ai, loi.dong("doiTuong")),
         dichVu,
@@ -454,7 +454,7 @@ export function taoMoHop(ctx: NguCanhHop): MoHop {
       tu.min = xt.tuNgaySomNhat;
       if (xt.denNgayToiDa) tu.max = xt.denNgayToiDa;
     }
-    const denChon = h("select", { id: "hh-sua-gan-den-chon", "aria-label": "Đến" }, h("option", { value: "" }, "không thời hạn"), h("option", { value: "NGAY" }, "chọn ngày…"));
+    const denChon = h("select", { id: "hh-sua-gan-den-chon", "aria-label": "Đến ngày" }, h("option", { value: "" }, "không thời hạn"), h("option", { value: "NGAY" }, "chọn ngày…"));
     const den = h("input", { id: "hh-sua-gan-den", type: "date", "aria-label": "Ngày cuối hiệu lực", value: gan.denNgay ?? "", hidden: gan.denNgay === null });
     denChon.value = gan.denNgay === null ? "" : "NGAY";
     denChon.addEventListener("change", () => (den.hidden = denChon.value !== "NGAY"));
@@ -465,8 +465,8 @@ export function taoMoHop(ctx: NguCanhHop): MoHop {
         h("p", { class: "hint", role: "status" }, h("strong", null, cauXemTruocSua(xt, "cấp đại lý này"))),
         h("p", null, h("span", { class: "hh-nhan-nho" }, "Loại đối tác"), h("strong", null, gan.loai.ten)),
         h("div", null, h("label", null, "Cấp đại lý", chon), loi.dong("mucTa")),
-        h("fieldset", { class: "hh-nhom" }, h("legend", null, "Hiệu lực"),
-          h("div", { class: "grid two" }, h("div", null, h("label", null, "Từ", tu), loi.dong("tuNgay")), h("div", null, h("label", null, "Đến", denChon), den, loi.dong("denNgay")))),
+        h("fieldset", { class: "hh-nhom" }, h("legend", null, "Thời gian áp dụng"),
+          h("div", { class: "grid two" }, h("div", null, h("label", null, "Từ ngày", tu), loi.dong("tuNgay")), h("div", null, h("label", null, "Đến ngày", denChon), den, loi.dong("denNgay")))),
         lyDo.root,
       ],
       nhan: "Lưu sửa",
@@ -521,11 +521,11 @@ export function taoMoHop(ctx: NguCanhHop): MoHop {
   function ngungApDung(gan: Api.GanLoaiMucDto): void {
     hopNgay({
       tuNgay: gan.tuNgay,
-      moTa: `Ngừng áp dụng cấp ${gan.muc.ten} cho loại ${gan.loai.ten}`,
+      moTa: `Loại «${gan.loai.ten}» thôi theo cấp «${gan.muc.ten}» đến hết ngày:`,
       url: `/api/pricing/muc-ta/gan/${encodeURIComponent(gan.id)}/ket-thuc`,
-      title: "Ngừng áp dụng",
-      nhan: "Ngừng áp dụng",
-      daXong: `Đã ngừng áp dụng cấp «${gan.muc.ten}» cho loại «${gan.loai.ten}».`,
+      title: "Thôi theo cấp này",
+      nhan: "Lưu",
+      daXong: `Loại «${gan.loai.ten}» đã thôi theo cấp «${gan.muc.ten}».`,
     });
   }
 
@@ -540,7 +540,7 @@ export function taoMoHop(ctx: NguCanhHop): MoHop {
     moHop(ctx, {
       title: "Đổi cấp",
       body: [h("p", null, h("span", { class: "hh-nhan-nho" }, "Loại đối tác"), h("strong", null, gan.loai.ten)), h("label", null, NHAN_CAP_MOI, chon), h("label", null, NHAN_TU_NGAY, tu), dong, loi],
-      nhan: "Đổi cấp",
+      nhan: "Lưu",
       chuan() {
         if (chon.value === "" || !/^\d{4}-\d{2}-\d{2}$/.test(tu.value)) {
           loi.textContent = chon.value === "" ? "Chọn cấp đại lý." : CAU_CHON_NGAY_BAT_DAU;
@@ -561,9 +561,9 @@ export function taoMoHop(ctx: NguCanhHop): MoHop {
     const tu = h("input", { id: "hh-adcs-tu", type: "date", value: d.homNay });
     const loi = h("p", { class: "field-error", role: "alert", hidden: true });
     moHop(ctx, {
-      title: "Áp dụng cấp cho loại",
-      body: [h("p", null, h("span", { class: "hh-nhan-nho" }, "Cấp đại lý"), h("strong", null, muc.ten)), h("label", null, "Loại đối tác", loai), h("label", null, "Từ", tu), loi],
-      nhan: "Áp dụng",
+      title: loaiCode === undefined ? "Thêm loại vào cấp" : "Chọn cấp cho loại",
+      body: [h("p", null, h("span", { class: "hh-nhan-nho" }, "Cấp đại lý"), h("strong", null, muc.ten)), h("label", null, "Loại đối tác", loai), h("label", null, "Từ ngày", tu), loi],
+      nhan: "Lưu",
       chuan() {
         const kq = docThanGan({ loai: loai.value, muc: muc.code, tuNgay: tu.value, denNgay: "" });
         if (!kq.ok) {
@@ -592,12 +592,12 @@ export function taoMoHop(ctx: NguCanhHop): MoHop {
   /** Hai ô «Từ» / «Đến» (không thời hạn hoặc chọn ngày) dùng chung cho Đặt và Sửa cấp riêng. */
   const oHieuLuc = (p: string, loi: BangLoi, tuMacDinh: string, denMacDinh: string | null): { root: HTMLElement; tu: HTMLInputElement; den: () => string } => {
     const tu = h("input", { id: `${p}-tu`, type: "date", value: tuMacDinh });
-    const denChon = h("select", { id: `${p}-den-chon`, "aria-label": "Đến" }, h("option", { value: "" }, "không thời hạn"), h("option", { value: "NGAY" }, "chọn ngày…"));
+    const denChon = h("select", { id: `${p}-den-chon`, "aria-label": "Đến ngày" }, h("option", { value: "" }, "không thời hạn"), h("option", { value: "NGAY" }, "chọn ngày…"));
     const den = h("input", { id: `${p}-den`, type: "date", "aria-label": "Ngày cuối hiệu lực", value: denMacDinh ?? "", hidden: denMacDinh === null });
     denChon.value = denMacDinh === null ? "" : "NGAY";
     denChon.addEventListener("change", () => (den.hidden = denChon.value !== "NGAY"));
-    const root = h("fieldset", { class: "hh-nhom" }, h("legend", null, "Hiệu lực"),
-      h("div", { class: "grid two" }, h("div", null, h("label", null, "Từ", tu), loi.dong("tuNgay")), h("div", null, h("label", null, "Đến", denChon), den, loi.dong("denNgay"))));
+    const root = h("fieldset", { class: "hh-nhom" }, h("legend", null, "Thời gian áp dụng"),
+      h("div", { class: "grid two" }, h("div", null, h("label", null, "Từ ngày", tu), loi.dong("tuNgay")), h("div", null, h("label", null, "Đến ngày", denChon), den, loi.dong("denNgay"))));
     return { root, tu, den: () => (denChon.value === "NGAY" ? den.value : "") };
   };
 
@@ -611,7 +611,7 @@ export function taoMoHop(ctx: NguCanhHop): MoHop {
     const hl = oHieuLuc("hh-dcr", loi, d.homNay, null);
     let gui = "";
     moHop(ctx, {
-      title: "Đặt cấp riêng cho đối tác",
+      title: "Chọn cấp riêng cho đối tác",
       body: [
         dien
           ? h("p", null, h("span", { class: "hh-nhan-nho" }, "Đối tác"), h("strong", null, dien.ten))
@@ -620,7 +620,7 @@ export function taoMoHop(ctx: NguCanhHop): MoHop {
         hl.root,
         h("p", { class: "hint" }, CAU_DAT_CAP_RIENG),
       ],
-      nhan: "Đặt cấp riêng",
+      nhan: "Lưu",
       chuan() {
         const dt = doc();
         const kq = docThanGanRieng({ partyId: dt.partyId, muc: cap.value, tuNgay: hl.tu.value, denNgay: hl.den() });
@@ -712,7 +712,7 @@ export function taoMoHop(ctx: NguCanhHop): MoHop {
         ...(cauMai ? [h("p", { class: "hint" }, cauMai)] : []),
         loi,
       ],
-      nhan: "Đổi cấp",
+      nhan: "Lưu",
       chuan() {
         if (chon.value === "" || !/^\d{4}-\d{2}-\d{2}$/.test(tu.value)) {
           loi.textContent = chon.value === "" ? "Chọn cấp đại lý." : CAU_CHON_NGAY_BAT_DAU;
@@ -762,7 +762,7 @@ export function taoMoHop(ctx: NguCanhHop): MoHop {
 
   function ketQuaGan(r: Api.GanLoaiMucResponse): void {
     if (r.dongRieng.length > 0) ctx.canhBao(khungDongRieng(r, ctx.lay()));
-    else ctx.baoOk(`Đã áp dụng cấp «${r.gan.muc.ten}» cho loại «${r.gan.loai.ten}» từ ngày ${MA_NGAY(r.gan.tuNgay)}.`);
+    else ctx.baoOk(`Loại «${r.gan.loai.ten}» đã theo cấp «${r.gan.muc.ten}» từ ngày ${MA_NGAY(r.gan.tuNgay)}.`);
   }
 
   return {

@@ -116,11 +116,11 @@ Kế toán có nút [[+ Hồ sơ mới]] và được thêm, sửa hồ sơ khá
       tieuDe: "Đặt mức hoa hồng cho đối tác",
       noiDung: `Hoa hồng là tiền Công ty trả cho đại lý hoặc cộng tác viên đặt đơn. Khi đơn được xác nhận, Nền tảng lấy mức đang áp trong bảng, tính hoa hồng một lần rồi giữ nguyên.
 
-1. Bấm [[Hoa hồng đối tác]]: ô **Tra nhanh** ở đầu trang cho biết mức áp cho một đối tác; thẻ **Loại đối tác** cho biết từng loại đang hưởng mức nào.
+1. Bấm [[Hoa hồng đối tác]]: ô **Kiểm tra hoa hồng** đầu trang cho biết mức của một đối tác; thẻ **Loại đối tác** cho biết từng loại đang hưởng mức nào.
 2. Bấm [[＋ Thêm mức]], chọn áp cho một loại đối tác, chọn dịch vụ (một dịch vụ, một nhóm dịch vụ hoặc mọi dịch vụ), chọn **Phần trăm** hoặc **Số tiền mỗi khách**, nhập ngày bắt đầu rồi bấm [[Thêm mức]].
 3. Đổi mức: bấm [[Đổi]] ở dòng đó, nhập mức mới và ngày bắt đầu; mức cũ tự ngừng. Hết dùng hẳn: bấm [[Ngừng]] và chọn ngày cuối. Mức không sửa, không xoá được.
 
-Kế toán tìm được từng đối tác theo tên: gõ tên ở **Tra nhanh** để biết mức nào áp cho đối tác đó, hoặc ở bước chọn người nhận của [[＋ Thêm mức]] chọn **Một đối tác** để đặt mức riêng cho đúng đối tác ấy.
+Kế toán tìm được từng đối tác theo tên: gõ tên ở **Kiểm tra hoa hồng** để biết mức của đối tác đó, hoặc ở bước chọn người nhận của [[＋ Thêm mức]] chọn **Một đối tác** để đặt mức riêng cho đúng đối tác.
 
 Người bán dịch vụ làm tương tự ở trang [[Người bán dịch vụ]]: khối [[Thêm điều khoản]] ghi dịch vụ nào do Tour Đảo bán, dịch vụ nào do nhà cung cấp bán (kèm tỷ lệ Tour Đảo mua lại). Dịch vụ nhóm Thuê xe không ghi nhà cung cấp mua lại.
 
@@ -141,12 +141,12 @@ Gắn loại cho hồ sơ ở Danh bạ là việc của Quản trị hoặc To�
       noiDung: `Cấp đại lý là bộ mức có tên, dùng chung cho nhiều loại đối tác.
 
 1. [[＋ Thêm cấp đại lý]], gõ tên.
-2. Mở cấp, bấm [[＋ Thêm mức vào cấp]]: chọn dịch vụ và mức.
-3. [[Áp dụng cấp cho loại]]: chọn loại và ngày bắt đầu.
+2. Mở cấp, bấm [[＋ Thêm hoa hồng cho dịch vụ]]: chọn dịch vụ và mức.
+3. [[Chọn cấp cho loại này]] hoặc [[Thêm loại vào cấp này]]: chọn loại và ngày bắt đầu.
 
-Cấp của loại xét sau cùng. Đổi sang cấp khác: [[Đổi cấp]]. Ngừng chi: [[Ngừng áp dụng]]. [[Khoá cấp]] chặn thêm loại và mức mới, loại đang theo vẫn được tính; dùng lại: [[Mở lại cấp]].
+Cấp của loại xét sau cùng. Đổi sang cấp khác: [[Đổi cấp]]. Ngừng chi: [[Thôi theo cấp này]]. [[Khoá cấp]] chặn thêm loại và mức mới, loại đang theo vẫn được tính; dùng lại: [[Mở lại cấp]].
 
-Cấp riêng: thẻ **Riêng từng đối tác**, bấm [[Đặt cấp riêng cho đối tác]]; mở đối tác để bấm [[Đổi cấp]], sửa hoặc ngừng.`,
+Cấp riêng: thẻ **Riêng từng đối tác**, bấm [[Chọn cấp riêng cho đối tác]]; mở đối tác, bấm [[Đổi cấp]], sửa hoặc ngừng.`,
     },
     {
       tieuDe: "Chụp bù, ghi mức tay cho một đơn",
