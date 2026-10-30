@@ -6,7 +6,8 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
-import { NGHIA_HON_DAO, TU_DA_LOAI } from "./shared/bang-tu-giao-dien.ts";
+import { CAM_THEO_TEP, CHO_PHEP_THEO_TEP, NGHIA_HON_DAO, TU_DA_LOAI } from "./shared/bang-tu-giao-dien.ts";
+import { CAU_O_TRONG, CAU_THU_TU_AP_MUC } from "./shared/hoa-hong-hien-thi.ts";
 
 const ROOT = new URL("..", import.meta.url).pathname;
 
@@ -80,6 +81,10 @@ const NGOAI_LE = new Set(["src/shared/changelog.ts", "src/shared/bang-tu-giao-di
 const CHUOI_GIU_NGUYEN = new Set([
   "Chào {ten}, {xung} là Mai — trợ lý của Tour Đảo. {ten} cần hỏi gì về cách dùng app cứ hỏi {xung} nhé!",
   "cập nhật chặng đưa đón",
+  // Đặc tả hoa-hong-cap-dai-ly §5.3 ghim nguyên văn câu thứ tự áp mức; «mức riêng của loại đối tác» là tên bước thứ ba của thứ tự, không phải chữ «dòng riêng» cũ.
+  CAU_THU_TU_AP_MUC,
+  // Đặc tả hoa-hong-cap-dai-ly §5.4 ghim nguyên văn câu dưới ma trận; «dòng riêng» ở đây là «dòng của cấp riêng cho ô này», không phải nghĩa «mức riêng của loại» mà luật cấm.
+  CAU_O_TRONG,
 ]);
 const TEP = [
   ...tepTs("web"),
@@ -125,4 +130,71 @@ test("bảng từ: chữ đã loại không xuất hiện ở giao diện, trợ
     }
   }
   assert.deepEqual(loi, [], `${loi.length} chỗ còn chữ đã loại (bảng: src/shared/bang-tu-giao-dien.ts):\n${loi.join("\n")}`);
+});
+
+/** Luật cấm theo tệp (lượt 6, đặc tả §6.2): mảnh chuỗi khớp `cam` của bộ tệp mà không nằm trong danh sách cho phép. Hàm thuần: nhận đường dẫn và nội dung. */
+export function viPhamTheoTep(duongDan: string, noiDung: string): { dong: number; chu: string }[] {
+  const ra: { dong: number; chu: string }[] = [];
+  for (const luat of CAM_THEO_TEP) {
+    if (!luat.tep.some((m) => m.test(duongDan))) continue;
+    for (const { dong, chu } of chuoiTrongMa(noiDung)) {
+      if (!luat.cam.test(chu)) continue;
+      if (CHO_PHEP_THEO_TEP.some((c) => c.tep === duongDan && c.manh === chu)) continue;
+      ra.push({ dong, chu });
+    }
+  }
+  return ra;
+}
+
+const TEP_HOA_HONG = [...TEP, ...["src/modules/pricing/rules.ts"]].filter((t, i, a) => a.indexOf(t) === i)
+  .filter((t) => CAM_THEO_TEP.some((l) => l.tep.some((m) => m.test(t))));
+
+test("lượt 6 ca âm", () => {
+  for (const c of ["chính sách riêng tư", "Chính sách điều phối", "đặt chính sách đăng nhập"]) {
+    assert.deepEqual(viPhamTheoTep("web/hoa-hong-gia.ts", `const x = "${c}";`), [], c);
+  }
+  // chọn 6a/6b theo nguồn, không theo vị trí cuối mảng: thêm luật về sau không làm lệch ca âm
+  const mucChinhSach = TU_DA_LOAI.filter((m) => /hính sách (?:hoa hồng|riêng)/u.test(m.cam.source) && m.nguon.includes("quyết định 3, 7"));
+  assert.equal(mucChinhSach.length, 2);
+  for (const c of [
+    "Theo chính sách của Tour Đảo, tiền cọc không được hoàn lại khi khách huỷ.", "Chính sách vừa được người khác đổi — tải lại.",
+    "Vừa có người đổi chính sách, tải lại rồi thử lại.", "Vừa có phiên bản chính sách khác được đăng. Tải lại rồi thử lại.", "Lưu chính sách",
+  ]) {
+    for (const t of mucChinhSach) assert.ok(!t.cam.test(c), `${t.cam} khớp «${c}»`);
+  }
+  // hai mảnh «chính sách » đọc thật từ nhật ký của pricing/index.ts đi qua đúng danh sách cho phép
+  const tep = "src/modules/pricing/index.ts";
+  const manh = chuoiTrongMa(readFileSync(join(ROOT, tep), "utf8")).filter((s) => s.chu === "chính sách ");
+  assert.equal(manh.length, 2);
+  assert.deepEqual(viPhamTheoTep(tep, readFileSync(join(ROOT, tep), "utf8")), []);
+});
+
+test("lượt 6 ca dương", () => {
+  const cau = [
+    "Đã có chính sách với tên này.", "Loại này đã theo một chính sách trong khoảng ngày này — ngừng áp dụng chính sách cũ trước.",
+    "Chính sách này đã tắt — bật lại trước khi áp dụng cho loại hay thêm mức.", "Lần áp dụng chính sách này vừa được người khác ngừng hoặc đổi. Tải lại trang.",
+    "Không tìm thấy chính sách này.", "Không tìm thấy lần áp dụng chính sách này cho loại.", "Lần áp dụng chính sách này vừa được ngừng — tải lại.",
+    "Lần áp dụng chính sách này vừa được người khác sửa hoặc ngừng. Tải lại trang.", "Không tìm thấy chính sách riêng này.",
+    "Chính sách riêng này vừa được ngừng — tải lại.", "Chính sách riêng này vừa được người khác sửa hoặc ngừng. Tải lại trang.",
+    "Tên chính sách dài từ 2 đến 60 ký tự.", "Tên chính sách không được chứa số điện thoại, số tài khoản hay địa chỉ email.",
+    "Chọn loại đối tác và chính sách.", "Chọn chính sách.", "CHÍNH SÁCH HOA HỒNG",
+  ];
+  for (const c of cau) assert.notDeepEqual(viPhamTheoTep("web/hoa-hong-gia.ts", `const x = "${c}";`), [], c);
+});
+
+test("lượt 6: bộ tệp hoa hồng không còn «chính sách» theo nghĩa cấp", () => {
+  for (const t of ["web/hoa-hong-cap.ts", "web/hoa-hong-loai.ts", "web/hoa-hong-doi-tac.ts", "web/hoa-hong-menu.ts", "web/hoa-hong-dai.ts", "web/parties.ts", "src/modules/pricing/index.ts"]) {
+    assert.ok(TEP_HOA_HONG.includes(t), `${t} phải nằm trong bộ tệp bị quét`);
+  }
+  const loi: string[] = [];
+  const dem = new Map<string, number>();
+  for (const tep of TEP_HOA_HONG) {
+    const src = readFileSync(join(ROOT, tep), "utf8");
+    for (const v of viPhamTheoTep(tep, src)) loi.push(`${tep}:${v.dong} «${v.chu.trim().slice(0, 90)}»`);
+    for (const c of CHO_PHEP_THEO_TEP.filter((x) => x.tep === tep)) {
+      dem.set(c.tep + "|" + c.manh, chuoiTrongMa(src).filter((s) => s.chu === c.manh).length);
+    }
+  }
+  assert.deepEqual(loi, [], `${loi.length} chỗ còn «chính sách» trong bộ tệp hoa hồng (CAM_THEO_TEP):\n${loi.join("\n")}`);
+  for (const c of CHO_PHEP_THEO_TEP) assert.equal(dem.get(c.tep + "|" + c.manh), c.soLan, `mảnh «${c.manh}» ở ${c.tep} phải đúng ${c.soLan} lần (${c.ly_do})`);
 });

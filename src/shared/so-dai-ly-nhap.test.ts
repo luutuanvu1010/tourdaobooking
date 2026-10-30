@@ -109,7 +109,7 @@ test("docThanGan: { loai, muc, tuNgay, denNgay? } — thiếu loại / mức / n
   const r = docThanGan({ loai: "", muc: " ", tuNgay: "", denNgay: "" });
   assert.deepEqual(!r.ok && r.loi, [
     { truong: "loai", message: "Chọn một loại đối tác." },
-    { truong: "mucTa", message: "Chọn một chính sách." },
+    { truong: "mucTa", message: "Chọn một cấp đại lý." },
     { truong: "tuNgay", message: "Chọn ngày bắt đầu." },
   ]);
   const nguoc = docThanGan({ loai: "LD_ABCDEFGH", muc: "MT_ABCDEFGH", tuNgay: "2026-10-15", denNgay: "2026-10-14" });
@@ -125,4 +125,18 @@ test("ADR-0148: docLyDoSua — MỘT luật cho hộp Sửa và máy chủ: 10�
   const so = docLyDoSua("gọi lại 0901234567 hỏi giá");
   assert.equal(so.ok, false);
   assert.match(so.ok ? "" : so.message, /số điện thoại/);
+});
+
+test("docThanGanRieng (Task 10): thân Đặt / Sửa cấp riêng { muc, tuNgay, denNgay? } — thiếu đối tác / cấp / ngày báo dưới đúng ô; mã hồ sơ không vào thân", async () => {
+  const { docThanGanRieng } = await import("./so-dai-ly-nhap.ts");
+  assert.deepEqual(docThanGanRieng({ partyId: "p1", muc: "MT_ABCDEFGH", tuNgay: "2026-10-30", denNgay: "" }), { ok: true, body: { muc: "MT_ABCDEFGH", tuNgay: "2026-10-30" } });
+  assert.deepEqual(docThanGanRieng({ partyId: "p1", muc: " MT_ABCDEFGH ", tuNgay: "2026-10-30", denNgay: "2026-12-31" }), { ok: true, body: { muc: "MT_ABCDEFGH", tuNgay: "2026-10-30", denNgay: "2026-12-31" } });
+  const r = docThanGanRieng({ partyId: " ", muc: "", tuNgay: "", denNgay: "" });
+  assert.deepEqual(!r.ok && r.loi, [
+    { truong: "doiTuong", message: "Chọn một đối tác." },
+    { truong: "mucTa", message: "Chọn một cấp đại lý." },
+    { truong: "tuNgay", message: "Chọn ngày bắt đầu." },
+  ]);
+  const nguoc = docThanGanRieng({ partyId: "p1", muc: "MT_ABCDEFGH", tuNgay: "2026-10-30", denNgay: "2026-10-29" });
+  assert.deepEqual(!nguoc.ok && nguoc.loi, [{ truong: "denNgay", message: "Ngày kết thúc không được trước ngày bắt đầu." }]);
 });

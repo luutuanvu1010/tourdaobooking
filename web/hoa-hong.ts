@@ -1,21 +1,26 @@
-// Trang «Hoa hồng đối tác» (thiết kế lại, PR 2) — KHUNG: nạp dữ liệu, chuyển hai thẻ «Mức đang áp dụng» / «Thiết lập», truyền dữ liệu cho các khối nội dung.
+// Trang «Hoa hồng đối tác» (thiết kế lại, PR 2) — KHUNG: nạp dữ liệu, vẽ dải cảnh báo, chuyển ba thẻ «Các cấp đại lý» / «Loại đối tác» / «Riêng từng đối tác», truyền dữ liệu cho các khối nội dung.
 // Gọi (chỉ đọc, ở đây): GET /api/pricing/hoa-hong (CommissionRuleListResponse), /api/pricing/muc-ta (MucTaListResponse), /api/pricing/loai-doi-tac (LoaiDoiTacListResponse), /api/catalog.
+// Thẻ «Riêng từng đối tác» gọi thêm GET /api/pricing/ho-so/:id/hoa-hong khi mở một đối tác; hộp cấp riêng gọi GET /api/pricing/nguoi-huong (tìm đối tác) và ba route ghi cấp riêng.
 // Ẩn/hiện hỏi bảng quyền (`can`): xem = partner.commission.view, thêm mức = partner.commission.write; máy chủ kiểm lại (403 ⇒ «Bạn không có quyền xem trang này.»).
-// Trang không tính tiền, không chọn mức: số và lời từ máy chủ / luật thuần ở src/shared/hoa-hong-hien-thi.ts. Thẻ «Mức đang áp dụng»: web/hoa-hong-tra-nhanh.ts, -bang.ts, -hop.ts; thẻ «Thiết lập»: web/hoa-hong-thiet-lap.ts.
-import { type TenDanhMuc } from "../src/shared/hoa-hong-hien-thi";
+// Trang không tính tiền, không chọn mức: số và lời từ máy chủ / luật thuần ở src/shared/hoa-hong-hien-thi.ts. Tra nhanh (đứng trên ba thẻ): web/hoa-hong-tra-nhanh.ts; dải: -dai.ts; hộp: -hop.ts. Thẻ «Các cấp đại lý» = -cap.ts (menu «⋯»: -menu.ts). Thẻ «Loại đối tác» = -loai.ts. Thẻ «Riêng từng đối tác» = -doi-tac.ts.
+import { CAU_CAP_RIENG_DANG_TRA, CAU_KHONG_THAY_DONG, docThe, theChoKetQua, type TenDanhMuc, type TheHoaHong } from "../src/shared/hoa-hong-hien-thi";
+import type { DichVuPhu } from "../src/shared/hoa-hong-phu-muc";
 import { can, type PermissionHolder } from "../src/shared/permissions";
 import { homeRedirect } from "../src/shared/start-page";
 import { ApiError, api, type Api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
-import { cuonToiDong, veBangApDung } from "./hoa-hong-bang";
+import { moChiTietCap, veTheCap } from "./hoa-hong-cap";
+import { veDai } from "./hoa-hong-dai";
+import { datLaiLocDoiTac, moDoiTac, nhanHoSoMoi, veTheDoiTac } from "./hoa-hong-doi-tac";
 import { taoMoHop } from "./hoa-hong-hop";
-import { veThietLap } from "./hoa-hong-thiet-lap";
+import { datLaiLocLoai, veTheLoai } from "./hoa-hong-loai";
 import { veTraNhanh } from "./hoa-hong-tra-nhanh";
 import { initShell, showError } from "./shell";
+import { hienBaoNgan } from "./toast";
 import { trangThaiToanTrang } from "./trang-thai-he-thong";
 import { lyDoLoi, taiDanhMuc, type DanhMuc } from "./so-dai-ly-ui";
 
-/** Dữ liệu một lần nạp, truyền cho mọi khối. Ghi xong gọi `napLai` để nạp lại và vẽ lại cả hai thẻ. */
+/** Dữ liệu một lần nạp, truyền cho mọi khối. Ghi xong gọi `napLai` để nạp lại và vẽ lại cả ba thẻ. */
 export interface DuLieuHoaHong {
   homNay: string;
   dong: Api.CommissionRuleDto[];
@@ -25,26 +30,30 @@ export interface DuLieuHoaHong {
   ten: TenDanhMuc;
   /** Danh sách dịch vụ và nhóm để chọn trong ô «Dịch vụ» (Tra nhanh, hộp Thêm mức). */
   dm: DanhMuc;
+  /** Dịch vụ cho luật phủ mức; null khi danh mục lỗi (`dm.loi !== null`) ⇒ dải chỉ ghi «chưa kiểm được». */
+  dichVuPhu: DichVuPhu[] | null;
   nguoiDung: PermissionHolder;
 }
 
-type The = "ap-dung" | "thiet-lap";
-const THE: readonly The[] = ["ap-dung", "thiet-lap"];
+type The = TheHoaHong;
+const THE: readonly The[] = ["cap", "loai", "doi-tac"];
 const KHOA_THE = "hh-the";
 
 const errorEl = byId("error");
 const noiDungEl = byId("hh-noi-dung");
 const nutThemEl = byId<HTMLButtonElement>("hh-them-muc");
 const thanhCuoiEl = byId("hh-thanh-cuoi");
-const panelEl: Record<The, HTMLElement> = { "ap-dung": byId("hh-the-ap-dung"), "thiet-lap": byId("hh-the-thiet-lap") };
-const tabEl: Record<The, HTMLElement> = { "ap-dung": byId("hh-tab-ap-dung"), "thiet-lap": byId("hh-tab-thiet-lap") };
+const daiEl = byId("hh-dai");
+const traNhanhEl = byId("hh-tra-nhanh");
+const panelEl: Record<The, HTMLElement> = { cap: byId("hh-the-cap"), loai: byId("hh-the-loai"), "doi-tac": byId("hh-the-doi-tac") };
+const tabEl: Record<The, HTMLElement> = { cap: byId("hh-tab-cap"), loai: byId("hh-tab-loai"), "doi-tac": byId("hh-tab-doi-tac") };
 
 const staff = await initShell();
 
 let du: DuLieuHoaHong | null = null;
 
 const okEl = byId("ok");
-/** Khung vàng giữ sau khi đóng hộp (cảnh báo mức riêng thắng chính sách); nằm ngoài hai thẻ nên không mất khi vẽ lại. */
+/** Khung vàng giữ sau khi đóng hộp (cảnh báo mức riêng thắng cấp đại lý); nằm ngoài ba thẻ nên không mất khi vẽ lại. */
 const canhBaoEl = h("div", { hidden: true });
 noiDungEl.prepend(canhBaoEl);
 const moHop = taoMoHop({
@@ -59,6 +68,7 @@ const moHop = taoMoHop({
     replaceChildren(canhBaoEl, node);
     canhBaoEl.hidden = node === null;
   },
+  hoSoMoi: nhanHoSoMoi,
 });
 
 /** Hiện câu lỗi ở đầu trang và cuộn tới nó. */
@@ -73,9 +83,9 @@ function baoLoi(err: unknown): void {
 
 function docTheNho(): The {
   try {
-    return sessionStorage.getItem(KHOA_THE) === "thiet-lap" ? "thiet-lap" : "ap-dung";
+    return docThe(sessionStorage.getItem(KHOA_THE));
   } catch {
-    return "ap-dung";
+    return "cap";
   }
 }
 function ghiTheNho(t: The): void {
@@ -97,16 +107,56 @@ function chonThe(t: The, lay = false): void {
   if (lay) tabEl[t].focus();
 }
 
-// ---- Các khối nội dung (hoa-hong-tra-nhanh / -bang / -hop / -thiet-lap) --------------------------------------------------
-function veTheApDung(d: DuLieuHoaHong): void {
-  const traNhanh = h("div", null);
-  const bang = h("div", null);
-  replaceChildren(panelEl["ap-dung"], traNhanh, bang);
-  veTraNhanh(traNhanh, d, cuonToiDong);
-  veBangApDung(bang, d, moHop, () => chonThe("thiet-lap", true));
+// ---- Các khối nội dung (hoa-hong-dai / -tra-nhanh / -cap / -loai / -doi-tac / -hop) ----------------------------------------------
+// Thẻ «cap» = veTheCap (Task 8), «loai» = veTheLoai (Task 9), «doi-tac» = veTheDoiTac (Task 10).
+/** Đưa mắt tới một dòng: cuộn, tô sáng một lúc, đặt tiêu điểm (dòng không phải ô nhập nên cho nhận tiêu điểm bằng tabindex -1). */
+function nhinDong(el: HTMLElement): void {
+  el.scrollIntoView({ block: "center" });
+  if (!el.hasAttribute("tabindex")) el.tabIndex = -1;
+  el.focus({ preventScroll: true });
+  el.classList.add("hh-nhay");
+  window.setTimeout(() => el.classList.remove("hh-nhay"), 2400);
 }
-function veTheThietLap(d: DuLieuHoaHong): void {
-  veThietLap(panelEl["thiet-lap"], d, moHop);
+/**
+ * «Xem dòng ↓» của Tra nhanh (đặc tả §3.3): chuyển đúng thẻ (ghi `sessionStorage` như bấm thẻ), mở cụm / chi tiết chứa dòng, đặt tiêu điểm vào dòng.
+ * Bộ lọc đang giấu dòng thì đưa về mặc định rồi thử lại; vẫn không thấy thì toast tông `bien`. Thẻ «Các cấp đại lý» không có bộ lọc dòng.
+ */
+export async function nhayToiDong(k: Api.ThuTraResponse["ketQua"]): Promise<void> {
+  const t = theChoKetQua(k);
+  if (!t) return;
+  chonThe(t.the);
+  const sel = `[data-dong-id="${CSS.escape(t.dongId)}"]`;
+  let el: HTMLElement | null = null;
+  if (t.doiTuong.loai === "DOI_TAC") {
+    const tim = (): HTMLElement | null => panelEl["doi-tac"].querySelector<HTMLElement>(`.hh-dt[data-party="${CSS.escape(t.doiTuong.loai === "DOI_TAC" ? t.doiTuong.partyId : "")}"] ${sel}`);
+    await moDoiTac(t.doiTuong.partyId);
+    el = tim();
+    if (!el) {
+      datLaiLocDoiTac();
+      await moDoiTac(t.doiTuong.partyId);
+      el = tim();
+    }
+  } else if (t.doiTuong.loai === "VAI") {
+    const tim = (): HTMLElement | null => panelEl.loai.querySelector<HTMLElement>(`[data-loai="${CSS.escape(t.doiTuong.loai === "VAI" ? t.doiTuong.code : "")}"] ${sel}`);
+    el = tim();
+    if (!el) {
+      datLaiLocLoai();
+      el = tim();
+    }
+  } else {
+    const khung = moChiTietCap(t.doiTuong.code);
+    el = khung?.querySelector<HTMLElement>(sel) ?? null;
+    if (el && t.capRieng) khung!.prepend(h("p", { class: "hint hh-cap-rieng-tra" }, h("strong", null, t.doiTuong.ten), ` ${CAU_CAP_RIENG_DANG_TRA}`));
+  }
+  if (!el) {
+    hienBaoNgan(CAU_KHONG_THAY_DONG, { tong: "bien" });
+    return;
+  }
+  nhinDong(el);
+}
+function veTraNhanhVaDai(d: DuLieuHoaHong): void {
+  veDai(daiEl, d);
+  veTraNhanh(traNhanhEl, d, (k) => void nhayToiDong(k));
 }
 /** Mở hộp «Thêm mức» (nút đầu trang và thanh dính đáy). */
 function moThemMuc(): void {
@@ -114,11 +164,13 @@ function moThemMuc(): void {
 }
 
 function veTatCa(d: DuLieuHoaHong): void {
-  veTheApDung(d);
-  veTheThietLap(d);
+  veTraNhanhVaDai(d);
+  veTheCap(panelEl.cap, d, moHop);
+  veTheLoai(panelEl.loai, d, moHop);
+  veTheDoiTac(panelEl["doi-tac"], d, moHop);
 }
 
-/** Nạp lại dữ liệu có thể đổi sau khi ghi, rồi vẽ lại cả hai thẻ. */
+/** Nạp lại dữ liệu có thể đổi sau khi ghi, rồi vẽ lại cả ba thẻ. */
 export async function napLai(): Promise<void> {
   if (!du) return;
   try {
@@ -144,7 +196,7 @@ async function main(): Promise<void> {
       api<Api.LoaiDoiTacListResponse>("/api/pricing/loai-doi-tac"),
       api<Api.MucTaListResponse>("/api/pricing/muc-ta"),
     ]);
-    du = { homNay: ds.homNay, dong: ds.dong, vai: ds.vai, mucTa, loai: loai.loai, ten: dm.ten, dm, nguoiDung: staff };
+    du = { homNay: ds.homNay, dong: ds.dong, vai: ds.vai, mucTa, loai: loai.loai, ten: dm.ten, dm, dichVuPhu: dm.loi === null ? dm.dichVu.map((s) => ({ code: s.code, groupCode: s.groupCode, ten: s.name })) : null, nguoiDung: staff };
     if (dm.loi) showError(errorEl, dm.loi);
   } catch (err) {
     dangTai.remove();

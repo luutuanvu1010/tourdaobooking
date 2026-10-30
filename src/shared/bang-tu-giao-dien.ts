@@ -34,9 +34,9 @@ export const TU_DA_LOAI: readonly TuDaLoai[] = [
   { cam: /[Pp]hiên(?! bản)|PHIÊN(?! BẢN)/u, thay: "máy đang đăng nhập (Đăng xuất máy này)", nguon: "chủ 2026-10-18 (lượt 2)" },
   // Lượt 3 — hoa hồng (chủ 2026-10-25), hồ sơ docs/superpowers/specs/2026-10-25-hoa-hong-ho-tro-thiet-ke-lai/DAC-TA.md mục C. «Chính sách hoa hồng» thay «Mức TA»; «Mức riêng» thay «Dòng riêng»;
   // một họ từ hiệu lực (Ngừng · Áp dụng chính sách cho loại · Ngừng áp dụng · Đang/Sắp áp dụng · Đã ngừng) thay Đóng/Gắn/Kết thúc gắn (Q1 = A).
-  { cam: /[Mm]ức TA|MỨC TA/u, thay: "Chính sách hoa hồng (chính sách <tên>, chính sách riêng)", nguon: "chủ 2026-10-25 (bàn giao Hoa hồng + Hỗ trợ, «chọn A cả ba»)" },
+  { cam: /[Mm]ức TA|MỨC TA/u, thay: "Cấp đại lý (cấp <tên>, cấp riêng)", nguon: "chủ 2026-10-25 (bàn giao Hoa hồng + Hỗ trợ, «chọn A cả ba»)" },
   { cam: /[Dd]òng riêng|[Rr]iêng của loại/u, thay: "Mức riêng", nguon: "chủ 2026-10-25 (bàn giao Hoa hồng + Hỗ trợ, «chọn A cả ba»)" },
-  { cam: /Đóng mức|Đóng dòng|[Kk]ết thúc gắn|Gắn mức|Đang áp(?! dụng)|Sắp áp(?! dụng)|Đã đóng(?! sổ| tiền)/u, thay: "Ngừng · Áp dụng chính sách cho loại · Ngừng áp dụng · Đang áp dụng · Sắp áp dụng · Đã ngừng", nguon: "chủ 2026-10-25 (bàn giao Hoa hồng + Hỗ trợ, «chọn A cả ba»)" },
+  { cam: /Đóng mức|Đóng dòng|[Kk]ết thúc gắn|Gắn mức|Đang áp(?! dụng)|Sắp áp(?! dụng)|Đã đóng(?! sổ| tiền)/u, thay: "Ngừng · Áp dụng cấp cho loại · Ngừng áp dụng · Đang áp dụng · Sắp áp dụng · Đã ngừng", nguon: "chủ 2026-10-25 (bàn giao Hoa hồng + Hỗ trợ, «chọn A cả ba»)" },
   // Lượt 4 — hỗ trợ (chủ 2026-10-25, bàn giao Hoa hồng + Hỗ trợ). Trùng tên «Hỗ trợ» (trang / Trợ lý / vé): BACKLOG BL-VE-TRUNG-TEN.
   { cam: /Hàng đợi nhóm/u, thay: "Việc của nhóm", nguon: "chủ 2026-10-25 (bàn giao Hoa hồng + Hỗ trợ)" },
   { cam: /[Tt]rợ giúp|TRỢ GIÚP/u, thay: "Hướng dẫn", nguon: "chủ 2026-10-25 (bàn giao Hoa hồng + Hỗ trợ)" },
@@ -50,8 +50,41 @@ export const TU_DA_LOAI: readonly TuDaLoai[] = [
   // Hoa hồng (chủ 2026-10-28): năm loại có từ đầu, đi kèm tài khoản đăng nhập của đối tác. Và mức TA gắn riêng cho một đối tác (ADR-0138) là «chính sách riêng»
   // theo lượt 3 — «mức riêng» chỉ dành cho một dòng mức đặt lẻ; ở Danh bạ chữ cũ còn gọi chính sách riêng là «Mức riêng: … (gắn riêng)».
   { cam: /[Ll]oại gốc/u, thay: "Có sẵn (kèm câu «Loại có sẵn đi kèm tài khoản đăng nhập của đối tác nên không tắt được.»)", nguon: "chủ 2026-10-28 (hộp hỏi, chọn «Có sẵn»)" },
-  { cam: /\(gắn riêng\)|Lưu mức riêng|gắn mức riêng/u, thay: "chính sách riêng", nguon: "chủ 2026-10-25 (lượt 3), áp ở Danh bạ 2026-10-28" },
+  { cam: /\(gắn riêng\)|Lưu mức riêng|gắn mức riêng/u, thay: "cấp riêng", nguon: "chủ 2026-10-25 (lượt 3), áp ở Danh bạ 2026-10-28" },
+  // Lượt 6 — cấp đại lý (chủ 2026-10-30, quyết định 3, 7). Hai mục toàn cục; luật cấm «chính sách» trọn bộ tệp hoa hồng nằm ở CAM_THEO_TEP bên dưới.
+  { cam: /[Cc]hính sách hoa hồng|CHÍNH SÁCH HOA HỒNG/u, thay: "Cấp đại lý", nguon: "chủ 2026-10-30 (quyết định 3, 7; hồ sơ `docs/superpowers/specs/2026-10-30-hoa-hong-cap-dai-ly/`)" },
+  { cam: /[Cc]hính sách riêng(?! tư)|CHÍNH SÁCH RIÊNG(?! TƯ)/u, thay: "Cấp riêng", nguon: "chủ 2026-10-30 (quyết định 3, 7; hồ sơ `docs/superpowers/specs/2026-10-30-hoa-hong-cap-dai-ly/`)" },
 ];
 
 /** Chữ «đảo» là hòn đảo (tên công ty, tên tour) — gỡ khỏi chuỗi trước khi so với dòng «Đảo» ở trên. */
 export const NGHIA_HON_DAO = /(?:[Tt]our|TOUR)(?: \d+)? (?:đảo|Đảo|ĐẢO)|\d+ đảo|các đảo|ra đảo/gu;
+
+export interface CamTheoTep {
+  /** Mẫu đường dẫn tệp (tương đối gốc dự án) chịu luật. */
+  tep: readonly RegExp[];
+  cam: RegExp;
+  thay: string;
+  nguon: string;
+}
+
+// Bộ tệp lấy TRỌN TỆP, không cắt theo đoạn: nếu sau này `audit-actions.ts`, `web/parties.ts` hay `huong-dan-ke-toan.ts` có thêm một chuỗi «chính sách»
+// không thuộc hoa hồng mà không có «riêng tư», «điều phối» hay «đăng nhập» theo sau (ví dụ «chính sách huỷ»), bài sẽ đỏ; khi đó người làm nới luật
+// có chủ đích (thêm lookahead hoặc mục cho phép), không xoá luật.
+export const CAM_THEO_TEP: readonly CamTheoTep[] = [
+  {
+    tep: [
+      /^web\/hoa-hong[^/]*\.ts$/,
+      /^web\/parties\.ts$/,
+      /^src\/shared\/(?:hoa-hong-hien-thi|audit-actions|huong-dan-ke-toan|so-dai-ly-nhap)\.ts$/,
+      /^src\/modules\/pricing\/(?![^/]*\.test\.ts$)[^/]+\.ts$/,
+    ],
+    cam: /[Cc]hính sách(?! (?:riêng tư|điều phối|đăng nhập))|CHÍNH SÁCH(?! (?:RIÊNG TƯ|ĐIỀU PHỐI|ĐĂNG NHẬP))/u,
+    thay: "cấp đại lý · cấp · cấp riêng (quyết định 3)",
+    nguon: "chủ 2026-10-30 (quyết định 3, 8; hồ sơ `docs/superpowers/specs/2026-10-30-hoa-hong-cap-dai-ly/`, §6.2)",
+  },
+];
+
+/** Ngoại lệ có tên (quyết định 8: chi tiết nhật ký giữ khuôn cũ): theo tệp và mảnh chuỗi nguyên văn, không theo số dòng; `soLan` là số lần đúng. */
+export const CHO_PHEP_THEO_TEP: readonly { tep: string; manh: string; soLan: number; ly_do: string }[] = [
+  { tep: "src/modules/pricing/index.ts", manh: "chính sách ", soLan: 2, ly_do: "chi tiết nhật ký tenDoiTuongNhatKy và prc_commission_rule_added (quyết định 8)" },
+];

@@ -12,6 +12,19 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Hoa hồng theo cấp đại lý (chủ 30/10, quyết định 14: MỘT lần phát hành). Số 2.48 và ngày là TẠM — phiên phát hành kiểm lại ở bước A.0 của docs/HANDOFF-N1.md.
+    // Nếu phần 2 phát hành cùng lần thì Task 17 thêm dòng «Đổi cấp» vào CHÍNH mục này, không tách mục.
+    version: "2.48",
+    date: "2026-10-30",
+    items: [
+      { kind: "doi", text: "Trang Hoa hồng đổi tên «Chính sách hoa hồng» thành «Cấp đại lý» và chia làm ba thẻ cho dễ tìm." },
+      { kind: "moi", text: "Đầu trang có dải báo những loại đối tác còn thiếu mức hoa hồng, ghi rõ thiếu ở dịch vụ nào." },
+      { kind: "moi", text: "Nút «Đổi cấp» ở thẻ một đối tác: đổi cấp riêng sang cấp khác chỉ một bước, cấp cũ tự ngừng ngay trước ngày cấp mới bắt đầu." },
+      { kind: "moi", text: "Đặt cấp riêng cho một đối tác ngay trên trang Hoa hồng, không cần sang Danh bạ." },
+      { kind: "moi", text: "Nút «Khoá cấp» cho một cấp đại lý không dùng nữa. Hộp xác nhận nói rõ: khoá cấp thì các khoản hoa hồng đang chi vẫn được chi tiếp." },
+    ],
+  },
+  {
     // Đợt 0 khung chung (chủ 28/10): khung chung của Nền tảng. Chỉ giao diện và service worker, KHÔNG migration. Số 2.47 và ngày là TẠM (29/10 main đã có tới 2.46) — phiên phát hành kiểm lại ở bước A.0 của docs/HANDOFF-N1.md.
     version: "2.47",
     date: "2026-10-29",
