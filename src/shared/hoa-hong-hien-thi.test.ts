@@ -16,6 +16,7 @@ import {
   CAU_CHUA_CO_MUC_LOAI,
   NHAN_CHUA_CO_MUC,
   CAU_NHAC_UU_TIEN,
+  CAU_THU_TU_AP_MUC,
   CAU_TRA_THEO_LOAI,
   cauMucCuSeNgung,
   cauSeTao,
@@ -367,4 +368,8 @@ test("N5 nhãn: «Sắp áp dụng từ <ngày>» (kèm «đến» khi có ngày
   assert.equal(m.nhanNutLichSu(3, true), "Ẩn lịch sử");
   // Kịch bản Chrome đếm nút ghi theo chữ đầu (＋, Thêm, Đổi, Ngừng, Sửa, Tắt, Bật, Áp dụng): nút bật lịch sử là nút xem, không được trùng.
   for (const t of [m.nhanNutLichSu(1, false), m.nhanNutLichSu(1, true)]) assert.ok(!/^(＋|Thêm|Đổi|Ngừng|Sửa|Tắt|Bật|Áp dụng)/.test(t), t);
+});
+
+test("câu thứ tự áp mức ghim nguyên văn §5.3", () => {
+  assert.equal(CAU_THU_TU_AP_MUC, "Mức nào áp cho một đơn: mức riêng của đối tác → cấp riêng của đối tác → mức riêng của loại đối tác → cấp đại lý của loại. Trong mỗi bước: dịch vụ đó → nhóm dịch vụ → mọi dịch vụ. Đối tác có cấp riêng thì không xét cấp của loại. Muốn biết chắc cho một đối tác: dùng Tra nhanh.");
 });

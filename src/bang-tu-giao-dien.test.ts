@@ -7,6 +7,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
 import { NGHIA_HON_DAO, TU_DA_LOAI } from "./shared/bang-tu-giao-dien.ts";
+import { CAU_THU_TU_AP_MUC } from "./shared/hoa-hong-hien-thi.ts";
 
 const ROOT = new URL("..", import.meta.url).pathname;
 
@@ -80,6 +81,8 @@ const NGOAI_LE = new Set(["src/shared/changelog.ts", "src/shared/bang-tu-giao-di
 const CHUOI_GIU_NGUYEN = new Set([
   "Chào {ten}, {xung} là Mai — trợ lý của Tour Đảo. {ten} cần hỏi gì về cách dùng app cứ hỏi {xung} nhé!",
   "cập nhật chặng đưa đón",
+  // Đặc tả hoa-hong-cap-dai-ly §5.3 ghim nguyên văn câu thứ tự áp mức; «mức riêng của loại đối tác» là tên bước thứ ba của thứ tự, không phải chữ «dòng riêng» cũ.
+  CAU_THU_TU_AP_MUC,
 ]);
 const TEP = [
   ...tepTs("web"),

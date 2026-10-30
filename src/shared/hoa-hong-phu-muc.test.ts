@@ -123,3 +123,18 @@ test("conApNgay và khopDichVu: biên", () => {
   assert.equal(khopDichVu({ phamVi: "GROUP", catalogCode: null, groupCode: null }, S[3]!), false);
   assert.equal(khopDichVu({ phamVi: "ALL", catalogCode: null, groupCode: null }, S[3]!), true);
 });
+
+test("loại chỉ có dòng riêng SERVICE A từ 2026-11-02 (sắp áp): KHONG_CO và sapApTu", () => {
+  const r = phuMucLoai({ loai: { code: "Lx", dangBat: true }, dong: [dong(vai("Lx"), "SERVICE", { catalogCode: "A", tuNgay: "2026-11-02" })], muc: [], dichVu: S, homNay: D });
+  assert.equal(r.ketQua.kieu, "KHONG_CO");
+  assert.equal(r.sapApTu, "2026-11-02");
+});
+
+test("dòng nhiễu (đích MUC, hoặc đích loại khác) không đổi kết quả của loại", () => {
+  const goc = [dong(vai("L7"), "SERVICE", { catalogCode: "A" })];
+  const nhieu = [...goc, dong(muc("L7"), "ALL"), dong(vai("L8"), "ALL"), dong(vai("L8"), "ALL", { tuNgay: "2026-11-05" })];
+  const chayVoi = (ds: typeof goc) => phuMucLoai({ loai: { code: "L7", dangBat: true }, dong: ds, muc: [], dichVu: S, homNay: D });
+  assert.deepEqual(chayVoi(nhieu), chayVoi(goc));
+  assert.equal(chayVoi(nhieu).ketQua.kieu, "THIEU");
+  assert.equal(chayVoi(nhieu).sapApTu, null);
+});

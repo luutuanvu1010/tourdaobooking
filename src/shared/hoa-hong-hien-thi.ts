@@ -242,6 +242,8 @@ export function tomTatMuc(dong: readonly CommissionRuleDto[], ten: TenDanhMuc): 
 export const CAU_CHUA_CO_MUC_LOAI = "Đơn của loại này sẽ bị giữ ở bước Đã giao cho tới khi có mức";
 export const NHAN_CHUA_CO_MUC = "Chưa có mức";
 export const CAU_NHAC_UU_TIEN = "Mức riêng được ưu tiên hơn chính sách. Mức nào áp cho một đối tác cụ thể: dùng Tra nhanh.";
+/** Đặc tả hoa-hong-cap-dai-ly §5.3 (Q-2, tiêu chí 2): thứ tự áp mức, ghim nguyên văn. */
+export const CAU_THU_TU_AP_MUC = "Mức nào áp cho một đơn: mức riêng của đối tác → cấp riêng của đối tác → mức riêng của loại đối tác → cấp đại lý của loại. Trong mỗi bước: dịch vụ đó → nhóm dịch vụ → mọi dịch vụ. Đối tác có cấp riêng thì không xét cấp của loại. Muốn biết chắc cho một đối tác: dùng Tra nhanh.";
 export const CAU_TRA_THEO_LOAI = "Đang tra theo loại. Một đối tác cụ thể của loại này có thể có mức riêng hoặc chính sách riêng — gõ tên đối tác để chắc.";
 export const cauMucCuSeNgung = (mucCu: string, tuNgay: string): string => `Mức cũ ${mucCu} sẽ ngừng, đến hết ${ngayVN(addDays(tuNgay, -1))}.`;
 export const cauSeTao = (v: { ai: string; dichVu: string; muc: string; tu: string; den: string | null }): string =>
