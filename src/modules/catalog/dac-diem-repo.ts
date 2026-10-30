@@ -221,3 +221,8 @@ export function doiGiaTriStatements(
   if (i.moi !== null) statements.push(db.prepare(mo).bind(crypto.randomUUID(), i.dich.code, i.attributeCode, i.moi, i.now, i.staffId, i.cu !== null ? 1 : 0));
   return { statements, chot: statements.length - 1 };
 }
+
+/** Lỗi lô gắn do THUA KHOÁ khi đua (KĐL-2 NÊN SỬA 1): chỉ mục «một dòng mở» (UNIQUE) hoặc trigger 0128 của dòng gắn (giá trị / đặc điểm / nhóm vừa bị tắt, giá trị lệch,
+ *  dòng vừa bị đóng). Ở tệp này vì là tệp duy nhất được nhắc tên bảng (hàng rào (f)). Lỗi khác (D1 hỏng, câu sai) KHÔNG phải thua khoá. */
+export const laThuaKhoaGan = (e: unknown): boolean =>
+  /UNIQUE constraint failed: ctl_attribute_assignment\.|\b(ctl_attribute_inactive|ctl_attribute_mismatch|ctl_append_only):/.test(e instanceof Error ? e.message : String(e));

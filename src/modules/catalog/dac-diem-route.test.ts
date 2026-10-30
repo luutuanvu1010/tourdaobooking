@@ -188,3 +188,24 @@ test("ADR-0152 tiêu chí 7: đồng bộ Sheet (thêm, đổi, mất dịch v�
   }
   assert.deepEqual(chup(), truoc);
 });
+
+test("KĐL-2 NÊN SỬA 1: lô gắn gặp lỗi LẠ ⇒ không đội lốt 409 «vừa có người đổi»; thua khoá thật (chỉ mục một dòng mở) vẫn 409 stale", async () => {
+  const { w, attr, x1, x2 } = await setup();
+  const laLoGan = (stmts: { sql: string }[]) => stmts.some((s) => /INSERT INTO ctl_attribute_assignment/.test(s.sql));
+  // Lỗi lạ (giả D1 hỏng ngay trước lô gắn) ⇒ ném lại cho router (500) — không phải `stale`.
+  w.chenTruocLo(laLoGan, async () => { throw new Error("D1_ERROR: mất kết nối giả"); });
+  const la = await gan(w, SALES, "DVA", attr, x1, null);
+  assert.notEqual(la.json?.error?.code, "stale", la.text);
+  assert.equal(la.status, 500, la.text);
+  assert.equal(dem(w, "ctl_service_attribute_set"), 0);
+  // Thua khoá thật: người khác vừa mở một dòng riêng cho DVA ⇒ chỉ mục «một dòng mở» chặn ⇒ 409 stale.
+  w.chenTruocLo(laLoGan, async () => {
+    const now = new Date().toISOString();
+    w.sqlite.prepare(`INSERT INTO ctl_attribute_assignment (id, service_code, group_code, attribute_code, value_code, valid_from_at, created_at, updated_at)
+      VALUES ('dua-1', 'DVA', NULL, ?, ?, ?, ?, ?)`).run(attr, x2, now, now, now);
+  });
+  const thua = await gan(w, SALES, "DVA", attr, x1, null);
+  assert.equal(thua.status, 409, thua.text);
+  assert.equal(thua.json.error.code, "stale");
+  assert.equal(dem(w, "ctl_service_attribute_set"), 0);
+});

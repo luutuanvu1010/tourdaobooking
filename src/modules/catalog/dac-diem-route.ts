@@ -13,7 +13,7 @@ import { vnToday } from "../../shared/vn-date";
 import { CATALOG_CODE_RE } from "../../shared/order-lines";
 import {
   dacDiemTheoMa, danhSachDacDiem, danhSachGiaTri, demGanMoCuaDacDiem, demGanMoCuaGiaTri, dichVuChoDacDiem, doiGiaTriStatements, giaTriHieuLucTatCa, giaTriNhomDangMo,
-  giaTriRiengDangMo, giaTriTheoMa, giaTriTheoNhomDangMo, suaDacDiem, suaGiaTri, themDacDiemStatements, themGiaTri, type DacDiemRow, type GiaTriRow,
+  giaTriRiengDangMo, giaTriTheoMa, giaTriTheoNhomDangMo, laThuaKhoaGan, suaDacDiem, suaGiaTri, themDacDiemStatements, themGiaTri, type DacDiemRow, type GiaTriRow,
 } from "./dac-diem-repo";
 import { MA_DAC_DIEM_RE, MA_GIA_TRI_RE, chuaKhai, kiemTenDacDiem, kiemTenGiaTri, maDacDiemMoi, maGiaTriMoi, moiTheoNhom, type DichVuDacDiem } from "./dac-diem-rules";
 import { danhSachNhom, nhomHienHanhTheoMa, nhomTheoMa } from "./nhom-repo";
@@ -86,12 +86,14 @@ async function kiemGiaTriMoi(db: D1Database, attr: DacDiemRow, giaTri: string | 
   if (v.active !== 1) return error(409, "attribute_inactive", "Giá trị này đang tắt — bật lại trước khi gắn.");
   return null;
 }
+/** Chỉ lỗi THUA KHOÁ đã biết (`laThuaKhoaGan` ở repo) mới thành 409 «vừa có người đổi»; lỗi khác ném lại cho router (KĐL-2 NÊN SỬA 1). */
 async function chayGan(db: D1Database, lo: D1PreparedStatement[], chot: number): Promise<boolean> {
   try {
     const res = await db.batch(lo);
     return (res[chot]?.meta.changes ?? 0) > 0;
-  } catch {
-    return false; // chỉ mục «một dòng mở» / trigger chặn khi đua ⇒ coi như thua khoá
+  } catch (e) {
+    if (laThuaKhoaGan(e)) return false;
+    throw e;
   }
 }
 
