@@ -91,11 +91,10 @@ test("cấp trùng 400; cấp khoá 409 muc_tat đúng câu mới §6.1 :72; c�
   const w = setup();
   const hn = H();
   const { ta1, ta2, rieng } = await nen(w, addDays(hn, -10));
-  const truoc = dem(w);
+  await ok(w.call("POST", `/api/pricing/muc-ta/${ta2}/tat`, { as: KT, body: {} }), 200, "khoá TA2");
+  const truoc = dem(w); // [prc_party_tier, audit_log] sau khi khoá TA2 — mọi lệnh đổi dưới đây không ghi gì ở cả hai bảng
   const r1 = await doi(w, rieng, { muc: ta1, tuNgay: hn });
   assert.deepEqual([r1.status, r1.json.error.message], [400, "Cấp mới giống hệt cấp đang áp dụng."]);
-  await ok(w.call("POST", `/api/pricing/muc-ta/${ta2}/tat`, { as: KT, body: {} }), 200, "khoá TA2");
-  const sauKhoa = dem(w);
   const r2 = await doi(w, rieng, { muc: ta2, tuNgay: hn });
   assert.deepEqual([r2.status, r2.json.error.code, r2.json.error.message], [409, "muc_tat", CAU_MUC_TAT]);
   assert.equal(dongRieng(w, rieng).valid_to_date, null, "dòng cũ còn nguyên (cả lô huỷ)");
@@ -106,8 +105,7 @@ test("cấp trùng 400; cấp khoá 409 muc_tat đúng câu mới §6.1 :72; c�
   const r5 = await doi(w, crypto.randomUUID(), { muc: ta1, tuNgay: hn });
   assert.deepEqual([r5.status, r5.json.error.message], [404, "Không tìm thấy cấp riêng này."]);
   assert.equal((await doi(w, "khong-phai-ma", { muc: ta1, tuNgay: hn })).status, 404);
-  assert.deepEqual(dem(w), sauKhoa);
-  assert.equal(sauKhoa[0], truoc[0]);
+  assert.deepEqual(dem(w), truoc);
 });
 
 test("hồ sơ thôi mang loại được hưởng ⇒ 400, không ghi gì", async () => {
@@ -179,9 +177,10 @@ const CA: Ca[] = [
   { ten: "l đã chụp hôm nay, đổi từ mai", tu: -5, tuNgay: (h) => addDays(h, 1), chup: true, mong: "200" },
 ];
 
-test("ghim hai phía X1/X2 ⇔ kiemDoi", async () => {
+test("ghim hai phía X1/X2 ⇔ kiemDoi", async (t) => {
   const hn = H();
-  for (const ca of CA) {
+  // Mỗi ca một bài con: ca đỏ nào cũng được báo, không dừng ở ca đỏ đầu tiên.
+  for (const ca of CA) await t.test(ca.ten, async () => {
     const w = setup(ca.chup ? { ngayChupGia: hn } : {});
     const { ta2, rieng } = await nen(w, addDays(hn, ca.tu), ca.den === undefined ? undefined : addDays(hn, ca.den));
     if (ca.huy) w.sqlite.prepare("UPDATE prc_party_tier SET voided_at = ?, voided_by = ? WHERE id = ?").run(AT, KT, rieng);
@@ -204,5 +203,5 @@ test("ghim hai phía X1/X2 ⇔ kiemDoi", async () => {
     else if (ca.mong === "X1") assert.equal(r.json.error.message, CAU_X1, ca.ten);
     else if (ca.mong === "X2") assert.equal(r.json.error.message, cauX2(cu.validFrom), ca.ten);
     else assert.equal(r.json.error.message, ca.mong(hn), ca.ten);
-  }
+  });
 });

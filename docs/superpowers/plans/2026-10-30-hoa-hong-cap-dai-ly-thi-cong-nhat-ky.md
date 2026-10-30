@@ -218,3 +218,17 @@ Kết quả từng lệnh: `docs/evidence/2026-10-30-hoa-hong-cap-dai-ly/ket-qua
 **Lệch so với kế hoạch**
 - `t2b-danh-ba-smoke.mjs` ghi đè hai ảnh của `docs/evidence/2026-10-01-tro-ly-mai/anh/` dù có `OUT`; đã hoàn nguyên, không vào lần lưu.
 - `dot-a-smoke.mjs` đỏ sẵn ở «nhat-ky: thẻ đã dựng xong (máy tính)» (ADR-0038, như `web/CLAUDE.md` ghi); các bước trước đó xanh.
+
+## Task 15 — route `POST /api/pricing/muc-rieng/:id/doi` (ADR-0151), bài route, bài ghim hai phía
+
+Lần lưu `6df6e81f`: `GAN_RIENG_DOI_THEM` (`party_tier_change_insert`) + `cauDoiCapRieng` ở `repository.ts`; `xetTruocDoiCapRieng` (X1/X2, không xuất) và route ở `index.ts`; `doi-cap-rieng.test.ts` (mới, bảng ghim ca a–l kèm e, e2); số route 393 ⇒ 394, route ghi 235. Đỏ trước (9 bài), xanh sau. `rules.ts`, migration, `contracts.ts`, `permissions.ts` không đổi. Sổ SQL, kiến trúc, EXPLAIN không đếm câu theo tên nên không phải sửa.
+
+**P16** (sửa tạm, không commit, hoàn nguyên bằng bản chép rồi `cmp` khớp):
+- (i) bỏ `cu.validFrom <= homNay` khỏi X2 ⇒ ĐỎ ca e: `not ok 1 - ghim hai phía X1/X2 ⇔ kiemDoi` — `e ca giao nhau: chưa tới ngày, H ≤ tuNgay ≤ validFrom` — expected `'Mức này chưa tới ngày áp dụng nên không đổi được.'`, actual `'Cấp riêng cũ bắt đầu từ 02/11/2026 nên cấp mới phải bắt đầu sau ngày đó. Chọn ngày bắt đầu muộn hơn, hoặc dùng Sửa.'`
+- (ii) bỏ `cu.validTo !== null` khỏi X1 ⇒ ĐỎ hai bài: `not ok 1 - đổi từ hôm nay: … 200 HoaHongHoSoResponse` (expected 200, actual 400) và `not ok 2 - ghim hai phía X1/X2 ⇔ kiemDoi` ở ca `d chưa tới ngày` — expected `'Mức này chưa tới ngày áp dụng nên không đổi được.'`, actual `'Cấp riêng này đã có ngày ngừng nên không đổi được. Muốn đổi cấp thì dùng Sửa.'`
+- Hoàn nguyên: bài xanh lại.
+
+**Lựa chọn tự áp**
+- Câu của lưới dự phòng 409 `stale` (câu đóng báo 0 dòng) do người làm chọn, chép khuôn route «Sửa» anh em: «Cấp riêng này vừa được người khác sửa hoặc ngừng. Tải lại trang.» Kế hoạch chỉ chốt mã `stale`. Đua thật thường không tới lưới này: câu chèn lỗi NOT NULL `prc_party_tier.valid_from_date` và `loiBang` (`index.ts:76`, nhánh đã có) trả trước câu «Dòng này vừa được người khác sửa hoặc ngừng. Tải lại trang.»
+
+**Lệch so với kế hoạch:** không.
