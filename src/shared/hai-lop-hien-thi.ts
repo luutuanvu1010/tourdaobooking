@@ -36,8 +36,14 @@ export function daiNhacHaiLop(m: { required: boolean; graceUntil: string | null 
   if (!m.required) return null;
   const n = soNgayCon(m.graceUntil, nowMs);
   // (gọn có chủ ý: hàm này vào gói MỌI trang qua web/shell.ts — trang Đơn hàng có trần dung lượng, src/goi-trang-nhe.test.ts)
-  return `${n === null ? "Đã quá hạn bật" : `Còn ${n} ngày để bật`} bảo mật hai lớp — Bật ngay`;
+  return `${n === null ? "Đã quá hạn bật" : `Còn ${n} ngày để bật`} bảo mật hai lớp`; // luật khung 30/10: bỏ đuôi «— Bật ngay» (trùng nút cạnh đó)
 }
+
+/**
+ * Tông dải nhắc. Chủ duyệt 30/10 (gói luật khung, luật 8 — đỏ chỉ cho việc gấp thật): còn hơn 3 ngày → cát; còn ≤ 3 ngày hoặc quá hạn → đỏ như đặc tả đợt 0 §5.
+ * (Gọn có chủ ý — cùng lý do với hàm trên.)
+ */
+export const tongDaiNhacHaiLop = (m: { graceUntil: string | null }, nowMs: number): "cat" | "do" => ((soNgayCon(m.graceUntil, nowMs) ?? 0) > 3 ? "cat" : "do");
 
 /** Ngày dân sự giờ Việt Nam của một mốc ISO, dạng ngắn (năm chỉ khi khác năm hôm nay). */
 const ngayVn = (isoMoc: string, nowMs: number): string => ngayNgan(vnToday(new Date(isoMoc)), vnToday(new Date(nowMs)));

@@ -7,6 +7,8 @@ import { icon } from "./icons.ts";
 
 export interface NoiDungDai {
   cau: string;
+  /** Tông riêng cho lần đặt này (mặc định theo loại — `TONG_DAI`). Dải nhắc bảo mật còn xa hạn dùng tông cát (chủ duyệt 30/10). */
+  tong?: "cat" | "do";
   nut?: { nhan: string; href: string } | { nhan: string; khiBam: () => void };
   dongDuoc?: boolean;
 }
@@ -30,7 +32,7 @@ function ve(): void {
   const nd = loai && so.get(loai);
   if (!loai || !nd) return;
   const kieu = TONG_DAI[loai];
-  const dai = h("div", { class: "dai", "data-tong": kieu.tong, "data-loai": loai, role: "status" }, icon(kieu.hinh, 18), h("span", { class: "dai-cau" }, nd.cau));
+  const dai = h("div", { class: "dai", "data-tong": nd.tong ?? kieu.tong, "data-loai": loai, role: "status" }, icon(kieu.hinh, 18), h("span", { class: "dai-cau" }, nd.cau));
   const nut = nd.nut;
   if (nut && "href" in nut) dai.append(h("a", { class: "nut", "data-cap": "phu", href: nut.href }, nut.nhan));
   else if (nut) dai.append(h("button", { class: "nut", "data-cap": "phu", type: "button", onclick: nut.khiBam }, nut.nhan));

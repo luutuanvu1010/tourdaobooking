@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  CAU_CHI_UNG_DUNG_XAC_THUC, CAU_SAI_QUA_NHIEU_HAI_LOP, CHU_DO_MA_DU_PHONG, cauLoiHaiLop, daiNhacHaiLop, khoaDeDoc, maTotpTuO, nhanHaiLop, soNgayCon, tenTepMaDuPhong, vanBanMaDuPhong,
+  CAU_CHI_UNG_DUNG_XAC_THUC, CAU_SAI_QUA_NHIEU_HAI_LOP, CHU_DO_MA_DU_PHONG, cauLoiHaiLop, daiNhacHaiLop, khoaDeDoc, tongDaiNhacHaiLop, maTotpTuO, nhanHaiLop, soNgayCon, tenTepMaDuPhong, vanBanMaDuPhong,
 } from "./hai-lop-hien-thi.ts";
 
 const NOW = Date.parse("2026-10-16T03:00:00.000Z"); // 10:00 giờ Việt Nam
@@ -22,11 +22,21 @@ test("số ngày còn lại: làm tròn lên; hết hạn hoặc thiếu → nul
 test("dải nhắc: chỉ khi máy chủ báo bắt buộc; còn hạn → số ngày (dưới một ngày = 1 ngày); quá hạn (graceUntil null) → câu quá hạn", () => {
   assert.equal(daiNhacHaiLop({ required: false, graceUntil: null }, NOW), null);
   assert.equal(daiNhacHaiLop({ required: false, graceUntil: iso(NOW + 5 * DAY) }, NOW), null);
-  assert.equal(daiNhacHaiLop({ required: true, graceUntil: iso(NOW + 5 * DAY) }, NOW), "Còn 5 ngày để bật bảo mật hai lớp — Bật ngay");
-  assert.equal(daiNhacHaiLop({ required: true, graceUntil: iso(NOW + 2 * 3600_000) }, NOW), "Còn 1 ngày để bật bảo mật hai lớp — Bật ngay");
-  assert.equal(daiNhacHaiLop({ required: true, graceUntil: null }, NOW), "Đã quá hạn bật bảo mật hai lớp — Bật ngay");
+  // Luật khung 30/10: bỏ đuôi «— Bật ngay» (trùng chữ nút «Bật ngay» ngay cạnh trên dải).
+  assert.equal(daiNhacHaiLop({ required: true, graceUntil: iso(NOW + 5 * DAY) }, NOW), "Còn 5 ngày để bật bảo mật hai lớp");
+  assert.equal(daiNhacHaiLop({ required: true, graceUntil: iso(NOW + 2 * 3600_000) }, NOW), "Còn 1 ngày để bật bảo mật hai lớp");
+  assert.equal(daiNhacHaiLop({ required: true, graceUntil: null }, NOW), "Đã quá hạn bật bảo mật hai lớp");
   // máy chủ trả hạn đã qua (đồng hồ máy lệch) → coi như quá hạn, không hiện số âm
-  assert.equal(daiNhacHaiLop({ required: true, graceUntil: iso(NOW - DAY) }, NOW), "Đã quá hạn bật bảo mật hai lớp — Bật ngay");
+  assert.equal(daiNhacHaiLop({ required: true, graceUntil: iso(NOW - DAY) }, NOW), "Đã quá hạn bật bảo mật hai lớp");
+});
+
+test("tông dải nhắc (chủ duyệt 30/10: cát khi còn xa hạn — thay «Đỏ» của đặc tả đợt 0 §5 cho trường hợp này): còn hơn 3 ngày → cát; còn 3 ngày trở xuống hoặc quá hạn → đỏ", () => {
+  assert.equal(tongDaiNhacHaiLop({ graceUntil: iso(NOW + 14 * DAY) }, NOW), "cat");
+  assert.equal(tongDaiNhacHaiLop({ graceUntil: iso(NOW + 4 * DAY) }, NOW), "cat");
+  assert.equal(tongDaiNhacHaiLop({ graceUntil: iso(NOW + 3 * DAY) }, NOW), "do");
+  assert.equal(tongDaiNhacHaiLop({ graceUntil: iso(NOW + 2 * 3600_000) }, NOW), "do");
+  assert.equal(tongDaiNhacHaiLop({ graceUntil: null }, NOW), "do");
+  assert.equal(tongDaiNhacHaiLop({ graceUntil: iso(NOW - DAY) }, NOW), "do");
 });
 
 test("nhãn ở Quản lý tài khoản: Đã bật / Chưa bật (hạn dd/mm theo giờ VN) / quá hạn / không hạn", () => {

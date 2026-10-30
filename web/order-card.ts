@@ -1,4 +1,7 @@
 // Thẻ đơn rút gọn 2 dòng (+ dòng "Đón tại" khi có nơi đón — góp ý T5) + nút xổ xuống (Đợt E Phần A, đặc tả docs/superpowers/specs/2026-09-23-dot-e-the-don-gon-va-bieu-tuong.md §A;
+// LUẬT KHUNG 30/10/2026 (chủ duyệt; docs/superpowers/plans/2026-10-30-sua-hien-thi-va-luat-khung.md): DOM dưới đây giữ nguyên, khối «Luật khung 30/10» cuối
+// public/app.css xếp lại — dưới 1100px thẻ ba hàng, KHÔNG cắt tên khách / số khách / còn thu (thay quyết định «đúng 2 dòng» bên dưới); từ 1100px bảng thẳng cột.
+// Các câu «đúng 2 dòng», «cắt bằng …» trong chú thích tệp này là lịch sử Đợt E.
 // bố cục ĐÃ SỬA theo hai quyết định của chủ dự án 2026-09-24 — xem mục "Vòng sửa 2026-09-24" ở cuối đặc tả đó:
 // (1) GIỮ tên khách + mã đơn (Phần A trước đó làm mất, đã sửa); (2) đúng 2 dòng THẬT ở mọi khổ, kể cả 390px —
 // "đã trả"/"tổng" chuyển hẳn vào phần xổ để nhường chỗ, dòng 2 KHÔNG được xuống hàng.

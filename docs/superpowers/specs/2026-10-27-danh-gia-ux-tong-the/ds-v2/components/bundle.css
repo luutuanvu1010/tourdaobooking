@@ -183,6 +183,175 @@ body.tabbar-an .vc-bottom-bar, body.tabbar-dinh .vc-bottom-bar { bottom: 0; }
   .sheet-foot-xac-nhan .btn-danger:hover { background: var(--c-danger-text); border-color: var(--c-danger-text); }
 }
 .sheet-foot-xac-nhan .btn-danger:focus-visible { outline: var(--focus-ring) solid var(--c-focus); outline-offset: var(--focus-ring); }
+
+/* ---------- Luật khung 30/10/2026 — sửa lỗi hiển thị + luật bố cục chung. Chủ duyệt gói khuyến nghị của
+   docs/superpowers/specs/2026-10-30-danh-gia-khung-giao-dien/BAO-CAO.md; kế hoạch docs/superpowers/plans/2026-10-30-sua-hien-thi-va-luat-khung.md.
+   Số mục [n] = số mục trong kế hoạch. Chỉ token (khối nằm sau dấu mốc PWA và trong vùng của khối v2). ---------- */
+
+/* [7] Một trang, một tiêu đề (quyết định cổng 2b: tên trang ở thanh trên). Tiêu đề lớn trong thân chỉ ẩn khỏi mắt — trình đọc màn hình vẫn có h1.
+   Giữ biển số ở Chi tiết xe (.vc-plate: là nội dung, không phải nhãn trang). Điện thoại: trước đây chỉ ẩn `main > h1`, nay ẩn cả h1 nằm trong hàng đầu trang. */
+@media (min-width: 900px) {
+  body.has-sidebar main h1:not(.vc-plate) { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+}
+@media (max-width: 899px) {
+  body[data-title] main h1:not(.vc-plate) { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+  /* [6] Trang con có nút quay lại: bỏ ô chữ cái đầu trang trí (chỉ là hình, không bấm được) để tiêu đề — vd mã đơn — không bị cắt. */
+  #topbar:has(> .bar-back) .bar-avatar { display: none; }
+}
+
+/* [6] Máy tính: ô tìm thanh trên co thêm (tới --w-tim-thanh-tren-hep) để tiêu đề trang — mã đơn, mã chuyến, tên trang dài — không bị cắt ở laptop. */
+@media (min-width: 900px) {
+  body.has-sidebar #topbar .topbar-search { min-width: var(--w-tim-thanh-tren-hep); }
+  /* Ô tìm co trước gần như trọn phần thiếu: hệ số co rất lớn để phần tiêu đề phải gánh nhỏ hơn 1/64 px — không bị vẽ «…» oan (trước: tiêu đề co ~0,2px vẫn vẽ «…»
+     ở mã đơn). Ô tìm chạm bề rộng nhỏ nhất rồi thì tiêu đề co như cũ (tên dài cắt «…», thanh không tràn). Không dùng flex-shrink < 1 cho tiêu đề: tổng hệ số < 1
+     thì trình duyệt chỉ chia một phần phần thiếu (chuẩn flexbox §9.7) ⇒ thanh tràn. */
+  body.has-sidebar #topbar .topbar-search { flex-shrink: 100000; }
+  /* Trang Vận chuyển tự ghi đường dẫn «Vận chuyển › Trang cha ›» vào đầu tiêu đề (`.vc-crumb-pre`, web/giay-to-ui.ts `datCrumb`) — khung chung đã có «Trang cha ›»
+     (`.bar-duong`) thì phần đó lặp («Chính sách điều phối › Vận chuyển › Chính sách điều phối › …»): ẩn bản lặp. Lỗi có từ trước đợt này. */
+  body.has-sidebar #topbar:has(> .bar-duong) .vc-crumb-pre { display: none; }
+}
+
+/* [1] Chi tiết đơn — dải tóm tắt: mã đơn + trạng thái thành hàng trên; bốn cột chia đều (trước: `repeat(4, auto)` co cột về bề rộng một từ). */
+@media (min-width: 641px) {
+  .order-summary-band { flex-wrap: wrap; row-gap: var(--s3); }
+  .order-summary-band > div:first-child { flex: 1 1 100%; }
+  .order-summary-band > div:first-child > .label { display: none; }
+  .order-summary-band .sep { display: none; }
+  .order-summary-band .grid4 { flex: 1 1 100%; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+/* [5] Chi tiết đơn — một thanh công cụ: việc gửi / biên nhận trước, việc sửa sau, «Huỷ đơn» tách sang phải. Điện thoại: lưới hai cột, nút cùng hàng cao bằng nhau. */
+.thanh-cong-cu-don { display: flex; flex-wrap: wrap; align-items: flex-start; column-gap: var(--s3); }
+.thanh-cong-cu-don > #send { order: -1; }
+.thanh-cong-cu-don > #actions { flex: 1 1 auto; }
+.thanh-cong-cu-don > .actions:empty { display: none; }
+.thanh-cong-cu-don .huy-don { margin-left: auto; }
+@media (max-width: 640px) {
+  .thanh-cong-cu-don, .thanh-cong-cu-don > .actions { display: grid; grid-template-columns: minmax(0, 1fr); width: 100%; }
+  .thanh-cong-cu-don > #actions { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; }
+  .thanh-cong-cu-don .actions > .btn, .thanh-cong-cu-don .huy-don > .btn { width: 100%; height: 100%; margin: 0; }
+  .thanh-cong-cu-don .huy-don { margin-left: 0; }
+}
+
+/* [18] Cặp nhãn – giá trị trong khối rộng: giá trị đứng ngay sau nhãn (luật 4), không trôi sang mép phải. Cột phụ hẹp (Thanh toán, đã dính khi cuộn) giữ kiểu số tiền canh phải. */
+@media (min-width: 900px) {
+  .order-layout > :first-child .kv { display: grid; grid-template-columns: var(--w-kv-nhan) minmax(0, 1fr); justify-content: start; }
+  .order-layout > :first-child .kv > span:last-child { text-align: left; }
+}
+
+/* [2] Thẻ đơn (mọi nơi dùng `web/order-card.ts`: danh sách Đơn hàng dưới 1100px, «Việc của tôi», ô xem trước của màn Giao diện): ba hàng — (số thứ tự) ngày ·
+   giờ đón + trạng thái / tên khách đầy đủ / điện thoại · số khách · còn thu (được xuống hàng). Luật 6: không cắt tên, số khách, số tiền — thay quyết định «đúng 2
+   dòng» của Đợt E (chủ duyệt 30/10). Địa chỉ đón vẫn được rút «…». */
+.order-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: baseline; column-gap: var(--s2); row-gap: var(--s1); }
+.order-row-top { display: contents; }
+.order-row-index { grid-column: 1; grid-row: 1; }
+.order-row-when { grid-column: 2; grid-row: 1; }
+.order-row-top .badge { grid-column: 3; grid-row: 1; justify-self: end; }
+.order-row-name { grid-column: 1 / -1; grid-row: 2; overflow: visible; white-space: normal; text-overflow: clip; overflow-wrap: anywhere; font-weight: var(--fw-bold); }
+.order-card-line2 { grid-column: 1 / -1; flex-wrap: wrap; overflow: visible; }
+.order-row-pax { flex: none; overflow: visible; }
+.order-card-line3 { grid-column: 1 / -1; }
+
+/* [14] Danh sách trang Đơn hàng (`#list` của public/orders.html) từ 1100px: bảng thẳng cột (luật 3) — ngày · khách · điện thoại · số khách · còn thu · trạng thái;
+   hàng tiêu đề cột `.don-bang-dau` tĩnh trong public/orders.html. Chỉ `#list > .order-card`: thẻ đơn ở chỗ khác (Việc của tôi, xem trước Giao diện) giữ dạng thẻ. */
+.don-bang-dau { display: none; }
+@media (min-width: 1100px) {
+  #list:has(> .order-card) { overflow: hidden; background: var(--c-surface); border: 1px solid var(--c-border); border-top: 0; border-radius: 0 0 var(--radius-md) var(--radius-md); box-shadow: var(--shadow-card); }
+  #list > .order-card { margin: 0; padding: var(--s2) var(--s2) var(--s2) var(--s4); border: 0; border-bottom: 1px solid var(--c-border); border-radius: 0; box-shadow: none; }
+  #list > .order-card:last-child { border-bottom: 0; }
+  #list > .order-card:hover { transform: none; box-shadow: none; border-color: var(--c-border); background: var(--c-soft-hover); }
+  #list > .order-card .order-row { grid-template-columns: var(--w-don-ngay) minmax(0, 1fr) var(--w-don-sdt) var(--w-don-khach) var(--w-don-tien) var(--w-don-tt); align-items: center; column-gap: var(--s4); }
+  #list > .order-card .order-card-line2 { display: contents; }
+  #list > .order-card .order-row-index { display: none; }
+  #list > .order-card .order-row-when { grid-column: 1; grid-row: 1; font-variant-numeric: tabular-nums; }
+  #list > .order-card .order-row-name { grid-column: 2; grid-row: 1; }
+  #list > .order-card .order-row-phone { grid-column: 3; grid-row: 1; }
+  #list > .order-card .order-row-pax { grid-column: 4; grid-row: 1; white-space: normal; }
+  #list > .order-card .order-row-remaining { grid-column: 5; grid-row: 1; justify-self: end; text-align: right; font-variant-numeric: tabular-nums; }
+  #list > .order-card .order-row-top .badge { grid-column: 6; grid-row: 1; justify-self: start; }
+  #list > .order-card .order-card-line3 { grid-column: 2 / 6; }
+  .don-bang-dau { display: grid; grid-template-columns: var(--w-don-ngay) minmax(0, 1fr) var(--w-don-sdt) var(--w-don-khach) var(--w-don-tien) var(--w-don-tt); column-gap: var(--s4);
+    margin-top: var(--s3); padding: var(--s2) calc(var(--s2) + var(--tap-min) + var(--s2)) var(--s2) var(--s4); font-size: var(--fs-badge); font-weight: var(--fw-bold); letter-spacing: var(--ls-eyebrow);
+    text-transform: uppercase; color: var(--c-text-muted); background: var(--c-surface-alt); border: 1px solid var(--c-border); border-radius: var(--radius-md) var(--radius-md) 0 0; }
+  .don-bang-dau > .so { text-align: right; }
+  .don-bang-dau:has(+ #list:empty), .don-bang-dau[hidden] { display: none; }
+}
+
+/* [15] Đơn hàng máy tính: thanh trên đã có ô tìm và nút «Tạo đơn» — bỏ bản trùng; trang Tạo đơn: bỏ nút «Tạo đơn» của thanh trên (đang ở chính trang đó). */
+@media (min-width: 900px) {
+  body.has-sidebar:has(#topbar .topbar-new):has(main #loc-mo) #new-order { display: none; }
+  body.has-sidebar:has(main #loc-mo) #topbar > .topbar-search { display: none; }
+  body.has-sidebar:has(main #loc-mo) #topbar > .topbar-search + * { margin-left: auto; } /* ô tìm giữ margin-left:auto đẩy cụm nút sang phải — ẩn ô thì phần tử kế nhận lại */
+  body.has-sidebar:has(main #form-title) #topbar .topbar-new { display: none; }
+}
+
+/* [4] Thanh bên tự cuộn tới mục đang mở (web/shell.ts `cuonToiMucDangMo`, scrollIntoView «nearest»): chừa khoảng trên mép mờ dần của vùng cuộn. */
+.sidebar-groups [aria-current="page"] { scroll-margin-block: var(--s7); }
+
+/* [3] Chân thanh bên: tên và vai của người dùng không bị cắt; «Đăng xuất» một hàng riêng. */
+@media (min-width: 900px) {
+  .sidebar-foot { grid-template-columns: minmax(0, 1fr); }
+  .sidebar-foot > .sidebar-logout { grid-column: 1; justify-self: start; }
+  .sidebar-name, .sidebar-role { overflow: visible; white-space: normal; text-overflow: clip; overflow-wrap: anywhere; }
+}
+
+/* [9] Đơn chờ xác nhận, máy tính: nút «Kiểm vé» cỡ vừa đứng cạnh thông tin (trước: giãn hết bề rộng thẻ, lặp mỗi thẻ). */
+@media (min-width: 900px) {
+  .cx-the { grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: var(--s5); row-gap: 0; }
+  .cx-the > * { grid-column: 1; }
+  .cx-the > * + * { margin-top: var(--s2); }
+  .cx-the > .cx-ds-nut { grid-column: 2; grid-row: 1 / span 12; align-self: center; margin-top: 0; padding-inline: var(--s6); }
+}
+
+/* [10] Trang Tôi, máy tính: thẻ xếp kín hai cột kiểu cột báo (trước: lưới hai cột ép hàng ngang, để lại hố trống); hẹp hơn hai cột thì tự về một cột.
+   Dòng «Đăng xuất» trong danh sách bị trùng với nút ở chân thanh bên — ẩn ở máy tính (điện thoại không có thanh bên nên giữ). */
+@media (min-width: 900px) {
+  .account-layout { display: block; columns: 2 var(--w-cot-bao); column-gap: var(--s4); }
+  .account-layout > * { break-inside: avoid; margin: 0 0 var(--s4); }
+  .account-layout > .vc-eyebrow { break-after: avoid; margin-bottom: var(--s2); }
+  body.has-sidebar #links > .row-link.danger { display: none; }
+}
+
+/* [11] Trang chủ máy tính: biểu đồ tuần giãn theo ô doanh thu (trước: cố định --w-home-chart trong ô rộng hết hàng). */
+@media (min-width: 641px) {
+  .dash-smt-o-dt { flex-wrap: nowrap; align-items: center; gap: var(--s6); }
+  .dash-smt-o .dash-revenue-chart { flex: 1 1 auto; width: auto; max-width: var(--w-home-chart-max); margin-left: auto; }
+}
+
+/* [2b] Trang chủ điện thoại: tên người (lời chào, danh sách «Đơn đi») không bị cắt «…» — luật 6; tên dài xuống dòng. */
+@media (max-width: 640px) {
+  .dash-hero-ten, .dash-today-name { overflow: visible; white-space: normal; text-overflow: clip; overflow-wrap: anywhere; }
+}
+
+/* [12] Hoa hồng: dải cảnh báo không dính sát hàng đầu trang và khối Tra nhanh. */
+#hh-dai:not([hidden]) { margin: var(--s3) 0; }
+
+/* [13] Ô chọn không đẩy trang tràn ngang ở điện thoại (Nhật ký). */
+main select { max-width: 100%; }
+
+/* [16] Danh bạ từ 1100px: bộ lọc thẳng bốn cột, hàng hai là ô «Gồm cả hồ sơ đã ngưng» và các nút, nút canh phải. */
+@media (min-width: 1100px) {
+  #search-form.grid.three { grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: end; }
+  #search-form.grid.three > .check { grid-column: 1 / 3; }
+  #search-form.grid.three > div:last-child { grid-column: 3 / -1; justify-self: end; }
+}
+
+/* [17] Quản lý tài khoản: thao tác của hàng là chữ không gạch chân (gạch khi rê chuột); việc nguy hiểm chữ xám, đỏ khi rê — tránh bức tường chữ đỏ, hộp hỏi lại vẫn giữ. */
+#list .row-actions .btn-link { text-decoration: none; font-weight: var(--fw-semibold); }
+#list .row-actions .btn-link:hover { text-decoration: underline; }
+#list .row-actions .btn-link.danger { color: var(--c-text-muted); }
+#list .row-actions .btn-link.danger:hover { color: var(--c-danger-text); }
+
+/* [19] Danh mục dịch vụ: điều khiển của hàng nhóm đứng cạnh tên nhóm (luật 4), không dạt về mép phải. */
+@media (min-width: 900px) {
+  .nhom-dong .nhom-ten { flex: 0 1 var(--w-nhom-ten); }
+}
+
+/* [20] Liên kết trong bảng: không gạch chân (gạch khi rê chuột) — bỏ dáng web cũ. */
+@media (min-width: 900px) {
+  main table a, main table .btn-link { text-decoration: none; }
+  main table a:hover, main table .btn-link:hover { text-decoration: underline; }
+}
 /* ===== CHÉP TỪ MÃ — hết ===== */
 
 /* ===== RIÊNG CỦA BỘ (1) — lớp xem trước ===== */

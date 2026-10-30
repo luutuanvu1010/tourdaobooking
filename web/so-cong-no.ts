@@ -42,6 +42,9 @@ if (!can(staff, "ledger.view")) {
   let dangChon: string | null = null;
   let ct: Api.SoCongNoBenResponse | null = null;
   let ctLoi: string | null = null;
+  // Luật khung 30/10 [8]: màn rộng tự mở bên đầu danh sách (trước: ngăn chi tiết trống chiếm nửa màn). Cờ này nhớ «máy tự chọn» để khi thu về khổ hẹp
+  // thì trả lại danh sách, không bày «trang con» mà người dùng chưa bấm.
+  let tuDongChon = false;
   const soDonHien = { dangGiu: DON_MOI_LAN, congTyNo: DON_MOI_LAN };
 
   for (const k of Object.keys(NHAN_XEP) as XepSoCongNo[]) xepEl.append(h("option", { value: k }, NHAN_XEP[k]));
@@ -140,6 +143,7 @@ if (!can(staff, "ledger.view")) {
   }
 
   async function chon(partyId: string, tuLichSu = false): Promise<void> {
+    tuDongChon = false;
     dangChon = partyId;
     ct = null;
     ctLoi = null;
@@ -166,7 +170,10 @@ if (!can(staff, "ledger.view")) {
     if (p) void chon(p, true);
     else { dangChon = null; ct = null; veBo(); }
   });
-  window.matchMedia("(min-width: 1024px)").addEventListener("change", veBo);
+  window.matchMedia("(min-width: 1024px)").addEventListener("change", () => {
+    if (tuDongChon && !rong() && !tuHash()) { dangChon = null; ct = null; tuDongChon = false; }
+    veBo();
+  });
 
   replaceChildren(dsEl, h("p", { class: "muted" }, "Đang tải…"));
   try {
@@ -178,6 +185,10 @@ if (!can(staff, "ledger.view")) {
     replaceChildren(dsEl, h("div", { class: "alert", role: "alert" }, `Không tải được sổ: ${reasonOf(err)}`));
   }
   const dau = tuHash();
+  const dauDanhSach = so && rong() ? xepBen(so.soDu.filter((b) => qua(loc, b.dangGiu)), xep)[0] : undefined;
   if (dau) void chon(dau, true);
-  else veBo();
+  else if (dauDanhSach) {
+    void chon(dauDanhSach.partyId, true);
+    tuDongChon = true;
+  } else veBo();
 }

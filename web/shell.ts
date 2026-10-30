@@ -34,7 +34,7 @@ import { registerServiceWorker } from "./pwa";
 import { ganThongBao } from "./thong-bao-ui";
 import { KHOA_GAN_PHIEN_THONG_BAO, thietBiTu } from "./push-ui";
 import { ganTroLy } from "./tro-ly";
-import { daiNhacHaiLop } from "../src/shared/hai-lop-hien-thi";
+import { daiNhacHaiLop, tongDaiNhacHaiLop } from "../src/shared/hai-lop-hien-thi";
 
 // MỤC NÀO HIỆN CHO AI (thanh bên, thanh tab, thanh trên) KHAI Ở MỘT NƠI: src/shared/muc-giao-dien.ts — tệp này chỉ vẽ danh sách bảng đó trả về, không tự hỏi quyền.
 // Rào máy: src/muc-hien-mo-duoc-{1,2,3}.test.ts (mục hiện ⇔ đường gọi chính của trang không bị máy chủ từ chối, 1024 tập quyền), src/muc-giao-dien-hien-trang.test.ts.
@@ -91,9 +91,9 @@ export function setMaintenanceStrip(on: boolean, endsAt: string | null = null): 
  * hỏi NỀN sau khi khung đã vẽ, nhớ kết quả trong sessionStorage (một lần mỗi phiên của thẻ, theo id tài khoản); trang đăng nhập và trang Tôi (sau khi bật) xoá.
  */
 export const KHOA_NHAC_HAI_LOP = "td_mfa_nhac";
-function setMfaStrip(text: string | null): void {
+function setMfaStrip(text: string | null, tong?: "cat" | "do"): void {
   // Đích lấy từ bảng mục (trang Tôi — ai cũng mở được), không viết tay đường dẫn (tests/audit/muc-hien-mo-duoc-khung.mjs bài (6)); `#mfa` = mục Bảo mật đăng nhập.
-  datDai("bao-mat", text ? { cau: text, nut: { nhan: "Bật ngay", href: TRANG.toi.duong + "#mfa" }, dongDuoc: true } : null);
+  datDai("bao-mat", text ? { cau: text, tong, nut: { nhan: "Bật ngay", href: TRANG.toi.duong + "#mfa" }, dongDuoc: true } : null);
 }
 
 async function ganDaiNhacHaiLop(id: string): Promise<void> {
@@ -105,7 +105,7 @@ async function ganDaiNhacHaiLop(id: string): Promise<void> {
       const r = await api<Api.AccountMfaResponse>("/api/account/mfa");
       sessionStorage.setItem(KHOA_NHAC_HAI_LOP, JSON.stringify((m = { id, required: r.required, graceUntil: r.graceUntil })));
     }
-    setMfaStrip(daiNhacHaiLop(m, Date.now()));
+    setMfaStrip(daiNhacHaiLop(m, Date.now()), tongDaiNhacHaiLop(m, Date.now()));
   } catch {
     // sessionStorage bị chặn, mạng / máy chủ lỗi: không dải, không chặn trang
   }
@@ -432,6 +432,11 @@ export async function initShell(): Promise<Staff> {
       const loadBadges = () => {
         for (const load of badgeLoaders) load();
       };
+      // Luật khung 30/10 [4]: mục của trang đang mở phải thấy được — laptop thấp + nhóm Thiết lập dài từng đẩy nó xuống dưới mép (19/32 trang của Toàn quyền,
+      // docs/evidence/2026-10-30-danh-gia-khung-giao-dien/so-lieu/thanh-ben-1366x650.txt). `nearest`: chỉ cuộn vùng cuộn riêng của thanh bên (thanh bên dính, luôn
+      // trọn trong khung nhìn nên trang không cuộn); thanh bên bị CSS ẩn (điện thoại) thì lệnh không làm gì; chừa mép mờ bằng `scroll-margin` ở app.css.
+      // Gọn có chủ ý: dòng này vào gói MỌI trang (trần dung lượng trang Đơn hàng, src/goi-trang-nhe.test.ts).
+      nav.querySelector("[aria-current=page]")?.scrollIntoView({ block: "nearest" });
       if (tatTam !== null) nav.dataset.khungTam = "1";
       else if (nav.offsetParent !== null) loadBadges();
       else {

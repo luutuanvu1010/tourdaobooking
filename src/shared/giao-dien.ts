@@ -20,7 +20,7 @@ export const NUM: readonly Num[] = [
   { khoa: "chu-chinh", nhan: "Chữ chính", nhom: "nen-chu", loai: "mau", token: "--c-text" },
   { khoa: "chu-phu", nhan: "Chữ phụ", nhom: "nen-chu", loai: "mau", token: "--c-text-muted" },
   { khoa: "vien", nhan: "Viền", nhom: "nen-chu", loai: "mau", token: "--c-border" },
-  { khoa: "mau-chinh", nhan: "Màu chính (tiêu đề, liên kết, chữ nhấn)", nhom: "nen-chu", loai: "mau", token: "--c-primary" },
+  { khoa: "mau-chinh", nhan: "Màu chính (liên kết, nút, chữ nhấn)", /* luật khung 30/10: tiêu đề theo «Chữ chính» (--c-heading) */ nhom: "nen-chu", loai: "mau", token: "--c-primary" },
   { khoa: "mau-chinh-nhat", nhan: "Màu chính nhạt (nền mục đang chọn, nút phụ)", nhom: "nen-chu", loai: "mau", token: "--c-primary-soft" },
   { khoa: "nen-thanh-tren", nhan: "Nền thanh trên", nhom: "thanh", loai: "mau", token: "--c-bar-bg" },
   { khoa: "chu-thanh-tren", nhan: "Chữ thanh trên", nhom: "thanh", loai: "mau", token: "--c-on-bar" },
