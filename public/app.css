@@ -3968,11 +3968,11 @@ a.bk-hang:hover, a.bk-the:hover { background: var(--c-soft-hover); }
 .hh-viec-nut { width: 100%; }
 .hh-cap .hh-tl-gan li > span { min-width: 0; overflow-wrap: anywhere; }
 @media (min-width: 900px) {
-  .tab-phu.hh-cap-chon { display: none; }
+  .hh-cap .tab-phu.hh-cap-chon { display: none; }
   .hh-viec-khac[data-chi-dien-thoai] { display: none; }
 }
 @media (max-width: 899px) {
-  .hh-ma-tran-khung { display: none; }
+  .hh-ma-tran-vung { display: none; }
   .nut.hh-viec-doi { display: none; }
   .bang.hh-muc-cap, .hh-muc-cap tbody { display: block; }
   .hh-muc-cap thead { display: none; }

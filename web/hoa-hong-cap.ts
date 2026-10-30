@@ -55,6 +55,9 @@ const CAP_TOI_DA_KHONG_CUON = 5;
 let capChon: string | null = null;
 let hienTai: { goc: HTMLElement; d: DuLieuHoaHong; mo: MoHop } | null = null;
 
+/** Id của chip chọn cấp (khổ điện thoại) — khung chi tiết là tabpanel của chip đang chọn. */
+const idChip = (code: string): string => `hh-cap-chip-${code}`;
+
 const huyHieu = (tong: "la" | "cat", ten: "checkCircle" | "lock", chu: string): HTMLElement => h("span", { class: "huy-hieu", "data-tong": tong }, icon(ten, 14), chu);
 
 /**
@@ -119,7 +122,7 @@ function veMaTran(mt: ReturnType<typeof maTranCap>, chon: (code: string) => void
 function veChonCap(mt: ReturnType<typeof maTranCap>, chon: (code: string, lay?: boolean) => void): HTMLElement {
   const ds = mt.cot.map((c) => {
     const on = c.code === capChon;
-    return h("button", { type: "button", role: "tab", "data-chon-cap": c.code, "aria-selected": String(on), "aria-controls": "hh-cap-ct", tabindex: on ? 0 : -1 }, c.ten, !c.dangBat && ` · ${NHAN_CAP_KHOA_NGAN}`);
+    return h("button", { type: "button", role: "tab", "data-chon-cap": c.code, id: idChip(c.code), "aria-selected": String(on), "aria-controls": "hh-cap-ct", tabindex: on ? 0 : -1 }, c.ten, !c.dangBat && ` · ${NHAN_CAP_KHOA_NGAN}`);
   });
   ds.forEach((b, i) => {
     b.addEventListener("click", () => chon(mt.cot[i]!.code));
@@ -238,7 +241,7 @@ function chiTietCap(m: Api.MucTaDto, d: DuLieuHoaHong, mo: MoHop): HTMLElement {
   const bang = bangMucCap(m, d, ghi, mo);
   return h(
     "article",
-    { class: "the hh-cap-ct", id: "hh-cap-ct", "data-cap": m.code, "aria-labelledby": "hh-cap-ct-ten" },
+    { class: "the hh-cap-ct", id: "hh-cap-ct", role: "tabpanel", "data-cap": m.code, "aria-labelledby": idChip(m.code) },
     h(
       "div",
       { class: "hh-cap-ct-dau" },
@@ -296,8 +299,8 @@ export function veTheCap(goc: HTMLElement, d: DuLieuHoaHong, mo: MoHop): void {
       "section",
       { class: "hh-cap" },
       dau,
-      veMaTran(mt, chon),
-      h("p", { class: "hint hh-cap-cau" }, CAU_O_TRONG),
+      // Vùng ma trận (chỉ khổ ≥ 900): bảng + câu ô «—». Câu thứ tự áp mức là luật chung nên hiện ở mọi khổ; dưới 900 nó đứng trước dải chọn cấp.
+      h("div", { class: "hh-ma-tran-vung" }, veMaTran(mt, chon), h("p", { class: "hint hh-cap-cau" }, CAU_O_TRONG)),
       h("p", { class: "hint hh-cap-cau" }, CAU_THU_TU_AP_MUC),
       veChonCap(mt, chon),
       khung,

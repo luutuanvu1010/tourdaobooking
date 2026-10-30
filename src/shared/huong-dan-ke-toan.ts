@@ -144,7 +144,7 @@ Gắn loại cho hồ sơ ở Danh bạ là việc của Quản trị hoặc To�
 2. Mở cấp, bấm [[＋ Thêm mức vào cấp]]: chọn dịch vụ và mức.
 3. [[Áp dụng cấp cho loại]]: chọn loại và ngày bắt đầu.
 
-Mức riêng được ưu tiên hơn cấp. Đổi sang cấp khác: [[Đổi cấp]]. Ngừng chi: [[Ngừng áp dụng]]. [[Khoá cấp]] chặn thêm loại và mức mới, loại đang theo vẫn được tính; dùng lại: [[Mở lại cấp]].`,
+Cấp của loại xét sau cùng. Đổi sang cấp khác: [[Đổi cấp]]. Ngừng chi: [[Ngừng áp dụng]]. [[Khoá cấp]] chặn thêm loại và mức mới, loại đang theo vẫn được tính; dùng lại: [[Mở lại cấp]].`,
     },
     {
       tieuDe: "Chụp bù, ghi mức tay cho một đơn",
