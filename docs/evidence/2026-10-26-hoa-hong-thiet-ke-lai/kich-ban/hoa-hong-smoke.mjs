@@ -1,3 +1,6 @@
+// ĐỔI CHỮ DANH BẠ (đợt cấp đại lý, Task 12, 2026-10-30): các câu ghim của hồ sơ Danh bạ (`web/parties.ts`) đổi theo luật «chính sách» → «cấp đại lý» / «cấp riêng»:
+// «Chính sách riêng: …» → «Cấp riêng: …», «Áp dụng chính sách riêng» → «Áp dụng cấp riêng», «Đã sửa chính sách riêng của đại lý này.» → «Đã sửa cấp riêng của đại lý này.»,
+// câu xem trước sửa của Danh bạ nói «cấp riêng này» (hằng CAU_SUA_RIENG_HUY_THAY). Bài `src/bang-tu-giao-dien.test.ts` (lượt 6) canh chữ cũ không quay lại. Các chỗ khác của tệp (trang Hoa hồng) do Task 7–11 đổi.
 // Kịch bản Chrome — trang «Hoa hồng đối tác» làm lại (PR 2, đặc tả 2026-10-25 mục A, C, E). Đây là rào DUY NHẤT cho phần GIAO DIỆN của trang: `npm test` canh luật thuần
 // (src/shared/hoa-hong-hien-thi.ts…) và máy chủ, `npm run test:e2e` canh HTTP, nhưng không bài nào mở trang. THAY cho các kịch bản cũ khoá chữ/chỗ cũ
 // (muc-ta-smoke, loai-doi-tac-smoke, so-dai-ly-smoke — phần trang /hoa-hong) từ 2026-10-26. Mười bước, mỗi khổ 390 và 1040 (bước 9 chỉ có ở 390):
@@ -44,7 +47,7 @@ const DUNG = process.env.HH_DUNG ?? "";
 const PHA = process.env.HH_PHA ?? "";
 
 // Chữ phải KHỚP NGUYÊN VĂN với src/shared/hoa-hong-hien-thi.ts và web/hoa-hong*.ts (viết lại có chủ đích: đổi chữ mà quên kịch bản ⇒ đỏ).
-const CAU_TRA_THEO_LOAI = "Đang tra theo loại. Một đối tác cụ thể của loại này có thể có mức riêng hoặc chính sách riêng — gõ tên đối tác để chắc.";
+const CAU_TRA_THEO_LOAI = "Đang tra theo loại. Một đối tác cụ thể của loại này có thể có mức riêng hoặc cấp riêng — gõ tên đối tác để chắc.";
 const CAU_KHONG_CO_QUYEN_XEM = "Bạn không có quyền xem trang này.";
 const CAU_DOI_TU_NGAY_MAI = "Mức cũ bắt đầu hôm nay nên mức mới áp dụng sớm nhất từ ngày mai; đơn xác nhận trong hôm nay vẫn tính theo mức cũ.";
 const CAU_THONG_BAO_DONG_RIENG = "Ngừng các mức riêng đó ở thẻ «Mức đang áp dụng».";
@@ -55,7 +58,8 @@ const CHU_CAM = [/Mức TA/, /Đóng mức/, /Kết thúc gắn/, /Đang áp(?! 
 const NUT_GHI = /^(＋|Thêm|Đổi|Ngừng|Sửa|Tắt|Bật|Áp dụng)/;
 const CAU_SUA_HUY_THAY = "Chưa có đơn nào dùng mức này — sửa sẽ thay hẳn.";
 const NHAN_DA_HUY = "Đã huỷ — thay bằng dòng khác";
-const CAU_SUA_CS_HUY_THAY = "Chưa có đơn nào dùng chính sách này — sửa sẽ thay hẳn.";
+const CAU_SUA_CS_HUY_THAY = "Chưa có đơn nào dùng cấp đại lý này — sửa sẽ thay hẳn.";
+const CAU_SUA_RIENG_HUY_THAY = "Chưa có đơn nào dùng cấp riêng này — sửa sẽ thay hẳn."; // Danh bạ
 /** 2026-11-03 ⇒ 03/11/2026 (ngayDayDu / ngayVN của src/shared). */
 const ngayVi = (iso) => iso.split("-").reverse().join("/");
 
@@ -663,11 +667,11 @@ try {
         try {
           await buoc(`12${kho}`, "Danh bạ (Quản trị): chính sách riêng có «Sửa» cạnh «Ngừng áp dụng»; chưa có đơn ⇒ «sẽ thay hẳn»; đổi chính sách + lý do ⇒ lưu, chính sách riêng mới", async () => {
             const SEC = "#hoa-hong-hien-hanh";
-            await p.waitFor(`(() => { const s = document.querySelector('${SEC}'); return !!s && !s.hidden && s.innerText.includes('Chính sách riêng'); })()`, "mục Hoa hồng hiện hành");
+            await p.waitFor(`(() => { const s = document.querySelector('${SEC}'); return !!s && !s.hidden && s.innerText.includes('Cấp riêng'); })()`, "mục Hoa hồng hiện hành");
             assert.deepEqual(await p.ev(`[...document.querySelectorAll('${SEC} .actions button')].map((b) => b.textContent.trim())`), ["Ngừng áp dụng", "Sửa"]);
             assert.equal(await clickTrong(p, SEC, "Sửa"), true);
             await choHop(p, "#hhhh-sua-ly-do");
-            assert.equal(await p.ev(`document.querySelector('${SEC} .hint[role=status]').textContent.trim()`), "Chưa có đơn nào dùng chính sách này — sửa sẽ thay hẳn.");
+            assert.equal(await p.ev(`document.querySelector('${SEC} .hint[role=status]').textContent.trim()`), CAU_SUA_RIENG_HUY_THAY);
             assert.deepEqual(await p.ev("(() => ({ muc: document.getElementById('hhhh-sua-muc').value, tu: document.getElementById('hhhh-sua-tu').value, den: document.getElementById('hhhh-sua-den').value }))()"),
               { muc: CS_1, tu: HOM_NAY, den: "" }, "điền sẵn chính sách và ngày của chính sách riêng cũ");
             await p.ev(`(() => { const s = document.getElementById('hhhh-sua-muc'); s.value = ${JSON.stringify(CS_2)}; s.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
@@ -681,7 +685,7 @@ try {
             await axeKiem(p, `Danh bạ — Sửa chính sách riêng ${kho}`);
             await chup(p, `21-danh-ba-sua-chinh-sach-rieng-${tenKho}`);
             assert.equal(await clickTrong(p, SEC, "Lưu sửa"), true);
-            await p.waitFor(`(() => { const e = document.querySelector('${SEC} .alert.ok'); return !!e && e.textContent.trim() === 'Đã sửa chính sách riêng của đại lý này.'; })()`, "câu đã sửa");
+            await p.waitFor(`(() => { const e = document.querySelector('${SEC} .alert.ok'); return !!e && e.textContent.trim() === 'Đã sửa cấp riêng của đại lý này.'; })()`, "câu đã sửa");
             const r = await goiTrongTrang(p, "GET", `/api/pricing/ho-so/${ORG4.id}/hoa-hong`);
             assert.equal(r.json.mucRieng?.muc.code, CS_2, `chính sách riêng mới: ${JSON.stringify(r.json.mucRieng)}`);
             await chup(p, `22-danh-ba-sau-sua-${tenKho}`);
@@ -702,9 +706,9 @@ try {
             await p.waitFor(`(() => { const s = document.querySelector('${SEC}'); return !!s && !s.hidden && !!document.querySelector('${SAP}'); })()`, "mục Hoa hồng hiện hành có chính sách riêng sắp áp");
             const sap0 = await p.ev(`[...document.querySelectorAll('${SAP} li')].map((li) => ({ chu: li.innerText, nut: [...li.querySelectorAll('button')].map((b) => b.textContent.trim()) }))`);
             assert.equal(sap0.length, 1, `một lần sắp áp: ${JSON.stringify(sap0)}`);
-            assert.ok(sap0[0].chu.includes(`Chính sách riêng: ${TEN_CS_1}`) && sap0[0].chu.includes(`Sắp áp dụng từ ${ngayVi(TU_SAP)}`), `dòng sắp áp: ${sap0[0].chu}`);
+            assert.ok(sap0[0].chu.includes(`Cấp riêng: ${TEN_CS_1}`) && sap0[0].chu.includes(`Sắp áp dụng từ ${ngayVi(TU_SAP)}`), `dòng sắp áp: ${sap0[0].chu}`);
             assert.deepEqual(sap0[0].nut, ["Sửa"]);
-            assert.deepEqual(await p.ev(`[...document.querySelectorAll('${SEC} .actions button')].map((b) => b.textContent.trim())`), ["Áp dụng chính sách riêng"], "hôm nay chưa có chính sách riêng đang áp: nút như cũ");
+            assert.deepEqual(await p.ev(`[...document.querySelectorAll('${SEC} .actions button')].map((b) => b.textContent.trim())`), ["Áp dụng cấp riêng"], "hôm nay chưa có chính sách riêng đang áp: nút như cũ");
             assert.equal(await p.ev(`!!document.querySelector('${SEC} .hh-lich-su-khoi')`), false, "chưa có lịch sử");
             const kiemMuc = async (nhan) => {
               const m = await p.ev(`(() => ({ sw: document.documentElement.scrollWidth, iw: innerWidth,
@@ -721,25 +725,25 @@ try {
             await chup(p, `26-danh-ba-chinh-sach-rieng-sap-ap-${tenKho}`);
             assert.equal(await clickTrong(p, SAP, "Sửa"), true, "nút Sửa của lần sắp áp");
             await choHop(p, "#hhhh-sua-ly-do");
-            assert.equal(await p.ev(`document.querySelector('${SEC} .hint[role=status]').textContent.trim()`), CAU_SUA_CS_HUY_THAY);
+            assert.equal(await p.ev(`document.querySelector('${SEC} .hint[role=status]').textContent.trim()`), CAU_SUA_RIENG_HUY_THAY);
             assert.deepEqual(await p.ev("(() => ({ muc: document.getElementById('hhhh-sua-muc').value, tu: document.getElementById('hhhh-sua-tu').value, den: document.getElementById('hhhh-sua-den').value }))()"),
               { muc: CS_1, tu: TU_SAP, den: "" }, "điền sẵn chính sách và ngày của lần sắp áp");
             await p.ev(`(() => { const s = document.getElementById('hhhh-sua-muc'); s.value = ${JSON.stringify(CS_2)}; s.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
             await p.ev(setInput("document.getElementById('hhhh-sua-ly-do')", "Chọn nhầm chính sách khi hẹn ngày áp dụng"));
             assert.equal(await clickTrong(p, SEC, "Lưu sửa"), true);
-            await p.waitFor(`(() => { const e = document.querySelector('${SEC} .alert.ok'); return !!e && e.textContent.trim() === 'Đã sửa chính sách riêng của đại lý này.'; })()`, "câu đã sửa");
+            await p.waitFor(`(() => { const e = document.querySelector('${SEC} .alert.ok'); return !!e && e.textContent.trim() === 'Đã sửa cấp riêng của đại lý này.'; })()`, "câu đã sửa");
             const r = (await goiTrongTrang(p, "GET", `/api/pricing/ho-so/${ORG5.id}/hoa-hong`)).json;
             assert.equal(r.mucRieng, null, "hôm nay vẫn chưa có chính sách riêng đang áp");
             assert.deepEqual(r.ganRieng.map((g) => [g.muc.code, g.daHuy, g.tuNgay]), [[CS_2, false, TU_SAP], [CS_1, true, TU_SAP]], "lịch sử: lần mới rồi lần đã huỷ");
             const sap1 = await p.ev(`[...document.querySelectorAll('${SAP} li')].map((li) => li.innerText)`);
-            assert.ok(sap1.length === 1 && sap1[0].includes(`Chính sách riêng: ${TEN_CS_2}`) && sap1[0].includes("Sắp áp dụng từ"), `lần mới sắp áp: ${JSON.stringify(sap1)}`);
+            assert.ok(sap1.length === 1 && sap1[0].includes(`Cấp riêng: ${TEN_CS_2}`) && sap1[0].includes("Sắp áp dụng từ"), `lần mới sắp áp: ${JSON.stringify(sap1)}`);
             const NUT_LS = `${SEC} .hh-lich-su-khoi button`;
             assert.equal(await p.ev(`document.querySelector('${NUT_LS}')?.textContent.trim()`), "Xem lịch sử (1)");
             assert.equal(await p.ev(`document.querySelector('${SEC} .hh-lich-su').hidden`), true, "mặc định lịch sử ẩn");
             await p.ev(`document.querySelector('${NUT_LS}').click(), true`);
             const ls = await p.ev(`[...document.querySelectorAll('${SEC} .hh-lich-su li')].map((li) => ({ chu: li.innerText, nut: li.querySelectorAll('button').length, an: !!li.closest('[hidden]') }))`);
             assert.equal(ls.length, 1, `một lần trong lịch sử: ${JSON.stringify(ls)}`);
-            assert.ok(!ls[0].an && ls[0].chu.includes(`Chính sách riêng: ${TEN_CS_1}`) && ls[0].chu.includes(NHAN_DA_HUY) && ls[0].nut === 0, `lần đã huỷ: ${JSON.stringify(ls[0])}`);
+            assert.ok(!ls[0].an && ls[0].chu.includes(`Cấp riêng: ${TEN_CS_1}`) && ls[0].chu.includes(NHAN_DA_HUY) && ls[0].nut === 0, `lần đã huỷ: ${JSON.stringify(ls[0])}`);
             await kiemMuc(`bước 14 lịch sử ${kho}`);
             await axeKiem(p, `Danh bạ — lịch sử chính sách riêng ${kho}`);
             await chup(p, `27-danh-ba-lich-su-${tenKho}`);
@@ -796,7 +800,7 @@ try {
                 sap: s.querySelectorAll('[data-khoi="gan-rieng-sap"] li').length, lichSu: !!s.querySelector('.hh-lich-su-khoi button') }; })()`);
             await p.waitFor(`(() => { const s = document.querySelector('${SEC}'); return !!s && !s.hidden && !!s.querySelector('[data-khoi="gan-rieng-sap"]'); })()`, "mục Hoa hồng hiện hành (Bán hàng)");
             const a = await docMuc();
-            assert.ok(a && a.sap === 1 && a.chu.includes(`Chính sách riêng: ${TEN_CS_2}`) && a.chu.includes("Sắp áp dụng từ"), `Bán hàng thấy lần sắp áp: ${JSON.stringify(a)}`);
+            assert.ok(a && a.sap === 1 && a.chu.includes(`Cấp riêng: ${TEN_CS_2}`) && a.chu.includes("Sắp áp dụng từ"), `Bán hàng thấy lần sắp áp: ${JSON.stringify(a)}`);
             assert.equal(a.lichSu, true, "Bán hàng thấy nút «Xem lịch sử» (nút xem)");
             assert.deepEqual(a.ghi, [], "Bán hàng: không nút ghi nào trong mục (kể cả «Sửa» lần sắp áp)");
             await p.ev(`document.querySelector('${SEC}').scrollIntoView({ block: 'start' }), true`);
@@ -804,7 +808,7 @@ try {
             await chup(p, `28-danh-ba-ban-hang-chi-xem-${tenKho}`);
             // Hồ sơ có chính sách riêng ĐANG áp (bước 12 đã sửa sang CS_2): nút «Ngừng áp dụng» / «Sửa» của lượt 1 cũng không hiện.
             await p.send("Page.navigate", { url: env.base + `/parties?id=${encodeURIComponent(ORG4.id)}` });
-            await p.waitFor(`(() => { const s = document.querySelector('${SEC}'); return !!s && !s.hidden && s.innerText.includes('Chính sách riêng: ${TEN_CS_2}'); })()`, "mục Hoa hồng hiện hành của hồ sơ đang áp (Bán hàng)");
+            await p.waitFor(`(() => { const s = document.querySelector('${SEC}'); return !!s && !s.hidden && s.innerText.includes('Cấp riêng: ${TEN_CS_2}'); })()`, "mục Hoa hồng hiện hành của hồ sơ đang áp (Bán hàng)");
             const b = await docMuc();
             assert.deepEqual(b?.ghi, [], `Bán hàng: hồ sơ đang áp không nút ghi: ${JSON.stringify(b)}`);
           });

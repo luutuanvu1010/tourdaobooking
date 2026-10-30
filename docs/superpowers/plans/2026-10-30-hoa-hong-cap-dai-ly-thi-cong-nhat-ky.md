@@ -176,3 +176,19 @@ Mười bảy «câu hôm nay» của §6.1 đều có nguyên văn trong `index
 **Sửa mang sang từ review Task 10**: `web/hoa-hong-hop.ts`, `moHop`: `truocNap` nay nằm trong try/catch riêng (lỗi ghi `console.error`, không chạm hộp), nên lỗi vẽ trước không bị hiện như lỗi ghi sau khi ghi đã thành công; `napLai()` vẫn luôn chạy.
 
 **Lệch so với kế hoạch**: `docs/SYSTEM-DESIGN.md` §9 còn nhắc `hoa-hong-bang.ts` / `hoa-hong-thiet-lap.ts` là mô tả cũ — không sửa ở task này (dòng tự ghi là của giao diện cũ). Chưa kiểm bằng Chrome (Task 14).
+
+## Task 12 — Danh bạ, hướng dẫn, bảng từ lượt 6 (luật cấm theo tệp)
+
+**Số đo trước khi đổi chữ**: luật `CAM_THEO_TEP` bắt **30 chuỗi** trong bộ tệp hoa hồng, tất cả ở `web/parties.ts` (đặc tả đo 129 chuỗi trên mã 30/10; Task 4, 5, 7–11 đã đổi phần còn lại; `huong-dan-ke-toan.ts` đã 0 chuỗi từ trước, nên không sửa, số từ Phần chung + Kế toán giữ 3144/3150 trước và sau). Hai mục toàn cục 6a, 6b bắt 15 chuỗi cũng ở `web/parties.ts`. Sau đổi: 0 chuỗi, 2 mảnh «chính sách » được phép (`pricing/index.ts`, nhật ký, quyết định 8). Bộ tệp quét thật gồm `web/hoa-hong-cap.ts`, `-loai.ts`, `-doi-tac.ts`, `-menu.ts`, `-dai.ts` (bài khẳng định có trong danh sách).
+
+**Lựa chọn tự áp**
+- Danh bạ: «(chính sách đã tắt)» → «(cấp đã khoá)»; «Chưa áp dụng chính sách» → «Chưa áp dụng cấp đại lý»; «Chính sách riêng:» → «Cấp riêng:»; nút «Áp dụng cấp riêng», «Lưu cấp riêng»; ô chọn «Chọn cấp đại lý»; «Chưa có chính sách nào đang bật» → «Chưa có cấp đại lý nào đang mở». Câu xem trước sửa ở Danh bạ nói «cấp riêng này» (khớp `hoa-hong-hop.ts`). «mức riêng» (dòng đặt lẻ) giữ nguyên. Không thêm nút.
+- Kịch bản `hoa-hong-smoke.mjs` (bước 12, 14, 14b, hằng `CAU_TRA_THEO_LOAI`): đổi câu ghim Danh bạ, ghi đầu tệp. `t2b-danh-ba-smoke.mjs` và `dot-a-smoke.mjs` không ghim chữ «chính sách» nên không sửa.
+- `thay` lượt 3 dòng 37, 39, 53 viết lại đúng §6.2. Hai miễn trừ `CAU_THU_TU_AP_MUC`, `CAU_O_TRONG` giữ.
+- Ca âm dùng `viPhamTheoTep` cho ba câu «riêng tư/điều phối/đăng nhập» và kiểm 6a/6b trực tiếp cho năm câu ngoài bộ tệp.
+
+**P16** (tạm, hoàn nguyên, không commit)
+- (i) thêm `const P16 = "Chính sách riêng";` vào `web/parties.ts`: ĐỎ `not ok 2 - bảng từ: chữ đã loại không xuất hiện…` (6b: `web/parties.ts:963 «Chính sách riêng» — chữ đã loại /[Cc]hính sách riêng(?! tư)|CHÍNH SÁCH RIÊNG(?! TƯ)/u`) và `not ok 5 - lượt 6: bộ tệp hoa hồng không còn «chính sách»…` (`web/parties.ts:963 «Chính sách riêng»`).
+- (ii) thêm chỗ thứ ba `` `chính sách ${1}` `` vào `pricing/index.ts`: ĐỎ `not ok 5` (`mảnh «chính sách » ở src/modules/pricing/index.ts phải đúng 2 lần`) và `not ok 3 - lượt 6 ca âm` (đòi đúng 2 mảnh).
+- (iii) đổi một trong hai chỗ thành `` `cấp ${…}` ``: ĐỎ `not ok 5` (cùng câu «phải đúng 2 lần») và `not ok 3`.
+- Hoàn nguyên: `git status` chỉ còn các tệp của task; 5/5 xanh.
