@@ -2010,6 +2010,17 @@ export const CHECKS = [
     note: "ADR-0148 Đ1: dòng mức bị đóng / huỷ qua ngày một đơn đã chụp — trình chủ dự án, không tự sửa dữ liệu",
   },
   {
+    // R-PRC-8 (ADR-0146 Đ1; kế hoạch 2026-10-30 R-8, T3): «luật còn hiệu lực chỉ trỏ loại đang bật». Trigger `prc_sales_block_role_ok` chặn lúc THÊM; tắt loại còn luật thì
+    // route `/loai-doi-tac/:code/tat` trả 409 — trigger không biết «hôm nay» (dự án cấm date('now') trong mã), nên khe đua giữa kiểm và ghi chỉ kiểm này bắt. Vị từ
+    // CHUA_HET_HAN giống R-PRC-2 (đếm cả luật SẮP áp dụng: tắt loại làm nó mất tác dụng lúc tới ngày); route 409 phải dùng CÙNG vị từ (sổ thi công T3).
+    code: "R-PRC-8",
+    what: "luật bán (không bán cho loại đối tác) chưa hết hạn trỏ loại đối tác không còn bật trong danh sách được hưởng",
+    sql: `SELECT count(*) FROM prc_sales_block b WHERE ${CHUA_HET_HAN("b")}
+       AND b.role_type_code NOT IN (SELECT role_type_code FROM v_prc_beneficiary_role)`,
+    level: "fail",
+    note: "ADR-0146 Đ1: loại bị tắt khi còn luật bán — Đối tác loại đó để trống bên đặt là luật mất tác dụng; kết thúc luật hoặc bật lại loại (trình chủ dự án, không tự sửa dữ liệu)",
+  },
+  {
     // R-ORD-T1 (đặc tả §9 sau kiểm độc lập N4): MỖI dòng dịch vụ của đơn đã xác nhận, xác nhận TỪ (mốc + 60 phút) trở đi, phải có ĐÚNG MỘT bản chụp hiện hành. Mốc = lúc áp migration
     // (bảng `ord_audit_cutoff`), KHÔNG suy từ bản chụp đầu — cách cũ tự tắt khi mã chụp không bao giờ chạy. 60 phút che quãng migration → deploy của runbook và lúc bản mới chưa lan tới
     // mọi nơi. Thiếu dòng mốc thì chính kiểm này báo 1 lỗi (không im lặng xanh; viết bằng `NOT EXISTS`, KHÔNG dùng `CASE … END)` — bộ tách câu của wrangler không đóng khối ở `END)` và nuốt mọi dấu `;` phía sau, xem bài «tách câu của wrangler»). Đếm theo DÒNG DỊCH VỤ. Hoàn tác Worker về bản cũ ⇒ đơn xác nhận lúc đó làm kiểm này đỏ tới đợt 2 (đúng tín hiệu).

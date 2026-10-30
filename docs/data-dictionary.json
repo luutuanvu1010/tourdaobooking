@@ -829,6 +829,12 @@
       "note": "mức TA dùng chung (ADR-0117 lần 2; migration 0096): tên do Kế toán đặt (TA1, TA2…), name_key duy nhất (khoá so tên, máy chủ ghi). Không xoá; chỉ đổi tên/active (trigger prc_rate_tier_update_scope); tắt mức = chặn gắn mới và thêm dòng mới, dòng đang áp vẫn áp"
     },
     {
+      "name": "prc_sales_block",
+      "module": "pricing",
+      "kind": "table",
+      "note": "Luật bán theo loại đối tác (ADR-0146 Đ1, ADR-0152 Đ2; migration 0129): mỗi dòng = «loại đối tác KHÔNG được đặt [phạm vi]» trong khoảng ngày (ngày dân sự VN, gồm cả hai đầu). Chỉ có dòng chặn — không cột / giá trị «cho phép», không phạm vi «mọi dịch vụ». scope: SERVICE (catalog_code, không khoá ngoại), GROUP (group_code), ATTRIBUTE (attribute_code + value_code, group_code tuỳ chọn) — tập đóng, CHECK. Chỉ thêm: cấm xoá, chỉ đặt ngày kết thúc một lần; ngày kết thúc ≥ ngày bắt đầu − 1 («Kết thúc ngay» = hôm qua, kế hoạch R-1). Thêm luật: loại phải được hưởng và đang bật (prc_sales_block_target), giá trị phải thuộc đặc điểm và đang dùng (prc_sales_block_value, đọc view v_ctl_attribute_value). Kiểm định kỳ R-PRC-8. Module khác không đọc bảng này — hàm công bố của pricing"
+    },
+    {
       "name": "prc_role_tier",
       "module": "pricing",
       "kind": "table",
@@ -1456,6 +1462,7 @@
     "prc_commission_rule": { "id": "N1", "target_party_id": "N1", "target_role_code": "N1", "scope": "N1", "catalog_code": "N1", "group_code": "N1", "kind": "N1", "rate_bp": "N1", "per_pax_amount": "N1", "valid_from_date": "N1", "valid_to_date": "N1", "note": "N2", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "target_tier_code": "N1", "voided_at": "N1", "voided_by": "N1", "replaces_id": "N1", "change_reason": "N2" },
     "prc_commission_rule_pax": { "rule_id": "N1", "adult_amount": "N1", "child_amount": "N1", "senior_amount": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "prc_rate_tier": { "code": "N1", "name": "N1", "name_key": "N1", "active": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "prc_sales_block": { "id": "N1", "role_type_code": "N1", "scope": "N1", "catalog_code": "N1", "group_code": "N1", "attribute_code": "N1", "value_code": "N1", "valid_from_date": "N1", "valid_to_date": "N1", "note": "N2", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "prc_role_tier": { "id": "N1", "role_type_code": "N1", "tier_code": "N1", "valid_from_date": "N1", "valid_to_date": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "voided_at": "N1", "voided_by": "N1", "replaces_id": "N1", "change_reason": "N2" },
     "prc_party_tier": { "id": "N1", "party_id": "N1", "tier_code": "N1", "valid_from_date": "N1", "valid_to_date": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "voided_at": "N1", "voided_by": "N1", "replaces_id": "N1", "change_reason": "N2" },
     "prc_supply_term": { "id": "N1", "scope": "N1", "catalog_code": "N1", "group_code": "N1", "seller_party_id": "N1", "supplier_party_id": "N1", "cost_rate_bp": "N1", "valid_from_date": "N1", "valid_to_date": "N1", "note": "N2", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },

@@ -4168,3 +4168,31 @@ test("R-PRC-1 / R-PRC-2 / R-PRC-5 bỏ qua dòng đã huỷ (ADR-0148): dòng hu
   huySdl(db, "prc_commission_rule", "mh-2");
   assert.equal(violations(db, one("R-PRC-5")), 0, "R-PRC-5: dòng huỷ theo hồ sơ đã thôi vai không báo");
 });
+
+// ---------------------------------------------------------------------------------------------------------------------
+// ADR-0146 Đ1 + kế hoạch 2026-10-30 R-8 (T3): R-PRC-8 — luật bán CHƯA HẾT HẠN (kể cả luật sắp áp dụng; cùng vị từ CHUA_HET_HAN với R-PRC-2) trỏ loại đối tác không còn
+// bật trong danh sách được hưởng. Trigger `prc_sales_block_role_ok` chặn lúc THÊM; tắt loại còn luật do route trả 409 — khe đua giữa kiểm và ghi chỉ kiểm này bắt.
+// ---------------------------------------------------------------------------------------------------------------------
+test("R-PRC-8 (ADR-0146 Đ1): luật bán chưa hết hạn trỏ loại đang tắt → đếm; luật đã kết thúc (hôm qua) không đếm; luật sắp áp dụng vẫn đếm; dữ liệu khoẻ → 0", () => {
+  const c = one("R-PRC-8");
+  assert.equal(c.level, "fail");
+  assert.match(c.sql, /date\('now', '\+7 hours'\)/, "hôm nay theo giờ Việt Nam");
+  const db = build();
+  assert.equal(violations(db, c), 0, "chưa có luật");
+  const luat = (id: string, role: string, tu: string, den: string | null) =>
+    db.prepare(`INSERT INTO prc_sales_block (id, role_type_code, scope, catalog_code, valid_from_date, valid_to_date, created_at, updated_at) VALUES (?, ?, 'SERVICE', 'D1', ?, ?, ?, ?)`)
+      .run(id, role, tu, den, T1, T1);
+  luat("sb-1", "TAXI_DRIVER", vnNgay(-10), null);
+  luat("sb-2", "HOTEL_RECEPTION", vnNgay(-10), vnNgay(-1)); // đã kết thúc từ hôm nay
+  luat("sb-3", "COLLABORATOR", vnNgay(5), null); // sắp áp dụng
+  assert.equal(violations(db, c), 0, "mọi loại đang bật");
+  const tat = (role: string) => db.prepare("UPDATE prc_beneficiary_role SET active = 0, updated_at = ? WHERE role_type_code = ?").run(T2, role);
+  tat("TAXI_DRIVER");
+  assert.equal(violations(db, c), 1, "luật đang áp dụng trỏ loại đã tắt");
+  tat("HOTEL_RECEPTION");
+  assert.equal(violations(db, c), 1, "luật đã kết thúc không đếm");
+  tat("COLLABORATOR");
+  assert.equal(violations(db, c), 2, "luật sắp áp dụng vẫn đếm (tắt loại sẽ làm nó mất tác dụng lúc tới ngày)");
+  db.prepare("UPDATE prc_sales_block SET valid_to_date = ?, updated_at = ? WHERE id = 'sb-1'").run(vnNgay(-1), T3);
+  assert.equal(violations(db, c), 1, "kết thúc luật → hết báo");
+});
