@@ -1,12 +1,12 @@
 # ADR-0151 — «Đổi cấp riêng» của một đối tác: kết thúc cấp cũ và mở cấp mới trong một lô
 
-- **Trạng thái:** **proposed** 2026-10-30 — AI soạn theo quyết định 5 của chủ (`docs/superpowers/specs/2026-10-30-hoa-hong-cap-dai-ly/QUYET-DINH-CHU-2026-10-30-LAN-2.md`). Chưa có người kiểm độc lập đọc bản này. AI không tự duyệt (Hiến pháp N3). **Chưa viết mã trước khi chủ duyệt.**
+- **Trạng thái:** **proposed** 2026-10-30 — AI soạn theo quyết định 5 của chủ (`docs/superpowers/specs/2026-10-30-hoa-hong-cap-dai-ly/QUYET-DINH-CHU-2026-10-30-LAN-2.md`). **Bản 2** (30/10) sửa theo `QA1-LAN-2.md` (người kiểm độc lập đã đọc bản 1, KHÔNG ĐẠT ở phần đặc tả, bảy điểm Sửa trong đó bốn điểm thuộc ADR này) và quyết định 8–9 (`QUYET-DINH-CHU-2026-10-30-LAN-3.md`); bản 2 chưa có người kiểm đọc lại. AI không tự duyệt (Hiến pháp N3). **Chưa viết mã trước khi chủ duyệt.**
 - **Số:** 0151 kiểm còn trống ngày 30/10. Thư mục `docs/adr/` của `main` lớn nhất là 0150, và `docs/adr/README.md` ghi số kế tiếp 0151. Không nhánh nào (`refs/heads`, `refs/remotes`) và không worktree nào giữ ADR-0151 trở lên.
 - **Ngày:** 2026-10-30.
 - **Loại:** việc lớn (tiền: đổi cấp quyết định mức hoa hồng của đơn xác nhận từ ngày đổi). **Cửa:** hai chiều. Route mới chỉ ghép hai câu ghi đã có, không thêm bảng, cột, trigger hay quyền. Gỡ route thì dữ liệu đã ghi vẫn là các dòng bình thường.
 - **Quan hệ với ADR cũ:** **giữ** ADR-0077 điều 8–9 (chụp mức lúc xác nhận, không chụp lại khi bảng mức đổi); ADR-0138 (cấp riêng của đối tác, bậc 10–12, tối đa một cấp riêng tại một ngày); ADR-0148 Đ1 («Sửa» là đường sửa sai, vẫn giữ nguyên). **Khuôn:** «Đổi chính sách» của một loại, `POST /api/pricing/muc-ta/gan/:id/doi` (đặc tả 25/10 mục A3).
 - **Xây trên lỗ đang hở:** không (`docs/quyen-hoan.json` 30/10 không có mục nào chạm phần giá hay hoa hồng).
-- **Phát hành:** cùng lượt với phần 2 của đặc tả `docs/superpowers/specs/2026-10-30-hoa-hong-cap-dai-ly/DAC-TA.md` (bản 2). Không có migration.
+- **Phát hành:** cùng lượt với phần 2 của đặc tả `docs/superpowers/specs/2026-10-30-hoa-hong-cap-dai-ly/DAC-TA.md` (bản 3). Không có migration.
 
 ## Tóm tắt cho chủ (lời thường)
 
@@ -57,7 +57,7 @@ Dùng lại đúng cổng của ba route anh em: `can(staff, "partner.commission
 
 **Cấp đang khoá.** Trigger `prc_party_tier_tier_ok` chỉ chặn câu **chèn**, không chặn câu đóng. Vì vậy đổi **sang** một cấp đang khoá thì bị chặn (bước 8), nhưng đổi **ra khỏi** một cấp đang khoá thì làm được. Đây chính là đường đưa đại lý ra khỏi cấp đã khoá. «Sửa» một cấp riêng đang trỏ cấp khoá mà giữ nguyên cấp đó cũng bị chặn, vì câu chèn vẫn trỏ cấp khoá. Giới hạn này đã có sẵn ở route «Sửa» hiện hành, ADR này không đổi.
 
-**Câu chữ của `kiemDoi`.** Các câu hôm nay nói «Mức này…», «Mức cũ…», «mức mới». Dùng nguyên cho cấp riêng thì trên cùng một hộp có hai chữ cho một nghĩa, trái luật một nghĩa một chữ (quyết định 3). Đề xuất: thêm một tham số **chỉ chữ** cho `kiemDoi` (khuôn `cauXemTruocSua(x, cai)` ở `src/shared/hoa-hong-hien-thi.ts`). Route của loại và route dòng mức giữ câu cũ từng chữ. Route mới dùng «cấp riêng này / cấp riêng cũ / cấp mới». Câu nào cũng phải có bài kiểm ghim nguyên văn. Phương án dự phòng, nếu chủ không muốn đụng luật dùng chung: giữ câu «Mức…» và ghi đây là lệch có tên.
+**Câu chữ của `kiemDoi` — lệch có tên** (quyết định 9). Route dùng nguyên `kiemDoi`, **không** thêm tham số, `rules.ts` không đổi. Các câu nói «Mức này…», «Mức cũ…», «mức mới» dù đối tượng là cấp riêng, trái luật một nghĩa một chữ (quyết định 3). Hai câu còn chỉ sai đường cho cấp riêng (QA1 lần 2 điểm 8): `rules.ts:335` bảo «Thêm mức mới bắt đầu sau ngày ngừng», `rules.ts:338` bảo «Dùng Ngừng cho mức cũ, rồi Thêm mức mới», trong khi cấp riêng không có việc «Thêm mức» (việc đúng là «Sửa», hoặc «Ngừng» rồi «Đặt cấp riêng»). ADR này ghi lệch đó, không đặt cách lách. Giao diện ít khi để lộ hai câu này: nút chỉ hiện cho cấp riêng chưa có ngày ngừng, ô ngày chặn ngày quá sớm; chúng chỉ hiện khi dòng cũ vừa bị người khác đổi, hoặc khi gọi thẳng API. Bài kiểm ghim nguyên văn mọi câu để lệch không đổi lặng lẽ. Đặc tả ghi cùng lệch ở §10.
 
 ### Đ4 — Lô ghi (một `db.batch`, thứ tự cố định)
 
@@ -79,7 +79,7 @@ Hàm dựng lô đặt ở `repository.ts` (tên đề xuất `cauDoiCapRieng`),
 
 Dùng lại hai mã đã có, `prc_party_tier_closed` và `prc_party_tier_set`, như «Đổi chính sách» của loại dùng lại `prc_role_tier_closed` và `prc_role_tier_set`. **Không thêm mã nhật ký**, nên `src/shared/audit-actions.ts` không cần dòng mới.
 
-Phần chi tiết theo khuôn của route đặt và route ngừng: `mức riêng <tên cấp cũ> · đến <ngày>` và `mức riêng <tên cấp mới> · từ <ngày>`. Chỉ tên cấp và ngày, không tên hay liên hệ của đối tác. Có giữ chữ «mức riêng» trong chi tiết hay không là câu chủ quyết ở đặc tả bản 2 §7, vì nhật ký cũ chỉ thêm và không sửa được. Mặc định an toàn là giữ khuôn cũ cho đồng bộ với các dòng đã có.
+Phần chi tiết theo khuôn của route đặt và route ngừng: `mức riêng <tên cấp cũ> · đến <ngày>` và `mức riêng <tên cấp mới> · từ <ngày>`. Chỉ tên cấp và ngày, không tên hay liên hệ của đối tác. Chủ đã chốt giữ khuôn cũ này (quyết định 8; câu hỏi từng nằm ở đặc tả bản 2 §12 câu 2), vì nhật ký chỉ thêm, dòng cũ không sửa được.
 
 ### Đ7 — Migration
 
@@ -89,28 +89,38 @@ Phần chi tiết theo khuôn của route đặt và route ngừng: `mức riên
 
 - **Gỡ cả tính năng:** hoàn mã (bỏ route, bỏ câu `party_tier_change_insert`, ẩn nút «Đổi cấp» trên trang), rồi phát hành theo `docs/HANDOFF-N1.md`. Không có bước dữ liệu nào. Các dòng route đã ghi giống hệt cặp «Ngừng» rồi «Đặt cấp riêng» hôm nay, nên mã cũ đọc chúng bình thường.
 - **Gỡ một lần đổi bấm nhầm:** dòng cũ đã đóng thì không mở lại được, vì trigger chỉ cho đóng một lần. Cách gỡ là bấm «Sửa» trên dòng mới, chọn lại cấp cũ, giữ ngày bắt đầu `tuNgay`, ghi lý do. Chưa đơn nào chụp theo dòng mới thì «Sửa» huỷ–thay, và kết quả tương đương như chưa đổi. Đã có đơn chụp thì phần sửa chỉ áp từ hôm nay, còn đơn đã chụp giữ mức đã chụp.
+- **Giới hạn: cấp cũ đang khoá thì không gỡ ngay được** (QA1 lần 2 điểm 7d). «Sửa» chèn một dòng trỏ cấp cũ, mà `prc_party_tier_tier_ok` (0118) chặn mọi câu chèn trỏ cấp đang khoá, nên lệnh trả 409 `muc_tat`. Đổi **ra khỏi** cấp khoá làm được, nhưng đổi **về** cấp khoá thì không. Người dùng phải làm theo thứ tự: (1) «Mở lại cấp» cũ; (2) «Sửa» dòng mới về cấp cũ như trên; (3) nếu vẫn cần, «Khoá cấp» lại. Trong lúc cấp đang mở, cấp đó nhận được lần xếp và dòng mức mới, nên làm ba bước liền tay. Hộp «Đổi cấp» trên giao diện vì vậy phải nói trước giới hạn này khi cấp cũ đang khoá: «Cấp cũ «<tên>» đang khoá. Đổi xong thì không đổi ngược về cấp này được, trừ khi mở lại cấp.»
 
 ## Tiêu chí nghiệm thu (đỏ trước, xanh sau)
 
 1. **Bài route** `src/modules/pricing/doi-cap-rieng.test.ts` (khuôn `doi-chinh-sach.test.ts`):
    - đổi từ hôm nay: dòng cũ ngừng hôm qua, dòng mới mở từ hôm nay; «Thử tra» cho hồ sơ ra bậc 10–12 của cấp mới;
    - cấp trùng ⇒ 400; cấp tắt ⇒ 409 đúng câu; cấp không có ⇒ 404; thân sai ⇒ 400;
-   - đủ các câu của `kiemDoi` theo chữ của cấp riêng, ghim nguyên văn, và không ghi gì;
+   - đủ các câu của `kiemDoi` **nguyên văn như hôm nay** (lệch có tên ở Đ3, gồm `rules.ts:335` và `:338`), và không ghi gì;
+   - cấp cũ đang khoá: đổi sang cấp khác ⇒ 200; «Sửa» dòng mới về cấp cũ đang khoá ⇒ 409 `muc_tat` (giới hạn Đ8);
    - hồ sơ thôi mang loại được hưởng ⇒ 400, không ghi gì;
    - đã có đơn chụp tới X ⇒ `tuNgay ≤ X` bị chặn;
    - thiếu hàm tiêm «đã chụp chưa» ⇒ 503.
 2. **Đua thật qua route:** hai lệnh đổi (hoặc đổi và ngừng) cùng lúc trên một dòng thì đúng một lệnh thắng, lệnh kia nhận 409 `stale`, và sau cùng hồ sơ có đúng một cấp riêng hiệu lực ở mỗi ngày. Sửa cố ý câu chèn (bỏ `CASE WHEN changes() > 0`) thì bài này phải đỏ, rồi hoàn nguyên (P16). Thêm một dòng ở `docs/SO-HANG-RAO.md`, khuôn dòng «Đổi chính sách», ghi ngày quan sát chặn thật.
-3. **Quyền:** `src/so-dai-ly-quyen-route.test.ts` thêm ca 403 cổng cho Tài xế công ty, Tài xế đối tác, Nhân sự, Đối tác và Bán hàng (không có `partner.commission.write`), không ghi gì; Kế toán thì đổi được.
+3. **Quyền:** `src/so-dai-ly-quyen-route.test.ts` thêm ca 403 cổng cho Tài xế công ty, Tài xế đối tác, Nhân sự, Hướng dẫn viên (`FIELD`), Đối tác, tài khoản lai Kế toán + Đối tác (`["ACCOUNTING", "PARTNER"]`, bị chặn vì `holdsPartner`), và Bán hàng (không có `partner.commission.write`), không ghi gì; Kế toán thì đổi được. Khuôn: bài «tìm người hưởng (ADR-0141)» cùng tệp.
 4. **Danh sách route:** `src/route-access.test.ts` thêm dòng `POST /api/pricing/muc-rieng/:id/doi` (office); số đếm route ghi ở `src/lan-gui-phu-route.test.ts` tăng 1, kèm chú thích lý do như các lần trước.
 5. **Kiến trúc:** `src/architecture.test.ts` xanh. Câu mới chỉ ghi `prc_party_tier` và nằm trong module `pricing`.
 6. `npm test`, `npm run typecheck` xanh; `git diff main -- migrations/ src/shared/permissions.ts src/shared/contracts.ts` rỗng.
 7. Việc lớn (tiền), nên phải có người kiểm độc lập chỉ đọc trước khi báo đạt.
+8. `git diff main --stat` của phần 2 chỉ gồm tệp trong mục «Tệp được chạm» dưới đây.
 
-## Trang ghép (`CLAUDE.md` §9: lượt duyệt này có hai quyết định, đặc tả bản 2 và ADR-0151)
+## Tệp được chạm (danh sách duy nhất cho phần 2; đặc tả trỏ về đây)
+
+- **Máy chủ:** `src/modules/pricing/index.ts` (route mới); `src/modules/pricing/repository.ts` (câu `party_tier_change_insert`, hàm `cauDoiCapRieng`). **Không** chạm `src/modules/pricing/rules.ts` (quyết định 9), `migrations/`, `src/shared/permissions.ts`, `src/shared/contracts.ts`, `src/shared/audit-actions.ts`.
+- **Giao diện:** `web/hoa-hong*.ts` (nút «Đổi cấp» ở thẻ một đối tác, hộp đổi, câu cảnh báo cấp cũ đang khoá ở Đ8); `src/shared/hoa-hong-hien-thi.ts` (chữ của hộp và luật hiện nút, nếu cần) cùng `src/shared/hoa-hong-hien-thi.test.ts`. Không chạm `web/parties.ts` (Danh bạ không thêm nút ở lượt này).
+- **Bài kiểm:** `src/modules/pricing/doi-cap-rieng.test.ts` (mới); `src/so-dai-ly-quyen-route.test.ts`; `src/route-access.test.ts`; `src/lan-gui-phu-route.test.ts`; kịch bản `docs/evidence/2026-10-26-hoa-hong-thiet-ke-lai/kich-ban/hoa-hong-smoke.mjs` (thêm bước «Đổi cấp»).
+- **Tài liệu:** `docs/SO-HANG-RAO.md` (dòng hàng rào đua); `docs/SYSTEM-DESIGN.md` (bảng route pricing); `src/shared/huong-dan-ke-toan.ts` (một câu về «Đổi cấp», kèm `src/shared/huong-dan.test.ts` A2); `src/shared/changelog.ts` (mục phát hành); dòng trạng thái của ADR này khi chủ duyệt.
+
+## Trang ghép (`CLAUDE.md` §9: lượt duyệt này có hai quyết định, đặc tả bản 3 và ADR-0151)
 
 | Câu hỏi | Trả lời |
 |---|---|
 | Bảng `prc_party_tier` chứa loại thực thể nào? | Một loại: lần gắn một cấp đại lý cho **một hồ sơ đối tác**, có ngày bắt đầu và ngày kết thúc. Không thêm loại dữ liệu mới. |
 | Dòng nào của bản đồ quyền chạm bảng này? | Ghi: `partner.commission.write` (Kế toán, Quản trị, Toàn quyền), trừ người giữ quyền Đối tác, cho cả bốn route đặt, ngừng, sửa, **đổi**. Đọc: `partner.commission.view` (Bán hàng, Kế toán, Quản trị, Toàn quyền) qua `GET /muc-ta` (`ganRieng`) và `GET /ho-so/:id/hoa-hong`. Chụp đơn đọc qua `docBangChoChup`, không theo quyền người bấm. |
 | Cổng nào canh cửa nào? | Máy chủ: cổng ở đầu route (Đ2), trigger 0118 và 0126 (Đ3 bước 8). Giao diện: nút «Đổi cấp» ở thẻ một đối tác trên trang Hoa hồng chỉ hiện khi `coQuyenSua(nguoiDung)` và lần gắn đang áp dụng, chưa có ngày ngừng (`nutDoiNgung` trên `HoaHongHoSoResponse.ganRieng`). Ẩn nút không thay cổng: máy chủ luôn kiểm lại. Trang Danh bạ (`web/parties.ts`) **không** thêm nút ở lượt này. |
-| Đặc tả bản 2 chạm quyền hay dữ liệu không? | Không. Phần 1 chỉ đổi giao diện và chữ trong câu báo lỗi, câu hướng dẫn (quyết định 6). Phần 2 chính là ADR này. |
+| Đặc tả bản 3 chạm quyền hay dữ liệu không? | Không. Phần 1 chỉ đổi giao diện và chữ trong câu báo lỗi, câu hướng dẫn (quyết định 6). Phần 2 chính là ADR này. |

@@ -71,3 +71,9 @@ Chỉ ghi dòng mà bản 2 đổi phân loại hay cách làm; các dòng khác
 - **T3.** Tên cấp dài **2–60** ký tự (`src/modules/pricing/rules.ts:374`), không phải «≤ 60».
 - **T4.** «Mẫu bản vẽ đếm 7» chưa kiểm.
 - **Ghi chú «Bản vẽ trái luật đã duyệt».** Ở mục này, «T14 (ruling N-23…)» đọc là «T14 (giả định N-23, chủ chốt 30/10)».
+
+## Bổ sung bản 3 (2026-10-30, sau QA1 lần 2 và quyết định 7–9)
+
+Không dòng nào đổi phân loại. Hai ghi chú:
+- **Cách đếm** (QA1 lần 2, mục Ghi): mỗi dòng T đếm **một lần, theo loại cao nhất trong các phần của nó**. T31 có phần đặt, sửa, ngừng là A và phần «Đổi cấp riêng» là B, nên tính là B. Vì thế «35 A · 1 B» nghĩa là 35 dòng chỉ có phần A và 1 dòng (T31) có một phần B.
+- **T14:** nhãn đã chốt «Khoá cấp» / «Mở lại cấp» (quyết định 7); dòng «chờ chủ xác nhận chữ» ở bảng bản 2 đọc là «đã chốt».
