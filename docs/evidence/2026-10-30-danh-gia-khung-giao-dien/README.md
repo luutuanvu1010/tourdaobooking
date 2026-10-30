@@ -48,3 +48,19 @@ truy vấn chỉ-đọc trên kho tạm.
 
 Chrome máy thử không phải iPhone thật (vùng an toàn, bàn phím, kiểu ô ngày giờ theo ngôn ngữ máy chưa kiểm). Một bộ dữ liệu, chỉ trạng thái lúc mở trang.
 Bộ đo lưới bố cục 30/10 (`docs/evidence/2026-10-30-luoi-bo-cuc/`) đã đo kỹ bề rộng và hàng «chữ một đầu» trên gần cùng mã — phiên này không chạy lại toàn bộ, chỉ trích số.
+
+## Lượt 2 — thi công «sửa hiển thị và luật khung» (cùng ngày, sau khi chủ duyệt)
+
+Kế hoạch + nhật ký: `docs/superpowers/plans/2026-10-30-sua-hien-thi-va-luat-khung.md`; bản xem trước cho chủ: `docs/superpowers/specs/2026-10-30-danh-gia-khung-giao-dien/XEM-TRUOC.md`.
+
+- **Máy thử dùng đúng tệp giao diện công ty của production** (GET công khai `https://booking.tourdao.vn/giao-dien.css` 30/10 = `--c-text:#000000; --fs-h1:20px;
+  --fs-label:16px; --fs-step-5:17px`; áp vào kho tạm bằng PUT `/api/giao-dien` với tài khoản Toàn quyền thử). Số đo lượt 1 dùng giá trị mặc định nên nhẹ tay hơn bản thật
+  (244 chỗ cắt so với 256).
+- Thứ tự: ảnh «trước» (`/tmp/ux/truoc2`) + `do-loi.py` + `soi-thanh-ben.py` chạy **trước khi sửa** → sửa → ảnh «sau» (`/tmp/ux/sau3`, `chup.py --cho 2500`, chờ khung tạm
+  ADR-0035 được thay) + đo lại cùng tham số.
+- `so-lieu/loi-hien-thi-truoc-giao-dien-that.json` / `loi-hien-thi-sau.json`: 138 ô mỗi bên, 0 lỗi kịch bản. Chữ bị cắt thật 256 → 11; tràn ngang 1 → 0; khối «một đầu» ở
+  1440 142 → 123.
+- `so-lieu/thanh-ben-1366x650-truoc-giao-dien-that.txt` / `…-sau.txt`: mục đang mở bị khuất Toàn quyền 19/32 → 0/32, Kế toán 6/14 → 0/14.
+- `anh/xem-truoc/`: 15 ảnh đôi trước / sau (`kich-ban/ghep-xem-truoc.py`).
+- Phép dò bắt được hai lỗi do chính lượt thi công gây ra và đã sửa trước khi chốt: thanh trên tràn ở trang con sâu (đặt `flex-shrink` nhỏ hơn 1 cho tiêu đề — chuẩn
+  flexbox §9.7 chỉ chia một phần phần thiếu) và luật bảng Đơn hàng áp nhầm vào thẻ đơn mẫu ở ô xem trước của màn Giao diện công ty.

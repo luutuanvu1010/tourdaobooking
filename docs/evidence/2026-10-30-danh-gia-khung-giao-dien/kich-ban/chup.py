@@ -16,6 +16,7 @@ ap.add_argument("--trang", default="")
 ap.add_argument("--ra", default="/tmp/ux/anh")
 ap.add_argument("--css", default="")
 ap.add_argument("--man", type=int, default=3, help="chụp tối đa N màn chiều cao")
+ap.add_argument("--cho", type=int, default=1800, help="chờ sau khi tải (ms) — máy bận thì tăng")
 ap.add_argument("--tk", default=os.environ.get("UX_TK_FILE", "/tmp/ux/tai-khoan.json"))
 ap.add_argument("--id", default="/tmp/ux/id.json")
 a = ap.parse_args()
@@ -50,7 +51,8 @@ with sync_playwright() as pw:
                 thu_muc = os.path.join(a.ra, vai); os.makedirs(thu_muc, exist_ok=True)
                 try:
                     pg.goto(url(p), wait_until="load", timeout=30000)
-                    pg.wait_for_timeout(1800)
+                    pg.wait_for_timeout(a.cho)
+                    pg.wait_for_function("!document.querySelector('[data-khung-tam]')", timeout=15000)  # khung tạm (ADR-0035) đã được thay bằng khung thật
                     if css_them:
                         pg.add_style_tag(content=css_them); pg.wait_for_timeout(300)
                     cao = pg.evaluate("document.documentElement.scrollHeight")
