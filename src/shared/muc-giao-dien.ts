@@ -104,6 +104,8 @@ export const TRANG = {
   hoaHong: { duong: "/hoa-hong", hien: (s) => can(s, "partner.commission.view") && !holdsPartner(s) },
   // Luật bán theo loại đối tác (ADR-0146 Đ5; kế hoạch 2026-10-30 T11): CÙNG điều kiện ba route `/api/pricing/luat-ban` — ô sales.block.write và không giữ quyền Đối tác (Q-2 (a)).
   luatBan: { duong: "/luat-ban", hien: (s) => can(s, "sales.block.write") && !holdsPartner(s) },
+  // Đặc điểm dịch vụ (ADR-0152 Đ3, Đ5; T12): CÙNG điều kiện route `GET /api/catalog/dac-diem` — catalog.attribute.assign hoặc admin.manage, không giữ quyền Đối tác (Q-2 (a)).
+  dacDiem: { duong: "/dac-diem-dich-vu", hien: (s) => (can(s, "catalog.attribute.assign") || can(s, "admin.manage")) && !holdsPartner(s) },
   nguoiBan: { duong: "/nguoi-ban", hien: (s) => can(s, "supply.terms.view") && !holdsPartner(s) },
   // Chụp bù mức (sổ đại lý đợt 2, Task 12; ADR-0079 điều 7 b2): CÙNG cổng route `GET /api/orders/cho-chup-bu` — ô order.terms.override và không giữ quyền Đối tác (kể cả lai).
   chupBu: { duong: "/chup-bu", hien: (s) => can(s, "order.terms.override") && !holdsPartner(s) },
@@ -201,6 +203,7 @@ export const THANH_BEN = [
   { nhom: "THIẾT LẬP", trang: "nguoiBan", nhan: "Người bán dịch vụ" },
   { nhom: "THIẾT LẬP", trang: "chupBu", nhan: "Chụp bù mức" },
   { nhom: "THIẾT LẬP", trang: "dichVu", nhan: "Dịch vụ & giá" },
+  { nhom: "THIẾT LẬP", trang: "dacDiem", nhan: "Đặc điểm dịch vụ" },
   { nhom: "THIẾT LẬP", trang: "diaDiem", nhan: "Địa điểm" },
   { nhom: "THIẾT LẬP", trang: "loaiGiayToNguoi", nhan: "Loại giấy tờ cá nhân" },
   { nhom: "THIẾT LẬP", trang: "loaiGiayToXe", nhan: "Loại giấy tờ xe" },
@@ -287,6 +290,7 @@ export const TRANG_TOI = [
   { phan: "sau", trang: "dieuChinhCongNo", nhan: "Điều chỉnh công nợ" },
   { phan: "sau", trang: "hoaHong", nhan: "Hoa hồng đối tác" },
   { phan: "sau", trang: "luatBan", nhan: "Luật bán" },
+  { phan: "sau", trang: "dacDiem", nhan: "Đặc điểm dịch vụ" },
   { phan: "sau", trang: "nguoiBan", nhan: "Người bán dịch vụ" },
   { phan: "sau", trang: "chupBu", nhan: "Chụp bù mức" },
   { phan: "sau", trang: "nhatKy", nhan: "Nhật ký" },

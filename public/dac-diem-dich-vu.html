@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"><meta name="robots" content="noindex"><meta name="theme-color" content="#ffffff"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><link rel="stylesheet" href="/giao-dien.css"><title>Đặc điểm dịch vụ — Island Booking System</title></head>
+<body data-title="Đặc điểm dịch vụ" data-back="/account">
+<header id="topbar"></header>
+<main>
+  <!-- Đặc điểm dịch vụ (ADR-0152 Đ1, Đ3, Đ4, Đ5). Xem + gắn cho dịch vụ: ô catalog.attribute.assign (Bán hàng, Quản trị, Toàn quyền); thẻ «Theo nhóm», «Định nghĩa»: admin.manage.
+       Tài khoản giữ quyền Đối tác (kể cả lai) không vào được (máy chủ 403). web/dac-diem-dich-vu.ts dựng nội dung; chữ cảnh báo ở src/shared/dac-diem-hien-thi.ts.
+       id cố định cho kịch bản Chrome: #dd-tab-*, #dd-the-*, #dd-tim, #dd-them-dac-diem. -->
+  <div class="lb-dau">
+    <h1>Đặc điểm dịch vụ</h1>
+  </div>
+  <p class="muted">Đặc điểm là thông tin của dịch vụ (ví dụ «Gồm vé tàu: Có / Không») để đặt luật bán theo đặc điểm. Giá trị riêng của một dịch vụ thắng giá trị chung của nhóm.</p>
+  <div id="error" class="alert" role="alert" hidden></div>
+  <div id="dd-dai" class="dai" data-tong="cat" hidden></div>
+  <div id="dd-noi-dung" hidden>
+    <div class="tab-phu" data-kieu="vien" role="tablist" aria-label="Đặc điểm dịch vụ">
+      <button type="button" role="tab" id="dd-tab-gan" aria-selected="true" aria-controls="dd-the-gan" tabindex="0">Gắn cho dịch vụ</button>
+      <button type="button" role="tab" id="dd-tab-chua-khai" aria-selected="false" aria-controls="dd-the-chua-khai" tabindex="-1">Chưa khai</button>
+      <button type="button" role="tab" id="dd-tab-moi" aria-selected="false" aria-controls="dd-the-moi" tabindex="-1">Mới, đang theo nhóm</button>
+      <button type="button" role="tab" id="dd-tab-nhom" aria-selected="false" aria-controls="dd-the-nhom" tabindex="-1" hidden>Theo nhóm</button>
+      <button type="button" role="tab" id="dd-tab-dinh-nghia" aria-selected="false" aria-controls="dd-the-dinh-nghia" tabindex="-1" hidden>Định nghĩa</button>
+    </div>
+    <section id="dd-the-gan" class="lb-the" role="tabpanel" aria-labelledby="dd-tab-gan"></section>
+    <section id="dd-the-chua-khai" class="lb-the" role="tabpanel" aria-labelledby="dd-tab-chua-khai" hidden></section>
+    <section id="dd-the-moi" class="lb-the" role="tabpanel" aria-labelledby="dd-tab-moi" hidden></section>
+    <section id="dd-the-nhom" class="lb-the" role="tabpanel" aria-labelledby="dd-tab-nhom" hidden></section>
+    <section id="dd-the-dinh-nghia" class="lb-the" role="tabpanel" aria-labelledby="dd-tab-dinh-nghia" hidden></section>
+  </div>
+</main>
+<script type="module" src="/js/dac-diem-dich-vu.js"></script>
+</body></html>

@@ -28,7 +28,9 @@ const CHO_PHEP_NHAT_KY = new Set(["web/help.ts"]);
 // Nới 96.700 → 101.719 (đợt 0 khung chung, 2026-10-29): mã vỏ chung (dải, ẩn thanh tab động, thanh tab theo bộ quyền) vào gói mọi trang; không nhật ký thay đổi, không mã nghiệp vụ. Đo sau Task 15/15b (Q-2) = 101.619 byte.
 // Nới 101.719 → 101.824 (ADR-0146 T11, 30/10): gói nhúng `muc-giao-dien.ts` — thêm trang /luat-ban vào `TRANG`/`THANH_BEN`/`TRANG_TOI` (chỉ dữ liệu điều hướng, không mã giao diện
 // vào trang Đơn hàng). Đo thật 101.824 byte (+105). Không gọn được mà không đổi khuôn bảng mục chung.
-const TRAN_ORDERS = 101_824;
+// Nới 101.824 → 102.250 (ADR-0152 T12, 30/10): trang /dac-diem-dich-vu vào `TRANG`/`THANH_BEN`/`TRANG_TOI` + một nhánh huy hiệu «chưa khai» ở `trinhBay` của web/shell.ts
+// (ADR-0152 Đ5 mục 3, khuôn huy hiệu «Dịch vụ & giá»; chỉ gọi khi mục thật sự hiện). Đo thật 102.250 byte (+426). Không mã nghiệp vụ nào vào trang Đơn hàng.
+const TRAN_ORDERS = 102_250;
 
 function dung(trang: string) {
   const r = buildSync({

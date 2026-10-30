@@ -2,6 +2,7 @@
 // MỘT phép xét (`chanBan`) cho mọi cửa ghi đơn và bộ lọc danh mục — gọi qua hàm công bố của `pricing` (T6), không viết phép thứ hai ở `orders`.
 // Hiệu lực dùng CHUNG `hieuLuc` của rules.ts (ngày dân sự Việt Nam, gồm cả hai đầu). Giá trị đặc điểm của dịch vụ là giá trị HIỆU LỰC đã đọc từ view
 // `v_ctl_service_attribute` (riêng thắng chung tính ở view — không tính lại ở đây). Mã không biết loại, nhóm, đặc điểm nào: chỉ so khoá với khoá.
+import { phuDichVu } from "../../shared/luat-ban-phu.ts";
 import { addDays } from "../../shared/vn-date.ts";
 import { MA_RE, docGhiChu, hieuLuc, laNgay } from "./rules.ts";
 
@@ -26,14 +27,8 @@ export interface DichVuXet { code: string; nhom: string | null; giaTri: Readonly
 /** Một lần trúng luật: mã dịch vụ + luật trúng; với luật theo đặc điểm kèm mã đặc điểm / giá trị để lấy TÊN qua hàm công bố của catalog. */
 export interface TrungLuat { catalogCode: string; luatId: string; roleTypeCode: string; scope: PhamViLuatBan; attributeCode: string | null; valueCode: string | null }
 
-/** Một luật có phủ một dịch vụ không (ADR-0152 Đ2, ba vế). Dịch vụ chưa khai đặc điểm thì vế 3 không phủ (Đ5). */
-function phu(l: DongLuatBan, d: DichVuXet): boolean {
-  if (l.scope === "SERVICE") return l.catalogCode === d.code;
-  if (l.scope === "GROUP") return l.groupCode !== null && l.groupCode === d.nhom;
-  if (l.attributeCode === null || l.valueCode === null) return false;
-  if (d.giaTri.get(l.attributeCode) !== l.valueCode) return false;
-  return l.groupCode === null || l.groupCode === d.nhom;
-}
+/** Một luật có phủ một dịch vụ không: luật thuần DÙNG CHUNG với giao diện (src/shared/luat-ban-phu.ts — cảnh báo ở màn đặc điểm / gán nhóm). */
+const phu = (l: DongLuatBan, d: DichVuXet): boolean => phuDichVu(l, d);
 
 /**
  * ADR-0146 Đ2 + ADR-0152 Đ2: dịch vụ bị chặn khi bên đặt mang ít nhất một loại có luật còn hiệu lực ở `ngay` (giờ Việt Nam lúc thao tác) phủ dịch vụ đó. Luật cộng dồn
