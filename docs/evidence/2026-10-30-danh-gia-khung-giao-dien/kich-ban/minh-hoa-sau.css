@@ -1,0 +1,108 @@
+/* ============================================================================================================
+   LỚP CSS MINH HOẠ — phiên đánh giá khung giao diện 30/10/2026
+   CHỈ để chụp ảnh «sau» (chèn tạm bằng kịch bản chup.py --css). KHÔNG phải mã sản phẩm, KHÔNG nạp vào Nền tảng.
+   Viết thẳng giá trị px cho nhanh — bản thi công thật phải đi qua token ở :root của public/app.css (web/CLAUDE.md).
+   Mỗi khối ghi mã phát hiện trong BAO-CAO.md.
+   ============================================================================================================ */
+
+/* [K1] Một tiêu đề mỗi trang trên máy tính — theo quyết định cổng 2b (tên trang ở thanh trên) */
+@media (min-width: 900px) {
+  body.has-sidebar main > h1,
+  body.has-sidebar main > header > h1,
+  body.has-sidebar .cx-tieu-de { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  body.has-sidebar #topbar .bar-title { font-size: 18px; font-weight: 600; color: #0f172a; }
+}
+
+/* [K2] Ngắt nghỉ thị giác: tiêu đề khối màu chữ chính (đen than), màu thương hiệu để dành cho thứ bấm được */
+.card > h2, section.card > h2, .card h2:first-child { color: #0f172a; font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
+
+/* [D1] Chi tiết đơn — dải tóm tắt: bỏ ô «Mã đơn» lặp thanh trên, 4 cột chia đều, không ép chữ từng từ */
+.order-summary-band { display: block; padding: 20px 24px; }
+.order-summary-band > div:first-child { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.order-summary-band > div:first-child .label { display: none; }
+.order-summary-band > div:first-child .value { font-size: 20px; }
+.order-summary-band .sep { display: none; }
+.order-summary-band .grid4 { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px 24px; }
+@media (max-width: 640px) { .order-summary-band .grid4 { grid-template-columns: 1fr 1fr; } }
+
+/* [D2] Chi tiết đơn — một thanh công cụ: các việc sửa bên trái, «Huỷ đơn» tách sang phải */
+@media (min-width: 900px) {
+  main:has(> #order) { display: flex; flex-wrap: wrap; column-gap: 12px; align-content: flex-start; }
+  main:has(> #order) > * { flex: 1 1 100%; }
+  main:has(> #order) > #send { flex: 0 0 auto; order: 1; }
+  main:has(> #order) > #actions { flex: 1 1 auto; order: 2; }
+  main:has(> #order) > #actions .huy-don { margin-left: auto; }
+  main:has(> #order) > #order, main:has(> #order) > #error { order: 3; }
+}
+
+/* [D3] Cặp nhãn – giá trị: giá trị đứng ngay cạnh nhãn, không trôi sang mép phải cách 500 px */
+@media (min-width: 900px) {
+  .order-layout .kv { display: grid; grid-template-columns: 160px minmax(0, 1fr); justify-content: start; }
+  .order-layout .kv > span:last-child { text-align: left; }
+  .order-layout .side .kv { grid-template-columns: minmax(0, 1fr) auto; }
+  .order-layout .side .kv > span:last-child { text-align: right; }
+  .order-layout .side { position: sticky; top: 76px; align-self: start; }
+}
+
+/* [L1] Danh sách đơn trên máy tính: một dòng = một đơn, cột thẳng hàng như bảng (thay thẻ «chữ trái – nhãn phải») */
+@media (min-width: 1100px) {
+  .order-card { padding: 10px 12px 10px 16px; margin-bottom: 0; border-radius: 0; border-width: 0 0 1px; box-shadow: none; }
+  .order-card:first-of-type { border-top-left-radius: 12px; border-top-right-radius: 12px; }
+  .order-card:hover { transform: none; box-shadow: none; background: #f8fafc; }
+  .order-row { display: grid; grid-template-columns: 112px minmax(0, 1.5fr) 132px 72px 150px 168px; align-items: center; column-gap: 16px; row-gap: 2px; }
+  .order-row-top, .order-card-line2 { display: contents; }
+  .order-row-index { display: none; }
+  .order-row-when { grid-column: 1; grid-row: 1; font-variant-numeric: tabular-nums; }
+  .order-row-name { grid-column: 2; grid-row: 1; font-weight: 600; }
+  .order-row-phone { grid-column: 3; grid-row: 1; }
+  .order-row-pax { grid-column: 4; grid-row: 1; overflow: visible; }
+  .order-row-remaining { grid-column: 5; grid-row: 1; text-align: right; justify-self: end; }
+  .order-row-top .badge { grid-column: 6; grid-row: 1; justify-self: start; }
+  .order-card-line3 { grid-column: 2 / 6; grid-row: 2; }
+  .order-row-phone, .order-row-pax, .order-row-remaining { font-size: 14px; color: #475569; }
+}
+
+/* [L2] Thẻ đơn trên điện thoại: không bao giờ cắt tên, số khách, số tiền; nhãn trạng thái luôn ở dòng riêng, cùng một chỗ ở mọi thẻ */
+@media (max-width: 640px) {
+  .order-row-top { display: grid; grid-template-columns: auto auto minmax(0, 1fr); column-gap: 8px; row-gap: 4px; align-items: baseline; }
+  .order-row-name { white-space: normal; overflow: visible; font-weight: 600; }
+  .order-row-top .badge { grid-column: 1 / -1; grid-row: 2; justify-self: start; }
+  .order-card-line2 { flex-wrap: wrap; overflow: visible; }
+  .order-row-pax { flex: none; overflow: visible; }
+  .order-row-place { white-space: normal; }
+}
+
+/* [T1] Trang chủ máy tính: thẻ doanh thu không kéo hết bề ngang với biểu đồ tí hon ở góc */
+@media (min-width: 900px) {
+  .dash-smt-o-dt { flex-wrap: nowrap; align-items: center; gap: 32px; }
+  .dash-smt-o .dash-revenue-chart { flex: 1 1 auto; width: auto; max-width: 560px; margin-left: auto; }
+  .dash-chart-bars { height: 72px; }
+}
+
+/* [C1] Chờ xác nhận: nút chốt cỡ vừa, đặt cạnh thông tin — không kéo 1.100 px lặp lại mỗi thẻ */
+@media (min-width: 900px) {
+  .cx-the { grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 24px; }
+  .cx-the > * { grid-column: 1; }
+  .cx-the > .cx-ds-nut, .cx-the > a.btn { grid-column: 2; grid-row: 1 / span 6; align-self: center; width: auto; padding-inline: 28px; }
+}
+
+/* [A1] Trang «Tôi»: các thẻ tự xếp kín hai cột (kiểu cột báo) thay cho lưới hai cột ép hàng ngang để lại hố trống;
+   màn hẹp hơn 2 × 520 px tự về một cột */
+@media (min-width: 900px) {
+  .account-layout { display: block; columns: 2 520px; column-gap: 16px; }
+  .account-layout > * { break-inside: avoid; margin: 0 0 16px; }
+  .account-layout > .vc-eyebrow { break-after: avoid; margin-bottom: 8px; }
+}
+
+/* [S1] Chân thanh bên: tên và vai của chính người dùng không bị cắt; «Đăng xuất» xuống dòng riêng */
+@media (min-width: 900px) {
+  .sidebar-foot { grid-template-columns: minmax(0, 1fr); }
+  .sidebar-foot > .sidebar-logout { grid-column: 1; justify-self: start; }
+  .sidebar-name, .sidebar-role { white-space: normal; }
+}
+
+/* [N1] Nút liên kết trong bảng: bỏ gạch chân dày kiểu web cũ, giữ màu, gạch chân khi rê chuột */
+@media (min-width: 900px) {
+  main table a, main table .btn-link, main .link-btn { text-decoration: none; font-weight: 500; }
+  main table a:hover, main table .btn-link:hover { text-decoration: underline; }
+}

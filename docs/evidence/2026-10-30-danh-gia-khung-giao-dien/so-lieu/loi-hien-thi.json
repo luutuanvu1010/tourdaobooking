@@ -1,0 +1,6273 @@
+[
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/",
+  "kho": 390,
+  "url": "/",
+  "cat": [
+   {
+    "el": "span.dash-hero-ten",
+    "chu": "Toàn Quyền Thử",
+    "rong": 134,
+    "can": 136
+   },
+   {
+    "el": "h1.visually-hidden",
+    "chu": "Trang chủ",
+    "rong": 1,
+    "can": 117
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/",
+  "kho": 390,
+  "url": "/",
+  "cat": [
+   {
+    "el": "span.dash-hero-ten",
+    "chu": "Toàn Quyền Thử",
+    "rong": 134,
+    "can": 136
+   },
+   {
+    "el": "h1.visually-hidden",
+    "chu": "Trang chủ",
+    "rong": 1,
+    "can": 117
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/orders",
+  "kho": 390,
+  "url": "/orders",
+  "cat": [
+   {
+    "el": "span.order-row-name",
+    "chu": "Ngô Thị Mai",
+    "rong": 36,
+    "can": 92
+   },
+   {
+    "el": "span.order-row-pax.icon-label",
+    "chu": "2NL",
+    "rong": 33,
+    "can": 48
+   },
+   {
+    "el": "span.order-row-place",
+    "chu": "Đón tại Khách sạn Vinpearl Beachfront, 78 Trần Phú",
+    "rong": 252,
+    "can": 351
+   },
+   {
+    "el": "span.order-row-name",
+    "chu": "Hồ Văn Sơn",
+    "rong": 35,
+    "can": 89
+   },
+   {
+    "el": "span.order-row-pax.icon-label",
+    "chu": "2NL",
+    "rong": 39,
+    "can": 48
+   },
+   {
+    "el": "span.order-row-place",
+    "chu": "Đón tại Khách sạn Havana, 38 Trần Phú",
+    "rong": 252,
+    "can": 267
+   },
+   {
+    "el": "span.order-row-pax.icon-label",
+    "chu": "1NL 1TE",
+    "rong": 64,
+    "can": 71
+   },
+   {
+    "el": "span.order-row-name",
+    "chu": "Vũ Mỹ Linh",
+    "rong": 42,
+    "can": 83
+   },
+   {
+    "el": "span.order-row-name",
+    "chu": "Phan Hữu Phước",
+    "rong": 93,
+    "can": 126
+   },
+   {
+    "el": "span.order-row-name",
+    "chu": "Huỳnh Thanh Tâm",
+    "rong": 92,
+    "can": 138
+   },
+   {
+    "el": "span.order-row-name",
+    "chu": "Phạm Ngọc Trâm",
+    "rong": 124,
+    "can": 133
+   },
+   {
+    "el": "span.order-row-name",
+    "chu": "Khách của Lữ Hành Thử 13",
+    "rong": 89,
+    "can": 203
+   },
+   {
+    "el": "span.order-row-pax.icon-label",
+    "chu": "3NL",
+    "rong": 32,
+    "can": 48
+   },
+   {
+    "el": "span.order-row-name",
+    "chu": "Khách của Lữ Hành Thử 6",
+    "rong": 85,
+    "can": 197
+   },
+   {
+    "el": "span.order-row-pax.icon-label",
+    "chu": "2NL",
+    "rong": 28,
+    "can": 48
+   },
+   {
+    "el": "span.order-row-name",
+    "chu": "Khách của Cộng Tác Thử 11",
+    "rong": 89,
+    "can": 211
+   },
+   {
+    "el": "span.order-row-pax.icon-label",
+    "chu": "1NL 1TE",
+    "rong": 44,
+    "can": 71
+   },
+   {
+    "el": "span.order-row-name",
+    "chu": "Khách của Cộng Tác Thử 4",
+    "rong": 86,
+    "can": 210
+   },
+   {
+    "el": "span.order-row-pax.icon-label",
+    "chu": "4NL",
+    "rong": 28,
+    "can": 49
+   },
+   {
+    "el": "span.order-row-name",
+    "chu": "Trần Văn Bình",
+    "rong": 94,
+    "can": 106
+   },
+   {
+    "el": "span.order-row-pax.icon-label",
+    "chu": "4NL",
+    "rong": 41,
+    "can": 49
+   },
+   {
+    "el": "span.order-row-name",
+    "chu": "Nguyễn Thị Lan Anh",
+    "rong": 89,
+    "can": 153
+   },
+   {
+    "el": "span.order-row-pax.icon-label",
+    "chu": "3NL",
+    "rong": 36,
+    "can": 48
+   },
+   {
+    "el": "span.order-row-name",
+    "chu": "Lý Phương Thảo",
+    "rong": 20,
+    "can": 125
+   },
+   {
+    "el": "span.order-row-pax.icon-label",
+    "chu": "2NL",
+    "rong": 36,
+    "can": 48
+   },
+   {
+    "el": "span.order-row-place",
+    "chu": "Đón tại Khách sạn Liberty Central, 9 Biệt Thự",
+    "rong": 252,
+    "can": 307
+   },
+   {
+    "el": "span.order-row-name",
+    "chu": "Dương Hải Đăng",
+    "rong": 85,
+    "can": 127
+   },
+   {
+    "el": "span.order-row-pax.icon-label",
+    "chu": "1NL",
+    "rong": 36,
+    "can": 44
+   },
+   {
+    "el": "span.order-row-name",
+    "chu": "Ngô Thị Mai",
+    "rong": 83,
+    "can": 92
+   },
+   {
+    "el": "span.order-row-pax.icon-label",
+    "chu": "4NL",
+    "rong": 39,
+    "can": 49
+   },
+   {
+    "el": "span.order-row-name",
+    "chu": "Hồ Văn Sơn",
+    "rong": 25,
+    "can": 89
+   },
+   {
+    "el": "span.order-row-pax.icon-label",
+    "chu": "3NL",
+    "rong": 38,
+    "can": 48
+   },
+   {
+    "el": "span.order-row-place",
+    "chu": "Đón tại Homestay Hòn Chồng, 12 Nguyễn Đình Chiểu",
+    "rong": 252,
+    "can": 355
+   },
+   {
+    "el": "span.order-row-name",
+    "chu": "Đỗ Bảo Ngọc",
+    "rong": 80,
+    "can": 104
+   },
+   {
+    "el": "span.order-row-pax.icon-label",
+    "chu": "2NL",
+    "rong": 42,
+    "can": 48
+   },
+   {
+    "el": "span.order-row-name",
+    "chu": "Bùi Tuấn Kiệt",
+    "rong": 80,
+    "can": 101
+   },
+   {
+    "el": "span.order-row-pax.icon-label",
+    "chu": "1NL",
+    "rong": 36,
+    "can": 44
+   },
+   {
+    "el": "span.order-row-name",
+    "chu": "Đặng Khánh Vy",
+    "rong": 24,
+    "can": 119
+   },
+   {
+    "el": "span.order-row-pax.icon-label",
+    "chu": "4NL",
+    "rong": 35,
+    "can": 49
+   },
+   {
+    "el": "span.order-row-place",
+    "chu": "Đón tại Khách sạn InterContinental, 32 Trần Phú",
+    "rong": 252,
+    "can": 326
+   },
+   {
+    "el": "span.order-row-name",
+    "chu": "Võ Đức Anh",
+    "rong": 82,
+    "can": 91
+   },
+   {
+    "el": "span.order-row-pax.icon-label",
+    "chu": "3NL",
+    "rong": 38,
+    "can": 48
+   },
+   {
+    "el": "span.order-row-pax.icon-label",
+    "chu": "2NL",
+    "rong": 34,
+    "can": 48
+   },
+   {
+    "el": "span.order-row-name",
+    "chu": "Phan Hữu Phước",
+    "rong": 22,
+    "can": 126
+   },
+   {
+    "el": "span.order-row-pax.icon-label",
+    "chu": "1NL",
+    "rong": 38,
+    "can": 44
+   },
+   {
+    "el": "span.order-row-place",
+    "chu": "Đón tại Khách sạn Sheraton, 26 Trần Phú",
+    "rong": 252,
+    "can": 277
+   },
+   {
+    "el": "span.order-row-name",
+    "chu": "Đặng Quốc Huy",
+    "rong": 80,
+    "can": 122
+   },
+   {
+    "el": "span.order-row-pax.icon-label",
+    "chu": "2NL 1NCT",
+    "rong": 37,
+    "can": 86
+   }
+  ],
+  "che": [
+   {
+    "el": "button.order-card-toggle",
+    "chu": "",
+    "biChe": "header#topbar",
+    "y": 28
+   }
+  ],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/order",
+  "kho": 390,
+  "url": "/order?id=3818923b-3e2d-47d7-8855-4dd593cfd2c2",
+  "cat": [
+   {
+    "el": "span#bar-title.bar-title",
+    "chu": "TD-20261030-0003",
+    "rong": 176,
+    "can": 190
+   },
+   {
+    "el": "h1",
+    "chu": "TD-20261030-0003",
+    "rong": 1,
+    "can": 249
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.kv",
+    "rong": 326,
+    "noiDung": 52,
+    "tiLe": 16,
+    "chu": "Email —"
+   },
+   {
+    "el": "div.kv",
+    "rong": 326,
+    "noiDung": 66,
+    "tiLe": 20,
+    "chu": "Ghi chú —"
+   },
+   {
+    "el": "div.kv",
+    "rong": 326,
+    "noiDung": 87,
+    "tiLe": 27,
+    "chu": "Giảm giá 0 ₫"
+   }
+  ]
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/order-form",
+  "kho": 390,
+  "url": "/order-form",
+  "cat": [
+   {
+    "el": "h1#form-title",
+    "chu": "Tạo đơn",
+    "rong": 1,
+    "can": 96
+   },
+   {
+    "el": "span.visually-hidden",
+    "chu": ", bước 1",
+    "rong": 1,
+    "can": 45
+   },
+   {
+    "el": "span.visually-hidden",
+    "chu": ", bước 2",
+    "rong": 1,
+    "can": 48
+   },
+   {
+    "el": "span.visually-hidden",
+    "chu": ", bước 3",
+    "rong": 1,
+    "can": 48
+   },
+   {
+    "el": "span.visually-hidden",
+    "chu": ", bước 4",
+    "rong": 1,
+    "can": 48
+   }
+  ],
+  "che": [
+   {
+    "el": "button.catalog-ghim",
+    "chu": "☆",
+    "biChe": "nav.buoc-thanh",
+    "y": 62
+   },
+   {
+    "el": "button.catalog-pick",
+    "chu": "Bus Fun Night 4 tiếng (tour ngày + đêm) BFN4 260.0",
+    "biChe": "nav.buoc-thanh",
+    "y": 62
+   },
+   {
+    "el": "button.catalog-ghim",
+    "chu": "☆",
+    "biChe": "div.form-actions.thanh-hanh-dong-cuoi",
+    "y": 723
+   },
+   {
+    "el": "button.catalog-pick",
+    "chu": "Tour du thuyền Vega Yacht: Sunset Tour DTVYST 2.33",
+    "biChe": "div.form-actions.thanh-hanh-dong-cuoi",
+    "y": 723
+   }
+  ],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/parties",
+  "kho": 390,
+  "url": "/parties",
+  "cat": [
+   {
+    "el": "h1",
+    "chu": "Danh bạ",
+    "rong": 1,
+    "can": 98
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/catalog",
+  "kho": 390,
+  "url": "/catalog",
+  "cat": [
+   {
+    "el": "h1",
+    "chu": "Danh mục dịch vụ & giá",
+    "rong": 1,
+    "can": 273
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/staff",
+  "kho": 390,
+  "url": "/staff",
+  "cat": [
+   {
+    "el": "h1",
+    "chu": "Quản lý tài khoản",
+    "rong": 1,
+    "can": 204
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/sessions",
+  "kho": 390,
+  "url": "/sessions",
+  "cat": [
+   {
+    "el": "span#bar-title.bar-title",
+    "chu": "Máy đang đăng nhập",
+    "rong": 176,
+    "can": 189
+   },
+   {
+    "el": "h1",
+    "chu": "Máy đang đăng nhập",
+    "rong": 1,
+    "can": 247
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/locations",
+  "kho": 390,
+  "url": "/locations",
+  "cat": [
+   {
+    "el": "h1",
+    "chu": "Địa điểm",
+    "rong": 1,
+    "can": 105
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/loai-giay-to-nguoi",
+  "kho": 390,
+  "url": "/loai-giay-to-nguoi",
+  "cat": [
+   {
+    "el": "span#bar-title.bar-title",
+    "chu": "Loại giấy tờ cá nhân",
+    "rong": 176,
+    "can": 182
+   },
+   {
+    "el": "h1",
+    "chu": "Loại giấy tờ cá nhân",
+    "rong": 1,
+    "can": 237
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.vc-grow",
+    "rong": 255,
+    "noiDung": 70,
+    "tiLe": 27,
+    "chu": "Hạng B B · thứ tự 1"
+   },
+   {
+    "el": "div.vc-grow",
+    "rong": 255,
+    "noiDung": 80,
+    "tiLe": 31,
+    "chu": "Hạng D1 D1 · thứ tự 2"
+   },
+   {
+    "el": "div.vc-grow",
+    "rong": 255,
+    "noiDung": 84,
+    "tiLe": 33,
+    "chu": "Hạng D2 D2 · thứ tự 3"
+   },
+   {
+    "el": "div.vc-grow",
+    "rong": 255,
+    "noiDung": 75,
+    "tiLe": 30,
+    "chu": "Hạng D D · thứ tự 4"
+   }
+  ]
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/dieu-phoi",
+  "kho": 390,
+  "url": "/dieu-phoi",
+  "cat": [],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.dp-card-head",
+    "rong": 356,
+    "noiDung": 83,
+    "tiLe": 23,
+    "chu": "Chưa xếp 0"
+   }
+  ]
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/chuyen",
+  "kho": 390,
+  "url": "/chuyen?id=38502a8c-6495-4770-bc17-590a7747a882",
+  "cat": [],
+  "che": [
+   {
+    "el": "button.vc-btn.btn.btn-primary",
+    "chu": "Điều chỉnh",
+    "biChe": "header#topbar",
+    "y": 41
+   }
+  ],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/chuyen-sua",
+  "kho": 390,
+  "url": "/chuyen-sua",
+  "cat": [
+   {
+    "el": "h1#cx-title",
+    "chu": "Chuyến mới · 30/10",
+    "rong": 1,
+    "can": 243
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/xe-dang-chay",
+  "kho": 390,
+  "url": "/xe-dang-chay",
+  "cat": [],
+  "che": [],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/de-nghi",
+  "kho": 390,
+  "url": "/de-nghi",
+  "cat": [],
+  "che": [],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/bang-gia-xe",
+  "kho": 390,
+  "url": "/bang-gia-xe?nha-xe=d4096bb5-3ec3-46cb-a11a-cd3af6b5ec93",
+  "cat": [],
+  "che": [],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/bang-ke-xe",
+  "kho": 390,
+  "url": "/bang-ke-xe?tu=2026-10-01&den=2026-10-30",
+  "cat": [
+   {
+    "el": "h1",
+    "chu": "Bảng kê chi phí xe thuê",
+    "rong": 1,
+    "can": 267
+   }
+  ],
+  "che": [
+   {
+    "el": "a.nut",
+    "chu": "Bật ngay",
+    "biChe": "header#topbar",
+    "y": 52
+   },
+   {
+    "el": "button.dai-dong",
+    "chu": "",
+    "biChe": "header#topbar",
+    "y": 52
+   }
+  ],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/xe",
+  "kho": 390,
+  "url": "/xe",
+  "cat": [
+   {
+    "el": "h1",
+    "chu": "Xe",
+    "rong": 1,
+    "can": 34
+   }
+  ],
+  "che": [
+   {
+    "el": "a.vc-card.vc-xe-card",
+    "chu": "79B-123.45 Đang dùng Ford Transit 16 chỗ · 16 ngườ",
+    "biChe": "div#vc-filters.vc-filters",
+    "y": 65
+   }
+  ],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/xe-sua",
+  "kho": 390,
+  "url": "/xe-sua",
+  "cat": [
+   {
+    "el": "h1#xe-title",
+    "chu": "Thêm xe",
+    "rong": 1,
+    "can": 107
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.vc-stepper",
+    "rong": 324,
+    "noiDung": 110,
+    "tiLe": 34,
+    "chu": "− 15 +"
+   }
+  ]
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/xe-chi-tiet",
+  "kho": 390,
+  "url": "/xe-chi-tiet?id=04720288-7f85-448d-b125-bf0c6889fa15",
+  "cat": [],
+  "che": [],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/lich-xe-ban",
+  "kho": 390,
+  "url": "/lich-xe-ban",
+  "cat": [],
+  "che": [],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/giay-to-sap-het-han",
+  "kho": 390,
+  "url": "/giay-to-sap-het-han",
+  "cat": [],
+  "che": [],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/loai-giay-to-xe",
+  "kho": 390,
+  "url": "/loai-giay-to-xe",
+  "cat": [
+   {
+    "el": "h1",
+    "chu": "Loại giấy tờ xe",
+    "rong": 1,
+    "can": 172
+   }
+  ],
+  "che": [
+   {
+    "el": "button.pill-btn",
+    "chu": "Sửa",
+    "biChe": "header#topbar",
+    "y": 22
+   }
+  ],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/chinh-sach-dieu-phoi",
+  "kho": 390,
+  "url": "/chinh-sach-dieu-phoi",
+  "cat": [
+   {
+    "el": "span#bar-title.bar-title",
+    "chu": "Chính sách điều phối",
+    "rong": 176,
+    "can": 186
+   },
+   {
+    "el": "h1",
+    "chu": "Chính sách điều phối",
+    "rong": 1,
+    "can": 264
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/dieu-kien-xuat-ben",
+  "kho": 390,
+  "url": "/dieu-kien-xuat-ben",
+  "cat": [
+   {
+    "el": "span#bar-title.bar-title",
+    "chu": "Điều kiện cho xe chạy",
+    "rong": 176,
+    "can": 194
+   },
+   {
+    "el": "h1",
+    "chu": "Điều kiện cho xe chạy",
+    "rong": 1,
+    "can": 274
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/ly-do-dieu-phoi",
+  "kho": 390,
+  "url": "/ly-do-dieu-phoi",
+  "cat": [
+   {
+    "el": "h1",
+    "chu": "Lý do điều phối",
+    "rong": 1,
+    "can": 193
+   }
+  ],
+  "che": [
+   {
+    "el": "button.vc-btn.vc-btn-text",
+    "chu": "Sửa",
+    "biChe": "header#topbar",
+    "y": 40
+   },
+   {
+    "el": "button.vc-btn.vc-btn-text",
+    "chu": "Ngưng",
+    "biChe": "header#topbar",
+    "y": 40
+   }
+  ],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/khoa-thang",
+  "kho": 390,
+  "url": "/khoa-thang",
+  "cat": [
+   {
+    "el": "h1",
+    "chu": "Khoá sổ tháng",
+    "rong": 1,
+    "can": 169
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/so-cong-no",
+  "kho": 390,
+  "url": "/so-cong-no",
+  "cat": [
+   {
+    "el": "h1",
+    "chu": "Sổ công nợ",
+    "rong": 1,
+    "can": 130
+   },
+   {
+    "el": "h2#scn-ds-tieu-de.visually-hidden",
+    "chu": "Danh sách các bên",
+    "rong": 1,
+    "can": 170
+   },
+   {
+    "el": "span.visually-hidden",
+    "chu": "Tìm theo tên bên",
+    "rong": 1,
+    "can": 111
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.scn-o-tong",
+    "rong": 358,
+    "noiDung": 60,
+    "tiLe": 17,
+    "chu": "Số bên 2"
+   }
+  ]
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/dieu-chinh-cong-no",
+  "kho": 390,
+  "url": "/dieu-chinh-cong-no",
+  "cat": [
+   {
+    "el": "h1",
+    "chu": "Điều chỉnh công nợ",
+    "rong": 1,
+    "can": 222
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/hoa-hong",
+  "kho": 390,
+  "url": "/hoa-hong",
+  "cat": [],
+  "che": [],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/nguoi-ban",
+  "kho": 390,
+  "url": "/nguoi-ban",
+  "cat": [
+   {
+    "el": "h1",
+    "chu": "Người bán dịch vụ",
+    "rong": 1,
+    "can": 210
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/chup-bu",
+  "kho": 390,
+  "url": "/chup-bu",
+  "cat": [
+   {
+    "el": "h1",
+    "chu": "Chụp bù mức",
+    "rong": 1,
+    "can": 153
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/cho-xac-nhan",
+  "kho": 390,
+  "url": "/cho-xac-nhan",
+  "cat": [
+   {
+    "el": "h1",
+    "chu": "Đơn chờ xác nhận",
+    "rong": 1,
+    "can": 209
+   }
+  ],
+  "che": [
+   {
+    "el": "a.cx-the-ma",
+    "chu": "TD-20261030-0014",
+    "biChe": "header#topbar",
+    "y": 18
+   }
+  ],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/audit",
+  "kho": 390,
+  "url": "/audit",
+  "cat": [
+   {
+    "el": "h1",
+    "chu": "Nhật ký hệ thống",
+    "rong": 1,
+    "can": 198
+   }
+  ],
+  "che": [],
+  "tran": [
+   {
+    "el": "select#action",
+    "phai": 546,
+    "vw": 390
+   }
+  ],
+  "rong": []
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/gui-thong-bao",
+  "kho": 390,
+  "url": "/gui-thong-bao",
+  "cat": [
+   {
+    "el": "h1",
+    "chu": "Gửi thông báo",
+    "rong": 1,
+    "can": 167
+   }
+  ],
+  "che": [
+   {
+    "el": "input",
+    "chu": "on",
+    "biChe": "header#topbar",
+    "y": 39
+   },
+   {
+    "el": "input",
+    "chu": "on",
+    "biChe": "header#topbar",
+    "y": 39
+   }
+  ],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/tro-ly-cai-dat",
+  "kho": 390,
+  "url": "/tro-ly-cai-dat",
+  "cat": [
+   {
+    "el": "h1",
+    "chu": "Trợ lý Hỗ trợ",
+    "rong": 1,
+    "can": 143
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/giao-dien",
+  "kho": 390,
+  "url": "/giao-dien",
+  "cat": [
+   {
+    "el": "h1",
+    "chu": "Giao diện",
+    "rong": 1,
+    "can": 112
+   },
+   {
+    "el": "span.order-row-name",
+    "chu": "Chị Nguyễn Thu Hà",
+    "rong": 1,
+    "can": 147
+   }
+  ],
+  "che": [
+   {
+    "el": "select#gd-dam-nhan",
+    "chu": "400 500 600 700",
+    "biChe": "header#topbar",
+    "y": 48
+   }
+  ],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.gd-dong",
+    "rong": 318,
+    "noiDung": 109,
+    "tiLe": 34,
+    "chu": "Nền trang"
+   },
+   {
+    "el": "div.gd-dong",
+    "rong": 318,
+    "noiDung": 95,
+    "tiLe": 30,
+    "chu": "Nền thẻ"
+   },
+   {
+    "el": "div.gd-dong",
+    "rong": 318,
+    "noiDung": 109,
+    "tiLe": 34,
+    "chu": "Chữ chính"
+   },
+   {
+    "el": "div.gd-dong",
+    "rong": 318,
+    "noiDung": 98,
+    "tiLe": 31,
+    "chu": "Chữ phụ"
+   },
+   {
+    "el": "div.gd-dong",
+    "rong": 318,
+    "noiDung": 73,
+    "tiLe": 23,
+    "chu": "Viền"
+   },
+   {
+    "el": "div.gd-xem-ben",
+    "rong": 326,
+    "noiDung": 68,
+    "tiLe": 21,
+    "chu": "Trang chủ Đơn hàng"
+   }
+  ]
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/account",
+  "kho": 390,
+  "url": "/account",
+  "cat": [
+   {
+    "el": "h1",
+    "chu": "Tôi",
+    "rong": 1,
+    "can": 36
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.hs-dong",
+    "rong": 326,
+    "noiDung": 104,
+    "tiLe": 32,
+    "chu": "Email Chưa có"
+   }
+  ]
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/feedback",
+  "kho": 390,
+  "url": "/feedback",
+  "cat": [],
+  "che": [],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/help",
+  "kho": 390,
+  "url": "/help",
+  "cat": [
+   {
+    "el": "h1",
+    "chu": "Hướng dẫn",
+    "rong": 1,
+    "can": 127
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/thiet-lap",
+  "kho": 390,
+  "url": "/thiet-lap",
+  "cat": [
+   {
+    "el": "h1",
+    "chu": "Thiết lập",
+    "rong": 1,
+    "can": 104
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/",
+  "kho": 1040,
+  "url": "/",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   },
+   {
+    "el": "h1.visually-hidden",
+    "chu": "Trang chủ",
+    "rong": 1,
+    "can": 117
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.dash-today-head",
+    "rong": 742,
+    "noiDung": 175,
+    "tiLe": 24,
+    "chu": "Đơn đi 6 Xem tất cả"
+   }
+  ]
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/",
+  "kho": 1040,
+  "url": "/",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   },
+   {
+    "el": "h1.visually-hidden",
+    "chu": "Trang chủ",
+    "rong": 1,
+    "can": 117
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.dash-today-head",
+    "rong": 742,
+    "noiDung": 175,
+    "tiLe": 24,
+    "chu": "Đơn đi 6 Xem tất cả"
+   }
+  ]
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/orders",
+  "kho": 1040,
+  "url": "/orders",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.order-row-top",
+    "rong": 674,
+    "noiDung": 206,
+    "tiLe": 31,
+    "chu": "3. 09/11 Đỗ Bảo Ngọc Đã huỷ"
+   },
+   {
+    "el": "div.order-row-top",
+    "rong": 674,
+    "noiDung": 202,
+    "tiLe": 30,
+    "chu": "4. 07/11 Bùi Tuấn Kiệt Đã huỷ"
+   },
+   {
+    "el": "div.order-row-top",
+    "rong": 674,
+    "noiDung": 222,
+    "tiLe": 33,
+    "chu": "5. 04/11 Đặng Khánh Vy Đã huỷ"
+   },
+   {
+    "el": "div.order-row-top",
+    "rong": 674,
+    "noiDung": 193,
+    "tiLe": 29,
+    "chu": "6. 02/11 Võ Đức Anh Đã huỷ"
+   },
+   {
+    "el": "div.order-row-top",
+    "rong": 674,
+    "noiDung": 222,
+    "tiLe": 33,
+    "chu": "10. 17/10 Hoàng Gia Huy Đã huỷ"
+   },
+   {
+    "el": "div.order-row-top",
+    "rong": 674,
+    "noiDung": 212,
+    "tiLe": 32,
+    "chu": "12. 25/10 Lê Quốc Bảo Đã huỷ"
+   },
+   {
+    "el": "div.order-row-top",
+    "rong": 674,
+    "noiDung": 204,
+    "tiLe": 30,
+    "chu": "13. 28/10 Trần Thu Hà Đã huỷ"
+   },
+   {
+    "el": "div.order-row-top",
+    "rong": 674,
+    "noiDung": 226,
+    "tiLe": 34,
+    "chu": "28. 01/11 Vũ Mỹ Linh Đã xác nhận"
+   }
+  ]
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/order",
+  "kho": 1040,
+  "url": "/order?id=3818923b-3e2d-47d7-8855-4dd593cfd2c2",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   },
+   {
+    "el": "h1",
+    "chu": "TD-20261030-0003",
+    "rong": 1,
+    "can": 249
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/order-form",
+  "kho": 1040,
+  "url": "/order-form",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   },
+   {
+    "el": "span.visually-hidden",
+    "chu": ", bước 1",
+    "rong": 1,
+    "can": 45
+   },
+   {
+    "el": "span.visually-hidden",
+    "chu": ", bước 2",
+    "rong": 1,
+    "can": 48
+   },
+   {
+    "el": "span.visually-hidden",
+    "chu": ", bước 3",
+    "rong": 1,
+    "can": 48
+   },
+   {
+    "el": "span.visually-hidden",
+    "chu": ", bước 4",
+    "rong": 1,
+    "can": 48
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "section#hk-card.card.hk-card",
+    "rong": 760,
+    "noiDung": 200,
+    "tiLe": 26,
+    "chu": "Hành khách 0/0 khách đã có tên Chưa có hành khách nào. + Thê"
+   },
+   {
+    "el": "div.hk",
+    "rong": 728,
+    "noiDung": 200,
+    "tiLe": 28,
+    "chu": "0/0 khách đã có tên Chưa có hành khách nào. + Thêm hành khác"
+   },
+   {
+    "el": "div.hk-dem",
+    "rong": 728,
+    "noiDung": 184,
+    "tiLe": 25,
+    "chu": "0/0 khách đã có tên"
+   }
+  ]
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/parties",
+  "kho": 1040,
+  "url": "/parties",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.xm-tabs",
+    "rong": 702,
+    "noiDung": 216,
+    "tiLe": 31,
+    "chu": ""
+   }
+  ]
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/catalog",
+  "kho": 1040,
+  "url": "/catalog",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   }
+  ],
+  "che": [
+   {
+    "el": "a.sidebar-item",
+    "chu": "Chụp bù mức",
+    "biChe": "div.sidebar-foot",
+    "y": 716
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Dịch vụ & giá",
+    "biChe": "div.sidebar-foot",
+    "y": 754
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Địa điểm",
+    "biChe": "div.sidebar-foot",
+    "y": 792
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Loại giấy tờ cá nhân",
+    "biChe": "div.sidebar-foot",
+    "y": 830
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Loại giấy tờ xe",
+    "biChe": "div.sidebar-foot",
+    "y": 868
+   }
+  ],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div#chon-bar.chon-bar",
+    "rong": 760,
+    "noiDung": 199,
+    "tiLe": 26,
+    "chu": "Chọn tất cả đang hiện (118)"
+   }
+  ]
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/staff",
+  "kho": 1040,
+  "url": "/staff",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   }
+  ],
+  "che": [
+   {
+    "el": "a.sidebar-item",
+    "chu": "Chụp bù mức",
+    "biChe": "div.sidebar-foot",
+    "y": 716
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Dịch vụ & giá",
+    "biChe": "div.sidebar-foot",
+    "y": 754
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Địa điểm",
+    "biChe": "div.sidebar-foot",
+    "y": 792
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Loại giấy tờ cá nhân",
+    "biChe": "div.sidebar-foot",
+    "y": 830
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Loại giấy tờ xe",
+    "biChe": "div.sidebar-foot",
+    "y": 868
+   }
+  ],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.xm-tabs",
+    "rong": 728,
+    "noiDung": 216,
+    "tiLe": 30,
+    "chu": "Đang chờ Đã xử lý"
+   }
+  ]
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/sessions",
+  "kho": 1040,
+  "url": "/sessions",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   }
+  ],
+  "che": [
+   {
+    "el": "a.sidebar-item",
+    "chu": "Chụp bù mức",
+    "biChe": "div.sidebar-foot",
+    "y": 716
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Dịch vụ & giá",
+    "biChe": "div.sidebar-foot",
+    "y": 754
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Địa điểm",
+    "biChe": "div.sidebar-foot",
+    "y": 792
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Loại giấy tờ cá nhân",
+    "biChe": "div.sidebar-foot",
+    "y": 830
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Loại giấy tờ xe",
+    "biChe": "div.sidebar-foot",
+    "y": 868
+   }
+  ],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/locations",
+  "kho": 1040,
+  "url": "/locations",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   }
+  ],
+  "che": [
+   {
+    "el": "a.sidebar-item",
+    "chu": "Chụp bù mức",
+    "biChe": "div.sidebar-foot",
+    "y": 716
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Dịch vụ & giá",
+    "biChe": "div.sidebar-foot",
+    "y": 754
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Địa điểm",
+    "biChe": "div.sidebar-foot",
+    "y": 792
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Loại giấy tờ cá nhân",
+    "biChe": "div.sidebar-foot",
+    "y": 830
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Loại giấy tờ xe",
+    "biChe": "div.sidebar-foot",
+    "y": 868
+   }
+  ],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/loai-giay-to-nguoi",
+  "kho": 1040,
+  "url": "/loai-giay-to-nguoi",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   }
+  ],
+  "che": [
+   {
+    "el": "a.sidebar-item",
+    "chu": "Chụp bù mức",
+    "biChe": "div.sidebar-foot",
+    "y": 716
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Dịch vụ & giá",
+    "biChe": "div.sidebar-foot",
+    "y": 754
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Địa điểm",
+    "biChe": "div.sidebar-foot",
+    "y": 792
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Loại giấy tờ cá nhân",
+    "biChe": "div.sidebar-foot",
+    "y": 830
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Loại giấy tờ xe",
+    "biChe": "div.sidebar-foot",
+    "y": 868
+   }
+  ],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/dieu-phoi",
+  "kho": 1040,
+  "url": "/dieu-phoi",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   },
+   {
+    "el": "span.dp-tl-tx",
+    "chu": "Tài Xế Công Ty Thử",
+    "rong": 79,
+    "can": 113
+   },
+   {
+    "el": "span.dp-tl-tx",
+    "chu": "Tài Xế Đối Tác Thử",
+    "rong": 79,
+    "can": 110
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.dp-tl-thuoc",
+    "rong": 708,
+    "noiDung": 237,
+    "tiLe": 33,
+    "chu": "07 08 09 10 11 12 13 14 15 16 17 18 19 20 21 22 23"
+   },
+   {
+    "el": "div.dp-tl-hang",
+    "rong": 708,
+    "noiDung": 207,
+    "tiLe": 29,
+    "chu": "79B-123.45 16 chỗ Tài Xế Công Ty Thử 02 2/16 01 4/16"
+   },
+   {
+    "el": "div.dp-tl-duong",
+    "rong": 612,
+    "noiDung": 94,
+    "tiLe": 15,
+    "chu": "02 2/16 01 4/16"
+   },
+   {
+    "el": "div.dp-tl-hang",
+    "rong": 708,
+    "noiDung": 82,
+    "tiLe": 12,
+    "chu": "79B-234.56 29 chỗ"
+   },
+   {
+    "el": "div.dp-tl-hang",
+    "rong": 708,
+    "noiDung": 81,
+    "tiLe": 11,
+    "chu": "79B-345.67 7 chỗ"
+   },
+   {
+    "el": "div.dp-tl-hang",
+    "rong": 708,
+    "noiDung": 81,
+    "tiLe": 11,
+    "chu": "79B-456.78 45 chỗ"
+   },
+   {
+    "el": "div.dp-tl-hang",
+    "rong": 708,
+    "noiDung": 81,
+    "tiLe": 11,
+    "chu": "79B-678.90 16 chỗ"
+   },
+   {
+    "el": "div.dp-tl-hang",
+    "rong": 708,
+    "noiDung": 170,
+    "tiLe": 24,
+    "chu": "79H-567.89 16 chỗ Tài Xế Đối Tác Thử 03 2/16"
+   }
+  ]
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/chuyen",
+  "kho": 1040,
+  "url": "/chuyen?id=38502a8c-6495-4770-bc17-590a7747a882",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   },
+   {
+    "el": "span#bar-title.bar-title",
+    "chu": "Vận chuyển › Điều phối xe › CX-3010-03",
+    "rong": 197,
+    "can": 360
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.dp-card-head",
+    "rong": 758,
+    "noiDung": 184,
+    "tiLe": 24,
+    "chu": "Khách đang chờ 2 khách"
+   },
+   {
+    "el": "div.dp-card-head",
+    "rong": 758,
+    "noiDung": 233,
+    "tiLe": 31,
+    "chu": "Đề nghị chuyển khách 1 đề nghị"
+   },
+   {
+    "el": "div.dp-card-head.dp-run-list-head",
+    "rong": 760,
+    "noiDung": 196,
+    "tiLe": 26,
+    "chu": "Điểm dừng Tải hiện tại 2/16"
+   },
+   {
+    "el": "div.dp-khach-dong",
+    "rong": 726,
+    "noiDung": 181,
+    "tiLe": 25,
+    "chu": "Khách Gấp 19:20 2 1991"
+   },
+   {
+    "el": "div.dp-khach-dong",
+    "rong": 726,
+    "noiDung": 181,
+    "tiLe": 25,
+    "chu": "Khách Gấp 19:20 1 1990"
+   },
+   {
+    "el": "div.dp-card-head",
+    "rong": 758,
+    "noiDung": 248,
+    "tiLe": 33,
+    "chu": "Chi phí chuyến Chỉ Kế toán · Quản trị"
+   },
+   {
+    "el": "div.cp-dong-dau",
+    "rong": 700,
+    "noiDung": 187,
+    "tiLe": 27,
+    "chu": "Giá thoả thuận + 900.000 ₫"
+   }
+  ]
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/chuyen-sua",
+  "kho": 1040,
+  "url": "/chuyen-sua",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   },
+   {
+    "el": "span#bar-title.bar-title",
+    "chu": "Vận chuyển › Điều phối xe › Chuyến mới",
+    "rong": 197,
+    "can": 346
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/xe-dang-chay",
+  "kho": 1040,
+  "url": "/xe-dang-chay",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.xdc-head",
+    "rong": 760,
+    "noiDung": 203,
+    "tiLe": 27,
+    "chu": "Xe đang chạy 2 xe"
+   }
+  ]
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/de-nghi",
+  "kho": 1040,
+  "url": "/de-nghi",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.dp-card-head",
+    "rong": 758,
+    "noiDung": 253,
+    "tiLe": 33,
+    "chu": "Đề nghị khác trong ngày 1 đề nghị"
+   }
+  ]
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/bang-gia-xe",
+  "kho": 1040,
+  "url": "/bang-gia-xe?nha-xe=d4096bb5-3ec3-46cb-a11a-cd3af6b5ec93",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.tx-tabs",
+    "rong": 760,
+    "noiDung": 255,
+    "tiLe": 34,
+    "chu": "Giá thuê Tuyến Cỡ xe"
+   }
+  ]
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/bang-ke-xe",
+  "kho": 1040,
+  "url": "/bang-ke-xe?tu=2026-10-01&den=2026-10-30",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.bk-nhom-dau",
+    "rong": 758,
+    "noiDung": 239,
+    "tiLe": 32,
+    "chu": "Nhà xe Hải Âu Thử 1 chuyến TỔNG NHÓM 900.000 ₫"
+   },
+   {
+    "el": "div.vc-grow",
+    "rong": 618,
+    "noiDung": 143,
+    "tiLe": 23,
+    "chu": "Nhà xe Hải Âu Thử 1 chuyến"
+   }
+  ]
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/xe",
+  "kho": 1040,
+  "url": "/xe",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.vc-page-head",
+    "rong": 760,
+    "noiDung": 121,
+    "tiLe": 16,
+    "chu": "Xe Thêm xe"
+   }
+  ]
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/xe-sua",
+  "kho": 1040,
+  "url": "/xe-sua",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   },
+   {
+    "el": "span#bar-title.bar-title",
+    "chu": "Vận chuyển › Xe › Thêm xe",
+    "rong": 198,
+    "can": 232
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.vc-form-actions",
+    "rong": 590,
+    "noiDung": 148,
+    "tiLe": 25,
+    "chu": "Lưu xe Huỷ"
+   }
+  ]
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/xe-chi-tiet",
+  "kho": 1040,
+  "url": "/xe-chi-tiet?id=04720288-7f85-448d-b125-bf0c6889fa15",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   },
+   {
+    "el": "span#bar-title.bar-title",
+    "chu": "Vận chuyển › Xe › 79B-345.67",
+    "rong": 198,
+    "can": 270
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.vc-alert.vc-alert-warn",
+    "rong": 710,
+    "noiDung": 244,
+    "tiLe": 34,
+    "chu": "2 giấy sắp hết hạn trong 30 ngày"
+   },
+   {
+    "el": "div.vc-dt-grid.vc-dt-head.vc-th",
+    "rong": 758,
+    "noiDung": 239,
+    "tiLe": 32,
+    "chu": "LOẠI · SỐ · NGÀY CẤP HẾT HẠN CÒN"
+   }
+  ]
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/lich-xe-ban",
+  "kho": 1040,
+  "url": "/lich-xe-ban",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/giay-to-sap-het-han",
+  "kho": 1040,
+  "url": "/giay-to-sap-het-han",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.vc-due-grid.vc-th.vc-due-head",
+    "rong": 758,
+    "noiDung": 240,
+    "tiLe": 32,
+    "chu": "XE / NGƯỜI LOẠI GIẤY HẾT HẠN CÒN"
+   }
+  ]
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/loai-giay-to-xe",
+  "kho": 1040,
+  "url": "/loai-giay-to-xe",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   }
+  ],
+  "che": [
+   {
+    "el": "a.sidebar-item",
+    "chu": "Chụp bù mức",
+    "biChe": "div.sidebar-foot",
+    "y": 716
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Dịch vụ & giá",
+    "biChe": "div.sidebar-foot",
+    "y": 754
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Địa điểm",
+    "biChe": "div.sidebar-foot",
+    "y": 792
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Loại giấy tờ cá nhân",
+    "biChe": "div.sidebar-foot",
+    "y": 830
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Loại giấy tờ xe",
+    "biChe": "div.sidebar-foot",
+    "y": 868
+   }
+  ],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/chinh-sach-dieu-phoi",
+  "kho": 1040,
+  "url": "/chinh-sach-dieu-phoi",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   }
+  ],
+  "che": [
+   {
+    "el": "a.sidebar-item",
+    "chu": "Chụp bù mức",
+    "biChe": "div.sidebar-foot",
+    "y": 716
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Dịch vụ & giá",
+    "biChe": "div.sidebar-foot",
+    "y": 754
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Địa điểm",
+    "biChe": "div.sidebar-foot",
+    "y": 792
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Loại giấy tờ cá nhân",
+    "biChe": "div.sidebar-foot",
+    "y": 830
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Loại giấy tờ xe",
+    "biChe": "div.sidebar-foot",
+    "y": 868
+   }
+  ],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/dieu-kien-xuat-ben",
+  "kho": 1040,
+  "url": "/dieu-kien-xuat-ben",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   },
+   {
+    "el": "span#bar-title.bar-title",
+    "chu": "Vận chuyển › Chính sách điều phối › Điều kiện cho xe chạy",
+    "rong": 138,
+    "can": 511
+   }
+  ],
+  "che": [
+   {
+    "el": "a.sidebar-item",
+    "chu": "Chụp bù mức",
+    "biChe": "div.sidebar-foot",
+    "y": 716
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Dịch vụ & giá",
+    "biChe": "div.sidebar-foot",
+    "y": 754
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Địa điểm",
+    "biChe": "div.sidebar-foot",
+    "y": 792
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Loại giấy tờ cá nhân",
+    "biChe": "div.sidebar-foot",
+    "y": 830
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Loại giấy tờ xe",
+    "biChe": "div.sidebar-foot",
+    "y": 868
+   }
+  ],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.dp-group-head",
+    "rong": 758,
+    "noiDung": 168,
+    "tiLe": 22,
+    "chu": "Điều kiện theo cỡ xe 2"
+   },
+   {
+    "el": "div.dp-group-head",
+    "rong": 758,
+    "noiDung": 210,
+    "tiLe": 28,
+    "chu": "Số khách theo hạng bằng 8"
+   },
+   {
+    "el": "div.dp-reason",
+    "rong": 758,
+    "noiDung": 242,
+    "tiLe": 32,
+    "chu": "Hạng B Tối đa 8 khách · áp từ 01/09/2026 Đổi"
+   },
+   {
+    "el": "div.dp-reason",
+    "rong": 758,
+    "noiDung": 248,
+    "tiLe": 33,
+    "chu": "Hạng D1 Tối đa 16 khách · áp từ 01/09/2026 Đổi"
+   },
+   {
+    "el": "div.dp-reason",
+    "rong": 758,
+    "noiDung": 251,
+    "tiLe": 33,
+    "chu": "Hạng D2 Tối đa 29 khách · áp từ 01/09/2026 Đổi"
+   },
+   {
+    "el": "div.dp-reason",
+    "rong": 758,
+    "noiDung": 244,
+    "tiLe": 32,
+    "chu": "Hạng D Không giới hạn · áp từ 01/09/2026 Đổi"
+   },
+   {
+    "el": "div.dp-reason",
+    "rong": 758,
+    "noiDung": 242,
+    "tiLe": 32,
+    "chu": "Hạng B2 (mẫu cũ) Tối đa 8 khách · áp từ 01/09/2026 Đổi"
+   },
+   {
+    "el": "div.dp-reason",
+    "rong": 758,
+    "noiDung": 242,
+    "tiLe": 32,
+    "chu": "Hạng C (mẫu cũ) Tối đa 8 khách · áp từ 01/09/2026 Đổi"
+   },
+   {
+    "el": "div.dp-reason",
+    "rong": 758,
+    "noiDung": 251,
+    "tiLe": 33,
+    "chu": "Hạng D (mẫu cũ) Tối đa 29 khách · áp từ 01/09/2026 Đổi"
+   },
+   {
+    "el": "div.dp-reason",
+    "rong": 758,
+    "noiDung": 244,
+    "tiLe": 32,
+    "chu": "Hạng E (mẫu cũ) Không giới hạn · áp từ 01/09/2026 Đổi"
+   }
+  ]
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/ly-do-dieu-phoi",
+  "kho": 1040,
+  "url": "/ly-do-dieu-phoi",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   }
+  ],
+  "che": [
+   {
+    "el": "a.sidebar-item",
+    "chu": "Chụp bù mức",
+    "biChe": "div.sidebar-foot",
+    "y": 716
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Dịch vụ & giá",
+    "biChe": "div.sidebar-foot",
+    "y": 754
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Địa điểm",
+    "biChe": "div.sidebar-foot",
+    "y": 792
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Loại giấy tờ cá nhân",
+    "biChe": "div.sidebar-foot",
+    "y": 830
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Loại giấy tờ xe",
+    "biChe": "div.sidebar-foot",
+    "y": 868
+   }
+  ],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.dp-reason",
+    "rong": 758,
+    "noiDung": 223,
+    "tiLe": 29,
+    "chu": "Sự cố vận hành Sửa Ngưng"
+   },
+   {
+    "el": "div.dp-reason",
+    "rong": 758,
+    "noiDung": 204,
+    "tiLe": 27,
+    "chu": "Đơn đặt gấp Sửa Ngưng"
+   },
+   {
+    "el": "div.dp-reason",
+    "rong": 758,
+    "noiDung": 146,
+    "tiLe": 19,
+    "chu": "Khác Sửa Ngưng"
+   },
+   {
+    "el": "div.dp-group-head",
+    "rong": 758,
+    "noiDung": 218,
+    "tiLe": 29,
+    "chu": "Huỷ chuyến 3 + Thêm lý do"
+   },
+   {
+    "el": "div.dp-reason",
+    "rong": 758,
+    "noiDung": 241,
+    "tiLe": 32,
+    "chu": "Không còn khách Sửa Ngưng"
+   },
+   {
+    "el": "div.dp-reason",
+    "rong": 758,
+    "noiDung": 146,
+    "tiLe": 19,
+    "chu": "Khác Sửa Ngưng"
+   },
+   {
+    "el": "div.dp-reason",
+    "rong": 758,
+    "noiDung": 169,
+    "tiLe": 22,
+    "chu": "Xe hỏng Sửa Ngưng"
+   },
+   {
+    "el": "div.dp-reason",
+    "rong": 758,
+    "noiDung": 161,
+    "tiLe": 21,
+    "chu": "Tai nạn Sửa Ngưng"
+   },
+   {
+    "el": "div.dp-reason",
+    "rong": 758,
+    "noiDung": 146,
+    "tiLe": 19,
+    "chu": "Khác Sửa Ngưng"
+   },
+   {
+    "el": "div.dp-group-head",
+    "rong": 758,
+    "noiDung": 226,
+    "tiLe": 30,
+    "chu": "Bỏ qua điểm 2 + Thêm lý do"
+   },
+   {
+    "el": "div.dp-reason",
+    "rong": 758,
+    "noiDung": 146,
+    "tiLe": 19,
+    "chu": "Khác Sửa Ngưng"
+   },
+   {
+    "el": "div.dp-group-head",
+    "rong": 758,
+    "noiDung": 232,
+    "tiLe": 31,
+    "chu": "Đổi giờ xe tới 2 + Thêm lý do"
+   }
+  ]
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/khoa-thang",
+  "kho": 1040,
+  "url": "/khoa-thang",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "section.card",
+    "rong": 760,
+    "noiDung": 171,
+    "tiLe": 23,
+    "chu": "Các tháng đã khoá Chưa khoá tháng nào"
+   }
+  ]
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/so-cong-no",
+  "kho": 1040,
+  "url": "/so-cong-no",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   },
+   {
+    "el": "h2#scn-ds-tieu-de.visually-hidden",
+    "chu": "Danh sách các bên",
+    "rong": 1,
+    "can": 170
+   },
+   {
+    "el": "span.visually-hidden",
+    "chu": "Tìm theo tên bên",
+    "rong": 1,
+    "can": 111
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/dieu-chinh-cong-no",
+  "kho": 1040,
+  "url": "/dieu-chinh-cong-no",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.dc-nut",
+    "rong": 702,
+    "noiDung": 180,
+    "tiLe": 26,
+    "chu": "Duyệt Từ chối"
+   },
+   {
+    "el": "section#dc-khoi-cua-toi.card",
+    "rong": 760,
+    "noiDung": 184,
+    "tiLe": 24,
+    "chu": "Yêu cầu của tôi Bạn chưa gửi yêu cầu nào."
+   }
+  ]
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/hoa-hong",
+  "kho": 1040,
+  "url": "/hoa-hong",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   }
+  ],
+  "che": [
+   {
+    "el": "a.sidebar-item",
+    "chu": "Chụp bù mức",
+    "biChe": "div.sidebar-foot",
+    "y": 716
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Dịch vụ & giá",
+    "biChe": "div.sidebar-foot",
+    "y": 754
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Địa điểm",
+    "biChe": "div.sidebar-foot",
+    "y": 792
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Loại giấy tờ cá nhân",
+    "biChe": "div.sidebar-foot",
+    "y": 830
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Loại giấy tờ xe",
+    "biChe": "div.sidebar-foot",
+    "y": 868
+   }
+  ],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/nguoi-ban",
+  "kho": 1040,
+  "url": "/nguoi-ban",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   }
+  ],
+  "che": [
+   {
+    "el": "a.sidebar-item",
+    "chu": "Chụp bù mức",
+    "biChe": "div.sidebar-foot",
+    "y": 716
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Dịch vụ & giá",
+    "biChe": "div.sidebar-foot",
+    "y": 754
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Địa điểm",
+    "biChe": "div.sidebar-foot",
+    "y": 792
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Loại giấy tờ cá nhân",
+    "biChe": "div.sidebar-foot",
+    "y": 830
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Loại giấy tờ xe",
+    "biChe": "div.sidebar-foot",
+    "y": 868
+   }
+  ],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/chup-bu",
+  "kho": 1040,
+  "url": "/chup-bu",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   }
+  ],
+  "che": [
+   {
+    "el": "a.sidebar-item",
+    "chu": "Chụp bù mức",
+    "biChe": "div.sidebar-foot",
+    "y": 716
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Dịch vụ & giá",
+    "biChe": "div.sidebar-foot",
+    "y": 754
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Địa điểm",
+    "biChe": "div.sidebar-foot",
+    "y": 792
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Loại giấy tờ cá nhân",
+    "biChe": "div.sidebar-foot",
+    "y": 830
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Loại giấy tờ xe",
+    "biChe": "div.sidebar-foot",
+    "y": 868
+   }
+  ],
+  "tran": [],
+  "rong": [
+   {
+    "el": "section#cb-noi-dung.card",
+    "rong": 760,
+    "noiDung": 229,
+    "tiLe": 30,
+    "chu": "Đơn chờ chụp bù Không còn đơn nào chờ chụp bù."
+   }
+  ]
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/cho-xac-nhan",
+  "kho": 1040,
+  "url": "/cho-xac-nhan",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.cx-the-dau",
+    "rong": 726,
+    "noiDung": 168,
+    "tiLe": 23,
+    "chu": "TD-20261030-0002"
+   },
+   {
+    "el": "div.cx-the-dau",
+    "rong": 726,
+    "noiDung": 165,
+    "tiLe": 23,
+    "chu": "TD-20261030-0014"
+   },
+   {
+    "el": "div.cx-the-dau",
+    "rong": 726,
+    "noiDung": 164,
+    "tiLe": 23,
+    "chu": "TD-20261030-0015"
+   },
+   {
+    "el": "div.cx-the-dau",
+    "rong": 726,
+    "noiDung": 165,
+    "tiLe": 23,
+    "chu": "TD-20261030-0016"
+   }
+  ]
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/audit",
+  "kho": 1040,
+  "url": "/audit",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   }
+  ],
+  "che": [
+   {
+    "el": "a.sidebar-item",
+    "chu": "Chụp bù mức",
+    "biChe": "div.sidebar-foot",
+    "y": 716
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Dịch vụ & giá",
+    "biChe": "div.sidebar-foot",
+    "y": 754
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Địa điểm",
+    "biChe": "div.sidebar-foot",
+    "y": 792
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Loại giấy tờ cá nhân",
+    "biChe": "div.sidebar-foot",
+    "y": 830
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Loại giấy tờ xe",
+    "biChe": "div.sidebar-foot",
+    "y": 868
+   }
+  ],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/gui-thong-bao",
+  "kho": 1040,
+  "url": "/gui-thong-bao",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   }
+  ],
+  "che": [
+   {
+    "el": "a.sidebar-item",
+    "chu": "Chụp bù mức",
+    "biChe": "div.sidebar-foot",
+    "y": 716
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Dịch vụ & giá",
+    "biChe": "div.sidebar-foot",
+    "y": 754
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Địa điểm",
+    "biChe": "div.sidebar-foot",
+    "y": 792
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Loại giấy tờ cá nhân",
+    "biChe": "div.sidebar-foot",
+    "y": 830
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Loại giấy tờ xe",
+    "biChe": "div.sidebar-foot",
+    "y": 868
+   }
+  ],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/tro-ly-cai-dat",
+  "kho": 1040,
+  "url": "/tro-ly-cai-dat",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   }
+  ],
+  "che": [
+   {
+    "el": "a.sidebar-item",
+    "chu": "Chụp bù mức",
+    "biChe": "div.sidebar-foot",
+    "y": 716
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Dịch vụ & giá",
+    "biChe": "div.sidebar-foot",
+    "y": 754
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Địa điểm",
+    "biChe": "div.sidebar-foot",
+    "y": 792
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Loại giấy tờ cá nhân",
+    "biChe": "div.sidebar-foot",
+    "y": 830
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Loại giấy tờ xe",
+    "biChe": "div.sidebar-foot",
+    "y": 868
+   }
+  ],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.tl-cd-hang",
+    "rong": 728,
+    "noiDung": 128,
+    "tiLe": 18,
+    "chu": "Thêm đoạn"
+   },
+   {
+    "el": "div.tl-cd-hang",
+    "rong": 728,
+    "noiDung": 248,
+    "tiLe": 34,
+    "chu": "Trang trước Trang sau"
+   }
+  ]
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/giao-dien",
+  "kho": 1040,
+  "url": "/giao-dien",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   },
+   {
+    "el": "span.order-row-name",
+    "chu": "Chị Nguyễn Thu Hà",
+    "rong": 3,
+    "can": 147
+   }
+  ],
+  "che": [
+   {
+    "el": "a.sidebar-item",
+    "chu": "Chụp bù mức",
+    "biChe": "div.sidebar-foot",
+    "y": 716
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Dịch vụ & giá",
+    "biChe": "div.sidebar-foot",
+    "y": 754
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Địa điểm",
+    "biChe": "div.sidebar-foot",
+    "y": 792
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Loại giấy tờ cá nhân",
+    "biChe": "div.sidebar-foot",
+    "y": 830
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Loại giấy tờ xe",
+    "biChe": "div.sidebar-foot",
+    "y": 868
+   }
+  ],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/account",
+  "kho": 1040,
+  "url": "/account",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.hs-dong",
+    "rong": 728,
+    "noiDung": 171,
+    "tiLe": 23,
+    "chu": "Họ tên Toàn Quyền Thử"
+   },
+   {
+    "el": "div.hs-dong",
+    "rong": 728,
+    "noiDung": 134,
+    "tiLe": 18,
+    "chu": "Ngày sinh Chưa có"
+   },
+   {
+    "el": "div.hs-dong",
+    "rong": 728,
+    "noiDung": 114,
+    "tiLe": 16,
+    "chu": "Địa chỉ Chưa có"
+   },
+   {
+    "el": "div.hs-dong",
+    "rong": 728,
+    "noiDung": 138,
+    "tiLe": 19,
+    "chu": "Điện thoại Chưa có"
+   },
+   {
+    "el": "div.hs-dong",
+    "rong": 728,
+    "noiDung": 104,
+    "tiLe": 14,
+    "chu": "Email Chưa có"
+   },
+   {
+    "el": "div.hs-dong",
+    "rong": 728,
+    "noiDung": 117,
+    "tiLe": 16,
+    "chu": "Giấy tờ Chưa có"
+   }
+  ]
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/feedback",
+  "kho": 1040,
+  "url": "/feedback",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.ht-dau",
+    "rong": 760,
+    "noiDung": 223,
+    "tiLe": 29,
+    "chu": "Hỗ trợ ＋ Gửi yêu cầu"
+   },
+   {
+    "el": "div#ht-hai-cot.ht-hai-cot",
+    "rong": 760,
+    "noiDung": 184,
+    "tiLe": 24,
+    "chu": "Bạn chưa gửi yêu cầu nào."
+   }
+  ]
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/help",
+  "kho": 1040,
+  "url": "/help",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "li",
+    "rong": 678,
+    "noiDung": 174,
+    "tiLe": 26,
+    "chu": ""
+   }
+  ]
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/thiet-lap",
+  "kho": 1040,
+  "url": "/thiet-lap",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/",
+  "kho": 1440,
+  "url": "/",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   },
+   {
+    "el": "h1.visually-hidden",
+    "chu": "Trang chủ",
+    "rong": 1,
+    "can": 117
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.dash-viec-dau",
+    "rong": 1144,
+    "noiDung": 387,
+    "tiLe": 34,
+    "chu": "Việc của bạn Xếp theo độ gấp, việc gấp nhất bên trái"
+   },
+   {
+    "el": "div.dash-today-head",
+    "rong": 758,
+    "noiDung": 175,
+    "tiLe": 23,
+    "chu": "Đơn đi 6 Xem tất cả"
+   }
+  ]
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/",
+  "kho": 1440,
+  "url": "/",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   },
+   {
+    "el": "h1.visually-hidden",
+    "chu": "Trang chủ",
+    "rong": 1,
+    "can": 117
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.dash-viec-dau",
+    "rong": 1144,
+    "noiDung": 387,
+    "tiLe": 34,
+    "chu": "Việc của bạn Xếp theo độ gấp, việc gấp nhất bên trái"
+   },
+   {
+    "el": "div.dash-today-head",
+    "rong": 758,
+    "noiDung": 175,
+    "tiLe": 23,
+    "chu": "Đơn đi 6 Xem tất cả"
+   }
+  ]
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/orders",
+  "kho": 1440,
+  "url": "/orders",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.order-row-top",
+    "rong": 1074,
+    "noiDung": 284,
+    "tiLe": 26,
+    "chu": "1. 30/10 · 19:20 Ngô Thị Mai Đã xác nhận"
+   },
+   {
+    "el": "div.order-row-top",
+    "rong": 1074,
+    "noiDung": 281,
+    "tiLe": 26,
+    "chu": "2. 30/10 · 19:10 Hồ Văn Sơn Đã xác nhận"
+   },
+   {
+    "el": "div.order-card",
+    "rong": 1160,
+    "noiDung": 337,
+    "tiLe": 29,
+    "chu": "3. 09/11 Đỗ Bảo Ngọc Đã huỷ 0914000211 2NL Còn thu 0 ₫"
+   },
+   {
+    "el": "div.order-card-head",
+    "rong": 1126,
+    "noiDung": 337,
+    "tiLe": 30,
+    "chu": "3. 09/11 Đỗ Bảo Ngọc Đã huỷ 0914000211 2NL Còn thu 0 ₫"
+   },
+   {
+    "el": "div.order-row-top",
+    "rong": 1074,
+    "noiDung": 206,
+    "tiLe": 19,
+    "chu": "3. 09/11 Đỗ Bảo Ngọc Đã huỷ"
+   },
+   {
+    "el": "div.order-card",
+    "rong": 1160,
+    "noiDung": 351,
+    "tiLe": 30,
+    "chu": "4. 07/11 Bùi Tuấn Kiệt Đã huỷ 0913000210 1NL 1TE Còn thu 0 ₫"
+   },
+   {
+    "el": "div.order-card-head",
+    "rong": 1126,
+    "noiDung": 351,
+    "tiLe": 31,
+    "chu": "4. 07/11 Bùi Tuấn Kiệt Đã huỷ 0913000210 1NL 1TE Còn thu 0 ₫"
+   },
+   {
+    "el": "div.order-row-top",
+    "rong": 1074,
+    "noiDung": 202,
+    "tiLe": 19,
+    "chu": "4. 07/11 Bùi Tuấn Kiệt Đã huỷ"
+   },
+   {
+    "el": "div.order-card",
+    "rong": 1160,
+    "noiDung": 345,
+    "tiLe": 30,
+    "chu": "5. 04/11 Đặng Khánh Vy Đã huỷ 0912000209 4NL Còn thu 0 ₫"
+   },
+   {
+    "el": "div.order-card-head",
+    "rong": 1126,
+    "noiDung": 345,
+    "tiLe": 31,
+    "chu": "5. 04/11 Đặng Khánh Vy Đã huỷ 0912000209 4NL Còn thu 0 ₫"
+   },
+   {
+    "el": "div.order-row-top",
+    "rong": 1074,
+    "noiDung": 222,
+    "tiLe": 21,
+    "chu": "5. 04/11 Đặng Khánh Vy Đã huỷ"
+   },
+   {
+    "el": "div.order-card",
+    "rong": 1160,
+    "noiDung": 333,
+    "tiLe": 29,
+    "chu": "6. 02/11 Võ Đức Anh Đã huỷ 0914000208 3NL Còn thu 0 ₫"
+   }
+  ]
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/order",
+  "kho": 1440,
+  "url": "/order?id=3818923b-3e2d-47d7-8855-4dd593cfd2c2",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   },
+   {
+    "el": "h1",
+    "chu": "TD-20261030-0003",
+    "rong": 1,
+    "can": 249
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "section.card.handler-card",
+    "rong": 796,
+    "noiDung": 194,
+    "tiLe": 24,
+    "chu": "Người phụ trách Hướng Dẫn Thử Đổi người phụ trách"
+   },
+   {
+    "el": "section.card",
+    "rong": 796,
+    "noiDung": 238,
+    "tiLe": 30,
+    "chu": "Khách hàng Tên Lê Hoàng Châu Số điện thoại 0912000103 Email "
+   },
+   {
+    "el": "div.kv",
+    "rong": 764,
+    "noiDung": 144,
+    "tiLe": 19,
+    "chu": "Tên Lê Hoàng Châu"
+   },
+   {
+    "el": "div.kv",
+    "rong": 764,
+    "noiDung": 191,
+    "tiLe": 25,
+    "chu": "Số điện thoại 0912000103"
+   },
+   {
+    "el": "div.kv",
+    "rong": 764,
+    "noiDung": 52,
+    "tiLe": 7,
+    "chu": "Email —"
+   },
+   {
+    "el": "div.kv",
+    "rong": 764,
+    "noiDung": 66,
+    "tiLe": 9,
+    "chu": "Ghi chú —"
+   },
+   {
+    "el": "div.kv",
+    "rong": 764,
+    "noiDung": 205,
+    "tiLe": 27,
+    "chu": "Hồ sơ khách Lê Hoàng Châu"
+   },
+   {
+    "el": "div.dd-dong-dau",
+    "rong": 764,
+    "noiDung": 153,
+    "tiLe": 20,
+    "chu": "Chiều đi 31/10 · 08:00"
+   },
+   {
+    "el": "section.card.hk-card-don",
+    "rong": 796,
+    "noiDung": 233,
+    "tiLe": 29,
+    "chu": "Hành khách 3/3 khách đã có tên 1. Lê Hoàng Châu 1 1985 2. Lê"
+   },
+   {
+    "el": "div.hk-dem",
+    "rong": 764,
+    "noiDung": 183,
+    "tiLe": 24,
+    "chu": "3/3 khách đã có tên"
+   },
+   {
+    "el": "li",
+    "rong": 764,
+    "noiDung": 181,
+    "tiLe": 24,
+    "chu": "1. Lê Hoàng Châu 1 1985"
+   },
+   {
+    "el": "li",
+    "rong": 764,
+    "noiDung": 189,
+    "tiLe": 25,
+    "chu": "2. Lê Hoàng Châu 2 1986"
+   }
+  ]
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/order-form",
+  "kho": 1440,
+  "url": "/order-form",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   },
+   {
+    "el": "span.visually-hidden",
+    "chu": ", bước 1",
+    "rong": 1,
+    "can": 45
+   },
+   {
+    "el": "span.visually-hidden",
+    "chu": ", bước 2",
+    "rong": 1,
+    "can": 48
+   },
+   {
+    "el": "span.visually-hidden",
+    "chu": ", bước 3",
+    "rong": 1,
+    "can": 48
+   },
+   {
+    "el": "span.visually-hidden",
+    "chu": ", bước 4",
+    "rong": 1,
+    "can": 48
+   }
+  ],
+  "che": [
+   {
+    "el": "button.catalog-ghim",
+    "chu": "☆",
+    "biChe": "nav.buoc-thanh",
+    "y": 40
+   },
+   {
+    "el": "button.catalog-pick",
+    "chu": "Bus city tour 24 tiếng (tour ngày) BCT24 250.000",
+    "biChe": "nav.buoc-thanh",
+    "y": 40
+   }
+  ],
+  "tran": [],
+  "rong": [
+   {
+    "el": "section#hk-card.card.hk-card",
+    "rong": 1088,
+    "noiDung": 200,
+    "tiLe": 18,
+    "chu": "Hành khách 0/0 khách đã có tên Chưa có hành khách nào. + Thê"
+   },
+   {
+    "el": "div.hk",
+    "rong": 1056,
+    "noiDung": 200,
+    "tiLe": 19,
+    "chu": "0/0 khách đã có tên Chưa có hành khách nào. + Thêm hành khác"
+   },
+   {
+    "el": "div.hk-dem",
+    "rong": 1056,
+    "noiDung": 184,
+    "tiLe": 17,
+    "chu": "0/0 khách đã có tên"
+   }
+  ]
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/parties",
+  "kho": 1440,
+  "url": "/parties",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.xm-tabs",
+    "rong": 1102,
+    "noiDung": 216,
+    "tiLe": 20,
+    "chu": ""
+   }
+  ]
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/catalog",
+  "kho": 1440,
+  "url": "/catalog",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   }
+  ],
+  "che": [
+   {
+    "el": "a.sidebar-item",
+    "chu": "Chụp bù mức",
+    "biChe": "div.sidebar-foot",
+    "y": 716
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Dịch vụ & giá",
+    "biChe": "div.sidebar-foot",
+    "y": 754
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Địa điểm",
+    "biChe": "div.sidebar-foot",
+    "y": 792
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Loại giấy tờ cá nhân",
+    "biChe": "div.sidebar-foot",
+    "y": 830
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Loại giấy tờ xe",
+    "biChe": "div.sidebar-foot",
+    "y": 868
+   }
+  ],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div#chon-bar.chon-bar",
+    "rong": 1160,
+    "noiDung": 199,
+    "tiLe": 17,
+    "chu": "Chọn tất cả đang hiện (118)"
+   }
+  ]
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/staff",
+  "kho": 1440,
+  "url": "/staff",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   }
+  ],
+  "che": [
+   {
+    "el": "a.sidebar-item",
+    "chu": "Chụp bù mức",
+    "biChe": "div.sidebar-foot",
+    "y": 716
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Dịch vụ & giá",
+    "biChe": "div.sidebar-foot",
+    "y": 754
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Địa điểm",
+    "biChe": "div.sidebar-foot",
+    "y": 792
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Loại giấy tờ cá nhân",
+    "biChe": "div.sidebar-foot",
+    "y": 830
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Loại giấy tờ xe",
+    "biChe": "div.sidebar-foot",
+    "y": 868
+   }
+  ],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.grid.two",
+    "rong": 1128,
+    "noiDung": 279,
+    "tiLe": 25,
+    "chu": ""
+   },
+   {
+    "el": "div.xm-tabs",
+    "rong": 1128,
+    "noiDung": 216,
+    "tiLe": 19,
+    "chu": "Đang chờ Đã xử lý"
+   }
+  ]
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/sessions",
+  "kho": 1440,
+  "url": "/sessions",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   }
+  ],
+  "che": [
+   {
+    "el": "a.sidebar-item",
+    "chu": "Chụp bù mức",
+    "biChe": "div.sidebar-foot",
+    "y": 716
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Dịch vụ & giá",
+    "biChe": "div.sidebar-foot",
+    "y": 754
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Địa điểm",
+    "biChe": "div.sidebar-foot",
+    "y": 792
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Loại giấy tờ cá nhân",
+    "biChe": "div.sidebar-foot",
+    "y": 830
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Loại giấy tờ xe",
+    "biChe": "div.sidebar-foot",
+    "y": 868
+   }
+  ],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/locations",
+  "kho": 1440,
+  "url": "/locations",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   }
+  ],
+  "che": [
+   {
+    "el": "a.sidebar-item",
+    "chu": "Chụp bù mức",
+    "biChe": "div.sidebar-foot",
+    "y": 716
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Dịch vụ & giá",
+    "biChe": "div.sidebar-foot",
+    "y": 754
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Địa điểm",
+    "biChe": "div.sidebar-foot",
+    "y": 792
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Loại giấy tờ cá nhân",
+    "biChe": "div.sidebar-foot",
+    "y": 830
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Loại giấy tờ xe",
+    "biChe": "div.sidebar-foot",
+    "y": 868
+   }
+  ],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/loai-giay-to-nguoi",
+  "kho": 1440,
+  "url": "/loai-giay-to-nguoi",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   }
+  ],
+  "che": [
+   {
+    "el": "a.sidebar-item",
+    "chu": "Chụp bù mức",
+    "biChe": "div.sidebar-foot",
+    "y": 716
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Dịch vụ & giá",
+    "biChe": "div.sidebar-foot",
+    "y": 754
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Địa điểm",
+    "biChe": "div.sidebar-foot",
+    "y": 792
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Loại giấy tờ cá nhân",
+    "biChe": "div.sidebar-foot",
+    "y": 830
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Loại giấy tờ xe",
+    "biChe": "div.sidebar-foot",
+    "y": 868
+   }
+  ],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/dieu-phoi",
+  "kho": 1440,
+  "url": "/dieu-phoi",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   },
+   {
+    "el": "span.dp-tl-tx",
+    "chu": "Tài Xế Công Ty Thử",
+    "rong": 79,
+    "can": 113
+   },
+   {
+    "el": "span.dp-tl-tx",
+    "chu": "Tài Xế Đối Tác Thử",
+    "rong": 79,
+    "can": 110
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.dp-card-head",
+    "rong": 734,
+    "noiDung": 232,
+    "tiLe": 32,
+    "chu": "Dòng thời gian theo xe 3 chuyến"
+   }
+  ]
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/chuyen",
+  "kho": 1440,
+  "url": "/chuyen?id=38502a8c-6495-4770-bc17-590a7747a882",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.dp-card-head",
+    "rong": 862,
+    "noiDung": 184,
+    "tiLe": 21,
+    "chu": "Khách đang chờ 2 khách"
+   },
+   {
+    "el": "div.dp-card-head",
+    "rong": 862,
+    "noiDung": 233,
+    "tiLe": 27,
+    "chu": "Đề nghị chuyển khách 1 đề nghị"
+   },
+   {
+    "el": "div.dp-card-head.dp-run-list-head",
+    "rong": 864,
+    "noiDung": 196,
+    "tiLe": 23,
+    "chu": "Điểm dừng Tải hiện tại 2/16"
+   },
+   {
+    "el": "div.dp-khach-dong",
+    "rong": 830,
+    "noiDung": 181,
+    "tiLe": 22,
+    "chu": "Khách Gấp 19:20 2 1991"
+   },
+   {
+    "el": "div.dp-khach-dong",
+    "rong": 830,
+    "noiDung": 181,
+    "tiLe": 22,
+    "chu": "Khách Gấp 19:20 1 1990"
+   },
+   {
+    "el": "div.dp-card-head",
+    "rong": 862,
+    "noiDung": 248,
+    "tiLe": 29,
+    "chu": "Chi phí chuyến Chỉ Kế toán · Quản trị"
+   },
+   {
+    "el": "div.cp-dong-dau",
+    "rong": 804,
+    "noiDung": 187,
+    "tiLe": 23,
+    "chu": "Giá thoả thuận + 900.000 ₫"
+   }
+  ]
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/chuyen-sua",
+  "kho": 1440,
+  "url": "/chuyen-sua",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.dp-cx-actions",
+    "rong": 850,
+    "noiDung": 179,
+    "tiLe": 21,
+    "chu": "Huỷ bỏ Lưu chuyến"
+   }
+  ]
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/xe-dang-chay",
+  "kho": 1440,
+  "url": "/xe-dang-chay",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.xdc-head",
+    "rong": 1160,
+    "noiDung": 203,
+    "tiLe": 17,
+    "chu": "Xe đang chạy 2 xe"
+   }
+  ]
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/de-nghi",
+  "kho": 1440,
+  "url": "/de-nghi",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.dp-card-head",
+    "rong": 1158,
+    "noiDung": 253,
+    "tiLe": 22,
+    "chu": "Đề nghị khác trong ngày 1 đề nghị"
+   }
+  ]
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/bang-gia-xe",
+  "kho": 1440,
+  "url": "/bang-gia-xe?nha-xe=d4096bb5-3ec3-46cb-a11a-cd3af6b5ec93",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.vc-grow",
+    "rong": 1040,
+    "noiDung": 315,
+    "tiLe": 30,
+    "chu": "Bảng giá thuê xe Giá thuê mỗi chuyến của từng nhà xe đối tác"
+   },
+   {
+    "el": "div.tx-tabs",
+    "rong": 1160,
+    "noiDung": 255,
+    "tiLe": 22,
+    "chu": "Giá thuê Tuyến Cỡ xe"
+   }
+  ]
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/bang-ke-xe",
+  "kho": 1440,
+  "url": "/bang-ke-xe?tu=2026-10-01&den=2026-10-30",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.bk-nhom-dau",
+    "rong": 1158,
+    "noiDung": 239,
+    "tiLe": 21,
+    "chu": "Nhà xe Hải Âu Thử 1 chuyến TỔNG NHÓM 900.000 ₫"
+   },
+   {
+    "el": "div.vc-grow",
+    "rong": 1018,
+    "noiDung": 143,
+    "tiLe": 14,
+    "chu": "Nhà xe Hải Âu Thử 1 chuyến"
+   },
+   {
+    "el": "section.bk-tong-cong",
+    "rong": 1160,
+    "noiDung": 354,
+    "tiLe": 30,
+    "chu": "TỔNG CỘNG Chuyến chưa có giá chưa được tính. 900.000 ₫"
+   },
+   {
+    "el": "div.vc-grow",
+    "rong": 988,
+    "noiDung": 226,
+    "tiLe": 23,
+    "chu": "TỔNG CỘNG Chuyến chưa có giá chưa được tính."
+   }
+  ]
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/xe",
+  "kho": 1440,
+  "url": "/xe",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.vc-page-head",
+    "rong": 1160,
+    "noiDung": 121,
+    "tiLe": 10,
+    "chu": "Xe Thêm xe"
+   }
+  ]
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/xe-sua",
+  "kho": 1440,
+  "url": "/xe-sua",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/xe-chi-tiet",
+  "kho": 1440,
+  "url": "/xe-chi-tiet?id=04720288-7f85-448d-b125-bf0c6889fa15",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.vc-row-between",
+    "rong": 752,
+    "noiDung": 237,
+    "tiLe": 32,
+    "chu": "79B-345.67 Đang dùng"
+   },
+   {
+    "el": "div.vc-alert.vc-alert-warn",
+    "rong": 1110,
+    "noiDung": 244,
+    "tiLe": 22,
+    "chu": "2 giấy sắp hết hạn trong 30 ngày"
+   },
+   {
+    "el": "div.vc-dt-grid.vc-dt-head.vc-th",
+    "rong": 1158,
+    "noiDung": 239,
+    "tiLe": 21,
+    "chu": "LOẠI · SỐ · NGÀY CẤP HẾT HẠN CÒN"
+   }
+  ]
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/lich-xe-ban",
+  "kho": 1440,
+  "url": "/lich-xe-ban",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/giay-to-sap-het-han",
+  "kho": 1440,
+  "url": "/giay-to-sap-het-han",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.vc-due-grid.vc-th.vc-due-head",
+    "rong": 1158,
+    "noiDung": 240,
+    "tiLe": 21,
+    "chu": "XE / NGƯỜI LOẠI GIẤY HẾT HẠN CÒN"
+   }
+  ]
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/loai-giay-to-xe",
+  "kho": 1440,
+  "url": "/loai-giay-to-xe",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   }
+  ],
+  "che": [
+   {
+    "el": "a.sidebar-item",
+    "chu": "Chụp bù mức",
+    "biChe": "div.sidebar-foot",
+    "y": 716
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Dịch vụ & giá",
+    "biChe": "div.sidebar-foot",
+    "y": 754
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Địa điểm",
+    "biChe": "div.sidebar-foot",
+    "y": 792
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Loại giấy tờ cá nhân",
+    "biChe": "div.sidebar-foot",
+    "y": 830
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Loại giấy tờ xe",
+    "biChe": "div.sidebar-foot",
+    "y": 868
+   }
+  ],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/chinh-sach-dieu-phoi",
+  "kho": 1440,
+  "url": "/chinh-sach-dieu-phoi",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   }
+  ],
+  "che": [
+   {
+    "el": "a.sidebar-item",
+    "chu": "Chụp bù mức",
+    "biChe": "div.sidebar-foot",
+    "y": 716
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Dịch vụ & giá",
+    "biChe": "div.sidebar-foot",
+    "y": 754
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Địa điểm",
+    "biChe": "div.sidebar-foot",
+    "y": 792
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Loại giấy tờ cá nhân",
+    "biChe": "div.sidebar-foot",
+    "y": 830
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Loại giấy tờ xe",
+    "biChe": "div.sidebar-foot",
+    "y": 868
+   }
+  ],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.dp-toggle",
+    "rong": 850,
+    "noiDung": 293,
+    "tiLe": 34,
+    "chu": "Phải đủ danh sách khách Thiếu tên thì chưa cho xe chạy được."
+   },
+   {
+    "el": "div.dp-toggle.is-locked",
+    "rong": 850,
+    "noiDung": 269,
+    "tiLe": 32,
+    "chu": "Phải có hợp đồng Khoá tắt — chưa dùng ở lượt này."
+   }
+  ]
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/dieu-kien-xuat-ben",
+  "kho": 1440,
+  "url": "/dieu-kien-xuat-ben",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   }
+  ],
+  "che": [
+   {
+    "el": "a.sidebar-item",
+    "chu": "Chụp bù mức",
+    "biChe": "div.sidebar-foot",
+    "y": 716
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Dịch vụ & giá",
+    "biChe": "div.sidebar-foot",
+    "y": 754
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Địa điểm",
+    "biChe": "div.sidebar-foot",
+    "y": 792
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Loại giấy tờ cá nhân",
+    "biChe": "div.sidebar-foot",
+    "y": 830
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Loại giấy tờ xe",
+    "biChe": "div.sidebar-foot",
+    "y": 868
+   }
+  ],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.dp-group-head",
+    "rong": 1158,
+    "noiDung": 168,
+    "tiLe": 14,
+    "chu": "Điều kiện theo cỡ xe 2"
+   },
+   {
+    "el": "div.dp-reason",
+    "rong": 1158,
+    "noiDung": 287,
+    "tiLe": 25,
+    "chu": "Kiểm định — mọi xe Áp từ 01/09/2026 Đang áp dụng Đóng"
+   },
+   {
+    "el": "div.dp-group-head",
+    "rong": 1158,
+    "noiDung": 210,
+    "tiLe": 18,
+    "chu": "Số khách theo hạng bằng 8"
+   },
+   {
+    "el": "div.dp-reason",
+    "rong": 1158,
+    "noiDung": 242,
+    "tiLe": 21,
+    "chu": "Hạng B Tối đa 8 khách · áp từ 01/09/2026 Đổi"
+   },
+   {
+    "el": "div.dp-reason",
+    "rong": 1158,
+    "noiDung": 248,
+    "tiLe": 21,
+    "chu": "Hạng D1 Tối đa 16 khách · áp từ 01/09/2026 Đổi"
+   },
+   {
+    "el": "div.dp-reason",
+    "rong": 1158,
+    "noiDung": 251,
+    "tiLe": 22,
+    "chu": "Hạng D2 Tối đa 29 khách · áp từ 01/09/2026 Đổi"
+   },
+   {
+    "el": "div.dp-reason",
+    "rong": 1158,
+    "noiDung": 244,
+    "tiLe": 21,
+    "chu": "Hạng D Không giới hạn · áp từ 01/09/2026 Đổi"
+   },
+   {
+    "el": "div.dp-reason",
+    "rong": 1158,
+    "noiDung": 242,
+    "tiLe": 21,
+    "chu": "Hạng B2 (mẫu cũ) Tối đa 8 khách · áp từ 01/09/2026 Đổi"
+   },
+   {
+    "el": "div.dp-reason",
+    "rong": 1158,
+    "noiDung": 242,
+    "tiLe": 21,
+    "chu": "Hạng C (mẫu cũ) Tối đa 8 khách · áp từ 01/09/2026 Đổi"
+   },
+   {
+    "el": "div.dp-reason",
+    "rong": 1158,
+    "noiDung": 251,
+    "tiLe": 22,
+    "chu": "Hạng D (mẫu cũ) Tối đa 29 khách · áp từ 01/09/2026 Đổi"
+   },
+   {
+    "el": "div.dp-reason",
+    "rong": 1158,
+    "noiDung": 244,
+    "tiLe": 21,
+    "chu": "Hạng E (mẫu cũ) Không giới hạn · áp từ 01/09/2026 Đổi"
+   }
+  ]
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/ly-do-dieu-phoi",
+  "kho": 1440,
+  "url": "/ly-do-dieu-phoi",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   }
+  ],
+  "che": [
+   {
+    "el": "a.sidebar-item",
+    "chu": "Chụp bù mức",
+    "biChe": "div.sidebar-foot",
+    "y": 716
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Dịch vụ & giá",
+    "biChe": "div.sidebar-foot",
+    "y": 754
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Địa điểm",
+    "biChe": "div.sidebar-foot",
+    "y": 792
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Loại giấy tờ cá nhân",
+    "biChe": "div.sidebar-foot",
+    "y": 830
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Loại giấy tờ xe",
+    "biChe": "div.sidebar-foot",
+    "y": 868
+   }
+  ],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.vc-page-head.dp-ly-do-head",
+    "rong": 1160,
+    "noiDung": 396,
+    "tiLe": 34,
+    "chu": "Lý do điều phối Hiện trong các hộp chọn lý do"
+   },
+   {
+    "el": "section.vc-card.dp-group",
+    "rong": 1160,
+    "noiDung": 345,
+    "tiLe": 30,
+    "chu": "Điều chỉnh khẩn cấp, phá lệ 3 + Thêm lý do Sự cố vận hành Sử"
+   },
+   {
+    "el": "div.dp-group-head",
+    "rong": 1158,
+    "noiDung": 345,
+    "tiLe": 30,
+    "chu": "Điều chỉnh khẩn cấp, phá lệ 3 + Thêm lý do"
+   },
+   {
+    "el": "div.dp-reason",
+    "rong": 1158,
+    "noiDung": 223,
+    "tiLe": 19,
+    "chu": "Sự cố vận hành Sửa Ngưng"
+   },
+   {
+    "el": "div.dp-reason",
+    "rong": 1158,
+    "noiDung": 204,
+    "tiLe": 18,
+    "chu": "Đơn đặt gấp Sửa Ngưng"
+   },
+   {
+    "el": "div.dp-reason",
+    "rong": 1158,
+    "noiDung": 146,
+    "tiLe": 13,
+    "chu": "Khác Sửa Ngưng"
+   },
+   {
+    "el": "section.vc-card.dp-group",
+    "rong": 1160,
+    "noiDung": 289,
+    "tiLe": 25,
+    "chu": "Huỷ chuyến 3 + Thêm lý do Gộp vào chuyến khác Sửa Ngưng Khôn"
+   },
+   {
+    "el": "div.dp-group-head",
+    "rong": 1158,
+    "noiDung": 218,
+    "tiLe": 19,
+    "chu": "Huỷ chuyến 3 + Thêm lý do"
+   },
+   {
+    "el": "div.dp-reason",
+    "rong": 1158,
+    "noiDung": 275,
+    "tiLe": 24,
+    "chu": "Gộp vào chuyến khác Sửa Ngưng"
+   },
+   {
+    "el": "div.dp-reason",
+    "rong": 1158,
+    "noiDung": 241,
+    "tiLe": 21,
+    "chu": "Không còn khách Sửa Ngưng"
+   },
+   {
+    "el": "div.dp-reason",
+    "rong": 1158,
+    "noiDung": 146,
+    "tiLe": 13,
+    "chu": "Khác Sửa Ngưng"
+   },
+   {
+    "el": "section.vc-card.dp-group",
+    "rong": 1160,
+    "noiDung": 278,
+    "tiLe": 24,
+    "chu": "Kết thúc gián đoạn 3 + Thêm lý do Xe hỏng Sửa Ngưng Tai nạn "
+   }
+  ]
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/khoa-thang",
+  "kho": 1440,
+  "url": "/khoa-thang",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div#ky-noi-dung",
+    "rong": 1160,
+    "noiDung": 396,
+    "tiLe": 34,
+    "chu": "Các tháng đã khoá Chưa khoá tháng nào Tháng khoá được kế tiế"
+   },
+   {
+    "el": "section.card",
+    "rong": 1160,
+    "noiDung": 171,
+    "tiLe": 15,
+    "chu": "Các tháng đã khoá Chưa khoá tháng nào"
+   },
+   {
+    "el": "section.card",
+    "rong": 1160,
+    "noiDung": 396,
+    "tiLe": 34,
+    "chu": "Tháng khoá được kế tiếp Chưa có tháng nào khoá được (tháng h"
+   }
+  ]
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/so-cong-no",
+  "kho": 1440,
+  "url": "/so-cong-no",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   },
+   {
+    "el": "h2#scn-ds-tieu-de.visually-hidden",
+    "chu": "Danh sách các bên",
+    "rong": 1,
+    "can": 170
+   },
+   {
+    "el": "span.visually-hidden",
+    "chu": "Tìm theo tên bên",
+    "rong": 1,
+    "can": 111
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div#scn-tong.scn-tong",
+    "rong": 1160,
+    "noiDung": 288,
+    "tiLe": 25,
+    "chu": "Các bên đang giữ 670.000 ₫ Công ty đang nợ 0 ₫ Số bên 2"
+   }
+  ]
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/dieu-chinh-cong-no",
+  "kho": 1440,
+  "url": "/dieu-chinh-cong-no",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.dc-dau",
+    "rong": 1102,
+    "noiDung": 292,
+    "tiLe": 27,
+    "chu": "TD-20261030-0005 Chờ duyệt Giảm nợ"
+   },
+   {
+    "el": "div.dc-nut",
+    "rong": 1102,
+    "noiDung": 180,
+    "tiLe": 16,
+    "chu": "Duyệt Từ chối"
+   },
+   {
+    "el": "section#dc-khoi-cua-toi.card",
+    "rong": 1160,
+    "noiDung": 184,
+    "tiLe": 16,
+    "chu": "Yêu cầu của tôi Bạn chưa gửi yêu cầu nào."
+   }
+  ]
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/hoa-hong",
+  "kho": 1440,
+  "url": "/hoa-hong",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   }
+  ],
+  "che": [
+   {
+    "el": "a.sidebar-item",
+    "chu": "Chụp bù mức",
+    "biChe": "div.sidebar-foot",
+    "y": 716
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Dịch vụ & giá",
+    "biChe": "div.sidebar-foot",
+    "y": 754
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Địa điểm",
+    "biChe": "div.sidebar-foot",
+    "y": 792
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Loại giấy tờ cá nhân",
+    "biChe": "div.sidebar-foot",
+    "y": 830
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Loại giấy tờ xe",
+    "biChe": "div.sidebar-foot",
+    "y": 868
+   }
+  ],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.hh-dau",
+    "rong": 1160,
+    "noiDung": 341,
+    "tiLe": 29,
+    "chu": "Hoa hồng đối tác ＋ Thêm mức"
+   },
+   {
+    "el": "section.hh-cap",
+    "rong": 1160,
+    "noiDung": 345,
+    "tiLe": 30,
+    "chu": "CÁC CẤP ĐẠI LÝ ＋ Thêm cấp đại lý Chưa có cấp đại lý nào."
+   },
+   {
+    "el": "div.hh-cap-dau",
+    "rong": 1160,
+    "noiDung": 302,
+    "tiLe": 26,
+    "chu": "CÁC CẤP ĐẠI LÝ ＋ Thêm cấp đại lý"
+   }
+  ]
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/nguoi-ban",
+  "kho": 1440,
+  "url": "/nguoi-ban",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   }
+  ],
+  "che": [
+   {
+    "el": "a.sidebar-item",
+    "chu": "Chụp bù mức",
+    "biChe": "div.sidebar-foot",
+    "y": 716
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Dịch vụ & giá",
+    "biChe": "div.sidebar-foot",
+    "y": 754
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Địa điểm",
+    "biChe": "div.sidebar-foot",
+    "y": 792
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Loại giấy tờ cá nhân",
+    "biChe": "div.sidebar-foot",
+    "y": 830
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Loại giấy tờ xe",
+    "biChe": "div.sidebar-foot",
+    "y": 868
+   }
+  ],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/chup-bu",
+  "kho": 1440,
+  "url": "/chup-bu",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   }
+  ],
+  "che": [
+   {
+    "el": "a.sidebar-item",
+    "chu": "Chụp bù mức",
+    "biChe": "div.sidebar-foot",
+    "y": 716
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Dịch vụ & giá",
+    "biChe": "div.sidebar-foot",
+    "y": 754
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Địa điểm",
+    "biChe": "div.sidebar-foot",
+    "y": 792
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Loại giấy tờ cá nhân",
+    "biChe": "div.sidebar-foot",
+    "y": 830
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Loại giấy tờ xe",
+    "biChe": "div.sidebar-foot",
+    "y": 868
+   }
+  ],
+  "tran": [],
+  "rong": [
+   {
+    "el": "section#cb-noi-dung.card",
+    "rong": 1160,
+    "noiDung": 229,
+    "tiLe": 20,
+    "chu": "Đơn chờ chụp bù Không còn đơn nào chờ chụp bù."
+   }
+  ]
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/cho-xac-nhan",
+  "kho": 1440,
+  "url": "/cho-xac-nhan",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "li.cx-the",
+    "rong": 1160,
+    "noiDung": 402,
+    "tiLe": 35,
+    "chu": "TD-20261030-0002 Tour du thuyền Emperor: khám phá vịnh Nha T"
+   },
+   {
+    "el": "div.cx-the-dau",
+    "rong": 1126,
+    "noiDung": 168,
+    "tiLe": 15,
+    "chu": "TD-20261030-0002"
+   },
+   {
+    "el": "li.cx-the",
+    "rong": 1160,
+    "noiDung": 402,
+    "tiLe": 35,
+    "chu": "TD-20261030-0014 Tour du thuyền Emperor: khám phá vịnh Nha T"
+   },
+   {
+    "el": "div.cx-the-dau",
+    "rong": 1126,
+    "noiDung": 165,
+    "tiLe": 15,
+    "chu": "TD-20261030-0014"
+   },
+   {
+    "el": "li.cx-the",
+    "rong": 1160,
+    "noiDung": 402,
+    "tiLe": 35,
+    "chu": "TD-20261030-0015 Tour du thuyền Emperor: khám phá vịnh Nha T"
+   },
+   {
+    "el": "div.cx-the-dau",
+    "rong": 1126,
+    "noiDung": 164,
+    "tiLe": 15,
+    "chu": "TD-20261030-0015"
+   },
+   {
+    "el": "li.cx-the",
+    "rong": 1160,
+    "noiDung": 402,
+    "tiLe": 35,
+    "chu": "TD-20261030-0016 Tour du thuyền Emperor: khám phá vịnh Nha T"
+   },
+   {
+    "el": "div.cx-the-dau",
+    "rong": 1126,
+    "noiDung": 165,
+    "tiLe": 15,
+    "chu": "TD-20261030-0016"
+   }
+  ]
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/audit",
+  "kho": 1440,
+  "url": "/audit",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   }
+  ],
+  "che": [
+   {
+    "el": "a.sidebar-item",
+    "chu": "Chụp bù mức",
+    "biChe": "div.sidebar-foot",
+    "y": 716
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Dịch vụ & giá",
+    "biChe": "div.sidebar-foot",
+    "y": 754
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Địa điểm",
+    "biChe": "div.sidebar-foot",
+    "y": 792
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Loại giấy tờ cá nhân",
+    "biChe": "div.sidebar-foot",
+    "y": 830
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Loại giấy tờ xe",
+    "biChe": "div.sidebar-foot",
+    "y": 868
+   }
+  ],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/gui-thong-bao",
+  "kho": 1440,
+  "url": "/gui-thong-bao",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   }
+  ],
+  "che": [
+   {
+    "el": "a.sidebar-item",
+    "chu": "Chụp bù mức",
+    "biChe": "div.sidebar-foot",
+    "y": 716
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Dịch vụ & giá",
+    "biChe": "div.sidebar-foot",
+    "y": 754
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Địa điểm",
+    "biChe": "div.sidebar-foot",
+    "y": 792
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Loại giấy tờ cá nhân",
+    "biChe": "div.sidebar-foot",
+    "y": 830
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Loại giấy tờ xe",
+    "biChe": "div.sidebar-foot",
+    "y": 868
+   }
+  ],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/tro-ly-cai-dat",
+  "kho": 1440,
+  "url": "/tro-ly-cai-dat",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   }
+  ],
+  "che": [
+   {
+    "el": "a.sidebar-item",
+    "chu": "Chụp bù mức",
+    "biChe": "div.sidebar-foot",
+    "y": 716
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Dịch vụ & giá",
+    "biChe": "div.sidebar-foot",
+    "y": 754
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Địa điểm",
+    "biChe": "div.sidebar-foot",
+    "y": 792
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Loại giấy tờ cá nhân",
+    "biChe": "div.sidebar-foot",
+    "y": 830
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Loại giấy tờ xe",
+    "biChe": "div.sidebar-foot",
+    "y": 868
+   }
+  ],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.tl-cd-hang",
+    "rong": 1128,
+    "noiDung": 321,
+    "tiLe": 28,
+    "chu": "Lưu bộ não Khôi phục mặc định"
+   },
+   {
+    "el": "div.tl-cd-hang",
+    "rong": 1128,
+    "noiDung": 128,
+    "tiLe": 11,
+    "chu": "Thêm đoạn"
+   },
+   {
+    "el": "div.tl-cd-hang",
+    "rong": 1128,
+    "noiDung": 248,
+    "tiLe": 22,
+    "chu": "Trang trước Trang sau"
+   }
+  ]
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/giao-dien",
+  "kho": 1440,
+  "url": "/giao-dien",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   },
+   {
+    "el": "span.order-row-name",
+    "chu": "Chị Nguyễn Thu Hà",
+    "rong": 3,
+    "can": 147
+   }
+  ],
+  "che": [
+   {
+    "el": "a.sidebar-item",
+    "chu": "Chụp bù mức",
+    "biChe": "div.sidebar-foot",
+    "y": 716
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Dịch vụ & giá",
+    "biChe": "div.sidebar-foot",
+    "y": 754
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Địa điểm",
+    "biChe": "div.sidebar-foot",
+    "y": 792
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Loại giấy tờ cá nhân",
+    "biChe": "div.sidebar-foot",
+    "y": 830
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Loại giấy tờ xe",
+    "biChe": "div.sidebar-foot",
+    "y": 868
+   }
+  ],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.gd-dong",
+    "rong": 744,
+    "noiDung": 109,
+    "tiLe": 15,
+    "chu": "Nền trang"
+   },
+   {
+    "el": "div.gd-dong",
+    "rong": 744,
+    "noiDung": 95,
+    "tiLe": 13,
+    "chu": "Nền thẻ"
+   },
+   {
+    "el": "div.gd-dong",
+    "rong": 744,
+    "noiDung": 109,
+    "tiLe": 15,
+    "chu": "Chữ chính"
+   },
+   {
+    "el": "div.gd-dong",
+    "rong": 744,
+    "noiDung": 98,
+    "tiLe": 13,
+    "chu": "Chữ phụ"
+   },
+   {
+    "el": "div.gd-dong",
+    "rong": 744,
+    "noiDung": 73,
+    "tiLe": 10,
+    "chu": "Viền"
+   },
+   {
+    "el": "fieldset.card.gd-nhom",
+    "rong": 780,
+    "noiDung": 257,
+    "tiLe": 33,
+    "chu": "Thanh tác vụ Nền thanh trên Chữ thanh trên Nền thanh bên Chữ"
+   },
+   {
+    "el": "div.gd-dong",
+    "rong": 744,
+    "noiDung": 141,
+    "tiLe": 19,
+    "chu": "Nền thanh trên"
+   },
+   {
+    "el": "div.gd-dong",
+    "rong": 744,
+    "noiDung": 142,
+    "tiLe": 19,
+    "chu": "Chữ thanh trên"
+   },
+   {
+    "el": "div.gd-dong",
+    "rong": 744,
+    "noiDung": 139,
+    "tiLe": 19,
+    "chu": "Nền thanh bên"
+   },
+   {
+    "el": "div.gd-dong",
+    "rong": 744,
+    "noiDung": 140,
+    "tiLe": 19,
+    "chu": "Chữ thanh bên"
+   },
+   {
+    "el": "div.gd-dong",
+    "rong": 744,
+    "noiDung": 257,
+    "tiLe": 34,
+    "chu": "Nền mục đang chọn ở thanh bên"
+   },
+   {
+    "el": "div.gd-dong",
+    "rong": 744,
+    "noiDung": 257,
+    "tiLe": 35,
+    "chu": "Chữ mục đang chọn ở thanh bên"
+   }
+  ]
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/account",
+  "kho": 1440,
+  "url": "/account",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.hs-dong",
+    "rong": 1128,
+    "noiDung": 171,
+    "tiLe": 15,
+    "chu": "Họ tên Toàn Quyền Thử"
+   },
+   {
+    "el": "div.hs-dong",
+    "rong": 1128,
+    "noiDung": 134,
+    "tiLe": 12,
+    "chu": "Ngày sinh Chưa có"
+   },
+   {
+    "el": "div.hs-dong",
+    "rong": 1128,
+    "noiDung": 114,
+    "tiLe": 10,
+    "chu": "Địa chỉ Chưa có"
+   },
+   {
+    "el": "div.hs-dong",
+    "rong": 1128,
+    "noiDung": 138,
+    "tiLe": 12,
+    "chu": "Điện thoại Chưa có"
+   },
+   {
+    "el": "div.hs-dong",
+    "rong": 1128,
+    "noiDung": 104,
+    "tiLe": 9,
+    "chu": "Email Chưa có"
+   },
+   {
+    "el": "div.hs-dong",
+    "rong": 1128,
+    "noiDung": 117,
+    "tiLe": 10,
+    "chu": "Giấy tờ Chưa có"
+   }
+  ]
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/feedback",
+  "kho": 1440,
+  "url": "/feedback",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.ht-dau",
+    "rong": 1160,
+    "noiDung": 223,
+    "tiLe": 19,
+    "chu": "Hỗ trợ ＋ Gửi yêu cầu"
+   },
+   {
+    "el": "div#ht-hai-cot.ht-hai-cot",
+    "rong": 1160,
+    "noiDung": 184,
+    "tiLe": 16,
+    "chu": "Bạn chưa gửi yêu cầu nào."
+   }
+  ]
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/help",
+  "kho": 1440,
+  "url": "/help",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "li",
+    "rong": 1078,
+    "noiDung": 350,
+    "tiLe": 32,
+    "chu": ""
+   },
+   {
+    "el": "li",
+    "rong": 1078,
+    "noiDung": 265,
+    "tiLe": 25,
+    "chu": ""
+   },
+   {
+    "el": "li",
+    "rong": 1078,
+    "noiDung": 243,
+    "tiLe": 23,
+    "chu": ""
+   },
+   {
+    "el": "li",
+    "rong": 1078,
+    "noiDung": 281,
+    "tiLe": 26,
+    "chu": ""
+   },
+   {
+    "el": "li",
+    "rong": 1078,
+    "noiDung": 174,
+    "tiLe": 16,
+    "chu": ""
+   },
+   {
+    "el": "li",
+    "rong": 1078,
+    "noiDung": 268,
+    "tiLe": 25,
+    "chu": ""
+   },
+   {
+    "el": "li",
+    "rong": 1078,
+    "noiDung": 268,
+    "tiLe": 25,
+    "chu": ""
+   },
+   {
+    "el": "li",
+    "rong": 1078,
+    "noiDung": 314,
+    "tiLe": 29,
+    "chu": ""
+   },
+   {
+    "el": "li",
+    "rong": 1052,
+    "noiDung": 287,
+    "tiLe": 27,
+    "chu": ""
+   },
+   {
+    "el": "li",
+    "rong": 1052,
+    "noiDung": 344,
+    "tiLe": 33,
+    "chu": ""
+   },
+   {
+    "el": "li",
+    "rong": 1052,
+    "noiDung": 337,
+    "tiLe": 32,
+    "chu": ""
+   },
+   {
+    "el": "li",
+    "rong": 1052,
+    "noiDung": 281,
+    "tiLe": 27,
+    "chu": ""
+   }
+  ]
+ },
+ {
+  "vai": "SUPER_ADMIN",
+  "trang": "/thiet-lap",
+  "kho": 1440,
+  "url": "/thiet-lap",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Toàn Quyền Thử",
+    "rong": 71,
+    "can": 112
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Quản trị · Toàn quyền",
+    "rong": 71,
+    "can": 134
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "DRIVER",
+  "trang": "/tai-xe",
+  "kho": 390,
+  "url": "/tai-xe",
+  "cat": [],
+  "che": [],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "DRIVER",
+  "trang": "/cuoc",
+  "kho": 390,
+  "url": "/cuoc",
+  "cat": [],
+  "che": [],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "DRIVER",
+  "trang": "/cuoc-chuyen",
+  "kho": 390,
+  "url": "/cuoc-chuyen?id=af7bc088-8994-484f-b1e8-ee46c329e2d8",
+  "cat": [],
+  "che": [
+   {
+    "el": "a.vc-btn.vc-btn-ghost-primary",
+    "chu": "Google Maps",
+    "biChe": "header#topbar",
+    "y": 40
+   }
+  ],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.dp-run-chi-duong",
+    "rong": 354,
+    "noiDung": 122,
+    "tiLe": 34,
+    "chu": "Chỉ đường Google Maps"
+   },
+   {
+    "el": "div.dp-run-chi-duong",
+    "rong": 356,
+    "noiDung": 122,
+    "tiLe": 34,
+    "chu": "Chỉ đường Google Maps"
+   }
+  ]
+ },
+ {
+  "vai": "DRIVER",
+  "trang": "/tai-xe",
+  "kho": 1040,
+  "url": "/tai-xe",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Tài Xế Công Ty Thử",
+    "rong": 71,
+    "can": 133
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "DRIVER",
+  "trang": "/cuoc",
+  "kho": 1040,
+  "url": "/cuoc",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Tài Xế Công Ty Thử",
+    "rong": 71,
+    "can": 133
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "DRIVER",
+  "trang": "/cuoc-chuyen",
+  "kho": 1040,
+  "url": "/cuoc-chuyen?id=af7bc088-8994-484f-b1e8-ee46c329e2d8",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Tài Xế Công Ty Thử",
+    "rong": 71,
+    "can": 133
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.dp-run-lien-he",
+    "rong": 756,
+    "noiDung": 238,
+    "tiLe": 31,
+    "chu": "Liên hệ: Hồ Văn Sơn 0912000212"
+   },
+   {
+    "el": "div.dp-run-chi-duong",
+    "rong": 756,
+    "noiDung": 122,
+    "tiLe": 16,
+    "chu": "Chỉ đường Google Maps"
+   },
+   {
+    "el": "div.dp-khach-dong",
+    "rong": 724,
+    "noiDung": 177,
+    "tiLe": 24,
+    "chu": "Khách Gấp 19:10 1 1990"
+   },
+   {
+    "el": "div.dp-khach-dong",
+    "rong": 724,
+    "noiDung": 177,
+    "tiLe": 24,
+    "chu": "Khách Gấp 19:10 2 1991"
+   },
+   {
+    "el": "div.dp-run-chi-duong",
+    "rong": 758,
+    "noiDung": 122,
+    "tiLe": 16,
+    "chu": "Chỉ đường Google Maps"
+   }
+  ]
+ },
+ {
+  "vai": "DRIVER",
+  "trang": "/tai-xe",
+  "kho": 1440,
+  "url": "/tai-xe",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Tài Xế Công Ty Thử",
+    "rong": 71,
+    "can": 133
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.vc-hello",
+    "rong": 1160,
+    "noiDung": 279,
+    "tiLe": 24,
+    "chu": "Chào Thử Thứ Sáu, 30/10/2026"
+   }
+  ]
+ },
+ {
+  "vai": "DRIVER",
+  "trang": "/cuoc",
+  "kho": 1440,
+  "url": "/cuoc",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Tài Xế Công Ty Thử",
+    "rong": 71,
+    "can": 133
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.dp-cuoc-head",
+    "rong": 1160,
+    "noiDung": 308,
+    "tiLe": 27,
+    "chu": "Cuốc của tôi Thứ Sáu, 30/10/2026"
+   }
+  ]
+ },
+ {
+  "vai": "DRIVER",
+  "trang": "/cuoc-chuyen",
+  "kho": 1440,
+  "url": "/cuoc-chuyen?id=af7bc088-8994-484f-b1e8-ee46c329e2d8",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Tài Xế Công Ty Thử",
+    "rong": 71,
+    "can": 133
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.dp-run-head",
+    "rong": 1156,
+    "noiDung": 376,
+    "tiLe": 33,
+    "chu": "1 ĐÓN · HẸN 19:10 Khách sạn Havana, 38 Trần Phú ↑ ↓"
+   },
+   {
+    "el": "div.dp-run-lien-he",
+    "rong": 1156,
+    "noiDung": 238,
+    "tiLe": 21,
+    "chu": "Liên hệ: Hồ Văn Sơn 0912000212"
+   },
+   {
+    "el": "div.dp-run-chi-duong",
+    "rong": 1156,
+    "noiDung": 122,
+    "tiLe": 11,
+    "chu": "Chỉ đường Google Maps"
+   },
+   {
+    "el": "div.dp-khach-dong",
+    "rong": 1124,
+    "noiDung": 177,
+    "tiLe": 16,
+    "chu": "Khách Gấp 19:10 1 1990"
+   },
+   {
+    "el": "div.dp-khach-dong",
+    "rong": 1124,
+    "noiDung": 177,
+    "tiLe": 16,
+    "chu": "Khách Gấp 19:10 2 1991"
+   },
+   {
+    "el": "div.dp-run-head",
+    "rong": 1158,
+    "noiDung": 312,
+    "tiLe": 27,
+    "chu": "2 TRẢ Bến tàu du lịch Nha Trang ↑ ↓"
+   },
+   {
+    "el": "div.dp-run-chi-duong",
+    "rong": 1158,
+    "noiDung": 122,
+    "tiLe": 11,
+    "chu": "Chỉ đường Google Maps"
+   }
+  ]
+ },
+ {
+  "vai": "DRIVER_PARTNER",
+  "trang": "/ban",
+  "kho": 390,
+  "url": "/ban",
+  "cat": [],
+  "che": [],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "DRIVER_PARTNER",
+  "trang": "/ban",
+  "kho": 1040,
+  "url": "/ban",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Tài Xế Đối Tác Thử",
+    "rong": 71,
+    "can": 129
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Tài xế đối tác",
+    "rong": 71,
+    "can": 86
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "DRIVER_PARTNER",
+  "trang": "/ban",
+  "kho": 1440,
+  "url": "/ban",
+  "cat": [
+   {
+    "el": "span.sidebar-name",
+    "chu": "Tài Xế Đối Tác Thử",
+    "rong": 71,
+    "can": 129
+   },
+   {
+    "el": "span.sidebar-role",
+    "chu": "Tài xế đối tác",
+    "rong": 71,
+    "can": 86
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "section.bb-ds",
+    "rong": 1160,
+    "noiDung": 374,
+    "tiLe": 32,
+    "chu": "Khung bận đang có 06:00 03/11 → 12:00 03/11 Ốm Rút khung bận"
+   },
+   {
+    "el": "div.vc-card.bb-khung",
+    "rong": 1160,
+    "noiDung": 357,
+    "tiLe": 31,
+    "chu": "06:00 03/11 → 12:00 03/11 Ốm Rút khung bận"
+   }
+  ]
+ }
+]

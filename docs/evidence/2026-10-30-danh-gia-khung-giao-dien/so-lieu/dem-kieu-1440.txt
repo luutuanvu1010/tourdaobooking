@@ -1,0 +1,14 @@
+Đếm «độ ồn» thị giác — tài khoản Quản trị, khổ 1440×900, ba màn đầu mỗi trang (kich-ban/dem-kieu.py, 30/10/2026, máy chủ thử, dữ liệu giả)
+Cỡ chữ = số giá trị font-size khác nhau của phần tử có chữ; kiểu nút = số tổ hợp (nền, màu chữ, viền, chiều cao, bo góc, độ đậm, gạch chân) khác nhau.
+
+/              cỡ chữ 9 (12, 13, 14, 16, 17, 18, 24, 28, 32) · độ đậm ['400', '500', '600', '700'] · màu chữ 8 · kiểu nút 11
+/orders        cỡ chữ 7 (12, 12.8, 13, 14, 16, 18, 24) · độ đậm ['400', '500', '600'] · màu chữ 10 · kiểu nút 9
+/order         cỡ chữ 9 (12, 12.8, 13, 14, 14.4, 16, 18, 20, 24) · độ đậm ['400', '500', '600'] · màu chữ 9 · kiểu nút 9
+/order-form    cỡ chữ 10 (12, 13, 14, 14.4, 15, 16, 17, 18, 20, 24) · độ đậm ['400', '500', '600'] · màu chữ 6 · kiểu nút 15
+/hoa-hong      cỡ chữ 8 (12, 13, 13.6, 14, 14.4, 16, 18, 24) · độ đậm ['400', '500', '600'] · màu chữ 5 · kiểu nút 10
+/catalog       cỡ chữ 7 (12, 13, 14, 14.4, 16, 18, 24) · độ đậm ['400', '500', '600'] · màu chữ 6 · kiểu nút 12
+/staff         cỡ chữ 8 (12, 12.8, 13, 14, 14.4, 16, 18, 24) · độ đậm ['400', '500', '600'] · màu chữ 7 · kiểu nút 10
+/dieu-phoi     cỡ chữ 9 (12, 13, 14, 15, 16, 18, 19, 20, 24) · độ đậm ['400', '500', '600'] · màu chữ 7 · kiểu nút 10
+/account       cỡ chữ 8 (12, 12.8, 13, 14, 14.4, 16, 18, 24) · độ đậm ['400', '500', '600'] · màu chữ 7 · kiểu nút 9
+
+Ghi chú: 12.8 / 13.6 / 14.4 px là các token rem cũ (--fs-old-badge .8rem, --fs-old-label .85rem, --fs-old-muted .9rem) — nằm ngoài thang --fs-step-*.
