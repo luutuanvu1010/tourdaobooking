@@ -117,3 +117,21 @@ Mười bảy «câu hôm nay» của §6.1 đều có nguyên văn trong `index
 - CSS: bản đầu thêm khối `.hh-cap*` ở cuối `public/app.css` ⇒ `src/bo-v2-khop-ma.test.ts` đỏ («phần CHÉP TỪ MÃ khác public/app.css»), vì từ dấu mốc «Thành phần chung v2» tới cuối tệp được chép sang bộ thiết kế v2. Chuyển khối lên ngay TRƯỚC dấu mốc đó (vẫn sau mốc PWA, chỉ token); vì luật v2 khai sau nên chọn lọc ghép lớp gốc (`.bang.hh-ma-tran`, `.nut.hh-viec-doi`, `.tab-phu.hh-cap-chon`…) để thắng. Không chạy lại `sinh-bundle-bo-v2.mjs`, bộ v2 không đổi.
 - Bảng «Mức của cấp» bọc trong `.hh-muc-cap-khung` (`overflow-x: auto`) để tám cột (có loại khách) ở khổ 900–1040 kèm thanh bên không đẩy cả trang cuộn ngang; dưới 900 ô số (`td[data-so]`) canh trái trong dòng xếp chồng (luật v2 `.bang td[data-so]` khai sau).
 - Sau duyệt (commit sửa riêng): câu «—» chỉ hiện cùng ma trận (vùng `.hh-ma-tran-vung` ẩn dưới 900); câu thứ tự áp mức giữ ở mọi khổ (luật chung), dưới 900 đứng trước dải chọn cấp; khung chi tiết là `role="tabpanel"` gắn nhãn bằng chip đang chọn; luật ẩn chip từ 900 chọn lọc dưới `.hh-cap`; hướng dẫn: «Mức riêng được ưu tiên hơn cấp.» (sai với §5.3 — cấp riêng của đối tác đứng trên mức riêng của loại) thay bằng «Cấp của loại xét sau cùng.»; nhóm Kế toán 3149 → 3148 chữ.
+
+## Task 9 — thẻ «Loại đối tác»
+
+**Bài đỏ trước**: `huyHieuPhu` + `cauSapApLoai` (một ca năm kết quả §4.2 + phụ chú) đỏ `HT.huyHieuPhu is not a function`, rồi xanh 49/49.
+
+**Lựa chọn tự áp**
+- `web/hoa-hong-loai.ts` (`veTheLoai`) thay hẳn phần loại của bảng cũ và `web/hoa-hong-thiet-lap.ts` (xoá tệp; mọi nút của nó đã chuyển sang). Mỗi loại một `article.the[data-loai]`, luôn mở (không còn dòng gập); thứ tự `xepTheoPhu`; `xepLoai` và bài của nó giữ nguyên, chỉ không còn nơi gọi ở web.
+- Dùng lại, không chép: `oViec` (xuất từ `hoa-hong-cap.ts`) cho việc của lần xếp loại (máy tính «Đổi cấp» + «⋯», điện thoại chỉ «⋯»); bảng mức riêng của loại = `bangDongMuc` (tách từ `bangMucCap`, `capDangBat = null`), nên dòng mức có `data-dong-id` và cùng Đổi / «⋯» như thẻ cấp.
+- Loại chưa theo cấp nào + có cấp đang mở: nút «Áp dụng cấp cho loại» mở bảng chọn cấp (`moViecKhac`, tên cấp là nút), chọn xong mở hộp có sẵn với ô «Loại đối tác» chọn sẵn loại (thêm tham số tuỳ chọn `loaiCode` cho `apDungChinhSach` ở `hoa-hong-hop.ts`). Không có hộp chọn-cấp riêng.
+- Bộ lọc/ô tìm của bảng cũ không còn ở thẻ này (brief không nêu); dòng mức riêng hiện đang + sắp áp (như thẻ cấp), không có dòng đã ngừng/huỷ ở thẻ này. Bộ lọc vẫn còn ở thẻ «Riêng từng đối tác» (tạm tới Task 10).
+- Chữ mới ở `src/shared`: `huyHieuPhu`, `cauSapApLoai`, `cauLoaiTheoCap` («Đang theo cấp <tên> · áp dụng từ <ngày>»), `CAU_LOAI_CHUA_THEO_CAP`, `CAU_LOAI_CHUA_CO_MUC_RIENG`, `CAU_XEP_LOAI` (chuyển từ thiết lập). Tiêu đề phụ «Mức riêng» (không «Mức riêng của loại»: bảng từ ADR-0130 bắt, test đỏ lần đầu rồi sửa chữ). Hình huy hiệu: `ban` (xám), `checkCircle` (lá), `alertCircle` (đỏ, cát); cấp đã khoá thêm huy hiệu cát `lock` «Đã khoá».
+- Câu «Đơn của loại này sẽ bị giữ…» chỉ hiện khi kết quả phủ là `KHONG_CO`.
+- «Xem dòng ↓» của dòng loại (bậc 4–6): `cuonToiDongLoai` tạm trong `hoa-hong-loai.ts`; Task 11 thay bằng luật đầy đủ. Bậc 7–12 (cấp) chưa xử ở đây (Task 11). `cuonToiDong` của bảng cũ chỉ còn phần đối tác.
+- Hướng dẫn Kế toán: KHÔNG đổi (nhãn «＋ Thêm loại», «Tắt», «Bật» giữ nguyên; mục không nêu tên thẻ). Số chữ Phần chung + nhóm Kế toán: trước 3148, sau 3148.
+- CSS: khối `.hh-loai-*` ngay trước dấu mốc v2 (như khối `.hh-cap`), chỉ token.
+- Chữ «chính sách» của cụm loại cũ đi theo phần bị xoá; phần còn lại trong `hoa-hong-bang.ts` (đối tác, `cuonToiDong`, chú thích) để Task 10–11.
+
+**Lệch so với kế hoạch**: có sửa `hoa-hong-hop.ts` (một tham số tuỳ chọn) và `hoa-hong-cap.ts` (xuất `oViec`, tách `bangDongMuc`) — ngoài danh sách tệp, cần để không chép hàm. Chưa kiểm bằng Chrome (kịch bản khổ màn ở Task 14).

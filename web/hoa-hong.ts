@@ -1,7 +1,7 @@
 // Trang «Hoa hồng đối tác» (thiết kế lại, PR 2) — KHUNG: nạp dữ liệu, vẽ dải cảnh báo, chuyển ba thẻ «Các cấp đại lý» / «Loại đối tác» / «Riêng từng đối tác», truyền dữ liệu cho các khối nội dung.
 // Gọi (chỉ đọc, ở đây): GET /api/pricing/hoa-hong (CommissionRuleListResponse), /api/pricing/muc-ta (MucTaListResponse), /api/pricing/loai-doi-tac (LoaiDoiTacListResponse), /api/catalog.
 // Ẩn/hiện hỏi bảng quyền (`can`): xem = partner.commission.view, thêm mức = partner.commission.write; máy chủ kiểm lại (403 ⇒ «Bạn không có quyền xem trang này.»).
-// Trang không tính tiền, không chọn mức: số và lời từ máy chủ / luật thuần ở src/shared/hoa-hong-hien-thi.ts. Tra nhanh (đứng trên ba thẻ): web/hoa-hong-tra-nhanh.ts; dải: -dai.ts; hộp: -hop.ts. Thẻ «Các cấp đại lý» = -cap.ts (menu «⋯»: -menu.ts). Nội dung hai thẻ còn lại là TẠM (Task 9–10 thay): «Loại đối tác» = phần loại của -bang.ts + khối loại của -thiet-lap.ts, «Riêng từng đối tác» = phần đối tác của -bang.ts.
+// Trang không tính tiền, không chọn mức: số và lời từ máy chủ / luật thuần ở src/shared/hoa-hong-hien-thi.ts. Tra nhanh (đứng trên ba thẻ): web/hoa-hong-tra-nhanh.ts; dải: -dai.ts; hộp: -hop.ts. Thẻ «Các cấp đại lý» = -cap.ts (menu «⋯»: -menu.ts). Thẻ «Loại đối tác» = -loai.ts. Thẻ «Riêng từng đối tác» còn TẠM (Task 10 thay) = phần đối tác của -bang.ts.
 import { docThe, type TenDanhMuc, type TheHoaHong } from "../src/shared/hoa-hong-hien-thi";
 import type { DichVuPhu } from "../src/shared/hoa-hong-phu-muc";
 import { can, type PermissionHolder } from "../src/shared/permissions";
@@ -12,7 +12,7 @@ import { cuonToiDong, veBangApDung } from "./hoa-hong-bang";
 import { veTheCap } from "./hoa-hong-cap";
 import { veDai } from "./hoa-hong-dai";
 import { taoMoHop } from "./hoa-hong-hop";
-import { veThietLap } from "./hoa-hong-thiet-lap";
+import { cuonToiDongLoai, veTheLoai } from "./hoa-hong-loai";
 import { veTraNhanh } from "./hoa-hong-tra-nhanh";
 import { initShell, showError } from "./shell";
 import { trangThaiToanTrang } from "./trang-thai-he-thong";
@@ -105,15 +105,13 @@ function chonThe(t: The, lay = false): void {
 }
 
 // ---- Các khối nội dung (hoa-hong-dai / -tra-nhanh / -cap / -bang / -hop / -thiet-lap) ----------------------------------------------
-// Thẻ «cap» = veTheCap (Task 8). Tạm: thẻ «loai» vẽ bảng cũ + khối loại của -thiet-lap.ts (Task 9 thay), «doi-tac» vẽ bảng cũ (Task 10 thay).
-/** Thẻ «Loại đối tác» tạm chia hai khung: bảng cũ (veBangApDung thay hết con của khung nó nhận) và khối loại (Tắt / Bật, ＋ Thêm loại). */
-const loaiBangEl = h("div", null);
-const loaiThietLapEl = h("div", null);
-panelEl.loai.append(loaiBangEl, loaiThietLapEl);
+// Thẻ «cap» = veTheCap (Task 8), «loai» = veTheLoai (Task 9). Tạm: «doi-tac» vẽ bảng cũ (Task 10 thay).
 /** «Xem dòng ↓» của Tra nhanh: mở thẻ chứa dòng rồi cuộn tới (dòng của đối tác ở thẻ «Riêng từng đối tác», còn lại ở thẻ «Loại đối tác»). */
 function cuonToi(dongId: string, loai?: string): void {
-  chonThe(du?.dong.find((r) => r.id === dongId)?.doiTuong.loai === "DOI_TAC" ? "doi-tac" : "loai");
-  cuonToiDong(dongId, loai);
+  const doiTac = du?.dong.find((r) => r.id === dongId)?.doiTuong.loai === "DOI_TAC";
+  chonThe(doiTac ? "doi-tac" : "loai");
+  if (doiTac) cuonToiDong(dongId, loai);
+  else cuonToiDongLoai(panelEl.loai, dongId, loai);
 }
 function veTraNhanhVaDai(d: DuLieuHoaHong): void {
   veDai(daiEl, d);
@@ -127,8 +125,7 @@ function moThemMuc(): void {
 function veTatCa(d: DuLieuHoaHong): void {
   veTraNhanhVaDai(d);
   veTheCap(panelEl.cap, d, moHop);
-  veBangApDung(loaiBangEl, d, moHop, "loai", () => chonThe("cap", true));
-  veThietLap(loaiThietLapEl, d, moHop);
+  veTheLoai(panelEl.loai, d, moHop);
   veBangApDung(panelEl["doi-tac"], d, moHop, "doi-tac", () => chonThe("cap", true));
 }
 

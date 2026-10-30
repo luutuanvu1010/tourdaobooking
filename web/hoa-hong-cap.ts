@@ -64,7 +64,7 @@ const huyHieu = (tong: "la" | "cat", ten: "checkCircle" | "lock", chu: string): 
  * Ô việc của một dòng: máy tính thấy sẵn nút «Đổi» / «Đổi cấp» (CSS ẩn dưới 900) và «⋯» cho các việc còn lại; điện thoại chỉ «⋯», trong đó «Đổi» đứng đầu (`thuTuMenu`).
  * «⋯» không còn việc nào ở khổ máy tính thì mang `data-chi-dien-thoai` (CSS ẩn từ 900).
  */
-function oViec(tenDong: string, viec: readonly Viec[], loai: "dong" | "gan", chay: Partial<Record<Viec, () => void>>): HTMLElement | null {
+export function oViec(tenDong: string, viec: readonly Viec[], loai: "dong" | "gan", chay: Partial<Record<Viec, () => void>>): HTMLElement | null {
   if (viec.length === 0) return null;
   const o = h("div", { class: "hh-viec" });
   const conLai = viec.filter((v) => v !== "DOI");
@@ -137,9 +137,12 @@ function veChonCap(mt: ReturnType<typeof maTranCap>, chon: (code: string, lay?: 
   return h("div", { class: "tab-phu hh-cap-chon", "data-kieu": "vien", role: "tablist", "aria-label": "Chọn cấp đại lý" }, ...ds);
 }
 
-/** Bảng «Mức của cấp»: dịch vụ · cách tính · mức (người lớn) · trẻ em · người cao tuổi (chỉ khi có dòng theo loại khách) · hiệu lực của DÒNG · trạng thái · việc. */
-function bangMucCap(m: Api.MucTaDto, d: DuLieuHoaHong, ghi: boolean, mo: MoHop): HTMLElement | null {
-  const dong = m.dong.filter((r) => conApHoacSap(r, d.homNay));
+/**
+ * Bảng dòng mức (cấp, hoặc loại ở thẻ «Loại đối tác»): dịch vụ · cách tính · mức (người lớn) · trẻ em · người cao tuổi (chỉ khi có dòng theo loại khách) · hiệu lực của DÒNG · trạng thái · việc.
+ * `capDangBat` là cờ của cấp chứa các dòng (false ⇒ chỉ còn «Ngừng»); dòng của loại truyền null. Chỉ dòng đang và sắp áp.
+ */
+export function bangDongMuc(tatCa: readonly Api.CommissionRuleDto[], capDangBat: boolean | null, d: DuLieuHoaHong, ghi: boolean, mo: MoHop): HTMLElement | null {
+  const dong = tatCa.filter((r) => conApHoacSap(r, d.homNay));
   if (dong.length === 0) return null;
   const coTheoLoai = dong.some((r) => r.theoLoai !== null);
   const sua = coQuyenSua(d.nguoiDung);
@@ -168,7 +171,7 @@ function bangMucCap(m: Api.MucTaDto, d: DuLieuHoaHong, ghi: boolean, mo: MoHop):
       ...dong.map((r) => {
         const pv = nhanPhamVi(r, d.ten);
         const cot = cotMucCap(r);
-        const viec = viecDongMuc(r, { homNay: d.homNay, capDangBat: m.dangBat, ghi, sua });
+        const viec = viecDongMuc(r, { homNay: d.homNay, capDangBat, ghi, sua });
         const o = oViec(`${pv} · ${nhanMucDto(r)}`, viec, "dong", { DOI: () => mo.doi(r), SUA: () => mo.sua(r), NGUNG: () => mo.ngung(r, urlNgung(r)) });
         return h(
           "tr",
@@ -186,6 +189,8 @@ function bangMucCap(m: Api.MucTaDto, d: DuLieuHoaHong, ghi: boolean, mo: MoHop):
     ),
   );
 }
+
+const bangMucCap = (m: Api.MucTaDto, d: DuLieuHoaHong, ghi: boolean, mo: MoHop): HTMLElement | null => bangDongMuc(m.dong, m.dangBat, d, ghi, mo);
 
 /** Các lần xếp loại vào cấp: đang áp, sắp áp (việc theo `viecLanGan`, «Đổi cấp» giữ cả khi cấp đang khoá), rồi «Xem lịch sử (n)». */
 function lanXepLoai(m: Api.MucTaDto, d: DuLieuHoaHong, ghi: boolean, mo: MoHop): HTMLElement[] {

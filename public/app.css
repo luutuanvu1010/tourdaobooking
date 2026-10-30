@@ -3985,6 +3985,16 @@ a.bk-hang:hover, a.bk-the:hover { background: var(--c-soft-hover); }
   .hh-nhan-dt { display: inline; color: var(--c-text-muted); }
 }
 
+/* Thẻ «Loại đối tác» (web/hoa-hong-loai.ts): mỗi loại một cụm .the. Chỉ token; đứng trước khối v2 như khối .hh-cap. */
+.hh-loai-ds { display: grid; gap: var(--s3); margin: var(--s3) 0; }
+.hh-loai-the { display: grid; gap: var(--s2); }
+.hh-loai-dau { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); }
+.hh-loai-dau h3 { margin: 0; }
+.hh-loai-dau .nut { margin-left: auto; }
+.hh-loai-cap { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2) var(--s3); }
+.hh-loai-the h4 { margin: var(--s2) 0 0; font-size: var(--fs-label); color: var(--c-text-muted); }
+.hh-loai-sap { margin: 0; }
+
 /* ---------- Thành phần chung v2 (đợt 0, đặc tả mục 8) ----------
    Một tên lớp gốc + biến thể bằng thuộc tính; chỉ token. Lớp cũ giữ nguyên. */
 .nut { display: inline-flex; align-items: center; justify-content: center; gap: var(--s2); min-height: var(--h-control); padding: 0 var(--pad-nut); font: inherit; font-size: var(--fs-ui); font-weight: var(--fw-semibold); color: var(--c-text); background: var(--c-surface); border: 1px solid var(--c-input-border); border-radius: var(--bo-control); cursor: pointer; transition: background-color var(--t-nhanh) var(--ease-out), border-color var(--t-nhanh) var(--ease-out); }

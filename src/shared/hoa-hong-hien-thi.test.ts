@@ -602,3 +602,14 @@ test("chi tiết cấp: đếm loại đang theo và đối tác có cấp riên
   assert.deepEqual([HT.nhanViec("DOI", "gan"), HT.nhanViec("SUA", "gan"), HT.nhanViec("NGUNG", "gan")], ["Đổi cấp", "Sửa", "Ngừng áp dụng"]);
   assert.equal(HT.nhanViecKhac("Mọi dịch vụ"), "Việc khác: Mọi dịch vụ");
 });
+
+test("huyHieuPhu: năm kết quả phủ mức ra đúng tông và chữ của bảng §4.2; CHUA_KIEM không huy hiệu", () => {
+  const dv = (code: string, ten: string) => ({ code, groupCode: null, ten });
+  assert.deepEqual(HT.huyHieuPhu({ kieu: "TAT" }), { tong: "xam", chu: "Đã tắt" });
+  assert.deepEqual(HT.huyHieuPhu({ kieu: "DU" }), { tong: "la", chu: "Đang áp dụng" });
+  assert.deepEqual(HT.huyHieuPhu({ kieu: "KHONG_CO", thieu: [dv("A", "A"), dv("B", "B")] }), { tong: "do", chu: "Chưa có mức" });
+  assert.deepEqual(HT.huyHieuPhu({ kieu: "THIEU", thieu: [dv("A", "A")] }), { tong: "cat", chu: "Thiếu mức 1 dịch vụ" });
+  assert.deepEqual(HT.huyHieuPhu({ kieu: "THIEU", thieu: [dv("A", "A"), dv("B", "B"), dv("C", "C")] }), { tong: "cat", chu: "Thiếu mức 3 dịch vụ" });
+  assert.equal(HT.huyHieuPhu({ kieu: "CHUA_KIEM" }), null);
+  assert.equal(HT.cauSapApLoai("2026-12-01"), "Có thay đổi sắp áp dụng từ 01/12/2026");
+});

@@ -497,3 +497,27 @@ export const CAU_DA_MO_LAI_CAP = "Đã mở lại cấp.";
 /** Chữ nhỏ cạnh tên cấp đã khoá ở đầu cột ma trận (huy hiệu đầy đủ `NHAN_CAP_DA_KHOA` ở chi tiết cấp). */
 export const NHAN_CAP_KHOA_NGAN = "Đã khoá";
 export const CAU_CAP_CHUA_AP_LOAI = "Cấp này chưa áp dụng cho loại nào.";
+
+// §4.2 huy hiệu phủ mức của một loại ở thẻ «Loại đối tác»; CHUA_KIEM không có huy hiệu. Hình đi kèm do giao diện chọn theo tông.
+export function huyHieuPhu(kq: KetQuaPhu): { tong: "xam" | "la" | "do" | "cat"; chu: string } | null {
+  switch (kq.kieu) {
+    case "TAT":
+      return { tong: "xam", chu: NHAN_LOAI_DA_TAT };
+    case "DU":
+      return { tong: "la", chu: NHAN_TRANG_THAI.DANG_AP };
+    case "KHONG_CO":
+      return { tong: "do", chu: NHAN_CHUA_CO_MUC };
+    case "THIEU":
+      return { tong: "cat", chu: `Thiếu mức ${kq.thieu.length} dịch vụ` };
+    case "CHUA_KIEM":
+      return null;
+  }
+}
+/** Phụ chú §4.2 dưới tên loại khi có dòng hay lần xếp của loại sắp áp; không đổi kết quả. */
+export const cauSapApLoai = (tuNgay: string): string => `Có thay đổi sắp áp dụng từ ${ngayVN(tuNgay)}`;
+
+// Thẻ «Loại đối tác» (Task 9)
+export const CAU_XEP_LOAI = "Xếp một đối tác vào loại: làm ở hồ sơ của đối tác trong Danh bạ (Quản trị, Toàn quyền).";
+export const CAU_LOAI_CHUA_THEO_CAP = "Chưa theo cấp đại lý nào";
+export const CAU_LOAI_CHUA_CO_MUC_RIENG = "Loại này chưa có mức riêng.";
+export const cauLoaiTheoCap = (tenCap: string, tuNgay: string): string => `Đang theo cấp ${tenCap} · áp dụng từ ${ngayVN(tuNgay)}`;

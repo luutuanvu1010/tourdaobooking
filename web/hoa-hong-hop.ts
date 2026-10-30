@@ -40,7 +40,8 @@ export interface MoHop {
   /** Ngừng một lần áp dụng cấp đại lý cho loại (R21): chọn ngày cuối, `POST /api/pricing/muc-ta/gan/:id/ket-thuc`. */
   ngungApDung(gan: Api.GanLoaiMucDto): void;
   doiChinhSach(gan: Api.GanLoaiMucDto): void;
-  apDungChinhSach(muc: Api.MucTaDto): void;
+  /** `loaiCode` (nếu có) chọn sẵn loại ở ô «Loại đối tác» — dùng khi bấm từ thẻ «Loại đối tác». */
+  apDungChinhSach(muc: Api.MucTaDto, loaiCode?: string): void;
   /** Hộp chỉ hỏi tên → thêm loại đối tác (`POST /api/pricing/loai-doi-tac`). */
   themLoai(): void;
   /** Hộp chỉ hỏi tên → thêm cấp đại lý (`POST /api/pricing/muc-ta`). */
@@ -522,9 +523,10 @@ export function taoMoHop(ctx: NguCanhHop): MoHop {
     });
   }
 
-  function apDungChinhSach(muc: Api.MucTaDto): void {
+  function apDungChinhSach(muc: Api.MucTaDto, loaiCode?: string): void {
     const d = ctx.lay();
     const loai = h("select", { id: "hh-adcs-loai", "aria-label": "Loại đối tác" }, h("option", { value: "" }, "— Chọn loại đối tác —"), ...d.mucTa.loai.map((l) => h("option", { value: l.code }, l.ten)));
+    if (loaiCode !== undefined && d.mucTa.loai.some((l) => l.code === loaiCode)) loai.value = loaiCode;
     const tu = h("input", { id: "hh-adcs-tu", type: "date", value: d.homNay });
     const loi = h("p", { class: "field-error", role: "alert", hidden: true });
     moHop(ctx, {
