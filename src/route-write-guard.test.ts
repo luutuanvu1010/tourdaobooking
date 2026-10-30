@@ -155,7 +155,7 @@ export function hasAdminDenial(rawBody: string, re: RegExp = ADMIN_DENIAL_RE): b
  * Tệp route NGOÀI `index.ts` mà bài kiểm này cũng đọc (siết, ADR-0136 Task 3.3: `orders/xac-nhan-route.ts` — nếu không đọc thì chín route của bước xác nhận đứng ngoài hàng rào 2 và
  * luật (4)). Tệp khác trong src/modules có `route("` mà không có tên ở đây ⇒ bài "mọi tệp route đều được đọc" ở dưới đỏ — không tệp route nào được trốn khỏi hàng rào.
  */
-const TEP_ROUTE_PHU: Record<string, string[]> = { orders: ["xac-nhan-route.ts"] };
+const TEP_ROUTE_PHU: Record<string, string[]> = { orders: ["xac-nhan-route.ts"], catalog: ["dac-diem-route.ts"] }; // catalog: ADR-0152 T7 (route đặc điểm dịch vụ)
 
 function collectRoutes(): RouteInfo[] {
   const out: RouteInfo[] = [];

@@ -18,6 +18,7 @@ import {
 } from "./nhom-repo";
 import { choPhepDuaDon, kiemLoGan, kiemTenNhom, moTaDoiNhom, nhomChoForm } from "./nhom-rules";
 import { tenCuaGiaTri } from "./dac-diem-repo";
+import { dacDiemRoutes } from "./dac-diem-route";
 import { isQuyTacDuaDon, moTaDoiQuyTac, type QuyTacDuaDon } from "../../shared/dua-don-dich-vu";
 
 export type { EffectiveService };
@@ -183,6 +184,9 @@ export const catalogModule: AppModule = {
       if (!can(staff, "money.view", { ownerId: staff.id })) return FORBIDDEN_PRICES();
       return json((await catalogForOrderForm(env, { showSyncError: isOffice(staff) })) satisfies CatalogPublicResponse);
     }),
+
+    // ---- Đặc điểm dịch vụ (ADR-0152; kế hoạch 2026-10-30 T7) — khai TRƯỚC mọi route `/api/catalog/:code…` ----------------------------
+    ...dacDiemRoutes,
 
     // ---- Admin -----------------------------------------------------------------------------
     // Huy hiệu "Dịch vụ & giá" ở thanh bên: CHỈ số dịch vụ lệch giá Sheet (trước: tải nguyên `/api/catalog/admin` ở mọi trang của Quản trị). Cùng cổng và cùng ô quyền

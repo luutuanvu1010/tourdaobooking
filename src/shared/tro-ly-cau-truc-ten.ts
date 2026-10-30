@@ -100,6 +100,7 @@ export const TEN_THAO_TAC: Readonly<Record<OperationCode, TenLoiThuong>> = {
   "ledger.period.close": { ten: "khoá sổ tháng", moTa: "Khoá một tháng đã qua: không ghi thêm tiền có ngày trong tháng đó; không mở lại được." },
   "partner.commission.view": { ten: "xem bảng mức hoa hồng đối tác", moTa: "Xem mức hoa hồng theo loại đối tác, theo đối tác, theo dịch vụ hoặc nhóm dịch vụ." },
   "partner.commission.write": { ten: "đặt mức hoa hồng đối tác", moTa: "Thêm mức hoa hồng mới, đóng mức cũ (không sửa, không xoá)." },
+  "catalog.attribute.assign": { ten: "gắn đặc điểm cho dịch vụ", moTa: "Chọn giá trị đặc điểm (ví dụ có gồm vận chuyển hay không) cho từng dịch vụ, hoặc để dịch vụ theo giá trị chung của nhóm." },
   "sales.block.write": { ten: "đặt và kết thúc luật bán theo loại đối tác", moTa: "Thêm luật «loại đối tác này không được đặt dịch vụ, nhóm hoặc đặc điểm này», đặt ngày kết thúc luật (không sửa, không xoá)." },
   "supply.terms.view": { ten: "xem người bán dịch vụ", moTa: "Xem dịch vụ nào do Tour Đảo bán, dịch vụ nào do nhà cung cấp bán và tỷ lệ mua lại." },
   "supply.terms.write": { ten: "đặt người bán dịch vụ", moTa: "Thêm điều khoản người bán mới, đóng điều khoản cũ." },

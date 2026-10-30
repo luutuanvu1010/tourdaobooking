@@ -165,6 +165,9 @@ export const MATRIX = {
   "partner.commission.write": row("none", "any", "any", "none", "none", "any", "none", "none", "none", "none"),
   // ADR-0146 Đ5 (bổ sung 28/10): đặt / kết thúc LUẬT BÁN theo loại đối tác (route /api/pricing/luat-ban*, cổng office) — Bán hàng, Quản trị, Toàn quyền `any` (luật không có người sở hữu).
   "sales.block.write": banHangQuanTri(),
+  // ADR-0152 Đ3: gắn / đổi / bỏ giá trị ĐẶC ĐIỂM cho MỘT dịch vụ (route PUT /api/catalog/:code/dac-diem/:attr, cổng office) và xem màn Đặc điểm dịch vụ (cùng admin.manage) —
+  // Bán hàng, Quản trị, Toàn quyền. Không rộng hơn sales.block.write ở cột nào (hàng rào (i), permissions.test.ts). Định nghĩa đặc điểm, gắn theo nhóm: admin.manage.
+  "catalog.attribute.assign": banHangQuanTri(),
   "supply.terms.view": row("none", "any", "any", "none", "none", "any", "none", "none", "none", "none"), // Bán hàng KHÔNG xem tỷ lệ mua lại của nhà cung cấp
   "supply.terms.write": row("none", "any", "any", "none", "none", "any", "none", "none", "none", "none"),
   // Phần đối tác của đơn (đặc tả §6; Task 5): xem = bằng `order.view` ở MỌI cột (supply.terms.view ⊆ order.terms.view ⊆ money.view — bài khoá ở permissions.test.ts), nhưng tài khoản giữ

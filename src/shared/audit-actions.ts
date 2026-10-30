@@ -287,6 +287,14 @@ export const AUDIT_ACTIONS = {
   catalog_groups_seeded: { label: "Gieo nhóm dịch vụ", group: "catalog" }, // do migration 0055 ghi một lần (detail "gieo 14 nhóm, N dịch vụ")
   // ADR-0149 Đ1: ô «Được đón không» của một dịch vụ — targetId = mã dịch vụ, detail "Theo nhóm → Không đón" (nhãn; không dữ liệu cá nhân).
   catalog_service_transfer_set: { label: "Đổi đưa đón của dịch vụ", group: "catalog" },
+  // ADR-0152 Đ1 (Hệ quả), Đ4 mục 3: đặc điểm dịch vụ — `detail` = tên đặc điểm / giá trị, cũ → mới, mã dịch vụ hoặc tên nhóm; không thông tin cá nhân. Tạo đặc điểm kèm giá trị
+  // ghi HAI dòng (đặc điểm; danh sách giá trị — tiêu chí 1). Sửa tên / thứ tự / tắt / bật lại đi chung «…_updated» (khuôn catalog_group_updated: «đang dùng → đã tắt»).
+  ctl_attribute_created: { label: "Thêm đặc điểm dịch vụ", group: "catalog" },
+  ctl_attribute_updated: { label: "Sửa đặc điểm dịch vụ", group: "catalog" },
+  ctl_attribute_value_created: { label: "Thêm giá trị đặc điểm", group: "catalog" },
+  ctl_attribute_value_updated: { label: "Sửa giá trị đặc điểm", group: "catalog" },
+  ctl_service_attribute_set: { label: "Đổi đặc điểm của dịch vụ", group: "catalog" },
+  ctl_group_attribute_set: { label: "Đổi đặc điểm chung của nhóm", group: "catalog" },
   feedback_created: { label: "Gửi yêu cầu góp ý", group: "feedback" },
   feedback_replied: { label: "Trả lời yêu cầu góp ý", group: "feedback" },
   feedback_status_changed: { label: "Đổi trạng thái yêu cầu góp ý", group: "feedback" },

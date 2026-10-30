@@ -116,6 +116,15 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/catalog/:code/ack", access: "admin" },
   { method: "DELETE", path: "/api/catalog/:code/override", access: "admin" },
   { method: "GET", path: "/api/catalog/admin", access: "admin" },
+  // ADR-0152 Đ3 (T7): đọc / gắn cho một dịch vụ cổng office (catalog.attribute.assign hoặc admin.manage, không Đối tác); định nghĩa và gắn theo nhóm cổng admin.
+  { method: "GET", path: "/api/catalog/dac-diem", access: "office" },
+  { method: "GET", path: "/api/catalog/dac-diem/dem-chua-khai", access: "office" },
+  { method: "POST", path: "/api/catalog/dac-diem", access: "admin" },
+  { method: "POST", path: "/api/catalog/dac-diem/:code/gia-tri", access: "admin" },
+  { method: "PATCH", path: "/api/catalog/dac-diem/gia-tri/:code", access: "admin" },
+  { method: "PATCH", path: "/api/catalog/dac-diem/:code", access: "admin" },
+  { method: "PUT", path: "/api/catalog/groups/:code/dac-diem/:attr", access: "admin" },
+  { method: "PUT", path: "/api/catalog/:code/dac-diem/:attr", access: "office" },
   { method: "GET", path: "/api/catalog/dem-xung-dot", access: "admin" }, // huy hiệu thanh bên: CHỈ số dịch vụ lệch giá; cùng ô admin.manage (dem-xung-dot.test.ts)
   { method: "POST", path: "/api/catalog/sync", access: "admin" },
   // ADR-0058 Đ4 (2026-09-30, Task A3): năm route nhóm dịch vụ — cổng admin + can(admin.manage) dòng đầu thân
@@ -532,7 +541,7 @@ test("MODULES liệt kê ĐỦ mọi thư mục module có khai `...Module: AppM
   assert.deepEqual(routedDirs, listed, "có thư mục module khai AppModule nhưng chưa có trong MODULES của bài kiểm route-access này — thêm vào MODULES và SNAPSHOT");
 });
 
-test("mức truy cập của 397 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
+test("mức truy cập của 405 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
   const actual = await collectRealRoutes();
   // deepEqual TRƯỚC: khi có route mới/bị xoá, thông báo của nó chỉ ra ĐÚNG route lệch — hai assert.equal độ dài bên dưới chỉ để phòng hờ
   // (không bao giờ tự chạy tới nếu deepEqual đã trượt) và tài liệu hoá con số 86 để đối chiếu nhanh bằng mắt.
@@ -656,6 +665,7 @@ test("mức truy cập của 397 route hiện có khớp ảnh chụp đã duy�
   // 2026-10-29 (ADR-0149 Đ1): + PUT /api/catalog/:code/transfer-rule (admin) = 393.
   // 2026-10-30 (ADR-0151): + POST /api/pricing/muc-rieng/:id/doi (office) = 394.
   // 2026-10-30 (ADR-0146 Đ5, luật bán): + GET, POST /api/pricing/luat-ban, POST …/luat-ban/:id/ket-thuc (office; sales.block.write, không Đối tác) = 397.
-  assert.equal(actual.length, 397, "số route thực tế lệch 397 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 397, "SNAPSHOT phải có đúng 397 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // 2026-10-30 (ADR-0152 Đ1, Đ3, Đ5): + 8 route /api/catalog/dac-diem* (GET ×2, PUT gắn dịch vụ: office; POST ×2, PATCH ×2, PUT gắn nhóm: admin) = 405.
+  assert.equal(actual.length, 405, "số route thực tế lệch 405 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 405, "SNAPSHOT phải có đúng 405 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

@@ -2820,6 +2820,18 @@ export interface LuatBanDto {
 export interface LuatBanListResponse { homNay: string; luat: LuatBanDto[] }
 export interface LuatBanResponse { luat: LuatBanDto }
 /**
+ * Đặc điểm dịch vụ (ADR-0152 Đ1, Đ3, Đ5): đặc điểm, giá trị (mã máy sinh — chỉ để gửi lại máy chủ; giao diện hiện TÊN), giá trị HIỆU LỰC của từng dịch vụ (nguồn: riêng của dịch vụ
+ * hay chung của nhóm — view v_ctl_service_attribute), giá trị chung của từng nhóm, danh sách «chưa khai» và «mới, đang theo nhóm». `capNhatLuc` = khoá lạc quan khi sửa.
+ */
+export interface DacDiemGiaTriDto { code: string; ten: string; thuTu: number; dangDung: boolean; capNhatLuc: string }
+export interface DacDiemDto { code: string; ten: string; thuTu: number; dangDung: boolean; capNhatLuc: string; giaTri: DacDiemGiaTriDto[]; chuaKhai: string[] }
+export interface DacDiemDichVuDto { code: string; ten: string; dangBan: boolean; groupCode: string | null; giaTri: Record<string, { valueCode: string; nguon: "SERVICE" | "GROUP" }> }
+export interface DacDiemNhomDto { code: string; ten: string; dangDung: boolean; giaTri: Record<string, string> }
+export interface CatalogDacDiemResponse { homNay: string; dacDiem: DacDiemDto[]; dichVu: DacDiemDichVuDto[]; nhom: DacDiemNhomDto[]; moiTheoNhom: { catalogCode: string; attributeCode: string }[] }
+export interface CatalogDacDiemDemResponse { soChuaKhai: number }
+export interface CatalogDacDiemMotResponse { dacDiem: DacDiemDto }
+export interface CatalogDacDiemGanResponse { giaTri: string | null }
+/**
  * Mức TA dùng chung (ADR-0117 lần 2): bộ hoa hồng có tên; loại đối tác gắn vào mức theo ngày (mỗi loại tối đa một mức tại một ngày). `dangBat` = false ⇒ không gắn mới,
  * không thêm dòng mới; dòng và gắn đang có VẪN áp (giả định kế hoạch, N-23). Chỉ văn phòng có `partner.commission.view` và KHÔNG giữ quyền Đối tác đọc được.
  */
