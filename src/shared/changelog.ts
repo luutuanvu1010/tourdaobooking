@@ -19,6 +19,7 @@ export const CHANGELOG: readonly ReleaseNote[] = [
     items: [
       { kind: "doi", text: "Trang Hoa hồng đổi tên «Chính sách hoa hồng» thành «Cấp đại lý» và chia làm ba thẻ cho dễ tìm." },
       { kind: "moi", text: "Đầu trang có dải báo những loại đối tác còn thiếu mức hoa hồng, ghi rõ thiếu ở dịch vụ nào." },
+      { kind: "moi", text: "Nút «Đổi cấp» ở thẻ một đối tác: đổi cấp riêng sang cấp khác chỉ một bước, cấp cũ tự ngừng ngay trước ngày cấp mới bắt đầu." },
       { kind: "moi", text: "Đặt cấp riêng cho một đối tác ngay trên trang Hoa hồng, không cần sang Danh bạ." },
       { kind: "moi", text: "Nút «Khoá cấp» cho một cấp đại lý không dùng nữa. Hộp xác nhận nói rõ: khoá cấp thì các khoản hoa hồng đang chi vẫn được chi tiếp." },
     ],

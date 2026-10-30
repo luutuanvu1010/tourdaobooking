@@ -463,6 +463,13 @@ test("§3.1 viecLanGan: không lọc theo cấp khoá", () => {
   assert.deepEqual(HT.viecLanGan({ ...ap, daHuy: true }, v), []);
 });
 
+test("ADR-0151 Đ8 cauCapCuDangKhoa nguyên văn; viecLanGan cấp riêng có «Đổi» khi chưa có ngày ngừng", () => {
+  assert.equal(HT.cauCapCuDangKhoa("Cấp 3"), "Cấp cũ «Cấp 3» đang khoá. Đổi xong thì không đổi ngược về cấp này được, trừ khi mở lại cấp.");
+  const v = { homNay: HOM_NAY, ghi: true, sua: true, coDoi: true };
+  assert.ok(HT.viecLanGan({ tuNgay: "2026-01-01", denNgay: null, conHieuLuc: true }, v).includes("DOI"));
+  assert.ok(!HT.viecLanGan({ tuNgay: "2026-01-01", denNgay: "2026-12-31", conHieuLuc: true }, v).includes("DOI"));
+});
+
 test("§3.2 thuTuMenu và docThe", () => {
   assert.equal(HT.thuTuMenu(["SUA", "NGUNG", "DOI"], true)[0], "DOI");
   assert.deepEqual(HT.thuTuMenu(["SUA", "NGUNG"], true), ["SUA", "NGUNG"]);

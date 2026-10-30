@@ -65,7 +65,7 @@ function khoiCapRieng(r: Api.HoaHongHoSoResponse, x: DoiTacRieng, d: DuLieuHoaHo
       { "data-gan-id": g.id, "data-sap-ap": sap ? "" : null },
       h("span", null, h("strong", null, nhanCapRieng(g.muc.ten)), " · ", sap ? h("span", { class: "badge badge-draft" }, nhanSapAp(g)) : h("span", { class: "muted" }, nhanHieuLuc(g))),
       !g.muc.dangBat && huyHieu("cat", "lock", NHAN_CAP_KHOA_NGAN),
-      oViec(nhanCapRieng(g.muc.ten), viecLanGan(g, { homNay: r.homNay, ghi, sua, coDoi: false }), "gan", { SUA: () => mo.suaCapRieng(g, x.partyId), NGUNG: () => mo.ngungCapRieng(g, x.partyId) }),
+      oViec(nhanCapRieng(g.muc.ten), viecLanGan(g, { homNay: r.homNay, ghi, sua, coDoi: true }), "gan", { DOI: () => mo.doiCapRieng(g, x.partyId), SUA: () => mo.suaCapRieng(g, x.partyId), NGUNG: () => mo.ngungCapRieng(g, x.partyId) }),
     );
   const ds = [...k.dangAp.map((g) => dong(g, false)), ...k.sapAp.map((g) => dong(g, true))];
   const out: Child[] = [ds.length > 0 ? h("ul", { class: "hh-tl-gan" }, ...ds) : h("p", { class: "muted" }, CAU_DT_CHUA_CO_CAP_RIENG)];

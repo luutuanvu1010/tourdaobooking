@@ -241,3 +241,20 @@ Thêm bài quyền «Đổi cấp riêng (ADR-0151)» ở `src/so-dai-ly-quyen-r
 - 2026-10-30 13:16: đổi `CASE WHEN changes() > 0 THEN ?4 END` thành `?4` ở `GAN_RIENG_DOI_THEM` ⇒ ĐỎ `not ok 8 - Đua thật qua route: cấp riêng cũ bị ngừng NGAY TRƯỚC lô ghi …` — `expected: 'stale'`, `actual: 'prc_tier_overlap'` (lưới chống chồng ngày của CSDL chặn thay, 409 mã khác). Hoàn nguyên: 22/22 xanh.
 - Lần thử đầu bộ chen khớp theo đúng chữ `CASE WHEN … ?4` nên đột biến làm bộ chen không chạy (đỏ vì `chen` false); đã đổi khớp theo `INSERT INTO prc_party_tier` không có `replaces_id` để đột biến đỏ đúng chỗ.
 
+## Task 17 — nút «Đổi cấp» ở thẻ một đối tác (ADR-0151), hướng dẫn, bằng chứng phần 2
+
+Bằng chứng: `docs/evidence/2026-10-30-hoa-hong-cap-dai-ly/ket-qua-phan-2.md`. `HOA HONG SMOKE OK`, 53 bước (27 ở 390, 26 ở 1040), gồm bước DC mới. `npm test` 6789 bài 0 đỏ, typecheck 0 lỗi.
+
+**Đỏ trước:** bài `cauCapCuDangKhoa` (ADR-0151 Đ8) đỏ «is not a function», rồi xanh sau khi thêm hàm.
+
+**Lựa chọn tự áp**
+- Changelog: một lần phát hành (quyết định 14) ⇒ thêm MỘT dòng «Nút «Đổi cấp» ở thẻ một đối tác…» vào chính mục 2.48, không tách mục, không dùng chữ «chính sách». Dòng chú thích «Nếu phần 2 phát hành cùng lần…» ở đầu mục giữ nguyên.
+- Hướng dẫn Kế toán: câu cuối mục «Cấp đại lý» thành «Cấp riêng: thẻ **Riêng từng đối tác**, bấm [[Đặt cấp riêng cho đối tác]]; mở đối tác để bấm [[Đổi cấp]], sửa hoặc ngừng.» Bỏ «cho một đối tác» vì tên thẻ đã nói. Số chữ nhóm Kế toán 3144 ⇒ 3143 (giới hạn 3150; Phần chung 1346 không đổi): không tăng, A4 không nới. Nhãn `[[Đổi cấp]]` khớp nhãn có thật (đã có ở nút của lần áp dụng cho loại).
+- Hộp «Đổi cấp riêng»: ô «Từ» mặc định và nhỏ nhất `ngayDoiSomNhat(g.tuNgay, homNay)`; câu «mức cũ bắt đầu hôm nay thì mới từ ngày mai» dùng lại `cauDoiTuNgayMai`; câu báo xong `cauDaDoiCapRieng`; câu Đ8 `cauCapCuDangKhoa`. Cả ba ở `hoa-hong-hien-thi.ts`. Không hàm nào ở `web/` chọn mức hay suy số.
+- Bước DC dựng bốn đại lý riêng (ORG8–ORG11) để các ca không chen nhau; cấp khoá chen giữa lúc mở hộp khoá bằng fetch trong trang. Bước CR sửa một dòng khẳng định (cấp riêng nay có «Đổi cấp»).
+- Smoke chạy với `OUT` ở thư mục tạm (cả lượt sinh ~60 ảnh, thư mục phần 1 đã 61 MB); chỉ chép hai ảnh bước DC (250 KB) vào `anh-phan-2/`.
+
+**Lệch hỗ trợ (ghi nhận):** `web/hoa-hong-cap.ts` ngoài danh sách «Tệp được chạm» của ADR-0151: đổi `<article role="tabpanel">` của `#hh-cap-ct` thành `<section role="tabpanel">` (sửa axe nhẹ `aria-allowed-role` mang từ Task 14). Giữ `role`, `aria-labelledby`, id, class; không có CSS hay kịch bản chọn theo tên thẻ `article` cho phần tử này. Axe sạch ở lượt chạy này.
+
+**Step 4 — `git diff 67a19357 --stat`** (mốc = commit Task 13): 109 tệp, gồm (1) tệp ADR-0151 «Tệp được chạm»: `src/modules/pricing/{index,repository}.ts`, `doi-cap-rieng.test.ts`, `so-dai-ly-quyen-route.test.ts`, `route-access.test.ts`, `lan-gui-phu-route.test.ts`, `docs/SO-HANG-RAO.md`, `docs/SYSTEM-DESIGN.md`, `huong-dan-ke-toan.ts`, `changelog.ts`, `hoa-hong-hien-thi(.test).ts`, `web/hoa-hong-hop.ts`, `web/hoa-hong-doi-tac.ts`, `hoa-hong-smoke.mjs`; (2) bằng chứng và nhật ký đã ghi từ Task 14 và 17 (`docs/evidence/2026-10-30-hoa-hong-cap-dai-ly/`, nhật ký này); (3) lệch hỗ trợ `web/hoa-hong-cap.ts`. `rules.ts`, `migrations/`, `contracts.ts`, `permissions.ts`, `web/parties.ts` không có trong diff. Không có tệp nào ngoài ba nhóm.
+

@@ -146,7 +146,7 @@ Gắn loại cho hồ sơ ở Danh bạ là việc của Quản trị hoặc To�
 
 Cấp của loại xét sau cùng. Đổi sang cấp khác: [[Đổi cấp]]. Ngừng chi: [[Ngừng áp dụng]]. [[Khoá cấp]] chặn thêm loại và mức mới, loại đang theo vẫn được tính; dùng lại: [[Mở lại cấp]].
 
-Cấp riêng cho một đối tác: thẻ **Riêng từng đối tác**, bấm [[Đặt cấp riêng cho đối tác]]; mở đối tác để sửa hoặc ngừng.`,
+Cấp riêng: thẻ **Riêng từng đối tác**, bấm [[Đặt cấp riêng cho đối tác]]; mở đối tác để bấm [[Đổi cấp]], sửa hoặc ngừng.`,
     },
     {
       tieuDe: "Chụp bù, ghi mức tay cho một đơn",

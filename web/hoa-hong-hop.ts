@@ -11,7 +11,9 @@ import {
   CAU_THEO_LOAI_KHACH,
   cauCanhBaoDongRieng,
   cauCanhBaoTheoChinhSach,
+  cauCapCuDangKhoa,
   cauDaDatCapRieng,
+  cauDaDoiCapRieng,
   cauDaNgungCapRieng,
   cauDoiTuNgayMai,
   cauMucCuSeNgung,
@@ -61,6 +63,8 @@ export interface MoHop {
   suaCapRieng(g: Api.GanRiengLichSuDto, partyId: string): void;
   /** Ngừng một lần gắn cấp riêng: chọn ngày cuối, `POST /api/pricing/muc-rieng/:id/ket-thuc`. */
   ngungCapRieng(g: Api.GanRiengLichSuDto, partyId: string): void;
+  /** ADR-0151: đổi cấp riêng một lô, `POST /api/pricing/muc-rieng/:id/doi` thân { muc, tuNgay }; cấp cũ khoá thì hộp nói trước giới hạn Đ8. */
+  doiCapRieng(g: Api.GanRiengLichSuDto, partyId: string): void;
 }
 
 export interface NguCanhHop {
@@ -681,6 +685,43 @@ export function taoMoHop(ctx: NguCanhHop): MoHop {
     });
   }
 
+  function doiCapRieng(g: Api.GanRiengLichSuDto, partyId: string): void {
+    const d = ctx.lay();
+    const ten = tenDoiTac(partyId);
+    const tuSom = ngayDoiSomNhat(g.tuNgay, d.homNay);
+    const chon = h("select", { id: "hh-dcr2-muc", "aria-label": "Cấp mới" }, h("option", { value: "" }, "— Chọn cấp đại lý —"), ...d.mucTa.muc.filter((m) => m.dangBat && m.code !== g.muc.code).map((m) => h("option", { value: m.code }, m.ten)));
+    const tu = h("input", { id: "hh-dcr2-tu", type: "date", value: tuSom, min: tuSom });
+    const loi = h("p", { class: "field-error", role: "alert", hidden: true });
+    const cauCu = (t: string): string => (/^\d{4}-\d{2}-\d{2}$/.test(t) ? `Cấp cũ ${g.muc.ten} sẽ ngừng, đến hết ${MA_NGAY(addDays(t, -1))}.` : "");
+    const dong = h("p", { class: "hint", "aria-live": "polite" }, cauCu(tuSom));
+    tu.addEventListener("input", () => (dong.textContent = cauCu(tu.value)));
+    const cauMai = cauDoiTuNgayMai(g.tuNgay, d.homNay);
+    moHop(ctx, {
+      title: "Đổi cấp riêng",
+      body: [
+        h("p", null, h("span", { class: "hh-nhan-nho" }, "Đối tác"), h("strong", null, ten)),
+        ...(g.muc.dangBat ? [] : [h("p", { class: "hint", role: "status" }, h("strong", null, cauCapCuDangKhoa(g.muc.ten)))]),
+        h("label", null, "Cấp mới", chon),
+        h("label", null, "Từ", tu),
+        dong,
+        ...(cauMai ? [h("p", { class: "hint" }, cauMai)] : []),
+        loi,
+      ],
+      nhan: "Đổi cấp",
+      chuan() {
+        if (chon.value === "" || !/^\d{4}-\d{2}-\d{2}$/.test(tu.value)) {
+          loi.textContent = chon.value === "" ? "Chọn cấp đại lý." : "Chọn ngày bắt đầu.";
+          loi.hidden = false;
+          return null;
+        }
+        loi.hidden = true;
+        return { path: `/api/pricing/muc-rieng/${encodeURIComponent(g.id)}/doi`, body: { muc: chon.value, tuNgay: tu.value } };
+      },
+      truocNap: (r) => ctx.hoSoMoi(partyId, r as Api.HoaHongHoSoResponse),
+      xong: () => ctx.baoOk(cauDaDoiCapRieng(chon.selectedOptions[0]?.textContent ?? "", ten, tu.value)),
+    });
+  }
+
   function hoiTen(o: { title: string; nhan: string; nhanO: string; path: string; xong: string }): void {
     const ten = h("input", { id: "hh-hoi-ten", type: "text", maxLength: 80, autocomplete: "off" });
     const loi = h("p", { class: "field-error", role: "alert", hidden: true });
@@ -721,6 +762,6 @@ export function taoMoHop(ctx: NguCanhHop): MoHop {
 
   return {
     themMuc, doi, sua: (x) => void sua(x), suaApDung: (x) => void suaApDung(x), ngung, ngungApDung, doiChinhSach, apDungChinhSach, themLoai, themChinhSach, guiNhanh,
-    datCapRieng, suaCapRieng: (g, partyId) => void suaCapRieng(g, partyId), ngungCapRieng,
+    datCapRieng, suaCapRieng: (g, partyId) => void suaCapRieng(g, partyId), ngungCapRieng, doiCapRieng,
   };
 }

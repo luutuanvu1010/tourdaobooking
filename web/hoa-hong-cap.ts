@@ -245,7 +245,7 @@ function chiTietCap(m: Api.MucTaDto, d: DuLieuHoaHong, mo: MoHop): HTMLElement {
   }
   const bang = bangMucCap(m, d, ghi, mo);
   return h(
-    "article",
+    "section",
     { class: "the hh-cap-ct", id: "hh-cap-ct", role: "tabpanel", "data-cap": m.code, "aria-labelledby": idChip(m.code) },
     h(
       "div",

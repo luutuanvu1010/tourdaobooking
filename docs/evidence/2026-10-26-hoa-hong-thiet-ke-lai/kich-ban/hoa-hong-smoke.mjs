@@ -23,6 +23,9 @@
 //     (tiêu chí 4; Review Focus 5). Bước T (mới): Tắt loại — hộp §5.2 nguyên văn, huy hiệu `xam` «Đã tắt», dải thêm một loại đã tắt.
 //   - Bước 8k (mới): «⋯» bằng bàn phím thật (CDP) — Tab tới nút, Enter mở, tiêu điểm vào khung, Tab tiếp, Esc đóng về «⋯», `aria-haspopup="dialog"`, nền `inert` (tiêu chí 8).
 //   - Bước CR (mới): đặt, sửa, ngừng cấp riêng ngay trên thẻ «Riêng từng đối tác»; 409 chồng ngày hiện câu §6.1 nguyên văn trong hộp (tiêu chí 5).
+//   - Bước DC (ADR-0151, Task 17, 2026-10-30): «Đổi cấp» ở thẻ một đối tác. Kế toán đổi cấp riêng từ hôm nay ⇒ lần cũ ngừng hôm qua + lần mới từ hôm nay; cấp cũ khoá ⇒ hộp có câu Đ8;
+//     lần có ngày ngừng không có nút «Đổi cấp»; đổi sang cấp bị khoá chen giữa lúc mở hộp ⇒ 409 hiện NGUYÊN câu máy chủ trong hộp. Bước CR đổi theo: cấp riêng nay có «Đổi cấp»
+//     (nút ở khổ máy tính, đầu «⋯» ở điện thoại). Bán hàng: bước 7 (mọi cụm mở) đã đòi 0 nút «Đổi».
 //   - Bước 2, 2b, 2c: mục «Đối tác có mức riêng…» của thẻ cũ ⇒ thẻ «Riêng từng đối tác» (vỏ `.hh-dt[data-party]`, `.hh-tom-tat` giữ tên). Bước 3, 4, 5, 5b, 11: dòng mức riêng của loại
 //     ⇒ thẻ «Loại đối tác»; «Tất cả» của thẻ loại hiện dòng đã ngừng / đã huỷ (bước 3, 11).
 //   - Bước 6 (Thiết lập) ⇒ «＋ Thêm loại» ở thẻ loại, «＋ Thêm cấp đại lý» ở thẻ cấp, «Áp dụng cấp cho loại» ở chi tiết cấp; khung vàng nay nói thẻ «Loại đối tác».
@@ -413,6 +416,23 @@ try {
       phai(await call(ACCOUNTS.accounting, "POST", `/api/pricing/ho-so/${ORG6.id}/muc-rieng`, { muc: C_B.code, tuNgay: vnDate(-10) }), 201, "cấp riêng Bạc cho đại lý");
       // Bước CR: đại lý mới, chưa có gì riêng.
       const ORG7 = await orgMoi(`Đại lý Ánh Dương ${CHU} ${D}`, L_A);
+      // Bước DC (ADR-0151): bốn đại lý cho bốn ca của «Đổi cấp». ORG8 đổi thật; ORG9 mang cấp cũ ĐANG KHOÁ (khoá sau khi đặt); ORG10 có ngày ngừng; ORG11 gặp 409 (cấp mới bị khoá chen giữa).
+      const C_N1 = await capMoi(`Mới một ${CHU} ${D}`);
+      await dongCap(C_N1, { phamVi: "ALL", kieu: "RATE", tyLeBp: 650 });
+      const C_Z = await capMoi(`Cũ khoá ${CHU} ${D}`);
+      await dongCap(C_Z, { phamVi: "ALL", kieu: "RATE", tyLeBp: 600 });
+      const ORG8 = await orgMoi(`Đại lý Gió Mới ${CHU} ${D}`, L_A);
+      const ORG9 = await orgMoi(`Đại lý Sao Khuya ${CHU} ${D}`, L_A);
+      const ORG10 = await orgMoi(`Đại lý Mây Trắng ${CHU} ${D}`, L_A);
+      const ORG11 = await orgMoi(`Đại lý Sóng Bạc ${CHU} ${D}`, L_A);
+      for (const [org, cap] of [[ORG8, C_A], [ORG9, C_Z], [ORG10, C_A], [ORG11, C_A]]) phai(await call(ACCOUNTS.accounting, "POST", `/api/pricing/ho-so/${org.id}/muc-rieng`, { muc: cap.code, tuNgay: vnDate(-10) }), 201, `cấp riêng cho ${org.ten}`);
+      const ganCua = async (org) => phai(await call(ACCOUNTS.accounting, "GET", `/api/pricing/ho-so/${org.id}/hoa-hong`), 200, `hồ sơ ${org.ten}`).ganRieng[0];
+      const G_8 = await ganCua(ORG8);
+      const G_9 = await ganCua(ORG9);
+      const G_10 = await ganCua(ORG10);
+      const G_11 = await ganCua(ORG11);
+      phai(await call(ACCOUNTS.accounting, "POST", `/api/pricing/muc-ta/${C_Z.code}/tat`, {}), 200, "khoá cấp cũ của ORG9");
+      phai(await call(ACCOUNTS.accounting, "POST", `/api/pricing/muc-rieng/${G_10.id}/ket-thuc`, { denNgay: vnDate(3) }), 200, "ORG10 có ngày ngừng");
 
       // ======================= Kế toán =======================
       {
@@ -728,7 +748,7 @@ try {
             const g1 = await p.ev(`(() => { const li = document.querySelector('${cum} .hh-tl-gan li[data-gan-id]'); return { id: li.dataset.ganId, chu: li.innerText }; })()`);
             assert.ok(g1.chu.includes(`Cấp riêng: ${C_A.ten}`), `dòng cấp riêng: ${g1.chu}`);
             const vg = await viecCua(p, `${cum} li[data-gan-id="${g1.id}"]`);
-            assert.deepEqual([vg.nut, vg.menu], [[], ["Sửa", "Ngừng áp dụng"]], `cấp riêng (phần 1): «⋯» = Sửa, Ngừng áp dụng; không «Đổi cấp»: ${JSON.stringify(vg)}`);
+            assert.deepEqual([vg.nut.length > 0 ? vg.nut : vg.menu.slice(0, 1), vg.menu.filter((x) => x !== "Đổi cấp")], [["Đổi cấp"], ["Sửa", "Ngừng áp dụng"]], `cấp riêng (ADR-0151): «Đổi cấp» (nút ở máy tính / đầu «⋯» ở điện thoại), «⋯» còn Sửa, Ngừng áp dụng: ${JSON.stringify(vg)}`);
             await cuonToi(p, cum);
             await bocucSach(p, `bước CR sau Đặt ${kho}`);
             await chup(p, `07c-sau-dat-cap-rieng-${tenKho}`);
@@ -768,6 +788,73 @@ try {
             assert.equal(await p.ev("[...document.querySelectorAll('.sheet .sheet-foot button')].every((b) => !b.disabled)"), true, "hộp còn mở, bấm lại được");
             await bocucSach(p, `bước CR 409 ${kho}`);
             await chup(p, `07c-409-cap-rieng-${tenKho}`, false);
+            assert.equal(await clickTrong(p, ".sheet", "Huỷ"), true);
+            await choDongHop(p);
+          });
+
+          await buoc(`DC${kho}`, "Đổi cấp riêng (ADR-0151): đổi từ hôm nay ⇒ cũ ngừng hôm qua + mới từ hôm nay; cấp cũ khoá ⇒ câu Đ8; có ngày ngừng ⇒ không nút; cấp mới bị khoá chen giữa ⇒ 409 nguyên văn trong hộp", async () => {
+            await chuyenThe(p, "doi-tac");
+            const moCum = async (org) => {
+              const cum = `.hh-dt[data-party="${org.id}"]`;
+              await cuonToi(p, cum);
+              await p.ev(`(() => { const n = document.querySelector('${cum} .hh-loai-nut'); if (n.getAttribute('aria-expanded') !== 'true') n.click(); return true; })()`);
+              await p.waitFor(`!!document.querySelector('${cum} .hh-tl-gan li[data-gan-id]')`, `cụm ${org.ten} mở, có cấp riêng`);
+              return cum;
+            };
+            // (a) đổi thật: ORG8 Vàng -> Bạc từ hôm nay
+            const cum8 = await moCum(ORG8);
+            await chayViec(p, `${cum8} li[data-gan-id="${G_8.id}"]`, "Đổi cấp");
+            await choHop(p, "#hh-dcr2-muc");
+            assert.equal(await p.ev("document.querySelector('.sheet .sheet-title').textContent"), "Đổi cấp riêng", "tiêu đề hộp");
+            const opts = await p.ev("[...document.getElementById('hh-dcr2-muc').options].map((o) => o.value)");
+            assert.ok(!opts.includes(C_A.code) && !opts.includes(C_K.code) && !opts.includes(C_Z.code) && opts.includes(C_B.code), `ô cấp: chỉ cấp đang mở, khác cấp cũ: ${JSON.stringify(opts)}`);
+            assert.equal(await p.ev("document.getElementById('hh-dcr2-tu').value"), HOM_NAY, "ô «Từ» mặc định hôm nay (cấp cũ bắt đầu 10 ngày trước)");
+            assert.equal(await p.ev("[...document.querySelectorAll('.sheet p')].some((e) => e.textContent.startsWith('Cấp cũ «'))"), false, "cấp cũ đang mở ⇒ không có câu Đ8");
+            await p.ev(`(() => { const s = document.getElementById('hh-dcr2-muc'); s.value = ${JSON.stringify(C_B.code)}; s.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
+            await bocucSach(p, `bước DC hộp Đổi cấp ${kho}`);
+            await axeKiem(p, `hộp Đổi cấp riêng ${kho}`);
+            if (tenKho === "390") await chup(p, `17-hop-doi-cap-rieng-${tenKho}`, false);
+            assert.equal(await clickTrong(p, ".sheet .sheet-foot", "Đổi cấp"), true);
+            await choOk(p, `Đã đổi cấp riêng của «${ORG8.ten}» sang «${C_B.ten}» từ ngày ${ngayVi(HOM_NAY)}.`);
+            assert.deepEqual(await ghiCuoi(p, `/muc-rieng/${G_8.id}/doi`), [200], "POST đổi cấp riêng 200");
+            const r8 = (await goiTrongTrang(p, "GET", `/api/pricing/ho-so/${ORG8.id}/hoa-hong`)).json.ganRieng;
+            const cu = r8.find((g) => g.id === G_8.id);
+            const moi = r8.find((g) => g.id !== G_8.id && g.muc.code === C_B.code);
+            assert.equal(cu?.denNgay, homQua, `lần cũ ngừng hôm qua: ${JSON.stringify(r8)}`);
+            assert.equal(moi?.tuNgay, HOM_NAY, `lần mới từ hôm nay: ${JSON.stringify(r8)}`);
+            assert.equal(moi?.denNgay, null, "lần mới không thời hạn");
+            await p.waitFor(`[...document.querySelectorAll('${cum8} .hh-tl-gan:not(.hh-lich-su) li[data-gan-id]')].some((li) => li.innerText.includes('Cấp riêng: ${C_B.ten}'))`, "cấp riêng mới (Bạc) hiện");
+            assert.equal(await p.ev(`document.querySelector('${cum8} .hh-lich-su-khoi button')?.textContent.trim()`), "Xem lịch sử (1)", "lần cũ vào lịch sử");
+            await bocucSach(p, `bước DC sau đổi ${kho}`);
+            // (b) cấp cũ đang khoá: hộp có câu Đ8 nguyên văn; cấp khoá không có trong ô chọn
+            const cum9 = await moCum(ORG9);
+            await chayViec(p, `${cum9} li[data-gan-id="${G_9.id}"]`, "Đổi cấp");
+            await choHop(p, "#hh-dcr2-muc");
+            assert.equal(await p.ev("[...document.querySelectorAll('.sheet .hint[role=status]')].map((e) => e.textContent.trim())[0]"), `Cấp cũ «${C_Z.ten}» đang khoá. Đổi xong thì không đổi ngược về cấp này được, trừ khi mở lại cấp.`, "câu Đ8 nguyên văn");
+            await bocucSach(p, `bước DC hộp cấp cũ khoá ${kho}`);
+            await axeKiem(p, `hộp Đổi cấp riêng (cấp cũ khoá) ${kho}`);
+            if (tenKho === "390") await chup(p, `17-hop-doi-cap-rieng-cap-cu-khoa-${tenKho}`, false);
+            assert.equal(await clickTrong(p, ".sheet", "Huỷ"), true);
+            await choDongHop(p);
+            // (c) lần có ngày ngừng: không «Đổi cấp» (nút lẫn «⋯»)
+            const cum10 = await moCum(ORG10);
+            const v10 = await viecCua(p, `${cum10} li[data-gan-id="${G_10.id}"]`);
+            assert.ok(!v10 || (!v10.nut.includes("Đổi cấp") && !v10.menu.includes("Đổi cấp")), `lần có ngày ngừng không có «Đổi cấp»: ${JSON.stringify(v10)}`);
+            // (d) 409: cấp mới bị khoá chen giữa lúc hộp đang mở (khoá bằng fetch trong trang — gọi từ ngoài sẽ đá phiên của trang)
+            const cum11 = await moCum(ORG11);
+            await chayViec(p, `${cum11} li[data-gan-id="${G_11.id}"]`, "Đổi cấp");
+            await choHop(p, "#hh-dcr2-muc");
+            await p.ev(`(() => { const s = document.getElementById('hh-dcr2-muc'); s.value = ${JSON.stringify(C_N1.code)}; s.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
+            assert.equal((await goiTrongTrang(p, "POST", `/api/pricing/muc-ta/${C_N1.code}/tat`, {})).status, 200, "khoá cấp mới chen giữa");
+            assert.equal(await clickTrong(p, ".sheet .sheet-foot", "Đổi cấp"), true);
+            await p.waitFor("(() => { const w = document.querySelector('.sheet .sheet-warn'); return !!w && !w.hidden && w.textContent.trim().length > 5; })()", "câu lỗi của máy chủ trong hộp");
+            const hien = await p.ev("document.querySelector('.sheet .sheet-warn').textContent");
+            const sonde = await goiTrongTrang(p, "POST", `/api/pricing/muc-rieng/${G_11.id}/doi`, { muc: C_N1.code, tuNgay: HOM_NAY });
+            assert.equal(sonde.status, 409, `máy chủ trả 409: ${JSON.stringify(sonde.json)}`);
+            assert.equal(hien, sonde.json.error.message, "câu 409 trong hộp = nguyên văn câu máy chủ");
+            assert.deepEqual((await ghiCuoi(p, `/muc-rieng/${G_11.id}/doi`)).slice(0, 1), [409], "lần bấm của hộp trả 409");
+            assert.equal(await p.ev("[...document.querySelectorAll('.sheet .sheet-foot button')].every((b) => !b.disabled)"), true, "hộp còn mở, bấm lại được");
+            await bocucSach(p, `bước DC 409 ${kho}`);
             assert.equal(await clickTrong(p, ".sheet", "Huỷ"), true);
             await choDongHop(p);
           });

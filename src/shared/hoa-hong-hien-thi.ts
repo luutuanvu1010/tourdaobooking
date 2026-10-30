@@ -405,6 +405,9 @@ export const cauDaDatCapRieng = (tenCap: string, tenDoiTac: string, tuNgay: stri
 export const CAU_DA_SUA_CAP_RIENG = "Đã sửa cấp riêng.";
 export const cauNgungCapRieng = (tenCap: string, tenDoiTac: string): string => `Ngừng cấp riêng ${tenCap} của ${tenDoiTac}`;
 export const cauDaNgungCapRieng = (tenCap: string, tenDoiTac: string): string => `Đã ngừng cấp riêng «${tenCap}» của «${tenDoiTac}».`;
+export const cauDaDoiCapRieng = (tenCapMoi: string, tenDoiTac: string, tuNgay: string): string => `Đã đổi cấp riêng của «${tenDoiTac}» sang «${tenCapMoi}» từ ngày ${ngayVN(tuNgay)}.`;
+/** ADR-0151 Đ8: hộp «Đổi cấp riêng» nói trước giới hạn khi cấp cũ đang khoá (đổi ra thì được, đổi ngược về cấp khoá thì không). */
+export const cauCapCuDangKhoa = (tenCapCu: string): string => `Cấp cũ «${tenCapCu}» đang khoá. Đổi xong thì không đổi ngược về cấp này được, trừ khi mở lại cấp.`;
 /** §3.3 toast tông `bien` khi «Xem dòng ↓» không còn thấy dòng. */
 export const CAU_KHONG_THAY_DONG = "Không thấy dòng này trên trang — tải lại trang.";
 /** §3.3: dòng thắng ở bậc 10–12 là cấp riêng của đối tác đang tra, nên đứng ở chi tiết cấp (thẻ «Các cấp đại lý») kèm câu này sau tên cấp. */
@@ -426,7 +429,7 @@ export function viecDongMuc(d: CommissionRuleDto, v: { homNay: string; capDangBa
   const ra = viecChung(d, v.homNay, true, v.sua);
   return v.capDangBat === false ? ra.filter((x) => x === "NGUNG") : ra;
 }
-/** Việc của một lần xếp loại (`coDoi: true`) hoặc cấp riêng (`coDoi: false` ở phần 1). Không lọc theo cấp khoá: chuyển sang cấp khác vẫn được. */
+/** Việc của một lần xếp loại hoặc cấp riêng (`coDoi: true` từ ADR-0151). Không lọc theo cấp khoá: chuyển sang cấp khác vẫn được. */
 export function viecLanGan(g: { tuNgay: string; denNgay: string | null; conHieuLuc: boolean; daHuy?: boolean }, v: { homNay: string; ghi: boolean; sua: boolean; coDoi: boolean }): Viec[] {
   return v.ghi ? viecChung(g, v.homNay, v.coDoi, v.sua) : [];
 }
