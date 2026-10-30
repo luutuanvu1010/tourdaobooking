@@ -613,3 +613,12 @@ test("huyHieuPhu: năm kết quả phủ mức ra đúng tông và chữ của b
   assert.equal(HT.huyHieuPhu({ kieu: "CHUA_KIEM" }), null);
   assert.equal(HT.cauSapApLoai("2026-12-01"), "Có thay đổi sắp áp dụng từ 01/12/2026");
 });
+
+test("locBangLoai: «Tất cả» hiện cả dòng đã ngừng và đã huỷ của loại; «Đang và sắp áp dụng» giấu chúng", () => {
+  const r = (id: string, o: Partial<CommissionRuleDto>): CommissionRuleDto => muc({ id, doiTuong: { loai: "VAI", code: "L1", ten: "L1" }, ...o });
+  const dong = [r("a", {}), r("b", { denNgay: "2026-01-31", conHieuLuc: false }), r("c", { daHuy: true, conHieuLuc: false, denNgay: "2026-01-31" })];
+  const homNay = HOM_NAY;
+  const loai = [{ code: "L1", ten: "L1" }];
+  assert.deepEqual(HT.locBangLoai(loai, dong, { chiConHieuLuc: true, tim: "" }, homNay, ten)[0]!.dong.map((x) => x.id), ["a"]);
+  assert.deepEqual(HT.locBangLoai(loai, dong, { chiConHieuLuc: false, tim: "" }, homNay, ten)[0]!.dong.map((x) => x.id), ["a", "b", "c"]);
+});

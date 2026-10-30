@@ -139,10 +139,10 @@ function veChonCap(mt: ReturnType<typeof maTranCap>, chon: (code: string, lay?: 
 
 /**
  * Bảng dòng mức (cấp, hoặc loại ở thẻ «Loại đối tác»): dịch vụ · cách tính · mức (người lớn) · trẻ em · người cao tuổi (chỉ khi có dòng theo loại khách) · hiệu lực của DÒNG · trạng thái · việc.
- * `capDangBat` là cờ của cấp chứa các dòng (false ⇒ chỉ còn «Ngừng»); dòng của loại truyền null. Chỉ dòng đang và sắp áp.
+ * `capDangBat` là cờ của cấp chứa các dòng (false ⇒ chỉ còn «Ngừng»); dòng của loại truyền null. `chiConHieuLuc` (mặc định true): chỉ dòng đang và sắp áp; false = cả dòng đã ngừng, đã huỷ (trạng thái ở cột Trạng thái).
  */
-export function bangDongMuc(tatCa: readonly Api.CommissionRuleDto[], capDangBat: boolean | null, d: DuLieuHoaHong, ghi: boolean, mo: MoHop): HTMLElement | null {
-  const dong = tatCa.filter((r) => conApHoacSap(r, d.homNay));
+export function bangDongMuc(tatCa: readonly Api.CommissionRuleDto[], capDangBat: boolean | null, d: DuLieuHoaHong, ghi: boolean, mo: MoHop, chiConHieuLuc = true): HTMLElement | null {
+  const dong = chiConHieuLuc ? tatCa.filter((r) => conApHoacSap(r, d.homNay)) : [...tatCa];
   if (dong.length === 0) return null;
   const coTheoLoai = dong.some((r) => r.theoLoai !== null);
   const sua = coQuyenSua(d.nguoiDung);

@@ -135,3 +135,11 @@ Mười bảy «câu hôm nay» của §6.1 đều có nguyên văn trong `index
 - Chữ «chính sách» của cụm loại cũ đi theo phần bị xoá; phần còn lại trong `hoa-hong-bang.ts` (đối tác, `cuonToiDong`, chú thích) để Task 10–11.
 
 **Lệch so với kế hoạch**: có sửa `hoa-hong-hop.ts` (một tham số tuỳ chọn) và `hoa-hong-cap.ts` (xuất `oViec`, tách `bangDongMuc`) — ngoài danh sách tệp, cần để không chép hàm. Chưa kiểm bằng Chrome (kịch bản khổ màn ở Task 14).
+
+**Task 9 — sửa sau duyệt**
+- Trả hàng lọc cho thẻ «Loại đối tác» (ô tìm + «Đang và sắp áp dụng» / «Tất cả», id `hh-loc-tim-loai` / `hh-loc-tt-loai`) bằng `locBangLoai` + `BoLoc`; không dùng lại `veBangApDung`. «Tất cả» hiện dòng đã ngừng, đã huỷ kèm huy hiệu `trangThaiDong`. `bangDongMuc` thêm tham số `chiConHieuLuc` (mặc định true: thẻ cấp không đổi; thẻ loại truyền false vì `locBangLoai` đã lọc).
+- Thêm «Xem lịch sử (n)» các lần xếp loại vào cấp đã ngừng/huỷ (`khoiLichSuGan`, từ `d.mucTa.muc[*].gan` lọc theo mã loại).
+- `cuonToiDongLoai`: không thấy dòng thì `datLaiLocLoai()` (xuất, cho Task 11) rồi thử lại.
+- Tiêu đề «Mức của loại»; biến `capMo`.
+- Bài: ca `locBangLoai` «Tất cả ⇒ dòng đã ngừng/huỷ hiện» ở `hoa-hong-hien-thi.test.ts` (bài bảo vệ hành vi có sẵn nên xanh ngay, không có bước đỏ). Phần giao diện (lọc đổi → vẽ lại, nhảy dòng sau reset) để bước Chrome Task 14.
+- Giải thích `coSan` (chủ điều phối chốt): loại có sẵn không có Tắt/Bật nhưng vẫn có việc cấp và mức; §3.1 chỉ cấm khoá/tắt. Giữ hành vi hiện tại.
