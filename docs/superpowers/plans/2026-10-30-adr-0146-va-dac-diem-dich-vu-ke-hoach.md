@@ -143,6 +143,21 @@ Kế hoạch chạy được với mặc định ghi ở cột cuối; chỉ ph�
 | Q-7 | Danh sách vé và loại đối tác cần chặn (phiếu chốt A3), giá trị đặc điểm của từng vé | — | gửi sau phát hành; là dữ liệu nhập trên màn | không | — |
 | Q-8 | (Báo để chủ biết, đổi **cách thử**, không đổi tiêu chí) Tiêu chí 12 của ADR-0146 nói «đơn vừa dính luật bán vừa thiếu phí đón thì báo luật bán». Phí đón (ADR-0147) chưa làm, nên kế hoạch thử bằng bốn bước kiểm có sẵn (giá danh mục, thiếu người lớn, nhóm tắt đưa đón, chưa chọn Đón/Không đón) — R-7; khi làm phí đón sẽ thêm ca «thiếu phí đón» | (a) Đồng ý · (b) Chờ làm phí đón rồi mới nghiệm thu tiêu chí 12 | **(a)** | không | (a) |
 
+### Chủ đã chọn — 30/10/2026 (người điều phối ghi)
+
+Lời chủ, nguyên văn: «Tôi đồng ý theo khuyến nghị của bạn, giờ thi công trong phiên (Session mới nhé), cho tôi handoff ? hay như thế nào»
+
+| Câu | Chủ chọn | Hệ quả cho người thi công |
+|---|---|---|
+| Q-1 | **(a)** báo «không bán» ngay | Đặt cổng luật bán **trước** `tinhCanXacNhan` ở `/status` và trước chốt «cần xác nhận» ở Gửi xác nhận (R-4, hai chỗ). Bài T8 kỳ vọng `sales_blocked` cho đơn «cần xác nhận + bị chặn». Đây là phần **bổ sung chỗ đặt** cho ADR-0146 Đ3 do chủ chọn; ghi vào sổ thi công |
+| Q-2 | **(a)** chặn tài khoản lai | Điều kiện `holdsPartner` ở mọi route mới và ở `hien` của hai trang |
+| Q-3 | **(a)** ngày kết thúc tính trọn ngày | Như R-1 |
+| Q-4 | không chờ Đóng bán | Thi công độc lập |
+| Q-5 | **(a)** diễn tập khôi phục trước 05/11; không kịp thì (b) gia hạn có lý do | Diễn tập là việc riêng (tệp bàn giao riêng), không thuộc đợt này. Ghi chú «trong lúc chờ» dưới đây vẫn áp |
+| Q-6 | **duyệt** các dòng đề xuất cho tệp luật | Ở T15, người thi công được sửa đúng các dòng đã đề xuất trong `web/CLAUDE.md`, `src/CLAUDE.md` và dòng bảng thi hành lệch 5.2 ở `docs/ARCHITECTURE.md`, **chỉ bằng công cụ sửa tệp**, nguyên văn như đề xuất; dòng README ADR-0146 đã làm ở commit `16466c3`. Đổi chữ khác đề xuất ⇒ dừng, hỏi chủ. Báo cáo cuối phải dán nguyên diff các tệp luật để chủ xem trước khi gộp (N9) |
+| Q-7 | dữ liệu gửi sau phát hành | — |
+| Q-8 | **(a)** đồng ý thử tiêu chí 12 bằng cổng có sẵn | Như R-7 |
+
 **Trong lúc chờ Q-5 (nếu thi công kéo sang 06/11):** bài `src/phat-hien-han.test.ts` đỏ **chỉ vì** mục HC-5.19 quá hạn thì không tính là đỏ của task; người thi công ghi vào sổ thi công (tên bài, câu đỏ, «chỉ HC-5.19»), mọi bài khác phải xanh. Người kiểm độc lập ở KĐL-1/2/3 phải ghi rõ điều này trong báo cáo. Phát hành vẫn bị chặn tới khi chủ quyết Q-5.
 
 ---
@@ -250,7 +265,7 @@ Mục 9: runbook chủ tự chạy
 - Hành động nhật ký mới: `src/shared/audit-actions.ts` + xếp vào `src/shared/lich-su-doi-tac.ts` (`LICH_SU_DOI_TAC_AN`) **và** `src/shared/lich-su-noi-bo.ts` (`LICH_SU_NOI_BO_AN`) — `CHANGE-GUIDE` f bước 7, 7b. Không ghi SĐT/email/MST; nhật ký luật bán ghi mã loại, phạm vi, ngày (ADR-0146 Đ5); nhật ký đặc điểm ghi tên đặc điểm, giá trị cũ → mới, mã dịch vụ / tên nhóm (A Đ1).
 - Bảng/cột mới: `docs/data-dictionary.json` (bảng, view, `hangDuLieu` từng cột — công thức z19; bài `src/hang-du-lieu.test.ts`) → `npm run dict`.
 - CẤM AI chạy: `git push`, merge, `wrangler deploy`, migration / ghi D1 remote, `d1 execute --remote`. Lệnh đếm remote ở runbook là **chủ chạy**.
-- Không sửa `CLAUDE.md`, `.claude/`, `playbook/`, `docs/adr/`; dòng cần thêm ở các tệp đó ghi thành đề xuất trong sổ thi công (Q-6).
+- Không sửa `CLAUDE.md`, `.claude/`, `playbook/`, `docs/adr/`; dòng cần thêm ở các tệp đó ghi thành đề xuất trong sổ thi công (Q-6). **Ngoại lệ do chủ duyệt 30/10 (Q-6):** ở T15 được thêm đúng các dòng đã đề xuất vào `web/CLAUDE.md`, `src/CLAUDE.md`, `docs/ARCHITECTURE.md` bằng công cụ sửa tệp, nguyên văn; không đụng tệp luật nào khác.
 - Sổ thi công: `docs/superpowers/plans/2026-10-30-adr-0146-va-dac-diem-dich-vu-thi-cong-nhat-ky.md` (người thi công tạo ở T0) — ruling, nợ, kết quả đo, ngày quan sát hàng rào.
 
 ---
