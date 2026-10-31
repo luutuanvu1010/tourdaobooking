@@ -31,7 +31,7 @@ import { hoiXacNhan } from "./bang-truot";
 import { h, replaceChildren } from "./dom";
 import type { DuLieuHoaHong } from "./hoa-hong";
 import { bangDongMuc, oViec } from "./hoa-hong-cap";
-import type { MoHop } from "./hoa-hong-hop";
+import { dongMa, thamSuaLoai, type MoHop } from "./hoa-hong-hop";
 import { khoiLichSuGan } from "./hoa-hong-lich-su";
 import { moViecKhac } from "./hoa-hong-menu";
 import { icon } from "./icons";
@@ -68,6 +68,11 @@ function cumLoai(it: { loai: DuLieuHoaHong["loai"][number]; dong: Api.Commission
   const loiEl = h("p", { class: "sheet-warn", role: "alert", hidden: true });
 
   const dau = h("div", { class: "hh-loai-dau" }, h("h3", null, loai.ten), nhan.nguon !== "" && h("span", { class: "badge badge-draft" }, nhan.nguon), hh && h("span", { class: "huy-hieu", "data-tong": hh.tong }, icon(HINH[hh.tong], 14), hh.chu));
+  if (ghi) {
+    const sua = h("button", { type: "button", class: "nut", "data-cap": "phu", "aria-label": `Sửa: ${loai.ten}` }, "Sửa");
+    sua.addEventListener("click", () => mo.suaDanhMuc(thamSuaLoai(loai)));
+    dau.append(sua);
+  }
   if (ghi && nhan.nut) dau.append(nutBatTat(nhan.nut, loai.ten, loai.code, mo, loiEl));
 
   // Cấp đang theo.
@@ -98,6 +103,7 @@ function cumLoai(it: { loai: DuLieuHoaHong["loai"][number]; dong: Api.Commission
     "article",
     { class: "the hh-loai-the", "data-loai": loai.code, "data-phu": ketQua.kieu },
     dau,
+    dongMa(loai.code, loai.coSan),
     sapApTu !== null && h("p", { class: "muted hh-loai-sap" }, cauSapApLoai(sapApTu)),
     ketQua.kieu === "KHONG_CO" && h("p", { class: "hh-cap-nhac" }, CAU_CHUA_CO_MUC_LOAI),
     dongCap,

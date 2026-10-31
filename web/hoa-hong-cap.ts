@@ -41,7 +41,7 @@ import { hoiXacNhan } from "./bang-truot";
 import { h, replaceChildren } from "./dom";
 import type { DuLieuHoaHong } from "./hoa-hong";
 import { urlNgung } from "./hoa-hong-bang";
-import type { MoHop } from "./hoa-hong-hop";
+import { dongMa, thamSuaCap, type MoHop } from "./hoa-hong-hop";
 import { huyHieuTrangThai, khoiLichSuGan } from "./hoa-hong-lich-su";
 import { moViecKhac, nutViecKhac } from "./hoa-hong-menu";
 import { icon } from "./icons";
@@ -234,6 +234,9 @@ function chiTietCap(m: Api.MucTaDto, d: DuLieuHoaHong, mo: MoHop): HTMLElement {
   const loiEl = h("p", { class: "sheet-warn", role: "alert", hidden: true });
   const nut = h("div", { class: "hh-cap-nut" });
   if (ghi) {
+    const sua = h("button", { type: "button", class: "nut", "data-cap": "phu", "aria-label": `Sửa: ${m.ten}` }, "Sửa");
+    sua.addEventListener("click", () => mo.suaDanhMuc(thamSuaCap(m)));
+    nut.append(sua);
     if (m.dangBat) {
       const ad = h("button", { type: "button", class: "nut", "data-cap": "phu" }, "Thêm loại vào cấp này");
       ad.addEventListener("click", () => mo.apDungChinhSach(m));
@@ -253,6 +256,7 @@ function chiTietCap(m: Api.MucTaDto, d: DuLieuHoaHong, mo: MoHop): HTMLElement {
       h("h3", { id: "hh-cap-ct-ten" }, m.ten),
       m.dangBat ? huyHieu("la", "checkCircle", NHAN_TRANG_THAI.DANG_AP) : huyHieu("cat", "lock", NHAN_CAP_DA_KHOA),
     ),
+    dongMa(m.code, false),
     nhac !== null && h("p", { class: "hh-cap-nhac" }, nhac),
     h("p", { class: "muted" }, cauDemCap(demTheoCap(m, d.mucTa.ganRieng, d.homNay))),
     ghi && nut,

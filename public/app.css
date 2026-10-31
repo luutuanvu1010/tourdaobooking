@@ -3975,6 +3975,12 @@ a.bk-hang:hover, a.bk-the:hover { background: var(--c-soft-hover); }
 .hh-loai-dau { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); }
 .hh-loai-dau h3 { margin: 0; }
 .hh-loai-dau .nut { margin-left: auto; }
+.hh-loai-dau .nut + .nut { margin-left: 0; } /* «Sửa» rồi «Tắt»: chỉ nút đầu đẩy sang phải */
+/* Mã định danh (đặc tả 2026-10-31 §3): mờ dưới tên, chữ đều; «Chép mã» là nút chữ. */
+.hh-ma-dong { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); margin: var(--s1) 0 0; }
+.hh-ma-dong .hint { margin-top: 0; }
+.hh-ma { font-family: var(--font-mono); font-size: var(--fs-label); overflow-wrap: anywhere; }
+.hh-sua-ma { margin-bottom: var(--s3); }
 .hh-loai-cap { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2) var(--s3); }
 .hh-loai-the h4 { margin: var(--s2) 0 0; font-size: var(--fs-label); color: var(--c-text-muted); }
 .hh-loai-sap { margin: 0; }

@@ -36,7 +36,8 @@ import type { PermissionHolder } from "../src/shared/permissions";
 import { nhanDong, nhanTyLeBp } from "../src/shared/so-dai-ly-nhan";
 import { docLyDoSua, docNgayDong, docThanDoiMuc, docThanDongMucTa, docThanGan, docThanGanRieng, docThanMuc, ngayDongMacDinh, type FormMuc, type LoiO, type PhamViForm } from "../src/shared/so-dai-ly-nhap";
 import { ngayDayDu } from "../src/shared/vn-date";
-import { api, type Api } from "./api";
+import { CAU_DA_CHEP, CAU_KHONG_CHEP_DUOC, CAU_TEN_CO_SAN, GHI_CHU_TOI_DA, cauDangDungCap, cauDangDungLoai, cauDemGhiChu, nhanDauVet, nhanMa } from "../src/shared/hien-thi-ma";
+import { ApiError, api, type Api } from "./api";
 import { moBangTruot } from "./bang-truot";
 import { h, type Child } from "./dom";
 import type { DuLieuHoaHong } from "./hoa-hong";
@@ -68,8 +69,53 @@ export interface MoHop {
   suaCapRieng(g: Api.GanRiengLichSuDto, partyId: string): void;
   /** Ngừng một lần gắn cấp riêng: chọn ngày cuối, `POST /api/pricing/muc-rieng/:id/ket-thuc`. */
   ngungCapRieng(g: Api.GanRiengLichSuDto, partyId: string): void;
+  /** Đặc tả 2026-10-31 §3: hộp «Sửa» chung cho loại đối tác và cấp đại lý — đổi tên, ghi chú (`PATCH`); mã chỉ đọc. Tham số dựng bằng `thamSuaLoai` / `thamSuaCap`. */
+  suaDanhMuc(t: ThamSuaDanhMuc): void;
   /** ADR-0151: đổi cấp riêng một lô, `POST /api/pricing/muc-rieng/:id/doi` thân { muc, tuNgay }; cấp cũ khoá thì hộp nói trước giới hạn Đ8. */
   doiCapRieng(g: Api.GanRiengLichSuDto, partyId: string): void;
+}
+
+/** Tham số hộp «Sửa» chung (đặc tả 2026-10-31 §3). `dauVet` = các dòng ai tạo / ai sửa, `soNoi` = câu «Đang dùng…». */
+export interface ThamSuaDanhMuc {
+  loai: "LOAI" | "CAP";
+  code: string;
+  ten: string;
+  ghiChu: string | null;
+  updatedAt: string | null;
+  coSan: boolean;
+  dauVet: string[];
+  soNoi: string;
+}
+
+/** Dòng «Sửa gần nhất» chỉ khi có lần sửa khác lần tạo (cấp đại lý ghi `suaLuc` = `taoLuc` lúc tạo). */
+const dauVet = (taoLuc: string | null, taoBoi: string | null, suaLuc: string | null, suaBoi: string | null): string[] => [
+  nhanDauVet(taoLuc, taoBoi, "tao"),
+  ...(suaLuc !== null && suaLuc !== taoLuc ? [nhanDauVet(suaLuc, suaBoi, "sua")] : []),
+];
+export const thamSuaLoai = (l: Api.LoaiDoiTacDto): ThamSuaDanhMuc => ({
+  loai: "LOAI", code: l.code, ten: l.ten, ghiChu: l.ghiChu, updatedAt: l.updatedAt, coSan: l.coSan, dauVet: dauVet(l.taoLuc, l.taoBoi, l.suaLuc, l.suaBoi), soNoi: cauDangDungLoai(l.soHoSo),
+});
+export const thamSuaCap = (m: Api.MucTaDto): ThamSuaDanhMuc => ({
+  loai: "CAP", code: m.code, ten: m.ten, ghiChu: m.ghiChu, updatedAt: m.updatedAt, coSan: false, dauVet: dauVet(m.taoLuc, m.taoBoi, m.suaLuc, m.suaBoi), soNoi: cauDangDungCap(m.soLoai, m.soDoiTac),
+});
+
+/** Dòng mã: mã mờ + «Chép mã» (không có với loại Có sẵn — ô hiện câu `CAU_MA_CO_SAN`). Chép hỏng thì chọn sẵn chữ mã để chép tay. */
+export function dongMa(code: string, coSan: boolean): HTMLElement {
+  const ma = h("code", { class: "hh-ma" }, nhanMa(code, coSan));
+  if (coSan) return h("p", { class: "muted hh-ma-dong" }, ma);
+  const bao = h("span", { class: "hint", role: "status" });
+  const chep = h("button", { type: "button", class: "btn btn-link", "aria-label": `Chép mã ${code}` }, "Chép mã");
+  chep.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(code);
+      bao.textContent = CAU_DA_CHEP;
+    } catch {
+      const sel = window.getSelection();
+      sel?.selectAllChildren(ma);
+      bao.textContent = CAU_KHONG_CHEP_DUOC;
+    }
+  });
+  return h("p", { class: "muted hh-ma-dong" }, ma, chep, bao);
 }
 
 export interface NguCanhHop {
@@ -727,6 +773,94 @@ export function taoMoHop(ctx: NguCanhHop): MoHop {
     });
   }
 
+  function suaDanhMuc(t: ThamSuaDanhMuc): void {
+    const la = t.loai === "LOAI";
+    const ten = h("input", { id: "hh-sua-ten", type: "text", maxLength: 80, autocomplete: "off", value: t.ten });
+    const ghi = h("textarea", { id: "hh-sua-ghi-chu", maxLength: GHI_CHU_TOI_DA, rows: 3 });
+    ghi.value = t.ghiChu ?? "";
+    const dem = h("span", { class: "hint", "aria-live": "polite" }, cauDemGhiChu(ghi.value.length));
+    ghi.addEventListener("input", () => {
+      dem.textContent = cauDemGhiChu(ghi.value.length);
+    });
+    const loiTen = h("p", { class: "field-error", role: "alert", hidden: true });
+    const loiEl = h("p", { class: "sheet-warn", role: "alert", hidden: true });
+    const moLai = h("button", { type: "button", class: "btn", hidden: true }, "Mở lại");
+    const gui = h("button", { type: "button", class: "btn btn-primary" }, "Lưu");
+    const huy = h("button", { type: "button", class: "btn" }, "Huỷ");
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const sheet = moBangTruot({
+      title: la ? "Sửa loại đối tác" : "Sửa cấp đại lý",
+      body: [
+        loiEl,
+        moLai,
+        h("div", { class: "hh-sua-ma" }, h("span", null, "Mã"), dongMa(t.code, t.coSan)),
+        h("label", null, la ? "Tên loại đối tác" : "Tên cấp đại lý", ten),
+        loiTen,
+        t.coSan && h("p", { class: "hint" }, CAU_TEN_CO_SAN),
+        h("label", null, "Ghi chú", ghi),
+        dem,
+        ...t.dauVet.map((x) => h("p", { class: "muted" }, x)),
+        h("p", { class: "muted" }, t.soNoi),
+      ],
+      foot: [huy, gui],
+      footClass: "loc-foot",
+      opener,
+    });
+    if (!sheet) return;
+    huy.addEventListener("click", () => sheet.close());
+    moLai.addEventListener("click", async () => {
+      moLai.disabled = true;
+      sheet.close(false);
+      await ctx.napLai();
+      const d = ctx.lay();
+      const moi = la ? d.loai.find((x) => x.code === t.code) : d.mucTa.muc.find((x) => x.code === t.code);
+      if (!moi) return;
+      suaDanhMuc(la ? thamSuaLoai(moi as Api.LoaiDoiTacDto) : thamSuaCap(moi as Api.MucTaDto));
+    });
+    gui.addEventListener("click", async () => {
+      if (gui.disabled) return;
+      loiEl.hidden = true;
+      moLai.hidden = true;
+      const tenMoi = ten.value.trim();
+      if (tenMoi === "") {
+        loiTen.textContent = "Nhập tên.";
+        loiTen.hidden = false;
+        return;
+      }
+      loiTen.hidden = true;
+      const body: { ten?: string; ghiChu?: string; updatedAt: string | null } = { updatedAt: t.updatedAt };
+      if (tenMoi !== t.ten) body.ten = tenMoi;
+      if (ghi.value !== (t.ghiChu ?? "")) body.ghiChu = ghi.value;
+      if (body.ten === undefined && body.ghiChu === undefined) {
+        sheet.close();
+        return;
+      }
+      gui.disabled = true;
+      huy.disabled = true;
+      sheet.setBusy(true);
+      ctx.baoOk(null);
+      try {
+        await api<unknown>(`/api/pricing/${la ? "loai-doi-tac" : "muc-ta"}/${encodeURIComponent(t.code)}`, { method: "PATCH", body });
+        sheet.setBusy(false);
+        sheet.close(false);
+        await ctx.napLai();
+        ctx.baoOk(la ? "Đã lưu loại đối tác." : "Đã lưu cấp đại lý.");
+      } catch (err) {
+        sheet.setBusy(false);
+        gui.disabled = false;
+        huy.disabled = false;
+        loiEl.textContent = lyDoLoi(err); // nguyên câu của máy chủ
+        loiEl.hidden = false;
+        if (err instanceof ApiError && err.code === "da_doi") {
+          gui.disabled = true; // bản trong hộp đã cũ: chỉ còn «Mở lại» hoặc Huỷ
+          moLai.hidden = false;
+          moLai.focus();
+        }
+        loiEl.scrollIntoView({ block: "nearest" });
+      }
+    });
+  }
+
   function hoiTen(o: { title: string; nhan: string; nhanO: string; path: string; xong: string }): void {
     const ten = h("input", { id: "hh-hoi-ten", type: "text", maxLength: 80, autocomplete: "off" });
     const loi = h("p", { class: "field-error", role: "alert", hidden: true });
@@ -766,7 +900,7 @@ export function taoMoHop(ctx: NguCanhHop): MoHop {
   }
 
   return {
-    themMuc, doi, sua: (x) => void sua(x), suaApDung: (x) => void suaApDung(x), ngung, ngungApDung, doiChinhSach, apDungChinhSach, themLoai, themChinhSach, guiNhanh,
+    themMuc, doi, sua: (x) => void sua(x), suaApDung: (x) => void suaApDung(x), ngung, ngungApDung, doiChinhSach, apDungChinhSach, themLoai, themChinhSach, guiNhanh, suaDanhMuc,
     datCapRieng, suaCapRieng: (g, partyId) => void suaCapRieng(g, partyId), ngungCapRieng, doiCapRieng,
   };
 }

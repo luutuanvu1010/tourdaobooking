@@ -132,7 +132,8 @@ Người bán dịch vụ làm tương tự ở trang [[Người bán dịch v�
 
 1. Bấm [[Hoa hồng đối tác]], bấm [[＋ Thêm loại]] và gõ tên.
 2. Đặt mức cho loại mới bằng [[＋ Thêm mức]].
-3. Không dùng nữa thì bấm [[Tắt]] ở dòng loại đó; cần lại thì bấm [[Bật]]. Các loại có sẵn (ghi **Có sẵn**) thì không tắt được.
+3. Không dùng nữa: bấm [[Tắt]] ở loại đó; cần lại: [[Bật]]. Loại **Có sẵn** không tắt được.
+4. Đổi tên, ghi chú: bấm [[Sửa]].
 
 Gắn loại cho hồ sơ ở Danh bạ là việc của Quản trị hoặc Toàn quyền. Loại đã tắt thì không gắn thêm, nhưng đơn đã xác nhận vẫn giữ nguyên hoa hồng.`,
     },
@@ -143,6 +144,7 @@ Gắn loại cho hồ sơ ở Danh bạ là việc của Quản trị hoặc To�
 1. [[＋ Thêm cấp đại lý]], gõ tên.
 2. Mở cấp, bấm [[＋ Thêm hoa hồng cho dịch vụ]]: chọn dịch vụ và mức.
 3. [[Chọn cấp cho loại này]] hoặc [[Thêm loại vào cấp này]]: chọn loại và ngày bắt đầu.
+4. Đổi tên, ghi chú: [[Sửa]].
 
 Cấp của loại xét sau cùng. Đổi sang cấp khác: [[Đổi cấp]]. Ngừng chi: [[Thôi theo cấp này]]. [[Khoá cấp]] chặn thêm loại và mức mới, loại đang theo vẫn được tính; dùng lại: [[Mở lại cấp]].
 
