@@ -518,6 +518,7 @@ export const pricingModule: AppModule = {
       if (!can(staff, "partner.commission.write") || holdsPartner(staff)) return FORBIDDEN();
       const code = params.code!;
       if (!MA_RE.test(code)) return LOAI_KHONG_CO();
+      // Lớp một: route chỉ nhận đúng danh sách được hưởng; câu SQL của parties là lớp hai thô hơn (is_partner_label = 1 OR role_group = 'EXTERNAL').
       const hienTai = (await docLoaiDoiTac(env.DB)).find((x) => x.code === code);
       if (!hienTai) return LOAI_KHONG_CO();
       const than = await readJson(request);
@@ -531,7 +532,7 @@ export const pricingModule: AppModule = {
         tenMoi = kq.value;
       }
       let ghiChuMoi = hienTai.ghiChu;
-      if (o.ghiChu !== undefined) {
+      if (o.ghiChu !== undefined) { // `ghiChu: null` hay "" ⇒ xoá ghi chú (kiemGhiChu trả null); `ten: null` rơi vào luật tên ở trên ⇒ 400
         const gc = kiemGhiChu(o.ghiChu);
         if (!gc.ok) return error(400, "invalid_input", gc.message);
         ghiChuMoi = gc.value;

@@ -258,3 +258,21 @@ test("Review: gửi cả tên lẫn ghi chú đều đổi ⇒ hai dòng nhật 
   assert.deepEqual([d.name, d.note, d.updated_by], ["Spa hai việc", "Ghi chú hai việc", ADM]);
   assert.equal(r.json.loai.updatedAt, d.updated_at);
 });
+
+test("Null: ghiChu null ⇒ xoá ghi chú (như chuỗi rỗng); ten null ⇒ 400 invalid_input, không ghi", async () => {
+  const w = setup();
+  const ma = await themLoai(w);
+  assert.equal((await sua(w, ma, { ghiChu: "Có ghi chú", updatedAt: (await mot(w, ma)).updatedAt })).status, 200);
+  const n = soNhatKy(w);
+  const r = await sua(w, ma, { ghiChu: null, updatedAt: (await mot(w, ma)).updatedAt });
+  assert.equal(r.status, 200, r.text);
+  assert.equal(r.json.loai.ghiChu, null);
+  assert.equal(dongLoai(w, ma).note, null);
+  assert.equal(soNhatKy(w), n + 1, "xoá ghi chú là một lần sửa ghi chú");
+  const dong = dongLoai(w, ma);
+  const x = await sua(w, ma, { ten: null, updatedAt: (await mot(w, ma)).updatedAt });
+  assert.equal(x.status, 400, x.text);
+  assert.equal(x.json.error.code, "invalid_input");
+  assert.deepEqual({ ...dongLoai(w, ma) }, { ...dong });
+  assert.equal(soNhatKy(w), n + 1);
+});
