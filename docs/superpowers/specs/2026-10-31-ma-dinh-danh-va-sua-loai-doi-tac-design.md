@@ -13,9 +13,9 @@
 
 ## 2. Điều luật đề xuất (Hiến chương `docs/ARCHITECTURE.md` Phần I, điều mới 5.26)
 
-> **5.26 Mã định danh: máy cấp, một khuôn, không đổi.** Mỗi bản ghi nghiệp vụ có một mã định danh do **máy chủ cấp** lúc tạo; người dùng không gõ, không sửa mã. Mã **không mang nghĩa nghiệp vụ** (không chứa tên, cấp, ngày, số thứ tự có nghĩa) — nghĩa nằm ở tên và ghi chú, là thứ sửa được. Khuôn cho **loại bản ghi mới từ ngày điều này được duyệt**: `<TIỀN TỐ>_<8 chữ hoa ngẫu nhiên A–Z>`, tiền tố 2–3 chữ hoa cố định theo loại bản ghi, khai ở **đúng một** bảng tiền tố trong mã; hai loại không trùng tiền tố (bài kiểm bắt). Mã hiện được trên màn hình để xem và chép, không có ô sửa. Đổi tên không đổi mã; nhật ký về một bản ghi ghi **mã** của bản ghi đó. Các khuôn cũ (chuỗi ngẫu nhiên 36 ký tự, mã danh mục gốc kiểu `AGENT`, mã đơn) là **nợ có tên**, rà riêng — không đổi mã đã cấp.
+> **5.26 Mã định danh: máy cấp, một khuôn, không đổi.** Mỗi bản ghi nghiệp vụ có một mã định danh do **máy chủ cấp** lúc tạo; người dùng không gõ, không sửa mã. Mã **không mang nghĩa nghiệp vụ** (không chứa tên, cấp, ngày, số thứ tự có nghĩa) — nghĩa nằm ở tên và ghi chú, là thứ sửa được. Khuôn cho **loại bản ghi mới từ ngày điều này được duyệt**: `<TIỀN TỐ>_<8 chữ hoa ngẫu nhiên A–Z>`, tiền tố 2–3 chữ hoa cố định theo loại bản ghi, khai ở **đúng một** bảng tiền tố trong mã; hai loại không trùng tiền tố (bài kiểm bắt). Mã hiện được trên màn hình để xem và chép, không có ô sửa. Đổi tên không đổi mã; nhật ký về một bản ghi ghi **mã** của bản ghi đó. **Không thuộc điều này:** mã của tập đóng mà mã chương trình rẽ nhánh theo (trạng thái, mã quyền, loại bên — HC 2.2), và khoá tự nhiên từ bên ngoài (mã số thuế, mã tour từ Google Sheet — HC 2.1a). Các khuôn cũ là **nợ có tên**, rà riêng, không đổi mã đã cấp: chuỗi ngẫu nhiên 36 ký tự (đơn, hồ sơ, nhật ký…), mã đơn `TD-YYYYMMDD-NNNN` (mang ngày và số thứ tự), mã địa điểm do người gõ, năm loại đối tác có sẵn mang mã tiếng Anh (`TRAVEL_AGENCY`…).
 
-Hai loại bản ghi đã theo đúng khuôn này từ trước: Loại đối tác `LD_…`, Cấp đại lý `MT_…`. Không mã nào phải đổi.
+Hai loại bản ghi đã theo đúng khuôn này từ trước: Loại đối tác tự thêm `LD_…`, Cấp đại lý `MT_…`. Không mã nào phải đổi.
 
 ## 3. Ô «Sửa» — chung cho hai loại
 
@@ -31,11 +31,9 @@ Hai loại bản ghi đã theo đúng khuôn này từ trước: Loại đối t
 
 Bật/Tắt, gắn cấp cho loại, mức hoa hồng: giữ ở chỗ cũ, không vào ô Sửa. Mã cũng hiện mờ dưới tên ở thẻ.
 
-Đề xuất (AI tự chốt, chủ bác được): năm loại «Có sẵn» mang mã gốc tiếng Anh từ trước (`TRAVEL_AGENCY`…), thuộc nợ khuôn cũ ở §2. Luật giao diện cấm chữ Anh lộ ra người dùng, nên ô mã của chúng hiện «Loại gốc của hệ thống — mã cố định» thay cho mã thô.
-
 Hành vi chung:
 - Tên: 2–60 chữ, không trùng tên khác **cùng loại**, không chứa SĐT / số tài khoản / email (luật đang dùng lúc thêm). Ghi chú: cấm như tên.
-- Đổi tên đổi chữ ở **mọi** màn hình, kể cả hồ sơ, lịch sử cũ (tên tra theo mã lúc hiển thị). Đơn đã xác nhận **không** đổi tiền (ADR-0117 Đ7).
+- Đổi tên đổi chữ ở mọi màn hình **tra tên theo mã** lúc hiển thị (thẻ, ô chọn, hồ sơ trong Danh bạ, ô Kiểm tra hoa hồng). Dòng nhật ký **cũ** giữ tên lúc ghi (nhật ký chỉ-thêm). Bản chụp của đơn đã xác nhận giữ nguyên tiền (ADR-0117 Đ7); nếu bản chụp có chép chữ tên thì giữ tên cũ — người thi công kiểm và ghi rõ.
 - Hai người sửa cùng lúc: người lưu sau nhận «… vừa được người khác sửa, mở lại để xem bản mới», không ghi đè âm thầm. Tắt / Bật cũng tính là một lần sửa (mở ô Sửa trước khi người khác tắt rồi bấm lưu ⇒ nhận câu trên).
 - Lưu mà không đổi gì: không ghi, không có dòng nhật ký.
 - Nhật ký: thêm bốn hành động — «Đổi tên loại đối tác», «Sửa ghi chú loại đối tác», «Đổi tên cấp đại lý», «Sửa ghi chú cấp đại lý». Đổi tên ghi `tên cũ → tên mới`; sửa ghi chú **không** chép nội dung (§5 câu 3). Từ bản này **mọi** dòng nhật ký về loại đối tác và cấp đại lý (kể cả thêm, tắt, bật đã có) ghi mã ở ô đối tượng của nhật ký.
@@ -43,6 +41,28 @@ Hành vi chung:
 Khác nhau về dấu vết:
 - **Cấp đại lý** đã có sẵn cột ai tạo / lúc nào / ai sửa / lúc nào trên chính bảng ⇒ hiện đủ cho mọi cấp.
 - **Loại đối tác** chưa có các cột đó ⇒ thêm vào; loại tạo trước bản này để trống và hiện «Tạo trước 31/10/2026 — chưa có dấu vết». Không đoán theo tên trong nhật ký cũ (đổi tên làm đoán sai).
+
+## 3b. Trang ghép (CLAUDE.md §9 — lượt duyệt có ≥ 2 quyết định chạm dữ liệu)
+
+**Bảng vai `pty_role_type` chứa những loại dòng nào:** vai nội bộ (nhóm INTERNAL: Bán hàng, Kế toán, Tài xế công ty…); vai bên ngoài dùng để đăng nhập (nhóm EXTERNAL, trong đó năm loại «Có sẵn» được hưởng hoa hồng, và Tài xế đối tác); dòng nhóm OTHER (Công ty chủ, Nhà xe đối tác, các mã vai cũ đã ngưng); và **loại đối tác tự thêm** (nhóm OTHER, cờ `is_partner_label = 1`). Đặc tả này thêm vào bảng: một cột ghi chú và bốn cột dấu vết, **không** thêm loại dòng mới.
+
+**Bảng cấp `prc_rate_tier`:** chỉ chứa cấp đại lý do người dùng tạo. Thêm một cột ghi chú.
+
+**Dòng bản đồ quyền chạm hai bảng và áp cho loại dòng nào:**
+
+| Ô quyền | Việc | Áp cho |
+|---|---|---|
+| `partner.commission.write` (Kế toán, Quản trị, Toàn quyền; trừ tài khoản giữ quyền Đối tác) | Đổi tên loại | **Chỉ** loại tự thêm |
+| như trên | Sửa ghi chú loại | Năm loại Có sẵn + loại tự thêm (dòng có trong danh sách được hưởng) |
+| như trên | Đổi tên, sửa ghi chú cấp | Mọi cấp |
+| `partner.commission.view` | Xem mã, ghi chú, dấu vết, số nơi dùng | Như danh sách hiện xem được hôm nay |
+| quyền gắn vai ở Danh bạ (Quản trị, Toàn quyền — ADR-0117 Đ3) | Gắn loại cho hồ sơ | **Không đổi** |
+
+Vai nội bộ, vai đăng nhập khác, dòng OTHER không phải loại đối tác: không lệnh nào ở đây ghi được (máy chủ trả 404).
+
+**Cổng nào canh cửa nào:**
+- Máy chủ: route PATCH kiểm `can(partner.commission.write)` + `holdsPartner` (như route Tắt/Bật hiện có), rồi kiểm loại dòng. Câu SQL đổi tên tự giới hạn `is_partner_label = 1`; câu sửa ghi chú tự giới hạn dòng có trong danh sách được hưởng. Hai lớp: bỏ kiểm ở route thì câu SQL vẫn không đổi được dòng ngoài phạm vi (0 dòng ⇒ 404).
+- Giao diện (chỉ ẩn/hiện, máy chủ kiểm lại): nút **Sửa** hiện khi người xem có `partner.commission.write`. Trong ô Sửa, ô **Tên** chỉ gõ được với loại tự thêm; với loại Có sẵn, ô Tên hiện chữ chỉ đọc. Không chỗ ẩn/hiện nào khác đổi nghĩa.
 
 ## 4. Ngoài phạm vi
 
@@ -53,7 +73,7 @@ Khác nhau về dấu vết:
 ## 5. Ba quyết định cần chủ
 
 1. **Duyệt điều 5.26 ở §2** (áp cho loại bản ghi mới; khuôn cũ là nợ rà riêng). Khuyến nghị: duyệt.
-2. **Năm loại «Có sẵn»** (Công ty lữ hành, Hướng dẫn viên độc lập, Lễ tân khách sạn, Tài xế taxi, Cộng tác viên — cũng là vai đăng nhập của đối tác) **chỉ sửa ghi chú, không đổi tên**, vì đổi tên sẽ đổi chữ trên màn tài khoản. Khuyến nghị: đồng ý.
+2. **Năm loại «Có sẵn»** (Công ty lữ hành, Hướng dẫn viên độc lập, Lễ tân khách sạn, Tài xế taxi, Cộng tác viên — cũng là vai đăng nhập của đối tác) **chỉ sửa ghi chú, không đổi tên**, vì đổi tên sẽ đổi chữ trên màn tài khoản. Mã cũ của chúng là chữ tiếng Anh nên ô mã hiện «Loại gốc của hệ thống — mã cố định» thay cho mã thô (luật cấm chữ Anh lộ ra người dùng). Khuyến nghị: đồng ý.
 3. **Nội dung ghi chú không vào nhật ký** (chỉ ghi «đã sửa ghi chú»), vì ghi chú là chữ tự do, dễ lọt thông tin cá nhân. Khuyến nghị: đồng ý.
 
 ## 6. Tiêu chí nghiệm thu (kiểm được)
