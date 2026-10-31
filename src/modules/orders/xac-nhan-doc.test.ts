@@ -44,6 +44,8 @@ test("(b) danh sách chờ: Kế toán, HDV, Quản trị, Toàn quyền, Bán h
     assert.equal(d.tong, 1_000_000);
     assert.equal(typeof d.quaHan, "boolean");
     assert.equal(d.hanLuc, w.q("SELECT deadline_at h FROM ord_confirm_request WHERE order_id = ?", o.id)[0].h);
+    // Trang chủ Phương án A (31/10, chủ duyệt quyết định 3): `guiLuc` = cột `submitted_at` — để dải việc gấp tính «đã chờ quá 2 giờ» (hạn đổi theo giờ trong ngày nên không suy ngược được).
+    assert.equal(d.guiLuc, w.q("SELECT submitted_at s FROM ord_confirm_request WHERE order_id = ?", o.id)[0].s);
     assert.deepEqual(d.vi, ["DICH_VU"]);
     assert.equal(d.canDatGap, false);
     for (const cam of ["0912345678", "khach@example.com", "Dị ứng", "Khách Thử"]) assert.ok(!r.text.includes(cam), `${ai}: lộ ${cam}`);

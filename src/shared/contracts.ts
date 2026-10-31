@@ -2948,6 +2948,8 @@ export interface DonChoXacNhanDto {
   /** Giờ đón sớm nhất của chặng mở, "HH:MM" (kèm cuối khung "HH:MM–HH:MM" nếu có); null = không đón / chưa có giờ. */
   gioDon: string | null;
   tong: number;
+  /** Lúc người lập gửi xác nhận (ISO UTC, cột `submitted_at`) — để Trang chủ tính «đã chờ quá 2 giờ»; hạn đổi theo giờ trong ngày nên không suy ngược từ `hanLuc` (Trang chủ Phương án A, 31/10). */
+  guiLuc: string;
   hanLuc: string;
   quaHan: boolean;
   /** Đơn vào bước chỉ vì chặng dưới mốc: người xét duyệt không giữ ô Đặt gấp cần nhờ Quản trị (nhãn «Cần Quản trị đặt gấp»). */
