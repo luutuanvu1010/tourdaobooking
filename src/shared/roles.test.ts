@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { EXTERNAL_PERMISSIONS, PERMISSION_CODES, type PermissionCode } from "./permissions.ts";
 import {
   ROLES, ROLE_CODES, SUPER_ADMIN_GRANTED, TIEN_CHI_TOAN_QUYEN_MESSAGE, canManageAccount, chamTaiKhoanTienDuoc, chanTatHaiLop, datLaiPinDuoc, tatHaiLopDuoc, defaultPermissions, effectivePermissions, groupOf, highPermissionProblem, isRoleCode, laiNoiBoBenNgoaiProblem, parseRoleAssignment,
-  permissionsLabel, roleAssignmentProblem, rolesLabel, taiKhoanLaiProblem, tuDoiQuyenCuaMinh, vaiTaiXeDoiTacXungDot, type RoleAssignment, type RoleCode,
+  permissionsLabel, roleAssignmentProblem, rolesLabel, rolesLabelTheo, taiKhoanLaiProblem, tuDoiQuyenCuaMinh, vaiTaiXeDoiTacXungDot, type RoleAssignment, type RoleCode,
 } from "./roles.ts";
 
 const VAI_QUAN_LY = "Chỉ người phụ trách hệ thống mới gán hoặc gỡ vai trò Giám đốc, Điều hành chung, Kế toán, IT, Hành chính nhân sự.";
@@ -288,6 +288,13 @@ test("nhãn lời thường", () => {
   assert.equal(rolesLabel([]), "chưa gán vai trò");
   assert.equal(permissionsLabel(["SUPER_ADMIN", "INTERN"]), "Toàn quyền, Thực tập");
   assert.equal(permissionsLabel([]), "không có quyền");
+});
+
+test("rolesLabelTheo: có tên từ CSDL thì dùng, không có thì tên gốc ROLES (Task 3b)", () => {
+  assert.equal(rolesLabelTheo(["TRAVEL_AGENCY"], {}), "Công ty lữ hành");
+  assert.equal(rolesLabelTheo(["TRAVEL_AGENCY"]), "Công ty lữ hành");
+  assert.equal(rolesLabelTheo(["TRAVEL_AGENCY", "COLLABORATOR"], { TRAVEL_AGENCY: "Đại lý lữ hành" }), "Đại lý lữ hành, Cộng tác viên");
+  assert.equal(rolesLabelTheo([], { TRAVEL_AGENCY: "Đại lý lữ hành" }), "chưa gán vai trò");
 });
 
 test("canManageAccount (ADR-0014 điều 8 + ADR-0071 điều 1c): Quản trị và HCNS quản được cấp dưới — KHÔNG ai giữ Quản trị / Toàn quyền / Nhân sự; Toàn quyền quản được mọi tài khoản", () => {

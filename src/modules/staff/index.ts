@@ -4,7 +4,7 @@
 // tạo/đổi tên tài khoản gọi hàm của parties (cạnh staff → parties, ADR-0002); staff.full_name/role là cột chết (ADR-0005).
 import {
   accountRolesOf, closeAccountRoleStatement, hoSoCaNhanKhop, hoSoMangNhanDoiTac, newPersonStatements, openAccountRoleStatement, openRoleCodesByParty, partySummary, renamePersonStatements,
-  reopenAccountRoleStatement, splitPersonName, validatePersonFullName, type AccountRole,
+  reopenAccountRoleStatement, splitPersonName, tenLoaiVai, validatePersonFullName, type AccountRole,
 } from "../parties";
 import { hashPin, verifyDummy, verifyPin } from "./password";
 import { isValidPin, normalizePhone } from "./phone";
@@ -19,7 +19,7 @@ import {
 } from "./rules";
 import type { PartyMatchResponse, StaffAccount, StaffProfile } from "../../shared/contracts";
 import { PERMISSION_CODES, type PermissionCode } from "../../shared/permissions";
-import { ROLES, ROLE_CODES, effectivePermissions, groupOf, isRoleCode, type RoleAssignment, type RoleCode } from "../../shared/roles";
+import { ROLES, ROLE_CODES, effectivePermissions, rolesLabelTheo, groupOf, isRoleCode, type RoleAssignment, type RoleCode } from "../../shared/roles";
 import { addDays, vnToday } from "../../shared/vn-date";
 
 export type { StaffAccount, StaffProfile };
@@ -322,6 +322,15 @@ export function roleChangeStatements(
   };
 }
 
+/**
+ * Tên HIỆN HÀNH của mọi mã vai tài khoản (ROLE_CODES), đọc từ CSDL qua `tenLoaiVai` của parties (Task 3b kế hoạch 2026-10-31): đổi tên loại đối tác Có sẵn ở
+ * màn Hoa hồng thì màn Quản lý tài khoản, nhật ký tài khoản mới và câu báo lỗi cũng hiện tên mới. Mã thiếu dòng trong CSDL → tên gốc ROLES[c].name.
+ */
+export async function tenVaiTaiKhoan(db: D1Database): Promise<Record<RoleCode, string>> {
+  const ten = await tenLoaiVai(db);
+  return Object.fromEntries(ROLE_CODES.map((c) => [c, ten.get(c) ?? ROLES[c].name])) as Record<RoleCode, string>;
+}
+
 export type CreateWithRoles =
   | { ok: true; id: string; partyId: string; pin: string; statements: D1PreparedStatement[]; permissions: PermissionCode[] }
   | { ok: false; message: string; code?: "party_merged" };
@@ -334,12 +343,12 @@ export type CreateWithRoles =
 export async function hoSoKhopKhiTaoTaiKhoan(db: D1Database, v: { phone: string | null; ten: string | null }, xemDanhBa: boolean): Promise<PartyMatchResponse> {
   const khop = await hoSoCaNhanKhop(db, v);
   const ids = khop.map((k) => k.id);
-  const [coTaiKhoan, vai] = await Promise.all([partiesWithAccount(db, ids), vaiTaiKhoanDangMo(db, ids)]);
+  const [coTaiKhoan, vai, tenVai] = await Promise.all([partiesWithAccount(db, ids), vaiTaiKhoanDangMo(db, ids), tenVaiTaiKhoan(db)]);
   const thayDuoc = (id: string) => xemDanhBa || laHoSoTaiKhoan(id, coTaiKhoan, vai);
   // Chủ dự án 2026-10-01: người không xem Danh bạ chỉ thấy tên VAI TÀI KHOẢN của hồ sơ (bỏ "Khách hàng", "Lái cano"… — vai đó là dữ liệu Danh bạ).
-  const tenVai = (k: (typeof khop)[number]) => (xemDanhBa ? k.vai : (vai.get(k.id) ?? []).map((c) => ROLES[c].name));
+  const tenVaiHienThi = (k: (typeof khop)[number]) => (xemDanhBa ? k.vai : (vai.get(k.id) ?? []).map((c) => tenVai[c]));
   return {
-    khop: khop.filter((k) => thayDuoc(k.id)).map((k) => ({ ...k, vai: tenVai(k), vaiTaiKhoan: vai.get(k.id) ?? [], coTaiKhoan: coTaiKhoan.has(k.id) })),
+    khop: khop.filter((k) => thayDuoc(k.id)).map((k) => ({ ...k, vai: tenVaiHienThi(k), vaiTaiKhoan: vai.get(k.id) ?? [], coTaiKhoan: coTaiKhoan.has(k.id) })),
     coHoSoKhacTrongDanhBa: khop.some((k) => !thayDuoc(k.id)),
   };
 }
@@ -392,7 +401,7 @@ export async function createAccountWithRolesStatements(
     if (noiBo) return { ok: false, message: noiBo };
     // Ruling R26: quyền chỉ tính từ vai được chọn — hồ sơ còn giữ vai tài khoản nào KHÔNG được chọn thì quyền sẽ lệch vai. Chặn (an toàn), bắt chọn cả vai đó.
     const kept = ROLE_CODES.filter((c) => open.includes(c) && !assignment.roles.includes(c));
-    if (kept.length) return { ok: false, message: `Hồ sơ này đang giữ vai trò ${kept.map((c) => ROLES[c].name).join(", ")}: chọn cả vai trò này (hoặc đổi vai trò sau khi tạo).` };
+    if (kept.length) return { ok: false, message: `Hồ sơ này đang giữ vai trò ${rolesLabelTheo(kept, await tenVaiTaiKhoan(db))}: chọn cả vai trò này (hoặc đổi vai trò sau khi tạo).` };
     partyId = input.existingPartyId;
     statements.push(...assignment.roles.filter((c) => !open.includes(c)).map((c) => openAccountRoleStatement(db, partyId, c, today, actorId, at)));
   } else {

@@ -242,7 +242,8 @@ export interface MaintenanceErrorBody { code: "maintenance"; message: string; en
  * hạn đang lưu (có thể đã qua) khi tài khoản nội bộ chưa bật, null khi đã bật hoặc tài khoản bên ngoài.
  */
 export interface StaffListRowDto extends StaffAccountDto { datLaiPinDuoc: boolean; canResetMfa: boolean; mfa: { enabled: boolean; graceUntil: string | null } }
-export interface StaffListResponse { staff: StaffListRowDto[] }
+/** `tenVai`: tên HIỆN HÀNH (CSDL) của mọi mã vai tài khoản — giao diện dùng thay ROLES[c].name (Task 3b kế hoạch 2026-10-31). */
+export interface StaffListResponse { staff: StaffListRowDto[]; tenVai: Record<string, string> }
 export interface StaffResponse { staff: StaffAccountDto }
 export interface StaffWithPinResponse { staff: StaffAccountDto; pin: string }
 

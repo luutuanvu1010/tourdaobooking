@@ -1,7 +1,7 @@
 import { ApiError, api, type StaffAccount, type Api } from "./api";
 import { NHAN_LY_DO_KHOP } from "../src/shared/ho-so-trung";
 import { PERMISSION_CODES, PERMISSION_LABEL, can, type PermissionCode } from "../src/shared/permissions";
-import { ROLE_CODES, canManageAccount, rolesLabel, tuDoiQuyenCuaMinh } from "../src/shared/roles";
+import { ROLE_CODES, canManageAccount, rolesLabelTheo, tuDoiQuyenCuaMinh } from "../src/shared/roles";
 import { byId, h, replaceChildren } from "./dom";
 import { dateTime } from "./format";
 import { rolePicker, type RolePicker, type RolePickerValue } from "./role-picker";
@@ -18,7 +18,9 @@ const permissionsLabel = (list: readonly PermissionCode[]): string => (list.leng
 const sameSet = (a: readonly string[], b: readonly string[]): boolean => a.length === b.length && a.every((x) => b.includes(x));
 
 /** Tài khoản đã gán vai → tên vai; chưa gán → quyền cũ kèm ghi chú (chờ chuyển sang cách mới, đặc tả §14). */
-const accessLabel = (s: StaffAccount): string => (s.roles.length ? rolesLabel(s.roles) : `${permissionsLabel(s.permissions)} (chưa gán vai trò)`);
+// Task 3b: tên vai hiện hành từ máy chủ (GET /api/staff → tenVai); trước lần nạp đầu / nạp lỗi thì rỗng ⇒ tên gốc.
+let tenVai: Readonly<Record<string, string>> = {};
+const accessLabel = (s: StaffAccount): string => (s.roles.length ? rolesLabelTheo(s.roles, tenVai) : `${permissionsLabel(s.permissions)} (chưa gán vai trò)`);
 const EMPTY: RolePickerValue = { roles: [], adds: [], removes: [], reason: "" };
 const TU_DOI_QUYEN = "Vai trò vừa chọn làm đổi quyền của chính bạn — không ai tự đổi quyền của mình được (chống tự khoá). Hãy nhờ người quản trị khác. Chưa lưu gì.";
 const TU_DOI_QUYEN_TOAN_QUYEN =
@@ -250,7 +252,7 @@ async function openEdit(s: StaffAccount): Promise<void> {
   const name = h("input", { type: "text", value: s.fullName, maxLength: 200 });
   const phone = h("input", { type: "tel", value: s.phone });
   const isMe = s.id === me.id;
-  const picker = rolePicker({ initial: saved, actorIsSuperAdmin: meSuper, current: s.permissions });
+  const picker = rolePicker({ initial: saved, actorIsSuperAdmin: meSuper, current: s.permissions, tenVai });
   const boxes = new Map<PermissionCode, HTMLInputElement>();
   const permissionBoxes = PERMISSION_CODES.map((code) => {
     const box = h("input", { type: "checkbox", checked: s.permissions.includes(code), disabled: isMe, style: "width:auto;display:inline;margin:0 6px 0 0" });
@@ -307,6 +309,7 @@ async function load(): Promise<void> {
   const r = await act(() => api<Api.StaffListResponse>("/api/staff"));
   if (!r) return;
   accounts = r.staff;
+  tenVai = r.tenVai;
   replaceChildren(listEl, ...accounts.map(row));
   replaceChildren(listCardsEl, ...accounts.map(card));
 }
@@ -320,7 +323,7 @@ const addPhone = byId<HTMLInputElement>("add-phone");
 const existingNote = h("div", { id: "add-khop", class: "muted", hidden: true });
 
 function setupAddForm(): void {
-  addPicker = rolePicker({ initial: EMPTY, actorIsSuperAdmin: meSuper, current: null });
+  addPicker = rolePicker({ initial: EMPTY, actorIsSuperAdmin: meSuper, current: null, tenVai });
   replaceChildren(byId("add-perms"), addPicker.el, existingNote);
 }
 
@@ -463,9 +466,10 @@ if (!can(staff, "account.view")) showError(errorEl, "Tài khoản này không qu
 else {
   if (can(staff, "account.create")) {
     byId("add-card").hidden = false;
-    setupAddForm();
   }
   // ADR-0125 đ6: hàng chờ xác minh phiếu tự khai — ô party.verify (Quản trị, Nhân sự, Toàn quyền); khối tự dựng và hiện, máy chủ kiểm lại từng route.
   if (can(staff, "party.verify")) dungHangChoXacMinh(byId("xac-minh"), staff);
   await load();
+  // Task 3b: khối vai dựng SAU lần nạp đầu để ô vai mang tên hiện hành (tenVai) từ máy chủ.
+  if (can(staff, "account.create")) setupAddForm();
 }

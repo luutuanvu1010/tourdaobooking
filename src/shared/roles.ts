@@ -287,5 +287,11 @@ export function laiNoiBoBenNgoaiProblem(perms: readonly PermissionCode[]): RoleP
 }
 
 /** Nhãn lời thường — dùng cho nhật ký và giao diện. */
-export const rolesLabel = (roles: readonly RoleCode[]): string => (roles.length ? roles.map((r) => ROLES[r].name).join(", ") : "chưa gán vai trò");
+export const rolesLabel = (roles: readonly RoleCode[]): string => rolesLabelTheo(roles);
+/**
+ * Như rolesLabel, nhưng tên lấy từ `tenVai` (tên HIỆN HÀNH của vai trong CSDL — pty_role_type, đổi được ở màn Hoa hồng cho năm loại đối tác Có sẵn; Task 3b
+ * kế hoạch 2026-10-31). Mã không có trong `tenVai` dùng tên gốc ROLES[c].name (tên gieo sẵn; roles-schema.test.ts khoá CSDL mới = ROLES).
+ */
+export const rolesLabelTheo = (roles: readonly RoleCode[], tenVai?: Readonly<Record<string, string>>): string =>
+  roles.length ? roles.map((r) => tenVai?.[r] ?? ROLES[r].name).join(", ") : "chưa gán vai trò";
 export const permissionsLabel = (list: readonly PermissionCode[]): string => (list.length ? list.map((p) => PERMISSION_LABEL[p]).join(", ") : "không có quyền");
