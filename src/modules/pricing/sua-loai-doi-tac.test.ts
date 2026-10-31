@@ -152,13 +152,18 @@ test("A5: hai PATCH cùng updatedAt ⇒ một 200, một 409 da_doi, đúng mộ
   const w = setup();
   const ma = await themLoai(w);
   const u = (await mot(w, ma)).updatedAt;
+  await new Promise((r) => setTimeout(r, 2)); // khoá so updated_at tới mili-giây: mốc sửa phải khác mốc thêm
+  const n = soNhatKy(w);
   const a = await sua(w, ma, { ten: "Spa A", updatedAt: u });
-  const b = await sua(w, ma, { ten: "Spa B", updatedAt: u }, ADM);
-  assert.deepEqual([a.status, b.status].sort(), [200, 409]);
+  // bên thua đổi CẢ tên lẫn ghi chú ⇒ đi qua nhánh hai dòng nhật ký (dòng hai bám id dòng đầu): không được ghi dòng nào
+  const b = await sua(w, ma, { ten: "Spa B", ghiChu: "Ghi chú bên thua", updatedAt: u }, ADM);
+  assert.deepEqual([a.status, b.status], [200, 409]);
   assert.equal(b.json.error.code, "da_doi");
   assert.equal(b.json.error.message, DA_DOI);
+  assert.equal(soNhatKy(w), n + 1, "đúng một dòng nhật ký cho cả cặp");
   assert.equal(nhatKy(w, "prc_partner_type_renamed").length, 1);
-  assert.equal(dongLoai(w, ma).name, "Spa A");
+  assert.equal(nhatKy(w, "prc_partner_type_note").length, 0);
+  assert.deepEqual([dongLoai(w, ma).name, dongLoai(w, ma).note], ["Spa A", null]);
 });
 
 test("A5: mở (đọc updatedAt) → người khác Tắt → PATCH ⇒ 409 da_doi, không ghi", async () => {
