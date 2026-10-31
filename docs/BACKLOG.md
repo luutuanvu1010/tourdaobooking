@@ -664,3 +664,18 @@ Ghi 2026-10-29 khi đồng bộ bộ «Island Booking System — Design System v
 - **BL-TKL-0B · Đợt 0b khung tải — thi công xong, CHƯA gộp, chưa phát hành.** Nhánh `dot-0b-khung-tai` (17 commit trên `dac-ta-dot-0b`, đầu `86fb949d`, chưa push); nhật ký `docs/superpowers/plans/2026-10-29-dot-0b-khung-tai-nhat-ky.md`, bằng chứng `docs/evidence/2026-10-29-dot-0b-khung-tai/` (đều nằm trên nhánh). Đạt: tổng JS thô −73 % (5,46 MB → 1,47 MB), nạp sẵn lúc cài 108 mục / 2,0 MB → 24 mục / 0,31 MB nén, mọi bài kiểm xanh. **Không đạt 11.4:** trung vị FCP lạnh chậm hơn ≈ 570 ms ở 390 và 1040 (984 → 1550 / 1558 ms, đo 30/10 trên `main` `a129d3dd`), do `preload` phông + `modulepreload` ở `<head>` tranh băng thông với `app.css` trên 4G chậm. Đo riêng `/orders`: bản nhánh 1660 · bỏ preload phông 1236 · bỏ cả hai 1000 · `main` 996 ms — không cách nào đạt «nhanh hơn ≥ 150 ms» vì FCP do CSS quyết. Khi mở lại: chủ chọn bỏ cả hai loại tải trước (đề xuất) hay chỉ bỏ phông, rồi đo đủ 45 trang hai khổ, sửa tiêu chí 11.4 (đặc tả bản 5 đang đóng băng), QA2, cổng phát hành. Nợ kèm: 11.6 còn trượt (`/` ở 390 do vỏ; 4 trang do dải nhắc bảo mật hai lớp `#strips`; nhiều trang do thân chưa tách phần khung xương); bộ DS v2 đã xuất bản lệch mã cho tới khi xuất bản lại.
 - **BL-TKL-CHANG-3 · Chặng 3 (lưới bố cục và thân trang)** — gác cùng; đề bài lưới bố cục 1b nằm trên nhánh `chang-3-luoi-bo-cuc` (phiên khác soạn), chưa gửi Claude Design.
 - **Nếu để nguyên:** Nền tảng chạy như bản 2.47 hiện tại; không mất dữ liệu, không đổi quyền. Nhánh `dot-0b-khung-tai` càng để lâu càng phải gộp lại với `main` và đo lại «trước».
+
+## 56. Rà khuôn mã định danh toàn Nền tảng theo Hiến chương 5.26 (mã `BL-MA-DINH-DANH`, 2026-10-31)
+
+- **Trạng thái:** `chưa làm` · Ghi khi thi công điều 5.26 (đặc tả `docs/superpowers/specs/2026-10-31-ma-dinh-danh-va-sua-loai-doi-tac-design.md` §2, kế hoạch `docs/superpowers/plans/2026-10-31-ma-dinh-danh-va-sua-loai-doi-tac.md`). Điều 5.26 chỉ áp cho loại bản ghi **mới**; các khuôn cũ dưới đây là nợ có tên, rà riêng, **không đổi mã đã cấp**. Mỗi mục cần chủ quyết có đổi khuôn cho bản ghi mới hay giữ nguyên.
+- **BL-MA-36-KY-TU** — chuỗi ngẫu nhiên 36 ký tự (đơn, hồ sơ, nhật ký…): không theo khuôn `<TIỀN TỐ>_<8 chữ>`, không cho biết loại bản ghi khi chép.
+- **BL-MA-DON-NGAY** — mã đơn `TD-YYYYMMDD-NNNN` mang ngày và số thứ tự (nghĩa nghiệp vụ trong mã).
+- **BL-MA-DIA-DIEM-NGUOI-GO** — mã địa điểm do người gõ (5.26: người dùng không gõ mã).
+- **BL-MA-LOAI-CO-SAN-TIENG-ANH** — năm loại đối tác có sẵn mang mã tiếng Anh (`TRAVEL_AGENCY`…); giao diện hiện «Loại có sẵn của hệ thống — mã cố định» thay cho mã thô.
+- **BL-MA-NO-NHO** — lỗi nhỏ để sau của đợt này (sổ `.superpowers/sdd/2026-10-31-ma-dinh-danh-va-sua-loai-doi-tac/progress.md`, dòng «minor (deferred)»):
+  - `sinhMa` không kiểm đủ 8 byte ngẫu nhiên; `kiemGhiChu(null)` chưa có bài; độ dài tên / ghi chú đếm theo UTF-16.
+  - Bài CSDL thiếu ca vai EXTERNAL không nhãn; (tuỳ) ghi chú cột mới vào phần ghi chú bảng ở `docs/data-dictionary.json`.
+  - Hai loại khác nhau cùng đổi sang một tên cùng lúc có thể lọt trùng (giống lệnh thêm loại cũ); route đọc danh sách loại bốn câu; PATCH cấp đọc cả danh sách cấp để tìm một cấp.
+  - Màn tài khoản: tên vai đọc hai lần ở đường lỗi; ô chọn vai giữ tên cũ tới khi tải lại trang; ô vai trống lúc đang tải, bấm tạo không báo gì.
+  - Hộp Sửa: «Mở lại» im lặng nếu không còn mã; ô tên cho gõ 80 chữ (máy chủ nhận 60); ghi chú toàn khoảng trắng không cắt ở giao diện; hướng dẫn Kế toán còn khoảng một chữ trước trần thời gian đọc.
+  - Bộ sinh sơ đồ trang không bắt nút «Sửa» dựng lúc chạy.

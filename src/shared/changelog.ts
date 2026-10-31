@@ -12,6 +12,16 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Mã định danh + nút «Sửa» cho Loại đối tác và Cấp đại lý (Hiến chương 5.26; đặc tả docs/superpowers/specs/2026-10-31-ma-dinh-danh-va-sua-loai-doi-tac-design.md, chủ duyệt 31/10).
+    // Có migration 0130 (ghi chú + dấu vết), hai route PATCH mới, màn tài khoản đọc tên vai bên ngoài từ CSDL. Không đổi cách tính tiền. Số 2.54 và ngày là TẠM — phiên phát hành kiểm lại ở bước A.0 của docs/HANDOFF-N1.md.
+    version: "2.54",
+    date: "2026-10-31",
+    items: [
+      { kind: "moi", text: "Sửa được tên và ghi chú của loại đối tác và cấp đại lý; mã định danh hiện ra để chép." },
+      { kind: "doi", text: "Đổi tên một loại đối tác có sẵn thì màn Quản lý tài khoản cũng hiện tên mới." },
+    ],
+  },
+  {
     // Trang chủ máy tính vòng 2 (31/10, sau nghiệm thu thất bại một phần của 2.52: chủ chụp trên dữ liệu thật — 54 khoản chờ đối chiếu làm trang dài, lối tắt nằm cuối, một dải trống bên phải).
     // Chỉ giao diện, KHÔNG migration, không đổi máy chủ, không đổi quyền, không đổi cách tính tiền. LƯU Ý: có MỘT thay đổi bề rộng TOÀN ỨNG DỤNG ở khung chung (`--w-noi-dung-max` 1280px → 1920px, public/app.css) — mọi trang dùng khung mặc định rộng ra trên màn lớn.
     // Số 2.53 và ngày là TẠM — phiên phát hành kiểm lại ở bước A.0 của docs/HANDOFF-N1.md.
