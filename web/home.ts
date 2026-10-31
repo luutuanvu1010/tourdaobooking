@@ -223,6 +223,10 @@ function renderToday(data: Pick<Api.DashboardResponse, "today" | "tomorrow" | "d
   const trong = byId("dash-today-empty");
   trong.textContent = NGAY_DON[ngayDonChon]!.trong;
   trong.hidden = ds.length > 0;
+  // Máy tính (CSS): khối rỗng thu gọn một dòng; cả ba ngày đều trống thì bỏ luôn ba nút chuyển ngày.
+  const today = byId("dash-today");
+  today.classList.toggle("is-rong", ds.length === 0);
+  today.classList.toggle("is-het", data.today.length + data.tomorrow.length + data.dayAfter.length === 0);
 }
 
 /**
@@ -289,7 +293,27 @@ function reviewRow(iconClass: string, iconName: IconName, href: string, title: s
 // chuyển khoản cần mã giao dịch ngân hàng ⇒ chỉ có liên kết mở đơn. Cổng: ô ledger.write (cùng ô route xác nhận) và không giữ quyền Đối tác (R-91 — không tên bên kia).
 let staffDangXem: Staff | null = null;
 const coKhoiDoiChieu = (s: Staff | null): boolean => coKhoiChoDoiChieu(s); // luật một nơi: src/shared/ben-kia-hien-thi.ts
-const DOI_CHIEU_TOI_DA = 8;
+/** Vòng 2 (31/10): mỗi khối chi tiết chỉ hiện 3 dòng; «Xem tất cả (N)» mở hết TẠI CHỖ (danh sách cuộn trong khối), nút trên từng dòng giữ nguyên. Trạng thái mở nhớ qua lần làm mới. */
+const CT_TOI_DA = 3;
+const ctMo = { doiChieu: false, thuTruoc: false };
+
+/** Vỏ chung hai khối chi tiết: số ở huy hiệu đầu khối, nút «Xem tất cả (N)» / «Thu gọn» (chỉ khi N > 3), danh sách một dòng mỗi mục. */
+function veKhoiChiTiet(khoa: "doiChieu" | "thuTruoc", tienTo: string, dong: readonly HTMLElement[], tong: number): void {
+  const mo = ctMo[khoa] && tong > CT_TOI_DA;
+  const huyHieuSo = byId(`${tienTo}-dem`);
+  huyHieuSo.textContent = String(tong);
+  const nutCho = byId(`${tienTo}-nut`);
+  if (tong > CT_TOI_DA) {
+    const nut = h("button", { type: "button", class: "btn btn-link dash-ct-nut", "aria-expanded": String(mo), "data-action": "ct-mo-rong" }, mo ? "Thu gọn" : `Xem tất cả (${tong})`);
+    nut.addEventListener("click", () => {
+      ctMo[khoa] = !ctMo[khoa];
+      veKhoiChiTiet(khoa, tienTo, dong, tong); // vẽ lại từ danh sách đã có, không gọi máy chủ
+    });
+    replaceChildren(nutCho, nut);
+  } else replaceChildren(nutCho);
+  const ds = h("ul", { class: mo ? "dash-ct-ds is-mo" : "dash-ct-ds" }, ...(mo ? dong : dong.slice(0, CT_TOI_DA)));
+  replaceChildren(byId(`${tienTo}-list`), ds);
+}
 
 /**
  * Trả SỐ khoản chờ đối chiếu cho dòng «Chờ đối chiếu» của thẻ «Đang chờ bạn» (Phương án A): `undefined` = người này không có khối (cổng giữ nguyên); `null` = nguồn lỗi (dòng hiện «—» + Thử lại, KHÔNG phải 0).
@@ -313,7 +337,7 @@ async function taiDoiChieu(staff: Staff, lamMoi = false): Promise<number | null 
     khoi.hidden = true;
     return 0;
   }
-  const dong = ds.slice(0, DOI_CHIEU_TOI_DA).map((k) => {
+  const dong = ds.map((k) => {
     const nutNhan = nutXacNhanDoiChieu(k.loai);
     const nut = nutNhan ? h("button", { type: "button", class: "btn btn-link", "data-action": "ben-kia-da-nhan", "data-receipt-id": k.receiptId }, nutNhan) : null;
     nut?.addEventListener("click", async () => {
@@ -326,18 +350,18 @@ async function taiDoiChieu(staff: Staff, lamMoi = false): Promise<number | null 
       }
       await taiDashboard(staff, true); // làm mới lặng lẽ: khối chi tiết VÀ số ở dòng «Chờ đối chiếu» cùng đổi
     });
+    // Một dòng một đơn, thẳng cột: mã đơn · bên · số tiền · ngày ghi · nhãn «quá 3 ngày» (viên nhỏ cùng dòng) · nút. Ô trống vẫn giữ chỗ để cột thẳng.
     return h(
       "li",
-      { "data-receipt-id": k.receiptId, "data-loai": k.loai },
-      h("a", { href: `/order?id=${encodeURIComponent(k.orderId)}` }, k.maDon),
-      ` · ${nhanKhoanDoiChieu(k)} · ${vnd(k.soTien)} · ghi ngày ${ngayNganHomNay(k.ngayKhai)}`,
-      k.qua3Ngay ? h("span", { class: "dd-canh-xn is-do" }, " · quá 3 ngày") : null,
-      nut ? " " : null,
-      nut,
+      { class: "dash-ct-dong dash-ct-dong-dc", "data-receipt-id": k.receiptId, "data-loai": k.loai },
+      h("a", { class: "dash-ct-ma", href: `/order?id=${encodeURIComponent(k.orderId)}` }, k.maDon),
+      h("span", { class: "dash-ct-ben" }, nhanKhoanDoiChieu(k)),
+      h("span", { class: "dash-ct-tien" }, vnd(k.soTien)),
+      h("span", { class: "dash-ct-meta" }, h("span", { class: "dash-ct-ngay" }, `ghi ${ngayNganHomNay(k.ngayKhai)}`), h("span", { class: "dash-ct-the" }, k.qua3Ngay ? h("span", { class: "dash-ct-pill" }, "quá 3 ngày") : null)),
+      h("span", { class: "dash-ct-hanh" }, nut),
     );
   });
-  const them = ds.length > DOI_CHIEU_TOI_DA ? h("p", { class: "muted" }, `Còn ${ds.length - DOI_CHIEU_TOI_DA} khoản nữa — mở từng đơn ở Đơn hàng.`) : null;
-  replaceChildren(byId("dash-doi-chieu-list"), h("ul", { class: "pay-list" }, ...dong), them);
+  veKhoiChiTiet("doiChieu", "dash-doi-chieu", dong, ds.length);
   khoi.hidden = false;
   return ds.length;
 }
@@ -354,8 +378,6 @@ function layCoc(): Promise<Api.CocListResponse> {
 // ---- «Thu trước của đơn huỷ» (ADR-0089 đ5, đ9c, đ11; NT-V6 — đóng TNV-G1) ------------------------------------------------------------------------------------
 // Màn sổ Kế toán còn chờ bản vẽ (đ9c): trong lúc chờ, Kế toán đi từ ô đếm («Cần xem lại») xuống khối này rồi mở từng đơn — nút Ghi chi hoàn / Chuyển ở trang đơn.
 // Nguồn: `GET /api/ledger/coc` (canChi, donHuyGiuCoc sắp hết hạn, conNguoiGiu); chữ ở src/shared/thu-truoc-hien-thi.ts. Cổng: ledger.view any, không quyền Đối tác.
-const THU_TRUOC_TOI_DA = 8;
-
 let soThuTruocGanNhat: number | null | undefined;
 async function taiThuTruoc(staff: Staff, lamMoi = false): Promise<number | null | undefined> {
   const khoi = byId("dash-thu-truoc");
@@ -374,17 +396,16 @@ async function taiThuTruoc(staff: Staff, lamMoi = false): Promise<number | null 
     khoi.hidden = true;
     return 0;
   }
-  const dong = muc.slice(0, THU_TRUOC_TOI_DA).map((m) =>
+  const dong = muc.map((m) =>
     h(
       "li",
-      { "data-order-id": m.orderId },
-      h("a", { href: `/order?id=${encodeURIComponent(m.orderId)}` }, m.maDon),
-      ` · ${m.chu}`,
-      m.canhBao ? h("span", { class: "dd-canh-xn is-do" }, ` · ${m.canhBao}`) : null,
+      { class: "dash-ct-dong dash-ct-dong-tt", "data-order-id": m.orderId },
+      h("a", { class: "dash-ct-ma", href: `/order?id=${encodeURIComponent(m.orderId)}` }, m.maDon),
+      h("span", { class: "dash-ct-ben" }, m.chu),
+      h("span", { class: "dash-ct-the" }, m.canhBao ? h("span", { class: "dash-ct-pill" }, m.canhBao) : null),
     ),
   );
-  const them = muc.length > THU_TRUOC_TOI_DA ? h("p", { class: "muted" }, `Còn ${muc.length - THU_TRUOC_TOI_DA} việc nữa — mở từng đơn ở Đơn hàng.`) : null;
-  replaceChildren(byId("dash-thu-truoc-list"), h("ul", { class: "pay-list" }, ...dong), them);
+  veKhoiChiTiet("thuTruoc", "dash-thu-truoc", dong, muc.length);
   khoi.hidden = false;
   return muc.length;
 }
@@ -411,11 +432,17 @@ function renderReview(alerts: ReviewAlerts | null): void {
   }
   if (alerts.doiChieu) {
     // Task 12: dòng trỏ xuống khối «Chờ đối chiếu» của chính Trang chủ khi người xem có khối đó (ledger.write, không Đối tác); còn lại mở danh sách đơn như cũ.
-    rows.push(reviewRow("dash-review-icon-sand", "money", coKhoiDoiChieu(staffDangXem) ? "#dash-doi-chieu" : "/orders", tieuDeDemDoiChieu(alerts.doiChieu.count), "Đối chiếu rồi bấm “Xác nhận đã nhận”, “Bên kia đã nhận” hoặc huỷ khoản thu"));
+    const r = reviewRow("dash-review-icon-sand", "money", coKhoiDoiChieu(staffDangXem) ? "#dash-doi-chieu" : "/orders", tieuDeDemDoiChieu(alerts.doiChieu.count), "Đối chiếu rồi bấm “Xác nhận đã nhận”, “Bên kia đã nhận” hoặc huỷ khoản thu");
+    if (coKhoiDoiChieu(staffDangXem)) r.classList.add("dash-trung"); // đã có dòng «Chờ đối chiếu» ở «Đang chờ bạn» + khối chi tiết: máy tính ẩn dòng lặp (CSS), điện thoại giữ
+    rows.push(r);
   }
   // ADR-0089 NT-V6: thu trước của đơn huỷ — dòng trỏ xuống khối «Thu trước của đơn huỷ» khi người xem có khối đó; còn lại mở danh sách đơn.
   if (alerts.thuTruoc) {
-    for (const d of dongThuTruoc(alerts.thuTruoc)) rows.push(reviewRow("dash-review-icon-sand", "money", coKhoiThuTruoc(staffDangXem) ? "#dash-thu-truoc" : "/orders", d.tieuDe, d.phu));
+    for (const d of dongThuTruoc(alerts.thuTruoc)) {
+      const r = reviewRow("dash-review-icon-sand", "money", coKhoiThuTruoc(staffDangXem) ? "#dash-thu-truoc" : "/orders", d.tieuDe, d.phu);
+      if (coKhoiThuTruoc(staffDangXem)) r.classList.add("dash-trung"); // như trên: «Thu trước đơn huỷ» đã có ở «Đang chờ bạn»
+      rows.push(r);
+    }
   }
   if (alerts.feedbackQueue) {
     const f = alerts.feedbackQueue;

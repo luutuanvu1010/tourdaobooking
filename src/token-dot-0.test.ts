@@ -13,7 +13,7 @@ const sauMoc = css.slice(dauMoc);
 const MOI: Record<string, string> = {
   "--h-control": "44px", "--h-control-lon": "52px",
   "--z-dinh": "10", "--z-tab": "20", "--z-truot": "30", "--z-phu": "40", "--z-tren-cung": "50",
-  "--t-nhanh": "150ms", "--t-vua": "200ms", "--bo-control": "var(--radius-sm)", "--w-noi-dung-max": "1280px",
+  "--t-nhanh": "150ms", "--t-vua": "200ms", "--bo-control": "var(--radius-sm)", "--w-noi-dung-max": "1920px",
   "--w-ngan-chi-tiet": "360px", "--w-cot-phai": "340px", "--w-thiet-lap-max": "900px", "--w-tim-thanh-tren": "280px", "--w-tim-thanh-tren-min": "160px",
   "--h-tab-gach": "3px", "--w-tab-mo-mep": "32px", "--h-dai-tren": "44px",
   "--c-mat-mang-bg": "var(--c-sand-soft)", "--c-check-border": "var(--c-text-muted)", "--c-switch-off-bg": "var(--c-input-border-hover)", "--c-toast-bg": "var(--c-primary-strong)", "--c-hoan-tac": "var(--c-sand)",
