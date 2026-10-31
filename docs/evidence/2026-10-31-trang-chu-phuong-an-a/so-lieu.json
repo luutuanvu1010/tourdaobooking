@@ -1,0 +1,1570 @@
+{
+ "baoCao": [
+  {
+   "vai": "Quản trị",
+   "kho": "1366x650",
+   "vw": 1366,
+   "scrollW": 1366,
+   "gap": "3 đơn chờ xác nhận, 1 đơn quá 2 giờ 1 đơn có khách đi hôm nay hoặc ngày mai. Xác nhận ngay",
+   "dangCho": [
+    "Đơn chờ xác nhậnToàn công ty1 đơn quá hạn — hạn 15 phút3",
+    "Đơn nhápCủa tôiĐơn nháp của bạn, chưa xác nhận3",
+    "Đơn chưa có người phụ tráchToàn công tyChưa ai nhận chăm sóc khách6",
+    "Đơn còn thiếu tiềnToàn công tyCòn phải thu 9,4tr ₫4"
+   ],
+   "cotPhu": true,
+   "review": false,
+   "soMt": true,
+   "loiTat": true,
+   "hangChuyen": 5,
+   "cotGio_left": [
+    289
+   ],
+   "cotGiua_left": [
+    369
+   ],
+   "cotTien_right": [
+    941
+   ],
+   "bieuDo": {
+    "cao": 215,
+    "cotCao": [
+     9,
+     9,
+     9,
+     9,
+     9,
+     215,
+     9
+    ],
+    "cotKhacKhong": 7
+   },
+   "nutSanHo": [
+    "Xác nhận ngay"
+   ],
+   "dbg": {
+    "style": "height: 4%;",
+    "pos": "absolute",
+    "h": "8.59375px",
+    "cot": 215,
+    "bars": "215px"
+   },
+   "luoiCot": "686px 360px",
+   "thuTuDoc": [
+    [
+     "#dash-gap",
+     255
+    ],
+    [
+     "#dash-today",
+     353
+    ],
+    [
+     "#dash-dang-cho",
+     353
+    ],
+    [
+     "#dash-so-mt",
+     655
+    ],
+    [
+     "#dash-loi-tat",
+     1066
+    ]
+   ],
+   "loiTat_hang": 1,
+   "tenCat": [],
+   "loi": {
+    "cat": 1,
+    "che": 3,
+    "tran": 0,
+    "rong": 2
+   },
+   "chiTietLoi": {
+    "cat": [
+     {
+      "el": "h1.visually-hidden",
+      "chu": "Trang chủ",
+      "rong": 1,
+      "can": 117
+     }
+    ],
+    "tran": []
+   }
+  },
+  {
+   "vai": "Quản trị",
+   "kho": "1440x900",
+   "vw": 1440,
+   "scrollW": 1440,
+   "gap": "3 đơn chờ xác nhận, 1 đơn quá 2 giờ 1 đơn có khách đi hôm nay hoặc ngày mai. Xác nhận ngay",
+   "dangCho": [
+    "Đơn chờ xác nhậnToàn công ty1 đơn quá hạn — hạn 15 phút3",
+    "Đơn nhápCủa tôiĐơn nháp của bạn, chưa xác nhận3",
+    "Đơn chưa có người phụ tráchToàn công tyChưa ai nhận chăm sóc khách6",
+    "Đơn còn thiếu tiềnToàn công tyCòn phải thu 9,4tr ₫4"
+   ],
+   "cotPhu": true,
+   "review": false,
+   "soMt": true,
+   "loiTat": true,
+   "hangChuyen": 5,
+   "cotGio_left": [
+    289
+   ],
+   "cotGiua_left": [
+    369
+   ],
+   "cotTien_right": [
+    975
+   ],
+   "bieuDo": {
+    "cao": 195,
+    "cotCao": [
+     8,
+     8,
+     8,
+     8,
+     8,
+     195,
+     8
+    ],
+    "cotKhacKhong": 7
+   },
+   "nutSanHo": [
+    "Xác nhận ngay"
+   ],
+   "dbg": {
+    "style": "height: 4%;",
+    "pos": "absolute",
+    "h": "7.79688px",
+    "cot": 195,
+    "bars": "195px"
+   },
+   "luoiCot": "720px 400px",
+   "thuTuDoc": [
+    [
+     "#dash-gap",
+     255
+    ],
+    [
+     "#dash-today",
+     353
+    ],
+    [
+     "#dash-dang-cho",
+     353
+    ],
+    [
+     "#dash-so-mt",
+     655
+    ],
+    [
+     "#dash-loi-tat",
+     1046
+    ]
+   ],
+   "loiTat_hang": 1,
+   "tenCat": [],
+   "loi": {
+    "cat": 1,
+    "che": 0,
+    "tran": 0,
+    "rong": 2
+   },
+   "chiTietLoi": {
+    "cat": [
+     {
+      "el": "h1.visually-hidden",
+      "chu": "Trang chủ",
+      "rong": 1,
+      "can": 117
+     }
+    ],
+    "tran": []
+   }
+  },
+  {
+   "vai": "Quản trị",
+   "kho": "1100x800",
+   "vw": 1100,
+   "scrollW": 1100,
+   "gap": "3 đơn chờ xác nhận, 1 đơn quá 2 giờ 1 đơn có khách đi hôm nay hoặc ngày mai. Xác nhận ngay",
+   "dangCho": [
+    "Đơn chờ xác nhậnToàn công ty1 đơn quá hạn — hạn 15 phút3",
+    "Đơn nhápCủa tôiĐơn nháp của bạn, chưa xác nhận3",
+    "Đơn chưa có người phụ tráchToàn công tyChưa ai nhận chăm sóc khách6",
+    "Đơn còn thiếu tiềnToàn công tyCòn phải thu 9,4tr ₫4"
+   ],
+   "cotPhu": true,
+   "review": false,
+   "soMt": true,
+   "loiTat": true,
+   "hangChuyen": 5,
+   "cotGio_left": [
+    289
+   ],
+   "cotGiua_left": [
+    369
+   ],
+   "cotTien_right": [
+    715
+   ],
+   "bieuDo": {
+    "cao": 240,
+    "cotCao": [
+     10,
+     10,
+     10,
+     10,
+     10,
+     240,
+     10
+    ],
+    "cotKhacKhong": 7
+   },
+   "nutSanHo": [
+    "Xác nhận ngay"
+   ],
+   "dbg": {
+    "style": "height: 4%;",
+    "pos": "absolute",
+    "h": "9.59375px",
+    "cot": 240,
+    "bars": "240px"
+   },
+   "luoiCot": "460px 320px",
+   "thuTuDoc": [
+    [
+     "#dash-gap",
+     255
+    ],
+    [
+     "#dash-today",
+     353
+    ],
+    [
+     "#dash-dang-cho",
+     353
+    ],
+    [
+     "#dash-so-mt",
+     671
+    ],
+    [
+     "#dash-loi-tat",
+     1294
+    ]
+   ],
+   "loiTat_hang": 1,
+   "tenCat": [],
+   "loi": {
+    "cat": 1,
+    "che": 0,
+    "tran": 0,
+    "rong": 0
+   },
+   "chiTietLoi": {
+    "cat": [
+     {
+      "el": "h1.visually-hidden",
+      "chu": "Trang chủ",
+      "rong": 1,
+      "can": 117
+     }
+    ],
+    "tran": []
+   }
+  },
+  {
+   "vai": "Quản trị",
+   "kho": "900x800",
+   "vw": 900,
+   "scrollW": 900,
+   "gap": "3 đơn chờ xác nhận, 1 đơn quá 2 giờ 1 đơn có khách đi hôm nay hoặc ngày mai. Xác nhận ngay",
+   "dangCho": [
+    "Đơn chờ xác nhậnToàn công ty1 đơn quá hạn — hạn 15 phút3",
+    "Đơn nhápCủa tôiĐơn nháp của bạn, chưa xác nhận3",
+    "Đơn chưa có người phụ tráchToàn công tyChưa ai nhận chăm sóc khách6",
+    "Đơn còn thiếu tiềnToàn công tyCòn phải thu 9,4tr ₫4"
+   ],
+   "cotPhu": true,
+   "review": false,
+   "soMt": true,
+   "loiTat": true,
+   "hangChuyen": 5,
+   "cotGio_left": [
+    289
+   ],
+   "cotGiua_left": [
+    369
+   ],
+   "cotTien_right": [
+    859
+   ],
+   "bieuDo": {
+    "cao": 96,
+    "cotCao": [
+     4,
+     4,
+     4,
+     4,
+     4,
+     96,
+     4
+    ],
+    "cotKhacKhong": 7
+   },
+   "nutSanHo": [
+    "Xác nhận ngay"
+   ],
+   "dbg": {
+    "style": "height: 4%;",
+    "pos": "absolute",
+    "h": "3.82812px",
+    "cot": 96,
+    "bars": "96px"
+   },
+   "luoiCot": "604px",
+   "thuTuDoc": [
+    [
+     "#dash-gap",
+     255
+    ],
+    [
+     "#dash-today",
+     353
+    ],
+    [
+     "#dash-dang-cho",
+     1066
+    ],
+    [
+     "#dash-so-mt",
+     1368
+    ],
+    [
+     "#dash-loi-tat",
+     1660
+    ]
+   ],
+   "loiTat_hang": 2,
+   "tenCat": [],
+   "loi": {
+    "cat": 1,
+    "che": 0,
+    "tran": 0,
+    "rong": 1
+   },
+   "chiTietLoi": {
+    "cat": [
+     {
+      "el": "h1.visually-hidden",
+      "chu": "Trang chủ",
+      "rong": 1,
+      "can": 117
+     }
+    ],
+    "tran": []
+   }
+  },
+  {
+   "vai": "Chủ (Quản trị + Toàn quyền)",
+   "kho": "1366x650",
+   "vw": 1366,
+   "scrollW": 1366,
+   "gap": "3 đơn chờ xác nhận, 1 đơn quá 2 giờ 1 đơn có khách đi hôm nay hoặc ngày mai. Xác nhận ngay",
+   "dangCho": [
+    "Đơn chờ xác nhậnToàn công ty1 đơn quá hạn — hạn 15 phút3",
+    "Đơn chưa có người phụ tráchToàn công tyChưa ai nhận chăm sóc khách6",
+    "Đơn còn thiếu tiềnToàn công tyCòn phải thu 9,4tr ₫4"
+   ],
+   "cotPhu": true,
+   "review": false,
+   "soMt": true,
+   "loiTat": true,
+   "hangChuyen": 5,
+   "cotGio_left": [
+    289
+   ],
+   "cotGiua_left": [
+    369
+   ],
+   "cotTien_right": [
+    941
+   ],
+   "bieuDo": {
+    "cao": null,
+    "cotCao": [],
+    "cotKhacKhong": 0
+   },
+   "nutSanHo": [
+    "Xác nhận ngay"
+   ],
+   "dbg": null,
+   "luoiCot": "686px 360px",
+   "thuTuDoc": [
+    [
+     "#dash-gap",
+     255
+    ],
+    [
+     "#dash-today",
+     353
+    ],
+    [
+     "#dash-dang-cho",
+     353
+    ],
+    [
+     "#dash-so-mt",
+     596
+    ],
+    [
+     "#dash-loi-tat",
+     1066
+    ]
+   ],
+   "loiTat_hang": 1,
+   "tenCat": [],
+   "loi": {
+    "cat": 1,
+    "che": 4,
+    "tran": 0,
+    "rong": 2
+   },
+   "chiTietLoi": {
+    "cat": [
+     {
+      "el": "h1.visually-hidden",
+      "chu": "Trang chủ",
+      "rong": 1,
+      "can": 117
+     }
+    ],
+    "tran": []
+   }
+  },
+  {
+   "vai": "Chủ (Quản trị + Toàn quyền)",
+   "kho": "1440x900",
+   "vw": 1440,
+   "scrollW": 1440,
+   "gap": "3 đơn chờ xác nhận, 1 đơn quá 2 giờ 1 đơn có khách đi hôm nay hoặc ngày mai. Xác nhận ngay",
+   "dangCho": [
+    "Đơn chờ xác nhậnToàn công ty1 đơn quá hạn — hạn 15 phút3",
+    "Đơn chưa có người phụ tráchToàn công tyChưa ai nhận chăm sóc khách6",
+    "Đơn còn thiếu tiềnToàn công tyCòn phải thu 9,4tr ₫4"
+   ],
+   "cotPhu": true,
+   "review": false,
+   "soMt": true,
+   "loiTat": true,
+   "hangChuyen": 5,
+   "cotGio_left": [
+    289
+   ],
+   "cotGiua_left": [
+    369
+   ],
+   "cotTien_right": [
+    975
+   ],
+   "bieuDo": {
+    "cao": null,
+    "cotCao": [],
+    "cotKhacKhong": 0
+   },
+   "nutSanHo": [
+    "Xác nhận ngay"
+   ],
+   "dbg": null,
+   "luoiCot": "720px 400px",
+   "thuTuDoc": [
+    [
+     "#dash-gap",
+     255
+    ],
+    [
+     "#dash-today",
+     353
+    ],
+    [
+     "#dash-dang-cho",
+     353
+    ],
+    [
+     "#dash-so-mt",
+     596
+    ],
+    [
+     "#dash-loi-tat",
+     1046
+    ]
+   ],
+   "loiTat_hang": 1,
+   "tenCat": [],
+   "loi": {
+    "cat": 1,
+    "che": 0,
+    "tran": 0,
+    "rong": 2
+   },
+   "chiTietLoi": {
+    "cat": [
+     {
+      "el": "h1.visually-hidden",
+      "chu": "Trang chủ",
+      "rong": 1,
+      "can": 117
+     }
+    ],
+    "tran": []
+   }
+  },
+  {
+   "vai": "Chủ (Quản trị + Toàn quyền)",
+   "kho": "1100x800",
+   "vw": 1100,
+   "scrollW": 1100,
+   "gap": "3 đơn chờ xác nhận, 1 đơn quá 2 giờ 1 đơn có khách đi hôm nay hoặc ngày mai. Xác nhận ngay",
+   "dangCho": [
+    "Đơn chờ xác nhậnToàn công ty1 đơn quá hạn — hạn 15 phút3",
+    "Đơn chưa có người phụ tráchToàn công tyChưa ai nhận chăm sóc khách6",
+    "Đơn còn thiếu tiềnToàn công tyCòn phải thu 9,4tr ₫4"
+   ],
+   "cotPhu": true,
+   "review": false,
+   "soMt": true,
+   "loiTat": true,
+   "hangChuyen": 5,
+   "cotGio_left": [
+    289
+   ],
+   "cotGiua_left": [
+    369
+   ],
+   "cotTien_right": [
+    715
+   ],
+   "bieuDo": {
+    "cao": null,
+    "cotCao": [],
+    "cotKhacKhong": 0
+   },
+   "nutSanHo": [
+    "Xác nhận ngay"
+   ],
+   "dbg": null,
+   "luoiCot": "460px 320px",
+   "thuTuDoc": [
+    [
+     "#dash-gap",
+     255
+    ],
+    [
+     "#dash-today",
+     353
+    ],
+    [
+     "#dash-dang-cho",
+     353
+    ],
+    [
+     "#dash-so-mt",
+     612
+    ],
+    [
+     "#dash-loi-tat",
+     1294
+    ]
+   ],
+   "loiTat_hang": 1,
+   "tenCat": [],
+   "loi": {
+    "cat": 1,
+    "che": 1,
+    "tran": 0,
+    "rong": 0
+   },
+   "chiTietLoi": {
+    "cat": [
+     {
+      "el": "h1.visually-hidden",
+      "chu": "Trang chủ",
+      "rong": 1,
+      "can": 117
+     }
+    ],
+    "tran": []
+   }
+  },
+  {
+   "vai": "Chủ (Quản trị + Toàn quyền)",
+   "kho": "900x800",
+   "vw": 900,
+   "scrollW": 900,
+   "gap": "3 đơn chờ xác nhận, 1 đơn quá 2 giờ 1 đơn có khách đi hôm nay hoặc ngày mai. Xác nhận ngay",
+   "dangCho": [
+    "Đơn chờ xác nhậnToàn công ty1 đơn quá hạn — hạn 15 phút3",
+    "Đơn chưa có người phụ tráchToàn công tyChưa ai nhận chăm sóc khách6",
+    "Đơn còn thiếu tiềnToàn công tyCòn phải thu 9,4tr ₫4"
+   ],
+   "cotPhu": true,
+   "review": false,
+   "soMt": true,
+   "loiTat": true,
+   "hangChuyen": 5,
+   "cotGio_left": [
+    289
+   ],
+   "cotGiua_left": [
+    369
+   ],
+   "cotTien_right": [
+    859
+   ],
+   "bieuDo": {
+    "cao": null,
+    "cotCao": [],
+    "cotKhacKhong": 0
+   },
+   "nutSanHo": [
+    "Xác nhận ngay"
+   ],
+   "dbg": null,
+   "luoiCot": "604px",
+   "thuTuDoc": [
+    [
+     "#dash-gap",
+     255
+    ],
+    [
+     "#dash-today",
+     353
+    ],
+    [
+     "#dash-dang-cho",
+     1066
+    ],
+    [
+     "#dash-so-mt",
+     1309
+    ],
+    [
+     "#dash-loi-tat",
+     1505
+    ]
+   ],
+   "loiTat_hang": 2,
+   "tenCat": [],
+   "loi": {
+    "cat": 1,
+    "che": 1,
+    "tran": 0,
+    "rong": 1
+   },
+   "chiTietLoi": {
+    "cat": [
+     {
+      "el": "h1.visually-hidden",
+      "chu": "Trang chủ",
+      "rong": 1,
+      "can": 117
+     }
+    ],
+    "tran": []
+   }
+  },
+  {
+   "vai": "Kế toán",
+   "kho": "1366x650",
+   "vw": 1366,
+   "scrollW": 1366,
+   "gap": "3 đơn chờ xác nhận, 1 đơn quá 2 giờ 1 đơn có khách đi hôm nay hoặc ngày mai. Xác nhận ngay",
+   "dangCho": [
+    "Đơn chờ xác nhậnToàn công ty1 đơn quá hạn — hạn 15 phút3",
+    "Đơn còn thiếu tiềnToàn công tyCòn phải thu 9,4tr ₫4"
+   ],
+   "cotPhu": true,
+   "review": false,
+   "soMt": false,
+   "loiTat": true,
+   "hangChuyen": 5,
+   "cotGio_left": [
+    289
+   ],
+   "cotGiua_left": [
+    369
+   ],
+   "cotTien_right": [
+    941
+   ],
+   "bieuDo": {
+    "cao": null,
+    "cotCao": [],
+    "cotKhacKhong": 0
+   },
+   "nutSanHo": [
+    "Xác nhận ngay"
+   ],
+   "dbg": null,
+   "luoiCot": "686px 360px",
+   "thuTuDoc": [
+    [
+     "#dash-gap",
+     255
+    ],
+    [
+     "#dash-today",
+     353
+    ],
+    [
+     "#dash-dang-cho",
+     353
+    ],
+    [
+     "#dash-loi-tat",
+     1066
+    ]
+   ],
+   "loiTat_hang": 1,
+   "tenCat": [],
+   "loi": {
+    "cat": 1,
+    "che": 3,
+    "tran": 0,
+    "rong": 2
+   },
+   "chiTietLoi": {
+    "cat": [
+     {
+      "el": "h1.visually-hidden",
+      "chu": "Trang chủ",
+      "rong": 1,
+      "can": 117
+     }
+    ],
+    "tran": []
+   }
+  },
+  {
+   "vai": "Kế toán",
+   "kho": "1440x900",
+   "vw": 1440,
+   "scrollW": 1440,
+   "gap": "3 đơn chờ xác nhận, 1 đơn quá 2 giờ 1 đơn có khách đi hôm nay hoặc ngày mai. Xác nhận ngay",
+   "dangCho": [
+    "Đơn chờ xác nhậnToàn công ty1 đơn quá hạn — hạn 15 phút3",
+    "Đơn còn thiếu tiềnToàn công tyCòn phải thu 9,4tr ₫4"
+   ],
+   "cotPhu": true,
+   "review": false,
+   "soMt": false,
+   "loiTat": true,
+   "hangChuyen": 5,
+   "cotGio_left": [
+    289
+   ],
+   "cotGiua_left": [
+    369
+   ],
+   "cotTien_right": [
+    975
+   ],
+   "bieuDo": {
+    "cao": null,
+    "cotCao": [],
+    "cotKhacKhong": 0
+   },
+   "nutSanHo": [
+    "Xác nhận ngay"
+   ],
+   "dbg": null,
+   "luoiCot": "720px 400px",
+   "thuTuDoc": [
+    [
+     "#dash-gap",
+     255
+    ],
+    [
+     "#dash-today",
+     353
+    ],
+    [
+     "#dash-dang-cho",
+     353
+    ],
+    [
+     "#dash-loi-tat",
+     1046
+    ]
+   ],
+   "loiTat_hang": 1,
+   "tenCat": [],
+   "loi": {
+    "cat": 1,
+    "che": 0,
+    "tran": 0,
+    "rong": 2
+   },
+   "chiTietLoi": {
+    "cat": [
+     {
+      "el": "h1.visually-hidden",
+      "chu": "Trang chủ",
+      "rong": 1,
+      "can": 117
+     }
+    ],
+    "tran": []
+   }
+  },
+  {
+   "vai": "Kế toán",
+   "kho": "1100x800",
+   "vw": 1100,
+   "scrollW": 1100,
+   "gap": "3 đơn chờ xác nhận, 1 đơn quá 2 giờ 1 đơn có khách đi hôm nay hoặc ngày mai. Xác nhận ngay",
+   "dangCho": [
+    "Đơn chờ xác nhậnToàn công ty1 đơn quá hạn — hạn 15 phút3",
+    "Đơn còn thiếu tiềnToàn công tyCòn phải thu 9,4tr ₫4"
+   ],
+   "cotPhu": true,
+   "review": false,
+   "soMt": false,
+   "loiTat": true,
+   "hangChuyen": 5,
+   "cotGio_left": [
+    289
+   ],
+   "cotGiua_left": [
+    369
+   ],
+   "cotTien_right": [
+    715
+   ],
+   "bieuDo": {
+    "cao": null,
+    "cotCao": [],
+    "cotKhacKhong": 0
+   },
+   "nutSanHo": [
+    "Xác nhận ngay"
+   ],
+   "dbg": null,
+   "luoiCot": "460px 320px",
+   "thuTuDoc": [
+    [
+     "#dash-gap",
+     255
+    ],
+    [
+     "#dash-today",
+     353
+    ],
+    [
+     "#dash-dang-cho",
+     353
+    ],
+    [
+     "#dash-loi-tat",
+     1294
+    ]
+   ],
+   "loiTat_hang": 1,
+   "tenCat": [],
+   "loi": {
+    "cat": 1,
+    "che": 0,
+    "tran": 0,
+    "rong": 0
+   },
+   "chiTietLoi": {
+    "cat": [
+     {
+      "el": "h1.visually-hidden",
+      "chu": "Trang chủ",
+      "rong": 1,
+      "can": 117
+     }
+    ],
+    "tran": []
+   }
+  },
+  {
+   "vai": "Kế toán",
+   "kho": "900x800",
+   "vw": 900,
+   "scrollW": 900,
+   "gap": "3 đơn chờ xác nhận, 1 đơn quá 2 giờ 1 đơn có khách đi hôm nay hoặc ngày mai. Xác nhận ngay",
+   "dangCho": [
+    "Đơn chờ xác nhậnToàn công ty1 đơn quá hạn — hạn 15 phút3",
+    "Đơn còn thiếu tiềnToàn công tyCòn phải thu 9,4tr ₫4"
+   ],
+   "cotPhu": true,
+   "review": false,
+   "soMt": false,
+   "loiTat": true,
+   "hangChuyen": 5,
+   "cotGio_left": [
+    289
+   ],
+   "cotGiua_left": [
+    369
+   ],
+   "cotTien_right": [
+    859
+   ],
+   "bieuDo": {
+    "cao": null,
+    "cotCao": [],
+    "cotKhacKhong": 0
+   },
+   "nutSanHo": [
+    "Xác nhận ngay"
+   ],
+   "dbg": null,
+   "luoiCot": "604px",
+   "thuTuDoc": [
+    [
+     "#dash-gap",
+     255
+    ],
+    [
+     "#dash-today",
+     353
+    ],
+    [
+     "#dash-dang-cho",
+     1066
+    ],
+    [
+     "#dash-loi-tat",
+     1250
+    ]
+   ],
+   "loiTat_hang": 2,
+   "tenCat": [],
+   "loi": {
+    "cat": 1,
+    "che": 0,
+    "tran": 0,
+    "rong": 1
+   },
+   "chiTietLoi": {
+    "cat": [
+     {
+      "el": "h1.visually-hidden",
+      "chu": "Trang chủ",
+      "rong": 1,
+      "can": 117
+     }
+    ],
+    "tran": []
+   }
+  },
+  {
+   "vai": "Nhân viên lập đơn",
+   "kho": "1366x650",
+   "vw": 1366,
+   "scrollW": 1366,
+   "gap": "3 đơn chờ xác nhận, 1 đơn quá 2 giờ 1 đơn có khách đi hôm nay hoặc ngày mai. Xác nhận ngay",
+   "dangCho": [
+    "Đơn chờ xác nhậnToàn công ty1 đơn quá hạn — hạn 15 phút3",
+    "Đơn còn thiếu tiềnToàn công tyCòn phải thu 9,4tr ₫4",
+    "Đơn chưa có người phụ tráchToàn công tyChưa ai nhận chăm sóc khách6"
+   ],
+   "cotPhu": true,
+   "review": false,
+   "soMt": true,
+   "loiTat": true,
+   "hangChuyen": 5,
+   "cotGio_left": [
+    289
+   ],
+   "cotGiua_left": [
+    369
+   ],
+   "cotTien_right": [
+    941
+   ],
+   "bieuDo": {
+    "cao": null,
+    "cotCao": [],
+    "cotKhacKhong": 0
+   },
+   "nutSanHo": [
+    "Xác nhận ngay"
+   ],
+   "dbg": null,
+   "luoiCot": "686px 360px",
+   "thuTuDoc": [
+    [
+     "#dash-gap",
+     255
+    ],
+    [
+     "#dash-today",
+     353
+    ],
+    [
+     "#dash-dang-cho",
+     353
+    ],
+    [
+     "#dash-so-mt",
+     596
+    ],
+    [
+     "#dash-loi-tat",
+     1066
+    ]
+   ],
+   "loiTat_hang": 1,
+   "tenCat": [],
+   "loi": {
+    "cat": 1,
+    "che": 0,
+    "tran": 0,
+    "rong": 3
+   },
+   "chiTietLoi": {
+    "cat": [
+     {
+      "el": "h1.visually-hidden",
+      "chu": "Trang chủ",
+      "rong": 1,
+      "can": 117
+     }
+    ],
+    "tran": []
+   }
+  },
+  {
+   "vai": "Nhân viên lập đơn",
+   "kho": "1440x900",
+   "vw": 1440,
+   "scrollW": 1440,
+   "gap": "3 đơn chờ xác nhận, 1 đơn quá 2 giờ 1 đơn có khách đi hôm nay hoặc ngày mai. Xác nhận ngay",
+   "dangCho": [
+    "Đơn chờ xác nhậnToàn công ty1 đơn quá hạn — hạn 15 phút3",
+    "Đơn còn thiếu tiềnToàn công tyCòn phải thu 9,4tr ₫4",
+    "Đơn chưa có người phụ tráchToàn công tyChưa ai nhận chăm sóc khách6"
+   ],
+   "cotPhu": true,
+   "review": false,
+   "soMt": true,
+   "loiTat": true,
+   "hangChuyen": 5,
+   "cotGio_left": [
+    289
+   ],
+   "cotGiua_left": [
+    369
+   ],
+   "cotTien_right": [
+    975
+   ],
+   "bieuDo": {
+    "cao": null,
+    "cotCao": [],
+    "cotKhacKhong": 0
+   },
+   "nutSanHo": [
+    "Xác nhận ngay"
+   ],
+   "dbg": null,
+   "luoiCot": "720px 400px",
+   "thuTuDoc": [
+    [
+     "#dash-gap",
+     255
+    ],
+    [
+     "#dash-today",
+     353
+    ],
+    [
+     "#dash-dang-cho",
+     353
+    ],
+    [
+     "#dash-so-mt",
+     596
+    ],
+    [
+     "#dash-loi-tat",
+     1046
+    ]
+   ],
+   "loiTat_hang": 1,
+   "tenCat": [],
+   "loi": {
+    "cat": 1,
+    "che": 0,
+    "tran": 0,
+    "rong": 3
+   },
+   "chiTietLoi": {
+    "cat": [
+     {
+      "el": "h1.visually-hidden",
+      "chu": "Trang chủ",
+      "rong": 1,
+      "can": 117
+     }
+    ],
+    "tran": []
+   }
+  },
+  {
+   "vai": "Nhân viên lập đơn",
+   "kho": "1100x800",
+   "vw": 1100,
+   "scrollW": 1100,
+   "gap": "3 đơn chờ xác nhận, 1 đơn quá 2 giờ 1 đơn có khách đi hôm nay hoặc ngày mai. Xác nhận ngay",
+   "dangCho": [
+    "Đơn chờ xác nhậnToàn công ty1 đơn quá hạn — hạn 15 phút3",
+    "Đơn còn thiếu tiềnToàn công tyCòn phải thu 9,4tr ₫4",
+    "Đơn chưa có người phụ tráchToàn công tyChưa ai nhận chăm sóc khách6"
+   ],
+   "cotPhu": true,
+   "review": false,
+   "soMt": true,
+   "loiTat": true,
+   "hangChuyen": 5,
+   "cotGio_left": [
+    289
+   ],
+   "cotGiua_left": [
+    369
+   ],
+   "cotTien_right": [
+    715
+   ],
+   "bieuDo": {
+    "cao": null,
+    "cotCao": [],
+    "cotKhacKhong": 0
+   },
+   "nutSanHo": [
+    "Xác nhận ngay"
+   ],
+   "dbg": null,
+   "luoiCot": "460px 320px",
+   "thuTuDoc": [
+    [
+     "#dash-gap",
+     255
+    ],
+    [
+     "#dash-today",
+     353
+    ],
+    [
+     "#dash-dang-cho",
+     353
+    ],
+    [
+     "#dash-so-mt",
+     612
+    ],
+    [
+     "#dash-loi-tat",
+     1294
+    ]
+   ],
+   "loiTat_hang": 1,
+   "tenCat": [],
+   "loi": {
+    "cat": 1,
+    "che": 0,
+    "tran": 0,
+    "rong": 0
+   },
+   "chiTietLoi": {
+    "cat": [
+     {
+      "el": "h1.visually-hidden",
+      "chu": "Trang chủ",
+      "rong": 1,
+      "can": 117
+     }
+    ],
+    "tran": []
+   }
+  },
+  {
+   "vai": "Nhân viên lập đơn",
+   "kho": "900x800",
+   "vw": 900,
+   "scrollW": 900,
+   "gap": "3 đơn chờ xác nhận, 1 đơn quá 2 giờ 1 đơn có khách đi hôm nay hoặc ngày mai. Xác nhận ngay",
+   "dangCho": [
+    "Đơn chờ xác nhậnToàn công ty1 đơn quá hạn — hạn 15 phút3",
+    "Đơn còn thiếu tiềnToàn công tyCòn phải thu 9,4tr ₫4",
+    "Đơn chưa có người phụ tráchToàn công tyChưa ai nhận chăm sóc khách6"
+   ],
+   "cotPhu": true,
+   "review": false,
+   "soMt": true,
+   "loiTat": true,
+   "hangChuyen": 5,
+   "cotGio_left": [
+    289
+   ],
+   "cotGiua_left": [
+    369
+   ],
+   "cotTien_right": [
+    859
+   ],
+   "bieuDo": {
+    "cao": null,
+    "cotCao": [],
+    "cotKhacKhong": 0
+   },
+   "nutSanHo": [
+    "Xác nhận ngay"
+   ],
+   "dbg": null,
+   "luoiCot": "604px",
+   "thuTuDoc": [
+    [
+     "#dash-gap",
+     255
+    ],
+    [
+     "#dash-today",
+     353
+    ],
+    [
+     "#dash-dang-cho",
+     1066
+    ],
+    [
+     "#dash-so-mt",
+     1309
+    ],
+    [
+     "#dash-loi-tat",
+     1505
+    ]
+   ],
+   "loiTat_hang": 1,
+   "tenCat": [],
+   "loi": {
+    "cat": 1,
+    "che": 0,
+    "tran": 0,
+    "rong": 1
+   },
+   "chiTietLoi": {
+    "cat": [
+     {
+      "el": "h1.visually-hidden",
+      "chu": "Trang chủ",
+      "rong": 1,
+      "can": 117
+     }
+    ],
+    "tran": []
+   }
+  },
+  {
+   "vai": "Hướng dẫn viên",
+   "kho": "1366x650",
+   "vw": 1366,
+   "scrollW": 1366,
+   "gap": null,
+   "dangCho": null,
+   "cotPhu": false,
+   "review": false,
+   "soMt": false,
+   "loiTat": false,
+   "hangChuyen": 0,
+   "cotGio_left": [],
+   "cotGiua_left": [],
+   "cotTien_right": [],
+   "bieuDo": {
+    "cao": null,
+    "cotCao": [],
+    "cotKhacKhong": 0
+   },
+   "nutSanHo": [],
+   "dbg": null,
+   "luoiCot": null,
+   "thuTuDoc": [],
+   "loiTat_hang": null,
+   "tenCat": [],
+   "loi": {
+    "cat": 1,
+    "che": 0,
+    "tran": 0,
+    "rong": 0
+   },
+   "chiTietLoi": {
+    "cat": [
+     {
+      "el": "h1",
+      "chu": "Đơn hàng",
+      "rong": 1,
+      "can": 112
+     }
+    ],
+    "tran": []
+   }
+  },
+  {
+   "vai": "Hướng dẫn viên",
+   "kho": "1440x900",
+   "vw": 1440,
+   "scrollW": 1440,
+   "gap": null,
+   "dangCho": null,
+   "cotPhu": false,
+   "review": false,
+   "soMt": false,
+   "loiTat": false,
+   "hangChuyen": 0,
+   "cotGio_left": [],
+   "cotGiua_left": [],
+   "cotTien_right": [],
+   "bieuDo": {
+    "cao": null,
+    "cotCao": [],
+    "cotKhacKhong": 0
+   },
+   "nutSanHo": [],
+   "dbg": null,
+   "luoiCot": null,
+   "thuTuDoc": [],
+   "loiTat_hang": null,
+   "tenCat": [],
+   "loi": {
+    "cat": 1,
+    "che": 0,
+    "tran": 0,
+    "rong": 0
+   },
+   "chiTietLoi": {
+    "cat": [
+     {
+      "el": "h1",
+      "chu": "Đơn hàng",
+      "rong": 1,
+      "can": 112
+     }
+    ],
+    "tran": []
+   }
+  },
+  {
+   "vai": "Hướng dẫn viên",
+   "kho": "1100x800",
+   "vw": 1100,
+   "scrollW": 1100,
+   "gap": null,
+   "dangCho": null,
+   "cotPhu": false,
+   "review": false,
+   "soMt": false,
+   "loiTat": false,
+   "hangChuyen": 0,
+   "cotGio_left": [],
+   "cotGiua_left": [],
+   "cotTien_right": [],
+   "bieuDo": {
+    "cao": null,
+    "cotCao": [],
+    "cotKhacKhong": 0
+   },
+   "nutSanHo": [],
+   "dbg": null,
+   "luoiCot": null,
+   "thuTuDoc": [],
+   "loiTat_hang": null,
+   "tenCat": [],
+   "loi": {
+    "cat": 1,
+    "che": 0,
+    "tran": 0,
+    "rong": 0
+   },
+   "chiTietLoi": {
+    "cat": [
+     {
+      "el": "h1",
+      "chu": "Đơn hàng",
+      "rong": 1,
+      "can": 112
+     }
+    ],
+    "tran": []
+   }
+  },
+  {
+   "vai": "Hướng dẫn viên",
+   "kho": "900x800",
+   "vw": 900,
+   "scrollW": 900,
+   "gap": null,
+   "dangCho": null,
+   "cotPhu": false,
+   "review": false,
+   "soMt": false,
+   "loiTat": false,
+   "hangChuyen": 0,
+   "cotGio_left": [],
+   "cotGiua_left": [],
+   "cotTien_right": [],
+   "bieuDo": {
+    "cao": null,
+    "cotCao": [],
+    "cotKhacKhong": 0
+   },
+   "nutSanHo": [],
+   "dbg": null,
+   "luoiCot": null,
+   "thuTuDoc": [],
+   "loiTat_hang": null,
+   "tenCat": [],
+   "loi": {
+    "cat": 1,
+    "che": 0,
+    "tran": 0,
+    "rong": 0
+   },
+   "chiTietLoi": {
+    "cat": [
+     {
+      "el": "h1",
+      "chu": "Đơn hàng",
+      "rong": 1,
+      "can": 112
+     }
+    ],
+    "tran": []
+   }
+  }
+ ],
+ "khongGap": {
+  "vw": 1440,
+  "scrollW": 1440,
+  "gap": null,
+  "dangCho": [
+   "Đơn chờ xác nhậnToàn công tyĐơn đã gửi, chờ kiểm vé1",
+   "Đơn nhápCủa tôiĐơn nháp của bạn, chưa xác nhận3",
+   "Đơn chưa có người phụ tráchToàn công tyChưa ai nhận chăm sóc khách6",
+   "Đơn còn thiếu tiềnToàn công tyCòn phải thu 9,4tr ₫4"
+  ],
+  "cotPhu": true,
+  "review": false,
+  "soMt": true,
+  "loiTat": true,
+  "hangChuyen": 5,
+  "cotGio_left": [
+   289
+  ],
+  "cotGiua_left": [
+   369
+  ],
+  "cotTien_right": [
+   975
+  ],
+  "bieuDo": {
+   "cao": 195,
+   "cotCao": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    195,
+    8
+   ],
+   "cotKhacKhong": 7
+  },
+  "nutSanHo": [],
+  "dbg": {
+   "style": "height: 4%;",
+   "pos": "absolute",
+   "h": "7.79688px",
+   "cot": 195,
+   "bars": "195px"
+  },
+  "luoiCot": "720px 400px",
+  "thuTuDoc": [
+   [
+    "#dash-today",
+    255
+   ],
+   [
+    "#dash-dang-cho",
+    255
+   ],
+   [
+    "#dash-so-mt",
+    557
+   ],
+   [
+    "#dash-loi-tat",
+    948
+   ]
+  ],
+  "loiTat_hang": 1,
+  "tenCat": []
+ },
+ "dienThoai": {
+  "gap": false,
+  "dangCho": false,
+  "soMt": false,
+  "loiTat": false,
+  "dashSo": true,
+  "choDt": true,
+  "o": true,
+  "review": false,
+  "today": true,
+  "kich": {
+   "dashSo": [
+    366,
+    280
+   ],
+   "o": [
+    366,
+    126
+   ],
+   "today": [
+    366,
+    696
+   ],
+   "review": [
+    0,
+    0
+   ]
+  },
+  "scrollW": 390,
+  "vw": 390,
+  "thuTu": [
+   [
+    "#dash-so",
+    415
+   ],
+   [
+    "#dash-o",
+    277
+   ],
+   [
+    "#dash-today",
+    787
+   ]
+  ],
+  "loi": {
+   "cat": 1,
+   "che": 0,
+   "tran": 0,
+   "rong": 0
+  }
+ }
+}
