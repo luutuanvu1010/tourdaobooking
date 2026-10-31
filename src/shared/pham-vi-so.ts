@@ -21,4 +21,6 @@ export const PHAM_VI_O_TRANG_CHU = {
   chuyenHomNay: "TOAN_CONG_TY",
   gopY: "TOAN_CONG_TY",
   donCho: "TOAN_CONG_TY", // ADR-0136 Đ9: đơn đang chờ xác nhận của cả công ty
+  doiChieu: "TOAN_CONG_TY", // Trang chủ Phương án A (31/10): khoản chờ đối chiếu / thu trước của đơn huỷ là sổ của cả công ty
+  thuTruoc: "TOAN_CONG_TY",
 } as const satisfies Record<string, PhamVi>;

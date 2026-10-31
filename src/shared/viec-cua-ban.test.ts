@@ -70,7 +70,7 @@ test("thẻ chuyenHomNay đếm ĐƠN, không phải chuyến xe: «Đơn đi h�
 });
 test("nguonCanTai: chỉ nguồn người này dùng; không nguồn quản trị cho Bán hàng/Kế toán", () => {
   assert.deepEqual([...nguonCanTai(who("SALES"))], ["donCho", "nhap", "conThieu", "chuaPhuTrach", "chuyenHomNay"]);
-  assert.deepEqual([...nguonCanTai(who("ACCOUNTING"))], ["donCho", "dieuChinh", "nhap", "conThieu", "chuyenHomNay"]);
+  assert.deepEqual([...nguonCanTai(who("ACCOUNTING"))], ["donCho", "doiChieu", "thuTruoc", "dieuChinh", "nhap", "conThieu", "chuyenHomNay"]); // Phương án A (31/10): hai dòng chờ đối chiếu / thu trước theo cổng của khối cũ
   assert.ok(nguonCanTai(who("ADMIN")).includes("xemLai"));
   assert.ok(!nguonCanTai(who("ADMIN")).includes("gopY"));
   assert.ok(nguonCanTai(who("SUPER_ADMIN")).includes("gopY"));
@@ -148,7 +148,7 @@ test("conLaiThe: phần dồn theo thứ tự ưu tiên; cauConLai viết nhãn 
 test("nhãn phạm vi: mỗi khoá thẻ có phạm vi trong bảng chung (điều chỉnh và đơn nháp = Của tôi — ADR-0135; còn lại Toàn công ty)", () => {
   assert.deepEqual(
     Object.entries(KHOA_PHAM_VI).map(([k, v]) => [k, PHAM_VI_O_TRANG_CHU[v]]),
-    [["xemLai", "TOAN_CONG_TY"], ["dieuChinh", "CUA_TOI"], ["nhap", "CUA_TOI"], ["conThieu", "TOAN_CONG_TY"], ["chuaPhuTrach", "TOAN_CONG_TY"], ["chuyenHomNay", "TOAN_CONG_TY"], ["gopY", "TOAN_CONG_TY"], ["donCho", "TOAN_CONG_TY"]],
+    [["xemLai", "TOAN_CONG_TY"], ["dieuChinh", "CUA_TOI"], ["nhap", "CUA_TOI"], ["conThieu", "TOAN_CONG_TY"], ["chuaPhuTrach", "TOAN_CONG_TY"], ["chuyenHomNay", "TOAN_CONG_TY"], ["gopY", "TOAN_CONG_TY"], ["donCho", "TOAN_CONG_TY"], ["doiChieu", "TOAN_CONG_TY"], ["thuTruoc", "TOAN_CONG_TY"]],
   );
 });
 

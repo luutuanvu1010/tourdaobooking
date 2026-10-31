@@ -5,9 +5,11 @@
 import { vndShort } from "./money.ts";
 import type { PHAM_VI_O_TRANG_CHU } from "./pham-vi-so.ts";
 import { can, holdsPartner, seesAllOrders } from "./permissions.ts";
+import { coKhoiChoDoiChieu } from "./ben-kia-hien-thi.ts";
+import { coKhoiThuTruoc } from "./thu-truoc-hien-thi.ts";
 import type { PermissionHolder } from "./permissions.ts";
 
-export type KhoaThe = "xemLai" | "dieuChinh" | "nhap" | "conThieu" | "chuaPhuTrach" | "chuyenHomNay" | "gopY" | "donCho";
+export type KhoaThe = "xemLai" | "dieuChinh" | "nhap" | "conThieu" | "chuaPhuTrach" | "chuyenHomNay" | "gopY" | "donCho" | "doiChieu" | "thuTruoc";
 
 /** Số đã tải; `null` = nguồn lỗi (thẻ hiện "—" + Thử lại), KHÔNG phải 0. Khoá vắng = người này không dùng nguồn đó. */
 export interface NguonSo {
@@ -22,6 +24,9 @@ export interface NguonSo {
   readonly gopY?: number | null;
   /** ADR-0136 Đ9: đơn đang chờ xác nhận (`GET /api/orders/cho-xac-nhan`) — `quaHan` chỉ để cảnh báo, không tự huỷ. */
   readonly donCho?: { count: number; quaHan: number } | null;
+  /** Trang chủ Phương án A (31/10): số khoản «Chờ đối chiếu» và «Thu trước của đơn huỷ» — hai khối chi tiết cũ của Trang chủ nay có dòng trong thẻ «Đang chờ bạn». Cổng giữ NGUYÊN (`coKhoiChoDoiChieu`, `coKhoiThuTruoc`). */
+  readonly doiChieu?: number | null;
+  readonly thuTruoc?: number | null;
 }
 
 export interface TheViec {
@@ -39,7 +44,7 @@ const TOI_DA = 4;
 
 /** Khoá thẻ → khoá phạm vi trong `PHAM_VI_O_TRANG_CHU` (bảng chung; CHANGE-GUIDE bẫy 59(3): ô số khác phạm vi đứng cạnh nhau phải mang nhãn "Toàn công ty" / "Của tôi"). */
 export const KHOA_PHAM_VI: Readonly<Record<KhoaThe, keyof typeof PHAM_VI_O_TRANG_CHU>> = {
-  xemLai: "xemLai", dieuChinh: "dieuChinh", nhap: "donNhap", conThieu: "conThieu", chuaPhuTrach: "chuaPhuTrach", chuyenHomNay: "chuyenHomNay", gopY: "gopY", donCho: "donCho",
+  xemLai: "xemLai", dieuChinh: "dieuChinh", nhap: "donNhap", conThieu: "conThieu", chuaPhuTrach: "chuaPhuTrach", chuyenHomNay: "chuyenHomNay", gopY: "gopY", donCho: "donCho", doiChieu: "doiChieu", thuTruoc: "thuTruoc",
 };
 
 interface MoTa {
@@ -72,6 +77,11 @@ const THE: readonly MoTa[] = [
   // ADR-0136 Đ9: người giữ ô xét duyệt — KHÔNG đòi xem được mọi đơn (hướng dẫn viên chưa phụ trách cũng kiểm vé); đứng sau "Cần xem lại" vì là việc có hạn 15 phút.
   { khoa: "donCho", uuTien: () => 1.5, hien: (w) => can(w, "order.confirm.review"), nhan: "Đơn chờ xác nhận", nut: () => "Kiểm vé", href: "/cho-xac-nhan", tone: "cat", chot: khong,
     phu: (n) => (n.donCho && n.donCho.quaHan > 0 ? `${n.donCho.quaHan} đơn quá hạn — hạn 15 phút` : "Đơn đã gửi, chờ kiểm vé") },
+  // Trang chủ Phương án A (31/10, chủ duyệt quyết định 2): hai khối chi tiết cũ thành dòng; bấm cuộn tới khối chi tiết (còn nguyên, có nút «Bên kia đã nhận»). Cổng là hàm gốc của từng khối.
+  { khoa: "doiChieu", uuTien: () => 1.6, hien: (w) => coKhoiChoDoiChieu(w), nhan: "Chờ đối chiếu", nut: () => "Đối chiếu", href: "#dash-doi-chieu", tone: "xanh", chot: khong,
+    phu: () => "Khoản thu chờ Kế toán đối chiếu" },
+  { khoa: "thuTruoc", uuTien: () => 1.7, hien: (w) => coKhoiThuTruoc(w), nhan: "Thu trước đơn huỷ", nut: () => "Xử lý", href: "#dash-thu-truoc", tone: "xanh", chot: khong,
+    phu: () => "Khoản thu trước của đơn huỷ chờ chi hoàn / chuyển" },
   { khoa: "dieuChinh", uuTien: (w) => (quanTri(w) ? 8 : 2), hien: (w) => can(w, "ledger.adjust.approve") && !holdsPartner(w), nhan: "Điều chỉnh công nợ chờ duyệt", nut: () => "Duyệt",
     href: "/dieu-chinh-cong-no", tone: "xanh", chot: khong, phu: () => "Yêu cầu đang chờ bạn duyệt" },
   // Số đơn nháp là của CHÍNH người xem (ADR-0135 Đ3: nháp là vùng riêng của người lập): nút chốt (san hô) "Xác nhận đơn" cho người xác nhận được mọi đơn; vai khác "Xem đơn nháp".
