@@ -63,6 +63,7 @@ const MODULES: readonly { entry: string; exportName: string }[] = [
   { entry: "./modules/thongbao/index.ts", exportName: "thongbaoModule" },
   { entry: "./modules/van-chuyen/index.ts", exportName: "vanChuyenModule" }, // ADR-0040 D1
   { entry: "./modules/tro-ly/index.ts", exportName: "troLyModule" }, // ADR-0066: trợ lý Hỗ trợ
+  { entry: "./modules/ve-dien-tu/index.ts", exportName: "veDienTuModule" }, // ADR-0153 (đề xuất): kho vé điện tử — khung chưa có route; mỗi route mới phải vào SNAPSHOT
 ];
 
 /** Sắp xếp tất định: theo `path` rồi theo `method` (so sánh chuỗi thường, không qua `localeCompare`). */
