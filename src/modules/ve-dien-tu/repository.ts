@@ -19,7 +19,7 @@ const GIU_VE = defineSql(
   `UPDATE vdt_ticket SET status = 'ALLOCATED', updated_at = ?6, updated_by = ?7
    WHERE id IN (
      SELECT t.id FROM vdt_ticket t JOIN vdt_batch b ON b.id = t.batch_id
-     WHERE b.catalog_code = ?1 AND b.pax_group = ?2 AND b.status = 'ACTIVE' AND t.status = 'AVAILABLE' AND t.valid_from <= ?3 AND t.valid_to >= ?3
+     WHERE b.catalog_code = ?1 AND b.pax_group = ?2 AND b.status = 'ACTIVE' AND t.status = 'AVAILABLE' AND t.stored_at IS NOT NULL AND t.valid_from <= ?3 AND t.valid_to >= ?3
      ORDER BY t.valid_to, t.id
      LIMIT max(0, ?4 - (SELECT count(*) FROM vdt_allocation a WHERE a.order_service_id = ?5 AND a.pax_group = ?2 AND a.released_at IS NULL)))`,
 );
@@ -89,3 +89,32 @@ export const demTraTheoNhom = async (db: D1Database, orderId: string, serviceId:
   const { results } = await db.prepare(DEM_TRA).bind(orderId, serviceId).all<{ pax_group: string; dang_giu: number; chua_lo: number }>();
   return Object.fromEntries(results.map((r) => [r.pax_group, { dangGiu: r.dang_giu, chuaLo: r.chua_lo ?? 0 }]));
 };
+
+// ===== Kho tệp (ADR-0153 Đ1 mục 7; khuôn feedback/repository.ts của ADR-0144). Dòng vé chèn trước với `stored_at` rỗng ("tải dở dang"); chỉ vé ĐÃ lưu vào kho (`stored_at`
+// có giá trị) mới được giữ chỗ (xem GIU_VE). Thu hồi = đặt `purged_at` + `VOID`; đối tượng R2 xoá SAU, `r2_deleted_at` ghi khi đã xoá (còn rỗng = "chờ xoá", thấy được và chạy lại được).
+const LIST_VE_CHO_DAT = defineSql(
+  "ve-dien-tu",
+  "list_ve_cho_dat",
+  "SELECT id, storage_key, content_kind FROM vdt_ticket WHERE batch_id = ?1 AND stored_at IS NULL AND purged_at IS NULL ORDER BY id",
+);
+const DANH_DAU_DA_LUU = defineSql("ve-dien-tu", "danh_dau_da_luu", "UPDATE vdt_ticket SET stored_at = ?2, updated_at = ?2 WHERE id = ?1 AND stored_at IS NULL AND purged_at IS NULL");
+const DAT_CHO_XOA = defineSql(
+  "ve-dien-tu",
+  "dat_cho_xoa",
+  "UPDATE vdt_ticket SET purged_at = ?2, status = 'VOID', updated_at = ?2, updated_by = ?3 WHERE id = ?1 AND purged_at IS NULL",
+);
+const LIST_CHO_XOA = defineSql(
+  "ve-dien-tu",
+  "list_cho_xoa",
+  "SELECT id, storage_key FROM vdt_ticket WHERE purged_at IS NOT NULL AND r2_deleted_at IS NULL ORDER BY purged_at, id LIMIT ?1",
+);
+const DANH_DAU_DA_XOA_R2 = defineSql("ve-dien-tu", "danh_dau_da_xoa_r2", "UPDATE vdt_ticket SET r2_deleted_at = ?2, updated_at = ?2 WHERE id = ?1 AND r2_deleted_at IS NULL");
+
+export interface VeChoDat { id: string; storage_key: string; content_kind: string }
+export interface VeCanXoa { id: string; storage_key: string }
+export const listVeChoDat = async (db: D1Database, batchId: string): Promise<VeChoDat[]> => (await db.prepare(LIST_VE_CHO_DAT).bind(batchId).all<VeChoDat>()).results;
+export const danhDauDaLuu = async (db: D1Database, id: string, at: string): Promise<number> => (await db.prepare(DANH_DAU_DA_LUU).bind(id, at).run()).meta.changes;
+/** Câu thu hồi (chưa chạy) — người gọi gộp với nhật ký trong một lô. */
+export const cauDatChoXoa = (db: D1Database, id: string, at: string, by: string | null): D1PreparedStatement => db.prepare(DAT_CHO_XOA).bind(id, at, by);
+export const listChoXoa = async (db: D1Database, gioiHan: number): Promise<VeCanXoa[]> => (await db.prepare(LIST_CHO_XOA).bind(gioiHan).all<VeCanXoa>()).results;
+export const danhDauDaXoaR2 = async (db: D1Database, id: string, at: string): Promise<number> => (await db.prepare(DANH_DAU_DA_XOA_R2).bind(id, at).run()).meta.changes;

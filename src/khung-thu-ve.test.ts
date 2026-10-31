@@ -50,12 +50,14 @@ export const dem = (d: DatabaseSync, sql: string, ...a: unknown[]): number => Nu
 /** D1 "thật" tối thiểu trên node:sqlite cho hàm ĐỌC (prepare → bind → all / first). Hàm ghi đi qua d1Gia + chayLo. */
 export function d1That(d: DatabaseSync): D1Database {
   return {
+    batch: async (cau: { sql: string; a: unknown[] }[]) => chayLo(d, cau).map((changes) => ({ meta: { changes } })),
     prepare: (sql: string) => ({
       bind: (...a: unknown[]) => ({
         sql,
         a,
         all: async () => ({ results: d.prepare(sql).all(...(a as never[])) }),
         first: async () => d.prepare(sql).get(...(a as never[])) ?? null,
+        run: async () => ({ meta: { changes: Number(d.prepare(sql).run(...(a as never[])).changes) } }),
       }),
     }),
   } as unknown as D1Database;
@@ -66,3 +68,22 @@ export const nhatKyThu = (db: D1Database) => (e: { staffId: string | null; actio
   (db as unknown as { prepare(s: string): { bind(...a: unknown[]): unknown } })
     .prepare(`INSERT INTO audit_log (id, order_id, staff_id, action, target_type, target_id, detail, created_at) SELECT lower(hex(randomblob(8))), ?, ?, ?, ?, ?, ?, ? WHERE ${onlyIf}`)
     .bind(e.orderId, e.staffId, e.action, e.targetType, e.targetId, e.detail, e.at) as unknown as D1PreparedStatement;
+
+/** R2 giả tối thiểu: Map khoá → byte; `hong` = tập khoá mà `put` ném lỗi. */
+export function r2Gia(hong: Set<string> = new Set()) {
+  const kho = new Map<string, Uint8Array>();
+  const nhatKy: string[] = [];
+  return {
+    kho,
+    nhatKy,
+    put: async (k: string, v: Uint8Array) => {
+      nhatKy.push(`put:${k}`);
+      if (hong.has(k)) throw new Error("r2 hỏng");
+      kho.set(k, v);
+    },
+    delete: async (k: string) => {
+      nhatKy.push(`delete:${k}`);
+      kho.delete(k);
+    },
+  } as unknown as R2Bucket & { kho: Map<string, Uint8Array>; nhatKy: string[] };
+}
