@@ -94,6 +94,21 @@
 - [ ] **Step 4: Chạy** lại + `node --test src/modules/pricing/loai-doi-tac.test.ts src/shared/audit-actions.test.ts src/architecture.test.ts` — Expected: PASS.
 - [ ] **Step 5: Commit** `feat(hoa-hong): sửa tên và ghi chú loại đối tác; nhật ký loại đối tác ghi mã`.
 
+### Task 3b: Màn tài khoản đọc tên vai bên ngoài từ CSDL (thêm 31/10 — Ruling D)
+
+Vì sao: chủ cho đổi tên năm loại Có sẵn với hiểu biết «tên mới hiện cả trên màn tài khoản». Nhưng tên năm vai này viết cứng ở `ROLES[code].name` (`src/shared/roles.ts`), nên màn Quản lý tài khoản, danh sách nhân viên, câu báo lỗi và nhật ký tài khoản vẫn hiện tên cũ.
+
+**Files:**
+- Modify: `src/modules/staff/index.ts` (chỗ dùng `ROLES[c].name` ~:340, ~:395), `src/modules/accounts/index.ts` (nhật ký `vai trò: …` ~:500, ~:712), route trả danh sách tài khoản / dữ liệu màn tài khoản (thêm `tenVai: Record<string, string>` = tên hiện hành từ `pty_role_type` cho mọi mã vai tài khoản, đọc qua hàm công bố của `parties` như `tenLoaiVai`), `src/shared/contracts.ts`, `src/shared/roles.ts` (thêm `rolesLabelTheo(roles, tenVai?: Record<string,string>)` — có `tenVai[c]` thì dùng, không thì `ROLES[c].name`), `web/staff.ts`, `web/role-picker.ts` (nhận `tenVai` từ máy chủ)
+- Test: mở rộng test route tài khoản sẵn có + `src/shared/roles.test.ts` (hoặc tệp test sẵn của roles)
+
+**Interfaces:**
+- Produces: `rolesLabelTheo(roles: readonly RoleCode[], tenVai?: Readonly<Record<string, string>>): string`. `ROLES[c].name` giữ nguyên làm tên gốc (bài `roles-schema.test.ts` trên CSDL mới vẫn đúng).
+
+- [ ] **Step 1: Test đỏ** — đổi tên `TRAVEL_AGENCY` thành «Đại lý lữ hành» bằng `PATCH /api/pricing/loai-doi-tac/TRAVEL_AGENCY` ⇒ (a) dữ liệu màn tài khoản trả `tenVai.TRAVEL_AGENCY = "Đại lý lữ hành"`; (b) gán vai đó cho một tài khoản ⇒ dòng nhật ký có «Đại lý lữ hành»; (c) câu báo lỗi «Hồ sơ này đang giữ vai trò …» dùng tên mới; (d) `rolesLabelTheo(["TRAVEL_AGENCY"], {})` = «Công ty lữ hành», có `tenVai` thì tên mới.
+- [ ] **Step 2: Chạy** test — FAIL. **Step 3:** sửa mã. **Step 4:** chạy lại + test tài khoản sẵn có + `npm run typecheck` — PASS. Kịch bản Chrome màn Quản lý tài khoản để Task 6.
+- [ ] **Step 5: Commit** `feat(tai-khoan): tên vai bên ngoài đọc từ CSDL để đổi tên loại đối tác hiện cả ở màn tài khoản`.
+
 ### Task 4: Route sửa cấp đại lý + nhật ký có mã
 
 **Files:**
