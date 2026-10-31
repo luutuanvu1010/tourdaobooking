@@ -153,12 +153,12 @@ test("tenLoaiVai (sổ đại lý đợt 1): mã vai → tên tiếng Việt đ�
   assert.equal(ten.get("SUPPLIER"), "Nhà cung cấp");
 });
 
-test("TC-3 parties/index.ts xuất đúng mười hai hàm mới (sdtChinhCuaHoSo — ADR-0139, SĐT người đi kèm cho tài xế công ty; hanGiuPhienNgay — ADR-0126 đ8, gốc lắp ráp tiêm cho sổ phiên;taiXeChoDieuPhoi; hoSoCaNhanKhop — ADR-0068 Đ9; taiKhoanNhanTienHienHanh — ADR-0108 đ2; tenLoaiVai — sổ đại lý đợt 1; hoSoMangNhanDoiTac — ADR-0117 điều 4; loaiVaiChiTiet, kiemTenLoaiDoiTac, maLoaiDoiTac, themLoaiDoiTacStatement, datHoatDongLoaiDoiTacStatement — ADR-0117 điều 1, cho route loại đối tác ở pricing) so với trước ADR-0049 — mọi tên khác giữ nguyên (thêm tên = đổi hợp đồng công bố, sửa bài có chủ đích)", () => {
+test("TC-3 parties/index.ts xuất đúng mười ba hàm mới (sdtChinhCuaHoSo — ADR-0139, SĐT người đi kèm cho tài xế công ty; hanGiuPhienNgay — ADR-0126 đ8, gốc lắp ráp tiêm cho sổ phiên;taiXeChoDieuPhoi; hoSoCaNhanKhop — ADR-0068 Đ9; taiKhoanNhanTienHienHanh — ADR-0108 đ2; tenLoaiVai — sổ đại lý đợt 1; hoSoMangNhanDoiTac — ADR-0117 điều 4; loaiVaiChiTiet, kiemTenLoaiDoiTac, maLoaiDoiTac, themLoaiDoiTacStatement, datHoatDongLoaiDoiTacStatement — ADR-0117 điều 1, cho route loại đối tác ở pricing; suaLoaiDoiTacStatement — mã định danh 5.26, sửa loại đối tác) so với trước ADR-0049 — mọi tên khác giữ nguyên (thêm tên = đổi hợp đồng công bố, sửa bài có chủ đích)", () => {
   const TRUOC_ADR_0049 = [
     "accountRolesOf", "closeAccountRoleStatement", "composePersonName", "expiringDriverDocuments", "findPartiesByPhone", "newOrganizationStatements", "newPersonStatements",
     "nhaXeDangHopTac", "openAccountRoleStatement", "openRoleCodesByParty", "ownerCompany", "partiesModule", "partySummary", "renamePersonStatements",
     "reopenAccountRoleStatement", "splitPersonName", "validatePersonFullName",
   ];
   assert.deepEqual(Object.keys(parties).sort(), [...TRUOC_ADR_0049, "taiXeChoDieuPhoi", "hoSoCaNhanKhop", "taiKhoanNhanTienHienHanh", "tenLoaiVai", "hoSoMangNhanDoiTac",
-    "loaiVaiChiTiet", "kiemTenLoaiDoiTac", "maLoaiDoiTac", "themLoaiDoiTacStatement", "datHoatDongLoaiDoiTacStatement", "hanGiuPhienNgay", "sdtChinhCuaHoSo"].sort());
+    "loaiVaiChiTiet", "kiemTenLoaiDoiTac", "maLoaiDoiTac", "themLoaiDoiTacStatement", "datHoatDongLoaiDoiTacStatement", "hanGiuPhienNgay", "sdtChinhCuaHoSo", "suaLoaiDoiTacStatement"].sort());
 });

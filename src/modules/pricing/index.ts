@@ -3,6 +3,7 @@
 import { auditStatement } from "../audit";
 import { getEffectiveServices, tenCacNhom, tenDacDiemTheoMa } from "../catalog";
 import { datHoatDongLoaiDoiTacStatement, kiemTenLoaiDoiTac, loaiVaiChiTiet, maLoaiDoiTac, ownerCompany, suaLoaiDoiTacStatement, tenLoaiVai, themLoaiDoiTacStatement } from "../parties";
+import { khoaTen } from "../../shared/khoa-ten.ts";
 import { kiemGhiChu } from "../../shared/ghi-chu-danh-muc.ts";
 import type { AuditAction } from "../../shared/audit-actions.ts";
 import type { CommissionRuleDto, DoiMucResponse, HoaHongHoSoResponse, CommissionRuleListResponse, GanLoaiMucDto, GanLoaiMucResponse, LoaiDoiTacDto, LoaiDoiTacListResponse, LoaiDoiTacResponse, MucTaDto, MucTaListResponse, MucTaResponse,
@@ -624,7 +625,7 @@ export const pricingModule: AppModule = {
         kiemTen: (raw) => { const k = kiemTenMucTa(raw); if (!k.ok) return { ok: false, status: 400, code: "invalid_input", message: k.message }; khoa = k.value.khoa; return { ok: true, value: k.value.ten }; } });
       if (kq instanceof Response) return kq;
       if (!kq.doiTen && !kq.doiGhiChu) return json({ muc: hienTai } satisfies MucTaResponse);
-      if (!kq.doiTen) khoa = (kiemTenMucTa(hienTai.ten) as { ok: true; value: { khoa: string } }).value.khoa; // giữ khoá tên của chính nó
+      if (!kq.doiTen) khoa = khoaTen(hienTai.ten); // chỉ sửa ghi chú: khoá tên theo đúng tên đang lưu, KHÔNG kiểm lại tên (tên cũ có thể ngắn hơn luật mới)
       const at = new Date().toISOString();
       const res = await chayLo(env.DB, [
         suaMucTaStatement(env.DB, { code, ten: kq.tenMoi, khoa, ghiChu: kq.ghiChuMoi, at, staffId: staff.id, truocLuc: kq.updatedAt as string }),

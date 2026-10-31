@@ -242,3 +242,14 @@ test("Tên cấp mới hiện ở GET /muc-ta, trong gan[].muc.ten của gắn l
   assert.equal(x.ten, "Cấp mới tinh");
   assert.equal(x.gan[0].muc.ten, "Cấp mới tinh");
 });
+
+test("Cấp có tên đã lưu chỉ 1 chữ (dữ liệu cũ, ngắn hơn luật mới) ⇒ chỉ sửa ghi chú vẫn 200, không 500; tên giữ nguyên", async () => {
+  const w = setup();
+  const ma = await themMuc(w);
+  w.sqlite.prepare("UPDATE prc_rate_tier SET name = 'A', name_key = 'a' WHERE code = ?").run(ma);
+  const r = await sua(w, ma, { ghiChu: "Ghi chú cho cấp ngắn", updatedAt: (await mot(w, ma)).updatedAt });
+  assert.equal(r.status, 200, r.text);
+  assert.equal(r.json.muc.ten, "A");
+  assert.equal(dongMuc(w, ma).name_key, "a");
+  assert.equal(nhatKy(w, "prc_rate_tier_note").length, 1);
+});
