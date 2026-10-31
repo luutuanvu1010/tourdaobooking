@@ -12,6 +12,18 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Trang chủ máy tính Phương án A (chủ duyệt 31/10; đặc tả docs/superpowers/specs/2026-10-31-trang-chu-phuong-an-a/DAC-TA.md). Chỉ giao diện Trang chủ máy tính + MỘT trường đọc-thêm `guiLuc` ở danh sách chờ xác nhận;
+    // KHÔNG migration, không đổi cách tính tiền, điện thoại giữ nguyên. Số 2.52 và ngày là TẠM (mục đầu lúc làm: 2.51, cùng nhánh luật khung chưa lên production) — phiên phát hành kiểm lại ở bước A.0 của docs/HANDOFF-N1.md.
+    version: "2.52",
+    date: "2026-10-31",
+    items: [
+      { kind: "moi", text: "Trang chủ máy tính có dải việc gấp: đơn chờ xác nhận mà khách đi hôm nay, ngày mai hoặc đã chờ quá 2 giờ hiện ngay đầu trang, kèm nút Xác nhận ngay." },
+      { kind: "doi", text: "Các khối chờ xử lý của Trang chủ gom thành một thẻ Đang chờ bạn: mỗi việc một dòng có số, bấm vào để làm tiếp." },
+      { kind: "doi", text: "Chuyến đón hôm nay xếp thẳng cột: giờ, tên khách và số khách, điểm đón, tiền còn thu. Tên và số tiền không còn bị cắt." },
+      { kind: "sua", text: "Biểu đồ doanh thu tuần giãn theo thẻ, không còn nằm lọt thỏm ở góc phải." },
+    ],
+  },
+  {
     // Luật khung 30/10 (chủ duyệt gói khuyến nghị của bản đánh giá khung giao diện; kế hoạch docs/superpowers/plans/2026-10-30-sua-hien-thi-va-luat-khung.md).
     // Chỉ giao diện, KHÔNG migration, không đổi máy chủ. Số 2.51 đánh lại sau khi nhận main (main đã có 2.49 luật bán, 2.50 chữ Hoa hồng); trước đó production báo 2.48 (GET công khai /api/auth/config, 30/10). Ngày là TẠM — phiên phát hành kiểm lại ở bước A.0.
     version: "2.51",
