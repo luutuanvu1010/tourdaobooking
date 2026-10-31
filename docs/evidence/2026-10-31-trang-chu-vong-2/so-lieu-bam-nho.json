@@ -1,0 +1,57 @@
+[
+ {
+  "kho": "768x1024",
+  "ds": []
+ },
+ {
+  "kho": "390x844",
+  "ds": []
+ },
+ {
+  "kho": "1280x720",
+  "ds": [
+   {
+    "lop": "a.dash-ct-ma",
+    "chu": "TD-20261018-0001",
+    "rong": 138,
+    "cao": 20,
+    "trongMuc": true
+   },
+   {
+    "lop": "a.dash-ct-ma",
+    "chu": "TD-20261019-0002",
+    "rong": 142,
+    "cao": 20,
+    "trongMuc": true
+   },
+   {
+    "lop": "a.dash-ct-ma",
+    "chu": "TD-20261018-0003",
+    "rong": 142,
+    "cao": 20,
+    "trongMuc": true
+   },
+   {
+    "lop": "a.dash-ct-ma",
+    "chu": "TD-20261018-0012",
+    "rong": 138,
+    "cao": 20,
+    "trongMuc": true
+   },
+   {
+    "lop": "a.dash-ct-ma",
+    "chu": "TD-20261018-0013",
+    "rong": 138,
+    "cao": 20,
+    "trongMuc": true
+   },
+   {
+    "lop": "a.dash-ct-ma",
+    "chu": "TD-20261018-0014",
+    "rong": 139,
+    "cao": 20,
+    "trongMuc": true
+   }
+  ]
+ }
+]

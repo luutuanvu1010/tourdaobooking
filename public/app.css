@@ -2182,6 +2182,9 @@ body.login-page main.login { display: flex; flex-direction: column; flex: 1; min
   /* Cửa sổ hẹp (641–899px, bản vẽ 768): dải và nội dung đệm 16px. Lồng trong khối ≥641px (không áp vào điện thoại). */
   @media (max-width: 899px) {
     body.trang-chu main { padding: var(--s4); }
+    /* Khổ 641–899px dùng bố cục máy tính nhưng VẪN có thanh tab dưới: chừa đệm đáy bằng chiều cao thanh tab + vùng an toàn (luật `body.has-tabbar main` ở trên bị `body.trang-chu main` đè — 31/10, phiên kiểm độc lập 2b: dòng cuối nằm dưới thanh tab). */
+    body.trang-chu.has-tabbar main { padding-bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + var(--s5)); }
+    body.trang-chu.has-tabbar.tabbar-an main, body.trang-chu.has-tabbar.tabbar-dinh main { padding-bottom: calc(env(safe-area-inset-bottom) + var(--s4)); }
   }
 }
 /* Hai cột (Phương án A, 31/10): cột chính (Chuyến đón, Cần xem lại) bên trái, cột phụ (Đang chờ bạn, Doanh thu) bên phải, Lối tắt cả hàng dưới. Mốc 1100px theo luật khung
@@ -2221,6 +2224,12 @@ body.login-page main.login { display: flex; flex-direction: column; flex: 1; min
 .dash-ct-the:empty, .dash-ct-hanh:empty { display: none; }
 .dash-ct-pill { display: inline-flex; align-items: center; padding: calc(var(--s1) / 2) var(--s2); font-size: var(--fs-step-1); font-weight: var(--fw-semibold); line-height: var(--lh-16); color: var(--c-danger-text); background: var(--c-danger-soft); border: 1px solid var(--c-danger-border); border-radius: var(--radius-pill); white-space: nowrap; } /* nhãn «quá N ngày» là viên nhỏ cùng dòng, không còn thanh hồng cả hàng */
 .dash-ct-nut { min-height: var(--tap-min); padding: 0 var(--s2); font-size: var(--fs-step-3); font-weight: var(--fw-semibold); white-space: nowrap; }
+/* Cảm ứng (phiên kiểm 2b): liên kết mã đơn cao tối thiểu --tap-min (trước chỉ cao bằng một dòng chữ); đệm dọc dồn vào các ô để hàng không phình thêm. Chuột giữ nguyên. */
+@media (pointer: coarse) {
+  .dash-ct-dong { padding-block: 0; }
+  .dash-ct-ma { display: inline-flex; align-items: center; justify-self: start; min-height: var(--tap-min); }
+  .dash-ct-ben, .dash-ct-meta { padding-block: var(--s2); }
+}
 /* Ba bậc theo bề rộng CỦA KHỐI (container query — khối nằm ở cột chính hẹp hay rộng tuỳ khổ màn): hẹp = ba hàng chữ (điện thoại); vừa = hai hàng; rộng = một dòng, các cột thẳng. */
 .dash-ct-dong-dc { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "ma tien" "ben ben" "meta hanh"; }
 .dash-ct-dong-tt { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "ma the" "ben ben"; }

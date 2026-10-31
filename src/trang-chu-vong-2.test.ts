@@ -134,3 +134,27 @@ test("Lối tắt: thẻ hẹp xếp hai hàng bốn ô (container query), thẻ
   assert.match(css, /@container \(max-width: 44rem\) \{ \.dash-loi-tat-luoi \{ grid-template-columns: repeat\(4, minmax\(0, 1fr\)\); \} \}/);
   assert.match(css, /--w-loi-tat-o: 80px;/);
 });
+
+// ---- Dây nối của S1 (phiên kiểm độc lập 2b: hai bản phá M4/M5 từng lọt) ----
+test("dây nối S1: web/home.ts truyền doiChieuQuaHan + thuTruocChiTiet vào `nguon` và quaHanGanNhat được gán từ alerts thật (không luôn null)", () => {
+  // M4: bỏ hai trường khỏi nguon ⇒ phụ đề «Đang chờ bạn» mất số quá hạn
+  assert.match(home, /doiChieuQuaHan: quaHanGanNhat\.doiChieu,\s*thuTruocChiTiet: quaHanGanNhat\.thuTruoc/);
+  // M5: gán quaHanGanNhat từ hằng null ⇒ trường luôn null
+  assert.match(home, /quaHanGanNhat = \{ doiChieu: review\.alerts\?\.doiChieu\?\.count \?\? null, thuTruoc: review\.alerts\?\.thuTruoc \?\? null \};/);
+  const gan = [...home.matchAll(/\bquaHanGanNhat = /g)].length;
+  assert.equal(gan, 1, "chỉ MỘT chỗ gán (ngoài khai báo `let`)");
+  assert.ok(home.indexOf("quaHanGanNhat = {") < home.indexOf("const nguon: NguonSo"), "gán TRƯỚC khi dựng nguon");
+  // phụ đề thật sự dùng hai trường đó
+  const vcb = readFileSync(fileURLToPath(new URL("../src/shared/viec-cua-ban.ts", import.meta.url)), "utf8");
+  assert.match(vcb, /phu: \(n\) => phuDoiChieu\(n\.doiChieuQuaHan\)/);
+  assert.match(vcb, /phu: \(n\) => phuThuTruoc\(n\.thuTruocChiTiet\)/);
+});
+
+test("responsive: khổ 641–899px (bố cục máy tính + thanh tab dưới) chừa đệm đáy Trang chủ bằng chiều cao thanh tab + vùng an toàn, không px cứng", () => {
+  assert.match(css, /body\.trang-chu\.has-tabbar main \{ padding-bottom: calc\(var\(--tabbar-h\) \+ env\(safe-area-inset-bottom\) \+ var\(--s5\)\); \}/);
+  assert.match(css, /body\.trang-chu\.has-tabbar\.tabbar-an main, body\.trang-chu\.has-tabbar\.tabbar-dinh main \{ padding-bottom: calc\(env\(safe-area-inset-bottom\) \+ var\(--s4\)\); \}/);
+});
+
+test("cảm ứng: liên kết mã đơn của hai khối chi tiết cao tối thiểu --tap-min (pointer: coarse)", () => {
+  assert.match(css, /@media \(pointer: coarse\) \{\s*\.dash-ct-dong \{ padding-block: 0; \}\s*\.dash-ct-ma \{[^}]*min-height: var\(--tap-min\); \}/);
+});
