@@ -76,6 +76,10 @@ const VAI_MO = defineSql("pricing", "open_roles_of",
   `SELECT r.role_type_code, r.role_group, t.is_partner_label FROM v_pty_open_role r JOIN v_pty_role_type t ON t.code = r.role_type_code WHERE r.party_id = ?1`);
 // ADR-0117 điều 1: danh sách vai được hưởng ĐỦ hai trạng thái (màn "Loại đối tác" cần thấy cả loại đang tắt); `VAI_HUONG` ở trên chỉ lấy dòng đang bật.
 const VAI_HUONG_TAT_CA = defineSql("pricing", "beneficiary_roles_all", "SELECT role_type_code, active FROM prc_beneficiary_role ORDER BY role_type_code");
+// Mã định danh 5.26: tên người tạo / người sửa loại đối tác qua view công bố nhãn nhân viên của staff (cạnh pricing → staff, chỉ tầng SQL); số hồ sơ đang mang từng loại qua
+// v_pty_open_role (chỉ đếm). Một tham số JSON (`json_each`) — câu tĩnh dù số id đổi.
+const TEN_NHAN_VIEN = defineSql("pricing", "staff_labels", "SELECT id, label FROM v_stf_staff_label WHERE id IN (SELECT value FROM json_each(?1))");
+const SO_HO_SO_THEO_VAI = defineSql("pricing", "open_role_counts", "SELECT role_type_code, count(DISTINCT party_id) AS n FROM v_pty_open_role GROUP BY role_type_code");
 const VAI_HUONG_THEM = defineSql("pricing", "beneficiary_role_insert",
   `INSERT INTO prc_beneficiary_role (role_type_code, active, created_at, created_by, updated_at, updated_by) VALUES (?1, 1, ?2, ?3, ?2, ?3)`);
 // Không có `AND active <> ?2`: dòng lệch cờ (đặt tay) vẫn được kéo về đúng trạng thái. `changes() > 0` = câu đứng ngay trước (cập nhật loại ở parties) đã đổi dòng —
@@ -215,6 +219,10 @@ export const closeTermStatement = (db: D1Database, id: string, den: string, at: 
 export const beneficiaryRoles = async (db: D1Database): Promise<string[]> => (await db.prepare(VAI_HUONG).all<{ role_type_code: string }>()).results.map((r) => r.role_type_code);
 export const openRolesOf = async (db: D1Database, partyId: string) => (await db.prepare(VAI_MO).bind(partyId).all<{ role_type_code: string; role_group: string; is_partner_label: number }>()).results;
 export const beneficiaryRolesAll = async (db: D1Database): Promise<{ role_type_code: string; active: number }[]> => (await db.prepare(VAI_HUONG_TAT_CA).all<{ role_type_code: string; active: number }>()).results;
+export const tenNhanVienTheoId = async (db: D1Database, ids: readonly string[]): Promise<Map<string, string>> => ids.length === 0 ? new Map()
+  : new Map((await db.prepare(TEN_NHAN_VIEN).bind(JSON.stringify([...new Set(ids)])).all<{ id: string; label: string }>()).results.map((r) => [r.id, r.label]));
+export const soHoSoTheoVai = async (db: D1Database): Promise<Map<string, number>> =>
+  new Map((await db.prepare(SO_HO_SO_THEO_VAI).all<{ role_type_code: string; n: number }>()).results.map((r) => [r.role_type_code, Number(r.n)]));
 export const insertBeneficiaryStatement = (db: D1Database, code: string, at: string, by: string) => db.prepare(VAI_HUONG_THEM).bind(code, at, by);
 export const setBeneficiaryActiveStatement = (db: D1Database, code: string, active: boolean, at: string, by: string) => db.prepare(VAI_HUONG_DAT).bind(code, active ? 1 : 0, at, by);
 export const isBeneficiary = async (db: D1Database, partyId: string): Promise<boolean> => (await db.prepare(LA_HUONG).bind(partyId).first()) !== null;

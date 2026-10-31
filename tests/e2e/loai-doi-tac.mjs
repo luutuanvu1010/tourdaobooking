@@ -24,6 +24,12 @@ const maLoi = (r) => r.body?.error?.code;
 const thongBao = (r) => r.body?.error?.message ?? "";
 const lamTronNuaLen = (tu, mau) => Math.floor((2 * tu + mau) / (2 * mau));
 const MA_THO = /\b(role_\w+|stale|loai_trung|invalid_input|forbidden|LD_[A-Z]{8})\b/;
+/** Mã định danh 5.26: DTO loại tự thêm đủ trường. Mốc giờ và tên người tạo / sửa (tên tài khoản dùng chung không cố định ở đây) kiểm theo khuôn; còn lại so đúng giá trị. */
+const dtoDu = (l, v) => {
+  for (const k of ["taoLuc", "suaLuc"]) assert.match(String(l[k]), /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/, k);
+  for (const k of ["taoBoi", "suaBoi"]) assert.ok(typeof l[k] === "string" && l[k].length > 0, `${k} là tên nhân viên`);
+  return { code: v.code, ten: TEN, coSan: false, dangBat: v.dangBat, ghiChu: null, taoLuc: l.taoLuc, taoBoi: l.taoBoi, suaLuc: l.suaLuc, suaBoi: l.suaBoi, updatedAt: l.suaLuc, soHoSo: v.soHoSo };
+};
 
 const congTyTruoc = (await sqlRows("SELECT party_id FROM v_pty_owner_company")).map((x) => x.party_id);
 assert.equal(congTyTruoc.length, 1, "D1 phải có đúng một công ty chủ");
@@ -41,10 +47,11 @@ assert.equal(r.status, 201, JSON.stringify(r.body));
 assert.equal(r.headers.get("location"), "/hoa-hong");
 const MA = r.body.loai.code;
 assert.match(MA, /^LD_[A-Z]{8}$/);
-assert.deepEqual(r.body.loai, { code: MA, ten: TEN, coSan: false, dangBat: true });
+assert.deepEqual(r.body.loai, dtoDu(r.body.loai, { code: MA, dangBat: true, soHoSo: 0 }));
 r = await call(ACC, "GET", "/api/pricing/loai-doi-tac");
 assert.equal(r.body.loai.length, 6);
-assert.deepEqual(r.body.loai.filter((x) => !x.coSan), [{ code: MA, ten: TEN, coSan: false, dangBat: true }]);
+const loaiMoi = r.body.loai.filter((x) => !x.coSan);
+assert.deepEqual(loaiMoi, [dtoDu(loaiMoi[0], { code: MA, dangBat: true, soHoSo: 0 })]);
 // DB: một dòng loại vai (nhóm «khác», nhãn), một dòng danh sách được hưởng, một dòng nhật ký không số / @
 const dongLoai = await sqlRows(`SELECT role_group AS g, is_partner_label AS n, active AS a FROM pty_role_type WHERE code = '${MA}'`);
 assert.deepEqual(dongLoai.map((x) => [x.g, x.n, x.a]), [["OTHER", 1, 1]]);
@@ -131,7 +138,7 @@ console.log(`✓ 3) Kế toán đặt mức 15% theo loại mới ⇒ 201; Bán 
 const don2 = await lapDon(SPA.id); // đơn NHÁP lập TRƯỚC khi tắt loại; xác nhận SAU khi tắt
 r = await call(ACC, "POST", `/api/pricing/loai-doi-tac/${MA}/tat`, {});
 assert.equal(r.status, 200, JSON.stringify(r.body));
-assert.deepEqual(r.body.loai, { code: MA, ten: TEN, coSan: false, dangBat: false });
+assert.deepEqual(r.body.loai, dtoDu(r.body.loai, { code: MA, dangBat: false, soHoSo: 1 }));
 assert.deepEqual((await sqlRows(`SELECT active AS a FROM pty_role_type WHERE code = '${MA}' UNION ALL SELECT active FROM prc_beneficiary_role WHERE role_type_code = '${MA}'`)).map((x) => x.a), [0, 0], "tắt đặt CẢ HAI cờ");
 r = await call(ADM, "POST", `/api/parties/${SPA2.id}/roles`, { roleTypeCode: MA });
 assert.equal(r.status, 409, `gắn loại đã tắt phải 409: ${JSON.stringify(r.body)}`);
@@ -163,7 +170,7 @@ assert.equal((await call(A, "POST", `/api/pricing/loai-doi-tac/${MA}/bat`, {})).
 // bật lại
 r = await call(ACC, "POST", `/api/pricing/loai-doi-tac/${MA}/bat`, {});
 assert.equal(r.status, 200, JSON.stringify(r.body));
-assert.deepEqual(r.body.loai, { code: MA, ten: TEN, coSan: false, dangBat: true });
+assert.deepEqual(r.body.loai, dtoDu(r.body.loai, { code: MA, dangBat: true, soHoSo: 1 }));
 assert.equal((await call(ADM, "POST", `/api/parties/${SPA2.id}/roles`, { roleTypeCode: MA })).status, 201, "bật lại ⇒ gắn mới được");
 assert.equal((await call(ACC, "POST", `/api/pricing/loai-doi-tac/${MA}/bat`, {})).status, 409, "/bat lần hai ⇒ stale");
 const nk = await sqlRows(`SELECT action, count(*) AS n FROM audit_log WHERE action IN ('prc_partner_type_off', 'prc_partner_type_on') GROUP BY action ORDER BY action`);

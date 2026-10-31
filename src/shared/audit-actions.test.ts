@@ -38,6 +38,12 @@ test("ADR-0117 lần 1: ba hành động loại đối tác (thêm, tắt, bật
   for (const a of ["prc_partner_type_added", "prc_partner_type_off", "prc_partner_type_on"]) assert.equal(laHanhDongThuongMai(a), true, a);
 });
 
+test("Mã định danh 5.26: đổi tên và sửa ghi chú loại đối tác — nhóm 'ledger', nhãn tiếng Việt, hành động thương mại (Đối tác không thấy)", () => {
+  assert.deepEqual({ ...AUDIT_ACTIONS.prc_partner_type_renamed }, { label: "Đổi tên loại đối tác", group: "ledger" });
+  assert.deepEqual({ ...AUDIT_ACTIONS.prc_partner_type_note }, { label: "Sửa ghi chú loại đối tác", group: "ledger" });
+  for (const a of ["prc_partner_type_renamed", "prc_partner_type_note"]) assert.equal(laHanhDongThuongMai(a), true, a);
+});
+
 test("ADR-0117 lần 2: năm hành động mức TA (thêm, tắt, bật lại, gắn loại, kết thúc gắn) nhóm 'ledger', có nhãn tiếng Việt, và là hành động thương mại (Đối tác không thấy)", () => {
   assert.deepEqual({ ...AUDIT_ACTIONS.prc_rate_tier_added }, { label: "Thêm cấp đại lý", group: "ledger" });
   assert.deepEqual({ ...AUDIT_ACTIONS.prc_rate_tier_off }, { label: "Khoá cấp đại lý", group: "ledger" });

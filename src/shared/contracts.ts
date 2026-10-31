@@ -2787,9 +2787,13 @@ export interface ThuTraResponse {
 }
 /**
  * Loại đối tác được hưởng hoa hồng (ADR-0117 lần 1). `coSan` = vai bên ngoài có từ đầu (không tắt / bật ở màn này); `dangBat` = CẢ HAI cờ (loại vai đang dùng VÀ dòng danh sách được hưởng
- * đang bật) cùng bật — lệch một cờ ⇒ false. Chỉ mã và tên: không số liệu hồ sơ.
+ * đang bật) cùng bật — lệch một cờ ⇒ false. Mã định danh 5.26 (đặc tả 2026-10-31 §3): thêm ghi chú, dấu vết (`taoBoi` / `suaBoi` = TÊN nhân viên, null = chưa có dấu vết —
+ * loại tạo trước 31/10/2026), `updatedAt` = khoá lạc quan gửi lại ở `PATCH` (null = dòng chưa từng sửa), `soHoSo` = số hồ sơ đang mang loại (chỉ đếm, không danh sách).
  */
-export interface LoaiDoiTacDto { code: string; ten: string; coSan: boolean; dangBat: boolean }
+export interface LoaiDoiTacDto {
+  code: string; ten: string; coSan: boolean; dangBat: boolean; ghiChu: string | null; taoLuc: string | null; taoBoi: string | null; suaLuc: string | null; suaBoi: string | null;
+  updatedAt: string | null; soHoSo: number;
+}
 export interface LoaiDoiTacListResponse { loai: LoaiDoiTacDto[] }
 export interface LoaiDoiTacResponse { loai: LoaiDoiTacDto }
 /**

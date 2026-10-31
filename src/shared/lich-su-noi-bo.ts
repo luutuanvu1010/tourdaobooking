@@ -73,7 +73,7 @@ export const LICH_SU_NOI_BO_CHO_PHEP = {
 export const LICH_SU_NOI_BO_AN = [
   "order_accounting_entry_marked", "order_accounting_entry_unmarked", "exported_png", "exported_pdf", "ledger_settlement", "prc_commission_rule_added",
   "prc_commission_rule_closed", "prc_supply_term_added", "prc_supply_term_closed", "prc_partner_type_added", "prc_partner_type_off",
-  "prc_partner_type_on", "prc_sales_block_added", "prc_sales_block_ended", "prc_rate_tier_added", "prc_rate_tier_off", "prc_rate_tier_on", "prc_role_tier_set", "prc_role_tier_closed", "prc_party_tier_set", "prc_party_tier_closed",
+  "prc_partner_type_on", "prc_partner_type_renamed", "prc_partner_type_note", "prc_sales_block_added", "prc_sales_block_ended", "prc_rate_tier_added", "prc_rate_tier_off", "prc_rate_tier_on", "prc_role_tier_set", "prc_role_tier_closed", "prc_party_tier_set", "prc_party_tier_closed",
   "prc_commission_rule_voided", "prc_role_tier_voided", "prc_party_tier_voided", "ledger_period_closed", "staff_created", "staff_updated", "staff_suspended", "staff_reactivated", "staff_role_changed", "pin_reset", "pin_changed",
   "passkey_added", "passkey_removed", "pin_set_by_passkey", "login_unlocked", "staff_synced", "permission_changed", "account_roles_changed",
   "session_policy_changed", "session_revoked", "mfa_enabled", "mfa_removed", "mfa_recovery_regenerated", "mfa_reset", "mfa_grace_reopened",

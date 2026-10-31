@@ -95,6 +95,10 @@ export const AUDIT_ACTIONS = {
   prc_partner_type_added: { label: "Thêm loại đối tác", group: "ledger" },
   prc_partner_type_off: { label: "Tắt loại đối tác", group: "ledger" },
   prc_partner_type_on: { label: "Bật lại loại đối tác", group: "ledger" },
+  // Mã định danh 5.26 (đặc tả 2026-10-31 §3): đổi tên — `detail` = «cũ» → «mới»; sửa ghi chú — `detail` = tên loại, KHÔNG chép nội dung ghi chú (chữ tự do, dễ lọt thông tin cá nhân).
+  // Mọi dòng `prc_partner_type_*` từ bản này ghi `target_type = 'ledger'`, `target_id` = mã loại.
+  prc_partner_type_renamed: { label: "Đổi tên loại đối tác", group: "ledger" },
+  prc_partner_type_note: { label: "Sửa ghi chú loại đối tác", group: "ledger" },
   // ADR-0146 Đ5: Bán hàng / Quản trị / Toàn quyền thêm và kết thúc LUẬT BÁN theo loại đối tác — `detail` = tên + mã loại, phạm vi (mã dịch vụ / mã nhóm / mã đặc điểm = mã giá trị),
   // ngày (ADR-0146 Đ5 «nhật ký ghi mã loại, mã nhóm hoặc dịch vụ, ngày»); không thông tin cá nhân.
   prc_sales_block_added: { label: "Thêm luật bán", group: "ledger" },

@@ -236,6 +236,7 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/pricing/luat-ban/:id/ket-thuc", access: "office" },
   { method: "GET", path: "/api/pricing/loai-doi-tac", access: "office" },
   { method: "POST", path: "/api/pricing/loai-doi-tac", access: "office" },
+  { method: "PATCH", path: "/api/pricing/loai-doi-tac/:code", access: "office" },
   { method: "POST", path: "/api/pricing/loai-doi-tac/:code/tat", access: "office" },
   { method: "POST", path: "/api/pricing/loai-doi-tac/:code/bat", access: "office" },
   // ADR-0117 lần 2: mức TA dùng chung — xem (partner.commission.view), tạo / gắn / kết thúc gắn / tắt / bật / thêm dòng (partner.commission.write); chặn tài khoản giữ quyền Đối tác (holdsPartner).
@@ -541,7 +542,7 @@ test("MODULES liệt kê ĐỦ mọi thư mục module có khai `...Module: AppM
   assert.deepEqual(routedDirs, listed, "có thư mục module khai AppModule nhưng chưa có trong MODULES của bài kiểm route-access này — thêm vào MODULES và SNAPSHOT");
 });
 
-test("mức truy cập của 405 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
+test("mức truy cập của 406 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
   const actual = await collectRealRoutes();
   // deepEqual TRƯỚC: khi có route mới/bị xoá, thông báo của nó chỉ ra ĐÚNG route lệch — hai assert.equal độ dài bên dưới chỉ để phòng hờ
   // (không bao giờ tự chạy tới nếu deepEqual đã trượt) và tài liệu hoá con số 86 để đối chiếu nhanh bằng mắt.
@@ -666,6 +667,7 @@ test("mức truy cập của 405 route hiện có khớp ảnh chụp đã duy�
   // 2026-10-30 (ADR-0151): + POST /api/pricing/muc-rieng/:id/doi (office) = 394.
   // 2026-10-30 (ADR-0146 Đ5, luật bán): + GET, POST /api/pricing/luat-ban, POST …/luat-ban/:id/ket-thuc (office; sales.block.write, không Đối tác) = 397.
   // 2026-10-30 (ADR-0152 Đ1, Đ3, Đ5): + 8 route /api/catalog/dac-diem* (GET ×2, PUT gắn dịch vụ: office; POST ×2, PATCH ×2, PUT gắn nhóm: admin) = 405.
-  assert.equal(actual.length, 405, "số route thực tế lệch 405 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 405, "SNAPSHOT phải có đúng 405 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // 2026-10-31 (mã định danh 5.26, Task 3): + PATCH /api/pricing/loai-doi-tac/:code (office; partner.commission.write, không Đối tác) = 406.
+  assert.equal(actual.length, 406, "số route thực tế lệch 406 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 406, "SNAPSHOT phải có đúng 406 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

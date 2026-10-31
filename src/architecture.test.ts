@@ -54,7 +54,9 @@ const ALLOWED_EDGES: Record<string, readonly string[]> = {
   orders: ["audit", "catalog", "staff", "parties", "locations", "pricing"],
   parties: ["locations", "audit"],
   // ADR-0024 điều 1–2, ADR-0077: bảng mức hoa hồng + điều khoản người bán — tạo ở sổ đại lý đợt 1 (route /api/pricing/*; đọc view công bố của parties, catalog; ghi nhật ký qua audit).
-  pricing: ["parties", "catalog", "audit"],
+  // + staff (mã định danh 5.26, kế hoạch docs/superpowers/plans/2026-10-31-ma-dinh-danh-va-sua-loai-doi-tac.md Task 3): CHỈ ở tầng SQL — tên người tạo / người sửa loại đối tác
+  // qua view công bố v_stf_staff_label (mẫu `feedback`, `tro-ly`); không import src/modules/staff. NỚI cạnh (Điều 9.4): theo kế hoạch đã duyệt 31/10, chờ chủ xác nhận riêng cạnh này.
+  pricing: ["parties", "catalog", "audit", "staff"],
   // ADR-0024 điều 1: biên nhận theo danh sách trắng — KHÔNG bảng, KHÔNG SQL (hạng KHONG_BANG); chuyển tay cầm DB cho hàm công bố của các module dưới.
   receipt: ["orders", "billing", "parties", "company"],
   staff: ["parties", "audit"],
