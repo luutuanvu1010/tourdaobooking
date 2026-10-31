@@ -6,6 +6,8 @@ import { giaVonDong, hoaHongDong, lamTronNuaLen, tinhDongDoiTac, type BanChup, t
 import { nhanMuc } from "../../shared/so-dai-ly-nhan.ts";
 import { MOI_KHACH_TOI_DA, docLyDoSua } from "../../shared/so-dai-ly-nhap.ts"; // trần «Số tiền mỗi khách» và lý do «Sửa» (ADR-0148): MỘT luật cho giao diện và máy chủ
 import { khoaTen } from "../../shared/khoa-ten.ts";
+import { sinhMa } from "../../shared/ma-dinh-danh.ts";
+import { coSoHoacEmail } from "../../shared/ghi-chu-danh-muc.ts";
 import { addDays, ngayDayDu } from "../../shared/vn-date.ts";
 
 // Phép tính tiền MỘT dòng (làm tròn nửa lên, hoa hồng, giá vốn, `tinhDongDoiTac`) và kiểu bản chụp nằm ở src/shared/hoa-hong-dong.ts để `orders/thuong-mai.ts` (DTO) chạy được bằng node trực tiếp
@@ -372,13 +374,13 @@ export function kiemThanDongMucTa(raw: unknown, tierCode: string): Ket<ThanMuc> 
 export function kiemTenMucTa(raw: unknown): Ket<{ ten: string; khoa: string }> {
   const ten = typeof raw === "string" ? raw.trim().replace(/\s+/g, " ") : "";
   if (ten.length < 2 || ten.length > 60) return { ok: false, message: "Tên cấp đại lý dài từ 2 đến 60 ký tự." };
-  if (/\d{8,}/.test(ten.replace(/[\s.]/g, "")) || /\d{9,}/.test(ten.replace(/[\s.-]/g, "")) || ten.includes("@")) return { ok: false, message: "Tên cấp đại lý không được chứa số điện thoại, số tài khoản hay địa chỉ email." };
+  if (coSoHoacEmail(ten)) return { ok: false, message: "Tên cấp đại lý không được chứa số điện thoại, số tài khoản hay địa chỉ email." };
   const khoa = khoaTen(ten);
   if (khoa.length < 2) return { ok: false, message: "Tên cấp đại lý dài từ 2 đến 60 ký tự." };
   return { ok: true, value: { ten, khoa } };
 }
 /** Mã mức TA máy chủ sinh: `MT_` + 8 chữ hoa (không bao giờ trùng đoạn đường cố định như «gan»; khớp `MA_RE`). `bytes` lấy từ `crypto.getRandomValues` ở nơi gọi. */
-export const maMucTa = (bytes: Uint8Array): string => "MT_" + Array.from(bytes.slice(0, 8), (b) => String.fromCharCode(65 + (b % 26))).join("");
+export const maMucTa = (bytes: Uint8Array): string => sinhMa("MT", bytes);
 export const MUC_TA_RE = /^MT_[A-Z]{8}$/;
 /** Thân `POST /api/pricing/muc-ta/gan`: { loai, muc, tuNgay, denNgay? }. */
 export function kiemThanGan(raw: unknown): Ket<{ roleTypeCode: string; tierCode: string; validFrom: string; validTo: string | null }> {
