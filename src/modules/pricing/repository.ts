@@ -12,7 +12,7 @@ export interface RuleRow {
   /** ADR-0148 (migration 0126): dấu huỷ (dòng chưa đơn nào chụp, đã thay hẳn), dòng mà dòng này thay, lý do sửa. Câu «tra» loại dòng huỷ; câu «lịch sử» trả cả dòng huỷ. */
   voided_at: string | null; replaces_id: string | null; change_reason: string | null;
 }
-export interface TierRow { code: string; name: string; active: number }
+export interface TierRow { code: string; name: string; active: number; note: string | null; created_at: string; created_by: string | null; updated_at: string; updated_by: string | null }
 export interface RoleTierRow { id: string; role_type_code: string; tier_code: string; valid_from_date: string; valid_to_date: string | null; voided_at: string | null; replaces_id: string | null; change_reason: string | null }
 /** ADR-0138 (migration 0118): mức TA gắn riêng cho một hồ sơ. */
 export interface PartyTierRow { id: string; party_id: string; tier_code: string; valid_from_date: string; valid_to_date: string | null; voided_at: string | null; replaces_id: string | null; change_reason: string | null }
@@ -95,12 +95,15 @@ const TIM_HUONG = defineSql("pricing", "find_beneficiaries",
    WHERE l.active = 1 AND EXISTS (SELECT 1 FROM v_pty_open_role r JOIN prc_beneficiary_role b ON b.role_type_code = r.role_type_code AND b.active = 1 WHERE r.party_id = l.id)
      AND (?1 = '' OR l.display_name LIKE '%' || ?1 || '%' ESCAPE '\\') ORDER BY l.display_name LIMIT 20`);
 // ===== Mức TA dùng chung (ADR-0117 lần 2, migration 0096): prc_rate_tier (mức), prc_role_tier (gắn loại↔mức theo ngày). Khoá tên `name_key` do máy chủ ghi, không đọc ra. =====
-const MUC_TA_TAT_CA = defineSql("pricing", "rate_tiers_all", "SELECT code, name, active FROM prc_rate_tier ORDER BY name_key, code");
-const MUC_TA_MA = defineSql("pricing", "rate_tier_by_code", "SELECT code, name, active FROM prc_rate_tier WHERE code = ?1");
+const MUC_TA_TAT_CA = defineSql("pricing", "rate_tiers_all", "SELECT code, name, active, note, created_at, created_by, updated_at, updated_by FROM prc_rate_tier ORDER BY name_key, code");
+const MUC_TA_MA = defineSql("pricing", "rate_tier_by_code", "SELECT code, name, active, note, created_at, created_by, updated_at, updated_by FROM prc_rate_tier WHERE code = ?1");
 const MUC_TA_THEM = defineSql("pricing", "rate_tier_insert",
   `INSERT INTO prc_rate_tier (code, name, name_key, active, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, 1, ?4, ?5, ?4, ?5)`);
 // Chỉ đổi dòng khi mức CHƯA ở trạng thái đích ⇒ bên thua một lượt tranh chấp không ghi gì (nhật ký đi theo `changes() > 0`).
 const MUC_TA_DAT = defineSql("pricing", "rate_tier_set_active", "UPDATE prc_rate_tier SET active = ?2, updated_at = ?3, updated_by = ?4 WHERE code = ?1 AND active <> ?2");
+// Mã định danh 5.26: đổi tên + ghi chú cấp đại lý, khoá lạc quan theo `updated_at` (cột này NOT NULL nên so bằng). `name_key` do nơi gọi tính (kiemTenMucTa).
+const MUC_TA_SUA = defineSql("pricing", "rate_tier_update",
+  "UPDATE prc_rate_tier SET name = ?2, name_key = ?3, note = ?4, updated_at = ?5, updated_by = ?6 WHERE code = ?1 AND updated_at = ?7");
 const COT_GAN = "g.id, g.role_type_code, g.tier_code, g.valid_from_date, g.valid_to_date, g.voided_at, g.replaces_id, g.change_reason";
 const GAN_TAT_CA = defineSql("pricing", "role_tiers_all", `SELECT ${COT_GAN} FROM prc_role_tier g ORDER BY (g.voided_at IS NOT NULL), (g.valid_to_date IS NOT NULL), g.valid_from_date DESC, g.id`);
 // Gắn hiệu lực ở ?1 (cho `chonMuc`): KHÔNG lọc theo `prc_rate_tier.active` — mức đã tắt vẫn áp cho gắn đang có (N-23).
@@ -226,6 +229,8 @@ export const suppliers = async (db: D1Database) => (await db.prepare(NHA_CUNG_CA
 export const rateTiers = async (db: D1Database) => (await db.prepare(MUC_TA_TAT_CA).all<TierRow>()).results;
 export const rateTierByCode = (db: D1Database, code: string) => db.prepare(MUC_TA_MA).bind(code).first<TierRow>();
 export const insertRateTierStatement = (db: D1Database, v: { code: string; ten: string; khoa: string }, at: string, by: string) => db.prepare(MUC_TA_THEM).bind(v.code, v.ten, v.khoa, at, by);
+export const suaMucTaStatement = (db: D1Database, v: { code: string; ten: string; khoa: string; ghiChu: string | null; at: string; staffId: string; truocLuc: string }) =>
+  db.prepare(MUC_TA_SUA).bind(v.code, v.ten, v.khoa, v.ghiChu, v.at, v.staffId, v.truocLuc);
 export const setRateTierActiveStatement = (db: D1Database, code: string, active: boolean, at: string, by: string) => db.prepare(MUC_TA_DAT).bind(code, active ? 1 : 0, at, by);
 export const roleTiersAll = async (db: D1Database) => (await db.prepare(GAN_TAT_CA).all<RoleTierRow>()).results;
 export const roleTiersOn = async (db: D1Database, ngay: string) => (await db.prepare(GAN_NGAY).bind(ngay).all<RoleTierRow>()).results;

@@ -203,7 +203,7 @@ async function doiTrangThaiLoai(db: D1Database, code: string, bat: boolean, staf
   }
   const at = new Date().toISOString();
   const res = await chayLo(db, [
-    datHoatDongLoaiDoiTacStatement(db, code, bat),
+    datHoatDongLoaiDoiTacStatement(db, code, bat, at, staffId),
     setBeneficiaryActiveStatement(db, code, bat, at, staffId),
     auditStatement(db, { staffId, action: bat ? "prc_partner_type_on" : "prc_partner_type_off", at, detail: loai.ten }, "changes() > 0"),
   ]);
@@ -499,7 +499,7 @@ export const pricingModule: AppModule = {
       const at = new Date().toISOString();
       // Thứ tự: loại vai TRƯỚC (prc_beneficiary_role.role_type_code có khoá ngoại tới pty_role_type), rồi danh sách được hưởng, rồi nhật ký.
       const res = await chayLo(env.DB, [
-        themLoaiDoiTacStatement(env.DB, { code, ten: kq.value }),
+        themLoaiDoiTacStatement(env.DB, { code, ten: kq.value, at, staffId: staff.id }),
         insertBeneficiaryStatement(env.DB, code, at, staff.id),
         auditStatement(env.DB, { staffId: staff.id, action: "prc_partner_type_added", at, detail: kq.value }),
       ]);

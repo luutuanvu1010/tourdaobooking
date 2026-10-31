@@ -523,3 +523,23 @@ test("Bản tính thử đơn NHÁP (phần thương mại) với bên đặt c�
   assert.deepEqual([d.muc, d.hoaHong, d.thieu], ["12%", 240_000, null]);
   assert.equal(chup(w, id).length, 0, "tính thử không ghi bản chụp");
 });
+
+// Mã định danh 5.26, Task 2 — cấp đại lý có ghi chú; câu sửa tên + ghi chú khoá lạc quan theo updated_at.
+test("suaMucTaStatement: sai truocLuc ⇒ 0 dòng; đúng ⇒ đổi tên, khoá tên, ghi chú; tên trùng khoá cấp khác ⇒ UNIQUE", async () => {
+  const { fakeD1 } = await import("../../../tests/audit/harness.mjs");
+  const { suaMucTaStatement } = await import("./repository.ts");
+  const w = setup();
+  const a = await taoMuc(w, "TA1");
+  const b = await taoMuc(w, "TA2");
+  const db = fakeD1(w.sqlite) as unknown as D1Database;
+  const cu = w.q("SELECT updated_at FROM prc_rate_tier WHERE code = ?", a)[0].updated_at as string;
+  const sua = async (code: string, ten: string, khoa: string, truocLuc: string) =>
+    (await suaMucTaStatement(db, { code, ten, khoa, ghiChu: "Đại lý lớn", at: "2099-01-01T00:00:00.000Z", staffId: KT, truocLuc }).run()).meta.changes;
+  assert.equal(await sua(a, "Cấp vàng", "cap vang", "1999-01-01T00:00:00.000Z"), 0, "truocLuc cũ ⇒ 0 dòng");
+  assert.equal(await sua(a, "Cấp vàng", "cap vang", cu), 1);
+  const h = w.q("SELECT name, name_key, note, updated_at, updated_by FROM prc_rate_tier WHERE code = ?", a)[0];
+  assert.deepEqual({ ...h }, { name: "Cấp vàng", name_key: "cap vang", note: "Đại lý lớn", updated_at: "2099-01-01T00:00:00.000Z", updated_by: KT });
+  const cuB = w.q("SELECT updated_at FROM prc_rate_tier WHERE code = ?", b)[0].updated_at as string;
+  await assert.rejects(() => sua(b, "Cấp vàng", "cap vang", cuB), /UNIQUE/);
+  assert.throws(() => w.sqlite.prepare("UPDATE prc_rate_tier SET note = ? WHERE code = ?").run("a".repeat(501), a));
+});
