@@ -1,0 +1,1434 @@
+{
+ "pha": "sau-s1",
+ "trang": [],
+ "trangChu": [
+  {
+   "ca": "nang-0-don",
+   "kho": "1366x650",
+   "cao": {
+    "doiChieu": 335,
+    "thuTruoc": 194,
+    "donDi": 103,
+    "canXemLai": 115,
+    "dangCho": 219,
+    "doanhThu": 608,
+    "loiTat": 102,
+    "gap": null
+   },
+   "hop": {
+    "loiTat": [
+     272,
+     255,
+     1070,
+     102
+    ],
+    "gap": null,
+    "donDi": [
+     272,
+     381,
+     686,
+     103
+    ],
+    "doiChieu": [
+     272,
+     647,
+     686,
+     335
+    ],
+    "thuTruoc": [
+     272,
+     1022,
+     686,
+     194
+    ],
+    "canXemLai": [
+     272,
+     508,
+     686,
+     115
+    ],
+    "dangCho": [
+     982,
+     381,
+     360,
+     219
+    ],
+    "doanhThu": [
+     982,
+     624,
+     360,
+     608
+    ]
+   },
+   "daySauCotChinh": 1232,
+   "daySauCotPhu": 1232,
+   "caoTrang": 1256,
+   "dongDoiChieu": 3,
+   "dongThuTruoc": 3,
+   "thuTu": [
+    [
+     "#dash-dai",
+     145
+    ],
+    [
+     "#dash-loi-tat",
+     255
+    ],
+    [
+     "#dash-today",
+     381
+    ],
+    [
+     "#dash-review",
+     508
+    ],
+    [
+     "#dash-doi-chieu",
+     647
+    ],
+    [
+     "#dash-thu-truoc",
+     1022
+    ],
+    [
+     "#dash-dang-cho",
+     381
+    ],
+    [
+     "#dash-so-mt",
+     624
+    ]
+   ],
+   "lechCot": 1,
+   "pillTrenDong": true,
+   "vw": 1366,
+   "scrollW": 1366,
+   "soTrong": "Không có đơn nào đi hôm nay.",
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 4
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "nang-0-don",
+   "kho": "1440x900",
+   "cao": {
+    "doiChieu": 315,
+    "thuTruoc": 194,
+    "donDi": 103,
+    "canXemLai": 115,
+    "dangCho": 219,
+    "doanhThu": 588,
+    "loiTat": 102,
+    "gap": null
+   },
+   "hop": {
+    "loiTat": [
+     272,
+     255,
+     1144,
+     102
+    ],
+    "gap": null,
+    "donDi": [
+     272,
+     381,
+     720,
+     103
+    ],
+    "doiChieu": [
+     272,
+     647,
+     720,
+     315
+    ],
+    "thuTruoc": [
+     272,
+     1002,
+     720,
+     194
+    ],
+    "canXemLai": [
+     272,
+     508,
+     720,
+     115
+    ],
+    "dangCho": [
+     1016,
+     381,
+     400,
+     219
+    ],
+    "doanhThu": [
+     1016,
+     624,
+     400,
+     588
+    ]
+   },
+   "daySauCotChinh": 1212,
+   "daySauCotPhu": 1212,
+   "caoTrang": 1236,
+   "dongDoiChieu": 3,
+   "dongThuTruoc": 3,
+   "thuTu": [
+    [
+     "#dash-dai",
+     145
+    ],
+    [
+     "#dash-loi-tat",
+     255
+    ],
+    [
+     "#dash-today",
+     381
+    ],
+    [
+     "#dash-review",
+     508
+    ],
+    [
+     "#dash-doi-chieu",
+     647
+    ],
+    [
+     "#dash-thu-truoc",
+     1002
+    ],
+    [
+     "#dash-dang-cho",
+     381
+    ],
+    [
+     "#dash-so-mt",
+     624
+    ]
+   ],
+   "lechCot": 1,
+   "pillTrenDong": true,
+   "vw": 1440,
+   "scrollW": 1440,
+   "soTrong": "Không có đơn nào đi hôm nay.",
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "nang-0-don",
+   "kho": "1920x1080",
+   "cao": {
+    "doiChieu": 228,
+    "thuTruoc": 194,
+    "donDi": 103,
+    "canXemLai": 115,
+    "dangCho": 219,
+    "doanhThu": 501,
+    "loiTat": 102,
+    "gap": null
+   },
+   "hop": {
+    "loiTat": [
+     272,
+     255,
+     1624,
+     102
+    ],
+    "gap": null,
+    "donDi": [
+     272,
+     381,
+     1200,
+     103
+    ],
+    "doiChieu": [
+     272,
+     647,
+     1200,
+     228
+    ],
+    "thuTruoc": [
+     272,
+     915,
+     1200,
+     194
+    ],
+    "canXemLai": [
+     272,
+     508,
+     1200,
+     115
+    ],
+    "dangCho": [
+     1496,
+     381,
+     400,
+     219
+    ],
+    "doanhThu": [
+     1496,
+     624,
+     400,
+     501
+    ]
+   },
+   "daySauCotChinh": 1125,
+   "daySauCotPhu": 1125,
+   "caoTrang": 1149,
+   "dongDoiChieu": 3,
+   "dongThuTruoc": 3,
+   "thuTu": [
+    [
+     "#dash-dai",
+     145
+    ],
+    [
+     "#dash-loi-tat",
+     255
+    ],
+    [
+     "#dash-today",
+     381
+    ],
+    [
+     "#dash-review",
+     508
+    ],
+    [
+     "#dash-doi-chieu",
+     647
+    ],
+    [
+     "#dash-thu-truoc",
+     915
+    ],
+    [
+     "#dash-dang-cho",
+     381
+    ],
+    [
+     "#dash-so-mt",
+     624
+    ]
+   ],
+   "lechCot": 1,
+   "pillTrenDong": true,
+   "vw": 1920,
+   "scrollW": 1920,
+   "soTrong": "Không có đơn nào đi hôm nay.",
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "nang-0-don",
+   "kho": "1100x800",
+   "cao": {
+    "doiChieu": 367,
+    "thuTruoc": 245,
+    "donDi": 103,
+    "canXemLai": 115,
+    "dangCho": 219,
+    "doanhThu": 691,
+    "loiTat": 118,
+    "gap": null
+   },
+   "hop": {
+    "loiTat": [
+     272,
+     255,
+     804,
+     118
+    ],
+    "gap": null,
+    "donDi": [
+     272,
+     397,
+     460,
+     103
+    ],
+    "doiChieu": [
+     272,
+     663,
+     460,
+     367
+    ],
+    "thuTruoc": [
+     272,
+     1070,
+     460,
+     245
+    ],
+    "canXemLai": [
+     272,
+     524,
+     460,
+     115
+    ],
+    "dangCho": [
+     756,
+     397,
+     320,
+     219
+    ],
+    "doanhThu": [
+     756,
+     640,
+     320,
+     691
+    ]
+   },
+   "daySauCotChinh": 1331,
+   "daySauCotPhu": 1331,
+   "caoTrang": 1355,
+   "dongDoiChieu": 3,
+   "dongThuTruoc": 3,
+   "thuTu": [
+    [
+     "#dash-dai",
+     145
+    ],
+    [
+     "#dash-loi-tat",
+     255
+    ],
+    [
+     "#dash-today",
+     397
+    ],
+    [
+     "#dash-review",
+     524
+    ],
+    [
+     "#dash-doi-chieu",
+     663
+    ],
+    [
+     "#dash-thu-truoc",
+     1070
+    ],
+    [
+     "#dash-dang-cho",
+     397
+    ],
+    [
+     "#dash-so-mt",
+     640
+    ]
+   ],
+   "lechCot": 1,
+   "pillTrenDong": true,
+   "vw": 1100,
+   "scrollW": 1100,
+   "soTrong": "Không có đơn nào đi hôm nay.",
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 1
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "nang-8-don",
+   "kho": "1366x650",
+   "cao": {
+    "doiChieu": 335,
+    "thuTruoc": 194,
+    "donDi": 1020,
+    "canXemLai": 115,
+    "dangCho": 337,
+    "doanhThu": 1407,
+    "loiTat": 102,
+    "gap": null
+   },
+   "hop": {
+    "loiTat": [
+     272,
+     255,
+     1070,
+     102
+    ],
+    "gap": null,
+    "donDi": [
+     272,
+     381,
+     686,
+     1020
+    ],
+    "doiChieu": [
+     272,
+     1564,
+     686,
+     335
+    ],
+    "thuTruoc": [
+     272,
+     1939,
+     686,
+     194
+    ],
+    "canXemLai": [
+     272,
+     1425,
+     686,
+     115
+    ],
+    "dangCho": [
+     982,
+     381,
+     360,
+     337
+    ],
+    "doanhThu": [
+     982,
+     742,
+     360,
+     1407
+    ]
+   },
+   "daySauCotChinh": 2149,
+   "daySauCotPhu": 2149,
+   "caoTrang": 2173,
+   "dongDoiChieu": 3,
+   "dongThuTruoc": 3,
+   "thuTu": [
+    [
+     "#dash-dai",
+     145
+    ],
+    [
+     "#dash-loi-tat",
+     255
+    ],
+    [
+     "#dash-today",
+     381
+    ],
+    [
+     "#dash-review",
+     1425
+    ],
+    [
+     "#dash-doi-chieu",
+     1564
+    ],
+    [
+     "#dash-thu-truoc",
+     1939
+    ],
+    [
+     "#dash-dang-cho",
+     381
+    ],
+    [
+     "#dash-so-mt",
+     742
+    ]
+   ],
+   "lechCot": 1,
+   "pillTrenDong": true,
+   "vw": 1366,
+   "scrollW": 1366,
+   "soTrong": null,
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 4
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "nang-8-don",
+   "kho": "1440x900",
+   "cao": {
+    "doiChieu": 315,
+    "thuTruoc": 194,
+    "donDi": 980,
+    "canXemLai": 115,
+    "dangCho": 337,
+    "doanhThu": 1347,
+    "loiTat": 102,
+    "gap": null
+   },
+   "hop": {
+    "loiTat": [
+     272,
+     255,
+     1144,
+     102
+    ],
+    "gap": null,
+    "donDi": [
+     272,
+     381,
+     720,
+     980
+    ],
+    "doiChieu": [
+     272,
+     1524,
+     720,
+     315
+    ],
+    "thuTruoc": [
+     272,
+     1879,
+     720,
+     194
+    ],
+    "canXemLai": [
+     272,
+     1385,
+     720,
+     115
+    ],
+    "dangCho": [
+     1016,
+     381,
+     400,
+     337
+    ],
+    "doanhThu": [
+     1016,
+     742,
+     400,
+     1347
+    ]
+   },
+   "daySauCotChinh": 2089,
+   "daySauCotPhu": 2089,
+   "caoTrang": 2113,
+   "dongDoiChieu": 3,
+   "dongThuTruoc": 3,
+   "thuTu": [
+    [
+     "#dash-dai",
+     145
+    ],
+    [
+     "#dash-loi-tat",
+     255
+    ],
+    [
+     "#dash-today",
+     381
+    ],
+    [
+     "#dash-review",
+     1385
+    ],
+    [
+     "#dash-doi-chieu",
+     1524
+    ],
+    [
+     "#dash-thu-truoc",
+     1879
+    ],
+    [
+     "#dash-dang-cho",
+     381
+    ],
+    [
+     "#dash-so-mt",
+     742
+    ]
+   ],
+   "lechCot": 1,
+   "pillTrenDong": true,
+   "vw": 1440,
+   "scrollW": 1440,
+   "soTrong": null,
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "nang-8-don",
+   "kho": "1920x1080",
+   "cao": {
+    "doiChieu": 228,
+    "thuTruoc": 194,
+    "donDi": 916,
+    "canXemLai": 115,
+    "dangCho": 337,
+    "doanhThu": 1196,
+    "loiTat": 102,
+    "gap": null
+   },
+   "hop": {
+    "loiTat": [
+     272,
+     255,
+     1624,
+     102
+    ],
+    "gap": null,
+    "donDi": [
+     272,
+     381,
+     1200,
+     916
+    ],
+    "doiChieu": [
+     272,
+     1460,
+     1200,
+     228
+    ],
+    "thuTruoc": [
+     272,
+     1728,
+     1200,
+     194
+    ],
+    "canXemLai": [
+     272,
+     1321,
+     1200,
+     115
+    ],
+    "dangCho": [
+     1496,
+     381,
+     400,
+     337
+    ],
+    "doanhThu": [
+     1496,
+     742,
+     400,
+     1196
+    ]
+   },
+   "daySauCotChinh": 1938,
+   "daySauCotPhu": 1938,
+   "caoTrang": 1962,
+   "dongDoiChieu": 3,
+   "dongThuTruoc": 3,
+   "thuTu": [
+    [
+     "#dash-dai",
+     145
+    ],
+    [
+     "#dash-loi-tat",
+     255
+    ],
+    [
+     "#dash-today",
+     381
+    ],
+    [
+     "#dash-review",
+     1321
+    ],
+    [
+     "#dash-doi-chieu",
+     1460
+    ],
+    [
+     "#dash-thu-truoc",
+     1728
+    ],
+    [
+     "#dash-dang-cho",
+     381
+    ],
+    [
+     "#dash-so-mt",
+     742
+    ]
+   ],
+   "lechCot": 1,
+   "pillTrenDong": true,
+   "vw": 1920,
+   "scrollW": 1920,
+   "soTrong": null,
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "nang-8-don",
+   "kho": "1100x800",
+   "cao": {
+    "doiChieu": 367,
+    "thuTruoc": 245,
+    "donDi": 1404,
+    "canXemLai": 115,
+    "dangCho": 353,
+    "doanhThu": 1858,
+    "loiTat": 118,
+    "gap": null
+   },
+   "hop": {
+    "loiTat": [
+     272,
+     255,
+     804,
+     118
+    ],
+    "gap": null,
+    "donDi": [
+     272,
+     397,
+     460,
+     1404
+    ],
+    "doiChieu": [
+     272,
+     1964,
+     460,
+     367
+    ],
+    "thuTruoc": [
+     272,
+     2371,
+     460,
+     245
+    ],
+    "canXemLai": [
+     272,
+     1825,
+     460,
+     115
+    ],
+    "dangCho": [
+     756,
+     397,
+     320,
+     353
+    ],
+    "doanhThu": [
+     756,
+     774,
+     320,
+     1858
+    ]
+   },
+   "daySauCotChinh": 2632,
+   "daySauCotPhu": 2632,
+   "caoTrang": 2656,
+   "dongDoiChieu": 3,
+   "dongThuTruoc": 3,
+   "thuTu": [
+    [
+     "#dash-dai",
+     145
+    ],
+    [
+     "#dash-loi-tat",
+     255
+    ],
+    [
+     "#dash-today",
+     397
+    ],
+    [
+     "#dash-review",
+     1825
+    ],
+    [
+     "#dash-doi-chieu",
+     1964
+    ],
+    [
+     "#dash-thu-truoc",
+     2371
+    ],
+    [
+     "#dash-dang-cho",
+     397
+    ],
+    [
+     "#dash-so-mt",
+     774
+    ]
+   ],
+   "lechCot": 1,
+   "pillTrenDong": true,
+   "vw": 1100,
+   "scrollW": 1100,
+   "soTrong": null,
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 1
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "nang-8-don-dai-gap",
+   "kho": "1366x650",
+   "cao": {
+    "doiChieu": 335,
+    "thuTruoc": 194,
+    "donDi": 1020,
+    "canXemLai": 115,
+    "dangCho": 455,
+    "doanhThu": 1289,
+    "loiTat": 102,
+    "gap": 74
+   },
+   "hop": {
+    "loiTat": [
+     272,
+     255,
+     1070,
+     102
+    ],
+    "gap": [
+     272,
+     381,
+     1070,
+     74
+    ],
+    "donDi": [
+     272,
+     479,
+     686,
+     1020
+    ],
+    "doiChieu": [
+     272,
+     1662,
+     686,
+     335
+    ],
+    "thuTruoc": [
+     272,
+     2037,
+     686,
+     194
+    ],
+    "canXemLai": [
+     272,
+     1523,
+     686,
+     115
+    ],
+    "dangCho": [
+     982,
+     479,
+     360,
+     455
+    ],
+    "doanhThu": [
+     982,
+     958,
+     360,
+     1289
+    ]
+   },
+   "daySauCotChinh": 2247,
+   "daySauCotPhu": 2247,
+   "caoTrang": 2271,
+   "dongDoiChieu": 3,
+   "dongThuTruoc": 3,
+   "thuTu": [
+    [
+     "#dash-dai",
+     145
+    ],
+    [
+     "#dash-loi-tat",
+     255
+    ],
+    [
+     "#dash-gap",
+     381
+    ],
+    [
+     "#dash-today",
+     479
+    ],
+    [
+     "#dash-review",
+     1523
+    ],
+    [
+     "#dash-doi-chieu",
+     1662
+    ],
+    [
+     "#dash-thu-truoc",
+     2037
+    ],
+    [
+     "#dash-dang-cho",
+     479
+    ],
+    [
+     "#dash-so-mt",
+     958
+    ]
+   ],
+   "lechCot": 1,
+   "pillTrenDong": true,
+   "vw": 1366,
+   "scrollW": 1366,
+   "soTrong": null,
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 4
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "nang-8-don-dai-gap",
+   "kho": "1440x900",
+   "cao": {
+    "doiChieu": 315,
+    "thuTruoc": 194,
+    "donDi": 980,
+    "canXemLai": 115,
+    "dangCho": 455,
+    "doanhThu": 1229,
+    "loiTat": 102,
+    "gap": 74
+   },
+   "hop": {
+    "loiTat": [
+     272,
+     255,
+     1144,
+     102
+    ],
+    "gap": [
+     272,
+     381,
+     1144,
+     74
+    ],
+    "donDi": [
+     272,
+     479,
+     720,
+     980
+    ],
+    "doiChieu": [
+     272,
+     1622,
+     720,
+     315
+    ],
+    "thuTruoc": [
+     272,
+     1977,
+     720,
+     194
+    ],
+    "canXemLai": [
+     272,
+     1483,
+     720,
+     115
+    ],
+    "dangCho": [
+     1016,
+     479,
+     400,
+     455
+    ],
+    "doanhThu": [
+     1016,
+     958,
+     400,
+     1229
+    ]
+   },
+   "daySauCotChinh": 2187,
+   "daySauCotPhu": 2187,
+   "caoTrang": 2211,
+   "dongDoiChieu": 3,
+   "dongThuTruoc": 3,
+   "thuTu": [
+    [
+     "#dash-dai",
+     145
+    ],
+    [
+     "#dash-loi-tat",
+     255
+    ],
+    [
+     "#dash-gap",
+     381
+    ],
+    [
+     "#dash-today",
+     479
+    ],
+    [
+     "#dash-review",
+     1483
+    ],
+    [
+     "#dash-doi-chieu",
+     1622
+    ],
+    [
+     "#dash-thu-truoc",
+     1977
+    ],
+    [
+     "#dash-dang-cho",
+     479
+    ],
+    [
+     "#dash-so-mt",
+     958
+    ]
+   ],
+   "lechCot": 1,
+   "pillTrenDong": true,
+   "vw": 1440,
+   "scrollW": 1440,
+   "soTrong": null,
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "nang-8-don-dai-gap",
+   "kho": "1920x1080",
+   "cao": {
+    "doiChieu": 228,
+    "thuTruoc": 194,
+    "donDi": 916,
+    "canXemLai": 115,
+    "dangCho": 455,
+    "doanhThu": 1078,
+    "loiTat": 102,
+    "gap": 74
+   },
+   "hop": {
+    "loiTat": [
+     272,
+     255,
+     1624,
+     102
+    ],
+    "gap": [
+     272,
+     381,
+     1624,
+     74
+    ],
+    "donDi": [
+     272,
+     479,
+     1200,
+     916
+    ],
+    "doiChieu": [
+     272,
+     1558,
+     1200,
+     228
+    ],
+    "thuTruoc": [
+     272,
+     1826,
+     1200,
+     194
+    ],
+    "canXemLai": [
+     272,
+     1419,
+     1200,
+     115
+    ],
+    "dangCho": [
+     1496,
+     479,
+     400,
+     455
+    ],
+    "doanhThu": [
+     1496,
+     958,
+     400,
+     1078
+    ]
+   },
+   "daySauCotChinh": 2036,
+   "daySauCotPhu": 2036,
+   "caoTrang": 2060,
+   "dongDoiChieu": 3,
+   "dongThuTruoc": 3,
+   "thuTu": [
+    [
+     "#dash-dai",
+     145
+    ],
+    [
+     "#dash-loi-tat",
+     255
+    ],
+    [
+     "#dash-gap",
+     381
+    ],
+    [
+     "#dash-today",
+     479
+    ],
+    [
+     "#dash-review",
+     1419
+    ],
+    [
+     "#dash-doi-chieu",
+     1558
+    ],
+    [
+     "#dash-thu-truoc",
+     1826
+    ],
+    [
+     "#dash-dang-cho",
+     479
+    ],
+    [
+     "#dash-so-mt",
+     958
+    ]
+   ],
+   "lechCot": 1,
+   "pillTrenDong": true,
+   "vw": 1920,
+   "scrollW": 1920,
+   "soTrong": null,
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "nang-8-don-dai-gap",
+   "kho": "1100x800",
+   "cao": {
+    "doiChieu": 367,
+    "thuTruoc": 245,
+    "donDi": 1404,
+    "canXemLai": 115,
+    "dangCho": 471,
+    "doanhThu": 1740,
+    "loiTat": 118,
+    "gap": 74
+   },
+   "hop": {
+    "loiTat": [
+     272,
+     255,
+     804,
+     118
+    ],
+    "gap": [
+     272,
+     397,
+     804,
+     74
+    ],
+    "donDi": [
+     272,
+     495,
+     460,
+     1404
+    ],
+    "doiChieu": [
+     272,
+     2062,
+     460,
+     367
+    ],
+    "thuTruoc": [
+     272,
+     2469,
+     460,
+     245
+    ],
+    "canXemLai": [
+     272,
+     1923,
+     460,
+     115
+    ],
+    "dangCho": [
+     756,
+     495,
+     320,
+     471
+    ],
+    "doanhThu": [
+     756,
+     990,
+     320,
+     1740
+    ]
+   },
+   "daySauCotChinh": 2730,
+   "daySauCotPhu": 2730,
+   "caoTrang": 2754,
+   "dongDoiChieu": 3,
+   "dongThuTruoc": 3,
+   "thuTu": [
+    [
+     "#dash-dai",
+     145
+    ],
+    [
+     "#dash-loi-tat",
+     255
+    ],
+    [
+     "#dash-gap",
+     397
+    ],
+    [
+     "#dash-today",
+     495
+    ],
+    [
+     "#dash-review",
+     1923
+    ],
+    [
+     "#dash-doi-chieu",
+     2062
+    ],
+    [
+     "#dash-thu-truoc",
+     2469
+    ],
+    [
+     "#dash-dang-cho",
+     495
+    ],
+    [
+     "#dash-so-mt",
+     990
+    ]
+   ],
+   "lechCot": 1,
+   "pillTrenDong": true,
+   "vw": 1100,
+   "scrollW": 1100,
+   "soTrong": null,
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 1
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  }
+ ],
+ "moRong": {
+  "cao": 382,
+  "nut": "Thu gọn",
+  "cuon": [
+   4564,
+   320
+  ]
+ },
+ "dienThoai": {
+  "loiTat": false,
+  "dangCho": false,
+  "doiChieu": true,
+  "thuTruoc": true,
+  "review": true,
+  "dongReview": 3,
+  "scrollW": 390,
+  "vw": 390,
+  "thuTu": [
+   [
+    "#dash-so",
+    433
+   ],
+   [
+    "#dash-o",
+    295
+   ],
+   [
+    "#dash-doi-chieu",
+    805
+   ],
+   [
+    "#dash-thu-truoc",
+    1240
+   ],
+   [
+    "#dash-review",
+    1517
+   ],
+   [
+    "#dash-today",
+    1840
+   ]
+  ],
+  "loi": {
+   "cat": 0,
+   "tran": 0
+  }
+ }
+}

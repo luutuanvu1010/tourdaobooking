@@ -12,6 +12,20 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Trang chủ máy tính vòng 2 (31/10, sau nghiệm thu thất bại một phần của 2.52: chủ chụp trên dữ liệu thật — 54 khoản chờ đối chiếu làm trang dài, lối tắt nằm cuối, một dải trống bên phải).
+    // Chỉ giao diện, KHÔNG migration, không đổi máy chủ, không đổi quyền, không đổi cách tính tiền. LƯU Ý: có MỘT thay đổi bề rộng TOÀN ỨNG DỤNG ở khung chung (`--w-noi-dung-max` 1280px → 1920px, public/app.css) — mọi trang dùng khung mặc định rộng ra trên màn lớn.
+    // Số 2.53 và ngày là TẠM — phiên phát hành kiểm lại ở bước A.0 của docs/HANDOFF-N1.md.
+    version: "2.53",
+    date: "2026-10-31",
+    items: [
+      { kind: "doi", text: "Trang chủ máy tính: Lối tắt nằm ngay dưới lời chào, một hàng gọn." },
+      { kind: "sua", text: "Chờ đối chiếu và Thu trước của đơn huỷ gọn lại: ba dòng mỗi khối, mỗi đơn một dòng thẳng cột; bấm Xem tất cả để mở hết. Nhãn quá 3 ngày là viên nhỏ cùng dòng." },
+      { kind: "sua", text: "Cần xem lại không nhắc lại việc đã có ở Đang chờ bạn (dòng đối chiếu ghi sẵn số khoản quá hạn); khoản quá hạn xếp lên đầu. Đơn đi trống chỉ còn một dòng." },
+      { kind: "sua", text: "Màn hình rộng: nội dung các trang dùng hết bề ngang, không còn dải trống bên phải." },
+      { kind: "sua", text: "Máy tính bảng và cửa sổ vừa: Lối tắt xếp hai hàng bốn ô đều; dòng cuối Trang chủ không còn nằm dưới thanh tab." },
+    ],
+  },
+  {
     // Trang chủ máy tính Phương án A (chủ duyệt 31/10; đặc tả docs/superpowers/specs/2026-10-31-trang-chu-phuong-an-a/DAC-TA.md). Chỉ giao diện Trang chủ máy tính + MỘT trường đọc-thêm `guiLuc` ở danh sách chờ xác nhận;
     // KHÔNG migration, không đổi cách tính tiền, điện thoại giữ nguyên. Số 2.52 và ngày là TẠM (mục đầu lúc làm: 2.51, cùng nhánh luật khung chưa lên production) — phiên phát hành kiểm lại ở bước A.0 của docs/HANDOFF-N1.md.
     version: "2.52",

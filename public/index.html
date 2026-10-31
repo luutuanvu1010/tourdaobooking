@@ -8,6 +8,11 @@
   <!-- Lời chào MÁY TÍNH (≥641px — bản vẽ "Trang chu Quan tri.dc.html", Claude Design 2026-10-02, bản 1.73): ngày, lời chào theo buổi, tóm tắt, viên bảo trì, nhãn vai.
        Không còn lưới ô chức năng (đã có ở thanh bên) — lối tắt ở thẻ #dash-loi-tat. web/home.ts dựng nội dung; điện thoại ẩn. -->
   <section id="dash-dai" class="dash-dai" aria-label="Lời chào" hidden></section>
+  <!-- Thẻ "Lối tắt" (chỉ máy tính, vòng 2 ngày 31/10: ngay dưới lời chào, TRƯỚC dải việc gấp): một dãy gọn một hàng, cuối dãy «Tất cả» mở hộp mọi chức năng. Tiêu đề chỉ cho trình đọc màn hình. Điện thoại dùng lưới #dash-o. -->
+  <section id="dash-loi-tat" class="card dash-loi-tat" aria-labelledby="dash-loi-tat-h" hidden>
+    <h2 id="dash-loi-tat-h" class="visually-hidden">Lối tắt</h2>
+    <nav id="dash-loi-tat-luoi" class="dash-loi-tat-luoi" aria-label="Lối tắt"></nav>
+  </section>
   <!-- Dải việc gấp (chỉ máy tính ≥641px, Phương án A 31/10): hiện khi có đơn chờ xác nhận gấp (đi hôm nay / ngày mai, hoặc chờ quá 2 giờ — src/shared/viec-gap.ts), ẩn hẳn khi không.
        Chỉ người giữ ô xét duyệt xác nhận đơn. web/home.ts dựng nội dung CÙNG LÚC với #dash-grid nên không nhảy bố cục sau khi trang đã vẽ. Nút «Xác nhận ngay» là nút san hô duy nhất của màn. -->
   <section id="dash-gap" class="dash-gap" aria-label="Việc gấp" hidden></section>
@@ -63,22 +68,23 @@
   <div id="dash-so" class="dash-so" hidden></div>
   <!-- Đơn chờ xác nhận trên ĐIỆN THOẠI (ADR-0136 Đ9: "cả điện thoại"): thẻ «Đang chờ bạn» ẩn ở khổ này nên dải này có chỗ riêng, CSS ẩn từ 641px. web/home.ts điền khi có đơn chờ. -->
   <a id="dash-cho-dt" class="dash-cho-dt" href="/cho-xac-nhan" hidden></a>
-  <!-- Chờ đối chiếu (sổ đại lý đợt 2, Task 12; ADR-0120 Điều 1.3, ADR-0132): khoản «Công ty thu – chuyển khoản» và khoản khách trả cho đại lý / tại quầy nhà cung cấp chờ Kế toán.
-       Chỉ ô ledger.write, không tài khoản giữ quyền Đối tác; web/home.ts dựng từ GET /api/ledger/coc (doiChieu). Đứng ngoài #dash-grid để không đổi lưới hai cột. -->
-  <section id="dash-doi-chieu" class="card" aria-labelledby="dash-doi-chieu-h" hidden>
-    <h2 id="dash-doi-chieu-h">Chờ đối chiếu</h2>
-    <div id="dash-doi-chieu-list"></div>
-  </section>
-  <!-- Thu trước của đơn huỷ (ADR-0089 đ5, đ9c, đ11; NT-V6): khoản đã duyệt chờ chi / chờ chuyển, đơn khách huỷ sắp hết hạn hoàn, đơn còn người chưa nộp tiền.
-       Chỉ ô ledger.view any, không tài khoản giữ quyền Đối tác (có tên người giữ tiền); web/home.ts dựng từ GET /api/ledger/coc. Màn sổ Kế toán còn chờ bản vẽ. -->
-  <section id="dash-thu-truoc" class="card" aria-labelledby="dash-thu-truoc-h" hidden>
-    <h2 id="dash-thu-truoc-h">Thu trước của đơn huỷ</h2>
-    <div id="dash-thu-truoc-list"></div>
-  </section>
   <div id="dash-grid" class="dash-grid" hidden>
-    <!-- Hai cột bọc ngoài (Phương án A): trái = Cần xem lại + Chuyến đón, phải = Đang chờ bạn + Doanh thu, rồi Lối tắt cả hàng. Điện thoại: hai vỏ là display: contents nên thứ tự đọc cũ giữ nguyên
+    <!-- Hai cột bọc ngoài (Phương án A): trái = Cần xem lại + Chuyến đón, phải = Đang chờ bạn + Doanh thu (Lối tắt đã lên ngay dưới lời chào, vòng 2). Điện thoại: hai vỏ là display: contents nên thứ tự đọc cũ giữ nguyên
          (Cần xem lại → Chuyến đón); máy tính xếp cột trái ngược lại (Chuyến đón lên trước) bằng column-reverse, không dùng CSS order (bài học Đợt C). #dash-cot-phu ẩn hẳn khi cả hai thẻ trong đó ẩn. -->
     <div id="dash-cot-chinh" class="dash-cot-chinh">
+      <!-- Hai khối chi tiết (vòng 2 31/10): gọn ba dòng mỗi khối, «Xem tất cả» mở rộng tại chỗ. Trong DOM đứng ĐẦU cột chính để điện thoại giữ thứ tự cũ (chi tiết → Cần xem lại → Chuyến đón); máy tính xếp ngược (column-reverse) nên chúng nằm DƯỚI «Đơn đi».
+           Chờ đối chiếu (sổ đại lý đợt 2, Task 12; ADR-0120 Điều 1.3, ADR-0132): chỉ ô ledger.write, không quyền Đối tác; dựng từ GET /api/ledger/coc (doiChieu).
+           Thu trước của đơn huỷ (ADR-0089 đ5, đ9c, đ11; NT-V6): chỉ ô ledger.view any, không quyền Đối tác (có tên người giữ tiền); dựng từ GET /api/ledger/coc. -->
+      <div id="dash-chi-tiet" class="dash-chi-tiet">
+        <section id="dash-doi-chieu" class="card dash-ct" aria-labelledby="dash-doi-chieu-h" hidden>
+          <div class="dash-ct-head"><h2 id="dash-doi-chieu-h">Chờ đối chiếu</h2><span id="dash-doi-chieu-dem" class="badge badge-confirmed"></span><span id="dash-doi-chieu-nut" class="dash-ct-nut-ngoai"></span></div>
+          <div id="dash-doi-chieu-list"></div>
+        </section>
+        <section id="dash-thu-truoc" class="card dash-ct" aria-labelledby="dash-thu-truoc-h" hidden>
+          <div class="dash-ct-head"><h2 id="dash-thu-truoc-h">Thu trước của đơn huỷ</h2><span id="dash-thu-truoc-dem" class="badge badge-confirmed"></span><span id="dash-thu-truoc-nut" class="dash-ct-nut-ngoai"></span></div>
+          <div id="dash-thu-truoc-list"></div>
+        </section>
+      </div>
       <section id="dash-review" class="card dash-review" hidden>
         <div class="dash-review-head"><span class="dash-review-heading icon-label">Cần xem lại</span></div>
         <div id="dash-review-list"></div>
@@ -104,11 +110,6 @@
       <!-- Doanh thu tuần này (chỉ máy tính): ô «Của tôi», biểu đồ tuần giãn theo thẻ. Người không lập được đơn (coOSoCuaToi, 28/10): ẩn. Điện thoại dùng #dash-so (bốn ô). -->
       <section id="dash-so-mt" class="dash-so-mt" aria-label="Số liệu"></section>
     </div>
-    <!-- Thẻ "Lối tắt" (chỉ máy tính): một dãy gọn một hàng, cuối dãy «Tất cả» mở hộp mọi chức năng. Điện thoại dùng lưới #dash-o. -->
-    <section id="dash-loi-tat" class="card dash-loi-tat" hidden>
-      <div class="dash-loi-tat-head"><h2 class="dash-loi-tat-heading">Lối tắt</h2></div>
-      <nav id="dash-loi-tat-luoi" class="dash-loi-tat-luoi" aria-label="Lối tắt"></nav>
-    </section>
   </div>
 </main>
 <script type="module" src="/js/home.js"></script>
