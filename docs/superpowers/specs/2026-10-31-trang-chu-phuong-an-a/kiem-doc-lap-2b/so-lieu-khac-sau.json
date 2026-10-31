@@ -1,0 +1,1304 @@
+{
+ "ca": "khac",
+ "tag": "sau",
+ "dong": [
+  {
+   "trang": "Đơn hàng",
+   "kho": "768x1024",
+   "vw": 768,
+   "scrollW": 768,
+   "main": 768,
+   "cao": 1024,
+   "url": "/orders",
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "che": [],
+    "tran": []
+   }
+  },
+  {
+   "trang": "Đơn hàng",
+   "kho": "1024x768",
+   "vw": 1024,
+   "scrollW": 1024,
+   "main": 776,
+   "cao": 768,
+   "url": "/orders",
+   "loi": {
+    "cat": 1,
+    "tran": 0,
+    "che": 2
+   },
+   "chiTietLoi": {
+    "cat": [
+     {
+      "el": "h1",
+      "chu": "Đơn hàng",
+      "rong": 1,
+      "can": 112
+     }
+    ],
+    "che": [
+     {
+      "el": "a.sidebar-item",
+      "chu": "Điều chỉnh công nợ",
+      "biChe": "div.sidebar-group",
+      "y": 500
+     },
+     {
+      "el": "a.sidebar-item",
+      "chu": "Sổ công nợ & khoá sổ",
+      "biChe": "div.sidebar-foot",
+      "y": 542
+     }
+    ],
+    "tran": []
+   }
+  },
+  {
+   "trang": "Đơn hàng",
+   "kho": "1366x768",
+   "vw": 1366,
+   "scrollW": 1366,
+   "main": 1118,
+   "cao": 768,
+   "url": "/orders",
+   "loi": {
+    "cat": 1,
+    "tran": 0,
+    "che": 2
+   },
+   "chiTietLoi": {
+    "cat": [
+     {
+      "el": "h1",
+      "chu": "Đơn hàng",
+      "rong": 1,
+      "can": 112
+     }
+    ],
+    "che": [
+     {
+      "el": "a.sidebar-item",
+      "chu": "Điều chỉnh công nợ",
+      "biChe": "div.sidebar-group",
+      "y": 500
+     },
+     {
+      "el": "a.sidebar-item",
+      "chu": "Sổ công nợ & khoá sổ",
+      "biChe": "div.sidebar-foot",
+      "y": 542
+     }
+    ],
+    "tran": []
+   }
+  },
+  {
+   "trang": "Đơn hàng",
+   "kho": "1920x1080",
+   "vw": 1920,
+   "scrollW": 1920,
+   "main": 1672,
+   "cao": 1080,
+   "url": "/orders",
+   "loi": {
+    "cat": 1,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [
+     {
+      "el": "h1",
+      "chu": "Đơn hàng",
+      "rong": 1,
+      "can": 112
+     }
+    ],
+    "che": [],
+    "tran": []
+   }
+  },
+  {
+   "trang": "Chi tiết đơn",
+   "kho": "768x1024",
+   "vw": 768,
+   "scrollW": 768,
+   "main": 768,
+   "cao": 3203,
+   "url": "/order",
+   "loi": {
+    "cat": 1,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [
+     {
+      "el": "h1",
+      "chu": "TD-20261031-0001",
+      "rong": 1,
+      "can": 237
+     }
+    ],
+    "che": [],
+    "tran": []
+   }
+  },
+  {
+   "trang": "Chi tiết đơn",
+   "kho": "1024x768",
+   "vw": 1024,
+   "scrollW": 1024,
+   "main": 776,
+   "cao": 2711,
+   "url": "/order",
+   "loi": {
+    "cat": 1,
+    "tran": 0,
+    "che": 2
+   },
+   "chiTietLoi": {
+    "cat": [
+     {
+      "el": "h1",
+      "chu": "TD-20261031-0001",
+      "rong": 1,
+      "can": 237
+     }
+    ],
+    "che": [
+     {
+      "el": "a.sidebar-item",
+      "chu": "Điều chỉnh công nợ",
+      "biChe": "div.sidebar-group",
+      "y": 500
+     },
+     {
+      "el": "a.sidebar-item",
+      "chu": "Sổ công nợ & khoá sổ",
+      "biChe": "div.sidebar-foot",
+      "y": 542
+     }
+    ],
+    "tran": []
+   }
+  },
+  {
+   "trang": "Chi tiết đơn",
+   "kho": "1366x768",
+   "vw": 1366,
+   "scrollW": 1366,
+   "main": 1118,
+   "cao": 2519,
+   "url": "/order",
+   "loi": {
+    "cat": 1,
+    "tran": 0,
+    "che": 2
+   },
+   "chiTietLoi": {
+    "cat": [
+     {
+      "el": "h1",
+      "chu": "TD-20261031-0001",
+      "rong": 1,
+      "can": 237
+     }
+    ],
+    "che": [
+     {
+      "el": "a.sidebar-item",
+      "chu": "Điều chỉnh công nợ",
+      "biChe": "div.sidebar-group",
+      "y": 500
+     },
+     {
+      "el": "a.sidebar-item",
+      "chu": "Sổ công nợ & khoá sổ",
+      "biChe": "div.sidebar-foot",
+      "y": 542
+     }
+    ],
+    "tran": []
+   }
+  },
+  {
+   "trang": "Chi tiết đơn",
+   "kho": "1920x1080",
+   "vw": 1920,
+   "scrollW": 1920,
+   "main": 1672,
+   "cao": 2477,
+   "url": "/order",
+   "loi": {
+    "cat": 1,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [
+     {
+      "el": "h1",
+      "chu": "TD-20261031-0001",
+      "rong": 1,
+      "can": 237
+     }
+    ],
+    "che": [],
+    "tran": []
+   }
+  },
+  {
+   "trang": "Công nợ",
+   "kho": "768x1024",
+   "vw": 768,
+   "scrollW": 768,
+   "main": 768,
+   "cao": 1024,
+   "url": "/so-cong-no",
+   "loi": {
+    "cat": 1,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [
+     {
+      "el": "h1",
+      "chu": "Sổ công nợ",
+      "rong": 1,
+      "can": 130
+     }
+    ],
+    "che": [],
+    "tran": []
+   }
+  },
+  {
+   "trang": "Công nợ",
+   "kho": "1024x768",
+   "vw": 1024,
+   "scrollW": 1024,
+   "main": 776,
+   "cao": 768,
+   "url": "/so-cong-no",
+   "loi": {
+    "cat": 1,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [
+     {
+      "el": "h1",
+      "chu": "Sổ công nợ",
+      "rong": 1,
+      "can": 130
+     }
+    ],
+    "che": [],
+    "tran": []
+   }
+  },
+  {
+   "trang": "Công nợ",
+   "kho": "1366x768",
+   "vw": 1366,
+   "scrollW": 1366,
+   "main": 1118,
+   "cao": 768,
+   "url": "/so-cong-no",
+   "loi": {
+    "cat": 1,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [
+     {
+      "el": "h1",
+      "chu": "Sổ công nợ",
+      "rong": 1,
+      "can": 130
+     }
+    ],
+    "che": [],
+    "tran": []
+   }
+  },
+  {
+   "trang": "Công nợ",
+   "kho": "1920x1080",
+   "vw": 1920,
+   "scrollW": 1920,
+   "main": 1672,
+   "cao": 1080,
+   "url": "/so-cong-no",
+   "loi": {
+    "cat": 1,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [
+     {
+      "el": "h1",
+      "chu": "Sổ công nợ",
+      "rong": 1,
+      "can": 130
+     }
+    ],
+    "che": [],
+    "tran": []
+   }
+  },
+  {
+   "trang": "Hoa hồng",
+   "kho": "768x1024",
+   "vw": 768,
+   "scrollW": 768,
+   "main": 768,
+   "cao": 1024,
+   "url": "/hoa-hong",
+   "loi": {
+    "cat": 1,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [
+     {
+      "el": "h1",
+      "chu": "Hoa hồng đối tác",
+      "rong": 1,
+      "can": 201
+     }
+    ],
+    "che": [],
+    "tran": []
+   }
+  },
+  {
+   "trang": "Hoa hồng",
+   "kho": "1024x768",
+   "vw": 1024,
+   "scrollW": 1024,
+   "main": 776,
+   "cao": 855,
+   "url": "/hoa-hong",
+   "loi": {
+    "cat": 1,
+    "tran": 0,
+    "che": 6
+   },
+   "chiTietLoi": {
+    "cat": [
+     {
+      "el": "h1",
+      "chu": "Hoa hồng đối tác",
+      "rong": 1,
+      "can": 201
+     }
+    ],
+    "che": [
+     {
+      "el": "a.sidebar-item",
+      "chu": "Địa điểm",
+      "biChe": "div.sidebar-foot",
+      "y": 554
+     },
+     {
+      "el": "a.sidebar-item",
+      "chu": "Loại giấy tờ cá nhân",
+      "biChe": "div.sidebar-foot",
+      "y": 592
+     },
+     {
+      "el": "a.sidebar-item",
+      "chu": "Loại giấy tờ xe",
+      "biChe": "div.sidebar-foot",
+      "y": 630
+     }
+    ],
+    "tran": []
+   }
+  },
+  {
+   "trang": "Hoa hồng",
+   "kho": "1366x768",
+   "vw": 1366,
+   "scrollW": 1366,
+   "main": 1118,
+   "cao": 834,
+   "url": "/hoa-hong",
+   "loi": {
+    "cat": 1,
+    "tran": 0,
+    "che": 6
+   },
+   "chiTietLoi": {
+    "cat": [
+     {
+      "el": "h1",
+      "chu": "Hoa hồng đối tác",
+      "rong": 1,
+      "can": 201
+     }
+    ],
+    "che": [
+     {
+      "el": "a.sidebar-item",
+      "chu": "Địa điểm",
+      "biChe": "div.sidebar-foot",
+      "y": 554
+     },
+     {
+      "el": "a.sidebar-item",
+      "chu": "Loại giấy tờ cá nhân",
+      "biChe": "div.sidebar-foot",
+      "y": 592
+     },
+     {
+      "el": "a.sidebar-item",
+      "chu": "Loại giấy tờ xe",
+      "biChe": "div.sidebar-foot",
+      "y": 630
+     }
+    ],
+    "tran": []
+   }
+  },
+  {
+   "trang": "Hoa hồng",
+   "kho": "1920x1080",
+   "vw": 1920,
+   "scrollW": 1920,
+   "main": 1672,
+   "cao": 1080,
+   "url": "/hoa-hong",
+   "loi": {
+    "cat": 1,
+    "tran": 0,
+    "che": 6
+   },
+   "chiTietLoi": {
+    "cat": [
+     {
+      "el": "h1",
+      "chu": "Hoa hồng đối tác",
+      "rong": 1,
+      "can": 201
+     }
+    ],
+    "che": [
+     {
+      "el": "a.sidebar-item",
+      "chu": "Chính sách điều phối",
+      "biChe": "div.sidebar-foot",
+      "y": 862
+     },
+     {
+      "el": "a.sidebar-item",
+      "chu": "Quản lý tài khoản",
+      "biChe": "div.sidebar-foot",
+      "y": 900
+     },
+     {
+      "el": "a.sidebar-item",
+      "chu": "Máy đang đăng nhập",
+      "biChe": "div.sidebar-foot",
+      "y": 938
+     }
+    ],
+    "tran": []
+   }
+  },
+  {
+   "trang": "Tôi",
+   "kho": "768x1024",
+   "vw": 768,
+   "scrollW": 768,
+   "main": 768,
+   "cao": 6791,
+   "url": "/account",
+   "loi": {
+    "cat": 1,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [
+     {
+      "el": "h1",
+      "chu": "Tôi",
+      "rong": 1,
+      "can": 36
+     }
+    ],
+    "che": [],
+    "tran": []
+   }
+  },
+  {
+   "trang": "Tôi",
+   "kho": "1024x768",
+   "vw": 1024,
+   "scrollW": 1024,
+   "main": 776,
+   "cao": 6793,
+   "url": "/account",
+   "loi": {
+    "cat": 1,
+    "tran": 0,
+    "che": 2
+   },
+   "chiTietLoi": {
+    "cat": [
+     {
+      "el": "h1",
+      "chu": "Tôi",
+      "rong": 1,
+      "can": 36
+     }
+    ],
+    "che": [
+     {
+      "el": "a.sidebar-item",
+      "chu": "Điều chỉnh công nợ",
+      "biChe": "div.sidebar-group",
+      "y": 500
+     },
+     {
+      "el": "a.sidebar-item",
+      "chu": "Sổ công nợ & khoá sổ",
+      "biChe": "div.sidebar-foot",
+      "y": 542
+     }
+    ],
+    "tran": []
+   }
+  },
+  {
+   "trang": "Tôi",
+   "kho": "1366x768",
+   "vw": 1366,
+   "scrollW": 1366,
+   "main": 1118,
+   "cao": 3700,
+   "url": "/account",
+   "loi": {
+    "cat": 1,
+    "tran": 0,
+    "che": 2
+   },
+   "chiTietLoi": {
+    "cat": [
+     {
+      "el": "h1",
+      "chu": "Tôi",
+      "rong": 1,
+      "can": 36
+     }
+    ],
+    "che": [
+     {
+      "el": "a.sidebar-item",
+      "chu": "Điều chỉnh công nợ",
+      "biChe": "div.sidebar-group",
+      "y": 500
+     },
+     {
+      "el": "a.sidebar-item",
+      "chu": "Sổ công nợ & khoá sổ",
+      "biChe": "div.sidebar-foot",
+      "y": 542
+     }
+    ],
+    "tran": []
+   }
+  },
+  {
+   "trang": "Tôi",
+   "kho": "1920x1080",
+   "vw": 1920,
+   "scrollW": 1920,
+   "main": 1672,
+   "cao": 3806,
+   "url": "/account",
+   "loi": {
+    "cat": 1,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [
+     {
+      "el": "h1",
+      "chu": "Tôi",
+      "rong": 1,
+      "can": 36
+     }
+    ],
+    "che": [],
+    "tran": []
+   }
+  },
+  {
+   "trang": "Điều phối",
+   "kho": "768x1024",
+   "vw": 768,
+   "scrollW": 768,
+   "main": 768,
+   "cao": 1024,
+   "url": "/dieu-phoi",
+   "loi": {
+    "cat": 1,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [
+     {
+      "el": "h1#dp-title",
+      "chu": "Điều phối xe",
+      "rong": 1,
+      "can": 143
+     }
+    ],
+    "che": [],
+    "tran": []
+   }
+  },
+  {
+   "trang": "Điều phối",
+   "kho": "1024x768",
+   "vw": 1024,
+   "scrollW": 1024,
+   "main": 776,
+   "cao": 1063,
+   "url": "/dieu-phoi",
+   "loi": {
+    "cat": 1,
+    "tran": 0,
+    "che": 3
+   },
+   "chiTietLoi": {
+    "cat": [
+     {
+      "el": "h1#dp-title",
+      "chu": "Điều phối xe",
+      "rong": 1,
+      "can": 143
+     }
+    ],
+    "che": [
+     {
+      "el": "a.sidebar-item",
+      "chu": "Giá & chi phí",
+      "biChe": "div.sidebar-group",
+      "y": 498
+     },
+     {
+      "el": "a.sidebar-item",
+      "chu": "Điều chỉnh công nợ",
+      "biChe": "div.sidebar-foot",
+      "y": 588
+     },
+     {
+      "el": "a.sidebar-item",
+      "chu": "Sổ công nợ & khoá sổ",
+      "biChe": "div.sidebar-foot",
+      "y": 630
+     }
+    ],
+    "tran": []
+   }
+  },
+  {
+   "trang": "Điều phối",
+   "kho": "1366x768",
+   "vw": 1366,
+   "scrollW": 1366,
+   "main": 1118,
+   "cao": 1063,
+   "url": "/dieu-phoi",
+   "loi": {
+    "cat": 1,
+    "tran": 0,
+    "che": 3
+   },
+   "chiTietLoi": {
+    "cat": [
+     {
+      "el": "h1#dp-title",
+      "chu": "Điều phối xe",
+      "rong": 1,
+      "can": 143
+     }
+    ],
+    "che": [
+     {
+      "el": "a.sidebar-item",
+      "chu": "Giá & chi phí",
+      "biChe": "div.sidebar-group",
+      "y": 498
+     },
+     {
+      "el": "a.sidebar-item",
+      "chu": "Điều chỉnh công nợ",
+      "biChe": "div.sidebar-foot",
+      "y": 588
+     },
+     {
+      "el": "a.sidebar-item",
+      "chu": "Sổ công nợ & khoá sổ",
+      "biChe": "div.sidebar-foot",
+      "y": 630
+     }
+    ],
+    "tran": []
+   }
+  },
+  {
+   "trang": "Điều phối",
+   "kho": "1920x1080",
+   "vw": 1920,
+   "scrollW": 1920,
+   "main": 1672,
+   "cao": 1080,
+   "url": "/dieu-phoi",
+   "loi": {
+    "cat": 1,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [
+     {
+      "el": "h1#dp-title",
+      "chu": "Điều phối xe",
+      "rong": 1,
+      "can": 143
+     }
+    ],
+    "che": [],
+    "tran": []
+   }
+  },
+  {
+   "trang": "Nhật ký",
+   "kho": "768x1024",
+   "vw": 768,
+   "scrollW": 768,
+   "main": 768,
+   "cao": 1158,
+   "url": "/audit",
+   "loi": {
+    "cat": 1,
+    "tran": 0,
+    "che": 1
+   },
+   "chiTietLoi": {
+    "cat": [
+     {
+      "el": "h1",
+      "chu": "Nhật ký hệ thống",
+      "rong": 1,
+      "can": 198
+     }
+    ],
+    "che": [
+     {
+      "el": "input#q",
+      "chu": "",
+      "biChe": "header#topbar",
+      "y": 26
+     }
+    ],
+    "tran": []
+   }
+  },
+  {
+   "trang": "Nhật ký",
+   "kho": "1024x768",
+   "vw": 1024,
+   "scrollW": 1024,
+   "main": 776,
+   "cao": 870,
+   "url": "/audit",
+   "loi": {
+    "cat": 1,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [
+     {
+      "el": "h1",
+      "chu": "Nhật ký hệ thống",
+      "rong": 1,
+      "can": 198
+     }
+    ],
+    "che": [],
+    "tran": []
+   }
+  },
+  {
+   "trang": "Nhật ký",
+   "kho": "1366x768",
+   "vw": 1366,
+   "scrollW": 1366,
+   "main": 1118,
+   "cao": 768,
+   "url": "/audit",
+   "loi": {
+    "cat": 1,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [
+     {
+      "el": "h1",
+      "chu": "Nhật ký hệ thống",
+      "rong": 1,
+      "can": 198
+     }
+    ],
+    "che": [],
+    "tran": []
+   }
+  },
+  {
+   "trang": "Nhật ký",
+   "kho": "1920x1080",
+   "vw": 1920,
+   "scrollW": 1920,
+   "main": 1672,
+   "cao": 1080,
+   "url": "/audit",
+   "loi": {
+    "cat": 1,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [
+     {
+      "el": "h1",
+      "chu": "Nhật ký hệ thống",
+      "rong": 1,
+      "can": 198
+     }
+    ],
+    "che": [],
+    "tran": []
+   }
+  },
+  {
+   "trang": "Thiết lập",
+   "kho": "768x1024",
+   "vw": 768,
+   "scrollW": 768,
+   "main": 768,
+   "cao": 1042,
+   "url": "/thiet-lap",
+   "loi": {
+    "cat": 1,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [
+     {
+      "el": "h1",
+      "chu": "Thiết lập",
+      "rong": 1,
+      "can": 104
+     }
+    ],
+    "che": [],
+    "tran": []
+   }
+  },
+  {
+   "trang": "Thiết lập",
+   "kho": "1024x768",
+   "vw": 1024,
+   "scrollW": 1024,
+   "main": 776,
+   "cao": 986,
+   "url": "/thiet-lap",
+   "loi": {
+    "cat": 1,
+    "tran": 0,
+    "che": 2
+   },
+   "chiTietLoi": {
+    "cat": [
+     {
+      "el": "h1",
+      "chu": "Thiết lập",
+      "rong": 1,
+      "can": 104
+     }
+    ],
+    "che": [
+     {
+      "el": "a.sidebar-item",
+      "chu": "Điều chỉnh công nợ",
+      "biChe": "div.sidebar-group",
+      "y": 500
+     },
+     {
+      "el": "a.sidebar-item",
+      "chu": "Sổ công nợ & khoá sổ",
+      "biChe": "div.sidebar-foot",
+      "y": 542
+     }
+    ],
+    "tran": []
+   }
+  },
+  {
+   "trang": "Thiết lập",
+   "kho": "1366x768",
+   "vw": 1366,
+   "scrollW": 1366,
+   "main": 1118,
+   "cao": 986,
+   "url": "/thiet-lap",
+   "loi": {
+    "cat": 1,
+    "tran": 0,
+    "che": 2
+   },
+   "chiTietLoi": {
+    "cat": [
+     {
+      "el": "h1",
+      "chu": "Thiết lập",
+      "rong": 1,
+      "can": 104
+     }
+    ],
+    "che": [
+     {
+      "el": "a.sidebar-item",
+      "chu": "Điều chỉnh công nợ",
+      "biChe": "div.sidebar-group",
+      "y": 500
+     },
+     {
+      "el": "a.sidebar-item",
+      "chu": "Sổ công nợ & khoá sổ",
+      "biChe": "div.sidebar-foot",
+      "y": 542
+     }
+    ],
+    "tran": []
+   }
+  },
+  {
+   "trang": "Thiết lập",
+   "kho": "1920x1080",
+   "vw": 1920,
+   "scrollW": 1920,
+   "main": 1672,
+   "cao": 1080,
+   "url": "/thiet-lap",
+   "loi": {
+    "cat": 1,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [
+     {
+      "el": "h1",
+      "chu": "Thiết lập",
+      "rong": 1,
+      "can": 104
+     }
+    ],
+    "che": [],
+    "tran": []
+   }
+  },
+  {
+   "trang": "Lập đơn",
+   "kho": "768x1024",
+   "vw": 768,
+   "scrollW": 768,
+   "main": 768,
+   "cao": 2036,
+   "url": "/order-form",
+   "loi": {
+    "cat": 1,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [
+     {
+      "el": "h1#form-title",
+      "chu": "Tạo đơn",
+      "rong": 1,
+      "can": 96
+     }
+    ],
+    "che": [],
+    "tran": []
+   }
+  },
+  {
+   "trang": "Lập đơn",
+   "kho": "1024x768",
+   "vw": 1024,
+   "scrollW": 1024,
+   "main": 776,
+   "cao": 1866,
+   "url": "/order-form",
+   "loi": {
+    "cat": 1,
+    "tran": 0,
+    "che": 2
+   },
+   "chiTietLoi": {
+    "cat": [
+     {
+      "el": "h1#form-title",
+      "chu": "Tạo đơn",
+      "rong": 1,
+      "can": 96
+     }
+    ],
+    "che": [
+     {
+      "el": "a.sidebar-item",
+      "chu": "Điều chỉnh công nợ",
+      "biChe": "div.sidebar-group",
+      "y": 500
+     },
+     {
+      "el": "a.sidebar-item",
+      "chu": "Sổ công nợ & khoá sổ",
+      "biChe": "div.sidebar-foot",
+      "y": 542
+     }
+    ],
+    "tran": []
+   }
+  },
+  {
+   "trang": "Lập đơn",
+   "kho": "1366x768",
+   "vw": 1366,
+   "scrollW": 1366,
+   "main": 1118,
+   "cao": 1800,
+   "url": "/order-form",
+   "loi": {
+    "cat": 1,
+    "tran": 0,
+    "che": 2
+   },
+   "chiTietLoi": {
+    "cat": [
+     {
+      "el": "h1#form-title",
+      "chu": "Tạo đơn",
+      "rong": 1,
+      "can": 96
+     }
+    ],
+    "che": [
+     {
+      "el": "a.sidebar-item",
+      "chu": "Điều chỉnh công nợ",
+      "biChe": "div.sidebar-group",
+      "y": 500
+     },
+     {
+      "el": "a.sidebar-item",
+      "chu": "Sổ công nợ & khoá sổ",
+      "biChe": "div.sidebar-foot",
+      "y": 542
+     }
+    ],
+    "tran": []
+   }
+  },
+  {
+   "trang": "Lập đơn",
+   "kho": "1920x1080",
+   "vw": 1920,
+   "scrollW": 1920,
+   "main": 1120,
+   "cao": 1800,
+   "url": "/order-form",
+   "loi": {
+    "cat": 1,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [
+     {
+      "el": "h1#form-title",
+      "chu": "Tạo đơn",
+      "rong": 1,
+      "can": 96
+     }
+    ],
+    "che": [],
+    "tran": []
+   }
+  },
+  {
+   "trang": "Danh bạ",
+   "kho": "768x1024",
+   "vw": 768,
+   "scrollW": 768,
+   "main": 768,
+   "cao": 1409,
+   "url": "/parties",
+   "loi": {
+    "cat": 1,
+    "tran": 0,
+    "che": 1
+   },
+   "chiTietLoi": {
+    "cat": [
+     {
+      "el": "h1",
+      "chu": "Danh bạ",
+      "rong": 1,
+      "can": 98
+     }
+    ],
+    "che": [
+     {
+      "el": "button#px-anh-xoa.btn.btn-danger",
+      "chu": "",
+      "biChe": "nav#tabbar",
+      "y": 995
+     }
+    ],
+    "tran": []
+   }
+  },
+  {
+   "trang": "Danh bạ",
+   "kho": "1024x768",
+   "vw": 1024,
+   "scrollW": 1024,
+   "main": 776,
+   "cao": 1060,
+   "url": "/parties",
+   "loi": {
+    "cat": 1,
+    "tran": 0,
+    "che": 2
+   },
+   "chiTietLoi": {
+    "cat": [
+     {
+      "el": "h1",
+      "chu": "Danh bạ",
+      "rong": 1,
+      "can": 98
+     }
+    ],
+    "che": [
+     {
+      "el": "a.sidebar-item",
+      "chu": "Điều chỉnh công nợ",
+      "biChe": "div.sidebar-group",
+      "y": 500
+     },
+     {
+      "el": "a.sidebar-item",
+      "chu": "Sổ công nợ & khoá sổ",
+      "biChe": "div.sidebar-foot",
+      "y": 542
+     }
+    ],
+    "tran": []
+   }
+  },
+  {
+   "trang": "Danh bạ",
+   "kho": "1366x768",
+   "vw": 1366,
+   "scrollW": 1366,
+   "main": 1118,
+   "cao": 974,
+   "url": "/parties",
+   "loi": {
+    "cat": 1,
+    "tran": 0,
+    "che": 2
+   },
+   "chiTietLoi": {
+    "cat": [
+     {
+      "el": "h1",
+      "chu": "Danh bạ",
+      "rong": 1,
+      "can": 98
+     }
+    ],
+    "che": [
+     {
+      "el": "a.sidebar-item",
+      "chu": "Điều chỉnh công nợ",
+      "biChe": "div.sidebar-group",
+      "y": 500
+     },
+     {
+      "el": "a.sidebar-item",
+      "chu": "Sổ công nợ & khoá sổ",
+      "biChe": "div.sidebar-foot",
+      "y": 542
+     }
+    ],
+    "tran": []
+   }
+  },
+  {
+   "trang": "Danh bạ",
+   "kho": "1920x1080",
+   "vw": 1920,
+   "scrollW": 1920,
+   "main": 1672,
+   "cao": 1080,
+   "url": "/parties",
+   "loi": {
+    "cat": 1,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [
+     {
+      "el": "h1",
+      "chu": "Danh bạ",
+      "rong": 1,
+      "can": 98
+     }
+    ],
+    "che": [],
+    "tran": []
+   }
+  }
+ ]
+}
