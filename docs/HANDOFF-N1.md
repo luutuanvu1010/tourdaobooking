@@ -13,6 +13,55 @@ Ghi 29/10/2026 từ khối tóm tắt của `npm run trien-khai` (chủ chạy `
 - Nghiệm thu: phiên kế hoạch tự chạy lại 132 bài N5 + typecheck trên nhánh; người kiểm độc lập ĐẠT. Chưa bấm «Sửa» trên production (bấm là ghi thật), chưa thử iPhone thật. Còn chờ chủ: NO-N5-4 (chữ «Chưa áp dụng cho loại nào» cạnh dòng «Sắp áp dụng»), nợ NO-N5-1…3.
 - **Hoàn tác:** `wrangler rollback` về `ba3d7b56` (2.45) an toàn — 2.46 không đổi dữ liệu.
 
+## Lần phát hành kế tiếp: Luật bán theo loại đối tác + đặc điểm dịch vụ (ADR-0146, ADR-0152; migration `0128_dac_diem_dich_vu`, `0129_luat_ban`; nhật ký thay đổi 2.49 — số tạm) — CHƯA gộp, CHƯA lên production — RUNBOOK
+
+**Trạng thái (ghi 30/10/2026, người thi công T14–T15):** nhánh `claude/tinh-trang-ban-va-phu-thu`, CHƯA gộp `main`, CHƯA lên production; KĐL-3 (người kiểm độc lập trước phát hành) **ĐẠT CÓ ĐIỀU KIỆN** 30/10 (`docs/superpowers/specs/2026-10-30-tinh-trang-ban-va-phu-thu/KIEM-THI-CONG-A/KDL-3.md`; điều kiện: bước đổi tên tệp ADR dưới đây, và chủ quyết nợ chữ Trợ giúp). Kế hoạch `docs/superpowers/plans/2026-10-30-adr-0146-va-dac-diem-dich-vu-ke-hoach.md` (mục 9 là nguồn của runbook này), sổ `…-thi-cong-nhat-ky.md`. AI không chạy bước nào có `--remote`, `day-len`, `trien-khai`; chủ chạy mọi lệnh dưới đây ở **thư mục gốc dự án** (checkout gốc, không phải worktree), trong Terminal.
+
+0. **Điều kiện trước:** KĐL-3 «đạt». Ngày phát hành từ **06/11** trở đi: mục HC-5.19 (diễn tập khôi phục) đã diễn tập hoặc gia hạn, không thì `npm test` đỏ và `trien-khai` dừng. Không trong «cửa sổ đóng băng» (phần Hoàn tác).
+   **Đổi tên tệp ADR (chủ chạy, TRƯỚC `day-len`) — CHƯA đổi tên thì ĐỪNG `day-len`:** máy KHÔNG canh bước này (`npm test` vẫn xanh); quên thì `main` có hai tệp cùng số 0151 và mục lục trỏ tệp không tồn tại. Mục lục ADR đã trỏ `ADR-0152-…`, tệp còn tên cũ (hàng rào cấm AI đổi tên tệp luật bằng dòng lệnh). Chạy ở thư mục worktree, ba khối theo thứ tự (đi tới thư mục; đổi tên tệp; lưu lần đổi tên):
+   ```
+   cd /Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/tinh-trang-ban-va-phu-thu
+   ```
+   ```
+   git mv docs/adr/ADR-0151-dac-diem-dich-vu-va-luat-ban-theo-dac-diem.md docs/adr/ADR-0152-dac-diem-dich-vu-va-luat-ban-theo-dac-diem.md
+   ```
+   ```
+   git commit -m "Đổi tên tệp ADR đặc điểm dịch vụ sang số 0152 (khớp mục lục)"
+   ```
+1. **Số migration và số bản lúc gộp** (người thi công làm, báo chủ): lặp lại bước lấy số trên `main` mới nhất và mọi nhánh / worktree chưa gộp (`ls migrations`, `git ls-tree --name-only <nhánh> migrations/`). `0128` / `0129` đã bị dùng ⇒ đổi tên hai tệp sang hai số kế tiếp liền nhau, `_dac_diem_dich_vu` trước `_luat_ban` (bài tìm theo đuôi tên; sửa dòng số ở `docs/SYSTEM-DESIGN.md` §5). Số nhật ký thay đổi = mục đầu của `main` + 1 (`src/shared/changelog.ts`).
+2. **Đẩy và triển khai** (ở thư mục gốc dự án):
+   ```
+   cd /Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales
+   ```
+   ```
+   npm run day-len -- claude/tinh-trang-ban-va-phu-thu
+   ```
+   ```
+   npm run trien-khai
+   ```
+   Có migration ⇒ `trien-khai` lấy điểm Time Travel TRƯỚC khi áp (chép lại lệnh khôi phục nó in ra), chạy e2e đủ bộ trước, deploy NGAY sau migration. Lỗi Cloudflare 7403: mục cùng tên ở `docs/QUY-TRINH-PHAT-HANH.md`.
+3. **Ngay sau deploy:**
+   ```
+   node scripts/audit-invariants.mjs --db remote
+   ```
+   Thoát 0 = sạch; 1 = vi phạm; **2 = không chạy được** (không phải sạch). `R-PRC-8`, `R-CTL-2`, `R-CTL-3` phải 0 (bảng mới rỗng). `R-CTL-1` (cảnh báo «dịch vụ chưa phân nhóm», có từ ADR-0058) có thể khác 0 như trước — không phải lỗi của lần này.
+4. **Kiểm nhanh trên Nền tảng** (tài khoản Toàn quyền): mục «Luật bán» và «Đặc điểm dịch vụ» hiện trong Thiết lập; danh sách luật rỗng; chưa có đặc điểm nào (không gieo sẵn).
+5. **Đường lùi:** `wrangler rollback` chỉ lùi Worker; bốn bảng mới ở lại (chỉ thêm, bản cũ không đọc) — vô hại; luật đã đặt KHÔNG có tác dụng khi chạy bản cũ (bản cũ không có cổng). Không xoá bảng.
+6. **Việc bắt buộc trước khi đặt luật đầu tiên** (ADR-0146 mục cùng tên; ADR-0152 Đ5 mục 5) — chưa đặt luật nào trước khi xong:
+   1. Đếm tài khoản Đối tác chưa sẵn sàng — lệnh đếm 1 **bản sửa** (kế hoạch R-9: khớp cách máy xét — vai đang mở và loại được hưởng đang bật; chỉ đọc; đã thử cú pháp trên CSDL dựng từ migration, chưa chạy trên dữ liệu thật). Hai cột cuối nên bằng 0:
+      ```
+      npx wrangler d1 execute tourdao-sales-db --remote --command "SELECT COUNT(*) AS tai_khoan_doi_tac, SUM(s.party_id IS NULL) AS chua_gan_ho_so, SUM(s.party_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM v_pty_open_role r JOIN prc_beneficiary_role b ON b.role_type_code = r.role_type_code AND b.active = 1 WHERE r.party_id = s.party_id)) AS ho_so_chua_mang_loai_duoc_huong FROM staff s WHERE s.active = 1 AND EXISTS (SELECT 1 FROM stf_permission p WHERE p.staff_id = s.id AND p.permission_type_code = 'PARTNER' AND p.valid_to_at IS NULL)"
+      ```
+   2. Lệnh đếm 2 nguyên văn của phiếu chốt (`docs/superpowers/specs/2026-10-30-tinh-trang-ban-va-phu-thu/00-dau-vao/PHIEU-CHOT-TINH-TRANG-BAN-2026-10-30.md` mục C). **Lưu ý (người thi công T15 phát hiện, chưa hỏi chủ):** lệnh đó lọc `is_partner_label = 1` nên CHỈ liệt kê loại do người dùng thêm — năm loại có sẵn, kể cả «Lễ tân khách sạn» và «Tài xế taxi (giới thiệu khách)», KHÔNG hiện. Muốn xem đủ các loại chặn được (loại được hưởng) và số hồ sơ đang mang, chạy thêm lệnh chỉ đọc này (đã thử trên D1 local 30/10):
+      ```
+      npx wrangler d1 execute tourdao-sales-db --remote --command "SELECT b.role_type_code AS code, t.name, b.active, COUNT(DISTINCT r.party_id) AS so_ho_so FROM prc_beneficiary_role b JOIN pty_role_type t ON t.code = b.role_type_code LEFT JOIN v_pty_open_role r ON r.role_type_code = b.role_type_code GROUP BY b.role_type_code ORDER BY t.name"
+      ```
+   3. Khác 0 ở bước 1 ⇒ Toàn quyền gắn hồ sơ cá nhân và loại (đang bật, được hưởng) cho từng tài khoản Đối tác ở Danh bạ (ADR-0117), **trên hồ sơ cá nhân**, không phải hồ sơ công ty. Chạy lại bước 1 tới khi bằng 0. Tài khoản còn sót **không bị luật nào chặn**.
+   4. Thiếu loại cần chặn ⇒ thêm ở màn «Hoa hồng đối tác» → Loại đối tác.
+   5. Trước luật **theo đặc điểm** đầu tiên: Quản trị tạo đặc điểm và giá trị ở màn «Đặc điểm dịch vụ»; gắn giá trị cho mọi vé của nhóm sẽ dùng trong luật (theo nhóm hoặc từng vé); thẻ «Chưa khai» bằng 0 cho nhóm đó. Nhóm không liên quan: gắn theo nhóm một giá trị như «Không áp dụng».
+   6. Rồi mới đặt luật ở màn «Luật bán». Nhớ: hẹn kết thúc «đến hôm nay» vẫn chặn tới hết hôm nay; muốn thôi chặn ngay bấm «Kết thúc ngay».
+7. **Ghi trạng thái:** người thi công cập nhật mục «TRẠNG THÁI TRIỂN KHAI» ở đầu tệp này theo kết quả chủ báo (số phiên bản, giờ, migration đã áp — kiểm bằng lệnh chỉ đọc `npx wrangler d1 migrations list tourdao-sales-db --remote`, chủ chạy).
+
 ## TRẠNG THÁI TRIỂN KHAI (cũ) — Phiên bản 2.44 ĐÃ LÊN PRODUCTION (Nút «Sửa» ở Hoa hồng đối tác cho mức, chính sách theo loại khách và chính sách riêng của đại lý, kèm ô lý do: mức chưa có đơn dùng thì huỷ–thay, mức đã có đơn dùng thì phần sửa áp từ ngày sau đơn cuối; «Đổi» / «Ngừng» không còn cắt qua ngày của đơn đã dùng mức — ADR-0148 Đ1; mang theo 2.43 sửa ô tích) — CÓ migration `0126_sua_muc_huy_thay` — triển khai 2026-10-29 13:08 (giờ VN)
 
 Ghi 29/10/2026 từ khối tóm tắt của `npm run trien-khai` (chủ chạy `day-len` + `trien-khai`) và lệnh CHỈ ĐỌC của phiên thi công (nhánh `claude/recursing-kilby-af8ebc`; sổ thi công `docs/superpowers/plans/2026-10-29-sua-muc-luot-1-thi-cong-nhat-ky.md`):

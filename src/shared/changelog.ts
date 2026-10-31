@@ -13,8 +13,8 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // Luật khung 30/10 (chủ duyệt gói khuyến nghị của bản đánh giá khung giao diện; kế hoạch docs/superpowers/plans/2026-10-30-sua-hien-thi-va-luat-khung.md).
-    // Chỉ giao diện, KHÔNG migration, không đổi máy chủ. Production báo 2.48 (GET công khai /api/auth/config, 30/10). Ngày là TẠM — phiên phát hành kiểm lại ở bước A.0.
-    version: "2.49",
+    // Chỉ giao diện, KHÔNG migration, không đổi máy chủ. Số 2.51 đánh lại sau khi nhận main (main đã có 2.49 luật bán, 2.50 chữ Hoa hồng); trước đó production báo 2.48 (GET công khai /api/auth/config, 30/10). Ngày là TẠM — phiên phát hành kiểm lại ở bước A.0.
+    version: "2.51",
     date: "2026-10-30",
     items: [
       { kind: "doi", text: "Danh sách Đơn hàng trên máy tính nay xếp thành bảng thẳng cột: ngày đi, khách, điện thoại, số khách, còn thu, trạng thái." },
@@ -25,6 +25,28 @@ export const CHANGELOG: readonly ReleaseNote[] = [
       { kind: "doi", text: "Sổ công nợ trên máy tính tự mở bên đầu tiên trong danh sách. Trang Tôi xếp gọn thành hai cột, không còn khoảng trống lớn." },
       { kind: "doi", text: "Dải nhắc bật bảo mật hai lớp hiện màu vàng nhạt khi còn hơn 3 ngày, chuyển sang đỏ khi sắp hết hạn." },
       { kind: "doi", text: "Tiêu đề các khối đổi sang màu chữ đen cho dễ đọc; màu xanh dành cho những chỗ bấm được." },
+    ],
+  },
+  {
+    // Rà soát ngôn ngữ trang Hoa hồng đối tác (chủ duyệt 30/10, hồ sơ docs/superpowers/specs/2026-10-30-ra-soat-ngon-ngu-hoa-hong/). Chỉ đổi chữ, KHÔNG migration, không đổi hành vi.
+    // Số 2.50 và ngày là TẠM (mục đầu lúc làm: 2.49) — phiên phát hành kiểm lại ở bước A.0 của docs/HANDOFF-N1.md.
+    version: "2.50",
+    date: "2026-10-30",
+    items: [
+      { kind: "doi", text: "Trang Hoa hồng đối tác: đổi chữ cho dễ hiểu (Chọn cấp cho loại này, Thôi theo cấp này, Kiểm tra hoa hồng…)." },
+      { kind: "doi", text: "Các hộp chọn cấp nay dùng nút «Lưu», ô ngày ghi «Từ ngày», «Đến ngày», và các câu giải thích ngắn gọn hơn." },
+    ],
+  },
+  {
+    // Luật bán theo loại đối tác + đặc điểm dịch vụ (ADR-0146, ADR-0152; kế hoạch docs/superpowers/plans/2026-10-30-adr-0146-va-dac-diem-dich-vu-ke-hoach.md). CÓ migration 0128, 0129
+    // nên cần npm run trien-khai. Số 2.49 và ngày là TẠM (mục đầu lúc làm: 2.48) — phiên phát hành kiểm lại ở bước A.0 của docs/HANDOFF-N1.md.
+    version: "2.49",
+    date: "2026-10-30",
+    items: [
+      { kind: "moi", text: "Trang «Luật bán» trong Thiết lập: đặt quy tắc «loại đối tác này không được đặt một dịch vụ, một nhóm, hoặc dịch vụ mang một đặc điểm», có hạn ngày." },
+      { kind: "moi", text: "Đơn có dịch vụ bị luật bán chặn với bên đặt thì không lập, lưu, xác nhận hay gửi được, kèm câu báo rõ dịch vụ nào. Đối tác không thấy các dịch vụ đó." },
+      { kind: "moi", text: "Trang «Đặc điểm dịch vụ»: Quản trị định nghĩa đặc điểm (ví dụ «Gồm vé tàu: Có / Không»), Bán hàng gắn giá trị cho từng dịch vụ, có danh sách «Chưa khai»." },
+      { kind: "moi", text: "Đổi giá trị đặc điểm hoặc chuyển nhóm làm đổi luật bán thì Nền tảng hỏi lại trước khi lưu, nói rõ loại đối tác nào bắt đầu hoặc thôi bị chặn." },
     ],
   },
   {

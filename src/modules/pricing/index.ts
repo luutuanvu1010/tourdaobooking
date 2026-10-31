@@ -1,10 +1,10 @@
 // Module pricing — bảng mức hoa hồng, điều khoản người bán (ADR-0077, ADR-0078 B1; đặc tả 2026-10-08 sổ đại lý đợt 1). Route: /api/pricing/*.
 // Hàm công bố cho orders: docBangChoChup (đọc mọi thứ để chụp lúc Xác nhận / đổi bên đặt), laNguoiHuong (bên đặt tổ chức có được gắn vào đơn không).
 import { auditStatement } from "../audit";
-import { getEffectiveServices } from "../catalog";
+import { getEffectiveServices, tenCacNhom, tenDacDiemTheoMa } from "../catalog";
 import { datHoatDongLoaiDoiTacStatement, kiemTenLoaiDoiTac, loaiVaiChiTiet, maLoaiDoiTac, ownerCompany, tenLoaiVai, themLoaiDoiTacStatement } from "../parties";
 import type { CommissionRuleDto, DoiMucResponse, HoaHongHoSoResponse, CommissionRuleListResponse, GanLoaiMucDto, GanLoaiMucResponse, LoaiDoiTacDto, LoaiDoiTacListResponse, LoaiDoiTacResponse, MucTaDto, MucTaListResponse, MucTaResponse,
-  NguoiHuongTimResponse, SuaGanLoaiResponse, SuaMucResponse, SuaXemTruocResponse, SupplyTermDto, SupplyTermListResponse, ThuTraResponse } from "../../shared/contracts";
+  LuatBanDto, LuatBanListResponse, LuatBanResponse, NguoiHuongTimResponse, SuaGanLoaiResponse, SuaMucResponse, SuaXemTruocResponse, SupplyTermDto, SupplyTermListResponse, ThuTraResponse } from "../../shared/contracts";
 import { error, json, mauLikeChua, kemLocation, readJson } from "../../shared/http";
 import { coTheTimDoiTac } from "../../shared/hoa-hong-hien-thi";
 import { can, holdsPartner } from "../../shared/permissions";
@@ -17,6 +17,10 @@ import { cauDoiCapRieng, cauDoiChinhSach, cauSuaGanLoai, cauSuaGanRieng, cauSuaM
 import { MA_RE, MUC_TA_RE, PARTY_RE, chonMuc, cungMuc, hieuLuc, tomTatHoaHongHoSo, kiemDoi, kiemNgayDong, kiemNgung, kiemSua, xemTruocSua, kiemThanDoiChinhSach, kiemThanDieuKhoan, kiemThanDoiMuc, kiemThanDongMucTa, kiemThanGan, kiemThanGanRieng, kiemThanMuc, kiemTenMucTa, laNgay, maMucTa, moTaMuc, nguoiHuongCua,
   type DongDieuKhoan, type DongMuc, type GanLoaiMuc, type GanRieng, type MucTheoLoai, type NguoiHuong } from "./rules";
 
+import { coCacGiaTri, coGiaTri, danhSachLuatBan, demLuatBanChuaHetHan, giaTriDacDiemCua, ketThucLuatBanStatement, luatBanHieuLuc, luatBanTheoId, themLuatBanStatement, type LuatBanRow } from "./luat-ban-repo";
+import { chanBan, kiemThanLuatBan, ngayKetThucLuat, type PhamViLuatBan, type TrungLuat } from "./luat-ban-rules";
+
+export { cauBiChan } from "./luat-ban-rules";
 export { chupDon, soKhachTinhHoaHong, tinhDongDoiTac, type BanChup, type DongPhanDoiTac, type KieuMuc, type LyDoThieu, type NguoiHuong } from "./rules";
 
 /** ADR-0133: ba số tiền của dòng phụ; người lớn = per_pax_amount. null khi dòng không khai theo loại (không có dòng phụ). */
@@ -50,8 +54,35 @@ export const laNguoiHuong = (db: D1Database, partyId: string): Promise<boolean> 
  */
 export const nguoiHuongCuaHoSo = (db: D1Database, partyId: string): Promise<{ partyId: string; ten: string } | null> => huongCuaHoSo(db, partyId);
 
+/** Một lần trúng luật bán kèm TÊN đặc điểm / giá trị (chỉ để viết câu báo — không rẽ nhánh theo tên, hàng rào (l3)). */
+export interface TrungLuatBan extends TrungLuat { tenDacDiem: string | null; tenGiaTri: string | null }
+/**
+ * ADR-0146 Đ2, Đ3 + ADR-0152 Đ2 (kế hoạch R-3): hàm công bố DUY NHẤT xét luật bán — mọi cửa ghi đơn (qua `orders/cong-ban.ts`) và bộ lọc danh mục for-order (qua hàm tiêm của gốc
+ * lắp ráp) gọi hàm này. Bên đặt trống ⇒ rỗng, không đọc gì. Loại = vai đang mở của hồ sơ bên đặt (`v_pty_open_role`); luật hiệu lực ở `ngay` (ngày Việt Nam lúc thao tác, nơi gọi
+ * truyền `vnToday(new Date())`); nhóm HIỆN HÀNH và giá trị đặc điểm HIỆU LỰC của các mã đọc từ view công bố của catalog; phép xét là luật thuần `chanBan`. Không ghi gì.
+ */
+export async function kiemLuatBan(db: D1Database, v: { bookerPartyId: string | null; catalogCodes: readonly string[]; ngay: string }): Promise<TrungLuatBan[]> {
+  const codes = [...new Set(v.catalogCodes)];
+  if (!v.bookerPartyId || codes.length === 0) return [];
+  const vai = (await openRolesOf(db, v.bookerPartyId)).map((r) => r.role_type_code);
+  const luat = await luatBanHieuLuc(db, vai, v.ngay);
+  if (luat.length === 0) return [];
+  const coDacDiem = luat.some((l) => l.scope === "ATTRIBUTE");
+  const [nhom, giaTri] = await Promise.all([groupsOf(db, codes), coDacDiem ? giaTriDacDiemCua(db, codes) : Promise.resolve(new Map<string, Map<string, string>>())]);
+  const trung = chanBan({
+    vaiBenDat: vai, ngay: v.ngay, luat: luat.map(dongLuatBan),
+    dichVu: codes.map((code) => ({ code, nhom: nhom.get(code) ?? null, giaTri: giaTri.get(code) ?? new Map<string, string>() })),
+  });
+  const ma = trung.flatMap((t) => (t.valueCode ? [t.valueCode] : []));
+  const ten = ma.length ? await tenDacDiemTheoMa(db, ma) : new Map<string, { dacDiem: string; giaTri: string }>();
+  return trung.map((t) => ({ ...t, tenDacDiem: t.valueCode ? (ten.get(t.valueCode)?.dacDiem ?? null) : null, tenGiaTri: t.valueCode ? (ten.get(t.valueCode)?.giaTri ?? null) : null }));
+}
+const dongLuatBan = (r: LuatBanRow) => ({ id: r.id, roleTypeCode: r.role_type_code, scope: r.scope, catalogCode: r.catalog_code, groupCode: r.group_code, attributeCode: r.attribute_code,
+  valueCode: r.value_code, validFrom: r.valid_from_date, validTo: r.valid_to_date });
+
 /** Cùng câu cho trigger `prc_supplier_mismatch` và cho lời kiểm trước ở route (ràng buộc CHECK của bảng không có tiền tố mã nên không dịch được từ lỗi). */
 const CAU_TY_LE_MUA_LAI = "Tour Đảo bán thì không ghi tỷ lệ mua lại; nhà cung cấp bán thì phải ghi.";
+const CAU_GIA_TRI_TAT = "Giá trị đặc điểm này không còn dùng, đặc điểm của nó đang tắt, hoặc giá trị không thuộc đặc điểm đã chọn — tải lại rồi chọn lại.";
 /** Lỗi trigger của prc_* → câu tiếng Việt; không khớp → null (ném lại). */
 function loiBang(e: unknown): Response | null {
   const m = e instanceof Error ? e.message : String(e);
@@ -74,6 +105,9 @@ function loiBang(e: unknown): Response | null {
   if (/NOT NULL constraint failed: prc_commission_rule\.valid_from_date/.test(m)) return error(409, "stale", "Dòng này vừa được người khác ngừng hoặc đổi. Tải lại trang."); // câu chèn của Đổi mức: dòng cũ không còn đóng được
   // ADR-0148 «Sửa»: câu huỷ / đóng dòng cũ thua khoá lạc quan (người khác vừa sửa / ngừng / huỷ) ⇒ câu chèn dòng thay thế lỗi NOT NULL hoặc trigger dòng thay thế.
   if (/NOT NULL constraint failed: prc_party_tier\.valid_from_date/.test(m) || /\bprc_replaces_mismatch:/.test(m)) return error(409, "stale", "Dòng này vừa được người khác sửa hoặc ngừng. Tải lại trang.");
+  // ADR-0146 Đ1 / ADR-0152 Đ2 (migration 0129): lưới CSDL của luật bán — route kiểm trước, hai câu này chỉ tới khi đua (loại vừa tắt, giá trị / đặc điểm vừa tắt).
+  if (/\bprc_sales_block_target:/.test(m)) return error(400, "invalid_input", "Loại đối tác này không nằm trong danh sách được hưởng hoặc đang tắt.");
+  if (/\bprc_sales_block_value:/.test(m)) return error(409, "sales_block_value_inactive", CAU_GIA_TRI_TAT);
   if (/\bprc_append_only:/.test(m)) return error(409, "stale", "Dòng này vừa được người khác ngừng — tải lại.");
   if (/FOREIGN KEY constraint failed/.test(m)) return error(400, "invalid_input", "Nhóm dịch vụ hoặc hồ sơ không có.");
   return null;
@@ -162,6 +196,11 @@ const LOAI_KHONG_CO = () => error(404, "not_found", "Không tìm thấy loại �
 async function doiTrangThaiLoai(db: D1Database, code: string, bat: boolean, staffId: string): Promise<Response> {
   const loai = MA_RE.test(code) ? (await loaiVaiChiTiet(db)).find((t) => t.code === code) : undefined;
   if (!loai || !loai.partnerLabel) return LOAI_KHONG_CO();
+  if (!bat) {
+    // ADR-0146 Đ1: loại còn luật bán đang hoặc SẮP áp dụng thì không tắt được — CÙNG vị từ với kiểm định kỳ R-PRC-8 (luat-ban-repo.ts). Khe đua kiểm → ghi do R-PRC-8 bắt.
+    const n = await demLuatBanChuaHetHan(db, code, vnToday(new Date()));
+    if (n > 0) return error(409, "loai_con_luat_ban", `Loại này còn ${n} luật bán đang hoặc sắp áp dụng — Bán hàng, Quản trị hoặc Toàn quyền kết thúc các luật đó ở màn Luật bán trước, rồi mới tắt loại.`);
+  }
   const at = new Date().toISOString();
   const res = await chayLo(db, [
     datHoatDongLoaiDoiTacStatement(db, code, bat),
@@ -232,6 +271,41 @@ async function doiTrangThaiMuc(db: D1Database, code: string, bat: boolean, staff
   if (res instanceof Response) return res;
   if (dongDaDong(res)) return error(409, "stale", bat ? "Cấp này đang mở rồi — tải lại." : "Cấp này đã khoá rồi — tải lại.");
   return json({ muc: (await docMucTa(db, vnToday(new Date()))).find((m) => m.code === code)! } satisfies MucTaResponse);
+}
+
+// ===== Luật bán theo loại đối tác (ADR-0146 Đ1, Đ5; ADR-0152 Đ2; kế hoạch 2026-10-30 T6) =====
+const FORBIDDEN_LB = () => error(403, "forbidden", "Chỉ Bán hàng, Quản trị, Toàn quyền đặt và kết thúc luật bán.");
+const LUAT_ID_RE = /^[0-9a-f-]{36}$/;
+/** Khoảng rỗng (kết thúc trước ngày bắt đầu — «Kết thúc ngay» luật chưa bắt đầu) là đã kết thúc, dù ngày còn ở tương lai. */
+const trangThaiLuat = (r: LuatBanRow, homNay: string): LuatBanDto["trangThai"] =>
+  r.valid_to_date !== null && (r.valid_to_date < homNay || r.valid_to_date < r.valid_from_date) ? "DA_KET_THUC" : r.valid_from_date > homNay ? "SAP_AP_DUNG" : "DANG_AP_DUNG";
+/** DTO cho màn Luật bán: tên loại, dịch vụ, nhóm, đặc điểm lấy từ dữ liệu (hàm công bố của parties / catalog); cờ «không phủ dịch vụ nào» theo view v_ctl_attribute_value. */
+async function dtoLuatBan(db: D1Database, rows: readonly LuatBanRow[], homNay: string): Promise<LuatBanDto[]> {
+  const giaTri = rows.flatMap((r) => (r.value_code ? [r.value_code] : []));
+  const maDichVu = rows.flatMap((r) => (r.catalog_code ? [r.catalog_code] : []));
+  const coNhom = rows.some((r) => r.group_code !== null);
+  const [tenVai, dichVu, nhom, tenDD, co] = await Promise.all([
+    tenLoaiVai(db), maDichVu.length ? getEffectiveServices(db, maDichVu) : Promise.resolve(new Map<string, { name: string }>()),
+    coNhom ? tenCacNhom(db) : Promise.resolve(new Map<string, string>()),
+    giaTri.length ? tenDacDiemTheoMa(db, giaTri) : Promise.resolve(new Map<string, { dacDiem: string; giaTri: string }>()), coCacGiaTri(db, giaTri),
+  ]);
+  return rows.map((r) => {
+    const f = r.value_code ? co.get(r.value_code) : undefined;
+    return {
+      id: r.id, loai: r.role_type_code, tenLoai: tenVai.get(r.role_type_code) ?? r.role_type_code, phamVi: r.scope,
+      catalogCode: r.catalog_code, tenDichVu: r.catalog_code ? (dichVu.get(r.catalog_code)?.name ?? null) : null,
+      groupCode: r.group_code, tenNhom: r.group_code ? (nhom.get(r.group_code) ?? null) : null,
+      attributeCode: r.attribute_code, valueCode: r.value_code,
+      tenDacDiem: r.value_code ? (tenDD.get(r.value_code)?.dacDiem ?? null) : null, tenGiaTri: r.value_code ? (tenDD.get(r.value_code)?.giaTri ?? null) : null,
+      tuNgay: r.valid_from_date, denNgay: r.valid_to_date, ghiChu: r.note, trangThai: trangThaiLuat(r, homNay),
+      khongPhu: r.scope === "ATTRIBUTE" && !(f && f.active === 1 && f.attribute_active === 1),
+    };
+  });
+}
+/** Nhật ký luật bán (ADR-0146 Đ5): tên + mã loại, phạm vi bằng mã, ngày — không thông tin cá nhân. */
+function moTaLuatBan(v: { tenLoai: string; roleTypeCode: string; scope: PhamViLuatBan; catalogCode: string | null; groupCode: string | null; attributeCode: string | null; valueCode: string | null }): string {
+  const pv = v.scope === "SERVICE" ? `dịch vụ ${v.catalogCode}` : v.scope === "GROUP" ? `nhóm ${v.groupCode}` : `đặc điểm ${v.attributeCode} = ${v.valueCode}${v.groupCode ? ` trong nhóm ${v.groupCode}` : ""}`;
+  return `${v.tenLoai} (${v.roleTypeCode}) · ${pv}`;
 }
 
 export const pricingModule: AppModule = {
@@ -353,6 +427,61 @@ export const pricingModule: AppModule = {
       if (dongDaDong(res)) return error(409, "stale", "Dòng này vừa được người khác sửa hoặc ngừng. Tải lại trang.");
       const [cu, moi] = await Promise.all([ruleById(env.DB, id), ruleById(env.DB, moiId)]);
       return json({ duong: k.duong, cu: dtoMuc(cu!, tenVai, homNay), moi: dtoMuc(moi!, tenVai, homNay) } satisfies SuaMucResponse);
+    }),
+    // ADR-0146 Đ5: LUẬT BÁN theo loại đối tác — cổng văn phòng, ô `sales.block.write` (Bán hàng, Quản trị, Toàn quyền) ở dòng đầu thân; tài khoản giữ quyền Đối tác (kể cả lai) bị
+    // chặn ở cả đọc lẫn ghi (chủ chọn Q-2 (a): không tự gỡ luật đang chặn chính mình). Bảng chỉ thêm: thêm dòng, đặt ngày kết thúc MỘT lần; dữ liệu + nhật ký MỘT lô.
+    route("GET", "/api/pricing/luat-ban", "office", async ({ env, staff }) => {
+      if (!can(staff, "sales.block.write") || holdsPartner(staff)) return FORBIDDEN_LB();
+      const homNay = vnToday(new Date());
+      return json({ homNay, luat: await dtoLuatBan(env.DB, await danhSachLuatBan(env.DB), homNay) } satisfies LuatBanListResponse);
+    }),
+    route("POST", "/api/pricing/luat-ban", "office", async ({ env, request, staff }) => {
+      if (!can(staff, "sales.block.write") || holdsPartner(staff)) return FORBIDDEN_LB();
+      const homNay = vnToday(new Date());
+      const kq = kiemThanLuatBan(await readJson(request), homNay);
+      if (!kq.ok) return error(400, "invalid_input", kq.message);
+      const v = kq.value;
+      // ADR-0146 Đ1: loại phải nằm trong danh sách được hưởng và đang bật (trigger `prc_sales_block_role_ok` là lưới CSDL).
+      if (!(await beneficiaryRoles(env.DB)).includes(v.roleTypeCode)) return error(400, "invalid_input", "Loại đối tác này không nằm trong danh sách được hưởng hoặc đang tắt.");
+      if (v.scope === "SERVICE" && !(await getEffectiveServices(env.DB, [v.catalogCode!])).has(v.catalogCode!)) return error(400, "invalid_input", "Không có dịch vụ này trong danh mục.");
+      if (v.scope === "ATTRIBUTE") {
+        // ADR-0152 Đ2 tiêu chí 13 (+ siết sau KĐL-1): giá trị thuộc đúng đặc điểm, giá trị và đặc điểm cha đang bật — kiểm TRƯỚC khi chạm CSDL (trigger `prc_sales_block_value_ok` là lưới).
+        const gt = await coGiaTri(env.DB, v.valueCode!);
+        if (!gt || gt.attribute_code !== v.attributeCode || gt.active !== 1 || gt.attribute_active !== 1) return error(409, "sales_block_value_inactive", CAU_GIA_TRI_TAT);
+      }
+      const tenLoai = (await tenLoaiVai(env.DB)).get(v.roleTypeCode) ?? v.roleTypeCode;
+      const at = new Date().toISOString();
+      const id = crypto.randomUUID();
+      const ngay = `từ ${ngayDayDu(v.validFrom)}${v.validTo ? ` đến ${ngayDayDu(v.validTo)}` : ""}`;
+      const res = await chayLo(env.DB, [
+        themLuatBanStatement(env.DB, { id, ...v, at, by: staff.id }),
+        auditStatement(env.DB, { staffId: staff.id, action: "prc_sales_block_added", at, detail: `${moTaLuatBan({ tenLoai, ...v })} · ${ngay}` }),
+      ]);
+      if (res instanceof Response) return res;
+      const dong = await luatBanTheoId(env.DB, id);
+      return kemLocation(json({ luat: (await dtoLuatBan(env.DB, [dong!], homNay))[0]! } satisfies LuatBanResponse, 201), "/luat-ban");
+    }),
+    // Kết thúc (R-1, chủ chọn Q-3 (a)): không gửi `denNgay` = «Kết thúc ngay» (ngày kết thúc = max(hôm qua, ngày bắt đầu − 1) — thôi chặn từ hôm nay); hẹn ngày ≥ biên đó.
+    route("POST", "/api/pricing/luat-ban/:id/ket-thuc", "office", async ({ env, request, params, staff }) => {
+      if (!can(staff, "sales.block.write") || holdsPartner(staff)) return FORBIDDEN_LB();
+      const id = params.id!;
+      const row = LUAT_ID_RE.test(id) ? await luatBanTheoId(env.DB, id) : null;
+      if (!row) return error(404, "not_found", "Không tìm thấy luật bán này.");
+      const DA_KET_THUC = () => error(409, "stale", "Luật bán này vừa được kết thúc — tải lại.");
+      if (row.valid_to_date !== null) return DA_KET_THUC();
+      const homNay = vnToday(new Date());
+      const nk = ngayKetThucLuat({ homNay, validFrom: row.valid_from_date, denNgay: (await readJson(request))?.denNgay });
+      if (!nk.ok) return error(400, "invalid_input", nk.message);
+      const tenLoai = (await tenLoaiVai(env.DB)).get(row.role_type_code) ?? row.role_type_code;
+      const at = new Date().toISOString();
+      const moTa = moTaLuatBan({ tenLoai, roleTypeCode: row.role_type_code, scope: row.scope, catalogCode: row.catalog_code, groupCode: row.group_code, attributeCode: row.attribute_code, valueCode: row.value_code });
+      const res = await chayLo(env.DB, [
+        ketThucLuatBanStatement(env.DB, id, nk.value, at, staff.id),
+        auditStatement(env.DB, { staffId: staff.id, action: "prc_sales_block_ended", at, detail: `${moTa} · kết thúc ${ngayDayDu(nk.value)}` }, "changes() > 0"),
+      ]);
+      if (res instanceof Response) return res;
+      if (dongDaDong(res)) return DA_KET_THUC();
+      return json({ luat: (await dtoLuatBan(env.DB, [(await luatBanTheoId(env.DB, id))!], homNay))[0]! } satisfies LuatBanResponse);
     }),
     // ADR-0117 lần 1: loại đối tác là DỮ LIỆU. Thêm / tắt / bật do Kế toán, Quản trị, Toàn quyền (ô partner.commission.write); xem do ô partner.commission.view. Tên đi vào nhật ký (đã cấm
     // số điện thoại / email trong tên). Mã `LD_` + 8 chữ hoa do máy chủ sinh. Đường cố định trước đường có :code.

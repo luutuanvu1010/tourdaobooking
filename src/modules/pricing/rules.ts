@@ -185,7 +185,7 @@ export const laNgay = (s: unknown): s is string => {
 };
 const laPhanVan = (n: unknown): n is number => typeof n === "number" && Number.isInteger(n) && n >= 0 && n <= 10_000;
 /** Ghi chú tuỳ chọn ≤ 200 ký tự, không dãy ≥ 8 chữ số (khuôn billing: không SĐT / số tài khoản). */
-function docGhiChu(raw: unknown): Ket<string | null> {
+export function docGhiChu(raw: unknown): Ket<string | null> {
   if (raw === undefined || raw === null || raw === "") return { ok: true, value: null };
   if (typeof raw !== "string" || raw.length > 200) return { ok: false, message: "Ghi chú tối đa 200 ký tự." };
   if (/\d{8,}/.test(raw.replace(/[\s.-]/g, ""))) return { ok: false, message: "Ghi chú không được chứa số điện thoại / số tài khoản." };

@@ -21,6 +21,7 @@ import { legDatGapByOrder, slotPolicy } from "./chang-hanh-khach-repo";
 import { daHuy, daXacNhan, findOrder, getMeta, nextStamp, soanHuyDon, soanXacNhan } from "./repository";
 import { MOC_CHUA_CO, RACED, STALE, chanDoanXacNhan, chayLoNoiChuyen, congNhomTatDuaDon, dichLoiXacNhan, kemChupXacNhan, kiemCongXacNhan, tinhCanXacNhan } from "./xac-nhan-chung";
 import { confirmWindow } from "./service-rules";
+import { congLuatBan } from "./cong-ban";
 
 const NHAN_VI: Record<LyDoCanXacNhan, string> = { DICH_VU: "dịch vụ cần xác nhận", DAT_GAP: "lượt đón dưới hạn chốt, cần đặt gấp" };
 const dtoYeuCau = (y: YeuCauRow, vi: LyDoCanXacNhan[], nowMs: number): YeuCauXacNhanDto => ({ id: y.id, guiLuc: y.submitted_at, hanLuc: y.deadline_at, quaHan: quaHanXacNhan(y.deadline_at, nowMs), vi });
@@ -113,6 +114,9 @@ export const xacNhanRoutes = [
     const moc = await mocToiThieu(); // MỘT lần mỗi request (TC-26); chưa có mốc thì không xét được "chặng dưới mốc" ⇒ từ chối kín
     if (!moc) return MOC_CHUA_CO();
     const nowMs = Date.now();
+    // ADR-0146 Đ3 + Q-1 (a) của chủ: luật bán đứng TRƯỚC chốt «cần xác nhận» — đơn bị chặn bán nhận `sales_blocked`, không mở yêu cầu (dù cần hay không cần xác nhận).
+    const chanBan = await congLuatBan(env.DB, { bookerPartyId: order.bookerPartyId, dong: order.services });
+    if (chanBan) return chanBan;
     const canXN = await tinhCanXacNhan(env.DB, order, moc, nowMs);
     if (!canXN.can) return error(409, "confirm_not_required", "Đơn này không cần xác nhận, hãy bấm Xác nhận đơn.");
     const tatDuaDon = await congNhomTatDuaDon(env.DB, order, "xac-nhan"); // ADR-0118 Đ3 (b): cửa này không qua kiemCongXacNhan — chốt riêng, TRƯỚC cổng chọn đón
@@ -130,8 +134,8 @@ export const xacNhanRoutes = [
 
   // GỬI ĐƠN (Đ13, Task 3.4): nút duy nhất của tài khoản giữ quyền Đối tác với đơn họ lập. Cổng của quyền là ô `order.submit` (KHÔNG thêm kiểm `holdsPartner`: Toàn quyền gửi nháp của mình được).
   // Thứ tự: nháp của người khác 404 (ADR-0135 Đ2) → `can(order.submit)` 403 → đã giao → không phải nháp / đã có yêu cầu mở 409 → mọi cổng của Xác nhận ngay THEO NGƯỜI GỬI (R2 giá danh mục, người lớn,
-  // chọn Đón, R3 trần; mốc chỉ cần CÓ để phân nhánh — chặng dưới mốc KHÔNG bị từ chối lúc gửi) → phân nhánh bằng `canXacNhan`. Cổng hỏng ⇒ đơn ở lại nháp, không câu báo thứ ba. (Cổng «luật bán»: chưa có — lượt 2 chưa
-  // duyệt; chỗ móc: ngay trước phân nhánh.) Nhánh A mở yêu cầu như Gửi xác nhận (kèm chặn khoản thu); nhánh B xác nhận ngay trong lô `soanXacNhan` (không mở yêu cầu, không kiểm khoản thu).
+  // chọn Đón, R3 trần; mốc chỉ cần CÓ để phân nhánh — chặng dưới mốc KHÔNG bị từ chối lúc gửi) → phân nhánh bằng `canXacNhan`. Cổng hỏng ⇒ đơn ở lại nháp, không câu báo thứ ba. (Cổng «luật bán» — ADR-0146 Đ3:
+  // dòng đầu `kiemCongXacNhan`, nên đứng trước mọi cổng khác và trước phân nhánh.) Nhánh A mở yêu cầu như Gửi xác nhận (kèm chặn khoản thu); nhánh B xác nhận ngay trong lô `soanXacNhan` (không mở yêu cầu, không kiểm khoản thu).
   route("POST", "/api/orders/:id/gui-don", "orders", async ({ env, params, staff, baoThayDoi, mocToiThieu, daThuCuaDon }) => {
     const id = params.id!;
     if (!UUID_RE.test(id)) return NOT_FOUND_DON();
@@ -293,6 +297,10 @@ export const xacNhanRoutes = [
     }
     // (0) KIỂM TRƯỚC KHI GHI — mốc tối thiểu / đặt gấp tính trên ngày + giờ MỚI (cùng `canhBaoMocCua`, cùng ngưỡng `nguongMocVn` với câu xác nhận): không để người xét duyệt đổi sang khung sớm hơn mà qua mặt mốc.
     // ADR-0118 Đ3 (b) TRƯỚC mốc (cùng thứ tự với `/status`): lượt của nhóm đã tắt đưa đón phải bỏ, đừng đẩy người xét duyệt đi đặt gấp cho nó trước.
+    // ADR-0146 Đ3 (R-7): luật bán đứng TRƯỚC cả nhóm tắt đưa đón và mốc — đừng đẩy người xét duyệt đi bỏ lượt / đặt gấp cho một đơn không bán được. (Dòng đầu
+    // `kiemCongXacNhan` bên dưới gọi lại — chỉ đọc.)
+    const chanBanXd = await congLuatBan(env.DB, { bookerPartyId: order.bookerPartyId, dong: order.services });
+    if (chanBanXd) return chanBanXd;
     const tatDuaDon = await congNhomTatDuaDon(env.DB, order, "xet-duyet");
     if (tatDuaDon) return tatDuaDon;
     const daDatGap = new Set((await legDatGapByOrder(env.DB, id)).map((r) => r.id));

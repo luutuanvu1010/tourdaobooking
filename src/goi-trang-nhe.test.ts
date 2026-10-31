@@ -26,11 +26,17 @@ const CHO_PHEP_NHAT_KY = new Set(["web/help.ts"]);
 // Nhận main vào nhánh hồ sơ riêng tư: giữ trần LỚN HƠN của hai bên (96.700); không nới thêm — đo gói thật sau gộp ở báo cáo.
 // Nới 96.700 → 96.800 (ADR-0136 Task 3.5, 27/10): gói nhúng `muc-giao-dien.ts` (thêm trang /cho-xac-nhan vào `TRANG`/`TRANG_TOI`) và `bang-tin.ts`/`thong-bao.ts` (nhãn `xet-duyet`, loại tin `cho_xac_nhan`) — chỉ dữ liệu, +13 byte đo thật; không thêm mã giao diện vào trang Đơn hàng.
 // Nới 96.700 → 101.719 (đợt 0 khung chung, 2026-10-29): mã vỏ chung (dải, ẩn thanh tab động, thanh tab theo bộ quyền) vào gói mọi trang; không nhật ký thay đổi, không mã nghiệp vụ. Đo sau Task 15/15b (Q-2) = 101.619 byte.
+// Nới 101.719 → 101.824 (ADR-0146 T11, 30/10): gói nhúng `muc-giao-dien.ts` — thêm trang /luat-ban vào `TRANG`/`THANH_BEN`/`TRANG_TOI` (chỉ dữ liệu điều hướng, không mã giao diện
+// vào trang Đơn hàng). Đo thật 101.824 byte (+105). Không gọn được mà không đổi khuôn bảng mục chung.
+// Nới 101.824 → 102.250 (ADR-0152 T12, 30/10): trang /dac-diem-dich-vu vào `TRANG`/`THANH_BEN`/`TRANG_TOI` + một nhánh huy hiệu «chưa khai» ở `trinhBay` của web/shell.ts
+// (ADR-0152 Đ5 mục 3, khuôn huy hiệu «Dịch vụ & giá»; chỉ gọi khi mục thật sự hiện). Đo thật 102.250 byte (+426). Không mã nghiệp vụ nào vào trang Đơn hàng.
 // Nới 101.719 → 101.933 (luật khung 30/10/2026 — chủ dự án duyệt nguyên văn «đồng ý theo đề xuất của bạn, thi công» cho câu «nới 101.719 → 101.933 byte»):
 // trước đợt này gói đo 101.695 byte (dư 24); đợt thêm 138 byte vào khung chung (một dòng thanh bên tự cuộn tới mục đang mở ở web/shell.ts, hàm tông dải nhắc
 // bảo mật `tongDaiNhacHaiLop`, trừ 21 byte chữ lặp «— Bật ngay») ⇒ 101.833; trần = số đo + 100. Không nhật ký thay đổi, không mã nghiệp vụ.
 // Kế hoạch: docs/superpowers/plans/2026-10-30-sua-hien-thi-va-luat-khung.md.
-const TRAN_ORDERS = 101_933;
+// Tính lại sau khi nhận main (31/10/2026): main đứng ở 102.250 (trần 102.250, dư 0); gói đo trên mã đã gộp = 102.454 byte (+204 so với main: phần luật khung 138 byte nói trên cộng phần cộng dồn
+// với mã vỏ chung mới của main). Cùng cách của kế hoạch: trần = số đo + 100. Số trần 102.554 mới là số đo sau gộp, CHƯA có lời duyệt riêng của chủ dự án cho con số này (lời duyệt 30/10 là cho 101.933).
+const TRAN_ORDERS = 102_554;
 
 function dung(trang: string) {
   const r = buildSync({

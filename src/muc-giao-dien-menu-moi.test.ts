@@ -12,6 +12,10 @@ const TRANG_THANH_BEN_CU: readonly KhoaTrang[] = [
   "chupBu",
   // Sổ công nợ theo đối tác (kế hoạch 2026-10-24 P1, 25/10): ô ledger.view không ngữ cảnh.
   "soCongNo",
+  // Luật bán theo loại đối tác (ADR-0146 Đ5; kế hoạch 2026-10-30 T11, 30/10): ô sales.block.write, không Đối tác.
+  "luatBan",
+  // Đặc điểm dịch vụ (ADR-0152 Đ3, Đ5; T12, 30/10): catalog.attribute.assign hoặc admin.manage, không Đối tác.
+  "dacDiem",
 ];
 const holder = (permissions: readonly PermissionCode[]) => ({ id: "x", permissions });
 

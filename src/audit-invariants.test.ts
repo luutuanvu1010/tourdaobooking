@@ -2418,6 +2418,63 @@ test("R-CTL-1 (ADR-0058 NT-A11): dịch vụ đang hiện chưa có nhóm hiện
   assert.equal(violations(db, c), 1, "đã rời Sheet (in_sheet = 0) → không đếm");
 });
 
+// ADR-0152 Đ1 + kế hoạch R-8 (T1): R-CTL-2 — dòng gắn đặc điểm ĐANG MỞ trỏ đặc điểm / giá trị đang tắt, hoặc giá trị không thuộc đặc điểm ghi trên dòng. Lưới thứ hai sau
+// trigger chèn (`ctl_attribute_assignment_*`) và trigger tắt (`*_off_in_use`): ca đỏ gỡ ĐÚNG trigger đang chặn — như SQL gõ tay trên D1. Nhánh «nhóm đang tắt» KHÔNG có:
+// tắt nhóm rỗng còn dòng gắn theo nhóm là đường hợp lệ của route nhóm hôm nay (view bỏ qua nhóm tắt) — ghi ở sổ thi công, chờ điều phối.
+test("R-CTL-2 (ADR-0152 Đ1, R-8): dữ liệu khoẻ → 0; dòng mở trỏ giá trị tắt / đặc điểm tắt / giá trị lệch đặc điểm → đếm; dòng đã đóng không đếm", () => {
+  const c = one("R-CTL-2");
+  assert.equal(c.level, "fail");
+  const db = build();
+  db.prepare(`INSERT INTO catalog_item (code, name, unit, price_adult, in_sheet, first_seen_at, updated_at) VALUES ('Q1', 'Dịch vụ thử', 'perPax', 100000, 1, ?, ?)`).run(T1, T1);
+  for (const a of ["aX", "aY"]) db.prepare(`INSERT INTO ctl_attribute (code, name, sort_order, active, created_at, updated_at) VALUES (?, ?, 1, 1, ?, ?)`).run(a, `Đặc điểm ${a}`, T1, T1);
+  for (const [v, a] of [["x1", "aX"], ["x2", "aX"], ["y1", "aY"]]) db.prepare(`INSERT INTO ctl_attribute_value (code, attribute_code, name, sort_order, active, created_at, updated_at) VALUES (?, ?, ?, 1, 1, ?, ?)`).run(v, a, `Giá trị ${v}`, T1, T1);
+  const gan = (id: string, o: { service?: string; group?: string; attr: string; value: string }) =>
+    db.prepare(`INSERT INTO ctl_attribute_assignment (id, service_code, group_code, attribute_code, value_code, valid_from_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
+      .run(id, o.service ?? null, o.group ?? null, o.attr, o.value, T1, T1, T1);
+  gan("k1", { service: "Q1", attr: "aX", value: "x1" });
+  gan("k2", { group: "HTA", attr: "aY", value: "y1" });
+  assert.equal(violations(db, c), 0, "dữ liệu khoẻ");
+  db.exec("DROP TRIGGER ctl_attribute_value_off_in_use");
+  db.prepare("UPDATE ctl_attribute_value SET active = 0 WHERE code = 'x1'").run();
+  assert.equal(violations(db, c), 1, "dòng mở trỏ giá trị đang tắt");
+  db.exec("DROP TRIGGER ctl_attribute_off_in_use");
+  db.prepare("UPDATE ctl_attribute SET active = 0 WHERE code = 'aY'").run();
+  assert.equal(violations(db, c), 2, "dòng mở (theo nhóm) trỏ đặc điểm đang tắt");
+  db.prepare("UPDATE ctl_attribute SET active = 1 WHERE code = 'aY'").run();
+  db.prepare("UPDATE ctl_attribute_value SET active = 1 WHERE code = 'x1'").run();
+  assert.equal(violations(db, c), 0, "bật lại → 0");
+  db.exec("DROP TRIGGER ctl_attribute_assignment_value_of_attribute");
+  gan("k3", { service: "Q1", attr: "aY", value: "x2" }); // x2 thuộc aX
+  assert.equal(violations(db, c), 1, "dòng mở có giá trị không thuộc đặc điểm ghi trên dòng");
+  db.prepare("UPDATE ctl_attribute_assignment SET valid_to_at = ?, updated_at = ? WHERE id = 'k3'").run(T2, T2);
+  db.prepare("UPDATE ctl_attribute_assignment SET valid_to_at = ?, updated_at = ? WHERE id = 'k1'").run(T2, T2);
+  db.prepare("UPDATE ctl_attribute_value SET active = 0 WHERE code = 'x1'").run();
+  assert.equal(violations(db, c), 0, "dòng đã đóng không đếm");
+});
+
+// ADR-0152 Đ1; chủ chọn 30/10 (câu chờ gom 2 ⇒ (b)): R-CTL-3 — dòng gắn đặc điểm THEO NHÓM đang mở mà nhóm đang TẮT. Đường hợp lệ (tắt nhóm rỗng còn dòng gắn theo
+// nhóm — route nhóm chỉ chặn nhóm còn dịch vụ; view bỏ qua nhóm tắt) ⇒ mức `warn`: in số cho người rà soát, không bao giờ đỏ. Tách mã riêng để R-CTL-2 (`fail`) giữ nguyên.
+test("R-CTL-3 (ADR-0152 Đ1, chủ chọn (b) 30/10): dữ liệu khoẻ → 0; dòng gắn theo nhóm mở trỏ nhóm đang tắt → đếm, mức warn; dòng đã đóng / gắn theo dịch vụ không đếm", () => {
+  const c = one("R-CTL-3");
+  assert.equal(c.level, "warn");
+  assert.ok(c.note, "mức warn có ghi chú");
+  const db = build();
+  db.prepare(`INSERT INTO catalog_item (code, name, unit, price_adult, in_sheet, first_seen_at, updated_at) VALUES ('Q1', 'Dịch vụ thử', 'perPax', 100000, 1, ?, ?)`).run(T1, T1);
+  db.prepare(`INSERT INTO ctl_attribute (code, name, sort_order, active, created_at, updated_at) VALUES ('aX', 'Đặc điểm aX', 1, 1, ?, ?)`).run(T1, T1);
+  db.prepare(`INSERT INTO ctl_attribute_value (code, attribute_code, name, sort_order, active, created_at, updated_at) VALUES ('x1', 'aX', 'Giá trị x1', 1, 1, ?, ?)`).run(T1, T1);
+  const gan = (id: string, o: { service?: string; group?: string }) =>
+    db.prepare(`INSERT INTO ctl_attribute_assignment (id, service_code, group_code, attribute_code, value_code, valid_from_at, created_at, updated_at) VALUES (?, ?, ?, 'aX', 'x1', ?, ?, ?)`)
+      .run(id, o.service ?? null, o.group ?? null, T1, T1, T1);
+  gan("k1", { service: "Q1" });
+  gan("k2", { group: "HTA" });
+  assert.equal(violations(db, c), 0, "dữ liệu khoẻ (nhóm đang dùng)");
+  db.prepare("UPDATE ctl_group SET active = 0 WHERE code = 'HTA'").run();
+  assert.equal(violations(db, c), 1, "dòng gắn theo nhóm mở trỏ nhóm đang tắt → 1");
+  assert.equal(violations(db, one("R-CTL-2")), 0, "R-CTL-2 (fail) không đổi vì nhóm tắt");
+  db.prepare("UPDATE ctl_attribute_assignment SET valid_to_at = ?, updated_at = ? WHERE id = 'k2'").run(T2, T2);
+  assert.equal(violations(db, c), 0, "dòng đã đóng không đếm");
+});
+
 // ---------------------------------------------------------------------------------------------------------------------
 // R-ORD-NT1 (ADR-0061 điều 8, A-9 — lớp bù cho lệch 5.1 thu hẹp): đơn có dịch vụ nhập tay (order_service.catalog_code NULL) mà người lập (orders.staff_id)
 // đang giữ quyền PARTNER còn hiệu lực, và đơn tạo SAU mốc phát hành ADR-0061 (= created_at của dòng đầu bảng ord_manual_service_policy — dòng gieo 0052).
@@ -4133,4 +4190,33 @@ test("R-PRC-1 / R-PRC-2 / R-PRC-5 bỏ qua dòng đã huỷ (ADR-0148): dòng hu
   assert.equal(violations(db, one("R-PRC-5")), 1, "R-PRC-5: dòng chưa huỷ theo hồ sơ đã thôi vai vẫn báo");
   huySdl(db, "prc_commission_rule", "mh-2");
   assert.equal(violations(db, one("R-PRC-5")), 0, "R-PRC-5: dòng huỷ theo hồ sơ đã thôi vai không báo");
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// ADR-0146 Đ1 + kế hoạch 2026-10-30 R-8 (T3): R-PRC-8 — luật bán CHƯA HẾT HẠN (kể cả luật sắp áp dụng; cùng vị từ CHUA_HET_HAN với R-PRC-2) trỏ loại đối tác không còn
+// bật trong danh sách được hưởng. Trigger `prc_sales_block_role_ok` chặn lúc THÊM; tắt loại còn luật do route trả 409 — khe đua giữa kiểm và ghi chỉ kiểm này bắt.
+// ---------------------------------------------------------------------------------------------------------------------
+test("R-PRC-8 (ADR-0146 Đ1): luật bán chưa hết hạn trỏ loại đang tắt → đếm; luật đã kết thúc (hôm qua) không đếm; luật sắp áp dụng vẫn đếm; dữ liệu khoẻ → 0", () => {
+  const c = one("R-PRC-8");
+  assert.equal(c.level, "fail");
+  assert.match(c.sql, /date\('now', '\+7 hours'\)/, "hôm nay theo giờ Việt Nam");
+  const db = build();
+  assert.equal(violations(db, c), 0, "chưa có luật");
+  const luat = (id: string, role: string, tu: string, den: string | null) =>
+    db.prepare(`INSERT INTO prc_sales_block (id, role_type_code, scope, catalog_code, valid_from_date, valid_to_date, created_at, updated_at) VALUES (?, ?, 'SERVICE', 'D1', ?, ?, ?, ?)`)
+      .run(id, role, tu, den, T1, T1);
+  luat("sb-1", "TAXI_DRIVER", vnNgay(-10), null);
+  luat("sb-2", "HOTEL_RECEPTION", vnNgay(-10), vnNgay(-1)); // đã kết thúc từ hôm nay
+  luat("sb-3", "COLLABORATOR", vnNgay(5), null); // sắp áp dụng
+  luat("sb-4", "COLLABORATOR", vnNgay(5), vnNgay(4)); // sắp áp dụng rồi «Kết thúc ngay» ⇒ khoảng rỗng (R-1, ruling điều phối 30/10): coi như đã kết thúc
+  assert.equal(violations(db, c), 0, "mọi loại đang bật");
+  const tat = (role: string) => db.prepare("UPDATE prc_beneficiary_role SET active = 0, updated_at = ? WHERE role_type_code = ?").run(T2, role);
+  tat("TAXI_DRIVER");
+  assert.equal(violations(db, c), 1, "luật đang áp dụng trỏ loại đã tắt");
+  tat("HOTEL_RECEPTION");
+  assert.equal(violations(db, c), 1, "luật đã kết thúc không đếm");
+  tat("COLLABORATOR");
+  assert.equal(violations(db, c), 2, "luật sắp áp dụng vẫn đếm (tắt loại sẽ làm nó mất tác dụng lúc tới ngày); luật khoảng rỗng KHÔNG đếm");
+  db.prepare("UPDATE prc_sales_block SET valid_to_date = ?, updated_at = ? WHERE id = 'sb-1'").run(vnNgay(-1), T3);
+  assert.equal(violations(db, c), 1, "kết thúc luật → hết báo");
 });

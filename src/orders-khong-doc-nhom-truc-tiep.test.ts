@@ -97,3 +97,26 @@ test("(C) mọi cửa XÁC NHẬN ra đời sau 14/10 có chốt «nhóm tắt �
     assert.match(r!.than, /kiemCongXacNhan\(/, `${ten} phải đi qua cổng chung có chốt`);
   }
 });
+
+// (e) mở rộng — ADR-0152 Đ6 + kế hoạch 2026-10-30 T8 (hàng rào (e) ở bảng 4.3): `orders` cũng KHÔNG đọc ba bảng đặc điểm của `catalog`. Cổng luật bán của orders (`cong-ban.ts`)
+// chỉ gọi hàm công bố `kiemLuatBan` của pricing; giá trị đặc điểm đọc ở pricing qua view `v_ctl_service_attribute` / `v_ctl_attribute_value`.
+const BANG_DAC_DIEM = /\b(ctl_attribute|ctl_attribute_value|ctl_attribute_assignment)\b/g;
+test("(e) orders không đọc bảng ctl_attribute / ctl_attribute_value / ctl_attribute_assignment (ADR-0152 Đ6) — kể cả tệp cổng luật bán", () => {
+  const sai: string[] = [];
+  for (const p of tepOrders()) {
+    const src = boChuThich(readFileSync(p, "utf8"));
+    for (const m of src.matchAll(BANG_DAC_DIEM)) sai.push(`${p.slice(ROOT.length)}: ${m[1]}`);
+  }
+  assert.ok(tepOrders().some((p) => p.endsWith("/cong-ban.ts")), "bộ quét phải phủ tệp cổng luật bán");
+  assert.deepEqual(sai, [], `orders đọc thẳng bảng đặc điểm của catalog: ${sai.join("; ")}`);
+});
+
+test("(e) tự kiểm bộ quét đặc điểm: bắt ba tên bảng trần, bỏ qua view v_ctl_* và chú thích", () => {
+  const quet = (s: string) => [...boChuThich(s).matchAll(BANG_DAC_DIEM)].map((m) => m[1]);
+  assert.deepEqual(quet("SELECT 1 FROM ctl_attribute a"), ["ctl_attribute"]);
+  assert.deepEqual(quet("JOIN ctl_attribute_value v ON 1"), ["ctl_attribute_value"]);
+  assert.deepEqual(quet("FROM ctl_attribute_assignment x"), ["ctl_attribute_assignment"]);
+  assert.deepEqual(quet("SELECT 1 FROM v_ctl_attribute_value"), [], "view công bố — được đọc");
+  assert.deepEqual(quet("SELECT 1 FROM v_ctl_service_attribute"), []);
+  assert.deepEqual(quet("// không đọc ctl_attribute\n/* ctl_attribute_assignment */ const x = 1;"), []);
+});

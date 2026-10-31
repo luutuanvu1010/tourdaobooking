@@ -224,6 +224,8 @@ export function trinhBay(k: KhoaTrang, seesAll: boolean): { badge?: () => Promis
       return seesAll ? { badge: draftOrderBadge } : {};
     case "dichVu":
       return { badge: catalogConflictBadge, badgeClass: "sidebar-item-badge-sand" };
+    case "dacDiem": // ADR-0152 Đ5 mục 3: số dịch vụ đang bán chưa khai (route đếm riêng, khuôn «Dịch vụ & giá»); lỗi ⇒ 0
+      return { badge: () => api<Api.CatalogDacDiemDemResponse>("/api/catalog/dac-diem/dem-chua-khai").then((r) => r.soChuaKhai, () => 0), badgeClass: "sidebar-item-badge-sand" };
     case "xe":
       return { badge: demSapHetHan, badgeClass: "sidebar-item-badge-sand" };
     case "gopY":

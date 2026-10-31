@@ -86,7 +86,7 @@ test("trạng thái dòng: đang áp / sắp áp / đã đóng; chỉ dòng chư
   assert.equal(trangThaiDong({ conHieuLuc: false, denNgay: null }, HOM_NAY), "SAP_AP", "bắt đầu sau hôm nay, chưa có ngày kết thúc");
   assert.equal(trangThaiDong({ conHieuLuc: false, denNgay: "2026-12-31" }, HOM_NAY), "SAP_AP");
   assert.equal(trangThaiDong({ conHieuLuc: false, denNgay: "2026-10-08" }, HOM_NAY), "DA_DONG");
-  assert.deepEqual(NHAN_TRANG_THAI, { DANG_AP: "Đang áp dụng", SAP_AP: "Sắp áp dụng", DA_DONG: "Đã ngừng", DA_HUY: "Đã huỷ — thay bằng dòng khác" }, "ADR-0148: thêm «Đã huỷ»");
+  assert.deepEqual(NHAN_TRANG_THAI, { DANG_AP: "Đang áp dụng", SAP_AP: "Sắp áp dụng", DA_DONG: "Đã ngừng", DA_HUY: "Đã thay bằng mức mới" }, "ADR-0148: thêm «Đã huỷ»");
   assert.equal(dongDongDuoc({ denNgay: null }), true);
   assert.equal(dongDongDuoc({ denNgay: "2026-12-31" }), false, "đã có ngày kết thúc: máy chủ trả 409 nếu đóng lại");
 });
@@ -199,19 +199,19 @@ test("ADR-0117 lần 2: boDongMucTa — dòng của mức TA chỉ hiện ở m�
 test("ADR-0117 lần 2: câu cảnh báo khi gắn mức cho loại còn dòng riêng (N-17) và câu luật đổi mức trong ngày — nguyên văn", () => {
   assert.equal(
     cauCanhBaoDongRieng("Lễ tân khách sạn", "Đại lý cấp 1", 2),
-    "Đã áp dụng cấp đại lý, nhưng loại «Lễ tân khách sạn» (hoặc loại khác mà cùng đối tác đang mang) còn 2 mức riêng đang áp dụng. Mức riêng được ưu tiên hơn cấp đại lý «Đại lý cấp 1». Ngừng các mức riêng này nếu muốn dùng cấp đại lý.",
+    "Đã lưu. Lưu ý: loại «Lễ tân khách sạn» (hoặc loại khác mà cùng đối tác đang mang) còn 2 mức riêng, và mức riêng được dùng trước cấp «Đại lý cấp 1». Muốn dùng hẳn cấp «Đại lý cấp 1», hãy ngừng các mức riêng đó.",
   );
-  assert.match(cauCanhBaoDongRieng("A", "B", 1), /Ngừng các mức riêng này nếu muốn dùng cấp đại lý\.$/);
-  assert.equal(CAU_DOI_MUC_TRONG_NGAY, "Mỗi loại chỉ theo một cấp đại lý trong một ngày. Muốn đổi sang cấp khác từ hôm nay: ngừng áp dụng cấp cũ đến hết hôm qua, rồi áp dụng cấp mới từ hôm nay. Áp dụng từ hôm nay thì không đổi được trong cùng ngày.");
+  assert.match(cauCanhBaoDongRieng("A", "B", 1), /hãy ngừng các mức riêng đó\.$/);
+  assert.equal(CAU_DOI_MUC_TRONG_NGAY, "Mỗi loại chỉ theo một cấp tại một thời điểm. Muốn chuyển sang cấp khác, bấm «Đổi cấp» và chọn ngày bắt đầu. Cấp vừa chọn hôm nay thì chỉ đổi được từ ngày mai.");
 });
 
 test("PR2 T1: nhãn mới và các câu nguyên văn", () => {
   // Chủ chọn 28/10 (thay «Loại gốc»): nhãn ngắn + một câu nói lý do không tắt được.
   assert.equal(NHAN_LOAI_GOC, "Có sẵn");
   assert.equal(CAU_LOAI_CO_SAN, "Loại có sẵn đi kèm tài khoản đăng nhập của đối tác nên không tắt được.");
-  assert.equal(CAU_CHUA_CO_MUC_LOAI, "Đơn của loại này sẽ bị giữ ở bước Đã giao cho tới khi có mức");
+  assert.equal(CAU_CHUA_CO_MUC_LOAI, "Loại này chưa có hoa hồng cho dịch vụ nào: đơn đã giao sẽ chờ ở bước «Đã giao» tới khi có mức hoặc Kế toán nhập tay.");
   assert.equal(NHAN_CHUA_CO_MUC, "Chưa có mức");
-  assert.equal(CAU_NHAC_UU_TIEN, "Mức riêng được ưu tiên hơn cấp đại lý. Mức nào áp cho một đối tác cụ thể: dùng Tra nhanh.");
+  assert.equal(CAU_NHAC_UU_TIEN, "Mức riêng được ưu tiên hơn cấp đại lý. Mức nào áp cho một đối tác cụ thể: dùng «Kiểm tra hoa hồng».");
   assert.equal(CAU_TRA_THEO_LOAI, "Đang tra theo loại. Một đối tác cụ thể của loại này có thể có mức riêng hoặc cấp riêng — gõ tên đối tác để chắc.");
   assert.equal(cauMucCuSeNgung("10%", "2026-11-01"), "Mức cũ 10% sẽ ngừng, đến hết 31/10/2026.");
   assert.equal(cauSeTao({ ai: "Đại lý A", dichVu: "Mọi dịch vụ", muc: "10%", tu: "2026-11-01", den: null }), "Sẽ tạo: Đại lý A · Mọi dịch vụ · 10% · từ 01/11/2026, không thời hạn.");
@@ -295,9 +295,9 @@ test("R25: dongRiengDoiTac — chỉ dòng của đúng đối tác, theo bộ l
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------
 // ADR-0148 Đ1 (lượt 1): nút «Sửa», dòng đã huỷ, câu xem trước
-test("ADR-0148: dòng đã huỷ có trạng thái riêng «Đã huỷ — thay bằng dòng khác», bị bộ lọc «Đang và sắp áp dụng» bỏ (như dòng đã ngừng), hiện ở «Tất cả»", async () => {
+test("ADR-0148: dòng đã huỷ có trạng thái riêng «Đã thay bằng mức mới», bị bộ lọc «Đang và sắp áp dụng» bỏ (như dòng đã ngừng), hiện ở «Tất cả»", async () => {
   const m = await import("./hoa-hong-hien-thi.ts");
-  assert.equal(m.NHAN_TRANG_THAI.DA_HUY, "Đã huỷ — thay bằng dòng khác");
+  assert.equal(m.NHAN_TRANG_THAI.DA_HUY, "Đã thay bằng mức mới");
   // Dòng huỷ mang conHieuLuc false + ngày kết thúc tương lai hoặc trống — trước đây rơi vào «Sắp áp dụng».
   assert.equal(trangThaiDong({ conHieuLuc: false, denNgay: "2028-01-01", daHuy: true }, HOM_NAY), "DA_HUY");
   assert.equal(trangThaiDong({ conHieuLuc: false, denNgay: null, daHuy: true }, HOM_NAY), "DA_HUY");
@@ -371,7 +371,7 @@ test("N5 nhãn: «Sắp áp dụng từ <ngày>» (kèm «đến» khi có ngày
 });
 
 test("câu thứ tự áp mức ghim nguyên văn §5.3", () => {
-  assert.equal(CAU_THU_TU_AP_MUC, "Mức nào áp cho một đơn: mức riêng của đối tác → cấp riêng của đối tác → mức riêng của loại đối tác → cấp đại lý của loại. Trong mỗi bước: dịch vụ đó → nhóm dịch vụ → mọi dịch vụ. Đối tác có cấp riêng thì không xét cấp của loại. Muốn biết chắc cho một đối tác: dùng Tra nhanh.");
+  assert.equal(CAU_THU_TU_AP_MUC, "Khi tính hoa hồng cho một đơn, Nền tảng thử lần lượt: 1) mức riêng của đối tác, 2) cấp riêng của đối tác, 3) mức riêng của loại, 4) cấp của loại. Gặp mức nào trước thì dùng mức đó. Trong mỗi bước, xét dịch vụ đó trước, rồi cả nhóm, rồi mọi dịch vụ. Đối tác có cấp riêng thì không xét cấp của loại. Muốn biết chắc một đối tác: dùng «Kiểm tra hoa hồng».");
 });
 
 // ---- Task 6: câu cố định §5 và luật việc của dòng (đặc tả hoa-hong-cap-dai-ly) ----
@@ -383,7 +383,7 @@ test("§5.1 dải cảnh báo: câu ghim nguyên văn", () => {
   assert.equal(HT.cauTieuDeDai(3), "Có 3 loại đối tác còn thiếu mức hôm nay");
   assert.equal(
     HT.CAU_THAN_DAI,
-    "Đối tác chỉ mang loại này, không có mức riêng hay cấp riêng, sẽ bị giữ đơn ở bước Đã giao nếu đơn xác nhận từ hôm nay có dịch vụ chưa có mức. Đối tác mang thêm một loại khác có mức thì vẫn được tính theo loại đó. Đơn đã xác nhận trước đó không tự thả khi thêm mức: Kế toán dùng Ghi mức tay cho từng đơn.",
+    "Đối tác chỉ thuộc loại này và chưa có mức riêng hay cấp riêng sẽ bị chờ ở bước «Đã giao» nếu đơn xác nhận từ hôm nay có dịch vụ chưa có mức. Đối tác thuộc thêm loại khác có mức thì vẫn tính theo loại đó. Đơn đã xác nhận trước đó không tự tính lại khi thêm mức: Kế toán dùng «Ghi mức tay» cho từng đơn.",
   );
   assert.equal(HT.cauLoaiTatDai(2), "2 loại đã tắt: đối tác chỉ mang loại đã tắt không được hưởng hoa hồng, đơn của họ bị giữ ở bước Đã giao.");
   assert.equal(HT.CAU_DAI_CHUA_KIEM, "Chưa kiểm được loại nào thiếu mức vì không tải được danh mục dịch vụ. Tải lại trang.");
@@ -419,31 +419,31 @@ test("§5.2 §5.4 §3 §3.3 câu hộp, huy hiệu, ô trống, xung đột, toa
   assert.deepEqual(HT.hopKhoaCap("Đại lý 1"), {
     tieuDe: "Khoá cấp «Đại lý 1»?",
     hauQua:
-      "Sau khi khoá, cấp này không nhận thêm loại hay đối tác nào, không thêm mức mới, và các mức đang có của cấp không Đổi hay Sửa được nữa, chỉ Ngừng được. Các loại và đối tác đang theo cấp này vẫn được tính hoa hồng như cũ. Muốn ngừng chi cho một loại thì dùng Ngừng áp dụng ở lần áp dụng của loại đó; muốn chuyển loại sang cấp khác thì dùng Đổi cấp.",
+      "Sau khi khoá: không thêm được loại, đối tác hay mức mới vào cấp; các mức đang có chỉ Ngừng được, không Đổi hay Sửa; loại và đối tác đang theo cấp vẫn được tính hoa hồng như cũ. Muốn một loại thôi theo cấp: «Thôi theo cấp này». Muốn chuyển sang cấp khác: «Đổi cấp». Mở lại bất cứ lúc nào bằng «Mở lại cấp».",
     nhanNguyHiem: "Khoá cấp",
   });
   assert.deepEqual(HT.hopTatLoai("Đại lý"), {
     tieuDe: "Tắt loại «Đại lý»?",
     hauQua:
-      "Sau khi tắt, đối tác chỉ mang loại này không được hưởng hoa hồng nữa: đơn họ đặt, xác nhận từ lúc tắt, bị giữ ở bước Đã giao cho tới khi Kế toán dùng Ghi mức tay. Đối tác mang thêm một loại khác còn bật vẫn được tính theo loại đó, nếu loại đó có mức cho dịch vụ của đơn. Đơn đã xác nhận trước lúc tắt giữ nguyên hoa hồng.",
+      "Đối tác chỉ thuộc loại này sẽ không được hưởng hoa hồng. Đơn của họ xác nhận từ lúc tắt sẽ chờ ở bước «Đã giao» tới khi Kế toán nhập tay («Ghi mức tay»). Đơn đã xác nhận trước lúc tắt giữ nguyên hoa hồng.",
     nhanNguyHiem: "Tắt loại",
   });
   assert.equal(HT.NHAN_CAP_DA_KHOA, "Đã khoá — vẫn áp cho loại và đối tác đang theo");
   assert.equal(HT.TIEU_DE_DOI_CAP_RIENG, "Đổi cấp riêng");
   assert.equal(HT.NHAN_CAP_MOI, "Cấp mới");
-  assert.equal(HT.NHAN_TU_NGAY, "Từ");
+  assert.equal(HT.NHAN_TU_NGAY, "Từ ngày");
   assert.equal(HT.CAU_CHON_NGAY_BAT_DAU, "Chọn ngày bắt đầu.");
   assert.equal(HT.cauCapCuSeNgung("Cấp 3", "2026-11-01"), "Cấp cũ Cấp 3 sẽ ngừng, đến hết 31/10/2026.");
   assert.equal(HT.cauCapCuSeNgung("Cấp 3", ""), "");
   assert.equal(HT.cauCapCuSeNgung("Cấp 3", "2026-11"), "");
-  assert.equal(HT.CAU_O_TRONG, "Ô «—»: cấp không có dòng riêng cho ô này; đơn sẽ theo dòng rộng hơn của cấp (nhóm dịch vụ hoặc mọi dịch vụ) nếu có. Muốn biết mức chắc chắn: dùng Tra nhanh.");
-  assert.equal(HT.NHAN_XUNG_DOT, "Xung đột mức");
+  assert.equal(HT.CAU_O_TRONG, "Ô «—» nghĩa là cấp chưa đặt mức riêng cho dịch vụ hoặc nhóm này; đơn sẽ theo mức rộng hơn của cấp (cả nhóm hoặc mọi dịch vụ) nếu có. Muốn biết mức chắc chắn: dùng «Kiểm tra hoa hồng».");
+  assert.equal(HT.NHAN_XUNG_DOT, "Hai mức khác nhau");
   assert.equal(
     HT.CAU_XUNG_DOT,
     "Đối tác này mang hai loại ra hai mức khác nhau cho cùng một dịch vụ. Đơn của dịch vụ đó bị giữ ở bước Đã giao cho tới khi đặt mức riêng hoặc cấp riêng cho đối tác này.",
   );
-  assert.equal(HT.CAU_DUOI_DS_DOI_TAC, "Đối tác không có mức riêng hay cấp riêng không nằm ở đây. Muốn biết một đối tác đang ra mức nào: dùng Tra nhanh.");
-  assert.equal(HT.CAU_KHONG_THAY_DONG, "Không thấy dòng này trên trang — tải lại trang.");
+  assert.equal(HT.CAU_DUOI_DS_DOI_TAC, "Đối tác không có mức riêng hay cấp riêng không nằm ở đây. Muốn biết một đối tác đang ra mức nào: dùng «Kiểm tra hoa hồng».");
+  assert.equal(HT.CAU_KHONG_THAY_DONG, "Không thấy mục này trên trang — tải lại trang.");
 });
 
 const DONG_AP = muc({ tuNgay: "2026-01-01", denNgay: null, conHieuLuc: true });
@@ -613,8 +613,8 @@ test("chi tiết cấp: đếm loại đang theo và đối tác có cấp riên
   assert.deepEqual(HT.demTheoCap(a, rieng, HOM_NAY), { loai: 1, doiTac: 1 });
   assert.equal(HT.cauDemCap({ loai: 1, doiTac: 0 }), "Đang áp dụng cho 1 loại đối tác và 0 đối tác có cấp riêng.");
   assert.deepEqual([HT.nhanViec("DOI", "dong"), HT.nhanViec("SUA", "dong"), HT.nhanViec("NGUNG", "dong")], ["Đổi", "Sửa", "Ngừng"]);
-  assert.deepEqual([HT.nhanViec("DOI", "gan"), HT.nhanViec("SUA", "gan"), HT.nhanViec("NGUNG", "gan")], ["Đổi cấp", "Sửa", "Ngừng áp dụng"]);
-  assert.equal(HT.nhanViecKhac("Mọi dịch vụ"), "Việc khác: Mọi dịch vụ");
+  assert.deepEqual([HT.nhanViec("DOI", "gan"), HT.nhanViec("SUA", "gan"), HT.nhanViec("NGUNG", "gan")], ["Đổi cấp", "Sửa", "Thôi theo cấp này"]);
+  assert.equal(HT.nhanViecKhac("Mọi dịch vụ"), "Thao tác khác: Mọi dịch vụ");
 });
 
 test("huyHieuPhu: năm kết quả phủ mức ra đúng tông và chữ của bảng §4.2; CHUA_KIEM không huy hiệu", () => {
@@ -647,10 +647,10 @@ test("Task 10 — thẻ «Riêng từng đối tác»: câu cố định, nhãn 
   assert.equal(HT.cauVaiHoSo({ muc: { code: "A", ten: "Vàng", dangBat: true }, tuNgay: "2026-10-01" }), "Đang theo cấp Vàng · áp dụng từ 01/10/2026");
   assert.equal(HT.cauVaiHoSo({ muc: { code: "A", ten: "Vàng", dangBat: true }, tuNgay: null }), "Đang theo cấp Vàng");
   assert.equal(HT.cauVaiHoSo({ muc: null, tuNgay: null }), "Chưa theo cấp đại lý nào");
-  assert.equal(HT.cauDaDatCapRieng("Vàng", "Công ty A", "2026-11-01"), "Đã đặt cấp riêng «Vàng» cho «Công ty A» từ ngày 01/11/2026.");
+  assert.equal(HT.cauDaDatCapRieng("Vàng", "Công ty A", "2026-11-01"), "«Công ty A» đã theo cấp riêng «Vàng» từ ngày 01/11/2026.");
   assert.equal(HT.CAU_DA_SUA_CAP_RIENG, "Đã sửa cấp riêng.");
   assert.equal(HT.cauNgungCapRieng("Vàng", "Công ty A"), "Ngừng cấp riêng Vàng của Công ty A");
-  assert.equal(HT.cauDaNgungCapRieng("Vàng", "Công ty A"), "Đã ngừng cấp riêng «Vàng» của «Công ty A».");
+  assert.equal(HT.cauDaNgungCapRieng("Vàng", "Công ty A"), "«Công ty A» đã thôi theo cấp riêng «Vàng».");
   for (const s of [HT.CAU_KHONG_CO_DOI_TAC_RIENG, HT.CAU_DAT_CAP_RIENG, HT.nhanCapRieng("x"), HT.cauNgungCapRieng("x", "y")]) assert.ok(!/chính sách/i.test(s), s);
 });
 

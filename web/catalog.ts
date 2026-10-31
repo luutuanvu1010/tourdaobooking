@@ -8,7 +8,8 @@ import { CHUA_PHAN_LOAI_TEN, dongLichSuNhom } from "../src/shared/lich-su-nhom";
 import { CHE_DO_DUA_DON, type CheDoDuaDon } from "../src/shared/chang-mac-dinh";
 import { QUY_TAC_DUA_DON, type QuyTacDuaDon } from "../src/shared/dua-don-dich-vu";
 import { dongLichSuMauChang, nhanCheDoCua } from "../src/shared/lich-su-mau-chang";
-import { moBangTruot } from "./bang-truot";
+import { canhBaoDoiNhom } from "../src/shared/dac-diem-hien-thi";
+import { hoiXacNhan, moBangTruot } from "./bang-truot";
 import { initShell, showError } from "./shell";
 
 const errorEl = byId("error");
@@ -246,6 +247,21 @@ function renderChon(): void {
   );
 }
 
+/**
+ * ADR-0146 Đ3 «màn gán nhóm phải cảnh báo», ADR-0152 Đ4 (c) (kế hoạch T13): trước khi chuyển nhóm, tải luật bán + đặc điểm, dựng câu bằng hàm thuần `canhBaoDoiNhom`
+ * (loại đối tác thôi / bắt đầu bị chặn, giá trị thừa hưởng đổi). Có câu ⇒ hỏi lại (`hoiXacNhan`, gọi từ trang); không tải được ⇒ câu «chưa kiểm được», vẫn hỏi.
+ * Giao diện chỉ hỏi, máy chủ không ép. Tải mỗi lần bấm (không giữ bản cũ) để câu đúng với luật hiện hành.
+ */
+async function dongYDoiNhom(codes: readonly string[], nhomMoi: string | null, opener: HTMLElement, tieuDe: string): Promise<boolean> {
+  const [luat, dm] = await Promise.all([
+    api<Api.LuatBanListResponse>("/api/pricing/luat-ban").then((r) => r.luat, () => null),
+    api<Api.CatalogDacDiemResponse>("/api/catalog/dac-diem").catch(() => null),
+  ]);
+  const cau = canhBaoDoiNhom({ luat, dm, codes, nhomMoi });
+  if (cau === null) return true;
+  return hoiXacNhan({ tieuDe, hauQua: cau, nhanNguyHiem: "Vẫn chuyển", nhanGiu: "Không chuyển", opener });
+}
+
 async function chuyenNhom(nut: HTMLButtonElement): Promise<void> {
   if (chon.size === 0 || chon.size > LO_TOI_DA) return; // quá trần: không gửi (máy chủ cũng chặn 400)
   if (nhomDich === "") {
@@ -257,6 +273,10 @@ async function chuyenNhom(nut: HTMLButtonElement): Promise<void> {
   const ten = groupCode === null ? CHUA_PHAN_LOAI_TEN : (nhoms.find((g) => g.code === groupCode)?.name ?? "");
   nut.disabled = true;
   noticeEl.hidden = true;
+  if (!(await dongYDoiNhom([...chon], groupCode, nut, `Chuyển ${chon.size} dịch vụ sang ${ten}?`))) {
+    nut.disabled = false;
+    return;
+  }
   try {
     const r = await api<Api.CatalogGroupAssignResponse>("/api/catalog/group-assignments", { method: "PUT", body: { codes: [...chon], groupCode } });
     chon.clear();
@@ -521,6 +541,10 @@ function renderNhomSua(khoi: HTMLElement, it: CatalogAdminItem): void {
     if (moi === it.groupCode) return;
     luu.disabled = true;
     showError(loi, null);
+    if (!(await dongYDoiNhom([it.code], moi, luu, "Đổi nhóm dịch vụ này?"))) {
+      luu.disabled = false;
+      return;
+    }
     try {
       await api<Api.CatalogGroupAssignResponse>("/api/catalog/group-assignments", { method: "PUT", body: { codes: [it.code], groupCode: moi } });
     } catch (err) {

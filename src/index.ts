@@ -28,7 +28,7 @@ import { locationsModule } from "./modules/locations";
 import { feedbackModule } from "./modules/feedback";
 import { maintenanceBlock, maintenanceModule, type MaintenanceState } from "./modules/maintenance";
 import { hanGiuPhienNgay, partiesModule } from "./modules/parties";
-import { nguoiHuongCuaHoSo, pricingModule } from "./modules/pricing";
+import { kiemLuatBan, nguoiHuongCuaHoSo, pricingModule } from "./modules/pricing";
 import { cauDoiNguoiDat, donCuaNguoiDat, findOrderRef, ngayChupGanNhat, ordersModule } from "./modules/orders";
 import { accountOfParty, listStaffAccounts, nhanNhanVienTheoId, soDangNhapTheoHoSo, taiKhoanChoXacMinh } from "./modules/staff";
 import { dayGoCua, dayGoCuaDoi, dongChuyenTheoId, tatMayCuaCacPhienStatement, tatMayCuaPhienStatement, tatMayStatement, tatMayTruPhienStatement, thongbaoModule } from "./modules/thongbao";
@@ -38,6 +38,7 @@ import { HANDLER_TRUOC_KHONG_BIET, nhanSuKien, nhanSuKienChuyen } from "./shared
 import { dangChayLucSuKien, dongCoTheSinhTin, taiXeNhanSuKien, thayDoiCuaHanhDongChuyen } from "./shared/tin-chuyen";
 import { hanhDongCuaThayDoi, khoaVapid } from "./shared/web-push";
 import { holdsPartner } from "./shared/permissions";
+import { vnToday } from "./shared/vn-date";
 import { createApp, type AppOptions } from "./shared/router";
 
 export { BangTin } from "./modules/bangtin/tram";
@@ -182,6 +183,14 @@ const APP_OPTIONS: AppOptions = {
     // BÊN ĐẶT MÁY CHỦ ÉP (sổ đại lý đợt 1, Task 11 — Ruling 21): `auth` không import `pricing` (không nới ALLOWED_EDGES) — gốc lắp ráp là NƠI DUY NHẤT nối. Chỉ tài khoản giữ quyền Đối tác
     // CÓ hồ sơ mới tốn một truy vấn; mọi người khác trả null ngay (`/api/auth/me` đi qua đây ở MỌI trang). Điều kiện y hệt `benDatChoTaiKhoan` (holdsPartner + hồ sơ mang vai được hưởng).
     benDatCuaToi: (env, actor) => (holdsPartner(actor) && actor.partyId !== null ? nguoiHuongCuaHoSo(env.DB, actor.partyId) : Promise.resolve(null)),
+    // LỌC DANH MỤC FORM LẬP ĐƠN THEO LUẬT BÁN (ADR-0146 Đ4; T9, R-3): `catalog` không import `pricing` — gốc lắp ráp nối. Cùng điều kiện ép bên đặt như dòng trên (bên đặt máy chủ ép);
+    // văn phòng / Thực tập không bị ép ⇒ không truy vấn, thấy đủ. Ngày xét = ngày Việt Nam lúc gọi.
+    dichVuBiChanChoToi: async (env, actor, codes) => {
+      if (!holdsPartner(actor) || actor.partyId === null) return new Set<string>();
+      const ben = await nguoiHuongCuaHoSo(env.DB, actor.partyId);
+      if (!ben) return new Set<string>();
+      return new Set((await kiemLuatBan(env.DB, { bookerPartyId: ben.partyId, catalogCodes: codes, ngay: vnToday(new Date()) })).map((t) => t.catalogCode));
+    },
     // NGƯỜI ĐI KÈM (lời chủ 2026-10-01 — "Chỉ hướng dẫn viên"): van-chuyen không import staff — gốc lắp ráp đọc tài khoản FIELD đang hoạt động, chỉ tên.
     huongDanVien: async (env) => {
       const ds = (await listStaffAccounts(env.DB)).filter((a) => a.active && a.partyId !== null && a.permissions.includes("FIELD"));

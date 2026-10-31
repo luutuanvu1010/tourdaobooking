@@ -95,6 +95,10 @@ export const AUDIT_ACTIONS = {
   prc_partner_type_added: { label: "Thêm loại đối tác", group: "ledger" },
   prc_partner_type_off: { label: "Tắt loại đối tác", group: "ledger" },
   prc_partner_type_on: { label: "Bật lại loại đối tác", group: "ledger" },
+  // ADR-0146 Đ5: Bán hàng / Quản trị / Toàn quyền thêm và kết thúc LUẬT BÁN theo loại đối tác — `detail` = tên + mã loại, phạm vi (mã dịch vụ / mã nhóm / mã đặc điểm = mã giá trị),
+  // ngày (ADR-0146 Đ5 «nhật ký ghi mã loại, mã nhóm hoặc dịch vụ, ngày»); không thông tin cá nhân.
+  prc_sales_block_added: { label: "Thêm luật bán", group: "ledger" },
+  prc_sales_block_ended: { label: "Kết thúc luật bán", group: "ledger" },
   // ADR-0117 lần 2: mức TA dùng chung — `detail` = tên mức / «tên loại → tên mức · từ … đến …» (tên đã cấm số điện thoại / email), không mã thô. Dòng của mức đi qua
   // `prc_commission_rule_added` / `_closed` (đối tượng «mức TA <tên>»).
   prc_rate_tier_added: { label: "Thêm cấp đại lý", group: "ledger" },
@@ -283,6 +287,14 @@ export const AUDIT_ACTIONS = {
   catalog_groups_seeded: { label: "Gieo nhóm dịch vụ", group: "catalog" }, // do migration 0055 ghi một lần (detail "gieo 14 nhóm, N dịch vụ")
   // ADR-0149 Đ1: ô «Được đón không» của một dịch vụ — targetId = mã dịch vụ, detail "Theo nhóm → Không đón" (nhãn; không dữ liệu cá nhân).
   catalog_service_transfer_set: { label: "Đổi đưa đón của dịch vụ", group: "catalog" },
+  // ADR-0152 Đ1 (Hệ quả), Đ4 mục 3: đặc điểm dịch vụ — `detail` = tên đặc điểm / giá trị, cũ → mới, mã dịch vụ hoặc tên nhóm; không thông tin cá nhân. Tạo đặc điểm kèm giá trị
+  // ghi HAI dòng (đặc điểm; danh sách giá trị — tiêu chí 1). Sửa tên / thứ tự / tắt / bật lại đi chung «…_updated» (khuôn catalog_group_updated: «đang dùng → đã tắt»).
+  ctl_attribute_created: { label: "Thêm đặc điểm dịch vụ", group: "catalog" },
+  ctl_attribute_updated: { label: "Sửa đặc điểm dịch vụ", group: "catalog" },
+  ctl_attribute_value_created: { label: "Thêm giá trị đặc điểm", group: "catalog" },
+  ctl_attribute_value_updated: { label: "Sửa giá trị đặc điểm", group: "catalog" },
+  ctl_service_attribute_set: { label: "Đổi đặc điểm của dịch vụ", group: "catalog" },
+  ctl_group_attribute_set: { label: "Đổi đặc điểm chung của nhóm", group: "catalog" },
   feedback_created: { label: "Gửi yêu cầu góp ý", group: "feedback" },
   feedback_replied: { label: "Trả lời yêu cầu góp ý", group: "feedback" },
   feedback_status_changed: { label: "Đổi trạng thái yêu cầu góp ý", group: "feedback" },

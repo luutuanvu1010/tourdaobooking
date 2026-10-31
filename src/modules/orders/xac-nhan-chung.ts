@@ -22,6 +22,7 @@ import { cauChupChuoi } from "./thuong-mai-repo";
 import { donChoTran, dongGhiTuChup, moTaChup } from "./thuong-mai";
 import { confirmGaps, summarizeDeviations } from "./service-rules";
 import { kiemNhomChoPhepDuaDon } from "./service";
+import { congLuatBan } from "./cong-ban";
 import { dichVuCanHoiDuaDon, type CuaDuaDon } from "./rules";
 
 /** Đơn đã nạp đầy đủ (dịch vụ, chặng, dòng tiền) — kết quả `findOrder`. */
@@ -86,6 +87,9 @@ export async function kiemCongXacNhan(
 ): Promise<{ loi: Response } | { ok: true; chup: BanChup[]; detail: string | undefined; today: string }> {
   const { actor, order } = i;
   const today = vnToday(new Date());
+  // ADR-0146 Đ3 + R-7 (Q-8 (a) của chủ): luật bán đứng ĐẦU mọi cổng xác nhận — đơn vừa bị chặn bán vừa vướng cổng khác luôn nhận `sales_blocked` (sửa cổng kia cũng vô ích).
+  const chanBan = await congLuatBan(db, { bookerPartyId: order.bookerPartyId, dong: order.services });
+  if (chanBan) return { loi: chanBan };
   // DK-T3-01 R2: xác nhận là bước phát phiếu gửi khách mang tên/MST công ty → tài khoản có quyền Đối tác HOẶC Thực tập (ADR-0100) chỉ xác nhận được đơn
   // mà MỌI dòng đúng giá danh mục (bắt cả đơn nháp CŨ lập trước bản vá, và dòng nhập tay cũ — không có giá danh mục). R3 (trần giảm giá ĐÃ LƯU) kiểm SAU khi tính bản chụp (Task 7).
   const giaLoi = viPhamGiaDanhMuc(actor, order.services.flatMap((s) => s.items));

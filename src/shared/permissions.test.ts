@@ -112,6 +112,8 @@ const ADR: Record<string, [Scope, Scope, Scope, Scope, Scope, Scope, Scope, Scop
   // Sổ đại lý đợt 1 (ADR-0077 điều 11, ADR-0078 điều 6; đặc tả 2026-10-08 §6): xem bảng mức — Bán hàng, Kế toán, Quản trị, Toàn quyền; đặt mức và người bán — Kế toán, Quản trị, Toàn quyền.
   "partner.commission.view": ["any", "any", "any", "none", "none", "any", "none", "none", "none", "none"],
   "partner.commission.write": ["none", "any", "any", "none", "none", "any", "none", "none", "none", "none"],
+  "sales.block.write": ["any", "none", "any", "none", "none", "any", "none", "none", "none", "none"], // ADR-0146 Đ5 (bổ sung 28/10): luật bán theo loại đối tác — Bán hàng, Quản trị, Toàn quyền
+  "catalog.attribute.assign": ["any", "none", "any", "none", "none", "any", "none", "none", "none", "none"], // ADR-0152 Đ3: gắn giá trị đặc điểm cho MỘT dịch vụ — Bán hàng, Quản trị, Toàn quyền
   "supply.terms.view": ["none", "any", "any", "none", "none", "any", "none", "none", "none", "none"], // Bán hàng KHÔNG xem tỷ lệ mua lại của nhà cung cấp
   "supply.terms.write": ["none", "any", "any", "none", "none", "any", "none", "none", "none", "none"],
   // Phần đối tác của đơn (đặc tả §6; Task 5): xem bằng order.view (Đối tác own, nhưng nhận DTO hẹp ở route); ghi mức tay — Kế toán, Quản trị, Toàn quyền (Bán hàng KHÔNG).
@@ -402,6 +404,8 @@ test("ADR-0040 D3 + ADR-0049 D3: MỌI ô của Tài xế (DRIVER) — ghim nguy
     "assistant.ask": "any", // ngoại lệ có tên (ADR-0066 điều 1): hỏi trợ lý Hỗ trợ cách dùng app — trợ lý không đọc dữ liệu nghiệp vụ
     "auth.session.viewAll": "none", "auth.session.revoke": "none", "auth.session.policy": "none", // ADR-0075 điều 7: chỉ Toàn quyền
     "partner.commission.view": "none", "partner.commission.write": "none", "supply.terms.view": "none", "supply.terms.write": "none", // sổ đại lý đợt 1: tài xế không xem bảng mức, người bán
+    "sales.block.write": "none", // ADR-0146 Đ5: luật bán chỉ Bán hàng, Quản trị, Toàn quyền
+    "catalog.attribute.assign": "none", // ADR-0152 Đ3: gắn đặc điểm chỉ Bán hàng, Quản trị, Toàn quyền
     "order.terms.view": "none", "order.terms.override": "none", // Task 5: tài xế không xem phần đối tác của đơn
   };
   assert.deepEqual(Object.fromEntries((Object.keys(MATRIX) as OperationCode[]).map((op) => [op, MATRIX[op].DRIVER])), DRIVER_ROW);
@@ -455,6 +459,8 @@ test("ADR-0048 D2: MỌI ô của Tài xế đối tác (DRIVER_PARTNER) — ghi
     "assistant.ask": "any", // ngoại lệ có tên (ADR-0066 điều 1): hỏi trợ lý Hỗ trợ — mọi tài khoản đăng nhập
     "auth.session.viewAll": "none", "auth.session.revoke": "none", "auth.session.policy": "none", // ADR-0075 điều 7: chỉ Toàn quyền
     "partner.commission.view": "none", "partner.commission.write": "none", "supply.terms.view": "none", "supply.terms.write": "none", // sổ đại lý đợt 1: tài xế đối tác không thấy mọi con số hoa hồng
+    "sales.block.write": "none", // ADR-0146 Đ5: luật bán chỉ Bán hàng, Quản trị, Toàn quyền
+    "catalog.attribute.assign": "none", // ADR-0152 Đ3: gắn đặc điểm chỉ Bán hàng, Quản trị, Toàn quyền
     "order.terms.view": "none", "order.terms.override": "none", // Task 5: tài xế đối tác không thấy phần đối tác của đơn
   };
   assert.deepEqual(Object.fromEntries((Object.keys(MATRIX) as OperationCode[]).map((op) => [op, MATRIX[op].DRIVER_PARTNER])), DRIVER_PARTNER_ROW);
@@ -502,6 +508,8 @@ test("ADR-0071: MỌI ô của Nhân sự (HR) — ghim nguyên dòng, chỉ ba 
     "assistant.ask": "any",
     "auth.session.viewAll": "none", "auth.session.revoke": "none", "auth.session.policy": "none", // ADR-0075 điều 7: chỉ Toàn quyền
     "partner.commission.view": "none", "partner.commission.write": "none", "supply.terms.view": "none", "supply.terms.write": "none", // sổ đại lý đợt 1 (ADR-0071: Nhân sự chỉ ba ô tài khoản)
+    "sales.block.write": "none", // ADR-0146 Đ5: luật bán chỉ Bán hàng, Quản trị, Toàn quyền
+    "catalog.attribute.assign": "none", // ADR-0152 Đ3: gắn đặc điểm chỉ Bán hàng, Quản trị, Toàn quyền
     "order.terms.view": "none", "order.terms.override": "none", // Task 5: Nhân sự không thấy phần đối tác của đơn
   };
   assert.deepEqual(Object.fromEntries((Object.keys(MATRIX) as OperationCode[]).map((op) => [op, MATRIX[op].HR])), HR_ROW);
@@ -769,4 +777,22 @@ test("ADR-0125 đ1 (lát H-4): party.verify / party.verify.attachment trên cả
     count++;
   }
   assert.equal(count, 1024);
+});
+
+// HÀNG RÀO (i) của ADR-0152 Đ6 (kế hoạch 2026-10-30 T5; ghi ở docs/SO-HANG-RAO.md): ai định nghĩa được đặc điểm (admin.manage) thì đặt được luật bán — ở MỌI cột. Khoá GIÁ TRỊ bảng,
+// không phải phép kiểm lúc chạy. Vế thứ hai (catalog.attribute.assign ⊆ sales.block.write) thêm cùng ô gắn đặc điểm ở T7.
+test("(i) ADR-0152 Đ6: admin.manage ≠ none ⇒ sales.block.write ≠ none ở mọi cột; sales.block.write đúng Bán hàng, Quản trị, Toàn quyền = any (ADR-0146 Đ5)", () => {
+  for (const p of PERMISSION_CODES)
+    if (MATRIX["admin.manage"][p] !== "none") assert.notEqual(MATRIX["sales.block.write"][p], "none", `${p}: admin.manage ${MATRIX["admin.manage"][p]} mà sales.block.write = none`);
+  assert.deepEqual(PERMISSION_CODES.filter((p) => MATRIX["sales.block.write"][p] !== "none"), ["SALES", "ADMIN", "SUPER_ADMIN"]);
+  for (const p of ["SALES", "ADMIN", "SUPER_ADMIN"] as const) assert.equal(MATRIX["sales.block.write"][p], "any", p);
+});
+
+// HÀNG RÀO (i) vế hai (ADR-0152 Đ3, Đ6; kế hoạch T5→T7): người gắn giá trị đặc điểm cho dịch vụ (đổi được kết quả luật bán — Đ4) không rộng hơn người đặt luật bán, ở MỌI cột.
+// Bỏ Bán hàng khỏi ô luật bán (ADR-0146 «Điều chủ cần biết») thì bài này đỏ, buộc bỏ luôn ở ô gắn — không để lại cửa sau.
+test("(i) ADR-0152 Đ6: catalog.attribute.assign ≠ none ⇒ sales.block.write ≠ none ở mọi cột; catalog.attribute.assign đúng Bán hàng, Quản trị, Toàn quyền = any (ADR-0152 Đ3)", () => {
+  for (const p of PERMISSION_CODES)
+    if (MATRIX["catalog.attribute.assign"][p] !== "none") assert.notEqual(MATRIX["sales.block.write"][p], "none", `${p}: catalog.attribute.assign ${MATRIX["catalog.attribute.assign"][p]} mà sales.block.write = none`);
+  assert.deepEqual(PERMISSION_CODES.filter((p) => MATRIX["catalog.attribute.assign"][p] !== "none"), ["SALES", "ADMIN", "SUPER_ADMIN"]);
+  for (const p of ["SALES", "ADMIN", "SUPER_ADMIN"] as const) assert.equal(MATRIX["catalog.attribute.assign"][p], "any", p);
 });

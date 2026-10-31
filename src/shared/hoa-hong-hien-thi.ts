@@ -15,7 +15,7 @@ export const CAU_CHUA_TIM_DUOC_DOI_TAC = "Tài khoản của bạn chưa tìm đ
 export const CAU_DONG_DONG_MAC_DINH = "Ngừng điều khoản mặc định thì dịch vụ chưa có điều khoản riêng sẽ thiếu người bán cho tới khi mở điều khoản mới. Vẫn ngừng?";
 export const CAU_KHONG_CO_MUC = "Chưa có mức nào.";
 export const CAU_KHONG_CO_DIEU_KHOAN = "Chưa có điều khoản nào.";
-export const CAU_KHONG_KHOP_LOC = "Không có dòng nào khớp bộ lọc.";
+export const CAU_KHONG_KHOP_LOC = "Không có mục nào khớp bộ lọc.";
 export const CAU_KHONG_CO_NGUOI_HUONG = "Không có người hưởng hoa hồng";
 export const NHAN_CONG_TY = "Tour Đảo (công ty)";
 
@@ -56,7 +56,7 @@ export function nhanDoiTuong(d: DoiTuongMucDto): { ten: string; loai: string } {
 }
 
 export type TrangThaiDong = "DANG_AP" | "SAP_AP" | "DA_DONG" | "DA_HUY";
-export const NHAN_TRANG_THAI: Record<TrangThaiDong, string> = { DANG_AP: "Đang áp dụng", SAP_AP: "Sắp áp dụng", DA_DONG: "Đã ngừng", DA_HUY: "Đã huỷ — thay bằng dòng khác" };
+export const NHAN_TRANG_THAI: Record<TrangThaiDong, string> = { DANG_AP: "Đang áp dụng", SAP_AP: "Sắp áp dụng", DA_DONG: "Đã ngừng", DA_HUY: "Đã thay bằng mức mới" };
 /**
  * Đang áp dụng = `conHieuLuc` của máy chủ; chưa tới ngày bắt đầu = «Sắp áp dụng»; còn lại (đã qua ngày kết thúc) = «Đã ngừng». ADR-0148: dòng đã huỷ (nhập sai, đã có dòng
  * thay) = «Đã huỷ» — trước mọi ca khác (dòng huỷ mang ngày kết thúc tương lai hoặc trống, nếu không sẽ rơi vào «Sắp áp dụng»).
@@ -168,13 +168,13 @@ export function nhanLoaiDoiTac(l: Pick<LoaiDoiTacDto, "ten" | "coSan" | "dangBat
 export const CAU_KHONG_CO_MUC_TA = "Chưa có cấp đại lý nào.";
 /** Luật «không đổi mức trong cùng ngày» nói thẳng trên màn (máy chủ chặn hai gắn chồng ngày của một loại, và ngày kết thúc không được trước ngày bắt đầu). */
 export const CAU_DOI_MUC_TRONG_NGAY =
-  "Mỗi loại chỉ theo một cấp đại lý trong một ngày. Muốn đổi sang cấp khác từ hôm nay: ngừng áp dụng cấp cũ đến hết hôm qua, rồi áp dụng cấp mới từ hôm nay. Áp dụng từ hôm nay thì không đổi được trong cùng ngày.";
+  "Mỗi loại chỉ theo một cấp tại một thời điểm. Muốn chuyển sang cấp khác, bấm «Đổi cấp» và chọn ngày bắt đầu. Cấp vừa chọn hôm nay thì chỉ đổi được từ ngày mai.";
 /**
  * Cảnh báo vàng (KHÔNG chặn) sau khi áp dụng cấp đại lý cho loại mà máy chủ trả `dongRieng` khác rỗng (N-17): các mức riêng theo loại đó — hoặc theo loại khác mà cùng hồ sơ đang mang — thắng cấp đại lý.
  * Danh sách do MÁY CHỦ tính, nên cảnh báo chỉ có ngay sau lần áp dụng; tải lại trang thì mất.
  */
 export const cauCanhBaoDongRieng = (tenLoai: string, tenMuc: string, soDong: number): string =>
-  `Đã áp dụng cấp đại lý, nhưng loại «${tenLoai}» (hoặc loại khác mà cùng đối tác đang mang) còn ${soDong} mức riêng đang áp dụng. Mức riêng được ưu tiên hơn cấp đại lý «${tenMuc}». Ngừng các mức riêng này nếu muốn dùng cấp đại lý.`;
+  `Đã lưu. Lưu ý: loại «${tenLoai}» (hoặc loại khác mà cùng đối tác đang mang) còn ${soDong} mức riêng, và mức riêng được dùng trước cấp «${tenMuc}». Muốn dùng hẳn cấp «${tenMuc}», hãy ngừng các mức riêng đó.`;
 /** Trạng thái và nút Tắt / Bật của một mức — theo cờ `dangBat` của máy chủ. Quyền ghi do trang kiểm riêng bằng `can`. */
 export function nhanMucTa(m: Pick<MucTaDto, "ten" | "dangBat">): { trangThai: string; nut: { hanhDong: "tat" | "bat"; nhan: string; ariaLabel: string } } {
   return m.dangBat
@@ -240,11 +240,11 @@ export function tomTatMuc(dong: readonly CommissionRuleDto[], ten: TenDanhMuc): 
   return dong.filter((d) => d.conHieuLuc).map((d) => `${nhanMucDto(d)} ${nhanPhamVi(d, ten)}`).join(" · ");
 }
 
-export const CAU_CHUA_CO_MUC_LOAI = "Đơn của loại này sẽ bị giữ ở bước Đã giao cho tới khi có mức";
+export const CAU_CHUA_CO_MUC_LOAI = "Loại này chưa có hoa hồng cho dịch vụ nào: đơn đã giao sẽ chờ ở bước «Đã giao» tới khi có mức hoặc Kế toán nhập tay.";
 export const NHAN_CHUA_CO_MUC = "Chưa có mức";
-export const CAU_NHAC_UU_TIEN = "Mức riêng được ưu tiên hơn cấp đại lý. Mức nào áp cho một đối tác cụ thể: dùng Tra nhanh.";
+export const CAU_NHAC_UU_TIEN = "Mức riêng được ưu tiên hơn cấp đại lý. Mức nào áp cho một đối tác cụ thể: dùng «Kiểm tra hoa hồng».";
 /** Đặc tả hoa-hong-cap-dai-ly §5.3 (Q-2, tiêu chí 2): thứ tự áp mức, ghim nguyên văn. */
-export const CAU_THU_TU_AP_MUC = "Mức nào áp cho một đơn: mức riêng của đối tác → cấp riêng của đối tác → mức riêng của loại đối tác → cấp đại lý của loại. Trong mỗi bước: dịch vụ đó → nhóm dịch vụ → mọi dịch vụ. Đối tác có cấp riêng thì không xét cấp của loại. Muốn biết chắc cho một đối tác: dùng Tra nhanh.";
+export const CAU_THU_TU_AP_MUC = "Khi tính hoa hồng cho một đơn, Nền tảng thử lần lượt: 1) mức riêng của đối tác, 2) cấp riêng của đối tác, 3) mức riêng của loại, 4) cấp của loại. Gặp mức nào trước thì dùng mức đó. Trong mỗi bước, xét dịch vụ đó trước, rồi cả nhóm, rồi mọi dịch vụ. Đối tác có cấp riêng thì không xét cấp của loại. Muốn biết chắc một đối tác: dùng «Kiểm tra hoa hồng».";
 export const CAU_TRA_THEO_LOAI = "Đang tra theo loại. Một đối tác cụ thể của loại này có thể có mức riêng hoặc cấp riêng — gõ tên đối tác để chắc.";
 export const cauMucCuSeNgung = (mucCu: string, tuNgay: string): string => `Mức cũ ${mucCu} sẽ ngừng, đến hết ${ngayVN(addDays(tuNgay, -1))}.`;
 export const cauSeTao = (v: { ai: string; dichVu: string; muc: string; tu: string; den: string | null }): string =>
@@ -329,7 +329,7 @@ const tenThieu = (thieu: readonly DichVuPhu[]): string => {
 // §5.1 dải cảnh báo đầu trang
 export const cauTieuDeDai = (n: number): string => `Có ${n} loại đối tác còn thiếu mức hôm nay`;
 export const CAU_THAN_DAI =
-  "Đối tác chỉ mang loại này, không có mức riêng hay cấp riêng, sẽ bị giữ đơn ở bước Đã giao nếu đơn xác nhận từ hôm nay có dịch vụ chưa có mức. Đối tác mang thêm một loại khác có mức thì vẫn được tính theo loại đó. Đơn đã xác nhận trước đó không tự thả khi thêm mức: Kế toán dùng Ghi mức tay cho từng đơn.";
+  "Đối tác chỉ thuộc loại này và chưa có mức riêng hay cấp riêng sẽ bị chờ ở bước «Đã giao» nếu đơn xác nhận từ hôm nay có dịch vụ chưa có mức. Đối tác thuộc thêm loại khác có mức thì vẫn tính theo loại đó. Đơn đã xác nhận trước đó không tự tính lại khi thêm mức: Kế toán dùng «Ghi mức tay» cho từng đơn.";
 /** Một dòng cho mỗi loại thiếu mức; phụ chú §4.2 «Có thay đổi sắp áp dụng từ <ngày>» nối sau dấu «—». Loại không thiếu (TAT, DU, CHUA_KIEM) không có dòng: trả rỗng. */
 export function cauDongLoaiDai(ten: string, kq: KetQuaPhu, sapApTu: string | null): string {
   let dong: string;
@@ -367,29 +367,29 @@ export function cauNhacCap(kq: KetQuaCap): string | null {
 }
 
 // §5.4 ô trống của ma trận
-export const CAU_O_TRONG = "Ô «—»: cấp không có dòng riêng cho ô này; đơn sẽ theo dòng rộng hơn của cấp (nhóm dịch vụ hoặc mọi dịch vụ) nếu có. Muốn biết mức chắc chắn: dùng Tra nhanh.";
+export const CAU_O_TRONG = "Ô «—» nghĩa là cấp chưa đặt mức riêng cho dịch vụ hoặc nhóm này; đơn sẽ theo mức rộng hơn của cấp (cả nhóm hoặc mọi dịch vụ) nếu có. Muốn biết mức chắc chắn: dùng «Kiểm tra hoa hồng».";
 
 // §5.2 hộp hỏi lại
 export const hopKhoaCap = (ten: string): { tieuDe: string; hauQua: string; nhanNguyHiem: string } => ({
   tieuDe: `Khoá cấp «${ten}»?`,
   hauQua:
-    "Sau khi khoá, cấp này không nhận thêm loại hay đối tác nào, không thêm mức mới, và các mức đang có của cấp không Đổi hay Sửa được nữa, chỉ Ngừng được. Các loại và đối tác đang theo cấp này vẫn được tính hoa hồng như cũ. Muốn ngừng chi cho một loại thì dùng Ngừng áp dụng ở lần áp dụng của loại đó; muốn chuyển loại sang cấp khác thì dùng Đổi cấp.",
+    "Sau khi khoá: không thêm được loại, đối tác hay mức mới vào cấp; các mức đang có chỉ Ngừng được, không Đổi hay Sửa; loại và đối tác đang theo cấp vẫn được tính hoa hồng như cũ. Muốn một loại thôi theo cấp: «Thôi theo cấp này». Muốn chuyển sang cấp khác: «Đổi cấp». Mở lại bất cứ lúc nào bằng «Mở lại cấp».",
   nhanNguyHiem: "Khoá cấp",
 });
 export const hopTatLoai = (ten: string): { tieuDe: string; hauQua: string; nhanNguyHiem: string } => ({
   tieuDe: `Tắt loại «${ten}»?`,
   hauQua:
-    "Sau khi tắt, đối tác chỉ mang loại này không được hưởng hoa hồng nữa: đơn họ đặt, xác nhận từ lúc tắt, bị giữ ở bước Đã giao cho tới khi Kế toán dùng Ghi mức tay. Đối tác mang thêm một loại khác còn bật vẫn được tính theo loại đó, nếu loại đó có mức cho dịch vụ của đơn. Đơn đã xác nhận trước lúc tắt giữ nguyên hoa hồng.",
+    "Đối tác chỉ thuộc loại này sẽ không được hưởng hoa hồng. Đơn của họ xác nhận từ lúc tắt sẽ chờ ở bước «Đã giao» tới khi Kế toán nhập tay («Ghi mức tay»). Đơn đã xác nhận trước lúc tắt giữ nguyên hoa hồng.",
   nhanNguyHiem: "Tắt loại",
 });
 /** Huy hiệu tông `cat` của cấp đã khoá. */
 export const NHAN_CAP_DA_KHOA = "Đã khoá — vẫn áp cho loại và đối tác đang theo";
 
 // §3 thẻ «Riêng từng đối tác»
-export const NHAN_XUNG_DOT = "Xung đột mức";
+export const NHAN_XUNG_DOT = "Hai mức khác nhau";
 export const CAU_XUNG_DOT =
   "Đối tác này mang hai loại ra hai mức khác nhau cho cùng một dịch vụ. Đơn của dịch vụ đó bị giữ ở bước Đã giao cho tới khi đặt mức riêng hoặc cấp riêng cho đối tác này.";
-export const CAU_DUOI_DS_DOI_TAC = "Đối tác không có mức riêng hay cấp riêng không nằm ở đây. Muốn biết một đối tác đang ra mức nào: dùng Tra nhanh.";
+export const CAU_DUOI_DS_DOI_TAC = "Đối tác không có mức riêng hay cấp riêng không nằm ở đây. Muốn biết một đối tác đang ra mức nào: dùng «Kiểm tra hoa hồng».";
 export const CAU_KHONG_CO_DOI_TAC_RIENG = "Chưa có đối tác nào có mức riêng hoặc cấp riêng.";
 export const CAU_DT_CHUA_CO_MUC_RIENG = "Đối tác này chưa có mức riêng.";
 export const CAU_DT_CHUA_CO_CAP_RIENG = "Đối tác này chưa có cấp riêng.";
@@ -401,15 +401,15 @@ export const nhanCapRieng = (tenCap: string): string => `Cấp riêng: ${tenCap}
 /** Một loại hồ sơ đang mang (`HoaHongHoSoResponse.vai[]`): cấp của loại đó hôm nay, hoặc chưa theo cấp nào. */
 export const cauVaiHoSo = (v: { muc: { ten: string } | null; tuNgay: string | null }): string =>
   v.muc === null ? CAU_LOAI_CHUA_THEO_CAP : v.tuNgay === null ? `Đang theo cấp ${v.muc.ten}` : cauLoaiTheoCap(v.muc.ten, v.tuNgay);
-export const cauDaDatCapRieng = (tenCap: string, tenDoiTac: string, tuNgay: string): string => `Đã đặt cấp riêng «${tenCap}» cho «${tenDoiTac}» từ ngày ${ngayVN(tuNgay)}.`;
+export const cauDaDatCapRieng = (tenCap: string, tenDoiTac: string, tuNgay: string): string => `«${tenDoiTac}» đã theo cấp riêng «${tenCap}» từ ngày ${ngayVN(tuNgay)}.`;
 export const CAU_DA_SUA_CAP_RIENG = "Đã sửa cấp riêng.";
 export const cauNgungCapRieng = (tenCap: string, tenDoiTac: string): string => `Ngừng cấp riêng ${tenCap} của ${tenDoiTac}`;
-export const cauDaNgungCapRieng = (tenCap: string, tenDoiTac: string): string => `Đã ngừng cấp riêng «${tenCap}» của «${tenDoiTac}».`;
-export const cauDaDoiCapRieng = (tenCapMoi: string, tenDoiTac: string, tuNgay: string): string => `Đã đổi cấp riêng của «${tenDoiTac}» sang «${tenCapMoi}» từ ngày ${ngayVN(tuNgay)}.`;
+export const cauDaNgungCapRieng = (tenCap: string, tenDoiTac: string): string => `«${tenDoiTac}» đã thôi theo cấp riêng «${tenCap}».`;
+export const cauDaDoiCapRieng = (tenCapMoi: string, tenDoiTac: string, tuNgay: string): string => `«${tenDoiTac}» đã chuyển sang cấp riêng «${tenCapMoi}» từ ngày ${ngayVN(tuNgay)}.`;
 /** ADR-0151 Đ8: hộp «Đổi cấp riêng» nói trước giới hạn khi cấp cũ đang khoá (đổi ra thì được, đổi ngược về cấp khoá thì không). */
 export const cauCapCuDangKhoa = (tenCapCu: string): string => `Cấp cũ «${tenCapCu}» đang khoá. Đổi xong thì không đổi ngược về cấp này được, trừ khi mở lại cấp.`;
 /** §3.3 toast tông `bien` khi «Xem dòng ↓» không còn thấy dòng. */
-export const CAU_KHONG_THAY_DONG = "Không thấy dòng này trên trang — tải lại trang.";
+export const CAU_KHONG_THAY_DONG = "Không thấy mục này trên trang — tải lại trang.";
 /** §3.3: dòng thắng ở bậc 10–12 là cấp riêng của đối tác đang tra, nên đứng ở chi tiết cấp (thẻ «Các cấp đại lý») kèm câu này sau tên cấp. */
 export const CAU_CAP_RIENG_DANG_TRA = "— cấp riêng của đối tác đang tra";
 
@@ -514,11 +514,11 @@ export function demTheoCap(m: Pick<MucTaDto, "code" | "gan">, ganRieng: readonly
 }
 export const cauDemCap = (n: { loai: number; doiTac: number }): string => `Đang áp dụng cho ${n.loai} loại đối tác và ${n.doiTac} đối tác có cấp riêng.`;
 
-/** Nhãn một việc (§3.1): dòng mức «Đổi» · «Sửa» · «Ngừng»; lần xếp loại vào cấp «Đổi cấp» · «Sửa» · «Ngừng áp dụng» (Q-12). */
+/** Nhãn một việc (§3.1): dòng mức «Đổi» · «Sửa» · «Ngừng»; lần xếp loại vào cấp «Đổi cấp» · «Sửa» · «Thôi theo cấp này» (Q-12). */
 export const nhanViec = (v: Viec, doiTuong: "dong" | "gan"): string =>
-  v === "SUA" ? "Sửa" : doiTuong === "dong" ? (v === "DOI" ? "Đổi" : "Ngừng") : v === "DOI" ? "Đổi cấp" : "Ngừng áp dụng";
+  v === "SUA" ? "Sửa" : doiTuong === "dong" ? (v === "DOI" ? "Đổi" : "Ngừng") : v === "DOI" ? "Đổi cấp" : "Thôi theo cấp này";
 /** `aria-label` của nút «⋯» (§3.2). */
-export const nhanViecKhac = (tenDong: string): string => `Việc khác: ${tenDong}`;
+export const nhanViecKhac = (tenDong: string): string => `Thao tác khác: ${tenDong}`;
 export const CAU_DA_KHOA_CAP = "Đã khoá cấp.";
 export const CAU_DA_MO_LAI_CAP = "Đã mở lại cấp.";
 /** Chữ nhỏ cạnh tên cấp đã khoá ở đầu cột ma trận (huy hiệu đầy đủ `NHAN_CAP_DA_KHOA` ở chi tiết cấp). */
@@ -552,7 +552,7 @@ export const cauLoaiTheoCap = (tenCap: string, tuNgay: string): string => `Đang
 // Hộp «Đổi cấp» (loại) và «Đổi cấp riêng» (đối tác) dùng chung: chữ ở đây, web/ chỉ dựng ô.
 export const TIEU_DE_DOI_CAP_RIENG = "Đổi cấp riêng";
 export const NHAN_CAP_MOI = "Cấp mới";
-export const NHAN_TU_NGAY = "Từ";
+export const NHAN_TU_NGAY = "Từ ngày";
 export const CAU_CHON_NGAY_BAT_DAU = "Chọn ngày bắt đầu.";
 /** Câu dưới ô «Từ»: cấp cũ ngừng đến hết ngày trước ngày bắt đầu; ngày chưa hợp lệ thì để trống. */
 export const cauCapCuSeNgung = (tenCapCu: string, tuNgay: string): string =>

@@ -34,9 +34,10 @@ export const TU_DA_LOAI: readonly TuDaLoai[] = [
   { cam: /[Pp]hiên(?! bản)|PHIÊN(?! BẢN)/u, thay: "máy đang đăng nhập (Đăng xuất máy này)", nguon: "chủ 2026-10-18 (lượt 2)" },
   // Lượt 3 — hoa hồng (chủ 2026-10-25), hồ sơ docs/superpowers/specs/2026-10-25-hoa-hong-ho-tro-thiet-ke-lai/DAC-TA.md mục C. «Chính sách hoa hồng» thay «Mức TA»; «Mức riêng» thay «Dòng riêng»;
   // một họ từ hiệu lực (Ngừng · Áp dụng chính sách cho loại · Ngừng áp dụng · Đang/Sắp áp dụng · Đã ngừng) thay Đóng/Gắn/Kết thúc gắn (Q1 = A).
+  // 30/10: «Áp dụng cấp cho loại» và «Ngừng áp dụng» (cấp của loại) đã đổi tiếp ở lượt 7 bên dưới; «Ngừng» (mức) và «Đang/Sắp áp dụng», «Đã ngừng» giữ.
   { cam: /[Mm]ức TA|MỨC TA/u, thay: "Cấp đại lý (cấp <tên>, cấp riêng)", nguon: "chủ 2026-10-25 (bàn giao Hoa hồng + Hỗ trợ, «chọn A cả ba»)" },
-  { cam: /[Dd]òng riêng|[Rr]iêng của loại/u, thay: "Mức riêng", nguon: "chủ 2026-10-25 (bàn giao Hoa hồng + Hỗ trợ, «chọn A cả ba»)" },
-  { cam: /Đóng mức|Đóng dòng|[Kk]ết thúc gắn|Gắn mức|Đang áp(?! dụng)|Sắp áp(?! dụng)|Đã đóng(?! sổ| tiền)/u, thay: "Ngừng · Áp dụng cấp cho loại · Ngừng áp dụng · Đang áp dụng · Sắp áp dụng · Đã ngừng", nguon: "chủ 2026-10-25 (bàn giao Hoa hồng + Hỗ trợ, «chọn A cả ba»)" },
+  { cam: /[Dd]òng riêng|(?<!hồng )[Rr]iêng của loại/u, thay: "Mức riêng", nguon: "chủ 2026-10-25 (bàn giao Hoa hồng + Hỗ trợ, «chọn A cả ba»)" },
+  { cam: /Đóng mức|Đóng dòng|[Kk]ết thúc gắn|Gắn mức|Đang áp(?! dụng)|Sắp áp(?! dụng)|Đã đóng(?! sổ| tiền)/u, thay: "Ngừng · Chọn cấp cho loại này · Thôi theo cấp này · Đang áp dụng · Sắp áp dụng · Đã ngừng", nguon: "chủ 2026-10-25 (bàn giao Hoa hồng + Hỗ trợ, «chọn A cả ba»)" },
   // Lượt 4 — hỗ trợ (chủ 2026-10-25, bàn giao Hoa hồng + Hỗ trợ). Trùng tên «Hỗ trợ» (trang / Trợ lý / vé): BACKLOG BL-VE-TRUNG-TEN.
   { cam: /Hàng đợi nhóm/u, thay: "Việc của nhóm", nguon: "chủ 2026-10-25 (bàn giao Hoa hồng + Hỗ trợ)" },
   { cam: /[Tt]rợ giúp|TRỢ GIÚP/u, thay: "Hướng dẫn", nguon: "chủ 2026-10-25 (bàn giao Hoa hồng + Hỗ trợ)" },
@@ -54,6 +55,11 @@ export const TU_DA_LOAI: readonly TuDaLoai[] = [
   // Lượt 6 — cấp đại lý (chủ 2026-10-30, quyết định 3, 7). Hai mục toàn cục; luật cấm «chính sách» trọn bộ tệp hoa hồng nằm ở CAM_THEO_TEP bên dưới.
   { cam: /[Cc]hính sách hoa hồng|CHÍNH SÁCH HOA HỒNG/u, thay: "Cấp đại lý", nguon: "chủ 2026-10-30 (quyết định 3, 7; hồ sơ `docs/superpowers/specs/2026-10-30-hoa-hong-cap-dai-ly/`)" },
   { cam: /[Cc]hính sách riêng(?! tư)|CHÍNH SÁCH RIÊNG(?! TƯ)/u, thay: "Cấp riêng", nguon: "chủ 2026-10-30 (quyết định 3, 7; hồ sơ `docs/superpowers/specs/2026-10-30-hoa-hong-cap-dai-ly/`)" },
+  // Lượt 7 — rà soát ngôn ngữ trang Hoa hồng đối tác (chủ 2026-10-30, hồ sơ docs/superpowers/specs/2026-10-30-ra-soat-ngon-ngu-hoa-hong/RA-SOAT.md): hai chữ của lượt 3 đã thay.
+  // Nhãn nhật ký «Ngừng áp dụng cấp đại lý cho loại» / «… cấp riêng của đối tác» (audit-actions.ts), nút «Ngừng áp dụng» của cấp riêng ở Danh bạ và câu máy chủ «ngừng áp dụng cấp cũ trước» giữ nguyên — mẫu chặn hẹp: chỉ cụm «… cấp cho loại» và mảnh «Ngừng áp dụng cấp ‹tên›» (chuỗi mẫu cũ của hộp).
+  // «Hoa hồng riêng của loại» (B3 của bảng chữ mới) được phép: luật «riêng của loại» ở lượt 3 nhắm câu «mức riêng của loại» trần, không phải tiêu đề này.
+  { cam: /[Áá]p dụng cấp cho loại|[Nn]gừng áp dụng cấp(?:\s+cho loại|\s*«?\s*$)/u, thay: "Chọn cấp cho loại này · Thêm loại vào cấp này · Thôi theo cấp này", nguon: "chủ 2026-10-30 (rà soát ngôn ngữ Hoa hồng)" },
+  { cam: /Ngày cuối hiệu lực|Sửa áp dụng cấp/u, thay: "Ngày cuối áp dụng · Sửa cấp của loại", nguon: "chủ 2026-10-30 (rà soát ngôn ngữ Hoa hồng)" },
 ];
 
 /** Chữ «đảo» là hòn đảo (tên công ty, tên tour) — gỡ khỏi chuỗi trước khi so với dòng «Đảo» ở trên. */

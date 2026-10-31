@@ -73,7 +73,7 @@ export const LICH_SU_NOI_BO_CHO_PHEP = {
 export const LICH_SU_NOI_BO_AN = [
   "order_accounting_entry_marked", "order_accounting_entry_unmarked", "exported_png", "exported_pdf", "ledger_settlement", "prc_commission_rule_added",
   "prc_commission_rule_closed", "prc_supply_term_added", "prc_supply_term_closed", "prc_partner_type_added", "prc_partner_type_off",
-  "prc_partner_type_on", "prc_rate_tier_added", "prc_rate_tier_off", "prc_rate_tier_on", "prc_role_tier_set", "prc_role_tier_closed", "prc_party_tier_set", "prc_party_tier_closed",
+  "prc_partner_type_on", "prc_sales_block_added", "prc_sales_block_ended", "prc_rate_tier_added", "prc_rate_tier_off", "prc_rate_tier_on", "prc_role_tier_set", "prc_role_tier_closed", "prc_party_tier_set", "prc_party_tier_closed",
   "prc_commission_rule_voided", "prc_role_tier_voided", "prc_party_tier_voided", "ledger_period_closed", "staff_created", "staff_updated", "staff_suspended", "staff_reactivated", "staff_role_changed", "pin_reset", "pin_changed",
   "passkey_added", "passkey_removed", "pin_set_by_passkey", "login_unlocked", "staff_synced", "permission_changed", "account_roles_changed",
   "session_policy_changed", "session_revoked", "mfa_enabled", "mfa_removed", "mfa_recovery_regenerated", "mfa_reset", "mfa_grace_reopened",
@@ -96,7 +96,7 @@ export const LICH_SU_NOI_BO_AN = [
   "rental_rate_closed", "route_saved", "vehicle_size_saved", "location_created", "location_updated", "maintenance_changed",
   "manual_service_policy_changed", "pickup_slot_policy_changed", "confirm_flag_changed", "confirm_policy_changed", "tro_ly_settings_changed", "giao_dien_changed", "client_outdated_body", "catalog_synced", "catalog_overridden",
   "catalog_override_cleared", "catalog_hidden", "catalog_unhidden", "catalog_group_created", "catalog_group_updated", "catalog_group_assigned",
-  "catalog_groups_seeded", "catalog_service_transfer_set", "feedback_created", "feedback_replied", "feedback_status_changed", "feedback_assigned", "feedback_claimed",
+  "catalog_groups_seeded", "catalog_service_transfer_set", "ctl_attribute_created", "ctl_attribute_updated", "ctl_attribute_value_created", "ctl_attribute_value_updated", "ctl_service_attribute_set", "ctl_group_attribute_set", "feedback_created", "feedback_replied", "feedback_status_changed", "feedback_assigned", "feedback_claimed",
   "feedback_team_changed", "feedback_priority_changed", "feedback_team_created", "feedback_team_updated", "feedback_team_member_changed", "notice_sent",
   "notice_revoked", "notice_acknowledged",
   "feedback_attachment_added", "feedback_attachment_viewed", "feedback_attachment_purged", "feedback_attachment_purge_retried", // ADR-0144: tệp kèm vé — không gắn đơn

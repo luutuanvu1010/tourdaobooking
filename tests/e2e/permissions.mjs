@@ -225,4 +225,42 @@ console.log("✓ nhiều quyền + hiệu lực ngay");
   assert.deepEqual(r.body.orders, [], "Đối tác lọc theo người khác → rỗng");
   console.log("✓ ADR-0067 người lập: 200 cho Bán hàng/Kế toán/Quản trị/Toàn quyền/lai Bán hàng+HDV (có Đối tác, người đã nghỉ; đúng 3 khoá); 403 HDV/Đối tác/Thực tập/lai HDV+Thực tập/Tài xế/Tài xế đối tác");
 }
+// --- ADR-0146 Đ5 (ô sales.block.write) + ADR-0152 Đ3 (ô catalog.attribute.assign), kế hoạch 2026-10-30 T14: Bán hàng thêm luật bán 201, kết thúc 200, gắn đặc điểm cho
+// dịch vụ 200; Kế toán, Đối tác, Thực tập, Nhân sự 403 ở cả hai ô; Bán hàng gắn THEO NHÓM 403 (cổng quản trị); chưa đăng nhập 401. Luật dùng LOẠI CÓ SẴN HOTEL_RECEPTION
+// (loai-doi-tac chạy sau và đếm «chỉ năm loại có sẵn» — không thêm loại ở đây) trên ZE2 và được «Kết thúc ngay» liền (khoảng rỗng, không chặn ai); dòng gắn đóng, đặc điểm tắt ở cuối.
+{
+  const duoi = String(Date.now()).slice(-6).replace(/\d/g, (d) => "ABCDEGHKLM"[d]);
+  const theoQuyen = async (permissions, ten) => {
+    const x = await call(TAO_TK, "POST", "/api/staff", { taoHoSoMoi: true, fullName: `${ten} ${duoi}`, phone: randomPhone(), permissions });
+    assert.equal(x.status, 201, JSON.stringify(x.body));
+    return (await login(x.body.staff.phone, x.body.pin)).cookie;
+  };
+  const khac = [[ACC, "Kế toán"], [await theoQuyen(["PARTNER"], "Đối Tác Luật Bán"), "Đối tác"], [await theoQuyen(["INTERN"], "Thực Tập Luật Bán"), "Thực tập"], [await session(ACCOUNTS.hr), "Nhân sự"]];
+  const luat = { loai: "HOTEL_RECEPTION", phamVi: "SERVICE", catalogCode: "ZE2" };
+  r = await call(SALES, "POST", "/api/pricing/luat-ban", luat);
+  assert.equal(r.status, 201, `Bán hàng thêm luật bán: ${JSON.stringify(r.body)}`);
+  const luatId = r.body.luat.id;
+  for (const [cookie, nhan] of khac) {
+    assert.equal((await call(cookie, "GET", "/api/pricing/luat-ban")).status, 403, `${nhan}: xem luật bán`);
+    assert.equal((await call(cookie, "POST", "/api/pricing/luat-ban", luat)).status, 403, `${nhan}: thêm luật bán`);
+    assert.equal((await call(cookie, "POST", `/api/pricing/luat-ban/${luatId}/ket-thuc`, {})).status, 403, `${nhan}: kết thúc luật bán`);
+  }
+  assert.equal((await call(null, "POST", "/api/pricing/luat-ban", luat)).status, 401);
+  assert.equal((await call(SALES, "POST", `/api/pricing/luat-ban/${luatId}/ket-thuc`, {})).status, 200, "Bán hàng kết thúc luật bán");
+  r = await call(ADMIN, "POST", "/api/catalog/dac-diem", { ten: `Đặc điểm quyền ${duoi}`, giaTri: [{ ten: "Có" }, { ten: "Không" }] });
+  assert.equal(r.status, 201, `Quản trị tạo đặc điểm: ${JSON.stringify(r.body)}`);
+  const X = r.body.dacDiem.code;
+  const x1 = r.body.dacDiem.giaTri[0].code;
+  assert.equal((await call(SALES, "POST", "/api/catalog/dac-diem", { ten: `Đặc điểm Bán hàng ${duoi}`, giaTri: [{ ten: "Có" }] })).status, 403, "Bán hàng không định nghĩa đặc điểm");
+  for (const [cookie, nhan] of khac) {
+    assert.equal((await call(cookie, "PUT", `/api/catalog/ZE2/dac-diem/${X}`, { giaTri: x1, dangThay: null })).status, 403, `${nhan}: gắn đặc điểm cho dịch vụ`);
+  }
+  assert.equal((await call(SALES, "PUT", `/api/catalog/groups/HTA/dac-diem/${X}`, { giaTri: x1, dangThay: null })).status, 403, "Bán hàng gắn theo nhóm 403");
+  assert.equal((await call(null, "PUT", `/api/catalog/ZE2/dac-diem/${X}`, { giaTri: x1, dangThay: null })).status, 401);
+  assert.equal((await call(SALES, "PUT", `/api/catalog/ZE2/dac-diem/${X}`, { giaTri: x1, dangThay: null })).status, 200, "Bán hàng gắn đặc điểm cho dịch vụ");
+  assert.equal((await call(SALES, "PUT", `/api/catalog/ZE2/dac-diem/${X}`, { giaTri: null, dangThay: x1 })).status, 200, "Bán hàng bỏ giá trị (dọn)");
+  const dd = (await call(ADMIN, "GET", "/api/catalog/dac-diem")).body.dacDiem.find((a) => a.code === X);
+  assert.equal((await call(ADMIN, "PATCH", `/api/catalog/dac-diem/${X}`, { expectedUpdatedAt: dd.capNhatLuc, dangDung: false })).status, 200, "tắt đặc điểm thử (dọn)");
+  console.log("✓ ADR-0146 Đ5 + ADR-0152 Đ3: Bán hàng thêm luật 201 / kết thúc 200 / gắn đặc điểm cho dịch vụ 200; Kế toán, Đối tác, Thực tập, Nhân sự 403 cả hai ô; Bán hàng định nghĩa đặc điểm / gắn theo nhóm 403; chưa đăng nhập 401");
+}
 console.log("E2E PERMISSIONS OK");

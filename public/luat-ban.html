@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"><meta name="robots" content="noindex"><meta name="theme-color" content="#ffffff"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><link rel="stylesheet" href="/giao-dien.css"><title>Luật bán — Island Booking System</title></head>
+<body data-title="Luật bán" data-back="/account">
+<header id="topbar"></header>
+<main>
+  <!-- Luật bán theo loại đối tác (ADR-0146 Đ5; ADR-0152 Đ2). Xem / thêm / kết thúc: ô sales.block.write (Bán hàng, Quản trị, Toàn quyền); tài khoản giữ quyền Đối tác (kể cả lai)
+       không vào được (máy chủ 403). web/luat-ban.ts dựng nội dung; chữ ở src/shared/luat-ban-hien-thi.ts. id cố định cho kịch bản Chrome: #lb-them, #lb-tab-*, #lb-the-*. -->
+  <div class="lb-dau">
+    <h1>Luật bán</h1>
+    <button type="button" id="lb-them" class="nut" data-cap="chinh" hidden>＋ Thêm luật</button>
+  </div>
+  <p id="lb-gioi-thieu" class="muted"></p>
+  <div id="error" class="alert" role="alert" hidden></div>
+  <!-- Ẩn cho tới khi máy chủ trả danh sách (khỏi hiện khung trống cho tài khoản không có quyền xem). -->
+  <div id="lb-noi-dung" hidden>
+    <div class="tab-phu" data-kieu="gach" role="tablist" aria-label="Trạng thái luật bán">
+      <button type="button" role="tab" id="lb-tab-DANG_AP_DUNG" aria-selected="true" aria-controls="lb-the-DANG_AP_DUNG" tabindex="0"></button>
+      <button type="button" role="tab" id="lb-tab-SAP_AP_DUNG" aria-selected="false" aria-controls="lb-the-SAP_AP_DUNG" tabindex="-1"></button>
+      <button type="button" role="tab" id="lb-tab-DA_KET_THUC" aria-selected="false" aria-controls="lb-the-DA_KET_THUC" tabindex="-1"></button>
+    </div>
+    <section id="lb-the-DANG_AP_DUNG" class="lb-the" role="tabpanel" aria-labelledby="lb-tab-DANG_AP_DUNG"></section>
+    <section id="lb-the-SAP_AP_DUNG" class="lb-the" role="tabpanel" aria-labelledby="lb-tab-SAP_AP_DUNG" hidden></section>
+    <section id="lb-the-DA_KET_THUC" class="lb-the" role="tabpanel" aria-labelledby="lb-tab-DA_KET_THUC" hidden></section>
+  </div>
+</main>
+<script type="module" src="/js/luat-ban.js"></script>
+</body></html>

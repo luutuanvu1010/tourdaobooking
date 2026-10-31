@@ -1904,6 +1904,31 @@ export const CHECKS = [
     level: "warn",
     note: "cảnh báo (không chặn phát hành): Quản trị gán nhóm cho các dịch vụ này ở màn Danh mục",
   },
+  // R-CTL-2 (ADR-0152 Đ1; kế hoạch 2026-10-30 R-8, mã MỚI — R-CTL-1 ở trên là cảnh báo cũ, không đổi): dòng gắn đặc điểm ĐANG MỞ trỏ đặc điểm / giá trị đang tắt, hoặc giá trị
+  // không thuộc đặc điểm ghi trên dòng. Lưới THỨ HAI sau trigger chèn (`ctl_attribute_assignment_value_of_attribute`, `_active`) và trigger tắt (`*_off_in_use`): chỉ SQL gõ tay
+  // / trigger bị gỡ mới sinh được. KHÔNG xét «nhóm đang tắt»: tắt nhóm rỗng còn dòng gắn theo nhóm là đường hợp lệ của route nhóm (view bỏ qua nhóm tắt) — sổ thi công T1.
+  {
+    code: "R-CTL-2",
+    what: "dòng gắn đặc điểm dịch vụ đang mở trỏ đặc điểm hoặc giá trị đang tắt, hoặc giá trị không thuộc đặc điểm ghi trên dòng",
+    sql: `SELECT count(*) FROM ctl_attribute_assignment s
+      WHERE s.valid_to_at IS NULL
+        AND (NOT EXISTS (SELECT 1 FROM ctl_attribute a WHERE a.code = s.attribute_code AND a.active = 1)
+          OR NOT EXISTS (SELECT 1 FROM ctl_attribute_value v WHERE v.code = s.value_code AND v.attribute_code = s.attribute_code AND v.active = 1))`,
+    level: "fail",
+    note: "ADR-0152 Đ1: dòng lậu chỉ do SQL chạy tay — trình chủ dự án, không tự sửa dữ liệu (đóng dòng gắn hoặc bật lại đặc điểm / giá trị trên màn Đặc điểm dịch vụ)",
+  },
+  // R-CTL-3 (ADR-0152 Đ1; chủ chọn 30/10 — câu chờ gom 2 ⇒ (b)): dòng gắn đặc điểm THEO NHÓM đang mở mà nhóm đang TẮT. Đường hợp lệ (route nhóm chỉ chặn tắt nhóm còn
+  // dịch vụ; view `v_ctl_service_attribute` bỏ qua nhóm tắt, trigger chặn gắn MỚI vào nhóm tắt) ⇒ dòng vô hại nhưng thừa — mức warn (in số, không bao giờ đỏ). Tách khỏi
+  // R-CTL-2 (fail) để không đỏ giả trên dữ liệu hợp lệ.
+  {
+    code: "R-CTL-3",
+    what: "dòng gắn đặc điểm theo nhóm còn mở trong khi nhóm đã tắt (dòng thừa, không ảnh hưởng luật bán)",
+    sql: `SELECT count(*) FROM ctl_attribute_assignment s
+      WHERE s.valid_to_at IS NULL AND s.group_code IS NOT NULL
+        AND NOT EXISTS (SELECT 1 FROM ctl_group g WHERE g.code = s.group_code AND g.active = 1)`,
+    level: "warn",
+    note: "cảnh báo (không chặn phát hành): bật lại nhóm rồi bỏ giá trị theo nhóm ở màn Đặc điểm dịch vụ, hoặc để nguyên (view đã bỏ qua nhóm tắt)",
+  },
 
   // ---- Sổ đại lý đợt 1 (đặc tả 2026-10-08 §9; migration 0090). Trigger / CHECK của 0090 là đường chặn thứ nhất; các kiểm này là LƯỚI THỨ HAI cho SQL chạy tay và cho
   // chuyện đổi SAU khi ghi (tắt vai, đổi nhóm dịch vụ, đổi công ty chủ) — thứ trigger lúc chèn không nhìn thấy. Bảng mức / điều khoản / bản chụp chỉ-thêm: dòng sai không sửa
@@ -1995,6 +2020,18 @@ export const CHECKS = [
          AND r.valid_from_date <= t.captured_date AND (r.valid_to_date IS NULL OR r.valid_to_date >= t.captured_date))`,
     level: "fail",
     note: "ADR-0148 Đ1: dòng mức bị đóng / huỷ qua ngày một đơn đã chụp — trình chủ dự án, không tự sửa dữ liệu",
+  },
+  {
+    // R-PRC-8 (ADR-0146 Đ1; kế hoạch 2026-10-30 R-8, T3): «luật còn hiệu lực chỉ trỏ loại đang bật». Trigger `prc_sales_block_role_ok` chặn lúc THÊM; tắt loại còn luật thì
+    // route `/loai-doi-tac/:code/tat` trả 409 — trigger không biết «hôm nay» (dự án cấm date('now') trong mã), nên khe đua giữa kiểm và ghi chỉ kiểm này bắt. Vị từ
+    // CHUA_HET_HAN giống R-PRC-2 (đếm cả luật SẮP áp dụng: tắt loại làm nó mất tác dụng lúc tới ngày); route 409 phải dùng CÙNG vị từ (sổ thi công T3).
+    code: "R-PRC-8",
+    what: "luật bán (không bán cho loại đối tác) chưa hết hạn trỏ loại đối tác không còn bật trong danh sách được hưởng",
+    // Khoảng rỗng (`valid_to_date < valid_from_date` — «Kết thúc ngay» luật sắp áp dụng) coi như đã kết thúc (R-1, ruling điều phối 30/10) — cùng vế với route tắt loại.
+    sql: `SELECT count(*) FROM prc_sales_block b WHERE ${CHUA_HET_HAN("b")} AND (b.valid_to_date IS NULL OR b.valid_to_date >= b.valid_from_date)
+       AND b.role_type_code NOT IN (SELECT role_type_code FROM v_prc_beneficiary_role)`,
+    level: "fail",
+    note: "ADR-0146 Đ1: loại bị tắt khi còn luật bán — Đối tác loại đó để trống bên đặt là luật mất tác dụng; kết thúc luật hoặc bật lại loại (trình chủ dự án, không tự sửa dữ liệu)",
   },
   {
     // R-ORD-T1 (đặc tả §9 sau kiểm độc lập N4): MỖI dòng dịch vụ của đơn đã xác nhận, xác nhận TỪ (mốc + 60 phút) trở đi, phải có ĐÚNG MỘT bản chụp hiện hành. Mốc = lúc áp migration

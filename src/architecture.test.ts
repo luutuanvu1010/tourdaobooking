@@ -94,6 +94,7 @@ const STRICT: readonly { module: string; file: string }[] = [
   { module: "maintenance", file: "modules/maintenance/repository.ts" },
   { module: "parties", file: "modules/parties/repository.ts" },
   { module: "pricing", file: "modules/pricing/repository.ts" }, // ADR-0077 — sổ đại lý đợt 1: bảng mức, điều khoản người bán
+  { module: "pricing", file: "modules/pricing/luat-ban-repo.ts" }, // ADR-0146 Đ6 (a) — luật bán theo loại đối tác: tệp DUY NHẤT nhắc prc_sales_block
   { module: "staff", file: "modules/staff/repository.ts" },
   { module: "thongbao", file: "modules/thongbao/repository.ts" },
   { module: "van-chuyen", file: "modules/van-chuyen/repository.ts" }, // ADR-0040 D1 (siết: SQL đi qua defineSql, EXPLAIN)
@@ -171,6 +172,8 @@ const NUA_NGHIEM: readonly { module: string; file: string }[] = [
   { module: "orders", file: "modules/orders/xac-nhan-repo.ts" },
   // ADR-0058 Đ6: SQL MỚI của `catalog` (hai bảng `ctl_`) chỉ ở tệp này; `repository.ts` cũ còn LEGACY tới CATALOG_LEGACY_HAN.
   { module: "catalog", file: "modules/catalog/nhom-repo.ts" },
+  // ADR-0152 Đ1, Đ6 (f): SQL của ba bảng đặc điểm dịch vụ (`ctl_attribute*`, migration 0128) chỉ ở tệp này — bài (f) `src/dac-diem-chi-mot-tep.test.ts` canh phần còn lại.
+  { module: "catalog", file: "modules/catalog/dac-diem-repo.ts" },
 ];
 
 /**
