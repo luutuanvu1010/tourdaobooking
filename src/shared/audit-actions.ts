@@ -12,6 +12,7 @@ export const AUDIT_GROUPS = {
   notice: "Thông báo",
   vehicle: "Xe", // ADR-0040 D1 (giả định G12): trang Nhật ký không có nhãn đối tượng cho xe — `detail` mở đầu bằng biển số
   ledger: "Sổ tiền", // sổ tiền lượt 1 (ADR-0026): nộp/trả, xác nhận công ty đã nhận, hoàn khách, điều chỉnh, đảo — `detail` KHÔNG số tiền chi tiết, không SĐT
+  ve: "Vé điện tử", // ADR-0153 (đề xuất): kho vé — `detail` CHỈ số lượng và nhãn nhóm khách, KHÔNG BAO GIỜ mã vé / nội dung QR / khoá kho
   trip: "Điều phối xe", // ADR-0049 (kế hoạch mục 1.1): chính sách điều phối, lý do; từ A13 thêm hành động chuyến `trip_*` (order_id luôn NULL — I17)
   system: "Hệ thống",
 } as const;
@@ -20,6 +21,9 @@ export type AuditGroup = keyof typeof AUDIT_GROUPS;
 
 export const AUDIT_ACTIONS = {
   created: { label: "Tạo đơn", group: "order" },
+  // ADR-0153 Đ1 (đề xuất): giữ chỗ / trả vé điện tử cho đơn. `detail` khuôn "Giữ chỗ vé · <nhóm khách>: cần N" / "Trả vé · <lý do>" — không mã vé.
+  ve_giu_cho: { label: "Giữ chỗ vé điện tử cho đơn", group: "ve" },
+  ve_tra_ve: { label: "Trả vé điện tử về kho", group: "ve" },
   updated: { label: "Sửa đơn", group: "order" },
   trip_updated: { label: "Sửa thông tin chuyến", group: "order" },
   // ADR-0047 A1: chặng đưa đón sau xác nhận — `detail` "Chiều đi · <tên dịch vụ>: giờ đón 06:30 → 07:00; nơi đón A → B" (chữ tự do che dãy số — moTaChang).
