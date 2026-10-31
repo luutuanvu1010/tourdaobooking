@@ -2,6 +2,7 @@
 import assert from "node:assert/strict";
 import { PAGES, PRECACHE, isCacheable } from "../../src/shared/sw-policy.ts";
 import { BASE, call } from "./lib.mjs";
+import { quetGiaTriCung } from "../../scripts/quet-gia-tri-cung.mjs";
 
 const get = (path) => fetch(BASE + path);
 
@@ -28,11 +29,8 @@ const css = await (await get("/app.css")).text();
 const STATUS = css.match(/--c-status-bar:\s*(#[0-9a-fA-F]{6})/)?.[1]?.toLowerCase();
 assert.ok(STATUS, "không đọc được --c-status-bar trong app.css");
 // Luật cứng tầng giao diện của tourdaovn (CLAUDE.md §8): giá trị giao diện đi vào token, không viết cứng trong luật. Quét khối PWA của app.css.
-// Quét: màu hex, rgb()/hsl(), số px, và cỡ rem/em (cỡ chữ, chiều cao, khoảng cách). Ngoại lệ có lý do: điểm gãy trong @media (CSS không cho dùng biến ở đó) và viền/ẩn-khỏi-mắt 1px.
-const MARK = "/* ---------- app iPhone (PWA)";
-assert.ok(css.includes(MARK), "app.css mất dấu mốc khối PWA");
-const pwaCss = css.slice(css.indexOf(MARK)).replace(/\/\*[\s\S]*?\*\//g, "").replace(/@media\s*\([^)]*\)/g, "");
-const hardcoded = pwaCss.match(/#[0-9a-fA-F]{3,8}\b|\b(?:rgb|hsl)a?\(|(?<![\w.-])(?!1px\b)\d+(?:\.\d+)?px\b|(?<![\w.-])\d+(?:\.\d+)?r?em\b/g) ?? [];
+// Phép quét nằm ở scripts/quet-gia-tri-cung.mjs (dùng chung với bài đơn vị src/quet-gia-tri-cung.test.ts). Ngoại lệ có lý do: điều kiện @media và @container (CSS không cho dùng biến ở đó; @container chủ duyệt 2026-10-31, docs/SO-HANG-RAO.md) và viền/ẩn-khỏi-mắt 1px. Thân rule vẫn bị quét.
+const hardcoded = quetGiaTriCung(css);
 assert.deepEqual(hardcoded, [], `khối PWA của app.css còn giá trị viết cứng (đưa vào token ở :root): ${hardcoded.join(", ")}`);
 assert.equal(manifest.display, "standalone");
 assert.equal(manifest.start_url, "/");
