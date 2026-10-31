@@ -2,7 +2,14 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.46 ĐÃ LÊN PRODUCTION (Hoa hồng đối tác: nút «Sửa» cho lần áp dụng chính sách theo loại và chính sách riêng của đại lý SẮP bắt đầu; nút «Xem lịch sử» hiện các lần đã ngừng / đã huỷ, chỉ để xem — ADR-0148 Đ1 phần N5) — KHÔNG migration — triển khai 2026-10-29 15:31 (giờ VN)
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.54 ĐÃ LÊN PRODUCTION (Điều 5.26 mã định danh; nút «Sửa» tên và ghi chú cho loại đối tác và cấp đại lý; tên vai bên ngoài ở màn tài khoản đọc từ CSDL) — migration `0130` — triển khai 2026-10-31 19:49 (giờ VN)
+
+Ghi 31/10/2026 từ khối tóm tắt của `npm run trien-khai` (chủ chạy `day-len` nhánh `claude/super-admin-delete-order-button-eaea12` + `trien-khai`; kế hoạch `docs/superpowers/plans/2026-10-31-ma-dinh-danh-va-sua-loai-doi-tac.md`, sổ thi công `…-ma-dinh-danh-thi-cong-nhat-ky.md`):
+- Commit `main` = `origin/main`: `2180b0a4`. Worker Version ID: `b1b7fbf6-82b4-404d-b7dd-6ef4adb30c5f`. Điểm khôi phục Time Travel trước khi áp: `00001ec9-00000004-00005115-be54fb41c369ae38941af2d0bd6b9fbb`.
+- `npm test` 6971 đạt, 0 đỏ; e2e đủ bộ xanh; migration đã áp: `0130_ghi_chu_va_dau_vet_loai_cap.sql`. Cổng phiên bản trước và sau deploy: ĐẠT. `GET /api/auth/config` → `version 2.54`, bảo trì TẮT.
+- **`audit-invariants --db remote`: KHÔNG ĐẠT** — `R-PRC-2` 98 vi phạm (dòng mức hoa hồng còn hiệu lực theo loại đối tác đã tắt, hoặc trỏ cấp không tồn tại); cảnh báo cũ `R-ORD-9` (1), `R-CTL-1` (9). Bản này không đụng `prc_beneficiary_role` hay `prc_commission_rule` (migration `0130` chỉ thêm cột) — **chưa xác định** lỗi có từ lần triển khai nào (sổ này chưa ghi các bản 2.47–2.53). Lệnh tra chỉ đọc cho chủ ở sổ thi công. Dữ liệu production hiện là dữ liệu thử.
+
+## (Cũ) TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.46 ĐÃ LÊN PRODUCTION (Hoa hồng đối tác: nút «Sửa» cho lần áp dụng chính sách theo loại và chính sách riêng của đại lý SẮP bắt đầu; nút «Xem lịch sử» hiện các lần đã ngừng / đã huỷ, chỉ để xem — ADR-0148 Đ1 phần N5) — KHÔNG migration — triển khai 2026-10-29 15:31 (giờ VN)
 
 Ghi 29/10/2026 từ khối tóm tắt của `npm run trien-khai` (chủ chạy `day-len` nhánh `claude/sua-muc-n5-bcfa1e` + `trien-khai`) và lệnh CHỈ ĐỌC của phiên kế hoạch (kế hoạch `docs/superpowers/plans/2026-10-29-sua-muc-n5-ke-hoach.md`; sổ thi công `…-sua-muc-n5-thi-cong-nhat-ky.md`):
 - Commit `main` = `origin/main`: `f8e9bd25`. Worker Version ID: `4992102d-7923-4174-bfb9-7345243fce0b`. Điểm khôi phục Time Travel: không còn trong phần đầu ra đọc lại được (không có migration nên không cần).
