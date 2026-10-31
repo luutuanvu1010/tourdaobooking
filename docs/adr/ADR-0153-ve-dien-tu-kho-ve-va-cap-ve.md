@@ -1,6 +1,6 @@
 # ADR-0153 — Vé điện tử: kho vé, tự giữ chỗ vé cho đơn, đường dẫn riêng cho khách, hai ô quyền mới
 
-- **Trạng thái:** **Đề xuất** (2026-10-31) — chờ chủ dự án duyệt. AI soạn, không tự duyệt (Hiến pháp N3). Chưa có dòng mã nào của Đ1–Đ3 được viết ngoài phần không chạm luật (khung module, bảng `vdt_*`, luật thuần).
+- **Trạng thái:** **Đề xuất** (2026-10-31) — chờ chủ dự án duyệt. AI soạn, không tự duyệt (Hiến pháp N3). Mã đã viết trên nhánh thi công (31/10), chưa gộp: khung module, bảng `vdt_*` (migration 0131), luật thuần, giữ chỗ và trả vé (Đ1 mục 3, 6; chưa nối vào `orders`), kho tệp R2 và binding `VE_DIEN_TU` (Đ1 mục 7), hai hành động nhật ký `ve_giu_cho` / `ve_tra_ve` (mặc định ẩn khỏi lịch sử đơn). **Chưa viết:** nối `orders` và hợp đồng `router.ts` (Đ1 mục 4), ô quyền (Đ3), đường dẫn khách (Đ2), đọc chữ ảnh. **Gộp nhánh vào `main` phải đi cùng việc chủ tạo kho R2 `tourdao-sales-ve-dien-tu`** (không thì cổng 1e của `npm run trien-khai` dừng việc triển khai).
 - **Nguồn:** đặc tả `docs/superpowers/specs/2026-10-31-ve-dien-tu-design.md` (chủ duyệt 31/10), kế hoạch `docs/superpowers/plans/2026-10-31-ve-dien-tu.md`, tiêu chí nghiệm thu `docs/superpowers/specs/2026-10-31-ve-dien-tu-muc-tieu-nghiem-thu.md`.
 - **Số:** 0153 kiểm còn trống ngày 31/10 trong `docs/adr/` của `main` và của mọi nhánh trong máy (lớn nhất là 0152).
 - **Loại:** việc lớn (dữ liệu, quyền, kho tệp). **Chạm tiền ở mức đọc** (chỉ đọc số đã thu và số phải thu, không ghi). **Cửa:** một chiều mềm — bảng `vdt_*` chỉ thêm và ở lại; đường dẫn công khai thu hồi được nên hai chiều.

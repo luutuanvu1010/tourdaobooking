@@ -160,3 +160,12 @@ test("giamSoKhachKhiVeDaGiaoConThua_hienCanhBao: cả hai vé người lớn đ�
   chayLo(d, tra.cau);
   assert.equal(dem(d, "SELECT count(*) AS c FROM vdt_allocation WHERE pax_group = 'ADULT' AND released_at IS NULL"), 2, "không tự thu hồi vé khách đang giữ");
 });
+
+test("trả vé dựng đủ ba nhóm dù lần đọc trước lô không thấy nhóm đó (lô cấp vé chen giữa vẫn bị trả)", async () => {
+  const d = kho(5, 5);
+  const truocKhiCap = await soanTraVe(d1That(d), { orderId: "o-1", lyDo: "DON_HUY", at: "2026-10-31T05:00:00.000Z", by: "s-1", homNay: "2026-10-31" }, nhatKyThu(d1That(d)));
+  cap(d); // lô cấp vé chạy SAU lần đọc, TRƯỚC lô huỷ
+  chayLo(d, truocKhiCap.cau);
+  assert.equal(giu(d), 0, "đơn huỷ không còn giữ vé nào");
+  assert.equal(dem(d, "SELECT count(*) AS c FROM audit_log WHERE action = 've_tra_ve'"), 2, "nhật ký cho mỗi nhóm thực sự có vé để trả (người lớn, trẻ em)");
+});

@@ -22,6 +22,14 @@ CREATE TRIGGER vdt_batch_keep_key BEFORE UPDATE ON vdt_batch
 WHEN NEW.id IS NOT OLD.id OR NEW.pax_group IS NOT OLD.pax_group OR NEW.created_at IS NOT OLD.created_at OR NEW.created_by IS NOT OLD.created_by
 BEGIN SELECT RAISE(ABORT, 'vdt_append_only: không đổi mã lô, nhóm khách hay dấu vết tạo của lô'); END;
 
+-- Trạng thái lô một chiều: VOID là cuối (lô đã vô hiệu không sống lại). Mã tour chỉ sửa được khi CHƯA vé nào của lô từng được giữ chỗ (đặc tả §7b.2).
+CREATE TRIGGER vdt_batch_one_way BEFORE UPDATE OF status ON vdt_batch
+WHEN OLD.status = 'VOID' AND NEW.status <> 'VOID'
+BEGIN SELECT RAISE(ABORT, 'vdt_one_way: lô đã vô hiệu không bật lại'); END;
+CREATE TRIGGER vdt_batch_code_locked BEFORE UPDATE OF catalog_code ON vdt_batch
+WHEN NEW.catalog_code IS NOT OLD.catalog_code AND EXISTS (SELECT 1 FROM vdt_allocation a JOIN vdt_ticket t ON t.id = a.ticket_id WHERE t.batch_id = OLD.id)
+BEGIN SELECT RAISE(ABORT, 'vdt_one_way: lô đã có vé được giữ chỗ — không đổi mã tour, chỉ thu hồi lô'); END;
+
 -- ===== Vé: một dòng một ảnh. `status` đi MỘT CHIỀU; không xoá ===========================================================================================
 CREATE TABLE vdt_ticket (
   id           TEXT PRIMARY KEY,
@@ -53,8 +61,14 @@ BEGIN SELECT RAISE(ABORT, 'vdt_append_only: vé không xoá được — vô hi�
 CREATE TRIGGER vdt_ticket_keep_key BEFORE UPDATE ON vdt_ticket
 WHEN NEW.id IS NOT OLD.id OR NEW.batch_id IS NOT OLD.batch_id OR NEW.ticket_code IS NOT OLD.ticket_code OR NEW.valid_from IS NOT OLD.valid_from OR NEW.valid_to IS NOT OLD.valid_to
   OR NEW.storage_key IS NOT OLD.storage_key OR NEW.content_hash IS NOT OLD.content_hash OR NEW.byte_size IS NOT OLD.byte_size OR NEW.content_kind IS NOT OLD.content_kind
-  OR NEW.created_at IS NOT OLD.created_at OR NEW.created_by IS NOT OLD.created_by
-BEGIN SELECT RAISE(ABORT, 'vdt_append_only: không đổi mã vé, khoảng ngày, khoá kho, băm hay dấu vết tạo của vé'); END;
+  OR NEW.created_at IS NOT OLD.created_at OR NEW.created_by IS NOT OLD.created_by OR NEW.slot_time IS NOT OLD.slot_time
+  OR (OLD.stored_at IS NOT NULL AND NEW.stored_at IS NOT OLD.stored_at) OR (OLD.purged_at IS NOT NULL AND NEW.purged_at IS NOT OLD.purged_at)
+  OR (OLD.r2_deleted_at IS NOT NULL AND NEW.r2_deleted_at IS NOT OLD.r2_deleted_at)
+BEGIN SELECT RAISE(ABORT, 'vdt_append_only: không đổi mã vé, khoảng ngày, giờ, khoá kho, băm, dấu vết tạo; các dấu lưu / thu hồi / xoá kho chỉ ghi một lần'); END;
+-- Vé mới vào kho luôn ở AVAILABLE (không chèn thẳng ALLOCATED / VOID).
+CREATE TRIGGER vdt_ticket_insert_available BEFORE INSERT ON vdt_ticket
+WHEN NEW.status <> 'AVAILABLE'
+BEGIN SELECT RAISE(ABORT, 'vdt_one_way: vé mới vào kho phải ở trạng thái AVAILABLE'); END;
 -- VOID là cuối. ALLOCATED→AVAILABLE (trả vé còn hạn) bị chặn khi vé từng được đọc / giao (`revealed_at` của bất kỳ phân bổ nào): vé đã lộ chỉ còn đường VOID.
 CREATE TRIGGER vdt_ticket_one_way BEFORE UPDATE OF status ON vdt_ticket
 WHEN (OLD.status = 'VOID' AND NEW.status <> 'VOID')
@@ -84,6 +98,12 @@ CREATE TABLE vdt_allocation (
 CREATE UNIQUE INDEX vdt_allocation_ticket_open ON vdt_allocation (ticket_id) WHERE released_at IS NULL;
 CREATE UNIQUE INDEX vdt_allocation_slot_open ON vdt_allocation (order_service_id, pax_group, slot_no) WHERE released_at IS NULL;
 CREATE INDEX vdt_allocation_order_ix ON vdt_allocation (order_id);
+-- Chỉ phân bổ cho vé ĐANG ALLOCATED, đúng nhóm khách của lô và lô còn ACTIVE (giữ chỗ luôn UPDATE vé trước, INSERT phân bổ sau, cùng một lô D1).
+CREATE TRIGGER vdt_allocation_insert_guard BEFORE INSERT ON vdt_allocation
+WHEN (SELECT t.status FROM vdt_ticket t WHERE t.id = NEW.ticket_id) IS NOT 'ALLOCATED'
+  OR (SELECT b.pax_group FROM vdt_batch b JOIN vdt_ticket t ON t.batch_id = b.id WHERE t.id = NEW.ticket_id) IS NOT NEW.pax_group
+  OR (SELECT b.status FROM vdt_batch b JOIN vdt_ticket t ON t.batch_id = b.id WHERE t.id = NEW.ticket_id) IS NOT 'ACTIVE'
+BEGIN SELECT RAISE(ABORT, 'vdt_one_way: chỉ phân bổ vé đang ALLOCATED, đúng nhóm khách, lô còn hiệu lực'); END;
 CREATE TRIGGER vdt_allocation_no_delete BEFORE DELETE ON vdt_allocation
 BEGIN SELECT RAISE(ABORT, 'vdt_append_only: phân bổ vé chỉ thêm'); END;
 CREATE TRIGGER vdt_allocation_only_stamp BEFORE UPDATE ON vdt_allocation

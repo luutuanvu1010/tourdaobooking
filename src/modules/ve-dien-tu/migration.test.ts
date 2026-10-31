@@ -36,6 +36,7 @@ const ve = (d: DatabaseSync, batch: string, from = "2026-10-24", to = "2026-11-2
 };
 const phanBo = (d: DatabaseSync, ticket: string, dichVu = "s-1", slot = 1, nhom = "ADULT") => {
   const id = `a-${++n}`;
+  d.prepare(`UPDATE vdt_ticket SET status = 'ALLOCATED', updated_at = ? WHERE id = ? AND status = 'AVAILABLE'`).run(AT, ticket); // giữ chỗ luôn đổi vé trước, ghi phân bổ sau
   d.prepare(
     `INSERT INTO vdt_allocation (id, ticket_id, order_id, order_service_id, pax_group, slot_no, allocated_at, allocated_by, created_at, created_by, updated_at, updated_by)
      VALUES (?, ?, 'o-1', ?, ?, ?, ?, NULL, ?, NULL, ?, NULL)`,
@@ -156,4 +157,44 @@ test("đường dẫn khách: băm duy nhất, không xoá, chỉ thu hồi mộ
   assert.throws(() => d.prepare(`UPDATE vdt_guest_link SET opened_count = 0 WHERE id = 'g1'`).run(), /vdt_append_only/, "bộ đếm chỉ tăng");
   d.prepare(`UPDATE vdt_guest_link SET revoked_at = ?, updated_at = ? WHERE id = 'g1'`).run(SAU, SAU);
   assert.throws(() => d.prepare(`UPDATE vdt_guest_link SET revoked_at = NULL WHERE id = 'g1'`).run(), /vdt_append_only/, "đã thu hồi không bật lại");
+});
+
+test("chặn kẽ hở người kiểm 31/10: lô VOID không sống lại; mã tour của lô đã có vé giữ không đổi được; vé chèn thẳng ALLOCATED / VOID bị chặn", () => {
+  const d = db();
+  const b = lo(d);
+  const t = ve(d, b);
+  d.prepare(`UPDATE vdt_batch SET catalog_code = 'VB350', updated_at = ? WHERE id = ?`).run(SAU, b); // chưa vé nào giữ chỗ: sửa được
+  phanBo(d, t);
+  assert.throws(() => d.prepare(`UPDATE vdt_batch SET catalog_code = 'V2D', updated_at = ? WHERE id = ?`).run(SAU, b), /vdt_one_way/);
+  d.prepare(`UPDATE vdt_batch SET status = 'VOID', updated_at = ? WHERE id = ?`).run(SAU, b);
+  assert.throws(() => d.prepare(`UPDATE vdt_batch SET status = 'ACTIVE', updated_at = ? WHERE id = ?`).run(SAU, b), /vdt_one_way/);
+  for (const st of ["ALLOCATED", "VOID"]) {
+    assert.throws(
+      () =>
+        d.prepare(
+          `INSERT INTO vdt_ticket (id, batch_id, ticket_code, valid_from, valid_to, storage_key, content_kind, byte_size, content_hash, status, created_at, updated_at) VALUES (?, ?, ?, '2026-10-24', '2026-10-25', ?, 'jpg', 1, 'h', ?, ?, ?)`,
+        ).run(`z-${st}`, lo(d), `TA.z-${st}`, `vdt/z-${st}`, st, AT, AT),
+      /vdt_one_way/,
+      st,
+    );
+  }
+});
+
+test("phân bổ chỉ chèn được cho vé ALLOCATED, đúng nhóm khách, lô ACTIVE", () => {
+  const d = db();
+  const t = ve(d, lo(d)); // AVAILABLE
+  const them = (ticket: string, nhom: string) =>
+    d.prepare(`INSERT INTO vdt_allocation (id, ticket_id, order_id, order_service_id, pax_group, slot_no, allocated_at, created_at, updated_at) VALUES ('x', ?, 'o', 's', ?, 1, ?, ?, ?)`).run(ticket, nhom, AT, AT, AT);
+  assert.throws(() => them(t, "ADULT"), /vdt_one_way/, "vé còn AVAILABLE");
+  doiTrangThai(d, t, "ALLOCATED");
+  assert.throws(() => them(t, "CHILD"), /vdt_one_way/, "sai nhóm khách của lô");
+  them(t, "ADULT");
+});
+
+test("dấu lưu kho / thu hồi / xoá kho ghi một lần; stored_at không về rỗng", () => {
+  const d = db();
+  const t = ve(d, lo(d));
+  assert.throws(() => d.prepare(`UPDATE vdt_ticket SET stored_at = NULL WHERE id = ?`).run(t), /vdt_append_only/);
+  d.prepare(`UPDATE vdt_ticket SET purged_at = ?, status = 'VOID', updated_at = ? WHERE id = ?`).run(SAU, SAU, t);
+  assert.throws(() => d.prepare(`UPDATE vdt_ticket SET purged_at = NULL WHERE id = ?`).run(t), /vdt_append_only/);
 });

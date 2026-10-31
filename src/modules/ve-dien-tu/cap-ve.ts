@@ -58,16 +58,18 @@ export async function soanTraVe(db: D1Database, p: TraVe, nhatKy: GhiNhatKy): Pr
   const dem = await demTraTheoNhom(db, p.orderId, p.serviceId ?? null);
   let canhBao = false;
   const cau: D1PreparedStatement[] = [];
+  // LUÔN dựng đủ ba nhóm: lần đọc `dem` ở trên diễn ra TRƯỚC lô, một lô cấp vé chen giữa có thể thêm vé vào nhóm mà `dem` không thấy; các câu đều gác bằng
+  // điều kiện dòng nên vô hại khi không có gì để trả. Chỉ cờ cảnh báo dựa vào lần đọc.
   for (const nhom of NHOM_VE) {
-    const d = dem[nhom];
-    if (!d) continue;
+    const d = dem[nhom] ?? { dangGiu: 0, chuaLo: 0 };
     const conLai = giamSo ? p.conLai![nhom] : 0;
     const traDuoc = giamSo ? d.chuaLo : d.dangGiu; // giảm số khách: chỉ vé chưa lộ
     if (d.dangGiu - Math.min(traDuoc, Math.max(0, d.dangGiu - conLai)) > conLai) canhBao = true; // còn thừa mà không trả được
     if (!giamSo && d.dangGiu > d.chuaLo) canhBao = true; // huỷ / rút khi có vé đã lộ: vô hiệu + cảnh báo
+    // Nhật ký gác ngay sau câu trả phân bổ (không sau câu vé): phân bổ đã đóng thì luôn có dấu vết, kể cả khi vé không còn ở ALLOCATED.
     cau.push(cauTraPhanBo(db, { orderId: p.orderId, serviceId: p.serviceId ?? null, nhom, lyDo: p.lyDo, at: p.at, by: p.by, conLai, chiVeChuaLo: giamSo }));
-    cau.push(cauVeVeKho(db, { orderId: p.orderId, lyDo: p.lyDo, at: p.at, by: p.by, homNay: p.homNay }));
     cau.push(nhatKy({ staffId: p.by, action: "ve_tra_ve", at: p.at, orderId: p.orderId, targetType: "ve", targetId: p.serviceId ?? p.orderId, detail: `Trả vé · ${NHAN_NHOM[nhom]} · lý do ${p.lyDo}` }, "changes() > 0"));
   }
+  cau.push(cauVeVeKho(db, { orderId: p.orderId, lyDo: p.lyDo, at: p.at, by: p.by, homNay: p.homNay }));
   return { cau, canhBaoVeDaGiaoConThua: canhBao };
 }

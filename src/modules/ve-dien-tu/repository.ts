@@ -27,12 +27,14 @@ const GHI_PHAN_BO = defineSql(
   "ve-dien-tu",
   "ghi_phan_bo",
   `INSERT INTO vdt_allocation (id, ticket_id, order_id, order_service_id, pax_group, slot_no, allocated_at, allocated_by, created_at, created_by, updated_at, updated_by)
-   SELECT lower(hex(randomblob(16))), t.id, ?3, ?4, ?2, 
-          ROW_NUMBER() OVER (ORDER BY t.valid_to, t.id) + (SELECT COALESCE(MAX(a.slot_no), 0) FROM vdt_allocation a WHERE a.order_service_id = ?4 AND a.pax_group = ?2 AND a.released_at IS NULL),
+   SELECT lower(hex(randomblob(16))), x.id, ?3, ?4, ?2,
+          x.rn + (SELECT COALESCE(MAX(a.slot_no), 0) FROM vdt_allocation a WHERE a.order_service_id = ?4 AND a.pax_group = ?2 AND a.released_at IS NULL),
           ?5, ?6, ?5, ?6, ?5, ?6
-   FROM vdt_ticket t JOIN vdt_batch b ON b.id = t.batch_id
-   WHERE t.status = 'ALLOCATED' AND b.catalog_code = ?1 AND b.pax_group = ?2
-     AND NOT EXISTS (SELECT 1 FROM vdt_allocation a WHERE a.ticket_id = t.id AND a.released_at IS NULL)`,
+   FROM (SELECT t.id AS id, ROW_NUMBER() OVER (ORDER BY t.valid_to, t.id) AS rn
+         FROM vdt_ticket t JOIN vdt_batch b ON b.id = t.batch_id
+         WHERE t.status = 'ALLOCATED' AND t.updated_at = ?5 AND b.catalog_code = ?1 AND b.pax_group = ?2
+           AND NOT EXISTS (SELECT 1 FROM vdt_allocation a WHERE a.ticket_id = t.id AND a.released_at IS NULL)) x
+   WHERE x.rn <= max(0, ?7 - (SELECT count(*) FROM vdt_allocation a WHERE a.order_service_id = ?4 AND a.pax_group = ?2 AND a.released_at IS NULL))`,
 );
 const DEM_DANG_GIU = defineSql(
   "ve-dien-tu",
@@ -45,7 +47,7 @@ export interface GiuChoVe { catalogCode: string; nhom: string; ngayDi: string; c
 /** Câu UPDATE vé: AVAILABLE → ALLOCATED (chưa chạy). */
 export const cauGiuVe = (db: D1Database, p: GiuChoVe): D1PreparedStatement => db.prepare(GIU_VE).bind(p.catalogCode, p.nhom, p.ngayDi, p.can, p.serviceId, p.at, p.by);
 /** Câu INSERT phân bổ cho mọi vé vừa chuyển ALLOCATED mà chưa có chỗ (chưa chạy). */
-export const cauGhiPhanBo = (db: D1Database, p: GiuChoVe): D1PreparedStatement => db.prepare(GHI_PHAN_BO).bind(p.catalogCode, p.nhom, p.orderId, p.serviceId, p.at, p.by);
+export const cauGhiPhanBo = (db: D1Database, p: GiuChoVe): D1PreparedStatement => db.prepare(GHI_PHAN_BO).bind(p.catalogCode, p.nhom, p.orderId, p.serviceId, p.at, p.by, p.can);
 
 /** Số vé đang giữ của một dòng dịch vụ theo nhóm (đếm, không mã vé). */
 export const demDangGiu = async (db: D1Database, serviceId: string): Promise<Record<string, number>> => {
@@ -101,7 +103,8 @@ const DANH_DAU_DA_LUU = defineSql("ve-dien-tu", "danh_dau_da_luu", "UPDATE vdt_t
 const DAT_CHO_XOA = defineSql(
   "ve-dien-tu",
   "dat_cho_xoa",
-  "UPDATE vdt_ticket SET purged_at = ?2, status = 'VOID', updated_at = ?2, updated_by = ?3 WHERE id = ?1 AND purged_at IS NULL",
+  // Chỉ thu hồi vé KHÔNG còn phân bổ mở: vé đang giữ cho đơn phải được trả đúng đường (soanTraVe, lý do THU_HOI) — không để phân bổ «ma» trỏ vào vé đã VOID.
+  "UPDATE vdt_ticket SET purged_at = ?2, status = 'VOID', updated_at = ?2, updated_by = ?3 WHERE id = ?1 AND purged_at IS NULL AND NOT EXISTS (SELECT 1 FROM vdt_allocation a WHERE a.ticket_id = ?1 AND a.released_at IS NULL)",
 );
 const LIST_CHO_XOA = defineSql(
   "ve-dien-tu",
