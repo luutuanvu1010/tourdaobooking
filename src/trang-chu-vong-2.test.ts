@@ -101,3 +101,36 @@ test("S1: ca vai KHÔNG có khối chi tiết (Nhân viên lập đơn): không 
   const nguon = { doiChieu: 54, doiChieuQuaHan: 40 };
   assert.ok(![...viecCuaBan(sales, nguon).the, ...viecCuaBan(sales, nguon).conLaiThe].some((t) => t.khoa === "doiChieu"));
 });
+
+// ---- Responsive (chủ chốt 31/10: giao diện phải xem đúng trên mọi thiết bị): giữ luật bề rộng ----
+test("trần 1920px chỉ nằm ở MỘT token; mọi trần bề rộng khác của khung trỏ token, không px mới", () => {
+  assert.equal(css.match(/:\s*1920px\s*;/g)?.length, 1, "giá trị 1920px chỉ được KHAI ở token --w-noi-dung-max (chữ trong chú thích không tính)");
+  assert.match(css, /--w-noi-dung-max: 1920px;/);
+  assert.match(css, /\n  --w-main: var\(--w-noi-dung-max\);/);
+  assert.match(css, /\nmain \{ max-width: var\(--w-main\);/);
+});
+
+test("trang đọc / biểu mẫu / đăng nhập vẫn có trần hẹp riêng, không giãn theo màn rộng", () => {
+  assert.match(css, /main\.form-page \{ max-width: var\(--w-form\); \}/); // Lập đơn
+  assert.match(css, /main\.gd \{ max-width: var\(--w-main-hep\); \}/); // Giao diện
+  assert.match(css, /\.narrow \{ max-width: var\(--w-narrow\); \}/); // thẻ hẹp (trang Tôi…)
+  assert.match(css, /#me, #links, #maintenance[^{]*\{ max-width: var\(--w-narrow\); \}/);
+  assert.match(css, /body\.login-page main\.login \{[^}]*max-width: none;/); // đăng nhập có khuôn riêng, không dùng khung main
+  assert.match(css, /--w-form: 1120px;/);
+  assert.match(css, /--w-main-hep: 1280px;/);
+});
+
+test("khối vòng 2 của Trang chủ không thêm bề rộng cứng px (ngoài viền 1px, mốc @media và container)", () => {
+  const a = css.indexOf("/* ---------- Trang chủ vòng 2 (31/10)");
+  const b = css.indexOf('/* Trang Hướng dẫn + chấm đỏ "có bản mới"');
+  assert.ok(a > 0 && b > a);
+  const khoi = css.slice(a, b).replace(/@media[^{]*\{/g, "").replace(/@container[^{]*\{/g, "");
+  assert.ok(!/(?<![\d.])(?:[2-9]|\d{2,})\d*px/.test(khoi), "chỉ token trong khối vòng 2");
+  assert.ok(!/(?:max-|min-)?width:\s*[1-9]/.test(khoi), "không width/max-width/min-width số cứng");
+});
+
+test("Lối tắt: thẻ hẹp xếp hai hàng bốn ô (container query), thẻ rộng một hàng — không khe «5 + 3» giữa hai điểm gãy", () => {
+  assert.match(css, /\.dash-loi-tat \{ container-type: inline-size;/);
+  assert.match(css, /@container \(max-width: 44rem\) \{ \.dash-loi-tat-luoi \{ grid-template-columns: repeat\(4, minmax\(0, 1fr\)\); \} \}/);
+  assert.match(css, /--w-loi-tat-o: 80px;/);
+});

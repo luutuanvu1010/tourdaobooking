@@ -467,7 +467,7 @@
   --w-trip-tien: 160px;        /* … cột tiền / còn lại — cố định để các dòng thẳng cột */
   --h-chart-min: 96px;         /* biểu đồ Doanh thu tuần: thấp nhất (giãn theo thẻ, không còn cố định --h-chart) */
   --h-chart-max: 240px;        /* … cao nhất, kẻo thẻ quá cao khi danh sách chuyến rất dài */
-  --w-loi-tat-o: 88px;         /* thẻ Lối tắt: một ô rộng tối thiểu (đủ tám ô một hàng ở máy tính rộng) */
+  --w-loi-tat-o: 80px;         /* thẻ Lối tắt: một ô rộng tối thiểu (đủ tám ô một hàng từ thẻ rộng ~44rem; hẹp hơn thì hai hàng bốn ô — container query) */
   --w-ct-ma: 9rem;             /* hai khối chi tiết (Chờ đối chiếu, Thu trước của đơn huỷ) — vòng 2 31/10: cột mã đơn */
   --w-ct-tien: 8rem;           /* … cột số tiền (căn phải) */
   --w-ct-ngay: 5.5rem;         /* … cột «ghi ngày» */
@@ -2131,8 +2131,9 @@ body.login-page main.login { display: flex; flex-direction: column; flex: 1; min
   .dash-review-next { color: var(--c-text-muted); }
 
   /* Thẻ "Lối tắt" (bản vẽ 1.73, cột phải): lưới 4 cột, ô 44px, nhãn nhỏ; rê chuột nền nhạt. */
-  .dash-loi-tat { display: block; min-width: 0; margin: 0; padding: 0; overflow: hidden; border: 1px solid var(--c-border); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); }
+  .dash-loi-tat { container-type: inline-size; display: block; min-width: 0; margin: 0; padding: 0; overflow: hidden; border: 1px solid var(--c-border); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); }
   .dash-loi-tat-luoi { display: grid; grid-template-columns: repeat(auto-fit, minmax(var(--w-loi-tat-o), 1fr)); gap: var(--s1); padding: var(--s2); } /* một dãy gọn một hàng ở máy tính rộng, cuối dãy «Tất cả» (Phương án A) */
+  @container (max-width: 44rem) { .dash-loi-tat-luoi { grid-template-columns: repeat(4, minmax(0, 1fr)); } } /* thẻ hẹp (iPad dọc / cửa sổ 900–1010px có thanh bên): hai hàng bốn ô đều, không còn «5 + 3» lẻ */
   .dash-loi-tat .dash-o-muc { gap: var(--s2); min-height: 0; padding: var(--s2) calc(var(--s1) / 2); border-radius: var(--radius-md); transition: background-color var(--m-fast) ease; }
   .dash-loi-tat .dash-o-muc:hover { background: var(--c-soft-hover); }
   .dash-loi-tat .dash-o-hop { width: var(--tile-box-sm); height: var(--tile-box-sm); border-radius: var(--radius-md); }

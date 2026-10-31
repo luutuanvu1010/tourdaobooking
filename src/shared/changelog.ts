@@ -22,6 +22,7 @@ export const CHANGELOG: readonly ReleaseNote[] = [
       { kind: "sua", text: "Chờ đối chiếu và Thu trước của đơn huỷ gọn lại: ba dòng mỗi khối, mỗi đơn một dòng thẳng cột; bấm Xem tất cả để mở hết. Nhãn quá 3 ngày là viên nhỏ cùng dòng." },
       { kind: "sua", text: "Cần xem lại không nhắc lại việc đã có ở Đang chờ bạn (dòng đối chiếu ghi sẵn số khoản quá hạn); khoản quá hạn xếp lên đầu. Đơn đi trống chỉ còn một dòng." },
       { kind: "sua", text: "Màn hình rộng: nội dung các trang dùng hết bề ngang, không còn dải trống bên phải." },
+      { kind: "sua", text: "Máy tính bảng và cửa sổ vừa: Lối tắt xếp hai hàng bốn ô đều, không còn một ô lẻ nằm riêng." },
     ],
   },
   {
