@@ -1,0 +1,456 @@
+[
+ {
+  "vai": "Quan tri",
+  "kho": "1366x650",
+  "vw": 1366,
+  "scrollW": 1366,
+  "gap": "3 đơn chờ xác nhận, 1 đơn quá 2 giờ 1 đơn có khách đi hôm nay hoặc ngày mai. Xác nhận ngay",
+  "dangCho": [
+   "Đơn chờ xác nhậnToàn công ty1 đơn quá hạn — hạn 15 phút3",
+   "Đơn nhápCủa tôiĐơn nháp của bạn, chưa xác nhận3",
+   "Đơn chưa có người phụ tráchToàn công tyChưa ai nhận chăm sóc khách6",
+   "Đơn còn thiếu tiềnToàn công tyCòn phải thu 9,4tr ₫4"
+  ],
+  "viec": false,
+  "cat": [
+   {
+    "el": "h1.visually-hidden",
+    "chu": "Trang chủ",
+    "rong": 1,
+    "can": 117
+   }
+  ],
+  "che": [
+   {
+    "el": "a.sidebar-item",
+    "chu": "Xe & giấy tờ",
+    "biChe": "div.sidebar-group",
+    "y": 368
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Giá & chi phí",
+    "biChe": "div.sidebar-group",
+    "y": 410
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Điều chỉnh công nợ",
+    "biChe": "div.sidebar-foot",
+    "y": 500
+   }
+  ],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.dash-gap-chu",
+    "rong": 879,
+    "noiDung": 301,
+    "tiLe": 34,
+    "chu": "3 đơn chờ xác nhận, 1 đơn quá 2 giờ 1 đơn có khách đi hôm na"
+   },
+   {
+    "el": "div.dash-today-head",
+    "rong": 684,
+    "noiDung": 175,
+    "tiLe": 26,
+    "chu": "Đơn đi 5 Xem tất cả"
+   }
+  ]
+ },
+ {
+  "vai": "Quan tri",
+  "kho": "1440x900",
+  "vw": 1440,
+  "scrollW": 1440,
+  "gap": "3 đơn chờ xác nhận, 1 đơn quá 2 giờ 1 đơn có khách đi hôm nay hoặc ngày mai. Xác nhận ngay",
+  "dangCho": [
+   "Đơn chờ xác nhậnToàn công ty1 đơn quá hạn — hạn 15 phút3",
+   "Đơn nhápCủa tôiĐơn nháp của bạn, chưa xác nhận3",
+   "Đơn chưa có người phụ tráchToàn công tyChưa ai nhận chăm sóc khách6",
+   "Đơn còn thiếu tiềnToàn công tyCòn phải thu 9,4tr ₫4"
+  ],
+  "viec": false,
+  "cat": [
+   {
+    "el": "h1.visually-hidden",
+    "chu": "Trang chủ",
+    "rong": 1,
+    "can": 117
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.dash-gap-chu",
+    "rong": 953,
+    "noiDung": 301,
+    "tiLe": 32,
+    "chu": "3 đơn chờ xác nhận, 1 đơn quá 2 giờ 1 đơn có khách đi hôm na"
+   },
+   {
+    "el": "div.dash-today-head",
+    "rong": 718,
+    "noiDung": 175,
+    "tiLe": 24,
+    "chu": "Đơn đi 5 Xem tất cả"
+   }
+  ]
+ },
+ {
+  "vai": "Quan tri",
+  "kho": "1100x800",
+  "vw": 1100,
+  "scrollW": 1100,
+  "gap": "3 đơn chờ xác nhận, 1 đơn quá 2 giờ 1 đơn có khách đi hôm nay hoặc ngày mai. Xác nhận ngay",
+  "dangCho": [
+   "Đơn chờ xác nhậnToàn công ty1 đơn quá hạn — hạn 15 phút3",
+   "Đơn nhápCủa tôiĐơn nháp của bạn, chưa xác nhận3",
+   "Đơn chưa có người phụ tráchToàn công tyChưa ai nhận chăm sóc khách6",
+   "Đơn còn thiếu tiềnToàn công tyCòn phải thu 9,4tr ₫4"
+  ],
+  "viec": false,
+  "cat": [
+   {
+    "el": "h1.visually-hidden",
+    "chu": "Trang chủ",
+    "rong": 1,
+    "can": 117
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "Quan tri",
+  "kho": "900x800",
+  "vw": 900,
+  "scrollW": 900,
+  "gap": "3 đơn chờ xác nhận, 1 đơn quá 2 giờ 1 đơn có khách đi hôm nay hoặc ngày mai. Xác nhận ngay",
+  "dangCho": [
+   "Đơn chờ xác nhậnToàn công ty1 đơn quá hạn — hạn 15 phút3",
+   "Đơn nhápCủa tôiĐơn nháp của bạn, chưa xác nhận3",
+   "Đơn chưa có người phụ tráchToàn công tyChưa ai nhận chăm sóc khách6",
+   "Đơn còn thiếu tiềnToàn công tyCòn phải thu 9,4tr ₫4"
+  ],
+  "viec": false,
+  "cat": [
+   {
+    "el": "h1.visually-hidden",
+    "chu": "Trang chủ",
+    "rong": 1,
+    "can": 117
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.dash-today-head",
+    "rong": 602,
+    "noiDung": 175,
+    "tiLe": 29,
+    "chu": "Đơn đi 5 Xem tất cả"
+   }
+  ]
+ },
+ {
+  "vai": "Ke toan",
+  "kho": "1366x650",
+  "vw": 1366,
+  "scrollW": 1366,
+  "gap": "3 đơn chờ xác nhận, 1 đơn quá 2 giờ 1 đơn có khách đi hôm nay hoặc ngày mai. Xác nhận ngay",
+  "dangCho": [
+   "Đơn chờ xác nhậnToàn công ty1 đơn quá hạn — hạn 15 phút3",
+   "Đơn còn thiếu tiềnToàn công tyCòn phải thu 9,4tr ₫4"
+  ],
+  "viec": false,
+  "cat": [
+   {
+    "el": "h1.visually-hidden",
+    "chu": "Trang chủ",
+    "rong": 1,
+    "can": 117
+   }
+  ],
+  "che": [
+   {
+    "el": "a.sidebar-item",
+    "chu": "Giá & chi phí",
+    "biChe": "div.sidebar-group",
+    "y": 372
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Điều chỉnh công nợ",
+    "biChe": "div.sidebar-foot",
+    "y": 462
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Sổ công nợ & khoá sổ",
+    "biChe": "div.sidebar-foot",
+    "y": 504
+   }
+  ],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.dash-gap-chu",
+    "rong": 879,
+    "noiDung": 301,
+    "tiLe": 34,
+    "chu": "3 đơn chờ xác nhận, 1 đơn quá 2 giờ 1 đơn có khách đi hôm na"
+   },
+   {
+    "el": "div.dash-today-head",
+    "rong": 684,
+    "noiDung": 175,
+    "tiLe": 26,
+    "chu": "Đơn đi 5 Xem tất cả"
+   }
+  ]
+ },
+ {
+  "vai": "Ke toan",
+  "kho": "1440x900",
+  "vw": 1440,
+  "scrollW": 1440,
+  "gap": "3 đơn chờ xác nhận, 1 đơn quá 2 giờ 1 đơn có khách đi hôm nay hoặc ngày mai. Xác nhận ngay",
+  "dangCho": [
+   "Đơn chờ xác nhậnToàn công ty1 đơn quá hạn — hạn 15 phút3",
+   "Đơn còn thiếu tiềnToàn công tyCòn phải thu 9,4tr ₫4"
+  ],
+  "viec": false,
+  "cat": [
+   {
+    "el": "h1.visually-hidden",
+    "chu": "Trang chủ",
+    "rong": 1,
+    "can": 117
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.dash-gap-chu",
+    "rong": 953,
+    "noiDung": 301,
+    "tiLe": 32,
+    "chu": "3 đơn chờ xác nhận, 1 đơn quá 2 giờ 1 đơn có khách đi hôm na"
+   },
+   {
+    "el": "div.dash-today-head",
+    "rong": 718,
+    "noiDung": 175,
+    "tiLe": 24,
+    "chu": "Đơn đi 5 Xem tất cả"
+   }
+  ]
+ },
+ {
+  "vai": "Ke toan",
+  "kho": "1100x800",
+  "vw": 1100,
+  "scrollW": 1100,
+  "gap": "3 đơn chờ xác nhận, 1 đơn quá 2 giờ 1 đơn có khách đi hôm nay hoặc ngày mai. Xác nhận ngay",
+  "dangCho": [
+   "Đơn chờ xác nhậnToàn công ty1 đơn quá hạn — hạn 15 phút3",
+   "Đơn còn thiếu tiềnToàn công tyCòn phải thu 9,4tr ₫4"
+  ],
+  "viec": false,
+  "cat": [
+   {
+    "el": "h1.visually-hidden",
+    "chu": "Trang chủ",
+    "rong": 1,
+    "can": 117
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "Ke toan",
+  "kho": "900x800",
+  "vw": 900,
+  "scrollW": 900,
+  "gap": "3 đơn chờ xác nhận, 1 đơn quá 2 giờ 1 đơn có khách đi hôm nay hoặc ngày mai. Xác nhận ngay",
+  "dangCho": [
+   "Đơn chờ xác nhậnToàn công ty1 đơn quá hạn — hạn 15 phút3",
+   "Đơn còn thiếu tiềnToàn công tyCòn phải thu 9,4tr ₫4"
+  ],
+  "viec": false,
+  "cat": [
+   {
+    "el": "h1.visually-hidden",
+    "chu": "Trang chủ",
+    "rong": 1,
+    "can": 117
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.dash-today-head",
+    "rong": 602,
+    "noiDung": 175,
+    "tiLe": 29,
+    "chu": "Đơn đi 5 Xem tất cả"
+   }
+  ]
+ },
+ {
+  "vai": "Nhan vien lap don",
+  "kho": "1366x650",
+  "vw": 1366,
+  "scrollW": 1366,
+  "gap": "3 đơn chờ xác nhận, 1 đơn quá 2 giờ 1 đơn có khách đi hôm nay hoặc ngày mai. Xác nhận ngay",
+  "dangCho": [
+   "Đơn chờ xác nhậnToàn công ty1 đơn quá hạn — hạn 15 phút3",
+   "Đơn còn thiếu tiềnToàn công tyCòn phải thu 9,4tr ₫4",
+   "Đơn chưa có người phụ tráchToàn công tyChưa ai nhận chăm sóc khách6"
+  ],
+  "viec": false,
+  "cat": [
+   {
+    "el": "h1.visually-hidden",
+    "chu": "Trang chủ",
+    "rong": 1,
+    "can": 117
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.dash-gap-chu",
+    "rong": 879,
+    "noiDung": 301,
+    "tiLe": 34,
+    "chu": "3 đơn chờ xác nhận, 1 đơn quá 2 giờ 1 đơn có khách đi hôm na"
+   },
+   {
+    "el": "div.dash-today-head",
+    "rong": 684,
+    "noiDung": 175,
+    "tiLe": 26,
+    "chu": "Đơn đi 5 Xem tất cả"
+   },
+   {
+    "el": "section#dash-loi-tat.card.dash-loi-tat",
+    "rong": 1070,
+    "noiDung": 332,
+    "tiLe": 31,
+    "chu": "Lối tắt Đơn hàng Danh bạ Điều phối xe Hỗ trợ Hướng dẫn"
+   }
+  ]
+ },
+ {
+  "vai": "Nhan vien lap don",
+  "kho": "1440x900",
+  "vw": 1440,
+  "scrollW": 1440,
+  "gap": "3 đơn chờ xác nhận, 1 đơn quá 2 giờ 1 đơn có khách đi hôm nay hoặc ngày mai. Xác nhận ngay",
+  "dangCho": [
+   "Đơn chờ xác nhậnToàn công ty1 đơn quá hạn — hạn 15 phút3",
+   "Đơn còn thiếu tiềnToàn công tyCòn phải thu 9,4tr ₫4",
+   "Đơn chưa có người phụ tráchToàn công tyChưa ai nhận chăm sóc khách6"
+  ],
+  "viec": false,
+  "cat": [
+   {
+    "el": "h1.visually-hidden",
+    "chu": "Trang chủ",
+    "rong": 1,
+    "can": 117
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.dash-gap-chu",
+    "rong": 953,
+    "noiDung": 301,
+    "tiLe": 32,
+    "chu": "3 đơn chờ xác nhận, 1 đơn quá 2 giờ 1 đơn có khách đi hôm na"
+   },
+   {
+    "el": "div.dash-today-head",
+    "rong": 718,
+    "noiDung": 175,
+    "tiLe": 24,
+    "chu": "Đơn đi 5 Xem tất cả"
+   },
+   {
+    "el": "section#dash-loi-tat.card.dash-loi-tat",
+    "rong": 1144,
+    "noiDung": 332,
+    "tiLe": 29,
+    "chu": "Lối tắt Đơn hàng Danh bạ Điều phối xe Hỗ trợ Hướng dẫn"
+   }
+  ]
+ },
+ {
+  "vai": "Nhan vien lap don",
+  "kho": "1100x800",
+  "vw": 1100,
+  "scrollW": 1100,
+  "gap": "3 đơn chờ xác nhận, 1 đơn quá 2 giờ 1 đơn có khách đi hôm nay hoặc ngày mai. Xác nhận ngay",
+  "dangCho": [
+   "Đơn chờ xác nhậnToàn công ty1 đơn quá hạn — hạn 15 phút3",
+   "Đơn còn thiếu tiềnToàn công tyCòn phải thu 9,4tr ₫4",
+   "Đơn chưa có người phụ tráchToàn công tyChưa ai nhận chăm sóc khách6"
+  ],
+  "viec": false,
+  "cat": [
+   {
+    "el": "h1.visually-hidden",
+    "chu": "Trang chủ",
+    "rong": 1,
+    "can": 117
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": []
+ },
+ {
+  "vai": "Nhan vien lap don",
+  "kho": "900x800",
+  "vw": 900,
+  "scrollW": 900,
+  "gap": "3 đơn chờ xác nhận, 1 đơn quá 2 giờ 1 đơn có khách đi hôm nay hoặc ngày mai. Xác nhận ngay",
+  "dangCho": [
+   "Đơn chờ xác nhậnToàn công ty1 đơn quá hạn — hạn 15 phút3",
+   "Đơn còn thiếu tiềnToàn công tyCòn phải thu 9,4tr ₫4",
+   "Đơn chưa có người phụ tráchToàn công tyChưa ai nhận chăm sóc khách6"
+  ],
+  "viec": false,
+  "cat": [
+   {
+    "el": "h1.visually-hidden",
+    "chu": "Trang chủ",
+    "rong": 1,
+    "can": 117
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.dash-today-head",
+    "rong": 602,
+    "noiDung": 175,
+    "tiLe": 29,
+    "chu": "Đơn đi 5 Xem tất cả"
+   }
+  ]
+ }
+]
