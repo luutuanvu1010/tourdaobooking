@@ -8,6 +8,9 @@
   <!-- Lời chào MÁY TÍNH (≥641px — bản vẽ "Trang chu Quan tri.dc.html", Claude Design 2026-10-02, bản 1.73): ngày, lời chào theo buổi, tóm tắt, viên bảo trì, nhãn vai.
        Không còn lưới ô chức năng (đã có ở thanh bên) — lối tắt ở thẻ #dash-loi-tat. web/home.ts dựng nội dung; điện thoại ẩn. -->
   <section id="dash-dai" class="dash-dai" aria-label="Lời chào" hidden></section>
+  <!-- Dải việc gấp (chỉ máy tính ≥641px, Phương án A 31/10): hiện khi có đơn chờ xác nhận gấp (đi hôm nay / ngày mai, hoặc chờ quá 2 giờ — src/shared/viec-gap.ts), ẩn hẳn khi không.
+       Chỉ người giữ ô xét duyệt xác nhận đơn. web/home.ts dựng nội dung CÙNG LÚC với #dash-grid nên không nhảy bố cục sau khi trang đã vẽ. Nút «Xác nhận ngay» là nút san hô duy nhất của màn. -->
+  <section id="dash-gap" class="dash-gap" aria-label="Việc gấp" hidden></section>
   <!-- Trang chủ điện thoại (≤640px — bản vẽ "Trang chu dien thoai.dc.html" 1a–1g, lưới 4 ô theo bản 1.73): ô tìm đơn nổi trên dải đầu trang, lưới ô chức năng, khối số liệu 2×2.
        Máy tính ẩn ba khối này (CSS) — lời chào của máy tính ở #dash-dai, số liệu ở #dash-so-mt. Lời chào / chuông / trợ giúp của dải đầu trang nằm trong #topbar (web/home.ts chèn sau initShell). -->
   <form id="dash-tim" class="dash-tim" role="search">
@@ -32,33 +35,33 @@
         <div class="dash-xuong-dong"><span class="dash-xg dash-xg-gio"></span><div><span class="dash-xg dash-xg-ten"></span><span class="dash-xg dash-xg-phu"></span></div><span class="dash-xg dash-xg-tien"></span></div>
       </div>
     </div>
-    <!-- Khung xương máy tính (bản vẽ v2 "Đang tải"): thẻ Chuyến đón + thẻ số liệu, cùng lưới với nội dung thật. -->
-    <!-- Khung xương "Việc của bạn" (máy tính): 4 thẻ cùng chiều cao với thẻ thật để trang không nhảy bố cục khi dữ liệu về. -->
-    <div class="dash-xuong-viec">
-      <div class="dash-xuong-viec-the"><span class="dash-xg dash-xg-tieu-de"></span><span class="dash-xg dash-xg-so"></span><span class="dash-xg dash-xg-b"></span><span class="dash-xg dash-xg-vien"></span></div>
-      <div class="dash-xuong-viec-the"><span class="dash-xg dash-xg-tieu-de"></span><span class="dash-xg dash-xg-so"></span><span class="dash-xg dash-xg-b"></span><span class="dash-xg dash-xg-vien"></span></div>
-      <div class="dash-xuong-viec-the"><span class="dash-xg dash-xg-tieu-de"></span><span class="dash-xg dash-xg-so"></span><span class="dash-xg dash-xg-b"></span><span class="dash-xg dash-xg-vien"></span></div>
-      <div class="dash-xuong-viec-the"><span class="dash-xg dash-xg-tieu-de"></span><span class="dash-xg dash-xg-so"></span><span class="dash-xg dash-xg-b"></span><span class="dash-xg dash-xg-vien"></span></div>
-    </div>
+    <!-- Khung xương máy tính (Phương án A, cùng lưới hai cột với nội dung thật): Chuyến đón | Đang chờ bạn + Doanh thu. -->
     <div class="dash-xuong-mt">
-      <div class="dash-xuong-mt-chuyen">
-        <span class="dash-xg dash-xg-tieu-de"></span>
-        <div class="dash-xuong-vien"><span class="dash-xg dash-xg-vien"></span><span class="dash-xg dash-xg-vien"></span><span class="dash-xg dash-xg-vien"></span></div>
-        <span class="dash-xg dash-xg-truc"></span>
-        <div class="dash-xuong-mt-dong"><div><span class="dash-xg dash-xg-gio"></span><span class="dash-xg dash-xg-phu"></span></div><div><span class="dash-xg dash-xg-ten"></span><span class="dash-xg dash-xg-phu"></span></div><span class="dash-xg dash-xg-tien"></span></div>
-        <div class="dash-xuong-mt-dong"><div><span class="dash-xg dash-xg-gio"></span><span class="dash-xg dash-xg-phu"></span></div><div><span class="dash-xg dash-xg-ten"></span><span class="dash-xg dash-xg-phu"></span></div><span class="dash-xg dash-xg-tien"></span></div>
-        <div class="dash-xuong-mt-dong"><div><span class="dash-xg dash-xg-gio"></span><span class="dash-xg dash-xg-phu"></span></div><div><span class="dash-xg dash-xg-ten"></span><span class="dash-xg dash-xg-phu"></span></div><span class="dash-xg dash-xg-tien"></span></div>
+      <div class="dash-xuong-mt-cot">
+        <div class="dash-xuong-mt-chuyen">
+          <span class="dash-xg dash-xg-tieu-de"></span>
+          <div class="dash-xuong-vien"><span class="dash-xg dash-xg-vien"></span><span class="dash-xg dash-xg-vien"></span><span class="dash-xg dash-xg-vien"></span></div>
+          <div class="dash-xuong-mt-dong"><div><span class="dash-xg dash-xg-gio"></span></div><div><span class="dash-xg dash-xg-ten"></span><span class="dash-xg dash-xg-phu"></span></div><span class="dash-xg dash-xg-tien"></span></div>
+          <div class="dash-xuong-mt-dong"><div><span class="dash-xg dash-xg-gio"></span></div><div><span class="dash-xg dash-xg-ten"></span><span class="dash-xg dash-xg-phu"></span></div><span class="dash-xg dash-xg-tien"></span></div>
+          <div class="dash-xuong-mt-dong"><div><span class="dash-xg dash-xg-gio"></span></div><div><span class="dash-xg dash-xg-ten"></span><span class="dash-xg dash-xg-phu"></span></div><span class="dash-xg dash-xg-tien"></span></div>
+        </div>
       </div>
-      <div class="dash-xuong-mt-so">
-        <div><span class="dash-xg dash-xg-a"></span><span class="dash-xg dash-xg-so"></span><span class="dash-xg dash-xg-b"></span></div>
+      <div class="dash-xuong-mt-cot">
+        <div class="dash-xuong-mt-cho">
+          <span class="dash-xg dash-xg-tieu-de"></span>
+          <div class="dash-xuong-mt-dong-dc"><span class="dash-xg dash-xg-ten"></span><span class="dash-xg dash-xg-gio"></span></div>
+          <div class="dash-xuong-mt-dong-dc"><span class="dash-xg dash-xg-ten"></span><span class="dash-xg dash-xg-gio"></span></div>
+          <div class="dash-xuong-mt-dong-dc"><span class="dash-xg dash-xg-ten"></span><span class="dash-xg dash-xg-gio"></span></div>
+        </div>
+        <div class="dash-xuong-mt-so">
+          <div><span class="dash-xg dash-xg-a"></span><span class="dash-xg dash-xg-so"></span><span class="dash-xg dash-xg-b"></span></div>
+          <span class="dash-xg dash-xg-cot"></span>
+        </div>
       </div>
     </div>
   </div>
   <div id="dash-so" class="dash-so" hidden></div>
-  <!-- "Việc của bạn" (chỉ máy tính ≥641px, bốn vai văn phòng; điện thoại ẩn bằng CSS và vẫn dùng #dash-so): thẻ việc có số, mỗi thẻ một nút làm tiếp. web/home.ts dựng nội dung
-       từ src/shared/viec-cua-ban.ts; ẩn tới khi nguồn số đã về (cùng lúc với #dash-grid, không nhấp nháy). -->
-  <section id="dash-viec" class="dash-viec" aria-labelledby="dash-viec-h" hidden></section>
-  <!-- Đơn chờ xác nhận trên ĐIỆN THOẠI (ADR-0136 Đ9: "cả điện thoại"): "Việc của bạn" ẩn ở khổ này nên thẻ này có dải riêng, CSS ẩn từ 641px. web/home.ts điền khi có đơn chờ. -->
+  <!-- Đơn chờ xác nhận trên ĐIỆN THOẠI (ADR-0136 Đ9: "cả điện thoại"): thẻ «Đang chờ bạn» ẩn ở khổ này nên dải này có chỗ riêng, CSS ẩn từ 641px. web/home.ts điền khi có đơn chờ. -->
   <a id="dash-cho-dt" class="dash-cho-dt" href="/cho-xac-nhan" hidden></a>
   <!-- Chờ đối chiếu (sổ đại lý đợt 2, Task 12; ADR-0120 Điều 1.3, ADR-0132): khoản «Công ty thu – chuyển khoản» và khoản khách trả cho đại lý / tại quầy nhà cung cấp chờ Kế toán.
        Chỉ ô ledger.write, không tài khoản giữ quyền Đối tác; web/home.ts dựng từ GET /api/ledger/coc (doiChieu). Đứng ngoài #dash-grid để không đổi lưới hai cột. -->
@@ -73,27 +76,35 @@
     <div id="dash-thu-truoc-list"></div>
   </section>
   <div id="dash-grid" class="dash-grid" hidden>
-    <!-- Thứ tự DOM = thứ tự đọc ở điện thoại và máy tính một cột (bản vẽ 1.73): số liệu → Cần xem lại → Chuyến đón → Lối tắt. Hai cột (≥1200px) đặt chỗ bằng
-         grid-template-areas, không dùng CSS order (bài học Đợt C).
-         Số liệu máy tính: một ô — Doanh thu của tôi (biểu đồ tuần); Còn thiếu tiền / Chờ xác nhận / Chưa phụ trách nay là thẻ trong #dash-viec. Điện thoại dùng #dash-so (bốn ô). Người không lập được đơn (coOSoCuaToi, 28/10): #dash-so-mt ẩn, điện thoại hai ô. -->
-    <section id="dash-so-mt" class="dash-so-mt" aria-label="Số liệu"></section>
-    <section id="dash-review" class="card dash-review" hidden>
-      <div class="dash-review-head"><span class="dash-review-heading icon-label">Cần xem lại</span></div>
-      <div id="dash-review-list"></div>
-    </section>
-    <section id="dash-today" class="card dash-today">
-      <div class="dash-today-head">
-        <span class="dash-today-title icon-label">Đơn đi</span>
-        <span id="dash-today-count" class="badge badge-confirmed" hidden></span>
-        <a class="dash-today-all" href="/orders"><span class="lbl-full">Xem tất cả</span><span class="lbl-short">Tất cả</span></a>
-      </div>
-      <div id="dash-today-days" class="dash-days" role="group" aria-label="Chọn ngày đón" hidden></div>
-      <!-- Dòng thời gian trong ngày (chỉ máy tính, bản vẽ v2): vạch giờ, "Bây giờ", chấm từng chuyến — trang trí, thông tin đã có trong từng dòng. -->
-      <div id="dash-tl" class="dash-tl" aria-hidden="true" hidden></div>
-      <div id="dash-today-list"></div>
-      <p id="dash-today-empty" class="empty" hidden>Không có đơn nào đi hôm nay.</p>
-    </section>
-    <!-- Thẻ "Lối tắt" (chỉ máy tính, bản vẽ 1.73): 7 ô + "Tất cả" mở hộp mọi chức năng. Điện thoại dùng lưới #dash-o. -->
+    <!-- Hai cột bọc ngoài (Phương án A): trái = Cần xem lại + Chuyến đón, phải = Đang chờ bạn + Doanh thu, rồi Lối tắt cả hàng. Điện thoại: hai vỏ là display: contents nên thứ tự đọc cũ giữ nguyên
+         (Cần xem lại → Chuyến đón); máy tính xếp cột trái ngược lại (Chuyến đón lên trước) bằng column-reverse, không dùng CSS order (bài học Đợt C). #dash-cot-phu ẩn hẳn khi cả hai thẻ trong đó ẩn. -->
+    <div id="dash-cot-chinh" class="dash-cot-chinh">
+      <section id="dash-review" class="card dash-review" hidden>
+        <div class="dash-review-head"><span class="dash-review-heading icon-label">Cần xem lại</span></div>
+        <div id="dash-review-list"></div>
+      </section>
+      <section id="dash-today" class="card dash-today">
+        <div class="dash-today-head">
+          <span class="dash-today-title icon-label">Đơn đi</span>
+          <span id="dash-today-count" class="badge badge-confirmed" hidden></span>
+          <a class="dash-today-all" href="/orders"><span class="lbl-full">Xem tất cả</span><span class="lbl-short">Tất cả</span></a>
+        </div>
+        <div id="dash-today-days" class="dash-days" role="group" aria-label="Chọn ngày đón" hidden></div>
+        <div id="dash-today-list"></div>
+        <p id="dash-today-empty" class="empty" hidden>Không có đơn nào đi hôm nay.</p>
+      </section>
+    </div>
+    <div id="dash-cot-phu" class="dash-cot-phu">
+      <!-- «Đang chờ bạn» (chỉ máy tính, Phương án A): các việc chờ người xem, mỗi việc một dòng có số và là liên kết (src/shared/viec-cua-ban.ts chọn dòng theo quyền; web/home.ts dựng). Số 0 thì không có dòng;
+           không dòng nào thì ẩn cả thẻ. -->
+      <section id="dash-dang-cho" class="dash-dang-cho" aria-labelledby="dash-dang-cho-h" hidden>
+        <h2 id="dash-dang-cho-h" class="dash-dc-tieu-de">Đang chờ bạn</h2>
+        <ul id="dash-dang-cho-ds" class="dash-dc-ds"></ul>
+      </section>
+      <!-- Doanh thu tuần này (chỉ máy tính): ô «Của tôi», biểu đồ tuần giãn theo thẻ. Người không lập được đơn (coOSoCuaToi, 28/10): ẩn. Điện thoại dùng #dash-so (bốn ô). -->
+      <section id="dash-so-mt" class="dash-so-mt" aria-label="Số liệu"></section>
+    </div>
+    <!-- Thẻ "Lối tắt" (chỉ máy tính): một dãy gọn một hàng, cuối dãy «Tất cả» mở hộp mọi chức năng. Điện thoại dùng lưới #dash-o. -->
     <section id="dash-loi-tat" class="card dash-loi-tat" hidden>
       <div class="dash-loi-tat-head"><h2 class="dash-loi-tat-heading">Lối tắt</h2></div>
       <nav id="dash-loi-tat-luoi" class="dash-loi-tat-luoi" aria-label="Lối tắt"></nav>

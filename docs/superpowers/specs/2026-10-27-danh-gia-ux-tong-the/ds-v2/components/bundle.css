@@ -309,11 +309,8 @@ body.tabbar-an .vc-bottom-bar, body.tabbar-dinh .vc-bottom-bar { bottom: 0; }
   body.has-sidebar #links > .row-link.danger { display: none; }
 }
 
-/* [11] Trang chủ máy tính: biểu đồ tuần giãn theo ô doanh thu (trước: cố định --w-home-chart trong ô rộng hết hàng). */
-@media (min-width: 641px) {
-  .dash-smt-o-dt { flex-wrap: nowrap; align-items: center; gap: var(--s6); }
-  .dash-smt-o .dash-revenue-chart { flex: 1 1 auto; width: auto; max-width: var(--w-home-chart-max); margin-left: auto; }
-}
+/* [11] Trang chủ máy tính (Phương án A, 31/10): biểu đồ tuần giãn theo thẻ Doanh thu — xếp dưới con số, chiều cao từ --h-chart-min tới --h-chart-max (xem khối Trang chủ MÁY TÍNH). */
+
 
 /* [2b] Trang chủ điện thoại: tên người (lời chào, danh sách «Đơn đi») không bị cắt «…» — luật 6; tên dài xuống dòng. */
 @media (max-width: 640px) {

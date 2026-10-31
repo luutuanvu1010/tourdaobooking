@@ -460,7 +460,13 @@
   /* — Riêng: Trang chủ máy tính (≥641px) — bản vẽ "Trang chu may tinh v2.dc.html" (Claude Design 2026-10-02, cùng dự án với bản điện thoại; chủ dự án giao làm
      đúng bản vẽ như 1.66 — coi là duyệt các giá trị dưới đây). Màu chỉ trỏ token sẵn có. — */
   --w-home-side: 360px;        /* cột phải (Cần xem lại, Lối tắt) khi hai cột — bản vẽ 1.73: 352 */
+  --w-home-side-sm: 320px;     /* cột phụ (Đang chờ bạn, Doanh thu) từ 1100px — Phương án A (31/10); từ 1200px --w-home-side */
   --w-home-side-lg: 400px;     /* … từ 1400px */
+  --w-trip-gio: 64px;          /* bảng Chuyến đón: cột giờ (Phương án A) */
+  --w-trip-tien: 160px;        /* … cột tiền / còn lại — cố định để các dòng thẳng cột */
+  --h-chart-min: 96px;         /* biểu đồ Doanh thu tuần: thấp nhất (giãn theo thẻ, không còn cố định --h-chart) */
+  --h-chart-max: 240px;        /* … cao nhất, kẻo thẻ quá cao khi danh sách chuyến rất dài */
+  --w-loi-tat-o: 88px;         /* thẻ Lối tắt: một ô rộng tối thiểu (đủ tám ô một hàng ở máy tính rộng) */
   --home-greet-basis: 280px;   /* cụm chữ chào co tới đây thì viên bảo trì + nhãn vai xuống dòng */
   --home-pill-h: 32px;         /* viên "Đang ở chế độ bảo trì" của lời chào */
   --fs-home-greet: var(--fs-step-14);  /* "Chào buổi sáng, <tên>" — bản vẽ 1.73: 32px */
@@ -470,39 +476,18 @@
   --tile-icon-sm: 22px;        /* … biểu tượng trong ô đó */
   --w-home-all: 800px;         /* hộp "Tất cả chức năng" máy tính (bản vẽ 1.73) */
   --w-home-all-col: 160px;     /* … một cột nhóm rộng tối thiểu (hẹp hơn thì xuống hàng) */
-  --w-the-viec: 240px;         /* thẻ "Việc của bạn": rộng tối thiểu một thẻ (hẹp hơn thì xuống hàng) — bản vẽ menu máy tính 15/10 */
-  --h-the-viec-xuong: 272px;   /* … chiều cao khung xương một thẻ việc (bằng thẻ thật ở 1440 để trang không nhảy) */
-  --w-viec-ico: 32px;          /* … ô vuông biểu tượng đầu thẻ */
-  --fs-viec-so: var(--fs-step-14);  /* … số lớn của thẻ (bản vẽ 40px; bậc lớn nhất của thang chữ là 32px) */
   --fw-home-stat: min(calc(var(--fw-heavy) + 100), 800);  /* số lớn của thẻ số liệu: bản vẽ 600 = một bậc trên mức "số lớn" — vẫn đi theo token độ đậm (ADR-0087) */
   --lh-16: 16px;               /* nhãn giờ của dòng thời gian, nhãn ngày của biểu đồ */
   --lh-28: 28px;               /* tiêu đề 20px */
   --lh-40: 40px;               /* dòng chào 32px (bản vẽ 1.73: 1.2) */
   --lh-36: 36px;               /* số lớn 28px của thẻ số liệu */
   --lh-32: 32px;               /* số lớn 24px */
-  --w-trip-time-mt: 136px;     /* cột giờ + nơi đón của dòng chuyến (1280) */
-  --w-trip-time-mt-lg: 152px;  /* … từ 1400px */
-  --w-trip-time-mt-sm: 112px;  /* … cửa sổ hẹp 641–899px */
   --home-pin-nudge: 3px;       /* hạ biểu tượng ghim cho thẳng dòng đầu của nơi đón */
   --home-underline-offset: 2px;  /* gạch chân số điện thoại bấm gọi */
   --home-empty-pad: 40px;      /* "Không có chuyến nào …" */
-  --h-home-tl: 56px;           /* dòng thời gian trong ngày */
-  --home-tl-inset: 32px;       /* lề hai bên của dòng thời gian (chỗ cho nhãn giờ đầu / cuối) */
-  --home-tl-line: 2px;         /* trục, vạch "Bây giờ", viền chấm */
-  --home-tl-line-y: 27px;      /* vị trí dọc: trục */
-  --home-tl-tick-y: 22px;      /* … vạch giờ (cao --home-tl-tick-h) */
-  --home-tl-tick-h: 12px;
-  --home-tl-label-y: 38px;     /* … nhãn giờ */
-  --home-tl-now-y: 16px;       /* … vạch "Bây giờ" (cao --home-tl-now-h) */
-  --home-tl-now-h: 24px;
-  --home-tl-dot-y: 28px;       /* … tâm chấm chuyến */
-  --home-tl-dot: 12px;         /* chấm chuyến */
-  --home-tl-dot-next: 16px;    /* chấm chuyến sắp tới */
-  --home-tl-ring: 4px;         /* vòng nhạt quanh chấm sắp tới */
   --radius-chart-bar: 8px 8px 2px 2px;  /* cột biểu đồ doanh thu */
   --review-icon-mt: 40px;      /* ô biểu tượng dòng "Cần xem lại" (máy tính) */
   --skel-pill-mt: 112px;       /* khung xương máy tính: viên ngày */
-  --skel-bar-mt: 40px;         /* … dòng thời gian */
   --skel-time-mt: 56px;        /* … giờ đón */
   --skel-name-mt: 18px;        /* … tên khách, số tiền */
   --skel-money-mt: 96px;
@@ -1874,7 +1859,8 @@ body.login-page main.login { display: flex; flex-direction: column; flex: 1; min
    xương, dòng thời gian, viên "Sắp tới") cũng mặc định ẩn — chỉ hiện ở khối "Trang chủ MÁY TÍNH" bên dưới.
    Dải đầu trang = CHÍNH #topbar đổi kiểu (body.trang-chu ở public/index.html): chuông của web/thong-bao-ui.ts giữ nguyên nút, ngăn tin, cách đếm. */
 .dash-tim, .dash-o, .dash-so, .dash-xuong, .dash-hero-chao, .dash-hero-nut, .dash-loi-ico, .dash-loi-nut { display: none; }
-.dash-dai, .dash-so-mt, .dash-xuong-mt, .dash-xuong-viec, .dash-tl, .dash-sap-toi, .dash-loi-tat, .dash-viec { display: none; } /* .dash-viec: chỉ máy tính (khối ≥641px bên dưới) */
+.dash-dai, .dash-gap, .dash-so-mt, .dash-xuong-mt, .dash-sap-toi, .dash-loi-tat, .dash-dang-cho { display: none; } /* .dash-gap, .dash-dang-cho: chỉ máy tính (khối ≥641px bên dưới) */
+.dash-cot-chinh, .dash-cot-phu { display: contents; } /* điện thoại: hai cột chỉ là vỏ, các khối con vào thẳng #dash-grid như trước */
 /* Ô của lưới chức năng — dùng chung lưới chính và bảng trượt "Tất cả chức năng" (bảng trượt chỉ mở được từ lưới điện thoại). */
 .dash-o-luoi { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); row-gap: var(--s3); column-gap: calc(var(--s1) / 2); }
 .dash-o-muc { display: flex; flex-direction: column; align-items: center; gap: var(--s2); min-width: 0; min-height: var(--tap-min); padding: 0; font: inherit; color: var(--c-text); text-decoration: none; background: none; border: 0; cursor: pointer; transition: transform var(--m-fast) var(--ease-out); }
@@ -2032,29 +2018,26 @@ body.login-page main.login { display: flex; flex-direction: column; flex: 1; min
   .dash-loi-nut { display: flex; flex: none; align-items: center; height: var(--tap-min); padding: 0 var(--s4); font: inherit; font-size: var(--fs-step-3); font-weight: var(--fw-semibold); color: var(--c-danger); background: var(--c-surface); border: 1px solid var(--c-danger); border-radius: var(--radius-sm); cursor: pointer; }
   .dash-loi-nut:hover { background: var(--c-danger-soft); }
 
-  .dash-grid, .dash-xuong-mt { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-areas: "stats" "review" "trips" "loitat"; gap: var(--s5); align-items: start; }
-  .dash-today, .dash-xuong-mt-chuyen { grid-area: trips; }
-  .dash-so-mt, .dash-xuong-mt-so { grid-area: stats; }
-  .dash-review { grid-area: review; }
-  .dash-loi-tat { grid-area: loitat; }
-  /* Người không lập được đơn (Kế toán…) không có thẻ số liệu (#dash-so-mt ẩn — coOSoCuaToi, chủ 28/10): bỏ vùng "stats" để không chừa khoảng trống đầu trang. */
-  .dash-grid:has(> .dash-so-mt[hidden]) { grid-template-areas: "review" "trips" "loitat"; }
-  .dash-grid:has(> .dash-so-mt[hidden]):has(> .dash-review[hidden]) { grid-template-areas: "trips" "loitat"; }
+  /* Bố cục hai cột (Phương án A): cột chính + cột phụ + Lối tắt cả hàng. Dưới 1100px một cột: cột chính rồi cột phụ rồi Lối tắt. Cột chính để «Cần xem lại» đứng TRƯỚC «Chuyến đón» trong DOM (thứ tự đọc ở điện thoại),
+     nên ở máy tính xếp ngược lại bằng column-reverse (không dùng CSS order — bài học Đợt C). Cột phụ: thẻ Doanh thu giãn tới đáy cột (flex: 1) để hai cột cùng đáy. */
+  .dash-grid, .dash-xuong-mt { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s5); align-items: stretch; }
+  .dash-cot-chinh, .dash-cot-phu, .dash-xuong-mt-cot { display: flex; flex-direction: column; gap: var(--s5); min-width: 0; }
+  .dash-cot-chinh { flex-direction: column-reverse; justify-content: flex-end; }
+  .dash-cot-phu > .dash-so-mt, .dash-xuong-mt-cot > .dash-xuong-mt-so { flex: 1 1 auto; }
+  .dash-today, .dash-review, .dash-dang-cho, .dash-xuong-mt-chuyen, .dash-xuong-mt-cho { align-self: stretch; }
+  .dash-loi-tat { grid-column: 1 / -1; }
 
-  /* Khung xương lúc tải (bản vẽ v2 "Đang tải"): ô chức năng đã hiện, thẻ Chuyến đón + thẻ số liệu xám. */
+  /* Khung xương lúc tải (bản vẽ v2 "Đang tải"): cùng lưới hai cột với nội dung thật — Chuyến đón | Đang chờ bạn + Doanh thu. */
   body.trang-chu #loading { margin: 0; }
-  .dash-xuong-mt-chuyen, .dash-xuong-mt-so { display: flex; flex-direction: column; gap: var(--s4); min-width: 0; padding: var(--s4); background: var(--c-card); border: 1px solid var(--c-border); border-radius: var(--radius-lg); }
+  .dash-xuong-mt-chuyen, .dash-xuong-mt-cho, .dash-xuong-mt-so { display: flex; flex-direction: column; gap: var(--s4); min-width: 0; padding: var(--s4); background: var(--c-card); border: 1px solid var(--c-border); border-radius: var(--radius-lg); }
   .dash-xuong-mt-so { gap: var(--s5); }
   .dash-xuong-mt-so > div, .dash-xuong-mt-dong > div { display: flex; flex-direction: column; gap: var(--s2); }
-  /* Khung xương "Việc của bạn": cùng lưới và chiều cao với thẻ thật (chừa chỗ hàng tiêu đề khối) */
-  .dash-xuong-viec { display: grid; grid-template-columns: repeat(auto-fit, minmax(var(--w-the-viec), 1fr)); gap: var(--s4); margin-bottom: var(--s5); padding-top: calc(var(--lh-24) + var(--s4)); }
-  .dash-xuong-viec-the { display: flex; flex-direction: column; gap: var(--s3); min-width: 0; min-height: var(--h-the-viec-xuong); padding: var(--s5); background: var(--c-card); border: 1px solid var(--c-border); border-radius: var(--radius-lg); }
   .dash-xuong-mt .dash-xuong-vien { display: flex; gap: var(--s2); }
-  .dash-xuong-mt-dong { display: grid; grid-template-columns: var(--w-trip-time-mt) minmax(0, 1fr) auto; gap: var(--s4); padding-top: var(--s4); border-top: 1px solid var(--c-surface-alt); }
+  .dash-xuong-mt-dong { display: grid; grid-template-columns: var(--w-trip-gio) minmax(0, 1fr) var(--w-trip-tien); gap: var(--s4); padding-top: var(--s4); border-top: 1px solid var(--c-surface-alt); }
+  .dash-xuong-mt-dong-dc { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--s4); padding-top: var(--s3); border-top: 1px solid var(--c-surface-alt); }
   .dash-xuong-mt .dash-xg { display: block; flex: none; background: var(--c-surface-alt); border-radius: var(--radius-sm); }
   .dash-xuong-mt .dash-xg-tieu-de { width: 40%; height: var(--skel-tag); }
   .dash-xuong-mt .dash-xg-vien { width: var(--skel-pill-mt); height: var(--day-pill-h); border-radius: var(--radius-pill); }
-  .dash-xuong-mt .dash-xg-truc { height: var(--skel-bar-mt); }
   .dash-xuong-mt .dash-xg-gio { width: var(--skel-time-mt); height: var(--skel-tag); }
   .dash-xuong-mt .dash-xg-ten { width: 70%; height: var(--skel-name-mt); }
   .dash-xuong-mt .dash-xg-phu { width: 90%; height: var(--skel-sm); }
@@ -2062,6 +2045,8 @@ body.login-page main.login { display: flex; flex-direction: column; flex: 1; min
   .dash-xuong-mt .dash-xg-a { width: 45%; height: var(--skel-sm); }
   .dash-xuong-mt .dash-xg-so { width: 65%; height: var(--skel-num-mt); }
   .dash-xuong-mt .dash-xg-b { width: 50%; height: var(--skel-sm); }
+  .dash-xuong-mt .dash-xg-cot { width: 100%; height: var(--h-chart-min); }
+
 
   /* Thẻ Chuyến đón. */
   .dash-today { min-width: 0; margin: 0; padding: 0; overflow: hidden; border: 1px solid var(--c-border); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); }
@@ -2079,23 +2064,13 @@ body.login-page main.login { display: flex; flex-direction: column; flex: 1; min
   .dash-day-nhan { display: flex; align-items: center; height: var(--day-pill-h); padding: 0 var(--s4); font-size: var(--fs-step-3); font-weight: var(--fw-regular); color: var(--c-primary); white-space: nowrap; font-variant-numeric: tabular-nums; background: var(--c-primary-soft); border-radius: var(--radius-pill); transition: background-color var(--m-fast) ease, color var(--m-fast) ease; }
   .dash-day[aria-pressed="true"] .dash-day-nhan { font-weight: var(--fw-semibold); color: var(--c-on-dark); background: var(--c-primary); background-image: var(--grad-brand); }
 
-  /* Dòng thời gian trong ngày: mọi phần tử đặt theo `--x` (0…1) do web/home.ts gán. */
-  .dash-tl { position: relative; display: block; height: var(--h-home-tl); margin: var(--s1) var(--home-tl-inset) var(--s2); }
-  .dash-tl > span { position: absolute; left: calc(var(--x, 0) * 100%); }
-  .dash-tl > .dash-tl-truc { top: var(--home-tl-line-y); right: 0; left: 0; height: var(--home-tl-line); background: var(--c-primary-soft); border-radius: var(--radius-pill); }
-  .dash-tl-vach { top: var(--home-tl-tick-y); width: 1px; height: var(--home-tl-tick-h); background: var(--c-border); }
-  .dash-tl-gio { top: var(--home-tl-label-y); font-size: var(--fs-step-1); line-height: var(--lh-16); color: var(--c-text-muted); white-space: nowrap; font-variant-numeric: tabular-nums; transform: translateX(-50%); }
-  .dash-tl-nay { top: var(--home-tl-now-y); width: var(--home-tl-line); height: var(--home-tl-now-h); margin-left: -1px; background: var(--c-primary); border-radius: var(--radius-pill); }
-  .dash-tl-nay-chu { top: 0; font-size: var(--fs-step-1); font-weight: var(--fw-semibold); line-height: var(--lh-16); color: var(--c-primary); white-space: nowrap; font-variant-numeric: tabular-nums; transform: translateX(-50%); }
-  .dash-tl-diem { top: var(--home-tl-dot-y); width: var(--home-tl-dot); height: var(--home-tl-dot); background: var(--c-primary); border: var(--home-tl-line) solid var(--c-primary); border-radius: var(--radius-pill); transform: translate(-50%, -50%); }
-  .dash-tl-diem.is-qua { background: var(--c-surface); border-color: var(--c-text-muted); }
-  .dash-tl-diem.is-toi { width: var(--home-tl-dot-next); height: var(--home-tl-dot-next); box-shadow: 0 0 0 var(--home-tl-ring) var(--c-primary-soft); }
 
-  .dash-today-row { display: grid; grid-template-columns: var(--w-trip-time-mt) minmax(0, 1fr) auto; align-items: start; gap: var(--s4); padding: var(--s3) var(--s4); color: var(--c-text); border-top: 1px solid var(--c-border); border-bottom: 0; transition: background-color var(--m-fast) ease; }
+  /* Bảng Chuyến đón (Phương án A, luật khung 3/6): ba cột THẲNG CỘT — giờ | khách + điểm đón + dịch vụ | tiền; tên, số khách, tiền xuống dòng chứ không cắt, chỉ địa chỉ đón được rút. */
+  .dash-today-row { display: grid; grid-template-columns: var(--w-trip-gio) minmax(0, 1fr) var(--w-trip-tien); align-items: start; gap: var(--s4); padding: var(--s3) var(--s4); color: var(--c-text); border-top: 1px solid var(--c-border); border-bottom: 0; transition: background-color var(--m-fast) ease; }
   .dash-today-row:hover, .dash-today-row.is-toi { background: var(--c-soft-hover); }
   .dash-today-row:focus-visible, .dash-smt-o:focus-visible, .dash-review-row:focus-visible { outline-offset: calc(-1 * var(--focus-ring)); }
   .dash-today-when { width: auto; min-width: 0; }
-  .dash-today-time { font-family: inherit; font-size: var(--fs-step-6); font-weight: var(--fw-semibold); line-height: var(--lh-24); color: var(--c-primary); font-variant-numeric: tabular-nums; }
+  .dash-today-time { font-family: inherit; font-size: var(--fs-step-6); font-weight: var(--fw-semibold); line-height: var(--lh-24); color: var(--c-primary); font-variant-numeric: tabular-nums; white-space: nowrap; }
   .dash-today-row.is-qua .dash-today-time { color: var(--c-text-muted); }
   .dash-today-place { display: flex; align-items: flex-start; gap: var(--s1); font-size: var(--fs-step-3); line-height: var(--lh-20); text-wrap: pretty; }
   .dash-today-place svg { margin-top: var(--home-pin-nudge); }
@@ -2115,26 +2090,24 @@ body.login-page main.login { display: flex; flex-direction: column; flex: 1; min
   .dash-con-lai-mt { font-size: var(--fs-step-2); line-height: var(--lh-18); }
   #dash-today-empty { margin: 0; padding: var(--home-empty-pad) var(--s4); font-size: var(--fs-step-5); border-top: 1px solid var(--c-border); }
 
-  /* Thẻ số liệu: một thẻ, các ô ngăn bằng khe 1px (nền viền lộ qua khe). Dưới 1200px: Còn thiếu tiền cả hàng, Chờ xác nhận | Chưa phụ trách, Doanh thu cả hàng;
-     từ 1200px một hàng bốn ô (khối @media cuối). Ô Doanh thu: chữ bên trái, biểu đồ tuần bên phải (hẹp quá thì biểu đồ xuống dòng). */
-  /* position: relative — bảng ẩn cho máy đọc màn hình của biểu đồ (.visually-hidden, bảng tự giãn theo chữ dù đặt rộng 1px) lấy thẻ làm khung nên bị cắt theo thẻ,
-     không lòi ra mép phải trang (đo 1.73: tràn ngang 65px khi biểu đồ đứng sát mép phải). */
-  .dash-so-mt { position: relative; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-areas: "dt"; gap: 1px; min-width: 0; overflow: hidden; background: var(--c-border); border: 1px solid var(--c-border); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); }
-  .dash-smt-o-dt { grid-area: dt; flex-wrap: wrap; }
-  .dash-smt-o { display: flex; align-items: flex-end; gap: var(--s4); min-width: 0; padding: var(--s4) var(--s5); color: var(--c-text); text-decoration: none; background: var(--c-card); transition: background-color var(--m-fast) ease; }
+  /* Thẻ Doanh thu tuần này (Phương án A, cột phụ): chữ ở trên, biểu đồ tuần xếp DƯỚI và giãn theo thẻ — cao từ --h-chart-min tới --h-chart-max (trước: cố định --h-chart ở góc phải, phần còn lại trống).
+     position: relative — bảng ẩn cho máy đọc màn hình của biểu đồ (.visually-hidden) lấy thẻ làm khung nên bị cắt theo thẻ, không lòi ra mép phải trang. */
+  .dash-so-mt { position: relative; display: flex; flex-direction: column; min-width: 0; overflow: hidden; background: var(--c-card); border: 1px solid var(--c-border); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); }
+  .dash-smt-o { display: flex; flex: 1 1 auto; flex-direction: column; gap: var(--s4); min-width: 0; padding: var(--s4); color: var(--c-text); text-decoration: none; background: var(--c-card); transition: background-color var(--m-fast) ease; }
   .dash-smt-o:hover { color: var(--c-text); background: var(--c-soft-hover); }
-  .dash-smt-chu { display: flex; flex: 1 1 auto; flex-direction: column; gap: var(--s1); min-width: 0; }
+  .dash-smt-chu { display: flex; flex: none; flex-direction: column; gap: var(--s1); min-width: 0; }
   .dash-smt-nhan { display: flex; align-items: center; gap: var(--s2); color: var(--c-primary); }
   .dash-smt-nhan-chu { flex: 1; min-width: 0; font-size: var(--fs-step-2); line-height: var(--lh-18); color: var(--c-text-muted); }
   .dash-smt-gt { font-size: var(--fs-home-stat); font-weight: var(--fw-home-stat); line-height: var(--lh-36); color: var(--c-text); white-space: nowrap; font-variant-numeric: tabular-nums; }
   .dash-smt-phu { font-size: var(--fs-step-2); line-height: var(--lh-18); color: var(--c-text-muted); font-variant-numeric: tabular-nums; text-wrap: pretty; }
-  .dash-smt-o .dash-revenue-chart { flex: none; gap: var(--s1); width: var(--w-home-chart); margin: 0; }
-  .dash-smt-o .dash-chart-bars, .dash-smt-o .dash-chart-labels { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: var(--s1); }
-  .dash-smt-o .dash-chart-bars { align-items: end; height: var(--h-chart); }
-  .dash-smt-o .dash-chart-bar { border-radius: var(--radius-chart-bar); }
-  .dash-smt-o .dash-chart-labels { font-size: var(--fs-step-1); line-height: var(--lh-16); text-align: center; }
+  .dash-smt-o .dash-revenue-chart { display: flex; flex: 1 1 auto; flex-direction: column; gap: var(--s1); width: auto; margin: 0; }
+  .dash-smt-o .dash-chart-bars { display: grid; flex: 1 1 var(--h-chart-min); grid-template-columns: repeat(7, minmax(0, 1fr)); gap: var(--s1); align-items: stretch; height: auto; min-height: var(--h-chart-min); max-height: var(--h-chart-max); }
+  .dash-smt-o .dash-chart-cot { position: relative; min-width: 0; }
+  .dash-smt-o .dash-chart-bar { position: absolute; right: 0; bottom: 0; left: 0; flex: none; border-radius: var(--radius-chart-bar); }
+  .dash-smt-o .dash-chart-labels { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: var(--s1); font-size: var(--fs-step-1); line-height: var(--lh-16); text-align: center; }
   .dash-chart-nay { font-weight: var(--fw-semibold); color: var(--c-primary); }
   .dash-smt-o .dash-chart-empty { width: auto; margin: 0; padding: 0; font-size: var(--fs-step-2); text-align: left; }
+
 
   /* Thẻ Cần xem lại (chỉ Quản trị / Toàn quyền, ẩn hẳn khi không có gì): cùng kiểu dòng với điện thoại 1b, ô biểu tượng 40px. */
   .dash-review { min-width: 0; margin: 0; padding: 0; overflow: hidden; border-radius: var(--radius-lg); }
@@ -2154,7 +2127,7 @@ body.login-page main.login { display: flex; flex-direction: column; flex: 1; min
   .dash-loi-tat { display: block; min-width: 0; margin: 0; padding: 0; overflow: hidden; border: 1px solid var(--c-border); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); }
   .dash-loi-tat-head { display: flex; align-items: center; min-height: var(--tap-min); padding: var(--s3) var(--s4) var(--s1); }
   .dash-loi-tat-heading { margin: 0; font-family: inherit; font-size: var(--fs-step-6); font-weight: var(--fw-heading); line-height: var(--lh-24); color: var(--c-text); }
-  .dash-loi-tat-luoi { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--s1); padding: var(--s1) var(--s2) var(--s3); }
+  .dash-loi-tat-luoi { display: grid; grid-template-columns: repeat(auto-fit, minmax(var(--w-loi-tat-o), 1fr)); gap: var(--s1); padding: var(--s1) var(--s2) var(--s3); } /* một dãy gọn một hàng ở máy tính rộng, cuối dãy «Tất cả» (Phương án A) */
   .dash-loi-tat .dash-o-muc { gap: var(--s2); min-height: 0; padding: var(--s2) calc(var(--s1) / 2); border-radius: var(--radius-md); transition: background-color var(--m-fast) ease; }
   .dash-loi-tat .dash-o-muc:hover { background: var(--c-soft-hover); }
   .dash-loi-tat .dash-o-hop { width: var(--tile-box-sm); height: var(--tile-box-sm); border-radius: var(--radius-md); }
@@ -2177,51 +2150,49 @@ body.login-page main.login { display: flex; flex-direction: column; flex: 1; min
   .dash-tc-so { display: flex; flex: none; }
   .dash-tc-so .dash-o-so { position: static; border: 0; font-variant-numeric: tabular-nums; }
 
-  /* "Việc của bạn" (bản vẽ menu máy tính 15/10): tối đa 4 thẻ một lưới, thẻ nào cũng có nhãn, số lớn, dòng phụ và đúng một nút ở đáy; tông cát cho việc cần để mắt. */
-  .dash-viec { display: flex; flex-direction: column; gap: var(--s4); min-width: 0; }
-  .dash-viec-dau { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s1) var(--s3); }
-  .dash-viec-tieu-de { margin: 0; font-size: var(--fs-step-7); font-weight: var(--fw-heading); line-height: var(--lh-24); color: var(--c-text); }
-  .dash-viec-goi-y, .dash-viec-con { margin: 0; font-size: var(--fs-step-3); line-height: var(--lh-20); color: var(--c-text-muted); }
-  .dash-viec-luoi { display: grid; grid-template-columns: repeat(auto-fit, minmax(var(--w-the-viec), 1fr)); gap: var(--s4); }
-  .dash-viec-the { display: flex; flex-direction: column; gap: var(--s3); min-width: 0; padding: var(--s5); background: var(--c-card); border: 1px solid var(--c-border); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); }
-  .dash-viec-the-cat { border-color: var(--c-sand-border); }
-  .dash-viec-hang { display: flex; align-items: center; gap: var(--s2); min-width: 0; min-height: calc(2 * var(--lh-20)); } /* chừa đủ hai dòng: tiêu đề dài không đẩy số/nút lệch hàng với thẻ bên cạnh */
-  .dash-viec-ico { display: flex; flex: none; align-items: center; justify-content: center; width: var(--w-viec-ico); height: var(--w-viec-ico); color: var(--c-primary); background: var(--c-primary-soft); border-radius: var(--radius-md); }
-  .dash-viec-the-cat .dash-viec-ico { color: var(--c-sand-text); background: var(--c-sand-soft); }
-  .dash-viec-nhan { margin: 0; min-width: 0; font-size: var(--fs-step-3); font-weight: var(--fw-semibold); line-height: var(--lh-20); color: var(--c-text); text-wrap: pretty; }
-  .dash-viec-so { margin: 0; font-size: var(--fs-viec-so); font-weight: var(--fw-home-stat); line-height: var(--lh-36); color: var(--c-text); font-variant-numeric: tabular-nums; }
-  .dash-viec-so.is-loi { color: var(--c-text-muted); }
-  .dash-viec-phu { margin: 0; font-size: var(--fs-step-3); line-height: var(--lh-20); color: var(--c-text-muted); font-variant-numeric: tabular-nums; text-wrap: pretty; }
-  .dash-viec-phu.is-loi { color: var(--c-danger-text); }
-  .dash-viec-nut { display: flex; margin-top: auto; padding-top: var(--s1); }
-  .dash-viec-nut .btn, .dash-viec-rong .btn { display: inline-flex; align-items: center; justify-content: center; min-height: var(--tap-min); font-size: var(--fs-step-3); }
-  .dash-viec-rong { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s4); padding: var(--s4) var(--s5); background: var(--c-card); border: 1px solid var(--c-border); border-radius: var(--radius-lg); }
-  .dash-viec-rong-chu { margin: 0; gap: var(--s3); font-size: var(--fs-step-5); line-height: var(--lh-24); color: var(--c-text-muted); }
-  .dash-viec-rong-chu svg { color: var(--c-green-text); }
+  /* Dải việc gấp (Phương án A): chỉ khi có đơn chờ xác nhận gấp (src/shared/viec-gap.ts). Nền cát (luật khung 8: nhắc nhở màu cát); nút «Xác nhận ngay» là nút san hô DUY NHẤT của màn (luật 7). */
+  .dash-gap { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s3) var(--s4); min-width: 0; padding: var(--s3) var(--s4); background: var(--c-sand-soft); border: 1px solid var(--c-sand-border); border-radius: var(--radius-lg); }
+  .dash-gap-chu { display: flex; flex: 1 1 var(--home-greet-basis); flex-direction: column; gap: var(--s1); min-width: 0; }
+  .dash-gap-cau { margin: 0; font-size: var(--fs-step-6); font-weight: var(--fw-heading); line-height: var(--lh-24); color: var(--c-text); text-wrap: pretty; }
+  .dash-gap-phu { margin: 0; font-size: var(--fs-step-3); line-height: var(--lh-20); color: var(--c-sand-text); text-wrap: pretty; }
+  .dash-gap .btn { display: inline-flex; align-items: center; justify-content: center; min-height: var(--tap-min); font-size: var(--fs-step-3); }
 
-  /* Cửa sổ hẹp (641–899px, bản vẽ 768): dải và nội dung đệm 16px, cột giờ chuyến hẹp hơn. Lồng trong khối ≥641px (không áp vào điện thoại). */
+  /* Thẻ «Đang chờ bạn» (Phương án A): mỗi việc một dòng — nhãn (+ viên phạm vi) bên trái, số bên phải; cả dòng là liên kết. Dòng số 0 không có (web/home.ts); không dòng nào thì ẩn cả thẻ. */
+  .dash-dang-cho { display: flex; flex-direction: column; min-width: 0; margin: 0; padding: 0; overflow: hidden; background: var(--c-card); border: 1px solid var(--c-border); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); }
+  .dash-dc-tieu-de { margin: 0; padding: var(--s3) var(--s4) var(--s1); font-size: var(--fs-step-6); font-weight: var(--fw-heading); line-height: var(--lh-24); color: var(--c-text); }
+  .dash-dc-ds { margin: 0; padding: 0; list-style: none; }
+  .dash-dc-dong { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--s3); width: 100%; min-height: var(--tap-min); margin: 0; padding: var(--s2) var(--s4); font: inherit; color: var(--c-text); text-align: left; text-decoration: none; background: none; border: 0; border-top: 1px solid var(--c-border); cursor: pointer; transition: background-color var(--m-fast) ease; }
+  .dash-dc-dong:hover { color: var(--c-text); background: var(--c-soft-hover); }
+  .dash-dc-dong:focus-visible { outline-offset: calc(-1 * var(--focus-ring)); }
+  .dash-dc-chu { display: flex; flex-direction: column; gap: calc(var(--s1) / 2); min-width: 0; }
+  .dash-dc-nhan { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--s2); font-size: var(--fs-step-4); font-weight: var(--fw-semibold); line-height: var(--lh-22); text-wrap: pretty; }
+  .dash-dc-nhan .dash-pham-vi { display: inline; font-size: var(--fs-step-1); font-weight: var(--fw-regular); line-height: var(--lh-16); }
+  .dash-dc-phu { font-size: var(--fs-step-2); line-height: var(--lh-18); color: var(--c-text-muted); text-wrap: pretty; }
+  .dash-dc-so { font-size: var(--fs-step-9); font-weight: var(--fw-home-stat); line-height: var(--lh-28); color: var(--c-text); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .dash-dc-dong[data-tone="cat"] .dash-dc-so { color: var(--c-sand-text); }
+  .dash-dc-dong.is-loi .dash-dc-so { color: var(--c-text-muted); }
+  .dash-dc-dong.is-loi .dash-dc-phu { color: var(--c-danger-text); }
+
+  /* Cửa sổ hẹp (641–899px, bản vẽ 768): dải và nội dung đệm 16px. Lồng trong khối ≥641px (không áp vào điện thoại). */
   @media (max-width: 899px) {
     body.trang-chu main { padding: var(--s4); }
-    .dash-today-row, .dash-xuong-mt-dong { grid-template-columns: var(--w-trip-time-mt-sm) minmax(0, 1fr) auto; }
   }
 }
-/* Hai cột (bản vẽ 1280/1440): Chuyến đón bên trái trải hai hàng; Số liệu rồi Cần xem lại bên phải. Mốc 1200px: dưới đó cột trái quá hẹp cho dòng chuyến ba cụm
-   (khổ bản vẽ không vẽ — giả định của phiên thi công, ghi ở báo cáo). */
-@media (min-width: 1200px) {
-  /* Bản vẽ 1.73: số liệu trải hai cột; Chuyến đón trái; Cần xem lại rồi Lối tắt phải (hàng cuối 1fr — Chuyến đón cao hơn thì phần thừa dồn xuống đó, hai thẻ phải
-     vẫn sát nhau). Không có "Cần xem lại" → Lối tắt lên đầu cột phải. */
-  .dash-grid { grid-template-columns: minmax(0, 1fr) var(--w-home-side); grid-template-rows: auto auto 1fr; grid-template-areas: "stats stats" "trips review" "trips loitat"; }
-  .dash-grid:has(> .dash-review[hidden]) { grid-template-rows: auto auto 1fr; grid-template-areas: "stats stats" "trips loitat" "trips ."; }
-  /* Không thẻ số liệu (xem khối ≥641px): hai cột bắt đầu ngay từ hàng đầu; luật này đứng SAU luật cùng độ ưu tiên của khối ≥641px nên thắng. */
-  .dash-grid:has(> .dash-so-mt[hidden]) { grid-template-rows: auto 1fr; grid-template-areas: "trips review" "trips loitat"; }
-  .dash-grid:has(> .dash-so-mt[hidden]):has(> .dash-review[hidden]) { grid-template-rows: auto 1fr; grid-template-areas: "trips loitat" "trips ."; }
-  .dash-xuong-mt { grid-template-columns: minmax(0, 1fr) var(--w-home-side); grid-template-areas: "stats stats" "trips ."; }
-  .dash-xuong-mt-so { flex-direction: row; }
-  .dash-xuong-mt-so > div { flex: 1; }
-  /* Một hàng bốn ô. Tỉ lệ bản vẽ 1.2 / .8 / .8 / 1.7 nới cho ô Doanh thu (1.15 / .75 / .75 / 1.85) và lề ngang hẹp hơn: Be Vietnam Pro rộng hơn chữ của bản vẽ —
-     "10.400.000 ₫" bị cắt ở 1280 khi giữ đúng tỉ lệ. Ô Doanh thu vẫn cho xuống dòng: số rất lớn thì biểu đồ xuống dưới, không cắt số. */
-  .dash-smt-o { padding: var(--s4); gap: var(--s3); }
+/* Hai cột (Phương án A, 31/10): cột chính (Chuyến đón, Cần xem lại) bên trái, cột phụ (Đang chờ bạn, Doanh thu) bên phải, Lối tắt cả hàng dưới. Mốc 1100px theo luật khung
+   «máy tính từ 1100px»; cột phụ rộng --w-home-side-sm → --w-home-side (1200px) → --w-home-side-lg (1400px). Cột phụ ẩn hẳn (cả hai thẻ không có gì) thì cột chính chiếm hết hàng. */
+@media (min-width: 1100px) {
+  .dash-grid, .dash-xuong-mt { grid-template-columns: minmax(0, 1fr) var(--w-home-side-sm); }
+  .dash-grid:has(> .dash-cot-phu[hidden]) { grid-template-columns: minmax(0, 1fr); }
 }
+@media (min-width: 1200px) {
+  .dash-grid, .dash-xuong-mt { grid-template-columns: minmax(0, 1fr) var(--w-home-side); }
+  .dash-grid:has(> .dash-cot-phu[hidden]) { grid-template-columns: minmax(0, 1fr); }
+}
+@media (min-width: 1400px) {
+  .dash-grid, .dash-xuong-mt { grid-template-columns: minmax(0, 1fr) var(--w-home-side-lg); }
+  .dash-grid:has(> .dash-cot-phu[hidden]) { grid-template-columns: minmax(0, 1fr); }
+}
+
 
 /* Trang Hướng dẫn + chấm đỏ "có bản mới" (đặc tả nhật ký thay đổi 2026-09-23) */
 .new-dot { display: inline-block; width: var(--dot-size); height: var(--dot-size); margin-left: var(--s1); vertical-align: middle; border-radius: var(--radius-pill); background: var(--c-danger); }
@@ -4279,11 +4250,8 @@ body.tabbar-an .vc-bottom-bar, body.tabbar-dinh .vc-bottom-bar { bottom: 0; }
   body.has-sidebar #links > .row-link.danger { display: none; }
 }
 
-/* [11] Trang chủ máy tính: biểu đồ tuần giãn theo ô doanh thu (trước: cố định --w-home-chart trong ô rộng hết hàng). */
-@media (min-width: 641px) {
-  .dash-smt-o-dt { flex-wrap: nowrap; align-items: center; gap: var(--s6); }
-  .dash-smt-o .dash-revenue-chart { flex: 1 1 auto; width: auto; max-width: var(--w-home-chart-max); margin-left: auto; }
-}
+/* [11] Trang chủ máy tính (Phương án A, 31/10): biểu đồ tuần giãn theo thẻ Doanh thu — xếp dưới con số, chiều cao từ --h-chart-min tới --h-chart-max (xem khối Trang chủ MÁY TÍNH). */
+
 
 /* [2b] Trang chủ điện thoại: tên người (lời chào, danh sách «Đơn đi») không bị cắt «…» — luật 6; tên dài xuống dòng. */
 @media (max-width: 640px) {
