@@ -1,6 +1,6 @@
 # Đặc tả: Trang chủ máy tính theo Phương án A
 
-Ngày 2026-10-31. Trạng thái: **chờ chủ duyệt**. Bản vẽ xem thử: artifact `TN9vcRmkBg5MDPXaWf1gJ7`. Chưa viết mã sản phẩm.
+Ngày 2026-10-31. Trạng thái: **chủ đã duyệt 2026-10-31** (xem cuối mục 8). Bản vẽ xem thử: artifact `TN9vcRmkBg5MDPXaWf1gJ7`. Thi công ở nhánh `thi-cong-trang-chu-a`.
 
 ## 1. Mục tiêu
 
@@ -52,3 +52,5 @@ Kiểm bằng máy: test thuần cho luật dải (đúng 2 giờ, đúng biên 
 1. **Nghĩa của «khách đi trong 2 ngày».** Nếu hiểu là mọi khách đi hôm nay hoặc ngày mai thì dải gần như ngày nào cũng hiện, trái luật «vùng chỉ hiện khi có nội dung». *Khuyến nghị:* chỉ tính **đơn đang chờ xác nhận** mà ngày đi là hôm nay hoặc ngày mai.
 2. **Số phận bốn thẻ «Việc của bạn» hiện nay** (Đơn nháp, Còn thiếu tiền, Chưa có người phụ trách, Điều chỉnh công nợ, Góp ý…). Bản vẽ không có chỗ cho chúng. *Khuyến nghị:* thành các dòng thêm trong «Đang chờ bạn» (cùng luật dòng 0 thì ẩn, cùng cổng quyền), thay cho bốn thẻ lớn; khối «Cần xem lại» của Quản trị giữ nguyên dưới cột chuyến đón.
 3. **Thêm trường `guiLuc` vào danh sách chờ xác nhận** (mục 5): sửa máy chủ nhỏ, không migration. *Khuyến nghị:* đồng ý; nếu không, dải chỉ dùng được điều kiện «đi trong 2 ngày» và bỏ «quá 2 giờ».
+
+**Bản duyệt (2026-10-31).** Sau khi đọc đặc tả và ba khuyến nghị trên, chủ dự án nói «viết đi», tức là duyệt cả ba quyết định theo khuyến nghị: (1) dải việc gấp chỉ tính đơn đang chờ xác nhận có ngày đi là hôm nay hoặc ngày mai, hoặc đã chờ quá 2 giờ kể từ lúc gửi, không có thì ẩn; (2) các thẻ «Việc của bạn» cũ thành dòng trong thẻ «Đang chờ bạn», giữ nguyên cổng quyền theo vai, khối «Cần xem lại» của Quản trị giữ nguyên; (3) thêm trường `guiLuc` (từ cột `submitted_at`, đọc-thêm, không migration) vào `DonChoXacNhanDto` và route `xac-nhan-route.ts`. Điện thoại giữ bản vẽ kiểu MoMo, không làm lại.
