@@ -672,10 +672,17 @@ Ghi 2026-10-29 khi đồng bộ bộ «Island Booking System — Design System v
 - **BL-MA-DON-NGAY** — mã đơn `TD-YYYYMMDD-NNNN` mang ngày và số thứ tự (nghĩa nghiệp vụ trong mã).
 - **BL-MA-DIA-DIEM-NGUOI-GO** — mã địa điểm do người gõ (5.26: người dùng không gõ mã).
 - **BL-MA-LOAI-CO-SAN-TIENG-ANH** — năm loại đối tác có sẵn mang mã tiếng Anh (`TRAVEL_AGENCY`…); giao diện hiện «Loại có sẵn của hệ thống — mã cố định» thay cho mã thô.
-- **BL-MA-NO-NHO** — lỗi nhỏ để sau của đợt này (sổ `.superpowers/sdd/2026-10-31-ma-dinh-danh-va-sua-loai-doi-tac/progress.md`, dòng «minor (deferred)»):
+- **BL-MA-NO-NHO** — lỗi nhỏ để sau của đợt này (sổ thi công `docs/superpowers/plans/2026-10-31-ma-dinh-danh-thi-cong-nhat-ky.md`, dòng «minor (deferred)»):
   - `sinhMa` không kiểm đủ 8 byte ngẫu nhiên; `kiemGhiChu(null)` chưa có bài; độ dài tên / ghi chú đếm theo UTF-16.
   - Bài CSDL thiếu ca vai EXTERNAL không nhãn; (tuỳ) ghi chú cột mới vào phần ghi chú bảng ở `docs/data-dictionary.json`.
   - Hai loại khác nhau cùng đổi sang một tên cùng lúc có thể lọt trùng (giống lệnh thêm loại cũ); route đọc danh sách loại bốn câu; PATCH cấp đọc cả danh sách cấp để tìm một cấp.
   - Màn tài khoản: tên vai đọc hai lần ở đường lỗi; ô chọn vai giữ tên cũ tới khi tải lại trang; ô vai trống lúc đang tải, bấm tạo không báo gì.
-  - Hộp Sửa: «Mở lại» im lặng nếu không còn mã; ô tên cho gõ 80 chữ (máy chủ nhận 60); ghi chú toàn khoảng trắng không cắt ở giao diện; hướng dẫn Kế toán còn khoảng một chữ trước trần thời gian đọc.
+  - Hộp Sửa: «Mở lại» im lặng nếu không còn mã; ghi chú toàn khoảng trắng không cắt ở giao diện; hướng dẫn Kế toán còn khoảng một chữ trước trần thời gian đọc.
   - Bộ sinh sơ đồ trang không bắt nút «Sửa» dựng lúc chạy.
+
+## 57. Dọn bốn loại đối tác thử còn mức đang áp (mã `BL-R-PRC-2-TA-THU`, 2026-10-31)
+
+- **Trạng thái:** `để sau` · Chủ chọn 31/10: «Đóng mức, giữ tắt», rồi chọn **tạm để đó** tới lần dọn dữ liệu thử trước khi dùng thật. Bài dò `audit-invariants --db remote` sẽ báo `R-PRC-2` (98 vi phạm, không chặn ai làm việc) tới khi dọn.
+- **Nguồn:** «Đối tác TA1», «Lữ hành TA2», «Lễ tân TA3», «HDV TA4» (`LD_JUJURAFN`, `LD_IRVXLDKL`, `LD_ZQZTYMPF`, `LD_EPNWLOUL`) do chủ tắt lúc 14:52–14:53 giờ VN 31/10; mỗi loại còn 24–26 dòng mức hiệu lực. Tắt loại không tự đóng mức (ADR-0117).
+- **Cách dọn:** Kế toán bấm «Ngừng» từng dòng mức của bốn loại ở thẻ Loại đối tác (đủ nhật ký). Không sửa bằng SQL tay (mất dấu vết, Hiến chương 5.12).
+- **Ý tưởng kèm (chưa duyệt):** nút «Ngừng mọi mức của loại này» chỉ hiện khi loại đã tắt mà còn mức đang áp — để «tắt loại mà quên đóng mức» không lặp lại.
