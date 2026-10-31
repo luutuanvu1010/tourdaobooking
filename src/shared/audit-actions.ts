@@ -108,6 +108,9 @@ export const AUDIT_ACTIONS = {
   prc_rate_tier_added: { label: "Thêm cấp đại lý", group: "ledger" },
   prc_rate_tier_off: { label: "Khoá cấp đại lý", group: "ledger" },
   prc_rate_tier_on: { label: "Mở lại cấp đại lý", group: "ledger" },
+  // Mã định danh 5.26: mọi dòng `prc_rate_tier_*` từ bản này ghi `target_type = 'ledger'`, `target_id` = mã cấp (`MT_…`).
+  prc_rate_tier_renamed: { label: "Đổi tên cấp đại lý", group: "ledger" },
+  prc_rate_tier_note: { label: "Sửa ghi chú cấp đại lý", group: "ledger" },
   prc_role_tier_set: { label: "Áp dụng cấp đại lý cho loại", group: "ledger" },
   prc_role_tier_closed: { label: "Ngừng áp dụng cấp đại lý cho loại", group: "ledger" },
   prc_party_tier_set: { label: "Áp dụng cấp riêng cho đối tác", group: "ledger" },

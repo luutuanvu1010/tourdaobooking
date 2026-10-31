@@ -2845,7 +2845,11 @@ export interface GanLoaiMucDto {
   /** ADR-0148: như CommissionRuleDto. */
   daHuy: boolean; thayCho: string | null; lyDoSua: string | null;
 }
-export interface MucTaDto { code: string; ten: string; dangBat: boolean; dong: CommissionRuleDto[]; gan: GanLoaiMucDto[] }
+/** Cấp đại lý (mức TA). Mã định danh 5.26: ghi chú, dấu vết tạo / sửa (TÊN nhân viên, null khi không còn tên) và khoá lạc quan `updatedAt` (luôn có — cột NOT NULL); `soLoai` / `soDoiTac` = số gắn loại↔cấp / gắn riêng đang hoặc sắp hiệu lực. */
+export interface MucTaDto {
+  code: string; ten: string; dangBat: boolean; dong: CommissionRuleDto[]; gan: GanLoaiMucDto[];
+  ghiChu: string | null; taoLuc: string; taoBoi: string | null; suaLuc: string; suaBoi: string | null; updatedAt: string; soLoai: number; soDoiTac: number;
+}
 /** Mức TA gắn RIÊNG cho một hồ sơ (ADR-0138), đang hoặc sắp hiệu lực. Chỉ mã, tên hồ sơ, tên mức, ngày — không SĐT/email. */
 export interface GanRiengDto { id: string; partyId: string; ten: string; muc: string; tenMuc: string; tuNgay: string; denNgay: string | null }
 export interface MucTaListResponse { homNay: string; muc: MucTaDto[]; loai: { code: string; ten: string }[]; ganRieng: GanRiengDto[] }

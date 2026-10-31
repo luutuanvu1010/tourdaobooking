@@ -4,6 +4,7 @@ import { auditStatement } from "../audit";
 import { getEffectiveServices, tenCacNhom, tenDacDiemTheoMa } from "../catalog";
 import { datHoatDongLoaiDoiTacStatement, kiemTenLoaiDoiTac, loaiVaiChiTiet, maLoaiDoiTac, ownerCompany, suaLoaiDoiTacStatement, tenLoaiVai, themLoaiDoiTacStatement } from "../parties";
 import { kiemGhiChu } from "../../shared/ghi-chu-danh-muc.ts";
+import type { AuditAction } from "../../shared/audit-actions.ts";
 import type { CommissionRuleDto, DoiMucResponse, HoaHongHoSoResponse, CommissionRuleListResponse, GanLoaiMucDto, GanLoaiMucResponse, LoaiDoiTacDto, LoaiDoiTacListResponse, LoaiDoiTacResponse, MucTaDto, MucTaListResponse, MucTaResponse,
   LuatBanDto, LuatBanListResponse, LuatBanResponse, NguoiHuongTimResponse, SuaGanLoaiResponse, SuaMucResponse, SuaXemTruocResponse, SupplyTermDto, SupplyTermListResponse, ThuTraResponse } from "../../shared/contracts";
 import { error, json, mauLikeChua, kemLocation, readJson } from "../../shared/http";
@@ -14,7 +15,7 @@ import { CAU_X3_THUE_XE, NHAN_LY_DO_THIEU } from "../../shared/so-dai-ly-nhan";
 import { ngayDayDu, vnToday } from "../../shared/vn-date";
 import { cauDoiCapRieng, cauDoiChinhSach, cauSuaGanLoai, cauSuaGanRieng, cauSuaMuc, partyTiersCurrent, cauDoiMuc, allRules, allTerms, beneficiaryRoles, beneficiaryRolesAll, closeRoleTierStatement, closeRuleStatement, closeTermStatement, findBeneficiaries, groupsOf, huongCuaHoSo, insertBeneficiaryStatement,
   insertRateTierStatement, insertRoleTierStatement, insertRulePaxStatement, insertRuleStatement, insertTermStatement, isBeneficiary, openRolesOf, partyTiersHistory, partyTiersOf, partyTierById, insertPartyTierStatement, closePartyTierStatement, rateTierByCode, rateTiers, roleRulesForTierLink, roleTierById, roleTiersAll,
-  roleTiersOn, ruleById, rulesOn, setBeneficiaryActiveStatement, setRateTierActiveStatement, soHoSoTheoVai, suppliers, tenNhanVienTheoId, termById, termsOn, type PartyTierRow, type RoleTierRow, type RuleRow, type TermRow, type TierRow, type XuLyDongCu } from "./repository";
+  roleTiersOn, ruleById, rulesOn, setBeneficiaryActiveStatement, setRateTierActiveStatement, soHoSoTheoVai, suaMucTaStatement, suppliers, tenNhanVienTheoId, termById, termsOn, type PartyTierRow, type RoleTierRow, type RuleRow, type TermRow, type TierRow, type XuLyDongCu } from "./repository";
 import { MA_RE, MUC_TA_RE, PARTY_RE, chonMuc, cungMuc, hieuLuc, tomTatHoaHongHoSo, kiemDoi, kiemNgayDong, kiemNgung, kiemSua, xemTruocSua, kiemThanDoiChinhSach, kiemThanDieuKhoan, kiemThanDoiMuc, kiemThanDongMucTa, kiemThanGan, kiemThanGanRieng, kiemThanMuc, kiemTenMucTa, laNgay, maMucTa, moTaMuc, nguoiHuongCua,
   type DongDieuKhoan, type DongMuc, type GanLoaiMuc, type GanRieng, type MucTheoLoai, type NguoiHuong } from "./rules";
 
@@ -191,6 +192,43 @@ async function docLoaiDoiTac(db: D1Database): Promise<LoaiDoiTacDto[]> {
     updatedAt: t.suaLuc, soHoSo: soHoSo.get(t.code) ?? 0,
   })).sort((a, b) => Number(b.coSan) - Number(a.coSan) || a.ten.localeCompare(b.ten, "vi") || a.code.localeCompare(b.code));
 }
+/**
+ * Phần chung của hai route sửa danh mục (loại đối tác, cấp đại lý): đọc thân `{ ten?, ghiChu?, updatedAt }` theo CÙNG luật null — `ghiChu: null` hay rỗng xoá ghi chú, `ten: null`
+ * rơi vào luật tên ⇒ 400. `kiemTen` trả tên đã chuẩn hoá hoặc lỗi (status, code, message). Trả Response lỗi, hoặc giá trị mới + hai cờ đổi. `choPhepUpdatedAtNull`: loại có sẵn chưa từng sửa
+ * có `updatedAt` null; cấp đại lý thì cột NOT NULL ⇒ bắt buộc chuỗi.
+ */
+type KetTen = { ok: true; value: string } | { ok: false; status: number; code: string; message: string };
+function docThanSuaDanhMuc(than: unknown, hien: { ten: string; ghiChu: string | null }, v: { choPhepUpdatedAtNull: boolean; thieuDau: string; kiemTen: (raw: unknown) => KetTen | Promise<KetTen> }):
+  Promise<Response | { updatedAt: string | null; tenMoi: string; ghiChuMoi: string | null; doiTen: boolean; doiGhiChu: boolean }> {
+  return (async () => {
+    const o: Record<string, unknown> = than && typeof than === "object" && !Array.isArray(than) ? (than as Record<string, unknown>) : {};
+    if (o.ten === undefined && o.ghiChu === undefined) return error(400, "invalid_input", "Cần gửi tên mới hoặc ghi chú mới.");
+    const u = o.updatedAt;
+    if (!("updatedAt" in o) || (u === null ? !v.choPhepUpdatedAtNull : typeof u !== "string")) return error(400, "invalid_input", v.thieuDau);
+    let tenMoi = hien.ten;
+    if (o.ten !== undefined) {
+      const kq = await v.kiemTen(o.ten);
+      if (!kq.ok) return error(kq.status, kq.code, kq.message);
+      tenMoi = kq.value;
+    }
+    let ghiChuMoi = hien.ghiChu;
+    if (o.ghiChu !== undefined) {
+      const gc = kiemGhiChu(o.ghiChu);
+      if (!gc.ok) return error(400, "invalid_input", gc.message);
+      ghiChuMoi = gc.value;
+    }
+    return { updatedAt: u as string | null, tenMoi, ghiChuMoi, doiTen: tenMoi !== hien.ten, doiGhiChu: ghiChuMoi !== hien.ghiChu };
+  })();
+}
+/** Nhật ký của lô sửa: dòng đầu đi theo `changes() > 0` của câu UPDATE; dòng hai (khi đổi cả hai) bám id dòng đầu (khuôn wonGuard) — bên thua không ghi gì. Ghi chú: detail là TÊN, không chép nội dung. */
+function nhatKySuaDanhMuc(db: D1Database, v: { staffId: string; at: string; code: string; tenCu: string; tenMoi: string; doiTen: boolean; doiGhiChu: boolean; actionTen: AuditAction; actionGhiChu: AuditAction }): D1PreparedStatement[] {
+  const idDau = crypto.randomUUID();
+  return [
+    ...(v.doiTen ? [{ action: v.actionTen, detail: `«${v.tenCu}» → «${v.tenMoi}»` }] : []),
+    ...(v.doiGhiChu ? [{ action: v.actionGhiChu, detail: v.tenMoi }] : []),
+  ].map((n, i) => auditStatement(db, { id: i === 0 ? idDau : undefined, staffId: v.staffId, action: n.action, at: v.at, targetType: "ledger", targetId: v.code, detail: n.detail },
+    i === 0 ? "changes() > 0" : `EXISTS (SELECT 1 FROM audit_log WHERE id = '${idDau}')`));
+}
 const LOAI_KHONG_CO = () => error(404, "not_found", "Không tìm thấy loại đối tác này.");
 
 /**
@@ -251,12 +289,18 @@ const dtoGan = (r: RoleTierRow, tenVai: ReadonlyMap<string, string>, tenMuc: Rea
 });
 /** Mọi mức TA kèm dòng và gắn của từng mức (màn «Mức TA»). Chỉ mã, tên, số mức — không số liệu hồ sơ. Khoá tên `name_key` không đọc ra. */
 async function docMucTa(db: D1Database, homNay: string): Promise<MucTaDto[]> {
-  const [muc, dong, gan, tenVai] = await Promise.all([rateTiers(db), allRules(db), roleTiersAll(db), tenLoaiVai(db)]);
+  const [muc, dong, gan, tenVai, ganRieng] = await Promise.all([rateTiers(db), allRules(db), roleTiersAll(db), tenLoaiVai(db), partyTiersCurrent(db, homNay)]);
   const tenMuc = new Map(muc.map((m) => [m.code, m.name]));
+  // Mã định danh 5.26: người tạo / sửa là TÊN nhân viên (view công bố v_stf_staff_label); không còn tên ⇒ null.
+  const tenNv = await tenNhanVienTheoId(db, muc.flatMap((m) => [m.created_by, m.updated_by]).filter((x): x is string => x !== null));
+  const dangSap = (g: RoleTierRow) => g.voided_at === null && (g.valid_to_date === null || g.valid_to_date >= homNay);
   return muc.map((m: TierRow) => ({
     code: m.code, ten: m.name, dangBat: m.active === 1,
     dong: dong.filter((r) => r.target_tier_code === m.code).map((r) => dtoMuc(r, tenVai, homNay)),
     gan: gan.filter((g) => g.tier_code === m.code).map((g) => dtoGan(g, tenVai, tenMuc, homNay)),
+    ghiChu: m.note, taoLuc: m.created_at, taoBoi: m.created_by === null ? null : tenNv.get(m.created_by) ?? null,
+    suaLuc: m.updated_at, suaBoi: m.updated_by === null ? null : tenNv.get(m.updated_by) ?? null, updatedAt: m.updated_at,
+    soLoai: gan.filter((g) => g.tier_code === m.code && dangSap(g)).length, soDoiTac: ganRieng.filter((g) => g.tier_code === m.code).length,
   }));
 }
 /** Mức `code` (đã qua `can` + `holdsPartner` ở route) ⇒ DTO hiện hành, hoặc null khi mã sai dạng / không có. */
@@ -271,7 +315,7 @@ async function doiTrangThaiMuc(db: D1Database, code: string, bat: boolean, staff
   const at = new Date().toISOString();
   const res = await chayLo(db, [
     setRateTierActiveStatement(db, code, bat, at, staffId),
-    auditStatement(db, { staffId, action: bat ? "prc_rate_tier_on" : "prc_rate_tier_off", at, detail: muc.name }, "changes() > 0"),
+    auditStatement(db, { staffId, action: bat ? "prc_rate_tier_on" : "prc_rate_tier_off", at, targetType: "ledger", targetId: code, detail: muc.name }, "changes() > 0"),
   ]);
   if (res instanceof Response) return res;
   if (dongDaDong(res)) return error(409, "stale", bat ? "Cấp này đang mở rồi — tải lại." : "Cấp này đã khoá rồi — tải lại.");
@@ -522,35 +566,17 @@ export const pricingModule: AppModule = {
       const hienTai = (await docLoaiDoiTac(env.DB)).find((x) => x.code === code);
       if (!hienTai) return LOAI_KHONG_CO();
       const than = await readJson(request);
-      const o: Record<string, unknown> = than && typeof than === "object" && !Array.isArray(than) ? (than as Record<string, unknown>) : {};
-      if (o.ten === undefined && o.ghiChu === undefined) return error(400, "invalid_input", "Cần gửi tên mới hoặc ghi chú mới.");
-      if (!("updatedAt" in o) || (o.updatedAt !== null && typeof o.updatedAt !== "string")) return error(400, "invalid_input", "Thiếu dấu phiên bản của loại — mở lại để sửa.");
-      let tenMoi = hienTai.ten;
-      if (o.ten !== undefined) {
-        const kq = kiemTenLoaiDoiTac(o.ten, (await loaiVaiChiTiet(env.DB)).filter((x) => x.code !== code).map((x) => x.ten));
-        if (!kq.ok) return error(kq.code === "loai_trung" ? 409 : 400, kq.code, kq.message);
-        tenMoi = kq.value;
-      }
-      let ghiChuMoi = hienTai.ghiChu;
-      if (o.ghiChu !== undefined) { // `ghiChu: null` hay "" ⇒ xoá ghi chú (kiemGhiChu trả null); `ten: null` rơi vào luật tên ở trên ⇒ 400
-        const gc = kiemGhiChu(o.ghiChu);
-        if (!gc.ok) return error(400, "invalid_input", gc.message);
-        ghiChuMoi = gc.value;
-      }
-      const doiTen = tenMoi !== hienTai.ten;
-      const doiGhiChu = ghiChuMoi !== hienTai.ghiChu;
-      if (!doiTen && !doiGhiChu) return json({ loai: hienTai } satisfies LoaiDoiTacResponse);
+      const kq = await docThanSuaDanhMuc(than, hienTai, { choPhepUpdatedAtNull: true, thieuDau: "Thiếu dấu phiên bản của loại — mở lại để sửa.",
+        kiemTen: async (raw) => {
+          const k = kiemTenLoaiDoiTac(raw, (await loaiVaiChiTiet(env.DB)).filter((x) => x.code !== code).map((x) => x.ten));
+          return k.ok ? k : { ok: false, status: k.code === "loai_trung" ? 409 : 400, code: k.code, message: k.message };
+        } });
+      if (kq instanceof Response) return kq;
+      if (!kq.doiTen && !kq.doiGhiChu) return json({ loai: hienTai } satisfies LoaiDoiTacResponse);
       const at = new Date().toISOString();
-      // Dòng nhật ký đầu đi theo `changes() > 0` của câu UPDATE; dòng thứ hai (khi đổi cả hai) dựa vào id của dòng đầu (khuôn wonGuard, src/CLAUDE.md) — bên thua không ghi gì.
-      const idDau = crypto.randomUUID();
-      const nhatKy = [
-        ...(doiTen ? [{ action: "prc_partner_type_renamed" as const, detail: `«${hienTai.ten}» → «${tenMoi}»` }] : []),
-        ...(doiGhiChu ? [{ action: "prc_partner_type_note" as const, detail: tenMoi }] : []),
-      ].map((n, i) => auditStatement(env.DB, { id: i === 0 ? idDau : undefined, staffId: staff.id, action: n.action, at, targetType: "ledger", targetId: code, detail: n.detail },
-        i === 0 ? "changes() > 0" : `EXISTS (SELECT 1 FROM audit_log WHERE id = '${idDau}')`));
       const res = await chayLo(env.DB, [
-        suaLoaiDoiTacStatement(env.DB, { code, ten: tenMoi, ghiChu: ghiChuMoi, at, staffId: staff.id, truocLuc: o.updatedAt as string | null }),
-        ...nhatKy,
+        suaLoaiDoiTacStatement(env.DB, { code, ten: kq.tenMoi, ghiChu: kq.ghiChuMoi, at, staffId: staff.id, truocLuc: kq.updatedAt }),
+        ...nhatKySuaDanhMuc(env.DB, { staffId: staff.id, at, code, tenCu: hienTai.ten, tenMoi: kq.tenMoi, doiTen: kq.doiTen, doiGhiChu: kq.doiGhiChu, actionTen: "prc_partner_type_renamed", actionGhiChu: "prc_partner_type_note" }),
       ]);
       if (res instanceof Response) return res;
       if (dongDaDong(res)) return error(409, "da_doi", "Loại này vừa được người khác sửa, mở lại để xem bản mới.");
@@ -582,10 +608,31 @@ export const pricingModule: AppModule = {
       const at = new Date().toISOString();
       const res = await chayLo(env.DB, [
         insertRateTierStatement(env.DB, { code, ten: kq.value.ten, khoa: kq.value.khoa }, at, staff.id),
-        auditStatement(env.DB, { staffId: staff.id, action: "prc_rate_tier_added", at, detail: kq.value.ten }),
+        auditStatement(env.DB, { staffId: staff.id, action: "prc_rate_tier_added", at, targetType: "ledger", targetId: code, detail: kq.value.ten }),
       ]);
       if (res instanceof Response) return res;
-      return kemLocation(json({ muc: { code, ten: kq.value.ten, dangBat: true, dong: [], gan: [] } } satisfies MucTaResponse, 201), "/hoa-hong");
+      return kemLocation(json({ muc: (await docMucTa(env.DB, vnToday(new Date()))).find((m) => m.code === code)! } satisfies MucTaResponse, 201), "/hoa-hong");
+    }),
+    // Mã định danh 5.26 (đặc tả 2026-10-31 §3): đổi tên + sửa ghi chú cấp đại lý, cùng khuôn với loại đối tác. Cấp đang khoá vẫn sửa được. Trùng tên do UNIQUE `name_key` quyết ⇒ 409 muc_trung (loiBang).
+    route("PATCH", "/api/pricing/muc-ta/:code", "office", async ({ env, params, request, staff }) => {
+      if (!can(staff, "partner.commission.write") || holdsPartner(staff)) return FORBIDDEN();
+      const code = params.code!;
+      const hienTai = MUC_TA_RE.test(code) ? (await docMucTa(env.DB, vnToday(new Date()))).find((m) => m.code === code) : undefined;
+      if (!hienTai) return MUC_KHONG_CO();
+      let khoa = "";
+      const kq = await docThanSuaDanhMuc(await readJson(request), hienTai, { choPhepUpdatedAtNull: false, thieuDau: "Thiếu dấu phiên bản của cấp — mở lại để sửa.",
+        kiemTen: (raw) => { const k = kiemTenMucTa(raw); if (!k.ok) return { ok: false, status: 400, code: "invalid_input", message: k.message }; khoa = k.value.khoa; return { ok: true, value: k.value.ten }; } });
+      if (kq instanceof Response) return kq;
+      if (!kq.doiTen && !kq.doiGhiChu) return json({ muc: hienTai } satisfies MucTaResponse);
+      if (!kq.doiTen) khoa = (kiemTenMucTa(hienTai.ten) as { ok: true; value: { khoa: string } }).value.khoa; // giữ khoá tên của chính nó
+      const at = new Date().toISOString();
+      const res = await chayLo(env.DB, [
+        suaMucTaStatement(env.DB, { code, ten: kq.tenMoi, khoa, ghiChu: kq.ghiChuMoi, at, staffId: staff.id, truocLuc: kq.updatedAt as string }),
+        ...nhatKySuaDanhMuc(env.DB, { staffId: staff.id, at, code, tenCu: hienTai.ten, tenMoi: kq.tenMoi, doiTen: kq.doiTen, doiGhiChu: kq.doiGhiChu, actionTen: "prc_rate_tier_renamed", actionGhiChu: "prc_rate_tier_note" }),
+      ]);
+      if (res instanceof Response) return res;
+      if (dongDaDong(res)) return error(409, "da_doi", "Cấp đại lý này vừa được người khác sửa, mở lại để xem bản mới.");
+      return json({ muc: (await docMucTa(env.DB, vnToday(new Date()))).find((m) => m.code === code)! } satisfies MucTaResponse);
     }),
     route("POST", "/api/pricing/muc-ta/gan", "office", async ({ env, request, staff }) => {
       if (!can(staff, "partner.commission.write") || holdsPartner(staff)) return FORBIDDEN();

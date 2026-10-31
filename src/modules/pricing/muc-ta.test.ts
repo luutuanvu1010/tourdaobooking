@@ -98,7 +98,9 @@ for (const [ten, as] of [["Kế toán", KT], ["Quản trị", ADM], ["Toàn quy�
     const w = setup();
     const r = await ok(themMuc(w, "  TA1  ", as), 201);
     assert.match(r.json.muc.code, /^MT_[A-Z]{8}$/);
-    assert.deepEqual(r.json.muc, { code: r.json.muc.code, ten: "TA1", dangBat: true, dong: [], gan: [] });
+    const { ghiChu, soLoai, soDoiTac, taoLuc, suaLuc, updatedAt } = r.json.muc; // Mã định danh 5.26: DTO có thêm ghi chú, dấu vết, updatedAt, số gắn
+    assert.deepEqual([ghiChu, soLoai, soDoiTac, typeof taoLuc, suaLuc === taoLuc, updatedAt === taoLuc], [null, 0, 0, "string", true, true]);
+    assert.deepEqual({ code: r.json.muc.code, ten: r.json.muc.ten, dangBat: r.json.muc.dangBat, dong: r.json.muc.dong, gan: r.json.muc.gan }, { code: r.json.muc.code, ten: "TA1", dangBat: true, dong: [], gan: [] });
     assert.equal(r.headers.get("location"), "/hoa-hong");
     const hang = w.q("SELECT code, name, name_key, active, created_by FROM prc_rate_tier");
     assert.deepEqual(hang.map((x: object) => ({ ...x })), [{ code: r.json.muc.code, name: "TA1", name_key: "ta1", active: 1, created_by: as }]);
@@ -259,7 +261,7 @@ test("N-23: tắt mức ⇒ 200 dangBat false, nhật ký; gắn mới và thêm
   const dong = await dongTyLe(w, ta1, 1000);
   await ganOk(w, l1, ta1);
   const t = await ok(w.call("POST", `/api/pricing/muc-ta/${ta1}/tat`, { as: KT, body: {} }), 200);
-  assert.deepEqual({ ...t.json.muc, dong: t.json.muc.dong.length, gan: t.json.muc.gan.length }, { code: ta1, ten: "TA1", dangBat: false, dong: 1, gan: 1 });
+  assert.deepEqual({ code: t.json.muc.code, ten: t.json.muc.ten, dangBat: t.json.muc.dangBat, dong: t.json.muc.dong.length, gan: t.json.muc.gan.length, soLoai: t.json.muc.soLoai }, { code: ta1, ten: "TA1", dangBat: false, dong: 1, gan: 1, soLoai: 1 });
   assert.deepEqual(nhatKy(w, "prc_rate_tier_off").map((x) => x.detail), ["TA1"]);
   assert.equal(dem(w, "SELECT active AS n FROM prc_rate_tier WHERE code = ?", ta1), 0);
 

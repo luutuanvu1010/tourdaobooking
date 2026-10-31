@@ -57,7 +57,7 @@ export const LICH_SU_DOI_TAC_AN = [
   "ledger_receipt_replaced", "ledger_reversal", "ledger_bank_txn_linked",
   "deposit_refund_approved", "deposit_transfer_approved", "deposit_approval_voided", "deposit_refund_paid", "deposit_transferred_out", "deposit_transferred_in",
   "deposit_outside_recorded", "deposit_outside_confirmed", "deposit_outside_rejected", "prc_commission_rule_added", "prc_commission_rule_closed", "prc_supply_term_added",
-  "prc_supply_term_closed", "prc_partner_type_added", "prc_partner_type_off", "prc_partner_type_on", "prc_partner_type_renamed", "prc_partner_type_note", "prc_sales_block_added", "prc_sales_block_ended", "prc_rate_tier_added", "prc_rate_tier_off", "prc_rate_tier_on",
+  "prc_supply_term_closed", "prc_partner_type_added", "prc_partner_type_off", "prc_partner_type_on", "prc_partner_type_renamed", "prc_partner_type_note", "prc_sales_block_added", "prc_sales_block_ended", "prc_rate_tier_added", "prc_rate_tier_off", "prc_rate_tier_on", "prc_rate_tier_renamed", "prc_rate_tier_note",
   "prc_role_tier_set", "prc_role_tier_closed", "prc_party_tier_set", "prc_party_tier_closed", "prc_commission_rule_voided", "prc_role_tier_voided", "prc_party_tier_voided", "ledger_period_closed",
   // Không gắn đơn: tài khoản, hồ sơ
   "staff_created", "staff_updated", "staff_suspended", "staff_reactivated", "staff_role_changed", "pin_reset", "pin_changed", "passkey_added", "passkey_removed",

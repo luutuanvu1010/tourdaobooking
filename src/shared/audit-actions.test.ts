@@ -53,6 +53,12 @@ test("ADR-0117 lần 2: năm hành động mức TA (thêm, tắt, bật lại, 
   for (const a of ["prc_rate_tier_added", "prc_rate_tier_off", "prc_rate_tier_on", "prc_role_tier_set", "prc_role_tier_closed"]) assert.equal(laHanhDongThuongMai(a), true, a);
 });
 
+test("Mã định danh 5.26: hành động đổi tên / sửa ghi chú cấp đại lý nhóm 'ledger', có nhãn, là hành động thương mại", () => {
+  assert.deepEqual({ ...AUDIT_ACTIONS.prc_rate_tier_renamed }, { label: "Đổi tên cấp đại lý", group: "ledger" });
+  assert.deepEqual({ ...AUDIT_ACTIONS.prc_rate_tier_note }, { label: "Sửa ghi chú cấp đại lý", group: "ledger" });
+  for (const a of ["prc_rate_tier_renamed", "prc_rate_tier_note"]) assert.equal(laHanhDongThuongMai(a), true, a);
+});
+
 test("ADR-0030 điều 1 (nút Từ chối): hành động 'order_handler_refused' nhóm 'order', nhãn «Trả đơn (Từ chối)»", () => {
   assert.deepEqual({ ...AUDIT_ACTIONS.order_handler_refused }, { label: "Trả đơn (Từ chối)", group: "order" });
 });
