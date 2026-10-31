@@ -39,6 +39,11 @@
 // ĐỔI CHỮ DANH BẠ (đợt cấp đại lý, Task 12, 2026-10-30): các câu ghim của hồ sơ Danh bạ (`web/parties.ts`) đổi theo luật «chính sách» → «cấp đại lý» / «cấp riêng»:
 // «Chính sách riêng: …» → «Cấp riêng: …», «Áp dụng chính sách riêng» → «Áp dụng cấp riêng», «Đã sửa chính sách riêng của đại lý này.» → «Đã sửa cấp riêng của đại lý này.»,
 // câu xem trước sửa của Danh bạ nói «cấp riêng này» (hằng CAU_SUA_RIENG_HUY_THAY). Bài `src/bang-tu-giao-dien.test.ts` (lượt 6) canh chữ cũ không quay lại.
+// MÃ ĐỊNH DANH 5.26 (kế hoạch docs/superpowers/plans/2026-10-31-ma-dinh-danh-va-sua-loai-doi-tac.md Task 6): (a) `bocucSach` bỏ ĐÚNG chữ của các ô mã `code.hh-ma` (LD_/MT_ + 8 chữ —
+// điều 5.26 bắt mã hiện để chép) khỏi phép quét mã thô; mã lọt ra chỗ khác vẫn đỏ. (b) Bước SUA (mới, sau bước T): hộp «Sửa» của loại Có sẵn (câu mã cố định, câu nhắc màn tài khoản,
+// không lộ mã tiếng Anh, Huỷ) và của loại tự thêm L_TAT0 (mã + «Chép mã», đổi tên + ghi chú ⇒ «Đã lưu loại đối tác.», thẻ hiện tên mới cùng mã). Màn tài khoản sau khi đổi tên loại
+// Có sẵn: kịch bản riêng docs/evidence/2026-10-31-ma-dinh-danh/kich-ban/ten-vai-tai-khoan-smoke.mjs.
+// (c) Bước K, T: đầu cụm nay có thêm nút «Sửa» (Task 5 — cấp khoá / loại đã tắt vẫn đổi tên, ghi chú được) ⇒ danh sách nút đòi «Sửa» đứng trước «Mở lại cấp» / «Bật».
 // Kịch bản Chrome — trang «Hoa hồng đối tác». Đây là rào DUY NHẤT cho phần GIAO DIỆN của trang: `npm test` canh luật thuần (src/shared/hoa-hong-*.ts) và máy chủ, `npm run test:e2e`
 // canh HTTP, nhưng không bài nào mở trang. Mỗi bước chạy ở 390 và 1040 (bước 9 chỉ 390); Danh bạ 12, 14, 14b giữ như trước.
 // Mỗi bước: không tràn ngang, vùng chạm ≥ 44px, ô gõ ≥ 16px, không chữ Anh / mã thô, không «chính sách», axe-core (critical / serious ⇒ đỏ; thiếu AXE_JS ⇒ dừng ngay), chụp ảnh.
@@ -175,8 +180,13 @@ async function bocucSach(p, nhan) {
     const satNguong = [...document.querySelectorAll('main button, main [role=tab], main select, main input, .sheet button, .sheet select, .sheet input')].filter((e) => hien(e) && !e.closest('[hidden]') && e.type !== 'hidden' && e.type !== 'radio' && e.type !== 'checkbox')
       .map((e) => ({ e, r: e.getBoundingClientRect() })).filter((x) => x.r.width > 0 && ((x.r.height >= 43.5 && x.r.height < 44) || (x.r.width >= 43.5 && x.r.width < 44))).map((x) => (x.e.id || x.e.className || x.e.tagName) + ' ' + x.r.width.toFixed(2) + '×' + x.r.height.toFixed(2));
     const chuTrang = (document.querySelector('main')?.innerText ?? '') + '\\n' + [...document.querySelectorAll('.sheet')].map((s) => s.innerText).join('\\n');
-    return { sw: document.documentElement.scrollWidth, iw: innerWidth, nho, ra, cham, satNguong, chu: document.body.innerText, chuTrang };
+    const maHien = [...document.querySelectorAll('code.hh-ma')].map((e) => e.textContent.trim());
+    return { sw: document.documentElement.scrollWidth, iw: innerWidth, nho, ra, cham, satNguong, chu: document.body.innerText, chuTrang, maHien };
   })()`);
+  // Hiến chương 5.26: mã định danh (LD_/MT_ + 8 chữ) CỐ Ý hiện ở ô mã `code.hh-ma` của thẻ và hộp Sửa — chỉ bỏ ĐÚNG chữ của các ô đó khỏi phép quét mã thô; mã lọt ra chỗ khác vẫn đỏ.
+  let chuQuet = m.chu;
+  for (const ma of m.maHien) if (/^(LD|MT)_[A-Z]{8}$/.test(ma)) chuQuet = chuQuet.split(ma).join("");
+  m.chu = chuQuet;
   assert.ok(m.sw <= m.iw, `${nhan}: tràn ngang (scrollWidth ${m.sw} > innerWidth ${m.iw}; phần tử ra ngoài: ${m.ra.join(", ")})`);
   assert.deepEqual(m.ra, [], `${nhan}: phần tử vượt mép phải`);
   assert.deepEqual(m.cham, [], `${nhan}: vùng chạm nhỏ hơn 44px`);
@@ -647,7 +657,7 @@ try {
             assert.deepEqual(await ghiCuoi(p, `/muc-ta/${C_K.code}/tat`), [200], "POST khoá cấp 200");
             await chonCap(p, C_K.code);
             const ct = await p.ev(`(() => { const c = document.querySelector('#hh-cap-ct[data-cap="${C_K.code}"]'); const hh = c.querySelector('.hh-cap-ct-dau .huy-hieu'); return { tong: hh?.dataset.tong, chu: hh?.textContent.trim(), nut: [...c.querySelectorAll('.hh-cap-nut button')].map((b) => b.textContent.trim()) }; })()`);
-            assert.deepEqual(ct, { tong: "cat", chu: NHAN_CAP_DA_KHOA, nut: ["Mở lại cấp"] }, "huy hiệu `cat` nguyên văn; chỉ còn «Mở lại cấp» (không «Thêm loại vào cấp này», «＋ Thêm hoa hồng cho dịch vụ»)");
+            assert.deepEqual(ct, { tong: "cat", chu: NHAN_CAP_DA_KHOA, nut: ["Sửa", "Mở lại cấp"] }, "huy hiệu `cat` nguyên văn; chỉ còn «Sửa» (5.26 — cấp khoá vẫn đổi tên / ghi chú được) + «Mở lại cấp» (không «Thêm loại vào cấp này», «＋ Thêm hoa hồng cho dịch vụ»)");
             const R_K = phai(await goiTrongTrang(p, "GET", "/api/pricing/muc-ta"), 200, "cấp").muc.find((m) => m.code === C_K.code).dong[0];
             const v = await viecCua(p, `#hh-cap-ct tr[data-dong-id="${R_K.id}"]`);
             assert.ok(v, "dòng mức của cấp khoá còn hiện");
@@ -694,10 +704,52 @@ try {
             await choOk(p, "Đã tắt loại.");
             await p.waitFor(`document.querySelector('article[data-loai="${L_TAT.code}"]')?.dataset.phu === 'TAT'`, "cụm loại đã tắt");
             const hh = await p.ev(`(() => { const b = document.querySelector('article[data-loai="${L_TAT.code}"] .hh-loai-dau .huy-hieu'); return { tong: b?.dataset.tong, chu: b?.textContent.trim(), nut: [...document.querySelectorAll('article[data-loai="${L_TAT.code}"] .hh-loai-dau button')].map((x) => x.textContent.trim()) }; })()`);
-            assert.deepEqual(hh, { tong: "xam", chu: "Đã tắt", nut: ["Bật"] }, "huy hiệu `xam` «Đã tắt», nút «Bật»");
+            assert.deepEqual(hh, { tong: "xam", chu: "Đã tắt", nut: ["Sửa", "Bật"] }, "huy hiệu `xam` «Đã tắt», nút «Sửa» (5.26) + «Bật»");
             assert.ok((await p.ev("[...document.querySelectorAll('#hh-dai .dai-cau > p')].map((x) => x.textContent)")).includes(cauLoaiTatDai(soTat0 + 1)), `dải: ${soTat0 + 1} loại đã tắt`);
             await bocucSach(p, `bước T ${kho}`);
             await chup(p, `05t-loai-da-tat-${tenKho}`);
+          });
+
+          await buoc(`SUA${kho}`, "Mã định danh 5.26 — hộp «Sửa»: loại tự thêm hiện mã LD_ + «Chép mã», đổi tên + ghi chú ⇒ «Đã lưu loại đối tác.», thẻ hiện tên mới cùng mã; loại Có sẵn hiện câu mã cố định + câu nhắc màn tài khoản", async () => {
+            await chuyenThe(p, "loai");
+            await locLoai(p, "tat-ca");
+            // Loại Có sẵn: ô mã không lộ mã tiếng Anh, có câu nhắc; Huỷ không ghi gì.
+            const coSan = phai(await goiTrongTrang(p, "GET", "/api/pricing/loai-doi-tac"), 200, "loại").loai.find((l) => l.coSan);
+            assert.ok(await cuonToi(p, `article[data-loai="${coSan.code}"]`), "cụm loại Có sẵn");
+            assert.equal(await clickTrong(p, `article[data-loai="${coSan.code}"] .hh-loai-dau`, "Sửa"), true, "nút «Sửa» của loại Có sẵn");
+            await choHop(p, "#hh-sua-ten");
+            const hopCs = await p.ev("(() => { const s = document.querySelector('.sheet'); return { t: s.querySelector('.sheet-title').textContent, ma: s.querySelector('code.hh-ma').textContent, chep: [...s.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Chép mã'), chu: s.innerText }; })()");
+            assert.deepEqual([hopCs.t, hopCs.ma, hopCs.chep], ["Sửa loại đối tác", "Loại có sẵn của hệ thống — mã cố định", false], "loại Có sẵn: câu mã cố định, không nút Chép");
+            assert.ok(hopCs.chu.includes("Tên này cũng hiện trên màn tài khoản của đối tác."), "câu nhắc màn tài khoản");
+            assert.ok(!hopCs.chu.includes(coSan.code), "không lộ mã tiếng Anh");
+            await bocucSach(p, `bước SUA hộp Có sẵn ${kho}`);
+            await axeKiem(p, `hộp Sửa loại Có sẵn ${kho}`);
+            await chup(p, `05s-hop-sua-loai-co-san-${tenKho}`, false);
+            assert.equal(await clickTrong(p, ".sheet .sheet-foot", "Huỷ"), true);
+            await choDongHop(p);
+            // Loại tự thêm (L_TAT0, đã tắt sẵn — không bước nào sau đọc tên nó): đổi tên + ghi chú.
+            assert.ok(await cuonToi(p, `article[data-loai="${L_TAT0.code}"]`), "cụm loại tự thêm");
+            assert.equal(await p.ev(`document.querySelector('article[data-loai="${L_TAT0.code}"] code.hh-ma')?.textContent`), L_TAT0.code, "thẻ hiện mã dưới tên");
+            assert.equal(await clickTrong(p, `article[data-loai="${L_TAT0.code}"] .hh-loai-dau`, "Sửa"), true, "nút «Sửa» của loại tự thêm");
+            await choHop(p, "#hh-sua-ten");
+            const hop = await p.ev("(() => { const s = document.querySelector('.sheet'); return { ma: s.querySelector('code.hh-ma').textContent, chep: [...s.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Chép mã'), ten: document.getElementById('hh-sua-ten').value, nut: [...s.querySelectorAll('.sheet-foot button')].map((b) => b.textContent.trim()) }; })()");
+            assert.deepEqual(hop, { ma: L_TAT0.code, chep: true, ten: L_TAT0.ten, nut: ["Huỷ", "Lưu"] }, "hộp Sửa: mã, nút Chép, tên điền sẵn");
+            await bocucSach(p, `bước SUA hộp ${kho}`);
+            await axeKiem(p, `hộp Sửa loại ${kho}`);
+            await chup(p, `05s-hop-sua-loai-${tenKho}`, false);
+            const TEN_MOI = `Đổi tên ${CHU} ${D}`;
+            await p.ev(setInput("document.getElementById('hh-sua-ten')", TEN_MOI));
+            await p.ev(setInput("document.getElementById('hh-sua-ghi-chu')", "Ghi chú thử của kịch bản Chrome."));
+            assert.equal(await clickTrong(p, ".sheet .sheet-foot", "Lưu"), true);
+            await choOk(p, "Đã lưu loại đối tác.");
+            await choDongHop(p);
+            await p.waitFor(`document.querySelector('article[data-loai="${L_TAT0.code}"] h3')?.textContent === ${JSON.stringify(TEN_MOI)}`, "thẻ hiện tên mới");
+            assert.equal(await p.ev(`document.querySelector('article[data-loai="${L_TAT0.code}"] code.hh-ma')?.textContent`), L_TAT0.code, "mã không đổi");
+            const may = phai(await goiTrongTrang(p, "GET", "/api/pricing/loai-doi-tac"), 200, "loại sau sửa").loai.find((l) => l.code === L_TAT0.code);
+            assert.deepEqual([may.ten, may.ghiChu], [TEN_MOI, "Ghi chú thử của kịch bản Chrome."], "máy chủ lưu tên + ghi chú");
+            await bocucSach(p, `bước SUA sau lưu ${kho}`);
+            await chup(p, `05s-loai-sau-sua-${tenKho}`);
+            await locLoai(p, "ap");
           });
 
           await buoc(`8k${kho}`, "«⋯» bằng bàn phím: Tab tới nút, Enter mở, tiêu điểm vào khung, Tab tiếp, Esc đóng về «⋯»; aria-haspopup=dialog; nền inert khi mở (tiêu chí 8)", async () => {
