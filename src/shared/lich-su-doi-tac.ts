@@ -92,7 +92,7 @@ export const LICH_SU_DOI_TAC_AN = [
   // ADR-0032 (hạn mức Từ chối — G3 kế hoạch 2026-10-23): ẩn như lớp nội bộ.
   "refuse_limit_hit", "refuse_policy_changed", "refuse_counter_reset",
   // ADR-0153 (đề xuất): giữ chỗ / trả vé điện tử — loại dòng MỚI nên mặc định ẩn cho tới khi chủ xếp loại. Trang Nhật ký (Toàn quyền) vẫn đọc được.
-  "ve_giu_cho", "ve_tra_ve",
+  "ve_giu_cho", "ve_tra_ve", "ve_nhap_lo", "ve_xac_nhan_lo", "ve_sua_ma_tour",
 ] as const satisfies readonly AuditAction[];
 
 /** Hành động mới trong `AUDIT_ACTIONS` chưa có ở danh sách nào ⇒ kiểu này khác `never` và dòng ngay dưới không biên dịch (`npm run typecheck` đỏ). */

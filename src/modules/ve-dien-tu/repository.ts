@@ -121,3 +121,62 @@ export const danhDauDaLuu = async (db: D1Database, id: string, at: string): Prom
 export const cauDatChoXoa = (db: D1Database, id: string, at: string, by: string | null): D1PreparedStatement => db.prepare(DAT_CHO_XOA).bind(id, at, by);
 export const listChoXoa = async (db: D1Database, gioiHan: number): Promise<VeCanXoa[]> => (await db.prepare(LIST_CHO_XOA).bind(gioiHan).all<VeCanXoa>()).results;
 export const danhDauDaXoaR2 = async (db: D1Database, id: string, at: string): Promise<number> => (await db.prepare(DANH_DAU_DA_XOA_R2).bind(id, at).run()).meta.changes;
+
+// ===== Nhập lô (ADR-0153; Task 4c). Lô tạo PENDING, thêm vé từng đợt (dòng vé `stored_at` rỗng tới khi kho nhận), xác nhận ⇒ ACTIVE (mới được giữ chỗ).
+const CHEN_LO = defineSql(
+  "ve-dien-tu",
+  "chen_lo",
+  `INSERT INTO vdt_batch (id, catalog_code, pax_group, printed_name, status, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?4, 'PENDING', ?5, ?6, ?5, ?6)`,
+);
+const DOC_LO = defineSql("ve-dien-tu", "doc_lo", "SELECT id, catalog_code, pax_group, printed_name, status FROM vdt_batch WHERE id = ?1");
+const CHEN_VE = defineSql(
+  "ve-dien-tu",
+  "chen_ve",
+  `INSERT INTO vdt_ticket (id, batch_id, ticket_code, valid_from, valid_to, slot_time, storage_key, content_kind, byte_size, content_hash, status, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, 'AVAILABLE', ?11, ?12, ?11, ?12
+   WHERE EXISTS (SELECT 1 FROM vdt_batch b WHERE b.id = ?2 AND b.status = 'PENDING') AND NOT EXISTS (SELECT 1 FROM vdt_ticket t WHERE t.ticket_code = ?3)`,
+);
+const MA_VE_DA_CO = defineSql("ve-dien-tu", "ma_ve_da_co", "SELECT ticket_code FROM vdt_ticket WHERE ticket_code IN (SELECT value FROM json_each(?1))");
+const KICH_HOAT_LO = defineSql(
+  "ve-dien-tu",
+  "kich_hoat_lo",
+  `UPDATE vdt_batch SET status = 'ACTIVE', updated_at = ?2, updated_by = ?3
+   WHERE id = ?1 AND status = 'PENDING' AND EXISTS (SELECT 1 FROM vdt_ticket t WHERE t.batch_id = ?1 AND t.stored_at IS NOT NULL AND t.purged_at IS NULL)`,
+);
+const DEM_VE_CUA_LO = defineSql(
+  "ve-dien-tu",
+  "dem_ve_cua_lo",
+  "SELECT count(*) AS tong, sum(stored_at IS NOT NULL AND purged_at IS NULL) AS da_luu FROM vdt_ticket WHERE batch_id = ?1",
+);
+const SUA_MA_TOUR = defineSql("ve-dien-tu", "sua_ma_tour", "UPDATE vdt_batch SET catalog_code = ?2, updated_at = ?3, updated_by = ?4 WHERE id = ?1 AND status <> 'VOID'");
+const THONG_KE_KHO = defineSql(
+  "ve-dien-tu",
+  "thong_ke_kho",
+  `SELECT b.catalog_code AS catalog_code, b.pax_group AS pax_group,
+          sum(t.status = 'AVAILABLE' AND t.stored_at IS NOT NULL AND t.valid_to >= ?1) AS con_trong,
+          sum(t.status = 'AVAILABLE' AND t.stored_at IS NOT NULL AND t.valid_to >= ?1 AND t.valid_to <= ?2) AS sap_het_han,
+          sum(t.status = 'ALLOCATED') AS da_giu,
+          sum(EXISTS (SELECT 1 FROM vdt_allocation a JOIN vdt_delivery d ON d.allocation_id = a.id WHERE a.ticket_id = t.id)) AS da_giao
+   FROM vdt_ticket t JOIN vdt_batch b ON b.id = t.batch_id
+   WHERE b.status = 'ACTIVE' GROUP BY b.catalog_code, b.pax_group ORDER BY b.catalog_code, b.pax_group`,
+);
+
+export interface LoRow { id: string; catalog_code: string; pax_group: string; printed_name: string; status: string }
+export interface VeMoi { id: string; batchId: string; maVe: string; tuNgay: string; denNgay: string; gio: string | null; khoa: string; loaiNoiDung: string; coBytes: number; bam: string; at: string; by: string | null }
+export interface DongKho { catalog_code: string; pax_group: string; con_trong: number; sap_het_han: number; da_giu: number; da_giao: number }
+
+export const cauChenLo = (db: D1Database, p: { id: string; catalogCode: string; nhom: string; tenSanPham: string; at: string; by: string | null }): D1PreparedStatement =>
+  db.prepare(CHEN_LO).bind(p.id, p.catalogCode, p.nhom, p.tenSanPham, p.at, p.by);
+export const docLo = (db: D1Database, id: string): Promise<LoRow | null> => db.prepare(DOC_LO).bind(id).first<LoRow>();
+/** Chèn một vé vào lô PENDING; trùng mã vé hoặc lô không còn PENDING ⇒ câu không chèn gì (changes 0). */
+export const cauChenVe = (db: D1Database, v: VeMoi): D1PreparedStatement =>
+  db.prepare(CHEN_VE).bind(v.id, v.batchId, v.maVe, v.tuNgay, v.denNgay, v.gio, v.khoa, v.loaiNoiDung, v.coBytes, v.bam, v.at, v.by);
+export const maVeDaCo = async (db: D1Database, ma: readonly string[]): Promise<Set<string>> =>
+  new Set((await db.prepare(MA_VE_DA_CO).bind(JSON.stringify(ma)).all<{ ticket_code: string }>()).results.map((r) => r.ticket_code));
+export const cauKichHoatLo = (db: D1Database, id: string, at: string, by: string | null): D1PreparedStatement => db.prepare(KICH_HOAT_LO).bind(id, at, by);
+export const demVeCuaLo = async (db: D1Database, id: string): Promise<{ tong: number; daLuu: number }> => {
+  const r = await db.prepare(DEM_VE_CUA_LO).bind(id).first<{ tong: number; da_luu: number | null }>();
+  return { tong: r?.tong ?? 0, daLuu: r?.da_luu ?? 0 };
+};
+export const cauSuaMaTour = (db: D1Database, id: string, maTour: string, at: string, by: string | null): D1PreparedStatement => db.prepare(SUA_MA_TOUR).bind(id, maTour, at, by);
+export const thongKeKho = async (db: D1Database, homNay: string, hanSapHet: string): Promise<DongKho[]> => (await db.prepare(THONG_KE_KHO).bind(homNay, hanSapHet).all<DongKho>()).results;

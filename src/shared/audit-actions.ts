@@ -24,6 +24,9 @@ export const AUDIT_ACTIONS = {
   // ADR-0153 Đ1 (đề xuất): giữ chỗ / trả vé điện tử cho đơn. `detail` khuôn "Giữ chỗ vé · <nhóm khách>: cần N" / "Trả vé · <lý do>" — không mã vé.
   ve_giu_cho: { label: "Giữ chỗ vé điện tử cho đơn", group: "ve" },
   ve_tra_ve: { label: "Trả vé điện tử về kho", group: "ve" },
+  ve_nhap_lo: { label: "Nhập lô vé điện tử", group: "ve" }, // detail: nhãn nhóm khách + số vé (KHÔNG mã vé)
+  ve_xac_nhan_lo: { label: "Đưa lô vé điện tử vào kho", group: "ve" },
+  ve_sua_ma_tour: { label: "Sửa dịch vụ của lô vé điện tử", group: "ve" },
   updated: { label: "Sửa đơn", group: "order" },
   trip_updated: { label: "Sửa thông tin chuyến", group: "order" },
   // ADR-0047 A1: chặng đưa đón sau xác nhận — `detail` "Chiều đi · <tên dịch vụ>: giờ đón 06:30 → 07:00; nơi đón A → B" (chữ tự do che dãy số — moTaChang).
