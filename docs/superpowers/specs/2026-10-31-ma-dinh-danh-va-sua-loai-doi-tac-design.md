@@ -1,6 +1,6 @@
 # Luật mã định danh + nút «Sửa» cho Loại đối tác và Cấp đại lý — đặc tả
 
-> Ngày: 2026-10-31. Trạng thái: **BẢN NHÁP, chờ chủ duyệt** (ba quyết định ở §5).
+> Ngày: 2026-10-31. Trạng thái: **ĐÃ DUYỆT** — chủ dự án trả lời ba câu ở §5 trong phiên chat 31/10 (duyệt 5.26; cho đổi tên cả loại có sẵn; ghi chú không vào nhật ký).
 > Nguồn: trò chuyện với chủ dự án 31/10. Phần chủ đã nói ghi «chủ:»; phần AI đề xuất ghi «đề xuất».
 > Nối tiếp: ADR-0117 lần 1 (loại đối tác là dữ liệu: thêm / tắt / bật) và lần 2 (cấp đại lý = mức TA dùng chung). Đặc tả này không đổi hai ADR đó, chỉ thêm việc sửa.
 
@@ -24,7 +24,7 @@ Hai loại bản ghi đã theo đúng khuôn này từ trước: Loại đối t
 | Phần | Loại đối tác | Cấp đại lý |
 |---|---|---|
 | Mã định danh | Hiện, có nút chép, không sửa | Như bên trái |
-| Tên | Sửa được — **chỉ loại tự thêm** (§5 câu 2) | Sửa được |
+| Tên | Sửa được — loại tự thêm **và** năm loại Có sẵn (§5 câu 2) | Sửa được |
 | Ghi chú (ô mới, ≤ 500 chữ, để trống được) | Sửa được — mọi loại | Sửa được |
 | Ai tạo, lúc nào; ai sửa gần nhất, lúc nào | Chỉ xem | Chỉ xem |
 | Đang dùng ở đâu | Số hồ sơ đang mang loại | Số loại và số đối tác đang theo cấp |
@@ -52,8 +52,7 @@ Khác nhau về dấu vết:
 
 | Ô quyền | Việc | Áp cho |
 |---|---|---|
-| `partner.commission.write` (Kế toán, Quản trị, Toàn quyền; trừ tài khoản giữ quyền Đối tác) | Đổi tên loại | **Chỉ** loại tự thêm |
-| như trên | Sửa ghi chú loại | Năm loại Có sẵn + loại tự thêm (dòng có trong danh sách được hưởng) |
+| `partner.commission.write` (Kế toán, Quản trị, Toàn quyền; trừ tài khoản giữ quyền Đối tác) | Đổi tên, sửa ghi chú loại | Năm loại Có sẵn + loại tự thêm (dòng có trong danh sách được hưởng) |
 | như trên | Đổi tên, sửa ghi chú cấp | Mọi cấp |
 | `partner.commission.view` | Xem mã, ghi chú, dấu vết, số nơi dùng | Như danh sách hiện xem được hôm nay |
 | quyền gắn vai ở Danh bạ (Quản trị, Toàn quyền — ADR-0117 Đ3) | Gắn loại cho hồ sơ | **Không đổi** |
@@ -61,8 +60,8 @@ Khác nhau về dấu vết:
 Vai nội bộ, vai đăng nhập khác, dòng OTHER không phải loại đối tác: không lệnh nào ở đây ghi được (máy chủ trả 404).
 
 **Cổng nào canh cửa nào:**
-- Máy chủ: route PATCH kiểm `can(partner.commission.write)` + `holdsPartner` (như route Tắt/Bật hiện có), rồi kiểm loại dòng. Câu SQL đổi tên tự giới hạn `is_partner_label = 1`; câu sửa ghi chú tự giới hạn dòng có trong danh sách được hưởng. Hai lớp: bỏ kiểm ở route thì câu SQL vẫn không đổi được dòng ngoài phạm vi (0 dòng ⇒ 404).
-- Giao diện (chỉ ẩn/hiện, máy chủ kiểm lại): nút **Sửa** hiện khi người xem có `partner.commission.write`. Trong ô Sửa, ô **Tên** chỉ gõ được với loại tự thêm; với loại Có sẵn, ô Tên hiện chữ chỉ đọc. Không chỗ ẩn/hiện nào khác đổi nghĩa.
+- Máy chủ: route PATCH kiểm `can(partner.commission.write)` + `holdsPartner` (như route Tắt/Bật hiện có), rồi kiểm loại dòng. Câu SQL đổi tên và sửa ghi chú tự giới hạn dòng có trong danh sách được hưởng. Hai lớp: bỏ kiểm ở route thì câu SQL vẫn không đổi được dòng ngoài phạm vi (0 dòng ⇒ 404).
+- Giao diện (chỉ ẩn/hiện, máy chủ kiểm lại): nút **Sửa** hiện khi người xem có `partner.commission.write`. Với loại Có sẵn, ô Sửa kèm một câu nhắc: «Tên này cũng hiện trên màn tài khoản của đối tác». Không chỗ ẩn/hiện nào khác đổi nghĩa.
 
 ## 4. Ngoài phạm vi
 
@@ -72,15 +71,15 @@ Vai nội bộ, vai đăng nhập khác, dòng OTHER không phải loại đối
 
 ## 5. Ba quyết định cần chủ
 
-1. **Duyệt điều 5.26 ở §2** (áp cho loại bản ghi mới; khuôn cũ là nợ rà riêng). Khuyến nghị: duyệt.
-2. **Năm loại «Có sẵn»** (Công ty lữ hành, Hướng dẫn viên độc lập, Lễ tân khách sạn, Tài xế taxi, Cộng tác viên — cũng là vai đăng nhập của đối tác) **chỉ sửa ghi chú, không đổi tên**, vì đổi tên sẽ đổi chữ trên màn tài khoản. Mã cũ của chúng là chữ tiếng Anh nên ô mã hiện «Loại gốc của hệ thống — mã cố định» thay cho mã thô (luật cấm chữ Anh lộ ra người dùng). Khuyến nghị: đồng ý.
-3. **Nội dung ghi chú không vào nhật ký** (chỉ ghi «đã sửa ghi chú»), vì ghi chú là chữ tự do, dễ lọt thông tin cá nhân. Khuyến nghị: đồng ý.
+1. **Duyệt điều 5.26 ở §2** (áp cho loại bản ghi mới; khuôn cũ là nợ rà riêng). Chủ: **duyệt**.
+2. **Chủ chọn: CHO đổi tên cả năm loại «Có sẵn»** (chủ đã nghe hệ quả: chữ trên màn tài khoản đối tác đổi theo). Đề xuất ban đầu dưới đây không được chọn; riêng ô mã vẫn hiện «Loại gốc của hệ thống — mã cố định» (AI tự chốt, chủ bác được). Đề xuất ban đầu: **Năm loại «Có sẵn»** (Công ty lữ hành, Hướng dẫn viên độc lập, Lễ tân khách sạn, Tài xế taxi, Cộng tác viên — cũng là vai đăng nhập của đối tác) **chỉ sửa ghi chú, không đổi tên**, vì đổi tên sẽ đổi chữ trên màn tài khoản. Mã cũ của chúng là chữ tiếng Anh nên ô mã hiện «Loại gốc của hệ thống — mã cố định» thay cho mã thô (luật cấm chữ Anh lộ ra người dùng). Khuyến nghị: đồng ý.
+3. **Nội dung ghi chú không vào nhật ký** (chỉ ghi «đã sửa ghi chú»), vì ghi chú là chữ tự do, dễ lọt thông tin cá nhân. Chủ: **đồng ý**.
 
 ## 6. Tiêu chí nghiệm thu (kiểm được)
 
 - A1. Kế toán đổi tên một loại tự thêm và một cấp đại lý → tên mới hiện ở thẻ, ô chọn loại ở Danh bạ, ô Kiểm tra hoa hồng; mã không đổi; một dòng nhật ký có mã.
 - A2. Đổi tên trùng tên khác cùng loại → 409, không ghi gì. Tên hoặc ghi chú có SĐT → 400.
-- A3. Đổi tên loại «Có sẵn» → máy chủ từ chối (không chỉ ẩn nút); sửa ghi chú loại «Có sẵn» → được. Mã vai nội bộ / mã lạ → 404.
+- A3. Đổi tên và sửa ghi chú loại «Có sẵn» → được, tên mới hiện cả ở màn tài khoản đối tác. Mã vai nội bộ, vai đăng nhập không được hưởng (Tài xế đối tác), dòng OTHER, mã lạ → 404 (máy chủ, không chỉ ẩn nút).
 - A4. Tài khoản không có `partner.commission.write`, và tài khoản giữ quyền Đối tác → 403 cho mọi lệnh sửa.
 - A5. Hai lệnh sửa cùng gửi trên cùng bản cũ → một thắng, một 409, nhật ký đúng một dòng. Mở ô sửa → người khác Tắt → lưu → 409.
 - A6. Dòng nhật ký «Sửa ghi chú» không chứa nội dung ghi chú.
@@ -93,7 +92,7 @@ Vai nội bộ, vai đăng nhập khác, dòng OTHER không phải loại đối
 - **Migration `0130`** (kiểm lại mọi nhánh trước khi đặt số): `pty_role_type` thêm `note`, `created_at`, `created_by`, `updated_at`, `updated_by` (đều NULL được — dòng cũ để NULL); `prc_rate_tier` thêm `note`. Trigger `prc_rate_tier_update_scope` đã cho đổi cột ngoài mã / người-giờ tạo ⇒ không phải sửa. `docs/data-dictionary.json` (hạng N1) + `npm run dict`.
 - **Khoá lạc quan bằng `updated_at`** (luật Phần II), không thêm cột `version`: câu cập nhật có điều kiện `updated_at IS ?` (so được cả NULL của dòng cũ) → nhật ký `changes() > 0`. Câu Tắt/Bật loại đối tác (`partner_label_set_active`) sửa để cũng đặt `updated_at/updated_by`; câu Tắt/Bật cấp đã đặt sẵn. Câu thêm loại đặt `created_*` + `updated_*`.
 - **Route** (cạnh các route `…/tat`, `…/bat` hiện có): `PATCH /api/pricing/loai-doi-tac/:code` và `PATCH /api/pricing/muc-ta/:code`, thân `{ ten?, ghiChu?, updatedAt }`. Vắng trường = giữ nguyên; `ghiChu: ""` = xoá ghi chú; vắng cả hai → 400. Lệnh GET danh sách trả thêm `ghiChu`, `taoLuc/taoBoi`, `suaLuc/suaBoi`, `updatedAt`, số nơi đang dùng.
-- Ghi `pty_role_type` chỉ qua câu chưa chạy do `parties/index.ts` công bố (như `themLoaiDoiTacStatement`). Đổi tên: chỉ dòng `is_partner_label = 1`; ghi chú: dòng có trong danh sách được hưởng (`prc_beneficiary_role`) — đúng năm loại có sẵn + loại tự thêm.
+- Ghi `pty_role_type` chỉ qua câu chưa chạy do `parties/index.ts` công bố (như `themLoaiDoiTacStatement`). Đổi tên và ghi chú: chỉ dòng có trong danh sách được hưởng (`prc_beneficiary_role`) — đúng năm loại có sẵn + loại tự thêm. Grep chữ tên năm loại viết cứng trong test, hướng dẫn, e2e: chỗ nào so chữ tên thì chuyển sang so mã.
 - **Luật tên**: `kiemTenLoaiDoiTac(raw, daCo)` nhận danh sách tên ⇒ nơi gọi lọc bỏ chính loại đang sửa theo mã; `kiemTenMucTa` + chỉ mục duy nhất `name_key` cho cấp. Luật ghi chú: một hàm thuần mới ở `src/shared/` (dùng chung hai module), có test.
 - **Bảng tiền tố**: `src/shared/ma-dinh-danh.ts` (`LD`, `MT`) + hàm sinh mã chung; `maLoaiDoiTac` (parties) và `maMucTa` (pricing) gọi hàm này. `src/shared` không import module ⇒ hợp luật kiến trúc; xác nhận bằng `architecture.test.ts`.
 - **Nhật ký**: `targetType = "ledger"` (nhóm sẵn có của các hành động `prc_partner_type_*`, `prc_rate_tier_*`), `targetId = mã`. Bốn hành động mới khai ở `src/shared/audit-actions.ts`, thêm vào danh sách lịch sử ở `src/shared/lich-su-doi-tac.ts` / `lich-su-noi-bo.ts` như các hành động cùng nhóm.
