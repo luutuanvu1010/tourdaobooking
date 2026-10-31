@@ -775,7 +775,7 @@ export function taoMoHop(ctx: NguCanhHop): MoHop {
 
   function suaDanhMuc(t: ThamSuaDanhMuc): void {
     const la = t.loai === "LOAI";
-    const ten = h("input", { id: "hh-sua-ten", type: "text", maxLength: 80, autocomplete: "off", value: t.ten });
+    const ten = h("input", { id: "hh-sua-ten", type: "text", maxLength: 60, autocomplete: "off", value: t.ten });
     const ghi = h("textarea", { id: "hh-sua-ghi-chu", maxLength: GHI_CHU_TOI_DA, rows: 3 });
     ghi.value = t.ghiChu ?? "";
     const dem = h("span", { class: "hint", "aria-live": "polite" }, cauDemGhiChu(ghi.value.length));

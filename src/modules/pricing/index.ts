@@ -221,14 +221,12 @@ function docThanSuaDanhMuc(than: unknown, hien: { ten: string; ghiChu: string | 
     return { updatedAt: u as string | null, tenMoi, ghiChuMoi, doiTen: tenMoi !== hien.ten, doiGhiChu: ghiChuMoi !== hien.ghiChu };
   })();
 }
-/** Nhật ký của lô sửa: dòng đầu đi theo `changes() > 0` của câu UPDATE; dòng hai (khi đổi cả hai) bám id dòng đầu (khuôn wonGuard) — bên thua không ghi gì. Ghi chú: detail là TÊN, không chép nội dung. */
+/** Nhật ký của lô sửa, theo khuôn «changes() của câu đứng ngay trước»: câu UPDATE có điều kiện → dòng nhật ký đầu ghi khi `changes() > 0` của UPDATE (thắng = 1, thua = 0) → dòng nhật ký hai (khi đổi cả hai) ghi khi `changes() > 0` của chính dòng đầu (đã ghi = 1, không ghi = 0). Bên thua không ghi gì; module nghiêm không đọc `audit_log`. Ghi chú: detail là TÊN, không chép nội dung. */
 function nhatKySuaDanhMuc(db: D1Database, v: { staffId: string; at: string; code: string; tenCu: string; tenMoi: string; doiTen: boolean; doiGhiChu: boolean; actionTen: AuditAction; actionGhiChu: AuditAction }): D1PreparedStatement[] {
-  const idDau = crypto.randomUUID();
   return [
     ...(v.doiTen ? [{ action: v.actionTen, detail: `«${v.tenCu}» → «${v.tenMoi}»` }] : []),
     ...(v.doiGhiChu ? [{ action: v.actionGhiChu, detail: v.tenMoi }] : []),
-  ].map((n, i) => auditStatement(db, { id: i === 0 ? idDau : undefined, staffId: v.staffId, action: n.action, at: v.at, targetType: "ledger", targetId: v.code, detail: n.detail },
-    i === 0 ? "changes() > 0" : `EXISTS (SELECT 1 FROM audit_log WHERE id = '${idDau}')`));
+  ].map((n) => auditStatement(db, { staffId: v.staffId, action: n.action, at: v.at, targetType: "ledger", targetId: v.code, detail: n.detail }, "changes() > 0"));
 }
 const LOAI_KHONG_CO = () => error(404, "not_found", "Không tìm thấy loại đối tác này.");
 
