@@ -104,7 +104,7 @@ Nền tảng chỉ cho xác nhận khi mỗi dịch vụ đã chọn Đón hoặ
 ### Trang chủ
 
 - Máy tính có thẻ [[Lối tắt]]; bấm [[Tất cả]] để xem mọi chức năng.
-- Máy tính: khối [[Việc của bạn]] hiện các thẻ việc đang chờ, mỗi thẻ có số và nút làm ngay: [[Đơn nháp]], [[Đơn còn thiếu tiền]], [[Đơn chưa có người phụ trách]], [[Đơn đi hôm nay]]. Nhãn **Toàn công ty** là số của cả công ty.
+- Máy tính: thẻ [[Đang chờ bạn]] liệt kê việc đang chờ, mỗi dòng có số, bấm để làm tiếp: [[Đơn nháp]], [[Đơn còn thiếu tiền]], [[Đơn chưa có người phụ trách]]. Nhãn **Toàn công ty** là số của cả công ty.
 - Điện thoại: các ô số **Còn thiếu tiền**, [[Chờ xác nhận]], [[Chưa phụ trách]] — bấm để sang [[Đơn hàng]].
 - [[Đơn đi]]: đơn đã xác nhận có ngày đi trong ngày đang chọn, xếp theo giờ đón; bấm [[Hôm nay]] / [[Ngày mai]] / [[Ngày kia]] để đổi ngày. Điện thoại có nút [[Gọi]] khách.
 - [[Doanh thu của tôi]]: chỉ đơn **bạn lập** đã xác nhận trong tuần.`,

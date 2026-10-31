@@ -8,7 +8,7 @@ export const HD_KE_TOAN: NhomHuongDan = {
   gioiThieu:
     "Bạn là kế toán của công ty. Bạn xem được mọi đơn: khách, dịch vụ, số khách, tiền, lịch sử sửa đơn, và mở được biên nhận để gửi khách. Trên trang đơn, bạn ghi và đối chiếu tiền, bấm Hoàn thành, đánh dấu đã nhập phần mềm kế toán. Bạn không lập, không sửa, không xác nhận, không huỷ đơn; riêng số khách của đơn đã xác nhận thì bạn sửa được.",
   batDauNhanh: `1. Mở Nền tảng, vào thẳng [[Trang chủ]].
-2. Nhìn khối [[Việc của bạn]]: mỗi thẻ là một việc đang chờ. Thẻ có nhãn **Toàn công ty** là số của cả công ty.
+2. Nhìn thẻ [[Đang chờ bạn]]: mỗi dòng là một việc đang chờ. Dòng có nhãn **Toàn công ty** là số của cả công ty.
 3. Bấm [[Đơn hàng]] để xem danh sách đơn.
 4. Gõ tên khách, số điện thoại hoặc mã đơn vào ô tìm kiếm của danh sách.
 5. Bấm vào một đơn, xem khối **Thanh toán** để biết tổng tiền, đã thu và còn lại.
@@ -36,11 +36,11 @@ Thanh tab dưới đáy có [[Trang chủ]], [[Đơn hàng]] và [[Tôi]]. Các 
     {
       tieuDe: "Xem tình hình chung ở Trang chủ",
       noiDung: `1. Mở Nền tảng, vào thẳng [[Trang chủ]].
-2. Máy tính: nhìn khối [[Việc của bạn]] dưới lời chào. Mỗi thẻ có số và một nút bấm:
+2. Máy tính: thẻ [[Đang chờ bạn]], mỗi dòng có số:
    - [[Đơn chờ xác nhận]] (nhãn **Toàn công ty**): số đơn đang chờ xác nhận.
    - [[Điều chỉnh công nợ chờ duyệt]] (nhãn **Của tôi**): yêu cầu đang chờ chính bạn duyệt.
    - [[Đơn còn thiếu tiền]] (nhãn **Toàn công ty**): số đơn đã xác nhận mà khách còn nợ; dòng nhỏ ghi tổng tiền còn phải thu.
-   - [[Đơn đi hôm nay]]: số đơn đi hôm nay.
+   - [[Chờ đối chiếu]], [[Thu trước đơn huỷ]]: khoản chờ bạn xử lý.
    Điện thoại: hai ô **Còn thiếu**, **Chưa phụ trách** (cả công ty), thêm một dải khi có đơn chờ xác nhận.
    Khối **Chờ đối chiếu** liệt kê khoản đang chờ bạn đối chiếu (mục "Đối chiếu tiền trên trang đơn").
 3. Xem thẻ **Đơn đi**: các đơn đã xác nhận có ngày đi hôm nay (bấm Ngày mai, Ngày kia để xem tiếp).

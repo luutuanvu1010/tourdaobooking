@@ -9,7 +9,7 @@ export const HD_QUAN_TRI: NhomHuongDan = {
   batDauNhanh: `1. Mở [[Quản lý tài khoản]], xem cột [[Đăng nhập gần nhất]] để biết ai đã vào.
 2. Nhân viên mới: Hành chính nhân sự tạo tài khoản; bạn gán vai trò, đặt lại PIN khi họ cần.
 3. Mở [[Dịch vụ & giá]], xem lần đồng bộ gần nhất với Google Sheet có lỗi không.
-4. Trên Trang chủ, xem khối [[Việc của bạn]] (thẻ [[Cần xem lại]] đứng đầu).
+4. Trên Trang chủ, xem thẻ [[Đang chờ bạn]] (dòng [[Cần xem lại]] đứng đầu).
 5. Mở [[Xe & giấy tờ]], chọn [[Giấy tờ sắp hết hạn]] để xem giấy tờ xe, tài xế sắp hết hạn.`,
   muc: [
     {
