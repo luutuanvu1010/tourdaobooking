@@ -20,7 +20,7 @@ const TODAY = vnDate(0), TOMORROW = vnDate(1), LATER = vnDate(10);
 const TEN_BEN = ["Đại lý Du lịch Biển Xanh Nha Trang", "Nhà hàng Hải Sản Bình Dân Vịnh Nha Trang", "Công ty TNHH Dịch vụ Lữ hành Sao Biển", "Lễ tân khách sạn Mường Thanh"];
 const doiChieu = Array.from({ length: 54 }, (_, i) => {
   const loai = i % 3 === 0 ? "cong_ty" : i % 3 === 1 ? "ben_dat" : "nha_cung_cap";
-  return { receiptId: `rc-${i}`, orderId: `ord-${i}`, maDon: `TD-202610${18 + (i % 2)}-${String(i + 1).padStart(4, "0")}`, soTien: [30000, 3000000, 100000, 1300000, 200000, 12345000][i % 6], ngayKhai: i % 2 ? "2026-10-19" : "2026-10-18", qua3Ngay: i < 40, loai, benKia: loai === "cong_ty" ? null : TEN_BEN[i % 4] };
+  return { receiptId: `rc-${i}`, orderId: `ord-${i}`, maDon: `TD-202610${18 + (i % 2)}-${String(i + 1).padStart(4, "0")}`, soTien: [30000, 3000000, 100000, 1300000, 200000, 12345000][i % 6], ngayKhai: i % 2 ? "2026-10-19" : "2026-10-18", qua3Ngay: process.env.QUA_CUOI ? i >= 14 : i < 40, /* QUA_CUOI=1: 40 khoản quá hạn nằm CUỐI danh sách (ca S1 của phiên kiểm độc lập) */ loai, benKia: loai === "cong_ty" ? null : TEN_BEN[i % 4] };
 });
 const coc = {
   canChi: [], donHuyGiuCoc: [],
@@ -169,7 +169,7 @@ try {
   await luuTC("nang-8-don-dai-gap", true);
 
   // Thử «Xem tất cả» mở rộng (chỉ 1440x900, chỉ bản sau): đo khối mở + nút «Thu gọn».
-  if (PHA === "sau") {
+  if (PHA.startsWith("sau")) {
     const p = await mo(ACCOUNTS.chu, "/", { width: 1440, height: 900 }, true);
     try {
       await p.waitFor("!document.querySelector('#dash-grid')?.hidden", "lưới", 20000); await sleep(400);

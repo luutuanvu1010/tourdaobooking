@@ -65,3 +65,39 @@ test("bề rộng khung chung: trần 1920px (token), biểu mẫu Giao diện g
   assert.match(css, /main\.gd \{ max-width: var\(--w-main-hep\); \}/);
   assert.match(css, /main\.form-page \{ max-width: var\(--w-form\); \}/);
 });
+
+// ---- S1 của phiên kiểm độc lập vòng 2: ẩn dòng «Cần xem lại» ở máy tính KHÔNG được làm mất tín hiệu quá hạn ----
+import { nguonCanTai, phuDoiChieu, phuThuTruoc, viecCuaBan } from "./shared/viec-cua-ban.ts";
+import { NGAY_NHAC_DOI_CHIEU_HIEN_THI } from "./shared/doi-chieu-hien-thi.ts";
+import type { PermissionHolder } from "./shared/permissions.ts";
+
+const keToan = { id: "kt", permissions: ["ACCOUNTING"] } as unknown as PermissionHolder;
+const sales = { id: "sl", permissions: ["SALES"] } as unknown as PermissionHolder;
+
+test("S1: ca Kế toán có khoản quá hạn (nằm cuối danh sách): dòng «Chờ đối chiếu» ở «Đang chờ bạn» mang số quá hạn, nên ẩn dòng «Cần xem lại» không mất tín hiệu", () => {
+  const r = viecCuaBan(keToan, { doiChieu: 54, doiChieuQuaHan: 40, thuTruoc: 7, thuTruocChiTiet: { canChi: 0, qua7Ngay: 2, sapHetHan: 1, conNguoiGiu: 7 } });
+  const dc = [...r.the, ...r.conLaiThe].find((t) => t.khoa === "doiChieu");
+  assert.equal(dc?.so, 54);
+  assert.equal(dc?.phu, `40 khoản quá ${NGAY_NHAC_DOI_CHIEU_HIEN_THI} ngày — cần đối chiếu`);
+  const tt = [...r.the, ...r.conLaiThe].find((t) => t.khoa === "thuTruoc");
+  assert.equal(tt?.phu, "2 khoản đã duyệt quá 7 ngày · 1 đơn huỷ sắp hết hạn hoàn · 7 đơn còn người chưa nộp tiền");
+  assert.equal(phuDoiChieu(0), "Khoản thu chờ Kế toán đối chiếu", "không quá hạn → câu cũ");
+  assert.equal(phuDoiChieu(null), "Khoản thu chờ Kế toán đối chiếu");
+  assert.equal(phuThuTruoc(null), "Khoản thu trước của đơn huỷ chờ chi hoàn / chuyển");
+});
+
+test("S1: web/home.ts đưa khoản quá hạn lên ĐẦU danh sách và dựng nhãn từ hằng số, không chữ cứng", () => {
+  assert.match(home, /\[\.\.\.ds\]\.sort\(\(a, b\) => Number\(b\.qua3Ngay\) - Number\(a\.qua3Ngay\)\)/);
+  assert.match(home, /\[\.\.\.muc\]\.sort\(\(a, b\) => Number\(b\.canhBao !== null\) - Number\(a\.canhBao !== null\)\)/);
+  assert.match(home, /`quá \$\{NGAY_NHAC_DOI_CHIEU_HIEN_THI\} ngày`/);
+  assert.ok(!home.includes('"quá 3 ngày"'), "không còn nhãn «quá 3 ngày» viết cứng");
+});
+
+test("S1: ca vai KHÔNG có khối chi tiết (Nhân viên lập đơn): không dòng đối chiếu / thu trước nên không dòng «Cần xem lại» nào bị gắn dash-trung", () => {
+  assert.ok(!nguonCanTai(sales).includes("doiChieu") && !nguonCanTai(sales).includes("thuTruoc"));
+  // dash-trung chỉ gắn khi người xem có khối (cùng cổng với dòng ở «Đang chờ bạn»)
+  assert.match(home, /if \(coKhoiDoiChieu\(staffDangXem\)\) r\.classList\.add\("dash-trung"\)/);
+  assert.match(home, /if \(coKhoiThuTruoc\(staffDangXem\)\) r\.classList\.add\("dash-trung"\)/);
+  const nguon = { doiChieu: 54, doiChieuQuaHan: 40 };
+  assert.ok(![...viecCuaBan(sales, nguon).the, ...viecCuaBan(sales, nguon).conLaiThe].some((t) => t.khoa === "doiChieu"));
+});

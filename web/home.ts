@@ -11,7 +11,7 @@ import { layKhungNho } from "./khung-nho";
 import { feedbackBadge, initShell } from "./shell";
 import { demSapHetHan, layDanhSachSapHet } from "./vc-dem";
 import { canSeeReviewAlerts, reviewAlerts, type ReviewAlerts } from "../src/shared/dashboard-review";
-import { tieuDeDemDoiChieu } from "../src/shared/doi-chieu-hien-thi";
+import { NGAY_NHAC_DOI_CHIEU_HIEN_THI, tieuDeDemDoiChieu } from "../src/shared/doi-chieu-hien-thi";
 import { coKhoiThuTruoc, danhSachThuTruoc, dongThuTruoc } from "../src/shared/thu-truoc-hien-thi";
 import { coKhoiChoDoiChieu, nhanKhoanDoiChieu, nutXacNhanDoiChieu } from "../src/shared/ben-kia-hien-thi";
 import { PERMISSION_LABEL, can, holdsPartner } from "../src/shared/permissions";
@@ -337,7 +337,9 @@ async function taiDoiChieu(staff: Staff, lamMoi = false): Promise<number | null 
     khoi.hidden = true;
     return 0;
   }
-  const dong = ds.map((k) => {
+  // Khoản quá hạn lên ĐẦU (sắp ổn định): ba dòng đầu luôn có khoản quá hạn nếu có.
+  const dsXep = [...ds].sort((a, b) => Number(b.qua3Ngay) - Number(a.qua3Ngay));
+  const dong = dsXep.map((k) => {
     const nutNhan = nutXacNhanDoiChieu(k.loai);
     const nut = nutNhan ? h("button", { type: "button", class: "btn btn-link", "data-action": "ben-kia-da-nhan", "data-receipt-id": k.receiptId }, nutNhan) : null;
     nut?.addEventListener("click", async () => {
@@ -357,7 +359,7 @@ async function taiDoiChieu(staff: Staff, lamMoi = false): Promise<number | null 
       h("a", { class: "dash-ct-ma", href: `/order?id=${encodeURIComponent(k.orderId)}` }, k.maDon),
       h("span", { class: "dash-ct-ben" }, nhanKhoanDoiChieu(k)),
       h("span", { class: "dash-ct-tien" }, vnd(k.soTien)),
-      h("span", { class: "dash-ct-meta" }, h("span", { class: "dash-ct-ngay" }, `ghi ${ngayNganHomNay(k.ngayKhai)}`), h("span", { class: "dash-ct-the" }, k.qua3Ngay ? h("span", { class: "dash-ct-pill" }, "quá 3 ngày") : null)),
+      h("span", { class: "dash-ct-meta" }, h("span", { class: "dash-ct-ngay" }, `ghi ${ngayNganHomNay(k.ngayKhai)}`), h("span", { class: "dash-ct-the" }, k.qua3Ngay ? h("span", { class: "dash-ct-pill" }, `quá ${NGAY_NHAC_DOI_CHIEU_HIEN_THI} ngày`) : null)),
       h("span", { class: "dash-ct-hanh" }, nut),
     );
   });
@@ -396,7 +398,8 @@ async function taiThuTruoc(staff: Staff, lamMoi = false): Promise<number | null 
     khoi.hidden = true;
     return 0;
   }
-  const dong = muc.map((m) =>
+  const mucXep = [...muc].sort((a, b) => Number(b.canhBao !== null) - Number(a.canhBao !== null)); // dòng có cảnh báo lên đầu
+  const dong = mucXep.map((m) =>
     h(
       "li",
       { class: "dash-ct-dong dash-ct-dong-tt", "data-order-id": m.orderId },
@@ -460,6 +463,8 @@ function renderReview(alerts: ReviewAlerts | null): void {
 // Luật chọn dòng + nguồn cần tải ở src/shared/viec-cua-ban.ts (hàm thuần, có bài): GIỮ NGUYÊN cổng quyền theo vai của từng thẻ cũ. Ở đây chỉ tải số và vẽ. Điện thoại ẩn thẻ này bằng CSS và vẫn dùng #dash-so.
 /** Số "Cần xem lại" lần tải đầy đủ gần nhất — lần làm mới lặng lẽ (Bảng tin) không chạy lại loadReview nên dùng số này. */
 let soXemLaiGanNhat: number | null = 0;
+/** Tín hiệu quá hạn của hai khối chi tiết (lần tải đầy đủ gần nhất) — đưa vào phụ đề «Đang chờ bạn» (vòng 2). */
+let quaHanGanNhat: { doiChieu: number | null; thuTruoc: { canChi: number; qua7Ngay: number; sapHetHan: number; conNguoiGiu: number } | null } = { doiChieu: null, thuTruoc: null };
 /** Hai nguồn ngoài (điều chỉnh công nợ, góp ý) lần tải gần nhất; chỉ tải khi khối "Việc của bạn" thật sự hiện (điện thoại ẩn nó) và chưa có số, làm mới lặng lẽ dùng lại. */
 let soNgoaiGanNhat: { dieuChinh?: number | null; gopY?: number | null } = {};
 let ngoaiDaTai = false;
@@ -934,6 +939,7 @@ async function taiDashboard(staff: Staff, lamMoi = false, taiMoi = false): Promi
     if (review !== undefined) {
       renderReview(review.alerts);
       soXemLaiGanNhat = soXemLai(review.alerts, review.loi);
+      quaHanGanNhat = { doiChieu: review.alerts?.doiChieu?.count ?? null, thuTruoc: review.alerts?.thuTruoc ?? null };
     }
     if (ngoai) {
       soNgoaiGanNhat = { dieuChinh: soTuKetQua(ngoai[0]), gopY: soTuKetQua(ngoai[1]) };
@@ -942,7 +948,7 @@ async function taiDashboard(staff: Staff, lamMoi = false, taiMoi = false): Promi
     // Dựng khối "Việc của bạn" SAU renderReview (thẻ "Cần xem lại" cuộn tới khối đó nên khối phải hiện cùng nguồn) và TRƯỚC dòng tóm tắt (nó lấy câu từ thẻ).
     const nguon: NguonSo = {
       nhap: data.draftCount, chuaPhuTrach: data.unassignedCount, conThieu: unpaid, xemLai: soXemLaiGanNhat,
-      dieuChinh: soNgoaiGanNhat.dieuChinh, gopY: soNgoaiGanNhat.gopY, donCho, doiChieu: soDoiChieu, thuTruoc: soThuTruoc,
+      dieuChinh: soNgoaiGanNhat.dieuChinh, gopY: soNgoaiGanNhat.gopY, donCho, doiChieu: soDoiChieu, thuTruoc: soThuTruoc, doiChieuQuaHan: quaHanGanNhat.doiChieu, thuTruocChiTiet: quaHanGanNhat.thuTruoc,
     }; // `chuyenHomNay` không còn nguồn: «Đơn đi hôm nay» là chính thẻ Chuyến đón (Phương án A)
     // Dải lỗi chung (thiếu số "Còn thiếu"): máy tính mà thẻ "Đơn còn thiếu tiền" đang hiện "—" + Thử lại thì thẻ là chỗ thử lại DUY NHẤT (không cộng nút ở dải); điện thoại (thẻ ẩn) vẫn dùng dải.
     baoLoi(unpaid || (khoiHien() && dongCuaBan(staff, nguon).some((t) => t.khoa === "conThieu")) ? null : LOI_SO_LIEU);
