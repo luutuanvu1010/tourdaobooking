@@ -117,6 +117,21 @@ test("huyThua_khongTraVe: câu trả vé của lô huỷ có cổng — đơn c�
   } finally { tat(); }
 });
 
+test("capBuBangTay: đơn xác nhận lúc kho trống được cấp vé khi bấm Cấp vé sau khi nhập kho; bấm lại không cấp thừa; Kế toán 403", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const d = await don(w, { soNguoi: 2 }); // kho trống lúc xác nhận
+    assert.equal(giu(w), 0);
+    await nhapKho(w, 5);
+    assert.equal((await w.call("POST", "/api/ve/cap", { as: "55555555-5555-4555-8555-555555555555", body: { orderId: d.id } })).status, 403);
+    assert.equal((await w.call("POST", "/api/ve/cap", { as: SALES, body: { orderId: d.id } })).status, 200);
+    assert.equal(giu(w), 2);
+    assert.equal((await w.call("POST", "/api/ve/cap", { as: SALES, body: { orderId: d.id } })).status, 200);
+    assert.equal(giu(w), 2, "bấm lại không cấp thừa");
+  } finally { tat(); }
+});
+
 test("baiKienTruc_ordersKhongImportVeDienTu: orders và dispatch không import module ve-dien-tu", () => {
   for (const f of ["orders/index.ts", "orders/xac-nhan-route.ts", "orders/repository.ts", "dispatch/index.ts"]) {
     const src = readFileSync(new URL(`../${f}`, import.meta.url), "utf8");

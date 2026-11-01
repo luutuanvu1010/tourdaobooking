@@ -48,7 +48,12 @@ function veKhoi(el: HTMLElement, vao: VeDonVao, res: VeDonRes, dong: VeDonRes["d
   const danhSach = h("ul", { class: "pay-list", "data-khoi": "ve-don" }, ...dong.map((d) =>
     h("li", { "data-service-id": d.serviceId },
       ...d.nhom.map((x) => h("p", null, `${x.nhan}: ${x.giu}/${x.can} vé`, x.thieu > 0 ? h("span", { class: "huy-hieu", "data-tong": "cat" }, ` Thiếu ${x.thieu} vé`) : null)))));
-  const khoi: (Node | null)[] = [h("h2", null, "Vé điện tử"), tongThieu > 0 ? h("p", { class: "muted" }, `Còn thiếu ${tongThieu} vé. Vé sẽ tự được giữ khi nhập thêm vào kho.`) : null, danhSach];
+  const nutCap = tongThieu > 0 ? h("button", { type: "button", class: "btn", "data-action": "cap-ve" }, "Cấp vé") : null;
+  nutCap?.addEventListener("click", async () => {
+    nutCap.disabled = true; hien(null);
+    try { await api("/api/ve/cap", { method: "POST", body: { orderId: vao.orderId } }); await initVeDon(el, vao); } catch (err) { hien(lyDoLoi(err), true); nutCap.disabled = false; }
+  });
+  const khoi: (Node | null)[] = [h("h2", null, "Vé điện tử"), tongThieu > 0 ? h("p", { class: "muted" }, `Còn thiếu ${tongThieu} vé. Vé sẽ tự được giữ khi nhập thêm vào kho.`) : null, danhSach, nutCap ? h("div", { class: "handler-actions" }, nutCap) : null];
 
   if (!res.thuDu) {
     khoi.push(h("p", { class: "muted" }, "Đơn chưa thu đủ tiền nên chưa xem hoặc gửi được vé."));

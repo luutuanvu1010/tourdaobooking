@@ -15,7 +15,7 @@ import { DANG_TOKEN, bamToken, hanDuongDan, soSanhHangThoiGian, taoToken, trangV
 import { NHAN_NHOM, soanCapVe, soanTraVe, veDangGiu, type GhiNhatKy, type NhatKyVe } from "./cap-ve.ts";
 import { datVeVaoKho, type VeChuanBi } from "./kho-tep.ts";
 import { TOI_DA_VE_MOI_DOT, TOI_DA_VE_MOI_LO, che4SoCuoi, kiemLo, kiemVeMoi } from "./nhap-lo.ts";
-import { cauChenLink, cauDemMoLink, cauThuHoiLink, docHanCuoiCuaDon, docLinkCuaDon, docLinkTheoBam, docLinkTheoId, docVeCuaLink, type LinkKhach, cauChenGiao, cauChenLo, cauChenVe, cauDanhDauLo, docChuDon, docPhanBoDeXem, docPhanBoMoCuaDon, cauKichHoatLo, cauSuaMaTour, demVeCuaLo, docLo, maVeDaCo, thongKeKho } from "./repository.ts";
+import { cauChenLink, cauDemMoLink, cauThuHoiLink, docHanCuoiCuaDon, docLinkCuaDon, docLinkTheoBam, docLinkTheoId, docVeCuaLink, type LinkKhach, cauChenGiao, cauChenLo, cauChenVe, cauDanhDauLo, docChuDon, docTrangThaiDon, docPhanBoDeXem, docPhanBoMoCuaDon, cauKichHoatLo, cauSuaMaTour, demVeCuaLo, docLo, maVeDaCo, thongKeKho } from "./repository.ts";
 
 export { demVeTheoTrangThai } from "./repository.ts";
 
@@ -277,6 +277,20 @@ export const veDienTuModule: AppModule = {
       });
       await env.DB.batch(cau);
       return json({ daGiao: ds.length });
+    }),
+
+    // CẤP BÙ BẰNG TAY (ADR-0153 Đ1 mục 3, đường «nhân viên bấm Cấp vé»): đơn bị thiếu vé (kho cạn lúc xác nhận, hoặc tiến trình chết giữa chừng) được giữ lại theo số khách hiệu lực.
+    // Cùng hàm cấp sau xác nhận (chạy lại bao nhiêu lần cũng không giữ thừa; lỗi nuốt). Cần ô `ve.cap.send` trên đơn; chỉ đơn đã xác nhận (view trạng thái của orders).
+    route("POST", "/api/ve/cap", "office", async ({ env, request, staff, isAssigned, capVeSauXacNhan }) => {
+      const raw = await readJson(request);
+      const orderId = typeof raw?.orderId === "string" ? raw.orderId : "";
+      if (!UUID_RE.test(orderId)) return BAD_JSON();
+      const [chu, assigned] = await Promise.all([docChuDon(env.DB, orderId), isAssigned(orderId)]);
+      if (chu === null) return DON_KHONG_THAY();
+      if (!can(staff, "ve.cap.send", { ownerId: chu, assigned })) return KHONG_QUYEN_GUI();
+      if ((await docTrangThaiDon(env.DB, orderId)) !== "confirmed") return error(409, "order_not_confirmed", "Chỉ cấp vé cho đơn đã xác nhận.");
+      await capVeSauXacNhan(orderId);
+      return json({ ok: true });
     }),
 
     // TẠO ĐƯỜNG DẪN CHO KHÁCH (ADR-0153 Đ2): chỉ khi đơn thu đủ và đã có vé. Token trả ĐÚNG MỘT LẦN, D1 chỉ lưu băm. Hạn = ngày dùng cuối của vé + 7 ngày. Đường dẫn là lộ vé ra ngoài

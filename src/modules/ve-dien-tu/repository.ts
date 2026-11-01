@@ -246,3 +246,7 @@ export const docLinkCuaDon = async (db: D1Database, orderId: string): Promise<{ 
 export const docHanCuoiCuaDon = async (db: D1Database, orderId: string): Promise<string | null> => (await db.prepare(HAN_CUOI_CUA_DON).bind(orderId).first<{ den: string | null }>())?.den ?? null;
 export interface VeCuaLink { id: string; pax_group: string; valid_from: string; valid_to: string; storage_key: string; content_kind: string }
 export const docVeCuaLink = async (db: D1Database, orderId: string): Promise<VeCuaLink[]> => (await db.prepare(VE_CUA_LINK).bind(orderId).all<VeCuaLink>()).results;
+
+const TRANG_THAI_DON = defineSql("ve-dien-tu", "trang_thai_don", "SELECT status FROM v_ord_order_state WHERE id = ?1");
+/** Trạng thái đơn (view công bố của orders); null = không có đơn. */
+export const docTrangThaiDon = async (db: D1Database, orderId: string): Promise<string | null> => (await db.prepare(TRANG_THAI_DON).bind(orderId).first<{ status: string }>())?.status ?? null;
