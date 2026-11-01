@@ -63,11 +63,13 @@ try {
   const traThanhDay = (p) => p.ev(`(() => { for (const e of document.querySelectorAll('[data-an-tam]')) { e.style.display = e.dataset.anTam; delete e.dataset.anTam; } return true; })()`);
   /**
    * Ảnh toàn trang: Chrome vẽ thanh dính đáy (`position: fixed` hoặc `sticky` bám đáy: có `bottom`, không có `top`) MỘT lần ở độ cao khung nhìn, tức giữa trang, che mất nội dung. Ẩn tạm các thanh bám đáy khi chụp (tổng tiền + nút
-   * «Gửi đơn» / «＋ Thêm mức» vẫn có ở trang thật, chỉ không có trong ảnh dài), rồi trả lại. Sau khi ẩn xong KIỂM bằng số đo: không còn phần tử fixed / sticky nào đang hiện ở nửa dưới khung nhìn, nếu còn thì dừng (không chụp ảnh sai).
+   * «Gửi đơn» / «＋ Thêm mức» vẫn có ở trang thật, chỉ không có trong ảnh dài), rồi trả lại. Sau khi ẩn xong KIỂM bằng số đo: không còn thanh bám đáy nào đang hiện ở nửa dưới khung nhìn, nếu còn thì dừng (không chụp ảnh sai).
+   * `sticky` có `top` (tiêu đề bảng `.bang th`, `.form-side`) bám ĐỈNH nên không vẽ giữa trang: KHÔNG ẩn. Ẩn nhầm thì bảng trong ảnh mất hàng tiêu đề (lỗi thấy ở ảnh ma trận cấp, 2/11).
    */
+  const THANH_DAY = "(s.position === 'fixed' || s.top === 'auto') && e.getBoundingClientRect().top > innerHeight * 0.5";
   const chup = async (p, duongDan) => {
-    await anHetThanhDay(p, "e.getBoundingClientRect().top > innerHeight * 0.5");
-    const con = await p.ev(`[...document.querySelectorAll('body *')].filter((e) => { const s = getComputedStyle(e); return (s.position === 'fixed' || s.position === 'sticky') && e.getClientRects().length > 0 && e.getBoundingClientRect().top > innerHeight * 0.5; }).map((e) => e.tagName + '#' + e.id)`);
+    await anHetThanhDay(p, THANH_DAY);
+    const con = await p.ev(`[...document.querySelectorAll('body *')].filter((e) => { const s = getComputedStyle(e); return (s.position === 'fixed' || s.position === 'sticky') && e.getClientRects().length > 0 && ${THANH_DAY}; }).map((e) => e.tagName + '#' + e.id)`);
     assert.deepEqual(con, [], `thanh dưới còn hiện khi chụp ${duongDan}: ${con.join(", ")}`);
     await p.shot(duongDan);
     await traThanhDay(p);
