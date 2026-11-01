@@ -141,7 +141,15 @@ export function tachTu(s: string): string[] {
   // ADR-0130: chữ giao diện «app» đổi thành «Nền tảng», nhưng người hỏi vẫn gõ «app». Gộp cụm «nen tang» và chữ «app» về MỘT âm tiết (ở kho lẫn câu hỏi)
   // để hai cách gọi khớp nhau và cụm hai âm tiết phổ biến này không thành «khớp cặp» với gần như cả kho.
   // Chủ 2026-10-25: trang «Trợ giúp» đổi tên «Hướng dẫn»; người dùng vẫn gõ «trợ giúp» ⇒ coi như «hướng dẫn» (kho không còn chữ «trợ giúp»).
-  const am = boDau(s).replace(/\bnen tang\b|\bapp\b/g, "nentang").replace(/\btro giup\b/g, "huong dan").split(/[^a-z0-9]+/).filter(Boolean);
+  // 2/11 (đặt vé của đối tác): hai tên đã đổi trên giao diện mà nhân viên vẫn gõ tên cũ (chữ không dấu nên không dính bảng từ giao diện): «loại đối tác» → «vai người dùng»,
+  // «cấp đại lý» → «cấp độ đại lý». Gộp ở cả kho lẫn câu hỏi, cùng cách với «nền tảng» và «trợ giúp» ở trên.
+  const am = boDau(s)
+    .replace(/\bnen tang\b|\bapp\b/g, "nentang")
+    .replace(/\btro giup\b/g, "huong dan")
+    .replace(/\bloai doi tac\b/g, "vai nguoi dung")
+    .replace(/\bcap dai ly\b/g, "cap do dai ly")
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean);
   const don = am.filter((t) => !TU_DUNG.has(t) && (t.length > 1 || /\d/.test(t)));
   const doi: string[] = [];
   for (let i = 0; i + 1 < am.length; i++) if (!(TU_DUNG.has(am[i]!) && TU_DUNG.has(am[i + 1]!))) doi.push(`${am[i]}_${am[i + 1]}`);

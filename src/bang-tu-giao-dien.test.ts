@@ -85,6 +85,9 @@ const CHUOI_GIU_NGUYEN = new Set([
   CAU_THU_TU_AP_MUC,
   // Đặc tả hoa-hong-cap-dai-ly §5.4 ghim nguyên văn câu dưới ma trận; «dòng riêng» ở đây là «dòng của cấp riêng cho ô này», không phải nghĩa «mức riêng của loại» mà luật cấm.
   CAU_O_TRONG,
+  // 2/11: chuỗi mẫu KHÔNG DẤU của bộ tách từ Trợ lý (`tachTu`, src/shared/tro-ly.ts): «loại đối tác» → «vai người dùng» để người gõ tên cũ vẫn ra đúng đoạn Hướng dẫn. Không phải chữ người dùng nhìn thấy;
+  // chữ không dấu không khớp lookahead « người dùng» của luật «vai» nên cần ghi tên ở đây. Chỉ đúng chuỗi này, luật chung không đổi.
+  "vai nguoi dung",
 ]);
 const TEP = [
   ...tepTs("web"),

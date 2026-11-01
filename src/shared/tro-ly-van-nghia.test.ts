@@ -7,9 +7,10 @@ import {
   GIA_NHUNG, HET_GIO_NHUNG_MS, LO_GHI_D1, LO_NHUNG_DAU_VAO, LO_NHUNG_TOKEN_UOC, MAU_NHUNG, NGAY_TRA_GIA_NHUNG, NGUON_GIA_NHUNG, SO_CHIEU_NHUNG,
   K_RRF, NGUONG_COSIN, blobSangVec, chiaLo, chiaLoNhung, chiPhiNhungMicroUsd, chonDoanTron, cosin, daChonTuKhoa, docPhanHoiNhung, khoaDoan, khopManh, mucTranTren, thanNhung, tienBuUoc, vecSangBlob,
 } from "./tro-ly-van-nghia.ts";
-import { KHONG_TIM_THAY, SO_DOAN_TOI_DA, chiaKho, dinhDangDoan, dungLoiNhac, truyVanTim, uocToken, type DoanTriThuc } from "./tro-ly.ts";
+import { KHONG_TIM_THAY, SO_DOAN_TOI_DA, chiaKho, dinhDangDoan, dungLoiNhac, tachTu, truyVanTim, uocToken, type DoanTriThuc } from "./tro-ly.ts";
 import { GIOI_HAN_TRO_LY as G } from "./tro-ly-gioi-han.ts";
 import { xungHo } from "./xung-ho.ts";
+import type { PermissionCode } from "./permissions.ts";
 
 test("hằng embedding: mẫu text-embedding-3-small, 512 chiều, 0,02 USD / 1 triệu token = 20.000 micro-USD, có ngày tra + nguồn; hạn giờ riêng 8 giây", () => {
   assert.equal(MAU_NHUNG, "text-embedding-3-small");
@@ -234,6 +235,20 @@ test("C4c (đổi chữ «Trợ giúp» → «Hướng dẫn», 2026-10-27): ng�
   for (const [cu, moi] of [["trợ giúp", "hướng dẫn"], ["mở trang Trợ giúp", "mở trang Hướng dẫn"]] as const) {
     assert.deepEqual(ten(cu), ten(moi), cu);
     assert.ok(ten(cu).includes("Sơ đồ trang › Hướng dẫn"), `${cu}: ${JSON.stringify(ten(cu))}`);
+  }
+});
+
+test("C4e (đổi tên «Loại đối tác» → «Vai người dùng», «Cấp đại lý» → «Cấp độ đại lý», 2/11): người gõ tên cũ được đối xử như tên mới — cùng đoạn, và có đoạn «Thêm vai trò» / «Cấp độ đại lý» ở kết quả đầu", () => {
+  assert.deepEqual(tachTu("loại đối tác"), tachTu("vai người dùng"));
+  assert.deepEqual(tachTu("cấp đại lý"), tachTu("cấp độ đại lý"));
+  const kho = chiaKho();
+  const vec = kho.map(() => mot(1));
+  const ten = (c: string, quyen: PermissionCode[]) => chonDoanTron(c, mot(0), kho, vec, quyen).map((x) => x.doan.ten);
+  for (const quyen of [["SALES"], ["ACCOUNTING"]] as PermissionCode[][]) {
+    assert.deepEqual(ten("loại đối tác là gì", quyen), ten("vai người dùng là gì", quyen), `${quyen}: loại đối tác`);
+    assert.ok(ten("loại đối tác là gì", quyen).slice(0, 5).includes("Kế toán › Thêm vai trò"), `${quyen}: ${JSON.stringify(ten("loại đối tác là gì", quyen).slice(0, 5))}`);
+    assert.deepEqual(ten("cấp đại lý là gì", quyen), ten("cấp độ đại lý là gì", quyen), `${quyen}: cấp đại lý`);
+    assert.ok(ten("cấp đại lý là gì", quyen).slice(0, 3).includes("Kế toán › Cấp độ đại lý"), `${quyen}: ${JSON.stringify(ten("cấp đại lý là gì", quyen).slice(0, 3))}`);
   }
 });
 
