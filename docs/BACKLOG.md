@@ -686,3 +686,9 @@ Ghi 2026-10-29 khi đồng bộ bộ «Island Booking System — Design System v
 - **Nguồn:** «Đối tác TA1», «Lữ hành TA2», «Lễ tân TA3», «HDV TA4» (`LD_JUJURAFN`, `LD_IRVXLDKL`, `LD_ZQZTYMPF`, `LD_EPNWLOUL`) do chủ tắt lúc 14:52–14:53 giờ VN 31/10; mỗi loại còn 24–26 dòng mức hiệu lực. Tắt loại không tự đóng mức (ADR-0117).
 - **Cách dọn:** Kế toán bấm «Ngừng» từng dòng mức của bốn loại ở thẻ Loại đối tác (đủ nhật ký). Không sửa bằng SQL tay (mất dấu vết, Hiến chương 5.12).
 - **Ý tưởng kèm (chưa duyệt):** nút «Ngừng mọi mức của loại này» chỉ hiện khi loại đã tắt mà còn mức đang áp — để «tắt loại mà quên đóng mức» không lặp lại.
+
+## 58. Nợ của «Đặt vé của đối tác» lượt 1 (mã `BL-DV-…`, 2026-11-02)
+
+- **Trạng thái:** `để sau` · Ghi khi đóng lượt 1 (đặc tả `docs/superpowers/specs/2026-11-01-dat-ve-doi-tac-design.md` §4.4, kế hoạch `docs/superpowers/plans/2026-11-02-dat-ve-doi-tac-luot-1.md`). Không chặn ai làm việc.
+- **BL-DV-LOC-VAI-TU-THEM** — bộ lọc theo vai trò ở Quản lý tài khoản chỉ lọc được theo vai có trong danh sách vai của tài khoản. Vai do Kế toán tự thêm (thẻ «Vai người dùng» của trang Hoa hồng) nằm trên hồ sơ, không nằm trong danh sách đó, nên chưa có nút lọc riêng cho chúng.
+- **BL-DV-SUA-CHUYEN-TRANG-DON** — form Tạo đơn gọn chỉ áp ở màn Tạo đơn của đối tác. Trang đơn của đối tác vẫn có «Sửa thông tin chuyến» như hôm nay (giờ khởi hành, giờ và nơi khách có mặt, ghi chú đầy đủ); chưa quyết có thu gọn trang đó theo cùng khuôn hay không.

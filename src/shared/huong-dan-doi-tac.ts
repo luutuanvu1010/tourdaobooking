@@ -57,8 +57,8 @@ Muốn đăng nhập nhanh bằng Face ID: vào [[Tôi]], phần **Đăng nhập
    - Dịch vụ có nhãn "chưa có giá" hoặc "chưa hỗ trợ" thì không chọn được.
    - Dịch vụ vừa chạm hiện "✓ đã thêm" và thẻ dịch vụ hiện bên dưới. Mỗi lúc chỉ một thẻ mở; chạm dòng gập của thẻ để mở lại.
 4. Trong thẻ dịch vụ, nhập **Số khách**: **Người lớn**, **Trẻ em**… tuỳ dịch vụ. Dòng tiền tự hiện, ví dụ "2 người lớn × giá = thành tiền". Cả đơn cần ít nhất một người lớn đi cùng; trẻ em và em bé không đi một mình.
-5. Phần **Đưa đón** trên thẻ: chọn **Đón** hoặc **Không đón** (bắt buộc trước khi gửi đơn). Chọn **Đón** thì ghi giờ đón (chạm một khung giờ có sẵn, hoặc **Giờ khác** để tự gõ), **Nơi đón**, **Nơi trả** (chọn điểm có sẵn hoặc gõ tự do). Giờ đón thực tế có thể được điều chỉnh cho phù hợp tình hình hoạt động. Bấm [[Thông tin chuyến]] để ghi giờ và nơi khách có mặt, **Ghi chú dịch vụ**.
-6. Phần **Thanh toán**: chỉ còn **Giảm giá** (nếu có) và **Ghi chú thanh toán**. Đơn chưa xác nhận thì chưa ghi thu tiền được.
+5. Phần **Đưa đón** trên thẻ: chọn **Đón** hoặc **Không đón** (bắt buộc trước khi gửi đơn). Chọn **Đón** thì ghi giờ đón (chạm một khung giờ có sẵn, hoặc **Giờ khác** để tự gõ), **Nơi đón**, **Nơi trả** (chọn điểm có sẵn hoặc gõ tự do). Giờ đón thực tế có thể được điều chỉnh cho phù hợp tình hình hoạt động. Ngay dưới phần Đưa đón là dòng **Ghi chú** (chữ mờ gợi ý «Thời gian đón»): gõ vào đó lời dặn riêng cho dịch vụ này, ví dụ giờ khách muốn được đón.
+6. Phần **Thanh toán**: chỉ còn ô có chữ mờ «Giảm giá cho khách» (nếu có) và **Ghi chú thanh toán**. Đơn chưa xác nhận thì chưa ghi thu tiền được.
 7. Xem tổng tiền ở thanh dưới cùng (chạm để xem chi tiết); trên máy tính là khối **Tóm tắt** bên phải.
 8. Bấm [[Gửi đơn]]. Thiếu gì thì khung đỏ hiện ngay trên nút. Đơn được lưu rồi gửi đi. Nếu chưa gửi được (ví dụ giá danh mục vừa đổi), đơn vẫn được lưu nháp, Nền tảng mở trang đơn nháp kèm lý do để bạn sửa rồi bấm [[Gửi đơn]] lại.
 
@@ -67,7 +67,7 @@ Muốn đăng nhập nhanh bằng Face ID: vào [[Tôi]], phần **Đăng nhập
 ### Giá của đối tác
 
 - Đơn giá là giá bán lẻ của danh mục. Thẻ dịch vụ của bạn không có nút **Sửa giá** như của văn phòng.
-- Ô **Giảm giá**: đơn bạn được hưởng hoa hồng thì giảm được tới mức hoa hồng của đơn; còn lại ô khoá.
+- Ô có chữ mờ «Giảm giá cho khách»: đơn bạn được hưởng hoa hồng thì giảm được tới mức hoa hồng của đơn; còn lại ô khoá.
 - Bạn không thêm được dịch vụ nhập tay (dịch vụ ngoài danh mục).
 - Muốn giảm giá, dùng giá khác hay thêm dịch vụ ngoài danh mục thì **nhờ văn phòng**.
 
