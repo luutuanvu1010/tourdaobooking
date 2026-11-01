@@ -39,6 +39,17 @@ export async function servicePaxByIds(db: D1Database, serviceIds: readonly strin
   return (await db.prepare(SERVICE_PAX_BY_IDS).bind(JSON.stringify(serviceIds)).all<ServicePaxRow>()).results;
 }
 
+/** Dịch vụ CÓ MÃ DANH MỤC và CÓ NGÀY ĐI của một đơn (ADR-0153: chỉ loại dịch vụ này mới có thể giữ vé; nhập tay không mã thì không). Kèm số khách ĐÃ LƯU. */
+const SERVICE_CHO_VE = defineSql(
+  "orders",
+  "service_cho_ve",
+  `SELECT id, order_id, catalog_code, depart_date, pax_adult, pax_child, pax_senior, pax_infant FROM order_service WHERE order_id = ?1 AND catalog_code IS NOT NULL AND depart_date IS NOT NULL`,
+);
+export interface ServiceChoVeRow extends ServicePaxRow { catalog_code: string; depart_date: string }
+export async function serviceChoVe(db: D1Database, orderId: string): Promise<ServiceChoVeRow[]> {
+  return (await db.prepare(SERVICE_CHO_VE).bind(orderId).all<ServiceChoVeRow>()).results;
+}
+
 /** Số khách ĐÃ LƯU của mọi dịch vụ của MỘT đơn (cờ "danh sách nhiều hơn số khách" — R9). */
 const SERVICE_PAX_BY_ORDER = defineSql("orders", "service_pax_by_order", `SELECT id, order_id, pax_adult, pax_child, pax_senior, pax_infant FROM order_service WHERE order_id = ?1`);
 export async function servicePaxByOrder(db: D1Database, orderId: string): Promise<ServicePaxRow[]> {

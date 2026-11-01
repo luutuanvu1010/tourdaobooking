@@ -19,6 +19,7 @@ export { demVeTheoTrangThai } from "./repository.ts";
 /** Nối nhật ký thật (module audit) vào các hàm soạn câu của cap-ve.ts. Gốc lắp ráp dùng khi tiêm (Task 5). */
 export const nhatKyThat = (db: D1Database): GhiNhatKy => (e: NhatKyVe, onlyIf: string) => auditStatement(db, e, onlyIf);
 export { NHAN_NHOM, soanCapVe, soanTraVe, veDangGiu };
+export { canBangVeTheoSoKhach, capVeChoDon, soanTraVeKhiHuy } from "./noi-orders.ts";
 
 const MAX_BYTE_ANH = 3 * 1024 * 1024;
 /** Cỡ thân một đợt thêm vé: 10 ảnh × 3 MB base64 + dư. */

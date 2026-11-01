@@ -44,6 +44,8 @@ export interface TraVe {
   homNay: string;
   /** Chỉ với GIAM_SO_KHACH: số vé cần giữ lại theo nhóm (số khách hiệu lực mới). */
   conLai?: Record<Nhom, number>;
+  /** Cổng trạng thái đơn cho lô huỷ / rút xác nhận (xem `TraVeNhom.chiKhiDon`). Bỏ trống = không cổng (sửa số khách chạy SAU lô). */
+  chiKhiDon?: "cancelled" | "draft";
 }
 
 /**
@@ -67,7 +69,7 @@ export async function soanTraVe(db: D1Database, p: TraVe, nhatKy: GhiNhatKy): Pr
     if (d.dangGiu - Math.min(traDuoc, Math.max(0, d.dangGiu - conLai)) > conLai) canhBao = true; // còn thừa mà không trả được
     if (!giamSo && d.dangGiu > d.chuaLo) canhBao = true; // huỷ / rút khi có vé đã lộ: vô hiệu + cảnh báo
     // Nhật ký gác ngay sau câu trả phân bổ (không sau câu vé): phân bổ đã đóng thì luôn có dấu vết, kể cả khi vé không còn ở ALLOCATED.
-    cau.push(cauTraPhanBo(db, { orderId: p.orderId, serviceId: p.serviceId ?? null, nhom, lyDo: p.lyDo, at: p.at, by: p.by, conLai, chiVeChuaLo: giamSo }));
+    cau.push(cauTraPhanBo(db, { orderId: p.orderId, serviceId: p.serviceId ?? null, nhom, lyDo: p.lyDo, at: p.at, by: p.by, conLai, chiVeChuaLo: giamSo, chiKhiDon: p.chiKhiDon ?? null }));
     cau.push(nhatKy({ staffId: p.by, action: "ve_tra_ve", at: p.at, orderId: p.orderId, targetType: "ve", targetId: p.serviceId ?? p.orderId, detail: `Trả vé · ${NHAN_NHOM[nhom]} · lý do ${p.lyDo}` }, "changes() > 0"));
   }
   cau.push(cauVeVeKho(db, { orderId: p.orderId, lyDo: p.lyDo, at: p.at, by: p.by, homNay: p.homNay }));

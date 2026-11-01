@@ -26,11 +26,11 @@ import { giaoDienModule } from "./modules/giao-dien";
 import { checkLanGuiConfig, lanGuiNoi } from "./modules/lan-gui";
 import { locationsModule } from "./modules/locations";
 import { feedbackModule } from "./modules/feedback";
-import { veDienTuModule } from "./modules/ve-dien-tu";
+import { canBangVeTheoSoKhach, capVeChoDon, nhatKyThat, soanTraVeKhiHuy, veDienTuModule } from "./modules/ve-dien-tu";
 import { maintenanceBlock, maintenanceModule, type MaintenanceState } from "./modules/maintenance";
 import { hanGiuPhienNgay, partiesModule } from "./modules/parties";
 import { kiemLuatBan, nguoiHuongCuaHoSo, pricingModule } from "./modules/pricing";
-import { cauDoiNguoiDat, donCuaNguoiDat, findOrderRef, ngayChupGanNhat, ordersModule } from "./modules/orders";
+import { cauDoiNguoiDat, dichVuChoVe, donCuaNguoiDat, findOrderRef, ngayChupGanNhat, ordersModule } from "./modules/orders";
 import { accountOfParty, listStaffAccounts, nhanNhanVienTheoId, soDangNhapTheoHoSo, taiKhoanChoXacMinh } from "./modules/staff";
 import { dayGoCua, dayGoCuaDoi, dongChuyenTheoId, tatMayCuaCacPhienStatement, tatMayCuaPhienStatement, tatMayStatement, tatMayTruPhienStatement, thongbaoModule } from "./modules/thongbao";
 import { troLyModule } from "./modules/tro-ly";
@@ -215,6 +215,17 @@ const APP_OPTIONS: AppOptions = {
     nhapKeToanCuaDon: (env, ids) => nhapKeToanCuaDon(env.DB, ids),
     // SỐ ĐÃ THU RÒNG CỦA ĐƠN (ADR-0136 Đ3): `orders` không đọc bảng bil_ — gốc lắp ráp gọi hàm công bố của billing (chặn mở yêu cầu xác nhận khi đơn đã có khoản thu).
     daThuCuaDon: (env, id) => daThuCuaDon(env.DB, id),
+    // KHO VÉ ĐIỆN TỬ (ADR-0153 Đ1 mục 4): `orders` và `ve-dien-tu` không import nhau — gốc lắp ráp đọc dịch vụ qua hàm công bố của orders (số khách hiệu lực) rồi đưa sang kho vé.
+    // Cấp / cân bằng chạy SAU lô của lệnh và NUỐT lỗi (lệnh đã thắng; thiếu vé là suy ra lúc đọc); câu trả vé khi huỷ nối vào CHÍNH lô huỷ. Log chỉ ghi mã đơn lỗi, không mã vé.
+    capVeSauXacNhan: async (env, actor, orderId) => {
+      try { await capVeChoDon(env.DB, await dichVuChoVe(env.DB, orderId), actor.id, nhatKyThat(env.DB), new Date().toISOString()); } catch (e) { console.error("ve_cap_loi", orderId, e instanceof Error ? e.name : "loi"); }
+    },
+    traVeKhiHuy: async (env, actor, orderId, lyDo) => {
+      try { return await soanTraVeKhiHuy(env.DB, { orderId, lyDo, by: actor.id, at: new Date().toISOString(), homNay: vnToday(new Date()) }, nhatKyThat(env.DB)); } catch (e) { console.error("ve_tra_loi", orderId, e instanceof Error ? e.name : "loi"); return []; }
+    },
+    canBangVeSauSuaKhach: async (env, actor, orderId) => {
+      try { await canBangVeTheoSoKhach(env.DB, await dichVuChoVe(env.DB, orderId), actor.id, nhatKyThat(env.DB), new Date().toISOString(), vnToday(new Date())); } catch (e) { console.error("ve_can_bang_loi", orderId, e instanceof Error ? e.name : "loi"); }
+    },
     // «ĐÃ CHỤP CHƯA» (ADR-0148 Đ1): pricing không đọc bảng ord_, không phụ thuộc orders — gốc lắp ráp là NƠI DUY NHẤT gọi hàm công bố của orders (bài siết architecture.test.ts).
     hoiDaChup: (env, q) => ngayChupGanNhat(env.DB, q),
     // LỚP CHỐNG GHI TRÙNG (ADR-0094 đ2): router không import module — gốc lắp ráp tiêm phần của `lan-gui` (vân tay HMAC, tra / chèn / cập nhật vé).

@@ -65,7 +65,8 @@ const TRA_PHAN_BO = defineSql(
      SELECT a.id FROM vdt_allocation a
      WHERE a.order_id = ?1 AND a.released_at IS NULL AND (?2 IS NULL OR a.order_service_id = ?2) AND a.pax_group = ?8 AND (?6 = 0 OR a.revealed_at IS NULL)
      ORDER BY (a.revealed_at IS NULL) DESC, a.slot_no DESC
-     LIMIT max(0, (SELECT count(*) FROM vdt_allocation c WHERE c.order_id = ?1 AND c.released_at IS NULL AND (?2 IS NULL OR c.order_service_id = ?2) AND c.pax_group = ?8) - ?5))`,
+     LIMIT max(0, (SELECT count(*) FROM vdt_allocation c WHERE c.order_id = ?1 AND c.released_at IS NULL AND (?2 IS NULL OR c.order_service_id = ?2) AND c.pax_group = ?8) - ?5))
+     AND (?9 IS NULL OR EXISTS (SELECT 1 FROM v_ord_order_state s WHERE s.id = ?1 AND s.status = ?9))`,
 );
 const TRA_VE_VE_KHO = defineSql(
   "ve-dien-tu",
@@ -81,9 +82,11 @@ const DEM_TRA = defineSql(
    WHERE order_id = ?1 AND released_at IS NULL AND (?2 IS NULL OR order_service_id = ?2) GROUP BY pax_group`,
 );
 
-export interface TraVeNhom { orderId: string; serviceId: string | null; nhom: string; lyDo: string; at: string; by: string | null; conLai: number; chiVeChuaLo: boolean }
+export interface TraVeNhom { orderId: string; serviceId: string | null; nhom: string; lyDo: string; at: string; by: string | null; conLai: number; chiVeChuaLo: boolean;
+  /** Cổng trạng thái đơn (view công bố `v_ord_order_state` của orders): chỉ trả khi đơn ĐANG ở trạng thái này — lô huỷ thua thì không trả nhầm vé của đơn còn sống. null = không cổng. */
+  chiKhiDon: "cancelled" | "draft" | null }
 export const cauTraPhanBo = (db: D1Database, p: TraVeNhom): D1PreparedStatement =>
-  db.prepare(TRA_PHAN_BO).bind(p.orderId, p.serviceId, p.at, p.lyDo, p.conLai, p.chiVeChuaLo ? 1 : 0, p.by, p.nhom);
+  db.prepare(TRA_PHAN_BO).bind(p.orderId, p.serviceId, p.at, p.lyDo, p.conLai, p.chiVeChuaLo ? 1 : 0, p.by, p.nhom, p.chiKhiDon);
 export const cauVeVeKho = (db: D1Database, p: { orderId: string; lyDo: string; at: string; by: string | null; homNay: string }): D1PreparedStatement =>
   db.prepare(TRA_VE_VE_KHO).bind(p.orderId, p.lyDo, p.at, p.by, p.homNay);
 /** Đếm vé đang giữ của đơn (tuỳ chọn một dòng dịch vụ) theo nhóm: tổng và số CHƯA lộ — để biết có cảnh báo «vé đã giao còn thừa» hay không. */
