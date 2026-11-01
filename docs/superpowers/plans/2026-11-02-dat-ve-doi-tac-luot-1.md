@@ -34,7 +34,7 @@
 
 **Files:**
 - Create: `src/shared/form-dat-ve.ts`, `src/shared/form-dat-ve.test.ts`, `src/form-dat-ve-noi-day.test.ts`
-- Modify: `web/service-card.ts`, `web/order-form.ts`, `public/app.css`, `src/shared/service-form.test.ts`, `docs/evidence/2026-09-20-a2/kich-ban/a2-smoke-form.mjs`
+- Modify: `web/service-card.ts`, `web/order-form.ts`, `public/app.css`, `src/shared/service-form.test.ts`, `docs/evidence/2026-09-26-mo-danh-muc-doi-tac/kich-ban/doi-tac-lap-don-smoke.mjs`
 
 **Interfaces:**
 - Produces, từ `src/shared/form-dat-ve.ts`:
@@ -81,7 +81,7 @@ Khi `o.formGonDoiTac`: `tripDetails.hidden = true`, và chèn ngay sau `duaDon.r
 Run: `node --test src/shared/form-dat-ve.test.ts src/form-dat-ve-noi-day.test.ts src/shared/service-form.test.ts && npm run typecheck`
 Expected: PASS, typecheck 0 lỗi.
 
-- [ ] **Step 8: Thêm bước vào `a2-smoke-form.mjs`** (chạy thật ở Task 5)
+- [ ] **Step 8: Thêm bước vào `doi-tac-lap-don-smoke.mjs`** (chạy thật ở Task 5)
 
 Tài khoản đối tác: `details.trip` bị ẩn; `input[data-trip-gon="note"]` có `placeholder` đúng chữ; gõ, lưu, mở lại còn nguyên; `#discount` có `placeholder` đúng chữ và không có `.o-noi-chu`. Tài khoản Bán hàng: `details.trip` hiện, nhãn `Giảm giá (₫)` còn.
 
@@ -266,7 +266,7 @@ Expected: mọi bước xanh. Đỏ vì lý do khác lượt này (`HC-5.19` qu�
 
 - [ ] **Step 5: Chạy kịch bản Chrome (cách chạy ở `tests/e2e/README.md`, có `AXE_JS`)**
 
-`a2-smoke-form.mjs`, `a2-smoke-order.mjs`, `hoa-hong-smoke.mjs`, `dot-a-smoke.mjs`, `va3-smoke.mjs`.
+`a2-smoke-form.mjs`, `a2-smoke-order.mjs`, `doi-tac-lap-don-smoke.mjs`, `hoa-hong-smoke.mjs`, `dot-a-smoke.mjs`, `va3-smoke.mjs`.
 Expected: `SMOKE OK`. Thiếu Chrome hoặc axe thì ghi «chưa chạy», không nói đạt.
 
 - [ ] **Step 6: Chụp ảnh thật hai khổ 390 và 1280**
