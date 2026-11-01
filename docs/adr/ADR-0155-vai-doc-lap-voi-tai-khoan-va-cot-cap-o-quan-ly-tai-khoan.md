@@ -1,13 +1,15 @@
 # ADR-0155 — Vai bên ngoài trên hồ sơ chưa có tài khoản; cột «Cấp độ đại lý» ở Quản lý tài khoản
 
-- **Trạng thái:** Đề xuất (2026-11-02), chờ chủ dự án duyệt. Chưa có mã. **Người kiểm độc lập 2026-11-02: chưa nên duyệt bản này** (mục «Sai đã biết» dưới đây; đầy đủ ở `docs/superpowers/specs/2026-11-02-ket-qua-kiem-adr-0154-0155.md`). Chữ các điều viết lại sau khi chủ chọn cách chia lượt.
-- **Nguồn:** đặc tả `docs/superpowers/specs/2026-11-01-dat-ve-doi-tac-design.md` §5 QĐ-C, §8 (chủ duyệt thiết kế 2026-11-02, nguyên văn «Duyệt thiết kế»). Trang ghép lượt duyệt: `docs/superpowers/specs/2026-11-02-trang-ghep-dat-ve-luot-2.md`.
-- **Số:** 0155 kiểm còn trống 2026-11-02 trên `main` và mọi nhánh trong máy. Không cần migration, kiểm lại lúc thi công.
+- **Trạng thái:** Đề xuất (2026-11-02), viết lại sau kiểm độc lập, chờ chủ dự án duyệt. Chưa có mã. Bốn câu ở mục «Câu chờ chủ quyết» chưa chốt.
+- **Nguồn:** đặc tả `docs/superpowers/specs/2026-11-01-dat-ve-doi-tac-design.md` §5 QĐ-C, §8 (chủ duyệt thiết kế 2026-11-02, nguyên văn «Duyệt thiết kế»). Trang ghép: `docs/superpowers/specs/2026-11-02-trang-ghep-dat-ve-luot-2.md`. Dẫn chứng từng lỗi đã sửa: `docs/superpowers/specs/2026-11-02-ket-qua-kiem-adr-0154-0155.md`. Văn bản đề xuất kiểm một vòng nên bản này không kiểm vòng hai; thi công có người kiểm riêng.
+- **Lệch chữ đặc tả, ADR này thắng:** bỏ điều kiện «vai còn bật, đọc qua view» của §5 C1 (tạo vòng phụ thuộc); route đọc không nhận `ids` và không ép một câu truy vấn (§5 C2).
+- **Số:** 0155 kiểm còn trống 2026-11-02 trên `main` và mọi nhánh trong máy. Không cần migration (người kiểm thử không thêm bảng, trigger không chặn), kiểm lại lúc thi công.
 - **Loại:** việc lớn (dữ liệu, quyền, **tiền**). Đ1 tạo người hưởng mới, hoa hồng và dòng sổ thật, không đổi công thức: người kiểm thử trên SQLite, công ty lữ hành không tài khoản xác nhận đơn ra hoa hồng 100.000đ, Đã giao sinh `HELD` 1.000.000đ và `HOA_HONG` 100.000đ. Đ2 ghi cấp qua route có sẵn, nên quyết hoa hồng các đơn xác nhận sau đó. **Cửa:** luật hai chiều; bản chụp hoa hồng và dòng sổ đã sinh ở lại. Không thêm cột, không thêm ô quyền.
-- **Số quyết định chạm quyền/dữ liệu:** đếm theo điều, ADR-0154 và ADR-0155 có **5 điều**, trần là 3 (bản trước ghi nhầm là 2). Chủ quyết cách chia lượt.
-- **Xây trên lỗ đang hở: `TNV-G3`, `TNV-G4`** (sửa 2026-11-02; bản trước ghi «không» vì hiểu là chỉ đọc tiền). Đ1 đưa thêm hồ sơ không đăng nhập vào sổ đại lý, đúng vùng hai lỗ này còn thiếu tin báo (người thu cũ và mới; người bị đổi số dư), và tin báo không tới được người không có tài khoản. Đ1 không sửa mã hay luật sổ tiền; tổ chức không tài khoản đã vào sổ qua loại tự thêm từ ADR-0117. Theo luật dừng dây chuyền (`CLAUDE.md` §3), chưa duyệt được trừ khi hai lỗ được vá hoặc chủ cho phép có ghi lý do, như hai tiền lệ ghi ở `docs/quyen-hoan.json`.
-- **Nới hàng rào, chủ quyết riêng (Điều 9.4):** Đ1 mở hàng rào 409 `role_via_account` ở `docs/SO-HANG-RAO.md` cho vai nhóm bên ngoài. Phải viết lại dòng sổ và quan sát chặn lại (P16). Việc này cũng đảo lựa chọn «để sau» ngày 2026-10-09 (`tests/e2e/README.md`).
-- **Quan hệ với ADR cũ:** **bổ sung** ADR-0018 (vai bên ngoài nay có thể nằm trên hồ sơ chưa có tài khoản; vai vẫn không sinh quyền khi chưa có tài khoản). **Giữ** ADR-0117 đ3, đ4 (ai gắn; nội bộ không mang), ADR-0048 (`DRIVER_EXTERNAL`), ADR-0077 (đơn đã xác nhận không đổi hoa hồng), ADR-0151 (đổi cấp riêng một lô), luật R26 lúc tạo tài khoản.
+- **Số quyết định chạm quyền/dữ liệu:** đếm theo điều, lượt này có **5 điều**, trần là 3. Chủ 2026-11-02 chọn cho vượt, nguyên văn: «Cho vượt mức, trình cả hai».
+- **Xây trên lỗ đang hở: `TNV-G3`, `TNV-G4`.** Đ1 đưa thêm hồ sơ không đăng nhập vào sổ đại lý, đúng vùng hai lỗ này còn thiếu tin báo (người thu cũ và mới; người bị đổi số dư), và tin báo không tới được người không có tài khoản. Đ1 không sửa mã hay luật sổ tiền; tổ chức không tài khoản đã vào sổ qua loại tự thêm từ ADR-0117. Theo luật dừng dây chuyền (`CLAUDE.md` §3), chưa duyệt được trừ khi hai lỗ được vá hoặc chủ cho phép có ghi lý do: câu C5.
+- **Nới hàng rào, chủ quyết riêng (Điều 9.4):** Đ1 mở hàng rào 409 `role_via_account` ở `docs/SO-HANG-RAO.md` cho năm vai trên hồ sơ chưa có tài khoản, đồng thời đảo lựa chọn «để sau» ngày 2026-10-09 (`tests/e2e/README.md`): câu C6.
+- **Hiến chương (6.1):** áp 2.3 (cấp gắn vào vai và hồ sơ, không gắn vào tài khoản), 5.3 (không thêm cạnh phụ thuộc), 5.4 (cột cấp gọi đúng một hàm), 5.7 (thiếu cấp thì giữ đơn). Không lệch điều nào.
+- **Quan hệ với ADR cũ:** **bổ sung** ADR-0018 (vai bên ngoài nay có thể nằm trên hồ sơ chưa có tài khoản; vai vẫn không sinh quyền khi chưa có tài khoản). **Thay** N-3 của đề xuất ADR-0117 («gán vai EXTERNAL cũ cho tổ chức vẫn 409»). **Mở rộng** Ruling 7, 8, 9 của ADR-0117 sang năm vai. **Giữ** ADR-0117 đ3, đ4, ADR-0048 (`DRIVER_EXTERNAL`), ADR-0077 (đơn đã xác nhận không đổi hoa hồng), ADR-0138 (cấp riêng), ADR-0146 (luật bán), ADR-0151 (đổi cấp riêng một lô), luật R26. **Sửa chữ** ADR-0068 (câu gộp). ADR-0071 đ3b: câu C4.
 
 ## Bối cảnh
 
@@ -15,42 +17,65 @@ Chủ 2026-11-01: các vai bên ngoài (hướng dẫn viên, lễ tân, tài x�
 
 Việc tách vai với cấp đã có từ ADR-0117: vai có cấp mặc định, từng người có cấp riêng. Chưa độc lập ở hai chỗ. Một, route gắn vai ở Danh bạ trả 409 `role_via_account` với mọi vai nhóm bên ngoài, nên một công ty lữ hành chưa có tài khoản không mang vai được và không có cấp theo vai. Hai, muốn xem hay đổi cấp một đối tác phải sang trang Hoa hồng.
 
-## Sai đã biết trong bản này (người kiểm 2026-11-02)
-
-Chờ viết lại, không duyệt theo các câu này:
-
-- **Đ1.1 không xây được.** `parties` đọc `prc_beneficiary_role` tạo vòng phụ thuộc (người kiểm thêm cạnh trên bản chép: bài kiến trúc đỏ). Năm vai cũng không tắt được từ màn nào.
-- **Đ1.1 thiếu chốt.** Vai gắn một nơi cụ thể thì kẹt: hoa hồng vẫn chạy mà màn tài khoản không thấy, Danh bạ không gỡ được, chỉ còn SQL tay. Ngày bắt đầu tương lai thì hưởng ngay; đặt trước ngày kết thúc thì mất hưởng ngay. Phải mở rộng Ruling 7, 8, 9 sang năm vai này.
-- **Đ1.2 nói quá.** R26 chỉ đúng với hồ sơ cá nhân; hồ sơ tổ chức chưa tạo được tài khoản. «Chưa có tài khoản» phải tính cả tài khoản đã ngưng.
-- **Đ1.5 không chứng minh gì.** Nhân viên cũ lọt qua đường gộp hồ sơ, mà `R-PRC-6` không thấy vì chỉ tính loại tự thêm.
-- **Đ2.3, Đ2.4.** Ba route không đủ cho bảng bấm (đổi trong ngày 400, «Về theo vai» vẫn áp cấp riêng hết hôm nay); `?ids=` và «một câu truy vấn» không làm được; thiếu trạng thái «Chưa mang vai».
-- **Hệ quả còn thiếu.** Gắn vai trước khi có cấp thì đơn bị giữ ở Đã giao tới khi Kế toán xử lý.
-
-**Câu chỉ chủ quyết, chưa chốt:** đối tác thôi vai mà còn đơn nháp đứng tên hoặc còn cấp riêng thì sao (hôm nay đơn của cá nhân mất hoa hồng lặng lẽ, đơn của công ty kẹt); Hành chính nhân sự có được thấy tên và vai của đối tác chưa có tài khoản khi tra số không; cho xây trên hai lỗ sổ tiền và nới hàng rào như hai dòng đầu trang.
-
 ## Quyết định
 
 **Đ1. Hồ sơ chưa có tài khoản mang được vai bên ngoài.**
 
-1. Route gắn và gỡ vai ở Danh bạ cho phép vai nhóm bên ngoài **khi đồng thời**: vai đang nằm trong danh sách được hưởng còn bật (`prc_beneficiary_role`, đọc qua view); hồ sơ **chưa có tài khoản**; hồ sơ không phải nội bộ (ADR-0117 đ4). Gồm cả hồ sơ tổ chức. Còn lại vẫn 409 `role_via_account`.
-2. Vai không sinh quyền, không tạo đăng nhập. Hồ sơ đã có tài khoản vẫn đổi vai ở Quản lý tài khoản. Lúc tạo tài khoản cho hồ sơ đang mang vai, luật R26 có sẵn bắt chọn vai đó nên quyền sinh đúng lúc ấy.
-3. Mở đúng năm vai có sẵn. `DRIVER_EXTERNAL` (Tài xế đối tác) **không** thuộc diện này (ADR-0048); «tài xế» trong lời chủ hiểu là `TAXI_DRIVER`.
-4. Ai làm: như ADR-0117 đ3 (Quản trị, Toàn quyền ở Danh bạ). Không thêm ô quyền.
-5. `R-LC-1` và `R-PRC-*` phải vẫn xanh trên dữ liệu thử có hồ sơ loại này. Có ca e2e: công ty lữ hành không tài khoản, gắn vai, gắn cấp, văn phòng chọn «Qua đối tác», xác nhận đơn, hoa hồng đúng cấp.
+1. **Mở vai nào, cho hồ sơ nào.** Route gắn và gỡ vai ở Danh bạ cho phép các vai trong `ROLES` thuộc nhóm bên ngoài và có quyền mặc định `PARTNER` (đúng năm vai; `DRIVER_EXTERNAL` tự loại theo ADR-0048; «tài xế» trong lời chủ hiểu là `TAXI_DRIVER`), khi hồ sơ **chưa có tài khoản** và không phải nội bộ (ADR-0117 đ4). Gồm cả hồ sơ tổ chức. Còn lại vẫn 409 `role_via_account`. Gỡ vai không hỏi lại điều kiện vai.
+2. **Chưa có tài khoản** nghĩa là không có dòng `staff` trỏ hồ sơ, kể cả tài khoản đã ngưng.
+3. **Chốt để không kẹt dữ liệu.** Vai loại này không gắn nơi (Ruling R1), hiệu lực từ hôm nay hoặc ngày đã qua, không đặt trước ngày kết thúc; gỡ chỉ với hôm nay hoặc ngày đã qua. Thiếu các chốt này thì vai gắn nơi kẹt lại vì chỉ SQL tay gỡ được, còn ngày tương lai làm hồ sơ hưởng ngay hoặc mất hưởng ngay.
+4. **Không sinh quyền.** Vai không tạo đăng nhập. Hồ sơ đã có tài khoản vẫn đổi vai ở Quản lý tài khoản. Hồ sơ cá nhân: lúc tạo tài khoản, luật R26 bắt chọn vai đó nên quyền sinh đúng lúc ấy. Hồ sơ tổ chức chưa tạo được tài khoản (ADR-0018 đ9 chưa thi hành): văn phòng lập đơn hộ tới khi có ADR riêng.
+5. **Ai làm:** như ADR-0117 đ3 (Quản trị, Toàn quyền ở Danh bạ). Không thêm ô quyền.
+6. **Gộp hồ sơ:** `nhanDoiTac` của gộp và `R-PRC-6` tính cả năm vai, để nhân viên cũ không lọt vào hồ sơ đối tác qua đường gộp. Câu `merge_source_account_role` phải nói đúng màn với hồ sơ không tài khoản.
+7. `R-LC-1` và `R-PRC-*` phải vẫn xanh trên dữ liệu thử có hồ sơ loại này. Có ca e2e: công ty lữ hành không tài khoản, gắn vai, gắn cấp, văn phòng chọn «Qua đối tác», xác nhận đơn, hoa hồng đúng cấp.
 
 **Đ2. Cột «Cấp độ đại lý» ở Quản lý tài khoản.**
 
-1. Chỉ dòng tài khoản giữ quyền Đối tác có giá trị. Công ty lữ hành không tài khoản vẫn đặt cấp ở trang Hoa hồng.
-2. **Thấy cột** khi có `partner.commission.view`: Hành chính nhân sự không có nên không thấy và không gọi route. **Sửa** khi có `partner.commission.write`: trên trang này là Quản trị, Toàn quyền.
-3. Chữ trong ô: «Đại lý cấp 3 (theo vai)», «Đại lý cấp 2 (riêng)», «Chưa có cấp», «Xung đột» (hai vai ra hai cấp, ADR-0117 đ2). Bấm mở bảng: chọn cấp, từ ngày (mặc định hôm nay), hoặc «Về theo vai». Hồ sơ có mức riêng thì ô thêm nhãn «có mức riêng», trỏ sang trang Hoa hồng, vì cột nói cấp đang áp chứ không nói số tiền.
-4. **Ghi:** dùng đúng ba route sẵn có (đặt, đổi, ngừng cấp riêng). **Đọc:** một route mới chỉ đọc `GET /api/pricing/cap-hien-hanh?ids=…`, cổng `office`, hỏi `partner.commission.view`, chặn `holdsPartner`, tối đa theo danh sách hồ sơ của trang, một câu truy vấn. Tính ở máy chủ, có bài đối chiếu với `GET /api/pricing/ho-so/:id/hoa-hong`.
+1. Chỉ dòng tài khoản giữ quyền Đối tác có giá trị, cả ở bảng lẫn thẻ điện thoại. Công ty lữ hành không tài khoản vẫn đặt cấp ở trang Hoa hồng.
+2. **Thấy cột** khi có `partner.commission.view` và không giữ quyền Đối tác (`holdsPartner`): Hành chính nhân sự không có `view` nên không thấy và không gọi route. **Sửa** khi có `partner.commission.write`: trên trang này là Quản trị, Toàn quyền.
+3. **Chữ trong ô:** «<tên cấp> (theo vai)», «<tên cấp> (riêng)», «Chưa có cấp», «Có thể xung đột» (hai vai ra hai cấp, ADR-0117 đ2), «Chưa mang vai» (không mở bảng, vì đặt cấp sẽ bị 400). Nhãn «có mức riêng» hiện khi `dongRiengDoiTac > 0`, hoặc đang theo vai mà `dongRiengLoai > 0`, và trỏ sang trang Hoa hồng, vì cột nói cấp đang áp chứ không nói số tiền.
+4. **Bấm mở bảng:** chọn cấp, từ ngày, hoặc «Về theo vai». Ngày mặc định là ngày sớm nhất theo `nutDoiNgung` và `kiemDoi`, không phải luôn là hôm nay. «Về theo vai» có hiệu lực từ ngày mai. Cấp không đổi được thì ô trỏ sang trang Hoa hồng.
+5. **Ghi:** dùng đúng ba route sẵn có (đặt, đổi, ngừng cấp riêng). **Đọc:** một route mới chỉ đọc `GET /api/pricing/cap-hien-hanh`, cổng `office`, hỏi `partner.commission.view`, chặn `holdsPartner`. Không nhận `ids`: trả mọi hồ sơ đang mang vai được hưởng. Số câu cố định, không lặp theo hồ sơ. Gọi đúng `tomTatHoaHongHoSo`, không viết luật thứ hai trong SQL. Có bài đối chiếu với `GET /api/pricing/ho-so/:id/hoa-hong`.
+
+## Câu chờ chủ quyết
+
+**C3. Đối tác thôi vai mà còn đơn nháp đứng tên hoặc còn cấp riêng?** Hôm nay đơn nháp của cá nhân thành không hoa hồng mà không ai được báo; đơn của công ty phải đổi sang Khách lẻ mới lưu được.
+- **Khuyến nghị:** chặn gỡ và nêu mã đơn, tới khi xử lý xong nháp và cấp riêng; đơn đã xác nhận không tính.
+- Cách khác: cho gỡ như loại tự thêm hôm nay, chấp nhận mất hoa hồng lặng lẽ.
+
+**C4. Hành chính nhân sự có được thấy tên và vai của đối tác chưa có tài khoản khi tra số để tạo tài khoản?**
+- **Khuyến nghị:** cho thấy, theo đúng luật ADR-0071 đ3b có sẵn (hồ sơ đang mở vai tài khoản), vì không thấy thì dễ tạo trùng hồ sơ và mất cấp đã đặt. Đổi lại họ dò được SĐT ra tên đối tác.
+- Cách khác: chặn riêng hồ sơ loại này, phải thêm mã và chấp nhận rủi ro tạo trùng.
+
+**C5. Cho xây trên hai lỗ sổ tiền đang mở?**
+- **Khuyến nghị:** cho phép có ghi lý do (không sửa mã và luật sổ tiền; loại hồ sơ này đã vào sổ từ ADR-0117), phát hành sau diễn tập khôi phục dữ liệu, như sổ đại lý đợt 2; tin báo còn thiếu ghi vào kế hoạch vá. Phải có dòng cho phép ở `docs/quyen-hoan.json`.
+- Cách khác: vá xong mới làm Đ1; Đ2 vẫn làm được trước.
+
+**C6. Cho nới hàng rào `role_via_account`?**
+- **Khuyến nghị:** cho mở đúng năm vai trên hồ sơ chưa có tài khoản. Người thi công viết lại dòng sổ, quan sát chặn lại với mọi ca còn lại (P16), và đảo có chủ đích các bài đang ghim 409.
+- Cách khác: giữ hàng rào, bảo chủ dùng loại tự thêm trùng tên; không sinh được quyền Đối tác khi sau này tạo tài khoản.
 
 ## Hệ quả
 
 - Danh sách «Đặt qua đối tác» có thêm hồ sơ không tài khoản, đúng ý. Trang Danh bạ hiện vai bên ngoài trong ô gắn vai khi hồ sơ chưa có tài khoản.
+- Gắn vai trước khi có cấp thì đơn bị giữ ở Đã giao tới khi Kế toán xử lý.
+- Luật bán (ADR-0146) chặn cả đơn văn phòng lập cho các hồ sơ này.
 - Không tạo sẵn bảy cấp: mức hoa hồng từng cấp do công ty đặt ở trang Hoa hồng.
 - Lọc theo vai ở Quản lý tài khoản (lượt 1) vẫn chỉ thấy tài khoản, không thấy hồ sơ chưa có tài khoản.
+- **Ghi cho lượt 3:** tiền hồ sơ không tài khoản giữ đi đường `ben_dat`, văn phòng ghi là lời khai chờ Kế toán, Kế toán ghi là `HELD` ngay. Câu «kết quả giống nhau dù ai bấm» của QĐ-A chỉ đúng với đối tác có tài khoản.
+
+## Để lại cho người thi công
+
+Bài phải đảo có chủ đích: `src/modules/pricing/loai-doi-tac.test.ts`, `tests/e2e/parties.mjs`, `tests/e2e/so-dai-ly.mjs`. Danh bạ đổi theo `accountLinked` ở `web/parties.ts`, `src/shared/contracts.ts`; sửa chú thích `src/shared/booker.ts`. Gỡ rồi gắn lại trong ngày hiện trả 409 `role_overlap`; tạo tài khoản cùng vai sau khi gỡ trong ngày nhận câu sai «vừa được người khác sửa». Ca đua: tài khoản `DRIVER_EXTERNAL` đang tạo mà Danh bạ thêm vai ngoài, đọc mã, chưa chạy, ghi chấp nhận. Đừng nhét mã cột vào tệp chung mà trang Đơn hàng nhập (trần gói). Chưa kiểm production: có hồ sơ mang vai cũ `STAFF` hay loại tự thêm trùng tên không, đã đủ bảy cấp chưa.
 
 ## Tiêu chí nghiệm thu
 
-Đặc tả §8 mục QĐ-C (a) tới (g) và phần Chung. Thi công xong phải có người kiểm độc lập.
+Đặc tả §8 mục QĐ-C (a) tới (g) và phần Chung, đọc theo các lệch ở đầu trang, cộng:
+
+- (h) Gắn vai có nơi, ngày tương lai, hoặc đặt trước ngày kết thúc: 400; gỡ với ngày tương lai: 400. `DRIVER_EXTERNAL` trên hồ sơ không tài khoản: 409.
+- (i) Hồ sơ có tài khoản đã ngưng: 409.
+- (j) Gộp hồ sơ mang vai cũ `STAFF` vào hồ sơ mang vai ngoài: bị chặn; `R-PRC-6` thấy được ca này.
+- (k) Ô cấp đủ năm trạng thái; bảng bấm không rơi vào 400 ở ngày mặc định; «Về theo vai» ghi đúng từ ngày mai.
+- (l) Câu C3, C4, C5, C6 thi hành theo lời chủ duyệt.
+
+Thi công xong phải có người kiểm độc lập.
