@@ -20,7 +20,7 @@ export const formGonDoiTac = (who: Pick<PermissionHolder, "permissions">): boole
 
 /**
  * Chữ hiện trong ô Ghi chú MỘT dòng của form gọn. Ghi chú cũ (nhập ở form đầy đủ, ô nhiều dòng) có thể chứa xuống dòng; ô `<input type="text">` bỏ xuống dòng khi gán `value`,
- * nên «Đón 7h↵30 khách» hiện thành «Đón 7h30 khách», đổi nghĩa giờ đón. Mỗi cụm xuống dòng (kể cả khoảng trắng hai bên, `\r\n`) thành «, »; chuỗi không có xuống dòng giữ nguyên.
- * Chỉ để HIỆN: dữ liệu cũ trong nháp giữ nguyên tới khi người dùng gõ vào ô.
+ * nên «Đón 7h↵30 khách» hiện thành «Đón 7h30 khách», đổi nghĩa giờ đón. Mỗi cụm xuống dòng (kể cả khoảng trắng hai bên, `\r\n`) thành «, », cụm ở đầu hoặc cuối thì bỏ; chuỗi không có
+ * xuống dòng giữ nguyên. Chỉ để HIỆN: dữ liệu cũ trong nháp giữ nguyên tới khi người dùng gõ vào ô.
  */
-export const ghiChuMotDong = (note: string): string => note.replace(/\s*[\r\n]\s*/g, ", ");
+export const ghiChuMotDong = (note: string): string => note.replace(/^\s*[\r\n]\s*|\s*[\r\n]\s*$/g, "").replace(/\s*[\r\n]\s*/g, ", ");

@@ -24,6 +24,7 @@ test("ghiChuMotDong: ô một dòng không được làm «Đón 7h\\n30 khách�
   assert.equal(ghiChuMotDong("a\n\n\nb"), "a, b", "nhiều dòng trống liền nhau chỉ thành một dấu phẩy");
   assert.equal(ghiChuMotDong("a\rb"), "a, b", "xuống dòng kiểu Mac cũ");
   assert.equal(ghiChuMotDong("một\nhai\nba"), "một, hai, ba");
+  assert.equal(ghiChuMotDong("\nĐón 7h\n"), "Đón 7h", "xuống dòng ở đầu hoặc cuối không để lại dấu phẩy thừa");
 });
 
 test("ghiChuMotDong: chuỗi không có xuống dòng giữ NGUYÊN (kể cả khoảng trắng đầu cuối, chuỗi rỗng, dấu phẩy sẵn có)", () => {

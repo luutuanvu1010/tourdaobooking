@@ -131,6 +131,9 @@ export function chiaKho(): DoanTriThuc[] {
 /** Bỏ dấu tiếng Việt, về chữ thường; "đ" → "d". */
 export const boDau = (s: string): string => s.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/g, "d").replace(/Đ/g, "d").toLowerCase();
 
+/** Tên mới dạng không dấu để `tachTu` gộp tên cũ về. Dẫn xuất từ tên có dấu để bảng từ giao diện vẫn quét được, không cần ngoại lệ. */
+const VAI_NGUOI_DUNG_KHONG_DAU = boDau("vai người dùng");
+
 /** Từ quá chung (sau khi bỏ dấu) — không mang nghĩa để tìm. */
 const TU_DUNG = new Set(
   "la cua va cho toi minh ban co khong thi nao the gi o de duoc mot nhung cac khi trong voi nay do em anh chi a oi nhe vay sao lam bang hay hoac neu roi da dang se can muon ra vao len xuong tu den nhu ma thoi tai ve".split(" "),
@@ -141,12 +144,12 @@ export function tachTu(s: string): string[] {
   // ADR-0130: chữ giao diện «app» đổi thành «Nền tảng», nhưng người hỏi vẫn gõ «app». Gộp cụm «nen tang» và chữ «app» về MỘT âm tiết (ở kho lẫn câu hỏi)
   // để hai cách gọi khớp nhau và cụm hai âm tiết phổ biến này không thành «khớp cặp» với gần như cả kho.
   // Chủ 2026-10-25: trang «Trợ giúp» đổi tên «Hướng dẫn»; người dùng vẫn gõ «trợ giúp» ⇒ coi như «hướng dẫn» (kho không còn chữ «trợ giúp»).
-  // 2/11 (đặt vé của đối tác): hai tên đã đổi trên giao diện mà nhân viên vẫn gõ tên cũ (chữ không dấu nên không dính bảng từ giao diện): «loại đối tác» → «vai người dùng»,
-  // «cấp đại lý» → «cấp độ đại lý». Gộp ở cả kho lẫn câu hỏi, cùng cách với «nền tảng» và «trợ giúp» ở trên.
+  // 2/11 (đặt vé của đối tác): hai tên đã đổi trên giao diện mà nhân viên vẫn gõ tên cũ: «loại đối tác» → «vai người dùng», «cấp đại lý» → «cấp độ đại lý».
+  // Gộp ở cả kho lẫn câu hỏi, cùng cách với «nền tảng» và «trợ giúp» ở trên.
   const am = boDau(s)
     .replace(/\bnen tang\b|\bapp\b/g, "nentang")
     .replace(/\btro giup\b/g, "huong dan")
-    .replace(/\bloai doi tac\b/g, "vai nguoi dung")
+    .replace(/\bloai doi tac\b/g, VAI_NGUOI_DUNG_KHONG_DAU)
     .replace(/\bcap dai ly\b/g, "cap do dai ly")
     .split(/[^a-z0-9]+/)
     .filter(Boolean);
