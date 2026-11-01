@@ -47,27 +47,42 @@ try {
     return p;
   };
   /**
-   * Ảnh toàn trang: Chrome vẽ thanh dính đáy (`position: fixed` hoặc `sticky` bám đáy: có `bottom`, không có `top`) MỘT lần ở độ cao khung nhìn, tức giữa trang, che mất nội dung. Ẩn tạm các thanh bám đáy khi chụp (tổng tiền + nút
-   * «Gửi đơn» / «＋ Thêm mức» vẫn có ở trang thật, chỉ không có trong ảnh dài), rồi trả lại.
+   * Ẩn tạm các thanh bám đáy / bám đỉnh (`position: fixed` hoặc `sticky`) để chụp. `moi(e)` chọn phần tử cần ẩn trong lượt này. Phần tử đã ẩn (có `data-an-tam`) bị bỏ qua. Trả số phần tử ẩn thêm được.
+   * Vì sao phải lặp (lỗi thấy ở ảnh Hoa hồng khổ 390, 2/11): trang Hoa hồng có thanh dính đáy `#hh-thanh-cuoi`; khi nó hiện, shell (`web/shell.ts`, `theoDoiThanhDinh`) ẩn thanh tab dưới bằng lớp `tabbar-dinh`
+   * nên lượt đầu KHÔNG thấy `#tabbar` (display: none, cao 0). Ẩn `#hh-thanh-cuoi` xong, shell gỡ lớp đó sau một khung hình và `#tabbar` hiện lại: lượt ẩn một lần không bắt được. Lặp tới khi hết phần tử mới.
    */
-  const anThanhDay = (p, an) => p.ev(`(() => { for (const e of document.querySelectorAll('body *')) { const s = getComputedStyle(e); if (${an}) { if ((s.position === 'fixed' || s.position === 'sticky') && e.getBoundingClientRect().top > innerHeight * 0.5) { e.dataset.anTam = e.style.display; e.style.display = 'none'; } } else if (e.dataset.anTam !== undefined) { e.style.display = e.dataset.anTam; delete e.dataset.anTam; } } return true; })()`);
+  const anMotLuot = (p, moi) => p.ev(`(() => { let n = 0; for (const e of document.querySelectorAll('body *')) { if (e.dataset.anTam !== undefined) continue; const s = getComputedStyle(e); if ((s.position === 'fixed' || s.position === 'sticky') && (${moi})) { e.dataset.anTam = e.style.display; e.style.display = 'none'; n++; } } return n; })()`);
+  const anHetThanhDay = async (p, moi) => {
+    for (let i = 0; i < 6; i++) {
+      const n = await anMotLuot(p, moi);
+      await sleep(250); // đủ cho shell đo lại thanh dính (requestAnimationFrame) và vẽ lại
+      if (n === 0) return;
+    }
+    throw new Error("thanh dính vẫn còn hiện lại sau 6 lượt ẩn");
+  };
+  const traThanhDay = (p) => p.ev(`(() => { for (const e of document.querySelectorAll('[data-an-tam]')) { e.style.display = e.dataset.anTam; delete e.dataset.anTam; } return true; })()`);
+  /**
+   * Ảnh toàn trang: Chrome vẽ thanh dính đáy (`position: fixed` hoặc `sticky` bám đáy: có `bottom`, không có `top`) MỘT lần ở độ cao khung nhìn, tức giữa trang, che mất nội dung. Ẩn tạm các thanh bám đáy khi chụp (tổng tiền + nút
+   * «Gửi đơn» / «＋ Thêm mức» vẫn có ở trang thật, chỉ không có trong ảnh dài), rồi trả lại. Sau khi ẩn xong KIỂM bằng số đo: không còn phần tử fixed / sticky nào đang hiện ở nửa dưới khung nhìn, nếu còn thì dừng (không chụp ảnh sai).
+   */
   const chup = async (p, duongDan) => {
-    await anThanhDay(p, true);
-    await sleep(200);
+    await anHetThanhDay(p, "e.getBoundingClientRect().top > innerHeight * 0.5");
+    const con = await p.ev(`[...document.querySelectorAll('body *')].filter((e) => { const s = getComputedStyle(e); return (s.position === 'fixed' || s.position === 'sticky') && e.getClientRects().length > 0 && e.getBoundingClientRect().top > innerHeight * 0.5; }).map((e) => e.tagName + '#' + e.id)`);
+    assert.deepEqual(con, [], `thanh dưới còn hiện khi chụp ${duongDan}: ${con.join(", ")}`);
     await p.shot(duongDan);
-    await anThanhDay(p, false);
+    await traThanhDay(p);
   };
   /** Ảnh cắt sát phần tử `selector` (biểu thức JS trả phần tử), nới `le` px mỗi phía, gấp đôi độ nét. */
   const cat = async (p, bieuThuc, duongDan, le = 12, them = 0) => {
-    // Thanh trên cùng dính (bước Khách · Dịch vụ · Thanh toán) và thanh dưới cố định đè lên vùng cắt khi cuộn tới phần tử: ẩn tạm mọi phần tử fixed / sticky.
-    await p.ev(`(() => { for (const e of document.querySelectorAll('body *')) { const s = getComputedStyle(e); if (s.position === 'fixed' || s.position === 'sticky') { e.dataset.anTam = e.style.display; e.style.display = 'none'; } } return true; })()`);
+    // Thanh trên cùng dính (bước Khách · Dịch vụ · Thanh toán) và thanh dưới cố định đè lên vùng cắt khi cuộn tới phần tử: ẩn tạm mọi phần tử fixed / sticky (lặp, vì shell hiện lại thanh tab khi thanh dính đáy bị ẩn).
+    await anHetThanhDay(p, "true");
     const r = await p.ev(`(() => { const e = ${bieuThuc}; e.scrollIntoView({ block: 'center' }); const b = e.getBoundingClientRect(); return { x: b.left + scrollX, y: b.top + scrollY, w: b.width, h: b.height }; })()`);
     await sleep(150);
     const x = Math.max(0, r.x - le);
     const y = Math.max(0, r.y - le);
     const shot = await p.send("Page.captureScreenshot", { format: "png", captureBeyondViewport: true, clip: { x, y: Math.max(0, y - (them > 0 ? 130 : 0)), width: r.w + 2 * le, height: r.h + 2 * le + them + (them > 0 ? 130 : 0), scale: 2 } });
     writeFileSync(duongDan, Buffer.from(shot.result.data, "base64"));
-    await p.ev(`(() => { for (const e of document.querySelectorAll('[data-an-tam]')) { e.style.display = e.dataset.anTam; delete e.dataset.anTam; } return true; })()`);
+    await traThanhDay(p);
   };
 
   // ---- dữ liệu ----

@@ -10,7 +10,7 @@ Từ gốc kho, sau `npm run build:web`:
 CHROME_BIN=docs/evidence/2026-09-20-a2/kich-ban/chrome-wrap.sh node docs/evidence/2026-11-02-dat-ve-luot-1/kich-ban/chup-anh.mjs
 ```
 
-Kịch bản dựng một D1 tạm cục bộ (không đụng production), gieo hai vai, hai cấp, một đối tác có cấp riêng, một đối tác có mức riêng, rồi chụp bằng Chrome thật. Khổ 390 chụp hai lần độ nét (ảnh rộng 780 px); khổ 1280 chụp một lần. Trong ảnh toàn trang, thanh dưới cố định (thanh tab điện thoại, thanh nút dính đáy) được ẩn tạm vì chụp toàn trang vẽ chúng một lần ở giữa trang; đó chỉ là chuyện của cách chụp, không phải giao diện thật.
+Kịch bản dựng một D1 tạm cục bộ (không đụng production), gieo hai vai, hai cấp, một đối tác có cấp riêng, một đối tác có mức riêng, rồi chụp bằng Chrome thật. Khổ 390 chụp hai lần độ nét (ảnh rộng 780 px); khổ 1280 chụp một lần. Trong ảnh toàn trang, thanh dưới cố định (thanh tab điện thoại, thanh nút dính đáy) được ẩn tạm vì chụp toàn trang vẽ chúng một lần ở giữa trang; đó chỉ là chuyện của cách chụp, không phải giao diện thật. Trang Hoa hồng có thanh dính đáy riêng; khi nó hiện, trang tự ẩn thanh tab, và khi kịch bản ẩn thanh dính đáy thì trang hiện lại thanh tab. Vì vậy kịch bản ẩn lặp tới khi không còn thanh nào hiện ở nửa dưới màn hình, rồi kiểm lại bằng số đo trước khi chụp (còn thì dừng, không chụp ảnh sai). Bản chụp đầu của hai ảnh Hoa hồng khổ 390 để sót thanh tab ở giữa trang vì chỉ ẩn một lượt; hai ảnh đó (và các ảnh Hoa hồng khác) đã chụp lại sau khi sửa kịch bản, ngày 2/11/2026.
 
 ## Ảnh
 
