@@ -220,7 +220,10 @@ export const veDienTuModule: AppModule = {
         dichVu.push({ serviceId: d.serviceId, catalogCode: d.catalogCode, nhom });
       }
       const duongDan = (await docLinkCuaDon(env.DB, orderId)).map((l) => ({ id: l.id, hetHan: l.expires_at, daThuHoi: l.revoked_at !== null, luotMo: l.opened_count })); // KHÔNG token (chỉ lưu băm)
-      return json({ dichVu, thuDu: thuDu(await tienDonVe(orderId)), duongDan });
+      const du = thuDu(await tienDonVe(orderId));
+      // Mã phân bổ (KHÔNG phải mã vé) để giao diện gọi route ảnh — chỉ khi người xem có ô gửi vé VÀ đơn thu đủ; route ảnh vẫn kiểm lại cả hai.
+      const veXem = du && can(staff, "ve.cap.send", { ownerId: chu, assigned }) ? (await docPhanBoMoCuaDon(env.DB, orderId, null)).map((id, i) => ({ id, stt: i + 1 })) : [];
+      return json({ dichVu, thuDu: du, duongDan, veXem });
     }),
 
     // ẢNH VÉ (ADR-0153 Đ3): chỉ khi đơn THU ĐỦ. Thứ tự cố định (bài khoá thứ tự ở xem-giao-ve.test.ts): sec-fetch-site → kho → mã → phân bổ → chủ đơn → `can(ve.cap.send)` → thu đủ

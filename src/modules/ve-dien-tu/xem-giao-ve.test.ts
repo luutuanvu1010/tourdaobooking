@@ -117,8 +117,12 @@ test("danhSachVeCuaDon: số lượng theo nhóm, không ảnh, không mã; Kế
     const nhom = r.json.dichVu[0].nhom.find((x: any) => x.nhom === "ADULT");
     assert.deepEqual([nhom.can, nhom.giu, nhom.thieu], [2, 2, 0]);
     assert.equal(r.json.thuDu, false);
+    assert.deepEqual(r.json.veXem, [], "chưa thu đủ ⇒ không lộ mã phân bổ");
     await thu(w, d.id, d.phaiThu);
-    assert.equal((await w.call("GET", `/api/ve/don/${d.id}`, { as: SALES })).json.thuDu, true);
+    const sau = (await w.call("GET", `/api/ve/don/${d.id}`, { as: SALES })).json;
+    assert.equal(sau.thuDu, true);
+    assert.equal(sau.veXem.length, 2);
+    assert.deepEqual((await w.call("GET", `/api/ve/don/${d.id}`, { as: ACC })).json.veXem, [], "Kế toán thấy số lượng nhưng không có ô gửi vé");
     assert.equal((await w.call("GET", `/api/ve/don/${crypto.randomUUID()}`, { as: SALES })).status, 404);
   } finally { tat(); }
 });

@@ -38,7 +38,9 @@ const CHO_PHEP_NHAT_KY = new Set(["web/help.ts"]);
 // với mã vỏ chung mới của main). Cùng cách của kế hoạch: trần = số đo + 100. Số trần 102.554 mới là số đo sau gộp, CHƯA có lời duyệt riêng của chủ dự án cho con số này (lời duyệt 30/10 là cho 101.933).
 // Nới 102.554 → 102.734 (ADR-0153 Đ3, 1/11/2026): thêm hai dòng bản đồ quyền `ve.kho.manage`, `ve.cap.send` vào `permissions.ts` (gói nhúng cả bản đồ; đo thật 102.634, +80 byte),
 // cùng cách các lần nới trước vì dòng quyền mới: trần = số đo + 100. Không thêm mã giao diện nào vào gói này. CHƯA có lời duyệt riêng của chủ dự án cho con số này.
-const TRAN_ORDERS = 102_734;
+// Nới 102.734 → 102.937 (ADR-0153 Task 9a, 1/11/2026): thêm trang /ve-kho vào `TRANG`/`THANH_BEN`/`TRANG_TOI` của `muc-giao-dien.ts` (chỉ dữ liệu điều hướng, khuôn các lần /luat-ban, /dac-diem-dich-vu);
+// đo thật 102.837 byte (+203 so với 102.634), trần = số đo + 100. Không mã giao diện nghiệp vụ nào vào gói Đơn hàng. CHƯA có lời duyệt riêng của chủ dự án cho con số này.
+const TRAN_ORDERS = 102_937;
 
 function dung(trang: string) {
   const r = buildSync({
