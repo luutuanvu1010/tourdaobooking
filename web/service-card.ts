@@ -17,6 +17,7 @@ import {
 } from "../src/shared/service-form";
 import type { KhungGio } from "../src/shared/khung-gio-don";
 import { canhBaoChuyenThe, coLoiChanLuuDangHien, dongGapThe } from "../src/shared/dong-gap-the";
+import { GOI_Y_GHI_CHU_DOI_TAC, MAX_GHI_CHU_DICH_VU, NHAN_GHI_CHU_DOI_TAC } from "../src/shared/form-dat-ve";
 import { tripSummaryLine } from "../src/shared/trip-form";
 import { MAX_LINES_PER_ORDER } from "../src/shared/trip-rules";
 import { counter, type Counter } from "./counter";
@@ -25,6 +26,7 @@ import { grouped, parseMoney, vnd } from "./format";
 import { icon } from "./icons";
 import { taoKhoiGap, type KhoiGap } from "./khoi-gap";
 import { moneyInput, setMoneyValue } from "./money-input";
+import { khungNhanNoi } from "./o-nhan-noi";
 import { tripFields } from "./trip-fields";
 import type { DiemNhanh } from "../src/shared/chon-nhanh";
 import { taoKhoiDuaDon, type DiemChon } from "./khoi-dua-don";
@@ -45,6 +47,9 @@ export interface CardOptions {
   /** Tài khoản có quyền Đối tác (ADR-0027 R2) hoặc Thực tập (ADR-0100) — `chiGiaDanhMuc`: đơn giá luôn là giá danh mục — ô đơn giá CHỈ XEM khi đang bằng giá danh mục; nếu đơn cũ đang lệch thì vẫn
    *  sửa được để đưa về đúng giá (máy chủ từ chối mọi giá khác). */
   retailOnly?: boolean;
+  /** Đặt vé của đối tác, lượt 1 (đặc tả §4.2) — `formGonDoiTac` của src/shared/form-dat-ve.ts: tài khoản có quyền Đối tác (kể cả lai). Khối "Thông tin chuyến" ẨN hẳn, thay bằng MỘT dòng "Ghi chú" ghi vào
+   *  `trip.note`; các ô còn lại của chuyến vẫn dựng (ẩn) nên `draft.trip` — giờ khởi hành, giờ và nơi có mặt của nháp cũ — gửi lên đúng như đã nạp. Vắng/false = như cũ, không đổi một ký tự. */
+  formGonDoiTac?: boolean;
   /** ADR-0061: người dùng ĐƯỢC nhập tay (`duocDung` của máy chủ) — thẻ nhập tay đã lưu sửa được tên/giá; vắng/false = chỉ xem (máy chủ vẫn kiểm lại). */
   duocNhapTay?: boolean;
   /** Khối "Đưa đón" (ADR-0047 Phần B, bản vẽ M1/M6): ngày đi của cả đơn, mẫu chặng của dịch vụ, điểm danh mục, ô số người chiều về (văn phòng). */
@@ -178,6 +183,13 @@ export function createServiceCard(o: CardOptions): ServiceCard {
   const fields = tripFields({ trip: draft.trip, onChange: (trip) => commit({ ...draft, trip }), noDepartDate: true, nhanNoi: true }); // ngày khởi hành chọn một lần cho cả đơn (ADR-0021); nhãn nổi trong ô (đợt 1 #4)
   const tripDetails = h("details", { class: "trip" }, h("summary", null, h("span", { class: "trip-title" }, "Thông tin chuyến"), summaryEl), fields.root);
   tripDetails.open = o.openTrip;
+  // Form gọn của Đối tác: khối chuyến ẩn (`hidden` — luật `[hidden]` toàn cục; ô vẫn trong cây DOM) và thay bằng một dòng Ghi chú: gõ thì chỉ đổi `trip.note`, mọi giá trị chuyến khác giữ nguyên.
+  tripDetails.hidden = o.formGonDoiTac === true;
+  const oGhiChuGon = o.formGonDoiTac === true
+    ? h("input", { type: "text", value: draft.trip.note, autocomplete: "off", maxLength: MAX_GHI_CHU_DICH_VU, placeholder: GOI_Y_GHI_CHU_DOI_TAC, "data-trip-gon": "note" })
+    : null;
+  if (oGhiChuGon) oGhiChuGon.addEventListener("input", () => commit({ ...draft, trip: { ...draft.trip, note: oGhiChuGon.value } }));
+  const dongGhiChuGon = oGhiChuGon ? h("label", { class: "o-noi" }, khungNhanNoi(NHAN_GHI_CHU_DOI_TAC, oGhiChuGon, { khungClass: "o-hien-goi-y" })) : null;
 
   const than = h(
     "div",
@@ -186,6 +198,7 @@ export function createServiceCard(o: CardOptions): ServiceCard {
     tongDoc,
     issuesEl,
     duaDon.root,
+    dongGhiChuGon,
     tripDetails,
     warningsEl,
     o.cuoiThe ?? null,
@@ -505,6 +518,7 @@ export function createServiceCard(o: CardOptions): ServiceCard {
     // "Giờ đón sau giờ khởi hành": giờ đón nay ở chặng — so giờ của chiều đi sớm nhất có giờ (cùng hàm với chip của dòng gập).
     replaceChildren(warningsEl, ...canhBaoChuyenThe(d, o.today).map((w) => h("p", { class: "svc-warn" }, icon("alert", 16), w.message)));
     fields.sync(d.trip);
+    if (oGhiChuGon) sync(oGhiChuGon, d.trip.note); // không ghi đè ô đang gõ (Telex / VNI)
     if (mustStayOpen() && !gap.laMo()) gap.mo(); // lỗi chặn Lưu vừa hiện (vd "Tối đa 50 khách.", Lưu bị từ chối): thẻ mở ra và giữ mở tới khi người dùng / trang gập lại sau khi hết lỗi
     veDongGap();
   }
@@ -570,7 +584,7 @@ export function createServiceCard(o: CardOptions): ServiceCard {
     },
     reveal() {
       gap.mo();
-      tripDetails.open = true;
+      if (o.formGonDoiTac !== true) tripDetails.open = true; // form gọn: khối chuyến đang ẩn, không có gì để mở
       root.scrollIntoView({ block: "center" });
     },
     hasIssues: () => draftIssues(draft).length > 0,

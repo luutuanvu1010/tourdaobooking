@@ -3790,6 +3790,14 @@ a.bk-hang:hover, a.bk-the:hover { background: var(--c-soft-hover); }
 #pay-card .grid.three, #order-form .card > .grid.two { grid-template-columns: repeat(auto-fit, minmax(var(--w-o-hep), 1fr)); }
 .o-noi-khung > :is(input, textarea)::placeholder { color: transparent; }
 .o-noi-khung > :is(input, textarea):focus::placeholder { color: var(--c-placeholder); }
+/* Form Tạo đơn GỌN của Đối tác (đặt vé của đối tác, lượt 1; web/order-form.ts, web/service-card.ts; src/shared/form-dat-ve.ts). Hai biến thể của khung nhãn nổi, chỉ token:
+   `o-khong-nhan` — ô «Giảm giá cho khách»: BỎ nhãn nổi, chữ gợi ý luôn hiện trong ô (bỏ đệm trên dành cho nhãn nên chữ nằm giữa ô theo chiều đứng);
+   `o-hien-goi-y` — dòng «Ghi chú»: nhãn nổi GIỮ vị trí thu nhỏ kể cả khi ô trống, chữ gợi ý «Thời gian đón» luôn hiện bên dưới nhãn. */
+.o-noi-khung.o-khong-nhan > input { padding-top: var(--s1); }
+.o-noi-khung.o-khong-nhan > input::placeholder { color: var(--c-placeholder); opacity: 1; }
+.o-noi-khung.o-hien-goi-y > input::placeholder { color: var(--c-placeholder); opacity: 1; }
+.o-noi-khung.o-hien-goi-y > input:placeholder-shown:not(:focus) ~ .o-noi-chu { top: var(--s2); transform: none; font-size: var(--fs-step-2); font-weight: var(--fw-semibold); }
+.svc-than > label.o-noi { margin-top: var(--s3); } /* dòng «Ghi chú» gọn đứng ngay sau khối Đưa đón, thay chỗ khối «Thông tin chuyến» (cùng khoảng cách trên với `.trip`) */
 .dd-khac-ngay { align-self: start; justify-self: start; min-height: var(--h-field); padding: 0 var(--s2); } /* "Đón khác ngày" (đợt 1 #9): nằm cạnh ô giờ, ngang hàng với khung ô */
 /* «Chọn nhanh» nơi đưa đón (ADR-0118 Đ5): hàng nút điểm thường dùng dưới ô Nơi trả (chiều đi) / Nơi đón (chiều về); chỉ token. */
 .dd-nhanh { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); }

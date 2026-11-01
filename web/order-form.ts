@@ -16,6 +16,7 @@ import { NHAN_NUT_XAC_NHAN } from "../src/shared/xac-nhan-hien-thi";
 import { gopBenDat, khoiBenDatForm, nhanSdtKhach, nhanTenKhach, noiNapBenDat, type BenDatChon } from "../src/shared/phan-doi-tac-hien-thi";
 import { NETWORK_BANNER, banner, classifyOrderError, type Banner } from "../src/shared/order-errors";
 import { can, chiGiaDanhMuc, holdsIntern, holdsPartner } from "../src/shared/permissions";
+import { GOI_Y_GIAM_GIA_DOI_TAC, formGonDoiTac } from "../src/shared/form-dat-ve";
 import { cauTranGiamGiaForm, oGiamGiaChiGiaDanhMuc } from "../src/shared/ben-kia-hien-thi";
 import { coXemPhanDoiTac } from "../src/shared/phan-doi-tac-hien-thi";
 import {
@@ -237,6 +238,9 @@ byId("catalog-slot").append(picker.root);
 
 // Tài khoản có quyền Đối tác (ADR-0027) hoặc Thực tập (ADR-0100) — `chiGiaDanhMuc`, MỘT định nghĩa với máy chủ: đơn giá = giá danh mục; giảm giá: Đối tác tạm chưa được (chủ dự án 26/9), Thực tập không được theo ADR-0100. Máy chủ là nơi chặn; form chỉ khoá ô cho khỏi gõ rồi bị từ chối.
 let retailOnly = false;
+// Đặt vé của đối tác, lượt 1 (đặc tả §4.1, §4.2): form GỌN cho tài khoản có quyền Đối tác (kể cả lai) — `formGonDoiTac`, luật thuần ở src/shared/form-dat-ve.ts. Gán sau `initShell()`, TRƯỚC khi dựng thẻ
+// dịch vụ (khuôn `retailOnly`): thẻ ẩn "Thông tin chuyến" và dựng dòng Ghi chú; ô giảm giá bỏ nhãn nổi, chữ gợi ý «Giảm giá cho khách». Chỉ ẩn / hiện + đổi chữ — luật khoá ô và trần giảm giá không đổi.
+let formGon = false;
 // ADR-0061: người dùng được nhập tay (công tắc BẬT, có ô order.service.manual, không mang quyền Đối tác) — MÁY CHỦ quyết (`duocDung` của
 // GET /api/cai-dat/nhap-tay), giao diện không tự tính luật. Đọc TRƯỚC khi dựng thẻ đã lưu (loadOrder); lỗi / 403 → false (ẩn nút, thẻ chỉ xem).
 let duocNhapTay = false;
@@ -253,6 +257,7 @@ function mount(d: ServiceDraft, moThe: boolean, open?: boolean): Entry {
     openTrip: open ?? coGiaTriChuyen(d.trip), // bản 1.39: thu gọn mặc định; bốn bước (14/10): TỰ MỞ khi đã có giá trị (nháp đã lưu, bản sửa) — không giấu giá trị đang có; `?focus=` của cảnh báo thiếu chuyến vẫn mở đúng thẻ
     canAddLine: () => totalLines(drafts()) < MAX_LINES_PER_ORDER,
     retailOnly,
+    formGonDoiTac: formGon,
     duocNhapTay,
     duaDon: { ngayDi: () => orderDate, mau: () => mauCua(entry.draft), diem: () => diem, diemNhanh: () => diemNhanh, suaSoVe, newKey, khungGio: () => khungGio, coDuaDon: () => coDuaDon(entry.draft) },
     moThe,
@@ -879,6 +884,15 @@ guiDonKhiLuu = holdsPartner(staff);
 ganViTriThongBao();
 picker.setTaiKhoan(staff.id); // ADR-0058 Đ8: nhóm đã chọn nhớ THEO TÀI KHOẢN trên máy — bộ chọn dựng trước khi biết tài khoản, trước dòng này không đọc / ghi bộ nhớ
 retailOnly = chiGiaDanhMuc(staff); // trước loadCatalog/loadOrder: thẻ dịch vụ dựng sau dòng này
+formGon = formGonDoiTac(staff); // cùng chỗ: thẻ dịch vụ đọc cờ này lúc dựng
+if (formGon) {
+  // Ô giảm giá của form gọn: bỏ nhãn nổi «Giảm giá (₫)», chữ gợi ý + tên cho trình đọc màn hình là «Giảm giá cho khách» (đặc tả §4.1). Khối Tóm tắt giữ dòng «Giảm giá».
+  const oGiam = field("discount") as HTMLInputElement;
+  oGiam.parentElement?.querySelector(".o-noi-chu")?.remove();
+  oGiam.parentElement?.classList.add("o-khong-nhan");
+  oGiam.placeholder = GOI_Y_GIAM_GIA_DOI_TAC;
+  oGiam.setAttribute("aria-label", GOI_Y_GIAM_GIA_DOI_TAC);
+}
 duocDatGap = can(staff, "order.leg.short_notice");
 // ---- bên đặt (sổ đại lý đợt 1, Task 11; đặc tả §7) ----
 // Quyết định hiện gì do `khoiBenDatForm` (src/shared/phan-doi-tac-hien-thi.ts): Đối tác mà máy chủ ÉP bên đặt (trường `benDatCuaToi` của /api/auth/me — giao diện không suy) → dòng chỉ đọc "Bên đặt: <tên>"

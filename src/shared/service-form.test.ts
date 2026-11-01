@@ -581,3 +581,17 @@ test("ADR-0134: bấm Đón → có ít nhất một lượt (tạo lượt chi�
   assert.equal(chonDonSauDoiChang("KHONG_DON", 0), "KHONG_DON");
   assert.equal(chonDonSauDoiChang(null, 0), null);
 });
+
+// Đặt vé của đối tác, lượt 1 (Task 1): form gọn của Đối tác ẩn khối "Thông tin chuyến" và chỉ cho sửa dòng Ghi chú. Nháp CŨ (lập từ máy văn phòng) có thể đã có giờ khởi hành /
+// giờ có mặt / nơi có mặt: sửa mỗi ghi chú rồi lưu thì ba giá trị đó phải còn nguyên (không bị form gọn xoá lặng lẽ). Bài GHIM (xanh ngay từ đầu vì `draft.trip` vốn giữ đủ) —
+// khoá hành vi để lần sửa sau của form gọn không làm mất.
+test("đối tác chỉ sửa ghi chú: giờ khởi hành và giờ có mặt của nháp cũ còn nguyên", () => {
+  const dto: OrderServiceDto = { ...savedTour, departTime: "08:00", checkinTime: "07:30", checkinPlace: "Cảng Vinpearl", note: "" };
+  const d = draftFromDto(dto, live, "k1");
+  const sauKhiGoGhiChu = { ...d, trip: { ...d.trip, note: "Đón 7h sáng" } };
+  const gui = toServiceInput(sauKhiGoGhiChu);
+  assert.equal(gui.note, "Đón 7h sáng");
+  assert.equal(gui.departTime, "08:00");
+  assert.equal(gui.checkinTime, "07:30");
+  assert.equal(gui.checkinPlace, "Cảng Vinpearl");
+});
