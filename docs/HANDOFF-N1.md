@@ -23,6 +23,7 @@ Ghi 29/10/2026 từ khối tóm tắt của `npm run trien-khai` (chủ chạy `
 ## Lần phát hành kế tiếp (chưa số): Kho vé điện tử (ADR-0153; migration `0131_ve_dien_tu`; nhánh `claude/ve-dien-tu-thi-cong-ff85a6`) — CHƯA gộp, CHƯA lên production — GHI CHÚ CHO CHỦ
 
 - **Việc chủ làm trước khi gộp:** kho R2 `tourdao-sales-ve-dien-tu` (chủ đã tạo 31/10); đọc diff `wrangler.jsonc` (binding `VE_DIEN_TU`, và `run_worker_first` thêm `/ve/*` cho trang khách); xem hai chỗ nới trần dung lượng gói Đơn hàng ở `src/goi-trang-nhe.test.ts` (chưa có lời duyệt riêng cho con số). Không có bí mật mới (đọc chữ AI chưa làm). Bước A.0 (nhật ký thay đổi) và cổng phiên bản làm như mọi lần.
+- **Chủ cần biết (nới nhẹ một danh sách hàng rào):** `src/shared/lan-gui-no.ts` thêm hai dòng nợ ghi nhiều lần có tên: `POST /api/ve/lo/:id/ve` (kho R2 nằm giữa nên không gộp một lô) và `POST /api/orders/:id/status` (cấp vé sau lô xác nhận, cố ý nuốt lỗi để vé hỏng không chặn xác nhận; thiếu vé thì trang đơn hiện «Thiếu N vé» + nút «Cấp vé»). Bài e2e `ve-dien-tu` (chạy bằng `npm run test:e2e -- ve-dien-tu`) đã chứng minh các lô cấp / trả vé trên D1 thật.
 - **Sau triển khai:** nhập thử một lô nhỏ ở `/ve-kho`; một đơn thu đủ thấy khối «Vé điện tử» ở trang đơn; thử đường dẫn khách trên điện thoại khác; `node scripts/audit-invariants.mjs --db remote` có ba kiểm `R-VDT-1..3`.
 - **Hoàn tác:** gỡ bản mới (rollback Worker) là đủ; bảng `vdt_*` chỉ thêm, bản cũ không đọc. Vé đã giao cho khách (ảnh, đường dẫn) không thu hồi được bằng rollback — thu hồi đường dẫn bằng nút «Thu hồi» trước khi gỡ.
 
