@@ -198,12 +198,22 @@
       "tien_to_bang": ["vc_"],
       "khong_lam": ["Không để phần nào khác gọi vào nó", "Không cho tài xế thấy tên khách ngoài ngày chạy"],
       "doc_chi_tiet": ["docs/VAN-CHUYEN.md", "docs/adr/ADR-0128-van-chuyen-nhom-1-moc-30-phut-xe-rieng-tuyet-doi-them-khach-tat-ca-hoac-khong.md"]
+    },
+    {
+      "ma": "ve-dien-tu",
+      "ten_viet": "Kho vé điện tử",
+      "muc_dich": "Giữ kho vé ảnh của nhà cung cấp, giữ chỗ đúng loại, nhóm khách và ngày đi cho từng đơn, và chỉ cho xem hoặc giao vé khi đơn đã thu đủ (ADR-0153, đề xuất chờ chủ duyệt).",
+      "ai_dung": ["SALES", "ACCOUNTING", "ADMIN", "SUPER_ADMIN"],
+      "tien_to_bang": ["vdt_"],
+      "khong_lam": ["Không sửa đơn, không ghi sổ tiền; chỉ đọc số khách và số đã thu qua cửa công bố", "Không tự gửi vé cho khách qua Zalo", "Không để mã vé, nội dung mã QR hay khoá kho vào nhật ký"],
+      "doc_chi_tiet": ["docs/adr/ADR-0153-ve-dien-tu-kho-ve-va-cap-ve.md", "docs/superpowers/specs/2026-10-31-ve-dien-tu-design.md"]
     }
   ],
   "khoi_ngoai": [
     { "ten": "Cơ sở dữ liệu D1 (binding DB)", "muc_dich": "Nguồn sự thật của mọi dữ liệu nghiệp vụ; trigger giữ các luật lõi ngay trong cơ sở dữ liệu.", "chieu": "máy chủ đọc và ghi", "phan_dung": [] },
     { "ten": "Kho tệp R2 (binding HO_SO)", "muc_dich": "Giữ ảnh giấy tờ của người và dấu vết phiếu xoá ngoài cơ sở dữ liệu; không công khai.", "chieu": "máy chủ ghi, đọc, xoá", "phan_dung": ["parties"] },
     { "ten": "Kho tệp R2 vé hỗ trợ (binding HO_TRO)", "muc_dich": "Giữ ảnh và tệp PDF kèm tin của vé hỗ trợ ngoài cơ sở dữ liệu (ADR-0144); không công khai, mở qua máy chủ sau khi kiểm quyền.", "chieu": "máy chủ ghi, đọc, xoá", "phan_dung": ["feedback"] },
+    { "ten": "Kho tệp R2 vé điện tử (binding VE_DIEN_TU)", "muc_dich": "Giữ ảnh vé của nhà cung cấp ngoài cơ sở dữ liệu (ADR-0153, đề xuất); không công khai, mở qua máy chủ sau khi kiểm quyền và thu đủ.", "chieu": "máy chủ ghi, đọc, xoá", "phan_dung": ["ve-dien-tu"] },
     { "ten": "Bảng tin (Durable Object, binding BANG_TIN)", "muc_dich": "Giữ kết nối WebSocket để báo tức thì cho màn hình đang mở; không lưu tin.", "chieu": "hai chiều", "phan_dung": ["bangtin"] },
     { "ten": "Email (binding EMAIL)", "muc_dich": "Gửi thư báo góp ý cho người xử lý và mã đăng nhập hai lớp.", "chieu": "máy chủ gọi ra", "phan_dung": ["feedback", "auth"] },
     { "ten": "Google Sheet danh mục dịch vụ", "muc_dich": "Nguồn danh sách dịch vụ và bảng giá, kéo mỗi 15 phút hoặc khi bấm đồng bộ.", "chieu": "chỉ đọc", "phan_dung": ["catalog"] },

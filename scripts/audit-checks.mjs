@@ -2087,6 +2087,28 @@ export const CHECKS = [
     level: "fail",
     note: "đặc tả sổ đại lý đợt 1 §9: tháng đã khoá không liền nhau — chỉ có thể do SQL chạy tay; khôi phục theo runbook",
   },
+  // ---- Kho vé điện tử (ADR-0153; kế hoạch Task 10) ----
+  {
+    code: "R-VDT-1",
+    what: "mọi vé đang ALLOCATED có đúng một phân bổ đang mở",
+    sql: `SELECT count(*) FROM vdt_ticket t WHERE t.status = 'ALLOCATED' AND (SELECT count(*) FROM vdt_allocation a WHERE a.ticket_id = t.id AND a.released_at IS NULL) <> 1`,
+    level: "fail",
+    note: "vé ALLOCATED thiếu phân bổ mở (giữ chỗ hỏng giữa chừng) hoặc có hai phân bổ mở (chỉ mục duy nhất một phần bị gỡ) — chỉ có thể do SQL chạy tay hoặc chỉ mục bị sửa",
+  },
+  {
+    code: "R-VDT-2",
+    what: "mọi phân bổ đang mở trỏ tới vé đang ALLOCATED",
+    sql: `SELECT count(*) FROM vdt_allocation a JOIN vdt_ticket t ON t.id = a.ticket_id WHERE a.released_at IS NULL AND t.status <> 'ALLOCATED'`,
+    level: "fail",
+    note: "phân bổ mở nhưng vé đã AVAILABLE / VOID: vé có thể bị cấp cho chỗ khác trong khi chỗ cũ còn giữ — trả vé hỏng giữa chừng hoặc SQL chạy tay",
+  },
+  {
+    code: "R-VDT-3",
+    what: "vé đã lộ (revealed_at) không bao giờ ở trạng thái AVAILABLE",
+    sql: `SELECT count(*) FROM vdt_ticket t WHERE t.status = 'AVAILABLE' AND EXISTS (SELECT 1 FROM vdt_allocation a WHERE a.ticket_id = t.id AND a.revealed_at IS NOT NULL)`,
+    level: "fail",
+    note: "vé đã đưa cho khách mà quay về kho thì có thể cấp lại cho người khác (vé có giá trị như tiền) — bất biến Đ1 mục 6 của ADR-0153",
+  },
 ];
 
 /**

@@ -8,6 +8,7 @@ interface __BaseEnv_Env {
 	HO_SO?: R2Bucket;
 	// Kho tệp vé hỗ trợ (ADR-0144) — khai TAY cùng lý do với HO_SO; dấu hỏi: route tệp vé trả 503 khi binding vắng.
 	HO_TRO?: R2Bucket;
+	VE_DIEN_TU?: R2Bucket;
 	ASSETS: Fetcher;
 	SERVICES_SHEET_ID: "1XPx1g0JVTdevdX35MeCpt6Cc6Dgxdmfer6okEWleD3s";
 	SESSION_SECRET: string;

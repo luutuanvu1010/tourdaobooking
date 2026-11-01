@@ -594,6 +594,17 @@ Migration siết B5 (`staff_party_required`: bắt buộc `staff.party_id`) **ch
 
 ---
 
+### Kho vé điện tử (ADR-0153; migration `0131`; mô tả hiện trạng, thua mã)
+
+Module `ve-dien-tu` (tiền tố `vdt_`, module nghiêm). **Dữ liệu:** `vdt_batch` (lô: một dịch vụ + một loại khách + tên sản phẩm; PENDING→ACTIVE, một chiều), `vdt_ticket` (vé ảnh: mã vé, khoảng ngày, khoá kho R2, trạng thái AVAILABLE→ALLOCATED→AVAILABLE|VOID, không xoá), `vdt_allocation` (vé nào giữ cho dòng dịch vụ nào, vị trí; `revealed_at` ghi một lần — vé đã lộ không bao giờ về kho), `vdt_delivery` (lần giao Zalo, chỉ thêm), `vdt_guest_link` (đường dẫn khách: chỉ lưu BĂM token, hạn, thu hồi, lượt mở). Chặn cấp trùng ở CSDL bằng hai chỉ mục duy nhất một phần (một vé một chỗ mở; một vị trí một vé mở). Ảnh vé nằm ở kho R2 riêng `VE_DIEN_TU` (khoá `vdt/<32 hex>`).
+**Luồng:** nhân viên nhập lô (`/ve-kho`) → xác nhận lô (ACTIVE). Xác nhận đơn (ba đường) thì `ctx.capVeSauXacNhan` giữ vé theo số khách HIỆU LỰC (em bé 0 vé) trong MỘT lô RIÊNG sau lô xác nhận, lỗi nuốt (thiếu vé là suy ra lúc đọc). Huỷ đơn / rút xác nhận: `ctx.traVeKhiHuy` trả CÂU nối vào chính lô huỷ, có cổng trạng thái đơn qua view `v_ord_order_state`. Sửa số khách: `ctx.canBangVeSauSuaKhach` trả bớt vé CHƯA lộ / cấp thêm. `orders` và `ve-dien-tu` không import nhau: gốc lắp ráp ghép qua hàm công bố `orders.dichVuChoVe` (số khách hiệu lực nằm ở JSON điều chỉnh nên không làm được bằng view SQL).
+**Mở khoá:** xem ảnh / giao vé / tạo đường dẫn chỉ khi `thuDu` (đã thu ròng ≥ phải thu và phải thu > 0; `ctx.tienDonVe`), thứ tự quyền → thu đủ → nhật ký + đóng dấu «đã lộ» → đọc kho. Nhật ký chỉ ghi số lượng / nhãn, không bao giờ mã vé.
+**API:** `GET /api/ve/kho`, `POST /api/ve/lo`, `POST /api/ve/lo/:id/ve`, `POST /api/ve/lo/:id/xac-nhan`, `POST /api/ve/lo/:id/sua-ma-tour` (ô `ve.kho.manage`); `GET /api/ve/don/:orderId` (ô `order.view`), `GET /api/ve/anh/:allocationId`, `POST /api/ve/giao`, `POST /api/ve/cap`, `POST /api/ve/duong-dan`, `POST /api/ve/duong-dan/:id/thu-hoi` (ô `ve.cap.send`); công khai chỉ đọc: `GET /ve/:token` (trang dựng phía máy chủ, không script) và `GET /api/ve-khach/:token/anh/:slot` (token 256 bit, hạn = ngày dùng cuối của vé + 7 ngày, sai / hết hạn / thu hồi cùng một 404, giới hạn tốc độ dùng lại `reserveAttempts` của auth). `wrangler.jsonc` `run_worker_first` có thêm `/ve/*`.
+**Quyền:** `ve.kho.manage` (Bán hàng, Quản trị, Toàn quyền: any), `ve.cap.send` (Bán hàng: ownOrAssigned; Quản trị, Toàn quyền: any); Kế toán chỉ thấy số lượng theo `order.view`; Đối tác không có ô nào.
+**Chưa làm (31/10–1/11):** đọc chữ trên ảnh bằng AI (chủ chốt 1/11: nhập tay trước); thông báo kho cạn; cấp bù tự động sau nhập lô và quét định kỳ (hiện có cấp bù bằng tay `POST /api/ve/cap`); mã vé còn bắt buộc (đề xuất đổi thành tuỳ chọn, chờ chủ duyệt).
+
+---
+
 ## 6. Luồng nghiệp vụ chính
 
 ### (a) Đăng nhập

@@ -293,6 +293,16 @@
 | `ky_period_close` | bảng | tháng đã khoá sổ (ADR-0080 D1; migration 0090), CHỈ-THÊM và KHÔNG có đường mở lại: period 'YYYY-MM' là khoá chính; bảng rỗng thì khoá tháng nào cũng được, sau đó chỉ tháng liền kề sau tháng lớn nhất. Bốn trigger *_period_closed (bil_payment_receipt, bil_posting, bil_outside_refund, vc_trip_cost_line) chặn dòng mới có ngày phát sinh thuộc tháng đã khoá. Khoá nhầm chỉ cứu bằng khôi phục Time Travel |
 | `v_ky_closed_period` | view công bố | cột: period |
 
+## ve-dien-tu
+
+| Đối tượng | Loại | Ghi chú |
+|---|---|---|
+| `vdt_batch` | bảng | Lô nhập vé điện tử (ADR-0153 Đ1, 0131 — đề xuất): MỘT dịch vụ (mã tour `catalog_code`, tham chiếu logic, không khoá ngoại) + MỘT nhóm khách chọn một lần cho cả lô. Không xoá (trigger vdt_batch_no_delete); không đổi nhóm khách. `printed_name` = tên sản phẩm in trên vé, để nhân viên đối chiếu |
+| `vdt_ticket` | bảng | Vé điện tử (ADR-0153 Đ1, 0131): một dòng một ảnh vé; KHÔNG chứa tên khách. `ticket_code` (mã vé nhà cung cấp, duy nhất) và `storage_key` (khoá kho R2 ngẫu nhiên) là bí mật vận hành — không bao giờ vào nhật ký, DTO ghi, câu lỗi. Không xoá; status AVAILABLE→ALLOCATED→VOID một chiều (trigger vdt_ticket_one_way); vé từng được đọc/giao (revealed_at) không về kho |
+| `vdt_allocation` | bảng | Phân bổ vé (ADR-0153 Đ1, 0131): vé nào giữ cho dòng dịch vụ (`order_service_id`) nào của đơn nào; `order_id`/`order_service_id` là tham chiếu logic. Chỉ thêm; chỉ `revealed_at` (lần đầu ảnh được đọc/giao) và `released_at`+`release_reason` (trả vé) ghi một lần. Chỉ mục duy nhất một phần chặn một vé hai chỗ và một vị trí hai vé |
+| `vdt_delivery` | bảng | Lần giao vé (ADR-0153 Đ1, 0131): ai giao, kênh ZALO hay LINK, lúc nào — thay dấu «like». Chỉ thêm, không sửa, không xoá |
+| `vdt_guest_link` | bảng | Đường dẫn riêng cho khách (ADR-0153 Đ2, 0131; dùng ở Task 7 sau khi ADR duyệt): CHỈ lưu băm của mã (`token_hash`), có hạn, thu hồi một lần, đếm lượt mở tăng dần. Không xoá |
+
 ## Cạnh toàn vẹn (khoá ngoại có sẵn, không phải phụ thuộc mã — ADR-0002 điều 6)
 
 - `audit_log` → `staff` — audit_log.staff_id — ADR-0002 điều 6
@@ -364,3 +374,5 @@
 | `vc_trip_allocation` |  | `passenger_key` |  |  |
 | `vc_trip_cost_line` |  | `note` |  |  |
 | `vc_trip_stop` |  | `place_text` |  |  |
+| `vdt_guest_link` |  | `token_hash` |  |  |
+| `vdt_ticket` |  | `ticket_code`, `storage_key`, `content_hash` |  |  |

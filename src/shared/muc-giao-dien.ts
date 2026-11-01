@@ -109,6 +109,8 @@ export const TRANG = {
   nguoiBan: { duong: "/nguoi-ban", hien: (s) => can(s, "supply.terms.view") && !holdsPartner(s) },
   // Chụp bù mức (sổ đại lý đợt 2, Task 12; ADR-0079 điều 7 b2): CÙNG cổng route `GET /api/orders/cho-chup-bu` — ô order.terms.override và không giữ quyền Đối tác (kể cả lai).
   chupBu: { duong: "/chup-bu", hien: (s) => can(s, "order.terms.override") && !holdsPartner(s) },
+  // Kho vé điện tử (ADR-0153; Task 9a): CÙNG cổng route `GET /api/ve/kho` — ô ve.kho.manage (Bán hàng, Quản trị, Toàn quyền).
+  veKho: { duong: "/ve-kho", hien: (s) => can(s, "ve.kho.manage") },
   // Đơn chờ xác nhận (ADR-0136 Đ6; Task 3.5): CÙNG cổng route `GET /api/orders/cho-xac-nhan` — ô order.confirm.review không ngữ cảnh (Bán hàng, Kế toán, Quản trị, HDV, Toàn quyền).
   choXacNhan: { duong: "/cho-xac-nhan", hien: (s) => can(s, "order.confirm.review") },
   nhatKy: { duong: "/audit", hien: (s) => can(s, "audit.view") }, // ADR-0038 điều 6: chỉ Toàn quyền
@@ -202,6 +204,7 @@ export const THANH_BEN = [
   { nhom: "THIẾT LẬP", trang: "luatBan", nhan: "Luật bán" },
   { nhom: "THIẾT LẬP", trang: "nguoiBan", nhan: "Người bán dịch vụ" },
   { nhom: "THIẾT LẬP", trang: "chupBu", nhan: "Chụp bù mức" },
+  { nhom: "THIẾT LẬP", trang: "veKho", nhan: "Vé điện tử" },
   { nhom: "THIẾT LẬP", trang: "dichVu", nhan: "Dịch vụ & giá" },
   { nhom: "THIẾT LẬP", trang: "dacDiem", nhan: "Đặc điểm dịch vụ" },
   { nhom: "THIẾT LẬP", trang: "diaDiem", nhan: "Địa điểm" },
@@ -293,6 +296,7 @@ export const TRANG_TOI = [
   { phan: "sau", trang: "dacDiem", nhan: "Đặc điểm dịch vụ" },
   { phan: "sau", trang: "nguoiBan", nhan: "Người bán dịch vụ" },
   { phan: "sau", trang: "chupBu", nhan: "Chụp bù mức" },
+  { phan: "sau", trang: "veKho", nhan: "Vé điện tử" },
   { phan: "sau", trang: "nhatKy", nhan: "Nhật ký" },
   { phan: "sau", trang: "phien", nhan: "Máy đang đăng nhập" },
   { phan: "sau", trang: "guiThongBao", nhan: "Gửi thông báo" },

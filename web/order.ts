@@ -40,6 +40,7 @@ import { cauMoc, changDuoiMoc, tomTatChanXacNhan, type ChangCanDatGap } from "..
 import { NO_BOOKER_VALUE } from "../src/shared/booker";
 import { coODatQuaDoiTac, coXemNguoiBan, coXemPhanDoiTac, duocGhiTay, nhanBenDat } from "../src/shared/phan-doi-tac-hien-thi";
 import { initPhanDoiTac } from "./phan-doi-tac";
+import { initVeDon } from "./ve-don";
 import { handlerControls, handlerFailure, handlerSaved, hoiDuocNguoiPhuTrach, nguoiPhuTrachTuPhien, nhanChoNhan } from "../src/shared/handler-view";
 import { tuChoiQuaMuon } from "../src/shared/trip-rules";
 import { vnToday } from "../src/shared/vn-date";
@@ -1369,6 +1370,8 @@ function render(order: Order, history: AuditEntry[], canModify: boolean, handler
         }),
         // Sổ đại lý đợt 1 (Task 11): "Phần đối tác" — ẩn cho tới khi máy chủ trả dữ liệu (404 ⇒ ẩn luôn); nội dung do web/phan-doi-tac.ts dựng.
         coXemPhanDoiTac(staff!, order) ? h("section", { class: "card pdt", id: "phan-doi-tac", hidden: true }) : null,
+        // Vé điện tử (ADR-0153, Task 9b): ẩn cho tới khi máy chủ trả dữ liệu (404 / 403 / không có vé nào cần giữ ⇒ ẩn luôn); nội dung do web/ve-don.ts dựng.
+        order.status === "confirmed" && can(staff!, "order.view", { ownerId: order.staffId }) ? h("section", { class: "card", id: "ve-don", hidden: true }) : null,
       ),
       h(
         "div",
@@ -1410,6 +1413,8 @@ function render(order: Order, history: AuditEntry[], canModify: boolean, handler
       : null,
   );
 
+  const veDon = document.getElementById("ve-don");
+  if (veDon) void initVeDon(veDon, { orderId: order.id, coQuyenGui: true /* máy chủ chỉ trả mã xem ảnh cho người có ô ve.cap.send (kể cả phụ trách) — nút chỉ hiện khi có */ });
   const phanDoiTac = document.getElementById("phan-doi-tac");
   if (phanDoiTac) void initPhanDoiTac(phanDoiTac, { orderId: order.id, coGhiTay: duocGhiTay(staff!, order), xemNguoiBan: coXemNguoiBan(staff!), giamGiaHieuLuc: order.giamGiaHieuLuc, daChupBu: () => void load().then(() => show(banner("info", "Đã chụp bù mức của ngày xác nhận."))) });
 

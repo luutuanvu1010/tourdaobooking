@@ -20,7 +20,8 @@
     "tro-ly",
     "lan-gui",
     "pricing",
-    "ky-so"
+    "ky-so",
+    "ve-dien-tu"
   ],
   "tables": [
     {
@@ -887,6 +888,36 @@
       "module": "ky-so",
       "kind": "table",
       "note": "tháng đã khoá sổ (ADR-0080 D1; migration 0090), CHỈ-THÊM và KHÔNG có đường mở lại: period 'YYYY-MM' là khoá chính; bảng rỗng thì khoá tháng nào cũng được, sau đó chỉ tháng liền kề sau tháng lớn nhất. Bốn trigger *_period_closed (bil_payment_receipt, bil_posting, bil_outside_refund, vc_trip_cost_line) chặn dòng mới có ngày phát sinh thuộc tháng đã khoá. Khoá nhầm chỉ cứu bằng khôi phục Time Travel"
+    },
+    {
+      "name": "vdt_batch",
+      "module": "ve-dien-tu",
+      "kind": "table",
+      "note": "Lô nhập vé điện tử (ADR-0153 Đ1, 0131 — đề xuất): MỘT dịch vụ (mã tour `catalog_code`, tham chiếu logic, không khoá ngoại) + MỘT nhóm khách chọn một lần cho cả lô. Không xoá (trigger vdt_batch_no_delete); không đổi nhóm khách. `printed_name` = tên sản phẩm in trên vé, để nhân viên đối chiếu"
+    },
+    {
+      "name": "vdt_ticket",
+      "module": "ve-dien-tu",
+      "kind": "table",
+      "note": "Vé điện tử (ADR-0153 Đ1, 0131): một dòng một ảnh vé; KHÔNG chứa tên khách. `ticket_code` (mã vé nhà cung cấp, duy nhất) và `storage_key` (khoá kho R2 ngẫu nhiên) là bí mật vận hành — không bao giờ vào nhật ký, DTO ghi, câu lỗi. Không xoá; status AVAILABLE→ALLOCATED→VOID một chiều (trigger vdt_ticket_one_way); vé từng được đọc/giao (revealed_at) không về kho"
+    },
+    {
+      "name": "vdt_allocation",
+      "module": "ve-dien-tu",
+      "kind": "table",
+      "note": "Phân bổ vé (ADR-0153 Đ1, 0131): vé nào giữ cho dòng dịch vụ (`order_service_id`) nào của đơn nào; `order_id`/`order_service_id` là tham chiếu logic. Chỉ thêm; chỉ `revealed_at` (lần đầu ảnh được đọc/giao) và `released_at`+`release_reason` (trả vé) ghi một lần. Chỉ mục duy nhất một phần chặn một vé hai chỗ và một vị trí hai vé"
+    },
+    {
+      "name": "vdt_delivery",
+      "module": "ve-dien-tu",
+      "kind": "table",
+      "note": "Lần giao vé (ADR-0153 Đ1, 0131): ai giao, kênh ZALO hay LINK, lúc nào — thay dấu «like». Chỉ thêm, không sửa, không xoá"
+    },
+    {
+      "name": "vdt_guest_link",
+      "module": "ve-dien-tu",
+      "kind": "table",
+      "note": "Đường dẫn riêng cho khách (ADR-0153 Đ2, 0131; dùng ở Task 7 sau khi ADR duyệt): CHỈ lưu băm của mã (`token_hash`), có hạn, thu hồi một lần, đếm lượt mở tăng dần. Không xoá"
     }
   ],
   "views": [
@@ -1585,6 +1616,11 @@
     "vc_vehicle": { "id": "N1", "plate_number": "N1", "plate_key": "N1", "chassis_number": "N1", "chassis_key": "N1", "name": "N1", "model_year": "N1", "passenger_capacity": "N1", "owner_party_id": "N1", "status": "N1", "valid_from_date": "N1", "valid_to_date": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "vc_vehicle_document": { "id": "N1", "vehicle_id": "N1", "document_type_code": "N1", "document_number": "N1", "issued_date": "N1", "expiry_date": "N1", "previous_id": "N1", "voided_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "vc_vehicle_document_type": { "code": "N1", "name": "N1", "has_expiry": "N1", "sort_order": "N1", "active": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
-    "vc_vehicle_size": { "code": "N1", "label": "N1", "min_passengers": "N1", "max_passengers": "N1", "active": "N1", "sort_order": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" }
+    "vc_vehicle_size": { "code": "N1", "label": "N1", "min_passengers": "N1", "max_passengers": "N1", "active": "N1", "sort_order": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "vdt_allocation": { "id": "N1", "ticket_id": "N1", "order_id": "N1", "order_service_id": "N1", "pax_group": "N1", "slot_no": "N1", "allocated_at": "N1", "allocated_by": "N1", "revealed_at": "N1", "released_at": "N1", "release_reason": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "vdt_batch": { "id": "N1", "catalog_code": "N1", "pax_group": "N1", "printed_name": "N1", "status": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "vdt_delivery": { "id": "N1", "allocation_id": "N1", "channel": "N1", "delivered_by": "N1", "delivered_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "vdt_guest_link": { "id": "N1", "order_id": "N1", "token_hash": "N2", "expires_at": "N1", "revoked_at": "N1", "opened_count": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "vdt_ticket": { "id": "N1", "batch_id": "N1", "ticket_code": "N2", "valid_from": "N1", "valid_to": "N1", "slot_time": "N1", "storage_key": "N2", "content_kind": "N1", "byte_size": "N1", "content_hash": "N2", "status": "N1", "stored_at": "N1", "purged_at": "N1", "r2_deleted_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" }
   }
 }
