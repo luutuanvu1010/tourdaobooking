@@ -13,7 +13,7 @@ Hồ sơ có ngày. Kế hoạch: `2026-11-02-dat-ve-doi-tac-luot-1.md`. Đặc 
 
 - Gộp giao ba đợt, mỗi đợt một người kiểm: lời chủ «Gộp việc, giữ kiểm», tránh bảng từ đỏ giữa T2 và T3. Sai chỉ tốn thêm một vòng sửa.
 - Đối tác không được hưởng có ô giảm giá khoá vẫn hiện chữ gợi ý mới cùng dòng báo sẵn có: đúng lời chủ, luật khoá không đổi. Sai chỉ đổi chữ.
-- Giữ «vai trò» cho dạng ngắn trong trang Hoa hồng dù tên thẻ là «Vai người dùng», kể cả «Chưa gán vai trò» (đặc tả ghi «Chưa gán vai»): bảng từ dành «vai» đơn lẻ cho «vai trò», câu dài trong ô hẹp. Sai chỉ đổi chữ một lượt. Đã nói với chủ.
+- Giữ «vai trò» cho dạng ngắn trong trang Hoa hồng dù tên thẻ là «Vai người dùng», kể cả «Chưa gán vai trò» (đặc tả ghi «Chưa gán vai»): bảng từ dành «vai» đơn lẻ cho «vai trò», câu dài trong ô hẹp. Sai chỉ đổi chữ một lượt. Nói với chủ trong báo cáo cuối lượt 1 (2/11).
 - Nhập `origin/main` (27 commit kho vé điện tử) trước bộ kiểm dài, `39bfa6cf`: để kiểm đúng mã sẽ nhập và `day-len` tiến thẳng được.
 - Gộp người kiểm cả nhánh và người kiểm độc lập thành một ghế: «Gộp việc, giữ kiểm».
 - Gom một đợt sửa cuối gồm mọi điểm rẻ, đảo ngược được.
