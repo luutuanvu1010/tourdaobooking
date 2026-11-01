@@ -28,7 +28,7 @@ Hồ sơ có ngày. Kế hoạch: `2026-11-02-dat-ve-doi-tac-luot-1.md`. Đặc 
 
 ## Còn mở, thuộc lượt sau hoặc chờ chủ
 
-- **Đón không giờ (Q-2 của người kiểm độc lập):** gợi ý «Thời gian đón» cộng đường có sẵn: chặng không giờ coi là không dưới mốc (`src/shared/moc-toi-thieu.ts`), form không đòi giờ (`src/shared/chang-form.ts`), nên đơn có thể xác nhận thẳng nếu dịch vụ không có cờ cần xác nhận. Đặc tả §1 gọi đây là thất bại; luật chặn là ADR-0154 Đ1. Chủ quyết thời điểm phát hành lượt 1.
+- **Đón không giờ (Q-2 của người kiểm độc lập):** gợi ý «Thời gian đón» cộng đường có sẵn: chặng không giờ coi là không dưới mốc (`src/shared/moc-toi-thieu.ts`), form không đòi giờ (`src/shared/chang-form.ts`), nên đơn có thể xác nhận thẳng nếu dịch vụ không có cờ cần xác nhận. Đặc tả §1 gọi đây là thất bại; luật chặn là ADR-0154 Đ1. **Chủ trả lời 2/11:** gợi ý «Thời gian đón» đúng ý, khung giờ bỏ trống là chủ ý thiết kế, để bước đầu đơn giản cho người mới; lời đầy đủ ở ADR-0154. Vì vậy bỏ ruling sửa hướng dẫn nói ở trên: hướng dẫn đối tác nay dặn khung giờ có thể để trống, giờ gõ vào Ghi chú. Không còn lý do giữ lượt 1 vì chuyện này. Câu chủ chưa trả lời: nhập lúc nào, duyệt hai ADR.
 - **Chữ cũ trong tệp luật, chờ chủ:** `src/CLAUDE.md` dòng về luật bán, ADR-0146, ADR-0152. Hai kịch bản đã ngừng chạy (`loai-doi-tac-smoke`, `muc-ta-smoke`) giữ nguyên vì là hồ sơ có ngày.
 - **Nợ nhỏ đã ghi ở `docs/BACKLOG.md` §58:** `BL-DV-LOC-VAI-TU-THEM`, `BL-DV-SUA-CHUYEN-TRANG-DON`, `BL-DV-NHAP-CU-GIA-TRI-AN`.
 

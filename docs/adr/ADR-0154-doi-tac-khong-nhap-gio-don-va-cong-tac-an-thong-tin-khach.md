@@ -12,7 +12,9 @@
 
 Chủ muốn đối tác bên ngoài đặt vé bằng vài thao tác, văn phòng lo phần còn lại: «Ghi chú thay giờ đón», «Ẩn cả danh sách hành khách», «Bỏ luật với đơn của đối tác» (chủ 2026-11-01, 2026-11-02). Lượt 1 đã ẩn «Thông tin chuyến» và thêm dòng Ghi chú, nhưng khung giờ ở Đưa đón còn nguyên.
 
-Hôm nay đơn có Đón mà không giờ được coi là không dưới mốc (`src/shared/moc-toi-thieu.ts`) và form không đòi giờ (`src/shared/chang-form.ts`). Nếu dịch vụ không đánh dấu cần xác nhận, đơn đó xác nhận thẳng. Đặc tả §1 gọi «đơn có đón được xác nhận mà không ai nhập giờ» là thất bại. Đ1 bịt đường này.
+Chủ 2026-11-02, sau khi người soạn nêu rủi ro đơn có đón mà không giờ, nguyên văn: *«Phần ghi chú gợi ý Thời gian đón là đúng ý, phần khung giờ bị bỏ trống là 1 chủ ý thiết kế, và cả phần "Hành khách" để nhập danh sách khách khởi hành thì cũng tạm thời cho phép bật /tắt ở trong bảng điều khiển của Super Admin, lý do là để làm cho bước 1 thực sự đơn giản và làm quen với người mới. Sau 1 thời gian thì có thể sẽ bật lại hiển thị phần nhập danh sách hành khách.»*
+
+Hôm nay đơn có Đón mà không giờ được coi là không dưới mốc (`src/shared/moc-toi-thieu.ts`) và form không đòi giờ (`src/shared/chang-form.ts`). Nếu dịch vụ không đánh dấu cần xác nhận, đơn đó xác nhận thẳng. Đặc tả §1 gọi «đơn có đón được xác nhận mà không ai nhập giờ» là thất bại. Đối tác bỏ trống giờ là chủ ý; Đ1 đặt việc chốt giờ về phía văn phòng, không đòi đối tác nhập.
 
 ## Quyết định
 
@@ -26,17 +28,19 @@ Hôm nay đơn có Đón mà không giờ được coi là không dưới mốc 
 
 **Đ2. Công tắc «Ẩn thông tin khách khi đối tác đặt vé».**
 
-1. **Mặc định TẮT**, nên phát hành không đổi gì cho tới khi Toàn quyền bật. Chỉ ô `settings.ops`. Đặt ở trang Tôi, cạnh «Dịch vụ nhập tay»; bảng chính sách chỉ thêm theo khuôn `ord_confirm_policy`; có nhật ký.
+1. **Mặc định TẮT**, nên phát hành không đổi gì cho tới khi Toàn quyền bật. Chỉ ô `settings.ops`. Đặt ở trang Tôi, cạnh «Dịch vụ nhập tay», vì Nền tảng chưa có trang bảng điều khiển chung của Toàn quyền (trang mang tên đó chỉ dành cho Trợ lý); bảng chính sách chỉ thêm theo khuôn `ord_confirm_policy`; có nhật ký.
 2. Khi BẬT, tài khoản giữ quyền Đối tác không thấy khối Khách hàng và khối Hành khách ở form Tạo đơn. Ngày khởi hành giữ nguyên.
 3. **Máy chủ quyết, không tin trình duyệt:** lập đơn mới khi BẬT thì bỏ tên và SĐT gửi lên, điền từ tài khoản; email, ghi chú khách trống; không nhận khoá `passengers`. Sửa nháp đã có thông tin: giữ giá trị đang lưu. Đổi công tắc không chạm đơn cũ.
 4. Thực tập, Bán hàng và mọi tài khoản không giữ quyền Đối tác: không đổi. Đối tác vẫn bổ sung được tên ở trang đơn của mình. «Đổi khách», «Sửa danh sách khách» của văn phòng: không đổi.
+5. **Đây là biện pháp tạm** để bước đầu đơn giản, giúp người mới làm quen. Tắt công tắc thì form hiện lại hai khối đó với đơn mới, và đơn lập sau lúc tắt không mang dấu của Đ3.
 
 **Đ3. Miễn luật thiếu tên cho đơn lập lúc công tắc BẬT.** Đơn do tài khoản giữ quyền Đối tác lập khi công tắc BẬT mang dấu `orders.manifest_exempt = 1`, chụp lúc lập; đổi công tắc sau đó không đổi dấu đơn cũ. Chặng của đơn có dấu không bị giữ `THIEU_TEN` lúc xếp và lúc xuất bến (`lyDoThieuTen`, `kiemXuatBen`), câu nhắc vẫn hiện, không chặn. `THIEU_TEN` chỉ ở lớp máy chủ, không có trigger (kiểm 2026-11-02), nên không phải sửa trigger. Vận chuyển đọc dấu qua view công bố của `orders`. Mọi đơn khác và cờ `require_manifest` không đổi. Thêm dòng ở bảng sự kiện vận chuyển.
 
 ## Rủi ro chủ đã chấp nhận
 
 - Khi công tắc BẬT, tên khách trên biên nhận và SĐT liên hệ trên chuyến là của đối tác; danh sách hành khách có thể trống cả khi xe chạy. Quy định xe hợp đồng đòi danh sách hành khách (nguồn tra 2026-09-27, chưa có luật sư xác nhận). Chủ nghe hệ quả ngày 2026-11-02 và vẫn chọn «Bỏ luật với đơn của đối tác».
-- Mọi đơn có đón của đối tác đều phải chờ văn phòng chốt giờ. Đó là việc thêm cho văn phòng, đổi lại không có đơn thiếu giờ.
+- Mọi đơn có đón mà đối tác không ghi giờ ở khung giờ đều phải chờ văn phòng chốt giờ. Đó là việc thêm cho văn phòng, đổi lại không có đơn thiếu giờ.
+- Từ lúc lượt 1 phát hành tới khi Đ1 lên, đơn có Đón mà không giờ vẫn xác nhận thẳng được nếu dịch vụ không đánh dấu cần xác nhận, và không qua mốc 6 giờ. Người soạn đã nêu ngày 2026-11-02; lời chủ ở phần Bối cảnh.
 
 ## Tiêu chí nghiệm thu
 
