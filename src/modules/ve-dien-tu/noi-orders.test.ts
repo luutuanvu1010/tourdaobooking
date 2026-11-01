@@ -5,6 +5,7 @@ import { readFileSync } from "node:fs";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { SALES, batDongHo, don, setup } from "../../../tests/audit/dieu-phoi-khung.mjs";
 import { soanTraVeKhiHuy } from "./noi-orders.ts";
+import { cauVeVeKho } from "./repository.ts";
 
 const PNG = (n: number) => { const u = new Uint8Array(40); u.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0x0d, 0x49, 0x48, 0x44, 0x52, 0, 0, n, n]); return u; };
 const b64 = (u: Uint8Array) => Buffer.from(u).toString("base64");
@@ -114,6 +115,23 @@ test("huyThua_khongTraVe: câu trả vé của lô huỷ có cổng — đơn c�
     const cau = await soanTraVeKhiHuy(w.env.DB, { orderId: d.id, lyDo: "DON_HUY", by: SALES, at: new Date().toISOString(), homNay: "2027-03-11" }, nhatKy as never);
     await w.env.DB.batch(cau);
     assert.equal(giu(w), 2, "đơn chưa huỷ ⇒ không trả");
+  } finally { tat(); }
+});
+
+test("veDangDuocGiuKhongVeKho: vé có phân bổ đang mở (dịch vụ khác của cùng đơn vừa giữ lại trong cùng lô) không bị lật về kho dù còn dấu phân bổ cũ đóng cùng thời điểm", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    await nhapKho(w, 3);
+    const d = await don(w, { soNguoi: 2 });
+    const mo = w.q("SELECT id, ticket_id, order_service_id, slot_no FROM vdt_allocation WHERE order_id = ? AND released_at IS NULL ORDER BY slot_no", d.id);
+    assert.equal(mo.length, 2);
+    const at = new Date().toISOString();
+    // dấu phân bổ CŨ của chính vé đang giữ, đóng đúng lúc `at` với lý do GIAM_SO_KHACH (đúng thế sau khi dịch vụ khác trả rồi vé được cấp lại cho dịch vụ này)
+    w.env.DB.prepare(`INSERT INTO vdt_allocation (id, ticket_id, order_id, order_service_id, pax_group, slot_no, allocated_at, released_at, release_reason, created_at, updated_at)
+      VALUES ('cu-1', ?, ?, ?, 'ADULT', 99, ?, ?, 'GIAM_SO_KHACH', ?, ?)`).bind(mo[0].ticket_id, d.id, mo[0].order_service_id, at, at, at, at).run();
+    await w.env.DB.batch([cauVeVeKho(w.env.DB, { orderId: d.id, lyDo: "GIAM_SO_KHACH", at, by: SALES, homNay: "2027-03-11" })]);
+    assert.equal(w.q("SELECT status FROM vdt_ticket WHERE id = ?", mo[0].ticket_id)[0].status, "ALLOCATED", "vé đang được giữ không về kho");
   } finally { tat(); }
 });
 

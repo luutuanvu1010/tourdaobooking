@@ -1,4 +1,4 @@
-// SQL của kho vé điện tử (`vdt_*`, migration 0131, ADR-0153 Đ1 — ĐỀ XUẤT chờ chủ duyệt). Câu tĩnh qua defineSql (module nghiêm).
+// SQL của kho vé điện tử (`vdt_*`, migration 0131, ADR-0153 Đ1 — đã duyệt 31/10). Câu tĩnh qua defineSql (module nghiêm).
 // Mã vé, nội dung QR, khoá kho KHÔNG bao giờ vào nhật ký / phản hồi ghi / câu lỗi: hàm đọc ở đây không có bản trả mã vé thô ra ngoài module.
 import { defineSql } from "../../shared/sql-registry.ts";
 
@@ -68,12 +68,14 @@ const TRA_PHAN_BO = defineSql(
      LIMIT max(0, (SELECT count(*) FROM vdt_allocation c WHERE c.order_id = ?1 AND c.released_at IS NULL AND (?2 IS NULL OR c.order_service_id = ?2) AND c.pax_group = ?8) - ?5))
      AND (?9 IS NULL OR EXISTS (SELECT 1 FROM v_ord_order_state s WHERE s.id = ?1 AND s.status = ?9))`,
 );
+// Vé chỉ về kho khi KHÔNG còn phân bổ đang mở: một lô cân lại nhiều dịch vụ cùng `at` có thể trả vé ở dịch vụ này rồi cấp lại đúng vé đó cho dịch vụ khác (người kiểm 01/11).
 const TRA_VE_VE_KHO = defineSql(
   "ve-dien-tu",
   "tra_ve_ve_kho",
   `UPDATE vdt_ticket SET updated_at = ?3, updated_by = ?4,
           status = CASE WHEN EXISTS (SELECT 1 FROM vdt_allocation r WHERE r.ticket_id = vdt_ticket.id AND r.revealed_at IS NOT NULL) OR valid_to < ?5 THEN 'VOID' ELSE 'AVAILABLE' END
-   WHERE status = 'ALLOCATED' AND id IN (SELECT ticket_id FROM vdt_allocation WHERE order_id = ?1 AND released_at = ?3 AND release_reason = ?2)`,
+   WHERE status = 'ALLOCATED' AND id IN (SELECT ticket_id FROM vdt_allocation WHERE order_id = ?1 AND released_at = ?3 AND release_reason = ?2)
+     AND NOT EXISTS (SELECT 1 FROM vdt_allocation o WHERE o.ticket_id = vdt_ticket.id AND o.released_at IS NULL)`,
 );
 const DEM_TRA = defineSql(
   "ve-dien-tu",

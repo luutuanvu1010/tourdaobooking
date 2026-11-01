@@ -1,4 +1,4 @@
--- Migration 0131 — KHO VÉ ĐIỆN TỬ (ADR-0153 Đ1, ĐỀ XUẤT chờ chủ duyệt; đặc tả docs/superpowers/specs/2026-10-31-ve-dien-tu-design.md §5.1; kế hoạch Task 1).
+-- Migration 0131 — KHO VÉ ĐIỆN TỬ (ADR-0153 Đ1, đã duyệt 31/10; đặc tả docs/superpowers/specs/2026-10-31-ve-dien-tu-design.md §5.1; kế hoạch Task 1).
 -- Chỉ THÊM năm bảng của module `ve-dien-tu` (tiền tố vdt_) và trigger. Không đụng bảng cũ, không gieo dữ liệu. Số 0131: main dừng ở 0130 (31/10), không nhánh chưa gộp nào giữ số lớn hơn.
 -- Mã vé (`ticket_code`), nội dung QR, khoá kho (`storage_key`) KHÔNG BAO GIỜ vào nhật ký, phản hồi ghi, câu lỗi (kiểm ở mã + bài khoá).
 -- Cột `catalog_code`, `order_id`, `order_service_id` là tham chiếu LOGIC sang catalog / orders (không khoá ngoại xuyên module; mã kiểm). Chỉ chạm module khác qua view công bố ở bản sau.
