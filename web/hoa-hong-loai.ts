@@ -46,7 +46,7 @@ function nutBatTat(nut: NonNullable<ReturnType<typeof nhanLoaiDoiTac>["nut"]>, t
     if (nut.hanhDong === "tat" && !(await hoiXacNhan({ ...hopTatLoai(ten), opener: n }))) return;
     n.disabled = true;
     loiEl.hidden = true;
-    const loi = await mo.guiNhanh(`/api/pricing/loai-doi-tac/${encodeURIComponent(code)}/${nut.hanhDong}`, nut.hanhDong === "tat" ? "Đã tắt loại." : "Đã bật loại.");
+    const loi = await mo.guiNhanh(`/api/pricing/loai-doi-tac/${encodeURIComponent(code)}/${nut.hanhDong}`, nut.hanhDong === "tat" ? "Đã tắt vai trò." : "Đã bật vai trò.");
     if (loi !== null) {
       n.disabled = false;
       loiEl.textContent = loi;
@@ -87,8 +87,8 @@ function cumLoai(it: { loai: DuLieuHoaHong["loai"][number]; dong: Api.Commission
     dongCap.append(h("span", { class: "muted" }, CAU_LOAI_CHUA_THEO_CAP));
     const capMo = d.mucTa.muc.filter((m) => m.dangBat);
     if (ghi && capMo.length > 0) {
-      const ad = h("button", { type: "button", class: "nut", "data-cap": "phu", "aria-label": `Chọn cấp cho loại này: ${loai.ten}` }, "Chọn cấp cho loại này");
-      ad.addEventListener("click", () => moViecKhac({ tenDong: `Chọn cấp cho loại ${loai.ten}`, opener: ad, viec: capMo.map((m) => ({ nhan: m.ten, chay: () => mo.apDungChinhSach(m, loai.code) })) }));
+      const ad = h("button", { type: "button", class: "nut", "data-cap": "phu", "aria-label": `Chọn cấp cho vai trò này: ${loai.ten}` }, "Chọn cấp cho vai trò này");
+      ad.addEventListener("click", () => moViecKhac({ tenDong: `Chọn cấp cho vai trò ${loai.ten}`, opener: ad, viec: capMo.map((m) => ({ nhan: m.ten, chay: () => mo.apDungChinhSach(m, loai.code) })) }));
       dongCap.append(ad);
     }
   }
@@ -96,7 +96,7 @@ function cumLoai(it: { loai: DuLieuHoaHong["loai"][number]; dong: Api.Commission
   const lanGan = d.mucTa.muc.flatMap((m) => m.gan.filter((g) => g.loai.code === loai.code));
   const lichSu = khoiLichSuGan(chiaLanGan(lanGan, d.homNay).lichSu, d.homNay, (g) => g.muc.ten, `hh-ls-loai-${loai.code}`);
   const bang = bangDongMuc(dongLoai, null, d, ghi, mo, false);
-  const them = ghi ? h("button", { type: "button", class: "nut", "data-cap": "phu" }, "＋ Thêm mức riêng cho loại này") : null;
+  const them = ghi ? h("button", { type: "button", class: "nut", "data-cap": "phu" }, "＋ Thêm mức riêng cho vai trò này") : null;
   them?.addEventListener("click", () => mo.themMuc({ ai: { loai: "VAI", code: loai.code } }));
 
   return h(
@@ -108,7 +108,7 @@ function cumLoai(it: { loai: DuLieuHoaHong["loai"][number]; dong: Api.Commission
     ketQua.kieu === "KHONG_CO" && h("p", { class: "hh-cap-nhac" }, CAU_CHUA_CO_MUC_LOAI),
     dongCap,
     lichSu,
-    h("h4", null, "Hoa hồng riêng của loại"),
+    h("h4", null, "Hoa hồng riêng của vai trò"),
     bang ? h("div", { class: "hh-muc-cap-khung" }, bang) : h("p", { class: "muted" }, CAU_LOAI_CHUA_CO_MUC_RIENG),
     them && h("div", { class: "hh-cap-nut" }, them),
     loiEl,
@@ -118,14 +118,14 @@ function cumLoai(it: { loai: DuLieuHoaHong["loai"][number]; dong: Api.Commission
 /** Vẽ thẻ «Loại đối tác» vào `goc`. Thứ tự `xepTheoPhu`; loại tắt không còn dòng riêng vẫn hiện (trạng thái «Đã tắt»). */
 export function veTheLoai(goc: HTMLElement, d: DuLieuHoaHong, mo: MoHop): void {
   const ghi = can(d.nguoiDung, "partner.commission.write");
-  const dau = h("div", { class: "hh-cap-dau" }, h("h2", { class: "hh-muc-ten" }, "Loại đối tác"));
+  const dau = h("div", { class: "hh-cap-dau" }, h("h2", { class: "hh-muc-ten" }, "Vai người dùng"));
   if (ghi) {
-    const them = h("button", { type: "button", class: "nut", "data-cap": "phu" }, "＋ Thêm loại");
+    const them = h("button", { type: "button", class: "nut", "data-cap": "phu" }, "＋ Thêm vai trò");
     them.addEventListener("click", () => mo.themLoai());
     dau.append(them);
   }
   const tatCa = xepTheoPhu(d.loai.map((loai) => ({ loai, ten: loai.ten, ...phuMucLoai({ loai, dong: d.dong, muc: d.mucTa.muc, dichVu: d.dichVuPhu, homNay: d.homNay }) })));
-  const o = h("input", { id: "hh-loc-tim-loai", type: "search", autocomplete: "off", placeholder: "Tìm loại hoặc dịch vụ", "aria-label": "Tìm loại hoặc dịch vụ", value: loc.tim });
+  const o = h("input", { id: "hh-loc-tim-loai", type: "search", autocomplete: "off", placeholder: "Tìm vai trò hoặc dịch vụ", "aria-label": "Tìm vai trò hoặc dịch vụ", value: loc.tim });
   const tt = h("select", { id: "hh-loc-tt-loai", "aria-label": "Trạng thái" }, h("option", { value: "ap" }, "Đang và sắp áp dụng"), h("option", { value: "tat-ca" }, "Tất cả"));
   tt.value = loc.chiConHieuLuc ? "ap" : "tat-ca";
   const noi = h("div", null);

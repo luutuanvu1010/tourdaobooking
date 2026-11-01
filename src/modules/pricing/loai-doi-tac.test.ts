@@ -363,7 +363,7 @@ test("Ruling 9: gắn loại đối tác với ngày bắt đầu TƯƠNG LAI �
   assert.equal(c[0].commission_status, "NONE", `bản chụp không được là SET cho dòng loại chưa hiệu lực: ${c[0].commission_status} / ${c[0].commission_rate_bp} / ${c[0].beneficiary_party_id}`);
   assert.equal(r.status, 400, `ngày bắt đầu tương lai: ${r.status} ${r.text}`);
   assert.equal(r.json.error.code, "invalid_input");
-  assert.equal(r.json.error.message, "Loại đối tác có hiệu lực từ hôm nay — không đặt ngày bắt đầu trong tương lai.");
+  assert.equal(r.json.error.message, "Vai người dùng có hiệu lực từ hôm nay — không đặt ngày bắt đầu trong tương lai.");
   assert.equal(dem(w, "SELECT count(*) AS n FROM pty_party_role WHERE party_id = ? AND role_type_code = ?", ORG, ma), 0, "không chèn dòng loại");
 });
 

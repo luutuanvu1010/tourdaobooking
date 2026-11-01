@@ -352,7 +352,7 @@ export function kiemThanMuc(raw: unknown): Ket<ThanMuc> {
   let targetRoleCode: string | null = null;
   if (dt?.loai === "VAI" && typeof dt.code === "string" && MA_RE.test(dt.code)) targetRoleCode = dt.code;
   else if (dt?.loai === "DOI_TAC" && typeof dt.partyId === "string" && PARTY_RE.test(dt.partyId)) targetPartyId = dt.partyId;
-  else return { ok: false, message: "Chọn áp cho một loại đối tác hoặc một đối tác cụ thể." };
+  else return { ok: false, message: "Chọn áp cho một vai người dùng hoặc một đối tác cụ thể." };
   const pm = docPhanMuc(b);
   if (!pm.ok) return pm;
   return { ok: true, value: { targetPartyId, targetRoleCode, ...pm.value } };
@@ -373,10 +373,10 @@ export function kiemThanDongMucTa(raw: unknown, tierCode: string): Ket<ThanMuc> 
  */
 export function kiemTenMucTa(raw: unknown): Ket<{ ten: string; khoa: string }> {
   const ten = typeof raw === "string" ? raw.trim().replace(/\s+/g, " ") : "";
-  if (ten.length < 2 || ten.length > 60) return { ok: false, message: "Tên cấp đại lý dài từ 2 đến 60 ký tự." };
-  if (coSoHoacEmail(ten)) return { ok: false, message: "Tên cấp đại lý không được chứa số điện thoại, số tài khoản hay địa chỉ email." };
+  if (ten.length < 2 || ten.length > 60) return { ok: false, message: "Tên cấp độ đại lý dài từ 2 đến 60 ký tự." };
+  if (coSoHoacEmail(ten)) return { ok: false, message: "Tên cấp độ đại lý không được chứa số điện thoại, số tài khoản hay địa chỉ email." };
   const khoa = khoaTen(ten);
-  if (khoa.length < 2) return { ok: false, message: "Tên cấp đại lý dài từ 2 đến 60 ký tự." };
+  if (khoa.length < 2) return { ok: false, message: "Tên cấp độ đại lý dài từ 2 đến 60 ký tự." };
   return { ok: true, value: { ten, khoa } };
 }
 /** Mã mức TA máy chủ sinh: `MT_` + 8 chữ hoa (không bao giờ trùng đoạn đường cố định như «gan»; khớp `MA_RE`). `bytes` lấy từ `crypto.getRandomValues` ở nơi gọi. */
@@ -385,7 +385,7 @@ export const MUC_TA_RE = /^MT_[A-Z]{8}$/;
 /** Thân `POST /api/pricing/muc-ta/gan`: { loai, muc, tuNgay, denNgay? }. */
 export function kiemThanGan(raw: unknown): Ket<{ roleTypeCode: string; tierCode: string; validFrom: string; validTo: string | null }> {
   const b = raw && typeof raw === "object" && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};
-  if (typeof b.loai !== "string" || !MA_RE.test(b.loai) || typeof b.muc !== "string" || !MA_RE.test(b.muc)) return { ok: false, message: "Chọn loại đối tác và cấp đại lý." };
+  if (typeof b.loai !== "string" || !MA_RE.test(b.loai) || typeof b.muc !== "string" || !MA_RE.test(b.muc)) return { ok: false, message: "Chọn vai người dùng và cấp độ đại lý." };
   const kn = docKhoangNgay(b);
   if (!kn.ok) return kn;
   return { ok: true, value: { roleTypeCode: b.loai, tierCode: b.muc, ...kn.value } };
@@ -394,14 +394,14 @@ export function kiemThanGan(raw: unknown): Ket<{ roleTypeCode: string; tierCode:
 /** Thân `POST /api/pricing/muc-ta/gan/:id/doi` (Đổi chính sách của loại): { muc, tuNgay } — loại lấy từ gắn cũ; ngày kiểm ở `kiemDoi`. */
 export function kiemThanDoiChinhSach(raw: unknown): Ket<{ tierCode: string; tuNgay: unknown }> {
   const b = raw && typeof raw === "object" && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};
-  if (typeof b.muc !== "string" || !MA_RE.test(b.muc)) return { ok: false, message: "Chọn cấp đại lý." };
+  if (typeof b.muc !== "string" || !MA_RE.test(b.muc)) return { ok: false, message: "Chọn cấp độ đại lý." };
   return { ok: true, value: { tierCode: b.muc, tuNgay: b.tuNgay } };
 }
 
 /** Thân `POST /api/pricing/ho-so/:id/muc-rieng` (ADR-0138): { muc, tuNgay, denNgay? } — hồ sơ lấy từ đường dẫn. */
 export function kiemThanGanRieng(raw: unknown): Ket<{ tierCode: string; validFrom: string; validTo: string | null }> {
   const b = raw && typeof raw === "object" && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};
-  if (typeof b.muc !== "string" || !MA_RE.test(b.muc)) return { ok: false, message: "Chọn cấp đại lý." };
+  if (typeof b.muc !== "string" || !MA_RE.test(b.muc)) return { ok: false, message: "Chọn cấp độ đại lý." };
   const kn = docKhoangNgay(b);
   if (!kn.ok) return kn;
   return { ok: true, value: { tierCode: b.muc, ...kn.value } };

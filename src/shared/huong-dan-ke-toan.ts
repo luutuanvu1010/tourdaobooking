@@ -116,39 +116,39 @@ Kế toán có nút [[+ Hồ sơ mới]] và được thêm, sửa hồ sơ khá
       tieuDe: "Đặt mức hoa hồng cho đối tác",
       noiDung: `Hoa hồng là tiền Công ty trả cho đại lý hoặc cộng tác viên đặt đơn. Khi đơn được xác nhận, Nền tảng lấy mức đang áp trong bảng, tính hoa hồng một lần rồi giữ nguyên.
 
-1. Bấm [[Hoa hồng đối tác]]: ô **Kiểm tra hoa hồng** đầu trang cho biết mức của một đối tác; thẻ **Loại đối tác** cho biết từng loại đang hưởng mức nào.
-2. Bấm [[＋ Thêm mức]], chọn áp cho một loại đối tác, chọn dịch vụ (một dịch vụ, một nhóm dịch vụ hoặc mọi dịch vụ), chọn **Phần trăm** hoặc **Số tiền mỗi khách**, nhập ngày bắt đầu rồi bấm [[Thêm mức]].
+1. Bấm [[Hoa hồng đối tác]]: ô **Kiểm tra hoa hồng** đầu trang cho biết mức của một đối tác; thẻ **Vai người dùng** cho biết từng vai trò đang hưởng mức nào.
+2. Bấm [[＋ Thêm mức]], chọn áp cho một vai người dùng, chọn dịch vụ (một dịch vụ, một nhóm dịch vụ hoặc mọi dịch vụ), chọn **Phần trăm** hoặc **Số tiền mỗi khách**, nhập ngày bắt đầu rồi bấm [[Thêm mức]].
 3. Đổi mức: bấm [[Đổi]] ở dòng đó, nhập mức mới và ngày bắt đầu; mức cũ tự ngừng. Hết dùng hẳn: bấm [[Ngừng]] và chọn ngày cuối. Mức không sửa, không xoá được.
 
-Kế toán tìm được từng đối tác theo tên: gõ tên ở **Kiểm tra hoa hồng** để biết mức của đối tác đó, hoặc ở bước chọn người nhận của [[＋ Thêm mức]] chọn **Một đối tác** để đặt mức riêng cho đúng đối tác.
+Kế toán tìm được từng đối tác theo tên: gõ tên ở **Kiểm tra hoa hồng** để xem mức, hoặc chọn **Một đối tác** ở [[＋ Thêm mức]] để đặt mức riêng cho đối tác.
 
 Người bán dịch vụ làm tương tự ở trang [[Người bán dịch vụ]]: khối [[Thêm điều khoản]] ghi dịch vụ nào do Tour Đảo bán, dịch vụ nào do nhà cung cấp bán (kèm tỷ lệ Tour Đảo mua lại). Dịch vụ nhóm Thuê xe không ghi nhà cung cấp mua lại.
 
 > Lưu ý: Đổi bảng mức không làm đổi hoa hồng của đơn đã xác nhận.`,
     },
     {
-      tieuDe: "Thêm loại đối tác",
-      noiDung: `Loại đối tác là nhóm được hưởng hoa hồng, như Công ty lữ hành hay Lễ tân khách sạn. Cần loại mới thì bạn tự thêm.
+      tieuDe: "Thêm vai trò",
+      noiDung: `Vai người dùng là nhóm được hưởng hoa hồng, như Công ty lữ hành hay Lễ tân khách sạn. Cần vai trò mới thì bạn tự thêm.
 
-1. Bấm [[Hoa hồng đối tác]], bấm [[＋ Thêm loại]] và gõ tên.
-2. Đặt mức cho loại mới bằng [[＋ Thêm mức]].
-3. Không dùng nữa: bấm [[Tắt]] ở loại đó; cần lại: [[Bật]]. Loại **Có sẵn** không tắt được.
+1. Bấm [[Hoa hồng đối tác]], bấm [[＋ Thêm vai trò]] và gõ tên.
+2. Đặt mức cho vai trò mới bằng [[＋ Thêm mức]].
+3. Không dùng nữa: bấm [[Tắt]]; cần lại: [[Bật]]. Vai trò **Có sẵn** không tắt được.
 4. Đổi tên, ghi chú: bấm [[Sửa]].
 
-Gắn loại cho hồ sơ ở Danh bạ là việc của Quản trị hoặc Toàn quyền. Loại đã tắt thì không gắn thêm, nhưng đơn đã xác nhận vẫn giữ nguyên hoa hồng.`,
+Gắn vai trò cho hồ sơ ở Danh bạ là việc của Quản trị hoặc Toàn quyền. Vai trò đã tắt thì không gắn thêm, nhưng đơn đã xác nhận vẫn giữ nguyên hoa hồng.`,
     },
     {
-      tieuDe: "Cấp đại lý",
-      noiDung: `Cấp đại lý là bộ mức có tên, dùng chung cho nhiều loại đối tác.
+      tieuDe: "Cấp độ đại lý",
+      noiDung: `Cấp độ đại lý là bộ mức có tên, dùng chung cho nhiều vai trò.
 
-1. [[＋ Thêm cấp đại lý]], gõ tên.
+1. [[＋ Thêm cấp độ đại lý]], gõ tên.
 2. Mở cấp, bấm [[＋ Thêm hoa hồng cho dịch vụ]]: chọn dịch vụ và mức.
-3. [[Chọn cấp cho loại này]] hoặc [[Thêm loại vào cấp này]]: chọn loại và ngày bắt đầu.
+3. [[Chọn cấp cho vai trò này]] hoặc [[Thêm vai trò vào cấp này]]: chọn vai trò, ngày bắt đầu.
 4. Đổi tên, ghi chú: [[Sửa]].
 
-Cấp của loại xét sau cùng. Đổi sang cấp khác: [[Đổi cấp]]. Ngừng chi: [[Thôi theo cấp này]]. [[Khoá cấp]] chặn thêm loại và mức mới, loại đang theo vẫn được tính; dùng lại: [[Mở lại cấp]].
+Cấp của vai trò xét sau cùng. Đổi sang cấp khác: [[Đổi cấp]]. Ngừng chi: [[Thôi theo cấp này]]. [[Khoá cấp]] chặn thêm vai trò và mức mới, vai trò đang theo vẫn tính; dùng lại: [[Mở lại cấp]].
 
-Cấp riêng: thẻ **Riêng từng đối tác**, bấm [[Chọn cấp riêng cho đối tác]]; mở đối tác, bấm [[Đổi cấp]], sửa hoặc ngừng.`,
+Cấp riêng: khối **Người có cấp riêng**, bấm [[Chọn cấp riêng cho đối tác]]; mở đối tác, bấm [[Đổi cấp]], sửa hoặc ngừng.`,
     },
     {
       tieuDe: "Chụp bù, ghi mức tay cho một đơn",

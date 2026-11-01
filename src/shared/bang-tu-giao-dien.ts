@@ -30,7 +30,8 @@ export const TU_DA_LOAI: readonly TuDaLoai[] = [
   { cam: /[Mm]ốc (?:tối thiểu|ra lệnh|6 giờ)|(?:[Dd]ưới|[Ss]át|[Qq]uá|trước) mốc(?! nhắc| cập nhật| giờ hẹn)/u, thay: "hạn chốt (Hạn chốt trước giờ đón · Sắp tới hạn chốt · Quá hạn chốt)", nguon: "chủ 2026-10-18 (lượt 2)" },
   { cam: /[Xx]uất bến|XUẤT BẾN/u, thay: "cho xe chạy / xe chạy", nguon: "chủ 2026-10-18 (lượt 2)" },
   // «vai» là CHỮ, không phải mã nội bộ (`VAI`, `muc-vai`, `/api/tro-ly/vai`, khoá `vai`, cột SQL `h.vai,`); «đổi vai» (nhập vai) trong lời dặn Trợ lý là nghĩa khác.
-  { cam: /^(?!vai$)[\s\S]*(?<![\p{L}\p{N}_\-/.])(?<!đổi )[Vv]ai(?![\p{L}\p{M}\p{N}_\-,])(?! trò)/u, thay: "vai trò", nguon: "chủ 2026-10-18 (lượt 2)" },
+  // 2/11: «Vai người dùng» (tên thẻ chủ chọn 1/11, lượt 8 bên dưới) được phép — lookahead cuối thêm « người dùng»; «vai» đứng một mình vẫn bị cấm.
+  { cam: /^(?!vai$)[\s\S]*(?<![\p{L}\p{N}_\-/.])(?<!đổi )[Vv]ai(?![\p{L}\p{M}\p{N}_\-,])(?! trò| người dùng)/u, thay: "vai trò", nguon: "chủ 2026-10-18 (lượt 2)" },
   { cam: /[Pp]hiên(?! bản)|PHIÊN(?! BẢN)/u, thay: "máy đang đăng nhập (Đăng xuất máy này)", nguon: "chủ 2026-10-18 (lượt 2)" },
   // Lượt 3 — hoa hồng (chủ 2026-10-25), hồ sơ docs/superpowers/specs/2026-10-25-hoa-hong-ho-tro-thiet-ke-lai/DAC-TA.md mục C. «Chính sách hoa hồng» thay «Mức TA»; «Mức riêng» thay «Dòng riêng»;
   // một họ từ hiệu lực (Ngừng · Áp dụng chính sách cho loại · Ngừng áp dụng · Đang/Sắp áp dụng · Đã ngừng) thay Đóng/Gắn/Kết thúc gắn (Q1 = A).
@@ -60,6 +61,12 @@ export const TU_DA_LOAI: readonly TuDaLoai[] = [
   // «Hoa hồng riêng của loại» (B3 của bảng chữ mới) được phép: luật «riêng của loại» ở lượt 3 nhắm câu «mức riêng của loại» trần, không phải tiêu đề này.
   { cam: /[Áá]p dụng cấp cho loại|[Nn]gừng áp dụng cấp(?:\s+cho loại|\s*«?\s*$)/u, thay: "Chọn cấp cho loại này · Thêm loại vào cấp này · Thôi theo cấp này", nguon: "chủ 2026-10-30 (rà soát ngôn ngữ Hoa hồng)" },
   { cam: /Ngày cuối hiệu lực|Sửa áp dụng cấp/u, thay: "Ngày cuối áp dụng · Sửa cấp của loại", nguon: "chủ 2026-10-30 (rà soát ngôn ngữ Hoa hồng)" },
+  // Lượt 8 — Đặt vé của đối tác (chủ 2026-11-01, đặc tả docs/superpowers/specs/2026-11-01-dat-ve-doi-tac-design.md §4.3; thay quyết định 3 ngày 30/10 «giữ Loại đối tác»).
+  // Chữ trên màn là «Vai người dùng» (thẻ chứa các vai của hồ sơ) và «Cấp độ đại lý»; thẻ «Riêng từng đối tác» thành khối «Người có cấp riêng» trong thẻ vai. Mã nội bộ (`loai`, `hh-the-loai`, `prc_*`, route `/loai-doi-tac`) KHÔNG đổi.
+  // Tên cấp là dữ liệu («Đại lý cấp 3») nên không dính mẫu «cấp đại lý».
+  { cam: /[Ll]oại đối tác|LOẠI ĐỐI TÁC/u, thay: "Vai người dùng", nguon: "chủ 2026-11-01, đặc tả 2026-11-01-dat-ve-doi-tac §4.3 (thay quyết định 3 ngày 30/10)" },
+  { cam: /[Cc]ấp đại lý|CẤP ĐẠI LÝ/u, thay: "Cấp độ đại lý", nguon: "chủ 2026-11-01, đặc tả 2026-11-01-dat-ve-doi-tac §4.3 (thay quyết định 3 ngày 30/10)" },
+  { cam: /Riêng từng đối tác/u, thay: "Người có cấp riêng", nguon: "chủ 2026-11-01, đặc tả 2026-11-01-dat-ve-doi-tac §4.3 (thay quyết định 3 ngày 30/10)" },
 ];
 
 /** Chữ «đảo» là hòn đảo (tên công ty, tên tour) — gỡ khỏi chuỗi trước khi so với dòng «Đảo» ở trên. */
@@ -87,6 +94,13 @@ export const CAM_THEO_TEP: readonly CamTheoTep[] = [
     cam: /[Cc]hính sách(?! (?:riêng tư|điều phối|đăng nhập))|CHÍNH SÁCH(?! (?:RIÊNG TƯ|ĐIỀU PHỐI|ĐĂNG NHẬP))/u,
     thay: "cấp đại lý · cấp · cấp riêng (quyết định 3)",
     nguon: "chủ 2026-10-30 (quyết định 3, 8; hồ sơ `docs/superpowers/specs/2026-10-30-hoa-hong-cap-dai-ly/`, §6.2)",
+  },
+  // «loại» nói tắt ở trang Hoa hồng chính là «vai» (thẻ «Vai người dùng»): «Thêm loại», «Tắt loại», «Tìm loại hoặc dịch vụ», «Chọn cấp cho loại này». «loại khách» (người lớn, trẻ em) là nghĩa khác, giữ nguyên.
+  {
+    tep: [/^web\/hoa-hong[^/]*\.ts$/, /^src\/shared\/hoa-hong-hien-thi\.ts$/],
+    cam: /(?<![\p{L}\p{N}_])[Ll]oại(?! khách)(?![\p{L}\p{N}_])/u,
+    thay: "vai trò",
+    nguon: "chủ 2026-11-01, đặc tả 2026-11-01-dat-ve-doi-tac §4.3 (thay quyết định 3 ngày 30/10)",
   },
 ];
 

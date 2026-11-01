@@ -68,7 +68,7 @@ Tìm: gõ tên hoặc số điện thoại, lọc theo loại, công việc, nơ
 
 - **Thông tin**: sửa rồi bấm [[Lưu thông tin]]. Bỏ tick [[Đang dùng]] để ngưng hồ sơ. Người có tài khoản thì ngưng ở màn Quản lý tài khoản.
 - **Liên hệ**: chọn loại, gõ giá trị, ghi chú (vd Zalo, hotline), tick [[Liên hệ chính]] nếu cần, bấm [[Thêm liên hệ]]. Liên hệ cũ bấm [[Đóng]], lịch sử vẫn giữ.
-- **Công việc tại đâu**: chọn công việc, nơi làm, ngày bắt đầu, bấm [[Thêm công việc]]. Hết làm thì bấm [[Kết thúc]]. Loại đối tác do Kế toán thêm (ghi « (đối tác)») cũng gắn ở đây; nhân viên nội bộ không gắn được.
+- **Công việc tại đâu**: chọn công việc, nơi làm, ngày bắt đầu, bấm [[Thêm công việc]]. Hết làm thì bấm [[Kết thúc]]. Vai người dùng do Kế toán thêm (ghi « (đối tác)») cũng gắn ở đây; nhân viên nội bộ không gắn được.
 - **Người liên hệ, tài xế**: chọn loại quan hệ, gõ tên hồ sơ cần nối, chọn, rồi bấm [[Thêm người liên hệ]], [[Thêm quan hệ tài xế]] hoặc [[Thêm tài xế]].`,
     },
     {

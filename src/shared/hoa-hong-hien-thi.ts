@@ -52,7 +52,7 @@ export const nhanMucDto = (m: { kieu: "RATE" | "PER_PAX"; tyLeBp: number | null;
 
 /** Cột «Áp cho»: tên (vai, đối tác hoặc mức TA) và một chữ nhỏ nói đó là loại đối tác, một đối tác hay một mức TA — các thứ có thể trùng tên. */
 export function nhanDoiTuong(d: DoiTuongMucDto): { ten: string; loai: string } {
-  return d.loai === "VAI" ? { ten: d.ten, loai: "Loại đối tác" } : d.loai === "MUC" ? { ten: d.ten, loai: "Cấp đại lý" } : { ten: d.ten, loai: "Một đối tác" };
+  return d.loai === "VAI" ? { ten: d.ten, loai: "Vai người dùng" } : d.loai === "MUC" ? { ten: d.ten, loai: "Cấp độ đại lý" } : { ten: d.ten, loai: "Một đối tác" };
 }
 
 export type TrangThaiDong = "DANG_AP" | "SAP_AP" | "DA_DONG" | "DA_HUY";
@@ -106,12 +106,12 @@ export const LOI_BAC: Record<1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12, s
   1: "mức riêng của đối tác cho dịch vụ này",
   2: "mức riêng của đối tác cho nhóm",
   3: "mức riêng của đối tác cho mọi dịch vụ",
-  4: "mức của loại đối tác cho dịch vụ này",
-  5: "mức của loại đối tác cho nhóm",
-  6: "mức của loại đối tác cho mọi dịch vụ",
-  7: "cấp đại lý của loại đối tác cho dịch vụ này",
-  8: "cấp đại lý của loại đối tác cho nhóm",
-  9: "cấp đại lý của loại đối tác cho mọi dịch vụ",
+  4: "mức của vai trò cho dịch vụ này",
+  5: "mức của vai trò cho nhóm",
+  6: "mức của vai trò cho mọi dịch vụ",
+  7: "cấp độ đại lý của vai trò cho dịch vụ này",
+  8: "cấp độ đại lý của vai trò cho nhóm",
+  9: "cấp độ đại lý của vai trò cho mọi dịch vụ",
   10: "cấp riêng của đối tác, dịch vụ này",
   11: "cấp riêng của đối tác, nhóm",
   12: "cấp riêng của đối tác, mọi dịch vụ",
@@ -143,11 +143,11 @@ export const canXacNhanDongDieuKhoan = (d: SupplyTermDto): boolean => d.phamVi =
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------
 // Loại đối tác (ADR-0117 lần 1): mục «Loại đối tác» ở /hoa-hong
 
-export const CAU_KHONG_CO_LOAI = "Chưa có loại đối tác nào.";
+export const CAU_KHONG_CO_LOAI = "Chưa có vai trò nào.";
 /** Nhãn năm loại có từ đầu (chủ chọn «Có sẵn» 28/10); tên hằng giữ như cũ (mã nội bộ không đổi theo bảng từ). */
 export const NHAN_LOAI_GOC = "Có sẵn";
 /** Câu dưới danh sách loại khi có loại có sẵn: nói lý do chúng không có nút Tắt / Bật. */
-export const CAU_LOAI_CO_SAN = "Loại có sẵn đi kèm tài khoản đăng nhập của đối tác nên không tắt được.";
+export const CAU_LOAI_CO_SAN = "Vai trò có sẵn đi kèm tài khoản đăng nhập của đối tác nên không tắt được.";
 export const NHAN_LOAI_DANG_DUNG = "Đang dùng";
 export const NHAN_LOAI_DA_TAT = "Đã tắt";
 /**
@@ -158,23 +158,23 @@ export function nhanLoaiDoiTac(l: Pick<LoaiDoiTacDto, "ten" | "coSan" | "dangBat
   return {
     nguon: l.coSan ? NHAN_LOAI_GOC : "",
     trangThai: l.dangBat ? "" : NHAN_LOAI_DA_TAT,
-    nut: l.coSan ? null : l.dangBat ? { hanhDong: "tat", nhan: "Tắt", ariaLabel: `Tắt loại: ${l.ten}` } : { hanhDong: "bat", nhan: "Bật", ariaLabel: `Bật loại: ${l.ten}` },
+    nut: l.coSan ? null : l.dangBat ? { hanhDong: "tat", nhan: "Tắt", ariaLabel: `Tắt vai trò: ${l.ten}` } : { hanhDong: "bat", nhan: "Bật", ariaLabel: `Bật vai trò: ${l.ten}` },
   };
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------
 // Mức TA dùng chung (ADR-0117 lần 2): mục «Mức TA» ở /hoa-hong
 
-export const CAU_KHONG_CO_MUC_TA = "Chưa có cấp đại lý nào.";
+export const CAU_KHONG_CO_MUC_TA = "Chưa có cấp độ đại lý nào.";
 /** Luật «không đổi mức trong cùng ngày» nói thẳng trên màn (máy chủ chặn hai gắn chồng ngày của một loại, và ngày kết thúc không được trước ngày bắt đầu). */
 export const CAU_DOI_MUC_TRONG_NGAY =
-  "Mỗi loại chỉ theo một cấp tại một thời điểm. Muốn chuyển sang cấp khác, bấm «Đổi cấp» và chọn ngày bắt đầu. Cấp vừa chọn hôm nay thì chỉ đổi được từ ngày mai.";
+  "Mỗi vai trò chỉ theo một cấp tại một thời điểm. Muốn chuyển sang cấp khác, bấm «Đổi cấp» và chọn ngày bắt đầu. Cấp vừa chọn hôm nay thì chỉ đổi được từ ngày mai.";
 /**
  * Cảnh báo vàng (KHÔNG chặn) sau khi áp dụng cấp đại lý cho loại mà máy chủ trả `dongRieng` khác rỗng (N-17): các mức riêng theo loại đó — hoặc theo loại khác mà cùng hồ sơ đang mang — thắng cấp đại lý.
  * Danh sách do MÁY CHỦ tính, nên cảnh báo chỉ có ngay sau lần áp dụng; tải lại trang thì mất.
  */
 export const cauCanhBaoDongRieng = (tenLoai: string, tenMuc: string, soDong: number): string =>
-  `Đã lưu. Lưu ý: loại «${tenLoai}» (hoặc loại khác mà cùng đối tác đang mang) còn ${soDong} mức riêng, và mức riêng được dùng trước cấp «${tenMuc}». Muốn dùng hẳn cấp «${tenMuc}», hãy ngừng các mức riêng đó.`;
+  `Đã lưu. Lưu ý: vai trò «${tenLoai}» (hoặc vai trò khác mà cùng đối tác đang mang) còn ${soDong} mức riêng, và mức riêng được dùng trước cấp «${tenMuc}». Muốn dùng hẳn cấp «${tenMuc}», hãy ngừng các mức riêng đó.`;
 /** Trạng thái và nút Tắt / Bật của một mức — theo cờ `dangBat` của máy chủ. Quyền ghi do trang kiểm riêng bằng `can`. */
 export function nhanMucTa(m: Pick<MucTaDto, "ten" | "dangBat">): { trangThai: string; nut: { hanhDong: "tat" | "bat"; nhan: string; ariaLabel: string } } {
   return m.dangBat
@@ -240,16 +240,16 @@ export function tomTatMuc(dong: readonly CommissionRuleDto[], ten: TenDanhMuc): 
   return dong.filter((d) => d.conHieuLuc).map((d) => `${nhanMucDto(d)} ${nhanPhamVi(d, ten)}`).join(" · ");
 }
 
-export const CAU_CHUA_CO_MUC_LOAI = "Loại này chưa có hoa hồng cho dịch vụ nào: đơn đã giao sẽ chờ ở bước «Đã giao» tới khi có mức hoặc Kế toán nhập tay.";
+export const CAU_CHUA_CO_MUC_LOAI = "Vai trò này chưa có hoa hồng cho dịch vụ nào: đơn đã giao sẽ chờ ở bước «Đã giao» tới khi có mức hoặc Kế toán nhập tay.";
 export const NHAN_CHUA_CO_MUC = "Chưa có mức";
-export const CAU_NHAC_UU_TIEN = "Mức riêng được ưu tiên hơn cấp đại lý. Mức nào áp cho một đối tác cụ thể: dùng «Kiểm tra hoa hồng».";
+export const CAU_NHAC_UU_TIEN = "Mức riêng được ưu tiên hơn cấp độ đại lý. Mức nào áp cho một đối tác cụ thể: dùng «Kiểm tra hoa hồng».";
 /** Đặc tả hoa-hong-cap-dai-ly §5.3 (Q-2, tiêu chí 2): thứ tự áp mức, ghim nguyên văn. */
-export const CAU_THU_TU_AP_MUC = "Khi tính hoa hồng cho một đơn, Nền tảng thử lần lượt: 1) mức riêng của đối tác, 2) cấp riêng của đối tác, 3) mức riêng của loại, 4) cấp của loại. Gặp mức nào trước thì dùng mức đó. Trong mỗi bước, xét dịch vụ đó trước, rồi cả nhóm, rồi mọi dịch vụ. Đối tác có cấp riêng thì không xét cấp của loại. Muốn biết chắc một đối tác: dùng «Kiểm tra hoa hồng».";
-export const CAU_TRA_THEO_LOAI = "Đang tra theo loại. Một đối tác cụ thể của loại này có thể có mức riêng hoặc cấp riêng — gõ tên đối tác để chắc.";
+export const CAU_THU_TU_AP_MUC = "Khi tính hoa hồng cho một đơn, Nền tảng thử lần lượt: 1) mức riêng của đối tác, 2) cấp riêng của đối tác, 3) mức riêng của vai trò, 4) cấp của vai trò. Gặp mức nào trước thì dùng mức đó. Trong mỗi bước, xét dịch vụ đó trước, rồi cả nhóm, rồi mọi dịch vụ. Đối tác có cấp riêng thì không xét cấp của vai trò. Muốn biết chắc một đối tác: dùng «Kiểm tra hoa hồng».";
+export const CAU_TRA_THEO_LOAI = "Đang tra theo vai trò. Một đối tác cụ thể của vai trò này có thể có mức riêng hoặc cấp riêng — gõ tên đối tác để chắc.";
 export const cauMucCuSeNgung = (mucCu: string, tuNgay: string): string => `Mức cũ ${mucCu} sẽ ngừng, đến hết ${ngayVN(addDays(tuNgay, -1))}.`;
 export const cauSeTao = (v: { ai: string; dichVu: string; muc: string; tu: string; den: string | null }): string =>
   `Sẽ tạo: ${v.ai} · ${v.dichVu} · ${v.muc} · từ ${ngayVN(v.tu)}${v.den ? ` đến ${ngayVN(v.den)}` : ", không thời hạn"}.`;
-export const cauCanhBaoTheoChinhSach = (tenChinhSach: string): string => `Loại này đang theo cấp đại lý ${tenChinhSach}. Mức riêng được ưu tiên hơn cấp đại lý.`;
+export const cauCanhBaoTheoChinhSach = (tenChinhSach: string): string => `Vai trò này đang theo cấp độ đại lý ${tenChinhSach}. Mức riêng được ưu tiên hơn cấp độ đại lý.`;
 
 /** Loại chưa có mức lên đầu, rồi theo tên (tiếng Việt). */
 export function xepLoai<T extends { ten: string; coMuc: boolean }>(ds: readonly T[]): T[] {
@@ -327,9 +327,9 @@ const tenThieu = (thieu: readonly DichVuPhu[]): string => {
 };
 
 // §5.1 dải cảnh báo đầu trang
-export const cauTieuDeDai = (n: number): string => `Có ${n} loại đối tác còn thiếu mức hôm nay`;
+export const cauTieuDeDai = (n: number): string => `Có ${n} vai trò còn thiếu mức hôm nay`;
 export const CAU_THAN_DAI =
-  "Đối tác chỉ thuộc loại này và chưa có mức riêng hay cấp riêng sẽ bị chờ ở bước «Đã giao» nếu đơn xác nhận từ hôm nay có dịch vụ chưa có mức. Đối tác thuộc thêm loại khác có mức thì vẫn tính theo loại đó. Đơn đã xác nhận trước đó không tự tính lại khi thêm mức: Kế toán dùng «Ghi mức tay» cho từng đơn.";
+  "Đối tác chỉ thuộc vai trò này và chưa có mức riêng hay cấp riêng sẽ bị chờ ở bước «Đã giao» nếu đơn xác nhận từ hôm nay có dịch vụ chưa có mức. Đối tác thuộc thêm vai trò khác có mức thì vẫn tính theo vai trò đó. Đơn đã xác nhận trước đó không tự tính lại khi thêm mức: Kế toán dùng «Ghi mức tay» cho từng đơn.";
 /** Một dòng cho mỗi loại thiếu mức; phụ chú §4.2 «Có thay đổi sắp áp dụng từ <ngày>» nối sau dấu «—». Loại không thiếu (TAT, DU, CHUA_KIEM) không có dòng: trả rỗng. */
 export function cauDongLoaiDai(ten: string, kq: KetQuaPhu, sapApTu: string | null): string {
   let dong: string;
@@ -338,8 +338,8 @@ export function cauDongLoaiDai(ten: string, kq: KetQuaPhu, sapApTu: string | nul
   else return "";
   return sapApTu === null ? dong : `${dong} — Có thay đổi sắp áp dụng từ ${ngayVN(sapApTu)}`;
 }
-export const cauLoaiTatDai = (m: number): string => `${m} loại đã tắt: đối tác chỉ mang loại đã tắt không được hưởng hoa hồng, đơn của họ bị giữ ở bước Đã giao.`;
-export const CAU_DAI_CHUA_KIEM = "Chưa kiểm được loại nào thiếu mức vì không tải được danh mục dịch vụ. Tải lại trang.";
+export const cauLoaiTatDai = (m: number): string => `${m} vai trò đã tắt: đối tác chỉ mang vai trò đã tắt không được hưởng hoa hồng, đơn của họ bị giữ ở bước Đã giao.`;
+export const CAU_DAI_CHUA_KIEM = "Chưa kiểm được vai trò nào thiếu mức vì không tải được danh mục dịch vụ. Tải lại trang.";
 
 export interface NoiDungDai { tieuDe: string | null; than: string | null; dong: string[]; tat: string | null; chuaKiem: string | null }
 /** Chọn câu cho dải §5.1. null = ẩn hẳn. Có loại chưa kiểm được (danh mục lỗi) ⇒ chỉ câu «chưa kiểm được», không số nào. */
@@ -373,30 +373,30 @@ export const CAU_O_TRONG = "Ô «—» nghĩa là cấp chưa đặt mức riên
 export const hopKhoaCap = (ten: string): { tieuDe: string; hauQua: string; nhanNguyHiem: string } => ({
   tieuDe: `Khoá cấp «${ten}»?`,
   hauQua:
-    "Sau khi khoá: không thêm được loại, đối tác hay mức mới vào cấp; các mức đang có chỉ Ngừng được, không Đổi hay Sửa; loại và đối tác đang theo cấp vẫn được tính hoa hồng như cũ. Muốn một loại thôi theo cấp: «Thôi theo cấp này». Muốn chuyển sang cấp khác: «Đổi cấp». Mở lại bất cứ lúc nào bằng «Mở lại cấp».",
+    "Sau khi khoá: không thêm được vai trò, đối tác hay mức mới vào cấp; các mức đang có chỉ Ngừng được, không Đổi hay Sửa; vai trò và đối tác đang theo cấp vẫn được tính hoa hồng như cũ. Muốn một vai trò thôi theo cấp: «Thôi theo cấp này». Muốn chuyển sang cấp khác: «Đổi cấp». Mở lại bất cứ lúc nào bằng «Mở lại cấp».",
   nhanNguyHiem: "Khoá cấp",
 });
 export const hopTatLoai = (ten: string): { tieuDe: string; hauQua: string; nhanNguyHiem: string } => ({
-  tieuDe: `Tắt loại «${ten}»?`,
+  tieuDe: `Tắt vai trò «${ten}»?`,
   hauQua:
-    "Đối tác chỉ thuộc loại này sẽ không được hưởng hoa hồng. Đơn của họ xác nhận từ lúc tắt sẽ chờ ở bước «Đã giao» tới khi Kế toán nhập tay («Ghi mức tay»). Đơn đã xác nhận trước lúc tắt giữ nguyên hoa hồng.",
-  nhanNguyHiem: "Tắt loại",
+    "Đối tác chỉ thuộc vai trò này sẽ không được hưởng hoa hồng. Đơn của họ xác nhận từ lúc tắt sẽ chờ ở bước «Đã giao» tới khi Kế toán nhập tay («Ghi mức tay»). Đơn đã xác nhận trước lúc tắt giữ nguyên hoa hồng.",
+  nhanNguyHiem: "Tắt vai trò",
 });
 /** Huy hiệu tông `cat` của cấp đã khoá. */
-export const NHAN_CAP_DA_KHOA = "Đã khoá — vẫn áp cho loại và đối tác đang theo";
+export const NHAN_CAP_DA_KHOA = "Đã khoá — vẫn áp cho vai trò và đối tác đang theo";
 
 // §3 thẻ «Riêng từng đối tác»
 export const NHAN_XUNG_DOT = "Hai mức khác nhau";
 export const CAU_XUNG_DOT =
-  "Đối tác này mang hai loại ra hai mức khác nhau cho cùng một dịch vụ. Đơn của dịch vụ đó bị giữ ở bước Đã giao cho tới khi đặt mức riêng hoặc cấp riêng cho đối tác này.";
+  "Đối tác này mang hai vai trò ra hai mức khác nhau cho cùng một dịch vụ. Đơn của dịch vụ đó bị giữ ở bước Đã giao cho tới khi đặt mức riêng hoặc cấp riêng cho đối tác này.";
 export const CAU_DUOI_DS_DOI_TAC = "Đối tác không có mức riêng hay cấp riêng không nằm ở đây. Muốn biết một đối tác đang ra mức nào: dùng «Kiểm tra hoa hồng».";
 export const CAU_KHONG_CO_DOI_TAC_RIENG = "Chưa có đối tác nào có mức riêng hoặc cấp riêng.";
 export const CAU_DT_CHUA_CO_MUC_RIENG = "Đối tác này chưa có mức riêng.";
 export const CAU_DT_CHUA_CO_CAP_RIENG = "Đối tác này chưa có cấp riêng.";
 /** Khi hồ sơ đang có cấp riêng (§5.3: «Đối tác có cấp riêng thì không xét cấp của loại»). */
-export const CAU_CAP_RIENG_BO_CAP_LOAI = "Đối tác có cấp riêng nên không xét cấp của loại.";
+export const CAU_CAP_RIENG_BO_CAP_LOAI = "Đối tác có cấp riêng nên không xét cấp của vai trò.";
 /** Câu dưới các ô của hộp «Đặt cấp riêng cho đối tác». */
-export const CAU_DAT_CAP_RIENG = "Từ ngày áp dụng, đơn của đối tác này tính theo cấp riêng, không xét cấp của loại nữa. Đơn đã xác nhận không đổi.";
+export const CAU_DAT_CAP_RIENG = "Từ ngày áp dụng, đơn của đối tác này tính theo cấp riêng, không xét cấp của vai trò nữa. Đơn đã xác nhận không đổi.";
 export const nhanCapRieng = (tenCap: string): string => `Cấp riêng: ${tenCap}`;
 /** Một loại hồ sơ đang mang (`HoaHongHoSoResponse.vai[]`): cấp của loại đó hôm nay, hoặc chưa theo cấp nào. */
 export const cauVaiHoSo = (v: { muc: { ten: string } | null; tuNgay: string | null }): string =>
@@ -513,7 +513,7 @@ export function demTheoCap(m: Pick<MucTaDto, "code" | "gan">, ganRieng: readonly
     doiTac: ganRieng.filter((g) => g.muc === m.code && g.tuNgay <= homNay && (g.denNgay === null || g.denNgay >= homNay)).length,
   };
 }
-export const cauDemCap = (n: { loai: number; doiTac: number }): string => `Đang áp dụng cho ${n.loai} loại đối tác và ${n.doiTac} đối tác có cấp riêng.`;
+export const cauDemCap = (n: { loai: number; doiTac: number }): string => `Đang áp dụng cho ${n.loai} vai trò và ${n.doiTac} đối tác có cấp riêng.`;
 
 /** Nhãn một việc (§3.1): dòng mức «Đổi» · «Sửa» · «Ngừng»; lần xếp loại vào cấp «Đổi cấp» · «Sửa» · «Thôi theo cấp này» (Q-12). */
 export const nhanViec = (v: Viec, doiTuong: "dong" | "gan"): string =>
@@ -524,7 +524,7 @@ export const CAU_DA_KHOA_CAP = "Đã khoá cấp.";
 export const CAU_DA_MO_LAI_CAP = "Đã mở lại cấp.";
 /** Chữ nhỏ cạnh tên cấp đã khoá ở đầu cột ma trận (huy hiệu đầy đủ `NHAN_CAP_DA_KHOA` ở chi tiết cấp). */
 export const NHAN_CAP_KHOA_NGAN = "Đã khoá";
-export const CAU_CAP_CHUA_AP_LOAI = "Cấp này chưa áp dụng cho loại nào.";
+export const CAU_CAP_CHUA_AP_LOAI = "Cấp này chưa áp dụng cho vai trò nào.";
 
 // §4.2 huy hiệu phủ mức của một loại ở thẻ «Loại đối tác»; CHUA_KIEM không có huy hiệu. Hình đi kèm do giao diện chọn theo tông.
 export function huyHieuPhu(kq: KetQuaPhu): { tong: "xam" | "la" | "do" | "cat"; chu: string } | null {
@@ -545,9 +545,9 @@ export function huyHieuPhu(kq: KetQuaPhu): { tong: "xam" | "la" | "do" | "cat"; 
 export const cauSapApLoai = (tuNgay: string): string => `Có thay đổi sắp áp dụng từ ${ngayVN(tuNgay)}`;
 
 // Thẻ «Loại đối tác» (Task 9)
-export const CAU_XEP_LOAI = "Xếp một đối tác vào loại: làm ở hồ sơ của đối tác trong Danh bạ (Quản trị, Toàn quyền).";
-export const CAU_LOAI_CHUA_THEO_CAP = "Chưa theo cấp đại lý nào";
-export const CAU_LOAI_CHUA_CO_MUC_RIENG = "Loại này chưa có mức riêng.";
+export const CAU_XEP_LOAI = "Xếp một đối tác vào vai trò: làm ở hồ sơ của đối tác trong Danh bạ (Quản trị, Toàn quyền).";
+export const CAU_LOAI_CHUA_THEO_CAP = "Chưa theo cấp độ đại lý nào";
+export const CAU_LOAI_CHUA_CO_MUC_RIENG = "Vai trò này chưa có mức riêng.";
 export const cauLoaiTheoCap = (tenCap: string, tuNgay: string): string => `Đang theo cấp ${tenCap} · áp dụng từ ${ngayVN(tuNgay)}`;
 
 // Hộp «Đổi cấp» (loại) và «Đổi cấp riêng» (đối tác) dùng chung: chữ ở đây, web/ chỉ dựng ô.

@@ -134,7 +134,7 @@ function veChonCap(mt: ReturnType<typeof maTranCap>, chon: (code: string, lay?: 
       chon(mt.cot[toi]!.code, true);
     });
   });
-  return h("div", { class: "tab-phu hh-cap-chon", "data-kieu": "vien", role: "tablist", "aria-label": "Chọn cấp đại lý" }, ...ds);
+  return h("div", { class: "tab-phu hh-cap-chon", "data-kieu": "vien", role: "tablist", "aria-label": "Chọn cấp độ đại lý" }, ...ds);
 }
 
 /**
@@ -238,7 +238,7 @@ function chiTietCap(m: Api.MucTaDto, d: DuLieuHoaHong, mo: MoHop): HTMLElement {
     sua.addEventListener("click", () => mo.suaDanhMuc(thamSuaCap(m)));
     nut.append(sua);
     if (m.dangBat) {
-      const ad = h("button", { type: "button", class: "nut", "data-cap": "phu" }, "Thêm loại vào cấp này");
+      const ad = h("button", { type: "button", class: "nut", "data-cap": "phu" }, "Thêm vai trò vào cấp này");
       ad.addEventListener("click", () => mo.apDungChinhSach(m));
       const them = h("button", { type: "button", class: "nut", "data-cap": "phu" }, "＋ Thêm hoa hồng cho dịch vụ");
       them.addEventListener("click", () => mo.themMuc({ ai: { loai: "MUC", code: m.code } }));
@@ -263,7 +263,7 @@ function chiTietCap(m: Api.MucTaDto, d: DuLieuHoaHong, mo: MoHop): HTMLElement {
     loiEl,
     h("h4", null, "Hoa hồng của cấp theo dịch vụ"),
     bang ? h("div", { class: "hh-muc-cap-khung" }, bang) : h("p", { class: "muted" }, CAU_KHONG_CO_MUC),
-    h("h4", null, "Loại đối tác đang theo cấp này"),
+    h("h4", null, "Vai người dùng đang theo cấp này"),
     ...lanXepLoai(m, d, ghi, mo),
   );
 }
@@ -275,9 +275,9 @@ export function veTheCap(goc: HTMLElement, d: DuLieuHoaHong, mo: MoHop): void {
   const mt = maTranCap({ muc: d.mucTa.muc, dichVu: d.dm.dichVu, nhom: d.dm.nhom, homNay: d.homNay });
   if (capChon === null || !mt.cot.some((c) => c.code === capChon)) capChon = mt.cot[0]?.code ?? null;
 
-  const dau = h("div", { class: "hh-cap-dau" }, h("h2", { class: "hh-muc-ten" }, "Các cấp đại lý"));
+  const dau = h("div", { class: "hh-cap-dau" }, h("h2", { class: "hh-muc-ten" }, "Cấp độ đại lý"));
   if (ghi) {
-    const them = h("button", { type: "button", class: "nut", "data-cap": "phu" }, "＋ Thêm cấp đại lý");
+    const them = h("button", { type: "button", class: "nut", "data-cap": "phu" }, "＋ Thêm cấp độ đại lý");
     them.addEventListener("click", () => mo.themChinhSach());
     dau.append(them);
   }

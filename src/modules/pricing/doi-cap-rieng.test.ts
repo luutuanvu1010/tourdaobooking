@@ -27,7 +27,7 @@ const KD_BAT_DAU = /^Mức cũ bắt đầu từ \d\d\/\d\d\/\d{4} nên không �
 const CAU_DA_HUY = "Dòng này đã huỷ — sửa dòng thay cho nó.";
 const CAU_CHUA_TOI = "Mức này chưa tới ngày áp dụng nên không đổi được.";
 const CAU_TRUOC_HOM_NAY = "Ngày bắt đầu của mức mới không được trước hôm nay.";
-const CAU_MUC_TAT = "Cấp đại lý này đang khoá — mở lại cấp trước khi áp dụng cho loại, đặt cấp riêng hay thêm mức.";
+const CAU_MUC_TAT = "Cấp độ đại lý này đang khoá — mở lại cấp trước khi áp dụng cho vai trò, đặt cấp riêng hay thêm mức.";
 const cauDaChup = (x: string, som: string) => `Đã có đơn dùng mức này tới ngày ${ngayDayDu(x)} — mức mới chỉ áp được từ ngày ${ngayDayDu(som)}.`;
 
 function setup(tuyChon: Record<string, unknown> = {}): W {
@@ -99,9 +99,9 @@ test("cấp trùng 400; cấp khoá 409 muc_tat đúng câu mới §6.1 :72; c�
   assert.deepEqual([r2.status, r2.json.error.code, r2.json.error.message], [409, "muc_tat", CAU_MUC_TAT]);
   assert.equal(dongRieng(w, rieng).valid_to_date, null, "dòng cũ còn nguyên (cả lô huỷ)");
   const r3 = await doi(w, rieng, { muc: "MT_KHONGCO1", tuNgay: hn });
-  assert.deepEqual([r3.status, r3.json.error.message], [404, "Không tìm thấy cấp đại lý này."]);
+  assert.deepEqual([r3.status, r3.json.error.message], [404, "Không tìm thấy cấp độ đại lý này."]);
   const r4 = await doi(w, rieng, { tuNgay: hn });
-  assert.deepEqual([r4.status, r4.json.error.message], [400, "Chọn cấp đại lý."]);
+  assert.deepEqual([r4.status, r4.json.error.message], [400, "Chọn cấp độ đại lý."]);
   const r5 = await doi(w, crypto.randomUUID(), { muc: ta1, tuNgay: hn });
   assert.deepEqual([r5.status, r5.json.error.message], [404, "Không tìm thấy cấp riêng này."]);
   assert.equal((await doi(w, "khong-phai-ma", { muc: ta1, tuNgay: hn })).status, 404);

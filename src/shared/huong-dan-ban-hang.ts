@@ -129,9 +129,9 @@ Mục "Giờ hẹn đổi — gọi báo khách" ở [[Cần xử lý]]: gọi k
     },
     {
       tieuDe: "Luật bán và đặc điểm dịch vụ",
-      noiDung: `**Luật bán**: loại đối tác không được đặt một dịch vụ, một nhóm, hoặc dịch vụ mang một đặc điểm; đơn có dịch vụ bị chặn thì không lập, lưu, xác nhận hay gửi được.
+      noiDung: `**Luật bán**: vai trò không được đặt một dịch vụ, một nhóm, hoặc dịch vụ mang một đặc điểm; đơn có dịch vụ bị chặn thì không lập, lưu, xác nhận hay gửi được.
 
-1. [[Luật bán]], [[Thêm luật]]: chọn loại, phạm vi, ngày.
+1. [[Luật bán]], [[Thêm luật]]: chọn vai người dùng, phạm vi, ngày.
 2. [[Kết thúc ngay]]: thôi chặn từ bây giờ. [[Hẹn ngày kết thúc]]: ngày đó **tính trọn** — hẹn đến hôm nay vẫn chặn tới hết hôm nay.
 3. [[Đặc điểm dịch vụ]]: chọn giá trị cho từng dịch vụ. Dịch vụ «Chưa khai» không bị chặn theo đặc điểm. Đổi giá trị làm đổi luật bán thì Nền tảng hỏi lại ([[Vẫn lưu]]).`,
     },

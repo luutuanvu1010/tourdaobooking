@@ -92,33 +92,33 @@ export const AUDIT_ACTIONS = {
   prc_supply_term_added: { label: "Thêm điều khoản người bán", group: "ledger" },
   prc_supply_term_closed: { label: "Ngừng điều khoản người bán", group: "ledger" },
   // ADR-0117 lần 1: Kế toán / Quản trị / Toàn quyền thêm, tắt, bật LOẠI ĐỐI TÁC — `detail` = tên loại (đã cấm số điện thoại / email trong tên), không mã thô.
-  prc_partner_type_added: { label: "Thêm loại đối tác", group: "ledger" },
-  prc_partner_type_off: { label: "Tắt loại đối tác", group: "ledger" },
-  prc_partner_type_on: { label: "Bật lại loại đối tác", group: "ledger" },
+  prc_partner_type_added: { label: "Thêm vai người dùng", group: "ledger" },
+  prc_partner_type_off: { label: "Tắt vai người dùng", group: "ledger" },
+  prc_partner_type_on: { label: "Bật lại vai người dùng", group: "ledger" },
   // Mã định danh 5.26 (đặc tả 2026-10-31 §3): đổi tên — `detail` = «cũ» → «mới»; sửa ghi chú — `detail` = tên loại, KHÔNG chép nội dung ghi chú (chữ tự do, dễ lọt thông tin cá nhân).
   // Mọi dòng `prc_partner_type_*` từ bản này ghi `target_type = 'ledger'`, `target_id` = mã loại.
-  prc_partner_type_renamed: { label: "Đổi tên loại đối tác", group: "ledger" },
-  prc_partner_type_note: { label: "Sửa ghi chú loại đối tác", group: "ledger" },
+  prc_partner_type_renamed: { label: "Đổi tên vai người dùng", group: "ledger" },
+  prc_partner_type_note: { label: "Sửa ghi chú vai người dùng", group: "ledger" },
   // ADR-0146 Đ5: Bán hàng / Quản trị / Toàn quyền thêm và kết thúc LUẬT BÁN theo loại đối tác — `detail` = tên + mã loại, phạm vi (mã dịch vụ / mã nhóm / mã đặc điểm = mã giá trị),
   // ngày (ADR-0146 Đ5 «nhật ký ghi mã loại, mã nhóm hoặc dịch vụ, ngày»); không thông tin cá nhân.
   prc_sales_block_added: { label: "Thêm luật bán", group: "ledger" },
   prc_sales_block_ended: { label: "Kết thúc luật bán", group: "ledger" },
   // ADR-0117 lần 2: mức TA dùng chung — `detail` = tên mức / «tên loại → tên mức · từ … đến …» (tên đã cấm số điện thoại / email), không mã thô. Dòng của mức đi qua
   // `prc_commission_rule_added` / `_closed` (đối tượng «mức TA <tên>»).
-  prc_rate_tier_added: { label: "Thêm cấp đại lý", group: "ledger" },
-  prc_rate_tier_off: { label: "Khoá cấp đại lý", group: "ledger" },
-  prc_rate_tier_on: { label: "Mở lại cấp đại lý", group: "ledger" },
+  prc_rate_tier_added: { label: "Thêm cấp độ đại lý", group: "ledger" },
+  prc_rate_tier_off: { label: "Khoá cấp độ đại lý", group: "ledger" },
+  prc_rate_tier_on: { label: "Mở lại cấp độ đại lý", group: "ledger" },
   // Mã định danh 5.26: mọi dòng `prc_rate_tier_*` từ bản này ghi `target_type = 'ledger'`, `target_id` = mã cấp (`MT_…`).
-  prc_rate_tier_renamed: { label: "Đổi tên cấp đại lý", group: "ledger" },
-  prc_rate_tier_note: { label: "Sửa ghi chú cấp đại lý", group: "ledger" },
-  prc_role_tier_set: { label: "Áp dụng cấp đại lý cho loại", group: "ledger" },
-  prc_role_tier_closed: { label: "Ngừng áp dụng cấp đại lý cho loại", group: "ledger" },
+  prc_rate_tier_renamed: { label: "Đổi tên cấp độ đại lý", group: "ledger" },
+  prc_rate_tier_note: { label: "Sửa ghi chú cấp độ đại lý", group: "ledger" },
+  prc_role_tier_set: { label: "Áp dụng cấp độ đại lý cho vai trò", group: "ledger" },
+  prc_role_tier_closed: { label: "Ngừng áp dụng cấp độ đại lý cho vai trò", group: "ledger" },
   prc_party_tier_set: { label: "Áp dụng cấp riêng cho đối tác", group: "ledger" },
   prc_party_tier_closed: { label: "Ngừng áp dụng cấp riêng của đối tác", group: "ledger" },
   // ADR-0148 Đ1: nút «Sửa» huỷ dòng chưa đơn nào chụp và thay hẳn bằng dòng mới (đi cùng `_added` / `_set` của dòng mới). `detail` = «sửa · dòng <cũ> → <mới> · huỷ dòng cũ» —
   // KHÔNG chép lý do sửa (lý do ở cột `change_reason` của dòng mới). Sửa dòng ĐÃ có đơn chụp đóng dòng cũ ⇒ đi qua `_closed`.
   prc_commission_rule_voided: { label: "Huỷ mức hoa hồng nhập sai (đã thay bằng dòng sửa)", group: "ledger" },
-  prc_role_tier_voided: { label: "Huỷ lần áp dụng cấp đại lý cho loại (đã thay bằng dòng sửa)", group: "ledger" },
+  prc_role_tier_voided: { label: "Huỷ lần áp dụng cấp độ đại lý cho vai trò (đã thay bằng dòng sửa)", group: "ledger" },
   prc_party_tier_voided: { label: "Huỷ cấp riêng của đối tác (đã thay bằng dòng sửa)", group: "ledger" },
   // Khoá sổ tháng (ADR-0080 D1; module ky-so — route ở billing): `order_id` NULL; `detail` = "Khoá sổ tháng MM/YYYY" (không tiền, không SĐT).
   ledger_period_closed: { label: "Khoá sổ tháng", group: "ledger" },

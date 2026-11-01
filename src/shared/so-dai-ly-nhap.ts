@@ -121,7 +121,7 @@ export type ThanMucGui = PhamViNgayBody & {
 export function docThanMuc(f: FormMuc): KetDocForm<ThanMucGui> {
   const loi: LoiO[] = [];
   const dt = f.doiTuong;
-  if (dt === null || (dt.loai === "VAI" ? dt.code === "" : dt.partyId === "")) loi.push({ truong: "doiTuong", message: "Chọn một loại đối tác hoặc một đối tác." });
+  if (dt === null || (dt.loai === "VAI" ? dt.code === "" : dt.partyId === "")) loi.push({ truong: "doiTuong", message: "Chọn một vai người dùng hoặc một đối tác." });
   const pv = docPhamViNgay(f, loi);
   const muc = docMucForm(f, loi);
   if (loi.length > 0 || dt === null || muc === null) return { ok: false, loi };
@@ -176,7 +176,7 @@ export type ThanGanGui = { loai: string; muc: string; tuNgay: string; denNgay?: 
 export function docThanGan(f: FormGan): KetDocForm<ThanGanGui> {
   const loi: LoiO[] = [];
   const loai = f.loai.trim();
-  if (loai === "") loi.push({ truong: "loai", message: "Chọn một loại đối tác." });
+  if (loai === "") loi.push({ truong: "loai", message: "Chọn một vai người dùng." });
   const cn = docCapNgay(f, loi);
   if (loi.length > 0) return { ok: false, loi };
   return { ok: true, body: { loai, ...cn } };
@@ -187,7 +187,7 @@ function docCapNgay(f: { muc: string; tuNgay: string; denNgay: string }, loi: Lo
   const muc = f.muc.trim();
   const tu = f.tuNgay.trim();
   const den = f.denNgay.trim();
-  if (muc === "") loi.push({ truong: "mucTa", message: "Chọn một cấp đại lý." });
+  if (muc === "") loi.push({ truong: "mucTa", message: "Chọn một cấp độ đại lý." });
   if (!isISODate(tu)) loi.push({ truong: "tuNgay", message: "Chọn ngày bắt đầu." });
   if (den !== "") {
     if (!isISODate(den)) loi.push({ truong: "denNgay", message: "Ngày kết thúc không hợp lệ." });

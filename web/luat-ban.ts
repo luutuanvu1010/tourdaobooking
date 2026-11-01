@@ -94,7 +94,7 @@ function veThe(t: TrangThaiLuatBan): void {
     h(
       "table",
       { class: "bang" },
-      h("thead", null, h("tr", null, h("th", null, "Loại đối tác"), h("th", null, "Không bán"), h("th", null, "Hiệu lực"), h("th", null, "Trạng thái"), h("th", null, "Việc"))),
+      h("thead", null, h("tr", null, h("th", null, "Vai người dùng"), h("th", null, "Không bán"), h("th", null, "Hiệu lực"), h("th", null, "Trạng thái"), h("th", null, "Việc"))),
       h(
         "tbody",
         null,
@@ -226,7 +226,7 @@ async function moThemLuat(): Promise<void> {
   const cc = await napChoChon();
   const dm = cc.dm;
   const coDacDiem = !!dm && dm.dacDiem.some((a) => a.dangDung && a.giaTri.some((v) => v.dangDung));
-  const loai = chon("lb-loai", "Loại đối tác", theoTen(cc.loai.map((l) => ({ code: l.code, ten: l.ten }))), "— Chọn loại —");
+  const loai = chon("lb-loai", "Vai người dùng", theoTen(cc.loai.map((l) => ({ code: l.code, ten: l.ten }))), "— Chọn vai người dùng —");
   const phamVi = chon(
     "lb-pham-vi",
     "Không bán",

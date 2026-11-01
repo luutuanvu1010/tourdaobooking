@@ -26,7 +26,7 @@ function dungForm(d: DuLieuHoaHong, cuonToi: (k: Api.ThuTraResponse["ketQua"]) =
   let hen: number | undefined;
   let stt = 0;
 
-  const o = h("input", { id: `${id}-ai`, type: "search", autocomplete: "off", placeholder: duocTimTen ? "Gõ tên đối tác hoặc chọn loại" : "Chọn loại đối tác", "aria-label": "Đối tác hoặc loại đối tác" });
+  const o = h("input", { id: `${id}-ai`, type: "search", autocomplete: "off", placeholder: duocTimTen ? "Gõ tên đối tác hoặc chọn vai trò" : "Chọn vai người dùng", "aria-label": "Đối tác hoặc vai người dùng" });
   const goiY = h("div", { class: "hh-tim-ket-qua", "aria-live": "polite" });
   const daChon = h("p", { class: "hh-da-chon", hidden: true });
   const loiAi = h("p", { class: "field-error", role: "alert", hidden: true });
@@ -48,10 +48,10 @@ function dungForm(d: DuLieuHoaHong, cuonToi: (k: Api.ThuTraResponse["ketQua"]) =
     };
     replaceChildren(
       goiY,
-      ...loai.map((l) => nut(`Loại: ${l.ten}`, { kieu: "loai", code: l.code, ten: l.ten })),
+      ...loai.map((l) => nut(`Vai trò: ${l.ten}`, { kieu: "loai", code: l.code, ten: l.ten })),
       ...(Array.isArray(timDoiTac) ? timDoiTac.map((k) => nut(`${k.ten} · ${k.loai === "PERSON" ? "Cá nhân" : "Tổ chức"}`, { kieu: "doi-tac", partyId: k.partyId, ten: k.ten })) : []),
       typeof timDoiTac === "string" && h("p", { class: "field-error" }, timDoiTac),
-      Array.isArray(timDoiTac) && timDoiTac.length === 0 && loai.length === 0 && h("p", { class: "muted" }, "Không thấy đối tác hay loại nào."),
+      Array.isArray(timDoiTac) && timDoiTac.length === 0 && loai.length === 0 && h("p", { class: "muted" }, "Không thấy đối tác hay vai trò nào."),
     );
   }
   function veDaChon(): void {
@@ -70,7 +70,7 @@ function dungForm(d: DuLieuHoaHong, cuonToi: (k: Api.ThuTraResponse["ketQua"]) =
       veGoiY(null);
       o.focus();
     });
-    replaceChildren(daChon, chon.kieu === "loai" ? "Loại đối tác: " : "Đối tác: ", h("strong", null, chon.ten), " · ", bo);
+    replaceChildren(daChon, chon.kieu === "loai" ? "Vai người dùng: " : "Đối tác: ", h("strong", null, chon.ten), " · ", bo);
   }
   function datChon(c: Chon): void {
     chon = c;
@@ -104,7 +104,7 @@ function dungForm(d: DuLieuHoaHong, cuonToi: (k: Api.ThuTraResponse["ketQua"]) =
   const form = h(
     "form",
     { class: "hh-tn-form", novalidate: true },
-    h("div", { class: "hh-truong" }, h("span", { class: "hh-truong-nhan" }, "Đối tác hoặc loại đối tác"), o, goiY, daChon, loiAi),
+    h("div", { class: "hh-truong" }, h("span", { class: "hh-truong-nhan" }, "Đối tác hoặc vai người dùng"), o, goiY, daChon, loiAi),
     h("div", { class: "hh-truong" }, h("span", { class: "hh-truong-nhan" }, "Dịch vụ"), dv.root, loiDv),
     h("div", null, h("label", null, "Ngày", ngay), loiNgay),
     h("div", { class: "actions" }, tra),
@@ -113,7 +113,7 @@ function dungForm(d: DuLieuHoaHong, cuonToi: (k: Api.ThuTraResponse["ketQua"]) =
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     if (tra.disabled) return;
-    loiAi.textContent = "Chọn một đối tác hoặc một loại đối tác.";
+    loiAi.textContent = "Chọn một đối tác hoặc một vai người dùng.";
     loiAi.hidden = chon !== null;
     loiDv.textContent = "Chọn một dịch vụ.";
     loiDv.hidden = dv.ma() !== "";

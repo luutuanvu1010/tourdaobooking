@@ -17,7 +17,7 @@ const DP = "99999999-9999-4999-8999-999999999991";
 const KP = "99999999-9999-4999-8999-999999999990"; // lai: Kế toán + Đối tác
 const AT = "2026-10-01T00:00:00.000Z";
 const ORG = "dda00000-0000-4000-8000-0000000000a1";
-const DA_DOI = "Cấp đại lý này vừa được người khác sửa, mở lại để xem bản mới.";
+const DA_DOI = "Cấp độ đại lý này vừa được người khác sửa, mở lại để xem bản mới.";
 type W = ReturnType<typeof world>;
 
 function setup(): W {
@@ -120,7 +120,7 @@ test("A2: thân sai — vắng tên và ghi chú ⇒ 400; vắng / null / không
   for (const code of ["MT_KHONGCOGI", "khong-hop-le", "LD_ABCDEFGH"]) {
     const r = await sua(w, code, { ten: "Mới", updatedAt: l.updatedAt });
     assert.equal(r.status, 404, `${code}: ${r.text}`);
-    assert.equal(r.json.error.message, "Không tìm thấy cấp đại lý này.");
+    assert.equal(r.json.error.message, "Không tìm thấy cấp độ đại lý này.");
   }
   assert.equal(soNhatKy(w), n);
 });

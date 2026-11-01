@@ -88,7 +88,7 @@ assert.ok(r.body.party.roleCodes.includes(MA), "hồ sơ tổ chức mang loại
 const idBanHang = (await sqlRows(`SELECT party_id AS id FROM staff WHERE phone = '${ACCOUNTS.salesA.phone}'`))[0].id;
 const nVaiTruoc = (await sqlRows(`SELECT count(*) AS n FROM pty_party_role WHERE party_id = '${idBanHang}'`))[0].n;
 r = await call(ADM, "POST", `/api/parties/${idBanHang}/roles`, { roleTypeCode: MA });
-assert.equal(r.status, 409, `gắn loại đối tác cho nhân viên Bán hàng phải 409: ${JSON.stringify(r.body)}`);
+assert.equal(r.status, 409, `gắn vai người dùng cho nhân viên Bán hàng phải 409: ${JSON.stringify(r.body)}`);
 assert.equal(maLoi(r), "role_partner_label_conflict");
 assert.match(thongBao(r), /nội bộ/, "câu tiếng Việt nói rõ lý do");
 assert.doesNotMatch(thongBao(r), MA_THO, "câu báo không lộ mã thô");
@@ -101,7 +101,7 @@ assert.equal(r.status, 201, JSON.stringify(r.body));
 const MUC = r.body.dong;
 assert.deepEqual([MUC.doiTuong.loai, MUC.doiTuong.code, MUC.doiTuong.ten ?? TEN, MUC.tyLeBp], ["VAI", MA, TEN, 1500]);
 r = await call(ACC, "GET", "/api/pricing/hoa-hong");
-assert.ok(r.body.vai.some((v) => v.code === MA && v.ten === TEN), "ô «Loại đối tác» của biểu mẫu mức thấy loại mới (cùng tên)");
+assert.ok(r.body.vai.some((v) => v.code === MA && v.ten === TEN), "ô «Vai người dùng» của biểu mẫu mức thấy loại mới (cùng tên)");
 const lapDon = async (bookerPartyId) => {
   const x = await call(A, "POST", "/api/orders", orderInput({ customerName: "Khách Đi Spa E2E", customerPhone: "0901 234 567", bookerPartyId, services: [catalogService({ pax: { adult: 2 }, departDate: vnDate(10) })] }));
   assert.equal(x.status, 201, JSON.stringify(x.body));
@@ -195,7 +195,7 @@ r = await call(ACC, "GET", "/api/pricing/loai-doi-tac");
 assert.equal(r.body.loai.find((x) => x.code === MA)?.ten, TEN2, "danh sách loại hiện tên mới theo mã");
 assert.ok(!r.body.loai.some((x) => x.ten === TEN), "tên cũ không còn trong danh sách");
 r = await call(ACC, "GET", "/api/pricing/hoa-hong");
-assert.ok(r.body.vai.some((v) => v.code === MA && v.ten === TEN2), "ô «Loại đối tác» của bảng mức hiện tên mới");
+assert.ok(r.body.vai.some((v) => v.code === MA && v.ten === TEN2), "ô «Vai người dùng» của bảng mức hiện tên mới");
 // A9: đơn đã xác nhận giữ nguyên bản chụp và tiền hoa hồng
 assert.deepEqual(await banChup(don1.id), chup1TruocSua, "bản chụp đơn đã xác nhận không đổi sau khi đổi tên loại");
 assert.deepEqual(chup1TruocSua, chup1, "bản chụp vẫn là bản lúc xác nhận (AUTO/SET 1500)");

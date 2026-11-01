@@ -326,14 +326,14 @@ try {
     }
   }
 
-  // ================================================================ 1b. Quản trị / Toàn quyền: tra được đối tác, Thử tra ra mức bậc 5 (loại đối tác cho nhóm)
+  // ================================================================ 1b. Quản trị / Toàn quyền: tra được đối tác, Thử tra ra mức bậc 5 (vai trò cho nhóm)
   for (const [kho, vp, acc, ten] of [["390", MOB, ACCOUNTS.admin, "Quản trị"], ["1040", DESK, ACCOUNTS.admin, "Quản trị"], ["1040", DESK, ACCOUNTS.chu, "Toàn quyền"]]) {
     if (!HOA_HONG_CU) continue; // bước 1b: giao diện /hoa-hong cũ — thay bằng hoa-hong-smoke.mjs từ 2026-10-26
     let p;
     try {
       p = await moTrang(acc, "/hoa-hong", vp);
       await cho(p, "!document.getElementById('hh-noi-dung').hidden && !!document.getElementById('thu-tra-doi-tac')", "trang dựng xong");
-      await buoc(`1b-${ten}-${kho}`, `${ten} (${kho}): ô tìm đối tác tra được «${DAI_LY.name}»; Thử tra DTH01 hôm nay ⇒ mức 12,5% «mức của loại đối tác cho nhóm» (bậc 5)`, async () => {
+      await buoc(`1b-${ten}-${kho}`, `${ten} (${kho}): ô tìm đối tác tra được «${DAI_LY.name}»; Thử tra DTH01 hôm nay ⇒ mức 12,5% «mức của vai trò cho nhóm» (bậc 5)`, async () => {
         assert.equal(await p.ev("document.getElementById('thu-tra-doi-tac').tagName"), "INPUT", "ô tìm thật, không phải câu từ chối");
         await p.ev("document.getElementById('thu-tra-doi-tac').focus(), true");
         await p.ev(setInput("document.getElementById('thu-tra-doi-tac')", "Lê Thu"));
@@ -345,7 +345,7 @@ try {
         const kq = await p.ev("document.getElementById('thu-tra-ket-qua').textContent.trim()");
         ghiQuanSat(`1b-${ten}-${kho}) Thử tra «${DAI_LY.name}» · DTH01 ⇒ «${kq}»`);
         assert.match(kq, /12,5/);
-        assert.match(kq, /mức của loại đối tác cho nhóm/);
+        assert.match(kq, /mức của vai trò cho nhóm/);
         if (ten === "Quản trị") await chupKhung(p, "#thu-tra-form", `1-hoa-hong-thu-tra-quan-tri-${kho}`);
         if (ten === "Toàn quyền") {
           const m = await nhanMenu(p);
@@ -409,10 +409,10 @@ try {
     try {
       p = await moTrang(ACCOUNTS.salesA, "/hoa-hong", vp);
       await cho(p, "!document.getElementById('hh-noi-dung').hidden || !document.getElementById('error').hidden", "trang dựng xong");
-      await buoc(`31-${kho}a`, `Bán hàng /hoa-hong (${kho}): thấy các loại nhưng không nút ghi nào`, async () => {
+      await buoc(`31-${kho}a`, `Bán hàng /hoa-hong (${kho}): thấy các vai trò nhưng không nút ghi nào`, async () => {
         assert.equal(await loiTrang(p), null);
-        // Trang /hoa-hong làm lại 2026-10-26: Bán hàng thấy các loại (mỗi loại một cụm) nhưng không một nút ghi nào (chi tiết: hoa-hong-smoke.mjs bước 7).
-        assert.ok((await p.ev("document.querySelectorAll('.hh-lo').length")) >= 2, "có loại đối tác để so");
+        // Trang /hoa-hong làm lại 2026-10-26: Bán hàng thấy các vai trò (mỗi vai trò một cụm) nhưng không một nút ghi nào (chi tiết: hoa-hong-smoke.mjs bước 7).
+        assert.ok((await p.ev("document.querySelectorAll('.hh-lo').length")) >= 2, "có vai trò để so");
         assert.equal(await p.ev("document.getElementById('hh-them-muc').hidden && document.getElementById('hh-thanh-cuoi').hidden"), true, "nút Thêm mức ẩn");
         assert.equal(await p.ev("[...document.querySelectorAll('#hh-noi-dung button')].filter((b) => /^(＋|Thêm|Đổi|Ngừng|Tắt|Bật|Áp dụng)/.test(b.textContent.trim())).length"), 0, "không nút ghi nào");
         await chup(p, `31-hoa-hong-ban-hang-${kho}`, { ca: true });
