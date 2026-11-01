@@ -45,7 +45,7 @@ const biChan = (r: { status: number; text: string; json: any }, ten = /Tour đ�
   assert.equal(r.status, 409, r.text);
   assert.equal(r.json.error.code, "sales_blocked", r.text);
   assert.match(r.json.error.message, ten);
-  assert.match(r.json.error.message, /không bán cho vai người dùng của bên đặt này/);
+  assert.match(r.json.error.message, /không bán cho vai trò của bên đặt này/);
 };
 
 test("ADR-0146 tiêu chí 1, 2, 7 + Đ2: lập đơn hộ bên đặt mang loại bị chặn ⇒ 409, KHÔNG ghi đơn; dịch vụ khác, bên đặt không loại, không bên đặt ⇒ 201; hồ sơ hai loại (một có luật) ⇒ chặn", async () => {
