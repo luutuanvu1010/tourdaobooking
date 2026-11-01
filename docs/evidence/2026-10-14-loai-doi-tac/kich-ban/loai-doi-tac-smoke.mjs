@@ -34,7 +34,7 @@ const PHA = process.env.LD_PHA ?? "";
 
 // Chữ phải KHỚP NGUYÊN VĂN với src/shared/hoa-hong-hien-thi.ts, public/hoa-hong.html và src/modules/parties/rules.ts (viết lại ở đây có chủ đích: đổi chữ mà quên kịch bản ⇒ đỏ).
 const NAM_LOAI_CO_SAN = ["Công ty lữ hành", "Cộng tác viên", "Hướng dẫn viên độc lập", "Lễ tân khách sạn", "Tài xế taxi (giới thiệu khách)"];
-const CAU_TRUNG = "Đã có loại với tên này.";
+const CAU_TRUNG = "Đã có vai trò với tên này.";
 const CAU_CO_SDT = "Tên loại đối tác không được chứa số điện thoại, số tài khoản hay địa chỉ email.";
 const CAU_DA_TAT = "Loại này đã tắt rồi — tải lại.";
 const CHU_ANH = /\b(LD_[A-Z]{8}|loai_trung|invalid_input|forbidden|stale|role_\w+|undefined|null|NaN|Internal Server Error)\b|\[object/;

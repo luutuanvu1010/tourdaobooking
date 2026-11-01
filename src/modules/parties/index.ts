@@ -283,7 +283,7 @@ const OWNER_COMPANY_KEEP_ACTIVE = () =>
   error(409, "owner_company_keep_active", "Hồ sơ này đang là công ty chủ nên không ngưng dùng được. Muốn thôi dùng thì đổi công ty chủ sang hồ sơ khác trước.");
 
 // ADR-0117 điều 4, chiều 1: hồ sơ «nội bộ» (rules.ts hoSoNoiBo) không mang loại đối tác được hưởng hoa hồng. Câu nêu "loại đối tác": người gọi giữ admin.manage.
-const ROLE_PARTNER_LABEL_CONFLICT = () => error(409, "role_partner_label_conflict", "Nhân viên nội bộ không mang vai người dùng được hưởng hoa hồng.");
+const ROLE_PARTNER_LABEL_CONFLICT = () => error(409, "role_partner_label_conflict", "Nhân viên nội bộ không mang vai trò đối tác được hưởng hoa hồng.");
 /** ADR-0117 quy ước đọc cờ vế 3: thiếu cờ ⇒ coi là có quyền nội bộ (siết). KHÔNG dùng `acc.linked` một mình (đếm cả tài khoản Đối tác). */
 const coQuyenNoiBoCua = (acc: PartyAccountVerdict): boolean => acc.linked && acc.coQuyenNoiBo !== false;
 

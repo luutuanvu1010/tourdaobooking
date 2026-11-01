@@ -19,10 +19,10 @@ test("form lập đơn hỏi luật thuần formGonDoiTac(staff) và truyền c�
 test("thẻ dịch vụ: ẩn khối Thông tin chuyến theo cờ và dựng dòng Ghi chú với chữ gợi ý của luật thuần", () => {
   const the = doc("web/service-card.ts");
   assert.match(the, /tripDetails\.hidden\s*=\s*o\.formGonDoiTac/, "tripDetails.hidden đặt theo o.formGonDoiTac");
-  assert.match(the, /GOI_Y_GHI_CHU_DOI_TAC/, "thẻ dùng GOI_Y_GHI_CHU_DOI_TAC");
+  assert.match(the, /placeholder:\s*GOI_Y_GHI_CHU_DOI_TAC/, "ô ghi chú gọn đặt placeholder bằng GOI_Y_GHI_CHU_DOI_TAC (không chỉ import)");
   assert.match(the, /"data-trip-gon":\s*"note"/, "ô ghi chú gọn có data-trip-gon=note (kịch bản Chrome dựa vào)");
 });
 
 test("ô giảm giá của form lập đơn dùng chữ gợi ý của luật thuần", () => {
-  assert.match(doc("web/order-form.ts"), /GOI_Y_GIAM_GIA_DOI_TAC/, "order-form.ts dùng GOI_Y_GIAM_GIA_DOI_TAC");
+  assert.match(doc("web/order-form.ts"), /placeholder\s*=\s*GOI_Y_GIAM_GIA_DOI_TAC/, "ô giảm giá đặt placeholder bằng GOI_Y_GIAM_GIA_DOI_TAC (không chỉ import)");
 });

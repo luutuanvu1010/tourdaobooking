@@ -115,5 +115,5 @@ export function kiemThanLuatBan(raw: unknown, homNay: string): Ket<ThanLuatBan> 
 /** Câu 409 `sales_blocked` (ADR-0146 Đ3): nêu tên dịch vụ; luật theo đặc điểm nêu thêm «(đặc điểm: giá trị)» — tên lấy từ dữ liệu (hàm công bố của catalog), không viết trong mã. */
 export function cauBiChan(v: { tenDichVu: string; tenDacDiem?: string | null; tenGiaTri?: string | null }): string {
   const dacDiem = v.tenDacDiem && v.tenGiaTri ? ` (${v.tenDacDiem}: ${v.tenGiaTri})` : "";
-  return `Dịch vụ «${v.tenDichVu}» không bán cho vai trò của bên đặt này${dacDiem}.`;
+  return `Dịch vụ «${v.tenDichVu}» không bán cho vai người dùng của bên đặt này${dacDiem}.`;
 }

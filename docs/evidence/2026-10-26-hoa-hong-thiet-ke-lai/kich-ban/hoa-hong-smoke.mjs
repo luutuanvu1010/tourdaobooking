@@ -985,7 +985,7 @@ try {
             assert.equal(await p.ev(`document.querySelector('${sel} .hh-lo-ct').hidden`), true, "đóng");
             assert.equal(await bam(p, `${sel} .hh-loai-nut`), true);
             assert.equal(await p.ev(`document.querySelector('${sel} .hh-loai-nut').getAttribute('aria-expanded')`), "true");
-            await p.waitFor(`[...document.querySelectorAll('${sel} .hh-lo-ct h3')].some((x) => x.textContent === 'Cấp riêng')`, "hồ sơ đã nạp");
+            await p.waitFor(`[...document.querySelectorAll('${sel} .hh-lo-ct h4')].some((x) => x.textContent === 'Cấp riêng')`, "hồ sơ đã nạp");
             const chu = await p.ev(`document.querySelector('${sel} .hh-lo-ct').innerText`);
             assert.match(chu, /12\s*%/, `thấy số của dòng mức riêng: ${chu.slice(0, 200)}`);
             assert.ok(chu.includes("Đang áp dụng"), "thấy trạng thái");

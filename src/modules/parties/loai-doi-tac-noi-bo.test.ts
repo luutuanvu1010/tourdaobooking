@@ -14,7 +14,7 @@ const PARTNER = "88888888-8888-4888-8888-888888888888";
 const AT = "2026-09-01T00:00:00.000Z";
 const NHAN = "LE_TAN_SPA_HOA_SEN";
 const TEN_NHAN = "Lễ tân spa Hoa Sen";
-const CAU = "Nhân viên nội bộ không mang vai người dùng được hưởng hoa hồng.";
+const CAU = "Nhân viên nội bộ không mang vai trò đối tác được hưởng hoa hồng.";
 
 function nen() {
   const w = world();
@@ -126,7 +126,7 @@ function chanDungLyDo(w: any, k: any, a: string, ten: string) {
   assert.equal(k.xem.status, 200, `${ten} xem trước: ${k.xem.text}`);
   const ma = k.xem.json.chan.map((c: any) => c.code);
   assert.ok(ma.includes("merge_partner_label_internal"), `${ten}: chan = ${JSON.stringify(ma)}`);
-  assert.equal(k.gop.json.error.message, "Gộp xong, hồ sơ chính vừa là nhân viên nội bộ vừa mang vai người dùng — không được.");
+  assert.equal(k.gop.json.error.message, "Gộp xong, hồ sơ chính vừa là nhân viên nội bộ vừa mang vai trò đối tác được hưởng hoa hồng — không được.");
   assert.deepEqual(k.vaiSau, k.vaiTruoc, `${ten}: không dòng vai nào đổi`);
   assert.equal(w.q("SELECT merged_into_id m FROM pty_party WHERE id = ?", a)[0].m, null, `${ten}: hồ sơ phụ chưa gộp`);
 }

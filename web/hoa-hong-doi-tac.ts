@@ -91,7 +91,7 @@ function noiDungCum(x: DoiTacRieng, d: DuLieuHoaHong, mo: MoHop): Child[] {
     if (r.xungDot) out.push(h("div", { class: "hh-loai-cap" }, huyHieu("do", "alertCircle", NHAN_XUNG_DOT)), h("p", { class: "hh-cap-nhac" }, CAU_XUNG_DOT));
     if (r.vai.length > 0) {
       out.push(
-        h("h3", null, "Vai người dùng"),
+        h("h4", null, "Vai người dùng"),
         h("ul", { class: "hh-tl-gan" }, ...r.vai.map((v) => h("li", null, h("span", null, h("strong", null, v.loai.ten), " · ", h("span", { class: "muted" }, cauVaiHoSo(v))), v.muc !== null && !v.muc.dangBat && huyHieu("cat", "lock", NHAN_CAP_DA_KHOA)))),
       );
     }
@@ -99,8 +99,8 @@ function noiDungCum(x: DoiTacRieng, d: DuLieuHoaHong, mo: MoHop): Child[] {
   }
   const tatCa = d.dong.filter((r2) => r2.doiTuong.loai === "DOI_TAC" && r2.doiTuong.partyId === x.partyId);
   const bang = bangDongMuc(dongRiengDoiTac(d.dong, x.partyId, loc, d.homNay, d.ten), null, d, ghi, mo, false);
-  out.push(h("h3", null, "Mức riêng của đối tác"), bang ? h("div", { class: "hh-muc-cap-khung" }, bang) : h("p", { class: "muted" }, tatCa.length === 0 ? CAU_DT_CHUA_CO_MUC_RIENG : CAU_KHONG_KHOP_LOC));
-  if (r) out.push(h("h3", null, "Cấp riêng"), ...khoiCapRieng(r, x, d, mo, ghi));
+  out.push(h("h4", null, "Mức riêng của đối tác"), bang ? h("div", { class: "hh-muc-cap-khung" }, bang) : h("p", { class: "muted" }, tatCa.length === 0 ? CAU_DT_CHUA_CO_MUC_RIENG : CAU_KHONG_KHOP_LOC));
+  if (r) out.push(h("h4", null, "Cấp riêng"), ...khoiCapRieng(r, x, d, mo, ghi));
   out.push(h("p", { class: "hint" }, h("a", { href: `/parties?id=${encodeURIComponent(x.partyId)}` }, "Mở hồ sơ ở Danh bạ ›")));
   return out;
 }

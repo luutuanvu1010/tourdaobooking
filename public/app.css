@@ -3957,7 +3957,7 @@ a.bk-hang:hover, a.bk-the:hover { background: var(--c-soft-hover); }
 .hh-tom-tat { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .hh-lo-thieu { font-size: var(--fs-label); }
 .hh-lo-ct { padding: 0 var(--s4) var(--s4); border-top: 1px solid var(--c-line); }
-.hh-lo-ct h3 { margin: var(--s3) 0 var(--s2); font-size: var(--fs-label); color: var(--c-text-muted); }
+.hh-lo-ct h4 { margin: var(--s3) 0 var(--s2); font-size: var(--fs-label); color: var(--c-text-muted); }
 .hh-mrows { margin: 0 0 var(--s2); padding: 0; list-style: none; }
 .hh-m { display: grid; grid-template-columns: 1fr auto; gap: var(--s1) var(--s3); align-items: center; padding: var(--s2) 0; border-bottom: 1px solid var(--c-line); }
 .hh-m-dau { display: none; }
@@ -4392,3 +4392,5 @@ main select { max-width: 100%; }
 .dd-dinh-nghia { display: grid; gap: var(--s3); margin-top: var(--s3); }
 .dd-gia-tri { display: grid; gap: var(--s2); margin: 0; padding: 0; list-style: none; }
 .dd-gia-tri > li { display: grid; gap: var(--s2); padding: var(--s2) 0; border-top: 1px solid var(--c-border); }
+/* Quản lý tài khoản: hàng nút lọc theo vai trò cách bảng bên dưới một khoảng (trước đây là thuộc tính style ở staff.html); chỉ token */
+#loc-vai { margin-bottom: var(--s3); }

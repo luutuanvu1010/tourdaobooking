@@ -48,7 +48,7 @@ const biChan = (r, ten, nhan) => {
   assert.equal(r.status, 409, `${nhan}: ${JSON.stringify(r.body)}`);
   assert.equal(maLoi(r), "sales_blocked", nhan);
   assert.match(r.body.error.message, new RegExp(`${ten} ${CHU}`), `${nhan}: câu nêu tên dịch vụ`);
-  assert.match(r.body.error.message, /không bán cho vai trò của bên đặt này/, nhan);
+  assert.match(r.body.error.message, /không bán cho vai người dùng của bên đặt này/, nhan);
   assert.doesNotMatch(r.body.error.message, MA_THO, `${nhan}: câu không lộ mã thô`);
 };
 const datCo = (ma, can) => call(SUPER, "POST", "/api/cai-dat/xac-nhan-don", { pham: "SERVICE", ma, canXacNhan: can });

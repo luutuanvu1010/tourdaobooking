@@ -36,9 +36,9 @@ export const TU_DA_LOAI: readonly TuDaLoai[] = [
   // Lượt 3 — hoa hồng (chủ 2026-10-25), hồ sơ docs/superpowers/specs/2026-10-25-hoa-hong-ho-tro-thiet-ke-lai/DAC-TA.md mục C. «Chính sách hoa hồng» thay «Mức TA»; «Mức riêng» thay «Dòng riêng»;
   // một họ từ hiệu lực (Ngừng · Áp dụng chính sách cho loại · Ngừng áp dụng · Đang/Sắp áp dụng · Đã ngừng) thay Đóng/Gắn/Kết thúc gắn (Q1 = A).
   // 30/10: «Áp dụng cấp cho loại» và «Ngừng áp dụng» (cấp của loại) đã đổi tiếp ở lượt 7 bên dưới; «Ngừng» (mức) và «Đang/Sắp áp dụng», «Đã ngừng» giữ.
-  { cam: /[Mm]ức TA|MỨC TA/u, thay: "Cấp đại lý (cấp <tên>, cấp riêng)", nguon: "chủ 2026-10-25 (bàn giao Hoa hồng + Hỗ trợ, «chọn A cả ba»)" },
+  { cam: /[Mm]ức TA|MỨC TA/u, thay: "Cấp độ đại lý (cấp <tên>, cấp riêng)", nguon: "chủ 2026-10-25 (bàn giao Hoa hồng + Hỗ trợ, «chọn A cả ba»)" },
   { cam: /[Dd]òng riêng|(?<!hồng )[Rr]iêng của loại/u, thay: "Mức riêng", nguon: "chủ 2026-10-25 (bàn giao Hoa hồng + Hỗ trợ, «chọn A cả ba»)" },
-  { cam: /Đóng mức|Đóng dòng|[Kk]ết thúc gắn|Gắn mức|Đang áp(?! dụng)|Sắp áp(?! dụng)|Đã đóng(?! sổ| tiền)/u, thay: "Ngừng · Chọn cấp cho loại này · Thôi theo cấp này · Đang áp dụng · Sắp áp dụng · Đã ngừng", nguon: "chủ 2026-10-25 (bàn giao Hoa hồng + Hỗ trợ, «chọn A cả ba»)" },
+  { cam: /Đóng mức|Đóng dòng|[Kk]ết thúc gắn|Gắn mức|Đang áp(?! dụng)|Sắp áp(?! dụng)|Đã đóng(?! sổ| tiền)/u, thay: "Ngừng · Chọn cấp cho vai trò này · Thôi theo cấp này · Đang áp dụng · Sắp áp dụng · Đã ngừng", nguon: "chủ 2026-10-25 (bàn giao Hoa hồng + Hỗ trợ, «chọn A cả ba»)" },
   // Lượt 4 — hỗ trợ (chủ 2026-10-25, bàn giao Hoa hồng + Hỗ trợ). Trùng tên «Hỗ trợ» (trang / Trợ lý / vé): BACKLOG BL-VE-TRUNG-TEN.
   { cam: /Hàng đợi nhóm/u, thay: "Việc của nhóm", nguon: "chủ 2026-10-25 (bàn giao Hoa hồng + Hỗ trợ)" },
   { cam: /[Tt]rợ giúp|TRỢ GIÚP/u, thay: "Hướng dẫn", nguon: "chủ 2026-10-25 (bàn giao Hoa hồng + Hỗ trợ)" },
@@ -51,16 +51,16 @@ export const TU_DA_LOAI: readonly TuDaLoai[] = [
   { cam: /Sheet đã đổi giá\s+$/u, thay: "Sheet đã đổi giá: <tên dịch vụ>", nguon: "chủ 2026-10-28 (hộp hỏi lượt 3 rà chữ Trang chủ)" },
   // Hoa hồng (chủ 2026-10-28): năm loại có từ đầu, đi kèm tài khoản đăng nhập của đối tác. Và mức TA gắn riêng cho một đối tác (ADR-0138) là «chính sách riêng»
   // theo lượt 3 — «mức riêng» chỉ dành cho một dòng mức đặt lẻ; ở Danh bạ chữ cũ còn gọi chính sách riêng là «Mức riêng: … (gắn riêng)».
-  { cam: /[Ll]oại gốc/u, thay: "Có sẵn (kèm câu «Loại có sẵn đi kèm tài khoản đăng nhập của đối tác nên không tắt được.»)", nguon: "chủ 2026-10-28 (hộp hỏi, chọn «Có sẵn»)" },
+  { cam: /[Ll]oại gốc/u, thay: "Có sẵn (kèm câu «Vai trò có sẵn đi kèm tài khoản đăng nhập của đối tác nên không tắt được.»)", nguon: "chủ 2026-10-28 (hộp hỏi, chọn «Có sẵn»)" },
   { cam: /\(gắn riêng\)|Lưu mức riêng|gắn mức riêng/u, thay: "cấp riêng", nguon: "chủ 2026-10-25 (lượt 3), áp ở Danh bạ 2026-10-28" },
   // Lượt 6 — cấp đại lý (chủ 2026-10-30, quyết định 3, 7). Hai mục toàn cục; luật cấm «chính sách» trọn bộ tệp hoa hồng nằm ở CAM_THEO_TEP bên dưới.
-  { cam: /[Cc]hính sách hoa hồng|CHÍNH SÁCH HOA HỒNG/u, thay: "Cấp đại lý", nguon: "chủ 2026-10-30 (quyết định 3, 7; hồ sơ `docs/superpowers/specs/2026-10-30-hoa-hong-cap-dai-ly/`)" },
+  { cam: /[Cc]hính sách hoa hồng|CHÍNH SÁCH HOA HỒNG/u, thay: "Cấp độ đại lý", nguon: "chủ 2026-10-30 (quyết định 3, 7; hồ sơ `docs/superpowers/specs/2026-10-30-hoa-hong-cap-dai-ly/`)" },
   { cam: /[Cc]hính sách riêng(?! tư)|CHÍNH SÁCH RIÊNG(?! TƯ)/u, thay: "Cấp riêng", nguon: "chủ 2026-10-30 (quyết định 3, 7; hồ sơ `docs/superpowers/specs/2026-10-30-hoa-hong-cap-dai-ly/`)" },
   // Lượt 7 — rà soát ngôn ngữ trang Hoa hồng đối tác (chủ 2026-10-30, hồ sơ docs/superpowers/specs/2026-10-30-ra-soat-ngon-ngu-hoa-hong/RA-SOAT.md): hai chữ của lượt 3 đã thay.
   // Nhãn nhật ký «Ngừng áp dụng cấp đại lý cho loại» / «… cấp riêng của đối tác» (audit-actions.ts), nút «Ngừng áp dụng» của cấp riêng ở Danh bạ và câu máy chủ «ngừng áp dụng cấp cũ trước» giữ nguyên — mẫu chặn hẹp: chỉ cụm «… cấp cho loại» và mảnh «Ngừng áp dụng cấp ‹tên›» (chuỗi mẫu cũ của hộp).
   // «Hoa hồng riêng của loại» (B3 của bảng chữ mới) được phép: luật «riêng của loại» ở lượt 3 nhắm câu «mức riêng của loại» trần, không phải tiêu đề này.
-  { cam: /[Áá]p dụng cấp cho loại|[Nn]gừng áp dụng cấp(?:\s+cho loại|\s*«?\s*$)/u, thay: "Chọn cấp cho loại này · Thêm loại vào cấp này · Thôi theo cấp này", nguon: "chủ 2026-10-30 (rà soát ngôn ngữ Hoa hồng)" },
-  { cam: /Ngày cuối hiệu lực|Sửa áp dụng cấp/u, thay: "Ngày cuối áp dụng · Sửa cấp của loại", nguon: "chủ 2026-10-30 (rà soát ngôn ngữ Hoa hồng)" },
+  { cam: /[Áá]p dụng cấp cho loại|[Nn]gừng áp dụng cấp(?:\s+cho loại|\s*«?\s*$)/u, thay: "Chọn cấp cho vai trò này · Thêm vai trò vào cấp này · Thôi theo cấp này", nguon: "chủ 2026-10-30 (rà soát ngôn ngữ Hoa hồng)" },
+  { cam: /Ngày cuối hiệu lực|Sửa áp dụng cấp/u, thay: "Ngày cuối áp dụng · Sửa cấp của vai trò", nguon: "chủ 2026-10-30 (rà soát ngôn ngữ Hoa hồng)" },
   // Lượt 8 — Đặt vé của đối tác (chủ 2026-11-01, đặc tả docs/superpowers/specs/2026-11-01-dat-ve-doi-tac-design.md §4.3; thay quyết định 3 ngày 30/10 «giữ Loại đối tác»).
   // Chữ trên màn là «Vai người dùng» (thẻ chứa các vai của hồ sơ) và «Cấp độ đại lý»; thẻ «Riêng từng đối tác» thành khối «Người có cấp riêng» trong thẻ vai. Mã nội bộ (`loai`, `hh-the-loai`, `prc_*`, route `/loai-doi-tac`) KHÔNG đổi.
   // Tên cấp là dữ liệu («Đại lý cấp 3») nên không dính mẫu «cấp đại lý».
@@ -92,7 +92,7 @@ export const CAM_THEO_TEP: readonly CamTheoTep[] = [
       /^src\/modules\/pricing\/(?![^/]*\.test\.ts$)[^/]+\.ts$/,
     ],
     cam: /[Cc]hính sách(?! (?:riêng tư|điều phối|đăng nhập))|CHÍNH SÁCH(?! (?:RIÊNG TƯ|ĐIỀU PHỐI|ĐĂNG NHẬP))/u,
-    thay: "cấp đại lý · cấp · cấp riêng (quyết định 3)",
+    thay: "cấp độ đại lý · cấp · cấp riêng (quyết định 3)",
     nguon: "chủ 2026-10-30 (quyết định 3, 8; hồ sơ `docs/superpowers/specs/2026-10-30-hoa-hong-cap-dai-ly/`, §6.2)",
   },
   // «loại» nói tắt ở trang Hoa hồng chính là «vai» (thẻ «Vai người dùng»): «Thêm loại», «Tắt loại», «Tìm loại hoặc dịch vụ», «Chọn cấp cho loại này». «loại khách» (người lớn, trẻ em) là nghĩa khác, giữ nguyên.

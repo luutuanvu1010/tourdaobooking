@@ -359,7 +359,7 @@ export function kiemTenLoaiDoiTac(raw: unknown, daCo: readonly string[]): { ok: 
   if (ten.length < 2 || ten.length > 60) return { ok: false, code: "invalid_input", message: "Tên vai trò dài từ 2 đến 60 ký tự." };
   // Dãy ≥ 8 chữ số sau khi bỏ khoảng trắng và chấm; dấu «-» chỉ được bỏ khi dãy ≥ 9 chữ số (số điện thoại gạch nối) để khoảng năm «2024-2025» (8 chữ số) lọt.
   if (coSoHoacEmail(ten)) return { ok: false, code: "invalid_input", message: "Tên vai trò không được chứa số điện thoại, số tài khoản hay địa chỉ email." };
-  if (daCo.some((t) => khoaTen(t) === khoaTen(ten))) return { ok: false, code: "loai_trung", message: "Đã có loại với tên này." };
+  if (daCo.some((t) => khoaTen(t) === khoaTen(ten))) return { ok: false, code: "loai_trung", message: "Đã có vai trò với tên này." };
   return { ok: true, value: ten };
 }
 /** Mã loại đối tác máy chủ sinh: `LD_` + 8 chữ hoa (CODE_RE của Danh bạ chỉ nhận chữ và gạch dưới, không số). `bytes` lấy từ `crypto.getRandomValues` ở nơi gọi. */

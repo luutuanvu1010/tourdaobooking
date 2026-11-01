@@ -184,7 +184,7 @@ try {
         tagShown: card ? [...card.querySelectorAll('.tag-price')].some(hien) : null,
         tripKhoi: card ? { hien: hien(card.querySelector('details.trip')) } : null,
         ghiChuGon: ghiChuGon ? { hien: hien(ghiChuGon), placeholder: ghiChuGon.placeholder, value: ghiChuGon.value, maxLength: ghiChuGon.maxLength, mauGoiY: getComputedStyle(ghiChuGon, '::placeholder').color,
-          nhan: nhanGhiChu?.textContent ?? null, nhanHien: hien(nhanGhiChu), nhanThuNho: !!nhanGhiChu && giua(nhanGhiChu) < giua(ghiChuGon) } : null,
+          nhan: nhanGhiChu?.textContent ?? null, nhanHien: hien(nhanGhiChu), nhanThuNho: !!nhanGhiChu && giua(nhanGhiChu) < giua(ghiChuGon) - 4 } : null,
         giamGia: { placeholder: d.placeholder, ariaLabel: d.getAttribute('aria-label'), nhan: nhanGiam ? nhanGiam.textContent : null, mauGoiY: getComputedStyle(d, '::placeholder').color },
         discountReadOnly: d.readOnly,
         discountValue: d.value,
