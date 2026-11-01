@@ -183,3 +183,34 @@ export const demVeCuaLo = async (db: D1Database, id: string): Promise<{ tong: nu
 };
 export const cauSuaMaTour = (db: D1Database, id: string, maTour: string, at: string, by: string | null): D1PreparedStatement => db.prepare(SUA_MA_TOUR).bind(id, maTour, at, by);
 export const thongKeKho = async (db: D1Database, homNay: string, hanSapHet: string): Promise<DongKho[]> => (await db.prepare(THONG_KE_KHO).bind(homNay, hanSapHet).all<DongKho>()).results;
+
+// ===== Xem ảnh và giao vé (ADR-0153 Đ3; Task 6). Câu đọc KHÔNG trả mã vé / nội dung QR: ảnh đọc từ kho theo `storage_key` rồi trả thẳng thân phản hồi. =============
+const PHAN_BO_DE_XEM = defineSql(
+  "ve-dien-tu",
+  "phan_bo_de_xem",
+  `SELECT a.id, a.order_id, a.order_service_id, a.slot_no, a.revealed_at, t.storage_key, t.content_kind FROM vdt_allocation a JOIN vdt_ticket t ON t.id = a.ticket_id
+   WHERE a.id = ?1 AND a.released_at IS NULL AND t.stored_at IS NOT NULL AND t.purged_at IS NULL`,
+);
+const CHU_DON = defineSql("ve-dien-tu", "chu_don", "SELECT staff_id FROM v_ord_order_owner WHERE id = ?1");
+const PHAN_BO_MO_CUA_DON = defineSql(
+  "ve-dien-tu",
+  "phan_bo_mo_cua_don",
+  "SELECT id FROM vdt_allocation WHERE order_id = ?1 AND released_at IS NULL AND (?2 IS NULL OR order_service_id = ?2) ORDER BY order_service_id, pax_group, slot_no",
+);
+const DANH_DAU_LO = defineSql("ve-dien-tu", "danh_dau_lo", "UPDATE vdt_allocation SET revealed_at = ?2, updated_at = ?2, updated_by = ?3 WHERE id = ?1 AND revealed_at IS NULL AND released_at IS NULL");
+const CHEN_GIAO = defineSql(
+  "ve-dien-tu",
+  "chen_giao",
+  "INSERT OR IGNORE INTO vdt_delivery (id, allocation_id, channel, delivered_by, delivered_at, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?5, ?3, ?4, ?4, ?3, ?4, ?3)",
+);
+
+export interface PhanBoDeXem { id: string; order_id: string; order_service_id: string; slot_no: number; revealed_at: string | null; storage_key: string; content_kind: string }
+export const docPhanBoDeXem = (db: D1Database, id: string): Promise<PhanBoDeXem | null> => db.prepare(PHAN_BO_DE_XEM).bind(id).first<PhanBoDeXem>();
+/** Người lập đơn (view công bố của orders) — để hỏi `can(…, { ownerId })`. null = không có đơn. */
+export const docChuDon = async (db: D1Database, orderId: string): Promise<string | null> => (await db.prepare(CHU_DON).bind(orderId).first<{ staff_id: string }>())?.staff_id ?? null;
+export const docPhanBoMoCuaDon = async (db: D1Database, orderId: string, serviceId: string | null): Promise<string[]> =>
+  (await db.prepare(PHAN_BO_MO_CUA_DON).bind(orderId, serviceId).all<{ id: string }>()).results.map((r) => r.id);
+/** Đóng dấu «đã lộ» MỘT LẦN (dòng đã có dấu thì câu không đổi gì). */
+export const cauDanhDauLo = (db: D1Database, allocId: string, at: string, by: string | null): D1PreparedStatement => db.prepare(DANH_DAU_LO).bind(allocId, at, by);
+export const cauChenGiao = (db: D1Database, p: { id: string; allocId: string; by: string | null; at: string; kenh: "ZALO" | "LINK" }): D1PreparedStatement =>
+  db.prepare(CHEN_GIAO).bind(p.id, p.allocId, p.by, p.at, p.kenh);

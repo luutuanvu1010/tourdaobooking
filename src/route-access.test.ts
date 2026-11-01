@@ -522,6 +522,9 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/ve/lo/:id/ve", access: "office" }, // ADR-0153 kho vé điện tử; thân hỏi ve.kho.manage (Bán hàng, Quản trị, Toàn quyền)
   { method: "POST", path: "/api/ve/lo/:id/xac-nhan", access: "office" }, // ADR-0153 kho vé điện tử; thân hỏi ve.kho.manage (Bán hàng, Quản trị, Toàn quyền)
   { method: "POST", path: "/api/ve/lo/:id/sua-ma-tour", access: "office" }, // ADR-0153 kho vé điện tử; thân hỏi ve.kho.manage (Bán hàng, Quản trị, Toàn quyền)
+  { method: "GET", path: "/api/ve/don/:orderId", access: "office" }, // ADR-0153 Đ3 (Task 6); thân hỏi order.view
+  { method: "GET", path: "/api/ve/anh/:allocationId", access: "office" }, // ADR-0153 Đ3 (Task 6); thân hỏi ve.cap.send + thu đủ
+  { method: "POST", path: "/api/ve/giao", access: "office" }, // ADR-0153 Đ3 (Task 6); thân hỏi ve.cap.send + thu đủ
   { method: "GET", path: "/api/tro-ly/khung", access: "staff" }, // ADR-0069 điều 3, 4 — cờ được dùng + câu chào (mọi tài khoản, không dữ liệu nghiệp vụ); ADR-0084: + cách gọi / xưng của chính người gọi
   { method: "POST", path: "/api/tro-ly/vai", access: "office" }, // ADR-0069 điều 1, 3 — chỉ Toàn quyền (settings.ops trong thân)
   { method: "POST", path: "/api/tro-ly/thu-khoa", access: "office" }, // ADR-0069 điều 2 — như trên
@@ -549,7 +552,7 @@ test("MODULES liệt kê ĐỦ mọi thư mục module có khai `...Module: AppM
   assert.deepEqual(routedDirs, listed, "có thư mục module khai AppModule nhưng chưa có trong MODULES của bài kiểm route-access này — thêm vào MODULES và SNAPSHOT");
 });
 
-test("mức truy cập của 412 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
+test("mức truy cập của 415 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
   const actual = await collectRealRoutes();
   // deepEqual TRƯỚC: khi có route mới/bị xoá, thông báo của nó chỉ ra ĐÚNG route lệch — hai assert.equal độ dài bên dưới chỉ để phòng hờ
   // (không bao giờ tự chạy tới nếu deepEqual đã trượt) và tài liệu hoá con số 86 để đối chiếu nhanh bằng mắt.
@@ -675,8 +678,9 @@ test("mức truy cập của 412 route hiện có khớp ảnh chụp đã duy�
   // 2026-10-30 (ADR-0146 Đ5, luật bán): + GET, POST /api/pricing/luat-ban, POST …/luat-ban/:id/ket-thuc (office; sales.block.write, không Đối tác) = 397.
   // 2026-10-30 (ADR-0152 Đ1, Đ3, Đ5): + 8 route /api/catalog/dac-diem* (GET ×2, PUT gắn dịch vụ: office; POST ×2, PATCH ×2, PUT gắn nhóm: admin) = 405.
   // 2026-10-31 (mã định danh 5.26, Task 3): + PATCH /api/pricing/loai-doi-tac/:code (office; partner.commission.write, không Đối tác) = 406.
-  // 2026-11-01 (ADR-0153 Task 4c): + 5 route /api/ve/* (office; ve.kho.manage) = 412.
-  // 2026-10-31 (mã định danh 5.26, Task 4): + PATCH /api/pricing/muc-ta/:code (office; partner.commission.write, không Đối tác) = 412.
-  assert.equal(actual.length, 412, "số route thực tế lệch 412 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 412, "SNAPSHOT phải có đúng 412 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // 2026-11-01 (ADR-0153 Task 6): + GET /api/ve/don/:orderId, GET /api/ve/anh/:allocationId, POST /api/ve/giao (office) = 415.
+  // 2026-11-01 (ADR-0153 Task 4c): + 5 route /api/ve/* (office; ve.kho.manage) = 415.
+  // 2026-10-31 (mã định danh 5.26, Task 4): + PATCH /api/pricing/muc-ta/:code (office; partner.commission.write, không Đối tác) = 415.
+  assert.equal(actual.length, 415, "số route thực tế lệch 415 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 415, "SNAPSHOT phải có đúng 415 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

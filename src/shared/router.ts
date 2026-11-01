@@ -231,6 +231,10 @@ export interface Ctx<A extends Access = Access> {
    * gọi SAU lô sửa số khách (`money-edit`, `handler-money-edit`) — trả bớt vé chưa lộ, cấp thêm; lỗi bị nuốt. Môi trường không tiêm (khung thử cố ý) → không làm gì (an toàn: không cấp).
    */
   capVeSauXacNhan: (orderId: string) => Promise<void>;
+  /** Các dịch vụ của đơn có thể giữ vé + số khách HIỆU LỰC (`orders.dichVuChoVe`) — cho route xem vé của `ve-dien-tu`. KHÔNG tự kiểm quyền: route hỏi `can(` trước. Không tiêm ⇒ rỗng. */
+  dichVuChoVe: (orderId: string) => Promise<{ serviceId: string; catalogCode: string; ngayDi: string; pax: { adult: number; child: number; senior: number; infant: number } }[]>;
+  /** {đã thu ròng, phải thu} (`billing.tienDonVe`) — để so «thu đủ» ở một hàm thuần. Không tiêm / không đọc được ⇒ `null` (KHÔNG mở khoá). */
+  tienDonVe: (orderId: string) => Promise<{ daThu: number; phaiThu: number } | null>;
   traVeKhiHuy: (orderId: string, lyDo: "DON_HUY" | "RUT_XAC_NHAN") => Promise<D1PreparedStatement[]>;
   canBangVeSauSuaKhach: (orderId: string) => Promise<void>;
   /**
@@ -383,6 +387,9 @@ export interface AppOptions {
     capVeSauXacNhan: (env: Env, actor: StaffProfile, orderId: string) => Promise<void>;
     traVeKhiHuy: (env: Env, actor: StaffProfile, orderId: string, lyDo: "DON_HUY" | "RUT_XAC_NHAN") => Promise<D1PreparedStatement[]>;
     canBangVeSauSuaKhach: (env: Env, actor: StaffProfile, orderId: string) => Promise<void>;
+    /** ADR-0153 Đ3. BẮT BUỘC trong mã chạy thật (`src/index.ts`: `orders.dichVuChoVe`, `billing.tienDonVe`); thiếu (khung thử cố ý) → rỗng / null. */
+    dichVuChoVe: (env: Env, orderId: string) => Promise<{ serviceId: string; catalogCode: string; ngayDi: string; pax: { adult: number; child: number; senior: number; infant: number } }[]>;
+    tienDonVe: (env: Env, orderId: string) => Promise<{ daThu: number; phaiThu: number } | null>;
     /** ADR-0148 Đ1. BẮT BUỘC trong mã chạy thật (`src/index.ts`: `ngayChupGanNhat` của orders); thiếu (khung thử cố ý) → router trả `null` (route Sửa / Đổi / Ngừng của pricing 503). */
     hoiDaChup: (env: Env, q: HoiDaChup) => Promise<string | null>;
     /** TIN CHUYẾN (ADR-0052 D6.3). BẮT BUỘC trong mã chạy thật (`src/index.ts`: `chuyenChoTinTheoId` của van-chuyen); thiếu (khung thử cố ý) → router trả `null`. */
@@ -528,6 +535,8 @@ export function createApp(opts: AppOptions) {
       daThuCuaDon: (id) => (typeof opts.injected.daThuCuaDon !== "function" ? Promise.resolve(null) : opts.injected.daThuCuaDon(envH, id)),
       // ADR-0153: câu của kho vé đi vào CHÍNH lô của lệnh (huỷ) hoặc lô riêng sau lệnh ⇒ dùng `envH` như `dongBoChuyen`.
       capVeSauXacNhan: async (id) => { if (who && typeof opts.injected.capVeSauXacNhan === "function") await opts.injected.capVeSauXacNhan(envH, who, id); },
+      dichVuChoVe: async (id) => (typeof opts.injected.dichVuChoVe === "function" ? opts.injected.dichVuChoVe(envH, id) : []),
+      tienDonVe: async (id) => (typeof opts.injected.tienDonVe === "function" ? opts.injected.tienDonVe(envH, id) : null),
       traVeKhiHuy: async (id, lyDo) => (who && typeof opts.injected.traVeKhiHuy === "function" ? opts.injected.traVeKhiHuy(envH, who, id, lyDo) : []),
       canBangVeSauSuaKhach: async (id) => { if (who && typeof opts.injected.canBangVeSauSuaKhach === "function") await opts.injected.canBangVeSauSuaKhach(envH, who, id); },
       hoiDaChup: (q) => (typeof opts.injected.hoiDaChup !== "function" ? Promise.resolve(null) : opts.injected.hoiDaChup(envH, q).then((ngay) => ({ ngay }))),

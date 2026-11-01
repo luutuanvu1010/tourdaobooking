@@ -17,7 +17,7 @@ import { accountsModule } from "./modules/accounts";
 import { auditModule } from "./modules/audit";
 import { anDanhPhienCuaTaiKhoanStatement, authModule, checkAuthConfig, currentStaff } from "./modules/auth";
 import { bangtinModule, dongCua, phatChuyen, phatDon, xepHangDay } from "./modules/bangtin";
-import { billingModule, daThuCuaDon, nhapKeToanCuaDon, soDongNoCuaNguoi } from "./modules/billing";
+import { billingModule, daThuCuaDon, tienDonVe, nhapKeToanCuaDon, soDongNoCuaNguoi } from "./modules/billing";
 import { receiptModule } from "./modules/receipt";
 import { catalogModule, runScheduledSync } from "./modules/catalog";
 import { companyModule } from "./modules/company";
@@ -217,6 +217,8 @@ const APP_OPTIONS: AppOptions = {
     daThuCuaDon: (env, id) => daThuCuaDon(env.DB, id),
     // KHO VÉ ĐIỆN TỬ (ADR-0153 Đ1 mục 4): `orders` và `ve-dien-tu` không import nhau — gốc lắp ráp đọc dịch vụ qua hàm công bố của orders (số khách hiệu lực) rồi đưa sang kho vé.
     // Cấp / cân bằng chạy SAU lô của lệnh và NUỐT lỗi (lệnh đã thắng; thiếu vé là suy ra lúc đọc); câu trả vé khi huỷ nối vào CHÍNH lô huỷ. Log chỉ ghi mã đơn lỗi, không mã vé.
+    dichVuChoVe: (env, orderId) => dichVuChoVe(env.DB, orderId),
+    tienDonVe: (env, orderId) => tienDonVe(env.DB, orderId),
     capVeSauXacNhan: async (env, actor, orderId) => {
       try { await capVeChoDon(env.DB, await dichVuChoVe(env.DB, orderId), actor.id, nhatKyThat(env.DB), new Date().toISOString()); } catch (e) { console.error("ve_cap_loi", orderId, e instanceof Error ? e.name : "loi"); }
     },

@@ -27,3 +27,11 @@ export function chonVe(kho: readonly VeTrong[], can: number, ngayDi: string): Ve
 export function thieuVe(can: Record<Nhom, number>, daGiu: Record<Nhom, number>): Record<Nhom, number> {
   return { ADULT: Math.max(0, can.ADULT - daGiu.ADULT), CHILD: Math.max(0, can.CHILD - daGiu.CHILD), SENIOR: Math.max(0, can.SENIOR - daGiu.SENIOR) };
 }
+
+/**
+ * «Thu đủ» để mở khoá xem / giao vé (ADR-0153 Đ3): đã thu ròng ≥ phải thu VÀ phải thu > 0. `null` (không đọc được tiền, hoặc khung thử không tiêm) hoặc phải thu 0 ⇒ KHÔNG mở.
+ * MỘT hàm cho mọi nơi so — route không tự viết lại phép so.
+ */
+export function thuDu(t: { daThu: number; phaiThu: number } | null): boolean {
+  return t !== null && t.phaiThu > 0 && t.daThu >= t.phaiThu;
+}
