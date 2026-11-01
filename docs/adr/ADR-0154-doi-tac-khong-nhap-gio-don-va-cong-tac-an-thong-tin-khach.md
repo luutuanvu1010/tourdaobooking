@@ -1,10 +1,10 @@
 # ADR-0154 — Đối tác không nhập giờ đón; công tắc ẩn thông tin khách khi đối tác đặt vé
 
-- **Trạng thái:** Đề xuất (2026-11-02), chờ chủ dự án duyệt. Chưa có mã.
+- **Trạng thái:** Đề xuất (2026-11-02), chờ chủ dự án duyệt. Chưa có mã. **Người kiểm độc lập 2026-11-02: chưa nên duyệt bản này** (mục «Sai đã biết» dưới đây; đầy đủ ở `docs/superpowers/specs/2026-11-02-ket-qua-kiem-adr-0154-0155.md`). Chữ các điều viết lại sau khi chủ chọn cách chia lượt.
 - **Nguồn:** đặc tả `docs/superpowers/specs/2026-11-01-dat-ve-doi-tac-design.md` §5 QĐ-B, §8 (chủ duyệt thiết kế 2026-11-02, nguyên văn «Duyệt thiết kế»; thiết kế nói rõ mỗi quyết định vẫn qua ADR riêng). Trang ghép lượt duyệt: `docs/superpowers/specs/2026-11-02-trang-ghep-dat-ve-luot-2.md`.
 - **Số:** 0154 kiểm còn trống 2026-11-02 trên `main` và mọi nhánh trong máy. Migration dự kiến `0132`, kiểm lại lúc thi công.
-- **Loại:** việc lớn (dữ liệu, luồng xác nhận). **Không chạm tiền.** **Cửa:** Đ1 hai chiều. Đ2, Đ3 một chiều mềm: bảng chính sách và cột `manifest_exempt` chỉ thêm, ở lại; công tắc tắt được, đơn đã mang dấu giữ dấu.
-- **Số quyết định chạm quyền/dữ liệu trong lượt duyệt này: 2** (ADR-0154, ADR-0155), trần là 3.
+- **Loại:** việc lớn (dữ liệu, luồng xác nhận, tiền). **Không đổi cách tính tiền, nhưng dời mốc:** đơn có đón của đối tác nay chụp hoa hồng lúc Còn vé thay vì lúc gửi đơn; mã QR, ảnh xác nhận và cấp vé đều chờ tới lúc đó. **Cửa:** Đ1 hai chiều về hành vi. Đ2, Đ3 một chiều mềm: bảng chính sách và cột `manifest_exempt` chỉ thêm, ở lại; công tắc tắt được, đơn đã mang dấu giữ dấu; tên khách thật của các đơn đó không khôi phục được.
+- **Số quyết định chạm quyền/dữ liệu:** đếm theo điều như trang ghép 24/10 và 25/10 thì ADR-0154 và ADR-0155 có **5 điều** (ADR-0154 Đ1, Đ2, Đ3; ADR-0155 Đ1, Đ2), trần là 3 (bản trước ghi nhầm là 2 vì đếm theo ADR). Phần sửa của người kiểm còn thêm điều mới. Chủ quyết cách chia lượt.
 - **Xây trên lỗ đang hở:** không. `TNV-G1`, `TNV-G3`, `TNV-G4` thuộc sổ tiền, `HC-5.19` thuộc khôi phục dữ liệu, `HC-5.11` thuộc tác vụ tự động, `HC-4.2` thuộc bút toán điều chỉnh (`docs/quyen-hoan.json`, kiểm 2026-11-02).
 - **Quan hệ với ADR cũ:** **mở rộng** ADR-0136 Đ1 (thêm một lý do phải qua bước xác nhận). **Nới** ADR-0136 Đ6 (người xét đọc thêm ghi chú dịch vụ). **Ngoại lệ có tên** của luật `THIEU_TEN` (ADR-0049) cho đơn mang dấu. **Giữ** mốc 6 giờ và Đặt gấp (ADR-0049, ADR-0107), chặng đưa đón (ADR-0047), ADR-0135 Đ2, ADR-0136 Đ13.5, vé điện tử (ADR-0153).
 
@@ -15,6 +15,19 @@ Chủ muốn đối tác bên ngoài đặt vé bằng vài thao tác, văn phò
 Chủ 2026-11-02, sau khi người soạn nêu rủi ro đơn có đón mà không giờ, nguyên văn: *«Phần ghi chú gợi ý Thời gian đón là đúng ý, phần khung giờ bị bỏ trống là 1 chủ ý thiết kế, và cả phần "Hành khách" để nhập danh sách khách khởi hành thì cũng tạm thời cho phép bật /tắt ở trong bảng điều khiển của Super Admin, lý do là để làm cho bước 1 thực sự đơn giản và làm quen với người mới. Sau 1 thời gian thì có thể sẽ bật lại hiển thị phần nhập danh sách hành khách.»*
 
 Hôm nay đơn có Đón mà không giờ được coi là không dưới mốc (`src/shared/moc-toi-thieu.ts`) và form không đòi giờ (`src/shared/chang-form.ts`). Nếu dịch vụ không đánh dấu cần xác nhận, đơn đó xác nhận thẳng. Đặc tả §1 gọi «đơn có đón được xác nhận mà không ai nhập giờ» là thất bại. Đối tác bỏ trống giờ là chủ ý; Đ1 đặt việc chốt giờ về phía văn phòng, không đòi đối tác nhập.
+
+## Sai đã biết trong bản này (người kiểm 2026-11-02)
+
+Chờ viết lại, không duyệt theo các câu này:
+
+- **Đ1.3 kẹt đơn đi trong ngày.** «Có giờ rồi thì mốc 6 giờ và Đặt gấp chạy như hôm nay» sai: văn phòng nhập giờ còn dưới 6 tiếng thì Còn vé 409, Đặt gấp cũng 409 vì đọc giờ đã lưu là rỗng, đơn ở lại nháp (người kiểm tái hiện). Phải mở rộng ADR-0107, ADR-0049 D2.
+- **Đ1.2, Đ1.3 khoanh sai.** Chỉ xét chiều đi nên đơn chỉ có chiều về lọt qua; câu 409 chưa khoanh riêng đơn của đối tác nên đơn văn phòng cũng dính. Dòng «Quan hệ» cũng phải sửa theo: mở rộng ADR-0136 Đ13.3, thu hẹp Đ13.4, không đổi Đ1.
+- **Đ1.3 khung giờ.** Người xét là Kế toán không đọc được route khung giờ (403), Đ1 lại bắt buộc ô này; phải sửa một phần ADR-0134 Đ6.
+- **Đ1.5 sai.** Tài khoản thôi giữ quyền Đối tác khi đơn còn nháp vẫn xác nhận thẳng được, giờ rỗng.
+- **Đ2.3 thiếu ca:** `newBooker` vẫn tạo hồ sơ khách thật; tài khoản không có hồ sơ có tên «(chưa có hồ sơ)»; `PUT` ghi đè bốn cột; form đang ẩn mà công tắc vừa tắt gặp 400.
+- **Đ3 sai hai chỗ.** Lúc xếp `THIEU_TEN` chỉ cảnh báo, không giữ; nếu bỏ lý do ở xuất bến thì dòng «Đủ tên khách» thành đạt dù không có tên nào. Chặng đọc qua `lichChungChang`, không qua view công bố; đừng sửa `v_ord_order_flag`.
+
+**Câu chỉ chủ quyết, chưa chốt:** đối tác để trống Ghi chú thì văn phòng lấy giờ ở đâu (người xét không thấy SĐT người lập); tài khoản lai Bán hàng kiêm Đối tác có bị ẩn thông tin khách và miễn tên không.
 
 ## Quyết định
 
@@ -31,7 +44,7 @@ Hôm nay đơn có Đón mà không giờ được coi là không dưới mốc 
 1. **Mặc định TẮT**, nên phát hành không đổi gì cho tới khi Toàn quyền bật. Chỉ ô `settings.ops`. Đặt ở trang Tôi, cạnh «Dịch vụ nhập tay», vì Nền tảng chưa có trang bảng điều khiển chung của Toàn quyền (trang mang tên đó chỉ dành cho Trợ lý); bảng chính sách chỉ thêm theo khuôn `ord_confirm_policy`; có nhật ký.
 2. Khi BẬT, tài khoản giữ quyền Đối tác không thấy khối Khách hàng và khối Hành khách ở form Tạo đơn. Ngày khởi hành giữ nguyên.
 3. **Máy chủ quyết, không tin trình duyệt:** lập đơn mới khi BẬT thì bỏ tên và SĐT gửi lên, điền từ tài khoản; email, ghi chú khách trống; không nhận khoá `passengers`. Sửa nháp đã có thông tin: giữ giá trị đang lưu. Đổi công tắc không chạm đơn cũ.
-4. Thực tập, Bán hàng và mọi tài khoản không giữ quyền Đối tác: không đổi. Đối tác vẫn bổ sung được tên ở trang đơn của mình. «Đổi khách», «Sửa danh sách khách» của văn phòng: không đổi.
+4. Thực tập, Bán hàng và mọi tài khoản không giữ quyền Đối tác: không đổi. Đối tác chỉ bổ sung được danh sách hành khách sau khi đơn đã xác nhận (đơn nháp 409 `use_order_form`), không sửa được tên liên hệ. «Đổi khách», «Sửa danh sách khách» của văn phòng: không đổi.
 5. **Đây là biện pháp tạm** để bước đầu đơn giản, giúp người mới làm quen. Tắt công tắc thì form hiện lại hai khối đó với đơn mới, và đơn lập sau lúc tắt không mang dấu của Đ3.
 
 **Đ3. Miễn luật thiếu tên cho đơn lập lúc công tắc BẬT.** Đơn do tài khoản giữ quyền Đối tác lập khi công tắc BẬT mang dấu `orders.manifest_exempt = 1`, chụp lúc lập; đổi công tắc sau đó không đổi dấu đơn cũ. Chặng của đơn có dấu không bị giữ `THIEU_TEN` lúc xếp và lúc xuất bến (`lyDoThieuTen`, `kiemXuatBen`), câu nhắc vẫn hiện, không chặn. `THIEU_TEN` chỉ ở lớp máy chủ, không có trigger (kiểm 2026-11-02), nên không phải sửa trigger. Vận chuyển đọc dấu qua view công bố của `orders`. Mọi đơn khác và cờ `require_manifest` không đổi. Thêm dòng ở bảng sự kiện vận chuyển.
@@ -39,7 +52,7 @@ Hôm nay đơn có Đón mà không giờ được coi là không dưới mốc 
 ## Rủi ro chủ đã chấp nhận
 
 - Khi công tắc BẬT, tên khách trên biên nhận và SĐT liên hệ trên chuyến là của đối tác; danh sách hành khách có thể trống cả khi xe chạy. Quy định xe hợp đồng đòi danh sách hành khách (nguồn tra 2026-09-27, chưa có luật sư xác nhận). Chủ nghe hệ quả ngày 2026-11-02 và vẫn chọn «Bỏ luật với đơn của đối tác».
-- Mọi đơn có đón mà đối tác không ghi giờ ở khung giờ đều phải chờ văn phòng chốt giờ. Đó là việc thêm cho văn phòng, đổi lại không có đơn thiếu giờ.
+- Mọi đơn có đón của đối tác đều phải chờ văn phòng chốt giờ, vì Đ1.1 đã bỏ ô giờ. Mã QR, ảnh xác nhận và cấp vé chờ theo; đồng hồ hạn xác nhận nghỉ từ 22:00 tới 06:00. Đó là việc thêm cho văn phòng, đổi lại không có đơn thiếu giờ.
 - Từ lúc lượt 1 phát hành tới khi Đ1 lên, đơn có Đón mà không giờ vẫn xác nhận thẳng được nếu dịch vụ không đánh dấu cần xác nhận, và không qua mốc 6 giờ. Người soạn đã nêu ngày 2026-11-02; lời chủ ở phần Bối cảnh.
 
 ## Tiêu chí nghiệm thu
