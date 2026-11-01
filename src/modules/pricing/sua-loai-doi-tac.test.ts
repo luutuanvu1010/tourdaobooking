@@ -18,7 +18,7 @@ const KP = "99999999-9999-4999-8999-999999999990"; // lai: Kế toán + Đối t
 const AT = "2026-10-01T00:00:00.000Z";
 const TEN = "Nhân viên spa";
 const ORG = "dda00000-0000-4000-8000-0000000000a1";
-const DA_DOI = "Loại này vừa được người khác sửa, mở lại để xem bản mới.";
+const DA_DOI = "Vai trò này vừa được người khác sửa, mở lại để xem bản mới.";
 type W = ReturnType<typeof world>;
 
 function setup(): W {
@@ -109,7 +109,9 @@ test("A2: thân sai — vắng cả tên lẫn ghi chú ⇒ 400; vắng updatedA
   const l = await mot(w, ma);
   const n = soNhatKy(w);
   assert.equal((await sua(w, ma, { updatedAt: l.updatedAt })).status, 400);
-  assert.equal((await sua(w, ma, { ten: "Spa mới" })).status, 400);
+  const thieuDau = await sua(w, ma, { ten: "Spa mới" });
+  assert.equal(thieuDau.status, 400);
+  assert.equal(thieuDau.json.error.message, "Thiếu dấu phiên bản của vai trò — mở lại để sửa.");
   assert.equal((await sua(w, ma, { ten: "Spa mới", updatedAt: 5 })).status, 400);
   assert.equal(soNhatKy(w), n);
 });

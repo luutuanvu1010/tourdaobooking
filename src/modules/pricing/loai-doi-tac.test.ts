@@ -409,6 +409,7 @@ test("N-6: tắt loại đặt CẢ HAI cờ; Danh bạ gán mới ⇒ 409 role_
   const hai2 = await tat(w, ma);
   assert.equal(hai2.status, 409, hai2.text);
   assert.equal(hai2.json.error.code, "stale");
+  assert.equal(hai2.json.error.message, "Vai trò này đã tắt rồi — tải lại.");
   assert.equal(nhatKy(w, "prc_partner_type_off").length, 1);
   // /bat bật lại CẢ HAI cờ.
   const b = await bat(w, ma);
@@ -417,7 +418,9 @@ test("N-6: tắt loại đặt CẢ HAI cờ; Danh bạ gán mới ⇒ 409 role_
   assert.deepEqual(hai(w, ma), { pty: 1, prc: 1 });
   assert.ok((await nguoiHuongTim(w, "Hoa Sen")).includes(ORG));
   assert.equal(nhatKy(w, "prc_partner_type_on").length, 1);
-  assert.equal((await bat(w, ma)).status, 409, "/bat lần hai ⇒ stale");
+  const bat2 = await bat(w, ma);
+  assert.equal(bat2.status, 409, "/bat lần hai ⇒ stale");
+  assert.equal(bat2.json.error.message, "Vai trò này đang bật rồi — tải lại.");
   assert.equal((await ganLoai(w, ORG2, ma)).status, 201, "bật lại ⇒ gán mới được");
 });
 

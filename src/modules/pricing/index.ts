@@ -92,7 +92,7 @@ function loiBang(e: unknown): Response | null {
   if (/\bprc_overlap:/.test(m)) return error(409, "prc_overlap", "Đã có mức / điều khoản cùng đối tượng, cùng phạm vi trong khoảng ngày này — đóng dòng cũ trước.");
   if (/\bprc_target_not_beneficiary:/.test(m)) return error(400, "invalid_input", "Hồ sơ này không mang vai trò được hưởng hoa hồng.");
   if (/\bprc_role_not_beneficiary:/.test(m)) return error(400, "invalid_input", "Vai trò này không nằm trong danh sách được hưởng hoa hồng.");
-  if (/\bprc_beneficiary_kind:/.test(m)) return error(400, "invalid_input", "Loại này không được hưởng hoa hồng.");
+  if (/\bprc_beneficiary_kind:/.test(m)) return error(400, "invalid_input", "Vai trò này không được hưởng hoa hồng.");
   if (/\bprc_seller_not_supplier:/.test(m)) return error(400, "invalid_input", "Người bán phải là Tour Đảo hoặc hồ sơ mang vai trò Nhà cung cấp.");
   if (/\bprc_supplier_mismatch:/.test(m)) return error(400, "invalid_input", CAU_TY_LE_MUA_LAI);
   if (/\bprc_all_owner_only:/.test(m)) return error(400, "invalid_input", "Dòng \"mọi dịch vụ\" chỉ dành cho Tour Đảo.");
@@ -241,7 +241,7 @@ async function doiTrangThaiLoai(db: D1Database, code: string, bat: boolean, staf
   if (!bat) {
     // ADR-0146 Đ1: loại còn luật bán đang hoặc SẮP áp dụng thì không tắt được — CÙNG vị từ với kiểm định kỳ R-PRC-8 (luat-ban-repo.ts). Khe đua kiểm → ghi do R-PRC-8 bắt.
     const n = await demLuatBanChuaHetHan(db, code, vnToday(new Date()));
-    if (n > 0) return error(409, "loai_con_luat_ban", `Loại này còn ${n} luật bán đang hoặc sắp áp dụng — Bán hàng, Quản trị hoặc Toàn quyền kết thúc các luật đó ở màn Luật bán trước, rồi mới tắt loại.`);
+    if (n > 0) return error(409, "loai_con_luat_ban", `Vai trò này còn ${n} luật bán đang hoặc sắp áp dụng — Bán hàng, Quản trị hoặc Toàn quyền kết thúc các luật đó ở màn Luật bán trước, rồi mới tắt vai trò.`);
   }
   const at = new Date().toISOString();
   const res = await chayLo(db, [
@@ -250,7 +250,7 @@ async function doiTrangThaiLoai(db: D1Database, code: string, bat: boolean, staf
     auditStatement(db, { staffId, action: bat ? "prc_partner_type_on" : "prc_partner_type_off", at, targetType: "ledger", targetId: code, detail: loai.ten }, "changes() > 0"),
   ]);
   if (res instanceof Response) return res;
-  if (dongDaDong(res)) return error(409, "stale", bat ? "Loại này đang bật rồi — tải lại." : "Loại này đã tắt rồi — tải lại.");
+  if (dongDaDong(res)) return error(409, "stale", bat ? "Vai trò này đang bật rồi — tải lại." : "Vai trò này đã tắt rồi — tải lại.");
   return json({ loai: (await docLoaiDoiTac(db)).find((x) => x.code === code)! } satisfies LoaiDoiTacResponse);
 }
 
@@ -565,7 +565,7 @@ export const pricingModule: AppModule = {
       const hienTai = (await docLoaiDoiTac(env.DB)).find((x) => x.code === code);
       if (!hienTai) return LOAI_KHONG_CO();
       const than = await readJson(request);
-      const kq = await docThanSuaDanhMuc(than, hienTai, { choPhepUpdatedAtNull: true, thieuDau: "Thiếu dấu phiên bản của loại — mở lại để sửa.",
+      const kq = await docThanSuaDanhMuc(than, hienTai, { choPhepUpdatedAtNull: true, thieuDau: "Thiếu dấu phiên bản của vai trò — mở lại để sửa.",
         kiemTen: async (raw) => {
           const k = kiemTenLoaiDoiTac(raw, (await loaiVaiChiTiet(env.DB)).filter((x) => x.code !== code).map((x) => x.ten));
           return k.ok ? k : { ok: false, status: k.code === "loai_trung" ? 409 : 400, code: k.code, message: k.message };
@@ -578,7 +578,7 @@ export const pricingModule: AppModule = {
         ...nhatKySuaDanhMuc(env.DB, { staffId: staff.id, at, code, tenCu: hienTai.ten, tenMoi: kq.tenMoi, doiTen: kq.doiTen, doiGhiChu: kq.doiGhiChu, actionTen: "prc_partner_type_renamed", actionGhiChu: "prc_partner_type_note" }),
       ]);
       if (res instanceof Response) return res;
-      if (dongDaDong(res)) return error(409, "da_doi", "Loại này vừa được người khác sửa, mở lại để xem bản mới.");
+      if (dongDaDong(res)) return error(409, "da_doi", "Vai trò này vừa được người khác sửa, mở lại để xem bản mới.");
       return json({ loai: (await docLoaiDoiTac(env.DB)).find((x) => x.code === code)! } satisfies LoaiDoiTacResponse);
     }),
     route("POST", "/api/pricing/loai-doi-tac/:code/tat", "office", async ({ env, params, staff }) => {

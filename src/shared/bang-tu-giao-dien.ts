@@ -97,7 +97,7 @@ export const CAM_THEO_TEP: readonly CamTheoTep[] = [
   },
   // «loại» nói tắt ở trang Hoa hồng chính là «vai» (thẻ «Vai người dùng»): «Thêm loại», «Tắt loại», «Tìm loại hoặc dịch vụ», «Chọn cấp cho loại này». «loại khách» (người lớn, trẻ em) là nghĩa khác, giữ nguyên.
   {
-    tep: [/^web\/hoa-hong[^/]*\.ts$/, /^src\/shared\/hoa-hong-hien-thi\.ts$/],
+    tep: [/^web\/hoa-hong[^/]*\.ts$/, /^src\/shared\/hoa-hong-hien-thi\.ts$/, /^src\/modules\/pricing\/index\.ts$/],
     cam: /(?<![\p{L}\p{N}_])[Ll]oại(?! khách)(?![\p{L}\p{N}_])/u,
     thay: "vai trò",
     nguon: "chủ 2026-11-01, đặc tả 2026-11-01-dat-ve-doi-tac §4.3 (thay quyết định 3 ngày 30/10)",
