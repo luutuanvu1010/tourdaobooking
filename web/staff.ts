@@ -2,6 +2,7 @@ import { ApiError, api, type StaffAccount, type Api } from "./api";
 import { NHAN_LY_DO_KHOP } from "../src/shared/ho-so-trung";
 import { PERMISSION_CODES, PERMISSION_LABEL, can, type PermissionCode } from "../src/shared/permissions";
 import { ROLE_CODES, canManageAccount, rolesLabelTheo, tuDoiQuyenCuaMinh } from "../src/shared/roles";
+import { chonLocHopLe, locTheoVai, nutLocVai } from "../src/shared/loc-tai-khoan";
 import { byId, h, replaceChildren } from "./dom";
 import { dateTime } from "./format";
 import { rolePicker, type RolePicker, type RolePickerValue } from "./role-picker";
@@ -12,6 +13,7 @@ import { dungHangChoXacMinh } from "./xac-minh-hang-cho";
 const errorEl = byId("error");
 const listEl = byId("list");
 const listCardsEl = byId("list-cards");
+const locVaiEl = byId("loc-vai");
 const secretEl = byId("secret");
 const editEl = byId("edit");
 const permissionsLabel = (list: readonly PermissionCode[]): string => (list.length ? list.map((p) => PERMISSION_LABEL[p]).join(", ") : "—");
@@ -32,6 +34,25 @@ let canAccessManage = false;
 
 let me: { id: string; permissions: readonly PermissionCode[] };
 let accounts: Api.StaffListRowDto[] = [];
+
+// Bộ lọc theo vai trò (đặt vé của đối tác, lượt 1, Task 4; đặc tả §4.4): lọc ngay trên danh sách ĐÃ NẠP (`accounts`), cả bảng máy tính lẫn thẻ điện thoại; bấm nút chỉ vẽ lại, không gọi máy chủ.
+// Lựa chọn nhớ theo phiên (sessionStorage — có thể bị chặn / không có: bọc try/catch, trang vẫn chạy với «Tất cả»). Luật chọn nút / lọc / giữ lựa chọn ở src/shared/loc-tai-khoan.ts.
+const KHOA_NHO_LOC = "tk-loc-vai";
+const docLocNho = (): string | null => {
+  try {
+    return sessionStorage.getItem(KHOA_NHO_LOC);
+  } catch {
+    return null;
+  }
+};
+const nhoLoc = (khoa: string): void => {
+  try {
+    sessionStorage.setItem(KHOA_NHO_LOC, khoa);
+  } catch {
+    /* không nhớ được thì thôi */
+  }
+};
+let locVai: string | null = docLocNho();
 
 const reasonOf = (err: unknown): string => (err instanceof ApiError ? err.message : "Không kết nối được máy chủ.");
 const fail = (err: unknown) => showError(errorEl, reasonOf(err));
@@ -310,8 +331,34 @@ async function load(): Promise<void> {
   if (!r) return;
   accounts = r.staff;
   tenVai = r.tenVai;
-  replaceChildren(listEl, ...accounts.map(row));
-  replaceChildren(listCardsEl, ...accounts.map(card));
+  ve();
+}
+
+/** Vẽ hàng nút lọc, bảng và thẻ từ `accounts` đã nạp (không gọi máy chủ). Vai vừa hết người giữ thì nút biến mất và lựa chọn đã nhớ về «Tất cả». */
+function ve(): void {
+  const nut = nutLocVai(accounts, tenVai);
+  const khoa = chonLocHopLe(locVai, nut);
+  if (khoa !== locVai) {
+    locVai = khoa;
+    nhoLoc(khoa);
+  }
+  const coTieuDiem = locVaiEl.contains(document.activeElement); // bấm nút vẽ lại cả hàng nút: giữ tiêu điểm bàn phím ở đúng nút đó
+  const nutEl = new Map<string, HTMLButtonElement>();
+  for (const n of nut) {
+    const b = h("button", { type: "button", class: "loc-nut", "aria-pressed": n.khoa === khoa ? "true" : "false", "data-loc": n.khoa }, `${n.nhan} (${n.soLuong})`);
+    b.addEventListener("click", () => {
+      locVai = n.khoa;
+      nhoLoc(n.khoa);
+      ve();
+    });
+    nutEl.set(n.khoa, b);
+  }
+  replaceChildren(locVaiEl, ...nutEl.values());
+  locVaiEl.hidden = accounts.length === 0; // chỉ hiện khi có dữ liệu
+  if (coTieuDiem) nutEl.get(khoa)?.focus();
+  const hien = locTheoVai(accounts, khoa);
+  replaceChildren(listEl, ...hien.map(row));
+  replaceChildren(listCardsEl, ...hien.map(card));
 }
 
 // ---- Thêm thủ công (ADR-0018): chọn vai + xem trước; tuỳ chọn dùng hồ sơ cá nhân có sẵn (tra theo SĐT) để không tạo hồ sơ trùng.

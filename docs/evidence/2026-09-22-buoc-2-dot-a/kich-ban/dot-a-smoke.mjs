@@ -3,6 +3,8 @@
 // Chạy từ GỐC repo, sau `npm run build:web`:
 //   AXE_JS=<…/axe/package/axe.min.js> CHROME_BIN=<…/kich-ban/chrome-wrap.sh> node docs/evidence/2026-09-22-buoc-2-dot-a/kich-ban/dot-a-smoke.mjs
 // Ghi ảnh vào docs/evidence/2026-09-22-buoc-2-dot-a/anh/*.png (10 ảnh: 5 trang × 2 khổ).
+// Đặt vé của đối tác, lượt 1 (Task 4, 2026-11-02): thêm khối «Bộ lọc theo vai trò» ở Quản lý tài khoản (/staff), đặt TRƯỚC vòng năm trang vì kịch bản đỏ sẵn ở trang thứ 5 (/audit): bấm một vai → số dòng của BẢNG và của THẺ khớp số trong nút; «Tất cả» → đủ dòng;
+// tải lại trang → lựa chọn còn (sessionStorage `tk-loc-vai`); lựa chọn nhớ không còn nút (vai hết người, chữ rác) → về «Tất cả»; điện thoại 390: thẻ lọc, bảng ẩn.
 import assert from "node:assert/strict";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -103,6 +105,116 @@ try {
         cardCount: document.querySelectorAll('.card-list .card').length,
       };
     })()`);
+
+  // CHẠY TRƯỚC vòng PAGES: kịch bản này ĐÃ ĐỎ SẴN ở trang thứ 5 (/audit chỉ Toàn quyền — `audit.view` là `chiToanQuyen()`, còn tài khoản `admin` chỉ có quyền Quản trị nên trang trả 403 và
+  // `waitFor` thẻ hết giờ ném lỗi, vòng lặp không có try) — khối đặt SAU vòng sẽ không bao giờ chạy tới. Không sửa chỗ đỏ sẵn đó (ngoài phạm vi); chỉ đặt khối lọc ở trước nó.
+  // ---- Bộ lọc theo vai trò (/staff) — Task 4, đặt vé của đối tác lượt 1 ----
+  // Dữ liệu: ba tài khoản MANG VAI (Toàn quyền tạo qua API thật, đúng cách so-dai-ly-smoke.mjs): hai «Nhân viên kinh doanh», một «Công ty lữ hành». Bốn tài khoản có sẵn của startEnv() chưa gán vai
+  // (chỉ có quyền) → nút «Chưa gán vai trò». Số dòng KHÔNG gõ cứng ngoài hai con số của chính dữ liệu vừa tạo.
+  for (const [ten, sdt, vai] of [["Lọc Bán Một", "0900000381", "SALES_STAFF"], ["Lọc Bán Hai", "0900000382", "SALES_STAFF"], ["Lọc Đại Lý", "0900000383", "TRAVEL_AGENCY"]]) {
+    const r = await call(ACCOUNTS.chu, "POST", "/api/staff", { taoHoSoMoi: true, fullName: ten, phone: sdt, roles: [vai] });
+    assert.equal(r.status, 201, `Toàn quyền tạo tài khoản ${ten} (${vai}): ${r.status} ${JSON.stringify(r.json)}`);
+  }
+  /** Trạng thái bộ lọc + số dòng của bảng và của thẻ (đếm trong DOM, và đếm cái ĐANG HIỆN: `offsetParent`). */
+  const docLoc = (p) =>
+    p.ev(`(() => {
+      const hien = (e) => e.offsetParent !== null;
+      const khung = document.getElementById('loc-vai');
+      return {
+        an: khung.hidden,
+        nhom: khung.getAttribute('role') + '|' + khung.getAttribute('aria-label'),
+        nut: [...khung.querySelectorAll('.loc-nut')].map((b) => ({ khoa: b.dataset.loc, chu: b.textContent.trim(), bam: b.getAttribute('aria-pressed') })),
+        bang: document.querySelectorAll('#list > tr').length,
+        the: document.querySelectorAll('#list-cards > .card').length,
+        bangHien: [...document.querySelectorAll('#list > tr')].filter(hien).length,
+        theHien: [...document.querySelectorAll('#list-cards > .card')].filter(hien).length,
+        chuaGanTrongBang: [...document.querySelectorAll('#list > tr')].every((r) => r.textContent.includes('chưa gán vai trò')),
+      };
+    })()`);
+  const soTrongNut = (chu) => Number(/\((\d+)\)$/.exec(chu)?.[1]);
+  const nutCua = (s, khoa) => s.nut.find((n) => n.khoa === khoa);
+  const bam = (p, khoa) => p.ev(`document.querySelector('#loc-vai .loc-nut[data-loc="${khoa}"]').click(); true`);
+  const DOI_NUT = "document.querySelectorAll('#loc-vai .loc-nut').length >= 3";
+  /** Tải lại /staff; chờ trang CŨ biến mất (cờ `__truocTai` mất) rồi nút lọc dựng lại. */
+  const taiLai = async (p) => {
+    await p.ev("window.__truocTai = true; true");
+    await p.send("Page.navigate", { url: `${env.base}/staff` });
+    await p.waitFor(`!window.__truocTai && document.readyState === 'complete' && ${DOI_NUT}`, "/staff tải lại xong, nút lọc dựng lại");
+  };
+
+  {
+    const p = await env.as(ACCOUNTS.admin, "/staff", DESK);
+    await p.waitFor(DOI_NUT, "hàng nút lọc hiện đủ nút (Tất cả + vai + Chưa gán)");
+    const s0 = await docLoc(p);
+    assert.equal(s0.an, false, `hàng nút lọc hiện khi có dữ liệu — ${JSON.stringify(s0)}`);
+    assert.equal(s0.nhom, "group|Lọc theo vai trò", `nhóm nút có role=group và tên — ${s0.nhom}`);
+    assert.equal(s0.nut[0].khoa, "tat-ca", `nút đầu là «Tất cả» — ${JSON.stringify(s0.nut)}`);
+    assert.match(s0.nut[0].chu, /^Tất cả \(\d+\)$/, `nhãn «Tất cả (n)» — ${s0.nut[0].chu}`);
+    assert.equal(s0.nut[0].bam, "true", "mặc định đang chọn «Tất cả»");
+    assert.equal(soTrongNut(s0.nut[0].chu), s0.bang, `«Tất cả» khớp số dòng bảng — ${JSON.stringify(s0)}`);
+    assert.equal(s0.bang, s0.the, `bảng và thẻ cùng số dòng — ${JSON.stringify(s0)}`);
+    assert.equal(soTrongNut(nutCua(s0, "SALES_STAFF")?.chu ?? ""), 2, `hai tài khoản Nhân viên kinh doanh — ${JSON.stringify(s0.nut)}`);
+    assert.equal(soTrongNut(nutCua(s0, "TRAVEL_AGENCY")?.chu ?? ""), 1, `một tài khoản Công ty lữ hành — ${JSON.stringify(s0.nut)}`);
+    assert.equal(s0.nut.at(-1).khoa, "chua-gan", `«Chưa gán vai trò» đứng cuối — ${JSON.stringify(s0.nut)}`);
+    assert.equal(s0.nut.at(-1).chu.replace(/ \(\d+\)$/, ""), "Chưa gán vai trò");
+    const TONG = s0.bang;
+
+    // Bấm một vai → bảng VÀ thẻ cùng lọc, số dòng khớp số trong nút, nút được chọn đổi aria-pressed.
+    await bam(p, "SALES_STAFF");
+    await p.waitFor("document.querySelectorAll('#list > tr').length === 2", "bấm Nhân viên kinh doanh → bảng còn 2 dòng");
+    const s1 = await docLoc(p);
+    assert.deepEqual([s1.bang, s1.the], [soTrongNut(nutCua(s1, "SALES_STAFF").chu), soTrongNut(nutCua(s1, "SALES_STAFF").chu)], `bảng và thẻ cùng khớp số trong nút — ${JSON.stringify(s1)}`);
+    assert.deepEqual(s1.nut.filter((n) => n.bam === "true").map((n) => n.khoa), ["SALES_STAFF"], `chỉ nút vừa bấm được chọn — ${JSON.stringify(s1.nut)}`);
+    await shot(p, "nhan-vien-loc-vai-may-tinh.png");
+
+    // Tải lại trang: lựa chọn còn (nhớ theo phiên).
+    await taiLai(p);
+    const s2 = await docLoc(p);
+    assert.deepEqual([s2.bang, s2.the, nutCua(s2, "SALES_STAFF").bam], [2, 2, "true"], `tải lại: vẫn đang lọc Nhân viên kinh doanh — ${JSON.stringify(s2)}`);
+
+    // «Tất cả» → đủ dòng.
+    await bam(p, "tat-ca");
+    await p.waitFor(`document.querySelectorAll('#list > tr').length === ${TONG}`, "bấm Tất cả → đủ dòng");
+    const s3 = await docLoc(p);
+    assert.deepEqual([s3.bang, s3.the], [TONG, TONG], `«Tất cả»: đủ dòng ở cả bảng và thẻ — ${JSON.stringify(s3)}`);
+
+    // «Chưa gán vai trò» → chỉ tài khoản chưa có vai (dòng nào cũng ghi «chưa gán vai trò»).
+    await bam(p, "chua-gan");
+    const soChua = soTrongNut(nutCua(s3, "chua-gan").chu);
+    await p.waitFor(`document.querySelectorAll('#list > tr').length === ${soChua}`, "bấm Chưa gán vai trò → đúng số dòng");
+    const s4 = await docLoc(p);
+    assert.deepEqual([s4.bang, s4.the, s4.chuaGanTrongBang], [soChua, soChua, true], `«Chưa gán vai trò» — ${JSON.stringify(s4)}`);
+
+    // Lựa chọn đã nhớ mà KHÔNG còn nút (vai không còn ai giữ; chữ rác) → về «Tất cả», không để bảng trống không lý do.
+    for (const nho of ["DIRECTOR", "rác"]) {
+      await p.ev(`sessionStorage.setItem('tk-loc-vai', ${JSON.stringify(nho)}); true`);
+      await taiLai(p);
+      const sx = await docLoc(p);
+      assert.deepEqual([sx.bang, sx.the, nutCua(sx, "tat-ca").bam], [TONG, TONG, "true"], `lựa chọn nhớ «${nho}» không còn nút → về «Tất cả» — ${JSON.stringify(sx)}`);
+    }
+    assert.deepEqual(p.consoleErrors, [], `lỗi console (bộ lọc máy tính): ${p.consoleErrors}`);
+    p.close();
+    ok(`bộ lọc theo vai trò (máy tính 1040×800): bấm vai → bảng và thẻ cùng lọc, khớp số trong nút; «Tất cả» đủ ${TONG} dòng; «Chưa gán vai trò» ${soChua} dòng; tải lại còn lựa chọn; lựa chọn không còn nút về «Tất cả»`);
+  }
+
+  {
+    // Điện thoại 390: lọc ở THẺ (bảng ẩn). Trang mới = sessionStorage mới → mặc định «Tất cả».
+    const p = await env.as(ACCOUNTS.admin, "/staff", MOB);
+    await p.waitFor(DOI_NUT, "hàng nút lọc hiện đủ nút (điện thoại)");
+    const s0 = await docLoc(p);
+    assert.deepEqual([s0.bangHien, s0.theHien], [0, s0.the], `điện thoại: bảng ẩn, thẻ hiện đủ — ${JSON.stringify(s0)}`);
+    await bam(p, "SALES_STAFF");
+    await p.waitFor("document.querySelectorAll('#list-cards > .card').length === 2", "bấm Nhân viên kinh doanh → còn 2 thẻ");
+    const s1 = await docLoc(p);
+    assert.deepEqual([s1.theHien, s1.bangHien], [2, 0], `điện thoại: 2 thẻ hiện, bảng vẫn ẩn — ${JSON.stringify(s1)}`);
+    const trachNgang = await p.ev("document.documentElement.scrollWidth - document.documentElement.clientWidth");
+    assert.ok(trachNgang <= 1, `không tràn ngang ở 390px — lệch ${trachNgang}px`);
+    await axe(p, "nhan-vien-loc-vai");
+    await shot(p, "nhan-vien-loc-vai-dien-thoai.png");
+    assert.deepEqual(p.consoleErrors, [], `lỗi console (bộ lọc điện thoại): ${p.consoleErrors}`);
+    p.close();
+    ok("bộ lọc theo vai trò (điện thoại 390×844): lọc ở thẻ, bảng ẩn, không tràn ngang, axe không vi phạm critical/serious");
+  }
 
   for (const [label, path] of PAGES) {
     // ---- khổ máy tính (1040×800): table.items HIỆN, .card-list ẨN ----
