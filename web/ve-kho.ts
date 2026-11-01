@@ -38,7 +38,7 @@ function docBase64(tep: File): Promise<string> {
 }
 
 if (!can(staff, "ve.kho.manage")) {
-  showError(errorEl, "Trang Kho vé điện tử chỉ Bán hàng, Quản trị và Toàn quyền dùng được.");
+  showError(errorEl, "Trang Vé điện tử chỉ Bán hàng, Quản trị và Toàn quyền dùng được.");
 } else {
   noiDungEl.hidden = false;
 
@@ -73,7 +73,7 @@ if (!can(staff, "ve.kho.manage")) {
     const maVe = h("textarea", { class: "o", id: "vk-ma-ve", rows: 5, placeholder: "Mỗi dòng MỘT mã vé, đúng thứ tự các ảnh đã chọn", required: true });
     const loi = h("p", { class: "alert", role: "alert", hidden: true });
     const trangThai = h("p", { class: "muted", role: "status", hidden: true });
-    const nutGui = h("button", { type: "submit", class: "btn btn-primary", "data-action": "nhap-lo" }, "Nhập lô vào kho");
+    const nutGui = h("button", { type: "submit", class: "btn btn-primary", "data-action": "nhap-lo" }, "Nhập lô vé");
     const truong = (nhan: string, id: string, o: HTMLElement) => h("div", { class: "lb-truong" }, h("label", { class: "nhan", for: id }, nhan), o);
 
     const form = h("form", { id: "vk-form", novalidate: false },
