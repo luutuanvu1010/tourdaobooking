@@ -487,7 +487,8 @@ test("§3.2 thuTuMenu và docThe", () => {
   assert.equal(HT.docThe("rác"), "cap");
   assert.equal(HT.docThe("cap"), "cap");
   assert.equal(HT.docThe("loai"), "loai");
-  assert.equal(HT.docThe("doi-tac"), "doi-tac");
+  // Giá trị «doi-tac» còn trong bộ nhớ tạm của phiên cũ (thẻ «Riêng từng đối tác» đã gộp vào thẻ vai): mở thẻ «Vai người dùng».
+  assert.equal(HT.docThe("doi-tac"), "loai");
 });
 
 // ---- Task 7: cauDai (dải §5.1) ----
@@ -654,9 +655,21 @@ test("Task 10 — thẻ «Riêng từng đối tác»: câu cố định, nhãn 
   for (const s of [HT.CAU_KHONG_CO_DOI_TAC_RIENG, HT.CAU_DAT_CAP_RIENG, HT.nhanCapRieng("x"), HT.cauNgungCapRieng("x", "y")]) assert.ok(!/chính sách/i.test(s), s);
 });
 
+test("§3.3 theChoKetQua: mức riêng đối tác nằm ở thẻ Vai người dùng", () => {
+  const set = (bac: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12, doiTuong: CommissionRuleDto["doiTuong"]) => ({ trangThai: "SET" as const, bac, muc: muc({ id: "d1", doiTuong }) });
+  const dt = { loai: "DOI_TAC", partyId: "p1", ten: "A" } as const;
+  for (const bac of [1, 2, 3] as const) {
+    const r = HT.theChoKetQua(set(bac, dt));
+    assert.equal(r?.the, "loai", `bậc ${bac}`);
+    assert.deepEqual(r?.doiTuong, dt, `bậc ${bac} giữ nguyên đối tượng`);
+    assert.equal(r?.dongId, "d1");
+  }
+  assert.equal(HT.theChoKetQua(set(7, { loai: "MUC", code: "MT_ABCDEFGH", ten: "Vàng" }))?.the, "cap");
+});
+
 test("Task 11 — theChoKetQua: «Xem dòng ↓» nhảy đúng thẻ theo bậc; chỉ khi SET; cấp riêng chỉ ở bậc 10–12", () => {
   const set = (bac: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12, doiTuong: CommissionRuleDto["doiTuong"]) => ({ trangThai: "SET" as const, bac, muc: muc({ id: "d1", doiTuong }) });
-  assert.deepEqual(HT.theChoKetQua(set(2, { loai: "DOI_TAC", partyId: "p1", ten: "A" })), { the: "doi-tac", dongId: "d1", doiTuong: { loai: "DOI_TAC", partyId: "p1", ten: "A" }, capRieng: false });
+  assert.deepEqual(HT.theChoKetQua(set(2, { loai: "DOI_TAC", partyId: "p1", ten: "A" })), { the: "loai", dongId: "d1", doiTuong: { loai: "DOI_TAC", partyId: "p1", ten: "A" }, capRieng: false });
   assert.deepEqual(HT.theChoKetQua(set(5, { loai: "VAI", code: "TRAVEL_AGENCY", ten: "Đại lý" })), { the: "loai", dongId: "d1", doiTuong: { loai: "VAI", code: "TRAVEL_AGENCY", ten: "Đại lý" }, capRieng: false });
   const m8 = HT.theChoKetQua(set(8, { loai: "MUC", code: "MT_ABCDEFGH", ten: "Vàng" }));
   assert.equal(m8?.the, "cap");

@@ -1,4 +1,4 @@
-// Thẻ «Riêng từng đối tác» của trang «Hoa hồng đối tác» (đặc tả hoa-hong-cap-dai-ly §3 bảng vùng, §3.1 hàng «Cấp riêng của đối tác», Q-8, Q-9).
+// Khối «Người có cấp riêng» của trang «Hoa hồng đối tác» — từng là thẻ «Riêng từng đối tác», nay nằm dưới danh sách vai trong thẻ «Vai người dùng» (đặc tả dat-ve-doi-tac §4.3; hoa-hong-cap-dai-ly §3 bảng vùng, §3.1 hàng «Cấp riêng của đối tác», Q-8, Q-9).
 // Danh sách: `ghepDoiTacRieng` (tên, có mức riêng, tên cấp riêng) — KHÔNG cột loại, KHÔNG nhãn xung đột (Q-9); câu `CAU_DUOI_DS_DOI_TAC` dưới danh sách; nút chính «Đặt cấp riêng cho đối tác».
 // Mở một đối tác: gọi `GET /api/pricing/ho-so/:id/hoa-hong` MỖI lần mở (và khi trang vẽ lại sau một lần ghi khác) — các loại kèm cấp (`vai`), huy hiệu «Xung đột mức» khi `xungDot`, cấp riêng
 // đang / sắp áp và lịch sử (`ganRieng`); dòng mức riêng lấy từ `dong` của trang. Việc của cấp riêng theo `viecLanGan(…, { coDoi: false })` (phần 1 không có «Đổi cấp»).
@@ -164,10 +164,10 @@ function cumDoiTac(x: DoiTacRieng, d: DuLieuHoaHong, mo: MoHop): HTMLElement {
   return h("article", { class: "hh-lo hh-dt", "data-party": x.partyId }, nut, ct);
 }
 
-/** Vẽ thẻ «Riêng từng đối tác» vào `goc`. Đối tác đang mở vẽ ngay từ hồ sơ đã nạp, rồi GET lại (trừ hồ sơ vừa nhận phản hồi của một lần ghi). */
+/** Vẽ khối «Người có cấp riêng» vào `goc` (`#hh-loai-rieng`, dưới danh sách vai). Đối tác đang mở vẽ ngay từ hồ sơ đã nạp, rồi GET lại (trừ hồ sơ vừa nhận phản hồi của một lần ghi). */
 export function veTheDoiTac(goc: HTMLElement, d: DuLieuHoaHong, mo: MoHop): void {
   const ghi = can(d.nguoiDung, "partner.commission.write");
-  const dau = h("div", { class: "hh-cap-dau" }, h("h2", { class: "hh-muc-ten" }, "Riêng từng đối tác"));
+  const dau = h("div", { class: "hh-cap-dau" }, h("h3", { class: "hh-muc-ten" }, "Người có cấp riêng"));
   if (ghi && d.mucTa.muc.some((m) => m.dangBat)) {
     const dat = h("button", { type: "button", class: "nut", "data-cap": "chinh" }, "Chọn cấp riêng cho đối tác");
     dat.addEventListener("click", () => mo.datCapRieng());

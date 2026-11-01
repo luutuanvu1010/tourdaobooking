@@ -437,13 +437,14 @@ export function viecLanGan(g: { tuNgay: string; denNgay: string | null; conHieuL
 export const thuTuMenu = (viec: readonly Viec[], dienThoai: boolean): Viec[] => (dienThoai && viec.includes("DOI") ? ["DOI", ...viec.filter((x) => x !== "DOI")] : [...viec]);
 
 // Thẻ đang mở của trang; giá trị cũ hay lạ trong sessionStorage («ap-dung», «thiet-lap», rác, null) mở thẻ «Các cấp đại lý».
-export type TheHoaHong = "cap" | "loai" | "doi-tac";
-export const docThe = (gia: string | null): TheHoaHong => (gia === "loai" || gia === "doi-tac" ? gia : "cap");
+// Trang chỉ còn hai thẻ: «doi-tac» (thẻ «Riêng từng đối tác» cũ, nay là khối con của thẻ vai) mở thẻ «loai».
+export type TheHoaHong = "cap" | "loai";
+export const docThe = (gia: string | null): TheHoaHong => (gia === "loai" || gia === "doi-tac" ? "loai" : "cap");
 
-/** §3.3 «Xem dòng ↓»: dòng thắng nằm ở thẻ nào và tìm bằng gì. Bậc 1–3 ⇒ «doi-tac», 4–6 ⇒ «loai», 7–12 ⇒ «cap» (10–12 là cấp riêng của đối tác). Null khi kết quả không phải SET (không có dòng để xem). */
+/** §3.3 «Xem dòng ↓»: dòng thắng nằm ở thẻ nào và tìm bằng gì. Bậc 1–6 ⇒ «loai» (bậc 1–3 là mức riêng của đối tác, ở khối «Người có cấp riêng» của thẻ vai; 4–6 là mức của vai), 7–12 ⇒ «cap» (10–12 là cấp riêng của đối tác). Null khi kết quả không phải SET (không có dòng để xem). */
 export function theChoKetQua(k: ThuTraResponse["ketQua"]): { the: TheHoaHong; dongId: string; doiTuong: CommissionRuleDto["doiTuong"]; capRieng: boolean } | null {
   if (k.trangThai !== "SET") return null;
-  const the: TheHoaHong = k.bac <= 3 ? "doi-tac" : k.bac <= 6 ? "loai" : "cap";
+  const the: TheHoaHong = k.bac <= 6 ? "loai" : "cap";
   return { the, dongId: k.muc.id, doiTuong: k.muc.doiTuong, capRieng: k.bac >= 10 };
 }
 

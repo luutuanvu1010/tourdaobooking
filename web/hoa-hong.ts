@@ -1,8 +1,9 @@
-// Trang «Hoa hồng đối tác» (thiết kế lại, PR 2) — KHUNG: nạp dữ liệu, vẽ dải cảnh báo, chuyển ba thẻ «Các cấp đại lý» / «Loại đối tác» / «Riêng từng đối tác», truyền dữ liệu cho các khối nội dung.
+// Trang «Hoa hồng đối tác» (thiết kế lại, PR 2) — KHUNG: nạp dữ liệu, vẽ dải cảnh báo, chuyển hai thẻ «Các cấp đại lý» / «Loại đối tác», truyền dữ liệu cho các khối nội dung.
+// Thẻ «Loại đối tác» gồm hai vùng: `#hh-loai-ds` (danh sách các loại) và `#hh-loai-rieng` (khối «Riêng từng đối tác», từng là thẻ thứ ba; đặc tả dat-ve-doi-tac §4.3).
 // Gọi (chỉ đọc, ở đây): GET /api/pricing/hoa-hong (CommissionRuleListResponse), /api/pricing/muc-ta (MucTaListResponse), /api/pricing/loai-doi-tac (LoaiDoiTacListResponse), /api/catalog.
-// Thẻ «Riêng từng đối tác» gọi thêm GET /api/pricing/ho-so/:id/hoa-hong khi mở một đối tác; hộp cấp riêng gọi GET /api/pricing/nguoi-huong (tìm đối tác) và ba route ghi cấp riêng.
+// Khối «Riêng từng đối tác» gọi thêm GET /api/pricing/ho-so/:id/hoa-hong khi mở một đối tác; hộp cấp riêng gọi GET /api/pricing/nguoi-huong (tìm đối tác) và ba route ghi cấp riêng.
 // Ẩn/hiện hỏi bảng quyền (`can`): xem = partner.commission.view, thêm mức = partner.commission.write; máy chủ kiểm lại (403 ⇒ «Bạn không có quyền xem trang này.»).
-// Trang không tính tiền, không chọn mức: số và lời từ máy chủ / luật thuần ở src/shared/hoa-hong-hien-thi.ts. Tra nhanh (đứng trên ba thẻ): web/hoa-hong-tra-nhanh.ts; dải: -dai.ts; hộp: -hop.ts. Thẻ «Các cấp đại lý» = -cap.ts (menu «⋯»: -menu.ts). Thẻ «Loại đối tác» = -loai.ts. Thẻ «Riêng từng đối tác» = -doi-tac.ts.
+// Trang không tính tiền, không chọn mức: số và lời từ máy chủ / luật thuần ở src/shared/hoa-hong-hien-thi.ts. Tra nhanh (đứng trên hai thẻ): web/hoa-hong-tra-nhanh.ts; dải: -dai.ts; hộp: -hop.ts. Thẻ «Các cấp đại lý» = -cap.ts (menu «⋯»: -menu.ts). Thẻ «Loại đối tác» = -loai.ts (vùng danh sách) + -doi-tac.ts (vùng «Riêng từng đối tác»).
 import { CAU_CAP_RIENG_DANG_TRA, CAU_KHONG_THAY_DONG, docThe, theChoKetQua, type TenDanhMuc, type TheHoaHong } from "../src/shared/hoa-hong-hien-thi";
 import type { DichVuPhu } from "../src/shared/hoa-hong-phu-muc";
 import { can, type PermissionHolder } from "../src/shared/permissions";
@@ -20,7 +21,7 @@ import { hienBaoNgan } from "./toast";
 import { trangThaiToanTrang } from "./trang-thai-he-thong";
 import { lyDoLoi, taiDanhMuc, type DanhMuc } from "./so-dai-ly-ui";
 
-/** Dữ liệu một lần nạp, truyền cho mọi khối. Ghi xong gọi `napLai` để nạp lại và vẽ lại cả ba thẻ. */
+/** Dữ liệu một lần nạp, truyền cho mọi khối. Ghi xong gọi `napLai` để nạp lại và vẽ lại cả hai thẻ. */
 export interface DuLieuHoaHong {
   homNay: string;
   dong: Api.CommissionRuleDto[];
@@ -36,7 +37,7 @@ export interface DuLieuHoaHong {
 }
 
 type The = TheHoaHong;
-const THE: readonly The[] = ["cap", "loai", "doi-tac"];
+const THE: readonly The[] = ["cap", "loai"];
 const KHOA_THE = "hh-the";
 
 const errorEl = byId("error");
@@ -45,15 +46,18 @@ const nutThemEl = byId<HTMLButtonElement>("hh-them-muc");
 const thanhCuoiEl = byId("hh-thanh-cuoi");
 const daiEl = byId("hh-dai");
 const traNhanhEl = byId("hh-tra-nhanh");
-const panelEl: Record<The, HTMLElement> = { cap: byId("hh-the-cap"), loai: byId("hh-the-loai"), "doi-tac": byId("hh-the-doi-tac") };
-const tabEl: Record<The, HTMLElement> = { cap: byId("hh-tab-cap"), loai: byId("hh-tab-loai"), "doi-tac": byId("hh-tab-doi-tac") };
+const panelEl: Record<The, HTMLElement> = { cap: byId("hh-the-cap"), loai: byId("hh-the-loai") };
+const tabEl: Record<The, HTMLElement> = { cap: byId("hh-tab-cap"), loai: byId("hh-tab-loai") };
+/** Hai vùng của thẻ «loai»: danh sách các loại, và khối «Riêng từng đối tác». */
+const loaiDsEl = byId("hh-loai-ds");
+const loaiRiengEl = byId("hh-loai-rieng");
 
 const staff = await initShell();
 
 let du: DuLieuHoaHong | null = null;
 
 const okEl = byId("ok");
-/** Khung vàng giữ sau khi đóng hộp (cảnh báo mức riêng thắng cấp đại lý); nằm ngoài ba thẻ nên không mất khi vẽ lại. */
+/** Khung vàng giữ sau khi đóng hộp (cảnh báo mức riêng thắng cấp đại lý); nằm ngoài hai thẻ nên không mất khi vẽ lại. */
 const canhBaoEl = h("div", { hidden: true });
 noiDungEl.prepend(canhBaoEl);
 const moHop = taoMoHop({
@@ -108,7 +112,7 @@ function chonThe(t: The, lay = false): void {
 }
 
 // ---- Các khối nội dung (hoa-hong-dai / -tra-nhanh / -cap / -loai / -doi-tac / -hop) ----------------------------------------------
-// Thẻ «cap» = veTheCap (Task 8), «loai» = veTheLoai (Task 9), «doi-tac» = veTheDoiTac (Task 10).
+// Thẻ «cap» = veTheCap (Task 8); thẻ «loai» = veTheLoai (Task 9) ở `#hh-loai-ds` + veTheDoiTac (Task 10) ở `#hh-loai-rieng`.
 /** Đưa mắt tới một dòng: cuộn, tô sáng một lúc, đặt tiêu điểm (dòng không phải ô nhập nên cho nhận tiêu điểm bằng tabindex -1). */
 function nhinDong(el: HTMLElement): void {
   el.scrollIntoView({ block: "center" });
@@ -128,7 +132,7 @@ export async function nhayToiDong(k: Api.ThuTraResponse["ketQua"]): Promise<void
   const sel = `[data-dong-id="${CSS.escape(t.dongId)}"]`;
   let el: HTMLElement | null = null;
   if (t.doiTuong.loai === "DOI_TAC") {
-    const tim = (): HTMLElement | null => panelEl["doi-tac"].querySelector<HTMLElement>(`.hh-dt[data-party="${CSS.escape(t.doiTuong.loai === "DOI_TAC" ? t.doiTuong.partyId : "")}"] ${sel}`);
+    const tim = (): HTMLElement | null => loaiRiengEl.querySelector<HTMLElement>(`.hh-dt[data-party="${CSS.escape(t.doiTuong.loai === "DOI_TAC" ? t.doiTuong.partyId : "")}"] ${sel}`);
     await moDoiTac(t.doiTuong.partyId);
     el = tim();
     if (!el) {
@@ -137,7 +141,7 @@ export async function nhayToiDong(k: Api.ThuTraResponse["ketQua"]): Promise<void
       el = tim();
     }
   } else if (t.doiTuong.loai === "VAI") {
-    const tim = (): HTMLElement | null => panelEl.loai.querySelector<HTMLElement>(`[data-loai="${CSS.escape(t.doiTuong.loai === "VAI" ? t.doiTuong.code : "")}"] ${sel}`);
+    const tim = (): HTMLElement | null => loaiDsEl.querySelector<HTMLElement>(`[data-loai="${CSS.escape(t.doiTuong.loai === "VAI" ? t.doiTuong.code : "")}"] ${sel}`);
     el = tim();
     if (!el) {
       datLaiLocLoai();
@@ -166,11 +170,11 @@ function moThemMuc(): void {
 function veTatCa(d: DuLieuHoaHong): void {
   veTraNhanhVaDai(d);
   veTheCap(panelEl.cap, d, moHop);
-  veTheLoai(panelEl.loai, d, moHop);
-  veTheDoiTac(panelEl["doi-tac"], d, moHop);
+  veTheLoai(loaiDsEl, d, moHop);
+  veTheDoiTac(loaiRiengEl, d, moHop);
 }
 
-/** Nạp lại dữ liệu có thể đổi sau khi ghi, rồi vẽ lại cả ba thẻ. */
+/** Nạp lại dữ liệu có thể đổi sau khi ghi, rồi vẽ lại cả hai thẻ. */
 export async function napLai(): Promise<void> {
   if (!du) return;
   try {
