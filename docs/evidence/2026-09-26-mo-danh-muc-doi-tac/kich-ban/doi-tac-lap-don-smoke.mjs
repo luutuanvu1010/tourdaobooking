@@ -415,8 +415,12 @@ try {
       services: [{ kind: "catalog", pickupChoice: "DON", catalogCode: "TD101", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: TD101_ADULT }, departDate: vnDate(3), departTime: "", pickupTime: "07:30", pickupPlace: "Khách sạn Biển Xanh", checkinDate: "", checkinTime: "", checkinPlace: "", note: "" }],
     });
     assert.equal(r.status, 201, `lập đơn: ${JSON.stringify(r.json)}`);
-    const c = await call(ai, "POST", `/api/orders/${r.json.order.id}/status`, { status: "confirmed" });
+    // ADR-0135/0136: tài khoản giữ quyền Đối tác KHÔNG xác nhận bằng `/status` (409 partner_submit_required) mà bằng nút Gửi đơn = `/gui-don`; đơn không cờ cần xác nhận, giờ đón xa hơn mốc ⇒ nhánh B (xác nhận ngay).
+    const c = ai === PARTNER
+      ? await call(ai, "POST", `/api/orders/${r.json.order.id}/gui-don`)
+      : await call(ai, "POST", `/api/orders/${r.json.order.id}/status`, { status: "confirmed" });
     assert.equal(c.status, 200, `xác nhận đơn: ${c.status} ${JSON.stringify(c.json)}`);
+    if (ai === PARTNER) assert.equal(c.json?.nhanh, "B", `Gửi đơn tự xác nhận (nhánh B): ${JSON.stringify(c.json)}`);
     // Đối chứng máy chủ: sửa chuyến / đổi khách của đơn này bị từ chối (403) — đúng lý do giao diện phải ẩn hai nút.
     const trip = await call(ai, "PUT", `/api/orders/${r.json.order.id}/booker`, { expectedUpdatedAt: "x" });
     assert.equal(trip.status, 403, `máy chủ từ chối đổi khách: ${trip.status}`);
@@ -435,7 +439,8 @@ try {
     }))()`);
   // D5 (bản vẽ M3, ADR-0047 Phần B 2026-10-01): Đối tác, Thực tập (đơn mình lập) còn sửa được danh sách hành khách — câu khoá nói đúng điều đó, vẫn không hứa sửa chuyến.
   const LOCK_KHONG_SUA_CHUYEN = "Đơn đã xác nhận: dịch vụ và đơn giá đã khoá. Còn sửa được danh sách hành khách."; // phiếu kiểm A2 V-1
-  const TABS = [["Đơn hàng", "/orders", "page"], ["Tạo đơn", "/order-form", null], ["Tôi", "/account", null]];
+  // Thanh tab điện thoại nay có «Hỗ trợ» (đã có sẵn trên main trước đợt này; chốt cũ chỉ ba tab, kịch bản đỏ vì chốt cũ chứ không vì mã của đợt này).
+  const TABS = [["Đơn hàng", "/orders", "page"], ["Tạo đơn", "/order-form", null], ["Hỗ trợ", "/feedback", null], ["Tôi", "/account", null]];
   const goiHandlers = (p) => p.requests.filter((r) => r.url.includes("/api/dispatch/handlers")).map((r) => r.url);
   const goiDashboard = (p) => p.requests.filter((r) => r.url.includes("/api/orders/dashboard") || r.url.includes("/api/orders/dem-nhap")).map((r) => r.url); // ADR-0102: huy hiệu nay qua /api/orders/dem-nhap
   const kiemTrangDon = async (p, nhan) => {

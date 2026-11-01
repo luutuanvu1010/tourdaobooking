@@ -151,7 +151,14 @@ async function buoc(id, ten, fn) {
 async function chup(p, ten, toanTrang = true) {
   await sleep(700);
   if (toanTrang) await p.ev("(() => { for (const e of document.querySelectorAll('#tabbar, .tl-fab')) { e.dataset.anTam = e.style.display; e.style.display = 'none'; } return true; })()");
-  const r = await p.send("Page.captureScreenshot", { format: "png", captureBeyondViewport: toanTrang });
+  // 2/11 (đặt vé của đối tác lượt 1, Task 5): thẻ «Vai người dùng» nay chứa CẢ khối «Người có cấp riêng»; tới bước «CR» trang cao > 13.000 px CSS, ảnh toàn trang ở khổ 390 (tỷ lệ 2) vượt trần
+  // kích thước ảnh của Chrome và `Page.captureScreenshot` treo vô hạn (kịch bản đứng 18 phút không in thêm dòng nào). Trang cao hơn 6000 px thì chụp 6000 px đầu trang; quá 30 giây thì báo lỗi, không treo.
+  const cao = toanTrang ? await p.ev("document.documentElement.scrollHeight") : 0;
+  const rong = toanTrang && cao > 6000 ? await p.ev("document.documentElement.clientWidth") : 0;
+  const r = await Promise.race([
+    p.send("Page.captureScreenshot", { format: "png", captureBeyondViewport: toanTrang, ...(rong > 0 ? { clip: { x: 0, y: 0, width: rong, height: 6000, scale: 1 } } : {}) }),
+    sleep(30000).then(() => { throw new Error(`chụp ảnh «${ten}» quá 30 giây (trang cao ${cao} px)`); }),
+  ]);
   if (toanTrang) await p.ev("(() => { for (const e of document.querySelectorAll('#tabbar, .tl-fab')) { e.style.display = e.dataset.anTam ?? ''; } return true; })()");
   writeFileSync(join(OUT, `${ten}.png`), Buffer.from(r.result.data, "base64"));
   anh.push(ten);
