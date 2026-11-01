@@ -214,3 +214,35 @@ export const docPhanBoMoCuaDon = async (db: D1Database, orderId: string, service
 export const cauDanhDauLo = (db: D1Database, allocId: string, at: string, by: string | null): D1PreparedStatement => db.prepare(DANH_DAU_LO).bind(allocId, at, by);
 export const cauChenGiao = (db: D1Database, p: { id: string; allocId: string; by: string | null; at: string; kenh: "ZALO" | "LINK" }): D1PreparedStatement =>
   db.prepare(CHEN_GIAO).bind(p.id, p.allocId, p.by, p.at, p.kenh);
+
+// ===== Đường dẫn khách (ADR-0153 Đ2; Task 7). CHỈ lưu băm token. =====================================================================================================
+const CHEN_LINK = defineSql("ve-dien-tu", "chen_link", "INSERT INTO vdt_guest_link (id, order_id, token_hash, expires_at, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?5, ?6)");
+const THU_HOI_LINK = defineSql("ve-dien-tu", "thu_hoi_link", "UPDATE vdt_guest_link SET revoked_at = ?2, updated_at = ?2, updated_by = ?3 WHERE id = ?1 AND revoked_at IS NULL");
+const DOC_LINK_THEO_BAM = defineSql("ve-dien-tu", "doc_link_theo_bam", "SELECT id, order_id, token_hash, expires_at, revoked_at FROM vdt_guest_link WHERE token_hash = ?1");
+const DOC_LINK_THEO_ID = defineSql("ve-dien-tu", "doc_link_theo_id", "SELECT id, order_id, revoked_at FROM vdt_guest_link WHERE id = ?1");
+const DEM_MO_LINK = defineSql("ve-dien-tu", "dem_mo_link", "UPDATE vdt_guest_link SET opened_count = opened_count + 1, updated_at = ?2 WHERE id = ?1");
+const DS_LINK_CUA_DON = defineSql("ve-dien-tu", "ds_link_cua_don", "SELECT id, expires_at, revoked_at, opened_count FROM vdt_guest_link WHERE order_id = ?1 ORDER BY created_at DESC, id");
+const HAN_CUOI_CUA_DON = defineSql(
+  "ve-dien-tu",
+  "han_cuoi_cua_don",
+  "SELECT max(t.valid_to) AS den FROM vdt_allocation a JOIN vdt_ticket t ON t.id = a.ticket_id WHERE a.order_id = ?1 AND a.released_at IS NULL AND t.stored_at IS NOT NULL AND t.purged_at IS NULL",
+);
+const VE_CUA_LINK = defineSql(
+  "ve-dien-tu",
+  "ve_cua_link",
+  `SELECT a.id, a.pax_group, t.valid_from, t.valid_to, t.storage_key, t.content_kind FROM vdt_allocation a JOIN vdt_ticket t ON t.id = a.ticket_id
+   WHERE a.order_id = ?1 AND a.released_at IS NULL AND t.stored_at IS NOT NULL AND t.purged_at IS NULL ORDER BY a.order_service_id, a.pax_group, a.slot_no`,
+);
+
+export interface LinkKhach { id: string; order_id: string; token_hash: string; expires_at: string; revoked_at: string | null }
+export const cauChenLink = (db: D1Database, p: { id: string; orderId: string; bam: string; hetHan: string; at: string; by: string | null }): D1PreparedStatement =>
+  db.prepare(CHEN_LINK).bind(p.id, p.orderId, p.bam, p.hetHan, p.at, p.by);
+export const cauThuHoiLink = (db: D1Database, id: string, at: string, by: string | null): D1PreparedStatement => db.prepare(THU_HOI_LINK).bind(id, at, by);
+export const docLinkTheoBam = (db: D1Database, bam: string): Promise<LinkKhach | null> => db.prepare(DOC_LINK_THEO_BAM).bind(bam).first<LinkKhach>();
+export const docLinkTheoId = (db: D1Database, id: string): Promise<{ id: string; order_id: string; revoked_at: string | null } | null> => db.prepare(DOC_LINK_THEO_ID).bind(id).first();
+export const cauDemMoLink = (db: D1Database, id: string, at: string): D1PreparedStatement => db.prepare(DEM_MO_LINK).bind(id, at);
+export const docLinkCuaDon = async (db: D1Database, orderId: string): Promise<{ id: string; expires_at: string; revoked_at: string | null; opened_count: number }[]> =>
+  (await db.prepare(DS_LINK_CUA_DON).bind(orderId).all<{ id: string; expires_at: string; revoked_at: string | null; opened_count: number }>()).results;
+export const docHanCuoiCuaDon = async (db: D1Database, orderId: string): Promise<string | null> => (await db.prepare(HAN_CUOI_CUA_DON).bind(orderId).first<{ den: string | null }>())?.den ?? null;
+export interface VeCuaLink { id: string; pax_group: string; valid_from: string; valid_to: string; storage_key: string; content_kind: string }
+export const docVeCuaLink = async (db: D1Database, orderId: string): Promise<VeCuaLink[]> => (await db.prepare(VE_CUA_LINK).bind(orderId).all<VeCuaLink>()).results;

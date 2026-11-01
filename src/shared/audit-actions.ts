@@ -25,6 +25,8 @@ export const AUDIT_ACTIONS = {
   ve_giu_cho: { label: "Giữ chỗ vé điện tử cho đơn", group: "ve" },
   ve_tra_ve: { label: "Trả vé điện tử về kho", group: "ve" },
   ve_xem_anh: { label: "Xem ảnh vé điện tử của đơn", group: "ve" }, // detail: số thứ tự vé trong đơn (KHÔNG mã vé)
+  ve_tao_duong_dan: { label: "Tạo đường dẫn vé cho khách", group: "ve" }, // detail: số vé + hạn (KHÔNG token)
+  ve_thu_hoi_duong_dan: { label: "Thu hồi đường dẫn vé của khách", group: "ve" },
   ve_giao: { label: "Giao vé điện tử cho khách", group: "ve" }, // detail: kênh + số vé (KHÔNG mã vé)
   ve_nhap_lo: { label: "Nhập lô vé điện tử", group: "ve" }, // detail: nhãn nhóm khách + số vé (KHÔNG mã vé)
   ve_xac_nhan_lo: { label: "Đưa lô vé điện tử vào kho", group: "ve" },

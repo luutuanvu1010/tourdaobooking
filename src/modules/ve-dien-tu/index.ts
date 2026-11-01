@@ -3,6 +3,7 @@
 // thêm khi dùng (ADR-0153 Đ1 mục 2). Chiều orders → ve-dien-tu KHÔNG có cạnh: gốc lắp ráp (src/index.ts) tiêm hàm cấp / trả vé vào ctx.
 // Module khác CHỈ import từ file này.
 import { auditStatement } from "../audit";
+import { clearAttempts, reserveAttempts } from "../auth";
 import { getEffectiveServices } from "../catalog";
 import { UUID_RE, error, json, kemLocation, readJson } from "../../shared/http";
 import { can } from "../../shared/permissions";
@@ -10,10 +11,11 @@ import { route, type AppModule } from "../../shared/router";
 import { LOAI_NOI_DUNG, bamSha256, dauPhanHoiTepChung, giaiBase64, nhanLoaiTep, taoKhoaNgauNhien, type LoaiTep } from "../../shared/tep-dinh-kem";
 import { vnToday } from "../../shared/vn-date";
 import { canVe, thuDu } from "./rules.ts";
+import { DANG_TOKEN, bamToken, hanDuongDan, soSanhHangThoiGian, taoToken, trangVeKhach } from "./duong-dan-khach.ts";
 import { NHAN_NHOM, soanCapVe, soanTraVe, veDangGiu, type GhiNhatKy, type NhatKyVe } from "./cap-ve.ts";
 import { datVeVaoKho, type VeChuanBi } from "./kho-tep.ts";
 import { TOI_DA_VE_MOI_DOT, TOI_DA_VE_MOI_LO, che4SoCuoi, kiemLo, kiemVeMoi } from "./nhap-lo.ts";
-import { cauChenGiao, cauChenLo, cauChenVe, cauDanhDauLo, docChuDon, docPhanBoDeXem, docPhanBoMoCuaDon, cauKichHoatLo, cauSuaMaTour, demVeCuaLo, docLo, maVeDaCo, thongKeKho } from "./repository.ts";
+import { cauChenLink, cauDemMoLink, cauThuHoiLink, docHanCuoiCuaDon, docLinkCuaDon, docLinkTheoBam, docLinkTheoId, docVeCuaLink, type LinkKhach, cauChenGiao, cauChenLo, cauChenVe, cauDanhDauLo, docChuDon, docPhanBoDeXem, docPhanBoMoCuaDon, cauKichHoatLo, cauSuaMaTour, demVeCuaLo, docLo, maVeDaCo, thongKeKho } from "./repository.ts";
 
 export { demVeTheoTrangThai } from "./repository.ts";
 
@@ -34,6 +36,24 @@ const BAD_JSON = () => error(400, "invalid_input", "Nội dung gửi lên không
 const MA_PHAN_BO = /^[0-9a-f]{32}$/;
 /** `vdt_ticket.content_kind` lưu kiểu MIME (khi nhập lô); đổi ngược về loại tệp cho `dauPhanHoiTepChung`. Không nhận ra ⇒ PNG (ảnh, không bao giờ loại chạy được). */
 const loaiTuMime = (mime: string): LoaiTep => (LOAI_ANH.find((l) => LOAI_NOI_DUNG[l] === mime) ?? "png");
+// ---- Đường dẫn khách: đầu phản hồi, 404 duy nhất, giới hạn tốc độ -----------------------------------------------------------------------------------------------
+const DAU_KHACH = { "cache-control": "no-store", "x-content-type-options": "nosniff", "cross-origin-resource-policy": "same-origin", "referrer-policy": "no-referrer", "x-robots-tag": "noindex, nofollow" } as const;
+/** MỘT thân, MỘT bộ đầu cho mọi lý do không thấy (sai token, hết hạn, thu hồi, vé ngoài khoảng) — không phân biệt được từ ngoài. */
+const khongThayDuongDan = (): Response => new Response("Không tìm thấy.", { status: 404, headers: { ...DAU_KHACH, "content-type": "text/plain; charset=utf-8" } });
+/** Giới hạn tốc độ chống dò token: mỗi lần gọi đặt chỗ theo địa chỉ và theo tổng; thành công thì TRẢ chỗ (chỉ lần sai tính). Vượt ⇒ 429 (không phân biệt token đúng / sai). */
+const HAN_MUC_IP = 20;
+const HAN_MUC_TONG = 400;
+async function mocDuongDanKhach(env: Env, request: Request, token: string): Promise<{ loi: Response; link?: undefined; tra?: undefined } | { loi?: undefined; link: LinkKhach; tra: () => Promise<void> }> {
+  const ip = (request.headers.get("cf-connecting-ip") ?? "khong-ro").slice(0, 64);
+  const chan = await reserveAttempts(env.DB, [{ key: `vekhach:ip:${ip}`, max: HAN_MUC_IP }, { key: "vekhach:tong", max: HAN_MUC_TONG }]);
+  if (!chan.allowed) return { loi: new Response("Thử lại sau ít phút.", { status: 429, headers: { ...DAU_KHACH, "content-type": "text/plain; charset=utf-8", "retry-after": String(chan.retryAfterSeconds) } }) };
+  if (!DANG_TOKEN.test(token)) return { loi: khongThayDuongDan() };
+  const bam = await bamToken(token);
+  const link = await docLinkTheoBam(env.DB, bam);
+  const hopLe = link !== null && soSanhHangThoiGian(link.token_hash, bam) && link.revoked_at === null && link.expires_at >= new Date().toISOString();
+  if (!hopLe) return { loi: khongThayDuongDan() };
+  return { link, tra: () => clearAttempts(env.DB, null, chan.ids) };
+}
 const DON_KHONG_THAY = () => error(404, "not_found", "Không tìm thấy đơn.");
 const VE_KHONG_THAY = () => error(404, "not_found", "Không tìm thấy vé.");
 const KHONG_QUYEN_GUI = () => error(403, "forbidden", "Bạn không có quyền xem hoặc gửi vé của đơn này.");
@@ -199,7 +219,8 @@ export const veDienTuModule: AppModule = {
         const nhom = (["ADULT", "CHILD", "SENIOR"] as const).filter((n) => can_[n] > 0 || giu[n] > 0).map((n) => ({ nhom: n, nhan: NHAN_NHOM[n], can: can_[n], giu: giu[n], thieu: Math.max(0, can_[n] - giu[n]) }));
         dichVu.push({ serviceId: d.serviceId, catalogCode: d.catalogCode, nhom });
       }
-      return json({ dichVu, thuDu: thuDu(await tienDonVe(orderId)) });
+      const duongDan = (await docLinkCuaDon(env.DB, orderId)).map((l) => ({ id: l.id, hetHan: l.expires_at, daThuHoi: l.revoked_at !== null, luotMo: l.opened_count })); // KHÔNG token (chỉ lưu băm)
+      return json({ dichVu, thuDu: thuDu(await tienDonVe(orderId)), duongDan });
     }),
 
     // ẢNH VÉ (ADR-0153 Đ3): chỉ khi đơn THU ĐỦ. Thứ tự cố định (bài khoá thứ tự ở xem-giao-ve.test.ts): sec-fetch-site → kho → mã → phân bổ → chủ đơn → `can(ve.cap.send)` → thu đủ
@@ -253,6 +274,77 @@ export const veDienTuModule: AppModule = {
       });
       await env.DB.batch(cau);
       return json({ daGiao: ds.length });
+    }),
+
+    // TẠO ĐƯỜNG DẪN CHO KHÁCH (ADR-0153 Đ2): chỉ khi đơn thu đủ và đã có vé. Token trả ĐÚNG MỘT LẦN, D1 chỉ lưu băm. Hạn = ngày dùng cuối của vé + 7 ngày. Đường dẫn là lộ vé ra ngoài
+    // vĩnh viễn nên đóng dấu «đã lộ» cho mọi vé của đơn ngay lúc tạo (vé đã lộ không bao giờ về kho). Một lô: đường dẫn → nhật ký (chỉ số vé + hạn) → dấu lộ từng vé.
+    route("POST", "/api/ve/duong-dan", "office", async ({ env, request, staff, isAssigned, tienDonVe }) => {
+      const raw = await readJson(request);
+      const orderId = typeof raw?.orderId === "string" ? raw.orderId : "";
+      if (!UUID_RE.test(orderId)) return BAD_JSON();
+      const [chu, assigned] = await Promise.all([docChuDon(env.DB, orderId), isAssigned(orderId)]);
+      if (chu === null) return DON_KHONG_THAY();
+      if (!can(staff, "ve.cap.send", { ownerId: chu, assigned })) return KHONG_QUYEN_GUI();
+      if (!thuDu(await tienDonVe(orderId))) return CHUA_THU_DU();
+      const [den, ds] = await Promise.all([docHanCuoiCuaDon(env.DB, orderId), docPhanBoMoCuaDon(env.DB, orderId, null)]);
+      if (den === null || ds.length === 0) return error(409, "chua_co_ve", "Đơn chưa được giữ vé nào nên chưa tạo được đường dẫn cho khách.");
+      const token = taoToken();
+      const hetHan = hanDuongDan(den);
+      const at = new Date().toISOString();
+      const id = crypto.randomUUID();
+      await env.DB.batch([
+        cauChenLink(env.DB, { id, orderId, bam: await bamToken(token), hetHan, at, by: staff.id }),
+        auditStatement(env.DB, { staffId: staff.id, action: "ve_tao_duong_dan", at, orderId, targetType: "ve", targetId: orderId, detail: `Tạo đường dẫn vé cho khách · ${ds.length} vé · hạn ${hetHan.slice(0, 10)}` }),
+        ...ds.map((a) => cauDanhDauLo(env.DB, a, at, staff.id)),
+      ]);
+      return json({ id, duongDan: `/ve/${token}`, hetHan });
+    }),
+
+    route("POST", "/api/ve/duong-dan/:id/thu-hoi", "office", async ({ env, staff, params, isAssigned }) => {
+      const id = params.id!;
+      if (!UUID_RE.test(id)) return VE_KHONG_THAY();
+      const link = await docLinkTheoId(env.DB, id);
+      if (!link) return VE_KHONG_THAY();
+      const [chu, assigned] = await Promise.all([docChuDon(env.DB, link.order_id), isAssigned(link.order_id)]);
+      if (chu === null) return VE_KHONG_THAY();
+      if (!can(staff, "ve.cap.send", { ownerId: chu, assigned })) return KHONG_QUYEN_GUI();
+      const at = new Date().toISOString();
+      await env.DB.batch([
+        cauThuHoiLink(env.DB, id, at, staff.id),
+        auditStatement(env.DB, { staffId: staff.id, action: "ve_thu_hoi_duong_dan", at, orderId: link.order_id, targetType: "ve", targetId: link.order_id, detail: "Thu hồi đường dẫn vé của khách" }, "changes() > 0"),
+      ]);
+      return json({ ok: true });
+    }),
+
+    // HAI ROUTE CÔNG KHAI CHỈ ĐỌC (ADR-0153 Đ2). Cùng một khuôn: giới hạn tốc độ (đặt chỗ TRƯỚC khi tra; thành công thì trả chỗ nên chỉ lần SAI mới tính) → tra theo BĂM token
+    // → so băm hằng thời gian → hạn / thu hồi. Sai, hết hạn, thu hồi, vé ngoài khoảng: CÙNG một 404 (cùng thân, cùng đầu). Trang không script, không tên khách / mã đơn / giá / mã vé.
+    route("GET", "/ve/:token", "public", async ({ env, request, params }) => {
+      const kq = await mocDuongDanKhach(env, request, params.token!);
+      if (kq.loi) return kq.loi;
+      const ve = await docVeCuaLink(env.DB, kq.link.order_id);
+      if (ve.length === 0) return khongThayDuongDan();
+      const at = new Date().toISOString();
+      await env.DB.batch([cauDemMoLink(env.DB, kq.link.id, at), ...ve.map((v) => cauDanhDauLo(env.DB, v.id, at, null))]);
+      await kq.tra();
+      const html = trangVeKhach(params.token!, ve.map((v, i) => ({ slot: i + 1, nhom: v.pax_group as "ADULT" | "CHILD" | "SENIOR", tuNgay: v.valid_from, denNgay: v.valid_to })));
+      return new Response(html, { status: 200, headers: { ...DAU_KHACH, "content-type": "text/html; charset=utf-8", "content-security-policy": "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'" } });
+    }),
+
+    route("GET", "/api/ve-khach/:token/anh/:slot", "public", async ({ env, request, params }) => {
+      const kho = env.VE_DIEN_TU;
+      if (!kho) return khongThayDuongDan();
+      const kq = await mocDuongDanKhach(env, request, params.token!);
+      if (kq.loi) return kq.loi;
+      const slot = /^[1-9][0-9]{0,2}$/.test(params.slot!) ? Number(params.slot) : 0;
+      const ve = await docVeCuaLink(env.DB, kq.link.order_id);
+      const v = slot >= 1 ? ve[slot - 1] : undefined;
+      if (!v) return khongThayDuongDan();
+      const at = new Date().toISOString();
+      await env.DB.batch([cauDanhDauLo(env.DB, v.id, at, null)]);
+      const obj = await kho.get(v.storage_key);
+      if (!obj) return khongThayDuongDan();
+      await kq.tra();
+      return new Response(obj.body, { status: 200, headers: { ...dauPhanHoiTepChung({ id: v.id, loai: loaiTuMime(v.content_kind), tenDau: "ve" }) } });
     }),
   ],
 };
