@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"><meta name="robots" content="noindex"><meta name="theme-color" content="#ffffff"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><link rel="stylesheet" href="/giao-dien.css"><title>Kho vé điện tử — Island Booking System</title></head>
+<body data-khuon="bieu-mau" data-title="Kho vé điện tử" data-back="/account">
+<header id="topbar"></header>
+<main>
+  <!-- Kho vé điện tử (ADR-0153; Task 9a). Ô ve.kho.manage. web/ve-kho.ts dựng nội dung: thống kê kho và nhập lô. -->
+  <h1>Kho vé điện tử</h1>
+  <p class="muted">Nhập vé ảnh của nhà cung cấp vào kho. Mỗi lô là một dịch vụ và một loại khách; vé tự được giữ chỗ cho đơn khi đơn xác nhận.</p>
+  <div id="error" class="alert" role="alert" hidden></div>
+  <div id="ok" class="alert ok" role="status" hidden></div>
+  <section id="vk-noi-dung" hidden>
+    <section class="card" aria-labelledby="vk-kho-tieu-de">
+      <h2 id="vk-kho-tieu-de">Tồn kho</h2>
+      <div id="vk-kho"></div>
+    </section>
+    <section class="card" aria-labelledby="vk-lo-tieu-de">
+      <h2 id="vk-lo-tieu-de">Nhập lô mới</h2>
+      <div id="vk-lo"></div>
+    </section>
+  </section>
+</main>
+<script type="module" src="/js/ve-kho.js"></script>
+</body></html>
