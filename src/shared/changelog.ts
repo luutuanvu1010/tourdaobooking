@@ -19,7 +19,7 @@ export const CHANGELOG: readonly ReleaseNote[] = [
     items: [
       { kind: "doi", text: "Màn Tạo đơn của đối tác gọn hơn: mỗi dịch vụ có dòng Ghi chú thay cho khối Thông tin chuyến; ô giảm giá ghi sẵn «Giảm giá cho khách»." },
       { kind: "doi", text: "Trang Hoa hồng còn hai thẻ: Cấp độ đại lý và Vai người dùng; phần Người có cấp riêng nằm trong thẻ Vai người dùng. Hai tên mới thay tên cũ ở mọi màn." },
-      { kind: "moi", text: "Quản lý tài khoản lọc được theo vai trò: bấm một nút để chỉ xem tài khoản của vai đó." },
+      { kind: "moi", text: "Quản lý tài khoản lọc được theo vai trò: bấm một nút để chỉ xem tài khoản của vai trò đó." },
     ],
   },
   {

@@ -91,7 +91,7 @@ function noiDungCum(x: DoiTacRieng, d: DuLieuHoaHong, mo: MoHop): Child[] {
     if (r.xungDot) out.push(h("div", { class: "hh-loai-cap" }, huyHieu("do", "alertCircle", NHAN_XUNG_DOT)), h("p", { class: "hh-cap-nhac" }, CAU_XUNG_DOT));
     if (r.vai.length > 0) {
       out.push(
-        h("h4", null, "Vai người dùng"),
+        h("h4", null, "Vai trò"),
         h("ul", { class: "hh-tl-gan" }, ...r.vai.map((v) => h("li", null, h("span", null, h("strong", null, v.loai.ten), " · ", h("span", { class: "muted" }, cauVaiHoSo(v))), v.muc !== null && !v.muc.dangBat && huyHieu("cat", "lock", NHAN_CAP_DA_KHOA)))),
       );
     }
