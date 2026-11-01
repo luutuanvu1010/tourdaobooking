@@ -17,7 +17,7 @@ import {
 } from "../src/shared/service-form";
 import type { KhungGio } from "../src/shared/khung-gio-don";
 import { canhBaoChuyenThe, coLoiChanLuuDangHien, dongGapThe } from "../src/shared/dong-gap-the";
-import { GOI_Y_GHI_CHU_DOI_TAC, MAX_GHI_CHU_DICH_VU, NHAN_GHI_CHU_DOI_TAC } from "../src/shared/form-dat-ve";
+import { GOI_Y_GHI_CHU_DOI_TAC, MAX_GHI_CHU_DICH_VU, NHAN_GHI_CHU_DOI_TAC, ghiChuMotDong } from "../src/shared/form-dat-ve";
 import { tripSummaryLine } from "../src/shared/trip-form";
 import { MAX_LINES_PER_ORDER } from "../src/shared/trip-rules";
 import { counter, type Counter } from "./counter";
@@ -186,7 +186,7 @@ export function createServiceCard(o: CardOptions): ServiceCard {
   // Form gọn của Đối tác: khối chuyến ẩn (`hidden` — luật `[hidden]` toàn cục; ô vẫn trong cây DOM) và thay bằng một dòng Ghi chú: gõ thì chỉ đổi `trip.note`, mọi giá trị chuyến khác giữ nguyên.
   tripDetails.hidden = o.formGonDoiTac === true;
   const oGhiChuGon = o.formGonDoiTac === true
-    ? h("input", { type: "text", value: draft.trip.note, autocomplete: "off", maxLength: MAX_GHI_CHU_DICH_VU, placeholder: GOI_Y_GHI_CHU_DOI_TAC, "data-trip-gon": "note" })
+    ? h("input", { type: "text", value: ghiChuMotDong(draft.trip.note), autocomplete: "off", maxLength: MAX_GHI_CHU_DICH_VU, placeholder: GOI_Y_GHI_CHU_DOI_TAC, "data-trip-gon": "note" })
     : null;
   if (oGhiChuGon) oGhiChuGon.addEventListener("input", () => commit({ ...draft, trip: { ...draft.trip, note: oGhiChuGon.value } }));
   const dongGhiChuGon = oGhiChuGon ? h("label", { class: "o-noi" }, khungNhanNoi(NHAN_GHI_CHU_DOI_TAC, oGhiChuGon, { khungClass: "o-hien-goi-y" })) : null;
@@ -518,7 +518,7 @@ export function createServiceCard(o: CardOptions): ServiceCard {
     // "Giờ đón sau giờ khởi hành": giờ đón nay ở chặng — so giờ của chiều đi sớm nhất có giờ (cùng hàm với chip của dòng gập).
     replaceChildren(warningsEl, ...canhBaoChuyenThe(d, o.today).map((w) => h("p", { class: "svc-warn" }, icon("alert", 16), w.message)));
     fields.sync(d.trip);
-    if (oGhiChuGon) sync(oGhiChuGon, d.trip.note); // không ghi đè ô đang gõ (Telex / VNI)
+    if (oGhiChuGon) sync(oGhiChuGon, ghiChuMotDong(d.trip.note)); // không ghi đè ô đang gõ (Telex / VNI); ghi chú cũ nhiều dòng hiện một dòng, dữ liệu chỉ đổi khi người dùng gõ
     if (mustStayOpen() && !gap.laMo()) gap.mo(); // lỗi chặn Lưu vừa hiện (vd "Tối đa 50 khách.", Lưu bị từ chối): thẻ mở ra và giữ mở tới khi người dùng / trang gập lại sau khi hết lỗi
     veDongGap();
   }
