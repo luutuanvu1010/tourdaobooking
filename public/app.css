@@ -3934,7 +3934,7 @@ a.bk-hang:hover, a.bk-the:hover { background: var(--c-soft-hover); }
 .hh-dau { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s2) var(--s4); }
 .hh-dau h1 { margin: 0; }
 .hh-dau .btn { min-height: var(--tap-min); }
-.hh-the { margin-top: var(--s3); }
+.hh-the { margin-top: var(--s3); margin-bottom: var(--s3); } /* 2/11: nút chính đầu mỗi thẻ (＋ Thêm cấp độ đại lý / ＋ Thêm vai trò) không dính vào vạch chân thanh thẻ — thấy ở ảnh thật khổ 390 */
 @media (max-width: 640px) { .hh-dau .btn { display: none; } }
 
 /* Thẻ «Mức đang áp dụng» (PR 2 đợt 2): Tra nhanh, hàng lọc, bảng «ai hưởng gì», hộp Thêm mức / Đổi. Chỉ token. */
@@ -4059,6 +4059,11 @@ a.bk-hang:hover, a.bk-the:hover { background: var(--c-soft-hover); }
 .hh-loai-cap { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2) var(--s3); }
 .hh-loai-the h4 { margin: var(--s2) 0 0; font-size: var(--fs-label); color: var(--c-text-muted); }
 .hh-loai-sap { margin: 0; }
+
+/* Thẻ «Vai người dùng» gồm hai khối xếp dọc (danh sách vai, rồi «Người có cấp riêng»): khối sau có vạch ngăn trên để không dính vào ba câu chú dưới danh sách vai (hai tiêu đề cùng kiểu chữ,
+   nên ranh giới do vạch này báo); và hàng đầu mỗi khối (tiêu đề + nút chính, nút xuống dòng ở khổ hẹp) cách hàng Tìm / Trạng thái bên dưới một khoảng. Chỉ token; thêm 2/11 sau ảnh thật. */
+#hh-the-loai .hh-cap-dau { margin-bottom: var(--s3); }
+#hh-loai-rieng { margin-top: var(--s5); padding-top: var(--s4); border-top: 1px solid var(--c-line); }
 
 /* ---------- Thành phần chung v2 (đợt 0, đặc tả mục 8) ----------
    Một tên lớp gốc + biến thể bằng thuộc tính; chỉ token. Lớp cũ giữ nguyên. */
