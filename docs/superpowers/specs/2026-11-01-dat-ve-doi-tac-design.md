@@ -1,6 +1,6 @@
 # Thiết kế — màn Đặt vé của đối tác; vai, cấp độ đại lý và tài khoản
 
-> **Trạng thái:** bản nháp, chờ chủ dự án duyệt. Chưa có dòng mã nào. Ngày 2026-11-01.
+> **Trạng thái:** chủ dự án duyệt hướng thiết kế ngày 2026-11-02 («Duyệt thiết kế»). Lời duyệt này cho thi công lượt 1 (§4). Các quyết định ở §5 vẫn phải qua ADR do chủ duyệt riêng. Ngày soạn 2026-11-01.
 > **Việc lớn** (dữ liệu, quyền, tiền): thi công xong phải có người kiểm độc lập. Lượt 2 có ba quyết định chạm tiền, dữ liệu, quyền nên phải qua ADR do chủ duyệt (trang ghép ở §6, đúng trần 3).
 > **Số dự kiến:** ADR-0154 trở đi, migration `0132` trở đi (`claude/ve-dien-tu-thi-cong-ff85a6` đang giữ ADR-0153 và `0131`). Kiểm lại lúc thi công.
 > **Xây trên lỗ đang hở:** QĐ-A ghi lần thu nên chạm `TNV-G1`, `TNV-G3`, `TNV-G4` (sổ tiền, mức HIGH; phép xây đang có chỉ cho QR) và `HC-5.19` (chưa diễn tập khôi phục, phép đang có chỉ cho sổ đại lý đợt 2). **Chủ chọn 2026-11-02: vá trước.** QĐ-A chỉ thi công sau khi các mục này đóng (§3). Lượt 1, QĐ-B, QĐ-C không phụ thuộc; người lập kế hoạch vẫn rà lại `docs/quyen-hoan.json`; AI không tự gia hạn.
