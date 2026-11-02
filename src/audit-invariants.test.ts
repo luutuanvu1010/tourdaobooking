@@ -2275,7 +2275,7 @@ test("R-BIL-*: đủ kiểm lượt 1, mức fail; R-BIL-2/5 là câu kiểm th�
 test("R-BIL-*: đơn đi đúng luồng (lần thu, đảo, Đã giao, hoàn khách SAU Đã giao, Hoàn thành sau khi nộp) → mọi kiểm 0 vi phạm", () => {
   const db = build();
   const ct = donDaGiao(db);
-  // ADR-0088 đ3, đ4 (iv) (0083): sau Đã giao không còn lần hoàn / đảo đơn lẻ (hoàn chờ phân định đ9; sửa sai bằng "Thay lần thu") — luồng đúng chỉ còn nộp
+  // ADR-0088 đ3, đ4 (iv) (0083): sau Đã giao không còn lần hoàn / đảo đơn lẻ (hoàn qua phân định ADR-0116; sửa sai bằng "Thay lần thu") — luồng đúng chỉ còn nộp
   // rồi Hoàn thành.
   phieuBil(db, { id: "pnop", order: "o-bil", kind: "SETTLEMENT", at: BIL_SAU });
   dongNoBil(db, { id: "l-nop", posting: "pnop", order: "o-bil", debtor: ct, creditor: "pty-s-an", amount: 300000 });

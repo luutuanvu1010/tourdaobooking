@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"><meta name="robots" content="noindex"><meta name="theme-color" content="#ffffff"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><link rel="stylesheet" href="/giao-dien.css"><title>Phân định trách nhiệm — Island Booking System</title></head>
+<body data-khuon="bieu-mau" data-title="Phân định trách nhiệm" data-back="/account">
+<header id="topbar"></header>
+<main>
+  <!-- Phân định trách nhiệm sau «Đã giao» (ADR-0116). Khối «Khoản của tôi» cho bên chịu có tài khoản; khối «Các phiếu» cho Kế toán, Quản trị, Toàn quyền. web/phan-dinh.ts dựng nội dung. -->
+  <h1>Phân định trách nhiệm</h1>
+  <p class="muted" id="pd-giai-thich"></p>
+  <div id="error" class="alert" role="alert" hidden></div>
+  <div id="ok" class="alert ok" role="status" hidden></div>
+  <section class="card" id="pd-khoi-toi" aria-labelledby="pd-toi-tieu-de" hidden>
+    <h2 id="pd-toi-tieu-de">Khoản của tôi</h2>
+    <ul id="pd-toi-ds" class="dc-ds"></ul>
+  </section>
+  <section class="card" id="pd-khoi-phieu" aria-labelledby="pd-phieu-tieu-de" hidden>
+    <h2 id="pd-phieu-tieu-de">Các phiếu</h2>
+    <p class="muted" id="pd-dem"></p>
+    <ul id="pd-phieu-ds" class="dc-ds"></ul>
+    <p id="pd-phieu-rong" class="muted" hidden></p>
+  </section>
+  <p id="pd-rong" class="muted" hidden>Bạn không có khoản nào theo phân định trách nhiệm.</p>
+</main>
+<script type="module" src="/js/phan-dinh.js"></script>
+</body></html>

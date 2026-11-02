@@ -477,14 +477,14 @@ test("Sửa 3 sau rà soát (Ruling R-155): tài khoản giữ quyền Đối t�
   await tuChoi(KTDT, { partyId: NCC }, NCC, "tài khoản lai Kế toán + Đối tác");
   assert.equal((await thu(w, PT, id, mat(100_000, "toi", { thuChoNhaCungCapPartyId: "" }))).status, 201, "ô trống = không chọn ⇒ «tôi» như cũ");
   assert.deepEqual(lanThu(w, cuoi(w, id)), { vai: "BOOKER", nguoi: `pty-${PT}`, cho: ct });
-  assert.equal((await thu(w, PT, id, mat(100_000, "toi"))).status, 201, "Đối tác tự ghi «tôi»");
-  assert.equal((await thu(w, KTDT, id, mat(100_000, { nhaCungCapPartyId: NCC }))).status, 201, "tài khoản lai chọn người thu là quầy (không gửi «thu cho») vẫn như cũ");
+  assert.equal((await thu(w, PT, id, mat(100_000, "toi", { boQuaTrung: { ma: "lan_thu_tien_mat", lyDo: "Khách trả hai lần thật" } }))).status, 201, "Đối tác tự ghi «tôi»");
+  assert.equal((await thu(w, KTDT, id, mat(100_000, { nhaCungCapPartyId: NCC }, { boQuaTrung: { ma: "lan_thu_tien_mat", lyDo: "Khách trả hai lần thật" } }))).status, 201, "tài khoản lai chọn người thu là quầy (không gửi «thu cho») vẫn như cũ");
   const cuaSales = await donXacNhan(w, { dichVu: [VE_HT, VE_IR] });
   assert.equal((await thu(w, SALES, cuaSales.id, mat(100_000, "toi", { thuChoNhaCungCapPartyId: NCC }))).status, 201, "Bán hàng thuần dùng «thu cho» trên đơn mình");
   assert.deepEqual(lanThu(w, cuoi(w, cuaSales.id)), { vai: "STAFF", nguoi: `pty-${SALES}`, cho: NCC });
-  assert.equal((await thu(w, HDV, id, mat(100_000, "toi", { thuChoNhaCungCapPartyId: NCC }))).status, 201, "HDV phụ trách dùng «thu cho»");
+  assert.equal((await thu(w, HDV, id, mat(100_000, "toi", { thuChoNhaCungCapPartyId: NCC, boQuaTrung: { ma: "lan_thu_tien_mat", lyDo: "Khách trả hai lần thật" } }))).status, 201, "HDV phụ trách dùng «thu cho»");
   assert.deepEqual(lanThu(w, cuoi(w, id)), { vai: "STAFF", nguoi: `pty-${HDV}`, cho: NCC });
-  assert.equal((await thu(w, KT, id, mat(100_000, { partyId: `pty-${PT}` }, { thuChoNhaCungCapPartyId: NCC }))).status, 201, "Kế toán ghi giúp");
+  assert.equal((await thu(w, KT, id, mat(100_000, { partyId: `pty-${PT}` }, { thuChoNhaCungCapPartyId: NCC, boQuaTrung: { ma: "lan_thu_tien_mat", lyDo: "Khách trả hai lần thật" } }))).status, 201, "Kế toán ghi giúp");
   assert.deepEqual(lanThu(w, cuoi(w, id)), { vai: "BOOKER", nguoi: `pty-${PT}`, cho: NCC });
 });
 

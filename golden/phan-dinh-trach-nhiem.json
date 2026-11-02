@@ -1,0 +1,23 @@
+{
+  "mo_ta": "Sổ vàng phân định trách nhiệm sau Đã giao (ADR-0116 phụ lục mục 4). Số là ví dụ do AI soạn, CHỜ Kế toán hoặc chủ xác nhận (Hiến pháp N8). Lớp 2 chạy qua route thật.",
+  "cac_ca": [
+    { "ma": "SV-PD-01", "mo_ta": "T6, có tiền ra: HDV quên đón, HDV chịu 300.000", "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "dau_vao": { "phai_thu": 2000000, "da_thu": 2000000 }, "phieu": [{ "truong_hop": "T6", "ben_chiu": "hdv", "so_tien": 300000, "co_tien_ra": true, "mong_doi": 201 }],
+      "dap_an": { "giam_tru": 300000, "tra_khach": 300000, "no_ben_chiu": 300000, "da_thu_rong": 1700000 } },
+    { "ma": "SV-PD-02", "mo_ta": "T4, không tiền ra: ghi nhầm 1.000.000, khách chỉ trả 700.000, Kế toán chịu 300.000", "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "dau_vao": { "phai_thu": 1000000, "da_thu": 1000000, "sua_khoan_thu_con": 700000 }, "phieu": [{ "truong_hop": "T4", "ben_chiu": "ke_toan", "so_tien": 300000, "co_tien_ra": false, "mong_doi": 201 }],
+      "dap_an": { "giam_tru": 300000, "tra_khach": 0, "no_ben_chiu": 300000, "da_thu_rong": 700000 } },
+    { "ma": "SV-PD-03", "mo_ta": "T10: bão, hoàn một phần 500.000, công ty chịu", "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "dau_vao": { "phai_thu": 2000000, "da_thu": 2000000 }, "phieu": [{ "truong_hop": "T10", "ben_chiu": "cong_ty", "so_tien": 500000, "co_tien_ra": true, "mong_doi": 201 }],
+      "dap_an": { "giam_tru": 500000, "tra_khach": 500000, "no_ben_chiu": 0, "da_thu_rong": 1500000 } },
+    { "ma": "SV-PD-04", "mo_ta": "Hai phiếu 1.200.000 trên đơn 2.000.000: phiếu hai bị chặn", "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "dau_vao": { "phai_thu": 2000000, "da_thu": 2000000 }, "phieu": [{ "truong_hop": "T6", "ben_chiu": "hdv", "so_tien": 1200000, "co_tien_ra": true, "mong_doi": 201 }, { "truong_hop": "T6", "ben_chiu": "hdv", "so_tien": 1200000, "co_tien_ra": true, "mong_doi": 409, "loi": "attribution_over_due" }],
+      "dap_an": { "giam_tru": 1200000, "tra_khach": 1200000, "no_ben_chiu": 1200000, "da_thu_rong": 800000 } },
+    { "ma": "SV-PD-05", "mo_ta": "Người ghi = người phân định: bị chặn", "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "dau_vao": { "phai_thu": 1000000, "da_thu": 1000000 }, "phieu": [{ "truong_hop": "T6", "ben_chiu": "hdv", "so_tien": 100000, "co_tien_ra": true, "cung_nguoi": true, "mong_doi": 409, "loi": "attribution_same_person" }],
+      "dap_an": { "giam_tru": 0, "tra_khach": 0, "no_ben_chiu": 0, "da_thu_rong": 1000000 } },
+    { "ma": "SV-PD-06", "mo_ta": "T11 ghi với bên chịu công ty, rồi chuyển sang HDV: giảm trừ không đổi", "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "dau_vao": { "phai_thu": 1000000, "da_thu": 1000000 }, "phieu": [{ "truong_hop": "T11", "ben_chiu": "cong_ty", "so_tien": 400000, "co_tien_ra": true, "doi_sang": "hdv", "mong_doi": 201 }],
+      "dap_an": { "giam_tru": 400000, "tra_khach": 400000, "no_ben_chiu": 400000, "da_thu_rong": 600000 } }
+  ]
+}

@@ -3780,6 +3780,9 @@ a.bk-hang:hover, a.bk-the:hover { background: var(--c-soft-hover); }
 .dc-kq { display: flex; flex-direction: column; gap: var(--s1); margin: 0; padding: 0; list-style: none; }
 .dc-kq[hidden] { display: none; }
 .dc-kq-nut { width: 100%; min-height: var(--tap-min); text-align: left; }
+.chon-dong { display: flex; align-items: center; gap: var(--s2); min-height: var(--tap-min); }
+.chon-dong[hidden] { display: none; }
+.dc-form[hidden] { display: none; }
 
 /* ---------- Ô có NHÃN NỔI (web/o-nhan-noi.ts; bảng việc 13/10, #4) — form Tạo/sửa đơn. Nhãn nằm trong khung ô: ô trống và chưa focus thì ở giữa ô (như chữ mờ), ô có giá trị / đang gõ thì thu
    nhỏ lên trên. Ô ngày / giờ / chọn một (class o-noi-co-dinh) luôn thu nhỏ vì máy tự vẽ chữ trong ô. Chữ mờ riêng của ô (placeholder) chỉ hiện khi đang gõ. Chỉ token. ---------- */

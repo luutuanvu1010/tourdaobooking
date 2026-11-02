@@ -1402,3 +1402,12 @@ Hiện trạng và luồng: `docs/SYSTEM-DESIGN.md` §6 (m), (o). Mỗi mảnh m
 - **Lô «Mọi loại khách» (ADR-0157):** `vdt_batch.pax_group = 'ALL'`, nhãn lô dùng `NHAN_NHOM_LO`, nhãn suất dùng `NHAN_NHOM`. Câu mới chọn vé theo loại khách phải viết `b.pax_group IN (?, 'ALL')`, nếu không lô dùng chung bị bỏ sót và báo thiếu vé oan. Thứ tự giữ vé: lô đúng loại trước; đổi thứ tự thì bài TC4 đỏ.
 - **Ảnh của lô đã huỷ:** lưu 3 ngày (`NGAY_LUU_ANH_LO_HUY`, `src/shared/ve-nhap-lo.ts`), đổi hạn thì đổi hằng này và ngưỡng `R-VDT-5`. Nút hiện «Huỷ lô» nhưng tên trong mã giữ `/bo`, `bo-lo`, `ve_bo_lo`. Mở ảnh đi qua hai route `/api/ve/lo-da-huy/:veId/mo` (khoá vé) và `/anh` (xem, có nhật ký mỗi lần). Vé đã mở khoá vĩnh viễn theo mã, dấu vân và số S/N (12 số cuối của chuỗi đúng 36 chữ số, cùng định nghĩa với `R-VDT-4`; đổi định nghĩa phải sửa cả năm câu ở `repository.ts`, hai trigger ở `0132` và `R-VDT-6`); vé đã nhập lại thì ảnh cũ không mở được: đừng nới một chiều nào mà không hỏi chủ, vì ảnh mang QR dùng được như vé thật. Route khoá hỏi kho trước khi ghi để kho hỏng không làm mất vé. Tên người huỷ đi qua `nhanNhanVien` được tiêm, không thêm cạnh `ve-dien-tu → staff`.
 - **Kiểm phần trình duyệt:** `npm test` và e2e không mở trang nên không biết bộ đọc có chạy trong gói thật không; chạy `ve-qr-smoke.mjs` ở `docs/evidence/2026-11-02-ve-qr-tran-lo/kich-ban/`.
+
+### Phân định trách nhiệm và cảnh báo trùng (ADR-0116, ADR-0092 Đ6a; migration `0135`)
+
+- **Phải thu hiện hành có MỘT nguồn:** view `v_bil_phai_thu_hien_hanh`, máy chủ đọc qua `phaiThuHienHanh`, trigger và R-BIL-1 đọc cùng view. Đừng đọc `due_snapshot` trực tiếp để so tiền của đơn đã giao.
+- **Thứ tự lô ghi:** dòng chuỗi trước (để view đã tính giảm trừ) → lô Thay hoặc lần trả khách → phiếu ATTRIBUTION (trigger kiểm I1) → dòng nợ → nhật ký, tin. Đảo thứ tự thì trigger báo sai.
+- **Khách thật sự chưa trả (T4):** sửa khoản thu đơn lẻ sẽ lệch I1, nên lệnh ghi nhận `thay` và gộp câu của «Sửa khoản thu» vào cùng lô (`chuanBiLoThay`, tham số `phaiThuDich`).
+- **Dòng nợ ATTRIBUTION không phải tiền đang giữ:** lọc bằng `boNoPhanDinh` ở màn đơn và Hoàn thành; vẫn trả được bằng lệnh nộp; R-BIL-13 tính cả loại này.
+- **Bài có hai khoản tiền mặt cùng số, cùng ngày trên một đơn:** nay nhận 409 `co_the_trung`; gửi kèm `boQuaTrung: { ma: "lan_thu_tien_mat", lyDo }`. Cùng mã giao dịch ở đơn khác: `ma: "ma_giao_dich_khac_don"`. Thêm một loại cảnh báo = thêm dòng ở `src/shared/luat-trung.ts`.
+- **Kiểm trình duyệt:** `web/phan-dinh.ts`, `web/canh-bao-trung.ts` chưa có kịch bản Chrome riêng.

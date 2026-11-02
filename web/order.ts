@@ -7,6 +7,7 @@ import { cauXacNhanDaNhan, duocHuyKhoanSo, ghiSoNoiBo, hienNutSuaKhoanThu } from
 import { METHOD_LABEL, actionLabel, dateTime, ngayNganHomNay, parseMoney, trangThaiHienThi, vnd } from "./format";
 import { regroupMoney, setMoneyValue } from "./money-input";
 import { moBangTruot } from "./bang-truot";
+import { guiCoCanhBaoTrung } from "./canh-bao-trung";
 import { openHandlerSheet } from "./handler-sheet";
 import { icon } from "./icons";
 import { suKienVeDon, taoBoLamMoi } from "./lam-moi-logic";
@@ -594,9 +595,11 @@ function tienCard(order: Order): HTMLElement {
     { class: "card totals", "data-khoi": "thanh-toan" },
     h("h2", null, "Thanh toán"),
     ...rows,
+    t && t.giamTru > 0 ? h("p", { class: "muted", "data-khoi": "giam-tru" }, `Phải thu đã trừ ${vnd(t.giamTru)} theo phân định trách nhiệm.`) : null,
     coc,
     lanThu,
     keToan,
+    t ? khoiPhanDinh(order, t) : null,
     giu,
     nut.length ? h("div", { class: "handler-actions" }, ...nut) : null,
   );
@@ -864,7 +867,7 @@ function nutKeToanLanThu(order: Order, t: Api.OrderPaymentsResponse, l: Api.LanT
         kiem: () => loiCuaMa(ma?.doc() ?? null),
         ghi: async () => {
           try {
-            return await api(`/api/ledger/company-receipts/${encodeURIComponent(l.id)}/confirm`, { method: "POST", body: thanCuaMa(ma?.doc() ?? null) });
+            return await guiCoCanhBaoTrung((boQua) => api(`/api/ledger/company-receipts/${encodeURIComponent(l.id)}/confirm`, { method: "POST", body: { ...thanCuaMa(ma?.doc() ?? null), ...(boQua ? { boQuaTrung: boQua } : {}) } }));
           } catch (err) {
             ma?.tuLoi(err);
             throw err;
@@ -920,13 +923,13 @@ function nutKeToanLanThu(order: Order, t: Api.OrderPaymentsResponse, l: Api.LanT
         kiem: () => (parseMoney(so.value) <= 0 ? "Nhập số tiền." : lyDoThay.value.trim().length < 10 ? "Lý do ít nhất 10 ký tự." : loiCuaMa(maThay.doc())),
         ghi: async () => {
           try {
-            return await api("/api/ledger/receipt-replacements", {
+            return await guiCoCanhBaoTrung((boQua) => api("/api/ledger/receipt-replacements", {
               method: "POST",
-              body: {
+              body: { ...{
                 orderId: order.id, cu: [l.id], lyDo: lyDoThay.value.trim(),
                 moi: [{ soTien: parseMoney(so.value), hinhThuc: hinhThuc.value, nguoiThu: nguoiThu.value === "cong_ty" ? "cong_ty" : { partyId: nguoiThu.value }, ...thanCuaMa(maThay.doc()) }],
-              },
-            });
+              }, ...(boQua ? { boQuaTrung: boQua } : {}) },
+            }));
           } catch (err) {
             maThay.tuLoi(err);
             throw err;
@@ -951,6 +954,25 @@ function nutKeToanLanThu(order: Order, t: Api.OrderPaymentsResponse, l: Api.LanT
     );
   }
   return nut.length ? h("span", { class: "kt-actions" }, ...nut) : null;
+}
+
+/** ADR-0116: đơn đã giao — mở đề nghị phân định (ô attribution.request) và lối sang màn «Phân định trách nhiệm». Hoàn khách sau Đã giao chỉ đi đường này. */
+function khoiPhanDinh(order: Order, t: Api.OrderPaymentsResponse): HTMLElement | null {
+  if (!t.deliveredAt || order.status === "cancelled" || !can(staff!, "attribution.request") || holdsPartner(staff!)) return null;
+  const so = h("input", { type: "text", inputmode: "numeric", autocomplete: "off" }) as HTMLInputElement;
+  so.addEventListener("input", () => regroupMoney(so));
+  const lyDo = h("input", { type: "text", autocomplete: "off", maxlength: "300", placeholder: "Việc gì đã xảy ra (ít nhất 10 ký tự)" }) as HTMLInputElement;
+  return h("div", { class: "pay-inline", "data-khoi": "phan-dinh" },
+    hangXacNhan({
+      nhan: "Đề nghị phân định", action: "de-nghi-phan-dinh", nutGhi: "Gửi đề nghị",
+      cau: "Khách cần được hoàn hoặc bồi thường, hoặc sổ đã ghi nhầm sau khi giao: gửi đề nghị để Quản trị hoặc Toàn quyền phân định ai chịu.",
+      o: [h("label", null, "Số tiền đề nghị (₫)", so), h("label", null, "Lý do", lyDo)],
+      kiem: () => (parseMoney(so.value) <= 0 ? "Nhập số tiền." : lyDo.value.trim().length < 10 ? "Lý do ít nhất 10 ký tự." : null),
+      ghi: () => api("/api/ledger/phan-dinh", { method: "POST", body: { orderId: order.id, soTien: parseMoney(so.value), lyDo: lyDo.value.trim() } }),
+      bao: "Đã gửi đề nghị phân định.",
+    }),
+    h("a", { class: "btn btn-link", href: "/phan-dinh" }, "Xem phiếu phân định"),
+  );
 }
 
 /** Khối Kế toán dưới danh sách khoản thu: ai đang giữ tiền của công ty vì đơn này → "Đã nộp về công ty"; khách trả dư → "Ghi hoàn cho khách". */
@@ -1017,10 +1039,10 @@ function khoiKeToan(order: Order, t: Api.OrderPaymentsResponse): HTMLElement | n
       kiem: () => (parseMoney(so.value) <= 0 ? "Nhập số tiền." : lyDo.value.trim().length < 10 ? "Lý do ít nhất 10 ký tự." : loiCuaMa(maBu.doc())),
       ghi: async () => {
         try {
-          return await api("/api/ledger/receipt-replacements", {
+          return await guiCoCanhBaoTrung((boQua) => api("/api/ledger/receipt-replacements", {
             method: "POST",
-            body: { orderId: order.id, cu: [], lyDo: lyDo.value.trim(), moi: [{ soTien: parseMoney(so.value), hinhThuc: hinhThuc.value, nguoiThu: nguoiThu.value === "cong_ty" ? "cong_ty" : { partyId: nguoiThu.value }, ...thanCuaMa(maBu.doc()) }] },
-          });
+            body: { ...{ orderId: order.id, cu: [], lyDo: lyDo.value.trim(), moi: [{ soTien: parseMoney(so.value), hinhThuc: hinhThuc.value, nguoiThu: nguoiThu.value === "cong_ty" ? "cong_ty" : { partyId: nguoiThu.value }, ...thanCuaMa(maBu.doc()) }] }, ...(boQua ? { boQuaTrung: boQua } : {}) },
+          }));
         } catch (err) {
           maBu.tuLoi(err);
           throw err;
@@ -1140,7 +1162,7 @@ function nutGhiThu(order: Order, t: Api.OrderPaymentsResponse): HTMLElement {
           ...(ngay?.value ? { ngayPhatSinh: ngay.value } : {}),
           ...thanCuaMa(ma?.doc() ?? null),
         };
-        await api(`/api/orders/${encodeURIComponent(order.id)}/payments`, { method: "POST", body: than });
+        await guiCoCanhBaoTrung((boQua) => api(`/api/orders/${encodeURIComponent(order.id)}/payments`, { method: "POST", body: { ...than, ...(boQua ? { boQuaTrung: boQua } : {}) } }), ghi);
         await load();
         if (bannerEl.hidden) show(banner("info", laBenKia(nguoi.value) && !t.laKeToan ? `Đã ghi khoản ${vnd(so)} — chờ Kế toán xác nhận.` : `Đã ghi khoản thu ${vnd(so)}.`));
       } catch (err) {

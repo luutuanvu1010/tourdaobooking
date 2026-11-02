@@ -34,14 +34,6 @@ const BEN_CHIU = defineSql(
 );
 export const thongTinBenChiu = (db: D1Database, partyId: string) => db.prepare(BEN_CHIU).bind(partyId).first<{ id: string; active: number; la_khach: number; co_vai: number }>();
 
-/** Số phiếu đang chờ phân định (đếm thật cho "Việc của bạn" — chỉ đọc bảng bil_). */
-const DEM_CHO = defineSql(
-  "billing",
-  "pd_dem_cho",
-  `SELECT count(*) AS n FROM bil_attribution q WHERE q.step_code = 'REQUEST' AND NOT EXISTS (SELECT 1 FROM bil_attribution r WHERE r.target_id = q.id AND r.step_code = 'RULING')`,
-);
-export const demChoPhanDinh = async (db: D1Database): Promise<number> => (await db.prepare(DEM_CHO).first<{ n: number }>())?.n ?? 0;
-
 const COLS = "id, order_id, step_code, target_id, root_id, case_code, liable_party_id, amount, money_out, reason, posting_id, created_at, created_by, updated_at, updated_by";
 const CHEN = defineSql("billing", "pd_chen", `INSERT INTO bil_attribution (${COLS}) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?12, ?13)`);
 export const chenPhanDinhStatement = (db: D1Database, d: {

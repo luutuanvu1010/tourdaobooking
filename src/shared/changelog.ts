@@ -12,6 +12,19 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Phân định trách nhiệm sau «Đã giao» (ADR-0116, TNV-G3) và cảnh báo khoản thu giống nhau (ADR-0092 Đ6a, TNV-G4). Có migration 0135; thêm hai ô quyền attribution.request, attribution.decide.
+    // Số 2.58 và ngày chỉ là tạm cho nhánh: bước A.0 của lần triển khai đặt lại nếu cần.
+    version: "2.58",
+    date: "2026-11-02",
+    items: [
+      { kind: "moi", text: "Màn Phân định trách nhiệm: khách cần được hoàn sau khi đơn đã giao thì một người đề nghị, Quản trị hoặc Toàn quyền phân định ai chịu, Kế toán ghi sổ." },
+      { kind: "moi", text: "Người được phân định chịu một khoản nhận tin báo, xem khoản của mình và phản hồi trong 3 ngày làm việc." },
+      { kind: "moi", text: "Sửa khoản thu đã ghi: người thu cũ và người thu mới đều nhận tin báo." },
+      { kind: "moi", text: "Khoản thu tiền mặt cùng số, cùng ngày trên một đơn hoặc mã giao dịch đã gắn ở đơn khác: Nền tảng hỏi lại, vẫn ghi được khi có lý do." },
+      { kind: "doi", text: "Đơn đã giao có giảm trừ theo phân định: số phải thu trên đơn đã trừ phần này và ghi rõ một dòng." },
+    ],
+  },
+  {
     // Đặt vé của đối tác, lượt 2 (ADR-0154 giờ đón + công tắc ẩn thông tin khách, ADR-0155 cột Cấp độ đại lý; chủ duyệt 2/11).
     // Có migration 0133 (cờ miễn danh sách của đơn, bảng chính sách), ba route mới, đổi luật xác nhận đơn đối tác có đón. Không đổi cách tính tiền. Số 2.57 và ngày là TẠM — phiên phát hành kiểm lại ở bước A.0 của docs/HANDOFF-N1.md.
     version: "2.57",

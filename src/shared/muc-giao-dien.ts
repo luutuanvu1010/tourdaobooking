@@ -99,6 +99,8 @@ export const TRANG = {
   soCongNo: { duong: "/so-cong-no", hien: (s) => can(s, "ledger.view") },
   // Điều chỉnh công nợ cần người thứ hai duyệt (ADR-0115 đợt 1): xem danh sách = ô gửi (`ledger.write`) HOẶC ô duyệt (`ledger.adjust.approve`; Quản trị chỉ thấy yêu cầu chờ duyệt).
   dieuChinhCongNo: { duong: "/dieu-chinh-cong-no", hien: (s) => (can(s, "ledger.write") || can(s, "ledger.adjust.approve")) && !holdsPartner(s) }, // R-P18: máy chủ chặn tài khoản giữ quyền Đối tác
+  // Phân định trách nhiệm (ADR-0116): CÙNG điều kiện route GET /api/ledger/phan-dinh — ô đề nghị, phân định hoặc ghi sổ; không giữ quyền Đối tác. Bên chịu mở trang từ tin báo.
+  phanDinh: { duong: "/phan-dinh", hien: (s) => (can(s, "attribution.request") || can(s, "attribution.decide") || can(s, "ledger.write")) && !holdsPartner(s) },
   // Bảng mức hoa hồng và điều khoản người bán (sổ đại lý đợt 1 Task 10): ô partner.commission.view / supply.terms.view không ngữ cảnh. Bảy route `pricing` chặn THÊM tài khoản giữ quyền
   // Đối tác (kể cả tài khoản lai, Ruling 12) — mục hiện phải chặn CÙNG điều kiện, nếu không tài khoản lai thấy mục mà bấm vào bị 403.
   hoaHong: { duong: "/hoa-hong", hien: (s) => can(s, "partner.commission.view") && !holdsPartner(s) },
@@ -199,7 +201,8 @@ export const THANH_BEN = [
   { nhom: "VẬN CHUYỂN", trang: "xe", nhan: "Xe & giấy tờ", bieuTuong: "doc-check", gom: ["xe", "lichXeBan", "sapHetHan"] },
   // Kiểm số 15/10: hai trang có cùng điều kiện hiện trên mọi tập quyền (tập lệch: 0) nên gộp được.
   { nhom: "VẬN CHUYỂN", trang: "bangGiaXe", nhan: "Giá & chi phí", bieuTuong: "money", gom: ["bangGiaXe", "bangKeXe"] },
-  { nhom: "TIỀN", trang: "dieuChinhCongNo", nhan: "Điều chỉnh công nợ", bieuTuong: "money" },
+  // Gộp với Phân định trách nhiệm (ADR-0116): trần 10 khối của thanh bên; hai trang có cùng điều kiện hiện trên mọi tập quyền. Trang Tôi và trang đơn có lối riêng.
+  { nhom: "TIỀN", trang: "dieuChinhCongNo", nhan: "Điều chỉnh công nợ", bieuTuong: "money", gom: ["dieuChinhCongNo", "phanDinh"] },
   // Sổ công nợ (25/10) gộp với Khoá sổ tháng — cùng điều kiện hiện (ledger.view không ngữ cảnh); giữ trần 10 mục hiện sẵn của Toàn quyền. Trang Sổ công nợ có lối sang Khoá sổ tháng.
   { nhom: "TIỀN", trang: "soCongNo", nhan: "Sổ công nợ & khoá sổ", bieuTuong: "lock", gom: ["soCongNo", "khoaThang"] },
   { nhom: "THIẾT LẬP", trang: "hoaHong", nhan: "Hoa hồng đối tác" },
@@ -294,6 +297,7 @@ export const TRANG_TOI = [
   { phan: "sau", trang: "soCongNo", nhan: "Sổ công nợ" },
   { phan: "sau", trang: "khoaThang", nhan: "Khoá sổ tháng" },
   { phan: "sau", trang: "dieuChinhCongNo", nhan: "Điều chỉnh công nợ" },
+  { phan: "sau", trang: "phanDinh", nhan: "Phân định trách nhiệm" },
   { phan: "sau", trang: "hoaHong", nhan: "Hoa hồng đối tác" },
   { phan: "sau", trang: "luatBan", nhan: "Luật bán" },
   { phan: "sau", trang: "dacDiem", nhan: "Đặc điểm dịch vụ" },

@@ -26,7 +26,7 @@ import {
 } from "./service";
 import { ghiThayLanThu } from "./thay-lan-thu";
 import { daoKhoan, danhSachPhanDinh, doiBenChiu, ghiTheoPhanDinh, khoanCuaToi, phanDinh, phanHoi, taoDeNghi } from "./phan-dinh";
-import { demChoPhanDinh, phanDinhTheoId } from "./phan-dinh-repo";
+import { phanDinhTheoId } from "./phan-dinh-repo";
 
 const NOT_FOUND = () => error(404, "not_found", "Không tìm thấy đơn.");
 const FORBIDDEN_VIEW = () => error(403, "forbidden", "Tài khoản này không được xem thông tin này.");
@@ -491,10 +491,6 @@ export const billingModule: AppModule = {
       if (!coO || holdsPartner(staff)) return FORBIDDEN_PHAN_DINH();
       const ghi = ghiSoNoiBo(staff, "ledger.write");
       return json(await danhSachPhanDinh(env.DB, { ai: nguoiGoi(staff), quyen: { deNghi: can(staff, "attribution.request"), quyet: can(staff, "attribution.decide"), ghi, hoan: ghi && can(staff, "payment.refund"), xemHet: can(staff, "ledger.view") } }));
-    }),
-    route("GET", "/api/ledger/phan-dinh/dem", "office", async ({ env, staff }) => {
-      if (!can(staff, "attribution.decide") || holdsPartner(staff)) return FORBIDDEN_PHAN_DINH();
-      return json({ choPhanDinh: await demChoPhanDinh(env.DB) });
     }),
     route("POST", "/api/ledger/phan-dinh", "office", async ({ env, request, staff }) => {
       if (!can(staff, "attribution.request") || holdsPartner(staff)) return FORBIDDEN_PHAN_DINH();
