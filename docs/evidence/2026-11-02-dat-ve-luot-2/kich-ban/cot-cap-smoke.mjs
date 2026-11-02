@@ -1,14 +1,14 @@
 // Kịch bản Chrome — cột «Cấp độ đại lý» ở Quản lý tài khoản (ADR-0155 Đ2; kế hoạch lượt 2 Task 4.2, bước 11, 12, 13; Ruling R10: tệp RIÊNG, không thêm bước vào luot-2-smoke.mjs).
 // Đây là rào DUY NHẤT cho phần GIAO DIỆN của cột: `npm test` canh luật thuần (src/shared/cap-hien-hanh-hien-thi.test.ts), máy chủ (src/modules/pricing/cap-hien-hanh-route.test.ts) và nối dây
 // (src/cot-cap-dai-ly-noi-day.test.ts), nhưng không bài nào mở trang.
-//   11. Quản trị 1040: đủ năm trạng thái ở ô, đặt cấp (bảng bấm, ngày mặc định hôm nay), đổi cấp (ngày mặc định hôm nay vì cấp cũ bắt đầu từ trước), «Dùng cấp theo vai trò» (có hiệu lực từ ngày mai,
-//       ô hiện «Theo vai trò từ <ngày>» + liên kết «Sửa ở trang Hoa hồng»); chỉ ba route ghi có sẵn được gọi, không gọi route hoa hồng theo từng hồ sơ; không tràn ngang, không mã thô, axe.
+//   11. Quản trị 1040: đủ năm trạng thái ở ô, đặt cấp (bảng bấm, ngày mặc định hôm nay), đổi cấp (ngày mặc định hôm nay vì cấp cũ bắt đầu từ trước), «Dùng cấp theo vai trò» (câu cố định «Có hiệu lực từ ngày mai. Nếu vai trò chưa có cấp, tài khoản sẽ thành «Chưa có cấp».» cạnh nút; ô hiện «Theo vai trò từ <ngày>» + liên kết «Sửa ở trang Hoa hồng»); chỉ ba route ghi có sẵn được gọi, không gọi route hoa hồng theo từng hồ sơ; không tràn ngang, không mã thô, axe.
 //   12. Quản trị 390: thẻ điện thoại có đúng ô đó (cùng chữ), bấm mở được bảng, không tràn ngang, không mã thô, axe.
 //   13. Hành chính nhân sự: không cột, không ô, KHÔNG gọi route /api/pricing/* (bộ đếm `fetch` gắn vào trang TRƯỚC khi mã trang chạy).
 // Thứ tự (ADR-0075 + kho cookie dùng chung): mọi lời gọi API dựng dữ liệu làm TRƯỚC khi mở trang; trong lúc trang của tài khoản nào đang mở thì không gọi API bằng tài khoản đó
 // (đăng nhập lại đá phiên của trang). Tên, số điện thoại, mã đều GIẢ. Môi trường: D1 tạm + wrangler dev + Chrome headless qua CDP — không --remote, không gọi production.
 // Dựng dữ liệu (không dùng để kiểm giao diện): ba cấp «Cấp một / hai / ba Chrome»; loại có sẵn Hướng dẫn viên độc lập và Công ty lữ hành gắn cấp một, Lễ tân khách sạn không gắn;
 // năm tài khoản đối tác: Riêng (cấp riêng cấp hai từ 3 ngày trước), Theo Vai (loại gắn cấp một), Chưa Cấp (loại chưa gắn cấp), Hai Vai (hai loại khác cấp), Chưa Vai (quyền Đối tác, hồ sơ chưa mang vai nào).
+// Không mô phỏng được: trang mở xuyên nửa đêm (đồng hồ máy chủ không giả được ở đây) — phần đó do src/shared/cap-hien-hanh-hien-thi.test.ts canh bằng đồng hồ giả, qua route thật (bài n1, n2); kịch bản này chỉ canh sau khi lưu tiêu điểm về đúng ô.
 // CHƯA CHẠY lần nào khi viết (Task 4.2 cấm chạy kịch bản Chrome): nếu một bước đỏ vì dữ liệu dựng chưa đúng (vd. API tạo tài khoản đòi thêm khoá), sửa phần «Dựng dữ liệu», không sửa mã giao diện.
 // Chạy từ GỐC repo, sau `npm run build:web`:
 //   AXE_JS=<…/axe.min.js> CHROME_BIN=$PWD/docs/evidence/2026-09-20-a2/kich-ban/chrome-wrap.sh OUT=docs/evidence/2026-11-02-dat-ve-luot-2 node docs/evidence/2026-11-02-dat-ve-luot-2/kich-ban/cot-cap-smoke.mjs
@@ -94,6 +94,8 @@ try {
   const chonCap = (ten) => `(() => { const s = document.querySelector('#cap-chon'); const o = s && [...s.options].find((x) => x.textContent === ${JSON.stringify(ten)}); if (!o) return false; s.value = o.value; s.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`;
   const bamLuu = `(() => { const n = [...document.querySelectorAll('.sheet-foot button')].find((x) => x.textContent.trim() === 'Lưu'); if (!n) return false; n.click(); return true; })()`;
   const bangDong = `!document.querySelector('.sheet-root')`;
+  // Sau khi lưu và vẽ lại cả bảng, tiêu điểm bàn phím phải nằm trong ĐÚNG hàng (hoặc thẻ) của hồ sơ vừa lưu (kiểm độc lập m-4), không rơi về đầu trang.
+  const tieuDiemTrongHang = (ten, goc) => `((x) => !!x && x.contains(document.activeElement) && !!document.activeElement.closest('.cot-cap'))(${hang(ten, goc)})`;
   const HANG_BANG = "#list tr";
   const HANG_THE = "#list-cards .card";
 
@@ -136,18 +138,21 @@ try {
     assert.equal(await p.ev(bamLuu), true);
     await p.waitFor(bangDong, "bảng đã đóng");
     await p.waitFor(`/^Cấp ba Chrome \\(cấp riêng\\)/.test(${chuO(TEN.chuaCap, HANG_BANG)} ?? '')`, "ô đổi thành cấp riêng");
+    await p.waitFor(tieuDiemTrongHang(TEN.chuaCap, HANG_BANG), "tiêu điểm về ô của đúng hồ sơ vừa lưu");
   });
   await b.step("11c", "Đổi cấp: «Đại Lý Riêng» (cấp riêng bắt đầu từ 3 ngày trước) → ngày mặc định hôm nay, có «Dùng cấp theo vai trò» kèm «Có hiệu lực từ ngày mai.»; đổi sang cấp một → ô đổi", async () => {
     assert.equal(await p.ev(bamNutO(TEN.rieng, HANG_BANG)), true);
     await p.waitFor(`!!document.querySelector('.sheet #cap-chon')`, "bảng mở");
     assert.equal(await p.ev(`document.querySelector('#cap-tu-ngay').value`), vnDate(0), "cấp riêng cũ bắt đầu trước hôm nay ⇒ đổi từ hôm nay");
     assert.equal(await p.ev(`!!document.querySelector('#cap-dung-theo-vai-tro')`), true, "có nút «Dùng cấp theo vai trò»");
-    assert.match(await p.ev(`document.querySelector('.sheet-body').innerText`), /Có hiệu lực từ ngày mai\./);
+    // R13: câu cố định cạnh nút nói cả ngày hiệu lực lẫn hậu quả khi vai trò chưa có cấp.
+    assert.match(await p.ev(`document.querySelector('.sheet-body').innerText`), /Có hiệu lực từ ngày mai\. Nếu vai trò chưa có cấp, tài khoản sẽ thành «Chưa có cấp»\./);
     await shotView(p, "cot-cap-1040-bang-doi.png");
     assert.equal(await p.ev(chonCap(CAP.mot)), true);
     assert.equal(await p.ev(bamLuu), true);
     await p.waitFor(bangDong, "bảng đã đóng");
     await p.waitFor(`/^Cấp một Chrome \\(cấp riêng\\)/.test(${chuO(TEN.rieng, HANG_BANG)} ?? '')`, "ô đổi sang cấp một");
+    await p.waitFor(tieuDiemTrongHang(TEN.rieng, HANG_BANG), "tiêu điểm về ô của đúng hồ sơ vừa lưu");
   });
   await b.step("11d", "«Dùng cấp theo vai trò»: «Đại Lý Riêng» → vẫn «(cấp riêng)» hôm nay, ô nói «Theo vai trò từ <ngày mai>» và có liên kết «Sửa ở trang Hoa hồng», không còn nút đổi", async () => {
     assert.equal(await p.ev(bamNutO(TEN.rieng, HANG_BANG)), true);
@@ -160,6 +165,7 @@ try {
     assert.match(o, /Sửa ở trang Hoa hồng/);
     assert.equal(await p.ev(`!!(${hang(TEN.rieng, HANG_BANG)}).querySelector('.cot-cap button')`), false, "đã hẹn ngày ngừng ⇒ không đổi ở đây");
     assert.equal(await p.ev(`(${hang(TEN.rieng, HANG_BANG)}).querySelector('.cot-cap a[href="/hoa-hong"]') !== null`), true);
+    await p.waitFor(tieuDiemTrongHang(TEN.rieng, HANG_BANG), "ô không còn nút nhưng tiêu điểm vẫn về chính ô của hồ sơ vừa lưu");
     await shotView(p, "cot-cap-1040-dung-theo-vai-tro.png");
   });
   await b.step("11e", "Mạng: chỉ ba route ghi có sẵn (đặt, đổi, ngừng cấp riêng) mỗi route đúng một lần; mỗi lần lưu đọc lại cấp hiện hành; không gọi route hoa hồng theo từng hồ sơ", async () => {

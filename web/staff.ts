@@ -10,7 +10,7 @@ import { initShell, showError } from "./shell";
 import { nhanHaiLop } from "../src/shared/hai-lop-hien-thi";
 import { dungHangChoXacMinh } from "./xac-minh-hang-cho";
 import { CHU_CAP, suaDuocCot, thayCotCap } from "../src/shared/cap-hien-hanh-hien-thi";
-import { oCap, oCapKhongTai, taiCapHienHanh } from "./cot-cap-dai-ly";
+import { datTieuDiemODongCap, oCap, oCapDangNap, oCapKhongTai, taiCapHienHanh } from "./cot-cap-dai-ly";
 import type { CapHienHanhDto } from "../src/shared/contracts";
 
 const errorEl = byId("error");
@@ -38,9 +38,12 @@ let canAccessManage = false;
 let me: { id: string; permissions: readonly PermissionCode[] };
 let accounts: Api.StaffListRowDto[] = [];
 // Cột «Cấp độ đại lý» (ADR-0155 Đ2): chỉ khi người xem có ô xem hoa hồng đối tác và không giữ quyền Đối tác (`thayCotCap`) — Hành chính nhân sự không thấy và không gọi route.
-// `capHienHanh` null = chưa nạp được (route lỗi): ô hiện «—», bảng tài khoản vẫn vẽ.
+// `capHienHanh`: undefined = đang nạp lần đầu (ô hiện «Đang tải…»); null = nạp lỗi (ô hiện «—», bảng tài khoản vẫn vẽ).
+// Cấp nạp SONG SONG với danh sách tài khoản (kiểm độc lập m-2): bảng vẽ ngay khi danh sách về, không chờ route cấp.
 let hienCotCap = false;
-let capHienHanh: Map<string, CapHienHanhDto> | null = null;
+let capHienHanh: Map<string, CapHienHanhDto> | null | undefined = undefined;
+let lanNapCap = 0; // số thứ tự lần nạp: lần nạp cũ về muộn không ghi đè lần mới hơn
+let daVeLanDau = false; // đã vẽ bảng từ danh sách chưa — cấp về trước thì để `load` vẽ, về sau thì vẽ lại
 const cotCapEl = byId("cot-cap");
 
 // Bộ lọc theo vai trò (đặt vé của đối tác, lượt 1, Task 4; đặc tả §4.4): lọc ngay trên danh sách ĐÃ NẠP (`accounts`), cả bảng máy tính lẫn thẻ điện thoại; bấm nút chỉ vẽ lại, không gọi máy chủ.
@@ -154,14 +157,30 @@ function openTatHaiLop(s: Api.StaffListRowDto): void {
   editEl.scrollIntoView({ block: "nearest" });
 }
 
-/** Sau khi lưu một cấp ở bảng bấm: nạp lại cấp hiện hành rồi vẽ lại (không gọi lại danh sách tài khoản). */
-async function lamMoiCap(): Promise<void> {
-  capHienHanh = hienCotCap ? await taiCapHienHanh() : null;
-  ve();
+/** Nạp cấp hiện hành (MỘT chỗ duy nhất gọi route cấp). Không hiện cột ⇒ không gọi gì (Hành chính nhân sự không có ô xem). Về xong thì vẽ lại nếu bảng đã vẽ. */
+function napCap(): Promise<void> {
+  if (!hienCotCap) return Promise.resolve();
+  const lan = ++lanNapCap;
+  return taiCapHienHanh().then((m) => {
+    if (lan !== lanNapCap) return;
+    capHienHanh = m;
+    if (daVeLanDau) ve();
+  });
+}
+/** Sau khi lưu một cấp ở bảng bấm: nạp lại cấp hiện hành, vẽ lại (không gọi lại danh sách tài khoản), rồi đặt tiêu điểm bàn phím về ô của đúng hồ sơ vừa lưu (nút mở bảng đã bị vẽ lại). */
+async function lamMoiCap(partyId: string): Promise<void> {
+  await napCap();
+  datTieuDiemODongCap(partyId);
 }
 /** Nội dung ô «Cấp độ đại lý» của một dòng (bảng và thẻ dùng CHUNG một hàm); null = không có ô (người xem không thấy cột, hoặc dòng không giữ quyền Đối tác). */
 const oCapCuaS = (s: Api.StaffListRowDto): HTMLElement | null =>
-  !hienCotCap ? null : capHienHanh === null ? oCapKhongTai(s) : oCap(s, s.partyId === null ? undefined : capHienHanh.get(s.partyId), suaDuocCot(me), lamMoiCap);
+  !hienCotCap
+    ? null
+    : capHienHanh === undefined
+      ? oCapDangNap(s)
+      : capHienHanh === null
+        ? oCapKhongTai(s)
+        : oCap(s, s.partyId === null ? undefined : capHienHanh.get(s.partyId), suaDuocCot(me), lamMoiCap);
 
 function row(s: Api.StaffListRowDto): HTMLElement {
   const btn = (label: string, onclick: () => void, cls = "btn btn-link") => {
@@ -347,12 +366,13 @@ async function openEdit(s: StaffAccount): Promise<void> {
 }
 
 async function load(): Promise<void> {
+  void napCap(); // chạy song song với danh sách, KHÔNG chờ: lỗi route cấp không chặn bảng (null ⇒ ô «—»), chậm cũng không làm bảng chậm theo
   const r = await act(() => api<Api.StaffListResponse>("/api/staff"));
   if (!r) return;
   accounts = r.staff;
   tenVai = r.tenVai;
-  capHienHanh = hienCotCap ? await taiCapHienHanh() : null; // lỗi route không chặn bảng: null ⇒ ô «—»
   ve();
+  daVeLanDau = true;
 }
 
 /** Vẽ hàng nút lọc, bảng và thẻ từ `accounts` đã nạp (không gọi máy chủ). Vai vừa hết người giữ thì nút biến mất và lựa chọn đã nhớ về «Tất cả». */

@@ -41,17 +41,53 @@ test("(e3-2) web/staff.ts: route đọc chỉ gọi sau thayCotCap; quyền sử
   assert.ok(gan.length >= 1, "hienCotCap phải được gán");
   for (const g of gan) assert.match(g, /^(false|thayCotCap\(\w+\))$/, `hienCotCap gán từ ${g}`);
   assert.ok(gan.some((g) => g.startsWith("thayCotCap(")), "có một chỗ gán từ thayCotCap");
-  // mọi lời gọi taiCapHienHanh (ngoài dòng nhập) nằm sau điều kiện hienCotCap
+  // MỘT chỗ duy nhất gọi route cấp (hàm napCap), và hàm đó mở đầu bằng điều kiện hienCotCap: Hành chính nhân sự không có ô xem nên không gọi
   const dong = ma.split("\n").filter((l) => /\btaiCapHienHanh\(/.test(l));
-  assert.ok(dong.length >= 2, `cả lần nạp danh sách lẫn lần làm mới sau khi lưu đều gọi (${dong.length})`);
-  for (const l of dong) assert.match(l, /hienCotCap\s*\?/, `lời gọi không có hienCotCap đứng trước: ${l.trim()}`);
+  assert.equal(dong.length, 1, `đúng một lời gọi taiCapHienHanh (ngoài dòng nhập): ${dong.map((l) => l.trim()).join(" | ")}`);
+  const nap = ma.slice(ma.indexOf("function napCap("), ma.indexOf("async function lamMoiCap("));
+  assert.ok(nap.length > 20 && nap.includes("taiCapHienHanh("), "napCap gọi taiCapHienHanh");
+  assert.match(nap, /^function napCap\(\)[^{]*\{\s*if \(!hienCotCap\) return/, "napCap mở đầu bằng điều kiện hienCotCap");
   assert.match(ma, /cotCapEl\.hidden\s*=\s*!hienCotCap/, "tiêu đề cột chỉ hiện khi thayCotCap");
   assert.match(ma, /\bsuaDuocCot\(me\)/, "quyền sửa lấy từ suaDuocCot");
-  // ô nằm ở CẢ bảng lẫn thẻ điện thoại
+  // ô nằm ở CẢ bảng lẫn thẻ điện thoại; hàng bảng chỉ vẽ ô khi cột hiện (W6 của người kiểm: Hành chính nhân sự không được thấy bảng lệch cột)
   const hamRow = ma.slice(ma.indexOf("function row("), ma.indexOf("function card("));
   const hamCard = ma.slice(ma.indexOf("function card("), ma.indexOf("async function openEdit("));
   assert.match(hamRow, /oCapCuaS\(s\)/, "bảng có ô");
+  assert.match(hamRow, /hienCotCap\s*&&\s*h\("td"/, "ô của hàng bảng chỉ dựng khi cột hiện");
   assert.match(hamCard, /oCapCuaS\(s\)/, "thẻ điện thoại có ô");
+  assert.match(hamCard, /oCapThe\s*&&/, "thẻ chỉ dựng dòng khi có ô");
+  // ô: không hiện cột ⇒ null; đang nạp lần đầu ⇒ «Đang tải»; nạp lỗi ⇒ «—» (W5 của người kiểm: vế này không được gỡ lặng lẽ)
+  const oCapCuaS = ma.slice(ma.indexOf("const oCapCuaS"), ma.indexOf("function row("));
+  assert.match(oCapCuaS, /!hienCotCap\s*\?\s*null/, "không hiện cột ⇒ không ô");
+  assert.match(oCapCuaS, /capHienHanh === undefined\s*\?\s*oCapDangNap\(s\)/, "đang nạp ⇒ ô «Đang tải»");
+  assert.match(oCapCuaS, /capHienHanh === null\s*\?\s*oCapKhongTai\(s\)/, "nạp lỗi ⇒ ô «—»");
+});
+
+test("(e3-6) nạp cấp SONG SONG với danh sách tài khoản, bảng không chờ route cấp; lưu xong đặt lại tiêu điểm về ô của đúng hồ sơ (kiểm độc lập m-2, m-4)", () => {
+  const ma = boChuThich(doc("web/staff.ts"));
+  const load = ma.slice(ma.indexOf("async function load("), ma.indexOf("function ve("));
+  assert.ok(load.length > 50, "tìm thấy hàm load");
+  const iNap = load.indexOf("napCap()");
+  const iDs = load.indexOf("await act(");
+  assert.ok(iNap >= 0 && iDs >= 0 && iNap < iDs, "load bắt đầu nạp cấp TRƯỚC khi chờ danh sách (chạy song song)");
+  assert.ok(!/await\s+(napCap|taiCapHienHanh)/.test(load), "load không chờ route cấp: bảng vẽ ngay khi danh sách về");
+  assert.ok(load.indexOf("ve()") > load.indexOf("accounts = r.staff"), "load vẽ ngay sau khi gán danh sách");
+  assert.match(load, /daVeLanDau\s*=\s*true/, "đánh dấu đã vẽ lần đầu (để nạp cấp về sau mới vẽ lại)");
+  const nap = ma.slice(ma.indexOf("function napCap("), ma.indexOf("async function lamMoiCap("));
+  assert.match(nap, /const lan = \+\+lanNapCap/, "mỗi lần nạp có số thứ tự");
+  assert.match(nap, /if \(lan !== lanNapCap\) return/, "kết quả của lần nạp cũ không ghi đè lần mới hơn");
+  assert.match(nap, /if \(daVeLanDau\) ve\(\)/, "cấp về sau danh sách thì vẽ lại; về trước thì để load vẽ (không vẽ danh sách rỗng, vì sẽ xoá lựa chọn lọc đã nhớ)");
+  // lưu xong: nạp lại, vẽ lại, rồi đặt tiêu điểm
+  const lamMoi = ma.slice(ma.indexOf("async function lamMoiCap("), ma.indexOf("const oCapCuaS"));
+  assert.match(lamMoi, /async function lamMoiCap\(partyId: string\)/, "lamMoiCap biết hồ sơ vừa lưu");
+  assert.ok(lamMoi.indexOf("await napCap()") >= 0 && lamMoi.indexOf("datTieuDiemODongCap(partyId)") > lamMoi.indexOf("await napCap()"), "đặt tiêu điểm SAU khi vẽ lại");
+  const cot = boChuThich(doc("web/cot-cap-dai-ly.ts"));
+  assert.match(cot, /await lamMoi\(v\.partyId\)/, "bảng bấm báo cho trang hồ sơ nào vừa lưu");
+  assert.match(cot, /"data-party":/, "ô mang mã hồ sơ để tìm lại sau khi vẽ lại");
+  const hamTieuDiem = cot.slice(cot.indexOf("export function datTieuDiemODongCap"));
+  assert.match(hamTieuDiem, /getClientRects\(\)\.length > 0/, "chỉ ô đang hiện (bảng hoặc thẻ)");
+  assert.match(hamTieuDiem, /\.focus\(\)/);
+  assert.match(cot, /tabindex: -1/, "ô không có nút vẫn nhận được tiêu điểm");
 });
 
 test("(e3-3) chỉ web/staff.ts nhập web/cot-cap-dai-ly.ts; tệp luật thuần chỉ do tệp cột nhập (ngoài bài kiểm)", () => {
@@ -88,10 +124,20 @@ test("(e3-5) tệp cột: không confirm / alert / innerHTML; lỗi đọc khôn
   assert.match(tai, /catch/, "taiCapHienHanh nuốt lỗi");
   assert.match(tai, /return null/, "và trả null để ô hiện —");
   assert.match(ma, /\/api\/pricing\/cap-hien-hanh/);
-  assert.match(ma, /yeuCauGhiCap\(/, "lệnh ghi do hàm thuần dựng");
+  assert.match(ma, /thucHienLenhGhiCap\(/, "lệnh ghi do hàm thuần dựng và chạy");
+  assert.ok(!/\byeuCauGhiCap\(/.test(ma), "web không tự dựng lệnh: đi qua thucHienLenhGhiCap (đọc lại ngày máy chủ lúc bấm)");
   assert.match(ma, /nutMoBang\(o, suaDuoc\)/, "chữ chính là nút hay chữ do hàm thuần nutMoBang quyết, không điều kiện chép tay");
   assert.match(ma, /oCapCuaDong\(dong, v\)/, "chữ trong ô lấy từ hàm thuần oCapCuaDong");
   assert.match(ma, /macDinhBangCap\(v, homNay, xem\)/, "ngày mặc định lấy từ hàm thuần macDinhBangCap");
+  // N-1 (ruling R12): KHÔNG giữ «hôm nay» từ lúc tải trang. Ngày của bảng = ngày máy chủ lúc MỞ (xem.homNay trước, rồi ngày của danh sách cấp); «Dùng cấp theo vai trò» đọc lại ngày lúc BẤM (`…/sua`).
+  assert.ok(!/homNayMay/.test(ma), "không còn biến giữ ngày từ lúc tải trang");
+  assert.match(ma, /const homNay = ngayMayLucMo\(xem, mt\.homNay\)/, "ngày lúc mở bảng = ngày máy chủ vừa trả");
+  const doc1 = ma.slice(ma.indexOf("docNgayMay"), ma.indexOf("docNgayMay") + 500);
+  assert.match(doc1, /\/sua`/, "đọc ngày lúc bấm bằng route có sẵn …/sua");
+  assert.match(doc1, /\.homNay/, "lấy homNay của máy chủ");
+  assert.match(doc1, /catch\s*\{\s*return null/, "không đọc được ⇒ null (hàm thuần sẽ không gửi)");
+  // R13: câu cố định cạnh nút
+  assert.match(ma, /dung,\s*h\("div",\s*\{\s*class:\s*"vc-hint"\s*\},\s*CHU_CAP\.dungTheoVaiTroLuuY\)/, "câu «Có hiệu lực từ ngày mai. Nếu vai trò chưa có cấp…» nằm ngay cạnh nút");
   assert.ok(!/\/api\/pricing\/muc-rieng\/\$\{[^}]*\}\/(doi|ket-thuc)|ho-so\/\$\{[^}]*\}\/muc-rieng/.test(ma), "địa chỉ ba route chỉ ở hàm thuần yeuCauGhiCap, không chép tay");
   for (const o of ma.matchAll(/h\("(input|select)",\s*\{([^}]*)\}/g)) assert.match(o[2]!, /vc-input/, `ô gõ thiếu lớp vc-input: ${o[0].slice(0, 60)}`);
   assert.ok([...ma.matchAll(/h\("(input|select)"/g)].length >= 2, "chống bài rỗng: có ô chọn cấp và ô ngày");

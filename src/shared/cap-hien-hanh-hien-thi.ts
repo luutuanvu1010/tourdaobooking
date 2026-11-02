@@ -21,8 +21,12 @@ export const CHU_CAP = {
   tuNgay: "Từ ngày",
   luu: "Lưu",
   dungTheoVaiTro: "Dùng cấp theo vai trò",
-  hieuLucNgayMai: "Có hiệu lực từ ngày mai.",
+  // Ruling R13 (chủ dự án, qua điều phối 2/11): câu CỐ ĐỊNH cạnh nút — nói cả ngày hiệu lực lẫn hậu quả khi vai trò chưa gắn cấp (DTO không cho biết cấp theo vai trò khi đang có cấp riêng, nên không thể
+  // cảnh báo riêng từng hồ sơ; không thêm khoá DTO).
+  dungTheoVaiTroLuuY: "Có hiệu lực từ ngày mai. Nếu vai trò chưa có cấp, tài khoản sẽ thành «Chưa có cấp».",
   chuaChonCap: "Chọn cấp độ đại lý.",
+  khongDocDuocNgay: "Không đọc được ngày của máy chủ nên chưa lưu gì. Thử lại sau.",
+  dangTai: "Đang tải…",
   khongCoCapNaoBat: "Chưa có cấp độ đại lý nào đang mở — tạo ở trang Hoa hồng trước.",
   khongTaiDuocDanhSach: "Không tải được danh sách cấp độ đại lý.",
   khongKetNoi: "Không kết nối được máy chủ.",
@@ -104,18 +108,54 @@ export function cauNgayMacDinh(m: MacDinhBang, v: CapHienHanhDto, homNay: string
   return "Đơn đã xác nhận không đổi; đơn xác nhận từ ngày này tính theo cấp mới.";
 }
 
-export type LenhGhiCap =
+/**
+ * Ngày «hôm nay» của bảng bấm = ngày MÁY CHỦ vừa trả lúc MỞ bảng (ruling R12): `xem.homNay` của `GET …/muc-rieng/:id/sua` nếu có (hồ sơ đã có cấp riêng), không thì `homNay` của danh sách cấp
+ * (`GET /api/pricing/muc-ta`) đọc cùng lúc mở. KHÔNG dùng ngày giữ từ lúc tải trang: trang mở xuyên nửa đêm (giờ Việt Nam) làm ngày đó cũ một ngày.
+ */
+export const ngayMayLucMo = (xem: SuaXemTruocResponse | null, homNayDanhSach: string): string => xem?.homNay ?? homNayDanhSach;
+
+/** Ý định của người bấm. Lệnh «Dùng cấp theo vai trò» không có ô ngày hiện ra, nên KHÔNG mang ngày: ngày được đọc lại từ máy chủ ngay lúc bấm (`thucHienLenhGhiCap`). */
+export type YDinhGhiCap =
   | { kieu: "DAT"; muc: string; tuNgay: string }
   | { kieu: "DOI"; muc: string; tuNgay: string }
   | { kieu: "DUNG_THEO_VAI_TRO" };
+/** Lệnh đã đủ dữ kiện để gửi: «Dùng cấp theo vai trò» mang ngày máy chủ đọc lúc bấm. */
+export type LenhGhiCap =
+  | { kieu: "DAT"; muc: string; tuNgay: string }
+  | { kieu: "DOI"; muc: string; tuNgay: string }
+  | { kieu: "DUNG_THEO_VAI_TRO"; homNay: string };
 /**
  * Yêu cầu gửi lên máy chủ cho một lệnh ghi của bảng bấm — đúng ba route có sẵn, KHÔNG route mới (ADR-0155 Đ2.5): đặt `POST /api/pricing/ho-so/:id/muc-rieng { muc, tuNgay }`; đổi
  * `POST /api/pricing/muc-rieng/:id/doi { muc, tuNgay }`; «Dùng cấp theo vai trò» `POST /api/pricing/muc-rieng/:id/ket-thuc { denNgay: hôm nay }` (cấp riêng hết hôm nay, từ ngày mai theo vai trò).
  * null khi lệnh không hợp với trạng thái (đổi / ngừng mà chưa có cấp riêng).
  */
-export function yeuCauGhiCap(lenh: LenhGhiCap, v: CapHienHanhDto, homNay: string): { url: string; body: Record<string, string> } | null {
+export function yeuCauGhiCap(lenh: LenhGhiCap, v: CapHienHanhDto): { url: string; body: Record<string, string> } | null {
   if (lenh.kieu === "DAT") return { url: `/api/pricing/ho-so/${encodeURIComponent(v.partyId)}/muc-rieng`, body: { muc: lenh.muc, tuNgay: lenh.tuNgay } };
   if (v.rieng === null) return null;
   if (lenh.kieu === "DOI") return { url: `/api/pricing/muc-rieng/${encodeURIComponent(v.rieng.id)}/doi`, body: { muc: lenh.muc, tuNgay: lenh.tuNgay } };
-  return { url: `/api/pricing/muc-rieng/${encodeURIComponent(v.rieng.id)}/ket-thuc`, body: { denNgay: homNay } };
+  return { url: `/api/pricing/muc-rieng/${encodeURIComponent(v.rieng.id)}/ket-thuc`, body: { denNgay: lenh.homNay } };
+}
+
+/** Hai việc có I/O của bảng bấm, do nơi gọi (web) đưa vào để luật chạy được cả trong bài kiểm với máy chủ thật. */
+export interface DuongGhiCap {
+  /** Đọc ngày hôm nay của MÁY CHỦ ngay lúc gọi (không dùng ngày giữ từ trước). null = không đọc được. */
+  docNgayMay(): Promise<string | null>;
+  /** Gửi một yêu cầu ghi. Trả null khi máy chủ nhận, hoặc câu lỗi để hiện tại chỗ. */
+  gui(yc: { url: string; body: Record<string, string> }): Promise<string | null>;
+}
+/**
+ * Chạy một lệnh ghi của bảng bấm; trả null khi xong, hoặc câu lỗi để hiện ngay trong bảng.
+ * Ruling R12 (kiểm độc lập N-1): lệnh «Dùng cấp theo vai trò» không có ô ngày để người dùng thấy, nên ngày kết thúc = ngày máy chủ ĐỌC LẠI ngay lúc bấm. Không đọc được ngày ⇒ KHÔNG gửi.
+ * Lệnh đặt / đổi có ô ngày hiện ra: dùng đúng ngày người dùng thấy (đã lấy từ ngày máy chủ lúc mở bảng, `ngayMayLucMo`), không đọc lại; máy chủ vẫn kiểm.
+ */
+export async function thucHienLenhGhiCap(y: YDinhGhiCap, v: CapHienHanhDto, dep: DuongGhiCap): Promise<string | null> {
+  let lenh: LenhGhiCap;
+  if (y.kieu === "DUNG_THEO_VAI_TRO") {
+    const homNay = await dep.docNgayMay();
+    if (homNay === null) return CHU_CAP.khongDocDuocNgay;
+    lenh = { kieu: "DUNG_THEO_VAI_TRO", homNay };
+  } else lenh = y;
+  const yc = yeuCauGhiCap(lenh, v);
+  if (yc === null) return CHU_CAP.khongSuaDuoc;
+  return dep.gui(yc);
 }

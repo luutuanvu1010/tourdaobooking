@@ -257,6 +257,26 @@ test("(f4) phản hồi không có tên hồ sơ, SĐT, email; không nhật ký
   assert.equal(Number(w.q("SELECT count(*) n FROM audit_log")[0].n), truoc, "chỉ đọc: không nhật ký");
 });
 
+test("(f5) hai vai trò, một có cấp một chưa có cấp, vai chưa có cấp có mã đứng TRƯỚC (và đứng SAU): cấp là của vai có cấp, khớp route hồ sơ (kiểm độc lập m-1, phá thử M6f)", async () => {
+  const w = setup();
+  // Mã loại tự thêm do máy chủ sinh NGẪU NHIÊN ⇒ sắp ba loại theo mã rồi gắn cấp cho loại GIỮA, để thứ tự không phụ thuộc may rủi.
+  const [l1, l2, l3] = [await themLoai(w, "Loại Một"), await themLoai(w, "Loại Hai"), await themLoai(w, "Loại Ba")].sort();
+  const mucA = await taoMuc(w, "Cấp A", 1000);
+  await ganMuc(w, l2, mucA);
+  const p1 = themHoSo(w, 1), p2 = themHoSo(w, 2);
+  await ganHoSo(w, p1, l1); await ganHoSo(w, p1, l2); // vai chưa có cấp (l1) đứng TRƯỚC vai có cấp (l2)
+  await ganHoSo(w, p2, l2); await ganHoSo(w, p2, l3); // vai chưa có cấp (l3) đứng SAU
+  const r = await ok(doc(w, ADM), 200);
+  for (const [id, viTriChuaCap] of [[p1, 0], [p2, 1]] as const) {
+    const e = (await ok(w.call("GET", `/api/pricing/ho-so/${id}/hoa-hong`, { as: ADM }), 200)).json;
+    assert.equal(e.vai.length, 2);
+    assert.equal(e.vai[viTriChuaCap].muc, null, "điều kiện của bài: vai chưa có cấp nằm đúng vị trí (trước / sau vai có cấp)");
+    assert.equal(e.vai[1 - viTriChuaCap].muc?.code, mucA);
+    const d = hoSoCua(r, id);
+    assert.deepEqual([d.nguon, d.cap?.code], ["THEO_VAI", mucA], `hồ sơ có vai chưa-cấp ở vị trí ${viTriChuaCap}`);
+  }
+});
+
 test("doiDuoc: cấp riêng đã hẹn ngày ngừng ⇒ false; có cấp riêng sắp áp dụng ⇒ false; cấp riêng mở ⇒ true (kể cả bắt đầu hôm nay); không cấp riêng ⇒ true; hai vai trò khác cấp ⇒ true", async () => {
   const w = setup();
   const hn = H();
