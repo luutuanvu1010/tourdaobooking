@@ -21,6 +21,8 @@ Kế hoạch: `docs/superpowers/plans/2026-11-02-dat-ve-doi-tac-luot-2.md`. Nhá
 
 - **R14 (2026-11-02, chủ: «không thể lâu như thế được, có gì sai ở đây rồi»):** đo thật 5 giờ 15 phút, máy không nghẽn, gốc là cách điều phối. Bỏ chữ «mỗi đợt có người kiểm riêng» của kế hoạch, vốn do người soạn thêm, `CLAUDE.md` §3 chỉ đòi người kiểm độc lập cho việc lớn. Từ đây: một vòng kiểm độc lập ở cuối (Task 5.4), tập trung phần chưa ai đọc (Đợt 3, bản sửa `431a9184`, `c4a0ab6c` của Đợt 4), chạy song song bộ kiểm dài. Sửa cố ý chỉ làm đúng danh sách kế hoạch ghi. Đợt 3 làm tạm theo R7, không nhập nhánh khi chủ chưa chọn.
 
+- **R15 (2026-11-02, chủ: «tìm hiểu nguyên nhân khiến phiên quá lâu»):** đo bản ghi phiên: toàn phiên 15,3 giờ, 21 trợ lý, 3175 thao tác, gồm đọc 2320 (73%, trung vị 18 dòng mỗi lần), chạy kiểm 433 (14%), sửa 186 (6%); 1,2 thao tác mỗi lượt sinh, khoảng 10 giây mỗi lượt. Máy và bài kiểm không phải nút thắt. Từ đây: đề giao ghi sẵn tệp và tên hàm, dặn gom nhiều lệnh đọc trong một lượt và lấy cả khối; Đợt 5 giao một người làm cả 5.1, 5.2, 5.3, người kiểm cuối chạy song song trên bản chép riêng để sửa cố ý không làm đỏ giả bộ kiểm dài, có trần thao tác. Hai việc người thi công Đợt 3 nêu, người kiểm cuối phải đọc: sửa nháp khi khối khách ẩn (danh sách hành khách không được gửi lên, có mất dữ liệu nháp không), nháp cũ vào form gọn mất dấu đặt gấp lượt đầu.
+
 ## Rà mâu thuẫn trước khi giao
 
 | Hai task | Chạm chung | Kết quả |
@@ -44,7 +46,7 @@ Mỗi task tự khớp với bài của mình ở mức đọc kế hoạch. `v_
 |---|---|---|---|---|
 | 1. Dữ liệu và máy chủ giờ đón | đạt có điều kiện sau hai vòng kiểm: N-4 chờ chủ (R7) | trợ lý tầm trung | `nguoi-kiem-doc-lap` | `274f1f01`, `949be7ab`, `1f8791b9`, `34c457ae`; sửa: `6f91a051`, `b9ed1664`, `2d35f32f` |
 | 2. Công tắc, miễn thiếu tên | đạt có điều kiện: đi cùng Task 3.4 (NS-1) | trợ lý tầm trung | `nguoi-kiem-doc-lap` | `a501f077`, `f12b8fa0` |
-| 3. Giao diện ADR-0154 | đang làm, tạm theo R7 | trợ lý tầm trung | vòng cuối (R14) | |
+| 3. Giao diện ADR-0154 | xong, tạm theo R7, chưa chạy `luot-2-smoke.mjs`; kiểm ở vòng cuối (R14) | trợ lý tầm trung | vòng cuối (R14) | `f1a09e6f`, `ce41a0b4`, `58552dd1`, `bb1ba4cb`, `96726bc4`, `0e959157` |
 | 4. Cột Cấp độ đại lý | đã sửa N-1; bản sửa kiểm ở vòng cuối (R14) | trợ lý tầm trung | `nguoi-kiem-doc-lap` | `3af9c08d`, `962c76f3`, `6dca962d`; sửa: `431a9184`, `c4a0ab6c` |
 | 5. Tài liệu, bộ kiểm dài, ảnh thật, kiểm độc lập | chưa | | | |
 
