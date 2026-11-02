@@ -813,20 +813,20 @@ export const CHECKS = [
   {
     code: "R-BIL-DC1",
     what: "đơn nháp có khoản thu sinh từ lời khai đặt cọc (ADR-0159 Đ1 mục 2; ADR-0135 Đ7)",
-    sql: `SELECT count(*) FROM bil_payment_receipt r JOIN orders o ON o.id = r.order_id WHERE o.status = 'draft' AND r.note = 'Khách đặt cọc trước' AND r.reverses_id IS NULL`,
+    sql: `SELECT count(*) FROM bil_payment_receipt r JOIN orders o ON o.id = r.order_id WHERE o.status = 'draft' AND r.kind_code = 'CUSTOMER_PAYMENT' AND r.note = 'Khách đặt cọc trước' AND r.reverses_id IS NULL`,
     level: "fail",
   },
   {
     code: "R-BIL-DC2",
     what: "đơn đã xác nhận có lời khai đặt cọc mà không có khoản thu đúng số (ADR-0159 Đ1 mục 3)",
     sql: `SELECT count(*) FROM orders o WHERE o.status = 'confirmed' AND o.declared_deposit > 0
-      AND NOT EXISTS (SELECT 1 FROM bil_payment_receipt r WHERE r.order_id = o.id AND r.note = 'Khách đặt cọc trước' AND r.reverses_id IS NULL AND r.amount = o.declared_deposit)`,
+      AND NOT EXISTS (SELECT 1 FROM bil_payment_receipt r WHERE r.order_id = o.id AND r.kind_code = 'CUSTOMER_PAYMENT' AND r.note = 'Khách đặt cọc trước' AND r.reverses_id IS NULL AND r.amount = o.declared_deposit)`,
     level: "fail",
   },
   {
     code: "R-BIL-DC3",
     what: "khoản thu sinh từ lời khai đặt cọc mà mang dấu chờ đối chiếu — sẽ chặn «Đã giao» (ADR-0159 Đ1 mục 3)",
-    sql: `SELECT count(*) FROM bil_receipt_recon d JOIN bil_payment_receipt r ON r.id = d.receipt_id WHERE d.kind_code = 'DECLARED' AND r.note = 'Khách đặt cọc trước' AND r.reverses_id IS NULL`,
+    sql: `SELECT count(*) FROM bil_receipt_recon d JOIN bil_payment_receipt r ON r.id = d.receipt_id WHERE d.kind_code = 'DECLARED' AND r.kind_code = 'CUSTOMER_PAYMENT' AND r.note = 'Khách đặt cọc trước' AND r.reverses_id IS NULL`,
     level: "fail",
   },
   {

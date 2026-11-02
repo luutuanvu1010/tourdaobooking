@@ -14,7 +14,7 @@ import {
   receiptBeforeDeliveredStatement, receiptById, reconInsertStatement, reconOfOrder, reconOfReceipt, type ReconDbRow, receiptRefundStatement, receiptReversalStatement, receiptsOfOrder, receiptsOfOrders, unknownReceipts, type LineDbRow,
   type NewLine, type NewReceipt, type ReceiptDbRow,
 } from "./repository";
-import { transferInOf } from "./coc-repo";
+import { GHI_CHU_KHOAN_LOI_KHAI, transferInOf } from "./coc-repo";
 import { docGiaoDich, kiemMaGiaoDich, type GiaoDich } from "./ma-giao-dich";
 import { phaiThuHienHanh, phaiThuHienHanhNhieuDon } from "./thay-lan-thu-repo";
 import { CAU_HOAN_SAU_GIAO } from "../../shared/phan-dinh";
@@ -307,6 +307,8 @@ export async function docLanThu(db: D1Database, raw: unknown, ai: NguoiGoi, cong
     if (typeof b.ghiChu !== "string" || b.ghiChu.length > 500) return loi(400, "invalid_input", "Ghi chú tối đa 500 ký tự.");
     if (/\d{8,}/.test(b.ghiChu.replace(/[\s.-]/g, ""))) return loi(400, "invalid_input", "Ghi chú không được chứa số điện thoại / số tài khoản.");
     ghiChu = b.ghiChu.trim() || null;
+    // ADR-0159: chữ này là dấu nhận ra khoản sinh từ lời khai (coKhoanLoiKhai, R-BIL-DC*). Để người dùng gõ được thì khoản thu tay thành «khoản khai» giả: chặn chuyển cọc đúng, báo sai bất biến.
+    if (ghiChu === GHI_CHU_KHOAN_LOI_KHAI) return loi(400, "invalid_input", "Ghi chú này dành riêng cho số đặt cọc khai lúc lập đơn. Hãy viết ghi chú khác.");
   }
   return { ok: true, value: { soTien, hinhThuc: b.hinhThuc as MethodCode, collectorRole, collectorPartyId, collectedForPartyId, ngayPhatSinh: ngay.value, ghiChu } };
 }

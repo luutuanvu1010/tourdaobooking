@@ -237,7 +237,7 @@ const KHOAN_LOI_KHAI_CON_HIEU_LUC = defineSql(
   "billing",
   "khoan_loi_khai_con_hieu_luc",
   `SELECT 1 AS co FROM bil_payment_receipt r
-   WHERE r.order_id = ?1 AND r.note = ?2 AND r.reverses_id IS NULL AND NOT EXISTS (SELECT 1 FROM bil_payment_receipt y WHERE y.reverses_id = r.id) LIMIT 1`,
+   WHERE r.order_id = ?1 AND r.kind_code = 'CUSTOMER_PAYMENT' AND r.note = ?2 AND r.reverses_id IS NULL AND NOT EXISTS (SELECT 1 FROM bil_payment_receipt y WHERE y.reverses_id = r.id) LIMIT 1`,
 );
 export const coKhoanLoiKhai = async (db: D1Database, orderId: string): Promise<boolean> =>
   (await db.prepare(KHOAN_LOI_KHAI_CON_HIEU_LUC).bind(orderId, GHI_CHU_KHOAN_LOI_KHAI).first<{ co: number }>()) !== null;

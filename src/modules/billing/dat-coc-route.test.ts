@@ -3,6 +3,7 @@
 // BOOKER / STAFF theo bản chụp của chính lô; chặn lúc lưu / xác nhận; khoá cột; không hồ sơ; người xét thấy số; đơn huỷ để lập lại không tính hai lần.
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { seedStaff } from "../../../tests/audit/harness.mjs";
 import { CHECKS, demViPham } from "../../../scripts/audit-checks.mjs";
@@ -426,4 +427,26 @@ test("Bất biến R-BIL-DC1…DC4: dữ liệu khoẻ 0; mỗi lỗi dựng th�
   for (const t of w.q("SELECT name FROM sqlite_master WHERE type = 'trigger' AND tbl_name = 'bil_receipt_recon'")) w.sqlite.exec(`DROP TRIGGER ${t.name}`);
   w.sqlite.prepare("INSERT INTO bil_receipt_recon (id, receipt_id, kind_code, occurred_date, created_at, created_by, updated_at, updated_by) VALUES ('d', ?, 'DECLARED', '2026-11-02', ?, ?, ?, ?)").run(r, AT, ACC, AT, ACC);
   assert.equal(viPham(w, "R-BIL-DC3"), 1);
+});
+
+// ---- Dấu nhận khoản khai là chữ ghi chú nên phải là chữ người dùng KHÔNG gõ được ------------------------------------------------------------------------------
+test("Khoản thu tay không được dùng đúng ghi chú dành riêng của khoản khai; ghi chú có thêm chữ khác vẫn được; chuyển cọc không bị chặn nhầm", async () => {
+  const w = dung();
+  const o = await lapCoc(w, PARTNER, 0);
+  assert.equal((await guiDon(w, o.id, PARTNER)).status, 200);
+  const thu = (ghiChu: string, soTien = 10_000) => w.call("POST", `/api/orders/${o.id}/payments`, { as: PARTNER, body: { soTien, hinhThuc: "CASH", nguoiThu: "toi", ghiChu } });
+  for (const g of ["Khách đặt cọc trước", "  Khách đặt cọc trước  "]) {
+    const r = await thu(g);
+    assert.equal(r.status, 400, r.text);
+    assert.match(r.json.error.message, /dành riêng/);
+  }
+  assert.equal(w.q("SELECT count(*) AS n FROM bil_payment_receipt WHERE order_id = ?", o.id)[0].n, 0);
+  const duoc = await thu("Khách đặt cọc trước bằng tiền mặt");
+  assert.equal(duoc.status, 201, duoc.text);
+  assert.equal(viPham(w, "R-BIL-DC3"), 0);
+});
+test("Dấu khoản khai chỉ áp cho khoản khách trả: phiếu trả lại khách trùng chữ không làm đơn thành «có khoản khai» (ghi chú phiếu trả lại là chữ tự do)", () => {
+  const sql = readFileSync(new URL("./coc-repo.ts", import.meta.url), "utf8");
+  assert.match(sql, /r\.kind_code = 'CUSTOMER_PAYMENT' AND r\.note = \?2/);
+  for (const ma of ["R-BIL-DC1", "R-BIL-DC2", "R-BIL-DC3"]) assert.match((CHECKS as any[]).find((c) => c.code === ma).sql, /kind_code = 'CUSTOMER_PAYMENT'/, ma);
 });
