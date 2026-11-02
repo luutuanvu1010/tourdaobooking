@@ -157,6 +157,11 @@ export function khoR2Gia() {
       if (!x) return null;
       return { key, size: x.b.length, httpMetadata: { contentType: x.contentType }, body: new Response(x.b).body };
     },
+    async head(key) {
+      if (r2.hong.get) throw new Error("r2_head_gia_hong");
+      const x = kho.get(key);
+      return x ? { key, size: x.b.length } : null;
+    },
     async delete(keys) {
       r2.soLan.delete++;
       if (r2.hong.delete) throw new Error("r2_delete_gia_hong");

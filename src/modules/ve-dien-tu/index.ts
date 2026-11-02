@@ -16,7 +16,7 @@ import { NHAN_NHOM, soanCapVe, soanTraVe, veDangGiu, type GhiNhatKy, type NhatKy
 import { NGAY_LUU_ANH_LO_HUY, TOI_DA_BYTE_ANH, TOI_DA_VE_MOI_DOT, TRAN_LO_MAC_DINH, tranLoHopLe } from "../../shared/ve-nhap-lo";
 import { datVeVaoKho, donHangChoXoa, type VeChuanBi } from "./kho-tep.ts";
 import { che4SoCuoi, kiemLo, kiemVeMoi } from "./nhap-lo.ts";
-import { bamDaCo, cauBoLo, cauChenLink, cauDemMoLink, cauDoiTranLo, cauRutVeCuaLo, cauThuHoiLink, docCaiDatVe, docHanCuoiCuaDon, docLinkCuaDon, docLinkTheoBam, docLinkTheoId, docVeCuaLink, dsLoBoDuoc, dsLoDaHuy, type LinkKhach, cauChenGiao, cauChenLo, cauChenVe, cauDanhDauLo, docChuDon, docTrangThaiDon, docPhanBoDeXem, docPhanBoMoCuaDon, cauKichHoatLo, cauSuaMaTour, demVeCuaLo, docLo, maVeDaCo, thongKeKho } from "./repository.ts";
+import { bamDaCo, cauBoLo, cauChenLink, cauDemMoLink, cauDoiTranLo, cauRutVeCuaLo, cauThuHoiLink, docCaiDatVe, docHanCuoiCuaDon, docLinkCuaDon, docLinkTheoBam, docLinkTheoId, docVeCuaLink, dsLoBoDuoc, dsLoDaHuy, bamDaMo, cauMoAnhVe, docVeLoHuy, maVeDaMo, type LinkKhach, cauChenGiao, cauChenLo, cauChenVe, cauDanhDauLo, docChuDon, docTrangThaiDon, docPhanBoDeXem, docPhanBoMoCuaDon, cauKichHoatLo, cauSuaMaTour, demVeCuaLo, docLo, maVeDaCo, thongKeKho } from "./repository.ts";
 
 export { demVeTheoTrangThai } from "./repository.ts";
 
@@ -64,6 +64,8 @@ const DON_KHONG_THAY = () => error(404, "not_found", "Không tìm thấy đơn."
 const VE_KHONG_THAY = () => error(404, "not_found", "Không tìm thấy vé.");
 const KHONG_QUYEN_GUI = () => error(403, "forbidden", "Bạn không có quyền xem hoặc gửi vé của đơn này.");
 const CHUA_THU_DU = () => error(403, "chua_thu_du", "Đơn chưa thu đủ tiền nên chưa xem hoặc gửi được vé.");
+const mocLoHuy = (): string => new Date(Date.now() - NGAY_LUU_ANH_LO_HUY * 864e5).toISOString();
+const VE_DA_NHAP_LAI = () => error(409, "ve_da_nhap_lai", "Vé này đã được nhập lại vào kho nên không mở được ảnh cũ.");
 const KHO_CHUA_BAT = () => error(503, "storage_unavailable", "Kho vé điện tử chưa được bật. Vui lòng báo người phụ trách hệ thống.");
 
 /** Cron ở gốc lắp ráp: xoá ảnh ở hàng «chờ xoá» đã quá hạn lưu. Tắt kho thì không làm gì. KHÔNG BAO GIỜ NÉM, để lỗi ở đây không kéo theo việc định kỳ khác. */
@@ -130,19 +132,73 @@ export const veDienTuModule: AppModule = {
       });
     }),
 
-    // Lô đã huỷ gần đây (chủ quyết 2/11/2026): chỉ chữ để tra cứu, chỉ 4 số cuối mã. CỐ Ý không có đường mở ảnh: ảnh mang QR dùng được như vé thật mà vé của lô đã huỷ nhập lại được, mở ra là có thể bán trùng.
+    // Lô đã huỷ gần đây (chủ quyết 2/11/2026): để tra cứu; chỉ 4 số cuối mã, không khoá kho. Ảnh mở bằng hai route dưới: mở lần đầu thì khoá hẳn vé, vì ảnh mang QR dùng được như vé thật.
     route("GET", "/api/ve/lo-da-huy", "office", async ({ env, staff, nhanNhanVien }) => {
       if (!can(staff, "ve.kho.manage")) return KHONG_QUYEN();
-      const dong = await dsLoDaHuy(env.DB, new Date(Date.now() - NGAY_LUU_ANH_LO_HUY * 864e5).toISOString(), TOI_DA_DS_LO);
+      const dong = await dsLoDaHuy(env.DB, mocLoHuy(), TOI_DA_DS_LO);
       const ten = await getEffectiveServices(env.DB, [...new Set(dong.map((d) => d.catalog_code))]);
       const nguoi = await nhanNhanVien([...new Set(dong.flatMap((d) => (d.huy_boi ? [d.huy_boi] : [])))]);
-      const lo = new Map<string, { loId: string; tenDichVu: string | null; nhomKhach: string; tenSanPham: string; huyLuc: string; huyBoi: string | null; ve: { duoiMa: string; tuNgay: string; denNgay: string }[] }>();
+      const lo = new Map<string, { loId: string; tenDichVu: string | null; nhomKhach: string; tenSanPham: string; huyLuc: string; huyBoi: string | null; ve: { veId: string; duoiMa: string; tuNgay: string; denNgay: string; trangThaiAnh: "CHUA_MO" | "DA_MO" | "DA_NHAP_LAI" | "HET_ANH" }[] }>();
       for (const d of dong) {
         let l = lo.get(d.id);
         if (!l) lo.set(d.id, (l = { loId: d.id, tenDichVu: ten.get(d.catalog_code)?.name ?? null, nhomKhach: d.pax_group, tenSanPham: d.printed_name, huyLuc: d.huy_luc, huyBoi: (d.huy_boi && nguoi?.get(d.huy_boi)) || null, ve: [] }));
-        l.ve.push({ duoiMa: d.duoi_ma, tuNgay: d.valid_from, denNgay: d.valid_to });
+        l.ve.push({ veId: d.ve_id, duoiMa: d.duoi_ma, tuNgay: d.valid_from, denNgay: d.valid_to, trangThaiAnh: d.r2_deleted_at ? "HET_ANH" : d.opened_at ? "DA_MO" : d.da_nhap_lai ? "DA_NHAP_LAI" : "CHUA_MO" });
       }
       return json({ hanLuuNgay: NGAY_LUU_ANH_LO_HUY, lo: [...lo.values()] });
+    }),
+
+    // Mở ảnh vé của lô đã huỷ (chủ quyết 2/11/2026): khoá hẳn vé rồi mới xem được, để không có chuyện gửi ảnh cho khách A rồi nhập lại bán cho khách B. Hỏi kho TRƯỚC khi khoá: kho hỏng hay mất ảnh thì không làm mất vé.
+    route("POST", "/api/ve/lo-da-huy/:veId/mo", "office", async ({ env, staff, params }) => {
+      if (!can(staff, "ve.kho.manage")) return KHONG_QUYEN();
+      const kho = env.VE_DIEN_TU;
+      if (!kho) return KHO_CHUA_BAT();
+      const veId = params.veId ?? "";
+      if (!UUID_RE.test(veId)) return VE_KHONG_THAY();
+      const moc = mocLoHuy();
+      const ve = await docVeLoHuy(env.DB, veId, moc);
+      if (!ve) return VE_KHONG_THAY();
+      if (ve.opened_at) return json({ veId, trangThaiAnh: "DA_MO" });
+      if (ve.da_nhap_lai) return VE_DA_NHAP_LAI();
+      let coAnh: boolean;
+      try { coAnh = (await kho.head(ve.storage_key)) !== null; } catch (e) {
+        console.error(JSON.stringify({ level: "error", event: "ve_dien_tu_hoi_kho_loi", veId, loi: e instanceof Error ? e.message : "khong_ro" }));
+        return error(503, "storage_unavailable", "Kho vé đang lỗi, vé chưa bị khoá. Vui lòng thử lại sau.");
+      }
+      if (!coAnh) {
+        console.error(JSON.stringify({ level: "error", event: "ve_dien_tu_thieu_doi_tuong", veId }));
+        return VE_KHONG_THAY();
+      }
+      const at = new Date().toISOString();
+      const kq = await env.DB.batch([
+        cauMoAnhVe(env.DB, veId, at, staff.id, moc),
+        auditStatement(env.DB, { staffId: staff.id, action: "ve_mo_anh_lo_huy", at, targetType: "ve", targetId: veId, detail: "Mở ảnh vé của lô đã huỷ; vé bị khoá, không nhập lại được" }, "changes() > 0"),
+      ]);
+      if ((kq[0]?.meta?.changes ?? 0) > 0) return json({ veId, trangThaiAnh: "DA_MO" });
+      // Thua đua: hoặc người khác vừa mở cùng vé, hoặc vé vừa được nhập lại.
+      const lai = await docVeLoHuy(env.DB, veId, moc);
+      if (!lai) return VE_KHONG_THAY();
+      return lai.opened_at ? json({ veId, trangThaiAnh: "DA_MO" }) : VE_DA_NHAP_LAI();
+    }),
+
+    // Xem ảnh vé đã mở. Cùng thứ tự với route ảnh của đơn: chặn trang khác → quyền → vé đã mở → NHẬT KÝ → mới đọc kho.
+    route("GET", "/api/ve/lo-da-huy/:veId/anh", "office", async ({ request, env, staff, params }) => {
+      const sfs = request.headers.get("sec-fetch-site");
+      if (sfs !== null && sfs !== "same-origin" && sfs !== "none") return error(403, "forbidden", "Không mở ảnh vé từ trang khác.");
+      if (!can(staff, "ve.kho.manage")) return KHONG_QUYEN();
+      const kho = env.VE_DIEN_TU;
+      if (!kho) return KHO_CHUA_BAT();
+      const veId = params.veId ?? "";
+      if (!UUID_RE.test(veId)) return VE_KHONG_THAY();
+      const ve = await docVeLoHuy(env.DB, veId, mocLoHuy());
+      if (!ve) return VE_KHONG_THAY();
+      if (!ve.opened_at) return error(409, "ve_chua_mo", "Vé này chưa được mở ảnh.");
+      await env.DB.batch([auditStatement(env.DB, { staffId: staff.id, action: "ve_mo_anh_lo_huy", at: new Date().toISOString(), targetType: "ve", targetId: veId, detail: "Xem ảnh vé của lô đã huỷ" })]);
+      const obj = await kho.get(ve.storage_key);
+      if (!obj) {
+        console.error(JSON.stringify({ level: "error", event: "ve_dien_tu_thieu_doi_tuong", veId }));
+        return VE_KHONG_THAY();
+      }
+      return new Response(obj.body, { status: 200, headers: dauPhanHoiTepChung({ id: ve.id, loai: loaiTuMime(ve.content_kind), tenDau: "ve" }) });
     }),
 
     // Tạo lô (PENDING): một dịch vụ + một nhóm khách + tên sản phẩm in trên vé, chọn một lần cho cả lô. Vượt trần ⇒ 400 và KHÔNG tạo lô dở.
@@ -208,7 +264,9 @@ export const veDienTuModule: AppModule = {
       // Dấu vân tệp do máy chủ tự tính nên không phụ thuộc chuỗi QR trình duyệt gửi (ADR-0156 Đ1 mục 5, Đ2 mục 1).
       const daCo = await maVeDaCo(env.DB, hop.map((h) => h.ma));
       const bamCo = await bamDaCo(env.DB, hop.map((h) => h.bam));
+      const [maMo, bamMo] = await Promise.all([maVeDaMo(env.DB, hop.map((h) => h.ma)), bamDaMo(env.DB, hop.map((h) => h.bam))]);
       const moi = hop.filter((h) => {
+        if (maMo.has(h.ma) || bamMo.has(h.bam)) { loi.push({ thuTu: h.thuTu, lyDo: "Vé này đã được mở ảnh khi lô bị huỷ nên không nhập lại được." }); return false; }
         if (daCo.has(h.ma)) { loi.push({ thuTu: h.thuTu, lyDo: "Mã vé đã có trong kho, đã loại." }); return false; }
         if (bamCo.has(h.bam)) { loi.push({ thuTu: h.thuTu, lyDo: "Ảnh này đã có trong kho, đã loại." }); return false; }
         return true;

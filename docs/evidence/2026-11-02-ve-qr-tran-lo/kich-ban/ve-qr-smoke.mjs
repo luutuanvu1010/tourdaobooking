@@ -12,6 +12,7 @@
 //   6  Bản nén lại của vé đã nhập (tệp khác, cùng QR) ⇒ bị loại, kho không đổi, không để lại lô trống. Đây là ca quyết định Đ1 có hiệu lực (P16).
 //   7  Hai ảnh cùng QR trong một lần chọn ⇒ một vào, một bị loại ngay trên trang.
 //   8  «Huỷ lô» từ danh sách qua hộp xác nhận ⇒ kho giảm; nhập lại đúng các ảnh đó ⇒ vào kho.
+//  9b  Mở ảnh vé của lô đã huỷ qua hộp báo trước ⇒ ảnh hiện; nhập lại vé đó bị loại.
 //   9  Gửi dở (đưa lô vào kho thất bại) ⇒ trang chỉ đường «Huỷ lô», lô hiện «đang dở»; bỏ rồi nhập lại được.
 //   10 50 ảnh cỡ vé thật liên tiếp ⇒ trang không treo; đo tổng thời gian và khoảng đứng hình lâu nhất.
 // Chạy (từ gốc repo, sau `npm run build:web`):
@@ -270,11 +271,12 @@ try {
       dem -= 2;
       assert.equal(await conTrong(p), dem, "kho giảm hai vé");
       assert.equal(await p.ev(`[...document.querySelectorAll('[data-khoi=cac-lo] li')].some((x) => x.textContent.includes(${JSON.stringify(loDau)}))`), false, "lô đã bỏ không còn trong danh sách");
-      // Khối «Lô đã huỷ gần đây»: chỉ chữ, không có ảnh hay đường dẫn nào; mở danh sách vé thì chỉ thấy 4 số cuối.
-      const huy = await p.ev(`(() => { const li = [...document.querySelectorAll('[data-khoi=lo-da-huy] li')].find((x) => x.textContent.includes(${JSON.stringify(loDau)})); if (!li) return null; const d = li.querySelector('details'); if (d) d.open = true; return { chu: li.innerText, soVe: li.querySelectorAll('[data-ve]').length, anh: li.querySelectorAll('img, a, button').length }; })()`);
+      // Khối «Lô đã huỷ gần đây»: chưa mở thì chưa có ảnh hay đường dẫn nào; mở danh sách vé thì chỉ thấy 4 số cuối và nút Mở ảnh.
+      const huy = await p.ev(`(() => { const li = [...document.querySelectorAll('[data-khoi=lo-da-huy] li')].find((x) => x.textContent.includes(${JSON.stringify(loDau)})); if (!li) return null; const d = li.querySelector('details'); if (d) d.open = true; return { chu: li.innerText, soVe: li.querySelectorAll('[data-ve]').length, anh: li.querySelectorAll('img, a').length, nut: li.querySelectorAll('[data-action=mo-anh]').length }; })()`);
       assert.ok(huy, "lô vừa huỷ phải hiện ở khối Lô đã huỷ gần đây");
       assert.equal(huy.soVe, 2, JSON.stringify(huy));
-      assert.equal(huy.anh, 0, "khối này không có ảnh, liên kết hay nút");
+      assert.equal(huy.anh, 0, "chưa mở thì không có ảnh, liên kết");
+      assert.equal(huy.nut, 2, "mỗi vé một nút Mở ảnh");
       assert.match(huy.chu, /Huỷ lúc \d{2}:\d{2} ngày \d{2}\/\d{2}\/\d{4} · người huỷ: /, JSON.stringify(huy));
       assert.match(huy.chu, /Vé số cuối \d{4} · dùng /, JSON.stringify(huy));
       await khongLoQr(p, "khối Lô đã huỷ gần đây");
@@ -287,6 +289,9 @@ try {
       assert.equal(tt.loi, "");
       dem += 2;
       assert.equal(await conTrong(p), dem);
+      const cu = await p.ev(`(() => { const li = [...document.querySelectorAll('[data-khoi=lo-da-huy] li')].find((x) => x.textContent.includes(${JSON.stringify(loDau)})); return li ? { chu: li.textContent, nut: li.querySelectorAll('[data-action=mo-anh]').length } : null; })()`);
+      assert.equal(cu?.nut, 0, "vé đã nhập lại thì không còn nút Mở ảnh");
+      assert.match(cu.chu, /đã nhập lại vào kho nên không mở được ảnh cũ/, JSON.stringify(cu));
     });
 
     await buoc(`${kho}.9`, "Gửi dở: trang chỉ đường «Huỷ lô», lô hiện «đang dở»; bỏ rồi nhập lại đúng ảnh đó được", async () => {
@@ -309,6 +314,35 @@ try {
       await bocucSach(p, "Bán hàng /ve-kho sau nhập");
       await axeKiem(p, "/ve-kho sau nhập");
       await chup(p, `danh-sach-lo-${kho}`);
+    });
+
+    await buoc(`${kho}.9b`, "Mở ảnh vé của lô đã huỷ: có hộp báo trước, ảnh hiện ra; vé bị khoá, nhập lại bị loại", async () => {
+      const tenMo = `Lô mở ảnh ${kho}`;
+      await khaiLo(p, tenMo);
+      await chonAnh(p, [anhTot(tien + 5, "ve-e.png")]);
+      await guiLo(p);
+      assert.equal((await docTrang(p)).ok, "Đã nhập 1 vé vào kho.");
+      await boLo(p, tenMo);
+      assert.equal(await conTrong(p), dem, "lô đã huỷ không tính vào kho");
+      const dong = `[...document.querySelectorAll('[data-khoi=lo-da-huy] li')].find((x) => x.textContent.includes(${JSON.stringify(tenMo)}))`;
+      assert.equal(await p.ev(`(() => { const li = ${dong}; const d = li?.querySelector('details'); if (!d) return false; d.open = true; li.querySelector('[data-action=mo-anh]').click(); return true; })()`), true, "có nút Mở ảnh");
+      await choHop(p);
+      assert.equal(await p.ev("document.querySelector('.sheet .sheet-title')?.textContent ?? ''"), "Mở ảnh vé này?");
+      assert.match(await p.ev("document.querySelector('.sheet').textContent"), /không nhập lại vào kho để bán được nữa/, "hộp báo trước đúng hậu quả");
+      assert.equal(await bam(p, ".sheet .btn-danger"), true, "nút Mở ảnh trong hộp");
+      await choDongHop(p);
+      await p.waitFor(`(() => { const i = (${dong})?.querySelector('img.ve-anh-xem'); return !!i && i.complete && i.naturalWidth > 0; })()`, "ảnh vé hiện ra");
+      assert.match(await p.ev(`(${dong}).textContent`), /đã mở, vé bị khoá/, "dòng vé báo đã khoá ngay sau khi mở");
+      await khongLoQr(p, "sau khi mở ảnh");
+      await bocucSach(p, "Bán hàng /ve-kho sau khi mở ảnh");
+      await axeKiem(p, "/ve-kho sau khi mở ảnh");
+      await chup(p, `mo-anh-${kho}`);
+      await khaiLo(p, `Nhập lại vé đã mở ${kho}`);
+      await chonAnh(p, [anhTot(tien + 5, "ve-e.png")]);
+      await guiLo(p);
+      const tt = await docTrang(p);
+      assert.match(tt.loi, /đã được mở ảnh khi lô bị huỷ nên không nhập lại được/, JSON.stringify(tt));
+      assert.equal(await conTrong(p), dem, "vé đã mở không vào lại kho");
     });
 
     if (!laDienThoai) {

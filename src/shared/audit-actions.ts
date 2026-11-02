@@ -31,6 +31,7 @@ export const AUDIT_ACTIONS = {
   ve_nhap_lo: { label: "Nhập lô vé điện tử", group: "ve" }, // detail: nhãn nhóm khách + số vé (KHÔNG mã vé)
   ve_xac_nhan_lo: { label: "Đưa lô vé điện tử vào kho", group: "ve" },
   ve_sua_ma_tour: { label: "Sửa dịch vụ của lô vé điện tử", group: "ve" },
+  ve_mo_anh_lo_huy: { label: "Mở ảnh vé của lô đã huỷ", group: "ve" }, // chủ quyết 2/11/2026; detail không chứa mã; target_id = mã dòng vé
   ve_bo_lo: { label: "Huỷ lô vé điện tử", group: "ve" }, // ADR-0156 Đ2 mục 3; detail: nhãn nhóm khách (KHÔNG mã vé)
   ve_doi_tran_lo: { label: "Đổi số vé tối đa mỗi lô", group: "ve" }, // ADR-0156 Đ3; detail: số cũ → số mới
   updated: { label: "Sửa đơn", group: "order" },

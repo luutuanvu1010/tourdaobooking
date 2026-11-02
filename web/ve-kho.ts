@@ -1,7 +1,9 @@
 // Trang "Vé điện tử" (ADR-0153, ADR-0156). Gọi các route của module ve-dien-tu:
 //   GET  /api/ve/kho                    → số vé theo dịch vụ + loại khách (chỉ ĐẾM) và trần lô đang áp
 //   GET  /api/ve/lo                     → các lô còn huỷ được (chưa vé nào từng được giữ chỗ)
-//   GET  /api/ve/lo-da-huy              → các lô huỷ trong hạn lưu ảnh: chỉ chữ, không mở ảnh
+//   GET  /api/ve/lo-da-huy              → các lô huỷ trong hạn lưu ảnh, mỗi vé kèm trạng thái ảnh
+//   POST /api/ve/lo-da-huy/:veId/mo     → mở ảnh: vé bị khoá hẳn, không nhập lại được
+//   GET  /api/ve/lo-da-huy/:veId/anh    → ảnh của vé đã mở
 //   POST /api/ve/lo                     → mở lô (một dịch vụ + một loại khách + tên sản phẩm, chọn MỘT lần cho cả lô); vượt trần ⇒ 400, không tạo lô
 //   POST /api/ve/lo/:id/ve              → thêm ảnh vé (JSON base64, tối đa 10 ảnh mỗi đợt, JPG/PNG ≤ 3 MB)
 //   POST /api/ve/lo/:id/xac-nhan        → đưa lô vào kho
@@ -21,7 +23,8 @@ interface KhoDong { catalogCode: string; tenDichVu: string | null; nhomKhach: "A
 interface ThemVeRes { loId: string; themDuoc: number; chuaLuuVaoKho: number; loai: { thuTu: number; lyDo: string }[]; veTrongLo: number }
 interface LoBoDuoc { loId: string; tenDichVu: string | null; nhomKhach: string; tenSanPham: string; trangThai: string; soVe: number; taoLuc: string }
 
-interface LoDaHuy { loId: string; tenDichVu: string | null; nhomKhach: string; tenSanPham: string; huyLuc: string; huyBoi: string | null; ve: { duoiMa: string; tuNgay: string; denNgay: string }[] }
+interface VeDaHuy { veId: string; duoiMa: string; tuNgay: string; denNgay: string; trangThaiAnh: "CHUA_MO" | "DA_MO" | "DA_NHAP_LAI" | "HET_ANH" }
+interface LoDaHuy { loId: string; tenDichVu: string | null; nhomKhach: string; tenSanPham: string; huyLuc: string; huyBoi: string | null; ve: VeDaHuy[] }
 
 const NHAN_NHOM: Record<string, string> = { ADULT: "Người lớn", CHILD: "Trẻ em", SENIOR: "Cao tuổi" };
 
@@ -71,19 +74,59 @@ if (!can(staff, "ve.kho.manage")) {
     }
   }
 
+  /** Một vé trong khối Lô đã huỷ gần đây. Mở lần đầu qua hộp báo trước vì vé bị khoá hẳn; ảnh chỉ hiện sau khi máy chủ đã ghi khoá. */
+  function dongVeDaHuy(v: VeDaHuy): HTMLElement {
+    const khuAnh = h("div", { "data-anh": v.veId });
+    const hienAnh = async (): Promise<void> => {
+      const r = await fetch(`/api/ve/lo-da-huy/${encodeURIComponent(v.veId)}/anh`, { credentials: "same-origin" });
+      if (!r.ok) throw new Error("Không tải được ảnh vé.");
+      replaceChildren(khuAnh, h("img", { class: "ve-anh-xem", src: URL.createObjectURL(await r.blob()), alt: `Ảnh vé số cuối ${v.duoiMa}` }));
+    };
+    const baoLoi = (err: unknown): void => showError(errorEl, err instanceof ApiError ? err.message : err instanceof Error ? err.message : "Không kết nối được máy chủ.");
+    const nutXem = (): HTMLElement => {
+      const nut = h("button", { type: "button", class: "btn", "data-action": "xem-anh", "data-id": v.veId }, "Xem ảnh");
+      nut.addEventListener("click", () => void hienAnh().catch(baoLoi));
+      return nut;
+    };
+    const ghiChu = (t: VeDaHuy["trangThaiAnh"]): string => (t === "DA_NHAP_LAI" ? " · đã nhập lại vào kho nên không mở được ảnh cũ" : t === "HET_ANH" ? " · ảnh đã xoá" : t === "DA_MO" ? " · đã mở, vé bị khoá" : "");
+    const moTa = (t: VeDaHuy["trangThaiAnh"]): string => `Vé số cuối ${v.duoiMa} · ${ngayDung(v.tuNgay, v.denNgay)}${ghiChu(t)}`;
+    const chu = h("p", { class: "muted" }, moTa(v.trangThaiAnh));
+    const khu = h("div", { class: "handler-actions" });
+    if (v.trangThaiAnh === "DA_MO") replaceChildren(khu, nutXem());
+    if (v.trangThaiAnh === "CHUA_MO") {
+      const nut = h("button", { type: "button", class: "btn", "data-action": "mo-anh", "data-id": v.veId }, "Mở ảnh");
+      nut.addEventListener("click", async () => {
+        const dongY = await hoiXacNhan({ tieuDe: "Mở ảnh vé này?", hauQua: "Vé đã mở sẽ bị khoá hẳn: không nhập lại vào kho để bán được nữa và không hoàn tác được. Lần mở được ghi vào nhật ký.", nhanNguyHiem: "Mở ảnh", opener: nut });
+        if (!dongY) return;
+        nut.disabled = true;
+        try {
+          await api(`/api/ve/lo-da-huy/${encodeURIComponent(v.veId)}/mo`, { method: "POST", body: {} });
+          chu.textContent = moTa("DA_MO");
+          replaceChildren(khu, nutXem());
+          await hienAnh();
+        } catch (err) {
+          baoLoi(err);
+          await taiLoDaHuy();
+        }
+      });
+      replaceChildren(khu, nut);
+    }
+    return h("div", { "data-ve": v.trangThaiAnh }, chu, khu, khuAnh);
+  }
+
   async function taiLoDaHuy(): Promise<void> {
     try {
       const r = await api<{ hanLuuNgay: number; lo: LoDaHuy[] }>("/api/ve/lo-da-huy");
       if (r.lo.length === 0) { replaceChildren(daHuyEl, h("p", { class: "muted" }, `Không có lô nào được huỷ trong ${r.hanLuuNgay} ngày qua.`)); return; }
       replaceChildren(daHuyEl,
-        h("p", { class: "muted" }, `Các lô huỷ trong ${r.hanLuuNgay} ngày qua, để tra cứu. Ảnh vé không mở lại được ở đây, vì vé đã huỷ có thể nhập lại vào kho, mở ảnh ra là có thể bán trùng.`),
+        h("p", { class: "muted" }, `Các lô huỷ trong ${r.hanLuuNgay} ngày qua, để tra cứu. Mở ảnh một vé thì vé đó bị khoá, không nhập lại vào kho được nữa.`),
         h("ul", { class: "pay-list", "data-khoi": "lo-da-huy" }, ...r.lo.map((l) =>
           h("li", { "data-lo": l.loId },
             h("strong", null, l.tenSanPham),
             h("p", { class: "muted" }, `${l.tenDichVu ?? "Dịch vụ không còn trong danh mục"} · ${NHAN_NHOM[l.nhomKhach] ?? l.nhomKhach} · ${l.ve.length} vé`),
             h("p", { class: "muted" }, `Huỷ lúc ${gioVn(l.huyLuc)} ngày ${ngayVn(l.huyLuc)} · người huỷ: ${l.huyBoi ?? "không rõ"}`),
             h("details", { class: "px-hop" }, h("summary", null, `Xem ${l.ve.length} vé`),
-              ...l.ve.map((v) => h("p", { class: "muted", "data-ve": "1" }, `Vé số cuối ${v.duoiMa} · ${ngayDung(v.tuNgay, v.denNgay)}`)))))));
+              ...l.ve.map(dongVeDaHuy))))));
     } catch (err) {
       replaceChildren(daHuyEl, h("p", { class: "alert", role: "alert" }, lyDoLoi(err)));
     }
@@ -190,19 +233,19 @@ if (!can(staff, "ve.kho.manage")) {
           if (them === 0) {
             await api(`/api/ve/lo/${encodeURIComponent(lo.loId)}/bo`, { method: "POST", body: {} }).catch(() => undefined); // lô trống: không để lại rác ở danh sách
             trangThai.textContent = "Chưa có vé nào vào kho.";
-            await taiCacLo();
+            await Promise.all([taiCacLo(), taiLoDaHuy()]);
             return;
           }
           await api(`/api/ve/lo/${encodeURIComponent(lo.loId)}/xac-nhan`, { method: "POST", body: {} });
           trangThai.hidden = true;
           hienOk(`Đã nhập ${them} vé vào kho.`);
           form.reset();
-          await Promise.all([taiKho(), taiCacLo()]);
+          await Promise.all([taiKho(), taiCacLo(), taiLoDaHuy()]);
         } catch (err) {
           // Lô đã tạo mà gửi dở: chỉ đường ra thay vì để vé kẹt không ai thấy (ADR-0156 Đ2 mục 3).
           baoLoi(`${[...bi, lyDoLoi(err)].join(" ")} Lô này chưa xong: bấm «Huỷ lô» ở danh sách bên dưới rồi nhập lại.`);
           trangThai.hidden = true;
-          await taiCacLo();
+          await Promise.all([taiCacLo(), taiLoDaHuy()]);
         }
       } catch (err) {
         baoLoi([...bi, lyDoLoi(err)].join(" "));

@@ -4384,3 +4384,6 @@ main select { max-width: 100%; }
 .dd-dinh-nghia { display: grid; gap: var(--s3); margin-top: var(--s3); }
 .dd-gia-tri { display: grid; gap: var(--s2); margin: 0; padding: 0; list-style: none; }
 .dd-gia-tri > li { display: grid; gap: var(--s2); padding: var(--s2) 0; border-top: 1px solid var(--c-border); }
+
+/* ---------- Kho vé điện tử: ảnh vé của lô đã huỷ — chỉ token ---------- */
+.ve-anh-xem { display: block; max-width: 100%; height: auto; margin-top: var(--s2); border: 1px solid var(--c-border); border-radius: var(--radius-sm); }

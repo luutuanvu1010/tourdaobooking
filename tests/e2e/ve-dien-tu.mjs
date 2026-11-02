@@ -143,6 +143,23 @@ const lai = await themVe(loLai, [veThu(31), veThu(32)]);
 assert.equal(lai.body.themDuoc, 2, JSON.stringify(lai.body));
 assert.deepEqual(lai.body.loai, []);
 
+// 10b. Mở ảnh của lô đã huỷ (chủ quyết 2/11/2026), đi qua kho R2 thật của wrangler: vé đã nhập lại thì ảnh cũ không mở được; vé chưa nhập lại thì mở được và bị khoá hẳn.
+assert.equal((await call(SALES, "POST", `/api/ve/lo-da-huy/${dongHuy.ve[0].veId}/mo`, {})).status, 409, "vé đã nhập lại");
+const loMo = await moLo();
+assert.equal((await themVe(loMo, [veThu(41)])).body.themDuoc, 1);
+assert.equal((await call(SALES, "POST", `/api/ve/lo/${loMo}/bo`, {})).status, 200);
+const veMo = (await call(SALES, "GET", "/api/ve/lo-da-huy")).body.lo.find((l) => l.loId === loMo).ve[0];
+assert.equal(veMo.trangThaiAnh, "CHUA_MO");
+assert.equal((await call(SALES, "GET", `/api/ve/lo-da-huy/${veMo.veId}/anh`)).status, 409, "chưa mở thì chưa xem được");
+const moAnh = await call(SALES, "POST", `/api/ve/lo-da-huy/${veMo.veId}/mo`, {});
+assert.equal(moAnh.status, 200, JSON.stringify(moAnh.body));
+assert.equal((await call(SALES, "GET", `/api/ve/lo-da-huy/${veMo.veId}/anh`)).status, 200);
+const loNhapLaiMo = await moLo();
+const nhapLaiMo = await themVe(loNhapLaiMo, [veThu(41)]);
+assert.equal(nhapLaiMo.body.themDuoc, 0, JSON.stringify(nhapLaiMo.body));
+assert.match(nhapLaiMo.body.loai[0].lyDo, /đã được mở ảnh/);
+assert.equal((await call(SALES, "POST", `/api/ve/lo/${loNhapLaiMo}/bo`, {})).status, 200);
+
 // 11. lô đã từng giữ chỗ (lô đầu, vé đã về kho sau khi huỷ đơn): không bỏ được, vì có thể đã lộ mã
 assert.equal((await call(SALES, "POST", `/api/ve/lo/${lo.body.loId}/bo`, {})).status, 409);
 assert.equal(await conTrong(), 3);

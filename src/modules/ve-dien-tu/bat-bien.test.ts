@@ -34,6 +34,20 @@ test("R-VDT-4: hai vé còn hiệu lực trùng 12 số cuối của chuỗi QR 
   assert.equal(kiem(d, "R-VDT-4"), 1, "vé VOID không mang dấu rút vẫn tính");
 });
 
+test("R-VDT-6: vé đang bán trùng mã, tệp hoặc S/N với vé đã mở ảnh khi lô bị huỷ ⇒ không đạt", () => {
+  const d = taoCsdl();
+  const lo = themLo(d);
+  assert.equal(kiem(d, "R-VDT-6"), 0);
+  // Dấu mở chỉ đặt được khi không còn bản đang bán nên muốn dựng vi phạm phải gỡ hai trigger giữ khoá, tức là giả lập dữ liệu đã hỏng.
+  d.exec("DROP TRIGGER vdt_ticket_opened_guard; DROP TRIGGER vdt_ticket_opened_no_reimport");
+  const v = themVe(d, lo);
+  const [t] = d.prepare("SELECT ticket_code, content_hash FROM vdt_ticket WHERE id = ?").all(v) as { ticket_code: string; content_hash: string }[];
+  d.prepare("UPDATE vdt_ticket SET withdrawn_at = ?, status = 'VOID', opened_at = ? WHERE id = ?").run(AT, AT, v);
+  assert.equal(kiem(d, "R-VDT-6"), 0, "chưa có bản đang bán");
+  d.prepare("INSERT INTO vdt_ticket (id, batch_id, ticket_code, valid_from, valid_to, storage_key, content_kind, byte_size, content_hash, status, created_at, updated_at) VALUES ('sao-chep', ?, ?, '2026-10-24', '2026-11-23', 'khoa-sao-chep', 'image/png', 40, 'bam-khac', 'AVAILABLE', ?, ?)").run(lo, t.ticket_code, AT, AT);
+  assert.equal(kiem(d, "R-VDT-6"), 1, "trùng mã");
+});
+
 test("R-VDT-5: ảnh còn trong hạn lưu ⇒ không báo; quá hạn mà kho chưa xoá ⇒ thấy được", () => {
   const d = taoCsdl();
   const lo = themLo(d);

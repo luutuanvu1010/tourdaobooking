@@ -9,7 +9,7 @@ ADR: `docs/adr/ADR-0156-ve-dien-tu-ma-qr-chong-trung-va-tran-lo.md`. Nhánh `cla
 - Duyệt 2/11: trần gói Đơn hàng 103.178 byte; `R-VDT-4` tính cả vé VOID không mang dấu rút.
 - Duyệt 2/11: «vậy đổi thành lưu 3 ngày cho lô đã huỷ» (trước đó nói 7 ngày «để phục vụ cho việc tra cứu và tra soát»). Máy tự xoá sau hạn.
 - Chữ trên giao diện đổi từ «Bỏ lô» thành «Huỷ lô» vì chủ không hiểu «lô đã bỏ». Tên trong mã giữ nguyên.
-- Ai xem trong 3 ngày: chủ chọn «Cả Quản trị, Bán hàng» khi hỏi về xem ảnh. Sau đó người thi công hỏi lại kèm ví dụ bán trùng (vé của lô đã huỷ nhập lại được, nên ảnh đã gửi khách vẫn có thể bán lần hai); câu trả lời ghi nhận là «Chỉ xem thông tin», đúng phương án khuyến nghị. Công cụ không cho biết chủ tự bấm hay hết giờ tự chọn, nên báo cáo cuối nêu rõ để chủ đổi nếu không đúng ý. Vì vậy hiện chỉ có chữ, không có đường mở ảnh; cần ảnh thì thêm sau.
+- Ai xem trong 3 ngày: chủ chọn «Cả Quản trị, Bán hàng» khi hỏi về xem ảnh. Người thi công hỏi lại kèm ví dụ bán trùng, câu đó ghi nhận «Chỉ xem thông tin» nhưng không rõ chủ bấm hay hết giờ. Báo lại thì chủ trả lời bằng chữ: «Cho mở ảnh». Câu tiếp theo về vé đã mở ghi nhận «Không nhập lại (Recommended)»: vé đã mở khoá hẳn. Câu này công cụ cũng không cho biết chủ tự bấm hay hết giờ; đây là phương án an toàn, đổi được khi chưa có vé thật nào bị khoá, và đã nêu trong báo cáo.
 
 ## Lệch so với ADR (có lý do)
 - Thư viện đặt tên `jsqr.cjs`, không phải `.js`: kho khai `"type": "module"`, đuôi `.js` bị esbuild coi là ESM và báo không có export. Bài trần gói bắt được lỗi này.
@@ -19,7 +19,7 @@ ADR: `docs/adr/ADR-0156-ve-dien-tu-ma-qr-chong-trung-va-tran-lo.md`. Nhánh `cla
 - Sổ nợ `GHI_NHIEU_LAN` từng thêm `POST /api/ve/lo/:id/bo` vì kho R2 nằm giữa. Từ khi lưu ảnh 3 ngày, route này chỉ còn một lô D1 nên đã gỡ dòng đó. Dòng `POST /api/ve/lo/:id/ve` sửa cho đúng sự thật như ADR yêu cầu.
 - ADR Đ2 mục 3 viết vé «rồi được dọn khỏi kho R2», không nói lúc nào, nên hạn 3 ngày không trái ADR. Các chỗ khác của ADR lệch với quyết định 2/11 (4 số cuối trên trang, `R-VDT-4`, tên «Bỏ lô») đã ghi ở `docs/SYSTEM-DESIGN.md` §16, chờ chủ duyệt dòng lịch sử.
 - Lô huỷ mà không có vé nào vào kho thì không hiện ở khối mới, vì không có gì để tra; người kiểm thấy nguy cơ rác và ảnh chụp cho thấy đúng vậy.
-- Thêm ngoài ADR: `GET /api/ve/lo-da-huy` và khối «Lô đã huỷ gần đây», cùng ô `ve.kho.manage`, chỉ đọc. Tên người huỷ qua `nhanNhanVien` được tiêm, không nới `ALLOWED_EDGES`.
+- Thêm ngoài ADR: khối «Lô đã huỷ gần đây» và ba route `/api/ve/lo-da-huy*`, cột `opened_at`, `opened_by`, hai trigger ở `0132`, bất biến `R-VDT-6`; cùng ô `ve.kho.manage`. Tên người huỷ qua `nhanNhanVien` được tiêm, không nới `ALLOWED_EDGES`.
 
 ## Kiểm độc lập lần 1 (2/11): KHÔNG ĐẠT, đã xử lý
 Không có đường nào đưa vé có thể đã tới tay khách quay lại kho. Các phát hiện:
@@ -51,7 +51,8 @@ Không có lỗi mức Cao hay Trung ở mã; người kiểm tự phá thử th
 ## Nợ
 - Hàng chờ xoá lấy 50 dòng cũ nhất mỗi lần: 50 dòng liên tục không xoá được sẽ chặn các dòng sau; `R-VDT-5` thấy số đếm tăng (suy luận, chưa chạy).
 - ~~Bỏ lô xen giữa lúc gửi mà lần xoá ngay cũng gặp kho hỏng~~: đã hết từ khi lưu 3 ngày. Dòng vé ở hàng chờ tới khi xoá được, `R-VDT-5` thấy nếu quá hạn.
-- Ảnh được giữ 3 ngày nhưng Nền tảng chưa có đường mở, nên hiện chỉ dùng được nếu sau này thêm đường đó (chủ quyết 2/11).
+- Thua đua giữa mở ảnh và nhập lại: vé vẫn đúng, nhưng người nhập thấy câu «Vé này vừa được nhập ở nơi khác» thay vì «đã được mở ảnh». Để lại vì chỉ xảy ra trong khoảnh khắc rất ngắn và không đổi kết quả.
+- Mở ảnh là GET ghi nhật ký mỗi lần như route ảnh của đơn, nên lần mở đầu có hai dòng nhật ký: một dòng khoá, một dòng xem.
 - `COALESCE(purged_at, ?2)` ở `RUT_VE_CUA_LO` không có bài khoá: bỏ đi vẫn xanh. Chỉ có tác dụng với vé có `purged_at` cũ mà chưa rút, mà `cauDatChoXoa` chưa có nơi gọi trong mã chạy thật. Nếu sau này có nơi gọi thì xem lại, vì ảnh sẽ xoá sớm hơn 3 ngày.
 - Mã ngắn hơn 8 ký tự lộ nhiều hơn tỉ lệ thường ở cột 4 số cuối. Mã thật 36 số nên không thành vấn đề; cách xử lý giống hàm cũ `che4SoCuoi`.
 - `POST /api/ve/lo/:id/sua-ma-tour` trên lô đã huỷ trả 200 dù không ghi gì. Có từ trước đợt này, không gây sai dữ liệu.

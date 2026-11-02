@@ -335,7 +335,7 @@ test("lô đã huỷ: Bán hàng, Quản trị, Toàn quyền xem được, Kế
   assert.deepEqual([l.loId, l.tenSanPham, l.tenDichVu, l.nhomKhach, l.huyBoi], [loId, "Vé huỷ thử", "Vinwonders 2 ngày", "ADULT", "NV 01"]);
   assert.match(l.huyLuc, /^\d{4}-\d{2}-\d{2}T/);
   assert.equal(l.ve.length, 2);
-  assert.deepEqual(Object.keys(l.ve[0]).sort(), ["denNgay", "duoiMa", "tuNgay"]);
+  assert.deepEqual(Object.keys(l.ve[0]).sort(), ["denNgay", "duoiMa", "trangThaiAnh", "tuNgay", "veId"]);
   assert.deepEqual(l.ve.map((x: any) => x.duoiMa).sort(), ["1111", "1112"], "chỉ 4 số cuối");
   assert.deepEqual([l.ve[0].tuNgay, l.ve[0].denNgay], ["2026-10-24", "2026-11-23"]);
   for (const x of nho) for (const bi of [x.storage_key, x.content_hash, x.ticket_code]) assert.ok(!r.text.includes(bi), "không được lộ mã đầy đủ, khoá kho, dấu vân");
@@ -412,6 +412,216 @@ test("lô đã huỷ: mọi quyền ngoài Bán hàng, Quản trị, Toàn quy�
     seedStaff(w.sqlite, { id, phone: `09100000${so}`, name: `NV ${quyen}`, perms: [quyen] });
     assert.equal((await daHuy(w, id)).status, 403, quyen);
   }
+});
+
+// ---- Mở ảnh của lô đã huỷ (chủ quyết 2/11/2026): vé đã mở khoá hẳn; vé đã nhập lại thì không mở được ảnh cũ ---------------------------------------------
+const moAnh = (w: any, veId: string, as = SALES) => w.call("POST", `/api/ve/lo-da-huy/${veId}/mo`, { as, body: {} });
+const xemAnh = (w: any, veId: string, as = SALES, headers?: Record<string, string>) => w.call("GET", `/api/ve/lo-da-huy/${veId}/anh`, { as, headers });
+const demMo = (w: any) => w.q("SELECT count(*) AS n FROM audit_log WHERE action = 've_mo_anh_lo_huy'")[0].n;
+const LY_DO_DA_MO = "Vé này đã được mở ảnh khi lô bị huỷ nên không nhập lại được.";
+/** Một lô đã vào kho rồi bị huỷ; trả mã lô và dòng vé của khối Lô đã huỷ gần đây. */
+async function loDaHuy(w: any, so: number[]) {
+  const loId = (await taoLo(w)).json.loId;
+  await them(w, loId, so.map((n) => ve(n)));
+  await xacNhan(w, loId);
+  assert.equal((await bo(w, loId)).status, 200);
+  return { loId, ve: (await daHuy(w)).json.lo.find((l: any) => l.loId === loId).ve };
+}
+const trangThai = async (w: any, veId: string) => (await daHuy(w)).json.lo.flatMap((l: any) => l.ve).find((x: any) => x.veId === veId)?.trangThaiAnh;
+
+test("mở ảnh: chưa mở thì chưa xem được; mở xong xem đúng ảnh, có nhật ký không lộ mã; vé khoá hẳn, đổi tệp hay đổi mã đều không nhập lại được", async () => {
+  const w = setup();
+  const { ve: [v] } = await loDaHuy(w, [1]);
+  assert.equal(v.trangThaiAnh, "CHUA_MO");
+  const chua = await xemAnh(w, v.veId);
+  assert.equal(chua.status, 409, chua.text);
+  assert.equal(chua.json.error.code, "ve_chua_mo");
+  assert.equal(w.r2VeDienTu.soLan.get, 0, "chưa mở thì không đọc kho");
+
+  const mo = await moAnh(w, v.veId);
+  assert.equal(mo.status, 200, mo.text);
+  assert.equal(demMo(w), 1);
+  assert.equal(await trangThai(w, v.veId), "DA_MO");
+  const xem = await xemAnh(w, v.veId);
+  assert.equal(xem.status, 200, xem.text);
+  assert.ok(Buffer.from(xem.bytes).equals(Buffer.from(PNG(1))), "đúng ảnh của vé");
+  assert.equal(demMo(w), 2, "mỗi lần xem đều có nhật ký");
+
+  const [t] = w.q("SELECT ticket_code, storage_key, opened_at, opened_by FROM vdt_ticket WHERE id = ?", v.veId);
+  assert.ok(t.opened_at);
+  assert.equal(t.opened_by, SALES);
+  for (const n of w.q("SELECT detail, target_id FROM audit_log WHERE action = 've_mo_anh_lo_huy'")) {
+    assert.equal(n.target_id, v.veId);
+    for (const bi of [t.ticket_code, t.storage_key]) assert.ok(!String(n.detail).includes(bi), "nhật ký không có mã đầy đủ, khoá kho");
+  }
+
+  assert.equal((await moAnh(w, v.veId)).status, 200, "bấm lại vẫn được");
+  assert.equal(demMo(w), 2, "bấm lại không ghi thêm dòng khoá");
+
+  const loMoi = (await taoLo(w)).json.loId;
+  for (const thu of [ve(1), ve(1, { noiDung: b64(PNG(9)) }), ve(1, { maVe: QR(9) })]) {
+    const r = await them(w, loMoi, [thu]);
+    assert.equal(r.status, 200, r.text);
+    assert.equal(r.json.themDuoc, 0);
+    assert.deepEqual(r.json.loai, [{ thuTu: 0, lyDo: LY_DO_DA_MO }]);
+  }
+  assert.equal(w.q("SELECT count(*) AS n FROM vdt_ticket WHERE withdrawn_at IS NULL")[0].n, 0);
+});
+
+test("mở ảnh: vé đã nhập lại vào lô mới, trùng mã hoặc trùng tệp, thì ảnh cũ không mở được", async () => {
+  const w = setup();
+  const { ve: ds } = await loDaHuy(w, [1, 2, 3]);
+  const theo = (duoi: string) => ds.find((x: any) => x.duoiMa === duoi).veId;
+  const loMoi = (await taoLo(w)).json.loId;
+  const r = await them(w, loMoi, [ve(1), ve(2, { noiDung: b64(PNG(8)) }), ve(3, { maVe: QR(7) })]);
+  assert.equal(r.json.themDuoc, 3, r.text);
+  for (const duoi of ["1111", "1112", "1113"]) {
+    assert.equal(await trangThai(w, theo(duoi)), "DA_NHAP_LAI");
+    const m = await moAnh(w, theo(duoi));
+    assert.equal(m.status, 409, m.text);
+    assert.equal(m.json.error.code, "ve_da_nhap_lai");
+    assert.equal((await xemAnh(w, theo(duoi))).status, 409);
+  }
+  assert.equal(w.q("SELECT count(*) AS n FROM vdt_ticket WHERE opened_at IS NOT NULL")[0].n, 0);
+  assert.equal(demMo(w), 0);
+});
+
+test("mở ảnh và nhập lại đúng lúc: chỉ một bên thắng, không bao giờ vừa mở vừa có vé đang bán", async () => {
+  const w1 = setup();
+  const a = await loDaHuy(w1, [1]);
+  const loMoi1 = (await taoLo(w1)).json.loId;
+  let rMo: any;
+  w1.chenTruocLo((cau: { sql: string }[]) => cau.some((c) => /INSERT INTO vdt_ticket/.test(c.sql)), async () => { rMo = await moAnh(w1, a.ve[0].veId); });
+  const rNhap = await them(w1, loMoi1, [ve(1)]);
+  assert.equal(rMo.status, 200, rMo.text);
+  assert.equal(rNhap.json.themDuoc, 0, rNhap.text);
+  assert.equal(w1.q("SELECT count(*) AS n FROM vdt_ticket WHERE withdrawn_at IS NULL")[0].n, 0);
+
+  const w2 = setup();
+  const b = await loDaHuy(w2, [1]);
+  const loMoi2 = (await taoLo(w2)).json.loId;
+  let rNhap2: any;
+  w2.chenTruocLo((cau: { sql: string }[]) => cau.some((c) => /SET opened_at/.test(c.sql)), async () => { rNhap2 = await them(w2, loMoi2, [ve(1)]); });
+  const rMo2 = await moAnh(w2, b.ve[0].veId);
+  assert.equal(rNhap2.json.themDuoc, 1, rNhap2.text);
+  assert.equal(rMo2.status, 409, rMo2.text);
+  assert.equal(rMo2.json.error.code, "ve_da_nhap_lai");
+  assert.equal(w2.q("SELECT count(*) AS n FROM vdt_ticket WHERE opened_at IS NOT NULL")[0].n, 0);
+  assert.equal(demMo(w2), 0, "thua thì không ghi nhật ký khoá");
+});
+
+test("mở ảnh: chỉ Bán hàng, Quản trị, Toàn quyền; mọi quyền khác 403 và không khoá vé", async () => {
+  const w = setup();
+  const { ve: ds } = await loDaHuy(w, [1, 2, 3]);
+  const ngoai = [KT];
+  let so = 20;
+  for (const quyen of ["FIELD", "INTERN", "HR", "DRIVER", "PARTNER", "DRIVER_PARTNER"]) {
+    so++;
+    const id = `${String(so).padStart(8, "0")}-0000-4000-8000-000000000000`;
+    seedStaff(w.sqlite, { id, phone: `09100000${so}`, name: `NV ${quyen}`, perms: [quyen] });
+    ngoai.push(id);
+  }
+  for (const id of ngoai) {
+    assert.equal((await moAnh(w, ds[0].veId, id)).status, 403);
+    assert.equal((await xemAnh(w, ds[0].veId, id)).status, 403);
+  }
+  assert.equal(w.q("SELECT count(*) AS n FROM vdt_ticket WHERE opened_at IS NOT NULL")[0].n, 0);
+  assert.equal(w.r2VeDienTu.soLan.get, 0);
+  for (const [i, as] of [SALES, ADMIN, SUPER].entries()) {
+    assert.equal((await moAnh(w, ds[i].veId, as)).status, 200);
+    assert.equal((await xemAnh(w, ds[i].veId, as)).status, 200);
+  }
+});
+
+test("mở ảnh: vé đang bán, lô đang dở, mã lạ, quá 3 ngày, ảnh đã xoá đều 404 và không khoá vé", async () => {
+  const w = setup();
+  const loBan = (await taoLo(w)).json.loId;
+  await them(w, loBan, [ve(5)]);
+  await xacNhan(w, loBan);
+  const loDo = (await taoLo(w)).json.loId;
+  await them(w, loDo, [ve(6)]);
+  const veBan = w.q("SELECT id FROM vdt_ticket WHERE batch_id = ?", loBan)[0].id;
+  const veDo = w.q("SELECT id FROM vdt_ticket WHERE batch_id = ?", loDo)[0].id;
+  for (const id of [veBan, veDo, U(9), "khong-phai-ma"]) {
+    assert.equal((await moAnh(w, id)).status, 404, id);
+    assert.equal((await xemAnh(w, id)).status, 404, id);
+  }
+  const { loId, ve: [v] } = await loDaHuy(w, [1]);
+  luiNgay(w, loId, 3.1);
+  assert.equal((await moAnh(w, v.veId)).status, 404, "quá 3 ngày");
+  luiNgay(w, loId, 2.9);
+  await chaySau(w, 3.1);
+  assert.equal(await trangThai(w, v.veId), "HET_ANH");
+  assert.equal((await moAnh(w, v.veId)).status, 404, "ảnh đã xoá");
+  assert.equal(w.q("SELECT count(*) AS n FROM vdt_ticket WHERE opened_at IS NOT NULL")[0].n, 0);
+  assert.equal(demMo(w), 0);
+});
+
+test("mở ảnh: kho hỏng hoặc mất ảnh thì không khoá vé, vì nhân viên chưa thấy ảnh mà vé đã mất", async () => {
+  const w = setup();
+  const { ve: ds } = await loDaHuy(w, [1, 2]);
+  w.r2VeDienTu.hong.get = true;
+  const hong = await moAnh(w, ds[0].veId);
+  assert.equal(hong.status, 503, hong.text);
+  w.r2VeDienTu.hong.get = false;
+  const [t2] = w.q("SELECT storage_key FROM vdt_ticket WHERE id = ?", ds[1].veId);
+  await w.r2VeDienTu.delete(t2.storage_key);
+  assert.equal((await moAnh(w, ds[1].veId)).status, 404);
+  assert.equal(w.q("SELECT count(*) AS n FROM vdt_ticket WHERE opened_at IS NOT NULL")[0].n, 0);
+  assert.equal(demMo(w), 0);
+  assert.equal((await moAnh(w, ds[0].veId)).status, 200, "kho hết hỏng thì mở được");
+});
+
+test("xem ảnh đã mở: chặn gọi từ trang khác; nhật ký có trước khi đọc kho; ảnh đọc xong không đổi hàng chờ xoá", async () => {
+  const w = setup();
+  const { ve: [v] } = await loDaHuy(w, [1]);
+  await moAnh(w, v.veId);
+  const khac = await xemAnh(w, v.veId, SALES, { "sec-fetch-site": "cross-site" });
+  assert.equal(khac.status, 403, khac.text);
+  assert.equal(demMo(w), 1);
+  let luc = -1;
+  w.r2VeDienTu.khiGet = () => { luc = demMo(w); };
+  assert.equal((await xemAnh(w, v.veId)).status, 200);
+  assert.equal(luc, 2, "nhật ký phải có trước lần đọc kho");
+  assert.equal(hangCho(w), 1, "mở ảnh không làm ảnh ở lại quá hạn lưu");
+  await chaySau(w, 3.1);
+  assert.equal(hangCho(w), 0);
+  assert.equal(w.q("SELECT count(*) AS n FROM vdt_ticket WHERE opened_at IS NOT NULL")[0].n, 1, "ảnh xoá rồi vé vẫn khoá");
+  const loMoi = (await taoLo(w)).json.loId;
+  assert.deepEqual((await them(w, loMoi, [ve(1)])).json.loai, [{ thuTu: 0, lyDo: LY_DO_DA_MO }], "khoá vĩnh viễn, không hết theo hạn lưu ảnh");
+});
+
+test("CSDL giữ khoá: dấu mở chỉ ghi một lần, chỉ cho vé đã rút không còn bản đang bán; chèn thẳng vé đã mở bị từ chối", async () => {
+  const w = setup();
+  const loBan = (await taoLo(w)).json.loId;
+  await them(w, loBan, [ve(5)]);
+  const veBan = w.q("SELECT id FROM vdt_ticket WHERE batch_id = ?", loBan)[0].id;
+  const dat = (id: string, luc = AT) => w.sqlite.prepare("UPDATE vdt_ticket SET opened_at = ? WHERE id = ?").run(luc, id);
+  assert.throws(() => dat(veBan), /vdt_one_way/, "vé đang bán");
+
+  const { ve: [v1] } = await loDaHuy(w, [1]);
+  const loMoi = (await taoLo(w)).json.loId;
+  await them(w, loMoi, [ve(1)]);
+  assert.throws(() => dat(v1.veId), /vdt_one_way/, "đã có bản đang bán");
+
+  const { ve: [v2] } = await loDaHuy(w, [2]);
+  dat(v2.veId);
+  assert.throws(() => dat(v2.veId, "2099-01-01T00:00:00.000Z"), /vdt_one_way/, "ghi lần hai");
+  assert.throws(() => w.sqlite.prepare("UPDATE vdt_ticket SET opened_at = NULL WHERE id = ?").run(v2.veId), /vdt_one_way/, "gỡ dấu");
+  const [t] = w.q("SELECT ticket_code, content_hash FROM vdt_ticket WHERE id = ?", v2.veId);
+  const chen = (ma: string, bam: string, key: string) => w.sqlite.prepare("INSERT INTO vdt_ticket (id, batch_id, ticket_code, valid_from, valid_to, storage_key, content_kind, byte_size, content_hash, status, created_at, updated_at) VALUES (?, ?, ?, '2026-10-24', '2026-11-23', ?, 'image/png', 40, ?, 'AVAILABLE', ?, ?)").run(crypto.randomUUID(), loMoi, ma, key, bam, AT, AT);
+  assert.throws(() => chen(t.ticket_code, "bam-khac", "khoa-1"), /vdt_one_way/, "trùng mã vé đã mở");
+  assert.throws(() => chen(QR(99), t.content_hash, "khoa-2"), /vdt_one_way/, "trùng tệp vé đã mở");
+});
+
+test("hàng rào tĩnh: route xem ảnh lô đã huỷ theo thứ tự quyền → nhật ký → đọc kho; route khoá vé hỏi kho trước khi ghi", () => {
+  const src = readFileSync(new URL("./index.ts", import.meta.url), "utf8").split("\n").filter((l) => !l.trim().startsWith("//")).join("\n");
+  const than = (dau: string) => { const i = src.indexOf(dau); assert.ok(i !== -1, dau); return src.slice(i, src.indexOf("route(", i + 10)); };
+  const xem = than('route("GET", "/api/ve/lo-da-huy/:veId/anh"');
+  const vi = (t: string, re: RegExp) => t.search(re);
+  assert.ok(vi(xem, /can\(staff, "ve\.kho\.manage"\)/) !== -1 && vi(xem, /can\(staff, "ve\.kho\.manage"\)/) < vi(xem, /auditStatement/) && vi(xem, /auditStatement/) < vi(xem, /kho\.get\(/));
+  const mo = than('route("POST", "/api/ve/lo-da-huy/:veId/mo"');
+  assert.ok(vi(mo, /can\(staff, "ve\.kho\.manage"\)/) < vi(mo, /kho\.head\(/) && vi(mo, /kho\.head\(/) !== -1 && vi(mo, /kho\.head\(/) < vi(mo, /cauMoAnhVe/));
 });
 
 test("việc dọn hàng chờ thật sự được gắn vào lịch chạy định kỳ của Nền tảng", () => {
