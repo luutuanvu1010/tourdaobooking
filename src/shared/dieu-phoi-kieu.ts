@@ -250,6 +250,12 @@ export interface ChangVao {
   xeRieng: boolean;
   /** ADR-0056 VK3-A: số chỗ tối thiểu (`min_vehicle_seats`, cùng nghĩa `soCho` — không kể tài xế); null = không cam kết. BẮT BUỘC. */
   choToiThieu: number | null;
+  /**
+   * ADR-0154 Đ3: đơn của chặng mang DẤU miễn danh sách khách (`orders.manifest_exempt`, chụp MỘT lần lúc lập đơn khi công tắc «Ẩn thông tin khách» BẬT — đổi công tắc sau đó
+   * không đổi dấu). Chỉ làm cổng xuất bến (`kiemXuatBen`) ghi nhắc thay vì giữ vì thiếu tên; KHÔNG đổi `kiemXep`, `lyDoThieuTen`, THIEU_SUAT, KHACH_DA_DOI. BẮT BUỘC (không `?`):
+   * nơi dựng nào quên thì typecheck bắt, không lặng lẽ hiểu là «không miễn».
+   */
+  mienDanhSach: boolean;
 }
 /** Suất trên chuyến (`vc_trip_allocation`). `mo` = dòng còn hiệu lực (`valid_to_at IS NULL`). */
 export interface SuatVao {
@@ -369,9 +375,21 @@ export interface GanTen {
   suatId: string;
   personKey: string;
 }
+/**
+ * ADR-0154 Đ3: lời NHẮC của cổng xuất bến — KHÔNG chặn, không vào `lyDo`, không đổi `dat`. Hiện có một mã: chặng của đơn mang dấu miễn danh sách đang thiếu tên (thay cho
+ * THIEU_TEN); `thieu` = số tên còn thiếu (cùng số mà THIEU_TEN sẽ ghi). Chỉ khoá, mã đơn, con số — không tên người.
+ */
+export interface NhacXuatBen {
+  ma: "KHONG_CAN_DANH_SACH";
+  orderCode: string;
+  legId: string;
+  thieu: number;
+}
 export interface KetQuaXuatBen {
   dat: boolean;
   lyDo: LyDoGiu[];
   chup: BanChup;
   ganTen: GanTen[];
+  /** Lời nhắc không chặn (ADR-0154 Đ3) — luôn có, rỗng khi không có chặng được miễn mà thiếu tên. */
+  nhac: NhacXuatBen[];
 }

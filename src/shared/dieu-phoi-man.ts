@@ -318,10 +318,12 @@ export function hinhDongThoiGian(l: Pick<LichChungResponse, "ngay" | "chuyen" | 
 }
 
 // ---- chi tiết chuyến -----------------------------------------------------------------------------------------------------------------------------------------
-const NHOM_DIEU_KIEN: readonly { nhan: string; ma: readonly string[] }[] = [
+/** ADR-0154 Đ3: mã lời nhắc của cổng xuất bến cho dòng «Đủ tên khách» — đơn mang dấu miễn danh sách đang thiếu tên (`NhacXuatBen` ở dieu-phoi-kieu.ts). */
+const MA_NHAC_KHONG_CAN = "KHONG_CAN_DANH_SACH";
+const NHOM_DIEU_KIEN: readonly { nhan: string; ma: readonly string[]; nhac?: string }[] = [
   { nhan: "Giấy tờ xe", ma: ["DIEU_KIEN_GIAY_TO_XE", "XE_KHONG_DUNG"] },
   { nhan: "Giấy phép lái xe", ma: ["GPLX_THIEU", "GPLX_THIEU_HANG", "GPLX_HET_HAN", "HANG_BANG_KHONG_DU", "KHONG_CO_HANG_BANG", "DIEU_KIEN_GIAY_TO_TAI_XE", "CHUA_CO_TAI_XE", "CHEO_XE_TAI_XE"] },
-  { nhan: "Đủ tên khách", ma: ["THIEU_TEN", "KHACH_DA_DOI"] }, // KHACH_DA_DOI: vòng 5e — điều phối duyệt xếp vào dòng này
+  { nhan: "Đủ tên khách", ma: ["THIEU_TEN", "KHACH_DA_DOI"], nhac: MA_NHAC_KHONG_CAN }, // KHACH_DA_DOI: vòng 5e — điều phối duyệt xếp vào dòng này
   { nhan: "Không có đơn đã huỷ", ma: ["DON_DA_HUY", "CHANG_DA_DONG", "CHANG_KHONG_HOP_LE"] },
   { nhan: "Điểm khớp đơn", ma: ["NOI_HEN_DOI", "CHUA_CO_GIO", "CHUA_CO_NOI_TRA", "GIO_HEN_NGOAI_CHUYEN", "THIEU_SUAT", "THUA_SUAT"] },
   { nhan: "Đủ chỗ", ma: ["VUOT_SO_CHO", "VUOT_SO_NGUOI_CHANG"] },
@@ -331,14 +333,24 @@ const NHOM_DIEU_KIEN: readonly { nhan: string; ma: readonly string[] }[] = [
   { nhan: "Trong giờ được cho xe chạy", ma: ["NGOAI_CUA_SO_XUAT_BEN"] },
 ];
 const chiTietLoi = (ds: readonly LyDoGiuDto[]): string => `${ds.map((d) => d.loiNhan).join("; ")} · Ai xử lý: ${[...new Set(ds.map((d) => d.aiXuLyNhan))].join(", ")}`;
-/** "Điều kiện xuất bến" của chi tiết chuyến (bản vẽ 02): danh mục cố định; chưa đạt = có lý do giữ thuộc nhóm (câu + ai xử lý); đạt không kèm chi tiết. */
-export function dieuKienXuatBen(lyDoGiu: readonly LyDoGiuDto[]): { nhan: string; dat: boolean; chiTiet: string }[] {
+/**
+ * "Điều kiện xuất bến" của chi tiết chuyến (bản vẽ 02): danh mục cố định; chưa đạt = có lý do giữ thuộc nhóm (câu + ai xử lý); đạt không kèm chi tiết.
+ * ADR-0154 Đ3: `nhac` (phản hồi chi tiết chuyến của văn phòng) = đơn mang dấu miễn danh sách đang thiếu tên. Dòng «Đủ tên khách»: còn lý do giữ (THIEU_TEN của đơn khác, KHACH_DA_DOI) thì
+ * chưa đạt, `khongCan: false`, chi tiết giữ câu cũ và nối mã đơn được miễn; KHÔNG còn lý do mà có nhắc thì `dat: false` (mọi chỗ chỉ đọc `dat` không thể ghi đạt giả) và `khongCan: true`,
+ * chi tiết «Không cần danh sách khách: <mã đơn>» — không chữ «đạt», «Đủ». Mã nhắc lạ bị bỏ qua.
+ */
+export function dieuKienXuatBen(
+  lyDoGiu: readonly LyDoGiuDto[], nhac: readonly { ma: string; maDon: string }[] = [],
+): { nhan: string; dat: boolean; chiTiet: string; khongCan: boolean }[] {
   const out = NHOM_DIEU_KIEN.map((n) => {
     const ds = lyDoGiu.filter((l) => n.ma.includes(l.ma));
-    return { nhan: n.nhan, dat: ds.length === 0, chiTiet: ds.length ? chiTietLoi(ds) : "" };
+    const mien = n.nhac === undefined ? [] : [...new Set(nhac.filter((x) => x.ma === n.nhac).map((x) => x.maDon))];
+    const cauMien = mien.length ? `Không cần danh sách khách: ${mien.join(", ")}` : "";
+    if (ds.length === 0 && mien.length > 0) return { nhan: n.nhan, dat: false, chiTiet: cauMien, khongCan: true };
+    return { nhan: n.nhan, dat: ds.length === 0, chiTiet: ds.length ? [chiTietLoi(ds), cauMien].filter(Boolean).join(" · ") : "", khongCan: false };
   });
   const khac = lyDoGiu.filter((l) => !NHOM_DIEU_KIEN.some((n) => n.ma.includes(l.ma)));
-  if (khac.length) out.push({ nhan: "Khác", dat: false, chiTiet: chiTietLoi(khac) });
+  if (khac.length) out.push({ nhan: "Khác", dat: false, chiTiet: chiTietLoi(khac), khongCan: false });
   return out;
 }
 

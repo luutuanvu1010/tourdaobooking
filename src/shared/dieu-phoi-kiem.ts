@@ -10,7 +10,7 @@
 // - ADR-0050: nơi hẹn đổi sau khi xếp → giữ NOI_HEN_DOI (so KHOÁ so sánh nơi của chặng với `placeKey` của điểm — `noiLechCuaSuat`, MỘT hàm cho cả lý do giữ
 //   lẫn cảnh báo lịch chung K-02); khoảng nghỉ lúc xuất bến đo từ giờ XẢY RA xuất bến (`xuatBenMs`), không từ lúc bấm (I37).
 import type {
-  BanChup, ChangVao, ChinhSachVao, ChuyenVao, DieuKienVao, DiemVao, GanTen, HangBangVao, KetQuaKiem, KetQuaXuatBen, KhungBanVao, KhungChuyen, MucChup, SuatVao, TaiXeVao,
+  BanChup, ChangVao, ChinhSachVao, ChuyenVao, DieuKienVao, DiemVao, GanTen, HangBangVao, KetQuaKiem, KetQuaXuatBen, KhungBanVao, KhungChuyen, MucChup, NhacXuatBen, SuatVao, TaiXeVao,
   TrangThaiChuyen, XeVao,
 } from "./dieu-phoi-kieu.ts";
 import { xetKetThuc } from "./ket-thuc-chuyen.ts";
@@ -458,6 +458,7 @@ export function kiemXuatBen(v: KiemXuatBenVao): KetQuaXuatBen & { camKet: KetQua
   if (tai > c.xe.soCho) lyDo.push(lyDoGiu("VUOT_SO_CHO", `${tai}/${c.xe.soCho}`));
   // Từng chặng có suất khách mở trên chuyến.
   const ganTen: GanTen[] = [];
+  const nhac: NhacXuatBen[] = [];
   const legIds = [...new Set(v.suat.filter((s) => s.mo && s.loai === "PASSENGER" && s.legId !== null).map((s) => s.legId as string))];
   for (const legId of legIds) {
     const ch = v.chang.find((x) => x.legId === legId);
@@ -495,7 +496,10 @@ export function kiemXuatBen(v: KiemXuatBenVao): KetQuaXuatBen & { camKet: KetQua
       if (p !== undefined) ganTen.push({ suatId: s.id, personKey: p });
     });
     const thieuTen = lyDoThieuTen(ch, cs?.requireManifest ?? false, { chuaTen: chuaTen.length, ranh: ranh.length });
-    if (thieuTen) lyDo.push(thieuTen);
+    // ADR-0154 Đ3: đơn mang dấu miễn danh sách → thiếu tên không giữ xe, chỉ NHẮC. `=== true` (không `!!`): dữ liệu vào cũ không có khoá (JSON ca mẫu) là «không miễn».
+    // Chỉ vế THIEU_TEN: THIEU_SUAT, THUA_SUAT, KHACH_DA_DOI, NOI_HEN_DOI ở trên và dưới vòng này không đổi.
+    if (thieuTen && ch.mienDanhSach === true) nhac.push({ ma: "KHONG_CAN_DANH_SACH", orderCode: ch.orderCode, legId, thieu: soTenThieu(ch, { chuaTen: chuaTen.length, ranh: ranh.length }) });
+    else if (thieuTen) lyDo.push(thieuTen);
   }
   // ADR-0096 Đ1.2 (LC-19): điểm đón của suất chờ lên đứng trước điểm trả — không phá lệ. Lớp CSDL: trigger vc_trip_departure_stop_order (0084).
   lyDo.push(...lyDoTraTruocDon(v.suat, v.diem, [...v.chang, ...(v.changNgoai ?? [])]));
@@ -527,7 +531,7 @@ export function kiemXuatBen(v: KiemXuatBenVao): KetQuaXuatBen & { camKet: KetQua
     muc,
   };
   const ds = khongTrung(lyDo);
-  return { dat: ds.length === 0, lyDo: ds, chup, ganTen, camKet };
+  return { dat: ds.length === 0, lyDo: ds, chup, ganTen, camKet, nhac };
 }
 
 // ---- Kết thúc (LC-16), "trong ngày chạy" -----------------------------------------------------------------------------------------------------------------

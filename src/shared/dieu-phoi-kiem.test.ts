@@ -133,7 +133,7 @@ test("mốc lúc xếp (Q2 = (a)): TẠO trong mốc không cần phá lệ; S�
 const chang = (v: Partial<ChangVao> = {}): ChangVao => ({
   legId: "leg-1", orderId: "don-1", orderCode: "ĐH-1024", chieu: "OUT", ngayDon: "2026-09-30", gioDon: "06:30", coNoiTra: true,
   donDaXacNhan: true, donDaHuy: false, changMo: true, soNguoi: 4, nguoiCuaDon: ["p1", "p2", "p3", "p4"], datGap: false,
-  khoaNoiDon: "L:noi-don-1", khoaNoiTra: "L:noi-tra-9", xeRieng: false, choToiThieu: null, ...v, // khoá so sánh nơi GIẢ (ADR-0050 VK1-B) — khớp placeKey của điểm d-1 / d-9
+  khoaNoiDon: "L:noi-don-1", khoaNoiTra: "L:noi-tra-9", xeRieng: false, choToiThieu: null, mienDanhSach: false, ...v, // khoá so sánh nơi GIẢ (ADR-0050 VK1-B) — khớp placeKey của điểm d-1 / d-9
 });
 const suat = (v: Partial<SuatVao>): SuatVao => ({
   id: "s-x", tripId: "cx-07", loai: "PASSENGER", legId: "leg-1", personKey: null, crewPartyId: null, boardStopId: "d-1", alightStopId: "d-9", trangThai: "WAITING", mo: true,
@@ -504,6 +504,67 @@ test("MỘT luật hai nơi: cảnh báo lúc xếp TRÙNG ĐÚNG lý do CHUA_CO
     const xb2 = kiemXuatBen(xb({ chang: [ch], suat: sau, suatMoCuaChang: sau, chinhSach: cs }));
     assert.deepEqual(haiMa(kq.canhBao), haiMa(xb2.lyDo), ten);
   }
+  // NGOẠI LỆ CÓ TÊN (ADR-0154 Đ3): chặng mang dấu miễn danh sách (`mienDanhSach`) — lúc xếp VẪN cảnh báo thiếu tên (luật xếp không đổi), còn cổng xuất bến
+  // KHÔNG giữ mà ghi một dòng nhắc (`nhac`) cùng mã đơn, cùng số tên thiếu. Khác với mọi ca trên: hai nơi không còn trùng lý do, và chỉ ca này được khác.
+  const mien = chang({ mienDanhSach: true, nguoiCuaDon: ["p1"] });
+  const xepMien = xep([{ chang: mien, soSuatMoi: 4, personKeys: [], suatMoCuaChang: [] }]);
+  assert.deepEqual(haiMa(xepMien.canhBao), ["THIEU_TEN:Chưa đủ tên khách: ĐH-1024 thiếu 3 tên"], "lúc xếp vẫn cảnh báo");
+  const ranhMien = khoaNguoiRanh({ legId: mien.legId, nguoiCuaDon: mien.nguoiCuaDon, suatMoCuaChang: [] });
+  const sauMien = tenLucXep({ soSuat: 4, personKeys: [], ranh: ranhMien }).map((p, i) => suat({ id: `m${i}`, personKey: p }));
+  const xbMien = kiemXuatBen(xb({ chang: [mien], suat: sauMien, suatMoCuaChang: sauMien }));
+  assert.deepEqual(haiMa(xbMien.lyDo), [], "cho xe chạy không giữ vì tên");
+  assert.equal(xbMien.dat, true);
+  assert.deepEqual(xbMien.nhac, [{ ma: "KHONG_CAN_DANH_SACH", orderCode: "ĐH-1024", legId: "leg-1", thieu: 3 }]);
+});
+
+// ---- ADR-0154 Đ3: đơn mang dấu miễn danh sách không bị giữ vì thiếu tên; chỉ nhắc ------------------------------------------------------------------------
+/** BON_SUAT: s1 (p1), s2 (p2) có tên, s3, s4 chưa tên → đơn chỉ có p1, p2 = thiếu 2 tên. */
+const THIEU_2 = ["p1", "p2"];
+test("(h) kiemXuatBen: chặng mienDanhSach thiếu tên, requireManifest bật → đạt, không THIEU_TEN, ĐÚNG một dòng nhắc (mã đơn, chặng, số tên thiếu)", () => {
+  const r = kiemXuatBen(xb({ chang: [chang({ mienDanhSach: true, nguoiCuaDon: THIEU_2 })] }));
+  assert.equal(r.dat, true, JSON.stringify(r.lyDo));
+  assert.deepEqual(r.lyDo, []);
+  assert.deepEqual(r.nhac, [{ ma: "KHONG_CAN_DANH_SACH", orderCode: "ĐH-1024", legId: "leg-1", thieu: 2 }]);
+  // Đối chứng: cùng chặng KHÔNG mang dấu → vẫn giữ THIEU_TEN, không nhắc.
+  const khong = kiemXuatBen(xb({ chang: [chang({ mienDanhSach: false, nguoiCuaDon: THIEU_2 })] }));
+  assert.deepEqual(ai(khong.lyDo), ["THIEU_TEN:VAN_PHONG"]);
+  assert.deepEqual(khong.nhac, []);
+  // Mọi đường khác không nhắc: chặng đủ tên có dấu → không nhắc (không có gì để miễn).
+  assert.deepEqual(kiemXuatBen(xb({ chang: [chang({ mienDanhSach: true })] })).nhac, []);
+});
+test("(h2) kiemXuatBen: chặng mienDanhSach còn THIEU_SUAT → VẪN giữ (dấu chỉ miễn tên, không miễn suất); số tên thiếu vẫn được nhắc", () => {
+  const r = kiemXuatBen(xb({ chang: [chang({ mienDanhSach: true, soNguoi: 5, nguoiCuaDon: THIEU_2 })] }));
+  assert.equal(r.dat, false);
+  assert.deepEqual(ai(r.lyDo), ["THIEU_SUAT:VAN_PHONG"]);
+  const thua = kiemXuatBen(xb({ chang: [chang({ mienDanhSach: true, soNguoi: 3, nguoiCuaDon: THIEU_2 })] }));
+  assert.deepEqual(ma(thua.lyDo), ["THUA_SUAT"]);
+});
+test("(h3) kiemXuatBen: chặng mienDanhSach có khách đã đổi (KHACH_DA_DOI) → VẪN giữ; các lý do giữ khác của chặng (nơi hẹn đổi, đơn huỷ) cũng không bị dấu che", () => {
+  const doi = kiemXuatBen(xb({ chang: [chang({ mienDanhSach: true, nguoiCuaDon: ["p1", "p5"] })] }));
+  assert.equal(doi.dat, false);
+  assert.ok(ma(doi.lyDo).includes("KHACH_DA_DOI"), JSON.stringify(ma(doi.lyDo)));
+  assert.ok(!ma(doi.lyDo).includes("THIEU_TEN"));
+  assert.deepEqual(ma(kiemXuatBen(xb({ chang: [chang({ mienDanhSach: true, nguoiCuaDon: THIEU_2, khoaNoiDon: "L:noi-khac" })] })).lyDo), ["NOI_HEN_DOI"]);
+  assert.deepEqual(ma(kiemXuatBen(xb({ chang: [chang({ mienDanhSach: true, nguoiCuaDon: THIEU_2, donDaHuy: true })] })).lyDo), ["DON_DA_HUY"]);
+});
+test("(h4) kiemXuatBen: chính sách KHÔNG bắt danh sách → không giữ, KHÔNG nhắc (không có gì được miễn)", () => {
+  const r = kiemXuatBen(xb({ chinhSach: { ...CS, requireManifest: false }, chang: [chang({ mienDanhSach: true, nguoiCuaDon: THIEU_2 })] }));
+  assert.equal(r.dat, true);
+  assert.deepEqual(r.nhac, []);
+});
+test("(h5) kiemXep: chặng mienDanhSach thiếu tên VẪN cảnh báo THIEU_TEN lúc xếp (luật xếp không đổi); lyDoThieuTen không biết dấu", () => {
+  const r = xep([{ chang: chang({ mienDanhSach: true, nguoiCuaDon: ["p1"] }), soSuatMoi: 4, personKeys: [], suatMoCuaChang: [] }]);
+  assert.equal(r.ok, true);
+  assert.deepEqual(r.canhBao.map((x) => `${x.ma}:${x.loiNhan}`), ["THIEU_TEN:Chưa đủ tên khách: ĐH-1024 thiếu 3 tên"]);
+  assert.equal(lyDoThieuTen(chang({ mienDanhSach: true, nguoiCuaDon: [] }), true)?.ma, "THIEU_TEN");
+});
+test("(h10) kiemXuatBen: hai chặng cùng chuyến, một có dấu một không, cùng thiếu tên → chỉ chặng KHÔNG dấu bị giữ; chặng có dấu được nhắc; không lẫn đơn", () => {
+  const a = chang({ legId: "leg-a", orderId: "don-a", orderCode: "ĐH-A", mienDanhSach: true, soNguoi: 2, nguoiCuaDon: [] });
+  const b = chang({ legId: "leg-b", orderId: "don-b", orderCode: "ĐH-B", mienDanhSach: false, soNguoi: 2, nguoiCuaDon: [] });
+  const s = [suat({ id: "a1", legId: "leg-a" }), suat({ id: "a2", legId: "leg-a" }), suat({ id: "b1", legId: "leg-b" }), suat({ id: "b2", legId: "leg-b" })];
+  const r = kiemXuatBen(xb({ chang: [a, b], suat: s, suatMoCuaChang: s }));
+  assert.deepEqual(r.lyDo.map((l) => `${l.ma}:${l.loiNhan}`), ["THIEU_TEN:Chưa đủ tên khách: ĐH-B thiếu 2 tên"]);
+  assert.deepEqual(r.nhac, [{ ma: "KHONG_CAN_DANH_SACH", orderCode: "ĐH-A", legId: "leg-a", thieu: 2 }]);
 });
 
 test("lyDoNoiTra / lyDoThieuTen — hai hàm dùng chung của cổng xuất bến và cảnh báo lúc xếp", () => {

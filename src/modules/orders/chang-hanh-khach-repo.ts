@@ -651,7 +651,7 @@ const LEG_LICH_CHUNG = defineSql(
   `SELECT l.id, l.order_id, o.order_code, s.id AS service_id, s.name AS service_name, l.direction, l.pickup_date, l.pickup_time,
      l.pickup_location_id, l.pickup_place, COALESCE(pl.name, l.pickup_place) AS noi_don,
      l.dropoff_location_id, l.dropoff_place, COALESCE(dl.name, l.dropoff_place) AS noi_tra,
-     l.short_notice_reason IS NOT NULL AS dat_gap, l.flight_code, l.pax_override, l.exclusive_vehicle, l.min_vehicle_seats
+     l.short_notice_reason IS NOT NULL AS dat_gap, l.flight_code, l.pax_override, l.exclusive_vehicle, l.min_vehicle_seats, o.manifest_exempt
    FROM ord_transfer_leg l
    JOIN orders o ON o.id = l.order_id
    JOIN order_service s ON s.id = l.order_service_id
@@ -682,6 +682,8 @@ export interface LegLichChungRow {
   /** Cam kết xe riêng / xe tối thiểu N chỗ (0077, ADR-0056 VK3-A → khoá `xeRieng` / `choToiThieu`). */
   exclusive_vehicle: number;
   min_vehicle_seats: number | null;
+  /** Dấu miễn danh sách khách của ĐƠN (`orders.manifest_exempt`, ADR-0154 Đ3 → khoá `mienDanhSach`): chụp lúc lập đơn, không đổi sau đó. Chỉ cờ 0 / 1. */
+  manifest_exempt: number;
 }
 export async function legLichChungRows(db: D1Database, tuNgay: string, denNgay: string): Promise<LegLichChungRow[]> {
   return (await db.prepare(LEG_LICH_CHUNG).bind(tuNgay, denNgay).all<LegLichChungRow>()).results;

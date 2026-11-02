@@ -485,6 +485,11 @@ export interface ChangLichChung {
   /** Chặng mang dấu đặt gấp. */
   datGap: boolean;
   /**
+   * ADR-0154 Đ3: ĐƠN của chặng mang dấu miễn danh sách khách (`orders.manifest_exempt` — chụp MỘT lần lúc lập đơn khi công tắc «Ẩn thông tin khách» BẬT; không đọc công tắc hiện hành,
+   * không qua `v_ord_order_flag`). Chỉ là cờ đúng / sai: cổng xuất bến dùng nó để NHẮC thay vì giữ vì thiếu tên.
+   */
+  mienDanhSach: boolean;
+  /**
    * ADR-0050 VK1-B: KHOÁ SO SÁNH NƠI (`khoaNoi`, src/shared/khoa-noi.ts) tính trên chữ CHƯA che — CHỈ để so với `vc_trip_stop.place_key`; KHÔNG BAO GIỜ vào
    * DTO, nhật ký, bản chụp của van-chuyen. `khoaNoiTra` null = chặng chưa có nơi trả.
    */
@@ -539,6 +544,7 @@ export async function lichChungChang(db: D1Database, tuNgay: string, denNgay: st
       choToiThieu: l.min_vehicle_seats,
       nguoiCuaDon: [...(khoaNguoi.get(l.order_id) ?? [])],
       datGap: l.dat_gap === 1,
+      mienDanhSach: l.manifest_exempt === 1,
       khoaNoiDon: (await khoaNoi({ locationId: l.pickup_location_id, placeText: l.pickup_place }))!,
       khoaNoiTra: await khoaNoi({ locationId: l.dropoff_location_id, placeText: l.dropoff_place }),
     };

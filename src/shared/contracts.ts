@@ -1820,6 +1820,11 @@ export interface ChuyenChiTietResponse {
   canhBaoPhut: number | null;
   /** R-P14 (A15): giờ sớm nhất văn phòng khai được cho từng lệnh bấm thay. */
   gioSomNhatKhai: GioSomNhatKhaiDto;
+  /**
+   * ADR-0154 Đ3: lời nhắc KHÔNG chặn của cổng xuất bến — mỗi MÃ ĐƠN một dòng (gộp các chặng của cùng đơn, xếp theo mã): đơn mang dấu miễn danh sách khách đang thiếu tên nên
+   * không bị giữ vì «Đủ tên khách». Chỉ ở chi tiết chuyến của văn phòng (KHÔNG có ở DTO tài xế); chỉ mã đơn, không tên khách. Rỗng khi không có đơn như vậy hoặc chuyến không còn «lên kế hoạch».
+   */
+  nhacDieuKien: { ma: "KHONG_CAN_DANH_SACH"; maDon: string }[];
   /** ADR-0051 (A-GB): mỗi chặng có suất trên chuyến mà còn mục "Giờ hẹn đổi — gọi báo khách" hoặc đang mang dấu "đã gọi báo". */
   goiBao: GoiBaoChangDto[];
   /**

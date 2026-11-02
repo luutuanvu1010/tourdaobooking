@@ -6,7 +6,7 @@ import { sdtChinhCuaHoSo } from "../parties";
 import type { ChuyenChiTietResponse, CuocChiTietResponse, CuocCuaToiItemDto, GoiBaoChangDto, LenhChuyenLoiBody } from "../../shared/contracts";
 import { docGoiBao, goiBaoChang, nguoiBamGoiBao, type QuyenGoiBao } from "./goi-bao-lenh";
 import { kiemXuatBen, type KiemXuatBenVao } from "../../shared/dieu-phoi-kiem";
-import type { KetQuaKiem, LoaiSuKienChuyen, MaLuatPhaLe, TrangThaiChuyen } from "../../shared/dieu-phoi-kieu";
+import type { KetQuaKiem, LoaiSuKienChuyen, MaLuatPhaLe, NhacXuatBen, TrangThaiChuyen } from "../../shared/dieu-phoi-kieu";
 import { dungLichChung } from "../../shared/dieu-phoi-lich-chung";
 import { error, json } from "../../shared/http";
 import { lyDoGiu, lyDoTheoMoc, type LyDoGiu, type MaGiu } from "../../shared/ly-do-giu";
@@ -371,7 +371,8 @@ export async function chiTietChuyen(
   const nc: NguCanhChuyen = await docNguCanh(db, nen, lich, c, [], bayGioMs);
   const t = nen.trip;
   const cs = chinhSachVao(c.chinhSach);
-  const lyDoGiu = lyDoGiuDuPhong(t, nc, c, bayGioMs, true);
+  const du = duPhongXuatBen(t, nc, c, bayGioMs, true);
+  const lyDoGiu = du.lyDo;
   const lichRa = dungLichChung({
     chang: [...nc.chang.values()], changNgoai: nc.changNgoai, nhap: [], chuyen: [nc.chuyen], suat: [...nc.suat, ...nc.suatMoCuaChang.filter((s) => s.tripId !== t.id)],
     diem: nc.diem, chuyenKhac: nc.chuyenKhac, chinhSach: cs, hangBang: c.hangBang, dieuKien: c.dieuKien, bayGioMs,
@@ -414,6 +415,8 @@ export async function chiTietChuyen(
     gioSomNhatKhai: gioSomNhatKhaiDto(
       { events: nen.events, kepLuiPhut: c.chinhSach?.proxy_backdate_max_minutes ?? null, truoc: ketThucTruoc(nc.chuyenKhacRow, t), bayGioMs }, t, nen.stops, nen.allocs,
     ),
+    // ADR-0154 Đ3: mỗi mã đơn một dòng (đơn nhiều chặng trên cùng chuyến chỉ nhắc một lần), xếp theo mã cho ổn định.
+    nhacDieuKien: [...new Set(du.nhac.map((x) => x.orderCode))].sort().map((maDon) => ({ ma: "KHONG_CAN_DANH_SACH" as const, maDon })),
     goiBao: (await Promise.all(nen.legIds.map((id) => goiBaoChang(id, hk, dGoiBao, quyenGoiBao, nhan)))).filter((x): x is GoiBaoChangDto => x !== null),
     tuChoi: (await tuChoiCuaChuyen(db, t.id)).map((r) => ({
       tenTaiXe: c.taiXe.find((x) => x.partyId === r.driver_party_id)?.displayName ?? "(không còn là tài xế)",
@@ -428,13 +431,21 @@ export async function chiTietChuyen(
  * Đ2.5): màn CHI TIẾT (văn phòng, tài xế) xét cửa sổ xuất bến theo GIỜ THẬT để lý do hiện ngay khi đọc; danh sách cuốc thì không (dự phóng luôn trong cửa sổ).
  */
 function lyDoGiuDuPhong(t: TripRow, nc: NguCanhChuyen, c: DuLieuChung, bayGioMs: number, xetCuaSo: boolean): LyDoGiu[] {
-  if (t.status !== "PLANNED") return [];
+  return duPhongXuatBen(t, nc, c, bayGioMs, xetCuaSo).lyDo;
+}
+/**
+ * Dự phóng cổng xuất bến: lý do GIỮ (như trên) + lời NHẮC không chặn (`nhac`, ADR-0154 Đ3 — đơn mang dấu miễn danh sách thiếu tên). MỘT lần gọi `kiemXuatBen` cho cả hai; chuyến khác
+ * trạng thái «lên kế hoạch»: cả hai rỗng. Chỉ chi tiết chuyến của văn phòng đọc `nhac`; DTO tài xế và danh sách cuốc chỉ đọc `lyDo` qua `lyDoGiuDuPhong`.
+ */
+function duPhongXuatBen(t: TripRow, nc: NguCanhChuyen, c: DuLieuChung, bayGioMs: number, xetCuaSo: boolean): { lyDo: LyDoGiu[]; nhac: NhacXuatBen[] } {
+  if (t.status !== "PLANNED") return { lyDo: [], nhac: [] };
   const vao: KiemXuatBenVao = {
     chuyen: nc.chuyen, suat: nc.suat, chang: [...nc.chang.values()], changNgoai: nc.changNgoai, suatMoCuaChang: nc.suatMoCuaChang, diem: nc.diem, chuyenKhac: nc.chuyenKhac,
     chinhSach: chinhSachVao(c.chinhSach), hangBang: c.hangBang, dieuKien: c.dieuKien, bayGioMs: Math.max(bayGioMs, t.planned_start_ms), xuatBenMs: Math.max(bayGioMs, t.planned_start_ms),
     ...(xetCuaSo ? { cuaSoXetMs: bayGioMs } : {}),
   };
-  return kiemXuatBen(vao).lyDo;
+  const kq = kiemXuatBen(vao);
+  return { lyDo: kq.lyDo, nhac: kq.nhac };
 }
 
 // ---- DTO TÀI XẾ (route 19, 20 và phản hồi lệnh tiến độ của tài xế — Task A15) ---------------------------------------------------------------------------------

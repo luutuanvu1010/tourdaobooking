@@ -15,7 +15,9 @@ import { soNguoiChang, tongKhach } from "./so-nguoi-chang.ts";
 
 export const CAU_CAN_NOI_TRA = "Cần nơi trả trước khi xếp xe";
 export const CAU_XE_RIENG_CHUA_GIA_NHOM = "Có lượt đưa đón Xe riêng nhưng đơn chưa có dịch vụ Giá theo nhóm — kiểm lại tiền xe";
-export const cauThieuTen = (n: number): string => `Còn ${n} khách chưa có tên — cần đủ trước khi xe chạy`;
+/** ADR-0154 Đ3: `khongCan` = đơn mang dấu miễn danh sách (`OrderDetailDto.manifestExempt`) — câu nói rõ tên không chặn xe chạy; mặc định câu cũ. */
+export const cauThieuTen = (n: number, khongCan = false): string =>
+  khongCan ? `Còn ${n} khách chưa có tên. Đơn này không cần đủ tên để xe chạy.` : `Còn ${n} khách chưa có tên — cần đủ trước khi xe chạy`;
 
 /** Chặng mở chưa có nơi trả — qua `lyDoNoiTra` (nhãn nơi trả null = không điểm, không chữ). */
 export const thieuNoiTra = (l: { dropoffLabel: string | null }): boolean => lyDoNoiTra({ coNoiTra: l.dropoffLabel !== null, orderCode: "" }) !== null;
@@ -28,7 +30,7 @@ export const xeRiengChuaGiaNhom = (services: readonly Pick<OrderServiceDto, "leg
  * Câu cảnh báo khi xác nhận (thứ tự: nơi trả, tên, xe riêng). `nguoiCuaDon` = khoá người của danh sách hành khách hiện hành (`GET /passengers`); null = không biết (lỗi tải) → bỏ cảnh báo
  * tên (không nói "thiếu" khi không biết). Đơn không chặng → không cảnh báo tên (không có xe chạy). Rỗng = không cảnh báo.
  */
-export function canhBaoXacNhan(services: readonly Pick<OrderServiceDto, "pax" | "legs" | "unit">[], nguoiCuaDon: readonly string[] | null): string[] {
+export function canhBaoXacNhan(services: readonly Pick<OrderServiceDto, "pax" | "legs" | "unit">[], nguoiCuaDon: readonly string[] | null, khongCan = false): string[] {
   const out: string[] = [];
   if (services.some((s) => s.legs.some(thieuNoiTra))) out.push(CAU_CAN_NOI_TRA);
   if (nguoiCuaDon !== null) {
@@ -39,7 +41,7 @@ export function canhBaoXacNhan(services: readonly Pick<OrderServiceDto, "pax" | 
         if (lyDoThieuTen(ch, true) !== null) thieu = Math.max(thieu, soTenThieu(ch));
       }
     }
-    if (thieu > 0) out.push(cauThieuTen(thieu));
+    if (thieu > 0) out.push(cauThieuTen(thieu, khongCan));
   }
   if (xeRiengChuaGiaNhom(services)) out.push(CAU_XE_RIENG_CHUA_GIA_NHOM);
   return out;

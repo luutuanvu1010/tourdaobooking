@@ -155,6 +155,65 @@ export async function don(w, v) {
   return { id: o.id, code: o.orderCode, legId: o.services[0].legs[0].id };
 }
 
+/**
+ * Đặt công tắc «Ẩn thông tin khách khi đối tác đặt vé» bằng ROUTE THẬT (Toàn quyền — ADR-0154 Đ2) rồi tiến đồng hồ giả 5 ms: công tắc đọc theo đồng hồ, dòng mới có `valid_from_at` =
+ * max(bây giờ, dòng mới nhất + 1 ms) nên với đồng hồ ĐÓNG BĂNG dòng vừa ghi nằm ở tương lai cho tới khi đồng hồ tiến. Chỉ dùng khi `batDongHo()` đã bật.
+ */
+export async function datCongTacAnKhach(w, bat) {
+  const r = await w.call("POST", "/api/cai-dat/an-thong-tin-khach", { as: SUP, body: { bat } });
+  assert.equal(r.status, 200, r.text);
+  assert.equal(r.json.bat, bat);
+  mock.timers.tick(5);
+}
+/**
+ * Đơn ĐÃ XÁC NHẬN do tài khoản ĐỐI TÁC lập bằng ĐƯỜNG THẬT, công tắc «Ẩn thông tin khách» ĐANG ở trạng thái nào thì lập theo trạng thái đó (không đổi công tắc): đối tác
+ * `POST /api/orders` (một chặng đón KHÔNG giờ) → `gui-don` (nhánh A, cờ «cần chốt giờ») → người xét Kế toán `quyet-dinh` CON_VE kèm giờ đón. `guiKhachGia: true` = trình duyệt cũ gửi
+ * kèm danh sách khách giả (chỉ hợp lệ khi công tắc BẬT — TẮT thì máy chủ 403 vì đối tác không được gửi `passengers`). Trả như `don()`: `{ id, code, legId }`. `soNguoi` người lớn; giờ
+ * đón mặc định 13:00 (qua mốc 6 giờ). Dấu miễn danh sách của đơn là điều máy chủ chụp lúc lập — hàm này không gieo dấu (trigger cấm UPDATE dấu).
+ */
+export async function donDoiTac(w, v = {}) {
+  kiemGioTheoDongHo({ nhan: "donDoiTac() (giờ đón)", ngay: v.ngay ?? NGAY, gio: v.gio ?? "13:00", mocPhut: mocPhutCua(w) });
+  const soNguoi = v.soNguoi ?? 2;
+  const nguoiLap = v.as ?? PARTNER;
+  const r = await w.call("POST", "/api/orders", {
+    as: nguoiLap,
+    body: {
+      customerName: "Tên Giả Của Trình Duyệt", customerPhone: "0966666666", customerNote: "Ghi chú giả của trình duyệt",
+      services: [{
+        kind: "catalog", catalogCode: "ZA1", pax: { adult: soNguoi, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 777000 }, departDate: v.ngay ?? NGAY,
+        pickupChoice: "DON",
+        legs: [{ direction: "OUT", pickupDate: v.ngay ?? NGAY, pickupTime: null, pickupLocationId: null, pickupPlace: v.noiDon ?? "Khách sạn Dò Tìm", dropoffLocationId: LOC, dropoffPlace: "" }],
+      }],
+      ...(v.guiKhachGia ? { passengers: [{ fullName: "Khách Giả Của Trình Duyệt", birthYear: 1990, paxCode: "adult" }] } : {}),
+    },
+  });
+  assert.equal(r.status, 201, r.text);
+  const o = r.json.order;
+  const legId = o.services[0].legs[0].id;
+  const g = await w.call("POST", `/api/orders/${o.id}/gui-don`, { as: nguoiLap, body: {} });
+  assert.equal(g.status, 201, g.text);
+  assert.equal(g.json.nhanh, "A", "chống bài rỗng: lượt đầu Đón không giờ → nhánh A");
+  const moc = w.q("SELECT updated_at u FROM orders WHERE id = ?", o.id)[0].u;
+  const yc = w.q("SELECT id FROM ord_confirm_request WHERE order_id = ? AND decided_at IS NULL", o.id)[0];
+  assert.ok(yc, "chống bài rỗng: có yêu cầu đang mở");
+  const x = await w.call("POST", `/api/orders/${o.id}/quyet-dinh`, { as: ACC, body: { yeuCauId: yc.id, updatedAt: moc, ketQua: "CON_VE", gioDon: [{ legId, pickupTime: v.gio ?? "13:00" }] } });
+  assert.equal(x.status, 200, x.text);
+  assert.equal(w.q("SELECT status s FROM orders WHERE id = ?", o.id)[0].s, "confirmed");
+  return { id: o.id, code: o.orderCode, legId };
+}
+/**
+ * Đơn ĐÃ XÁC NHẬN mang dấu miễn danh sách (ADR-0154 Đ3), lập bằng ĐƯỜNG THẬT: BẬT công tắc (Toàn quyền) nếu chưa bật → `donDoiTac` với danh sách khách giả của trình duyệt cũ (máy chủ bỏ).
+ * Công tắc ĐƯỢC BẬT và để nguyên BẬT khi trả về (bài cần TẮT thì gọi `datCongTacAnKhach(w, false)`). Trigger cấm `UPDATE` dấu nên KHÔNG gieo tắt. Trả như `don()`.
+ */
+export async function donDoiTacCoDau(w, v = {}) {
+  const hienTai = await w.call("GET", "/api/cai-dat/an-thong-tin-khach", { as: SUP });
+  assert.equal(hienTai.status, 200, hienTai.text);
+  if (!hienTai.json.bat) await datCongTacAnKhach(w, true);
+  const d = await donDoiTac(w, { ...v, guiKhachGia: true });
+  assert.equal(w.q("SELECT manifest_exempt m FROM orders WHERE id = ?", d.id)[0].m, 1, "chống bài rỗng: đơn mang dấu");
+  return d;
+}
+
 /** Tạo chuyến (Bán hàng) cho xe + tài xế `taiXePartyId`, bắt đầu `bd`, kết thúc `kt` (giờ VN) ngày `ngay`. */
 export async function taoChuyen(w, v) {
   kiemGioTheoDongHo({ nhan: "taoChuyen() (giờ bắt đầu)", ngay: v.ngay ?? NGAY, gio: v.bd ?? "12:30", mocPhut: mocPhutCua(w) });
@@ -174,13 +233,13 @@ export async function xepHet(w, chuyen, d, soNguoi, as = SALES) {
   return r.json;
 }
 /**
- * Một chuyến sẵn sàng xuất bến: xe `cho` chỗ, tài xế = tài khoản `taiXe` (mặc định DRIVER), một đơn `soNguoi` khách có tên đón 13:00 (nơi đón `noiDon`), xếp hết. Trả id chuyến,
+ * Một chuyến sẵn sàng xuất bến: xe `cho` chỗ, tài xế = tài khoản `taiXe` (mặc định DRIVER), một đơn `soNguoi` khách có tên đón 13:00 (nơi đón `noiDon`; hoặc đơn dựng sẵn `v.don`, cùng `soNguoi`), xếp hết. Trả id chuyến,
  * đơn, điểm đón / trả, suất.
  */
 export async function chuyenSan(w, v = {}) {
   const taiXe = v.taiXe ?? DRIVER;
   const soNguoi = v.soNguoi ?? 2;
-  const d = await don(w, { soNguoi, ten: v.ten ?? soNguoi, gio: v.gio ?? "13:00", ngay: v.ngay, noiDon: v.noiDon });
+  const d = v.don ?? await don(w, { soNguoi, ten: v.ten ?? soNguoi, gio: v.gio ?? "13:00", ngay: v.ngay, noiDon: v.noiDon }); // `v.don`: đơn dựng sẵn (vd `donDoiTacCoDau`) — mặc định không đổi
   const c = await taoChuyen(w, { xe: v.xe ?? xe(w), taiXe: `pty-${taiXe}`, ngay: v.ngay, bd: v.bd, kt: v.kt, ngayKt: v.ngayKt });
   const sau = await xepHet(w, c, d, soNguoi);
   return {
