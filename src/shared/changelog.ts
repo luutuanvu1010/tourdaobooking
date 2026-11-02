@@ -19,6 +19,7 @@ export const CHANGELOG: readonly ReleaseNote[] = [
     date: "2026-11-02",
     items: [
       { kind: "moi", text: "Đối tác đặt vé có ô «Khách đặt cọc trước». Khi đơn được xác nhận, số này tự thành khoản thu; đối tác giữ số tiền đó tới khi nộp về công ty." },
+      { kind: "moi", text: "Số đặt cọc đối tác khai chưa nộp về công ty thì chưa tính là thu đủ, nên vé của đơn chỉ mở sau khi nộp." },
       { kind: "moi", text: "Màn Phân định trách nhiệm: khách cần được hoàn sau khi đơn đã giao thì một người đề nghị, Quản trị hoặc Toàn quyền phân định ai chịu, Kế toán ghi sổ." },
       { kind: "moi", text: "Người được phân định chịu một khoản nhận tin báo, xem khoản của mình và phản hồi trong 3 ngày làm việc." },
       { kind: "moi", text: "Sửa khoản thu đã ghi: người thu cũ và người thu mới đều nhận tin báo." },

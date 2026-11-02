@@ -103,7 +103,7 @@ WHEN NEW.step_code = 'REASSIGNED' AND (
 BEGIN SELECT RAISE(ABORT, 'attribution_post_invalid: lần đổi bên chịu phải đúng theo phân định và đúng số còn hiệu lực'); END;
 
 -- Bên chịu đã nộp một phần trở lên ⇒ không đổi bên chịu, không huỷ khoản: dòng ngược sẽ làm số dư âm (R-BIL-13). "Đã nộp vào khoản" = tiền nộp ròng vượt tiền mặt đang
--- giữ của bên đó trên đơn: HELD + REFUND + SETTLEMENT < 0 và SETTLEMENT ròng < 0 (cùng công thức `soDaNopKhoanPhanDinh`, rules.ts). Dòng đảo mang cùng loại nên trả lại xong tự hết chặn.
+-- giữ của bên đó trên đơn: HELD + REFUND + SETTLEMENT < 0 và SETTLEMENT ròng < 0 (cùng công thức `soDaNopKhoanPhanDinh`, rules.ts). Hiện chưa có nút trả lại tiền đã nộp (BL-PD-TRA-LAI); nếu sau này có dòng đảo mang cùng loại thì khoản tự hết chặn.
 CREATE TRIGGER bil_attribution_da_nop BEFORE INSERT ON bil_attribution
 WHEN NEW.step_code IN ('REASSIGNED', 'REVERSAL') AND EXISTS (
   SELECT 1 FROM (
