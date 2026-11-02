@@ -286,6 +286,8 @@ export const AUDIT_ACTIONS = {
   // ADR-0136 Đ1, Đ5: cờ «cần xác nhận» theo dịch vụ / nhóm, công tắc «nội bộ tự xác nhận» — `detail` ghi mã dịch vụ / nhóm (không dữ liệu khách).
   confirm_flag_changed: { label: "Đổi cờ cần xác nhận", group: "system" },
   confirm_policy_changed: { label: "Đổi công tắc tự xác nhận", group: "system" },
+  // ADR-0154 Đ2.1: Toàn quyền bật / tắt «Ẩn thông tin khách khi đối tác đặt vé» (POST /api/cai-dat/an-thong-tin-khach) — không gắn đơn; detail «Bật …» / «Tắt …», không dữ liệu khách.
+  partner_customer_policy_changed: { label: "Đổi công tắc ẩn thông tin khách", group: "system" },
   // ADR-0069 điều 5 + Hiến chương 5.12: ai đổi cài đặt trợ lý Hỗ trợ lúc nào — detail chỉ nêu PHẦN đã đổi, KHÔNG nội dung lời dặn / ngữ cảnh.
   tro_ly_settings_changed: { label: "Đổi cài đặt trợ lý Hỗ trợ", group: "system" },
   // ADR-0087 điều 6: Toàn quyền đổi giao diện công ty — detail = các ô đổi (nhãn: cũ → mới), không dữ liệu cá nhân. KHÔNG im lặng (ADR-0038).

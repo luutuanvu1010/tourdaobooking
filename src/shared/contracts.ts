@@ -223,6 +223,15 @@ export interface NhapTayResponse { batNhapTay: boolean; duocDung: boolean; doiDu
 /** Thân `POST /api/cai-dat/nhap-tay` (chỉ Toàn quyền). */
 export interface NhapTayRequest { batNhapTay: boolean }
 
+// ---- Công tắc «Ẩn thông tin khách khi đối tác đặt vé» (ADR-0154 Đ2; module `orders`) ----
+/**
+ * `GET`/`POST /api/cai-dat/an-thong-tin-khach`: `bat` = công tắc đang BẬT (toàn hệ thống); `apChoToi` = công tắc đang áp cho CHÍNH người gọi = `bat` VÀ tài khoản giữ quyền Đối tác thuần
+ * (`apCongTacAnKhach`, C2 — tài khoản lai không bị áp); form Tạo đơn ẩn khối Khách hàng, Hành khách đúng khi `apChoToi`, không tự suy từ mã quyền. `doiDuoc` = người gọi bật / tắt được (ô `settings.ops`).
+ */
+export interface AnThongTinKhachResponse { bat: boolean; apChoToi: boolean; doiDuoc: boolean }
+/** Thân `POST /api/cai-dat/an-thong-tin-khach` (chỉ Toàn quyền). */
+export interface AnThongTinKhachRequest { bat: boolean }
+
 // ---- Khung giờ đón (ADR-0134 Đ5, Đ6; module `orders`) ----
 /** `GET`/`POST /api/cai-dat/khung-gio-don`: bộ khung đang hiệu lực + câu lưu ý; `doiDuoc` = người gọi đổi được (ô `settings.ops` — chỉ Toàn quyền). */
 export interface KhungGioDonResponse { khung: KhungGio[]; luuY: string; doiDuoc: boolean }
@@ -344,6 +353,11 @@ export interface OrderDetailDto extends OrderDto {
   services: OrderServiceDto[];
   /** Bên đặt đang mang một vai được hưởng hoa hồng (sổ đại lý đợt 1) — máy chủ tính từ vai ĐANG MỞ của hồ sơ bên đặt; false khi đơn không có bên đặt. Chỉ cờ: không tỷ lệ, không tiền. */
   bookerLaDoiTac: boolean;
+  /**
+   * Dấu «miễn danh sách khách» (ADR-0154 Đ3.1): đơn do tài khoản Đối tác thuần lập lúc công tắc «Ẩn thông tin khách» BẬT — chụp MỘT lần lúc lập, đổi công tắc sau đó không đổi dấu. Chặng của đơn có dấu không bị giữ
+   * «thiếu tên» lúc cho xe chạy; trang đơn đổi câu «cần đủ tên» (Task 3.4). Chỉ cờ, không dữ liệu khách.
+   */
+  manifestExempt: boolean;
 }
 
 /** Thông tin chuyến rút gọn cho thẻ trong danh sách đơn — lấy từ dịch vụ ĐẦU TIÊN theo sort_order của đơn (không gộp nhiều dịch vụ). */

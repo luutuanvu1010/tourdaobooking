@@ -44,6 +44,8 @@ interface OrderRow {
   confirmed_at: string | null;
   delivered_at: string | null;
   completed_at: string | null;
+  /** Dấu «miễn danh sách khách» (0133, ADR-0154 Đ3.1): 0/1, chụp lúc lập đơn. */
+  manifest_exempt: number;
 }
 
 interface ServiceRow {
@@ -332,7 +334,7 @@ export async function findOrder(db: D1Database, id: string): Promise<OrderDetail
       pickupChoice: luaChonDonDaLuu(s.pickup_choice),
     };
   });
-  return { ...toDto(row), services, bookerLaDoiTac: Number((laDoiTacRes!.results as { la: number }[])[0]?.la ?? 0) === 1 };
+  return { ...toDto(row), services, bookerLaDoiTac: Number((laDoiTacRes!.results as { la: number }[])[0]?.la ?? 0) === 1, manifestExempt: row.manifest_exempt === 1 };
 }
 
 /**
@@ -960,6 +962,8 @@ export async function createOrder(
   order: ValidOrder,
   alsoCreate?: (orderId: string, at: string) => D1PreparedStatement[],
   booker: BookerWrite = NO_BOOKER,
+  /** Dấu «miễn danh sách khách» (ADR-0154 Đ3.1): route đã quyết lúc lập (tài khoản Đối tác thuần + công tắc BẬT); chụp một lần, trigger 0133 cấm đổi sau đó. */
+  manifestExempt = false,
 ): Promise<string> {
   const MAX_ATTEMPTS = 3;
   for (let attempt = 1; ; attempt++) {
@@ -978,15 +982,15 @@ export async function createOrder(
         db
           .prepare(
             `INSERT INTO orders (id, order_code, staff_id, status, customer_name, customer_phone, customer_email, customer_note,
-               subtotal, discount, total, deposit_amount, deposit_method, remaining_amount, payment_note, created_at, updated_at, booker_party_id)
+               subtotal, discount, total, deposit_amount, deposit_method, remaining_amount, payment_note, created_at, updated_at, booker_party_id, manifest_exempt)
              SELECT ?, ? || printf('%04d', COALESCE((SELECT MAX(CAST(substr(order_code, length(?) + 1) AS INTEGER)) FROM orders WHERE order_code LIKE ?), 0) + 1),
-               ?, 'draft', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ${BOOKER_VALUE}`,
+               ?, 'draft', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ${BOOKER_VALUE}, ?`,
           )
           .bind(
             id, prefix, prefix, `${prefix}%`, staffId, order.customerName, order.customerPhone, order.customerEmail, order.customerNote,
             // Ba cột cọc cũ KHÔNG mang nghĩa nữa (ADR-0026 đ9): đơn mới ghi 0 / NULL / total — chỉ để thoả trigger 0007 (không ai đọc).
             order.subtotal, order.discount, order.total, 0, null, order.total, order.paymentNote, at, at,
-            booker.partyId,
+            booker.partyId, manifestExempt ? 1 : 0,
           ),
         ...services.stmts,
         ...legs,

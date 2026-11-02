@@ -26,6 +26,7 @@ const MIEN: { route: string; lyDo: string }[] = [
   // ADR-0061 điều 6 (miễn trừ có tên, chủ duyệt kèm ADR): bảng ord_manual_service_policy thuộc orders nên route nằm ở orders (chỉ module chủ ghi bảng).
   { route: "POST /api/cai-dat/nhap-tay", lyDo: "đổi chính sách nhập tay toàn hệ thống, không ghi đơn nào, không có đơn để khoá" },
   { route: "POST /api/cai-dat/xac-nhan-don", lyDo: "đổi cờ «cần xác nhận» / công tắc tự xác nhận toàn hệ thống (ADR-0136 Đ1, Đ5), không ghi đơn nào, không có đơn để khoá" },
+  { route: "POST /api/cai-dat/an-thong-tin-khach", lyDo: "đổi công tắc «Ẩn thông tin khách» toàn hệ thống (ADR-0154 Đ2.1), không ghi đơn nào, không có đơn để khoá" },
   { route: "POST /api/cai-dat/khung-gio-don", lyDo: "đổi khung giờ đón toàn hệ thống (ADR-0134 Đ6), không ghi đơn nào, không có đơn để khoá" },
   // ADR-0089 đ8: phân loại lý do huỷ chỉ chạy trên ĐƠN ĐÃ HUỶ; đơn đã Đã giao không huỷ được (ADR-0025 đ1) ⇒ route trả 409 invalid_state "đơn chưa huỷ".
   // ADR-0032: hai route cài đặt / đặt lại hạn mức Từ chối của dispatch — không ghi đơn nào (sổ sự kiện + cài đặt), không có đơn để khoá.
