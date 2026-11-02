@@ -140,7 +140,7 @@ export const veDienTuModule: AppModule = {
       for (const d of dong) {
         let l = lo.get(d.id);
         if (!l) lo.set(d.id, (l = { loId: d.id, tenDichVu: ten.get(d.catalog_code)?.name ?? null, nhomKhach: d.pax_group, tenSanPham: d.printed_name, huyLuc: d.huy_luc, huyBoi: (d.huy_boi && nguoi?.get(d.huy_boi)) || null, ve: [] }));
-        if (d.valid_from !== null && d.valid_to !== null) l.ve.push({ duoiMa: d.duoi_ma, tuNgay: d.valid_from, denNgay: d.valid_to });
+        l.ve.push({ duoiMa: d.duoi_ma, tuNgay: d.valid_from, denNgay: d.valid_to });
       }
       return json({ hanLuuNgay: NGAY_LUU_ANH_LO_HUY, lo: [...lo.values()] });
     }),

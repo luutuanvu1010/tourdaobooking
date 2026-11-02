@@ -82,8 +82,8 @@ if (!can(staff, "ve.kho.manage")) {
             h("strong", null, l.tenSanPham),
             h("p", { class: "muted" }, `${l.tenDichVu ?? "Dịch vụ không còn trong danh mục"} · ${NHAN_NHOM[l.nhomKhach] ?? l.nhomKhach} · ${l.ve.length} vé`),
             h("p", { class: "muted" }, `Huỷ lúc ${gioVn(l.huyLuc)} ngày ${ngayVn(l.huyLuc)} · người huỷ: ${l.huyBoi ?? "không rõ"}`),
-            ...(l.ve.length === 0 ? [] : [h("details", { class: "px-hop" }, h("summary", null, `Xem ${l.ve.length} vé`),
-              ...l.ve.map((v) => h("p", { class: "muted", "data-ve": "1" }, `Vé số cuối ${v.duoiMa} · ${ngayDung(v.tuNgay, v.denNgay)}`)))])))));
+            h("details", { class: "px-hop" }, h("summary", null, `Xem ${l.ve.length} vé`),
+              ...l.ve.map((v) => h("p", { class: "muted", "data-ve": "1" }, `Vé số cuối ${v.duoiMa} · ${ngayDung(v.tuNgay, v.denNgay)}`)))))));
     } catch (err) {
       replaceChildren(daHuyEl, h("p", { class: "alert", role: "alert" }, lyDoLoi(err)));
     }

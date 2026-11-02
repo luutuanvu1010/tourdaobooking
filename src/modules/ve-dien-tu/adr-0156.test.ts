@@ -365,7 +365,7 @@ test("lô đã huỷ: chỉ hiện trong 3 ngày; lô đang bán và lô đang d
   assert.deepEqual(await ten(), [], "quá 3 ngày thì thôi hiện");
 });
 
-test("lô đã huỷ: vé hỏng lúc gửi (chưa từng vào kho) không tính; lô huỷ khi chưa có vé nào vẫn hiện với 0 vé", async () => {
+test("lô đã huỷ: vé hỏng lúc gửi (chưa từng vào kho) không tính; lô không có vé nào vào kho thì không hiện, không chiếm chỗ của lô có vé", async () => {
   const w = setup();
   const loRong = (await taoLo(w, { tenSanPham: "Lô rỗng" })).json.loId;
   await bo(w, loRong);
@@ -376,8 +376,21 @@ test("lô đã huỷ: vé hỏng lúc gửi (chưa từng vào kho) không tính
   w.r2VeDienTu.hong.put = false;
   await bo(w, loId);
   const lo = (await daHuy(w)).json.lo;
-  assert.deepEqual(lo.find((l: any) => l.loId === loRong).ve, []);
+  assert.equal(lo.some((l: any) => l.loId === loRong), false, "lô rỗng không có gì để tra");
   assert.deepEqual(lo.find((l: any) => l.loId === loId).ve.map((x: any) => x.duoiMa), ["1111"]);
+  for (let i = 0; i < 50; i++) await bo(w, (await taoLo(w, { tenSanPham: `Rỗng ${i}` })).json.loId);
+  assert.deepEqual((await daHuy(w)).json.lo.map((l: any) => l.loId), [loId], "50 lô rỗng mới hơn không đẩy lô có vé ra khỏi danh sách");
+});
+
+test("lô đã huỷ: mọi quyền ngoài Bán hàng, Quản trị, Toàn quyền đều không đọc được", async () => {
+  const w = setup();
+  let so = 20;
+  for (const quyen of ["FIELD", "INTERN", "HR", "DRIVER", "PARTNER", "DRIVER_PARTNER"]) {
+    so++;
+    const id = `${String(so).padStart(8, "0")}-0000-4000-8000-000000000000`;
+    seedStaff(w.sqlite, { id, phone: `09100000${so}`, name: `NV ${quyen}`, perms: [quyen] });
+    assert.equal((await daHuy(w, id)).status, 403, quyen);
+  }
 });
 
 test("việc dọn hàng chờ thật sự được gắn vào lịch chạy định kỳ của Nền tảng", () => {

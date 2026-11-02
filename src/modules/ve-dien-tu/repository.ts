@@ -174,15 +174,15 @@ const DS_LO_BO_DUOC = defineSql(
    WHERE b.status <> 'VOID' AND NOT EXISTS (SELECT 1 FROM vdt_allocation a JOIN vdt_ticket t ON t.id = a.ticket_id WHERE t.batch_id = b.id)
    ORDER BY (b.status = 'PENDING') DESC, b.created_at DESC, b.id LIMIT ?1`,
 );
-// Lô đã huỷ gần đây (chủ quyết 2/11/2026): chỉ chữ để tra cứu. Mã đầy đủ KHÔNG ra khỏi câu đọc; không khoá kho, không dấu vân. Vé chưa từng vào kho (`stored_at` rỗng) không tính.
+// Lô đã huỷ gần đây (chủ quyết 2/11/2026): chỉ chữ để tra cứu. Mã đầy đủ KHÔNG ra khỏi câu đọc; không khoá kho, không dấu vân. Vé chưa từng vào kho (`stored_at` rỗng) không tính; lô không có vé nào vào kho (trang tự huỷ lô nhập hỏng hết) không hiện vì không có gì để tra.
 // Lúc huỷ và mã người huỷ lấy từ `updated_*` của lô (tên do route đổi qua `nhanNhanVien` được tiêm, không thêm cạnh sang staff): lô VOID không còn câu nào ghi (`SUA_MA_TOUR`, `KICH_HOAT_LO`, `BO_LO` đều gác trạng thái, trigger `vdt_batch_one_way` chặn đổi lại).
 const DS_LO_DA_HUY = defineSql(
   "ve-dien-tu",
   "ds_lo_da_huy",
   `SELECT b.id, b.catalog_code, b.pax_group, b.printed_name, b.updated_at AS huy_luc, b.updated_by AS huy_boi,
           CASE WHEN length(t.ticket_code) > 4 THEN substr(t.ticket_code, -4) ELSE '' END AS duoi_ma, t.valid_from, t.valid_to
-   FROM (SELECT * FROM vdt_batch WHERE status = 'VOID' AND updated_at >= ?1 ORDER BY updated_at DESC, id LIMIT ?2) b
-   LEFT JOIN vdt_ticket t ON t.batch_id = b.id AND t.stored_at IS NOT NULL
+   FROM (SELECT * FROM vdt_batch x WHERE x.status = 'VOID' AND x.updated_at >= ?1 AND EXISTS (SELECT 1 FROM vdt_ticket v WHERE v.batch_id = x.id AND v.stored_at IS NOT NULL) ORDER BY x.updated_at DESC, x.id LIMIT ?2) b
+   JOIN vdt_ticket t ON t.batch_id = b.id AND t.stored_at IS NOT NULL
    ORDER BY b.updated_at DESC, b.id, t.valid_from, t.id`,
 );
 const DOC_TRAN_LO = defineSql("ve-dien-tu", "doc_tran_lo", "SELECT batch_limit, version FROM vdt_setting WHERE id = 'default'");
@@ -234,8 +234,8 @@ export const cauBoLo = (db: D1Database, id: string, at: string, by: string | nul
 export const cauRutVeCuaLo = (db: D1Database, id: string, at: string, by: string | null, lenh: string): D1PreparedStatement => db.prepare(RUT_VE_CUA_LO).bind(id, at, by, lenh);
 export interface LoBoDuoc { id: string; catalog_code: string; pax_group: string; printed_name: string; status: string; created_at: string; so_ve: number }
 export const dsLoBoDuoc = async (db: D1Database, gioiHan: number): Promise<LoBoDuoc[]> => (await db.prepare(DS_LO_BO_DUOC).bind(gioiHan).all<LoBoDuoc>()).results;
-/** Mỗi dòng một vé; lô không có vé nào đã vào kho thì một dòng với `valid_from` rỗng. */
-export interface DongLoDaHuy { id: string; catalog_code: string; pax_group: string; printed_name: string; huy_luc: string; huy_boi: string | null; duoi_ma: string; valid_from: string | null; valid_to: string | null }
+/** Mỗi dòng một vé. */
+export interface DongLoDaHuy { id: string; catalog_code: string; pax_group: string; printed_name: string; huy_luc: string; huy_boi: string | null; duoi_ma: string; valid_from: string; valid_to: string }
 export const dsLoDaHuy = async (db: D1Database, tuLuc: string, gioiHan: number): Promise<DongLoDaHuy[]> => (await db.prepare(DS_LO_DA_HUY).bind(tuLuc, gioiHan).all<DongLoDaHuy>()).results;
 export const docCaiDatVe = (db: D1Database): Promise<{ batch_limit: number; version: number } | null> => db.prepare(DOC_TRAN_LO).first<{ batch_limit: number; version: number }>();
 export const cauDoiTranLo = (db: D1Database, p: { tranLo: number; version: number; at: string; by: string | null }): D1PreparedStatement => db.prepare(DOI_TRAN_LO).bind(p.tranLo, p.version, p.at, p.by);

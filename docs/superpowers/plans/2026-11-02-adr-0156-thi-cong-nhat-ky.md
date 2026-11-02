@@ -17,7 +17,8 @@ ADR: `docs/adr/ADR-0156-ve-dien-tu-ma-qr-chong-trung-va-tran-lo.md`. Nhánh `cla
 - `soVeDuKien` ở `POST /api/ve/lo` là tuỳ chọn, vì route thêm vé vẫn kiểm trần.
 - Thêm ngoài ADR: lô không còn vé nào thì trang tự bỏ, để danh sách «Lô có thể bỏ» không đầy rác; câu nhắc mỗi lô một sản phẩm, một loại khách, một ngày dùng ngay trên trang.
 - Sổ nợ `GHI_NHIEU_LAN` từng thêm `POST /api/ve/lo/:id/bo` vì kho R2 nằm giữa. Từ khi lưu ảnh 3 ngày, route này chỉ còn một lô D1 nên đã gỡ dòng đó. Dòng `POST /api/ve/lo/:id/ve` sửa cho đúng sự thật như ADR yêu cầu.
-- ADR Đ2 mục 3 viết vé «rồi được dọn khỏi kho R2», không nói lúc nào, nên hạn 3 ngày không trái ADR và không cần sửa ADR.
+- ADR Đ2 mục 3 viết vé «rồi được dọn khỏi kho R2», không nói lúc nào, nên hạn 3 ngày không trái ADR. Các chỗ khác của ADR lệch với quyết định 2/11 (4 số cuối trên trang, `R-VDT-4`, tên «Bỏ lô») đã ghi ở `docs/SYSTEM-DESIGN.md` §16, chờ chủ duyệt dòng lịch sử.
+- Lô huỷ mà không có vé nào vào kho thì không hiện ở khối mới, vì không có gì để tra; người kiểm thấy nguy cơ rác và ảnh chụp cho thấy đúng vậy.
 - Thêm ngoài ADR: `GET /api/ve/lo-da-huy` và khối «Lô đã huỷ gần đây», cùng ô `ve.kho.manage`, chỉ đọc. Tên người huỷ qua `nhanNhanVien` được tiêm, không nới `ALLOWED_EDGES`.
 
 ## Kiểm độc lập lần 1 (2/11): KHÔNG ĐẠT, đã xử lý
@@ -33,6 +34,9 @@ Không có đường nào đưa vé có thể đã tới tay khách quay lại k
 ## Kiểm độc lập lần 2 (2/11): ĐẠT, commit `a3dbd711`
 Trung 1–3 đã đóng, không có lỗi mới trên mức Thấp. Người kiểm tự chạy Chrome hai khổ (xanh) và phá thử `LB_PHA=qr-gia` (bước 1040.6 đỏ), nên hàng rào Đ1 đã được người kiểm độc lập quan sát chặn thật. Việc định kỳ chạy xen lúc đang gửi ảnh và trên lô đang bán không xoá nhầm ảnh; lỗi của nó không kéo theo đồng bộ danh mục. **Điều kiện:** chủ biết hai chỗ lệch ADR trước khi gộp (việc định kỳ dọn ảnh; `R-VDT-4` mức `fail` tính cả vé VOID không mang dấu rút). Chưa kiểm: iPhone thật; cron trên production; D1 có hoàn lại cả tệp khi migration lỗi không.
 
+## Kiểm độc lập lần 3 (2/11): ĐẠT về mã, commit `0601989d`
+Không có lỗi mức Cao hay Trung ở mã; người kiểm tự phá thử thêm và xác nhận không còn đường mở ảnh vé đã rút. Đã xử lý: ghi các chỗ lệch ADR vào §16; khoá đủ các quyền ngoài ô bằng bài kiểm; ẩn lô không có vé. Người kiểm nhắc câu «Chỉ xem thông tin» có thể là mặc định hết giờ: đã nêu cho chủ xác nhận trong báo cáo cuối.
+
 ## Bằng chứng
 - Trình duyệt: `ve-qr-smoke.mjs` hai khổ 390 và 1040, cần `AXE_JS`. Ảnh ở `docs/evidence/2026-11-02-ve-qr-tran-lo/anh/`, chỉ có dữ liệu thử.
 - 50 ảnh cỡ 1170×2532 (khoảng 13 MB tổng) trên Chrome của máy Mac: 4,0 giây, khoảng đứng hình lâu nhất 80 mili giây.
@@ -47,6 +51,9 @@ Trung 1–3 đã đóng, không có lỗi mới trên mức Thấp. Người ki�
 - Hàng chờ xoá lấy 50 dòng cũ nhất mỗi lần: 50 dòng liên tục không xoá được sẽ chặn các dòng sau; `R-VDT-5` thấy số đếm tăng (suy luận, chưa chạy).
 - ~~Bỏ lô xen giữa lúc gửi mà lần xoá ngay cũng gặp kho hỏng~~: đã hết từ khi lưu 3 ngày. Dòng vé ở hàng chờ tới khi xoá được, `R-VDT-5` thấy nếu quá hạn.
 - Ảnh được giữ 3 ngày nhưng Nền tảng chưa có đường mở, nên hiện chỉ dùng được nếu sau này thêm đường đó (chủ quyết 2/11).
+- `COALESCE(purged_at, ?2)` ở `RUT_VE_CUA_LO` không có bài khoá: bỏ đi vẫn xanh. Chỉ có tác dụng với vé có `purged_at` cũ mà chưa rút, mà `cauDatChoXoa` chưa có nơi gọi trong mã chạy thật. Nếu sau này có nơi gọi thì xem lại, vì ảnh sẽ xoá sớm hơn 3 ngày.
+- Mã ngắn hơn 8 ký tự lộ nhiều hơn tỉ lệ thường ở cột 4 số cuối. Mã thật 36 số nên không thành vấn đề; cách xử lý giống hàm cũ `che4SoCuoi`.
+- `POST /api/ve/lo/:id/sua-ma-tour` trên lô đã huỷ trả 200 dù không ghi gì. Có từ trước đợt này, không gây sai dữ liệu.
 - Vé rút do gửi hỏng (`cauRutVeChuaPhat`) vẫn xoá ngay; nếu lần xoá đó hỏng thì đợi hết 3 ngày mới thử lại. Không có hại vì lần đặt kho đã hỏng nên thường không có ảnh (suy luận, chưa chạy riêng ca này).
 - Nhật ký của lô chèn vé gác theo câu chèn cuối: riêng lúc hai người nhập đúng lúc thì có thể thiếu dòng hoặc đếm dư. Vé không sai; để lại vì sửa đúng cần tách nhật ký khỏi lô, đổi lấy một ca hiếm.
 - Lô đã vào kho cũ hơn 50 lô mới nhất không bỏ được bằng trang, phải gọi API theo mã lô.
