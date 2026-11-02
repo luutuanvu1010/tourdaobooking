@@ -57,6 +57,7 @@ Không có lỗi Cao hay Trung. Một điểm Thấp ở lý do của `r2_delete
 - 50 ảnh cỡ 1170×2532 (khoảng 13 MB tổng) trên Chrome của máy Mac: 4,0 giây, khoảng đứng hình lâu nhất 80 mili giây.
 - 7 ảnh vé thật trên máy (khối `VE_ANH_THAT`, chặn mọi lời gọi ghi trong trang, không chụp, không in chuỗi): đọc được 7, khác nhau 7, đúng dạng 7.
 - Phá thử: từng dòng ở `docs/SO-HANG-RAO.md`.
+- 2/11, thêm hai mẫu Harbour của chủ (9 ảnh trên máy, không chép vào kho): `jsQR` trong Node và Vision của macOS cho cùng kết quả, 9/9 đủ 36 chữ số, mỗi ảnh một QR, 9 số `S/N` khác nhau, `S/N` đọc từ ảnh bằng 12 số cuối QR ở 9/9, số `TA.` không nằm trong QR ở 9/9. `ve-qr-smoke.mjs` khổ 390 với `VE_ANH_THAT` đạt.
 
 ## Đề xuất dòng lịch sử cho ADR-0156 (chờ chủ duyệt, chưa ghi vào ADR)
 «2026-11-02, chủ quyết thêm: ảnh của lô đã huỷ lưu 3 ngày rồi máy tự xoá; Bán hàng, Quản trị, Toàn quyền mở được ảnh trong hạn đó; vé đã mở khoá hẳn theo mã, dấu vân và số S/N, vé đã nhập lại thì ảnh cũ không mở được. Chi tiết ở `docs/SYSTEM-DESIGN.md` §16.»
