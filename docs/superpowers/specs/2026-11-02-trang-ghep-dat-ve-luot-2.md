@@ -2,7 +2,7 @@
 
 Theo `CLAUDE.md` §9. Hồ sơ có ngày 2026-11-02, viết lại cùng ngày theo người kiểm độc lập (`2026-11-02-ket-qua-kiem-adr-0154-0155.md`). Đọc cùng đặc tả `2026-11-01-dat-ve-doi-tac-design.md` §6; trang này ghi riêng cho lượt 2 và thêm phần ghép với kho vé điện tử, vì kho đó nhập vào `main` sau khi đặc tả viết xong. Đặt cọc (QĐ-A) là lượt 3, không thuộc lượt này; người soạn đọc lại trang này khi trình.
 
-**Đếm:** 5 điều chạm quyền hoặc dữ liệu (ADR-0154 Đ1, Đ2, Đ3; ADR-0155 Đ1, Đ2), đếm theo điều như trang ghép 24/10 và 25/10; trần là 3. Chủ 2026-11-02 chọn cho vượt, nguyên văn: «Cho vượt mức, trình cả hai». **Sáu câu chờ chủ:** C1, C2 ở ADR-0154; C3 tới C6 ở ADR-0155.
+**Đếm:** 5 điều chạm quyền hoặc dữ liệu (ADR-0154 Đ1, Đ2, Đ3; ADR-0155 Đ1, Đ2), đếm theo điều như trang ghép 24/10 và 25/10; trần là 3. Chủ chọn phương án «Cho vượt mức, trình cả hai» ở hộp hỏi 2026-11-02. **Câu chờ chủ:** C1, C2 ở ADR-0154; C5 ở ADR-0155 quyết trước. Theo khuyến nghị C5 thì ADR-0155 Đ1 chờ vá sổ tiền, các dòng về hồ sơ không tài khoản ở trang này chưa áp, và C3, C4, C6 chờ theo Đ1.
 
 ## 1. Bảng dùng chung nhận loại dữ liệu mới
 
