@@ -54,6 +54,8 @@ Mỗi task tự khớp với bài của mình ở mức đọc kế hoạch. `v_
 
 **R17 (2026-11-02, chủ: «Chạy thêm 20 phút»):** đã xử lý các đỏ của R16, đều do kịch bản, không đổi mã Nền tảng. `cot-cap-smoke`: chờ `.sheet` opacity 1 trước axe ở bảng khổ máy tính, 7/7 xanh. `luot-2-smoke`: đơn dựng có giờ nên chờ 200 nhánh B (Đ1.7), 11/11 xanh, có axe. `npm test` toàn bộ: 7258 bài, 7254 đạt, 0 đỏ, 0 bỏ qua (chưa xem vì sao chênh 4 giữa tổng và đạt). Vẫn chưa chạy: e2e, khối e2e mới, Chrome cũ, khổ 1280 của bộ `chup-anh`, sửa cố ý. Người kiểm vẫn chưa đọc phần còn lại ở R16, chưa đọc hai kịch bản đã sửa. Còn chặn nhập: chủ chọn cách cho R7.
 
+**R18 (2026-11-02, chủ, nguyên văn «Cách 1: lượt đi»):** R7 hết tạm, N-4 đóng; thứ tự lượt đầu giữ như mã, ghi dòng làm rõ ở ADR-0154.
+
 ## Lệch kế hoạch đã có lý do (Đợt 1)
 
 - **Migration tạo lại trigger `orders_delivered_lock`:** kế hoạch nói chỉ thêm, nhưng bài NT-R6 (`src/migrations-orders-da-giao.test.ts`) buộc mọi cột của `orders` nằm trong khoá «Đã giao». Chỉ siết, không sửa tệp cũ. **Ruling R5:** chấp nhận, với điều kiện người kiểm so định nghĩa trigger trước và sau `0133` chỉ khác đúng một vế.
