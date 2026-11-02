@@ -38,6 +38,7 @@ import { createCatalogPicker } from "./catalog-picker";
 import { dongBenDatChiDoc, oDatQuaDoiTac, type DatQuaDoiTac } from "./dat-qua-doi-tac";
 import { byId, h, replaceChildren } from "./dom";
 import { grouped, parseMoney, vnd } from "./format";
+import { CAU_VUOT_TONG, conPhaiTra, vuotTong } from "../src/shared/dat-coc-truoc";
 import { suKienVeDon } from "./lam-moi-logic";
 import { regroupMoney } from "./money-input";
 import { createServiceCard, type ServiceCard } from "./service-card";
@@ -153,6 +154,8 @@ let seq = 0;
 let live = new Map<string, CatalogServiceDto>(); // dịch vụ danh mục ĐANG HIỆN và được hỗ trợ, theo mã
 let orderUpdatedAt: string | null = null;
 let formLocked = false;
+/** ADR-0159 Đ1 mục 1: ô «Khách đặt cọc trước» chỉ tài khoản giữ quyền Đối tác (hỏi DANH TÍNH, máy chủ kiểm lại). */
+let coODatCoc = false;
 let saving = false;
 /** ADR-0136 Đ13: người lập giữ quyền Đối tác (kể cả tài khoản lai) — đơn MỚI có nút chính «Gửi đơn» (lưu rồi gửi). Gán sau `initShell()`; chỉ đổi chữ nút, máy chủ vẫn là cổng (`order.submit`). */
 let guiDonKhiLuu = false;
@@ -460,6 +463,15 @@ function recompute(): void {
   byId("ct-tam-tinh").textContent = tamTinh;
   byId("ct-giam-gia").textContent = giamGia;
   byId("ct-tong").textContent = tong;
+  if (coODatCoc) {
+    // Hai dòng xem trước: không trừ gì vào sổ — máy chủ kiểm lại khi lưu, khoản thu chỉ sinh khi đơn được xác nhận.
+    const coc = num("declaredDeposit");
+    const conTra = vnd(conPhaiTra(s.total, coc));
+    byId("sum-dat-coc").textContent = vnd(coc);
+    byId("ct-dat-coc").textContent = vnd(coc);
+    byId("sum-con-tra").textContent = conTra;
+    byId("ct-con-tra").textContent = conTra;
+  }
   // Bản 1.39: đếm dịch vụ ở tiêu đề khối, Tóm tắt và thanh dính đáy (một dòng "N dịch vụ · Tổng …"; ADR-0135: form không còn nhận tiền trả trước —
   // không tự trừ "còn lại" ở trình duyệt, ADR-0026 đ9).
   const n = entries.length;
@@ -485,7 +497,7 @@ function recompute(): void {
   saveBtn.textContent = saving ? (guiDonKhiLuu && !editId ? "Đang gửi…" : "Đang lưu…") : editId ? "Lưu thay đổi" : guiDonKhiLuu ? NHAN_NUT_XAC_NHAN.submit : "Lưu, chờ xác nhận";
 }
 
-for (const id of ["discount"]) {
+for (const id of ["discount", "declaredDeposit"]) {
   const el = field(id) as HTMLInputElement;
   el.addEventListener("input", () => {
     regroupMoney(el); // gõ tự nhóm hàng nghìn, giữ con trỏ
@@ -508,6 +520,7 @@ function loiTienForm(): { cau: string[] } {
   const lines: string[] = [];
   const s = orderSummary(drafts(), num("discount"), 0);
   if (s.discount > s.subtotal) lines.push("Giảm giá không được vượt quá tạm tính.");
+  if (coODatCoc && vuotTong(num("declaredDeposit"), s.total)) lines.push(CAU_VUOT_TONG);
   return { cau: lines };
 }
 
@@ -560,6 +573,7 @@ function collect(): OrderInput | OrderInputAn {
     services: entries.map((e) => toServiceInput({ ...e.draft, legs: formGon ? legsGuiFormGon(e.draft.legs, orderDate) : e.draft.legs, pickupChoice: chonDonTheoNhom(coDuaDon(e.draft), e.draft.pickupChoice) }, suaSoVe)), // Ruling R-M
     discount: num("discount"),
     paymentNote: field("paymentNote").value,
+    ...(coODatCoc ? { declaredDeposit: num("declaredDeposit") } : {}),
     ...(orderUpdatedAt ? { expectedUpdatedAt: orderUpdatedAt } : {}),
     // Chỉ khi LẬP đơn và đã chọn người: chưa chọn → KHÔNG gửi trường này (đơn "Chờ nhận"), sửa đơn → không bao giờ gửi (PUT không đổi người phụ trách).
     ...(canPickHandler && !editId && handlerPick ? { handlerStaffId: handlerPick.staffId } : {}),
@@ -814,6 +828,7 @@ function fill(o: Api.OrderDetailDto): string[] {
   if (field("customerEmail").value !== "" || field("customerNote").value.trim() !== "") gapKhach.mo(); // nháp đã có email / ghi chú: khối gập tự mở — không giấu giá trị đang có
   (field("discount") as HTMLInputElement).value = o.discount ? grouped(o.discount) : "";
   field("paymentNote").value = o.paymentNote ?? "";
+  (field("declaredDeposit") as HTMLInputElement).value = o.declaredDeposit ? grouped(o.declaredDeposit) : "";
   for (const en of [...entries]) unmount(en);
   orderUpdatedAt = o.updatedAt;
   // Ngày của cả đơn đặt TRƯỚC khi dựng thẻ: khối Đưa đón quyết chặng gọn / mở lúc dựng bằng cách so ngày đón với ngày đi (`changNenGon`) — ngày đi còn trống thì chặng nào cũng "đón khác ngày".
@@ -944,6 +959,10 @@ const layDanhMuc = layKhungNho()?.canCreate === true ? goiSom(() => api<Api.Cata
 const layDon = editId ? goiSom(() => api<Api.OrderDetailResponse>(`/api/orders/${encodeURIComponent(editId)}`)) : null;
 const staff = await initShell();
 guiDonKhiLuu = holdsPartner(staff);
+coODatCoc = holdsPartner(staff);
+byId("dat-coc-o").hidden = !coODatCoc;
+byId("dat-coc-goi-y").hidden = !coODatCoc;
+for (const dong of document.querySelectorAll<HTMLElement>("[data-dat-coc]")) dong.hidden = !coODatCoc;
 ganViTriThongBao();
 picker.setTaiKhoan(staff.id); // ADR-0058 Đ8: nhóm đã chọn nhớ THEO TÀI KHOẢN trên máy — bộ chọn dựng trước khi biết tài khoản, trước dòng này không đọc / ghi bộ nhớ
 retailOnly = chiGiaDanhMuc(staff); // trước loadCatalog/loadOrder: thẻ dịch vụ dựng sau dòng này

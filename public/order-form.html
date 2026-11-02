@@ -43,7 +43,9 @@
         <h2 id="pay-title">Thanh toán</h2>
         <div class="grid three">
           <label class="o-noi"><span class="o-noi-khung"><input id="discount" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="o-noi-chu">Giảm giá (₫)</span></span></label>
+          <label id="dat-coc-o" class="o-noi" hidden><span class="o-noi-khung"><input id="declaredDeposit" type="text" inputmode="numeric" autocomplete="off" placeholder="0" aria-describedby="dat-coc-goi-y"><span class="o-noi-chu">Khách đặt cọc trước (₫)</span></span></label>
         </div>
+        <p id="dat-coc-goi-y" class="muted" hidden>Số tiền bạn đã nhận của khách. Nền tảng chỉ ghi thành khoản thu khi đơn được xác nhận; bạn nộp số này về công ty sau.</p>
         <label class="pay-note o-noi"><span class="o-noi-khung"><textarea id="paymentNote" maxlength="1000" placeholder="vd: nội dung chuyển khoản"></textarea><span class="o-noi-chu">Ghi chú thanh toán</span></span></label>
       </section>
     </div>
@@ -55,6 +57,8 @@
           <div class="kv"><span class="muted">Tạm tính</span><span id="sum-subtotal">0 ₫</span></div>
           <div class="kv"><span class="muted">Giảm giá</span><span id="sum-discount">0 ₫</span></div>
           <div class="kv strong"><span>Tổng cộng</span><span id="sum-total">0 ₫</span></div>
+          <div class="kv" data-dat-coc hidden><span class="muted">Khách đặt cọc trước</span><span id="sum-dat-coc">0 ₫</span></div>
+          <div class="kv strong" data-dat-coc hidden><span>Khách còn phải trả</span><span id="sum-con-tra">0 ₫</span></div>
           <p class="muted summary-note">Số này chỉ để xem trước; hệ thống tính lại khi lưu.</p>
         </div>
       </section>
@@ -65,6 +69,8 @@
             <div class="kv"><span class="muted">Tạm tính</span><span id="ct-tam-tinh">0 ₫</span></div>
             <div class="kv"><span class="muted">Giảm giá</span><span id="ct-giam-gia">0 ₫</span></div>
             <div class="kv strong"><span>Tổng cộng</span><span id="ct-tong">0 ₫</span></div>
+            <div class="kv" data-dat-coc hidden><span class="muted">Khách đặt cọc trước</span><span id="ct-dat-coc">0 ₫</span></div>
+            <div class="kv strong" data-dat-coc hidden><span>Khách còn phải trả</span><span id="ct-con-tra">0 ₫</span></div>
             <p class="muted summary-note">Số này chỉ để xem trước; hệ thống tính lại khi lưu.</p>
           </div>
           <button id="sum-mo" class="mobile-sum-nut" type="button" aria-expanded="false" aria-controls="sum-chi-tiet"><span class="mobile-sum-line"><span><span id="mobile-count">0 dịch vụ</span> · Tổng <span id="mobile-total">0 ₫</span></span></span><span class="mobile-sum-mo"><span id="sum-mo-chu">Chi tiết</span> <span id="sum-mo-dau" aria-hidden="true">▴</span></span></button>

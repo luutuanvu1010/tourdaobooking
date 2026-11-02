@@ -1,4 +1,5 @@
 import { ApiError, api, vuaLamBoiTabNay, type Api, type AuditEntry, type Order, type Staff } from "./api";
+import { NHAN_DAT_COC_CHO } from "../src/shared/dat-coc-truoc";
 import { renderBanner } from "./banner";
 import { openBookerSheet } from "./booker-sheet";
 import { openConfirmationDialog } from "./confirmation-dialog";
@@ -541,6 +542,8 @@ function tienCard(order: Order): HTMLElement {
   const t = tien;
   moGhiThu = null;
   const rows: HTMLElement[] = [kv("Tạm tính", vnd(order.subtotal)), kv("Giảm giá", vnd(order.discount)), kv("Tổng cộng", vnd(order.total), "strong")];
+  // ADR-0159 Đ1 mục 6: lời khai chỉ có trên đơn nháp (máy chủ trả 0 khi đơn rời nháp); sau xác nhận số tiền là một khoản thu trong sổ, hiện như mọi khoản thu.
+  if (order.status === "draft" && order.declaredDeposit > 0) rows.push(kv(NHAN_DAT_COC_CHO, vnd(order.declaredDeposit), "kv-dat-coc"));
   if (t?.coc) {
     // ADR-0089: đơn huỷ — không có "Còn lại" (khách không còn nợ); số cọc do máy chủ tính.
   } else if (t) {
