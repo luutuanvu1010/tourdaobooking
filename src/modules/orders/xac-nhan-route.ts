@@ -7,6 +7,7 @@ import { UUID_RE, error, json, readJson, trangDon } from "../../shared/http";
 import { can, holdsIntern, holdsPartner } from "../../shared/permissions";
 import { route } from "../../shared/router";
 import { cauThieuChonDon, thieuChonDon } from "../../shared/cong-chon-don";
+import { thieuGioChangDau } from "../../shared/chang-dua-don";
 import { docLyDoHuy, type LyDoHuy } from "../../shared/ly-do-huy";
 import { KHUNG_MAC_DINH, kiemDanhSachKhung } from "../../shared/khung-gio-don";
 import { nguongMocVn } from "../../shared/moc-toi-thieu";
@@ -19,11 +20,11 @@ import { getEffectiveServices } from "../catalog";
 import { cauDoiGioChang, cauDoiNgayChang, cauDoiNgayDichVu, cauGhiKepGio, cauKhepYeuCau, cauMoYeuCau, cauThemChinhSach, cauThemCo, chinhSachMoiNhat, coHienHanh, coMoiNhat, nhomDangDung, orderTouchDraft, tuXacNhanNoiBo, yeuCauMoCuaDon, yeuCauMoTatCa, yeuCauTheoId, type YeuCauRow } from "./xac-nhan-repo";
 import { legDatGapByOrder, slotPolicy } from "./chang-hanh-khach-repo";
 import { daHuy, daXacNhan, findOrder, getMeta, nextStamp, soanHuyDon, soanXacNhan } from "./repository";
-import { MOC_CHUA_CO, RACED, STALE, chanDoanXacNhan, chayLoNoiChuyen, congNhomTatDuaDon, dichLoiXacNhan, kemChupXacNhan, kiemCongXacNhan, tinhCanXacNhan } from "./xac-nhan-chung";
+import { MOC_CHUA_CO, RACED, STALE, chanDoanXacNhan, chayLoNoiChuyen, congNhomTatDuaDon, dichLoiXacNhan, kemChupXacNhan, kiemCongXacNhan, tinhCanXacNhan, viCuaYeuCau } from "./xac-nhan-chung";
 import { confirmWindow } from "./service-rules";
 import { congLuatBan } from "./cong-ban";
 
-const NHAN_VI: Record<LyDoCanXacNhan, string> = { DICH_VU: "dịch vụ cần xác nhận", DAT_GAP: "lượt đón dưới hạn chốt, cần đặt gấp" };
+const NHAN_VI: Record<LyDoCanXacNhan, string> = { DICH_VU: "dịch vụ cần xác nhận", DAT_GAP: "lượt đón dưới hạn chốt, cần đặt gấp", CHOT_GIO: "có lượt đưa đón chưa có giờ đón" };
 const dtoYeuCau = (y: YeuCauRow, vi: LyDoCanXacNhan[], nowMs: number): YeuCauXacNhanDto => ({ id: y.id, guiLuc: y.submitted_at, hanLuc: y.deadline_at, quaHan: quaHanXacNhan(y.deadline_at, nowMs), vi });
 const NOT_FOUND_DON = () => error(404, "not_found", "Không tìm thấy đơn.");
 const DA_GIAO_DON = () => error(409, "order_delivered", "Đơn đã ở bước Đã giao – đã thu đủ: không sửa, huỷ hay đổi người phụ trách được nữa.");
@@ -82,7 +83,7 @@ export const xacNhanRoutes = [
     for (const y of ys) {
       const o = await findOrder(env.DB, y.order_id);
       if (!o) continue;
-      const vi = (await tinhCanXacNhan(env.DB, o, moc, nowMs)).vi;
+      const vi = viCuaYeuCau(y, (await tinhCanXacNhan(env.DB, o, moc, nowMs)).vi); // cờ «cần chốt giờ» đã CHỤP vào yêu cầu (ADR-0154 Đ1.2), không tính lại
       const ngay = o.services.map((s) => s.departDate).filter((d): d is string => d !== null).sort()[0] ?? null;
       const dau = o.services.flatMap((s) => s.legs).filter((l) => l.pickupTime !== null).sort((a, b) => `${a.pickupDate ?? ""} ${a.pickupTime}`.localeCompare(`${b.pickupDate ?? ""} ${b.pickupTime}`))[0];
       don.push({
@@ -154,10 +155,14 @@ export const xacNhanRoutes = [
     const cong = await kiemCongXacNhan(env.DB, { actor: staff, order, kiemMoc: true, mocToiThieu: moc });
     if ("loi" in cong) return cong.loi;
     const canXN = await tinhCanXacNhan(env.DB, order, moc, nowMs);
-    if (canXN.can) {
+    // ADR-0154 Đ1.2: người lập giữ quyền Đối tác (kể cả lai) mà LƯỢT ĐẦU của một dịch vụ chọn Đón chưa có giờ → luôn nhánh A, dù dịch vụ không «cần xác nhận». Luật đứng ở ĐÂY, không trong
+    // `tinhCanXacNhan` (đơn văn phòng, `/status`, Gửi xác nhận không đổi); cờ chụp vào yêu cầu để Còn vé biết phải đòi giờ. Lượt có giờ gửi thẳng qua API vẫn qua cổng 6 giờ (Đ1.7).
+    const canChot = holdsPartner(staff) && thieuGioChangDau(order.services).length > 0;
+    if (canXN.can || canChot) {
       const chan = await chanKhoanThu(daThuCuaDon, id);
       if (chan) return chan;
-      const mo = await moYeuCau(env.DB, { id, staffId: staff.id, meta, vi: canXN.vi, nowMs, canChotGio: false });
+      const vi: LyDoCanXacNhan[] = canChot ? [...canXN.vi, "CHOT_GIO"] : canXN.vi;
+      const mo = await moYeuCau(env.DB, { id, staffId: staff.id, meta, vi, nowMs, canChotGio: canChot });
       if ("loi" in mo) return mo.loi;
       baoThayDoi({ orderId: id, thayDoi: "cho_xac_nhan" });
       return json({ nhanh: "A", thongBao: CAU_BAO_GUI_DON.A, yeuCau: mo.yeuCau } satisfies GuiDonResponse, 201, { location: trangDon(id) });

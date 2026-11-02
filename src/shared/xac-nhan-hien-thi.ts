@@ -18,6 +18,7 @@ export const CAU_TIEN_KHOA_KHI_CHO = "Đơn đang chờ nên tiền chỉ để 
 const NHAN_VI: Record<LyDoCanXacNhan, string> = {
   DICH_VU: "Có dịch vụ cần xác nhận còn vé.",
   DAT_GAP: "Có lượt đón dưới hạn chốt, cần Quản trị đặt gấp.",
+  CHOT_GIO: "Có lượt đưa đón chưa có giờ đón, văn phòng cần ghi giờ.",
 };
 export const nhanLyDoCanXacNhan = (vi: readonly LyDoCanXacNhan[]): string => vi.map((v) => NHAN_VI[v]).join(" ");
 

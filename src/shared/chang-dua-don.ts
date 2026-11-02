@@ -311,6 +311,34 @@ export function chieuDiDau(legs: readonly Pick<ChangDaLuu, "id" | "direction" | 
   return { pickupTime: out.pickupTime, pickupPlace: out.pickupLabel === NOI_DON_CHUA_GHI ? null : out.pickupLabel };
 }
 
+/**
+ * LƯỢT ĐẦU của một dịch vụ (ADR-0154 Đ1.2 «chặng đầu tiên của dịch vụ», câu đã áp số 1): ngày (trống xếp sau) → CHIỀU ĐI trước chiều về → giờ có trước giờ trống → giờ → id.
+ * KHÁC `xepChang` (giờ đứng trước chiều, để hiển thị): đơn hai chiều cùng ngày, chiều đi trống giờ, chiều về có giờ gợi ý thì lượt đầu phải là chiều đi. MỘT hàm cho máy chủ,
+ * giao diện và kiểm định kỳ (`R-ORD-17w` xếp bằng câu con cùng thứ tự). `legs` = CHỈ chặng còn hiệu lực. Trả đối tượng nguồn (không sao chép); rỗng → null.
+ */
+export function changDauCuaDichVu<T extends { id: string; direction: LegDirection; pickupDate: string | null; pickupTime: string | null }>(legs: readonly T[]): T | null {
+  return (
+    [...legs].sort((a, b) => {
+      if (a.pickupDate !== b.pickupDate) return a.pickupDate === null ? 1 : b.pickupDate === null ? -1 : a.pickupDate < b.pickupDate ? -1 : 1;
+      if (a.direction !== b.direction) return a.direction === "OUT" ? -1 : 1;
+      return somHon(a, b); // cùng ngày: giờ có trước giờ trống, giờ sớm trước, rồi id
+    })[0] ?? null
+  );
+}
+
+/**
+ * Dịch vụ mà LƯỢT ĐẦU chưa có giờ đón (ADR-0154 Đ1.2): `{ serviceId, legId }` của lượt đầu đó. Dịch vụ không có lượt (Không đón) không bị nêu. Dùng ở Gửi đơn (cờ «cần chốt
+ * giờ») và cổng giờ của Còn vé. Không xét chiều về hay lượt sau: chúng không bắt buộc.
+ */
+export function thieuGioChangDau<T extends { id: string; direction: LegDirection; pickupDate: string | null; pickupTime: string | null }>(
+  dichVu: readonly { id: string; legs: readonly T[] }[],
+): { serviceId: string; legId: string }[] {
+  return dichVu.flatMap((s) => {
+    const dau = changDauCuaDichVu(s.legs);
+    return dau !== null && dau.pickupTime === null ? [{ serviceId: s.id, legId: dau.id }] : [];
+  });
+}
+
 const daysBetween = (from: string, to: string): number => Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000);
 
 /**

@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  CHIEU_LABEL, GHI_CHU_DAT_GAP_TOI_DA, LY_DO_DAT_GAP, LY_DO_DONG_CHANG, MAX_CHANG_MOI_DICH_VU, NGAY_DON_SAU_NGAY_DI, NGAY_DON_TRUOC_NGAY_DI, NOI_DON_CHUA_GHI, chieuDiDau, doiNgayChang, isLyDoDongChang,
+  CHIEU_LABEL, GHI_CHU_DAT_GAP_TOI_DA, LY_DO_DAT_GAP, LY_DO_DONG_CHANG, MAX_CHANG_MOI_DICH_VU, NGAY_DON_SAU_NGAY_DI, NGAY_DON_TRUOC_NGAY_DI, NOI_DON_CHUA_GHI, chieuDiDau, changDauCuaDichVu, thieuGioChangDau, doiNgayChang, isLyDoDongChang,
   isLyDoDatGap, khoangNgayDon, kiemChang, moTaChang, tronChangCu, type ChangDaLuu, chuanHoaSoHieuChuyenBay, chiDoiOPhu, docChoToiThieu,
 } from "./chang-dua-don.ts";
 
@@ -363,4 +363,45 @@ test("tronChangCu: cam kết của chặng đang lưu được CHÉP sang dạng
 test("chiDoiOPhu: đổi cam kết không làm đổi bốn trường vận hành → vẫn true (không xét mốc)", () => {
   const cu = { pickupDate: "2026-10-10", pickupTime: "06:30", pickupLocationId: null, pickupPlace: "KS A", dropoffLocationId: LOC, dropoffPlace: null };
   assert.equal(chiDoiOPhu(cu, { ...cu, ...{ exclusiveVehicle: true, minVehicleSeats: 15 } }), true);
+});
+
+// ---- Lượt ĐẦU của dịch vụ (ADR-0154 Đ1.2; kế hoạch lượt 2 Task 1.2, câu đã áp số 1) ----------------------------------------------------------------------------
+// Thứ tự: ngày (trống sau) → chiều đi trước chiều về → giờ có trước trống → giờ → id. KHÁC `xepChang` (giờ đứng TRƯỚC chiều): đơn hai chiều cùng ngày, chiều đi trống giờ,
+// chiều về có giờ gợi ý thì lượt đầu phải là chiều đi — nếu không luật «Đón chưa có giờ» không chạy đúng ca phổ biến nhất.
+const lg = (id: string, direction: "OUT" | "RETURN", pickupDate: string | null, pickupTime: string | null) => ({ id, direction, pickupDate, pickupTime });
+
+test("changDauCuaDichVu: chiều đi trống giờ đứng trước chiều về có giờ gợi ý cùng ngày (khác xepChang — giờ có trước chiều)", () => {
+  const di = lg("b", "OUT", "2027-01-01", null);
+  const ve = lg("a", "RETURN", "2027-01-01", "16:00");
+  assert.equal(changDauCuaDichVu([ve, di])!.id, "b");
+  assert.equal(changDauCuaDichVu([di, ve])!.id, "b");
+});
+
+test("changDauCuaDichVu: chỉ có chiều về → chiều về; rỗng → null; ngày sớm hơn thắng chiều; ngày trống xếp sau ngày có", () => {
+  assert.equal(changDauCuaDichVu([lg("v", "RETURN", "2027-01-01", null)])!.id, "v");
+  assert.equal(changDauCuaDichVu([]), null);
+  assert.equal(changDauCuaDichVu([lg("di", "OUT", "2027-01-02", "07:00"), lg("ve", "RETURN", "2027-01-01", "16:00")])!.id, "ve", "ngày sớm hơn thắng dù là chiều về");
+  assert.equal(changDauCuaDichVu([lg("trong", "OUT", null, "06:00"), lg("co", "OUT", "2027-01-05", null)])!.id, "co", "ngày trống xếp sau");
+});
+
+test("changDauCuaDichVu: hai chiều đi cùng ngày — giờ có trước trống, rồi giờ sớm, rồi id", () => {
+  assert.equal(changDauCuaDichVu([lg("a", "OUT", "2027-01-01", null), lg("b", "OUT", "2027-01-01", "09:30")])!.id, "b");
+  assert.equal(changDauCuaDichVu([lg("a", "OUT", "2027-01-01", "09:30"), lg("b", "OUT", "2027-01-01", "08:00")])!.id, "b");
+  assert.equal(changDauCuaDichVu([lg("z", "OUT", "2027-01-01", "08:00"), lg("m", "OUT", "2027-01-01", "08:00")])!.id, "m", "hoà thì theo id");
+  const goc = [lg("b", "OUT", "2027-01-01", null), lg("a", "RETURN", "2027-01-01", "16:00")];
+  const sao = JSON.stringify(goc);
+  changDauCuaDichVu(goc);
+  assert.equal(JSON.stringify(goc), sao, "không sửa mảng vào");
+});
+
+test("thieuGioChangDau: chỉ liệt kê dịch vụ có lượt đầu trống giờ; dịch vụ không lượt (Không đón) và lượt đầu có giờ thì không", () => {
+  assert.deepEqual(thieuGioChangDau([]), []);
+  const r = thieuGioChangDau([
+    { id: "s1", legs: [lg("l1", "OUT", "2027-01-01", null)] },
+    { id: "s2", legs: [lg("l2", "OUT", "2027-01-01", "08:00"), lg("l3", "RETURN", "2027-01-01", null)] },
+    { id: "s3", legs: [] },
+    { id: "s4", legs: [lg("l4", "RETURN", "2027-01-01", null), lg("l5", "OUT", "2027-01-01", "07:00")] },
+    { id: "s5", legs: [lg("l7", "RETURN", "2027-01-01", "16:00"), lg("l6", "OUT", "2027-01-01", null)] },
+  ]);
+  assert.deepEqual(r, [{ serviceId: "s1", legId: "l1" }, { serviceId: "s5", legId: "l6" }]);
 });
