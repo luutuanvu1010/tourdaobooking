@@ -37,3 +37,8 @@ export function thieuVe(can: Record<Nhom, number>, daGiu: Record<Nhom, number>):
 export function thuDu(t: { daThu: number; phaiThu: number } | null): boolean {
   return t !== null && t.phaiThu > 0 && t.daThu >= t.phaiThu;
 }
+
+/** ADR-0159 Đ2 mục 2: chưa mở vé CHỈ vì số khách đặt cọc còn ở tay đối tác (khách đã trả đủ trên sổ). Khách còn thiếu tiền thật thì là ca «chưa thu đủ» thường. Để nói đúng câu, không dùng để mở khoá. */
+export function choDoiTacNop(t: { daThu: number; phaiThu: number; choNop?: number } | null): boolean {
+  return t !== null && !thuDu(t) && (t.choNop ?? 0) > 0 && t.phaiThu > 0 && t.daThu + (t.choNop ?? 0) >= t.phaiThu;
+}

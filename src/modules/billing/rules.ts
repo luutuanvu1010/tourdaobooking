@@ -127,6 +127,26 @@ export function soDuCap(lines: readonly Pick<LineRow, "debtorPartyId" | "credito
 }
 
 /**
+ * ADR-0159 Đ2 mục 2: phần tiền khai đặt cọc CHƯA về công ty, tính theo từng người thu. Sổ phân bổ tiền nộp theo đơn, không theo khoản thu, nên khi một người vừa có khoản khai vừa có khoản khác
+ * trên cùng đơn, số họ còn nợ được tính vào khoản khai TRƯỚC (cách chặt hơn). Dùng số dư MỌI loại dòng của đơn: hoa hồng cấn trừ lúc «Đã giao» làm giảm số phải nộp, nếu chỉ tính dòng giữ hộ thì vé
+ * khoá vĩnh viễn dù đối tác đã hết nợ. Người thu là Công ty: số dư với chính mình luôn 0, tiền đã về công ty.
+ */
+export function soKhaiChuaNop(
+  khoan: readonly { collectorPartyId: string | null; soTien: number }[],
+  lines: readonly Pick<LineRow, "debtorPartyId" | "creditorPartyId" | "amount">[],
+  congTyId: string,
+): number {
+  const theoNguoi = new Map<string, number>();
+  let so = 0;
+  for (const k of khoan) {
+    if (k.collectorPartyId === null) so += k.soTien; // sổ không nói ai cầm: coi như chưa nộp
+    else theoNguoi.set(k.collectorPartyId, (theoNguoi.get(k.collectorPartyId) ?? 0) + k.soTien);
+  }
+  for (const [nguoi, khai] of theoNguoi) so += Math.min(khai, Math.max(0, soDuCap(lines, nguoi, congTyId)));
+  return so;
+}
+
+/**
  * Loại dòng mà hàng rào giữ hộ cộng khi hỏi «dòng giữ hộ này đã được tất toán chưa» (trigger `bil_debt_line_held_once`, migration mới nhất tạo nó — 0112): giữ hộ,
  * quyết toán, hoàn khách (kể cả dòng đảo của chúng — dòng đảo mang cùng loại). Dòng thương mại của phiếu «Đã giao» (HOA_HONG / GIAM_GIA_BEN_DAT / GIA_VON) KHÔNG
  * kéo số này xuống (đặc tả sổ đại lý đợt 2 P10). HAI NƠI: trigger đó và nhánh khoản cũ của câu PENDING_COMPANY (repository.ts) — bài «hai nơi» ở ben-kia.test.ts.

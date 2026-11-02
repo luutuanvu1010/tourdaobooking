@@ -3,12 +3,15 @@
 // Vai BOOKER / STAFF theo bản chụp của CHÍNH lô: `benDatHuong` trên đơn chưa chụp trả null, nên không đọc phần thương mại đang lưu.
 import type { CauCocXacNhan, ChanKhaiLai, VaoCauCoc } from "../../shared/dat-coc-kieu";
 import { CAU_CHUA_GAN_HO_SO } from "../../shared/dat-coc-truoc";
-import { benDatHuong } from "./rules";
+import { benDatHuong, soKhaiChuaNop } from "./rules";
 import { GHI_CHU_KHOAN_LOI_KHAI, cocLapLaiConGiu, hoSoNhanVien } from "./coc-repo";
-import { ownerCompanyId, receiptOnConfirmStatement } from "./repository";
-import { cauLanThu } from "./service";
+import { linesOfOrder, ownerCompanyId, receiptOnConfirmStatement, receiptsOfOrder } from "./repository";
+import { cauLanThu, tienNhieuDon, toLineRow } from "./service";
 
 const dong = (n: number): string => `${n.toLocaleString("vi-VN")} ₫`;
+
+/** ADR-0159 Đ2 mục 1: người xét không sửa được ô khai và cột đang khoá, nên câu nói việc họ làm được. Không kèm mã, số tiền của đơn huỷ: đó là đơn khác của đối tác (ADR-0136 Đ6). */
+const CAU_KHAI_LAI_NGUOI_XET = "Người lập đơn còn tiền đặt cọc của một đơn đã huỷ chưa xử lý nên chưa ghi được số đặt cọc của đơn này. Bạn có thể bấm Hết vé, hoặc nhờ người lập Rút lại đơn để bỏ số đặt cọc; Kế toán xử lý tiền của đơn đã huỷ thì người lập khai lại được.";
 
 /**
  * Tự quyết (ADR-0159 Hệ quả «chưa kiểm»): huỷ để lập lại đơn mà cọc cũ còn giữ thì khai lại ở đơn mới bị TÍNH HAI LẦN thật — cọc cũ đã là dòng giữ hộ trên đơn huỷ, và lệnh chuyển cọc
@@ -25,13 +28,30 @@ export async function chanKhaiCocLai(db: D1Database, nguoiLapId: string): Promis
   };
 }
 
+/**
+ * ADR-0153 Đ3 sửa bởi ADR-0159 Đ2 mục 2 — {số tính «thu đủ», phải thu} của MỘT đơn do GỐC LẮP RÁP tiêm vào `ctx.tienDonVe` (kho vé so ở MỘT hàm thuần `thuDu`; ve-dien-tu không đọc bảng bil_).
+ * `daThu` Ở ĐÂY đã trừ số khai chưa nộp, chỉ dùng cho vé; «đã thu» hiển thị ở nơi khác vẫn đọc `tienNhieuDon`. KHÔNG tự kiểm quyền — route của ve-dien-tu hỏi `can(` trước.
+ * `null` khi không đọc được: không mở vé. `choNop` để giao diện nói đúng ca chờ nộp.
+ */
+export async function tienDonVe(db: D1Database, orderId: string): Promise<{ daThu: number; phaiThu: number; choNop: number } | null> {
+  const t = (await tienNhieuDon(db, [orderId])).get(orderId);
+  if (!t) return null;
+  const receipts = await receiptsOfOrder(db, orderId);
+  const khoan = receipts.filter((r) => r.kind_code === "CUSTOMER_PAYMENT" && r.note === GHI_CHU_KHOAN_LOI_KHAI && r.reverses_id === null && !receipts.some((y) => y.reverses_id === r.id));
+  if (khoan.length === 0) return { daThu: t.daThu, phaiThu: t.phaiThu, choNop: 0 };
+  const [congTyId, lines] = await Promise.all([ownerCompanyId(db), linesOfOrder(db, orderId)]);
+  if (!congTyId) return null;
+  const choNop = soKhaiChuaNop(khoan.map((r) => ({ collectorPartyId: r.collector_party_id, soTien: r.amount })), lines.map(toLineRow), congTyId);
+  return { daThu: t.daThu - choNop, phaiThu: t.phaiThu, choNop };
+}
+
 /** Dựng câu khoản thu cho lô xác nhận; câu dựng ra CHƯA chạy, nằm sau câu xác nhận trong cùng một lô. Tháng đã khoá: trigger huỷ cả lô, `orders` dịch thành 409. */
 export async function cauDatCocKhiXacNhan(db: D1Database, i: VaoCauCoc): Promise<CauCocXacNhan> {
   const [congTyId, partyId] = await Promise.all([ownerCompanyId(db), hoSoNhanVien(db, i.nguoiLapId)]);
   if (!congTyId) return { ok: false, status: 503, code: "owner_company_missing", message: "Chưa có hồ sơ công ty chủ — báo người phụ trách hệ thống." };
   if (!partyId) return { ok: false, status: 409, code: "partner_no_party", message: CAU_CHUA_GAN_HO_SO };
   const chan = await chanKhaiCocLai(db, i.nguoiLapId);
-  if (chan) return { ok: false, ...chan };
+  if (chan) return { ok: false, ...chan, ...(i.nguoiBamId === i.nguoiLapId ? {} : { message: CAU_KHAI_LAI_NGUOI_XET }) };
   // Bản chụp của chính lô: `duKien`/`chuaChup` = false và các trường còn lại không dùng tới ở hàm này.
   const benDat = benDatHuong({ duKien: false, chuaChup: false, chup: i.chup, dichVu: [], congTyChuId: null, giamGiaHieuLuc: 0 });
   return {

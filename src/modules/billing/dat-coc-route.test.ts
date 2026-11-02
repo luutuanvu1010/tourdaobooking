@@ -450,3 +450,168 @@ test("Dấu khoản khai chỉ áp cho khoản khách trả: phiếu trả lại
   assert.match(sql, /r\.kind_code = 'CUSTOMER_PAYMENT' AND r\.note = \?2/);
   for (const ma of ["R-BIL-DC1", "R-BIL-DC2", "R-BIL-DC3"]) assert.match((CHECKS as any[]).find((c) => c.code === ma).sql, /kind_code = 'CUSTOMER_PAYMENT'/, ma);
 });
+
+// ---- Vòng sửa sau kiểm độc lập (ADR-0159 Đ2) ------------------------------------------------------------------------------------------------------------------
+test("I-1: người xét bấm Còn vé mà người lập đang bị chặn khai lại: câu nói việc họ làm được, không bảo «để trống ô», không lộ đơn huỷ; người lập giữ câu cũ", async () => {
+  const w = dung();
+  const xem = await moYeuCau(w, PARTNER, 100000);
+  const cu = await donHuyConTien(w, PARTNER, 200000);
+  const r = await w.call("POST", `/api/orders/${xem.order.id}/quyet-dinh`, { as: ADM, body: { ketQua: "CON_VE", yeuCauId: xem.xacNhan.yeuCau.id, updatedAt: xem.order.updatedAt } });
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "declared_deposit_reissue_held");
+  const cau = r.json.error.message as string;
+  assert.doesNotMatch(cau, /để trống/);
+  for (const chu of [/Hết vé/, /Rút lại/, /Kế toán/]) assert.match(cau, chu);
+  assert.ok(!cau.includes(cu.orderCode), "người xét không cần biết đơn khác của đối tác");
+  assert.ok(!cau.includes("200.000"), "không lộ số tiền đơn khác");
+  assert.equal(status(w, xem.order.id), "draft");
+  const nguoiLap = await w.call("POST", "/api/orders", { as: PARTNER, body: than(1000) });
+  assert.equal(nguoiLap.status, 409, nguoiLap.text);
+  assert.match(nguoiLap.json.error.message, /để trống/);
+  assert.ok(nguoiLap.json.error.message.includes(cu.orderCode));
+});
+
+// ADR-0159 Đ2 mục 2: số khai chưa nộp về công ty không tính là thu đủ để mở vé. Tổng đơn của khung thử 600.000 ₫.
+const veDon = async (w: any, id: string) => { const r = await w.call("GET", `/api/ve/don/${id}`, { as: ADM }); assert.equal(r.status, 200, r.text); return r.json; };
+const nop = (w: any, id: string, soTien: number, ben: string = PARTNER) => w.call("POST", "/api/ledger/settlements", { as: ACC, body: { chieu: "nop", partyId: `pty-${ben}`, phanBo: [{ orderId: id, soTien }] } });
+const moDon = async (w: any, as: string, coc: number, dv?: unknown[]) => { const o = await lapCoc(w, as, coc, dv); assert.equal((await guiDon(w, o.id, as)).status, 200); return o; };
+
+test("I-4: khai đủ chưa nộp thì khoá và báo chờ đối tác nộp; nộp một phần vẫn khoá; nộp đủ thì mở; «đã thu» hiển thị không đổi", async () => {
+  const w = dung();
+  const o = await moDon(w, PARTNER, 600000);
+  let v = await veDon(w, o.id);
+  assert.equal(v.thuDu, false, "khai đủ chưa nộp: khoá");
+  assert.equal(v.choDoiTacNop, true);
+  assert.equal((await w.call("GET", `/api/orders/${o.id}/payments`, { as: ACC })).json.daThu, 600000, "số đã thu hiển thị giữ nguyên");
+  const chan = await w.call("POST", "/api/ve/duong-dan", { as: ADM, body: { orderId: o.id } });
+  assert.equal(chan.status, 403, chan.text);
+  assert.equal(chan.json.error.code, "chua_thu_du");
+  assert.match(chan.json.error.message, /nộp tiền về công ty/);
+  assert.equal((await nop(w, o.id, 200000)).status, 201);
+  v = await veDon(w, o.id);
+  assert.equal(v.thuDu, false, "nộp một phần: vẫn khoá");
+  assert.equal(v.choDoiTacNop, true);
+  assert.equal((await nop(w, o.id, 400000)).status, 201);
+  v = await veDon(w, o.id);
+  assert.equal(v.thuDu, true, "nộp đủ: mở");
+  assert.equal(v.choDoiTacNop, false);
+});
+
+test("I-4: «Tôi thu» đủ tiền vẫn mở như cũ, không phải đợi nộp", async () => {
+  const w = dung();
+  const o = await moDon(w, PARTNER, 0);
+  const t = await w.call("POST", `/api/orders/${o.id}/payments`, { as: PARTNER, body: { soTien: 600000, hinhThuc: "CASH", nguoiThu: "toi" } });
+  assert.equal(t.status, 201, t.text);
+  const v = await veDon(w, o.id);
+  assert.equal(v.thuDu, true);
+  assert.equal(v.choDoiTacNop, false);
+});
+
+test("I-4: khai một phần cộng khoản văn phòng thu: khoá tới khi nộp phần khai; thiếu tiền thật thì câu vẫn là chưa thu đủ", async () => {
+  const w = dung();
+  const o = await moDon(w, PARTNER, 200000);
+  let v = await veDon(w, o.id);
+  assert.equal(v.thuDu, false);
+  assert.equal(v.choDoiTacNop, false, "khách còn thiếu tiền thật: chưa phải ca chờ nộp");
+  const t = await w.call("POST", `/api/orders/${o.id}/payments`, { as: ACC, body: { soTien: 400000, hinhThuc: "CASH", nguoiThu: "cong_ty" } });
+  assert.equal(t.status, 201, t.text);
+  v = await veDon(w, o.id);
+  assert.equal(v.thuDu, false, "đủ trên sổ nhưng 200.000 ₫ khai chưa nộp");
+  assert.equal(v.choDoiTacNop, true);
+  assert.equal((await nop(w, o.id, 200000)).status, 201);
+  assert.equal((await veDon(w, o.id)).thuDu, true);
+});
+
+test("I-4 Tự quyết: cùng người vừa khai vừa «Tôi thu», sổ không nói tiền nộp thuộc khoản nào ⇒ coi tiền nộp trả khoản kia trước", async () => {
+  const w = dung();
+  const o = await moDon(w, PARTNER, 200000);
+  const t = await w.call("POST", `/api/orders/${o.id}/payments`, { as: PARTNER, body: { soTien: 400000, hinhThuc: "CASH", nguoiThu: "toi" } });
+  assert.equal(t.status, 201, t.text);
+  assert.equal((await veDon(w, o.id)).thuDu, false);
+  assert.equal((await nop(w, o.id, 200000)).status, 201);
+  assert.equal((await veDon(w, o.id)).thuDu, false, "đang giữ 400.000 ₫ nên 200.000 ₫ khai chưa coi là đã nộp");
+  assert.equal((await nop(w, o.id, 400000)).status, 201);
+  assert.equal((await veDon(w, o.id)).thuDu, true);
+});
+
+test("I-4 Tự quyết: hoa hồng đã cấn trừ lúc Đã giao tính là đã nộp phần đó, không khoá vé vĩnh viễn", async () => {
+  const w = dung();
+  const o = await moDon(w, DT_HUONG, 600000, [svc("ZB1", inDays(0))]);
+  const don = (await w.call("GET", `/api/orders/${o.id}`, { as: ACC })).json.order;
+  const m = await w.call("POST", `/api/orders/${o.id}/thuong-mai/${don.services[0].id}`, { as: ACC, body: { lyDo: "Khung thử ghi mức tay", hoaHong: { kieu: "RATE", tyLeBp: 1000 } } });
+  assert.equal(m.status, 200, m.text);
+  assert.equal((await w.call("POST", `/api/orders/${o.id}/delivered`, { as: ADM, body: {} })).status, 200);
+  assert.equal((await veDon(w, o.id)).thuDu, false, "còn nợ 540.000 ₫");
+  assert.equal((await nop(w, o.id, 540000, DT_HUONG)).status, 201);
+  assert.equal((await veDon(w, o.id)).thuDu, true, "đã hết nợ");
+});
+
+// ADR-0159 K7c: «Sửa khoản thu» không được làm mất dấu khoản khai.
+const sua = (w: any, id: string, cu: string, moi: Record<string, unknown>) => w.call("POST", "/api/ledger/receipt-replacements", { as: ACC, body: { orderId: id, cu: [cu], moi: [moi], lyDo: "Kế toán sửa khoản đã ghi", ...(moi.ngayPhatSinh ? { ngayPhatSinh: moi.ngayPhatSinh } : {}) } });
+const khoanSong = (w: any, id: string) => w.q("SELECT r.* FROM bil_payment_receipt r WHERE r.order_id = ? AND r.reverses_id IS NULL AND NOT EXISTS (SELECT 1 FROM bil_payment_receipt y WHERE y.reverses_id = r.id)", id);
+async function haiDonRoiSua(w: any, moi: Record<string, unknown>) {
+  const cu = await moDon(w, PARTNER, 200000);
+  const nhan = await moDon(w, PARTNER, 200000);
+  const s = await sua(w, nhan.id, khoanThu(w, nhan.id)[0].id, moi);
+  assert.equal(s.status, 201, s.text);
+  const don = (await w.call("GET", `/api/orders/${cu.id}`, { as: PARTNER })).json.order;
+  assert.equal((await w.call("POST", `/api/orders/${cu.id}/status`, { as: PARTNER, body: { status: "cancelled", lyDo: "SAI_THONG_TIN", updatedAt: don.updatedAt } })).status, 200);
+  return { cu, nhan, duyet: () => w.call("POST", `/api/orders/${cu.id}/coc/duyet`, { as: ADM, body: { loai: "chuyen", soTien: 200000, lyDo: "Lập lại đơn cho khách", donNhan: nhan.orderCode } }) };
+}
+const NGUOI_CU = { partyId: `pty-${PARTNER}` };
+
+test("I-3 (K7c): sửa khoản khai cùng số, cùng người thu: dấu được chép sang khoản mới, chuyển cọc vẫn 409, không tính hai lần", async () => {
+  const w = dung();
+  const { nhan, duyet } = await haiDonRoiSua(w, { soTien: 200000, hinhThuc: "CASH", nguoiThu: NGUOI_CU });
+  const song = khoanSong(w, nhan.id);
+  assert.equal(song.length, 1);
+  assert.equal(song[0].note, "Khách đặt cọc trước");
+  assert.equal(song[0].collector_party_id, `pty-${PARTNER}`);
+  const d = await duyet();
+  assert.equal(d.status, 409, d.text);
+  assert.equal(d.json.error.code, "coc_target_has_declared_deposit");
+});
+
+test("I-3: chỉ sửa ngày hoặc hình thức: dấu giữ nguyên, sổ vẫn đúng một khoản sống; vé vẫn đợi nộp", async () => {
+  const w = dung();
+  const o = await moDon(w, PARTNER, 600000);
+  const ngay = await sua(w, o.id, khoanThu(w, o.id)[0].id, { soTien: 600000, hinhThuc: "CASH", nguoiThu: NGUOI_CU, ngayPhatSinh: inDays(-1) });
+  assert.equal(ngay.status, 201, ngay.text);
+  let song = khoanSong(w, o.id);
+  assert.equal(song.length, 1);
+  assert.equal(song[0].note, "Khách đặt cọc trước");
+  assert.equal(song[0].occurred_date, inDays(-1));
+  const ht = await sua(w, o.id, song[0].id, { soTien: 600000, hinhThuc: "BANK_TRANSFER", nguoiThu: NGUOI_CU });
+  assert.equal(ht.status, 201, ht.text);
+  song = khoanSong(w, o.id);
+  assert.equal(song.length, 1);
+  assert.equal(song[0].note, "Khách đặt cọc trước");
+  assert.equal(song[0].method_code, "BANK_TRANSFER");
+  assert.equal((await veDon(w, o.id)).thuDu, false);
+});
+
+test("I-3 Tự quyết: đổi người thu: khoản mới vẫn mang dấu nên chuyển cọc vẫn 409; tiền đã về Công ty thì vé mở", async () => {
+  const w = dung();
+  const { nhan, duyet } = await haiDonRoiSua(w, { soTien: 200000, hinhThuc: "CASH", nguoiThu: "cong_ty" });
+  const song = khoanSong(w, nhan.id);
+  assert.equal(song[0].collector_role_code, "COMPANY");
+  assert.equal(song[0].note, "Khách đặt cọc trước");
+  const d = await duyet();
+  assert.equal(d.status, 409, d.text);
+  assert.equal(d.json.error.code, "coc_target_has_declared_deposit");
+  const w2 = dung();
+  const o = await moDon(w2, PARTNER, 600000);
+  assert.equal((await sua(w2, o.id, khoanThu(w2, o.id)[0].id, { soTien: 600000, hinhThuc: "CASH", nguoiThu: "cong_ty" })).status, 201);
+  assert.equal((await veDon(w2, o.id)).thuDu, true);
+});
+
+test("I-3: sửa khoản KHÔNG mang dấu thì không tự sinh dấu; gõ tay chữ dấu vẫn 400", async () => {
+  const w = dung();
+  const o = await moDon(w, PARTNER, 0);
+  assert.equal((await w.call("POST", `/api/orders/${o.id}/payments`, { as: PARTNER, body: { soTien: 100000, hinhThuc: "CASH", nguoiThu: "toi" } })).status, 201);
+  const id = khoanThu(w, o.id)[0].id;
+  const go = await sua(w, o.id, id, { soTien: 100000, hinhThuc: "CASH", nguoiThu: NGUOI_CU, ghiChu: "Khách đặt cọc trước" });
+  assert.equal(go.status, 400, go.text);
+  assert.equal((await sua(w, o.id, id, { soTien: 100000, hinhThuc: "CASH", nguoiThu: NGUOI_CU, ghiChu: "Sửa số" })).status, 201);
+  assert.equal(khoanSong(w, o.id)[0].note, "Sửa số");
+});

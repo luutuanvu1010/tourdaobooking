@@ -9,7 +9,7 @@ import { auditStatement } from "../audit";
 import { taiKhoanCuaHoSo } from "./dieu-chinh-repo";
 import { UUID_RE } from "../../shared/http";
 import { vnToday } from "../../shared/vn-date";
-import { transferInOf } from "./coc-repo";
+import { GHI_CHU_KHOAN_LOI_KHAI, transferInOf } from "./coc-repo";
 import { lineIfPostingStatement, linesOfOrder, linesOfReceipt, lineReversed, orderState, ownerCompanyId, postingIfReceiptStatement, postingPlainStatement, receiptsOfOrder, reconOfOrder } from "./repository";
 import type { GiaoDich } from "./ma-giao-dich";
 import { conLai, dong, khoanChoXacNhan, sinhDongDao, sinhDongLanThu, type ReceiptRow } from "./rules";
@@ -119,13 +119,16 @@ export async function chuanBiLoThay(db: D1Database, input: { orderId: string; ph
     }
     cuRows.push(r);
   }
+  // ADR-0159 (K7c): khoản cũ là khoản khai đặt cọc thì MỌI khoản mới mang dấu, kể cả khi đổi người thu (Tự quyết, cách chặt hơn): mất dấu thì chuyển cọc đi qua và tính hai lần.
+  // Cột ghi chú là một ô nên chữ dấu thay ghi chú gõ kèm; người thu là Công ty thì `soKhaiChuaNop` tính 0, vé không bị giữ oan.
+  const coDauKhai = cuRows.some((r) => r.note === GHI_CHU_KHOAN_LOI_KHAI);
   const moi: { lt: LanThuHopLe; gd: GiaoDich | null }[] = [];
   const boQuaGhi: { ma: string; lyDo: string }[] = [];
   // Trần «thu cho» nhà cung cấp: lần thu cũ đang bị thay không tính; các lần thu mới ĐÃ đọc của chính lệnh này cộng dồn (đặc tả P4).
   const boQua = new Set(cu as string[]);
   const daCo: ReceiptRow[] = receipts.map(toReceiptRow);
   for (const m of moiRaw) {
-    const lt = await docLanThu(db, { ...(m as object), ngayPhatSinh: ngay.value }, input.ai, congTyId, { phan: input.phan, receipts: daCo, kemDaGiao: false, boQua });
+    const lt = await docLanThu(db, { ...(m as object), ngayPhatSinh: ngay.value, ...(coDauKhai ? { ghiChu: null } : {}) }, input.ai, congTyId, { phan: input.phan, receipts: daCo, kemDaGiao: false, boQua });
     if (!lt.ok) return lt;
     daCo.push(lanThuMoiRow(lt.value, `moi-${daCo.length}`));
     // ADR-0092 Đ6a: khoản thu tiền mặt giống nhau — so với khoản còn hiệu lực trừ khoản đang bị thay, và các khoản đã đọc của chính lệnh này.
@@ -161,7 +164,7 @@ export async function chuanBiLoThay(db: D1Database, input: { orderId: string; ph
     ridMoi.push(rid);
     stmts.push(receiptThayMoiStatement(db, {
       id: rid, orderId, amount: m.soTien, collectorPartyId: m.collectorPartyId, collectorRole: m.collectorRole, method: m.hinhThuc, stage, occurredDate: ngay.value,
-      note: m.ghiChu, at, by, replacementId: markerId, collectedForPartyId: m.collectedForPartyId,
+      note: coDauKhai ? GHI_CHU_KHOAN_LOI_KHAI : m.ghiChu, at, by, replacementId: markerId, collectedForPartyId: m.collectedForPartyId,
     }));
     const dongMoi = sinhDongLanThu({
       kind: "CUSTOMER_PAYMENT", amount: m.soTien, collectorRole: m.collectorRole, collectorPartyId: m.collectorPartyId, method: m.hinhThuc, nguoiGhiPartyId: input.ai.partyId ?? congTyId,

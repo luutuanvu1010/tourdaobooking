@@ -605,14 +605,6 @@ export const nhapKeToanCuaDon = (db: D1Database, orderIds: readonly string[]): P
  * ADR-0136 Đ3 — số ĐÃ THU RÒNG của MỘT đơn do GỐC LẮP RÁP tiêm vào `ctx.daThuCuaDon` (orders không đọc bảng bil_): cùng `tienNhieuDon` mà danh sách đơn và Trang chủ dùng, nên `daThu` đã
  * loại khoản bị đảo (`hieuLuc`) và trừ tiền trả lại khách. KHÔNG tự kiểm quyền — route của orders hỏi `can(` trước. `null` khi không đọc được số của đơn (route từ chối kín).
  */
-export { cauDatCocKhiXacNhan, chanKhaiCocLai } from "./dat-coc";
 export const daThuCuaDon = async (db: D1Database, orderId: string): Promise<number | null> => (await tienNhieuDon(db, [orderId])).get(orderId)?.daThu ?? null;
 
-/**
- * ADR-0153 Đ3 — {đã thu ròng, phải thu} của MỘT đơn do GỐC LẮP RÁP tiêm vào `ctx.tienDonVe` (kho vé so «thu đủ» ở MỘT hàm thuần `thuDu`; ve-dien-tu không đọc bảng bil_). Cùng `tienNhieuDon`
- * với danh sách đơn nên số không lệch. KHÔNG tự kiểm quyền — route của ve-dien-tu hỏi `can(` trước. `null` khi không đọc được số của đơn.
- */
-export const tienDonVe = async (db: D1Database, orderId: string): Promise<{ daThu: number; phaiThu: number } | null> => {
-  const t = (await tienNhieuDon(db, [orderId])).get(orderId);
-  return t ? { daThu: t.daThu, phaiThu: t.phaiThu } : null;
-};
+export { cauDatCocKhiXacNhan, chanKhaiCocLai, tienDonVe } from "./dat-coc";
