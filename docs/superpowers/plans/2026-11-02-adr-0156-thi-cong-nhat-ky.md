@@ -71,6 +71,7 @@ Không có lỗi Cao hay Trung. Một điểm Thấp ở lý do của `r2_delete
 - **Nợ:** chưa có bài cho hai dịch vụ cùng mã, cùng loại khách trong một đơn cùng dùng lô `ALL` (đúng theo lập luận, chưa chạy thử). Dòng kho tách `ALL` thành dòng riêng nên không thấy tổng vé cấp được cho một loại khách; chỉ là hiển thị.
 
 ## Bài học
+- Lần `trien-khai` đầu của bản 2.55 dừng vì H5 đỏ ở `gui-don`, `quyet-dinh`, `money-edit`, `handler-money-edit`: lần ghi thứ hai có từ commit `4c4bad60` (ADR-0153). Mọi lần kiểm của đợt này chỉ chạy e2e `ve-dien-tu`, nên không kịch bản nào đi qua các route đó; `day-len` không chạy e2e. Đã thêm bốn mục nợ cùng khuôn `/status` theo công thức ở `docs/CHANGE-GUIDE.md`. Việc chạm route đơn thì chạy e2e đủ bộ trước khi đưa lệnh.
 - Dữ liệu thử ban đầu dùng nhầm `S/N` thật của một vé trong ba tệp bài kiểm; phát hiện trước khi commit, đã thay số giả, `git log` xác nhận chưa từng vào commit.
 - Bước 50 ảnh treo im lặng mất nhiều lần chạy: công cụ thử (CDP `Network.enable`) ghi cả thân yêu cầu vài MB nên kết nối đứt, mọi lời gọi vào trang không bao giờ trả lời. Không phải lỗi của trang. Đã giới hạn `maxPostDataSize` và thêm giờ giới hạn riêng trong kịch bản, đã ghi ở công thức z31.
 

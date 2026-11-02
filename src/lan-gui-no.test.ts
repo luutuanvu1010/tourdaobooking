@@ -42,13 +42,12 @@ test("T17: mọi lời gọi dbNgoaiVe( nằm trong hàm có tên ở NGOAI_VE; 
 test("GHI_NHIEU_LAN: mỗi mục là mẫu route ghi có thật, có lý do", () => {
   const routes = new Set<string>();
   for (const mod of readdirSync(join(ROOT, "src/modules"))) {
-    let t = "";
-    try {
-      t = readFileSync(join(ROOT, "src/modules", mod, "index.ts"), "utf8");
-    } catch {
-      continue;
+    // Route có thể khai ở tệp khác của module (`orders/xac-nhan-route.ts`), không chỉ `index.ts`.
+    for (const tep of readdirSync(join(ROOT, "src/modules", mod), { recursive: true }) as string[]) {
+      if (!tep.endsWith(".ts") || tep.endsWith(".test.ts")) continue;
+      const t = readFileSync(join(ROOT, "src/modules", mod, tep), "utf8");
+      for (const h of t.matchAll(/route\(\s*"(POST|PUT|PATCH|DELETE)",\s*"([^"]+)"/g)) routes.add(`${h[1]} ${h[2]}`);
     }
-    for (const h of t.matchAll(/route\(\s*"(POST|PUT|PATCH|DELETE)",\s*"([^"]+)"/g)) routes.add(`${h[1]} ${h[2]}`);
   }
   for (const m of GHI_NHIEU_LAN) {
     assert.ok(routes.has(m.duong), `${m.duong}: không phải route ghi có thật`);
