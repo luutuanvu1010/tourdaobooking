@@ -46,8 +46,11 @@ Không có lỗi Cao. Câu sai: sổ nói bỏ vế vé đã mở hoặc vế d�
 
 Phá thử toàn bộ sau khi sửa (kịch bản 88 chỗ, mỗi chỗ một lần, hoàn nguyên sau mỗi chỗ): lần đầu 77 đỏ, 11 xanh; chỗ xanh không phải lặp là vế mã của `MA_VE_DA_MO`, đã thêm bài báo đúng lý do và chạy lại riêng chỗ đó thành đỏ. Tổng 78 đỏ, 10 xanh, 10 chỗ đều nêu tên ở sổ hàng rào.
 
+## Kiểm độc lập lần 6 (2/11): ĐẠT về mã và sổ hàng rào trên `aea148dd`
+Không có lỗi Cao hay Trung. Một điểm Thấp ở lý do của `r2_deleted_at` đã sửa chữ ở sổ, không thêm bài, ghi ở Nợ. Ba câu `EXISTS` cho kết quả từng dòng giống một câu `OR` trên 1.500 dòng; định nghĩa S/N khớp `R-VDT-4` ở cả 8 chỗ; `0132` áp được trên D1 cục bộ. Chưa kiểm trên D1 trên mây.
+
 ## Bằng chứng
-- Bản `d1dfa33d` (thêm chặn theo số S/N, sau kiểm độc lập lần 4): `npm test` 7124 bài, 7120 đạt, 0 đỏ (4 bài `todo` có từ trước), bài đo giờ 1/1; e2e 4/4; typecheck 0; `ve-qr-smoke.mjs` hai khổ 390 và 1040 đạt.
+- Bản `aea148dd` (số S/N đúng định nghĩa `R-VDT-4`, chỉ mục, sau kiểm độc lập lần 5): `npm test` 7128 bài, 7124 đạt, 0 đỏ (4 bài `todo` có từ trước), bài đo giờ 1/1; e2e 4/4; typecheck 0; `ve-qr-smoke.mjs` hai khổ 390 và 1040 đạt.
 - Bản `5ec9ad5c` (lưu 3 ngày, «Huỷ lô», khối Lô đã huỷ gần đây): `npm test` 7107 bài, 7103 đạt, 0 đỏ (4 bài còn lại là bài đánh dấu chờ `todo` của sổ vàng và quyền tiền, có từ trước), cộng bài đo giờ 1 đạt; typecheck 0 lỗi; e2e `ve-dien-tu` 4/4; Chrome hai khổ `VE QR SMOKE OK`. Mười tám chỗ phá thử khác nhau đều đỏ đúng bài rồi hoàn nguyên; ba chỗ chạm câu đọc đã sửa được chạy lại trên bản này. Sau `5ec9ad5c` chỉ thêm bài kiểm và sửa tài liệu, mã chạy thật không đổi; bộ kiểm toàn phần không chạy lại, chỉ chạy lại các bài của module `ve-dien-tu`. Các số dưới đây là của những bản trước.
 - Trình duyệt: `ve-qr-smoke.mjs` hai khổ 390 và 1040, cần `AXE_JS`. Ảnh ở `docs/evidence/2026-11-02-ve-qr-tran-lo/anh/`, chỉ có dữ liệu thử.
 - 50 ảnh cỡ 1170×2532 (khoảng 13 MB tổng) trên Chrome của máy Mac: 4,0 giây, khoảng đứng hình lâu nhất 80 mili giây.
@@ -64,6 +67,7 @@ Phá thử toàn bộ sau khi sửa (kịch bản 88 chỗ, mỗi chỗ một l�
 ## Nợ
 - Hàng chờ xoá lấy 50 dòng cũ nhất mỗi lần: 50 dòng liên tục không xoá được sẽ chặn các dòng sau; `R-VDT-5` thấy số đếm tăng (suy luận, chưa chạy).
 - ~~Bỏ lô xen giữa lúc gửi mà lần xoá ngay cũng gặp kho hỏng~~: đã hết từ khi lưu 3 ngày. Dòng vé ở hàng chờ tới khi xoá được, `R-VDT-5` thấy nếu quá hạn.
+- Chưa có bài ép lịch xoá chen giữa lúc hỏi kho và lúc khoá (`r2_deleted_at` ở `MO_ANH_VE`); điều kiện trong mã vẫn giữ, người kiểm tái hiện bằng SQL.
 - Mở sát hạn 3 ngày thì vé có thể khoá mà không kịp xem ảnh (suy luận, chưa chạy); hộp báo trước không nói còn bao lâu.
 - Địa chỉ ảnh tạm của trình duyệt không thu hồi khi xem xong; chỉ tốn bộ nhớ tới khi đóng trang.
 - Sau một lần lỗi, tải lại danh sách làm gập khối «Lô đã huỷ gần đây»; người dùng mở lại là được.
