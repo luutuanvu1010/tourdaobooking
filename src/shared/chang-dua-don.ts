@@ -298,6 +298,14 @@ export function xepChang<T extends { id: string | null; direction: LegDirection;
 }
 
 /**
+ * Chặng CHIỀU ĐI còn mở sớm nhất của một dịch vụ (ngày — trống sau, rồi giờ có trước giờ trống, rồi giờ, rồi id) — MỘT hàm cho `chieuDiDau` và cho ghi kép cột cũ ở Còn vé
+ * (`R-ORD-7` xếp bằng câu con cùng thứ tự). Không có chiều đi → null. Trả đối tượng nguồn. KHÁC `changDauCuaDichVu` (lượt ĐẦU, kể cả chiều về — luật «cần chốt giờ»).
+ */
+export function changDiDau<T extends { id: string | null; direction: LegDirection; pickupDate: string | null; pickupTime: string | null }>(legs: readonly T[]): T | null {
+  return legs.filter((l) => l.direction === "OUT").sort(somHon)[0] ?? null;
+}
+
+/**
  * Hai khoá cũ `pickupTime`/`pickupPlace` của một dịch vụ, DẪN XUẤT từ chặng (Ruling R2a, một hàm cho mọi nơi đọc): chặng CHIỀU ĐI còn mở sớm nhất
  * (ngày, rồi giờ có trước giờ trống, rồi id); nơi = tên điểm danh mục hoặc chữ (`pickupLabel`). Không có chiều đi → hai khoá null.
  * `legs` = CHỈ chặng còn hiệu lực (nơi gọi lọc).
@@ -306,7 +314,7 @@ export function xepChang<T extends { id: string | null; direction: LegDirection;
  * (`legs[].pickupLabel`, hàm hẹp cho Vận chuyển) vẫn mang chữ tạm để văn phòng bổ sung (kiểm định kỳ R-ORD-12).
  */
 export function chieuDiDau(legs: readonly Pick<ChangDaLuu, "id" | "direction" | "pickupDate" | "pickupTime" | "pickupLabel">[]): { pickupTime: string | null; pickupPlace: string | null } {
-  const out = legs.filter((l) => l.direction === "OUT").sort(somHon)[0];
+  const out = changDiDau(legs);
   if (!out) return { pickupTime: null, pickupPlace: null };
   return { pickupTime: out.pickupTime, pickupPlace: out.pickupLabel === NOI_DON_CHUA_GHI ? null : out.pickupLabel };
 }

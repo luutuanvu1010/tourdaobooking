@@ -2,23 +2,23 @@
 // Tệp riêng để `index.ts` (cửa vào module) không phình thêm và để KHÔNG import vòng: tệp này chỉ import `repository.ts`, `xac-nhan-chung.ts`, `xac-nhan-repo.ts` và các module khác QUA `index.ts` của chúng.
 // SQL ở `xac-nhan-repo.ts` (nửa nghiêm). KHÔNG tự kiểm quyền bằng vai hồ sơ; mọi cổng hỏi `can(…)` viết thẳng ô.
 import { auditStatement } from "../audit";
-import type { CaiDatXacNhanResponse, DonChoXacNhanDto, DonChoXacNhanResponse, GuiDonResponse, GuiXacNhanResponse, LyDoCanXacNhan, StaffProfile, QuyetDinhXacNhanResponse, ShortNoticeRequiredBody, YeuCauXacNhanDto } from "../../shared/contracts";
+import type { CaiDatXacNhanResponse, DonChoXacNhanDto, DonChoXacNhanResponse, GuiDonResponse, GuiXacNhanResponse, LyDoCanXacNhan, PickupTimeRequiredBody, StaffProfile, QuyetDinhXacNhanResponse, ShortNoticeRequiredBody, YeuCauXacNhanDto } from "../../shared/contracts";
 import { UUID_RE, error, json, readJson, trangDon } from "../../shared/http";
 import { can, holdsIntern, holdsPartner } from "../../shared/permissions";
 import { route } from "../../shared/router";
 import { cauThieuChonDon, thieuChonDon } from "../../shared/cong-chon-don";
-import { thieuGioChangDau } from "../../shared/chang-dua-don";
+import { CHIEU_LABEL, LY_DO_DAT_GAP, changDiDau, ghiDatGapNhatKy, thieuGioChangDau, type LyDoDatGap } from "../../shared/chang-dua-don";
 import { docLyDoHuy, type LyDoHuy } from "../../shared/ly-do-huy";
 import { KHUNG_MAC_DINH, kiemDanhSachKhung } from "../../shared/khung-gio-don";
-import { nguongMocVn } from "../../shared/moc-toi-thieu";
+import { duoiMocKhiSua, nguongMocVn } from "../../shared/moc-toi-thieu";
 import { isHHMM, isISODate, vnToday } from "../../shared/vn-date";
 import { duocQuyetDinh, hanXacNhan, quaHanXacNhan } from "../../shared/xac-nhan-don";
 import { CAU_BAO_GUI_DON } from "../../shared/gui-don-cau-bao";
 import { chiNguoiLapGhiNhap } from "../../shared/xem-don-nhap";
-import { canhBaoMocCua } from "./dat-gap";
+import { canhBaoMocCua, type XetDatGapSua } from "./dat-gap";
 import { getEffectiveServices } from "../catalog";
 import { cauDoiGioChang, cauDoiNgayChang, cauDoiNgayDichVu, cauGhiKepGio, cauKhepYeuCau, cauMoYeuCau, cauThemChinhSach, cauThemCo, chinhSachMoiNhat, coHienHanh, coMoiNhat, nhomDangDung, orderTouchDraft, tuXacNhanNoiBo, yeuCauMoCuaDon, yeuCauMoTatCa, yeuCauTheoId, type YeuCauRow } from "./xac-nhan-repo";
-import { legDatGapByOrder, slotPolicy } from "./chang-hanh-khach-repo";
+import { legDatGapByOrder, legShortNoticeConVe, slotPolicy, type DauDatGapMoi } from "./chang-hanh-khach-repo";
 import { daHuy, daXacNhan, findOrder, getMeta, nextStamp, soanHuyDon, soanXacNhan } from "./repository";
 import { MOC_CHUA_CO, RACED, STALE, chanDoanXacNhan, chayLoNoiChuyen, congNhomTatDuaDon, dichLoiXacNhan, kemChupXacNhan, kiemCongXacNhan, tinhCanXacNhan, viCuaYeuCau } from "./xac-nhan-chung";
 import { confirmWindow } from "./service-rules";
@@ -72,7 +72,11 @@ async function chanKhoanThu(daThuCuaDon: (orderId: string) => Promise<number | n
   return null;
 }
 
-export const xacNhanRoutes = [
+/**
+ * `xetDatGap` = hàm chỗ canh đặt gấp `xetDatGapSua` của `index.ts` (kiểu `XetDatGapSua` ở `dat-gap.ts`), TIÊM vào đây vì tệp này không import được `index.ts` (vòng) và dấu đặt gấp chỉ được dựng ở MỘT chỗ
+ * (ADR-0107; bài tĩnh dat-gap-sat-gio.test.ts). Chỉ route Còn vé (`quyet-dinh`) dùng nó (ADR-0154 Đ1.4).
+ */
+export const xacNhanRoutes = (xetDatGap: XetDatGapSua) => [
   // DANH SÁCH CHỜ (Đ6, Đ9): MỌI yêu cầu đang mở cho người giữ ô `order.confirm.review` — dịch vụ, ngày, số khách, giờ đón, tiền, hạn; KHÔNG tên khách / SĐT / email (DTO không có chỗ chứa).
   // Phải đứng TRƯỚC `GET /api/orders/:id` (index.ts spread mảng này ở ĐẦU `routes`). Quá hạn chỉ là cờ cảnh báo.
   route("GET", "/api/orders/cho-xac-nhan", "orders", async ({ env, staff, mocToiThieu }) => {
@@ -280,6 +284,7 @@ export const xacNhanRoutes = [
     // đổi giờ đón: chặng MỞ của chính đơn, giờ HH:MM; có cuối khung thì phải đúng một khung của chính sách ADR-0134 (không có thì là "Giờ khác")
     const chang = new Map(order.services.flatMap((s) => s.legs.map((l) => [l.id, { l, dichVu: s }] as const)));
     const gioMoi = new Map<string, { gio: string; cuoi: string | null }>();
+    const datGapLuot = new Map<string, unknown>(); // legId → phần tử `gioDon` có mang `datGap`
     const ds = body.gioDon;
     if (ds !== undefined && ds !== null) {
       if (!Array.isArray(ds)) return sai("Giờ đón không hợp lệ.");
@@ -290,7 +295,7 @@ export const xacNhanRoutes = [
         if (k.ok) khung = k.khung;
       } catch { /* dòng hỏng → bộ mặc định, như route khung giờ */ }
       for (const g of ds as unknown[]) {
-        const o = g as { legId?: unknown; pickupTime?: unknown; pickupSlotEnd?: unknown } | null;
+        const o = g as { legId?: unknown; pickupTime?: unknown; pickupSlotEnd?: unknown; datGap?: unknown } | null;
         if (!o || typeof o.legId !== "string" || !chang.has(o.legId) || gioMoi.has(o.legId)) return sai("Lượt đưa đón không có trong đơn hoặc bị nhắc hai lần.");
         if (typeof o.pickupTime !== "string" || !isHHMM(o.pickupTime)) return sai("Giờ đón phải theo dạng HH:MM (24 giờ).");
         let cuoi: string | null = null;
@@ -300,6 +305,7 @@ export const xacNhanRoutes = [
           cuoi = o.pickupSlotEnd;
         }
         gioMoi.set(o.legId, { gio: o.pickupTime, cuoi });
+        if (o.datGap !== undefined && o.datGap !== null) datGapLuot.set(o.legId, o); // ADR-0154 Đ1.4: lý do đặt gấp CỦA LƯỢT NÀY — xét ở chỗ canh `xetDatGap` sau khi biết giờ, ngày SAU lệnh
       }
     }
     // (0) KIỂM TRƯỚC KHI GHI — mốc tối thiểu / đặt gấp tính trên ngày + giờ MỚI (cùng `canhBaoMocCua`, cùng ngưỡng `nguongMocVn` với câu xác nhận): không để người xét duyệt đổi sang khung sớm hơn mà qua mặt mốc.
@@ -313,10 +319,30 @@ export const xacNhanRoutes = [
     const daDatGap = new Set((await legDatGapByOrder(env.DB, id)).map((r) => r.id));
     const legsMoi = [...chang.values()].map(({ l, dichVu }) => ({
       id: l.id,
+      serviceId: dichVu.id,
+      direction: l.direction,
       pickupDate: ngayDi !== undefined && (l.pickupDate === null || l.pickupDate === dichVu.departDate) ? ngayDi : (l.pickupDate ?? dichVu.departDate),
       pickupTime: gioMoi.get(l.id)?.gio ?? l.pickupTime,
     }));
-    const duoi = canhBaoMocCua(legsMoi, daDatGap, nowMs, moc.phut);
+    // ADR-0154 Đ1.3: yêu cầu mang cờ «cần chốt giờ» mà LƯỢT ĐẦU của một dịch vụ (theo giờ SAU lệnh) còn thiếu giờ ⇒ 409, không ghi gì. Cổng hỏi MỌI dịch vụ cùng lúc: ghi giờ cho một dịch vụ
+    // mà dịch vụ khác còn thiếu thì không dịch vụ nào đổi. Yêu cầu không mang cờ (đơn văn phòng, mọi yêu cầu cũ) đi như hôm nay. Chỉ nhánh CON_VE (Hết vé / Huỷ đã rẽ ở trên).
+    if (y.pickup_time_required === 1) {
+      const thieu = thieuGioChangDau(order.services.map((s) => ({ id: s.id, legs: legsMoi.filter((l) => l.serviceId === s.id) })));
+      if (thieu.length > 0) {
+        return json({ error: { code: "pickup_time_required", message: "Còn lượt đưa đón chưa có giờ đón. Ghi giờ đón rồi bấm Còn vé.", legs: thieu.map((t) => ({ legId: t.legId })) } } satisfies PickupTimeRequiredBody, 409);
+      }
+    }
+    // ADR-0154 Đ1.4: giờ nhập dưới hạn chốt — mỗi lượt có `datGap` qua MỘT chỗ canh `xetDatGap` (ô `order.leg.short_notice` 403 → lý do 400 → giờ SAU lệnh phải dưới mốc, không thì 409
+    // `short_notice_not_needed`). KHÔNG có `datGap` thì không gọi chỗ canh: đi đúng đường cũ (409 `short_notice_required` bên dưới; người không có ô — Kế toán, HDV nội bộ — vẫn nhận 409 này).
+    const dauMoi = new Map<string, { dau: DauDatGapMoi; lyDo: LyDoDatGap }>();
+    for (const [legId, thanLuot] of datGapLuot) {
+      const moiLuot = legsMoi.find((x) => x.id === legId)!; // legId đã kiểm có trong đơn ở trên
+      const giay = xetDatGap(staff, thanLuot, duoiMocKhiSua(null, moiLuot, nowMs, moc.phut), moc, nowMs);
+      if (!giay.ok) return giay.res;
+      const dau = giay.value.dauCho(moiLuot);
+      if (dau && giay.value.lyDo) dauMoi.set(legId, { dau, lyDo: giay.value.lyDo });
+    }
+    const duoi = canhBaoMocCua(legsMoi, new Set([...daDatGap, ...dauMoi.keys()]), nowMs, moc.phut);
     if (duoi.length > 0) {
       return json({ error: { code: "short_notice_required", message: "Có lượt đưa đón mà giờ đón đã qua hạn chốt — cần đặt gấp trước khi xác nhận.", legs: duoi.map((d) => ({ legId: d.legKey, phutConLai: d.phutConLai })) } } satisfies ShortNoticeRequiredBody, 409);
     }
@@ -336,10 +362,30 @@ export const xacNhanRoutes = [
       if (cu.pickupTime === g.gio && (cu.pickupSlotEnd ?? null) === g.cuoi) continue;
       doiGio = true;
       cauDau.push(cauDoiGioChang(env.DB, { legId, orderId: id, gio: g.gio, cuoiKhung: g.cuoi, at: atChang, by: staff.id, yeuCauId: y.id, prevUpdatedAt: meta.updatedAt }));
-      if (cu.direction === "OUT") cauDau.push(cauGhiKepGio(env.DB, { legId, orderId: id, gio: g.gio, yeuCauId: y.id, prevUpdatedAt: meta.updatedAt }));
+    }
+    // ADR-0154 Đ1.4: dấu đặt gấp theo từng lượt — ĐỨNG SAU các câu đổi ngày, đổi giờ (câu dấu khớp `pickup_date`, `pickup_time` dòng SẼ giữ lúc đó) và TRƯỚC câu xác nhận (câu xác nhận có vế mốc
+    // «chặng dưới mốc phải mang dấu»). Nằm NGOÀI nhánh «giờ đổi»: chặng giờ không đổi mà đang dưới hạn chốt vẫn cần dấu. Ngày dòng sẽ giữ = ngày đang lưu, dời sang ngày mới CHỈ khi chặng đang đón
+    // đúng ngày đi cũ của dịch vụ (cùng điều kiện câu `cauDoiNgayChang`); ngày đang NULL vẫn NULL tới câu điền ngày trong lô xác nhận — KHÔNG dùng ngày dự phòng của `legsMoi`. Mỗi dấu kèm dòng nhật ký
+    // `order_leg_short_notice` NGAY SAU nó, `changes() > 0` (khuôn nút Đặt gấp) — không câu nào chen giữa.
+    for (const [legId, { dau, lyDo }] of dauMoi) {
+      const { l: cu, dichVu } = chang.get(legId)!;
+      const gio = { pickupDate: doiNgay && cu.pickupDate !== null && cu.pickupDate === dichVu.departDate ? ngayDi! : cu.pickupDate, pickupTime: gioMoi.get(legId)?.gio ?? cu.pickupTime };
+      cauDau.push(legShortNoticeConVe(env.DB, { legId, orderId: id, d: dau, gio, yeuCauId: y.id, prevUpdatedAt: meta.updatedAt }));
+      cauDau.push(auditStatement(env.DB, { orderId: id, staffId: staff.id, action: "order_leg_short_notice", at: dau.at, detail: `${order.orderCode} · ${CHIEU_LABEL[cu.direction]}${ghiDatGapNhatKy(LY_DO_DAT_GAP[lyDo])}` }, "changes() > 0"));
+    }
+    // GHI KÉP cột cũ `order_service.pickup_time` (ADR-0047 R3; ADR-0154 «Để lại»): chỉ GIỜ, theo LƯỢT ĐI ĐẦU (`changDiDau` — cùng thứ tự với `chieuDiDau` và kiểm `R-ORD-7`), không theo mọi lượt đi.
+    // Với mỗi dịch vụ: lượt đi đầu TRƯỚC lệnh (đang lưu) so với SAU lệnh (`legsMoi`); giờ khác nhau thì MỘT câu theo lượt đi đầu sau lệnh, kể cả lượt đó không nằm trong `gioDon`
+    // (ví dụ ngày dời làm lượt khác lên đầu). Lượt đi đầu đổi sang lượt khác NƠI thì cột cũ `pickup_place` vẫn lệch như hôm nay — `R-ORD-7` cảnh báo.
+    for (const s of order.services) {
+      const truoc = changDiDau(s.legs);
+      const sau = changDiDau(legsMoi.filter((l) => l.serviceId === s.id));
+      if (sau !== null && sau.pickupTime !== null && sau.pickupTime !== (truoc?.pickupTime ?? null)) {
+        cauDau.push(cauGhiKepGio(env.DB, { legId: sau.id, orderId: id, gio: sau.pickupTime, yeuCauId: y.id, prevUpdatedAt: meta.updatedAt }));
+      }
     }
     const doi = doiNgay && doiGio ? ", đổi ngày và giờ" : doiNgay ? ", đổi ngày" : doiGio ? ", đổi giờ" : "";
-    const detail = ["Còn vé" + doi, cong.detail].filter(Boolean).join(" | ");
+    const lyDoNhatKy = [...dauMoi.values()][0]?.lyDo ?? null; // đuôi nhật ký đi theo LÝ DO (G16); mỗi lượt đã có dòng nhật ký riêng với lý do của nó
+    const detail = [`Còn vé${doi}${lyDoNhatKy ? ghiDatGapNhatKy(LY_DO_DAT_GAP[lyDoNhatKy]) : ""}`, cong.detail].filter(Boolean).join(" | ");
     const auditId = crypto.randomUUID();
     const xn = soanXacNhan(env.DB, id, staff.id, cong.today, meta.updatedAt, nguongMocVn(nowMs, moc.phut), detail, kemChupXacNhan(env.DB, { orderId: id, staffId: staff.id, today: cong.today, chup: cong.chup }), { auditId, yeuCauId: y.id });
     const khep = cauKhepYeuCau(env.DB, { id: y.id, at: xn.at, by: staff.id, outcome: "XAC_NHAN", ticket: "CON_VE", note: null, auditId });

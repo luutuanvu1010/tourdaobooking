@@ -30,7 +30,7 @@ import {
 import { khoaNoi } from "../../shared/khoa-noi";
 import { CHIEU_LABEL, LY_DO_DAT_GAP, type LyDoDatGap } from "../../shared/chang-dua-don";
 import { duoiMocKhiSua, nguongMocVn, type MocToiThieu } from "../../shared/moc-toi-thieu";
-import { canhBaoMocCua, chepDatGapNhap, docDatGap, ghiDatGapNhatKy, lichSuTheoVai } from "./dat-gap";
+import { canhBaoMocCua, chepDatGapNhap, docDatGap, ghiDatGapNhatKy, lichSuTheoVai, type GiayDatGap, type XetDatGapSua } from "./dat-gap";
 import { dongHienHanh, kiemHanhKhach, soKhachDoan } from "../../shared/hanh-khach";
 import { type PaxCode } from "../../shared/order-lines";
 import { cauKhongDoiDuocTrangThai } from "../../shared/order-status-label";
@@ -124,15 +124,12 @@ const SUA_DUOI_MOC = () => error(409, "short_notice_required", "Lượt đưa đ
 /** ADR-0107 ý (ii): lệnh kèm lý do đặt gấp mà không chặng nào của lệnh dưới mốc (cũ lẫn mới) — kể cả Quản trị, Toàn quyền. Không ghi gì. */
 const KHONG_CAN_DAT_GAP = () => error(409, "short_notice_not_needed", "Lượt đưa đón chưa qua hạn chốt — không cần đặt gấp.");
 
-/**
- * "Giấy đặt gấp" của một lệnh (ADR-0107 Hướng A): `lyDo` = lý do ĐÃ KIỂM của lệnh (đuôi nhật ký — đi theo LÝ DO, kể cả khi chặng không giữ dấu: G16); `dauCho`
- * = dấu MỚI cho MỘT chặng theo giờ SAU lệnh của chính chặng đó — chỉ khi giờ đó dưới mốc lúc máy chủ nhận lệnh, không thì null (dấu cũ bỏ — I16; G15, G11).
- */
-type GiayDatGap = { lyDo: LyDoDatGap | null; dauCho: (moi: { pickupDate: string | null; pickupTime: string | null } | null) => DauDatGapMoi | null };
+// Kiểu `GiayDatGap` / `XetDatGapSua` nay ở `dat-gap.ts` (ADR-0154 Đ1.4); hàm DỰNG dấu vẫn chỉ là `xetDatGapSua` dưới đây.
 const KHONG_LY_DO: GiayDatGap = { lyDo: null, dauCho: () => null };
 
 /**
- * MỘT chỗ canh đặt gấp (ADR-0049 I14 + ADR-0107 — năm cửa: nút Đặt gấp, sửa / thêm / thay chặng, `PUT …/trip`). `duoiMoc` = cổng của lệnh do nơi gọi tính
+ * MỘT chỗ canh đặt gấp (ADR-0049 I14 + ADR-0107 — SÁU cửa: nút Đặt gấp, sửa / thêm / thay chặng, `PUT …/trip`, và (ADR-0154 Đ1.4) `datGap` theo từng lượt của Còn vé, route `xac-nhan-route.ts`
+ * nhận hàm này qua `xacNhanRoutes(xetDatGap)`). `duoiMoc` = cổng của lệnh do nơi gọi tính
  * bằng `duoiMocKhiSua` (nút: giờ hiện tại; sửa / thay: giờ cũ hoặc mới; thêm: giờ mới; `PUT …/trip`: một chặng bất kỳ của lệnh). Thân CÓ `datGap`: ô
  * `order.leg.short_notice` (403) → lý do hợp lệ (400) → cổng sai → 409 `short_notice_not_needed`. VẮNG: cổng đúng → 409 `short_notice_required`; sai → không lý
  * do, không dấu. CHỖ DUY NHẤT dựng dấu mới (`DauDatGapMoi`, số phút = mốc hiện hành) — bài tĩnh ở dat-gap-sat-gio.test.ts khoá chỗ ép kiểu.
@@ -798,7 +795,7 @@ export const ordersModule: AppModule = {
   name: "orders",
   routes: [
     // ADR-0136 (Task 3.3): Gửi xác nhận / Rút lại / Quyết định / danh sách chờ / cài đặt cờ. ĐỨNG ĐẦU mảng: `GET /api/orders/cho-xac-nhan` phải thắng `GET /api/orders/:id` (router lấy route ĐẦU TIÊN khớp).
-    ...xacNhanRoutes,
+    ...xacNhanRoutes(xetDatGapSua satisfies XetDatGapSua),
     // ADR-0061 điều 6: công tắc "Dịch vụ nhập tay". Hai route thuộc module orders (bảng ord_manual_service_policy) nhưng CỐ Ý không nằm dưới /api/orders:
     // đổi chính sách không phải thay đổi một đơn (không thuộc bài baoThayDoi của src/bang-tin-guard.test.ts), và tránh bẫy router ":id".
     // ĐỌC (cổng orders): form lập đơn biết hiện nút theo `duocDung` (= duocNhapTay của CHÍNH người gọi). Chỉ người lập đơn cần biết → hỏi order.create
