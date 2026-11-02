@@ -66,7 +66,9 @@ Không có lỗi Cao hay Trung. Một điểm Thấp ở lý do của `r2_delete
 - **Ruling của chủ:** nguyên văn *«Vé harbour tiêu chuẩn chỉ có 1 loại , dành cho cả người lớn, trẻ em và người cao tuổi (không phân biệt)»*; hỏi làm trước hay sau khi triển khai, chủ trả lời *«Làm trước»*. Văn bản ADR còn ở trạng thái đề xuất, chờ chủ duyệt, chưa duyệt thì chưa nhập bản chính.
 - **Lệch so với thiết kế đầu:** ban đầu chỉ xếp vé theo hạn dùng. Viết TC4 thấy đơn 1 người lớn, 1 trẻ em có thể bị báo thiếu vé oan khi người lớn lấy mất vé dùng chung, nên đổi sang lô đúng loại trước, lô dùng chung sau. Thay đổi này đã ghi ở ADR-0157 Đ2 và phải nêu với chủ khi xin duyệt.
 - **Phá thử:** 15 chỗ, danh sách ở `docs/SO-HANG-RAO.md`. Lần đầu 14 đỏ, 1 xanh: nới `GIU_VE` lấy mọi lô vẫn xanh vì `GHI_PHAN_BO` chặn sau, nhưng vé sẽ kẹt `ALLOCATED` không có suất. Đã thêm kiểm vé còn `AVAILABLE` vào TC3, chạy lại chỗ đó thì đỏ.
-- **Bằng chứng:** chạy sau khi lưu phần này, ghi ở lần lưu kế tiếp.
+- **Bằng chứng trên `46a084c0`:** `npm test` 7139 bài, 7135 đạt, 0 đỏ (4 `todo` có từ trước), bài đo giờ 1/1; e2e 4/4; typecheck 0; `ve-qr-smoke.mjs` hai khổ 390 và 1040 đạt. Chưa kiểm trên D1 trên mây, chưa kiểm trên iPhone thật.
+- **Kiểm độc lập (một vòng, trên `46a084c0`): ĐẠT**, không có lỗi Cao hay Trung. Người kiểm tự áp `0131`, `0132`, `0134` trên SQLite trong bộ nhớ, `sqlite_master` chỉ khác đúng hai chỗ dự định. Theo đề giao, người kiểm không phá thử, nên các dòng phá thử ở sổ hàng rào do người thi công chạy.
+- **Nợ:** chưa có bài cho hai dịch vụ cùng mã, cùng loại khách trong một đơn cùng dùng lô `ALL` (đúng theo lập luận, chưa chạy thử). Dòng kho tách `ALL` thành dòng riêng nên không thấy tổng vé cấp được cho một loại khách; chỉ là hiển thị.
 
 ## Bài học
 - Dữ liệu thử ban đầu dùng nhầm `S/N` thật của một vé trong ba tệp bài kiểm; phát hiện trước khi commit, đã thay số giả, `git log` xác nhận chưa từng vào commit.
