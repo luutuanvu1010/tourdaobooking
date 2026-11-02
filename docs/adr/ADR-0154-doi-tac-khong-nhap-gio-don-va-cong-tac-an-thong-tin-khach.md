@@ -1,13 +1,13 @@
 # ADR-0154 — Đối tác không nhập giờ đón; công tắc ẩn thông tin khách khi đối tác đặt vé
 
-- **Trạng thái:** Đề xuất (2026-11-02), viết lại sau kiểm độc lập, chờ chủ dự án duyệt. Chưa có mã. Hai câu ở mục «Câu chờ chủ quyết» chưa chốt.
+- **Trạng thái:** **accepted** 2026-11-02 — chủ dự án trong chat, nguyên văn: *«1- Duyệt giờ đón và công tắc, 2- Văn phòng tự báo giờ với khách qua điện thoại, 3- Không, nhân bán hàng thường không được cấp quyền đối tác.»* Trước khi duyệt, chủ đã nghe bằng lời thường ba điều: đơn đối tác lập lúc bật công tắc được cho xe chạy dù thiếu tên khách; luật giờ đón chỉ có máy chủ canh, thêm một lần kiểm định kỳ để cảnh báo; mọi đơn có đón của đối tác đều phải chờ văn phòng chốt giờ, kể cả vé Hòn Tằm. AI soạn và ghi lại, không tự duyệt. Chưa có mã.
 - **Nguồn:** đặc tả `docs/superpowers/specs/2026-11-01-dat-ve-doi-tac-design.md` §5 QĐ-B, §8 (chủ duyệt thiết kế 2026-11-02, nguyên văn «Duyệt thiết kế»; thiết kế nói rõ mỗi quyết định vẫn qua ADR riêng). Trang ghép: `docs/superpowers/specs/2026-11-02-trang-ghep-dat-ve-luot-2.md`. Dẫn chứng từng lỗi đã sửa: `docs/superpowers/specs/2026-11-02-ket-qua-kiem-adr-0154-0155.md`. Văn bản đề xuất kiểm một vòng nên bản này không kiểm vòng hai; thi công có người kiểm riêng.
-- **Lệch chữ đặc tả, ADR này thắng:** luật giờ xét chặng đầu của dịch vụ, không xét chiều đi; Còn vé chỉ từ chối yêu cầu mang cờ; lúc xếp `THIEU_TEN` vốn chỉ cảnh báo; dấu đọc qua hàm hẹp, không qua view.
-- **Số:** 0154 kiểm còn trống 2026-11-02 trên `main` và mọi nhánh trong máy. Migration dự kiến `0132`, kiểm lại lúc thi công.
+- **Lệch chữ đặc tả, ADR này thắng:** luật giờ xét chặng đầu của dịch vụ, không xét chiều đi; Còn vé chỉ từ chối yêu cầu mang cờ; lúc xếp `THIEU_TEN` vốn chỉ cảnh báo; dấu đọc qua hàm hẹp, không qua view; tài khoản lai không bị ẩn thông tin khách (§7 ghi có).
+- **Số:** 0154 kiểm còn trống 2026-11-02 trên `main` và mọi nhánh trong máy. Migration dự kiến `0133`, vì nhánh `claude/ve-dien-tu-qr-tran-lo` đã giữ `0132`; kiểm lại lúc thi công.
 - **Loại:** việc lớn (dữ liệu, quyền, luồng xác nhận, tiền). **Không đổi cách tính tiền, nhưng dời mốc:** đơn có đón của đối tác nay chụp hoa hồng lúc Còn vé thay vì lúc gửi đơn; mã QR, ảnh xác nhận và cấp vé chờ tới lúc đó. **Cửa:** Đ1 hai chiều về hành vi. Đ2, Đ3 một chiều mềm: bảng chính sách và hai cột mới chỉ thêm, ở lại; công tắc tắt được, đơn đã mang dấu giữ dấu; tên khách thật của các đơn đó không khôi phục được.
-- **Số quyết định chạm quyền/dữ liệu:** đếm theo điều như trang ghép 24/10 và 25/10, lượt này có **5 điều** (ADR-0154 Đ1, Đ2, Đ3; ADR-0155 Đ1, Đ2), trần là 3, và Đ1 tự nó gồm ba thay đổi về quyền hoặc luồng (mục 2, 4, 5). Chủ chọn phương án «Cho vượt mức, trình cả hai» ở hộp hỏi 2026-11-02.
+- **Số quyết định chạm quyền/dữ liệu:** đếm theo điều như trang ghép 24/10 và 25/10, lượt trình có 5 điều (ADR-0154 Đ1, Đ2, Đ3; ADR-0155 Đ1, Đ2); chủ chọn phương án «Cho vượt mức, trình cả hai» ở hộp hỏi 2026-11-02. Lời duyệt trên chỉ gồm **3 điều** của ADR này, đúng trần 3, dù Đ1 tự nó gồm ba thay đổi về quyền hoặc luồng (mục 2, 4, 5).
 - **Xây trên lỗ đang hở:** không. `TNV-G1`, `TNV-G3`, `TNV-G4` thuộc sổ tiền, `HC-5.19` thuộc khôi phục dữ liệu, `HC-5.11` thuộc tác vụ tự động, `HC-4.2` thuộc bút toán điều chỉnh (`docs/quyen-hoan.json`, người kiểm đối chiếu 2026-11-02).
-- **Hiến chương (6.1):** áp 5.6 (dấu và cờ chụp tại mốc), 5.7 (đơn chờ vì thiếu giờ). **Lệch có chủ ý, chỉ hợp lệ khi chủ duyệt:** 5.7 ở Đ3 (đơn có dấu không bị giữ vì thiếu tên, vì chủ chọn «Bỏ luật với đơn của đối tác»); 5.1 ở Đ1 (một lớp máy chủ, kiểm định kỳ mức cảnh báo thay lớp thứ hai). Người thi công đối chiếu thêm 5.21 cho việc dùng SĐT đối tác làm liên hệ chuyến.
+- **Hiến chương (6.1):** áp 5.6 (dấu và cờ chụp tại mốc), 5.7 (đơn chờ vì thiếu giờ). **Lệch có chủ ý, chủ đã nghe và duyệt cùng lời ở dòng Trạng thái:** 5.7 ở Đ3 (đơn có dấu không bị giữ vì thiếu tên, vì chủ chọn «Bỏ luật với đơn của đối tác»); 5.1 ở Đ1 (một lớp máy chủ, kiểm định kỳ mức cảnh báo thay lớp thứ hai). Người thi công đối chiếu thêm 5.21 cho việc dùng SĐT đối tác làm liên hệ chuyến.
 - **Quan hệ với ADR cũ:** **mở rộng** ADR-0136 Đ13.3 (thêm một lý do đi nhánh A), **thu hẹp** Đ13.4; không đổi Đ1 và `tinhCanXacNhan`. **Mở rộng** ADR-0136 Đ7, ADR-0107, ADR-0049 D2 (Còn vé nhận đặt gấp theo chặng). **Sửa một phần** ADR-0134 Đ6 (thêm người đọc khung giờ), Đ7 (đối tác không còn hàng khung). **Ngoại lệ có tên** của luật `THIEU_TEN` (ADR-0049) cho đơn mang dấu. **Giữ** ADR-0135 Đ2, ADR-0136 Đ6, Đ13.5, ADR-0047 R1, R2b, ADR-0052 D5b, vé điện tử (ADR-0153). ADR-0053 và ADR-0049 D3 giữ luật, nhưng số liên hệ tới HDV và tài xế là số đối tác khi công tắc BẬT. Tiền lệ máy chủ ép trường: ADR-0077 đ3.
 
 ## Bối cảnh
@@ -45,15 +45,15 @@ Hôm nay đơn có Đón mà không giờ được coi là không dưới mốc 
 3. **Không ghi đạt giả:** `kiemXuatBen` trả thêm danh sách nhắc, không chặn. Chi tiết chuyến ghi «Miễn danh sách» ở dòng «Đủ tên khách». Câu «cần đủ trước khi xe chạy» trên trang đơn đổi chữ với đơn có dấu.
 4. **Đường đọc:** thêm một khoá vào `lichChungChang` và `ChangVao`; `OrderDetailDto` thêm cờ. Không sửa `v_ord_order_flag`, vì trigger đang đọc view này. Mọi đơn khác và cờ `require_manifest` không đổi. Sửa cột luật của dòng xuất bến ở bảng sự kiện vận chuyển.
 
-## Câu chờ chủ quyết
+## Câu chủ đã trả lời
 
-**C1. Đối tác để trống Ghi chú thì văn phòng lấy giờ ở đâu?** Người xét hôm nay chỉ thấy tên người lập, không thấy số. Ở hộp hỏi 2026-11-02 chủ chọn «Quyết khi duyệt».
-- **Khuyến nghị:** người xét thấy SĐT của đối tác lập đơn, không phải SĐT khách; form nhắc ghi giờ, không bắt buộc. Đổi lại thêm một nhóm người thấy số đối tác.
-- Cách khác: bắt buộc Ghi chú khi chọn Đón. Không mở số, nhưng thêm một thao tác, và ghi mơ hồ vẫn phải hỏi lại.
+**C1. Đối tác để trống Ghi chú thì văn phòng lấy giờ ở đâu?** Chủ 2026-11-02, nguyên văn: «Văn phòng tự báo giờ với khách qua điện thoại».
+- Người xét tự chọn giờ ở bảng Còn vé, không cần hỏi trước. Xác nhận xong, văn phòng gọi số liên hệ trên đơn để báo giờ; khách không đồng ý thì sửa chặng bằng đường có sẵn.
+- Không mở thêm số cho ai: khi đơn đang chờ, người xét vẫn không nhận SĐT (ADR-0136 Đ6); sau xác nhận, văn phòng thấy số theo `contact.view` như hôm nay. Form không bắt buộc Ghi chú.
+- Công tắc BẬT thì số trên đơn là của đối tác, nên văn phòng gọi đối tác và đối tác báo khách (hệ quả của Đ2).
+- Nền tảng không tự nhắc việc gọi này: dựa vào kỷ luật.
 
-**C2. Có nhân viên bán hàng nào cũng được cấp quyền Đối tác không? Nếu có, họ có bị ẩn thông tin khách và miễn tên không?** Đặc tả §7 ghi là có, tức đơn bán cho khách thật của họ cũng mang tên họ và được miễn danh sách. Chưa kiểm production có tài khoản như vậy hay không; không có thì câu này chỉ còn là luật dự phòng.
-- **Khuyến nghị:** tài khoản lai vẫn nhập thông tin khách, không mang dấu miễn; Đ1 vẫn áp.
-- Cách khác: ẩn như đối tác, đúng chữ đặc tả.
+**C2. Có nhân viên bán hàng nào cũng được cấp quyền Đối tác không?** Chủ 2026-11-02, nguyên văn: «Không, nhân bán hàng thường không được cấp quyền đối tác». Chưa kiểm production. Vì Nền tảng cho một tài khoản giữ nhiều quyền, người soạn giữ một luật dự phòng theo khuyến nghị đã trình, an toàn hơn và đảo được: tài khoản giữ thêm quyền ngoài `EXTERNAL_PERMISSIONS` vẫn nhập thông tin khách, không mang dấu miễn; Đ1 vẫn áp.
 
 ## Rủi ro chủ đã chấp nhận
 
@@ -79,5 +79,7 @@ Ghi kép cột cũ theo chặng đi đầu (`R-ORD-7`), không ghi theo mọi ch
 - (m) Kế toán xét đọc đúng khung đang cài; Toàn quyền đổi khung thì ô không báo sai.
 - (n) BẬT: `newBooker` không tạo hồ sơ; tài khoản không hồ sơ 409; `PUT` giữ bốn trường; form tự hiện lại khi công tắc vừa tắt.
 - (o) Chi tiết chuyến của đơn có dấu ghi «Miễn danh sách», không ghi đạt.
+- (p) Đơn đang chờ: người xét không nhận SĐT; sau xác nhận thấy số theo `contact.view`. Lưu nháp có Đón mà Ghi chú trống vẫn được.
+- (q) Tài khoản lai khi công tắc BẬT: vẫn thấy hai khối, đơn không mang dấu; đơn có đón không giờ vẫn vào nhánh A.
 
 Sửa cố ý để dấu đọc theo công tắc hiện hành thì bài đỏ rồi hoàn nguyên (P16). Thi công xong phải có người kiểm độc lập.

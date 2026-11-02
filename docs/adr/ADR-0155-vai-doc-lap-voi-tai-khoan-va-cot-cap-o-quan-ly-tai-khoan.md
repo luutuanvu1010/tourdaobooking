@@ -1,12 +1,12 @@
 # ADR-0155 — Vai bên ngoài trên hồ sơ chưa có tài khoản; cột «Cấp độ đại lý» ở Quản lý tài khoản
 
-- **Trạng thái:** Đề xuất (2026-11-02), viết lại sau kiểm độc lập, chờ chủ dự án duyệt. Chưa có mã. Câu C5 ở mục «Câu chờ chủ quyết» quyết trước: theo khuyến nghị thì Đ2 làm ngay, Đ1 chờ vá sổ tiền, và C3, C4, C6 chờ theo Đ1.
+- **Trạng thái:** Đề xuất (2026-11-02), viết lại sau kiểm độc lập. Chưa có mã. **Đ1 hoãn:** chủ 2026-11-02, nguyên văn: *«vá xong mới làm, nên tóm tắt trước để hiểu»*; trình lại sau khi đóng `TNV-G3`, `TNV-G4`, kèm C3, C4, C6. **Đ2 chưa duyệt:** chờ một câu của chủ.
 - **Nguồn:** đặc tả `docs/superpowers/specs/2026-11-01-dat-ve-doi-tac-design.md` §5 QĐ-C, §8 (chủ duyệt thiết kế 2026-11-02, nguyên văn «Duyệt thiết kế»). Trang ghép: `docs/superpowers/specs/2026-11-02-trang-ghep-dat-ve-luot-2.md`. Dẫn chứng từng lỗi đã sửa: `docs/superpowers/specs/2026-11-02-ket-qua-kiem-adr-0154-0155.md`. Văn bản đề xuất kiểm một vòng nên bản này không kiểm vòng hai; thi công có người kiểm riêng.
 - **Lệch chữ đặc tả, ADR này thắng:** bỏ điều kiện «vai còn bật, đọc qua view» của §5 C1 (tạo vòng phụ thuộc); route đọc không nhận `ids` và không ép một câu truy vấn (§5 C2).
 - **Số:** 0155 kiểm còn trống 2026-11-02 trên `main` và mọi nhánh trong máy. Không cần migration (người kiểm thử không thêm bảng, trigger không chặn), kiểm lại lúc thi công.
 - **Loại:** việc lớn (dữ liệu, quyền, **tiền**). Đ1 tạo người hưởng mới, hoa hồng và dòng sổ thật, không đổi công thức: người kiểm thử trên SQLite, công ty lữ hành không tài khoản xác nhận đơn ra hoa hồng 100.000đ, Đã giao sinh `HELD` 1.000.000đ và `HOA_HONG` 100.000đ. Đ2 ghi cấp qua route có sẵn, nên quyết hoa hồng các đơn xác nhận sau đó. **Cửa:** luật hai chiều; bản chụp hoa hồng và dòng sổ đã sinh ở lại. Không thêm cột, không thêm ô quyền.
-- **Số quyết định chạm quyền/dữ liệu:** đếm theo điều, lượt này có **5 điều**, trần là 3. Chủ chọn phương án «Cho vượt mức, trình cả hai» ở hộp hỏi 2026-11-02.
-- **Xây trên lỗ đang hở: `TNV-G3`, `TNV-G4`.** Đ1 đưa thêm hồ sơ không đăng nhập vào sổ đại lý, đúng vùng hai lỗ này còn thiếu tin báo (người thu cũ và mới; người bị đổi số dư), và tin báo không tới được người không có tài khoản. Đ1 không sửa mã hay luật sổ tiền; tổ chức không tài khoản đã vào sổ qua loại tự thêm từ ADR-0117. Theo luật dừng dây chuyền (`CLAUDE.md` §3), chưa duyệt được trừ khi hai lỗ được vá hoặc chủ cho phép có ghi lý do: câu C5.
+- **Số quyết định chạm quyền/dữ liệu:** đếm theo điều, lượt trình có 5 điều, chủ chọn phương án «Cho vượt mức, trình cả hai» ở hộp hỏi 2026-11-02. Vì Đ1 hoãn, ADR này còn một điều chờ duyệt lúc này là Đ2.
+- **Xây trên lỗ đang hở:** Đ2 không: tài khoản đối tác đã có cấp, ghi qua route có sẵn, không thêm loại dữ liệu vào sổ. **Đ1 có: `TNV-G3`, `TNV-G4`.** Đ1 đưa thêm hồ sơ không đăng nhập vào sổ đại lý, đúng vùng hai lỗ này còn thiếu, và tin báo không tới được người không có tài khoản. Chủ chọn vá trước (câu C5).
 - **Nới hàng rào, chủ quyết riêng (Điều 9.4):** Đ1 mở hàng rào 409 `role_via_account` ở `docs/SO-HANG-RAO.md` cho năm vai trên hồ sơ chưa có tài khoản, đồng thời đảo lựa chọn «để sau» ngày 2026-10-09 (`tests/e2e/README.md`): câu C6.
 - **Hiến chương (6.1):** áp 2.3 (cấp gắn vào vai và hồ sơ, không gắn vào tài khoản), 5.3 (không thêm cạnh phụ thuộc), 5.4 (cột cấp gọi đúng một hàm), 5.7 (thiếu cấp thì giữ đơn). Không lệch điều nào.
 - **Quan hệ với ADR cũ:** **bổ sung** ADR-0018 (vai bên ngoài nay có thể nằm trên hồ sơ chưa có tài khoản; vai vẫn không sinh quyền khi chưa có tài khoản). **Thay** N-3 của đề xuất ADR-0117 («gán vai EXTERNAL cũ cho tổ chức vẫn 409»). **Mở rộng** Ruling 7, 8, 9 của ADR-0117 sang năm vai. **Giữ** ADR-0117 đ3, đ4, ADR-0048 (`DRIVER_EXTERNAL`), ADR-0077 (đơn đã xác nhận không đổi hoa hồng), ADR-0138 (cấp riêng), ADR-0146 (luật bán), ADR-0151 (đổi cấp riêng một lô), luật R26. **Sửa chữ** ADR-0068 (câu gộp). ADR-0071 đ3b: câu C4.
@@ -37,11 +37,16 @@ Việc tách vai với cấp đã có từ ADR-0117: vai có cấp mặc định
 4. **Bấm mở bảng:** chọn cấp, từ ngày, hoặc «Về theo vai». Ngày mặc định là ngày sớm nhất theo `nutDoiNgung` và `kiemDoi`, không phải luôn là hôm nay. «Về theo vai» có hiệu lực từ ngày mai. Cấp không đổi được thì ô trỏ sang trang Hoa hồng.
 5. **Ghi:** dùng đúng ba route sẵn có (đặt, đổi, ngừng cấp riêng). **Đọc:** một route mới chỉ đọc `GET /api/pricing/cap-hien-hanh`, cổng `office`, hỏi `partner.commission.view`, chặn `holdsPartner`. Không nhận `ids`: trả mọi hồ sơ đang mang vai được hưởng. Số câu cố định, không lặp theo hồ sơ. Gọi đúng `tomTatHoaHongHoSo`, không viết luật thứ hai trong SQL. Có bài đối chiếu với `GET /api/pricing/ho-so/:id/hoa-hong`.
 
-## Câu chờ chủ quyết
+## Câu chủ đã trả lời
 
-**C5. Làm Đ1 ngay trên hai lỗ sổ tiền đang mở, hay vá trước?** Với đặt cọc, chủ đã chọn phương án «Vá các lỗi sổ tiền trước» ở hộp hỏi 2026-11-01, 2026-11-02 (đặc tả, dòng đầu); câu này hỏi riêng cho Đ1, vì Đ1 cũng thêm dòng vào sổ.
-- **Khuyến nghị:** vá xong mới làm Đ1; Đ2 (cột cấp) làm ngay vì không phụ thuộc Đ1. Cái giá: công ty lữ hành chưa có tài khoản chờ tới khi vá, hạn hai lỗ là 2026-11-30, và phần còn thiếu cần chủ quyết đ9 của `TNV-G3`, Đ6a của `TNV-G4`.
-- Cách khác: cho phép xây có ghi lý do (không sửa mã và luật sổ tiền; loại hồ sơ này đã vào sổ từ ADR-0117), phát hành sau diễn tập khôi phục dữ liệu, như sổ đại lý đợt 2; phải có dòng cho phép ở `docs/quyen-hoan.json`, và trả lời luôn C3, C4, C6.
+**C5. Làm Đ1 ngay trên hai lỗ sổ tiền đang mở, hay vá trước?** Chủ 2026-11-02, nguyên văn: «vá xong mới làm, nên tóm tắt trước để hiểu». Với đặt cọc, chủ cũng đã chọn phương án «Vá các lỗi sổ tiền trước». Công ty lữ hành chưa có tài khoản chờ tới khi vá; hạn hai lỗ là 2026-11-30.
+
+Phần còn lại của hai lỗ (đọc mã và ADR 2026-11-02, theo từ khoá, chưa chạy thử; `docs/quyen-hoan.json` còn ghi «chờ chủ» là cũ):
+
+- `TNV-G3` đ9 phân định trách nhiệm: chủ đã duyệt (ADR-0116, 2026-10-13), chưa thi công; hoàn sau Đã giao còn bị chặn hẳn. Tin báo người thu cũ và mới: chưa có mã.
+- `TNV-G4` Đ6a cảnh báo lần thu tiền mặt giống nhau: chủ đã chọn 2026-10-02, chưa thấy trong mã. Đ5d tin báo người bị đổi số dư: đã có mã từ ADR-0115 (`ledger_adjustment_affected`), chỉ tới người có tài khoản.
+
+## Câu chờ chủ quyết, trình lại cùng Đ1
 
 **C3. Đối tác thôi vai mà còn đơn nháp đứng tên hoặc còn cấp riêng?** Hôm nay đơn nháp của cá nhân thành không hoa hồng mà không ai được báo; đơn của công ty phải đổi sang Khách lẻ mới lưu được.
 - **Khuyến nghị:** chặn gỡ và nêu mã đơn, tới khi xử lý xong nháp và cấp riêng; đơn đã xác nhận không tính.

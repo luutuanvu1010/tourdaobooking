@@ -2,7 +2,7 @@
 
 Theo `CLAUDE.md` §9. Hồ sơ có ngày 2026-11-02, viết lại cùng ngày theo người kiểm độc lập (`2026-11-02-ket-qua-kiem-adr-0154-0155.md`). Đọc cùng đặc tả `2026-11-01-dat-ve-doi-tac-design.md` §6; trang này ghi riêng cho lượt 2 và thêm phần ghép với kho vé điện tử, vì kho đó nhập vào `main` sau khi đặc tả viết xong. Đặt cọc (QĐ-A) là lượt 3, không thuộc lượt này; người soạn đọc lại trang này khi trình.
 
-**Đếm:** 5 điều chạm quyền hoặc dữ liệu (ADR-0154 Đ1, Đ2, Đ3; ADR-0155 Đ1, Đ2), đếm theo điều như trang ghép 24/10 và 25/10; trần là 3. Chủ chọn phương án «Cho vượt mức, trình cả hai» ở hộp hỏi 2026-11-02. **Câu chờ chủ:** C1, C2 ở ADR-0154; C5 ở ADR-0155 quyết trước. Theo khuyến nghị C5 thì ADR-0155 Đ1 chờ vá sổ tiền, các dòng về hồ sơ không tài khoản ở trang này chưa áp, và C3, C4, C6 chờ theo Đ1.
+**Đếm:** 5 điều chạm quyền hoặc dữ liệu (ADR-0154 Đ1, Đ2, Đ3; ADR-0155 Đ1, Đ2), đếm theo điều như trang ghép 24/10 và 25/10; trần là 3. Chủ chọn phương án «Cho vượt mức, trình cả hai» ở hộp hỏi 2026-11-02. **Kết quả 2026-11-02:** chủ duyệt ADR-0154, 3 điều, đúng trần. ADR-0155 Đ1 hoãn tới khi vá `TNV-G3`, `TNV-G4` (chủ, nguyên văn: «vá xong mới làm, nên tóm tắt trước để hiểu»), nên **các dòng về hồ sơ không tài khoản ở trang này chưa áp**, và C3, C4, C6 chờ theo Đ1. ADR-0155 Đ2 chờ một câu của chủ.
 
 ## 1. Bảng dùng chung nhận loại dữ liệu mới
 
@@ -23,7 +23,7 @@ Không thêm ô, giá trị ô không đổi. **Việc mỗi ô mở ra thì đ�
 | `admin.manage` | Gắn và gỡ vai ở Danh bạ, nay gồm năm vai trên hồ sơ chưa có tài khoản | Quản trị, Toàn quyền. Vai không sinh quyền vì không có tài khoản. Nới hàng rào `role_via_account`, câu C6 |
 | `settings.ops` | Đổi công tắc | Chỉ Toàn quyền. Quản trị qua cổng nhưng 403 |
 | `order.create` | Đọc công tắc khi lập đơn | Máy chủ dùng trường này, form ẩn theo cùng trường |
-| `order.confirm.review` | Nay bắt buộc ghi giờ với yêu cầu mang cờ; thêm đọc route khung giờ | Bán hàng, Kế toán, Quản trị, HDV nội bộ, Toàn quyền. Sửa một phần ADR-0134 Đ6. Nếu chủ chọn khuyến nghị C1: thấy thêm SĐT của đối tác lập đơn |
+| `order.confirm.review` | Nay bắt buộc ghi giờ với yêu cầu mang cờ; thêm đọc route khung giờ | Bán hàng, Kế toán, Quản trị, HDV nội bộ, Toàn quyền. Sửa một phần ADR-0134 Đ6. Không thấy thêm SĐT khi đơn đang chờ (chủ trả lời C1); văn phòng tự báo giờ qua điện thoại sau xác nhận, số theo `contact.view` |
 | `order.leg.short_notice` | Còn vé nhận đặt gấp theo từng chặng | Bán hàng, Quản trị, Toàn quyền. Mở rộng ADR-0107. Kế toán, HDV nội bộ vẫn 409 |
 | `contact.view` | SĐT đối tác tới HDV được giao và tài xế khi công tắc BẬT | Luật giữ (ADR-0053, ADR-0049 D3), số đổi chủ |
 | `order.passenger.write` | Đối tác bổ sung danh sách sau xác nhận khi đơn trống tên | Không đổi |
