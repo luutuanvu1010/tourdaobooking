@@ -366,8 +366,8 @@ test("chiDoiOPhu: đổi cam kết không làm đổi bốn trường vận hàn
 });
 
 // ---- Lượt ĐẦU của dịch vụ (ADR-0154 Đ1.2; kế hoạch lượt 2 Task 1.2, câu đã áp số 1) ----------------------------------------------------------------------------
-// Thứ tự: ngày (trống sau) → chiều đi trước chiều về → giờ có trước trống → giờ → id. KHÁC `xepChang` (giờ đứng TRƯỚC chiều): đơn hai chiều cùng ngày, chiều đi trống giờ,
-// chiều về có giờ gợi ý thì lượt đầu phải là chiều đi — nếu không luật «Đón chưa có giờ» không chạy đúng ca phổ biến nhất.
+// Thứ tự (ĐỔI theo ruling R7, kiểm độc lập N-3): chiều đi trước chiều về → ngày (trống sau) → giờ có trước trống → giờ → id. KHÁC `xepChang` (giờ đứng TRƯỚC chiều): đơn hai chiều cùng ngày, chiều đi
+// trống giờ, chiều về có giờ gợi ý thì lượt đầu phải là chiều đi; và một lượt về ở NGÀY SỚM HƠN lượt đi (dữ liệu lệch / đổi ngày đi) cũng không được đẩy chiều đi ra khỏi cổng giờ.
 const lg = (id: string, direction: "OUT" | "RETURN", pickupDate: string | null, pickupTime: string | null) => ({ id, direction, pickupDate, pickupTime });
 
 test("changDauCuaDichVu: chiều đi trống giờ đứng trước chiều về có giờ gợi ý cùng ngày (khác xepChang — giờ có trước chiều)", () => {
@@ -377,11 +377,14 @@ test("changDauCuaDichVu: chiều đi trống giờ đứng trước chiều về
   assert.equal(changDauCuaDichVu([di, ve])!.id, "b");
 });
 
-test("changDauCuaDichVu: chỉ có chiều về → chiều về; rỗng → null; ngày sớm hơn thắng chiều; ngày trống xếp sau ngày có", () => {
+test("changDauCuaDichVu (R7): chỉ có chiều về → chiều về; rỗng → null; CHIỀU ĐI thắng chiều về dù chiều về ở ngày sớm hơn; ngày trống xếp sau ngày có (cùng chiều)", () => {
   assert.equal(changDauCuaDichVu([lg("v", "RETURN", "2027-01-01", null)])!.id, "v");
   assert.equal(changDauCuaDichVu([]), null);
-  assert.equal(changDauCuaDichVu([lg("di", "OUT", "2027-01-02", "07:00"), lg("ve", "RETURN", "2027-01-01", "16:00")])!.id, "ve", "ngày sớm hơn thắng dù là chiều về");
-  assert.equal(changDauCuaDichVu([lg("trong", "OUT", null, "06:00"), lg("co", "OUT", "2027-01-05", null)])!.id, "co", "ngày trống xếp sau");
+  assert.equal(changDauCuaDichVu([lg("di", "OUT", "2027-01-02", "07:00"), lg("ve", "RETURN", "2027-01-01", "16:00")])!.id, "di", "chiều đi thắng dù chiều về ngày sớm hơn (R7)");
+  assert.equal(changDauCuaDichVu([lg("ve", "RETURN", "2027-01-01", "16:00"), lg("di", "OUT", "2027-01-02", null)])!.id, "di", "chiều đi không giờ vẫn là lượt đầu — không bị lượt về có giờ đẩy ra (E3, E4)");
+  assert.equal(changDauCuaDichVu([lg("ve", "RETURN", "2027-01-01", "16:00"), lg("di", "OUT", null, null)])!.id, "di", "chiều đi ngày trống vẫn đứng trước chiều về");
+  assert.equal(changDauCuaDichVu([lg("trong", "OUT", null, "06:00"), lg("co", "OUT", "2027-01-05", null)])!.id, "co", "ngày trống xếp sau (cùng chiều)");
+  assert.equal(changDauCuaDichVu([lg("v2", "RETURN", "2027-01-03", "08:00"), lg("v1", "RETURN", "2027-01-02", null)])!.id, "v1", "hai chiều về: ngày sớm hơn thắng");
 });
 
 test("changDauCuaDichVu: hai chiều đi cùng ngày — giờ có trước trống, rồi giờ sớm, rồi id", () => {
@@ -402,6 +405,7 @@ test("thieuGioChangDau: chỉ liệt kê dịch vụ có lượt đầu trống 
     { id: "s3", legs: [] },
     { id: "s4", legs: [lg("l4", "RETURN", "2027-01-01", null), lg("l5", "OUT", "2027-01-01", "07:00")] },
     { id: "s5", legs: [lg("l7", "RETURN", "2027-01-01", "16:00"), lg("l6", "OUT", "2027-01-01", null)] },
+    { id: "s6", legs: [lg("l9", "RETURN", "2027-01-01", "16:00"), lg("l8", "OUT", "2027-01-05", null)] }, // R7: chiều về ngày sớm hơn có giờ, chiều đi ngày sau trống
   ]);
-  assert.deepEqual(r, [{ serviceId: "s1", legId: "l1" }, { serviceId: "s5", legId: "l6" }]);
+  assert.deepEqual(r, [{ serviceId: "s1", legId: "l1" }, { serviceId: "s5", legId: "l6" }, { serviceId: "s6", legId: "l8" }]);
 });

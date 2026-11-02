@@ -4223,7 +4223,7 @@ test("R-PRC-8 (ADR-0146 Đ1): luật bán chưa hết hạn trỏ loại đang t
 
 // ---------------------------------------------------------------------------------------------------------------------
 // ADR-0154 Đ1.7 + kế hoạch lượt 2 Task 1.4 (câu đã áp số 4): R-ORD-17w — đơn ĐÃ XÁC NHẬN, tạo SAU mốc phát hành (mốc = `MIN(created_at)` của `ord_partner_customer_policy`), người lập TỪNG
-// giữ quyền Đối tác (kể cả dòng đã đóng), mà LƯỢT ĐẦU của một dịch vụ (ngày — trống sau → chiều đi trước chiều về → giờ có trước trống → giờ → id) chưa có giờ đón. Mức warn: đơn của tài khoản đã
+// giữ quyền Đối tác (kể cả dòng đã đóng), mà LƯỢT ĐẦU của một dịch vụ (chiều đi trước chiều về bất kể ngày — ruling R7 → ngày, trống sau → giờ có trước trống → giờ → id) chưa có giờ đón. Mức warn: đơn của tài khoản đã
 // thôi quyền Đối tác xác nhận được qua `/status` (Đ1.7 — chấp nhận, có kiểm). Đơn văn phòng hợp lệ (không giờ, người lập chưa từng là Đối tác) KHÔNG bị đếm.
 // ---------------------------------------------------------------------------------------------------------------------
 let so17w = 0;
@@ -4293,12 +4293,18 @@ test("R-ORD-17w (ADR-0154 Đ1.7): đơn xác nhận SAU mốc, người lập t�
   assert.equal(violations(db, c), 3, "chiều đi trống, chiều về có giờ gợi ý cùng ngày");
   don17w(db, { staff: "s-lai", dvs: dich([{ direction: "RETURN", ngay: D, gio: null }]) });
   assert.equal(violations(db, c), 4, "chỉ chiều về, không giờ (tiêu chí k)");
+  // R7 (kiểm độc lập N-3): chiều về ở NGÀY SỚM HƠN có giờ gợi ý, chiều đi ngày sau không giờ ⇒ lượt đầu vẫn là chiều đi (chiều đi trước chiều về bất kể ngày) ⇒ đếm
+  don17w(db, { staff: "s-lai", dvs: dich([{ direction: "RETURN", ngay: D, gio: "16:00" }, { direction: "OUT", ngay: "2026-10-09", gio: null }]) });
+  assert.equal(violations(db, c), 5, "R7: chiều về ngày sớm hơn có giờ không đẩy chiều đi không giờ ra khỏi kiểm");
   // mỗi đơn chỉ đếm MỘT lần dù nhiều dịch vụ thiếu giờ
   don17w(db, { staff: "s-lai", dvs: [[{ direction: "OUT", ngay: D, gio: null }], [{ direction: "OUT", ngay: D, gio: null }]] });
-  assert.equal(violations(db, c), 5, "đơn nhiều dịch vụ thiếu giờ: đếm đơn, không đếm dịch vụ");
+  assert.equal(violations(db, c), 6, "đơn nhiều dịch vụ thiếu giờ: đếm đơn, không đếm dịch vụ");
   // hai chiều đi cùng ngày, một có giờ một trống: giờ có trước ⇒ lượt đầu có giờ ⇒ không đếm
   don17w(db, { staff: "s-lai", dvs: dich([{ direction: "OUT", ngay: D, gio: null }, { direction: "OUT", ngay: D, gio: "08:00" }]) });
-  assert.equal(violations(db, c), 5, "giờ có trước giờ trống: lượt đầu đã có giờ");
+  assert.equal(violations(db, c), 6, "giờ có trước giờ trống: lượt đầu đã có giờ");
+  // chiều đi có giờ, chiều về ngày sớm hơn không giờ: lượt đầu = chiều đi (có giờ) ⇒ không đếm
+  don17w(db, { staff: "s-lai", dvs: dich([{ direction: "RETURN", ngay: D, gio: null }, { direction: "OUT", ngay: "2026-10-09", gio: "07:00" }]) });
+  assert.equal(violations(db, c), 6, "R7: chiều đi có giờ thì chiều về không giờ không cần");
 });
 
 test("R-ORD-17w và changDauCuaDichVu chọn CÙNG lượt: trên mỗi ca xếp chặng, kiểm định kỳ đếm đơn ⇔ thieuGioChangDau báo thiếu (một thứ tự cho máy chủ và kiểm định kỳ)", async () => {

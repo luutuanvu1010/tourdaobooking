@@ -3,7 +3,7 @@
 // (tests/audit/harness.mjs). Bài không phụ thuộc giờ thật: ngày đi cách ≥ 3 ngày.
 //
 // Hai nhóm bài:
-//   - BÀI ĐỔI HÀNH VI (đỏ trước khi thi công): (a), (a2), (k), (q), (d2), Review Focus 4, dịch vụ cờ + chốt giờ, danh sách chờ / chi tiết đơn nhận CHOT_GIO.
+//   - BÀI ĐỔI HÀNH VI (đỏ trước khi thi công): (a), (a2), (k), (q), (d2), Review Focus 4, dịch vụ cờ + chốt giờ, danh sách chờ / chi tiết đơn nhận CHOT_GIO; (E3, ruling R7 — sau kiểm độc lập) thứ tự lượt đầu «chiều đi trước chiều về».
 //   - BÀI GHIM HÀNH VI KHÔNG ĐỔI (xanh cả trước lẫn sau, ghim để lần sửa sau không phá): (b), (d1), (e), (l), (p), (q2), «văn phòng không bao giờ mang cờ», «khoản thu đã có».
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -49,6 +49,21 @@ test("(a2) Review Focus 1: chiều đi trống giờ + chiều về có giờ g�
   assert.equal(r.json.nhanh, "A");
   assert.deepEqual(r.json.yeuCau.vi, ["CHOT_GIO"]);
   assert.equal(mo(w, o.id)[0].pickup_time_required, 1);
+});
+
+test("(E3, ruling R7) chiều về ở NGÀY SỚM HƠN và có giờ gợi ý, chiều đi trống giờ → vẫn nhánh A, cờ 1 (chiều đi trước chiều về bất kể ngày); đối chứng: chiều đi có giờ thì chiều về trống không cần → nhánh B", async () => {
+  const w = setup();
+  const o = await lap(w, PARTNER, [svc("ZB1", NGAY(), [leg(NGAY(), null), RET(inDays(2), "16:00")])]);
+  const r = await guiDon(w, o.id, PARTNER);
+  assert.equal(r.status, 201, r.text);
+  assert.equal(r.json.nhanh, "A");
+  assert.deepEqual(r.json.yeuCau.vi, ["CHOT_GIO"]);
+  assert.equal(mo(w, o.id)[0].pickup_time_required, 1);
+  const w2 = setup();
+  const ok = await lap(w2, PARTNER, [svc("ZB1", NGAY(), [leg(NGAY(), "07:30"), RET(inDays(2), null)])]);
+  const rb = await guiDon(w2, ok.id, PARTNER);
+  assert.equal(rb.status, 200, rb.text);
+  assert.equal(rb.json.nhanh, "B", "lượt đầu là chiều đi (có giờ); chiều về ở ngày sớm hơn không giờ không bị đòi");
 });
 
 test("(b) Không đón → nhánh B như cũ: 200, đơn đã xác nhận, không mở yêu cầu (đúng đơn đối chứng của gui-don-route.test.ts (2))", async () => {
@@ -114,7 +129,9 @@ test("(d2) cùng đơn SAU khi vào nhánh A (yêu cầu đang mở): người l
   assert.equal(trangThai(w, o.id), "draft");
 });
 
-test("(e) phí đón theo nơi (câu đã áp số 6): Đón không giờ và đơn cùng nơi có giờ ra CÙNG total, CÙNG nơi đón / nơi trả đã lưu (form đối tác vẫn gửi Nơi đón, Nơi trả)", async () => {
+// m-1 (kiểm độc lập Đợt 1): bài này chỉ ghim ĐIỀU KIỆN CẦN của phí đón theo nơi (câu đã áp số 6) — Đón không giờ vẫn lưu đúng nơi đón / nơi trả như đơn có giờ, cùng tổng tiền. Chưa có mã
+// tính phí đón (ADR-0147) nên CHƯA kiểm số tiền phí đón; ai thêm mã đó phải thêm bài tiền riêng.
+test("(e) điều kiện cần của phí đón theo nơi (câu đã áp số 6): Đón không giờ và đơn cùng nơi có giờ ra CÙNG tổng tiền, CÙNG nơi đón / nơi trả đã lưu (form đối tác vẫn gửi Nơi đón, Nơi trả); chưa kiểm tiền phí đón", async () => {
   const w = setup();
   const khongGio = await lap(w, PARTNER, [dichVuDon(null)]);
   const coGio = await lap(w, PARTNER, [dichVuDon("08:00")]);

@@ -320,16 +320,17 @@ export function chieuDiDau(legs: readonly Pick<ChangDaLuu, "id" | "direction" | 
 }
 
 /**
- * LƯỢT ĐẦU của một dịch vụ (ADR-0154 Đ1.2 «chặng đầu tiên của dịch vụ», câu đã áp số 1): ngày (trống xếp sau) → CHIỀU ĐI trước chiều về → giờ có trước giờ trống → giờ → id.
- * KHÁC `xepChang` (giờ đứng trước chiều, để hiển thị): đơn hai chiều cùng ngày, chiều đi trống giờ, chiều về có giờ gợi ý thì lượt đầu phải là chiều đi. MỘT hàm cho máy chủ,
- * giao diện và kiểm định kỳ (`R-ORD-17w` xếp bằng câu con cùng thứ tự). `legs` = CHỈ chặng còn hiệu lực. Trả đối tượng nguồn (không sao chép); rỗng → null.
+ * LƯỢT ĐẦU của một dịch vụ (ADR-0154 Đ1.2 «chặng đầu tiên của dịch vụ», câu đã áp số 1, ĐỔI THỨ TỰ theo ruling R7 sau kiểm độc lập Đợt 1, N-3): CHIỀU ĐI trước chiều về → ngày (trống xếp sau)
+ * → giờ có trước giờ trống → giờ → id. Chiều đi luôn đứng trước chiều về BẤT KỂ ngày: một lượt về nằm trước lượt đi chỉ là dữ liệu lệch (gửi qua API, hoặc đổi ngày đi làm lượt về ở lại ngày cũ),
+ * không phải hành trình thật — nếu để ngày đứng trước, lượt về có giờ gợi ý sớm hơn sẽ đẩy chiều đi chưa giờ ra khỏi cổng giờ. Dịch vụ chỉ có chiều về vẫn có lượt đầu (chiều về).
+ * KHÁC `xepChang` (giờ đứng trước chiều, để hiển thị). MỘT hàm cho máy chủ, giao diện và kiểm định kỳ (`R-ORD-17w` xếp bằng câu con cùng thứ tự). `legs` = CHỈ chặng còn hiệu lực.
+ * Trả đối tượng nguồn (không sao chép); rỗng → null.
  */
 export function changDauCuaDichVu<T extends { id: string; direction: LegDirection; pickupDate: string | null; pickupTime: string | null }>(legs: readonly T[]): T | null {
   return (
     [...legs].sort((a, b) => {
-      if (a.pickupDate !== b.pickupDate) return a.pickupDate === null ? 1 : b.pickupDate === null ? -1 : a.pickupDate < b.pickupDate ? -1 : 1;
       if (a.direction !== b.direction) return a.direction === "OUT" ? -1 : 1;
-      return somHon(a, b); // cùng ngày: giờ có trước giờ trống, giờ sớm trước, rồi id
+      return somHon(a, b); // cùng chiều: ngày (trống sau), giờ có trước giờ trống, giờ sớm trước, rồi id
     })[0] ?? null
   );
 }

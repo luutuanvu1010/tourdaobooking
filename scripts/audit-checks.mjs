@@ -1809,8 +1809,9 @@ export const CHECKS = [
   // R-ORD-17w (ADR-0154 Đ1.7, kế hoạch lượt 2 Task 1.4, câu đã áp số 4; bài canh `src/audit-invariants.test.ts`): lớp BÙ cho lệch có chủ ý «đơn của tài khoản đã thôi quyền Đối tác xác nhận được qua `/status`
   // dù lượt đưa đón đầu chưa có giờ» (Đối tác không còn tự nhập giờ; văn phòng chốt giờ ở bảng Còn vé). Chữ ADR «đơn đã xác nhận mà chặng đầu có Đón không giờ» sẽ báo cả đơn văn phòng hợp lệ (tiêu chí j:
   // Bán hàng xác nhận được đơn Đón không giờ), nên khoanh: đơn tạo TỪ mốc phát hành (`MIN(created_at)` của bảng chính sách `ord_partner_customer_policy`, dòng gieo ở 0133) mà người lập TỪNG giữ
-  // quyền Đối tác — KHÔNG lọc dòng đã đóng, vì chính ca đáng báo là người đã thôi quyền. Lượt đầu của một dịch vụ = CÙNG thứ tự `changDauCuaDichVu` (src/shared/chang-dua-don.ts): ngày (trống sau) →
-  // chiều đi trước chiều về → giờ có trước giờ trống → giờ → id; bài đối chiếu hai phía trên bộ ca xếp chặng. Chỉ chặng còn mở; dịch vụ Không đón (không chặng) không đếm. Đếm SỐ ĐƠN.
+  // quyền Đối tác — KHÔNG lọc dòng đã đóng, vì chính ca đáng báo là người đã thôi quyền. Lượt đầu của một dịch vụ = CÙNG thứ tự `changDauCuaDichVu` (src/shared/chang-dua-don.ts; ruling R7, kiểm độc lập
+  // Đợt 1 N-3): chiều đi trước chiều về (bất kể ngày) → ngày (trống sau) → giờ có trước giờ trống → giờ → id; bài đối chiếu hai phía trên bộ ca xếp chặng. Chỉ chặng còn mở; dịch vụ Không đón
+  // (không chặng) không đếm. Đếm SỐ ĐƠN.
   // Mức "warn" (thoát 0; thoát 1 sẽ dừng `trien-khai`): tình trạng chấp nhận có kiểm, văn phòng rà tay theo mã đơn.
   {
     code: "R-ORD-17w",
@@ -1822,7 +1823,7 @@ export const CHECKS = [
         AND EXISTS (SELECT 1 FROM order_service s WHERE s.order_id = o.id
           AND EXISTS (SELECT 1 FROM ord_transfer_leg l1 WHERE l1.order_service_id = s.id AND l1.closed_at IS NULL)
           AND (SELECT l2.pickup_time FROM ord_transfer_leg l2 WHERE l2.order_service_id = s.id AND l2.closed_at IS NULL
-                 ORDER BY (l2.pickup_date IS NULL), l2.pickup_date, (l2.direction <> 'OUT'), (l2.pickup_time IS NULL), l2.pickup_time, l2.id LIMIT 1) IS NULL)`,
+                 ORDER BY (l2.direction <> 'OUT'), (l2.pickup_date IS NULL), l2.pickup_date, (l2.pickup_time IS NULL), l2.pickup_time, l2.id LIMIT 1) IS NULL)`,
     level: "warn",
     note: "cảnh báo (KHÔNG chặn phát hành — ADR-0154 Đ1.7): đơn của tài khoản từng là Đối tác xác nhận qua /status khi lượt đón đầu chưa có giờ; văn phòng rà tay theo mã đơn và ghi giờ ở bảng Đưa đón",
   },

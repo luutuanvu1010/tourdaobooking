@@ -320,6 +320,24 @@ test("(N-1) đơn quá ngày đi, người xét Bán hàng gửi giờ kèm datG
   assert.deepEqual(dau(w, legId), KHONG_DAU);
 });
 
+// ---- N-3, ruling R7: thứ tự lượt đầu «chiều đi trước chiều về bất kể ngày» -----------------------------------------------------------------------------
+test("(E4, R7) đơn nhiều ngày có cờ (đi D chưa giờ, về D+1 giờ gợi ý 16:00): người xét CHỈ đổi ngày đi, không ghi giờ → 409 pickup_time_required (nêu chiều đi), không ghi gì; ghi giờ chiều đi thì xác nhận được", async () => {
+  const w = setup();
+  const d = inDays(3);
+  const c = await chotGio(w, [svc("ZB1", d, [leg(d, null), RET(inDays(4), "16:00")])]);
+  const di = c.o.services[0].legs.find((l: any) => l.direction === "OUT").id as string;
+  const truoc = hoSo(w, c.id);
+  const r = await qd(w, c.id, ACC, { ketQua: "CON_VE", ngayDi: inDays(8) });
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "pickup_time_required");
+  assert.deepEqual(r.json.error.legs, [{ legId: di }], "nêu đúng chiều đi chưa giờ, không phải chiều về đã có giờ gợi ý");
+  assert.deepEqual(hoSo(w, c.id), truoc, "không ghi gì (kể cả ngày đi)");
+  assert.equal(q(w, c.id).moc.s, "draft");
+  const ok = await qd(w, c.id, ACC, { ketQua: "CON_VE", ngayDi: inDays(8), gioDon: [{ legId: di, pickupTime: "09:00" }] });
+  assert.equal(ok.status, 200, ok.text);
+  assert.deepEqual(chang(w, di), { d: inDays(8), t: "09:00" });
+});
+
 test("(N-1b) mọi vế câu xác nhận mà câu đổi giờ không phủ: dịch vụ không có ngày đi, hoặc một dịch vụ không còn khách → 409 incomplete_trip, KHÔNG ghi giờ (trước: giờ vẫn được ghi rồi lô thua)", async () => {
   for (const [ten, hong, mong] of [
     ["ngày đi trống", (w: any, id: string) => { w.sqlite.prepare("UPDATE order_service SET depart_date = NULL WHERE order_id = ?").run(id); w.sqlite.prepare("UPDATE ord_transfer_leg SET pickup_date = NULL WHERE order_id = ?").run(id); }, ["no_date"]],
