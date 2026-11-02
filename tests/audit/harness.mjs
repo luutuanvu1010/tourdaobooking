@@ -38,7 +38,7 @@ async function bundle(entry) {
 export const app = (await bundle(
   'export { default, taoAppChoKhungThu } from "./index"; export { createSessionToken } from "./modules/auth/session"; export { listAll } from "./modules/audit/repository"; export { xoaBoNhoVanNghia } from "./modules/tro-ly/van-nghia";' +
     ' export { isSingleDevice } from "./modules/auth/session-ledger"; export { accountRoleCodesOf, getActiveStaff } from "./modules/staff"; export { docTapNhieuMay } from "./modules/auth";' +
-    ' export { chuyenChoTinTheoId, dongBoChuyenChoDon, suKienTheoYeuCau } from "./modules/van-chuyen"; export { dongChuyenTheoId } from "./modules/thongbao";',
+    ' export { chuyenChoTinTheoId, dongBoChuyenChoDon, suKienTheoYeuCau } from "./modules/van-chuyen"; export { cauDatCocKhiXacNhan } from "./modules/billing"; export { dongChuyenTheoId } from "./modules/thongbao";',
 ));
 
 const isRead = (sql) => /^\s*(SELECT|WITH|PRAGMA|EXPLAIN)\b/i.test(sql);
@@ -241,6 +241,18 @@ export function world(tuyChon = {}) {
         const d = await app.dongBoChuyenChoDon(env.DB, actor, x);
         await chen({ x });
         return d;
+      },
+    });
+  } else if (tuyChon.khongTiemCoc) {
+    ungDung = app.taoAppChoKhungThu({ cauCocKhiXacNhan: undefined }); // ADR-0159: gốc lắp ráp không dựng được câu ⇒ 503
+  } else if (tuyChon.chenTruocLoCoc) {
+    // ADR-0159: chen một việc SAU mọi cổng của route, TRƯỚC lô xác nhận (đơn vừa bị đổi / người khác vừa xác nhận) — để nhìn lô thua không ghi khoản thu.
+    const chen = tuyChon.chenTruocLoCoc;
+    ungDung = app.taoAppChoKhungThu({
+      cauCocKhiXacNhan: async (env, i) => {
+        const k = await app.cauDatCocKhiXacNhan(env.DB, i);
+        await chen(i);
+        return k;
       },
     });
   } else if (tuyChon.demNhan) {

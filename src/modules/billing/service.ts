@@ -323,7 +323,8 @@ const cumCuaKhoan = (receipts: readonly Pick<ReceiptDbRow, "id" | "collector_rol
 /** Câu lệnh của MỘT khoản thu: khoản thu (lính gác do `receiptStmt`), nhật ký (chỉ khi khoản thu đã chèn), phiếu RECEIPT + dòng giữ hộ (nếu có). */
 export function cauLanThu(
   db: D1Database,
-  input: { orderId: string; lt: LanThuHopLe; stage: "PREPAID" | "AT_DELIVERY"; ai: NguoiGoi; congTyId: string; at: string; giaoDich?: GiaoDich | null },
+  /** `nhatKy`: người BẤM và chữ nhật ký khi khác người ghi (ADR-0159: người ghi là người lập, người bấm ghi ở nhật ký); vắng ⇒ như cũ. */
+  input: { orderId: string; lt: LanThuHopLe; stage: "PREPAID" | "AT_DELIVERY"; ai: NguoiGoi; congTyId: string; at: string; giaoDich?: GiaoDich | null; nhatKy?: { staffId: string; detail: string } },
   receiptStmt: (r: NewReceipt) => D1PreparedStatement,
 ): D1PreparedStatement[] {
   const receiptId = crypto.randomUUID();
@@ -338,7 +339,7 @@ export function cauLanThu(
   });
   const out = [
     receiptStmt(r),
-    auditStatement(db, { orderId: input.orderId, staffId: input.ai.staffId, action: "payment_recorded", at: input.at, detail: input.stage === "AT_DELIVERY" ? "lúc Đã giao" : "trả trước" }, "changes() > 0"),
+    auditStatement(db, { orderId: input.orderId, staffId: input.nhatKy?.staffId ?? input.ai.staffId, action: "payment_recorded", at: input.at, detail: input.nhatKy?.detail ?? (input.stage === "AT_DELIVERY" ? "lúc Đã giao" : "trả trước") }, "changes() > 0"),
   ];
   // ADR-0092 Đ6: dòng nối mã (lính gác "khoản thu đã chèn") ngay sau nhật ký khoản thu; khoản thu luôn là câu ĐẦU (ghiLanThu đọc kq[0]).
   if (input.giaoDich) out.push(...cauGanMa(db, { receiptId, orderId: input.orderId, gd: input.giaoDich, at: input.at, by: input.ai.staffId }));

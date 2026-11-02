@@ -213,3 +213,8 @@ export async function nhomTheoMa(db: D1Database, maDichVu: readonly string[]): P
 /** Nhóm có ít nhất một dịch vụ đang xếp vào (qua view công bố) — để từ chối cờ đặt cho mã nhóm không có thật. */
 const NHOM_CO_DICH_VU = defineSql("orders", "service_group_in_use", `SELECT 1 AS co FROM v_ctl_service_group WHERE group_code = ?1 LIMIT 1`);
 export const nhomDangDung = async (db: D1Database, ma: string): Promise<boolean> => (await db.prepare(NHOM_CO_DICH_VU).bind(ma).first()) !== null;
+
+// ---- ADR-0159: lời khai «Khách đặt cọc trước» đang lưu của đơn (cổng lúc lưu nháp; câu ghi ở `updateDraftOrder`) ----
+const LOI_KHAI_DANG_LUU = defineSql("orders", "loi_khai_dang_luu", `SELECT declared_deposit FROM orders WHERE id = ?1`);
+export const loiKhaiDangLuu = async (db: D1Database, orderId: string): Promise<number> =>
+  (await db.prepare(LOI_KHAI_DANG_LUU).bind(orderId).first<{ declared_deposit: number }>())?.declared_deposit ?? 0;

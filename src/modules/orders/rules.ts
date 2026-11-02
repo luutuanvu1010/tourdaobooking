@@ -2,6 +2,7 @@
 // Luật của TỪNG DỊCH VỤ (số khách, thông tin chuyến, dòng tiền sinh từ danh mục) nằm ở ./service-rules.ts.
 // Chỉ import file thuần của shared, không chạm I/O để kiểm thử độc lập bằng `npm test`.
 import { parseBooker, type BookerInput } from "../../shared/booker.ts";
+import { docLoiKhai } from "../../shared/dat-coc-truoc";
 import { MAX_CHANG_MOI_DICH_VU, doiNgayChang, kiemChang, tronChangCu, type ChangHopLe } from "../../shared/chang-dua-don.ts";
 import type { OrderStatus } from "../../shared/contracts.ts";
 import { kiemDanhSachHanhKhach, type HanhKhachHopLe } from "../../shared/hanh-khach.ts";
@@ -30,6 +31,8 @@ export interface ValidOrder {
   discount: number;
   total: number;
   paymentNote: string | null;
+  /** ADR-0159: lời khai «Khách đặt cọc trước». `null` = thân không có khoá này (máy còn bản giao diện cũ): lập đơn coi là 0, lưu nháp giữ số đang lưu. Cổng quyền và trần tổng ở route. */
+  declaredDeposit: number | null;
   /** Chỉ dùng cho PUT: `updated_at` mà client đã đọc (khoá lạc quan). */
   expectedUpdatedAt: string | null;
   /**
@@ -182,6 +185,8 @@ export function validateOrder(input: unknown, ctx: ServiceContext): Validated {
   if (discount.error) return fail(discount.error);
   if (discount.value > subtotal) return fail("Giảm giá không được vượt quá tạm tính.");
   const total = subtotal - discount.value;
+  const datCoc = docLoiKhai(b.declaredDeposit);
+  if (!datCoc.ok) return fail(datCoc.message);
 
   // Sổ tiền lượt 1 (ADR-0026 đ9): tiền trả trước KHÔNG còn nằm trong đơn — trình duyệt ghi KHOẢN THU ở bước hai (billing) sau khi đơn đã lưu. Trang lập
   // đơn CŨ (bộ nhớ đệm PWA chưa tải bản mới) còn gửi khoản trả trước trong thân đơn → từ chối rõ ràng thay vì lặng lẽ bỏ mất số tiền đó.
@@ -203,6 +208,7 @@ export function validateOrder(input: unknown, ctx: ServiceContext): Validated {
       discount: discount.value,
       total,
       paymentNote: paymentNote.value,
+      declaredDeposit: datCoc.value,
       expectedUpdatedAt: typeof b.expectedUpdatedAt === "string" && b.expectedUpdatedAt ? b.expectedUpdatedAt : null,
       passengers,
       legsGiven: withLegsResult.legsGiven,

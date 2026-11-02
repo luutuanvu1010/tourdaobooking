@@ -340,6 +340,10 @@ export interface OrderDto {
    */
   giamGiaHieuLuc: number;
   paymentNote: string | null;
+  /**
+   * Lời khai «Khách đặt cọc trước» của người lập (ADR-0159): chỉ có nghĩa khi đơn còn NHÁP, không phải khoản thu. Đơn đã rời nháp luôn là 0 — tiền đã thu đọc từ sổ, không đọc cột.
+   */
+  declaredDeposit: number;
   createdAt: string;
   updatedAt: string;
   confirmedAt: string | null;
@@ -437,6 +441,8 @@ export interface OrderInput {
   services: ServiceInput[];
   discount: number;
   paymentNote: string;
+  /** ADR-0159: lời khai «Khách đặt cọc trước», chỉ tài khoản giữ quyền Đối tác gửi; vắng = giữ số đang lưu. */
+  declaredDeposit?: number;
   /** Gắn hồ sơ có sẵn (id `pty_party`, chỉ cá nhân đang hoạt động); null/vắng = không gắn. Không gửi kèm `newBooker`. */
   bookerPartyId?: string | null;
   /** Tạo hồ sơ cá nhân mới + vai CUSTOMER cùng lúc lưu đơn (ADR-0011 điều 1). Không gửi kèm `bookerPartyId`. */

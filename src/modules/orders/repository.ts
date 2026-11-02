@@ -39,6 +39,8 @@ interface OrderRow {
   discount: number;
   total: number;
   payment_note: string | null;
+  /** ADR-0159: lời khai đặt cọc trước (0136). */
+  declared_deposit: number;
   created_at: string;
   updated_at: string;
   confirmed_at: string | null;
@@ -185,6 +187,8 @@ function toDto(r: OrderRow): OrderDto {
     // giảm giá ≤ tạm tính (trigger 0007 giữ total = subtotal − discount ≥ 0).
     giamGiaHieuLuc: effectiveMoney(r.subtotal, r.discount).giamGiaHieuLuc,
     paymentNote: r.payment_note,
+    // ADR-0159 Đ1 mục 6: sau xác nhận đọc từ sổ, không đọc cột — nên chỉ đơn nháp mang số này.
+    declaredDeposit: r.status === "draft" ? r.declared_deposit : 0,
     createdAt: r.created_at,
     updatedAt: r.updated_at,
     confirmedAt: r.confirmed_at,
@@ -982,20 +986,20 @@ export async function createOrder(
         db
           .prepare(
             `INSERT INTO orders (id, order_code, staff_id, status, customer_name, customer_phone, customer_email, customer_note,
-               subtotal, discount, total, deposit_amount, deposit_method, remaining_amount, payment_note, created_at, updated_at, booker_party_id, manifest_exempt)
+               subtotal, discount, total, deposit_amount, deposit_method, remaining_amount, payment_note, created_at, updated_at, booker_party_id, manifest_exempt, declared_deposit)
              SELECT ?, ? || printf('%04d', COALESCE((SELECT MAX(CAST(substr(order_code, length(?) + 1) AS INTEGER)) FROM orders WHERE order_code LIKE ?), 0) + 1),
-               ?, 'draft', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ${BOOKER_VALUE}, ?`,
+               ?, 'draft', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ${BOOKER_VALUE}, ?, ?`,
           )
           .bind(
             id, prefix, prefix, `${prefix}%`, staffId, order.customerName, order.customerPhone, order.customerEmail, order.customerNote,
             // Ba cột cọc cũ KHÔNG mang nghĩa nữa (ADR-0026 đ9): đơn mới ghi 0 / NULL / total — chỉ để thoả trigger 0007 (không ai đọc).
             order.subtotal, order.discount, order.total, 0, null, order.total, order.paymentNote, at, at,
-            booker.partyId, manifestExempt ? 1 : 0,
+            booker.partyId, manifestExempt ? 1 : 0, order.declaredDeposit ?? 0,
           ),
         ...services.stmts,
         ...legs,
         ...passengers,
-        auditStatement(db, { orderId: id, staffId, action: "created", at, detail: joinDetail(summarizeDeviations(order.items), booker.note, paxNote) }),
+        auditStatement(db, { orderId: id, staffId, action: "created", at, detail: joinDetail(summarizeDeviations(order.items), booker.note, paxNote, moTaLoiKhai(order.declaredDeposit)) }),
         ...(alsoCreate?.(id, at) ?? []),
       ]);
       return id;
@@ -1042,13 +1046,13 @@ export async function updateDraftOrder(
            deposit_amount = CASE WHEN ? < deposit_amount THEN 0 ELSE deposit_amount END,
            deposit_method = CASE WHEN ? < deposit_amount THEN NULL ELSE deposit_method END,
            remaining_amount = CASE WHEN ? < deposit_amount THEN ? ELSE ? - deposit_amount END,
-           payment_note = ?,
+           payment_note = ?, declared_deposit = COALESCE(?, declared_deposit),
            booker_party_id = ${BOOKER_VALUE}, updated_at = ?
          WHERE id = ? AND status = 'draft' AND updated_at = ?`,
       )
       .bind(
         order.customerName, order.customerPhone, order.customerEmail, order.customerNote,
-        order.subtotal, order.discount, order.total, order.total, order.total, order.total, order.total, order.total, order.paymentNote,
+        order.subtotal, order.discount, order.total, order.total, order.total, order.total, order.total, order.total, order.paymentNote, order.declaredDeposit,
         booker.partyId, at, id, order.expectedUpdatedAt,
       ),
     auditStatement(db, { id: auditId, orderId: id, staffId, action: "updated", at, detail: joinDetail(summarizeDeviations(order.items), booker.note, paxNote, ghiChuThem) }, "changes() > 0"),
@@ -1064,6 +1068,12 @@ export async function updateDraftOrder(
   return (results[booker.before.length]!.meta.changes ?? 0) > 0;
 }
 
+/** ADR-0159: phần «câu khoản thu đặt cọc» của lô xác nhận — gốc lắp ráp tiêm hàm dựng (`orders` không đọc, không ghi `bil_*`). Nơi gọi chỉ lấy từ `cocChoXacNhan` (bài src/dat-coc-noi-goi.test.ts). */
+export type KemCoc = (i: { at: string; auditId: string }) => D1PreparedStatement[];
+/** Chỉ bài kiểm và lời khai 0 (`cocChoXacNhan`) dùng. */
+export const KHONG_COC: KemCoc = () => [];
+const moTaLoiKhai = (n: number | null): string | null => (n !== null && n > 0 ? `khai khách đặt cọc trước ${n.toLocaleString("vi-VN")} ₫` : null);
+
 /**
  * Xác nhận đơn: điều kiện "có dịch vụ, mọi dịch vụ có ngày khởi hành trong [hôm nay, +365 ngày] và ≥ 1 khách" nằm TRONG câu UPDATE
  * (không đọc-rồi-ghi ở route) nên người khác lưu nháp xoá ngày ngay trước đó cũng không thể tạo ra đơn xác nhận thiếu chuyến.
@@ -1076,21 +1086,21 @@ export async function updateDraftOrder(
  * `alsoConfirm(at)` (Sổ đại lý đợt 1, ADR-0077 điều 8): các câu kèm do route dựng, dùng đúng mốc `at` của lô.
  */
 export async function confirmOrder(
-  db: D1Database, id: string, staffId: string, today: string, prevUpdatedAt: string, nguongMoc: string, detail?: string,
-  alsoConfirm?: (at: string) => D1PreparedStatement[],
+  db: D1Database, id: string, staffId: string, today: string, prevUpdatedAt: string, nguongMoc: string, detail: string | undefined,
+  alsoConfirm: ((at: string) => D1PreparedStatement[]) | undefined, coc: KemCoc,
 ): Promise<boolean> {
-  return daXacNhan(await db.batch(soanXacNhan(db, id, staffId, today, prevUpdatedAt, nguongMoc, detail, alsoConfirm).cau));
+  return daXacNhan(await db.batch(soanXacNhan(db, id, staffId, today, prevUpdatedAt, nguongMoc, detail, alsoConfirm, coc).cau));
 }
 
 /**
  * SOẠN (chưa chạy) lô xác nhận của `confirmOrder` — Task 3.2b: MỘT nguồn cho ba nơi gọi (`POST /status`, `quyet-dinh` Còn vé, `gui-don` nhánh B).
  * `cau` = [điền ngày đón] → [đổi trạng thái, KHOÁ `updated_at = prevUpdatedAt`] → [nhật ký `confirmed` `changes() > 0`] → [câu kèm `alsoConfirm(at)` = bản chụp mức
- * hoa hồng của đơn, dùng đúng mốc `at` của lô]. Nơi gọi muốn nối thêm câu (ví dụ khép yêu cầu xác nhận) nối SAU mảng này để chỉ số câu đổi trạng thái (1) không đổi;
+ * hoa hồng của đơn, dùng đúng mốc `at` của lô] → [câu khoản thu đặt cọc `coc` — ADR-0159: BẮT BUỘC theo kiểu, gác bằng id nhật ký `confirmed` của CHÍNH lô]. Nơi gọi muốn nối thêm câu (ví dụ khép yêu cầu xác nhận) nối SAU mảng này để chỉ số câu đổi trạng thái (1) không đổi;
  * chạy MỘT `db.batch` rồi hỏi `daXacNhan(kq)`. Bản chụp mức đi trong `alsoConfirm` — bỏ sót thì hoa hồng của đơn không được chụp (lỗi tiền âm thầm).
  */
 export function soanXacNhan(
-  db: D1Database, id: string, staffId: string, today: string, prevUpdatedAt: string, nguongMoc: string, detail?: string,
-  alsoConfirm?: (at: string) => D1PreparedStatement[], opts?: { auditId?: string; yeuCauId?: string },
+  db: D1Database, id: string, staffId: string, today: string, prevUpdatedAt: string, nguongMoc: string, detail: string | undefined,
+  alsoConfirm: ((at: string) => D1PreparedStatement[]) | undefined, coc: KemCoc, opts?: { auditId?: string; yeuCauId?: string },
 ): { at: string; cau: D1PreparedStatement[]; auditId: string } {
   const at = nextStamp(prevUpdatedAt);
   const { from, to } = confirmWindow(today);
@@ -1106,6 +1116,8 @@ export function soanXacNhan(
       auditStatement(db, { id: auditId, orderId: id, staffId, action: "confirmed", at, detail }, "changes() > 0"),
       // Câu kèm (bản chụp thương mại — ADR-0077) đứng SAU nhật ký confirmed: chuỗi changes() > 0 nối từ UPDATE orders → nhật ký → từng câu chụp.
       ...(alsoConfirm?.(at) ?? []),
+      // ADR-0159 Đ1 mục 3: đứng CUỐI phần soạn nên chỉ số câu đổi trạng thái không đổi; `auditId` là lính gác — thua khoá hoặc mốc thì không có dòng nhật ký, không có khoản thu.
+      ...coc({ at, auditId }),
     ],
   };
 }

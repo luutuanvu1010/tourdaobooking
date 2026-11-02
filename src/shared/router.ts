@@ -9,6 +9,7 @@ import { bocDb } from "./lan-gui-boc.ts";
 import { HEADER_PHAT_LAI, HEADER_VE, ketQuaDeLuu, kiemKhoa, phanLoai, thanPhatLai, type DongVe } from "./lan-gui-luat.ts";
 import { laMienLanGui } from "./lan-gui-mien.ts";
 import type { MocToiThieu } from "./moc-toi-thieu.ts";
+import type { CauCocXacNhan, ChanKhaiLai, VaoCauCoc } from "./dat-coc-truoc.ts";
 import { dongBoDiThang, type DongBoTheoDon, type VaoDongBoTheoDon } from "./dong-bo-chuyen.ts";
 import type { ChuyenChoTin, HoiChuyenChoTin } from "./tin-chuyen.ts";
 import { canAccessOrders, isOffice, passesAccountsGate, passesAdminGate, type PermissionCode } from "./permissions.ts";
@@ -225,6 +226,12 @@ export interface Ctx<A extends Access = Access> {
    */
   daThuCuaDon: (orderId: string) => Promise<number | null>;
   /**
+   * ADR-0159 Đ1 mục 3: dựng câu khoản thu của lời khai đặt cọc — gốc lắp ráp tiêm từ billing (`orders` không đọc, không ghi `bil_*`). `null` = không tiêm: route trả 503, không xác nhận.
+   */
+  cauCocKhiXacNhan: (i: VaoCauCoc) => Promise<CauCocXacNhan | null>;
+  /** ADR-0089 đ7 + ADR-0159: người lập còn giữ tiền của đơn huỷ để lập lại ⇒ không khai lại. Không tiêm ⇒ câu chặn 503 (không đoán «không có»). */
+  chanKhaiCocLai: (nguoiLapId: string) => Promise<ChanKhaiLai>;
+  /**
    * KHO VÉ ĐIỆN TỬ (ADR-0153 Đ1 mục 4) — ba hàm do gốc lắp ráp tiêm (`ve-dien-tu` ghép với `orders.dichVuChoVe`; `orders` KHÔNG import `ve-dien-tu`, khuôn `daThuCuaDon`).
    * `capVeSauXacNhan`: gọi SAU lô xác nhận ở cả ba đường (`/status`, `quyet-dinh` CON_VE, `gui-don` nhánh B), KHÔNG nằm trong lô xác nhận và KHÔNG qua `baoThayDoi`; lỗi bị nuốt
    * (xác nhận đã thắng — thiếu vé là suy ra lúc đọc). `traVeKhiHuy`: trả CÂU chưa chạy để nối vào lô huỷ / rút xác nhận (cùng nguyên tử); lỗi → mảng rỗng. `canBangVeSauSuaKhach`:
@@ -383,6 +390,9 @@ export interface AppOptions {
     nhapKeToanCuaDon: (env: Env, orderIds: readonly string[]) => Promise<Set<string>>;
     /** ADR-0136 Đ3. BẮT BUỘC trong mã chạy thật (`src/index.ts`: `daThuCuaDon` của billing); thiếu (khung thử cố ý) → router trả `null`. */
     daThuCuaDon: (env: Env, orderId: string) => Promise<number | null>;
+    /** ADR-0159. BẮT BUỘC trong mã chạy thật (`src/index.ts`: billing); thiếu (khung thử cố ý) → `null` / câu chặn 503. */
+    cauCocKhiXacNhan: (env: Env, i: VaoCauCoc) => Promise<CauCocXacNhan>;
+    chanKhaiCocLai: (env: Env, nguoiLapId: string) => Promise<ChanKhaiLai>;
     /** ADR-0153 Đ1 mục 4. BẮT BUỘC trong mã chạy thật (`src/index.ts`: `ve-dien-tu` + `dichVuChoVe` của orders); thiếu (khung thử cố ý) → router không cấp / không trả vé. Tự nuốt lỗi. */
     capVeSauXacNhan: (env: Env, actor: StaffProfile, orderId: string) => Promise<void>;
     traVeKhiHuy: (env: Env, actor: StaffProfile, orderId: string, lyDo: "DON_HUY" | "RUT_XAC_NHAN") => Promise<D1PreparedStatement[]>;
@@ -533,6 +543,11 @@ export function createApp(opts: AppOptions) {
       nhapKeToanCuaDon: (ids) =>
         typeof opts.injected.nhapKeToanCuaDon !== "function" ? Promise.resolve(null) : ids.length === 0 ? Promise.resolve(new Set<string>()) : opts.injected.nhapKeToanCuaDon(envH, ids),
       daThuCuaDon: (id) => (typeof opts.injected.daThuCuaDon !== "function" ? Promise.resolve(null) : opts.injected.daThuCuaDon(envH, id)),
+      cauCocKhiXacNhan: (i) => (typeof opts.injected.cauCocKhiXacNhan !== "function" ? Promise.resolve(null) : opts.injected.cauCocKhiXacNhan(envH, i)),
+      chanKhaiCocLai: (id) =>
+        typeof opts.injected.chanKhaiCocLai !== "function"
+          ? Promise.resolve({ status: 503 as const, code: "dat_coc_chua_kiem", message: "Chưa kiểm được tiền đặt cọc của đơn cũ — báo người phụ trách hệ thống." })
+          : opts.injected.chanKhaiCocLai(envH, id),
       // ADR-0153: câu của kho vé đi vào CHÍNH lô của lệnh (huỷ) hoặc lô riêng sau lệnh ⇒ dùng `envH` như `dongBoChuyen`.
       capVeSauXacNhan: async (id) => { if (who && typeof opts.injected.capVeSauXacNhan === "function") await opts.injected.capVeSauXacNhan(envH, who, id); },
       dichVuChoVe: async (id) => (typeof opts.injected.dichVuChoVe === "function" ? opts.injected.dichVuChoVe(envH, id) : []),

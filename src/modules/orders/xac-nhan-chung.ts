@@ -18,7 +18,8 @@ import { thieuGioChangDau } from "../../shared/chang-dua-don";
 import { canhBaoMocCua } from "./dat-gap";
 import { coHienHanh, nhomTheoMa, tuXacNhanNoiBo, yeuCauMoCuaDon, type YeuCauRow } from "./xac-nhan-repo";
 import { legDatGapByOrder } from "./chang-hanh-khach-repo";
-import { findOrder, getMeta, getStoredServices } from "./repository";
+import { KHONG_COC, findOrder, getMeta, getStoredServices, type KemCoc } from "./repository";
+import { CAU_VUOT_TONG, vuotTong, type CauCocXacNhan, type VaoCauCoc } from "../../shared/dat-coc-truoc";
 import { viPhamGiaDanhMuc, viPhamTranGiamGia } from "./price-guards";
 import { cauChupChuoi } from "./thuong-mai-repo";
 import { donChoTran, dongGhiTuChup, moTaChup } from "./thuong-mai";
@@ -127,6 +128,28 @@ export const kemChupXacNhan = (db: D1Database, i: { orderId: string; staffId: st
 ];
 
 /**
+ * ADR-0159 Đ1 mục 3, 4: cổng và câu khoản thu của lời khai «Khách đặt cọc trước» — MỘT hàm cho MỌI đường xác nhận (bài src/dat-coc-noi-goi.test.ts). Khai 0 ⇒ không câu nào, không hỏi hàm tiêm.
+ * Vượt tổng ⇒ 409 (`cauVuot` theo người đọc). Gốc lắp ráp không tiêm, hoặc hàm dựng ném lỗi ⇒ 503, KHÔNG xác nhận (đoán «không có cọc» là mất tiền âm thầm). Đối tượng `order` phải đọc SAU `getMeta`: đơn đổi sau đó thì lô thua khoá.
+ */
+export async function cocChoXacNhan(
+  cauCoc: (i: VaoCauCoc) => Promise<CauCocXacNhan | null>,
+  i: { order: { id: string; orderCode: string; staffId: string; total: number; declaredDeposit: number }; nguoiBamId: string; chup: readonly BanChup[]; today: string; cauVuot?: string },
+): Promise<{ loi: Response } | { coc: KemCoc }> {
+  const soTien = i.order.declaredDeposit;
+  if (soTien === 0) return { coc: KHONG_COC };
+  if (vuotTong(soTien, i.order.total)) return { loi: error(409, "declared_deposit_exceeds_total", i.cauVuot ?? CAU_VUOT_TONG) };
+  const ROI = () => ({ loi: error(503, "dat_coc_chua_dung_duoc", "Chưa ghi được khoản khách đặt cọc trước nên chưa xác nhận đơn — báo người phụ trách hệ thống.") });
+  let kq: CauCocXacNhan | null;
+  try {
+    kq = await cauCoc({ orderId: i.order.id, orderCode: i.order.orderCode, nguoiLapId: i.order.staffId, nguoiBamId: i.nguoiBamId, soTien, chup: i.chup, homNay: i.today });
+  } catch {
+    return ROI();
+  }
+  if (!kq) return ROI();
+  return kq.ok ? { coc: kq.cau } : { loi: error(kq.status, kq.code, kq.message) };
+}
+
+/**
  * Dịch LỖI do trigger khi chạy lô xác nhận → phản hồi, hoặc `null` (lỗi lạ: nơi gọi ném tiếp). F-03 (0081): tạm tính lệch Σ thành tiền dòng; bảng mức / điều khoản
  * đổi giữa lúc đọc và lúc ghi (`terms_rule_stale` / `terms_term_stale`) — cả lô rơi, đơn vẫn nháp; dịch vụ đổi mã giữa lúc đọc và lúc ghi (`terms_service_mismatch`).
  */
@@ -135,6 +158,9 @@ export function dichLoiXacNhan(e: unknown): Response | null {
     return error(409, "order_subtotal_mismatch", "Tiền của đơn chưa khớp các dòng dịch vụ — mở đơn, bấm Lưu rồi xác nhận lại.");
   }
   const loi = e instanceof Error ? e.message : String(e);
+  // ADR-0159: lớp CSDL của lời khai và khoá tháng của câu khoản thu đặt cọc — cả lô rơi, đơn ở lại nháp.
+  if (/\bdeclared_deposit_exceeds_total:/.test(loi)) return error(409, "declared_deposit_exceeds_total", CAU_VUOT_TONG);
+  if (/\bperiod_closed:/.test(loi)) return error(409, "period_closed", "Tháng này đã khoá sổ nên chưa ghi được khoản khách đặt cọc trước — báo Kế toán.");
   if (/\bterms_(rule|term)_stale:/.test(loi)) return error(409, "bang_muc_doi", "Bảng mức vừa đổi — thử lại");
   if (/\bterms_service_mismatch:/.test(loi)) return STALE();
   return null;

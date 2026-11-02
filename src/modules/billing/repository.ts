@@ -300,6 +300,16 @@ const RECEIPT_AT_DELIVERY = defineSql(
   `INSERT INTO bil_payment_receipt (${RECEIPT_INSERT_COLS}) SELECT ${RECEIPT_VALUES}
    WHERE EXISTS (SELECT 1 FROM v_ord_order_state WHERE id = ?2 AND delivered_at = ?14)`,
 );
+/**
+ * Khoản thu từ lời khai «Khách đặt cọc trước» (ADR-0159 Đ1 mục 3): chỉ áp khi nhật ký `confirmed` ?14 CỦA CHÍNH LÔ đã ghi — khuôn `wonGuard`, đọc qua view công bố của audit. KHÔNG so trạng thái hay mốc:
+ * hai lô đua cùng cầm một `prevUpdatedAt` có cùng `at`, nên «đơn đã xác nhận» cũng đúng với lô thua (bài «Thua đua»).
+ */
+const RECEIPT_ON_CONFIRM = defineSql(
+  "billing",
+  "receipt_on_confirm",
+  `INSERT INTO bil_payment_receipt (${RECEIPT_INSERT_COLS}) SELECT ${RECEIPT_VALUES}
+   WHERE EXISTS (SELECT 1 FROM v_aud_order_event WHERE id = ?14 AND action = 'confirmed' AND order_id = ?2)`,
+);
 /** Trả lại khách (Kế toán ghi hoàn — ADR-0026 đ5, M2): không điều kiện mốc. */
 const RECEIPT_REFUND = defineSql("billing", "receipt_refund", `INSERT INTO bil_payment_receipt (${RECEIPT_INSERT_COLS}) SELECT ${RECEIPT_VALUES}`);
 /** Dòng ĐẢO của một khoản thu (Kế toán — ADR-0026 đ8): chép gốc, trỏ gốc; trigger `bil_payment_receipt_reversal_match` + UNIQUE canh. */
@@ -345,6 +355,7 @@ const bindReceipt = (db: D1Database, sql: string, r: NewReceipt, ...extra: strin
   db.prepare(sql).bind(r.id, r.orderId, r.kind, r.amount, r.collectorPartyId, r.collectorRole, r.method, r.stage, r.occurredDate, r.note, r.at, r.by, r.collectedForPartyId ?? null, ...extra);
 export const receiptBeforeDeliveredStatement = (db: D1Database, r: NewReceipt) => bindReceipt(db, RECEIPT_BEFORE_DELIVERED, r);
 export const receiptAtDeliveryStatement = (db: D1Database, r: NewReceipt, deliveredAt: string) => bindReceipt(db, RECEIPT_AT_DELIVERY, r, deliveredAt);
+export const receiptOnConfirmStatement = (db: D1Database, r: NewReceipt, auditIdXacNhan: string) => bindReceipt(db, RECEIPT_ON_CONFIRM, r, auditIdXacNhan);
 export const receiptRefundStatement = (db: D1Database, r: NewReceipt) => bindReceipt(db, RECEIPT_REFUND, r);
 export const receiptReversalStatement = (db: D1Database, i: { id: string; occurredDate: string; note: string | null; at: string; by: string; reversesId: string; chuaXacNhan?: boolean }) =>
   db.prepare(i.chuaXacNhan ? RECEIPT_REVERSAL_CHUA_XAC_NHAN : RECEIPT_REVERSAL).bind(i.id, i.occurredDate, i.note, i.at, i.by, i.reversesId);

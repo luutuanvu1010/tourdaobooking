@@ -215,3 +215,18 @@ const TRANSFER_IN_OF = defineSql("billing", "coc_transfer_in_of", `SELECT id FRO
 export async function transferInOf(db: D1Database, receiptId: string): Promise<string[]> {
   return (await db.prepare(TRANSFER_IN_OF).bind(receiptId).all<{ id: string }>()).results.map((r) => r.id);
 }
+
+// ---- ADR-0159 + ADR-0089 đ7: đơn huỷ để lập lại (hoặc lý do chưa kết luận) do người này lập, còn giữ tiền chưa hoàn / chưa chuyển — chặn khai lại cùng số tiền ở đơn mới ----
+const COC_LAP_LAI_CON_GIU = defineSql(
+  "billing",
+  "coc_lap_lai_con_giu",
+  `SELECT ol.order_code, v.con_giu
+   FROM v_ord_order_owner o JOIN v_ord_cancel_state c ON c.order_id = o.id JOIN v_bil_coc_don v ON v.order_id = o.id LEFT JOIN v_ord_order_label ol ON ol.id = o.id
+   WHERE o.staff_id = ?1 AND c.group_code IN ('LAP_LAI', 'CHUA_KET_LUAN') AND v.con_giu > 0
+   ORDER BY c.cancelled_date LIMIT 1`,
+);
+export const cocLapLaiConGiu = (db: D1Database, staffId: string): Promise<{ order_code: string | null; con_giu: number } | null> =>
+  db.prepare(COC_LAP_LAI_CON_GIU).bind(staffId).first<{ order_code: string | null; con_giu: number }>();
+const HO_SO_NHAN_VIEN = defineSql("billing", "ho_so_nhan_vien", `SELECT party_id FROM v_stf_staff_label WHERE id = ?1`);
+export const hoSoNhanVien = async (db: D1Database, staffId: string): Promise<string | null> =>
+  (await db.prepare(HO_SO_NHAN_VIEN).bind(staffId).first<{ party_id: string | null }>())?.party_id ?? null;
