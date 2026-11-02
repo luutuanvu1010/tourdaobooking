@@ -101,6 +101,7 @@ const ROUTE_GET: string[] = [...new Set(readdirSync(MODULES).flatMap((m) => {
  */
 const MIEN_200: Record<string, string> = {
   "/api/ve/don/:orderId": "ADR-0153 (kho vé điện tử): danh sách vé của MỘT đơn có vé giữ — bài này không nhập kho vé nên mã đơn lạ ⇒ 404; DTO chỉ SỐ LƯỢNG theo nhóm khách + cờ thu đủ, không chở tiền; bangDien gọi bằng mã lạ nên thân 404 vẫn được quét",
+  "/api/ve/lo-da-huy/:veId/anh": "Chủ quyết 2/11/2026: thân là byte ảnh vé của lô đã huỷ (không phải JSON, không chở tiền) — cần vé đã mở; bài này không nhập kho; bangDien gọi bằng mã lạ nên thân 404 / 403 vẫn được quét",
   "/api/ve/anh/:allocationId": "ADR-0153 Đ3: thân là byte ảnh vé (không phải JSON, không chở tiền) — cần vé đã giữ cho đơn thu đủ; bài này không nhập kho; bangDien gọi bằng mã lạ nên thân 404 / 403 vẫn được quét",
   "/ve/:token": "ADR-0153 Đ2: trang công khai theo token — không đăng nhập; thân là HTML chỉ có ảnh + nhãn nhóm khách + khoảng ngày (không tên khách, mã đơn, giá); token lạ ⇒ 404 cùng một thân",
   "/api/ve-khach/:token/anh/:slot": "ADR-0153 Đ2: ảnh vé công khai theo token (byte ảnh, không chở tiền); token lạ ⇒ 404 cùng một thân",
@@ -166,6 +167,7 @@ function bangDien(g: Gieo): Record<string, string[]> {
     // ADR-0153 (kho vé điện tử): danh sách vé của đơn B (chỉ số lượng), ảnh vé theo mã phân bổ lạ (404 / 403), trang và ảnh công khai theo token lạ (404) — vẫn GỌI để thân được quét.
     "/api/ve/don/:orderId": [`/api/ve/don/${uuid()}`],
     "/api/ve/anh/:allocationId": [`/api/ve/anh/${"0".repeat(32)}`],
+    "/api/ve/lo-da-huy/:veId/anh": [`/api/ve/lo-da-huy/${uuid()}/anh`],
     "/ve/:token": [`/ve/${"A".repeat(43)}`],
     "/api/ve-khach/:token/anh/:slot": [`/api/ve-khach/${"A".repeat(43)}/anh/1`],
     "/api/catalog/:code/group-history": ["/api/catalog/SLX/group-history"],
