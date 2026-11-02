@@ -9,7 +9,8 @@ Kế hoạch: `docs/superpowers/plans/2026-11-02-dat-ve-doi-tac-luot-2.md`. Nhá
 - **R3 (2026-11-02):** không hỏi chủ giữa chừng trừ bốn trường hợp: thao tác không đảo ngược, an ninh, tác động ra ngoài thư mục này, kế hoạch hỏng tới mức mọi đường đều là đoán. Câu phát sinh chạm dữ liệu hoặc quyền mà ADR đã trả lời nguyên tắc thì áp và ghi ở đây; ADR chưa trả lời thì dừng đúng phần đó, làm tiếp phần khác, gom hỏi một lần (`CLAUDE.md` §3).
 
 - **R6 (2026-11-02, người kiểm N-1, mức Chặn):** lô `db.batch` không lui khi câu xác nhận đổi 0 dòng, nên Còn vé có thể ghi giờ và dấu đặt gấp rồi thua (đơn quá ngày đi); dấu còn lại cho Kế toán xác nhận dưới hạn chốt, trái ADR-0154 Đ1.4. Sửa: chặn trước lô mọi vế của `ORDER_CONFIRM` mà `CON_MO` không phủ, trả đúng câu `chanDoanXacNhan`; không đổi SQL. Sai thì chỉ sửa một chỗ trong route.
-- **R7 (2026-11-02, người kiểm N-3):** «lượt đầu» xếp chiều đi trước chiều về, rồi mới tới ngày. Chữ ADR «chặng đầu tiên, không phân biệt chiều» không định thứ tự; nó đòi tính cả dịch vụ chỉ có chiều về, cách xếp mới vẫn đúng. Một lượt về đứng trước lượt đi chỉ là dữ liệu lệch (gửi qua API, hoặc đổi ngày đi để lượt về ở lại), không phải hành trình thật. Đổi cùng lúc ở `changDauCuaDichVu`, câu con `R-ORD-17w`, bài và kế hoạch câu 1. Báo chủ trong báo cáo. Sai thì đổi lại ba chỗ, có bài đối chiếu hai phía canh.
+- **R7 (2026-11-02, người kiểm N-3): DIỄN GIẢI TẠM, CHỜ CHỦ (người kiểm lần 2, N-4).** «Lượt đầu» xếp chiều đi trước chiều về, rồi mới tới ngày; dịch vụ chỉ có chiều về thì xét chiều về. Đây là cách đọc giữa chừng, không phải đúng chữ: ADR-0154 dòng 5 ghi «không xét chiều đi», Đ1.2 ghi «không phân biệt chiều», chủ đã duyệt chữ đó. Đổi cùng lúc ở `changDauCuaDichVu`, câu con `R-ORD-17w`, bài và kế hoạch câu 1, nên nếu chủ chọn đúng chữ thì sửa lại đúng các chỗ đó, có bài đối chiếu hai phía canh, và phải thêm một chốt riêng cho ca đổi ngày đi (xác định lượt đầu theo ngày đang lưu). Dù chủ chọn gì, Đợt 5 đề xuất một dòng làm rõ ADR qua công cụ sửa tệp để chủ được hỏi.
+- **R9 (2026-11-02):** N-4 chặn việc nhập nhánh và chặn Đợt 3 (Task 3.1, 3.3 gọi `changDauCuaDichVu`, có bài phụ thuộc thứ tự); không chặn Đợt 2, Đợt 4. Chủ chưa trả lời khi Đợt 2 đạt thì làm Đợt 4 trước, giữ Đợt 3.
 - **R8 (2026-11-02, người kiểm N-2):** thêm bài khoá hai hàng rào chưa ai canh, rồi làm lại sửa cố ý để thấy đỏ.
 
 ## Rà mâu thuẫn trước khi giao
@@ -33,8 +34,8 @@ Mỗi task tự khớp với bài của mình ở mức đọc kế hoạch. `v_
 
 | Đợt | Trạng thái | Người thi công | Người kiểm | Commit |
 |---|---|---|---|---|
-| 1. Dữ liệu và máy chủ giờ đón | thi công xong, đang kiểm | trợ lý tầm trung | `nguoi-kiem-doc-lap` | `274f1f01`, `949be7ab`, `1f8791b9`, `34c457ae` |
-| 2. Công tắc, miễn thiếu tên | chưa | | | |
+| 1. Dữ liệu và máy chủ giờ đón | đạt có điều kiện sau hai vòng kiểm: N-4 chờ chủ (R7) | trợ lý tầm trung | `nguoi-kiem-doc-lap` | `274f1f01`, `949be7ab`, `1f8791b9`, `34c457ae`; sửa: `6f91a051`, `b9ed1664`, `2d35f32f` |
+| 2. Công tắc, miễn thiếu tên | đang làm | | | |
 | 3. Giao diện ADR-0154 | chưa | | | |
 | 4. Cột Cấp độ đại lý | chưa | | | |
 | 5. Tài liệu, bộ kiểm dài, ảnh thật, kiểm độc lập | chưa | | | |
@@ -57,6 +58,8 @@ Mỗi task tự khớp với bài của mình ở mức đọc kế hoạch. `v_
 - Nhật ký `confirmed` chỉ ghi lý do đặt gấp đầu tiên; đủ chi tiết ở các dòng `order_leg_short_notice`.
 - Che ghi chú chỉ phủ `services[].note`, đúng phạm vi ADR Đ1.6; chưa che `pickupPlace`, `checkinPlace`.
 - `tests/audit/redteam.test.mjs`: 8 bài đỏ giống hệt nhau trên `8cb58ae4` và `34c457ae` (người kiểm đã đối chứng), nằm ngoài `npm test`. Nguyên nhân đã truy ở R3b, R4, R8: bài dựng đơn nháp lỗi thời so với ADR-0135 Đ6 (`order_not_confirmed`). Không do lượt này; báo chủ như việc riêng.
+- m-6 (người kiểm lần 2): vế `order.services.length === 0` của cổng mới là phòng thủ thừa; `chanDoanXacNhan` đọc ngày đã lưu nên danh sách `missing` có thể nêu lỗi mà `ngayDi` sẽ sửa. Không sai trạng thái, không sửa.
+- C5b (người kiểm lần 2, có từ trước, chưa kiểm có tới được qua API không): dịch vụ trống ngày đi mà chặng có ngày, sau Còn vé kèm `ngayDi` thì chặng ở lại, sớm hơn ngày đi quá mức cho phép. Đợt 5 ghi `docs/BACKLOG.md`.
 - `audit-invariants --db remote` chạy TRƯỚC khi áp `0133` sẽ thoát 2 vì thiếu bảng mới; đúng khuôn các kiểm trước, `npm run trien-khai` chạy nó sau migration nên không chặn phát hành (người kiểm đã đọc trình tự).
 
 ## Sửa cố ý đã thấy đỏ (P16)
