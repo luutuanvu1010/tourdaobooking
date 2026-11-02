@@ -19,6 +19,8 @@ Kế hoạch: `docs/superpowers/plans/2026-11-02-dat-ve-doi-tac-luot-2.md`. Nhá
 - **R12 (2026-11-02, người kiểm Đợt 4, N-1):** «Dùng cấp theo vai trò» không có ô ngày để người dùng thấy, nên giao diện đọc lại ngày máy chủ ngay lúc bấm rồi mới gửi; trang mở qua nửa đêm không được làm cấp riêng hết hiệu lực từ hôm qua. Các ô có ngày hiện ra thì lấy ngày máy chủ lúc mở bảng.
 - **R13 (2026-11-02, bề mặt, ghi lại):** «Dùng cấp theo vai trò» kèm một câu cố định báo hệ quả nếu vai trò chưa có cấp; không thêm khoá vào DTO, nên không đổi hợp đồng đã ghim. Sự thật do người kiểm đo: đơn của đại lý «Chưa có cấp» vẫn tạo và xác nhận được, dòng dịch vụ chụp `MISSING`, tới «Đã giao» thì 409 cho tới khi Kế toán ghi mức tay. Nút «Thôi theo cấp này» ở trang Hoa hồng có cùng hệ quả, cũng không cảnh báo: không sửa ở lượt này. Chữ chờ chủ xem ảnh.
 
+- **R14 (2026-11-02, chủ: «không thể lâu như thế được, có gì sai ở đây rồi»):** đo thật 5 giờ 15 phút, máy không nghẽn, gốc là cách điều phối. Bỏ chữ «mỗi đợt có người kiểm riêng» của kế hoạch, vốn do người soạn thêm, `CLAUDE.md` §3 chỉ đòi người kiểm độc lập cho việc lớn. Từ đây: một vòng kiểm độc lập ở cuối (Task 5.4), tập trung phần chưa ai đọc (Đợt 3, bản sửa `431a9184`, `c4a0ab6c` của Đợt 4), chạy song song bộ kiểm dài. Sửa cố ý chỉ làm đúng danh sách kế hoạch ghi. Đợt 3 làm tạm theo R7, không nhập nhánh khi chủ chưa chọn.
+
 ## Rà mâu thuẫn trước khi giao
 
 | Hai task | Chạm chung | Kết quả |
@@ -42,8 +44,8 @@ Mỗi task tự khớp với bài của mình ở mức đọc kế hoạch. `v_
 |---|---|---|---|---|
 | 1. Dữ liệu và máy chủ giờ đón | đạt có điều kiện sau hai vòng kiểm: N-4 chờ chủ (R7) | trợ lý tầm trung | `nguoi-kiem-doc-lap` | `274f1f01`, `949be7ab`, `1f8791b9`, `34c457ae`; sửa: `6f91a051`, `b9ed1664`, `2d35f32f` |
 | 2. Công tắc, miễn thiếu tên | đạt có điều kiện: đi cùng Task 3.4 (NS-1) | trợ lý tầm trung | `nguoi-kiem-doc-lap` | `a501f077`, `f12b8fa0` |
-| 3. Giao diện ADR-0154 | chưa | | | |
-| 4. Cột Cấp độ đại lý | đạt có điều kiện, đang sửa N-1 | trợ lý tầm trung | `nguoi-kiem-doc-lap` | `3af9c08d`, `962c76f3`, `6dca962d` |
+| 3. Giao diện ADR-0154 | đang làm, tạm theo R7 | trợ lý tầm trung | vòng cuối (R14) | |
+| 4. Cột Cấp độ đại lý | đã sửa N-1; bản sửa kiểm ở vòng cuối (R14) | trợ lý tầm trung | `nguoi-kiem-doc-lap` | `3af9c08d`, `962c76f3`, `6dca962d`; sửa: `431a9184`, `c4a0ab6c` |
 | 5. Tài liệu, bộ kiểm dài, ảnh thật, kiểm độc lập | chưa | | | |
 
 ## Lệch kế hoạch đã có lý do (Đợt 1)
