@@ -51,11 +51,11 @@ function moiTep(thuMuc: string): string[] {
 
 test("chỉ web/qr-ve.ts nhắc tới bộ vẽ (quét đệ quy web/ kể cả web/sw/ và src/, mọi loại tệp; bắt cả tệp bọc xuất lại)", () => {
   const dung = [...moiTep(join(GOC, "web")), ...moiTep(join(GOC, "src"))]
-    .filter((rel) => rel !== "src/vendor-qr.test.ts") // chính bài này phải viết ra chữ cần tìm
+    .filter((rel) => rel !== "src/vendor-qr.test.ts" && rel !== "src/vendor-jsqr.test.ts") // chính bài này phải viết ra chữ cần tìm; bài của bộ đọc dùng bộ vẽ để tạo ảnh thử
     .filter((rel) => /vendor\/qrcode/.test(readFileSync(join(GOC, rel), "utf8")));
   assert.deepEqual(dung, ["web/qr-ve.ts"]);
   // Thư mục vendor không có tệp thứ ba (một tệp bọc đặt ngay trong đó sẽ lọt khỏi bài quét ở trên).
-  assert.deepEqual(readdirSync(join(GOC, "web/vendor")).sort(), ["qrcode.d.ts", "qrcode.js"]);
+  assert.deepEqual(readdirSync(join(GOC, "web/vendor")).sort(), ["jsqr.LICENSE.txt", "jsqr.cjs", "jsqr.d.cts", "qrcode.d.ts", "qrcode.js"]);
 });
 
 test("không thêm bộ vẽ vào package.json (mọi mục khai phụ thuộc, kể cả peerDependencies và overrides)", () => {

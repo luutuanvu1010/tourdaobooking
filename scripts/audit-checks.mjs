@@ -2109,6 +2109,13 @@ export const CHECKS = [
     level: "fail",
     note: "vé đã đưa cho khách mà quay về kho thì có thể cấp lại cho người khác (vé có giá trị như tiền) — bất biến Đ1 mục 6 của ADR-0153",
   },
+  {
+    code: "R-VDT-4",
+    what: "không có hai vé còn hiệu lực trùng số S/N (12 số cuối của chuỗi QR 36 chữ số)",
+    sql: `SELECT count(*) FROM (SELECT substr(ticket_code, -12) FROM vdt_ticket WHERE withdrawn_at IS NULL AND status <> 'VOID' AND length(ticket_code) = 36 AND ticket_code NOT GLOB '*[^0-9]*' GROUP BY 1 HAVING count(*) > 1)`,
+    level: "fail",
+    note: "chỉ mục duy nhất theo toàn chuỗi QR không bắt được ca nhà cung cấp phát lại chuỗi khác cho cùng S/N (ADR-0156 Đ1 mục 6): vé có thể đã bán trùng, kiểm tay từng vé — báo số nhóm, không in mã",
+  },
 ];
 
 /**

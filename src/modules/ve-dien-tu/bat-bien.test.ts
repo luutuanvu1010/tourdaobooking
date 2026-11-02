@@ -10,6 +10,25 @@ const kiem = (d: ReturnType<typeof taoCsdl>, ma: string): number => {
   return Number(Object.values(d.prepare(c.sql).get() as Record<string, unknown>)[0]);
 };
 
+test("R-VDT-4: hai vé còn hiệu lực trùng 12 số cuối của chuỗi QR ⇒ bắt; vé đã rút hoặc VOID, mã khác dạng không tính", () => {
+  const d = taoCsdl();
+  const lo = themLo(d);
+  const chen = (id: string, ma: string) => d.prepare(
+    `INSERT INTO vdt_ticket (id, batch_id, ticket_code, valid_from, valid_to, storage_key, content_kind, byte_size, content_hash, status, stored_at, created_at, updated_at)
+     VALUES (?, ?, ?, '2026-10-01', '2026-11-30', ?, 'image/jpeg', 1000, ?, 'AVAILABLE', ?, ?, ?)`,
+  ).run(id, lo, ma, `vdt/${id}`, `bam-${id}`, AT, AT, AT);
+  const sn = "900000000001";
+  chen("a", `${"1".repeat(24)}${sn}`);
+  assert.equal(kiem(d, "R-VDT-4"), 0, "một vé");
+  chen("b", `${"2".repeat(24)}${sn}`);
+  assert.equal(kiem(d, "R-VDT-4"), 1, "cùng S/N, phần đầu chuỗi QR khác");
+  d.prepare("UPDATE vdt_ticket SET status = 'VOID', withdrawn_at = ?, updated_at = ? WHERE id = 'b'").run(AT, AT);
+  assert.equal(kiem(d, "R-VDT-4"), 0, "vé đã rút không tính");
+  chen("c", `TA.${sn}`);
+  chen("d", `TB.${sn}`);
+  assert.equal(kiem(d, "R-VDT-4"), 0, "mã không phải dạng 36 chữ số không tính");
+});
+
 test("R-VDT-1..3: dữ liệu sạch ⇒ 0; vé ALLOCATED không phân bổ ⇒ R-VDT-1 bắt; phân bổ mở trỏ vé AVAILABLE ⇒ R-VDT-2 bắt; vé đã lộ về kho ⇒ R-VDT-3 bắt", () => {
   const d = taoCsdl();
   const lo = themLo(d);

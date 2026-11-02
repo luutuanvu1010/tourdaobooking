@@ -111,6 +111,8 @@ export const TRANG = {
   chupBu: { duong: "/chup-bu", hien: (s) => can(s, "order.terms.override") && !holdsPartner(s) },
   // Kho vé điện tử (ADR-0153; Task 9a): CÙNG cổng route `GET /api/ve/kho` — ô ve.kho.manage (Bán hàng, Quản trị, Toàn quyền).
   veKho: { duong: "/ve-kho", hien: (s) => can(s, "ve.kho.manage") },
+  // Cài đặt vé điện tử (ADR-0156 Đ3): CÙNG cổng route `GET /api/ve/cai-dat` — ô settings.ops (chỉ Toàn quyền).
+  veCaiDat: { duong: "/ve-cai-dat", hien: (s) => can(s, "settings.ops") },
   // Đơn chờ xác nhận (ADR-0136 Đ6; Task 3.5): CÙNG cổng route `GET /api/orders/cho-xac-nhan` — ô order.confirm.review không ngữ cảnh (Bán hàng, Kế toán, Quản trị, HDV, Toàn quyền).
   choXacNhan: { duong: "/cho-xac-nhan", hien: (s) => can(s, "order.confirm.review") },
   nhatKy: { duong: "/audit", hien: (s) => can(s, "audit.view") }, // ADR-0038 điều 6: chỉ Toàn quyền
@@ -205,6 +207,7 @@ export const THANH_BEN = [
   { nhom: "THIẾT LẬP", trang: "nguoiBan", nhan: "Người bán dịch vụ" },
   { nhom: "THIẾT LẬP", trang: "chupBu", nhan: "Chụp bù mức" },
   { nhom: "THIẾT LẬP", trang: "veKho", nhan: "Vé điện tử" },
+  { nhom: "THIẾT LẬP", trang: "veCaiDat", nhan: "Cài đặt vé điện tử" },
   { nhom: "THIẾT LẬP", trang: "dichVu", nhan: "Dịch vụ & giá" },
   { nhom: "THIẾT LẬP", trang: "dacDiem", nhan: "Đặc điểm dịch vụ" },
   { nhom: "THIẾT LẬP", trang: "diaDiem", nhan: "Địa điểm" },
@@ -297,6 +300,7 @@ export const TRANG_TOI = [
   { phan: "sau", trang: "nguoiBan", nhan: "Người bán dịch vụ" },
   { phan: "sau", trang: "chupBu", nhan: "Chụp bù mức" },
   { phan: "sau", trang: "veKho", nhan: "Vé điện tử" },
+  { phan: "sau", trang: "veCaiDat", nhan: "Cài đặt vé điện tử" },
   { phan: "sau", trang: "nhatKy", nhan: "Nhật ký" },
   { phan: "sau", trang: "phien", nhan: "Máy đang đăng nhập" },
   { phan: "sau", trang: "guiThongBao", nhan: "Gửi thông báo" },

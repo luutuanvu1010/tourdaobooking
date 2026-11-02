@@ -1,5 +1,6 @@
 // KHO VÉ ĐIỆN TỬ trên API THẬT (wrangler dev, D1 local tạm + R2 local; ADR-0153). Ca: nhập lô → xác nhận lô → lập + xác nhận đơn (giữ vé qua D1 THẬT, db.batch) →
 // huỷ đơn (trả vé về kho) → chưa thu đủ thì ảnh 403 → đường dẫn khách sai token 404 → Kế toán 403. Dùng RIÊNG mã danh mục giả ZVD1; mọi vé của kịch bản nằm trong lô riêng.
+// ADR-0156: chống trùng theo mã + dấu vân tệp, trần lô (chỉ Toàn quyền đổi, khoá lạc quan, đợt sau cộng dồn), Bỏ lô rồi nhập lại đúng ảnh đó, lô từng giữ chỗ không bỏ được.
 import assert from "node:assert/strict";
 import { ACCOUNTS, call, catalogService, ensureFakeCatalog, orderInput, session, sql, sqlRows, vnDate } from "./lib.mjs";
 
@@ -11,7 +12,8 @@ await sql(`INSERT INTO catalog_item (code,name,unit,price_adult,price_child,pric
 
 const SALES = await session(ACCOUNTS.salesA);
 const KT = await session(ACCOUNTS.accountant);
-const PNG = (n) => { const u = new Uint8Array(40); u.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0x0d, 0x49, 0x48, 0x44, 0x52, 0, 0, n, n]); return Buffer.from(u).toString("base64"); };
+// Nhúng `tag`: từ ADR-0156 cùng ảnh là trùng, nên chạy lại trên cùng D1 cũng phải là ảnh khác.
+const PNG = (n) => { const u = new Uint8Array(40); u.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0x0d, 0x49, 0x48, 0x44, 0x52, 0, 0, n, n]); u.set(new TextEncoder().encode(tag), 20); return Buffer.from(u).toString("base64"); };
 const tag = Date.now().toString(36);
 const den = vnDate(60);
 
@@ -65,7 +67,74 @@ assert.equal(h.status, 200, JSON.stringify(h.body));
 assert.equal(await dem("released_at IS NULL"), 0);
 assert.equal(Number((await sqlRows(`SELECT count(*) AS n FROM vdt_ticket WHERE status = 'AVAILABLE' AND batch_id = '${lo.body.loId}'`))[0].n), 3);
 
-// 8. nhật ký không chứa mã vé
-const nk = JSON.stringify(await sqlRows(`SELECT detail, target_id FROM audit_log WHERE action LIKE 've_%'`));
+// ---- ADR-0156 trên D1 THẬT (chỉ mục có điều kiện, trigger, lô db.batch của Bỏ lô, R2 mô phỏng) ----
+const TQ = await session(ACCOUNTS.superAdmin);
+const QT = await session(ACCOUNTS.admin);
+const moLo = async (them = {}) => { const r = await call(SALES, "POST", "/api/ve/lo", { catalogCode: "ZVD1", nhomKhach: "ADULT", tenSanPham: "Vé thử e2e ADR-0156", ...them }); assert.equal(r.status, 201, JSON.stringify(r.body)); return r.body.loId; };
+const veThu = (n, ma = `E2E.${tag}.${n}`) => ({ noiDung: PNG(n), maVe: ma, tuNgay: vnDate(-1), denNgay: den });
+const themVe = (loId, ve) => call(SALES, "POST", `/api/ve/lo/${loId}/ve`, { ve });
+const conTrong = async () => (await call(SALES, "GET", "/api/ve/kho")).body.kho.find((d) => d.catalogCode === "ZVD1").conTrong;
+const demAudit = async (action) => Number((await sqlRows(`SELECT count(*) AS n FROM audit_log WHERE action = '${action}'`))[0].n);
+
+// 8. chống trùng: ảnh đã có trong kho (mã khác) · mã đã có (ảnh khác) · hai ảnh giống nhau trong cùng đợt. Ba ca bị loại, ca lành vẫn vào.
+const loTrung = await moLo();
+const trung = await themVe(loTrung, [veThu(1, `E2E.${tag}.khac`), veThu(11, `E2E.${tag}.1`), veThu(12), veThu(12, `E2E.${tag}.khac2`)]);
+assert.equal(trung.status, 200, JSON.stringify(trung.body));
+assert.equal(trung.body.themDuoc, 1);
+assert.deepEqual(trung.body.loai.map((l) => [l.thuTu, l.lyDo]), [[0, "Ảnh này đã có trong kho, đã loại."], [1, "Mã vé đã có trong kho, đã loại."], [3, "Trùng với một ảnh khác trong đợt này."]]);
+
+// 9. trần lô: chỉ Toàn quyền đọc và đổi; ngoài khoảng 400; phiên bản cũ 409; vượt trần KHÔNG sinh lô dở; đợt sau cộng dồn với đợt trước
+assert.equal((await call(SALES, "GET", "/api/ve/cai-dat")).status, 403);
+assert.equal((await call(QT, "GET", "/api/ve/cai-dat")).status, 403);
+assert.equal((await call(QT, "PUT", "/api/ve/cai-dat", { tranLo: 5, version: 0 })).status, 403);
+const cd = await call(TQ, "GET", "/api/ve/cai-dat");
+assert.equal(cd.status, 200, JSON.stringify(cd.body));
+assert.equal(cd.body.tranLo, 50, "mặc định 50 do migration gieo");
+for (const sai of [0, 201, 1.5, "2"]) assert.equal((await call(TQ, "PUT", "/api/ve/cai-dat", { tranLo: sai, version: cd.body.version })).status, 400, `trần ${sai}`);
+const doi = await call(TQ, "PUT", "/api/ve/cai-dat", { tranLo: 2, version: cd.body.version });
+assert.equal(doi.status, 200, JSON.stringify(doi.body));
+assert.equal((await call(TQ, "PUT", "/api/ve/cai-dat", { tranLo: 3, version: cd.body.version })).status, 409, "phiên bản cũ thì thua");
+assert.equal((await call(SALES, "GET", "/api/ve/kho")).body.tranLo, 2, "trang nhập lô đọc trần qua /api/ve/kho");
+const soLoTruoc = Number((await sqlRows("SELECT count(*) AS n FROM vdt_batch"))[0].n);
+const vuot = await call(SALES, "POST", "/api/ve/lo", { catalogCode: "ZVD1", nhomKhach: "ADULT", tenSanPham: "Vượt trần", soVeDuKien: 3 });
+assert.equal(vuot.status, 400);
+assert.equal(vuot.body.error.code, "batch_limit", JSON.stringify(vuot.body));
+assert.equal(Number((await sqlRows("SELECT count(*) AS n FROM vdt_batch"))[0].n), soLoTruoc, "vượt trần không để lại lô dở");
+const loTran = await moLo({ soVeDuKien: 2 });
+assert.equal((await themVe(loTran, [veThu(21), veThu(22), veThu(23)])).status, 400, "ba ảnh một đợt vượt trần 2");
+assert.equal((await themVe(loTran, [veThu(21), veThu(22)])).body.themDuoc, 2);
+assert.equal((await themVe(loTran, [veThu(24)])).status, 400, "đợt sau cộng dồn với số vé đã có trong lô");
+assert.equal((await call(TQ, "PUT", "/api/ve/cai-dat", { tranLo: 50, version: doi.body.version })).status, 200);
+assert.equal(await demAudit("ve_doi_tran_lo"), 2, "mỗi lần đổi thắng đúng một dòng nhật ký; lần thua không ghi");
+
+// 10. Bỏ lô đã vào kho: vé bị rút khỏi kho, xoá trên kho tệp, bỏ lần hai 409; nhập lại ĐÚNG hai ảnh và hai mã đó vào lô mới được
+const loBo = await moLo();
+assert.equal((await themVe(loBo, [veThu(31), veThu(32)])).body.themDuoc, 2);
+assert.equal((await call(SALES, "POST", `/api/ve/lo/${loBo}/xac-nhan`, {})).status, 200);
+assert.equal(await conTrong(), 5);
+const dsTruoc = (await call(SALES, "GET", "/api/ve/lo")).body.lo;
+assert.equal(dsTruoc.find((l) => l.loId === loBo)?.soVe, 2);
+assert.equal(dsTruoc.some((l) => l.loId === lo.body.loId), false, "lô từng giữ chỗ không hiện trong danh sách bỏ được");
+const bo = await call(SALES, "POST", `/api/ve/lo/${loBo}/bo`, {});
+assert.equal(bo.status, 200, JSON.stringify(bo.body));
+assert.equal(bo.body.veDaRut, 2);
+assert.equal(await conTrong(), 3, "vé của lô đã bỏ không còn đếm trong kho");
+const hang = await sqlRows(`SELECT status, withdrawn_at, purged_at, r2_deleted_at FROM vdt_ticket WHERE batch_id = '${loBo}'`);
+assert.equal(hang.length, 2);
+for (const h of hang) { assert.equal(h.status, "VOID"); assert.ok(h.withdrawn_at && h.purged_at && h.r2_deleted_at, `dòng vé sau Bỏ lô: ${JSON.stringify(h)}`); }
+assert.equal((await call(SALES, "POST", `/api/ve/lo/${loBo}/bo`, {})).status, 409, "bỏ lần hai");
+assert.equal(await demAudit("ve_bo_lo"), 1, "bỏ lần hai không ghi nhật ký");
+assert.equal((await call(SALES, "GET", "/api/ve/lo")).body.lo.some((l) => l.loId === loBo), false);
+const loLai = await moLo();
+const lai = await themVe(loLai, [veThu(31), veThu(32)]);
+assert.equal(lai.body.themDuoc, 2, JSON.stringify(lai.body));
+assert.deepEqual(lai.body.loai, []);
+
+// 11. lô đã từng giữ chỗ (lô đầu, vé đã về kho sau khi huỷ đơn): không bỏ được, vì có thể đã lộ mã
+assert.equal((await call(SALES, "POST", `/api/ve/lo/${lo.body.loId}/bo`, {})).status, 409);
+assert.equal(await conTrong(), 3);
+
+// 12. nhật ký không chứa mã vé
+const nk =JSON.stringify(await sqlRows(`SELECT detail, target_id FROM audit_log WHERE action LIKE 've_%'`));
 assert.doesNotMatch(nk, new RegExp(`E2E\\.${tag}|vdt/`));
 console.log("ve-dien-tu e2e: ĐẠT");

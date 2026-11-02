@@ -31,6 +31,8 @@ export const AUDIT_ACTIONS = {
   ve_nhap_lo: { label: "Nhập lô vé điện tử", group: "ve" }, // detail: nhãn nhóm khách + số vé (KHÔNG mã vé)
   ve_xac_nhan_lo: { label: "Đưa lô vé điện tử vào kho", group: "ve" },
   ve_sua_ma_tour: { label: "Sửa dịch vụ của lô vé điện tử", group: "ve" },
+  ve_bo_lo: { label: "Bỏ lô vé điện tử", group: "ve" }, // ADR-0156 Đ2 mục 3; detail: nhãn nhóm khách (KHÔNG mã vé)
+  ve_doi_tran_lo: { label: "Đổi số vé tối đa mỗi lô", group: "ve" }, // ADR-0156 Đ3; detail: số cũ → số mới
   updated: { label: "Sửa đơn", group: "order" },
   trip_updated: { label: "Sửa thông tin chuyến", group: "order" },
   // ADR-0047 A1: chặng đưa đón sau xác nhận — `detail` "Chiều đi · <tên dịch vụ>: giờ đón 06:30 → 07:00; nơi đón A → B" (chữ tự do che dãy số — moTaChang).

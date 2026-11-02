@@ -10,7 +10,7 @@ const BYTES = new Uint8Array([0xff, 0xd8, 0xff]);
 function veDoDang(d: ReturnType<typeof taoCsdl>, lo: string, id: string) {
   d.prepare(
     `INSERT INTO vdt_ticket (id, batch_id, ticket_code, valid_from, valid_to, storage_key, content_kind, byte_size, content_hash, status, created_at, updated_at)
-     VALUES (?, ?, ?, '2026-10-01', '2026-11-30', ?, 'jpg', 3, 'h', 'AVAILABLE', ?, ?)`,
+     VALUES (?, ?, ?, '2026-10-01', '2026-11-30', ?, 'jpg', 3, 'bam-' || ?1, 'AVAILABLE', ?, ?)`,
   ).run(id, lo, `TA.${id}`, `vdt/${id}`, AT, AT);
 }
 const luc = () => "2026-10-31T05:00:00.000Z";

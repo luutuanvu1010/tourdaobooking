@@ -41,8 +41,8 @@ export function themLo(d: DatabaseSync, o: { ma?: string; nhom?: "ADULT" | "CHIL
 export function themVe(d: DatabaseSync, lo: string, tu = "2026-10-01", den = "2026-11-30", id = `t-${++n}`): string {
   d.prepare(
     `INSERT INTO vdt_ticket (id, batch_id, ticket_code, valid_from, valid_to, storage_key, content_kind, byte_size, content_hash, status, stored_at, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, 'image/jpeg', 1000, 'h', 'AVAILABLE', ?, ?, ?)`,
-  ).run(id, lo, `TA.SECRET.${id}`, tu, den, `vdt/khoa-bi-mat-${id}`, AT, AT, AT);
+     VALUES (?, ?, ?, ?, ?, ?, 'image/jpeg', 1000, ?, 'AVAILABLE', ?, ?, ?)`,
+  ).run(id, lo, `TA.SECRET.${id}`, tu, den, `vdt/khoa-bi-mat-${id}`, `bam-${id}`, AT, AT, AT);
   return id;
 }
 export const dem = (d: DatabaseSync, sql: string, ...a: unknown[]): number => Number((d.prepare(sql).get(...(a as never[])) as { c: number }).c);

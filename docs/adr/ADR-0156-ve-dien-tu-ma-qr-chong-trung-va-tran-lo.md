@@ -1,6 +1,7 @@
 # ADR-0156 — Vé điện tử: mã QR làm khoá chống trùng, chặn trùng theo dấu vân tệp, trần lô do Toàn quyền đặt
 
-- **Trạng thái:** **Đề xuất** (2026-11-02). Chủ đã duyệt hướng trong chat, nguyên văn: *«Duyệt, viết ADR»*, trả lời câu hỏi có viết ADR cho phương án này không. Bản chữ này còn chờ chủ duyệt; người soạn không tự duyệt (Hiến pháp N3). Chưa viết mã.
+- **Trạng thái:** **accepted** 2026-11-02 — chủ dự án trong chat, nguyên văn: *«ok tạm thế đã, tiếp tục nào, nếu có đề xuất tốt hơn thì báo tôi»*, sau câu hỏi duyệt ADR-0156 gồm chấp nhận rủi ro lẫn loại vé trong lô, và sau khi người soạn nêu ba điểm có thể bàn (rủi ro lẫn loại; không đọc được QR thì loại ảnh, không có đường nhập tay; Bán hàng dùng được Bỏ lô). Người ghi chép hiểu ba điểm đó giữ theo bản này và chữ «tạm» nghĩa là chủ có thể đổi sau bằng ADR mới; không tự duyệt thay chủ (Hiến pháp N3). Trước đó chủ đã duyệt hướng: *«Duyệt, viết ADR»*.
+- **Hai mẫu thử chưa có khi chủ bảo tiếp tục:** thi công không chờ, cách lấy khoá từ chuỗi QR nằm ở một hàm thuần để đổi được; hai mẫu thành điều kiện trước khi phát hành (mục «Trước khi phát hành và hệ quả»).
 - **Nguồn:** lời chủ trong chat 2026-11-02: *«Trần của mỗi lô chỉ nên là 50 vé»*, số này *«cũng nên được thiết lập trong bảng điều khiển của Super Admin»*, và *«Cần có thêm lớp chống trùng chính xác, ngoài việc dấu vân tệp ảnh»*; nhân viên xem lại kết quả máy đọc là việc *«vô cùng khó vì số lượng vé làm việc là lớn»*; ảnh trong kho *«chỉ được tải từ trang của nhà cung cấp»*.
 - **Đã kiểm:** người kiểm độc lập đọc một vòng ngày 2026-11-02, kết luận ĐẠT CÓ ĐIỀU KIỆN, các số đo tái hiện được. Ba phát hiện mức Cao đã đưa vào bản này (Đ2 mục 2–3, «Rủi ro còn lại»).
 - **Số:** ADR 0156 (0154, 0155 đã dùng ở nhánh đặt vé của đối tác). Migration số tạm `0132`: ADR-0154 ở nhánh chưa gộp cũng dự kiến số này, ai gộp sau đổi số theo luật ở `docs/adr/README.md`.
@@ -59,9 +60,9 @@ Chép nguyên `jsqr@1.4.0` (Apache-2.0, phát hành 2021-04-24, `dist/jsQR.js`) 
 
 **QR giải quyết «không trùng», không giải quyết «nhập đúng».** QR không chứa ngày, sản phẩm hay nhóm khách. Dịch vụ, nhóm khách, ngày dùng chung cả lô và tên sản phẩm vẫn do người khai, không máy nào kiểm. Vé trẻ em lẫn vào lô người lớn, hay vé một ngày lẫn vào lô 30 ngày, sẽ lọt và có thể tới tay khách. Trong 7 ảnh mẫu, ngày dùng khác nhau tuỳ sản phẩm, có vé 14 ngày, có vé một ngày kèm giờ. Giảm rủi ro bằng cách tải và nhập từng lô theo đúng một sản phẩm và một ngày dùng, và dùng lệnh Bỏ lô khi phát hiện sớm. Khi đã xảy ra lẫn loại thật, hướng tiếp theo là để máy tự so nội dung in trên vé với khai của lô, lệch thì giữ vé lại, không cần người soát; việc đó cần ADR riêng vì phải đọc chữ.
 
-## Trước khi thi công và hệ quả
+## Trước khi phát hành và hệ quả
 
-- **Điều kiện thi công Đ1, cần chủ:** (a) tải **cùng một vé hai lần** từ trang nhà cung cấp; chuỗi QR khác nhau thì đổi khoá sang 12 số cuối (`S/N`), phần còn lại giữ nguyên. (b) Vài ảnh vé Vinpearl Harbour; chủ đã chốt làm cả Harbour, mà QR khác dạng thì không nhập được vì không có đường nhập tay.
+- **Điều kiện phát hành, cần chủ:** (a) tải **cùng một vé hai lần** từ trang nhà cung cấp; chuỗi QR khác nhau thì đổi khoá sang 12 số cuối (`S/N`), phần còn lại giữ nguyên. (b) Vài ảnh vé Vinpearl Harbour; chủ đã chốt làm cả Harbour, mà QR khác dạng thì không nhập được vì không có đường nhập tay.
 - **Không làm** Task 4b (đọc chữ bằng AI) cho việc nhập vé. Không cần `ANTHROPIC_API_KEY` và công tắc `VE_DOC_OPENAI` cho việc này; thoả thuận xoá ngay ở lựa chọn (b) của ADR-0153 không còn là điều kiện của nhập vé.
 - Ngoài phạm vi: tách vé từ PDF, đọc ngày từ ảnh, cấp bù tự động, quét định kỳ, thông báo kho cạn.
 - Tài liệu sống sửa khi thi công: `docs/data-dictionary.json`, `docs/SYSTEM-DESIGN.md` (kể cả dòng còn ghi đề xuất mã vé tuỳ chọn), `docs/CHANGE-GUIDE.md` công thức z31, `docs/SO-HANG-RAO.md`, dòng nợ `POST /api/ve/lo/:id/ve` ở `src/shared/lan-gui-no.ts` (đang tả sai thứ tự và nói băm đã chặn). Chỉ mục băm làm đỏ khoảng 18 bài của module vé vì khung thử dùng băm cố định; chỉ cần sửa dữ liệu thử.

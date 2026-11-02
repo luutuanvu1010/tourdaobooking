@@ -3,7 +3,7 @@
 // và chạy lại được. Không import module khác (chạy được bằng node --test). Chỉ ve-dien-tu chạm kho này (bài src/kho-tep-ve-dien-tu.test.ts).
 // Hai bài tĩnh đếm chữ gọi hàm kho kèm ngoặc trên mã nguồn thô — chú thích ở tệp này đừng viết tên hàm kho kèm ngoặc.
 import { LOAI_NOI_DUNG, type LoaiTep } from "../../shared/tep-dinh-kem.ts";
-import { cauDatChoXoa, danhDauDaLuu, danhDauDaXoaR2, listVeChoDat, type VeCanXoa } from "./repository.ts";
+import { cauRutVeChuaPhat, danhDauDaLuu, danhDauDaXoaR2, listChoXoaCuaLo, listVeChoDat, type VeCanXoa } from "./repository.ts";
 
 const ghiLoi = (event: string, veId: string | null, e?: unknown): void =>
   console.error(JSON.stringify({ level: "error", event, veId, ...(e === undefined ? {} : { loi: e instanceof Error ? e.name : "unknown" }) }));
@@ -25,12 +25,21 @@ export async function xoaKhoiKho(db: D1Database, kho: R2Bucket, ds: readonly VeC
   return { daXoa, loi };
 }
 
+/** Sau lô Bỏ lô đã ghi: dọn đối tượng của lô khỏi kho (ADR-0156 Đ2 mục 3). KHÔNG BAO GIỜ NÉM: lô đã ghi thì không trả 5xx; đối tượng còn lại vẫn ở hàng «chờ xoá». */
+export async function donKhoCuaLo(db: D1Database, kho: R2Bucket, loId: string, luc: () => string): Promise<void> {
+  try {
+    await xoaKhoiKho(db, kho, await listChoXoaCuaLo(db, loId), luc);
+  } catch (e) {
+    ghiLoi("ve_dien_tu_don_lo_loi", null, e);
+  }
+}
+
 /** Byte vé đã kiểm của một lô, giữ trong bộ nhớ từ lúc dựng lô tới lúc đặt kho — tra theo mã vé (khoá kho đọc lại từ D1, không lấy từ đây). */
 export interface VeChuanBi { id: string; bytes: Uint8Array; loai: LoaiTep }
 
 /**
  * Sau lô D1 đã chèn các dòng vé (`stored_at` rỗng): ĐỌC LẠI dòng vé có thật của lô (chỉ những dòng này được đặt kho), đặt từng đối tượng, rồi đánh dấu đã lưu.
- * Đặt hỏng ⇒ quyết xoá vé (VOID, `purged_at`) rồi thử xoá kho; đánh dấu hỏng ⇒ dòng còn "tải dở dang" (không bao giờ được giữ chỗ).
+ * Đặt hỏng ⇒ rút vé (VOID, `purged_at`, `withdrawn_at`: chưa từng phát ra nên gửi lại được, ADR-0156 Đ2 mục 2) rồi thử xoá kho; đánh dấu hỏng ⇒ dòng còn "tải dở dang" (không bao giờ được giữ chỗ).
  * KHÔNG BAO GIỜ NÉM. Trả số vé CHƯA lưu được.
  */
 export async function datVeVaoKho(db: D1Database, kho: R2Bucket, v: { batchId: string; ve: readonly VeChuanBi[]; luc: () => string }): Promise<number> {
@@ -46,7 +55,7 @@ export async function datVeVaoKho(db: D1Database, kho: R2Bucket, v: { batchId: s
       } catch (e) {
         ghiLoi("ve_dien_tu_tai_len_loi", d.id, e);
         try {
-          await db.batch([cauDatChoXoa(db, d.id, v.luc(), null)]);
+          await db.batch([cauRutVeChuaPhat(db, d.id, v.luc(), null)]);
           await xoaKhoiKho(db, kho, [d], v.luc);
         } catch (e2) {
           ghiLoi("ve_dien_tu_danh_dau_xoa_loi", d.id, e2);

@@ -111,10 +111,21 @@ const DAT_CHO_XOA = defineSql(
   // Chỉ thu hồi vé KHÔNG còn phân bổ mở: vé đang giữ cho đơn phải được trả đúng đường (soanTraVe, lý do THU_HOI) — không để phân bổ «ma» trỏ vào vé đã VOID.
   "UPDATE vdt_ticket SET purged_at = ?2, status = 'VOID', updated_at = ?2, updated_by = ?3 WHERE id = ?1 AND purged_at IS NULL AND NOT EXISTS (SELECT 1 FROM vdt_allocation a WHERE a.ticket_id = ?1 AND a.released_at IS NULL)",
 );
+// Rút vé CHƯA TỪNG phát ra khỏi kho (ADR-0156 Đ2 mục 2): như thu hồi, thêm dấu `withdrawn_at` nên mã và băm được nhập lại. Trigger `vdt_ticket_withdrawn_guard` chặn đặt dấu cho vé từng có phân bổ.
+const RUT_VE_CHUA_PHAT = defineSql(
+  "ve-dien-tu",
+  "rut_ve_chua_phat",
+  "UPDATE vdt_ticket SET purged_at = COALESCE(purged_at, ?2), withdrawn_at = ?2, status = 'VOID', updated_at = ?2, updated_by = ?3 WHERE id = ?1 AND withdrawn_at IS NULL AND NOT EXISTS (SELECT 1 FROM vdt_allocation a WHERE a.ticket_id = ?1)",
+);
 const LIST_CHO_XOA = defineSql(
   "ve-dien-tu",
   "list_cho_xoa",
   "SELECT id, storage_key FROM vdt_ticket WHERE purged_at IS NOT NULL AND r2_deleted_at IS NULL ORDER BY purged_at, id LIMIT ?1",
+);
+const LIST_CHO_XOA_CUA_LO = defineSql(
+  "ve-dien-tu",
+  "list_cho_xoa_cua_lo",
+  "SELECT id, storage_key FROM vdt_ticket WHERE batch_id = ?1 AND purged_at IS NOT NULL AND r2_deleted_at IS NULL ORDER BY id",
 );
 const DANH_DAU_DA_XOA_R2 = defineSql("ve-dien-tu", "danh_dau_da_xoa_r2", "UPDATE vdt_ticket SET r2_deleted_at = ?2, updated_at = ?2 WHERE id = ?1 AND r2_deleted_at IS NULL");
 
@@ -124,7 +135,9 @@ export const listVeChoDat = async (db: D1Database, batchId: string): Promise<VeC
 export const danhDauDaLuu = async (db: D1Database, id: string, at: string): Promise<number> => (await db.prepare(DANH_DAU_DA_LUU).bind(id, at).run()).meta.changes;
 /** Câu thu hồi (chưa chạy) — người gọi gộp với nhật ký trong một lô. */
 export const cauDatChoXoa = (db: D1Database, id: string, at: string, by: string | null): D1PreparedStatement => db.prepare(DAT_CHO_XOA).bind(id, at, by);
+export const cauRutVeChuaPhat = (db: D1Database, id: string, at: string, by: string | null): D1PreparedStatement => db.prepare(RUT_VE_CHUA_PHAT).bind(id, at, by);
 export const listChoXoa = async (db: D1Database, gioiHan: number): Promise<VeCanXoa[]> => (await db.prepare(LIST_CHO_XOA).bind(gioiHan).all<VeCanXoa>()).results;
+export const listChoXoaCuaLo = async (db: D1Database, loId: string): Promise<VeCanXoa[]> => (await db.prepare(LIST_CHO_XOA_CUA_LO).bind(loId).all<VeCanXoa>()).results;
 export const danhDauDaXoaR2 = async (db: D1Database, id: string, at: string): Promise<number> => (await db.prepare(DANH_DAU_DA_XOA_R2).bind(id, at).run()).meta.changes;
 
 // ===== Nhập lô (ADR-0153; Task 4c). Lô tạo PENDING, thêm vé từng đợt (dòng vé `stored_at` rỗng tới khi kho nhận), xác nhận ⇒ ACTIVE (mới được giữ chỗ).
@@ -139,9 +152,39 @@ const CHEN_VE = defineSql(
   "chen_ve",
   `INSERT INTO vdt_ticket (id, batch_id, ticket_code, valid_from, valid_to, slot_time, storage_key, content_kind, byte_size, content_hash, status, created_at, created_by, updated_at, updated_by)
    SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, 'AVAILABLE', ?11, ?12, ?11, ?12
-   WHERE EXISTS (SELECT 1 FROM vdt_batch b WHERE b.id = ?2 AND b.status = 'PENDING') AND NOT EXISTS (SELECT 1 FROM vdt_ticket t WHERE t.ticket_code = ?3)`,
+   WHERE EXISTS (SELECT 1 FROM vdt_batch b WHERE b.id = ?2 AND b.status = 'PENDING')
+     AND NOT EXISTS (SELECT 1 FROM vdt_ticket t WHERE t.withdrawn_at IS NULL AND (t.ticket_code = ?3 OR t.content_hash = ?10))`,
 );
-const MA_VE_DA_CO = defineSql("ve-dien-tu", "ma_ve_da_co", "SELECT ticket_code FROM vdt_ticket WHERE ticket_code IN (SELECT value FROM json_each(?1))");
+const MA_VE_DA_CO = defineSql("ve-dien-tu", "ma_ve_da_co", "SELECT ticket_code FROM vdt_ticket WHERE withdrawn_at IS NULL AND ticket_code IN (SELECT value FROM json_each(?1))");
+const BAM_DA_CO = defineSql("ve-dien-tu", "bam_da_co", "SELECT content_hash FROM vdt_ticket WHERE withdrawn_at IS NULL AND content_hash IN (SELECT value FROM json_each(?1))");
+// Bỏ lô (ADR-0156 Đ2 mục 3): chỉ lô chưa có vé nào TỪNG được giữ chỗ (kể cả đã trả). Một lô: lô → nhật ký (`changes() > 0`) → vé; câu vé gác bằng chính dấu của câu lô nên lô thua thì không rút vé nào.
+const BO_LO = defineSql(
+  "ve-dien-tu",
+  "bo_lo",
+  `UPDATE vdt_batch SET status = 'VOID', updated_at = ?2, updated_by = ?3
+   WHERE id = ?1 AND status <> 'VOID' AND NOT EXISTS (SELECT 1 FROM vdt_allocation a JOIN vdt_ticket t ON t.id = a.ticket_id WHERE t.batch_id = ?1)`,
+);
+const RUT_VE_CUA_LO = defineSql(
+  "ve-dien-tu",
+  "rut_ve_cua_lo",
+  `UPDATE vdt_ticket SET purged_at = COALESCE(purged_at, ?2), withdrawn_at = ?2, status = 'VOID', updated_at = ?2, updated_by = ?3
+   WHERE batch_id = ?1 AND withdrawn_at IS NULL AND EXISTS (SELECT 1 FROM vdt_batch b WHERE b.id = ?1 AND b.status = 'VOID' AND b.updated_at = ?2)`,
+);
+const DS_LO_BO_DUOC = defineSql(
+  "ve-dien-tu",
+  "ds_lo_bo_duoc",
+  `SELECT b.id, b.catalog_code, b.pax_group, b.printed_name, b.status, b.created_at,
+          (SELECT count(*) FROM vdt_ticket t WHERE t.batch_id = b.id AND t.stored_at IS NOT NULL AND t.purged_at IS NULL) AS so_ve
+   FROM vdt_batch b
+   WHERE b.status <> 'VOID' AND NOT EXISTS (SELECT 1 FROM vdt_allocation a JOIN vdt_ticket t ON t.id = a.ticket_id WHERE t.batch_id = b.id)
+   ORDER BY b.created_at DESC, b.id LIMIT ?1`,
+);
+const DOC_TRAN_LO = defineSql("ve-dien-tu", "doc_tran_lo", "SELECT batch_limit, version FROM vdt_setting WHERE id = 'default'");
+const DOI_TRAN_LO = defineSql(
+  "ve-dien-tu",
+  "doi_tran_lo",
+  "UPDATE vdt_setting SET batch_limit = ?1, version = version + 1, updated_at = ?3, updated_by = ?4 WHERE id = 'default' AND version = ?2",
+);
 const KICH_HOAT_LO = defineSql(
   "ve-dien-tu",
   "kich_hoat_lo",
@@ -151,7 +194,7 @@ const KICH_HOAT_LO = defineSql(
 const DEM_VE_CUA_LO = defineSql(
   "ve-dien-tu",
   "dem_ve_cua_lo",
-  "SELECT count(*) AS tong, sum(stored_at IS NOT NULL AND purged_at IS NULL) AS da_luu FROM vdt_ticket WHERE batch_id = ?1",
+  "SELECT sum(withdrawn_at IS NULL) AS tong, sum(stored_at IS NOT NULL AND purged_at IS NULL) AS da_luu FROM vdt_ticket WHERE batch_id = ?1",
 );
 const SUA_MA_TOUR = defineSql("ve-dien-tu", "sua_ma_tour", "UPDATE vdt_batch SET catalog_code = ?2, updated_at = ?3, updated_by = ?4 WHERE id = ?1 AND status <> 'VOID'");
 const THONG_KE_KHO = defineSql(
@@ -178,9 +221,17 @@ export const cauChenVe = (db: D1Database, v: VeMoi): D1PreparedStatement =>
   db.prepare(CHEN_VE).bind(v.id, v.batchId, v.maVe, v.tuNgay, v.denNgay, v.gio, v.khoa, v.loaiNoiDung, v.coBytes, v.bam, v.at, v.by);
 export const maVeDaCo = async (db: D1Database, ma: readonly string[]): Promise<Set<string>> =>
   new Set((await db.prepare(MA_VE_DA_CO).bind(JSON.stringify(ma)).all<{ ticket_code: string }>()).results.map((r) => r.ticket_code));
+export const bamDaCo = async (db: D1Database, bam: readonly string[]): Promise<Set<string>> =>
+  new Set((await db.prepare(BAM_DA_CO).bind(JSON.stringify(bam)).all<{ content_hash: string }>()).results.map((r) => r.content_hash));
+export const cauBoLo = (db: D1Database, id: string, at: string, by: string | null): D1PreparedStatement => db.prepare(BO_LO).bind(id, at, by);
+export const cauRutVeCuaLo = (db: D1Database, id: string, at: string, by: string | null): D1PreparedStatement => db.prepare(RUT_VE_CUA_LO).bind(id, at, by);
+export interface LoBoDuoc { id: string; catalog_code: string; pax_group: string; printed_name: string; status: string; created_at: string; so_ve: number }
+export const dsLoBoDuoc = async (db: D1Database, gioiHan: number): Promise<LoBoDuoc[]> => (await db.prepare(DS_LO_BO_DUOC).bind(gioiHan).all<LoBoDuoc>()).results;
+export const docCaiDatVe = (db: D1Database): Promise<{ batch_limit: number; version: number } | null> => db.prepare(DOC_TRAN_LO).first<{ batch_limit: number; version: number }>();
+export const cauDoiTranLo = (db: D1Database, p: { tranLo: number; version: number; at: string; by: string | null }): D1PreparedStatement => db.prepare(DOI_TRAN_LO).bind(p.tranLo, p.version, p.at, p.by);
 export const cauKichHoatLo = (db: D1Database, id: string, at: string, by: string | null): D1PreparedStatement => db.prepare(KICH_HOAT_LO).bind(id, at, by);
 export const demVeCuaLo = async (db: D1Database, id: string): Promise<{ tong: number; daLuu: number }> => {
-  const r = await db.prepare(DEM_VE_CUA_LO).bind(id).first<{ tong: number; da_luu: number | null }>();
+  const r = await db.prepare(DEM_VE_CUA_LO).bind(id).first<{ tong: number | null; da_luu: number | null }>();
   return { tong: r?.tong ?? 0, daLuu: r?.da_luu ?? 0 };
 };
 export const cauSuaMaTour = (db: D1Database, id: string, maTour: string, at: string, by: string | null): D1PreparedStatement => db.prepare(SUA_MA_TOUR).bind(id, maTour, at, by);

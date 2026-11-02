@@ -30,7 +30,7 @@ const ve = (d: DatabaseSync, batch: string, from = "2026-10-24", to = "2026-11-2
   const id = `t-${++n}`;
   d.prepare(
     `INSERT INTO vdt_ticket (id, batch_id, ticket_code, valid_from, valid_to, slot_time, storage_key, content_kind, byte_size, content_hash, status, stored_at, created_at, created_by, updated_at, updated_by)
-     VALUES (?, ?, ?, ?, ?, NULL, ?, 'image/jpeg', 1000, 'h', 'AVAILABLE', ?, ?, NULL, ?, NULL)`,
+     VALUES (?, ?, ?, ?, ?, NULL, ?, 'image/jpeg', 1000, 'bam-' || ?1, 'AVAILABLE', ?, ?, NULL, ?, NULL)`,
   ).run(id, batch, `TA.${id}`, from, to, `vdt/${id}`, AT, AT, AT);
   return id;
 };
@@ -78,7 +78,7 @@ test("trungMaVe_biChan; trùng khoá kho bị chặn", () => {
   assert.throws(
     () =>
       d.prepare(
-        `INSERT INTO vdt_ticket (id, batch_id, ticket_code, valid_from, valid_to, storage_key, content_kind, byte_size, content_hash, status, stored_at, created_at, updated_at) VALUES ('x', ?, ?, '2026-10-24', '2026-10-25', 'vdt/khac', 'image/jpeg', 1, 'h', 'AVAILABLE', ?, ?, ?)`,
+        `INSERT INTO vdt_ticket (id, batch_id, ticket_code, valid_from, valid_to, storage_key, content_kind, byte_size, content_hash, status, stored_at, created_at, updated_at) VALUES ('x', ?, ?, '2026-10-24', '2026-10-25', 'vdt/khac', 'image/jpeg', 1, 'bam-khac', 'AVAILABLE', ?, ?, ?)`,
       ).run(b, `TA.${t}`, AT, AT, AT),
     /UNIQUE/i,
   );

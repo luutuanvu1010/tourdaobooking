@@ -899,7 +899,7 @@
       "name": "vdt_ticket",
       "module": "ve-dien-tu",
       "kind": "table",
-      "note": "Vé điện tử (ADR-0153 Đ1, 0131): một dòng một ảnh vé; KHÔNG chứa tên khách. `ticket_code` (mã vé nhà cung cấp, duy nhất) và `storage_key` (khoá kho R2 ngẫu nhiên) là bí mật vận hành — không bao giờ vào nhật ký, DTO ghi, câu lỗi. Không xoá; status AVAILABLE→ALLOCATED→VOID một chiều (trigger vdt_ticket_one_way); vé từng được đọc/giao (revealed_at) không về kho"
+      "note": "Vé điện tử (ADR-0153 Đ1, 0131): một dòng một ảnh vé; KHÔNG chứa tên khách. `ticket_code` (mã vé nhà cung cấp, duy nhất) và `storage_key` (khoá kho R2 ngẫu nhiên) là bí mật vận hành — không bao giờ vào nhật ký, DTO ghi, câu lỗi. Không xoá; status AVAILABLE→ALLOCATED→VOID một chiều (trigger vdt_ticket_one_way); vé từng được đọc/giao (revealed_at) không về kho `withdrawn_at` (ADR-0156 Đ2, 0132): dấu rút khỏi kho khi chưa từng phát ra (lưu kho hỏng hoặc Bỏ lô), ghi một lần; hai chỉ mục duy nhất theo mã vé và băm chỉ áp cho vé không mang dấu nên vé đó nhập lại được. `ticket_code` từ 0156 là chuỗi QR do máy đọc."
     },
     {
       "name": "vdt_allocation",
@@ -918,6 +918,12 @@
       "module": "ve-dien-tu",
       "kind": "table",
       "note": "Đường dẫn riêng cho khách (ADR-0153 Đ2, 0131; dùng ở Task 7 sau khi ADR duyệt): CHỈ lưu băm của mã (`token_hash`), có hạn, thu hồi một lần, đếm lượt mở tăng dần. Không xoá"
+    },
+    {
+      "name": "vdt_setting",
+      "module": "ve-dien-tu",
+      "kind": "table",
+      "note": "Cài đặt kho vé (ADR-0156 Đ3, 0132): một dòng id = 'default', khuôn gd_setting. `batch_limit` = số vé tối đa mỗi lô, mặc định 50, Toàn quyền đặt qua ô settings.ops; `version` là khoá lạc quan; lịch sử ở audit_log (`ve_doi_tran_lo`)."
     }
   ],
   "views": [
@@ -1621,6 +1627,7 @@
     "vdt_batch": { "id": "N1", "catalog_code": "N1", "pax_group": "N1", "printed_name": "N1", "status": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "vdt_delivery": { "id": "N1", "allocation_id": "N1", "channel": "N1", "delivered_by": "N1", "delivered_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "vdt_guest_link": { "id": "N1", "order_id": "N1", "token_hash": "N2", "expires_at": "N1", "revoked_at": "N1", "opened_count": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
-    "vdt_ticket": { "id": "N1", "batch_id": "N1", "ticket_code": "N2", "valid_from": "N1", "valid_to": "N1", "slot_time": "N1", "storage_key": "N2", "content_kind": "N1", "byte_size": "N1", "content_hash": "N2", "status": "N1", "stored_at": "N1", "purged_at": "N1", "r2_deleted_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" }
+    "vdt_setting": { "id": "N1", "batch_limit": "N1", "version": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "vdt_ticket": { "id": "N1", "batch_id": "N1", "ticket_code": "N2", "valid_from": "N1", "valid_to": "N1", "slot_time": "N1", "storage_key": "N2", "content_kind": "N1", "byte_size": "N1", "content_hash": "N2", "status": "N1", "stored_at": "N1", "purged_at": "N1", "r2_deleted_at": "N1", "withdrawn_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" }
   }
 }
