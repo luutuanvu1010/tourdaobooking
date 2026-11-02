@@ -15,7 +15,7 @@ const tx = (v: Partial<TaiXeVao> = {}): TaiXeVao => ({ partyId: "tx-an", display
 const chang = (legId: string, v: Partial<ChangVao> = {}): ChangVao => ({
   legId, orderId: `don-${legId}`, orderCode: `ĐH-${legId}`, chieu: "OUT", ngayDon: "2026-09-30", gioDon: "06:30", coNoiTra: true,
   donDaXacNhan: true, donDaHuy: false, changMo: true, soNguoi: 2, nguoiCuaDon: [`${legId}-p1`, `${legId}-p2`], datGap: false,
-  khoaNoiDon: "L:noi-d1", khoaNoiTra: "L:noi-d9", xeRieng: false, choToiThieu: null, ...v, // khoá so sánh nơi GIẢ (ADR-0050 VK1-B)
+  khoaNoiDon: "L:noi-d1", khoaNoiTra: "L:noi-d9", xeRieng: false, choToiThieu: null, mienDanhSach: false, ...v, // khoá so sánh nơi GIẢ (ADR-0050 VK1-B)
 });
 const suat = (id: string, legId: string, tripId: string, v: Partial<SuatVao> = {}): SuatVao => ({
   id, tripId, loai: "PASSENGER", legId, personKey: null, crewPartyId: null, boardStopId: "d1", alightStopId: "d9", trangThai: "WAITING", mo: true,

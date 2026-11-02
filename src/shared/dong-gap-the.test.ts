@@ -122,6 +122,15 @@ test("theMoKhiNap: nháp sạch (chặng gọn, không thông tin chuyến) → 
   assert.equal(theMoKhiNap(td2({ adult: 51 }), NGAY, laSanBay), true, "có lỗi chặn lưu");
 });
 
+test("dongGapThe với anGio (form đối tác, ADR-0154 Đ1.1): không chip «Chưa chốt giờ đón», dòng đón không ghi giờ; chip nơi đón vẫn có", () => {
+  const khongGio = chang({ don: KS_ID, pickupTime: "" });
+  assert.deepEqual(dongGapThe(td2({ adult: 2 }, [khongGio]), { today: HOM_NAY, nhanTheoId }).chips, ["Chưa chốt giờ đón"], "không anGio: như cũ");
+  const r = dongGapThe(td2({ adult: 2 }, [khongGio]), { today: HOM_NAY, nhanTheoId, anGio: true });
+  assert.deepEqual(r, { khach: "2 NL", don: "đón KS Biển Xanh", chips: [] });
+  assert.equal(dongGapThe(td2({ adult: 2 }, [changDu({ pickupTime: "16:00" })]), { today: HOM_NAY, nhanTheoId, anGio: true }).don, "đón KS Biển Xanh", "giờ gợi ý đối tác chưa từng thấy không hiện");
+  assert.deepEqual(dongGapThe(td2({ adult: 2 }, [chang()]), { today: HOM_NAY, nhanTheoId, anGio: true }).chips, ["Chưa có nơi đón"]);
+});
+
 test("dongGapThe: tên · số khách · giờ và nơi đón · chip thiếu (đúng ví dụ bản vẽ)", () => {
   const r = dongGapThe(td2(), { today: HOM_NAY, nhanTheoId });
   assert.deepEqual(r, { khach: "2 NL · 1 TE · 1 EB", don: "đón 07:30 KS Biển Xanh", chips: [] });

@@ -260,9 +260,10 @@ try {
   assert.equal(await p.ev("document.getElementById('error').classList.contains('banner-danger')"), true);
   p.close();
   p = await env.as(ACCOUNTS.salesA, "/order");
-  await p.waitFor("!document.getElementById('error').hidden && /Thiếu mã đơn\\./.test(document.getElementById('error').textContent)", "banner thiếu mã");
+  // Đợt 0 (28/10, commit 02c60d15): trang đơn thiếu mã không còn banner #error mà thay cả <main> bằng trạng thái toàn trang (`document.body.dataset.trangThai = 'thieu-ma'`, chữ «Thiếu mã đơn. Mở từ danh sách …»).
+  await p.waitFor("document.body.dataset.trangThai === 'thieu-ma' && /Thiếu mã đơn\\./.test(document.querySelector('main')?.textContent ?? '')", "trạng thái toàn trang thiếu mã");
   p.close();
-  ok("lỗi tải: mã lạ và thiếu mã hiện banner nguy hiểm");
+  ok("lỗi tải: mã lạ hiện banner nguy hiểm, thiếu mã hiện trạng thái toàn trang");
 
   // ---- 8) đo trên đơn 1 (khổ iPhone) và khổ máy tính ----
   p = await env.as(ACCOUNTS.salesA, `/order?id=${order.id}`);

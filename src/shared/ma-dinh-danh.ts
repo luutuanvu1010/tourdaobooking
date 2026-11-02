@@ -1,8 +1,8 @@
 // MỘT bảng tiền tố mã định danh máy chủ sinh + MỘT hàm sinh mã. Thuần, không I/O. Bài `ma-dinh-danh.test.ts` canh «không hai loại bản ghi dùng chung một tiền tố».
 /** Mỗi loại bản ghi có mã máy chủ sinh một dòng ở đây; tiền tố 2–3 chữ hoa. */
 export const TIEN_TO_MA: readonly { tienTo: string; loai: string }[] = [
-  { tienTo: "LD", loai: "Loại đối tác" },
-  { tienTo: "MT", loai: "Cấp đại lý" },
+  { tienTo: "LD", loai: "Vai người dùng" },
+  { tienTo: "MT", loai: "Cấp độ đại lý" },
 ];
 /** Hình dạng mã: tiền tố + `_` + 8 chữ hoa (khớp CODE_RE / MA_RE của các module). */
 export const MA_DINH_DANH_RE = /^[A-Z]{2,3}_[A-Z]{8}$/;

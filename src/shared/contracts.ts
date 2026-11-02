@@ -223,6 +223,15 @@ export interface NhapTayResponse { batNhapTay: boolean; duocDung: boolean; doiDu
 /** Thân `POST /api/cai-dat/nhap-tay` (chỉ Toàn quyền). */
 export interface NhapTayRequest { batNhapTay: boolean }
 
+// ---- Công tắc «Ẩn thông tin khách khi đối tác đặt vé» (ADR-0154 Đ2; module `orders`) ----
+/**
+ * `GET`/`POST /api/cai-dat/an-thong-tin-khach`: `bat` = công tắc đang BẬT (toàn hệ thống); `apChoToi` = công tắc đang áp cho CHÍNH người gọi = `bat` VÀ tài khoản giữ quyền Đối tác thuần
+ * (`apCongTacAnKhach`, C2 — tài khoản lai không bị áp); form Tạo đơn ẩn khối Khách hàng, Hành khách đúng khi `apChoToi`, không tự suy từ mã quyền. `doiDuoc` = người gọi bật / tắt được (ô `settings.ops`).
+ */
+export interface AnThongTinKhachResponse { bat: boolean; apChoToi: boolean; doiDuoc: boolean }
+/** Thân `POST /api/cai-dat/an-thong-tin-khach` (chỉ Toàn quyền). */
+export interface AnThongTinKhachRequest { bat: boolean }
+
 // ---- Khung giờ đón (ADR-0134 Đ5, Đ6; module `orders`) ----
 /** `GET`/`POST /api/cai-dat/khung-gio-don`: bộ khung đang hiệu lực + câu lưu ý; `doiDuoc` = người gọi đổi được (ô `settings.ops` — chỉ Toàn quyền). */
 export interface KhungGioDonResponse { khung: KhungGio[]; luuY: string; doiDuoc: boolean }
@@ -344,6 +353,11 @@ export interface OrderDetailDto extends OrderDto {
   services: OrderServiceDto[];
   /** Bên đặt đang mang một vai được hưởng hoa hồng (sổ đại lý đợt 1) — máy chủ tính từ vai ĐANG MỞ của hồ sơ bên đặt; false khi đơn không có bên đặt. Chỉ cờ: không tỷ lệ, không tiền. */
   bookerLaDoiTac: boolean;
+  /**
+   * Dấu «miễn danh sách khách» (ADR-0154 Đ3.1): đơn do tài khoản Đối tác thuần lập lúc công tắc «Ẩn thông tin khách» BẬT — chụp MỘT lần lúc lập, đổi công tắc sau đó không đổi dấu. Chặng của đơn có dấu không bị giữ
+   * «thiếu tên» lúc cho xe chạy; trang đơn đổi câu «cần đủ tên» (Task 3.4). Chỉ cờ, không dữ liệu khách.
+   */
+  manifestExempt: boolean;
 }
 
 /** Thông tin chuyến rút gọn cho thẻ trong danh sách đơn — lấy từ dịch vụ ĐẦU TIÊN theo sort_order của đơn (không gộp nhiều dịch vụ). */
@@ -652,6 +666,8 @@ export interface MoneyEditResponse { order: OrderDetailDto; daGhi: boolean; canh
 /** `GET /api/orders/moc-toi-thieu` (ruling R-P15): mốc tối thiểu + cảnh báo sát mốc (phút) của chính sách HIỆN HÀNH — chỉ để biểu mẫu đơn chưa lưu hiển thị. */
 export interface MocToiThieuResponse { mocToiThieuPhut: number; canhBaoPhut: number }
 export interface ShortNoticeRequiredBody { error: { code: "short_notice_required"; message: string; legs: { legId: string; phutConLai: number }[] } }
+/** 409 Còn vé khi yêu cầu mang cờ «cần chốt giờ» (ADR-0154 Đ1.2, Đ1.3) mà lượt đầu của một dịch vụ còn thiếu giờ đón: `legs` = các lượt đầu còn thiếu. Không ghi gì. */
+export interface PickupTimeRequiredBody { error: { code: "pickup_time_required"; message: string; legs: { legId: string }[] } }
 
 /** Một dịch vụ trong PHẦN HẸP của hàng chờ nhận (ADR-0030 S23-2) — ĐÚNG bốn khoá này. `pickupPlace` (và `name`) đã che mọi dãy từ 8 chữ số. */
 export interface PoolServiceDto {
@@ -1804,6 +1820,11 @@ export interface ChuyenChiTietResponse {
   canhBaoPhut: number | null;
   /** R-P14 (A15): giờ sớm nhất văn phòng khai được cho từng lệnh bấm thay. */
   gioSomNhatKhai: GioSomNhatKhaiDto;
+  /**
+   * ADR-0154 Đ3: lời nhắc KHÔNG chặn của cổng xuất bến — mỗi MÃ ĐƠN một dòng (gộp các chặng của cùng đơn, xếp theo mã): đơn mang dấu miễn danh sách khách đang thiếu tên nên
+   * không bị giữ vì «Đủ tên khách». Chỉ ở chi tiết chuyến của văn phòng (KHÔNG có ở DTO tài xế); chỉ mã đơn, không tên khách. Rỗng khi không có đơn như vậy hoặc chuyến không còn «lên kế hoạch».
+   */
+  nhacDieuKien: { ma: "KHONG_CAN_DANH_SACH"; maDon: string }[];
   /** ADR-0051 (A-GB): mỗi chặng có suất trên chuyến mà còn mục "Giờ hẹn đổi — gọi báo khách" hoặc đang mang dấu "đã gọi báo". */
   goiBao: GoiBaoChangDto[];
   /**
@@ -2877,6 +2898,23 @@ export interface GanRiengLichSuDto {
   id: string; muc: { code: string; ten: string; dangBat: boolean }; tuNgay: string; denNgay: string | null; conHieuLuc: boolean; daHuy: boolean;
 }
 /**
+ * ADR-0155 Đ2.5: cấp đại lý đang áp dụng hôm nay của MỘT hồ sơ đang mang vai trò được hưởng — cho cột «Cấp độ đại lý» ở Quản lý tài khoản (`GET /api/pricing/cap-hien-hanh`, chỉ đọc).
+ * Nguồn của cấp: RIENG = cấp riêng của hồ sơ; THEO_VAI = cấp của vai trò; XUNG_DOT = hai vai trò khác cấp (hôm nay chưa có cấp nào quyết); CHUA_CO = chưa có cấp nào.
+ * `rieng` = cấp riêng đang áp dụng; `sapApTu` = ngày sớm nhất một cấp riêng khác sắp áp dụng (null = không có); `doiDuoc` = ô có mở bảng đổi cấp được không (false khi cấp riêng đã
+ * hẹn ngày ngừng hoặc đã có cấp riêng sắp áp dụng — đặt thêm sẽ chồng ngày). `coMucRieng` = có mức hoa hồng riêng đè lên cấp. Không tên hồ sơ, không SĐT, không tỷ lệ.
+ */
+export type NguonCap = "RIENG" | "THEO_VAI" | "XUNG_DOT" | "CHUA_CO";
+export interface CapHienHanhDto {
+  partyId: string;
+  nguon: NguonCap;
+  cap: { code: string; ten: string } | null;
+  coMucRieng: boolean;
+  rieng: { id: string; tuNgay: string; denNgay: string | null } | null;
+  sapApTu: string | null;
+  doiDuoc: boolean;
+}
+export interface CapHienHanhResponse { homNay: string; hoSo: CapHienHanhDto[] }
+/**
  * ADR-0148 Đ1: xem trước «Sửa» một dòng có ngày (mức, gắn loại, gắn đối tác — `GET …/:id/sua`). HUY_THAY = chưa đơn nào dùng dòng này: sửa sẽ huỷ dòng cũ và thay hẳn. TU_NGAY = đã có
  * đơn dùng: phần sửa áp từ `tuNgaySomNhat`, bắt đầu không sau `denNgayToiDa` (ngày kết thúc của dòng cũ; null = không thời hạn); đơn cũ giữ mức cũ.
  */
@@ -2929,8 +2967,11 @@ export interface ChoChupBuResponse { don: ChoChupBuDto[] }
 export interface ChupBuResponse { chup: BanChup[] }
 
 // ---- Bước xác nhận đơn (ADR-0136, Task 3.3) -----------------------------------------------------------------------------------------------------------
-/** Vì sao đơn phải qua bước xác nhận: có dịch vụ «cần xác nhận» (Đ1) và/hoặc còn chặng đón dưới mốc 6 giờ chưa đặt gấp. Giao diện đổi sang chữ thường, không hiện mã. */
-export type LyDoCanXacNhan = "DICH_VU" | "DAT_GAP";
+/**
+ * Vì sao đơn phải qua bước xác nhận: có dịch vụ «cần xác nhận» (Đ1) và/hoặc còn chặng đón dưới mốc 6 giờ chưa đặt gấp, và/hoặc (ADR-0154 Đ1.2) đơn của tài khoản Đối tác có lượt đầu của
+ * một dịch vụ chọn Đón mà chưa có giờ (`CHOT_GIO` — văn phòng phải ghi giờ ở Còn vé; máy chủ chụp một lần vào yêu cầu, KHÔNG suy từ `tinhCanXacNhan`). Giao diện đổi sang chữ thường, không hiện mã.
+ */
+export type LyDoCanXacNhan = "DICH_VU" | "DAT_GAP" | "CHOT_GIO";
 /** Một yêu cầu xác nhận (đang mở). `quaHan` chỉ để CẢNH BÁO (Đ9) — không tự huỷ. */
 export interface YeuCauXacNhanDto {
   id: string;
@@ -2974,7 +3015,8 @@ export interface QuyetDinhXacNhanInput {
   yeuCauId: string;
   updatedAt: string;
   ngayDi?: string;
-  gioDon?: { legId: string; pickupTime: string; pickupSlotEnd?: string }[];
+  /** `datGap` (ADR-0154 Đ1.4): lý do đặt gấp CỦA TỪNG LƯỢT khi giờ nhập dưới hạn chốt — kiểm ô `order.leg.short_notice`, dựng dấu qua MỘT chỗ canh `xetDatGapSua`. */
+  gioDon?: { legId: string; pickupTime: string; pickupSlotEnd?: string; datGap?: { lyDo: string; ghiChu?: string | null } }[];
   lyDo?: string;
   ghiChu?: string;
 }

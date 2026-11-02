@@ -7,14 +7,16 @@ import type { DongBoChuyenDto, IncompleteTripBody, LyDoCanXacNhan, OrderDetailDt
 import { can, holdsIntern, holdsPartner } from "../../shared/permissions";
 import { error, json } from "../../shared/http";
 import { vnToday } from "../../shared/vn-date";
+import { maskLongDigits } from "../../shared/text-guards";
 import { parseUnit } from "../../shared/order-lines";
 import type { DongBoTheoDon } from "../../shared/dong-bo-chuyen";
 import { CAU_THIEU_NGUOI_LON, donThieuNguoiLon } from "../../shared/nguoi-di-kem";
 import { cauThieuChonDon, thieuChonDon } from "../../shared/cong-chon-don";
 import type { MocToiThieu } from "../../shared/moc-toi-thieu";
 import { canXacNhan, duocQuyetDinh, quaHanXacNhan } from "../../shared/xac-nhan-don";
+import { thieuGioChangDau } from "../../shared/chang-dua-don";
 import { canhBaoMocCua } from "./dat-gap";
-import { coHienHanh, nhomTheoMa, tuXacNhanNoiBo, yeuCauMoCuaDon } from "./xac-nhan-repo";
+import { coHienHanh, nhomTheoMa, tuXacNhanNoiBo, yeuCauMoCuaDon, type YeuCauRow } from "./xac-nhan-repo";
 import { legDatGapByOrder } from "./chang-hanh-khach-repo";
 import { findOrder, getMeta, getStoredServices } from "./repository";
 import { viPhamGiaDanhMuc, viPhamTranGiamGia } from "./price-guards";
@@ -187,6 +189,19 @@ export async function tinhCanXacNhan(db: D1Database, order: DonXacNhan, moc: Moc
 }
 
 /**
+ * ADR-0154 Đ1.2: người lập giữ quyền Đối tác (kể cả lai) mà LƯỢT ĐẦU của một dịch vụ chọn Đón chưa có giờ ⇒ «Gửi đơn» luôn vào nhánh A (cờ «cần chốt giờ»). MỘT luật cho route Gửi đơn VÀ khối `xacNhan`
+ * của chi tiết đơn (`canXacNhan`: trang đơn dựa vào đó để biết đơn nháp này thuộc diện phải chờ văn phòng, chưa có ảnh xác nhận). Không nằm trong `tinhCanXacNhan` (đơn văn phòng không đổi).
+ */
+export const canChotGioCuaNguoiLap = (nguoiLap: Pick<StaffProfile, "permissions">, services: DonXacNhan["services"]): boolean => holdsPartner(nguoiLap) && thieuGioChangDau(services).length > 0;
+
+/**
+ * Lý do của MỘT yêu cầu đang mở = lý do TÍNH ĐƯỢC (`tinhCanXacNhan`, theo cờ dịch vụ / mốc hôm nay) cộng `CHOT_GIO` khi yêu cầu mang cờ «cần chốt giờ» (ADR-0154 Đ1.2). Cờ là DỮ LIỆU CHỤP lúc
+ * Gửi đơn — không tính lại theo giờ đang lưu, để người xét thấy lý do đúng như lúc người lập gửi. Dùng ở danh sách chờ và khối `xacNhan` của chi tiết đơn.
+ */
+export const viCuaYeuCau = (y: Pick<YeuCauRow, "pickup_time_required">, viTinh: readonly LyDoCanXacNhan[]): LyDoCanXacNhan[] =>
+  y.pickup_time_required === 1 && !viTinh.includes("CHOT_GIO") ? [...viTinh, "CHOT_GIO"] : [...viTinh];
+
+/**
  * KHOÁ KHI CHỜ (Đ3): đơn nháp đang có yêu cầu xác nhận mở ⇒ người lập không sửa / xác nhận / huỷ được — phải Rút lại. Gọi ngay SAU cổng 404 của nháp (`ghiDuocNhap`)
  * ở mọi route ghi của người lập, TRƯỚC các 409 khác (nếu không ca "sửa khi chờ" thấy `use_order_form`). Đơn đã xác nhận / huỷ: không truy vấn.
  */
@@ -198,8 +213,14 @@ export async function khoaKhiCho(db: D1Database, orderId: string, status: OrderS
 /**
  * Đ6: chi tiết đơn ĐANG CHỜ cho người xét duyệt KHÔNG phải người lập — bỏ SĐT, email, tên khách, ghi chú khách, ghi chú thanh toán (liên hệ người đặt vốn không nằm trong DTO này, chỉ có
  * `bookerName`). Dịch vụ, ngày, số khách, giờ đón, tiền giữ nguyên. Hành khách (họ tên, năm sinh) không bao giờ nằm trong DTO đơn — route `…/passengers` vẫn 404.
+ * ADR-0154 Đ1.6: `cheGhiChu` (người lập đơn HIỆN GIỮ quyền Đối tác — `nguoiLapGiuDoiTac`) thì ghi chú từng dịch vụ đi qua `maskLongDigits` (đối tác hay dán SĐT khách vào ô ghi chú); đơn
+ * của nhân viên công ty giữ nguyên chữ. Tham số BẮT BUỘC để hai nơi gọi (chi tiết đơn đang chờ, phản hồi đặt gấp của người xét) không quên tính cờ. Dựng đối tượng MỚI, không sửa `o`.
  */
-export const catChoXetDuyet = (o: OrderDetailDto): OrderDetailDto => ({ ...o, customerName: "", customerPhone: "", customerEmail: null, customerNote: null, paymentNote: null });
+export const catChoXetDuyet = (o: OrderDetailDto, tuyChon: { cheGhiChu: boolean }): OrderDetailDto => ({
+  ...o,
+  customerName: "", customerPhone: "", customerEmail: null, customerNote: null, paymentNote: null,
+  services: tuyChon.cheGhiChu ? o.services.map((s) => ({ ...s, note: s.note === null ? null : maskLongDigits(s.note) })) : o.services,
+});
 
 /**
  * Khối `xacNhan` của `GET /api/orders/:id` (Task 3.5): giao diện KHÔNG suy ra «đang chờ», «cần xác nhận», «quyết định được» — máy chủ quyết theo người xem, cùng hàm với các route
@@ -217,8 +238,8 @@ export async function xacNhanTrenDon(db: D1Database, i: { staff: StaffProfile; o
   const don = await findOrder(db, i.order.id);
   if (don) {
     const kq = await tinhCanXacNhan(db, don, i.moc, i.nowMs);
-    vi = kq.vi;
-    canXN = laNguoiLap && kq.can;
+    vi = y ? viCuaYeuCau(y, kq.vi) : kq.vi;
+    canXN = laNguoiLap && (kq.can || canChotGioCuaNguoiLap(i.staff, don.services)); // ADR-0154 Đ1.2: cùng luật với route Gửi đơn
   }
   const quyetDinhDuoc = y !== null && duocQuyetDinh({
     laNguoiLap, laNoiBo: !holdsPartner(i.staff) && !holdsIntern(i.staff), coQuyenXetDuyet,

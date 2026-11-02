@@ -40,8 +40,8 @@ try {
   const CHU = String(Date.now()).slice(-5);
 
   // ---- Dữ liệu chung (Quản trị, TRƯỚC mọi trang) ----
-  const loai = phai(await call(ACCOUNTS.admin, "GET", "/api/pricing/loai-doi-tac"), 200, "loại đối tác").loai.filter((l) => l.dangBat);
-  assert.ok(loai.length > 0, "D1 tạm phải có ít nhất một loại đối tác đang bật");
+  const loai = phai(await call(ACCOUNTS.admin, "GET", "/api/pricing/loai-doi-tac"), 200, "vai người dùng").loai.filter((l) => l.dangBat);
+  assert.ok(loai.length > 0, "D1 tạm phải có ít nhất một vai người dùng đang bật");
   const L = loai[0];
   const nhom = phai(await call(ACCOUNTS.admin, "POST", "/api/catalog/groups", { name: `Nhóm luật bán ${CHU}` }), 201, "tạo nhóm").group;
   const dd = phai(await call(ACCOUNTS.admin, "POST", "/api/catalog/dac-diem", { ten: `Vận chuyển cảng–đảo ${CHU}`, giaTri: [{ ten: "Gồm" }, { ten: "Không gồm" }, { ten: "Tắt thử" }] }), 201, "tạo đặc điểm").dacDiem;
@@ -60,7 +60,7 @@ try {
     const truoc = new Set((await goiTrongTrang(p, "GET", "/api/pricing/luat-ban")).json.luat.map((l) => l.id));
     assert.equal(await bam(p, "#lb-them"), true, "nút «＋ Thêm luật»");
     await choHop(p);
-    await p.waitFor("document.querySelectorAll('#lb-loai option').length > 1", "danh sách loại đối tác");
+    await p.waitFor("document.querySelectorAll('#lb-loai option').length > 1", "danh sách vai người dùng");
     assert.equal(await chonO(p, "#lb-loai", L.code), true, "chọn loại");
     assert.equal(await chonO(p, "#lb-pham-vi", o.phamVi), true, `chọn phạm vi ${o.phamVi}`);
     if (o.phamVi === "SERVICE") assert.equal(await chonO(p, "#lb-dich-vu", "TD101"), true, "chọn dịch vụ");

@@ -14,6 +14,7 @@
 // Tên cột `full_name` của `ord_passenger` (ADR-0047 A2) CHỈ xuất hiện trong chuỗi SQL ở tệp này, và luôn đọc ra dưới bí danh `ten` (bài R-N1-14 —
 // ngoại lệ có tên cho đúng tệp này, ĐÃ DUYỆT 2026-09-29 (lần 5) ở đề xuất luật mục 7).
 import { defineSql } from "../../shared/sql-registry.ts";
+import { CON_MO } from "./xac-nhan-repo.ts";
 
 // ---- Số khách hiệu lực (ADR-0047 A3) -----------------------------------------------------------------------------------------------------------
 
@@ -388,6 +389,23 @@ export const legShortNotice = (db: D1Database, legId: string, orderId: string, d
   db.prepare(LEG_SHORT_NOTICE).bind(d.lyDo, d.ghiChu, d.by, d.at, d.phut, legId, orderId, gio.pickupDate, gio.pickupTime);
 
 /**
+ * ĐÓNG DẤU đặt gấp cho một lượt TRONG LÔ CÒN VÉ (ADR-0154 Đ1.4) — cùng năm cột, cùng nguồn dấu (`DauDatGapMoi`, chỉ `xetDatGapSua` dựng) như `legShortNotice`, khác ở chỗ canh: mang CÙNG
+ * hai điều kiện `CON_MO` với câu xác nhận (yêu cầu `?10` còn mở VÀ đơn còn nháp đúng mốc `?11`) nên bên thua (người lập Rút lại / người khác vừa quyết) không để lại dấu mồ côi, và khớp
+ * ĐÚNG ngày, giờ mà dòng đang giữ (`?8`, `?9`) tại thời điểm câu chạy trong lô: PHẢI đứng SAU các câu đổi ngày, đổi giờ của cùng lô, và nơi gọi truyền giá trị dòng SẼ giữ lúc đó
+ * (ngày đang NULL vẫn NULL tới câu điền ngày trong `soanXacNhan`), không giá trị dự phòng. Lệch thì câu không ghi gì và câu xác nhận thua vế mốc — an toàn. Không đọc `audit_log`:
+ * dòng nhật ký `order_leg_short_notice` theo sau bằng `changes() > 0`. Tên `_decide_guarded` cùng khuôn các câu Còn vé khác.
+ */
+const LEG_SHORT_NOTICE_CON_VE = defineSql(
+  "orders",
+  "leg_short_notice_decide_guarded",
+  `UPDATE ord_transfer_leg SET short_notice_reason = ?1, short_notice_note = ?2, short_notice_by = ?3, short_notice_at = ?4, short_notice_lead_minutes = ?5,
+     updated_at = ?4, updated_by = ?3
+   WHERE id = ?6 AND order_id = ?7 AND closed_at IS NULL AND pickup_date IS ?8 AND pickup_time IS ?9 AND ${CON_MO("?7", "?10", "?11")}`,
+);
+export const legShortNoticeConVe = (db: D1Database, v: { legId: string; orderId: string; d: DauDatGapMoi; gio: { pickupDate: string | null; pickupTime: string | null }; yeuCauId: string; prevUpdatedAt: string }): D1PreparedStatement =>
+  db.prepare(LEG_SHORT_NOTICE_CON_VE).bind(v.d.lyDo, v.d.ghiChu, v.d.by, v.d.at, v.d.phut, v.legId, v.orderId, v.gio.pickupDate, v.gio.pickupTime, v.yeuCauId, v.prevUpdatedAt);
+
+/**
  * Chặng CÒN MỞ ĐÃ MANG DẤU đặt gấp của MỘT đơn, kèm mã danh mục + vị trí dịch vụ (khớp một-một khi lưu lại đơn nháp — Q1 = (a)) và năm cột dấu (chép từ CSDL,
  * không từ trình duyệt). Cũng dùng để biết chặng nào đã đặt gấp (cảnh báo mốc, lý do 409 lúc xác nhận).
  */
@@ -633,7 +651,7 @@ const LEG_LICH_CHUNG = defineSql(
   `SELECT l.id, l.order_id, o.order_code, s.id AS service_id, s.name AS service_name, l.direction, l.pickup_date, l.pickup_time,
      l.pickup_location_id, l.pickup_place, COALESCE(pl.name, l.pickup_place) AS noi_don,
      l.dropoff_location_id, l.dropoff_place, COALESCE(dl.name, l.dropoff_place) AS noi_tra,
-     l.short_notice_reason IS NOT NULL AS dat_gap, l.flight_code, l.pax_override, l.exclusive_vehicle, l.min_vehicle_seats
+     l.short_notice_reason IS NOT NULL AS dat_gap, l.flight_code, l.pax_override, l.exclusive_vehicle, l.min_vehicle_seats, o.manifest_exempt
    FROM ord_transfer_leg l
    JOIN orders o ON o.id = l.order_id
    JOIN order_service s ON s.id = l.order_service_id
@@ -664,6 +682,8 @@ export interface LegLichChungRow {
   /** Cam kết xe riêng / xe tối thiểu N chỗ (0077, ADR-0056 VK3-A → khoá `xeRieng` / `choToiThieu`). */
   exclusive_vehicle: number;
   min_vehicle_seats: number | null;
+  /** Dấu miễn danh sách khách của ĐƠN (`orders.manifest_exempt`, ADR-0154 Đ3 → khoá `mienDanhSach`): chụp lúc lập đơn, không đổi sau đó. Chỉ cờ 0 / 1. */
+  manifest_exempt: number;
 }
 export async function legLichChungRows(db: D1Database, tuNgay: string, denNgay: string): Promise<LegLichChungRow[]> {
   return (await db.prepare(LEG_LICH_CHUNG).bind(tuNgay, denNgay).all<LegLichChungRow>()).results;

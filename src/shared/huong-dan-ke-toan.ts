@@ -116,39 +116,39 @@ Kế toán có nút [[+ Hồ sơ mới]] và được thêm, sửa hồ sơ khá
       tieuDe: "Đặt mức hoa hồng cho đối tác",
       noiDung: `Hoa hồng là tiền Công ty trả cho đại lý hoặc cộng tác viên đặt đơn. Khi đơn được xác nhận, Nền tảng lấy mức đang áp trong bảng, tính hoa hồng một lần rồi giữ nguyên.
 
-1. Bấm [[Hoa hồng đối tác]]: ô **Kiểm tra hoa hồng** đầu trang cho biết mức của một đối tác; thẻ **Loại đối tác** cho biết từng loại đang hưởng mức nào.
-2. Bấm [[＋ Thêm mức]], chọn áp cho một loại đối tác, chọn dịch vụ (một dịch vụ, một nhóm dịch vụ hoặc mọi dịch vụ), chọn **Phần trăm** hoặc **Số tiền mỗi khách**, nhập ngày bắt đầu rồi bấm [[Thêm mức]].
+1. Bấm [[Hoa hồng đối tác]]: ô **Kiểm tra hoa hồng** đầu trang cho biết mức của một đối tác; thẻ **Vai người dùng** cho biết từng vai trò đang hưởng mức nào.
+2. Bấm [[＋ Thêm mức]], chọn áp cho một vai người dùng, chọn dịch vụ (một dịch vụ, một nhóm dịch vụ hoặc mọi dịch vụ), chọn **Phần trăm** hoặc **Số tiền mỗi khách**, nhập ngày bắt đầu rồi bấm [[Thêm mức]].
 3. Đổi mức: bấm [[Đổi]] ở dòng đó, nhập mức mới và ngày bắt đầu; mức cũ tự ngừng. Hết dùng hẳn: bấm [[Ngừng]] và chọn ngày cuối. Mức không sửa, không xoá được.
 
-Kế toán tìm được từng đối tác theo tên: gõ tên ở **Kiểm tra hoa hồng** để biết mức của đối tác đó, hoặc ở bước chọn người nhận của [[＋ Thêm mức]] chọn **Một đối tác** để đặt mức riêng cho đúng đối tác.
+Kế toán tìm được từng đối tác theo tên: gõ tên ở **Kiểm tra hoa hồng** để xem mức, hoặc chọn **Một đối tác** ở [[＋ Thêm mức]] để đặt mức riêng cho đối tác.
 
 Người bán dịch vụ làm tương tự ở trang [[Người bán dịch vụ]]: khối [[Thêm điều khoản]] ghi dịch vụ nào do Tour Đảo bán, dịch vụ nào do nhà cung cấp bán (kèm tỷ lệ Tour Đảo mua lại). Dịch vụ nhóm Thuê xe không ghi nhà cung cấp mua lại.
 
 > Lưu ý: Đổi bảng mức không làm đổi hoa hồng của đơn đã xác nhận.`,
     },
     {
-      tieuDe: "Thêm loại đối tác",
-      noiDung: `Loại đối tác là nhóm được hưởng hoa hồng, như Công ty lữ hành hay Lễ tân khách sạn. Cần loại mới thì bạn tự thêm.
+      tieuDe: "Thêm vai trò",
+      noiDung: `Vai người dùng là nhóm được hưởng hoa hồng, như Công ty lữ hành hay Lễ tân khách sạn. Cần vai trò mới thì bạn tự thêm.
 
-1. Bấm [[Hoa hồng đối tác]], bấm [[＋ Thêm loại]] và gõ tên.
-2. Đặt mức cho loại mới bằng [[＋ Thêm mức]].
-3. Không dùng nữa: bấm [[Tắt]] ở loại đó; cần lại: [[Bật]]. Loại **Có sẵn** không tắt được.
+1. Bấm [[Hoa hồng đối tác]], bấm [[＋ Thêm vai trò]] và gõ tên.
+2. Đặt mức cho vai trò mới bằng [[＋ Thêm mức]].
+3. Không dùng nữa: bấm [[Tắt]]; cần lại: [[Bật]]. Vai trò **Có sẵn** không tắt được.
 4. Đổi tên, ghi chú: bấm [[Sửa]].
 
-Gắn loại cho hồ sơ ở Danh bạ là việc của Quản trị hoặc Toàn quyền. Loại đã tắt thì không gắn thêm, nhưng đơn đã xác nhận vẫn giữ nguyên hoa hồng.`,
+Gắn vai trò cho hồ sơ ở Danh bạ là việc của Quản trị hoặc Toàn quyền. Vai trò đã tắt thì không gắn thêm, nhưng đơn đã xác nhận vẫn giữ nguyên hoa hồng.`,
     },
     {
-      tieuDe: "Cấp đại lý",
-      noiDung: `Cấp đại lý là bộ mức có tên, dùng chung cho nhiều loại đối tác.
+      tieuDe: "Cấp độ đại lý",
+      noiDung: `Cấp độ đại lý là bộ mức có tên, dùng chung cho nhiều vai trò.
 
-1. [[＋ Thêm cấp đại lý]], gõ tên.
+1. [[＋ Thêm cấp độ đại lý]], gõ tên.
 2. Mở cấp, bấm [[＋ Thêm hoa hồng cho dịch vụ]]: chọn dịch vụ và mức.
-3. [[Chọn cấp cho loại này]] hoặc [[Thêm loại vào cấp này]]: chọn loại và ngày bắt đầu.
+3. [[Chọn cấp cho vai trò này]] hoặc [[Thêm vai trò vào cấp này]]: chọn vai trò, ngày bắt đầu.
 4. Đổi tên, ghi chú: [[Sửa]].
 
-Cấp của loại xét sau cùng. Đổi sang cấp khác: [[Đổi cấp]]. Ngừng chi: [[Thôi theo cấp này]]. [[Khoá cấp]] chặn thêm loại và mức mới, loại đang theo vẫn được tính; dùng lại: [[Mở lại cấp]].
+Cấp của vai trò xét sau cùng. Đổi sang cấp khác: [[Đổi cấp]]. Ngừng chi: [[Thôi theo cấp này]]. [[Khoá cấp]] chặn thêm vai trò và mức mới, vai trò đang theo vẫn tính; dùng lại: [[Mở lại cấp]].
 
-Cấp riêng: thẻ **Riêng từng đối tác**, bấm [[Chọn cấp riêng cho đối tác]]; mở đối tác, bấm [[Đổi cấp]], sửa hoặc ngừng.`,
+Cấp riêng: khối **Người có cấp riêng**, bấm [[Chọn cấp riêng cho đối tác]]; mở đối tác, bấm [[Đổi cấp]], sửa hoặc ngừng.`,
     },
     {
       tieuDe: "Chụp bù, ghi mức tay cho một đơn",
@@ -190,6 +190,10 @@ Cần biết:
 > Lưu ý: Chỉ lệnh điều chỉnh cần người khác duyệt. Việc khác như [[Huỷ khoản thu]] vẫn làm như trước.`,
     },
     {
+      tieuDe: "Đơn của đối tác chờ xác nhận: bảng Còn vé",
+      noiDung: `Đơn đối tác gửi lên ở trạng thái [[Chờ xác nhận]]; khối **Xác nhận đơn** có [[Còn vé]], [[Hết vé]] và Huỷ. Mỗi dịch vụ có dòng **Ghi chú** của đối tác và ô **Giờ đón** từng lượt. Đối tác không nhập giờ: lượt đầu ghi **(bắt buộc)**, chọn giờ rồi mới bấm [[Còn vé]]. Bạn không có nút Đặt gấp: giờ đã qua hạn chốt thì nhờ Bán hàng hoặc Quản trị. Xác nhận xong, gọi số liên hệ trên đơn để báo giờ; số này là của đối tác khi công tắc ẩn thông tin khách đang bật.`,
+    },
+    {
       tieuDe: "Tình huống hay gặp",
       noiDung: `### Thấy một đơn sai tiền
 
@@ -216,10 +220,7 @@ Khi đơn **Đã giao – đã thu đủ** và mọi người đã nộp tiền 
 ### Đánh dấu đã nhập phần mềm kế toán
 
 Nền tảng **không xuất hoá đơn**. Khi đã nhập đơn vào phần mềm kế toán, ở khối **Phần mềm kế toán** bấm [[Đánh dấu đã nhập]], gõ số hoá đơn (không bắt buộc), bấm [[Đánh dấu]]. Chỉ đơn đã xác nhận mới đánh dấu được. Sửa số: [[Sửa số hoá đơn]]. Nhầm: [[Bỏ đánh dấu]], ghi lý do.
-
-### Đơn bị huỷ
-
-Bấm nút **Lọc**, chọn **Đã huỷ** rồi bấm [[Áp dụng]]. Khối **Lịch sử** cho biết đơn huỷ lúc nào, vì sao.`,
+`,
     },
     {
       tieuDe: "Điều bạn không làm được — hỏi ai",
@@ -227,30 +228,18 @@ Bấm nút **Lọc**, chọn **Đã huỷ** rồi bấm [[Áp dụng]]. Khối *
 - Sửa, xác nhận, huỷ đơn: không. Nhờ người lập đơn, người phụ trách đơn hoặc Quản trị.
 - Thêm dịch vụ, đổi giá sau khi xác nhận: chưa có cách sửa, kể cả tài khoản Toàn quyền — báo Quản trị. Số khách thì bạn sửa được (mục "Sửa số khách đơn đã xác nhận").
 - Nhận phụ trách, giao đơn cho người khác: không. Nhờ nhân viên bán hàng hoặc Quản trị.
-- Bấm "Đặt gấp": không. Nhờ nhân viên bán hàng hoặc Quản trị.
 - Tự duyệt yêu cầu điều chỉnh công nợ của chính mình: không. Nhờ Quản trị, Toàn quyền hoặc một Kế toán khác.
 - Xếp xe, tạo chuyến, bấm tiến độ chuyến: không, bạn chỉ xem. Nhờ nhân viên bán hàng hoặc Quản trị.
 - Bấm **Đã giao – đã thu đủ**: không. Hướng dẫn viên đang phụ trách đơn hoặc Quản trị bấm.
-- Xuất hoá đơn: không có. Xuất ở phần mềm kế toán rồi đánh dấu trên đơn.
 - Sửa bảng giá dịch vụ, quản lý tài khoản nhân viên: không. Nhờ Quản trị.`,
     },
     {
       tieuDe: "Câu hỏi thường gặp",
-      noiDung: `### Sao tôi không thấy nút Tạo đơn?
-
-Vì Kế toán không lập đơn. Đây là cài đặt đúng.
-
-### Trang đơn ghi "Chỉ … (người lập đơn), người phụ trách đơn hoặc quản trị viên mới được sửa, xác nhận hoặc huỷ đơn này." Có phải lỗi không?
+      noiDung: `### Trang đơn ghi "Chỉ … (người lập đơn), người phụ trách đơn hoặc quản trị viên mới được sửa, xác nhận hoặc huỷ đơn này." Có phải lỗi không?
 
 Không. Dòng này giải thích vì sao bạn không có nút sửa.
 
-### Tôi quên mã PIN thì sao?
-
-Máy đã bật Face ID: vào [[Tôi]], bấm [[Quên PIN? Đặt PIN mới bằng Face ID]]. Chưa bật: nhờ Quản trị đặt lại PIN.
-
-### Tôi muốn báo một chỗ sai
-
-Bấm [[Hỗ trợ]], ghi rõ mã đơn và việc bạn thấy sai.`,
+`,
     },
   ],
 };

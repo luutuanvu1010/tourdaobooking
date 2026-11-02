@@ -10,6 +10,7 @@ import type {
   SuaSoKhachDichVuDto, StaffProfile, ThuongMaiResponse,
 } from "../../shared/contracts";
 import { UUID_RE, error, intParam, json, readJson, trangDon } from "../../shared/http";
+import { apCongTacAnKhach } from "../../shared/an-thong-tin-khach";
 import { can, seesOnlyAssignedOrders, type PermissionHolder } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
 import { vnToday, vnWeekRange } from "../../shared/vn-date";
@@ -30,7 +31,7 @@ import {
 import { khoaNoi } from "../../shared/khoa-noi";
 import { CHIEU_LABEL, LY_DO_DAT_GAP, type LyDoDatGap } from "../../shared/chang-dua-don";
 import { duoiMocKhiSua, nguongMocVn, type MocToiThieu } from "../../shared/moc-toi-thieu";
-import { canhBaoMocCua, chepDatGapNhap, docDatGap, ghiDatGapNhatKy, lichSuTheoVai } from "./dat-gap";
+import { canhBaoMocCua, chepDatGapNhap, docDatGap, ghiDatGapNhatKy, lichSuTheoVai, type GiayDatGap, type XetDatGapSua } from "./dat-gap";
 import { dongHienHanh, kiemHanhKhach, soKhachDoan } from "../../shared/hanh-khach";
 import { type PaxCode } from "../../shared/order-lines";
 import { cauKhongDoiDuocTrangThai } from "../../shared/order-status-label";
@@ -62,7 +63,8 @@ import {
 import { CAN_YEU_CAU, GIA_DANH_MUC, MOC_CHUA_CO, RACED, STALE, TRANSFER_DISABLED, TRAN_GIAM_GIA, catChoXetDuyet, chanDoanXacNhan, chayLoNoiChuyen, dichLoiXacNhan, kemChupXacNhan, khoaKhiCho, kiemCongXacNhan, tienChoHoaHong, tinhCanXacNhan, xacNhanTrenDon, type KetQuaLenhDon } from "./xac-nhan-chung";
 import { PHAI_GUI_DON, phaiGuiDon, xacNhanRoutes } from "./xac-nhan-route";
 import { congLuatBan } from "./cong-ban";
-import { yeuCauMoCuaDon } from "./xac-nhan-repo";
+import { thanLapDonKhiAn, thanNhapKhiAn } from "./an-thong-tin-khach";
+import { anKhachBat, nguoiLapGiuDoiTac, thongTinKhachDangLuu, yeuCauMoCuaDon } from "./xac-nhan-repo";
 import { describeTripUpdates, giaiOPhuNhap, validateTripUpdate } from "./service-rules";
 
 /** `soNguoi` (ADR-0104 Đ2 điểm gọi 4): số người hiệu lực của chặng trước / sau — chỉ khi lệnh đụng số người chiều về. */
@@ -124,15 +126,12 @@ const SUA_DUOI_MOC = () => error(409, "short_notice_required", "Lượt đưa đ
 /** ADR-0107 ý (ii): lệnh kèm lý do đặt gấp mà không chặng nào của lệnh dưới mốc (cũ lẫn mới) — kể cả Quản trị, Toàn quyền. Không ghi gì. */
 const KHONG_CAN_DAT_GAP = () => error(409, "short_notice_not_needed", "Lượt đưa đón chưa qua hạn chốt — không cần đặt gấp.");
 
-/**
- * "Giấy đặt gấp" của một lệnh (ADR-0107 Hướng A): `lyDo` = lý do ĐÃ KIỂM của lệnh (đuôi nhật ký — đi theo LÝ DO, kể cả khi chặng không giữ dấu: G16); `dauCho`
- * = dấu MỚI cho MỘT chặng theo giờ SAU lệnh của chính chặng đó — chỉ khi giờ đó dưới mốc lúc máy chủ nhận lệnh, không thì null (dấu cũ bỏ — I16; G15, G11).
- */
-type GiayDatGap = { lyDo: LyDoDatGap | null; dauCho: (moi: { pickupDate: string | null; pickupTime: string | null } | null) => DauDatGapMoi | null };
+// Kiểu `GiayDatGap` / `XetDatGapSua` nay ở `dat-gap.ts` (ADR-0154 Đ1.4); hàm DỰNG dấu vẫn chỉ là `xetDatGapSua` dưới đây.
 const KHONG_LY_DO: GiayDatGap = { lyDo: null, dauCho: () => null };
 
 /**
- * MỘT chỗ canh đặt gấp (ADR-0049 I14 + ADR-0107 — năm cửa: nút Đặt gấp, sửa / thêm / thay chặng, `PUT …/trip`). `duoiMoc` = cổng của lệnh do nơi gọi tính
+ * MỘT chỗ canh đặt gấp (ADR-0049 I14 + ADR-0107 — SÁU cửa: nút Đặt gấp, sửa / thêm / thay chặng, `PUT …/trip`, và (ADR-0154 Đ1.4) `datGap` theo từng lượt của Còn vé, route `xac-nhan-route.ts`
+ * nhận hàm này qua `xacNhanRoutes(xetDatGap)`). `duoiMoc` = cổng của lệnh do nơi gọi tính
  * bằng `duoiMocKhiSua` (nút: giờ hiện tại; sửa / thay: giờ cũ hoặc mới; thêm: giờ mới; `PUT …/trip`: một chặng bất kỳ của lệnh). Thân CÓ `datGap`: ô
  * `order.leg.short_notice` (403) → lý do hợp lệ (400) → cổng sai → 409 `short_notice_not_needed`. VẮNG: cổng đúng → 409 `short_notice_required`; sai → không lý
  * do, không dấu. CHỖ DUY NHẤT dựng dấu mới (`DauDatGapMoi`, số phút = mốc hiện hành) — bài tĩnh ở dat-gap-sat-gio.test.ts khoá chỗ ép kiểu.
@@ -153,6 +152,9 @@ function xetDatGapSua(
 const xemDuDatGap = (staff: PermissionHolder): boolean => can(staff, "order.leg.short_notice.view");
 /** Đuôi nhật ký " · đặt gấp: <nhãn lý do>" (ADR-0062 — khuôn không đổi) theo LÝ DO của lệnh (G16), không theo dấu. */
 const kemDatGap = (detail: string, lyDo: LyDoDatGap | null) => (lyDo ? `${detail}${ghiDatGapNhatKy(LY_DO_DAT_GAP[lyDo])}` : detail);
+
+/** Tài khoản Đối tác chưa gắn hồ sơ: không có hồ sơ nào để ghi làm bên đặt (sổ đại lý đợt 1) hoặc để hiện tên trên biên nhận (công tắc «Ẩn thông tin khách» BẬT, ADR-0154 Đ2.3). */
+const PARTNER_NO_PARTY = () => error(409, "partner_no_party", "Tài khoản đối tác chưa gắn hồ sơ — nhờ văn phòng");
 
 const BEN_DAT_DOI_TAC_CAM = () => error(403, "partner_booker_forbidden", "Đơn qua đại lý hoặc cộng tác viên do văn phòng lập hộ — tài khoản đối tác không chọn được bên đặt này.");
 
@@ -187,7 +189,7 @@ async function benDatCuaTaiKhoan(
   const huong = laDoiTac && staff.partyId !== null && (await laNguoiHuong(db, staff.partyId));
   if (laDoiTac && !huong && guiLen.kind === "existing") {
     const guiLaHuong = await laNguoiHuong(db, guiLen.partyId);
-    if (staff.partyId === null && guiLaHuong) return { ok: false, res: error(409, "partner_no_party", "Tài khoản đối tác chưa gắn hồ sơ — nhờ văn phòng") };
+    if (staff.partyId === null && guiLaHuong) return { ok: false, res: PARTNER_NO_PARTY() };
     const cam = await chanBenDatDoiTac(db, staff, guiLen, dangLuu, guiLaHuong);
     if (cam) return { ok: false, res: cam };
   }
@@ -483,6 +485,11 @@ export interface ChangLichChung {
   /** Chặng mang dấu đặt gấp. */
   datGap: boolean;
   /**
+   * ADR-0154 Đ3: ĐƠN của chặng mang dấu miễn danh sách khách (`orders.manifest_exempt` — chụp MỘT lần lúc lập đơn khi công tắc «Ẩn thông tin khách» BẬT; không đọc công tắc hiện hành,
+   * không qua `v_ord_order_flag`). Chỉ là cờ đúng / sai: cổng xuất bến dùng nó để NHẮC thay vì giữ vì thiếu tên.
+   */
+  mienDanhSach: boolean;
+  /**
    * ADR-0050 VK1-B: KHOÁ SO SÁNH NƠI (`khoaNoi`, src/shared/khoa-noi.ts) tính trên chữ CHƯA che — CHỈ để so với `vc_trip_stop.place_key`; KHÔNG BAO GIỜ vào
    * DTO, nhật ký, bản chụp của van-chuyen. `khoaNoiTra` null = chặng chưa có nơi trả.
    */
@@ -537,6 +544,7 @@ export async function lichChungChang(db: D1Database, tuNgay: string, denNgay: st
       choToiThieu: l.min_vehicle_seats,
       nguoiCuaDon: [...(khoaNguoi.get(l.order_id) ?? [])],
       datGap: l.dat_gap === 1,
+      mienDanhSach: l.manifest_exempt === 1,
       khoaNoiDon: (await khoaNoi({ locationId: l.pickup_location_id, placeText: l.pickup_place }))!,
       khoaNoiTra: await khoaNoi({ locationId: l.dropoff_location_id, placeText: l.dropoff_place }),
     };
@@ -798,7 +806,7 @@ export const ordersModule: AppModule = {
   name: "orders",
   routes: [
     // ADR-0136 (Task 3.3): Gửi xác nhận / Rút lại / Quyết định / danh sách chờ / cài đặt cờ. ĐỨNG ĐẦU mảng: `GET /api/orders/cho-xac-nhan` phải thắng `GET /api/orders/:id` (router lấy route ĐẦU TIÊN khớp).
-    ...xacNhanRoutes,
+    ...xacNhanRoutes(xetDatGapSua satisfies XetDatGapSua),
     // ADR-0061 điều 6: công tắc "Dịch vụ nhập tay". Hai route thuộc module orders (bảng ord_manual_service_policy) nhưng CỐ Ý không nằm dưới /api/orders:
     // đổi chính sách không phải thay đổi một đơn (không thuộc bài baoThayDoi của src/bang-tin-guard.test.ts), và tránh bẫy router ":id".
     // ĐỌC (cổng orders): form lập đơn biết hiện nút theo `duocDung` (= duocNhapTay của CHÍNH người gọi). Chỉ người lập đơn cần biết → hỏi order.create
@@ -837,10 +845,11 @@ export const ordersModule: AppModule = {
     }),
 
     // ADR-0134 Đ5, Đ6: bộ khung giờ đón dùng chung + câu lưu ý (bảng ord_pickup_slot_policy). Khuôn đúng hai route công tắc nhập tay ở trên (cùng lý do không
-    // nằm dưới /api/orders). ĐỌC (cổng orders): người lập đơn — ô order.create (chỉ-HDV, Kế toán không lập đơn → 403). Dòng đọc được kiểm lại bằng luật thuần;
+    // nằm dưới /api/orders). ĐỌC (cổng orders): người lập đơn — ô order.create — HOẶC người điền giờ ở bảng «Còn vé» — ô order.confirm.review (Kế toán, HDV nội bộ; ADR-0154 Đ1.5:
+    // khung chỉ có nghĩa với người chọn giờ, mà người chốt giờ cho đơn Đối tác không phải người lập). Tài khoản không có ô nào → 403. Dòng đọc được kiểm lại bằng luật thuần;
     // hỏng (không thể xảy ra qua route ghi) → trả bộ mặc định thay vì 500, form vẫn dùng được.
     route("GET", "/api/cai-dat/khung-gio-don", "orders", async ({ env, staff }) => {
-      if (!can(staff, "order.create")) return error(403, "forbidden", "Tài khoản này không lập đơn nên không dùng khung giờ đón.");
+      if (!can(staff, "order.create") && !can(staff, "order.confirm.review")) return error(403, "forbidden", "Tài khoản này không dùng khung giờ đón.");
       const p = await slotPolicy(env.DB, new Date().toISOString());
       let tho: unknown = null;
       try {
@@ -1124,10 +1133,15 @@ export const ordersModule: AppModule = {
     // priceGuard, người đặt) → 400 `invalid_assignee` (người được chọn không đủ điều kiện — `dispatch` xét bằng `checkAssignee`; KHÔNG tạo đơn) → ghi.
     route("POST", "/api/orders", "orders", async ({ env, request, staff, newOrderHandler, baoThayDoi, mocToiThieu }) => {
       if (!can(staff, "order.create")) return CANNOT_CREATE();
-      const body = await readJson(request);
+      const thanGui = await readJson(request);
       // ADR-0047 A2: thân có khoá `passengers` (danh sách khách của đơn nháp — Ruling R1) → hỏi thêm ô nhập tên khách trên đơn của chính mình.
-      if (hasPassengersKey(body) && !can(staff, "order.passenger.write", { ownerId: staff.id })) return CANNOT_WRITE_PASSENGERS();
-      if (hasHandlerPick(body) && !can(staff, "dispatch.assign", { ownerId: staff.id })) return CANNOT_PICK_HANDLER();
+      if (hasPassengersKey(thanGui) && !can(staff, "order.passenger.write", { ownerId: staff.id })) return CANNOT_WRITE_PASSENGERS();
+      if (hasHandlerPick(thanGui) && !can(staff, "dispatch.assign", { ownerId: staff.id })) return CANNOT_PICK_HANDLER();
+      // ADR-0154 Đ2.3, Đ3.1: công tắc «Ẩn thông tin khách» đọc ĐÚNG MỘT lần (chỉ tài khoản Đối tác thuần — C2; người khác không tốn câu đọc), SAU hai cổng 403 ở trên (đã nêu: «đứng TRƯỚC mọi đọc CSDL»).
+      // `an` quyết cả thân được viết lại LẪN dấu `manifest_exempt` ghi cùng lô tạo đơn — một giá trị, không đọc lần hai (đổi công tắc giữa chừng không làm tên và dấu lệch nhau).
+      const an = apCongTacAnKhach(staff) && (await anKhachBat(env.DB, new Date().toISOString()));
+      if (an && staff.partyId === null) return PARTNER_NO_PARTY();
+      const body = an ? thanLapDonKhiAn(thanGui, { fullName: staff.fullName, phone: staff.phone }) : thanGui;
       if (laThanDonCu(body)) await demThanCu(env.DB, staff.id, "lap_don"); // ADR-0047 §6 — đếm máy cũ (cổng Đợt 8); sau 403, trước 400
       const pick = parseHandlerPick(body);
       if (!pick.ok) return error(400, "invalid_input", pick.message);
@@ -1159,7 +1173,7 @@ export const ordersModule: AppModule = {
       // đơn và mốc `at` của TỪNG lần thử của `createOrder`, nên dòng phụ trách và nhật ký cùng mốc với dòng `created`. Không đạt → 400, không tạo đơn.
       const handler = pick.staffId === null ? null : await newOrderHandler(pick.staffId);
       if (handler && !handler.ok) return error(400, "invalid_assignee", handler.message);
-      const id = await createOrder(env.DB, staff.id, placed.value, handler?.statements, booker.write);
+      const id = await createOrder(env.DB, staff.id, placed.value, handler?.statements, booker.write, an);
       // Bảng tin (ADR-0022 điều 4/7): "tao" — KHÔNG truyền `handlerTruoc` (ADR-0030 Review Focus 5); gốc lắp ráp (src/index.ts) tự đổi thành
       // "tao_cho_nhan" khi đơn không có người phụ trách (chỉ làm mới màn hình, KHÔNG thông báo nổi/gõ cửa — ADR-0045). Không bao giờ phát "giao" cho đơn vừa lập.
       baoThayDoi({ orderId: id, thayDoi: "tao" });
@@ -1189,7 +1203,7 @@ export const ordersModule: AppModule = {
       // tài khoản lai) mà CẮT trường (SĐT, email, tên, ghi chú); không lịch sử, không bảng sửa số khách, không nút sửa. Tiền giữ nguyên (chỉ đọc).
       if (dangCho && xetDuyetDuoc) {
         return json({
-          order: catChoXetDuyet(order), history: [], canModify: false, mocToiThieuPhut: moc?.phut ?? null, suaSoKhach: null, canhBaoKhuyenMai: null, lichSuSoKhach: null, canhBaoGiamGia: null, xacNhan,
+          order: catChoXetDuyet(order, { cheGhiChu: await nguoiLapGiuDoiTac(env.DB, order.staffId) }), history: [], canModify: false, mocToiThieuPhut: moc?.phut ?? null, suaSoKhach: null, canhBaoKhuyenMai: null, lichSuSoKhach: null, canhBaoGiamGia: null, xacNhan,
         } satisfies OrderDetailResponse);
       }
       // ADR-0019 điều 2: chi tiết đơn trả tiền và liên hệ khách — hỏi hai ô với phạm vi CỦA ĐƠN NÀY; sai thì 403 (không cắt bớt trường).
@@ -1250,7 +1264,14 @@ export const ordersModule: AppModule = {
       if (!can(staff, "order.modify", { ownerId: meta.staffId, assigned })) return FORBIDDEN();
       if (meta.deliveredAt) return DA_GIAO();
       if (meta.status !== "draft") return NOT_EDITABLE();
-      const body = await readJson(request);
+      const thanGui = await readJson(request);
+      // ADR-0154 Đ2.3 + câu đã áp số 7: công tắc «Ẩn thông tin khách» BẬT, tài khoản Đối tác thuần (C2) ⇒ GIỮ bốn trường khách đang lưu (tên, SĐT, email, ghi chú), bỏ `passengers`, `newBooker`, `bookerPartyId`
+      // (danh sách hành khách và bên đặt đang lưu giữ nguyên — luật «giữ bên đặt cũ» ở `noBookerKeys` chạy như hôm nay). Đọc công tắc MỘT lần, sau mọi cổng 404 / 403 / 409 của đơn; dấu `manifest_exempt` của nháp
+      // KHÔNG đổi theo công tắc hiện hành (chụp lúc lập; trigger 0133 cấm). Không có luật «chưa gắn hồ sơ» ở đây: bốn trường đã nằm trên đơn.
+      const an = apCongTacAnKhach(staff) && (await anKhachBat(env.DB, new Date().toISOString()));
+      const dangLuu = an ? await thongTinKhachDangLuu(env.DB, id) : null;
+      if (an && !dangLuu) return NOT_FOUND();
+      const body = dangLuu ? thanNhapKhiAn(thanGui, dangLuu) : thanGui;
       // ADR-0047 A2: thân có khoá `passengers` → hỏi thêm ô nhập tên khách với phạm vi CỦA ĐƠN NÀY (trước validateOrder).
       if (hasPassengersKey(body) && !can(staff, "order.passenger.write", { ownerId: meta.staffId, assigned })) return CANNOT_WRITE_PASSENGERS();
       if (laThanDonCu(body)) await demThanCu(env.DB, staff.id, "luu_nhap"); // ADR-0047 §6 — trước PM-1
@@ -1522,7 +1543,7 @@ export const ordersModule: AppModule = {
       if ((results[0]!.meta.changes ?? 0) === 0) return legRaced(env.DB, id, legId);
       baoThayDoi({ orderId: id, thayDoi: "chuyen" });
       const xemLai = (await loadOrderView(env.DB, id, xemDuDatGap(staff)))!;
-      return json({ order: nhapDangCho ? catChoXetDuyet(xemLai) : xemLai } satisfies OrderResponse); // người xét duyệt không phải người lập: bỏ SĐT / email / tên khách (Đ6)
+      return json({ order: nhapDangCho ? catChoXetDuyet(xemLai, { cheGhiChu: await nguoiLapGiuDoiTac(env.DB, xemLai.staffId) }) : xemLai } satisfies OrderResponse); // người xét duyệt không phải người lập: bỏ SĐT / email / tên khách (Đ6)
     }),
 
     // ---- Danh sách hành khách (ADR-0047 A2). ĐỌC: khuôn chi tiết đơn — `order.view` theo phạm vi đơn (chỉ-FIELD không phụ trách → 404 như đơn không tồn

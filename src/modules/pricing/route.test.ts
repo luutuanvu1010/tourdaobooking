@@ -214,7 +214,7 @@ test("dịch lỗi trigger: mức theo vai không được hưởng ⇒ 400; ng�
   const w = setup();
   const vai = await w.call("POST", "/api/pricing/hoa-hong", { as: KT, body: { ...mucVai, doiTuong: { loai: "VAI", code: "DRIVER_EXTERNAL" } } });
   assert.equal(vai.status, 400, vai.text);
-  assert.match(vai.json.error.message, /Loại đối tác này không nằm trong danh sách được hưởng/);
+  assert.match(vai.json.error.message, /Vai trò này không nằm trong danh sách được hưởng/);
   assert.doesNotMatch(vai.text, /prc_/);
   const banHang = await w.call("POST", "/api/pricing/cung-ung", { as: KT, body: { phamVi: "SERVICE", catalogCode: "IRESORT", nguoiBanPartyId: `pty-${SALES}`, tyLeMuaBp: 8000, tuNgay: "2026-10-01" } });
   assert.equal(banHang.status, 400, banHang.text);

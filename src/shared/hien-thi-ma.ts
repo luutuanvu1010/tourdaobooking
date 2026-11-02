@@ -3,7 +3,7 @@
 import { vnDateTimeText } from "./vn-date.ts";
 
 /** Ô mã của năm loại Có sẵn: không hiện mã tiếng Anh (ràng buộc chung của đặc tả). */
-export const CAU_MA_CO_SAN = "Loại có sẵn của hệ thống — mã cố định";
+export const CAU_MA_CO_SAN = "Vai trò có sẵn của hệ thống — mã cố định";
 /** Câu nhắc trong hộp Sửa của loại Có sẵn (đặc tả §3b). */
 export const CAU_TEN_CO_SAN = "Tên này cũng hiện trên màn tài khoản của đối tác.";
 /** Câu khi trình duyệt không cho chép: mã đã được chọn sẵn để người dùng tự chép. */
@@ -24,5 +24,5 @@ export function nhanDauVet(luc: string | null, boi: string | null, kieu: "tao" |
 }
 
 export const cauDangDungLoai = (soHoSo: number): string => `Đang dùng: ${soHoSo} hồ sơ`;
-export const cauDangDungCap = (soLoai: number, soDoiTac: number): string => `Đang dùng: ${soLoai} loại · ${soDoiTac} đối tác`;
+export const cauDangDungCap = (soLoai: number, soDoiTac: number): string => `Đang dùng: ${soLoai} vai trò · ${soDoiTac} đối tác`;
 export const cauDemGhiChu = (n: number): string => `${n}/${GHI_CHU_TOI_DA}`;

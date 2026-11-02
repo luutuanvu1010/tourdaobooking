@@ -119,7 +119,7 @@ test("kiemThanLuatBan: ba kiểu phạm vi; mã đúng kiểu; ngày bắt đầ
   assert.ok(attr2.ok && attr2.value.groupCode === null, "ATTRIBUTE không nhóm");
   const sai: [unknown, RegExp][] = [
     [null, /luật bán/],
-    [{ phamVi: "SERVICE", catalogCode: "A1" }, /loại đối tác/],
+    [{ phamVi: "SERVICE", catalogCode: "A1" }, /vai người dùng/],
     [{ loai: "L", phamVi: "ALL" }, /phạm vi/],
     [{ loai: "L", phamVi: "SERVICE" }, /phạm vi/],
     [{ loai: "L", phamVi: "SERVICE", catalogCode: "A1", groupCode: "G" }, /phạm vi/],
@@ -140,9 +140,9 @@ test("kiemThanLuatBan: ba kiểu phạm vi; mã đúng kiểu; ngày bắt đầ
 });
 
 test("cauBiChan: câu 409 tiếng Việt nêu tên dịch vụ; luật theo đặc điểm nêu thêm «(đặc điểm: giá trị)» — chữ lấy từ dữ liệu; không chữ «chính sách»", () => {
-  assert.equal(cauBiChan({ tenDichVu: "Tour Hòn Tằm" }), "Dịch vụ «Tour Hòn Tằm» không bán cho loại đối tác của bên đặt này.");
+  assert.equal(cauBiChan({ tenDichVu: "Tour Hòn Tằm" }), "Dịch vụ «Tour Hòn Tằm» không bán cho vai trò của bên đặt này.");
   assert.equal(cauBiChan({ tenDichVu: "Tour Hòn Tằm", tenDacDiem: "Vận chuyển cảng–đảo", tenGiaTri: "Không gồm" }),
-    "Dịch vụ «Tour Hòn Tằm» không bán cho loại đối tác của bên đặt này (Vận chuyển cảng–đảo: Không gồm).");
-  assert.equal(cauBiChan({ tenDichVu: "Tour Hòn Tằm", tenDacDiem: "Vận chuyển cảng–đảo" }), "Dịch vụ «Tour Hòn Tằm» không bán cho loại đối tác của bên đặt này.", "thiếu tên giá trị ⇒ bỏ ngoặc");
+    "Dịch vụ «Tour Hòn Tằm» không bán cho vai trò của bên đặt này (Vận chuyển cảng–đảo: Không gồm).");
+  assert.equal(cauBiChan({ tenDichVu: "Tour Hòn Tằm", tenDacDiem: "Vận chuyển cảng–đảo" }), "Dịch vụ «Tour Hòn Tằm» không bán cho vai trò của bên đặt này.", "thiếu tên giá trị ⇒ bỏ ngoặc");
   assert.doesNotMatch(cauBiChan({ tenDichVu: "x" }), /chính sách/i);
 });

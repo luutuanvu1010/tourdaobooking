@@ -4,8 +4,8 @@ import assert from "node:assert/strict";
 import { CAU_MA_CO_SAN, cauDangDungCap, cauDangDungLoai, nhanDauVet, nhanMa } from "./hien-thi-ma.ts";
 
 test("nhanMa: loại Có sẵn không lộ mã tiếng Anh; loại tự thêm và cấp hiện nguyên mã", () => {
-  assert.equal(nhanMa("TRAVEL_AGENCY", true), "Loại có sẵn của hệ thống — mã cố định");
-  assert.equal(CAU_MA_CO_SAN, "Loại có sẵn của hệ thống — mã cố định");
+  assert.equal(nhanMa("TRAVEL_AGENCY", true), "Vai trò có sẵn của hệ thống — mã cố định");
+  assert.equal(CAU_MA_CO_SAN, "Vai trò có sẵn của hệ thống — mã cố định");
   assert.equal(nhanMa("LDT_ABCDEFGH", false), "LDT_ABCDEFGH");
   assert.equal(nhanMa("CAP_QWERTYUI", false), "CAP_QWERTYUI");
 });
@@ -29,5 +29,5 @@ test("nhanDauVet: chưa sửa lần nào", () => {
 test("câu «Đang dùng»", () => {
   assert.equal(cauDangDungLoai(3), "Đang dùng: 3 hồ sơ");
   assert.equal(cauDangDungLoai(0), "Đang dùng: 0 hồ sơ");
-  assert.equal(cauDangDungCap(2, 5), "Đang dùng: 2 loại · 5 đối tác");
+  assert.equal(cauDangDungCap(2, 5), "Đang dùng: 2 vai trò · 5 đối tác");
 });

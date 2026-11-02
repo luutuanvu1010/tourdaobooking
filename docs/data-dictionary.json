@@ -264,7 +264,7 @@
       "kind": "table",
       "legacy": true,
       "deprecatedColumns": ["deposit_amount", "deposit_method", "remaining_amount"],
-      "note": "ba cột cọc KHÔNG DÙNG NỮA — xem ADR-0026 điều 9 (đơn mới ghi 0 / NULL / total để thoả trigger 0007; số đã thu, còn lại lấy từ billing). Cột mốc delivered_at/_by, completed_at/_by từ 0044 (ADR-0024 điều 3)"
+      "note": "ba cột cọc KHÔNG DÙNG NỮA — xem ADR-0026 điều 9 (đơn mới ghi 0 / NULL / total để thoả trigger 0007; số đã thu, còn lại lấy từ billing). Cột mốc delivered_at/_by, completed_at/_by từ 0044 (ADR-0024 điều 3) Cột manifest_exempt từ 0133 (ADR-0154 Đ3.1): dấu «miễn danh sách khách» 0/1, chụp một lần lúc lập đơn khi công tắc ẩn thông tin khách BẬT và người lập giữ quyền Đối tác; trigger cấm đổi sau khi chèn; đơn cũ = 0"
     },
     {
       "name": "ord_transfer_leg",
@@ -299,7 +299,7 @@
       "name": "ord_confirm_request",
       "module": "orders",
       "kind": "table",
-      "note": "yêu cầu xác nhận đơn (ADR-0136 Đ2, migration 0119): đơn draft có một dòng còn mở (decided_at IS NULL) = đang chờ xác nhận; chỉ mục duy nhất một yêu cầu mở mỗi đơn; khép đúng MỘT lần (trigger) rồi đóng băng, không xoá; outcome XAC_NHAN | HUY | RUT_LAI và ticket CON_VE | HET_VE | HUY (NULL khi RUT_LAI) kiểm ở mã (src/shared/xac-nhan-don.ts); deadline_at = hạn 15 phút làm việc trừ 22:00–06:00 giờ VN"
+      "note": "yêu cầu xác nhận đơn (ADR-0136 Đ2, migration 0119): đơn draft có một dòng còn mở (decided_at IS NULL) = đang chờ xác nhận; chỉ mục duy nhất một yêu cầu mở mỗi đơn; khép đúng MỘT lần (trigger) rồi đóng băng, không xoá; outcome XAC_NHAN | HUY | RUT_LAI và ticket CON_VE | HET_VE | HUY (NULL khi RUT_LAI) kiểm ở mã (src/shared/xac-nhan-don.ts); deadline_at = hạn 15 phút làm việc trừ 22:00–06:00 giờ VN. Cột pickup_time_required từ 0133 (ADR-0154 Đ1.2): cờ «cần chốt giờ» 0/1, máy chủ chụp một lần lúc Gửi đơn của tài khoản Đối tác khi lượt đầu của một dịch vụ chọn Đón mà chưa có giờ; 1 = Còn vé bắt buộc có giờ; trigger cấm đổi; yêu cầu cũ = 0"
     },
     {
       "name": "ord_service_confirm_flag",
@@ -312,6 +312,12 @@
       "module": "orders",
       "kind": "table",
       "note": "công tắc «nhân viên nội bộ tự lập thì tự xác nhận» (ADR-0136 Đ5, migration 0119), CHỈ-THÊM; dòng hiệu lực = valid_from_at lớn nhất ≤ bây giờ; gieo self_confirm_internal = 1 (bật)"
+    },
+    {
+      "name": "ord_partner_customer_policy",
+      "module": "orders",
+      "kind": "table",
+      "note": "công tắc «Ẩn thông tin khách khi đối tác đặt vé» (ADR-0154 Đ2, migration 0133), CHỈ-THÊM (trigger cấm sửa/xoá); dòng hiệu lực = valid_from_at lớn nhất ≤ bây giờ, không có dòng = TẮT; gieo hide_customer_info = 0 (TẮT) nên phát hành không đổi gì; chỉ Toàn quyền thêm dòng mới (settings.ops); đổi công tắc không đổi đơn cũ (dấu orders.manifest_exempt chụp lúc lập đơn)"
     },
     {
       "name": "pty_contact_kind",
@@ -1484,9 +1490,10 @@
     "ord_audit_cutoff": { "code": "N1", "cutoff_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "ord_cancel_reason": { "id": "N1", "order_id": "N1", "reason_code": "N1", "group_code": "N1", "note": "N2", "cancelled_date": "N1", "reclassifies_id": "N1", "legacy": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "ord_manual_service_policy": { "id": "N1", "enabled": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
-    "ord_confirm_request": { "id": "N1", "order_id": "N1", "submitted_at": "N1", "submitted_by": "N1", "deadline_at": "N1", "decided_at": "N1", "decided_by": "N1", "outcome": "N1", "ticket": "N1", "note": "N2", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "ord_confirm_request": { "id": "N1", "order_id": "N1", "submitted_at": "N1", "submitted_by": "N1", "deadline_at": "N1", "decided_at": "N1", "decided_by": "N1", "outcome": "N1", "ticket": "N1", "note": "N2", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "pickup_time_required": "N1" },
     "ord_service_confirm_flag": { "id": "N1", "scope": "N1", "code": "N1", "required": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "ord_confirm_policy": { "id": "N1", "self_confirm_internal": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "ord_partner_customer_policy": { "id": "N1", "hide_customer_info": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "ord_pickup_slot_policy": { "id": "N1", "slots_json": "N1", "note": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "ord_passenger": { "id": "N1", "order_id": "N1", "full_name": "N2", "birth_year": "N2", "pax_code": "N1", "previous_id": "N1", "person_key": "N2", "voided_at": "N1", "source": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "ord_service_terms": { "id": "N1", "order_id": "N1", "order_service_id": "N1", "beneficiary_party_id": "N1", "commission_status": "N1", "missing_reason": "N1", "commission_kind": "N1", "commission_rate_bp": "N1", "commission_per_pax": "N1", "commission_rule_id": "N1", "supply_status": "N1", "seller_party_id": "N1", "supplier_party_id": "N1", "cost_rate_bp": "N1", "supply_term_id": "N1", "source": "N1", "reason": "N2", "supersedes_id": "N1", "captured_date": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
@@ -1495,7 +1502,7 @@
     "order_item": { "id": "N1", "order_id": "N1", "description": "N1", "detail": "N1", "quantity": "N1", "unit_price": "N1", "line_total": "N1", "sort_order": "N1", "catalog_code": "N1", "service_id": "N1", "catalog_price": "N1", "pax_code": "N1" },
     "order_money_adjustment": { "id": "N1", "order_id": "N1", "seq": "N1", "before_json": "N1", "after_json": "N1", "subtotal_before": "N1", "subtotal_after": "N1" },
     "order_service": { "id": "N1", "order_id": "N1", "sort_order": "N1", "catalog_code": "N1", "name": "N1", "unit": "N1", "pax_adult": "N1", "pax_child": "N1", "pax_senior": "N1", "pax_infant": "N1", "depart_date": "N1", "depart_time": "N1", "pickup_time": "N1", "pickup_place": "N2", "checkin_date": "N1", "checkin_time": "N1", "checkin_place": "N2", "note": "N2", "pickup_choice": "N1" },
-    "orders": { "id": "N1", "order_code": "N1", "staff_id": "N1", "status": "N1", "customer_name": "N2", "customer_phone": "N2", "customer_email": "N2", "customer_note": "N2", "subtotal": "N1", "discount": "N1", "total": "N1", "deposit_amount": "N1", "deposit_method": "N1", "remaining_amount": "N1", "payment_note": "N2", "created_at": "N1", "updated_at": "N1", "confirmed_at": "N1", "booker_party_id": "N1", "delivered_at": "N1", "delivered_by": "N1", "completed_at": "N1", "completed_by": "N1" },
+    "orders": { "id": "N1", "order_code": "N1", "staff_id": "N1", "status": "N1", "customer_name": "N2", "customer_phone": "N2", "customer_email": "N2", "customer_note": "N2", "subtotal": "N1", "discount": "N1", "total": "N1", "deposit_amount": "N1", "deposit_method": "N1", "remaining_amount": "N1", "payment_note": "N2", "created_at": "N1", "updated_at": "N1", "confirmed_at": "N1", "booker_party_id": "N1", "delivered_at": "N1", "delivered_by": "N1", "completed_at": "N1", "completed_by": "N1", "manifest_exempt": "N1" },
     "prc_beneficiary_role": { "role_type_code": "N1", "active": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "prc_commission_rule": { "id": "N1", "target_party_id": "N1", "target_role_code": "N1", "scope": "N1", "catalog_code": "N1", "group_code": "N1", "kind": "N1", "rate_bp": "N1", "per_pax_amount": "N1", "valid_from_date": "N1", "valid_to_date": "N1", "note": "N2", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "target_tier_code": "N1", "voided_at": "N1", "voided_by": "N1", "replaces_id": "N1", "change_reason": "N2" },
     "prc_commission_rule_pax": { "rule_id": "N1", "adult_amount": "N1", "child_amount": "N1", "senior_amount": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },

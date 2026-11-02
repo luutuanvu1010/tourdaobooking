@@ -105,6 +105,7 @@ export const changVao = (c: ChangLichChung): ChangVao => ({
   legId: c.legId, orderId: c.orderId, orderCode: c.orderCode, chieu: c.direction, ngayDon: c.pickupDate, gioDon: c.pickupTime, coNoiTra: c.noiTra !== null,
   donDaXacNhan: true, donDaHuy: false, changMo: true, soNguoi: c.soNguoi, nguoiCuaDon: [...c.nguoiCuaDon], datGap: c.datGap, khoaNoiDon: c.khoaNoiDon, khoaNoiTra: c.khoaNoiTra,
   xeRieng: c.xeRieng, choToiThieu: c.choToiThieu, // ADR-0056 VK3-A A4
+  mienDanhSach: c.mienDanhSach, // ADR-0154 Đ3
 });
 /** I38 (R-P9): lý do CỤ THỂ cho chặng có suất mà rơi khỏi `lichChungChang` — theo cờ view công bố; còn mở + đã xác nhận ⇒ ngày đón dời ra ngoài khoảng đọc. */
 export function lyDoChangNgoai(f: LegFlagRow): "DON_DA_HUY" | "CHANG_DA_DONG" | "GIO_HEN_NGOAI_CHUYEN" | "CHANG_KHONG_HOP_LE" {

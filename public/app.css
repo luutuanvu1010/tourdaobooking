@@ -677,6 +677,8 @@ textarea { min-height: 72px; resize: vertical; }
 .loc-nut-hang { display: flex; flex-wrap: wrap; gap: var(--s2); }
 .loc-nut { min-height: var(--tap-min); padding: 0 var(--s3); font: inherit; font-size: var(--fs-label); font-weight: var(--fw-bold); color: var(--c-text); background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius-pill); cursor: pointer; }
 .loc-nut[aria-pressed="true"] { color: var(--c-primary); background: var(--c-primary-soft); border-color: var(--c-primary); }
+/* Quản lý tài khoản: hàng nút lọc theo vai trò cách bảng bên dưới một khoảng (trước đây là thuộc tính style ở staff.html); chỉ token. Đặt TRƯỚC khối «Thành phần chung v2» (phần đó chép sang bộ v2). */
+#loc-vai { margin-bottom: var(--s3); }
 .loc-ngay { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s2); margin-top: var(--s2); }
 .loc-dv-ds { max-height: 40vh; margin-top: var(--s2); overflow-y: auto; }
 .loc-dv { display: flex; align-items: center; gap: var(--s3); min-height: var(--tap-min); font-size: var(--fs-label); color: var(--c-text); border-bottom: 1px solid var(--c-border); }
@@ -2882,6 +2884,7 @@ body:has(.buoc-thanh) .toast-vung { bottom: auto; top: calc(var(--toast-tren, va
 .dp-cond-mark { display: flex; flex: none; align-items: center; justify-content: center; width: var(--dp-cond-mark); height: var(--dp-cond-mark); font-size: var(--fs-dp-mark); font-weight: var(--fw-heavy); border-radius: var(--radius-pill); }
 .dp-cond-mark.is-dat { color: var(--c-green-text); background: var(--c-green-soft); }
 .dp-cond-mark.is-chua { color: var(--c-danger-text); background: var(--c-danger-soft); }
+.dp-cond-mark.is-khong-can { color: var(--c-text-muted); background: none; border: 1px solid var(--c-border); }
 .dp-cond-text { display: flex; flex-direction: column; min-width: 0; }
 .dp-cond-nhan { font-weight: var(--fw-semibold); }
 .dp-cond-sub { font-size: var(--fs-badge); color: var(--c-text-muted); }
@@ -3734,6 +3737,8 @@ a.bk-hang:hover, a.bk-the:hover { background: var(--c-soft-hover); }
 .khach-dau { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); }
 .khach-dau h2 { margin: 0; }
 .khach-dau .btn-link { color: var(--c-primary); }
+.buoc[data-an-khach] > :not(.khach-ngay) { display: none; } /* ADR-0154 Đ2.2: công tắc «Ẩn thông tin khách» áp cho đối tác — chỉ còn dòng «Ngày khởi hành» của khối Khách */
+.buoc[data-an-khach] .khach-ngay { padding-bottom: 0; margin-bottom: 0; border-bottom: 0; }
 .booker-chua { font-size: var(--fs-label); } /* "Hồ sơ khách: chưa liên kết (không bắt buộc)" — chữ xám, không còn nhãn vàng */
 .dqdt-chon { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); margin: 0; }
 .dqdt-chon-ten { overflow-wrap: anywhere; }
@@ -3793,6 +3798,14 @@ a.bk-hang:hover, a.bk-the:hover { background: var(--c-soft-hover); }
 #pay-card .grid.three, #order-form .card > .grid.two { grid-template-columns: repeat(auto-fit, minmax(var(--w-o-hep), 1fr)); }
 .o-noi-khung > :is(input, textarea)::placeholder { color: transparent; }
 .o-noi-khung > :is(input, textarea):focus::placeholder { color: var(--c-placeholder); }
+/* Form Tạo đơn GỌN của Đối tác (đặt vé của đối tác, lượt 1; web/order-form.ts, web/service-card.ts; src/shared/form-dat-ve.ts). Hai biến thể của khung nhãn nổi, chỉ token:
+   `o-khong-nhan` — ô «Giảm giá cho khách»: BỎ nhãn nổi, chữ gợi ý luôn hiện trong ô (bỏ đệm trên dành cho nhãn nên chữ nằm giữa ô theo chiều đứng);
+   `o-hien-goi-y` — dòng «Ghi chú»: nhãn nổi GIỮ vị trí thu nhỏ kể cả khi ô trống, chữ gợi ý «Thời gian đón» luôn hiện bên dưới nhãn. */
+.o-noi-khung.o-khong-nhan > input { padding-top: var(--s1); }
+.o-noi-khung.o-khong-nhan > input::placeholder { color: var(--c-placeholder); opacity: 1; }
+.o-noi-khung.o-hien-goi-y > input::placeholder { color: var(--c-placeholder); opacity: 1; }
+.o-noi-khung.o-hien-goi-y > input:placeholder-shown:not(:focus) ~ .o-noi-chu { top: var(--s2); transform: none; font-size: var(--fs-step-2); font-weight: var(--fw-semibold); }
+.svc-than > label.o-noi { margin-top: var(--s3); } /* dòng «Ghi chú» gọn đứng ngay sau khối Đưa đón, thay chỗ khối «Thông tin chuyến» (cùng khoảng cách trên với `.trip`) */
 .dd-khac-ngay { align-self: start; justify-self: start; min-height: var(--h-field); padding: 0 var(--s2); } /* "Đón khác ngày" (đợt 1 #9): nằm cạnh ô giờ, ngang hàng với khung ô */
 /* «Chọn nhanh» nơi đưa đón (ADR-0118 Đ5): hàng nút điểm thường dùng dưới ô Nơi trả (chiều đi) / Nơi đón (chiều về); chỉ token. */
 .dd-nhanh { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); }
@@ -3912,6 +3925,9 @@ a.bk-hang:hover, a.bk-the:hover { background: var(--c-soft-hover); }
 .cx-bang .btn, .cx-ds-nut { min-height: var(--tap-min); }
 .cx-loi { margin: 0; color: var(--c-danger-text); font-size: var(--fs-label); }
 .cx-ghi-chu { margin: 0; font-size: var(--fs-label); }
+.cx-dich-vu, .cx-luot { display: grid; gap: var(--s2); }
+.cx-dich-vu { gap: var(--s3); }
+.cx-ghi-chu-dv { margin: 0; overflow-wrap: anywhere; white-space: pre-line; }
 .cx-ds { display: grid; gap: var(--s3); margin: var(--s3) 0; padding: 0; list-style: none; }
 .cx-the { display: grid; gap: var(--s2); padding: var(--s4); background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius-md); }
 .cx-the-dau { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s2); }
@@ -3927,7 +3943,7 @@ a.bk-hang:hover, a.bk-the:hover { background: var(--c-soft-hover); }
 .hh-dau { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s2) var(--s4); }
 .hh-dau h1 { margin: 0; }
 .hh-dau .btn { min-height: var(--tap-min); }
-.hh-the { margin-top: var(--s3); }
+.hh-the { margin-top: var(--s3); margin-bottom: var(--s3); } /* 2/11: nút chính đầu mỗi thẻ (＋ Thêm cấp độ đại lý / ＋ Thêm vai trò) không dính vào vạch chân thanh thẻ — thấy ở ảnh thật khổ 390 */
 @media (max-width: 640px) { .hh-dau .btn { display: none; } }
 
 /* Thẻ «Mức đang áp dụng» (PR 2 đợt 2): Tra nhanh, hàng lọc, bảng «ai hưởng gì», hộp Thêm mức / Đổi. Chỉ token. */
@@ -3952,7 +3968,7 @@ a.bk-hang:hover, a.bk-the:hover { background: var(--c-soft-hover); }
 .hh-tom-tat { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .hh-lo-thieu { font-size: var(--fs-label); }
 .hh-lo-ct { padding: 0 var(--s4) var(--s4); border-top: 1px solid var(--c-line); }
-.hh-lo-ct h3 { margin: var(--s3) 0 var(--s2); font-size: var(--fs-label); color: var(--c-text-muted); }
+.hh-lo-ct h4 { margin: var(--s3) 0 var(--s2); font-size: var(--fs-label); color: var(--c-text-muted); }
 .hh-mrows { margin: 0 0 var(--s2); padding: 0; list-style: none; }
 .hh-m { display: grid; grid-template-columns: 1fr auto; gap: var(--s1) var(--s3); align-items: center; padding: var(--s2) 0; border-bottom: 1px solid var(--c-line); }
 .hh-m-dau { display: none; }
@@ -4052,6 +4068,11 @@ a.bk-hang:hover, a.bk-the:hover { background: var(--c-soft-hover); }
 .hh-loai-cap { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2) var(--s3); }
 .hh-loai-the h4 { margin: var(--s2) 0 0; font-size: var(--fs-label); color: var(--c-text-muted); }
 .hh-loai-sap { margin: 0; }
+
+/* Thẻ «Vai người dùng» gồm hai khối xếp dọc (danh sách vai, rồi «Người có cấp riêng»): khối sau có vạch ngăn trên để không dính vào ba câu chú dưới danh sách vai (hai tiêu đề cùng kiểu chữ,
+   nên ranh giới do vạch này báo); và hàng đầu mỗi khối (tiêu đề + nút chính, nút xuống dòng ở khổ hẹp) cách hàng Tìm / Trạng thái bên dưới một khoảng. Chỉ token; thêm 2/11 sau ảnh thật. */
+#hh-the-loai .hh-cap-dau { margin-bottom: var(--s3); }
+#hh-loai-rieng { margin-top: var(--s5); padding-top: var(--s4); border-top: 1px solid var(--c-line); }
 
 /* ---------- Thành phần chung v2 (đợt 0, đặc tả mục 8) ----------
    Một tên lớp gốc + biến thể bằng thuộc tính; chỉ token. Lớp cũ giữ nguyên. */

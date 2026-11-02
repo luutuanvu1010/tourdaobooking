@@ -198,7 +198,7 @@ export const BANG_SU_KIEN_VAN_CHUYEN: readonly DongSuKien[] = [
   // Tiến độ (tài xế bấm ↔ văn phòng bấm thay) — ADR-0049 D3; giờ xảy ra: ADR-0050 VK1-A.
   {
     id: "xuat-ben", ten: "Xuất bến", loai: "tien_do", trangThai: "co_ma", routes: capTienDo("/xuat-ben", "lenhXuatBen"), trangThaiChuyen: ["PLANNED"], vuot: [],
-    luat: "điều kiện xuất bến (giấy tờ xe, bằng lái, khoảng nghỉ, cửa sổ giờ); chốt danh sách", bang: [...LO_CHUNG, "vc_trip_allocation", "vc_trip_departure_check", "vc_trip_departure_check_item", "vc_trip_manifest"],
+    luat: "điều kiện xuất bến (giấy tờ xe, bằng lái, khoảng nghỉ, cửa sổ giờ, đủ tên khách, trừ đơn mang dấu miễn danh sách); chốt danh sách", bang: [...LO_CHUNG, "vc_trip_allocation", "vc_trip_departure_check", "vc_trip_departure_check_item", "vc_trip_manifest"],
     suKien: "DEPARTED", nhatKy: "trip_departed", lo: "loXuatBen", bao: "route", tin: null, bangTin: "xuat_ben", nguon: "ADR-0049 D3; ADR-0050 VK1-A",
   },
   {

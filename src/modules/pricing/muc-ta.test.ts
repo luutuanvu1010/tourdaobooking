@@ -184,23 +184,23 @@ test("N-12: kiểm đầu vào ⇒ 400 / 404 / 409 rõ nghĩa tiếng Việt, kh
   const bang = () => [dem(w, "SELECT count(*) AS n FROM prc_rate_tier"), dem(w, "SELECT count(*) AS n FROM prc_role_tier"), dem(w, "SELECT count(*) AS n FROM prc_commission_rule"), dem(w, "SELECT count(*) AS n FROM audit_log")];
   const truoc = bang();
   const ca: [string, () => Promise<Res>, number, RegExp][] = [
-    ["dòng cho mức không có", () => themDong(w, "MT_KHONGCOO", { tyLeBp: 1000 }), 404, /Không tìm thấy cấp đại lý/],
-    ["dòng mã sai dạng", () => themDong(w, "khong-hop-le", { tyLeBp: 1000 }), 404, /Không tìm thấy cấp đại lý/],
+    ["dòng cho mức không có", () => themDong(w, "MT_KHONGCOO", { tyLeBp: 1000 }), 404, /Không tìm thấy cấp độ đại lý/],
+    ["dòng mã sai dạng", () => themDong(w, "khong-hop-le", { tyLeBp: 1000 }), 404, /Không tìm thấy cấp độ đại lý/],
     ["dòng thiếu mức", () => themDong(w, ta1, {}), 400, /Mức phải là tỷ lệ/],
     ["dòng tỷ lệ quá 100%", () => themDong(w, ta1, { tyLeBp: 10_001 }), 400, /Mức phải là tỷ lệ/],
     ["dòng dịch vụ không có", () => themDong(w, ta1, { tyLeBp: 1000, phamVi: "SERVICE", catalogCode: "KHONGCO" }), 400, /Không có dịch vụ này/],
     ["dòng chồng ngày (mọi dịch vụ đã có)", () => themDong(w, ta1, { tyLeBp: 1500, tuNgay: "2026-06-01" }), 409, /Đã có mức/],
     ["dòng ghi chú có số điện thoại", () => themDong(w, ta1, { tyLeBp: 1000, phamVi: "SERVICE", catalogCode: "ZA1", ghiChu: "gọi 0901234567" }), 400, /số điện thoại/],
-    ["gắn mức không có", () => gan(w, loai, "MT_KHONGCOO", "2027-01-01"), 404, /Không tìm thấy cấp đại lý/],
+    ["gắn mức không có", () => gan(w, loai, "MT_KHONGCOO", "2027-01-01"), 404, /Không tìm thấy cấp độ đại lý/],
     ["gắn loại không được hưởng", () => gan(w, "CUSTOMER", ta1), 400, /không nằm trong danh sách được hưởng/],
     ["gắn loại không có", () => gan(w, "LD_KHONGCOGI", ta1), 400, /không nằm trong danh sách được hưởng/],
-    ["gắn chồng ngày", () => gan(w, loai, ta1, "2026-05-01"), 409, /đã theo một cấp đại lý trong khoảng ngày này/],
+    ["gắn chồng ngày", () => gan(w, loai, ta1, "2026-05-01"), 409, /đã theo một cấp độ đại lý trong khoảng ngày này/],
     ["gắn thiếu ngày", () => w.call("POST", "/api/pricing/muc-ta/gan", { as: KT, body: { loai, muc: ta1 } }), 400, /Ngày bắt đầu/],
     ["gắn ngày kết thúc trước ngày bắt đầu", () => gan(w, loai, ta1, "2027-02-01", KT, "2027-01-01"), 400, /Ngày kết thúc/],
-    ["gắn thân rỗng", () => w.call("POST", "/api/pricing/muc-ta/gan", { as: KT, body: {} }), 400, /Chọn loại đối tác và cấp đại lý/],
+    ["gắn thân rỗng", () => w.call("POST", "/api/pricing/muc-ta/gan", { as: KT, body: {} }), 400, /Chọn vai người dùng và cấp độ đại lý/],
     ["kết thúc gắn không có", () => ketThucGan(w, "khong-co-gan", vnHomNay()), 404, /Không tìm thấy/],
     ["kết thúc gắn trước ngày bắt đầu", () => ketThucGan(w, g.json.gan.id, "2025-12-31"), 400, /Ngày kết thúc/],
-    ["tắt mức không có", () => w.call("POST", "/api/pricing/muc-ta/MT_KHONGCOO/tat", { as: KT, body: {} }), 404, /Không tìm thấy cấp đại lý/],
+    ["tắt mức không có", () => w.call("POST", "/api/pricing/muc-ta/MT_KHONGCOO/tat", { as: KT, body: {} }), 404, /Không tìm thấy cấp độ đại lý/],
     ["bật mức đang bật", () => w.call("POST", `/api/pricing/muc-ta/${ta1}/bat`, { as: KT, body: {} }), 409, /đang mở rồi/],
   ];
   for (const [ten, p, ma, cau] of ca) {
@@ -228,7 +228,7 @@ test("N-24: tên trùng khác dấu / hoa thường / khoảng trắng ⇒ 409 m
     const r = await themMuc(w, ten);
     assert.equal(r.status, 409, `${ten}: ${r.text}`);
     assert.equal(r.json.error.code, "muc_trung");
-    assert.equal(r.json.error.message, "Đã có cấp đại lý với tên này.");
+    assert.equal(r.json.error.message, "Đã có cấp độ đại lý với tên này.");
   }
   for (const x of ["", "   ", "x", "x".repeat(61), null, 5, ["TA"], "Gọi 0901 234 567", "ta@spa.vn", "̀̀"]) {
     const r = await themMuc(w, x);
@@ -268,7 +268,7 @@ test("N-23: tắt mức ⇒ 200 dangBat false, nhật ký; gắn mới và thêm
   const g2 = await gan(w, l2, ta1);
   assert.equal(g2.status, 409, g2.text);
   assert.equal(g2.json.error.code, "muc_tat");
-  assert.match(g2.json.error.message, /Cấp đại lý này đang khoá/);
+  assert.match(g2.json.error.message, /Cấp độ đại lý này đang khoá/);
   const d2 = await themDong(w, ta1, { tyLeBp: 1500, phamVi: "SERVICE", catalogCode: "ZA1" });
   assert.equal(d2.status, 409, d2.text);
   assert.equal(d2.json.error.code, "muc_tat");

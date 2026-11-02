@@ -159,3 +159,17 @@ test("giao diện ẩn/hiện hỏi bảng quyền can(), không hỏi thẳng m
   );
   for (const c of CHO_PHEP) assert.ok(all.some((t) => t.file === c.file && t.ma === c.ma && c.khuon.test(t.text)), `mục cho phép thừa (không còn dòng nào khớp): ${c.file} ${c.ma} ${c.khuon}`);
 });
+
+// ADR-0154 Đ2.1 (kế hoạch lượt 2 Task 3.2): khối công tắc «Ẩn thông tin khách khi đối tác đặt vé» ở trang Tôi chỉ dành cho người giữ ô settings.ops (chỉ Toàn quyền) — trang chỉ GỌI
+// `ganCaiDatAnKhach` sau `can(staff, "settings.ops")` (Quản trị không thấy khối, không gọi route); máy chủ vẫn kiểm lại khi ghi (POST …/an-thong-tin-khach → 403).
+test("trang Tôi chỉ gọi ganCaiDatAnKhach sau can(staff, \"settings.ops\"), đúng một chỗ, vào khối #an-khach-cai-dat", () => {
+  const src = maskSource(readFileSync(join(ROOT, "web", "account.ts"), "utf8"), { strings: false, comments: true });
+  const goi = [...src.matchAll(/ganCaiDatAnKhach\(/g)];
+  assert.equal(goi.length, 1, "đúng MỘT lời gọi ganCaiDatAnKhach trong web/account.ts");
+  assert.match(src, /if\s*\(\s*can\(\s*staff\s*,\s*"settings\.ops"\s*\)\s*\)\s*void\s+ganCaiDatAnKhach\(\s*byId\(\s*"an-khach-cai-dat"\s*\)\s*\)/, "lời gọi nằm ngay sau điều kiện can(staff, \"settings.ops\")");
+  assert.match(src, /import\s*\{\s*ganCaiDatAnKhach\s*\}\s*from\s*"\.\/an-khach-cai-dat"/);
+  const html = readFileSync(join(ROOT, "public", "account.html"), "utf8");
+  assert.match(html, /<section id="an-khach-cai-dat" class="card" aria-labelledby="an-khach-heading" hidden><\/section>/, "khối ẩn sẵn, đúng tên");
+  assert.ok(html.indexOf('id="nhap-tay-cai-dat"') < html.indexOf('id="an-khach-cai-dat"') && html.indexOf('id="an-khach-cai-dat"') < html.indexOf('id="mfa"'), "đứng ngay sau «Dịch vụ nhập tay»");
+});
+

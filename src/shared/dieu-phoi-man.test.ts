@@ -8,6 +8,8 @@ import {
 import type { ChangLichDto, ChuyenTomTatDto, LichChungResponse, LyDoGiuDto, NhatKyChuyenDto } from "./contracts.ts";
 import type { PermissionCode } from "./permissions.ts";
 import { vnLocalToMs } from "./vn-date.ts";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 
 const NGAY = "2026-09-30";
 const ms = (gio: string, ngay = NGAY) => vnLocalToMs(ngay, gio)!;
@@ -390,8 +392,49 @@ test("vòng 5g (K2e VỪA-1): CẢ THIEU_TEN lẫn KHACH_DA_DOI → dòng 'Đủ
   const khach = "Khách trong xe không còn trong đơn — bấm Cập nhật khách theo đơn: TD-8";
   const thieu = "Chưa đủ tên khách: TD-8 thiếu 1 tên";
   const dong = (ds: LyDoGiuDto[]) => dieuKienXuatBen(ds).filter((d) => !d.dat);
-  assert.deepEqual(dong([ly("KHACH_DA_DOI", khach), ly("THIEU_TEN", thieu)]), [{ nhan: "Đủ tên khách", dat: false, chiTiet: `${khach}; ${thieu} · Ai xử lý: Văn phòng` }]);
-  assert.deepEqual(dong([ly("THIEU_TEN", thieu), ly("KHACH_DA_DOI", khach)]), [{ nhan: "Đủ tên khách", dat: false, chiTiet: `${thieu}; ${khach} · Ai xử lý: Văn phòng` }]);
+  assert.deepEqual(dong([ly("KHACH_DA_DOI", khach), ly("THIEU_TEN", thieu)]), [{ nhan: "Đủ tên khách", dat: false, chiTiet: `${khach}; ${thieu} · Ai xử lý: Văn phòng`, khongCan: false }]);
+  assert.deepEqual(dong([ly("THIEU_TEN", thieu), ly("KHACH_DA_DOI", khach)]), [{ nhan: "Đủ tên khách", dat: false, chiTiet: `${thieu}; ${khach} · Ai xử lý: Văn phòng`, khongCan: false }]);
+});
+
+// ---- ADR-0154 Đ3: dòng «Đủ tên khách» với đơn mang dấu miễn danh sách — «Không cần», KHÔNG BAO GIỜ ghi đạt -------------------------------------------------------
+const nhacDon = (maDon: string, ma = "KHONG_CAN_DANH_SACH") => ({ ma, maDon });
+const dongTen = (dk: ReturnType<typeof dieuKienXuatBen>) => dk.find((d) => d.nhan === "Đủ tên khách")!;
+test("(o) dieuKienXuatBen: chỉ có nhắc (không lý do giữ) → dòng «Đủ tên khách» khongCan true, dat FALSE (chỉ đọc `dat` không thể ghi đạt giả), chi tiết «Không cần danh sách khách: <mã đơn>»", () => {
+  const dk = dieuKienXuatBen([], [nhacDon("TD-8")]);
+  assert.deepEqual(dongTen(dk), { nhan: "Đủ tên khách", dat: false, chiTiet: "Không cần danh sách khách: TD-8", khongCan: true });
+  assert.deepEqual(dk.filter((d) => d.khongCan).map((d) => d.nhan), ["Đủ tên khách"], "chỉ một dòng là «không cần»");
+  assert.deepEqual(dk.filter((d) => !d.dat).map((d) => d.nhan), ["Đủ tên khách"], "mọi dòng khác vẫn đạt; dòng này KHÔNG đạt");
+  // Không nhắc, không lý do → như cũ: đạt, không «không cần».
+  assert.deepEqual(dongTen(dieuKienXuatBen([])), { nhan: "Đủ tên khách", dat: true, chiTiet: "", khongCan: false });
+  assert.deepEqual(dongTen(dieuKienXuatBen([], [])), { nhan: "Đủ tên khách", dat: true, chiTiet: "", khongCan: false });
+  // Nhiều chặng của cùng một đơn: một mã đơn một lần, theo thứ tự gặp; nhiều đơn: nối bằng dấu phẩy.
+  assert.equal(dongTen(dieuKienXuatBen([], [nhacDon("TD-8"), nhacDon("TD-9"), nhacDon("TD-8")])).chiTiet, "Không cần danh sách khách: TD-8, TD-9");
+  // Mã nhắc lạ không được tính là «không cần danh sách» (chỉ đúng mã KHONG_CAN_DANH_SACH).
+  assert.deepEqual(dongTen(dieuKienXuatBen([], [nhacDon("TD-8", "MA_LA")])), { nhan: "Đủ tên khách", dat: true, chiTiet: "", khongCan: false });
+});
+test("(o2) dieuKienXuatBen: chuyến trộn — một đơn có dấu, một đơn không dấu thiếu tên → dòng CHƯA đạt, khongCan false; chi tiết giữ câu cũ và nối mã đơn được miễn", () => {
+  const dk = dieuKienXuatBen([ly("THIEU_TEN", "Chưa đủ tên khách: TD-9 thiếu 1 tên")], [nhacDon("TD-8")]);
+  assert.deepEqual(dongTen(dk), { nhan: "Đủ tên khách", dat: false, chiTiet: "Chưa đủ tên khách: TD-9 thiếu 1 tên · Ai xử lý: Văn phòng · Không cần danh sách khách: TD-8", khongCan: false });
+  assert.equal(dk.some((d) => d.khongCan), false);
+  // Không nhắc: chi tiết đúng như cũ (không thêm chữ).
+  assert.equal(dongTen(dieuKienXuatBen([ly("THIEU_TEN", "Chưa đủ tên khách: TD-9 thiếu 1 tên")])).chiTiet, "Chưa đủ tên khách: TD-9 thiếu 1 tên · Ai xử lý: Văn phòng");
+});
+test("(o3) dieuKienXuatBen: đơn có dấu kèm KHACH_DA_DOI → chưa đạt, khongCan false (dấu chỉ miễn tên còn thiếu, không miễn khách đã đổi)", () => {
+  const dk = dieuKienXuatBen([ly("KHACH_DA_DOI", "Khách trong xe không còn trong đơn — bấm Cập nhật khách theo đơn: TD-8")], [nhacDon("TD-8")]);
+  assert.equal(dongTen(dk).dat, false);
+  assert.equal(dongTen(dk).khongCan, false);
+  assert.match(dongTen(dk).chiTiet, /^Khách trong xe không còn trong đơn/);
+});
+test("(o4) dieuKienXuatBen: chi tiết của dòng «không cần» không chứa chữ «đạt», «Đủ» hay dấu ✓ — để màn không đọc nhầm thành đã đủ", () => {
+  const ct = dongTen(dieuKienXuatBen([], [nhacDon("TD-8"), nhacDon("TD-9")])).chiTiet;
+  assert.doesNotMatch(ct, /đạt|Đủ|đủ|✓/);
+  assert.match(ct, /^Không cần danh sách khách: /);
+});
+test("dieuKienXuatBen: mọi dòng có khoá khongCan (false trừ dòng «không cần»); dòng «Khác» không bao giờ là «không cần»", () => {
+  const dk = dieuKienXuatBen([ly("CHINH_SACH_RONG", "Chưa có chính sách", "TOAN_QUYEN")], [nhacDon("TD-8")]);
+  assert.ok(dk.every((d) => typeof d.khongCan === "boolean"));
+  assert.deepEqual(dk.filter((d) => d.khongCan).map((d) => d.nhan), ["Đủ tên khách"]);
+  assert.deepEqual(dk.at(-1), { nhan: "Khác", dat: false, chiTiet: "Chưa có chính sách · Ai xử lý: Toàn quyền", khongCan: false });
 });
 
 test("viecCanXuLy + giờ lái (ADR-0055 VK2-B): GIO_LAI_VUOT / CHUYEN_DAI_CAN_NGHI → mục nhãn tiếng Việt, biểu tượng đồng hồ, tone vàng, không nút, mở Chi tiết chuyến", () => {
@@ -443,4 +486,25 @@ test("ADR-0104 Đ1 mục 9: hộp và nút vượt luật theo `lop` của 409 �
     assert.equal(chu.KHAN_CAP.slice("Điều chỉnh khẩn cấp và ".length), chu.QUAN_TRI.slice("Phá lệ và ".length), `${viec}: cùng động từ ở hai lớp`);
   }
   assert.deepEqual(Object.keys(NUT_VUOT), ["xep", "them", "rut", "chuyen", "luu", "huy"]);
+});
+
+const docTep = (tep: string): string => readFileSync(fileURLToPath(new URL(`../../${tep}`, import.meta.url)), "utf8");
+
+test("nối dây ADR-0154 Đ3.3: Chi tiết chuyến đọc nhacDieuKien ở CẢ HAI nơi gọi, dòng «không cần» có dấu riêng, câu «Đạt đủ» đếm đúng", () => {
+  const ct = docTep("web/chuyen.ts");
+  assert.doesNotMatch(ct, /dk\.length\}\s*điều kiện/, "câu «Đạt đủ N điều kiện» không đếm cả dòng «không cần»");
+  const goi = [...ct.matchAll(/dieuKienXuatBen\(([^)]*)\)/g)].map((m) => m[1]!);
+  assert.equal(goi.length, 2, "đúng hai nơi gọi (bảng điều kiện và hộp «Cho xe chạy»)");
+  for (const doiSo of goi) assert.match(doiSo, /lyDoGiu\s*,\s*[\w.]*nhacDieuKien/, `nơi gọi «${doiSo}» phải truyền lời nhắc của phản hồi chi tiết chuyến`);
+  assert.match(ct, /!x\.dat\s*&&\s*!x\.khongCan/, "số «chưa đạt» không tính dòng không cần");
+  assert.match(ct, /data-khong-can/, "dòng «không cần» có dấu riêng");
+  assert.match(ct, /"Không cần"/, "nhãn đọc cho người dùng máy đọc màn hình");
+});
+
+test("nối dây ADR-0154 Đ3.3: trang đơn không còn chép tay câu thiếu tên, truyền dấu miễn cho cả hai chỗ", () => {
+  const od = docTep("web/order.ts");
+  assert.doesNotMatch(od, /cần đủ trước khi xe chạy/, "câu thiếu tên đi qua cauThieuTen (một nguồn)");
+  assert.match(od, /cauThieuTen\(/, "khối Hành khách của trang đơn lấy câu từ cauThieuTen");
+  assert.match(od, /khoiHanhKhachDon\([^;]*manifestExempt\)/, "khối Hành khách nhận dấu miễn của đơn");
+  assert.match(od, /canhBaoXacNhan\([^;]*manifestExempt\)/, "cảnh báo lúc xác nhận cũng theo dấu của đơn");
 });
