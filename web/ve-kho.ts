@@ -4,7 +4,7 @@
 //   GET  /api/ve/lo-da-huy              → các lô huỷ trong hạn lưu ảnh, mỗi vé kèm trạng thái ảnh
 //   POST /api/ve/lo-da-huy/:veId/mo     → mở ảnh: vé bị khoá hẳn, không nhập lại được
 //   GET  /api/ve/lo-da-huy/:veId/anh    → ảnh của vé đã mở
-//   POST /api/ve/lo                     → mở lô (một dịch vụ + một loại khách + tên sản phẩm, chọn MỘT lần cho cả lô); vượt trần ⇒ 400, không tạo lô
+//   POST /api/ve/lo                     → mở lô (một dịch vụ + một loại khách hoặc mọi loại khách + tên sản phẩm, chọn MỘT lần cho cả lô); vượt trần ⇒ 400, không tạo lô
 //   POST /api/ve/lo/:id/ve              → thêm ảnh vé (JSON base64, tối đa 10 ảnh mỗi đợt, JPG/PNG ≤ 3 MB)
 //   POST /api/ve/lo/:id/xac-nhan        → đưa lô vào kho
 //   POST /api/ve/lo/:id/bo              → huỷ lô; ảnh vé của lô nhập lại được
@@ -19,14 +19,14 @@ import { byId, h, replaceChildren } from "./dom";
 import { docQrTuTep } from "./qr-doc-ve";
 import { initShell, showError } from "./shell";
 
-interface KhoDong { catalogCode: string; tenDichVu: string | null; nhomKhach: "ADULT" | "CHILD" | "SENIOR"; conTrong: number; sapHetHan: number; daGiu: number; daGiao: number }
+interface KhoDong { catalogCode: string; tenDichVu: string | null; nhomKhach: "ADULT" | "CHILD" | "SENIOR" | "ALL"; conTrong: number; sapHetHan: number; daGiu: number; daGiao: number }
 interface ThemVeRes { loId: string; themDuoc: number; chuaLuuVaoKho: number; loai: { thuTu: number; lyDo: string }[]; veTrongLo: number }
 interface LoBoDuoc { loId: string; tenDichVu: string | null; nhomKhach: string; tenSanPham: string; trangThai: string; soVe: number; taoLuc: string }
 
 interface VeDaHuy { veId: string; duoiMa: string; tuNgay: string; denNgay: string; trangThaiAnh: "CHUA_MO" | "DA_MO" | "DA_NHAP_LAI" | "HET_ANH" }
 interface LoDaHuy { loId: string; tenDichVu: string | null; nhomKhach: string; tenSanPham: string; huyLuc: string; huyBoi: string | null; ve: VeDaHuy[] }
 
-const NHAN_NHOM: Record<string, string> = { ADULT: "Người lớn", CHILD: "Trẻ em", SENIOR: "Cao tuổi" };
+const NHAN_NHOM: Record<string, string> = { ADULT: "Người lớn", CHILD: "Trẻ em", SENIOR: "Cao tuổi", ALL: "Mọi loại khách" };
 
 const errorEl = byId("error");
 const okEl = byId("ok");
@@ -187,7 +187,7 @@ if (!can(staff, "ve.kho.manage")) {
       truong("Dịch vụ", "vk-dich-vu", chonDv), truong("Loại khách", "vk-nhom", chonNhom), truong("Tên sản phẩm in trên vé", "vk-ten-sp", tenSp),
       truong("Dùng từ ngày (chung cho cả lô)", "vk-tu-ngay", tuNgay), truong("Dùng đến ngày (chung cho cả lô)", "vk-den-ngay", denNgay),
       truong(`Ảnh vé (JPG hoặc PNG, mỗi ảnh tối đa 3 MB, mỗi lô tối đa ${tranLo} ảnh)`, "vk-tep", tep),
-      h("p", { class: "muted" }, "Máy tự đọc mã QR trên từng ảnh để chống trùng, nhưng không đọc ngày hay loại vé. Mỗi lô chỉ chọn vé cùng một sản phẩm, cùng loại khách và cùng ngày dùng."),
+      h("p", { class: "muted" }, "Máy tự đọc mã QR trên từng ảnh để chống trùng, nhưng không đọc ngày hay loại vé. Mỗi lô chỉ chọn vé cùng một sản phẩm, cùng loại khách và cùng ngày dùng. Chọn «Mọi loại khách» khi vé dùng được cho cả người lớn, trẻ em và người cao tuổi."),
       loi, trangThai, h("div", { class: "handler-actions" }, nutGui));
 
     tep.addEventListener("change", () => {

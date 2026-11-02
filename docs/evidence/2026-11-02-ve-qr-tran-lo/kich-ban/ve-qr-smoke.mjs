@@ -225,6 +225,11 @@ try {
     await choFormVe(p);
     let dem = await conTrong(p);
     const loDau = `Lô đầu ${kho}`;
+    await buoc(`${kho}.4b`, "Ô Loại khách có dòng «Mọi loại khách» (ADR-0157), chữ dặn nói rõ khi nào chọn, không lộ mã thô", async () => {
+      assert.deepEqual(await p.ev("[...document.querySelectorAll('#vk-nhom option')].map((o) => o.textContent)"), ["Người lớn", "Trẻ em", "Cao tuổi", "Mọi loại khách"]);
+      assert.match(await p.ev("document.getElementById('vk-form').textContent"), /Chọn «Mọi loại khách» khi vé dùng được cho cả người lớn, trẻ em và người cao tuổi/);
+      await chup(p, `moi-loai-khach-${kho}`);
+    });
     await buoc(`${kho}.5`, "Hai ảnh tốt + ảnh không có mã + tệp không phải ảnh: hai vé vào kho, hai tệp bị loại kèm tên", async () => {
       await bocucSach(p, "Bán hàng /ve-kho");
       await axeKiem(p, "/ve-kho");

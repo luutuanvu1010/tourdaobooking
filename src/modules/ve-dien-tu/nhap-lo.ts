@@ -1,9 +1,9 @@
 // Luật thuần kiểm đầu vào nhập lô vé (ADR-0153; Task 4c). KHÔNG I/O. Mã vé chỉ được che lại 4 ký tự cuối khi trả về người dùng.
 import { DANG_MA_VE } from "../../shared/ve-nhap-lo.ts";
-import type { Nhom } from "./rules.ts";
+import type { NhomLo } from "./rules.ts";
 
 type Kq<T> = { ok: true; value: T } | { ok: false; message: string };
-const NHOM: readonly Nhom[] = ["ADULT", "CHILD", "SENIOR"];
+const NHOM_LO: readonly NhomLo[] = ["ADULT", "CHILD", "SENIOR", "ALL"];
 const laNgay = (s: string): boolean => {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
   if (!m) return false;
@@ -12,15 +12,15 @@ const laNgay = (s: string): boolean => {
 };
 const chu = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
 
-export interface LoMoi { catalogCode: string; nhomKhach: Nhom; tenSanPham: string }
+export interface LoMoi { catalogCode: string; nhomKhach: NhomLo; tenSanPham: string }
 export function kiemLo(raw: Record<string, unknown>): Kq<LoMoi> {
   const catalogCode = chu(raw.catalogCode);
   const nhom = chu(raw.nhomKhach);
   const tenSanPham = chu(raw.tenSanPham);
   if (catalogCode.length < 1 || catalogCode.length > 40) return { ok: false, message: "Chọn dịch vụ cho cả lô." };
-  if (!(NHOM as readonly string[]).includes(nhom)) return { ok: false, message: "Chọn nhóm khách của lô: người lớn, trẻ em hoặc cao tuổi." };
+  if (!(NHOM_LO as readonly string[]).includes(nhom)) return { ok: false, message: "Chọn loại khách của lô: người lớn, trẻ em, cao tuổi hoặc mọi loại khách." };
   if (tenSanPham.length < 1 || tenSanPham.length > 200) return { ok: false, message: "Nhập tên sản phẩm in trên vé (tối đa 200 chữ)." };
-  return { ok: true, value: { catalogCode, nhomKhach: nhom as Nhom, tenSanPham } };
+  return { ok: true, value: { catalogCode, nhomKhach: nhom as NhomLo, tenSanPham } };
 }
 
 export interface VeNhap { maVe: string; tuNgay: string; denNgay: string; gio: string | null }

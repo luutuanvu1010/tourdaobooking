@@ -893,7 +893,7 @@
       "name": "vdt_batch",
       "module": "ve-dien-tu",
       "kind": "table",
-      "note": "`last_cmd_id` = dấu lệnh của lần Huỷ lô thắng (ADR-0156). Lô VOID: `updated_at`, `updated_by` là lúc huỷ và người huỷ, vì không còn câu nào ghi lô đó. Lô nhập vé điện tử (ADR-0153 Đ1, 0131 — đề xuất): MỘT dịch vụ (mã tour `catalog_code`, tham chiếu logic, không khoá ngoại) + MỘT nhóm khách chọn một lần cho cả lô. Không xoá (trigger vdt_batch_no_delete); không đổi nhóm khách. `printed_name` = tên sản phẩm in trên vé, để nhân viên đối chiếu"
+      "note": "`pax_group` nhận thêm `ALL` = lô «Mọi loại khách» cho vé không phân biệt loại khách (ADR-0157, `0134`); `vdt_allocation.pax_group` không nhận `ALL`. `last_cmd_id` = dấu lệnh của lần Huỷ lô thắng (ADR-0156). Lô VOID: `updated_at`, `updated_by` là lúc huỷ và người huỷ, vì không còn câu nào ghi lô đó. Lô nhập vé điện tử (ADR-0153 Đ1, 0131 — đề xuất): MỘT dịch vụ (mã tour `catalog_code`, tham chiếu logic, không khoá ngoại) + MỘT nhóm khách chọn một lần cho cả lô. Không xoá (trigger vdt_batch_no_delete); không đổi nhóm khách. `printed_name` = tên sản phẩm in trên vé, để nhân viên đối chiếu"
     },
     {
       "name": "vdt_ticket",

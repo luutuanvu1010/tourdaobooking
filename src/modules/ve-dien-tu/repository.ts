@@ -11,6 +11,7 @@ export const demVeTheoTrangThai = async (db: D1Database): Promise<Record<string,
 };
 
 // ===== Giữ chỗ (ADR-0153 Đ1 mục 3). Ba câu tĩnh; CHẠY TRONG MỘT `db.batch` do cap-ve.ts dựng: UPDATE vé → INSERT phân bổ → (nhật ký, gác `changes() > 0`).
+// Lô đúng loại khách ra trước, hết mới sang lô dùng chung (ADR-0157 Đ2), để đơn nhiều loại khách không bị báo thiếu oan; trong mỗi nhóm theo hạn gần nhất.
 // Tự giới hạn bằng chính SQL: số vé lấy = max(0, cần − đang giữ của dịch vụ/nhóm đó LÚC CHẠY) nên hai lô soạn cùng lúc không thể giữ thừa (D1 chạy từng lô trọn vẹn).
 // KHÔNG đọc `audit_log` (module nghiêm): cổng là chính trạng thái vé.
 const GIU_VE = defineSql(
@@ -19,8 +20,8 @@ const GIU_VE = defineSql(
   `UPDATE vdt_ticket SET status = 'ALLOCATED', updated_at = ?6, updated_by = ?7
    WHERE id IN (
      SELECT t.id FROM vdt_ticket t JOIN vdt_batch b ON b.id = t.batch_id
-     WHERE b.catalog_code = ?1 AND b.pax_group = ?2 AND b.status = 'ACTIVE' AND t.status = 'AVAILABLE' AND t.stored_at IS NOT NULL AND t.valid_from <= ?3 AND t.valid_to >= ?3
-     ORDER BY t.valid_to, t.id
+     WHERE b.catalog_code = ?1 AND b.pax_group IN (?2, 'ALL') AND b.status = 'ACTIVE' AND t.status = 'AVAILABLE' AND t.stored_at IS NOT NULL AND t.valid_from <= ?3 AND t.valid_to >= ?3
+     ORDER BY b.pax_group = 'ALL', t.valid_to, t.id
      LIMIT max(0, ?4 - (SELECT count(*) FROM vdt_allocation a WHERE a.order_service_id = ?5 AND a.pax_group = ?2 AND a.released_at IS NULL)))`,
 );
 const GHI_PHAN_BO = defineSql(
@@ -32,7 +33,7 @@ const GHI_PHAN_BO = defineSql(
           ?5, ?6, ?5, ?6, ?5, ?6
    FROM (SELECT t.id AS id, ROW_NUMBER() OVER (ORDER BY t.valid_to, t.id) AS rn
          FROM vdt_ticket t JOIN vdt_batch b ON b.id = t.batch_id
-         WHERE t.status = 'ALLOCATED' AND t.updated_at = ?5 AND b.catalog_code = ?1 AND b.pax_group = ?2
+         WHERE t.status = 'ALLOCATED' AND t.updated_at = ?5 AND b.catalog_code = ?1 AND b.pax_group IN (?2, 'ALL')
            AND NOT EXISTS (SELECT 1 FROM vdt_allocation a WHERE a.ticket_id = t.id AND a.released_at IS NULL)) x
    WHERE x.rn <= max(0, ?7 - (SELECT count(*) FROM vdt_allocation a WHERE a.order_service_id = ?4 AND a.pax_group = ?2 AND a.released_at IS NULL))`,
 );

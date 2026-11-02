@@ -33,7 +33,7 @@ export function chayLo(d: DatabaseSync, cau: readonly unknown[]): number[] {
 }
 
 let n = 0;
-export function themLo(d: DatabaseSync, o: { ma?: string; nhom?: "ADULT" | "CHILD" | "SENIOR"; status?: string } = {}): string {
+export function themLo(d: DatabaseSync, o: { ma?: string; nhom?: "ADULT" | "CHILD" | "SENIOR" | "ALL"; status?: string } = {}): string {
   const id = `b-${++n}`;
   d.prepare(`INSERT INTO vdt_batch (id, catalog_code, pax_group, printed_name, status, created_at, updated_at) VALUES (?, ?, ?, 'Vé mẫu', ?, ?, ?)`).run(id, o.ma ?? "V2D", o.nhom ?? "ADULT", o.status ?? "ACTIVE", AT, AT);
   return id;

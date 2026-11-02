@@ -164,6 +164,23 @@ assert.equal((await call(SALES, "POST", `/api/ve/lo/${loNhapLaiMo}/bo`, {})).sta
 assert.equal((await call(SALES, "POST", `/api/ve/lo/${lo.body.loId}/bo`, {})).status, 409);
 assert.equal(await conTrong(), 3);
 
+// 11b. ADR-0157: lô «Mọi loại khách» trên D1 thật (bảng lô đã được dựng lại khi wrangler áp migration): một lô đủ cho cả người lớn lẫn trẻ em
+await sql(`INSERT INTO catalog_item (code,name,unit,price_adult,price_child,price_senior,price_infant,note_child,note_senior,note_infant,sheet_row,in_sheet,first_seen_at,updated_at) VALUES
+  ('ZVD2','Vé dùng chung thử','perPax',100000,50000,NULL,NULL,NULL,NULL,NULL,97,1,${AT},${AT})
+  ON CONFLICT(code) DO UPDATE SET name = excluded.name, price_adult = excluded.price_adult, price_child = excluded.price_child, in_sheet = 1`);
+const loChung = await call(SALES, "POST", "/api/ve/lo", { catalogCode: "ZVD2", nhomKhach: "ALL", tenSanPham: "Vé dùng chung e2e" });
+assert.equal(loChung.status, 201, JSON.stringify(loChung.body));
+const themChung = await call(SALES, "POST", `/api/ve/lo/${loChung.body.loId}/ve`, { ve: [71, 72, 73].map((i) => ({ noiDung: PNG(i), maVe: `E2E.${tag}.chung.${i}`, tuNgay: vnDate(-1), denNgay: den })) });
+assert.equal(themChung.body.themDuoc, 3, JSON.stringify(themChung.body));
+assert.equal((await call(SALES, "POST", `/api/ve/lo/${loChung.body.loId}/xac-nhan`, {})).status, 200);
+const donChung = await call(SALES, "POST", "/api/orders", orderInput({ customerName: `Khách Vé Chung ${tag}`, customerPhone: "0913571358", services: [catalogService({ catalogCode: "ZVD2", catalogPriceSeen: { adult: 100000, child: 50000 }, pax: { adult: 1, child: 1 }, departDate: vnDate(14) })] }));
+assert.equal(donChung.status, 201, JSON.stringify(donChung.body));
+assert.equal((await call(SALES, "POST", `/api/orders/${donChung.body.order.id}/status`, { status: "confirmed" })).status, 200);
+const suatChung = await sqlRows(`SELECT pax_group FROM vdt_allocation WHERE order_id = '${donChung.body.order.id}' AND released_at IS NULL ORDER BY pax_group`);
+assert.deepEqual(suatChung.map((r) => r.pax_group), ["ADULT", "CHILD"]);
+const khoChung = (await call(SALES, "GET", "/api/ve/kho")).body.kho.find((d) => d.catalogCode === "ZVD2");
+assert.deepEqual([khoChung.nhomKhach, khoChung.conTrong, khoChung.daGiu], ["ALL", 1, 2]);
+
 // 12. nhật ký không chứa mã vé
 const nk =JSON.stringify(await sqlRows(`SELECT detail, target_id FROM audit_log WHERE action LIKE 've_%'`));
 assert.doesNotMatch(nk, new RegExp(`E2E\\.${tag}|vdt/`));

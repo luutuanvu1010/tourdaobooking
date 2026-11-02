@@ -12,7 +12,7 @@ import { LOAI_NOI_DUNG, bamSha256, dauPhanHoiTepChung, giaiBase64, nhanLoaiTep, 
 import { vnToday } from "../../shared/vn-date";
 import { canVe, thuDu } from "./rules.ts";
 import { DANG_TOKEN, bamToken, hanDuongDan, soSanhHangThoiGian, taoToken, trangVeKhach } from "./duong-dan-khach.ts";
-import { NHAN_NHOM, soanCapVe, soanTraVe, veDangGiu, type GhiNhatKy, type NhatKyVe } from "./cap-ve.ts";
+import { NHAN_NHOM, NHAN_NHOM_LO, soanCapVe, soanTraVe, veDangGiu, type GhiNhatKy, type NhatKyVe } from "./cap-ve.ts";
 import { NGAY_LUU_ANH_LO_HUY, TOI_DA_BYTE_ANH, TOI_DA_VE_MOI_DOT, TRAN_LO_MAC_DINH, tranLoHopLe } from "../../shared/ve-nhap-lo";
 import { datVeVaoKho, donHangChoXoa, type VeChuanBi } from "./kho-tep.ts";
 import { che4SoCuoi, kiemLo, kiemVeMoi } from "./nhap-lo.ts";
@@ -223,7 +223,7 @@ export const veDienTuModule: AppModule = {
       const at = new Date().toISOString();
       await env.DB.batch([
         cauChenLo(env.DB, { id, catalogCode: v.value.catalogCode, nhom: v.value.nhomKhach, tenSanPham: v.value.tenSanPham, at, by: staff.id }),
-        auditStatement(env.DB, { staffId: staff.id, action: "ve_nhap_lo", at, targetType: "ve", targetId: v.value.catalogCode, detail: `Mở lô vé · ${NHAN_NHOM[v.value.nhomKhach]}` }),
+        auditStatement(env.DB, { staffId: staff.id, action: "ve_nhap_lo", at, targetType: "ve", targetId: v.value.catalogCode, detail: `Mở lô vé · ${NHAN_NHOM_LO[v.value.nhomKhach]}` }),
       ]);
       return kemLocation(json({ loId: id }, 201), `/ve-kho?lo=${id}`);
     }),
@@ -285,7 +285,7 @@ export const veDienTuModule: AppModule = {
       }
       let ketQua: D1Result[] = [];
       if (cau.length > 0) {
-        cau.push(auditStatement(env.DB, { staffId: staff.id, action: "ve_nhap_lo", at, targetType: "ve", targetId: lo.catalog_code, detail: `Thêm vé vào lô · ${NHAN_NHOM[lo.pax_group as keyof typeof NHAN_NHOM]} · ${cau.length} vé` }, "changes() > 0"));
+        cau.push(auditStatement(env.DB, { staffId: staff.id, action: "ve_nhap_lo", at, targetType: "ve", targetId: lo.catalog_code, detail: `Thêm vé vào lô · ${NHAN_NHOM_LO[lo.pax_group as keyof typeof NHAN_NHOM_LO]} · ${cau.length} vé` }, "changes() > 0"));
         ketQua = await env.DB.batch(cau);
       }
       // Câu chèn có điều kiện không ghi dòng nào: người khác vừa nhập đúng vé này. Báo rõ để khỏi bị bảo «nhập lại», vì nhập lại cũng bị loại.
@@ -314,7 +314,7 @@ export const veDienTuModule: AppModule = {
       const at = new Date().toISOString();
       const kq = await env.DB.batch([
         cauKichHoatLo(env.DB, loId, at, staff.id),
-        auditStatement(env.DB, { staffId: staff.id, action: "ve_xac_nhan_lo", at, targetType: "ve", targetId: lo.catalog_code, detail: `Đưa lô vé vào kho · ${NHAN_NHOM[lo.pax_group as keyof typeof NHAN_NHOM]}` }, "changes() > 0"),
+        auditStatement(env.DB, { staffId: staff.id, action: "ve_xac_nhan_lo", at, targetType: "ve", targetId: lo.catalog_code, detail: `Đưa lô vé vào kho · ${NHAN_NHOM_LO[lo.pax_group as keyof typeof NHAN_NHOM_LO]}` }, "changes() > 0"),
       ]);
       if ((kq[0]?.meta?.changes ?? 0) === 0) return error(409, "batch_not_ready", "Lô chưa có vé nào lưu được vào kho, hoặc đã được đưa vào kho trước đó.");
       return json({ loId, trangThai: "ACTIVE", veTrongLo: (await demVeCuaLo(env.DB, loId)).daLuu });
@@ -331,7 +331,7 @@ export const veDienTuModule: AppModule = {
       const lenh = crypto.randomUUID();
       const kq = await env.DB.batch([
         cauBoLo(env.DB, loId, at, staff.id, lenh),
-        auditStatement(env.DB, { staffId: staff.id, action: "ve_bo_lo", at, targetType: "ve", targetId: lo.catalog_code, detail: `Huỷ lô vé · ${NHAN_NHOM[lo.pax_group as keyof typeof NHAN_NHOM]}` }, "changes() > 0"),
+        auditStatement(env.DB, { staffId: staff.id, action: "ve_bo_lo", at, targetType: "ve", targetId: lo.catalog_code, detail: `Huỷ lô vé · ${NHAN_NHOM_LO[lo.pax_group as keyof typeof NHAN_NHOM_LO]}` }, "changes() > 0"),
         cauRutVeCuaLo(env.DB, loId, at, staff.id, lenh),
       ]);
       if ((kq[0]?.meta?.changes ?? 0) === 0) return error(409, "batch_in_use", "Lô này đã có vé từng được giữ chỗ cho đơn hoặc đã huỷ trước đó, không huỷ được.");
@@ -353,7 +353,7 @@ export const veDienTuModule: AppModule = {
       try {
         await env.DB.batch([
           cauSuaMaTour(env.DB, loId, ma, at, staff.id),
-          auditStatement(env.DB, { staffId: staff.id, action: "ve_sua_ma_tour", at, targetType: "ve", targetId: ma, detail: `Sửa dịch vụ của lô vé · ${NHAN_NHOM[lo.pax_group as keyof typeof NHAN_NHOM]}` }, "changes() > 0"),
+          auditStatement(env.DB, { staffId: staff.id, action: "ve_sua_ma_tour", at, targetType: "ve", targetId: ma, detail: `Sửa dịch vụ của lô vé · ${NHAN_NHOM_LO[lo.pax_group as keyof typeof NHAN_NHOM_LO]}` }, "changes() > 0"),
         ]);
       } catch (e) {
         if (e instanceof Error && /vdt_one_way/.test(e.message)) return error(409, "batch_in_use", "Lô này đã có vé được giữ chỗ cho đơn nên không đổi dịch vụ được. Hãy vô hiệu lô và nhập lại.");

@@ -62,6 +62,12 @@ Không có lỗi Cao hay Trung. Một điểm Thấp ở lý do của `r2_delete
 ## Đề xuất dòng lịch sử cho ADR-0156 (chờ chủ duyệt, chưa ghi vào ADR)
 «2026-11-02, chủ quyết thêm: ảnh của lô đã huỷ lưu 3 ngày rồi máy tự xoá; Bán hàng, Quản trị, Toàn quyền mở được ảnh trong hạn đó; vé đã mở khoá hẳn theo mã, dấu vân và số S/N, vé đã nhập lại thì ảnh cũ không mở được. Chi tiết ở `docs/SYSTEM-DESIGN.md` §16.»
 
+## ADR-0157: lô «Mọi loại khách» (2/11)
+- **Ruling của chủ:** nguyên văn *«Vé harbour tiêu chuẩn chỉ có 1 loại , dành cho cả người lớn, trẻ em và người cao tuổi (không phân biệt)»*; hỏi làm trước hay sau khi triển khai, chủ trả lời *«Làm trước»*. Văn bản ADR còn ở trạng thái đề xuất, chờ chủ duyệt, chưa duyệt thì chưa nhập bản chính.
+- **Lệch so với thiết kế đầu:** ban đầu chỉ xếp vé theo hạn dùng. Viết TC4 thấy đơn 1 người lớn, 1 trẻ em có thể bị báo thiếu vé oan khi người lớn lấy mất vé dùng chung, nên đổi sang lô đúng loại trước, lô dùng chung sau. Thay đổi này đã ghi ở ADR-0157 Đ2 và phải nêu với chủ khi xin duyệt.
+- **Phá thử:** 15 chỗ, danh sách ở `docs/SO-HANG-RAO.md`. Lần đầu 14 đỏ, 1 xanh: nới `GIU_VE` lấy mọi lô vẫn xanh vì `GHI_PHAN_BO` chặn sau, nhưng vé sẽ kẹt `ALLOCATED` không có suất. Đã thêm kiểm vé còn `AVAILABLE` vào TC3, chạy lại chỗ đó thì đỏ.
+- **Bằng chứng:** chạy sau khi lưu phần này, ghi ở lần lưu kế tiếp.
+
 ## Bài học
 - Dữ liệu thử ban đầu dùng nhầm `S/N` thật của một vé trong ba tệp bài kiểm; phát hiện trước khi commit, đã thay số giả, `git log` xác nhận chưa từng vào commit.
 - Bước 50 ảnh treo im lặng mất nhiều lần chạy: công cụ thử (CDP `Network.enable`) ghi cả thân yêu cầu vài MB nên kết nối đứt, mọi lời gọi vào trang không bao giờ trả lời. Không phải lỗi của trang. Đã giới hạn `maxPostDataSize` và thêm giờ giới hạn riêng trong kịch bản, đã ghi ở công thức z31.
