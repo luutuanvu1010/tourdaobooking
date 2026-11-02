@@ -10,7 +10,7 @@ import { PERMISSION_CODES, can, holdsPartner, type PermissionCode } from "./perm
 import { NGHIA_HON_DAO, TU_DA_LOAI } from "./bang-tu-giao-dien.ts";
 import { addDays, vnToday } from "./vn-date.ts";
 import { capHienHanhCuaHoSo } from "../modules/pricing/rules.ts";
-import { kiemDoi, kiemNgung } from "../modules/pricing/rules.ts";
+import { kiemDoi, kiemNgung, xemTruocSua } from "../modules/pricing/rules.ts";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { world, seedStaff } from "../../tests/audit/harness.mjs";
 
@@ -444,4 +444,27 @@ test("(n4) capHienHanhCuaHoSo: hai vai trò, một có cấp một chưa có —
   // chống bài rỗng: có dòng thì đổi được
   const coDong = capHienHanhCuaHoSo(tomTat({ vai: ["M1"], mucRieng: true }), v([{ id: "g1", tier_code: "M2", valid_from_date: "2027-03-01", valid_to_date: null }]));
   assert.deepEqual([coDong.nguon, coDong.rieng?.id, coDong.doiDuoc], ["RIENG", "g1", true]);
+});
+
+test("(n5) «Dùng cấp theo vai trò» đọc ngày bằng …/sua: mọi trạng thái mà …/sua trả 400 thì kiemNgung(ngày = hôm nay) cũng từ chối — lần đọc ngày không bao giờ chặn oan một lệnh máy chủ vốn nhận", () => {
+  const hn = HN;
+  let soTrangThai = 0;
+  let soBiChan = 0;
+  for (const huy of [false, true]) {
+    for (const tu of [-9, -1, 0, 1]) {
+      for (const den of [null, -2, 0, 1, 4]) {
+        for (const chup of [null, -5, -1, 0, 1, 3]) {
+          const cu = { validFrom: addDays(hn, tu), validTo: den === null ? null : addDays(hn, den), daHuy: huy };
+          if (cu.validTo !== null && cu.validTo < cu.validFrom) continue; // dòng không thể tồn tại
+          soTrangThai++;
+          const ngayChup = chup === null ? null : addDays(hn, chup);
+          if (xemTruocSua({ cu, ngayChup, homNay: hn }).ok) continue; // …/sua trả 200: lần đọc ngày thành công, không có gì để so
+          soBiChan++;
+          const kn = kiemNgung({ raw: { denNgay: hn }, cu, ngayChup, homNay: hn });
+          assert.equal(kn.ok, false, `…/sua trả 400 nhưng kiemNgung lại nhận: huỷ=${huy} từ=${tu} đến=${den} chụp=${chup}`);
+        }
+      }
+    }
+  }
+  assert.ok(soTrangThai > 100 && soBiChan > 20, `chống bài rỗng: ${soTrangThai} trạng thái, ${soBiChan} bị …/sua chặn`);
 });
