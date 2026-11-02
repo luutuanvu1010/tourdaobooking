@@ -706,3 +706,9 @@ Ghi 2026-10-29 khi đồng bộ bộ «Island Booking System — Design System v
 - **BL-DV2-PHI-DON** — khoá phí đón theo giờ dự kiến (ADR-0147) sẽ vướng vì đối tác không có giờ; xét khi thi công ADR-0147.
 - **BL-DV2-GHI-KEP** — ghi kép cột cũ theo chặng đi đầu (`R-ORD-7`) phải bỏ ở phát hành 2.
 - **BL-DV2-C5B** — chưa kiểm có tới được qua API không: dịch vụ trống ngày đi mà chặng có ngày; sau Còn vé kèm `ngayDi` thì chặng ở lại, sớm hơn ngày đi quá mức cho phép.
+
+## 60. Nợ của «Phân định trách nhiệm» (mã `BL-PD-…`, 2026-11-02)
+
+- **Trạng thái:** `để sau` · Chủ quyết 2026-11-02 sau kiểm độc lập ADR-0116.
+- **BL-PD-T4-TOAN-PHAN** — ca khách chưa trả đồng nào (giảm trừ toàn bộ phải thu mà sổ đang ghi đã thu): chủ chọn «Chưa mở, để sau». Lệnh sửa khoản thu phải còn ít nhất một khoản thu nên ca này báo 409 `attribution_i1` với câu bảo xử lý ngoài Nền tảng. Mở ra thì phải bàn lại trigger `bil_posting_replacement_check`.
+- **BL-PD-PHAN-HOI-THAY** — chủ chọn «Chỉ nhận tin, liên hệ văn phòng»: tài khoản Đối tác, tài xế nhận tin, không xem và không phản hồi khoản của mình trên Nền tảng (403). Đặc tả ADR-0116 và ADR-0088 đ9 không có chỗ để văn phòng ghi phản hồi thay họ, nên chưa làm: cần một ô ghi trên phiếu ở màn Phân định, chủ duyệt trước.

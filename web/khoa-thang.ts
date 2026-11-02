@@ -129,7 +129,7 @@ if (!can(staff, "ledger.view")) {
         h("h3", null, "Số dư từng bên cuối tháng"),
         b.soDuCuoiThang.length === 0
           ? h("p", { class: "muted" }, CAU_KHONG_CO)
-          : h("ul", { class: "ky-dong-ds" }, ...b.soDuCuoiThang.map((s) => h("li", { class: "ky-dong" }, h("strong", null, s.ten), h("span", { class: "ky-dong-tien" }, vnd(s.soDu))))),
+          : h("ul", { class: "ky-dong-ds" }, ...b.soDuCuoiThang.map((s) => h("li", { class: "ky-dong" }, h("strong", null, s.ten), h("span", { class: "ky-dong-tien" }, vnd(s.soDu)), s.khoanPhanDinh ? h("span", { class: "muted", "data-khoi": "khoan-phan-dinh" }, `Khoản phải nộp do phân định: ${vnd(s.khoanPhanDinh)}`) : false))),
       ),
     );
   }

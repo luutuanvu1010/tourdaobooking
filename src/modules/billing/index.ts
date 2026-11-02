@@ -584,9 +584,9 @@ export const billingModule: AppModule = {
  * API công khai cho module `receipt` (biên nhận — Task 8 lượt 1): đã trả / còn lại của một đơn, cùng hàm `conLai` (một nguồn). KHÔNG tự kiểm quyền.
  * Sổ đại lý đợt 2 Task 8: thêm `theoThuCho` = đã trả ròng theo «thu cho ai» (`daTraTheoThuCho`) để biên nhận chia phần theo người bán — chỉ số tiền khách trả, không người thu.
  */
-export async function soTienBienNhan(db: D1Database, orderId: string): Promise<{ daTra: number; conLai: number; huy: ReceiptDto["huy"]; theoThuCho: ReadonlyMap<string, number> } | null> {
+export async function soTienBienNhan(db: D1Database, orderId: string): Promise<{ daTra: number; conLai: number; giamTru: number; huy: ReceiptDto["huy"]; theoThuCho: ReadonlyMap<string, number> } | null> {
   const [t, huy, receipts] = await Promise.all([tienNhieuDon(db, [orderId]).then((m) => m.get(orderId)), cocChoBienNhan(db, orderId), receiptsOfOrder(db, orderId)]);
-  return t ? { daTra: t.daThu, conLai: t.conLai, huy, theoThuCho: daTraTheoThuCho(receipts.map(toReceiptRow)) } : null;
+  return t ? { daTra: t.daThu, conLai: t.conLai, giamTru: t.giamTru, huy, theoThuCho: daTraTheoThuCho(receipts.map(toReceiptRow)) } : null;
 }
 
 /** API công khai cho `receipt` (QR thanh toán — ADR-0108 đ3): còn lại + đơn đã "Đã giao" chưa, cùng hàm `conLai` (một nguồn). KHÔNG tự kiểm quyền. */

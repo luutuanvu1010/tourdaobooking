@@ -7,18 +7,14 @@ import { defineSql } from "../../shared/sql-registry.ts";
  * MỘT nguồn "phải thu hiện hành" của đơn ĐÃ Đã giao (ADR-0088 đ1, ADR-0116 đ5, Hiến chương 5.4): `due_snapshot` − giảm trừ đã phân định, đọc view `v_bil_phai_thu_hien_hanh` — trigger và R-BIL-1 đọc CÙNG view.
  * null nếu đơn chưa Đã giao.
  */
-const PHAI_THU_HIEN_HANH = defineSql("billing", "phai_thu_hien_hanh", `SELECT phai_thu FROM v_bil_phai_thu_hien_hanh WHERE order_id = ?1`);
-export async function phaiThuHienHanh(db: D1Database, orderId: string): Promise<number | null> {
-  const r = await db.prepare(PHAI_THU_HIEN_HANH).bind(orderId).first<{ phai_thu: number }>();
-  return r ? r.phai_thu : null;
-}
-const GIAM_TRU_NHIEU_DON = defineSql("billing", "giam_tru_nhieu_don", `SELECT order_id, giam_tru FROM v_bil_phai_thu_hien_hanh WHERE giam_tru <> 0 AND order_id IN (SELECT value FROM json_each(?1))`);
-/** Giảm trừ đã phân định của nhiều đơn (chỉ đơn có giảm trừ) — để danh sách không báo "còn lại" sai. */
-export async function giamTruNhieuDon(db: D1Database, orderIds: readonly string[]): Promise<Map<string, number>> {
+const PHAI_THU_HIEN_HANH = defineSql("billing", "phai_thu_hien_hanh", `SELECT order_id, phai_thu, giam_tru FROM v_bil_phai_thu_hien_hanh WHERE order_id IN (SELECT value FROM json_each(?1))`);
+/** Chỉ có đơn đã Đã giao trong kết quả. Bài `phai-thu-mot-ham` H1b: không chỗ nào khác đọc view hay tự trừ giảm trừ. */
+export async function phaiThuHienHanhNhieuDon(db: D1Database, orderIds: readonly string[]): Promise<Map<string, { phaiThu: number; giamTru: number }>> {
   if (orderIds.length === 0) return new Map();
-  const rows = (await db.prepare(GIAM_TRU_NHIEU_DON).bind(JSON.stringify(orderIds)).all<{ order_id: string; giam_tru: number }>()).results;
-  return new Map(rows.map((r) => [r.order_id, r.giam_tru]));
+  const rows = (await db.prepare(PHAI_THU_HIEN_HANH).bind(JSON.stringify(orderIds)).all<{ order_id: string; phai_thu: number; giam_tru: number }>()).results;
+  return new Map(rows.map((r) => [r.order_id, { phaiThu: r.phai_thu, giamTru: r.giam_tru }]));
 }
+export const phaiThuHienHanh = async (db: D1Database, orderId: string): Promise<number | null> => (await phaiThuHienHanhNhieuDon(db, [orderId])).get(orderId)?.phaiThu ?? null;
 
 const COLS = `id, order_id, kind_code, amount, collector_party_id, collector_role_code, method_code, collected_for_party_id, stage_code, occurred_date,
   reverses_id, note, created_at, created_by, updated_at, updated_by, replacement_id`;

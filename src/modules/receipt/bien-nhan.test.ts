@@ -372,3 +372,15 @@ test("Task 8 đơn NHÁP (route thật — «Xem biên nhận» mở ngay sau kh
   assert.deepEqual(b.phan.map((p: { nguoiBan: string; dichVu: string[]; tong: number }) => [p.nguoiBan, p.dichVu, p.tong]), [[b.company.name, ["Thuê thuyền riêng"], 700_000], ["i-resort", ["Vé tắm bùn i-resort"], 300_000]]);
   assert.equal(b.phan.reduce((t: number, p: { tong: number }) => t + p.tong, 0), b.total);
 });
+
+test("Giảm trừ sau khi giao, đơn hai người bán: trừ vào phần Tour Đảo trước, phần sau chịu phần dư; Σ tong = total − giamTru; Σ conLai = 0 khi đã thu đủ phần sau giảm trừ", () => {
+  const a = chiaPhanBienNhan(donTron(), COMPANY.name, banTron(), { daTra: 1_300_000, giamTru: 300_000, theoThuCho: new Map([[CT, 700_000], [NCC_ID, 600_000]]) });
+  assert.deepEqual(a.map((p) => [p.tong, p.giamTru, p.daTra, p.conLai]), [[700_000, 300_000, 700_000, 0], [600_000, undefined, 600_000, 0]]);
+  const tongDon = 1_600_000;
+  assert.equal(a.reduce((s, p) => s + p.tong, 0), tongDon - 300_000);
+  // Giảm trừ lớn hơn phần Tour Đảo ⇒ tràn sang phần sau; không phần nào âm.
+  const b = chiaPhanBienNhan(donTron(), COMPANY.name, banTron(), { daTra: 500_000, giamTru: 1_100_000, theoThuCho: new Map([[NCC_ID, 500_000]]) });
+  assert.deepEqual(b.map((p) => [p.tong, p.giamTru, p.conLai]), [[0, 1_000_000, 0], [500_000, 100_000, 0]]);
+  // Không có giảm trừ: y như cũ.
+  assert.deepEqual(chiaPhanBienNhan(donTron(), COMPANY.name, banTron(), { daTra: 0 }).map((p) => p.giamTru), [undefined, undefined]);
+});

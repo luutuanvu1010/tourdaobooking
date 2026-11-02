@@ -54,7 +54,7 @@ export const LICH_SU_DOI_TAC_AN = [
   "order_handler_changed", "order_claimed", "order_handler_refused", "booker_changed", "exported_png", "exported_pdf",
   // Sổ tiền, cọc đơn huỷ, đối soát
   "ledger_company_received", "ledger_counterparty_confirmed", "ledger_settlement", "ledger_refund", "ledger_adjustment", "ledger_adjustment_requested", "ledger_adjustment_approved", "ledger_adjustment_rejected", "ledger_adjustment_withdrawn", "ledger_adjustment_affected",
-  "ledger_receipt_replaced", "ledger_receipt_collector_changed", "ledger_duplicate_overridden", "attribution_requested", "attribution_ruled", "attribution_posted", "attribution_responded", "ledger_reversal", "ledger_bank_txn_linked",
+  "ledger_receipt_replaced", "ledger_receipt_collector_changed", "ledger_duplicate_overridden", "attribution_requested", "attribution_ruled", "attribution_posted", "attribution_reassigned", "attribution_reversed", "attribution_responded", "ledger_reversal", "ledger_bank_txn_linked",
   "deposit_refund_approved", "deposit_transfer_approved", "deposit_approval_voided", "deposit_refund_paid", "deposit_transferred_out", "deposit_transferred_in",
   "deposit_outside_recorded", "deposit_outside_confirmed", "deposit_outside_rejected", "prc_commission_rule_added", "prc_commission_rule_closed", "prc_supply_term_added",
   "prc_supply_term_closed", "prc_partner_type_added", "prc_partner_type_off", "prc_partner_type_on", "prc_partner_type_renamed", "prc_partner_type_note", "prc_sales_block_added", "prc_sales_block_ended", "prc_rate_tier_added", "prc_rate_tier_off", "prc_rate_tier_on", "prc_rate_tier_renamed", "prc_rate_tier_note",

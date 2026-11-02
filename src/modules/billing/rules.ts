@@ -744,6 +744,8 @@ export const boNoPhanDinh = <T extends { kind: DebtKind }>(lines: readonly T[]):
  * ADR-0116 đ4 (I1 của lô ghi sổ): sau lô, đã thu ròng = phải thu hiện hành − số giảm trừ. Có tiền ra: trả ĐÚNG số giảm trừ, không vượt đã thu ròng, đơn phải đang khớp. Không tiền ra: khoản thu sau
  * lô (`daThuSauThay` khi lô kèm sửa khoản thu, ngược lại số hiện tại) phải đã đúng thực tế, nếu không từ chối.
  */
+/** Chủ quyết 2026-11-02: ca khách chưa trả đồng nào (giảm trừ toàn bộ phải thu mà sổ đang ghi đã thu) CHƯA mở trên Nền tảng; BACKLOG `BL-PD-T4-TOAN-PHAN`. */
+export const CAU_KHACH_CHUA_TRA_DONG_NAO = "Khách chưa trả đồng nào cho đơn này thì Nền tảng chưa ghi được: lệnh sửa khoản thu phải còn ít nhất một khoản thu. Hãy xử lý ca này ngoài Nền tảng và báo Toàn quyền.";
 export function kiemLoPhanDinh(i: { soTien: number; phaiThuHienHanh: number; daThu: number; coTienRa: boolean; daThuSauThay: number | null }): { ok: true } | { ok: false; ma: string; cau: string } {
   if (i.soTien > i.phaiThuHienHanh) return { ok: false, ma: "attribution_over_due", cau: `Giảm trừ cộng dồn vượt phải thu của đơn (còn ${dong(i.phaiThuHienHanh)}).` };
   const sau = i.phaiThuHienHanh - i.soTien;
@@ -755,6 +757,22 @@ export function kiemLoPhanDinh(i: { soTien: number; phaiThuHienHanh: number; daT
   const daThuSau = i.daThuSauThay ?? i.daThu;
   if (daThuSau !== sau) return { ok: false, ma: "attribution_i1", cau: `Sửa khoản thu trước: sau lần ghi số đã thu (${dong(daThuSau)}) phải bằng ${dong(sau)}. Khách thật sự chưa trả thì sổ phải ghi đúng số khách đã trả.` };
   return { ok: true };
+}
+
+/**
+ * ADR-0116 (kiểm độc lập, R-BIL-13): phần bên chịu ĐÃ NỘP vào khoản phân định trên một đơn = tiền nộp ròng vượt tiền mặt đang giữ. Khác 0 ⇒ không đổi bên chịu, không huỷ khoản, vì dòng ngược sẽ làm số dư âm.
+ * Trả lại (huỷ lần nộp) xong số này tự về 0. Lớp CSDL cùng công thức: trigger `bil_attribution_da_nop`.
+ */
+export function soDaNopKhoanPhanDinh(lines: readonly Pick<LineRow, "kind" | "debtorPartyId" | "creditorPartyId" | "amount">[], ben: string, chu: string): number {
+  const nop = -soDuCap(lines.filter((l) => l.kind === "SETTLEMENT"), ben, chu);
+  return Math.min(Math.max(0, nop), Math.max(0, -soDuGiuHo(lines, ben, chu)));
+}
+export const CAU_DA_NOP_PHAN_DINH = "Bên chịu đã nộp tiền cho khoản này. Kế toán ghi trả lại bên đó trước (huỷ lần nộp trong sổ), rồi mới đổi bên chịu hoặc huỷ khoản được.";
+
+/** MỘT phép tách số dư của một bên trên MỘT đơn (`giu` = mọi dòng không phải phân định, `khoan` = dòng phân định): tiền nộp vượt tiền đang giữ được tính trừ vào khoản. `giu + khoan` luôn = dangGiu + phaiNop. */
+export function tachKhoanPhanDinh(giu: number, khoan: number): { dangGiu: number; phaiNop: number } {
+  const phaiNop = Math.max(0, khoan + Math.min(0, giu));
+  return { dangGiu: giu + khoan - phaiNop, phaiNop };
 }
 
 export function soDuTheoBen(lines: readonly Pick<LineRow, "debtorPartyId" | "creditorPartyId" | "amount">[], congTyId: string): Map<string, number> {
@@ -772,31 +790,37 @@ export function soDuTheoBen(lines: readonly Pick<LineRow, "debtorPartyId" | "cre
  * dương ⇒ nhóm «bên này đang giữ», âm ⇒ nhóm «công ty nợ bên này» (số tiền trả về luôn dương), đơn cộng ra 0 bị bỏ. `congCacDon` = X − Y. Thứ tự: số tiền lớn trước,
  * rồi mã đơn. Không I/O; số dư so sánh (`lech`) do nơi gọi đưa từ nguồn KHÁC (view) để cờ lệch có nghĩa.
  */
-export interface DongCuaBen { orderId: string | null; maDon: string | null; ngay: string; debtorPartyId: string; creditorPartyId: string; amount: number }
+export interface DongCuaBen { orderId: string | null; maDon: string | null; ngay: string; debtorPartyId: string; creditorPartyId: string; amount: number; kind?: string }
 export interface DonCuaBen { orderId: string | null; maDon: string | null; ngayGanNhat: string; soTien: number }
-export function nhomDonCuaBen(lines: readonly DongCuaBen[], partyId: string, congTyId: string): { dangGiu: DonCuaBen[]; congTyNo: DonCuaBen[]; x: number; y: number } {
-  const theoDon = new Map<string, { orderId: string | null; maDon: string | null; ngay: string; so: number }>();
+export function nhomDonCuaBen(lines: readonly DongCuaBen[], partyId: string, congTyId: string): { dangGiu: DonCuaBen[]; congTyNo: DonCuaBen[]; phanDinh: DonCuaBen[]; x: number; y: number; z: number } {
+  const theoDon = new Map<string, { orderId: string | null; maDon: string | null; ngay: string; so: number; khoan: number }>();
   for (const l of lines) {
     const so = l.debtorPartyId === partyId && l.creditorPartyId === congTyId ? l.amount : l.creditorPartyId === partyId && l.debtorPartyId === congTyId ? -l.amount : 0;
     if (so === 0) continue;
     const k = l.orderId ?? "";
     const cu = theoDon.get(k);
+    const laKhoan = l.kind === "ATTRIBUTION";
     if (cu) {
-      cu.so += so;
+      if (laKhoan) cu.khoan += so;
+      else cu.so += so;
       if (l.ngay > cu.ngay) cu.ngay = l.ngay;
-    } else theoDon.set(k, { orderId: l.orderId, maDon: l.maDon, ngay: l.ngay, so });
+    } else theoDon.set(k, { orderId: l.orderId, maDon: l.maDon, ngay: l.ngay, so: laKhoan ? 0 : so, khoan: laKhoan ? so : 0 });
   }
   const dangGiu: DonCuaBen[] = [];
+  const phanDinh: DonCuaBen[] = [];
   const congTyNo: DonCuaBen[] = [];
   for (const d of theoDon.values()) {
-    if (d.so === 0) continue;
-    (d.so > 0 ? dangGiu : congTyNo).push({ orderId: d.orderId, maDon: d.maDon, ngayGanNhat: d.ngay, soTien: Math.abs(d.so) });
+    const t = tachKhoanPhanDinh(d.so, d.khoan);
+    if (t.phaiNop > 0) phanDinh.push({ orderId: d.orderId, maDon: d.maDon, ngayGanNhat: d.ngay, soTien: t.phaiNop });
+    if (t.dangGiu === 0) continue;
+    (t.dangGiu > 0 ? dangGiu : congTyNo).push({ orderId: d.orderId, maDon: d.maDon, ngayGanNhat: d.ngay, soTien: Math.abs(t.dangGiu) });
   }
   const xep = (a: DonCuaBen, b: DonCuaBen) => b.soTien - a.soTien || String(a.maDon ?? "").localeCompare(String(b.maDon ?? ""));
   dangGiu.sort(xep);
   congTyNo.sort(xep);
+  phanDinh.sort(xep);
   const cong = (ds: DonCuaBen[]) => ds.reduce((t, d) => t + d.soTien, 0);
-  return { dangGiu, congTyNo, x: cong(dangGiu), y: cong(congTyNo) };
+  return { dangGiu, congTyNo, phanDinh, x: cong(dangGiu), y: cong(congTyNo), z: cong(phanDinh) };
 }
 
 /** 1000000 → "1.000.000 ₫" (không phụ thuộc bảng ngôn ngữ của máy chạy). */

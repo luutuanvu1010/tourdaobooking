@@ -2390,7 +2390,10 @@ export interface SoCuaToiDongDto {
   soDu: number;
 }
 export interface SoCuaToiResponse {
+  /** Tiền đang giữ, KHÔNG gồm khoản phân định (ADR-0116). `dong[].soDu` là số dư sổ, gồm cả khoản. */
   dangGiu: number;
+  /** Khoản phải nộp do phân định còn lại. */
+  khoanPhanDinh: number;
   dong: SoCuaToiDongDto[];
 }
 
@@ -2402,7 +2405,8 @@ export interface PhieuPhanDinhDto {
   /** Đơn đã giao quá 60 ngày mà chưa xử lý xong: chỉ nhắc (ADR-0116 đ6). */
   quaHanNhac: boolean;
   phanDinh: { id: string; truongHop: string; benChiu: string; soTien: number; coTienRa: boolean; lyDo: string; nguoiPhanDinh: string; luc: string } | null;
-  ghi: { id: string; conHieuLuc: number; truongHopHienTai: string; nguoiGhi: string; luc: string } | null;
+  /** `daNop` > 0 ⇒ bên chịu đã nộp vào khoản: không đổi / huỷ được tới khi trả lại. `lanNop` = các lần nộp trả lại được (chỉ người có ô ghi sổ). */
+  ghi: { id: string; conHieuLuc: number; truongHopHienTai: string; nguoiGhi: string; luc: string; daNop: number; lanNop: { lineId: string; soTien: number }[] } | null;
   /** T11 quá 7 ngày chưa rõ ai chịu: hiện đỏ, không tự gán (QT4). */
   t11QuaHan: boolean;
   dangDoiBenChiu: { id: string; truongHop: string; benChiu: string; lyDo: string; nguoiPhanDinh: string } | null;
@@ -2416,10 +2420,12 @@ export interface KhoanCuaToiResponse { khoan: KhoanTrachNhiemDto[] }
 
 /** `GET /api/ledger` (Kế toán, Toàn quyền): số dư từng bên với công ty, khoản "Công ty thu" chờ xác nhận, khoản thu chưa rõ người thu. */
 export interface SoCongNoResponse {
-  soDu: { partyId: string; ten: string; dangGiu: number }[];
+  soDu: { partyId: string; ten: string; dangGiu: number; khoanPhanDinh?: number }[];
   /** Tổng các số dư DƯƠNG (các bên đang giữ tiền của công ty) và tổng độ lớn các số dư ÂM (công ty đang nợ) — tính ở máy chủ cho ba ô tổng của màn «Sổ công nợ». */
   tongDangGiu: number;
   tongCongTyNo: number;
+  /** Tổng khoản phải nộp do phân định (ADR-0116): không nằm trong `tongDangGiu`. */
+  tongPhanDinh: number;
   /** Khoản chờ xác nhận — `loai` / `benKia` như `CocListResponse.doiChieu` (ADR-0132). */
   choXacNhan: { receiptId: string; orderId: string; maDon: string | null; soTien: number; ngay: string; nguoiKhai: string; loai: "cong_ty" | "ben_dat" | "nha_cung_cap"; benKia: string | null }[];
   chuaRo: { receiptId: string; orderId: string; maDon: string | null; soTien: number; ngay: string }[];
@@ -2447,6 +2453,8 @@ export interface SoCongNoBenResponse {
   ten: string;
   soDu: number;
   dangGiu: { don: SoCongNoDonDto[]; tong: number };
+  /** Khoản phải nộp do phân định theo đơn; `congCacDon` = đang giữ − công ty nợ + khoản này. */
+  khoanPhanDinh: { don: SoCongNoDonDto[]; tong: number };
   congTyNo: { don: SoCongNoDonDto[]; tong: number };
   congCacDon: number;
   lech: number;
@@ -2512,7 +2520,7 @@ export interface KySoResponse {
     thang: string;
     choXacNhanCongTy: { orderCode: string | null; amount: number; ngay: string }[];
     chuaRoNguoiThu: { orderCode: string | null; amount: number; ngay: string }[];
-    soDuCuoiThang: { ten: string; soDu: number }[];
+    soDuCuoiThang: { ten: string; soDu: number; khoanPhanDinh?: number }[];
   } | null;
 }
 
@@ -2557,6 +2565,8 @@ export interface ReceiptDto {
   /** Giảm giá IN TRÊN BIÊN NHẬN = giảm giá hiệu lực (`OrderDto.giamGiaHieuLuc`, ADR-0109 QĐ4); bằng giảm giá đã lưu trừ khi tạm tính hiện hành nhỏ hơn. subtotal − discount = total. */
   discount: number;
   total: number;
+  /** ADR-0116: số giảm sau khi giao (chỉ có khi > 0); `total` − `giamTru` − `daTra` = `conLai`. */
+  giamTru?: number;
   /** Đã trả trước (billing `conLai` — một hàm). */
   daTra: number;
   /** Còn lại (≥ 0). */
@@ -2586,6 +2596,8 @@ export interface ReceiptPhanDto {
   dichVu: string[];
   tong: number;
   giamGia: number;
+  /** ADR-0116: phần giảm sau khi giao trừ vào phần này (chỉ có khi > 0); `tong` đã trừ. */
+  giamTru?: number;
   daTra: number;
   conLai: number;
   traTaiQuay: boolean;

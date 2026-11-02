@@ -906,6 +906,8 @@ button.xm-the { min-height: var(--tap-min); cursor: pointer; }
 .scn-ben[aria-current="true"] { background: var(--c-primary-soft); }
 .scn-ben-ten { min-width: 0; overflow-wrap: anywhere; font-weight: var(--fw-bold); }
 .scn-so { flex: none; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.scn-ben:has(.scn-khoan) { flex-wrap: wrap; }
+.scn-so.scn-khoan { flex: 1 1 100%; white-space: normal; }
 .scn-giu { color: var(--c-primary); }
 .scn-no { color: var(--c-sand-text); }
 .scn-them { margin-top: var(--s3); width: 100%; min-height: var(--tap-min); }

@@ -21,6 +21,8 @@ export interface NguoiBanChoBienNhan {
 export interface TienBienNhan {
   daTra: number;
   conLai: number;
+  /** ADR-0116: số giảm sau khi giao (phải thu lúc giao − phải thu hiện hành của billing). Vắng ⇒ 0. */
+  giamTru?: number;
   huy?: ReceiptDto["huy"];
   theoThuCho?: ReadonlyMap<string, number>;
 }
@@ -35,16 +37,23 @@ const TOUR_DAO = "";
  *  - Đã trả: khoản thu «thu cho» một nhà cung cấp của phần đó tính vào phần đó; mọi khoản khác (không chọn, thu cho công ty, thu cho hồ sơ không còn là người bán
  *    trên đơn, trả lại khách) tính vào phần Tour Đảo. Phần nào nhận quá số phải trả thì phần dư chuyển sang các phần còn thiếu theo thứ tự; dư nữa (khách trả dư)
  *    ghi vào phần đầu (R-82) ⇒ Σ `daTra` = đã trả, Σ `conLai` = còn lại của đơn.
+ *  - Giảm sau khi giao (ADR-0116): cùng thứ tự với giảm giá (Tour Đảo trước, phần dư trừ lần lượt) ⇒ Σ `tong` = tổng cộng − giảm trừ; không bao giờ báo khách còn nợ phần đã giảm.
  *  - Đơn huỷ ⇒ không phần nào (biên nhận huỷ đọc `huy`).
  * Không I/O. Không chép mức, tỷ lệ, người hưởng.
  */
-export function chiaPhanBienNhan(order: OrderDetailDto, tenCongTy: string, ban: NguoiBanChoBienNhan | null, tien: Pick<TienBienNhan, "daTra" | "theoThuCho">): ReceiptPhanDto[] {
+export function chiaPhanBienNhan(order: OrderDetailDto, tenCongTy: string, ban: NguoiBanChoBienNhan | null, tien: Pick<TienBienNhan, "daTra" | "theoThuCho" | "giamTru">): ReceiptPhanDto[] {
   if (order.status === "cancelled") return [];
   // Nhóm theo người bán + giảm giá trừ vào phần Tour Đảo trước (R-81): MỘT hàm `chiaPhanNguoiBan` — billing dùng cùng hàm cho trần phần của quầy (Ruling R-154).
   const chupCua = new Map((ban?.chup ?? []).map((c) => [c.serviceId, c]));
   const ds = chiaPhanNguoiBan(order.services, (s) => nguoiBanCuaDong(chupCua.get(s.id), ban?.congTyChuId ?? null), (s) => s.items.reduce((t, it) => t + it.lineTotal, 0), order.giamGiaHieuLuc)
-    .map((p) => ({ k: p.nguoiBan ?? TOUR_DAO, dichVu: p.dong.map((s) => s.name), giam: p.giamGia, tong: p.tong, da: 0 }));
+    .map((p) => ({ k: p.nguoiBan ?? TOUR_DAO, dichVu: p.dong.map((s) => s.name), giam: p.giamGia, tong: p.tong, da: 0, sauGiao: 0 }));
   if (ds.length === 0) return [];
+  let conGiam = tien.giamTru ?? 0;
+  for (const p of ds) {
+    p.sauGiao = Math.min(conGiam, p.tong);
+    p.tong -= p.sauGiao;
+    conGiam -= p.sauGiao;
+  }
   // Đã trả theo «thu cho ai» (R-82).
   const theo = tien.theoThuCho ?? new Map<string, number>();
   let tienNcc = 0;
@@ -87,6 +96,7 @@ export function chiaPhanBienNhan(order: OrderDetailDto, tenCongTy: string, ban: 
     dichVu: p.dichVu,
     tong: p.tong,
     giamGia: p.giam,
+    ...(p.sauGiao > 0 ? { giamTru: p.sauGiao } : {}),
     daTra: p.da,
     conLai: Math.max(0, p.tong - p.da),
     traTaiQuay: p.k !== TOUR_DAO,
@@ -121,6 +131,7 @@ export function dungBienNhan(order: OrderDetailDto, company: CompanyDto, tien: T
     // Tổng cộng; bằng giảm giá đã lưu trừ khi bớt khách làm tạm tính nhỏ hơn. Không suy ngược `subtotal − total` (chỗ tính thứ hai — Hiến chương 5.4).
     discount: order.giamGiaHieuLuc,
     total: order.total,
+    ...(tien.giamTru ? { giamTru: tien.giamTru } : {}),
     daTra: tien.daTra,
     conLai: tien.conLai,
     // ADR-0089 đ9a — chép TỪNG trường (danh sách trắng), không trải đối tượng nguồn.

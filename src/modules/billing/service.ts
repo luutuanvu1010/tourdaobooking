@@ -9,18 +9,18 @@ import { nhanDonTrongSo } from "../../shared/so-cong-no-hien-thi";
 import { UUID_RE, error, json } from "../../shared/http";
 import { vnToday } from "../../shared/vn-date";
 import {
-  balanceOfParty, balancesAt, balancesWithOwner, orderStatesOfParty, bankTxnInsertStatement, bankTxnOfCode, bankTxnOfOrder, earliestLedgerMonth, lineById, lineIfPostingStatement, lineReversed, linesOfOrder, linesOfParty, linesOfReceipt, mocMaGiaoDich, orderOwners, orderState, ownerCompanyId, partyLabels,
+  balanceOfParty, balancesAt, balancesWithOwner, phanDinhTheoBen, orderStatesOfParty, bankTxnInsertStatement, bankTxnOfCode, bankTxnOfOrder, earliestLedgerMonth, lineById, lineIfPostingStatement, lineReversed, linesOfOrder, linesOfParty, linesOfReceipt, mocMaGiaoDich, orderOwners, orderState, ownerCompanyId, partyLabels,
   pendingCompany, postingIfCompletedAtStatement, postingIfDeliveredAtStatement, postingIfReceiptStatement, postingPlainStatement, receiptAtDeliveryStatement,
   receiptBeforeDeliveredStatement, receiptById, reconInsertStatement, reconOfOrder, reconOfReceipt, type ReconDbRow, receiptRefundStatement, receiptReversalStatement, receiptsOfOrder, receiptsOfOrders, unknownReceipts, type LineDbRow,
   type NewLine, type NewReceipt, type ReceiptDbRow,
 } from "./repository";
 import { transferInOf } from "./coc-repo";
 import { docGiaoDich, kiemMaGiaoDich, type GiaoDich } from "./ma-giao-dich";
-import { giamTruNhieuDon, phaiThuHienHanh } from "./thay-lan-thu-repo";
+import { phaiThuHienHanh, phaiThuHienHanhNhieuDon } from "./thay-lan-thu-repo";
 import { CAU_HOAN_SAU_GIAO } from "../../shared/phan-dinh";
 import { MA_LOI_TRUNG, kiemTrung, type UngVienTrung } from "../../shared/luat-trung";
 import {
-  CAU_DA_NOP, LY_DO_DIEU_CHINH_TOI_THIEU, METHOD_CODES, benDatHuong, boNoPhanDinh, canDoiChieu, cumDoiChieu, nhaCungCapCuaDon, phanChuaThuNhaCungCap, soDuGiuHo, type PhanChoNguoiThu, cauLoiCsdlThuongMai, conLai, dongThuongMaiTu, khoanMoiDoiChieu, sinhPhieuDaGiao, tinhTrangThuongMai, type DoiChieuRow, type DongThuongMai, type TinhTrangThuongMai, dong, khoanChoXacNhan, kiemDaoLanThu, kiemDieuChinh, kiemHoanNguoiGiu, kiemQuyetToan, soDuCap, lyDoChuaGiaoDuoc, lyDoChuaHoanThanh, nhaCungCapTheoSo, type CheSoDu, ngayPhatSinh, sinhDongDao, sinhDongHoanKhach, sinhDongLanThu, sinhDongQuyetToan, sinhDongXacNhanCongTy,
+  CAU_DA_NOP, LY_DO_DIEU_CHINH_TOI_THIEU, METHOD_CODES, benDatHuong, boNoPhanDinh, tachKhoanPhanDinh, canDoiChieu, cumDoiChieu, nhaCungCapCuaDon, phanChuaThuNhaCungCap, soDuGiuHo, type PhanChoNguoiThu, cauLoiCsdlThuongMai, conLai, dongThuongMaiTu, khoanMoiDoiChieu, sinhPhieuDaGiao, tinhTrangThuongMai, type DoiChieuRow, type DongThuongMai, type TinhTrangThuongMai, dong, khoanChoXacNhan, kiemDaoLanThu, kiemDieuChinh, kiemHoanNguoiGiu, kiemQuyetToan, soDuCap, lyDoChuaGiaoDuoc, lyDoChuaHoanThanh, nhaCungCapTheoSo, type CheSoDu, ngayPhatSinh, sinhDongDao, sinhDongHoanKhach, sinhDongLanThu, sinhDongQuyetToan, sinhDongXacNhanCongTy,
   soDuTheoBen, nhomDonCuaBen, LOAI_DONG_THUONG_MAI, type LineDraft, type LineRow, type MethodCode, type ReceiptRow, type SoTienDon,
 } from "./rules";
 
@@ -434,8 +434,8 @@ export async function tienCuaDon(db: D1Database, info: ThongTinGiaoDon, phan: Ph
   ]);
   const doiChieu = recon.map(toDoiChieuRow);
   // ADR-0116 đ5: đơn đã giao — phải thu hiện hành (trừ giảm trừ đã phân định) là MỘT nguồn; "còn lại" tính trên số đó, không bao giờ báo khách còn nợ phần đã giảm trừ.
-  const hienHanh = info.deliveredAt ? await phaiThuHienHanh(db, info.orderId) : null;
-  const phaiThuNay = hienHanh ?? info.phaiThu;
+  const hienHanh = info.deliveredAt ? (await phaiThuHienHanhNhieuDon(db, [info.orderId])).get(info.orderId) : undefined;
+  const phaiThuNay = hienHanh?.phaiThu ?? info.phaiThu;
   const so = conLai(receipts.map(toReceiptRow), phaiThuNay, info.status);
   const dangDoiChieu = khoanMoiDoiChieu(receipts.map(toReceiptRow), doiChieu);
   const lyGiao = lyDoChuaGiaoDuoc({
@@ -459,13 +459,13 @@ export async function tienCuaDon(db: D1Database, info: ThongTinGiaoDon, phan: Ph
   }
   const lyHoan = lyDoChuaHoanThanh({
     deliveredAt: info.deliveredAt, completedAt: info.completedAt, soDu, tenBen: (id) => ten.get(id)?.label ?? "Một người", daThu: so.daThu,
-    phaiThuLucGiao: hienHanh,
+    phaiThuLucGiao: hienHanh?.phaiThu ?? null,
     che: cheSoDu(quyen, ai, lines.map(toLineRow), receipts.map(toReceiptRow)),
   });
   return {
     phaiThu: phaiThuNay,
     // Dương khi đơn có giảm trừ đã phân định: trang đơn ghi rõ một dòng, không để số "phải thu" đổi không lời giải thích.
-    giamTru: Math.max(0, info.phaiThu - phaiThuNay),
+    giamTru: hienHanh?.giamTru ?? 0,
     daThu: so.daThu,
     conLai: so.conLai,
     du: so.du,
@@ -518,15 +518,16 @@ function cheSoDu(quyen: Pick<QuyenXemTien, "laDoiTac" | "anGiaVon">, ai: Pick<Ng
 }
 
 /** Tiền của NHIỀU đơn (danh sách, Trang chủ, "Việc của tôi") — cùng hàm `conLai`. */
-type TienMotDon = SoTienDon & { phaiThu: number; daGiao: boolean; hoanThanh: boolean; ngayDiSomNhat: string | null };
+type TienMotDon = SoTienDon & { phaiThu: number; giamTru: number; daGiao: boolean; hoanThanh: boolean; ngayDiSomNhat: string | null };
 export async function tienNhieuDon(db: D1Database, orderIds: readonly string[]): Promise<Map<string, TienMotDon>> {
-  const [base, receipts, giamTru] = await Promise.all([phaiThuNhieuDon(db, orderIds), receiptsOfOrders(db, orderIds), giamTruNhieuDon(db, orderIds)]);
+  const [base, receipts, hienHanh] = await Promise.all([phaiThuNhieuDon(db, orderIds), receiptsOfOrders(db, orderIds), phaiThuHienHanhNhieuDon(db, orderIds)]);
   const theoDon = new Map<string, ReceiptRow[]>();
   for (const r of receipts) theoDon.set(r.order_id, [...(theoDon.get(r.order_id) ?? []), toReceiptRow(r)]);
   const out = new Map<string, TienMotDon>();
   for (const [id, b] of base) {
-    const phaiThu = Math.max(0, b.phaiThu - (giamTru.get(id) ?? 0)); // ADR-0116 đ5
-    out.set(id, { ...conLai(theoDon.get(id) ?? [], phaiThu, b.status), phaiThu, daGiao: b.deliveredAt !== null, hoanThanh: b.completedAt !== null, ngayDiSomNhat: b.ngayDiSomNhat });
+    const hh = hienHanh.get(id); // ADR-0116 đ5
+    const phaiThu = hh?.phaiThu ?? b.phaiThu;
+    out.set(id, { ...conLai(theoDon.get(id) ?? [], phaiThu, b.status), phaiThu, giamTru: hh?.giamTru ?? 0, daGiao: b.deliveredAt !== null, hoanThanh: b.completedAt !== null, ngayDiSomNhat: b.ngayDiSomNhat });
   }
   return out;
 }
@@ -1086,28 +1087,50 @@ const LOAI_DONG: Record<string, string> = {
 /** "Sổ của tôi" (ADR-0026 điều 7): nợ của CHÍNH hồ sơ mình với công ty — mã đơn, ngày, loại, số tiền, số dư; không tên/SĐT khách (NT-S2). */
 export async function soCuaToi(db: D1Database, partyId: string | null): Promise<SoCuaToiResponse> {
   const congTyId = await ownerCompanyId(db);
-  if (!partyId || !congTyId) return { dangGiu: 0, dong: [] };
+  if (!partyId || !congTyId) return { dangGiu: 0, khoanPhanDinh: 0, dong: [] };
+  // ADR-0116: khoản phân định không phải tiền đang giữ. `soDu` của từng dòng vẫn là số dư sổ (gồm khoản); hai số tổng tách theo từng đơn.
+  const theoDon = new Map<string, { giu: number; khoan: number }>();
   let du = 0;
   const dong: SoCuaToiResponse["dong"] = [];
   for (const l of await linesOfParty(db, partyId)) {
     const so = l.debtor_party_id === partyId && l.creditor_party_id === congTyId ? l.amount : l.creditor_party_id === partyId && l.debtor_party_id === congTyId ? -l.amount : 0;
     if (so === 0) continue;
     du += so;
+    const d = theoDon.get(l.order_id ?? "") ?? { giu: 0, khoan: 0 };
+    if (l.kind_code === "ATTRIBUTION") d.khoan += so;
+    else d.giu += so;
+    theoDon.set(l.order_id ?? "", d);
     dong.push({ maDon: l.order_code, ngay: l.occurred_date, loai: LOAI_DONG[l.posting_kind] ?? "Khác", soTien: so, soDu: du });
   }
-  return { dangGiu: du, dong };
+  const tach = [...theoDon.values()].map((d) => tachKhoanPhanDinh(d.giu, d.khoan));
+  return { dangGiu: tach.reduce((s, t) => s + t.dangGiu, 0), khoanPhanDinh: tach.reduce((s, t) => s + t.phaiNop, 0), dong };
 }
 
 /** Loại khoản chờ xác nhận cho màn Kế toán (nút nào xác nhận nó): «Công ty thu» / khách trả cho bên đặt / khách trả tại quầy nhà cung cấp (ADR-0132). */
 export const loaiCho = (vai: "COMPANY" | "BOOKER" | "SUPPLIER"): "cong_ty" | "ben_dat" | "nha_cung_cap" => (vai === "BOOKER" ? "ben_dat" : vai === "SUPPLIER" ? "nha_cung_cap" : "cong_ty");
 
+/** Số dư theo bên đã tách khoản phân định: `balance` (số dư sổ) − khoản = đang giữ. Bên chỉ có khoản (số dư sổ bằng 0) vẫn hiện. MỘT hàm cho Sổ công nợ và bảng khoá tháng. */
+function tachSoDu(soDu: readonly { party_id: string; label: string | null; balance: number }[], khoan: readonly { party_id: string; label: string | null; khoan: number }[]): { partyId: string; ten: string; dangGiu: number; khoan: number }[] {
+  const theoBen = new Map(khoan.map((k) => [k.party_id, k]));
+  const out = soDu.map((r) => { const k = theoBen.get(r.party_id)?.khoan ?? 0; return { partyId: r.party_id, ten: r.label ?? "—", dangGiu: r.balance - k, khoan: k }; });
+  for (const k of khoan) if (!soDu.some((r) => r.party_id === k.party_id)) out.push({ partyId: k.party_id, ten: k.label ?? "—", dangGiu: -k.khoan, khoan: k.khoan });
+  return out;
+}
+/** Số dư cuối ngày cho bảng kiểm khoá tháng (ADR-0080 D1), tách khoản phân định (ADR-0116). */
+export async function soDuTheoBenTaiNgay(db: D1Database, ngay: string): Promise<{ ten: string; soDu: number; khoanPhanDinh?: number }[]> {
+  const [soDu, khoan] = await Promise.all([balancesAt(db, ngay), phanDinhTheoBen(db, ngay)]);
+  return tachSoDu(soDu, khoan).map((r) => ({ ten: r.ten, soDu: r.dangGiu, ...(r.khoan > 0 ? { khoanPhanDinh: r.khoan } : {}) }));
+}
+
 /** Màn sổ của Kế toán (ADR-0026 điều 7): số dư mọi bên, khoản chờ xác nhận («Công ty thu», khách trả bên kia), khoản thu chưa rõ người thu. */
 export async function soCongNo(db: D1Database): Promise<SoCongNoResponse> {
-  const [soDu, cho, chuaRo] = await Promise.all([balancesWithOwner(db), pendingCompany(db), unknownReceipts(db)]);
+  const [soDuSo, khoan, cho, chuaRo] = await Promise.all([balancesWithOwner(db), phanDinhTheoBen(db, "9999-12-31"), pendingCompany(db), unknownReceipts(db)]);
+  const soDu = tachSoDu(soDuSo, khoan);
   return {
-    soDu: soDu.map((r) => ({ partyId: r.party_id, ten: r.label ?? "—", dangGiu: r.balance })),
-    tongDangGiu: soDu.reduce((t, r) => t + (r.balance > 0 ? r.balance : 0), 0),
-    tongCongTyNo: soDu.reduce((t, r) => t + (r.balance < 0 ? -r.balance : 0), 0),
+    soDu: soDu.map((r) => ({ partyId: r.partyId, ten: r.ten, dangGiu: r.dangGiu, ...(r.khoan > 0 ? { khoanPhanDinh: r.khoan } : {}) })),
+    tongDangGiu: soDu.reduce((t, r) => t + (r.dangGiu > 0 ? r.dangGiu : 0), 0),
+    tongCongTyNo: soDu.reduce((t, r) => t + (r.dangGiu < 0 ? -r.dangGiu : 0), 0),
+    tongPhanDinh: soDu.reduce((t, r) => t + r.khoan, 0),
     choXacNhan: cho.map((r) => ({
       receiptId: r.receipt_id, orderId: r.order_id, maDon: r.order_code, soTien: r.amount, ngay: r.occurred_date, nguoiKhai: r.nguoi_khai ?? "—", loai: loaiCho(r.collector_role_code), benKia: r.ben_kia,
     })),
@@ -1124,16 +1147,17 @@ export async function soCongNoBen(db: D1Database, partyId: string): Promise<SoCo
   if (!congTyId) return null;
   const [lines, soDu, trangThai, nhan] = await Promise.all([linesOfParty(db, partyId), balanceOfParty(db, partyId), orderStatesOfParty(db, partyId), partyLabels(db, [partyId])]);
   if (lines.length === 0 || !nhan.has(partyId)) return null;
-  const nhom = nhomDonCuaBen(lines.map((l) => ({ orderId: l.order_id, maDon: l.order_code, ngay: l.occurred_date, debtorPartyId: l.debtor_party_id, creditorPartyId: l.creditor_party_id, amount: l.amount })), partyId, congTyId);
+  const nhom = nhomDonCuaBen(lines.map((l) => ({ orderId: l.order_id, maDon: l.order_code, ngay: l.occurred_date, debtorPartyId: l.debtor_party_id, creditorPartyId: l.creditor_party_id, amount: l.amount, kind: l.kind_code })), partyId, congTyId);
   const tt = new Map(trangThai.map((r) => [r.id, { status: r.status, deliveredAt: r.delivered_at, completedAt: r.completed_at }]));
   const dto = (benDangGiu: boolean) => (d: (typeof nhom.dangGiu)[number]) => ({
     orderId: d.orderId, maDon: d.maDon, ngayGanNhat: d.ngayGanNhat, soTien: d.soTien, daHuy: !!d.orderId && tt.get(d.orderId)?.status === "cancelled", trangThai: nhanDonTrongSo(d.orderId ? tt.get(d.orderId) ?? null : null, benDangGiu),
   });
-  const congCacDon = nhom.x - nhom.y;
+  const congCacDon = nhom.x - nhom.y + nhom.z;
   return {
     partyId, ten: nhan.get(partyId)!.label, soDu,
     dangGiu: { don: nhom.dangGiu.map(dto(true)), tong: nhom.x },
     congTyNo: { don: nhom.congTyNo.map(dto(false)), tong: nhom.y },
+    khoanPhanDinh: { don: nhom.phanDinh.map(dto(true)), tong: nhom.z },
     congCacDon, lech: soDu - congCacDon,
   };
 }
@@ -1146,7 +1170,7 @@ export async function kySoResponse(db: D1Database, v: { homNay: string; coQuyenK
   const [daKhoa, som] = await Promise.all([thangDaKhoa(db), earliestLedgerMonth(db)]);
   const keTiep = thangKhoaDuocKeTiep({ homNay: v.homNay, daKhoa, thangSoSomNhat: som });
   if (keTiep === null) return { daKhoa, keTiep: null, coTheKhoa: false, bangKiem: null };
-  const [cho, chuaRo, soDu] = await Promise.all([pendingCompany(db), unknownReceipts(db), balancesAt(db, ngayCuoiThang(keTiep))]);
+  const [cho, chuaRo, soDu] = await Promise.all([pendingCompany(db), unknownReceipts(db), soDuTheoBenTaiNgay(db, ngayCuoiThang(keTiep))]);
   const trongThang = <T extends { occurred_date: string }>(rows: readonly T[]): T[] => rows.filter((r) => kyCua(r.occurred_date) === keTiep);
   return {
     daKhoa,
@@ -1156,7 +1180,7 @@ export async function kySoResponse(db: D1Database, v: { homNay: string; coQuyenK
       thang: keTiep,
       choXacNhanCongTy: trongThang(cho).map((r) => ({ orderCode: r.order_code, amount: r.amount, ngay: r.occurred_date })),
       chuaRoNguoiThu: trongThang(chuaRo).map((r) => ({ orderCode: r.order_code, amount: r.amount, ngay: r.occurred_date })),
-      soDuCuoiThang: soDu.map((r) => ({ ten: r.label ?? "—", soDu: r.balance })),
+      soDuCuoiThang: soDu,
     },
   };
 }

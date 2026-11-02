@@ -32,11 +32,16 @@ const CAU_TRUNG: Record<MaLuatTrung, (n: number) => string> = {
   ma_giao_dich_khac_don: (n) => `Mã giao dịch này đã gắn với ${n > 1 ? `${n} khoản thu` : "một khoản thu"} ở đơn khác. Một lần chuyển có thể trả nhiều đơn, nhưng cần kiểm lại.`,
 };
 
+/** Gom lý do đã trả lời: mỗi luật một lý do, lý do mới thay lý do cũ của cùng luật. */
+export const gopBoQua = (da: BoQuaTrung | readonly BoQuaTrung[] | undefined, moi: BoQuaTrung): BoQuaTrung[] =>
+  [...(Array.isArray(da) ? da : da ? [da as BoQuaTrung] : [])].filter((x) => x.ma !== moi.ma).concat(moi);
+
 /** MỘT hàm so cho mọi dòng: có ứng viên mà không có lý do bỏ qua hợp lệ của ĐÚNG dòng đó ⇒ cảnh báo. */
 export function kiemTrung(ma: MaLuatTrung, v: { ungVien: readonly UngVienTrung[]; boQua: unknown; tongDaGan?: number }): KetQuaTrung {
   if (v.ungVien.length === 0) return { ok: true, boQua: null };
   const canhBao: CanhBaoTrung = { ma, cau: CAU_TRUNG[ma](v.ungVien.length), ungVien: [...v.ungVien], ...(v.tongDaGan !== undefined ? { tongDaGan: v.tongDaGan } : {}) };
-  const b = (v.boQua && typeof v.boQua === "object" ? v.boQua : {}) as Partial<BoQuaTrung>;
+  // Một lô có thể trùng HAI luật (Thay: tiền mặt lẫn mã) ⇒ thân mang một hoặc nhiều lý do; mỗi luật chỉ nhận lý do của đúng nó.
+  const b = ((Array.isArray(v.boQua) ? v.boQua : [v.boQua]).find((x) => x && typeof x === "object" && (x as Partial<BoQuaTrung>).ma === ma) ?? {}) as Partial<BoQuaTrung>;
   if (b.ma !== ma) return { ok: false, canhBao };
   const lyDo = typeof b.lyDo === "string" ? b.lyDo.trim() : "";
   if (lyDo.length < LY_DO_BO_QUA_TOI_THIEU) return { ok: false, canhBao, lyDoLoi: `Lý do vẫn ghi tối thiểu ${LY_DO_BO_QUA_TOI_THIEU} ký tự.` };

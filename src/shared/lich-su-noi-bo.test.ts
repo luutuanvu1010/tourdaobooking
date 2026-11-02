@@ -86,3 +86,12 @@ test("chữ giữ nguyên ở dòng cho thấy; không sửa mảng vào", () =>
   assert.equal(ra[0].detail, "Tour đảo: giờ đi 08:00 → 09:00");
   assert.equal(vao[0].staffName, TEN, "mảng vào bị sửa");
 });
+
+test("Ngoại lệ dòng «Vẫn ghi» (chủ duyệt 2026-11-02): chỉ khi có cờ, chỉ đúng loại dòng này, ẩn tên người làm", () => {
+  const e = (action: string) => ({ id: action, action, detail: "lý do", staffId: "nv", staffName: "Tên", createdAt: "2026-11-02T00:00:00.000Z" }) as never;
+  const vao = [e("ledger_duplicate_overridden"), e("ledger_settlement"), e("attribution_posted")];
+  assert.deepEqual(lichSuNoiBo(vao, false), []);
+  const ra = lichSuNoiBo(vao, false, true) as { action: string; detail: string; staffName: string }[];
+  assert.deepEqual(ra.map((x) => [x.action, x.detail, x.staffName]), [["ledger_duplicate_overridden", "lý do", ""]]);
+});
+

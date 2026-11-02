@@ -166,7 +166,7 @@ test("D-1 (c) người nội bộ: Toàn quyền thấy ĐỦ, có tên; Kế to
     const nhapKe = HANH_DONG_NHAP_KE_TOAN as readonly string[];
     const mong = daDu
       ? tatCa.filter((a) => xemNhapKt || !nhapKe.includes(a))
-      : [...Object.keys(LICH_SU_NOI_BO_CHO_PHEP), ...(xemNhapKt ? nhapKe : [])];
+      : [...Object.keys(LICH_SU_NOI_BO_CHO_PHEP), ...(xemNhapKt ? nhapKe : []), ...(can({ id: as, permissions: quyen }, "ledger.write") ? ["ledger_duplicate_overridden"] : [])]; // ngoại lệ chủ duyệt 2026-11-02
     assert.deepEqual(h.map((e) => e.action).sort(), mong.sort(), `${quyen.join("+")}: tập hành động`);
     for (const e of h) {
       if (daDu) {
@@ -176,6 +176,7 @@ test("D-1 (c) người nội bộ: Toàn quyền thấy ĐỦ, có tên; Kế to
         continue;
       }
       assert.deepEqual([e.staffId, e.staffName], [null, ""], `${quyen.join("+")}: ${e.action} còn người làm`);
+      if (e.action === "ledger_duplicate_overridden") { assert.equal(e.detail, chiTietGieo(e.action as AuditAction), "lý do Vẫn ghi phải nguyên văn"); continue; }
       if (nhapKe.includes(e.action)) { assert.equal(e.detail, chiTietGieo(e.action as AuditAction), `${quyen.join("+")}: ${e.action} phải nguyên văn`); continue; }
       if (e.action === "order_leg_short_notice") continue; // đã rút gọn theo vai trước lớp nội bộ
       const goc = chiTietGieo(e.action as AuditAction);

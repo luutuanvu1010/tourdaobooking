@@ -81,3 +81,43 @@ test("Dòng nợ ATTRIBUTION chỉ đi trên phiếu ATTRIBUTION có chuỗi: ch
   const p = String(w.q("SELECT id FROM bil_posting WHERE order_id = ? AND kind_code = 'DELIVERED'", id)[0].id);
   assert.throws(() => w.sqlite.prepare(`INSERT INTO bil_debt_line (id, posting_id, debtor_party_id, creditor_party_id, amount, kind_code, order_id, created_at, created_by, updated_at, updated_by) VALUES (?, ?, ?, ?, 1000, 'ATTRIBUTION', ?, ?, ?, ?, ?)`).run(uuid(), p, `pty-${HDV}`, ct, id, NOW, KT, NOW, KT), /attribution_line_invalid/);
 });
+
+// ---- Vòng sửa sau kiểm độc lập ----
+test("bil_attribution_over_due: chèn thẳng POSTED vượt phải thu hiện hành ⇒ chặn (không phụ thuộc máy chủ)", async () => {
+  const { w, id, q, ct } = await dung();
+  const r2 = uuid();
+  void q; void ct;
+  const q2 = uuid();
+  chen(w, { id: q2, order: id, buoc: "REQUEST", so: 2_000_000, by: KT });
+  chen(w, { id: r2, order: id, buoc: "RULING", target: q2, ca: "T6", ben: `pty-${HDV}`, so: 2_000_000, ra: 0, by: QT });
+  assert.throws(() => chen(w, { order: id, buoc: "POSTED", target: r2, ca: "T6", ben: `pty-${HDV}`, so: 2_000_000, ra: 0, phieu: uuid(), by: KT }), /attribution_over_due/);
+});
+
+/** Khoản đã ghi qua route thật rồi bên chịu nộp; trả về đủ thứ để chèn thẳng đi vòng máy chủ. */
+async function daNop(): Promise<{ w: W; id: string; goc: string; ruling: string }> {
+  const c = await dung();
+  const g = await c.w.call("POST", `/api/ledger/phan-dinh/${c.r}/ghi`, { as: KT, body: { hinhThuc: "CASH" } });
+  assert.equal(g.status, 201, g.text);
+  const goc = String(c.w.q("SELECT id FROM bil_attribution WHERE order_id = ? AND step_code = 'POSTED'", c.id)[0].id);
+  const d = await c.w.call("POST", `/api/ledger/phan-dinh/${goc}/doi-ben-chiu`, { as: QT, body: { truongHop: "T10", lyDo: "Xét lại do bão, không ai lỗi" } });
+  assert.equal(d.status, 201, d.text);
+  assert.equal((await c.w.call("POST", "/api/ledger/settlements", { as: KT, body: { chieu: "nop", partyId: `pty-${HDV}`, phanBo: [{ orderId: c.id, soTien: 50_000 }] } })).status, 201);
+  return { w: c.w, id: c.id, goc, ruling: d.json.id };
+}
+
+test("bil_attribution_da_nop: chèn thẳng REASSIGNED hoặc REVERSAL khi bên chịu đã nộp ⇒ chặn", async () => {
+  const { w, id, goc, ruling } = await daNop();
+  const ct = String(w.q("SELECT party_id FROM v_pty_owner_company")[0].party_id);
+  assert.throws(() => chen(w, { order: id, buoc: "REASSIGNED", target: ruling, root: goc, ca: "T10", ben: ct, so: 200_000, ra: 0, phieu: uuid(), by: KT }), /attribution_da_nop/);
+  assert.throws(() => chen(w, { order: id, buoc: "REVERSAL", target: goc, root: goc, ben: `pty-${HDV}`, so: 10_000, ra: 0, phieu: uuid(), by: KT }), /attribution_da_nop/);
+});
+
+test("bil_debt_line_attribution_match: dòng nợ đứng tên người khác bên chịu ⇒ chặn", async () => {
+  const { w, id, r, ct } = await dung();
+  const g = await w.call("POST", `/api/ledger/phan-dinh/${r}/ghi`, { as: KT, body: { hinhThuc: "CASH" } });
+  assert.equal(g.status, 201, g.text);
+  const phieu = String(w.q("SELECT posting_id FROM bil_attribution WHERE order_id = ? AND step_code = 'POSTED'", id)[0].posting_id);
+  const chenDong = (no: string, co: string) => w.sqlite.prepare(`INSERT INTO bil_debt_line (id, posting_id, debtor_party_id, creditor_party_id, amount, kind_code, order_id, created_at, created_by, updated_at, updated_by) VALUES (?, ?, ?, ?, 200000, 'ATTRIBUTION', ?, ?, ?, ?, ?)`).run(uuid(), phieu, no, co, id, NOW, KT, NOW, KT);
+  assert.throws(() => chenDong(`pty-${SALES}`, ct), /attribution_line_invalid/);
+  assert.throws(() => chenDong(ct, `pty-${SALES}`), /attribution_line_invalid/);
+});

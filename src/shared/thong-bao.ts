@@ -68,7 +68,7 @@ export interface DongDieuChinh {
  * MỘT hàm cho mọi tin có tên (tin đơn, tin đổi, tin điều chỉnh); hộp thư và câu màn hình khoá (đẩy) đều đi qua locHopThongBao nên không lệch nhau.
  */
 const xemTenNguoiLam = (staff: PermissionHolder): boolean => can(staff, "audit.view") && !holdsPartner(staff);
-const CAU_DIEU_CHINH: Record<string, { coTen: (ten: string, ma: string) => string; khongTen: (ma: string) => string }> = {
+export const CAU_DIEU_CHINH: Record<string, { coTen: (ten: string, ma: string) => string; khongTen: (ma: string) => string }> = {
   ledger_adjustment_requested: { coTen: (t, m) => `${t} gửi yêu cầu điều chỉnh công nợ đơn ${m} — chờ bạn duyệt`, khongTen: (m) => `Có yêu cầu điều chỉnh công nợ đơn ${m} — chờ bạn duyệt` },
   ledger_adjustment_withdrawn: { coTen: (t, m) => `${t} đã rút yêu cầu điều chỉnh công nợ đơn ${m}`, khongTen: (m) => `Yêu cầu điều chỉnh công nợ đơn ${m} đã được rút` },
   ledger_adjustment_approved: { coTen: (t, m) => `${t} đã duyệt yêu cầu điều chỉnh công nợ đơn ${m} của bạn`, khongTen: (m) => `Yêu cầu điều chỉnh công nợ đơn ${m} của bạn đã được duyệt` },
@@ -78,6 +78,8 @@ const CAU_DIEU_CHINH: Record<string, { coTen: (ten: string, ma: string) => strin
   attribution_requested: { coTen: (t, m) => `${t} đề nghị phân định trách nhiệm đơn ${m}`, khongTen: (m) => `Có đề nghị phân định trách nhiệm đơn ${m}` },
   attribution_ruled: { coTen: (t, m) => `${t} đã phân định trách nhiệm đơn ${m}, chờ ghi sổ`, khongTen: (m) => `Đơn ${m} đã được phân định trách nhiệm, chờ ghi sổ` },
   attribution_posted: { coTen: (_t, m) => `Bạn có một khoản theo phân định trách nhiệm trên đơn ${m} — xem và phản hồi trong 3 ngày làm việc`, khongTen: (m) => `Bạn có một khoản theo phân định trách nhiệm trên đơn ${m} — xem và phản hồi trong 3 ngày làm việc` },
+  attribution_reassigned: { coTen: (_t, m) => `Khoản phân định của bạn trên đơn ${m} đã chuyển sang bên khác — bạn không còn chịu khoản này`, khongTen: (m) => `Khoản phân định của bạn trên đơn ${m} đã chuyển sang bên khác — bạn không còn chịu khoản này` },
+  attribution_reversed: { coTen: (_t, m) => `Khoản phân định của bạn trên đơn ${m} đã được huỷ hoặc giảm — xem số còn lại`, khongTen: (m) => `Khoản phân định của bạn trên đơn ${m} đã được huỷ hoặc giảm — xem số còn lại` },
   attribution_responded: { coTen: (t, m) => `${t} đã phản hồi khoản phân định trên đơn ${m}`, khongTen: (m) => `Có phản hồi khoản phân định trên đơn ${m}` },
   ledger_receipt_collector_changed: { coTen: (_t, m) => `Khoản thu có bạn là người thu tiền trên đơn ${m} vừa được sửa`, khongTen: (m) => `Khoản thu có bạn là người thu tiền trên đơn ${m} vừa được sửa` },
 };

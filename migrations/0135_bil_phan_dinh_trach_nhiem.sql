@@ -102,6 +102,21 @@ WHEN NEW.step_code = 'REASSIGNED' AND (
   OR NEW.amount <> (SELECT g.amount - COALESCE((SELECT SUM(d.amount) FROM bil_attribution d WHERE d.root_id = g.id AND d.step_code = 'REVERSAL'), 0) FROM bil_attribution g WHERE g.id = NEW.root_id))
 BEGIN SELECT RAISE(ABORT, 'attribution_post_invalid: lần đổi bên chịu phải đúng theo phân định và đúng số còn hiệu lực'); END;
 
+-- Bên chịu đã nộp một phần trở lên ⇒ không đổi bên chịu, không huỷ khoản: dòng ngược sẽ làm số dư âm (R-BIL-13). Trả lại trước (huỷ lần nộp) rồi mới làm. "Đã nộp vào khoản" = tiền nộp ròng vượt tiền mặt đang
+-- giữ của bên đó trên đơn: HELD + REFUND + SETTLEMENT < 0 và SETTLEMENT ròng < 0 (cùng công thức `soDaNopKhoanPhanDinh`, rules.ts). Dòng đảo mang cùng loại nên trả lại xong tự hết chặn.
+CREATE TRIGGER bil_attribution_da_nop BEFORE INSERT ON bil_attribution
+WHEN NEW.step_code IN ('REASSIGNED', 'REVERSAL') AND EXISTS (
+  SELECT 1 FROM (
+    SELECT SUM(CASE WHEN l.debtor_party_id = b.ben THEN l.amount ELSE -l.amount END) AS giu,
+           SUM(CASE WHEN l.kind_code <> 'SETTLEMENT' THEN 0 WHEN l.debtor_party_id = b.ben THEN l.amount ELSE -l.amount END) AS nop
+    FROM (SELECT COALESCE((SELECT e.liable_party_id FROM bil_attribution e WHERE e.root_id = NEW.root_id AND e.step_code = 'REASSIGNED' ORDER BY e.rowid DESC LIMIT 1),
+                          (SELECT g.liable_party_id FROM bil_attribution g WHERE g.id = NEW.root_id)) AS ben) b
+    JOIN bil_debt_line l ON l.order_id = NEW.order_id AND l.kind_code IN ('HELD', 'SETTLEMENT', 'REFUND')
+      AND ((l.debtor_party_id = b.ben AND l.creditor_party_id IN (SELECT party_id FROM v_pty_owner_company))
+        OR (l.creditor_party_id = b.ben AND l.debtor_party_id IN (SELECT party_id FROM v_pty_owner_company)))
+  ) WHERE giu < 0 AND nop < 0)
+BEGIN SELECT RAISE(ABORT, 'attribution_da_nop: bên chịu đã nộp tiền cho khoản này — ghi trả lại bên đó trước'); END;
+
 -- Người ghi ≠ người phân định (ADR-0116 đ3; khuôn bil_payment_receipt_coc_same_person). Đảo: khác người đã phân định khoản gốc.
 CREATE TRIGGER bil_attribution_same_person BEFORE INSERT ON bil_attribution
 WHEN (NEW.step_code IN ('POSTED', 'REASSIGNED') AND NEW.created_by IS (SELECT r.created_by FROM bil_attribution r WHERE r.id = NEW.target_id))
@@ -112,6 +127,9 @@ CREATE TRIGGER bil_attribution_reversal_check BEFORE INSERT ON bil_attribution
 WHEN NEW.step_code = 'REVERSAL' AND (
   NEW.posting_id IS NULL OR NEW.amount IS NULL OR length(trim(COALESCE(NEW.reason, ''))) < 10 OR NEW.target_id IS NOT NEW.root_id
   OR NOT EXISTS (SELECT 1 FROM bil_attribution g WHERE g.id = NEW.root_id AND g.step_code = 'POSTED' AND g.order_id = NEW.order_id)
+  -- đúng bên chịu hiện tại của khoản
+  OR NEW.liable_party_id IS NOT COALESCE((SELECT e.liable_party_id FROM bil_attribution e WHERE e.root_id = NEW.root_id AND e.step_code = 'REASSIGNED' ORDER BY e.rowid DESC LIMIT 1),
+                                         (SELECT g.liable_party_id FROM bil_attribution g WHERE g.id = NEW.root_id))
   OR NEW.amount > (SELECT g.amount - COALESCE((SELECT SUM(d.amount) FROM bil_attribution d WHERE d.root_id = g.id AND d.step_code = 'REVERSAL'), 0) FROM bil_attribution g WHERE g.id = NEW.root_id))
 BEGIN SELECT RAISE(ABORT, 'attribution_reversal_invalid: đảo phải đúng khoản đã ghi, có lý do và không vượt số còn hiệu lực'); END;
 
@@ -176,7 +194,15 @@ WHEN (NEW.kind_code = 'ATTRIBUTION' AND (
     NEW.order_id IS NULL OR NEW.reverses_line_id IS NOT NULL
     OR (SELECT kind_code FROM bil_posting WHERE id = NEW.posting_id) IS NOT 'ATTRIBUTION'
     OR NOT EXISTS (SELECT 1 FROM bil_attribution a WHERE a.posting_id = NEW.posting_id AND a.order_id = NEW.order_id AND a.amount = NEW.amount)
-    OR NOT (NEW.debtor_party_id IN (SELECT party_id FROM v_pty_owner_company) OR NEW.creditor_party_id IN (SELECT party_id FROM v_pty_owner_company))))
+    OR NOT (NEW.debtor_party_id IN (SELECT party_id FROM v_pty_owner_company) OR NEW.creditor_party_id IN (SELECT party_id FROM v_pty_owner_company))
+    -- Dòng xuôi (bên → công ty): đúng bên chịu của lần ghi / lần đổi trong phiếu.
+    OR (NEW.creditor_party_id IN (SELECT party_id FROM v_pty_owner_company) AND NOT EXISTS (
+      SELECT 1 FROM bil_attribution a WHERE a.posting_id = NEW.posting_id AND a.step_code IN ('POSTED', 'REASSIGNED') AND a.liable_party_id = NEW.debtor_party_id))
+    -- Dòng ngược (công ty → bên): đúng bên trên dòng đảo, hoặc đúng bên chịu CŨ của lần đổi.
+    OR (NEW.debtor_party_id IN (SELECT party_id FROM v_pty_owner_company) AND NOT EXISTS (
+      SELECT 1 FROM bil_attribution a WHERE a.posting_id = NEW.posting_id AND (
+        (a.step_code = 'REVERSAL' AND a.liable_party_id = NEW.creditor_party_id)
+        OR (a.step_code = 'REASSIGNED' AND NEW.creditor_party_id = (SELECT t.liable_party_id FROM bil_attribution r JOIN bil_attribution t ON t.id = r.target_id WHERE r.id = a.target_id)))))))
   OR (NEW.kind_code <> 'ATTRIBUTION' AND (SELECT kind_code FROM bil_posting WHERE id = NEW.posting_id) IS 'ATTRIBUTION')
 BEGIN SELECT RAISE(ABORT, 'attribution_line_invalid: dòng nợ phân định phải đúng phiếu, đúng số và giữa bên chịu với công ty'); END;
 
@@ -225,4 +251,4 @@ DROP VIEW v_aud_ledger_event;
 CREATE VIEW v_aud_ledger_event AS
   SELECT id, order_id, target_type, target_id, staff_id, action, created_at FROM audit_log
   WHERE action IN ('ledger_adjustment_requested', 'ledger_adjustment_approved', 'ledger_adjustment_rejected', 'ledger_adjustment_withdrawn', 'ledger_adjustment_affected',
-    'attribution_requested', 'attribution_ruled', 'attribution_posted', 'attribution_responded', 'ledger_receipt_collector_changed');
+    'attribution_requested', 'attribution_ruled', 'attribution_posted', 'attribution_reassigned', 'attribution_reversed', 'attribution_responded', 'ledger_receipt_collector_changed');

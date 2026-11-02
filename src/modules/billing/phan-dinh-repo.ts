@@ -13,9 +13,13 @@ const CHON = `SELECT a.id, a.order_id, a.step_code, a.target_id, a.root_id, a.ca
     ol.order_code, pl.display_name AS liable_label, sl.label AS created_by_label, g.occurred_date AS ngay_giao
   FROM bil_attribution a LEFT JOIN v_ord_order_label ol ON ol.id = a.order_id LEFT JOIN v_pty_party_label pl ON pl.id = a.liable_party_id LEFT JOIN v_stf_staff_label sl ON sl.id = a.created_by
     LEFT JOIN bil_posting g ON g.order_id = a.order_id AND g.kind_code = 'DELIVERED'`;
-/** Mọi dòng của các đơn có phiếu mới nhất (đủ cả chuỗi của mỗi đơn, cắt theo số đơn để giữ nguyên chuỗi). */
+/** Mọi dòng của các đơn có phiếu mới nhất (đủ cả chuỗi của mỗi đơn, cắt theo số đơn để giữ nguyên chuỗi), CỘNG mọi đơn còn phiếu chờ phân định hoặc chờ ghi: phiếu chờ cũ không bao giờ rơi khỏi danh sách và ô đếm. */
 const DS = defineSql("billing", "pd_danh_sach", `${CHON}
-  WHERE a.order_id IN (SELECT order_id FROM bil_attribution GROUP BY order_id ORDER BY MAX(rowid) DESC LIMIT 200) ORDER BY a.rowid`);
+  WHERE a.order_id IN (SELECT order_id FROM bil_attribution GROUP BY order_id ORDER BY MAX(rowid) DESC LIMIT 200)
+    OR a.order_id IN (SELECT c.order_id FROM bil_attribution c WHERE
+      (c.step_code = 'REQUEST' AND NOT EXISTS (SELECT 1 FROM bil_attribution x WHERE x.target_id = c.id AND x.step_code = 'RULING'))
+      OR (c.step_code = 'RULING' AND NOT EXISTS (SELECT 1 FROM bil_attribution x WHERE x.target_id = c.id AND x.step_code IN ('POSTED', 'REASSIGNED'))))
+  ORDER BY a.rowid`);
 const THEO_ID = defineSql("billing", "pd_theo_id", `${CHON} WHERE a.id = ?1`);
 const THEO_DON = defineSql("billing", "pd_theo_don", `${CHON} WHERE a.order_id = ?1 ORDER BY a.rowid`);
 const CUA_BEN_CHIU = defineSql("billing", "pd_cua_ben_chiu", `${CHON}
@@ -24,6 +28,12 @@ export const dsPhanDinh = async (db: D1Database): Promise<DongPhanDinh[]> => (aw
 export const phanDinhTheoId = (db: D1Database, id: string): Promise<DongPhanDinh | null> => db.prepare(THEO_ID).bind(id).first<DongPhanDinh>();
 export const phanDinhTheoDon = async (db: D1Database, orderId: string): Promise<DongPhanDinh[]> => (await db.prepare(THEO_DON).bind(orderId).all<DongPhanDinh>()).results;
 export const phanDinhCuaBenChiu = async (db: D1Database, partyId: string): Promise<DongPhanDinh[]> => (await db.prepare(CUA_BEN_CHIU).bind(partyId).all<DongPhanDinh>()).results;
+
+/** Dòng tiền giữ hộ của các đơn trong danh sách phiếu: tính bên chịu đã nộp bao nhiêu, và liệt kê lần nộp để Kế toán trả lại. */
+const DONG_GIU_HO = defineSql("billing", "pd_dong_giu_ho", `SELECT id, order_id, kind_code, debtor_party_id, creditor_party_id, amount, reverses_line_id FROM bil_debt_line WHERE kind_code IN ('HELD', 'SETTLEMENT', 'REFUND') AND order_id IN (SELECT value FROM json_each(?1)) ORDER BY rowid`);
+export interface DongGiuHo { id: string; order_id: string; kind_code: string; debtor_party_id: string; creditor_party_id: string; amount: number; reverses_line_id: string | null }
+export const dongGiuHoCacDon = async (db: D1Database, orderIds: readonly string[]): Promise<DongGiuHo[]> =>
+  orderIds.length === 0 ? [] : (await db.prepare(DONG_GIU_HO).bind(JSON.stringify(orderIds)).all<DongGiuHo>()).results;
 
 /** Hồ sơ có thể chịu trách nhiệm không (khách thuần ⇒ không; có vai khác khách). Đọc qua view của `parties`. */
 const BEN_CHIU = defineSql(

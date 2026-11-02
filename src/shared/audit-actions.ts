@@ -90,6 +90,8 @@ export const AUDIT_ACTIONS = {
   attribution_requested: { label: "Đề nghị phân định trách nhiệm", group: "ledger" }, // ADR-0116
   attribution_ruled: { label: "Phân định trách nhiệm", group: "ledger" },
   attribution_posted: { label: "Ghi sổ theo phân định trách nhiệm", group: "ledger" },
+  attribution_reassigned: { label: "Khoản phân định chuyển sang bên khác", group: "ledger" },
+  attribution_reversed: { label: "Huỷ hoặc giảm khoản phân định", group: "ledger" },
   attribution_responded: { label: "Bên chịu phản hồi phân định", group: "ledger" },
   ledger_reversal: { label: "Huỷ một dòng sổ tiền", group: "ledger" },
   // ADR-0092 Đ6 (migration 0088): gắn mã giao dịch ngân hàng vào khoản thu — target = khoản thu (`ledger`, id khoản thu); `detail` = "gắn mã giao dịch ngân hàng"

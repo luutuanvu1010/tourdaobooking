@@ -1221,7 +1221,7 @@ export const ordersModule: AppModule = {
           ? lichSuChoDoiTac(lichSuTheoVai(await getAuditTrail(env.DB, order.id), false), xemNhapKeToan)
           : can(staff, "audit.view")
             ? lichSuTheoVai(await getAuditTrail(env.DB, order.id), xemDuDatGap(staff)).filter((e) => xemNhapKeToan || !laDongNhapKeToan(e.action))
-            : lichSuNoiBo(lichSuTheoVai(await getAuditTrail(env.DB, order.id), xemDuDatGap(staff)), xemNhapKeToan)
+            : lichSuNoiBo(lichSuTheoVai(await getAuditTrail(env.DB, order.id), xemDuDatGap(staff)), xemNhapKeToan, can(staff, "ledger.write"))
         : [];
       // ADR-0063 D1: dữ liệu bảng "Sửa số khách dịch vụ" — chỉ khi người xem sửa được (cùng hàm ẩn/hiện của giao diện); loại khách sửa được tính từ BẢN CHỤP GỐC
       // (`findOrder`, trước điều chỉnh — loại đã về 0 vẫn còn ô, cùng cách "Việc của tôi").

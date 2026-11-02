@@ -4,13 +4,13 @@ import { ApiError } from "./api";
 import { moBangTruot } from "./bang-truot";
 import { h } from "./dom";
 import { vnd } from "./format";
-import { LY_DO_BO_QUA_TOI_THIEU, MA_LOI_TRUNG, type BoQuaTrung, type CanhBaoTrung } from "../src/shared/luat-trung";
+import { LY_DO_BO_QUA_TOI_THIEU, MA_LOI_TRUNG, gopBoQua, type BoQuaTrung, type CanhBaoTrung } from "../src/shared/luat-trung";
 
 const canhBaoCua = (err: unknown): CanhBaoTrung | null =>
   err instanceof ApiError && err.code === MA_LOI_TRUNG ? ((err.details as { canhBao?: CanhBaoTrung } | undefined)?.canhBao ?? null) : null;
 
 /** `gui(undefined)` lần đầu; gặp cảnh báo thì hỏi rồi `gui({ ma, lyDo })`. Người dùng chọn không ghi ⇒ ném ApiError mã `da_dung` với câu rõ ràng cho banner của trang. */
-export async function guiCoCanhBaoTrung<T>(gui: (boQua: BoQuaTrung | undefined) => Promise<T>, opener?: HTMLElement | null): Promise<T> {
+export async function guiCoCanhBaoTrung<T>(gui: (boQua: BoQuaTrung[] | undefined) => Promise<T>, opener?: HTMLElement | null): Promise<T> {
   try {
     return await gui(undefined);
   } catch (err) {
@@ -20,8 +20,20 @@ export async function guiCoCanhBaoTrung<T>(gui: (boQua: BoQuaTrung | undefined) 
   }
 }
 
-function hoi<T>(cb: CanhBaoTrung, gui: (boQua: BoQuaTrung | undefined) => Promise<T>, opener: HTMLElement | null): Promise<T> {
+function hoi<T>(dau: CanhBaoTrung, gui: (boQua: BoQuaTrung[] | undefined) => Promise<T>, opener: HTMLElement | null): Promise<T> {
   return new Promise<T>((resolve, reject) => {
+    let cb = dau;
+    let da: BoQuaTrung[] = []; // lý do đã trả lời: một lô Thay có thể trùng cả tiền mặt lẫn mã, hỏi nốt luật còn lại ngay trên hộp này
+    const cauEl = h("p", null);
+    const dsEl = h("ul", { class: "dc-ds", "data-khoi": "ung-vien-trung" });
+    const tongEl = h("p", { class: "muted" });
+    const ve = () => {
+      cauEl.textContent = cb.cau;
+      dsEl.replaceChildren(...cb.ungVien.map((u) => h("li", { class: "dc-the" }, [vnd(u.soTien), u.ngay, u.maDon, u.chiTiet].filter(Boolean).join(" · "))));
+      tongEl.textContent = cb.tongDaGan !== undefined ? `Tổng đã gắn với mã này: ${vnd(cb.tongDaGan)}.` : "";
+      tongEl.hidden = cb.tongDaGan === undefined;
+    };
+    ve();
     const lyDo = h("textarea", { rows: 2, maxlength: 300, autocomplete: "off", "aria-label": "Lý do vẫn ghi" }) as HTMLTextAreaElement;
     const loi = h("p", { class: "alert", role: "alert", hidden: true });
     const xem = h("button", { type: "button", class: "btn", "data-action": "xem-ban-cu" }, "Xem bản cũ");
@@ -31,9 +43,9 @@ function hoi<T>(cb: CanhBaoTrung, gui: (boQua: BoQuaTrung | undefined) => Promis
     const bang = moBangTruot({
       title: "Có thể trùng",
       body: [
-        h("p", null, cb.cau),
-        h("ul", { class: "dc-ds", "data-khoi": "ung-vien-trung" }, ...cb.ungVien.map((u) => h("li", { class: "dc-the" }, [vnd(u.soTien), u.ngay, u.maDon, u.chiTiet].filter(Boolean).join(" · ")))),
-        cb.tongDaGan !== undefined ? h("p", { class: "muted" }, `Tổng đã gắn với mã này: ${vnd(cb.tongDaGan)}.`) : null,
+        cauEl,
+        dsEl,
+        tongEl,
         h("label", null, `Lý do vẫn ghi (tối thiểu ${LY_DO_BO_QUA_TOI_THIEU} ký tự, không ghi số điện thoại)`, lyDo),
         loi,
       ],
@@ -53,14 +65,25 @@ function hoi<T>(cb: CanhBaoTrung, gui: (boQua: BoQuaTrung | undefined) => Promis
       (van as HTMLButtonElement).disabled = true;
       bang.setBusy(true);
       try {
-        const kq = await gui({ ma: cb.ma, lyDo: v });
+        const lan = gopBoQua(da, { ma: cb.ma, lyDo: v });
+        const kq = await gui(lan);
         xong = true;
         bang.setBusy(false);
         bang.close();
         resolve(kq);
       } catch (err) {
         bang.setBusy(false);
-        if (canhBaoCua(err)) {
+        const moi = canhBaoCua(err);
+        if (moi && moi.ma !== cb.ma) {
+          da = gopBoQua(da, { ma: cb.ma, lyDo: v });
+          cb = moi;
+          lyDo.value = "";
+          loi.hidden = true;
+          ve();
+          (van as HTMLButtonElement).disabled = false;
+          return;
+        }
+        if (moi) {
           loi.textContent = err instanceof Error ? err.message : "Chưa ghi được.";
           loi.hidden = false;
           (van as HTMLButtonElement).disabled = false;
