@@ -2,7 +2,15 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.54 ĐÃ LÊN PRODUCTION (Điều 5.26 mã định danh; nút «Sửa» tên và ghi chú cho loại đối tác và cấp đại lý; tên vai bên ngoài ở màn tài khoản đọc từ CSDL) — migration `0130` — triển khai 2026-10-31 19:49 (giờ VN)
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.57 ĐÃ LÊN PRODUCTION (gộp vé điện tử 2.55, đặt vé đối tác lượt 1 bản 2.56, lượt 2 bản 2.57: đơn đối tác không nhập giờ đón, văn phòng chốt giờ; công tắc ẩn thông tin khách; cột Cấp độ đại lý và bộ lọc ở Quản lý tài khoản; hai thẻ ở Hoa hồng) — migration `0131`–`0134` — triển khai 2026-11-02 17:46 (giờ VN)
+
+Ghi 2/11/2026 từ khối tóm tắt của `npm run trien-khai` (chủ chạy `day-len` nhánh `claude/dat-ve-luot-2` + `trien-khai`) và lệnh CHỈ ĐỌC của phiên thi công (sổ `docs/superpowers/plans/2026-11-02-dat-ve-doi-tac-luot-2-thi-cong-nhat-ky.md`):
+- Commit `origin/main`: `acfb09e7`. Worker Version ID: `21b7bef4-5672-419d-b611-e6237353d89e`. Điểm khôi phục Time Travel trước khi áp: `00002045-00000002-00005117-3cd61fe792f36704fc0ba75c2e4f2fdc`. Cổng phiên bản trước và sau deploy: ĐẠT. `wrangler d1 migrations list --remote`: không còn gì để áp.
+- e2e 79/80: đỏ duy nhất H5 với bốn route `gui-don`, `quyet-dinh`, `money-edit`, `handler-money-edit` thiếu tên ở `GHI_NHIEU_LAN`; chủ chọn «c» đi tiếp. Bản sửa danh sách (`cd5abc2a`, `4c46a67b`, phiên vé điện tử) đã ở `main` máy nhưng lúc ghi CHƯA lên `origin/main`; chỉ đổi danh sách và bài kiểm, không cần triển khai lại.
+- **`audit-invariants --db remote`: KHÔNG ĐẠT** — `R-PRC-2` 98 vi phạm, cùng con số đã ghi từ bản 2.54 (nguồn đã tra 31/10: bốn loại đối tác thử do chủ tắt, xem mục 2.54 ngay dưới; lần này chưa đối chiếu lại từng dòng). Cảnh báo: đơn còn lần thu người thu chưa rõ 22, `R-ORD-DC1w` 1, `R-VC-14` 7, `R-ORD-9` 1, `R-CTL-1` 9. `R-ORD-17w` và các `R-VDT-*` đạt.
+- GET công khai sau triển khai: `/login` 200; `/api/orders`, `/api/pricing/cap-hien-hanh`, `/api/cai-dat/an-thong-tin-khach` khi chưa đăng nhập đều 401. Chưa thử đăng nhập trên production.
+
+## (Cũ) TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.54 ĐÃ LÊN PRODUCTION (Điều 5.26 mã định danh; nút «Sửa» tên và ghi chú cho loại đối tác và cấp đại lý; tên vai bên ngoài ở màn tài khoản đọc từ CSDL) — migration `0130` — triển khai 2026-10-31 19:49 (giờ VN)
 
 Ghi 31/10/2026 từ khối tóm tắt của `npm run trien-khai` (chủ chạy `day-len` nhánh `claude/super-admin-delete-order-button-eaea12` + `trien-khai`; kế hoạch `docs/superpowers/plans/2026-10-31-ma-dinh-danh-va-sua-loai-doi-tac.md`, sổ thi công `…-ma-dinh-danh-thi-cong-nhat-ky.md`):
 - Commit `main` = `origin/main`: `2180b0a4`. Worker Version ID: `b1b7fbf6-82b4-404d-b7dd-6ef4adb30c5f`. Điểm khôi phục Time Travel trước khi áp: `00001ec9-00000004-00005115-be54fb41c369ae38941af2d0bd6b9fbb`.
