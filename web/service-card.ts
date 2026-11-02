@@ -164,7 +164,7 @@ export function createServiceCard(o: CardOptions): ServiceCard {
   };
 
   const duaDon = taoKhoiDuaDon({
-    legs: draft.legs, taoSan: draft.taoSan, che: "form", ma: draft.key, ...o.duaDon, soKhach: () => soKhachNhap(draft),
+    legs: draft.legs, taoSan: draft.taoSan, che: "form", ma: draft.key, ...o.duaDon, soKhach: () => soKhachNhap(draft), anGio: o.formGonDoiTac === true, // ADR-0154 Đ1.1: form đối tác không nhập giờ đón
     // ADR-0134: còn lượt → "Đón"; bỏ lượt cuối khi đang "Đón" → về chưa chọn (`chonDonSauDoiChang`).
     onChange: (legs, taoSan) => commit({ ...draft, legs, taoSan, pickupChoice: chonDonSauDoiChang(draft.pickupChoice, legs.length) }),
     chonDon: {
@@ -436,7 +436,7 @@ export function createServiceCard(o: CardOptions): ServiceCard {
     const ten = d.kind === "catalog" ? d.name : d.name.trim() || "Dịch vụ nhập tay";
     nameEl.textContent = ten;
     remove.setAttribute("aria-label", `Xoá dịch vụ ${ten}`);
-    const dg = dongGapThe(d, { today: o.today, nhanTheoId, chipNgoai });
+    const dg = dongGapThe(d, { today: o.today, nhanTheoId, chipNgoai, anGio: o.formGonDoiTac === true });
     tomTatEl.textContent = [dg.khach, dg.don].filter((x) => x).join(" · ");
     replaceChildren(chipGonEl, ...dg.chips.map((c) => h("span", { class: "svc-chip-gon" }, c))); // lớp riêng (không `.chip`): chip của dòng gập không lẫn với chip của đầu thẻ mở khi kịch bản đếm `.chip`
     tienGonEl.textContent = vnd(draftSubtotal(d));

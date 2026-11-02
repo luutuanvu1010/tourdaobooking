@@ -8,3 +8,10 @@ import { holdsPartner, isExternalPermission, type PermissionHolder } from "./per
  * Mã quyền ở đây là điều kiện DỮ LIỆU của một luật SIẾT thông tin, không phải điều kiện cho phép.
  */
 export const apCongTacAnKhach = (who: Pick<PermissionHolder, "permissions">): boolean => holdsPartner(who) && who.permissions.every(isExternalPermission);
+
+/**
+ * Form đang ẨN khối khách mà gửi bị máy chủ từ chối: có nên HIỆN LẠI khối không (ADR-0154 Đ2.3 «form đang ẩn mà công tắc vừa tắt: nhận lỗi thiếu tên thì đọc lại công tắc và hiện khối»)? Chỉ khi form đang ẩn,
+ * lỗi là 400 (thiếu ô) VÀ công tắc đọc lại nay KHÔNG còn áp cho tài khoản (`apChoToi` từ `GET /api/cai-dat/an-thong-tin-khach`). Lỗi khác (409, 403…) không đọc lại; 400 mà công tắc vẫn áp là lỗi khác — giữ
+ * nguyên khối ẩn và câu lỗi của máy chủ. Chỉ để HIỆN; máy chủ vẫn là nơi quyết.
+ */
+export const canHienLaiKhoiKhach = (v: { dangAn: boolean; loi: { status: number }; apChoToi: boolean }): boolean => v.dangAn && v.loi.status === 400 && !v.apChoToi;

@@ -61,6 +61,12 @@ export interface KhoiDuaDonOptions {
   chonDon?: { lay: () => LuaChonDon | null; dat: (v: LuaChonDon) => void };
   /** CHỈ form (ADR-0134 Đ3, Đ5): bộ khung giờ đón + câu lưu ý (trang đọc một lần); null / vắng = chỉ ô giờ như cũ. */
   khungGio?: () => { khung: readonly KhungGio[]; luuY: string } | null;
+  /**
+   * CHỈ form của tài khoản Đối tác (ADR-0154 Đ1.1): bỏ hàng khung giờ, ô giờ đón và dải cảnh báo hạn chốt của khối — đối tác không nhập giờ, văn phòng chốt giờ ở bảng Còn vé. Giữ Đón / Không đón,
+   * Nơi đón, Nơi trả, «Đón khác ngày», «Bỏ lượt», «+ Thêm chiều về». Dòng tóm tắt lượt ghi «Văn phòng sẽ báo giờ đón». Giá trị giờ đang có trong bản nháp KHÔNG bị đụng ở đây (chỉ không hiện);
+   * nơi gửi xoá giờ lượt đầu bằng `legsGuiFormGon`.
+   */
+  anGio?: boolean;
 }
 
 export interface KhoiDuaDon {
@@ -297,7 +303,7 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
 
   function changEl(l: ChangNhap, i: number): HTMLElement {
     const so = i + 1;
-    const kg = o.che === "form" ? (o.khungGio?.() ?? null) : null;
+    const kg = o.che === "form" && !o.anGio ? (o.khungGio?.() ?? null) : null; // form đối tác (anGio): không hàng khung giờ
     // Form Tạo/sửa đơn (`che: "form"`) dùng nhãn nổi trong ô (đợt 1, bảng việc 13/10 #4); bảng "Sửa đưa đón" của trang đơn giữ nhãn phía trên ô như cũ.
     const nn = o.che === "form";
     const id = (f: string) => `${o.ma}-${l.key}-${f}`;
@@ -486,7 +492,7 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
       // Form: đầu chặng nhận được tiêu điểm bằng mã (`tabindex="-1"`) — chỗ đặt tiêu điểm khi người lập dùng cảm ứng (`tieuDiemKhiCham`); `data-o` để khối dựng lại trả focus về đúng chỗ.
       h("div", { class: "dd-chang-dau", ...(nn ? { tabindex: "-1", "data-o": `${l.key}:dau` } : {}) }, h("span", { class: "chip chip-unit" }, CHIEU_LABEL[l.direction]), h("span", { class: "dd-chang-so" }, `Lượt ${so}`), boBtn),
       hangKhung,
-      h("div", { class: "dd-luoi2" }, ngayEl, gioEl, nutKhacNgay),
+      h("div", { class: "dd-luoi2" }, ngayEl, o.anGio ? null : gioEl, nutKhacNgay), // anGio: ô giờ vẫn được dựng (refs) nhưng không nằm trong cây DOM
       h("div", { class: "dd-luoi-noi" }, cotDon, cotTra),
       phu.length ? h("div", { class: "dd-luoi-phu" }, ...phu) : null,
       gapChiTiet ? gapChiTiet.nut : null,
@@ -496,7 +502,7 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
     if (!nn) return chang;
 
     // Form: chặng gọn một dòng (bấm để mở) hoặc mở sẵn — quyết ở `build` (`moChang`). Cả hai phần đều nằm trong cây DOM; chỉ ẩn bằng `hidden`.
-    const tomTat = h("span", { class: "dd-tom-tat-chu" }, tomTatChang(l, nhanNgan));
+    const tomTat = h("span", { class: "dd-tom-tat-chu" }, tomTatChang(l, nhanNgan, o.anGio === true));
     const nutTomTat = h("button", { type: "button", class: "dd-tom-tat", "aria-expanded": "false" }, tomTat, icon("chevron-down", 16));
     const gapChang = taoKhoiGap({ ma: `chang-${l.key}`, nhan: "", than: chang, nut: nutTomTat, mo: moChang.has(l.key), khiDoi: (mo) => { if (mo) moChang.add(l.key); nutTomTat.hidden = mo; } });
     // Sau khi `taoKhoiGap` đã mở chặng (nghe click trước): chuột / bàn phím → tiêu điểm vào ô Nơi đón; cảm ứng (vòng sửa 1, M-1) → tiêu điểm vào đầu chặng và cuộn ô Nơi đón vào khung
@@ -601,7 +607,7 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
       datLoi(r.loiChoToiThieu, r.choToiThieu, e.choToiThieu);
       r.hintChoToiThieu.hidden = e.choToiThieu !== null;
       r.hauTo.hidden = l.choToiThieu === "";
-      if (r.tomTatEl) r.tomTatEl.textContent = tomTatChang(l, nhanNgan);
+      if (r.tomTatEl) r.tomTatEl.textContent = tomTatChang(l, nhanNgan, o.anGio === true);
     });
   }
 

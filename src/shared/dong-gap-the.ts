@@ -114,9 +114,9 @@ export interface DongGap {
 
 /**
  * Nội dung dòng gập của một thẻ. `nhanTheoId` tra nhãn ngắn của điểm danh mục (như dòng tóm tắt chặng); `chipNgoai` = chip do trang tính (đặt gấp — mốc đọc ở trang).
- * Mọi cảnh báo mà thẻ MỞ đang hiện đều có chip ở đây — gập thẻ không được giấu cảnh báo.
+ * Mọi cảnh báo mà thẻ MỞ đang hiện đều có chip ở đây — gập thẻ không được giấu cảnh báo. `anGio` (form đối tác, ADR-0154 Đ1.1: không có ô giờ): không chip «Chưa chốt giờ đón», dòng đón không ghi giờ.
  */
-export function dongGapThe(d: ServiceDraft, o: { today: string; nhanTheoId: (id: string) => string | null; chipNgoai?: readonly string[] }): DongGap {
+export function dongGapThe(d: ServiceDraft, o: { today: string; nhanTheoId: (id: string) => string | null; chipNgoai?: readonly string[]; anGio?: boolean }): DongGap {
   let khach: string;
   if (d.kind === "catalog") {
     const g = groupInfo(d);
@@ -126,7 +126,7 @@ export function dongGapThe(d: ServiceDraft, o: { today: string; nhanTheoId: (id:
   const noi = l ? nhanNoiChang(l.don, l.donTuDo, l.goc?.pickupLabel, o.nhanTheoId) : "";
   // "Chưa nhập số khách": đúng khi Lưu sẽ báo "Nhập số khách." (dịch vụ danh mục 0 khách); nhập tay không bắt buộc số khách. Chỉ hiện trên dòng gập — thẻ mở đã có ô số khách và câu lỗi.
   const coKhach = !draftIssues(d).some((i) => i.code === "no_guests");
-  const chips: string[] = chipThieu({ coKhach, coGioDon: !l || l.pickupTime !== "", coNoiDon: !l || noi !== "" });
+  const chips: string[] = chipThieu({ coKhach, coGioDon: o.anGio === true || !l || l.pickupTime !== "", coNoiDon: !l || noi !== "" });
   // ADR-0134: không chặng mà chưa chọn "Không đón" → chưa chọn (ô chọn của thẻ mở đang trống) — không được ghi «Không đưa đón».
   const chuaChonDon = !l && d.pickupChoice !== "KHONG_DON";
   if (chuaChonDon) chips.push(CHIP_CHUA_CHON_DON);
@@ -137,5 +137,5 @@ export function dongGapThe(d: ServiceDraft, o: { today: string; nhanTheoId: (id:
     if (p.ok && p.lines.some((x) => x.deviation !== null)) chips.push("Khác giá danh mục");
   }
   chips.push(...canhBaoChuyenThe(d, o.today).map((w) => chipTuCanhBao(w.message)), ...(o.chipNgoai ?? []));
-  return { khach, don: l ? donGon(l.pickupTime, noi, ngayDonKhac(l.pickupDate, d.trip.departDate)) : chuaChonDon ? null : KHONG_DUA_DON, chips: [...new Set(chips)] };
+  return { khach, don: l ? donGon(o.anGio === true ? null : l.pickupTime, noi, ngayDonKhac(l.pickupDate, d.trip.departDate)) : chuaChonDon ? null : KHONG_DUA_DON, chips: [...new Set(chips)] };
 }

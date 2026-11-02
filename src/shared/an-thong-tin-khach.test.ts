@@ -4,7 +4,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { PERMISSION_CODES, type PermissionCode } from "./permissions.ts";
-import { apCongTacAnKhach } from "./an-thong-tin-khach.ts";
+import { apCongTacAnKhach, canHienLaiKhoiKhach } from "./an-thong-tin-khach.ts";
 
 const nguoi = (...permissions: PermissionCode[]) => ({ permissions });
 
@@ -28,4 +28,13 @@ test("mọi tổ hợp quyền: đúng ⇔ có PARTNER và mọi quyền đều 
     const mong = ds.includes("PARTNER") && ds.every((p) => ngoai.has(p));
     assert.equal(apCongTacAnKhach(nguoi(...ds)), mong, ds.join("+") || "(rỗng)");
   }
+});
+
+// ---- Đợt 3 (ADR-0154 Đ2.3, tiêu chí (n)): form đang ẩn khối khách mà công tắc vừa tắt → nhận lỗi 400 thì đọc lại công tắc rồi hiện lại khối ----
+test("(n6) canHienLaiKhoiKhach: 400 + công tắc vừa tắt → đúng; 400 + vẫn bật → sai; 409 → sai; không ẩn → sai", () => {
+  assert.equal(canHienLaiKhoiKhach({ dangAn: true, loi: { status: 400 }, apChoToi: false }), true, "đang ẩn, máy chủ đòi tên (400), công tắc nay không còn áp");
+  assert.equal(canHienLaiKhoiKhach({ dangAn: true, loi: { status: 400 }, apChoToi: true }), false, "400 vì lý do khác, công tắc vẫn áp: không hiện lại");
+  assert.equal(canHienLaiKhoiKhach({ dangAn: true, loi: { status: 409 }, apChoToi: false }), false, "409 không phải lỗi thiếu ô");
+  assert.equal(canHienLaiKhoiKhach({ dangAn: false, loi: { status: 400 }, apChoToi: false }), false, "khối đang hiện sẵn: không có gì để hiện lại");
+  for (const status of [401, 403, 404, 422, 500, 503]) assert.equal(canHienLaiKhoiKhach({ dangAn: true, loi: { status }, apChoToi: false }), false, `status ${status}`);
 });
