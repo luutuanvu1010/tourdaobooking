@@ -696,3 +696,13 @@ Ghi 2026-10-29 khi đồng bộ bộ «Island Booking System — Design System v
 - **BL-DV-LOC-CHUA-GAN-GOM-VAI-TU-THEM** — nút lọc «Chưa gán vai trò» ở Quản lý tài khoản đếm cả tài khoản chỉ mang vai do Kế toán tự thêm (vai trên hồ sơ, không nằm trong danh sách vai của tài khoản), nên những tài khoản đó nằm chung nhóm «chưa gán» dù đã có vai. Gắn với `BL-DV-LOC-VAI-TU-THEM` ở trên; sửa cùng lúc khi có nút lọc riêng cho vai tự thêm.
 - **BL-DV-HOP-DICH-VU-TRONG** — hộp danh sách dịch vụ ở màn Tạo đơn để trống một khoảng rất cao khi chỉ có một kết quả tìm; tên thẻ ở trang Hoa hồng lặp lại ở tiêu đề khối ngay dưới. Có từ trước lượt 1 (ảnh `docs/evidence/2026-11-02-dat-ve-luot-1/`). Việc giao diện nhỏ, chưa ai giao.
 - **BL-DV-KICH-BAN-CU** — hai kịch bản Chrome đỏ không do lượt 1: `so-dai-ly-smoke` còn cho Đối tác xác nhận bằng `/status` (nay phải `/gui-don`), đỏ y như trên bản xuất `origin/main`; `dot-a-smoke` đỏ sẵn ở trang Nhật ký theo `web/CLAUDE.md`, chưa chạy bản đối chứng. Sửa kịch bản, không phải sửa sản phẩm.
+
+## 59. Nợ khi đóng «Đặt vé của đối tác» lượt 2 (mã `BL-DV2-…`, 2026-11-02)
+
+- **Trạng thái:** `để sau` · Ghi khi chủ yêu cầu rút gọn Đợt 5 (kế hoạch `docs/superpowers/plans/2026-11-02-dat-ve-doi-tac-luot-2.md`).
+- **BL-DV2-E2E** — khối e2e lượt 2 CHƯA viết (`tests/e2e/gui-don.mjs`, `xac-nhan-don.mjs`, `so-dai-ly.mjs`, đơn có dấu ở `dieu-phoi.mjs`) và `npm run test:e2e` chưa chạy trên nhánh này.
+- **BL-DV2-CHROME-CU** — các kịch bản Chrome cũ ở Task 5.2 Step 5 (xac-nhan-smoke, doi-tac-lap-don-smoke, a2-smoke, chuyen/dat-gap/cuoc, dot-c, vai, va3) chưa chạy lại; chỉ chạy `luot-2-smoke.mjs` và `cot-cap-smoke.mjs`.
+- **BL-DV2-TAI-LIEU** — còn thiếu: ma trận §3 và bẫy §4 của `docs/CHANGE-GUIDE.md` chưa thêm dòng riêng, `tests/e2e/README.md`, đề xuất `src/CLAUDE.md` / `web/CLAUDE.md` (chủ làm), khổ 1280 và các cảnh ảnh còn lại của Task 5.3, sửa cố ý hai dòng cuối sổ hàng rào.
+- **BL-DV2-PHI-DON** — khoá phí đón theo giờ dự kiến (ADR-0147) sẽ vướng vì đối tác không có giờ; xét khi thi công ADR-0147.
+- **BL-DV2-GHI-KEP** — ghi kép cột cũ theo chặng đi đầu (`R-ORD-7`) phải bỏ ở phát hành 2.
+- **BL-DV2-C5B** — chưa kiểm có tới được qua API không: dịch vụ trống ngày đi mà chặng có ngày; sau Còn vé kèm `ngayDi` thì chặng ở lại, sớm hơn ngày đi quá mức cho phép.

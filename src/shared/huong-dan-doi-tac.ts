@@ -12,8 +12,8 @@ export const HD_DOI_TAC: NhomHuongDan = {
 2. Vào [[Tôi]], bấm [[Đổi mã PIN]] để đổi sang mã PIN của riêng bạn.
 3. Bấm [[Tạo đơn]], chọn **Ngày khởi hành**, rồi chạm dịch vụ trong danh sách dưới ô [[Tìm theo tên hoặc mã dịch vụ]].
    Muốn lọc nhanh, chạm một nhóm ở hàng nhóm ngay dưới ô tìm ([[Tất cả]] để xem lại toàn bộ).
-4. Nhập số khách, tên và số điện thoại của khách.
-5. Bấm [[Gửi đơn]]. Nền tảng lưu đơn rồi gửi đi.
+4. Nhập số khách. Form có ô tên và số điện thoại của khách thì nhập luôn.
+5. Bấm [[Gửi đơn]]. Nền tảng lưu đơn rồi gửi đi. Đơn có đón thì văn phòng chốt giờ đón rồi mới xác nhận.
 6. Đơn đã xác nhận thì bấm [[Xem biên nhận]] để gửi ảnh cho khách.`,
   muc: [
     {
@@ -50,14 +50,16 @@ Muốn đăng nhập nhanh bằng Face ID: vào [[Tôi]], phần **Đăng nhập
     {
       tieuDe: "Lập đơn cho khách",
       noiDung: `1. Bấm [[Tạo đơn]].
-2. Đầu trang: chọn **Ngày khởi hành** (dùng cho mọi dịch vụ trong đơn), rồi ở phần **Khách hàng** gõ **Tên khách đi tour**, **Số điện thoại**. Muốn ghi Email hoặc **Ghi chú / yêu cầu đặc biệt** thì bấm [[Email, ghi chú]].
+2. Đầu trang: chọn **Ngày khởi hành** (dùng cho mọi dịch vụ trong đơn).
+   - Khi Công ty đang bật «Ẩn thông tin khách khi đối tác đặt vé», đầu trang chỉ có **Ngày khởi hành**: không có khối **Khách hàng** và **Hành khách**, bạn chuyển thẳng sang chọn dịch vụ.
+   - Khi công tắc tắt, ở phần **Khách hàng** gõ **Tên khách đi tour**, **Số điện thoại**. Muốn ghi Email hoặc **Ghi chú / yêu cầu đặc biệt** thì bấm [[Email, ghi chú]].
    - Khách liên hệ qua bạn: bấm [[Điền thông tin của tôi]] để tự điền tên và số của bạn.
    - Dòng **Bên đặt** (nếu có) ghi tên của bạn: Nền tảng tự điền, bạn không cần chọn.
 3. Phần **Dịch vụ**: gõ tên hoặc mã vào ô [[Tìm theo tên hoặc mã dịch vụ]] (hoặc chạm một nhóm), rồi chạm dịch vụ cần chọn.
    - Dịch vụ có nhãn "chưa có giá" hoặc "chưa hỗ trợ" thì không chọn được.
    - Dịch vụ vừa chạm hiện "✓ đã thêm" và thẻ dịch vụ hiện bên dưới. Mỗi lúc chỉ một thẻ mở; chạm dòng gập của thẻ để mở lại.
 4. Trong thẻ dịch vụ, nhập **Số khách**: **Người lớn**, **Trẻ em**… tuỳ dịch vụ. Dòng tiền tự hiện, ví dụ "2 người lớn × giá = thành tiền". Cả đơn cần ít nhất một người lớn đi cùng; trẻ em và em bé không đi một mình.
-5. Phần **Đưa đón** trên thẻ: chọn **Đón** hoặc **Không đón** (bắt buộc trước khi gửi đơn). Chọn **Đón** thì chọn **Nơi đón**, **Nơi trả** (chọn điểm có sẵn hoặc gõ tự do). Khung giờ có thể để trống: giờ khách muốn được đón thì gõ vào dòng **Ghi chú** ngay dưới (chữ mờ gợi ý «Thời gian đón»). Giờ đón thực tế có thể được điều chỉnh cho phù hợp tình hình hoạt động.
+5. Phần **Đưa đón** trên thẻ: chọn **Đón** hoặc **Không đón** (bắt buộc trước khi gửi đơn). Chọn **Đón** thì chọn **Nơi đón**, **Nơi trả** (chọn điểm có sẵn hoặc gõ tự do). Bạn không nhập giờ đón: giờ khách muốn được đón thì gõ vào dòng **Ghi chú** ngay dưới (chữ mờ gợi ý «Thời gian đón»). Có đón thì văn phòng chốt giờ rồi báo lại, nên đơn luôn chờ văn phòng xác nhận.
 6. Phần **Thanh toán**: chỉ còn ô có chữ mờ «Giảm giá cho khách» (nếu có) và **Ghi chú thanh toán**. Đơn chưa xác nhận thì chưa ghi thu tiền được.
 7. Xem tổng tiền ở thanh dưới cùng (chạm để xem chi tiết); trên máy tính là khối **Tóm tắt** bên phải.
 8. Bấm [[Gửi đơn]]. Thiếu gì thì khung đỏ hiện ngay trên nút. Đơn được lưu rồi gửi đi. Nếu chưa gửi được (ví dụ giá danh mục vừa đổi), đơn vẫn được lưu nháp, Nền tảng mở trang đơn nháp kèm lý do để bạn sửa rồi bấm [[Gửi đơn]] lại.
@@ -81,20 +83,23 @@ Tài khoản đối tác không chọn được hướng dẫn viên khi lập �
 2. Bấm [[Sửa]]. Màn **Sửa đơn** mở ra.
 3. Sửa những gì cần, rồi bấm [[Lưu thay đổi]].
 
-Đơn đã gửi và đang chờ thì bấm [[Rút lại]] trước khi sửa.`,
+Đơn đã gửi và đang chờ thì bấm [[Rút lại]] trước khi sửa.
+
+Nháp lập từ trước đã có giờ đón: lưu lại thì giờ của lượt đầu bị bỏ, và đơn chờ văn phòng chốt giờ.`,
     },
     {
       tieuDe: "Xác nhận đơn",
-      noiDung: `1. Mở đơn nháp, kiểm lại ngày, số khách, giờ đón.
-2. Bấm [[Gửi đơn]]. Nền tảng báo một trong hai câu: **Đơn của bạn đã được gửi và chờ xác nhận** (nhân viên kiểm vé, bạn có thể [[Rút lại]]), hoặc **Đơn của bạn đã được chuyển đến chuyên viên phụ trách & chờ hướng dẫn viên** (đơn đã xác nhận, có ảnh biên nhận).
+      noiDung: `1. Mở đơn nháp, kiểm lại ngày, số khách, nơi đón.
+2. Bấm [[Gửi đơn]]. Nền tảng báo một trong hai câu: **Đơn của bạn đã được gửi và chờ xác nhận** (nhân viên kiểm vé, bạn có thể [[Rút lại]]), hoặc **Đơn của bạn đã được chuyển đến chuyên viên phụ trách & chờ hướng dẫn viên** (đơn đã xác nhận, có ảnh biên nhận). Đơn có **Đón** luôn nhận câu thứ nhất: văn phòng chọn giờ đón khi xác nhận rồi báo giờ cho khách. Câu thứ hai chỉ gặp ở đơn không có đón.
 
 Sau khi xác nhận, dịch vụ, số khách và tiền **bị khoá**.
 
 Nền tảng **không cho gửi đơn** khi:
 - Có dịch vụ chưa chọn Đón hay Không đón. Nền tảng báo dịch vụ thứ mấy còn thiếu. Bấm [[Sửa]] để chọn.
 - Thiếu thông tin chuyến. Nền tảng báo "Chưa đủ thông tin chuyến để xác nhận đơn." và chỉ rõ dịch vụ còn thiếu. Bấm [[Sửa]] để bổ sung.
-- Giờ đón quá gần. Dưới nút có dòng [[Cần văn phòng đặt gấp]]. Gọi văn phòng (nhân viên bán hàng hoặc Quản trị) để đặt gấp. Khi đã đặt gấp, lượt đó có nhãn "Điều chỉnh khẩn cấp (văn phòng)" và bạn xác nhận được.
-- Đơn có giá khác giá bán lẻ hoặc có giảm giá. Nền tảng báo "Tài khoản đối tác dùng đúng giá bán lẻ theo danh mục; muốn giá khác, nhờ văn phòng."`,
+- Đơn có giá khác giá bán lẻ hoặc có giảm giá. Nền tảng báo "Tài khoản đối tác dùng đúng giá bán lẻ theo danh mục; muốn giá khác, nhờ văn phòng."
+
+Giờ đón quá sát không chặn bạn gửi đơn: văn phòng chốt giờ và đặt gấp nếu cần.`,
     },
     {
       tieuDe: "Gửi biên nhận cho khách",
@@ -147,7 +152,7 @@ Nền tảng ghi "Không tìm thấy dịch vụ nào khớp." Thử gõ ngắn 
 
 ### Khách đi gấp trong vài giờ tới
 
-Vẫn lập đơn và bấm [[Gửi đơn]] được (dải vàng ghi [[Lưu nháp được. Xác nhận cần văn phòng đặt gấp.]]). Nhưng muốn xác nhận thì văn phòng phải bấm "Đặt gấp" cho lượt đó. Gọi văn phòng ngay sau khi gửi.`,
+Vẫn lập đơn và bấm [[Gửi đơn]] được. Văn phòng chọn giờ và đặt gấp cho lượt đó nếu cần. Gọi văn phòng ngay sau khi gửi để họ làm trước.`,
     },
     {
       tieuDe: "Điều bạn không làm được — hỏi ai",
@@ -156,6 +161,7 @@ Vẫn lập đơn và bấm [[Gửi đơn]] được (dải vàng ghi [[Lưu nh�
 - Chọn hướng dẫn viên phụ trách: không. Nhờ văn phòng.
 - Sửa giờ đón, điểm đón, đổi khách sau khi xác nhận: không. Nhờ văn phòng.
 - Sửa số khách, tiền sau khi xác nhận: không. Nhờ văn phòng.
+- Nhập giờ đón: không. Ghi giờ khách muốn vào dòng **Ghi chú**, văn phòng chốt giờ.
 - Bấm "Đặt gấp": không. Nhờ văn phòng (nhân viên bán hàng hoặc Quản trị).
 - Xem Danh bạ, Trang chủ của công ty: không.
 - Xin nhận lo một đơn, báo tiến độ tour (chưa có ở bản này).

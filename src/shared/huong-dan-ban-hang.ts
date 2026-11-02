@@ -136,6 +136,10 @@ Mục "Giờ hẹn đổi — gọi báo khách" ở [[Cần xử lý]]: gọi k
 3. [[Đặc điểm dịch vụ]]: chọn giá trị cho từng dịch vụ. Dịch vụ «Chưa khai» không bị chặn theo đặc điểm. Đổi giá trị làm đổi luật bán thì Nền tảng hỏi lại ([[Vẫn lưu]]).`,
     },
     {
+      tieuDe: "Đơn của đối tác chờ xác nhận: bảng Còn vé",
+      noiDung: `Đơn đối tác gửi lên ở trạng thái [[Chờ xác nhận]]; khối **Xác nhận đơn** có [[Còn vé]], [[Hết vé]] và Huỷ. Mỗi dịch vụ có dòng **Ghi chú** của đối tác và ô **Giờ đón** từng lượt. Đối tác không nhập giờ: lượt đầu ghi **(bắt buộc)**, chọn giờ rồi mới bấm [[Còn vé]]. Giờ đã qua hạn chốt thì bấm [[Đặt gấp]] ngay trong bảng. Xác nhận xong, gọi số liên hệ trên đơn để báo giờ; số này là của đối tác khi công tắc ẩn thông tin khách đang bật.`,
+    },
+    {
       tieuDe: "Tình huống hay gặp",
       noiDung: `### Khách đổi giờ đón (đơn đã xác nhận)
 
@@ -167,7 +171,7 @@ Nền tảng tự tính lại tiền (giảm giá giữ nguyên), ghi [[Lịch s
 2. Bấm [[Đặt gấp]], chọn lý do, bấm [[Duyệt đặt gấp]]. Nền tảng lưu đơn rồi đóng dấu cho lượt đó.
 3. Lượt đó mang nhãn "Điều chỉnh khẩn cấp". Lúc này bạn bấm [[Xác nhận đơn]].
 
-> Lưu ý: sửa ngày, giờ hoặc nơi đón của lượt đã đặt gấp (đơn còn chờ xác nhận) thì dấu mất — đặt gấp lại nếu vẫn sát giờ.
+> Lưu ý: sửa ngày, giờ hoặc nơi đón của lượt đã đặt gấp thì dấu mất, đặt gấp lại nếu vẫn sát giờ.
 
 ### Thiếu thông tin chuyến
 
@@ -192,12 +196,11 @@ Huỷ được đơn bạn lập hoặc đang phụ trách. Đơn đã xếp xe 
       noiDung: `Thực tập lập đơn, sửa, xác nhận, huỷ **đơn của chính mình** giống Bán hàng. Khác ở mấy điểm sau:
 
 - **Chỉ thấy đơn mình lập.** Mở đơn người khác bị từ chối.
-- **Menu hẹp hơn**: không có [[Trang chủ]], [[Danh bạ]], [[Điều phối xe]]. Mục [[Đơn hàng]] chỉ có đơn bạn lập. Trên điện thoại có tab [[Đơn hàng]], [[Tạo đơn]] và [[Tôi]]. Mở Nền tảng tự vào danh sách đơn của bạn.
+- **Menu hẹp hơn**: không có [[Trang chủ]], [[Danh bạ]], [[Điều phối xe]]. Mục [[Đơn hàng]] chỉ có đơn bạn lập. Trên điện thoại có tab [[Đơn hàng]], [[Tạo đơn]] và [[Tôi]].
 - **Không chọn người phụ trách** khi lập đơn: khối [[Người phụ trách]] không hiện, đơn luôn ở [[Chờ nhận]].
 - **Không thấy ai phụ trách đơn** (cả trên ảnh biên nhận).
-- Ô tra hồ sơ khách có thể báo không tra được — vẫn lưu đơn.
 - **Sau khi xác nhận, Thực tập không có nút** [[Sửa thông tin chuyến]], [[Đổi khách]], [[Sửa số khách dịch vụ]] — nhờ Bán hàng phụ trách hoặc Quản trị.
-- **Thực tập không nhận phụ trách và không giao đơn**: không có nút [[Nhận phụ trách]]; cần người phụ trách thì nhờ Bán hàng.
+- **Không nhận phụ trách, không giao đơn**: không có nút [[Nhận phụ trách]].
 - **Chỉ giá danh mục, không giảm giá**: không có [[Sửa giá]], ô giảm giá chỉ đọc; cần giá khác nhờ Bán hàng.`,
     },
     {
@@ -207,8 +210,7 @@ Huỷ được đơn bạn lập hoặc đang phụ trách. Đơn đã xếp xe 
 - Thêm, sửa dịch vụ và giá trong danh mục; dịch vụ "chưa có giá" → **Quản trị**.
 - Khách trả tiền (đơn đã xác nhận): bấm [[Ghi khoản thu]] trên đơn bạn lập. Hoàn tiền, hoá đơn → **Kế toán**.
 - Quên mã PIN, bị khoá đăng nhập → **Quản trị**.
-- Xe thiếu giấy tờ, tài xế thiếu bằng lái, thiếu nghỉ hay trái cam kết xe khi chưa tới hạn chốt → **Quản trị**.
-- Báo lỗi Nền tảng, góp ý → [[Hỗ trợ]].`,
+- Xe thiếu giấy tờ, tài xế thiếu bằng lái, thiếu nghỉ hay trái cam kết xe khi chưa tới hạn chốt → **Quản trị**.`,
     },
     {
       tieuDe: "Câu hỏi thường gặp",
@@ -234,11 +236,8 @@ Không. Một đơn một ngày khởi hành. Khác ngày thì lập hai đơn.
 
 ### Có dịch vụ nhập tay không?
 
-Có khi Toàn quyền bật "Dịch vụ nhập tay" (mặc định tắt). Khi bật, form lập đơn có nút "+ Dịch vụ nhập tay": gõ tên dịch vụ, từng dòng tiền (mô tả, số lượng, đơn giá). Khi tắt, dịch vụ nhập tay đã có trên đơn chỉ xem được; muốn đổi thì xoá và chọn lại từ danh mục. Tài khoản Đối tác không dùng được dịch vụ nhập tay; bạn thêm dịch vụ nhập tay vào đơn nháp của Đối tác thì Đối tác không tự xác nhận được đơn đó — văn phòng xác nhận thay.
-
-### Xem bản mới có gì ở đâu?
-
-Vào [[Hướng dẫn]]: có số phiên bản và nhật ký thay đổi.`,
+Có khi Toàn quyền bật "Dịch vụ nhập tay" (mặc định tắt): form lập đơn có nút "+ Dịch vụ nhập tay" để gõ tên và từng dòng tiền. Khi tắt, dịch vụ đã có chỉ xem. Đối tác không dùng được; đơn nháp của Đối tác có dịch vụ nhập tay thì văn phòng xác nhận thay.
+`,
     },
   ],
 };

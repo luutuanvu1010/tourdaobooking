@@ -190,6 +190,10 @@ Cần biết:
 > Lưu ý: Chỉ lệnh điều chỉnh cần người khác duyệt. Việc khác như [[Huỷ khoản thu]] vẫn làm như trước.`,
     },
     {
+      tieuDe: "Đơn của đối tác chờ xác nhận: bảng Còn vé",
+      noiDung: `Đơn đối tác gửi lên ở trạng thái [[Chờ xác nhận]]; khối **Xác nhận đơn** có [[Còn vé]], [[Hết vé]] và Huỷ. Mỗi dịch vụ có dòng **Ghi chú** của đối tác và ô **Giờ đón** từng lượt. Đối tác không nhập giờ: lượt đầu ghi **(bắt buộc)**, chọn giờ rồi mới bấm [[Còn vé]]. Bạn không có nút Đặt gấp: giờ đã qua hạn chốt thì nhờ Bán hàng hoặc Quản trị. Xác nhận xong, gọi số liên hệ trên đơn để báo giờ; số này là của đối tác khi công tắc ẩn thông tin khách đang bật.`,
+    },
+    {
       tieuDe: "Tình huống hay gặp",
       noiDung: `### Thấy một đơn sai tiền
 
@@ -216,10 +220,7 @@ Khi đơn **Đã giao – đã thu đủ** và mọi người đã nộp tiền 
 ### Đánh dấu đã nhập phần mềm kế toán
 
 Nền tảng **không xuất hoá đơn**. Khi đã nhập đơn vào phần mềm kế toán, ở khối **Phần mềm kế toán** bấm [[Đánh dấu đã nhập]], gõ số hoá đơn (không bắt buộc), bấm [[Đánh dấu]]. Chỉ đơn đã xác nhận mới đánh dấu được. Sửa số: [[Sửa số hoá đơn]]. Nhầm: [[Bỏ đánh dấu]], ghi lý do.
-
-### Đơn bị huỷ
-
-Bấm nút **Lọc**, chọn **Đã huỷ** rồi bấm [[Áp dụng]]. Khối **Lịch sử** cho biết đơn huỷ lúc nào, vì sao.`,
+`,
     },
     {
       tieuDe: "Điều bạn không làm được — hỏi ai",
@@ -227,30 +228,18 @@ Bấm nút **Lọc**, chọn **Đã huỷ** rồi bấm [[Áp dụng]]. Khối *
 - Sửa, xác nhận, huỷ đơn: không. Nhờ người lập đơn, người phụ trách đơn hoặc Quản trị.
 - Thêm dịch vụ, đổi giá sau khi xác nhận: chưa có cách sửa, kể cả tài khoản Toàn quyền — báo Quản trị. Số khách thì bạn sửa được (mục "Sửa số khách đơn đã xác nhận").
 - Nhận phụ trách, giao đơn cho người khác: không. Nhờ nhân viên bán hàng hoặc Quản trị.
-- Bấm "Đặt gấp": không. Nhờ nhân viên bán hàng hoặc Quản trị.
 - Tự duyệt yêu cầu điều chỉnh công nợ của chính mình: không. Nhờ Quản trị, Toàn quyền hoặc một Kế toán khác.
 - Xếp xe, tạo chuyến, bấm tiến độ chuyến: không, bạn chỉ xem. Nhờ nhân viên bán hàng hoặc Quản trị.
 - Bấm **Đã giao – đã thu đủ**: không. Hướng dẫn viên đang phụ trách đơn hoặc Quản trị bấm.
-- Xuất hoá đơn: không có. Xuất ở phần mềm kế toán rồi đánh dấu trên đơn.
 - Sửa bảng giá dịch vụ, quản lý tài khoản nhân viên: không. Nhờ Quản trị.`,
     },
     {
       tieuDe: "Câu hỏi thường gặp",
-      noiDung: `### Sao tôi không thấy nút Tạo đơn?
-
-Vì Kế toán không lập đơn. Đây là cài đặt đúng.
-
-### Trang đơn ghi "Chỉ … (người lập đơn), người phụ trách đơn hoặc quản trị viên mới được sửa, xác nhận hoặc huỷ đơn này." Có phải lỗi không?
+      noiDung: `### Trang đơn ghi "Chỉ … (người lập đơn), người phụ trách đơn hoặc quản trị viên mới được sửa, xác nhận hoặc huỷ đơn này." Có phải lỗi không?
 
 Không. Dòng này giải thích vì sao bạn không có nút sửa.
 
-### Tôi quên mã PIN thì sao?
-
-Máy đã bật Face ID: vào [[Tôi]], bấm [[Quên PIN? Đặt PIN mới bằng Face ID]]. Chưa bật: nhờ Quản trị đặt lại PIN.
-
-### Tôi muốn báo một chỗ sai
-
-Bấm [[Hỗ trợ]], ghi rõ mã đơn và việc bạn thấy sai.`,
+`,
     },
   ],
 };
