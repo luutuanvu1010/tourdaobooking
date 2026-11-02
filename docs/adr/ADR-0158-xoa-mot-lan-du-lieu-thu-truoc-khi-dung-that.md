@@ -17,7 +17,7 @@ Tệp `scripts/don-du-lieu-thu/migrations/0001_xoa_du_lieu_thu_adr_0158.sql` xo�
 1. **Đơn và phần gắn đơn:** đơn, dòng dịch vụ, hành khách, lượt đưa đón, phân công, yêu cầu xác nhận, lý do huỷ, điều chỉnh tiền, điều khoản đã chụp.
 2. **Sổ tiền:** các bảng `bil_*` gắn đơn, gồm phiếu thu, công nợ, bút toán, duyệt cọc, hoàn tiền, đối chiếu; kể cả dòng không gắn đơn của chính các bảng này, vì sổ không còn nghĩa khi mất một phần.
 3. **Chuyến xe:** chuyến và mọi bảng con.
-4. **Vé đã cấp:** phân bổ, lần giao, đường dẫn khách. Vé đang cấp chuyển sang huỷ (`VOID`), không về kho, và ảnh được xoá khỏi kho sau hạn lưu. Vé đã mở ảnh được ghi dấu mở trước khi xoá phân bổ, nên không nhập lại được.
+4. **Vé đã cấp:** phân bổ, lần giao, đường dẫn khách. Vé đang cấp chuyển sang huỷ (`VOID`), không về kho, và ảnh được xoá khỏi kho sau hạn lưu. Vé đã mở ảnh được ghi dấu mở trước khi xoá phân bổ, nên không nhập lại được. Vé đã cấp mà chưa ai mở thì nhập lại được sau khi huỷ lô của nó, vì chưa ra khỏi kho. Lô từng có vé cấp nay cũng huỷ được.
 5. **Hoa hồng và cấp:** mọi mức hoa hồng, cấp độ đại lý, gán cấp theo vai và theo hồ sơ.
 6. **Nhật ký:** chỉ các dòng có `order_id` và các dòng đi đôi với sự kiện chuyến (`R-VC-6` buộc hai bên có nhau). Nhật ký khác giữ nguyên, kể cả dòng về mức hoa hồng đã xoá.
 
