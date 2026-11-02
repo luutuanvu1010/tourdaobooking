@@ -12,6 +12,16 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Kho vé điện tử (ADR-0153, ADR-0156, ADR-0157). Có migration 0131, 0132, 0134 đi cùng một lần. Không đổi cách tính tiền. Số 2.55 và ngày là TẠM — phiên phát hành kiểm lại ở bước A.0 của docs/HANDOFF-N1.md; nhánh đặt vé của đối tác đang dùng tạm cùng số, ai gộp sau đổi số.
+    version: "2.55",
+    date: "2026-11-02",
+    items: [
+      { kind: "moi", text: "Kho vé điện tử: nhập ảnh vé theo lô, máy tự đọc mã QR và không cho nhập trùng vé." },
+      { kind: "moi", text: "Đơn xác nhận tự được giữ vé; thiếu vé thì trang đơn báo số còn thiếu và có nút «Cấp vé»." },
+      { kind: "moi", text: "Lô vé có thêm loại «Mọi loại khách» cho vé dùng chung người lớn, trẻ em và người cao tuổi." },
+    ],
+  },
+  {
     // Mã định danh + nút «Sửa» cho Loại đối tác và Cấp đại lý (Hiến chương 5.26; đặc tả docs/superpowers/specs/2026-10-31-ma-dinh-danh-va-sua-loai-doi-tac-design.md, chủ duyệt 31/10).
     // Có migration 0130 (ghi chú + dấu vết), hai route PATCH mới, màn tài khoản đọc tên vai bên ngoài từ CSDL. Không đổi cách tính tiền. Số 2.54 và ngày là TẠM — phiên phát hành kiểm lại ở bước A.0 của docs/HANDOFF-N1.md.
     version: "2.54",

@@ -59,11 +59,11 @@ Không có lỗi Cao hay Trung. Một điểm Thấp ở lý do của `r2_delete
 - Phá thử: từng dòng ở `docs/SO-HANG-RAO.md`.
 - 2/11, thêm hai mẫu Harbour của chủ (9 ảnh trên máy, không chép vào kho): `jsQR` trong Node và Vision của macOS cho cùng kết quả, 9/9 đủ 36 chữ số, mỗi ảnh một QR, 9 số `S/N` khác nhau, `S/N` đọc từ ảnh bằng 12 số cuối QR ở 9/9, số `TA.` không nằm trong QR ở 9/9. `ve-qr-smoke.mjs` khổ 390 với `VE_ANH_THAT` đạt.
 
-## Đề xuất dòng lịch sử cho ADR-0156 (chờ chủ duyệt, chưa ghi vào ADR)
+## Dòng lịch sử cho ADR-0156 (chủ duyệt 2/11, đã ghi vào ADR)
 «2026-11-02, chủ quyết thêm: ảnh của lô đã huỷ lưu 3 ngày rồi máy tự xoá; Bán hàng, Quản trị, Toàn quyền mở được ảnh trong hạn đó; vé đã mở khoá hẳn theo mã, dấu vân và số S/N, vé đã nhập lại thì ảnh cũ không mở được. Chi tiết ở `docs/SYSTEM-DESIGN.md` §16.»
 
 ## ADR-0157: lô «Mọi loại khách» (2/11)
-- **Ruling của chủ:** nguyên văn *«Vé harbour tiêu chuẩn chỉ có 1 loại , dành cho cả người lớn, trẻ em và người cao tuổi (không phân biệt)»*; hỏi làm trước hay sau khi triển khai, chủ trả lời *«Làm trước»*. Văn bản ADR còn ở trạng thái đề xuất, chờ chủ duyệt, chưa duyệt thì chưa nhập bản chính.
+- **Ruling của chủ:** nguyên văn *«Vé harbour tiêu chuẩn chỉ có 1 loại , dành cho cả người lớn, trẻ em và người cao tuổi (không phân biệt)»*; hỏi làm trước hay sau khi triển khai, chủ trả lời *«Làm trước»*. Chủ duyệt văn bản và dòng lịch sử ADR-0156 cùng ngày, nguyên văn: *«Duyệt»*.
 - **Lệch so với thiết kế đầu:** ban đầu chỉ xếp vé theo hạn dùng. Viết TC4 thấy đơn 1 người lớn, 1 trẻ em có thể bị báo thiếu vé oan khi người lớn lấy mất vé dùng chung, nên đổi sang lô đúng loại trước, lô dùng chung sau. Thay đổi này đã ghi ở ADR-0157 Đ2 và phải nêu với chủ khi xin duyệt.
 - **Phá thử:** 15 chỗ, danh sách ở `docs/SO-HANG-RAO.md`. Lần đầu 14 đỏ, 1 xanh: nới `GIU_VE` lấy mọi lô vẫn xanh vì `GHI_PHAN_BO` chặn sau, nhưng vé sẽ kẹt `ALLOCATED` không có suất. Đã thêm kiểm vé còn `AVAILABLE` vào TC3, chạy lại chỗ đó thì đỏ.
 - **Bằng chứng trên `46a084c0`:** `npm test` 7139 bài, 7135 đạt, 0 đỏ (4 `todo` có từ trước), bài đo giờ 1/1; e2e 4/4; typecheck 0; `ve-qr-smoke.mjs` hai khổ 390 và 1040 đạt. Chưa kiểm trên D1 trên mây, chưa kiểm trên iPhone thật.

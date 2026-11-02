@@ -1,6 +1,6 @@
 # ADR-0157 — Vé điện tử: lô «Mọi loại khách» cho vé không phân biệt người lớn, trẻ em, người cao tuổi
 
-- **Trạng thái:** **đề xuất** 2026-11-02, chờ chủ duyệt văn bản. Chủ đã chọn hướng trong chat, nguyên văn: *«Làm trước»*, sau khi đọc hai phương án (làm trước khi triển khai, hay triển khai rồi thêm sau). Thi công trên bản sửa riêng; chưa duyệt thì chưa nhập bản chính.
+- **Trạng thái:** **accepted** 2026-11-02 — chủ dự án trong chat, nguyên văn: *«Duyệt»*, sau khi đọc báo cáo nêu rõ điều người thi công tự đổi (lô đúng loại ra trước lô dùng chung, kèm ví dụ) và rủi ro chọn nhầm. Trước đó chủ chọn hướng, nguyên văn: *«Làm trước»*, sau khi đọc hai phương án (làm trước khi triển khai, hay triển khai rồi thêm sau).
 - **Nguồn:** lời chủ 2026-11-02: *«Vé harbour tiêu chuẩn chỉ có 1 loại , dành cho cả người lớn, trẻ em và người cao tuổi (không phân biệt)»*. Mẫu của chủ: vé in «Vé tiêu chuẩn», khách cao từ 100 cm. Sheet dịch vụ có giá ba loại khách cho mã `VHB`.
 - **Loại:** việc lớn (dữ liệu, cách giữ vé). **Không chạm tiền.** **Không thêm route, không đổi quyền.**
 - **Cửa:** hai chiều khi chưa có lô dùng chung nào; đã có thì bỏ giá trị này phải có migration chuyển dữ liệu.
