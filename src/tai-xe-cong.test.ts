@@ -106,6 +106,8 @@ const BANG_STAFF: Record<string, MucBang | { DRIVER: MucBang; DRIVER_PARTNER: Mu
   "POST /api/feedback/:id/tep/:tid/go": { ma: 403, ly_do: "ADR-0144 đ6: gỡ tệp gửi nhầm chỉ Toàn quyền — can() chặn đầu thân, trước mọi truy vấn" },
   "GET /api/feedback/tep-cho-xoa": { ma: 403, ly_do: "ADR-0144 đ5: hàng chờ xoá kho tệp vé chỉ Toàn quyền — can() chặn đầu thân" },
   "POST /api/feedback/tep-cho-xoa/chay-lai": { ma: 403, ly_do: "như trên" },
+  "GET /api/ledger/phan-dinh-cua-toi": { ma: 403, ly_do: "ADR-0116: cùng ô ledger.view own với Sổ của tôi; tài xế không có" },
+  "POST /api/ledger/phan-dinh-cua-toi/:id/phan-hoi": { ma: 403, ly_do: "ADR-0116: cùng ô ledger.view own với Sổ của tôi; tài xế không có" },
   "GET /api/ledger/mine": { ma: 403, ly_do: "sổ tiền lượt 1: \"Sổ của tôi\" — ô ledger.view của DRIVER, DRIVER_PARTNER là none (tài xế không thu tiền khách — bản làm mới §2)" },
   "GET /api/locations": { ma: 200, ly_do: "tên địa điểm (không nhạy cảm; mọi tài khoản đăng nhập — người làm hiện trường cũng cần)" },
   "POST /api/orders/:id/handler-cancel": { ma: 403, ly_do: "huỷ đơn đang phụ trách — ô order.cancel của DRIVER là none (đơn có thật → 403, không dữ liệu)" },

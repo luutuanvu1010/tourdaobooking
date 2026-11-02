@@ -201,7 +201,7 @@ export async function chuanBiLoThay(db: D1Database, input: { orderId: string; ph
   const nguoiThu = [...new Set([...cuRows.map((r) => r.collector_party_id), ...moi.map((m) => m.lt.collectorPartyId)])].filter((x): x is string => !!x && x !== congTyId);
   const taiKhoan = await taiKhoanCuaHoSo(db, nguoiThu);
   for (const nv of new Set(nguoiThu.flatMap((p) => (taiKhoan.has(p) && taiKhoan.get(p) !== by ? [taiKhoan.get(p)!] : [])))) {
-    stmts.push(auditStatement(db, { orderId, staffId: by, action: "ledger_receipt_collector_changed", at, targetType: "staff", targetId: nv, detail: "Khoản thu có bạn là người thu vừa được sửa" }));
+    stmts.push(auditStatement(db, { orderId, staffId: by, action: "ledger_receipt_collector_changed", at, targetType: "staff", targetId: nv, detail: "Khoản thu có bạn là người thu tiền vừa được sửa" }));
   }
   return { ok: true, value: { stmts, ngay: ngay.value, daThuSau: daThuTruoc - tongCu + tongMoi } };
 }

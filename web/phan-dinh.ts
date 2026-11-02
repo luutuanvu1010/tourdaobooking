@@ -249,7 +249,7 @@ function theKhoanCuaToi(k: Api.KhoanTrachNhiemDto): HTMLElement {
 }
 
 async function taiLai(): Promise<void> {
-  const cuaToi = await api<Api.KhoanCuaToiResponse>("/api/ledger/phan-dinh-cua-toi");
+  const cuaToi: Api.KhoanCuaToiResponse = can(staff, "ledger.view", { ownerId: staff.id }) ? await api<Api.KhoanCuaToiResponse>("/api/ledger/phan-dinh-cua-toi") : { khoan: [] };
   byId("pd-khoi-toi").hidden = cuaToi.khoan.length === 0;
   replaceChildren(byId("pd-toi-ds"), ...cuaToi.khoan.map(theKhoanCuaToi));
   if (!coO) {

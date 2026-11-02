@@ -299,14 +299,15 @@ export function locHopThongBao(
     // ADR-0116: tin phân định — đề nghị mới cho người có ô phân định; đã phân định cho người có ô ghi sổ (khoá 'ledger'); bên chịu và người đề nghị theo khoá 'staff'. Tài khoản bên ngoài chỉ nhận đúng tin của chính mình.
     if (d.action.startsWith("attribution_") || d.action === "ledger_receipt_collector_changed") {
       const c = CAU_DIEU_CHINH[d.action];
+      const xemKhoanMinh = can(staff, "ledger.view", { ownerId: staff.id }); // CÙNG ô route khoản của tôi; Đối tác, tài xế không có
       const denToi = d.mucLoai === "staff" ? d.mucId === staff.id && !(d.action === "attribution_ruled" && can(staff, "ledger.write"))
         : d.action === "attribution_requested" ? can(staff, "attribution.decide") && !holdsPartner(staff)
         : d.action === "attribution_ruled" ? can(staff, "ledger.write") && !holdsPartner(staff)
         : false;
       if (c && denToi) {
         tat.push({
-          id: d.id, loai: "dieu_chinh", cau: d.tenNguoiLam !== null && xemTenNguoiLam(staff) ? c.coTen(d.tenNguoiLam, d.maDon) : c.khongTen(d.maDon), maDon: d.maDon, noiDung: null, nguoiGui: null, nhomNhan: null, quanTrong: false, daHieuLuc: null,
-          lienKet: d.action === "ledger_receipt_collector_changed" ? (isOffice(staff) ? "/order" : "/account") : "/phan-dinh", luc: d.luc, cuaToi: true, chuaDoc: d.luc > vao.docDenLuc, mo: false,
+          id: d.id, loai: "dieu_chinh", cau: d.action === "attribution_posted" && !xemKhoanMinh ? `Bạn có một khoản theo phân định trách nhiệm trên đơn ${d.maDon} — liên hệ văn phòng để biết chi tiết` : d.tenNguoiLam !== null && xemTenNguoiLam(staff) ? c.coTen(d.tenNguoiLam, d.maDon) : c.khongTen(d.maDon), maDon: d.maDon, noiDung: null, nguoiGui: null, nhomNhan: null, quanTrong: false, daHieuLuc: null,
+          lienKet: d.action === "ledger_receipt_collector_changed" || !xemKhoanMinh ? (isOffice(staff) ? "/order" : "/account") : "/phan-dinh", luc: d.luc, cuaToi: true, chuaDoc: d.luc > vao.docDenLuc, mo: false,
         });
       }
       continue;

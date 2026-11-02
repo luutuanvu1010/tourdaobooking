@@ -250,7 +250,7 @@ async function don(w: W, o: { owner?: string; booker?: string | null; dichVu: Dv
   return id;
 }
 const thuR = async (w: W, as: string, id: string, body: Record<string, unknown>) => {
-  const r = await w.call("POST", `/api/orders/${id}/payments`, { as, body: { hinhThuc: "CASH", ...body } });
+  const r = await w.call("POST", `/api/orders/${id}/payments`, { as, body: { hinhThuc: "CASH", boQuaTrung: { ma: "lan_thu_tien_mat", lyDo: "Khách trả hai lần thật" }, ...body } }); // ADR-0092 Đ6a: ca gieo có thể có hai khoản giống nhau
   assert.equal(r.status, 201, r.text);
 };
 const bienNhan = async (w: W, id: string, as = R_SALES) => {

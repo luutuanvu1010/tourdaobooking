@@ -533,9 +533,13 @@ export const billingModule: AppModule = {
       baoThayDoi({ orderId: kq.value.orderId, thayDoi: "tien" });
       return json({ ok: true }, 201, { location: trangDon(kq.value.orderId) });
     }),
-    // Bên chịu (có tài khoản, kể cả đối tác): chỉ khoản của CHÍNH hồ sơ người gọi (route lọc theo `staff.partyId`, không có tham số người) — không phải ô quyền; người khác không đọc được.
-    route("GET", "/api/ledger/phan-dinh-cua-toi", "staff", async ({ env, staff }) => json({ khoan: await khoanCuaToi(env.DB, staff.partyId) })),
+    // Bên chịu: CÙNG ô với "Sổ của tôi" (`ledger.view` phạm vi own — đặc tả trang ghép (2), (3)); chỉ khoản của CHÍNH hồ sơ người gọi, không có tham số người. Đối tác, tài xế ô này là none: họ nhận tin, xem qua văn phòng (Tự quyết, mở rộng cần ô mới do chủ duyệt).
+    route("GET", "/api/ledger/phan-dinh-cua-toi", "staff", async ({ env, staff }) => {
+      if (!can(staff, "ledger.view", { ownerId: staff.id })) return FORBIDDEN_VIEW();
+      return json({ khoan: await khoanCuaToi(env.DB, staff.partyId) });
+    }),
     route("POST", "/api/ledger/phan-dinh-cua-toi/:id/phan-hoi", "staff", async ({ env, request, params, staff }) => {
+      if (!can(staff, "ledger.view", { ownerId: staff.id })) return FORBIDDEN_VIEW();
       const kq = await phanHoi(env.DB, { rootId: params.id!, raw: await readJson(request), ai: nguoiGoi(staff) });
       if (!kq.ok) return kq.res;
       return json({ ok: true }, 201, { location: "/phan-dinh" });
