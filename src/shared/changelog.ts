@@ -13,10 +13,12 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // Phân định trách nhiệm sau «Đã giao» (ADR-0116, TNV-G3) và cảnh báo khoản thu giống nhau (ADR-0092 Đ6a, TNV-G4). Có migration 0135; thêm hai ô quyền attribution.request, attribution.decide.
+    // Cùng bản: Khách đặt cọc trước (ADR-0159, migration 0136). Chỉ phát hành sau khi diễn tập khôi phục HC-5.19 (ADR-0159).
     // Số 2.58 và ngày chỉ là tạm cho nhánh: bước A.0 của lần triển khai đặt lại nếu cần.
     version: "2.58",
     date: "2026-11-02",
     items: [
+      { kind: "moi", text: "Đối tác đặt vé có ô «Khách đặt cọc trước». Khi đơn được xác nhận, số này tự thành khoản thu; đối tác giữ số tiền đó tới khi nộp về công ty." },
       { kind: "moi", text: "Màn Phân định trách nhiệm: khách cần được hoàn sau khi đơn đã giao thì một người đề nghị, Quản trị hoặc Toàn quyền phân định ai chịu, Kế toán ghi sổ." },
       { kind: "moi", text: "Người được phân định chịu một khoản nhận tin báo, xem khoản của mình và phản hồi trong 3 ngày làm việc." },
       { kind: "moi", text: "Sửa khoản thu đã ghi: người thu cũ và người thu mới đều nhận tin báo." },
