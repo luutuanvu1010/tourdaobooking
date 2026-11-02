@@ -147,6 +147,23 @@ export function soKhaiChuaNop(
 }
 
 /**
+ * «Sửa khoản thu» có khoản cũ mang dấu khoản khai (K7c): chọn khoản MỚI nào mang dấu, cho tới khi tổng khoản được chọn phủ đủ số khai; ưu tiên khoản cùng người thu với khoản khai. Khoản mới không tách
+ * theo nguồn: một khoản phủ qua ranh giới (gộp khai với thường) thì cả khoản mang dấu (Tự quyết, cách chặt hơn). Đổi người thu vẫn mang dấu, vì mất dấu thì chuyển cọc đi qua và tính hai lần.
+ */
+export function chonKhoanMangDau(moi: readonly { collectorPartyId: string | null; soTien: number }[], cuKhai: readonly { collectorPartyId: string | null; soTien: number }[]): Set<number> {
+  const nguoi = new Set(cuKhai.map((k) => k.collectorPartyId));
+  const thuTu = [...moi.keys()].sort((a, b) => Number(!nguoi.has(moi[a]!.collectorPartyId)) - Number(!nguoi.has(moi[b]!.collectorPartyId)) || a - b);
+  let con = cuKhai.reduce((s, k) => s + k.soTien, 0);
+  const chon = new Set<number>();
+  for (const i of thuTu) {
+    if (con <= 0) break;
+    chon.add(i);
+    con -= moi[i]!.soTien;
+  }
+  return chon;
+}
+
+/**
  * Loại dòng mà hàng rào giữ hộ cộng khi hỏi «dòng giữ hộ này đã được tất toán chưa» (trigger `bil_debt_line_held_once`, migration mới nhất tạo nó — 0112): giữ hộ,
  * quyết toán, hoàn khách (kể cả dòng đảo của chúng — dòng đảo mang cùng loại). Dòng thương mại của phiếu «Đã giao» (HOA_HONG / GIAM_GIA_BEN_DAT / GIA_VON) KHÔNG
  * kéo số này xuống (đặc tả sổ đại lý đợt 2 P10). HAI NƠI: trigger đó và nhánh khoản cũ của câu PENDING_COMPANY (repository.ts) — bài «hai nơi» ở ben-kia.test.ts.

@@ -233,6 +233,9 @@ export const hoSoNhanVien = async (db: D1Database, staffId: string): Promise<str
 
 /** Chữ ghi chú cố định của khoản thu sinh từ lời khai (ADR-0159); cùng là dấu nhận ra khoản đó. */
 export const GHI_CHU_KHOAN_LOI_KHAI = "Khách đặt cọc trước";
+const DON_CUA_KHOAN = defineSql("billing", "coc_don_cua_khoan", `SELECT order_id FROM bil_payment_receipt WHERE id = ?1`);
+/** Đơn chứa một khoản thu: để đi ngược `transfer_of_id` về đơn nguồn của khoản chuyển (ADR-0159 Đ2 mục 2). */
+export const donCuaKhoan = async (db: D1Database, receiptId: string): Promise<string | null> => (await db.prepare(DON_CUA_KHOAN).bind(receiptId).first<{ order_id: string }>())?.order_id ?? null;
 const KHOAN_LOI_KHAI_CON_HIEU_LUC = defineSql(
   "billing",
   "khoan_loi_khai_con_hieu_luc",

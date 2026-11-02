@@ -4,7 +4,7 @@
 import type { CauCocXacNhan, ChanKhaiLai, VaoCauCoc } from "../../shared/dat-coc-kieu";
 import { CAU_CHUA_GAN_HO_SO } from "../../shared/dat-coc-truoc";
 import { benDatHuong, soKhaiChuaNop } from "./rules";
-import { GHI_CHU_KHOAN_LOI_KHAI, cocLapLaiConGiu, hoSoNhanVien } from "./coc-repo";
+import { GHI_CHU_KHOAN_LOI_KHAI, cocLapLaiConGiu, donCuaKhoan, hoSoNhanVien } from "./coc-repo";
 import { linesOfOrder, ownerCompanyId, receiptOnConfirmStatement, receiptsOfOrder } from "./repository";
 import { cauLanThu, tienNhieuDon, toLineRow } from "./service";
 
@@ -28,6 +28,33 @@ export async function chanKhaiCocLai(db: D1Database, nguoiLapId: string): Promis
   };
 }
 
+type PhanKhai = { collectorPartyId: string | null; soTien: number };
+type KhoanDon = Awaited<ReturnType<typeof receiptsOfOrder>>[number];
+
+/**
+ * Phần tiền có nguồn là khoản khai trên một đơn: khoản mang dấu, và khoản chuyển từ đơn huỷ (đi ngược `transfer_of_id`, kể cả chuyển nhiều lần): khoản «Chuyển từ đơn huỷ» không mang dấu,
+ * nếu bỏ qua thì tiền vẫn ở tay đối tác mà vé đơn nhận mở (I-5). Tự quyết: đơn nguồn vừa có khoản khai vừa có khoản khác, sổ không nói phần chuyển lấy từ đâu ⇒ lấy từ khoản khai trước.
+ * Cọc «Tôi thu» thuần tuý chuyển sang tính 0. Không đọc được đơn nguồn, hoặc gặp vòng: coi cả khoản là khoản khai.
+ */
+async function phanKhaiCuaDon(db: D1Database, receipts: readonly KhoanDon[], daQua: ReadonlySet<string>): Promise<PhanKhai[]> {
+  const out: PhanKhai[] = [];
+  for (const r of receipts) {
+    if (r.reverses_id !== null || receipts.some((y) => y.reverses_id === r.id)) continue;
+    if (r.kind_code === "CUSTOMER_PAYMENT" && r.note === GHI_CHU_KHOAN_LOI_KHAI) {
+      out.push({ collectorPartyId: r.collector_party_id, soTien: r.amount });
+    } else if (r.transfer_of_id !== null) {
+      const nguon = await donCuaKhoan(db, r.transfer_of_id);
+      let tuKhai = r.amount;
+      if (nguon !== null && !daQua.has(nguon)) {
+        const phan = await phanKhaiCuaDon(db, await receiptsOfOrder(db, nguon), new Set([...daQua, nguon]));
+        tuKhai = Math.min(r.amount, phan.reduce((s, p) => s + p.soTien, 0));
+      }
+      if (tuKhai > 0) out.push({ collectorPartyId: r.collector_party_id, soTien: tuKhai });
+    }
+  }
+  return out;
+}
+
 /**
  * ADR-0153 Đ3 sửa bởi ADR-0159 Đ2 mục 2 — {số tính «thu đủ», phải thu} của MỘT đơn do GỐC LẮP RÁP tiêm vào `ctx.tienDonVe` (kho vé so ở MỘT hàm thuần `thuDu`; ve-dien-tu không đọc bảng bil_).
  * `daThu` Ở ĐÂY đã trừ số khai chưa nộp, chỉ dùng cho vé; «đã thu» hiển thị ở nơi khác vẫn đọc `tienNhieuDon`. KHÔNG tự kiểm quyền — route của ve-dien-tu hỏi `can(` trước.
@@ -36,12 +63,11 @@ export async function chanKhaiCocLai(db: D1Database, nguoiLapId: string): Promis
 export async function tienDonVe(db: D1Database, orderId: string): Promise<{ daThu: number; phaiThu: number; choNop: number } | null> {
   const t = (await tienNhieuDon(db, [orderId])).get(orderId);
   if (!t) return null;
-  const receipts = await receiptsOfOrder(db, orderId);
-  const khoan = receipts.filter((r) => r.kind_code === "CUSTOMER_PAYMENT" && r.note === GHI_CHU_KHOAN_LOI_KHAI && r.reverses_id === null && !receipts.some((y) => y.reverses_id === r.id));
+  const khoan = await phanKhaiCuaDon(db, await receiptsOfOrder(db, orderId), new Set([orderId]));
   if (khoan.length === 0) return { daThu: t.daThu, phaiThu: t.phaiThu, choNop: 0 };
   const [congTyId, lines] = await Promise.all([ownerCompanyId(db), linesOfOrder(db, orderId)]);
   if (!congTyId) return null;
-  const choNop = soKhaiChuaNop(khoan.map((r) => ({ collectorPartyId: r.collector_party_id, soTien: r.amount })), lines.map(toLineRow), congTyId);
+  const choNop = soKhaiChuaNop(khoan, lines.map(toLineRow), congTyId);
   return { daThu: t.daThu - choNop, phaiThu: t.phaiThu, choNop };
 }
 

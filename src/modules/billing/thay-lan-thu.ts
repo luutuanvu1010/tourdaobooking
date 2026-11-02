@@ -12,7 +12,7 @@ import { vnToday } from "../../shared/vn-date";
 import { GHI_CHU_KHOAN_LOI_KHAI, transferInOf } from "./coc-repo";
 import { lineIfPostingStatement, linesOfOrder, linesOfReceipt, lineReversed, orderState, ownerCompanyId, postingIfReceiptStatement, postingPlainStatement, receiptsOfOrder, reconOfOrder } from "./repository";
 import type { GiaoDich } from "./ma-giao-dich";
-import { conLai, dong, khoanChoXacNhan, sinhDongDao, sinhDongLanThu, type ReceiptRow } from "./rules";
+import { conLai, dong, khoanChoXacNhan, sinhDongDao, sinhDongLanThu, type ReceiptRow, chonKhoanMangDau } from "./rules";
 import type { PhanThuongMai } from "../orders";
 import {
   CHUA_CO_CONG_TY, cauBoQuaTrung, cauGanMa, docGiaoDichCuaLanThu, docLanThu, docLyDo, docNgay, kiemCacMa, kiemTrungTienMat, lanThuMoiRow, layKyDaKhoa, lineOf, loi, loiKhoaKy, loiMaTrigger, loiTrigger, toDoiChieuRow, toLineRow, toReceiptRow, type KetQua,
@@ -119,16 +119,16 @@ export async function chuanBiLoThay(db: D1Database, input: { orderId: string; ph
     }
     cuRows.push(r);
   }
-  // ADR-0159 (K7c): khoản cũ là khoản khai đặt cọc thì MỌI khoản mới mang dấu, kể cả khi đổi người thu (Tự quyết, cách chặt hơn): mất dấu thì chuyển cọc đi qua và tính hai lần.
-  // Cột ghi chú là một ô nên chữ dấu thay ghi chú gõ kèm; người thu là Công ty thì `soKhaiChuaNop` tính 0, vé không bị giữ oan.
-  const coDauKhai = cuRows.some((r) => r.note === GHI_CHU_KHOAN_LOI_KHAI);
+  // ADR-0159 (K7c): sửa khoản khai đặt cọc thì khoản mới giữ dấu, chọn ở `chonKhoanMangDau`. Gõ lại đúng chữ dấu không mất gì nên không tính là gõ tay; chữ khác báo rõ ở dưới vì cột chỉ có một ô.
+  const cuKhai = cuRows.filter((r) => r.note === GHI_CHU_KHOAN_LOI_KHAI).map((r) => ({ collectorPartyId: r.collector_party_id, soTien: r.amount }));
+  const goDungDau = (m: unknown): boolean => { const g = (m as { ghiChu?: unknown } | null)?.ghiChu; return typeof g === "string" && g.trim() === GHI_CHU_KHOAN_LOI_KHAI; };
   const moi: { lt: LanThuHopLe; gd: GiaoDich | null }[] = [];
   const boQuaGhi: { ma: string; lyDo: string }[] = [];
   // Trần «thu cho» nhà cung cấp: lần thu cũ đang bị thay không tính; các lần thu mới ĐÃ đọc của chính lệnh này cộng dồn (đặc tả P4).
   const boQua = new Set(cu as string[]);
   const daCo: ReceiptRow[] = receipts.map(toReceiptRow);
   for (const m of moiRaw) {
-    const lt = await docLanThu(db, { ...(m as object), ngayPhatSinh: ngay.value, ...(coDauKhai ? { ghiChu: null } : {}) }, input.ai, congTyId, { phan: input.phan, receipts: daCo, kemDaGiao: false, boQua });
+    const lt = await docLanThu(db, { ...(m as object), ngayPhatSinh: ngay.value, ...(cuKhai.length > 0 && goDungDau(m) ? { ghiChu: null } : {}) }, input.ai, congTyId, { phan: input.phan, receipts: daCo, kemDaGiao: false, boQua });
     if (!lt.ok) return lt;
     daCo.push(lanThuMoiRow(lt.value, `moi-${daCo.length}`));
     // ADR-0092 Đ6a: khoản thu tiền mặt giống nhau — so với khoản còn hiệu lực trừ khoản đang bị thay, và các khoản đã đọc của chính lệnh này.
@@ -139,6 +139,8 @@ export async function chuanBiLoThay(db: D1Database, input: { orderId: string; ph
     if (!gd.ok) return gd;
     moi.push({ lt: lt.value, gd: gd.value });
   }
+  const mangDau = chonKhoanMangDau(moi.map((m) => ({ collectorPartyId: m.lt.collectorPartyId, soTien: m.lt.soTien })), cuKhai);
+  if ([...mangDau].some((i) => moi[i]!.lt.ghiChu)) return loi(400, "invalid_input", "Khoản này là số đặt cọc đối tác khai nên giữ ghi chú riêng, không ghi chú thêm được. Hãy bỏ ghi chú và viết nội dung vào lý do sửa.");
   // ADR-0092 Đ6 (đặc tả §5 "Trong lô Thay"): máy chủ kiểm khi khoản thu cũ CÒN hiệu lực ⇒ loại các khoản thu trong `cu` khỏi kiểm trùng / lệch / tổng.
   const ganMa = moi.flatMap((m) => (m.gd ? [{ gd: m.gd, orderId, soTien: m.lt.soTien }] : []));
   if (ganMa.length > 0) {
@@ -159,12 +161,12 @@ export async function chuanBiLoThay(db: D1Database, input: { orderId: string; ph
   const stmts: D1PreparedStatement[] = [];
   // 1. khoản thu mới (+ phiếu RECEIPT + dòng giữ hộ)
   const ridMoi: string[] = [];
-  for (const { lt: m } of moi) {
+  for (const [i, { lt: m }] of moi.entries()) {
     const rid = crypto.randomUUID();
     ridMoi.push(rid);
     stmts.push(receiptThayMoiStatement(db, {
       id: rid, orderId, amount: m.soTien, collectorPartyId: m.collectorPartyId, collectorRole: m.collectorRole, method: m.hinhThuc, stage, occurredDate: ngay.value,
-      note: coDauKhai ? GHI_CHU_KHOAN_LOI_KHAI : m.ghiChu, at, by, replacementId: markerId, collectedForPartyId: m.collectedForPartyId,
+      note: mangDau.has(i) ? GHI_CHU_KHOAN_LOI_KHAI : m.ghiChu, at, by, replacementId: markerId, collectedForPartyId: m.collectedForPartyId,
     }));
     const dongMoi = sinhDongLanThu({
       kind: "CUSTOMER_PAYMENT", amount: m.soTien, collectorRole: m.collectorRole, collectorPartyId: m.collectorPartyId, method: m.hinhThuc, nguoiGhiPartyId: input.ai.partyId ?? congTyId,

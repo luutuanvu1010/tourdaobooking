@@ -615,3 +615,112 @@ test("I-3: sửa khoản KHÔNG mang dấu thì không tự sinh dấu; gõ tay 
   assert.equal((await sua(w, o.id, id, { soTien: 100000, hinhThuc: "CASH", nguoiThu: NGUOI_CU, ghiChu: "Sửa số" })).status, 201);
   assert.equal(khoanSong(w, o.id)[0].note, "Sửa số");
 });
+
+// ---- I-5: khoản chuyển có nguồn là khoản khai cũng là số khai chưa nộp (ADR-0159 Đ2 mục 2) --------------------------------------------------------------------
+async function huyDon(w: any, id: string) {
+  const don = (await w.call("GET", `/api/orders/${id}`, { as: PARTNER })).json.order;
+  const h = await w.call("POST", `/api/orders/${id}/status`, { as: PARTNER, body: { status: "cancelled", lyDo: "SAI_THONG_TIN", updatedAt: don.updatedAt } });
+  assert.equal(h.status, 200, h.text);
+}
+async function chuyenCoc(w: any, tu: any, den: any, soTien: number) {
+  const d = await w.call("POST", `/api/orders/${tu.id}/coc/duyet`, { as: ADM, body: { loai: "chuyen", soTien, lyDo: "Lập lại đơn cho khách", donNhan: den.orderCode } });
+  assert.ok(d.status === 200 || d.status === 201, d.text);
+  const c = await w.call("POST", `/api/orders/${tu.id}/coc/chuyen`, { as: ACC, body: { duyetId: d.json.duyetId, soTien, ngayPhatSinh: inDays(0), nguoiGiu: { partyId: `pty-${PARTNER}` } } });
+  assert.ok(c.status === 200 || c.status === 201, c.text);
+}
+
+test("I-5 (V9): khai đủ, huỷ, chuyển cọc sang đơn mới: vé đơn nhận khoá tới khi đối tác nộp đủ", async () => {
+  const w = dung();
+  const cu = await moDon(w, PARTNER, 600000);
+  await huyDon(w, cu.id);
+  const nhan = await moDon(w, PARTNER, 0);
+  await chuyenCoc(w, cu, nhan, 600000);
+  let v = await veDon(w, nhan.id);
+  assert.equal(v.thuDu, false, "tiền vẫn ở tay đối tác: khoá");
+  assert.equal(v.choDoiTacNop, true);
+  assert.equal((await w.call("GET", `/api/orders/${nhan.id}/payments`, { as: ACC })).json.daThu, 600000, "đã thu hiển thị không đổi");
+  assert.equal((await nop(w, nhan.id, 300000)).status, 201);
+  assert.equal((await veDon(w, nhan.id)).thuDu, false, "nộp một phần vẫn khoá");
+  assert.equal((await nop(w, nhan.id, 300000)).status, 201);
+  v = await veDon(w, nhan.id);
+  assert.equal(v.thuDu, true, "nộp đủ thì vé đơn nhận mở");
+  assert.equal(v.choDoiTacNop, false);
+});
+
+test("I-5: chuyển hai lần vẫn truy về khoản khai", async () => {
+  const w = dung();
+  const a = await moDon(w, PARTNER, 600000);
+  await huyDon(w, a.id);
+  const b = await moDon(w, PARTNER, 0);
+  await chuyenCoc(w, a, b, 600000);
+  await huyDon(w, b.id);
+  const c = await moDon(w, PARTNER, 0);
+  await chuyenCoc(w, b, c, 600000);
+  assert.equal((await veDon(w, c.id)).thuDu, false);
+  assert.equal((await nop(w, c.id, 600000)).status, 201);
+  assert.equal((await veDon(w, c.id)).thuDu, true);
+});
+
+test("I-5: cọc «Tôi thu» chuyển sang giữ quy tắc cũ, vé mở", async () => {
+  const w = dung();
+  const cu = await moDon(w, PARTNER, 0);
+  assert.equal((await w.call("POST", `/api/orders/${cu.id}/payments`, { as: PARTNER, body: { soTien: 600000, hinhThuc: "CASH", nguoiThu: "toi" } })).status, 201);
+  await huyDon(w, cu.id);
+  const nhan = await moDon(w, PARTNER, 0);
+  await chuyenCoc(w, cu, nhan, 600000);
+  const v = await veDon(w, nhan.id);
+  assert.equal(v.thuDu, true);
+  assert.equal(v.choDoiTacNop, false);
+});
+
+test("I-5 Tự quyết: đơn huỷ vừa có khoản khai vừa có «Tôi thu», sổ không tách phần chuyển: phần chuyển lấy từ khoản khai trước", async () => {
+  const w = dung();
+  const cu = await moDon(w, PARTNER, 200000);
+  assert.equal((await w.call("POST", `/api/orders/${cu.id}/payments`, { as: PARTNER, body: { soTien: 400000, hinhThuc: "CASH", nguoiThu: "toi" } })).status, 201);
+  await huyDon(w, cu.id);
+  const nhan = await moDon(w, PARTNER, 0);
+  await chuyenCoc(w, cu, nhan, 600000);
+  assert.equal((await veDon(w, nhan.id)).thuDu, false);
+  assert.equal((await nop(w, nhan.id, 600000)).status, 201);
+  assert.equal((await veDon(w, nhan.id)).thuDu, true);
+});
+
+// ---- Sửa gộp và ghi chú gõ kèm ---------------------------------------------------------------------------------------------------------------------------------
+const suaGop = (w: any, id: string, cu: string[], moi: Record<string, unknown>[]) => w.call("POST", "/api/ledger/receipt-replacements", { as: ACC, body: { orderId: id, cu, moi, lyDo: "Kế toán sửa khoản đã ghi" } });
+async function donKhaiVaToiThu(w: any) {
+  const o = await moDon(w, PARTNER, 200000);
+  assert.equal((await w.call("POST", `/api/orders/${o.id}/payments`, { as: PARTNER, body: { soTien: 400000, hinhThuc: "CASH", nguoiThu: "toi" } })).status, 201);
+  return { o, ids: khoanThu(w, o.id).map((r: any) => r.id) as string[] };
+}
+const mo = (soTien: number, them: Record<string, unknown> = {}) => ({ soTien, hinhThuc: "CASH", nguoiThu: NGUOI_CU, ...them });
+
+test("Sửa gộp khoản khai với khoản thường: tách được thì chỉ phần khai mang dấu", async () => {
+  const w = dung();
+  const { o, ids } = await donKhaiVaToiThu(w);
+  const s = await suaGop(w, o.id, ids, [mo(200000), mo(400000, { ghiChu: "Khách đưa thêm" })]);
+  assert.equal(s.status, 201, s.text);
+  const song = khoanSong(w, o.id);
+  assert.equal(song.find((r: any) => r.amount === 200000).note, "Khách đặt cọc trước");
+  assert.equal(song.find((r: any) => r.amount === 400000).note, "Khách đưa thêm");
+});
+
+test("Sửa gộp Tự quyết: gộp thành một khoản, sổ không tách được: khoản đó mang dấu", async () => {
+  const w = dung();
+  const { o, ids } = await donKhaiVaToiThu(w);
+  assert.equal((await suaGop(w, o.id, ids, [mo(600000)])).status, 201);
+  const song = khoanSong(w, o.id);
+  assert.equal(song.length, 1);
+  assert.equal(song[0].note, "Khách đặt cọc trước");
+});
+
+test("Ghi chú Kế toán gõ cho khoản mang dấu: báo rõ 400, không âm thầm bỏ, không ghi gì; gõ đúng chữ dấu thì không mất gì nên được", async () => {
+  const w = dung();
+  const o = await moDon(w, PARTNER, 200000);
+  const id = khoanThu(w, o.id)[0].id;
+  const r = await suaGop(w, o.id, [id], [mo(200000, { ghiChu: "Sửa ngày" })]);
+  assert.equal(r.status, 400, r.text);
+  assert.match(r.json.error.message, /lý do sửa/);
+  assert.equal(khoanSong(w, o.id)[0].id, id, "khoản cũ còn nguyên");
+  assert.equal((await suaGop(w, o.id, [id], [mo(200000, { ghiChu: "Khách đặt cọc trước" })])).status, 201);
+  assert.equal(khoanSong(w, o.id)[0].note, "Khách đặt cọc trước");
+});

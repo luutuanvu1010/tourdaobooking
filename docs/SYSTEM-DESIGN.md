@@ -841,7 +841,7 @@ Các bước: `markAttempt` → `fetchSheetCsv` → `parseCatalogSheet` (cột b
 
 ### (p) Khách đặt cọc trước của đối tác (ADR-0159, migration `0136`)
 
-Chi tiết và lý do ở ADR-0159; mục này chỉ nói mã nằm đâu. `orders.declared_deposit` là lời khai khi đơn còn nháp, chưa vào sổ. Ba đường xác nhận (Gửi đơn nhánh B, Còn vé, `/status`) lấy câu ghi sổ từ `cocChoXacNhan`; gốc lắp ráp tiêm `billing.cauDatCocKhiXacNhan`, câu chạy cùng lô sau câu xác nhận, lính gác đọc dòng nhật ký `confirmed` của chính lô. Người ghi và người thu là người lập đơn. Khoản thu nhận ra bằng ghi chú `GHI_CHU_KHOAN_LOI_KHAI` cộng loại `CUSTOMER_PAYMENT`; «Sửa khoản thu» chép dấu sang khoản mới, khoản thu tay không gõ được chữ đó. Vé: `billing.tienDonVe` trừ số khai chưa nộp (`soKhaiChuaNop`) trước khi đưa vào `thuDu`; «đã thu» hiển thị ở nơi khác không đổi. Bất biến: `R-BIL-DC1…4`. Bẫy: `docs/CHANGE-GUIDE.md` mục 88.
+Chi tiết và lý do ở ADR-0159; mục này chỉ nói mã nằm đâu. `orders.declared_deposit` là lời khai khi đơn còn nháp, chưa vào sổ. Ba đường xác nhận (Gửi đơn nhánh B, Còn vé, `/status`) lấy câu ghi sổ từ `cocChoXacNhan`; gốc lắp ráp tiêm `billing.cauDatCocKhiXacNhan`, câu chạy cùng lô sau câu xác nhận, lính gác đọc dòng nhật ký `confirmed` của chính lô. Người ghi và người thu là người lập đơn. Khoản thu nhận ra bằng ghi chú `GHI_CHU_KHOAN_LOI_KHAI` cộng loại `CUSTOMER_PAYMENT`; «Sửa khoản thu» chép dấu sang khoản mới, khoản thu tay không gõ được chữ đó. Vé: `billing.tienDonVe` trừ số khai chưa nộp (`soKhaiChuaNop`, tính cả khoản chuyển có nguồn là khoản khai) trước khi đưa vào `thuDu`; «đã thu» hiển thị ở nơi khác không đổi. Bất biến: `R-BIL-DC1…4`. Bẫy: `docs/CHANGE-GUIDE.md` mục 88.
 
 ## 7. Danh mục API
 
