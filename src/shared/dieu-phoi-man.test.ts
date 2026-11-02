@@ -8,6 +8,8 @@ import {
 import type { ChangLichDto, ChuyenTomTatDto, LichChungResponse, LyDoGiuDto, NhatKyChuyenDto } from "./contracts.ts";
 import type { PermissionCode } from "./permissions.ts";
 import { vnLocalToMs } from "./vn-date.ts";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 
 const NGAY = "2026-09-30";
 const ms = (gio: string, ngay = NGAY) => vnLocalToMs(ngay, gio)!;
@@ -484,4 +486,25 @@ test("ADR-0104 Đ1 mục 9: hộp và nút vượt luật theo `lop` của 409 �
     assert.equal(chu.KHAN_CAP.slice("Điều chỉnh khẩn cấp và ".length), chu.QUAN_TRI.slice("Phá lệ và ".length), `${viec}: cùng động từ ở hai lớp`);
   }
   assert.deepEqual(Object.keys(NUT_VUOT), ["xep", "them", "rut", "chuyen", "luu", "huy"]);
+});
+
+const docTep = (tep: string): string => readFileSync(fileURLToPath(new URL(`../../${tep}`, import.meta.url)), "utf8");
+
+test("nối dây ADR-0154 Đ3.3: Chi tiết chuyến đọc nhacDieuKien ở CẢ HAI nơi gọi, dòng «không cần» có dấu riêng, câu «Đạt đủ» đếm đúng", () => {
+  const ct = docTep("web/chuyen.ts");
+  assert.doesNotMatch(ct, /dk\.length\}\s*điều kiện/, "câu «Đạt đủ N điều kiện» không đếm cả dòng «không cần»");
+  const goi = [...ct.matchAll(/dieuKienXuatBen\(([^)]*)\)/g)].map((m) => m[1]!);
+  assert.equal(goi.length, 2, "đúng hai nơi gọi (bảng điều kiện và hộp «Cho xe chạy»)");
+  for (const doiSo of goi) assert.match(doiSo, /lyDoGiu\s*,\s*[\w.]*nhacDieuKien/, `nơi gọi «${doiSo}» phải truyền lời nhắc của phản hồi chi tiết chuyến`);
+  assert.match(ct, /!x\.dat\s*&&\s*!x\.khongCan/, "số «chưa đạt» không tính dòng không cần");
+  assert.match(ct, /data-khong-can/, "dòng «không cần» có dấu riêng");
+  assert.match(ct, /"Không cần"/, "nhãn đọc cho người dùng máy đọc màn hình");
+});
+
+test("nối dây ADR-0154 Đ3.3: trang đơn không còn chép tay câu thiếu tên, truyền dấu miễn cho cả hai chỗ", () => {
+  const od = docTep("web/order.ts");
+  assert.doesNotMatch(od, /cần đủ trước khi xe chạy/, "câu thiếu tên đi qua cauThieuTen (một nguồn)");
+  assert.match(od, /cauThieuTen\(/, "khối Hành khách của trang đơn lấy câu từ cauThieuTen");
+  assert.match(od, /khoiHanhKhachDon\([^;]*manifestExempt\)/, "khối Hành khách nhận dấu miễn của đơn");
+  assert.match(od, /canhBaoXacNhan\([^;]*manifestExempt\)/, "cảnh báo lúc xác nhận cũng theo dấu của đơn");
 });

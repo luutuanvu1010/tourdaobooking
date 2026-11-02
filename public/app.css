@@ -2881,6 +2881,7 @@ body:has(.buoc-thanh) .toast-vung { bottom: auto; top: calc(var(--toast-tren, va
 .dp-cond-mark { display: flex; flex: none; align-items: center; justify-content: center; width: var(--dp-cond-mark); height: var(--dp-cond-mark); font-size: var(--fs-dp-mark); font-weight: var(--fw-heavy); border-radius: var(--radius-pill); }
 .dp-cond-mark.is-dat { color: var(--c-green-text); background: var(--c-green-soft); }
 .dp-cond-mark.is-chua { color: var(--c-danger-text); background: var(--c-danger-soft); }
+.dp-cond-mark.is-khong-can { color: var(--c-text-muted); background: none; border: 1px solid var(--c-border); }
 .dp-cond-text { display: flex; flex-direction: column; min-width: 0; }
 .dp-cond-nhan { font-weight: var(--fw-semibold); }
 .dp-cond-sub { font-size: var(--fs-badge); color: var(--c-text-muted); }

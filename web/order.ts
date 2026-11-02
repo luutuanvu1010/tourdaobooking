@@ -25,7 +25,7 @@ import type { DiemChon } from "./khoi-dua-don";
 import { openSheetDuaDon } from "./sheet-dua-don";
 import { openSheetHanhKhach } from "./sheet-hanh-khach";
 import { openSheetSoKhach } from "./sheet-so-khach";
-import { CAU_CAN_NOI_TRA, canhBaoXacNhan, thieuNoiTra } from "../src/shared/canh-bao-xac-nhan";
+import { CAU_CAN_NOI_TRA, canhBaoXacNhan, cauThieuTen, thieuNoiTra } from "../src/shared/canh-bao-xac-nhan";
 import { dongThongTinQr } from "../src/shared/qr-thong-tin";
 import { PAX_LABEL } from "../src/shared/order-lines";
 import { CHIEU_LABEL } from "../src/shared/chang-dua-don";
@@ -281,7 +281,7 @@ function khoiDuaDonDon(order: Order, vanPhong: boolean, nut: HTMLElement | null)
   );
 }
 
-function khoiHanhKhachDon(ds: Api.PassengerListResponse, nut: HTMLElement | null): HTMLElement {
+function khoiHanhKhachDon(ds: Api.PassengerListResponse, nut: HTMLElement | null, khongCan: boolean): HTMLElement {
   const du = ds.soNguoiCoTen;
   const mau = ds.soKhachDoan;
   return h(
@@ -289,7 +289,7 @@ function khoiHanhKhachDon(ds: Api.PassengerListResponse, nut: HTMLElement | null
     { class: "card hk-card-don", "data-khoi": "hanh-khach" },
     h("h2", null, "Hành khách"),
     h("div", { class: "hk-dem" }, h("span", { class: "hk-dem-icon" }, icon("guests", 18)), h("span", { class: "hk-dem-so" }, `${du}/${mau}`), h("span", { class: "hk-dem-chu" }, "khách đã có tên")),
-    du > 0 && du < mau ? h("p", { class: "alert warn hk-nhac-don" }, icon("alert", 16), `Còn ${mau - du} khách chưa có tên — cần đủ trước khi xe chạy`) : null,
+    du > 0 && du < mau ? h("p", { class: "alert warn hk-nhac-don" }, icon("alert", 16), cauThieuTen(mau - du, khongCan)) : null,
     du === 0 ? h("p", { class: "muted" }, "Chưa có hành khách nào.") : null,
     du > 0
       ? h(
@@ -1321,7 +1321,7 @@ function render(order: Order, history: AuditEntry[], canModify: boolean, handler
           : null
       : null;
   // Cảnh báo sớm lúc xác nhận (lời chủ 1/10 "2 — Có"): chỉ cảnh báo, vẫn xác nhận được.
-  const canhBaoXN = a.confirm ? canhBaoXacNhan(order.services, khachDon ? khachDon.passengers.map((p) => p.personKey) : null) : [];
+  const canhBaoXN = a.confirm ? canhBaoXacNhan(order.services, khachDon ? khachDon.passengers.map((p) => p.personKey) : null, order.manifestExempt) : [];
   // ADR-0049 V12: chặng đơn nháp còn dưới mốc chưa đặt gấp (luật kiemMocDat, dữ liệu N-14) — chỉ để hiện; máy chủ vẫn quyết lúc xác nhận (409).
   const canDatGap = changDuoiMoc(order, mocPhut, Date.now());
   const duocDatGap = can(staff!, "order.leg.short_notice");
@@ -1361,7 +1361,7 @@ function render(order: Order, history: AuditEntry[], canModify: boolean, handler
         ),
 
         khoiDuaDonDon(order, suaChuyen, nutDuaDon),
-        khachDon ? khoiHanhKhachDon(khachDon, nutDs) : null,
+        khachDon ? khoiHanhKhachDon(khachDon, nutDs, order.manifestExempt) : null,
 
         renderServices(order, a.locked, (sid) => {
           const xe = khoiXe(order, sid);
