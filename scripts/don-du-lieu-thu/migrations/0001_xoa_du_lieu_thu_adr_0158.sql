@@ -2,12 +2,12 @@
 -- Chốt chặn: một loại có nhiều dòng hơn số chủ đã đếm thì CHECK hỏng và dừng trước mọi câu xoá.
 DROP TABLE IF EXISTS tmp_chot_chan_xoa_thu;
 CREATE TABLE tmp_chot_chan_xoa_thu (loai TEXT NOT NULL, so INTEGER NOT NULL, tran INTEGER NOT NULL, CHECK (so <= tran));
-INSERT INTO tmp_chot_chan_xoa_thu SELECT 'don', count(*), 0 FROM orders;
-INSERT INTO tmp_chot_chan_xoa_thu SELECT 'phieu_thu', count(*), 0 FROM bil_payment_receipt;
-INSERT INTO tmp_chot_chan_xoa_thu SELECT 'chuyen', count(*), 0 FROM vc_trip;
+INSERT INTO tmp_chot_chan_xoa_thu SELECT 'don', count(*), 157 FROM orders;
+INSERT INTO tmp_chot_chan_xoa_thu SELECT 'phieu_thu', count(*), 103 FROM bil_payment_receipt;
+INSERT INTO tmp_chot_chan_xoa_thu SELECT 'chuyen', count(*), 15 FROM vc_trip;
 INSERT INTO tmp_chot_chan_xoa_thu SELECT 've_da_cap', count(*), 0 FROM vdt_allocation;
-INSERT INTO tmp_chot_chan_xoa_thu SELECT 'muc_hoa_hong', count(*), 0 FROM prc_commission_rule;
-INSERT INTO tmp_chot_chan_xoa_thu SELECT 'cap', count(*), 0 FROM prc_rate_tier;
+INSERT INTO tmp_chot_chan_xoa_thu SELECT 'muc_hoa_hong', count(*), 104 FROM prc_commission_rule;
+INSERT INTO tmp_chot_chan_xoa_thu SELECT 'cap', count(*), 7 FROM prc_rate_tier;
 DROP TABLE tmp_chot_chan_xoa_thu;
 
 PRAGMA defer_foreign_keys = ON;
