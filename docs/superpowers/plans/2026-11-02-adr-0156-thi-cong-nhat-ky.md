@@ -96,3 +96,7 @@ Không có lỗi Cao hay Trung. Một điểm Thấp ở lý do của `r2_delete
 - Hai điều kiện trước khi phát hành ở `docs/HANDOFF-N1.md`: tải cùng một vé hai lần; ảnh vé Vinpearl Harbour.
 - **Đề xuất chưa áp, chủ quyết (N9):** thêm một dòng vào bảng kịch bản Chrome ở `web/CLAUDE.md`:
   `| Trang Vé điện tử và cài đặt (ADR-0156): web/ve-kho.ts, web/ve-cai-dat.ts, web/qr-doc-ve.ts, public/ve-kho.html, public/ve-cai-dat.html, src/shared/ve-nhap-lo.ts | ve-qr-smoke.mjs ở docs/evidence/2026-11-02-ve-qr-tran-lo/kich-ban/ (10 bước, 390 + 1040, cần AXE_JS, không cần mạng ngoài; phá thử LB_PHA=qr-gia) |`
+
+## Nghiệm thu sau triển khai (2/11 19:13)
+
+Vé điện tử 2.55 và lô «Mọi loại khách» lên production lúc 17:46 cùng lần triển khai đặt vé (`acfb09e7`, H5 đỏ, chủ chọn «c»). Chủ triển khai lại `4c46a67b` lúc 19:13: e2e xanh, không có migration, số bản vẫn 2.57 nên cổng phiên bản trước deploy «không đạt» là đúng dự kiến. Người kiểm độc lập ĐẠT: `R-VDT-*` đạt, `R-PRC-2` 98 vi phạm có từ bản 2.54. Chưa kiểm: màn nhập lô trên iPhone, vé thật trong kho, việc dọn ảnh định kỳ, luồng gửi vé tới khách. Cloudflare không ghi mã lần lưu; khớp `4c46a67b` dựa vào giờ và số bản.
