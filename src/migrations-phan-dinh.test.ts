@@ -121,3 +121,15 @@ test("bil_debt_line_attribution_match: dòng nợ đứng tên người khác b�
   assert.throws(() => chenDong(`pty-${SALES}`, ct), /attribution_line_invalid/);
   assert.throws(() => chenDong(ct, `pty-${SALES}`), /attribution_line_invalid/);
 });
+
+test("bil_debt_line_tu_nop: chèn thẳng dòng nộp do chính bên chịu ghi, đơn còn khoản phân định ⇒ chặn; người khác ghi qua", async () => {
+  const { w, id, r, ct } = await dung();
+  const g = await w.call("POST", `/api/ledger/phan-dinh/${r}/ghi`, { as: KT, body: { hinhThuc: "CASH" } });
+  assert.equal(g.status, 201, g.text);
+  const phieu = uuid();
+  w.sqlite.prepare("INSERT INTO bil_posting (id, kind_code, order_id, reason, occurred_date, created_at, created_by, updated_at, updated_by) VALUES (?, 'SETTLEMENT', ?, NULL, ?, ?, ?, ?, ?)").run(phieu, id, hom(), NOW, HDV, NOW, HDV);
+  const chenNop = (by: string) => w.sqlite.prepare("INSERT INTO bil_debt_line (id, posting_id, debtor_party_id, creditor_party_id, amount, kind_code, order_id, created_at, created_by, updated_at, updated_by) VALUES (?, ?, ?, ?, 50000, 'SETTLEMENT', ?, ?, ?, ?, ?)").run(uuid(), phieu, ct, `pty-${HDV}`, id, NOW, by, NOW, by);
+  assert.throws(() => chenNop(HDV), /attribution_tu_nop/);
+  chenNop(KT);
+});
+

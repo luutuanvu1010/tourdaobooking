@@ -85,6 +85,7 @@ const viPham = (w: W): string[] => (CHECKS as any[]).flatMap((c) => {
 });
 const pd = (id: string, duoi: string) => `/api/ledger/phan-dinh/${id}/${duoi}`;
 const nop = (w: W, id: string, so: number, partyId = hdv) => w.call("POST", "/api/ledger/settlements", { as: KT, body: { chieu: "nop", partyId, phanBo: [{ orderId: id, soTien: so }] } });
+const nopAs = (w: W, as: string, id: string, so: number, partyId: string) => w.call("POST", "/api/ledger/settlements", { as, body: { chieu: "nop", partyId, phanBo: [{ orderId: id, soTien: so }] } });
 const gocCua = (w: W, id: string) => String(w.q("SELECT id FROM bil_attribution WHERE order_id = ? AND step_code = 'POSTED'", id)[0].id);
 const doi = (w: W, goc: string) => w.call("POST", pd(goc, "doi-ben-chiu"), { as: QT, body: { truongHop: "T10", lyDo: "Xét lại do bão, không ai lỗi" } });
 const huy = (w: W, goc: string, so: number) => w.call("POST", pd(goc, "huy"), { as: KT, body: { soTien: so, lyDo: "Đòi được khách số tiền này", moi: [{ soTien: so, hinhThuc: "CASH", nguoiThu: "cong_ty" }], boQuaTrung: { ma: "lan_thu_tien_mat", lyDo: "Khách trả thêm lần thật" } } });
@@ -110,7 +111,7 @@ test("Nộp đủ rồi đổi bên chịu ⇒ 409 attribution_da_nop, câu bả
   const r = await doi(w, goc);
   assert.equal(r.status, 409, r.text);
   assert.equal(r.json.error.code, "attribution_da_nop");
-  assert.match(r.json.error.message, /trả lại/);
+  assert.match(r.json.error.message, /báo Toàn quyền/);
   assert.equal(dem(w, "SELECT count(*) AS n FROM bil_attribution WHERE root_id = ?", goc), 0);
   assert.deepEqual(viPham(w), []);
 });
@@ -297,18 +298,15 @@ test("Lô Thay trùng cả tiền mặt lẫn mã: gửi một lý do thì vẫn
   assert.deepEqual(gopBoQua(hai, { ma: "lan_thu_tien_mat", lyDo: "Lý do mới hơn nhiều" }), [m2, { ma: "lan_thu_tien_mat", lyDo: "Lý do mới hơn nhiều" }]);
 });
 
-test("Mục 3: T4 toàn bộ phải thu mà sổ đang ghi đã thu ⇒ 409 attribution_i1, câu nói xử lý ngoài Nền tảng; không dòng nào được ghi", async () => {
+test("Mục 3: T4 toàn bộ phải thu mà sổ đang ghi đã thu ⇒ chặn NGAY ở bước phân định (không để phiếu nằm chờ ghi mãi); câu nói xử lý ngoài Nền tảng; T4 một phần vẫn đi đường cũ", async () => {
   const w = setup();
   const id = await daGiao(w);
-  const { r } = await deNghiVaQuyet(w, id, 1_000_000, { truongHop: "T4", benChiuPartyId: `pty-${KT}`, coTienRa: false });
-  for (const than of [{}, { thay: { cu: [lanThuId(w, id, 1_000_000)], moi: [], lyDo: "Khách thật sự chưa trả đồng nào" } }]) {
-    const g = await ghi(w, r, than, KT2);
-    assert.equal(g.status, 409, g.text);
-    assert.equal(g.json.error.code, "attribution_i1");
-    assert.match(g.json.error.message, /chưa trả đồng nào.*ngoài Nền tảng/);
-  }
-  assert.equal(dem(w, "SELECT count(*) AS n FROM bil_attribution WHERE order_id = ? AND step_code = 'POSTED'", id), 0);
-  // T4 một phần vẫn đi đường cũ.
+  const q = await deNghi(w, id, 1_000_000);
+  const r = await quyet(w, q.json.id, { soTien: 1_000_000, truongHop: "T4", benChiuPartyId: `pty-${KT}`, coTienRa: false });
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "attribution_i1");
+  assert.match(r.json.error.message, /chưa trả đồng nào.*ngoài Nền tảng/);
+  assert.equal(dem(w, "SELECT count(*) AS n FROM bil_attribution WHERE order_id = ? AND step_code = 'RULING'", id), 0);
   const y = await daGiao(w);
   const b = await deNghiVaQuyet(w, y, 300_000, { truongHop: "T4", benChiuPartyId: `pty-${KT}`, coTienRa: false });
   const g2 = await ghi(w, b.r, { thay: { cu: [lanThuId(w, y, 1_000_000)], moi: [{ soTien: 700_000, hinhThuc: "CASH", nguoiThu: "cong_ty" }], lyDo: "Khách thật sự chỉ trả 700.000" } }, KT2);
@@ -334,19 +332,60 @@ test("Mục 2: người giữ ledger.write đọc được ĐÚNG dòng «Vẫn 
   for (const as of [SALES, DT, QT]) assert.equal((await lichSu(as)).some((e) => e.action === "ledger_duplicate_overridden"), false, as);
 });
 
-test("Danh sách phiếu: đã nộp ⇒ không hiện nút đổi / huỷ, có lần nộp để trả lại; trả lại xong nút hiện lại", async () => {
+test("Danh sách phiếu: đã nộp ⇒ ẩn nút đổi / huỷ, có số đã nộp, KHÔNG có đường trả lại trên màn này", async () => {
   const w = setup();
   const { id } = await khoanHdv(w);
   assert.equal((await nop(w, id, 40_000)).status, 201);
   const xem = async (as = KT) => (await w.call("GET", "/api/ledger/phan-dinh", { as })).json.phieu.find((p: { orderId: string }) => p.orderId === id);
   const a = await xem();
   assert.equal(a.ghi.daNop, 40_000);
-  assert.equal(a.ghi.lanNop.length, 1);
+  assert.equal("lanNop" in a.ghi, false);
   assert.equal(a.coTheHuy, false);
   assert.equal((await xem(QT)).coTheDoiBenChiu, false);
-  assert.equal((await w.call("POST", "/api/ledger/adjustments", { as: KT, body: { loai: "dao_dong", lineId: a.ghi.lanNop[0].lineId, lyDo: "Công ty trả lại tiền đã nộp" } })).status, 201);
-  const b = await xem();
-  assert.deepEqual([b.ghi.daNop, b.ghi.lanNop.length, b.coTheHuy], [0, 0, true]);
-  assert.equal((await xem(QT)).coTheDoiBenChiu, true);
+  const { readFileSync } = await import("node:fs");
+  const trang = readFileSync(new URL("../../../web/phan-dinh.ts", import.meta.url), "utf8");
+  assert.doesNotMatch(trang, /dao_dong|tra-lai|Trả lại/);
+  assert.match((await doi(w, a.ghi.id)).json.error.message, /không đổi bên chịu hay huỷ khoản được trên Nền tảng.*báo Toàn quyền/i);
 });
 
+test("Tự ghi «đã nộp» khoản của chính mình ⇒ 409, không dòng mới; người khác ghi được; hai lớp", async () => {
+  const w = setup();
+  const id = await daGiao(w);
+  const { r } = await deNghiVaQuyet(w, id, 200_000, { truongHop: "T6", benChiuPartyId: `pty-${KT2}`, coTienRa: true });
+  assert.equal((await ghi(w, r, { hinhThuc: "CASH" })).status, 201);
+  const tu = await nopAs(w, KT2, id, 200_000, `pty-${KT2}`);
+  assert.equal(tu.status, 409, tu.text);
+  assert.equal(tu.json.error.code, "attribution_tu_nop");
+  assert.match(tu.json.error.message, /người khác ghi/);
+  assert.equal(dem(w, "SELECT count(*) AS n FROM bil_debt_line WHERE order_id = ? AND kind_code = 'SETTLEMENT'", id), 0);
+  assert.equal((await nopAs(w, SA, id, 50_000, `pty-${KT2}`)).status, 201, "Toàn quyền ghi cho người khác");
+  assert.equal((await nopAs(w, KT, id, 50_000, `pty-${KT2}`)).status, 201, "Kế toán khác ghi");
+  // Kế toán đang giữ tiền, không có khoản phân định: vẫn tự ghi như cũ.
+  const o = don(w, 300_000);
+  assert.equal((await thu(w, KT2, o, 300_000, "toi")).status, 201);
+  assert.equal((await nopAs(w, KT2, o, 300_000, `pty-${KT2}`)).status, 201, "không có khoản phân định ⇒ luật này không chặn");
+});
+
+test("T8, T9: công ty còn nợ giá vốn / hoa hồng của bên chịu ⇒ khoản vẫn hiện «phải nộp», không bị nuốt", async () => {
+  const w = setup();
+  const id = await daGiao(w);
+  const { r } = await deNghiVaQuyet(w, id, 200_000, { truongHop: "T9", benChiuPartyId: `pty-${KT2}`, coTienRa: true });
+  assert.equal((await ghi(w, r, { hinhThuc: "CASH" })).status, 201);
+  const giao0 = String(w.q("SELECT id FROM bil_posting WHERE order_id = ? AND kind_code = 'DELIVERED'", id)[0].id);
+  const ct = String(w.q("SELECT party_id FROM v_pty_owner_company")[0].party_id);
+  w.sqlite.prepare("INSERT INTO bil_debt_line (id, posting_id, debtor_party_id, creditor_party_id, amount, kind_code, order_id, order_service_id, created_at, created_by, updated_at, updated_by) VALUES (?, ?, ?, ?, 500000, 'HOA_HONG', ?, ?, ?, ?, ?, ?)").run(uuid(), giao0, ct, `pty-${KT2}`, id, `${id}-s`, AT, KT, AT, KT);
+  const so = (await w.call("GET", "/api/ledger", { as: KT })).json.soDu.find((x: { partyId: string }) => x.partyId === `pty-${KT2}`);
+  assert.deepEqual([so.dangGiu, so.khoanPhanDinh], [-500_000, 200_000]);
+  const toi = (await w.call("GET", "/api/ledger/mine", { as: KT2 })).json;
+  assert.deepEqual([toi.dangGiu, toi.khoanPhanDinh], [-500_000, 200_000]);
+  const ben = (await w.call("GET", `/api/ledger/ben/pty-${KT2}`, { as: KT })).json;
+  assert.deepEqual([ben.congTyNo.tong, ben.khoanPhanDinh.tong, ben.lech], [500_000, 200_000, 0]);
+});
+
+test("tachKhoanPhanDinh: chỉ tiền NỘP vượt tiền giữ mới trừ vào khoản; số tổng không đổi", async () => {
+  const { tachKhoanPhanDinh: t } = await import("./rules.ts");
+  assert.deepEqual(t({ giuHo: -40, nop: -40, khac: 0, khoan: 100 }), { dangGiu: 0, phaiNop: 60 });
+  assert.deepEqual(t({ giuHo: 0, nop: 0, khac: -500, khoan: 200 }), { dangGiu: -500, phaiNop: 200 });
+  assert.deepEqual(t({ giuHo: -30, nop: 0, khac: 0, khoan: 100 }), { dangGiu: -30, phaiNop: 100 }, "ứng tiền hoàn khách không phải nộp");
+  assert.deepEqual(t({ giuHo: 50, nop: -10, khac: 0, khoan: 100 }), { dangGiu: 50, phaiNop: 100 });
+});

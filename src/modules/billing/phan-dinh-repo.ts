@@ -29,9 +29,9 @@ export const phanDinhTheoId = (db: D1Database, id: string): Promise<DongPhanDinh
 export const phanDinhTheoDon = async (db: D1Database, orderId: string): Promise<DongPhanDinh[]> => (await db.prepare(THEO_DON).bind(orderId).all<DongPhanDinh>()).results;
 export const phanDinhCuaBenChiu = async (db: D1Database, partyId: string): Promise<DongPhanDinh[]> => (await db.prepare(CUA_BEN_CHIU).bind(partyId).all<DongPhanDinh>()).results;
 
-/** Dòng tiền giữ hộ của các đơn trong danh sách phiếu: tính bên chịu đã nộp bao nhiêu, và liệt kê lần nộp để Kế toán trả lại. */
-const DONG_GIU_HO = defineSql("billing", "pd_dong_giu_ho", `SELECT id, order_id, kind_code, debtor_party_id, creditor_party_id, amount, reverses_line_id FROM bil_debt_line WHERE kind_code IN ('HELD', 'SETTLEMENT', 'REFUND') AND order_id IN (SELECT value FROM json_each(?1)) ORDER BY rowid`);
-export interface DongGiuHo { id: string; order_id: string; kind_code: string; debtor_party_id: string; creditor_party_id: string; amount: number; reverses_line_id: string | null }
+/** Dòng tiền giữ hộ của các đơn trong danh sách phiếu: tính bên chịu đã nộp bao nhiêu. */
+const DONG_GIU_HO = defineSql("billing", "pd_dong_giu_ho", `SELECT order_id, kind_code, debtor_party_id, creditor_party_id, amount FROM bil_debt_line WHERE kind_code IN ('HELD', 'SETTLEMENT', 'REFUND') AND order_id IN (SELECT value FROM json_each(?1)) ORDER BY rowid`);
+export interface DongGiuHo { order_id: string; kind_code: string; debtor_party_id: string; creditor_party_id: string; amount: number }
 export const dongGiuHoCacDon = async (db: D1Database, orderIds: readonly string[]): Promise<DongGiuHo[]> =>
   orderIds.length === 0 ? [] : (await db.prepare(DONG_GIU_HO).bind(JSON.stringify(orderIds)).all<DongGiuHo>()).results;
 

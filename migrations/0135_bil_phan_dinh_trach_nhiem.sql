@@ -102,7 +102,7 @@ WHEN NEW.step_code = 'REASSIGNED' AND (
   OR NEW.amount <> (SELECT g.amount - COALESCE((SELECT SUM(d.amount) FROM bil_attribution d WHERE d.root_id = g.id AND d.step_code = 'REVERSAL'), 0) FROM bil_attribution g WHERE g.id = NEW.root_id))
 BEGIN SELECT RAISE(ABORT, 'attribution_post_invalid: lần đổi bên chịu phải đúng theo phân định và đúng số còn hiệu lực'); END;
 
--- Bên chịu đã nộp một phần trở lên ⇒ không đổi bên chịu, không huỷ khoản: dòng ngược sẽ làm số dư âm (R-BIL-13). Trả lại trước (huỷ lần nộp) rồi mới làm. "Đã nộp vào khoản" = tiền nộp ròng vượt tiền mặt đang
+-- Bên chịu đã nộp một phần trở lên ⇒ không đổi bên chịu, không huỷ khoản: dòng ngược sẽ làm số dư âm (R-BIL-13). "Đã nộp vào khoản" = tiền nộp ròng vượt tiền mặt đang
 -- giữ của bên đó trên đơn: HELD + REFUND + SETTLEMENT < 0 và SETTLEMENT ròng < 0 (cùng công thức `soDaNopKhoanPhanDinh`, rules.ts). Dòng đảo mang cùng loại nên trả lại xong tự hết chặn.
 CREATE TRIGGER bil_attribution_da_nop BEFORE INSERT ON bil_attribution
 WHEN NEW.step_code IN ('REASSIGNED', 'REVERSAL') AND EXISTS (
@@ -115,7 +115,7 @@ WHEN NEW.step_code IN ('REASSIGNED', 'REVERSAL') AND EXISTS (
       AND ((l.debtor_party_id = b.ben AND l.creditor_party_id IN (SELECT party_id FROM v_pty_owner_company))
         OR (l.creditor_party_id = b.ben AND l.debtor_party_id IN (SELECT party_id FROM v_pty_owner_company)))
   ) WHERE giu < 0 AND nop < 0)
-BEGIN SELECT RAISE(ABORT, 'attribution_da_nop: bên chịu đã nộp tiền cho khoản này — ghi trả lại bên đó trước'); END;
+BEGIN SELECT RAISE(ABORT, 'attribution_da_nop: bên chịu đã nộp tiền cho khoản này — không đổi, không huỷ được'); END;
 
 -- Người ghi ≠ người phân định (ADR-0116 đ3; khuôn bil_payment_receipt_coc_same_person). Đảo: khác người đã phân định khoản gốc.
 CREATE TRIGGER bil_attribution_same_person BEFORE INSERT ON bil_attribution
@@ -205,6 +205,15 @@ WHEN (NEW.kind_code = 'ATTRIBUTION' AND (
         OR (a.step_code = 'REASSIGNED' AND NEW.creditor_party_id = (SELECT t.liable_party_id FROM bil_attribution r JOIN bil_attribution t ON t.id = r.target_id WHERE r.id = a.target_id)))))))
   OR (NEW.kind_code <> 'ATTRIBUTION' AND (SELECT kind_code FROM bil_posting WHERE id = NEW.posting_id) IS 'ATTRIBUTION')
 BEGIN SELECT RAISE(ABORT, 'attribution_line_invalid: dòng nợ phân định phải đúng phiếu, đúng số và giữa bên chịu với công ty'); END;
+
+-- Tách nhiệm vụ: người ghi lần nộp không phải chính bên đang có khoản phân định trên đơn đó (bên đang chỉ giữ tiền thu hộ thì luật cũ, không chặn). Máy chủ kiểm trước (`ghiQuyetToan`).
+CREATE TRIGGER bil_debt_line_tu_nop BEFORE INSERT ON bil_debt_line
+WHEN NEW.kind_code = 'SETTLEMENT' AND NEW.reverses_line_id IS NULL AND NEW.order_id IS NOT NULL
+  AND NEW.debtor_party_id IN (SELECT party_id FROM v_pty_owner_company)
+  AND NEW.created_by IN (SELECT id FROM v_stf_staff_label WHERE party_id = NEW.creditor_party_id)
+  AND (SELECT COALESCE(SUM(CASE WHEN l.debtor_party_id = NEW.creditor_party_id THEN l.amount ELSE -l.amount END), 0) FROM bil_debt_line l
+       WHERE l.order_id = NEW.order_id AND l.kind_code = 'ATTRIBUTION' AND (l.debtor_party_id = NEW.creditor_party_id OR l.creditor_party_id = NEW.creditor_party_id)) > 0
+BEGIN SELECT RAISE(ABORT, 'attribution_tu_nop: khoản phân định của chính mình — người khác ghi lần nộp'); END;
 
 -- (8) Tạo lại (nguồn: 0083) — phải thu = view (thay `due_snapshot` thuần). Mọi điều kiện khác giữ nguyên chữ.
 DROP TRIGGER bil_posting_replacement_check;

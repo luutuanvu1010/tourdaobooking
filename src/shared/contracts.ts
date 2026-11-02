@@ -2405,8 +2405,8 @@ export interface PhieuPhanDinhDto {
   /** Đơn đã giao quá 60 ngày mà chưa xử lý xong: chỉ nhắc (ADR-0116 đ6). */
   quaHanNhac: boolean;
   phanDinh: { id: string; truongHop: string; benChiu: string; soTien: number; coTienRa: boolean; lyDo: string; nguoiPhanDinh: string; luc: string } | null;
-  /** `daNop` > 0 ⇒ bên chịu đã nộp vào khoản: không đổi / huỷ được tới khi trả lại. `lanNop` = các lần nộp trả lại được (chỉ người có ô ghi sổ). */
-  ghi: { id: string; conHieuLuc: number; truongHopHienTai: string; nguoiGhi: string; luc: string; daNop: number; lanNop: { lineId: string; soTien: number }[] } | null;
+  /** `daNop` > 0 ⇒ bên chịu đã nộp vào khoản: không đổi / huỷ được trên Nền tảng (BACKLOG BL-PD-TRA-LAI). */
+  ghi: { id: string; conHieuLuc: number; truongHopHienTai: string; nguoiGhi: string; luc: string; daNop: number } | null;
   /** T11 quá 7 ngày chưa rõ ai chịu: hiện đỏ, không tự gán (QT4). */
   t11QuaHan: boolean;
   dangDoiBenChiu: { id: string; truongHop: string; benChiu: string; lyDo: string; nguoiPhanDinh: string } | null;

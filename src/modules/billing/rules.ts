@@ -761,18 +761,31 @@ export function kiemLoPhanDinh(i: { soTien: number; phaiThuHienHanh: number; daT
 
 /**
  * ADR-0116 (kiểm độc lập, R-BIL-13): phần bên chịu ĐÃ NỘP vào khoản phân định trên một đơn = tiền nộp ròng vượt tiền mặt đang giữ. Khác 0 ⇒ không đổi bên chịu, không huỷ khoản, vì dòng ngược sẽ làm số dư âm.
- * Trả lại (huỷ lần nộp) xong số này tự về 0. Lớp CSDL cùng công thức: trigger `bil_attribution_da_nop`.
+ * Lớp CSDL cùng công thức: trigger `bil_attribution_da_nop`.
  */
 export function soDaNopKhoanPhanDinh(lines: readonly Pick<LineRow, "kind" | "debtorPartyId" | "creditorPartyId" | "amount">[], ben: string, chu: string): number {
   const nop = -soDuCap(lines.filter((l) => l.kind === "SETTLEMENT"), ben, chu);
   return Math.min(Math.max(0, nop), Math.max(0, -soDuGiuHo(lines, ben, chu)));
 }
-export const CAU_DA_NOP_PHAN_DINH = "Bên chịu đã nộp tiền cho khoản này. Kế toán ghi trả lại bên đó trước (huỷ lần nộp trong sổ), rồi mới đổi bên chịu hoặc huỷ khoản được.";
+export const CAU_DA_NOP_PHAN_DINH = "Bên chịu đã nộp tiền cho khoản này nên không đổi bên chịu hay huỷ khoản được trên Nền tảng. Cần xử lý thì báo Toàn quyền.";
+export const CAU_TU_NOP_PHAN_DINH = "Đây là khoản phân định của chính bạn. Nhờ người khác ghi lần nộp này.";
 
-/** MỘT phép tách số dư của một bên trên MỘT đơn (`giu` = mọi dòng không phải phân định, `khoan` = dòng phân định): tiền nộp vượt tiền đang giữ được tính trừ vào khoản. `giu + khoan` luôn = dangGiu + phaiNop. */
-export function tachKhoanPhanDinh(giu: number, khoan: number): { dangGiu: number; phaiNop: number } {
-  const phaiNop = Math.max(0, khoan + Math.min(0, giu));
-  return { dangGiu: giu + khoan - phaiNop, phaiNop };
+/**
+ * MỘT phép tách số dư của một bên trên MỘT đơn: `giuHo` = dòng HELD + SETTLEMENT + REFUND, `nop` = riêng SETTLEMENT (âm khi đã nộp), `khac` = dòng thương mại (hoa hồng, giá vốn: công ty nợ bên đó), `khoan` = dòng phân định.
+ * CHỈ tiền nộp vượt tiền đang giữ mới trừ vào khoản (cùng công thức `soDaNopKhoanPhanDinh`): công ty còn nợ hoa hồng, giá vốn không làm khoản của T8, T9 biến mất. Tổng bốn số luôn = dangGiu + phaiNop.
+ */
+export function tachKhoanPhanDinh(d: { giuHo: number; nop: number; khac: number; khoan: number }): { dangGiu: number; phaiNop: number } {
+  const daNop = Math.min(Math.max(0, -d.nop), Math.max(0, -d.giuHo));
+  const phaiNop = Math.max(0, d.khoan - daNop);
+  return { dangGiu: d.giuHo + d.khac + d.khoan - phaiNop, phaiNop };
+}
+/** Cộng một dòng vào bốn số của `tachKhoanPhanDinh`. Vắng `kind` ⇒ dòng khác. */
+export function congVaoTach(d: { giuHo: number; nop: number; khac: number; khoan: number }, kind: string | undefined, so: number): void {
+  if (kind === "ATTRIBUTION") d.khoan += so;
+  else if ((LOAI_DONG_GIU_HO as readonly string[]).includes(kind ?? "")) {
+    d.giuHo += so;
+    if (kind === "SETTLEMENT") d.nop += so;
+  } else d.khac += so;
 }
 
 export function soDuTheoBen(lines: readonly Pick<LineRow, "debtorPartyId" | "creditorPartyId" | "amount">[], congTyId: string): Map<string, number> {
@@ -793,24 +806,22 @@ export function soDuTheoBen(lines: readonly Pick<LineRow, "debtorPartyId" | "cre
 export interface DongCuaBen { orderId: string | null; maDon: string | null; ngay: string; debtorPartyId: string; creditorPartyId: string; amount: number; kind?: string }
 export interface DonCuaBen { orderId: string | null; maDon: string | null; ngayGanNhat: string; soTien: number }
 export function nhomDonCuaBen(lines: readonly DongCuaBen[], partyId: string, congTyId: string): { dangGiu: DonCuaBen[]; congTyNo: DonCuaBen[]; phanDinh: DonCuaBen[]; x: number; y: number; z: number } {
-  const theoDon = new Map<string, { orderId: string | null; maDon: string | null; ngay: string; so: number; khoan: number }>();
+  const theoDon = new Map<string, { orderId: string | null; maDon: string | null; ngay: string; tach: { giuHo: number; nop: number; khac: number; khoan: number } }>();
   for (const l of lines) {
     const so = l.debtorPartyId === partyId && l.creditorPartyId === congTyId ? l.amount : l.creditorPartyId === partyId && l.debtorPartyId === congTyId ? -l.amount : 0;
     if (so === 0) continue;
     const k = l.orderId ?? "";
     const cu = theoDon.get(k);
-    const laKhoan = l.kind === "ATTRIBUTION";
-    if (cu) {
-      if (laKhoan) cu.khoan += so;
-      else cu.so += so;
-      if (l.ngay > cu.ngay) cu.ngay = l.ngay;
-    } else theoDon.set(k, { orderId: l.orderId, maDon: l.maDon, ngay: l.ngay, so: laKhoan ? 0 : so, khoan: laKhoan ? so : 0 });
+    const d = cu ?? { orderId: l.orderId, maDon: l.maDon, ngay: l.ngay, tach: { giuHo: 0, nop: 0, khac: 0, khoan: 0 } };
+    congVaoTach(d.tach, l.kind, so);
+    if (l.ngay > d.ngay) d.ngay = l.ngay;
+    theoDon.set(k, d);
   }
   const dangGiu: DonCuaBen[] = [];
   const phanDinh: DonCuaBen[] = [];
   const congTyNo: DonCuaBen[] = [];
   for (const d of theoDon.values()) {
-    const t = tachKhoanPhanDinh(d.so, d.khoan);
+    const t = tachKhoanPhanDinh(d.tach);
     if (t.phaiNop > 0) phanDinh.push({ orderId: d.orderId, maDon: d.maDon, ngayGanNhat: d.ngay, soTien: t.phaiNop });
     if (t.dangGiu === 0) continue;
     (t.dangGiu > 0 ? dangGiu : congTyNo).push({ orderId: d.orderId, maDon: d.maDon, ngayGanNhat: d.ngay, soTien: Math.abs(t.dangGiu) });

@@ -1404,7 +1404,7 @@ Hiện trạng và luồng: `docs/SYSTEM-DESIGN.md` §6 (m), (o). Mỗi mảnh m
 - **Kiểm phần trình duyệt:** `npm test` và e2e không mở trang nên không biết bộ đọc có chạy trong gói thật không; chạy `ve-qr-smoke.mjs` ở `docs/evidence/2026-11-02-ve-qr-tran-lo/kich-ban/`.
 
 ### Phân định trách nhiệm và cảnh báo trùng (ADR-0116, ADR-0092 Đ6a; migration `0135`)
-- Bên chịu đã nộp một phần trở lên thì không đổi bên chịu, không huỷ khoản (409 `attribution_da_nop`, hai lớp); Kế toán bấm «Trả lại tiền đã nộp» ở màn `/phan-dinh` (huỷ dòng nộp) rồi làm tiếp. Khoản phân định không nằm trong «đang giữ»: tách bằng MỘT hàm `tachKhoanPhanDinh` / câu `phan_dinh_theo_ben`. Phải thu hiện hành chỉ đọc qua `phaiThuHienHanhNhieuDon` (bài H1b). Kịch bản Chrome: `docs/evidence/2026-11-02-phan-dinh/kich-ban/phan-dinh-smoke.mjs`.
+- Bên chịu đã nộp một phần trở lên thì không đổi bên chịu, không huỷ khoản (409 `attribution_da_nop`, hai lớp; chưa có đường trả lại: BL-PD-TRA-LAI). Không tự ghi đã nộp khoản của chính mình (409 `attribution_tu_nop`, hai lớp). Khoản phân định không nằm trong «đang giữ»: tách bằng MỘT hàm `tachKhoanPhanDinh` / câu `phan_dinh_theo_ben`. Phải thu hiện hành chỉ đọc qua `phaiThuHienHanhNhieuDon` (bài H1b). Kịch bản Chrome: `docs/evidence/2026-11-02-phan-dinh/kich-ban/phan-dinh-smoke.mjs`.
 
 - **Phải thu hiện hành có MỘT nguồn:** view `v_bil_phai_thu_hien_hanh`, máy chủ đọc qua `phaiThuHienHanh`, trigger và R-BIL-1 đọc cùng view. Đừng đọc `due_snapshot` trực tiếp để so tiền của đơn đã giao.
 - **Thứ tự lô ghi:** dòng chuỗi trước (để view đã tính giảm trừ) → lô Thay hoặc lần trả khách → phiếu ATTRIBUTION (trigger kiểm I1) → dòng nợ → nhật ký, tin. Đảo thứ tự thì trigger báo sai.

@@ -127,19 +127,20 @@ export const balancesAt = async (db: D1Database, ngayCuoi: string): Promise<{ pa
   (await db.prepare(BALANCES_AT).bind(ngayCuoi).all<{ party_id: string; label: string | null; balance: number }>()).results;
 
 /**
- * Khoản phải nộp do phân định của từng bên TÍNH ĐẾN ngày ?1 (ADR-0116; cùng phép tách `tachKhoanPhanDinh`, theo từng đơn: tiền nộp vượt tiền đang giữ được trừ vào khoản). Dùng cho Sổ công nợ và bảng khoá tháng.
+ * Khoản phải nộp do phân định của từng bên TÍNH ĐẾN ngày ?1 (ADR-0116; cùng phép tách `tachKhoanPhanDinh`, theo từng đơn: chỉ tiền nộp vượt tiền đang giữ mới trừ vào khoản, hoa hồng, giá vốn không tính). Dùng cho Sổ công nợ và bảng khoá tháng.
  */
 const PHAN_DINH_THEO_BEN = defineSql(
   "billing",
   "phan_dinh_theo_ben",
-  `SELECT x.ben AS party_id, pl.display_name AS label, SUM(MAX(0, x.khoan + MIN(0, x.giu))) AS khoan FROM (
+  `SELECT x.ben AS party_id, pl.display_name AS label, SUM(MAX(0, x.khoan - MIN(MAX(0, -x.nop), MAX(0, -x.giu_ho)))) AS khoan FROM (
      SELECT CASE WHEN l.creditor_party_id = ct.id THEN l.debtor_party_id ELSE l.creditor_party_id END AS ben, l.order_id,
        SUM(CASE WHEN l.kind_code <> 'ATTRIBUTION' THEN 0 WHEN l.creditor_party_id = ct.id THEN l.amount ELSE -l.amount END) AS khoan,
-       SUM(CASE WHEN l.kind_code = 'ATTRIBUTION' THEN 0 WHEN l.creditor_party_id = ct.id THEN l.amount ELSE -l.amount END) AS giu
+       SUM(CASE WHEN l.kind_code NOT IN ('HELD', 'SETTLEMENT', 'REFUND') THEN 0 WHEN l.creditor_party_id = ct.id THEN l.amount ELSE -l.amount END) AS giu_ho,
+       SUM(CASE WHEN l.kind_code <> 'SETTLEMENT' THEN 0 WHEN l.creditor_party_id = ct.id THEN l.amount ELSE -l.amount END) AS nop
      FROM bil_debt_line l JOIN bil_posting p ON p.id = l.posting_id JOIN (SELECT party_id AS id FROM v_pty_owner_company LIMIT 1) ct ON l.creditor_party_id = ct.id OR l.debtor_party_id = ct.id
      WHERE p.occurred_date <= ?1 AND l.order_id IN (SELECT order_id FROM bil_debt_line WHERE kind_code = 'ATTRIBUTION')
      GROUP BY ben, l.order_id
-   ) x LEFT JOIN v_pty_party_label pl ON pl.id = x.ben GROUP BY x.ben, pl.display_name HAVING SUM(MAX(0, x.khoan + MIN(0, x.giu))) > 0`,
+   ) x LEFT JOIN v_pty_party_label pl ON pl.id = x.ben GROUP BY x.ben, pl.display_name HAVING SUM(MAX(0, x.khoan - MIN(MAX(0, -x.nop), MAX(0, -x.giu_ho)))) > 0`,
 );
 export const phanDinhTheoBen = async (db: D1Database, ngayCuoi: string): Promise<{ party_id: string; label: string | null; khoan: number }[]> =>
   (await db.prepare(PHAN_DINH_THEO_BEN).bind(ngayCuoi).all<{ party_id: string; label: string | null; khoan: number }>()).results;

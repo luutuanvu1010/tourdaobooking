@@ -216,14 +216,6 @@ function formHuy(p: Api.PhieuPhanDinhDto): HTMLElement {
   });
 }
 
-/** Bên chịu đã nộp vào khoản: trả lại từng lần nộp (huỷ dòng nộp trong sổ) thì mới đổi bên chịu hoặc huỷ khoản được. */
-function formTraLai(p: Api.PhieuPhanDinhDto): HTMLElement {
-  return khoiMo("Trả lại tiền đã nộp", "tra-lai", () => {
-    const lyDo = oLyDo("Lý do trả lại (tối thiểu 10 ký tự)");
-    return [lyDo.el, ...p.ghi!.lanNop.map((l) => nutChot(`Đã trả lại ${vnd(l.soTien)}`, "chot-tra-lai", (n) => void chay(() => api("/api/ledger/adjustments", { method: "POST", body: { loai: "dao_dong", lineId: l.lineId, lyDo: lyDo.doc() } }), "Đã ghi trả lại.", n)))];
-  });
-}
-
 function thePhieu(p: Api.PhieuPhanDinhDto): HTMLElement {
   const pd = p.phanDinh;
   const ghiDoi = p.coTheGhiDoi && p.dangDoiBenChiu
@@ -240,10 +232,10 @@ function thePhieu(p: Api.PhieuPhanDinhDto): HTMLElement {
     pd ? h("p", null, `Phân định: ${nhanTH(pd.truongHop)} · ${pd.benChiu} chịu ${vnd(pd.soTien)}${pd.coTienRa ? " · có trả tiền cho khách" : " · không trả tiền cho khách"}`) : null,
     pd ? h("p", { class: "muted" }, `${pd.nguoiPhanDinh} · ${dateTime(pd.luc)} · ${pd.lyDo}`) : null,
     p.ghi ? h("p", null, `Đã ghi sổ: ${vnd(p.ghi.conHieuLuc)} còn hiệu lực · ${p.ghi.nguoiGhi} · ${dateTime(p.ghi.luc)}`) : null,
-    p.ghi && p.ghi.daNop > 0 ? h("p", { "data-khoi": "da-nop" }, `Bên chịu đã nộp ${vnd(p.ghi.daNop)} cho khoản này. Trả lại bên đó rồi mới đổi bên chịu hoặc huỷ khoản được.`) : null,
+    p.ghi && p.ghi.daNop > 0 ? h("p", { "data-khoi": "da-nop" }, `Bên chịu đã nộp ${vnd(p.ghi.daNop)} cho khoản này nên không đổi hay huỷ được trên Nền tảng. Cần xử lý thì báo Toàn quyền.`) : null,
     p.dangDoiBenChiu ? h("p", null, `Đổi bên chịu chờ ghi: ${nhanTH(p.dangDoiBenChiu.truongHop)} · ${p.dangDoiBenChiu.benChiu} · ${p.dangDoiBenChiu.lyDo}`) : null,
     ...p.phanHoi.map((r) => h("p", { class: "muted" }, `Phản hồi của ${r.nguoi} (${dateTime(r.luc)}): ${r.noiDung}`)),
-    h("div", { class: "dc-nut" }, p.coThePhanDinh ? formPhanDinh(p) : null, p.coTheGhi ? formGhi(p) : null, ghiDoi, p.coTheDoiBenChiu ? formDoiBen(p) : null, p.coTheHuy ? formHuy(p) : null, p.ghi && p.ghi.lanNop.length > 0 ? formTraLai(p) : null));
+    h("div", { class: "dc-nut" }, p.coThePhanDinh ? formPhanDinh(p) : null, p.coTheGhi ? formGhi(p) : null, ghiDoi, p.coTheDoiBenChiu ? formDoiBen(p) : null, p.coTheHuy ? formHuy(p) : null));
 }
 
 function theKhoanCuaToi(k: Api.KhoanTrachNhiemDto): HTMLElement {

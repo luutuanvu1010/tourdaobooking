@@ -102,6 +102,8 @@ export async function phanDinh(db: D1Database, input: { requestId: string; raw: 
   if (hh === null) return loi(409, "not_delivered", "Đơn chưa Đã giao.");
   // Trần báo sớm cho người phân định; lúc ghi kiểm lại theo số khi đó.
   if (so.value > hh) return loi(409, "attribution_over_due", `Số giảm trừ vượt phải thu còn lại của đơn (${dong(hh)}).`);
+  // Chủ quyết 2026-11-02 (BL-PD-T4-TOAN-PHAN): chặn ngay ở đây để phiếu không nằm chờ ghi mãi; bước ghi vẫn kiểm vì số có thể đổi sau đó.
+  if (!b.coTienRa && so.value === hh && conLai(receipts.map(toReceiptRow), 0, "confirmed").daThu > 0) return loi(409, "attribution_i1", CAU_KHACH_CHUA_TRA_DONG_NAO);
   if (b.coTienRa && so.value > conLai(receipts.map(toReceiptRow), 0, "confirmed").daThu) return loi(409, "refund_exceeds_paid", "Số trả khách vượt số khách đã trả cho đơn.");
   const id = crypto.randomUUID();
   const at = new Date().toISOString();
@@ -369,12 +371,10 @@ export interface QuyenPhanDinh { deNghi: boolean; quyet: boolean; ghi: boolean; 
 
 const hanPhanHoi = (ghiLuc: string): string => congNgayLamViec(vnToday(new Date(ghiLuc)), NGAY_LAM_VIEC_PHAN_HOI);
 
-/** Phần bên chịu đã nộp + các lần nộp còn hiệu lực (Kế toán trả lại từng lần). Cùng công thức với chặn đổi / huỷ. */
-function tienNopCua(ben: string | null, cty: string | null, dong: readonly DongGiuHo[]): { daNop: number; lanNop: { lineId: string; soTien: number }[] } {
-  if (!ben || !cty || ben === cty) return { daNop: 0, lanNop: [] };
-  const daNop = soDaNopKhoanPhanDinh(dong.map((l) => ({ kind: l.kind_code as "HELD", debtorPartyId: l.debtor_party_id, creditorPartyId: l.creditor_party_id, amount: l.amount })), ben, cty);
-  const biDao = new Set(dong.flatMap((l) => (l.reverses_line_id ? [l.reverses_line_id] : [])));
-  return { daNop, lanNop: daNop === 0 ? [] : dong.filter((l) => l.kind_code === "SETTLEMENT" && !l.reverses_line_id && !biDao.has(l.id) && l.debtor_party_id === cty && l.creditor_party_id === ben).map((l) => ({ lineId: l.id, soTien: l.amount })) };
+/** Phần bên chịu đã nộp. Cùng công thức với chặn đổi / huỷ. */
+function daNopCua(ben: string | null, cty: string | null, dong: readonly DongGiuHo[]): number {
+  if (!ben || !cty || ben === cty) return 0;
+  return soDaNopKhoanPhanDinh(dong.map((l) => ({ kind: l.kind_code as "HELD", debtorPartyId: l.debtor_party_id, creditorPartyId: l.creditor_party_id, amount: l.amount })), ben, cty);
 }
 
 function dungPhieu(q: DongPhanDinh, dongDon: readonly DongPhanDinh[], ai: NguoiGoi, quyen: QuyenPhanDinh, bayGio: string, cty: string | null, giuHo: readonly DongGiuHo[]): PhieuPhanDinhDto {
@@ -385,22 +385,22 @@ function dungPhieu(q: DongPhanDinh, dongDon: readonly DongPhanDinh[], ai: NguoiG
   const chuaXong = trangThai === "cho_phan_dinh" || trangThai === "cho_ghi";
   const dang = k?.dangDoi ?? null;
   const moneyOut = ruling?.money_out === 1;
-  const nop = k ? tienNopCua(k.benChiu, cty, giuHo) : { daNop: 0, lanNop: [] };
+  const daNop = k ? daNopCua(k.benChiu, cty, giuHo) : 0;
   return {
     id: q.id, orderId: q.order_id, maDon: q.order_code ?? "", trangThai, soTienDeNghi: q.amount ?? 0, lyDoDeNghi: q.reason ?? "", nguoiDeNghi: q.created_by_label ?? "—", luc: q.created_at,
     quaHanNhac: chuaXong && q.ngay_giao !== null && quaHanNhac(q.ngay_giao, vnToday(new Date(bayGio))),
     phanDinh: ruling ? {
       id: ruling.id, truongHop: ruling.case_code ?? "", benChiu: k?.benChiuLabel ?? ruling.liable_label ?? "—", soTien: ruling.amount ?? 0, coTienRa: moneyOut, lyDo: ruling.reason ?? "", nguoiPhanDinh: ruling.created_by_label ?? "—", luc: ruling.created_at,
     } : null,
-    ghi: goc && k ? { id: goc.id, conHieuLuc: k.conHieuLuc, truongHopHienTai: k.truongHop ?? "", nguoiGhi: goc.created_by_label ?? "—", luc: goc.created_at, daNop: nop.daNop, lanNop: quyen.ghi ? nop.lanNop : [] } : null,
+    ghi: goc && k ? { id: goc.id, conHieuLuc: k.conHieuLuc, truongHopHienTai: k.truongHop ?? "", nguoiGhi: goc.created_by_label ?? "—", luc: goc.created_at, daNop } : null,
     t11QuaHan: k !== null && k.conHieuLuc > 0 && k.truongHop === "T11" && !dang && quaHanT11(k.ruLucPhanDinh, bayGio),
     dangDoiBenChiu: dang ? { id: dang.id, truongHop: dang.case_code ?? "", benChiu: dang.liable_label ?? "—", lyDo: dang.reason ?? "", nguoiPhanDinh: dang.created_by_label ?? "—" } : null,
     phanHoi: goc ? dongDon.filter((d) => d.root_id === goc.id && d.step_code === "RESPONSE").map((d) => ({ noiDung: d.reason ?? "", nguoi: d.created_by_label ?? "—", luc: d.created_at })) : [],
     coThePhanDinh: quyen.quyet && !ruling,
     coTheGhi: quyen.ghi && !!ruling && !goc && ruling.created_by !== ai.staffId && (!moneyOut || quyen.hoan),
     coTheGhiDoi: quyen.ghi && !!dang && dang.created_by !== ai.staffId,
-    coTheDoiBenChiu: quyen.quyet && !!k && k.conHieuLuc > 0 && !dang && nop.daNop === 0,
-    coTheHuy: quyen.ghi && !!k && k.conHieuLuc > 0 && !dang && ruling?.created_by !== ai.staffId && nop.daNop === 0,
+    coTheDoiBenChiu: quyen.quyet && !!k && k.conHieuLuc > 0 && !dang && daNop === 0,
+    coTheHuy: quyen.ghi && !!k && k.conHieuLuc > 0 && !dang && ruling?.created_by !== ai.staffId && daNop === 0,
   };
 }
 

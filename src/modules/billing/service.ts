@@ -20,7 +20,7 @@ import { phaiThuHienHanh, phaiThuHienHanhNhieuDon } from "./thay-lan-thu-repo";
 import { CAU_HOAN_SAU_GIAO } from "../../shared/phan-dinh";
 import { MA_LOI_TRUNG, kiemTrung, type UngVienTrung } from "../../shared/luat-trung";
 import {
-  CAU_DA_NOP, LY_DO_DIEU_CHINH_TOI_THIEU, METHOD_CODES, benDatHuong, boNoPhanDinh, tachKhoanPhanDinh, canDoiChieu, cumDoiChieu, nhaCungCapCuaDon, phanChuaThuNhaCungCap, soDuGiuHo, type PhanChoNguoiThu, cauLoiCsdlThuongMai, conLai, dongThuongMaiTu, khoanMoiDoiChieu, sinhPhieuDaGiao, tinhTrangThuongMai, type DoiChieuRow, type DongThuongMai, type TinhTrangThuongMai, dong, khoanChoXacNhan, kiemDaoLanThu, kiemDieuChinh, kiemHoanNguoiGiu, kiemQuyetToan, soDuCap, lyDoChuaGiaoDuoc, lyDoChuaHoanThanh, nhaCungCapTheoSo, type CheSoDu, ngayPhatSinh, sinhDongDao, sinhDongHoanKhach, sinhDongLanThu, sinhDongQuyetToan, sinhDongXacNhanCongTy,
+  CAU_DA_NOP, LY_DO_DIEU_CHINH_TOI_THIEU, METHOD_CODES, benDatHuong, boNoPhanDinh, tachKhoanPhanDinh, congVaoTach, CAU_TU_NOP_PHAN_DINH, canDoiChieu, cumDoiChieu, nhaCungCapCuaDon, phanChuaThuNhaCungCap, soDuGiuHo, type PhanChoNguoiThu, cauLoiCsdlThuongMai, conLai, dongThuongMaiTu, khoanMoiDoiChieu, sinhPhieuDaGiao, tinhTrangThuongMai, type DoiChieuRow, type DongThuongMai, type TinhTrangThuongMai, dong, khoanChoXacNhan, kiemDaoLanThu, kiemDieuChinh, kiemHoanNguoiGiu, kiemQuyetToan, soDuCap, lyDoChuaGiaoDuoc, lyDoChuaHoanThanh, nhaCungCapTheoSo, type CheSoDu, ngayPhatSinh, sinhDongDao, sinhDongHoanKhach, sinhDongLanThu, sinhDongQuyetToan, sinhDongXacNhanCongTy,
   soDuTheoBen, nhomDonCuaBen, LOAI_DONG_THUONG_MAI, type LineDraft, type LineRow, type MethodCode, type ReceiptRow, type SoTienDon,
 } from "./rules";
 
@@ -883,6 +883,8 @@ export async function ghiQuyetToan(db: D1Database, input: { raw: unknown; ai: Ng
   // ADR-0092 Đ2 (TNV-G4 KT04, TNV-VP01): nộp ≤ số người đó đang nợ công ty trên TỪNG đơn; trả ≤ số công ty đang nợ người đó. Lớp CSDL: trigger 0080.
   for (const p of phanBo) {
     const dongDon = await linesOfOrder(db, p.orderId);
+    // Tách nhiệm vụ: không tự ghi đã nộp khoản phân định của chính mình. Lớp CSDL: `bil_debt_line_tu_nop`.
+    if (b.chieu === "nop" && b.partyId === input.ai.partyId && soDuCap(dongDon.map(toLineRow).filter((l) => l.kind === "ATTRIBUTION"), b.partyId, congTyId) > 0) return loi(409, "attribution_tu_nop", CAU_TU_NOP_PHAN_DINH);
     const k = kiemQuyetToan({ chieu: b.chieu, soDu: soDuCap(dongDon.map(toLineRow), b.partyId, congTyId), soTien: p.amount, maDon: dongDon[0]?.order_code ?? "này" });
     if (!k.ok) return loi(409, k.ma, k.cau);
   }
@@ -902,6 +904,7 @@ export async function ghiQuyetToan(db: D1Database, input: { raw: unknown; ai: Ng
     const k = await loiKhoaKy(db, e, [ngay.value]);
     if (k) return k;
     // Người khác vừa ghi nộp / xác nhận giữa lúc đọc và lúc ghi → trigger 0080 huỷ cả lô.
+    if (loiTrigger(e, "attribution_tu_nop")) return loi(409, "attribution_tu_nop", CAU_TU_NOP_PHAN_DINH);
     if (loiTrigger(e, "settlement_sign_flip")) return loi(409, "stale", "Số tiền người này chưa nộp về công ty vừa thay đổi — tải lại rồi thử lại.");
     throw e;
   }
@@ -1089,20 +1092,19 @@ export async function soCuaToi(db: D1Database, partyId: string | null): Promise<
   const congTyId = await ownerCompanyId(db);
   if (!partyId || !congTyId) return { dangGiu: 0, khoanPhanDinh: 0, dong: [] };
   // ADR-0116: khoản phân định không phải tiền đang giữ. `soDu` của từng dòng vẫn là số dư sổ (gồm khoản); hai số tổng tách theo từng đơn.
-  const theoDon = new Map<string, { giu: number; khoan: number }>();
+  const theoDon = new Map<string, { giuHo: number; nop: number; khac: number; khoan: number }>();
   let du = 0;
   const dong: SoCuaToiResponse["dong"] = [];
   for (const l of await linesOfParty(db, partyId)) {
     const so = l.debtor_party_id === partyId && l.creditor_party_id === congTyId ? l.amount : l.creditor_party_id === partyId && l.debtor_party_id === congTyId ? -l.amount : 0;
     if (so === 0) continue;
     du += so;
-    const d = theoDon.get(l.order_id ?? "") ?? { giu: 0, khoan: 0 };
-    if (l.kind_code === "ATTRIBUTION") d.khoan += so;
-    else d.giu += so;
+    const d = theoDon.get(l.order_id ?? "") ?? { giuHo: 0, nop: 0, khac: 0, khoan: 0 };
+    congVaoTach(d, l.kind_code, so);
     theoDon.set(l.order_id ?? "", d);
     dong.push({ maDon: l.order_code, ngay: l.occurred_date, loai: LOAI_DONG[l.posting_kind] ?? "Khác", soTien: so, soDu: du });
   }
-  const tach = [...theoDon.values()].map((d) => tachKhoanPhanDinh(d.giu, d.khoan));
+  const tach = [...theoDon.values()].map((d) => tachKhoanPhanDinh(d));
   return { dangGiu: tach.reduce((s, t) => s + t.dangGiu, 0), khoanPhanDinh: tach.reduce((s, t) => s + t.phaiNop, 0), dong };
 }
 

@@ -2,7 +2,7 @@
 // Lối vào của người dùng: nút «Đề nghị phân định» trên trang đơn đã giao, liên kết trên trang Điều chỉnh công nợ, và tin báo; KHÔNG có mục ở thanh bên (trần 10 khối).
 // Bước (mỗi khổ 390 và 1040; dữ liệu dựng bằng API TRƯỚC khi mở trang):
 //   1  Kế toán: có lối vào từ Điều chỉnh công nợ; thấy ba phiếu (chờ phân định, chờ ghi, đã nộp), axe, bố cục.
-//   2  Kế toán: phiếu đã nộp hiện câu «đã nộp», không có nút huỷ; bấm «Trả lại tiền đã nộp» ⇒ câu hết, nút huỷ hiện.
+//   2  Kế toán: phiếu đã nộp hiện câu «đã nộp», không có nút huỷ, không có đường trả lại.
 //   3  Kế toán: «Ghi sổ theo phân định» phiếu chờ ghi ⇒ sang «đã ghi».
 //   4  Kế toán: Sổ công nợ hiện «Khoản phải nộp do phân định» tách khỏi «Đang giữ».
 //   5  Quản trị: «Phân định» phiếu chờ ⇒ sang «chờ ghi»; không có nút ghi của chính phiếu mình phân định.
@@ -74,17 +74,14 @@ try {
       await bocucSach(p, `${kho} Kế toán /phan-dinh`);
       await chup(p, `${kho}-1-ke-toan`);
     });
-    await buoc(`${kho}.2`, "Kế toán: phiếu đã nộp không có nút huỷ, có «Trả lại tiền đã nộp»; trả lại xong nút huỷ hiện", async () => {
+    await buoc(`${kho}.2`, "Kế toán: phiếu đã nộp có câu báo Toàn quyền, không có nút huỷ, không có đường trả lại", async () => {
       const s = the(qC);
       await p.waitFor(`!!document.querySelector(${JSON.stringify(`${s} [data-khoi="da-nop"]`)})`, "câu đã nộp");
+      assert.match(await p.ev(`document.querySelector(${JSON.stringify(`${s} [data-khoi="da-nop"]`)}).textContent`), /báo Toàn quyền/);
       assert.equal(await p.ev(`!!document.querySelector(${JSON.stringify(`${s} [data-action="huy-khoan"]`)})`), false, "nút huỷ phải ẩn");
-      assert.equal(await bam(p, `${s} [data-action="tra-lai"]`), true);
-      await p.waitFor(`!!document.querySelector(${JSON.stringify(`${s} textarea`)})`, "ô lý do");
-      await p.ev(setInput(`document.querySelector(${JSON.stringify(`${s} textarea`)})`, "Công ty đã trả lại tiền cho bên chịu"));
-      await axeKiem(p, `${kho} form trả lại`);
-      await chup(p, `${kho}-2-tra-lai`);
-      assert.equal(await bam(p, `${s} [data-action="chot-tra-lai"]`), true);
-      await p.waitFor(`!document.querySelector(${JSON.stringify(`${s} [data-khoi="da-nop"]`)}) && !!document.querySelector(${JSON.stringify(`${s} [data-action="huy-khoan"]`)})`, "hết câu đã nộp, nút huỷ hiện");
+      assert.equal(await p.ev(`!!document.querySelector(${JSON.stringify(`${s} [data-action="tra-lai"]`)})`), false, "không có đường trả lại");
+      assert.equal(await p.ev(`!!document.querySelector(${JSON.stringify(`${the(qD)} [data-action="huy-khoan"]`)})`), true, "khoản chưa nộp vẫn huỷ được");
+      await chup(p, `${kho}-2-da-nop`);
     });
     await buoc(`${kho}.3`, "Kế toán: ghi sổ phiếu chờ ghi ⇒ sang đã ghi", async () => {
       const s = the(qB);
