@@ -16,6 +16,9 @@ Kế hoạch: `docs/superpowers/plans/2026-11-02-dat-ve-doi-tac-luot-2.md`. Nhá
 - **R10 (2026-11-02):** chủ chưa trả lời câu thứ tự lượt đầu, nên làm Đợt 4 trước Đợt 3. Task 4.2 không có `luot-2-smoke.mjs` để thêm bước vì tệp đó thuộc Task 3.4, nên viết riêng `docs/evidence/2026-11-02-dat-ve-luot-2/kich-ban/cot-cap-smoke.mjs`; Task 5.2 chạy thêm tệp này. Sai thì gộp lại, không mất gì.
 - **R11 (2026-11-02):** bề mặt, ghi lại: `nhacDieuKien` có trong mọi phản hồi của văn phòng vì màn vẽ lại từ các phản hồi đó (người kiểm Đợt 2, N-3). Không ghi thêm dấu vết vào nhật ký lúc cho xe chạy vì ADR Đ3 không đòi (N-4); truy ngược bằng `orders.manifest_exempt`, báo chủ một dòng ở báo cáo cuối.
 
+- **R12 (2026-11-02, người kiểm Đợt 4, N-1):** «Dùng cấp theo vai trò» không có ô ngày để người dùng thấy, nên giao diện đọc lại ngày máy chủ ngay lúc bấm rồi mới gửi; trang mở qua nửa đêm không được làm cấp riêng hết hiệu lực từ hôm qua. Các ô có ngày hiện ra thì lấy ngày máy chủ lúc mở bảng.
+- **R13 (2026-11-02, bề mặt, ghi lại):** «Dùng cấp theo vai trò» kèm một câu cố định báo hệ quả nếu vai trò chưa có cấp; không thêm khoá vào DTO, nên không đổi hợp đồng đã ghim. Sự thật do người kiểm đo: đơn của đại lý «Chưa có cấp» vẫn tạo và xác nhận được, dòng dịch vụ chụp `MISSING`, tới «Đã giao» thì 409 cho tới khi Kế toán ghi mức tay. Nút «Thôi theo cấp này» ở trang Hoa hồng có cùng hệ quả, cũng không cảnh báo: không sửa ở lượt này. Chữ chờ chủ xem ảnh.
+
 ## Rà mâu thuẫn trước khi giao
 
 | Hai task | Chạm chung | Kết quả |
@@ -40,7 +43,7 @@ Mỗi task tự khớp với bài của mình ở mức đọc kế hoạch. `v_
 | 1. Dữ liệu và máy chủ giờ đón | đạt có điều kiện sau hai vòng kiểm: N-4 chờ chủ (R7) | trợ lý tầm trung | `nguoi-kiem-doc-lap` | `274f1f01`, `949be7ab`, `1f8791b9`, `34c457ae`; sửa: `6f91a051`, `b9ed1664`, `2d35f32f` |
 | 2. Công tắc, miễn thiếu tên | đạt có điều kiện: đi cùng Task 3.4 (NS-1) | trợ lý tầm trung | `nguoi-kiem-doc-lap` | `a501f077`, `f12b8fa0` |
 | 3. Giao diện ADR-0154 | chưa | | | |
-| 4. Cột Cấp độ đại lý | đang làm, trước Đợt 3 theo R9 | | | |
+| 4. Cột Cấp độ đại lý | đạt có điều kiện, đang sửa N-1 | trợ lý tầm trung | `nguoi-kiem-doc-lap` | `3af9c08d`, `962c76f3`, `6dca962d` |
 | 5. Tài liệu, bộ kiểm dài, ảnh thật, kiểm độc lập | chưa | | | |
 
 ## Lệch kế hoạch đã có lý do (Đợt 1)
@@ -62,6 +65,8 @@ Mỗi task tự khớp với bài của mình ở mức đọc kế hoạch. `v_
 - Che ghi chú chỉ phủ `services[].note`, đúng phạm vi ADR Đ1.6; chưa che `pickupPlace`, `checkinPlace`.
 - `tests/audit/redteam.test.mjs`: 8 bài đỏ giống hệt nhau trên `8cb58ae4` và `34c457ae` (người kiểm đã đối chứng), nằm ngoài `npm test`. Nguyên nhân đã truy ở R3b, R4, R8: bài dựng đơn nháp lỗi thời so với ADR-0135 Đ6 (`order_not_confirmed`). Không do lượt này; báo chủ như việc riêng.
 - **Giao trợ lý Đợt 4 làm kèm (lỗi nhỏ của Đợt 2):** bài canh vế `valid_from_at <= ?1` của `AN_KHACH_HIEN_HANH` (N-1); bài canh gộp mã đơn của `nhacDieuKien` (N-2); thêm `mienDanhSach: false` vào các hàm dựng `ChangVao` trong bài (N-6).
+- **Đợt 5, Task 5.2:** chạy thêm `docs/evidence/2026-11-02-dat-ve-luot-2/kich-ban/cot-cap-smoke.mjs` (chưa từng chạy); chủ xem ảnh hai nhãn gần nhau «(cấp riêng)», «có mức riêng» (người kiểm Đợt 4, m-6); đề xuất `web/CLAUDE.md` thêm dòng cho `web/cot-cap-dai-ly.ts`, `src/shared/cap-hien-hanh-hien-thi.ts` (m-7). Bảng phá thử của người kiểm Đợt 4 là tư liệu cho `docs/SO-HANG-RAO.md`.
+- m-3 (người kiểm Đợt 4): câu đọc vai quét cả bảng, đo 0,5 ms ở 1.000 vai trên SQLite cục bộ, chưa đo trên D1; đủ dùng với quy mô thật, không sửa.
 - N-5 (người kiểm Đợt 2): chưa có kiểm định kỳ cho «đơn mang dấu mà người lập chưa từng giữ quyền Đối tác»; chỉ là lưới thứ hai, dấu chỉ có một nơi đặt. Không làm ở lượt này.
 - `tests/audit/doi-tac.test.mjs`: 7 bài đỏ giống hệt trên `f8c111ed` và `f12b8fa0`, ngoài `npm test`, cùng loại với `redteam.test.mjs`. Báo chủ như việc riêng.
 - m-6 (người kiểm lần 2): vế `order.services.length === 0` của cổng mới là phòng thủ thừa; `chanDoanXacNhan` đọc ngày đã lưu nên danh sách `missing` có thể nêu lỗi mà `ngayDi` sẽ sửa. Không sai trạng thái, không sửa.
