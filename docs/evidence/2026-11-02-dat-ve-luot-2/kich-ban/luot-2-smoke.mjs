@@ -229,9 +229,12 @@ try {
   });
   dung(mien, 201, "Đối tác lập đơn không khách (công tắc bật)");
   const donMien = mien.json.order;
-  dung(await goiMoi(DOITAC, "POST", `/api/orders/${donMien.id}/gui-don`, {}), 201, "gửi đơn không cần danh sách");
-  const xacNhan = await goiMoi(ACCOUNTS.admin, "POST", `/api/orders/${donMien.id}/status`, { status: "confirmed" });
-  dung(xacNhan, 200, "Quản trị xác nhận đơn không cần danh sách");
+  // Đơn dựng qua API có sẵn giờ đón nên Gửi đơn tự xác nhận (ADR-0154 Đ1.7), không qua văn phòng.
+  const guiMien = await goiMoi(DOITAC, "POST", `/api/orders/${donMien.id}/gui-don`, {});
+  dung(guiMien, 200, "gửi đơn không cần danh sách");
+  assert.equal(guiMien.json.nhanh, "B", "đơn có giờ đón tự xác nhận");
+  const xacNhan = await goiMoi(ACCOUNTS.admin, "GET", `/api/orders/${donMien.id}`);
+  dung(xacNhan, 200, "Quản trị đọc đơn không cần danh sách");
   const legMien = xacNhan.json.order.services[0].legs[0].id;
   const ds = await goiMoi(ACCOUNTS.admin, "GET", `/api/orders/${donMien.id}/passengers`);
   dung(ds, 200, "danh sách hành khách của đơn không cần danh sách");

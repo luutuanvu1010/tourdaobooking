@@ -128,6 +128,8 @@ try {
     assert.equal(await p.ev(`getComputedStyle(document.querySelector('#cap-chon')).fontSize`), "16px", "ô chọn 16px (chống phóng to iOS)");
     assert.equal(await p.ev(`getComputedStyle(document.querySelector('#cap-tu-ngay')).fontSize`), "16px");
     assert.equal(await p.ev(noOverflowX), true);
+    // Bảng khổ máy tính hiện dần từ opacity 0 (app.css); đo tương phản giữa lúc đó cho kết quả sai.
+    await p.waitFor(`getComputedStyle(document.querySelector('.sheet')).opacity === '1'`, "bảng hiện hết");
     await axe(p, "bảng đặt cấp");
     await shotView(p, "cot-cap-1040-bang-dat.png");
     // Lưu khi chưa chọn cấp: lỗi ngay trong bảng, bảng không đóng.
