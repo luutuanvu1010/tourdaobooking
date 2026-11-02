@@ -48,7 +48,9 @@ Mỗi task tự khớp với bài của mình ở mức đọc kế hoạch. `v_
 | 2. Công tắc, miễn thiếu tên | đạt có điều kiện: đi cùng Task 3.4 (NS-1) | trợ lý tầm trung | `nguoi-kiem-doc-lap` | `a501f077`, `f12b8fa0` |
 | 3. Giao diện ADR-0154 | xong, tạm theo R7, chưa chạy `luot-2-smoke.mjs`; kiểm ở vòng cuối (R14) | trợ lý tầm trung | vòng cuối (R14) | `f1a09e6f`, `ce41a0b4`, `58552dd1`, `bb1ba4cb`, `96726bc4`, `0e959157` |
 | 4. Cột Cấp độ đại lý | đã sửa N-1; bản sửa kiểm ở vòng cuối (R14) | trợ lý tầm trung | `nguoi-kiem-doc-lap` | `3af9c08d`, `962c76f3`, `6dca962d`; sửa: `431a9184`, `c4a0ab6c` |
-| 5. Tài liệu, bộ kiểm dài, ảnh thật, kiểm độc lập | chưa | | | |
+| 5. Tài liệu, bộ kiểm, ảnh thật, kiểm độc lập | rút gọn theo lệnh chủ (R16), CHƯA ĐẠT: xem R16 | trợ lý tầm trung | `nguoi-kiem-doc-lap`, kiểm một phần | `d62b9128`, `921c6f37`, `8006dca6` |
+
+**R16 (2026-11-02, chủ: «hoàn tất với cách nhanh nhất, 15 phút»):** rút Đợt 5, hạn 15:05. Kết quả: typecheck 0 lỗi; `npm test` lần duy nhất 7258 bài, 2 đỏ (`app-info`, C4 `tro-ly-van-nghia`), đã sửa hai bài và chạy riêng 32 xanh, CHƯA chạy lại toàn bộ. `cot-cap-smoke` 2 xanh, 5 đỏ: 11b do axe color-contrast ở bảng đặt cấp (`label[for=cap-tu-ngay]`, `#cap-tu-ngay`, `.btn-block`), nghi axe chạy lúc bảng đang mở dần, CHƯA xác minh; 11c, 11d, 11e, 12 chưa kiểm riêng. `luot-2-smoke` xanh bước 1–5, dừng ở dựng đơn: đơn gửi kèm giờ 13:30 nên Gửi đơn trả 200 nhánh B, kịch bản chờ 201; nghi lỗi kịch bản theo ADR-0154 Đ1.7, CHƯA xác minh; bước 6–10 chưa chạy. Người kiểm: không có lỗi Chặn, đơn nháp khi công tắc bật không mất dữ liệu (đã chạy bài); nháp cũ của tài khoản lai mất dấu đặt gấp lượt đầu, máy chủ vẫn chặn (đọc mã), ghi nợ. Chưa kiểm: ba nơi gọi `soanXacNhan`, `role_via_account`, quyền route `…/sua`, sửa cố ý. Chưa chạy: e2e, khối e2e mới, Chrome cũ, khổ 1280. Không nhập nhánh khi chưa xử lý các đỏ trên và chủ chưa chọn cách cho R7.
 
 ## Lệch kế hoạch đã có lý do (Đợt 1)
 
