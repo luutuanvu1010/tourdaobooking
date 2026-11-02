@@ -320,6 +320,26 @@ test("(N-1) đơn quá ngày đi, người xét Bán hàng gửi giờ kèm datG
   assert.deepEqual(dau(w, legId), KHONG_DAU);
 });
 
+// ---- N-2, ruling R8: khoá hàng rào `CON_MO` của câu đóng dấu ---------------------------------------------------------------------------------------
+// Bài ĐUA ở trên dùng chặng CHƯA có giờ nên câu đổi giờ (cũng mang `CON_MO`) thua trước và câu dấu thua theo vì vế `pickup_time IS ?9` lệch, không vì `CON_MO` của chính nó (đột biến M1b của người kiểm
+// vẫn xanh). Ca THẬT SỰ cần `CON_MO` của câu dấu: chặng ĐÃ có giờ, giờ KHÔNG đổi (không câu đổi giờ nào), dưới hạn chốt, kèm datGap — chỉ còn Rút lại chen giữa lúc đọc và lúc ghi giữ dấu khỏi bị ghi.
+test("(N-2) ĐUA ca giờ KHÔNG đổi: chặng đã có giờ dưới hạn chốt, kèm datGap, người lập Rút lại chen trước lô → không dấu mồ côi, không dòng nhật ký đặt gấp, đơn còn nháp, yêu cầu RUT_LAI", async () => {
+  const w = setup();
+  const g = vnSau(60);
+  const { id, o } = await choVanPhong(w, [svc("ZA1", g.date, [leg(g.date, g.time)])]);
+  const legId = o.services[0].legs[0].id as string;
+  const truoc = chang(w, legId);
+  w.chenTruocLo(laXacNhan, async () => { assert.equal((await rut(w, id, A)).status, 200); });
+  const r = await qd(w, id, B, { ketQua: "CON_VE", gioDon: [{ legId, pickupTime: g.time, datGap: DAT_GAP }] });
+  assert.equal(r.status, 409, r.text);
+  assert.equal(q(w, id).moc.s, "draft");
+  assert.deepEqual(q(w, id).yc.map((y: any) => y.outcome), ["RUT_LAI"]);
+  assert.deepEqual(chang(w, legId), truoc, "giờ, ngày không đổi");
+  assert.deepEqual(dau(w, legId), KHONG_DAU, "không dấu mồ côi");
+  assert.equal(nhatKy(w, id, "order_leg_short_notice").length, 0, "không dòng nhật ký mồ côi");
+  assert.equal(nhatKy(w, id, "confirmed").length, 0);
+});
+
 // ---- N-3, ruling R7: thứ tự lượt đầu «chiều đi trước chiều về bất kể ngày» -----------------------------------------------------------------------------
 test("(E4, R7) đơn nhiều ngày có cờ (đi D chưa giờ, về D+1 giờ gợi ý 16:00): người xét CHỈ đổi ngày đi, không ghi giờ → 409 pickup_time_required (nêu chiều đi), không ghi gì; ghi giờ chiều đi thì xác nhận được", async () => {
   const w = setup();

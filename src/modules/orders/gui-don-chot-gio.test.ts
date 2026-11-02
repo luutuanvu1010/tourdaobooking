@@ -145,6 +145,18 @@ test("(e) điều kiện cần của phí đón theo nơi (câu đã áp số 6)
   assert.equal(doc(khongGio.id).chang[0].dropoff_location_id, LOC);
 });
 
+// N-2, ruling R8: khoá `holdsPartner(staff)` ở `canChot`. Bài «văn phòng không bao giờ mang cờ» đi qua `gui-xac-nhan` (vốn không bao giờ mang cờ) nên không canh vế này; người KHÔNG giữ
+// quyền Đối tác mà tới được `gui-don` chỉ có Toàn quyền (ô `order.submit` phạm vi `any`). Đơn Đón không giờ của Toàn quyền phải đi nhánh B như hôm nay — bỏ vế này thì mọi đơn của họ chui vào hàng chờ.
+test("(N-2) Toàn quyền Gửi đơn của chính mình, Đón không giờ → 200 nhánh B như hôm nay: không yêu cầu, không cờ, đơn đã xác nhận", async () => {
+  const w = setup();
+  const o = await lap(w, SUP, [dichVuDon(null)]);
+  const r = await guiDon(w, o.id, SUP);
+  assert.equal(r.status, 200, r.text);
+  assert.equal(r.json.nhanh, "B");
+  assert.equal(mo(w, o.id).length, 0, "không mở yêu cầu");
+  assert.equal(trangThai(w, o.id), "confirmed");
+});
+
 test("(l) tài khoản lai thôi giữ quyền Đối tác khi đơn còn nháp, Đón không giờ: trước khi thôi quyền /status 409 partner_submit_required; sau khi thôi /status 200 confirmed (Đ1.7 — đúng như hôm nay)", async () => {
   const w = setup();
   const o = await lap(w, LAI, [dichVuDon(null)]);
