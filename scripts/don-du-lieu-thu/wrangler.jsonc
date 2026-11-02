@@ -1,0 +1,14 @@
+// ADR-0158: cấu hình riêng để phần xoá dữ liệu thử KHÔNG nằm trong `migrations/`, nên không lọt vào bộ kiểm hay lần triển khai nào.
+// Chỉ chủ chạy, theo README.md cùng thư mục.
+{
+  "name": "tourdao-sales",
+  "compatibility_date": "2026-01-01",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "tourdao-sales-db",
+      "database_id": "bcd4c0ac-7c97-4129-886f-380daecd58fc",
+      "migrations_dir": "migrations"
+    }
+  ]
+}

@@ -1,13 +1,18 @@
--- Migration 0135 — xoá MỘT LẦN dữ liệu thử trước khi dùng thật (ADR-0158). Tệp SINH MÁY từ lược đồ; không sửa tay.
--- Chốt chặn: số đơn hoặc số phiếu thu lớn hơn số chủ đã đếm thì CHECK hỏng, cả lần chạy huỷ, không xoá gì.
-CREATE TABLE tmp_chot_chan_0135 (loai TEXT NOT NULL, so INTEGER NOT NULL, tran INTEGER NOT NULL, CHECK (so <= tran));
-INSERT INTO tmp_chot_chan_0135 SELECT 'don', count(*), 0 FROM orders;
-INSERT INTO tmp_chot_chan_0135 SELECT 'phieu_thu', count(*), 0 FROM bil_payment_receipt;
-DROP TABLE tmp_chot_chan_0135;
+-- Xoá MỘT LẦN dữ liệu thử trước khi dùng thật (ADR-0158). Tệp SINH MÁY bằng sinh-tep-xoa.mjs; không sửa tay. Cách chạy: README.md cùng thư mục cha.
+-- Chốt chặn: một loại có nhiều dòng hơn số chủ đã đếm thì CHECK hỏng và dừng trước mọi câu xoá.
+DROP TABLE IF EXISTS tmp_chot_chan_xoa_thu;
+CREATE TABLE tmp_chot_chan_xoa_thu (loai TEXT NOT NULL, so INTEGER NOT NULL, tran INTEGER NOT NULL, CHECK (so <= tran));
+INSERT INTO tmp_chot_chan_xoa_thu SELECT 'don', count(*), 0 FROM orders;
+INSERT INTO tmp_chot_chan_xoa_thu SELECT 'phieu_thu', count(*), 0 FROM bil_payment_receipt;
+INSERT INTO tmp_chot_chan_xoa_thu SELECT 'chuyen', count(*), 0 FROM vc_trip;
+INSERT INTO tmp_chot_chan_xoa_thu SELECT 've_da_cap', count(*), 0 FROM vdt_allocation;
+INSERT INTO tmp_chot_chan_xoa_thu SELECT 'muc_hoa_hong', count(*), 0 FROM prc_commission_rule;
+INSERT INTO tmp_chot_chan_xoa_thu SELECT 'cap', count(*), 0 FROM prc_rate_tier;
+DROP TABLE tmp_chot_chan_xoa_thu;
 
 PRAGMA defer_foreign_keys = ON;
 
--- Gỡ 46 trigger chặn xoá của đúng các bảng bị dọn; đặt lại nguyên văn ở cuối tệp.
+-- Gỡ 47 trigger; đặt lại nguyên văn ở cuối tệp.
 DROP TRIGGER audit_log_no_delete;
 DROP TRIGGER bil_accounting_entry_no_delete;
 DROP TRIGGER bil_adjustment_request_no_delete;
@@ -54,12 +59,16 @@ DROP TRIGGER vc_trip_stop_no_delete;
 DROP TRIGGER vdt_allocation_no_delete;
 DROP TRIGGER vdt_delivery_no_delete;
 DROP TRIGGER vdt_guest_link_no_delete;
+DROP TRIGGER vdt_ticket_opened_guard;
 
--- Vé đã cấp không về kho: vé thử không bao giờ được phát cho khách thật (ADR-0158 Đ1 mục 4).
-UPDATE vdt_ticket SET status = 'VOID', updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE status = 'ALLOCATED';
+-- Vé đã mở ảnh có thể đã tới tay người khác: giữ dấu mở trước khi xoá phân bổ, để trigger chặn nhập lại vĩnh viễn (ADR-0158 Đ1 mục 4).
+UPDATE vdt_ticket SET opened_at = (SELECT max(a.revealed_at) FROM vdt_allocation a WHERE a.ticket_id = vdt_ticket.id), updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE opened_at IS NULL AND EXISTS (SELECT 1 FROM vdt_allocation a WHERE a.ticket_id = vdt_ticket.id AND a.revealed_at IS NOT NULL);
+-- Vé đã cấp không về kho. Có purged_at thì việc định kỳ sẽ xoá ảnh trên kho sau hạn lưu.
+UPDATE vdt_ticket SET status = 'VOID', purged_at = COALESCE(purged_at, strftime('%Y-%m-%dT%H:%M:%fZ', 'now')), updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE status = 'ALLOCATED';
 
--- Vé hỗ trợ giữ lại, chỉ bỏ liên kết tới đơn sắp xoá.
+-- Vé hỗ trợ giữ lại, chỉ bỏ liên kết tới đơn sắp xoá, kể cả mã đơn trong ngữ cảnh mà màn vé đọc lại.
 UPDATE fbk_ticket SET order_id = NULL, order_code = NULL WHERE order_id IS NOT NULL OR order_code IS NOT NULL;
+UPDATE fbk_ticket SET context = json_remove(context, '$.orderCode') WHERE json_valid(context) AND json_extract(context, '$.orderCode') IS NOT NULL;
 
 -- Con trước cha. Nhật ký chỉ xoá dòng gắn đơn và dòng cùng id với sự kiện chuyến (R-VC-6: hai bên đi đôi).
 DELETE FROM audit_log WHERE order_id IS NOT NULL OR id IN (SELECT id FROM vc_trip_event);
@@ -106,7 +115,7 @@ DELETE FROM prc_rate_tier;
 DELETE FROM vc_trip_stop;
 DELETE FROM vc_trip;
 
--- Đặt lại trigger nguyên văn (bài src/migrations-0135.test.ts so với lược đồ trước đó).
+-- Đặt lại trigger nguyên văn (bài src/don-du-lieu-thu.test.ts so với lược đồ trước đó).
 CREATE TRIGGER audit_log_no_delete BEFORE DELETE ON audit_log
 BEGIN SELECT RAISE(ABORT, 'audit_append_only: nhật ký không được xoá'); END;
 CREATE TRIGGER bil_accounting_entry_no_delete BEFORE DELETE ON bil_accounting_entry
@@ -208,3 +217,10 @@ CREATE TRIGGER vdt_delivery_no_delete BEFORE DELETE ON vdt_delivery
 BEGIN SELECT RAISE(ABORT, 'vdt_append_only: lần giao vé chỉ thêm'); END;
 CREATE TRIGGER vdt_guest_link_no_delete BEFORE DELETE ON vdt_guest_link
 BEGIN SELECT RAISE(ABORT, 'vdt_append_only: đường dẫn khách không xoá được — thu hồi'); END;
+CREATE TRIGGER vdt_ticket_opened_guard BEFORE UPDATE OF opened_at, opened_by ON vdt_ticket
+WHEN (NEW.opened_at IS NOT OLD.opened_at OR NEW.opened_by IS NOT OLD.opened_by)
+  AND (OLD.opened_at IS NOT NULL OR NEW.opened_at IS NULL OR OLD.withdrawn_at IS NULL OR OLD.stored_at IS NULL
+    OR EXISTS (SELECT 1 FROM vdt_ticket s WHERE s.withdrawn_at IS NULL AND s.ticket_code = OLD.ticket_code)
+    OR EXISTS (SELECT 1 FROM vdt_ticket s WHERE s.withdrawn_at IS NULL AND s.content_hash = OLD.content_hash)
+    OR EXISTS (SELECT 1 FROM vdt_ticket s WHERE s.withdrawn_at IS NULL AND (length(s.ticket_code) = 36 AND length(OLD.ticket_code) = 36 AND s.ticket_code NOT GLOB '*[^0-9]*' AND OLD.ticket_code NOT GLOB '*[^0-9]*' AND substr(s.ticket_code, -12) = substr(OLD.ticket_code, -12))))
+BEGIN SELECT RAISE(ABORT, 'vdt_one_way: dấu mở ảnh chỉ ghi một lần, chỉ cho vé đã rút không còn bản đang bán'); END;
