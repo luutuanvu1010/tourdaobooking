@@ -682,7 +682,7 @@ Ghi 2026-10-29 khi đồng bộ bộ «Island Booking System — Design System v
 
 ## 57. Dọn bốn loại đối tác thử còn mức đang áp (mã `BL-R-PRC-2-TA-THU`, 2026-10-31)
 
-- **Trạng thái:** `để sau` · Chủ chọn 31/10: «Đóng mức, giữ tắt», rồi chọn **tạm để đó** tới lần dọn dữ liệu thử trước khi dùng thật. Bài dò `audit-invariants --db remote` sẽ báo `R-PRC-2` (98 vi phạm, không chặn ai làm việc) tới khi dọn.
+- **Trạng thái:** `xong` 2026-11-02: mọi mức hoa hồng đã bị xoá trong lần dọn dữ liệu thử (ADR-0158), `R-PRC-2` hết; bốn loại thử vẫn ở trạng thái tắt. · Chủ chọn 31/10: «Đóng mức, giữ tắt», rồi chọn **tạm để đó** tới lần dọn dữ liệu thử trước khi dùng thật. Bài dò `audit-invariants --db remote` sẽ báo `R-PRC-2` (98 vi phạm, không chặn ai làm việc) tới khi dọn.
 - **Nguồn:** «Đối tác TA1», «Lữ hành TA2», «Lễ tân TA3», «HDV TA4» (`LD_JUJURAFN`, `LD_IRVXLDKL`, `LD_ZQZTYMPF`, `LD_EPNWLOUL`) do chủ tắt lúc 14:52–14:53 giờ VN 31/10; mỗi loại còn 24–26 dòng mức hiệu lực. Tắt loại không tự đóng mức (ADR-0117).
 - **Cách dọn:** Kế toán bấm «Ngừng» từng dòng mức của bốn loại ở thẻ Loại đối tác (đủ nhật ký). Không sửa bằng SQL tay (mất dấu vết, Hiến chương 5.12).
 - **Ý tưởng kèm (chưa duyệt):** nút «Ngừng mọi mức của loại này» chỉ hiện khi loại đã tắt mà còn mức đang áp — để «tắt loại mà quên đóng mức» không lặp lại.
