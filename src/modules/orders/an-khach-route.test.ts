@@ -10,6 +10,7 @@ import assert from "node:assert/strict";
 import { seedStaff } from "../../../tests/audit/harness.mjs";
 import { A, ACC, ADM, H, INTERN, LAI, PARTNER, SUP, inDays, setup, svc } from "../../../tests/audit/xac-nhan-khung.mjs";
 import { thanLapDonKhiAn, thanNhapKhiAn } from "./an-thong-tin-khach.ts";
+import { anKhachBat } from "./xac-nhan-repo.ts";
 
 const URL = "/api/cai-dat/an-thong-tin-khach";
 const AT = "2026-10-01T00:00:00.000Z";
@@ -301,4 +302,18 @@ test("(n5) POST /passengers trên nháp 409 use_order_form; sau xác nhận đ�
   const doi = await w.call("PUT", `/api/orders/${id}/booker`, { as: PARTNER, body: { customerName: "Tên Đổi", customerPhone: "0977777777", bookerPartyId: null, expectedUpdatedAt: ds1.orderUpdatedAt } });
   assert.equal(doi.status, 403, doi.text);
   assert.equal(dong(w, id).ten, TEN(w, PARTNER), "tên liên hệ không đổi được");
+});
+
+// Người kiểm Đợt 2 (lỗi nhỏ gom lại): vế `valid_from_at <= ?1` của câu `AN_KHACH_HIEN_HANH` chưa bài nào canh — bỏ vế đó thì dòng BẬT hẹn ở tương lai áp ngay hôm nay.
+test("(g3) dòng chính sách BẬT hẹn ở TƯƠNG LAI chưa áp: lập đơn giữ nguyên tên, SĐT, hành khách, không dấu; tới đúng mốc hẹn thì mới BẬT (vế valid_from_at <= ?1)", async () => {
+  const w = dung();
+  const henLuc = new Date(Date.now() + 24 * 3600 * 1000).toISOString();
+  const truocMotMs = new Date(Date.parse(henLuc) - 1).toISOString();
+  w.sqlite.prepare("INSERT INTO ord_partner_customer_policy (id, hide_customer_info, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES ('hen-tuong-lai', 1, ?1, ?2, NULL, ?2, NULL)").run(henLuc, AT);
+  assert.equal(await anKhachBat(w.env.DB, truocMotMs), false, "trước mốc hẹn 1 ms: còn TẮT");
+  assert.equal(await anKhachBat(w.env.DB, henLuc), true, "đúng mốc hẹn: BẬT (dùng `<=`, không `<`)");
+  assert.equal((await w.call("GET", URL, { as: SUP })).json.bat, false, "route đọc: dòng hẹn chưa áp");
+  const id = await lap201(w, PARTNER, { passengers: [PAX("Khách Một")] });
+  assert.deepEqual(dong(w, id), { ten: "Tên Giả Của Trình Duyệt", sdt: "0966666666", email: "gia@example.com", ghiChu: "ghi chú giả", mien: 0, ben: null });
+  assert.equal(hanhKhach(w, id).length, 1);
 });

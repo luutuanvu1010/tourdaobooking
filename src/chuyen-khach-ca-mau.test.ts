@@ -62,7 +62,7 @@ const CHINH_SACH = (cs: Json) => ({
 /** Dựng thế giới từ $nen (đã áp nen_rieng + DOI_NEN). Kiểm `tai` của từng chuyến = số suất chiếm chỗ dựng được (đối chiếu đầu vào đã đổi với số của chủ). */
 function dung(nen: Json): TheGioi {
   const chang: Record<string, ChangVao> = {};
-  for (const [k, c] of Object.entries<Json>(nen.chang)) chang[k] = { ...c, nguoiCuaDon: [...c.nguoiCuaDon] };
+  for (const [k, c] of Object.entries<Json>(nen.chang)) chang[k] = { mienDanhSach: false, ...c, nguoiCuaDon: [...c.nguoiCuaDon] }; // ca mẫu JSON cũ không có khoá `mienDanhSach`: «không miễn» (ADR-0154 Đ3)
   const chuyen = new Map<string, Chuyen>();
   const suat: Suat[] = [];
   for (const [k, c] of Object.entries<Json>(nen.chuyen)) {

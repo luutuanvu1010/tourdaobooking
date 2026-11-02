@@ -21,7 +21,7 @@ test("Đợt 7 (ADR-0056 VK3-A): chuyenVao mang khoá phá lệ cam kết (commi
   assert.equal(doc.chuyenVao(ROW, { id: "xe1" }, null).camKetPhaLeKhoa, null);
   assert.equal(doc.chuyenVao({ ...ROW, commitment_override_reason_code: "PL1", commitment_override_key: "xe:xe1|l1:CX:0:15" }, { id: "xe1" }, null).camKetPhaLeKhoa, "xe:xe1|l1:CX:0:15");
   const lich = { legId: "l1", orderId: "o1", orderCode: "ĐH-1", direction: "OUT", pickupDate: "2026-10-05", pickupTime: "06:00", noiTra: null, soNguoi: 2, nguoiCuaDon: ["p1"],
-    datGap: false, khoaNoiDon: "L:x", khoaNoiTra: null };
+    datGap: false, khoaNoiDon: "L:x", khoaNoiTra: null, mienDanhSach: false };
   const xr = doc.changVao({ ...lich, xeRieng: true, choToiThieu: 15 });
   assert.equal(xr.xeRieng, true);
   assert.equal(xr.choToiThieu, 15);

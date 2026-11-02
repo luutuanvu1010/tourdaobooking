@@ -7,7 +7,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import {
-  ACC, ADM, DRIVER, DRIVER2, NGAY, SALES, SUP, batDongHo, chiTiet, chuyenSan, datCongTacAnKhach, denGio, don, donDoiTac, donDoiTacCoDau, setup, tienDo, xepHet,
+  ACC, ADM, DRIVER, DRIVER2, LOC, NGAY, PARTNER, SALES, SUP, batDongHo, chiTiet, chuyenSan, datCongTacAnKhach, denGio, don, donDoiTac, donDoiTacCoDau, setup, taoChuyen, tienDo, xe, xepHet,
 } from "../../../tests/audit/dieu-phoi-khung.mjs";
 
 const { CHECKS } = (await import(new URL("../../../scripts/audit-checks.mjs", import.meta.url).href)) as { CHECKS: { code: string; sql: string; level: string; mode?: string }[] };
@@ -223,6 +223,63 @@ test("dấu miễn không che THIEU_SUAT: O1 xếp thiếu một suất → vẫ
     const x = await tienDo(w, "tai-xe", t.id, "xuat-ben");
     assert.equal(x.status, 409, x.text);
     assert.ok(x.json.error.lyDo.some((l: any) => l.ma === "THIEU_SUAT"));
+  } finally {
+    tat();
+  }
+});
+
+// Người kiểm Đợt 2 (lỗi nhỏ gom lại): `nhacDieuKien` gộp theo mã đơn (`new Set(du.nhac.map(orderCode))`) chưa bài nào canh — bỏ phép gộp thì đơn hai lượt trên cùng chuyến nhắc hai lần.
+/** Đơn mang dấu (công tắc BẬT) có HAI lượt đưa đón: lượt đi đầu chưa giờ (người xét duyệt ghi giờ), lượt về `giaoLuc` — đường thật như `donDoiTacCoDau`, chỉ thêm lượt về. */
+async function donDoiTacHaiLuot(w: any, v: { gioDi: string; gioVe: string }): Promise<{ id: string; code: string; legDi: string; legVe: string }> {
+  const r = await w.call("POST", "/api/orders", {
+    as: PARTNER,
+    body: {
+      customerName: "Tên Giả Của Trình Duyệt", customerPhone: "0966666666", customerNote: "Ghi chú giả của trình duyệt",
+      services: [{
+        kind: "catalog", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 777000 }, departDate: NGAY, pickupChoice: "DON",
+        legs: [
+          { direction: "OUT", pickupDate: NGAY, pickupTime: null, pickupLocationId: null, pickupPlace: "Khách sạn Một Dò Tìm", dropoffLocationId: LOC, dropoffPlace: "" },
+          { direction: "RETURN", pickupDate: NGAY, pickupTime: v.gioVe, pickupLocationId: LOC, pickupPlace: "", dropoffLocationId: null, dropoffPlace: "Khách sạn Một Dò Tìm" },
+        ],
+      }],
+      passengers: [{ fullName: "Khách Giả Của Trình Duyệt", birthYear: 1990, paxCode: "adult" }],
+    },
+  });
+  assert.equal(r.status, 201, r.text);
+  const o = r.json.order;
+  const legDi = o.services[0].legs.find((l: any) => l.direction === "OUT").id as string;
+  const legVe = o.services[0].legs.find((l: any) => l.direction === "RETURN").id as string;
+  const g = await w.call("POST", `/api/orders/${o.id}/gui-don`, { as: PARTNER, body: {} });
+  assert.equal(g.status, 201, g.text);
+  const moc = w.q("SELECT updated_at u FROM orders WHERE id = ?", o.id)[0].u;
+  const yc = w.q("SELECT id FROM ord_confirm_request WHERE order_id = ? AND decided_at IS NULL", o.id)[0];
+  assert.ok(yc, "chống bài rỗng: có yêu cầu đang mở");
+  const x = await w.call("POST", `/api/orders/${o.id}/quyet-dinh`, { as: ACC, body: { yeuCauId: yc.id, updatedAt: moc, ketQua: "CON_VE", gioDon: [{ legId: legDi, pickupTime: v.gioDi }] } });
+  assert.equal(x.status, 200, x.text);
+  return { id: o.id, code: o.orderCode, legDi, legVe };
+}
+
+test("(o6) đơn mang dấu có HAI lượt thiếu tên cùng chuyến: nhacDieuKien chỉ MỘT dòng cho một mã đơn (gộp theo mã đơn), lyDoGiu không có THIEU_TEN; hai đơn mang dấu: mỗi mã đơn một dòng, xếp theo mã", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    await datCongTacAnKhach(w, true);
+    const o1 = await donDoiTacHaiLuot(w, { gioDi: "13:00", gioVe: "14:00" });
+    const xeId = xe(w);
+    const c = await taoChuyen(w, { xe: xeId, taiXe: `pty-${DRIVER}`, bd: "12:30", kt: "15:30" });
+    await xepHet(w, { chuyen: { id: c.chuyen.id } }, { legId: o1.legDi }, 2);
+    await xepHet(w, { chuyen: { id: c.chuyen.id } }, { legId: o1.legVe }, 2);
+    const hai = w.q("SELECT count(DISTINCT leg_id) n FROM vc_trip_allocation WHERE trip_id = ? AND kind = 'PASSENGER' AND valid_to_at IS NULL", c.chuyen.id)[0].n;
+    assert.equal(hai, 2, "chống bài rỗng: cả hai lượt của một đơn đều có suất trên chuyến");
+    assert.equal(w.q("SELECT manifest_exempt m FROM orders WHERE id = ?", o1.id)[0].m, 1, "chống bài rỗng: đơn mang dấu");
+    const ct = await chiTiet(w, c.chuyen.id);
+    assert.ok(!ct.chuyen.lyDoGiu.some((l: any) => l.ma === "THIEU_TEN"), JSON.stringify(ct.chuyen.lyDoGiu));
+    assert.deepEqual(ct.nhacDieuKien, [{ ma: "KHONG_CAN_DANH_SACH", maDon: o1.code }], "hai lượt, một mã đơn: một dòng nhắc");
+    // Thêm đơn mang dấu thứ hai (một lượt) lên cùng chuyến: mỗi mã đơn đúng một dòng, xếp theo mã.
+    const o2 = await donDoiTacCoDau(w, { soNguoi: 2, noiDon: "Khách sạn Hai Dò Tìm" });
+    await xepHet(w, { chuyen: { id: c.chuyen.id } }, o2, 2);
+    const ct2 = await chiTiet(w, c.chuyen.id);
+    assert.deepEqual(ct2.nhacDieuKien, [o1.code, o2.code].sort().map((maDon) => ({ ma: "KHONG_CAN_DANH_SACH", maDon })));
   } finally {
     tat();
   }
