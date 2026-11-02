@@ -2,7 +2,7 @@
 // Luật của TỪNG DỊCH VỤ (số khách, thông tin chuyến, dòng tiền sinh từ danh mục) nằm ở ./service-rules.ts.
 // Chỉ import file thuần của shared, không chạm I/O để kiểm thử độc lập bằng `npm test`.
 import { parseBooker, type BookerInput } from "../../shared/booker.ts";
-import { docLoiKhai } from "../../shared/dat-coc-truoc";
+import { docLoiKhai } from "../../shared/dat-coc-truoc.ts";
 import { MAX_CHANG_MOI_DICH_VU, doiNgayChang, kiemChang, tronChangCu, type ChangHopLe } from "../../shared/chang-dua-don.ts";
 import type { OrderStatus } from "../../shared/contracts.ts";
 import { kiemDanhSachHanhKhach, type HanhKhachHopLe } from "../../shared/hanh-khach.ts";
