@@ -1,6 +1,6 @@
 # ADR-0158 — Xoá một lần dữ liệu thử trước khi dùng thật
 
-- **Trạng thái:** **đề xuất** 2026-11-02, chờ chủ dự án duyệt. Lời chủ trong chat, nguyên văn: *«Đóng tất cả dữ liệu cũ gồm đơn hàng, chính sách giá , cấp độ đại lý»*; rồi chọn *«Toàn bộ là đơn thử»*, *«Xóa khỏi cơ sở dữl iệu»*, *«Toàn bộ hoa hồng, nhập lại»*, *«Đóng và xóa»*, *«Xoá cả phần gắn đơn»*.
+- **Trạng thái:** **accepted** 2026-11-02 — chủ dự án trong chat, nguyên văn: *«Duyệt»*, sau khi đọc báo cáo nêu phần bị xoá, phần giữ lại, hệ quả và điều chưa kiểm. Lời chủ trước đó, nguyên văn: *«Đóng tất cả dữ liệu cũ gồm đơn hàng, chính sách giá , cấp độ đại lý»*; rồi chọn *«Toàn bộ là đơn thử»*, *«Xóa khỏi cơ sở dữl iệu»*, *«Toàn bộ hoa hồng, nhập lại»*, *«Đóng và xóa»*, *«Xoá cả phần gắn đơn»*.
 - **Loại:** việc lớn (dữ liệu, tiền). **Cửa một chiều.** Đường quay lại duy nhất là điểm khôi phục Time Travel của D1.
 - **Số quyết định chạm quyền/dữ liệu trong lượt duyệt này: 1.**
 - **Xây trên lỗ đang hở:** chưa đối chiếu `docs/quyen-hoan.json`; việc này không thêm route, không đổi quyền, không đổi mã Nền tảng.
