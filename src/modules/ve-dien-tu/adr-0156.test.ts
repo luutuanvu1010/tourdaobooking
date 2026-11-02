@@ -378,8 +378,29 @@ test("lô đã huỷ: vé hỏng lúc gửi (chưa từng vào kho) không tính
   const lo = (await daHuy(w)).json.lo;
   assert.equal(lo.some((l: any) => l.loId === loRong), false, "lô rỗng không có gì để tra");
   assert.deepEqual(lo.find((l: any) => l.loId === loId).ve.map((x: any) => x.duoiMa), ["1111"]);
-  for (let i = 0; i < 50; i++) await bo(w, (await taoLo(w, { tenSanPham: `Rỗng ${i}` })).json.loId);
-  assert.deepEqual((await daHuy(w)).json.lo.map((l: any) => l.loId), [loId], "50 lô rỗng mới hơn không đẩy lô có vé ra khỏi danh sách");
+  for (let i = 0; i < 5; i++) await bo(w, (await taoLo(w, { tenSanPham: `Rỗng ${i}` })).json.loId);
+  w.r2VeDienTu.hong.put = true;
+  for (let i = 0; i < 50; i++) {
+    const hong = (await taoLo(w, { tenSanPham: `Toàn vé hỏng ${i}` })).json.loId;
+    await them(w, hong, [ve(2)]);
+    await bo(w, hong);
+  }
+  w.r2VeDienTu.hong.put = false;
+  assert.deepEqual((await daHuy(w)).json.lo.map((l: any) => l.loId), [loId], "các lô không có vé nào vào kho, dù mới hơn, không đẩy lô có vé ra khỏi danh sách 50 lô");
+});
+
+test("lô đã huỷ: mỗi lần đọc tối đa 50 lô, lấy lô mới nhất", async () => {
+  const w = setup();
+  for (let i = 0; i < 51; i++) {
+    const loId = (await taoLo(w, { tenSanPham: `Lô ${i}` })).json.loId;
+    await them(w, loId, [ve(100 + i)]);
+    await bo(w, loId);
+    luiNgay(w, loId, 1 - i / 100);
+  }
+  const ten = (await daHuy(w)).json.lo.map((l: any) => l.tenSanPham);
+  assert.equal(ten.length, 50);
+  assert.equal(ten[0], "Lô 50");
+  assert.equal(ten.includes("Lô 0"), false, "lô cũ nhất rơi khỏi danh sách");
 });
 
 test("lô đã huỷ: mọi quyền ngoài Bán hàng, Quản trị, Toàn quyền đều không đọc được", async () => {
