@@ -308,7 +308,7 @@ function donKhiBiNgat(tin, ma) {
         /* đã tắt */
       }
       try {
-        if (m.persist) rmSync(m.persist, { recursive: true, force: true });
+        if (m.persist && !process.env.E2E_GIU_D1) rmSync(m.persist, { recursive: true, force: true });
       } catch {
         /* bỏ qua */
       }
@@ -362,7 +362,7 @@ try {
     m.server?.stdout?.destroy();
     m.server?.stderr?.destroy();
     m.server?.unref();
-    if (m.persist) rmSync(m.persist, { recursive: true, force: true });
+    if (m.persist && !process.env.E2E_GIU_D1) rmSync(m.persist, { recursive: true, force: true });
   }
 }
 console.log(`Thời gian e2e: ${((Date.now() - batDau) / 1000).toFixed(0)} giây (${soNhom} nhóm)`);
