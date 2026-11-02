@@ -24,6 +24,9 @@ Không có đường nào đưa vé có thể đã tới tay khách quay lại k
 - **Thấp, `R-VDT-4` bỏ qua vé VOID:** người kiểm nêu thành câu hỏi cho chủ. Người thi công tự áp vì chỉ siết một kiểm chỉ đọc, đảo ngược được, và đúng mục đích bắt bán trùng. **Lệch chữ ADR** («còn hiệu lực»).
 - **Thấp, gác câu rút vé theo mốc thời gian:** đổi sang dấu lệnh `last_cmd_id`, làm ngay vì `0132` chưa áp ở đâu.
 
+## Kiểm độc lập lần 2 (2/11): ĐẠT, commit `a3dbd711`
+Trung 1–3 đã đóng, không có lỗi mới trên mức Thấp. Người kiểm tự chạy Chrome hai khổ (xanh) và phá thử `LB_PHA=qr-gia` (bước 1040.6 đỏ), nên hàng rào Đ1 đã được người kiểm độc lập quan sát chặn thật. Việc định kỳ chạy xen lúc đang gửi ảnh và trên lô đang bán không xoá nhầm ảnh; lỗi của nó không kéo theo đồng bộ danh mục. **Điều kiện:** chủ biết hai chỗ lệch ADR trước khi gộp (việc định kỳ dọn ảnh; `R-VDT-4` mức `fail` tính cả vé VOID không mang dấu rút). Chưa kiểm: iPhone thật; cron trên production; D1 có hoàn lại cả tệp khi migration lỗi không.
+
 ## Bằng chứng
 - Trình duyệt: `ve-qr-smoke.mjs` hai khổ 390 và 1040, cần `AXE_JS`. Ảnh ở `docs/evidence/2026-11-02-ve-qr-tran-lo/anh/`, chỉ có dữ liệu thử.
 - 50 ảnh cỡ 1170×2532 (khoảng 13 MB tổng) trên Chrome của máy Mac: 4,0 giây, khoảng đứng hình lâu nhất 80 mili giây.
@@ -35,6 +38,8 @@ Không có đường nào đưa vé có thể đã tới tay khách quay lại k
 - Bước 50 ảnh treo im lặng mất nhiều lần chạy: công cụ thử (CDP `Network.enable`) ghi cả thân yêu cầu vài MB nên kết nối đứt, mọi lời gọi vào trang không bao giờ trả lời. Không phải lỗi của trang. Đã giới hạn `maxPostDataSize` và thêm giờ giới hạn riêng trong kịch bản, đã ghi ở công thức z31.
 
 ## Nợ
+- Hàng chờ xoá lấy 50 dòng cũ nhất mỗi lần: 50 dòng liên tục không xoá được sẽ chặn các dòng sau; `R-VDT-5` thấy số đếm tăng (suy luận, chưa chạy).
+- Bỏ lô xen giữa lúc gửi mà lần xoá ngay cũng gặp kho hỏng: ảnh còn và `R-VDT-5` không thấy, chỉ có dòng log (người kiểm đã tái hiện). Cần hai lỗi kho trùng một lúc.
 - Nhật ký của lô chèn vé gác theo câu chèn cuối: riêng lúc hai người nhập đúng lúc thì có thể thiếu dòng hoặc đếm dư. Vé không sai; để lại vì sửa đúng cần tách nhật ký khỏi lô, đổi lấy một ca hiếm.
 - Lô đã vào kho cũ hơn 50 lô mới nhất không bỏ được bằng trang, phải gọi API theo mã lô.
 - `ve-kho.js` tăng từ 86 KB lên 223 KB (77 KB khi nén). Luật hiện hành nạp sẵn MỌI trang (`PRECACHE`, có bài kiểm), nên mọi máy kể cả điện thoại Đối tác và tài xế tải thêm phần này mỗi bản dựng. Muốn tránh phải có ngoại lệ có tên cho trang này: chủ quyết.
