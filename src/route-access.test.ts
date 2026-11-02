@@ -297,7 +297,7 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/cai-dat/nhap-tay", access: "admin" }, // ADR-0061 điều 6: bật / tắt — thân hỏi can(settings.ops) (chỉ Toàn quyền)
   { method: "GET", path: "/api/cai-dat/xac-nhan-don", access: "admin" }, // ADR-0136 Đ1, Đ5: cờ cần xác nhận + công tắc tự xác nhận — thân hỏi can(settings.ops)
   { method: "POST", path: "/api/cai-dat/xac-nhan-don", access: "admin" }, // như trên; chỉ Toàn quyền ghi
-  { method: "GET", path: "/api/cai-dat/khung-gio-don", access: "orders" }, // ADR-0134 Đ6: bộ khung giờ đón — thân hỏi can(order.create)
+  { method: "GET", path: "/api/cai-dat/khung-gio-don", access: "orders" }, // ADR-0134 Đ6: bộ khung giờ đón — thân hỏi can(order.create) hoặc can(order.confirm.review) (ADR-0154 Đ1.5)
   { method: "POST", path: "/api/cai-dat/khung-gio-don", access: "admin" }, // ADR-0134 Đ6: đổi khung / câu lưu ý — thân hỏi can(settings.ops) (chỉ Toàn quyền)
   { method: "GET", path: "/api/parties", access: "office" },
   { method: "POST", path: "/api/parties", access: "office" },

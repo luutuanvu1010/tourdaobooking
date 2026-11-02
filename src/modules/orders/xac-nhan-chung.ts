@@ -7,6 +7,7 @@ import type { DongBoChuyenDto, IncompleteTripBody, LyDoCanXacNhan, OrderDetailDt
 import { can, holdsIntern, holdsPartner } from "../../shared/permissions";
 import { error, json } from "../../shared/http";
 import { vnToday } from "../../shared/vn-date";
+import { maskLongDigits } from "../../shared/text-guards";
 import { parseUnit } from "../../shared/order-lines";
 import type { DongBoTheoDon } from "../../shared/dong-bo-chuyen";
 import { CAU_THIEU_NGUOI_LON, donThieuNguoiLon } from "../../shared/nguoi-di-kem";
@@ -205,8 +206,14 @@ export async function khoaKhiCho(db: D1Database, orderId: string, status: OrderS
 /**
  * Đ6: chi tiết đơn ĐANG CHỜ cho người xét duyệt KHÔNG phải người lập — bỏ SĐT, email, tên khách, ghi chú khách, ghi chú thanh toán (liên hệ người đặt vốn không nằm trong DTO này, chỉ có
  * `bookerName`). Dịch vụ, ngày, số khách, giờ đón, tiền giữ nguyên. Hành khách (họ tên, năm sinh) không bao giờ nằm trong DTO đơn — route `…/passengers` vẫn 404.
+ * ADR-0154 Đ1.6: `cheGhiChu` (người lập đơn HIỆN GIỮ quyền Đối tác — `nguoiLapGiuDoiTac`) thì ghi chú từng dịch vụ đi qua `maskLongDigits` (đối tác hay dán SĐT khách vào ô ghi chú); đơn
+ * của nhân viên công ty giữ nguyên chữ. Tham số BẮT BUỘC để hai nơi gọi (chi tiết đơn đang chờ, phản hồi đặt gấp của người xét) không quên tính cờ. Dựng đối tượng MỚI, không sửa `o`.
  */
-export const catChoXetDuyet = (o: OrderDetailDto): OrderDetailDto => ({ ...o, customerName: "", customerPhone: "", customerEmail: null, customerNote: null, paymentNote: null });
+export const catChoXetDuyet = (o: OrderDetailDto, tuyChon: { cheGhiChu: boolean }): OrderDetailDto => ({
+  ...o,
+  customerName: "", customerPhone: "", customerEmail: null, customerNote: null, paymentNote: null,
+  services: tuyChon.cheGhiChu ? o.services.map((s) => ({ ...s, note: s.note === null ? null : maskLongDigits(s.note) })) : o.services,
+});
 
 /**
  * Khối `xacNhan` của `GET /api/orders/:id` (Task 3.5): giao diện KHÔNG suy ra «đang chờ», «cần xác nhận», «quyết định được» — máy chủ quyết theo người xem, cùng hàm với các route

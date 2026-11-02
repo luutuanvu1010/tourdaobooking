@@ -4220,3 +4220,112 @@ test("R-PRC-8 (ADR-0146 Đ1): luật bán chưa hết hạn trỏ loại đang t
   db.prepare("UPDATE prc_sales_block SET valid_to_date = ?, updated_at = ? WHERE id = 'sb-1'").run(vnNgay(-1), T3);
   assert.equal(violations(db, c), 1, "kết thúc luật → hết báo");
 });
+
+// ---------------------------------------------------------------------------------------------------------------------
+// ADR-0154 Đ1.7 + kế hoạch lượt 2 Task 1.4 (câu đã áp số 4): R-ORD-17w — đơn ĐÃ XÁC NHẬN, tạo SAU mốc phát hành (mốc = `MIN(created_at)` của `ord_partner_customer_policy`), người lập TỪNG
+// giữ quyền Đối tác (kể cả dòng đã đóng), mà LƯỢT ĐẦU của một dịch vụ (ngày — trống sau → chiều đi trước chiều về → giờ có trước trống → giờ → id) chưa có giờ đón. Mức warn: đơn của tài khoản đã
+// thôi quyền Đối tác xác nhận được qua `/status` (Đ1.7 — chấp nhận, có kiểm). Đơn văn phòng hợp lệ (không giờ, người lập chưa từng là Đối tác) KHÔNG bị đếm.
+// ---------------------------------------------------------------------------------------------------------------------
+let so17w = 0;
+interface Chang17w { direction: "OUT" | "RETURN"; ngay: string | null; gio: string | null }
+/** `build()` tắt khoá ngoại (như SQL gõ tay): bài kiểm CÂU KIỂM ĐỊNH KỲ, không kiểm lớp CSDL của đơn. */
+function build17w(): DatabaseSync {
+  const db = build();
+  db.exec("PRAGMA foreign_keys = OFF");
+  return db;
+}
+/**
+ * Đơn + các dịch vụ `dvs` (mỗi dịch vụ một mảng chặng; id `l17-<n>-<d>-<i>`); `status` đặt sau cùng (gỡ hai trigger «xác nhận cần chuyến / ngày chặng» để dựng được chặng không ngày).
+ * Trả `legIds[d][i]` theo đúng thứ tự khai.
+ */
+function don17w(db: DatabaseSync, o: { staff: string; dvs: Chang17w[][]; taoLuc?: string; status?: "draft" | "confirmed" }): { order: string; legIds: string[][] } {
+  const n = ++so17w;
+  const order = `o17-${n}`;
+  const luc = o.taoLuc ?? new Date(Date.now() + 60_000).toISOString();
+  db.prepare("INSERT INTO orders (id, order_code, staff_id, status, customer_name, customer_phone, created_at, updated_at) VALUES (?, ?, ?, 'draft', 'K', '0900000009', ?, ?)").run(order, `TD17-${n}`, o.staff, luc, luc);
+  const legIds = o.dvs.map((legs, d) => {
+    db.prepare("INSERT INTO order_service (id, order_id, sort_order, catalog_code, name, unit, pax_adult, depart_date) VALUES (?, ?, ?, 'ZH1', 'Tour', 'perPax', 2, '2026-10-05')").run(`sv17-${n}-${d}`, order, d);
+    return legs.map((l, i) => {
+      const id = `l17-${n}-${d}-${i}`;
+      db.prepare(`INSERT INTO ord_transfer_leg (id, order_id, order_service_id, direction, pickup_date, pickup_time, pickup_place, dropoff_place, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, 'Khách sạn', 'Bến', ?, ?)`).run(id, order, `sv17-${n}-${d}`, l.direction, l.ngay, l.gio, luc, luc);
+      return id;
+    });
+  });
+  if ((o.status ?? "confirmed") === "confirmed") {
+    db.exec("DROP TRIGGER IF EXISTS orders_confirm_requires_leg_date");
+    db.exec("DROP TRIGGER IF EXISTS orders_confirm_requires_trip");
+    db.prepare("UPDATE orders SET status = 'confirmed' WHERE id = ?").run(order);
+  }
+  return { order, legIds };
+}
+
+test("R-ORD-17w (ADR-0154 Đ1.7): đơn xác nhận SAU mốc, người lập từng giữ Đối tác (kể cả đã thôi), lượt đầu Đón không giờ → đếm (warn); đơn văn phòng, đơn trước mốc, có giờ, Không đón, đơn nháp → không đếm", () => {
+  const c = one("R-ORD-17w");
+  assert.equal(c.level, "warn", "mức cảnh báo vĩnh viễn: thoát 1 sẽ dừng trien-khai, và đơn của tài khoản đã thôi quyền Đối tác xác nhận được (Đ1.7)");
+  assert.match(c.sql, /ord_partner_customer_policy/, "mốc = MIN(created_at) của bảng chính sách mới");
+  assert.doesNotMatch(c.sql, /valid_to_at/, "người lập từng giữ quyền, KỂ CẢ dòng đã đóng — không lọc valid_to_at");
+  const db = build17w();
+  const D = "2026-10-05";
+  const dich = (legs: Chang17w[]): Chang17w[][] => [legs];
+  assert.equal(violations(db, c), 0, "chưa đơn nào");
+  // đơn văn phòng hợp lệ: s-an chưa từng là Đối tác, không giờ → 0
+  don17w(db, { staff: "s-an", dvs: dich([{ direction: "OUT", ngay: D, gio: null }]) });
+  assert.equal(violations(db, c), 0, "đơn văn phòng Đón không giờ vẫn hợp lệ (tiêu chí j)");
+  // tài khoản lai còn giữ PARTNER: lượt đầu Đón không giờ → đếm
+  don17w(db, { staff: "s-lai", dvs: dich([{ direction: "OUT", ngay: D, gio: null }]) });
+  assert.equal(violations(db, c), 1, "người lập giữ quyền Đối tác, Đón không giờ");
+  // đã THÔI quyền Đối tác (đóng dòng) vẫn đếm — kể cả dòng đã đóng — cho đơn tạo từ đây
+  db.exec("UPDATE stf_permission SET valid_to_at = valid_from_at WHERE id = 'stp-lai-partner'");
+  assert.equal(violations(db, c), 1, "đóng dòng PARTNER không làm đơn cũ biến mất khỏi kiểm");
+  don17w(db, { staff: "s-lai", dvs: dich([{ direction: "OUT", ngay: D, gio: null }]) });
+  assert.equal(violations(db, c), 2, "đơn xác nhận qua /status của tài khoản đã thôi quyền Đối tác (Đ1.7) — cảnh báo");
+  // trước mốc phát hành: không đếm
+  don17w(db, { staff: "s-lai", dvs: dich([{ direction: "OUT", ngay: D, gio: null }]), taoLuc: T1 });
+  assert.equal(violations(db, c), 2, "đơn tạo trước mốc");
+  // có giờ, Không đón, đơn nháp: không đếm
+  don17w(db, { staff: "s-lai", dvs: dich([{ direction: "OUT", ngay: D, gio: "08:00" }]) });
+  don17w(db, { staff: "s-lai", dvs: dich([]) });
+  don17w(db, { staff: "s-lai", dvs: dich([{ direction: "OUT", ngay: D, gio: null }]), status: "draft" });
+  assert.equal(violations(db, c), 2, "có giờ / Không đón / đơn nháp không đếm");
+  // chiều đi trống giờ nhưng chiều về có giờ: lượt đầu là chiều đi → đếm (khác legs[0] của xepChang)
+  don17w(db, { staff: "s-lai", dvs: dich([{ direction: "RETURN", ngay: D, gio: "16:00" }, { direction: "OUT", ngay: D, gio: null }]) });
+  assert.equal(violations(db, c), 3, "chiều đi trống, chiều về có giờ gợi ý cùng ngày");
+  don17w(db, { staff: "s-lai", dvs: dich([{ direction: "RETURN", ngay: D, gio: null }]) });
+  assert.equal(violations(db, c), 4, "chỉ chiều về, không giờ (tiêu chí k)");
+  // mỗi đơn chỉ đếm MỘT lần dù nhiều dịch vụ thiếu giờ
+  don17w(db, { staff: "s-lai", dvs: [[{ direction: "OUT", ngay: D, gio: null }], [{ direction: "OUT", ngay: D, gio: null }]] });
+  assert.equal(violations(db, c), 5, "đơn nhiều dịch vụ thiếu giờ: đếm đơn, không đếm dịch vụ");
+  // hai chiều đi cùng ngày, một có giờ một trống: giờ có trước ⇒ lượt đầu có giờ ⇒ không đếm
+  don17w(db, { staff: "s-lai", dvs: dich([{ direction: "OUT", ngay: D, gio: null }, { direction: "OUT", ngay: D, gio: "08:00" }]) });
+  assert.equal(violations(db, c), 5, "giờ có trước giờ trống: lượt đầu đã có giờ");
+});
+
+test("R-ORD-17w và changDauCuaDichVu chọn CÙNG lượt: trên mỗi ca xếp chặng, kiểm định kỳ đếm đơn ⇔ thieuGioChangDau báo thiếu (một thứ tự cho máy chủ và kiểm định kỳ)", async () => {
+  const { thieuGioChangDau } = await import("./shared/chang-dua-don.ts");
+  const c = one("R-ORD-17w");
+  const db = build17w();
+  const D = "2026-10-05";
+  const D2 = "2026-10-06";
+  const ca: { ten: string; legs: Chang17w[] }[] = [
+    { ten: "Đón không giờ", legs: [{ direction: "OUT", ngay: D, gio: null }] },
+    { ten: "Có giờ", legs: [{ direction: "OUT", ngay: D, gio: "08:00" }] },
+    { ten: "chiều đi trống + chiều về có giờ cùng ngày", legs: [{ direction: "OUT", ngay: D, gio: null }, { direction: "RETURN", ngay: D, gio: "16:00" }] },
+    { ten: "chỉ chiều về không giờ", legs: [{ direction: "RETURN", ngay: D, gio: null }] },
+    { ten: "chiều về ngày sớm hơn có giờ, chiều đi ngày sau trống", legs: [{ direction: "RETURN", ngay: D, gio: "16:00" }, { direction: "OUT", ngay: D2, gio: null }] },
+    { ten: "hai chiều đi cùng ngày: 09:30 và trống", legs: [{ direction: "OUT", ngay: D, gio: "09:30" }, { direction: "OUT", ngay: D, gio: null }] },
+    { ten: "hai chiều đi cùng ngày: trống và 09:30", legs: [{ direction: "OUT", ngay: D, gio: null }, { direction: "OUT", ngay: D, gio: "09:30" }] },
+    { ten: "ngày trống xếp sau", legs: [{ direction: "OUT", ngay: null, gio: null }, { direction: "OUT", ngay: D, gio: "08:00" }] },
+    { ten: "ngày sớm hơn thắng dù trống giờ", legs: [{ direction: "OUT", ngay: D, gio: null }, { direction: "OUT", ngay: D2, gio: "08:00" }] },
+    { ten: "chiều về và chiều đi cùng ngày đều có giờ", legs: [{ direction: "RETURN", ngay: D, gio: "07:00" }, { direction: "OUT", ngay: D, gio: "16:00" }] },
+    { ten: "chiều về có giờ, chiều đi trống, ngày chiều về TRỐNG", legs: [{ direction: "RETURN", ngay: null, gio: "07:00" }, { direction: "OUT", ngay: D, gio: null }] },
+  ];
+  let mong = 0;
+  for (const k of ca) {
+    const { order, legIds } = don17w(db, { staff: "s-lai", dvs: [k.legs] });
+    const phuMay = thieuGioChangDau([{ id: "dv", legs: k.legs.map((l, i) => ({ id: legIds[0]![i]!, direction: l.direction, pickupDate: l.ngay, pickupTime: l.gio })) }]).length > 0;
+    if (phuMay) mong++;
+    assert.equal(violations(db, c), mong, `${k.ten} (${order}): máy chủ ${phuMay ? "báo thiếu" : "không báo"} nên kiểm định kỳ phải ${phuMay ? "đếm thêm" : "giữ nguyên"}`);
+  }
+  assert.ok(mong >= 5 && mong < ca.length, "chống bài rỗng: có ca đếm và có ca không đếm");
+});

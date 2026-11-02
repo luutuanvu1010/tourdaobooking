@@ -62,7 +62,7 @@ import {
 import { CAN_YEU_CAU, GIA_DANH_MUC, MOC_CHUA_CO, RACED, STALE, TRANSFER_DISABLED, TRAN_GIAM_GIA, catChoXetDuyet, chanDoanXacNhan, chayLoNoiChuyen, dichLoiXacNhan, kemChupXacNhan, khoaKhiCho, kiemCongXacNhan, tienChoHoaHong, tinhCanXacNhan, xacNhanTrenDon, type KetQuaLenhDon } from "./xac-nhan-chung";
 import { PHAI_GUI_DON, phaiGuiDon, xacNhanRoutes } from "./xac-nhan-route";
 import { congLuatBan } from "./cong-ban";
-import { yeuCauMoCuaDon } from "./xac-nhan-repo";
+import { nguoiLapGiuDoiTac, yeuCauMoCuaDon } from "./xac-nhan-repo";
 import { describeTripUpdates, giaiOPhuNhap, validateTripUpdate } from "./service-rules";
 
 /** `soNguoi` (ADR-0104 Đ2 điểm gọi 4): số người hiệu lực của chặng trước / sau — chỉ khi lệnh đụng số người chiều về. */
@@ -834,10 +834,11 @@ export const ordersModule: AppModule = {
     }),
 
     // ADR-0134 Đ5, Đ6: bộ khung giờ đón dùng chung + câu lưu ý (bảng ord_pickup_slot_policy). Khuôn đúng hai route công tắc nhập tay ở trên (cùng lý do không
-    // nằm dưới /api/orders). ĐỌC (cổng orders): người lập đơn — ô order.create (chỉ-HDV, Kế toán không lập đơn → 403). Dòng đọc được kiểm lại bằng luật thuần;
+    // nằm dưới /api/orders). ĐỌC (cổng orders): người lập đơn — ô order.create — HOẶC người điền giờ ở bảng «Còn vé» — ô order.confirm.review (Kế toán, HDV nội bộ; ADR-0154 Đ1.5:
+    // khung chỉ có nghĩa với người chọn giờ, mà người chốt giờ cho đơn Đối tác không phải người lập). Tài khoản không có ô nào → 403. Dòng đọc được kiểm lại bằng luật thuần;
     // hỏng (không thể xảy ra qua route ghi) → trả bộ mặc định thay vì 500, form vẫn dùng được.
     route("GET", "/api/cai-dat/khung-gio-don", "orders", async ({ env, staff }) => {
-      if (!can(staff, "order.create")) return error(403, "forbidden", "Tài khoản này không lập đơn nên không dùng khung giờ đón.");
+      if (!can(staff, "order.create") && !can(staff, "order.confirm.review")) return error(403, "forbidden", "Tài khoản này không dùng khung giờ đón.");
       const p = await slotPolicy(env.DB, new Date().toISOString());
       let tho: unknown = null;
       try {
@@ -1186,7 +1187,7 @@ export const ordersModule: AppModule = {
       // tài khoản lai) mà CẮT trường (SĐT, email, tên, ghi chú); không lịch sử, không bảng sửa số khách, không nút sửa. Tiền giữ nguyên (chỉ đọc).
       if (dangCho && xetDuyetDuoc) {
         return json({
-          order: catChoXetDuyet(order), history: [], canModify: false, mocToiThieuPhut: moc?.phut ?? null, suaSoKhach: null, canhBaoKhuyenMai: null, lichSuSoKhach: null, canhBaoGiamGia: null, xacNhan,
+          order: catChoXetDuyet(order, { cheGhiChu: await nguoiLapGiuDoiTac(env.DB, order.staffId) }), history: [], canModify: false, mocToiThieuPhut: moc?.phut ?? null, suaSoKhach: null, canhBaoKhuyenMai: null, lichSuSoKhach: null, canhBaoGiamGia: null, xacNhan,
         } satisfies OrderDetailResponse);
       }
       // ADR-0019 điều 2: chi tiết đơn trả tiền và liên hệ khách — hỏi hai ô với phạm vi CỦA ĐƠN NÀY; sai thì 403 (không cắt bớt trường).
@@ -1519,7 +1520,7 @@ export const ordersModule: AppModule = {
       if ((results[0]!.meta.changes ?? 0) === 0) return legRaced(env.DB, id, legId);
       baoThayDoi({ orderId: id, thayDoi: "chuyen" });
       const xemLai = (await loadOrderView(env.DB, id, xemDuDatGap(staff)))!;
-      return json({ order: nhapDangCho ? catChoXetDuyet(xemLai) : xemLai } satisfies OrderResponse); // người xét duyệt không phải người lập: bỏ SĐT / email / tên khách (Đ6)
+      return json({ order: nhapDangCho ? catChoXetDuyet(xemLai, { cheGhiChu: await nguoiLapGiuDoiTac(env.DB, xemLai.staffId) }) : xemLai } satisfies OrderResponse); // người xét duyệt không phải người lập: bỏ SĐT / email / tên khách (Đ6)
     }),
 
     // ---- Danh sách hành khách (ADR-0047 A2). ĐỌC: khuôn chi tiết đơn — `order.view` theo phạm vi đơn (chỉ-FIELD không phụ trách → 404 như đơn không tồn

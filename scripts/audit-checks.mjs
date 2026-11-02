@@ -1806,6 +1806,26 @@ export const CHECKS = [
     level: "warn",
     note: "cảnh báo (KHÔNG chặn phát hành — ADR-0114 D3 điều khoản 3): đơn cũ lập trước luật người lớn; rà soát tay theo mã đơn, máy chủ chỉ chặn việc sửa số khách đưa người đi kèm từ 1 trở lên xuống 0",
   },
+  // R-ORD-17w (ADR-0154 Đ1.7, kế hoạch lượt 2 Task 1.4, câu đã áp số 4; bài canh `src/audit-invariants.test.ts`): lớp BÙ cho lệch có chủ ý «đơn của tài khoản đã thôi quyền Đối tác xác nhận được qua `/status`
+  // dù lượt đưa đón đầu chưa có giờ» (Đối tác không còn tự nhập giờ; văn phòng chốt giờ ở bảng Còn vé). Chữ ADR «đơn đã xác nhận mà chặng đầu có Đón không giờ» sẽ báo cả đơn văn phòng hợp lệ (tiêu chí j:
+  // Bán hàng xác nhận được đơn Đón không giờ), nên khoanh: đơn tạo TỪ mốc phát hành (`MIN(created_at)` của bảng chính sách `ord_partner_customer_policy`, dòng gieo ở 0133) mà người lập TỪNG giữ
+  // quyền Đối tác — KHÔNG lọc dòng đã đóng, vì chính ca đáng báo là người đã thôi quyền. Lượt đầu của một dịch vụ = CÙNG thứ tự `changDauCuaDichVu` (src/shared/chang-dua-don.ts): ngày (trống sau) →
+  // chiều đi trước chiều về → giờ có trước giờ trống → giờ → id; bài đối chiếu hai phía trên bộ ca xếp chặng. Chỉ chặng còn mở; dịch vụ Không đón (không chặng) không đếm. Đếm SỐ ĐƠN.
+  // Mức "warn" (thoát 0; thoát 1 sẽ dừng `trien-khai`): tình trạng chấp nhận có kiểm, văn phòng rà tay theo mã đơn.
+  {
+    code: "R-ORD-17w",
+    what: "đơn đã xác nhận (tạo từ mốc phát hành ADR-0154) của người lập từng giữ quyền Đối tác mà lượt đưa đón đầu của một dịch vụ chưa có giờ đón (ADR-0154 Đ1.7)",
+    sql: `SELECT count(*) FROM orders o
+      WHERE o.status = 'confirmed'
+        AND o.created_at >= (SELECT MIN(created_at) FROM ord_partner_customer_policy)
+        AND EXISTS (SELECT 1 FROM stf_permission p WHERE p.staff_id = o.staff_id AND p.permission_type_code = 'PARTNER')
+        AND EXISTS (SELECT 1 FROM order_service s WHERE s.order_id = o.id
+          AND EXISTS (SELECT 1 FROM ord_transfer_leg l1 WHERE l1.order_service_id = s.id AND l1.closed_at IS NULL)
+          AND (SELECT l2.pickup_time FROM ord_transfer_leg l2 WHERE l2.order_service_id = s.id AND l2.closed_at IS NULL
+                 ORDER BY (l2.pickup_date IS NULL), l2.pickup_date, (l2.direction <> 'OUT'), (l2.pickup_time IS NULL), l2.pickup_time, l2.id LIMIT 1) IS NULL)`,
+    level: "warn",
+    note: "cảnh báo (KHÔNG chặn phát hành — ADR-0154 Đ1.7): đơn của tài khoản từng là Đối tác xác nhận qua /status khi lượt đón đầu chưa có giờ; văn phòng rà tay theo mã đơn và ghi giờ ở bảng Đưa đón",
+  },
   // R-AUT-1 (ADR-0016 điều 6/8): một tài khoản bị ngưng (`active = 0`) không được còn Face ID nào CÒN HIỆU LỰC (`valid_to_at IS NULL`) — đăng nhập
   // Face ID còn bị `getActiveStaff` chặn ở tầng ứng dụng, kiểm này là LƯỚI DỮ LIỆU cho bất biến đó, không phải đường chặn đăng nhập.
   // `PATCH /api/staff/:id` với `active: false` (ngưng tài khoản) gỡ mọi passkey trong CÙNG lô ghi với câu ngưng ("8b", chủ chọn A-4 phương án 1),

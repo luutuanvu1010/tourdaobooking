@@ -93,7 +93,8 @@ export const xacNhanRoutes = (xetDatGap: XetDatGapSua) => [
       don.push({
         yeuCauId: y.id, orderId: o.id, orderCode: o.orderCode, dichVu: o.services.map((s) => s.name), ngayDi: ngay,
         soKhach: o.services.reduce((t, s) => t + (s.pax.adult ?? 0) + (s.pax.child ?? 0) + (s.pax.senior ?? 0), 0),
-        gioDon: dau ? (dau.pickupSlotEnd ? `${dau.pickupTime}–${dau.pickupSlotEnd}` : dau.pickupTime) : null,
+        // yêu cầu mang cờ «cần chốt giờ» (ADR-0154 Đ1.7): lượt đầu CHƯA có giờ — giờ gợi ý của chiều về (hay lượt khác) không được trông như giờ đón của cả đơn.
+        gioDon: y.pickup_time_required === 1 ? null : dau ? (dau.pickupSlotEnd ? `${dau.pickupTime}–${dau.pickupSlotEnd}` : dau.pickupTime) : null,
         tong: o.total, guiLuc: y.submitted_at, hanLuc: y.deadline_at, quaHan: quaHanXacNhan(y.deadline_at, nowMs), canDatGap: vi.includes("DAT_GAP"), vi,
       });
     }
