@@ -572,6 +572,16 @@ test("mở ảnh và nhập lại đúng lúc, trùng riêng mã hoặc riêng t
   }
 });
 
+test("mở ảnh: vé trùng riêng mã hoặc riêng tệp với vé đã mở được báo đúng lý do", async () => {
+  for (const nhapLai of [ve(6, { maVe: "VE-NGAN-6", noiDung: b64(PNG(9)) }), ve(6, { maVe: "VE-NGAN-KHAC" })]) {
+    const w = setup();
+    const v = await loHuyMaNgan(w, 6);
+    assert.equal((await moAnh(w, v.veId)).status, 200);
+    const r = await them(w, (await taoLo(w)).json.loId, [nhapLai]);
+    assert.deepEqual(r.json.loai, [{ thuTu: 0, lyDo: LY_DO_DA_MO }], r.text);
+  }
+});
+
 test("mở ảnh trước, nhập sau đúng lúc, trùng riêng mã hoặc riêng tệp: chỉ loại vé trùng, vé khác trong đợt vẫn vào kho", async () => {
   for (const nhapLai of [ve(6, { maVe: "VE-NGAN-6", noiDung: b64(PNG(9)) }), ve(6, { maVe: "VE-NGAN-KHAC" })]) {
     const w = setup();

@@ -40,14 +40,22 @@ Không có lỗi mức Cao hay Trung ở mã; người kiểm tự phá thử th
 ## Kiểm độc lập lần 4 (2/11): KHÔNG ĐẠT, đã xử lý
 Không có lỗi Cao. Trung 1: cùng số S/N, khác chuỗi và khác tệp thì lọt kho dù vé gốc đã mở; đã chặn ở `CHEN_VE`, `MO_ANH_VE`, hai trigger và câu đọc lý do, vì việc này chỉ siết thêm. Trung 2: `R-VDT-6` chỉ có bài cho ca trùng mã; đã thêm ca trùng tệp, trùng S/N. Trung 3: hai dòng sổ hàng rào khẳng định quá mức; đã viết lại đúng điều quan sát được. Thấp đã sửa: `opened_by` nay ghi một lần; kho hỏng lúc xem trả 503. Người kiểm nhắc lại phần khoá vĩnh viễn chưa chắc là lời chủ: đã đưa lại vào §16 và `docs/HANDOFF-N1.md`.
 
-Phá thử sau khi sửa: 38 chỗ riêng, 31 đỏ, 7 xanh đều là điều kiện lặp và đã nêu tên ở sổ hàng rào. Lần đầu có thêm 9 chỗ xanh không phải lặp (điều kiện đủ 36 ký tự, vế mã và vế dấu vân ở trigger và `MO_ANH_VE`, hai người mở cùng lúc), vì mã thử dài đủ 36 số nên vế S/N che mất hoặc chưa có bài; đã viết thêm ba bài và mở rộng bài «CSDL giữ khoá» bằng mã ngắn, chạy lại đều đỏ.
+
+## Kiểm độc lập lần 5 (2/11): ĐẠT về mã trên `d1dfa33d`, kèm một câu sai ở sổ, đã xử lý
+Không có lỗi Cao. Câu sai: sổ nói bỏ vế vé đã mở hoặc vế dấu vân ở `CHEN_VE` thì đỏ, người kiểm phá thử vẫn xanh vì vế S/N che ca mã 36 số; khi bỏ thật thì trigger vẫn giữ nhưng cả đợt báo 500. Đã thêm bài đua mở trước nhập sau bằng mã ngắn. Hai điểm Thấp cũng sửa luôn vì rẻ và `0132` chưa lên bản chính: mã dài 36 ký tự có chữ mà trùng đuôi sẽ khoá lẫn nhau không có đường nhập tay, nên S/N nay dùng đúng định nghĩa của `R-VDT-4`; cờ đã nhập lại quét cả kho, nên tách ba câu và thêm chỉ mục `vdt_ticket_sn_ix`. Tài liệu nay nêu điều kiện đúng 36 chữ số.
+
+Phá thử toàn bộ sau khi sửa (kịch bản 88 chỗ, mỗi chỗ một lần, hoàn nguyên sau mỗi chỗ): lần đầu 77 đỏ, 11 xanh; chỗ xanh không phải lặp là vế mã của `MA_VE_DA_MO`, đã thêm bài báo đúng lý do và chạy lại riêng chỗ đó thành đỏ. Tổng 78 đỏ, 10 xanh, 10 chỗ đều nêu tên ở sổ hàng rào.
 
 ## Bằng chứng
+- Bản `d1dfa33d` (thêm chặn theo số S/N, sau kiểm độc lập lần 4): `npm test` 7124 bài, 7120 đạt, 0 đỏ (4 bài `todo` có từ trước), bài đo giờ 1/1; e2e 4/4; typecheck 0; `ve-qr-smoke.mjs` hai khổ 390 và 1040 đạt.
 - Bản `5ec9ad5c` (lưu 3 ngày, «Huỷ lô», khối Lô đã huỷ gần đây): `npm test` 7107 bài, 7103 đạt, 0 đỏ (4 bài còn lại là bài đánh dấu chờ `todo` của sổ vàng và quyền tiền, có từ trước), cộng bài đo giờ 1 đạt; typecheck 0 lỗi; e2e `ve-dien-tu` 4/4; Chrome hai khổ `VE QR SMOKE OK`. Mười tám chỗ phá thử khác nhau đều đỏ đúng bài rồi hoàn nguyên; ba chỗ chạm câu đọc đã sửa được chạy lại trên bản này. Sau `5ec9ad5c` chỉ thêm bài kiểm và sửa tài liệu, mã chạy thật không đổi; bộ kiểm toàn phần không chạy lại, chỉ chạy lại các bài của module `ve-dien-tu`. Các số dưới đây là của những bản trước.
 - Trình duyệt: `ve-qr-smoke.mjs` hai khổ 390 và 1040, cần `AXE_JS`. Ảnh ở `docs/evidence/2026-11-02-ve-qr-tran-lo/anh/`, chỉ có dữ liệu thử.
 - 50 ảnh cỡ 1170×2532 (khoảng 13 MB tổng) trên Chrome của máy Mac: 4,0 giây, khoảng đứng hình lâu nhất 80 mili giây.
 - 7 ảnh vé thật trên máy (khối `VE_ANH_THAT`, chặn mọi lời gọi ghi trong trang, không chụp, không in chuỗi): đọc được 7, khác nhau 7, đúng dạng 7.
 - Phá thử: từng dòng ở `docs/SO-HANG-RAO.md`.
+
+## Đề xuất dòng lịch sử cho ADR-0156 (chờ chủ duyệt, chưa ghi vào ADR)
+«2026-11-02, chủ quyết thêm: ảnh của lô đã huỷ lưu 3 ngày rồi máy tự xoá; Bán hàng, Quản trị, Toàn quyền mở được ảnh trong hạn đó; vé đã mở khoá hẳn theo mã, dấu vân và số S/N, vé đã nhập lại thì ảnh cũ không mở được. Chi tiết ở `docs/SYSTEM-DESIGN.md` §16.»
 
 ## Bài học
 - Dữ liệu thử ban đầu dùng nhầm `S/N` thật của một vé trong ba tệp bài kiểm; phát hiện trước khi commit, đã thay số giả, `git log` xác nhận chưa từng vào commit.
