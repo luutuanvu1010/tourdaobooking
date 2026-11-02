@@ -14,6 +14,7 @@ import { CAU_THIEU_NGUOI_LON, donThieuNguoiLon } from "../../shared/nguoi-di-kem
 import { cauThieuChonDon, thieuChonDon } from "../../shared/cong-chon-don";
 import type { MocToiThieu } from "../../shared/moc-toi-thieu";
 import { canXacNhan, duocQuyetDinh, quaHanXacNhan } from "../../shared/xac-nhan-don";
+import { thieuGioChangDau } from "../../shared/chang-dua-don";
 import { canhBaoMocCua } from "./dat-gap";
 import { coHienHanh, nhomTheoMa, tuXacNhanNoiBo, yeuCauMoCuaDon, type YeuCauRow } from "./xac-nhan-repo";
 import { legDatGapByOrder } from "./chang-hanh-khach-repo";
@@ -188,6 +189,12 @@ export async function tinhCanXacNhan(db: D1Database, order: DonXacNhan, moc: Moc
 }
 
 /**
+ * ADR-0154 Đ1.2: người lập giữ quyền Đối tác (kể cả lai) mà LƯỢT ĐẦU của một dịch vụ chọn Đón chưa có giờ ⇒ «Gửi đơn» luôn vào nhánh A (cờ «cần chốt giờ»). MỘT luật cho route Gửi đơn VÀ khối `xacNhan`
+ * của chi tiết đơn (`canXacNhan`: trang đơn dựa vào đó để biết đơn nháp này thuộc diện phải chờ văn phòng, chưa có ảnh xác nhận). Không nằm trong `tinhCanXacNhan` (đơn văn phòng không đổi).
+ */
+export const canChotGioCuaNguoiLap = (nguoiLap: Pick<StaffProfile, "permissions">, services: DonXacNhan["services"]): boolean => holdsPartner(nguoiLap) && thieuGioChangDau(services).length > 0;
+
+/**
  * Lý do của MỘT yêu cầu đang mở = lý do TÍNH ĐƯỢC (`tinhCanXacNhan`, theo cờ dịch vụ / mốc hôm nay) cộng `CHOT_GIO` khi yêu cầu mang cờ «cần chốt giờ» (ADR-0154 Đ1.2). Cờ là DỮ LIỆU CHỤP lúc
  * Gửi đơn — không tính lại theo giờ đang lưu, để người xét thấy lý do đúng như lúc người lập gửi. Dùng ở danh sách chờ và khối `xacNhan` của chi tiết đơn.
  */
@@ -232,7 +239,7 @@ export async function xacNhanTrenDon(db: D1Database, i: { staff: StaffProfile; o
   if (don) {
     const kq = await tinhCanXacNhan(db, don, i.moc, i.nowMs);
     vi = y ? viCuaYeuCau(y, kq.vi) : kq.vi;
-    canXN = laNguoiLap && kq.can;
+    canXN = laNguoiLap && (kq.can || canChotGioCuaNguoiLap(i.staff, don.services)); // ADR-0154 Đ1.2: cùng luật với route Gửi đơn
   }
   const quyetDinhDuoc = y !== null && duocQuyetDinh({
     laNguoiLap, laNoiBo: !holdsPartner(i.staff) && !holdsIntern(i.staff), coQuyenXetDuyet,

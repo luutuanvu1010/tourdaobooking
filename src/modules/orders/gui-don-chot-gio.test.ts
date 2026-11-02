@@ -267,3 +267,20 @@ test("danh sách chờ và chi tiết đơn: yêu cầu mang cờ nêu CHOT_GIO 
   const dongVp = (ds2.json.don as any[]).find((d) => d.orderId === vp.id);
   assert.deepEqual(dongVp.vi, ["DICH_VU"]);
 });
+
+// Đợt 3 (kế hoạch lượt 2, việc người kiểm các đợt trước): `canXacNhan` ở khối `xacNhan` của `GET /api/orders/:id` phải biết cờ «cần chốt giờ» như route Gửi đơn, vì trang đơn
+// dùng nó để quyết có mở ảnh «xác nhận đơn dịch vụ» cho đơn nháp hay không (đơn thuộc diện phải gửi chờ văn phòng thì CHƯA có ảnh). Trước khi sửa: đơn Đón không giờ của đối tác báo false.
+test("khối xacNhan của đơn nháp CHƯA gửi: canXacNhan đúng khi người lập Đối tác có lượt đầu Đón không giờ; sai khi lượt đầu có giờ, khi Không đón, và với đơn văn phòng", async () => {
+  const w = setup();
+  const khong = await lap(w, PARTNER, [dichVuDon(null)]);
+  const a = await w.call("GET", `/api/orders/${khong.id}`, { as: PARTNER });
+  assert.equal(a.status, 200, a.text);
+  assert.equal(a.json.xacNhan.yeuCau, null, "chưa gửi: chưa có yêu cầu");
+  assert.equal(a.json.xacNhan.canXacNhan, true, "lượt đầu Đón không giờ ⇒ Gửi đơn sẽ vào nhánh A ⇒ thuộc diện phải gửi");
+  const coGio = await lap(w, PARTNER, [dichVuDon("07:30")]);
+  assert.equal((await w.call("GET", `/api/orders/${coGio.id}`, { as: PARTNER })).json.xacNhan.canXacNhan, false, "lượt đầu có giờ, dịch vụ thường: xác nhận ngay (nhánh B)");
+  const khongDon = await lap(w, PARTNER, [svc("ZB1", NGAY())]);
+  assert.equal((await w.call("GET", `/api/orders/${khongDon.id}`, { as: PARTNER })).json.xacNhan.canXacNhan, false, "Không đón: nhánh B");
+  const vp = await lap(w, A, [dichVuDon(null)]);
+  assert.equal((await w.call("GET", `/api/orders/${vp.id}`, { as: A })).json.xacNhan.canXacNhan, false, "đơn văn phòng Đón không giờ, dịch vụ thường: không có luật chốt giờ");
+});
