@@ -29,12 +29,31 @@ Mỗi task tự khớp với bài của mình ở mức đọc kế hoạch. `v_
 
 | Đợt | Trạng thái | Người thi công | Người kiểm | Commit |
 |---|---|---|---|---|
-| 1. Dữ liệu và máy chủ giờ đón | đang làm | | | |
+| 1. Dữ liệu và máy chủ giờ đón | thi công xong, đang kiểm | trợ lý tầm trung | `nguoi-kiem-doc-lap` | `274f1f01`, `949be7ab`, `1f8791b9`, `34c457ae` |
 | 2. Công tắc, miễn thiếu tên | chưa | | | |
 | 3. Giao diện ADR-0154 | chưa | | | |
 | 4. Cột Cấp độ đại lý | chưa | | | |
 | 5. Tài liệu, bộ kiểm dài, ảnh thật, kiểm độc lập | chưa | | | |
 
+## Lệch kế hoạch đã có lý do (Đợt 1)
+
+- **Migration tạo lại trigger `orders_delivered_lock`:** kế hoạch nói chỉ thêm, nhưng bài NT-R6 (`src/migrations-orders-da-giao.test.ts`) buộc mọi cột của `orders` nằm trong khoá «Đã giao». Chỉ siết, không sửa tệp cũ. **Ruling R5:** chấp nhận, với điều kiện người kiểm so định nghĩa trigger trước và sau `0133` chỉ khác đúng một vế.
+- **Bài (d):** đơn đã vào nhánh A thì `/status` trả 409 `confirm_pending_locked` chứ không phải `partner_submit_required`, vì khoá khi chờ đứng trước cổng Gửi đơn. Tách thành (d1), (d2). Hành vi không đổi.
+- **Che ghi chú và `R-ORD-17w` dùng hai nghĩa khác nhau có chủ ý:** che ghi chú xét «hiện giữ» quyền Đối tác (câu 3), kiểm định kỳ xét «từng giữ» (câu 4).
+
+## Bài cũ đổi có chủ đích (Đợt 1)
+
+- `src/modules/orders/chon-don-route.test.ts`: `FIELD` đọc khung giờ từ 403 thành 200 (ADR-0154 Đ1.5), thêm Tài xế công ty 403.
+- `tests/e2e/chon-don.mjs`: cùng dòng đó, chưa chạy, chờ Đợt 5.
+- `src/modules/orders/dat-gap-sat-gio.test.ts`: siết thêm một dòng.
+
 ## Nợ và lỗi nhỏ gom lại
 
+- **Đợt 3 phải xét:** `canXacNhan` trong khối `xacNhan` của `GET /api/orders/:id` chưa biết cờ `CHOT_GIO`. Trước khi dựng form, xem chữ gợi ý cho đối tác có đọc trường này không, tránh báo «xác nhận ngay» rồi đơn lại chờ.
+- Nhật ký `confirmed` chỉ ghi lý do đặt gấp đầu tiên; đủ chi tiết ở các dòng `order_leg_short_notice`.
+- Che ghi chú chỉ phủ `services[].note`, đúng phạm vi ADR Đ1.6; chưa che `pickupPlace`, `checkinPlace`.
+- `tests/audit/redteam.test.mjs`: người thi công báo 8 bài đỏ sẵn trên `8cb58ae4`, nằm ngoài `npm test`. Người kiểm đối chứng.
+
 ## Sửa cố ý đã thấy đỏ (P16)
+
+- 2026-11-02, `R-ORD-17w`: bỏ vế `PARTNER` trong SQL thì bài ca tay đỏ ở đơn văn phòng; bỏ `(l2.direction <> 'OUT')` thì cả hai bài đỏ. Đã hoàn nguyên. Task 5.2 đưa vào sổ hàng rào, không cần làm lại.
