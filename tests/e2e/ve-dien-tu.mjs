@@ -113,7 +113,7 @@ assert.equal((await call(TQ, "PUT", "/api/ve/cai-dat", { tranLo: 50, version: do
 assert.equal(await demAudit("ve_doi_tran_lo"), 2, "mỗi lần đổi thắng đúng một dòng nhật ký; lần thua không ghi");
 assert.match(JSON.stringify(await sqlRows("SELECT detail FROM audit_log WHERE action = 've_doi_tran_lo'")), /50 → 2/, "nhật ký ghi số cũ, số mới");
 
-// 10. Bỏ lô đã vào kho: vé bị rút khỏi kho, xoá trên kho tệp, bỏ lần hai 409; nhập lại ĐÚNG hai ảnh và hai mã đó vào lô mới được
+// 10. Bỏ lô đã vào kho: vé bị rút khỏi kho, ảnh còn lưu 3 ngày, bỏ lần hai 409; nhập lại ĐÚNG hai ảnh và hai mã đó vào lô mới được
 const loBo = await moLo();
 assert.equal((await themVe(loBo, [veThu(31), veThu(32)])).body.themDuoc, 2);
 assert.equal((await call(SALES, "POST", `/api/ve/lo/${loBo}/xac-nhan`, {})).status, 200);
@@ -127,7 +127,14 @@ assert.equal(bo.body.veDaRut, 2);
 assert.equal(await conTrong(), 3, "vé của lô đã bỏ không còn đếm trong kho");
 const hang = await sqlRows(`SELECT status, withdrawn_at, purged_at, r2_deleted_at FROM vdt_ticket WHERE batch_id = '${loBo}'`);
 assert.equal(hang.length, 2);
-for (const h of hang) { assert.equal(h.status, "VOID"); assert.ok(h.withdrawn_at && h.purged_at && h.r2_deleted_at, `dòng vé sau Bỏ lô: ${JSON.stringify(h)}`); }
+for (const h of hang) { assert.equal(h.status, "VOID"); assert.ok(h.withdrawn_at && h.purged_at, `dòng vé sau Bỏ lô: ${JSON.stringify(h)}`); assert.equal(h.r2_deleted_at, null, "ảnh được lưu 3 ngày, chưa xoá ngay"); }
+// Màn «Lô đã huỷ gần đây» đi qua gốc lắp ráp thật: tên người huỷ do `nhanNhanVien` được tiêm; chỉ 4 số cuối, không có gì để mở ảnh.
+const daHuy = await call(SALES, "GET", "/api/ve/lo-da-huy");
+assert.equal(daHuy.status, 200, JSON.stringify(daHuy.body));
+const dongHuy = daHuy.body.lo.find((l) => l.loId === loBo);
+assert.equal(dongHuy?.ve.length, 2, JSON.stringify(daHuy.body));
+assert.ok(dongHuy.huyBoi, "gốc lắp ráp thật phải trả tên người huỷ");
+assert.ok(!JSON.stringify(daHuy.body).includes(`E2E.${tag}.31`), "không lộ mã đầy đủ");
 assert.equal((await call(SALES, "POST", `/api/ve/lo/${loBo}/bo`, {})).status, 409, "bỏ lần hai");
 assert.equal(await demAudit("ve_bo_lo"), 1, "bỏ lần hai không ghi nhật ký");
 assert.equal((await call(SALES, "GET", "/api/ve/lo")).body.lo.some((l) => l.loId === loBo), false);

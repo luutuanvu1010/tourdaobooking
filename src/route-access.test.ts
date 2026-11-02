@@ -523,6 +523,7 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/ve/lo/:id/xac-nhan", access: "office" }, // ADR-0153 kho vé điện tử; thân hỏi ve.kho.manage (Bán hàng, Quản trị, Toàn quyền)
   { method: "POST", path: "/api/ve/lo/:id/sua-ma-tour", access: "office" }, // ADR-0153 kho vé điện tử; thân hỏi ve.kho.manage (Bán hàng, Quản trị, Toàn quyền)
   { method: "GET", path: "/api/ve/lo", access: "office" }, // ADR-0156 Đ2 mục 3: các lô còn bỏ được; thân hỏi ve.kho.manage
+  { method: "GET", path: "/api/ve/lo-da-huy", access: "office" }, // Lô đã huỷ gần đây (chủ quyết 2/11/2026): chỉ chữ, không mở ảnh; thân hỏi ve.kho.manage
   { method: "POST", path: "/api/ve/lo/:id/bo", access: "office" }, // ADR-0156 Đ2 mục 3: Bỏ lô; thân hỏi ve.kho.manage
   { method: "GET", path: "/api/ve/cai-dat", access: "admin" }, // ADR-0156 Đ3: trần lô; thân hỏi settings.ops (chỉ Toàn quyền)
   { method: "PUT", path: "/api/ve/cai-dat", access: "admin" }, // ADR-0156 Đ3: như trên
@@ -693,6 +694,6 @@ test("mức truy cập của 424 route hiện có khớp ảnh chụp đã duy�
   // 2026-11-01 (ADR-0153 Task 6): + GET /api/ve/don/:orderId, GET /api/ve/anh/:allocationId, POST /api/ve/giao (office) = 420.
   // 2026-11-01 (ADR-0153 Task 4c): + 5 route /api/ve/* (office; ve.kho.manage) = 420.
   // 2026-10-31 (mã định danh 5.26, Task 4): + PATCH /api/pricing/muc-ta/:code (office; partner.commission.write, không Đối tác) = 420.
-  assert.equal(actual.length, 424, "số route thực tế lệch 424 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 424, "SNAPSHOT phải có đúng 424 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  assert.equal(actual.length, 425, "số route thực tế lệch 425 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 425, "SNAPSHOT phải có đúng 425 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

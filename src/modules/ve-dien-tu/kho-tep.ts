@@ -3,7 +3,8 @@
 // và chạy lại được. Không import module khác (chạy được bằng node --test). Chỉ ve-dien-tu chạm kho này (bài src/kho-tep-ve-dien-tu.test.ts).
 // Hai bài tĩnh đếm chữ gọi hàm kho kèm ngoặc trên mã nguồn thô — chú thích ở tệp này đừng viết tên hàm kho kèm ngoặc.
 import { LOAI_NOI_DUNG, type LoaiTep } from "../../shared/tep-dinh-kem.ts";
-import { cauRutVeChuaPhat, danhDauDaLuu, danhDauDaXoaR2, listChoXoa, listChoXoaCuaLo, listVeChoDat, type VeCanXoa } from "./repository.ts";
+import { NGAY_LUU_ANH_LO_HUY } from "../../shared/ve-nhap-lo.ts";
+import { cauRutVeChuaPhat, danhDauDaLuu, danhDauDaXoaR2, listChoXoa, listVeChoDat, type VeCanXoa } from "./repository.ts";
 
 const ghiLoi = (event: string, veId: string | null, e?: unknown): void =>
   console.error(JSON.stringify({ level: "error", event, veId, ...(e === undefined ? {} : { loi: e instanceof Error ? e.name : "unknown" }) }));
@@ -25,19 +26,11 @@ export async function xoaKhoiKho(db: D1Database, kho: R2Bucket, ds: readonly VeC
   return { daXoa, loi };
 }
 
-/** Sau lô Bỏ lô đã ghi: dọn đối tượng của lô khỏi kho (ADR-0156 Đ2 mục 3). KHÔNG BAO GIỜ NÉM: lô đã ghi thì không trả 5xx; đối tượng còn lại vẫn ở hàng «chờ xoá». */
-export async function donKhoCuaLo(db: D1Database, kho: R2Bucket, loId: string, luc: () => string): Promise<void> {
-  try {
-    await xoaKhoiKho(db, kho, await listChoXoaCuaLo(db, loId), luc);
-  } catch (e) {
-    ghiLoi("ve_dien_tu_don_lo_loi", null, e);
-  }
-}
-
-/** Lần chạy định kỳ: dọn hàng «chờ xoá» khi lần xoá trước hỏng (Hiến chương 5.16: thấy được ở `R-VDT-5`, chạy lại không cần người). KHÔNG BAO GIỜ NÉM. */
+/** Lần chạy định kỳ: xoá ảnh đã quyết xoá khi đã quá hạn lưu (lô đã huỷ lưu `NGAY_LUU_ANH_LO_HUY` ngày; Hiến chương 5.16: thấy được ở `R-VDT-5`, chạy lại không cần người). KHÔNG BAO GIỜ NÉM. */
 export async function donHangChoXoa(db: D1Database, kho: R2Bucket, gioiHan: number, luc: () => string): Promise<void> {
   try {
-    await xoaKhoiKho(db, kho, await listChoXoa(db, gioiHan), luc);
+    const truocMoc = new Date(Date.parse(luc()) - NGAY_LUU_ANH_LO_HUY * 24 * 3600 * 1000).toISOString();
+    await xoaKhoiKho(db, kho, await listChoXoa(db, truocMoc, gioiHan), luc);
   } catch (e) {
     ghiLoi("ve_dien_tu_don_hang_cho_loi", null, e);
   }
@@ -73,11 +66,8 @@ export async function datVeVaoKho(db: D1Database, kho: R2Bucket, v: { batchId: s
       }
       try {
         if ((await danhDauDaLuu(db, d.id, v.luc())) === 1) daLuu++;
-        else {
-          // Vé vừa bị rút trong khe (Bỏ lô xen giữa): lần dọn của lệnh đó đã chạy TRƯỚC khi đối tượng này được đặt, nên phải xoá ở đây, nếu không ảnh nằm lại vĩnh viễn.
-          ghiLoi("ve_dien_tu_danh_dau_luu_khong_doi", d.id);
-          await xoaKhoiKho(db, kho, [d], v.luc);
-        }
+        // Vé vừa bị rút trong khe (huỷ lô xen giữa): dòng vé đã ở hàng chờ xoá, lần chạy định kỳ sau hạn lưu sẽ xoá đối tượng vừa đặt.
+        else ghiLoi("ve_dien_tu_danh_dau_luu_khong_doi", d.id);
       } catch (e) {
         ghiLoi("ve_dien_tu_danh_dau_luu_loi", d.id, e);
       }

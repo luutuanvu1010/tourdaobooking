@@ -34,11 +34,16 @@ test("R-VDT-4: hai vé còn hiệu lực trùng 12 số cuối của chuỗi QR 
   assert.equal(kiem(d, "R-VDT-4"), 1, "vé VOID không mang dấu rút vẫn tính");
 });
 
-test("R-VDT-5: ảnh đã quyết xoá mà kho chưa xoá ⇒ thấy được, mức warn", () => {
+test("R-VDT-5: ảnh còn trong hạn lưu ⇒ không báo; quá hạn mà kho chưa xoá ⇒ thấy được", () => {
   const d = taoCsdl();
-  const v = themVe(d, themLo(d));
+  const lo = themLo(d);
+  const trongHan = themVe(d, lo);
+  const v = themVe(d, lo);
   assert.equal(kiem(d, "R-VDT-5"), 0);
-  d.prepare("UPDATE vdt_ticket SET purged_at = ?, status = 'VOID', updated_at = ? WHERE id = ?").run(AT, AT, v);
+  const luc = (ngay: number) => new Date(Date.now() - ngay * 864e5).toISOString();
+  d.prepare("UPDATE vdt_ticket SET purged_at = ?, status = 'VOID', updated_at = ? WHERE id = ?").run(luc(2), AT, trongHan);
+  assert.equal(kiem(d, "R-VDT-5"), 0, "đang trong 3 ngày lưu");
+  d.prepare("UPDATE vdt_ticket SET purged_at = ?, status = 'VOID', updated_at = ? WHERE id = ?").run(luc(5), AT, v);
   assert.equal(kiem(d, "R-VDT-5"), 1);
   d.prepare("UPDATE vdt_ticket SET r2_deleted_at = ?, updated_at = ? WHERE id = ?").run(AT, AT, v);
   assert.equal(kiem(d, "R-VDT-5"), 0);

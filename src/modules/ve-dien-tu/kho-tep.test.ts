@@ -72,13 +72,13 @@ test("xoaKhoiKho: xoá đối tượng của vé đã thu hồi rồi đánh d�
   const lo = themLo(d);
   veDoDang(d, lo, "t-1");
   chayLo(d, [cauDatChoXoa(d1That(d), "t-1", luc(), null)].map((c) => c as never));
-  assert.deepEqual((await listChoXoa(d1That(d), 10)).map((x) => x.id), ["t-1"]);
+  assert.deepEqual((await listChoXoa(d1That(d), luc(), 10)).map((x) => x.id), ["t-1"]);
   const r2 = r2Gia();
   r2.kho.set("vdt/t-1", BYTES);
-  const kq = await xoaKhoiKho(d1That(d), r2, await listChoXoa(d1That(d), 10), luc);
+  const kq = await xoaKhoiKho(d1That(d), r2, await listChoXoa(d1That(d), luc(), 10), luc);
   assert.deepEqual(kq, { daXoa: 1, loi: 0 });
   assert.equal(r2.kho.size, 0);
-  assert.deepEqual(await listChoXoa(d1That(d), 10), []);
+  assert.deepEqual(await listChoXoa(d1That(d), luc(), 10), []);
   assert.deepEqual(await xoaKhoiKho(d1That(d), r2, [], luc), { daXoa: 0, loi: 0 });
 });
 

@@ -13,10 +13,10 @@ import { vnToday } from "../../shared/vn-date";
 import { canVe, thuDu } from "./rules.ts";
 import { DANG_TOKEN, bamToken, hanDuongDan, soSanhHangThoiGian, taoToken, trangVeKhach } from "./duong-dan-khach.ts";
 import { NHAN_NHOM, soanCapVe, soanTraVe, veDangGiu, type GhiNhatKy, type NhatKyVe } from "./cap-ve.ts";
-import { TOI_DA_BYTE_ANH, TOI_DA_VE_MOI_DOT, TRAN_LO_MAC_DINH, tranLoHopLe } from "../../shared/ve-nhap-lo";
-import { datVeVaoKho, donHangChoXoa, donKhoCuaLo, type VeChuanBi } from "./kho-tep.ts";
+import { NGAY_LUU_ANH_LO_HUY, TOI_DA_BYTE_ANH, TOI_DA_VE_MOI_DOT, TRAN_LO_MAC_DINH, tranLoHopLe } from "../../shared/ve-nhap-lo";
+import { datVeVaoKho, donHangChoXoa, type VeChuanBi } from "./kho-tep.ts";
 import { che4SoCuoi, kiemLo, kiemVeMoi } from "./nhap-lo.ts";
-import { bamDaCo, cauBoLo, cauChenLink, cauDemMoLink, cauDoiTranLo, cauRutVeCuaLo, cauThuHoiLink, docCaiDatVe, docHanCuoiCuaDon, docLinkCuaDon, docLinkTheoBam, docLinkTheoId, docVeCuaLink, dsLoBoDuoc, type LinkKhach, cauChenGiao, cauChenLo, cauChenVe, cauDanhDauLo, docChuDon, docTrangThaiDon, docPhanBoDeXem, docPhanBoMoCuaDon, cauKichHoatLo, cauSuaMaTour, demVeCuaLo, docLo, maVeDaCo, thongKeKho } from "./repository.ts";
+import { bamDaCo, cauBoLo, cauChenLink, cauDemMoLink, cauDoiTranLo, cauRutVeCuaLo, cauThuHoiLink, docCaiDatVe, docHanCuoiCuaDon, docLinkCuaDon, docLinkTheoBam, docLinkTheoId, docVeCuaLink, dsLoBoDuoc, dsLoDaHuy, type LinkKhach, cauChenGiao, cauChenLo, cauChenVe, cauDanhDauLo, docChuDon, docTrangThaiDon, docPhanBoDeXem, docPhanBoMoCuaDon, cauKichHoatLo, cauSuaMaTour, demVeCuaLo, docLo, maVeDaCo, thongKeKho } from "./repository.ts";
 
 export { demVeTheoTrangThai } from "./repository.ts";
 
@@ -66,7 +66,7 @@ const KHONG_QUYEN_GUI = () => error(403, "forbidden", "Bạn không có quyền 
 const CHUA_THU_DU = () => error(403, "chua_thu_du", "Đơn chưa thu đủ tiền nên chưa xem hoặc gửi được vé.");
 const KHO_CHUA_BAT = () => error(503, "storage_unavailable", "Kho vé điện tử chưa được bật. Vui lòng báo người phụ trách hệ thống.");
 
-/** Cron ở gốc lắp ráp: dọn ảnh còn ở hàng «chờ xoá». Tắt kho thì không làm gì. KHÔNG BAO GIỜ NÉM, để lỗi ở đây không kéo theo việc định kỳ khác. */
+/** Cron ở gốc lắp ráp: xoá ảnh ở hàng «chờ xoá» đã quá hạn lưu. Tắt kho thì không làm gì. KHÔNG BAO GIỜ NÉM, để lỗi ở đây không kéo theo việc định kỳ khác. */
 export async function donHangChoXoaVe(env: Pick<Env, "DB"> & { VE_DIEN_TU?: R2Bucket }): Promise<void> {
   if (env.VE_DIEN_TU) await donHangChoXoa(env.DB, env.VE_DIEN_TU, TOI_DA_DON_MOI_LAN, () => new Date().toISOString());
 }
@@ -120,7 +120,7 @@ export const veDienTuModule: AppModule = {
       return json({ tranLo: body.tranLo, version: (version as number) + 1 });
     }),
 
-    // Các lô còn bỏ được (ADR-0156 Đ2 mục 3): đang dở hoặc đã vào kho nhưng chưa vé nào từng được giữ chỗ. Chỉ nhãn và số đếm, không mã vé, không khoá kho.
+    // Các lô còn huỷ được (ADR-0156 Đ2 mục 3): đang dở hoặc đã vào kho nhưng chưa vé nào từng được giữ chỗ. Chỉ nhãn và số đếm, không mã vé, không khoá kho.
     route("GET", "/api/ve/lo", "office", async ({ env, staff }) => {
       if (!can(staff, "ve.kho.manage")) return KHONG_QUYEN();
       const ds = await dsLoBoDuoc(env.DB, TOI_DA_DS_LO);
@@ -128,6 +128,21 @@ export const veDienTuModule: AppModule = {
       return json({
         lo: ds.map((d) => ({ loId: d.id, tenDichVu: ten.get(d.catalog_code)?.name ?? null, nhomKhach: d.pax_group, tenSanPham: d.printed_name, trangThai: d.status, soVe: d.so_ve, taoLuc: d.created_at })),
       });
+    }),
+
+    // Lô đã huỷ gần đây (chủ quyết 2/11/2026): chỉ chữ để tra cứu, chỉ 4 số cuối mã. CỐ Ý không có đường mở ảnh: ảnh mang QR dùng được như vé thật mà vé của lô đã huỷ nhập lại được, mở ra là có thể bán trùng.
+    route("GET", "/api/ve/lo-da-huy", "office", async ({ env, staff, nhanNhanVien }) => {
+      if (!can(staff, "ve.kho.manage")) return KHONG_QUYEN();
+      const dong = await dsLoDaHuy(env.DB, new Date(Date.now() - NGAY_LUU_ANH_LO_HUY * 864e5).toISOString(), TOI_DA_DS_LO);
+      const ten = await getEffectiveServices(env.DB, [...new Set(dong.map((d) => d.catalog_code))]);
+      const nguoi = await nhanNhanVien([...new Set(dong.flatMap((d) => (d.huy_boi ? [d.huy_boi] : [])))]);
+      const lo = new Map<string, { loId: string; tenDichVu: string | null; nhomKhach: string; tenSanPham: string; huyLuc: string; huyBoi: string | null; ve: { duoiMa: string; tuNgay: string; denNgay: string }[] }>();
+      for (const d of dong) {
+        let l = lo.get(d.id);
+        if (!l) lo.set(d.id, (l = { loId: d.id, tenDichVu: ten.get(d.catalog_code)?.name ?? null, nhomKhach: d.pax_group, tenSanPham: d.printed_name, huyLuc: d.huy_luc, huyBoi: (d.huy_boi && nguoi?.get(d.huy_boi)) || null, ve: [] }));
+        if (d.valid_from !== null && d.valid_to !== null) l.ve.push({ duoiMa: d.duoi_ma, tuNgay: d.valid_from, denNgay: d.valid_to });
+      }
+      return json({ hanLuuNgay: NGAY_LUU_ANH_LO_HUY, lo: [...lo.values()] });
     }),
 
     // Tạo lô (PENDING): một dịch vụ + một nhóm khách + tên sản phẩm in trên vé, chọn một lần cho cả lô. Vượt trần ⇒ 400 và KHÔNG tạo lô dở.
@@ -243,7 +258,7 @@ export const veDienTuModule: AppModule = {
       return json({ loId, trangThai: "ACTIVE", veTrongLo: (await demVeCuaLo(env.DB, loId)).daLuu });
     }),
 
-    // Bỏ lô (ADR-0156 Đ2 mục 3): lô chưa có vé nào TỪNG được giữ chỗ. Lô D1 trước, kho sau; lỗi kho không làm hỏng yêu cầu (đối tượng còn ở hàng «chờ xoá»). Vé mang dấu rút nên nhập lại được.
+    // Huỷ lô (nút «Huỷ lô»; ADR-0156 Đ2 mục 3): lô chưa có vé nào TỪNG được giữ chỗ. Một lô D1 nguyên khối. Vé mang dấu rút nên nhập lại được. Ảnh KHÔNG xoá ngay: lưu `NGAY_LUU_ANH_LO_HUY` ngày rồi việc định kỳ xoá (chủ quyết 2/11).
     route("POST", "/api/ve/lo/:id/bo", "office", async ({ env, params, staff }) => {
       if (!can(staff, "ve.kho.manage")) return KHONG_QUYEN();
       const loId = params.id ?? "";
@@ -254,11 +269,10 @@ export const veDienTuModule: AppModule = {
       const lenh = crypto.randomUUID();
       const kq = await env.DB.batch([
         cauBoLo(env.DB, loId, at, staff.id, lenh),
-        auditStatement(env.DB, { staffId: staff.id, action: "ve_bo_lo", at, targetType: "ve", targetId: lo.catalog_code, detail: `Bỏ lô vé · ${NHAN_NHOM[lo.pax_group as keyof typeof NHAN_NHOM]}` }, "changes() > 0"),
+        auditStatement(env.DB, { staffId: staff.id, action: "ve_bo_lo", at, targetType: "ve", targetId: lo.catalog_code, detail: `Huỷ lô vé · ${NHAN_NHOM[lo.pax_group as keyof typeof NHAN_NHOM]}` }, "changes() > 0"),
         cauRutVeCuaLo(env.DB, loId, at, staff.id, lenh),
       ]);
-      if ((kq[0]?.meta?.changes ?? 0) === 0) return error(409, "batch_in_use", "Lô này đã có vé từng được giữ chỗ cho đơn hoặc đã bỏ trước đó, không bỏ được.");
-      if (env.VE_DIEN_TU) await donKhoCuaLo(env.DB, env.VE_DIEN_TU, loId, () => new Date().toISOString());
+      if ((kq[0]?.meta?.changes ?? 0) === 0) return error(409, "batch_in_use", "Lô này đã có vé từng được giữ chỗ cho đơn hoặc đã huỷ trước đó, không huỷ được.");
       return json({ loId, trangThai: "VOID", veDaRut: kq[2]?.meta?.changes ?? 0 });
     }),
 

@@ -2116,11 +2116,11 @@ export const CHECKS = [
     level: "fail",
     note: "chỉ mục duy nhất theo toàn chuỗi QR không bắt được ca nhà cung cấp phát lại chuỗi khác cho cùng S/N (ADR-0156 Đ1 mục 6): vé có thể đã bán trùng, kiểm tay từng vé — báo số nhóm, không in mã",
   },
-  // R-VDT-5 (ADR-0156 Đ2 mục 3; Hiến chương 5.16): như R-FBK-1 cho ảnh vé. Việc định kỳ tự chạy lại mỗi 15 phút nên dòng ở đây lâu ngày nghĩa là kho đang hỏng. Mức warn: không chặn phát hành.
+  // R-VDT-5 (ADR-0156 Đ2 mục 3; Hiến chương 5.16): như R-FBK-1 cho ảnh vé. Ảnh của lô đã huỷ lưu 3 ngày (`NGAY_LUU_ANH_LO_HUY`, chủ quyết 2/11) rồi việc định kỳ 15 phút xoá; 4 ngày mà còn nghĩa là kho đang hỏng. Mức warn: không chặn phát hành.
   {
     code: "R-VDT-5",
-    what: "ảnh vé đã quyết xoá mà kho R2 chưa xoá (việc định kỳ tự chạy lại)",
-    sql: `SELECT count(*) FROM vdt_ticket WHERE purged_at IS NOT NULL AND r2_deleted_at IS NULL`,
+    what: "ảnh vé quá hạn lưu mà kho R2 chưa xoá (việc định kỳ tự chạy lại)",
+    sql: `SELECT count(*) FROM vdt_ticket WHERE purged_at IS NOT NULL AND r2_deleted_at IS NULL AND purged_at < strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-4 days')`,
     level: "warn",
   },
 ];

@@ -11,8 +11,8 @@
 //   5  Bán hàng: hai ảnh tốt + ảnh không có mã + tệp không phải ảnh ⇒ hai vé vào kho, hai tệp bị loại kèm tên; không lộ chuỗi QR.
 //   6  Bản nén lại của vé đã nhập (tệp khác, cùng QR) ⇒ bị loại, kho không đổi, không để lại lô trống. Đây là ca quyết định Đ1 có hiệu lực (P16).
 //   7  Hai ảnh cùng QR trong một lần chọn ⇒ một vào, một bị loại ngay trên trang.
-//   8  Bỏ lô từ danh sách qua hộp xác nhận ⇒ kho giảm; nhập lại đúng các ảnh đó ⇒ vào kho.
-//   9  Gửi dở (đưa lô vào kho thất bại) ⇒ trang chỉ đường «Bỏ lô», lô hiện «đang dở»; bỏ rồi nhập lại được.
+//   8  «Huỷ lô» từ danh sách qua hộp xác nhận ⇒ kho giảm; nhập lại đúng các ảnh đó ⇒ vào kho.
+//   9  Gửi dở (đưa lô vào kho thất bại) ⇒ trang chỉ đường «Huỷ lô», lô hiện «đang dở»; bỏ rồi nhập lại được.
 //   10 50 ảnh cỡ vé thật liên tiếp ⇒ trang không treo; đo tổng thời gian và khoảng đứng hình lâu nhất.
 // Chạy (từ gốc repo, sau `npm run build:web`):
 //   AXE_JS=<…/axe.min.js> CHROME_BIN=$PWD/docs/evidence/2026-09-20-a2/kich-ban/chrome-wrap.sh node docs/evidence/2026-11-02-ve-qr-tran-lo/kich-ban/ve-qr-smoke.mjs
@@ -120,10 +120,11 @@ const boLo = async (p, tenSp) => {
   assert.equal(trung, true, `lô «${tenSp}» có trong danh sách bỏ được`);
   await choHop(p);
   const ten = await p.ev("document.querySelector('.sheet .sheet-title')?.textContent ?? ''");
-  assert.equal(ten, "Bỏ lô vé này?");
-  assert.equal(await bam(p, ".sheet .btn-danger"), true, "nút «Bỏ lô» trong hộp");
+  assert.equal(ten, "Huỷ lô vé này?");
+  assert.match(await p.ev("document.querySelector('.sheet').textContent"), /Ảnh được lưu thêm 3 ngày rồi tự xoá\./, "hộp nói đúng hạn lưu");
+  assert.equal(await bam(p, ".sheet .btn-danger"), true, "nút «Huỷ lô» trong hộp");
   await choDongHop(p);
-  await p.waitFor("document.getElementById('ok').textContent === 'Đã bỏ lô.'", "báo đã bỏ lô");
+  await p.waitFor("document.getElementById('ok').textContent === 'Đã huỷ lô.'", "báo đã huỷ lô");
   await sleep(300);
 };
 // Máy tính: mục nằm trong khối thanh bên có thể đang gập nên hỏi «có trong trang», không hỏi «đang hiện». Điện thoại: trang Tôi hiện thẳng.
@@ -264,11 +265,20 @@ try {
       assert.equal(await conTrong(p), dem);
     });
 
-    await buoc(`${kho}.8`, "Bỏ lô từ danh sách qua hộp xác nhận: kho giảm; nhập lại đúng các ảnh đó được", async () => {
+    await buoc(`${kho}.8`, "«Huỷ lô» từ danh sách qua hộp xác nhận: kho giảm; nhập lại đúng các ảnh đó được", async () => {
       await boLo(p, loDau);
       dem -= 2;
       assert.equal(await conTrong(p), dem, "kho giảm hai vé");
       assert.equal(await p.ev(`[...document.querySelectorAll('[data-khoi=cac-lo] li')].some((x) => x.textContent.includes(${JSON.stringify(loDau)}))`), false, "lô đã bỏ không còn trong danh sách");
+      // Khối «Lô đã huỷ gần đây»: chỉ chữ, không có ảnh hay đường dẫn nào; mở danh sách vé thì chỉ thấy 4 số cuối.
+      const huy = await p.ev(`(() => { const li = [...document.querySelectorAll('[data-khoi=lo-da-huy] li')].find((x) => x.textContent.includes(${JSON.stringify(loDau)})); if (!li) return null; const d = li.querySelector('details'); if (d) d.open = true; return { chu: li.innerText, soVe: li.querySelectorAll('[data-ve]').length, anh: li.querySelectorAll('img, a, button').length }; })()`);
+      assert.ok(huy, "lô vừa huỷ phải hiện ở khối Lô đã huỷ gần đây");
+      assert.equal(huy.soVe, 2, JSON.stringify(huy));
+      assert.equal(huy.anh, 0, "khối này không có ảnh, liên kết hay nút");
+      assert.match(huy.chu, /Huỷ lúc \d{2}:\d{2} ngày \d{2}\/\d{2}\/\d{4} · người huỷ: /, JSON.stringify(huy));
+      assert.match(huy.chu, /Vé số cuối \d{4} · dùng /, JSON.stringify(huy));
+      await khongLoQr(p, "khối Lô đã huỷ gần đây");
+      await chup(p, `lo-da-huy-${kho}`);
       await khaiLo(p, `Nhập lại ${kho}`);
       await chonAnh(p, [anhTot(tien + 1, "ve-a.png"), anhTot(tien + 2, "ve-b.png")]);
       await guiLo(p);
@@ -279,14 +289,14 @@ try {
       assert.equal(await conTrong(p), dem);
     });
 
-    await buoc(`${kho}.9`, "Gửi dở: trang chỉ đường «Bỏ lô», lô hiện «đang dở»; bỏ rồi nhập lại đúng ảnh đó được", async () => {
+    await buoc(`${kho}.9`, "Gửi dở: trang chỉ đường «Huỷ lô», lô hiện «đang dở»; bỏ rồi nhập lại đúng ảnh đó được", async () => {
       const tenDo = `Lô dở ${kho}`;
       await p.ev(`{ const f = window.fetch.bind(window); window.__fetchGoc = f; window.fetch = (u, o) => /\\/xac-nhan$/.test(String(u)) ? Promise.resolve(new Response(JSON.stringify({ error: { code: 'x', message: 'Mất kết nối giữa chừng.' } }), { status: 500, headers: { 'content-type': 'application/json' } })) : f(u, o); } true`);
       await khaiLo(p, tenDo);
       await chonAnh(p, [anhTot(tien + 4, "ve-d.png")]);
       await guiLo(p);
       const tt = await docTrang(p);
-      assert.match(tt.loi, /Lô này chưa xong: bấm «Bỏ lô» ở danh sách bên dưới rồi nhập lại\./, JSON.stringify(tt));
+      assert.match(tt.loi, /Lô này chưa xong: bấm «Huỷ lô» ở danh sách bên dưới rồi nhập lại\./, JSON.stringify(tt));
       assert.equal(await conTrong(p), dem, "vé của lô dở chưa vào kho");
       await p.ev("window.fetch = window.__fetchGoc; true");
       assert.match(await p.ev(`[...document.querySelectorAll('[data-khoi=cac-lo] li')].find((x) => x.textContent.includes(${JSON.stringify(tenDo)}))?.textContent ?? ''`), /đang dở/);

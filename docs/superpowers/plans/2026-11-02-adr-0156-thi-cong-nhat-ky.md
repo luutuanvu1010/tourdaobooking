@@ -6,13 +6,19 @@ ADR: `docs/adr/ADR-0156-ve-dien-tu-ma-qr-chong-trung-va-tran-lo.md`. Nhánh `cla
 - Không gõ mã từng vé vì số vé rất lớn; không dùng người soát ở số lượng lớn (2/11).
 - Trần mỗi lô 50, đặt ở màn của Toàn quyền; cần một lớp chống trùng chính xác ngoài dấu vân tệp (2/11).
 - «ok tạm thế đã, tiếp tục nào, nếu có đề xuất tốt hơn thì báo tôi» (2/11): người thi công hiểu là chấp nhận ADR-0156, gồm rủi ro lẫn loại vé, luật không đọc được QR thì loại ảnh, Bán hàng dùng được Bỏ lô; đã nói rõ cách hiểu này với chủ.
+- Duyệt 2/11: trần gói Đơn hàng 103.178 byte; `R-VDT-4` tính cả vé VOID không mang dấu rút.
+- Duyệt 2/11: «vậy đổi thành lưu 3 ngày cho lô đã huỷ» (trước đó nói 7 ngày «để phục vụ cho việc tra cứu và tra soát»). Máy tự xoá sau hạn.
+- Chữ trên giao diện đổi từ «Bỏ lô» thành «Huỷ lô» vì chủ không hiểu «lô đã bỏ». Tên trong mã giữ nguyên.
+- Ai xem trong 3 ngày: chủ chọn «Cả Quản trị, Bán hàng» khi hỏi về xem ảnh. Sau đó người thi công hỏi lại kèm ví dụ bán trùng (vé của lô đã huỷ nhập lại được, nên ảnh đã gửi khách vẫn có thể bán lần hai); câu trả lời ghi nhận là «Chỉ xem thông tin», đúng phương án khuyến nghị. Công cụ không cho biết chủ tự bấm hay hết giờ tự chọn, nên báo cáo cuối nêu rõ để chủ đổi nếu không đúng ý. Vì vậy hiện chỉ có chữ, không có đường mở ảnh; cần ảnh thì thêm sau.
 
 ## Lệch so với ADR (có lý do)
 - Thư viện đặt tên `jsqr.cjs`, không phải `.js`: kho khai `"type": "module"`, đuôi `.js` bị esbuild coi là ESM và báo không có export. Bài trần gói bắt được lỗi này.
 - ADR nói thêm hai tệp vào `web/vendor/`; thực tế ba tệp, vì giữ giấy phép Apache-2.0 ở tệp riêng.
 - `soVeDuKien` ở `POST /api/ve/lo` là tuỳ chọn, vì route thêm vé vẫn kiểm trần.
 - Thêm ngoài ADR: lô không còn vé nào thì trang tự bỏ, để danh sách «Lô có thể bỏ» không đầy rác; câu nhắc mỗi lô một sản phẩm, một loại khách, một ngày dùng ngay trên trang.
-- Sổ nợ `GHI_NHIEU_LAN` thêm `POST /api/ve/lo/:id/bo` vì kho R2 nằm giữa, không gộp một lô được. Dòng `POST /api/ve/lo/:id/ve` sửa cho đúng sự thật như ADR yêu cầu.
+- Sổ nợ `GHI_NHIEU_LAN` từng thêm `POST /api/ve/lo/:id/bo` vì kho R2 nằm giữa. Từ khi lưu ảnh 3 ngày, route này chỉ còn một lô D1 nên đã gỡ dòng đó. Dòng `POST /api/ve/lo/:id/ve` sửa cho đúng sự thật như ADR yêu cầu.
+- ADR Đ2 mục 3 viết vé «rồi được dọn khỏi kho R2», không nói lúc nào, nên hạn 3 ngày không trái ADR và không cần sửa ADR.
+- Thêm ngoài ADR: `GET /api/ve/lo-da-huy` và khối «Lô đã huỷ gần đây», cùng ô `ve.kho.manage`, chỉ đọc. Tên người huỷ qua `nhanNhanVien` được tiêm, không nới `ALLOWED_EDGES`.
 
 ## Kiểm độc lập lần 1 (2/11): KHÔNG ĐẠT, đã xử lý
 Không có đường nào đưa vé có thể đã tới tay khách quay lại kho. Các phát hiện:
@@ -39,13 +45,14 @@ Trung 1–3 đã đóng, không có lỗi mới trên mức Thấp. Người ki�
 
 ## Nợ
 - Hàng chờ xoá lấy 50 dòng cũ nhất mỗi lần: 50 dòng liên tục không xoá được sẽ chặn các dòng sau; `R-VDT-5` thấy số đếm tăng (suy luận, chưa chạy).
-- Bỏ lô xen giữa lúc gửi mà lần xoá ngay cũng gặp kho hỏng: ảnh còn và `R-VDT-5` không thấy, chỉ có dòng log (người kiểm đã tái hiện). Cần hai lỗi kho trùng một lúc.
+- ~~Bỏ lô xen giữa lúc gửi mà lần xoá ngay cũng gặp kho hỏng~~: đã hết từ khi lưu 3 ngày. Dòng vé ở hàng chờ tới khi xoá được, `R-VDT-5` thấy nếu quá hạn.
+- Ảnh được giữ 3 ngày nhưng Nền tảng chưa có đường mở, nên hiện chỉ dùng được nếu sau này thêm đường đó (chủ quyết 2/11).
+- Vé rút do gửi hỏng (`cauRutVeChuaPhat`) vẫn xoá ngay; nếu lần xoá đó hỏng thì đợi hết 3 ngày mới thử lại. Không có hại vì lần đặt kho đã hỏng nên thường không có ảnh (suy luận, chưa chạy riêng ca này).
 - Nhật ký của lô chèn vé gác theo câu chèn cuối: riêng lúc hai người nhập đúng lúc thì có thể thiếu dòng hoặc đếm dư. Vé không sai; để lại vì sửa đúng cần tách nhật ký khỏi lô, đổi lấy một ca hiếm.
 - Lô đã vào kho cũ hơn 50 lô mới nhất không bỏ được bằng trang, phải gọi API theo mã lô.
 - `ve-kho.js` tăng từ 86 KB lên 223 KB (77 KB khi nén). Luật hiện hành nạp sẵn MỌI trang (`PRECACHE`, có bài kiểm), nên mọi máy kể cả điện thoại Đối tác và tài xế tải thêm phần này mỗi bản dựng. Muốn tránh phải có ngoại lệ có tên cho trang này: chủ quyết.
 - Trang rơi về nhãn 50 khi `GET /api/ve/kho` hỏng; máy chủ vẫn kiểm đúng trần.
 - iPhone thật chưa kiểm (tiêu chí 9).
 - Hai điều kiện trước khi phát hành ở `docs/HANDOFF-N1.md`: tải cùng một vé hai lần; ảnh vé Vinpearl Harbour.
-- Chờ chủ duyệt con số trần gói Đơn hàng 103.178 byte.
 - **Đề xuất chưa áp, chủ quyết (N9):** thêm một dòng vào bảng kịch bản Chrome ở `web/CLAUDE.md`:
   `| Trang Vé điện tử và cài đặt (ADR-0156): web/ve-kho.ts, web/ve-cai-dat.ts, web/qr-doc-ve.ts, public/ve-kho.html, public/ve-cai-dat.html, src/shared/ve-nhap-lo.ts | ve-qr-smoke.mjs ở docs/evidence/2026-11-02-ve-qr-tran-lo/kich-ban/ (10 bước, 390 + 1040, cần AXE_JS, không cần mạng ngoài; phá thử LB_PHA=qr-gia) |`

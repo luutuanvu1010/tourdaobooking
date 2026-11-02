@@ -41,7 +41,7 @@ const CHO_PHEP_NHAT_KY = new Set(["web/help.ts"]);
 // Nới 102.734 → 102.937 (ADR-0153 Task 9a, 1/11/2026): thêm trang /ve-kho vào `TRANG`/`THANH_BEN`/`TRANG_TOI` của `muc-giao-dien.ts` (chỉ dữ liệu điều hướng, khuôn các lần /luat-ban, /dac-diem-dich-vu);
 // đo thật 102.837 byte (+203 so với 102.634), trần = số đo + 100. Không mã giao diện nghiệp vụ nào vào gói Đơn hàng. CHƯA có lời duyệt riêng của chủ dự án cho con số này.
 // Nới 102.937 → 103.178 (ADR-0156 Đ3, 2/11/2026): thêm trang /ve-cai-dat vào `TRANG`/`THANH_BEN`/`TRANG_TOI` của `muc-giao-dien.ts` và hai hành động nhật ký vào hai bảng phân loại lịch sử (chỉ dữ liệu);
-// đo thật 103.078 byte (+241 so với 102.837), trần = số đo + 100. Thư viện đọc QR chỉ ở gói trang Vé điện tử. ADR-0156 đã báo trước; con số chờ chủ duyệt.
+// đo thật 103.078 byte (+241 so với 102.837), trần = số đo + 100. Thư viện đọc QR chỉ ở gói trang Vé điện tử. ADR-0156 đã báo trước; chủ dự án duyệt con số này 2/11/2026.
 const TRAN_ORDERS = 103_178;
 
 function dung(trang: string) {

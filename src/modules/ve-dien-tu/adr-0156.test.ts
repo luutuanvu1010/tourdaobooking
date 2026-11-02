@@ -110,7 +110,7 @@ test("vé VOID vì đã lộ cho khách không mang dấu rút, nên không nh�
 });
 
 // ---- Đ2: lệnh Bỏ lô ------------------------------------------------------------------------------------------------------------------------------------
-test("Bỏ lô đang dở: lô VOID, ảnh được xoá khỏi kho, nhập lại đúng các ảnh được; nhật ký không chứa mã", async () => {
+test("Bỏ lô đang dở: lô VOID, ảnh chưa xoá ngay, nhập lại đúng các ảnh được; nhật ký không chứa mã", async () => {
   const w = setup();
   const loId = (await taoLo(w)).json.loId;
   await them(w, loId, [ve(1), ve(2)]);
@@ -118,8 +118,8 @@ test("Bỏ lô đang dở: lô VOID, ảnh được xoá khỏi kho, nhập lạ
   const r = await bo(w, loId);
   assert.equal(r.status, 200, r.text);
   assert.equal(w.q("SELECT status FROM vdt_batch")[0].status, "VOID");
-  assert.ok(khoa.every((k: string) => !w.r2VeDienTu.co(k)), "đã xoá khỏi kho");
-  assert.equal(w.q("SELECT count(*) AS n FROM vdt_ticket WHERE r2_deleted_at IS NOT NULL AND withdrawn_at IS NOT NULL AND status = 'VOID'")[0].n, 2);
+  assert.ok(khoa.every((k: string) => w.r2VeDienTu.co(k)), "ảnh còn lưu, chưa xoá ngay");
+  assert.equal(w.q("SELECT count(*) AS n FROM vdt_ticket WHERE r2_deleted_at IS NULL AND purged_at IS NOT NULL AND withdrawn_at IS NOT NULL AND status = 'VOID'")[0].n, 2);
   const lo2 = (await taoLo(w)).json.loId;
   const lai = await them(w, lo2, [ve(1), ve(2)]);
   assert.equal(lai.json.themDuoc, 2, lai.text);
@@ -257,7 +257,10 @@ test("phản hồi và nhật ký không chứa chuỗi QR 36 số đầy đủ"
 // ---- Phát hiện của người kiểm độc lập 2/11 ------------------------------------------------------------------------------------------------------------
 const hangCho = (w: any) => w.q("SELECT count(*) AS n FROM vdt_ticket WHERE purged_at IS NOT NULL AND r2_deleted_at IS NULL")[0].n;
 
-test("Bỏ lô chen giữa lúc đang gửi ảnh: đối tượng vừa đặt bị xoá ngay, không nằm lại trong kho", async () => {
+/** Việc định kỳ chạy như thể đã qua `ngay` ngày kể từ bây giờ. */
+const chaySau = (w: any, ngay: number) => donHangChoXoa(w.env.DB, w.env.VE_DIEN_TU, 50, () => new Date(Date.now() + ngay * 864e5).toISOString());
+
+test("Bỏ lô chen giữa lúc đang gửi ảnh: vé không được tính đã lưu; ảnh vừa đặt bị xoá khi hết hạn lưu, không nằm lại vĩnh viễn", async () => {
   const w = setup();
   const loId = (await taoLo(w)).json.loId;
   let nha!: () => void;
@@ -273,27 +276,108 @@ test("Bỏ lô chen giữa lúc đang gửi ảnh: đối tượng vừa đặt 
   assert.equal((await gui).status, 200);
   const t = w.q("SELECT storage_key, stored_at FROM vdt_ticket")[0];
   assert.equal(t.stored_at, null, "vé đã rút không được đánh dấu đã lưu");
+  assert.equal(hangCho(w), 1, "dòng vé ở hàng chờ");
+  await chaySau(w, 3.1);
   assert.equal(w.r2VeDienTu.co(t.storage_key), false, "ảnh không được nằm lại trong kho");
+  assert.equal(hangCho(w), 0);
 });
 
-test("kho hỏng lúc Bỏ lô: ảnh ở hàng chờ xoá; lần chạy định kỳ xoá hết khi kho lành; không có việc thì không ghi gì", async () => {
+test("ảnh của lô đã huỷ: còn nguyên trong 3 ngày; quá hạn thì việc định kỳ xoá; kho hỏng thì đợi lần sau; ảnh của lô khác không bị đụng", async () => {
   const w = setup();
-  const loId = (await taoLo(w)).json.loId;
-  await them(w, loId, [ve(1), ve(2)]);
-  await xacNhan(w, loId);
+  const loHuy = (await taoLo(w)).json.loId;
+  await them(w, loHuy, [ve(1), ve(2)]);
+  await xacNhan(w, loHuy);
   const khoa = w.q("SELECT storage_key FROM vdt_ticket").map((x: any) => x.storage_key);
-  w.r2VeDienTu.hong.delete = true;
-  assert.equal((await bo(w, loId)).status, 200);
+  const loBan = (await taoLo(w)).json.loId;
+  await them(w, loBan, [ve(3)]);
+  await xacNhan(w, loBan);
+  const khoaBan = w.q("SELECT storage_key FROM vdt_ticket WHERE batch_id = ?", loBan)[0].storage_key;
+  assert.equal((await bo(w, loHuy)).status, 200);
   assert.equal(hangCho(w), 2);
-  const chayDinhKy = () => donHangChoXoa(w.env.DB, w.env.VE_DIEN_TU, 50, () => new Date().toISOString());
-  await chayDinhKy();
-  assert.equal(hangCho(w), 2, "kho còn hỏng: dòng vẫn ở hàng chờ, không đánh dấu nhầm");
+
+  await chaySau(w, 0);
+  await chaySau(w, 2.9);
+  assert.deepEqual(khoa.map((k: string) => w.r2VeDienTu.co(k)), [true, true], "chưa đủ 3 ngày: ảnh còn nguyên");
+  assert.equal(hangCho(w), 2);
+
+  w.r2VeDienTu.hong.delete = true;
+  await chaySau(w, 3.1);
+  assert.equal(hangCho(w), 2, "kho hỏng: dòng vẫn ở hàng chờ, không đánh dấu nhầm");
   w.r2VeDienTu.hong.delete = false;
-  await chayDinhKy();
+  await chaySau(w, 3.1);
   assert.equal(hangCho(w), 0);
   assert.deepEqual(khoa.map((k: string) => w.r2VeDienTu.co(k)), [false, false]);
-  await chayDinhKy();
+  assert.equal(w.r2VeDienTu.co(khoaBan), true, "ảnh của lô đang bán không bị đụng, dù đã qua hạn");
+  await chaySau(w, 3.1);
   assert.equal(hangCho(w), 0);
+});
+
+// ---- Màn «Lô đã huỷ gần đây»: chỉ chữ, không mở ảnh (chủ quyết 2/11/2026) ------------------------------------------------------------------------------
+const daHuy = (w: any, as = SALES) => w.call("GET", "/api/ve/lo-da-huy", { as });
+const luiNgay = (w: any, loId: string, ngay: number) => w.sqlite.prepare("UPDATE vdt_batch SET updated_at = ? WHERE id = ?").run(new Date(Date.now() - ngay * 864e5).toISOString(), loId);
+
+test("lô đã huỷ: Bán hàng, Quản trị, Toàn quyền xem được, Kế toán thì không; đúng các ô đã duyệt, không lộ mã đầy đủ, khoá kho, dấu vân", async () => {
+  const w = setup();
+  const loId = (await taoLo(w, { tenSanPham: "Vé huỷ thử" })).json.loId;
+  await them(w, loId, [ve(1), ve(2)]);
+  await xacNhan(w, loId);
+  assert.deepEqual((await daHuy(w)).json.lo, [], "chưa huỷ thì chưa có");
+  const nho = w.q("SELECT storage_key, content_hash, ticket_code FROM vdt_ticket");
+  assert.equal((await bo(w, loId)).status, 200);
+  for (const as of [SALES, ADMIN, SUPER]) assert.equal((await daHuy(w, as)).status, 200);
+  assert.equal((await daHuy(w, KT)).status, 403);
+
+  const r = await daHuy(w);
+  assert.equal(r.json.hanLuuNgay, 3);
+  assert.equal(r.json.lo.length, 1);
+  const l = r.json.lo[0];
+  assert.deepEqual(Object.keys(l).sort(), ["huyBoi", "huyLuc", "loId", "nhomKhach", "tenDichVu", "tenSanPham", "ve"], "không thêm ô nào ngoài danh sách đã duyệt");
+  assert.deepEqual([l.loId, l.tenSanPham, l.tenDichVu, l.nhomKhach, l.huyBoi], [loId, "Vé huỷ thử", "Vinwonders 2 ngày", "ADULT", "NV 01"]);
+  assert.match(l.huyLuc, /^\d{4}-\d{2}-\d{2}T/);
+  assert.equal(l.ve.length, 2);
+  assert.deepEqual(Object.keys(l.ve[0]).sort(), ["denNgay", "duoiMa", "tuNgay"]);
+  assert.deepEqual(l.ve.map((x: any) => x.duoiMa).sort(), ["1111", "1112"], "chỉ 4 số cuối");
+  assert.deepEqual([l.ve[0].tuNgay, l.ve[0].denNgay], ["2026-10-24", "2026-11-23"]);
+  for (const x of nho) for (const bi of [x.storage_key, x.content_hash, x.ticket_code]) assert.ok(!r.text.includes(bi), "không được lộ mã đầy đủ, khoá kho, dấu vân");
+});
+
+test("lô đã huỷ: chỉ hiện trong 3 ngày; lô đang bán và lô đang dở không hiện; nhập lại vé vào lô mới thì dòng cũ vẫn còn để tra", async () => {
+  const w = setup();
+  const loBan = (await taoLo(w, { tenSanPham: "Lô bán" })).json.loId;
+  await them(w, loBan, [ve(5)]);
+  await xacNhan(w, loBan);
+  const loDo = (await taoLo(w, { tenSanPham: "Lô dở" })).json.loId;
+  await them(w, loDo, [ve(6)]);
+  const loHuy = (await taoLo(w, { tenSanPham: "Lô huỷ" })).json.loId;
+  await them(w, loHuy, [ve(1)]);
+  await xacNhan(w, loHuy);
+  await bo(w, loHuy);
+
+  const ten = async () => (await daHuy(w)).json.lo.map((l: any) => l.tenSanPham);
+  assert.deepEqual(await ten(), ["Lô huỷ"]);
+  const loMoi = (await taoLo(w, { tenSanPham: "Lô mới" })).json.loId;
+  assert.equal((await them(w, loMoi, [ve(1)])).json.themDuoc, 1, "vé của lô đã huỷ nhập lại được");
+  assert.deepEqual(await ten(), ["Lô huỷ"], "lô nhập lại không hiện ở đây");
+
+  luiNgay(w, loHuy, 2.9);
+  assert.deepEqual(await ten(), ["Lô huỷ"], "còn trong 3 ngày");
+  luiNgay(w, loHuy, 3.1);
+  assert.deepEqual(await ten(), [], "quá 3 ngày thì thôi hiện");
+});
+
+test("lô đã huỷ: vé hỏng lúc gửi (chưa từng vào kho) không tính; lô huỷ khi chưa có vé nào vẫn hiện với 0 vé", async () => {
+  const w = setup();
+  const loRong = (await taoLo(w, { tenSanPham: "Lô rỗng" })).json.loId;
+  await bo(w, loRong);
+  const loId = (await taoLo(w, { tenSanPham: "Lô có vé hỏng" })).json.loId;
+  await them(w, loId, [ve(1)]);
+  w.r2VeDienTu.hong.put = true;
+  await them(w, loId, [ve(2)]);
+  w.r2VeDienTu.hong.put = false;
+  await bo(w, loId);
+  const lo = (await daHuy(w)).json.lo;
+  assert.deepEqual(lo.find((l: any) => l.loId === loRong).ve, []);
+  assert.deepEqual(lo.find((l: any) => l.loId === loId).ve.map((x: any) => x.duoiMa), ["1111"]);
 });
 
 test("việc dọn hàng chờ thật sự được gắn vào lịch chạy định kỳ của Nền tảng", () => {
