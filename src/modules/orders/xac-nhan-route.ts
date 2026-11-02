@@ -41,7 +41,7 @@ async function docCaiDat(db: D1Database, luc: string): Promise<CaiDatXacNhanResp
  * MỞ YÊU CẦU xác nhận (Đ3) — MỘT lô: đẩy mốc đơn nháp (khoá lạc quan) → nhật ký `order_confirm_requested` → dòng yêu cầu. DÙNG CHUNG cho `gui-xac-nhan` và nhánh A của `gui-don` (Task 3.4).
  * Nơi gọi đã kiểm mọi cổng; hàm này chỉ ghi. Thua khoá (người khác vừa đổi đơn) → STALE; va ràng buộc «một yêu cầu mở» → 409 `confirm_already_open`.
  */
-async function moYeuCau(db: D1Database, i: { id: string; staffId: string; meta: { updatedAt: string }; vi: LyDoCanXacNhan[]; nowMs: number }): Promise<{ loi: Response } | { yeuCau: YeuCauXacNhanDto }> {
+async function moYeuCau(db: D1Database, i: { id: string; staffId: string; meta: { updatedAt: string }; vi: LyDoCanXacNhan[]; nowMs: number; canChotGio: boolean }): Promise<{ loi: Response } | { yeuCau: YeuCauXacNhanDto }> {
   const at = nextStamp(i.meta.updatedAt);
   const han = hanXacNhan(at);
   const yeuCauId = crypto.randomUUID();
@@ -51,7 +51,7 @@ async function moYeuCau(db: D1Database, i: { id: string; staffId: string; meta: 
     kq = await db.batch([
       orderTouchDraft(db, i.id, at, i.meta.updatedAt),
       auditStatement(db, { id: auditId, orderId: i.id, staffId: i.staffId, action: "order_confirm_requested", at, detail: `Gửi xác nhận · ${i.vi.map((v) => NHAN_VI[v]).join("; ")}` }, "changes() > 0"),
-      cauMoYeuCau(db, { id: yeuCauId, orderId: i.id, at, by: i.staffId, han, auditId }),
+      cauMoYeuCau(db, { id: yeuCauId, orderId: i.id, at, by: i.staffId, han, auditId, canChotGio: i.canChotGio }),
     ]);
   } catch (e) {
     if (/ord_confirm_request.*order_id|ord_confirm_request_one_open|UNIQUE constraint failed: ord_confirm_request/i.test(String((e as Error)?.message ?? e))) {
@@ -60,7 +60,7 @@ async function moYeuCau(db: D1Database, i: { id: string; staffId: string; meta: 
     throw e;
   }
   if ((kq[0]!.meta.changes ?? 0) === 0) return { loi: STALE() }; // người khác vừa đổi đơn giữa lúc đọc và lúc ghi — tải lại rồi bấm lại
-  return { yeuCau: dtoYeuCau({ id: yeuCauId, order_id: i.id, submitted_at: at, submitted_by: i.staffId, deadline_at: han }, i.vi, i.nowMs) };
+  return { yeuCau: dtoYeuCau({ id: yeuCauId, order_id: i.id, submitted_at: at, submitted_by: i.staffId, deadline_at: han, pickup_time_required: i.canChotGio ? 1 : 0 }, i.vi, i.nowMs) };
 }
 
 /** Kiểm «chưa có khoản thu» (Đ3; áp cho Gửi xác nhận và nhánh A của Gửi đơn): hàm TIÊM — không đọc được ⇒ 503, KHÔNG đoán «chưa có». Trả `null` khi được phép mở yêu cầu. */
@@ -126,7 +126,7 @@ export const xacNhanRoutes = [
     // Đ3 «chưa có khoản thu»: hàm TIÊM từ gốc lắp ráp (orders không đọc bảng bil_).
     const chan = await chanKhoanThu(daThuCuaDon, id);
     if (chan) return chan;
-    const mo = await moYeuCau(env.DB, { id, staffId: staff.id, meta, vi: canXN.vi, nowMs });
+    const mo = await moYeuCau(env.DB, { id, staffId: staff.id, meta, vi: canXN.vi, nowMs, canChotGio: false });
     if ("loi" in mo) return mo.loi;
     baoThayDoi({ orderId: id, thayDoi: "cho_xac_nhan" });
     return json({ yeuCau: mo.yeuCau } satisfies GuiXacNhanResponse, 201, { location: trangDon(id) });
@@ -157,7 +157,7 @@ export const xacNhanRoutes = [
     if (canXN.can) {
       const chan = await chanKhoanThu(daThuCuaDon, id);
       if (chan) return chan;
-      const mo = await moYeuCau(env.DB, { id, staffId: staff.id, meta, vi: canXN.vi, nowMs });
+      const mo = await moYeuCau(env.DB, { id, staffId: staff.id, meta, vi: canXN.vi, nowMs, canChotGio: false });
       if ("loi" in mo) return mo.loi;
       baoThayDoi({ orderId: id, thayDoi: "cho_xac_nhan" });
       return json({ nhanh: "A", thongBao: CAU_BAO_GUI_DON.A, yeuCau: mo.yeuCau } satisfies GuiDonResponse, 201, { location: trangDon(id) });

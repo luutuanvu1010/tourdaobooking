@@ -15,8 +15,10 @@ export interface YeuCauRow {
   submitted_at: string;
   submitted_by: string;
   deadline_at: string;
+  /** 1 = yêu cầu mang cờ «cần chốt giờ» (ADR-0154 Đ1.2): người xét phải ghi giờ ở Còn vé. Chụp một lần lúc Gửi đơn, trigger cấm đổi. */
+  pickup_time_required: number;
 }
-const YC_COLS = "id, order_id, submitted_at, submitted_by, deadline_at";
+const YC_COLS = "id, order_id, submitted_at, submitted_by, deadline_at, pickup_time_required";
 /** Yêu cầu còn mở của MỘT đơn (chỉ mục duy nhất có điều kiện: tối đa một). */
 const YC_MO_CUA_DON = defineSql("orders", "confirm_request_open_of_order", `SELECT ${YC_COLS} FROM ord_confirm_request WHERE order_id = ?1 AND decided_at IS NULL`);
 export const yeuCauMoCuaDon = (db: D1Database, orderId: string): Promise<YeuCauRow | null> => db.prepare(YC_MO_CUA_DON).bind(orderId).first<YeuCauRow>();
@@ -27,7 +29,7 @@ export const yeuCauTheoId = (db: D1Database, id: string): Promise<YeuCauRow | nu
 const YC_MO_TAT_CA = defineSql(
   "orders",
   "confirm_request_open_all",
-  `SELECT r.id, r.order_id, r.submitted_at, r.submitted_by, r.deadline_at FROM ord_confirm_request r JOIN orders o ON o.id = r.order_id
+  `SELECT r.id, r.order_id, r.submitted_at, r.submitted_by, r.deadline_at, r.pickup_time_required FROM ord_confirm_request r JOIN orders o ON o.id = r.order_id
    WHERE r.decided_at IS NULL AND o.status = 'draft' ORDER BY r.submitted_at, r.id`,
 );
 export const yeuCauMoTatCa = async (db: D1Database): Promise<YeuCauRow[]> => (await db.prepare(YC_MO_TAT_CA).all<YeuCauRow>()).results;
@@ -45,11 +47,12 @@ export const orderTouchDraft = (db: D1Database, orderId: string, at: string, exp
 const YC_MO_GUARDED = defineSql(
   "orders",
   "confirm_request_open_guarded",
-  `INSERT INTO ord_confirm_request (id, order_id, submitted_at, submitted_by, deadline_at, created_at, created_by, updated_at, updated_by)
-   SELECT ?1, ?2, ?3, ?4, ?5, ?3, ?4, ?3, ?4 WHERE EXISTS (SELECT 1 FROM audit_log WHERE id = ?6)`,
+  `INSERT INTO ord_confirm_request (id, order_id, submitted_at, submitted_by, deadline_at, pickup_time_required, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, ?3, ?4, ?5, ?7, ?3, ?4, ?3, ?4 WHERE EXISTS (SELECT 1 FROM audit_log WHERE id = ?6)`,
 );
-export const cauMoYeuCau = (db: D1Database, v: { id: string; orderId: string; at: string; by: string; han: string; auditId: string }): D1PreparedStatement =>
-  db.prepare(YC_MO_GUARDED).bind(v.id, v.orderId, v.at, v.by, v.han, v.auditId);
+/** `canChotGio` BẮT BUỘC (không mặc định): nơi gọi phải nói rõ có chụp cờ «cần chốt giờ» hay không — quên thì `tsc` đỏ chứ không lặng lẽ thành 0. */
+export const cauMoYeuCau = (db: D1Database, v: { id: string; orderId: string; at: string; by: string; han: string; auditId: string; canChotGio: boolean }): D1PreparedStatement =>
+  db.prepare(YC_MO_GUARDED).bind(v.id, v.orderId, v.at, v.by, v.han, v.auditId, v.canChotGio ? 1 : 0);
 
 /** Khép yêu cầu ĐÚNG MỘT lần (trigger canh) — CHỈ khi dòng nhật ký của lô này (Rút lại / Còn vé / Hết vé / Huỷ) đã ghi. `ticket` NULL với RUT_LAI. */
 const YC_KHEP_GUARDED = defineSql(
@@ -64,7 +67,7 @@ export const cauKhepYeuCau = (
 
 // ---- Đổi ngày / giờ đón khi bấm Còn vé (Đ7) --------------------------------------------------------------------------------------------------------
 // Mỗi câu mang CÙNG HAI ĐIỀU KIỆN với câu xác nhận: yêu cầu `?req` còn mở VÀ đơn còn nháp đúng mốc `?upd` — bên thua (yêu cầu vừa khép, đơn vừa đổi) không đổi được gì.
-const CON_MO = (order: string, req: string, upd: string) =>
+export const CON_MO = (order: string, req: string, upd: string) =>
   `EXISTS (SELECT 1 FROM ord_confirm_request q WHERE q.id = ${req} AND q.order_id = ${order} AND q.decided_at IS NULL)
    AND EXISTS (SELECT 1 FROM orders o WHERE o.id = ${order} AND o.status = 'draft' AND o.updated_at = ${upd})`;
 
@@ -147,6 +150,53 @@ const CHINH_SACH_THEM = defineSql(
   `INSERT INTO ord_confirm_policy (id, self_confirm_internal, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?3, ?4, ?3, ?4)`,
 );
 export const cauThemChinhSach = (db: D1Database, v: { id: string; bat: boolean; at: string; by: string }): D1PreparedStatement => db.prepare(CHINH_SACH_THEM).bind(v.id, v.bat ? 1 : 0, v.at, v.by);
+
+// ---- Công tắc «Ẩn thông tin khách khi đối tác đặt vé» (ADR-0154 Đ2) — khuôn `ord_confirm_policy`; mặc định TẮT ------------------------------------------------------
+const AN_KHACH_HIEN_HANH = defineSql(
+  "orders",
+  "partner_customer_policy_current",
+  `SELECT hide_customer_info FROM ord_partner_customer_policy WHERE valid_from_at <= ?1 ORDER BY valid_from_at DESC LIMIT 1`,
+);
+/** Công tắc ẩn thông tin khách đang hiệu lực lúc `luc`. Không có dòng (không xảy ra: migration gieo 0) → TẮT — đường an toàn là không đổi gì. */
+export async function anKhachBat(db: D1Database, luc: string): Promise<boolean> {
+  const r = await db.prepare(AN_KHACH_HIEN_HANH).bind(luc).first<{ hide_customer_info: number }>();
+  return r?.hide_customer_info === 1;
+}
+const AN_KHACH_MOI_NHAT = defineSql("orders", "partner_customer_policy_latest", `SELECT max(valid_from_at) AS moi_nhat FROM ord_partner_customer_policy`);
+export const anKhachMoiNhat = async (db: D1Database): Promise<string | null> => (await db.prepare(AN_KHACH_MOI_NHAT).first<{ moi_nhat: string | null }>())?.moi_nhat ?? null;
+const AN_KHACH_THEM = defineSql(
+  "orders",
+  "partner_customer_policy_insert",
+  `INSERT INTO ord_partner_customer_policy (id, hide_customer_info, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?3, ?4, ?3, ?4)`,
+);
+export const cauThemAnKhach = (db: D1Database, v: { id: string; bat: boolean; at: string; by: string }): D1PreparedStatement => db.prepare(AN_KHACH_THEM).bind(v.id, v.bat ? 1 : 0, v.at, v.by);
+
+/**
+ * Bốn trường khách đang lưu của đơn (tên, SĐT, email, ghi chú khách) — để `PUT` nháp lúc công tắc BẬT giữ nguyên chúng (ADR-0154 Đ2.3). Dữ liệu cá nhân: chỉ trả cho
+ * nơi gọi đã qua cổng quyền của đơn, không bao giờ vào nhật ký. Không có đơn → `null`.
+ */
+const THONG_TIN_KHACH_DANG_LUU = defineSql(
+  "orders",
+  "order_customer_info_stored",
+  `SELECT customer_name, customer_phone, customer_email, customer_note FROM orders WHERE id = ?1`,
+);
+export async function thongTinKhachDangLuu(
+  db: D1Database, orderId: string,
+): Promise<{ customerName: string; customerPhone: string; customerEmail: string | null; customerNote: string | null } | null> {
+  const r = await db.prepare(THONG_TIN_KHACH_DANG_LUU).bind(orderId).first<{ customer_name: string; customer_phone: string; customer_email: string | null; customer_note: string | null }>();
+  return r === null ? null : { customerName: r.customer_name, customerPhone: r.customer_phone, customerEmail: r.customer_email, customerNote: r.customer_note };
+}
+
+/**
+ * Tài khoản `staffId` HIỆN GIỮ quyền Đối tác không (ADR-0154 Đ1.6, câu đã áp số 3): đọc qua view công bố `v_stf_quyen_mo` của `staff` (chỉ khoá + mã quyền còn hiệu lực), không thêm cột
+ * «người lập là đối tác» vào đơn. Hệ quả chấp nhận: người lập đã thôi quyền thì ghi chú đơn của họ không còn bị che. Mã `PARTNER` là điều kiện DỮ LIỆU của lớp che, không phải điều kiện cho phép.
+ */
+const NGUOI_LAP_GIU_DOI_TAC = defineSql(
+  "orders",
+  "order_creator_holds_partner",
+  `SELECT 1 AS co FROM v_stf_quyen_mo WHERE staff_id = ?1 AND permission_code = 'PARTNER' LIMIT 1`,
+);
+export const nguoiLapGiuDoiTac = async (db: D1Database, staffId: string): Promise<boolean> => (await db.prepare(NGUOI_LAP_GIU_DOI_TAC).bind(staffId).first()) !== null;
 
 /** Nhóm HIỆN HÀNH của các mã dịch vụ (mảng JSON ở ?1) qua view công bố `v_ctl_service_group`; mã chưa phân nhóm / không có trong danh mục: vắng khỏi kết quả. */
 const NHOM_THEO_MA = defineSql(
