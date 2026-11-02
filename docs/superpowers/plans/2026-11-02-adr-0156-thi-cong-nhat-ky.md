@@ -38,7 +38,7 @@ Trung 1–3 đã đóng, không có lỗi mới trên mức Thấp. Người ki�
 Không có lỗi mức Cao hay Trung ở mã; người kiểm tự phá thử thêm và xác nhận không còn đường mở ảnh vé đã rút. Đã xử lý: ghi các chỗ lệch ADR vào §16; khoá đủ các quyền ngoài ô bằng bài kiểm; ẩn lô không có vé. Người kiểm nhắc câu «Chỉ xem thông tin» có thể là mặc định hết giờ: đã nêu cho chủ xác nhận trong báo cáo cuối.
 
 ## Bằng chứng
-- Bản `5ec9ad5c` (lưu 3 ngày, «Huỷ lô», khối Lô đã huỷ gần đây): `npm test` 7107 bài, 7103 đạt, 0 đỏ, cộng bài đo giờ 1 đạt; typecheck 0 lỗi; e2e `ve-dien-tu` 4/4; Chrome hai khổ `VE QR SMOKE OK`. Mười tám chỗ phá thử đều đỏ đúng bài rồi hoàn nguyên. Các số dưới đây là của những bản trước.
+- Bản `5ec9ad5c` (lưu 3 ngày, «Huỷ lô», khối Lô đã huỷ gần đây): `npm test` 7107 bài, 7103 đạt, 0 đỏ, cộng bài đo giờ 1 đạt; typecheck 0 lỗi; e2e `ve-dien-tu` 4/4; Chrome hai khổ `VE QR SMOKE OK`. Mười lăm chỗ phá thử khác nhau đều đỏ đúng bài rồi hoàn nguyên; ba chỗ chạm câu đọc đã sửa được chạy lại trên bản này. Các số dưới đây là của những bản trước.
 - Trình duyệt: `ve-qr-smoke.mjs` hai khổ 390 và 1040, cần `AXE_JS`. Ảnh ở `docs/evidence/2026-11-02-ve-qr-tran-lo/anh/`, chỉ có dữ liệu thử.
 - 50 ảnh cỡ 1170×2532 (khoảng 13 MB tổng) trên Chrome của máy Mac: 4,0 giây, khoảng đứng hình lâu nhất 80 mili giây.
 - 7 ảnh vé thật trên máy (khối `VE_ANH_THAT`, chặn mọi lời gọi ghi trong trang, không chụp, không in chuỗi): đọc được 7, khác nhau 7, đúng dạng 7.
