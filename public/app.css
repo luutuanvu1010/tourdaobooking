@@ -869,6 +869,9 @@ button.xm-the { min-height: var(--tap-min); cursor: pointer; }
 .xm-ly-do { display: flex; align-items: flex-start; gap: var(--s2); padding: var(--s1) 0; }
 .xm-ly-do input { width: auto; margin-top: var(--s1); }
 
+/* ---------- Kho vé điện tử: ảnh vé của lô đã huỷ — chỉ token ---------- */
+.ve-anh-xem { display: block; max-width: 100%; height: auto; margin-top: var(--s2); border: 1px solid var(--c-border); border-radius: var(--radius-sm); }
+
 /* ---------- Xoá dữ liệu cá nhân (ADR-0126, lát H-5) — chỉ token ---------- */
 .px-hop { margin-top: var(--s3); padding: var(--s2) var(--s3); border: 1px solid var(--c-input-border); border-radius: var(--radius-sm); }
 .px-hop > summary { min-height: var(--tap-min); display: flex; align-items: center; font-weight: var(--fw-bold); cursor: pointer; }

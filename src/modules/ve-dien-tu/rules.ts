@@ -1,6 +1,8 @@
 // Luật thuần chọn vé (ADR-0153; kế hoạch Task 2). KHÔNG I/O. Ngày dân sự giờ Việt Nam `YYYY-MM-DD`, so chuỗi (cùng độ dài nên so chữ = so ngày).
 export type Nhom = "ADULT" | "CHILD" | "SENIOR";
 export const NHOM_VE: readonly Nhom[] = ["ADULT", "CHILD", "SENIOR"];
+/** Loại khách của LÔ: thêm `ALL` cho vé không phân biệt loại khách (ADR-0157). Suất phân bổ vẫn chỉ mang `Nhom`. */
+export type NhomLo = Nhom | "ALL";
 export interface VeTrong { id: string; valid_from: string; valid_to: string }
 
 const nguyenDuong = (x: number): number => (Number.isFinite(x) && x > 0 ? Math.floor(x) : 0);

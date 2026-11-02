@@ -2130,6 +2130,28 @@ export const CHECKS = [
     level: "fail",
     note: "vé đã đưa cho khách mà quay về kho thì có thể cấp lại cho người khác (vé có giá trị như tiền) — bất biến Đ1 mục 6 của ADR-0153",
   },
+  {
+    code: "R-VDT-4",
+    what: "không có hai vé trùng số S/N (12 số cuối của chuỗi QR 36 chữ số), kể cả vé VOID không mang dấu rút vì vé đó có thể đã tới tay khách",
+    sql: `SELECT count(*) FROM (SELECT substr(ticket_code, -12) FROM vdt_ticket WHERE withdrawn_at IS NULL AND length(ticket_code) = 36 AND ticket_code NOT GLOB '*[^0-9]*' GROUP BY 1 HAVING count(*) > 1)`,
+    level: "fail",
+    note: "chỉ mục duy nhất theo toàn chuỗi QR không bắt được ca nhà cung cấp phát lại chuỗi khác cho cùng S/N (ADR-0156 Đ1 mục 6): vé có thể đã bán trùng, kiểm tay từng vé — báo số nhóm, không in mã",
+  },
+  // R-VDT-6 (chủ quyết 2/11/2026): vé đã mở ảnh khi lô bị huỷ có thể đã tới tay khách nên không được có bản đang bán. Câu ghi và hai trigger ở `0132` đã giữ theo mã, băm và S/N; đây là lần kiểm lại trên dữ liệu thật.
+  {
+    code: "R-VDT-6",
+    what: "không có vé đang bán trùng mã, tệp hoặc số S/N với vé đã mở ảnh khi lô bị huỷ",
+    sql: `SELECT count(*) FROM vdt_ticket a JOIN vdt_ticket b ON b.id <> a.id AND b.withdrawn_at IS NULL WHERE a.opened_at IS NOT NULL AND (a.ticket_code = b.ticket_code OR a.content_hash = b.content_hash OR (length(a.ticket_code) = 36 AND length(b.ticket_code) = 36 AND a.ticket_code NOT GLOB '*[^0-9]*' AND b.ticket_code NOT GLOB '*[^0-9]*' AND substr(a.ticket_code, -12) = substr(b.ticket_code, -12)))`,
+    level: "fail",
+    note: "vé có thể đã bán trùng: rút vé đang bán khỏi kho hoặc kiểm tay từng vé, báo chủ",
+  },
+  // R-VDT-5 (ADR-0156 Đ2 mục 3; Hiến chương 5.16): như R-FBK-1 cho ảnh vé. Ảnh của lô đã huỷ lưu 3 ngày (`NGAY_LUU_ANH_LO_HUY`, chủ quyết 2/11) rồi việc định kỳ 15 phút xoá; 4 ngày mà còn nghĩa là kho đang hỏng. Mức warn: không chặn phát hành.
+  {
+    code: "R-VDT-5",
+    what: "ảnh vé quá hạn lưu mà kho R2 chưa xoá (việc định kỳ tự chạy lại)",
+    sql: `SELECT count(*) FROM vdt_ticket WHERE purged_at IS NOT NULL AND r2_deleted_at IS NULL AND purged_at < strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-4 days')`,
+    level: "warn",
+  },
 ];
 
 /**

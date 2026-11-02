@@ -13,8 +13,8 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // Đặt vé của đối tác, lượt 2 (ADR-0154 giờ đón + công tắc ẩn thông tin khách, ADR-0155 cột Cấp độ đại lý; chủ duyệt 2/11).
-    // Có migration 0133 (cờ miễn danh sách của đơn, bảng chính sách), ba route mới, đổi luật xác nhận đơn đối tác có đón. Không đổi cách tính tiền. Số 2.56 và ngày là TẠM — phiên phát hành kiểm lại ở bước A.0 của docs/HANDOFF-N1.md.
-    version: "2.56",
+    // Có migration 0133 (cờ miễn danh sách của đơn, bảng chính sách), ba route mới, đổi luật xác nhận đơn đối tác có đón. Không đổi cách tính tiền. Số 2.57 và ngày là TẠM — phiên phát hành kiểm lại ở bước A.0 của docs/HANDOFF-N1.md.
+    version: "2.57",
     date: "2026-11-02",
     items: [
       { kind: "doi", text: "Đối tác không còn nhập giờ đón: ghi giờ khách muốn vào Ghi chú, văn phòng chốt giờ rồi báo lại. Đơn có đón luôn chờ văn phòng xác nhận." },
@@ -26,13 +26,23 @@ export const CHANGELOG: readonly ReleaseNote[] = [
   },
   {
     // Đặt vé của đối tác, lượt 1 (đặc tả docs/superpowers/specs/2026-11-01-dat-ve-doi-tac-design.md, chủ duyệt 2/11): form Tạo đơn gọn cho tài khoản Đối tác, trang Hoa hồng còn hai thẻ với tên mới, bộ lọc ở Quản lý tài khoản.
-    // Chỉ giao diện và chữ; KHÔNG migration, không đổi quyền, không đổi cách tính tiền (máy chủ chỉ đổi vài câu báo lỗi cho khớp tên mới). Số 2.55 và ngày là TẠM — phiên phát hành kiểm lại ở bước A.0 của docs/HANDOFF-N1.md.
-    version: "2.55",
+    // Chỉ giao diện và chữ; KHÔNG migration, không đổi quyền, không đổi cách tính tiền (máy chủ chỉ đổi vài câu báo lỗi cho khớp tên mới). Số 2.56 và ngày là TẠM — phiên phát hành kiểm lại ở bước A.0 của docs/HANDOFF-N1.md.
+    version: "2.56",
     date: "2026-11-02",
     items: [
       { kind: "doi", text: "Màn Tạo đơn của đối tác gọn hơn: mỗi dịch vụ có dòng Ghi chú thay cho khối Thông tin chuyến; ô giảm giá có chữ mờ «Giảm giá cho khách»." },
       { kind: "doi", text: "Trang Hoa hồng còn hai thẻ: Cấp độ đại lý và Vai người dùng; phần Người có cấp riêng nằm trong thẻ Vai người dùng. Hai tên mới thay tên cũ ở mọi màn." },
       { kind: "moi", text: "Quản lý tài khoản lọc được theo vai trò: bấm một nút để chỉ xem tài khoản của vai trò đó." },
+    ],
+  },
+  {
+    // Kho vé điện tử (ADR-0153, ADR-0156, ADR-0157). Có migration 0131, 0132, 0134 đi cùng một lần. Không đổi cách tính tiền. Số 2.55 và ngày là TẠM — phiên phát hành kiểm lại ở bước A.0 của docs/HANDOFF-N1.md; nhánh đặt vé của đối tác đang dùng tạm cùng số, ai gộp sau đổi số.
+    version: "2.55",
+    date: "2026-11-02",
+    items: [
+      { kind: "moi", text: "Kho vé điện tử: nhập ảnh vé theo lô, máy tự đọc mã QR và không cho nhập trùng vé." },
+      { kind: "moi", text: "Đơn xác nhận tự được giữ vé; thiếu vé thì trang đơn báo số còn thiếu và có nút «Cấp vé»." },
+      { kind: "moi", text: "Lô vé có thêm loại «Mọi loại khách» cho vé dùng chung người lớn, trẻ em và người cao tuổi." },
     ],
   },
   {

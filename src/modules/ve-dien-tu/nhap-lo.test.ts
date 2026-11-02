@@ -1,7 +1,8 @@
 // Luật thuần kiểm đầu vào nhập lô (ADR-0153; Task 4c): không I/O.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { che4SoCuoi, kiemLo, kiemVeMoi, TOI_DA_VE_MOI_DOT } from "./nhap-lo.ts";
+import { TOI_DA_VE_MOI_DOT } from "../../shared/ve-nhap-lo.ts";
+import { che4SoCuoi, kiemLo, kiemVeMoi } from "./nhap-lo.ts";
 
 test("kiemLo: nhóm khách, tên sản phẩm, mã tour", () => {
   assert.deepEqual(kiemLo({ catalogCode: "V2D", nhomKhach: "ADULT", tenSanPham: "VVC Multiday 2 lần" }), { ok: true, value: { catalogCode: "V2D", nhomKhach: "ADULT", tenSanPham: "VVC Multiday 2 lần" } });
