@@ -14,7 +14,7 @@
 
 ADR chưa nói rõ hoặc khác mã. **Điều phối 2026-11-02 áp cả bảy câu theo khuyến nghị** (lời chủ 2026-10-02: «đừng hỏi tôi những câu hỏi mà tôi nên đồng ý nữa»): không câu nào đổi chữ ADR đã duyệt, đụng tiền của khách, nới luật tách nhiệm vụ hay hoà giải hai văn bản chuẩn tắc; câu 5 đúng chữ đặc tả §5 B1. Báo chủ trong báo cáo để bác nếu muốn; chủ bác câu nào thì sửa đúng task nêu ở cuối câu đó.
 
-1. **«Chặng đầu tiên của dịch vụ» là chặng nào?** ADR dùng chữ này, nhưng `s.legs` xếp bằng `xepChang` (`src/shared/chang-dua-don.ts`): giờ có trước giờ trống. Đơn hai chiều cùng ngày, chiều đi trống giờ, chiều về có giờ gợi ý thì `legs[0]` là chiều về và luật không chạy, đúng ca phổ biến ADR muốn chặn. **Khuyến nghị:** xếp riêng theo ngày (trống sau), chiều đi trước chiều về, giờ có trước trống, giờ, id; máy chủ, giao diện và kiểm định kỳ dùng cùng thứ tự, có bài tương đương. *(Task 1.2, 1.4, 3.1, 3.3)*
+1. **«Chặng đầu tiên của dịch vụ» là chặng nào?** ADR dùng chữ này, nhưng `s.legs` xếp bằng `xepChang` (`src/shared/chang-dua-don.ts`): giờ có trước giờ trống. Đơn hai chiều cùng ngày, chiều đi trống giờ, chiều về có giờ gợi ý thì `legs[0]` là chiều về và luật không chạy, đúng ca phổ biến ADR muốn chặn. **Khuyến nghị:** xếp riêng, chiều đi trước chiều về, rồi ngày (trống sau), giờ có trước trống, giờ, id; máy chủ, giao diện và kiểm định kỳ dùng cùng thứ tự, có bài tương đương. *(Điều phối đổi 2026-11-02 sau người kiểm, phát hiện N-3: bản đầu xếp ngày trước chiều, nên người xét chỉ đổi ngày đi của đơn nhiều ngày thì lọt cổng giờ.)* *(Task 1.2, 1.4, 3.1, 3.3)*
 2. **Tiêu chí (i) «409 với người không có ô» khi có kèm `datGap`.** `xetDatGapSua` trả 403 `CANNOT_SHORT_NOTICE` ở cả năm cửa của ADR-0107. **Khuyến nghị:** không kèm `datGap` (đường giao diện của Kế toán, HDV nội bộ) trả 409 `short_notice_required` đúng chữ ADR; kèm qua API trả 403 như năm cửa kia; bài ghim cả hai, cả hai không ghi gì. *(Task 1.3)*
 3. **Đ1.6 biết «đơn do tài khoản Đối tác lập» bằng cách nào?** ADR chỉ cho hai cột mới, không có cột người lập là đối tác. **Khuyến nghị:** đọc quyền hiện hành của người lập qua view công bố `v_stf_quyen_mo`, không thêm cột. Hệ quả chấp nhận: người lập đã thôi quyền thì ghi chú không bị che. *(Task 1.4)*
 4. **Phạm vi `R-ORD-17w`.** Chữ ADR «đơn đã xác nhận mà chặng đầu có Đón không giờ» sẽ báo cả đơn văn phòng hợp lệ (tiêu chí j). **Khuyến nghị:** khoanh đơn tạo sau mốc phát hành (`MIN(created_at)` của bảng chính sách mới) có người lập từng giữ `PARTNER`, kể cả dòng đã đóng; mức `warn`. *(Task 1.4)*
@@ -133,7 +133,7 @@ Người kiểm đợt kiểm: migration trên SQLite thật, ba nơi gọi `soa
   export function changDauCuaDichVu<T extends { id: string; direction: "OUT" | "RETURN"; pickupDate: string | null; pickupTime: string | null }>(legs: readonly T[]): T | null;
   export function thieuGioChangDau<T extends Parameters<typeof changDauCuaDichVu>[0][number]>(dichVu: readonly { id: string; legs: readonly T[] }[]): { serviceId: string; legId: string }[];
   ```
-  Thứ tự: ngày (trống sau) → `OUT` trước `RETURN` → giờ có trước trống → giờ → id. **Không dùng `legs[0]`, không dùng `xepChang`.**
+  Thứ tự: `OUT` trước `RETURN` → ngày (trống sau) → giờ có trước trống → giờ → id. **Không dùng `legs[0]`, không dùng `xepChang`.**
 - Produces: `LyDoCanXacNhan` thêm `"CHOT_GIO"` (không đụng kiểu của `canXacNhan` ở `src/shared/xac-nhan-don.ts`). Chữ: `xac-nhan-route.ts` `NHAN_VI.CHOT_GIO = "có lượt đưa đón chưa có giờ đón"`; `xac-nhan-hien-thi.ts` `NHAN_VI.CHOT_GIO = "Có lượt đưa đón chưa có giờ đón, văn phòng cần ghi giờ."`.
 - Produces: `viCuaYeuCau(y: YeuCauRow, viTinh: LyDoCanXacNhan[]): LyDoCanXacNhan[]` trong `xac-nhan-chung.ts`, thêm `CHOT_GIO` khi cờ = 1; dùng ở danh sách chờ và `xacNhanTrenDon`. `tinhCanXacNhan` không đổi.
 - Consumes: `cauMoYeuCau` của Task 1.1. `moYeuCau` nhận thêm `canChotGio: boolean`; `gui-xac-nhan` (`:129`) truyền `false`.
@@ -146,7 +146,7 @@ Người kiểm đợt kiểm: migration trên SQLite thật, ba nơi gọi `soa
     assert.equal(changDauCuaDichVu([ve, di])!.id, "b");
   });
   ```
-  Thêm: chỉ chiều về → chiều về; ngày sớm hơn thắng chiều; ngày trống xếp sau; hai chiều đi có giờ → giờ sớm; rỗng → `null`; `thieuGioChangDau` chỉ liệt kê dịch vụ có lượt đầu trống giờ.
+  Thêm: chỉ chiều về → chiều về; chiều đi đứng trước chiều về dù ngày muộn hơn; ngày trống xếp sau; hai chiều đi có giờ → giờ sớm; rỗng → `null`; `thieuGioChangDau` chỉ liệt kê dịch vụ có lượt đầu trống giờ.
 - [ ] **Step 2: Bài route đỏ** ở `gui-don-chot-gio.test.ts`, dùng `A, ACC, LAI, PARTNER, inDays, lap, leg, setup, svc` của `tests/audit/xac-nhan-khung.mjs`, `ZB1` không đánh dấu cần xác nhận. `RET = (d, t) => ({ ...leg(d, t), direction: "RETURN" })`.
   - `(a) đối tác, Đón không giờ, dịch vụ thường → 201 nhánh A, vi gồm CHOT_GIO, cờ = 1, đơn vẫn nháp`.
   - `(a2) Review Focus 1: chiều đi trống, chiều về 16:00 cùng ngày → nhánh A`.
@@ -215,7 +215,7 @@ Người kiểm đợt kiểm: migration trên SQLite thật, ba nơi gọi `soa
 - `export const catChoXetDuyet = (o: OrderDetailDto, tuyChon: { cheGhiChu: boolean }): OrderDetailDto`, tham số bắt buộc để hai nơi gọi không quên; `cheGhiChu` thì `services[].note` qua `maskLongDigits`. Hai nơi gọi tính `await nguoiLapGiuDoiTac(env.DB, order.staffId)`.
 - Route khung: `if (!can(staff, "order.create") && !can(staff, "order.confirm.review")) return 403`, câu đổi thành `"Tài khoản này không dùng khung giờ đón."`.
 - Danh sách chờ: yêu cầu mang cờ thì `gioDon: null`, dù chiều về có giờ gợi ý.
-- `scripts/audit-checks.mjs`: `R-ORD-17w`, `level: "warn"`. Lượt đầu bằng câu con `ORDER BY (l2.pickup_date IS NULL), l2.pickup_date, (l2.direction <> 'OUT'), (l2.pickup_time IS NULL), l2.pickup_time, l2.id LIMIT 1`, đúng thứ tự `changDauCuaDichVu`; `EXISTS stf_permission` không lọc `valid_to_at`; `o.created_at >= (SELECT MIN(created_at) FROM ord_partner_customer_policy)` (câu đã áp số 4).
+- `scripts/audit-checks.mjs`: `R-ORD-17w`, `level: "warn"`. Lượt đầu bằng câu con `ORDER BY (l2.direction <> 'OUT'), (l2.pickup_date IS NULL), l2.pickup_date, (l2.pickup_time IS NULL), l2.pickup_time, l2.id LIMIT 1`, đúng thứ tự `changDauCuaDichVu`; `EXISTS stf_permission` không lọc `valid_to_at`; `o.created_at >= (SELECT MIN(created_at) FROM ord_partner_customer_policy)` (câu đã áp số 4).
 
 - [ ] **Step 1: Bài đỏ:**
   - `(m) Kế toán, HDV nội bộ đọc đúng khung đang cài; Toàn quyền đổi khung: Kế toán đọc khung mới, Còn vé theo khung mới 200, khung cũ 400 doi_gio_khong_hop_le`.
@@ -328,7 +328,7 @@ Người kiểm đợt kiểm: chữ theo bảng từ, form không gửi trườ
 - [ ] **Step 1: Bài đỏ:**
   - `(a) form gọn không dựng ô giờ`: bài nối dây: `web/service-card.ts` truyền `anGio`; `web/khoi-dua-don.ts` chỉ dựng `hangKhung` khi `!o.anGio`.
   - `legsGuiFormGon`: `chiều đi 09:00 + chiều về 16:00 → chiều đi trống, chiều về 16:00`; `chỉ chiều về 16:00 (đã bỏ chiều đi) → trống`; `pickupSlotEnd` trống theo.
-  - `legsGuiFormGon: chiều đi «Khác ngày» sau ngày đi, chiều về ngày "" giờ gợi ý 16:00 → chiều về là lượt đầu, bị xoá giờ; kết quả qua changDauCuaDichVu với ngày máy chủ điền cho cùng lượt`.
+  - `legsGuiFormGon: chiều đi «Khác ngày» sau ngày đi, chiều về ngày "" giờ gợi ý 16:00 → chiều đi trống giờ, chiều về giữ 16:00; kết quả qua changDauCuaDichVu với ngày máy chủ điền cho cùng lượt`.
   - `legsGuiFormGon: hai chiều đi 08:00, 09:00 → cả hai trống`; `nháp lượt 1 đã lưu giờ lượt đầu, lưu lại bằng form gọn → giờ bị xoá`.
   - `(n6) canHienLaiKhoiKhach: 400 + công tắc vừa tắt → đúng; 400 + vẫn bật → sai; 409 → sai; không ẩn → sai`.
   - `web/order-form.ts` không còn gọi `need("customerName")` vô điều kiện; `collect` nối dây với `anKhach`.
