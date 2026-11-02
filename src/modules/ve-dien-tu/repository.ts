@@ -161,15 +161,16 @@ const BAM_DA_CO = defineSql("ve-dien-tu", "bam_da_co", "SELECT content_hash FROM
 const BO_LO = defineSql(
   "ve-dien-tu",
   "bo_lo",
-  `UPDATE vdt_batch SET status = 'VOID', updated_at = ?2, updated_by = ?3
+  `UPDATE vdt_batch SET status = 'VOID', last_cmd_id = ?4, updated_at = ?2, updated_by = ?3
    WHERE id = ?1 AND status <> 'VOID' AND NOT EXISTS (SELECT 1 FROM vdt_allocation a JOIN vdt_ticket t ON t.id = a.ticket_id WHERE t.batch_id = ?1)`,
 );
 const RUT_VE_CUA_LO = defineSql(
   "ve-dien-tu",
   "rut_ve_cua_lo",
   `UPDATE vdt_ticket SET purged_at = COALESCE(purged_at, ?2), withdrawn_at = ?2, status = 'VOID', updated_at = ?2, updated_by = ?3
-   WHERE batch_id = ?1 AND withdrawn_at IS NULL AND EXISTS (SELECT 1 FROM vdt_batch b WHERE b.id = ?1 AND b.status = 'VOID' AND b.updated_at = ?2)`,
+   WHERE batch_id = ?1 AND withdrawn_at IS NULL AND EXISTS (SELECT 1 FROM vdt_batch b WHERE b.id = ?1 AND b.status = 'VOID' AND b.last_cmd_id = ?4)`,
 );
+// Lô dở lên đầu: lô dở không bán được và là lối ra duy nhất của nó, nên không được để trôi khỏi danh sách có giới hạn. Lô dở bỏ dần thì lô sau tự lộ ra.
 const DS_LO_BO_DUOC = defineSql(
   "ve-dien-tu",
   "ds_lo_bo_duoc",
@@ -177,7 +178,7 @@ const DS_LO_BO_DUOC = defineSql(
           (SELECT count(*) FROM vdt_ticket t WHERE t.batch_id = b.id AND t.stored_at IS NOT NULL AND t.purged_at IS NULL) AS so_ve
    FROM vdt_batch b
    WHERE b.status <> 'VOID' AND NOT EXISTS (SELECT 1 FROM vdt_allocation a JOIN vdt_ticket t ON t.id = a.ticket_id WHERE t.batch_id = b.id)
-   ORDER BY b.created_at DESC, b.id LIMIT ?1`,
+   ORDER BY (b.status = 'PENDING') DESC, b.created_at DESC, b.id LIMIT ?1`,
 );
 const DOC_TRAN_LO = defineSql("ve-dien-tu", "doc_tran_lo", "SELECT batch_limit, version FROM vdt_setting WHERE id = 'default'");
 const DOI_TRAN_LO = defineSql(
@@ -223,8 +224,9 @@ export const maVeDaCo = async (db: D1Database, ma: readonly string[]): Promise<S
   new Set((await db.prepare(MA_VE_DA_CO).bind(JSON.stringify(ma)).all<{ ticket_code: string }>()).results.map((r) => r.ticket_code));
 export const bamDaCo = async (db: D1Database, bam: readonly string[]): Promise<Set<string>> =>
   new Set((await db.prepare(BAM_DA_CO).bind(JSON.stringify(bam)).all<{ content_hash: string }>()).results.map((r) => r.content_hash));
-export const cauBoLo = (db: D1Database, id: string, at: string, by: string | null): D1PreparedStatement => db.prepare(BO_LO).bind(id, at, by);
-export const cauRutVeCuaLo = (db: D1Database, id: string, at: string, by: string | null): D1PreparedStatement => db.prepare(RUT_VE_CUA_LO).bind(id, at, by);
+/** `lenh`: dấu lệnh của lần Bỏ lô này; câu rút vé chỉ chạy khi chính lệnh này thắng (khuôn `last_cmd_id`, không so mốc thời gian). */
+export const cauBoLo = (db: D1Database, id: string, at: string, by: string | null, lenh: string): D1PreparedStatement => db.prepare(BO_LO).bind(id, at, by, lenh);
+export const cauRutVeCuaLo = (db: D1Database, id: string, at: string, by: string | null, lenh: string): D1PreparedStatement => db.prepare(RUT_VE_CUA_LO).bind(id, at, by, lenh);
 export interface LoBoDuoc { id: string; catalog_code: string; pax_group: string; printed_name: string; status: string; created_at: string; so_ve: number }
 export const dsLoBoDuoc = async (db: D1Database, gioiHan: number): Promise<LoBoDuoc[]> => (await db.prepare(DS_LO_BO_DUOC).bind(gioiHan).all<LoBoDuoc>()).results;
 export const docCaiDatVe = (db: D1Database): Promise<{ batch_limit: number; version: number } | null> => db.prepare(DOC_TRAN_LO).first<{ batch_limit: number; version: number }>();

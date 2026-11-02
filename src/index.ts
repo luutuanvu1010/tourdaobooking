@@ -26,7 +26,7 @@ import { giaoDienModule } from "./modules/giao-dien";
 import { checkLanGuiConfig, lanGuiNoi } from "./modules/lan-gui";
 import { locationsModule } from "./modules/locations";
 import { feedbackModule } from "./modules/feedback";
-import { canBangVeTheoSoKhach, capVeChoDon, nhatKyThat, soanTraVeKhiHuy, veDienTuModule } from "./modules/ve-dien-tu";
+import { canBangVeTheoSoKhach, capVeChoDon, donHangChoXoaVe, nhatKyThat, soanTraVeKhiHuy, veDienTuModule } from "./modules/ve-dien-tu";
 import { maintenanceBlock, maintenanceModule, type MaintenanceState } from "./modules/maintenance";
 import { hanGiuPhienNgay, partiesModule } from "./modules/parties";
 import { kiemLuatBan, nguoiHuongCuaHoSo, pricingModule } from "./modules/pricing";
@@ -247,8 +247,9 @@ export function taoAppChoKhungThu(ghiDe: Partial<AppOptions["injected"]>): Retur
 
 export default {
   fetch: app.fetch,
-  // Cron Trigger (wrangler.jsonc "triggers.crons"): tự đồng bộ danh mục dịch vụ từ Google Sheet.
+  // Cron Trigger (wrangler.jsonc "triggers.crons"): tự đồng bộ danh mục dịch vụ từ Google Sheet; dọn ảnh vé còn ở hàng chờ xoá (ADR-0156).
   async scheduled(_event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
     ctx.waitUntil(runScheduledSync(env));
+    ctx.waitUntil(donHangChoXoaVe(env));
   },
 } satisfies ExportedHandler<Env>;

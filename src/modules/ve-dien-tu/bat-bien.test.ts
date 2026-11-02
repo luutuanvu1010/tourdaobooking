@@ -27,6 +27,21 @@ test("R-VDT-4: hai vé còn hiệu lực trùng 12 số cuối của chuỗi QR 
   chen("c", `TA.${sn}`);
   chen("d", `TB.${sn}`);
   assert.equal(kiem(d, "R-VDT-4"), 0, "mã không phải dạng 36 chữ số không tính");
+  // Vé VOID mà không mang dấu rút có thể đã tới tay khách: cùng S/N mà còn trong kho là nguy cơ bán trùng.
+  chen("e", `${"3".repeat(24)}900000000002`);
+  chen("f", `${"4".repeat(24)}900000000002`);
+  d.prepare("UPDATE vdt_ticket SET status = 'VOID', updated_at = ? WHERE id = 'e'").run(AT);
+  assert.equal(kiem(d, "R-VDT-4"), 1, "vé VOID không mang dấu rút vẫn tính");
+});
+
+test("R-VDT-5: ảnh đã quyết xoá mà kho chưa xoá ⇒ thấy được, mức warn", () => {
+  const d = taoCsdl();
+  const v = themVe(d, themLo(d));
+  assert.equal(kiem(d, "R-VDT-5"), 0);
+  d.prepare("UPDATE vdt_ticket SET purged_at = ?, status = 'VOID', updated_at = ? WHERE id = ?").run(AT, AT, v);
+  assert.equal(kiem(d, "R-VDT-5"), 1);
+  d.prepare("UPDATE vdt_ticket SET r2_deleted_at = ?, updated_at = ? WHERE id = ?").run(AT, AT, v);
+  assert.equal(kiem(d, "R-VDT-5"), 0);
 });
 
 test("R-VDT-1..3: dữ liệu sạch ⇒ 0; vé ALLOCATED không phân bổ ⇒ R-VDT-1 bắt; phân bổ mở trỏ vé AVAILABLE ⇒ R-VDT-2 bắt; vé đã lộ về kho ⇒ R-VDT-3 bắt", () => {

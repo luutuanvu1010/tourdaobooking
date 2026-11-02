@@ -3,7 +3,7 @@
 // và chạy lại được. Không import module khác (chạy được bằng node --test). Chỉ ve-dien-tu chạm kho này (bài src/kho-tep-ve-dien-tu.test.ts).
 // Hai bài tĩnh đếm chữ gọi hàm kho kèm ngoặc trên mã nguồn thô — chú thích ở tệp này đừng viết tên hàm kho kèm ngoặc.
 import { LOAI_NOI_DUNG, type LoaiTep } from "../../shared/tep-dinh-kem.ts";
-import { cauRutVeChuaPhat, danhDauDaLuu, danhDauDaXoaR2, listChoXoaCuaLo, listVeChoDat, type VeCanXoa } from "./repository.ts";
+import { cauRutVeChuaPhat, danhDauDaLuu, danhDauDaXoaR2, listChoXoa, listChoXoaCuaLo, listVeChoDat, type VeCanXoa } from "./repository.ts";
 
 const ghiLoi = (event: string, veId: string | null, e?: unknown): void =>
   console.error(JSON.stringify({ level: "error", event, veId, ...(e === undefined ? {} : { loi: e instanceof Error ? e.name : "unknown" }) }));
@@ -31,6 +31,15 @@ export async function donKhoCuaLo(db: D1Database, kho: R2Bucket, loId: string, l
     await xoaKhoiKho(db, kho, await listChoXoaCuaLo(db, loId), luc);
   } catch (e) {
     ghiLoi("ve_dien_tu_don_lo_loi", null, e);
+  }
+}
+
+/** Lần chạy định kỳ: dọn hàng «chờ xoá» khi lần xoá trước hỏng (Hiến chương 5.16: thấy được ở `R-VDT-5`, chạy lại không cần người). KHÔNG BAO GIỜ NÉM. */
+export async function donHangChoXoa(db: D1Database, kho: R2Bucket, gioiHan: number, luc: () => string): Promise<void> {
+  try {
+    await xoaKhoiKho(db, kho, await listChoXoa(db, gioiHan), luc);
+  } catch (e) {
+    ghiLoi("ve_dien_tu_don_hang_cho_loi", null, e);
   }
 }
 
@@ -64,7 +73,11 @@ export async function datVeVaoKho(db: D1Database, kho: R2Bucket, v: { batchId: s
       }
       try {
         if ((await danhDauDaLuu(db, d.id, v.luc())) === 1) daLuu++;
-        else ghiLoi("ve_dien_tu_danh_dau_luu_khong_doi", d.id);
+        else {
+          // Vé vừa bị rút trong khe (Bỏ lô xen giữa): lần dọn của lệnh đó đã chạy TRƯỚC khi đối tượng này được đặt, nên phải xoá ở đây, nếu không ảnh nằm lại vĩnh viễn.
+          ghiLoi("ve_dien_tu_danh_dau_luu_khong_doi", d.id);
+          await xoaKhoiKho(db, kho, [d], v.luc);
+        }
       } catch (e) {
         ghiLoi("ve_dien_tu_danh_dau_luu_loi", d.id, e);
       }

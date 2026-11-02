@@ -893,7 +893,7 @@
       "name": "vdt_batch",
       "module": "ve-dien-tu",
       "kind": "table",
-      "note": "Lô nhập vé điện tử (ADR-0153 Đ1, 0131 — đề xuất): MỘT dịch vụ (mã tour `catalog_code`, tham chiếu logic, không khoá ngoại) + MỘT nhóm khách chọn một lần cho cả lô. Không xoá (trigger vdt_batch_no_delete); không đổi nhóm khách. `printed_name` = tên sản phẩm in trên vé, để nhân viên đối chiếu"
+      "note": "`last_cmd_id` = dấu lệnh của lần Bỏ lô thắng (ADR-0156). Lô nhập vé điện tử (ADR-0153 Đ1, 0131 — đề xuất): MỘT dịch vụ (mã tour `catalog_code`, tham chiếu logic, không khoá ngoại) + MỘT nhóm khách chọn một lần cho cả lô. Không xoá (trigger vdt_batch_no_delete); không đổi nhóm khách. `printed_name` = tên sản phẩm in trên vé, để nhân viên đối chiếu"
     },
     {
       "name": "vdt_ticket",
@@ -1624,7 +1624,7 @@
     "vc_vehicle_document_type": { "code": "N1", "name": "N1", "has_expiry": "N1", "sort_order": "N1", "active": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "vc_vehicle_size": { "code": "N1", "label": "N1", "min_passengers": "N1", "max_passengers": "N1", "active": "N1", "sort_order": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "vdt_allocation": { "id": "N1", "ticket_id": "N1", "order_id": "N1", "order_service_id": "N1", "pax_group": "N1", "slot_no": "N1", "allocated_at": "N1", "allocated_by": "N1", "revealed_at": "N1", "released_at": "N1", "release_reason": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
-    "vdt_batch": { "id": "N1", "catalog_code": "N1", "pax_group": "N1", "printed_name": "N1", "status": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "vdt_batch": { "last_cmd_id": "N1", "id": "N1", "catalog_code": "N1", "pax_group": "N1", "printed_name": "N1", "status": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "vdt_delivery": { "id": "N1", "allocation_id": "N1", "channel": "N1", "delivered_by": "N1", "delivered_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "vdt_guest_link": { "id": "N1", "order_id": "N1", "token_hash": "N2", "expires_at": "N1", "revoked_at": "N1", "opened_count": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "vdt_setting": { "id": "N1", "batch_limit": "N1", "version": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },

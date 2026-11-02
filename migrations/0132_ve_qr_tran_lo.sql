@@ -5,6 +5,8 @@
 --   vdt_setting   bảng một dòng (id = 'default'), khuôn gd_setting của ADR-0087: trần lô do Toàn quyền đặt, `version` là khoá lạc quan; lịch sử ở audit_log (`ve_doi_tran_lo`).
 --   Khoảng 1–200 trùng với TRAN_LO_NHO_NHAT / TRAN_LO_LON_NHAT ở src/shared/ve-nhap-lo.ts.
 ALTER TABLE vdt_ticket ADD COLUMN withdrawn_at TEXT;
+-- Dấu lệnh của lần Bỏ lô thắng (khuôn last_cmd_id của vc_trip): câu rút vé trong cùng lô chỉ chạy khi chính lệnh đó thắng.
+ALTER TABLE vdt_batch ADD COLUMN last_cmd_id TEXT;
 
 DROP INDEX vdt_ticket_code_uq;
 CREATE UNIQUE INDEX vdt_ticket_code_uq ON vdt_ticket (ticket_code) WHERE withdrawn_at IS NULL;

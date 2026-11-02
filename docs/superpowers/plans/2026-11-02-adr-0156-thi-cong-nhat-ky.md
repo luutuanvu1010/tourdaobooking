@@ -14,6 +14,16 @@ ADR: `docs/adr/ADR-0156-ve-dien-tu-ma-qr-chong-trung-va-tran-lo.md`. Nhánh `cla
 - Thêm ngoài ADR: lô không còn vé nào thì trang tự bỏ, để danh sách «Lô có thể bỏ» không đầy rác; câu nhắc mỗi lô một sản phẩm, một loại khách, một ngày dùng ngay trên trang.
 - Sổ nợ `GHI_NHIEU_LAN` thêm `POST /api/ve/lo/:id/bo` vì kho R2 nằm giữa, không gộp một lô được. Dòng `POST /api/ve/lo/:id/ve` sửa cho đúng sự thật như ADR yêu cầu.
 
+## Kiểm độc lập lần 1 (2/11): KHÔNG ĐẠT, đã xử lý
+Không có đường nào đưa vé có thể đã tới tay khách quay lại kho. Các phát hiện:
+- **Trung 1, ảnh mồ côi:** Bỏ lô xen giữa lúc gửi ảnh, và lần xoá R2 hỏng mà hàng chờ không có nơi chạy. Sửa: xoá ngay đối tượng khi đánh dấu đã lưu không đổi dòng nào; thêm việc dọn vào lịch định kỳ 15 phút và kiểm `R-VDT-5`. **Lệch ADR:** ADR đặt «quét định kỳ» ngoài phạm vi, nhưng câu đó nói về cấp bù; khuôn `POST …/tep-cho-xoa/chay-lai` cần người gọi mà chủ không phải lập trình viên, nên chọn lịch định kỳ, không thêm route.
+- **Trung 2, vế băm không có bài giữ:** thêm hai bài ép đúng lịch đua; sửa dòng sổ từng nói e2e canh ca này.
+- **Trung 3, lô dở trôi khỏi danh sách:** lô dở xếp lên đầu.
+- **Trung 4, migration gặp dữ liệu trùng băm:** điều kiện phát hành, ghi kèm lệnh chỉ đọc ở `docs/HANDOFF-N1.md`. Không sửa mã.
+- **Thấp, báo sai lý do khi thua đua:** route đọc số dòng từng câu của lô.
+- **Thấp, `R-VDT-4` bỏ qua vé VOID:** người kiểm nêu thành câu hỏi cho chủ. Người thi công tự áp vì chỉ siết một kiểm chỉ đọc, đảo ngược được, và đúng mục đích bắt bán trùng. **Lệch chữ ADR** («còn hiệu lực»).
+- **Thấp, gác câu rút vé theo mốc thời gian:** đổi sang dấu lệnh `last_cmd_id`, làm ngay vì `0132` chưa áp ở đâu.
+
 ## Bằng chứng
 - Trình duyệt: `ve-qr-smoke.mjs` hai khổ 390 và 1040, cần `AXE_JS`. Ảnh ở `docs/evidence/2026-11-02-ve-qr-tran-lo/anh/`, chỉ có dữ liệu thử.
 - 50 ảnh cỡ 1170×2532 (khoảng 13 MB tổng) trên Chrome của máy Mac: 4,0 giây, khoảng đứng hình lâu nhất 80 mili giây.
@@ -25,6 +35,10 @@ ADR: `docs/adr/ADR-0156-ve-dien-tu-ma-qr-chong-trung-va-tran-lo.md`. Nhánh `cla
 - Bước 50 ảnh treo im lặng mất nhiều lần chạy: công cụ thử (CDP `Network.enable`) ghi cả thân yêu cầu vài MB nên kết nối đứt, mọi lời gọi vào trang không bao giờ trả lời. Không phải lỗi của trang. Đã giới hạn `maxPostDataSize` và thêm giờ giới hạn riêng trong kịch bản, đã ghi ở công thức z31.
 
 ## Nợ
+- Nhật ký của lô chèn vé gác theo câu chèn cuối: riêng lúc hai người nhập đúng lúc thì có thể thiếu dòng hoặc đếm dư. Vé không sai; để lại vì sửa đúng cần tách nhật ký khỏi lô, đổi lấy một ca hiếm.
+- Lô đã vào kho cũ hơn 50 lô mới nhất không bỏ được bằng trang, phải gọi API theo mã lô.
+- `ve-kho.js` tăng từ 86 KB lên 223 KB (77 KB khi nén). Luật hiện hành nạp sẵn MỌI trang (`PRECACHE`, có bài kiểm), nên mọi máy kể cả điện thoại Đối tác và tài xế tải thêm phần này mỗi bản dựng. Muốn tránh phải có ngoại lệ có tên cho trang này: chủ quyết.
+- Trang rơi về nhãn 50 khi `GET /api/ve/kho` hỏng; máy chủ vẫn kiểm đúng trần.
 - iPhone thật chưa kiểm (tiêu chí 9).
 - Hai điều kiện trước khi phát hành ở `docs/HANDOFF-N1.md`: tải cùng một vé hai lần; ảnh vé Vinpearl Harbour.
 - Chờ chủ duyệt con số trần gói Đơn hàng 103.178 byte.

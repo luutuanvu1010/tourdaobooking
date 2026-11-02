@@ -14,7 +14,7 @@ import { canVe, thuDu } from "./rules.ts";
 import { DANG_TOKEN, bamToken, hanDuongDan, soSanhHangThoiGian, taoToken, trangVeKhach } from "./duong-dan-khach.ts";
 import { NHAN_NHOM, soanCapVe, soanTraVe, veDangGiu, type GhiNhatKy, type NhatKyVe } from "./cap-ve.ts";
 import { TOI_DA_BYTE_ANH, TOI_DA_VE_MOI_DOT, TRAN_LO_MAC_DINH, tranLoHopLe } from "../../shared/ve-nhap-lo";
-import { datVeVaoKho, donKhoCuaLo, type VeChuanBi } from "./kho-tep.ts";
+import { datVeVaoKho, donHangChoXoa, donKhoCuaLo, type VeChuanBi } from "./kho-tep.ts";
 import { che4SoCuoi, kiemLo, kiemVeMoi } from "./nhap-lo.ts";
 import { bamDaCo, cauBoLo, cauChenLink, cauDemMoLink, cauDoiTranLo, cauRutVeCuaLo, cauThuHoiLink, docCaiDatVe, docHanCuoiCuaDon, docLinkCuaDon, docLinkTheoBam, docLinkTheoId, docVeCuaLink, dsLoBoDuoc, type LinkKhach, cauChenGiao, cauChenLo, cauChenVe, cauDanhDauLo, docChuDon, docTrangThaiDon, docPhanBoDeXem, docPhanBoMoCuaDon, cauKichHoatLo, cauSuaMaTour, demVeCuaLo, docLo, maVeDaCo, thongKeKho } from "./repository.ts";
 
@@ -31,6 +31,7 @@ const TOI_DA_THAN_DOT = Math.ceil((TOI_DA_VE_MOI_DOT * MAX_BYTE_ANH) / 3) * 4 + 
 const LOAI_ANH: readonly LoaiTep[] = ["jpg", "png"];
 /** Danh sách lô bỏ được: đủ cho vài ngày nhập; lô cũ hơn không cần gỡ ở màn này. */
 const TOI_DA_DS_LO = 50;
+const TOI_DA_DON_MOI_LAN = 50;
 /** Trần lô đang áp (ADR-0156 Đ3). Thiếu dòng cấu hình ⇒ mặc định, không bỏ giới hạn. */
 const docTranLo = async (db: D1Database): Promise<number> => (await docCaiDatVe(db))?.batch_limit ?? TRAN_LO_MAC_DINH;
 
@@ -64,6 +65,11 @@ const VE_KHONG_THAY = () => error(404, "not_found", "Không tìm thấy vé.");
 const KHONG_QUYEN_GUI = () => error(403, "forbidden", "Bạn không có quyền xem hoặc gửi vé của đơn này.");
 const CHUA_THU_DU = () => error(403, "chua_thu_du", "Đơn chưa thu đủ tiền nên chưa xem hoặc gửi được vé.");
 const KHO_CHUA_BAT = () => error(503, "storage_unavailable", "Kho vé điện tử chưa được bật. Vui lòng báo người phụ trách hệ thống.");
+
+/** Cron ở gốc lắp ráp: dọn ảnh còn ở hàng «chờ xoá». Tắt kho thì không làm gì. KHÔNG BAO GIỜ NÉM, để lỗi ở đây không kéo theo việc định kỳ khác. */
+export async function donHangChoXoaVe(env: Pick<Env, "DB"> & { VE_DIEN_TU?: R2Bucket }): Promise<void> {
+  if (env.VE_DIEN_TU) await donHangChoXoa(env.DB, env.VE_DIEN_TU, TOI_DA_DON_MOI_LAN, () => new Date().toISOString());
+}
 
 export const veDienTuModule: AppModule = {
   name: "ve-dien-tu",
@@ -200,19 +206,24 @@ export const veDienTuModule: AppModule = {
         chuanBi.push({ id, bytes: h.bytes, loai: h.loai });
         cau.push(cauChenVe(env.DB, { id, batchId: loId, maVe: h.ma, tuNgay: h.tuNgay, denNgay: h.denNgay, gio: h.gio, khoa: taoKhoaNgauNhien("vdt"), loaiNoiDung: LOAI_NOI_DUNG[h.loai], coBytes: h.bytes.length, bam: h.bam, at, by: staff.id }));
       }
+      let ketQua: D1Result[] = [];
       if (cau.length > 0) {
         cau.push(auditStatement(env.DB, { staffId: staff.id, action: "ve_nhap_lo", at, targetType: "ve", targetId: lo.catalog_code, detail: `Thêm vé vào lô · ${NHAN_NHOM[lo.pax_group as keyof typeof NHAN_NHOM]} · ${cau.length} vé` }, "changes() > 0"));
-        await env.DB.batch(cau);
+        ketQua = await env.DB.batch(cau);
       }
-      const chuaLuu = await datVeVaoKho(env.DB, kho, { batchId: loId, ve: chuanBi, luc: () => new Date().toISOString() });
+      // Câu chèn có điều kiện không ghi dòng nào: người khác vừa nhập đúng vé này. Báo rõ để khỏi bị bảo «nhập lại», vì nhập lại cũng bị loại.
+      const daChen = (_: unknown, i: number): boolean => (ketQua[i]?.meta?.changes ?? 0) > 0;
+      moi.forEach((h, i) => { if (!daChen(h, i)) loi.push({ thuTu: h.thuTu, lyDo: "Vé này vừa được nhập ở nơi khác, đã loại." }); });
+      const veVao = chuanBi.filter(daChen);
+      const chuaLuu = await datVeVaoKho(env.DB, kho, { batchId: loId, ve: veVao, luc: () => new Date().toISOString() });
       const dem = await demVeCuaLo(env.DB, loId);
       return json({
         loId,
-        themDuoc: chuanBi.length - chuaLuu > 0 ? chuanBi.length - chuaLuu : 0,
+        themDuoc: veVao.length - chuaLuu > 0 ? veVao.length - chuaLuu : 0,
         chuaLuuVaoKho: chuaLuu,
         loai: loi.sort((a, b) => a.thuTu - b.thuTu),
         veTrongLo: dem.daLuu,
-        veDaNhap: moi.map((h) => ({ maVeCuoi: che4SoCuoi(h.ma), tuNgay: h.tuNgay, denNgay: h.denNgay })),
+        veDaNhap: moi.filter(daChen).map((h) => ({ maVeCuoi: che4SoCuoi(h.ma), tuNgay: h.tuNgay, denNgay: h.denNgay })),
       });
     }),
 
@@ -240,10 +251,11 @@ export const veDienTuModule: AppModule = {
       const lo = await docLo(env.DB, loId);
       if (!lo) return KHONG_THAY();
       const at = new Date().toISOString();
+      const lenh = crypto.randomUUID();
       const kq = await env.DB.batch([
-        cauBoLo(env.DB, loId, at, staff.id),
+        cauBoLo(env.DB, loId, at, staff.id, lenh),
         auditStatement(env.DB, { staffId: staff.id, action: "ve_bo_lo", at, targetType: "ve", targetId: lo.catalog_code, detail: `Bỏ lô vé · ${NHAN_NHOM[lo.pax_group as keyof typeof NHAN_NHOM]}` }, "changes() > 0"),
-        cauRutVeCuaLo(env.DB, loId, at, staff.id),
+        cauRutVeCuaLo(env.DB, loId, at, staff.id, lenh),
       ]);
       if ((kq[0]?.meta?.changes ?? 0) === 0) return error(409, "batch_in_use", "Lô này đã có vé từng được giữ chỗ cho đơn hoặc đã bỏ trước đó, không bỏ được.");
       if (env.VE_DIEN_TU) await donKhoCuaLo(env.DB, env.VE_DIEN_TU, loId, () => new Date().toISOString());

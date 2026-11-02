@@ -2111,10 +2111,17 @@ export const CHECKS = [
   },
   {
     code: "R-VDT-4",
-    what: "không có hai vé còn hiệu lực trùng số S/N (12 số cuối của chuỗi QR 36 chữ số)",
-    sql: `SELECT count(*) FROM (SELECT substr(ticket_code, -12) FROM vdt_ticket WHERE withdrawn_at IS NULL AND status <> 'VOID' AND length(ticket_code) = 36 AND ticket_code NOT GLOB '*[^0-9]*' GROUP BY 1 HAVING count(*) > 1)`,
+    what: "không có hai vé trùng số S/N (12 số cuối của chuỗi QR 36 chữ số), kể cả vé VOID không mang dấu rút vì vé đó có thể đã tới tay khách",
+    sql: `SELECT count(*) FROM (SELECT substr(ticket_code, -12) FROM vdt_ticket WHERE withdrawn_at IS NULL AND length(ticket_code) = 36 AND ticket_code NOT GLOB '*[^0-9]*' GROUP BY 1 HAVING count(*) > 1)`,
     level: "fail",
     note: "chỉ mục duy nhất theo toàn chuỗi QR không bắt được ca nhà cung cấp phát lại chuỗi khác cho cùng S/N (ADR-0156 Đ1 mục 6): vé có thể đã bán trùng, kiểm tay từng vé — báo số nhóm, không in mã",
+  },
+  // R-VDT-5 (ADR-0156 Đ2 mục 3; Hiến chương 5.16): như R-FBK-1 cho ảnh vé. Việc định kỳ tự chạy lại mỗi 15 phút nên dòng ở đây lâu ngày nghĩa là kho đang hỏng. Mức warn: không chặn phát hành.
+  {
+    code: "R-VDT-5",
+    what: "ảnh vé đã quyết xoá mà kho R2 chưa xoá (việc định kỳ tự chạy lại)",
+    sql: `SELECT count(*) FROM vdt_ticket WHERE purged_at IS NOT NULL AND r2_deleted_at IS NULL`,
+    level: "warn",
   },
 ];
 
