@@ -1,10 +1,10 @@
 // «Khách đặt cọc trước» (ADR-0159) — phần của billing: dựng câu khoản thu cho lô xác nhận của `orders` (ADR-0024 đ4: gốc lắp ráp tiêm, `orders` không đọc, không ghi `bil_*`).
 // Người thu và người ghi là NGƯỜI LẬP dù ai bấm: ghi theo người bấm thì vai BOOKER thành lời khai chờ Kế toán, có dấu chờ và chặn «Đã giao» (`laLoiKhaiBenKia`).
 // Vai BOOKER / STAFF theo bản chụp của CHÍNH lô: `benDatHuong` trên đơn chưa chụp trả null, nên không đọc phần thương mại đang lưu.
-import type { CauCocXacNhan, ChanKhaiLai, VaoCauCoc } from "../../shared/dat-coc-truoc";
+import type { CauCocXacNhan, ChanKhaiLai, VaoCauCoc } from "../../shared/dat-coc-kieu";
 import { CAU_CHUA_GAN_HO_SO } from "../../shared/dat-coc-truoc";
 import { benDatHuong } from "./rules";
-import { cocLapLaiConGiu, hoSoNhanVien } from "./coc-repo";
+import { GHI_CHU_KHOAN_LOI_KHAI, cocLapLaiConGiu, hoSoNhanVien } from "./coc-repo";
 import { ownerCompanyId, receiptOnConfirmStatement } from "./repository";
 import { cauLanThu } from "./service";
 
@@ -45,7 +45,7 @@ export async function cauDatCocKhiXacNhan(db: D1Database, i: VaoCauCoc): Promise
           congTyId,
           at,
           ai: { staffId: i.nguoiLapId, partyId, laKeToan: false, laDoiTac: true },
-          lt: { soTien: i.soTien, hinhThuc: "CASH", collectorRole: partyId === benDat ? "BOOKER" : "STAFF", collectorPartyId: partyId, collectedForPartyId: null, ngayPhatSinh: i.homNay, ghiChu: "Khách đặt cọc trước" },
+          lt: { soTien: i.soTien, hinhThuc: "CASH", collectorRole: partyId === benDat ? "BOOKER" : "STAFF", collectorPartyId: partyId, collectedForPartyId: null, ngayPhatSinh: i.homNay, ghiChu: GHI_CHU_KHOAN_LOI_KHAI },
           nhatKy: { staffId: i.nguoiBamId, detail: `Khách đặt cọc trước ${dong(i.soTien)} · ${i.orderCode}` },
         },
         (r) => receiptOnConfirmStatement(db, r, auditId),

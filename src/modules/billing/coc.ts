@@ -8,7 +8,7 @@ import { nhanLyDoHuy, nhanNhomHuy, type NhomHuy } from "../../shared/ly-do-huy";
 import { nhanTienDaTra } from "../../shared/nhan-tien";
 import { vnToday } from "../../shared/vn-date";
 import {
-  approvalInsertStatement, approvalsOfOrder, approvalsOpen, approvalVoidStatement, cancelledHolders, cancelStateOf, cocCancelledOrders, orderByCode, outsideDecideStatement,
+  approvalInsertStatement, approvalsOfOrder, approvalsOpen, approvalVoidStatement, cancelledHolders, cancelStateOf, cocCancelledOrders, coKhoanLoiKhai, orderByCode, outsideDecideStatement,
   outsideOfOrder, outsideRecordStatement, receiptPayoutStatement, receiptTransferInStatement, type ApprovalDbRow, type CancelStateRow, type OutsideDbRow,
 } from "./coc-repo";
 import { linesOfOrder, orderState, ownerCompanyId, partyLabels, pendingCompany, postingIfReceiptStatement, receiptsOfOrder, reconOfOrder, lineIfPostingStatement } from "./repository";
@@ -20,6 +20,12 @@ import { CHUA_CO_CONG_TY, PARTY_ID_RE, loaiCho, docLyDo, docNgay, docSoTien, lay
 
 /** Kiểm độc lập vòng 2 CAO-1: đơn nhận đổi trạng thái giữa lúc duyệt chuyển và lúc chuyển. */
 const CAU_DON_NHAN_HONG = "Đơn nhận đã huỷ hoặc đã giao — huỷ khoản duyệt chuyển rồi duyệt lại sang đơn khác.";
+
+/**
+ * Tự quyết (ADR-0159 Hệ quả «chưa kiểm», ADR-0089 đ7): đơn nhận đã có khoản «Khách đặt cọc trước» do đối tác khai thì không nhận thêm tiền chuyển — rất có thể cùng một số tiền, chuyển sang là tính hai lần
+ * (khách bị báo đã trả gấp đôi, đối tác nợ gấp đôi). Không phải cùng số tiền thì Kế toán đảo khoản khai rồi ghi lại khoản thu thường, sau đó chuyển.
+ */
+const DON_NHAN_CO_LOI_KHAI = () => loi(409, "coc_target_has_declared_deposit", "Đơn nhận đã có khoản khách đặt cọc trước do đối tác khai. Chuyển thêm dễ tính hai lần cùng một số tiền — kiểm với đối tác; nếu đúng là cùng số tiền thì đảo khoản khai rồi chuyển lại.");
 
 const toDuyetRow = (a: ApprovalDbRow): DuyetRow => ({
   id: a.id, kind: a.kind_code, amount: a.amount, voidsId: a.voids_id, targetOrderId: a.target_order_id, createdBy: a.created_by, approvedDate: a.approved_date,
@@ -196,6 +202,7 @@ export async function ghiDuyet(db: D1Database, input: { orderId: string; raw: un
     // ADR-0135 Đ1: mã đơn NHÁP không lộ qua billing — đơn nháp coi như không tìm thấy (ở lệnh chuyển, đơn nhận nháp bị chặn riêng, xem `ghiChuyen`).
     if (nhan.status === "draft") return loi(400, "invalid_input", "Không tìm thấy đơn nhận tiền.");
     if (nhan.id === input.orderId || nhan.status === "cancelled" || nhan.delivered_at) return loi(409, "coc_bad_target", "Đơn nhận phải là đơn khác, còn hiệu lực và chưa Đã giao.");
+    if (await coKhoanLoiKhai(db, nhan.id)) return DON_NHAN_CO_LOI_KHAI();
     donNhanId = nhan.id;
   }
   const homNay = vnToday(new Date());
@@ -306,6 +313,7 @@ export async function ghiChuyen(db: D1Database, input: { orderId: string; raw: u
   // ADR-0135 Đ7: cổng đặt ở đơn NHẬN — đơn nháp không nhận tiền, kể cả qua lệnh chuyển cọc.
   if (nhan && nhan.status === "draft") return loi(409, "order_draft_no_payment", "Đơn chưa xác nhận, chưa ghi thu được.");
   if (!nhan || nhan.status === "cancelled" || nhan.delivered_at !== null) return loi(409, "coc_transfer_target_invalid", CAU_DON_NHAN_HONG);
+  if (await coKhoanLoiKhai(db, goc.targetOrderId)) return DON_NHAN_CO_LOI_KHAI();
   const giu = await docBen(db, b.nguoiGiu, d.congTyId, "Chọn ai đang cầm khoản tiền này (Công ty, hoặc nhân viên chưa nộp về công ty).");
   if (!giu.ok) return giu;
   const tc = tuChoi(kiemChi({

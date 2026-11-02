@@ -230,3 +230,14 @@ export const cocLapLaiConGiu = (db: D1Database, staffId: string): Promise<{ orde
 const HO_SO_NHAN_VIEN = defineSql("billing", "ho_so_nhan_vien", `SELECT party_id FROM v_stf_staff_label WHERE id = ?1`);
 export const hoSoNhanVien = async (db: D1Database, staffId: string): Promise<string | null> =>
   (await db.prepare(HO_SO_NHAN_VIEN).bind(staffId).first<{ party_id: string | null }>())?.party_id ?? null;
+
+/** Chữ ghi chú cố định của khoản thu sinh từ lời khai (ADR-0159); cùng là dấu nhận ra khoản đó. */
+export const GHI_CHU_KHOAN_LOI_KHAI = "Khách đặt cọc trước";
+const KHOAN_LOI_KHAI_CON_HIEU_LUC = defineSql(
+  "billing",
+  "khoan_loi_khai_con_hieu_luc",
+  `SELECT 1 AS co FROM bil_payment_receipt r
+   WHERE r.order_id = ?1 AND r.note = ?2 AND r.reverses_id IS NULL AND NOT EXISTS (SELECT 1 FROM bil_payment_receipt y WHERE y.reverses_id = r.id) LIMIT 1`,
+);
+export const coKhoanLoiKhai = async (db: D1Database, orderId: string): Promise<boolean> =>
+  (await db.prepare(KHOAN_LOI_KHAI_CON_HIEU_LUC).bind(orderId, GHI_CHU_KHOAN_LOI_KHAI).first<{ co: number }>()) !== null;
