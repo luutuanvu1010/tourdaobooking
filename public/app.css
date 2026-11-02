@@ -3921,6 +3921,9 @@ a.bk-hang:hover, a.bk-the:hover { background: var(--c-soft-hover); }
 .cx-bang .btn, .cx-ds-nut { min-height: var(--tap-min); }
 .cx-loi { margin: 0; color: var(--c-danger-text); font-size: var(--fs-label); }
 .cx-ghi-chu { margin: 0; font-size: var(--fs-label); }
+.cx-dich-vu, .cx-luot { display: grid; gap: var(--s2); }
+.cx-dich-vu { gap: var(--s3); }
+.cx-ghi-chu-dv { margin: 0; overflow-wrap: anywhere; white-space: pre-line; }
 .cx-ds { display: grid; gap: var(--s3); margin: var(--s3) 0; padding: 0; list-style: none; }
 .cx-the { display: grid; gap: var(--s2); padding: var(--s4); background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius-md); }
 .cx-the-dau { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s2); }
