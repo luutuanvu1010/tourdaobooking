@@ -9,6 +9,9 @@ import { rolePicker, type RolePicker, type RolePickerValue } from "./role-picker
 import { initShell, showError } from "./shell";
 import { nhanHaiLop } from "../src/shared/hai-lop-hien-thi";
 import { dungHangChoXacMinh } from "./xac-minh-hang-cho";
+import { CHU_CAP, suaDuocCot, thayCotCap } from "../src/shared/cap-hien-hanh-hien-thi";
+import { oCap, oCapKhongTai, taiCapHienHanh } from "./cot-cap-dai-ly";
+import type { CapHienHanhDto } from "../src/shared/contracts";
 
 const errorEl = byId("error");
 const listEl = byId("list");
@@ -34,6 +37,11 @@ let canAccessManage = false;
 
 let me: { id: string; permissions: readonly PermissionCode[] };
 let accounts: Api.StaffListRowDto[] = [];
+// Cột «Cấp độ đại lý» (ADR-0155 Đ2): chỉ khi người xem có ô xem hoa hồng đối tác và không giữ quyền Đối tác (`thayCotCap`) — Hành chính nhân sự không thấy và không gọi route.
+// `capHienHanh` null = chưa nạp được (route lỗi): ô hiện «—», bảng tài khoản vẫn vẽ.
+let hienCotCap = false;
+let capHienHanh: Map<string, CapHienHanhDto> | null = null;
+const cotCapEl = byId("cot-cap");
 
 // Bộ lọc theo vai trò (đặt vé của đối tác, lượt 1, Task 4; đặc tả §4.4): lọc ngay trên danh sách ĐÃ NẠP (`accounts`), cả bảng máy tính lẫn thẻ điện thoại; bấm nút chỉ vẽ lại, không gọi máy chủ.
 // Lựa chọn nhớ theo phiên (sessionStorage — có thể bị chặn / không có: bọc try/catch, trang vẫn chạy với «Tất cả»). Luật chọn nút / lọc / giữ lựa chọn ở src/shared/loc-tai-khoan.ts.
@@ -146,6 +154,15 @@ function openTatHaiLop(s: Api.StaffListRowDto): void {
   editEl.scrollIntoView({ block: "nearest" });
 }
 
+/** Sau khi lưu một cấp ở bảng bấm: nạp lại cấp hiện hành rồi vẽ lại (không gọi lại danh sách tài khoản). */
+async function lamMoiCap(): Promise<void> {
+  capHienHanh = hienCotCap ? await taiCapHienHanh() : null;
+  ve();
+}
+/** Nội dung ô «Cấp độ đại lý» của một dòng (bảng và thẻ dùng CHUNG một hàm); null = không có ô (người xem không thấy cột, hoặc dòng không giữ quyền Đối tác). */
+const oCapCuaS = (s: Api.StaffListRowDto): HTMLElement | null =>
+  !hienCotCap ? null : capHienHanh === null ? oCapKhongTai(s) : oCap(s, s.partyId === null ? undefined : capHienHanh.get(s.partyId), suaDuocCot(me), lamMoiCap);
+
 function row(s: Api.StaffListRowDto): HTMLElement {
   const btn = (label: string, onclick: () => void, cls = "btn btn-link") => {
     const b = h("button", { type: "button", class: cls }, label);
@@ -159,6 +176,7 @@ function row(s: Api.StaffListRowDto): HTMLElement {
     h("td", null, s.fullName, isMe && h("span", { class: "muted" }, " (bạn)"), !s.active && h("span", { class: "badge badge-cancelled" }, "Ngưng"), s.locked && h("span", { class: "badge badge-draft" }, "Bị khoá đăng nhập"), h("div", null, nhanHaiLopEl(s))),
     h("td", null, s.phone),
     h("td", null, accessLabel(s)),
+    hienCotCap && h("td", null, oCapCuaS(s)),
     h("td", { class: "muted" }, dateTime(s.createdAt)),
     h("td", { class: "muted" }, s.lastLoginAt ? dateTime(s.lastLoginAt) : "Chưa ghi nhận"),
     h(
@@ -210,6 +228,7 @@ function card(s: Api.StaffListRowDto): HTMLElement {
     return b;
   };
   const isMe = s.id === me.id;
+  const oCapThe = oCapCuaS(s); // thẻ điện thoại có đúng ô của bảng; null ⇒ không dựng dòng
   return h(
     "div",
     { class: s.active ? "card card-col" : "card card-col row-off" },
@@ -218,6 +237,7 @@ function card(s: Api.StaffListRowDto): HTMLElement {
     s.locked && h("div", null, h("span", { class: "badge badge-draft" }, "Bị khoá đăng nhập")),
     h("div", null, nhanHaiLopEl(s)),
     h("div", { class: "muted" }, s.phone, " · ", accessLabel(s)),
+    oCapThe && h("div", null, h("span", { class: "muted" }, `${CHU_CAP.nhanCot}: `), oCapThe),
     h("div", { class: "muted" }, s.lastLoginAt ? `Đăng nhập gần nhất ${dateTime(s.lastLoginAt)}` : "Chưa ghi nhận đăng nhập"),
     h(
       "div",
@@ -331,6 +351,7 @@ async function load(): Promise<void> {
   if (!r) return;
   accounts = r.staff;
   tenVai = r.tenVai;
+  capHienHanh = hienCotCap ? await taiCapHienHanh() : null; // lỗi route không chặn bảng: null ⇒ ô «—»
   ve();
 }
 
@@ -507,6 +528,8 @@ const staff = await initShell();
 me = staff;
 meSuper = can(staff, "admin.manage.superadmin"); // ADR-0072 mục 4a: hỏi bảng quyền (ô gán/gỡ Toàn quyền), không hỏi mã
 canAccessManage = can(staff, "account.access.manage");
+hienCotCap = thayCotCap(staff); // ADR-0155 Đ2.2: hỏi bảng quyền (ô xem hoa hồng đối tác, không giữ Đối tác), không hỏi mã vai
+cotCapEl.hidden = !hienCotCap;
 // ADR-0071 điều 1b: cổng trang theo ô account.view (Quản trị, Toàn quyền, Hành chính nhân sự — cùng đối tượng với cổng "accounts" của API); khung "Thêm tài khoản"
 // theo ô account.create (Hành chính nhân sự, Toàn quyền — Quản trị KHÔNG).
 if (!can(staff, "account.view")) showError(errorEl, "Tài khoản này không quản lý được tài khoản.");
