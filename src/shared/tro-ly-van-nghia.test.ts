@@ -199,7 +199,7 @@ test("C4: kho THẬT + mọi véc-tơ đoạn trực giao câu hỏi ⇒ chỉ c
   // («Bán hàng › Luật bán và đặc điểm dịch vụ», «Việc: xem bảng mức hoa hồng đối tác», «Việc: đặt và kết thúc luật bán theo vai người dùng») nên câu than phiền «sao app khó dùng thế»
   // thêm ba đoạn vượt ngưỡng tương đối (17 → 20); đổi PIN và lập đơn không đổi ⇒ đo lại bằng chính bài này: 20 / 10 / 45. Số đo, không suy ra từng đoạn. Luật không đổi,
   // trần 12 vẫn cắt (bài khoá `thanPhien.length === SO_DOAN_TOI_DA` ngay dưới); các tên đoạn khoá dưới đây giữ nguyên.
-  assert.deepEqual([dem("sao app khó dùng thế"), dem("đổi mã PIN thế nào"), dem("lập đơn mới ra sao")], [20, 10, 45]);
+  assert.deepEqual([dem("sao app khó dùng thế"), dem("đổi mã PIN thế nào"), dem("lập đơn mới ra sao")], [20, 9, 45]);
   // 2026-10-05 (1.81, Đợt 7): Trợ giúp thêm câu về hai ô "Xe riêng" / "Xe tối thiểu" (Bán hàng, Quản trị) và bỏ vài dòng trùng ý ⇒ hai đoạn nữa vượt ngưỡng tương đối của câu than phiền (15 → 17); luật không đổi, trần 12 vẫn cắt.
   const thanPhien = chonDoanTron("sao app khó dùng thế", mot(0), kho, vec, ["SALES"]).map((x) => x.doan.ten);
   assert.equal(thanPhien.length, SO_DOAN_TOI_DA);
@@ -211,7 +211,8 @@ test("C4: kho THẬT + mọi véc-tơ đoạn trực giao câu hỏi ⇒ chỉ c
   assert.equal(lapDon[0], "Cấu trúc Nền tảng › Việc: lập đơn mới");
   assert.ok(lapDon.includes("Bán hàng › Lập đơn mới"), JSON.stringify(lapDon));
   const doiPin = chonDoanTron("đổi mã PIN thế nào", mot(0), kho, vec, ["SALES"]).map((x) => x.doan.ten);
-  assert.equal(doiPin.length, 10);
+  // 2026-11-02 (đặt vé đối tác lượt 2, Đợt 5): cắt lời trùng ở Trợ giúp Kế toán / Bán hàng / Quản trị để giữ trần 30 phút ⇒ một đoạn chứa «PIN» rơi khỏi ngưỡng: đo lại 9. Luật không đổi.
+  assert.equal(doiPin.length, 9);
   assert.ok(doiPin.includes("Phần chung › Trang Tôi, đổi PIN, đăng xuất"), JSON.stringify(doiPin));
   assert.deepEqual(chonDoanTron("zzqx wqpv", mot(0), kho, vec, ["SALES"]), []);
   assert.ok(dungLoiNhac("Bạn là trợ lý.", ["SALES"], xungHo(null, null), []).endsWith(`TÀI LIỆU:\n${KHONG_TIM_THAY}`));
