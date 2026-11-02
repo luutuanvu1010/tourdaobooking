@@ -10,6 +10,7 @@ ADR: `docs/adr/ADR-0156-ve-dien-tu-ma-qr-chong-trung-va-tran-lo.md`. Nhánh `cla
 - Duyệt 2/11: «vậy đổi thành lưu 3 ngày cho lô đã huỷ» (trước đó nói 7 ngày «để phục vụ cho việc tra cứu và tra soát»). Máy tự xoá sau hạn.
 - Chữ trên giao diện đổi từ «Bỏ lô» thành «Huỷ lô» vì chủ không hiểu «lô đã bỏ». Tên trong mã giữ nguyên.
 - Ai xem trong 3 ngày: chủ chọn «Cả Quản trị, Bán hàng» khi hỏi về xem ảnh. Người thi công hỏi lại kèm ví dụ bán trùng, câu đó ghi nhận «Chỉ xem thông tin» nhưng không rõ chủ bấm hay hết giờ. Báo lại thì chủ trả lời bằng chữ: «Cho mở ảnh». Câu tiếp theo về vé đã mở ghi nhận «Không nhập lại (Recommended)»: vé đã mở khoá hẳn. Câu này công cụ cũng không cho biết chủ tự bấm hay hết giờ; đây là phương án an toàn, đổi được khi chưa có vé thật nào bị khoá, và đã nêu trong báo cáo.
+- Xác nhận 2/11: vé đã mở khoá hẳn, nguyên văn «Khoá hẳn», trả lời câu hỏi lại kèm ví dụ gửi ảnh cho khách A rồi bán cho khách B. Câu ghi nhận trước đó «Không nhập lại (Recommended)» có thể do hết giờ nên phải hỏi lại; nay đã rõ.
 
 ## Lệch so với ADR (có lý do)
 - Thư viện đặt tên `jsqr.cjs`, không phải `.js`: kho khai `"type": "module"`, đuôi `.js` bị esbuild coi là ESM và báo không có export. Bài trần gói bắt được lỗi này.
