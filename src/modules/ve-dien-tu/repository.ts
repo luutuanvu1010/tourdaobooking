@@ -147,10 +147,17 @@ const CHEN_VE = defineSql(
   `INSERT INTO vdt_ticket (id, batch_id, ticket_code, valid_from, valid_to, slot_time, storage_key, content_kind, byte_size, content_hash, status, created_at, created_by, updated_at, updated_by)
    SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, 'AVAILABLE', ?11, ?12, ?11, ?12
    WHERE EXISTS (SELECT 1 FROM vdt_batch b WHERE b.id = ?2 AND b.status = 'PENDING')
-     AND NOT EXISTS (SELECT 1 FROM vdt_ticket t WHERE (t.withdrawn_at IS NULL OR t.opened_at IS NOT NULL) AND (t.ticket_code = ?3 OR t.content_hash = ?10))`,
+     AND NOT EXISTS (SELECT 1 FROM vdt_ticket t WHERE (t.withdrawn_at IS NULL OR t.opened_at IS NOT NULL) AND (t.ticket_code = ?3 OR t.content_hash = ?10))
+     AND NOT EXISTS (SELECT 1 FROM vdt_ticket t WHERE t.opened_at IS NOT NULL AND (length(t.ticket_code) = 36 AND length(?3) = 36 AND substr(t.ticket_code, -12) = substr(?3, -12)))`,
 );
 const MA_VE_DA_CO = defineSql("ve-dien-tu", "ma_ve_da_co", "SELECT ticket_code FROM vdt_ticket WHERE withdrawn_at IS NULL AND ticket_code IN (SELECT value FROM json_each(?1))");
-const MA_VE_DA_MO = defineSql("ve-dien-tu", "ma_ve_da_mo", "SELECT ticket_code FROM vdt_ticket WHERE opened_at IS NOT NULL AND ticket_code IN (SELECT value FROM json_each(?1))");
+// Trùng mã hoặc trùng số S/N với vé đã mở (nhà cung cấp có thể phát lại chuỗi khác cho cùng S/N). Trả chính mã được hỏi.
+const MA_VE_DA_MO = defineSql(
+  "ve-dien-tu",
+  "ma_ve_da_mo",
+  `SELECT j.value AS ticket_code FROM json_each(?1) j
+   WHERE EXISTS (SELECT 1 FROM vdt_ticket t WHERE t.opened_at IS NOT NULL AND (t.ticket_code = j.value OR (length(t.ticket_code) = 36 AND length(j.value) = 36 AND substr(t.ticket_code, -12) = substr(j.value, -12))))`,
+);
 const BAM_DA_MO = defineSql("ve-dien-tu", "bam_da_mo", "SELECT content_hash FROM vdt_ticket WHERE opened_at IS NOT NULL AND content_hash IN (SELECT value FROM json_each(?1))");
 const BAM_DA_CO = defineSql("ve-dien-tu", "bam_da_co", "SELECT content_hash FROM vdt_ticket WHERE withdrawn_at IS NULL AND content_hash IN (SELECT value FROM json_each(?1))");
 // Bỏ lô (ADR-0156 Đ2 mục 3): chỉ lô chưa có vé nào TỪNG được giữ chỗ (kể cả đã trả). Một lô: lô → nhật ký (`changes() > 0`) → vé; câu vé gác bằng chính dấu của câu lô nên lô thua thì không rút vé nào.
@@ -176,14 +183,14 @@ const DS_LO_BO_DUOC = defineSql(
    WHERE b.status <> 'VOID' AND NOT EXISTS (SELECT 1 FROM vdt_allocation a JOIN vdt_ticket t ON t.id = a.ticket_id WHERE t.batch_id = b.id)
    ORDER BY (b.status = 'PENDING') DESC, b.created_at DESC, b.id LIMIT ?1`,
 );
-// Lô đã huỷ gần đây (chủ quyết 2/11/2026): chỉ chữ để tra cứu. Mã đầy đủ KHÔNG ra khỏi câu đọc; không khoá kho, không dấu vân. Vé chưa từng vào kho (`stored_at` rỗng) không tính; lô không có vé nào vào kho (trang tự huỷ lô nhập hỏng hết) không hiện vì không có gì để tra.
+// Lô đã huỷ gần đây (chủ quyết 2/11/2026): để tra cứu. Mã đầy đủ KHÔNG ra khỏi câu đọc; không khoá kho, không dấu vân. Vé chưa từng vào kho (`stored_at` rỗng) không tính; lô không có vé nào vào kho (trang tự huỷ lô nhập hỏng hết) không hiện vì không có gì để tra.
 // Lúc huỷ và mã người huỷ lấy từ `updated_*` của lô (tên do route đổi qua `nhanNhanVien` được tiêm, không thêm cạnh sang staff): lô VOID không còn câu nào ghi (`SUA_MA_TOUR`, `KICH_HOAT_LO`, `BO_LO` đều gác trạng thái, trigger `vdt_batch_one_way` chặn đổi lại).
 const DS_LO_DA_HUY = defineSql(
   "ve-dien-tu",
   "ds_lo_da_huy",
   `SELECT b.id, b.catalog_code, b.pax_group, b.printed_name, b.updated_at AS huy_luc, b.updated_by AS huy_boi,
           t.id AS ve_id, CASE WHEN length(t.ticket_code) > 4 THEN substr(t.ticket_code, -4) ELSE '' END AS duoi_ma, t.valid_from, t.valid_to, t.opened_at, t.r2_deleted_at,
-          EXISTS (SELECT 1 FROM vdt_ticket s WHERE s.withdrawn_at IS NULL AND (s.ticket_code = t.ticket_code OR s.content_hash = t.content_hash)) AS da_nhap_lai
+          EXISTS (SELECT 1 FROM vdt_ticket s WHERE s.withdrawn_at IS NULL AND (s.ticket_code = t.ticket_code OR s.content_hash = t.content_hash OR (length(s.ticket_code) = 36 AND length(t.ticket_code) = 36 AND substr(s.ticket_code, -12) = substr(t.ticket_code, -12)))) AS da_nhap_lai
    FROM (SELECT * FROM vdt_batch x WHERE x.status = 'VOID' AND x.updated_at >= ?1 AND EXISTS (SELECT 1 FROM vdt_ticket v WHERE v.batch_id = x.id AND v.stored_at IS NOT NULL) ORDER BY x.updated_at DESC, x.id LIMIT ?2) b
    JOIN vdt_ticket t ON t.batch_id = b.id AND t.stored_at IS NOT NULL
    ORDER BY b.updated_at DESC, b.id, t.valid_from, t.id`,
@@ -194,7 +201,7 @@ const DOC_VE_LO_HUY = defineSql(
   "ve-dien-tu",
   "doc_ve_lo_huy",
   `SELECT t.id, t.storage_key, t.content_kind, t.opened_at,
-          EXISTS (SELECT 1 FROM vdt_ticket s WHERE s.withdrawn_at IS NULL AND (s.ticket_code = t.ticket_code OR s.content_hash = t.content_hash)) AS da_nhap_lai
+          EXISTS (SELECT 1 FROM vdt_ticket s WHERE s.withdrawn_at IS NULL AND (s.ticket_code = t.ticket_code OR s.content_hash = t.content_hash OR (length(s.ticket_code) = 36 AND length(t.ticket_code) = 36 AND substr(s.ticket_code, -12) = substr(t.ticket_code, -12)))) AS da_nhap_lai
    FROM vdt_ticket t JOIN vdt_batch b ON b.id = t.batch_id
    WHERE t.id = ?1 AND t.withdrawn_at IS NOT NULL AND t.stored_at IS NOT NULL AND t.r2_deleted_at IS NULL AND b.status = 'VOID' AND b.updated_at >= ?2`,
 );
@@ -204,7 +211,7 @@ const MO_ANH_VE = defineSql(
   `UPDATE vdt_ticket SET opened_at = ?2, opened_by = ?3, updated_at = ?2, updated_by = ?3
    WHERE id = ?1 AND opened_at IS NULL AND withdrawn_at IS NOT NULL AND stored_at IS NOT NULL AND r2_deleted_at IS NULL
      AND EXISTS (SELECT 1 FROM vdt_batch b WHERE b.id = vdt_ticket.batch_id AND b.status = 'VOID' AND b.updated_at >= ?4)
-     AND NOT EXISTS (SELECT 1 FROM vdt_ticket s WHERE s.withdrawn_at IS NULL AND (s.ticket_code = vdt_ticket.ticket_code OR s.content_hash = vdt_ticket.content_hash))`,
+     AND NOT EXISTS (SELECT 1 FROM vdt_ticket s WHERE s.withdrawn_at IS NULL AND (s.ticket_code = vdt_ticket.ticket_code OR s.content_hash = vdt_ticket.content_hash OR (length(s.ticket_code) = 36 AND length(vdt_ticket.ticket_code) = 36 AND substr(s.ticket_code, -12) = substr(vdt_ticket.ticket_code, -12))))`,
 );
 const DOC_TRAN_LO = defineSql("ve-dien-tu", "doc_tran_lo", "SELECT batch_limit, version FROM vdt_setting WHERE id = 'default'");
 const DOI_TRAN_LO = defineSql(

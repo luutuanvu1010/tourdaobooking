@@ -46,6 +46,17 @@ test("R-VDT-6: vé đang bán trùng mã, tệp hoặc S/N với vé đã mở �
   assert.equal(kiem(d, "R-VDT-6"), 0, "chưa có bản đang bán");
   d.prepare("INSERT INTO vdt_ticket (id, batch_id, ticket_code, valid_from, valid_to, storage_key, content_kind, byte_size, content_hash, status, created_at, updated_at) VALUES ('sao-chep', ?, ?, '2026-10-24', '2026-11-23', 'khoa-sao-chep', 'image/png', 40, 'bam-khac', 'AVAILABLE', ?, ?)").run(lo, t.ticket_code, AT, AT);
   assert.equal(kiem(d, "R-VDT-6"), 1, "trùng mã");
+  d.exec("DROP TRIGGER vdt_ticket_no_delete; DELETE FROM vdt_ticket WHERE id = 'sao-chep'");
+  assert.equal(kiem(d, "R-VDT-6"), 0, "gỡ dòng trùng thì hết báo");
+  const chenKhac = (ma: string, bam: string) => d.prepare("INSERT INTO vdt_ticket (id, batch_id, ticket_code, valid_from, valid_to, storage_key, content_kind, byte_size, content_hash, status, created_at, updated_at) VALUES ('sao-chep', ?, ?, '2026-10-24', '2026-11-23', 'khoa-sao-chep', 'image/png', 40, ?, 'AVAILABLE', ?, ?)").run(lo, ma, bam, AT, AT);
+  chenKhac("ma-khac-han", t.content_hash);
+  assert.equal(kiem(d, "R-VDT-6"), 1, "trùng tệp");
+  d.exec("DELETE FROM vdt_ticket WHERE id = 'sao-chep'");
+  // Dựng cặp 36 số cùng 12 số cuối: dòng đã mở được đổi mã qua dòng mới vì trigger giữ khoá đã gỡ ở trên.
+  d.exec("DROP TRIGGER vdt_ticket_keep_key");
+  d.prepare("UPDATE vdt_ticket SET ticket_code = ? WHERE id = ?").run("1".repeat(24) + "123456789012", v);
+  chenKhac("2".repeat(24) + "123456789012", "bam-khac-3");
+  assert.equal(kiem(d, "R-VDT-6"), 1, "trùng số S/N");
 });
 
 test("R-VDT-5: ảnh còn trong hạn lưu ⇒ không báo; quá hạn mà kho chưa xoá ⇒ thấy được", () => {

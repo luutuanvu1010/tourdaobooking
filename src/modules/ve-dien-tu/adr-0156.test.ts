@@ -312,7 +312,7 @@ test("ảnh của lô đã huỷ: còn nguyên trong 3 ngày; quá hạn thì vi
   assert.equal(hangCho(w), 0);
 });
 
-// ---- Màn «Lô đã huỷ gần đây»: chỉ chữ, không mở ảnh (chủ quyết 2/11/2026) ------------------------------------------------------------------------------
+// ---- Khối «Lô đã huỷ gần đây» (chủ quyết 2/11/2026) ------------------------------------------------------------------------------
 const daHuy = (w: any, as = SALES) => w.call("GET", "/api/ve/lo-da-huy", { as });
 const luiNgay = (w: any, loId: string, ngay: number) => w.sqlite.prepare("UPDATE vdt_batch SET updated_at = ? WHERE id = ?").run(new Date(Date.now() - ngay * 864e5).toISOString(), loId);
 
@@ -486,6 +486,92 @@ test("mở ảnh: vé đã nhập lại vào lô mới, trùng mã hoặc trùng
   assert.equal(demMo(w), 0);
 });
 
+// Nhà cung cấp có thể phát lại chuỗi QR khác cho cùng số S/N (12 số cuối), mà tệp cũng khác. Vẫn là cùng một vé.
+const khacChuoi = (ma: string) => `2${ma.slice(1)}`;
+
+test("mở ảnh: cùng số S/N, khác chuỗi và khác tệp vẫn là cùng vé, không lọt qua khoá ở cả hai chiều", async () => {
+  const w = setup();
+  const { ve: [v1] } = await loDaHuy(w, [1]);
+  assert.equal((await moAnh(w, v1.veId)).status, 200);
+  const loMoi = (await taoLo(w)).json.loId;
+  const bi = await them(w, loMoi, [ve(1, { maVe: khacChuoi(QR(1)), noiDung: b64(PNG(9)) })]);
+  assert.equal(bi.json.themDuoc, 0, bi.text);
+  assert.deepEqual(bi.json.loai, [{ thuTu: 0, lyDo: LY_DO_DA_MO }]);
+
+  const { ve: [v2] } = await loDaHuy(w, [2]);
+  const r = await them(w, loMoi, [ve(2, { maVe: khacChuoi(QR(2)), noiDung: b64(PNG(8)) })]);
+  assert.equal(r.json.themDuoc, 1, r.text);
+  assert.equal(await trangThai(w, v2.veId), "DA_NHAP_LAI");
+  const m = await moAnh(w, v2.veId);
+  assert.equal(m.status, 409, m.text);
+  assert.equal(m.json.error.code, "ve_da_nhap_lai");
+});
+
+test("hai người mở cùng một vé đúng lúc: cả hai được xem, dấu mở và nhật ký khoá chỉ ghi một lần", async () => {
+  const w = setup();
+  const { ve: [v1] } = await loDaHuy(w, [1]);
+  let rTruoc: any;
+  w.chenTruocLo((cau: { sql: string }[]) => cau.some((c) => /SET opened_at/.test(c.sql)), async () => { rTruoc = await moAnh(w, v1.veId); });
+  const rSau = await moAnh(w, v1.veId);
+  assert.equal(rTruoc.status, 200, rTruoc.text);
+  assert.equal(rSau.status, 200, rSau.text);
+  const [nk] = w.q("SELECT COUNT(*) AS n FROM audit_log WHERE action = 've_mo_anh_lo_huy' AND target_id = ?", v1.veId);
+  assert.equal(nk.n, 1);
+});
+
+test("mở ảnh: mã không đủ 36 ký tự thì không có số S/N, trùng đuôi với vé đã mở vẫn nhập được", async () => {
+  const w = setup();
+  const { ve: [v1] } = await loDaHuy(w, [1]);
+  assert.equal((await moAnh(w, v1.veId)).status, 200);
+  const loMoi = (await taoLo(w)).json.loId;
+  const r = await them(w, loMoi, [ve(5, { maVe: QR(1).slice(-12), noiDung: b64(PNG(9)) })]);
+  assert.equal(r.json.themDuoc, 1, r.text);
+});
+
+test("mở ảnh và nhập lại cùng số S/N đúng lúc: chỉ một bên thắng", async () => {
+  const w1 = setup();
+  const a = await loDaHuy(w1, [1]);
+  const loMoi1 = (await taoLo(w1)).json.loId;
+  let rMo: any;
+  w1.chenTruocLo((cau: { sql: string }[]) => cau.some((c) => /INSERT INTO vdt_ticket/.test(c.sql)), async () => { rMo = await moAnh(w1, a.ve[0].veId); });
+  const rNhap = await them(w1, loMoi1, [ve(1, { maVe: khacChuoi(QR(1)), noiDung: b64(PNG(9)) })]);
+  assert.equal(rMo.status, 200, rMo.text);
+  assert.equal(rNhap.json.themDuoc, 0, rNhap.text);
+
+  const w2 = setup();
+  const b = await loDaHuy(w2, [1]);
+  const loMoi2 = (await taoLo(w2)).json.loId;
+  let rNhap2: any;
+  w2.chenTruocLo((cau: { sql: string }[]) => cau.some((c) => /SET opened_at/.test(c.sql)), async () => { rNhap2 = await them(w2, loMoi2, [ve(1, { maVe: khacChuoi(QR(1)), noiDung: b64(PNG(9)) })]); });
+  const rMo2 = await moAnh(w2, b.ve[0].veId);
+  assert.equal(rNhap2.json.themDuoc, 1, rNhap2.text);
+  assert.equal(rMo2.status, 409, rMo2.text);
+  assert.equal(w2.q("SELECT count(*) AS n FROM vdt_ticket WHERE opened_at IS NOT NULL")[0].n, 0);
+});
+
+// Mã ngắn không có số S/N, nên vế trùng mã và vế trùng tệp được kiểm riêng từng vế.
+async function loHuyMaNgan(w: any, n: number) {
+  const loId = (await taoLo(w)).json.loId;
+  await them(w, loId, [ve(n, { maVe: `VE-NGAN-${n}` })]);
+  await xacNhan(w, loId);
+  assert.equal((await bo(w, loId)).status, 200);
+  return (await daHuy(w)).json.lo.find((l: any) => l.loId === loId).ve[0];
+}
+
+test("mở ảnh và nhập lại đúng lúc, trùng riêng mã hoặc riêng tệp: vé đang bán thắng, dấu mở không ghi", async () => {
+  for (const nhapLai of [ve(6, { maVe: "VE-NGAN-6", noiDung: b64(PNG(9)) }), ve(6, { maVe: "VE-NGAN-KHAC" })]) {
+    const w = setup();
+    const v = await loHuyMaNgan(w, 6);
+    const loMoi = (await taoLo(w)).json.loId;
+    let rNhap: any;
+    w.chenTruocLo((cau: { sql: string }[]) => cau.some((c) => /SET opened_at/.test(c.sql)), async () => { rNhap = await them(w, loMoi, [nhapLai]); });
+    const rMo = await moAnh(w, v.veId);
+    assert.equal(rNhap.json.themDuoc, 1, rNhap.text);
+    assert.equal(rMo.status, 409, rMo.text);
+    assert.equal(w.q("SELECT count(*) AS n FROM vdt_ticket WHERE opened_at IS NOT NULL")[0].n, 0);
+  }
+});
+
 test("mở ảnh và nhập lại đúng lúc: chỉ một bên thắng, không bao giờ vừa mở vừa có vé đang bán", async () => {
   const w1 = setup();
   const a = await loDaHuy(w1, [1]);
@@ -572,6 +658,17 @@ test("mở ảnh: kho hỏng hoặc mất ảnh thì không khoá vé, vì nhân
   assert.equal((await moAnh(w, ds[0].veId)).status, 200, "kho hết hỏng thì mở được");
 });
 
+test("xem ảnh đã mở: kho hỏng lúc xem thì báo 503, vé đã khoá vẫn xem lại được khi kho khoẻ", async () => {
+  const w = setup();
+  const { ve: [v] } = await loDaHuy(w, [1]);
+  await moAnh(w, v.veId);
+  w.r2VeDienTu.hong.get = true;
+  const hong = await xemAnh(w, v.veId);
+  assert.equal(hong.status, 503, hong.text);
+  w.r2VeDienTu.hong.get = false;
+  assert.equal((await xemAnh(w, v.veId)).status, 200);
+});
+
 test("xem ảnh đã mở: chặn gọi từ trang khác; nhật ký có trước khi đọc kho; ảnh đọc xong không đổi hàng chờ xoá", async () => {
   const w = setup();
   const { ve: [v] } = await loDaHuy(w, [1]);
@@ -612,6 +709,36 @@ test("CSDL giữ khoá: dấu mở chỉ ghi một lần, chỉ cho vé đã rú
   const chen = (ma: string, bam: string, key: string) => w.sqlite.prepare("INSERT INTO vdt_ticket (id, batch_id, ticket_code, valid_from, valid_to, storage_key, content_kind, byte_size, content_hash, status, created_at, updated_at) VALUES (?, ?, ?, '2026-10-24', '2026-11-23', ?, 'image/png', 40, ?, 'AVAILABLE', ?, ?)").run(crypto.randomUUID(), loMoi, ma, key, bam, AT, AT);
   assert.throws(() => chen(t.ticket_code, "bam-khac", "khoa-1"), /vdt_one_way/, "trùng mã vé đã mở");
   assert.throws(() => chen(QR(99), t.content_hash, "khoa-2"), /vdt_one_way/, "trùng tệp vé đã mở");
+  assert.throws(() => chen(khacChuoi(t.ticket_code), "bam-khac-2", "khoa-3"), /vdt_one_way/, "trùng số S/N vé đã mở");
+  assert.throws(() => w.sqlite.prepare("UPDATE vdt_ticket SET opened_by = ? WHERE id = ?").run(ADMIN, v2.veId), /vdt_one_way/, "đổi người mở sau khi đã mở");
+  assert.throws(() => w.sqlite.prepare("INSERT INTO vdt_ticket (id, batch_id, ticket_code, valid_from, valid_to, storage_key, content_kind, byte_size, content_hash, status, opened_at, created_at, updated_at) VALUES (?, ?, ?, '2026-10-24', '2026-11-23', 'khoa-4', 'image/png', 40, 'bam-khac-4', 'AVAILABLE', ?, ?, ?)").run(crypto.randomUUID(), loMoi, QR(98), AT, AT, AT), /vdt_one_way/, "chèn thẳng dòng có sẵn dấu mở");
+
+  const { ve: [v4] } = await loDaHuy(w, [4]);
+  assert.throws(() => w.sqlite.prepare("UPDATE vdt_ticket SET opened_by = ? WHERE id = ?").run(ADMIN, v4.veId), /vdt_one_way/, "ghi người mở mà không có lúc mở");
+
+  // Vé chưa từng vào kho: đã rút vì gửi hỏng, không có ảnh để xem nên không đặt được dấu mở.
+  w.r2VeDienTu.hong.put = true;
+  await them(w, loMoi, [ve(97)]);
+  w.r2VeDienTu.hong.put = false;
+  const [hong] = w.q("SELECT id, withdrawn_at, stored_at FROM vdt_ticket WHERE ticket_code = ?", QR(97));
+  assert.ok(hong.withdrawn_at && !hong.stored_at, "dựng đúng ca vé đã rút, chưa lưu");
+  assert.throws(() => dat(hong.id), /vdt_one_way/, "vé chưa từng vào kho");
+
+  // Từng vế riêng, mã ngắn nên không có số S/N che vế khác.
+  const vNgan = await loHuyMaNgan(w, 60);
+  dat(vNgan.veId);
+  assert.throws(() => chen("VE-NGAN-60", "bam-khac-3", "khoa-4"), /vdt_one_way/, "trùng riêng mã vé đã mở");
+  const trungMa = await loHuyMaNgan(w, 61);
+  await them(w, loMoi, [ve(62, { maVe: "VE-NGAN-61" })]);
+  assert.throws(() => dat(trungMa.veId), /vdt_one_way/, "đã có bản đang bán trùng riêng mã");
+  const trungTep = await loHuyMaNgan(w, 63);
+  await them(w, loMoi, [ve(63, { maVe: "VE-NGAN-64" })]);
+  assert.throws(() => dat(trungTep.veId), /vdt_one_way/, "đã có bản đang bán trùng riêng tệp");
+
+  // Bản đang bán cùng số S/N cũng chặn đặt dấu.
+  const { ve: [v3] } = await loDaHuy(w, [3]);
+  await them(w, loMoi, [ve(3, { maVe: khacChuoi(QR(3)), noiDung: b64(PNG(7)) })]);
+  assert.throws(() => dat(v3.veId), /vdt_one_way/, "đã có bản đang bán cùng số S/N");
 });
 
 test("hàng rào tĩnh: route xem ảnh lô đã huỷ theo thứ tự quyền → nhật ký → đọc kho; route khoá vé hỏi kho trước khi ghi", () => {

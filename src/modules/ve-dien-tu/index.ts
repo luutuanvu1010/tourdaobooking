@@ -193,7 +193,11 @@ export const veDienTuModule: AppModule = {
       if (!ve) return VE_KHONG_THAY();
       if (!ve.opened_at) return error(409, "ve_chua_mo", "Vé này chưa được mở ảnh.");
       await env.DB.batch([auditStatement(env.DB, { staffId: staff.id, action: "ve_mo_anh_lo_huy", at: new Date().toISOString(), targetType: "ve", targetId: veId, detail: "Xem ảnh vé của lô đã huỷ" })]);
-      const obj = await kho.get(ve.storage_key);
+      let obj: R2ObjectBody | null;
+      try { obj = await kho.get(ve.storage_key); } catch (e) {
+        console.error(JSON.stringify({ level: "error", event: "ve_dien_tu_hoi_kho_loi", veId, loi: e instanceof Error ? e.message : "khong_ro" }));
+        return error(503, "storage_unavailable", "Kho vé đang lỗi. Vui lòng thử lại sau.");
+      }
       if (!obj) {
         console.error(JSON.stringify({ level: "error", event: "ve_dien_tu_thieu_doi_tuong", veId }));
         return VE_KHONG_THAY();
