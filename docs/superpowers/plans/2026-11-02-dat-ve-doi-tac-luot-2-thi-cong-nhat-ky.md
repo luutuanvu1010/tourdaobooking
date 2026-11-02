@@ -56,6 +56,8 @@ Mỗi task tự khớp với bài của mình ở mức đọc kế hoạch. `v_
 
 **R18 (2026-11-02, chủ, nguyên văn «Cách 1: lượt đi»):** R7 hết tạm, N-4 đóng; thứ tự lượt đầu giữ như mã, ghi dòng làm rõ ở ADR-0154.
 
+**R19 (2026-11-02, chủ: «xog rồi, kiêm tra và nghiệm thu nhé»):** chủ đã nhập và triển khai bản 2.57 lúc 17:46, số liệu ở `docs/HANDOFF-N1.md`. e2e chạy trong `trien-khai` 79/80, chỉ đỏ H5 (danh sách, phiên vé đã sửa ở `main` máy, chưa lên GitHub). Kiểm dữ liệu KHÔNG ĐẠT `R-PRC-2` 98: cùng con số từ bản 2.54, nguồn đã tra 31/10 là bốn loại thử chủ đã tắt, lần này chưa đối chiếu từng dòng. Sửa cố ý: bỏ vế `holdsPartner` ở route cấp ⇒ (e), (e3) đỏ; hoàn nguyên ⇒ 12/12 xanh, đã ghi `docs/SO-HANG-RAO.md`. Người kiểm độc lập (chỉ đọc mã, không chạy): không có lỗi Chặn; ba nơi gọi `soanXacNhan` đúng luồng; `role_via_account` là mã lỗi có từ trước, không thuộc Đ2; quyền route `…/sua` khớp `suaDuocCot`; hai kịch bản đã sửa không bỏ kiểm, nhưng `luot-2-smoke` nay không còn khẳng định thẳng `status === "confirmed"` và không có ca đơn đối tác không giờ đi nhánh A rồi Còn vé (ca này do bài máy chủ phủ) — mức Nhỏ. Chưa kiểm: hiển thị khi đơn đối tác không có giờ trên giao diện, Chrome cũ, khổ 1280, thao tác đăng nhập thật trên production. Kết luận: chưa ghi «đạt nghiệm thu đầy đủ»; chờ chủ thử trên điện thoại và quyết 98 dòng mức.
+
 ## Lệch kế hoạch đã có lý do (Đợt 1)
 
 - **Migration tạo lại trigger `orders_delivered_lock`:** kế hoạch nói chỉ thêm, nhưng bài NT-R6 (`src/migrations-orders-da-giao.test.ts`) buộc mọi cột của `orders` nằm trong khoá «Đã giao». Chỉ siết, không sửa tệp cũ. **Ruling R5:** chấp nhận, với điều kiện người kiểm so định nghĩa trigger trước và sau `0133` chỉ khác đúng một vế.
