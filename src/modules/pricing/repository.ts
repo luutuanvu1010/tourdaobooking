@@ -86,6 +86,10 @@ const VAI_HUONG_THEM = defineSql("pricing", "beneficiary_role_insert",
 // bên thua một lượt tranh chấp không ghi gì (khuôn của nhật ký "changes() > 0").
 const VAI_HUONG_DAT = defineSql("pricing", "beneficiary_role_set_active",
   `UPDATE prc_beneficiary_role SET active = ?2, updated_at = ?3, updated_by = ?4 WHERE role_type_code = ?1 AND changes() > 0`);
+// ADR-0155 Đ2.5: MỌI cặp (hồ sơ, vai trò được hưởng đang bật) — một câu cho cột «Cấp độ đại lý» (không lặp theo hồ sơ). Cùng điều kiện nối với `LA_HUONG` và `VAI_MO`
+// (view công bố v_pty_open_role, vai được hưởng đang bật); chỉ mã hồ sơ + mã vai, không tên, không liên hệ.
+const VAI_MO_CUA_NGUOI_HUONG = defineSql("pricing", "open_beneficiary_roles_all",
+  `SELECT r.party_id, r.role_type_code FROM v_pty_open_role r JOIN prc_beneficiary_role b ON b.role_type_code = r.role_type_code AND b.active = 1 ORDER BY r.party_id, r.role_type_code`);
 const LA_HUONG = defineSql("pricing", "is_beneficiary",
   `SELECT 1 AS ok FROM v_pty_open_role r JOIN prc_beneficiary_role b ON b.role_type_code = r.role_type_code AND b.active = 1 WHERE r.party_id = ?1 LIMIT 1`);
 // Task 11 (Ruling 21): CÙNG điều kiện `is_beneficiary` (không xét `active` của hồ sơ — đúng điều máy chủ dùng để ÉP bên đặt cho tài khoản Đối tác) + tên hồ sơ qua view công bố. Chỉ id + tên.
@@ -218,6 +222,9 @@ export const insertTermStatement = (db: D1Database, id: string, v: { scope: stri
 export const closeTermStatement = (db: D1Database, id: string, den: string, at: string, by: string) => db.prepare(DK_DONG).bind(id, den, at, by);
 export const beneficiaryRoles = async (db: D1Database): Promise<string[]> => (await db.prepare(VAI_HUONG).all<{ role_type_code: string }>()).results.map((r) => r.role_type_code);
 export const openRolesOf = async (db: D1Database, partyId: string) => (await db.prepare(VAI_MO).bind(partyId).all<{ role_type_code: string; role_group: string; is_partner_label: number }>()).results;
+/** ADR-0155 Đ2.5: mọi (hồ sơ, vai trò được hưởng) đang mở — đầu vào của `GET /api/pricing/cap-hien-hanh`. */
+export const openBeneficiaryRolesAll = async (db: D1Database): Promise<{ party_id: string; role_type_code: string }[]> =>
+  (await db.prepare(VAI_MO_CUA_NGUOI_HUONG).all<{ party_id: string; role_type_code: string }>()).results;
 export const beneficiaryRolesAll = async (db: D1Database): Promise<{ role_type_code: string; active: number }[]> => (await db.prepare(VAI_HUONG_TAT_CA).all<{ role_type_code: string; active: number }>()).results;
 export const tenNhanVienTheoId = async (db: D1Database, ids: readonly string[]): Promise<Map<string, string>> => ids.length === 0 ? new Map()
   : new Map((await db.prepare(TEN_NHAN_VIEN).bind(JSON.stringify([...new Set(ids)])).all<{ id: string; label: string }>()).results.map((r) => [r.id, r.label]));

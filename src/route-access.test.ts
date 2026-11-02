@@ -222,6 +222,7 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "GET", path: "/api/pricing/hoa-hong/:id/sua", access: "office" }, // partner.commission.write + không giữ quyền Đối tác — ADR-0148 xem trước «Sửa» (đường, ngày sớm nhất)
   { method: "POST", path: "/api/pricing/hoa-hong/:id/sua", access: "office" }, // partner.commission.write + không giữ quyền Đối tác — ADR-0148 Sửa (huỷ–thay hoặc từ ngày)
   { method: "GET", path: "/api/pricing/thu-tra", access: "office" }, // partner.commission.view — thử tra, chỉ đọc
+  { method: "GET", path: "/api/pricing/cap-hien-hanh", access: "office" }, // partner.commission.view + không giữ quyền Đối tác — ADR-0155 Đ2.5 cột «Cấp độ đại lý», chỉ đọc (mã hồ sơ, mã + tên cấp, ngày; không tên hồ sơ, không SĐT)
   { method: "GET", path: "/api/pricing/ho-so/:id/hoa-hong", access: "office" }, // partner.commission.view — YC-0020 khối «Hoa hồng hiện hành» trên hồ sơ, chỉ đọc (mã, tên, số đếm; không tiền)
   { method: "POST", path: "/api/pricing/ho-so/:id/muc-rieng", access: "office" }, // partner.commission.write + không giữ quyền Đối tác — ADR-0138 gắn mức TA riêng
   { method: "POST", path: "/api/pricing/muc-rieng/:id/ket-thuc", access: "office" }, // partner.commission.write + không giữ quyền Đối tác — ADR-0138 kết thúc mức riêng
@@ -691,6 +692,7 @@ test("mức truy cập của 420 route hiện có khớp ảnh chụp đã duy�
   // 2026-11-01 (ADR-0153 Task 4c): + 5 route /api/ve/* (office; ve.kho.manage) = 420.
   // 2026-10-31 (mã định danh 5.26, Task 4): + PATCH /api/pricing/muc-ta/:code (office; partner.commission.write, không Đối tác) = 420.
   // 2026-11-02 (ADR-0154 Đ2.1, lượt 2 Task 2.1): + GET (orders), POST (admin) /api/cai-dat/an-thong-tin-khach = 422.
-  assert.equal(actual.length, 422, "số route thực tế lệch 422 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 422, "SNAPSHOT phải có đúng 422 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // 2026-11-02 (ADR-0155 Đ2.5, lượt 2 Task 4.1): + GET /api/pricing/cap-hien-hanh (office; partner.commission.view, không Đối tác) = 423.
+  assert.equal(actual.length, 423, "số route thực tế lệch 423 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 423, "SNAPSHOT phải có đúng 423 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

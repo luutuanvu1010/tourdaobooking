@@ -2898,6 +2898,23 @@ export interface GanRiengLichSuDto {
   id: string; muc: { code: string; ten: string; dangBat: boolean }; tuNgay: string; denNgay: string | null; conHieuLuc: boolean; daHuy: boolean;
 }
 /**
+ * ADR-0155 Đ2.5: cấp đại lý đang áp dụng hôm nay của MỘT hồ sơ đang mang vai trò được hưởng — cho cột «Cấp độ đại lý» ở Quản lý tài khoản (`GET /api/pricing/cap-hien-hanh`, chỉ đọc).
+ * Nguồn của cấp: RIENG = cấp riêng của hồ sơ; THEO_VAI = cấp của vai trò; XUNG_DOT = hai vai trò khác cấp (hôm nay chưa có cấp nào quyết); CHUA_CO = chưa có cấp nào.
+ * `rieng` = cấp riêng đang áp dụng; `sapApTu` = ngày sớm nhất một cấp riêng khác sắp áp dụng (null = không có); `doiDuoc` = ô có mở bảng đổi cấp được không (false khi cấp riêng đã
+ * hẹn ngày ngừng hoặc đã có cấp riêng sắp áp dụng — đặt thêm sẽ chồng ngày). `coMucRieng` = có mức hoa hồng riêng đè lên cấp. Không tên hồ sơ, không SĐT, không tỷ lệ.
+ */
+export type NguonCap = "RIENG" | "THEO_VAI" | "XUNG_DOT" | "CHUA_CO";
+export interface CapHienHanhDto {
+  partyId: string;
+  nguon: NguonCap;
+  cap: { code: string; ten: string } | null;
+  coMucRieng: boolean;
+  rieng: { id: string; tuNgay: string; denNgay: string | null } | null;
+  sapApTu: string | null;
+  doiDuoc: boolean;
+}
+export interface CapHienHanhResponse { homNay: string; hoSo: CapHienHanhDto[] }
+/**
  * ADR-0148 Đ1: xem trước «Sửa» một dòng có ngày (mức, gắn loại, gắn đối tác — `GET …/:id/sua`). HUY_THAY = chưa đơn nào dùng dòng này: sửa sẽ huỷ dòng cũ và thay hẳn. TU_NGAY = đã có
  * đơn dùng: phần sửa áp từ `tuNgaySomNhat`, bắt đầu không sau `denNgayToiDa` (ngày kết thúc của dòng cũ; null = không thời hạn); đơn cũ giữ mức cũ.
  */

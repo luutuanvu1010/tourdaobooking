@@ -9,6 +9,8 @@ import { khoaTen } from "../../shared/khoa-ten.ts";
 import { sinhMa } from "../../shared/ma-dinh-danh.ts";
 import { coSoHoacEmail } from "../../shared/ghi-chu-danh-muc.ts";
 import { addDays, ngayDayDu } from "../../shared/vn-date.ts";
+import type { CapHienHanhDto, NguonCap } from "../../shared/contracts.ts";
+import { nutDoiNgung } from "../../shared/hoa-hong-hien-thi.ts"; // «đổi được không» của cột cấp: CÙNG hàm với nút Đổi / Ngừng của trang Hoa hồng (khớp `kiemDoi`)
 
 // Phép tính tiền MỘT dòng (làm tròn nửa lên, hoa hồng, giá vốn, `tinhDongDoiTac`) và kiểu bản chụp nằm ở src/shared/hoa-hong-dong.ts để `orders/thuong-mai.ts` (DTO) chạy được bằng node trực tiếp
 // mà không nhập index.ts của module khác; ở đây chỉ tái xuất — vẫn MỘT định nghĩa (Task 5, Ruling ở sổ thi công).
@@ -470,5 +472,32 @@ export function tomTatHoaHongHoSo(v: {
     mucRieng: r ? { mucCode: r.tierCode, tuNgay: r.validFrom } : null,
     dongRiengLoai: dongCon.filter((d) => d.targetRoleCode !== null && loai.includes(d.targetRoleCode)).length,
     dongRiengDoiTac: dongCon.filter((d) => d.targetPartyId === v.partyId).length,
+  };
+}
+
+/** Một lần gắn cấp RIÊNG của hồ sơ (cột của `prc_party_tier`, đã lọc chưa huỷ và chưa ngừng xong — `GanRiengRow` của repository đủ các khoá này). */
+export interface GanRiengCuaHoSo { id: string; tier_code: string; valid_from_date: string; valid_to_date: string | null }
+/**
+ * ADR-0155 Đ2.5 — cấp đại lý đang áp dụng hôm nay của MỘT hồ sơ, cho cột «Cấp độ đại lý». KHÔNG viết luật thứ hai: nguồn và cấp đọc từ kết quả của đúng `tomTatHoaHongHoSo`
+ * (`mucRieng`, `vai[].mucCode`, `xungDot`, `dongRiengLoai`, `dongRiengDoiTac`); ngày bắt đầu / hẹn ngừng và mã dòng cấp riêng tìm theo đúng dòng mà `tomTatHoaHongHoSo` đã chọn;
+ * «đổi được không» gọi `nutDoiNgung` (khớp `kiemDoi`). `ganCuaHoSo` = các lần gắn riêng chưa huỷ, chưa ngừng xong của CHÍNH hồ sơ này (đang áp dụng và sắp áp dụng).
+ */
+export function capHienHanhCuaHoSo(
+  t: TomTatHoaHongHoSo,
+  v: { partyId: string; homNay: string; tenCuaMuc: ReadonlyMap<string, string>; ganCuaHoSo: readonly GanRiengCuaHoSo[] },
+): CapHienHanhDto {
+  const ten = (code: string): { code: string; ten: string } => ({ code, ten: v.tenCuaMuc.get(code) ?? code });
+  const mucTheoVai = t.vai.find((x) => x.mucCode !== null)?.mucCode ?? null;
+  const nguon: NguonCap = t.mucRieng !== null ? "RIENG" : t.xungDot ? "XUNG_DOT" : mucTheoVai !== null ? "THEO_VAI" : "CHUA_CO";
+  const cap = nguon === "RIENG" ? ten(t.mucRieng!.mucCode) : nguon === "THEO_VAI" ? ten(mucTheoVai!) : null;
+  const dong = t.mucRieng === null ? undefined : v.ganCuaHoSo.find((g) => g.tier_code === t.mucRieng!.mucCode && g.valid_from_date === t.mucRieng!.tuNgay);
+  const rieng = dong === undefined ? null : { id: dong.id, tuNgay: dong.valid_from_date, denNgay: dong.valid_to_date };
+  const sap = v.ganCuaHoSo.filter((g) => g.valid_from_date > v.homNay).map((g) => g.valid_from_date).sort();
+  const sapApTu = sap[0] ?? null;
+  // Có cấp riêng đang áp mà không tìm được dòng của nó (không xảy ra: cùng nguồn) ⇒ KHÔNG cho đổi, đừng đoán «chưa có» rồi đặt chồng.
+  const doiDuoc = sapApTu === null && (t.mucRieng === null || (rieng !== null && nutDoiNgung({ tuNgay: rieng.tuNgay, denNgay: rieng.denNgay, conHieuLuc: true }, v.homNay).hien));
+  return {
+    partyId: v.partyId, nguon, cap, rieng, sapApTu, doiDuoc,
+    coMucRieng: t.dongRiengDoiTac > 0 || (nguon === "THEO_VAI" && t.dongRiengLoai > 0),
   };
 }

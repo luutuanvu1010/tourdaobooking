@@ -6,7 +6,7 @@ import { datHoatDongLoaiDoiTacStatement, kiemTenLoaiDoiTac, loaiVaiChiTiet, maLo
 import { khoaTen } from "../../shared/khoa-ten.ts";
 import { kiemGhiChu } from "../../shared/ghi-chu-danh-muc.ts";
 import type { AuditAction } from "../../shared/audit-actions.ts";
-import type { CommissionRuleDto, DoiMucResponse, HoaHongHoSoResponse, CommissionRuleListResponse, GanLoaiMucDto, GanLoaiMucResponse, LoaiDoiTacDto, LoaiDoiTacListResponse, LoaiDoiTacResponse, MucTaDto, MucTaListResponse, MucTaResponse,
+import type { CapHienHanhResponse, CommissionRuleDto, DoiMucResponse, HoaHongHoSoResponse, CommissionRuleListResponse, GanLoaiMucDto, GanLoaiMucResponse, LoaiDoiTacDto, LoaiDoiTacListResponse, LoaiDoiTacResponse, MucTaDto, MucTaListResponse, MucTaResponse,
   LuatBanDto, LuatBanListResponse, LuatBanResponse, NguoiHuongTimResponse, SuaGanLoaiResponse, SuaMucResponse, SuaXemTruocResponse, SupplyTermDto, SupplyTermListResponse, ThuTraResponse } from "../../shared/contracts";
 import { error, json, mauLikeChua, kemLocation, readJson } from "../../shared/http";
 import { coTheTimDoiTac } from "../../shared/hoa-hong-hien-thi";
@@ -15,9 +15,9 @@ import { route, type AppModule, type HoiDaChup } from "../../shared/router";
 import { CAU_X3_THUE_XE, NHAN_LY_DO_THIEU } from "../../shared/so-dai-ly-nhan";
 import { ngayDayDu, vnToday } from "../../shared/vn-date";
 import { cauDoiCapRieng, cauDoiChinhSach, cauSuaGanLoai, cauSuaGanRieng, cauSuaMuc, partyTiersCurrent, cauDoiMuc, allRules, allTerms, beneficiaryRoles, beneficiaryRolesAll, closeRoleTierStatement, closeRuleStatement, closeTermStatement, findBeneficiaries, groupsOf, huongCuaHoSo, insertBeneficiaryStatement,
-  insertRateTierStatement, insertRoleTierStatement, insertRulePaxStatement, insertRuleStatement, insertTermStatement, isBeneficiary, openRolesOf, partyTiersHistory, partyTiersOf, partyTierById, insertPartyTierStatement, closePartyTierStatement, rateTierByCode, rateTiers, roleRulesForTierLink, roleTierById, roleTiersAll,
+  insertRateTierStatement, insertRoleTierStatement, insertRulePaxStatement, insertRuleStatement, insertTermStatement, isBeneficiary, openBeneficiaryRolesAll, openRolesOf, partyTiersHistory, partyTiersOf, partyTierById, insertPartyTierStatement, closePartyTierStatement, rateTierByCode, rateTiers, roleRulesForTierLink, roleTierById, roleTiersAll,
   roleTiersOn, ruleById, rulesOn, setBeneficiaryActiveStatement, setRateTierActiveStatement, soHoSoTheoVai, suaMucTaStatement, suppliers, tenNhanVienTheoId, termById, termsOn, type PartyTierRow, type RoleTierRow, type RuleRow, type TermRow, type TierRow, type XuLyDongCu } from "./repository";
-import { MA_RE, MUC_TA_RE, PARTY_RE, chonMuc, cungMuc, hieuLuc, tomTatHoaHongHoSo, kiemDoi, kiemNgayDong, kiemNgung, kiemSua, xemTruocSua, kiemThanDoiChinhSach, kiemThanDieuKhoan, kiemThanDoiMuc, kiemThanDongMucTa, kiemThanGan, kiemThanGanRieng, kiemThanMuc, kiemTenMucTa, laNgay, maMucTa, moTaMuc, nguoiHuongCua,
+import { MA_RE, MUC_TA_RE, PARTY_RE, capHienHanhCuaHoSo, chonMuc, cungMuc, hieuLuc, tomTatHoaHongHoSo, kiemDoi, kiemNgayDong, kiemNgung, kiemSua, xemTruocSua, kiemThanDoiChinhSach, kiemThanDieuKhoan, kiemThanDoiMuc, kiemThanDongMucTa, kiemThanGan, kiemThanGanRieng, kiemThanMuc, kiemTenMucTa, laNgay, maMucTa, moTaMuc, nguoiHuongCua,
   type DongDieuKhoan, type DongMuc, type GanLoaiMuc, type GanRieng, type MucTheoLoai, type NguoiHuong } from "./rules";
 
 import { coCacGiaTri, coGiaTri, danhSachLuatBan, demLuatBanChuaHetHan, giaTriDacDiemCua, ketThucLuatBanStatement, luatBanHieuLuc, luatBanTheoId, themLuatBanStatement, type LuatBanRow } from "./luat-ban-repo";
@@ -31,7 +31,7 @@ const theoLoaiCua = (r: RuleRow): MucTheoLoai | null =>
   r.pax_child === null || r.pax_senior === null || r.per_pax_amount === null ? null : { adult: r.per_pax_amount, child: r.pax_child, senior: r.pax_senior };
 const dongMuc = (r: RuleRow): DongMuc => ({ id: r.id, targetPartyId: r.target_party_id, targetRoleCode: r.target_role_code, targetTierCode: r.target_tier_code, scope: r.scope,
   catalogCode: r.catalog_code, groupCode: r.group_code, kind: r.kind, rateBp: r.rate_bp, perPaxAmount: r.per_pax_amount, theoLoai: theoLoaiCua(r), validFrom: r.valid_from_date, validTo: r.valid_to_date });
-const dongGanRieng = (r: PartyTierRow): GanRieng => ({ partyId: r.party_id, tierCode: r.tier_code, validFrom: r.valid_from_date, validTo: r.valid_to_date });
+const dongGanRieng = (r: Pick<PartyTierRow, "party_id" | "tier_code" | "valid_from_date" | "valid_to_date">): GanRieng => ({ partyId: r.party_id, tierCode: r.tier_code, validFrom: r.valid_from_date, validTo: r.valid_to_date });
 const dongGan = (r: RoleTierRow): GanLoaiMuc => ({ roleTypeCode: r.role_type_code, tierCode: r.tier_code, validFrom: r.valid_from_date, validTo: r.valid_to_date });
 const dongDk = (r: TermRow): DongDieuKhoan => ({ id: r.id, scope: r.scope, catalogCode: r.catalog_code, groupCode: r.group_code, sellerPartyId: r.seller_party_id,
   supplierPartyId: r.supplier_party_id, costRateBp: r.cost_rate_bp, validFrom: r.valid_from_date, validTo: r.valid_to_date });
@@ -279,6 +279,29 @@ async function hoaHongHoSo(db: D1Database, id: string): Promise<HoaHongHoSoRespo
         conHieuLuc: g.voided_at === null && hieuLuc({ validFrom: g.valid_from_date, validTo: g.valid_to_date }, homNay), daHuy: g.voided_at !== null };
     }),
   } satisfies HoaHongHoSoResponse;
+}
+/**
+ * ADR-0155 Đ2.5 — cấp hiện hành của MỌI hồ sơ đang mang vai trò được hưởng, cho cột «Cấp độ đại lý» ở Quản lý tài khoản. Đúng SÁU câu đọc, chạy song song, không lặp theo hồ sơ
+ * (số câu không đổi khi số hồ sơ đổi); rồi từng hồ sơ đi qua đúng `tomTatHoaHongHoSo` trong bộ nhớ — không luật thứ hai trong SQL. Chỉ đọc; không tên hồ sơ, không SĐT.
+ */
+async function capHienHanhMoiHoSo(db: D1Database): Promise<CapHienHanhResponse> {
+  const homNay = vnToday(new Date());
+  const [vaiMo, duocHuong, gan, muc, ganRieng, tenMuc] = await Promise.all([
+    openBeneficiaryRolesAll(db), beneficiaryRoles(db), roleTiersOn(db, homNay), rulesOn(db, homNay), partyTiersCurrent(db, homNay), rateTiers(db),
+  ]);
+  const vaiTheoHoSo = new Map<string, string[]>();
+  for (const r of vaiMo) (vaiTheoHoSo.get(r.party_id) ?? vaiTheoHoSo.set(r.party_id, []).get(r.party_id)!).push(r.role_type_code);
+  const ganTheoHoSo = new Map<string, typeof ganRieng>();
+  for (const g of ganRieng) (ganTheoHoSo.get(g.party_id) ?? ganTheoHoSo.set(g.party_id, []).get(g.party_id)!).push(g);
+  const vaiDuocHuong = new Set(duocHuong);
+  const ganLoai = gan.map(dongGan), luatMuc = muc.map(dongMuc), ganRiengLuat = ganRieng.map(dongGanRieng);
+  const tenCuaMuc = new Map(tenMuc.map((m) => [m.code, m.name]));
+  const hoSo = [...vaiTheoHoSo.entries()].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)).map(([partyId, vaiMoCua]) =>
+    capHienHanhCuaHoSo(
+      tomTatHoaHongHoSo({ partyId, vaiMo: vaiMoCua, vaiDuocHuong, gan: ganLoai, ganRieng: ganRiengLuat, muc: luatMuc, ngay: homNay }),
+      { partyId, homNay, tenCuaMuc, ganCuaHoSo: ganTheoHoSo.get(partyId) ?? [] },
+    ));
+  return { homNay, hoSo };
 }
 const MUC_KHONG_CO = () => error(404, "not_found", "Không tìm thấy cấp độ đại lý này.");
 const dtoGan = (r: RoleTierRow, tenVai: ReadonlyMap<string, string>, tenMuc: ReadonlyMap<string, string>, homNay: string): GanLoaiMucDto => ({
@@ -773,6 +796,12 @@ export const pricingModule: AppModule = {
       ]);
       if (res instanceof Response) return res;
       return kemLocation(json({ dong: dtoMuc((await ruleById(env.DB, id))!, await tenLoaiVai(env.DB), vnToday(new Date())) }, 201), "/hoa-hong");
+    }),
+    // ADR-0155 Đ2.5: cấp hiện hành của mọi hồ sơ được hưởng — một route chỉ đọc cho cột «Cấp độ đại lý» ở Quản lý tài khoản. Cùng cổng với route hồ sơ phía dưới: `partner.commission.view`
+    // và KHÔNG giữ quyền Đối tác (tài khoản lai cũng bị chặn). Không nhận danh sách mã; trả mọi hồ sơ đang mang vai trò được hưởng, đường dẫn cố định đứng trước các đường có `:id`.
+    route("GET", "/api/pricing/cap-hien-hanh", "office", async ({ env, staff }) => {
+      if (!can(staff, "partner.commission.view") || holdsPartner(staff)) return FORBIDDEN();
+      return json(await capHienHanhMoiHoSo(env.DB));
     }),
     // Góp ý YC-0020: khối «Hoa hồng hiện hành» trên hồ sơ đại lý — loại hồ sơ đang mang, mức TA mỗi loại gắn hôm nay, có dòng riêng đè lên không, có xung đột mức không. Chỉ đọc, cùng quyền «Thử tra».
     route("GET", "/api/pricing/ho-so/:id/hoa-hong", "office", async ({ env, params, staff }) => {
