@@ -550,9 +550,9 @@ test("mở ảnh và nhập lại cùng số S/N đúng lúc: chỉ một bên t
 });
 
 // Mã ngắn không có số S/N, nên vế trùng mã và vế trùng tệp được kiểm riêng từng vế.
-async function loHuyMaNgan(w: any, n: number) {
+async function loHuyMaNgan(w: any, n: number, maVe = `VE-NGAN-${n}`) {
   const loId = (await taoLo(w)).json.loId;
-  await them(w, loId, [ve(n, { maVe: `VE-NGAN-${n}` })]);
+  await them(w, loId, [ve(n, { maVe })]);
   await xacNhan(w, loId);
   assert.equal((await bo(w, loId)).status, 200);
   return (await daHuy(w)).json.lo.find((l: any) => l.loId === loId).ve[0];
@@ -569,6 +569,55 @@ test("mở ảnh và nhập lại đúng lúc, trùng riêng mã hoặc riêng t
     assert.equal(rNhap.json.themDuoc, 1, rNhap.text);
     assert.equal(rMo.status, 409, rMo.text);
     assert.equal(w.q("SELECT count(*) AS n FROM vdt_ticket WHERE opened_at IS NOT NULL")[0].n, 0);
+  }
+});
+
+test("mở ảnh trước, nhập sau đúng lúc, trùng riêng mã hoặc riêng tệp: chỉ loại vé trùng, vé khác trong đợt vẫn vào kho", async () => {
+  for (const nhapLai of [ve(6, { maVe: "VE-NGAN-6", noiDung: b64(PNG(9)) }), ve(6, { maVe: "VE-NGAN-KHAC" })]) {
+    const w = setup();
+    const v = await loHuyMaNgan(w, 6);
+    const loMoi = (await taoLo(w)).json.loId;
+    let rMo: any;
+    w.chenTruocLo((cau: { sql: string }[]) => cau.some((c) => /INSERT INTO vdt_ticket/.test(c.sql)), async () => { rMo = await moAnh(w, v.veId); });
+    const rNhap = await them(w, loMoi, [nhapLai, ve(7)]);
+    assert.equal(rMo.status, 200, rMo.text);
+    assert.equal(rNhap.json.themDuoc, 1, rNhap.text);
+    assert.equal(rNhap.json.loai.length, 1, rNhap.text);
+  }
+});
+
+test("số S/N chỉ có ở chuỗi đúng 36 chữ số: mã khác dạng trùng đuôi không khoá lẫn nhau, ở cả hai chiều", async () => {
+  const DUOI = "123456789012";
+  const CAP = [["1".repeat(24) + DUOI, DUOI], [DUOI, "1".repeat(24) + DUOI], ["A".repeat(24) + DUOI, "1".repeat(24) + DUOI], ["1".repeat(24) + DUOI, "A".repeat(24) + DUOI]];
+  for (const [maCu, maMoi] of CAP) {
+    const w1 = setup();
+    const v1 = await loHuyMaNgan(w1, 6, maCu);
+    assert.equal((await moAnh(w1, v1.veId)).status, 200);
+    const r1 = await them(w1, (await taoLo(w1)).json.loId, [ve(7, { maVe: maMoi })]);
+    assert.equal(r1.json.themDuoc, 1, r1.text);
+
+    const w2 = setup();
+    const v2 = await loHuyMaNgan(w2, 6, maCu);
+    const r2 = await them(w2, (await taoLo(w2)).json.loId, [ve(7, { maVe: maMoi })]);
+    assert.equal(r2.json.themDuoc, 1, r2.text);
+    assert.equal(await trangThai(w2, v2.veId), "CHUA_MO");
+    const m = await moAnh(w2, v2.veId);
+    assert.equal(m.status, 200, m.text);
+  }
+});
+
+test("tìm vé đã nhập lại không quét cả kho: câu danh sách, câu đọc và câu khoá đều dùng chỉ mục", async () => {
+  const w = setup();
+  const cau = new Set<string>();
+  const goc = w.env.DB.prepare.bind(w.env.DB);
+  w.env.DB.prepare = (sql: string) => { if (/s\.withdrawn_at IS NULL/.test(sql)) cau.add(sql); return goc(sql); };
+  const { ve: [v] } = await loDaHuy(w, [1]);
+  assert.equal((await moAnh(w, v.veId)).status, 200);
+  assert.equal(cau.size, 3, "danh sách, đọc một vé, khoá vé");
+  for (const sql of cau) {
+    const keHoach = w.sqlite.prepare(`EXPLAIN QUERY PLAN ${sql}`).all().map((r: any) => r.detail as string);
+    assert.deepEqual(keHoach.filter((d: string) => /^SCAN s\b/.test(d)), [], sql.slice(0, 60));
+    assert.equal(keHoach.filter((d: string) => /^SEARCH s\b/.test(d)).length, 3, keHoach.join(" | "));
   }
 });
 

@@ -3,7 +3,7 @@
 --                 Vé VOID vì đã lộ cho khách KHÔNG mang dấu này. Trigger chặn đặt dấu cho vé từng có phân bổ: đặt sai dấu cho vé đã phát ra là bán trùng.
 --   Hai chỉ mục duy nhất (mã vé, băm nội dung) chỉ áp cho vé không mang dấu. Chỉ mục mã cũ của 0131 không điều kiện nên phải dựng lại.
 --   opened_at     dấu «đã mở ảnh khi lô bị huỷ» (chủ quyết 2/11/2026): ghi MỘT lần, chỉ cho vé đã rút không còn bản đang bán. Vé mang dấu này có thể đã tới tay khách nên mã, băm và số S/N (12 số cuối
---                 của chuỗi 36 ký tự) của nó không bao giờ nhập lại được, kể cả sau khi ảnh đã xoá; ngược lại vé đã nhập lại thì ảnh cũ không mở được. Hai trigger giữ cả hai chiều.
+--                 của chuỗi đúng 36 chữ số, cùng định nghĩa với R-VDT-4) của nó không bao giờ nhập lại được, kể cả sau khi ảnh đã xoá; ngược lại vé đã nhập lại thì ảnh cũ không mở được. Hai trigger giữ cả hai chiều.
 --   vdt_setting   bảng một dòng (id = 'default'), khuôn gd_setting của ADR-0087: trần lô do Toàn quyền đặt, `version` là khoá lạc quan; lịch sử ở audit_log (`ve_doi_tran_lo`).
 --   Khoảng 1–200 trùng với TRAN_LO_NHO_NHAT / TRAN_LO_LON_NHAT ở src/shared/ve-nhap-lo.ts.
 ALTER TABLE vdt_ticket ADD COLUMN withdrawn_at TEXT;
@@ -27,18 +27,21 @@ ALTER TABLE vdt_ticket ADD COLUMN opened_at TEXT;
 ALTER TABLE vdt_ticket ADD COLUMN opened_by TEXT;
 CREATE INDEX vdt_ticket_opened_code_ix ON vdt_ticket (ticket_code) WHERE opened_at IS NOT NULL;
 CREATE INDEX vdt_ticket_opened_hash_ix ON vdt_ticket (content_hash) WHERE opened_at IS NOT NULL;
+-- Để tìm vé cùng số S/N mà không quét cả kho; điều kiện đúng 36 chữ số do câu truy vấn lọc.
+CREATE INDEX vdt_ticket_sn_ix ON vdt_ticket (substr(ticket_code, -12));
 
 CREATE TRIGGER vdt_ticket_opened_no_reimport BEFORE INSERT ON vdt_ticket
 WHEN NEW.opened_at IS NOT NULL
   OR EXISTS (SELECT 1 FROM vdt_ticket t WHERE t.opened_at IS NOT NULL AND (t.ticket_code = NEW.ticket_code OR t.content_hash = NEW.content_hash
-    OR (length(t.ticket_code) = 36 AND length(NEW.ticket_code) = 36 AND substr(t.ticket_code, -12) = substr(NEW.ticket_code, -12))))
+    OR (length(t.ticket_code) = 36 AND length(NEW.ticket_code) = 36 AND t.ticket_code NOT GLOB '*[^0-9]*' AND NEW.ticket_code NOT GLOB '*[^0-9]*' AND substr(t.ticket_code, -12) = substr(NEW.ticket_code, -12))))
 BEGIN SELECT RAISE(ABORT, 'vdt_one_way: vé đã mở ảnh khi lô bị huỷ không nhập lại được'); END;
 
 CREATE TRIGGER vdt_ticket_opened_guard BEFORE UPDATE OF opened_at, opened_by ON vdt_ticket
 WHEN (NEW.opened_at IS NOT OLD.opened_at OR NEW.opened_by IS NOT OLD.opened_by)
   AND (OLD.opened_at IS NOT NULL OR NEW.opened_at IS NULL OR OLD.withdrawn_at IS NULL OR OLD.stored_at IS NULL
-    OR EXISTS (SELECT 1 FROM vdt_ticket s WHERE s.withdrawn_at IS NULL AND (s.ticket_code = OLD.ticket_code OR s.content_hash = OLD.content_hash
-      OR (length(s.ticket_code) = 36 AND length(OLD.ticket_code) = 36 AND substr(s.ticket_code, -12) = substr(OLD.ticket_code, -12)))))
+    OR EXISTS (SELECT 1 FROM vdt_ticket s WHERE s.withdrawn_at IS NULL AND s.ticket_code = OLD.ticket_code)
+    OR EXISTS (SELECT 1 FROM vdt_ticket s WHERE s.withdrawn_at IS NULL AND s.content_hash = OLD.content_hash)
+    OR EXISTS (SELECT 1 FROM vdt_ticket s WHERE s.withdrawn_at IS NULL AND (length(s.ticket_code) = 36 AND length(OLD.ticket_code) = 36 AND s.ticket_code NOT GLOB '*[^0-9]*' AND OLD.ticket_code NOT GLOB '*[^0-9]*' AND substr(s.ticket_code, -12) = substr(OLD.ticket_code, -12))))
 BEGIN SELECT RAISE(ABORT, 'vdt_one_way: dấu mở ảnh chỉ ghi một lần, chỉ cho vé đã rút không còn bản đang bán'); END;
 
 CREATE TABLE vdt_setting (

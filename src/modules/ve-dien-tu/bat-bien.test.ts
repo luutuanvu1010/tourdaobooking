@@ -57,6 +57,14 @@ test("R-VDT-6: vé đang bán trùng mã, tệp hoặc S/N với vé đã mở �
   d.prepare("UPDATE vdt_ticket SET ticket_code = ? WHERE id = ?").run("1".repeat(24) + "123456789012", v);
   chenKhac("2".repeat(24) + "123456789012", "bam-khac-3");
   assert.equal(kiem(d, "R-VDT-6"), 1, "trùng số S/N");
+  // Mã không đúng 36 chữ số thì không có số S/N, trùng đuôi không tính.
+  const DUOI = "123456789012";
+  for (const [daMo, dangBan] of [["A".repeat(24) + DUOI, "2".repeat(24) + DUOI], ["1".repeat(24) + DUOI, "B".repeat(24) + DUOI], [DUOI, "2".repeat(24) + DUOI], ["1".repeat(24) + DUOI, DUOI]]) {
+    d.exec("DELETE FROM vdt_ticket WHERE id = 'sao-chep'");
+    d.prepare("UPDATE vdt_ticket SET ticket_code = ? WHERE id = ?").run(daMo, v);
+    chenKhac(dangBan, "bam-khac-4");
+    assert.equal(kiem(d, "R-VDT-6"), 0, `${daMo.length} và ${dangBan.length} ký tự`);
+  }
 });
 
 test("R-VDT-5: ảnh còn trong hạn lưu ⇒ không báo; quá hạn mà kho chưa xoá ⇒ thấy được", () => {

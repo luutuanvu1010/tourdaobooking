@@ -2120,7 +2120,7 @@ export const CHECKS = [
   {
     code: "R-VDT-6",
     what: "không có vé đang bán trùng mã, tệp hoặc số S/N với vé đã mở ảnh khi lô bị huỷ",
-    sql: `SELECT count(*) FROM vdt_ticket a JOIN vdt_ticket b ON b.id <> a.id AND b.withdrawn_at IS NULL WHERE a.opened_at IS NOT NULL AND (a.ticket_code = b.ticket_code OR a.content_hash = b.content_hash OR (length(a.ticket_code) = 36 AND length(b.ticket_code) = 36 AND substr(a.ticket_code, -12) = substr(b.ticket_code, -12)))`,
+    sql: `SELECT count(*) FROM vdt_ticket a JOIN vdt_ticket b ON b.id <> a.id AND b.withdrawn_at IS NULL WHERE a.opened_at IS NOT NULL AND (a.ticket_code = b.ticket_code OR a.content_hash = b.content_hash OR (length(a.ticket_code) = 36 AND length(b.ticket_code) = 36 AND a.ticket_code NOT GLOB '*[^0-9]*' AND b.ticket_code NOT GLOB '*[^0-9]*' AND substr(a.ticket_code, -12) = substr(b.ticket_code, -12)))`,
     level: "fail",
     note: "vé có thể đã bán trùng: rút vé đang bán khỏi kho hoặc kiểm tay từng vé, báo chủ",
   },
