@@ -21,7 +21,7 @@ import { cauDoiGioChang, cauDoiNgayChang, cauDoiNgayDichVu, cauGhiKepGio, cauKhe
 import { legDatGapByOrder, legShortNoticeConVe, slotPolicy, type DauDatGapMoi } from "./chang-hanh-khach-repo";
 import { daHuy, daXacNhan, findOrder, getMeta, nextStamp, soanHuyDon, soanXacNhan } from "./repository";
 import { MOC_CHUA_CO, RACED, STALE, chanDoanXacNhan, chayLoNoiChuyen, congNhomTatDuaDon, dichLoiXacNhan, kemChupXacNhan, kiemCongXacNhan, tinhCanXacNhan, viCuaYeuCau } from "./xac-nhan-chung";
-import { confirmWindow } from "./service-rules";
+import { confirmGaps, confirmWindow } from "./service-rules";
 import { congLuatBan } from "./cong-ban";
 
 const NHAN_VI: Record<LyDoCanXacNhan, string> = { DICH_VU: "dịch vụ cần xác nhận", DAT_GAP: "lượt đón dưới hạn chốt, cần đặt gấp", CHOT_GIO: "có lượt đưa đón chưa có giờ đón" };
@@ -350,6 +350,12 @@ export const xacNhanRoutes = (xetDatGap: XetDatGapSua) => [
     // Các cổng còn lại (R2 giá, người lớn, nhóm tắt đưa đón, chọn đón, R3 trần) xét theo NGƯỜI BẤM Còn vé — như hôm nay; mốc đã kiểm ở trên.
     const cong = await kiemCongXacNhan(env.DB, { actor: staff, order, kiemMoc: true, mocToiThieu: moc, cuaDuaDon: "xet-duyet" });
     if ("loi" in cong) return cong.loi;
+    // Người kiểm Đợt 1 N-1, ruling R6: `db.batch` KHÔNG lui khi câu xác nhận đổi 0 dòng — các câu đổi ngày / đổi giờ / đóng dấu bên dưới chỉ mang `CON_MO` nên vẫn GHI dù `ORDER_CONFIRM` thua vì một vế
+    // khác (ngày đi quá khứ hoặc trống, dịch vụ không còn khách, đơn không dịch vụ) — để lại dấu đặt gấp «mồ côi» mở đường cho người không có ô đặt gấp xác nhận chặng dưới hạn chốt. Nên chặn ĐỦ các vế
+    // đó của `ORDER_CONFIRM` mà `CON_MO` không phủ TRƯỚC khi dựng lô, theo trạng thái SAU lệnh (đổi ngày đi áp cho MỌI dịch vụ — `cauDoiNgayDichVu`), cùng cửa sổ `confirmWindow(cong.today)` mà
+    // `soanXacNhan` truyền cho câu xác nhận. Trả đúng câu `chanDoanXacNhan` như hôm nay (incomplete_trip). Vế còn lại (đơn vừa đổi, yêu cầu vừa khép) do `CON_MO` phủ: lô thua thì không câu nào ghi.
+    const thieuChuyen = confirmGaps(order.services.map((s) => ({ id: s.id, name: s.name, departDate: ngayDi ?? s.departDate, pax: s.pax })), cong.today);
+    if (order.services.length === 0 || thieuChuyen.length > 0) return chanDoanXacNhan(env.DB, { id, today: cong.today, mocToiThieu: moc, nowMs });
     const atChang = nextStamp(meta.updatedAt);
     const cauDau: D1PreparedStatement[] = [];
     const doiNgay = ngayDi !== undefined && order.services.some((s) => s.departDate !== ngayDi);

@@ -280,3 +280,60 @@ test("ĐUA: Rút lại chen giữa lúc đọc và lúc ghi — lô thua: không
   assert.equal(nhatKy(w, id, "confirmed").length, 0);
   assert.deepEqual(cotCu(w, id), [null]);
 });
+
+// ---- SỬA SAU KIỂM (người kiểm độc lập Đợt 1, N-1, ruling R6) ----------------------------------------------------------------------------------------
+// `db.batch` KHÔNG lui khi câu xác nhận đổi 0 dòng: các câu đổi giờ / đóng dấu (chỉ mang `CON_MO`) vẫn ghi dù `ORDER_CONFIRM` thua vì một vế KHÁC (ngày đi quá khứ / trống, dịch vụ không khách).
+// Route phải chặn các vế đó TRƯỚC khi dựng lô, với đúng câu trả lời `chanDoanXacNhan` (incomplete_trip) như hôm nay.
+/** Đơn nháp để quá ngày đi: dịch vụ và chặng đều ở HÔM QUA (yêu cầu chờ không tự đóng — ADR-0136 Đ9). */
+const quaNgayDi = (w: any, id: string) => {
+  w.sqlite.prepare("UPDATE order_service SET depart_date = ? WHERE order_id = ?").run(inDays(-1), id);
+  w.sqlite.prepare("UPDATE ord_transfer_leg SET pickup_date = ? WHERE order_id = ?").run(inDays(-1), id);
+};
+
+test("(N-1) đơn quá ngày đi, người xét Bán hàng gửi giờ kèm datGap → 409 incomplete_trip và KHÔNG ghi gì (không giờ, không dấu, không nhật ký, không cột cũ, yêu cầu còn mở); Kế toán sau đó vẫn 409 short_notice_required; gửi ngayDi hợp lệ thì xác nhận được", async () => {
+  const w = setup();
+  const { id, legId } = await chotGio(w);
+  quaNgayDi(w, id);
+  const truoc = hoSo(w, id);
+  const r = await qd(w, id, B, { ketQua: "CON_VE", gioDon: [{ legId, pickupTime: "09:00", datGap: DAT_GAP }] });
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "incomplete_trip");
+  assert.deepEqual(r.json.error.missing.map((m: any) => m.reasons), [["past_date"]]);
+  assert.deepEqual(hoSo(w, id), truoc, "không ghi gì");
+  assert.equal(chang(w, legId).t, null, "chặng vẫn trống giờ");
+  assert.deepEqual(dau(w, legId), KHONG_DAU, "năm cột dấu NULL");
+  assert.equal(nhatKy(w, id, "order_leg_short_notice").length, 0);
+  assert.deepEqual(cotCu(w, id), [null], "cột cũ order_service.pickup_time không đổi");
+  assert.equal(q(w, id).yc.filter((y: any) => y.decided_at === null).length, 1, "yêu cầu còn mở");
+  assert.equal(q(w, id).moc.s, "draft");
+  // (2) hệ quả cũ: dấu mồ côi mở đường cho người KHÔNG có ô đặt gấp xác nhận chặng dưới hạn chốt. Nay không còn dấu nào ⇒ Kế toán nhận 409 như đối chứng.
+  const g = vnSau(60);
+  const ke = await qd(w, id, ACC, { ketQua: "CON_VE", ngayDi: g.date, gioDon: [{ legId, pickupTime: g.time }] });
+  assert.equal(ke.status, 409, ke.text);
+  assert.equal(ke.json.error.code, "short_notice_required");
+  assert.deepEqual(hoSo(w, id), truoc, "Kế toán bị chặn cũng không ghi gì");
+  // (3) cùng đơn quá ngày: gửi ngày đi hợp lệ thì vẫn xác nhận được (chặn chỉ nhằm vế ngày SAU khi áp ngayDi)
+  const ok = await qd(w, id, ACC, { ketQua: "CON_VE", ngayDi: inDays(3), gioDon: [{ legId, pickupTime: "09:00" }] });
+  assert.equal(ok.status, 200, ok.text);
+  assert.equal(q(w, id).moc.s, "confirmed");
+  assert.deepEqual(chang(w, legId), { d: inDays(3), t: "09:00" });
+  assert.deepEqual(dau(w, legId), KHONG_DAU);
+});
+
+test("(N-1b) mọi vế câu xác nhận mà câu đổi giờ không phủ: dịch vụ không có ngày đi, hoặc một dịch vụ không còn khách → 409 incomplete_trip, KHÔNG ghi giờ (trước: giờ vẫn được ghi rồi lô thua)", async () => {
+  for (const [ten, hong, mong] of [
+    ["ngày đi trống", (w: any, id: string) => { w.sqlite.prepare("UPDATE order_service SET depart_date = NULL WHERE order_id = ?").run(id); w.sqlite.prepare("UPDATE ord_transfer_leg SET pickup_date = NULL WHERE order_id = ?").run(id); }, ["no_date"]],
+    ["dịch vụ thứ hai không khách", (w: any, id: string) => w.sqlite.prepare("UPDATE order_service SET pax_adult = 0, pax_child = 0, pax_senior = 0, pax_infant = 0 WHERE order_id = ? AND sort_order = 1").run(id), ["no_guests"]],
+  ] as const) {
+    const w = setup();
+    const c = await chotGio(w, [svc("ZB1", NGAY(), [leg(NGAY(), null)]), svc("ZB1", NGAY(), [])]);
+    hong(w, c.id);
+    const truoc = hoSo(w, c.id);
+    const r = await qd(w, c.id, ACC, { ketQua: "CON_VE", gioDon: [{ legId: c.legId, pickupTime: "09:00" }] });
+    assert.equal(r.status, 409, `${ten}: ${r.text}`);
+    assert.equal(r.json.error.code, "incomplete_trip", ten);
+    assert.ok(r.json.error.missing.some((m: any) => m.reasons.includes(mong[0])), `${ten}: nêu đúng lý do ${mong[0]}`);
+    assert.deepEqual(hoSo(w, c.id), truoc, `${ten}: không ghi gì`);
+    assert.equal(chang(w, c.legId).t, null, `${ten}: giờ không được ghi`);
+  }
+});
