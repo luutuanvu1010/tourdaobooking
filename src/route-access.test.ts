@@ -209,6 +209,15 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/ledger/adjustment-requests/:requestId/approve", access: "office" },
   { method: "POST", path: "/api/ledger/adjustment-requests/:requestId/reject", access: "office" },
   { method: "POST", path: "/api/ledger/adjustment-requests/:requestId/withdraw", access: "office" },
+  { method: "GET", path: "/api/ledger/phan-dinh", access: "office" },
+  { method: "GET", path: "/api/ledger/phan-dinh/dem", access: "office" },
+  { method: "POST", path: "/api/ledger/phan-dinh", access: "office" },
+  { method: "POST", path: "/api/ledger/phan-dinh/:id/quyet", access: "office" },
+  { method: "POST", path: "/api/ledger/phan-dinh/:id/doi-ben-chiu", access: "office" },
+  { method: "POST", path: "/api/ledger/phan-dinh/:id/ghi", access: "office" },
+  { method: "POST", path: "/api/ledger/phan-dinh/:id/huy", access: "office" },
+  { method: "GET", path: "/api/ledger/phan-dinh-cua-toi", access: "staff" },
+  { method: "POST", path: "/api/ledger/phan-dinh-cua-toi/:id/phan-hoi", access: "staff" },
   { method: "POST", path: "/api/ledger/receipt-replacements", access: "office" }, // ledger.write — "Thay lần thu" (ADR-0088 đ2)
   { method: "GET", path: "/api/ledger/ky", access: "office" }, // khoá sổ tháng (ADR-0080 D1): ledger.view any — tháng đã khoá, tháng khoá kế tiếp, bảng kiểm
   { method: "POST", path: "/api/ledger/ky/:period/khoa", access: "office" }, // ledger.period.close (Kế toán, Toàn quyền — Quản trị không)
@@ -693,6 +702,7 @@ test("mức truy cập của 424 route hiện có khớp ảnh chụp đã duy�
   // 2026-10-30 (ADR-0146 Đ5, luật bán): + GET, POST /api/pricing/luat-ban, POST …/luat-ban/:id/ket-thuc (office; sales.block.write, không Đối tác) = 397.
   // 2026-10-30 (ADR-0152 Đ1, Đ3, Đ5): + 8 route /api/catalog/dac-diem* (GET ×2, PUT gắn dịch vụ: office; POST ×2, PATCH ×2, PUT gắn nhóm: admin) = 405.
   // 2026-10-31 (mã định danh 5.26, Task 3): + PATCH /api/pricing/loai-doi-tac/:code (office; partner.commission.write, không Đối tác) = 406.
+  // 2026-11-02 (ADR-0116): + 7 route /api/ledger/phan-dinh* (office) + 2 route /api/ledger/phan-dinh-cua-toi* (staff, chỉ hồ sơ của chính người gọi) = 439.
   // 2026-11-02 (ADR-0156): + GET /api/ve/lo, POST /api/ve/lo/:id/bo (office; ve.kho.manage), GET, PUT /api/ve/cai-dat (admin; settings.ops) = 424.
   // 2026-11-01 (ADR-0153 cấp bù bằng tay): + POST /api/ve/cap (office; ve.cap.send) = 420.
   // 2026-11-01 (ADR-0153 Task 7): + POST /api/ve/duong-dan, …/:id/thu-hoi (office), GET /ve/:token, GET /api/ve-khach/:token/anh/:slot (public, chỉ đọc) = 420.
@@ -701,6 +711,6 @@ test("mức truy cập của 424 route hiện có khớp ảnh chụp đã duy�
   // 2026-10-31 (mã định danh 5.26, Task 4): + PATCH /api/pricing/muc-ta/:code (office; partner.commission.write, không Đối tác) = 420.
   // 2026-11-02 (ADR-0154 Đ2.1, lượt 2 Task 2.1): + GET (orders), POST (admin) /api/cai-dat/an-thong-tin-khach = 422.
   // 2026-11-02 (ADR-0155 Đ2.5, lượt 2 Task 4.1): + GET /api/pricing/cap-hien-hanh (office; partner.commission.view, không Đối tác) = 423.
-  assert.equal(actual.length, 430, "số route thực tế lệch 430 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 430, "SNAPSHOT phải có đúng 430 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  assert.equal(actual.length, 439, "số route thực tế lệch 439 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 439, "SNAPSHOT phải có đúng 439 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

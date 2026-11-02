@@ -340,7 +340,7 @@ export const CHECKS = [
   // chưa bị đảo. R-BIL-2, R-BIL-5 (lượt 2) và R-BIL-7 (= R-PTY-1) ở danh sách GHI_CHU cuối tệp — không kiểm trùng, không in "đạt".
   {
     // R-BIL-1 (I1) — ADR-0088 đ1, đ7 (chủ chọn "Luôn luôn" 2/10): đơn đã Đã giao, MỌI LÚC: tổng lần thu còn hiệu lực = phải thu hiện hành = `due_snapshot`
-    // của phiếu Đã giao − giảm trừ đã phân định (đ9 chưa có ⇒ giảm trừ = 0). Mốc (bil_audit_cutoff 'R-BIL-1', 0083): phiếu Đã giao hoặc một lần thu của đơn
+    // của phiếu Đã giao − giảm trừ đã phân định (ADR-0116, view v_bil_phai_thu_hien_hanh — MỘT nguồn với trigger và máy chủ). Mốc (bil_audit_cutoff 'R-BIL-1', 0083): phiếu Đã giao hoặc một lần thu của đơn
     // ghi TỪ mốc ⇒ LỖI; dữ liệu cũ hơn mốc ⇒ cảnh báo kèm danh sách (R-BIL-1w) để Kế toán sửa bằng "Thay lần thu" (trước đây chỉ so "tại mốc" — bỏ, đ7).
     code: "R-BIL-1",
     what: "đơn Đã giao: tổng lần thu còn hiệu lực bằng phải thu phiếu Đã giao đã chụp, mọi lúc (ghi từ mốc 0083)",
@@ -348,7 +348,7 @@ export const CHECKS = [
      WHERE p.kind_code = 'DELIVERED' AND NOT EXISTS (SELECT 1 FROM bil_posting x WHERE x.reverses_posting_id = p.id)
        AND COALESCE((SELECT SUM(CASE WHEN r.kind_code = 'CUSTOMER_REFUND' THEN -r.amount ELSE r.amount END) FROM bil_payment_receipt r
                      WHERE r.order_id = p.order_id AND r.reverses_id IS NULL
-                       AND NOT EXISTS (SELECT 1 FROM bil_payment_receipt x WHERE x.reverses_id = r.id)), 0) IS NOT p.due_snapshot
+                       AND NOT EXISTS (SELECT 1 FROM bil_payment_receipt x WHERE x.reverses_id = r.id)), 0) IS NOT (SELECT v.phai_thu FROM v_bil_phai_thu_hien_hanh v WHERE v.order_id = p.order_id)
        AND (p.created_at >= (SELECT cutoff_at FROM bil_audit_cutoff WHERE code = 'R-BIL-1')
          OR EXISTS (SELECT 1 FROM bil_payment_receipt a WHERE a.order_id = p.order_id AND a.created_at >= (SELECT cutoff_at FROM bil_audit_cutoff WHERE code = 'R-BIL-1')))`,
     level: "fail",
@@ -363,7 +363,7 @@ export const CHECKS = [
      WHERE p.kind_code = 'DELIVERED' AND NOT EXISTS (SELECT 1 FROM bil_posting x WHERE x.reverses_posting_id = p.id)
        AND COALESCE((SELECT SUM(CASE WHEN r.kind_code = 'CUSTOMER_REFUND' THEN -r.amount ELSE r.amount END) FROM bil_payment_receipt r
                      WHERE r.order_id = p.order_id AND r.reverses_id IS NULL
-                       AND NOT EXISTS (SELECT 1 FROM bil_payment_receipt x WHERE x.reverses_id = r.id)), 0) IS NOT p.due_snapshot
+                       AND NOT EXISTS (SELECT 1 FROM bil_payment_receipt x WHERE x.reverses_id = r.id)), 0) IS NOT (SELECT v.phai_thu FROM v_bil_phai_thu_hien_hanh v WHERE v.order_id = p.order_id)
        AND p.created_at < (SELECT cutoff_at FROM bil_audit_cutoff WHERE code = 'R-BIL-1')
        AND NOT EXISTS (SELECT 1 FROM bil_payment_receipt a WHERE a.order_id = p.order_id AND a.created_at >= (SELECT cutoff_at FROM bil_audit_cutoff WHERE code = 'R-BIL-1'))`,
     mode: "rows",
@@ -696,9 +696,34 @@ export const CHECKS = [
     sql: `SELECT count(*) FROM (SELECT x.ben, x.order_id, SUM(x.so) AS so, MAX(x.luc) AS luc FROM (
        SELECT CASE WHEN l.creditor_party_id IN (SELECT party_id FROM v_pty_owner_company) THEN l.debtor_party_id ELSE l.creditor_party_id END AS ben, l.order_id,
               CASE WHEN l.creditor_party_id IN (SELECT party_id FROM v_pty_owner_company) THEN l.amount ELSE -l.amount END AS so, l.created_at AS luc
-       FROM bil_debt_line l WHERE l.order_id IS NOT NULL AND l.kind_code IN ('HELD', 'SETTLEMENT')
+       FROM bil_debt_line l WHERE l.order_id IS NOT NULL AND l.kind_code IN ('HELD', 'SETTLEMENT', 'ATTRIBUTION')
          AND (l.creditor_party_id IN (SELECT party_id FROM v_pty_owner_company) OR l.debtor_party_id IN (SELECT party_id FROM v_pty_owner_company))) x
      GROUP BY x.ben, x.order_id) WHERE so < 0 AND luc >= (SELECT cutoff_at FROM bil_audit_cutoff WHERE code = 'R-BIL-13')`,
+    level: "fail",
+  },
+  {
+    // ADR-0116 (đ9, migration 0135): lưới thứ hai sau trigger. Số ròng dòng nợ ATTRIBUTION của mỗi khoản đã ghi = số còn hiệu lực của khoản (bên chịu là công ty thì không dòng); tính theo đơn.
+    code: "R-BIL-PD1",
+    what: "phân định trách nhiệm: tổng dòng nợ theo đơn khớp số còn hiệu lực của các khoản do người khác công ty chịu",
+    sql: `SELECT count(*) FROM (SELECT g.order_id,
+        COALESCE(SUM(g.amount - COALESCE((SELECT SUM(d.amount) FROM bil_attribution d WHERE d.root_id = g.id AND d.step_code = 'REVERSAL'), 0)), 0) AS con,
+        COALESCE(SUM(CASE WHEN COALESCE((SELECT e.liable_party_id FROM bil_attribution e WHERE e.root_id = g.id AND e.step_code = 'REASSIGNED' ORDER BY e.rowid DESC LIMIT 1), g.liable_party_id) IN (SELECT party_id FROM v_pty_owner_company) THEN 0
+          ELSE g.amount - COALESCE((SELECT SUM(d.amount) FROM bil_attribution d WHERE d.root_id = g.id AND d.step_code = 'REVERSAL'), 0) END), 0) AS phai_co,
+        COALESCE((SELECT SUM(CASE WHEN l.debtor_party_id IN (SELECT party_id FROM v_pty_owner_company) THEN -l.amount ELSE l.amount END) FROM bil_debt_line l WHERE l.order_id = g.order_id AND l.kind_code = 'ATTRIBUTION'), 0) AS ghi
+      FROM bil_attribution g WHERE g.step_code = 'POSTED' GROUP BY g.order_id) WHERE phai_co <> ghi`,
+    level: "fail",
+  },
+  {
+    code: "R-BIL-PD2",
+    what: "phân định trách nhiệm: người ghi sổ khác người phân định",
+    sql: `SELECT count(*) FROM bil_attribution p JOIN bil_attribution r ON r.id = p.target_id WHERE p.step_code IN ('POSTED', 'REASSIGNED') AND r.step_code = 'RULING' AND p.created_by = r.created_by`,
+    level: "fail",
+  },
+  {
+    code: "R-BIL-PD3",
+    what: "lần trả khách sau Đã giao có đúng số của khoản có tiền ra; khoản có tiền ra có đúng một lần trả khách",
+    sql: `SELECT count(*) FROM bil_attribution p WHERE p.step_code = 'POSTED' AND p.money_out = 1
+      AND NOT EXISTS (SELECT 1 FROM bil_payment_receipt r WHERE r.attribution_id = p.id AND r.kind_code = 'CUSTOMER_REFUND' AND r.amount = p.amount)`,
     level: "fail",
   },
   {
@@ -707,7 +732,7 @@ export const CHECKS = [
     sql: `SELECT x.order_id, x.ben, SUM(x.so) AS so FROM (
        SELECT CASE WHEN l.creditor_party_id IN (SELECT party_id FROM v_pty_owner_company) THEN l.debtor_party_id ELSE l.creditor_party_id END AS ben, l.order_id,
               CASE WHEN l.creditor_party_id IN (SELECT party_id FROM v_pty_owner_company) THEN l.amount ELSE -l.amount END AS so, l.created_at AS luc
-       FROM bil_debt_line l WHERE l.order_id IS NOT NULL AND l.kind_code IN ('HELD', 'SETTLEMENT')
+       FROM bil_debt_line l WHERE l.order_id IS NOT NULL AND l.kind_code IN ('HELD', 'SETTLEMENT', 'ATTRIBUTION')
          AND (l.creditor_party_id IN (SELECT party_id FROM v_pty_owner_company) OR l.debtor_party_id IN (SELECT party_id FROM v_pty_owner_company))) x
      GROUP BY x.ben, x.order_id HAVING SUM(x.so) < 0 AND MAX(x.luc) < (SELECT cutoff_at FROM bil_audit_cutoff WHERE code = 'R-BIL-13')`,
     mode: "rows",

@@ -14,7 +14,7 @@ import type { NhomHuy } from "../../shared/ly-do-huy.ts";
 export type ReceiptKind = "CUSTOMER_PAYMENT" | "CUSTOMER_REFUND";
 export type CollectorRole = "COMPANY" | "STAFF" | "BOOKER" | "SUPPLIER" | "UNKNOWN";
 /** Loại dòng nợ (`bil_debt_kind`). Ba loại thương mại của phiếu «Đã giao» từ sổ đại lý đợt 2 (ADR-0079 điều 2, migration 0112). */
-export type DebtKind = "HELD" | "SETTLEMENT" | "REFUND" | "HOA_HONG" | "GIAM_GIA_BEN_DAT" | "GIA_VON";
+export type DebtKind = "HELD" | "SETTLEMENT" | "REFUND" | "HOA_HONG" | "GIAM_GIA_BEN_DAT" | "GIA_VON" | "ATTRIBUTION";
 /**
  * Ba loại dòng THƯƠNG MẠI (sổ đại lý đợt 2, ADR-0079 điều 2). Chỉ thay đổi qua yêu cầu điều chỉnh có người thứ hai duyệt (ADR-0115): chờ «Đã giao» (Ruling R-P15) và
  * KHÔNG «Huỷ dòng sổ» riêng (`dao_dong` — BL-SDL2-DAO-DONG-TM, chủ chọn «Chặn» 19/10). MỘT nguồn cho cả `dieu-chinh.ts` lẫn `ghiDieuChinh`.
@@ -737,6 +737,26 @@ export function cauLoiCsdlThuongMai(e: unknown, anGiaVon?: boolean): string | nu
 }
 
 /** Số dư từng bên với công ty chủ: dương = bên đó còn NỢ công ty; âm = công ty còn nợ bên đó (gộp mọi dòng kể cả đảo). */
+/** ADR-0116: dòng nợ theo phân định là NỢ, không phải tiền đang giữ — không chặn Hoàn thành, không vào "đang giữ" của màn đơn. Vẫn ở Sổ của tôi và trả bằng lệnh nộp. */
+export const boNoPhanDinh = <T extends { kind: DebtKind }>(lines: readonly T[]): T[] => lines.filter((l) => l.kind !== "ATTRIBUTION");
+
+/**
+ * ADR-0116 đ4 (I1 của lô ghi sổ): sau lô, đã thu ròng = phải thu hiện hành − số giảm trừ. Có tiền ra: trả ĐÚNG số giảm trừ, không vượt đã thu ròng, đơn phải đang khớp. Không tiền ra: khoản thu sau
+ * lô (`daThuSauThay` khi lô kèm sửa khoản thu, ngược lại số hiện tại) phải đã đúng thực tế, nếu không từ chối.
+ */
+export function kiemLoPhanDinh(i: { soTien: number; phaiThuHienHanh: number; daThu: number; coTienRa: boolean; daThuSauThay: number | null }): { ok: true } | { ok: false; ma: string; cau: string } {
+  if (i.soTien > i.phaiThuHienHanh) return { ok: false, ma: "attribution_over_due", cau: `Giảm trừ cộng dồn vượt phải thu của đơn (còn ${dong(i.phaiThuHienHanh)}).` };
+  const sau = i.phaiThuHienHanh - i.soTien;
+  if (i.coTienRa) {
+    if (i.soTien > i.daThu) return { ok: false, ma: "refund_exceeds_paid", cau: `Số trả khách vượt số khách đã trả cho đơn (${dong(i.daThu)}).` };
+    if (i.daThu !== i.phaiThuHienHanh) return { ok: false, ma: "attribution_i1", cau: `Đơn đang lệch: đã thu ${dong(i.daThu)}, phải thu ${dong(i.phaiThuHienHanh)} — sửa khoản thu trước.` };
+    return { ok: true };
+  }
+  const daThuSau = i.daThuSauThay ?? i.daThu;
+  if (daThuSau !== sau) return { ok: false, ma: "attribution_i1", cau: `Sửa khoản thu trước: sau lần ghi số đã thu (${dong(daThuSau)}) phải bằng ${dong(sau)}. Khách thật sự chưa trả thì sổ phải ghi đúng số khách đã trả.` };
+  return { ok: true };
+}
+
 export function soDuTheoBen(lines: readonly Pick<LineRow, "debtorPartyId" | "creditorPartyId" | "amount">[], congTyId: string): Map<string, number> {
   const out = new Map<string, number>();
   const cong = (ben: string, so: number) => out.set(ben, (out.get(ben) ?? 0) + so);

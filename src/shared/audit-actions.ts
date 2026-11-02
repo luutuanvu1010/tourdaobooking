@@ -85,6 +85,12 @@ export const AUDIT_ACTIONS = {
   ledger_adjustment_withdrawn: { label: "Rút yêu cầu điều chỉnh sổ", group: "ledger" },
   ledger_adjustment_affected: { label: "Điều chỉnh đổi số dư của một nhân viên", group: "ledger" },
   ledger_receipt_replaced: { label: "Sửa khoản thu đã ghi", group: "ledger" },
+  ledger_receipt_collector_changed: { label: "Báo người thu tiền: khoản thu đã được sửa", group: "ledger" }, // ADR-0088 đ2: nguồn tin, khoá = tài khoản nhận
+  ledger_duplicate_overridden: { label: "Vẫn ghi dù có cảnh báo trùng", group: "ledger" }, // ADR-0092 đ6, đ6a: detail = lý do của người bỏ qua
+  attribution_requested: { label: "Đề nghị phân định trách nhiệm", group: "ledger" }, // ADR-0116
+  attribution_ruled: { label: "Phân định trách nhiệm", group: "ledger" },
+  attribution_posted: { label: "Ghi sổ theo phân định trách nhiệm", group: "ledger" },
+  attribution_responded: { label: "Bên chịu phản hồi phân định", group: "ledger" },
   ledger_reversal: { label: "Huỷ một dòng sổ tiền", group: "ledger" },
   // ADR-0092 Đ6 (migration 0088): gắn mã giao dịch ngân hàng vào khoản thu — target = khoản thu (`ledger`, id khoản thu); `detail` = "gắn mã giao dịch ngân hàng"
   // (chữ cố định); KHÔNG chép mã giao dịch, không số tài khoản.

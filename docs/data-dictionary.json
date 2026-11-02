@@ -746,6 +746,12 @@
       "note": "phiếu sổ (ADR-0026 đ3), CHỈ-THÊM; due_snapshot = phải thu chụp lúc Đã giao (Q4); trigger kiểm tiền trong lô Đã giao / Hoàn thành; request_id (0094, ADR-0115) = yêu cầu điều chỉnh đã duyệt của phiếu ADJUSTMENT — trigger cấm chèn ADJUSTMENT thiếu yêu cầu đã duyệt do người KHÁC tạo (phiếu cũ trước 0094 được miễn), mỗi yêu cầu một phiếu; 0112 (sổ đại lý đợt 2): gross_snapshot = Σ thành tiền trước giảm chụp lúc Đã giao (ADR-0079 điều 6) — CHECK chỉ phiếu DELIVERED, ≥ 0; NULL ở phiếu Đã giao cũ và KHÔNG có trigger đòi phiếu mới phải có (Ruling R-P8: đường lùi wrangler rollback); trigger bil_posting_delivered_terms chặn phiếu Đã giao khi đơn còn dòng dịch vụ chưa chụp (v_ord_terms_uncaptured) hoặc bản chụp thiếu mức / thiếu người bán (v_ord_terms_missing); loại COUNTERPARTY_CONFIRMED «Bên kia đã nhận» (ADR-0132) là phiếu một đơn"
     },
     {
+      "name": "bil_attribution",
+      "module": "billing",
+      "kind": "table",
+      "note": "chuỗi phân định trách nhiệm sau «Đã giao» (ADR-0116 thi hành ADR-0088 đ9; migration 0135), CHỈ-THÊM: REQUEST (đề nghị) → RULING (phân định: trường hợp, bên chịu, số giảm trừ, có tiền ra không) → POSTED (ghi sổ một lô; dòng này mới tính vào giảm trừ) → REASSIGNED (đổi bên chịu qua RULING mới) / REVERSAL (huỷ, được một phần) / RESPONSE (bên chịu phản hồi). Người ghi ≠ người phân định (trigger). Giảm trừ của đơn đọc qua view v_bil_phai_thu_hien_hanh. Không số căn cước, SĐT, email."
+    },
+    {
       "name": "bil_adjustment_request",
       "module": "billing",
       "kind": "table",
@@ -962,6 +968,30 @@
         "id",
         "address",
         "active"
+      ]
+    },
+    {
+      "name": "v_bil_phai_thu_hien_hanh",
+      "module": "billing",
+      "columns": [
+        "order_id",
+        "due_snapshot",
+        "giam_tru",
+        "phai_thu"
+      ]
+    },
+    {
+      "name": "v_pty_khach_thuan",
+      "module": "parties",
+      "columns": [
+        "party_id"
+      ]
+    },
+    {
+      "name": "v_pty_co_vai_khac_khach",
+      "module": "parties",
+      "columns": [
+        "party_id"
       ]
     },
     {
@@ -1431,6 +1461,7 @@
     "aut_session_policy": { "id": "N1", "permission_code": "N1", "multi": "N1", "valid_from_at": "N1", "valid_to_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "aut_trusted_device": { "id": "N1", "staff_id": "N1", "token_hash": "N4", "label": "N2", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "last_used_at": "N1", "expires_at": "N1", "revoked_at": "N1", "revoke_reason": "N1" },
     "bil_accounting_entry": { "id": "N1", "order_id": "N1", "entered": "N1", "invoice_number": "N1", "reason": "N2", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "bil_attribution": { "id": "N1", "order_id": "N1", "step_code": "N1", "target_id": "N1", "root_id": "N1", "case_code": "N1", "liable_party_id": "N1", "amount": "N1", "money_out": "N1", "reason": "N2", "posting_id": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "bil_adjustment_request": { "id": "N1", "kind_code": "N1", "order_id": "N1", "debtor_party_id": "N1", "creditor_party_id": "N1", "amount": "N1", "line_kind_code": "N1", "occurred_date": "N1", "direction": "N1", "cap_snapshot": "N1", "reason": "N2", "target_id": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "bil_audit_cutoff": { "code": "N1", "cutoff_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "bil_collector_role": { "code": "N1", "name": "N1", "sort_order": "N1", "active": "N1" },
@@ -1439,7 +1470,7 @@
     "bil_deposit_approval": { "id": "N1", "order_id": "N1", "kind_code": "N1", "amount": "N1", "target_order_id": "N1", "reason": "N2", "approved_date": "N1", "voids_id": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "bil_outside_refund": { "id": "N1", "order_id": "N1", "kind_code": "N1", "amount": "N1", "reason": "N2", "target_id": "N1", "occurred_date": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "bil_payment_method": { "code": "N1", "name": "N1", "sort_order": "N1", "active": "N1" },
-    "bil_payment_receipt": { "id": "N1", "order_id": "N1", "kind_code": "N1", "amount": "N1", "collector_party_id": "N1", "collector_role_code": "N1", "method_code": "N1", "collected_for_party_id": "N1", "stage_code": "N1", "occurred_date": "N1", "reverses_id": "N1", "note": "N2", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "approval_id": "N1", "transfer_of_id": "N1", "replacement_id": "N1" },
+    "bil_payment_receipt": { "id": "N1", "order_id": "N1", "kind_code": "N1", "amount": "N1", "collector_party_id": "N1", "collector_role_code": "N1", "method_code": "N1", "collected_for_party_id": "N1", "stage_code": "N1", "occurred_date": "N1", "reverses_id": "N1", "note": "N2", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "approval_id": "N1", "transfer_of_id": "N1", "replacement_id": "N1", "attribution_id": "N1" },
     "bil_posting": { "id": "N1", "kind_code": "N1", "order_id": "N1", "reason": "N2", "reverses_posting_id": "N1", "occurred_date": "N1", "due_snapshot": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "request_id": "N1", "gross_snapshot": "N1" },
     "bil_posting_kind": { "code": "N1", "name": "N1", "sort_order": "N1", "active": "N1" },
     "bil_receipt_bank_txn": { "id": "N1", "receipt_id": "N1", "txn_code": "N1", "transferred_amount": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
@@ -1557,6 +1588,9 @@
     "tl_van_nghia": { "khoa": "N1", "mau": "N1", "so_chieu": "N1", "vec": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "v_aud_account_event": { "id": "N1", "account_id": "N1", "staff_id": "N1", "action": "N1", "created_at": "N1" },
     "v_aud_cham_tai_khoan": { "actor_id": "N1", "account_id": "N1", "loai": "N1", "at": "N1" },
+    "v_bil_phai_thu_hien_hanh": { "order_id": "N1", "due_snapshot": "N1", "giam_tru": "N1", "phai_thu": "N1" },
+    "v_pty_khach_thuan": { "party_id": "N1" },
+    "v_pty_co_vai_khac_khach": { "party_id": "N1" },
     "v_aud_ledger_event": { "id": "N1", "order_id": "N1", "target_type": "N1", "target_id": "N1", "staff_id": "N1", "action": "N1", "created_at": "N1" },
     "v_aud_order_change": { "id": "N1", "order_id": "N1", "staff_id": "N1", "action": "N1", "detail": "N2", "created_at": "N1", "leg_id": "N1" },
     "v_aud_order_cmd": { "id": "N1", "order_id": "N1", "action": "N1" },

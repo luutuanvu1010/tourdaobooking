@@ -3,11 +3,21 @@
 // I1 và "đảo đơn lẻ sau Đã giao" nằm ở trigger 0083 (RAISE ⇒ cả lô huỷ). Import kèm đuôi .ts.
 import { defineSql } from "../../shared/sql-registry.ts";
 
-/** Phải thu lúc "Đã giao" (bản chụp `due_snapshot` của phiếu DELIVERED) — null nếu đơn chưa Đã giao. */
-const DELIVERED_DUE = defineSql("billing", "thay_delivered_due", `SELECT due_snapshot FROM bil_posting WHERE order_id = ?1 AND kind_code = 'DELIVERED'`);
-export async function phaiThuLucGiao(db: D1Database, orderId: string): Promise<number | null> {
-  const r = await db.prepare(DELIVERED_DUE).bind(orderId).first<{ due_snapshot: number }>();
-  return r ? r.due_snapshot : null;
+/**
+ * MỘT nguồn "phải thu hiện hành" của đơn ĐÃ Đã giao (ADR-0088 đ1, ADR-0116 đ5, Hiến chương 5.4): `due_snapshot` − giảm trừ đã phân định, đọc view `v_bil_phai_thu_hien_hanh` — trigger và R-BIL-1 đọc CÙNG view.
+ * null nếu đơn chưa Đã giao.
+ */
+const PHAI_THU_HIEN_HANH = defineSql("billing", "phai_thu_hien_hanh", `SELECT phai_thu FROM v_bil_phai_thu_hien_hanh WHERE order_id = ?1`);
+export async function phaiThuHienHanh(db: D1Database, orderId: string): Promise<number | null> {
+  const r = await db.prepare(PHAI_THU_HIEN_HANH).bind(orderId).first<{ phai_thu: number }>();
+  return r ? r.phai_thu : null;
+}
+const GIAM_TRU_NHIEU_DON = defineSql("billing", "giam_tru_nhieu_don", `SELECT order_id, giam_tru FROM v_bil_phai_thu_hien_hanh WHERE giam_tru <> 0 AND order_id IN (SELECT value FROM json_each(?1))`);
+/** Giảm trừ đã phân định của nhiều đơn (chỉ đơn có giảm trừ) — để danh sách không báo "còn lại" sai. */
+export async function giamTruNhieuDon(db: D1Database, orderIds: readonly string[]): Promise<Map<string, number>> {
+  if (orderIds.length === 0) return new Map();
+  const rows = (await db.prepare(GIAM_TRU_NHIEU_DON).bind(JSON.stringify(orderIds)).all<{ order_id: string; giam_tru: number }>()).results;
+  return new Map(rows.map((r) => [r.order_id, r.giam_tru]));
 }
 
 const COLS = `id, order_id, kind_code, amount, collector_party_id, collector_role_code, method_code, collected_for_party_id, stage_code, occurred_date,

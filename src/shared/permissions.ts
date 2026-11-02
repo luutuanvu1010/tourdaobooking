@@ -157,6 +157,10 @@ export const MATRIX = {
   // ô này). Quản trị chỉ thấy danh sách yêu cầu CHỜ DUYỆT, KHÔNG thấy cả sổ (`ledger.view` không đổi). KHÔNG thêm vào `O_GHI_TIEN` (duyệt không phải ghi tiền; Quản trị vẫn không ghi sổ).
   // `ledger.write` đổi nghĩa ở lệnh điều chỉnh công nợ: chỉ TẠO yêu cầu. Cột HR, DRIVER, DRIVER_PARTNER = none. Route: /api/ledger/adjustment-requests* (module billing).
   "ledger.adjust.approve": row("none", "any", "any", "none", "none", "any", "none", "none", "none", "none"),
+  // ADR-0116 (Q3 = A, QT2): mở đề nghị phân định trách nhiệm — Kế toán, Quản trị, Toàn quyền. Phân định — Quản trị, Toàn quyền. Ghi sổ theo phân định dùng `ledger.write` (+ `payment.refund` nếu có tiền ra);
+  // không thêm vào `O_GHI_TIEN` (phân định là quyết định, không phải ghi tiền; Quản trị vẫn không ghi sổ). Route: /api/ledger/phan-dinh* (module billing).
+  "attribution.request": row("none", "any", "any", "none", "none", "any", "none", "none", "none", "none"),
+  "attribution.decide": quanTri(),
   // Khoá sổ tháng (ADR-0080 phần D1; đặc tả sổ đại lý đợt 1 §6): khoá MỘT tháng đã qua, lần lượt, không mở lại — CHỈ Kế toán, Toàn quyền (Quản trị KHÔNG; cột HR, DRIVER, DRIVER_PARTNER = none).
   // KHÔNG đổi `O_GHI_TIEN` (đặc tả §6, N6). Route: POST /api/ledger/ky/:period/khoa (module billing); xem kỳ dùng ô `ledger.view` any.
   "ledger.period.close": row("none", "any", "none", "none", "none", "any", "none", "none", "none", "none"),

@@ -97,6 +97,8 @@ export const TEN_THAO_TAC: Readonly<Record<OperationCode, TenLoiThuong>> = {
   "order.complete": { ten: "bấm Hoàn thành", moTa: "Kế toán chốt đơn sau khi đối chiếu tiền." },
   "ledger.view": { ten: "xem sổ công nợ", moTa: "Xem sổ của mình, hoặc sổ mọi người và công ty." },
   "ledger.write": { ten: "ghi sổ công nợ", moTa: "Xác nhận công ty đã nhận tiền, ghi nộp, trả, huỷ dòng sổ; gửi yêu cầu điều chỉnh công nợ (số dư chỉ đổi khi người khác duyệt)." },
+  "attribution.request": { ten: "đề nghị phân định trách nhiệm", moTa: "Mở phiếu đề nghị khi đơn đã giao có sai sót hoặc khách cần được hoàn, bồi thường." },
+  "attribution.decide": { ten: "phân định trách nhiệm", moTa: "Chọn trường hợp, bên chịu và số tiền của một đề nghị; người ghi sổ phải là người khác." },
   "ledger.adjust.approve": { ten: "duyệt điều chỉnh công nợ", moTa: "Duyệt hoặc từ chối yêu cầu điều chỉnh công nợ do người khác tạo; không tự duyệt yêu cầu của mình." },
   "ledger.period.close": { ten: "khoá sổ tháng", moTa: "Khoá một tháng đã qua: không ghi thêm tiền có ngày trong tháng đó; không mở lại được." },
   "partner.commission.view": { ten: "xem bảng mức hoa hồng đối tác", moTa: "Xem mức hoa hồng theo vai người dùng, theo đối tác, theo dịch vụ hoặc nhóm dịch vụ." },

@@ -2211,6 +2211,8 @@ export interface LanThuDto {
 
 /** `GET /api/orders/:id/payments` — tiền của MỘT đơn + lý do đang giữ + nút nào được hiện (máy chủ vẫn kiểm lại khi bấm). */
 export interface OrderPaymentsResponse {
+  /** ADR-0116: giảm trừ đã phân định (0 khi không có); `phaiThu` đã trừ số này. */
+  giamTru: number;
   phaiThu: number;
   daThu: number;
   conLai: number;
@@ -2391,6 +2393,26 @@ export interface SoCuaToiResponse {
   dangGiu: number;
   dong: SoCuaToiDongDto[];
 }
+
+// ---- Phân định trách nhiệm (ADR-0116) ----
+export interface PhieuPhanDinhDto {
+  id: string; orderId: string; maDon: string;
+  trangThai: "cho_phan_dinh" | "cho_ghi" | "da_ghi" | "da_dao";
+  soTienDeNghi: number; lyDoDeNghi: string; nguoiDeNghi: string; luc: string;
+  /** Đơn đã giao quá 60 ngày mà chưa xử lý xong: chỉ nhắc (ADR-0116 đ6). */
+  quaHanNhac: boolean;
+  phanDinh: { id: string; truongHop: string; benChiu: string; soTien: number; coTienRa: boolean; lyDo: string; nguoiPhanDinh: string; luc: string } | null;
+  ghi: { id: string; conHieuLuc: number; truongHopHienTai: string; nguoiGhi: string; luc: string } | null;
+  /** T11 quá 7 ngày chưa rõ ai chịu: hiện đỏ, không tự gán (QT4). */
+  t11QuaHan: boolean;
+  dangDoiBenChiu: { id: string; truongHop: string; benChiu: string; lyDo: string; nguoiPhanDinh: string } | null;
+  phanHoi: { noiDung: string; nguoi: string; luc: string }[];
+  coThePhanDinh: boolean; coTheGhi: boolean; coTheGhiDoi: boolean; coTheDoiBenChiu: boolean; coTheHuy: boolean;
+}
+export interface DanhSachPhanDinhResponse { phieu: PhieuPhanDinhDto[]; choPhanDinh: number; choGhi: number }
+/** Khoản của chính hồ sơ người xem (bên chịu). */
+export interface KhoanTrachNhiemDto { id: string; maDon: string; soTien: number; truongHop: string; lyDo: string; luc: string; hanPhanHoi: string; phanHoi: { noiDung: string; luc: string }[] }
+export interface KhoanCuaToiResponse { khoan: KhoanTrachNhiemDto[] }
 
 /** `GET /api/ledger` (Kế toán, Toàn quyền): số dư từng bên với công ty, khoản "Công ty thu" chờ xác nhận, khoản thu chưa rõ người thu. */
 export interface SoCongNoResponse {

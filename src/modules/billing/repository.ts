@@ -70,7 +70,7 @@ export interface LineDbRow {
   debtor_party_id: string;
   creditor_party_id: string;
   amount: number;
-  kind_code: "HELD" | "SETTLEMENT" | "REFUND" | "HOA_HONG" | "GIAM_GIA_BEN_DAT" | "GIA_VON";
+  kind_code: "HELD" | "SETTLEMENT" | "REFUND" | "HOA_HONG" | "GIAM_GIA_BEN_DAT" | "GIA_VON" | "ATTRIBUTION";
   order_id: string | null;
   receipt_id: string | null;
   reverses_line_id: string | null;
@@ -354,7 +354,7 @@ const POSTING_PLAIN = defineSql("billing", "posting_plain", `INSERT INTO bil_pos
 
 export interface NewPosting {
   id: string;
-  kind: "RECEIPT" | "DELIVERED" | "COMPLETED" | "COMPANY_RECEIVED" | "COUNTERPARTY_CONFIRMED" | "SETTLEMENT" | "REFUND" | "ADJUSTMENT" | "REVERSAL" | "REPLACEMENT";
+  kind: "ATTRIBUTION" | "RECEIPT" | "DELIVERED" | "COMPLETED" | "COMPANY_RECEIVED" | "COUNTERPARTY_CONFIRMED" | "SETTLEMENT" | "REFUND" | "ADJUSTMENT" | "REVERSAL" | "REPLACEMENT";
   orderId: string | null;
   reason: string | null;
   reversesPostingId: string | null;
@@ -391,7 +391,7 @@ export interface NewLine {
   debtorPartyId: string;
   creditorPartyId: string;
   amount: number;
-  kind: "HELD" | "SETTLEMENT" | "REFUND" | "HOA_HONG" | "GIAM_GIA_BEN_DAT" | "GIA_VON";
+  kind: "HELD" | "SETTLEMENT" | "REFUND" | "HOA_HONG" | "GIAM_GIA_BEN_DAT" | "GIA_VON" | "ATTRIBUTION";
   orderId: string;
   /** Dòng dịch vụ của đơn (chỉ HOA_HONG / GIA_VON của phiếu Đã giao); null = dòng không gắn dòng dịch vụ. */
   orderServiceId: string | null;

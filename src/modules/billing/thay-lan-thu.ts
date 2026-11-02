@@ -1,11 +1,12 @@
 // "Sửa khoản thu đã ghi" (ADR-0088 đ2 — TNV-G3): Kế toán / Toàn quyền thay N khoản thu cũ bằng M khoản thu mới trong MỘT lô ghi, thứ tự cố định (A-B5c):
 //   1. ghi các khoản thu mới (kèm phiếu RECEIPT + dòng giữ hộ nếu có — cùng `sinhDongLanThu` của khoản thu thường);
 //   2. đảo các khoản thu cũ cùng dòng nợ còn hiệu lực của chúng (phiếu REVERSAL);
-//   3. ghi phiếu đánh dấu REPLACEMENT — trigger 0083 kiểm I1 (đơn đã ở bước Đã giao: đã thu ròng = phải thu lúc giao − giảm trừ đã phân định; giảm trừ = 0 tới đ9);
-//   4. ghi nhật ký `changes() > 0` (số trước / sau).
+//   3. ghi phiếu đánh dấu REPLACEMENT — trigger 0135 kiểm I1 (đơn đã ở bước Đã giao: đã thu ròng = phải thu hiện hành, view v_bil_phai_thu_hien_hanh);
+//   4. ghi nhật ký `changes() > 0` (số trước / sau), rồi tin báo người thu cũ và người thu mới có tài khoản (đ2 "Kiểm soát", ADR-0034 điều 1, 4).
 // Ghi mới TRƯỚC, đảo SAU ⇒ không có trạng thái âm thoáng qua chạm trigger "đã thu ròng ≥ 0" (ADR-0092 Đ1). Dùng được trước Đã giao và sau Hoàn thành.
-// CHƯA làm (chờ chủ): tin báo người thu cũ / người thu mới (đ2 "Kiểm soát", ADR-0034 điều 1, 4).
+// Câu lệnh của lô do `chuanBiLoThay` dựng để lô phân định (phan-dinh.ts) gộp vào CÙNG `db.batch` — khách thật sự chưa trả (T4), đòi được khách.
 import { auditStatement } from "../audit";
+import { taiKhoanCuaHoSo } from "./dieu-chinh-repo";
 import { UUID_RE } from "../../shared/http";
 import { vnToday } from "../../shared/vn-date";
 import { transferInOf } from "./coc-repo";
@@ -14,10 +15,10 @@ import type { GiaoDich } from "./ma-giao-dich";
 import { conLai, dong, khoanChoXacNhan, sinhDongDao, sinhDongLanThu, type ReceiptRow } from "./rules";
 import type { PhanThuongMai } from "../orders";
 import {
-  CHUA_CO_CONG_TY, cauGanMa, docGiaoDichCuaLanThu, docLanThu, docLyDo, docNgay, kiemCacMa, lanThuMoiRow, layKyDaKhoa, lineOf, loi, loiKhoaKy, loiMaTrigger, loiTrigger, toDoiChieuRow, toLineRow, toReceiptRow, type KetQua,
+  CHUA_CO_CONG_TY, cauBoQuaTrung, cauGanMa, docGiaoDichCuaLanThu, docLanThu, docLyDo, docNgay, kiemCacMa, kiemTrungTienMat, lanThuMoiRow, layKyDaKhoa, lineOf, loi, loiKhoaKy, loiMaTrigger, loiTrigger, toDoiChieuRow, toLineRow, toReceiptRow, type KetQua,
   type LanThuHopLe, type NguoiGoi,
 } from "./service";
-import { phaiThuLucGiao, receiptThayDaoStatement, receiptThayMoiStatement } from "./thay-lan-thu-repo";
+import { phaiThuHienHanh, receiptThayDaoStatement, receiptThayMoiStatement } from "./thay-lan-thu-repo";
 
 /** ADR-0088 đ2: lý do tối thiểu (ký tự, bỏ khoảng trắng hai đầu) — trigger 0083 ép cùng số. */
 export const LY_DO_THAY_TOI_THIEU = 10;
@@ -40,11 +41,44 @@ export function kiemI1SauThay(input: { daThuTruoc: number; tongCu: number; tongM
   return { ok: true };
 }
 
+export interface LoThay { stmts: D1PreparedStatement[]; ngay: string; daThuSau: number }
+/** Đã thu ròng sau lô Thay — để lô phân định so I1 trước khi ghi. */
+export const phaiThuSauThay = (l: LoThay): number => l.daThuSau;
+
 /**
  * `orderId` do ROUTE đọc từ thân và kiểm dạng (để đọc `phan` = phần thương mại của đơn bằng `phanThuongMaiCuaDon` SAU `can(` — sổ đại lý đợt 2 Task 5, Ruling R-22):
  * bản chụp quyết lần thu mới nào là bên đặt (`BOOKER`) / quầy nhà cung cấp (`SUPPLIER`), và trần «thu cho» nhà cung cấp.
  */
 export async function ghiThayLanThu(db: D1Database, input: { orderId: string; phan: PhanThuongMai | null; raw: unknown; ai: NguoiGoi }): Promise<KetQua<{ orderId: string }>> {
+  const lo = await chuanBiLoThay(db, input);
+  if (!lo.ok) return lo;
+  try {
+    await db.batch(lo.value.stmts);
+  } catch (e) {
+    const k = await loiKhoaKy(db, e, [lo.value.ngay]);
+    if (k) return k;
+    const l = loiLoThay(e);
+    if (l) return l;
+    throw e;
+  }
+  return { ok: true, value: { orderId: input.orderId } };
+}
+
+/** Lỗi lớp CSDL của các câu trong lô Thay (dùng chung với lô phân định) — null nếu không phải lỗi của lô Thay. */
+export function loiLoThay(e: unknown): { ok: false; res: Response } | null {
+  const m = loiMaTrigger(e);
+  if (m) return m;
+  if (/UNIQUE constraint failed: bil_(payment_receipt\.reverses_id|debt_line\.reverses_line_id)/.test(e instanceof Error ? e.message : String(e))) return loi(409, "stale", "Khoản thu cần sửa vừa bị huỷ — tải lại rồi thử lại.");
+  if (loiTrigger(e, "replacement_i1")) return loi(409, "replacement_i1", "Sau khi thay, số đã thu phải bằng phải thu của đơn — số vừa thay đổi, tải lại rồi thử lại.");
+  if (loiTrigger(e, "held_already_settled")) return loi(409, "held_already_settled", "Tiền của khoản thu cũ đã được ghi nộp về công ty — huỷ lần ghi nộp trước, rồi mới sửa.");
+  return null;
+}
+
+/**
+ * Dựng câu lệnh của lô (chưa chạy). `phaiThuDich` = phải thu mà lô phải đưa đơn tới: vắng ⇒ phải thu hiện hành; lô phân định truyền phải thu SAU khoản giảm trừ / huỷ giảm trừ của chính lô
+ * (dòng chuỗi đứng TRƯỚC các câu này nên trigger đọc view đã thấy). Không chạy gì.
+ */
+export async function chuanBiLoThay(db: D1Database, input: { orderId: string; phan: PhanThuongMai | null; raw: unknown; ai: NguoiGoi; phaiThuDich?: number }): Promise<KetQua<LoThay>> {
   const b = (input.raw ?? {}) as Record<string, unknown>;
   const orderId = input.orderId;
   const cu = Array.isArray(b.cu) ? b.cu : [];
@@ -64,7 +98,8 @@ export async function ghiThayLanThu(db: D1Database, input: { orderId: string; ph
   if (!kn.ok) return loi(400, "invalid_input", kn.cau);
   const congTyId = await ownerCompanyId(db);
   if (!congTyId) return CHUA_CO_CONG_TY();
-  const [st, receipts, due, dongDon] = await Promise.all([orderState(db, orderId), receiptsOfOrder(db, orderId), phaiThuLucGiao(db, orderId), linesOfOrder(db, orderId)]);
+  const [st, receipts, hienHanh, dongDon] = await Promise.all([orderState(db, orderId), receiptsOfOrder(db, orderId), phaiThuHienHanh(db, orderId), linesOfOrder(db, orderId)]);
+  const due = hienHanh === null ? null : input.phaiThuDich ?? hienHanh;
   if (!st) return loi(404, "not_found", "Không tìm thấy đơn.");
   if (cu.length === 0 && due === null) return loi(400, "invalid_input", "Đơn chưa Đã giao — chọn khoản thu cần thay, hoặc ghi khoản thu như thường.");
   // ADR-0088 đ4 (i) + kiểm độc lập vòng 3 (CAO): khoản "Công ty thu – CK" do người khác khai còn CHỜ XÁC NHẬN thì KHÔNG đảo — dòng giữ hộ trên người khai còn
@@ -85,6 +120,7 @@ export async function ghiThayLanThu(db: D1Database, input: { orderId: string; ph
     cuRows.push(r);
   }
   const moi: { lt: LanThuHopLe; gd: GiaoDich | null }[] = [];
+  const boQuaGhi: { ma: string; lyDo: string }[] = [];
   // Trần «thu cho» nhà cung cấp: lần thu cũ đang bị thay không tính; các lần thu mới ĐÃ đọc của chính lệnh này cộng dồn (đặc tả P4).
   const boQua = new Set(cu as string[]);
   const daCo: ReceiptRow[] = receipts.map(toReceiptRow);
@@ -92,6 +128,10 @@ export async function ghiThayLanThu(db: D1Database, input: { orderId: string; ph
     const lt = await docLanThu(db, { ...(m as object), ngayPhatSinh: ngay.value }, input.ai, congTyId, { phan: input.phan, receipts: daCo, kemDaGiao: false, boQua });
     if (!lt.ok) return lt;
     daCo.push(lanThuMoiRow(lt.value, `moi-${daCo.length}`));
+    // ADR-0092 Đ6a: khoản thu tiền mặt giống nhau — so với khoản còn hiệu lực trừ khoản đang bị thay, và các khoản đã đọc của chính lệnh này.
+    const trung = kiemTrungTienMat({ receipts, boQua, moiDaDoc: moi.map((x) => x.lt), lt: lt.value, ai: input.ai, raw: b.boQuaTrung });
+    if (!trung.ok) return trung;
+    if (trung.value && !boQuaGhi.length) boQuaGhi.push(trung.value);
     const gd = docGiaoDichCuaLanThu(m, lt.value, input.ai);
     if (!gd.ok) return gd;
     moi.push({ lt: lt.value, gd: gd.value });
@@ -99,8 +139,9 @@ export async function ghiThayLanThu(db: D1Database, input: { orderId: string; ph
   // ADR-0092 Đ6 (đặc tả §5 "Trong lô Thay"): máy chủ kiểm khi khoản thu cũ CÒN hiệu lực ⇒ loại các khoản thu trong `cu` khỏi kiểm trùng / lệch / tổng.
   const ganMa = moi.flatMap((m) => (m.gd ? [{ gd: m.gd, orderId, soTien: m.lt.soTien }] : []));
   if (ganMa.length > 0) {
-    const k = await kiemCacMa(db, ganMa, new Set(cuRows.map((r) => r.id)));
+    const k = await kiemCacMa(db, ganMa, new Set(cuRows.map((r) => r.id)), b.boQuaTrung);
     if (!k.ok) return k;
+    if (k.value) boQuaGhi.push(k.value);
   }
   const daThuTruoc = conLai(receipts.map(toReceiptRow), 0, st.status).daThu;
   const tongCu = cuRows.reduce((s, r) => s + r.amount, 0);
@@ -155,17 +196,12 @@ export async function ghiThayLanThu(db: D1Database, input: { orderId: string; ph
   const doiNguoi = moi.some((m) => !nguoiCu.has(m.lt.collectorPartyId));
   const chiTiet = `thay ${cuRows.length} khoản thu (${dong(tongCu)}) bằng ${moi.length} khoản thu (${dong(tongMoi)}) · đã thu trước ${dong(daThuTruoc)} → sau ${dong(daThuTruoc - tongCu + tongMoi)}${doiNguoi && cuRows.length > 0 ? " · đổi người thu tiền" : ""} · ${lyDo.value ?? ""}`;
   stmts.push(auditStatement(db, { orderId, staffId: by, action: "ledger_receipt_replaced", at, detail: chiTiet }, "changes() > 0"));
-  try {
-    await db.batch(stmts);
-  } catch (e) {
-    const k = await loiKhoaKy(db, e, [ngay.value]);
-    if (k) return k;
-    const m = loiMaTrigger(e);
-    if (m) return m;
-    if (/UNIQUE constraint failed: bil_(payment_receipt\.reverses_id|debt_line\.reverses_line_id)/.test(e instanceof Error ? e.message : String(e))) return loi(409, "stale", "Khoản thu cần sửa vừa bị huỷ — tải lại rồi thử lại.");
-    if (loiTrigger(e, "replacement_i1")) return loi(409, "replacement_i1", "Sau khi thay, số đã thu phải bằng phải thu của đơn — số vừa thay đổi, tải lại rồi thử lại.");
-    if (loiTrigger(e, "held_already_settled")) return loi(409, "held_already_settled", "Tiền của khoản thu cũ đã được ghi nộp về công ty — huỷ lần ghi nộp trước, rồi mới sửa.");
-    throw e;
+  for (const bq of boQuaGhi) stmts.push(cauBoQuaTrung(db, { orderId, by, at, boQua: bq }));
+  // ADR-0088 đ2 "Kiểm soát": người thu cũ và người thu mới có tài khoản đều nhận tin. Không gửi cho công ty, không gửi cho chính người đang làm. Tin không kèm số tiền, tên khách.
+  const nguoiThu = [...new Set([...cuRows.map((r) => r.collector_party_id), ...moi.map((m) => m.lt.collectorPartyId)])].filter((x): x is string => !!x && x !== congTyId);
+  const taiKhoan = await taiKhoanCuaHoSo(db, nguoiThu);
+  for (const nv of new Set(nguoiThu.flatMap((p) => (taiKhoan.has(p) && taiKhoan.get(p) !== by ? [taiKhoan.get(p)!] : [])))) {
+    stmts.push(auditStatement(db, { orderId, staffId: by, action: "ledger_receipt_collector_changed", at, targetType: "staff", targetId: nv, detail: "Khoản thu có bạn là người thu vừa được sửa" }));
   }
-  return { ok: true, value: { orderId } };
+  return { ok: true, value: { stmts, ngay: ngay.value, daThuSau: daThuTruoc - tongCu + tongMoi } };
 }

@@ -87,6 +87,7 @@ const STRICT: readonly { module: string; file: string }[] = [
   { module: "billing", file: "modules/billing/repository.ts" }, // ADR-0024 điều 1: nghiêm từ ngày đầu (sổ tiền lượt 1 — NT-R2)
   { module: "billing", file: "modules/billing/coc-repo.ts" }, // ADR-0089 (cọc đơn huỷ, migration 0079) — SIẾT theo K-A-1 (kiểm toán 2026-10-12): SQL tiền này từng đứng ngoài bài EXPLAIN / ranh giới
   { module: "billing", file: "modules/billing/thay-lan-thu-repo.ts" }, // ADR-0088 đ2, đ6 (thay lần thu, migration 0083) — SIẾT theo K-A-1: SQL tiền này từng đứng ngoài bài EXPLAIN / ranh giới
+  { module: "billing", file: "modules/billing/phan-dinh-repo.ts" }, // ADR-0116 (phân định trách nhiệm, migration 0135) — nghiêm từ ngày đầu
   { module: "billing", file: "modules/billing/dieu-chinh-repo.ts" }, // ADR-0115 đợt 1 (điều chỉnh công nợ cần duyệt, migration 0094) — nghiêm từ ngày đầu: SQL tiền đi qua defineSql + EXPLAIN
   { module: "company", file: "modules/company/repository.ts" },
   { module: "dispatch", file: "modules/dispatch/repository.ts" },

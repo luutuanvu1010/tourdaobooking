@@ -80,7 +80,10 @@ test("ba luật chặn: trùng cùng đơn 409; lệch số thực chuyển 409 
   x = await xacNhan(w, r3, { maGiaoDich: "XG0001", soThucChuyen: 700_000 });
   assert.equal(x.status, 409);
   assert.deepEqual([x.json.error.code, x.json.error.soThucChuyen], ["bank_txn_amount_mismatch", 800_000]);
-  assert.equal((await xacNhan(w, r3, { maGiaoDich: "XG0001", soThucChuyen: 800_000 })).status, 200);
+  // ADR-0092 Đ6 phần cảnh báo: cùng mã ở đơn khác ⇒ hỏi, Kế toán bỏ qua có lý do thì qua (ca trả nhiều đơn).
+  const canh = await xacNhan(w, r3, { maGiaoDich: "XG0001", soThucChuyen: 800_000 });
+  assert.deepEqual([canh.status, canh.json.error.code], [409, "co_the_trung"]);
+  assert.equal((await xacNhan(w, r3, { maGiaoDich: "XG0001", soThucChuyen: 800_000, boQuaTrung: { ma: "ma_giao_dich_khac_don", lyDo: "Một lần chuyển trả hai đơn" } })).status, 200);
   const c = don(w);
   assert.equal((await thu(w, HDV, c, ck(200_000))).status, 201);
   x = await xacNhan(w, cuoi(w, c), { maGiaoDich: "XG0001", soThucChuyen: 800_000 });
