@@ -22,6 +22,13 @@ ADR-0135 từng bác «giữ ô, ghi sau xác nhận» vì người lập dễ h
 5. **Đơn không qua xác nhận:** huỷ, hết vé, rút lại thì không sinh gì. Huỷ sau xác nhận đi luồng thu trước của đơn huỷ có sẵn.
 6. **Hiển thị:** đơn nháp có dòng «Khách đặt cọc trước (chờ xác nhận)»; người xét thấy số này trước khi xác nhận. Sau xác nhận đọc từ sổ như mọi khoản thu, không đọc cột. Nhật ký chỉ ghi số tiền và mã đơn. Ca vàng mới ở trạng thái chờ Kế toán, AI không tự đánh dấu.
 
+## Đ2 — Chủ quyết thêm sau kiểm độc lập (2026-11-02)
+
+Hai câu chủ chọn ở hộp hỏi cùng ngày, nguyên văn: *«Giữ luật chặn (Recommended)»*, *«Chờ đối tác nộp tiền (Recommended)»*.
+
+1. **Khai lại cọc:** người lập còn đơn huỷ nhóm lập lại hoặc chưa kết luận còn giữ tiền thì không khai được số lớn hơn 0, kể cả cho khách khác, tới khi Kế toán xử lý tiền đó. Đơn đã có khoản khai không nhận chuyển cọc. Đây là ca chặn thêm so với Đ1 mục 2 và mục 4. Còn hở, chủ đã biết: huỷ với lý do khách đổi ý rồi khai lại vẫn đi qua.
+2. **Mở vé:** số khai chưa được đối tác nộp về công ty không tính là đã thu đủ để mở khoá vé (sửa ADR-0153 Đ3 cho riêng khoản này). Các khoản thu khác giữ quy tắc cũ.
+
 ## Phương án đã loại
 
 - **Giữ nút «Ghi khoản thu» sẵn có và nhắc sau xác nhận.** Rẻ hơn nhiều: không thêm cột, không chạm lô xác nhận, không xây trên lỗ đang hở. Đổi lại đối tác có thể quên, và không còn ô trên màn đặt vé như chủ yêu cầu. Chủ đã thấy phương án này và không chọn.
