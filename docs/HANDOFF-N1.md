@@ -20,11 +20,15 @@ Ghi 29/10/2026 từ khối tóm tắt của `npm run trien-khai` (chủ chạy `
 - Nghiệm thu: phiên kế hoạch tự chạy lại 132 bài N5 + typecheck trên nhánh; người kiểm độc lập ĐẠT. Chưa bấm «Sửa» trên production (bấm là ghi thật), chưa thử iPhone thật. Còn chờ chủ: NO-N5-4 (chữ «Chưa áp dụng cho loại nào» cạnh dòng «Sắp áp dụng»), nợ NO-N5-1…3.
 - **Hoàn tác:** `wrangler rollback` về `ba3d7b56` (2.45) an toàn — 2.46 không đổi dữ liệu.
 
-## Lần phát hành kế tiếp (chưa số): Kho vé điện tử (ADR-0153; migration `0131_ve_dien_tu`; nhánh `claude/ve-dien-tu-thi-cong-ff85a6`) — CHƯA gộp, CHƯA lên production — GHI CHÚ CHO CHỦ
+## Lần phát hành kế tiếp (chưa số): Kho vé điện tử (ADR-0153 đã ở `main`; ADR-0156 ở nhánh `claude/ve-dien-tu-qr-tran-lo`, chưa gộp; migration `0131_ve_dien_tu`, `0132_ve_qr_tran_lo`) — CHƯA lên production (kiểm chỉ đọc 2/11: `0131` chưa áp) — GHI CHÚ CHO CHỦ
+
+- **Hai điều kiện trước khi phát hành ADR-0156, cần chủ:** (a) tải **cùng một vé hai lần** từ trang nhà cung cấp rồi đưa cho phiên thi công so chuỗi QR; khác nhau thì đổi khoá sang 12 số cuối (công thức z31). (b) Vài ảnh vé Vinpearl Harbour; không có đường nhập tay nên QR khác dạng là không nhập được. Chưa kiểm: iPhone thật (đọc 50 ảnh liên tiếp).
+- **Đừng phát hành `main` một mình rồi nhập vé thật:** nếu một lần triển khai khác đi trước khi ADR-0156 được gộp, bản lên là bản gõ mã tay của ADR-0153. Gộp ADR-0156 trước, hoặc chưa nhập vé thật.
+- **Chủ cần duyệt ở ADR-0156:** trần gói Đơn hàng nới thành 103.178 byte (đo thật 103.078, chỉ thêm dữ liệu menu); thêm một dòng nợ ghi nhiều lần `POST /api/ve/lo/:id/bo` (kho R2 nằm giữa); thêm ba tệp vào `web/vendor/`.
 
 - **Việc chủ làm trước khi gộp:** kho R2 `tourdao-sales-ve-dien-tu` (chủ đã tạo 31/10); đọc diff `wrangler.jsonc` (binding `VE_DIEN_TU`, và `run_worker_first` thêm `/ve/*` cho trang khách); xem hai chỗ nới trần dung lượng gói Đơn hàng ở `src/goi-trang-nhe.test.ts` (chưa có lời duyệt riêng cho con số). Không có bí mật mới (đọc chữ AI chưa làm). Bước A.0 (nhật ký thay đổi) và cổng phiên bản làm như mọi lần.
 - **Chủ cần biết (nới nhẹ một danh sách hàng rào):** `src/shared/lan-gui-no.ts` thêm hai dòng nợ ghi nhiều lần có tên: `POST /api/ve/lo/:id/ve` (kho R2 nằm giữa nên không gộp một lô) và `POST /api/orders/:id/status` (cấp vé sau lô xác nhận, cố ý nuốt lỗi để vé hỏng không chặn xác nhận; thiếu vé thì trang đơn hiện «Thiếu N vé» + nút «Cấp vé»). Bài e2e `ve-dien-tu` (chạy bằng `npm run test:e2e -- ve-dien-tu`) đã chứng minh các lô cấp / trả vé trên D1 thật.
-- **Sau triển khai:** nhập thử một lô nhỏ ở `/ve-kho`; một đơn thu đủ thấy khối «Vé điện tử» ở trang đơn; thử đường dẫn khách trên điện thoại khác; `node scripts/audit-invariants.mjs --db remote` có ba kiểm `R-VDT-1..3`.
+- **Sau triển khai:** nhập thử một lô nhỏ ở `/ve-kho`; một đơn thu đủ thấy khối «Vé điện tử» ở trang đơn; thử đường dẫn khách trên điện thoại khác; `node scripts/audit-invariants.mjs --db remote` có bốn kiểm `R-VDT-1..4`; Toàn quyền thấy trang «Cài đặt vé điện tử», mặc định 50.
 - **Hoàn tác:** gỡ bản mới (rollback Worker) là đủ; bảng `vdt_*` chỉ thêm, bản cũ không đọc. Vé đã giao cho khách (ảnh, đường dẫn) không thu hồi được bằng rollback — thu hồi đường dẫn bằng nút «Thu hồi» trước khi gỡ.
 
 ## Lần phát hành kế tiếp: Luật bán theo loại đối tác + đặc điểm dịch vụ (ADR-0146, ADR-0152; migration `0128_dac_diem_dich_vu`, `0129_luat_ban`; nhật ký thay đổi 2.49 — số tạm) — CHƯA gộp, CHƯA lên production — RUNBOOK

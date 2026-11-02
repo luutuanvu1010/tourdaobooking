@@ -83,6 +83,11 @@ assert.equal(trung.status, 200, JSON.stringify(trung.body));
 assert.equal(trung.body.themDuoc, 1);
 assert.deepEqual(trung.body.loai.map((l) => [l.thuTu, l.lyDo]), [[0, "Ảnh này đã có trong kho, đã loại."], [1, "Mã vé đã có trong kho, đã loại."], [3, "Trùng với một ảnh khác trong đợt này."]]);
 
+// hai yêu cầu song song cùng một ảnh (ADR-0156 tiêu chí 2): một vào, một không; không có lỗi 500
+const [ss1, ss2] = await Promise.all([themVe(loTrung, [veThu(13, `E2E.${tag}.ss1`)]), themVe(loTrung, [veThu(13, `E2E.${tag}.ss2`)])]);
+assert.deepEqual([ss1.status, ss2.status], [200, 200], JSON.stringify([ss1.body, ss2.body]));
+assert.equal(ss1.body.themDuoc + ss2.body.themDuoc, 1, JSON.stringify([ss1.body, ss2.body]));
+
 // 9. trần lô: chỉ Toàn quyền đọc và đổi; ngoài khoảng 400; phiên bản cũ 409; vượt trần KHÔNG sinh lô dở; đợt sau cộng dồn với đợt trước
 assert.equal((await call(SALES, "GET", "/api/ve/cai-dat")).status, 403);
 assert.equal((await call(QT, "GET", "/api/ve/cai-dat")).status, 403);
@@ -106,6 +111,7 @@ assert.equal((await themVe(loTran, [veThu(21), veThu(22)])).body.themDuoc, 2);
 assert.equal((await themVe(loTran, [veThu(24)])).status, 400, "đợt sau cộng dồn với số vé đã có trong lô");
 assert.equal((await call(TQ, "PUT", "/api/ve/cai-dat", { tranLo: 50, version: doi.body.version })).status, 200);
 assert.equal(await demAudit("ve_doi_tran_lo"), 2, "mỗi lần đổi thắng đúng một dòng nhật ký; lần thua không ghi");
+assert.match(JSON.stringify(await sqlRows("SELECT detail FROM audit_log WHERE action = 've_doi_tran_lo'")), /50 → 2/, "nhật ký ghi số cũ, số mới");
 
 // 10. Bỏ lô đã vào kho: vé bị rút khỏi kho, xoá trên kho tệp, bỏ lần hai 409; nhập lại ĐÚNG hai ảnh và hai mã đó vào lô mới được
 const loBo = await moLo();
