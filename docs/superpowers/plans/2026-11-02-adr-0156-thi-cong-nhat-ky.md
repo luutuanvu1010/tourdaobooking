@@ -37,6 +37,11 @@ Trung 1–3 đã đóng, không có lỗi mới trên mức Thấp. Người ki�
 ## Kiểm độc lập lần 3 (2/11): ĐẠT về mã, commit `0601989d`
 Không có lỗi mức Cao hay Trung ở mã; người kiểm tự phá thử thêm và xác nhận không còn đường mở ảnh vé đã rút. Đã xử lý: ghi các chỗ lệch ADR vào §16; thêm bài cho sáu quyền ngoài ô (chỉ đỏ khi hỏng cả cổng ngoài lẫn kiểm quyền ở thân route; riêng cổng ngoài do `route-access` giữ); ẩn lô không có vé; khoá giới hạn 50 lô. Lần kiểm hẹp sau đó trên `5ec9ad5c` cũng ĐẠT về mã và bắt một câu sai trong sổ hàng rào, đã sửa. Người kiểm nhắc câu «Chỉ xem thông tin» có thể là mặc định hết giờ: phải nêu cho chủ xác nhận trong báo cáo cuối đợt.
 
+## Kiểm độc lập lần 4 (2/11): KHÔNG ĐẠT, đã xử lý
+Không có lỗi Cao. Trung 1: cùng số S/N, khác chuỗi và khác tệp thì lọt kho dù vé gốc đã mở; đã chặn ở `CHEN_VE`, `MO_ANH_VE`, hai trigger và câu đọc lý do, vì việc này chỉ siết thêm. Trung 2: `R-VDT-6` chỉ có bài cho ca trùng mã; đã thêm ca trùng tệp, trùng S/N. Trung 3: hai dòng sổ hàng rào khẳng định quá mức; đã viết lại đúng điều quan sát được. Thấp đã sửa: `opened_by` nay ghi một lần; kho hỏng lúc xem trả 503. Người kiểm nhắc lại phần khoá vĩnh viễn chưa chắc là lời chủ: đã đưa lại vào §16 và `docs/HANDOFF-N1.md`.
+
+Phá thử sau khi sửa: 38 chỗ riêng, 31 đỏ, 7 xanh đều là điều kiện lặp và đã nêu tên ở sổ hàng rào. Lần đầu có thêm 9 chỗ xanh không phải lặp (điều kiện đủ 36 ký tự, vế mã và vế dấu vân ở trigger và `MO_ANH_VE`, hai người mở cùng lúc), vì mã thử dài đủ 36 số nên vế S/N che mất hoặc chưa có bài; đã viết thêm ba bài và mở rộng bài «CSDL giữ khoá» bằng mã ngắn, chạy lại đều đỏ.
+
 ## Bằng chứng
 - Bản `5ec9ad5c` (lưu 3 ngày, «Huỷ lô», khối Lô đã huỷ gần đây): `npm test` 7107 bài, 7103 đạt, 0 đỏ (4 bài còn lại là bài đánh dấu chờ `todo` của sổ vàng và quyền tiền, có từ trước), cộng bài đo giờ 1 đạt; typecheck 0 lỗi; e2e `ve-dien-tu` 4/4; Chrome hai khổ `VE QR SMOKE OK`. Mười tám chỗ phá thử khác nhau đều đỏ đúng bài rồi hoàn nguyên; ba chỗ chạm câu đọc đã sửa được chạy lại trên bản này. Sau `5ec9ad5c` chỉ thêm bài kiểm và sửa tài liệu, mã chạy thật không đổi; bộ kiểm toàn phần không chạy lại, chỉ chạy lại các bài của module `ve-dien-tu`. Các số dưới đây là của những bản trước.
 - Trình duyệt: `ve-qr-smoke.mjs` hai khổ 390 và 1040, cần `AXE_JS`. Ảnh ở `docs/evidence/2026-11-02-ve-qr-tran-lo/anh/`, chỉ có dữ liệu thử.
@@ -51,6 +56,9 @@ Không có lỗi mức Cao hay Trung ở mã; người kiểm tự phá thử th
 ## Nợ
 - Hàng chờ xoá lấy 50 dòng cũ nhất mỗi lần: 50 dòng liên tục không xoá được sẽ chặn các dòng sau; `R-VDT-5` thấy số đếm tăng (suy luận, chưa chạy).
 - ~~Bỏ lô xen giữa lúc gửi mà lần xoá ngay cũng gặp kho hỏng~~: đã hết từ khi lưu 3 ngày. Dòng vé ở hàng chờ tới khi xoá được, `R-VDT-5` thấy nếu quá hạn.
+- Mở sát hạn 3 ngày thì vé có thể khoá mà không kịp xem ảnh (suy luận, chưa chạy); hộp báo trước không nói còn bao lâu.
+- Địa chỉ ảnh tạm của trình duyệt không thu hồi khi xem xong; chỉ tốn bộ nhớ tới khi đóng trang.
+- Sau một lần lỗi, tải lại danh sách làm gập khối «Lô đã huỷ gần đây»; người dùng mở lại là được.
 - Thua đua giữa mở ảnh và nhập lại: vé vẫn đúng, nhưng người nhập thấy câu «Vé này vừa được nhập ở nơi khác» thay vì «đã được mở ảnh». Để lại vì chỉ xảy ra trong khoảnh khắc rất ngắn và không đổi kết quả.
 - Mở ảnh là GET ghi nhật ký mỗi lần như route ảnh của đơn, nên lần mở đầu có hai dòng nhật ký: một dòng khoá, một dòng xem.
 - `COALESCE(purged_at, ?2)` ở `RUT_VE_CUA_LO` không có bài khoá: bỏ đi vẫn xanh. Chỉ có tác dụng với vé có `purged_at` cũ mà chưa rút, mà `cauDatChoXoa` chưa có nơi gọi trong mã chạy thật. Nếu sau này có nơi gọi thì xem lại, vì ảnh sẽ xoá sớm hơn 3 ngày.
