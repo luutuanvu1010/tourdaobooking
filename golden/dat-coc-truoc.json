@@ -1,0 +1,33 @@
+{
+  "_ghi_chu": "Khách đặt cọc trước (ADR-0159). Mỗi ca là một đơn của đối tác: 2 người lớn × 300.000 ₫ = 600.000 ₫. Đáp án đọc ở sổ thật qua src/so-vang-dat-coc.test.ts. Chờ Kế toán xác nhận; AI không tự đánh dấu.",
+  "cac_ca": [
+    {
+      "ma": "SV-DC-01",
+      "mo_ta": "Đối tác khai 200.000 ₫, đơn tự xác nhận (nhánh B). Người lập không phải bên đặt được hưởng.",
+      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "dau_vao": { "khai": 200000, "duong": "gui_don", "nguoi_lap_huong": false, "sau": null },
+      "dap_an": { "vai_nguoi_thu": "STAFF", "khach_da_tra": 200000, "khach_con_phai_tra": 400000, "doi_tac_giu_ho": 200000, "no_tour_dao": 200000 }
+    },
+    {
+      "ma": "SV-DC-02",
+      "mo_ta": "Đối tác được hưởng 10% khai đủ 600.000 ₫. Quản trị bấm Còn vé, rồi Đã giao không thu thêm: đối tác nợ cọc trừ hoa hồng 60.000 ₫.",
+      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "dau_vao": { "khai": 600000, "duong": "con_ve", "nguoi_lap_huong": true, "sau": "da_giao", "hoa_hong_ty_le_bp": 1000 },
+      "dap_an": { "vai_nguoi_thu": "BOOKER", "khach_da_tra": 600000, "khach_con_phai_tra": 0, "doi_tac_giu_ho": 600000, "no_tour_dao": 540000 }
+    },
+    {
+      "ma": "SV-DC-03",
+      "mo_ta": "Xác nhận với cọc 200.000 ₫ rồi huỷ vì khách đổi ý: tiền vẫn là thu trước của đơn huỷ, đối tác còn nợ đủ.",
+      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "dau_vao": { "khai": 200000, "duong": "gui_don", "nguoi_lap_huong": false, "sau": "huy" },
+      "dap_an": { "vai_nguoi_thu": "STAFF", "khach_da_tra": 200000, "khach_con_phai_tra": 0, "doi_tac_giu_ho": 200000, "no_tour_dao": 200000 }
+    },
+    {
+      "ma": "SV-DC-04",
+      "mo_ta": "Khai 300.000 ₫ nhưng văn phòng báo Hết vé: không có dòng sổ nào, đối tác không nợ.",
+      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "dau_vao": { "khai": 300000, "duong": "het_ve", "nguoi_lap_huong": false, "sau": null },
+      "dap_an": { "vai_nguoi_thu": null, "khach_da_tra": 0, "khach_con_phai_tra": 0, "doi_tac_giu_ho": 0, "no_tour_dao": 0 }
+    }
+  ]
+}

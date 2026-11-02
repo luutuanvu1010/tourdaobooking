@@ -5,6 +5,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { seedStaff } from "../../../tests/audit/harness.mjs";
+import { CHECKS, demViPham } from "../../../scripts/audit-checks.mjs";
 import { A, ACC, ADM, PARTNER, SUP, datCo, inDays, leg, setup, svc } from "../../../tests/audit/xac-nhan-khung.mjs";
 
 const AT = "2026-10-01T00:00:00.000Z";
@@ -345,6 +346,34 @@ test("ADR-0089 đ7: đơn nháp đã khai TRƯỚC khi đơn cũ bị huỷ đ�
   assert.equal(soDongSo(w, moi.id), 0);
 });
 
+test("ADR-0089 đ7: cọc CHUYỂN sang: đơn mới đã có khoản khai (đơn cũ huỷ SAU khi đơn mới xác nhận) ⇒ duyệt chuyển và lệnh chuyển đều 409, nên không tính hai lần; đơn không có khoản khai vẫn nhận được", async () => {
+  const w = dung();
+  const cu = await lapCoc(w, PARTNER, 200000);
+  assert.equal((await guiDon(w, cu.id, PARTNER)).status, 200);
+  const moi = await lapCoc(w, PARTNER, 200000);
+  assert.equal((await guiDon(w, moi.id, PARTNER)).status, 200, "đơn cũ chưa huỷ nên chưa bị cổng lập lại chặn");
+  const trong = await lapCoc(w, PARTNER, 0);
+  assert.equal((await guiDon(w, trong.id, PARTNER)).status, 200);
+  const h = await w.call("POST", `/api/orders/${cu.id}/status`, { as: PARTNER, body: { status: "cancelled", lyDo: "SAI_THONG_TIN" } });
+  assert.equal(h.status, 200, h.text);
+  const duyet = (donNhan: string) => w.call("POST", `/api/orders/${cu.id}/coc/duyet`, { as: ADM, body: { loai: "chuyen", soTien: 200000, lyDo: "Lập lại đơn cho khách", donNhan } });
+  const chan = await duyet(moi.orderCode);
+  assert.equal(chan.status, 409, chan.text);
+  assert.equal(chan.json.error.code, "coc_target_has_declared_deposit");
+  assert.equal(khoanThu(w, moi.id).length, 1);
+  const duoc = await duyet(trong.orderCode);
+  assert.ok(duoc.status === 200 || duoc.status === 201, duoc.text);
+  // Lớp hai: đã duyệt rồi đơn nhận mới có khoản khai (gieo thẳng cùng dấu) ⇒ lệnh chuyển cũng dừng, không ghi nửa nào.
+  w.sqlite.prepare(`INSERT INTO bil_payment_receipt (id, order_id, kind_code, amount, collector_party_id, collector_role_code, method_code, collected_for_party_id, stage_code, occurred_date, reverses_id, note, created_at, created_by, updated_at, updated_by)
+    SELECT 'gieo-khai', ?, kind_code, amount, collector_party_id, collector_role_code, method_code, collected_for_party_id, stage_code, occurred_date, NULL, note, created_at, created_by, updated_at, updated_by FROM bil_payment_receipt WHERE order_id = ?`).run(trong.id, moi.id);
+  const chuyen = await w.call("POST", `/api/orders/${cu.id}/coc/chuyen`, { as: ACC, body: { duyetId: duoc.json.duyetId, soTien: 200000, ngayPhatSinh: inDays(0), nguoiGiu: { partyId: `pty-${PARTNER}` } } });
+  assert.equal(chuyen.status, 409, chuyen.text);
+  assert.equal(chuyen.json.error.code, "coc_target_has_declared_deposit");
+  assert.equal(khoanThu(w, trong.id).length, 1, "lệnh chuyển không ghi thêm");
+  const noMoi = dongNo(w, moi.id).filter((d: any) => d.kind_code === "HELD");
+  assert.equal(noMoi.length, 1, "đơn có khoản khai chỉ có đúng một dòng giữ hộ");
+});
+
 test("Huỷ vì khách đổi ý: tiền giữ không chặn đơn khác của người đó (không phải ca lập lại)", async () => {
   const w = dung();
   await donHuyConTien(w, PARTNER, 200000, "KHACH_DOI_Y");
@@ -374,4 +403,27 @@ test("Kỳ đã khoá: câu khoản thu rơi vì khoá tháng ⇒ 409 lời thư
   assert.equal(g.status, 409, g.text);
   assert.equal(g.json.error.code, "period_closed");
   assert.equal(status(w, o.id), "draft");
+});
+
+// ---- Bất biến R-BIL-DC* -----------------------------------------------------------------------------------------------------------------------------------------
+const viPham = (w: any, ma: string) => { const c = (CHECKS as any[]).find((x) => x.code === ma); return demViPham(c, w.q(c.sql.replace(/\s+/g, " ").trim()).map((r: any) => ({ ...r }))); };
+test("Bất biến R-BIL-DC1…DC4: dữ liệu khoẻ 0; mỗi lỗi dựng thẳng (gỡ trigger) thì bắt được", async () => {
+  const w = dung();
+  const o = await lapCoc(w, PARTNER, 200000);
+  const n = await lapCoc(w, PARTNER, 100000);
+  assert.equal((await guiDon(w, o.id, PARTNER)).status, 200);
+  for (const ma of ["R-BIL-DC1", "R-BIL-DC2", "R-BIL-DC3", "R-BIL-DC4"]) assert.equal(viPham(w, ma), 0, ma);
+  w.sqlite.prepare(`INSERT INTO bil_payment_receipt (id, order_id, kind_code, amount, collector_party_id, collector_role_code, method_code, collected_for_party_id, stage_code, occurred_date, reverses_id, note, created_at, created_by, updated_at, updated_by)
+    SELECT 'sai', ?, kind_code, amount, collector_party_id, collector_role_code, method_code, collected_for_party_id, stage_code, occurred_date, NULL, note, created_at, created_by, updated_at, updated_by FROM bil_payment_receipt WHERE order_id = ?`).run(n.id, o.id);
+  assert.equal(viPham(w, "R-BIL-DC1"), 1);
+  w.sqlite.exec("DROP TRIGGER orders_declared_deposit_locked");
+  w.sqlite.prepare("UPDATE orders SET declared_deposit = 1000 WHERE id = ?").run(o.id);
+  assert.equal(viPham(w, "R-BIL-DC2"), 1);
+  w.sqlite.exec("DROP TRIGGER orders_declared_deposit_within_total");
+  w.sqlite.prepare("UPDATE orders SET declared_deposit = 99999999 WHERE id = ?").run(n.id);
+  assert.equal(viPham(w, "R-BIL-DC4"), 1);
+  const r = w.q("SELECT id FROM bil_payment_receipt WHERE order_id = ?", o.id)[0].id;
+  for (const t of w.q("SELECT name FROM sqlite_master WHERE type = 'trigger' AND tbl_name = 'bil_receipt_recon'")) w.sqlite.exec(`DROP TRIGGER ${t.name}`);
+  w.sqlite.prepare("INSERT INTO bil_receipt_recon (id, receipt_id, kind_code, occurred_date, created_at, created_by, updated_at, updated_by) VALUES ('d', ?, 'DECLARED', '2026-11-02', ?, ?, ?, ?)").run(r, AT, ACC, AT, ACC);
+  assert.equal(viPham(w, "R-BIL-DC3"), 1);
 });

@@ -809,6 +809,33 @@ export const CHECKS = [
     level: "fail",
   },
 
+  // ---- Khách đặt cọc trước (ADR-0159, migration 0136). Lưới thứ hai sau lính gác của lô xác nhận và trigger của cột. Dấu nhận ra khoản: ghi chú cố định `GHI_CHU_KHOAN_LOI_KHAI`. ----
+  {
+    code: "R-BIL-DC1",
+    what: "đơn nháp có khoản thu sinh từ lời khai đặt cọc (ADR-0159 Đ1 mục 2; ADR-0135 Đ7)",
+    sql: `SELECT count(*) FROM bil_payment_receipt r JOIN orders o ON o.id = r.order_id WHERE o.status = 'draft' AND r.note = 'Khách đặt cọc trước' AND r.reverses_id IS NULL`,
+    level: "fail",
+  },
+  {
+    code: "R-BIL-DC2",
+    what: "đơn đã xác nhận có lời khai đặt cọc mà không có khoản thu đúng số (ADR-0159 Đ1 mục 3)",
+    sql: `SELECT count(*) FROM orders o WHERE o.status = 'confirmed' AND o.declared_deposit > 0
+      AND NOT EXISTS (SELECT 1 FROM bil_payment_receipt r WHERE r.order_id = o.id AND r.note = 'Khách đặt cọc trước' AND r.reverses_id IS NULL AND r.amount = o.declared_deposit)`,
+    level: "fail",
+  },
+  {
+    code: "R-BIL-DC3",
+    what: "khoản thu sinh từ lời khai đặt cọc mà mang dấu chờ đối chiếu — sẽ chặn «Đã giao» (ADR-0159 Đ1 mục 3)",
+    sql: `SELECT count(*) FROM bil_receipt_recon d JOIN bil_payment_receipt r ON r.id = d.receipt_id WHERE d.kind_code = 'DECLARED' AND r.note = 'Khách đặt cọc trước' AND r.reverses_id IS NULL`,
+    level: "fail",
+  },
+  {
+    code: "R-BIL-DC4",
+    what: "đơn nháp có lời khai đặt cọc lớn hơn tổng (ADR-0159 Đ1 mục 4)",
+    sql: `SELECT count(*) FROM orders o WHERE o.status = 'draft' AND o.declared_deposit > o.total`,
+    level: "fail",
+  },
+
   // ---- Giấy tờ của người + xe (ADR-0040, Vận chuyển lượt 1a). Migration *_giay_to_cua_nguoi / *_van_chuyen_xe trở lên: D1 chưa áp thì các câu dưới lỗi
   // "no such table" → script thoát mã 2 (không phải dữ liệu sạch) — `npm run trien-khai` chạy kiểm SAU khi áp migration. Là LƯỚI THỨ HAI sau trigger/chỉ mục
   // của migration (bắt trường hợp trigger/chỉ mục bị gỡ nhầm hay SQL gõ tay đi vòng).
