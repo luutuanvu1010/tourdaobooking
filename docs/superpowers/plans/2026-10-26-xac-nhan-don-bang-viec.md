@@ -2,7 +2,9 @@
 
 Lập 26/10/2026, theo lệnh chủ: «tạo/cập nhật toàn bộ công việc cụ thể còn làm để bắt đầu lần lượt thực hiện cho đến khi hoàn thành». Đây là **sổ điều phối sống** của đợt: một bảng duy nhất (việc, xong khi, trạng thái), báo cáo theo «xong x / n». Chi tiết từng bước nằm ở kế hoạch `docs/superpowers/plans/2026-10-19-xac-nhan-don.md` (Đợt 2, Đợt 3; đã sửa 25–26/10); không chép lại ở đây. Thêm việc vào bảng phải hỏi chủ; phát hiện không chặn phát hành ghi vào mục «Nợ».
 
-Nhánh thi công: `claude/xac-nhan-don-thi-cong`, dựng từ `origin/main` `968bb603` (bản 2.33). Một nhánh, một thư mục làm việc, các lần giao chạy **lần lượt** (không song song vì cùng chạm `src/modules/orders/`).
+Nhánh thi công: `claude/xac-nhan-don-thi-cong`, dựng từ `origin/main` `968bb603` (bản 2.33).
+
+**Cập nhật 27/10 — ĐÃ PHÁT HÀNH bản 2.36** (`origin/main` `7b5c8218`, migration 0119 đã áp; trạng thái ở `docs/HANDOFF-N1.md`). K2 «đạt có điều kiện»; P và C1 xong. Còn của chủ: C0 (đếm nháp cũ có khoản thu), C2, thử tay khi tắt bảo trì. Các cột «Trạng thái» bên dưới là lúc thi công, không sửa lại. Luồng việc theo vai (chủ 27/10) sẽ thay một phần luật 2.36: `docs/superpowers/specs/2026-10-27-ban-hang-phu-trach-don-design.md`. Một nhánh, một thư mục làm việc, các lần giao chạy **lần lượt** (không song song vì cùng chạm `src/modules/orders/`).
 
 ## 1. Việc thi công (lần giao gộp, trợ lý tầm trung, người kiểm độc lập chỉ đọc)
 
