@@ -4,9 +4,11 @@ import { auditStatement } from "../audit";
 import { getEffectiveServices, tenCacNhom, tenDacDiemTheoMa } from "../catalog";
 import { datHoatDongLoaiDoiTacStatement, kiemTenLoaiDoiTac, loaiVaiChiTiet, maLoaiDoiTac, ownerCompany, suaLoaiDoiTacStatement, tenLoaiVai, themLoaiDoiTacStatement } from "../parties";
 import { khoaTen } from "../../shared/khoa-ten.ts";
+import { kiemThanGioiHan, viPhamGioiHanNhap } from "../../shared/gioi-han-nhap-muc.ts";
+import { nhanDong, nhanTyLeBp } from "../../shared/so-dai-ly-nhan.ts";
 import { kiemGhiChu } from "../../shared/ghi-chu-danh-muc.ts";
 import type { AuditAction } from "../../shared/audit-actions.ts";
-import type { CapHienHanhResponse, CommissionRuleDto, DoiMucResponse, HoaHongHoSoResponse, CommissionRuleListResponse, GanLoaiMucDto, GanLoaiMucResponse, LoaiDoiTacDto, LoaiDoiTacListResponse, LoaiDoiTacResponse, MucTaDto, MucTaListResponse, MucTaResponse,
+import type { CapHienHanhResponse, GioiHanNhapResponse, CommissionRuleDto, DoiMucResponse, HoaHongHoSoResponse, CommissionRuleListResponse, GanLoaiMucDto, GanLoaiMucResponse, LoaiDoiTacDto, LoaiDoiTacListResponse, LoaiDoiTacResponse, MucTaDto, MucTaListResponse, MucTaResponse,
   LuatBanDto, LuatBanListResponse, LuatBanResponse, NguoiHuongTimResponse, SuaGanLoaiResponse, SuaMucResponse, SuaXemTruocResponse, SupplyTermDto, SupplyTermListResponse, ThuTraResponse } from "../../shared/contracts";
 import { error, json, mauLikeChua, kemLocation, readJson } from "../../shared/http";
 import { coTheTimDoiTac } from "../../shared/hoa-hong-hien-thi";
@@ -14,11 +16,11 @@ import { can, holdsPartner } from "../../shared/permissions";
 import { route, type AppModule, type HoiDaChup } from "../../shared/router";
 import { CAU_X3_THUE_XE, NHAN_LY_DO_THIEU } from "../../shared/so-dai-ly-nhan";
 import { ngayDayDu, vnToday } from "../../shared/vn-date";
-import { cauDoiCapRieng, cauDoiChinhSach, cauSuaGanLoai, cauSuaGanRieng, cauSuaMuc, partyTiersCurrent, cauDoiMuc, allRules, allTerms, beneficiaryRoles, beneficiaryRolesAll, closeRoleTierStatement, closeRuleStatement, closeTermStatement, findBeneficiaries, groupsOf, huongCuaHoSo, insertBeneficiaryStatement,
+import { cauThemGioiHanNhap, gioiHanNhapMoiNhat, type GioiHanNhapRow, cauDoiCapRieng, cauDoiChinhSach, cauSuaGanLoai, cauSuaGanRieng, cauSuaMuc, partyTiersCurrent, cauDoiMuc, allRules, allTerms, beneficiaryRoles, beneficiaryRolesAll, closeRoleTierStatement, closeRuleStatement, closeTermStatement, findBeneficiaries, groupsOf, huongCuaHoSo, insertBeneficiaryStatement,
   insertRateTierStatement, insertRoleTierStatement, insertRulePaxStatement, insertRuleStatement, insertTermStatement, isBeneficiary, openBeneficiaryRolesAll, openRolesOf, partyTiersHistory, partyTiersOf, partyTierById, insertPartyTierStatement, closePartyTierStatement, rateTierByCode, rateTiers, roleRulesForTierLink, roleTierById, roleTiersAll,
   roleTiersOn, ruleById, rulesOn, setBeneficiaryActiveStatement, setRateTierActiveStatement, soHoSoTheoVai, suaMucTaStatement, suppliers, tenNhanVienTheoId, termById, termsOn, type PartyTierRow, type RoleTierRow, type RuleRow, type TermRow, type TierRow, type XuLyDongCu } from "./repository";
 import { MA_RE, MUC_TA_RE, PARTY_RE, capHienHanhCuaHoSo, chonMuc, cungMuc, hieuLuc, tomTatHoaHongHoSo, kiemDoi, kiemNgayDong, kiemNgung, kiemSua, xemTruocSua, kiemThanDoiChinhSach, kiemThanDieuKhoan, kiemThanDoiMuc, kiemThanDongMucTa, kiemThanGan, kiemThanGanRieng, kiemThanMuc, kiemTenMucTa, laNgay, maMucTa, moTaMuc, nguoiHuongCua,
-  type DongDieuKhoan, type DongMuc, type GanLoaiMuc, type GanRieng, type MucTheoLoai, type NguoiHuong } from "./rules";
+  type DongDieuKhoan, type DongMuc, type GanLoaiMuc, type GanRieng, type KieuMuc, type MucTheoLoai, type NguoiHuong, type PhamVi } from "./rules";
 
 import { coCacGiaTri, coGiaTri, danhSachLuatBan, demLuatBanChuaHetHan, giaTriDacDiemCua, ketThucLuatBanStatement, luatBanHieuLuc, luatBanTheoId, themLuatBanStatement, type LuatBanRow } from "./luat-ban-repo";
 import { chanBan, kiemThanLuatBan, ngayKetThucLuat, type PhamViLuatBan, type TrungLuat } from "./luat-ban-rules";
@@ -344,6 +346,22 @@ async function doiTrangThaiMuc(db: D1Database, code: string, bat: boolean, staff
   return json({ muc: (await docMucTa(db, vnToday(new Date()))).find((m) => m.code === code)! } satisfies MucTaResponse);
 }
 
+// ===== Giới hạn nhập mức hoa hồng (ADR-0161 Đ3, Đ4) =====
+const CHUA_CO_GIOI_HAN = () => error(503, "chua_co_gioi_han", "Chưa đọc được giới hạn nhập hoa hồng — thử lại sau ít phút.");
+const dtoGioiHan = (r: GioiHanNhapRow): GioiHanNhapResponse => ({ tranTyLeBp: r.max_rate_bp, buocTien: r.amount_step, tuLuc: r.valid_from_at });
+/**
+ * CỔNG DUY NHẤT cho mọi route ghi mức có SỐ MỚI (ADR-0161 Đ3, Đ4): Thêm mức, Thêm dòng của cấp, Đổi, Sửa có số mới — gọi NGAY TRƯỚC lô ghi (sau mọi lời kiểm thân, nên số quá lớn vẫn nhận câu cũ).
+ * Trả `Response` 400 (câu tiếng Việt của luật thuần) hoặc null. Đọc giới hạn MỚI NHẤT mỗi lần gọi: Toàn quyền vừa đổi thì hộp đang mở bị từ chối theo số mới. Không áp lại dòng đã có, không đụng đơn
+ * đã chụp; «Ghi mức tay» của đơn không đi qua đây (đường ngoại lệ). Bài quét `ghi-muc-qua-cong.test.ts` canh: không route nào gọi câu ghi mức mà thiếu cổng này.
+ */
+async function kiemSoMucMoi(db: D1Database, m: { kind: KieuMuc; rateBp: number | null; perPaxAmount: number | null; theoLoai?: MucTheoLoai | null }, _pv: { scope: PhamVi; catalogCode: string | null }): Promise<Response | null> {
+  const gh = await gioiHanNhapMoiNhat(db);
+  if (!gh) return CHUA_CO_GIOI_HAN();
+  const soTien = [m.perPaxAmount, m.theoLoai?.child ?? null, m.theoLoai?.senior ?? null].filter((x): x is number => x !== null);
+  const loi = viPhamGioiHanNhap({ tyLeBp: m.kind === "RATE" ? m.rateBp : null, soTien: m.kind === "PER_PAX" ? soTien : [] }, { tranTyLeBp: gh.max_rate_bp, buocTien: gh.amount_step });
+  return loi ? error(400, "invalid_input", loi) : null;
+}
+
 // ===== Luật bán theo loại đối tác (ADR-0146 Đ1, Đ5; ADR-0152 Đ2; kế hoạch 2026-10-30 T6) =====
 const FORBIDDEN_LB = () => error(403, "forbidden", "Chỉ Bán hàng, Quản trị, Toàn quyền đặt và kết thúc luật bán.");
 const LUAT_ID_RE = /^[0-9a-f-]{36}$/;
@@ -396,6 +414,8 @@ export const pricingModule: AppModule = {
       if (!kq.ok) return error(400, "invalid_input", kq.message);
       const v = kq.value;
       if (v.scope === "SERVICE" && !(await getEffectiveServices(env.DB, [v.catalogCode!])).has(v.catalogCode!)) return error(400, "invalid_input", "Không có dịch vụ này trong danh mục.");
+      const chanSo = await kiemSoMucMoi(env.DB, v, { scope: v.scope, catalogCode: v.catalogCode });
+      if (chanSo) return chanSo;
       const tenVai = await tenLoaiVai(env.DB);
       const at = new Date().toISOString();
       const id = crypto.randomUUID();
@@ -444,6 +464,8 @@ export const pricingModule: AppModule = {
       const doi = kiemDoi({ cu: dongCoNgay(row), tuNgay: than.value.validFrom, homNay, ngayChup: chup.ngay });
       if (!doi.ok) return error(400, "invalid_input", doi.error);
       if (cungMuc(dongMuc(row), than.value)) return error(400, "invalid_input", "Mức mới giống hệt mức cũ.");
+      const chanSo = await kiemSoMucMoi(env.DB, than.value, { scope: row.scope, catalogCode: row.catalog_code });
+      if (chanSo) return chanSo;
       const tenVai = await tenLoaiVai(env.DB);
       const at = new Date().toISOString();
       const moiId = crypto.randomUUID();
@@ -484,6 +506,11 @@ export const pricingModule: AppModule = {
       const giongSo = cungMuc(dongMuc(row), than.value) && than.value.note === row.note;
       const k = kiemSua({ cu: dongCoNgay(row), moi: { validFrom: than.value.validFrom, validTo: than.value.validTo }, ngayChup: chup.ngay, homNay, lyDo: lyDoCua(body), giongSo });
       if (!k.ok) return error(400, "invalid_input", k.error);
+      // ADR-0161 Đ3: chỉ kiểm khi SỐ đổi (không so ghi chú) — dòng cũ vượt giới hạn mới (Toàn quyền vừa hạ trần) vẫn sửa được ngày.
+      if (!cungMuc(dongMuc(row), than.value)) {
+        const chanSo = await kiemSoMucMoi(env.DB, than.value, { scope: row.scope, catalogCode: row.catalog_code });
+        if (chanSo) return chanSo;
+      }
       const tenVai = await tenLoaiVai(env.DB);
       const at = new Date().toISOString();
       const moiId = crypto.randomUUID();
@@ -498,6 +525,39 @@ export const pricingModule: AppModule = {
       if (dongDaDong(res)) return error(409, "stale", "Dòng này vừa được người khác sửa hoặc ngừng. Tải lại trang.");
       const [cu, moi] = await Promise.all([ruleById(env.DB, id), ruleById(env.DB, moiId)]);
       return json({ duong: k.duong, cu: dtoMuc(cu!, tenVai, homNay), moi: dtoMuc(moi!, tenVai, homNay) } satisfies SuaMucResponse);
+    }),
+    // ADR-0161 Đ3: GIỚI HẠN NHẬP mức hoa hồng. ĐỌC: cổng `office`, ô `partner.commission.view` và không giữ quyền Đối tác (hộp nhập hỏi giới hạn để báo sớm; máy chủ vẫn kiểm lại). GHI: cổng `admin`,
+    // thân hỏi `settings.ops` (chỉ Toàn quyền). Khuôn `/api/cai-dat/an-thong-tin-khach`: bảng chỉ-thêm, MỘT lô = dòng mới + nhật ký; `tuLuc` ≠ mốc dòng mới nhất ⇒ 409 `stale`; gửi đúng số đang
+    // hiệu lực ⇒ 200, không ghi; va UNIQUE `valid_from_at` ⇒ 409 `stale` (lô lui trọn, không để lại nhật ký). Đổi giới hạn KHÔNG đổi dòng mức đã có hay đơn đã chụp.
+    route("GET", "/api/pricing/gioi-han-nhap", "office", async ({ env, staff }) => {
+      if (!can(staff, "partner.commission.view") || holdsPartner(staff)) return FORBIDDEN();
+      const r = await gioiHanNhapMoiNhat(env.DB);
+      return r ? json(dtoGioiHan(r)) : CHUA_CO_GIOI_HAN();
+    }),
+    route("POST", "/api/pricing/gioi-han-nhap", "admin", async ({ env, request, staff }) => {
+      if (!can(staff, "settings.ops")) return error(403, "forbidden", "Chỉ Toàn quyền đổi giới hạn nhập hoa hồng.");
+      const kq = kiemThanGioiHan(await readJson(request));
+      if (!kq.ok) return error(400, "invalid_input", kq.message);
+      const hien = await gioiHanNhapMoiNhat(env.DB);
+      if (!hien) return CHUA_CO_GIOI_HAN();
+      const v = kq.value;
+      if (v.tuLuc !== hien.valid_from_at) return error(409, "stale", "Giới hạn vừa được người khác đổi — tải lại rồi thử lại.");
+      if (v.tranTyLeBp === hien.max_rate_bp && v.buocTien === hien.amount_step) return json(dtoGioiHan(hien));
+      // Mốc dòng mới = max(lúc ghi, mốc dòng mới nhất + 1 ms): hai lần đổi liền nhau không va UNIQUE, dòng sau luôn đi sau dòng trước (khuôn `lanSau` của orders, chép một dòng — không import).
+      const now = new Date();
+      const tuLuc = (Date.parse(hien.valid_from_at) >= now.getTime() ? new Date(Date.parse(hien.valid_from_at) + 1) : now).toISOString();
+      const at = now.toISOString();
+      try {
+        await env.DB.batch([
+          cauThemGioiHanNhap(env.DB, { id: crypto.randomUUID(), tranTyLeBp: v.tranTyLeBp, buocTien: v.buocTien, tuLuc, at, by: staff.id }),
+          auditStatement(env.DB, { staffId: staff.id, action: "prc_entry_limit_changed", at, targetType: "ledger",
+            detail: `trần ${nhanTyLeBp(hien.max_rate_bp)} → ${nhanTyLeBp(v.tranTyLeBp)} · bước ${nhanDong(hien.amount_step)}đ → ${nhanDong(v.buocTien)}đ` }),
+        ]);
+      } catch (e) {
+        if (/UNIQUE constraint failed: prc_entry_limit_policy/i.test(String((e as Error)?.message ?? e))) return error(409, "stale", "Giới hạn vừa được người khác đổi — tải lại rồi thử lại.");
+        throw e;
+      }
+      return json({ tranTyLeBp: v.tranTyLeBp, buocTien: v.buocTien, tuLuc } satisfies GioiHanNhapResponse);
     }),
     // ADR-0146 Đ5: LUẬT BÁN theo loại đối tác — cổng văn phòng, ô `sales.block.write` (Bán hàng, Quản trị, Toàn quyền) ở dòng đầu thân; tài khoản giữ quyền Đối tác (kể cả lai) bị
     // chặn ở cả đọc lẫn ghi (chủ chọn Q-2 (a): không tự gỡ luật đang chặn chính mình). Bảng chỉ thêm: thêm dòng, đặt ngày kết thúc MỘT lần; dữ liệu + nhật ký MỘT lô.
@@ -787,6 +847,8 @@ export const pricingModule: AppModule = {
       if (!kq.ok) return error(400, "invalid_input", kq.message);
       const v = kq.value;
       if (v.scope === "SERVICE" && !(await getEffectiveServices(env.DB, [v.catalogCode!])).has(v.catalogCode!)) return error(400, "invalid_input", "Không có dịch vụ này trong danh mục.");
+      const chanSo = await kiemSoMucMoi(env.DB, v, { scope: v.scope, catalogCode: v.catalogCode });
+      if (chanSo) return chanSo;
       const at = new Date().toISOString();
       const id = crypto.randomUUID();
       const res = await chayLo(env.DB, [

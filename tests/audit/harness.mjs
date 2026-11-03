@@ -126,6 +126,17 @@ export function seedStaff(sqlite, { id, phone, name, perms }) {
   if (grace) sqlite.prepare("UPDATE staff SET mfa_grace_until = ? WHERE id = ?").run(grace, id);
 }
 
+/**
+ * ADR-0161 Đ3 (kế hoạch 2026-11-03 Task 1): nới GIỚI HẠN NHẬP mức hoa hồng của `w` (trần 100%, bước 1 đ) bằng cách chèn thêm MỘT dòng chỉ-thêm — đúng đường Toàn quyền đổi giới hạn, chỉ khác là chèn thẳng.
+ * CHỈ cho bài cố ý dùng «số lạ» (vd 48,17%, 480.017 đ/khách) làm dấu để dò rò rỉ hay thử làm tròn, chứ không kiểm giới hạn: bài đó giữ nguyên số đầu vào và đáp án, chỉ gọi hàm này ở phần gieo.
+ * Mốc dòng mới = mốc lớn nhất hiện có + 1 ms (dòng gieo của migration lấy giờ thật lúc dựng `world()`; bài mock đồng hồ về quá khứ vẫn thấy dòng này là dòng mới nhất).
+ */
+export function noiGioiHanNhap(w) {
+  const moiNhat = w.sqlite.prepare("SELECT max(valid_from_at) AS m FROM prc_entry_limit_policy").get().m;
+  const tuLuc = new Date(Date.parse(moiNhat) + 1).toISOString();
+  w.sqlite.prepare("INSERT INTO prc_entry_limit_policy (id, max_rate_bp, amount_step, valid_from_at, created_at, updated_at) VALUES (?, 10000, 1, ?, ?, ?)").run(`noi-gioi-han-${tuLuc}`, tuLuc, tuLuc, tuLuc);
+}
+
 /** Mã chính sách của mốc GIẢ khung thử (Ruling N-9 (iii)) — bài thấy mã này trong dữ liệu là biết mình đang chạy mốc giả. */
 export const MOC_GIA_POLICY_ID = "moc-gia-khung-thu";
 

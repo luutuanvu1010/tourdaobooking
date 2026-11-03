@@ -8,7 +8,7 @@ import assert from "node:assert/strict";
 import type { CompanyDto, OrderDetailDto } from "../../shared/contracts.ts";
 import { dungBienNhan } from "./rules.ts";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
-import { world, seedStaff } from "../../../tests/audit/harness.mjs";
+import { world, seedStaff, noiGioiHanNhap } from "../../../tests/audit/harness.mjs";
 
 const LA = "480017";
 const coLo = (json: string) => json.includes(LA) || json.includes("480.017");
@@ -211,8 +211,9 @@ let seq = 0;
 const uuid = () => `93939393-9393-4939-8939-${String(++seq).padStart(12, "0")}`;
 type W = ReturnType<typeof world>;
 
-async function dung(o: { tenHdv?: string; tyLeMuaBp?: number; hoaHong?: { kieu: "RATE"; tyLeBp: number } | { kieu: "PER_PAX"; moiKhach: number } } = {}): Promise<{ w: W; ct: string }> {
+async function dung(o: { tenHdv?: string; tyLeMuaBp?: number; hoaHong?: { kieu: "RATE"; tyLeBp: number } | { kieu: "PER_PAX"; moiKhach: number }; noiGioiHan?: boolean } = {}): Promise<{ w: W; ct: string }> {
   const w = world();
+  if (o.noiGioiHan) noiGioiHanNhap(w); // ADR-0161 Đ3: dấu «số lạ» để dò rò rỉ KHÔNG chia hết 1.000 — nới giới hạn nhập, giữ nguyên số và đáp án.
   for (const [id, phone, name, perms] of [
     [R_SALES, "0900000001", "An Bán", ["SALES"]], [R_HDV, "0900000002", o.tenHdv ?? "Nam HDV", ["FIELD"]], [R_SUPER, "0900000003", "Chủ", ["SUPER_ADMIN"]],
     [R_KT, "0900000005", "Lan Kế Toán", ["ACCOUNTING"]], [R_PT, "0900000008", "Hương Lễ Tân", ["PARTNER"]],
@@ -326,7 +327,7 @@ test("Task 8 «thu cho» rồi Kế toán đảo (route thật — M-1 người 
 
 test("Task 8 số lạ (route thật): a% 48,17% (4817), giá vốn 470.019, hoa hồng 460.023/khách, HDV «Nam Số Lạ 4817» thu — sau «Đã giao» biên nhận của Bán hàng, Đối tác, Kế toán không chứa số / tên nào; Kế toán THẤY chúng ở phần thương mại (có răng)", async () => {
   // 975.750 × 48,17% = 470.018,775 ⇒ làm tròn 470.019 (giá vốn); hoa hồng 460.023 đ/khách × 1 khách mỗi dòng. Không số tiền nào khác chứa số lạ.
-  const { w } = await dung({ tenHdv: "Nam Số Lạ 4817", tyLeMuaBp: 4817, hoaHong: { kieu: "PER_PAX", moiKhach: 460_023 } });
+  const { w } = await dung({ tenHdv: "Nam Số Lạ 4817", tyLeMuaBp: 4817, hoaHong: { kieu: "PER_PAX", moiKhach: 460_023 }, noiGioiHan: true });
   const id = await don(w, { owner: R_PT, dichVu: [VE_HT, { ten: "Vé tắm bùn i-resort", catalog: "IRESORT", khach: 1, donGia: 975_750 }] });
   await thuR(w, R_HDV, id, { soTien: 500_000, nguoiThu: "toi", ghiChu: "thu ở cảng 4817" });
   await thuR(w, R_KT, id, { soTien: 975_750, nguoiThu: { partyId: R_NCC } });

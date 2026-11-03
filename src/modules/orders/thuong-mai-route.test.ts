@@ -5,7 +5,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
-import { world, seedStaff } from "../../../tests/audit/harness.mjs";
+import { world, seedStaff, noiGioiHanNhap } from "../../../tests/audit/harness.mjs";
 
 const SALES = "11111111-1111-4111-8111-111111111111";
 const FIELD = "22222222-2222-4222-8222-222222222222";
@@ -249,6 +249,7 @@ test("(3d) tài khoản lai Bán hàng + Đối tác KHÔNG mở được phần
 test("(3d2) MỌI tài khoản lai — Bán hàng / Kế toán / Quản trị / Toàn quyền / HDV được giao đơn / Thực tập + Đối tác — đọc phần đối tác đơn của đại lý B (xác nhận, nháp) ⇒ 404, thân không có số của B; Thực tập + Đối tác trên đơn CỦA MÌNH mà bên đặt là B ⇒ 404", async () => {
   // M2 của người kiểm Task 5 (Ruling 23): bài route nối hàm `cheDoThuongMai` với route cho cả sáu loại tài khoản lai — bài 1024 tập quyền chỉ thử hàm thuần.
   const w = setup();
+  noiGioiHanNhap(w); // ADR-0161 Đ3: dấu «số lạ» để dò rò rỉ KHÔNG chia hết 1.000 — nới giới hạn nhập, giữ nguyên số và đáp án.
   const LAI_QT = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa3"; // ADMIN + PARTNER
   const LAI_TQ = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa4"; // SUPER_ADMIN + PARTNER
   const LAI_HDV = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa5"; // FIELD + PARTNER, được giao đơn đã xác nhận của B
@@ -297,6 +298,7 @@ test("(3e) Đối tác A có hồ sơ được hưởng, đơn của mình, ngư
 
 test("(3f) Đối tác A, đơn của mình nhưng bên đặt là hồ sơ đại lý B (gieo bằng SQL) ⇒ 404 cả đơn xác nhận lẫn đơn nháp; không thân có số (số tiền riêng của B không lộ cho A)", async () => {
   const w = setup();
+  noiGioiHanNhap(w); // ADR-0161 Đ3: dấu «số lạ» để dò rò rỉ KHÔNG chia hết 1.000 — nới giới hạn nhập, giữ nguyên số và đáp án.
   assert.equal((await muc(w, { ...mucVai(), doiTuong: { loai: "DOI_TAC", partyId: `pty-${DT_B}` }, kieu: "PER_PAX", tyLeBp: undefined, moiKhach: 480_017 })).status, 201);
   const nhapAB = nhap(w, DT_A, `pty-${DT_B}`, [["HONTAM", 2_000_000]]);
   // Đơn xác nhận của A mà bên đặt là B (đơn nháp gieo bằng SQL như người kiểm; xác nhận bằng route thật ⇒ bản chụp có người hưởng B và mức riêng 480.017đ/khách của B).

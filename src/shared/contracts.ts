@@ -2915,6 +2915,11 @@ export interface MucTaDto {
 export interface GanRiengDto { id: string; partyId: string; ten: string; muc: string; tenMuc: string; tuNgay: string; denNgay: string | null }
 export interface MucTaListResponse { homNay: string; muc: MucTaDto[]; loai: { code: string; ten: string }[]; ganRieng: GanRiengDto[] }
 export interface MucTaResponse { muc: MucTaDto }
+/**
+ * Giới hạn nhập mức hoa hồng (ADR-0161 Đ3): `GET`/`POST /api/pricing/gioi-han-nhap`. `tranTyLeBp` = trần phần trăm khi nhập (phần vạn, 5000 = 50%); `buocTien` = bước số tiền (đồng);
+ * `tuLuc` = mốc hiệu lực của dòng này — hộp gửi lại khi đổi để máy chủ phát hiện người khác vừa đổi (409 `stale`). Chỉ áp cho số MỚI nhập, không áp lại dòng mức đã có.
+ */
+export interface GioiHanNhapResponse { tranTyLeBp: number; buocTien: number; tuLuc: string }
 /** Gắn loại↔mức: 201 kèm `dongRieng` = dòng riêng theo loại (bậc 4–6) còn hiệu lực trong khoảng gắn, của loại này VÀ của mọi loại mà hồ sơ mang loại này đang mang — các dòng đó thắng TA (cảnh báo, không chặn — N-17). */
 export interface GanLoaiMucResponse { gan: GanLoaiMucDto; dongRieng: CommissionRuleDto[] }
 /** Góp ý YC-0020: «Hoa hồng hiện hành» của một hồ sơ (chỉ đọc). `muc` = mức TA loại đó đang gắn (null = chưa gắn). Chỉ mã, tên, số đếm — không tỷ lệ, không số liệu hồ sơ. */

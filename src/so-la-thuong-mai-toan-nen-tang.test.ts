@@ -24,7 +24,7 @@ import { HANH_DONG_TIN_CHUYEN } from "./shared/tin-chuyen.ts";
 import { THAY_DOI } from "./shared/bang-tin.ts";
 import { hanhDongCuaThayDoi } from "./shared/web-push.ts";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
-import { seedStaff } from "../tests/audit/harness.mjs";
+import { seedStaff, noiGioiHanNhap } from "../tests/audit/harness.mjs";
 import {
   ACC, ADM, DRIVER, DRIVER2, DRIVER_PARTNER, FIELD, INTERN, NGAY, PARTNER, SALES, SUP, batDongHo, chuyenSan, denGio, nhaXeKhung, setup, tienDo, uuid, xe,
 } from "../tests/audit/dieu-phoi-khung.mjs";
@@ -248,6 +248,7 @@ const KQ = async (p: Promise<Res>, ma: number, ten: string): Promise<Res> => {
 
 /** Dựng thế giới: tài khoản, vai, bảng mức + điều khoản (qua route thật của Kế toán), đơn của A, đơn của B (xác nhận + ghi tay, nháp), đơn nháp bên đặt B của mỗi tài khoản lai, chuyến xe, góp ý, tin. */
 async function gieo(w: W): Promise<Gieo> {
+  noiGioiHanNhap(w); // ADR-0161 Đ3: dấu «số lạ» để dò rò rỉ KHÔNG chia hết 1.000 — nới giới hạn nhập, giữ nguyên số và đáp án.
   THUAN.forEach((t, i) => { if (!KHUNG[t.permissions[0]!]) seedStaff(w.sqlite, { id: t.id, phone: `0911000${String(i).padStart(3, "0")}`, name: `Thuần ${t.permissions[0]}`, perms: t.permissions }); });
   LAI.forEach((t, i) => seedStaff(w.sqlite, { id: t.id, phone: `0912000${String(i).padStart(3, "0")}`, name: `Lai ${t.permissions[0]}`, perms: t.permissions }));
   seedStaff(w.sqlite, { id: DT_B, phone: "0913000001", name: "Đại Lý Bê", perms: ["PARTNER"] });

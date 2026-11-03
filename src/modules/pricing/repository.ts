@@ -172,6 +172,10 @@ const GAN_RIENG_DANG_SAP = defineSql("pricing", "party_tiers_current",
 const NHA_CUNG_CAP = defineSql("pricing", "suppliers",
   `SELECT l.id, l.display_name FROM v_pty_party_label l WHERE l.active = 1 AND EXISTS (SELECT 1 FROM v_pty_open_role r WHERE r.party_id = l.id AND r.role_type_code = 'SUPPLIER')
    ORDER BY l.display_name`);
+// ADR-0161 Đ3 (migration 0137): giới hạn nhập mức hoa hồng, CHỈ-THÊM — dòng hiệu lực = `valid_from_at` lớn nhất (khuôn `ord_confirm_policy`). Khoá lạc quan của route đổi = mốc `valid_from_at` đã đọc.
+const GIOI_HAN_MOI_NHAT = defineSql("pricing", "entry_limit_latest", "SELECT max_rate_bp, amount_step, valid_from_at FROM prc_entry_limit_policy ORDER BY valid_from_at DESC LIMIT 1");
+const GIOI_HAN_THEM = defineSql("pricing", "entry_limit_insert",
+  `INSERT INTO prc_entry_limit_policy (id, max_rate_bp, amount_step, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?5, ?6)`);
 
 export const allRules = async (db: D1Database) => (await db.prepare(MUC_TAT_CA).all<RuleRow>()).results;
 export const rulesOn = async (db: D1Database, ngay: string) => (await db.prepare(MUC_NGAY).bind(ngay).all<RuleRow>()).results;
@@ -285,3 +289,8 @@ export const cauSuaGanRieng = (db: D1Database, cuId: string, denDaDoc: string | 
 ];
 export const roleRulesForTierLink = async (db: D1Database, roleTypeCode: string, tu: string, den: string | null) =>
   (await db.prepare(DONG_RIENG_CHO_GAN).bind(roleTypeCode, tu, den).all<RuleRow>()).results;
+export interface GioiHanNhapRow { max_rate_bp: number; amount_step: number; valid_from_at: string }
+/** Dòng giới hạn nhập đang hiệu lực (`valid_from_at` lớn nhất); null chỉ khi bảng rỗng (không xảy ra sau migration 0137 — dòng gieo, bảng chỉ-thêm). */
+export const gioiHanNhapMoiNhat = (db: D1Database): Promise<GioiHanNhapRow | null> => db.prepare(GIOI_HAN_MOI_NHAT).first<GioiHanNhapRow>();
+export const cauThemGioiHanNhap = (db: D1Database, v: { id: string; tranTyLeBp: number; buocTien: number; tuLuc: string; at: string; by: string }): D1PreparedStatement =>
+  db.prepare(GIOI_HAN_THEM).bind(v.id, v.tranTyLeBp, v.buocTien, v.tuLuc, v.at, v.by);

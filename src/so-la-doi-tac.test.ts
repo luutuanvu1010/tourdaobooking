@@ -10,7 +10,7 @@ import { HANH_DONG_TIN_CHUYEN } from "./shared/tin-chuyen.ts";
 import { THAY_DOI } from "./shared/bang-tin.ts";
 import { hanhDongCuaThayDoi } from "./shared/web-push.ts";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
-import { world, seedStaff } from "../tests/audit/harness.mjs";
+import { world, seedStaff, noiGioiHanNhap } from "../tests/audit/harness.mjs";
 
 const SALES = "11111111-1111-4111-8111-111111111111";
 const KT = "44444444-4444-4444-8444-444444444444";
@@ -70,6 +70,7 @@ const khoaCua = (x: unknown): string[] => (Array.isArray(x) ? x.flatMap(khoaCua)
 /** Dựng thế giới: A có đơn của mình (Kế toán ghi tay 48,17%), B có mức riêng 480.017đ/khách và đơn của mình, nhà cung cấp mua lại 48,17%, tài khoản lai có đơn của mình. */
 async function dungThe() {
   const w = setup();
+  noiGioiHanNhap(w); // ADR-0161 Đ3: dấu «số lạ» để dò rò rỉ KHÔNG chia hết 1.000 — nới giới hạn nhập, giữ nguyên số và đáp án.
   const KQ = async (r: Promise<{ status: number; text: string; json: any }>, ma: number) => { const x = await r; assert.equal(x.status, ma, x.text); return x; };
   await KQ(w.call("POST", "/api/pricing/hoa-hong", { as: KT, body: { tuNgay: "2026-01-01", doiTuong: { loai: "VAI", code: "TRAVEL_AGENCY" }, phamVi: "ALL", kieu: "RATE", tyLeBp: 1000 } }), 201);
   await KQ(w.call("POST", "/api/pricing/hoa-hong", { as: KT, body: { tuNgay: "2026-01-01", doiTuong: { loai: "DOI_TAC", partyId: `pty-${DT_B}` }, phamVi: "ALL", kieu: "PER_PAX", moiKhach: 480_017 } }), 201);

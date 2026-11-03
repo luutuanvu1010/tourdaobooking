@@ -261,6 +261,8 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/pricing/muc-ta/:code/tat", access: "office" },
   { method: "POST", path: "/api/pricing/muc-ta/:code/bat", access: "office" },
   { method: "POST", path: "/api/pricing/muc-ta/:code/dong", access: "office" }, // thêm MỘT DÒNG cho mức (đóng dòng: POST /api/pricing/hoa-hong/:id/dong)
+  { method: "GET", path: "/api/pricing/gioi-han-nhap", access: "office" }, // partner.commission.view + không giữ quyền Đối tác — ADR-0161 Đ3 đọc giới hạn nhập mức hoa hồng (hai con số + mốc hiệu lực)
+  { method: "POST", path: "/api/pricing/gioi-han-nhap", access: "admin" }, // settings.ops (chỉ Toàn quyền) — ADR-0161 Đ3 đổi giới hạn nhập: bảng chỉ-thêm, một lô dòng mới + nhật ký
   { method: "GET", path: "/api/pricing/nguoi-huong", access: "orders" }, // order.create và không phải Đối tác — tìm người hưởng theo tên cho form lập đơn
   // Sổ đại lý đợt 1 (module orders — ADR-0077 điều 10–11; đặc tả §6, Task 5): phần thương mại của đơn. Đọc: order.view + order.terms.view phạm vi đơn (Đối tác nhận DTO hẹp); ghi: order.terms.override, không bao giờ cho tài khoản có quyền Đối tác.
   { method: "GET", path: "/api/orders/:id/thuong-mai", access: "orders" },
@@ -710,6 +712,7 @@ test("mức truy cập của 424 route hiện có khớp ảnh chụp đã duy�
   // 2026-10-31 (mã định danh 5.26, Task 4): + PATCH /api/pricing/muc-ta/:code (office; partner.commission.write, không Đối tác) = 420.
   // 2026-11-02 (ADR-0154 Đ2.1, lượt 2 Task 2.1): + GET (orders), POST (admin) /api/cai-dat/an-thong-tin-khach = 422.
   // 2026-11-02 (ADR-0155 Đ2.5, lượt 2 Task 4.1): + GET /api/pricing/cap-hien-hanh (office; partner.commission.view, không Đối tác) = 423.
-  assert.equal(actual.length, 438, "số route thực tế lệch 438 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 438, "SNAPSHOT phải có đúng 438 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // 2026-11-03 (ADR-0161 Đ3, Task 1): + GET (office; partner.commission.view, không Đối tác), POST (admin; settings.ops) /api/pricing/gioi-han-nhap = 440 (hai route mới của giới hạn nhập mức hoa hồng).
+  assert.equal(actual.length, 440, "số route thực tế lệch 440 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 440, "SNAPSHOT phải có đúng 440 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

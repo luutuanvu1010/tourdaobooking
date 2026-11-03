@@ -142,6 +142,9 @@ export const AUDIT_ACTIONS = {
   prc_commission_rule_voided: { label: "Huỷ mức hoa hồng nhập sai (đã thay bằng dòng sửa)", group: "ledger" },
   prc_role_tier_voided: { label: "Huỷ lần áp dụng cấp độ đại lý cho vai trò (đã thay bằng dòng sửa)", group: "ledger" },
   prc_party_tier_voided: { label: "Huỷ cấp riêng của đối tác (đã thay bằng dòng sửa)", group: "ledger" },
+  // ADR-0161 Đ3: Toàn quyền đổi GIỚI HẠN NHẬP mức hoa hồng (trần phần trăm, bước số tiền; POST /api/pricing/gioi-han-nhap) — `target_type = 'ledger'`, không gắn đơn;
+  // `detail` = «trần 50% → 60% · bước 1.000đ → 1.000đ» (hai con số, không dữ liệu cá nhân). Đổi giới hạn không đổi dòng mức đã có hay đơn đã chụp.
+  prc_entry_limit_changed: { label: "Đổi giới hạn nhập hoa hồng", group: "ledger" },
   // Khoá sổ tháng (ADR-0080 D1; module ky-so — route ở billing): `order_id` NULL; `detail` = "Khoá sổ tháng MM/YYYY" (không tiền, không SĐT).
   ledger_period_closed: { label: "Khoá sổ tháng", group: "ledger" },
   order_handler_changed: { label: "Đổi người phụ trách", group: "order" },
