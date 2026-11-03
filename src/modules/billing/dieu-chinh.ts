@@ -163,7 +163,7 @@ export async function duyetYeuCau(db: D1Database, input: { yeuCauId: string; ai:
     // Dòng ghi SỐ DƯ trước / sau (như lệnh điều chỉnh cũ) — chỉ khi dòng nợ đã chèn.
     auditStatement(db, { orderId: y.order_id, staffId: by, action: "ledger_adjustment", at, detail: chiTiet }, "changes() > 0"),
   ];
-  // Tin "điều chỉnh đổi số dư của bạn" (đóng ADR-0092 Đ5d): bên bị đổi là nhân viên có tài khoản, không phải công ty chủ, không phải người tạo (đã có tin "đã duyệt").
+  // Tin "điều chỉnh đổi số dư của bạn" (đóng ADR-0092 Đ5d, ADR-0115 điều 5): bên bị đổi là hồ sơ có tài khoản (nhân viên, Đối tác, Tài xế đối tác), không phải công ty chủ, không phải người tạo (đã có tin "đã duyệt").
   const bi = [y.debtor_party_id, y.creditor_party_id].flatMap((p) => (p !== congTyId && taiKhoan.has(p) && taiKhoan.get(p) !== y.created_by ? [taiKhoan.get(p)!] : []));
   for (const nv of [...new Set(bi)]) {
     stmts.push(auditStatement(db, { orderId: y.order_id, staffId: by, action: "ledger_adjustment_affected", at, targetType: "staff", targetId: nv, detail: "Số dư của bạn trên đơn vừa được điều chỉnh" }, "changes() > 0"));

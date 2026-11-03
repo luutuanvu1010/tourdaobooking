@@ -72,6 +72,36 @@ test("ADR-0131: tin điều chỉnh công nợ — Kế toán nhận câu không
   assert.ok(!JSON.stringify(xem(ai("sup2", "SUPER_ADMIN", "PARTNER"), [dc()])).includes("Hùng"));
 });
 
+test("ADR-0092 Đ5d / ADR-0115 điều 5: «số dư của bạn đổi» tới MỌI tài khoản của bên bị đổi — Đối tác, Tài xế đối tác cũng nhận (câu nhắc liên hệ văn phòng); người khác không", () => {
+  const dc = (o: Partial<DongDieuChinh> = {}): DongDieuChinh => ({ id: "dc" + Math.random(), maDon: "TD-20260927-0001", action: "ledger_adjustment_affected", mucLoai: "staff", mucId: "bx",
+    actorId: "kt", tenNguoiLam: "Hà Kế Toán", luc: "2026-09-27T02:00:00.000Z", ...o });
+  const xem = (staff: ReturnType<typeof ai>, d: DongDieuChinh[]) => locHopThongBao(staff, { don: [], thuCong: [], dieuChinh: d, docDenLuc: "2026-09-26T00:00:00.000Z", now: NOW, ngan: "cua-toi" }).tin;
+  const CAU_NGOAI = "Số dư của bạn trên đơn TD-20260927-0001 vừa được điều chỉnh — liên hệ văn phòng để biết chi tiết";
+  const CAU_NOI_BO = "Số dư của bạn trên đơn TD-20260927-0001 vừa được điều chỉnh";
+  // Đối tác thuần và Tài xế đối tác: không xem được sổ của mình ⇒ câu nhắc liên hệ văn phòng; liên kết /account (không phải trang văn phòng).
+  const tx = ai("tx", "DRIVER_PARTNER");
+  for (const [staff, mucId] of [[BX, "bx"], [tx, "tx"]] as const) {
+    const t = xem(staff, [dc({ mucId })]);
+    assert.deepEqual(t.map((x) => x.cau), [CAU_NGOAI], staff.id);
+    assert.equal(t[0]!.lienKet, "/account");
+    assert.equal(t[0]!.cuaToi, true);
+    assert.ok(!JSON.stringify(t).includes("Hà Kế Toán"), "không tên người làm");
+  }
+  // Tài khoản lai Bán hàng + Đối tác có ô xem khoản của mình (ledger.view own) ⇒ giữ câu nội bộ; liên kết /order.
+  const lai = xem(LAI, [dc({ mucId: "lai" })]);
+  assert.deepEqual(lai.map((x) => x.cau), [CAU_NOI_BO]);
+  assert.equal(lai[0]!.lienKet, "/order");
+  // Không xem được sổ của mình nhưng là nhân viên (Tài xế công ty) ⇒ cùng câu nhắc liên hệ văn phòng như tin attribution_posted.
+  assert.deepEqual(xem(ai("xe", "DRIVER"), [dc({ mucId: "xe" })]).map((x) => x.cau), [CAU_NGOAI]);
+  // Có ô xem khoản của mình (Kế toán, Bán hàng, HDV) ⇒ câu nội bộ.
+  for (const [staff, mucId] of [[MAI, "mai"], [LAN, "lan"], [TAM, "tam"]] as const) assert.deepEqual(xem(staff, [dc({ mucId })]).map((x) => x.cau), [CAU_NOI_BO], staff.id);
+  // Khoá chỉ vào đúng người: Đối tác khác, Bán hàng không phải bên bị đổi ⇒ không có tin.
+  assert.deepEqual(xem(ai("bx2", "PARTNER"), [dc({ mucId: "bx" })]), []);
+  assert.deepEqual(xem(LAN, [dc({ mucId: "bx" })]), []);
+  // Người tạo yêu cầu (chính người làm) không nhận tin của việc mình làm.
+  assert.deepEqual(xem(ai("mai", "ACCOUNTING"), [dc({ mucId: "mai", actorId: "mai" })]), []);
+});
+
 test("E3: không thấy tin do chính mình làm hoặc gửi (K6)", () => {
   assert.equal(hop(HUNG, [don({})]).tin.length, 0);
   assert.equal(hop(VU, [], [tin({ nguoiGuiId: "vu" })]).tin.length, 0);

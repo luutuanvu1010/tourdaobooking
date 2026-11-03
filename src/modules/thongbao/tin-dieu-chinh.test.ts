@@ -1,5 +1,6 @@
 // ADR-0115 + ADR-0092 Đ5d — tin báo của yêu cầu điều chỉnh công nợ, chạy CẢ ứng dụng trên SQLite thật (khung thử tests/audit/harness.mjs).
-// Yêu cầu mới → người có ô duyệt TRỪ người gửi; rút → cùng nhóm; đã duyệt / từ chối → đúng người gửi; "số dư của bạn đổi" → nhân viên có tài khoản bị đổi số dư.
+// Yêu cầu mới → người có ô duyệt TRỪ người gửi; rút → cùng nhóm; đã duyệt / từ chối → đúng người gửi; "số dư của bạn đổi" → MỌI tài khoản của hồ sơ bị đổi số dư
+// (nhân viên, Đối tác, Tài xế đối tác — ADR-0092 Đ5d, ADR-0115 điều 5), trừ người tạo yêu cầu.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
@@ -112,17 +113,56 @@ test("từ chối → người gửi nhận «đã từ chối» (không lộ l�
   for (const x of nk) assert.doesNotMatch(x.detail ?? "", /\d{9,}|@/, "nhật ký không chứa dãy số dài / email");
 });
 
-test("L-1: tin «số dư của bạn đổi» chỉ tới tài khoản NỘI BỘ — tài khoản Đối tác (kể cả lai) không nhận dù hồ sơ của họ là một bên của dòng điều chỉnh", async () => {
+// ADR-0092 Đ5d «người bị đổi số dư nhận một tin», ADR-0115 điều 5 «bên bị đổi số dư»: không có ngoại lệ cho tài khoản bên ngoài. (Bản cũ của bài này — L-1 — khoá điều NGƯỢC LẠI;
+// đã sửa 2026-11-03 vì mã lệch tài liệu chuẩn tắc.) Người không xem được sổ của mình nhận câu nhắc liên hệ văn phòng, không số tiền / lý do / tên.
+const cauNgoai = (ma: string) => `Số dư của bạn trên đơn ${ma} vừa được điều chỉnh — liên hệ văn phòng để biết chi tiết`;
+const cauNoiBo = (ma: string) => `Số dư của bạn trên đơn ${ma} vừa được điều chỉnh`;
+/** KT gửi yêu cầu đổi số dư của hồ sơ `pty-<ai>` (bên nợ) với công ty chủ, KT2 duyệt; trả về mã đơn. */
+async function doiSoDu(w: W, ai: string): Promise<string> {
+  const ct = String(w.q("SELECT party_id FROM v_pty_owner_company")[0].party_id);
+  const id = don(w);
+  const y = await w.call("POST", "/api/ledger/adjustments", { as: KT, body: { loai: "dieu_chinh", orderId: id, benNo: `pty-${ai}`, benDuocNo: ct, loaiDong: "HELD", soTien: 100_000, lyDo: "khách gửi thêm tiền qua người này" } });
+  assert.equal(y.status, 201, y.text);
+  assert.equal((await w.call("POST", `/api/ledger/adjustment-requests/${y.json.yeuCauId}/approve`, { as: KT2 })).status, 201);
+  return String(w.q("SELECT order_code FROM orders WHERE id = ?", id)[0].order_code);
+}
+
+test("Đ5d (thay bài L-1 cũ): Đối tác và Tài xế đối tác NHẬN tin «số dư của bạn đổi» của chính mình — câu nhắc liên hệ văn phòng, liên kết /account; người khác không nhận", async () => {
   const w = setup();
   const DT = "0d000000-0000-4000-8000-000000000007"; // Đối tác thuần
-  const LAI = "0d000000-0000-4000-8000-000000000008"; // lai Bán hàng + Đối tác
+  const TX = "0d000000-0000-4000-8000-000000000009"; // Tài xế đối tác (đứng một mình)
+  const DT2 = "0d000000-0000-4000-8000-00000000000a"; // một Đối tác khác, không dính dòng điều chỉnh
   seedStaff(w.sqlite, { id: DT, phone: "0903000007", name: "Đối Tác", perms: ["PARTNER"] });
-  seedStaff(w.sqlite, { id: LAI, phone: "0903000008", name: "Lai Đôi", perms: ["SALES", "PARTNER"] });
-  const ct = String(w.q("SELECT party_id FROM v_pty_owner_company")[0].party_id);
-  for (const ai of [DT, LAI]) {
-    const id = don(w);
-    const y = (await w.call("POST", "/api/ledger/adjustments", { as: KT, body: { loai: "dieu_chinh", orderId: id, benNo: `pty-${ai}`, benDuocNo: ct, loaiDong: "HELD", soTien: 100_000, lyDo: "khách gửi thêm tiền qua người này" } })).json.yeuCauId;
-    assert.equal((await w.call("POST", `/api/ledger/adjustment-requests/${y}/approve`, { as: KT2 })).status, 201);
-    assert.deepEqual(await dieuChinh(w, ai), [], `tài khoản Đối tác ${ai} không nhận tin`);
+  seedStaff(w.sqlite, { id: TX, phone: "0903000009", name: "Tài Xế Đối Tác", perms: ["DRIVER_PARTNER"] });
+  seedStaff(w.sqlite, { id: DT2, phone: "0903000010", name: "Đối Tác Khác", perms: ["PARTNER"] });
+  for (const ai of [DT, TX]) {
+    const ma = await doiSoDu(w, ai);
+    // Phía phát tin ghi dòng nhật ký khoá đúng tài khoản Đối tác / Tài xế đối tác (taiKhoanCuaHoSo trả được tài khoản bên ngoài).
+    const dong = w.q("SELECT target_type, target_id, staff_id FROM audit_log WHERE action = 'ledger_adjustment_affected' AND order_id = (SELECT id FROM orders WHERE order_code = ?)", ma) as { target_type: string; target_id: string; staff_id: string }[];
+    assert.deepEqual(dong.map((x) => [x.target_type, x.target_id, x.staff_id]), [["staff", ai, KT2]], `nhật ký tin cho ${ai}`);
+    const ds = await dieuChinh(w, ai);
+    assert.equal(ds.length, 1, `${ai}: ${JSON.stringify(ds)}`);
+    assert.equal(ds[0]!.cau, cauNgoai(ma));
+    assert.equal(ds[0]!.lienKet, "/account");
+    assert.equal(ds[0]!.cuaToi, true);
+    assert.equal(ds[0]!.maDon, ma);
+    assert.doesNotMatch(ds[0]!.cau, /100\.000|khách gửi|Lan|Mai|Công ty/, "câu không chứa số tiền, lý do, tên bên nợ, tên người làm");
+    // Người không phải bên bị đổi: Đối tác khác, tài khoản còn lại của hai bên, Bán hàng, người làm việc (HDV) — không ai nhận tin «số dư của bạn».
+    for (const khac of [DT, TX, DT2, SALES, HDV].filter((x) => x !== ai)) assert.deepEqual((await dieuChinh(w, khac)).filter((t) => t.maDon === ma), [], `${khac} không phải bên bị đổi`);
+    for (const khac of [KT, KT2]) assert.deepEqual((await dieuChinh(w, khac)).filter((t) => t.maDon === ma && /Số dư của bạn/.test(t.cau)), [], `${khac} (người tạo / người duyệt) không nhận tin số dư`);
   }
+});
+
+test("Đ5d: tài khoản lai Bán hàng + Đối tác nhận câu NỘI BỘ (có quyền xem khoản của mình), liên kết /order; không nhận tin của người khác", async () => {
+  const w = setup();
+  const LAI = "0d000000-0000-4000-8000-000000000008"; // lai Bán hàng + Đối tác
+  const DT2 = "0d000000-0000-4000-8000-00000000000a";
+  seedStaff(w.sqlite, { id: LAI, phone: "0903000008", name: "Lai Đôi", perms: ["SALES", "PARTNER"] });
+  seedStaff(w.sqlite, { id: DT2, phone: "0903000010", name: "Đối Tác Khác", perms: ["PARTNER"] });
+  const ma = await doiSoDu(w, LAI);
+  const ds = await dieuChinh(w, LAI);
+  assert.equal(ds.length, 1, JSON.stringify(ds));
+  assert.equal(ds[0]!.cau, cauNoiBo(ma));
+  assert.equal(ds[0]!.lienKet, "/order", "lai Bán hàng + Đối tác: ô điều chỉnh/ghi sổ không có, là tài khoản văn phòng ⇒ trang đơn");
+  assert.deepEqual(await dieuChinh(w, DT2), []);
 });

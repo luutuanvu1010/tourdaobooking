@@ -83,7 +83,7 @@ export const AUDIT_ACTIONS = {
   ledger_adjustment_approved: { label: "Duyệt yêu cầu điều chỉnh sổ", group: "ledger" },
   ledger_adjustment_rejected: { label: "Từ chối yêu cầu điều chỉnh sổ", group: "ledger" },
   ledger_adjustment_withdrawn: { label: "Rút yêu cầu điều chỉnh sổ", group: "ledger" },
-  ledger_adjustment_affected: { label: "Điều chỉnh đổi số dư của một nhân viên", group: "ledger" },
+  ledger_adjustment_affected: { label: "Điều chỉnh đổi số dư của một người có tài khoản", group: "ledger" },
   ledger_receipt_replaced: { label: "Sửa khoản thu đã ghi", group: "ledger" },
   ledger_receipt_collector_changed: { label: "Báo người thu tiền: khoản thu đã được sửa", group: "ledger" }, // ADR-0088 đ2: nguồn tin, khoá = tài khoản nhận
   ledger_duplicate_overridden: { label: "Vẫn ghi dù có cảnh báo trùng", group: "ledger" }, // ADR-0092 đ6, đ6a: detail = lý do của người bỏ qua

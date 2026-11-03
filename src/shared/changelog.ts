@@ -17,6 +17,15 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Tin «số dư của bạn đổi» tới cả Đối tác và Tài xế đối tác (ADR-0092 Đ5d, ADR-0115 điều 5; sửa mã cho khớp tài liệu đã duyệt). Không migration, không ô quyền mới.
+    // Số 2.59 và ngày chỉ là tạm cho nhánh: bước A.0 của lần triển khai đặt lại nếu cần.
+    version: "2.59",
+    date: "2026-11-04",
+    items: [
+      { kind: "sua", text: "Đối tác và tài xế đối tác nay nhận tin khi số dư trên đơn của mình được Kế toán điều chỉnh." },
+    ],
+  },
+  {
     // Phân định trách nhiệm sau «Đã giao» (ADR-0116, TNV-G3) và cảnh báo khoản thu giống nhau (ADR-0092 Đ6a, TNV-G4). Có migration 0135; thêm hai ô quyền attribution.request, attribution.decide.
     // Cùng bản: Khách đặt cọc trước (ADR-0159, migration 0136). Lên 3/11 trước diễn tập khôi phục HC-5.19, do chủ dự án quyết; xem docs/HANDOFF-N1.md.
     // Cùng bản: Chính sách chiết khấu bốn trục (ADR-0161, migration 0137, không thêm ô quyền, công thức hoa hồng và sổ không đổi).

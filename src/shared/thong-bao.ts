@@ -296,12 +296,12 @@ export function locHopThongBao(
   // ADR-0115: tin về yêu cầu điều chỉnh công nợ — MỘT nơi chọn người nhận. Yêu cầu mới / rút: mọi người có ô `ledger.adjust.approve` TRỪ người làm; đã duyệt /
   // từ chối / số dư của bạn đổi: đúng tài khoản trỏ ở khoá. Luôn vào "Của tôi"; câu không chứa số tiền, lý do hay tên bên nợ; tên người làm chỉ hiện cho Toàn quyền không giữ quyền Đối tác (ADR-0131 — xemTenNguoiLam), còn lại là câu không tên + mã đơn.
   const duyetDuoc = can(staff, "ledger.adjust.approve");
+  const xemKhoanMinh = can(staff, "ledger.view", { ownerId: staff.id }); // CÙNG ô route khoản của tôi; Đối tác, tài xế không có
   for (const d of vao.dieuChinh ?? []) {
     if (d.luc < moc || d.actorId === staff.id) continue;
     // ADR-0116: tin phân định — đề nghị mới cho người có ô phân định; đã phân định cho người có ô ghi sổ (khoá 'ledger'); bên chịu và người đề nghị theo khoá 'staff'. Tài khoản bên ngoài chỉ nhận đúng tin của chính mình.
     if (d.action.startsWith("attribution_") || d.action === "ledger_receipt_collector_changed") {
       const c = CAU_DIEU_CHINH[d.action];
-      const xemKhoanMinh = can(staff, "ledger.view", { ownerId: staff.id }); // CÙNG ô route khoản của tôi; Đối tác, tài xế không có
       const denToi = d.mucLoai === "staff" ? d.mucId === staff.id && !(d.action === "attribution_ruled" && can(staff, "ledger.write"))
         : d.action === "attribution_requested" ? can(staff, "attribution.decide") && !holdsPartner(staff)
         : d.action === "attribution_ruled" ? can(staff, "ledger.write") && !holdsPartner(staff)
@@ -315,13 +315,13 @@ export function locHopThongBao(
       continue;
     }
     const cho = d.mucLoai === "ledger" && (d.action === "ledger_adjustment_requested" || d.action === "ledger_adjustment_withdrawn");
-    // «Số dư của bạn đổi» (ADR-0092 Đ5d) chỉ cho NHÂN VIÊN có tài khoản nội bộ: tài khoản giữ quyền Đối tác bên ngoài (kể cả lai) không nhận, vì tin kèm mã đơn.
-    const biNgoai = d.action === "ledger_adjustment_affected" && staff.permissions.some(isExternalPermission);
-    const rieng = !biNgoai && d.mucLoai === "staff" && d.mucId === staff.id && d.action !== "ledger_adjustment_requested" && d.action !== "ledger_adjustment_withdrawn";
+    // «Số dư của bạn đổi» (ADR-0092 Đ5d, ADR-0115 điều 5) tới MỌI tài khoản của bên bị đổi, kể cả Đối tác và Tài xế đối tác. Ai không xem được sổ của mình nhận câu
+    // nhắc liên hệ văn phòng (cùng khuôn attribution_posted ở trên): không số tiền, lý do, tên bên nợ hay tên người làm.
+    const rieng = d.mucLoai === "staff" && d.mucId === staff.id && d.action !== "ledger_adjustment_requested" && d.action !== "ledger_adjustment_withdrawn";
     const cau = CAU_DIEU_CHINH[d.action];
     if (!cau || !(cho ? duyetDuoc : rieng)) continue;
     tat.push({
-      id: d.id, loai: "dieu_chinh", cau: d.tenNguoiLam !== null && xemTenNguoiLam(staff) ? cau.coTen(d.tenNguoiLam, d.maDon) : cau.khongTen(d.maDon), maDon: d.maDon, noiDung: null, nguoiGui: null, nhomNhan: null, quanTrong: false, daHieuLuc: null,
+      id: d.id, loai: "dieu_chinh", cau: d.action === "ledger_adjustment_affected" && !xemKhoanMinh ? `Số dư của bạn trên đơn ${d.maDon} vừa được điều chỉnh — liên hệ văn phòng để biết chi tiết` : d.tenNguoiLam !== null && xemTenNguoiLam(staff) ? cau.coTen(d.tenNguoiLam, d.maDon) : cau.khongTen(d.maDon), maDon: d.maDon, noiDung: null, nguoiGui: null, nhomNhan: null, quanTrong: false, daHieuLuc: null,
       lienKet: (cho || can(staff, "ledger.write")) && !holdsPartner(staff) ? "/dieu-chinh-cong-no" : isOffice(staff) ? "/order" : "/account", luc: d.luc, cuaToi: true, chuaDoc: d.luc > vao.docDenLuc, mo: false,
     });
   }
