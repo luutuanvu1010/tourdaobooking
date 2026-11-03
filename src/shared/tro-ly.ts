@@ -159,7 +159,7 @@ export function tachTu(s: string): string[] {
   // 2/11 (đặt vé của đối tác): hai tên đã đổi trên giao diện mà nhân viên vẫn gõ tên cũ: «loại đối tác» → «vai người dùng», «cấp đại lý» → «cấp độ đại lý».
   // Gộp ở cả kho lẫn câu hỏi, cùng cách với «nền tảng» và «trợ giúp» ở trên.
   // 3/11: bỏ dấu làm «khó» trùng «kho», nên câu «sao Nền tảng khó dùng thế» bị kéo về bài Kho vé (chữ «kho» hiếm, điểm cao). Giữ «khó» thành âm tiết riêng trước khi bỏ dấu.
-  const am = boDau(s.normalize("NFC").replace(/(?<!\p{L})[Kk]hó(?!\p{L})/gu, "khokho"))
+  const am = boDau(s.normalize("NFC").replace(/(?<!\p{L})khó(?!\p{L})/giu, "khokho"))
     .replace(/\bnen tang\b|\bapp\b/g, "nentang")
     .replace(/\btro giup\b/g, "huong dan")
     .replace(/\bloai doi tac\b/g, VAI_NGUOI_DUNG_KHONG_DAU)

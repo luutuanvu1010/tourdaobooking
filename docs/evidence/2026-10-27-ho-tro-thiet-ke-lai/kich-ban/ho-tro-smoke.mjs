@@ -429,7 +429,7 @@ try {
           const choDsXong = (loc) => p.waitFor(`document.querySelector('.ht-loc-nut [data-loc="${loc}"]')?.getAttribute('aria-pressed') === 'true' && document.querySelectorAll('#ht-ds .ht-dong').length > 0`, `danh sách lọc ${loc}`);
           await buoc(`3${kho}`, "Kế toán: Việc của nhóm — số trên ba nút, Tải thêm, Nhận việc, dòng hệ thống, ghi chú nội bộ, Chi tiết", async () => {
             await p.waitFor("!!document.getElementById('ht-tab-queue')", "có thẻ «Việc của nhóm»");
-            assert.deepEqual(await p.ev("[...document.querySelectorAll('[role=tab]')].map((t) => t.textContent.replace(/\\d+$/, '').trim())"), ["Yêu cầu của tôi", "Việc của nhóm"], "Kế toán thấy hai thẻ, không thấy «Nhóm hỗ trợ»");
+            assert.deepEqual(await p.ev("[...document.querySelectorAll('[role=tab]')].map((t) => t.textContent.replace(/\\d+$/, '').trim())"), ["Hướng dẫn", "Yêu cầu của tôi", "Việc của nhóm"], "Kế toán thấy Hướng dẫn và hai thẻ, không thấy «Nhóm hỗ trợ»");
             await bam(p, "#ht-tab-queue");
             await choDsXong("UNASSIGNED");
             if (await p.ev("!!document.getElementById('ht-loc-nhom')")) await p.ev(setInput("document.getElementById('ht-loc-nhom')", X.id));

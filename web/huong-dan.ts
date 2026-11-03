@@ -11,7 +11,6 @@ import { icon } from "./icons";
 import { APP_VERSION } from "./phien-ban";
 import { initShell } from "./shell";
 
-const KHOA_QUYEN = "td_hd_quyen";
 const params = new URLSearchParams(location.search);
 const baiId = params.get("bai");
 const theDangMo = location.pathname + location.search;
@@ -21,6 +20,7 @@ const ngayVn = (iso: string): string => { const [y, m, d] = iso.split("-"); retu
 
 // ---------------------------------------------------------------- nhớ quyền để đọc được khi mất mạng
 
+const KHOA_QUYEN = "td_hd_quyen"; // đăng xuất thì xoá (web/khung-nho.ts)
 function docQuyenNho(): PermissionCode[] | null {
   try {
     const ds = JSON.parse(localStorage.getItem(KHOA_QUYEN) ?? "null") as unknown;

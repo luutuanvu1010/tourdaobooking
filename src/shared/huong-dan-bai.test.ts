@@ -1,5 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { chonDoan } from "./tro-ly.ts";
 import { BAI_VIEC, danhSach, khucTo, loiVao, moiBai, tachTuTim, thayBaiViec, timBai, trongDanhSach, vaiDung, vuaDoi } from "./huong-dan-bai.ts";
 import { HUONG_DAN } from "./huong-dan.ts";
 import { XEP } from "./huong-dan-xep.ts";
@@ -74,4 +75,10 @@ test("dải «vừa đổi» chỉ hiện ở đúng bản đang chạy", () => 
   assert.equal(vuaDoi({ doi: { ban: "2.58", cau: "x" } }, "2.58"), true);
   assert.equal(vuaDoi({ doi: { ban: "2.57", cau: "x" } }, "2.58"), false);
   assert.equal(vuaDoi({ doi: null }, "2.58"), false);
+});
+
+test("Trợ lý: câu hỏi nhập lô vé đưa đoạn của bài Kho vé lên đầu, người không dùng được thì xếp sau", () => {
+  const ten = (q: "SALES" | "DRIVER") => chonDoan("nhập lô vé thế nào", [q]).map((d) => d.ten);
+  assert.ok(ten("SALES").slice(0, 2).some((t) => t.startsWith("Bài theo việc › Kho vé điện tử")), JSON.stringify(ten("SALES").slice(0, 4)));
+  assert.ok(ten("SALES").includes("Bài theo việc › Kho vé điện tử › Các bước"));
 });

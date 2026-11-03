@@ -1,3 +1,4 @@
+// THAY BẰNG docs/evidence/2026-11-03-huong-dan/kich-ban/huong-dan-smoke.mjs từ 3/11/2026 (Hướng dẫn thành thẻ của Hỗ trợ, /help chỉ còn Nhật ký); kịch bản này không còn chạy.
 // BẢN CHÉP (đợt 0 khung chung, 29/10/2026) của docs/evidence/2026-09-23-nhat-ky-thay-doi/kich-ban/help-smoke.mjs — hồ sơ có ngày giữ nguyên.
 // Sửa theo vỏ mới (đặc tả đợt 0 §5.2): thanh tab Bán hàng nay Trang chủ · Đơn hàng · Tạo đơn · Danh bạ · Tôi. Bước e (mất mạng) giữ nguyên — nó bắt được lỗi
 // của nhánh (shell thay thân /help khi mất mạng), sửa ở web/dai.ts + public/help.html `<main data-ve-truoc-shell>`. Mặc định OUT=/tmp/help-smoke.

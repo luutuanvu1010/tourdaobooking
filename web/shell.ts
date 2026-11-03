@@ -382,7 +382,7 @@ export async function initShell(): Promise<Staff> {
   ganNgoaiMang();
   if (typeof navigator !== "undefined" && navigator.onLine === false) hienDaiNgoaiMang(); // đã biết ngoài mạng ngay từ đầu: hiện dải trước khi có lời gọi nào
   // Nút lùi (history.back) phục hồi trang từ bộ đệm lùi/tiến NGUYÊN TRẠNG, kể cả chấm đỏ vẽ lúc chưa xem /help (tiền lệ: pageshow ở order-form.ts).
-  // Trang được phục hồi mà nay đã xem bản mới nhất ⇒ gỡ mọi chấm "Có bản mới" của Hướng dẫn (tab Tôi, dòng ở trang Tôi, menu máy tính).
+  // Trang được phục hồi mà nay đã xem bản mới nhất ⇒ gỡ mọi chấm "Có bản mới" của Nhật ký thay đổi (tab Tôi, dòng ở trang Tôi, menu máy tính).
   window.addEventListener("pageshow", (e) => {
     if (e.persisted && !helpHasNews()) for (const dot of document.querySelectorAll(".new-dot")) dot.remove();
   });

@@ -54,7 +54,7 @@ function veKhoi(el: HTMLElement, vao: VeDonVao, res: VeDonRes, dong: VeDonRes["d
     nutCap.disabled = true; hien(null);
     try { await api("/api/ve/cap", { method: "POST", body: { orderId: vao.orderId } }); await initVeDon(el, vao); } catch (err) { hien(lyDoLoi(err), true); nutCap.disabled = false; }
   });
-  const khoi: (Node | null)[] = [h("h2", null, "Vé điện tử"), tongThieu > 0 ? h("p", { class: "muted" }, `Còn thiếu ${tongThieu} vé. Vé sẽ tự được giữ khi nhập thêm vào kho.`) : null, danhSach, nutCap ? h("div", { class: "handler-actions" }, nutCap) : null];
+  const khoi: (Node | null)[] = [h("h2", null, "Vé điện tử"), tongThieu > 0 ? h("p", { class: "muted" }, `Còn thiếu ${tongThieu} vé. Nhập thêm vé vào kho rồi bấm Cấp vé.`) : null, danhSach, nutCap ? h("div", { class: "handler-actions" }, nutCap) : null];
 
   if (!res.thuDu) {
     khoi.push(h("p", { class: "muted" }, res.choDoiTacNop ? "Đang chờ đối tác nộp tiền về công ty nên chưa xem hoặc gửi được vé." : "Đơn chưa thu đủ tiền nên chưa xem hoặc gửi được vé."));

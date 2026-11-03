@@ -87,11 +87,11 @@ try {
           assert.deepEqual(s.tabs, [
             { href: "/tai-xe", text: "Trang chủ", current: "page" },
             { href: TRANG_CUOC, text: "Cuốc của tôi", current: null },
-            { href: "/feedback", text: "Hỗ trợ", current: null },
+            { href: "/huong-dan", text: "Hỗ trợ", current: null },
             { href: "/account", text: "Tôi", current: null },
           ], "điện thoại: đúng bốn tab của tài xế công ty (đợt 0 §5.2)");
         } else {
-          assert.deepEqual(s.side.map((x) => x.href), ["/tai-xe", TRANG_CUOC, "/account", `/feedback?new=1&from=${encodeURIComponent(TRANG_DAU_TAI_XE)}`, "/help"], `máy tính: menu tài xế ${JSON.stringify(s.side)}`);
+          assert.deepEqual(s.side.map((x) => x.href), ["/tai-xe", TRANG_CUOC, "/account", `/huong-dan?from=${encodeURIComponent(TRANG_DAU_TAI_XE)}`, "/help"], `máy tính: menu tài xế ${JSON.stringify(s.side)}`);
           assert.equal(s.side[0].text, "Trang chủ");
           assert.equal(s.side[0].current, "page");
           assert.ok(!s.side.some((x) => /Vận chuyển|Đơn hàng|Danh bạ/.test(x.text ?? "")), "tài xế không có mục văn phòng / Vận chuyển");

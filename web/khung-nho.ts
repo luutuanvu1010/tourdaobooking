@@ -52,6 +52,7 @@ export function luuKhungNho(k: KhungNho): void {
 export function xoaKhungNho(): void {
   try {
     localStorage.removeItem(KHOA_KHUNG);
+    localStorage.removeItem("td_hd_quyen"); // quyền nhớ để đọc Hướng dẫn khi mất mạng (web/huong-dan.ts)
   } catch {
     // bỏ qua
   }

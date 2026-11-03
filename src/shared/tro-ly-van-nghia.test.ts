@@ -199,7 +199,7 @@ test("C4: kho THẬT + mọi véc-tơ đoạn trực giao câu hỏi ⇒ chỉ c
   // («Bán hàng › Luật bán và đặc điểm dịch vụ», «Việc: xem bảng mức hoa hồng đối tác», «Việc: đặt và kết thúc luật bán theo vai người dùng») nên câu than phiền «sao app khó dùng thế»
   // thêm ba đoạn vượt ngưỡng tương đối (17 → 20); đổi PIN và lập đơn không đổi ⇒ đo lại bằng chính bài này: 20 / 10 / 45. Số đo, không suy ra từng đoạn. Luật không đổi,
   // trần 12 vẫn cắt (bài khoá `thanPhien.length === SO_DOAN_TOI_DA` ngay dưới); các tên đoạn khoá dưới đây giữ nguyên.
-  // 2026-11-03 (Hướng dẫn thành mục riêng): thêm các đoạn «Bài theo việc» vào kho, ngưỡng tương đối đổi ⇒ đo lại bằng chính bài này: 15 / 9 / 45. Số đo, luật không đổi; các tên đoạn khoá dưới đây giữ nguyên.
+  // 2026-11-03 (Hướng dẫn thành mục riêng): thêm các đoạn «Bài theo việc» vào kho và tách «khó» khỏi «kho» ở `tachTu`, ngưỡng tương đối đổi ⇒ đo lại bằng chính bài này: 15 / 9 / 45. Số đo, luật không đổi; các tên đoạn khoá dưới đây giữ nguyên.
   assert.deepEqual([dem("sao app khó dùng thế"), dem("đổi mã PIN thế nào"), dem("lập đơn mới ra sao")], [15, 9, 45]);
   // 2026-10-05 (1.81, Đợt 7): Trợ giúp thêm câu về hai ô "Xe riêng" / "Xe tối thiểu" (Bán hàng, Quản trị) và bỏ vài dòng trùng ý ⇒ hai đoạn nữa vượt ngưỡng tương đối của câu than phiền (15 → 17); luật không đổi, trần 12 vẫn cắt.
   const thanPhien = chonDoanTron("sao app khó dùng thế", mot(0), kho, vec, ["SALES"]).map((x) => x.doan.ten);
@@ -222,6 +222,7 @@ test("C4: kho THẬT + mọi véc-tơ đoạn trực giao câu hỏi ⇒ chỉ c
 test("C4b (ADR-0130): giao diện đổi «app» → «Nền tảng» — câu hỏi gõ «app» hay «nền tảng» đều khớp như nhau và đều ra đoạn Hỏi đáp; cụm «nền tảng» không thành khớp cặp với cả kho", () => {
   assert.ok(!tachTu("khó dùng").includes("kho"), "«khó» không được trùng «kho» của Kho vé");
   assert.ok(tachTu("kho vé").includes("kho"));
+  assert.ok(!tachTu("KHÓ DÙNG").includes("kho"));
   const kho = chiaKho();
   const vec = kho.map(() => mot(1));
   const dem = (c: string) => khopManh(c, kho, ["SALES"]).filter(Boolean).length;
