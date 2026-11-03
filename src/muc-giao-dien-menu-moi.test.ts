@@ -20,6 +20,8 @@ const TRANG_THANH_BEN_CU: readonly KhoaTrang[] = [
   "veKho",
   // Cài đặt vé điện tử (ADR-0156 Đ3, 2/11): ô settings.ops, chỉ Toàn quyền.
   "veCaiDat",
+  // Giới hạn nhập hoa hồng (ADR-0161 Đ3, 3/11): ô settings.ops, chỉ Toàn quyền, không Đối tác.
+  "hoaHongGioiHan",
 ];
 const holder = (permissions: readonly PermissionCode[]) => ({ id: "x", permissions });
 

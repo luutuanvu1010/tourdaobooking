@@ -95,6 +95,25 @@ export const BAI_VIEC: readonly BaiViec[] = [
 - Lô càng lớn thì khai sai càng tốn công sửa, vì lô đã có vé được giữ thì không huỷ được. Chỉ nâng số khi thật cần.`,
   },
   {
+    id: "gioi-han-nhap-hoa-hong",
+    tieuDe: "Đổi giới hạn nhập hoa hồng",
+    nhomViec: "Cài đặt",
+    trang: "hoaHongGioiHan",
+    o: ["settings.ops"],
+    gioiHan: [],
+    neo: ["web/hoa-hong-gioi-han.ts", "src/shared/gioi-han-nhap-muc.ts"],
+    moDau: "Số mới chỉ áp cho các mức nhập từ lúc đổi; mức đã có và đơn đã xác nhận giữ nguyên (ADR-0161).",
+    noiDung: `### Các bước
+1. Mở **Giới hạn nhập hoa hồng**.
+2. Gõ số mới ở ô **Phần trăm tối đa (%)** và ô **Số tiền phải chia hết cho (đồng)**.
+3. Bấm [[Lưu]].
+
+### Điều dễ sai
+- Hạ giới hạn không sửa các mức đã nhập. Muốn sửa mức cũ thì bấm Đổi ở trang Hoa hồng đối tác.
+- Số **0** luôn được nhận, nên loại khách không hưởng thì gõ 0.
+- Nâng giới hạn rồi quên hạ lại thì mức gõ nhầm dễ lọt hơn.`,
+  },
+  {
     id: "giao-dien",
     tieuDe: "Đổi giao diện công ty",
     nhomViec: "Cài đặt",

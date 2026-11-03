@@ -55,6 +55,8 @@ const luonCo = (): boolean => true;
  * MỌI trang có lối vào. Đường gọi chính của từng trang ở bảng riêng `GOI_CHINH` (`muc-giao-dien-goi.ts`, chỉ bài rào đọc — Ruling R-P27); thêm trang ở
  * đây thì thêm dòng ở bảng đó (typecheck đỏ nếu quên).
  */
+/** Trang chỉ Toàn quyền (ô settings.ops) và không Đối tác: bảng mục (`hien`) và trang (`moTrang`) dùng CHUNG hàm này. */
+const chiToanQuyenKhongDoiTac = (s: PermissionHolder): boolean => can(s, "settings.ops") && !holdsPartner(s);
 const vaoSoDieuChinh = (s: PermissionHolder): boolean => (can(s, "ledger.write") || can(s, "ledger.adjust.approve")) && !holdsPartner(s);
 export const TRANG = {
   trangChu: { duong: "/", hien: seesAllOrders, tam: (k) => k.seesAll },
@@ -117,6 +119,9 @@ export const TRANG = {
   veKho: { duong: "/ve-kho", hien: (s) => can(s, "ve.kho.manage") },
   // Cài đặt vé điện tử (ADR-0156 Đ3): CÙNG cổng route `GET /api/ve/cai-dat` — ô settings.ops (chỉ Toàn quyền).
   veCaiDat: { duong: "/ve-cai-dat", hien: (s) => can(s, "settings.ops") },
+  // Giới hạn nhập hoa hồng (ADR-0161 Đ3): trang chỉ Toàn quyền (ô settings.ops, như ghi của route) và KHÔNG Đối tác. Đường gọi chính `GET /api/pricing/gioi-han-nhap` rộng hơn (office, partner.commission.view, không Đối tác — cho hộp
+  // nhập báo sớm), nên trang tự chặn ở trình duyệt bằng `moTrang` (web/hoa-hong-gioi-han.ts): người xem được giới hạn mà không phải Toàn quyền không thấy mục và không mở được trang.
+  hoaHongGioiHan: { duong: "/hoa-hong-gioi-han", hien: chiToanQuyenKhongDoiTac, moTrang: chiToanQuyenKhongDoiTac },
   // Đơn chờ xác nhận (ADR-0136 Đ6; Task 3.5): CÙNG cổng route `GET /api/orders/cho-xac-nhan` — ô order.confirm.review không ngữ cảnh (Bán hàng, Kế toán, Quản trị, HDV, Toàn quyền).
   choXacNhan: { duong: "/cho-xac-nhan", hien: (s) => can(s, "order.confirm.review") },
   nhatKy: { duong: "/audit", hien: (s) => can(s, "audit.view") }, // ADR-0038 điều 6: chỉ Toàn quyền
@@ -213,6 +218,7 @@ export const THANH_BEN = [
   { nhom: "THIẾT LẬP", trang: "chupBu", nhan: "Chụp bù mức" },
   { nhom: "THIẾT LẬP", trang: "veKho", nhan: "Vé điện tử" },
   { nhom: "THIẾT LẬP", trang: "veCaiDat", nhan: "Cài đặt vé điện tử" },
+  { nhom: "THIẾT LẬP", trang: "hoaHongGioiHan", nhan: "Giới hạn nhập hoa hồng" },
   { nhom: "THIẾT LẬP", trang: "dichVu", nhan: "Dịch vụ & giá" },
   { nhom: "THIẾT LẬP", trang: "dacDiem", nhan: "Đặc điểm dịch vụ" },
   { nhom: "THIẾT LẬP", trang: "diaDiem", nhan: "Địa điểm" },
@@ -305,6 +311,7 @@ export const TRANG_TOI = [
   { phan: "sau", trang: "chupBu", nhan: "Chụp bù mức" },
   { phan: "sau", trang: "veKho", nhan: "Vé điện tử" },
   { phan: "sau", trang: "veCaiDat", nhan: "Cài đặt vé điện tử" },
+  { phan: "sau", trang: "hoaHongGioiHan", nhan: "Giới hạn nhập hoa hồng" },
   { phan: "sau", trang: "nhatKy", nhan: "Nhật ký" },
   { phan: "sau", trang: "phien", nhan: "Máy đang đăng nhập" },
   { phan: "sau", trang: "guiThongBao", nhan: "Gửi thông báo" },

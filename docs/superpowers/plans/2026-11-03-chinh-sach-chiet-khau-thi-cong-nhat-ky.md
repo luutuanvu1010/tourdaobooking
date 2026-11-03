@@ -13,7 +13,7 @@ Kế hoạch: `2026-11-03-chinh-sach-chiet-khau-bon-truc.md`. Quyết định: A
 | Task 5 Luật thuần bảng nhập | Xanh | xong 3/11, chờ người kiểm độc lập |
 | Task 6 Bảng nhập và hộp | Thử Chrome ba ô liên tiếp đạt | xong 3/11: kịch bản `bang-nhap-smoke.mjs` (bản đầu) chạy một lượt 13/13 bước xanh; chờ người kiểm độc lập |
 | Task 7 Bỏ lối vai trò, chữ | Xanh | xong 3/11, chờ người kiểm độc lập (chưa thử Chrome hộp «Thêm mức riêng cho đối tác») |
-| Task 8 Trang giới hạn | Xanh | chưa |
+| Task 8 Trang giới hạn | Xanh | xong 3/11: nhóm bài menu, PWA, gói trang, hỏi bảng quyền xanh; kịch bản `gioi-han-smoke.mjs` (bản đầu) 9/9 bước xanh; chờ người kiểm độc lập |
 | Task 9 Tài liệu, bộ kiểm dài | Mọi bộ xanh, có ảnh ba khổ | chưa |
 | Người kiểm độc lập | Không còn lỗi Cao, Trung | chưa |
 
@@ -25,6 +25,7 @@ Kế hoạch: `2026-11-03-chinh-sach-chiet-khau-bon-truc.md`. Quyết định: A
 - **Task 3, 3/11 (trần không tính dòng vượt chặn thật):** viết bài đỏ trước (5 bài đỏ đúng lý do: ca SV-TG-02, SV-TG-03 và ca đổi bên đặt vẫn nhận theo luật cũ; hai bài luật thuần thiếu hàm). Sau khi cài: tạm cho `hoaHongTinhTran` trả số gốc (`d.hoaHong ?? 0`) ⇒ `node --test src/modules/orders/tran-giam-gia-don.test.ts src/modules/orders/thuong-mai.test.ts src/kiem-dinh-ky-so-dai-ly.test.ts` đỏ 7/53 (ca R-ORD-DC1 mới, bài `tongHoaHongDon` «tinh0», hai bài luật thuần, SV-TG-02, SV-TG-03, ca đổi bên đặt). Hoàn nguyên ⇒ 53/53 xanh. Một hàm duy nhất quyết dòng nào vào trần cho cả ba cổng máy chủ (nháp / xác nhận / đổi bên đặt) lẫn kiểm định kỳ R-ORD-DC1.
 - **Task 6, 3/11 (kịch bản Chrome bảng nhập bắt lỗi thật khi đang viết):** lượt chạy đầu của `bang-nhap-smoke.mjs` đỏ vì phép đo vùng chạm: năm nút đầu cột cấp có tên ngắn («Gỗ» 20 px, «Sắt» 24 px, «Bạc» 27 px, «Vàng» 36 px, «Đồng» 37 px) hẹp hơn 44 px ở cả ba khổ 1040/1440 (bước A và B). Sửa CSS `.hh-cot-cap` thêm `min-width: var(--tap-min)` ⇒ cùng bước xanh. Phần còn lại của kịch bản (bước đo giữ cuộn, bộ lọc, tiêu điểm) chưa được phá thử: việc của Task 9. Bản đầu này CHƯA là hàng rào, chưa có dòng ở sổ hàng rào.
 - **Task 7, 3/11 (bảng từ giao diện chặn «Cách tính» thật):** thêm tạm hằng `"Cách tính"` vào `web/hoa-hong-cap.ts` ⇒ `node --test src/bang-tu-giao-dien.test.ts` đỏ với câu «web/hoa-hong-cap.ts:461 «Cách tính» — chữ đã loại … → dùng «Tính bằng · Áp cho»» (4/5 bài); hoàn nguyên ⇒ 5/5 xanh. Mục mới của `TU_DA_LOAI` không cần dòng sổ hàng rào riêng (cơ chế đã có dòng, đây là thêm một mẫu).
+- **Task 8, 3/11 (rào «mục hiện ⇔ trang mở được» chặn thật):** đăng ký trang `hoaHongGioiHan` chỉ với `hien` ⇒ `node --test src/muc-hien-mo-duoc-3.test.ts` đỏ hai bài (thanh bên và trang Tôi: «được mà ẩn CHƯA GHI ở 224 tập, vd tập 1 [SALES]»: đường gọi chính `GET /api/pricing/gioi-han-nhap` mở cho mọi người xem được hoa hồng, trang thì chỉ cho Toàn quyền). Sửa bằng `moTrang` dùng CHUNG hàm với `hien` (không thêm dòng `DUOC_MA_AN`) ⇒ 100/100 xanh ở nhóm bài menu. Bài `muc-giao-dien-menu-moi` cũng đỏ trước (TypeError «reading 'hien'») khi thêm tên trang mà chưa khai bảng, đúng như bước 1 của kế hoạch.
 
 ## Giả định đã tự chọn
 
@@ -54,6 +55,12 @@ Kế hoạch: `2026-11-03-chinh-sach-chiet-khau-bon-truc.md`. Quyết định: A
 - **Task 7 — Hướng dẫn của Kế toán:** nút «＋ Thêm mức» đổi tên làm bài A2 đỏ (hướng dẫn trỏ nút phải có nguyên chuỗi trong mã), nên sửa nhóm bước «Đặt mức hoa hồng cho đối tác» và «Thêm vai trò» ở `src/shared/huong-dan-ke-toan.ts` cho đúng bảng nhập mới (không còn «chọn áp cho một vai người dùng»; vai trò chỉ theo cấp, nút «Chọn cấp cho vai trò này»). Nhóm Kế toán sát trần thời gian đọc (3.147 trên 3.150 chữ, bài A4): sửa nữa phải cắt bớt chữ.
 - **Task 7 — `src/shared/so-do-trang.ts`:** tệp sinh tự động do `npm run build:web` (đổi nhãn nút ở trang Hoa hồng); commit kèm.
 - **Task 7 — bài thêm cùng lúc với mã:** bài câu nhắc `CAU_GHI_DIEU_KIEN_CAP` và bài câu «Chọn một đối tác.» viết cùng lúc cài đặt, không đỏ trước.
+- **Task 8 — một hàm chốt chặn:** `chiToanQuyenKhongDoiTac` (ô settings.ops, không giữ quyền Đối tác) ở `muc-giao-dien.ts` dùng cho cả `hien` lẫn `moTrang` của khoá `hoaHongGioiHan`; trang gọi `moTrang("hoaHongGioiHan", staff)`. Người xem được giới hạn (Kế toán, Bán hàng) vẫn đọc được bằng API cho hộp nhập báo sớm, nhưng không thấy mục và mở trang chỉ thấy «Trang này chỉ Toàn quyền dùng được.» (Quản trị không phải Toàn quyền cũng vậy).
+- **Task 8 — chặn ở trang trước khi gửi:** phần trăm phải lớn hơn 0 và không quá 100; số tiền từ 1 đến 1.000.000 đồng (hằng `BUOC_TIEN_TOI_DA` chép từ `kiemThanGioiHan` — hai nơi cùng một con số; máy chủ vẫn quyết). 409 hiện nguyên câu máy chủ và giữ số đang gõ; sau lưu thành công, ô và câu «Giới hạn đang áp» lấy số máy chủ trả (kể cả `tuLuc` mới).
+- **Task 8 — Hướng dẫn:** bài `gioi-han-nhap-hoa-hong` (nhóm việc «Cài đặt», ô `settings.ops`), `gioiHan` để rỗng vì giới hạn là số trong CSDL do Toàn quyền đổi, không phải hằng của mã; dấu vân ghi bằng `npm run huong-dan:xem-lai -- gioi-han-nhap-hoa-hong` do chính người viết bài (lời khai «đã xem lại» của người thi công, người kiểm độc lập nên đọc lại bài). Sửa `web/hoa-hong-gioi-han.ts` hay `src/shared/gioi-han-nhap-muc.ts` về sau thì phải xem lại bài và chạy lại lệnh.
+- **Task 8 — trần gói trang Đơn hàng:** nới 103.178 → 103.523 theo số đo 103.423 (+100), cùng cách các lần nới trước; chưa có lời duyệt riêng của chủ cho con số này (kế hoạch cho phép «nới trần chỉ theo số đo được»).
+- **Task 8 — không chụp lại `src/muc-giao-dien-hien-trang.json`:** ảnh chụp đã lệch từ trước nhiều trang (Luật bán, Vé điện tử, Cài đặt vé điện tử, Đặc điểm dịch vụ, thanh tab), nên chụp lại sẽ kéo thêm nhiều dòng không thuộc việc này; bài chạy xanh không chụp lại. Ghi để chủ biết, không sửa.
+- **Task 8 — `src/shared/so-do-trang.ts`:** tệp sinh do `npm run build:web`, thêm dòng trang mới; commit kèm.
 
 ## Nợ
 
@@ -69,6 +76,8 @@ Kế hoạch: `2026-11-03-chinh-sach-chiet-khau-bon-truc.md`. Quyết định: A
 - **Task 6, chữ thừa trong hộp:** hộp ở ô trống ghi nhãn «Dịch vụ» rồi tên đậm «Dịch vụ Tour thử 060» (lặp từ «Dịch vụ»). Bề mặt, chưa sửa vì kịch bản kiểm đúng chữ này; Task 9 chốt chữ.
 
 - **Task 7, chưa thử trên Chrome:** hộp «＋ Thêm mức riêng cho đối tác» (một đối tác, bảng nhập không đi qua), thẻ Vai người dùng sau khi bỏ nút «＋ Thêm mức riêng cho vai trò này», hộp «Sửa cấp độ đại lý» có câu ghi điều kiện. Task 9 chạy lại `hoa-hong-smoke.mjs` sau khi sửa các bước bám nút và ô cũ.
+
+- **Task 8, chưa làm / chưa kiểm:** `docs/SYSTEM-DESIGN.md` còn nhắc trang theo bản cũ (Task 9 sửa tài liệu mô tả); chưa thử iPhone thật; kịch bản `gioi-han-smoke.mjs` chưa phá thử và chưa là hàng rào; chưa có bài e2e (cần mạng) cho trang; chưa thử một người Đối tác mở trang (route 403, bảng mục ẩn — chỉ bài thuần).
 
 ## Kết quả người kiểm độc lập phần máy chủ (3/11, Task 1–3), việc dồn cho lần giao 3
 
