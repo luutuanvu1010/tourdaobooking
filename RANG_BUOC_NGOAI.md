@@ -41,7 +41,7 @@
 
 | # | Phát biểu | Hạng | Nguồn gốc | Hiệu lực | Kiểm ngày | Hạn kiểm lại | Cái gì sập nếu sai |
 |---|---|---|---|---|---|---|---|
-| W1 | Passkey: `rpId` phải khớp tên miền đang mở (`booking.tourdao.vn`, không kèm `https://`); local phải ghi đè | [B] | chuẩn WebAuthn; `CLAUDE.md` §10, `docs/CHANGE-GUIDE.md` công thức r (ADR-0016) | — | 2026-09-23 | 2026-12-23 | Nút Face ID hiện nhưng luôn lỗi |
+| W1 | Passkey: `rpId` phải khớp tên miền đang mở (`booking.tourdao.vn`, không kèm `https://`); local phải ghi đè | [B] | chuẩn WebAuthn; `src/modules/auth/CLAUDE.md`, `docs/CHANGE-GUIDE.md` công thức r (ADR-0016) | — | 2026-09-23 | 2026-12-23 | Nút Face ID hiện nhưng luôn lỗi |
 
 ## 5. Google (Sheet danh mục dịch vụ, Google Maps)
 
@@ -57,6 +57,7 @@
 | A1 | `CLAUDE.md` là **lời khuyên**, không cưỡng chế; muốn chặn chắc chắn phải dùng hook `PreToolUse` | [A] | https://code.claude.com/docs/en/memory.md ; https://code.claude.com/docs/en/best-practices.md | — | 2026-09-25 (subagent tra) | 2026-12-25 | Luật chỉ nằm trong `CLAUDE.md` bị coi là đã cưỡng chế (trái P16) |
 | A2 | `CLAUDE.md` cấp máy/thư mục cha và plugin **không nạp ở phiên chạy trên web/cloud** — phiên đó chỉ thấy repo | [B] | https://code.claude.com/docs/en/plugins/overview.md (qua subagent) | — | 2026-09-25 | 2026-12-25 | Luật chung đặt ngoài repo không áp khi chủ làm việc qua web → cần bản chép `playbook/` trong repo |
 | A3 | Mỗi `CLAUDE.md` nên dưới ~200 dòng; dài hơn làm giảm mức tuân thủ | [B] | https://code.claude.com/docs/en/best-practices.md (qua subagent) | — | 2026-09-25 | 2026-12-25 | `CLAUDE.md` phình → AI bỏ sót luật |
+| A4 | `CLAUDE.md` ở thư mục con tự nạp khi phiên chạm đích danh một tệp trong thư mục đó, bằng công cụ đọc hoặc bằng lệnh dòng lệnh nêu đường dẫn tệp (`head <tệp>`). Tìm rộng `grep -r <thư mục>` không nạp; đọc tệp ở thư mục khác không nạp tệp con của thư mục này | [B] | quan sát 2026-11-03: bốn phiên mới `claude -p` trên chính kho này, đọc mục `nested_memory` trong nhật ký phiên; tài liệu https://code.claude.com/docs/en/memory.md chỉ nói nạp khi đọc (qua subagent) | — | 2026-11-03 | 2027-02-03 | Bẫy theo vùng (ADR-0160 Đ5) không tới AI đang làm ở vùng đó: `CLAUDE.md` gốc có câu cảnh báo và chỉ mục ở §10 |
 
 ## 7. Chưa khảo sát (phải có phiên khảo sát riêng — FRAMEWORK §4.2)
 - Bảo vệ dữ liệu cá nhân (tên, SĐT khách; nhật ký không ghi SĐT/email/MST là chính sách nội bộ, **chưa đối chiếu luật**). Nay gồm chuỗi đích chỉ đường (có khi là địa chỉ nhà khách) gửi sang Google / Apple khi tài xế bấm nút "Chỉ đường" — ADR-0105; chủ chấp nhận rủi ro 2026-10-08, **chưa đối chiếu luật**.
@@ -69,3 +70,4 @@
 |---|---|---|---|
 | 2026-09-26 | AI (phiên nền, vai lập kế hoạch) | Lập hồ sơ từ tài liệu dự án và các lần tra tài liệu 2026-09-25 | 17 dòng; 4 nhóm chưa khảo sát; chưa có phiên khảo sát riêng |
 | 2026-10-09 | AI (thi công ADR-0105) | Thêm G2 (Google Maps URLs), I5 (Apple unified Maps URLs) chép từ bảng "Dạng liên kết" của ADR-0105 (không đọc lại nguồn); thêm câu chuỗi đích chỉ đường vào mục 7 | 2 dòng; hạn kiểm lại 2027-01-08 |
+| 2026-11-03 | AI (thi công ADR-0160) | Thêm A4 (cách `CLAUDE.md` con được nạp) từ phép thử bốn phiên mới; đổi nguồn W1 sang tệp con | 1 dòng; hạn kiểm lại 2027-02-03 |

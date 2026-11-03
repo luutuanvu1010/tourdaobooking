@@ -26,7 +26,7 @@
 - Tiền `INTEGER` VNĐ; số dẫn xuất (`line_total`, `subtotal`, `total`, `remaining_amount`) chỉ tính ở server. Ngày/giờ dân sự theo giờ VN (`vnToday(new Date())` truyền vào SQL làm tham số, **không** `date('now')`); dấu thời gian `TEXT` ISO UTC.
 - Tên bảng số ít (trừ `orders`); bảng mới có tiền tố module (`pty_`, `loc_`, `stf_`, `dsp_`, `mnt_`, `fbk_`, `aut_`, `ntf_`, `vc_`, `ord_`, sau này `bil_`); tra cứu dùng khoá mã `TEXT code`. Danh sách giá trị mở kiểm ở **code**, không `CHECK` liệt kê. Không xoá cứng: `valid_from/to` hoặc `active = 0` (ngoại lệ có tên duy nhất: dòng `ord_*` của **đơn nháp** xoá–chèn lại khi lưu nháp — ADR-0047, `XOA_CUNG_NHAP`); khoá ngoại `NO ACTION`.
 - Ghi nhiều bảng sau một `UPDATE` điều kiện: dùng khoá lạc quan `updated_at` + `wonGuard` (`EXISTS (SELECT 1 FROM audit_log WHERE id = ?)`), không so mốc thời gian để suy ra ai thắng. Module nghiêm (không đọc `audit_log`) dùng `version` + dấu lệnh `last_cmd_id` trên dòng gốc (ADR-0049 — `vc_trip`; khuôn ở `docs/ARCHITECTURE.md` Phần II "Luật dữ liệu").
-- Cột chết `staff.role` và `staff.full_name`: đọc quyền/tên từ `stf_permission`/hồ sơ (`v_stf_staff_label`).
+- Cột chết `staff.role` (hằng `'sales'`) và `staff.full_name` (hằng `''`): đọc quyền/tên từ `stf_permission`/hồ sơ (`v_stf_staff_label`).
 
 ## Migration
 Chỉ thêm tệp mới, không sửa tệp đã áp remote; đổi phá vỡ theo expand–contract trong **hai** lần phát hành. Kiểm số migration ở mọi nhánh chưa gộp trước khi đặt số (xem `CLAUDE.md` §10).

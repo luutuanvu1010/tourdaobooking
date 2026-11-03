@@ -724,3 +724,11 @@ Ghi 2026-10-29 khi đồng bộ bộ «Island Booking System — Design System v
 - **BL-DC-LY-DO-HUY** — huỷ với lý do khách đổi ý rồi khai lại cọc vẫn đi qua luật chặn (ADR-0159 Đ2 mục 1, chủ đã biết). Ghi lại để không quên, chưa định làm.
 - **BL-DC-CHUA-KIEM** — chưa kiểm: iPhone; câu «chờ đối tác nộp tiền» trên màn vé bằng Chrome; bản in biên nhận (chữ ghi «Khách hàng đã trả trước», không nói đối tác giữ hộ); tải đồng thời; `/ve/:token` đã tạo khi việc nộp bị đảo.
 - **BL-DC-KHO-390** — thẻ «Xác nhận đơn» hẹp, chữ tràn ở khổ 390 và dòng «Chưa tải được» có sẵn trên `main`, không do đặt cọc; chưa sửa.
+
+## 62. Việc còn lại sau khi viết lại `CLAUDE.md` (mã `BL-CM-…`, 2026-11-03)
+
+- **Trạng thái:** `để sau` · Từ ADR-0160. Không chạm dữ liệu, quyền, tiền của Nền tảng.
+- **BL-CM-RAO-DOI-CHIEU** — sau khi chủ duyệt ADR-0160: thêm bài đỏ cho ADR số lớn hơn 0160 thiếu mục `## Đối chiếu`, kèm một dòng sổ hàng rào. Chưa làm vì đổi quy trình mọi ADR sau và có thể làm đỏ nhánh đang chạy song song.
+- **BL-CM-HAN-4KB** — ngoại lệ `EXC-2026-002` (ADR-0160 Đ6) hạn **2027-02-03**, không có máy canh. Tới hạn xem lại: nén tiếp §3, §8, §9 của `CLAUDE.md` gốc, hoặc đặt ngưỡng mới cho dự án production bằng ADR mới.
+- **BL-CM-WEB** — `web/CLAUDE.md` 32 KB, còn nặng hơn tệp gốc, phần lớn là danh sách kịch bản Chrome; chưa rà. `src/CLAUDE.md` 10 KB.
+- **BL-CM-KERNEL** — tờ khai `docs/kernel-18.md`: dòng 12 (`PH-TDS-01`) quá hạn 31/10, chủ quyết làm hay gia hạn có lý do; tờ khai chưa có người duyệt và mục kiểm lại bằng người còn trống.

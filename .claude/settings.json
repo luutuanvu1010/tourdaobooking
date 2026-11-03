@@ -24,6 +24,7 @@
       "Edit(CLAUDE.md)",
       "Edit(src/CLAUDE.md)",
       "Edit(web/CLAUDE.md)",
+      "Edit(src/modules/**/CLAUDE.md)",
       "Edit(.claude/**)",
       "Edit(playbook/**)",
       "Edit(docs/adr/**)"
