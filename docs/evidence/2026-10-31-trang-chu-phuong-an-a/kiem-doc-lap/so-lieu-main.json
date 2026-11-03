@@ -1,0 +1,404 @@
+[
+ {
+  "vai": "Quan tri",
+  "kho": "1366x650",
+  "vw": 1366,
+  "scrollW": 1366,
+  "gap": null,
+  "dangCho": null,
+  "viec": true,
+  "cat": [
+   {
+    "el": "h1.visually-hidden",
+    "chu": "Trang chủ",
+    "rong": 1,
+    "can": 117
+   }
+  ],
+  "che": [
+   {
+    "el": "a.sidebar-item",
+    "chu": "Xe & giấy tờ",
+    "biChe": "div.sidebar-group",
+    "y": 368
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Giá & chi phí",
+    "biChe": "div.sidebar-group",
+    "y": 410
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Điều chỉnh công nợ",
+    "biChe": "div.sidebar-foot",
+    "y": 500
+   }
+  ],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.dash-today-head",
+    "rong": 684,
+    "noiDung": 175,
+    "tiLe": 26,
+    "chu": "Đơn đi 5 Xem tất cả"
+   }
+  ]
+ },
+ {
+  "vai": "Quan tri",
+  "kho": "1440x900",
+  "vw": 1440,
+  "scrollW": 1440,
+  "gap": null,
+  "dangCho": null,
+  "viec": true,
+  "cat": [
+   {
+    "el": "h1.visually-hidden",
+    "chu": "Trang chủ",
+    "rong": 1,
+    "can": 117
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.dash-viec-dau",
+    "rong": 1144,
+    "noiDung": 387,
+    "tiLe": 34,
+    "chu": "Việc của bạn Xếp theo độ gấp, việc gấp nhất bên trái"
+   },
+   {
+    "el": "div.dash-today-head",
+    "rong": 758,
+    "noiDung": 175,
+    "tiLe": 23,
+    "chu": "Đơn đi 5 Xem tất cả"
+   }
+  ]
+ },
+ {
+  "vai": "Quan tri",
+  "kho": "1100x800",
+  "vw": 1100,
+  "scrollW": 1100,
+  "gap": null,
+  "dangCho": null,
+  "viec": true,
+  "cat": [
+   {
+    "el": "h1.visually-hidden",
+    "chu": "Trang chủ",
+    "rong": 1,
+    "can": 117
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.dash-today-head",
+    "rong": 802,
+    "noiDung": 175,
+    "tiLe": 22,
+    "chu": "Đơn đi 5 Xem tất cả"
+   }
+  ]
+ },
+ {
+  "vai": "Quan tri",
+  "kho": "900x800",
+  "vw": 900,
+  "scrollW": 900,
+  "gap": null,
+  "dangCho": null,
+  "viec": true,
+  "cat": [
+   {
+    "el": "h1.visually-hidden",
+    "chu": "Trang chủ",
+    "rong": 1,
+    "can": 117
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.dash-today-head",
+    "rong": 602,
+    "noiDung": 175,
+    "tiLe": 29,
+    "chu": "Đơn đi 5 Xem tất cả"
+   }
+  ]
+ },
+ {
+  "vai": "Ke toan",
+  "kho": "1366x650",
+  "vw": 1366,
+  "scrollW": 1366,
+  "gap": null,
+  "dangCho": null,
+  "viec": true,
+  "cat": [
+   {
+    "el": "h1.visually-hidden",
+    "chu": "Trang chủ",
+    "rong": 1,
+    "can": 117
+   }
+  ],
+  "che": [
+   {
+    "el": "a.sidebar-item",
+    "chu": "Giá & chi phí",
+    "biChe": "div.sidebar-group",
+    "y": 372
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Điều chỉnh công nợ",
+    "biChe": "div.sidebar-foot",
+    "y": 462
+   },
+   {
+    "el": "a.sidebar-item",
+    "chu": "Sổ công nợ & khoá sổ",
+    "biChe": "div.sidebar-foot",
+    "y": 504
+   }
+  ],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.dash-today-head",
+    "rong": 684,
+    "noiDung": 175,
+    "tiLe": 26,
+    "chu": "Đơn đi 5 Xem tất cả"
+   }
+  ]
+ },
+ {
+  "vai": "Ke toan",
+  "kho": "1440x900",
+  "vw": 1440,
+  "scrollW": 1440,
+  "gap": null,
+  "dangCho": null,
+  "viec": true,
+  "cat": [
+   {
+    "el": "h1.visually-hidden",
+    "chu": "Trang chủ",
+    "rong": 1,
+    "can": 117
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.dash-viec-dau",
+    "rong": 1144,
+    "noiDung": 387,
+    "tiLe": 34,
+    "chu": "Việc của bạn Xếp theo độ gấp, việc gấp nhất bên trái"
+   },
+   {
+    "el": "div.dash-today-head",
+    "rong": 758,
+    "noiDung": 175,
+    "tiLe": 23,
+    "chu": "Đơn đi 5 Xem tất cả"
+   }
+  ]
+ },
+ {
+  "vai": "Ke toan",
+  "kho": "1100x800",
+  "vw": 1100,
+  "scrollW": 1100,
+  "gap": null,
+  "dangCho": null,
+  "viec": true,
+  "cat": [
+   {
+    "el": "h1.visually-hidden",
+    "chu": "Trang chủ",
+    "rong": 1,
+    "can": 117
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.dash-today-head",
+    "rong": 802,
+    "noiDung": 175,
+    "tiLe": 22,
+    "chu": "Đơn đi 5 Xem tất cả"
+   }
+  ]
+ },
+ {
+  "vai": "Ke toan",
+  "kho": "900x800",
+  "vw": 900,
+  "scrollW": 900,
+  "gap": null,
+  "dangCho": null,
+  "viec": true,
+  "cat": [
+   {
+    "el": "h1.visually-hidden",
+    "chu": "Trang chủ",
+    "rong": 1,
+    "can": 117
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.dash-today-head",
+    "rong": 602,
+    "noiDung": 175,
+    "tiLe": 29,
+    "chu": "Đơn đi 5 Xem tất cả"
+   }
+  ]
+ },
+ {
+  "vai": "Nhan vien lap don",
+  "kho": "1366x650",
+  "vw": 1366,
+  "scrollW": 1366,
+  "gap": null,
+  "dangCho": null,
+  "viec": true,
+  "cat": [
+   {
+    "el": "h1.visually-hidden",
+    "chu": "Trang chủ",
+    "rong": 1,
+    "can": 117
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.dash-today-head",
+    "rong": 684,
+    "noiDung": 175,
+    "tiLe": 26,
+    "chu": "Đơn đi 5 Xem tất cả"
+   }
+  ]
+ },
+ {
+  "vai": "Nhan vien lap don",
+  "kho": "1440x900",
+  "vw": 1440,
+  "scrollW": 1440,
+  "gap": null,
+  "dangCho": null,
+  "viec": true,
+  "cat": [
+   {
+    "el": "h1.visually-hidden",
+    "chu": "Trang chủ",
+    "rong": 1,
+    "can": 117
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.dash-viec-dau",
+    "rong": 1144,
+    "noiDung": 387,
+    "tiLe": 34,
+    "chu": "Việc của bạn Xếp theo độ gấp, việc gấp nhất bên trái"
+   },
+   {
+    "el": "div.dash-today-head",
+    "rong": 758,
+    "noiDung": 175,
+    "tiLe": 23,
+    "chu": "Đơn đi 5 Xem tất cả"
+   }
+  ]
+ },
+ {
+  "vai": "Nhan vien lap don",
+  "kho": "1100x800",
+  "vw": 1100,
+  "scrollW": 1100,
+  "gap": null,
+  "dangCho": null,
+  "viec": true,
+  "cat": [
+   {
+    "el": "h1.visually-hidden",
+    "chu": "Trang chủ",
+    "rong": 1,
+    "can": 117
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.dash-today-head",
+    "rong": 802,
+    "noiDung": 175,
+    "tiLe": 22,
+    "chu": "Đơn đi 5 Xem tất cả"
+   },
+   {
+    "el": "section#dash-loi-tat.card.dash-loi-tat",
+    "rong": 804,
+    "noiDung": 276,
+    "tiLe": 34,
+    "chu": "Lối tắt Đơn hàng Danh bạ Điều phối xe Hỗ trợ Hướng dẫn"
+   }
+  ]
+ },
+ {
+  "vai": "Nhan vien lap don",
+  "kho": "900x800",
+  "vw": 900,
+  "scrollW": 900,
+  "gap": null,
+  "dangCho": null,
+  "viec": true,
+  "cat": [
+   {
+    "el": "h1.visually-hidden",
+    "chu": "Trang chủ",
+    "rong": 1,
+    "can": 117
+   }
+  ],
+  "che": [],
+  "tran": [],
+  "rong": [
+   {
+    "el": "div.dash-today-head",
+    "rong": 602,
+    "noiDung": 175,
+    "tiLe": 29,
+    "chu": "Đơn đi 5 Xem tất cả"
+   }
+  ]
+ }
+]

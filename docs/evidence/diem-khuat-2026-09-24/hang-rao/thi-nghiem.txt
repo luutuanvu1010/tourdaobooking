@@ -1,0 +1,149 @@
+THÍ NGHIỆM CHỨNG MINH HÀNG RÀO (P16: sửa cố ý → đỏ → hoàn nguyên) — đợt kiểm toán "điểm khuất" 2026-09-24/25
+Người làm: người kiểm độc lập (chỉ đọc cây dùng chung). Mã đo: HEAD 4620e61 (= main = production bản 1.8).
+Mọi phép sửa làm trong BẢN SAO NHÁP (git archive HEAD), KHÔNG trên worktree dùng chung:
+  S = /private/tmp/claude-501/-Users-tuanbao-Documents-Projects-ctytnhhtourdao-tourdao-sales--claude-worktrees-tourdao-sales-audit-62ea81/c964efb5-7bf2-4e78-8214-a3e41d4568f4/scratchpad/hang-rao
+  Bản sao: $S/copy (thí nghiệm 1, 6), $S/copy-t403 (2), $S/copy-unit (3, 4), $S/copy-audit (5 + dò bước I).
+  Đầu ra thô: $S/e<số>-*.log, $S/e<số>-*.diff (phép sửa), $S/e<số>-*.goc (bản gốc để hoàn nguyên).
+Hoàn nguyên đã kiểm bằng cmp với `git show HEAD:<tệp>`: index.ts, repository.ts, dashboard.test.ts, money-adjustment.test.ts,
+audit-checks.mjs trong bản sao đều = HEAD. Worktree dùng chung: git status chỉ có 2 mục chưa theo dõi có sẵn từ trước.
+GHI CHÚ TOÀN VẸN: public/js/*.js + public/sw.js của worktree dùng chung bị dựng lại lúc 00:52:41 ngày 25/9 — KHÔNG do tôi:
+lúc đó tiến trình `wrangler dev` (pid 97574/97598/97599) có cha là một kịch bản node trong scratchpad/pb-… của phiên khác
+(Chrome pid 97673, cha 97161 = node …/scratchpad/pb-…); mọi lần chạy của tôi có cwd trong $S/copy*. Các tệp mới trong
+diem-khuat-2026-09-24/x-ghep-cheo, pb-g2, pb-g4 cũng của phiên khác. Tôi chỉ TẠO tệp này.
+
+Quy ước kết luận: mô tả hàng rào NHƯ NÓ ĐANG CÓ trên main. "KHÔNG chặn (xanh)" = rào hiện có xanh trên mã đang lỗi;
+con số đỏ sau khi mở rộng dữ liệu/phép đo chỉ chứng minh PHÉP ĐO đúng khi có dữ liệu, KHÔNG có nghĩa main đang được canh.
+
+======================================================================================================================
+1. DK-MENU-01 — docs/evidence/2026-09-23-trang-chu-moi/kich-ban/trang-chu-smoke.mjs, phép "không tràn ngang"
+----------------------------------------------------------------------------------------------------------------------
+Lệnh (cwd $S/copy):
+  AXE_JS=/private/tmp/tourdao-axe/package/axe.min.js CHROME_BIN=<WT>/docs/evidence/2026-09-20-a2/kich-ban/chrome-wrap.sh \
+    node docs/evidence/2026-09-23-trang-chu-moi/kich-ban/trang-chu-smoke.mjs            (bản gốc: …/trang-chu-smoke-goc.mjs)
+  PLACE='https://maps.app.goo.gl/9xQpZ3kLmN7vWb2A8' <cùng lệnh>                          (bản đã tham số hoá)
+Phép sửa (chỉ kịch bản, $S/e1-menu01.diff): thêm `const PLACE = process.env.PLACE ?? "Bến Cầu Đá"` và thay 4 chỗ dùng chuỗi
+"Bến Cầu Đá" trong mã (gốc :138 fixture R1 dịch vụ HÔM NAY, :211 khẳng định API, :451 khẳng định nơi đón hiển thị, :1354
+biểu tượng) bằng PLACE; thêm MOB_W (mặc định 390, không dùng). Khi không đặt biến, hành vi y hệt bản gốc.
+TRƯỚC (bản gốc, 2 lần: e1-menu-truoc.log, e1-menu-truoc-lan2.log): 38 bước ✓ tới hết bước J, gồm
+  "Trang chủ (điện thoại, 390×844): … không tràn ngang" (gốc :339 assertHome, gọi từ :516) và tab bar (gốc :609).
+  Cả kịch bản thoát 1 ở bước I (gốc ~:1377, đăng nhập tài khoản CHỈ PARTNER tạo bằng insertStaffSql → fetch failed,
+  ECONNRESET) — 2/2 lần. Dò riêng ($S/copy-audit/probe-partner.mjs): 1/2 lần tái hiện ECONNRESET (lần đầu, lời gọi đầu
+  tiên sau 5 lệnh `wrangler d1 execute`), lần 2 đăng nhập 200. Nguyên nhân CHƯA XÁC ĐỊNH. Không ảnh hưởng kết luận
+  MENU-01 vì mọi bước đo tràn đã chạy xong trước bước I.
+SAU (PLACE = link bản đồ, 390px, e1-menu-sau-390.log): 12 bước ✓ rồi ĐỎ:
+  "AssertionError: Trang chủ (điện thoại, 390×844): không được tràn ngang — lệch 43px" tại assertHome (gốc :339; bản
+  sao :340), gọi từ gốc :516 (bản sao :517). 43px = 433 − 390, khớp số đo trục trước ("dòng tràn tới x=433").
+  Khẳng định API :211 và khẳng định 1040px (bước D) đều qua — chỉ khổ điện thoại tràn. Không cần thử 375.
+KẾT LUẬN: hàng rào KHÔNG chặn (xanh) trên main — lỗi tràn có thật nhưng rào xanh chỉ vì mọi pickupPlace thử đều có khoảng
+  trắng. Phép đo ĐÚNG: đổi một chuỗi dữ liệu là đỏ ngay ở 390. Thêm một điểm mù: bước tab bar (gốc :575–:620) có đọc
+  barTop và innerHeight nhưng KHÔNG khẳng định barTop < innerHeight (chỉ khẳng định tabCount, scrollOverflow,
+  paddingCovers) → triệu chứng "thanh tab rơi khỏi màn hình" vẫn không được canh kể cả khi có dữ liệu link; trong lần
+  đỏ, bước :609 không chạy tới.
+
+======================================================================================================================
+2. DK-T4-03 — docs/evidence/2026-09-20-a2/kich-ban/a2-smoke-order.mjs:161 khẳng định /Không thể chuyển đơn từ/
+----------------------------------------------------------------------------------------------------------------------
+Lệnh (cwd $S/copy-t403): CHROME_BIN=… node docs/evidence/2026-09-20-a2/kich-ban/a2-smoke-order.mjs
+Phép sửa ($S/e2-t403.diff) src/modules/orders/index.ts:296 (thông điệp máy chủ, 409 invalid_transition):
+  - `Không thể chuyển đơn từ "${from}" sang "${to}".`
+  + `Đơn đang ở trạng thái "<Chờ xác nhận|Đã xác nhận|Đã huỷ>" nên không thể <huỷ|xác nhận> nữa. Hãy tải lại đơn.`
+  (mã lỗi, mã HTTP, nút "Tải lại đơn" giữ nguyên). tsc 0 lỗi ($S/e2-tsc-sau.log).
+TRƯỚC (e2-t403-truoc.log): 10/10 bước ✓, "UI SMOKE ORDER OK", EXIT=0.
+SAU (e2-t403-sau.log): 6 bước ✓ rồi ĐỎ: "hết giờ chờ: banner 409 invalid_transition" tại a2-smoke-order.mjs:161
+  (biểu thức /Không thể chuyển đơn từ/). 4 bước sau (quyền, lỗi tải, đo nút/tràn/console) KHÔNG chạy — một câu chữ đã
+  sửa đúng còn che mất các phép kiểm khác.
+KẾT LUẬN: hàng rào khoá hành vi sai — sửa đúng luật "không chữ Anh lộ ra người dùng" (CLAUDE.md §7) bị kịch bản coi là
+  hỏng. Nợ này đã được ghi từ trước ở docs/evidence/2026-09-20-a2/README.md:87 nhưng kịch bản vẫn khoá câu cũ.
+  Chưa thử đường sửa phía giao diện (classifyOrderError ở src/shared/order-errors.ts) — kỳ vọng cũng đỏ vì kịch bản đọc
+  textContent của banner, nhưng CHƯA KIỂM.
+
+======================================================================================================================
+3. DK-T2-01 — src/modules/orders/money-adjustment.test.ts (mọi fixture unitPrice = catalogPrice)
+----------------------------------------------------------------------------------------------------------------------
+Lệnh (cwd $S/copy-unit): node --test src/modules/orders/money-adjustment.test.ts
+Phép sửa (chỉ thêm test, không sửa mã sản phẩm; $S/e3-t201.diff): 2 ca mới ở cuối tệp
+  (a) applyAdjustmentToOrder: dòng hàng unitPrice 250.000 / catalogPrice 300.000 / lineTotal 500.000 (2 khách), after =
+      y nguyên 2 khách → kỳ vọng subtotal 500.000 và unitPrice 250.000.
+  (b) effectiveSubtotal: item { catalogPrice 300.000, lineTotal 500.000 }, after cùng 2 khách → kỳ vọng 500.000.
+TRƯỚC: 42/42 pass, EXIT=0 (e3-t201-truoc.log).
+SAU: 42 pass, 2 FAIL (e3-t201-sau.log): cả (a) và (b) "expected: 500000, actual: 600000". EXIT=1.
+HOÀN NGUYÊN: 42/42 pass.
+KẾT LUẬN: hàng rào KHÔNG chặn (xanh) trên main — lưới đơn vị mù chỉ vì dữ liệu thử "đẹp"; một ca có giá thoả thuận là
+  đỏ ngay, xác nhận lỗi có thật ở tầng hàm thuần (gửi lại y nguyên số khách → tiền tính lại theo giá niêm yết).
+  Ghi thêm: kiểu SubtotalServiceInput.items (money-adjustment.ts) và StoredService.items (service-rules.ts:54) không có
+  trường unitPrice — lỗi nằm ở hình dạng dữ liệu, không chỉ ở một dòng mã.
+
+======================================================================================================================
+4. DK-T7-02 — src/modules/orders/dashboard.test.ts dùng D1 giả không có batch()
+----------------------------------------------------------------------------------------------------------------------
+Lệnh (cwd $S/copy-unit): node --test src/modules/orders/dashboard.test.ts ; npx tsc --noEmit
+Phép sửa ($S/e4-t702.diff) src/modules/orders/repository.ts getServicesForSubtotal (:813–:825): hai SELECT tuần tự →
+  một `await db.batch([stmtService, stmtItem])` (cùng SQL, cùng bind). tsc 0 lỗi ($S/e4-tsc-sau.log).
+TRƯỚC: 14/14 pass (e4-t702-truoc.log).
+SAU: 9 pass, 5 FAIL, mọi lỗi "db.batch is not a function" (e4-t702-sau.log): test 2 (today: điều chỉnh tiền),
+  3 (today: điều chỉnh số khách), 4 (unpaid), 8 (revenueWeek), 10 (revenueWeek.daily).
+ĐỐI CHỨNG: giữ phép sửa, chỉ thêm `batch` vào fakeD1 của test (chạy tuần tự từng .all()) → 14/14 pass
+  (e4-t702-gia-co-batch.log). Hoàn nguyên cả hai tệp → 14/14 pass.
+KẾT LUẬN: hàng rào khoá hành vi sai — mã production đúng kiểu (tsc 0) vẫn bị test đánh đỏ chỉ vì D1 giả thiếu batch();
+  chính chú thích repository.ts:808–:812 ghi "HAI câu TUẦN TỰ (không db.batch()): … dashboard.test.ts dùng D1 giả KHÔNG
+  có batch()" — test giả đang định hình mã production. Chưa đo lợi ích độ trễ của batch trên D1 thật.
+
+======================================================================================================================
+5. R-ORD-6a (mức warn) — scripts/audit-checks.mjs:206–:211
+----------------------------------------------------------------------------------------------------------------------
+Lệnh (cwd $S/copy-audit): node e5-rord6a.mjs  (bản chép từ b-t2/kich-ban/money.mjs ca C1, mọi đầu ra vào $S)
+  Bên trong: node scripts/audit-invariants.mjs --db local --persist-to <D1 tạm> [--strict]
+Dữ liệu (e5-rord6a-log.txt): SALES lập TD101 2 NL, unitPrices adult 1.000.000 (danh mục 1.350.000), cọc 1.000.000, xác nhận,
+  gán HDV; HDV POST handler-money-edit y nguyên 2 NL → 200. Trước: subtotal 2.000.000, còn 1.000.000. Sau: 2.700.000,
+  còn 1.700.000. Dòng điều chỉnh seq=1: subtotal_before 2.700.000 (!), subtotal_after 2.700.000; orders.subtotal 2.000.000.
+Mốc 0 (chưa có điều chỉnh): thường 0, --strict 0, "Mọi bất biến đạt".
+TRƯỚC (main, level "warn"): thường → mã thoát 0; --strict → mã thoát 0; dòng "⚠ R-ORD-6a … — 1 vi phạm (cảnh báo (KHÔNG
+  chặn phát hành …): lệch có thể là dữ liệu LỊCH SỬ từ trước bản vá Task 7 …" (e5-audit-chua-sua-*.txt).
+SAU (bản sao, level → "fail"): thường → 1, --strict → 1, "✗ R-ORD-6a … 1 vi phạm", "1 bất biến BỊ VI PHẠM"
+  (e5-audit-sua-fail-*.txt). HOÀN NGUYÊN: --strict → 0, tệp = HEAD.
+Đường triển khai (đọc mã):
+  - e2e (cổng DUY NHẤT trước deploy chạm dữ liệu): tests/e2e/run.mjs:110 chạy audit-invariants --db local --strict; warn
+    không bao giờ đỏ kể cả --strict (audit-invariants.mjs:4, :41). Dữ liệu e2e sửa tiền (tests/e2e/dispatch.mjs:356–,
+    dịch vụ ZH1 300.000, catSvc chỉ catalogPriceSeen, không unitPrices; grep unitPrices tests/e2e: chỉ trip.mjs:49/76,
+    không đi qua handler-money-edit) → e2e KHÔNG BAO GIỜ tạo ca giá thoả thuận + HDV sửa, nên kể cả nâng lên "fail" cũng
+    không đỏ được trước deploy.
+  - release-lib.mjs: deploy ở :303–:306, rồi MỚI kiểm dữ liệu :308–:313 bằng `audit-invariants --db remote` KHÔNG --strict;
+    auditText chỉ theo mã thoát (:311–:312) → có ⚠ vẫn in "ĐẠT" vào khối dán HANDOFF (:347); mã tổng :353 chỉ đổi sau khi
+    Worker đã lên. e2e đỏ cũng chỉ hỏi chủ (:256–:266).
+  - Chú thích audit-checks.mjs:210 quy lệch cho "dữ liệu LỊCH SỬ trước Task 7", nhưng ca ở đây là đơn MỚI trên main → chú
+    thích hướng người vận hành bỏ qua một lỗi đang sống.
+KẾT LUẬN: hàng rào KHÔNG chặn (xanh) — cảnh báo R-ORD-6a không bao giờ dừng được dây chuyền: không đỏ ở --strict, cổng
+  e2e không có dữ liệu kích hoạt, cổng remote chạy SAU deploy và in "ĐẠT". Phép đo SQL thì đúng (nâng "fail" là đỏ ngay).
+
+======================================================================================================================
+6. DK-T6-01 — thẻ đơn Đợt E: đo ở khổ nào, có phép "không cắt số khách" không
+----------------------------------------------------------------------------------------------------------------------
+Tìm kịch bản: docs/evidence/2026-09-24-dot-e/ KHÔNG có kịch bản (README.md chỉ ảnh chép lại). Kịch bản thật:
+  docs/evidence/2026-09-21-v1-0/kich-ban/v1-nguoi-phu-trach.mjs — khổ M = 390 (:39), DESK = 1040 (:40); các vòng đo
+  :322, :509, :761, :826, :847 chỉ 390 và 1040. KHÔNG có phép "không cắt số khách ở dòng 2": chú thích :362–:365 miễn
+  RIÊNG .order-row-pax (và .order-row-name) khỏi phép kiểm cắt chữ (mustFit chỉ gồm SĐT và "Còn thu", :371–:373); số khách
+  chỉ được khẳng định trong PHẦN XỔ ("03 NL", :338).
+Lệnh (cwd $S/copy, bash $S/e6-chay.sh): ONLY=a M_W=<375|390> PAX_FENCE=<0|1> OUT=$S/e6-out-w<w>-f<f> node …/v1-nguoi-phu-trach.mjs
+Phép sửa (bản sao, $S/e6-t601.diff): M.width đọc từ M_W (mặc định 390); sau khẳng định "≤84px" in số đo .order-row-pax
+  (scrollWidth/clientWidth); khi PAX_FENCE=1 thêm khẳng định THỬ "số khách ở dòng 2 không bị cắt" (rào ĐỀ XUẤT, KHÔNG có
+  trong repo). Nhãn bước vẫn in "390" (chuỗi cứng) — khổ thật kiểm bằng ảnh: e6-out-w375-f0 ảnh rộng 375px, e6-out-w390-f0
+  ảnh rộng 390px (sips).
+KẾT QUẢ:
+  w390 f0: ✓ bước a, EXIT=0; số khách "3NL" scrollWidth 46 / clientWidth 39 (đã bị cắt ở 390).
+  w375 f0: ✓ bước a, EXIT=0; "3NL" 46 / 24 (còn ~nửa chữ).
+  w375 f1: ✗ bước a, EXIT=1: "THÍ NGHIỆM — số khách ở dòng 2 bị cắt: [{"text":"3NL","sw":46,"cw":24,…}×3]".
+  w390 f1: ✗ bước a, EXIT=1 (cw 39).
+KẾT LUẬN: hàng rào KHÔNG chặn (xanh) — xanh ở 375 là THEO THIẾT KẾ (số khách được miễn), không phải vì đo sót khổ; một
+  phép "không cắt số khách" đỏ ngay ở cả 390 với đơn chỉ 3 người lớn. Các lần chạy lỗi do zsh không tách chuỗi (M_W=NaN)
+  đã để riêng ở $S/e6-hong-zsh/ — KHÔNG dùng làm kết quả.
+
+======================================================================================================================
+CHƯA KIỂM
+- iPhone thật/WebKit cho DK-MENU-01 và DK-T6-01 (chỉ Chrome headless 153).
+- db.batch() trên D1 thật (e2e) và lợi ích độ trễ của nó (DK-T7-02).
+- Đường sửa DK-T4-03 phía giao diện (classifyOrderError) — chỉ thử thông điệp máy chủ.
+- Nguyên nhân ECONNRESET ở bước I của trang-chu-smoke.mjs (2/2 lần đỏ ở HEAD; dò riêng 1/2).
+- Bước tab bar (gốc :609) dưới dữ liệu link — không chạy tới trong lần đỏ; rào barTop < innerHeight không tồn tại.
+- Tệp test có fakeD1 thêm batch() không được tsc phủ (npm run typecheck không phủ *.test.ts).
+- R-ORD-6b (chuỗi liên tục) không thử.
+- Số cảnh báo R-ORD-6a trên production — cấm đọc D1 remote; chủ tự chạy `node scripts/audit-invariants.mjs --db remote`.

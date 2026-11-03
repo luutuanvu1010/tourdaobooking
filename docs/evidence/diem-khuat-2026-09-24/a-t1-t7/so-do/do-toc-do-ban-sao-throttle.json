@@ -1,0 +1,3882 @@
+{
+ "at": "2026-09-24T16:40:30.173Z",
+ "cwd": "/private/tmp/claude-501/-Users-tuanbao-Documents-Projects-ctytnhhtourdao-tourdao-sales--claude-worktrees-tourdao-sales-audit-62ea81/c964efb5-7bf2-4e78-8214-a3e41d4568f4/scratchpad/a-t1-t7/copy",
+ "throttle": {
+  "offline": false,
+  "latency": 562.5,
+  "downloadThroughput": 180000,
+  "uploadThroughput": 84375,
+  "cpu": 4
+ },
+ "uptimeStart": "23:40  up 5 days, 17:21, 3 users, load averages: 12.90 8.52 6.51",
+ "seed": {
+  "orders": 60,
+  "confirmed": 40,
+  "field": true,
+  "fieldStatus": 201,
+  "assignedToField": 6
+ },
+ "pages": [
+  {
+   "key": "login",
+   "label": "Đăng nhập",
+   "path": "/login",
+   "viewport": "375×812",
+   "round": 0,
+   "cold": {
+    "phase": "lạnh",
+    "fcp": 1596,
+    "dcl": 1476,
+    "load": 2543,
+    "readyAt": 2066,
+    "longTasks": 1,
+    "longTaskMs": 133,
+    "tbt": 83,
+    "cls": 0.0006,
+    "shifts": [
+     {
+      "t": 2389,
+      "v": 0.0003,
+      "src": [
+       "#text"
+      ]
+     },
+     {
+      "t": 2564,
+      "v": 0.0003,
+      "src": [
+       "A",
+       "SPAN",
+       "SPAN"
+      ]
+     }
+    ],
+    "mutations": 130,
+    "domNodes": 62,
+    "swControlled": true,
+    "wallMs": 5253,
+    "requests": {
+     "total": 13,
+     "api": 2,
+     "static": 11,
+     "staticFromSW": 0,
+     "staticFromDisk": 0,
+     "serverSawRequests": 36
+    },
+    "bytes": {
+     "transfer": 121628,
+     "decoded": 216071,
+     "jsDecoded": 26227,
+     "cssDecoded": 90006,
+     "fontDecoded": 70716,
+     "htmlDecoded": 4810,
+     "apiDecoded": 198
+    },
+    "apiChainDepth": 1,
+    "apiChain": [
+     "/api/auth/me"
+    ],
+    "firstApiStartMs": 1472,
+    "docEndMs": 580,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 1472,
+      "end": 2045,
+      "status": 401
+     },
+     {
+      "path": "/api/auth/config",
+      "start": 1474,
+      "end": 2052,
+      "status": 200
+     }
+    ],
+    "d1": [
+     {
+      "req": "GET /api/auth/me",
+      "status": 401,
+      "d1RoundTrips": 0,
+      "d1Stmts": 0,
+      "d1SerialRounds": 0,
+      "bytes": 100,
+      "ms": 1
+     },
+     {
+      "req": "GET /api/auth/config",
+      "status": 200,
+      "d1RoundTrips": 1,
+      "d1Stmts": 1,
+      "d1SerialRounds": 1,
+      "bytes": 98,
+      "ms": 3
+     }
+    ]
+   },
+   "warm": {
+    "phase": "ấm",
+    "fcp": 120,
+    "dcl": 44,
+    "load": 65,
+    "readyAt": 623,
+    "longTasks": 0,
+    "longTaskMs": 0,
+    "tbt": 0,
+    "cls": 0,
+    "shifts": [],
+    "mutations": 130,
+    "domNodes": 62,
+    "swControlled": true,
+    "wallMs": 2149,
+    "requests": {
+     "total": 12,
+     "api": 2,
+     "static": 10,
+     "staticFromSW": 10,
+     "staticFromDisk": 10,
+     "serverSawRequests": 13
+    },
+    "bytes": {
+     "transfer": 560,
+     "decoded": 208203,
+     "jsDecoded": 26227,
+     "cssDecoded": 90006,
+     "fontDecoded": 70716,
+     "htmlDecoded": 4810,
+     "apiDecoded": 198
+    },
+    "apiChainDepth": 1,
+    "apiChain": [
+     "/api/auth/me"
+    ],
+    "firstApiStartMs": 43,
+    "docEndMs": 5,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 43,
+      "end": 617,
+      "status": 401
+     },
+     {
+      "path": "/api/auth/config",
+      "start": 43,
+      "end": 626,
+      "status": 200
+     }
+    ],
+    "d1": [
+     {
+      "req": "GET /api/auth/me",
+      "status": 401,
+      "d1RoundTrips": 0,
+      "d1Stmts": 0,
+      "d1SerialRounds": 0,
+      "bytes": 100,
+      "ms": 1
+     },
+     {
+      "req": "GET /api/auth/config",
+      "status": 200,
+      "d1RoundTrips": 1,
+      "d1Stmts": 1,
+      "d1SerialRounds": 1,
+      "bytes": 98,
+      "ms": 3
+     }
+    ],
+    "swCacheEntriesBefore": 22
+   }
+  },
+  {
+   "key": "home",
+   "label": "Trang chủ (Sales)",
+   "path": "/",
+   "viewport": "375×812",
+   "round": 0,
+   "cold": {
+    "phase": "lạnh",
+    "fcp": 1540,
+    "dcl": 1506,
+    "load": 2912,
+    "readyAt": 2767,
+    "longTasks": 1,
+    "longTaskMs": 71,
+    "tbt": 21,
+    "cls": 0.007,
+    "shifts": [
+     {
+      "t": 2133,
+      "v": 0.007,
+      "src": [
+       "#loading"
+      ]
+     },
+     {
+      "t": 2937,
+      "v": 0,
+      "src": [
+       "A.dash-today-all"
+      ]
+     }
+    ],
+    "mutations": 133,
+    "domNodes": 472,
+    "swControlled": true,
+    "wallMs": 5819,
+    "requests": {
+     "total": 15,
+     "api": 2,
+     "static": 13,
+     "staticFromSW": 0,
+     "staticFromDisk": 0,
+     "serverSawRequests": 38
+    },
+    "bytes": {
+     "transfer": 146668,
+     "decoded": 240237,
+     "jsDecoded": 32576,
+     "cssDecoded": 90006,
+     "fontDecoded": 89196,
+     "htmlDecoded": 2853,
+     "apiDecoded": 5753
+    },
+    "apiChainDepth": 2,
+    "apiChain": [
+     "/api/auth/me",
+     "/api/orders/dashboard"
+    ],
+    "firstApiStartMs": 1503,
+    "docEndMs": 577,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 1503,
+      "end": 2077,
+      "status": 200
+     },
+     {
+      "path": "/api/orders/dashboard",
+      "start": 2110,
+      "end": 2685,
+      "status": 200
+     }
+    ],
+    "d1": [
+     {
+      "req": "GET /api/auth/me",
+      "status": 200,
+      "d1RoundTrips": 3,
+      "d1Stmts": 3,
+      "d1SerialRounds": 3,
+      "bytes": 215,
+      "ms": 5
+     },
+     {
+      "req": "GET /api/orders/dashboard",
+      "status": 200,
+      "d1RoundTrips": 13,
+      "d1Stmts": 13,
+      "d1SerialRounds": 13,
+      "bytes": 5538,
+      "ms": 33
+     }
+    ]
+   },
+   "warm": {
+    "phase": "ấm",
+    "fcp": 116,
+    "dcl": 91,
+    "load": 113,
+    "readyAt": 1293,
+    "longTasks": 0,
+    "longTaskMs": 0,
+    "tbt": 0,
+    "cls": 0.007,
+    "shifts": [
+     {
+      "t": 691,
+      "v": 0.007,
+      "src": [
+       "#loading"
+      ]
+     }
+    ],
+    "mutations": 133,
+    "domNodes": 472,
+    "swControlled": true,
+    "wallMs": 2890,
+    "requests": {
+     "total": 14,
+     "api": 2,
+     "static": 12,
+     "staticFromSW": 12,
+     "staticFromDisk": 12,
+     "serverSawRequests": 15
+    },
+    "bytes": {
+     "transfer": 1411,
+     "decoded": 232369,
+     "jsDecoded": 32576,
+     "cssDecoded": 90006,
+     "fontDecoded": 89196,
+     "htmlDecoded": 2853,
+     "apiDecoded": 5753
+    },
+    "apiChainDepth": 2,
+    "apiChain": [
+     "/api/auth/me",
+     "/api/orders/dashboard"
+    ],
+    "firstApiStartMs": 87,
+    "docEndMs": 14,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 87,
+      "end": 657,
+      "status": 200
+     },
+     {
+      "path": "/api/orders/dashboard",
+      "start": 673,
+      "end": 1249,
+      "status": 200
+     }
+    ],
+    "d1": [
+     {
+      "req": "GET /api/auth/me",
+      "status": 200,
+      "d1RoundTrips": 3,
+      "d1Stmts": 3,
+      "d1SerialRounds": 3,
+      "bytes": 215,
+      "ms": 13
+     },
+     {
+      "req": "GET /api/orders/dashboard",
+      "status": 200,
+      "d1RoundTrips": 13,
+      "d1Stmts": 13,
+      "d1SerialRounds": 13,
+      "bytes": 5538,
+      "ms": 27
+     }
+    ],
+    "swCacheEntriesBefore": 22
+   }
+  },
+  {
+   "key": "home-admin",
+   "label": "Trang chủ (Admin)",
+   "path": "/",
+   "viewport": "375×812",
+   "round": 0,
+   "cold": {
+    "phase": "lạnh",
+    "fcp": 1572,
+    "dcl": 1528,
+    "load": 2989,
+    "readyAt": 2734,
+    "longTasks": 1,
+    "longTaskMs": 74,
+    "tbt": 24,
+    "cls": 0.007,
+    "shifts": [
+     {
+      "t": 2155,
+      "v": 0.007,
+      "src": [
+       "#loading"
+      ]
+     },
+     {
+      "t": 2886,
+      "v": 0,
+      "src": [
+       "A.dash-today-all"
+      ]
+     }
+    ],
+    "mutations": 133,
+    "domNodes": 476,
+    "swControlled": true,
+    "wallMs": 5820,
+    "requests": {
+     "total": 17,
+     "api": 4,
+     "static": 13,
+     "staticFromSW": 0,
+     "staticFromDisk": 0,
+     "serverSawRequests": 40
+    },
+    "bytes": {
+     "transfer": 147478,
+     "decoded": 241659,
+     "jsDecoded": 32576,
+     "cssDecoded": 90006,
+     "fontDecoded": 89196,
+     "htmlDecoded": 2853,
+     "apiDecoded": 7175
+    },
+    "apiChainDepth": 2,
+    "apiChain": [
+     "/api/auth/me",
+     "/api/orders/dashboard"
+    ],
+    "firstApiStartMs": 1526,
+    "docEndMs": 577,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 1526,
+      "end": 2101,
+      "status": 200
+     },
+     {
+      "path": "/api/orders/dashboard",
+      "start": 2132,
+      "end": 2719,
+      "status": 200
+     },
+     {
+      "path": "/api/catalog/admin",
+      "start": 2133,
+      "end": 2710,
+      "status": 200
+     },
+     {
+      "path": "/api/feedback",
+      "start": 2133,
+      "end": 2726,
+      "status": 200
+     }
+    ],
+    "d1": [
+     {
+      "req": "GET /api/auth/me",
+      "status": 200,
+      "d1RoundTrips": 3,
+      "d1Stmts": 3,
+      "d1SerialRounds": 3,
+      "bytes": 216,
+      "ms": 10
+     },
+     {
+      "req": "GET /api/catalog/admin",
+      "status": 200,
+      "d1RoundTrips": 4,
+      "d1Stmts": 4,
+      "d1SerialRounds": 3,
+      "bytes": 1413,
+      "ms": 12
+     },
+     {
+      "req": "GET /api/orders/dashboard",
+      "status": 200,
+      "d1RoundTrips": 12,
+      "d1Stmts": 12,
+      "d1SerialRounds": 12,
+      "bytes": 5521,
+      "ms": 31
+     },
+     {
+      "req": "GET /api/feedback",
+      "status": 200,
+      "d1RoundTrips": 4,
+      "d1Stmts": 4,
+      "d1SerialRounds": 3,
+      "bytes": 25,
+      "ms": 9
+     }
+    ]
+   },
+   "warm": {
+    "phase": "ấm",
+    "fcp": 88,
+    "dcl": 66,
+    "load": 79,
+    "readyAt": 1258,
+    "longTasks": 0,
+    "longTaskMs": 0,
+    "tbt": 0,
+    "cls": 0.007,
+    "shifts": [
+     {
+      "t": 671,
+      "v": 0.007,
+      "src": [
+       "#loading"
+      ]
+     }
+    ],
+    "mutations": 133,
+    "domNodes": 476,
+    "swControlled": true,
+    "wallMs": 2835,
+    "requests": {
+     "total": 16,
+     "api": 4,
+     "static": 12,
+     "staticFromSW": 12,
+     "staticFromDisk": 12,
+     "serverSawRequests": 17
+    },
+    "bytes": {
+     "transfer": 2221,
+     "decoded": 233791,
+     "jsDecoded": 32576,
+     "cssDecoded": 90006,
+     "fontDecoded": 89196,
+     "htmlDecoded": 2853,
+     "apiDecoded": 7175
+    },
+    "apiChainDepth": 2,
+    "apiChain": [
+     "/api/auth/me",
+     "/api/orders/dashboard"
+    ],
+    "firstApiStartMs": 64,
+    "docEndMs": 8,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 64,
+      "end": 639,
+      "status": 200
+     },
+     {
+      "path": "/api/orders/dashboard",
+      "start": 656,
+      "end": 1231,
+      "status": 200
+     },
+     {
+      "path": "/api/catalog/admin",
+      "start": 657,
+      "end": 1240,
+      "status": 200
+     },
+     {
+      "path": "/api/feedback",
+      "start": 657,
+      "end": 1248,
+      "status": 200
+     }
+    ],
+    "d1": [
+     {
+      "req": "GET /api/auth/me",
+      "status": 200,
+      "d1RoundTrips": 3,
+      "d1Stmts": 3,
+      "d1SerialRounds": 3,
+      "bytes": 216,
+      "ms": 5
+     },
+     {
+      "req": "GET /api/orders/dashboard",
+      "status": 200,
+      "d1RoundTrips": 12,
+      "d1Stmts": 12,
+      "d1SerialRounds": 12,
+      "bytes": 5521,
+      "ms": 19
+     },
+     {
+      "req": "GET /api/catalog/admin",
+      "status": 200,
+      "d1RoundTrips": 4,
+      "d1Stmts": 4,
+      "d1SerialRounds": 3,
+      "bytes": 1413,
+      "ms": 19
+     },
+     {
+      "req": "GET /api/feedback",
+      "status": 200,
+      "d1RoundTrips": 4,
+      "d1Stmts": 4,
+      "d1SerialRounds": 3,
+      "bytes": 25,
+      "ms": 17
+     }
+    ],
+    "swCacheEntriesBefore": 22
+   }
+  },
+  {
+   "key": "orders",
+   "label": "Danh sách đơn",
+   "path": "/orders",
+   "viewport": "375×812",
+   "round": 0,
+   "cold": {
+    "phase": "lạnh",
+    "fcp": 1528,
+    "dcl": 1430,
+    "load": 2488,
+    "readyAt": 2761,
+    "longTasks": 1,
+    "longTaskMs": 120,
+    "tbt": 70,
+    "cls": 0.0006,
+    "shifts": [
+     {
+      "t": 2184,
+      "v": 0.0001,
+      "src": [
+       "#status"
+      ]
+     },
+     {
+      "t": 2355,
+      "v": 0.0002,
+      "src": [
+       "#status"
+      ]
+     },
+     {
+      "t": 2503,
+      "v": 0.0003,
+      "src": [
+       "#status",
+       "SPAN"
+      ]
+     }
+    ],
+    "mutations": 169,
+    "domNodes": 1059,
+    "swControlled": true,
+    "wallMs": 5285,
+    "requests": {
+     "total": 14,
+     "api": 3,
+     "static": 11,
+     "staticFromSW": 0,
+     "staticFromDisk": 0,
+     "serverSawRequests": 37
+    },
+    "bytes": {
+     "transfer": 127701,
+     "decoded": 232631,
+     "jsDecoded": 30155,
+     "cssDecoded": 90006,
+     "fontDecoded": 70672,
+     "htmlDecoded": 1729,
+     "apiDecoded": 20216
+    },
+    "apiChainDepth": 3,
+    "apiChain": [
+     "/api/auth/me",
+     "/api/orders?…",
+     "/api/dispatch/handlers?…"
+    ],
+    "firstApiStartMs": 1429,
+    "docEndMs": 583,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 1429,
+      "end": 2008,
+      "status": 200
+     },
+     {
+      "path": "/api/orders?…",
+      "start": 2034,
+      "end": 2615,
+      "status": 200
+     },
+     {
+      "path": "/api/dispatch/handlers?…",
+      "start": 2656,
+      "end": 3233,
+      "status": 200
+     }
+    ],
+    "d1": [
+     {
+      "req": "GET /api/auth/me",
+      "status": 200,
+      "d1RoundTrips": 3,
+      "d1Stmts": 3,
+      "d1SerialRounds": 3,
+      "bytes": 215,
+      "ms": 5
+     },
+     {
+      "req": "GET /api/orders?limit&offset",
+      "status": 200,
+      "d1RoundTrips": 5,
+      "d1Stmts": 5,
+      "d1SerialRounds": 5,
+      "bytes": 15187,
+      "ms": 19
+     },
+     {
+      "req": "GET /api/dispatch/handlers?orderIds",
+      "status": 200,
+      "d1RoundTrips": 3,
+      "d1Stmts": 3,
+      "d1SerialRounds": 3,
+      "bytes": 4814,
+      "ms": 6
+     }
+    ]
+   },
+   "warm": {
+    "phase": "ấm",
+    "fcp": 100,
+    "dcl": 52,
+    "load": 88,
+    "readyAt": 1291,
+    "longTasks": 0,
+    "longTaskMs": 0,
+    "tbt": 0,
+    "cls": 0,
+    "shifts": [],
+    "mutations": 169,
+    "domNodes": 1059,
+    "swControlled": true,
+    "wallMs": 3514,
+    "requests": {
+     "total": 13,
+     "api": 3,
+     "static": 10,
+     "staticFromSW": 10,
+     "staticFromDisk": 10,
+     "serverSawRequests": 14
+    },
+    "bytes": {
+     "transfer": 3099,
+     "decoded": 224763,
+     "jsDecoded": 30155,
+     "cssDecoded": 90006,
+     "fontDecoded": 70672,
+     "htmlDecoded": 1729,
+     "apiDecoded": 20216
+    },
+    "apiChainDepth": 3,
+    "apiChain": [
+     "/api/auth/me",
+     "/api/orders?…",
+     "/api/dispatch/handlers?…"
+    ],
+    "firstApiStartMs": 50,
+    "docEndMs": 6,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 50,
+      "end": 617,
+      "status": 200
+     },
+     {
+      "path": "/api/orders?…",
+      "start": 644,
+      "end": 1225,
+      "status": 200
+     },
+     {
+      "path": "/api/dispatch/handlers?…",
+      "start": 1245,
+      "end": 1818,
+      "status": 200
+     }
+    ],
+    "d1": [
+     {
+      "req": "GET /api/auth/me",
+      "status": 200,
+      "d1RoundTrips": 3,
+      "d1Stmts": 3,
+      "d1SerialRounds": 3,
+      "bytes": 215,
+      "ms": 6
+     },
+     {
+      "req": "GET /api/orders?limit&offset",
+      "status": 200,
+      "d1RoundTrips": 5,
+      "d1Stmts": 5,
+      "d1SerialRounds": 5,
+      "bytes": 15187,
+      "ms": 8
+     },
+     {
+      "req": "GET /api/dispatch/handlers?orderIds",
+      "status": 200,
+      "d1RoundTrips": 3,
+      "d1Stmts": 3,
+      "d1SerialRounds": 3,
+      "bytes": 4814,
+      "ms": 4
+     }
+    ],
+    "swCacheEntriesBefore": 22
+   }
+  },
+  {
+   "key": "order",
+   "label": "Một đơn",
+   "path": "/order?id=…",
+   "viewport": "375×812",
+   "round": 0,
+   "cold": {
+    "phase": "lạnh",
+    "fcp": 1628,
+    "dcl": 1552,
+    "load": 2461,
+    "readyAt": 2854,
+    "longTasks": 1,
+    "longTaskMs": 90,
+    "tbt": 40,
+    "cls": 0.0007,
+    "shifts": [
+     {
+      "t": 3434,
+      "v": 0.0007,
+      "src": [
+       "#text"
+      ]
+     }
+    ],
+    "mutations": 59,
+    "domNodes": 279,
+    "swControlled": true,
+    "wallMs": 5188,
+    "requests": {
+     "total": 14,
+     "api": 3,
+     "static": 11,
+     "staticFromSW": 0,
+     "staticFromDisk": 0,
+     "serverSawRequests": 37
+    },
+    "bytes": {
+     "transfer": 122923,
+     "decoded": 266347,
+     "jsDecoded": 81812,
+     "cssDecoded": 90006,
+     "fontDecoded": 70672,
+     "htmlDecoded": 1094,
+     "apiDecoded": 2910
+    },
+    "apiChainDepth": 2,
+    "apiChain": [
+     "/api/auth/me",
+     "/api/orders/d8e98f0a-4f3d-4555-87ea-ef39fb3ddc7e"
+    ],
+    "firstApiStartMs": 1549,
+    "docEndMs": 578,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 1549,
+      "end": 2128,
+      "status": 200
+     },
+     {
+      "path": "/api/orders/d8e98f0a-4f3d-4555-87ea-ef39fb3ddc7e",
+      "start": 2150,
+      "end": 2718,
+      "status": 200
+     },
+     {
+      "path": "/api/dispatch/handlers?…",
+      "start": 2151,
+      "end": 2728,
+      "status": 200
+     }
+    ],
+    "d1": [
+     {
+      "req": "GET /api/auth/me",
+      "status": 200,
+      "d1RoundTrips": 3,
+      "d1Stmts": 3,
+      "d1SerialRounds": 3,
+      "bytes": 215,
+      "ms": 11
+     },
+     {
+      "req": "GET /api/orders/d8e98f0a-4f3d-4555-87ea-ef39fb3ddc7e",
+      "status": 200,
+      "d1RoundTrips": 6,
+      "d1Stmts": 8,
+      "d1SerialRounds": 4,
+      "bytes": 2514,
+      "ms": 7
+     },
+     {
+      "req": "GET /api/dispatch/handlers?orderIds",
+      "status": 200,
+      "d1RoundTrips": 3,
+      "d1Stmts": 3,
+      "d1SerialRounds": 3,
+      "bytes": 181,
+      "ms": 5
+     }
+    ]
+   },
+   "warm": {
+    "phase": "ấm",
+    "fcp": 44,
+    "dcl": 29,
+    "load": 38,
+    "readyAt": 1259,
+    "longTasks": 0,
+    "longTaskMs": 0,
+    "tbt": 0,
+    "cls": 0.0007,
+    "shifts": [
+     {
+      "t": 1267,
+      "v": 0.0007,
+      "src": [
+       "#text"
+      ]
+     }
+    ],
+    "mutations": 59,
+    "domNodes": 279,
+    "swControlled": true,
+    "wallMs": 2973,
+    "requests": {
+     "total": 13,
+     "api": 3,
+     "static": 10,
+     "staticFromSW": 10,
+     "staticFromDisk": 10,
+     "serverSawRequests": 14
+    },
+    "bytes": {
+     "transfer": 1898,
+     "decoded": 258479,
+     "jsDecoded": 81812,
+     "cssDecoded": 90006,
+     "fontDecoded": 70672,
+     "htmlDecoded": 1094,
+     "apiDecoded": 2910
+    },
+    "apiChainDepth": 2,
+    "apiChain": [
+     "/api/auth/me",
+     "/api/orders/d8e98f0a-4f3d-4555-87ea-ef39fb3ddc7e"
+    ],
+    "firstApiStartMs": 28,
+    "docEndMs": 3,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 28,
+      "end": 604,
+      "status": 200
+     },
+     {
+      "path": "/api/orders/d8e98f0a-4f3d-4555-87ea-ef39fb3ddc7e",
+      "start": 616,
+      "end": 1195,
+      "status": 200
+     },
+     {
+      "path": "/api/dispatch/handlers?…",
+      "start": 617,
+      "end": 1186,
+      "status": 200
+     }
+    ],
+    "d1": [
+     {
+      "req": "GET /api/auth/me",
+      "status": 200,
+      "d1RoundTrips": 3,
+      "d1Stmts": 3,
+      "d1SerialRounds": 3,
+      "bytes": 215,
+      "ms": 5
+     },
+     {
+      "req": "GET /api/dispatch/handlers?orderIds",
+      "status": 200,
+      "d1RoundTrips": 3,
+      "d1Stmts": 3,
+      "d1SerialRounds": 3,
+      "bytes": 181,
+      "ms": 7
+     },
+     {
+      "req": "GET /api/orders/d8e98f0a-4f3d-4555-87ea-ef39fb3ddc7e",
+      "status": 200,
+      "d1RoundTrips": 6,
+      "d1Stmts": 8,
+      "d1SerialRounds": 4,
+      "bytes": 2514,
+      "ms": 11
+     }
+    ],
+    "swCacheEntriesBefore": 22
+   }
+  },
+  {
+   "key": "order-form-new",
+   "label": "Form lập đơn",
+   "path": "/order-form",
+   "viewport": "375×812",
+   "round": 0,
+   "cold": {
+    "phase": "lạnh",
+    "fcp": 1544,
+    "dcl": 1613,
+    "load": 2566,
+    "readyAt": 2829,
+    "longTasks": 1,
+    "longTaskMs": 106,
+    "tbt": 56,
+    "cls": 0,
+    "shifts": [],
+    "mutations": 197,
+    "domNodes": 166,
+    "swControlled": true,
+    "wallMs": 5403,
+    "requests": {
+     "total": 13,
+     "api": 2,
+     "static": 11,
+     "staticFromSW": 0,
+     "staticFromDisk": 0,
+     "serverSawRequests": 36
+    },
+    "bytes": {
+     "transfer": 135656,
+     "decoded": 247767,
+     "jsDecoded": 62053,
+     "cssDecoded": 90006,
+     "fontDecoded": 70672,
+     "htmlDecoded": 4249,
+     "apiDecoded": 934
+    },
+    "apiChainDepth": 2,
+    "apiChain": [
+     "/api/auth/me",
+     "/api/catalog"
+    ],
+    "firstApiStartMs": 1610,
+    "docEndMs": 585,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 1610,
+      "end": 2218,
+      "status": 200
+     },
+     {
+      "path": "/api/catalog",
+      "start": 2248,
+      "end": 2817,
+      "status": 200
+     }
+    ],
+    "d1": [
+     {
+      "req": "GET /api/auth/me",
+      "status": 200,
+      "d1RoundTrips": 3,
+      "d1Stmts": 3,
+      "d1SerialRounds": 3,
+      "bytes": 215,
+      "ms": 16
+     },
+     {
+      "req": "GET /api/catalog",
+      "status": 200,
+      "d1RoundTrips": 5,
+      "d1Stmts": 5,
+      "d1SerialRounds": 4,
+      "bytes": 719,
+      "ms": 13
+     }
+    ]
+   },
+   "warm": {
+    "phase": "ấm",
+    "fcp": 48,
+    "dcl": 52,
+    "load": 110,
+    "readyAt": 1215,
+    "longTasks": 0,
+    "longTaskMs": 0,
+    "tbt": 0,
+    "cls": 0,
+    "shifts": [],
+    "mutations": 197,
+    "domNodes": 166,
+    "swControlled": true,
+    "wallMs": 2740,
+    "requests": {
+     "total": 12,
+     "api": 2,
+     "static": 10,
+     "staticFromSW": 10,
+     "staticFromDisk": 10,
+     "serverSawRequests": 13
+    },
+    "bytes": {
+     "transfer": 866,
+     "decoded": 239899,
+     "jsDecoded": 62053,
+     "cssDecoded": 90006,
+     "fontDecoded": 70672,
+     "htmlDecoded": 4249,
+     "apiDecoded": 934
+    },
+    "apiChainDepth": 2,
+    "apiChain": [
+     "/api/auth/me",
+     "/api/catalog"
+    ],
+    "firstApiStartMs": 50,
+    "docEndMs": 3,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 50,
+      "end": 624,
+      "status": 200
+     },
+     {
+      "path": "/api/catalog",
+      "start": 633,
+      "end": 1207,
+      "status": 200
+     }
+    ],
+    "d1": [
+     {
+      "req": "GET /api/auth/me",
+      "status": 200,
+      "d1RoundTrips": 3,
+      "d1Stmts": 3,
+      "d1SerialRounds": 3,
+      "bytes": 215,
+      "ms": 4
+     },
+     {
+      "req": "GET /api/catalog",
+      "status": 200,
+      "d1RoundTrips": 5,
+      "d1Stmts": 5,
+      "d1SerialRounds": 4,
+      "bytes": 719,
+      "ms": 4
+     }
+    ],
+    "swCacheEntriesBefore": 22
+   }
+  },
+  {
+   "key": "order-form-edit",
+   "label": "Form sửa đơn nháp",
+   "path": "/order-form?id=…",
+   "viewport": "375×812",
+   "round": 0,
+   "cold": {
+    "phase": "lạnh",
+    "fcp": 1548,
+    "dcl": 1628,
+    "load": 2571,
+    "readyAt": 3521,
+    "longTasks": 2,
+    "longTaskMs": 173,
+    "tbt": 73,
+    "cls": 0.0349,
+    "shifts": [
+     {
+      "t": 3511,
+      "v": 0.0016,
+      "src": [
+       "#mobile-total",
+       "#mobile-due"
+      ]
+     },
+     {
+      "t": 3979,
+      "v": 0.0333,
+      "src": [
+       "SECTION.card"
+      ]
+     }
+    ],
+    "mutations": 234,
+    "domNodes": 349,
+    "swControlled": true,
+    "wallMs": 5542,
+    "requests": {
+     "total": 15,
+     "api": 4,
+     "static": 11,
+     "staticFromSW": 0,
+     "staticFromDisk": 0,
+     "serverSawRequests": 38
+    },
+    "bytes": {
+     "transfer": 137032,
+     "decoded": 250118,
+     "jsDecoded": 62053,
+     "cssDecoded": 90006,
+     "fontDecoded": 70672,
+     "htmlDecoded": 4249,
+     "apiDecoded": 3285
+    },
+    "apiChainDepth": 4,
+    "apiChain": [
+     "/api/auth/me",
+     "/api/catalog",
+     "/api/orders/5b1f48a4-e872-4534-98ee-6898f30cdf11",
+     "/api/parties/lookup?…"
+    ],
+    "firstApiStartMs": 1625,
+    "docEndMs": 576,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 1625,
+      "end": 2226,
+      "status": 200
+     },
+     {
+      "path": "/api/catalog",
+      "start": 2246,
+      "end": 2816,
+      "status": 200
+     },
+     {
+      "path": "/api/orders/5b1f48a4-e872-4534-98ee-6898f30cdf11",
+      "start": 2820,
+      "end": 3392,
+      "status": 200
+     },
+     {
+      "path": "/api/parties/lookup?…",
+      "start": 3398,
+      "end": 3974,
+      "status": 200
+     }
+    ],
+    "d1": [
+     {
+      "req": "GET /api/auth/me",
+      "status": 200,
+      "d1RoundTrips": 3,
+      "d1Stmts": 3,
+      "d1SerialRounds": 3,
+      "bytes": 215,
+      "ms": 11
+     },
+     {
+      "req": "GET /api/catalog",
+      "status": 200,
+      "d1RoundTrips": 5,
+      "d1Stmts": 5,
+      "d1SerialRounds": 4,
+      "bytes": 719,
+      "ms": 9
+     },
+     {
+      "req": "GET /api/orders/5b1f48a4-e872-4534-98ee-6898f30cdf11",
+      "status": 200,
+      "d1RoundTrips": 6,
+      "d1Stmts": 8,
+      "d1SerialRounds": 4,
+      "bytes": 2337,
+      "ms": 7
+     },
+     {
+      "req": "GET /api/parties/lookup?phone",
+      "status": 200,
+      "d1RoundTrips": 3,
+      "d1Stmts": 3,
+      "d1SerialRounds": 3,
+      "bytes": 14,
+      "ms": 51
+     }
+    ]
+   },
+   "warm": {
+    "phase": "ấm",
+    "fcp": 60,
+    "dcl": 78,
+    "load": 92,
+    "readyAt": 1841,
+    "longTasks": 0,
+    "longTaskMs": 0,
+    "tbt": 0,
+    "cls": 0.0349,
+    "shifts": [
+     {
+      "t": 1835,
+      "v": 0.0016,
+      "src": [
+       "#mobile-total",
+       "#mobile-due"
+      ]
+     },
+     {
+      "t": 2386,
+      "v": 0.0333,
+      "src": [
+       "SECTION.card"
+      ]
+     }
+    ],
+    "mutations": 234,
+    "domNodes": 349,
+    "swControlled": true,
+    "wallMs": 4125,
+    "requests": {
+     "total": 14,
+     "api": 4,
+     "static": 10,
+     "staticFromSW": 10,
+     "staticFromDisk": 10,
+     "serverSawRequests": 15
+    },
+    "bytes": {
+     "transfer": 2236,
+     "decoded": 242250,
+     "jsDecoded": 62053,
+     "cssDecoded": 90006,
+     "fontDecoded": 70672,
+     "htmlDecoded": 4249,
+     "apiDecoded": 3285
+    },
+    "apiChainDepth": 4,
+    "apiChain": [
+     "/api/auth/me",
+     "/api/catalog",
+     "/api/orders/5b1f48a4-e872-4534-98ee-6898f30cdf11",
+     "/api/parties/lookup?…"
+    ],
+    "firstApiStartMs": 77,
+    "docEndMs": 3,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 77,
+      "end": 646,
+      "status": 200
+     },
+     {
+      "path": "/api/catalog",
+      "start": 655,
+      "end": 1229,
+      "status": 200
+     },
+     {
+      "path": "/api/orders/5b1f48a4-e872-4534-98ee-6898f30cdf11",
+      "start": 1231,
+      "end": 1804,
+      "status": 200
+     },
+     {
+      "path": "/api/parties/lookup?…",
+      "start": 1806,
+      "end": 2380,
+      "status": 200
+     }
+    ],
+    "d1": [
+     {
+      "req": "GET /api/auth/me",
+      "status": 200,
+      "d1RoundTrips": 3,
+      "d1Stmts": 3,
+      "d1SerialRounds": 3,
+      "bytes": 215,
+      "ms": 4
+     },
+     {
+      "req": "GET /api/catalog",
+      "status": 200,
+      "d1RoundTrips": 5,
+      "d1Stmts": 5,
+      "d1SerialRounds": 4,
+      "bytes": 719,
+      "ms": 3
+     },
+     {
+      "req": "GET /api/orders/5b1f48a4-e872-4534-98ee-6898f30cdf11",
+      "status": 200,
+      "d1RoundTrips": 6,
+      "d1Stmts": 8,
+      "d1SerialRounds": 4,
+      "bytes": 2337,
+      "ms": 6
+     },
+     {
+      "req": "GET /api/parties/lookup?phone",
+      "status": 200,
+      "d1RoundTrips": 3,
+      "d1Stmts": 3,
+      "d1SerialRounds": 3,
+      "bytes": 14,
+      "ms": 3
+     }
+    ],
+    "swCacheEntriesBefore": 22
+   }
+  },
+  {
+   "key": "account-sales",
+   "label": "Tôi (Sales)",
+   "path": "/account",
+   "viewport": "375×812",
+   "round": 0,
+   "cold": {
+    "phase": "lạnh",
+    "fcp": 1504,
+    "dcl": 1427,
+    "load": 2466,
+    "readyAt": 2054,
+    "longTasks": 1,
+    "longTaskMs": 94,
+    "tbt": 44,
+    "cls": 0.2415,
+    "shifts": [
+     {
+      "t": 2048,
+      "v": 0.2415,
+      "src": [
+       "#pin-form"
+      ]
+     },
+     {
+      "t": 2320,
+      "v": 0,
+      "src": [
+       "SPAN.new-dot"
+      ]
+     },
+     {
+      "t": 2492,
+      "v": 0,
+      "src": [
+       "SPAN",
+       "SPAN.new-dot"
+      ]
+     }
+    ],
+    "mutations": 93,
+    "domNodes": 149,
+    "swControlled": true,
+    "wallMs": 5369,
+    "requests": {
+     "total": 14,
+     "api": 3,
+     "static": 11,
+     "staticFromSW": 0,
+     "staticFromDisk": 0,
+     "serverSawRequests": 37
+    },
+    "bytes": {
+     "transfer": 128400,
+     "decoded": 224006,
+     "jsDecoded": 40490,
+     "cssDecoded": 90006,
+     "fontDecoded": 70672,
+     "htmlDecoded": 2652,
+     "apiDecoded": 333
+    },
+    "apiChainDepth": 2,
+    "apiChain": [
+     "/api/auth/me",
+     "/api/feedback/badge"
+    ],
+    "firstApiStartMs": 1426,
+    "docEndMs": 576,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 1426,
+      "end": 2003,
+      "status": 200
+     },
+     {
+      "path": "/api/feedback/badge",
+      "start": 2022,
+      "end": 2593,
+      "status": 200
+     },
+     {
+      "path": "/api/auth/config",
+      "start": 2024,
+      "end": 2603,
+      "status": 200
+     }
+    ],
+    "d1": [
+     {
+      "req": "GET /api/auth/me",
+      "status": 200,
+      "d1RoundTrips": 3,
+      "d1Stmts": 3,
+      "d1SerialRounds": 3,
+      "bytes": 215,
+      "ms": 5
+     },
+     {
+      "req": "GET /api/feedback/badge",
+      "status": 200,
+      "d1RoundTrips": 3,
+      "d1Stmts": 3,
+      "d1SerialRounds": 3,
+      "bytes": 20,
+      "ms": 7
+     },
+     {
+      "req": "GET /api/auth/config",
+      "status": 200,
+      "d1RoundTrips": 1,
+      "d1Stmts": 1,
+      "d1SerialRounds": 1,
+      "bytes": 98,
+      "ms": 3
+     }
+    ]
+   },
+   "warm": {
+    "phase": "ấm",
+    "fcp": 68,
+    "dcl": 73,
+    "load": 111,
+    "readyAt": 677,
+    "longTasks": 0,
+    "longTaskMs": 0,
+    "tbt": 0,
+    "cls": 0.2415,
+    "shifts": [
+     {
+      "t": 673,
+      "v": 0.2415,
+      "src": [
+       "#pin-form"
+      ]
+     }
+    ],
+    "mutations": 93,
+    "domNodes": 149,
+    "swControlled": true,
+    "wallMs": 2897,
+    "requests": {
+     "total": 13,
+     "api": 3,
+     "static": 10,
+     "staticFromSW": 10,
+     "staticFromDisk": 10,
+     "serverSawRequests": 14
+    },
+    "bytes": {
+     "transfer": 829,
+     "decoded": 216138,
+     "jsDecoded": 40490,
+     "cssDecoded": 90006,
+     "fontDecoded": 70672,
+     "htmlDecoded": 2652,
+     "apiDecoded": 333
+    },
+    "apiChainDepth": 2,
+    "apiChain": [
+     "/api/auth/me",
+     "/api/feedback/badge"
+    ],
+    "firstApiStartMs": 70,
+    "docEndMs": 8,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 70,
+      "end": 641,
+      "status": 200
+     },
+     {
+      "path": "/api/feedback/badge",
+      "start": 656,
+      "end": 1234,
+      "status": 200
+     },
+     {
+      "path": "/api/auth/config",
+      "start": 657,
+      "end": 1243,
+      "status": 200
+     }
+    ],
+    "d1": [
+     {
+      "req": "GET /api/auth/me",
+      "status": 200,
+      "d1RoundTrips": 3,
+      "d1Stmts": 3,
+      "d1SerialRounds": 3,
+      "bytes": 215,
+      "ms": 7
+     },
+     {
+      "req": "GET /api/feedback/badge",
+      "status": 200,
+      "d1RoundTrips": 3,
+      "d1Stmts": 3,
+      "d1SerialRounds": 3,
+      "bytes": 20,
+      "ms": 4
+     },
+     {
+      "req": "GET /api/auth/config",
+      "status": 200,
+      "d1RoundTrips": 1,
+      "d1Stmts": 1,
+      "d1SerialRounds": 1,
+      "bytes": 98,
+      "ms": 1
+     }
+    ],
+    "swCacheEntriesBefore": 22
+   }
+  },
+  {
+   "key": "account-field",
+   "label": "Tôi/Việc của tôi (HDV)",
+   "path": "/account",
+   "viewport": "375×812",
+   "round": 0,
+   "cold": {
+    "phase": "lạnh",
+    "fcp": 1452,
+    "dcl": 1488,
+    "load": 2468,
+    "readyAt": 2783,
+    "longTasks": 1,
+    "longTaskMs": 51,
+    "tbt": 1,
+    "cls": 0.8222,
+    "shifts": [
+     {
+      "t": 2117,
+      "v": 0.1824,
+      "src": [
+       "#pin-form"
+      ]
+     },
+     {
+      "t": 2314,
+      "v": 0,
+      "src": [
+       "SPAN.new-dot"
+      ]
+     },
+     {
+      "t": 2488,
+      "v": 0,
+      "src": [
+       "SPAN.new-dot"
+      ]
+     },
+     {
+      "t": 2780,
+      "v": 0.6398,
+      "src": [
+       "#pin-form",
+       "#links"
+      ]
+     }
+    ],
+    "mutations": 96,
+    "domNodes": 207,
+    "swControlled": true,
+    "wallMs": 5208,
+    "requests": {
+     "total": 15,
+     "api": 4,
+     "static": 11,
+     "staticFromSW": 0,
+     "staticFromDisk": 0,
+     "serverSawRequests": 38
+    },
+    "bytes": {
+     "transfer": 129309,
+     "decoded": 227342,
+     "jsDecoded": 40490,
+     "cssDecoded": 90006,
+     "fontDecoded": 70672,
+     "htmlDecoded": 2652,
+     "apiDecoded": 3669
+    },
+    "apiChainDepth": 2,
+    "apiChain": [
+     "/api/auth/me",
+     "/api/feedback/badge"
+    ],
+    "firstApiStartMs": 1486,
+    "docEndMs": 578,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 1486,
+      "end": 2085,
+      "status": 200
+     },
+     {
+      "path": "/api/feedback/badge",
+      "start": 2103,
+      "end": 2678,
+      "status": 200
+     },
+     {
+      "path": "/api/auth/config",
+      "start": 2104,
+      "end": 2718,
+      "status": 200
+     },
+     {
+      "path": "/api/dispatch/mine",
+      "start": 2105,
+      "end": 2753,
+      "status": 200
+     }
+    ],
+    "d1": [
+     {
+      "req": "GET /api/auth/me",
+      "status": 200,
+      "d1RoundTrips": 3,
+      "d1Stmts": 3,
+      "d1SerialRounds": 3,
+      "bytes": 222,
+      "ms": 3
+     },
+     {
+      "req": "GET /api/feedback/badge",
+      "status": 200,
+      "d1RoundTrips": 3,
+      "d1Stmts": 3,
+      "d1SerialRounds": 3,
+      "bytes": 20,
+      "ms": 4
+     },
+     {
+      "req": "GET /api/auth/config",
+      "status": 200,
+      "d1RoundTrips": 1,
+      "d1Stmts": 1,
+      "d1SerialRounds": 1,
+      "bytes": 98,
+      "ms": 2
+     },
+     {
+      "req": "GET /api/dispatch/mine",
+      "status": 200,
+      "d1RoundTrips": 21,
+      "d1Stmts": 45,
+      "d1SerialRounds": 4,
+      "bytes": 3329,
+      "ms": 29
+     }
+    ]
+   },
+   "warm": {
+    "phase": "ấm",
+    "fcp": 52,
+    "dcl": 64,
+    "load": 76,
+    "readyAt": 1243,
+    "longTasks": 0,
+    "longTaskMs": 0,
+    "tbt": 0,
+    "cls": 0.8222,
+    "shifts": [
+     {
+      "t": 649,
+      "v": 0.1824,
+      "src": [
+       "#pin-form"
+      ]
+     },
+     {
+      "t": 1240,
+      "v": 0.6398,
+      "src": [
+       "#pin-form",
+       "#links"
+      ]
+     }
+    ],
+    "mutations": 96,
+    "domNodes": 207,
+    "swControlled": true,
+    "wallMs": 2956,
+    "requests": {
+     "total": 14,
+     "api": 4,
+     "static": 10,
+     "staticFromSW": 10,
+     "staticFromDisk": 10,
+     "serverSawRequests": 15
+    },
+    "bytes": {
+     "transfer": 1738,
+     "decoded": 219474,
+     "jsDecoded": 40490,
+     "cssDecoded": 90006,
+     "fontDecoded": 70672,
+     "htmlDecoded": 2652,
+     "apiDecoded": 3669
+    },
+    "apiChainDepth": 2,
+    "apiChain": [
+     "/api/auth/me",
+     "/api/feedback/badge"
+    ],
+    "firstApiStartMs": 63,
+    "docEndMs": 4,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 63,
+      "end": 632,
+      "status": 200
+     },
+     {
+      "path": "/api/feedback/badge",
+      "start": 640,
+      "end": 1207,
+      "status": 200
+     },
+     {
+      "path": "/api/auth/config",
+      "start": 640,
+      "end": 1216,
+      "status": 200
+     },
+     {
+      "path": "/api/dispatch/mine",
+      "start": 641,
+      "end": 1225,
+      "status": 200
+     }
+    ],
+    "d1": [
+     {
+      "req": "GET /api/auth/me",
+      "status": 200,
+      "d1RoundTrips": 3,
+      "d1Stmts": 3,
+      "d1SerialRounds": 3,
+      "bytes": 222,
+      "ms": 4
+     },
+     {
+      "req": "GET /api/feedback/badge",
+      "status": 200,
+      "d1RoundTrips": 3,
+      "d1Stmts": 3,
+      "d1SerialRounds": 3,
+      "bytes": 20,
+      "ms": 2
+     },
+     {
+      "req": "GET /api/auth/config",
+      "status": 200,
+      "d1RoundTrips": 1,
+      "d1Stmts": 1,
+      "d1SerialRounds": 1,
+      "bytes": 98,
+      "ms": 2
+     },
+     {
+      "req": "GET /api/dispatch/mine",
+      "status": 200,
+      "d1RoundTrips": 21,
+      "d1Stmts": 45,
+      "d1SerialRounds": 4,
+      "bytes": 3329,
+      "ms": 14
+     }
+    ],
+    "swCacheEntriesBefore": 22
+   }
+  },
+  {
+   "key": "staff",
+   "label": "Nhân viên",
+   "path": "/staff",
+   "viewport": "375×812",
+   "round": 0,
+   "cold": {
+    "phase": "lạnh",
+    "fcp": 1456,
+    "dcl": 1486,
+    "load": 2475,
+    "readyAt": 2718,
+    "longTasks": 0,
+    "longTaskMs": 0,
+    "tbt": 0,
+    "cls": 0.0629,
+    "shifts": [
+     {
+      "t": 2129,
+      "v": 0.0623,
+      "src": [
+       "P.muted",
+       "DIV"
+      ]
+     },
+     {
+      "t": 2321,
+      "v": 0.0002,
+      "src": [
+       "SPAN.muted",
+       "SPAN.muted"
+      ]
+     },
+     {
+      "t": 2336,
+      "v": 0,
+      "src": [
+       "SPAN.muted"
+      ]
+     },
+     {
+      "t": 2496,
+      "v": 0.0003,
+      "src": [
+       "SPAN.muted",
+       "SPAN.muted",
+       "SPAN"
+      ]
+     }
+    ],
+    "mutations": 119,
+    "domNodes": 352,
+    "swControlled": true,
+    "wallMs": 5253,
+    "requests": {
+     "total": 13,
+     "api": 2,
+     "static": 11,
+     "staticFromSW": 0,
+     "staticFromDisk": 0,
+     "serverSawRequests": 36
+    },
+    "bytes": {
+     "transfer": 128758,
+     "decoded": 227046,
+     "jsDecoded": 42563,
+     "cssDecoded": 90006,
+     "fontDecoded": 70672,
+     "htmlDecoded": 2249,
+     "apiDecoded": 1703
+    },
+    "apiChainDepth": 2,
+    "apiChain": [
+     "/api/auth/me",
+     "/api/staff"
+    ],
+    "firstApiStartMs": 1485,
+    "docEndMs": 578,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 1485,
+      "end": 2086,
+      "status": 200
+     },
+     {
+      "path": "/api/staff",
+      "start": 2112,
+      "end": 2687,
+      "status": 200
+     }
+    ],
+    "d1": [
+     {
+      "req": "GET /api/auth/me",
+      "status": 200,
+      "d1RoundTrips": 3,
+      "d1Stmts": 3,
+      "d1SerialRounds": 3,
+      "bytes": 216,
+      "ms": 2
+     },
+     {
+      "req": "GET /api/staff",
+      "status": 200,
+      "d1RoundTrips": 6,
+      "d1Stmts": 6,
+      "d1SerialRounds": 4,
+      "bytes": 1487,
+      "ms": 5
+     }
+    ]
+   },
+   "warm": {
+    "phase": "ấm",
+    "fcp": 60,
+    "dcl": 65,
+    "load": 73,
+    "readyAt": 1224,
+    "longTasks": 0,
+    "longTaskMs": 0,
+    "tbt": 0,
+    "cls": 0.0623,
+    "shifts": [
+     {
+      "t": 658,
+      "v": 0.0623,
+      "src": [
+       "P.muted",
+       "DIV"
+      ]
+     }
+    ],
+    "mutations": 119,
+    "domNodes": 352,
+    "swControlled": true,
+    "wallMs": 2750,
+    "requests": {
+     "total": 12,
+     "api": 2,
+     "static": 10,
+     "staticFromSW": 10,
+     "staticFromDisk": 8,
+     "serverSawRequests": 13
+    },
+    "bytes": {
+     "transfer": 1136,
+     "decoded": 219178,
+     "jsDecoded": 42563,
+     "cssDecoded": 90006,
+     "fontDecoded": 70672,
+     "htmlDecoded": 2249,
+     "apiDecoded": 1703
+    },
+    "apiChainDepth": 2,
+    "apiChain": [
+     "/api/auth/me",
+     "/api/staff"
+    ],
+    "firstApiStartMs": 64,
+    "docEndMs": 9,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 64,
+      "end": 631,
+      "status": 200
+     },
+     {
+      "path": "/api/staff",
+      "start": 644,
+      "end": 1215,
+      "status": 200
+     }
+    ],
+    "d1": [
+     {
+      "req": "GET /api/auth/me",
+      "status": 200,
+      "d1RoundTrips": 3,
+      "d1Stmts": 3,
+      "d1SerialRounds": 3,
+      "bytes": 216,
+      "ms": 4
+     },
+     {
+      "req": "GET /api/staff",
+      "status": 200,
+      "d1RoundTrips": 6,
+      "d1Stmts": 6,
+      "d1SerialRounds": 4,
+      "bytes": 1487,
+      "ms": 6
+     }
+    ],
+    "swCacheEntriesBefore": 22
+   }
+  },
+  {
+   "key": "catalog",
+   "label": "Danh mục",
+   "path": "/catalog",
+   "viewport": "375×812",
+   "round": 0,
+   "cold": {
+    "phase": "lạnh",
+    "fcp": 1436,
+    "dcl": 1461,
+    "load": 2449,
+    "readyAt": 2690,
+    "longTasks": 0,
+    "longTaskMs": 0,
+    "tbt": 0,
+    "cls": 0.0294,
+    "shifts": [
+     {
+      "t": 2153,
+      "v": 0.001,
+      "src": [
+       "#text",
+       "#filter"
+      ]
+     },
+     {
+      "t": 2304,
+      "v": 0.0052,
+      "src": [
+       "#text",
+       "#filter"
+      ]
+     },
+     {
+      "t": 2318,
+      "v": 0.0052,
+      "src": [
+       "#text",
+       "#filter"
+      ]
+     },
+     {
+      "t": 2464,
+      "v": 0.0065,
+      "src": [
+       "#text",
+       "#filter",
+       "SPAN"
+      ]
+     },
+     {
+      "t": 2688,
+      "v": 0.0115,
+      "src": [
+       "DIV.toolbar",
+       "#pull"
+      ]
+     }
+    ],
+    "mutations": 118,
+    "domNodes": 247,
+    "swControlled": true,
+    "wallMs": 5231,
+    "requests": {
+     "total": 13,
+     "api": 2,
+     "static": 11,
+     "staticFromSW": 0,
+     "staticFromDisk": 0,
+     "serverSawRequests": 36
+    },
+    "bytes": {
+     "transfer": 126389,
+     "decoded": 218136,
+     "jsDecoded": 33556,
+     "cssDecoded": 90006,
+     "fontDecoded": 70672,
+     "htmlDecoded": 2420,
+     "apiDecoded": 1629
+    },
+    "apiChainDepth": 2,
+    "apiChain": [
+     "/api/auth/me",
+     "/api/catalog/admin"
+    ],
+    "firstApiStartMs": 1460,
+    "docEndMs": 578,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 1460,
+      "end": 2061,
+      "status": 200
+     },
+     {
+      "path": "/api/catalog/admin",
+      "start": 2081,
+      "end": 2653,
+      "status": 200
+     }
+    ],
+    "d1": [
+     {
+      "req": "GET /api/auth/me",
+      "status": 200,
+      "d1RoundTrips": 3,
+      "d1Stmts": 3,
+      "d1SerialRounds": 3,
+      "bytes": 216,
+      "ms": 3
+     },
+     {
+      "req": "GET /api/catalog/admin",
+      "status": 200,
+      "d1RoundTrips": 4,
+      "d1Stmts": 4,
+      "d1SerialRounds": 3,
+      "bytes": 1413,
+      "ms": 4
+     }
+    ]
+   },
+   "warm": {
+    "phase": "ấm",
+    "fcp": 60,
+    "dcl": 62,
+    "load": 69,
+    "readyAt": 1236,
+    "longTasks": 0,
+    "longTaskMs": 0,
+    "tbt": 0,
+    "cls": 0.0115,
+    "shifts": [
+     {
+      "t": 1234,
+      "v": 0.0115,
+      "src": [
+       "DIV.toolbar",
+       "#pull"
+      ]
+     }
+    ],
+    "mutations": 118,
+    "domNodes": 247,
+    "swControlled": true,
+    "wallMs": 2749,
+    "requests": {
+     "total": 12,
+     "api": 2,
+     "static": 10,
+     "staticFromSW": 10,
+     "staticFromDisk": 8,
+     "serverSawRequests": 13
+    },
+    "bytes": {
+     "transfer": 981,
+     "decoded": 210268,
+     "jsDecoded": 33556,
+     "cssDecoded": 90006,
+     "fontDecoded": 70672,
+     "htmlDecoded": 2420,
+     "apiDecoded": 1629
+    },
+    "apiChainDepth": 2,
+    "apiChain": [
+     "/api/auth/me",
+     "/api/catalog/admin"
+    ],
+    "firstApiStartMs": 61,
+    "docEndMs": 9,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 61,
+      "end": 636,
+      "status": 200
+     },
+     {
+      "path": "/api/catalog/admin",
+      "start": 649,
+      "end": 1219,
+      "status": 200
+     }
+    ],
+    "d1": [
+     {
+      "req": "GET /api/auth/me",
+      "status": 200,
+      "d1RoundTrips": 3,
+      "d1Stmts": 3,
+      "d1SerialRounds": 3,
+      "bytes": 216,
+      "ms": 3
+     },
+     {
+      "req": "GET /api/catalog/admin",
+      "status": 200,
+      "d1RoundTrips": 4,
+      "d1Stmts": 4,
+      "d1SerialRounds": 3,
+      "bytes": 1413,
+      "ms": 3
+     }
+    ],
+    "swCacheEntriesBefore": 22
+   }
+  },
+  {
+   "key": "parties",
+   "label": "Hồ sơ",
+   "path": "/parties",
+   "viewport": "375×812",
+   "round": 0,
+   "cold": {
+    "phase": "lạnh",
+    "fcp": 1488,
+    "dcl": 1417,
+    "load": 2468,
+    "readyAt": 3187,
+    "longTasks": 1,
+    "longTaskMs": 94,
+    "tbt": 44,
+    "cls": 0.0025,
+    "shifts": [
+     {
+      "t": 2170,
+      "v": 0.0012,
+      "src": [
+       "LABEL",
+       "DIV",
+       "LABEL.check"
+      ]
+     },
+     {
+      "t": 2329,
+      "v": 0.0012,
+      "src": [
+       "LABEL",
+       "DIV",
+       "LABEL.check"
+      ]
+     },
+     {
+      "t": 2485,
+      "v": 0,
+      "src": [
+       "SPAN"
+      ]
+     }
+    ],
+    "mutations": 164,
+    "domNodes": 285,
+    "swControlled": true,
+    "wallMs": 5307,
+    "requests": {
+     "total": 15,
+     "api": 4,
+     "static": 11,
+     "staticFromSW": 0,
+     "staticFromDisk": 0,
+     "serverSawRequests": 38
+    },
+    "bytes": {
+     "transfer": 128744,
+     "decoded": 223534,
+     "jsDecoded": 35713,
+     "cssDecoded": 90006,
+     "fontDecoded": 70672,
+     "htmlDecoded": 2647,
+     "apiDecoded": 4643
+    },
+    "apiChainDepth": 3,
+    "apiChain": [
+     "/api/auth/me",
+     "/api/parties/meta",
+     "/api/parties?…"
+    ],
+    "firstApiStartMs": 1416,
+    "docEndMs": 578,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 1416,
+      "end": 1986,
+      "status": 200
+     },
+     {
+      "path": "/api/parties/meta",
+      "start": 2006,
+      "end": 2577,
+      "status": 200
+     },
+     {
+      "path": "/api/locations",
+      "start": 2007,
+      "end": 2586,
+      "status": 200
+     },
+     {
+      "path": "/api/parties?…",
+      "start": 2590,
+      "end": 3162,
+      "status": 200
+     }
+    ],
+    "d1": [
+     {
+      "req": "GET /api/auth/me",
+      "status": 200,
+      "d1RoundTrips": 3,
+      "d1Stmts": 3,
+      "d1SerialRounds": 3,
+      "bytes": 216,
+      "ms": 3
+     },
+     {
+      "req": "GET /api/parties/meta",
+      "status": 200,
+      "d1RoundTrips": 4,
+      "d1Stmts": 4,
+      "d1SerialRounds": 3,
+      "bytes": 1542,
+      "ms": 4
+     },
+     {
+      "req": "GET /api/locations",
+      "status": 200,
+      "d1RoundTrips": 4,
+      "d1Stmts": 4,
+      "d1SerialRounds": 3,
+      "bytes": 2121,
+      "ms": 3
+     },
+     {
+      "req": "GET /api/parties?limit&offset",
+      "status": 200,
+      "d1RoundTrips": 3,
+      "d1Stmts": 3,
+      "d1SerialRounds": 3,
+      "bytes": 764,
+      "ms": 4
+     }
+    ]
+   },
+   "warm": {
+    "phase": "ấm",
+    "fcp": 88,
+    "dcl": 38,
+    "load": 71,
+    "readyAt": 1798,
+    "longTasks": 0,
+    "longTaskMs": 0,
+    "tbt": 0,
+    "cls": 0,
+    "shifts": [],
+    "mutations": 164,
+    "domNodes": 285,
+    "swControlled": true,
+    "wallMs": 3363,
+    "requests": {
+     "total": 14,
+     "api": 4,
+     "static": 10,
+     "staticFromSW": 10,
+     "staticFromDisk": 8,
+     "serverSawRequests": 15
+    },
+    "bytes": {
+     "transfer": 2407,
+     "decoded": 215666,
+     "jsDecoded": 35713,
+     "cssDecoded": 90006,
+     "fontDecoded": 70672,
+     "htmlDecoded": 2647,
+     "apiDecoded": 4643
+    },
+    "apiChainDepth": 3,
+    "apiChain": [
+     "/api/auth/me",
+     "/api/parties/meta",
+     "/api/parties?…"
+    ],
+    "firstApiStartMs": 36,
+    "docEndMs": 9,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 36,
+      "end": 612,
+      "status": 200
+     },
+     {
+      "path": "/api/parties/meta",
+      "start": 625,
+      "end": 1193,
+      "status": 200
+     },
+     {
+      "path": "/api/locations",
+      "start": 625,
+      "end": 1202,
+      "status": 200
+     },
+     {
+      "path": "/api/parties?…",
+      "start": 1205,
+      "end": 1778,
+      "status": 200
+     }
+    ],
+    "d1": [
+     {
+      "req": "GET /api/auth/me",
+      "status": 200,
+      "d1RoundTrips": 3,
+      "d1Stmts": 3,
+      "d1SerialRounds": 3,
+      "bytes": 216,
+      "ms": 3
+     },
+     {
+      "req": "GET /api/parties/meta",
+      "status": 200,
+      "d1RoundTrips": 4,
+      "d1Stmts": 4,
+      "d1SerialRounds": 3,
+      "bytes": 1542,
+      "ms": 4
+     },
+     {
+      "req": "GET /api/locations",
+      "status": 200,
+      "d1RoundTrips": 4,
+      "d1Stmts": 4,
+      "d1SerialRounds": 3,
+      "bytes": 2121,
+      "ms": 3
+     },
+     {
+      "req": "GET /api/parties?limit&offset",
+      "status": 200,
+      "d1RoundTrips": 3,
+      "d1Stmts": 3,
+      "d1SerialRounds": 3,
+      "bytes": 764,
+      "ms": 3
+     }
+    ],
+    "swCacheEntriesBefore": 22
+   }
+  },
+  {
+   "key": "audit",
+   "label": "Nhật ký",
+   "path": "/audit",
+   "viewport": "375×812",
+   "round": 0,
+   "cold": {
+    "phase": "lạnh",
+    "fcp": 1468,
+    "dcl": 1407,
+    "load": 2450,
+    "readyAt": 2646,
+    "longTasks": 1,
+    "longTaskMs": 88,
+    "tbt": 38,
+    "cls": 0,
+    "shifts": [],
+    "mutations": 196,
+    "domNodes": 985,
+    "swControlled": true,
+    "wallMs": 5188,
+    "requests": {
+     "total": 13,
+     "api": 2,
+     "static": 11,
+     "staticFromSW": 0,
+     "staticFromDisk": 0,
+     "serverSawRequests": 36
+    },
+    "bytes": {
+     "transfer": 127451,
+     "decoded": 230494,
+     "jsDecoded": 30574,
+     "cssDecoded": 90006,
+     "fontDecoded": 70672,
+     "htmlDecoded": 1841,
+     "apiDecoded": 17548
+    },
+    "apiChainDepth": 2,
+    "apiChain": [
+     "/api/auth/me",
+     "/api/audit?…"
+    ],
+    "firstApiStartMs": 1405,
+    "docEndMs": 579,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 1405,
+      "end": 1978,
+      "status": 200
+     },
+     {
+      "path": "/api/audit?…",
+      "start": 1996,
+      "end": 2579,
+      "status": 200
+     }
+    ],
+    "d1": [
+     {
+      "req": "GET /api/auth/me",
+      "status": 200,
+      "d1RoundTrips": 3,
+      "d1Stmts": 3,
+      "d1SerialRounds": 3,
+      "bytes": 216,
+      "ms": 3
+     },
+     {
+      "req": "GET /api/audit?limit&offset",
+      "status": 200,
+      "d1RoundTrips": 3,
+      "d1Stmts": 3,
+      "d1SerialRounds": 3,
+      "bytes": 17332,
+      "ms": 4
+     }
+    ]
+   },
+   "warm": {
+    "phase": "ấm",
+    "fcp": 56,
+    "dcl": 48,
+    "load": 68,
+    "readyAt": 1271,
+    "longTasks": 0,
+    "longTaskMs": 0,
+    "tbt": 0,
+    "cls": 0,
+    "shifts": [],
+    "mutations": 196,
+    "domNodes": 985,
+    "swControlled": true,
+    "wallMs": 2784,
+    "requests": {
+     "total": 12,
+     "api": 2,
+     "static": 10,
+     "staticFromSW": 10,
+     "staticFromDisk": 8,
+     "serverSawRequests": 13
+    },
+    "bytes": {
+     "transfer": 3301,
+     "decoded": 222626,
+     "jsDecoded": 30574,
+     "cssDecoded": 90006,
+     "fontDecoded": 70672,
+     "htmlDecoded": 1841,
+     "apiDecoded": 17548
+    },
+    "apiChainDepth": 2,
+    "apiChain": [
+     "/api/auth/me",
+     "/api/audit?…"
+    ],
+    "firstApiStartMs": 47,
+    "docEndMs": 8,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 47,
+      "end": 620,
+      "status": 200
+     },
+     {
+      "path": "/api/audit?…",
+      "start": 632,
+      "end": 1212,
+      "status": 200
+     }
+    ],
+    "d1": [
+     {
+      "req": "GET /api/auth/me",
+      "status": 200,
+      "d1RoundTrips": 3,
+      "d1Stmts": 3,
+      "d1SerialRounds": 3,
+      "bytes": 216,
+      "ms": 2
+     },
+     {
+      "req": "GET /api/audit?limit&offset",
+      "status": 200,
+      "d1RoundTrips": 3,
+      "d1Stmts": 3,
+      "d1SerialRounds": 3,
+      "bytes": 17332,
+      "ms": 5
+     }
+    ],
+    "swCacheEntriesBefore": 22
+   }
+  },
+  {
+   "key": "feedback",
+   "label": "Góp ý",
+   "path": "/feedback",
+   "viewport": "375×812",
+   "round": 0,
+   "cold": {
+    "phase": "lạnh",
+    "fcp": 1464,
+    "dcl": 1411,
+    "load": 2442,
+    "readyAt": 2639,
+    "longTasks": 2,
+    "longTaskMs": 140,
+    "tbt": 40,
+    "cls": 0.0128,
+    "shifts": [
+     {
+      "t": 2298,
+      "v": 0.0062,
+      "src": [
+       "BUTTON.btn"
+      ]
+     },
+     {
+      "t": 2327,
+      "v": 0.0063,
+      "src": [
+       "BUTTON.btn"
+      ]
+     },
+     {
+      "t": 2464,
+      "v": 0.0003,
+      "src": [
+       "BUTTON.btn",
+       "SPAN"
+      ]
+     }
+    ],
+    "mutations": 97,
+    "domNodes": 144,
+    "swControlled": true,
+    "wallMs": 5282,
+    "requests": {
+     "total": 13,
+     "api": 2,
+     "static": 11,
+     "staticFromSW": 0,
+     "staticFromDisk": 0,
+     "serverSawRequests": 36
+    },
+    "bytes": {
+     "transfer": 125223,
+     "decoded": 213216,
+     "jsDecoded": 30445,
+     "cssDecoded": 90006,
+     "fontDecoded": 70672,
+     "htmlDecoded": 2011,
+     "apiDecoded": 229
+    },
+    "apiChainDepth": 2,
+    "apiChain": [
+     "/api/auth/me",
+     "/api/feedback/mine"
+    ],
+    "firstApiStartMs": 1409,
+    "docEndMs": 578,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 1409,
+      "end": 1989,
+      "status": 200
+     },
+     {
+      "path": "/api/feedback/mine",
+      "start": 2046,
+      "end": 2620,
+      "status": 200
+     }
+    ],
+    "d1": [
+     {
+      "req": "GET /api/auth/me",
+      "status": 200,
+      "d1RoundTrips": 3,
+      "d1Stmts": 3,
+      "d1SerialRounds": 3,
+      "bytes": 215,
+      "ms": 3
+     },
+     {
+      "req": "GET /api/feedback/mine",
+      "status": 200,
+      "d1RoundTrips": 3,
+      "d1Stmts": 3,
+      "d1SerialRounds": 3,
+      "bytes": 14,
+      "ms": 50
+     }
+    ]
+   },
+   "warm": {
+    "phase": "ấm",
+    "fcp": 64,
+    "dcl": 36,
+    "load": 56,
+    "readyAt": 1197,
+    "longTasks": 0,
+    "longTaskMs": 0,
+    "tbt": 0,
+    "cls": 0,
+    "shifts": [],
+    "mutations": 97,
+    "domNodes": 144,
+    "swControlled": true,
+    "wallMs": 2749,
+    "requests": {
+     "total": 12,
+     "api": 2,
+     "static": 10,
+     "staticFromSW": 10,
+     "staticFromDisk": 8,
+     "serverSawRequests": 13
+    },
+    "bytes": {
+     "transfer": 559,
+     "decoded": 205348,
+     "jsDecoded": 30445,
+     "cssDecoded": 90006,
+     "fontDecoded": 70672,
+     "htmlDecoded": 2011,
+     "apiDecoded": 229
+    },
+    "apiChainDepth": 2,
+    "apiChain": [
+     "/api/auth/me",
+     "/api/feedback/mine"
+    ],
+    "firstApiStartMs": 35,
+    "docEndMs": 8,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 35,
+      "end": 607,
+      "status": 200
+     },
+     {
+      "path": "/api/feedback/mine",
+      "start": 617,
+      "end": 1191,
+      "status": 200
+     }
+    ],
+    "d1": [
+     {
+      "req": "GET /api/auth/me",
+      "status": 200,
+      "d1RoundTrips": 3,
+      "d1Stmts": 3,
+      "d1SerialRounds": 3,
+      "bytes": 215,
+      "ms": 2
+     },
+     {
+      "req": "GET /api/feedback/mine",
+      "status": 200,
+      "d1RoundTrips": 3,
+      "d1Stmts": 3,
+      "d1SerialRounds": 3,
+      "bytes": 14,
+      "ms": 3
+     }
+    ],
+    "swCacheEntriesBefore": 22
+   }
+  },
+  {
+   "key": "help",
+   "label": "Trợ giúp",
+   "path": "/help",
+   "viewport": "375×812",
+   "round": 0,
+   "cold": {
+    "phase": "lạnh",
+    "fcp": 1468,
+    "dcl": 1393,
+    "load": 2414,
+    "readyAt": 1986,
+    "longTasks": 1,
+    "longTaskMs": 51,
+    "tbt": 1,
+    "cls": 0.0281,
+    "shifts": [
+     {
+      "t": 2274,
+      "v": 0.0138,
+      "src": [
+       "SECTION.release-note",
+       "LI",
+       "LI",
+       "LI"
+      ]
+     },
+     {
+      "t": 2441,
+      "v": 0.0144,
+      "src": [
+       "SECTION.release-note",
+       "LI",
+       "LI",
+       "LI"
+      ]
+     }
+    ],
+    "mutations": 75,
+    "domNodes": 210,
+    "swControlled": true,
+    "wallMs": 5333,
+    "requests": {
+     "total": 12,
+     "api": 1,
+     "static": 11,
+     "staticFromSW": 0,
+     "staticFromDisk": 0,
+     "serverSawRequests": 35
+    },
+    "bytes": {
+     "transfer": 123198,
+     "decoded": 207820,
+     "jsDecoded": 25636,
+     "cssDecoded": 90006,
+     "fontDecoded": 70672,
+     "htmlDecoded": 1438,
+     "apiDecoded": 215
+    },
+    "apiChainDepth": 1,
+    "apiChain": [
+     "/api/auth/me"
+    ],
+    "firstApiStartMs": 1392,
+    "docEndMs": 568,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 1392,
+      "end": 1959,
+      "status": 200
+     }
+    ],
+    "d1": [
+     {
+      "req": "GET /api/auth/me",
+      "status": 200,
+      "d1RoundTrips": 3,
+      "d1Stmts": 3,
+      "d1SerialRounds": 3,
+      "bytes": 215,
+      "ms": 2
+     }
+    ]
+   },
+   "warm": {
+    "phase": "ấm",
+    "fcp": 72,
+    "dcl": 40,
+    "load": 64,
+    "readyAt": 627,
+    "longTasks": 0,
+    "longTaskMs": 0,
+    "tbt": 0,
+    "cls": 0,
+    "shifts": [],
+    "mutations": 75,
+    "domNodes": 209,
+    "swControlled": true,
+    "wallMs": 2148,
+    "requests": {
+     "total": 11,
+     "api": 1,
+     "static": 10,
+     "staticFromSW": 10,
+     "staticFromDisk": 8,
+     "serverSawRequests": 12
+    },
+    "bytes": {
+     "transfer": 360,
+     "decoded": 199952,
+     "jsDecoded": 25636,
+     "cssDecoded": 90006,
+     "fontDecoded": 70672,
+     "htmlDecoded": 1438,
+     "apiDecoded": 215
+    },
+    "apiChainDepth": 1,
+    "apiChain": [
+     "/api/auth/me"
+    ],
+    "firstApiStartMs": 39,
+    "docEndMs": 9,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 39,
+      "end": 609,
+      "status": 200
+     }
+    ],
+    "d1": [
+     {
+      "req": "GET /api/auth/me",
+      "status": 200,
+      "d1RoundTrips": 3,
+      "d1Stmts": 3,
+      "d1SerialRounds": 3,
+      "bytes": 215,
+      "ms": 3
+     }
+    ],
+    "swCacheEntriesBefore": 22
+   }
+  },
+  {
+   "key": "locations",
+   "label": "Địa điểm",
+   "path": "/locations",
+   "viewport": "375×812",
+   "round": 0,
+   "cold": {
+    "phase": "lạnh",
+    "fcp": 1412,
+    "dcl": 1447,
+    "load": 2438,
+    "readyAt": 2665,
+    "longTasks": 0,
+    "longTaskMs": 0,
+    "tbt": 0,
+    "cls": 0,
+    "shifts": [
+     {
+      "t": 2452,
+      "v": 0,
+      "src": [
+       "SPAN"
+      ]
+     }
+    ],
+    "mutations": 126,
+    "domNodes": 294,
+    "swControlled": true,
+    "wallMs": 5233,
+    "requests": {
+     "total": 13,
+     "api": 2,
+     "static": 11,
+     "staticFromSW": 0,
+     "staticFromDisk": 0,
+     "serverSawRequests": 36
+    },
+    "bytes": {
+     "transfer": 125142,
+     "decoded": 213510,
+     "jsDecoded": 28434,
+     "cssDecoded": 90006,
+     "fontDecoded": 70672,
+     "htmlDecoded": 2208,
+     "apiDecoded": 2337
+    },
+    "apiChainDepth": 2,
+    "apiChain": [
+     "/api/auth/me",
+     "/api/locations"
+    ],
+    "firstApiStartMs": 1444,
+    "docEndMs": 581,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 1444,
+      "end": 2047,
+      "status": 200
+     },
+     {
+      "path": "/api/locations",
+      "start": 2065,
+      "end": 2639,
+      "status": 200
+     }
+    ],
+    "d1": [
+     {
+      "req": "GET /api/auth/me",
+      "status": 200,
+      "d1RoundTrips": 3,
+      "d1Stmts": 3,
+      "d1SerialRounds": 3,
+      "bytes": 216,
+      "ms": 3
+     },
+     {
+      "req": "GET /api/locations",
+      "status": 200,
+      "d1RoundTrips": 4,
+      "d1Stmts": 4,
+      "d1SerialRounds": 3,
+      "bytes": 2121,
+      "ms": 4
+     }
+    ]
+   },
+   "warm": {
+    "phase": "ấm",
+    "fcp": 48,
+    "dcl": 48,
+    "load": 67,
+    "readyAt": 1225,
+    "longTasks": 0,
+    "longTaskMs": 0,
+    "tbt": 0,
+    "cls": 0,
+    "shifts": [],
+    "mutations": 126,
+    "domNodes": 294,
+    "swControlled": true,
+    "wallMs": 2767,
+    "requests": {
+     "total": 12,
+     "api": 2,
+     "static": 10,
+     "staticFromSW": 10,
+     "staticFromDisk": 8,
+     "serverSawRequests": 13
+    },
+    "bytes": {
+     "transfer": 1191,
+     "decoded": 205642,
+     "jsDecoded": 28434,
+     "cssDecoded": 90006,
+     "fontDecoded": 70672,
+     "htmlDecoded": 2208,
+     "apiDecoded": 2337
+    },
+    "apiChainDepth": 2,
+    "apiChain": [
+     "/api/auth/me",
+     "/api/locations"
+    ],
+    "firstApiStartMs": 47,
+    "docEndMs": 11,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 47,
+      "end": 623,
+      "status": 200
+     },
+     {
+      "path": "/api/locations",
+      "start": 633,
+      "end": 1205,
+      "status": 200
+     }
+    ],
+    "d1": [
+     {
+      "req": "GET /api/auth/me",
+      "status": 200,
+      "d1RoundTrips": 3,
+      "d1Stmts": 3,
+      "d1SerialRounds": 3,
+      "bytes": 216,
+      "ms": 4
+     },
+     {
+      "req": "GET /api/locations",
+      "status": 200,
+      "d1RoundTrips": 4,
+      "d1Stmts": 4,
+      "d1SerialRounds": 3,
+      "bytes": 2121,
+      "ms": 3
+     }
+    ],
+    "swCacheEntriesBefore": 22
+   }
+  },
+  {
+   "key": "home-admin-desktop",
+   "label": "Trang chủ Admin (máy tính 1280×800, có thanh bên + huy hiệu)",
+   "path": "/",
+   "viewport": "1280×800",
+   "round": 0,
+   "cold": {
+    "phase": "lạnh",
+    "fcp": 1460,
+    "dcl": 1432,
+    "load": 2931,
+    "readyAt": 3251,
+    "longTasks": 0,
+    "longTaskMs": 0,
+    "tbt": 0,
+    "cls": 0.0697,
+    "shifts": [
+     {
+      "t": 1444,
+      "v": 0.0063,
+      "src": [
+       "MAIN"
+      ]
+     },
+     {
+      "t": 2064,
+      "v": 0.0633,
+      "src": [
+       "MAIN",
+       "#topbar"
+      ]
+     },
+     {
+      "t": 2736,
+      "v": 0.0001,
+      "src": [
+       "INPUT.topbar-search",
+       "A.btn",
+       "BUTTON.sidebar-logout"
+      ]
+     }
+    ],
+    "mutations": 134,
+    "domNodes": 475,
+    "swControlled": true,
+    "wallMs": 5798,
+    "requests": {
+     "total": 20,
+     "api": 7,
+     "static": 13,
+     "staticFromSW": 0,
+     "staticFromDisk": 0,
+     "serverSawRequests": 43
+    },
+    "bytes": {
+     "transfer": 149327,
+     "decoded": 248613,
+     "jsDecoded": 32576,
+     "cssDecoded": 90006,
+     "fontDecoded": 89196,
+     "htmlDecoded": 2853,
+     "apiDecoded": 14129
+    },
+    "apiChainDepth": 2,
+    "apiChain": [
+     "/api/auth/me",
+     "/api/orders/dashboard"
+    ],
+    "firstApiStartMs": 1431,
+    "docEndMs": 577,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 1431,
+      "end": 2011,
+      "status": 200
+     },
+     {
+      "path": "/api/orders/dashboard",
+      "start": 2042,
+      "end": 2611,
+      "status": 200
+     },
+     {
+      "path": "/api/catalog/admin",
+      "start": 2042,
+      "end": 2619,
+      "status": 200
+     },
+     {
+      "path": "/api/feedback/badge",
+      "start": 2042,
+      "end": 2628,
+      "status": 200
+     },
+     {
+      "path": "/api/orders/dashboard",
+      "start": 2051,
+      "end": 3194,
+      "status": 200
+     },
+     {
+      "path": "/api/catalog/admin",
+      "start": 2051,
+      "end": 3203,
+      "status": 200
+     },
+     {
+      "path": "/api/feedback",
+      "start": 2052,
+      "end": 3186,
+      "status": 200
+     }
+    ],
+    "d1": [
+     {
+      "req": "GET /api/auth/me",
+      "status": 200,
+      "d1RoundTrips": 3,
+      "d1Stmts": 3,
+      "d1SerialRounds": 3,
+      "bytes": 216,
+      "ms": 4
+     },
+     {
+      "req": "GET /api/orders/dashboard",
+      "status": 200,
+      "d1RoundTrips": 12,
+      "d1Stmts": 12,
+      "d1SerialRounds": 12,
+      "bytes": 5521,
+      "ms": 11
+     },
+     {
+      "req": "GET /api/catalog/admin",
+      "status": 200,
+      "d1RoundTrips": 4,
+      "d1Stmts": 4,
+      "d1SerialRounds": 3,
+      "bytes": 1413,
+      "ms": 4
+     },
+     {
+      "req": "GET /api/feedback/badge",
+      "status": 200,
+      "d1RoundTrips": 3,
+      "d1Stmts": 3,
+      "d1SerialRounds": 3,
+      "bytes": 20,
+      "ms": 4
+     },
+     {
+      "req": "GET /api/feedback",
+      "status": 200,
+      "d1RoundTrips": 4,
+      "d1Stmts": 4,
+      "d1SerialRounds": 3,
+      "bytes": 25,
+      "ms": 3
+     },
+     {
+      "req": "GET /api/orders/dashboard",
+      "status": 200,
+      "d1RoundTrips": 12,
+      "d1Stmts": 12,
+      "d1SerialRounds": 12,
+      "bytes": 5521,
+      "ms": 9
+     },
+     {
+      "req": "GET /api/catalog/admin",
+      "status": 200,
+      "d1RoundTrips": 4,
+      "d1Stmts": 4,
+      "d1SerialRounds": 3,
+      "bytes": 1413,
+      "ms": 2
+     }
+    ]
+   },
+   "warm": {
+    "phase": "ấm",
+    "fcp": 72,
+    "dcl": 41,
+    "load": 46,
+    "readyAt": 1847,
+    "longTasks": 0,
+    "longTaskMs": 0,
+    "tbt": 0,
+    "cls": 0.0696,
+    "shifts": [
+     {
+      "t": 54,
+      "v": 0.0063,
+      "src": [
+       "MAIN"
+      ]
+     },
+     {
+      "t": 661,
+      "v": 0.0633,
+      "src": [
+       "MAIN",
+       "#topbar"
+      ]
+     }
+    ],
+    "mutations": 134,
+    "domNodes": 475,
+    "swControlled": true,
+    "wallMs": 3389,
+    "requests": {
+     "total": 20,
+     "api": 7,
+     "static": 13,
+     "staticFromSW": 13,
+     "staticFromDisk": 13,
+     "serverSawRequests": 21
+    },
+    "bytes": {
+     "transfer": 4076,
+     "decoded": 273321,
+     "jsDecoded": 65152,
+     "cssDecoded": 90006,
+     "fontDecoded": 89196,
+     "htmlDecoded": 2853,
+     "apiDecoded": 14129
+    },
+    "apiChainDepth": 2,
+    "apiChain": [
+     "/api/auth/me",
+     "/api/orders/dashboard"
+    ],
+    "firstApiStartMs": 40,
+    "docEndMs": 3,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 40,
+      "end": 613,
+      "status": 200
+     },
+     {
+      "path": "/api/orders/dashboard",
+      "start": 638,
+      "end": 1213,
+      "status": 200
+     },
+     {
+      "path": "/api/catalog/admin",
+      "start": 638,
+      "end": 1222,
+      "status": 200
+     },
+     {
+      "path": "/api/feedback/badge",
+      "start": 639,
+      "end": 1229,
+      "status": 200
+     },
+     {
+      "path": "/api/orders/dashboard",
+      "start": 641,
+      "end": 1788,
+      "status": 200
+     },
+     {
+      "path": "/api/catalog/admin",
+      "start": 642,
+      "end": 1796,
+      "status": 200
+     },
+     {
+      "path": "/api/feedback",
+      "start": 642,
+      "end": 1238,
+      "status": 200
+     }
+    ],
+    "d1": [
+     {
+      "req": "GET /api/auth/me",
+      "status": 200,
+      "d1RoundTrips": 3,
+      "d1Stmts": 3,
+      "d1SerialRounds": 3,
+      "bytes": 216,
+      "ms": 5
+     },
+     {
+      "req": "GET /api/orders/dashboard",
+      "status": 200,
+      "d1RoundTrips": 12,
+      "d1Stmts": 12,
+      "d1SerialRounds": 12,
+      "bytes": 5521,
+      "ms": 11
+     },
+     {
+      "req": "GET /api/catalog/admin",
+      "status": 200,
+      "d1RoundTrips": 4,
+      "d1Stmts": 4,
+      "d1SerialRounds": 3,
+      "bytes": 1413,
+      "ms": 4
+     },
+     {
+      "req": "GET /api/feedback/badge",
+      "status": 200,
+      "d1RoundTrips": 3,
+      "d1Stmts": 3,
+      "d1SerialRounds": 3,
+      "bytes": 20,
+      "ms": 4
+     },
+     {
+      "req": "GET /api/feedback",
+      "status": 200,
+      "d1RoundTrips": 4,
+      "d1Stmts": 4,
+      "d1SerialRounds": 3,
+      "bytes": 25,
+      "ms": 8
+     },
+     {
+      "req": "GET /api/orders/dashboard",
+      "status": 200,
+      "d1RoundTrips": 12,
+      "d1Stmts": 12,
+      "d1SerialRounds": 12,
+      "bytes": 5521,
+      "ms": 9
+     },
+     {
+      "req": "GET /api/catalog/admin",
+      "status": 200,
+      "d1RoundTrips": 4,
+      "d1Stmts": 4,
+      "d1SerialRounds": 3,
+      "bytes": 1413,
+      "ms": 3
+     }
+    ],
+    "swCacheEntriesBefore": 22
+   }
+  },
+  {
+   "key": "orders-admin-desktop",
+   "label": "Đơn hàng Admin (máy tính 1280×800)",
+   "path": "/orders",
+   "viewport": "1280×800",
+   "round": 0,
+   "cold": {
+    "phase": "lạnh",
+    "fcp": 1460,
+    "dcl": 1399,
+    "load": 2434,
+    "readyAt": 2960,
+    "longTasks": 1,
+    "longTaskMs": 85,
+    "tbt": 35,
+    "cls": 0.0831,
+    "shifts": [
+     {
+      "t": 2023,
+      "v": 0.0828,
+      "src": [
+       "MAIN",
+       "#topbar"
+      ]
+     },
+     {
+      "t": 2152,
+      "v": 0.0001,
+      "src": [
+       "INPUT.topbar-search",
+       "#status",
+       "A.btn"
+      ]
+     },
+     {
+      "t": 2312,
+      "v": 0.0001,
+      "src": [
+       "INPUT.topbar-search",
+       "A.btn",
+       "#new-order",
+       "BUTTON.sidebar-logout"
+      ]
+     },
+     {
+      "t": 2458,
+      "v": 0.0001,
+      "src": [
+       "#status"
+      ]
+     }
+    ],
+    "mutations": 170,
+    "domNodes": 1102,
+    "swControlled": true,
+    "wallMs": 5171,
+    "requests": {
+     "total": 17,
+     "api": 6,
+     "static": 11,
+     "staticFromSW": 0,
+     "staticFromDisk": 0,
+     "serverSawRequests": 40
+    },
+    "bytes": {
+     "transfer": 129554,
+     "decoded": 239586,
+     "jsDecoded": 30155,
+     "cssDecoded": 90006,
+     "fontDecoded": 70672,
+     "htmlDecoded": 1729,
+     "apiDecoded": 27171
+    },
+    "apiChainDepth": 3,
+    "apiChain": [
+     "/api/auth/me",
+     "/api/orders/dashboard",
+     "/api/dispatch/handlers?…"
+    ],
+    "firstApiStartMs": 1398,
+    "docEndMs": 578,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 1398,
+      "end": 1970,
+      "status": 200
+     },
+     {
+      "path": "/api/orders/dashboard",
+      "start": 2011,
+      "end": 2587,
+      "status": 200
+     },
+     {
+      "path": "/api/catalog/admin",
+      "start": 2012,
+      "end": 2595,
+      "status": 200
+     },
+     {
+      "path": "/api/feedback/badge",
+      "start": 2012,
+      "end": 2702,
+      "status": 200
+     },
+     {
+      "path": "/api/orders?…",
+      "start": 2015,
+      "end": 2861,
+      "status": 200
+     },
+     {
+      "path": "/api/dispatch/handlers?…",
+      "start": 2889,
+      "end": 3461,
+      "status": 200
+     }
+    ],
+    "d1": [
+     {
+      "req": "GET /api/auth/me",
+      "status": 200,
+      "d1RoundTrips": 3,
+      "d1Stmts": 3,
+      "d1SerialRounds": 3,
+      "bytes": 216,
+      "ms": 3
+     },
+     {
+      "req": "GET /api/orders/dashboard",
+      "status": 200,
+      "d1RoundTrips": 12,
+      "d1Stmts": 12,
+      "d1SerialRounds": 12,
+      "bytes": 5521,
+      "ms": 8
+     },
+     {
+      "req": "GET /api/catalog/admin",
+      "status": 200,
+      "d1RoundTrips": 4,
+      "d1Stmts": 4,
+      "d1SerialRounds": 3,
+      "bytes": 1413,
+      "ms": 3
+     },
+     {
+      "req": "GET /api/feedback/badge",
+      "status": 200,
+      "d1RoundTrips": 3,
+      "d1Stmts": 3,
+      "d1SerialRounds": 3,
+      "bytes": 20,
+      "ms": 2
+     },
+     {
+      "req": "GET /api/orders?limit&offset",
+      "status": 200,
+      "d1RoundTrips": 5,
+      "d1Stmts": 5,
+      "d1SerialRounds": 5,
+      "bytes": 15187,
+      "ms": 4
+     },
+     {
+      "req": "GET /api/dispatch/handlers?orderIds",
+      "status": 200,
+      "d1RoundTrips": 3,
+      "d1Stmts": 3,
+      "d1SerialRounds": 3,
+      "bytes": 4814,
+      "ms": 5
+     }
+    ]
+   },
+   "warm": {
+    "phase": "ấm",
+    "fcp": 52,
+    "dcl": 49,
+    "load": 61,
+    "readyAt": 1298,
+    "longTasks": 0,
+    "longTaskMs": 0,
+    "tbt": 0,
+    "cls": 0.0921,
+    "shifts": [
+     {
+      "t": 59,
+      "v": 0.0093,
+      "src": [
+       "MAIN"
+      ]
+     },
+     {
+      "t": 656,
+      "v": 0.0828,
+      "src": [
+       "MAIN",
+       "#topbar"
+      ]
+     }
+    ],
+    "mutations": 170,
+    "domNodes": 1102,
+    "swControlled": true,
+    "wallMs": 3512,
+    "requests": {
+     "total": 17,
+     "api": 6,
+     "static": 11,
+     "staticFromSW": 11,
+     "staticFromDisk": 11,
+     "serverSawRequests": 18
+    },
+    "bytes": {
+     "transfer": 4952,
+     "decoded": 261873,
+     "jsDecoded": 60310,
+     "cssDecoded": 90006,
+     "fontDecoded": 70672,
+     "htmlDecoded": 1729,
+     "apiDecoded": 27171
+    },
+    "apiChainDepth": 3,
+    "apiChain": [
+     "/api/auth/me",
+     "/api/orders/dashboard",
+     "/api/dispatch/handlers?…"
+    ],
+    "firstApiStartMs": 48,
+    "docEndMs": 4,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 48,
+      "end": 620,
+      "status": 200
+     },
+     {
+      "path": "/api/orders/dashboard",
+      "start": 649,
+      "end": 1220,
+      "status": 200
+     },
+     {
+      "path": "/api/catalog/admin",
+      "start": 650,
+      "end": 1229,
+      "status": 200
+     },
+     {
+      "path": "/api/feedback/badge",
+      "start": 650,
+      "end": 1238,
+      "status": 200
+     },
+     {
+      "path": "/api/orders?…",
+      "start": 651,
+      "end": 1255,
+      "status": 200
+     },
+     {
+      "path": "/api/dispatch/handlers?…",
+      "start": 1270,
+      "end": 1837,
+      "status": 200
+     }
+    ],
+    "d1": [
+     {
+      "req": "GET /api/auth/me",
+      "status": 200,
+      "d1RoundTrips": 3,
+      "d1Stmts": 3,
+      "d1SerialRounds": 3,
+      "bytes": 216,
+      "ms": 3
+     },
+     {
+      "req": "GET /api/orders/dashboard",
+      "status": 200,
+      "d1RoundTrips": 12,
+      "d1Stmts": 12,
+      "d1SerialRounds": 12,
+      "bytes": 5521,
+      "ms": 9
+     },
+     {
+      "req": "GET /api/catalog/admin",
+      "status": 200,
+      "d1RoundTrips": 4,
+      "d1Stmts": 4,
+      "d1SerialRounds": 3,
+      "bytes": 1413,
+      "ms": 7
+     },
+     {
+      "req": "GET /api/feedback/badge",
+      "status": 200,
+      "d1RoundTrips": 3,
+      "d1Stmts": 3,
+      "d1SerialRounds": 3,
+      "bytes": 20,
+      "ms": 7
+     },
+     {
+      "req": "GET /api/orders?limit&offset",
+      "status": 200,
+      "d1RoundTrips": 5,
+      "d1Stmts": 5,
+      "d1SerialRounds": 5,
+      "bytes": 15187,
+      "ms": 10
+     },
+     {
+      "req": "GET /api/dispatch/handlers?orderIds",
+      "status": 200,
+      "d1RoundTrips": 3,
+      "d1Stmts": 3,
+      "d1SerialRounds": 3,
+      "bytes": 4814,
+      "ms": 3
+     }
+    ],
+    "swCacheEntriesBefore": 22
+   }
+  }
+ ],
+ "api": [],
+ "uptimeEnd": "23:43  up 5 days, 17:24, 3 users, load averages: 6.29 7.70 6.56",
+ "note": "Thời gian (ms) đo khi máy BẬN nếu uptime cho tải > 2 — chỉ dùng số tất định. bytes.* đo trên wrangler dev cục bộ (không nén br/gzip như Cloudflare thật)."
+}

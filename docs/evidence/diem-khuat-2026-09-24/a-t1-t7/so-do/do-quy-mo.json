@@ -1,0 +1,116 @@
+{
+ "at": "2026-09-24T16:45:03.482Z",
+ "uptime": "23:45  up 5 days, 17:26, 3 users, load averages: 4.11 6.45 6.20",
+ "M": 150,
+ "K": 150,
+ "probes": [
+  {
+   "label": "6 đơn đã xác nhận, 6 giao cho HDV",
+   "path": "/api/dispatch/mine",
+   "status": 200,
+   "rt": 21,
+   "stmts": 45,
+   "serial": 4,
+   "bytes": 2933,
+   "serverMs": 13,
+   "clientMs": 36,
+   "items": 6
+  },
+  {
+   "label": "6 đơn đã xác nhận, 6 giao cho HDV",
+   "path": "/api/orders/dashboard",
+   "status": 200,
+   "rt": 10,
+   "stmts": 10,
+   "serial": 10,
+   "bytes": 435,
+   "serverMs": 7,
+   "clientMs": 11,
+   "items": null
+  },
+  {
+   "label": "6 đơn đã xác nhận, 6 giao cho HDV",
+   "path": "/api/orders?limit=30&offset=0",
+   "status": 200,
+   "rt": 5,
+   "stmts": 5,
+   "serial": 5,
+   "bytes": 2836,
+   "serverMs": 4,
+   "clientMs": 8,
+   "items": 6
+  },
+  {
+   "label": "40 đơn đã xác nhận, 40 giao cho HDV",
+   "path": "/api/dispatch/mine",
+   "status": 200,
+   "rt": 123,
+   "stmts": 283,
+   "serial": 4,
+   "bytes": 19487,
+   "serverMs": 66,
+   "clientMs": 72,
+   "items": 40
+  },
+  {
+   "label": "40 đơn đã xác nhận, 40 giao cho HDV",
+   "path": "/api/orders/dashboard",
+   "status": 200,
+   "rt": 10,
+   "stmts": 10,
+   "serial": 10,
+   "bytes": 440,
+   "serverMs": 10,
+   "clientMs": 14,
+   "items": null
+  },
+  {
+   "label": "40 đơn đã xác nhận, 40 giao cho HDV",
+   "path": "/api/orders?limit=30&offset=0",
+   "status": 200,
+   "rt": 5,
+   "stmts": 5,
+   "serial": 5,
+   "bytes": 14097,
+   "serverMs": 5,
+   "clientMs": 8,
+   "items": 30
+  },
+  {
+   "label": "150 đơn đã xác nhận, 150 giao cho HDV",
+   "path": "/api/dispatch/mine",
+   "status": 200,
+   "rt": 453,
+   "stmts": 1053,
+   "serial": 4,
+   "bytes": 73107,
+   "serverMs": 206,
+   "clientMs": 215,
+   "items": 150
+  },
+  {
+   "label": "150 đơn đã xác nhận, 150 giao cho HDV",
+   "path": "/api/orders/dashboard",
+   "status": 200,
+   "rt": 10,
+   "stmts": 10,
+   "serial": 10,
+   "bytes": 442,
+   "serverMs": 6,
+   "clientMs": 9,
+   "items": null
+  },
+  {
+   "label": "150 đơn đã xác nhận, 150 giao cho HDV",
+   "path": "/api/orders?limit=30&offset=0",
+   "status": 200,
+   "rt": 5,
+   "stmts": 5,
+   "serial": 5,
+   "bytes": 14127,
+   "serverMs": 4,
+   "clientMs": 7,
+   "items": 30
+  }
+ ]
+}

@@ -1,0 +1,191 @@
+{
+  "flows": {
+    "1_sales_lap_don_12_khach_xac_nhan_giao_hdv": {
+      "taps": 20,
+      "typed": 8,
+      "retyped": 0,
+      "screens": [
+        "/orders",
+        "/order-form",
+        "/order?id=1506c1e4-4dee-49dd-be81-bf7356ec35b4"
+      ],
+      "steps": [
+        "chạm: nút Đơn mới / Lập đơn mới",
+        "gõ: Tên khách = Đoàn cô Hạnh",
+        "gõ: SĐT = 0912 000 111",
+        "chạm: ô tìm danh mục",
+        "gõ: tìm dịch vụ = 4 đảo",
+        "chạm: chọn Tour 4 đảo",
+        "ghi chú: 12 người lớn bằng nút + = 11 chạm (mặc định 1); chọn cách gõ vào ô số",
+        "gõ: Người lớn = 12",
+        "chạm: mở 'Thông tin chuyến'",
+        "gõ: Ngày khởi hành = 2026-09-25",
+        "gõ: Giờ đón = 07:15",
+        "gõ: Điểm đón = Sảnh KS Novotel",
+        "gõ: Đã cọc = 3000000",
+        "chạm: Hình thức cọc (chọn)",
+        "chạm: Lưu đơn nháp",
+        "chạm: đóng hộp thoại ảnh (✕)",
+        "chạm: Xác nhận đơn",
+        "chạm: OK ở hộp hỏi lại của trình duyệt",
+        "ghi chú: nút người phụ trách hiện: [\"Đổi người phụ trách\"]",
+        "chạm: Đổi người phụ trách",
+        "ghi chú: bảng chọn liệt kê: [\"Sales Hai\",\"Hướng Dẫn Một\",\"Sales MộtĐang phụ trách\",\"Quản Trị\"]",
+        "chạm: chọn Hướng Dẫn Một",
+        "chạm: Lưu người phụ trách"
+      ],
+      "blockers": [],
+      "confirmPrompt": [
+        "Xác nhận đơn này? Sau khi xác nhận, dịch vụ, số khách và tiền sẽ bị khoá — chỉ còn sửa được thông tin chuyến."
+      ],
+      "orderId": "1506c1e4-4dee-49dd-be81-bf7356ec35b4"
+    },
+    "2_sales_doi_so_khach_sau_xac_nhan": {
+      "taps": 0,
+      "typed": 0,
+      "retyped": 0,
+      "screens": [
+        "/order?id=1506c1e4-4dee-49dd-be81-bf7356ec35b4"
+      ],
+      "steps": [
+        "ghi chú: các nút Sales thấy ở đơn đã xác nhận: [\"Đăng xuất\",\"Sửa thông tin chuyến\",\"Huỷ đơn\",\"Xác nhận gửi khách\",\"Đổi người phụ trách\",\"Đổi khách\"]"
+      ],
+      "blockers": [
+        "KHÔNG có nút nào đổi số khách cho Sales/người lập; chỉ HDV đang phụ trách (qua trang Tôi) hoặc huỷ + lập lại"
+      ]
+    },
+    "3_hdv_viec_cua_toi": {
+      "taps": 7,
+      "typed": 1,
+      "retyped": 0,
+      "screens": [
+        "/",
+        "/account"
+      ],
+      "steps": [
+        "ghi chú: Trang chủ của HDV hiện: Tài khoản này chỉ dùng cho việc được giao, không dùng màn hình này. | Tài khoản này chỉ dùng cho việc được giao, không dùng màn hình này.",
+        "ghi chú: thanh tab của HDV: [\"Island Booking System→/\",\"Tài khoản→/account\",\"Góp ý / Báo lỗi→/feedback?new=1&from=%2F\",\"Trợ giúp→/help\",\"Tôi→/account\"]",
+        "chạm: tab Tôi",
+        "ghi chú: Việc của tôi: Việc của tôi\nĐoàn cô Hạnh · 0912 000 111\nMã đơn: TD-20260924-0001\nTour 4 đảo Nha Trang\nKhởi hành: 2026-09-25\nĐón: 07:15 — Sảnh KS Novotel\n−\n+\nLưu số khách mới\nHuỷ đơn này",
+        "ghi chú: khối Việc của tôi bắt đầu ở y=172px (màn cao 812px)",
+        "chạm: Giảm Người lớn",
+        "chạm: Giảm Người lớn",
+        "gõ: Lý do sửa = Khách báo 2 người không đi",
+        "chạm: Lưu số khách mới",
+        "ghi chú: sau khi lưu: Việc của tôi\nĐoàn cô Hạnh · 0912 000 111\nMã đơn: TD-20260924-0001\nTour 4 đảo Nha Trang\nKhởi hành: 2026-09-25\nĐón: 07:15 — Sảnh KS Novotel\n−\n+\nLưu số khách mới\nHuỷ đơn này",
+        "chạm: Huỷ đơn này",
+        "chạm: chạm lý do 'Khách yêu cầu huỷ'"
+      ],
+      "blockers": []
+    },
+    "4_thuc_tap_lap_don": {
+      "taps": 3,
+      "typed": 2,
+      "retyped": 0,
+      "screens": [
+        "/order-form"
+      ],
+      "steps": [
+        "ghi chú: khung danh mục: Không tải được danh mục dịch vụ — hãy thêm dịch vụ nhập tay.\nChọn từ danh mục",
+        "gõ: Tên khách = Khách của thực tập",
+        "gõ: SĐT = 0933 444 555",
+        "ghi chú: khối Hồ sơ khách sau khi gõ SĐT: Chưa gắn hồ sơ khách\n\nKhông tra được hồ sơ — vẫn lưu đơn được, chỉ chưa gắn khách.\n\nTạo hồ sơ mới",
+        "chạm: + Dịch vụ nhập tay",
+        "ghi chú: thẻ nhập tay có ô: [\"Vd: Xe đưa đón riêng\",\"Số khách (chỉ để vận hành)\",\"Vd: Xe 7 chỗ 2 chiều\",\"text\",\"Số lượng dòng 1\",\"Đơn giá dòng 1\",\"departDate\",\"departTime\",\"pickupTime\",\"pickupPlace\",\"checkinDate\",\"checkinTime\",\"checkinPlace\",\"note\"]"
+      ],
+      "blockers": []
+    }
+  },
+  "cases": {
+    "C_hdv_huy": {
+      "tapsToCancel": 2,
+      "confirmDialogs": [],
+      "statusAfter": "cancelled",
+      "myjobsAfter": "Việc của tôi\n\nBạn chưa được giao phụ trách đơn nào."
+    },
+    "D_setup": {
+      "create": 201,
+      "confirm": 200,
+      "assign": 200,
+      "shift": "ok",
+      "dateNow": "2026-08-15"
+    },
+    "D_past": {
+      "inMine": [
+        {
+          "code": "TD-20260924-0002",
+          "date": "2026-08-15"
+        }
+      ],
+      "editPast": {
+        "status": 200,
+        "body": {
+          "ok": true
+        }
+      },
+      "dashboardUnpaid": {
+        "total": 350000,
+        "count": 1,
+        "earliestDate": "2026-08-15"
+      },
+      "today": "2026-09-24",
+      "accountingHome": [
+        {
+          "text": "CÒN THIẾU 350k ₫ 1 đơn",
+          "href": "/orders"
+        },
+        {
+          "text": "ĐƠN NHÁP 0 Cần xác nhận đơn",
+          "href": "/orders"
+        },
+        {
+          "text": "CHƯA PHỤ TRÁCH 0 Cần gán",
+          "href": "/orders"
+        }
+      ],
+      "accountingTileClick": {
+        "url": "/orders",
+        "q": "",
+        "status": "",
+        "statusOptions": [
+          "Mọi trạng thái",
+          "Nháp",
+          "Đã xác nhận",
+          "Đã huỷ"
+        ],
+        "otherInputs": [
+          "q",
+          "status"
+        ]
+      }
+    },
+    "E_intern_order": {
+      "create": 201,
+      "pageText": "TD-20260924-0003\nTM\nSửa\nXác nhận đơn\nHuỷ đơn\nXác nhận gửi khách\nTD-20260924-0003\nMÃ ĐƠN\nTD-20260924-0003 Nháp\nĐÓN\n26/09\nKHÁCH\nKhách TTS\n0933 444 556\nSỐ KHÁCH\n02 NL\nTour 4 đảo (gõ tay)\nCÒN LẠI\n2.700.000 ₫\nTổng 2.700.000 ₫ · đã cọc 0 ₫\n\nLập 23:39 24/09/2026 bởi Thực Tập Một\n\nNgười phụ trách\n\nChưa tải được người phụ trách.\n\nThử lại\nKhách hàng\nTên\nKhách TTS\nSố điện thoại\n0933 444 556\nEmail\n—\nGhi chú\n—\nHồ sơ khách\nChưa gắn hồ sơ khách\nDịch vụ\nTour 4 đảo (gõ tay)\nnhập tay\nSố khách\n2 khách\nKhởi hành\n26/09/2026\nNgười lớn\n2.700.000 ₫\n2 × 1.350.000 ₫\nTổng dịch vụ\n2.700.000 ₫\nThanh toán\nTạm tính\n2.700.000 ₫\nGiảm giá\n0 ₫\nTổng cộng\n2.700.000 ₫\nĐã cọc\n0 ₫\nCòn lại\n2.700.000 ₫\nGhi chú thanh toán\n—\nLịch sử\n23:39 24/09/2026 — Tạo đơn · Thực Tập Một\nĐơn mới\nTôi\nXác nhận đơn để gửi khách\n\nẢnh xác nhận gửi cho khách: tải về máy hoặc chia sẻ qua Zalo.\n\nTải ảnh PNG\nChia sẻ",
+      "consoleErrors": [],
+      "afterClose": "TD-20260924-0003\nMÃ ĐƠN\nTD-20260924-0003 Nháp\nĐÓN\n26/09\nKHÁCH\nKhách TTS\n0933 444 556\nSỐ KHÁCH\n02 NL\nTour 4 đảo (gõ tay)\nCÒN LẠI\n2.700.000 ₫\nTổng 2.700.000 ₫ · đã cọc 0 ₫\n\nLập 23:39 24/09/2026 bởi Thực Tập Một\n\nNgười phụ trách\n\nChưa tải được người phụ trách.\n\nThử lại\nKhách hàng\nTên\nKhách TTS\nSố điện thoại\n0933 444 556\nEmail\n—\nGhi chú\n—\nHồ sơ khách\nChưa gắn hồ sơ khách\nDịch vụ\nTour 4 đảo (gõ tay)\nnhập tay\nSố khách\n2 khách\nKhởi hành\n26/09/2026\nNgười lớn\n2.700.000 ₫\n2 × 1.350.000 ₫\nTổng dịch vụ\n2.700.000 ₫\nThanh toán\nTạm tính\n2.700.000 ₫\nGiảm giá\n0 ₫\nTổng cộng\n2.700.000 ₫\nĐã cọc\n0 ₫\nCòn lại\n2.700.000 ₫\nGhi chú thanh toán\n—\nLịch sử\n23:39 24/09/2026 — Tạo đơn · Thực Tập Một",
+      "apiCalls": [
+        "GET /api/auth/me",
+        "GET /api/orders/a6697a40-3dc7-4f11-857d-ebe3dfb942ef",
+        "GET /api/dispatch/handlers?orderIds=a6697a40-3dc7-4f11-857d-ebe3dfb942ef",
+        "GET /api/dispatch/handlers?orderIds=a6697a40-3dc7-4f11-857d-ebe3dfb942ef",
+        "GET /api/company"
+      ]
+    }
+  },
+  "errors": [],
+  "setup": {
+    "hdv": {
+      "status": 201,
+      "perms": [
+        "FIELD"
+      ]
+    },
+    "intern": {
+      "status": 201,
+      "perms": [
+        "INTERN"
+      ]
+    }
+  }
+}

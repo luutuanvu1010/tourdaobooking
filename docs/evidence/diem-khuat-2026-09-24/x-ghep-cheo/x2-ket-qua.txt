@@ -1,0 +1,41 @@
+salesB id: ae17f9ff-3d55-4b60-9971-7fb44012426d
+tạo HDV: 201 ["FIELD"]
+tạo Sales vai mới: 201 ["SALES"]
+X2 đối chứng: dashboard sau khi đóng HANDLE của oN: {"unassignedCount":1,"draftCount":0}
+X2 dashboard TRƯỚC ngưng (salesA/admin): {"unassignedCount":1,"draftCount":0} {"unassignedCount":1,"draftCount":0}
+X2 handlers TRƯỚC: {"handlers":{"9ffe88c3-8f0c-40b0-a189-90ad33eed29f":{"partyId":"2c07d296-0d51-4d49-9c40-1cc8a41b296f","staffId":"f4ca9935-0508-479c-b545-d854607000a5","name":"Sales Sắp Nghỉ"},"cd09fa4b-1b94-4533-8077-00d7444b7831":{"partyId":"19cf80ae-10c0-446c-aeeb-795999cc1e72","staffId":"ec9a8e8a-d9a2-4e0e-a01f-6d9bf99b7bd1","name":"Hướng Dẫn Viên Nghỉ"},"96396ab3-98f1-4fcb-8b8b-6d79d1d0ad2a":null}}
+X2 ngưng Sales vai mới: 200
+X2 ngưng HDV: 200
+X2 phiên cũ HDV sau ngưng /api/auth/me: 401
+X2 dashboard SAU ngưng (salesA/admin/kế toán): {"unassignedCount":1,"draftCount":0} {"unassignedCount":1,"draftCount":0} {"unassignedCount":1,"draftCount":0}
+X2 handlers SAU: {"handlers":{"9ffe88c3-8f0c-40b0-a189-90ad33eed29f":{"partyId":"2c07d296-0d51-4d49-9c40-1cc8a41b296f","staffId":"f4ca9935-0508-479c-b545-d854607000a5","name":"Sales Sắp Nghỉ"},"cd09fa4b-1b94-4533-8077-00d7444b7831":{"partyId":"19cf80ae-10c0-446c-aeeb-795999cc1e72","staffId":"ec9a8e8a-d9a2-4e0e-a01f-6d9bf99b7bd1","name":"Hướng Dẫn Viên Nghỉ"},"96396ab3-98f1-4fcb-8b8b-6d79d1d0ad2a":null}}
+X2 dsp_assignment HANDLE đang mở + staff.active: [{"order_id":"9ffe88c3-8f0c-40b0-a189-90ad33eed29f","full_name":"","active":0,"valid_to_at":null},{"order_id":"cd09fa4b-1b94-4533-8077-00d7444b7831","full_name":"","active":0,"valid_to_at":null}]
+X2 assignees (có người đã ngưng?): ["Sales Hai","Sales Một","Quản Trị"]
+X2 /api/orders (trường liên quan): [{"code":"TD-20260925-0002","status":"confirmed","keys":[]},{"code":"TD-20260925-0001","status":"confirmed","keys":[]}]
+X2 salesB tự nhận đơn của người nghỉ: 409 {"code":"stale","message":"Người phụ trách đơn vừa được người khác đổi, hãy tải lại rồi thử lại."}
+X2 kế toán giao lại: 403 forbidden
+X2 người lập (salesA) giao lại đơn thứ 2 của Sales nghỉ: 200 Sales Hai
+X2 admin giao lại đơn thứ 2 của HDV nghỉ: 200 Sales Hai
+PHIẾU x2-phieu-nguoi-phu-trach-da-nghi: {"btn":"Xác nhận gửi khách","actions":["Sửa thông tin chuyến","Huỷ đơn"],"handlerText":"Người phụ trách Sales Sắp Nghỉ Đổi người phụ trách","w":1440,"h":1922,"pageOverflow":0,"dialogOverflow":0}
+X2 trang đơn (salesB xem) — đoạn phụ trách: Chỉ Sales Một (người lập đơn), người phụ trách đơn hoặc quản trị viên mới được sửa, xác nhận hoặc huỷ đơn này.
+
+Xác nhận gửi khách | Người phụ trách
+
+Sales Sắp Nghỉ
+X2 Trang chủ admin:  5 đơn ĐƠN NHÁP 0 Cần xác nhận đơn CHƯA PHỤ TRÁCH 1 Cần gán DOANH THU CỦA TÔI 0 ₫ Tuần nà
+X2 Trang chủ salesA:  5 đơn ĐƠN NHÁP 0 Cần xác nhận đơn CHƯA PHỤ TRÁCH 1 Cần gán DOANH THU CỦA TÔI 16,2tr ₫ Tu
+X2 trang Nhân viên (admin) quanh 'Sắp Nghỉ': i PIN Kích hoạt lại Sales Sắp Nghỉ Ngưng 0900000292 · Nhân viên kinh doanh Chưa ghi nhận đăng nhập Sửa Đặt lại PIN Kích hoạt lại Trang chủ Đơn hàng Đơn mớ
+AUDIT thường: mã thoát 0
+✓ R-DSP-1  mỗi đơn tối đa một người phụ trách (HANDLE) đang mở
+✓ R-DSP-2a người phụ trách đang mở là hồ sơ có tài khoản còn quyền Bán hàng/Quản trị/Hướng dẫn viên
+⚠ R-DSP-2b người phụ trách đang mở có tài khoản đã ngưng hoạt động — 2 vi phạm (cảnh báo, không làm hỏng kiểm: người phụ trách đã ngưng — nên giao lại các đơn còn mở)
+✓ R-DSP-3  các dòng người phụ trách (HANDLE) của một đơn không chồng lấn theo khoảng nửa mở [từ, đến)
+✓ R-ORD-6a dòng điều chỉnh ĐẦU TIÊN (seq=1) của một đơn: subtotal_before phải khớp orders.subtotal đã lưu (trước khi có điều chỉnh nào, tiền chưa đổi gì)
+✓ R-ORD-6b chuỗi tiền của một đơn liên tục: subtotal_before của dòng SAU phải khớp subtotal_after của dòng NGAY TRƯỚC (không có gì xen giữa)
+AUDIT --strict: mã thoát 0
+✓ R-DSP-1  mỗi đơn tối đa một người phụ trách (HANDLE) đang mở
+✓ R-DSP-2a người phụ trách đang mở là hồ sơ có tài khoản còn quyền Bán hàng/Quản trị/Hướng dẫn viên
+⚠ R-DSP-2b người phụ trách đang mở có tài khoản đã ngưng hoạt động — 2 vi phạm (cảnh báo, không làm hỏng kiểm: người phụ trách đã ngưng — nên giao lại các đơn còn mở)
+✓ R-DSP-3  các dòng người phụ trách (HANDLE) của một đơn không chồng lấn theo khoảng nửa mở [từ, đến)
+✓ R-ORD-6a dòng điều chỉnh ĐẦU TIÊN (seq=1) của một đơn: subtotal_before phải khớp orders.subtotal đã lưu (trước khi có điều chỉnh nào, tiền chưa đổi gì)
+✓ R-ORD-6b chuỗi tiền của một đơn liên tục: subtotal_before của dòng SAU phải khớp subtotal_after của dòng NGAY TRƯỚC (không có gì xen giữa)

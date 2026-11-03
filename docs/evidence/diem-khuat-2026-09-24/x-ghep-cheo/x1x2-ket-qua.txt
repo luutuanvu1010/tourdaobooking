@@ -1,0 +1,29 @@
+salesB id: b4bde808-76d1-44b2-b967-981d1f4697f6
+tạo HDV: 201 ["FIELD"]
+tạo Sales vai mới: 201 ["SALES"]
+X1a trước: {"status":"confirmed","subtotal":2000000,"discount":0,"total":2000000,"deposit":1000000,"remaining":1000000,"lines":["adult:2x1000000=2000000"]}
+PHIẾU x1a-1-phieu-truoc-hdv: {"btn":"Xác nhận gửi khách","actions":["Sửa thông tin chuyến","Huỷ đơn"],"handlerText":"Người phụ trách Hướng Dẫn Viên Nghỉ Đổi người phụ trách","w":1440,"h":1922,"pageOverflow":0,"dialogOverflow":0}
+X1a HDV gửi lại y nguyên: 200 {"ok":true}
+X1a sau: {"status":"confirmed","subtotal":2700000,"discount":0,"total":2700000,"deposit":1000000,"remaining":1700000,"lines":["adult:2x1350000=2700000"]}
+PHIẾU x1a-2-phieu-sau-hdv: {"btn":"Xác nhận gửi khách","actions":["Sửa thông tin chuyến","Huỷ đơn"],"handlerText":"Người phụ trách Hướng Dẫn Viên Nghỉ Đổi người phụ trách","w":1440,"h":1922,"pageOverflow":0,"dialogOverflow":0}
+X1b HDV 3→1: 200
+X1b sau: {"status":"confirmed","subtotal":1350000,"discount":0,"total":1350000,"deposit":4050000,"remaining":-2700000,"lines":["adult:1x1350000=1350000"]}
+PHIẾU x1b-phieu-con-lai-am: {"btn":"Xác nhận gửi khách","actions":["Sửa thông tin chuyến","Huỷ đơn"],"handlerText":"Người phụ trách Hướng Dẫn Viên Nghỉ Đổi người phụ trách","w":1440,"h":1922,"pageOverflow":0,"dialogOverflow":0}
+X1b' HDV 2→1: 200 {"status":"confirmed","subtotal":1350000,"discount":1500000,"total":-150000,"deposit":0,"remaining":-150000,"lines":["adult:1x1350000=1350000"]}
+PHIẾU x1b2-phieu-tong-am: {"btn":"Xác nhận gửi khách","actions":["Sửa thông tin chuyến","Huỷ đơn"],"handlerText":"Người phụ trách Hướng Dẫn Viên Nghỉ Đổi người phụ trách","w":1440,"h":1922,"pageOverflow":0,"dialogOverflow":0}
+PHIẾU x1c-1-phieu-noi-don-link-ban-do: {"btn":"Xác nhận gửi khách","actions":["Sửa thông tin chuyến","Huỷ đơn"],"handlerText":"Người phụ trách Sales Một Đổi người phụ trách","w":1440,"h":1922,"pageOverflow":0,"dialogOverflow":0}
+X1c tạo đơn chuỗi dài: 201
+PHIẾU x1c-2-phieu-chuoi-lien-dai: {"btn":"Xác nhận gửi khách","actions":["Sửa thông tin chuyến","Huỷ đơn"],"handlerText":"Người phụ trách Sales Một Đổi người phụ trách","w":1440,"h":2138,"pageOverflow":0,"dialogOverflow":0}
+X1d huỷ: 200 {"status":"cancelled","subtotal":8100000,"discount":0,"total":8100000,"deposit":3000000,"remaining":5100000,"lines":["adult:6x1350000=8100000"]}
+PHIẾU x1d-phieu-don-da-huy: {"btn":"Xác nhận gửi khách","actions":[],"handlerText":"Người phụ trách Sales Một Đổi người phụ trách","w":1440,"h":1922,"pageOverflow":0,"dialogOverflow":0}
+X1d' HDV huỷ: 200 {"ok":true}
+PHIẾU x1e-phieu-don-nhap: {"btn":"Xác nhận gửi khách","actions":["Sửa","Xác nhận đơn","Huỷ đơn"],"handlerText":"Người phụ trách Sales Một Đổi người phụ trách","w":1440,"h":1922,"pageOverflow":0,"dialogOverflow":0}
+LỖI: Error: Command failed: npx wrangler d1 execute tourdao-sales-db --local --persist-to /var/folders/m6/8lb7g7fn35q4s4tm5t6nv21h0000gn/T/tourdao-a2-ciIyiJ --json --command UPDATE dsp_assignment SET valid_to_at='2026-01-01T00:00:00.000Z' WHERE order_id='e9b7f664-6ee2-42ea-abc4-3d71411a6a6d' AND task_kind_code='HANDLE' AND valid_to_at IS NULL
+    at genericNodeError (node:internal/errors:983:15)
+    at wrappedFn (node:internal/errors:537:14)
+    at checkExecSyncError (node:child_process:916:11)
+    at execFileSync (node:child_process:952:15)
+    at wrangler (file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/tourdao-sales-audit-62ea81/docs/evidence/2026-09-20-a2/kich-ban/a2-cdp.mjs:50:30)
+    at Object.sql (file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/tourdao-sales-audit-62ea81/docs/evidence/2026-09-20-a2/kich-ban/a2-cdp.mjs:84:37)
+    at file:///private/tmp/claude-501/-Users-tuanbao-Documents-Projects-ctytnhhtourdao-tourdao-sales--claude-worktrees-tourdao-sales-audit-62ea81/c964efb5-7bf2-4e78-8214-a3e41d4568f4/scratchpad/x-ghep-cheo/x1x2.mjs:123:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)

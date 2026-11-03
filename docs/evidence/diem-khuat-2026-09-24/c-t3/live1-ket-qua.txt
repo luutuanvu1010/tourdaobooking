@@ -1,0 +1,76 @@
+tạo tài khoản (quyền): {"S1":["SALES"],"S2":["SALES"],"P1":["PARTNER"],"I1":["INTERN"]}
+salesA lập + xác nhận 2 đơn: {"oA1":[201,200],"oA2":[201,200]}
+salesA giao phụ trách oA1 → S1: 200
+salesA giao phụ trách oA2 → S2: 200
+S1 (Bán hàng) /api/dispatch/mine trước khi đổi vai: [{"orderId":"oA1","customerName":"Khách Của Sales Một","customerPhone":"0911 111 111"}]
+quản trị đổi vai S1 → Thực tập sinh: {"status":200,"permissions":["INTERN"]}
+quản trị đổi vai S2 → Cộng tác viên (bên ngoài): {"status":200,"permissions":["PARTNER"]}
+S1 phiên CŨ /api/auth/me (quyền tra lại mỗi request): ["INTERN"]
+S1 (nay Thực tập) /api/dispatch/mine: {"status":200,"assignments":[{"order":"oA1 (đơn của salesA)","customerName":"Khách Của Sales Một","customerPhone":"0911 111 111"}]}
+S1 (nay Thực tập) GET /api/orders/oA1: 403
+S2 (nay Cộng tác viên) /api/dispatch/mine: {"status":200,"assignments":[{"order":"oA2 (đơn của salesA)","customerName":"Khách Thứ Hai Của Sales Một","customerPhone":"0922 222 222"}]}
+S2 (nay Cộng tác viên) GET /api/orders/oA2: 403
+người phụ trách đơn oA1 theo /api/dispatch/handlers (salesA xem): {"handlers":{"d481e2a7-548f-42df-bfcc-71e1291e62f8":{"partyId":"8e2be301-f67c-4bec-9f0c-175f5ecdfafb","staffId":"4accbe8c-24fb-45f4-8353-8982a11d2777","name":"Nhân Viên Sẽ Thành Thực Tập"},"938b2205-4d28-42eb-965b-6af2f50afa09":{"partyId":"bb8c513c-16ca-4475-8b39-ebad13551927","staffId":"b3391040-6e97-415c-8925-aec3d0e39339","name":"Nhân Viên Sẽ Thành Cộng Tác"}}}
+R-DSP-2a (câu của scripts/audit-checks.mjs) đếm dòng phụ trách mồ côi: [{"n":2}]
+S1 đăng nhập LẠI bằng PIN sau khi đổi vai: 200
+S1 đăng nhập lại → /api/dispatch/mine số đơn: 1
+P1 (Đối tác) GET /api/catalog: 403
+I1 (Thực tập) GET /api/catalog: 403
+SALES GET /api/catalog giá TD101 người lớn: {"adult":1350000,"child":950000,"senior":1200000,"infant":0}
+P1 lập đơn tay 'Tour 4 đảo Nha Trang' giá 10.000đ/khách + tự xác nhận: {"create":201,"confirm":200,"total":20000,"items":[{"d":"Tour 4 đảo Nha Trang","q":2,"p":10000,"t":20000}]}
+I1 lập đơn tay giá 5.000đ + tự xác nhận: {"create":201,"confirm":200,"total":10000}
+P1 GET /api/dispatch/handlers (ảnh xác nhận lấy tên người phụ trách): 403
+P1 GET /api/company: 200
+C5 /order-form (Đối tác) chữ trên trang (1200 ký tự đầu): Tạo đơn mới
+CM
+Tạo đơn mới
+Khách hàng
+Tên khách *
+Số điện thoại *
+Email
+Ghi chú / yêu cầu đặc biệt
+
+Chưa gắn hồ sơ khách
+
+Dịch vụ
+Không tải được danh mục dịch vụ — hãy thêm dịch vụ nhập tay.
+Chọn từ danh mục
++ Dịch vụ nhập tay
+
+Chưa có dịch vụ. Chọn từ danh mục hoặc thêm dịch vụ nhập tay.
+
+Thanh toán
+Giảm giá (₫)
+Đã cọc (₫)
+Hình thức cọc
+—
+Tiền mặt
+Chuyển khoản
+Khác
+Ghi chú thanh toán
+Tóm tắt
+Tạm tính
+0 ₫
+Tổng cộng
+0 ₫
+Còn lại
+0 ₫
+
+Số trên đây chỉ để xem trước; hệ thống tính lại chính thức khi lưu.
+
+Tổng cộng
+0 ₫
+Còn lại
+0 ₫
+Lưu đơn nháp
+C5 /order (Đối tác) có nút 'Xác nhận gửi khách': true
+C5 hộp thoại ảnh xác nhận: chữ (800 ký tự): Xác nhận đơn để gửi khách
+
+Ảnh xác nhận gửi cho khách: tải về máy hoặc chia sẻ qua Zalo.
+
+Tải ảnh PNG
+Chia sẻ
+C5 ảnh trong hộp thoại (img/canvas): {"img":"blob:http://127.0.0.1:50235/52988fc6-00f","imgW":1440,"canvas":false}
+LỖI: Error: evaluate lỗi: {"exceptionId":1,"text":"Uncaught (in promise) TypeError: Failed to fetch","lineNumber":1,"columnNumber":145,"scriptId":"12","stackTrace":{"callFrames":[{"functionName":"","scriptId":"12","url":"","lineNumber":0,"columnNumber":144},{"functionName":"","scriptId":"12","url":"","lineNumber":0,"columnNumber":295}]},"exception":{"type":"object","subtype":"error","className":"TypeError","description":"TypeError: Failed to fetch\n    at <anonymous>:1:145\n    at <anonymous>:1:296","objectId":"-83291722 ← (async () => { const i = document.querySelector('[role=dialog] img'); if (!i || !i.src.startsWith('blob:')) return null; const b = await (await fetch(i.src)).bl
+    at Object.ev (file:///Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/tourdao-sales-audit-62ea81/docs/evidence/2026-09-20-a2/kich-ban/a2-cdp.mjs:123:45)
+    at async file:///private/tmp/claude-501/-Users-tuanbao-Documents-Projects-ctytnhhtourdao-tourdao-sales--claude-worktrees-tourdao-sales-audit-62ea81/c964efb5-7bf2-4e78-8214-a3e41d4568f4/scratchpad/c-t3/live1.mjs:97:36

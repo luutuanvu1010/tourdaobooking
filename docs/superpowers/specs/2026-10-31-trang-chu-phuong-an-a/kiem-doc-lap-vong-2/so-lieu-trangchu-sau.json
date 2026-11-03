@@ -1,0 +1,4044 @@
+{
+ "pha": "sau",
+ "ca": "trangchu",
+ "trangChu": [
+  {
+   "ca": "a-nang",
+   "vai": "chu",
+   "kho": "1366x650",
+   "vw": 1366,
+   "scrollW": 1366,
+   "caoTrang": 1256,
+   "mainRong": 1118,
+   "trongPhai": 24,
+   "thuTu": [
+    [
+     "#dash-dai",
+     145
+    ],
+    [
+     "#dash-loi-tat",
+     255
+    ],
+    [
+     "#dash-today",
+     381
+    ],
+    [
+     "#dash-review",
+     508
+    ],
+    [
+     "#dash-doi-chieu",
+     647
+    ],
+    [
+     "#dash-thu-truoc",
+     1022
+    ],
+    [
+     "#dash-dang-cho",
+     381
+    ],
+    [
+     "#dash-so-mt",
+     642
+    ]
+   ],
+   "loiTatTop": 255,
+   "cotChinhDay": 1232,
+   "cotPhuDay": 1232,
+   "chenhCot": 0,
+   "cao": {
+    "doiChieu": 335,
+    "thuTruoc": 194,
+    "donDi": 103,
+    "xemLai": 115,
+    "dangCho": 237,
+    "doanhThu": 590
+   },
+   "dongDoiChieu": 3,
+   "dongThuTruoc": 3,
+   "dongXemLai": [
+    "1 góp ý mới chưa trả lờiYC-0023 báo lỗi"
+   ],
+   "dongDangCho": [
+    "Chờ đối chiếuToàn công tyKhoản thu chờ Kế toán đối chiếu54",
+    "Thu trước đơn huỷToàn công tyKhoản thu trước của đơn huỷ chờ",
+    "Góp ý chờ xử lýToàn công tyGóp ý có tin mới chưa đọc1"
+   ],
+   "khoiRong": [],
+   "gapHien": false,
+   "soTrong": "Không có đơn nào đi hôm nay.",
+   "pillCao": [
+    22,
+    22,
+    22
+   ],
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 4
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "a-nang",
+   "vai": "chu",
+   "kho": "1440x900",
+   "vw": 1440,
+   "scrollW": 1440,
+   "caoTrang": 1256,
+   "mainRong": 1192,
+   "trongPhai": 24,
+   "thuTu": [
+    [
+     "#dash-dai",
+     145
+    ],
+    [
+     "#dash-loi-tat",
+     255
+    ],
+    [
+     "#dash-today",
+     381
+    ],
+    [
+     "#dash-review",
+     508
+    ],
+    [
+     "#dash-doi-chieu",
+     647
+    ],
+    [
+     "#dash-thu-truoc",
+     1022
+    ],
+    [
+     "#dash-dang-cho",
+     381
+    ],
+    [
+     "#dash-so-mt",
+     624
+    ]
+   ],
+   "loiTatTop": 255,
+   "cotChinhDay": 1232,
+   "cotPhuDay": 1232,
+   "chenhCot": 0,
+   "cao": {
+    "doiChieu": 335,
+    "thuTruoc": 194,
+    "donDi": 103,
+    "xemLai": 115,
+    "dangCho": 219,
+    "doanhThu": 608
+   },
+   "dongDoiChieu": 3,
+   "dongThuTruoc": 3,
+   "dongXemLai": [
+    "1 góp ý mới chưa trả lờiYC-0023 báo lỗi"
+   ],
+   "dongDangCho": [
+    "Chờ đối chiếuToàn công tyKhoản thu chờ Kế toán đối chiếu54",
+    "Thu trước đơn huỷToàn công tyKhoản thu trước của đơn huỷ chờ",
+    "Góp ý chờ xử lýToàn công tyGóp ý có tin mới chưa đọc1"
+   ],
+   "khoiRong": [],
+   "gapHien": false,
+   "soTrong": "Không có đơn nào đi hôm nay.",
+   "pillCao": [
+    22,
+    22,
+    22
+   ],
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "a-nang",
+   "vai": "chu",
+   "kho": "1920x1080",
+   "vw": 1920,
+   "scrollW": 1920,
+   "caoTrang": 1149,
+   "mainRong": 1672,
+   "trongPhai": 24,
+   "thuTu": [
+    [
+     "#dash-dai",
+     145
+    ],
+    [
+     "#dash-loi-tat",
+     255
+    ],
+    [
+     "#dash-today",
+     381
+    ],
+    [
+     "#dash-review",
+     508
+    ],
+    [
+     "#dash-doi-chieu",
+     647
+    ],
+    [
+     "#dash-thu-truoc",
+     915
+    ],
+    [
+     "#dash-dang-cho",
+     381
+    ],
+    [
+     "#dash-so-mt",
+     624
+    ]
+   ],
+   "loiTatTop": 255,
+   "cotChinhDay": 1125,
+   "cotPhuDay": 1125,
+   "chenhCot": 0,
+   "cao": {
+    "doiChieu": 228,
+    "thuTruoc": 194,
+    "donDi": 103,
+    "xemLai": 115,
+    "dangCho": 219,
+    "doanhThu": 501
+   },
+   "dongDoiChieu": 3,
+   "dongThuTruoc": 3,
+   "dongXemLai": [
+    "1 góp ý mới chưa trả lờiYC-0023 báo lỗi"
+   ],
+   "dongDangCho": [
+    "Chờ đối chiếuToàn công tyKhoản thu chờ Kế toán đối chiếu54",
+    "Thu trước đơn huỷToàn công tyKhoản thu trước của đơn huỷ chờ",
+    "Góp ý chờ xử lýToàn công tyGóp ý có tin mới chưa đọc1"
+   ],
+   "khoiRong": [],
+   "gapHien": false,
+   "soTrong": "Không có đơn nào đi hôm nay.",
+   "pillCao": [
+    22,
+    22,
+    22
+   ],
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "a-nang",
+   "vai": "chu",
+   "kho": "1100x800",
+   "vw": 1100,
+   "scrollW": 1100,
+   "caoTrang": 1375,
+   "mainRong": 852,
+   "trongPhai": 24,
+   "thuTu": [
+    [
+     "#dash-dai",
+     145
+    ],
+    [
+     "#dash-loi-tat",
+     255
+    ],
+    [
+     "#dash-today",
+     397
+    ],
+    [
+     "#dash-review",
+     524
+    ],
+    [
+     "#dash-doi-chieu",
+     663
+    ],
+    [
+     "#dash-thu-truoc",
+     1090
+    ],
+    [
+     "#dash-dang-cho",
+     397
+    ],
+    [
+     "#dash-so-mt",
+     658
+    ]
+   ],
+   "loiTatTop": 255,
+   "cotChinhDay": 1351,
+   "cotPhuDay": 1351,
+   "chenhCot": 0,
+   "cao": {
+    "doiChieu": 387,
+    "thuTruoc": 245,
+    "donDi": 103,
+    "xemLai": 115,
+    "dangCho": 237,
+    "doanhThu": 693
+   },
+   "dongDoiChieu": 3,
+   "dongThuTruoc": 3,
+   "dongXemLai": [
+    "1 góp ý mới chưa trả lờiYC-0023 báo lỗi"
+   ],
+   "dongDangCho": [
+    "Chờ đối chiếuToàn công tyKhoản thu chờ Kế toán đối chiếu54",
+    "Thu trước đơn huỷToàn công tyKhoản thu trước của đơn huỷ chờ",
+    "Góp ý chờ xử lýToàn công tyGóp ý có tin mới chưa đọc1"
+   ],
+   "khoiRong": [],
+   "gapHien": false,
+   "soTrong": "Không có đơn nào đi hôm nay.",
+   "pillCao": [
+    22,
+    22,
+    22
+   ],
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 1
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "a-nang",
+   "vai": "chu",
+   "kho": "390x844",
+   "vw": 390,
+   "scrollW": 390,
+   "caoTrang": 2004,
+   "mainRong": 390,
+   "trongPhai": 12,
+   "thuTu": [
+    [
+     "#dash-today",
+     1760
+    ],
+    [
+     "#dash-review",
+     1437
+    ],
+    [
+     "#dash-doi-chieu",
+     725
+    ],
+    [
+     "#dash-thu-truoc",
+     1160
+    ],
+    [
+     "#dash-so",
+     433
+    ],
+    [
+     "#dash-o",
+     295
+    ]
+   ],
+   "loiTatTop": null,
+   "cotChinhDay": null,
+   "cotPhuDay": null,
+   "chenhCot": null,
+   "cao": {
+    "doiChieu": 407,
+    "thuTruoc": 249,
+    "donDi": 172,
+    "xemLai": 311,
+    "dangCho": null,
+    "doanhThu": null
+   },
+   "dongDoiChieu": 3,
+   "dongThuTruoc": 3,
+   "dongXemLai": [
+    "40 khoản đang đối chiếu quá 3 ngàyĐối chiếu rồi bấm “Xác nhận đã nhận”",
+    "7 đơn huỷ còn người chưa nộp tiềnThu trước của đơn huỷ là tiền công ty",
+    "1 góp ý mới chưa trả lờiYC-0023 báo lỗi"
+   ],
+   "dongDangCho": [],
+   "khoiRong": [],
+   "gapHien": false,
+   "soTrong": "Không có đơn nào đi hôm nay.",
+   "pillCao": [
+    22,
+    22,
+    22
+   ],
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "a-nang",
+   "vai": "quanTri",
+   "kho": "1366x650",
+   "vw": 1366,
+   "scrollW": 1366,
+   "caoTrang": 650,
+   "mainRong": 1118,
+   "trongPhai": 24,
+   "thuTu": [
+    [
+     "#dash-dai",
+     145
+    ],
+    [
+     "#dash-loi-tat",
+     255
+    ],
+    [
+     "#dash-today",
+     381
+    ],
+    [
+     "#dash-so-mt",
+     381
+    ]
+   ],
+   "loiTatTop": 255,
+   "cotChinhDay": 553,
+   "cotPhuDay": 553,
+   "chenhCot": 0,
+   "cao": {
+    "doiChieu": null,
+    "thuTruoc": null,
+    "donDi": 103,
+    "xemLai": null,
+    "dangCho": null,
+    "doanhThu": 172
+   },
+   "dongDoiChieu": 0,
+   "dongThuTruoc": 0,
+   "dongXemLai": [],
+   "dongDangCho": [],
+   "khoiRong": [],
+   "gapHien": false,
+   "soTrong": "Không có đơn nào đi hôm nay.",
+   "pillCao": [],
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 3
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "a-nang",
+   "vai": "quanTri",
+   "kho": "1440x900",
+   "vw": 1440,
+   "scrollW": 1440,
+   "caoTrang": 900,
+   "mainRong": 1192,
+   "trongPhai": 24,
+   "thuTu": [
+    [
+     "#dash-dai",
+     145
+    ],
+    [
+     "#dash-loi-tat",
+     255
+    ],
+    [
+     "#dash-today",
+     381
+    ],
+    [
+     "#dash-so-mt",
+     381
+    ]
+   ],
+   "loiTatTop": 255,
+   "cotChinhDay": 553,
+   "cotPhuDay": 553,
+   "chenhCot": 0,
+   "cao": {
+    "doiChieu": null,
+    "thuTruoc": null,
+    "donDi": 103,
+    "xemLai": null,
+    "dangCho": null,
+    "doanhThu": 172
+   },
+   "dongDoiChieu": 0,
+   "dongThuTruoc": 0,
+   "dongXemLai": [],
+   "dongDangCho": [],
+   "khoiRong": [],
+   "gapHien": false,
+   "soTrong": "Không có đơn nào đi hôm nay.",
+   "pillCao": [],
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "a-nang",
+   "vai": "quanTri",
+   "kho": "1920x1080",
+   "vw": 1920,
+   "scrollW": 1920,
+   "caoTrang": 1080,
+   "mainRong": 1672,
+   "trongPhai": 24,
+   "thuTu": [
+    [
+     "#dash-dai",
+     145
+    ],
+    [
+     "#dash-loi-tat",
+     255
+    ],
+    [
+     "#dash-today",
+     381
+    ],
+    [
+     "#dash-so-mt",
+     381
+    ]
+   ],
+   "loiTatTop": 255,
+   "cotChinhDay": 553,
+   "cotPhuDay": 553,
+   "chenhCot": 0,
+   "cao": {
+    "doiChieu": null,
+    "thuTruoc": null,
+    "donDi": 103,
+    "xemLai": null,
+    "dangCho": null,
+    "doanhThu": 172
+   },
+   "dongDoiChieu": 0,
+   "dongThuTruoc": 0,
+   "dongXemLai": [],
+   "dongDangCho": [],
+   "khoiRong": [],
+   "gapHien": false,
+   "soTrong": "Không có đơn nào đi hôm nay.",
+   "pillCao": [],
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "a-nang",
+   "vai": "quanTri",
+   "kho": "1100x800",
+   "vw": 1100,
+   "scrollW": 1100,
+   "caoTrang": 800,
+   "mainRong": 852,
+   "trongPhai": 24,
+   "thuTu": [
+    [
+     "#dash-dai",
+     145
+    ],
+    [
+     "#dash-loi-tat",
+     255
+    ],
+    [
+     "#dash-today",
+     397
+    ],
+    [
+     "#dash-so-mt",
+     397
+    ]
+   ],
+   "loiTatTop": 255,
+   "cotChinhDay": 569,
+   "cotPhuDay": 569,
+   "chenhCot": 0,
+   "cao": {
+    "doiChieu": null,
+    "thuTruoc": null,
+    "donDi": 103,
+    "xemLai": null,
+    "dangCho": null,
+    "doanhThu": 172
+   },
+   "dongDoiChieu": 0,
+   "dongThuTruoc": 0,
+   "dongXemLai": [],
+   "dongDangCho": [],
+   "khoiRong": [],
+   "gapHien": false,
+   "soTrong": "Không có đơn nào đi hôm nay.",
+   "pillCao": [],
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "a-nang",
+   "vai": "quanTri",
+   "kho": "390x844",
+   "vw": 390,
+   "scrollW": 390,
+   "caoTrang": 951,
+   "mainRong": 390,
+   "trongPhai": 12,
+   "thuTu": [
+    [
+     "#dash-today",
+     707
+    ],
+    [
+     "#dash-so",
+     415
+    ],
+    [
+     "#dash-o",
+     277
+    ]
+   ],
+   "loiTatTop": null,
+   "cotChinhDay": null,
+   "cotPhuDay": null,
+   "chenhCot": null,
+   "cao": {
+    "doiChieu": null,
+    "thuTruoc": null,
+    "donDi": 172,
+    "xemLai": null,
+    "dangCho": null,
+    "doanhThu": null
+   },
+   "dongDoiChieu": 0,
+   "dongThuTruoc": 0,
+   "dongXemLai": [],
+   "dongDangCho": [],
+   "khoiRong": [],
+   "gapHien": false,
+   "soTrong": "Không có đơn nào đi hôm nay.",
+   "pillCao": [],
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "a-nang",
+   "vai": "keToan",
+   "kho": "1366x650",
+   "vw": 1366,
+   "scrollW": 1366,
+   "caoTrang": 1117,
+   "mainRong": 1118,
+   "trongPhai": 24,
+   "thuTu": [
+    [
+     "#dash-dai",
+     145
+    ],
+    [
+     "#dash-loi-tat",
+     255
+    ],
+    [
+     "#dash-today",
+     381
+    ],
+    [
+     "#dash-doi-chieu",
+     508
+    ],
+    [
+     "#dash-thu-truoc",
+     883
+    ],
+    [
+     "#dash-dang-cho",
+     381
+    ]
+   ],
+   "loiTatTop": 255,
+   "cotChinhDay": 1093,
+   "cotPhuDay": 1093,
+   "chenhCot": 0,
+   "cao": {
+    "doiChieu": 335,
+    "thuTruoc": 194,
+    "donDi": 103,
+    "xemLai": null,
+    "dangCho": 178,
+    "doanhThu": null
+   },
+   "dongDoiChieu": 3,
+   "dongThuTruoc": 3,
+   "dongXemLai": [],
+   "dongDangCho": [
+    "Chờ đối chiếuToàn công tyKhoản thu chờ Kế toán đối chiếu54",
+    "Thu trước đơn huỷToàn công tyKhoản thu trước của đơn huỷ chờ"
+   ],
+   "khoiRong": [],
+   "gapHien": false,
+   "soTrong": "Không có đơn nào đi hôm nay.",
+   "pillCao": [
+    22,
+    22,
+    22
+   ],
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 3
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "a-nang",
+   "vai": "keToan",
+   "kho": "1440x900",
+   "vw": 1440,
+   "scrollW": 1440,
+   "caoTrang": 1117,
+   "mainRong": 1192,
+   "trongPhai": 24,
+   "thuTu": [
+    [
+     "#dash-dai",
+     145
+    ],
+    [
+     "#dash-loi-tat",
+     255
+    ],
+    [
+     "#dash-today",
+     381
+    ],
+    [
+     "#dash-doi-chieu",
+     508
+    ],
+    [
+     "#dash-thu-truoc",
+     883
+    ],
+    [
+     "#dash-dang-cho",
+     381
+    ]
+   ],
+   "loiTatTop": 255,
+   "cotChinhDay": 1093,
+   "cotPhuDay": 1093,
+   "chenhCot": 0,
+   "cao": {
+    "doiChieu": 335,
+    "thuTruoc": 194,
+    "donDi": 103,
+    "xemLai": null,
+    "dangCho": 160,
+    "doanhThu": null
+   },
+   "dongDoiChieu": 3,
+   "dongThuTruoc": 3,
+   "dongXemLai": [],
+   "dongDangCho": [
+    "Chờ đối chiếuToàn công tyKhoản thu chờ Kế toán đối chiếu54",
+    "Thu trước đơn huỷToàn công tyKhoản thu trước của đơn huỷ chờ"
+   ],
+   "khoiRong": [],
+   "gapHien": false,
+   "soTrong": "Không có đơn nào đi hôm nay.",
+   "pillCao": [
+    22,
+    22,
+    22
+   ],
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "a-nang",
+   "vai": "keToan",
+   "kho": "1920x1080",
+   "vw": 1920,
+   "scrollW": 1920,
+   "caoTrang": 1080,
+   "mainRong": 1672,
+   "trongPhai": 24,
+   "thuTu": [
+    [
+     "#dash-dai",
+     145
+    ],
+    [
+     "#dash-loi-tat",
+     255
+    ],
+    [
+     "#dash-today",
+     381
+    ],
+    [
+     "#dash-doi-chieu",
+     508
+    ],
+    [
+     "#dash-thu-truoc",
+     776
+    ],
+    [
+     "#dash-dang-cho",
+     381
+    ]
+   ],
+   "loiTatTop": 255,
+   "cotChinhDay": 986,
+   "cotPhuDay": 986,
+   "chenhCot": 0,
+   "cao": {
+    "doiChieu": 228,
+    "thuTruoc": 194,
+    "donDi": 103,
+    "xemLai": null,
+    "dangCho": 160,
+    "doanhThu": null
+   },
+   "dongDoiChieu": 3,
+   "dongThuTruoc": 3,
+   "dongXemLai": [],
+   "dongDangCho": [
+    "Chờ đối chiếuToàn công tyKhoản thu chờ Kế toán đối chiếu54",
+    "Thu trước đơn huỷToàn công tyKhoản thu trước của đơn huỷ chờ"
+   ],
+   "khoiRong": [],
+   "gapHien": false,
+   "soTrong": "Không có đơn nào đi hôm nay.",
+   "pillCao": [
+    22,
+    22,
+    22
+   ],
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "a-nang",
+   "vai": "keToan",
+   "kho": "1100x800",
+   "vw": 1100,
+   "scrollW": 1100,
+   "caoTrang": 1220,
+   "mainRong": 852,
+   "trongPhai": 24,
+   "thuTu": [
+    [
+     "#dash-dai",
+     145
+    ],
+    [
+     "#dash-loi-tat",
+     255
+    ],
+    [
+     "#dash-today",
+     381
+    ],
+    [
+     "#dash-doi-chieu",
+     508
+    ],
+    [
+     "#dash-thu-truoc",
+     935
+    ],
+    [
+     "#dash-dang-cho",
+     381
+    ]
+   ],
+   "loiTatTop": 255,
+   "cotChinhDay": 1196,
+   "cotPhuDay": 1196,
+   "chenhCot": 0,
+   "cao": {
+    "doiChieu": 387,
+    "thuTruoc": 245,
+    "donDi": 103,
+    "xemLai": null,
+    "dangCho": 178,
+    "doanhThu": null
+   },
+   "dongDoiChieu": 3,
+   "dongThuTruoc": 3,
+   "dongXemLai": [],
+   "dongDangCho": [
+    "Chờ đối chiếuToàn công tyKhoản thu chờ Kế toán đối chiếu54",
+    "Thu trước đơn huỷToàn công tyKhoản thu trước của đơn huỷ chờ"
+   ],
+   "khoiRong": [],
+   "gapHien": false,
+   "soTrong": "Không có đơn nào đi hôm nay.",
+   "pillCao": [
+    22,
+    22,
+    22
+   ],
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "a-nang",
+   "vai": "keToan",
+   "kho": "390x844",
+   "vw": 390,
+   "scrollW": 390,
+   "caoTrang": 1771,
+   "mainRong": 390,
+   "trongPhai": 12,
+   "thuTu": [
+    [
+     "#dash-today",
+     1527
+    ],
+    [
+     "#dash-review",
+     1271
+    ],
+    [
+     "#dash-doi-chieu",
+     559
+    ],
+    [
+     "#dash-thu-truoc",
+     994
+    ],
+    [
+     "#dash-so",
+     415
+    ],
+    [
+     "#dash-o",
+     277
+    ]
+   ],
+   "loiTatTop": null,
+   "cotChinhDay": null,
+   "cotPhuDay": null,
+   "chenhCot": null,
+   "cao": {
+    "doiChieu": 407,
+    "thuTruoc": 249,
+    "donDi": 172,
+    "xemLai": 244,
+    "dangCho": null,
+    "doanhThu": null
+   },
+   "dongDoiChieu": 3,
+   "dongThuTruoc": 3,
+   "dongXemLai": [
+    "40 khoản đang đối chiếu quá 3 ngàyĐối chiếu rồi bấm “Xác nhận đã nhận”",
+    "7 đơn huỷ còn người chưa nộp tiềnThu trước của đơn huỷ là tiền công ty"
+   ],
+   "dongDangCho": [],
+   "khoiRong": [],
+   "gapHien": false,
+   "soTrong": "Không có đơn nào đi hôm nay.",
+   "pillCao": [
+    22,
+    22,
+    22
+   ],
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "a-nang",
+   "vai": "nhanVien",
+   "kho": "1366x650",
+   "vw": 1366,
+   "scrollW": 1366,
+   "caoTrang": 650,
+   "mainRong": 1118,
+   "trongPhai": 24,
+   "thuTu": [
+    [
+     "#dash-dai",
+     145
+    ],
+    [
+     "#dash-loi-tat",
+     255
+    ],
+    [
+     "#dash-today",
+     381
+    ],
+    [
+     "#dash-so-mt",
+     381
+    ]
+   ],
+   "loiTatTop": 255,
+   "cotChinhDay": 553,
+   "cotPhuDay": 553,
+   "chenhCot": 0,
+   "cao": {
+    "doiChieu": null,
+    "thuTruoc": null,
+    "donDi": 103,
+    "xemLai": null,
+    "dangCho": null,
+    "doanhThu": 172
+   },
+   "dongDoiChieu": 0,
+   "dongThuTruoc": 0,
+   "dongXemLai": [],
+   "dongDangCho": [],
+   "khoiRong": [],
+   "gapHien": false,
+   "soTrong": "Không có đơn nào đi hôm nay.",
+   "pillCao": [],
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "a-nang",
+   "vai": "nhanVien",
+   "kho": "1440x900",
+   "vw": 1440,
+   "scrollW": 1440,
+   "caoTrang": 900,
+   "mainRong": 1192,
+   "trongPhai": 24,
+   "thuTu": [
+    [
+     "#dash-dai",
+     145
+    ],
+    [
+     "#dash-loi-tat",
+     255
+    ],
+    [
+     "#dash-today",
+     381
+    ],
+    [
+     "#dash-so-mt",
+     381
+    ]
+   ],
+   "loiTatTop": 255,
+   "cotChinhDay": 553,
+   "cotPhuDay": 553,
+   "chenhCot": 0,
+   "cao": {
+    "doiChieu": null,
+    "thuTruoc": null,
+    "donDi": 103,
+    "xemLai": null,
+    "dangCho": null,
+    "doanhThu": 172
+   },
+   "dongDoiChieu": 0,
+   "dongThuTruoc": 0,
+   "dongXemLai": [],
+   "dongDangCho": [],
+   "khoiRong": [],
+   "gapHien": false,
+   "soTrong": "Không có đơn nào đi hôm nay.",
+   "pillCao": [],
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "a-nang",
+   "vai": "nhanVien",
+   "kho": "1920x1080",
+   "vw": 1920,
+   "scrollW": 1920,
+   "caoTrang": 1080,
+   "mainRong": 1672,
+   "trongPhai": 24,
+   "thuTu": [
+    [
+     "#dash-dai",
+     145
+    ],
+    [
+     "#dash-loi-tat",
+     255
+    ],
+    [
+     "#dash-today",
+     381
+    ],
+    [
+     "#dash-so-mt",
+     381
+    ]
+   ],
+   "loiTatTop": 255,
+   "cotChinhDay": 553,
+   "cotPhuDay": 553,
+   "chenhCot": 0,
+   "cao": {
+    "doiChieu": null,
+    "thuTruoc": null,
+    "donDi": 103,
+    "xemLai": null,
+    "dangCho": null,
+    "doanhThu": 172
+   },
+   "dongDoiChieu": 0,
+   "dongThuTruoc": 0,
+   "dongXemLai": [],
+   "dongDangCho": [],
+   "khoiRong": [],
+   "gapHien": false,
+   "soTrong": "Không có đơn nào đi hôm nay.",
+   "pillCao": [],
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "a-nang",
+   "vai": "nhanVien",
+   "kho": "1100x800",
+   "vw": 1100,
+   "scrollW": 1100,
+   "caoTrang": 800,
+   "mainRong": 852,
+   "trongPhai": 24,
+   "thuTu": [
+    [
+     "#dash-dai",
+     145
+    ],
+    [
+     "#dash-loi-tat",
+     255
+    ],
+    [
+     "#dash-today",
+     381
+    ],
+    [
+     "#dash-so-mt",
+     381
+    ]
+   ],
+   "loiTatTop": 255,
+   "cotChinhDay": 553,
+   "cotPhuDay": 553,
+   "chenhCot": 0,
+   "cao": {
+    "doiChieu": null,
+    "thuTruoc": null,
+    "donDi": 103,
+    "xemLai": null,
+    "dangCho": null,
+    "doanhThu": 172
+   },
+   "dongDoiChieu": 0,
+   "dongThuTruoc": 0,
+   "dongXemLai": [],
+   "dongDangCho": [],
+   "khoiRong": [],
+   "gapHien": false,
+   "soTrong": "Không có đơn nào đi hôm nay.",
+   "pillCao": [],
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "a-nang",
+   "vai": "nhanVien",
+   "kho": "390x844",
+   "vw": 390,
+   "scrollW": 390,
+   "caoTrang": 951,
+   "mainRong": 390,
+   "trongPhai": 12,
+   "thuTu": [
+    [
+     "#dash-today",
+     707
+    ],
+    [
+     "#dash-so",
+     415
+    ],
+    [
+     "#dash-o",
+     277
+    ]
+   ],
+   "loiTatTop": null,
+   "cotChinhDay": null,
+   "cotPhuDay": null,
+   "chenhCot": null,
+   "cao": {
+    "doiChieu": null,
+    "thuTruoc": null,
+    "donDi": 172,
+    "xemLai": null,
+    "dangCho": null,
+    "doanhThu": null
+   },
+   "dongDoiChieu": 0,
+   "dongThuTruoc": 0,
+   "dongXemLai": [],
+   "dongDangCho": [],
+   "khoiRong": [],
+   "gapHien": false,
+   "soTrong": "Không có đơn nào đi hôm nay.",
+   "pillCao": [],
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "a2-nang-quahan-cuoi",
+   "vai": "chu",
+   "kho": "1440x900",
+   "vw": 1440,
+   "scrollW": 1440,
+   "caoTrang": 1254,
+   "mainRong": 1192,
+   "trongPhai": 24,
+   "thuTu": [
+    [
+     "#dash-dai",
+     145
+    ],
+    [
+     "#dash-loi-tat",
+     255
+    ],
+    [
+     "#dash-today",
+     381
+    ],
+    [
+     "#dash-review",
+     508
+    ],
+    [
+     "#dash-doi-chieu",
+     647
+    ],
+    [
+     "#dash-thu-truoc",
+     1020
+    ],
+    [
+     "#dash-dang-cho",
+     381
+    ],
+    [
+     "#dash-so-mt",
+     624
+    ]
+   ],
+   "loiTatTop": 255,
+   "cotChinhDay": 1230,
+   "cotPhuDay": 1230,
+   "chenhCot": 0,
+   "cao": {
+    "doiChieu": 333,
+    "thuTruoc": 194,
+    "donDi": 103,
+    "xemLai": 115,
+    "dangCho": 219,
+    "doanhThu": 606
+   },
+   "dongDoiChieu": 3,
+   "dongThuTruoc": 3,
+   "dongXemLai": [
+    "1 góp ý mới chưa trả lờiYC-0023 báo lỗi"
+   ],
+   "dongDangCho": [
+    "Chờ đối chiếuToàn công tyKhoản thu chờ Kế toán đối chiếu54",
+    "Thu trước đơn huỷToàn công tyKhoản thu trước của đơn huỷ chờ",
+    "Góp ý chờ xử lýToàn công tyGóp ý có tin mới chưa đọc1"
+   ],
+   "khoiRong": [],
+   "gapHien": false,
+   "soTrong": "Không có đơn nào đi hôm nay.",
+   "pillCao": [],
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "d-it",
+   "vai": "chu",
+   "kho": "1366x650",
+   "vw": 1366,
+   "scrollW": 1366,
+   "caoTrang": 650,
+   "mainRong": 1118,
+   "trongPhai": 24,
+   "thuTu": [
+    [
+     "#dash-dai",
+     145
+    ],
+    [
+     "#dash-loi-tat",
+     255
+    ],
+    [
+     "#dash-today",
+     381
+    ],
+    [
+     "#dash-so-mt",
+     381
+    ]
+   ],
+   "loiTatTop": 255,
+   "cotChinhDay": 553,
+   "cotPhuDay": 553,
+   "chenhCot": 0,
+   "cao": {
+    "doiChieu": null,
+    "thuTruoc": null,
+    "donDi": 103,
+    "xemLai": null,
+    "dangCho": null,
+    "doanhThu": 172
+   },
+   "dongDoiChieu": 0,
+   "dongThuTruoc": 0,
+   "dongXemLai": [],
+   "dongDangCho": [],
+   "khoiRong": [],
+   "gapHien": false,
+   "soTrong": "Không có đơn nào đi hôm nay.",
+   "pillCao": [],
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 4
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "d-it",
+   "vai": "chu",
+   "kho": "1440x900",
+   "vw": 1440,
+   "scrollW": 1440,
+   "caoTrang": 900,
+   "mainRong": 1192,
+   "trongPhai": 24,
+   "thuTu": [
+    [
+     "#dash-dai",
+     145
+    ],
+    [
+     "#dash-loi-tat",
+     255
+    ],
+    [
+     "#dash-today",
+     381
+    ],
+    [
+     "#dash-so-mt",
+     381
+    ]
+   ],
+   "loiTatTop": 255,
+   "cotChinhDay": 553,
+   "cotPhuDay": 553,
+   "chenhCot": 0,
+   "cao": {
+    "doiChieu": null,
+    "thuTruoc": null,
+    "donDi": 103,
+    "xemLai": null,
+    "dangCho": null,
+    "doanhThu": 172
+   },
+   "dongDoiChieu": 0,
+   "dongThuTruoc": 0,
+   "dongXemLai": [],
+   "dongDangCho": [],
+   "khoiRong": [],
+   "gapHien": false,
+   "soTrong": "Không có đơn nào đi hôm nay.",
+   "pillCao": [],
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "d-it",
+   "vai": "chu",
+   "kho": "1920x1080",
+   "vw": 1920,
+   "scrollW": 1920,
+   "caoTrang": 1080,
+   "mainRong": 1672,
+   "trongPhai": 24,
+   "thuTu": [
+    [
+     "#dash-dai",
+     145
+    ],
+    [
+     "#dash-loi-tat",
+     255
+    ],
+    [
+     "#dash-today",
+     381
+    ],
+    [
+     "#dash-so-mt",
+     381
+    ]
+   ],
+   "loiTatTop": 255,
+   "cotChinhDay": 553,
+   "cotPhuDay": 553,
+   "chenhCot": 0,
+   "cao": {
+    "doiChieu": null,
+    "thuTruoc": null,
+    "donDi": 103,
+    "xemLai": null,
+    "dangCho": null,
+    "doanhThu": 172
+   },
+   "dongDoiChieu": 0,
+   "dongThuTruoc": 0,
+   "dongXemLai": [],
+   "dongDangCho": [],
+   "khoiRong": [],
+   "gapHien": false,
+   "soTrong": "Không có đơn nào đi hôm nay.",
+   "pillCao": [],
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "d-it",
+   "vai": "chu",
+   "kho": "1100x800",
+   "vw": 1100,
+   "scrollW": 1100,
+   "caoTrang": 800,
+   "mainRong": 852,
+   "trongPhai": 24,
+   "thuTu": [
+    [
+     "#dash-dai",
+     145
+    ],
+    [
+     "#dash-loi-tat",
+     255
+    ],
+    [
+     "#dash-today",
+     397
+    ],
+    [
+     "#dash-so-mt",
+     397
+    ]
+   ],
+   "loiTatTop": 255,
+   "cotChinhDay": 569,
+   "cotPhuDay": 569,
+   "chenhCot": 0,
+   "cao": {
+    "doiChieu": null,
+    "thuTruoc": null,
+    "donDi": 103,
+    "xemLai": null,
+    "dangCho": null,
+    "doanhThu": 172
+   },
+   "dongDoiChieu": 0,
+   "dongThuTruoc": 0,
+   "dongXemLai": [],
+   "dongDangCho": [],
+   "khoiRong": [],
+   "gapHien": false,
+   "soTrong": "Không có đơn nào đi hôm nay.",
+   "pillCao": [],
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 1
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "d-it",
+   "vai": "chu",
+   "kho": "390x844",
+   "vw": 390,
+   "scrollW": 390,
+   "caoTrang": 969,
+   "mainRong": 390,
+   "trongPhai": 12,
+   "thuTu": [
+    [
+     "#dash-today",
+     725
+    ],
+    [
+     "#dash-so",
+     433
+    ],
+    [
+     "#dash-o",
+     295
+    ]
+   ],
+   "loiTatTop": null,
+   "cotChinhDay": null,
+   "cotPhuDay": null,
+   "chenhCot": null,
+   "cao": {
+    "doiChieu": null,
+    "thuTruoc": null,
+    "donDi": 172,
+    "xemLai": null,
+    "dangCho": null,
+    "doanhThu": null
+   },
+   "dongDoiChieu": 0,
+   "dongThuTruoc": 0,
+   "dongXemLai": [],
+   "dongDangCho": [],
+   "khoiRong": [],
+   "gapHien": false,
+   "soTrong": "Không có đơn nào đi hôm nay.",
+   "pillCao": [],
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "d-it",
+   "vai": "quanTri",
+   "kho": "1366x650",
+   "vw": 1366,
+   "scrollW": 1366,
+   "caoTrang": 650,
+   "mainRong": 1118,
+   "trongPhai": 24,
+   "thuTu": [
+    [
+     "#dash-dai",
+     145
+    ],
+    [
+     "#dash-loi-tat",
+     255
+    ],
+    [
+     "#dash-today",
+     381
+    ],
+    [
+     "#dash-so-mt",
+     381
+    ]
+   ],
+   "loiTatTop": 255,
+   "cotChinhDay": 553,
+   "cotPhuDay": 553,
+   "chenhCot": 0,
+   "cao": {
+    "doiChieu": null,
+    "thuTruoc": null,
+    "donDi": 103,
+    "xemLai": null,
+    "dangCho": null,
+    "doanhThu": 172
+   },
+   "dongDoiChieu": 0,
+   "dongThuTruoc": 0,
+   "dongXemLai": [],
+   "dongDangCho": [],
+   "khoiRong": [],
+   "gapHien": false,
+   "soTrong": "Không có đơn nào đi hôm nay.",
+   "pillCao": [],
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 3
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "d-it",
+   "vai": "quanTri",
+   "kho": "1440x900",
+   "vw": 1440,
+   "scrollW": 1440,
+   "caoTrang": 900,
+   "mainRong": 1192,
+   "trongPhai": 24,
+   "thuTu": [
+    [
+     "#dash-dai",
+     145
+    ],
+    [
+     "#dash-loi-tat",
+     255
+    ],
+    [
+     "#dash-today",
+     381
+    ],
+    [
+     "#dash-so-mt",
+     381
+    ]
+   ],
+   "loiTatTop": 255,
+   "cotChinhDay": 553,
+   "cotPhuDay": 553,
+   "chenhCot": 0,
+   "cao": {
+    "doiChieu": null,
+    "thuTruoc": null,
+    "donDi": 103,
+    "xemLai": null,
+    "dangCho": null,
+    "doanhThu": 172
+   },
+   "dongDoiChieu": 0,
+   "dongThuTruoc": 0,
+   "dongXemLai": [],
+   "dongDangCho": [],
+   "khoiRong": [],
+   "gapHien": false,
+   "soTrong": "Không có đơn nào đi hôm nay.",
+   "pillCao": [],
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "d-it",
+   "vai": "quanTri",
+   "kho": "1920x1080",
+   "vw": 1920,
+   "scrollW": 1920,
+   "caoTrang": 1080,
+   "mainRong": 1672,
+   "trongPhai": 24,
+   "thuTu": [
+    [
+     "#dash-dai",
+     145
+    ],
+    [
+     "#dash-loi-tat",
+     255
+    ],
+    [
+     "#dash-today",
+     381
+    ],
+    [
+     "#dash-so-mt",
+     381
+    ]
+   ],
+   "loiTatTop": 255,
+   "cotChinhDay": 553,
+   "cotPhuDay": 553,
+   "chenhCot": 0,
+   "cao": {
+    "doiChieu": null,
+    "thuTruoc": null,
+    "donDi": 103,
+    "xemLai": null,
+    "dangCho": null,
+    "doanhThu": 172
+   },
+   "dongDoiChieu": 0,
+   "dongThuTruoc": 0,
+   "dongXemLai": [],
+   "dongDangCho": [],
+   "khoiRong": [],
+   "gapHien": false,
+   "soTrong": "Không có đơn nào đi hôm nay.",
+   "pillCao": [],
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "d-it",
+   "vai": "quanTri",
+   "kho": "1100x800",
+   "vw": 1100,
+   "scrollW": 1100,
+   "caoTrang": 800,
+   "mainRong": 852,
+   "trongPhai": 24,
+   "thuTu": [
+    [
+     "#dash-dai",
+     145
+    ],
+    [
+     "#dash-loi-tat",
+     255
+    ],
+    [
+     "#dash-today",
+     397
+    ],
+    [
+     "#dash-so-mt",
+     397
+    ]
+   ],
+   "loiTatTop": 255,
+   "cotChinhDay": 569,
+   "cotPhuDay": 569,
+   "chenhCot": 0,
+   "cao": {
+    "doiChieu": null,
+    "thuTruoc": null,
+    "donDi": 103,
+    "xemLai": null,
+    "dangCho": null,
+    "doanhThu": 172
+   },
+   "dongDoiChieu": 0,
+   "dongThuTruoc": 0,
+   "dongXemLai": [],
+   "dongDangCho": [],
+   "khoiRong": [],
+   "gapHien": false,
+   "soTrong": "Không có đơn nào đi hôm nay.",
+   "pillCao": [],
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "d-it",
+   "vai": "quanTri",
+   "kho": "390x844",
+   "vw": 390,
+   "scrollW": 390,
+   "caoTrang": 951,
+   "mainRong": 390,
+   "trongPhai": 12,
+   "thuTu": [
+    [
+     "#dash-today",
+     707
+    ],
+    [
+     "#dash-so",
+     415
+    ],
+    [
+     "#dash-o",
+     277
+    ]
+   ],
+   "loiTatTop": null,
+   "cotChinhDay": null,
+   "cotPhuDay": null,
+   "chenhCot": null,
+   "cao": {
+    "doiChieu": null,
+    "thuTruoc": null,
+    "donDi": 172,
+    "xemLai": null,
+    "dangCho": null,
+    "doanhThu": null
+   },
+   "dongDoiChieu": 0,
+   "dongThuTruoc": 0,
+   "dongXemLai": [],
+   "dongDangCho": [],
+   "khoiRong": [],
+   "gapHien": false,
+   "soTrong": "Không có đơn nào đi hôm nay.",
+   "pillCao": [],
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "d-it",
+   "vai": "keToan",
+   "kho": "1366x650",
+   "vw": 1366,
+   "scrollW": 1366,
+   "caoTrang": 650,
+   "mainRong": 1118,
+   "trongPhai": 24,
+   "thuTu": [
+    [
+     "#dash-dai",
+     145
+    ],
+    [
+     "#dash-loi-tat",
+     255
+    ],
+    [
+     "#dash-today",
+     381
+    ]
+   ],
+   "loiTatTop": 255,
+   "cotChinhDay": 484,
+   "cotPhuDay": null,
+   "chenhCot": null,
+   "cao": {
+    "doiChieu": null,
+    "thuTruoc": null,
+    "donDi": 103,
+    "xemLai": null,
+    "dangCho": null,
+    "doanhThu": null
+   },
+   "dongDoiChieu": 0,
+   "dongThuTruoc": 0,
+   "dongXemLai": [],
+   "dongDangCho": [],
+   "khoiRong": [],
+   "gapHien": false,
+   "soTrong": "Không có đơn nào đi hôm nay.",
+   "pillCao": [],
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 3
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "d-it",
+   "vai": "keToan",
+   "kho": "1440x900",
+   "vw": 1440,
+   "scrollW": 1440,
+   "caoTrang": 900,
+   "mainRong": 1192,
+   "trongPhai": 24,
+   "thuTu": [
+    [
+     "#dash-dai",
+     145
+    ],
+    [
+     "#dash-loi-tat",
+     255
+    ],
+    [
+     "#dash-today",
+     381
+    ]
+   ],
+   "loiTatTop": 255,
+   "cotChinhDay": 484,
+   "cotPhuDay": null,
+   "chenhCot": null,
+   "cao": {
+    "doiChieu": null,
+    "thuTruoc": null,
+    "donDi": 103,
+    "xemLai": null,
+    "dangCho": null,
+    "doanhThu": null
+   },
+   "dongDoiChieu": 0,
+   "dongThuTruoc": 0,
+   "dongXemLai": [],
+   "dongDangCho": [],
+   "khoiRong": [],
+   "gapHien": false,
+   "soTrong": "Không có đơn nào đi hôm nay.",
+   "pillCao": [],
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "d-it",
+   "vai": "keToan",
+   "kho": "1920x1080",
+   "vw": 1920,
+   "scrollW": 1920,
+   "caoTrang": 1080,
+   "mainRong": 1672,
+   "trongPhai": 24,
+   "thuTu": [
+    [
+     "#dash-dai",
+     145
+    ],
+    [
+     "#dash-loi-tat",
+     255
+    ],
+    [
+     "#dash-today",
+     381
+    ]
+   ],
+   "loiTatTop": 255,
+   "cotChinhDay": 484,
+   "cotPhuDay": null,
+   "chenhCot": null,
+   "cao": {
+    "doiChieu": null,
+    "thuTruoc": null,
+    "donDi": 103,
+    "xemLai": null,
+    "dangCho": null,
+    "doanhThu": null
+   },
+   "dongDoiChieu": 0,
+   "dongThuTruoc": 0,
+   "dongXemLai": [],
+   "dongDangCho": [],
+   "khoiRong": [],
+   "gapHien": false,
+   "soTrong": "Không có đơn nào đi hôm nay.",
+   "pillCao": [],
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "d-it",
+   "vai": "keToan",
+   "kho": "1100x800",
+   "vw": 1100,
+   "scrollW": 1100,
+   "caoTrang": 800,
+   "mainRong": 852,
+   "trongPhai": 24,
+   "thuTu": [
+    [
+     "#dash-dai",
+     145
+    ],
+    [
+     "#dash-loi-tat",
+     255
+    ],
+    [
+     "#dash-today",
+     381
+    ]
+   ],
+   "loiTatTop": 255,
+   "cotChinhDay": 484,
+   "cotPhuDay": null,
+   "chenhCot": null,
+   "cao": {
+    "doiChieu": null,
+    "thuTruoc": null,
+    "donDi": 103,
+    "xemLai": null,
+    "dangCho": null,
+    "doanhThu": null
+   },
+   "dongDoiChieu": 0,
+   "dongThuTruoc": 0,
+   "dongXemLai": [],
+   "dongDangCho": [],
+   "khoiRong": [],
+   "gapHien": false,
+   "soTrong": "Không có đơn nào đi hôm nay.",
+   "pillCao": [],
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "d-it",
+   "vai": "keToan",
+   "kho": "390x844",
+   "vw": 390,
+   "scrollW": 390,
+   "caoTrang": 844,
+   "mainRong": 390,
+   "trongPhai": 12,
+   "thuTu": [
+    [
+     "#dash-today",
+     559
+    ],
+    [
+     "#dash-so",
+     415
+    ],
+    [
+     "#dash-o",
+     277
+    ]
+   ],
+   "loiTatTop": null,
+   "cotChinhDay": null,
+   "cotPhuDay": null,
+   "chenhCot": null,
+   "cao": {
+    "doiChieu": null,
+    "thuTruoc": null,
+    "donDi": 172,
+    "xemLai": null,
+    "dangCho": null,
+    "doanhThu": null
+   },
+   "dongDoiChieu": 0,
+   "dongThuTruoc": 0,
+   "dongXemLai": [],
+   "dongDangCho": [],
+   "khoiRong": [],
+   "gapHien": false,
+   "soTrong": "Không có đơn nào đi hôm nay.",
+   "pillCao": [],
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "d-it",
+   "vai": "nhanVien",
+   "kho": "1366x650",
+   "vw": 1366,
+   "scrollW": 1366,
+   "caoTrang": 650,
+   "mainRong": 1118,
+   "trongPhai": 24,
+   "thuTu": [
+    [
+     "#dash-dai",
+     145
+    ],
+    [
+     "#dash-loi-tat",
+     255
+    ],
+    [
+     "#dash-today",
+     381
+    ],
+    [
+     "#dash-so-mt",
+     381
+    ]
+   ],
+   "loiTatTop": 255,
+   "cotChinhDay": 553,
+   "cotPhuDay": 553,
+   "chenhCot": 0,
+   "cao": {
+    "doiChieu": null,
+    "thuTruoc": null,
+    "donDi": 103,
+    "xemLai": null,
+    "dangCho": null,
+    "doanhThu": 172
+   },
+   "dongDoiChieu": 0,
+   "dongThuTruoc": 0,
+   "dongXemLai": [],
+   "dongDangCho": [],
+   "khoiRong": [],
+   "gapHien": false,
+   "soTrong": "Không có đơn nào đi hôm nay.",
+   "pillCao": [],
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "d-it",
+   "vai": "nhanVien",
+   "kho": "1440x900",
+   "vw": 1440,
+   "scrollW": 1440,
+   "caoTrang": 900,
+   "mainRong": 1192,
+   "trongPhai": 24,
+   "thuTu": [
+    [
+     "#dash-dai",
+     145
+    ],
+    [
+     "#dash-loi-tat",
+     255
+    ],
+    [
+     "#dash-today",
+     381
+    ],
+    [
+     "#dash-so-mt",
+     381
+    ]
+   ],
+   "loiTatTop": 255,
+   "cotChinhDay": 553,
+   "cotPhuDay": 553,
+   "chenhCot": 0,
+   "cao": {
+    "doiChieu": null,
+    "thuTruoc": null,
+    "donDi": 103,
+    "xemLai": null,
+    "dangCho": null,
+    "doanhThu": 172
+   },
+   "dongDoiChieu": 0,
+   "dongThuTruoc": 0,
+   "dongXemLai": [],
+   "dongDangCho": [],
+   "khoiRong": [],
+   "gapHien": false,
+   "soTrong": "Không có đơn nào đi hôm nay.",
+   "pillCao": [],
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "d-it",
+   "vai": "nhanVien",
+   "kho": "1920x1080",
+   "vw": 1920,
+   "scrollW": 1920,
+   "caoTrang": 1080,
+   "mainRong": 1672,
+   "trongPhai": 24,
+   "thuTu": [
+    [
+     "#dash-dai",
+     145
+    ],
+    [
+     "#dash-loi-tat",
+     255
+    ],
+    [
+     "#dash-today",
+     381
+    ],
+    [
+     "#dash-so-mt",
+     381
+    ]
+   ],
+   "loiTatTop": 255,
+   "cotChinhDay": 553,
+   "cotPhuDay": 553,
+   "chenhCot": 0,
+   "cao": {
+    "doiChieu": null,
+    "thuTruoc": null,
+    "donDi": 103,
+    "xemLai": null,
+    "dangCho": null,
+    "doanhThu": 172
+   },
+   "dongDoiChieu": 0,
+   "dongThuTruoc": 0,
+   "dongXemLai": [],
+   "dongDangCho": [],
+   "khoiRong": [],
+   "gapHien": false,
+   "soTrong": "Không có đơn nào đi hôm nay.",
+   "pillCao": [],
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "d-it",
+   "vai": "nhanVien",
+   "kho": "1100x800",
+   "vw": 1100,
+   "scrollW": 1100,
+   "caoTrang": 800,
+   "mainRong": 852,
+   "trongPhai": 24,
+   "thuTu": [
+    [
+     "#dash-dai",
+     145
+    ],
+    [
+     "#dash-loi-tat",
+     255
+    ],
+    [
+     "#dash-today",
+     381
+    ],
+    [
+     "#dash-so-mt",
+     381
+    ]
+   ],
+   "loiTatTop": 255,
+   "cotChinhDay": 553,
+   "cotPhuDay": 553,
+   "chenhCot": 0,
+   "cao": {
+    "doiChieu": null,
+    "thuTruoc": null,
+    "donDi": 103,
+    "xemLai": null,
+    "dangCho": null,
+    "doanhThu": 172
+   },
+   "dongDoiChieu": 0,
+   "dongThuTruoc": 0,
+   "dongXemLai": [],
+   "dongDangCho": [],
+   "khoiRong": [],
+   "gapHien": false,
+   "soTrong": "Không có đơn nào đi hôm nay.",
+   "pillCao": [],
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "d-it",
+   "vai": "nhanVien",
+   "kho": "390x844",
+   "vw": 390,
+   "scrollW": 390,
+   "caoTrang": 951,
+   "mainRong": 390,
+   "trongPhai": 12,
+   "thuTu": [
+    [
+     "#dash-today",
+     707
+    ],
+    [
+     "#dash-so",
+     415
+    ],
+    [
+     "#dash-o",
+     277
+    ]
+   ],
+   "loiTatTop": null,
+   "cotChinhDay": null,
+   "cotPhuDay": null,
+   "chenhCot": null,
+   "cao": {
+    "doiChieu": null,
+    "thuTruoc": null,
+    "donDi": 172,
+    "xemLai": null,
+    "dangCho": null,
+    "doanhThu": null
+   },
+   "dongDoiChieu": 0,
+   "dongThuTruoc": 0,
+   "dongXemLai": [],
+   "dongDangCho": [],
+   "khoiRong": [],
+   "gapHien": false,
+   "soTrong": "Không có đơn nào đi hôm nay.",
+   "pillCao": [],
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "b-10-don-dai",
+   "vai": "chu",
+   "kho": "1366x650",
+   "vw": 1366,
+   "scrollW": 1366,
+   "caoTrang": 2623,
+   "mainRong": 1118,
+   "trongPhai": 24,
+   "thuTu": [
+    [
+     "#dash-dai",
+     145
+    ],
+    [
+     "#dash-loi-tat",
+     255
+    ],
+    [
+     "#dash-today",
+     381
+    ],
+    [
+     "#dash-review",
+     1875
+    ],
+    [
+     "#dash-doi-chieu",
+     2014
+    ],
+    [
+     "#dash-thu-truoc",
+     2389
+    ],
+    [
+     "#dash-dang-cho",
+     381
+    ],
+    [
+     "#dash-so-mt",
+     760
+    ]
+   ],
+   "loiTatTop": 255,
+   "cotChinhDay": 2599,
+   "cotPhuDay": 2599,
+   "chenhCot": 0,
+   "cao": {
+    "doiChieu": 335,
+    "thuTruoc": 194,
+    "donDi": 1470,
+    "xemLai": 115,
+    "dangCho": 355,
+    "doanhThu": 1839
+   },
+   "dongDoiChieu": 3,
+   "dongThuTruoc": 3,
+   "dongXemLai": [
+    "1 góp ý mới chưa trả lờiYC-0023 báo lỗi"
+   ],
+   "dongDangCho": [
+    "Chờ đối chiếuToàn công tyKhoản thu chờ Kế toán đối chiếu54",
+    "Thu trước đơn huỷToàn công tyKhoản thu trước của đơn huỷ chờ",
+    "Đơn chưa có người phụ tráchToàn công tyChưa ai nhận chăm sóc",
+    "Đơn còn thiếu tiềnToàn công tyCòn phải thu 52tr ₫10",
+    "Góp ý chờ xử lýToàn công tyGóp ý có tin mới chưa đọc1"
+   ],
+   "khoiRong": [],
+   "gapHien": false,
+   "soTrong": null,
+   "pillCao": [
+    22,
+    22,
+    22
+   ],
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 4
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "b-10-don-dai",
+   "vai": "chu",
+   "kho": "1440x900",
+   "vw": 1440,
+   "scrollW": 1440,
+   "caoTrang": 2623,
+   "mainRong": 1192,
+   "trongPhai": 24,
+   "thuTu": [
+    [
+     "#dash-dai",
+     145
+    ],
+    [
+     "#dash-loi-tat",
+     255
+    ],
+    [
+     "#dash-today",
+     381
+    ],
+    [
+     "#dash-review",
+     1875
+    ],
+    [
+     "#dash-doi-chieu",
+     2014
+    ],
+    [
+     "#dash-thu-truoc",
+     2389
+    ],
+    [
+     "#dash-dang-cho",
+     381
+    ],
+    [
+     "#dash-so-mt",
+     742
+    ]
+   ],
+   "loiTatTop": 255,
+   "cotChinhDay": 2599,
+   "cotPhuDay": 2599,
+   "chenhCot": 0,
+   "cao": {
+    "doiChieu": 335,
+    "thuTruoc": 194,
+    "donDi": 1470,
+    "xemLai": 115,
+    "dangCho": 337,
+    "doanhThu": 1857
+   },
+   "dongDoiChieu": 3,
+   "dongThuTruoc": 3,
+   "dongXemLai": [
+    "1 góp ý mới chưa trả lờiYC-0023 báo lỗi"
+   ],
+   "dongDangCho": [
+    "Chờ đối chiếuToàn công tyKhoản thu chờ Kế toán đối chiếu54",
+    "Thu trước đơn huỷToàn công tyKhoản thu trước của đơn huỷ chờ",
+    "Đơn chưa có người phụ tráchToàn công tyChưa ai nhận chăm sóc",
+    "Đơn còn thiếu tiềnToàn công tyCòn phải thu 52tr ₫10",
+    "Góp ý chờ xử lýToàn công tyGóp ý có tin mới chưa đọc1"
+   ],
+   "khoiRong": [],
+   "gapHien": false,
+   "soTrong": null,
+   "pillCao": [
+    22,
+    22,
+    22
+   ],
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "b-10-don-dai",
+   "vai": "chu",
+   "kho": "1920x1080",
+   "vw": 1920,
+   "scrollW": 1920,
+   "caoTrang": 2276,
+   "mainRong": 1672,
+   "trongPhai": 24,
+   "thuTu": [
+    [
+     "#dash-dai",
+     145
+    ],
+    [
+     "#dash-loi-tat",
+     255
+    ],
+    [
+     "#dash-today",
+     381
+    ],
+    [
+     "#dash-review",
+     1635
+    ],
+    [
+     "#dash-doi-chieu",
+     1774
+    ],
+    [
+     "#dash-thu-truoc",
+     2042
+    ],
+    [
+     "#dash-dang-cho",
+     381
+    ],
+    [
+     "#dash-so-mt",
+     742
+    ]
+   ],
+   "loiTatTop": 255,
+   "cotChinhDay": 2252,
+   "cotPhuDay": 2252,
+   "chenhCot": 0,
+   "cao": {
+    "doiChieu": 228,
+    "thuTruoc": 194,
+    "donDi": 1230,
+    "xemLai": 115,
+    "dangCho": 337,
+    "doanhThu": 1510
+   },
+   "dongDoiChieu": 3,
+   "dongThuTruoc": 3,
+   "dongXemLai": [
+    "1 góp ý mới chưa trả lờiYC-0023 báo lỗi"
+   ],
+   "dongDangCho": [
+    "Chờ đối chiếuToàn công tyKhoản thu chờ Kế toán đối chiếu54",
+    "Thu trước đơn huỷToàn công tyKhoản thu trước của đơn huỷ chờ",
+    "Đơn chưa có người phụ tráchToàn công tyChưa ai nhận chăm sóc",
+    "Đơn còn thiếu tiềnToàn công tyCòn phải thu 52tr ₫10",
+    "Góp ý chờ xử lýToàn công tyGóp ý có tin mới chưa đọc1"
+   ],
+   "khoiRong": [],
+   "gapHien": false,
+   "soTrong": null,
+   "pillCao": [
+    22,
+    22,
+    22
+   ],
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "b-10-don-dai",
+   "vai": "chu",
+   "kho": "1100x800",
+   "vw": 1100,
+   "scrollW": 1100,
+   "caoTrang": 3942,
+   "mainRong": 852,
+   "trongPhai": 24,
+   "thuTu": [
+    [
+     "#dash-dai",
+     145
+    ],
+    [
+     "#dash-loi-tat",
+     255
+    ],
+    [
+     "#dash-today",
+     397
+    ],
+    [
+     "#dash-review",
+     3091
+    ],
+    [
+     "#dash-doi-chieu",
+     3230
+    ],
+    [
+     "#dash-thu-truoc",
+     3657
+    ],
+    [
+     "#dash-dang-cho",
+     397
+    ],
+    [
+     "#dash-so-mt",
+     792
+    ]
+   ],
+   "loiTatTop": 255,
+   "cotChinhDay": 3918,
+   "cotPhuDay": 3918,
+   "chenhCot": 0,
+   "cao": {
+    "doiChieu": 387,
+    "thuTruoc": 245,
+    "donDi": 2670,
+    "xemLai": 115,
+    "dangCho": 371,
+    "doanhThu": 3126
+   },
+   "dongDoiChieu": 3,
+   "dongThuTruoc": 3,
+   "dongXemLai": [
+    "1 góp ý mới chưa trả lờiYC-0023 báo lỗi"
+   ],
+   "dongDangCho": [
+    "Chờ đối chiếuToàn công tyKhoản thu chờ Kế toán đối chiếu54",
+    "Thu trước đơn huỷToàn công tyKhoản thu trước của đơn huỷ chờ",
+    "Đơn chưa có người phụ tráchToàn công tyChưa ai nhận chăm sóc",
+    "Đơn còn thiếu tiềnToàn công tyCòn phải thu 52tr ₫10",
+    "Góp ý chờ xử lýToàn công tyGóp ý có tin mới chưa đọc1"
+   ],
+   "khoiRong": [],
+   "gapHien": false,
+   "soTrong": null,
+   "pillCao": [
+    22,
+    22,
+    22
+   ],
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 1
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "b-10-don-dai",
+   "vai": "chu",
+   "kho": "390x844",
+   "vw": 390,
+   "scrollW": 390,
+   "caoTrang": 3656,
+   "mainRong": 390,
+   "trongPhai": 12,
+   "thuTu": [
+    [
+     "#dash-today",
+     1760
+    ],
+    [
+     "#dash-review",
+     1437
+    ],
+    [
+     "#dash-doi-chieu",
+     725
+    ],
+    [
+     "#dash-thu-truoc",
+     1160
+    ],
+    [
+     "#dash-so",
+     433
+    ],
+    [
+     "#dash-o",
+     295
+    ]
+   ],
+   "loiTatTop": null,
+   "cotChinhDay": null,
+   "cotPhuDay": null,
+   "chenhCot": null,
+   "cao": {
+    "doiChieu": 407,
+    "thuTruoc": 249,
+    "donDi": 1824,
+    "xemLai": 311,
+    "dangCho": null,
+    "doanhThu": null
+   },
+   "dongDoiChieu": 3,
+   "dongThuTruoc": 3,
+   "dongXemLai": [
+    "40 khoản đang đối chiếu quá 3 ngàyĐối chiếu rồi bấm “Xác nhận đã nhận”",
+    "7 đơn huỷ còn người chưa nộp tiềnThu trước của đơn huỷ là tiền công ty",
+    "1 góp ý mới chưa trả lờiYC-0023 báo lỗi"
+   ],
+   "dongDangCho": [],
+   "khoiRong": [],
+   "gapHien": false,
+   "soTrong": null,
+   "pillCao": [
+    22,
+    22,
+    22
+   ],
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "b-10-don-dai",
+   "vai": "nhanVien",
+   "kho": "1366x650",
+   "vw": 1366,
+   "scrollW": 1366,
+   "caoTrang": 1875,
+   "mainRong": 1118,
+   "trongPhai": 24,
+   "thuTu": [
+    [
+     "#dash-dai",
+     145
+    ],
+    [
+     "#dash-loi-tat",
+     255
+    ],
+    [
+     "#dash-today",
+     381
+    ],
+    [
+     "#dash-dang-cho",
+     381
+    ],
+    [
+     "#dash-so-mt",
+     565
+    ]
+   ],
+   "loiTatTop": 255,
+   "cotChinhDay": 1851,
+   "cotPhuDay": 1851,
+   "chenhCot": 0,
+   "cao": {
+    "doiChieu": null,
+    "thuTruoc": null,
+    "donDi": 1470,
+    "xemLai": null,
+    "dangCho": 160,
+    "doanhThu": 1286
+   },
+   "dongDoiChieu": 0,
+   "dongThuTruoc": 0,
+   "dongXemLai": [],
+   "dongDangCho": [
+    "Đơn còn thiếu tiềnToàn công tyCòn phải thu 52tr ₫10",
+    "Đơn chưa có người phụ tráchToàn công tyChưa ai nhận chăm sóc"
+   ],
+   "khoiRong": [],
+   "gapHien": false,
+   "soTrong": null,
+   "pillCao": [],
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "b-10-don-dai",
+   "vai": "nhanVien",
+   "kho": "1440x900",
+   "vw": 1440,
+   "scrollW": 1440,
+   "caoTrang": 1875,
+   "mainRong": 1192,
+   "trongPhai": 24,
+   "thuTu": [
+    [
+     "#dash-dai",
+     145
+    ],
+    [
+     "#dash-loi-tat",
+     255
+    ],
+    [
+     "#dash-today",
+     381
+    ],
+    [
+     "#dash-dang-cho",
+     381
+    ],
+    [
+     "#dash-so-mt",
+     565
+    ]
+   ],
+   "loiTatTop": 255,
+   "cotChinhDay": 1851,
+   "cotPhuDay": 1851,
+   "chenhCot": 0,
+   "cao": {
+    "doiChieu": null,
+    "thuTruoc": null,
+    "donDi": 1470,
+    "xemLai": null,
+    "dangCho": 160,
+    "doanhThu": 1286
+   },
+   "dongDoiChieu": 0,
+   "dongThuTruoc": 0,
+   "dongXemLai": [],
+   "dongDangCho": [
+    "Đơn còn thiếu tiềnToàn công tyCòn phải thu 52tr ₫10",
+    "Đơn chưa có người phụ tráchToàn công tyChưa ai nhận chăm sóc"
+   ],
+   "khoiRong": [],
+   "gapHien": false,
+   "soTrong": null,
+   "pillCao": [],
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "b-10-don-dai",
+   "vai": "nhanVien",
+   "kho": "1920x1080",
+   "vw": 1920,
+   "scrollW": 1920,
+   "caoTrang": 1635,
+   "mainRong": 1672,
+   "trongPhai": 24,
+   "thuTu": [
+    [
+     "#dash-dai",
+     145
+    ],
+    [
+     "#dash-loi-tat",
+     255
+    ],
+    [
+     "#dash-today",
+     381
+    ],
+    [
+     "#dash-dang-cho",
+     381
+    ],
+    [
+     "#dash-so-mt",
+     565
+    ]
+   ],
+   "loiTatTop": 255,
+   "cotChinhDay": 1611,
+   "cotPhuDay": 1611,
+   "chenhCot": 0,
+   "cao": {
+    "doiChieu": null,
+    "thuTruoc": null,
+    "donDi": 1230,
+    "xemLai": null,
+    "dangCho": 160,
+    "doanhThu": 1046
+   },
+   "dongDoiChieu": 0,
+   "dongThuTruoc": 0,
+   "dongXemLai": [],
+   "dongDangCho": [
+    "Đơn còn thiếu tiềnToàn công tyCòn phải thu 52tr ₫10",
+    "Đơn chưa có người phụ tráchToàn công tyChưa ai nhận chăm sóc"
+   ],
+   "khoiRong": [],
+   "gapHien": false,
+   "soTrong": null,
+   "pillCao": [],
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "b-10-don-dai",
+   "vai": "nhanVien",
+   "kho": "1100x800",
+   "vw": 1100,
+   "scrollW": 1100,
+   "caoTrang": 3075,
+   "mainRong": 852,
+   "trongPhai": 24,
+   "thuTu": [
+    [
+     "#dash-dai",
+     145
+    ],
+    [
+     "#dash-loi-tat",
+     255
+    ],
+    [
+     "#dash-today",
+     381
+    ],
+    [
+     "#dash-dang-cho",
+     381
+    ],
+    [
+     "#dash-so-mt",
+     581
+    ]
+   ],
+   "loiTatTop": 255,
+   "cotChinhDay": 3051,
+   "cotPhuDay": 3051,
+   "chenhCot": 0,
+   "cao": {
+    "doiChieu": null,
+    "thuTruoc": null,
+    "donDi": 2670,
+    "xemLai": null,
+    "dangCho": 176,
+    "doanhThu": 2470
+   },
+   "dongDoiChieu": 0,
+   "dongThuTruoc": 0,
+   "dongXemLai": [],
+   "dongDangCho": [
+    "Đơn còn thiếu tiềnToàn công tyCòn phải thu 52tr ₫10",
+    "Đơn chưa có người phụ tráchToàn công tyChưa ai nhận chăm sóc"
+   ],
+   "khoiRong": [],
+   "gapHien": false,
+   "soTrong": null,
+   "pillCao": [],
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "b-10-don-dai",
+   "vai": "nhanVien",
+   "kho": "390x844",
+   "vw": 390,
+   "scrollW": 390,
+   "caoTrang": 2603,
+   "mainRong": 390,
+   "trongPhai": 12,
+   "thuTu": [
+    [
+     "#dash-today",
+     707
+    ],
+    [
+     "#dash-so",
+     415
+    ],
+    [
+     "#dash-o",
+     277
+    ]
+   ],
+   "loiTatTop": null,
+   "cotChinhDay": null,
+   "cotPhuDay": null,
+   "chenhCot": null,
+   "cao": {
+    "doiChieu": null,
+    "thuTruoc": null,
+    "donDi": 1824,
+    "xemLai": null,
+    "dangCho": null,
+    "doanhThu": null
+   },
+   "dongDoiChieu": 0,
+   "dongThuTruoc": 0,
+   "dongXemLai": [],
+   "dongDangCho": [],
+   "khoiRong": [],
+   "gapHien": false,
+   "soTrong": null,
+   "pillCao": [],
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "c-gap",
+   "vai": "chu",
+   "kho": "1366x650",
+   "vw": 1366,
+   "scrollW": 1366,
+   "caoTrang": 2721,
+   "mainRong": 1118,
+   "trongPhai": 24,
+   "thuTu": [
+    [
+     "#dash-dai",
+     145
+    ],
+    [
+     "#dash-loi-tat",
+     255
+    ],
+    [
+     "#dash-gap",
+     381
+    ],
+    [
+     "#dash-today",
+     479
+    ],
+    [
+     "#dash-review",
+     1973
+    ],
+    [
+     "#dash-doi-chieu",
+     2112
+    ],
+    [
+     "#dash-thu-truoc",
+     2487
+    ],
+    [
+     "#dash-dang-cho",
+     479
+    ],
+    [
+     "#dash-so-mt",
+     976
+    ]
+   ],
+   "loiTatTop": 255,
+   "cotChinhDay": 2697,
+   "cotPhuDay": 2697,
+   "chenhCot": 0,
+   "cao": {
+    "doiChieu": 335,
+    "thuTruoc": 194,
+    "donDi": 1470,
+    "xemLai": 115,
+    "dangCho": 473,
+    "doanhThu": 1721
+   },
+   "dongDoiChieu": 3,
+   "dongThuTruoc": 3,
+   "dongXemLai": [
+    "1 góp ý mới chưa trả lờiYC-0023 báo lỗi"
+   ],
+   "dongDangCho": [
+    "Đơn chờ xác nhậnToàn công ty1 đơn quá hạn — hạn 15 phút2",
+    "Chờ đối chiếuToàn công tyKhoản thu chờ Kế toán đối chiếu54",
+    "Thu trước đơn huỷToàn công tyKhoản thu trước của đơn huỷ chờ",
+    "Đơn nhápCủa tôiĐơn nháp của bạn, chưa xác nhận2",
+    "Đơn chưa có người phụ tráchToàn công tyChưa ai nhận chăm sóc",
+    "Đơn còn thiếu tiềnToàn công tyCòn phải thu 52tr ₫10",
+    "Góp ý chờ xử lýToàn công tyGóp ý có tin mới chưa đọc1"
+   ],
+   "khoiRong": [],
+   "gapHien": true,
+   "soTrong": null,
+   "pillCao": [
+    22,
+    22,
+    22
+   ],
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 4
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "c-gap",
+   "vai": "chu",
+   "kho": "1440x900",
+   "vw": 1440,
+   "scrollW": 1440,
+   "caoTrang": 2721,
+   "mainRong": 1192,
+   "trongPhai": 24,
+   "thuTu": [
+    [
+     "#dash-dai",
+     145
+    ],
+    [
+     "#dash-loi-tat",
+     255
+    ],
+    [
+     "#dash-gap",
+     381
+    ],
+    [
+     "#dash-today",
+     479
+    ],
+    [
+     "#dash-review",
+     1973
+    ],
+    [
+     "#dash-doi-chieu",
+     2112
+    ],
+    [
+     "#dash-thu-truoc",
+     2487
+    ],
+    [
+     "#dash-dang-cho",
+     479
+    ],
+    [
+     "#dash-so-mt",
+     958
+    ]
+   ],
+   "loiTatTop": 255,
+   "cotChinhDay": 2697,
+   "cotPhuDay": 2697,
+   "chenhCot": 0,
+   "cao": {
+    "doiChieu": 335,
+    "thuTruoc": 194,
+    "donDi": 1470,
+    "xemLai": 115,
+    "dangCho": 455,
+    "doanhThu": 1739
+   },
+   "dongDoiChieu": 3,
+   "dongThuTruoc": 3,
+   "dongXemLai": [
+    "1 góp ý mới chưa trả lờiYC-0023 báo lỗi"
+   ],
+   "dongDangCho": [
+    "Đơn chờ xác nhậnToàn công ty1 đơn quá hạn — hạn 15 phút2",
+    "Chờ đối chiếuToàn công tyKhoản thu chờ Kế toán đối chiếu54",
+    "Thu trước đơn huỷToàn công tyKhoản thu trước của đơn huỷ chờ",
+    "Đơn nhápCủa tôiĐơn nháp của bạn, chưa xác nhận2",
+    "Đơn chưa có người phụ tráchToàn công tyChưa ai nhận chăm sóc",
+    "Đơn còn thiếu tiềnToàn công tyCòn phải thu 52tr ₫10",
+    "Góp ý chờ xử lýToàn công tyGóp ý có tin mới chưa đọc1"
+   ],
+   "khoiRong": [],
+   "gapHien": true,
+   "soTrong": null,
+   "pillCao": [
+    22,
+    22,
+    22
+   ],
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "c-gap",
+   "vai": "chu",
+   "kho": "1920x1080",
+   "vw": 1920,
+   "scrollW": 1920,
+   "caoTrang": 2374,
+   "mainRong": 1672,
+   "trongPhai": 24,
+   "thuTu": [
+    [
+     "#dash-dai",
+     145
+    ],
+    [
+     "#dash-loi-tat",
+     255
+    ],
+    [
+     "#dash-gap",
+     381
+    ],
+    [
+     "#dash-today",
+     479
+    ],
+    [
+     "#dash-review",
+     1733
+    ],
+    [
+     "#dash-doi-chieu",
+     1872
+    ],
+    [
+     "#dash-thu-truoc",
+     2140
+    ],
+    [
+     "#dash-dang-cho",
+     479
+    ],
+    [
+     "#dash-so-mt",
+     958
+    ]
+   ],
+   "loiTatTop": 255,
+   "cotChinhDay": 2350,
+   "cotPhuDay": 2350,
+   "chenhCot": 0,
+   "cao": {
+    "doiChieu": 228,
+    "thuTruoc": 194,
+    "donDi": 1230,
+    "xemLai": 115,
+    "dangCho": 455,
+    "doanhThu": 1392
+   },
+   "dongDoiChieu": 3,
+   "dongThuTruoc": 3,
+   "dongXemLai": [
+    "1 góp ý mới chưa trả lờiYC-0023 báo lỗi"
+   ],
+   "dongDangCho": [
+    "Đơn chờ xác nhậnToàn công ty1 đơn quá hạn — hạn 15 phút2",
+    "Chờ đối chiếuToàn công tyKhoản thu chờ Kế toán đối chiếu54",
+    "Thu trước đơn huỷToàn công tyKhoản thu trước của đơn huỷ chờ",
+    "Đơn nhápCủa tôiĐơn nháp của bạn, chưa xác nhận2",
+    "Đơn chưa có người phụ tráchToàn công tyChưa ai nhận chăm sóc",
+    "Đơn còn thiếu tiềnToàn công tyCòn phải thu 52tr ₫10",
+    "Góp ý chờ xử lýToàn công tyGóp ý có tin mới chưa đọc1"
+   ],
+   "khoiRong": [],
+   "gapHien": true,
+   "soTrong": null,
+   "pillCao": [
+    22,
+    22,
+    22
+   ],
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "c-gap",
+   "vai": "chu",
+   "kho": "1100x800",
+   "vw": 1100,
+   "scrollW": 1100,
+   "caoTrang": 4040,
+   "mainRong": 852,
+   "trongPhai": 24,
+   "thuTu": [
+    [
+     "#dash-dai",
+     145
+    ],
+    [
+     "#dash-loi-tat",
+     255
+    ],
+    [
+     "#dash-gap",
+     397
+    ],
+    [
+     "#dash-today",
+     495
+    ],
+    [
+     "#dash-review",
+     3189
+    ],
+    [
+     "#dash-doi-chieu",
+     3328
+    ],
+    [
+     "#dash-thu-truoc",
+     3755
+    ],
+    [
+     "#dash-dang-cho",
+     495
+    ],
+    [
+     "#dash-so-mt",
+     1008
+    ]
+   ],
+   "loiTatTop": 255,
+   "cotChinhDay": 4016,
+   "cotPhuDay": 4016,
+   "chenhCot": 0,
+   "cao": {
+    "doiChieu": 387,
+    "thuTruoc": 245,
+    "donDi": 2670,
+    "xemLai": 115,
+    "dangCho": 489,
+    "doanhThu": 3008
+   },
+   "dongDoiChieu": 3,
+   "dongThuTruoc": 3,
+   "dongXemLai": [
+    "1 góp ý mới chưa trả lờiYC-0023 báo lỗi"
+   ],
+   "dongDangCho": [
+    "Đơn chờ xác nhậnToàn công ty1 đơn quá hạn — hạn 15 phút2",
+    "Chờ đối chiếuToàn công tyKhoản thu chờ Kế toán đối chiếu54",
+    "Thu trước đơn huỷToàn công tyKhoản thu trước của đơn huỷ chờ",
+    "Đơn nhápCủa tôiĐơn nháp của bạn, chưa xác nhận2",
+    "Đơn chưa có người phụ tráchToàn công tyChưa ai nhận chăm sóc",
+    "Đơn còn thiếu tiềnToàn công tyCòn phải thu 52tr ₫10",
+    "Góp ý chờ xử lýToàn công tyGóp ý có tin mới chưa đọc1"
+   ],
+   "khoiRong": [],
+   "gapHien": true,
+   "soTrong": null,
+   "pillCao": [
+    22,
+    22,
+    22
+   ],
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 1
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "c-gap",
+   "vai": "chu",
+   "kho": "390x844",
+   "vw": 390,
+   "scrollW": 390,
+   "caoTrang": 3736,
+   "mainRong": 390,
+   "trongPhai": 12,
+   "thuTu": [
+    [
+     "#dash-today",
+     1840
+    ],
+    [
+     "#dash-review",
+     1517
+    ],
+    [
+     "#dash-doi-chieu",
+     805
+    ],
+    [
+     "#dash-thu-truoc",
+     1240
+    ],
+    [
+     "#dash-so",
+     433
+    ],
+    [
+     "#dash-o",
+     295
+    ]
+   ],
+   "loiTatTop": null,
+   "cotChinhDay": null,
+   "cotPhuDay": null,
+   "chenhCot": null,
+   "cao": {
+    "doiChieu": 407,
+    "thuTruoc": 249,
+    "donDi": 1824,
+    "xemLai": 311,
+    "dangCho": null,
+    "doanhThu": null
+   },
+   "dongDoiChieu": 3,
+   "dongThuTruoc": 3,
+   "dongXemLai": [
+    "40 khoản đang đối chiếu quá 3 ngàyĐối chiếu rồi bấm “Xác nhận đã nhận”",
+    "7 đơn huỷ còn người chưa nộp tiềnThu trước của đơn huỷ là tiền công ty",
+    "1 góp ý mới chưa trả lờiYC-0023 báo lỗi"
+   ],
+   "dongDangCho": [],
+   "khoiRong": [],
+   "gapHien": false,
+   "soTrong": null,
+   "pillCao": [
+    22,
+    22,
+    22
+   ],
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "c-gap",
+   "vai": "quanTri",
+   "kho": "1366x650",
+   "vw": 1366,
+   "scrollW": 1366,
+   "caoTrang": 1973,
+   "mainRong": 1118,
+   "trongPhai": 24,
+   "thuTu": [
+    [
+     "#dash-dai",
+     145
+    ],
+    [
+     "#dash-loi-tat",
+     255
+    ],
+    [
+     "#dash-gap",
+     381
+    ],
+    [
+     "#dash-today",
+     479
+    ],
+    [
+     "#dash-dang-cho",
+     479
+    ],
+    [
+     "#dash-so-mt",
+     722
+    ]
+   ],
+   "loiTatTop": 255,
+   "cotChinhDay": 1949,
+   "cotPhuDay": 1949,
+   "chenhCot": 0,
+   "cao": {
+    "doiChieu": null,
+    "thuTruoc": null,
+    "donDi": 1470,
+    "xemLai": null,
+    "dangCho": 219,
+    "doanhThu": 1227
+   },
+   "dongDoiChieu": 0,
+   "dongThuTruoc": 0,
+   "dongXemLai": [],
+   "dongDangCho": [
+    "Đơn chờ xác nhậnToàn công ty1 đơn quá hạn — hạn 15 phút2",
+    "Đơn chưa có người phụ tráchToàn công tyChưa ai nhận chăm sóc",
+    "Đơn còn thiếu tiềnToàn công tyCòn phải thu 52tr ₫10"
+   ],
+   "khoiRong": [],
+   "gapHien": true,
+   "soTrong": null,
+   "pillCao": [],
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 3
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "c-gap",
+   "vai": "quanTri",
+   "kho": "1440x900",
+   "vw": 1440,
+   "scrollW": 1440,
+   "caoTrang": 1973,
+   "mainRong": 1192,
+   "trongPhai": 24,
+   "thuTu": [
+    [
+     "#dash-dai",
+     145
+    ],
+    [
+     "#dash-loi-tat",
+     255
+    ],
+    [
+     "#dash-gap",
+     381
+    ],
+    [
+     "#dash-today",
+     479
+    ],
+    [
+     "#dash-dang-cho",
+     479
+    ],
+    [
+     "#dash-so-mt",
+     722
+    ]
+   ],
+   "loiTatTop": 255,
+   "cotChinhDay": 1949,
+   "cotPhuDay": 1949,
+   "chenhCot": 0,
+   "cao": {
+    "doiChieu": null,
+    "thuTruoc": null,
+    "donDi": 1470,
+    "xemLai": null,
+    "dangCho": 219,
+    "doanhThu": 1227
+   },
+   "dongDoiChieu": 0,
+   "dongThuTruoc": 0,
+   "dongXemLai": [],
+   "dongDangCho": [
+    "Đơn chờ xác nhậnToàn công ty1 đơn quá hạn — hạn 15 phút2",
+    "Đơn chưa có người phụ tráchToàn công tyChưa ai nhận chăm sóc",
+    "Đơn còn thiếu tiềnToàn công tyCòn phải thu 52tr ₫10"
+   ],
+   "khoiRong": [],
+   "gapHien": true,
+   "soTrong": null,
+   "pillCao": [],
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "c-gap",
+   "vai": "quanTri",
+   "kho": "1920x1080",
+   "vw": 1920,
+   "scrollW": 1920,
+   "caoTrang": 1733,
+   "mainRong": 1672,
+   "trongPhai": 24,
+   "thuTu": [
+    [
+     "#dash-dai",
+     145
+    ],
+    [
+     "#dash-loi-tat",
+     255
+    ],
+    [
+     "#dash-gap",
+     381
+    ],
+    [
+     "#dash-today",
+     479
+    ],
+    [
+     "#dash-dang-cho",
+     479
+    ],
+    [
+     "#dash-so-mt",
+     722
+    ]
+   ],
+   "loiTatTop": 255,
+   "cotChinhDay": 1709,
+   "cotPhuDay": 1709,
+   "chenhCot": 0,
+   "cao": {
+    "doiChieu": null,
+    "thuTruoc": null,
+    "donDi": 1230,
+    "xemLai": null,
+    "dangCho": 219,
+    "doanhThu": 987
+   },
+   "dongDoiChieu": 0,
+   "dongThuTruoc": 0,
+   "dongXemLai": [],
+   "dongDangCho": [
+    "Đơn chờ xác nhậnToàn công ty1 đơn quá hạn — hạn 15 phút2",
+    "Đơn chưa có người phụ tráchToàn công tyChưa ai nhận chăm sóc",
+    "Đơn còn thiếu tiềnToàn công tyCòn phải thu 52tr ₫10"
+   ],
+   "khoiRong": [],
+   "gapHien": true,
+   "soTrong": null,
+   "pillCao": [],
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "c-gap",
+   "vai": "quanTri",
+   "kho": "1100x800",
+   "vw": 1100,
+   "scrollW": 1100,
+   "caoTrang": 3189,
+   "mainRong": 852,
+   "trongPhai": 24,
+   "thuTu": [
+    [
+     "#dash-dai",
+     145
+    ],
+    [
+     "#dash-loi-tat",
+     255
+    ],
+    [
+     "#dash-gap",
+     397
+    ],
+    [
+     "#dash-today",
+     495
+    ],
+    [
+     "#dash-dang-cho",
+     495
+    ],
+    [
+     "#dash-so-mt",
+     754
+    ]
+   ],
+   "loiTatTop": 255,
+   "cotChinhDay": 3165,
+   "cotPhuDay": 3165,
+   "chenhCot": 0,
+   "cao": {
+    "doiChieu": null,
+    "thuTruoc": null,
+    "donDi": 2670,
+    "xemLai": null,
+    "dangCho": 235,
+    "doanhThu": 2411
+   },
+   "dongDoiChieu": 0,
+   "dongThuTruoc": 0,
+   "dongXemLai": [],
+   "dongDangCho": [
+    "Đơn chờ xác nhậnToàn công ty1 đơn quá hạn — hạn 15 phút2",
+    "Đơn chưa có người phụ tráchToàn công tyChưa ai nhận chăm sóc",
+    "Đơn còn thiếu tiềnToàn công tyCòn phải thu 52tr ₫10"
+   ],
+   "khoiRong": [],
+   "gapHien": true,
+   "soTrong": null,
+   "pillCao": [],
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  },
+  {
+   "ca": "c-gap",
+   "vai": "quanTri",
+   "kho": "390x844",
+   "vw": 390,
+   "scrollW": 390,
+   "caoTrang": 2683,
+   "mainRong": 390,
+   "trongPhai": 12,
+   "thuTu": [
+    [
+     "#dash-today",
+     787
+    ],
+    [
+     "#dash-so",
+     415
+    ],
+    [
+     "#dash-o",
+     277
+    ]
+   ],
+   "loiTatTop": null,
+   "cotChinhDay": null,
+   "cotPhuDay": null,
+   "chenhCot": null,
+   "cao": {
+    "doiChieu": null,
+    "thuTruoc": null,
+    "donDi": 1824,
+    "xemLai": null,
+    "dangCho": null,
+    "doanhThu": null
+   },
+   "dongDoiChieu": 0,
+   "dongThuTruoc": 0,
+   "dongXemLai": [],
+   "dongDangCho": [],
+   "khoiRong": [],
+   "gapHien": false,
+   "soTrong": null,
+   "pillCao": [],
+   "loi": {
+    "cat": 0,
+    "tran": 0,
+    "che": 0
+   },
+   "chiTietLoi": {
+    "cat": [],
+    "tran": []
+   }
+  }
+ ],
+ "khung": [],
+ "tuongTac": {
+  "macDinh": [
+   3,
+   3
+  ],
+  "nutTen": [
+   "Xem tất cả (54)",
+   "Xem tất cả (7)"
+  ],
+  "moDc": {
+   "dong": 54,
+   "nut": "Thu gọn",
+   "expanded": "true",
+   "cuon": [
+    4566,
+    320
+   ],
+   "caoKhoi": 382
+  },
+  "moTt": {
+   "dong": 7,
+   "nut": "Thu gọn"
+  },
+  "nutDong": {
+   "co": true,
+   "chu": "Bên kia đã nhận",
+   "trongKhungCuon": true,
+   "loai": "nha_cung_cap"
+  },
+  "hopThoai": null,
+  "bam": "Bên kia đã nhận",
+  "posts": [],
+  "sauBam": "Thu gọn"
+ },
+ "o1": "5d24612e-8727-4527-b0e2-4fc403305a83"
+}
