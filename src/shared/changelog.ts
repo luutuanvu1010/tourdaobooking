@@ -22,7 +22,7 @@ export const CHANGELOG: readonly ReleaseNote[] = [
     version: "2.59",
     date: "2026-11-04",
     items: [
-      { kind: "sua", text: "Đối tác và tài xế đối tác nay nhận tin khi số dư trên đơn của mình được Kế toán điều chỉnh." },
+      { kind: "sua", text: "Đối tác và tài xế đối tác nay nhận tin khi số dư của mình được Kế toán điều chỉnh." },
     ],
   },
   {
