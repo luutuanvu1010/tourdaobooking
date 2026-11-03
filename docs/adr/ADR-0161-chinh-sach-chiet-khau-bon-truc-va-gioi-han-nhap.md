@@ -13,7 +13,7 @@ Sau lần xoá dữ liệu thử (ADR-0158), Kế toán phải nhập lại mứ
 
 ## Quyết định
 
-**Đ1. Bốn trục độc lập, đặt ở trang Hoa hồng đối tác:** Cấp đại lý, Dịch vụ, «Tính bằng», «Áp cho». Không thêm bảng cho trục, không tạo «gói chiết khấu» dùng chung: mỗi dòng mức thuộc đúng một cấp và một phạm vi dịch vụ.
+**Đ1. Bốn trục độc lập, đặt ở trang Hoa hồng đối tác:** Cấp đại lý, Dịch vụ, «Tính bằng», «Áp cho». Không thêm bảng cho trục, không tạo «gói chiết khấu» dùng chung: mỗi dòng mức của cấp thuộc đúng một cấp và một phạm vi dịch vụ. Dòng riêng của vai trò và của đối tác vẫn tồn tại như hôm nay.
 
 **Đ2. «Tính bằng» (Phần trăm, Số tiền) và «Áp cho» (Mọi khách như nhau, Riêng từng loại khách) là tập đóng,** vì mỗi giá trị là một công thức (Hiến chương 2.2). Bỏ phần trăm riêng theo loại khách. «Điều kiện áp dụng» là ghi chú để đọc, máy không tự kiểm.
 
@@ -28,6 +28,8 @@ Sau lần xoá dữ liệu thử (ADR-0158), Kế toán phải nhập lại mứ
 ## Hệ quả
 
 Kế toán nhập trực tiếp trên bảng theo hàng và cột, không cần quyền mới. Đơn đã xác nhận không đổi số. Một mức nhập sai ở phạm vi rộng vẫn nhận được, nhưng không còn mở rộng trần giảm giá; đơn có dòng vượt vẫn bị giữ ở Đã giao tới khi Kế toán sửa. Đơn toàn trẻ em miễn phí với mức «Mọi khách như nhau» có thể bị giữ ở Đã giao, đặc tả chấp nhận rủi ro này.
+
+Kiểm định kỳ `R-ORD-DC1` gọi cùng hàm tính trần nên tự theo định nghĩa mới, giữ một định nghĩa. Đơn đã xác nhận trước bản này mà có dòng vượt kèm giảm giá sẽ bị báo lỗi. Production đã xoá dữ liệu thử ngày 2/11, nên chỉ có thể là đơn phát sinh sau đó (chưa kiểm); lần triển khai phải đọc kết quả kiểm định này. Cảnh báo trước khi Ghi mức tay vẫn cộng số gốc, vì đó là số sẽ vào sổ.
 
 ## Ngoài phạm vi
 

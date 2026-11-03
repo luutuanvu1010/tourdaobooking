@@ -20,6 +20,8 @@
 - Câu máy chủ, đúng từng chữ (số định dạng bằng `nhanTyLeBp`, `nhanDong`): `Phần trăm không quá ${x}.` · `Số tiền phải chia hết cho ${y}đ (không trả thì gõ 0).` · `Hoa hồng ${a}đ của ${loai} lớn hơn giá bán ${b}đ của «${ten}».` với `loai` ∈ `người lớn`, `trẻ em`, `người cao tuổi`, `mỗi lượt` · `Hoa hồng ${a}đ lớn hơn giá bán cao nhất ${b}đ của «${ten}».`
 - Giữa chừng chỉ chạy `node --test <tệp liên quan>` và `npm run typecheck`. `npm test`, e2e, Chrome chạy mỗi bộ MỘT lần ở Task 9. `typecheck` không phủ `*.test.ts`: tự đọc lại tệp test mới.
 - Không sửa `playbook/`, không sửa migration cũ, không `git push`, không merge, không đụng production. Commit tiếng Việt có dấu, thân nói vì sao, kết bằng `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
+- Không đổi số trong `golden/`. Không sửa `docs/quyen-hoan.json`, bài kiểm hạn hay tệp hàng rào để bộ kiểm xanh. Nếu đỏ duy nhất vì `HC-5.19` quá hạn (hạn 2026-11-05): ghi sổ thi công, dừng, báo điều phối. Ca sổ vàng đi qua route mà vướng giới hạn hoặc vượt giá: dừng, báo điều phối.
+- Không sửa `CLAUDE.md`, `web/CLAUDE.md`, `src/CLAUDE.md`, `docs/adr/`: điều phối tự làm.
 - `web/` không import `src/modules/`, không `innerHTML`, không tự tính tiền; ô gõ 16px; CSS mới đi qua token.
 - Đọc nhiều đoạn trong một lượt, lấy cả khối; tệp và tên hàm đã ghi sẵn ở từng task.
 
@@ -80,7 +82,7 @@ assert.equal(kiemThanGioiHan({ tranTyLeBp: 6000, buocTien: 500 }).ok, false);
 
 - [ ] **Step 7: Cập nhật ảnh chụp route** trong `src/route-access.test.ts` (+2 dòng, tổng +2) và số route ghi trong `src/lan-gui-phu-route.test.ts` (+1), kèm dòng chú thích ADR-0161.
 
-- [ ] **Step 8: Chạy cho xanh.** Lệnh ở Step 3, thêm `node --test src/route-access.test.ts src/lan-gui-phu-route.test.ts src/modules/pricing/*.test.ts`. Bài cũ đỏ vì số lẻ (đã đo: `theo-loai.test.ts`, `thuong-mai-route.test.ts`, `so-la-doi-tac.test.ts`, `so-la-thuong-mai-toan-nen-tang.test.ts`, `bien-nhan.test.ts` có số không chia hết 1.000 hoặc trên 50%, có thể chỉ ở SQL gieo): chỉ đổi số đầu vào đi qua route ghi mức nếu bài không kiểm chính số đó; không đổi đáp án tiền mà không ghi lại ở sổ thi công.
+- [ ] **Step 8: Chạy cho xanh.** Lệnh ở Step 3, thêm `node --test src/route-access.test.ts src/lan-gui-phu-route.test.ts src/modules/pricing/*.test.ts`. Bài cũ đỏ vì số lẻ hoặc trên 50% (đã đo: `theo-loai.test.ts`, `thuong-mai-route.test.ts`, `so-la-doi-tac.test.ts`, `so-la-thuong-mai-toan-nen-tang.test.ts`, `bien-nhan.test.ts`, các số này thường để thử làm tròn): **không đổi số đầu vào và không đổi đáp án**. Thêm helper `noiGioiHanNhap(w)` vào `tests/audit/harness.mjs` (chèn một dòng `prc_entry_limit_policy` với `max_rate_bp` 10000, `amount_step` 1) và gọi trong phần gieo của đúng bài đó. Ca cố ý gửi số sai (10001, 100000001) phải vẫn nhận câu từ chối cũ.
 
 - [ ] **Step 9: Commit.** `Giới hạn nhập mức hoa hồng do Toàn quyền đổi được (ADR-0161 Đ3)`.
 
@@ -109,7 +111,7 @@ assert.equal(mucVuotGiaBan({ unit: "lạ", gia: G, moiKhach: 9000000, theoLoai: 
 assert.equal(mucVuotGiaBan({ unit: "perPax", gia: { adult: null, child: null, senior: null }, moiKhach: 9000000, theoLoai: null, ten: "X" }), null);
 ```
 
-- [ ] **Step 2: Viết bài route đỏ:** `500.000 đ cho vé 300.000 đ trả 400` qua Thêm, Đổi, Sửa; `cùng số ở phạm vi nhóm và tất cả được nhận`; `Mọi khách như nhau 100.000 đ cho dịch vụ người lớn 1.000.000 đ, trẻ em 0 đ được nhận`; `phần trăm không so giá`; `dòng đã có vượt giá vì giá giảm sau đó: Sửa chỉ đổi ngày 200`. Thêm `ghi-muc-qua-cong.test.ts`: đọc `src/modules/pricing/index.ts`, tách theo `route("`, mọi khúc chứa `insertRuleStatement(`, `cauDoiMuc(` hoặc `cauSuaMuc(` phải chứa `kiemSoMucMoi(`.
+- [ ] **Step 2: Viết bài route đỏ:** `500.000 đ cho vé 300.000 đ trả 400` qua Thêm, Đổi, Sửa; `cùng số ở phạm vi nhóm và tất cả được nhận`; `Mọi khách như nhau 100.000 đ cho dịch vụ người lớn 1.000.000 đ, trẻ em 0 đ được nhận`; `phần trăm không so giá`; `dòng đã có vượt giá vì giá giảm sau đó: Sửa chỉ đổi ngày 200`. Thêm `ghi-muc-qua-cong.test.ts`: quét mọi tệp `.ts` không phải test trong `src/modules/pricing/` trừ `repository.ts`, tách theo `route("`, mọi khúc chứa `insertRuleStatement(`, `cauDoiMuc(` hoặc `cauSuaMuc(` phải chứa `kiemSoMucMoi(`; tệp không có `route("` mà nhắc các câu đó thì cả tệp phải chứa `kiemSoMucMoi(`.
 
 - [ ] **Step 3: Chạy cho đỏ.** `node --test src/shared/gioi-han-nhap-muc.test.ts src/modules/pricing/gioi-han-nhap.test.ts src/modules/pricing/ghi-muc-qua-cong.test.ts`.
 
@@ -147,9 +149,11 @@ assert.equal(mucVuotGiaBan({ unit: "perPax", gia: { adult: null, child: null, se
 
 - [ ] **Step 4: Thêm sổ vàng** `golden/tran-giam-gia-dong-vuot.json`: ba ca của Step 1 (đầu vào, trần đúng từng đồng), `xac_nhan.trang_thai = "cho_xac_nhan"`, mô tả ghi số do AI soạn chờ Kế toán hoặc chủ xác nhận; bài ở Step 1 đọc tệp này làm đầu vào; thêm một dòng vào bảng của `golden/README.md`.
 
-- [ ] **Step 5: Chạy cho xanh**, gồm `node --test src/modules/orders/tran-giam-gia-don.test.ts src/modules/orders/price-guards.test.ts src/so-vang.test.ts src/shared/ben-kia-hien-thi.test.ts`, và `npm run typecheck`. Quan sát chặn thật: tạm cho `hoaHongTinhTran` trả số gốc ⇒ bài đỏ ⇒ hoàn nguyên; ghi vào sổ thi công.
+- [ ] **Step 5: Kiểm định kỳ giữ một định nghĩa.** `scripts/audit-thuong-mai.mjs` gọi `tongHoaHongDon(…, "tinh0")` nên tự theo luật mới: không thêm chế độ thứ ba, không sửa kịch bản. Thêm ca vào `src/kiem-dinh-ky-so-dai-ly.test.ts`: đơn gieo thẳng bản chụp có dòng vượt kèm giảm giá, xác nhận sau mốc ⇒ `R-ORD-DC1` có một vi phạm; đơn dòng đúng ⇒ 0. Sửa chú thích `chenhGiamGiaSauGhiTay` ở `hoa-hong-dong.ts`: hàm cố ý cộng số gốc vì đó là số sẽ vào sổ, khác trần.
 
-- [ ] **Step 6: Commit.** `Trần giảm giá không tính dòng hoa hồng vượt thành tiền (ADR-0161 Đ5)`.
+- [ ] **Step 6: Chạy cho xanh**, gồm `node --test src/modules/orders/tran-giam-gia-don.test.ts src/modules/orders/price-guards.test.ts src/so-vang.test.ts src/so-vang-so-dai-ly.test.ts src/kiem-dinh-ky-so-dai-ly.test.ts src/phai-thu-mot-ham.test.ts src/shared/ben-kia-hien-thi.test.ts`, và `npm run typecheck`. Quan sát chặn thật: tạm cho `hoaHongTinhTran` trả số gốc ⇒ bài đỏ ⇒ hoàn nguyên; ghi vào sổ thi công.
+
+- [ ] **Step 7: Commit.** `Trần giảm giá không tính dòng hoa hồng vượt thành tiền (ADR-0161 Đ5)`.
 
 ### Task 4: Màn đơn báo dòng vượt, không hiện số âm
 
@@ -209,7 +213,7 @@ assert.equal(mucVuotGiaBan({ unit: "perPax", gia: { adult: null, child: null, se
 - [ ] **Step 3: Giữ chỗ khi vẽ lại:** trong `veTheCap`, lưu `window.scrollY`, `scrollTop`, `scrollLeft` của `.hh-ma-tran-khung` và phần tử đang nhập, khôi phục sau `replaceChildren`. CSS: khung cuộn hai chiều có chiều cao giới hạn bằng token mới, đầu cột và cột dịch vụ dính (`position: sticky`), trang không cuộn ngang.
 - [ ] **Step 4: Sửa hộp.** `dungCachTinh`: `Cách tính` thành `Tính bằng` với hai lựa chọn `Phần trăm`, `Số tiền`; ô tích `Tách theo loại khách` thành ô chọn `Áp cho` (`Mọi khách như nhau`, `Riêng từng loại khách`); chọn phần trăm thì `Áp cho` khoá ở `Mọi khách như nhau`; `doc().theoLoai` theo ô này. `themMuc`: có `phamVi` thì thay ba ô dịch vụ bằng dòng chữ tên hàng, `docDichVu` trả phạm vi đã chọn; khi có `gia` hiện `cauXemTruocGiaDaiLy` cập nhật theo ô, trong `aria-live`. `chuan()` của hộp gọi `viPhamGioiHanNhap` khi có `d.gioiHan`, báo dưới ô `muc`; máy chủ vẫn kiểm lại. Hộp có câu nhắc giới hạn đang áp.
 - [ ] **Step 5: `web/hoa-hong.ts` nạp `gioiHan`** song song các phần khác, lỗi thì null, không chặn trang. Bảng `bangDongMuc` đổi đầu cột `Cách tính` thành `Tính bằng`, thêm cột `Áp cho`.
-- [ ] **Step 6: Kiểm trên Chrome bằng D1 local tạm:** khổ 1440 và 1040, nhập liên tiếp ba ô: sau mỗi lần ghi trang giữ vị trí cuộn và bộ lọc, ô vừa nhập hiện số mới. Khổ 390 vẫn là danh sách theo cấp. Kết quả ghi vào sổ thi công.
+- [ ] **Step 6: Kiểm trên Chrome bằng D1 local tạm:** khổ 1440 và 1040, nhập liên tiếp ba ô: sau mỗi lần ghi trang giữ vị trí cuộn và bộ lọc, ô vừa nhập hiện số mới. Khổ 390 vẫn là danh sách theo cấp. Chụp ảnh thật ba khổ 1440, 1040, 390 vào `docs/evidence/2026-11-03-chiet-khau-bon-truc/anh/`; điều phối trình chủ ngay, không chờ Task 9, các task sau đi tiếp. Kết quả ghi vào sổ thi công.
 - [ ] **Step 7: Commit.** `Bảng nhập hoa hồng theo hàng dịch vụ, cột cấp và hộp Tính bằng, Áp cho (ADR-0161 Đ1, Đ2)`.
 
 ### Task 7: Bỏ lối thêm mức riêng cho vai trò, chữ, gợi ý điều kiện
@@ -239,7 +243,7 @@ assert.equal(mucVuotGiaBan({ unit: "perPax", gia: { adult: null, child: null, se
 
 **Files:**
 - Create: `docs/evidence/2026-11-03-chiet-khau-bon-truc/kich-ban/bang-nhap-smoke.mjs`
-- Modify: `docs/SO-HANG-RAO.md`, `docs/SYSTEM-DESIGN.md` (§5, §7, §9), `docs/CHANGE-GUIDE.md` (bẫy: giới hạn nhập áp ở route, bài gieo mức qua route phải theo giới hạn), kịch bản `hoa-hong-smoke.mjs` (ghi đầu tệp phần đã thay), `web/CLAUDE.md` (một dòng bảng kịch bản, bằng công cụ sửa tệp), sổ thi công
+- Modify: `docs/SO-HANG-RAO.md`, `docs/SYSTEM-DESIGN.md` (§5, §7, §9), `docs/CHANGE-GUIDE.md` (bẫy: giới hạn nhập áp ở route, bài gieo mức qua route phải theo giới hạn), kịch bản `hoa-hong-smoke.mjs` (ghi đầu tệp phần đã thay), sổ thi công. Dòng kịch bản mới ở `web/CLAUDE.md`: điều phối tự thêm ở cuối
 
 - [ ] **Step 1: Sổ hàng rào, bốn dòng có ngày quan sát chặn thật:** giới hạn nhập ở `kiemSoMucMoi`; chặn vượt giá lúc nhập; rào quét `ghi-muc-qua-cong.test.ts`; trần không tính dòng vượt. Lấy bằng chứng từ sổ thi công, thiếu thì làm phép sửa cố ý rồi hoàn nguyên.
 - [ ] **Step 2: Viết `bang-nhap-smoke.mjs`,** 1440, 1040, 390, cần `AXE_JS`, không cần mạng ngoài, D1 tạm 120 dịch vụ, 6 cấp: Kế toán thấy đủ hàng và giá; bấm ô trống tạo đúng một dòng đúng cấp; tìm và lọc còn thiếu; đo thời gian mở; không cuộn ngang cả trang; Bán hàng không có nút; Đối tác bị chặn; Toàn quyền đổi giới hạn; màn đơn không có số âm. Chụp ảnh thật ba khổ vào cùng thư mục để trình chủ.
