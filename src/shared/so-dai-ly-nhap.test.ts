@@ -69,6 +69,10 @@ test("docThanMuc: lỗi gom theo ô, một lượt (chưa chọn đối tượng
   assert.deepEqual(!quaTran.ok && quaTran.loi, [{ truong: "muc", message: "Số tiền mỗi khách không quá 100.000.000đ." }], "quá trần: lỗi ở ô mức, không gửi lên máy chủ");
   assert.equal(docThanMuc({ ...mucDu, doiTuong: { loai: "DOI_TAC", partyId: "" } }).ok, false);
 });
+test("docThanMuc: chưa chọn đối tác ⇒ câu «Chọn một đối tác.» (ADR-0161 Đ6: hộp không còn ô chọn vai trò)", () => {
+  const r = docThanMuc({ ...mucDu, doiTuong: { loai: "DOI_TAC", partyId: "" } });
+  assert.deepEqual(!r.ok && r.loi, [{ truong: "doiTuong", message: "Chọn một đối tác." }]);
+});
 
 const dkDu: FormDieuKhoan = { phamVi: "ALL", catalogCode: "", groupCode: "", nguoiBanPartyId: "pty-cty", laCongTy: true, tyLeMua: "", tuNgay: "2026-10-01", denNgay: "", ghiChu: "" };
 test("docThanDieuKhoan: Tour Đảo bán thì KHÔNG gửi tỷ lệ mua lại (dù ô còn chữ cũ); nhà cung cấp bán thì bắt buộc", () => {

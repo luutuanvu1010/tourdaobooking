@@ -131,7 +131,7 @@ export type ThanMucGui = PhamViNgayBody & {
 export function docThanMuc(f: FormMuc): KetDocForm<ThanMucGui> {
   const loi: LoiO[] = [];
   const dt = f.doiTuong;
-  if (dt === null || (dt.loai === "VAI" ? dt.code === "" : dt.partyId === "")) loi.push({ truong: "doiTuong", message: "Chọn một vai người dùng hoặc một đối tác." });
+  if (dt === null || (dt.loai === "VAI" ? dt.code === "" : dt.partyId === "")) loi.push({ truong: "doiTuong", message: "Chọn một đối tác." });
   const pv = docPhamViNgay(f, loi);
   const muc = docMucForm(f, loi);
   if (loi.length > 0 || dt === null || muc === null) return { ok: false, loi };

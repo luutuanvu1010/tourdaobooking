@@ -116,11 +116,11 @@ Kế toán có nút [[+ Hồ sơ mới]] và được thêm, sửa hồ sơ khá
       tieuDe: "Đặt mức hoa hồng cho đối tác",
       noiDung: `Hoa hồng là tiền Công ty trả cho đại lý hoặc cộng tác viên đặt đơn. Khi đơn được xác nhận, Nền tảng lấy mức đang áp trong bảng, tính hoa hồng một lần rồi giữ nguyên.
 
-1. Bấm [[Hoa hồng đối tác]]: ô **Kiểm tra hoa hồng** đầu trang cho biết mức của một đối tác; thẻ **Vai người dùng** cho biết từng vai trò đang hưởng mức nào.
-2. Bấm [[＋ Thêm mức]], chọn áp cho một vai người dùng, chọn dịch vụ (một dịch vụ, một nhóm dịch vụ hoặc mọi dịch vụ), chọn **Phần trăm** hoặc **Số tiền mỗi khách**, nhập ngày bắt đầu rồi bấm [[Thêm mức]].
-3. Đổi mức: bấm [[Đổi]] ở dòng đó, nhập mức mới và ngày bắt đầu; mức cũ tự ngừng. Hết dùng hẳn: bấm [[Ngừng]] và chọn ngày cuối. Mức không sửa, không xoá được.
+1. Bấm [[Hoa hồng đối tác]]: ô **Kiểm tra hoa hồng** cho biết mức của một đối tác; thẻ **Cấp độ đại lý** là bảng mức (hàng là dịch vụ, cột là cấp); thẻ **Vai người dùng** cho biết vai trò theo cấp nào.
+2. Bấm ô **—** ở hàng dịch vụ và cột cấp, chọn **Tính bằng** (Phần trăm hoặc Số tiền) và **Áp cho**, nhập ngày bắt đầu rồi bấm [[Thêm mức]]. Hàng **Mọi dịch vụ** và hàng nhóm dùng cho mức chung.
+3. Đổi mức: bấm ô đã có mức, chọn [[Đổi]], nhập mức mới và ngày bắt đầu. Hết dùng hẳn: chọn [[Ngừng]] và chọn ngày cuối. Mức không xoá được.
 
-Kế toán tìm được từng đối tác theo tên: gõ tên ở **Kiểm tra hoa hồng** để xem mức, hoặc chọn **Một đối tác** ở [[＋ Thêm mức]] để đặt mức riêng cho đối tác.
+Mức riêng cho một đối tác: bấm [[＋ Thêm mức riêng cho đối tác]]; muốn xem mức của họ, gõ tên ở **Kiểm tra hoa hồng**. Vai trò chỉ theo cấp.
 
 Người bán dịch vụ làm tương tự ở trang [[Người bán dịch vụ]]: khối [[Thêm điều khoản]] ghi dịch vụ nào do Tour Đảo bán, dịch vụ nào do nhà cung cấp bán (kèm tỷ lệ Tour Đảo mua lại). Dịch vụ nhóm Thuê xe không ghi nhà cung cấp mua lại.
 
@@ -131,7 +131,7 @@ Người bán dịch vụ làm tương tự ở trang [[Người bán dịch v�
       noiDung: `Vai người dùng là nhóm được hưởng hoa hồng, như Công ty lữ hành hay Lễ tân khách sạn. Cần vai trò mới thì bạn tự thêm.
 
 1. Bấm [[Hoa hồng đối tác]], bấm [[＋ Thêm vai trò]] và gõ tên.
-2. Đặt mức cho vai trò mới bằng [[＋ Thêm mức]].
+2. Cho vai trò mới theo một cấp bằng [[Chọn cấp cho vai trò này]].
 3. Không dùng nữa: bấm [[Tắt]]; cần lại: [[Bật]]. Vai trò **Có sẵn** không tắt được.
 4. Đổi tên, ghi chú: bấm [[Sửa]].
 

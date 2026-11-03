@@ -10,9 +10,9 @@ import {
   AP_CHO_THEO_LOAI,
   CAU_DA_SUA_CAP_RIENG,
   CAU_DAT_CAP_RIENG,
+  CAU_GHI_DIEU_KIEN_CAP,
   CAU_THEO_LOAI_KHACH,
   cauCanhBaoDongRieng,
-  cauCanhBaoTheoChinhSach,
   cauCapCuDangKhoa,
   cauCapCuSeNgung,
   CAU_CHON_NGAY_BAT_DAU,
@@ -33,7 +33,6 @@ import {
   cauSeTao,
   cauXemTruocGiaDaiLy,
   cauXemTruocSua,
-  chinhSachCuaLoai,
   coTheTimDoiTac,
   ngayDoiSomNhat,
   nhanDoiTuong,
@@ -57,7 +56,7 @@ export interface MoHop {
    * `dien.phamVi` (ADR-0161, bấm một ô của bảng nhập): hàng đã chọn sẵn — hộp thay ba ô chọn dịch vụ bằng một dòng chữ tên hàng và, khi hàng có giá bán lẻ (`unit`, `gia`), hiện giá đại lý xem trước theo mức đang gõ.
    * Hộp tìm lại cấp và hàng bằng mã, không nhớ DOM của ô.
    */
-  themMuc(dien?: { ai: { loai: "VAI"; code: string } | { loai: "DOI_TAC"; partyId: string; ten: string } | { loai: "MUC"; code: string }; phamVi?: PhamViHang }): void;
+  themMuc(dien?: { ai: { loai: "DOI_TAC"; partyId: string; ten: string } | { loai: "MUC"; code: string }; phamVi?: PhamViHang }): void;
   doi(d: Api.CommissionRuleDto): void;
   /** ADR-0148 Đ1: hỏi máy chủ đường Sửa (GET …/sua) rồi mở hộp Sửa điền sẵn mức cũ; lý do bắt buộc. */
   sua(d: Api.CommissionRuleDto): void;
@@ -349,41 +348,20 @@ export function taoMoHop(ctx: NguCanhHop): MoHop {
     const loi = taoBangLoi();
     const dich = dien?.ai;
     const laMuc = dich?.loai === "MUC";
-    // ---- Ai được hưởng
+    // ---- Ai được hưởng: một cấp (đã chọn sẵn) hoặc MỘT ĐỐI TÁC. Vai trò chỉ đi qua cấp trên giao diện (ADR-0161 Đ6); route vẫn nhận đích vai trò.
     let ai: HTMLElement;
     let docAi: () => FormMuc["doiTuong"] = () => null;
     let tenAi: () => string = () => "";
-    let tuLoai: () => string | null = () => null;
     if (dich?.loai === "MUC") {
       const tenMuc = d.mucTa.muc.find((m) => m.code === dich.code)?.ten ?? "";
       ai = h("p", null, h("strong", null, `Cấp ${tenMuc}`));
       tenAi = () => `Cấp ${tenMuc}`;
     } else {
-      const loaiVai = h("input", { type: "radio", class: "o-tick", name: "hh-hop-ai", value: "VAI", checked: dich?.loai !== "DOI_TAC" });
-      const loaiDt = h("input", { type: "radio", class: "o-tick", name: "hh-hop-ai", value: "DOI_TAC", checked: dich?.loai === "DOI_TAC" });
-      const vai = h("select", { id: "hh-hop-vai", "aria-label": "Vai người dùng" }, h("option", { value: "" }, "— Chọn vai người dùng —"), ...d.vai.map((v) => h("option", { value: v.code }, v.ten)));
-      if (dich?.loai === "VAI") vai.value = dich.code;
-      const tim = taoTimDoiTac({ choPhep: true, id: "hh-hop-doi-tac" });
+      const tim = taoTimDoiTac({ choPhep: duocTimTen, id: "hh-hop-doi-tac" });
       if (dich?.loai === "DOI_TAC") tim.datChon({ partyId: dich.partyId, ten: dich.ten });
-      const khuVai = h("div", null, vai);
-      const khuDt = h("div", null, tim.root);
-      const veAi = (): void => {
-        khuVai.hidden = !loaiVai.checked;
-        khuDt.hidden = !loaiDt.checked;
-      };
-      loaiVai.addEventListener("change", veAi);
-      loaiDt.addEventListener("change", veAi);
-      veAi();
-      ai = h(
-        "div",
-        null,
-        duocTimTen && h("div", { class: "hh-radio" }, h("label", { class: "check" }, loaiVai, "Vai người dùng"), h("label", { class: "check" }, loaiDt, "Một đối tác")),
-        khuVai,
-        duocTimTen && khuDt,
-      );
-      docAi = () => (loaiDt.checked && duocTimTen ? { loai: "DOI_TAC", partyId: tim.chon()?.partyId ?? "" } : { loai: "VAI", code: vai.value });
-      tenAi = () => (loaiDt.checked && duocTimTen ? (tim.chon()?.ten ?? "") : (d.vai.find((v) => v.code === vai.value)?.ten ?? ""));
-      tuLoai = () => (loaiDt.checked && duocTimTen ? null : vai.value || null);
+      ai = h("div", null, tim.root);
+      docAi = () => ({ loai: "DOI_TAC", partyId: tim.chon()?.partyId ?? "" });
+      tenAi = () => tim.chon()?.ten ?? "";
       tim.khiDoi(() => {
         loi.xoa();
         veCau();
@@ -417,7 +395,6 @@ export function taoMoHop(ctx: NguCanhHop): MoHop {
 
     const ct = dungCachTinh({ tienTo: "hh-hop", loi, homNay: d.homNay, tuMacDinh: d.homNay, tuMin: null, san: null, sauMuc: [...(cauGh ? [cauGh] : []), ...(xemTruoc ? [xemTruoc.root] : [])] });
     const cau = h("p", { class: "hint", "aria-live": "polite", hidden: true });
-    const canh = h("p", { class: "sheet-warn", hidden: true });
 
     const docThan = (): ReturnType<typeof docThanMuc> | ReturnType<typeof docThanDongMucTa> => {
       const f = { ...docDichVu(), ...ct.doc() };
@@ -432,10 +409,6 @@ export function taoMoHop(ctx: NguCanhHop): MoHop {
         cau.textContent = cauSeTao({ ai: tenAi(), dichVu: nhanPhamVi({ phamVi: b.phamVi, catalogCode: b.catalogCode ?? null, groupCode: b.groupCode ?? null }, d.ten), muc, tu: b.tuNgay, den: b.denNgay ?? null });
         cau.hidden = false;
       } else cau.hidden = true;
-      const code = tuLoai();
-      const cs = code === null ? null : chinhSachCuaLoai(ctx.lay().mucTa, code);
-      canh.textContent = cs ? cauCanhBaoTheoChinhSach(cs.muc.ten) : "";
-      canh.hidden = cs === null;
     };
     moHop(ctx, {
       title: laMuc ? "Thêm hoa hồng cho dịch vụ" : "Thêm mức hoa hồng",
@@ -444,7 +417,6 @@ export function taoMoHop(ctx: NguCanhHop): MoHop {
         dichVu,
         ct.root,
         cau,
-        canh,
       ],
       nhan: "Thêm mức",
       chuan() {
@@ -464,7 +436,7 @@ export function taoMoHop(ctx: NguCanhHop): MoHop {
       },
       xong: () => ctx.baoOk("Đã thêm mức."),
     });
-    // Câu «Sẽ tạo» và cảnh báo cấp đại lý cập nhật theo mọi thay đổi ở ba khối ô.
+    // Câu «Sẽ tạo» cập nhật theo mọi thay đổi ở ba khối ô.
     for (const k of [ai, dichVu, ct.root]) {
       k.addEventListener("input", veCau);
       k.addEventListener("change", veCau);
@@ -904,6 +876,7 @@ export function taoMoHop(ctx: NguCanhHop): MoHop {
         t.coSan && h("p", { class: "hint" }, CAU_TEN_CO_SAN),
         h("label", null, "Ghi chú", ghi),
         dem,
+        !la && h("p", { class: "hint" }, CAU_GHI_DIEU_KIEN_CAP),
         ...t.dauVet.map((x) => h("p", { class: "muted" }, x)),
         h("p", { class: "muted" }, t.soNoi),
       ],

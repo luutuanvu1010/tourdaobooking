@@ -252,7 +252,9 @@ export const CAU_TRA_THEO_LOAI = "Đang tra theo vai trò. Một đối tác c�
 export const cauMucCuSeNgung = (mucCu: string, tuNgay: string): string => `Mức cũ ${mucCu} sẽ ngừng, đến hết ${ngayVN(addDays(tuNgay, -1))}.`;
 export const cauSeTao = (v: { ai: string; dichVu: string; muc: string; tu: string; den: string | null }): string =>
   `Sẽ tạo: ${v.ai} · ${v.dichVu} · ${v.muc} · từ ${ngayVN(v.tu)}${v.den ? ` đến ${ngayVN(v.den)}` : ", không thời hạn"}.`;
-export const cauCanhBaoTheoChinhSach = (tenChinhSach: string): string => `Vai trò này đang theo cấp độ đại lý ${tenChinhSach}. Mức riêng được ưu tiên hơn cấp độ đại lý.`;
+
+/** Hộp «Sửa cấp độ đại lý» (ADR-0161 Đ2): điều kiện áp dụng của cấp (doanh thu, quy mô, cam kết) chỉ là ghi chú để người đọc; Nền tảng không đọc nó. */
+export const CAU_GHI_DIEU_KIEN_CAP = "Ghi điều kiện áp dụng ở đây để mọi người đọc (doanh thu, quy mô, cam kết). Nền tảng không tự kiểm điều kiện này.";
 
 /** Loại chưa có mức lên đầu, rồi theo tên (tiếng Việt). */
 export function xepLoai<T extends { ten: string; coMuc: boolean }>(ds: readonly T[]): T[] {

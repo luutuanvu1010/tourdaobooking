@@ -164,7 +164,7 @@ function veTraNhanhVaDai(d: DuLieuHoaHong): void {
   veDai(daiEl, d);
   veTraNhanh(traNhanhEl, d, (k) => void nhayToiDong(k));
 }
-/** Mở hộp «Thêm mức» (nút đầu trang và thanh dính đáy). */
+/** Mở hộp «Thêm mức» cho một đối tác (nút đầu trang và thanh dính đáy). */
 function moThemMuc(): void {
   moHop.themMuc();
 }
@@ -227,15 +227,15 @@ async function main(): Promise<void> {
     });
   });
 
-  // Nút «＋ Thêm mức»: chỉ người có quyền ghi (máy chủ kiểm lại). Điện thoại: thanh dính đáy; máy tính: nút ở đầu trang.
+  // Nút «＋ Thêm mức riêng cho đối tác» (ADR-0161 Đ6: vai trò chỉ đi qua cấp): chỉ người có quyền ghi (máy chủ kiểm lại). Điện thoại: thanh dính đáy; máy tính: nút ở đầu trang.
   if (can(staff, "partner.commission.write")) {
     nutThemEl.hidden = false;
     nutThemEl.addEventListener("click", moThemMuc);
-    const nutDay = h("button", { type: "button", class: "btn btn-primary btn-chinh vc-btn", id: "hh-them-muc-day" }, "＋ Thêm mức");
+    const nutDay = h("button", { type: "button", class: "btn btn-primary btn-chinh vc-btn", id: "hh-them-muc-day" }, "＋ Thêm mức riêng cho đối tác");
     nutDay.addEventListener("click", moThemMuc);
     thanhCuoiEl.append(nutDay);
     thanhCuoiEl.hidden = false;
-    // Nút nổi Trợ lý chỉ đo lại thanh đáy khi cuộn/đổi khổ (web/tro-ly.ts): thanh vừa hiện nên báo một lần để nút được nâng, không che «＋ Thêm mức».
+    // Nút nổi Trợ lý chỉ đo lại thanh đáy khi cuộn/đổi khổ (web/tro-ly.ts): thanh vừa hiện nên báo một lần để nút được nâng, không che «＋ Thêm mức riêng cho đối tác».
     window.dispatchEvent(new Event("resize"));
   }
 

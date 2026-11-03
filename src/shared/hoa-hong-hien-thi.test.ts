@@ -14,13 +14,13 @@ import {
   NHAN_LOAI_GOC,
   CAU_LOAI_CO_SAN,
   CAU_CHUA_CO_MUC_LOAI,
+  CAU_GHI_DIEU_KIEN_CAP,
   NHAN_CHUA_CO_MUC,
   CAU_NHAC_UU_TIEN,
   CAU_THU_TU_AP_MUC,
   CAU_TRA_THEO_LOAI,
   cauMucCuSeNgung,
   cauSeTao,
-  cauCanhBaoTheoChinhSach,
   ghepDoiTacRieng,
   dongRiengDoiTac,
   nutDoiNgung,
@@ -216,7 +216,10 @@ test("PR2 T1: nhãn mới và các câu nguyên văn", () => {
   assert.equal(cauMucCuSeNgung("10%", "2026-11-01"), "Mức cũ 10% sẽ ngừng, đến hết 31/10/2026.");
   assert.equal(cauSeTao({ ai: "Đại lý A", dichVu: "Mọi dịch vụ", muc: "10%", tu: "2026-11-01", den: null }), "Sẽ tạo: Đại lý A · Mọi dịch vụ · 10% · từ 01/11/2026, không thời hạn.");
   assert.equal(cauSeTao({ ai: "A", dichVu: "B", muc: "5%", tu: "2026-11-01", den: "2026-12-31" }), "Sẽ tạo: A · B · 5% · từ 01/11/2026 đến 31/12/2026.");
-  assert.equal(cauCanhBaoTheoChinhSach("Cấp 1"), "Vai trò này đang theo cấp độ đại lý Cấp 1. Mức riêng được ưu tiên hơn cấp độ đại lý.");
+});
+
+test("ADR-0161 Đ2: câu nhắc ghi điều kiện áp dụng của cấp — đúng từng chữ, nói rõ Nền tảng không tự kiểm", () => {
+  assert.equal(CAU_GHI_DIEU_KIEN_CAP, "Ghi điều kiện áp dụng ở đây để mọi người đọc (doanh thu, quy mô, cam kết). Nền tảng không tự kiểm điều kiện này.");
 });
 
 test("PR2 T1: nhanLoaiDoiTac — loại có sẵn, chỉ «Đã tắt» khi tắt", () => {

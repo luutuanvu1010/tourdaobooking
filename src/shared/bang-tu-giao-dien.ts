@@ -67,6 +67,8 @@ export const TU_DA_LOAI: readonly TuDaLoai[] = [
   { cam: /[Ll]oại đối tác|LOẠI ĐỐI TÁC/u, thay: "Vai người dùng", nguon: "chủ 2026-11-01, đặc tả 2026-11-01-dat-ve-doi-tac §4.3 (thay quyết định 3 ngày 30/10)" },
   { cam: /[Cc]ấp đại lý|CẤP ĐẠI LÝ/u, thay: "Cấp độ đại lý", nguon: "chủ 2026-11-01, đặc tả 2026-11-01-dat-ve-doi-tac §4.3 (thay quyết định 3 ngày 30/10)" },
   { cam: /Riêng từng đối tác/u, thay: "Người có cấp riêng", nguon: "chủ 2026-11-01, đặc tả 2026-11-01-dat-ve-doi-tac §4.3 (thay quyết định 3 ngày 30/10)" },
+  // Lượt 9 — chính sách chiết khấu bốn trục (ADR-0161 Đ2, chủ 2026-11-03): hộp nhập hoa hồng có hai ô «Tính bằng» (Phần trăm, Số tiền) và «Áp cho» (Mọi khách như nhau, Riêng từng loại khách); chữ «Cách tính» đã bỏ.
+  { cam: /Cách tính/u, thay: "Tính bằng · Áp cho", nguon: "chủ 2026-11-03 (ADR-0161)" },
 ];
 
 /** Chữ «đảo» là hòn đảo (tên công ty, tên tour) — gỡ khỏi chuỗi trước khi so với dòng «Đảo» ở trên. */
