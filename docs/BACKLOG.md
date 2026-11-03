@@ -732,3 +732,4 @@ Ghi 2026-10-29 khi đồng bộ bộ «Island Booking System — Design System v
 - **BL-CM-HAN-4KB** — ngoại lệ `EXC-2026-002` (ADR-0160 Đ6) hạn **2027-02-03**, không có máy canh. Tới hạn xem lại: nén tiếp §3, §8, §9 của `CLAUDE.md` gốc, hoặc đặt ngưỡng mới cho dự án production bằng ADR mới.
 - **BL-CM-WEB** — `web/CLAUDE.md` 32 KB, còn nặng hơn tệp gốc, phần lớn là danh sách kịch bản Chrome; chưa rà. `src/CLAUDE.md` 10 KB.
 - **BL-CM-KERNEL** — tờ khai `docs/kernel-18.md`: dòng 12 (`PH-TDS-01`) quá hạn 31/10, chủ quyết làm hay gia hạn có lý do; tờ khai chưa có người duyệt và mục kiểm lại bằng người còn trống.
+- **BL-CM-TRO-LY-MAY** — `tro-ly-may/tho-san-loi/agent.md` chỉ dặn đọc `CLAUDE.md` và `src/CLAUDE.md`, nên trợ lý trên mây chỉ tới bẫy ở `CLAUDE.md` con nếu tự theo chỉ mục §10. Phạm vi săn lỗi hôm nay chỉ về tiền nên chưa thiệt. Sửa một dòng ở lần đổi phiên bản trợ lý tới.

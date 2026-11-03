@@ -30,7 +30,7 @@ Dòng nào không có ở đây thì giữ nguyên văn ở bản mới hoặc t
 
 | Mục cũ | Đổi thế nào | Chữ đầy đủ còn ở đâu |
 |---|---|---|
-| Đầu tệp | Thêm chỉ mục hai nửa theo Framework và câu về `CLAUDE.md` con | không mất gì |
+| Đầu tệp | Thêm chỉ mục hai nửa theo Framework. Lời dặn cũ «chỉ tự nạp khi bạn ĐỌC tệp ở đó, làm bằng lệnh shell thì tự mở» giữ nguyên nghĩa, áp thêm cho `CLAUDE.md` con (bản đầu đã đổi nghĩa câu này, xem mục 5) | không mất gì |
 | §3 câu hỏi gom một lần | Bỏ phần «Bài học Trang chủ mới 2026-09-23» | Quy tắc giữ nguyên; bài học là ví dụ |
 | §3 Sổ hàng rào | Bỏ phần «Bài học 24/9» | Đầu `docs/SO-HANG-RAO.md` |
 | §6 hàng Kernel 18 | Hàng còn đối chiếu và nâng ghim; dòng chỉ đường Kernel 18 chuyển lên §2 | §2, `docs/kernel-18.md` |
@@ -39,21 +39,40 @@ Dòng nào không có ở đây thì giữ nguyên văn ở bản mới hoặc t
 | §8 hai dòng hàng rào | Gộp một dòng; bỏ lời trỏ đặc tả, ví dụ lệnh, lịch sử gỡ cổng xanh; giữ kết luận và trỏ sổ | `docs/SO-HANG-RAO.md`, các dòng Cổng xanh, Tệp cấm sửa, Không sửa tệp luật bằng dòng lệnh |
 | §8 chuỗi triển khai | Rút còn bước A.0, `npm run trien-khai` và lời trỏ | `docs/HANDOFF-N1.md` mục «HAI LỆNH», `docs/QUY-TRINH-PHAT-HANH.md`, `scripts/trien-khai.mjs` |
 | §9 Bước ghép | Giữ điều kiện và trần 3 quyết định; nội dung trang ghép và «Bài học 20/9» sang mục lục ADR | `docs/adr/README.md` |
-| §10 Lỗi 7403 | Rút còn điều AI phải làm và không được làm; bỏ ngày gặp, giả thuyết, cách phòng ngừa | `docs/QUY-TRINH-PHAT-HANH.md` mục cùng tên |
+| §10 Lỗi 7403 | Rút còn điều AI phải làm và không được làm; bỏ ngày gặp, giả thuyết, cách phòng ngừa; «chạy lại là qua» thành «chạy lại thường qua» vì mục kia còn đường dự phòng | `docs/QUY-TRINH-PHAT-HANH.md` mục cùng tên |
 | §10 Cột chết | Bỏ khỏi gốc vì trùng; thêm hai giá trị hằng vào `src/CLAUDE.md` | `src/CLAUDE.md` mục Dữ liệu |
 | §10 `orders` không import | Bỏ khỏi gốc vì trùng | `src/CLAUDE.md` mục Ranh giới module, đầy đủ hơn |
 | §10 Turnstile, Face ID | Dời nguyên văn | `src/modules/auth/CLAUDE.md` |
 | §10 Chế độ bảo trì | Dời nguyên văn | `src/modules/maintenance/CLAUDE.md` |
-| §10 Hồ sơ công ty chủ, Giấy tờ + `DRIVER` | Dời nguyên văn | `src/modules/parties/CLAUDE.md` |
+| §10 Hồ sơ công ty chủ, Giấy tờ + `DRIVER` | Dời nguyên văn; riêng số đếm cũ «512 hôm nay» (đã sai từ khi có quyền `HR`) đổi thành công thức, N9 cho phép sửa số đếm | `src/modules/parties/CLAUDE.md` |
 | §10 Điều phối xe | Dời nguyên văn | `src/modules/van-chuyen/CLAUDE.md` |
 | §10 Giờ đón, điểm đón | Dời nguyên văn | `src/modules/orders/CLAUDE.md` |
 
 ## 4. Kết quả đo
 
-Đo ngày 2026-11-03, người thi công; người kiểm độc lập chạy lại riêng.
+Đo ngày 2026-11-03, người thi công, trên bản đã sửa theo mục 5; người kiểm độc lập chạy lại riêng trên bản đầu.
 
-- **Cỡ `CLAUDE.md` gốc:** từ 30.638 byte, 4.571 từ xuống 27.435 byte, 3.970 từ, 137 dòng. Đã bỏ khỏi gốc khoảng 6 KB bẫy theo vùng; đã thêm 2,7 KB khối ba khung và 0,7 KB câu trỏ, luật phiên, chỉ mục. Con số 24 KB ở đề xuất trước chưa tính khối ba khung. Trần mới 27.800 byte.
-- **B2:** 118 dòng cũ có chữ, 105 dòng còn nguyên văn (98 ở gốc, 7 ở năm tệp con), 13 dòng khác, cả 13 có tên ở bảng mục 3.
+- **Cỡ `CLAUDE.md` gốc:** từ 30.638 byte, 4.571 từ xuống 27.594 byte, 4.122 từ (cùng đếm bằng `wc -w`), từ 130 lên 137 dòng. Đã bỏ khỏi gốc khoảng 6 KB bẫy theo vùng; đã thêm gần 3 KB khối ba khung và 0,7 KB câu trỏ, luật phiên, chỉ mục. Con số 24 KB ở đề xuất trước chưa tính khối ba khung. Trần mới 27.800 byte.
+- **B2:** 118 dòng cũ có chữ, 104 dòng còn nguyên văn (98 ở gốc, 6 ở năm tệp con), 14 dòng khác, cả 14 có tên ở bảng mục 3.
 - **B5:** bốn phiên mới `claude -p` trên kho này, đọc mục `nested_memory` trong nhật ký phiên. Đọc tệp ở `src/modules/maintenance` bằng công cụ đọc: có tệp con. Đọc tệp ở `src/modules/feedback`: chỉ có `src/CLAUDE.md`. Chạy `head -3` một tệp ở `src/modules/maintenance`: có tệp con. Chạy `grep -rlc` trên `src/modules`: không có mục `nested_memory` nào. Ghi ở `RANG_BUOC_NGOAI.md` A4. Chưa thử phiên trên web.
-- **B1, B3, B4, B6:** 24 phép phá trên bản sao tạm, cả 24 đỏ đúng bài, hoàn nguyên xanh. Danh sách ở `docs/SO-HANG-RAO.md`.
+- **B1, B3, B4, B6:** 27 phép phá trên bản sao tạm, cả 27 đỏ đúng bài, hoàn nguyên xanh. Danh sách ở `docs/SO-HANG-RAO.md`.
 - **Máy kiểm Kernel 18 của kho luật gốc:** trước khi sửa KHÔNG ĐẠT 2 lỗi (dòng 12, 13 quá hạn 31/10). Dòng 13 chép lệch `docs/quyen-hoan.json`, đã bỏ ngày chép lại. Sau khi sửa KHÔNG ĐẠT 1 lỗi: dòng 12 (`PH-TDS-01`), chờ chủ quyết.
+
+## 5. Kiểm độc lập và cách xử lý
+
+Người kiểm độc lập, chỉ đọc, đọc bản đầu ngày 2026-11-03: không mất luật hay hàng rào nào, có hai lỗi phải sửa trước khi trình chủ. Việc sửa nằm ở lần lưu sau; số ở mục 3, 4 đã theo bản sau sửa.
+
+| Mã | Phát hiện | Xử lý |
+|---|---|---|
+| I-1 | Khối ba khung gắn nhãn MWG và HC 5.13 cho ý nguồn không nói («phải chỉ ra lỗi thật», «lõi tự xây») | Sửa: tách ý có nguồn với ý chưa phải luật, «phải» thành «nên», lý do ở ADR-0160 |
+| I-2 | Đầu tệp đổi lời dặn cũ thành khẳng định mạnh hơn bằng chứng, `src/CLAUDE.md` và `web/CLAUDE.md` mất lời dặn | Sửa: trả lại lời dặn cũ, áp cho cả ba loại tệp; `RANG_BUOC_NGOAI.md` A4 tách đã thấy và chưa thử |
+| M1, M2 | Bài kiểm không quét ba tài liệu sống tuy tên bài nói có; `MWG T6`, `Oracle 10` lọt | Sửa, thêm ba phép phá |
+| M3 | Dòng sổ hàng rào bỏ mất câu nói nội dung luật không bị đo | Sửa |
+| M4, M5 | Số đếm cũ ở tệp con; số từ trộn hai cách đếm | Sửa |
+| M6 | Bốn chỗ trích lệch nhẹ (điều kiện của HC 5.12, nguồn hai nguyên tắc, C15, bản chụp MWG) | Sửa; bản chụp thêm hai gạch còn thiếu và dùng lại tiêu đề của nguồn |
+| M7 | Dòng Kernel 18 có thêm hai bổn phận ngoài «một dòng chỉ đường» | Giữ: chỉ siết, và lệnh chủ đòi ràng buộc cụ thể |
+| M8 | Số `EXC-2026-002` không có số 001 để đối chiếu | Không đúng: `EXC-2026-001` có ở `playbook/.PINNED_VERSION` |
+| M8 | Lỗi 7403 «chạy lại là qua» mạnh hơn quy trình | Sửa |
+| M8 | Khối §2 và bảng tiêu chí là hai bản của một sự thật | Chấp nhận: §2 ghi rõ là bản rút, cả hai có bài kiểm trích dẫn |
+| M8 | `tro-ly-may/tho-san-loi/agent.md` chỉ dặn đọc hai tệp | Ghi `docs/BACKLOG.md` mục 62; phạm vi săn lỗi hôm nay chỉ về tiền nên chưa thiệt |
+| M9 | Hai chỗ trỏ §8 trong runbook có ngày | Không sửa: hồ sơ đóng băng, §8 vẫn đúng chủ đề |

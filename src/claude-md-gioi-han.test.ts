@@ -86,8 +86,8 @@ export function choTrich(s: string): { hc: string[]; adr: string[]; hienPhap: st
     hc: [...s.matchAll(/\bHC ((?:K\d+|\d+\.\d+)(?:, (?:K\d+|\d+\.\d+))*)/g)].flatMap((m) => (m[1] ?? "").split(", ")),
     adr: [...s.matchAll(/\bADR-(\d{4})\b/g)].map((m) => m[1] ?? ""),
     hienPhap: [...s.matchAll(/(?<![\w-])([PN]\d{1,2})\b/g)].map((m) => m[1] ?? ""),
-    oracle: [...s.matchAll(/\bOracle (\d)\b/g)].map((m) => m[1] ?? ""),
-    mwg: [...s.matchAll(/(?<![\w-])T([1-5])\b/g)].map((m) => m[1] ?? ""),
+    oracle: [...s.matchAll(/\bOracle (\d+)\b/g)].map((m) => m[1] ?? ""),
+    mwg: [...s.matchAll(/(?<![\w-])T(\d+)\b/g)].map((m) => m[1] ?? ""),
   };
 }
 
@@ -172,6 +172,9 @@ test("giữ mục §1–§10; mọi chỗ trích CLAUDE.md §N ở hook, trợ l
     "src/CLAUDE.md",
     "web/CLAUDE.md",
     "docs/ARCHITECTURE.md",
+    "docs/CHANGE-GUIDE.md",
+    "docs/HANDOFF-N1.md",
+    "docs/SYSTEM-DESIGN.md",
     "RANG_BUOC_NGOAI.md",
   ];
   let dem = 0;
@@ -241,4 +244,5 @@ test("bộ tách mục và bộ trích: đúng biên mục, đúng danh sách c�
     mwg: ["1", "5"],
   });
   assert.deepEqual(choTrich("ADR-00011 DK-T2-01 XP12 HC-5.11"), { hc: [], adr: [], hienPhap: [], oracle: [], mwg: [] });
+  assert.deepEqual(choTrich("Oracle 10; MWG T6"), { hc: [], adr: [], hienPhap: [], oracle: ["10"], mwg: ["6"] }, "số ngoài khoảng phải được bắt để bài trích dẫn báo treo");
 });

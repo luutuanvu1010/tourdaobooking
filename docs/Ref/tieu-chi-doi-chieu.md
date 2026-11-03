@@ -29,14 +29,14 @@ Mỗi ADR, đặc tả có một mục `## Đối chiếu`; lời khuyên có ch
 | C5 | Luật phải luôn đúng nằm ở cơ sở dữ liệu lẫn máy chủ, máy chặn ngay tại nguồn, không chỉ ở giao diện? | Oracle 3; MWG T3 | HC 5.1; P21 |
 | C6 | Quyền xét đủ ai × thao tác × phạm vi dữ liệu, ở máy chủ (đối tác chỉ thấy của mình)? | Oracle 4; MWG T5 | HC K4, 5.8; ADR-0019 |
 | C7 | Điều hay đổi là dữ liệu có kiểu, có ngày hiệu lực, không sửa lõi? | Oracle 5 | HC 2.2, 5.2; ADR-0003 |
-| C8 | Có dấu vết cùng lô: ai, làm gì, lúc nào, lý do, trước→sau? Số tiền truy ngược được về chứng từ? | Oracle checklist vết kiểm toán, liên kết hai chiều | HC 4.1, 4.2, 5.12 |
+| C8 | Có dấu vết cùng lô: ai, làm gì, lúc nào, lý do khi luật đòi, trước→sau khi có? Số tiền truy ngược được về chứng từ? | Oracle checklist vết kiểm toán, liên kết hai chiều | HC 4.1, 4.2, 5.12 |
 | C9 | AI hay tác vụ tự động có định danh riêng, đi qua cổng như người, không phải nguồn sự thật, không tự ra số tiền? | Oracle 6 | HC 5.11, 5.15 |
-| C10 | AI có đang tự viết, tự kiểm, tự duyệt, tự triển khai? Quyết định chạm tiền, pháp lý, khách thật đã về tay chủ? | MWG hai nguyên tắc | N3, N8, P7, P9 |
+| C10 | AI có đang tự viết, tự kiểm, tự duyệt, tự triển khai? Quyết định chạm tiền, pháp lý, khách thật đã về tay chủ? | Báo cáo MWG Phần V, hai nguyên tắc của chính báo cáo, không phải thực hành của MWG | N3, N8, P7, P9 |
 | C11 | Quy trình ngoài đời đã thống nhất bằng văn bản chưa? Chưa thì chưa viết mã. Có đang đi từng bước nhỏ, nền trước tính năng? | MWG T4 | HC 5.13; vế «quy trình trước» chưa phải luật |
 | C12 | Lõi nghiệp vụ tự xây, thứ phổ thông thì mua? | MWG T4 | chưa phải luật |
 | C13 | Mỗi bảng, mỗi năng lực dùng chung có một chủ; lý do nằm trong ADR, Git để người khác tiếp quản được? | MWG T5 | HC 5.3; P5, P9 |
-| C14 | Có đơn giản nhất mà vẫn giữ kỷ luật không (~30 nhân viên, ~1000 đối tác, một người cùng AI)? Thêm thành phần hay thủ tục thì chặn được lỗi thật nào đã xảy ra? | MWG điều không sao chép | ADR-0014 về quy mô; vế «lỗi thật» chưa phải luật |
-| C15 | Đề xuất chạm dòng nào của Kernel 18; làm tờ khai sai thì đã sửa tờ khai cùng lần lưu chưa? | Kernel 18 | HC 6.1 |
+| C14 | Có đơn giản nhất mà vẫn giữ kỷ luật không (~30 nhân viên, ~1000 đối tác, một người cùng AI)? Thêm thành phần hay thủ tục thì chặn được lỗi thật nào đã xảy ra? | MWG điều không sao chép; vế «lỗi thật» từ lời chủ 2026-10-05, MWG không nói | ADR-0014 về quy mô; vế «lỗi thật» chưa phải luật |
+| C15 | Đề xuất chạm dòng nào của Kernel 18; làm tờ khai sai thì đã sửa tờ khai cùng lần lưu chưa? | Kernel 18 | ADR-0160 Đ3; `KERNEL-18.md` mục 2 ở kho luật gốc |
 
 ## Chỗ các nguồn lệch nhau đã biết
 

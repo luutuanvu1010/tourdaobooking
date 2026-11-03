@@ -30,7 +30,7 @@ Những điều đang ép quyết định này:
 
 **Đ4 — MWG có bản chụp trong kho.** `docs/Ref/MWG-5-tru-cot.md` chép nguyên văn năm trụ cột, hai nguyên tắc bất di bất dịch, điều không sao chép, giới hạn của nguồn; ghi ngày chụp. Lý do: lý do quyết định phải nằm trong Git để người khác tiếp quản được, và đường dẫn ngoài kho không dùng được từ phiên trên web hay gói trợ lý.
 
-**Đ5 — Tổ chức lại `CLAUDE.md`, giữ nguyên số mục §1–§10.** Bẫy theo vùng dời nguyên văn sang `CLAUDE.md` con cạnh mã (`src/modules/auth`, `maintenance`, `parties`, `van-chuyen`, `orders`), mỗi tệp không quá 4 KB, §10 gốc giữ chỉ mục. Hai bẫy đã có ở `src/CLAUDE.md` bỏ khỏi gốc. Giữ ở gốc các bẫy chung và «Số migration» vì hook và `src/CLAUDE.md` trích. Cụ thể từng dòng: mục 3 của đặc tả.
+**Đ5 — Tổ chức lại `CLAUDE.md`, giữ nguyên số mục §1–§10.** Bẫy theo vùng dời nguyên văn (trừ một số đếm đã cũ) sang `CLAUDE.md` con cạnh mã (`src/modules/auth`, `maintenance`, `parties`, `van-chuyen`, `orders`), mỗi tệp không quá 4 KB, §10 gốc giữ chỉ mục. Hai bẫy đã có ở `src/CLAUDE.md` bỏ khỏi gốc. Giữ ở gốc các bẫy chung và «Số migration» vì hook và `src/CLAUDE.md` trích. Cụ thể từng dòng: mục 3 của đặc tả.
 
 **Đ6 — Ngoại lệ có hạn với mức 4 KB của FRAMEWORK §4.6.** Không xuống 4 KB được mà không mất luật an toàn hoặc đẩy chúng vào tài liệu AI không chắc đọc. Theo Governance 7.1, ghi theo mẫu Hiến pháp 5.8:
 
@@ -54,6 +54,11 @@ Hạn này không có máy canh, dựa vào kỷ luật; mục nhắc ở `docs/
 
 Chủ cần AI cân nhắc ba khung khi khuyên, không cần thêm một bộ luật. Biến nó thành nghĩa vụ lên đầu ra của AI thì đáp được lệnh chủ mà không phá Điều 3.1 hay KERNEL-18. Mỗi tiêu chí trỏ về điều luật đang có, nên chỗ nào đã có luật thì không sinh luật thứ hai, chỗ chưa có luật thì ghi thẳng «chưa phải luật». Giữ số mục để không gãy hàng trăm chỗ trỏ.
 
+Hai chỗ AI tự chọn, chủ đọc và nhập ADR này là đồng ý, muốn khác thì sửa một dòng ở `CLAUDE.md` §2:
+
+- **Anthropic chỉ nêu khi việc là cách làm với AI.** Lời chủ có câu «Oracle và hoặc Anthropic và MWG», rồi hai câu sau chỉ còn Oracle, MWG, Kernel 18. Anthropic không có lời nào cho dữ liệu, quyền, tiền, nên bắt nêu ở mọi quyết định chỉ thêm chữ, không chặn lỗi nào.
+- **Câu «thêm thành phần hay thủ tục thì nên chỉ ra lỗi thật nó chặn» không phải của MWG.** MWG chỉ nói không sao chép quy mô. Câu này rút từ lời chủ 2026-10-05 («đi sâu vào giải quyết thủ tục hành chính, luật lệ đồ sộ»), nên để ở mức «nên» và ghi chưa phải luật. Tương tự, «quy trình bằng văn bản trước» và «lõi tự xây, phổ thông thì mua» mới là ý của MWG T4, Hiến chương chưa có điều nào; HC 5.13 chỉ nói thứ tự xây.
+
 ## Phương án bị loại
 
 - **Thêm tầng «Oracle, MWG» vào chuỗi ưu tiên:** trái Điều 3.1; hai nguồn lại lệch Hiến chương ở Flexfields (HC 5.2) và sự kiện (HC 4.1), thành hai chuỗi cãi nhau.
@@ -68,7 +73,7 @@ Chủ cần AI cân nhắc ba khung khi khuyên, không cần thêm một bộ l
 
 - ADR và đặc tả mới có thêm mục `## Đối chiếu`. **Chưa có máy chặn ADR thiếu mục này, dựa vào kỷ luật và người kiểm độc lập.** Sau khi ADR này được duyệt, thêm bài đỏ cho ADR số lớn hơn 0160 thiếu mục (`docs/BACKLOG.md` mục 62). Chưa làm ngay vì nó đổi quy trình của mọi ADR sau và có thể làm đỏ nhánh đang chạy song song.
 - `CLAUDE.md` vẫn là lời khuyên (`RANG_BUOC_NGOAI.md` A1). Khối ba khung chỉ có sức ép khi đọc; bài kiểm chỉ giữ neo và trích dẫn, không giữ chất lượng lập luận.
-- Bẫy theo vùng không tự tới khi tìm rộng bằng `grep -r` (`RANG_BUOC_NGOAI.md` A4).
+- Bẫy theo vùng không tự tới khi tìm rộng bằng `grep -r`; các lệnh shell khác và phiên trên web chưa thử (`RANG_BUOC_NGOAI.md` A4). Vì vậy đầu `CLAUDE.md` giữ lời dặn cũ: làm bằng lệnh shell thì tự mở tệp.
 - **Tờ khai Kernel 18 chưa qua máy kiểm:** chạy `kiem-kernel-18.mjs` của kho luật gốc ngày 2026-11-03 cho KHÔNG ĐẠT, hai lỗi quá hạn 31/10 ở dòng 12, 13. Dòng 13 chép lệch ngày của `docs/quyen-hoan.json` (HC-4.2 đã gia hạn tới 30/11) nên đã bỏ ngày chép lại. Dòng 12 (`PH-TDS-01`) quá hạn thật, chờ chủ quyết: làm hay gia hạn có lý do. Tờ khai vẫn chưa có người duyệt.
 - Bước hỏi tệp luật thêm một dòng `ask` cho tệp con.
 
