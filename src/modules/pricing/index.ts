@@ -4,7 +4,7 @@ import { auditStatement } from "../audit";
 import { getEffectiveServices, tenCacNhom, tenDacDiemTheoMa } from "../catalog";
 import { datHoatDongLoaiDoiTacStatement, kiemTenLoaiDoiTac, loaiVaiChiTiet, maLoaiDoiTac, ownerCompany, suaLoaiDoiTacStatement, tenLoaiVai, themLoaiDoiTacStatement } from "../parties";
 import { khoaTen } from "../../shared/khoa-ten.ts";
-import { kiemThanGioiHan, viPhamGioiHanNhap } from "../../shared/gioi-han-nhap-muc.ts";
+import { kiemThanGioiHan, mucVuotGiaBan, viPhamGioiHanNhap } from "../../shared/gioi-han-nhap-muc.ts";
 import { nhanDong, nhanTyLeBp } from "../../shared/so-dai-ly-nhan.ts";
 import { kiemGhiChu } from "../../shared/ghi-chu-danh-muc.ts";
 import type { AuditAction } from "../../shared/audit-actions.ts";
@@ -354,12 +354,22 @@ const dtoGioiHan = (r: GioiHanNhapRow): GioiHanNhapResponse => ({ tranTyLeBp: r.
  * Trả `Response` 400 (câu tiếng Việt của luật thuần) hoặc null. Đọc giới hạn MỚI NHẤT mỗi lần gọi: Toàn quyền vừa đổi thì hộp đang mở bị từ chối theo số mới. Không áp lại dòng đã có, không đụng đơn
  * đã chụp; «Ghi mức tay» của đơn không đi qua đây (đường ngoại lệ). Bài quét `ghi-muc-qua-cong.test.ts` canh: không route nào gọi câu ghi mức mà thiếu cổng này.
  */
-async function kiemSoMucMoi(db: D1Database, m: { kind: KieuMuc; rateBp: number | null; perPaxAmount: number | null; theoLoai?: MucTheoLoai | null }, _pv: { scope: PhamVi; catalogCode: string | null }): Promise<Response | null> {
+async function kiemSoMucMoi(db: D1Database, m: { kind: KieuMuc; rateBp: number | null; perPaxAmount: number | null; theoLoai?: MucTheoLoai | null }, pv: { scope: PhamVi; catalogCode: string | null }): Promise<Response | null> {
   const gh = await gioiHanNhapMoiNhat(db);
   if (!gh) return CHUA_CO_GIOI_HAN();
   const soTien = [m.perPaxAmount, m.theoLoai?.child ?? null, m.theoLoai?.senior ?? null].filter((x): x is number => x !== null);
   const loi = viPhamGioiHanNhap({ tyLeBp: m.kind === "RATE" ? m.rateBp : null, soTien: m.kind === "PER_PAX" ? soTien : [] }, { tranTyLeBp: gh.max_rate_bp, buocTien: gh.amount_step });
-  return loi ? error(400, "invalid_input", loi) : null;
+  if (loi) return error(400, "invalid_input", loi);
+  // ADR-0161 Đ4: chỉ dòng phạm vi MỘT dịch vụ tính bằng số tiền có MỘT giá bán lẻ để so (nhóm / tất cả: dựa vào rào Đã giao và trần giảm giá). Dịch vụ không còn trong danh mục, đã rời Sheet hoặc
+  // đang ẩn (`visible` false: không còn giá bán hiện hành), đơn vị lạ, loại chưa có giá: bỏ qua, nhập được (Review Focus). Giá đọc qua chỗ `catalog` công bố, không đọc thẳng bảng.
+  if (pv.scope === "SERVICE" && m.kind === "PER_PAX" && pv.catalogCode !== null && m.perPaxAmount !== null) {
+    const dv = (await getEffectiveServices(db, [pv.catalogCode])).get(pv.catalogCode);
+    if (dv?.visible) {
+      const vuot = mucVuotGiaBan({ unit: dv.unit, gia: dv.prices, moiKhach: m.perPaxAmount, theoLoai: m.theoLoai ? { treEm: m.theoLoai.child, nguoiCaoTuoi: m.theoLoai.senior } : null, ten: dv.name });
+      if (vuot) return error(400, "invalid_input", vuot);
+    }
+  }
+  return null;
 }
 
 // ===== Luật bán theo loại đối tác (ADR-0146 Đ1, Đ5; ADR-0152 Đ2; kế hoạch 2026-10-30 T6) =====

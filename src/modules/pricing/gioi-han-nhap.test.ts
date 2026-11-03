@@ -264,3 +264,86 @@ test("bảng chỉ thêm: UPDATE, DELETE thẳng prc_entry_limit_policy bị tri
   them(10000, 1_000_000, "2099-01-01T00:00:00.000Z");
   assert.throws(() => them(5000, 1000, "2099-01-01T00:00:00.000Z"), /UNIQUE/);
 });
+
+// ---------------------------------------------------------------------------------------------------------------------------------------------
+// Task 2 — hoa hồng KHÔNG vượt thành tiền lúc nhập (ADR-0161 Đ4): dòng phạm vi MỘT dịch vụ, tính bằng số tiền, so với giá bán lẻ hiệu lực của dịch vụ
+// ---------------------------------------------------------------------------------------------------------------------------------------------
+/** Dịch vụ gieo thêm trong danh mục (giá người lớn/trẻ em/người cao tuổi; `inSheet` 0 = đã rời Sheet). */
+function dichVu(w: W, code: string, ten: string, v: { unit?: string; adult: number; child?: number | null; senior?: number | null; inSheet?: number }): void {
+  w.sqlite.prepare("INSERT INTO catalog_item (code, name, unit, price_adult, price_child, price_senior, in_sheet, first_seen_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, '2026-01-01', '2026-01-01')")
+    .run(code, ten, v.unit ?? "perPax", v.adult, v.child ?? null, v.senior ?? null, v.inSheet ?? 1);
+}
+const dichVuMuc = (code: string, them: Record<string, unknown>) => ({ phamVi: "SERVICE", catalogCode: code, kieu: "PER_PAX", ...them });
+const CAU_VE3 = "Hoa hồng 500.000đ lớn hơn giá bán cao nhất 300.000đ của «Vé 300».";
+
+test("500.000 đ cho vé 300.000 đ trả 400 qua Thêm dòng của cấp, Thêm mức đối tác, Đổi và Sửa; bằng giá thì nhận; không ghi dòng, không nhật ký", async () => {
+  const w = setup();
+  dichVu(w, "VE3", "Vé 300", { adult: 300_000 });
+  await loaiChoOrg(w);
+  const ta = await taoMuc(w, "TA1");
+  const truoc = [soDong(w), soNhatKy(w)];
+  const a = await themDongTa(w, ta, dichVuMuc("VE3", { moiKhach: 500_000 }));
+  assert.deepEqual([a.status, a.json.error.message], [400, CAU_VE3], a.text);
+  const b = await themDongTa(w, ta, dichVuMuc("VE3", { moiKhach: 500_000, theoLoai: { treEm: 0, nguoiCaoTuoi: 0 } }));
+  assert.deepEqual([b.status, b.json.error.message], [400, "Hoa hồng 500.000đ của người lớn lớn hơn giá bán 300.000đ của «Vé 300»."], b.text);
+  const c = await themHoaHong(w, dichVuMuc("VE3", { moiKhach: 500_000 }));
+  assert.deepEqual([c.status, c.json.error.message], [400, CAU_VE3], c.text);
+  assert.deepEqual([soDong(w), soNhatKy(w)], truoc, "Thêm bị từ chối thì không ghi gì");
+
+  const goc = await ok(themHoaHong(w, dichVuMuc("VE3", { moiKhach: 100_000 })), 201, "100.000 đ trong giá");
+  const t2 = [soDong(w), soNhatKy(w)];
+  const d = await doiMuc(w, goc.json.dong.id, { kieu: "PER_PAX", moiKhach: 500_000, tuNgay: inDays(1) });
+  assert.deepEqual([d.status, d.json.error.message], [400, CAU_VE3], `Đổi: ${d.text}`);
+  const e = await suaMuc(w, goc.json.dong.id, { kieu: "PER_PAX", moiKhach: 500_000, tuNgay: "2026-01-01" });
+  assert.deepEqual([e.status, e.json.error.message], [400, CAU_VE3], `Sửa: ${e.text}`);
+  assert.deepEqual([soDong(w), soNhatKy(w)], t2, "Đổi, Sửa bị từ chối thì dòng cũ vẫn nguyên, không thêm dòng, không nhật ký");
+  await ok(suaMuc(w, goc.json.dong.id, { kieu: "PER_PAX", moiKhach: 300_000, tuNgay: "2026-01-01" }), 200, "Sửa đúng bằng giá thì nhận");
+  await ok(themDongTa(w, ta, dichVuMuc("VE3", { moiKhach: 300_000 })), 201, "Thêm đúng bằng giá thì nhận");
+});
+
+test("cùng số 500.000 đ ở phạm vi nhóm và tất cả được nhận (không có một giá để so); phần trăm không so giá", async () => {
+  const w = setup();
+  dichVu(w, "VE3", "Vé 300", { adult: 300_000 });
+  w.sqlite.prepare("INSERT INTO ctl_group (code, name, sort_order, active, created_at, updated_at) VALUES ('GRP1', 'Nhóm thử', 99, 1, ?, ?)").run(AT, AT);
+  const ta = await taoMuc(w, "TA1");
+  await ok(themDongTa(w, ta, { phamVi: "ALL", kieu: "PER_PAX", moiKhach: 500_000 }), 201, "tất cả dịch vụ");
+  await ok(themDongTa(w, ta, { phamVi: "GROUP", groupCode: "GRP1", kieu: "PER_PAX", moiKhach: 500_000 }), 201, "nhóm dịch vụ");
+  await ok(themDongTa(w, ta, { phamVi: "SERVICE", catalogCode: "VE3", kieu: "RATE", tyLeBp: 5000 }), 201, "phần trăm cho vé 300.000 đ: không so giá");
+});
+
+test("«Mọi khách như nhau» 100.000 đ cho dịch vụ người lớn 1.000.000 đ, trẻ em 0 đ được nhận; «Riêng từng loại» với trẻ em 0 đ mà gõ 30.000 đ thì bị chặn", async () => {
+  const w = setup();
+  dichVu(w, "VE0", "Vé gia đình", { adult: 1_000_000, child: 0 });
+  const ta = await taoMuc(w, "TA1");
+  await ok(themDongTa(w, ta, dichVuMuc("VE0", { moiKhach: 100_000, tuNgay: "2026-01-01", denNgay: "2026-12-31" })), 201, "Mọi khách như nhau");
+  const x = await themDongTa(w, ta, dichVuMuc("VE0", { moiKhach: 100_000, theoLoai: { treEm: 30_000, nguoiCaoTuoi: 0 }, tuNgay: "2027-01-01" }));
+  assert.deepEqual([x.status, x.json.error.message], [400, "Hoa hồng 30.000đ của trẻ em lớn hơn giá bán 0đ của «Vé gia đình»."], x.text);
+  await ok(themDongTa(w, ta, dichVuMuc("VE0", { moiKhach: 100_000, theoLoai: { treEm: 0, nguoiCaoTuoi: 0 }, tuNgay: "2027-01-01" })), 201, "Riêng từng loại, trẻ em 0 đ");
+});
+
+test("dịch vụ tính theo lượt so số mỗi lượt; dịch vụ đã rời Sheet, đơn vị lạ: nhập được dù số lớn hơn giá lưu (bỏ qua so vượt giá)", async () => {
+  const w = setup();
+  dichVu(w, "PHAO", "Phao", { unit: "per5Pax", adult: 800_000 });
+  dichVu(w, "CU", "Tour cũ", { adult: 300_000, inSheet: 0 });
+  dichVu(w, "LA", "Dịch vụ lạ", { unit: "perRoom", adult: 300_000 });
+  const ta = await taoMuc(w, "TA1");
+  const a = await themDongTa(w, ta, dichVuMuc("PHAO", { moiKhach: 801_000 }));
+  assert.deepEqual([a.status, a.json.error.message], [400, "Hoa hồng 801.000đ của mỗi lượt lớn hơn giá bán 800.000đ của «Phao»."], a.text);
+  await ok(themDongTa(w, ta, dichVuMuc("PHAO", { moiKhach: 800_000, theoLoai: { treEm: 9_000_000, nguoiCaoTuoi: 9_000_000 } })), 201, "theo lượt: chỉ số mỗi lượt được so");
+  await ok(themDongTa(w, ta, dichVuMuc("CU", { moiKhach: 500_000 })), 201, "đã rời Sheet: bỏ qua so giá");
+  await ok(themDongTa(w, ta, dichVuMuc("LA", { moiKhach: 500_000 })), 201, "đơn vị lạ: bỏ qua so giá");
+});
+
+test("dòng đã có vượt giá vì giá giảm sau đó: Sửa chỉ đổi ngày 200, Sửa đổi số vẫn phải trong giá hiện hành 400", async () => {
+  const w = setup();
+  dichVu(w, "VE3", "Vé 300", { adult: 300_000 });
+  await loaiChoOrg(w);
+  const goc = await ok(themHoaHong(w, dichVuMuc("VE3", { moiKhach: 200_000 })), 201);
+  w.sqlite.prepare("UPDATE catalog_item SET price_adult = 100000 WHERE code = 'VE3'").run(); // Sheet giảm giá vé: dòng 200.000 đ nay vượt giá
+  const id = goc.json.dong.id as string;
+  const y = await ok(suaMuc(w, id, { kieu: "PER_PAX", moiKhach: 200_000, tuNgay: "2026-01-01", denNgay: inDays(60) }), 200, "Sửa chỉ đổi ngày");
+  assert.deepEqual([y.json.moi.moiKhach, y.json.moi.denNgay], [200_000, inDays(60)]);
+  const z = await suaMuc(w, y.json.moi.id, { kieu: "PER_PAX", moiKhach: 150_000, tuNgay: "2026-01-01", denNgay: inDays(60) });
+  assert.deepEqual([z.status, z.json.error.message], [400, "Hoa hồng 150.000đ lớn hơn giá bán cao nhất 100.000đ của «Vé 300»."], z.text);
+  await ok(suaMuc(w, y.json.moi.id, { kieu: "PER_PAX", moiKhach: 100_000, tuNgay: "2026-01-01", denNgay: inDays(60) }), 200, "Sửa xuống đúng giá hiện hành");
+});
