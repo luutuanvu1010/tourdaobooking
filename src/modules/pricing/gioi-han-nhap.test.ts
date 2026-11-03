@@ -240,6 +240,25 @@ test("tuLuc cũ ⇒ 409 stale, không nhật ký, không dòng mới; gửi đú
   assert.deepEqual([dem(w, "SELECT count(*) AS n FROM prc_entry_limit_policy"), soNhatKy(w)], truoc, "không thêm dòng, không nhật ký");
 });
 
+test("hai yêu cầu cùng tuLuc: yêu cầu thứ hai đã qua bước so thì người kia chèn xong ⇒ 409 stale, không dòng thừa, không nhật ký thừa (khoá lạc quan nằm TRONG câu chèn)", async () => {
+  const w = setup();
+  const cu = (await docGH(w, SA)).json.tuLuc as string;
+  let b: Res | undefined;
+  // Giả đúng tình huống đồng thời: route A đã đọc và so xong `tuLuc`, NGAY TRƯỚC lô ghi của A thì route B (cùng `tuLuc`) chạy trọn và thắng.
+  w.chenTruocLo((stmts: { sql: string }[]) => stmts.some((s) => /INSERT INTO prc_entry_limit_policy/.test(s.sql)), async () => {
+    b = await datGH(w, { tranTyLeBp: 6000, buocTien: 1000, tuLuc: cu });
+  });
+  const a = await datGH(w, { tranTyLeBp: 7000, buocTien: 2000, tuLuc: cu });
+  assert.equal(b?.status, 200, `B thắng: ${b?.text}`);
+  assert.deepEqual([a.status, a.json.error.code], [409, "stale"], a.text);
+  assert.equal(dem(w, "SELECT count(*) AS n FROM prc_entry_limit_policy"), 2, "chỉ có dòng gieo và dòng của B");
+  const hien = (await docGH(w, KT)).json;
+  assert.deepEqual([hien.tranTyLeBp, hien.buocTien], [6000, 1000], "số của A không lọt vào");
+  const nk = nhatKy(w, "prc_entry_limit_changed");
+  assert.equal(nk.length, 1, "chỉ nhật ký của B");
+  assert.match(nk[0].detail, /60%/);
+});
+
 test("hai lần đổi liền nhau và đổi khi đồng hồ chạy lùi: dòng sau luôn đi sau dòng trước (mốc lanSau), không va UNIQUE", async () => {
   const w = setup();
   await doiGH(w, 5500, 1000);

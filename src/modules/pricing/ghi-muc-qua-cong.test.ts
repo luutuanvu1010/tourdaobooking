@@ -1,7 +1,9 @@
-// ADR-0161 Đ3, Đ4 (kế hoạch 2026-11-03-chinh-sach-chiet-khau-bon-truc, Task 2) — RÀO QUÉT MỌI ĐƯỜNG GHI MỨC: mọi route của `pricing` gọi một trong ba câu ghi dòng mức mới
-// (`insertRuleStatement`, `cauDoiMuc`, `cauSuaMuc` — ở repository.ts) PHẢI gọi cổng `kiemSoMucMoi` (giới hạn nhập + vượt giá bán). Thêm một route ghi mức mới mà quên cổng ⇒ đỏ ngay,
-// không dựa vào việc người sau nhớ. Canh QUÊN, không canh CỐ Ý (một chú thích hay chuỗi nhắc `kiemSoMucMoi(` không đánh lừa được: chú thích bị che, định nghĩa hàm không tính là lời gọi).
-// Quét chữ nguồn, tách theo `route("`: mỗi khúc là thân MỘT route (khúc đầu = phần trước route đầu tiên: hàm trợ giúp). Tệp không có `route("` mà nhắc các câu ghi thì cả tệp phải gọi cổng.
+// ADR-0161 Đ3, Đ4 (kế hoạch 2026-11-03-chinh-sach-chiet-khau-bon-truc, Task 2) — RÀO QUÉT CHỮ canh QUÊN GỌI cổng: mọi route (và hàm trợ giúp) của `pricing` có nhắc một trong ba câu ghi dòng mức mới
+// (`insertRuleStatement`, `cauDoiMuc`, `cauSuaMuc` — ở repository.ts) PHẢI có chữ `kiemSoMucMoi(` trong cùng thân route. Thêm một route ghi mức mới mà QUÊN gọi cổng ⇒ đỏ ngay.
+// Bài này CHỈ canh quên gọi. Nó KHÔNG kiểm: lời gọi đứng TRƯỚC câu ghi, kết quả cổng có được dùng để dừng (`if (chanSo) return chanSo`), cổng được gọi với đúng đối số, hay một lời gọi nằm trong nhánh
+// không bao giờ chạy. Những điều đó dựa vào bài hành vi qua route thật (`gioi-han-nhap.test.ts`) và người đọc mã. Chú thích hay chuỗi nhắc `kiemSoMucMoi(` không đánh lừa được (chú thích bị che,
+// định nghĩa hàm không tính là lời gọi). Cách quét: chữ nguồn, tách theo `route("`, mỗi khúc là thân MỘT route (khúc đầu = phần trước route đầu tiên: hàm trợ giúp). Tệp không có `route("`
+// mà nhắc các câu ghi thì cả tệp phải có lời gọi cổng.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
@@ -32,7 +34,7 @@ export function choGhiThieuCong(nguon: string, tenTep: string): string[] {
   return loi;
 }
 
-test("mọi route ghi mức của pricing gọi cổng kiemSoMucMoi (giới hạn nhập + vượt giá bán)", () => {
+test("mọi route ghi mức của pricing có lời gọi cổng kiemSoMucMoi (giới hạn nhập + vượt giá bán) — chỉ canh quên gọi", () => {
   const tep = readdirSync(THU_MUC).filter((f) => f.endsWith(".ts") && !f.endsWith(".test.ts") && f !== "repository.ts").sort();
   assert.ok(tep.includes("index.ts"), "phải quét được index.ts của pricing");
   const nguonIndex = readFileSync(join(THU_MUC, "index.ts"), "utf8");

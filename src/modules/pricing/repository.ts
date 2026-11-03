@@ -174,8 +174,11 @@ const NHA_CUNG_CAP = defineSql("pricing", "suppliers",
    ORDER BY l.display_name`);
 // ADR-0161 Đ3 (migration 0137): giới hạn nhập mức hoa hồng, CHỈ-THÊM — dòng hiệu lực = `valid_from_at` lớn nhất (khuôn `ord_confirm_policy`). Khoá lạc quan của route đổi = mốc `valid_from_at` đã đọc.
 const GIOI_HAN_MOI_NHAT = defineSql("pricing", "entry_limit_latest", "SELECT max_rate_bp, amount_step, valid_from_at FROM prc_entry_limit_policy ORDER BY valid_from_at DESC LIMIT 1");
+// Khoá lạc quan NẰM TRONG câu chèn: chỉ chèn khi dòng mới nhất vẫn có mốc ?7 (mốc route đã đọc và so). Hai yêu cầu cùng `tuLuc` cùng qua bước so ở route thì chỉ MỘT câu chèn được,
+// câu kia chèn 0 dòng (`changes() = 0`) ⇒ nhật ký gắn `changes() > 0` không ghi và route trả 409 `stale`.
 const GIOI_HAN_THEM = defineSql("pricing", "entry_limit_insert",
-  `INSERT INTO prc_entry_limit_policy (id, max_rate_bp, amount_step, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?5, ?6)`);
+  `INSERT INTO prc_entry_limit_policy (id, max_rate_bp, amount_step, valid_from_at, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?5, ?6 WHERE (SELECT max(valid_from_at) FROM prc_entry_limit_policy) = ?7`);
 
 export const allRules = async (db: D1Database) => (await db.prepare(MUC_TAT_CA).all<RuleRow>()).results;
 export const rulesOn = async (db: D1Database, ngay: string) => (await db.prepare(MUC_NGAY).bind(ngay).all<RuleRow>()).results;
@@ -292,5 +295,5 @@ export const roleRulesForTierLink = async (db: D1Database, roleTypeCode: string,
 export interface GioiHanNhapRow { max_rate_bp: number; amount_step: number; valid_from_at: string }
 /** Dòng giới hạn nhập đang hiệu lực (`valid_from_at` lớn nhất); null chỉ khi bảng rỗng (không xảy ra sau migration 0137 — dòng gieo, bảng chỉ-thêm). */
 export const gioiHanNhapMoiNhat = (db: D1Database): Promise<GioiHanNhapRow | null> => db.prepare(GIOI_HAN_MOI_NHAT).first<GioiHanNhapRow>();
-export const cauThemGioiHanNhap = (db: D1Database, v: { id: string; tranTyLeBp: number; buocTien: number; tuLuc: string; at: string; by: string }): D1PreparedStatement =>
-  db.prepare(GIOI_HAN_THEM).bind(v.id, v.tranTyLeBp, v.buocTien, v.tuLuc, v.at, v.by);
+export const cauThemGioiHanNhap = (db: D1Database, v: { id: string; tranTyLeBp: number; buocTien: number; tuLuc: string; tuLucDaDoc: string; at: string; by: string }): D1PreparedStatement =>
+  db.prepare(GIOI_HAN_THEM).bind(v.id, v.tranTyLeBp, v.buocTien, v.tuLuc, v.at, v.by, v.tuLucDaDoc);

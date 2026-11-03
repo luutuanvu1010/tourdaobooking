@@ -291,11 +291,12 @@ const nhanCau = (r: { status: number; json: any; text: string }, cau: string, te
   assert.equal(r.json.error.message, cau, ten);
 };
 
-test("sổ vàng trần giảm giá LỚP 1: ba ca chờ xác nhận, đáp án tự cân với tính tay và với luật thuần (dòng vượt tính 0, bằng thì tính)", () => {
+test("sổ vàng trần giảm giá LỚP 1: ba ca (chờ xác nhận hoặc đã xác nhận), đáp án tự cân với tính tay và với luật thuần (dòng vượt tính 0, bằng thì tính)", () => {
   assert.deepEqual(cacCa.map((c) => c.ma), ["SV-TG-01", "SV-TG-02", "SV-TG-03"]);
   for (const c of cacCa) {
-    assert.equal(c.xac_nhan.trang_thai, "cho_xac_nhan", c.ma);
-    assert.equal(c.xac_nhan.nguoi, null, c.ma);
+    // Khuôn so-vang-dat-coc.test.ts: ca chờ xác nhận thì không có tên người; ca đã xác nhận thì đòi người và ngày (người xác nhận chỉ sửa JSON, bài không phải sửa).
+    if (c.xac_nhan.trang_thai === "cho_xac_nhan") assert.equal(c.xac_nhan.nguoi, null, c.ma);
+    else assert.ok(c.xac_nhan.nguoi && c.xac_nhan.ngay, c.ma);
     const dong = dongTinhTay(c.dau_vao);
     assert.equal(dong.reduce((s, d) => s + d.thanhTien, 0), c.dap_an.thanh_tien_don, `${c.ma}: thành tiền`);
     assert.equal(dong.reduce((s, d) => s + d.hoaHong, 0), c.dap_an.hoa_hong_goc, `${c.ma}: hoa hồng gốc`);

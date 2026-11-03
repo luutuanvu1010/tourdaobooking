@@ -538,7 +538,7 @@ export const pricingModule: AppModule = {
     }),
     // ADR-0161 Đ3: GIỚI HẠN NHẬP mức hoa hồng. ĐỌC: cổng `office`, ô `partner.commission.view` và không giữ quyền Đối tác (hộp nhập hỏi giới hạn để báo sớm; máy chủ vẫn kiểm lại). GHI: cổng `admin`,
     // thân hỏi `settings.ops` (chỉ Toàn quyền). Khuôn `/api/cai-dat/an-thong-tin-khach`: bảng chỉ-thêm, MỘT lô = dòng mới + nhật ký; `tuLuc` ≠ mốc dòng mới nhất ⇒ 409 `stale`; gửi đúng số đang
-    // hiệu lực ⇒ 200, không ghi; va UNIQUE `valid_from_at` ⇒ 409 `stale` (lô lui trọn, không để lại nhật ký). Đổi giới hạn KHÔNG đổi dòng mức đã có hay đơn đã chụp.
+    // hiệu lực ⇒ 200, không ghi; khoá lạc quan nằm TRONG câu chèn (`WHERE max(valid_from_at) = tuLuc`): người khác chèn xong giữa bước so và lô ghi ⇒ chèn 0 dòng, nhật ký `changes() > 0` không ghi, 409 `stale`; va UNIQUE `valid_from_at` cũng 409 (lô lui trọn). Đổi giới hạn KHÔNG đổi dòng mức đã có hay đơn đã chụp.
     route("GET", "/api/pricing/gioi-han-nhap", "office", async ({ env, staff }) => {
       if (!can(staff, "partner.commission.view") || holdsPartner(staff)) return FORBIDDEN();
       const r = await gioiHanNhapMoiNhat(env.DB);
@@ -558,11 +558,13 @@ export const pricingModule: AppModule = {
       const tuLuc = (Date.parse(hien.valid_from_at) >= now.getTime() ? new Date(Date.parse(hien.valid_from_at) + 1) : now).toISOString();
       const at = now.toISOString();
       try {
-        await env.DB.batch([
-          cauThemGioiHanNhap(env.DB, { id: crypto.randomUUID(), tranTyLeBp: v.tranTyLeBp, buocTien: v.buocTien, tuLuc, at, by: staff.id }),
+        // Khoá lạc quan trong chính câu chèn (`tuLucDaDoc`): người khác chèn xong giữa bước so ở trên và lô này ⇒ câu chèn 0 dòng, nhật ký `changes() > 0` không ghi ⇒ 409.
+        const res = await env.DB.batch([
+          cauThemGioiHanNhap(env.DB, { id: crypto.randomUUID(), tranTyLeBp: v.tranTyLeBp, buocTien: v.buocTien, tuLuc, tuLucDaDoc: v.tuLuc, at, by: staff.id }),
           auditStatement(env.DB, { staffId: staff.id, action: "prc_entry_limit_changed", at, targetType: "ledger",
-            detail: `trần ${nhanTyLeBp(hien.max_rate_bp)} → ${nhanTyLeBp(v.tranTyLeBp)} · bước ${nhanDong(hien.amount_step)}đ → ${nhanDong(v.buocTien)}đ` }),
+            detail: `trần ${nhanTyLeBp(hien.max_rate_bp)} → ${nhanTyLeBp(v.tranTyLeBp)} · bước ${nhanDong(hien.amount_step)}đ → ${nhanDong(v.buocTien)}đ` }, "changes() > 0"),
         ]);
+        if (dongDaDong(res)) return error(409, "stale", "Giới hạn vừa được người khác đổi — tải lại rồi thử lại.");
       } catch (e) {
         if (/UNIQUE constraint failed: prc_entry_limit_policy/i.test(String((e as Error)?.message ?? e))) return error(409, "stale", "Giới hạn vừa được người khác đổi — tải lại rồi thử lại.");
         throw e;
