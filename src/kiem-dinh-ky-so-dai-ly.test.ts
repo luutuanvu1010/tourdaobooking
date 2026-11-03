@@ -274,6 +274,25 @@ test("R-ORD-DC1 (I-1 người kiểm Task 10+11; Ruling R-P25): Kế toán hạ 
   assert.deepEqual([vp(w, "R-ORD-DC1"), vp(w, "R-ORD-DC1w")], [1, 0], "giảm vượt hoa hồng của bản chụp tự động");
 });
 
+test("R-ORD-DC1 theo trần mới (ADR-0161 Đ5): dòng có hoa hồng vượt thành tiền tính 0 — giảm giá lớn hơn phần dòng đúng ⇒ một vi phạm dù tổng hoa hồng gốc còn lớn; dòng bằng thành tiền, đơn dòng đúng ⇒ 0", async () => {
+  const { w } = await setup();
+  // Hòn Tằm 1.000.000 (đại lý A 10% = 100.000) + i-resort 300.000 (10% = 30.000); giảm 110.000 ≤ 130.000 nên Xác nhận qua cổng trần.
+  const a = nhap(w, { dichVu: [HONTAM(1, 1_000_000), IRESORT(1)], giam: 110_000 });
+  await xacNhan(w, a.id);
+  assert.deepEqual([vp(w, "R-ORD-DC1"), vp(w, "R-ORD-DC1w")], [0, 0], "đơn dòng đúng: giảm 110.000 ≤ hoa hồng 130.000");
+  // Gieo thẳng bản chụp (SQL tay, gỡ trigger chống sửa): dòng i-resort thành «500.000 đ mỗi khách» = 500.000 > thành tiền 300.000 ⇒ dòng vượt, tính 0. Tổng gốc 600.000 vẫn ≥ 110.000
+  // (luật cũ không báo), nhưng trần mới = 100.000 < 110.000.
+  goTrigger(w, "ord_service_terms");
+  const dat = (perPax: number) => w.sqlite.prepare("UPDATE ord_service_terms SET commission_kind = 'PER_PAX', commission_rate_bp = NULL, commission_per_pax = ? WHERE order_service_id = ?").run(perPax, a.svc[1]);
+  dat(500_000);
+  assert.deepEqual([vp(w, "R-ORD-DC1"), vp(w, "R-ORD-DC1w")], [1, 0], "dòng vượt thành tiền không đỡ giảm giá: trần 100.000 < giảm 110.000");
+  dat(300_000);
+  assert.deepEqual([vp(w, "R-ORD-DC1"), vp(w, "R-ORD-DC1w")], [0, 0], "hoa hồng đúng bằng thành tiền vẫn tính: trần 400.000");
+  lui(w, "orders", "confirmed_at", "id = ?", a.id);
+  dat(500_000);
+  assert.deepEqual([vp(w, "R-ORD-DC1"), vp(w, "R-ORD-DC1w")], [0, 1], "xác nhận trước mốc ⇒ chỉ cảnh báo, cùng một luật trần");
+});
+
 test("R-BIL-17 (Ruling R-P8): phiếu «Đã giao» ghi sau mốc mà thiếu thành tiền trước giảm ⇒ lỗi; phiếu trước mốc ⇒ không báo", async () => {
   const { w } = await setup();
   const a = await donDaGiao(w, { booker: null, dichVu: [HONTAM(1, 300_000)] });

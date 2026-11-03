@@ -1,7 +1,7 @@
 // Ánh xạ bản chụp thương mại ↔ dòng bảng ord_service_terms (đặc tả §5), dựng HAI DTO của phần thương mại (văn phòng / Đối tác), kiểm thân ghi mức tay (§6). Thuần — câu SQL ở thuong-mai-repo.ts.
 // Không nhập `../pricing` bằng giá trị (index.ts của nó kéo `../audit` không đuôi — node không giải được): phép tính tiền dòng ở src/shared/hoa-hong-dong.ts (pricing tái xuất).
 import type { ThuongMaiDongVanPhong, ThuongMaiResponse } from "../../shared/contracts.ts";
-import { tinhDongDoiTac, type BanChup, type LyDoThieu, type MucTheoLoai } from "../../shared/hoa-hong-dong.ts";
+import { dongVuotThanhTien, hoaHongTinhTran, tinhDongDoiTac, type BanChup, type LyDoThieu, type MucTheoLoai } from "../../shared/hoa-hong-dong.ts";
 import { NHAN_LY_DO_THIEU, nhanDong, nhanMuc, nhanTyLeBp } from "../../shared/so-dai-ly-nhan.ts";
 import { MOI_KHACH_TOI_DA } from "../../shared/so-dai-ly-nhap.ts"; // trần «Số tiền mỗi khách»: MỘT hằng cho giao diện và máy chủ (Task 14, nợ (a))
 import { hasLongDigitRun, maskLongDigits, PHONE_IN_TEXT_MESSAGE } from "../../shared/text-guards.ts";
@@ -120,19 +120,24 @@ export const coNguoiHuongDon = (chup: readonly BanChup[]): boolean => chup.some(
 export const nguoiHuongCuaDon = (chup: readonly BanChup[]): string | null => chup.find((c) => c.beneficiaryPartyId !== null)?.beneficiaryPartyId ?? null;
 /** Bên đặt mang vai bên ngoài không còn được hưởng (dòng thiếu mức `BOOKER_NOT_BENEFICIARY`) — vòng sửa Task 7 (M-1), chọn câu báo riêng. */
 export const benDatKhongHuongDon = (chup: readonly BanChup[]): boolean => chup.some((c) => c.hoaHong.status === "MISSING" && c.hoaHong.reason === "BOOKER_NOT_BENEFICIARY");
-/** Dữ liệu trần giảm giá của đơn từ bản chụp + tiền dòng (dòng thiếu mức tính 0 — ADR-0079 điều 8). */
+/** Đơn có ÍT NHẤT MỘT dòng hoa hồng lớn hơn thành tiền của dòng (ADR-0161 Đ5) — cùng phép tính dòng với `tongHoaHongDon`, chọn câu báo trần cho đúng. */
+export const coDongVuotDon = (chup: readonly BanChup[], dichVu: readonly { id: string; thanhTien: number; soKhachTinh: number; pax: { adult: number; child: number; senior: number } | null }[]): boolean =>
+  tinhCacDong(chup, dichVu).some((d) => dongVuotThanhTien(d.t));
+/** Dữ liệu trần giảm giá của đơn từ bản chụp + tiền dòng (dòng thiếu mức và dòng vượt thành tiền tính 0 — ADR-0079 điều 8, ADR-0161 Đ5). */
 export const donChoTran = (chup: readonly BanChup[], dichVu: readonly { id: string; thanhTien: number; soKhachTinh: number; pax: { adult: number; child: number; senior: number } | null }[]) => ({
   coNguoiHuong: coNguoiHuongDon(chup), tongHoaHong: tongHoaHongDon(chup, dichVu, "tinh0") ?? 0, beneficiaryPartyId: nguoiHuongCuaDon(chup), benDatKhongHuong: benDatKhongHuongDon(chup),
+  coDongVuot: coDongVuotDon(chup, dichVu),
 });
 
 /**
- * Tổng hoa hồng của đơn theo bản chụp (Task 7 — trần giảm giá ADR-0079 điều 8, cảnh báo sau Xác nhận). `thieu` = cách đếm dòng thiếu mức: "tinh0" cho TRẦN (nháp / Xác nhận —
- * thận trọng, trần chỉ thấp hơn), "null" cho CẢNH BÁO (không đoán khi còn dòng thiếu). Cùng phép tính dòng với DTO phần thương mại (`tinhCacDong`).
+ * Tổng hoa hồng của đơn theo bản chụp (Task 7 — trần giảm giá ADR-0079 điều 8, cảnh báo sau Xác nhận). `thieu` = cách đếm: "tinh0" cho TRẦN (nháp / Xác nhận / đổi bên đặt / kiểm định kỳ
+ * R-ORD-DC1 — thận trọng, trần chỉ thấp hơn): dòng thiếu mức tính 0 VÀ dòng có hoa hồng lớn hơn thành tiền của dòng cũng tính 0 (ADR-0161 Đ5, `hoaHongTinhTran`); "null" cho CẢNH BÁO
+ * (số GỐC của bản chụp, không đoán khi còn dòng thiếu). Chỉ có HAI chế độ — kiểm định kỳ gọi "tinh0" nên tự theo luật trần. Cùng phép tính dòng với DTO phần thương mại (`tinhCacDong`).
  */
 export function tongHoaHongDon(chup: readonly BanChup[], dichVu: readonly { id: string; thanhTien: number; soKhachTinh: number; pax: { adult: number; child: number; senior: number } | null }[], thieu: "tinh0" | "null"): number | null {
   const dong = tinhCacDong(chup, dichVu);
   if (thieu === "null" && dong.some((d) => d.t.hoaHong === null)) return null;
-  return dong.reduce((s, d) => s + (d.t.hoaHong ?? 0), 0);
+  return dong.reduce((s, d) => s + (thieu === "tinh0" ? hoaHongTinhTran(d.t) : (d.t.hoaHong ?? 0)), 0);
 }
 
 export function dungThuongMai(v: { laDoiTac: boolean; xemNguoiBan: boolean } & PhanThuongMai): ThuongMaiResponse {

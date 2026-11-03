@@ -19,6 +19,7 @@ import { NETWORK_BANNER, banner, classifyOrderError, type Banner } from "../src/
 import { can, chiGiaDanhMuc, holdsIntern, holdsPartner } from "../src/shared/permissions";
 import { GOI_Y_GIAM_GIA_DOI_TAC, formGonDoiTac } from "../src/shared/form-dat-ve";
 import { cauTranGiamGiaForm, oGiamGiaChiGiaDanhMuc } from "../src/shared/ben-kia-hien-thi";
+import { dongVuotThanhTien, tongTinhTran } from "../src/shared/hoa-hong-dong";
 import { coXemPhanDoiTac } from "../src/shared/phan-doi-tac-hien-thi";
 import {
   canAddService, chonDonGoiY, draftFromDto, draftIssues, soKhachNhap, newCatalogDraft, newManualDraft, orderIssues, orderSummary, refreshFromCatalog, toServiceInput, totalLines,
@@ -1098,8 +1099,9 @@ mocPhut = await layMoc;
   if (editId && !(retailOnly && discountEl.readOnly) && coXemPhanDoiTac(staff, { staffId: staff.id })) {
     void api<Api.ThuongMaiResponse>(`/api/orders/${encodeURIComponent(editId)}/thuong-mai`).then((r) => {
       const coHuong = "vanPhong" in r ? r.vanPhong.nguoiHuong !== null : benDatCuaToi() != null;
-      const tong = "vanPhong" in r ? r.vanPhong.tong.hoaHong : r.doiTac.tong.hoaHong;
-      const cau = coHuong ? cauTranGiamGiaForm(tong) : null;
+      // ADR-0161 Đ5: trần = tổng hoa hồng TÍNH VÀO TRẦN (dịch vụ có hoa hồng vượt thành tiền tính 0), tính từ từng dòng máy chủ trả — cùng luật với kiểm của máy chủ lúc lưu.
+      const dong = "vanPhong" in r ? r.vanPhong.dong : r.doiTac.dong;
+      const cau = coHuong ? cauTranGiamGiaForm(tongTinhTran(dong), dong.some(dongVuotThanhTien)) : null;
       if (!cau) return;
       if (hint) hint.textContent = cau;
       else datHint(cau);

@@ -49,7 +49,7 @@ import type { NoiChuyen } from "../../shared/dong-bo-chuyen";
 import { CAU_X3_THUE_XE, NHOM_THUE_XE } from "../../shared/so-dai-ly-nhan";
 import { lichSuChoDoiTac } from "../../shared/lich-su-doi-tac";
 import { lichSuNoiBo } from "../../shared/lich-su-noi-bo";
-import { apGhiTay, banChupTuDb, cheDoThuongMai, chuaCoBanChup, coNguoiHuongDon, donChoTran, dongGhiTuChup, dungThuongMai, kiemGhiTayVoiBanChup, kiemThanGhiTay, moTaChup, moTaGhiTay, tongHoaHongDon, type PhanThuongMai } from "./thuong-mai";
+import { apGhiTay, banChupTuDb, cheDoThuongMai, chuaCoBanChup, coDongVuotDon, coNguoiHuongDon, donChoTran, dongGhiTuChup, dungThuongMai, kiemGhiTayVoiBanChup, kiemThanGhiTay, moTaChup, moTaGhiTay, tongHoaHongDon, type PhanThuongMai } from "./thuong-mai";
 import { banChupHienHanh, cauChupChuoi, cauDoiMocSauGhiTay, cauGhiTayKemPax, cauKhoaChupBu, demBanChup, donChoChupBu, laNhaCungCap, nhomCuaMa, tenHoSo } from "./thuong-mai-repo";
 import { laThanDonCu, laThanTripCu } from "./than-cu";
 import { canhBaoGiamGiaDon, cauDoiBenDatVuotHoaHong, duocNhapTay, holdsPartner, lyDoKhongNhapTay, manualFreezeViolation, viPhamGiaDanhMuc, viPhamTranGiamGia } from "./price-guards";
@@ -319,7 +319,7 @@ function priceGuard(staff: PermissionHolder, order: ValidOrder, ctx: OrderValida
  */
 async function tranGiamGiaNhap(db: D1Database, staff: PermissionHolder & { partyId: string | null }, order: ValidOrder, bookerPartyId: string | null): Promise<Response | null> {
   if (order.discount === 0) return null;
-  let don = { coNguoiHuong: false, tongHoaHong: 0, beneficiaryPartyId: null as string | null, benDatKhongHuong: false };
+  let don = { coNguoiHuong: false, tongHoaHong: 0, beneficiaryPartyId: null as string | null, benDatKhongHuong: false, coDongVuot: false };
   if (bookerPartyId !== null) {
     const bang = await docBangChoChup(db, { bookerPartyId, catalogCodes: order.services.flatMap((s) => (s.catalogCode ? [s.catalogCode] : [])), ngay: vnToday(new Date()) });
     // Dịch vụ chưa lưu không có id: khoá tạm theo thứ tự (chỉ để ghép bản chụp dự kiến với tiền của dòng, không ghi).
@@ -1717,7 +1717,7 @@ export const ordersModule: AppModule = {
         const hienHanh = await loadOrderView(env.DB, id, false);
         if (!hienHanh) return NOT_FOUND();
         const tien = hienHanh.services.map((s) => ({ id: s.id, ...tienChoHoaHong(s) }));
-        const vuotTran = cauDoiBenDatVuotHoaHong({ coNguoiHuong: coNguoiHuongDon(chup), tongHoaHong: tongHoaHongDon(chup, tien, "tinh0") ?? 0, giamGiaHieuLuc: hienHanh.giamGiaHieuLuc });
+        const vuotTran = cauDoiBenDatVuotHoaHong({ coNguoiHuong: coNguoiHuongDon(chup), tongHoaHong: tongHoaHongDon(chup, tien, "tinh0") ?? 0, giamGiaHieuLuc: hienHanh.giamGiaHieuLuc, coDongVuot: coDongVuotDon(chup, tien) });
         if (vuotTran) return error(409, "discount_exceeds_commission", vuotTran);
         kemChup = (at) => [
           ...cauChupChuoi(env.DB, chup.map((c) => dongGhiTuChup(c, { id: crypto.randomUUID(), orderId: id, ngay: homNay, at, by: staff.id, source: "AUTO", reason: null, supersedesId: cu.get(c.serviceId) ?? null }))),

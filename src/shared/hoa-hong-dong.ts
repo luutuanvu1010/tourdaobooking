@@ -70,12 +70,27 @@ export function tinhDongDoiTac(c: BanChup, tien: { thanhTien: number; soKhachTin
   return { serviceId: c.serviceId, thanhTien: tien.thanhTien, soKhachTinh: tien.soKhachTinh, hoaHong, giaDaiLy: hoaHong === null ? null : tien.thanhTien - hoaHong, giaVon };
 }
 
+// ---- ADR-0161 Đ5: trần giảm giá KHÔNG tính dòng có hoa hồng vượt thành tiền ----------------------------------------------------------------------
+// Dòng nào hoa hồng LỚN HƠN thành tiền của chính dòng đó (mức gõ nhầm, hoặc giá bán hạ sau khi mức được nhập) thì phần hoa hồng của dòng ấy không đỡ được giảm giá: tính 0 vào trần.
+// Bằng thành tiền thì vẫn tính. Chỉ ảnh hưởng TRẦN (và các so sánh dùng chung trần: kiểm định kỳ R-ORD-DC1, đổi bên đặt); số hoa hồng ghi vào sổ vẫn là số gốc của bản chụp.
+/** Hoa hồng lớn hơn thành tiền của dòng (bằng nhau là không vượt). Dòng thiếu mức (`null`) không phải dòng vượt. */
+export const dongVuotThanhTien = (d: { hoaHong: number | null; thanhTien: number }): boolean => d.hoaHong !== null && d.hoaHong > d.thanhTien;
+/** Hoa hồng của dòng được tính vào trần giảm giá: thiếu mức hoặc vượt thành tiền ⇒ 0. */
+export const hoaHongTinhTran = (d: { hoaHong: number | null; thanhTien: number }): number => (d.hoaHong === null || dongVuotThanhTien(d) ? 0 : d.hoaHong);
+/** Tổng hoa hồng tính vào trần của một danh sách dòng; còn dòng thiếu mức ⇒ null (hộp nhập không đoán số). Máy chủ cần «thiếu mức tính 0» thì cộng `hoaHongTinhTran` từng dòng. */
+export function tongTinhTran(dong: readonly { hoaHong: number | null; thanhTien: number }[]): number | null {
+  if (dong.some((d) => d.hoaHong === null)) return null;
+  return dong.reduce((t, d) => t + hoaHongTinhTran(d), 0);
+}
+
 /** Mức ghi tay của MỘT dòng (cùng dạng thân `hoaHong` của route ghi mức tay — `docThanGhiTay`; mức tay không tách theo loại khách). */
 export type MucGhiTay = { kieu: "RATE"; tyLeBp: number } | { kieu: "PER_PAX"; moiKhach: number };
 /**
  * Sửa 5 sau rà soát «Sổ đại lý đợt 2» (chủ duyệt 24/10, Ruling R-156): Kế toán ghi mức tay cho dòng `serviceId` thì đại lý phải trả thêm cho công ty bao nhiêu — giảm giá
- * hiệu lực của đơn trừ TỔNG hoa hồng SAU khi ghi (dòng ghi tay tính lại bằng `hoaHongDong`, các dòng khác giữ số máy chủ đã tính; dòng thiếu mức tính 0 như kiểm định kỳ
- * R-ORD-DC1, R-73). Trả số chênh > 0, hoặc null khi không vượt / không có dòng đó. Chỉ để CẢNH BÁO trước khi lưu — không chặn (ADR-0079 điều 8).
+ * hiệu lực của đơn trừ TỔNG hoa hồng SAU khi ghi (dòng ghi tay tính lại bằng `hoaHongDong`, các dòng khác giữ số máy chủ đã tính; dòng thiếu mức tính 0, R-73). Trả số chênh > 0,
+ * hoặc null khi không vượt / không có dòng đó. Chỉ để CẢNH BÁO trước khi lưu — không chặn (ADR-0079 điều 8).
+ * Hàm này CỐ Ý cộng số hoa hồng GỐC của từng dòng, kể cả dòng vượt thành tiền: đó là số sẽ vào sổ khi «Đã giao». Khác TRẦN giảm giá (ADR-0161 Đ5: `hoaHongTinhTran`, dòng vượt tính 0),
+ * trần dùng cho lúc nhập giảm giá và cho kiểm định kỳ R-ORD-DC1 — hai số khác mục đích nên không dùng chung một hàm.
  */
 export function chenhGiamGiaSauGhiTay(v: {
   dong: readonly { serviceId: string; thanhTien: number; soKhachTinh: number; hoaHong: number | null }[];

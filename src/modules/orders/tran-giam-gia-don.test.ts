@@ -234,3 +234,158 @@ test("M-1: bên đặt mang vai bên ngoài không còn được hưởng (KHONG
   assert.equal(xn.json.error.message, "Chưa giảm giá được: bên đặt không còn được hưởng hoa hồng — nhờ văn phòng sửa bên đặt hoặc Kế toán ghi mức.");
   assert.equal(w.q("SELECT status FROM orders WHERE id = ?", r0.json.order.id)[0].status, "draft");
 });
+
+// ---------------------------------------------------------------------------------------------------------------------------------------------
+// ADR-0161 Đ5 (kế hoạch 2026-11-03-chinh-sach-chiet-khau-bon-truc, Task 3) — trần giảm giá KHÔNG tính dòng có hoa hồng vượt thành tiền của dòng.
+// Đầu vào và đáp án ba ca đọc từ sổ vàng golden/tran-giam-gia-dong-vuot.json (số do AI soạn, chờ Kế toán xác nhận). Dòng vượt tính 0; BẰNG thành tiền vẫn tính.
+// ---------------------------------------------------------------------------------------------------------------------------------------------
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import * as H from "../../shared/hoa-hong-dong.ts";
+
+interface DichVuVang { ma: string; ten: string; gia_moi_khach: number; so_khach: number }
+interface DauVaoVang { dich_vu: DichVuVang[]; muc_tat_ca: { kieu: "PER_PAX"; moi_khach: number }; muc_rieng_dich_vu: { ma: string; kieu: "RATE"; ty_le_bp: number }[] }
+interface CaVang {
+  ma: string; mo_ta: string; xac_nhan: { trang_thai: string; nguoi: string | null; ngay: string | null }; dau_vao: DauVaoVang;
+  dap_an: { thanh_tien_don: number; hoa_hong_goc: number; hoa_hong_tinh_tran: number; co_dong_vuot: boolean; tran_giam_gia: number; cau_khi_giam_vuot_tran: string };
+}
+const cacCa = (JSON.parse(readFileSync(fileURLToPath(new URL("../../../golden/tran-giam-gia-dong-vuot.json", import.meta.url)), "utf8")) as { cac_ca: CaVang[] }).cac_ca;
+const DLE = "dda00000-0000-4000-8000-000000000005"; // đại lý E — mức theo từng ca của sổ vàng
+const DTV = U(8); // tài khoản Đối tác được hưởng, mức theo từng ca của sổ vàng
+const CAU_VUOT_0 = "Chưa giảm giá được: mức hoa hồng của dịch vụ trong đơn đang vượt giá bán — nhờ Kế toán xem lại.";
+const VE: DichVuVang = cacCa[2]!.dau_vao.dich_vu[0]!;
+const TOUR: DichVuVang = cacCa[2]!.dau_vao.dich_vu[1]!;
+
+/** Hoa hồng gốc từng dòng của một ca, tính tay bằng số học (không qua mã dưới kiểm): mức riêng của dịch vụ thắng mức «tất cả». */
+const dongTinhTay = (d: DauVaoVang) => d.dich_vu.map((x) => {
+  const thanhTien = x.gia_moi_khach * x.so_khach;
+  const rieng = d.muc_rieng_dich_vu.find((m) => m.ma === x.ma);
+  return { hoaHong: rieng ? (thanhTien * rieng.ty_le_bp) / 10_000 : d.muc_tat_ca.moi_khach * x.so_khach, thanhTien };
+});
+/** Đơn thử: catalog theo `dich_vu` của ca; đại lý E và tài khoản Đối tác DTV (hồ sơ được hưởng) cùng mang mức của ca; mức «riêng dịch vụ» là phần trăm nên không vướng so vượt giá lúc nhập. */
+async function setupVuot(d: DauVaoVang): Promise<W> {
+  const w = await setup();
+  seedStaff(w.sqlite, { id: DTV, phone: "0900000008", name: "NV 8", perms: ["PARTNER"] });
+  w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES (?, ?, 'TRAVEL_AGENCY', '2026-01-01', ?, ?)").run(`r-${DTV}`, `pty-${DTV}`, AT, AT);
+  toChuc(w, DLE, "Đại lý E");
+  for (const x of d.dich_vu) {
+    w.sqlite.prepare("INSERT INTO catalog_item (code, name, unit, price_adult, in_sheet, first_seen_at, updated_at) VALUES (?, ?, 'perPax', ?, 1, '2026-01-01', '2026-01-01')").run(x.ma, x.ten, x.gia_moi_khach);
+  }
+  for (const ben of [DLE, `pty-${DTV}`]) {
+    const doiTuong = { loai: "DOI_TAC", partyId: ben };
+    const tat = await w.call("POST", "/api/pricing/hoa-hong", { as: KT, body: { tuNgay: "2026-01-01", doiTuong, phamVi: "ALL", kieu: "PER_PAX", moiKhach: d.muc_tat_ca.moi_khach } });
+    assert.equal(tat.status, 201, tat.text);
+    for (const m of d.muc_rieng_dich_vu) {
+      const r = await w.call("POST", "/api/pricing/hoa-hong", { as: KT, body: { tuNgay: "2026-01-01", doiTuong, phamVi: "SERVICE", catalogCode: m.ma, kieu: "RATE", tyLeBp: m.ty_le_bp } });
+      assert.equal(r.status, 201, r.text);
+    }
+  }
+  return w;
+}
+const dvVang = (x: DichVuVang) => ({
+  kind: "catalog", pickupChoice: "KHONG_DON", catalogCode: x.ma, pax: { adult: x.so_khach, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: x.gia_moi_khach }, departDate: inDays(3),
+});
+const nhanCau = (r: { status: number; json: any; text: string }, cau: string, ten = "") => {
+  assert.equal(r.status, 400, `${ten} ${r.text}`);
+  assert.equal(r.json.error.code, "discount_exceeds_commission", ten);
+  assert.equal(r.json.error.message, cau, ten);
+};
+
+test("sổ vàng trần giảm giá LỚP 1: ba ca chờ xác nhận, đáp án tự cân với tính tay và với luật thuần (dòng vượt tính 0, bằng thì tính)", () => {
+  assert.deepEqual(cacCa.map((c) => c.ma), ["SV-TG-01", "SV-TG-02", "SV-TG-03"]);
+  for (const c of cacCa) {
+    assert.equal(c.xac_nhan.trang_thai, "cho_xac_nhan", c.ma);
+    assert.equal(c.xac_nhan.nguoi, null, c.ma);
+    const dong = dongTinhTay(c.dau_vao);
+    assert.equal(dong.reduce((s, d) => s + d.thanhTien, 0), c.dap_an.thanh_tien_don, `${c.ma}: thành tiền`);
+    assert.equal(dong.reduce((s, d) => s + d.hoaHong, 0), c.dap_an.hoa_hong_goc, `${c.ma}: hoa hồng gốc`);
+    assert.equal(H.tongTinhTran(dong), c.dap_an.hoa_hong_tinh_tran, `${c.ma}: hoa hồng tính vào trần`);
+    assert.equal(H.tongTinhTran(dong), c.dap_an.tran_giam_gia, `${c.ma}: trần`);
+    assert.equal(dong.some(H.dongVuotThanhTien), c.dap_an.co_dong_vuot, `${c.ma}: có dòng vượt`);
+  }
+});
+
+test("luật thuần: vượt khi LỚN HƠN thành tiền (bằng thì không); dòng vượt tính 0; thiếu mức thì không có tổng", () => {
+  assert.equal(H.dongVuotThanhTien({ hoaHong: 600_001, thanhTien: 600_000 }), true);
+  assert.equal(H.dongVuotThanhTien({ hoaHong: 600_000, thanhTien: 600_000 }), false, "bằng thành tiền không vượt");
+  assert.equal(H.dongVuotThanhTien({ hoaHong: null, thanhTien: 600_000 }), false, "thiếu mức không phải vượt");
+  assert.equal(H.hoaHongTinhTran({ hoaHong: 600_001, thanhTien: 600_000 }), 0);
+  assert.equal(H.hoaHongTinhTran({ hoaHong: 600_000, thanhTien: 600_000 }), 600_000, "bằng thành tiền vẫn tính vào trần");
+  assert.equal(H.hoaHongTinhTran({ hoaHong: null, thanhTien: 600_000 }), 0, "thiếu mức tính 0 như cũ");
+  assert.equal(H.hoaHongTinhTran({ hoaHong: 0, thanhTien: 0 }), 0);
+  assert.equal(H.tongTinhTran([{ hoaHong: 1_000_000, thanhTien: 600_000 }, { hoaHong: 300_000, thanhTien: 2_000_000 }]), 300_000);
+  assert.equal(H.tongTinhTran([{ hoaHong: 300_000, thanhTien: 2_000_000 }, { hoaHong: null, thanhTien: 100_000 }]), null, "còn dòng thiếu mức ⇒ null");
+  assert.equal(H.tongTinhTran([]), 0);
+});
+
+for (const c of cacCa) {
+  test(`sổ vàng trần giảm giá LỚP 2: ${c.ma} — Bán hàng và Đối tác: giảm ${c.dap_an.tran_giam_gia} nhận, +1 ₫ ⇒ 400 đúng câu của sổ vàng; lập, lưu nháp rồi Xác nhận cùng một trần`, async () => {
+    const w = await setupVuot(c.dau_vao);
+    const dvs = c.dau_vao.dich_vu.map(dvVang);
+    const tran = c.dap_an.tran_giam_gia;
+    for (const [ten, who, extra] of [["Bán hàng", SALES, { bookerPartyId: DLE }], ["Đối tác (đơn của chính mình)", DTV, {}]] as const) {
+      const truoc = soDon(w);
+      nhanCau(await lap(w, who, dvs, { ...extra, discount: tran + 1 }), c.dap_an.cau_khi_giam_vuot_tran, `${ten}: lập quá trần 1 ₫`);
+      assert.equal(soDon(w), truoc, `${ten}: bị từ chối thì không lưu đơn`);
+      // lưu nháp (PUT)
+      const nhap = await lap(w, who, dvs, extra);
+      assert.equal(nhap.status, 201, `${ten}: giảm 0 lập được: ${nhap.text}`);
+      const sua = (giam: number) => w.call("PUT", `/api/orders/${nhap.json.order.id}`, {
+        as: who, body: than(dvs.map((d, i) => ({ ...d, id: nhap.json.order.services[i].id })), { ...extra, discount: giam, expectedUpdatedAt: w.q("SELECT updated_at AS u FROM orders WHERE id = ?", nhap.json.order.id)[0].u }),
+      });
+      nhanCau(await sua(tran + 1), c.dap_an.cau_khi_giam_vuot_tran, `${ten}: lưu nháp quá trần 1 ₫`);
+      assert.equal(w.q("SELECT discount FROM orders WHERE id = ?", nhap.json.order.id)[0].discount, 0, `${ten}: nháp không đổi`);
+      // Xác nhận kiểm trần SAU khi tính bản chụp: nháp bị gieo giảm quá trần 1 ₫ (SQL) ⇒ 400 cùng câu, vẫn nháp
+      datGiam(w, nhap.json.order.id, tran + 1);
+      nhanCau(await xacNhan(w, nhap.json.order.id, who), c.dap_an.cau_khi_giam_vuot_tran, `${ten}: xác nhận quá trần 1 ₫`);
+      assert.equal(w.q("SELECT status FROM orders WHERE id = ?", nhap.json.order.id)[0].status, "draft");
+      // đúng trần: lưu được và gửi / xác nhận được
+      datGiam(w, nhap.json.order.id, tran);
+      const xn = await xacNhan(w, nhap.json.order.id, who);
+      assert.equal(xn.status, 200, `${ten}: đúng trần ${tran} xác nhận được: ${xn.text}`);
+      const dung = await lap(w, who, dvs, { ...extra, discount: tran });
+      assert.equal(dung.status, 201, `${ten}: lập đúng trần: ${dung.text}`);
+    }
+  });
+}
+
+test("hoa hồng đúng BẰNG thành tiền vẫn tính vào trần: vé 2 × 300.000 mức 300.000 mỗi khách (= thành tiền) + tour 300.000 ⇒ trần 900.000, câu cũ", async () => {
+  const w = await setupVuot({ dich_vu: [VE, TOUR], muc_tat_ca: { kieu: "PER_PAX", moi_khach: 300_000 }, muc_rieng_dich_vu: cacCa[2]!.dau_vao.muc_rieng_dich_vu });
+  const dvs = [dvVang(VE), dvVang(TOUR)];
+  for (const [ten, who, extra] of [["Bán hàng", SALES, { bookerPartyId: DLE }], ["Đối tác", DTV, {}]] as const) {
+    nhanCau(await lap(w, who, dvs, { ...extra, discount: 900_001 }), "Giảm tối đa 900.000 ₫ (bằng hoa hồng của đơn).", ten);
+    const r = await lap(w, who, dvs, { ...extra, discount: 900_000 });
+    assert.equal(r.status, 201, `${ten}: ${r.text}`);
+  }
+});
+
+test("đổi bên đặt sau Xác nhận sang đại lý có dòng vượt, đơn đang giảm: 409 discount_exceeds_commission, nêu hai số và câu nhắc Kế toán xem lại; bên đặt không đổi", async () => {
+  const w = await setupVuot(cacCa[1]!.dau_vao); // mức 500.000 mỗi khách cho vé 2 × 300.000 ⇒ hoa hồng gốc 1.000.000 > 600.000 ⇒ tính 0
+  const r0 = await lap(w, SALES, [dvVang(VE)], { discount: 100_000 }); // khách lẻ giảm 100.000
+  assert.equal(r0.status, 201, r0.text);
+  const id = r0.json.order.id;
+  assert.equal((await xacNhan(w, id)).status, 200);
+  const chupTruoc = dem(w, "SELECT count(*) AS n FROM ord_service_terms WHERE order_id = ?", id);
+  const r = await w.call("PUT", `/api/orders/${id}/booker`, {
+    as: SALES, body: { customerName: "Khách Thử", customerPhone: "0912345678", bookerPartyId: DLE, expectedUpdatedAt: w.q("SELECT updated_at AS u FROM orders WHERE id = ?", id)[0].u },
+  });
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "discount_exceeds_commission");
+  assert.match(r.json.error.message, /100\.000 ₫/);
+  assert.match(r.json.error.message, /\(0 ₫\)/, "hoa hồng của bên đặt mới tính 0 vì dòng vượt");
+  assert.match(r.json.error.message, /Mức hoa hồng của dịch vụ đang vượt giá bán — nhờ Kế toán xem lại\.$/);
+  assert.equal(w.q("SELECT booker_party_id AS b FROM orders WHERE id = ?", id)[0].b, null, "bên đặt không đổi");
+  assert.equal(dem(w, "SELECT count(*) AS n FROM ord_service_terms WHERE order_id = ?", id), chupTruoc, "không chụp lại");
+});
+
+test("Thực tập và Đối tác không phải người hưởng giữ luật cũ trên đơn có dòng vượt: Thực tập 403 câu Thực tập; Đối tác bị gắn đại lý khác 403 câu Đối tác, không lộ số", async () => {
+  const w = await setupVuot(cacCa[1]!.dau_vao);
+  cam(await lap(w, INTERN, [dvVang(VE)], { bookerPartyId: DLE, discount: 1 }), CAU_THUC_TAP, "Thực tập");
+  const r0 = await lap(w, DT0, [dvVang(VE)]);
+  assert.equal(r0.status, 201, r0.text);
+  w.sqlite.prepare("UPDATE orders SET booker_party_id = ? WHERE id = ?").run(DLE, r0.json.order.id);
+  datGiam(w, r0.json.order.id, 1);
+  const xn = await xacNhan(w, r0.json.order.id, DT0);
+  cam(xn, CAU_GIAM_DOI_TAC, "Đối tác không hưởng");
+  assert.doesNotMatch(xn.text, /vượt giá bán|Kế toán xem lại|\d{3}\.\d{3}/, "không lộ chuyện dòng vượt hay số của bên khác");
+});

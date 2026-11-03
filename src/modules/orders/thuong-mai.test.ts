@@ -357,3 +357,28 @@ test("Task 7 vòng sửa: nguoiHuongCuaDon / benDatKhongHuongDon đọc từ b�
   assert.equal(benDatKhongHuongDon([{ ...thieu, hoaHong: { status: "MISSING" as const, reason: "BOOKER_NOT_BENEFICIARY" as const } }]), true);
   assert.equal(benDatKhongHuongDon([thieu]), false, "dòng nhập tay thiếu mức không phải lý do bên đặt");
 });
+
+// ===== ADR-0161 Đ5: trần giảm giá không tính dòng hoa hồng vượt thành tiền =====
+import { coDongVuotDon, donChoTran } from "./thuong-mai.ts";
+
+test("ADR-0161 Đ5 tongHoaHongDon: chế độ «tinh0» (trần) tính dòng vượt thành tiền 0, «null» (cảnh báo) giữ số gốc; bằng thành tiền vẫn tính; coDongVuotDon và donChoTran cùng một phép tính dòng", () => {
+  const perPax = (serviceId: string, moiKhach: number) => ({ ...set, serviceId, hoaHong: { status: "SET" as const, kind: "PER_PAX" as const, rateBp: null, perPax: moiKhach, ruleId: "m2" } });
+  // vé s1: 2 khách × 300.000 = 600.000, mức 500.000/khách ⇒ hoa hồng gốc 1.000.000 > 600.000 (vượt); tour s2: 1 khách 2.000.000, mức 15% ⇒ 300.000.
+  const ve = perPax("s1", 500_000);
+  const tour = { ...set, serviceId: "s2", hoaHong: { status: "SET" as const, kind: "RATE" as const, rateBp: 1500, perPax: null, ruleId: "m3" } };
+  const dv = [{ id: "s1", thanhTien: 600_000, soKhachTinh: 2, pax: null }, { id: "s2", thanhTien: 2_000_000, soKhachTinh: 1, pax: null }];
+  assert.equal(tongHoaHongDon([ve, tour], dv, "tinh0"), 300_000, "trần: dòng vé vượt tính 0");
+  assert.equal(tongHoaHongDon([ve, tour], dv, "null"), 1_300_000, "cảnh báo: số gốc của bản chụp");
+  assert.equal(coDongVuotDon([ve, tour], dv), true);
+  assert.deepEqual(donChoTran([ve, tour], dv), { coNguoiHuong: true, tongHoaHong: 300_000, beneficiaryPartyId: "dla", benDatKhongHuong: false, coDongVuot: true });
+  // đúng bằng thành tiền: mức 300.000/khách ⇒ 600.000 = 600.000 ⇒ không vượt, tính đủ
+  const bang = perPax("s1", 300_000);
+  assert.equal(coDongVuotDon([bang, tour], dv), false);
+  assert.equal(tongHoaHongDon([bang, tour], dv, "tinh0"), 900_000);
+  assert.equal(donChoTran([bang, tour], dv).coDongVuot, false);
+  // dòng thiếu mức không phải dòng vượt; vẫn tính 0 như cũ
+  assert.equal(coDongVuotDon([tour, thieu], [dv[1]!, { id: "s2b", thanhTien: 1, soKhachTinh: 1, pax: null }]), false);
+  // khách lẻ (không người hưởng): hoa hồng 0, không có dòng vượt
+  const le = { ...set, beneficiaryPartyId: null, hoaHong: { status: "NONE" as const } };
+  assert.deepEqual(donChoTran([le], [dv[0]!]), { coNguoiHuong: false, tongHoaHong: 0, beneficiaryPartyId: null, benDatKhongHuong: false, coDongVuot: false });
+});

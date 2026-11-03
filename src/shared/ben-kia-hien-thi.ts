@@ -82,6 +82,15 @@ export const cauCanhBaoGiamGia = (c: { vuot: number } | null, dinhDang: (n: numb
 /** Câu trần giảm giá theo hoa hồng của đơn (ADR-0079 điều 8): MỘT nguồn cho máy chủ (`viPhamTranGiamGia`) và form lập / sửa đơn. */
 export const CAU_TRAN_HOA_HONG = (tran: number): string => `Giảm tối đa ${tran.toLocaleString("vi-VN")} ₫ (bằng hoa hồng của đơn).`;
 
+/**
+ * Câu trần giảm giá khi đơn có dịch vụ mà hoa hồng LỚN HƠN thành tiền của dịch vụ (ADR-0161 Đ5): dòng đó không được tính vào trần. MỘT nguồn cho máy chủ và form.
+ * Trần 0 ⇒ chưa giảm được; trần còn số ⇒ nói rõ số đó không tính dịch vụ vượt. Cả hai nhắc Kế toán xem lại mức (chỗ sửa mức là việc của Kế toán).
+ */
+export const cauTranCoDongVuot = (tran: number): string =>
+  tran === 0
+    ? "Chưa giảm giá được: mức hoa hồng của dịch vụ trong đơn đang vượt giá bán — nhờ Kế toán xem lại."
+    : `Giảm tối đa ${tran.toLocaleString("vi-VN")} ₫ (không tính dịch vụ có mức hoa hồng vượt giá bán — nhờ Kế toán xem lại).`;
+
 /** Lý do giữ đơn `stale` (Task 9, M-5: đơn vừa đổi giữa hai lần đọc) ⇒ trang đơn đặt nút «Tải lại» cạnh câu. */
 export const lyDoCanTaiLai = (ma: string): boolean => ma === "stale";
 
@@ -96,9 +105,12 @@ export function oGiamGiaChiGiaDanhMuc(v: { laDoiTac: boolean; laThucTap: boolean
   return { khoa: true, cau: "Tài khoản Thực tập không được giảm giá." };
 }
 
-/** Câu trần dưới ô giảm giá khi SỬA đơn đã lưu có người hưởng (số từ `GET …/thuong-mai`): `tongHoaHong` null = còn dịch vụ thiếu mức ⇒ không đoán số (máy chủ báo khi lưu). */
-export const cauTranGiamGiaForm = (tongHoaHong: number | null): string | null =>
-  tongHoaHong === null ? null : `${CAU_TRAN_HOA_HONG(tongHoaHong)} Số này theo đơn đã lưu; đổi dịch vụ hay số khách thì Nền tảng tính lại khi lưu.`;
+/**
+ * Câu trần dưới ô giảm giá khi SỬA đơn đã lưu có người hưởng (số từ `GET …/thuong-mai`): `tong` = tổng hoa hồng TÍNH VÀO TRẦN (`tongTinhTran`, dòng vượt thành tiền đã tính 0); null = còn dịch vụ
+ * thiếu mức ⇒ không đoán số (máy chủ báo khi lưu). `coDongVuot` = đơn có dịch vụ vượt thành tiền ⇒ câu nói rõ số đó không tính dịch vụ vượt (ADR-0161 Đ5).
+ */
+export const cauTranGiamGiaForm = (tong: number | null, coDongVuot = false): string | null =>
+  tong === null ? null : `${coDongVuot ? cauTranCoDongVuot(tong) : CAU_TRAN_HOA_HONG(tong)} Số này theo đơn đã lưu; đổi dịch vụ hay số khách thì Nền tảng tính lại khi lưu.`;
 
 /**
  * Khối «Chờ đối chiếu» ở Trang chủ (vòng sửa người kiểm Task 12, Minor 1): người ghi sổ (`ledger.write`) KHÔNG giữ quyền Đối tác — tài khoản lai Kế toán + Đối tác

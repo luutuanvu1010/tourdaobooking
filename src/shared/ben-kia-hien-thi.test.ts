@@ -112,6 +112,17 @@ test("form sửa đơn — câu trần theo đơn đã lưu: chỉ khi có ngư�
   assert.match(B.cauTranGiamGiaForm(100_000) ?? "", /^Giảm tối đa 100\.000 ₫ \(bằng hoa hồng của đơn\)\./);
 });
 
+test("ADR-0161 Đ5 — câu trần khi đơn có dịch vụ hoa hồng vượt giá bán: trần 0 ⇒ chưa giảm được; trần còn số ⇒ nói không tính dịch vụ vượt; không dòng vượt thì câu cũ", () => {
+  assert.equal(B.cauTranCoDongVuot(0), "Chưa giảm giá được: mức hoa hồng của dịch vụ trong đơn đang vượt giá bán — nhờ Kế toán xem lại.");
+  assert.equal(B.cauTranCoDongVuot(300_000), "Giảm tối đa 300.000 ₫ (không tính dịch vụ có mức hoa hồng vượt giá bán — nhờ Kế toán xem lại).");
+  assert.match(B.cauTranGiamGiaForm(300_000, true) ?? "", /^Giảm tối đa 300\.000 ₫ \(không tính dịch vụ có mức hoa hồng vượt giá bán — nhờ Kế toán xem lại\)\. Số này theo đơn đã lưu/);
+  assert.match(B.cauTranGiamGiaForm(300_000, true) ?? "", /không tính dịch vụ/);
+  assert.match(B.cauTranGiamGiaForm(0, true) ?? "", /^Chưa giảm giá được: mức hoa hồng của dịch vụ trong đơn đang vượt giá bán/);
+  assert.equal(B.cauTranGiamGiaForm(null, true), null, "còn dịch vụ thiếu mức ⇒ không đoán số, dù có dòng vượt");
+  assert.equal(B.cauTranGiamGiaForm(300_000, false), B.cauTranGiamGiaForm(300_000), "không có dòng vượt ⇒ câu cũ");
+  assert.match(B.cauTranGiamGiaForm(300_000, false) ?? "", /^Giảm tối đa 300\.000 ₫ \(bằng hoa hồng của đơn\)\./);
+});
+
 // Vòng sửa theo người kiểm Task 12 (Minor 1, 2, 4).
 test("khối «Chờ đối chiếu» ở Trang chủ: chỉ người ghi sổ (ledger.write) KHÔNG giữ quyền Đối tác — tài khoản lai Kế toán + Đối tác không thấy", () => {
   const ai = (permissions: string[]) => ({ id: "x", permissions }) as unknown as Parameters<typeof B.coKhoiChoDoiChieu>[0];
