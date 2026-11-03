@@ -143,3 +143,5 @@ Lượt đọc cả nhánh: `npm test` 7.566 bài, 7.562 đạt, 0 đỏ, 4 todo
 **Kiểm định `R-ORD-DC1` trên production CHƯA CHẠY được trước khi triển khai:** `node scripts/audit-invariants.mjs --db remote` thoát 2, không có lời báo lỗi. Suy luận (chưa tái hiện riêng): câu kiểm đọc bảng `bil_attribution` của migration `0135`, mà `wrangler d1 migrations list --remote` cho thấy `0135`, `0136`, `0137` chưa áp. Kiểm định sẽ chạy tự động ở bước sau deploy của `npm run trien-khai`; lần đó phải đọc dòng `R-ORD-DC1` (ADR-0161 phần Hệ quả).
 
 **Điều phối tự chọn, chủ được báo ở báo cáo cuối:** giữ chỗ gọi `hoaHongDong` thêm vào `GOI_HAM` (người kiểm kết luận không phải công thức thứ hai); giữ trần gói trang Đơn hàng 103.523 (chênh so với `main` +284 nằm ở dữ liệu điều hướng); cổng vượt giá bỏ qua dịch vụ đang ẩn; cảnh báo sau xác nhận giữ số gốc.
+
+**Phát hành:** đã lên production bản 2.58 ngày 3/11 lúc 22:20, chủ tự chạy; `R-ORD-DC1` đạt trên dữ liệu thật. Chi tiết ở `docs/HANDOFF-N1.md`. Việc kế tiếp của phân hệ: `2026-11-03-hoan-thien-hoa-hong-bang-viec.md`.

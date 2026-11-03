@@ -2,7 +2,16 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.57 ĐÃ LÊN PRODUCTION (gộp vé điện tử 2.55, đặt vé đối tác lượt 1 bản 2.56, lượt 2 bản 2.57: đơn đối tác không nhập giờ đón, văn phòng chốt giờ; công tắc ẩn thông tin khách; cột Cấp độ đại lý và bộ lọc ở Quản lý tài khoản; hai thẻ ở Hoa hồng) — migration `0131`–`0134` — triển khai 2026-11-02 17:46 (giờ VN)
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.58 ĐÃ LÊN PRODUCTION (phân định trách nhiệm ADR-0116, cảnh báo khoản thu giống nhau, Khách đặt cọc trước ADR-0159, mục Hướng dẫn riêng, chính sách chiết khấu bốn trục ADR-0161) — migration `0135`, `0136`, `0137` — triển khai 2026-11-03 22:20 giờ Việt Nam
+
+Ghi từ khối tóm tắt của `npm run trien-khai` (chủ tự chạy) và ô Terminal của phiên chiết khấu:
+- Commit `origin/main`: `8e6de707`. Worker Version ID: `58cfe2c1-9699-48c7-a595-7eaa58263f3b`. Điểm khôi phục Time Travel trước khi áp: `00002169-00000000-00005118-b6957c4775c2654ffbc428cadf2a1306`. Cổng phiên bản trước và sau deploy: ĐẠT. e2e: xanh.
+- **`audit-invariants --db remote`: ĐẠT**, gồm `R-ORD-DC1` theo định nghĩa trần mới (ADR-0161). Hai cảnh báo: `R-VC-14` 7 xe thiếu giấy tờ là điều kiện xuất bến; `R-CTL-1` 9 dịch vụ chưa phân nhóm.
+- **Lên trước diễn tập khôi phục, do chủ quyết:** ADR-0159 và `xay_tren_cho_phep` ghi «chỉ phát hành sau diễn tập». Chủ 3/11, nguyên văn: «để diễn tập sau, giờ là lúc cần hoàn thiện phân hệ hoa hồng», rồi tự chạy lệnh. Hạn `HC-5.19` dời sang 2026-11-30, xem `docs/quyen-hoan.json`.
+- **Chưa kiểm:** iPhone thật; chủ chưa thử bản này. Nhật ký thay đổi của 2.58 còn ghi ngày tạm 2026-11-02, không ảnh hưởng cổng phiên bản; lần phát hành sau không cần sửa lại.
+- **Việc kế tiếp:** `docs/superpowers/plans/2026-11-03-hoan-thien-hoa-hong-bang-viec.md`. `TNV-G3`, `TNV-G4` chỉ đóng sau khi người kiểm đối chiếu trên bản đã phát hành.
+
+## (Cũ) TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.57 ĐÃ LÊN PRODUCTION (gộp vé điện tử 2.55, đặt vé đối tác lượt 1 bản 2.56, lượt 2 bản 2.57: đơn đối tác không nhập giờ đón, văn phòng chốt giờ; công tắc ẩn thông tin khách; cột Cấp độ đại lý và bộ lọc ở Quản lý tài khoản; hai thẻ ở Hoa hồng) — migration `0131`–`0134` — triển khai 2026-11-02 17:46 (giờ VN)
 
 Ghi 2/11/2026 từ khối tóm tắt của `npm run trien-khai` (chủ chạy `day-len` nhánh `claude/dat-ve-luot-2` + `trien-khai`) và lệnh CHỈ ĐỌC của phiên thi công (sổ `docs/superpowers/plans/2026-11-02-dat-ve-doi-tac-luot-2-thi-cong-nhat-ky.md`):
 - Commit `origin/main`: `acfb09e7`. Worker Version ID: `21b7bef4-5672-419d-b611-e6237353d89e`. Điểm khôi phục Time Travel trước khi áp: `00002045-00000002-00005117-3cd61fe792f36704fc0ba75c2e4f2fdc`. Cổng phiên bản trước và sau deploy: ĐẠT. `wrangler d1 migrations list --remote`: không còn gì để áp.
