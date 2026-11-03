@@ -821,3 +821,72 @@ test("oTrongKeTiep: ô vừa bấm biến khỏi bảng ⇒ ô trống kế ti�
   assert.equal(HT.oTrongKeTiep(cu, "khong-co", new Set(["c1|SERVICE|C"])), null, "ô không có trong bảng cũ");
   assert.equal(HT.oTrongKeTiep([], "c1|SERVICE|A", new Set(["c1|SERVICE|A"])), null);
 });
+
+// ---- Sửa sau kiểm độc lập (3/11/2026): dịch vụ tính theo lượt thì số tiền là MỖI LƯỢT (máy chủ: `hoaHongTheoLuot`), không phải mỗi khách ----
+test("cachGhiTien: dịch vụ tính theo lượt (per5Pax) ⇒ nhãn «mỗi lượt», đuôi «/lượt», không có «Riêng từng loại khách», không gợi ý", () => {
+  assert.deepEqual(HT.cachGhiTien({ phamVi: "SERVICE", unit: "per5Pax" }), { donVi: "LUOT", nhan: "Số tiền mỗi lượt (đồng)", goiY: null, coRiengTungLoai: false });
+  assert.equal(HT.cachGhiTien({ phamVi: "SERVICE", unit: "per2Pax" }).donVi, "LUOT", "mọi nhóm người từ 2 trở lên đều là lượt");
+  assert.equal(HT.cachGhiTien({ phamVi: "SERVICE", unit: " per5Pax " }).donVi, "LUOT", "khoảng trắng thừa không đổi nghĩa (cùng parseUnit với máy chủ)");
+});
+
+test("cachGhiTien: dịch vụ tính theo người (perPax) ⇒ như cũ: «mỗi khách», «/khách», có «Riêng từng loại khách», không gợi ý", () => {
+  assert.deepEqual(HT.cachGhiTien({ phamVi: "SERVICE", unit: "perPax" }), { donVi: "KHACH", nhan: "Số tiền mỗi khách (đồng)", goiY: null, coRiengTungLoai: true });
+});
+
+test("cachGhiTien: đơn vị lạ hoặc thiếu đơn vị ở MỘT dịch vụ ⇒ giữ như cũ, KHÔNG gợi ý (không đoán)", () => {
+  for (const unit of ["lạ", "perHour", "per1Pax", "", null]) {
+    assert.deepEqual(HT.cachGhiTien({ phamVi: "SERVICE", unit }), { donVi: "KHACH", nhan: "Số tiền mỗi khách (đồng)", goiY: null, coRiengTungLoai: true }, `unit ${JSON.stringify(unit)}`);
+  }
+});
+
+test("cachGhiTien: phạm vi nhóm hoặc tất cả dịch vụ ⇒ nhãn «mỗi khách» giữ nguyên, thêm đúng một câu gợi ý; «Riêng từng loại khách» vẫn có; đơn vị không ảnh hưởng", () => {
+  const CAU = "Dịch vụ tính theo lượt: số này là mỗi lượt.";
+  for (const phamVi of ["GROUP", "ALL"] as const) {
+    for (const unit of ["perPax", "per5Pax", "lạ", null]) {
+      assert.deepEqual(HT.cachGhiTien({ phamVi, unit }), { donVi: "KHACH", nhan: "Số tiền mỗi khách (đồng)", goiY: CAU, coRiengTungLoai: true }, `${phamVi} ${JSON.stringify(unit)}`);
+    }
+  }
+});
+
+test("cachGhiTien: chữ đúng từng chữ (hằng số xuất ra cho giao diện và kịch bản Chrome)", () => {
+  assert.deepEqual([HT.NHAN_TIEN_MOI_KHACH, HT.NHAN_TIEN_MOI_LUOT, HT.CAU_GOI_Y_THEO_LUOT], ["Số tiền mỗi khách (đồng)", "Số tiền mỗi lượt (đồng)", "Dịch vụ tính theo lượt: số này là mỗi lượt."]);
+});
+
+test("cachGhiTienCuaDong: dòng một dịch vụ tra đơn vị trong danh mục; dòng nhóm, tất cả, dịch vụ không còn trong danh mục ⇒ không đoán lượt", () => {
+  const dm = [{ code: "S1", unit: "perPax" }, { code: "S3", unit: "per5Pax" }];
+  assert.equal(HT.cachGhiTienCuaDong({ phamVi: "SERVICE", catalogCode: "S3" }, dm).donVi, "LUOT");
+  assert.equal(HT.cachGhiTienCuaDong({ phamVi: "SERVICE", catalogCode: "S1" }, dm).donVi, "KHACH");
+  assert.equal(HT.cachGhiTienCuaDong({ phamVi: "SERVICE", catalogCode: "CU" }, dm).goiY, null, "dịch vụ không còn trong danh mục: như đơn vị lạ, không gợi ý");
+  assert.equal(HT.cachGhiTienCuaDong({ phamVi: "GROUP", catalogCode: null }, dm).goiY, HT.CAU_GOI_Y_THEO_LUOT);
+  assert.equal(HT.cachGhiTienCuaDong({ phamVi: "ALL", catalogCode: null }, dm).donVi, "KHACH");
+});
+
+test("nhanMucTheoDonVi: chỉ đổi đuôi «/khách» thành «/lượt» ở số tiền của dịch vụ tính theo lượt; phần trăm và nhãn mặc định (nhanMucDto) không đổi", () => {
+  const tien = { kieu: "PER_PAX", tyLeBp: null, moiKhach: 50_000 } as const;
+  assert.equal(HT.nhanMucTheoDonVi(tien, "LUOT"), "50.000đ/lượt");
+  assert.equal(HT.nhanMucTheoDonVi(tien, "KHACH"), "50.000đ/khách");
+  assert.equal(HT.nhanMucTheoDonVi({ kieu: "RATE", tyLeBp: 1250, moiKhach: null }, "LUOT"), "12,5%", "phần trăm không có đơn vị");
+  assert.equal(HT.nhanMucTheoDonVi({ kieu: "PER_PAX", tyLeBp: null, moiKhach: 0 }, "LUOT"), "0đ/lượt");
+  assert.equal(nhanMucDto(tien), "50.000đ/khách", "nhanMucDto giữ nguyên «/khách» (máy chủ và nhiều màn khác dùng)");
+  // Dòng cũ còn ba số theo loại trên dịch vụ tính theo lượt: giữ đủ ba số (không giấu dữ liệu), chỉ đổi đuôi.
+  assert.equal(HT.nhanMucTheoDonVi({ ...tien, theoLoai: { nguoiLon: 50_000, treEm: 30_000, nguoiCaoTuoi: 0 } }, "LUOT"), "người lớn 50.000đ · trẻ em 30.000đ · người cao tuổi 0đ/lượt");
+  assert.equal(HT.nhanMucTheoDonVi({ ...tien, theoLoai: { nguoiLon: 50_000, treEm: 30_000, nguoiCaoTuoi: 0 } }, "KHACH"), "người lớn 50.000đ · trẻ em 30.000đ · người cao tuổi 0đ/khách");
+});
+
+test("maTranCap: ô số tiền ở hàng dịch vụ tính theo lượt ghi «/lượt»; hàng theo người, hàng nhóm, «Mọi dịch vụ» vẫn «/khách»; phần trăm không đổi", () => {
+  const a = cap("A", "Cấp A", [
+    dongCap("A", { id: "s1", phamVi: "SERVICE", catalogCode: "S1", kieu: "PER_PAX", tyLeBp: null, moiKhach: 50_000 }),
+    dongCap("A", { id: "s3", phamVi: "SERVICE", catalogCode: "S3", kieu: "PER_PAX", tyLeBp: null, moiKhach: 50_000 }),
+    dongCap("A", { id: "s3sap", phamVi: "SERVICE", catalogCode: "S3", kieu: "PER_PAX", tyLeBp: null, moiKhach: 70_000, tuNgay: "2026-11-01", conHieuLuc: false }),
+    dongCap("A", { id: "g1", phamVi: "GROUP", groupCode: "G2", kieu: "PER_PAX", tyLeBp: null, moiKhach: 40_000 }),
+    dongCap("A", { id: "all", kieu: "PER_PAX", tyLeBp: null, moiKhach: 30_000 }),
+  ]);
+  const mt = HT.maTranCap({ muc: [a], dichVu: DM_DV, nhom: DM_NHOM, homNay: HOM_NAY });
+  const nhan = (pv: string, code: string | null) => mt.hang.find((x) => x.phamVi === pv && x.code === code)!.o[0]!.nhan;
+  assert.deepEqual(nhan("SERVICE", "S3"), ["50.000đ/lượt", "70.000đ/lượt từ 01/11/2026"]);
+  assert.deepEqual(nhan("SERVICE", "S1"), ["50.000đ/khách"]);
+  assert.deepEqual(nhan("GROUP", "G2"), ["40.000đ/khách"]);
+  assert.deepEqual(nhan("ALL", null), ["30.000đ/khách"]);
+  const b = cap("B", "Cấp B", [dongCap("B", { id: "r", phamVi: "SERVICE", catalogCode: "S3", tyLeBp: 1250 })]);
+  assert.deepEqual(HT.maTranCap({ muc: [b], dichVu: DM_DV, nhom: DM_NHOM, homNay: HOM_NAY }).hang.find((x) => x.code === "S3")!.o[0]!.nhan, ["12,5%"]);
+});

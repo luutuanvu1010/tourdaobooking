@@ -15,7 +15,7 @@ Kế hoạch: `2026-11-03-chinh-sach-chiet-khau-bon-truc.md`. Quyết định: A
 | Task 7 Bỏ lối vai trò, chữ | Xanh | xong 3/11, chờ người kiểm độc lập (chưa thử Chrome hộp «Thêm mức riêng cho đối tác») |
 | Task 8 Trang giới hạn | Xanh | xong 3/11: nhóm bài menu, PWA, gói trang, hỏi bảng quyền xanh; kịch bản `gioi-han-smoke.mjs` (bản đầu) 9/9 bước xanh; chờ người kiểm độc lập |
 | Task 9 Tài liệu, bộ kiểm dài | Mọi bộ xanh, có ảnh ba khổ | xong 3/11 (lần giao 3), chờ người kiểm độc lập: `npm run typecheck` 0 lỗi; `npm test` bước 1 = 7.566 bài (7.561 xanh, 4 todo, **1 đỏ** `K-A-3 (2)` do lời gọi `hoaHongDong(` mới ở `hoa-hong-hien-thi.ts` chưa vào danh sách đã rà; sửa danh sách, chạy lại riêng tệp đó 7/7 xanh, KHÔNG chạy lại cả bộ), 339 giây; bước 2 (đo giờ hook) 1/1 xanh; e2e `muc-ta` `so-dai-ly` `so-dai-ly-dot-2`: 6/6 xanh, 72 giây, `audit-invariants --strict` thoát 0 (1 cảnh báo cũ R-CTL-1, 4 dịch vụ chưa phân nhóm); Chrome (axe CÓ chạy, không dòng «BỎ QUA axe»): `bang-nhap-smoke.mjs` 23/23 (390, 1040, 1440), `gioi-han-smoke.mjs` 10/10, `hoa-hong-smoke.mjs` 59/59 (390 + 1040), `a2-smoke-form.mjs` OK (kịch bản này không dùng axe); ảnh ba khổ ở `docs/evidence/2026-11-03-chiet-khau-bon-truc/anh/` |
-| Người kiểm độc lập | Không còn lỗi Cao, Trung | chưa |
+| Người kiểm độc lập | Không còn lỗi Cao, Trung | ĐẠT 3/11, không lỗi Cao; hai điểm Trung đã sửa, chờ người kiểm xác nhận |
 
 ## Bằng chứng quan sát chặn thật
 
@@ -91,6 +91,14 @@ Kế hoạch: `2026-11-03-chinh-sach-chiet-khau-bon-truc.md`. Quyết định: A
 - **ĐÃ THỬ 3/11 lần giao 3 (bước 2, 2v, 2s của `hoa-hong-smoke.mjs`) — Task 7, chưa thử trên Chrome:** hộp «＋ Thêm mức riêng cho đối tác» (một đối tác, bảng nhập không đi qua), thẻ Vai người dùng sau khi bỏ nút «＋ Thêm mức riêng cho vai trò này», hộp «Sửa cấp độ đại lý» có câu ghi điều kiện. Task 9 chạy lại `hoa-hong-smoke.mjs` sau khi sửa các bước bám nút và ô cũ.
 
 - **Task 8, chưa làm / chưa kiểm:** `docs/SYSTEM-DESIGN.md` còn nhắc trang theo bản cũ (Task 9 sửa tài liệu mô tả); chưa thử iPhone thật; kịch bản `gioi-han-smoke.mjs` chưa phá thử và chưa là hàng rào; chưa có bài e2e (cần mạng) cho trang; chưa thử một người Đối tác mở trang (route 403, bảng mục ẩn — chỉ bài thuần).
+
+- **Sau kiểm độc lập 3/11 — hai điểm Trung đã sửa, chờ người kiểm xác nhận:** (1) nhãn tiền sai với dịch vụ tính theo lượt: nay hộp ghi «Số tiền mỗi lượt (đồng)», «Sẽ tạo» và ô trong bảng ghi «/lượt», «Áp cho» bỏ «Riêng từng loại khách» (trừ dòng đã có số theo loại), hộp nhóm / «Mọi dịch vụ» có câu «Dịch vụ tính theo lượt: số này là mỗi lượt.»; công thức và máy chủ không đổi; (2) bài khoá lạc quan của `gioi-han-nhap.test.ts` chờ 10 ms giữa hai yêu cầu để mốc không trùng; phá thử `WHERE ?7 = ?7` đỏ 12/12 lần chạy cả tệp.
+- **Sau kiểm độc lập 3/11, mức Thấp, KHÔNG sửa — hộp báo sớm dùng giới hạn đọc lúc tải trang:** Toàn quyền vừa nâng trần thì hộp của Kế toán (trang chưa tải lại) báo từ chối sai; máy chủ vẫn quyết đúng theo giới hạn mới nhất.
+- **Sau kiểm độc lập 3/11, mức Thấp, KHÔNG sửa — `oVuaBam` ở `web/hoa-hong-cap.ts` (dòng ~385) có thể sót:** bấm một ô rồi bấm Huỷ thì cờ ô vừa bấm còn lại, lần vẽ lại sau có thể đưa tiêu điểm về ô đó.
+- **Sau kiểm độc lập 3/11, mức Thấp, KHÔNG sửa — `POST /api/pricing/gioi-han-nhap` không loại tài khoản giữ quyền Đối tác:** vô hại vì luật đã chặn từ lúc tạo (không có tài khoản lai Kế toán + Đối tác).
+- **Sau kiểm độc lập 3/11, mức Thấp, KHÔNG sửa — bài Hướng dẫn Kế toán nói «bấm ô —» trong khi bảng nhập chỉ có ở khổ từ 900 trở lên:** ở khổ hẹp Kế toán dùng dải chọn cấp và nút «＋ Thêm hoa hồng cho dịch vụ»; nhóm Hướng dẫn Kế toán sát trần chữ nên chưa sửa.
+- **Sau kiểm độc lập 3/11, mức Thấp, KHÔNG sửa — xem trước giá đại lý theo phần trăm làm tròn theo giá một người:** có thể lệch tới 1 đồng so với máy chủ làm tròn trên cả dòng (nhiều khách).
+- **Sửa nhãn «lượt» 3/11, chưa làm — ô «Kiểm tra hoa hồng» (`web/hoa-hong-tra-nhanh.ts`):** số to vẫn là `nhanMucDto`, tức «50.000đ/khách» kể cả khi dịch vụ tra là dịch vụ tính theo lượt; không đổi vì điều phối dặn không đổi hành vi nơi khác. Dòng cũ còn ba số theo loại trên dịch vụ tính theo lượt hiện đủ ba số, chỉ đổi đuôi thành «/lượt» (giả định bề mặt).
 
 ## Kết quả người kiểm độc lập phần máy chủ (3/11, Task 1–3), việc dồn cho lần giao 3
 

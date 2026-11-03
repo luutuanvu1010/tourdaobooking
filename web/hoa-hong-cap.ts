@@ -23,6 +23,7 @@ import {
   NHAN_TIM_HANG,
   NHAN_TINH_BANG,
   NHAN_TRANG_THAI,
+  cachGhiTienCuaDong,
   cauDemCap,
   cauDemHangMaTran,
   cauNhacCap,
@@ -36,7 +37,7 @@ import {
   maTranCap,
   nhanGiaBanLe,
   nhanHieuLuc,
-  nhanMucDto,
+  nhanMucTheoDonVi,
   nhanMucTa,
   nhanPhamVi,
   nhanSapAp,
@@ -275,7 +276,7 @@ export function bangDongMuc(tatCa: readonly Api.CommissionRuleDto[], capDangBat:
         const pv = nhanPhamVi(r, d.ten);
         const cot = cotMucCap(r);
         const viec = viecDongMuc(r, { homNay: d.homNay, capDangBat, ghi, sua });
-        const o = oViec(`${pv} · ${nhanMucDto(r)}`, viec, "dong", { DOI: () => mo.doi(r), SUA: () => mo.sua(r), NGUNG: () => mo.ngung(r, urlNgung(r)) });
+        const o = oViec(`${pv} · ${nhanMucTheoDonVi(r, cachGhiTienCuaDong(r, d.dm.dichVu).donVi)}`, viec, "dong", { DOI: () => mo.doi(r), SUA: () => mo.sua(r), NGUNG: () => mo.ngung(r, urlNgung(r)) });
         return h(
           "tr",
           { "data-dong-id": r.id },

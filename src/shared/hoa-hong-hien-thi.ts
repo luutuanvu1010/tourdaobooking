@@ -62,6 +62,41 @@ export function tenSauNhanDichVu(d: { phamVi: "SERVICE" | "GROUP" | "ALL"; catal
 export const nhanMucDto = (m: { kieu: "RATE" | "PER_PAX"; tyLeBp: number | null; moiKhach: number | null; theoLoai?: { nguoiLon: number; treEm: number; nguoiCaoTuoi: number } | null }): string =>
   nhanMuc({ kind: m.kieu, rateBp: m.tyLeBp, perPax: m.moiKhach, theoLoai: m.theoLoai ? { adult: m.theoLoai.nguoiLon, child: m.theoLoai.treEm, senior: m.theoLoai.nguoiCaoTuoi } : null });
 
+/**
+ * Đơn vị của «số tiền» trong một dòng mức: dịch vụ tính theo người (`perPax`) là mỗi KHÁCH, dịch vụ tính theo lượt (`perNPax`, N ≥ 2) là mỗi LƯỢT — máy chủ tính bằng `hoaHongTheoLuot` (số × số lượt)
+ * và so với giá bán theo lượt. Giao diện chỉ đổi CHỮ cho khớp; công thức và máy chủ không đổi.
+ */
+export type DonViTien = "KHACH" | "LUOT";
+export const NHAN_TIEN_MOI_KHACH = "Số tiền mỗi khách (đồng)";
+export const NHAN_TIEN_MOI_LUOT = "Số tiền mỗi lượt (đồng)";
+/** Dưới ô số tiền của hộp cho phạm vi nhóm hoặc «Mọi dịch vụ» (không biết một đơn vị): trong nhóm có thể lẫn dịch vụ tính theo lượt. */
+export const CAU_GOI_Y_THEO_LUOT = "Dịch vụ tính theo lượt: số này là mỗi lượt.";
+
+/** Chữ và lựa chọn của ô số tiền trong hộp nhập, theo phạm vi của dòng và đơn vị của dịch vụ (nếu là MỘT dịch vụ). */
+export interface CachGhiTien {
+  donVi: DonViTien;
+  /** Nhãn ô «Số tiền …» (khi «Áp cho» = Mọi khách như nhau). */
+  nhan: string;
+  /** Một câu dưới ô số tiền; null = không có. */
+  goiY: string | null;
+  /** Có cho chọn «Riêng từng loại khách» không: dịch vụ tính theo lượt bỏ qua số trẻ em, người cao tuổi nên không mời gõ. */
+  coRiengTungLoai: boolean;
+}
+export function cachGhiTien(v: { phamVi: "SERVICE" | "GROUP" | "ALL"; unit: string | null }): CachGhiTien {
+  if (v.phamVi !== "SERVICE") return { donVi: "KHACH", nhan: NHAN_TIEN_MOI_KHACH, goiY: CAU_GOI_Y_THEO_LUOT, coRiengTungLoai: true };
+  // Đơn vị lạ hoặc thiếu đơn vị: giữ như cũ, không đoán.
+  if (v.unit !== null && parseUnit(v.unit).kind === "group") return { donVi: "LUOT", nhan: NHAN_TIEN_MOI_LUOT, goiY: null, coRiengTungLoai: false };
+  return { donVi: "KHACH", nhan: NHAN_TIEN_MOI_KHACH, goiY: null, coRiengTungLoai: true };
+}
+/** `cachGhiTien` của một dòng mức đã có: dòng MỘT dịch vụ tra đơn vị trong danh mục (không có trong danh mục thì như đơn vị lạ). */
+export const cachGhiTienCuaDong = (dong: { phamVi: "SERVICE" | "GROUP" | "ALL"; catalogCode: string | null }, dichVu: readonly { code: string; unit: string }[]): CachGhiTien =>
+  cachGhiTien({ phamVi: dong.phamVi, unit: dong.phamVi === "SERVICE" ? (dichVu.find((s) => s.code === dong.catalogCode)?.unit ?? null) : null });
+/** `nhanMucDto` có đơn vị: dịch vụ tính theo lượt đổi đuôi «/khách» thành «/lượt» (số tiền); phần trăm không có đơn vị nên giữ nguyên. Dòng cũ còn ba số theo loại: giữ đủ ba số, chỉ đổi đuôi. */
+export const nhanMucTheoDonVi = (m: Parameters<typeof nhanMucDto>[0], donVi: DonViTien): string => {
+  const chu = nhanMucDto(m);
+  return donVi === "LUOT" && m.kieu === "PER_PAX" ? chu.replace(/\/khách$/, "/lượt") : chu;
+};
+
 /** Cột «Áp cho»: tên (vai, đối tác hoặc mức TA) và một chữ nhỏ nói đó là loại đối tác, một đối tác hay một mức TA — các thứ có thể trùng tên. */
 export function nhanDoiTuong(d: DoiTuongMucDto): { ten: string; loai: string } {
   return d.loai === "VAI" ? { ten: d.ten, loai: "Vai người dùng" } : d.loai === "MUC" ? { ten: d.ten, loai: "Cấp độ đại lý" } : { ten: d.ten, loai: "Một đối tác" };
@@ -489,7 +524,11 @@ export function maTranCap(v: {
 } {
   const cap = [...v.muc].sort((a, b) => a.ten.localeCompare(b.ten, "vi", { numeric: true }));
   const dongCon = cap.map((m) => m.dong.filter((r) => conApHoacSap(r, v.homNay)));
-  const nhanDongO = (r: CommissionRuleDto): string => (trangThaiDong(r, v.homNay) === "SAP_AP" ? `${nhanMucDto(r)} từ ${ngayVN(r.tuNgay)}` : nhanMucDto(r));
+  // Ô của hàng MỘT dịch vụ tính theo lượt ghi «/lượt»; hàng nhóm, «Mọi dịch vụ» (unit null) giữ «/khách».
+  const nhanDongO = (r: CommissionRuleDto, unit: string | null): string => {
+    const muc = nhanMucTheoDonVi(r, cachGhiTien({ phamVi: r.phamVi, unit }).donVi);
+    return trangThaiDong(r, v.homNay) === "SAP_AP" ? `${muc} từ ${ngayVN(r.tuNgay)}` : muc;
+  };
   const khop = (pv: HangMaTran["phamVi"], code: string | null) => (r: CommissionRuleDto): boolean =>
     r.phamVi === pv && (pv === "ALL" || (pv === "GROUP" ? r.groupCode === code : r.catalogCode === code));
   const dungHang = (pv: HangMaTran["phamVi"], code: string | null, ten: string, them: { unit: string | null; gia: GiaBanLe | null; groupCode: string | null }): HangMaTran => ({
@@ -499,7 +538,7 @@ export function maTranCap(v: {
     ...them,
     o: dongCon.map((ds) => {
       const dong = ds.filter(khop(pv, code));
-      return { nhan: dong.length > 0 ? dong.map(nhanDongO) : null, dong };
+      return { nhan: dong.length > 0 ? dong.map((r) => nhanDongO(r, them.unit)) : null, dong };
     }),
   });
   const maTrongDong = (pv: "GROUP" | "SERVICE"): string[] => [...new Set(dongCon.flat().filter((r) => r.phamVi === pv).map((r) => (pv === "GROUP" ? r.groupCode : r.catalogCode)).filter((c): c is string => c !== null))];

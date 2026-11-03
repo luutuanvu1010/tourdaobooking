@@ -246,6 +246,9 @@ test("hai yêu cầu cùng tuLuc: yêu cầu thứ hai đã qua bước so thì 
   let b: Res | undefined;
   // Giả đúng tình huống đồng thời: route A đã đọc và so xong `tuLuc`, NGAY TRƯỚC lô ghi của A thì route B (cùng `tuLuc`) chạy trọn và thắng.
   w.chenTruocLo((stmts: { sql: string }[]) => stmts.some((s) => /INSERT INTO prc_entry_limit_policy/.test(s.sql)), async () => {
+    // Chờ vài mili-giây để mốc `valid_from_at` của B luôn muộn hơn của A (route lấy `new Date()` lúc ghi). Nếu hai yêu cầu rơi cùng một mili-giây, câu chèn của A va UNIQUE(valid_from_at)
+    // và trả 409 `stale` dù khoá lạc quan đã hỏng ⇒ bài xanh nhầm (người kiểm 3/11: thay vế điều kiện bằng `?7 = ?7` mà cả tệp chỉ đỏ 5/12 lần).
+    await new Promise((xong) => setTimeout(xong, 10));
     b = await datGH(w, { tranTyLeBp: 6000, buocTien: 1000, tuLuc: cu });
   });
   const a = await datGH(w, { tranTyLeBp: 7000, buocTien: 2000, tuLuc: cu });

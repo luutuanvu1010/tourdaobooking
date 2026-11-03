@@ -4,6 +4,7 @@
 // Phá thử (sửa cố ý → đỏ → hoàn nguyên) ghi ở docs/superpowers/plans/2026-11-03-chinh-sach-chiet-khau-thi-cong-nhat-ky.md; kịch bản này có dòng ở docs/SO-HANG-RAO.md khi đã có ngày phá thử.
 // Môi trường: D1 tạm + wrangler dev + Chrome headless qua CDP (docs/evidence/2026-09-20-a2/kich-ban/a2-cdp.mjs) — Turnstile TẮT, KHÔNG --remote, không đụng dữ liệu thật.
 // Quy tắc ADR-0074/0075: dữ liệu dựng bằng API TRƯỚC khi mở trang; mỗi lúc chỉ một trang mở cho mỗi tài khoản; trong lúc trang mở thì đọc / ghi bằng chính trang (fetch trong trang).
+// Bước L (sửa sau kiểm độc lập 3/11): dịch vụ tính theo lượt ghi «/lượt» ở ô và «Số tiền mỗi lượt (đồng)» ở hộp; chỉ đọc.
 // Dữ liệu dựng: 120 dịch vụ (DV001…DV120, 12 dịch vụ tính theo lượt) cộng 3 dịch vụ mẫu của môi trường, 3 nhóm có dịch vụ (30 mỗi nhóm), 6 cấp. Năm cấp phủ đủ mọi dịch vụ,
 // cấp «Đồng» chỉ phủ 2 nhóm ⇒ «Còn thiếu mức» phải ra đúng 63 dịch vụ (30 của nhóm thứ ba + 33 chưa vào nhóm).
 // Chạy (sau `npm run build:web`, từ GỐC repo):
@@ -26,6 +27,12 @@ const CAU_PHAN_TRAM_QUA_TRAN = "Phần trăm không quá 50%.";
 const CAU_TIEN_SAI_BUOC = "Số tiền phải chia hết cho 1.000đ (không trả thì gõ 0).";
 const CAU_GIOI_HAN_DANG_AP = "Giới hạn đang áp: phần trăm không quá 50%; số tiền chia hết cho 1.000đ (không trả thì gõ 0).";
 const CAU_DA_THEM = "Đã thêm mức.";
+// Dịch vụ tính theo lượt (sửa sau kiểm độc lập 3/11): số tiền là MỖI LƯỢT. Bốn chữ dưới đây khớp nguyên văn src/shared/hoa-hong-hien-thi.ts (NHAN_TIEN_MOI_KHACH, NHAN_TIEN_MOI_LUOT, CAU_GOI_Y_THEO_LUOT, AP_CHO_THEO_LOAI).
+const NHAN_MOI_KHACH = "Số tiền mỗi khách (đồng)";
+const NHAN_MOI_LUOT = "Số tiền mỗi lượt (đồng)";
+const CAU_GOI_Y_THEO_LUOT = "Dịch vụ tính theo lượt: số này là mỗi lượt.";
+const AP_CHO_CHUNG = "Mọi khách như nhau";
+const AP_CHO_THEO_LOAI = "Riêng từng loại khách";
 
 const loi = [];
 const anh = [];
@@ -145,6 +152,8 @@ try {
   await dongCap(CAP["Kim cương"], { phamVi: "ALL", kieu: "RATE", tyLeBp: 1200 });
   for (const i of [1, 2, 3]) await dongCap(CAP["Kim cương"], { phamVi: "SERVICE", catalogCode: ma(i), kieu: "PER_PAX", moiKhach: 50000 });
   await dongCap(CAP["Kim cương"], { phamVi: "SERVICE", catalogCode: ma(4), kieu: "PER_PAX", moiKhach: 60000, theoLoai: { treEm: 30000, nguoiCaoTuoi: 40000 } });
+  // Một ô số tiền ở dịch vụ TÍNH THEO LƯỢT (DV010: nhóm 5 người): ô trong bảng phải ghi «/lượt» (bước L). Kim cương đã có dòng «Mọi dịch vụ» nên không đổi số dịch vụ còn thiếu mức.
+  await dongCap(CAP["Kim cương"], { phamVi: "SERVICE", catalogCode: ma(10), kieu: "PER_PAX", moiKhach: 50000 });
   await dongCap(CAP["Vàng"], { phamVi: "ALL", kieu: "RATE", tyLeBp: 1000 });
   await dongCap(CAP["Bạc"], { phamVi: "ALL", kieu: "RATE", tyLeBp: 800 });
   await dongCap(CAP["Đồng"], { phamVi: "GROUP", groupCode: G1, kieu: "RATE", tyLeBp: 700 });
@@ -278,6 +287,45 @@ try {
           assert.deepEqual(cat, { chu: "khách", dong: 1, tran: false }, "chữ «khách» còn nguyên một dòng, ô không tràn");
           const dd = m.dau.filter((x) => x !== null);
           assert.ok(Math.max(...dd) - Math.min(...dd) <= 3, `đầu cột lệch nhau ${Math.round(Math.max(...dd) - Math.min(...dd))} px (${dd.map((x) => Math.round(x)).join(", ")})`);
+        });
+
+        // Dịch vụ tính theo lượt: số tiền là mỗi lượt (máy chủ nhân số lượt: `hoaHongTheoLuot`). CHỈ ĐỌC (mở hộp, gõ, Esc): không ghi gì nên không đổi số liệu của các bước sau.
+        await buoc(`L${tenKho}`, `${nhanKho} dịch vụ tính theo lượt: ô trong bảng ghi «/lượt»; hộp ghi «${NHAN_MOI_LUOT}», «Áp cho» không có «${AP_CHO_THEO_LOAI}», «Sẽ tạo» ghi «/lượt»; dịch vụ theo người, hàng nhóm, «Mọi dịch vụ» giữ «mỗi khách» (hàng nhóm và «Mọi dịch vụ» có thêm câu gợi ý)`, async () => {
+          const oKim = await p.ev(`(() => { const dau = [...document.querySelectorAll('.hh-ma-tran thead th')].map((t) => t.textContent.trim()); const i = dau.findIndex((t) => t.startsWith('Kim cương'));
+            const tr = (k) => [...document.querySelectorAll('.hh-ma-tran tbody tr')].find((x) => x.querySelector('th')?.textContent.includes(k));
+            return { luot: tr('Tour thử 010')?.children[i].innerText.trim() ?? null, nguoi: tr('Tour thử 001')?.children[i].innerText.trim() ?? null }; })()`);
+          assert.deepEqual(oKim, { luot: "50.000đ/lượt", nguoi: "50.000đ/khách" }, "ô Kim cương: dịch vụ theo lượt ghi «/lượt», dịch vụ theo người ghi «/khách»");
+          const moDoc = async (k) => {
+            assert.equal(await bam(p, oNut(k)), true, `ô ${k} có nút`);
+            await choHop(p);
+            await p.ev(setInput("document.getElementById('hh-hop-kieu')", "PER_PAX"));
+            await p.waitFor("document.getElementById('hh-hop-ap-cho').disabled === false", "Áp cho mở khi Số tiền");
+            await p.ev(setInput("document.getElementById('hh-hop-moi-khach')", "50000"));
+            const r = await p.ev(`(() => { const s = document.querySelector('.sheet'); const dem = (c) => [...s.querySelectorAll('p.hint')].filter((e) => e.offsetParent !== null && e.textContent.trim() === c).length;
+              return { nhan: document.getElementById('hh-hop-moi-khach').closest('label').innerText.trim(), apCho: [...document.getElementById('hh-hop-ap-cho').options].map((x) => x.textContent), goiY: dem(${JSON.stringify(CAU_GOI_Y_THEO_LUOT)}),
+                sapTao: ([...s.querySelectorAll('.hint[aria-live]')].find((e) => !e.hidden && e.textContent.trim().startsWith('Sẽ tạo')) ?? {}).textContent ?? null }; })()`);
+            await p.ev("document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })), true");
+            await choDongHop(p);
+            return r;
+          };
+          const luot = await moDoc(khoa("Gỗ", "DV110"));
+          assert.equal(luot.nhan, NHAN_MOI_LUOT, "nhãn ô số tiền của dịch vụ theo lượt");
+          assert.deepEqual(luot.apCho, [AP_CHO_CHUNG], "«Áp cho» của dịch vụ theo lượt không có «Riêng từng loại khách»");
+          assert.equal(luot.goiY, 0, "một dịch vụ cụ thể: không có câu gợi ý");
+          assert.match(luot.sapTao ?? "", /50\.000đ\/lượt/, `«Sẽ tạo»: ${luot.sapTao}`);
+          assert.doesNotMatch(luot.sapTao ?? "", /\/khách/);
+          const nguoi = await moDoc(khoa("Gỗ", "DV111"));
+          assert.equal(nguoi.nhan, NHAN_MOI_KHACH, "nhãn dịch vụ theo người giữ nguyên");
+          assert.deepEqual(nguoi.apCho, [AP_CHO_CHUNG, AP_CHO_THEO_LOAI], "«Áp cho» của dịch vụ theo người giữ cả hai lựa chọn");
+          assert.equal(nguoi.goiY, 0);
+          assert.match(nguoi.sapTao ?? "", /50\.000đ\/khách/, `«Sẽ tạo»: ${nguoi.sapTao}`);
+          for (const [ten, k] of [["hàng nhóm", `${CAP["Đồng"]}|GROUP|${G3}`], ["hàng «Mọi dịch vụ»", `${CAP["Đồng"]}|ALL|`]]) {
+            const r = await moDoc(k);
+            assert.equal(r.nhan, NHAN_MOI_KHACH, `${ten}: nhãn giữ «mỗi khách»`);
+            assert.deepEqual(r.apCho, [AP_CHO_CHUNG, AP_CHO_THEO_LOAI], `${ten}: giữ cả hai lựa chọn «Áp cho»`);
+            assert.equal(r.goiY, 1, `${ten}: đúng một câu gợi ý «${CAU_GOI_Y_THEO_LUOT}»`);
+            assert.match(r.sapTao ?? "", /50\.000đ\/khách/, `${ten}: «Sẽ tạo»: ${r.sapTao}`);
+          }
         });
       }
 
