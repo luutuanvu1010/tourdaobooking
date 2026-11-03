@@ -217,3 +217,33 @@ test("canhBaoHaMucTay: đơn 1.000.000, hoa hồng 10% = 100.000, giảm 100.000
   const hai = { ...dto, dong: [...dto.dong, { serviceId: "s2", thanhTien: 500_000, soKhachTinh: 1, hoaHong: null }] };
   assert.ok(canhBaoHaMucTay({ dto: hai, serviceId: "s1", form: f({ tyLe: "5" }), giamGiaHieuLuc: 100_000, dinhDang: vnd })?.includes(vnd(50_000)));
 });
+
+// ADR-0161 Đ4 (Task 4): màn đơn nói «Hoa hồng vượt thành tiền — Kế toán xem lại» thay cho giá đại lý âm. DTO và sổ không đổi; chỉ đổi chữ hiển thị.
+test("chuGiaDaiLy: dòng vượt thành tiền ⇒ câu cảnh báo, không bao giờ hiện số âm; thiếu mức ⇒ «—»; bằng thành tiền ⇒ 0đ", async () => {
+  const { CAU_HOA_HONG_VUOT, chuGiaDaiLy } = await import("./phan-doi-tac-hien-thi.ts");
+  const { nhanDong } = await import("./so-dai-ly-nhan.ts");
+  const f = (n: number) => `${nhanDong(n)}đ`;
+  assert.equal(CAU_HOA_HONG_VUOT, "Hoa hồng vượt thành tiền — Kế toán xem lại");
+  assert.equal(chuGiaDaiLy({ thanhTien: 600_000, hoaHong: 1_000_000, giaDaiLy: -400_000 }, f), CAU_HOA_HONG_VUOT);
+  assert.equal(chuGiaDaiLy({ thanhTien: 600_000, hoaHong: 600_001, giaDaiLy: -1 }, f), CAU_HOA_HONG_VUOT, "vượt 1 đồng cũng báo");
+  assert.equal(chuGiaDaiLy({ thanhTien: 600_000, hoaHong: null, giaDaiLy: null }, f), "—", "thiếu mức: giữ «—» như cũ");
+  assert.equal(chuGiaDaiLy({ thanhTien: 600_000, hoaHong: 600_000, giaDaiLy: 0 }, f), "0đ", "bằng thành tiền là không vượt");
+  assert.equal(chuGiaDaiLy({ thanhTien: 600_000, hoaHong: 100_000, giaDaiLy: 500_000 }, f), "500.000đ");
+  assert.doesNotMatch(chuGiaDaiLy({ thanhTien: 600_000, hoaHong: 1_000_000, giaDaiLy: -400_000 }, f), /-|−/, "không dấu trừ");
+});
+
+test("chuTongGiaDaiLy: có một dòng vượt thì câu cảnh báo dù tổng dương; không dòng vượt thì như cũ (Chưa đủ mức khi tổng null)", async () => {
+  const { CAU_HOA_HONG_VUOT, chuTongGiaDaiLy } = await import("./phan-doi-tac-hien-thi.ts");
+  const { nhanDong } = await import("./so-dai-ly-nhan.ts");
+  const f = (n: number) => `${nhanDong(n)}đ`;
+  const vuot = { thanhTien: 300_000, hoaHong: 500_000 };
+  const dung = { thanhTien: 1_000_000, hoaHong: 100_000 };
+  // Tổng dương dù một dòng vượt: 1.000.000 − 100.000 + 300.000 − 500.000 = 700.000.
+  assert.equal(chuTongGiaDaiLy({ giaDaiLy: 700_000 }, [dung, vuot], f), CAU_HOA_HONG_VUOT);
+  assert.equal(chuTongGiaDaiLy({ giaDaiLy: 900_000 }, [dung], f), "900.000đ");
+  assert.equal(chuTongGiaDaiLy({ giaDaiLy: null }, [dung, { thanhTien: 1, hoaHong: null }], f), "Chưa đủ mức");
+  assert.equal(chuTongGiaDaiLy({ giaDaiLy: 0 }, [{ thanhTien: 600_000, hoaHong: 600_000 }], f), "0đ", "bằng thành tiền: không vượt, 0 là số thật");
+  // Vừa vượt vừa thiếu mức: câu vượt thắng (cụ thể hơn «Chưa đủ mức», và cùng thứ tự với chuGiaDaiLy). Ghi ở sổ thi công.
+  assert.equal(chuTongGiaDaiLy({ giaDaiLy: null }, [vuot, { thanhTien: 1, hoaHong: null }], f), CAU_HOA_HONG_VUOT);
+  assert.equal(chuTongGiaDaiLy({ giaDaiLy: 0 }, [], f), "0đ", "đơn không dòng nào (không người hưởng): số thật");
+});

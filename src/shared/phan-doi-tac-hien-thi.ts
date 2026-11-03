@@ -7,7 +7,7 @@
 // GHI CHÚ HỢP NHẤT: `docTyLeTay` / `docTienTay` / `MOI_KHACH_TOI_DA` KHÔNG còn bản riêng — chỉ là tên cũ trỏ về `docTyLePhanTram` / `docTienMoiKhach` / `MOI_KHACH_TOI_DA` của `so-dai-ly-nhap.ts` (một luật đọc ô, hai màn dùng).
 // Bài `docTyLeTay / docTienTay` ở phan-doi-tac-hien-thi.test.ts và bài nối `ghi-tay-nhap-noi.test.ts` (đối chiếu `kiemThanGhiTay` của máy chủ) giữ nguyên làm bài canh.
 import type { ThuongMaiDoiTacDto, ThuongMaiVanPhongDto } from "./contracts.ts";
-import { chenhGiamGiaSauGhiTay, type MucGhiTay } from "./hoa-hong-dong.ts";
+import { chenhGiamGiaSauGhiTay, dongVuotThanhTien, type MucGhiTay } from "./hoa-hong-dong.ts";
 import { can, holdsPartner, type PermissionHolder } from "./permissions.ts";
 import { CAU_DON_BI_GIU, CAU_THIEU_MUC, NHAN_LY_DO_THIEU } from "./so-dai-ly-nhan.ts";
 import { MOI_KHACH_TOI_DA, docTienMoiKhach, docTyLePhanTram } from "./so-dai-ly-nhap.ts";
@@ -118,6 +118,20 @@ export const canhBaoThieuMuc = (thieu: string | null): string | null => {
 
 /** Tổng hoa hồng: null = chưa đủ mức (không bao giờ hiện 0 thay cho thiếu); 0 là số thật (đơn không người hưởng). `dinhDang` = hàm hiện tiền của nơi gọi. */
 export const chuTongHoaHong = (v: number | null, dinhDang: (n: number) => string): string => (v === null ? "Chưa đủ mức" : dinhDang(v));
+/**
+ * ADR-0161 Đ4: dòng có hoa hồng LỚN HƠN thành tiền của chính dòng thì giá đại lý ra số âm — màn đơn không hiện số âm mà nói thẳng mức đang vượt giá bán. DTO và sổ không đổi (chỉ chữ hiển thị).
+ * Bằng thành tiền không phải vượt (giá đại lý 0 là số thật).
+ */
+export const CAU_HOA_HONG_VUOT = "Hoa hồng vượt thành tiền — Kế toán xem lại";
+/** Ô «Giá đại lý» của một dòng (văn phòng và Đối tác dùng chung): vượt ⇒ câu cảnh báo; thiếu mức ⇒ «—»; còn lại là số của máy chủ. */
+export const chuGiaDaiLy = (d: { thanhTien: number; hoaHong: number | null; giaDaiLy: number | null }, dinhDang: (n: number) => string): string =>
+  dongVuotThanhTien(d) ? CAU_HOA_HONG_VUOT : d.giaDaiLy === null ? "—" : dinhDang(d.giaDaiLy);
+/**
+ * Ô «Tổng giá đại lý»: còn một dòng vượt thì câu cảnh báo dù tổng còn dương (số dương che mất dòng sai); vừa vượt vừa thiếu mức thì câu vượt thắng «Chưa đủ mức» (cụ thể hơn, cùng thứ tự với `chuGiaDaiLy`).
+ * Không dòng vượt: `null` = «Chưa đủ mức», còn lại là số của máy chủ.
+ */
+export const chuTongGiaDaiLy = (tong: { giaDaiLy: number | null }, dong: readonly { thanhTien: number; hoaHong: number | null }[], dinhDang: (n: number) => string): string =>
+  dong.some(dongVuotThanhTien) ? CAU_HOA_HONG_VUOT : tong.giaDaiLy === null ? "Chưa đủ mức" : dinhDang(tong.giaDaiLy);
 /** Ô hoa hồng trong bảng của Đối tác: null = Công ty chưa cài mức cho dòng đó. */
 export const chuHoaHongDoiTac = (v: number | null, dinhDang: (n: number) => string): string => (v === null ? "Chờ Công ty cài mức" : dinhDang(v));
 /** Khối nhà cung cấp (chỉ người có `supply.terms.view` nhận được từ máy chủ). */

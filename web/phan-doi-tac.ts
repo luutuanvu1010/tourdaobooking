@@ -4,7 +4,7 @@
 // 404 ⇒ ẩn khối LẶNG LẼ (Đối tác không có phần ở đơn này, hoặc đơn không có phần đối tác — Ruling 18); lỗi khác ⇒ dòng lỗi trong khối kèm nút tải lại.
 // Quyết định ẩn/hiện, chữ và dựng thân ghi tay ở src/shared/phan-doi-tac-hien-thi.ts (có bài, và bài nối với route thật); tệp này chỉ dựng DOM. Không innerHTML.
 import {
-  CAU_CHO_CAI_MUC, TIEU_DE_DOI_TAC, TIEU_DE_LOI, TIEU_DE_VAN_PHONG, canhBaoHaMucTay, canhBaoThieuMuc, chuHoaHongDoiTac, chuNhaCungCap, chuTongHoaHong, demLyDo, docThanGhiTay, ghiChuTrangThai, hienNutGhiTay, nhanNguoiHuong,
+  CAU_CHO_CAI_MUC, TIEU_DE_DOI_TAC, TIEU_DE_LOI, TIEU_DE_VAN_PHONG, canhBaoHaMucTay, canhBaoThieuMuc, chuGiaDaiLy, chuHoaHongDoiTac, chuNhaCungCap, chuTongGiaDaiLy, chuTongHoaHong, demLyDo, docThanGhiTay, ghiChuTrangThai, hienNutGhiTay, nhanNguoiHuong,
   type FormGhiTay, type LoiGhiTay, type NguoiBanForm, type TruongGhiTay,
 } from "../src/shared/phan-doi-tac-hien-thi";
 import { hienNutChupBu } from "../src/shared/ben-kia-hien-thi";
@@ -82,7 +82,7 @@ export async function initPhanDoiTac(host: HTMLElement, v: PhanDoiTacVao): Promi
         o("Khách tính", String(d.soKhachTinh)),
         o("Mức", d.muc ?? "—"),
         o("Hoa hồng", d.hoaHong === null ? "—" : vnd(d.hoaHong)),
-        o("Giá đại lý", d.giaDaiLy === null ? "—" : vnd(d.giaDaiLy)),
+        o("Giá đại lý", chuGiaDaiLy(d, vnd)),
         o("Người bán", d.nguoiBan ? d.nguoiBan.ten : "—"),
       ),
       canh ? h("p", { class: "pdt-canh" }, canh) : null,
@@ -108,7 +108,7 @@ export async function initPhanDoiTac(host: HTMLElement, v: PhanDoiTacVao): Promi
         { class: "pdt-luoi pdt-tong" },
         o("Tổng thành tiền", vnd(d.tong.thanhTien)),
         o("Tổng hoa hồng", chuTongHoaHong(d.tong.hoaHong, vnd)),
-        o("Tổng giá đại lý", d.tong.giaDaiLy === null ? "Chưa đủ mức" : vnd(d.tong.giaDaiLy)),
+        o("Tổng giá đại lý", chuTongGiaDaiLy(d.tong, d.dong, vnd)),
       ),
     ];
   }
@@ -153,7 +153,7 @@ export async function initPhanDoiTac(host: HTMLElement, v: PhanDoiTacVao): Promi
             "article",
             { class: "pdt-dong", "data-service-id": x.serviceId },
             h("div", { class: "pdt-dong-dau" }, h("h3", { class: "pdt-ten" }, x.ten)),
-            h("dl", { class: "pdt-luoi pdt-luoi-doi-tac" }, o("Thành tiền", vnd(x.thanhTien)), o("Hoa hồng", chuHoaHongDoiTac(x.hoaHong, vnd)), o("Giá đại lý", x.giaDaiLy === null ? "—" : vnd(x.giaDaiLy))),
+            h("dl", { class: "pdt-luoi pdt-luoi-doi-tac" }, o("Thành tiền", vnd(x.thanhTien)), o("Hoa hồng", chuHoaHongDoiTac(x.hoaHong, vnd)), o("Giá đại lý", chuGiaDaiLy(x, vnd))),
           ),
         ),
       ),
@@ -162,7 +162,7 @@ export async function initPhanDoiTac(host: HTMLElement, v: PhanDoiTacVao): Promi
         { class: "pdt-luoi pdt-luoi-doi-tac pdt-tong" },
         o("Tổng thành tiền", vnd(d.tong.thanhTien)),
         o("Tổng hoa hồng", chuTongHoaHong(d.tong.hoaHong, vnd)),
-        o("Tổng giá đại lý", d.tong.giaDaiLy === null ? "Chưa đủ mức" : vnd(d.tong.giaDaiLy)),
+        o("Tổng giá đại lý", chuTongGiaDaiLy(d.tong, d.dong, vnd)),
       ),
     ];
   }
