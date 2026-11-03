@@ -125,6 +125,11 @@
   --h-order-skeleton: 76px; /* Đợt E (vòng sửa 2026-09-24): thẻ đơn đóng đo THẬT 76px ở cả 390px và 1040px (docs/evidence/2026-09-24-dot-e/) — trước là 180-240px cho khung 7 dòng cũ; chỉ là khung xương lúc đang tải, không cần khớp tuyệt đối */
   --c-on-dark: #ffffff;     /* chữ/biểu tượng trên nền primary hoặc accent */
   --tap-min: var(--h-control);         /* vùng chạm tối thiểu */
+  --w-hd-chon-vai: 360px;   /* ô «Xem bài của vai» */
+  --w-hd-nhan-may: 104px;   /* cột nhãn của khối Nền tảng tự điền */
+  --w-hd-toc: 200px;        /* mục lục bài trên máy tính */
+  --w-nk: 720px;            /* bề rộng trang Nhật ký thay đổi */
+  --w-nk-nhan: 92px;        /* cột nhãn Mới / Đã sửa / Thay đổi */
   --bar-h: 60px;            /* thanh đầu trang, chưa tính vùng an toàn — chủ dự án duyệt tăng từ 52px theo bản thiết kế mới (đặc tả §16 mục 3) */
   --h-buoc-thanh: 72px;     /* Tạo đơn bốn bước (14/10/2026): chiều cao thanh tiến độ dính (chấm 28px + chữ + đệm) — chừa cho scroll-margin-top của mỗi bước và cho cột Tóm tắt dính ở máy tính */
   --h-danh-sach: 392px;     /* Tạo đơn thiết kế lại (18/10/2026; bản vẽ Claude Design gọi "--h-catalog"): chiều cao CỐ ĐỊNH khung danh sách dịch vụ, cuộn bên trong — khung không co giãn khi đổi nhóm. Điện thoại ~7 dòng; ≥ 960px khai lại 448px (~8 dòng) ngay sau khối :root này */
@@ -4081,6 +4086,86 @@ a.bk-hang:hover, a.bk-the:hover { background: var(--c-soft-hover); }
 #hh-the-loai .hh-cap-dau { margin-bottom: var(--s3); }
 #hh-loai-rieng { margin-top: var(--s5); padding-top: var(--s4); border-top: 1px solid var(--c-line); }
 
+/* ---------- Hỗ trợ › Hướng dẫn + Nhật ký thay đổi (bản vẽ 3/11/2026) — chỉ token; thành phần chung v2 (.nut, .o, .the, .dong, .huy-hieu, .dai, .rong) ---------- */
+.hd-than { display: flex; flex-direction: column; gap: var(--s4); margin-top: var(--s3); }
+.hd-than:focus { outline: none; }
+.hd-tim { display: block; }
+.hd-tim .hd-xoa-tim { margin-top: var(--s1); }
+.hd-chon-vai { display: block; max-width: var(--w-hd-chon-vai); }
+.hd-noi-dung-chinh { display: flex; flex-direction: column; gap: var(--s5); }
+.hd-hai-cot { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s5); align-items: start; }
+@media (min-width: 900px) { .hd-hai-cot { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.hd-phan { display: flex; flex-direction: column; gap: var(--s4); min-width: 0; }
+.hd-phan-ten { margin: 0; font-size: var(--fs-step-5); }
+.hd-nhom-viec { display: flex; flex-direction: column; gap: var(--s2); }
+.hd-nhom-ten { margin: 0; font-size: var(--fs-label); font-weight: var(--fw-medium); color: var(--c-text-muted); }
+.the.hd-the-ds { padding: 0; overflow: hidden; }
+.dong.hd-dong { color: var(--c-text); text-decoration: none; font-weight: var(--fw-regular); }
+.hd-the-ds > .dong.hd-dong:last-child { border-bottom: 0; }
+@media (hover: hover) { .dong.hd-dong:hover { background: var(--c-surface-alt); } }
+.dong.hd-dong:focus-visible, .hd-kq-dau:focus-visible, .hd-toc a:focus-visible, .hd-ve:focus-visible { outline: var(--focus-ring) solid var(--c-focus); outline-offset: calc(var(--focus-ring) * -1); }
+.hd-dong-chu { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.hd-dong-ten { font-weight: var(--fw-medium); }
+.hd-dong-phu { font-size: var(--fs-label); }
+.hd-nhanh-the { display: flex; flex-direction: column; gap: var(--s3); }
+.hd-nhanh-the h2, .hd-nhanh-the p, .hd-vuong h2, .hd-vuong p { margin: 0; }
+.hd-buoc { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--s3); counter-reset: hd-buoc; }
+.hd-buoc > li { display: flex; gap: var(--s3); counter-increment: hd-buoc; }
+.hd-buoc > li::before { content: counter(hd-buoc); flex: none; display: inline-flex; align-items: center; justify-content: center; width: var(--s6); height: var(--s6); border-radius: var(--radius-pill); background: var(--c-primary-soft); color: var(--c-primary); font-size: var(--fs-label); font-weight: var(--fw-semibold); }
+.hd-buoc > li > div { flex: 1; min-width: 0; }
+.hd-vuong-nho { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s1) var(--s2); font-size: var(--fs-label); color: var(--c-text-muted); }
+.hd-gui-boc { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--s2); }
+.hd-ly-do { font-size: var(--fs-label); }
+.hd-kq { display: flex; flex-direction: column; gap: var(--s3); }
+.hd-kq > p { margin: 0; }
+.hd-kq-dau { display: flex; flex-direction: column; padding: var(--s3) var(--s4); color: var(--c-text); text-decoration: none; border-bottom: 1px solid var(--c-border); }
+.hd-kq mark, .hd-doan-chon mark { color: inherit; background: var(--c-sand-soft); border-radius: var(--radius-sm); }
+.hd-rong-cau { margin: 0; font-weight: var(--fw-semibold); color: var(--c-text); }
+.hd-than .rong > p { margin: 0; }
+.hd-dai-chu { flex: 1; min-width: 0; }
+.hd-than > .dai, .hd-bai > .dai { border-radius: var(--radius-md); }
+
+.hd-bai-khung { display: flex; gap: var(--s5); align-items: flex-start; }
+.hd-bai { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: var(--s4); padding: var(--pad-the); background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius-md); }
+.hd-bai > h1, .hd-bai > p { margin: 0; }
+.hd-ve { display: inline-flex; align-items: center; align-self: flex-start; gap: var(--s1); min-height: var(--tap-min); color: var(--c-primary); text-decoration: none; }
+.hd-cap-nhat { font-size: var(--fs-label); }
+.hd-mo-dau { font-size: var(--fs-step-5); }
+.hd-muc-tieu-de { margin: var(--s3) 0 0; font-size: var(--fs-step-5); scroll-margin-top: var(--bar-h); }
+.hd-doan-chon { background: var(--c-sand-soft); border-radius: var(--radius-sm); }
+.hd-may { display: flex; flex-direction: column; align-items: flex-start; gap: var(--s3); padding: var(--s4); background: var(--c-surface-alt); border-radius: var(--radius-md); scroll-margin-top: var(--bar-h); }
+.hd-may-dau { display: flex; align-items: center; gap: var(--s2); font-size: var(--fs-label); font-weight: var(--fw-medium); color: var(--c-text-muted); }
+.hd-may-dl { margin: 0; display: grid; grid-template-columns: var(--w-hd-nhan-may) minmax(0, 1fr); gap: var(--s2) var(--s3); width: 100%; }
+.hd-may-dl dt { color: var(--c-text-muted); }
+.hd-may-dl dd { margin: 0; display: flex; flex-direction: column; gap: var(--s1); min-width: 0; }
+.hd-may-dl .hd-ds { margin: 0; }
+.hd-loi-vao { font-size: var(--fs-label); }
+.hd-nut-ds { display: flex; flex-wrap: wrap; gap: var(--s1); }
+.hd-may .hd-nut { background: var(--c-surface); white-space: nowrap; }
+.hd-bang-khung { overflow-x: auto; }
+.hd-bang { width: 100%; border-collapse: collapse; }
+.hd-bang th { padding: var(--s2) var(--s3) var(--s2) 0; text-align: left; font-size: var(--fs-label); font-weight: var(--fw-medium); color: var(--c-text-muted); border-bottom: 1px solid var(--c-border); }
+.hd-bang td { padding: var(--s2) var(--s3) var(--s2) 0; vertical-align: top; border-bottom: 1px solid var(--c-border); }
+.hd-vuong { display: flex; flex-direction: column; gap: var(--s3); scroll-margin-top: var(--bar-h); }
+.hd-vuong-nut { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); }
+.hd-toc { display: none; }
+@media (min-width: 900px) {
+  .hd-toc { position: sticky; top: calc(var(--bar-h) + var(--s3)); flex: none; display: flex; flex-direction: column; gap: var(--s1); width: var(--w-hd-toc); font-size: var(--fs-label); }
+  .hd-toc-ten { padding: 0 0 var(--s1) var(--s3); font-weight: var(--fw-semibold); color: var(--c-text-muted); }
+  .hd-toc a { display: flex; align-items: center; min-height: var(--tap-min); padding: 0 var(--s3); color: var(--c-text); text-decoration: none; font-weight: var(--fw-regular); border-radius: var(--radius-sm); }
+  .hd-toc a[aria-current] { color: var(--c-primary); background: var(--c-primary-soft); font-weight: var(--fw-medium); }
+}
+
+.nk-ds { display: flex; flex-direction: column; gap: var(--s4); max-width: var(--w-nk); }
+.the.nk-ban { padding: 0; overflow: hidden; }
+.nk-ban-dau { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); margin: 0; padding: var(--s3) var(--s4); font-size: var(--fs-ui); font-weight: var(--fw-semibold); border-bottom: 1px solid var(--c-border); }
+.nk-chua-xem { display: inline-flex; align-items: center; font-size: var(--fs-label); font-weight: var(--fw-regular); color: var(--c-text-muted); gap: var(--s1); }
+.nk-chua-xem .new-dot { margin-left: 0; }
+.nk-muc { display: grid; grid-template-columns: var(--w-nk-nhan) minmax(0, 1fr); gap: var(--s2); align-items: start; padding: var(--s3) var(--s4); border-bottom: 1px solid var(--c-border); }
+.nk-muc:last-child { border-bottom: 0; }
+.nk-muc .huy-hieu { justify-self: start; }
+.nk-lien-bai { display: flex; justify-content: flex-start; padding-left: 0; }
+
 /* ---------- Thành phần chung v2 (đợt 0, đặc tả mục 8) ----------
    Một tên lớp gốc + biến thể bằng thuộc tính; chỉ token. Lớp cũ giữ nguyên. */
 .nut { display: inline-flex; align-items: center; justify-content: center; gap: var(--s2); min-height: var(--h-control); padding: 0 var(--pad-nut); font: inherit; font-size: var(--fs-ui); font-weight: var(--fw-semibold); color: var(--c-text); background: var(--c-surface); border: 1px solid var(--c-input-border); border-radius: var(--bo-control); cursor: pointer; transition: background-color var(--t-nhanh) var(--ease-out), border-color var(--t-nhanh) var(--ease-out); }
@@ -4234,10 +4319,10 @@ body.tabbar-an .vc-bottom-bar, body.tabbar-dinh .vc-bottom-bar { bottom: 0; }
 /* [7] Một trang, một tiêu đề (quyết định cổng 2b: tên trang ở thanh trên). Tiêu đề lớn trong thân chỉ ẩn khỏi mắt — trình đọc màn hình vẫn có h1.
    Giữ biển số ở Chi tiết xe (.vc-plate: là nội dung, không phải nhãn trang). Điện thoại: trước đây chỉ ẩn `main > h1`, nay ẩn cả h1 nằm trong hàng đầu trang. */
 @media (min-width: 900px) {
-  body.has-sidebar main h1:not(.vc-plate) { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+  body.has-sidebar main h1:not(.vc-plate):not(.hd-bai-ten) { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 }
 @media (max-width: 899px) {
-  body[data-title] main h1:not(.vc-plate) { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+  body[data-title] main h1:not(.vc-plate):not(.hd-bai-ten) { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
   /* [6] Trang con có nút quay lại: bỏ ô chữ cái đầu trang trí (chỉ là hình, không bấm được) để tiêu đề — vd mã đơn — không bị cắt. */
   #topbar:has(> .bar-back) .bar-avatar { display: none; }
 }

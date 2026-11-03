@@ -79,3 +79,9 @@ test("releaseGate sau deploy: chỉ ĐẠT khi production đúng bằng bản �
   assert.equal(releaseGate("1.4", "1.3", "sau").ok, false);
   assert.equal(releaseGate("1.4", null, "sau").ok, false);
 });
+
+test("mục nhật ký có lối sang bài hướng dẫn: id và tên phải khớp bài thật (đổi tên bài mà quên ⇒ đỏ)", async () => {
+  const { moiBai } = await import("./huong-dan-bai.ts");
+  const bai = new Map(moiBai().map((b) => [b.id, b.tieuDe]));
+  for (const n of CHANGELOG) for (const it of n.items) if (it.bai) assert.equal(bai.get(it.bai.id), it.bai.ten, `${n.version}: ${it.bai.id}`);
+});

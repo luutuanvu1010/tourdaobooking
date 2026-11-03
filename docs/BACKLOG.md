@@ -363,6 +363,8 @@
 
 - **Ngày:** 2026-10-15 · **Trạng thái:** `chờ`. Khi viết lại Trợ giúp cho khớp menu theo việc, bài A4 (`src/shared/huong-dan.test.ts`: Phần chung + một nhóm vai ≤ 30 phút) buộc phải rút chữ, nên mất vài ý phụ: dòng thời gian trong thẻ «Chuyến đón» của Bán hàng (chuyến kế tiếp có nhãn «Sắp tới»); ở Kế toán: ô «Doanh thu của tôi» ghi «Chưa có đơn nào tuần này» và dòng «số đơn và ngày đón sớm nhất» của «Còn thiếu tiền»; Trợ giúp Quản trị không nói chân menu (Của tôi, Góp ý, Trợ giúp). Việc: nới trần A4 (chủ quyết) hoặc tách Trợ giúp theo mục để bổ sung ý phụ mà không vượt.
 
+- **Cập nhật 2026-11-03:** Hướng dẫn nay tách thành từng bài (`/huong-dan`), và bài theo việc không tính vào trần A4, nên ý phụ dài có thể viết thành bài theo việc thay vì nới trần. Trần A4 của Phần chung + một nhóm vai giữ nguyên.
+
 ## 33. Chat thời gian thực trong Vé hỗ trợ (mã `BL-VE-CHAT-THOI-GIAN-THUC`)
 
 > Đánh lại số khi gộp main ngày 2026-10-15: trên nhánh Vé hỗ trợ mục này là **mục 30** (ADR-0119 và kế hoạch đợt 1 còn ghi «mục 30» — hồ sơ đóng băng, không sửa); main đã dùng 30–32.

@@ -7,6 +7,8 @@ export const TOI_DA_BYTE_ANH = 3 * 1024 * 1024;
 /** Trần lô: mặc định và khoảng Toàn quyền đặt được (`vdt_setting.batch_limit`; migration kiểm cùng khoảng). */
 /** Ảnh của lô đã huỷ được lưu thêm từng này ngày để tra cứu, tra soát rồi mới tự xoá (chủ quyết 2/11/2026). */
 export const NGAY_LUU_ANH_LO_HUY = 3;
+/** Đường dẫn cho khách hết hạn sau ngày dùng cuối của vé từng này ngày (ADR-0153). */
+export const NGAY_HAN_DUONG_DAN_SAU_NGAY_DUNG = 7;
 export const TRAN_LO_MAC_DINH = 50;
 export const TRAN_LO_NHO_NHAT = 1;
 export const TRAN_LO_LON_NHAT = 200;

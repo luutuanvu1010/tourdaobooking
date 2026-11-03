@@ -4,7 +4,7 @@ import { FEEDBACK_KINDS, FEEDBACK_KIND_NAME } from "../src/shared/feedback-catal
 import { can } from "../src/shared/permissions";
 import { CAU_CAN_CHU, CAU_DANG_CHUAN_BI, CAU_DANG_GUI_TEP, HEN_GIO_GUI_TEP_MS } from "../src/shared/tep-hien-thi";
 import { NHOM_KY_THUAT_ID } from "../src/shared/ve-ho-tro";
-import { donDienSan, nhanDonChon } from "../src/shared/ve-ho-tro-hien-thi";
+import { donDienSan, KHOA_GOI_Y_GUI, nhanDonChon } from "../src/shared/ve-ho-tro-hien-thi";
 import { ApiError, api, type Api, type Staff } from "./api";
 import { moBangTruot } from "./bang-truot";
 import { h, replaceChildren } from "./dom";
@@ -59,6 +59,19 @@ export function moHopGui(o: TuyChonHopGui): void {
   const dangGui = h("p", { class: "muted", role: "status", id: "new-dang-gui", hidden: true }, CAU_DANG_GUI_TEP);
   const gui = h("button", { type: "button", id: "new-submit", class: "btn btn-primary" }, "Gửi");
   const huy = h("button", { type: "button", id: "new-cancel", class: "btn btn-link" }, "Huỷ");
+
+  // Điền sẵn từ trang Hướng dẫn (tên bài đang đọc, hoặc chữ vừa tìm không ra): để ở sessionStorage, không đưa chữ người dùng gõ lên địa chỉ trang.
+  try {
+    const goiY = sessionStorage.getItem(KHOA_GOI_Y_GUI);
+    sessionStorage.removeItem(KHOA_GOI_Y_GUI);
+    if (goiY) {
+      const g = JSON.parse(goiY) as { tieuDe?: string; moTa?: string };
+      tieuDe.value = (g.tieuDe ?? "").slice(0, 120);
+      moTa.value = (g.moTa ?? "").slice(0, 4000);
+    }
+  } catch {
+    /* bị chặn hoặc hỏng: để ô trống */
+  }
 
   const bt = moBangTruot({
     title: "Gửi yêu cầu",

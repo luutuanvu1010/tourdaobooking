@@ -93,6 +93,8 @@ test("shell.ts: bộ theo dõi đọc vị trí bằng getComputedStyle", () => 
 });
 
 // Task 15b: /help vẽ thân trước shell; thiếu thuộc tính này thì mất mạng thay cả thân trang Trợ giúp (web/dai.ts thanNgoaiMang).
-test("public/help.html khai <main data-ve-truoc-shell>", () => {
-  assert.match(readFileSync(`${ROOT}public/help.html`, "utf8"), /<main[^>]*\bdata-ve-truoc-shell\b/);
-});
+for (const trang of ["help", "huong-dan"]) {
+  test(`public/${trang}.html khai <main data-ve-truoc-shell>`, () => {
+    assert.match(readFileSync(`${ROOT}public/${trang}.html`, "utf8"), /<main[^>]*\bdata-ve-truoc-shell\b/);
+  });
+}

@@ -1,6 +1,7 @@
 // Luật thuần của đường dẫn riêng cho khách (ADR-0153 Đ2): token ngẫu nhiên, băm, hạn, so hằng thời gian, và trang HTML công khai. Không I/O.
 // Trang khách chỉ có: ảnh vé, nhãn nhóm khách, khoảng ngày dùng. KHÔNG tên khách, mã đơn, giá, dịch vụ khác, mã vé.
 import { bamSha256 } from "../../shared/tep-dinh-kem.ts";
+import { NGAY_HAN_DUONG_DAN_SAU_NGAY_DUNG } from "../../shared/ve-nhap-lo.ts";
 import { NHAN_NHOM } from "./cap-ve.ts";
 import type { Nhom } from "./rules.ts";
 
@@ -17,7 +18,7 @@ export const DANG_TOKEN = /^[A-Za-z0-9_-]{43,86}$/;
 /** Hạn = cuối ngày (giờ Việt Nam, UTC+7) của ngày dùng cuối của vé + 7 ngày; trả ISO UTC. `denNgay` = YYYY-MM-DD. */
 export function hanDuongDan(denNgayCuoi: string): string {
   const [y, m, d] = denNgayCuoi.split("-").map(Number);
-  return new Date(Date.UTC(y!, m! - 1, d! + 7 + 1, 0, 0, 0, 0) - 7 * 3600 * 1000 - 1).toISOString();
+  return new Date(Date.UTC(y!, m! - 1, d! + NGAY_HAN_DUONG_DAN_SAU_NGAY_DUNG + 1, 0, 0, 0, 0) - 7 * 3600 * 1000 - 1).toISOString();
 }
 
 /** So hai chuỗi băm không thoát sớm ở ký tự khác đầu tiên (độ dài khác ⇒ sai, độ dài băm không phải bí mật). */

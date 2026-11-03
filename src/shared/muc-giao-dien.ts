@@ -130,7 +130,8 @@ export const TRANG = {
   // A4 T9 (ADR-0053 D9, G-A4-16): "Báo bận của tôi" — chỉ tài khoản "chỉ tài xế" có ô unavailability.self (own, hỏi kèm ngữ cảnh chính mình).
   ban: { duong: "/ban", hien: (s) => chiTaiXe(s) && can(s, "unavailability.self", { ownerId: s.id }) },
   toi: { duong: "/account", hien: luonCo, tam: luonCo },
-  gopY: { duong: "/feedback", hien: luonCo, tam: luonCo },
+  // Lối vào Hỗ trợ mở thẻ Hướng dẫn trước (bản vẽ 3/11, chủ chọn); `/feedback` là các thẻ còn lại của cùng mục.
+  gopY: { duong: "/huong-dan", cungSang: ["/feedback"], hien: luonCo, tam: luonCo },
   troGiup: { duong: "/help", hien: luonCo, tam: luonCo },
   // Trang mục lục Thiết lập (điện thoại, đợt 0 Task 5): sáng ở mọi trang nhóm THIẾT LẬP của thanh bên. Danh sách đường lấy từ mọi dòng THIẾT LẬP của THANH_BEN (kèm trang mở từ chúng).
   thietLap: {
@@ -226,8 +227,8 @@ export const THANH_BEN = [
   { nhom: "THIẾT LẬP", trang: "troLy", nhan: "Trợ lý Hỗ trợ" },
   { nhom: "THIẾT LẬP", trang: "giaoDien", nhan: "Giao diện" },
   { nhom: "CHÂN MENU", trang: "toi", nhan: "Của tôi", bieuTuong: "me" },
-  { nhom: "CHÂN MENU", trang: "gopY", nhan: "Hỗ trợ", bieuTuong: "handset", moTu: (p: string) => `/feedback?new=1&from=${encodeURIComponent(p)}` },
-  { nhom: "CHÂN MENU", trang: "troGiup", nhan: "Hướng dẫn", bieuTuong: "help" },
+  { nhom: "CHÂN MENU", trang: "gopY", nhan: "Hỗ trợ", bieuTuong: "handset", moTu: (p: string) => `/huong-dan?from=${encodeURIComponent(p)}` },
+  { nhom: "CHÂN MENU", trang: "troGiup", nhan: "Nhật ký thay đổi", bieuTuong: "megaphone" },
 ] as const satisfies readonly ChoThanhBen[];
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -249,7 +250,6 @@ export const THANH_TAB = [
   { trang: "cuoc", nhan: "Cuốc của tôi", bieuTuong: "assign", chiKhi: { that: chiTaiXe } },
   { trang: "ban", nhan: "Báo bận", bieuTuong: "clock" },
   { trang: "gopY", nhan: "Hỗ trợ", bieuTuong: "handset", chiKhi: { that: (s: PermissionHolder) => !seesAllOrders(s) } },
-  { trang: "troGiup", nhan: "Hướng dẫn", bieuTuong: "help", chiKhi: { that: (s: PermissionHolder) => !seesAllOrders(s) && !can(s, "order.create") && !chiTaiXe(s) } },
   { trang: "toi", nhan: "Tôi", bieuTuong: "me" },
 ] as const satisfies readonly ChoThanhTab[];
 
@@ -311,7 +311,7 @@ export const TRANG_TOI = [
   { phan: "sau", trang: "troLy", nhan: "Trợ lý Hỗ trợ" },
   { phan: "sau", trang: "giaoDien", nhan: "Giao diện" },
   { phan: "sau", trang: "gopY", nhan: "Hỗ trợ", khongSangTabToi: true },
-  { phan: "sau", trang: "troGiup", nhan: "Hướng dẫn" },
+  { phan: "sau", trang: "troGiup", nhan: "Nhật ký thay đổi" },
 ] as const satisfies readonly ChoTrangToi[];
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------

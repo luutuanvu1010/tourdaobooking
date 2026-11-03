@@ -163,12 +163,6 @@ const DUOC_MA_AN = [
     khi: (s) => seesAllOrders(s) || biCatTab(s, "gopY"),
     lyDo: "Tab Hỗ trợ chỉ cho người không xem mọi đơn (và bị cắt khi quá 5 tab); vào qua trang Tôi và chân thanh bên. Chờ chủ (giữ là hợp lý).",
   },
-  {
-    noi: ["thanh-tab"],
-    trang: "troGiup",
-    khi: (s) => seesAllOrders(s) || can(s, "order.create") || chiTaiXe(s),
-    lyDo: "Tab Hướng dẫn chỉ cho HDV, Nhân sự (không xem mọi đơn, không lập đơn, không chỉ tài xế); mọi bộ khác vào qua trang Tôi và chân thanh bên. Chờ chủ (giữ là hợp lý).",
-  },
 ];
 
 /** Logo / "/" đưa tới trang đầu không vào được — tập được miễn, kèm lý do (chờ chủ). */

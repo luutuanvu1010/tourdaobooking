@@ -4,7 +4,7 @@
 // Giao diện chỉ ẩn/hiện theo `teams` / `perms` máy chủ trả về; máy chủ (quyenPhieu) luôn kiểm lại.
 import { can } from "../src/shared/permissions";
 import { cauTepLoi } from "../src/shared/tep-hien-thi";
-import { NHAN_TAB, nhomHangDoi, tabHoTro, type TabHoTro } from "../src/shared/ve-ho-tro-hien-thi";
+import { NHAN_TAB, NHAN_THE_HUONG_DAN, nhomHangDoi, tabHoTro, type TabHoTro } from "../src/shared/ve-ho-tro-hien-thi";
 import { ApiError, api, type Api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
 import { veDanhSach } from "./ho-tro-danh-sach";
@@ -44,7 +44,9 @@ try {
 }
 const tabs = tabHoTro(teams);
 const hangDoiChon = nhomHangDoi(teams);
-let tab: TabHoTro = "mine";
+// Từ trang Hướng dẫn sang: `?the=queue|teams` mở đúng thẻ; thẻ người này không có thì về «Yêu cầu của tôi».
+const theDoi = params.get("the") as TabHoTro | null;
+let tab: TabHoTro = theDoi && tabs.includes(theDoi) ? theDoi : "mine";
 let queueTeam = hangDoiChon.find((x) => teams.mine.some((m) => m.teamId === x.id))?.id ?? hangDoiChon[0]?.id ?? "";
 
 /** «Nhận việc»: nhận phiếu cho chính mình. 409 «Vừa có người nhận…» hiện ở dòng báo lỗi; thành công hay không đều gọi `after` để thấy trạng thái mới. */
@@ -72,6 +74,7 @@ function veThanhThe(): void {
   const giuTieuDiem = thanh.contains(document.activeElement); // vẽ lại thanh thẻ không được làm rơi tiêu điểm bàn phím
   replaceChildren(
     thanh,
+    h("a", { role: "tab", class: "ht-tab", href: "/huong-dan?the=1", "aria-selected": "false", id: "ht-tab-huong-dan" }, NHAN_THE_HUONG_DAN),
     ...tabs.map((k, i) => {
       const b = h("button", {
         type: "button", role: "tab", id: `ht-tab-${k}`, "aria-selected": String(tab === k), "aria-controls": "ht-hai-cot", tabindex: tab === k ? "0" : "-1",

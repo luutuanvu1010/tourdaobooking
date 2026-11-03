@@ -3,6 +3,7 @@
 // tính chi phí micro-USD và quyết định trần (điều 6). Nguồn tra tài liệu OpenAI: docs/superpowers/specs/2026-09-30-adr-0066-tro-ly-ai-ho-tro.md mục "Thi công".
 // ADR-0073: mẫu / giá ở tro-ly-mau.ts, bộ não + lời nhắc mặc định ở tro-ly-bo-nao.ts, lọc số tiền ở tro-ly-loc-tien.ts.
 import { HUONG_DAN, viPhamChu } from "./huong-dan.ts";
+import { BAI_VIEC, loiVao, vaiDung } from "./huong-dan-bai.ts";
 import { PERMISSION_CODES, PERMISSION_LABEL, type PermissionCode } from "./permissions.ts";
 import { SO_DO_TRANG, type MucBoCuc, type TrangSoDo } from "./so-do-trang.ts";
 import { DIGIT_RUN, EMAIL_TRONG_CHU, MIN_LONG_DIGIT_RUN } from "./text-guards.ts";
@@ -114,6 +115,17 @@ export function chiaKho(): DoanTriThuc[] {
     out.push({ ten: `${nhom} › Bắt đầu nhanh`, quyen: n.quyen, chu: `${n.gioiThieu}\n${n.batDauNhanh}` });
     for (const m of n.muc) out.push({ ten: `${nhom} › ${tenSach(m.tieuDe)}`, quyen: n.quyen, chu: m.noiDung });
   }
+  // Bài theo việc: kèm cả phần máy điền, để trợ lý trả lời đúng con số và đúng người được dùng.
+  for (const b of BAI_VIEC) {
+    const may = [`Ở đâu: ${loiVao(b.trang)}`, `Ai dùng được: ${vaiDung(b.o).map((p) => PERMISSION_LABEL[p]).join(", ")}.`, ...b.gioiHan.map((g) => `Giới hạn: ${g}.`)].join("\n");
+    out.push({ ten: `Bài theo việc › ${tenSach(b.tieuDe)}`, quyen: vaiDung(b.o), chu: `${b.moDau}\n${may}` });
+    // Mỗi mục một đoạn như các mục khác của kho: cả bài trong một đoạn lấn điểm mọi đoạn khác (bài C4 của tro-ly-van-nghia).
+    for (const phan of b.noiDung.split(/^### /m).filter(Boolean)) {
+      const [dau = "", ...than] = phan.split("\n");
+      const ten = dau.trim().replace(/^Nền tảng (\p{L})/u, (_, c: string) => c.toUpperCase()); // chữ «Nền tảng» ở tên mục làm đoạn ngắn này khớp mọi câu có «Nền tảng»
+      out.push({ ten: `Bài theo việc › ${tenSach(b.tieuDe)} › ${ten}`, quyen: vaiDung(b.o), chu: `${tenSach(b.tieuDe)}: ${ten}\n${than.join("\n")}` });
+    }
+  }
   for (const k of KIEN_TRUC) out.push({ ten: `Cách Nền tảng vận hành › ${tenSach(k.tieuDe)}`, quyen: [], chu: k.noiDung });
   for (const k of CAU_TRUC) out.push({ ten: `Cấu trúc Nền tảng › ${tenSach(k.tieuDe)}`, quyen: k.quyen, chu: k.noiDung });
   const daCo = new Set<string>();
@@ -146,7 +158,8 @@ export function tachTu(s: string): string[] {
   // Chủ 2026-10-25: trang «Trợ giúp» đổi tên «Hướng dẫn»; người dùng vẫn gõ «trợ giúp» ⇒ coi như «hướng dẫn» (kho không còn chữ «trợ giúp»).
   // 2/11 (đặt vé của đối tác): hai tên đã đổi trên giao diện mà nhân viên vẫn gõ tên cũ: «loại đối tác» → «vai người dùng», «cấp đại lý» → «cấp độ đại lý».
   // Gộp ở cả kho lẫn câu hỏi, cùng cách với «nền tảng» và «trợ giúp» ở trên.
-  const am = boDau(s)
+  // 3/11: bỏ dấu làm «khó» trùng «kho», nên câu «sao Nền tảng khó dùng thế» bị kéo về bài Kho vé (chữ «kho» hiếm, điểm cao). Giữ «khó» thành âm tiết riêng trước khi bỏ dấu.
+  const am = boDau(s.normalize("NFC").replace(/(?<!\p{L})[Kk]hó(?!\p{L})/gu, "khokho"))
     .replace(/\bnen tang\b|\bapp\b/g, "nentang")
     .replace(/\btro giup\b/g, "huong dan")
     .replace(/\bloai doi tac\b/g, VAI_NGUOI_DUNG_KHONG_DAU)

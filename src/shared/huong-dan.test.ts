@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { HUONG_DAN, nhomCuaToi, nutCuaNhom, phanTich, phanTichDong, phutDoc, viPhamNoiDung, type NhomHuongDan } from "./huong-dan.ts";
+import { NHOM_BAI_VIEC } from "./huong-dan-bai.ts";
 import { PERMISSION_CODES } from "./permissions.ts";
 
 const CHUNG = HUONG_DAN.find((n) => n.quyen.length === 0) as NhomHuongDan;
@@ -50,7 +51,7 @@ const coNguyenChuoi = (kho: string, nut: string): boolean => {
 test("A2: mọi [[Tên nút]] trong hướng dẫn còn nguyên văn (nguyên chuỗi) trong mã giao diện (đổi tên nút mà quên hướng dẫn ⇒ đỏ)", () => {
   const kho = khoChuGiaoDien();
   const thieu: string[] = [];
-  for (const n of HUONG_DAN) for (const nut of nutCuaNhom(n)) if (!coNguyenChuoi(kho, nut)) thieu.push(`${n.id}: [[${nut}]]`);
+  for (const n of [...HUONG_DAN, NHOM_BAI_VIEC]) for (const nut of nutCuaNhom(n)) if (!coNguyenChuoi(kho, nut)) thieu.push(`${n.id}: [[${nut}]]`);
   assert.deepEqual(thieu, []);
 });
 
@@ -64,7 +65,7 @@ test("A2: bộ so nguyên chuỗi — khúc con không tính", () => {
 });
 
 test("A3: luật nội dung — không số tiền, không chuỗi giống SĐT, không email", () => {
-  assert.deepEqual(HUONG_DAN.flatMap(viPhamNoiDung), []);
+  assert.deepEqual([...HUONG_DAN, NHOM_BAI_VIEC].flatMap(viPhamNoiDung), []);
 });
 
 test("A3: bộ bắt luật nội dung bắt đúng từng loại", () => {
@@ -97,6 +98,10 @@ test("phanTich: tiêu đề, đoạn, danh sách số / chấm, ghi chú, mục 
   const ds = k[2] as { k: "dsSo"; muc: unknown[][] };
   assert.equal(ds.muc.length, 3, "mục con thụt lề gộp vào danh sách số");
   assert.deepEqual(phanTichDong("Bấm [[Lưu]] rồi **xong**"), [{ k: "chu", t: "Bấm " }, { k: "nut", t: "Lưu" }, { k: "chu", t: " rồi " }, { k: "dam", t: "xong" }]);
+  const bang = phanTich("| Gặp | Làm gì |\n| --- | --- |\n| Lỗi | Bấm [[Huỷ lô]] |")[0] as { k: string; dau: unknown[]; hang: unknown[][] };
+  assert.equal(bang.k, "bang");
+  assert.equal(bang.dau.length, 2);
+  assert.equal(bang.hang.length, 1, "dòng --- không thành hàng");
   assert.deepEqual(phanTichDong("dấu ** mở không đóng"), [{ k: "chu", t: "dấu ** mở không đóng" }]);
 });
 

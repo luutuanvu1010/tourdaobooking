@@ -42,7 +42,8 @@ export type Khoi =
   | { readonly k: "doan"; readonly t: readonly DoanChu[] }
   | { readonly k: "ghiChu"; readonly t: readonly DoanChu[] }
   | { readonly k: "dsSo"; readonly muc: readonly (readonly DoanChu[])[] }
-  | { readonly k: "dsCham"; readonly muc: readonly (readonly DoanChu[])[] };
+  | { readonly k: "dsCham"; readonly muc: readonly (readonly DoanChu[])[] }
+  | { readonly k: "bang"; readonly dau: readonly (readonly DoanChu[])[]; readonly hang: readonly (readonly (readonly DoanChu[])[])[] };
 
 /** `**đậm**` và `[[Tên nút]]` trong một dòng. Dấu mở không đóng thì để nguyên là chữ. */
 export function phanTichDong(s: string): DoanChu[] {
@@ -61,24 +62,34 @@ export function phanTichDong(s: string): DoanChu[] {
 const SO = /^\s*\d+[.)]\s+/;
 const CHAM = /^\s*[-*]\s+/;
 
-/** Dòng → khối: `### ` tiêu đề nhỏ, `1. ` danh sách số, `- ` danh sách chấm, `> ` ghi chú / ví dụ, còn lại gộp thành đoạn (dòng trống ngắt). */
+const O_BANG = (line: string): string[] => line.trim().replace(/^\||\|$/g, "").split("|").map((o) => o.trim());
+
+/** Dòng → khối: `### ` tiêu đề nhỏ, `1. ` danh sách số, `- ` danh sách chấm, `> ` ghi chú / ví dụ, `| a | b |` bảng (dòng đầu là tiêu đề, dòng `---` bỏ), còn lại gộp thành đoạn (dòng trống ngắt). */
 export function phanTich(md: string): Khoi[] {
   const out: Khoi[] = [];
   let doan: string[] = [];
   let ghiChu: string[] = [];
   let ds: { k: "dsSo" | "dsCham"; muc: DoanChu[][] } | null = null;
+  let bang: { k: "bang"; dau: DoanChu[][]; hang: DoanChu[][][] } | null = null;
   const dong = (): void => {
     if (doan.length) out.push({ k: "doan", t: phanTichDong(doan.join(" ")) });
     if (ghiChu.length) out.push({ k: "ghiChu", t: phanTichDong(ghiChu.join(" ")) });
     if (ds) out.push(ds);
+    if (bang) out.push(bang);
     doan = [];
     ghiChu = [];
     ds = null;
+    bang = null;
   };
   for (const raw of md.split("\n")) {
     const line = raw.trimEnd();
     if (!line.trim()) { dong(); continue; }
     if (line.startsWith("### ")) { dong(); out.push({ k: "tieuDe", t: phanTichDong(line.slice(4).trim()) }); continue; }
+    if (line.startsWith("|")) {
+      if (!bang) { dong(); bang = { k: "bang", dau: O_BANG(line).map(phanTichDong), hang: [] }; continue; }
+      if (!/^[|\s:-]+$/.test(line)) bang.hang.push(O_BANG(line).map(phanTichDong));
+      continue;
+    }
     if (line.startsWith(">")) {
       if (!ghiChu.length) dong();
       ghiChu.push(line.replace(/^>\s?/, ""));

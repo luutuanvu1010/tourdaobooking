@@ -113,6 +113,10 @@ export const CAU_KHONG_CON_TRONG_NHOM = "Yêu cầu này không còn trong nhóm
 export const CAU_DA_CHUYEN_NHOM = "Yêu cầu vừa được chuyển sang nhóm khác.";
 export const NHAN_TAI_LAI = "Tải lại yêu cầu";
 export const CAU_TU_CHOI_LOI_BUOC_2 = "Đã gửi lý do nhưng chưa đổi được trạng thái. Bấm Từ chối lại.";
+/** Thẻ đầu của Hỗ trợ: là một trang riêng (`/huong-dan`), không phải một `TabHoTro` của `/feedback`. */
+export const NHAN_THE_HUONG_DAN = "Hướng dẫn";
+/** Khoá sessionStorage: trang Hướng dẫn điền sẵn hộp «Gửi yêu cầu». */
+export const KHOA_GOI_Y_GUI = "td_hd_goi_y_gui";
 export const NHAN_TAB: Record<TabHoTro, string> = { mine: "Yêu cầu của tôi", queue: "Việc của nhóm", teams: "Nhóm hỗ trợ" };
 
 /** Các trạng thái được chuyển tới từ `status` (một nguồn với `canTransition`). */

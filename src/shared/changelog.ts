@@ -6,7 +6,12 @@ import { isISODate } from "./vn-date.ts";
 
 export type ChangeKind = "moi" | "sua" | "doi";
 export const CHANGE_KIND_LABEL: Record<ChangeKind, string> = { moi: "Mới", sua: "Đã sửa", doi: "Thay đổi" };
-export interface ChangeItem { readonly kind: ChangeKind; readonly text: string }
+export interface ChangeItem {
+  readonly kind: ChangeKind;
+  readonly text: string;
+  /** Mục đụng tới một bài hướng dẫn: lối sang bài đó. changelog.test.ts kiểm id và tên khớp bài thật. */
+  readonly bai?: { readonly id: string; readonly ten: string };
+}
 export interface ReleaseNote { readonly version: string; readonly date: string; readonly items: readonly ChangeItem[] }
 
 /** Mới nhất ở ĐẦU. */
@@ -18,6 +23,8 @@ export const CHANGELOG: readonly ReleaseNote[] = [
     version: "2.58",
     date: "2026-11-02",
     items: [
+      { kind: "moi", text: "Hỗ trợ có thẻ Hướng dẫn riêng: tìm theo việc cần làm, mỗi bài một trang, phần màn nằm ở đâu và ai dùng được do Nền tảng tự điền.", bai: { id: "viec/kho-ve", ten: "Kho vé điện tử" } },
+      { kind: "doi", text: "Nhật ký thay đổi tách thành trang riêng ở chân menu, vẫn có chấm đỏ khi có bản mới." },
       { kind: "moi", text: "Đối tác đặt vé có ô «Khách đặt cọc trước». Khi đơn được xác nhận, số này tự thành khoản thu; đối tác giữ số tiền đó tới khi nộp về công ty." },
       { kind: "moi", text: "Số đặt cọc đối tác khai chưa nộp về công ty thì chưa tính là thu đủ, nên vé của đơn chỉ mở sau khi nộp." },
       { kind: "moi", text: "Màn Phân định trách nhiệm: khách cần được hoàn sau khi đơn đã giao thì một người đề nghị, Quản trị hoặc Toàn quyền phân định ai chịu, Kế toán ghi sổ." },

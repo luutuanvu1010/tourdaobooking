@@ -2,7 +2,10 @@
 // (chủ chọn 30/9, đặc tả docs/superpowers/specs/2026-09-30-huong-dan-theo-vai.md). Chỉ đọc mã, không mạng, không ghi gì ngoài tệp ra.
 // Dùng: node scripts/xuat-huong-dan.mjs <tệp-ra.html>
 import { writeFileSync } from "node:fs";
-import { HUONG_DAN, phanTich, phutDoc } from "../src/shared/huong-dan.ts";
+import { HUONG_DAN as NHOM_VAI, phanTich, phutDoc } from "../src/shared/huong-dan.ts";
+import { NHOM_BAI_VIEC } from "../src/shared/huong-dan-bai.ts";
+
+const HUONG_DAN = [...NHOM_VAI, NHOM_BAI_VIEC];
 import { APP_NAME, APP_VERSION } from "../src/shared/app-info.ts";
 
 const out = process.argv[2];
@@ -20,6 +23,7 @@ const khoi = (k) => {
     case "ghiChu": return `<p style="background:#fbe3b3;padding:6px 10px"><i>${chu(k.t)}</i></p>`;
     case "dsSo": return `<ol>${k.muc.map((m) => `<li>${chu(m)}</li>`).join("")}</ol>`;
     case "dsCham": return `<ul>${k.muc.map((m) => `<li>${chu(m)}</li>`).join("")}</ul>`;
+    case "bang": return `<table border="1"><tr>${k.dau.map((o) => `<th>${chu(o)}</th>`).join("")}</tr>${k.hang.map((h) => `<tr>${h.map((o) => `<td>${chu(o)}</td>`).join("")}</tr>`).join("")}</table>`;
   }
   return "";
 };

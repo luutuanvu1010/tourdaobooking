@@ -45,8 +45,8 @@
     "THIẾT LẬP||Trợ lý Hỗ trợ|/tro-ly-cai-dat",
     "THIẾT LẬP||Giao diện|/giao-dien",
     "CHÂN MENU||Của tôi|/account",
-    "CHÂN MENU||Hỗ trợ|/feedback?new=1&from=%2Faccount",
-    "CHÂN MENU||Hướng dẫn|/help"
+    "CHÂN MENU||Hỗ trợ|/huong-dan?from=%2Faccount",
+    "CHÂN MENU||Nhật ký thay đổi|/help"
    ],
    "tap": [
     "/v7+/v/////+/v7+//////7+/v7//////v7+/v/////+/v7+//////7+/v7//////v7+/v/////+/v7+//////7+/v7//////v7+/v/////+/v7+//////7+/v7//////v7+/v/////+/v7+//////7+/v7//////v7+/v////8=",
@@ -94,8 +94,7 @@
     "Sổ công nợ|/so-cong-no",
     "Cuốc của tôi|/cuoc",
     "Báo bận|/ban",
-    "Hỗ trợ|/feedback",
-    "Hướng dẫn|/help",
+    "Hỗ trợ|/huong-dan",
     "Tôi|/account"
    ],
    "tap": [
@@ -110,7 +109,6 @@
     "AAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAA=",
     "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAA=",
     "AQEBAQAAAAABAQEBAAAAAAEBAQEAAAAAAQEBAQAAAAABAQEBAAAAAAEBAQEAAAAAAQEBAQAAAAABAQEBAAAAAAEBAQEAAAAAAQEBAQAAAAABAQEBAAAAAAEBAQEAAAAAAAEBAQAAAAABAQEBAAAAAAABAQEAAAAAAQEBAQAAAAA=",
-    "AQEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAEBAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAA=",
     "//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////8="
    ]
   },
@@ -154,8 +152,8 @@
     "links|Gửi thông báo|/gui-thong-bao",
     "links|Trợ lý Hỗ trợ|/tro-ly-cai-dat",
     "links|Giao diện|/giao-dien",
-    "links|Hỗ trợ|/feedback",
-    "links|Hướng dẫn|/help"
+    "links|Hỗ trợ|/huong-dan",
+    "links|Nhật ký thay đổi|/help"
    ],
    "tap": [
     "/v7+/v/////+/v7+//////7+/v7//////v7+/v/////+/v7+//////7+/v7//////v7+/v/////+/v7+//////7+/v7//////v7+/v/////+/v7+//////7+/v7//////v7+/v/////+/v7+//////7+/v7//////v7+/v////8=",
@@ -214,8 +212,8 @@
     "Vận chuyển|chinh-sach|Chính sách điều phối|/chinh-sach-dieu-phoi",
     "Vận chuyển|ly-do|Lý do điều phối|/ly-do-dieu-phoi",
     "Của tôi|toi|Tôi|/account",
-    "Của tôi|gop-y|Hỗ trợ|/feedback",
-    "Của tôi|tro-giup|Hướng dẫn|/help"
+    "Của tôi|gop-y|Hỗ trợ|/huong-dan",
+    "Của tôi|tro-giup|Nhật ký thay đổi|/help"
    ],
    "tap": [
     "+vr///////////////////r6///////////////////6+v//////////////////+vr///////////////////r6///////////////////6+v//////////////////+vr///////////////////r6//////////////////8=",
@@ -253,8 +251,8 @@
     "THIẾT LẬP||Địa điểm|/locations",
     "THIẾT LẬP||Quản lý tài khoản|/staff",
     "CHÂN MENU||Của tôi|/account",
-    "CHÂN MENU||Hỗ trợ|/feedback?new=1&from=%2Faccount",
-    "CHÂN MENU||Hướng dẫn|/help"
+    "CHÂN MENU||Hỗ trợ|/huong-dan?from=%2Faccount",
+    "CHÂN MENU||Nhật ký thay đổi|/help"
    ],
    "tap": [
     "/v7+/v/////+/v7+//////7+/v7//////v7+/v/////+/v7+//////7+/v7//////v7+/v/////+/v7+//////7+/v7//////v7+/v/////+/v7+//////7+/v7//////v7+/v/////+/v7+//////7+/v7//////v7+/v////8=",

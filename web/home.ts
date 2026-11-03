@@ -581,7 +581,7 @@ const ICON_O: Record<KhoaO, IconName> = {
   "dich-vu": "services", "tai-khoan": "staff", phien: "lock", "dia-diem": "pin", "giay-to-nguoi": "guests", "nhat-ky": "history", "gui-thong-bao": "megaphone", "tro-ly": "chat",
   "giao-dien": "palette",
   "dieu-phoi": "swap", "bang-gia-xe": "money", "bang-ke-xe": "doc-check", cuoc: "clock", xe: "truck", "sap-het-han": "clock", "giay-to-xe": "doc-check", "chinh-sach": "checkCircle", "ly-do": "filePlus",
-  toi: "me", "gop-y": "chat", "tro-giup": "help",
+  toi: "me", "gop-y": "chat", "tro-giup": "megaphone",
 };
 /** Màu huy hiệu số theo bản vẽ: Đơn hàng xanh biển, giấy tờ sắp hết hạn + dịch vụ lệch Sheet màu cát, Góp ý san hô. Ô không có ở đây không bao giờ có số. */
 const MAU_HUY_HIEU: Partial<Record<KhoaO, "xanh" | "cat" | "san-ho">> = { "don-hang": "xanh", "sap-het-han": "cat", "dich-vu": "cat", "gop-y": "san-ho" };
@@ -773,7 +773,7 @@ function dungDauTrang(staff: Staff): void {
   const avatar = topbar.querySelector(".bar-avatar");
   if (avatar) avatar.after(chao);
   else topbar.append(chao);
-  topbar.append(h("a", { class: "dash-hero-nut", href: "/help", "aria-label": "Hướng dẫn" }, icon("help")));
+  topbar.append(h("a", { class: "dash-hero-nut", href: "/huong-dan?the=1", "aria-label": "Hướng dẫn" }, icon("help")));
 }
 
 function ganOTim(): void {

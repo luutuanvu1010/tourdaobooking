@@ -13,8 +13,8 @@ const BO: [string, PermissionCode[], string[]][] = [
   ["BH", ["SALES"], ["Trang chủ", "Đơn hàng", "Tạo đơn", "Danh bạ", "Tôi"]],
   ["TT", ["INTERN"], ["Đơn hàng", "Tạo đơn", "Hỗ trợ", "Tôi"]],
   ["ĐT", ["PARTNER"], ["Đơn hàng", "Tạo đơn", "Hỗ trợ", "Tôi"]],
-  ["HDV", ["FIELD"], ["Đơn hàng", "Hỗ trợ", "Hướng dẫn", "Tôi"]],
-  ["NS", ["HR"], ["Tài khoản", "Hỗ trợ", "Hướng dẫn", "Tôi"]],
+  ["HDV", ["FIELD"], ["Đơn hàng", "Hỗ trợ", "Tôi"]],
+  ["NS", ["HR"], ["Tài khoản", "Hỗ trợ", "Tôi"]],
   ["TX", ["DRIVER"], ["Trang chủ", "Cuốc của tôi", "Hỗ trợ", "Tôi"]],
   ["TXĐT", ["DRIVER_PARTNER"], ["Trang chủ", "Cuốc của tôi", "Báo bận", "Hỗ trợ", "Tôi"]],
 ];
