@@ -77,8 +77,8 @@ test("dải «vừa đổi» chỉ hiện ở đúng bản đang chạy", () => 
   assert.equal(vuaDoi({ doi: null }, "2.58"), false);
 });
 
-test("Trợ lý: câu hỏi nhập lô vé đưa đoạn của bài Kho vé lên đầu, người không dùng được thì xếp sau", () => {
-  const ten = (q: "SALES" | "DRIVER") => chonDoan("nhập lô vé thế nào", [q]).map((d) => d.ten);
+test("Trợ lý: câu hỏi nhập lô vé đưa đoạn của bài Kho vé lên đầu", () => {
+  const ten = (q: "SALES") => chonDoan("nhập lô vé thế nào", [q]).map((d) => d.ten);
   assert.ok(ten("SALES").slice(0, 2).some((t) => t.startsWith("Bài theo việc › Kho vé điện tử")), JSON.stringify(ten("SALES").slice(0, 4)));
   assert.ok(ten("SALES").includes("Bài theo việc › Kho vé điện tử › Các bước"));
 });
