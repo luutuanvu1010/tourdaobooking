@@ -1,0 +1,33 @@
+{
+  "setup": {
+    "create": 201,
+    "confirm": 200,
+    "assign": 200
+  },
+  "a_hdvCancel": 200,
+  "a_banner": [
+    "Không thể chuyển đơn từ \"cancelled\" sang \"cancelled\".\nTải lại đơn"
+  ],
+  "b_dashboardKeys": [
+    "today",
+    "unpaid",
+    "draftCount",
+    "unassignedCount",
+    "revenueWeek"
+  ],
+  "b_cancelledList": [
+    {
+      "code": "TD-20260924-0001",
+      "deposit": 3000000,
+      "keys": []
+    }
+  ],
+  "b_listText": "25/09 · 07:00\nĐoàn cọc 3 triệu\nĐã huỷ\n0911 555 666\n6NL\nCòn thu 5,1tr ₫",
+  "b_orderText": "TD-20260924-0001\nMÃ ĐƠN\nTD-20260924-0001 Đã huỷ\nĐÓN\n25/09 · 07:00\nBến Cầu Đá\nKHÁCH\nĐoàn cọc 3 triệu\n0911 555 666\nSỐ KHÁCH\n06 NL\nTour 4 đảo Nha Trang\nCÒN LẠI\n5.100.000 ₫\nTổng 8.100.000 ₫ · đã cọc 3.000.000 ₫\n\nLập 23:41 24/09/2026 bởi Sales Một · Xác nhận 23:41 24/09/2026\n\nNgười phụ trách\n\nHướng Dẫn Hai\n\nKhách hàng\nTên\nĐoàn cọc 3 triệu\nSố điện thoại\n0911 555 666\nEmail\n—\nGhi chú\n—\nHồ sơ khách\nChưa gắn hồ sơ khách\nDịch vụ\nTour 4 đảo Nha Trang\ntheo người\nTD101\nSố khách\n6 người lớn\nKhởi hành\n25/09/2026\nĐón\n07:00 · Bến Cầu Đá\nTour 4 đảo Nha Trang — Người lớn\n8.100.000 ₫\n6 × 1.350.000 ₫\nTổng dịch vụ\n8.100.000 ₫\nThanh toán\nTạm tính\n8.100.000 ₫\nGiảm giá\n0 ₫\nTổng cộng\n8.100.000 ₫\nĐã cọc\n3.000.000 ₫ (Chuyển khoản)\nCòn lại\n5.100.000 ₫\nGhi chú thanh toán\n—\nLịch sử\n23:41 24/09/2026 — Tạo đơn · Sales Một\n23:41 24/09/2026 — Xác nhận đơn · Sales Một\n23:41 24/09/2026 — Đổi người phụ trách · Sales Một\ntừ Sales Một sang Hướng Dẫn Hai\n23:41 24/09/2026 — Huỷ đơn (hướng dẫn viên đang phụ trách) · Hướng Dẫn Hai\nKhách yêu cầu huỷ",
+  "c_changePin": 200,
+  "c_after": {
+    "path": "/login?next=%2Forder-form",
+    "name": null,
+    "banner": []
+  }
+}

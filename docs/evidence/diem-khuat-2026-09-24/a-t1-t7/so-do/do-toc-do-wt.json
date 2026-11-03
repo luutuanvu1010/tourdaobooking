@@ -1,0 +1,345 @@
+{
+ "at": "2026-09-24T16:46:53.919Z",
+ "cwd": "/Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/tourdao-sales-audit-62ea81",
+ "throttle": {
+  "offline": false,
+  "latency": 562.5,
+  "downloadThroughput": 180000,
+  "uploadThroughput": 84375,
+  "cpu": 4
+ },
+ "uptimeStart": "23:46  up 5 days, 17:27, 3 users, load averages: 4.34 5.91 6.02",
+ "seed": {
+  "orders": 12,
+  "confirmed": 8,
+  "field": true,
+  "fieldStatus": 201,
+  "assignedToField": 6
+ },
+ "pages": [
+  {
+   "key": "login",
+   "label": "Đăng nhập",
+   "path": "/login",
+   "viewport": "375×812",
+   "round": 0,
+   "cold": {
+    "phase": "lạnh",
+    "fcp": 1500,
+    "dcl": 1530,
+    "load": 2500,
+    "readyAt": 2136,
+    "longTasks": 0,
+    "longTaskMs": 0,
+    "tbt": 0,
+    "cls": 0.0006,
+    "shifts": [
+     {
+      "t": 2343,
+      "v": 0.0003,
+      "src": [
+       "#text"
+      ]
+     },
+     {
+      "t": 2518,
+      "v": 0.0003,
+      "src": [
+       "A",
+       "SPAN",
+       "SPAN"
+      ]
+     }
+    ],
+    "mutations": 130,
+    "domNodes": 62,
+    "swControlled": true,
+    "wallMs": 5232,
+    "requests": {
+     "total": 13,
+     "api": 2,
+     "static": 11,
+     "staticFromSW": 0,
+     "staticFromDisk": 0,
+     "serverSawRequests": 36
+    },
+    "bytes": {
+     "transfer": 121634,
+     "decoded": 216071,
+     "jsDecoded": 26227,
+     "cssDecoded": 90006,
+     "fontDecoded": 70716,
+     "htmlDecoded": 4810,
+     "apiDecoded": 198
+    },
+    "apiChainDepth": 1,
+    "apiChain": [
+     "/api/auth/me"
+    ],
+    "firstApiStartMs": 1527,
+    "docEndMs": 578,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 1527,
+      "end": 2129,
+      "status": 401
+     },
+     {
+      "path": "/api/auth/config",
+      "start": 1529,
+      "end": 2137,
+      "status": 200
+     }
+    ],
+    "d1": []
+   },
+   "warm": {
+    "phase": "ấm",
+    "fcp": 84,
+    "dcl": 37,
+    "load": 50,
+    "readyAt": 620,
+    "longTasks": 0,
+    "longTaskMs": 0,
+    "tbt": 0,
+    "cls": 0,
+    "shifts": [],
+    "mutations": 130,
+    "domNodes": 62,
+    "swControlled": true,
+    "wallMs": 2145,
+    "requests": {
+     "total": 12,
+     "api": 2,
+     "static": 10,
+     "staticFromSW": 10,
+     "staticFromDisk": 10,
+     "serverSawRequests": 13
+    },
+    "bytes": {
+     "transfer": 560,
+     "decoded": 208203,
+     "jsDecoded": 26227,
+     "cssDecoded": 90006,
+     "fontDecoded": 70716,
+     "htmlDecoded": 4810,
+     "apiDecoded": 198
+    },
+    "apiChainDepth": 1,
+    "apiChain": [
+     "/api/auth/me"
+    ],
+    "firstApiStartMs": 36,
+    "docEndMs": 7,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 36,
+      "end": 604,
+      "status": 401
+     },
+     {
+      "path": "/api/auth/config",
+      "start": 36,
+      "end": 612,
+      "status": 200
+     }
+    ],
+    "d1": [],
+    "swCacheEntriesBefore": 22
+   }
+  },
+  {
+   "key": "account-field",
+   "label": "Tôi/Việc của tôi (HDV)",
+   "path": "/account",
+   "viewport": "375×812",
+   "round": 0,
+   "cold": {
+    "phase": "lạnh",
+    "fcp": 1488,
+    "dcl": 1428,
+    "load": 2468,
+    "readyAt": 2754,
+    "longTasks": 1,
+    "longTaskMs": 89,
+    "tbt": 39,
+    "cls": 0.8222,
+    "shifts": [
+     {
+      "t": 2037,
+      "v": 0.1824,
+      "src": [
+       "#pin-form"
+      ]
+     },
+     {
+      "t": 2321,
+      "v": 0,
+      "src": [
+       "SPAN.new-dot"
+      ]
+     },
+     {
+      "t": 2484,
+      "v": 0,
+      "src": [
+       "SPAN.new-dot"
+      ]
+     },
+     {
+      "t": 2750,
+      "v": 0.6398,
+      "src": [
+       "#pin-form",
+       "#links"
+      ]
+     }
+    ],
+    "mutations": 96,
+    "domNodes": 207,
+    "swControlled": true,
+    "wallMs": 5161,
+    "requests": {
+     "total": 15,
+     "api": 4,
+     "static": 11,
+     "staticFromSW": 0,
+     "staticFromDisk": 0,
+     "serverSawRequests": 38
+    },
+    "bytes": {
+     "transfer": 129304,
+     "decoded": 227342,
+     "jsDecoded": 40490,
+     "cssDecoded": 90006,
+     "fontDecoded": 70672,
+     "htmlDecoded": 2652,
+     "apiDecoded": 3669
+    },
+    "apiChainDepth": 2,
+    "apiChain": [
+     "/api/auth/me",
+     "/api/feedback/badge"
+    ],
+    "firstApiStartMs": 1427,
+    "docEndMs": 578,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 1427,
+      "end": 2004,
+      "status": 200
+     },
+     {
+      "path": "/api/feedback/badge",
+      "start": 2023,
+      "end": 2594,
+      "status": 200
+     },
+     {
+      "path": "/api/auth/config",
+      "start": 2024,
+      "end": 2603,
+      "status": 200
+     },
+     {
+      "path": "/api/dispatch/mine",
+      "start": 2025,
+      "end": 2719,
+      "status": 200
+     }
+    ],
+    "d1": []
+   },
+   "warm": {
+    "phase": "ấm",
+    "fcp": 72,
+    "dcl": 33,
+    "load": 61,
+    "readyAt": 1230,
+    "longTasks": 0,
+    "longTaskMs": 0,
+    "tbt": 0,
+    "cls": 0.8222,
+    "shifts": [
+     {
+      "t": 632,
+      "v": 0.1824,
+      "src": [
+       "#pin-form"
+      ]
+     },
+     {
+      "t": 1226,
+      "v": 0.6398,
+      "src": [
+       "#pin-form",
+       "#links"
+      ]
+     }
+    ],
+    "mutations": 96,
+    "domNodes": 207,
+    "swControlled": true,
+    "wallMs": 2753,
+    "requests": {
+     "total": 14,
+     "api": 4,
+     "static": 10,
+     "staticFromSW": 10,
+     "staticFromDisk": 10,
+     "serverSawRequests": 15
+    },
+    "bytes": {
+     "transfer": 1727,
+     "decoded": 219474,
+     "jsDecoded": 40490,
+     "cssDecoded": 90006,
+     "fontDecoded": 70672,
+     "htmlDecoded": 2652,
+     "apiDecoded": 3669
+    },
+    "apiChainDepth": 2,
+    "apiChain": [
+     "/api/auth/me",
+     "/api/feedback/badge"
+    ],
+    "firstApiStartMs": 31,
+    "docEndMs": 3,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 31,
+      "end": 606,
+      "status": 200
+     },
+     {
+      "path": "/api/feedback/badge",
+      "start": 620,
+      "end": 1188,
+      "status": 200
+     },
+     {
+      "path": "/api/auth/config",
+      "start": 620,
+      "end": 1196,
+      "status": 200
+     },
+     {
+      "path": "/api/dispatch/mine",
+      "start": 620,
+      "end": 1205,
+      "status": 200
+     }
+    ],
+    "d1": [],
+    "swCacheEntriesBefore": 22
+   }
+  }
+ ],
+ "api": [],
+ "uptimeEnd": "23:47  up 5 days, 17:28, 3 users, load averages: 3.76 5.70 5.94",
+ "note": "Thời gian (ms) đo khi máy BẬN nếu uptime cho tải > 2 — chỉ dùng số tất định. bytes.* đo trên wrangler dev cục bộ (không nén br/gzip như Cloudflare thật)."
+}

@@ -1,0 +1,33 @@
+{
+ "at": "2026-09-24T17:26:19.112Z",
+ "out": {
+  "/app.css": {
+   "n": 20,
+   "min": 84.6,
+   "median": 89.7,
+   "p90": 139.8,
+   "cfRay": "a4037e4fcefe5f71-SIN"
+  },
+  "/icons/logo-96.png": {
+   "n": 20,
+   "min": 78.2,
+   "median": 84.7,
+   "p90": 103,
+   "cfRay": "a4037e505f755f71-SIN"
+  },
+  "/api/auth/config": {
+   "n": 20,
+   "min": 91.7,
+   "median": 108.4,
+   "p90": 207,
+   "cfRay": "a4037e50eea0ce5e-SIN"
+  },
+  "/api/company": {
+   "n": 20,
+   "min": 85.8,
+   "median": 103.7,
+   "p90": 154.2,
+   "cfRay": "a4037e5178625f71-SIN"
+  }
+ }
+}

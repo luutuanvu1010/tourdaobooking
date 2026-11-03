@@ -1,0 +1,155 @@
+{
+ "at": "2026-09-24T16:46:17.444Z",
+ "cwd": "/private/tmp/claude-501/-Users-tuanbao-Documents-Projects-ctytnhhtourdao-tourdao-sales--claude-worktrees-tourdao-sales-audit-62ea81/c964efb5-7bf2-4e78-8214-a3e41d4568f4/scratchpad/a-t1-t7/copy",
+ "n": 20,
+ "c": 10,
+ "seed": 20,
+ "uptimeStart": "23:46  up 5 days, 17:27, 3 users, load averages: 5.51 6.30 6.15",
+ "scenarios": [
+  {
+   "name": "GET /api/orders (danh sách)",
+   "n": 20,
+   "concurrency": 10,
+   "wallMs": 94,
+   "reqPerSec": 213.7,
+   "p50": 46.9,
+   "p95": 49.3,
+   "max": 49.3,
+   "statuses": {
+    "200": 20
+   },
+   "errors5xx": 0,
+   "avgBytes": 9278,
+   "sample5xx": []
+  },
+  {
+   "name": "GET /api/orders/:id",
+   "n": 20,
+   "concurrency": 10,
+   "wallMs": 78,
+   "reqPerSec": 255,
+   "p50": 38.8,
+   "p95": 46.3,
+   "max": 46.3,
+   "statuses": {
+    "200": 20
+   },
+   "errors5xx": 0,
+   "avgBytes": 1401,
+   "sample5xx": []
+  },
+  {
+   "name": "GET /api/orders/dashboard",
+   "n": 20,
+   "concurrency": 10,
+   "wallMs": 119,
+   "reqPerSec": 167.6,
+   "p50": 59.3,
+   "p95": 60.5,
+   "max": 60.5,
+   "statuses": {
+    "200": 20
+   },
+   "errors5xx": 0,
+   "avgBytes": 438,
+   "sample5xx": []
+  },
+  {
+   "name": "GET /api/auth/me",
+   "n": 20,
+   "concurrency": 10,
+   "wallMs": 51,
+   "reqPerSec": 389.3,
+   "p50": 25.4,
+   "p95": 27.2,
+   "max": 27.2,
+   "statuses": {
+    "200": 20
+   },
+   "errors5xx": 0,
+   "avgBytes": 213,
+   "sample5xx": []
+  },
+  {
+   "name": "POST /api/orders (tạo đồng thời)",
+   "n": 20,
+   "concurrency": 10,
+   "wallMs": 197,
+   "reqPerSec": 101.5,
+   "p50": 96.5,
+   "p95": 101.3,
+   "max": 101.3,
+   "statuses": {
+    "201": 20
+   },
+   "errors5xx": 0,
+   "avgBytes": 1150,
+   "sample5xx": []
+  },
+  {
+   "name": "PUT cùng một đơn nháp (khoá lạc quan)",
+   "n": 20,
+   "concurrency": 10,
+   "wallMs": 106,
+   "reqPerSec": 188,
+   "p50": 50.4,
+   "p95": 57.1,
+   "max": 57.1,
+   "statuses": {
+    "200": 1,
+    "409": 19
+   },
+   "errors5xx": 0,
+   "avgBytes": 146,
+   "sample5xx": []
+  },
+  {
+   "name": "POST /api/auth/login SAI PIN, SĐT thật, IP giả khác nhau",
+   "n": 20,
+   "concurrency": 10,
+   "wallMs": 123,
+   "reqPerSec": 162,
+   "p50": 59.3,
+   "p95": 69.7,
+   "max": 69.7,
+   "statuses": {
+    "401": 3,
+    "429": 17
+   },
+   "errors5xx": 0,
+   "avgBytes": 141,
+   "sample5xx": []
+  },
+  {
+   "name": "POST /api/auth/login SAI PIN, SĐT ngẫu nhiên, IP giả khác nhau",
+   "n": 20,
+   "concurrency": 10,
+   "wallMs": 320,
+   "reqPerSec": 62.6,
+   "p50": 158.8,
+   "p95": 172.8,
+   "max": 172.8,
+   "statuses": {
+    "401": 20
+   },
+   "errors5xx": 0,
+   "avgBytes": 90,
+   "sample5xx": []
+  }
+ ],
+ "createCheck": {
+  "ordersBefore": 20,
+  "ordersAfter": 40,
+  "duplicateCodes": 0
+ },
+ "loginAttemptRows": {
+  "before": 0,
+  "after": 46
+ },
+ "realPhoneAfterAttack": {
+  "status": 200,
+  "code": null
+ },
+ "uptimeEnd": "23:46  up 5 days, 17:27, 3 users, load averages: 5.28 6.22 6.13",
+ "note": "Đo trên workerd cục bộ khi máy BẬN (xem uptime) — chỉ tin mã lỗi / trùng mã / số dòng; thời gian không đại diện production."
+}

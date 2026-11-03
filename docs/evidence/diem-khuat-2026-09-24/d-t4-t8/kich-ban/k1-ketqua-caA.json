@@ -1,0 +1,80 @@
+{
+  "flows": {
+    "1_sales_lap_don_12_khach_xac_nhan_giao_hdv": {
+      "taps": 16,
+      "typed": 8,
+      "retyped": 0,
+      "screens": [
+        "/orders",
+        "/order-form",
+        "/order?id=0291f196-ccb1-4a63-9989-b3cd4b2deb5e"
+      ],
+      "steps": [
+        "chạm: nút Đơn mới / Lập đơn mới",
+        "gõ: Tên khách = Đoàn cô Hạnh",
+        "gõ: SĐT = 0912 000 111",
+        "chạm: ô tìm danh mục",
+        "gõ: tìm dịch vụ = 4 đảo",
+        "chạm: chọn Tour 4 đảo",
+        "ghi chú: 12 người lớn bằng nút + = 11 chạm (mặc định 1); chọn cách gõ vào ô số",
+        "gõ: Người lớn = 12",
+        "chạm: mở 'Thông tin chuyến'",
+        "gõ: Ngày khởi hành = 2026-09-25",
+        "gõ: Giờ đón = 07:15",
+        "gõ: Điểm đón = Sảnh KS Novotel",
+        "gõ: Đã cọc = 3000000",
+        "chạm: Hình thức cọc (chọn)",
+        "chạm: Lưu đơn nháp",
+        "chạm: đóng hộp thoại ảnh (✕)",
+        "chạm: Xác nhận đơn"
+      ],
+      "blockers": []
+    }
+  },
+  "cases": {
+    "A_het_phien": {
+      "before": {
+        "name": "Đoàn Anh Minh 12 khách",
+        "phone": "0912 345 678",
+        "svc": 1,
+        "total": "15.400.000 ₫"
+      },
+      "loginUrl": "/login?next=%2Forder-form",
+      "after": {
+        "name": "",
+        "phone": "",
+        "svc": 0,
+        "total": "0 ₫"
+      },
+      "ordersInDb": 0
+    },
+    "A2_tai_lai": {
+      "before": {
+        "name": "Chị Lan đại lý Zalo",
+        "svc": 1
+      },
+      "after": {
+        "name": "",
+        "svc": 0,
+        "storage": []
+      }
+    }
+  },
+  "errors": [
+    "TypeError: Cannot read properties of undefined (reading 'push')\n    at file:///private/tmp/claude-501/-Users-tuanbao-Documents-Projects-ctytnhhtourdao-tourdao-sales--claude-worktrees-tourdao-sales-audit-62ea81/c964efb5-7bf2-4e78-8214-a3e41d4568f4/scratchpad/d-t4-t8/k1-luong.mjs:167:23"
+  ],
+  "setup": {
+    "hdv": {
+      "status": 201,
+      "perms": [
+        "FIELD"
+      ]
+    },
+    "intern": {
+      "status": 201,
+      "perms": [
+        "INTERN"
+      ]
+    }
+  }
+}

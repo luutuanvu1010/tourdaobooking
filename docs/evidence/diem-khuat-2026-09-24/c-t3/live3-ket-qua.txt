@@ -1,0 +1,2 @@
+Đối tác lập đơn DANH MỤC TD101 (2 người lớn × 1.350.000) với giảm giá 2.600.000 qua API: {"status":201,"subtotal":2700000,"discount":2600000,"total":100000}
+Đối tác tự xác nhận: {"status":200,"total":100000}

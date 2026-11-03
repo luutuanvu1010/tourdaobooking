@@ -1,0 +1,2463 @@
+{
+ "at": "2026-09-24T17:29:17.141Z",
+ "cwd": "/Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/tourdao-sales-audit-62ea81",
+ "throttle": {
+  "offline": false,
+  "latency": 100,
+  "downloadThroughput": -1,
+  "uploadThroughput": -1,
+  "cpu": 4
+ },
+ "uptimeStart": "0:29  up 5 days, 18:10, 3 users, load averages: 3.11 3.15 3.29",
+ "seed": {
+  "orders": 60,
+  "confirmed": 40,
+  "field": true,
+  "fieldStatus": 201,
+  "assignedToField": 6
+ },
+ "pages": [
+  {
+   "key": "login",
+   "label": "Đăng nhập",
+   "path": "/login",
+   "viewport": "375×812",
+   "round": 0,
+   "cold": {
+    "phase": "lạnh",
+    "fcp": 320,
+    "dcl": 355,
+    "load": 422,
+    "readyAt": 475,
+    "longTasks": 0,
+    "longTaskMs": 0,
+    "tbt": 0,
+    "cls": 0,
+    "shifts": [],
+    "mutations": 130,
+    "domNodes": 62,
+    "swControlled": true,
+    "wallMs": 2334,
+    "requests": {
+     "total": 13,
+     "api": 2,
+     "static": 11,
+     "staticFromSW": 0,
+     "staticFromDisk": 0,
+     "serverSawRequests": 36
+    },
+    "bytes": {
+     "transfer": 121634,
+     "decoded": 216071,
+     "jsDecoded": 26227,
+     "cssDecoded": 90006,
+     "fontDecoded": 70716,
+     "htmlDecoded": 4810,
+     "apiDecoded": 198
+    },
+    "apiChainDepth": 1,
+    "apiChain": [
+     "/api/auth/me"
+    ],
+    "firstApiStartMs": 353,
+    "docEndMs": 110,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 353,
+      "end": 454,
+      "status": 401
+     },
+     {
+      "path": "/api/auth/config",
+      "start": 354,
+      "end": 455,
+      "status": 200
+     }
+    ],
+    "d1": []
+   },
+   "warm": {
+    "phase": "ấm",
+    "fcp": 84,
+    "dcl": 37,
+    "load": 50,
+    "readyAt": 170,
+    "longTasks": 0,
+    "longTaskMs": 0,
+    "tbt": 0,
+    "cls": 0,
+    "shifts": [],
+    "mutations": 130,
+    "domNodes": 62,
+    "swControlled": true,
+    "wallMs": 1749,
+    "requests": {
+     "total": 12,
+     "api": 2,
+     "static": 10,
+     "staticFromSW": 10,
+     "staticFromDisk": 10,
+     "serverSawRequests": 12
+    },
+    "bytes": {
+     "transfer": 560,
+     "decoded": 208203,
+     "jsDecoded": 26227,
+     "cssDecoded": 90006,
+     "fontDecoded": 70716,
+     "htmlDecoded": 4810,
+     "apiDecoded": 198
+    },
+    "apiChainDepth": 1,
+    "apiChain": [
+     "/api/auth/me"
+    ],
+    "firstApiStartMs": 35,
+    "docEndMs": 5,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 35,
+      "end": 145,
+      "status": 401
+     },
+     {
+      "path": "/api/auth/config",
+      "start": 36,
+      "end": 145,
+      "status": 200
+     }
+    ],
+    "d1": [],
+    "swCacheEntriesBefore": 22
+   }
+  },
+  {
+   "key": "home",
+   "label": "Trang chủ (Sales)",
+   "path": "/",
+   "viewport": "375×812",
+   "round": 0,
+   "cold": {
+    "phase": "lạnh",
+    "fcp": 352,
+    "dcl": 325,
+    "load": 440,
+    "readyAt": 616,
+    "longTasks": 0,
+    "longTaskMs": 0,
+    "tbt": 0,
+    "cls": 0,
+    "shifts": [],
+    "mutations": 133,
+    "domNodes": 472,
+    "swControlled": true,
+    "wallMs": 2261,
+    "requests": {
+     "total": 15,
+     "api": 2,
+     "static": 13,
+     "staticFromSW": 0,
+     "staticFromDisk": 0,
+     "serverSawRequests": 38
+    },
+    "bytes": {
+     "transfer": 115049,
+     "decoded": 240237,
+     "jsDecoded": 32576,
+     "cssDecoded": 90006,
+     "fontDecoded": 89196,
+     "htmlDecoded": 2853,
+     "apiDecoded": 5753
+    },
+    "apiChainDepth": 2,
+    "apiChain": [
+     "/api/auth/me",
+     "/api/orders/dashboard"
+    ],
+    "firstApiStartMs": 324,
+    "docEndMs": 111,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 324,
+      "end": 434,
+      "status": 200
+     },
+     {
+      "path": "/api/orders/dashboard",
+      "start": 469,
+      "end": 575,
+      "status": 200
+     }
+    ],
+    "d1": []
+   },
+   "warm": {
+    "phase": "ấm",
+    "fcp": 64,
+    "dcl": 43,
+    "load": 52,
+    "readyAt": 270,
+    "longTasks": 0,
+    "longTaskMs": 0,
+    "tbt": 0,
+    "cls": 0,
+    "shifts": [],
+    "mutations": 133,
+    "domNodes": 472,
+    "swControlled": true,
+    "wallMs": 1946,
+    "requests": {
+     "total": 14,
+     "api": 2,
+     "static": 12,
+     "staticFromSW": 12,
+     "staticFromDisk": 12,
+     "serverSawRequests": 15
+    },
+    "bytes": {
+     "transfer": 1394,
+     "decoded": 232369,
+     "jsDecoded": 32576,
+     "cssDecoded": 90006,
+     "fontDecoded": 89196,
+     "htmlDecoded": 2853,
+     "apiDecoded": 5753
+    },
+    "apiChainDepth": 2,
+    "apiChain": [
+     "/api/auth/me",
+     "/api/orders/dashboard"
+    ],
+    "firstApiStartMs": 41,
+    "docEndMs": 5,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 41,
+      "end": 142,
+      "status": 200
+     },
+     {
+      "path": "/api/orders/dashboard",
+      "start": 152,
+      "end": 258,
+      "status": 200
+     }
+    ],
+    "d1": [],
+    "swCacheEntriesBefore": 22
+   }
+  },
+  {
+   "key": "home-admin",
+   "label": "Trang chủ (Admin)",
+   "path": "/",
+   "viewport": "375×812",
+   "round": 0,
+   "cold": {
+    "phase": "lạnh",
+    "fcp": 348,
+    "dcl": 326,
+    "load": 442,
+    "readyAt": 646,
+    "longTasks": 0,
+    "longTaskMs": 0,
+    "tbt": 0,
+    "cls": 0,
+    "shifts": [],
+    "mutations": 133,
+    "domNodes": 476,
+    "swControlled": true,
+    "wallMs": 2513,
+    "requests": {
+     "total": 17,
+     "api": 4,
+     "static": 13,
+     "staticFromSW": 0,
+     "staticFromDisk": 0,
+     "serverSawRequests": 40
+    },
+    "bytes": {
+     "transfer": 115862,
+     "decoded": 241659,
+     "jsDecoded": 32576,
+     "cssDecoded": 90006,
+     "fontDecoded": 89196,
+     "htmlDecoded": 2853,
+     "apiDecoded": 7175
+    },
+    "apiChainDepth": 2,
+    "apiChain": [
+     "/api/auth/me",
+     "/api/orders/dashboard"
+    ],
+    "firstApiStartMs": 325,
+    "docEndMs": 108,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 325,
+      "end": 436,
+      "status": 200
+     },
+     {
+      "path": "/api/orders/dashboard",
+      "start": 474,
+      "end": 583,
+      "status": 200
+     },
+     {
+      "path": "/api/catalog/admin",
+      "start": 475,
+      "end": 583,
+      "status": 200
+     },
+     {
+      "path": "/api/feedback",
+      "start": 475,
+      "end": 583,
+      "status": 200
+     }
+    ],
+    "d1": []
+   },
+   "warm": {
+    "phase": "ấm",
+    "fcp": 60,
+    "dcl": 41,
+    "load": 51,
+    "readyAt": 268,
+    "longTasks": 0,
+    "longTaskMs": 0,
+    "tbt": 0,
+    "cls": 0,
+    "shifts": [],
+    "mutations": 133,
+    "domNodes": 476,
+    "swControlled": true,
+    "wallMs": 1943,
+    "requests": {
+     "total": 16,
+     "api": 4,
+     "static": 12,
+     "staticFromSW": 12,
+     "staticFromDisk": 12,
+     "serverSawRequests": 16
+    },
+    "bytes": {
+     "transfer": 2207,
+     "decoded": 233791,
+     "jsDecoded": 32576,
+     "cssDecoded": 90006,
+     "fontDecoded": 89196,
+     "htmlDecoded": 2853,
+     "apiDecoded": 7175
+    },
+    "apiChainDepth": 2,
+    "apiChain": [
+     "/api/auth/me",
+     "/api/orders/dashboard"
+    ],
+    "firstApiStartMs": 39,
+    "docEndMs": 4,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 39,
+      "end": 149,
+      "status": 200
+     },
+     {
+      "path": "/api/orders/dashboard",
+      "start": 159,
+      "end": 262,
+      "status": 200
+     },
+     {
+      "path": "/api/catalog/admin",
+      "start": 160,
+      "end": 262,
+      "status": 200
+     },
+     {
+      "path": "/api/feedback",
+      "start": 160,
+      "end": 262,
+      "status": 200
+     }
+    ],
+    "d1": [],
+    "swCacheEntriesBefore": 22
+   }
+  },
+  {
+   "key": "orders",
+   "label": "Danh sách đơn",
+   "path": "/orders",
+   "viewport": "375×812",
+   "round": 0,
+   "cold": {
+    "phase": "lạnh",
+    "fcp": 288,
+    "dcl": 327,
+    "load": 434,
+    "readyAt": 654,
+    "longTasks": 1,
+    "longTaskMs": 51,
+    "tbt": 1,
+    "cls": 0,
+    "shifts": [],
+    "mutations": 169,
+    "domNodes": 1059,
+    "swControlled": true,
+    "wallMs": 2267,
+    "requests": {
+     "total": 14,
+     "api": 3,
+     "static": 11,
+     "staticFromSW": 0,
+     "staticFromDisk": 0,
+     "serverSawRequests": 37
+    },
+    "bytes": {
+     "transfer": 127679,
+     "decoded": 232631,
+     "jsDecoded": 30155,
+     "cssDecoded": 90006,
+     "fontDecoded": 70672,
+     "htmlDecoded": 1729,
+     "apiDecoded": 20216
+    },
+    "apiChainDepth": 3,
+    "apiChain": [
+     "/api/auth/me",
+     "/api/orders?…",
+     "/api/dispatch/handlers?…"
+    ],
+    "firstApiStartMs": 325,
+    "docEndMs": 108,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 325,
+      "end": 431,
+      "status": 200
+     },
+     {
+      "path": "/api/orders?…",
+      "start": 451,
+      "end": 556,
+      "status": 200
+     },
+     {
+      "path": "/api/dispatch/handlers?…",
+      "start": 582,
+      "end": 693,
+      "status": 200
+     }
+    ],
+    "d1": []
+   },
+   "warm": {
+    "phase": "ấm",
+    "fcp": 72,
+    "dcl": 39,
+    "load": 65,
+    "readyAt": 320,
+    "longTasks": 0,
+    "longTaskMs": 0,
+    "tbt": 0,
+    "cls": 0,
+    "shifts": [],
+    "mutations": 169,
+    "domNodes": 1059,
+    "swControlled": true,
+    "wallMs": 1951,
+    "requests": {
+     "total": 13,
+     "api": 3,
+     "static": 10,
+     "staticFromSW": 10,
+     "staticFromDisk": 10,
+     "serverSawRequests": 14
+    },
+    "bytes": {
+     "transfer": 3071,
+     "decoded": 224763,
+     "jsDecoded": 30155,
+     "cssDecoded": 90006,
+     "fontDecoded": 70672,
+     "htmlDecoded": 1729,
+     "apiDecoded": 20216
+    },
+    "apiChainDepth": 3,
+    "apiChain": [
+     "/api/auth/me",
+     "/api/orders?…",
+     "/api/dispatch/handlers?…"
+    ],
+    "firstApiStartMs": 38,
+    "docEndMs": 9,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 38,
+      "end": 149,
+      "status": 200
+     },
+     {
+      "path": "/api/orders?…",
+      "start": 159,
+      "end": 266,
+      "status": 200
+     },
+     {
+      "path": "/api/dispatch/handlers?…",
+      "start": 286,
+      "end": 394,
+      "status": 200
+     }
+    ],
+    "d1": [],
+    "swCacheEntriesBefore": 22
+   }
+  },
+  {
+   "key": "order",
+   "label": "Một đơn",
+   "path": "/order?id=…",
+   "viewport": "375×812",
+   "round": 0,
+   "cold": {
+    "phase": "lạnh",
+    "fcp": 340,
+    "dcl": 295,
+    "load": 448,
+    "readyAt": 604,
+    "longTasks": 1,
+    "longTaskMs": 52,
+    "tbt": 2,
+    "cls": 0,
+    "shifts": [],
+    "mutations": 59,
+    "domNodes": 279,
+    "swControlled": true,
+    "wallMs": 2250,
+    "requests": {
+     "total": 14,
+     "api": 3,
+     "static": 11,
+     "staticFromSW": 0,
+     "staticFromDisk": 0,
+     "serverSawRequests": 37
+    },
+    "bytes": {
+     "transfer": 122920,
+     "decoded": 266347,
+     "jsDecoded": 81812,
+     "cssDecoded": 90006,
+     "fontDecoded": 70672,
+     "htmlDecoded": 1094,
+     "apiDecoded": 2910
+    },
+    "apiChainDepth": 2,
+    "apiChain": [
+     "/api/auth/me",
+     "/api/orders/17790aaf-33d9-4768-9866-0bd48ed955b4"
+    ],
+    "firstApiStartMs": 293,
+    "docEndMs": 109,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 293,
+      "end": 404,
+      "status": 200
+     },
+     {
+      "path": "/api/orders/17790aaf-33d9-4768-9866-0bd48ed955b4",
+      "start": 430,
+      "end": 533,
+      "status": 200
+     },
+     {
+      "path": "/api/dispatch/handlers?…",
+      "start": 431,
+      "end": 532,
+      "status": 200
+     }
+    ],
+    "d1": []
+   },
+   "warm": {
+    "phase": "ấm",
+    "fcp": 68,
+    "dcl": 38,
+    "load": 42,
+    "readyAt": 323,
+    "longTasks": 0,
+    "longTaskMs": 0,
+    "tbt": 0,
+    "cls": 0,
+    "shifts": [],
+    "mutations": 59,
+    "domNodes": 279,
+    "swControlled": true,
+    "wallMs": 1942,
+    "requests": {
+     "total": 13,
+     "api": 3,
+     "static": 10,
+     "staticFromSW": 10,
+     "staticFromDisk": 10,
+     "serverSawRequests": 14
+    },
+    "bytes": {
+     "transfer": 1901,
+     "decoded": 258479,
+     "jsDecoded": 81812,
+     "cssDecoded": 90006,
+     "fontDecoded": 70672,
+     "htmlDecoded": 1094,
+     "apiDecoded": 2910
+    },
+    "apiChainDepth": 2,
+    "apiChain": [
+     "/api/auth/me",
+     "/api/orders/17790aaf-33d9-4768-9866-0bd48ed955b4"
+    ],
+    "firstApiStartMs": 37,
+    "docEndMs": 5,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 37,
+      "end": 148,
+      "status": 200
+     },
+     {
+      "path": "/api/orders/17790aaf-33d9-4768-9866-0bd48ed955b4",
+      "start": 157,
+      "end": 266,
+      "status": 200
+     },
+     {
+      "path": "/api/dispatch/handlers?…",
+      "start": 158,
+      "end": 266,
+      "status": 200
+     }
+    ],
+    "d1": [],
+    "swCacheEntriesBefore": 22
+   }
+  },
+  {
+   "key": "order-form-new",
+   "label": "Form lập đơn",
+   "path": "/order-form",
+   "viewport": "375×812",
+   "round": 0,
+   "cold": {
+    "phase": "lạnh",
+    "fcp": 324,
+    "dcl": 356,
+    "load": 466,
+    "readyAt": 601,
+    "longTasks": 1,
+    "longTaskMs": 59,
+    "tbt": 9,
+    "cls": 0,
+    "shifts": [],
+    "mutations": 197,
+    "domNodes": 166,
+    "swControlled": true,
+    "wallMs": 2304,
+    "requests": {
+     "total": 13,
+     "api": 2,
+     "static": 11,
+     "staticFromSW": 0,
+     "staticFromDisk": 0,
+     "serverSawRequests": 36
+    },
+    "bytes": {
+     "transfer": 135661,
+     "decoded": 247767,
+     "jsDecoded": 62053,
+     "cssDecoded": 90006,
+     "fontDecoded": 70672,
+     "htmlDecoded": 4249,
+     "apiDecoded": 934
+    },
+    "apiChainDepth": 2,
+    "apiChain": [
+     "/api/auth/me",
+     "/api/catalog"
+    ],
+    "firstApiStartMs": 354,
+    "docEndMs": 111,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 354,
+      "end": 462,
+      "status": 200
+     },
+     {
+      "path": "/api/catalog",
+      "start": 479,
+      "end": 584,
+      "status": 200
+     }
+    ],
+    "d1": []
+   },
+   "warm": {
+    "phase": "ấm",
+    "fcp": 48,
+    "dcl": 72,
+    "load": 89,
+    "readyAt": 318,
+    "longTasks": 0,
+    "longTaskMs": 0,
+    "tbt": 0,
+    "cls": 0,
+    "shifts": [],
+    "mutations": 197,
+    "domNodes": 166,
+    "swControlled": true,
+    "wallMs": 1948,
+    "requests": {
+     "total": 12,
+     "api": 2,
+     "static": 10,
+     "staticFromSW": 10,
+     "staticFromDisk": 10,
+     "serverSawRequests": 13
+    },
+    "bytes": {
+     "transfer": 865,
+     "decoded": 239899,
+     "jsDecoded": 62053,
+     "cssDecoded": 90006,
+     "fontDecoded": 70672,
+     "htmlDecoded": 4249,
+     "apiDecoded": 934
+    },
+    "apiChainDepth": 2,
+    "apiChain": [
+     "/api/auth/me",
+     "/api/catalog"
+    ],
+    "firstApiStartMs": 71,
+    "docEndMs": 4,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 71,
+      "end": 180,
+      "status": 200
+     },
+     {
+      "path": "/api/catalog",
+      "start": 189,
+      "end": 299,
+      "status": 200
+     }
+    ],
+    "d1": [],
+    "swCacheEntriesBefore": 22
+   }
+  },
+  {
+   "key": "order-form-edit",
+   "label": "Form sửa đơn nháp",
+   "path": "/order-form?id=…",
+   "viewport": "375×812",
+   "round": 0,
+   "cold": {
+    "phase": "lạnh",
+    "fcp": 332,
+    "dcl": 374,
+    "load": 485,
+    "readyAt": 784,
+    "longTasks": 1,
+    "longTaskMs": 60,
+    "tbt": 10,
+    "cls": 0.0333,
+    "shifts": [
+     {
+      "t": 833,
+      "v": 0.0333,
+      "src": [
+       "SECTION.card"
+      ]
+     }
+    ],
+    "mutations": 234,
+    "domNodes": 349,
+    "swControlled": true,
+    "wallMs": 2563,
+    "requests": {
+     "total": 15,
+     "api": 4,
+     "static": 11,
+     "staticFromSW": 0,
+     "staticFromDisk": 0,
+     "serverSawRequests": 38
+    },
+    "bytes": {
+     "transfer": 137030,
+     "decoded": 250118,
+     "jsDecoded": 62053,
+     "cssDecoded": 90006,
+     "fontDecoded": 70672,
+     "htmlDecoded": 4249,
+     "apiDecoded": 3285
+    },
+    "apiChainDepth": 4,
+    "apiChain": [
+     "/api/auth/me",
+     "/api/catalog",
+     "/api/orders/1ed2a586-df29-444e-8d9a-81e5fc34509f",
+     "/api/parties/lookup?…"
+    ],
+    "firstApiStartMs": 372,
+    "docEndMs": 111,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 372,
+      "end": 482,
+      "status": 200
+     },
+     {
+      "path": "/api/catalog",
+      "start": 499,
+      "end": 604,
+      "status": 200
+     },
+     {
+      "path": "/api/orders/1ed2a586-df29-444e-8d9a-81e5fc34509f",
+      "start": 607,
+      "end": 713,
+      "status": 200
+     },
+     {
+      "path": "/api/parties/lookup?…",
+      "start": 720,
+      "end": 824,
+      "status": 200
+     }
+    ],
+    "d1": []
+   },
+   "warm": {
+    "phase": "ấm",
+    "fcp": 60,
+    "dcl": 83,
+    "load": 100,
+    "readyAt": 466,
+    "longTasks": 0,
+    "longTaskMs": 0,
+    "tbt": 0,
+    "cls": 0,
+    "shifts": [],
+    "mutations": 234,
+    "domNodes": 349,
+    "swControlled": true,
+    "wallMs": 2233,
+    "requests": {
+     "total": 14,
+     "api": 4,
+     "static": 10,
+     "staticFromSW": 10,
+     "staticFromDisk": 10,
+     "serverSawRequests": 15
+    },
+    "bytes": {
+     "transfer": 2234,
+     "decoded": 242250,
+     "jsDecoded": 62053,
+     "cssDecoded": 90006,
+     "fontDecoded": 70672,
+     "htmlDecoded": 4249,
+     "apiDecoded": 3285
+    },
+    "apiChainDepth": 4,
+    "apiChain": [
+     "/api/auth/me",
+     "/api/catalog",
+     "/api/orders/1ed2a586-df29-444e-8d9a-81e5fc34509f",
+     "/api/parties/lookup?…"
+    ],
+    "firstApiStartMs": 83,
+    "docEndMs": 11,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 83,
+      "end": 193,
+      "status": 200
+     },
+     {
+      "path": "/api/catalog",
+      "start": 202,
+      "end": 310,
+      "status": 200
+     },
+     {
+      "path": "/api/orders/1ed2a586-df29-444e-8d9a-81e5fc34509f",
+      "start": 313,
+      "end": 419,
+      "status": 200
+     },
+     {
+      "path": "/api/parties/lookup?…",
+      "start": 422,
+      "end": 531,
+      "status": 200
+     }
+    ],
+    "d1": [],
+    "swCacheEntriesBefore": 22
+   }
+  },
+  {
+   "key": "account-sales",
+   "label": "Tôi (Sales)",
+   "path": "/account",
+   "viewport": "375×812",
+   "round": 0,
+   "cold": {
+    "phase": "lạnh",
+    "fcp": 304,
+    "dcl": 341,
+    "load": 453,
+    "readyAt": 492,
+    "longTasks": 0,
+    "longTaskMs": 0,
+    "tbt": 0,
+    "cls": 0,
+    "shifts": [],
+    "mutations": 93,
+    "domNodes": 149,
+    "swControlled": true,
+    "wallMs": 2322,
+    "requests": {
+     "total": 14,
+     "api": 3,
+     "static": 11,
+     "staticFromSW": 0,
+     "staticFromDisk": 0,
+     "serverSawRequests": 37
+    },
+    "bytes": {
+     "transfer": 128393,
+     "decoded": 224006,
+     "jsDecoded": 40490,
+     "cssDecoded": 90006,
+     "fontDecoded": 70672,
+     "htmlDecoded": 2652,
+     "apiDecoded": 333
+    },
+    "apiChainDepth": 2,
+    "apiChain": [
+     "/api/auth/me",
+     "/api/feedback/badge"
+    ],
+    "firstApiStartMs": 340,
+    "docEndMs": 111,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 340,
+      "end": 450,
+      "status": 200
+     },
+     {
+      "path": "/api/feedback/badge",
+      "start": 470,
+      "end": 571,
+      "status": 200
+     },
+     {
+      "path": "/api/auth/config",
+      "start": 471,
+      "end": 572,
+      "status": 200
+     }
+    ],
+    "d1": []
+   },
+   "warm": {
+    "phase": "ấm",
+    "fcp": 72,
+    "dcl": 32,
+    "load": 61,
+    "readyAt": 162,
+    "longTasks": 0,
+    "longTaskMs": 0,
+    "tbt": 0,
+    "cls": 0,
+    "shifts": [],
+    "mutations": 93,
+    "domNodes": 149,
+    "swControlled": true,
+    "wallMs": 1996,
+    "requests": {
+     "total": 13,
+     "api": 3,
+     "static": 10,
+     "staticFromSW": 10,
+     "staticFromDisk": 10,
+     "serverSawRequests": 14
+    },
+    "bytes": {
+     "transfer": 827,
+     "decoded": 216138,
+     "jsDecoded": 40490,
+     "cssDecoded": 90006,
+     "fontDecoded": 70672,
+     "htmlDecoded": 2652,
+     "apiDecoded": 333
+    },
+    "apiChainDepth": 2,
+    "apiChain": [
+     "/api/auth/me",
+     "/api/feedback/badge"
+    ],
+    "firstApiStartMs": 31,
+    "docEndMs": 5,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 31,
+      "end": 139,
+      "status": 200
+     },
+     {
+      "path": "/api/feedback/badge",
+      "start": 148,
+      "end": 257,
+      "status": 200
+     },
+     {
+      "path": "/api/auth/config",
+      "start": 148,
+      "end": 258,
+      "status": 200
+     }
+    ],
+    "d1": [],
+    "swCacheEntriesBefore": 22
+   }
+  },
+  {
+   "key": "account-field",
+   "label": "Tôi/Việc của tôi (HDV)",
+   "path": "/account",
+   "viewport": "375×812",
+   "round": 0,
+   "cold": {
+    "phase": "lạnh",
+    "fcp": 304,
+    "dcl": 338,
+    "load": 449,
+    "readyAt": 602,
+    "longTasks": 0,
+    "longTaskMs": 0,
+    "tbt": 0,
+    "cls": 0,
+    "shifts": [],
+    "mutations": 96,
+    "domNodes": 207,
+    "swControlled": true,
+    "wallMs": 2267,
+    "requests": {
+     "total": 15,
+     "api": 4,
+     "static": 11,
+     "staticFromSW": 0,
+     "staticFromDisk": 0,
+     "serverSawRequests": 38
+    },
+    "bytes": {
+     "transfer": 129310,
+     "decoded": 227342,
+     "jsDecoded": 40490,
+     "cssDecoded": 90006,
+     "fontDecoded": 70672,
+     "htmlDecoded": 2652,
+     "apiDecoded": 3669
+    },
+    "apiChainDepth": 2,
+    "apiChain": [
+     "/api/auth/me",
+     "/api/feedback/badge"
+    ],
+    "firstApiStartMs": 336,
+    "docEndMs": 106,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 336,
+      "end": 446,
+      "status": 200
+     },
+     {
+      "path": "/api/feedback/badge",
+      "start": 463,
+      "end": 571,
+      "status": 200
+     },
+     {
+      "path": "/api/auth/config",
+      "start": 464,
+      "end": 571,
+      "status": 200
+     },
+     {
+      "path": "/api/dispatch/mine",
+      "start": 465,
+      "end": 571,
+      "status": 200
+     }
+    ],
+    "d1": []
+   },
+   "warm": {
+    "phase": "ấm",
+    "fcp": 76,
+    "dcl": 40,
+    "load": 67,
+    "readyAt": 282,
+    "longTasks": 0,
+    "longTaskMs": 0,
+    "tbt": 0,
+    "cls": 0,
+    "shifts": [],
+    "mutations": 96,
+    "domNodes": 207,
+    "swControlled": true,
+    "wallMs": 1948,
+    "requests": {
+     "total": 14,
+     "api": 4,
+     "static": 10,
+     "staticFromSW": 10,
+     "staticFromDisk": 10,
+     "serverSawRequests": 15
+    },
+    "bytes": {
+     "transfer": 1739,
+     "decoded": 219474,
+     "jsDecoded": 40490,
+     "cssDecoded": 90006,
+     "fontDecoded": 70672,
+     "htmlDecoded": 2652,
+     "apiDecoded": 3669
+    },
+    "apiChainDepth": 2,
+    "apiChain": [
+     "/api/auth/me",
+     "/api/feedback/badge"
+    ],
+    "firstApiStartMs": 38,
+    "docEndMs": 10,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 38,
+      "end": 148,
+      "status": 200
+     },
+     {
+      "path": "/api/feedback/badge",
+      "start": 156,
+      "end": 260,
+      "status": 200
+     },
+     {
+      "path": "/api/auth/config",
+      "start": 157,
+      "end": 261,
+      "status": 200
+     },
+     {
+      "path": "/api/dispatch/mine",
+      "start": 157,
+      "end": 261,
+      "status": 200
+     }
+    ],
+    "d1": [],
+    "swCacheEntriesBefore": 22
+   }
+  },
+  {
+   "key": "staff",
+   "label": "Nhân viên",
+   "path": "/staff",
+   "viewport": "375×812",
+   "round": 0,
+   "cold": {
+    "phase": "lạnh",
+    "fcp": 296,
+    "dcl": 335,
+    "load": 445,
+    "readyAt": 587,
+    "longTasks": 0,
+    "longTaskMs": 0,
+    "tbt": 0,
+    "cls": 0,
+    "shifts": [],
+    "mutations": 119,
+    "domNodes": 352,
+    "swControlled": true,
+    "wallMs": 2265,
+    "requests": {
+     "total": 13,
+     "api": 2,
+     "static": 11,
+     "staticFromSW": 0,
+     "staticFromDisk": 0,
+     "serverSawRequests": 36
+    },
+    "bytes": {
+     "transfer": 128755,
+     "decoded": 227046,
+     "jsDecoded": 42563,
+     "cssDecoded": 90006,
+     "fontDecoded": 70672,
+     "htmlDecoded": 2249,
+     "apiDecoded": 1703
+    },
+    "apiChainDepth": 2,
+    "apiChain": [
+     "/api/auth/me",
+     "/api/staff"
+    ],
+    "firstApiStartMs": 334,
+    "docEndMs": 108,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 334,
+      "end": 441,
+      "status": 200
+     },
+     {
+      "path": "/api/staff",
+      "start": 468,
+      "end": 572,
+      "status": 200
+     }
+    ],
+    "d1": []
+   },
+   "warm": {
+    "phase": "ấm",
+    "fcp": 60,
+    "dcl": 72,
+    "load": 80,
+    "readyAt": 313,
+    "longTasks": 0,
+    "longTaskMs": 0,
+    "tbt": 0,
+    "cls": 0,
+    "shifts": [],
+    "mutations": 119,
+    "domNodes": 352,
+    "swControlled": true,
+    "wallMs": 1956,
+    "requests": {
+     "total": 12,
+     "api": 2,
+     "static": 10,
+     "staticFromSW": 10,
+     "staticFromDisk": 8,
+     "serverSawRequests": 13
+    },
+    "bytes": {
+     "transfer": 1133,
+     "decoded": 219178,
+     "jsDecoded": 42563,
+     "cssDecoded": 90006,
+     "fontDecoded": 70672,
+     "htmlDecoded": 2249,
+     "apiDecoded": 1703
+    },
+    "apiChainDepth": 2,
+    "apiChain": [
+     "/api/auth/me",
+     "/api/staff"
+    ],
+    "firstApiStartMs": 70,
+    "docEndMs": 13,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 70,
+      "end": 178,
+      "status": 200
+     },
+     {
+      "path": "/api/staff",
+      "start": 190,
+      "end": 299,
+      "status": 200
+     }
+    ],
+    "d1": [],
+    "swCacheEntriesBefore": 22
+   }
+  },
+  {
+   "key": "catalog",
+   "label": "Danh mục",
+   "path": "/catalog",
+   "viewport": "375×812",
+   "round": 0,
+   "cold": {
+    "phase": "lạnh",
+    "fcp": 296,
+    "dcl": 331,
+    "load": 445,
+    "readyAt": 597,
+    "longTasks": 0,
+    "longTaskMs": 0,
+    "tbt": 0,
+    "cls": 0,
+    "shifts": [],
+    "mutations": 118,
+    "domNodes": 247,
+    "swControlled": true,
+    "wallMs": 2261,
+    "requests": {
+     "total": 13,
+     "api": 2,
+     "static": 11,
+     "staticFromSW": 0,
+     "staticFromDisk": 0,
+     "serverSawRequests": 36
+    },
+    "bytes": {
+     "transfer": 126389,
+     "decoded": 218136,
+     "jsDecoded": 33556,
+     "cssDecoded": 90006,
+     "fontDecoded": 70672,
+     "htmlDecoded": 2420,
+     "apiDecoded": 1629
+    },
+    "apiChainDepth": 2,
+    "apiChain": [
+     "/api/auth/me",
+     "/api/catalog/admin"
+    ],
+    "firstApiStartMs": 330,
+    "docEndMs": 108,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 330,
+      "end": 442,
+      "status": 200
+     },
+     {
+      "path": "/api/catalog/admin",
+      "start": 460,
+      "end": 564,
+      "status": 200
+     }
+    ],
+    "d1": []
+   },
+   "warm": {
+    "phase": "ấm",
+    "fcp": 68,
+    "dcl": 37,
+    "load": 65,
+    "readyAt": 278,
+    "longTasks": 0,
+    "longTaskMs": 0,
+    "tbt": 0,
+    "cls": 0,
+    "shifts": [],
+    "mutations": 118,
+    "domNodes": 247,
+    "swControlled": true,
+    "wallMs": 1942,
+    "requests": {
+     "total": 12,
+     "api": 2,
+     "static": 10,
+     "staticFromSW": 10,
+     "staticFromDisk": 8,
+     "serverSawRequests": 13
+    },
+    "bytes": {
+     "transfer": 981,
+     "decoded": 210268,
+     "jsDecoded": 33556,
+     "cssDecoded": 90006,
+     "fontDecoded": 70672,
+     "htmlDecoded": 2420,
+     "apiDecoded": 1629
+    },
+    "apiChainDepth": 2,
+    "apiChain": [
+     "/api/auth/me",
+     "/api/catalog/admin"
+    ],
+    "firstApiStartMs": 36,
+    "docEndMs": 10,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 36,
+      "end": 147,
+      "status": 200
+     },
+     {
+      "path": "/api/catalog/admin",
+      "start": 158,
+      "end": 262,
+      "status": 200
+     }
+    ],
+    "d1": [],
+    "swCacheEntriesBefore": 22
+   }
+  },
+  {
+   "key": "parties",
+   "label": "Hồ sơ",
+   "path": "/parties",
+   "viewport": "375×812",
+   "round": 0,
+   "cold": {
+    "phase": "lạnh",
+    "fcp": 312,
+    "dcl": 345,
+    "load": 459,
+    "readyAt": 710,
+    "longTasks": 1,
+    "longTaskMs": 50,
+    "tbt": 0,
+    "cls": 0,
+    "shifts": [],
+    "mutations": 164,
+    "domNodes": 285,
+    "swControlled": true,
+    "wallMs": 2285,
+    "requests": {
+     "total": 15,
+     "api": 4,
+     "static": 11,
+     "staticFromSW": 0,
+     "staticFromDisk": 0,
+     "serverSawRequests": 38
+    },
+    "bytes": {
+     "transfer": 128736,
+     "decoded": 223534,
+     "jsDecoded": 35713,
+     "cssDecoded": 90006,
+     "fontDecoded": 70672,
+     "htmlDecoded": 2647,
+     "apiDecoded": 4643
+    },
+    "apiChainDepth": 3,
+    "apiChain": [
+     "/api/auth/me",
+     "/api/parties/meta",
+     "/api/parties?…"
+    ],
+    "firstApiStartMs": 344,
+    "docEndMs": 111,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 344,
+      "end": 455,
+      "status": 200
+     },
+     {
+      "path": "/api/parties/meta",
+      "start": 479,
+      "end": 582,
+      "status": 200
+     },
+     {
+      "path": "/api/locations",
+      "start": 480,
+      "end": 582,
+      "status": 200
+     },
+     {
+      "path": "/api/parties?…",
+      "start": 587,
+      "end": 690,
+      "status": 200
+     }
+    ],
+    "d1": []
+   },
+   "warm": {
+    "phase": "ấm",
+    "fcp": 60,
+    "dcl": 67,
+    "load": 73,
+    "readyAt": 424,
+    "longTasks": 0,
+    "longTaskMs": 0,
+    "tbt": 0,
+    "cls": 0,
+    "shifts": [],
+    "mutations": 164,
+    "domNodes": 285,
+    "swControlled": true,
+    "wallMs": 1947,
+    "requests": {
+     "total": 14,
+     "api": 4,
+     "static": 10,
+     "staticFromSW": 10,
+     "staticFromDisk": 8,
+     "serverSawRequests": 15
+    },
+    "bytes": {
+     "transfer": 2405,
+     "decoded": 215666,
+     "jsDecoded": 35713,
+     "cssDecoded": 90006,
+     "fontDecoded": 70672,
+     "htmlDecoded": 2647,
+     "apiDecoded": 4643
+    },
+    "apiChainDepth": 3,
+    "apiChain": [
+     "/api/auth/me",
+     "/api/parties/meta",
+     "/api/parties?…"
+    ],
+    "firstApiStartMs": 65,
+    "docEndMs": 10,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 65,
+      "end": 175,
+      "status": 200
+     },
+     {
+      "path": "/api/parties/meta",
+      "start": 187,
+      "end": 294,
+      "status": 200
+     },
+     {
+      "path": "/api/locations",
+      "start": 187,
+      "end": 294,
+      "status": 200
+     },
+     {
+      "path": "/api/parties?…",
+      "start": 297,
+      "end": 407,
+      "status": 200
+     }
+    ],
+    "d1": [],
+    "swCacheEntriesBefore": 22
+   }
+  },
+  {
+   "key": "audit",
+   "label": "Nhật ký",
+   "path": "/audit",
+   "viewport": "375×812",
+   "round": 0,
+   "cold": {
+    "phase": "lạnh",
+    "fcp": 304,
+    "dcl": 344,
+    "load": 454,
+    "readyAt": 639,
+    "longTasks": 1,
+    "longTaskMs": 57,
+    "tbt": 7,
+    "cls": 0,
+    "shifts": [],
+    "mutations": 196,
+    "domNodes": 985,
+    "swControlled": true,
+    "wallMs": 2281,
+    "requests": {
+     "total": 13,
+     "api": 2,
+     "static": 11,
+     "staticFromSW": 0,
+     "staticFromDisk": 0,
+     "serverSawRequests": 36
+    },
+    "bytes": {
+     "transfer": 127423,
+     "decoded": 230494,
+     "jsDecoded": 30574,
+     "cssDecoded": 90006,
+     "fontDecoded": 70672,
+     "htmlDecoded": 1841,
+     "apiDecoded": 17548
+    },
+    "apiChainDepth": 2,
+    "apiChain": [
+     "/api/auth/me",
+     "/api/audit?…"
+    ],
+    "firstApiStartMs": 341,
+    "docEndMs": 110,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 341,
+      "end": 451,
+      "status": 200
+     },
+     {
+      "path": "/api/audit?…",
+      "start": 470,
+      "end": 576,
+      "status": 200
+     }
+    ],
+    "d1": []
+   },
+   "warm": {
+    "phase": "ấm",
+    "fcp": 48,
+    "dcl": 52,
+    "load": 72,
+    "readyAt": 333,
+    "longTasks": 0,
+    "longTaskMs": 0,
+    "tbt": 0,
+    "cls": 0,
+    "shifts": [],
+    "mutations": 196,
+    "domNodes": 985,
+    "swControlled": true,
+    "wallMs": 1954,
+    "requests": {
+     "total": 12,
+     "api": 2,
+     "static": 10,
+     "staticFromSW": 10,
+     "staticFromDisk": 8,
+     "serverSawRequests": 13
+    },
+    "bytes": {
+     "transfer": 3279,
+     "decoded": 222626,
+     "jsDecoded": 30574,
+     "cssDecoded": 90006,
+     "fontDecoded": 70672,
+     "htmlDecoded": 1841,
+     "apiDecoded": 17548
+    },
+    "apiChainDepth": 2,
+    "apiChain": [
+     "/api/auth/me",
+     "/api/audit?…"
+    ],
+    "firstApiStartMs": 50,
+    "docEndMs": 8,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 50,
+      "end": 155,
+      "status": 200
+     },
+     {
+      "path": "/api/audit?…",
+      "start": 164,
+      "end": 273,
+      "status": 200
+     }
+    ],
+    "d1": [],
+    "swCacheEntriesBefore": 22
+   }
+  },
+  {
+   "key": "feedback",
+   "label": "Góp ý",
+   "path": "/feedback",
+   "viewport": "375×812",
+   "round": 0,
+   "cold": {
+    "phase": "lạnh",
+    "fcp": 284,
+    "dcl": 326,
+    "load": 435,
+    "readyAt": 575,
+    "longTasks": 1,
+    "longTaskMs": 50,
+    "tbt": 0,
+    "cls": 0,
+    "shifts": [],
+    "mutations": 97,
+    "domNodes": 144,
+    "swControlled": true,
+    "wallMs": 2260,
+    "requests": {
+     "total": 13,
+     "api": 2,
+     "static": 11,
+     "staticFromSW": 0,
+     "staticFromDisk": 0,
+     "serverSawRequests": 36
+    },
+    "bytes": {
+     "transfer": 125222,
+     "decoded": 213216,
+     "jsDecoded": 30445,
+     "cssDecoded": 90006,
+     "fontDecoded": 70672,
+     "htmlDecoded": 2011,
+     "apiDecoded": 229
+    },
+    "apiChainDepth": 2,
+    "apiChain": [
+     "/api/auth/me",
+     "/api/feedback/mine"
+    ],
+    "firstApiStartMs": 324,
+    "docEndMs": 111,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 324,
+      "end": 432,
+      "status": 200
+     },
+     {
+      "path": "/api/feedback/mine",
+      "start": 451,
+      "end": 552,
+      "status": 200
+     }
+    ],
+    "d1": []
+   },
+   "warm": {
+    "phase": "ấm",
+    "fcp": 68,
+    "dcl": 40,
+    "load": 62,
+    "readyAt": 275,
+    "longTasks": 0,
+    "longTaskMs": 0,
+    "tbt": 0,
+    "cls": 0,
+    "shifts": [],
+    "mutations": 97,
+    "domNodes": 144,
+    "swControlled": true,
+    "wallMs": 1954,
+    "requests": {
+     "total": 12,
+     "api": 2,
+     "static": 10,
+     "staticFromSW": 10,
+     "staticFromDisk": 8,
+     "serverSawRequests": 13
+    },
+    "bytes": {
+     "transfer": 558,
+     "decoded": 205348,
+     "jsDecoded": 30445,
+     "cssDecoded": 90006,
+     "fontDecoded": 70672,
+     "htmlDecoded": 2011,
+     "apiDecoded": 229
+    },
+    "apiChainDepth": 2,
+    "apiChain": [
+     "/api/auth/me",
+     "/api/feedback/mine"
+    ],
+    "firstApiStartMs": 39,
+    "docEndMs": 11,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 39,
+      "end": 148,
+      "status": 200
+     },
+     {
+      "path": "/api/feedback/mine",
+      "start": 159,
+      "end": 268,
+      "status": 200
+     }
+    ],
+    "d1": [],
+    "swCacheEntriesBefore": 22
+   }
+  },
+  {
+   "key": "help",
+   "label": "Trợ giúp",
+   "path": "/help",
+   "viewport": "375×812",
+   "round": 0,
+   "cold": {
+    "phase": "lạnh",
+    "fcp": 296,
+    "dcl": 337,
+    "load": 447,
+    "readyAt": 459,
+    "longTasks": 0,
+    "longTaskMs": 0,
+    "tbt": 0,
+    "cls": 0,
+    "shifts": [],
+    "mutations": 75,
+    "domNodes": 210,
+    "swControlled": true,
+    "wallMs": 2314,
+    "requests": {
+     "total": 12,
+     "api": 1,
+     "static": 11,
+     "staticFromSW": 0,
+     "staticFromDisk": 0,
+     "serverSawRequests": 35
+    },
+    "bytes": {
+     "transfer": 123196,
+     "decoded": 207820,
+     "jsDecoded": 25636,
+     "cssDecoded": 90006,
+     "fontDecoded": 70672,
+     "htmlDecoded": 1438,
+     "apiDecoded": 215
+    },
+    "apiChainDepth": 1,
+    "apiChain": [
+     "/api/auth/me"
+    ],
+    "firstApiStartMs": 335,
+    "docEndMs": 107,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 335,
+      "end": 444,
+      "status": 200
+     }
+    ],
+    "d1": []
+   },
+   "warm": {
+    "phase": "ấm",
+    "fcp": 48,
+    "dcl": 48,
+    "load": 82,
+    "readyAt": 173,
+    "longTasks": 0,
+    "longTaskMs": 0,
+    "tbt": 0,
+    "cls": 0,
+    "shifts": [],
+    "mutations": 75,
+    "domNodes": 209,
+    "swControlled": true,
+    "wallMs": 1741,
+    "requests": {
+     "total": 11,
+     "api": 1,
+     "static": 10,
+     "staticFromSW": 10,
+     "staticFromDisk": 8,
+     "serverSawRequests": 11
+    },
+    "bytes": {
+     "transfer": 365,
+     "decoded": 199952,
+     "jsDecoded": 25636,
+     "cssDecoded": 90006,
+     "fontDecoded": 70672,
+     "htmlDecoded": 1438,
+     "apiDecoded": 215
+    },
+    "apiChainDepth": 1,
+    "apiChain": [
+     "/api/auth/me"
+    ],
+    "firstApiStartMs": 46,
+    "docEndMs": 9,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 46,
+      "end": 149,
+      "status": 200
+     }
+    ],
+    "d1": [],
+    "swCacheEntriesBefore": 22
+   }
+  },
+  {
+   "key": "locations",
+   "label": "Địa điểm",
+   "path": "/locations",
+   "viewport": "375×812",
+   "round": 0,
+   "cold": {
+    "phase": "lạnh",
+    "fcp": 296,
+    "dcl": 336,
+    "load": 449,
+    "readyAt": 591,
+    "longTasks": 1,
+    "longTaskMs": 51,
+    "tbt": 1,
+    "cls": 0,
+    "shifts": [],
+    "mutations": 126,
+    "domNodes": 294,
+    "swControlled": true,
+    "wallMs": 2271,
+    "requests": {
+     "total": 13,
+     "api": 2,
+     "static": 11,
+     "staticFromSW": 0,
+     "staticFromDisk": 0,
+     "serverSawRequests": 36
+    },
+    "bytes": {
+     "transfer": 125142,
+     "decoded": 213510,
+     "jsDecoded": 28434,
+     "cssDecoded": 90006,
+     "fontDecoded": 70672,
+     "htmlDecoded": 2208,
+     "apiDecoded": 2337
+    },
+    "apiChainDepth": 2,
+    "apiChain": [
+     "/api/auth/me",
+     "/api/locations"
+    ],
+    "firstApiStartMs": 335,
+    "docEndMs": 109,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 335,
+      "end": 446,
+      "status": 200
+     },
+     {
+      "path": "/api/locations",
+      "start": 465,
+      "end": 567,
+      "status": 200
+     }
+    ],
+    "d1": []
+   },
+   "warm": {
+    "phase": "ấm",
+    "fcp": 68,
+    "dcl": 37,
+    "load": 59,
+    "readyAt": 274,
+    "longTasks": 0,
+    "longTaskMs": 0,
+    "tbt": 0,
+    "cls": 0,
+    "shifts": [],
+    "mutations": 126,
+    "domNodes": 294,
+    "swControlled": true,
+    "wallMs": 1950,
+    "requests": {
+     "total": 12,
+     "api": 2,
+     "static": 10,
+     "staticFromSW": 10,
+     "staticFromDisk": 8,
+     "serverSawRequests": 13
+    },
+    "bytes": {
+     "transfer": 1191,
+     "decoded": 205642,
+     "jsDecoded": 28434,
+     "cssDecoded": 90006,
+     "fontDecoded": 70672,
+     "htmlDecoded": 2208,
+     "apiDecoded": 2337
+    },
+    "apiChainDepth": 2,
+    "apiChain": [
+     "/api/auth/me",
+     "/api/locations"
+    ],
+    "firstApiStartMs": 36,
+    "docEndMs": 10,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 36,
+      "end": 144,
+      "status": 200
+     },
+     {
+      "path": "/api/locations",
+      "start": 154,
+      "end": 261,
+      "status": 200
+     }
+    ],
+    "d1": [],
+    "swCacheEntriesBefore": 22
+   }
+  },
+  {
+   "key": "home-admin-desktop",
+   "label": "Trang chủ Admin (máy tính 1280×800, có thanh bên + huy hiệu)",
+   "path": "/",
+   "viewport": "1280×800",
+   "round": 0,
+   "cold": {
+    "phase": "lạnh",
+    "fcp": 340,
+    "dcl": 305,
+    "load": 416,
+    "readyAt": 709,
+    "longTasks": 0,
+    "longTaskMs": 0,
+    "tbt": 0,
+    "cls": 0.0697,
+    "shifts": [
+     {
+      "t": 317,
+      "v": 0.0063,
+      "src": [
+       "MAIN"
+      ]
+     },
+     {
+      "t": 479,
+      "v": 0.0633,
+      "src": [
+       "MAIN",
+       "#topbar"
+      ]
+     },
+     {
+      "t": 600,
+      "v": 0.0001,
+      "src": [
+       "INPUT.topbar-search",
+       "A.btn",
+       "BUTTON.sidebar-logout"
+      ]
+     }
+    ],
+    "mutations": 134,
+    "domNodes": 475,
+    "swControlled": true,
+    "wallMs": 2250,
+    "requests": {
+     "total": 20,
+     "api": 7,
+     "static": 13,
+     "staticFromSW": 1,
+     "staticFromDisk": 1,
+     "serverSawRequests": 43
+    },
+    "bytes": {
+     "transfer": 109137,
+     "decoded": 248613,
+     "jsDecoded": 32576,
+     "cssDecoded": 90006,
+     "fontDecoded": 89196,
+     "htmlDecoded": 2853,
+     "apiDecoded": 14129
+    },
+    "apiChainDepth": 2,
+    "apiChain": [
+     "/api/auth/me",
+     "/api/orders/dashboard"
+    ],
+    "firstApiStartMs": 304,
+    "docEndMs": 108,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 304,
+      "end": 411,
+      "status": 200
+     },
+     {
+      "path": "/api/orders/dashboard",
+      "start": 458,
+      "end": 567,
+      "status": 200
+     },
+     {
+      "path": "/api/catalog/admin",
+      "start": 458,
+      "end": 566,
+      "status": 200
+     },
+     {
+      "path": "/api/feedback/badge",
+      "start": 459,
+      "end": 567,
+      "status": 200
+     },
+     {
+      "path": "/api/orders/dashboard",
+      "start": 468,
+      "end": 669,
+      "status": 200
+     },
+     {
+      "path": "/api/catalog/admin",
+      "start": 469,
+      "end": 673,
+      "status": 200
+     },
+     {
+      "path": "/api/feedback",
+      "start": 469,
+      "end": 571,
+      "status": 200
+     }
+    ],
+    "d1": []
+   },
+   "warm": {
+    "phase": "ấm",
+    "fcp": 64,
+    "dcl": 41,
+    "load": 46,
+    "readyAt": 419,
+    "longTasks": 0,
+    "longTaskMs": 0,
+    "tbt": 0,
+    "cls": 0.0696,
+    "shifts": [
+     {
+      "t": 52,
+      "v": 0.0063,
+      "src": [
+       "MAIN"
+      ]
+     },
+     {
+      "t": 193,
+      "v": 0.0633,
+      "src": [
+       "MAIN",
+       "#topbar"
+      ]
+     }
+    ],
+    "mutations": 134,
+    "domNodes": 475,
+    "swControlled": true,
+    "wallMs": 1950,
+    "requests": {
+     "total": 20,
+     "api": 7,
+     "static": 13,
+     "staticFromSW": 13,
+     "staticFromDisk": 13,
+     "serverSawRequests": 20
+    },
+    "bytes": {
+     "transfer": 4041,
+     "decoded": 273321,
+     "jsDecoded": 65152,
+     "cssDecoded": 90006,
+     "fontDecoded": 89196,
+     "htmlDecoded": 2853,
+     "apiDecoded": 14129
+    },
+    "apiChainDepth": 2,
+    "apiChain": [
+     "/api/auth/me",
+     "/api/orders/dashboard"
+    ],
+    "firstApiStartMs": 40,
+    "docEndMs": 4,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 40,
+      "end": 148,
+      "status": 200
+     },
+     {
+      "path": "/api/orders/dashboard",
+      "start": 171,
+      "end": 274,
+      "status": 200
+     },
+     {
+      "path": "/api/catalog/admin",
+      "start": 172,
+      "end": 274,
+      "status": 200
+     },
+     {
+      "path": "/api/feedback/badge",
+      "start": 172,
+      "end": 274,
+      "status": 200
+     },
+     {
+      "path": "/api/orders/dashboard",
+      "start": 175,
+      "end": 382,
+      "status": 200
+     },
+     {
+      "path": "/api/catalog/admin",
+      "start": 175,
+      "end": 382,
+      "status": 200
+     },
+     {
+      "path": "/api/feedback",
+      "start": 175,
+      "end": 277,
+      "status": 200
+     }
+    ],
+    "d1": [],
+    "swCacheEntriesBefore": 22
+   }
+  },
+  {
+   "key": "orders-admin-desktop",
+   "label": "Đơn hàng Admin (máy tính 1280×800)",
+   "path": "/orders",
+   "viewport": "1280×800",
+   "round": 0,
+   "cold": {
+    "phase": "lạnh",
+    "fcp": 276,
+    "dcl": 315,
+    "load": 429,
+    "readyAt": 605,
+    "longTasks": 1,
+    "longTaskMs": 50,
+    "tbt": 0,
+    "cls": 0.0921,
+    "shifts": [
+     {
+      "t": 329,
+      "v": 0.0093,
+      "src": [
+       "MAIN"
+      ]
+     },
+     {
+      "t": 478,
+      "v": 0.0828,
+      "src": [
+       "MAIN",
+       "#topbar"
+      ]
+     }
+    ],
+    "mutations": 170,
+    "domNodes": 1102,
+    "swControlled": true,
+    "wallMs": 2257,
+    "requests": {
+     "total": 17,
+     "api": 6,
+     "static": 11,
+     "staticFromSW": 0,
+     "staticFromDisk": 0,
+     "serverSawRequests": 40
+    },
+    "bytes": {
+     "transfer": 121638,
+     "decoded": 239586,
+     "jsDecoded": 30155,
+     "cssDecoded": 90006,
+     "fontDecoded": 70672,
+     "htmlDecoded": 1729,
+     "apiDecoded": 27171
+    },
+    "apiChainDepth": 3,
+    "apiChain": [
+     "/api/auth/me",
+     "/api/orders/dashboard",
+     "/api/dispatch/handlers?…"
+    ],
+    "firstApiStartMs": 314,
+    "docEndMs": 110,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 314,
+      "end": 425,
+      "status": 200
+     },
+     {
+      "path": "/api/orders/dashboard",
+      "start": 467,
+      "end": 576,
+      "status": 200
+     },
+     {
+      "path": "/api/catalog/admin",
+      "start": 468,
+      "end": 576,
+      "status": 200
+     },
+     {
+      "path": "/api/feedback/badge",
+      "start": 468,
+      "end": 576,
+      "status": 200
+     },
+     {
+      "path": "/api/orders?…",
+      "start": 471,
+      "end": 576,
+      "status": 200
+     },
+     {
+      "path": "/api/dispatch/handlers?…",
+      "start": 603,
+      "end": 711,
+      "status": 200
+     }
+    ],
+    "d1": []
+   },
+   "warm": {
+    "phase": "ấm",
+    "fcp": 52,
+    "dcl": 56,
+    "load": 66,
+    "readyAt": 330,
+    "longTasks": 0,
+    "longTaskMs": 0,
+    "tbt": 0,
+    "cls": 0.0921,
+    "shifts": [
+     {
+      "t": 64,
+      "v": 0.0093,
+      "src": [
+       "MAIN"
+      ]
+     },
+     {
+      "t": 191,
+      "v": 0.0828,
+      "src": [
+       "MAIN",
+       "#topbar"
+      ]
+     }
+    ],
+    "mutations": 170,
+    "domNodes": 1102,
+    "swControlled": true,
+    "wallMs": 1945,
+    "requests": {
+     "total": 17,
+     "api": 6,
+     "static": 11,
+     "staticFromSW": 11,
+     "staticFromDisk": 11,
+     "serverSawRequests": 17
+    },
+    "bytes": {
+     "transfer": 4916,
+     "decoded": 261873,
+     "jsDecoded": 60310,
+     "cssDecoded": 90006,
+     "fontDecoded": 70672,
+     "htmlDecoded": 1729,
+     "apiDecoded": 27171
+    },
+    "apiChainDepth": 3,
+    "apiChain": [
+     "/api/auth/me",
+     "/api/orders/dashboard",
+     "/api/dispatch/handlers?…"
+    ],
+    "firstApiStartMs": 54,
+    "docEndMs": 5,
+    "apiTimeline": [
+     {
+      "path": "/api/auth/me",
+      "start": 54,
+      "end": 157,
+      "status": 200
+     },
+     {
+      "path": "/api/orders/dashboard",
+      "start": 183,
+      "end": 285,
+      "status": 200
+     },
+     {
+      "path": "/api/catalog/admin",
+      "start": 184,
+      "end": 285,
+      "status": 200
+     },
+     {
+      "path": "/api/feedback/badge",
+      "start": 184,
+      "end": 286,
+      "status": 200
+     },
+     {
+      "path": "/api/orders?…",
+      "start": 186,
+      "end": 287,
+      "status": 200
+     },
+     {
+      "path": "/api/dispatch/handlers?…",
+      "start": 302,
+      "end": 413,
+      "status": 200
+     }
+    ],
+    "d1": [],
+    "swCacheEntriesBefore": 22
+   }
+  }
+ ],
+ "api": [],
+ "uptimeEnd": "0:30  up 5 days, 18:11, 3 users, load averages: 2.89 3.02 3.22",
+ "note": "Thời gian (ms) đo khi máy BẬN nếu uptime cho tải > 2 — chỉ dùng số tất định. bytes.* đo trên wrangler dev cục bộ (không nén br/gzip như Cloudflare thật)."
+}

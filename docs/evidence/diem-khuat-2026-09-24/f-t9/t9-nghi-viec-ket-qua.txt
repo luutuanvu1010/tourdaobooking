@@ -1,0 +1,17 @@
+SALES_STAFF 1 tạo tài khoản: {"status":201,"roles":["SALES_STAFF"]}
+SALES_STAFF 2 bước 1 nghỉ việc: ngưng tài khoản: {"status":200,"active":false}
+SALES_STAFF 3 bước 2 nghỉ việc: kết thúc vai ở màn Hồ sơ: {"status":409}
+SALES_STAFF 4 thử bỏ hết vai ở màn Nhân viên: {"status":400}
+SALES_STAFF 5 vai còn mở sau 'nghỉ việc' (SQL chỉ đọc): [{"role_type_code":"SALES_STAFF","valid_from_date":"2026-09-24","valid_to_date":null,"tai_khoan_active":0}]
+ACCOUNTANT 1 tạo tài khoản: {"status":201,"roles":["ACCOUNTANT"]}
+ACCOUNTANT 2 bước 1 nghỉ việc: ngưng tài khoản: {"status":200,"active":false}
+ACCOUNTANT 3 bước 2 nghỉ việc: kết thúc vai ở màn Hồ sơ: {"status":409}
+ACCOUNTANT 4 thử bỏ hết vai ở màn Nhân viên: {"status":400}
+ACCOUNTANT 5 vai còn mở sau 'nghỉ việc' (SQL chỉ đọc): [{"role_type_code":"ACCOUNTANT","valid_from_date":"2026-09-24","valid_to_date":null,"tai_khoan_active":0}]
+GUIDE_INTERNAL 1 tạo tài khoản: {"status":201,"roles":["GUIDE_INTERNAL"]}
+GUIDE_INTERNAL 2 bước 1 nghỉ việc: ngưng tài khoản: {"status":200,"active":false}
+GUIDE_INTERNAL 3 bước 2 nghỉ việc: kết thúc vai ở màn Hồ sơ: {"status":409}
+GUIDE_INTERNAL 4 thử bỏ hết vai ở màn Nhân viên: {"status":400}
+GUIDE_INTERNAL 5 vai còn mở sau 'nghỉ việc' (SQL chỉ đọc): [{"role_type_code":"GUIDE_INTERNAL","valid_from_date":"2026-09-24","valid_to_date":null,"tai_khoan_active":0}]
+6 GET /api/parties?role=SALES_STAFF (danh sách 'đang giữ vai hôm nay'): [{"ten":"Nghỉ Việc SALES_STAFF","active":true,"roleCodes":["SALES_STAFF"]}]
+7 view v_pty_open_role_group (LC-1/LC-3 và LC-2 GĐ2 đọc): [{"role_group":"INTERNAL","display_name":"Nghỉ Việc ACCOUNTANT"},{"role_group":"INTERNAL","display_name":"Nghỉ Việc GUIDE_INTERNAL"},{"role_group":"INTERNAL","display_name":"Nghỉ Việc SALES_STAFF"}]
