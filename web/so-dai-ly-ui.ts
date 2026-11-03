@@ -1,5 +1,6 @@
 // Khối dùng chung của hai màn sổ đại lý (web/hoa-hong.ts, web/nguoi-ban.ts; đặc tả sổ đại lý đợt 1, Task 10): danh mục để chọn dịch vụ / nhóm, chọn phạm vi, ô tìm đối tác,
 // hộp đóng dòng, dòng báo lỗi dưới ô. Chỉ dựng DOM và gọi API; luật đọc ô ở src/shared/so-dai-ly-nhap.ts, chữ ở src/shared/hoa-hong-hien-thi.ts. Máy chủ kiểm lại mọi thứ.
+import type { GiaBanLe } from "../src/shared/gioi-han-nhap-muc";
 import { CAU_CHUA_TIM_DUOC_DOI_TAC, type TenDanhMuc } from "../src/shared/hoa-hong-hien-thi";
 import { docNgayDong, ngayDongMacDinh, type LoiO, type PhamViForm, type TruongLoi } from "../src/shared/so-dai-ly-nhap";
 import { ApiError, api, type Api } from "./api";
@@ -47,13 +48,15 @@ export function taoTheoLoai(idTienTo: string): TheoLoaiForm {
 /** Enter trong ô tìm không được gửi cả form (khuôn «Enter trong ô tìm danh mục bị chặn», web/CLAUDE.md). */
 const chanEnter = (o: HTMLInputElement): void => o.addEventListener("keydown", (e) => { if (e.key === "Enter") e.preventDefault(); });
 
-const chuanTim = (s: string): string => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/gi, "d").toLowerCase().trim();
+/** Chuẩn hoá để tìm không phân biệt dấu và hoa thường (dùng chung với bộ lọc của bảng nhập hoa hồng). */
+export const chuanTim = (s: string): string => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/gi, "d").toLowerCase().trim();
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------
 // Danh mục dịch vụ và nhóm
 
 export interface DanhMuc {
-  readonly dichVu: readonly { code: string; name: string; groupCode: string | null }[];
+  /** `unit`, `gia` (ba loại có số tiền hoa hồng; em bé không có) lấy từ `prices` của `GET /api/catalog` — cho cột «Giá bán lẻ» và giá đại lý xem trước của bảng nhập (ADR-0161). */
+  readonly dichVu: readonly { code: string; name: string; groupCode: string | null; unit: string; gia: GiaBanLe }[];
   readonly nhom: readonly { code: string; name: string }[];
   readonly ten: TenDanhMuc;
   /** Câu lỗi khi không tải được danh mục (khi đó ô chọn trống; tên hiện bằng mã). */
@@ -67,7 +70,7 @@ export interface DanhMuc {
 export async function taiDanhMuc(): Promise<DanhMuc> {
   try {
     const r = await api<Api.CatalogPublicResponse>("/api/catalog");
-    const dichVu = r.items.map((i) => ({ code: i.code, name: i.name, groupCode: i.groupCode })).sort((a, b) => a.name.localeCompare(b.name, "vi"));
+    const dichVu = r.items.map((i) => ({ code: i.code, name: i.name, groupCode: i.groupCode, unit: i.unit, gia: { adult: i.prices.adult, child: i.prices.child, senior: i.prices.senior } })).sort((a, b) => a.name.localeCompare(b.name, "vi"));
     const tenDv = new Map(dichVu.map((d) => [d.code, d.name]));
     const tenNhom = new Map(r.groups.map((g) => [g.code, g.name]));
     return { dichVu, nhom: r.groups, ten: { dichVu: (c) => tenDv.get(c), nhom: (c) => tenNhom.get(c) }, loi: null };

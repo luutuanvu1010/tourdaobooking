@@ -39,13 +39,22 @@ export function phuMucLoai(v: { loai: { code: string; dangBat: boolean }; dong: 
 
 export type KetQuaCap = { kieu: "RONG" } | { kieu: "CHUA_AP"; sapApTu: string | null } | { kieu: "THIEU"; thieu: DichVuPhu[] } | { kieu: "DU" } | { kieu: "CHUA_KIEM" };
 
+/**
+ * Dịch vụ chưa được dòng nào của cấp phủ hôm nay (dòng chưa huỷ, đang áp, khớp ĐÚNG luật `khopDichVu`: dịch vụ, nhóm hoặc mọi dịch vụ). Cấp rỗng hay chỉ có dòng sắp áp / đã hết hạn thì
+ * MỌI dịch vụ đều thiếu. Một luật cho hai nơi: `phuMucCap` (câu nhắc của cấp) và bộ lọc «Còn thiếu mức» của bảng nhập (ADR-0161 Task 5) — không viết luật thứ hai.
+ */
+export function dichVuThieuCuaCap(v: { cap: CapPhu; dichVu: readonly DichVuPhu[]; homNay: string }): DichVuPhu[] {
+  const ap = v.cap.dong.filter((d) => !d.daHuy && conApNgay(d, v.homNay));
+  return v.dichVu.filter((s) => !ap.some((d) => khopDichVu(d, s)));
+}
+
 export function phuMucCap(v: { cap: CapPhu; dichVu: readonly DichVuPhu[] | null; homNay: string }): KetQuaCap {
   const dong = v.cap.dong.filter((d) => !d.daHuy);
   if (dong.length === 0) return { kieu: "RONG" };
   const ap = dong.filter((d) => conApNgay(d, v.homNay));
   if (ap.length === 0) return { kieu: "CHUA_AP", sapApTu: sapApSomNhat(dong, v.homNay) };
   if (khongKiem(v.dichVu)) return { kieu: "CHUA_KIEM" };
-  const thieu = v.dichVu.filter((s) => !ap.some((d) => khopDichVu(d, s)));
+  const thieu = dichVuThieuCuaCap({ cap: v.cap, dichVu: v.dichVu, homNay: v.homNay });
   return thieu.length === 0 ? { kieu: "DU" } : { kieu: "THIEU", thieu };
 }
 

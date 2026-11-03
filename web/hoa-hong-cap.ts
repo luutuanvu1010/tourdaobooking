@@ -177,7 +177,7 @@ export function bangDongMuc(tatCa: readonly Api.CommissionRuleDto[], capDangBat:
           "tr",
           { "data-dong-id": r.id },
           h("td", { class: "hh-mc-dv" }, h("strong", null, pv)),
-          h("td", { class: "hh-mc-phu" }, cot.cachTinh),
+          h("td", { class: "hh-mc-phu" }, cot.tinhBang),
           h("td", { "data-so": "" }, h("span", { class: "hh-nhan-dt" }, coTheoLoai ? "Người lớn " : ""), cot.nguoiLon),
           coTheoLoai && h("td", { "data-so": "" }, h("span", { class: "hh-nhan-dt" }, "Trẻ em "), cot.treEm),
           coTheoLoai && h("td", { "data-so": "" }, h("span", { class: "hh-nhan-dt" }, "Người cao tuổi "), cot.nguoiCaoTuoi),
