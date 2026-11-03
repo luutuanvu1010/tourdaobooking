@@ -25,6 +25,8 @@ import {
   daGiao, ghiDieuChinh, ghiHoanKhach, ghiLanThu, ghiQuyetToan, hoanThanh, kySoResponse, soCongNo, soCongNoBen, soCuaToi, tienCuaDon, tienNhieuDon, toReceiptRow, xacNhanBenKia, xacNhanCongTyNhan, type NguoiGoi,
 } from "./service";
 import { ghiThayLanThu } from "./thay-lan-thu";
+import { daoKhoan, danhSachPhanDinh, doiBenChiu, ghiTheoPhanDinh, khoanCuaToi, phanDinh, phanHoi, taoDeNghi } from "./phan-dinh";
+import { phanDinhTheoId } from "./phan-dinh-repo";
 
 const NOT_FOUND = () => error(404, "not_found", "Không tìm thấy đơn.");
 const FORBIDDEN_VIEW = () => error(403, "forbidden", "Tài khoản này không được xem thông tin này.");
@@ -64,6 +66,10 @@ const anGiaVon = (staff: PermissionHolder): boolean => holdsPartner(staff) || !c
 
 /** HÀM CÔNG BỐ (ADR-0068 G10) — CHỈ gốc lắp ráp gọi (ctx.gopHoSo): số dòng công nợ còn hiệu lực của một hồ sơ (dòng ở lại hồ sơ phụ khi gộp). */
 export const soDongNoCuaNguoi = (db: D1Database, partyId: string): Promise<number> => soDongNoCuaNguoiRow(db, partyId);
+
+const FORBIDDEN_PHAN_DINH = () => error(403, "forbidden", "Màn Phân định trách nhiệm chỉ Kế toán, Quản trị và Toàn quyền dùng được.");
+/** Đơn của một dòng phân định (để đọc phần thương mại sau `can(`) — null nếu id lạ; hàm ghi tự trả 404. */
+const donCuaPhieu = async (db: D1Database, id: string): Promise<string | null> => (await phanDinhTheoId(db, id))?.order_id ?? null;
 
 export const billingModule: AppModule = {
   name: "billing",
@@ -479,6 +485,66 @@ export const billingModule: AppModule = {
       return json({ ok: true }, 201, { location: trangDon(kq.value.orderId) });
     }),
 
+    // ---- PHÂN ĐỊNH TRÁCH NHIỆM (ADR-0116; ba nhóm: Kế toán, Quản trị, Toàn quyền). Tài khoản giữ quyền Đối tác (kể cả lai) không vào đường văn phòng. Hàm I/O ở phan-dinh.ts.
+    route("GET", "/api/ledger/phan-dinh", "office", async ({ env, staff }) => {
+      const coO = can(staff, "attribution.request") || can(staff, "attribution.decide") || can(staff, "ledger.write");
+      if (!coO || holdsPartner(staff)) return FORBIDDEN_PHAN_DINH();
+      const ghi = ghiSoNoiBo(staff, "ledger.write");
+      return json(await danhSachPhanDinh(env.DB, { ai: nguoiGoi(staff), quyen: { deNghi: can(staff, "attribution.request"), quyet: can(staff, "attribution.decide"), ghi, hoan: ghi && can(staff, "payment.refund"), xemHet: can(staff, "ledger.view") } }));
+    }),
+    route("POST", "/api/ledger/phan-dinh", "office", async ({ env, request, staff }) => {
+      if (!can(staff, "attribution.request") || holdsPartner(staff)) return FORBIDDEN_PHAN_DINH();
+      const kq = await taoDeNghi(env.DB, { raw: await readJson(request), ai: nguoiGoi(staff) });
+      if (!kq.ok) return kq.res;
+      return json({ id: kq.value.id }, 201, { location: trangDon(kq.value.orderId) });
+    }),
+    route("POST", "/api/ledger/phan-dinh/:id/quyet", "office", async ({ env, request, params, staff }) => {
+      if (!can(staff, "attribution.decide") || holdsPartner(staff)) return FORBIDDEN_PHAN_DINH();
+      const kq = await phanDinh(env.DB, { requestId: params.id!, raw: await readJson(request), ai: nguoiGoi(staff) });
+      if (!kq.ok) return kq.res;
+      return json({ id: kq.value.id }, 201, { location: trangDon(kq.value.orderId) });
+    }),
+    route("POST", "/api/ledger/phan-dinh/:id/doi-ben-chiu", "office", async ({ env, request, params, staff }) => {
+      if (!can(staff, "attribution.decide") || holdsPartner(staff)) return FORBIDDEN_PHAN_DINH();
+      const kq = await doiBenChiu(env.DB, { rootId: params.id!, raw: await readJson(request), ai: nguoiGoi(staff) });
+      if (!kq.ok) return kq.res;
+      return json({ id: kq.value.id }, 201, { location: trangDon(kq.value.orderId) });
+    }),
+    // Ghi sổ: `:id` = dòng phân định. Hàm đọc phần thương mại của `orders` KHÔNG tự kiểm quyền nên chỉ gọi SAU `can(` (src/orders-cong-bo.test.ts) — đơn lấy theo id phiếu trong hàm.
+    route("POST", "/api/ledger/phan-dinh/:id/ghi", "office", async ({ env, request, params, staff, baoThayDoi }) => {
+      if (!can(staff, "ledger.write")) return CANNOT_LEDGER();
+      if (!ghiSoNoiBo(staff, "ledger.write")) return DOI_TAC_KHONG_GHI_SO();
+      const raw = await readJson(request);
+      const orderId = await donCuaPhieu(env.DB, params.id!);
+      const phan = orderId ? await phanThuongMaiCuaDon(env.DB, orderId) : null;
+      const kq = await ghiTheoPhanDinh(env.DB, { rulingId: params.id!, phan, raw, ai: nguoiGoi(staff), quyenHoan: can(staff, "payment.refund") });
+      if (!kq.ok) return kq.res;
+      baoThayDoi({ orderId: kq.value.orderId, thayDoi: "tien" });
+      return json({ ok: true }, 201, { location: trangDon(kq.value.orderId) });
+    }),
+    route("POST", "/api/ledger/phan-dinh/:id/huy", "office", async ({ env, request, params, staff, baoThayDoi }) => {
+      if (!can(staff, "ledger.write")) return CANNOT_LEDGER();
+      if (!ghiSoNoiBo(staff, "ledger.write")) return DOI_TAC_KHONG_GHI_SO();
+      const raw = await readJson(request);
+      const orderId = await donCuaPhieu(env.DB, params.id!);
+      const phan = orderId ? await phanThuongMaiCuaDon(env.DB, orderId) : null;
+      const kq = await daoKhoan(env.DB, { rootId: params.id!, phan, raw, ai: nguoiGoi(staff) });
+      if (!kq.ok) return kq.res;
+      baoThayDoi({ orderId: kq.value.orderId, thayDoi: "tien" });
+      return json({ ok: true }, 201, { location: trangDon(kq.value.orderId) });
+    }),
+    // Bên chịu: CÙNG ô với "Sổ của tôi" (`ledger.view` phạm vi own — đặc tả trang ghép (2), (3)); chỉ khoản của CHÍNH hồ sơ người gọi, không có tham số người. Đối tác, tài xế ô này là none: họ nhận tin, xem qua văn phòng (Tự quyết, mở rộng cần ô mới do chủ duyệt).
+    route("GET", "/api/ledger/phan-dinh-cua-toi", "staff", async ({ env, staff }) => {
+      if (!can(staff, "ledger.view", { ownerId: staff.id })) return FORBIDDEN_VIEW();
+      return json({ khoan: await khoanCuaToi(env.DB, staff.partyId) });
+    }),
+    route("POST", "/api/ledger/phan-dinh-cua-toi/:id/phan-hoi", "staff", async ({ env, request, params, staff }) => {
+      if (!can(staff, "ledger.view", { ownerId: staff.id })) return FORBIDDEN_VIEW();
+      const kq = await phanHoi(env.DB, { rootId: params.id!, raw: await readJson(request), ai: nguoiGoi(staff) });
+      if (!kq.ok) return kq.res;
+      return json({ ok: true }, 201, { location: "/phan-dinh" });
+    }),
+
     // ---- KHOÁ SỔ THÁNG (ADR-0080 phần D1; module ky-so giữ bảng, route ở đây vì cần sổ của billing). Tiền tố tĩnh `/api/ledger/ky`, không nuốt route nào khác.
     // Xem kỳ: ô `ledger.view` KHÔNG ngữ cảnh (= any — Kế toán, Toàn quyền): tháng đã khoá, tháng khoá được kế tiếp, bảng kiểm của tháng đó (chỉ mã đơn, số tiền, ngày).
     route("GET", "/api/ledger/ky", "office", async ({ env, staff }) => {
@@ -518,9 +584,9 @@ export const billingModule: AppModule = {
  * API công khai cho module `receipt` (biên nhận — Task 8 lượt 1): đã trả / còn lại của một đơn, cùng hàm `conLai` (một nguồn). KHÔNG tự kiểm quyền.
  * Sổ đại lý đợt 2 Task 8: thêm `theoThuCho` = đã trả ròng theo «thu cho ai» (`daTraTheoThuCho`) để biên nhận chia phần theo người bán — chỉ số tiền khách trả, không người thu.
  */
-export async function soTienBienNhan(db: D1Database, orderId: string): Promise<{ daTra: number; conLai: number; huy: ReceiptDto["huy"]; theoThuCho: ReadonlyMap<string, number> } | null> {
+export async function soTienBienNhan(db: D1Database, orderId: string): Promise<{ daTra: number; conLai: number; giamTru: number; huy: ReceiptDto["huy"]; theoThuCho: ReadonlyMap<string, number> } | null> {
   const [t, huy, receipts] = await Promise.all([tienNhieuDon(db, [orderId]).then((m) => m.get(orderId)), cocChoBienNhan(db, orderId), receiptsOfOrder(db, orderId)]);
-  return t ? { daTra: t.daThu, conLai: t.conLai, huy, theoThuCho: daTraTheoThuCho(receipts.map(toReceiptRow)) } : null;
+  return t ? { daTra: t.daThu, conLai: t.conLai, giamTru: t.giamTru, huy, theoThuCho: daTraTheoThuCho(receipts.map(toReceiptRow)) } : null;
 }
 
 /** API công khai cho `receipt` (QR thanh toán — ADR-0108 đ3): còn lại + đơn đã "Đã giao" chưa, cùng hàm `conLai` (một nguồn). KHÔNG tự kiểm quyền. */
@@ -540,3 +606,5 @@ export const nhapKeToanCuaDon = (db: D1Database, orderIds: readonly string[]): P
  * loại khoản bị đảo (`hieuLuc`) và trừ tiền trả lại khách. KHÔNG tự kiểm quyền — route của orders hỏi `can(` trước. `null` khi không đọc được số của đơn (route từ chối kín).
  */
 export const daThuCuaDon = async (db: D1Database, orderId: string): Promise<number | null> => (await tienNhieuDon(db, [orderId])).get(orderId)?.daThu ?? null;
+
+export { cauDatCocKhiXacNhan, chanKhaiCocLai, tienDonVe } from "./dat-coc";

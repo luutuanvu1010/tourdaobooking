@@ -8,6 +8,7 @@
 //     mức cũ 15%; đơn A GIỮ nguyên bản chụp (SQL trước / sau) và hoa hồng. (Đơn xác nhận ngày mai theo mức mới: bài máy chủ N-13 / SV-TA-03 chạy đồng hồ giả.)
 //  6) cảnh báo N-17: loại thứ hai còn dòng riêng «mọi dịch vụ» 8% ⇒ gắn vào mức vẫn 201 (không chặn) và `dongRieng` có đúng dòng đó;
 //  7) tắt mức ⇒ gắn mới 409 muc_tat, thêm dòng 409 muc_tat; dòng / gắn đang có vẫn áp (Thử tra loại cũ vẫn bậc 7); bật lại ⇒ gắn được; mọi câu lỗi không lộ mã thô.
+//  7b) mã định danh 5.26: đổi tên cấp 2 ⇒ mã giữ, GET / gắn / Thử tra hiện tên mới; lưu trên bản cũ 409; trùng tên 409 muc_trung.
 // Dùng accountant / admin / salesA / field (không đổi tài khoản dùng chung). Tên loại, tên mức và hồ sơ dùng một lần (hậu tố chữ suy từ Date.now() — tên không được chứa dãy ≥ 8 chữ số;
 // `name_key` của mức là UNIQUE nên tên cố định sẽ 409 khi chạy lại trên cùng D1). KHÔNG gắn mức cho vai có sẵn (TRAVEL_AGENCY…): dòng riêng 10% của «so-dai-ly» sẽ thắng ở bậc 6 và
 // làm bẩn kịch bản sau. KHÔNG đổi công ty chủ, KHÔNG đụng tài khoản của `passkey`.
@@ -54,7 +55,13 @@ phai(r, 201, "Kế toán tạo mức");
 assert.equal(r.headers.get("location"), "/hoa-hong");
 const TA1 = r.body.muc.code;
 assert.match(TA1, /^MT_[A-Z]{8}$/);
-assert.deepEqual(r.body.muc, { code: TA1, ten: TEN_TA1, dangBat: true, dong: [], gan: [] });
+// Mã định danh 5.26 (Task 4 kế hoạch 2026-10-31): DTO thêm ghi chú, dấu vết, khoá lạc quan, số nơi dùng — mốc giờ / tên người kiểm theo khuôn, còn lại so đúng giá trị.
+{
+  const m = r.body.muc;
+  for (const k of ["taoLuc", "suaLuc"]) assert.match(String(m[k]), /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/, k);
+  for (const k of ["taoBoi", "suaBoi"]) assert.ok(typeof m[k] === "string" && m[k].length > 0, `${k} là tên nhân viên`);
+  assert.deepEqual(m, { code: TA1, ten: TEN_TA1, dangBat: true, dong: [], gan: [], ghiChu: null, taoLuc: m.taoLuc, taoBoi: m.taoBoi, suaLuc: m.suaLuc, suaBoi: m.suaBoi, updatedAt: m.suaLuc, soLoai: 0, soDoiTac: 0 });
+}
 r = await call(ACC, "POST", "/api/pricing/muc-ta", { ten: TEN_TA1.toLowerCase().replace("đại lý cấp", "dai ly cap") });
 assert.equal(r.status, 409, JSON.stringify(r.body));
 assert.equal(maLoi(r), "muc_trung");
@@ -162,6 +169,34 @@ phai(await call(ACC, "POST", "/api/pricing/muc-ta/gan", { loai: LOAI2, muc: TA1,
 const nk = await sqlRows(`SELECT action, count(*) AS n FROM audit_log WHERE action IN ('prc_rate_tier_off', 'prc_rate_tier_on') AND detail = '${TEN_TA1}' GROUP BY action ORDER BY action`);
 assert.deepEqual(nk.map((x) => [x.action, x.n]), [["prc_rate_tier_off", 1], ["prc_rate_tier_on", 1]], "mỗi lần đổi thật một dòng nhật ký; lần thua (409) không ghi");
 console.log("✓ 7) Tắt mức ⇒ gắn mới / thêm dòng 409 muc_tat; tắt lần hai 409; Bán hàng bật 403; bật lại ⇒ gắn được; một dòng nhật ký mỗi lần đổi thật");
+
+// ---- 7b) Mã định danh 5.26 (đặc tả 2026-10-31 §3): đổi tên cấp «Đại lý cấp 2 …» (TA2 — KHÔNG đổi TA1: bước 7 lọc nhật ký theo tên TA1) ⇒ mã giữ; GET danh sách, gắn loại↔cấp và
+//      Thử tra ngày mai đều hiện tên mới (tra tên theo mã lúc đọc); lưu trên bản cũ ⇒ 409; trùng tên cấp khác ⇒ 409 muc_trung; nhật ký mang mã.
+const TEN_TA2_MOI = `Đại lý vàng ${CHU}`;
+let ds = phai(await call(ACC, "GET", "/api/pricing/muc-ta"), 200, "danh sách cấp");
+const ta2Truoc = ds.muc.find((m) => m.code === TA2);
+assert.equal(ta2Truoc.ten, TEN_TA2);
+r = await call(ACC, "PATCH", `/api/pricing/muc-ta/${TA2}`, { ten: TEN_TA2_MOI, updatedAt: ta2Truoc.updatedAt });
+phai(r, 200, "đổi tên cấp");
+assert.deepEqual([r.body.muc.code, r.body.muc.ten], [TA2, TEN_TA2_MOI], "mã giữ, tên mới");
+ds = phai(await call(ACC, "GET", "/api/pricing/muc-ta"), 200, "danh sách cấp sau đổi tên");
+const ta2Sau = ds.muc.find((m) => m.code === TA2);
+assert.equal(ta2Sau.ten, TEN_TA2_MOI, "GET thấy tên mới, cùng mã");
+assert.ok(!ds.muc.some((m) => m.ten === TEN_TA2), "tên cũ không còn");
+assert.ok(ta2Sau.gan.length > 0 && ta2Sau.gan.every((g) => g.muc.code === TA2 && g.muc.ten === TEN_TA2_MOI), "gắn loại↔cấp hiện tên mới");
+const traMaiSau = phai(await call(A, "GET", `/api/pricing/thu-tra?doiTac=${ORG.id}&dichVu=ZE1&ngay=${vnDate(1)}`), 200, "thử tra ngày mai sau đổi tên");
+assert.deepEqual([traMaiSau.ketQua.muc.id, traMaiSau.ketQua.muc.doiTuong.code, traMaiSau.ketQua.muc.doiTuong.ten], [DONG_TA2.id, TA2, TEN_TA2_MOI], "Thử tra hiện tên cấp mới, cùng dòng");
+r = await call(ACC, "PATCH", `/api/pricing/muc-ta/${TA2}`, { ten: `Đại lý bạc ${CHU}`, updatedAt: ta2Truoc.updatedAt });
+assert.equal(r.status, 409, `lưu trên bản cũ: ${JSON.stringify(r.body)}`);
+assert.doesNotMatch(thongBao(r), MA_THO);
+r = await call(ACC, "PATCH", `/api/pricing/muc-ta/${TA2}`, { ten: TEN_TA1, updatedAt: ta2Sau.updatedAt });
+assert.equal(r.status, 409, `trùng tên cấp khác: ${JSON.stringify(r.body)}`);
+assert.equal(maLoi(r), "muc_trung");
+assert.doesNotMatch(thongBao(r), MA_THO);
+assert.equal((await call(A, "PATCH", `/api/pricing/muc-ta/${TA2}`, { ten: `Cấp Bán hàng ${CHU}`, updatedAt: ta2Sau.updatedAt })).status, 403, "Bán hàng không sửa được");
+const nkTen = await sqlRows(`SELECT target_id AS ma, detail FROM audit_log WHERE action = 'prc_rate_tier_renamed' AND target_id = '${TA2}'`);
+assert.deepEqual(nkTen.map((x) => [x.ma, x.detail]), [[TA2, `«${TEN_TA2}» → «${TEN_TA2_MOI}»`]], "một dòng nhật ký đổi tên, ô đối tượng = mã; lần thua không ghi");
+console.log("✓ 7b) Đổi tên cấp «Đại lý cấp 2 …» ⇒ 200, mã giữ; GET danh sách, gắn loại↔cấp, Thử tra ngày mai hiện tên mới; lưu trên bản cũ 409; trùng tên 409 muc_trung; Bán hàng 403; nhật ký đổi tên mang mã");
 
 // ---- 8) Không đổi công ty chủ
 assert.deepEqual((await sqlRows("SELECT party_id FROM v_pty_owner_company")).map((x) => x.party_id), congTyTruoc, "công ty chủ không đổi");

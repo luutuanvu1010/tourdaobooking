@@ -32,19 +32,31 @@ test("ADR-0052 D5 (Đợt 5): văn phòng thêm điểm / báo huỷ khi xe đan
 });
 
 test("ADR-0117 lần 1: ba hành động loại đối tác (thêm, tắt, bật lại) nhóm 'ledger', có nhãn tiếng Việt, và là hành động thương mại (Đối tác không thấy)", () => {
-  assert.deepEqual({ ...AUDIT_ACTIONS.prc_partner_type_added }, { label: "Thêm loại đối tác", group: "ledger" });
-  assert.deepEqual({ ...AUDIT_ACTIONS.prc_partner_type_off }, { label: "Tắt loại đối tác", group: "ledger" });
-  assert.deepEqual({ ...AUDIT_ACTIONS.prc_partner_type_on }, { label: "Bật lại loại đối tác", group: "ledger" });
+  assert.deepEqual({ ...AUDIT_ACTIONS.prc_partner_type_added }, { label: "Thêm vai người dùng", group: "ledger" });
+  assert.deepEqual({ ...AUDIT_ACTIONS.prc_partner_type_off }, { label: "Tắt vai người dùng", group: "ledger" });
+  assert.deepEqual({ ...AUDIT_ACTIONS.prc_partner_type_on }, { label: "Bật lại vai người dùng", group: "ledger" });
   for (const a of ["prc_partner_type_added", "prc_partner_type_off", "prc_partner_type_on"]) assert.equal(laHanhDongThuongMai(a), true, a);
 });
 
+test("Mã định danh 5.26: đổi tên và sửa ghi chú loại đối tác — nhóm 'ledger', nhãn tiếng Việt, hành động thương mại (Đối tác không thấy)", () => {
+  assert.deepEqual({ ...AUDIT_ACTIONS.prc_partner_type_renamed }, { label: "Đổi tên vai người dùng", group: "ledger" });
+  assert.deepEqual({ ...AUDIT_ACTIONS.prc_partner_type_note }, { label: "Sửa ghi chú vai người dùng", group: "ledger" });
+  for (const a of ["prc_partner_type_renamed", "prc_partner_type_note"]) assert.equal(laHanhDongThuongMai(a), true, a);
+});
+
 test("ADR-0117 lần 2: năm hành động mức TA (thêm, tắt, bật lại, gắn loại, kết thúc gắn) nhóm 'ledger', có nhãn tiếng Việt, và là hành động thương mại (Đối tác không thấy)", () => {
-  assert.deepEqual({ ...AUDIT_ACTIONS.prc_rate_tier_added }, { label: "Thêm cấp đại lý", group: "ledger" });
-  assert.deepEqual({ ...AUDIT_ACTIONS.prc_rate_tier_off }, { label: "Khoá cấp đại lý", group: "ledger" });
-  assert.deepEqual({ ...AUDIT_ACTIONS.prc_rate_tier_on }, { label: "Mở lại cấp đại lý", group: "ledger" });
-  assert.deepEqual({ ...AUDIT_ACTIONS.prc_role_tier_set }, { label: "Áp dụng cấp đại lý cho loại", group: "ledger" });
-  assert.deepEqual({ ...AUDIT_ACTIONS.prc_role_tier_closed }, { label: "Ngừng áp dụng cấp đại lý cho loại", group: "ledger" });
+  assert.deepEqual({ ...AUDIT_ACTIONS.prc_rate_tier_added }, { label: "Thêm cấp độ đại lý", group: "ledger" });
+  assert.deepEqual({ ...AUDIT_ACTIONS.prc_rate_tier_off }, { label: "Khoá cấp độ đại lý", group: "ledger" });
+  assert.deepEqual({ ...AUDIT_ACTIONS.prc_rate_tier_on }, { label: "Mở lại cấp độ đại lý", group: "ledger" });
+  assert.deepEqual({ ...AUDIT_ACTIONS.prc_role_tier_set }, { label: "Áp dụng cấp độ đại lý cho vai trò", group: "ledger" });
+  assert.deepEqual({ ...AUDIT_ACTIONS.prc_role_tier_closed }, { label: "Ngừng áp dụng cấp độ đại lý cho vai trò", group: "ledger" });
   for (const a of ["prc_rate_tier_added", "prc_rate_tier_off", "prc_rate_tier_on", "prc_role_tier_set", "prc_role_tier_closed"]) assert.equal(laHanhDongThuongMai(a), true, a);
+});
+
+test("Mã định danh 5.26: hành động đổi tên / sửa ghi chú cấp đại lý nhóm 'ledger', có nhãn, là hành động thương mại", () => {
+  assert.deepEqual({ ...AUDIT_ACTIONS.prc_rate_tier_renamed }, { label: "Đổi tên cấp độ đại lý", group: "ledger" });
+  assert.deepEqual({ ...AUDIT_ACTIONS.prc_rate_tier_note }, { label: "Sửa ghi chú cấp độ đại lý", group: "ledger" });
+  for (const a of ["prc_rate_tier_renamed", "prc_rate_tier_note"]) assert.equal(laHanhDongThuongMai(a), true, a);
 });
 
 test("ADR-0030 điều 1 (nút Từ chối): hành động 'order_handler_refused' nhóm 'order', nhãn «Trả đơn (Từ chối)»", () => {

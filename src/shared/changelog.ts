@@ -12,6 +12,66 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Phân định trách nhiệm sau «Đã giao» (ADR-0116, TNV-G3) và cảnh báo khoản thu giống nhau (ADR-0092 Đ6a, TNV-G4). Có migration 0135; thêm hai ô quyền attribution.request, attribution.decide.
+    // Cùng bản: Khách đặt cọc trước (ADR-0159, migration 0136). Chỉ phát hành sau khi diễn tập khôi phục HC-5.19 (ADR-0159).
+    // Số 2.58 và ngày chỉ là tạm cho nhánh: bước A.0 của lần triển khai đặt lại nếu cần.
+    version: "2.58",
+    date: "2026-11-02",
+    items: [
+      { kind: "moi", text: "Đối tác đặt vé có ô «Khách đặt cọc trước». Khi đơn được xác nhận, số này tự thành khoản thu; đối tác giữ số tiền đó tới khi nộp về công ty." },
+      { kind: "moi", text: "Số đặt cọc đối tác khai chưa nộp về công ty thì chưa tính là thu đủ, nên vé của đơn chỉ mở sau khi nộp." },
+      { kind: "moi", text: "Màn Phân định trách nhiệm: khách cần được hoàn sau khi đơn đã giao thì một người đề nghị, Quản trị hoặc Toàn quyền phân định ai chịu, Kế toán ghi sổ." },
+      { kind: "moi", text: "Người được phân định chịu một khoản nhận tin báo, xem khoản của mình và phản hồi trong 3 ngày làm việc." },
+      { kind: "moi", text: "Sửa khoản thu đã ghi: người thu cũ và người thu mới đều nhận tin báo." },
+      { kind: "moi", text: "Khoản thu tiền mặt cùng số, cùng ngày trên một đơn hoặc mã giao dịch đã gắn ở đơn khác: Nền tảng hỏi lại, vẫn ghi được khi có lý do." },
+      { kind: "doi", text: "Đơn đã giao có giảm trừ theo phân định: số phải thu trên đơn đã trừ phần này và ghi rõ một dòng." },
+    ],
+  },
+  {
+    // Đặt vé của đối tác, lượt 2 (ADR-0154 giờ đón + công tắc ẩn thông tin khách, ADR-0155 cột Cấp độ đại lý; chủ duyệt 2/11).
+    // Có migration 0133 (cờ miễn danh sách của đơn, bảng chính sách), ba route mới, đổi luật xác nhận đơn đối tác có đón. Không đổi cách tính tiền. Số 2.57 và ngày là TẠM — phiên phát hành kiểm lại ở bước A.0 của docs/HANDOFF-N1.md.
+    version: "2.57",
+    date: "2026-11-02",
+    items: [
+      { kind: "doi", text: "Đối tác không còn nhập giờ đón: ghi giờ khách muốn vào Ghi chú, văn phòng chốt giờ rồi báo lại. Đơn có đón luôn chờ văn phòng xác nhận." },
+      { kind: "moi", text: "Toàn quyền có công tắc «Ẩn thông tin khách khi đối tác đặt vé» ở trang Tôi. Bật thì đối tác chỉ chọn ngày, dịch vụ và đưa đón." },
+      { kind: "moi", text: "Bảng Còn vé có ghi chú của đối tác, ô giờ đón từng lượt (bắt buộc với lượt đầu) và nút Đặt gấp ngay trong bảng cho Bán hàng, Quản trị." },
+      { kind: "moi", text: "Quản lý tài khoản có cột Cấp độ đại lý: xem và đổi cấp của tài khoản đối tác ngay tại đó." },
+      { kind: "doi", text: "Nháp của đối tác đã có giờ đón: lưu lại thì giờ của lượt đầu bị bỏ và đơn chờ văn phòng chốt giờ." },
+    ],
+  },
+  {
+    // Đặt vé của đối tác, lượt 1 (đặc tả docs/superpowers/specs/2026-11-01-dat-ve-doi-tac-design.md, chủ duyệt 2/11): form Tạo đơn gọn cho tài khoản Đối tác, trang Hoa hồng còn hai thẻ với tên mới, bộ lọc ở Quản lý tài khoản.
+    // Chỉ giao diện và chữ; KHÔNG migration, không đổi quyền, không đổi cách tính tiền (máy chủ chỉ đổi vài câu báo lỗi cho khớp tên mới). Số 2.56 và ngày là TẠM — phiên phát hành kiểm lại ở bước A.0 của docs/HANDOFF-N1.md.
+    version: "2.56",
+    date: "2026-11-02",
+    items: [
+      { kind: "doi", text: "Màn Tạo đơn của đối tác gọn hơn: mỗi dịch vụ có dòng Ghi chú thay cho khối Thông tin chuyến; ô giảm giá có chữ mờ «Giảm giá cho khách»." },
+      { kind: "doi", text: "Trang Hoa hồng còn hai thẻ: Cấp độ đại lý và Vai người dùng; phần Người có cấp riêng nằm trong thẻ Vai người dùng. Hai tên mới thay tên cũ ở mọi màn." },
+      { kind: "moi", text: "Quản lý tài khoản lọc được theo vai trò: bấm một nút để chỉ xem tài khoản của vai trò đó." },
+    ],
+  },
+  {
+    // Kho vé điện tử (ADR-0153, ADR-0156, ADR-0157). Có migration 0131, 0132, 0134 đi cùng một lần. Không đổi cách tính tiền. Số 2.55 và ngày là TẠM — phiên phát hành kiểm lại ở bước A.0 của docs/HANDOFF-N1.md; nhánh đặt vé của đối tác đang dùng tạm cùng số, ai gộp sau đổi số.
+    version: "2.55",
+    date: "2026-11-02",
+    items: [
+      { kind: "moi", text: "Kho vé điện tử: nhập ảnh vé theo lô, máy tự đọc mã QR và không cho nhập trùng vé." },
+      { kind: "moi", text: "Đơn xác nhận tự được giữ vé; thiếu vé thì trang đơn báo số còn thiếu và có nút «Cấp vé»." },
+      { kind: "moi", text: "Lô vé có thêm loại «Mọi loại khách» cho vé dùng chung người lớn, trẻ em và người cao tuổi." },
+    ],
+  },
+  {
+    // Mã định danh + nút «Sửa» cho Loại đối tác và Cấp đại lý (Hiến chương 5.26; đặc tả docs/superpowers/specs/2026-10-31-ma-dinh-danh-va-sua-loai-doi-tac-design.md, chủ duyệt 31/10).
+    // Có migration 0130 (ghi chú + dấu vết), hai route PATCH mới, màn tài khoản đọc tên vai bên ngoài từ CSDL. Không đổi cách tính tiền. Số 2.54 và ngày là TẠM — phiên phát hành kiểm lại ở bước A.0 của docs/HANDOFF-N1.md.
+    version: "2.54",
+    date: "2026-10-31",
+    items: [
+      { kind: "moi", text: "Sửa được tên và ghi chú của loại đối tác và cấp đại lý; mã định danh hiện ra để chép." },
+      { kind: "doi", text: "Đổi tên một loại đối tác có sẵn thì màn Quản lý tài khoản cũng hiện tên mới." },
+    ],
+  },
+  {
     // Trang chủ máy tính vòng 2 (31/10, sau nghiệm thu thất bại một phần của 2.52: chủ chụp trên dữ liệu thật — 54 khoản chờ đối chiếu làm trang dài, lối tắt nằm cuối, một dải trống bên phải).
     // Chỉ giao diện, KHÔNG migration, không đổi máy chủ, không đổi quyền, không đổi cách tính tiền. LƯU Ý: có MỘT thay đổi bề rộng TOÀN ỨNG DỤNG ở khung chung (`--w-noi-dung-max` 1280px → 1920px, public/app.css) — mọi trang dùng khung mặc định rộng ra trên màn lớn.
     // Số 2.53 và ngày là TẠM — phiên phát hành kiểm lại ở bước A.0 của docs/HANDOFF-N1.md.

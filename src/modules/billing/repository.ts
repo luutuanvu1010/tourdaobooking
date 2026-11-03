@@ -70,7 +70,7 @@ export interface LineDbRow {
   debtor_party_id: string;
   creditor_party_id: string;
   amount: number;
-  kind_code: "HELD" | "SETTLEMENT" | "REFUND" | "HOA_HONG" | "GIAM_GIA_BEN_DAT" | "GIA_VON";
+  kind_code: "HELD" | "SETTLEMENT" | "REFUND" | "HOA_HONG" | "GIAM_GIA_BEN_DAT" | "GIA_VON" | "ATTRIBUTION";
   order_id: string | null;
   receipt_id: string | null;
   reverses_line_id: string | null;
@@ -125,6 +125,25 @@ const BALANCES_AT = defineSql(
 );
 export const balancesAt = async (db: D1Database, ngayCuoi: string): Promise<{ party_id: string; label: string | null; balance: number }[]> =>
   (await db.prepare(BALANCES_AT).bind(ngayCuoi).all<{ party_id: string; label: string | null; balance: number }>()).results;
+
+/**
+ * Khoản phải nộp do phân định của từng bên TÍNH ĐẾN ngày ?1 (ADR-0116; cùng phép tách `tachKhoanPhanDinh`, theo từng đơn: chỉ tiền nộp vượt tiền đang giữ mới trừ vào khoản, hoa hồng, giá vốn không tính). Dùng cho Sổ công nợ và bảng khoá tháng.
+ */
+const PHAN_DINH_THEO_BEN = defineSql(
+  "billing",
+  "phan_dinh_theo_ben",
+  `SELECT x.ben AS party_id, pl.display_name AS label, SUM(MAX(0, x.khoan - MIN(MAX(0, -x.nop), MAX(0, -x.giu_ho)))) AS khoan FROM (
+     SELECT CASE WHEN l.creditor_party_id = ct.id THEN l.debtor_party_id ELSE l.creditor_party_id END AS ben, l.order_id,
+       SUM(CASE WHEN l.kind_code <> 'ATTRIBUTION' THEN 0 WHEN l.creditor_party_id = ct.id THEN l.amount ELSE -l.amount END) AS khoan,
+       SUM(CASE WHEN l.kind_code NOT IN ('HELD', 'SETTLEMENT', 'REFUND') THEN 0 WHEN l.creditor_party_id = ct.id THEN l.amount ELSE -l.amount END) AS giu_ho,
+       SUM(CASE WHEN l.kind_code <> 'SETTLEMENT' THEN 0 WHEN l.creditor_party_id = ct.id THEN l.amount ELSE -l.amount END) AS nop
+     FROM bil_debt_line l JOIN bil_posting p ON p.id = l.posting_id JOIN (SELECT party_id AS id FROM v_pty_owner_company LIMIT 1) ct ON l.creditor_party_id = ct.id OR l.debtor_party_id = ct.id
+     WHERE p.occurred_date <= ?1 AND l.order_id IN (SELECT order_id FROM bil_debt_line WHERE kind_code = 'ATTRIBUTION')
+     GROUP BY ben, l.order_id
+   ) x LEFT JOIN v_pty_party_label pl ON pl.id = x.ben GROUP BY x.ben, pl.display_name HAVING SUM(MAX(0, x.khoan - MIN(MAX(0, -x.nop), MAX(0, -x.giu_ho)))) > 0`,
+);
+export const phanDinhTheoBen = async (db: D1Database, ngayCuoi: string): Promise<{ party_id: string; label: string | null; khoan: number }[]> =>
+  (await db.prepare(PHAN_DINH_THEO_BEN).bind(ngayCuoi).all<{ party_id: string; label: string | null; khoan: number }>()).results;
 
 /** Tháng ("YYYY-MM") của dòng sổ tiền sớm nhất (khoản thu, phiếu, dòng hoàn ngoài) — lần khoá tháng ĐẦU TIÊN không được bắt đầu SAU tháng này (ADR-0080 D1). */
 const THANG_SO_SOM_NHAT = defineSql(
@@ -281,6 +300,16 @@ const RECEIPT_AT_DELIVERY = defineSql(
   `INSERT INTO bil_payment_receipt (${RECEIPT_INSERT_COLS}) SELECT ${RECEIPT_VALUES}
    WHERE EXISTS (SELECT 1 FROM v_ord_order_state WHERE id = ?2 AND delivered_at = ?14)`,
 );
+/**
+ * Khoản thu từ lời khai «Khách đặt cọc trước» (ADR-0159 Đ1 mục 3): chỉ áp khi nhật ký `confirmed` ?14 CỦA CHÍNH LÔ đã ghi — khuôn `wonGuard`, đọc qua view công bố của audit. KHÔNG so trạng thái hay mốc:
+ * hai lô đua cùng cầm một `prevUpdatedAt` có cùng `at`, nên «đơn đã xác nhận» cũng đúng với lô thua (bài «Thua đua»).
+ */
+const RECEIPT_ON_CONFIRM = defineSql(
+  "billing",
+  "receipt_on_confirm",
+  `INSERT INTO bil_payment_receipt (${RECEIPT_INSERT_COLS}) SELECT ${RECEIPT_VALUES}
+   WHERE EXISTS (SELECT 1 FROM v_aud_order_event WHERE id = ?14 AND action = 'confirmed' AND order_id = ?2)`,
+);
 /** Trả lại khách (Kế toán ghi hoàn — ADR-0026 đ5, M2): không điều kiện mốc. */
 const RECEIPT_REFUND = defineSql("billing", "receipt_refund", `INSERT INTO bil_payment_receipt (${RECEIPT_INSERT_COLS}) SELECT ${RECEIPT_VALUES}`);
 /** Dòng ĐẢO của một khoản thu (Kế toán — ADR-0026 đ8): chép gốc, trỏ gốc; trigger `bil_payment_receipt_reversal_match` + UNIQUE canh. */
@@ -326,6 +355,7 @@ const bindReceipt = (db: D1Database, sql: string, r: NewReceipt, ...extra: strin
   db.prepare(sql).bind(r.id, r.orderId, r.kind, r.amount, r.collectorPartyId, r.collectorRole, r.method, r.stage, r.occurredDate, r.note, r.at, r.by, r.collectedForPartyId ?? null, ...extra);
 export const receiptBeforeDeliveredStatement = (db: D1Database, r: NewReceipt) => bindReceipt(db, RECEIPT_BEFORE_DELIVERED, r);
 export const receiptAtDeliveryStatement = (db: D1Database, r: NewReceipt, deliveredAt: string) => bindReceipt(db, RECEIPT_AT_DELIVERY, r, deliveredAt);
+export const receiptOnConfirmStatement = (db: D1Database, r: NewReceipt, auditIdXacNhan: string) => bindReceipt(db, RECEIPT_ON_CONFIRM, r, auditIdXacNhan);
 export const receiptRefundStatement = (db: D1Database, r: NewReceipt) => bindReceipt(db, RECEIPT_REFUND, r);
 export const receiptReversalStatement = (db: D1Database, i: { id: string; occurredDate: string; note: string | null; at: string; by: string; reversesId: string; chuaXacNhan?: boolean }) =>
   db.prepare(i.chuaXacNhan ? RECEIPT_REVERSAL_CHUA_XAC_NHAN : RECEIPT_REVERSAL).bind(i.id, i.occurredDate, i.note, i.at, i.by, i.reversesId);
@@ -354,7 +384,7 @@ const POSTING_PLAIN = defineSql("billing", "posting_plain", `INSERT INTO bil_pos
 
 export interface NewPosting {
   id: string;
-  kind: "RECEIPT" | "DELIVERED" | "COMPLETED" | "COMPANY_RECEIVED" | "COUNTERPARTY_CONFIRMED" | "SETTLEMENT" | "REFUND" | "ADJUSTMENT" | "REVERSAL" | "REPLACEMENT";
+  kind: "ATTRIBUTION" | "RECEIPT" | "DELIVERED" | "COMPLETED" | "COMPANY_RECEIVED" | "COUNTERPARTY_CONFIRMED" | "SETTLEMENT" | "REFUND" | "ADJUSTMENT" | "REVERSAL" | "REPLACEMENT";
   orderId: string | null;
   reason: string | null;
   reversesPostingId: string | null;
@@ -391,7 +421,7 @@ export interface NewLine {
   debtorPartyId: string;
   creditorPartyId: string;
   amount: number;
-  kind: "HELD" | "SETTLEMENT" | "REFUND" | "HOA_HONG" | "GIAM_GIA_BEN_DAT" | "GIA_VON";
+  kind: "HELD" | "SETTLEMENT" | "REFUND" | "HOA_HONG" | "GIAM_GIA_BEN_DAT" | "GIA_VON" | "ATTRIBUTION";
   orderId: string;
   /** Dòng dịch vụ của đơn (chỉ HOA_HONG / GIA_VON của phiếu Đã giao); null = dòng không gắn dòng dịch vụ. */
   orderServiceId: string | null;

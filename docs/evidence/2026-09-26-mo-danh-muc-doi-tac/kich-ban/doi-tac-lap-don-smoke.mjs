@@ -15,6 +15,10 @@
 // Sửa 2026-09-26 (bản 1.17): dòng báo từng nằm trong cột hẹp của hàng ba ô Thanh toán → xuống 3 hàng ở máy tính. Kịch bản nay tìm dòng báo theo
 // NỘI DUNG (không theo vị trí), đếm số hàng hiển thị thật (Range.getClientRects) — máy tính phải 1 hàng, điện thoại ≤ 2 — và kiểm ô giảm giá
 // trỏ tới nó bằng aria-describedby.
+// Đặt vé của đối tác, lượt 1 (Task 1, 2026-11-02): FORM GỌN cho tài khoản có quyền Đối tác (`formGonDoiTac`). Đối tác: khối «Thông tin chuyến» ẨN, có dòng «Ghi chú» (`input[data-trip-gon="note"]`,
+//   nhãn nổi «Ghi chú» luôn thu nhỏ, chữ gợi ý «Thời gian đón»), ô giảm giá không còn nhãn nổi «Giảm giá (₫)» mà có chữ gợi ý + aria-label «Giảm giá cho khách» (bước 2, 2m); gõ ghi chú rồi Lưu → đơn
+//   mang ghi chú đó (bước 3); mở lại NHÁP CŨ (lập bằng API, đã có giờ khởi hành, giờ và nơi có mặt) → dòng ghi chú hiện chữ đã lưu, sửa mỗi ghi chú rồi Lưu thì ba giá trị cũ còn nguyên (bước 3g).
+//   Đối chứng Bán hàng (bước 4): «Thông tin chuyến» hiện, nhãn «Giảm giá (₫)» còn, không có dòng Ghi chú gọn.
 // Dùng lại cơ chế CDP của A2 (startEnv()/ACCOUNTS/ok/sleep/vnDate/setInput từ ../../2026-09-20-a2/kich-ban/a2-cdp.mjs) và mẫu step()/openAs()/call() của
 // ../../2026-09-26-va-3-loi-kiem-toan/kich-ban/va3-smoke.mjs. Danh mục là danh mục GIẢ của a2-cdp (TD101 "Tour 4 đảo Nha Trang", người lớn 1.350.000).
 // Chạy từ GỐC repo (worktree), sau `npm run build:web`:
@@ -40,6 +44,11 @@ const TD101_ADULT = 1350000;
 const PAX = 2;
 const DONG_TIEN = "2 người lớn × 1.350.000 = 2.700.000"; // dòng tiền là CHỮ (thiết kế lại 18/10, Task 6)
 const CUSTOMER = "Khách Đối Tác Thử";
+const GOI_Y_GIAM_GIA = "Giảm giá cho khách"; // src/shared/form-dat-ve.ts: GOI_Y_GIAM_GIA_DOI_TAC
+const GOI_Y_GHI_CHU = "Thời gian đón"; // GOI_Y_GHI_CHU_DOI_TAC
+const NHAN_GHI_CHU = "Ghi chú"; // NHAN_GHI_CHU_DOI_TAC
+const GHI_CHU_GON = "Đón 7h sáng"; // ghi chú gõ ở dòng Ghi chú gọn (bước 3)
+const O_GHI_CHU_GON = `document.querySelector('input[data-trip-gon="note"]')`;
 
 let passed = 0;
 let failures = 0;
@@ -157,6 +166,10 @@ try {
       if (noteRange) noteRange.selectNodeContents(note);
       const adultPrice = card ? card.querySelector('.price-field[aria-label="Đơn giá người lớn"]') : null;
       const sua = card ? card.querySelector('.svc-sua-gia') : null;
+      const ghiChuGon = card ? card.querySelector('input[data-trip-gon="note"]') : null;
+      const nhanGhiChu = ghiChuGon ? ghiChuGon.parentElement?.querySelector('.o-noi-chu') : null;
+      const nhanGiam = d.parentElement?.querySelector('.o-noi-chu') ?? null;
+      const giua = (e) => { const r = e.getBoundingClientRect(); return r.top + r.height / 2; };
       const khoiGia = card ? card.querySelector('[data-gap-than^="gia-"]') : null;
       return {
         card: !!card,
@@ -169,6 +182,10 @@ try {
         congTac: !!document.getElementById('dat-qua-doi-tac'),
         chiDoc: document.getElementById('ben-dat-chi-doc')?.textContent ?? null,
         tagShown: card ? [...card.querySelectorAll('.tag-price')].some(hien) : null,
+        tripKhoi: card ? { hien: hien(card.querySelector('details.trip')) } : null,
+        ghiChuGon: ghiChuGon ? { hien: hien(ghiChuGon), placeholder: ghiChuGon.placeholder, value: ghiChuGon.value, maxLength: ghiChuGon.maxLength, mauGoiY: getComputedStyle(ghiChuGon, '::placeholder').color,
+          nhan: nhanGhiChu?.textContent ?? null, nhanHien: hien(nhanGhiChu), nhanThuNho: !!nhanGhiChu && giua(nhanGhiChu) < giua(ghiChuGon) - 4 } : null,
+        giamGia: { placeholder: d.placeholder, ariaLabel: d.getAttribute('aria-label'), nhan: nhanGiam ? nhanGiam.textContent : null, mauGoiY: getComputedStyle(d, '::placeholder').color },
         discountReadOnly: d.readOnly,
         discountValue: d.value,
         note: note ? { tag: note.tagName, id: note.id, cls: note.className, text: note.textContent.trim(), rows: new Set([...noteRange.getClientRects()].map((r) => Math.round(r.top))).size, visible: note.getClientRects().length > 0 } : null,
@@ -186,6 +203,21 @@ try {
     assert.deepEqual(s.oGiaHien, [], `${nhan}: không ô đơn giá nào hiện — ${JSON.stringify(s.oGiaHien)}`);
     assert.deepEqual(s.adultPrice && [s.adultPrice.readOnly, s.adultPrice.digits], [true, TD101_ADULT], `${nhan}: ô đơn giá (ẩn) vẫn readOnly, = giá danh mục — ${JSON.stringify(s.adultPrice)}`);
     assert.equal(s.tagShown, false, `${nhan}: không có nhãn “Khác giá danh mục” — ${JSON.stringify(s)}`);
+  };
+
+  /** Form GỌN của Đối tác (lượt 1): khối chuyến ẩn, dòng Ghi chú gọn đúng chữ, ô giảm giá bỏ nhãn nổi (chữ gợi ý + aria-label), chữ gợi ý có màu thật (không trong suốt). */
+  const kiemFormGon = (s, nhan) => {
+    assert.equal(s.tripKhoi?.hien, false, `${nhan}: khối “Thông tin chuyến” ẨN — ${JSON.stringify(s.tripKhoi)}`);
+    assert.ok(s.ghiChuGon, `${nhan}: có dòng Ghi chú gọn (input[data-trip-gon="note"]) — ${JSON.stringify(s)}`);
+    assert.equal(s.ghiChuGon.hien, true, `${nhan}: dòng Ghi chú đang hiện — ${JSON.stringify(s.ghiChuGon)}`);
+    assert.equal(s.ghiChuGon.placeholder, GOI_Y_GHI_CHU, `${nhan}: chữ gợi ý dòng Ghi chú — ${JSON.stringify(s.ghiChuGon)}`);
+    assert.equal(s.ghiChuGon.nhan, NHAN_GHI_CHU, `${nhan}: nhãn nổi của dòng Ghi chú — ${JSON.stringify(s.ghiChuGon)}`);
+    assert.equal(s.ghiChuGon.nhanHien, true, `${nhan}: nhãn «${NHAN_GHI_CHU}» đang hiện — ${JSON.stringify(s.ghiChuGon)}`);
+    assert.equal(s.ghiChuGon.nhanThuNho, true, `${nhan}: nhãn «${NHAN_GHI_CHU}» luôn ở vị trí thu nhỏ (phía trên chữ gợi ý) dù ô trống — ${JSON.stringify(s.ghiChuGon)}`);
+    assert.equal(s.ghiChuGon.maxLength, 1000, `${nhan}: trần ghi chú 1000 — ${JSON.stringify(s.ghiChuGon)}`);
+    assert.ok(!["rgba(0, 0, 0, 0)", "transparent"].includes(s.ghiChuGon.mauGoiY), `${nhan}: chữ gợi ý dòng Ghi chú có màu (không trong suốt) — ${s.ghiChuGon.mauGoiY}`);
+    assert.deepEqual([s.giamGia.placeholder, s.giamGia.ariaLabel, s.giamGia.nhan], [GOI_Y_GIAM_GIA, GOI_Y_GIAM_GIA, null], `${nhan}: ô giảm giá — chữ gợi ý + aria-label «${GOI_Y_GIAM_GIA}», không còn nhãn nổi — ${JSON.stringify(s.giamGia)}`);
+    assert.ok(!["rgba(0, 0, 0, 0)", "transparent"].includes(s.giamGia.mauGoiY), `${nhan}: chữ gợi ý ô giảm giá có màu (không trong suốt) — ${s.giamGia.mauGoiY}`);
   };
 
   // ==================================================================================================
@@ -206,6 +238,10 @@ try {
     const s2 = await formState(p);
     assert.deepEqual(s2.oGiaHien, [{ nhan: "Đơn giá người lớn", readOnly: false, digits: TD101_ADULT }], `ô đơn giá của Bán hàng hiện, KHÔNG readOnly, = giá danh mục — ${JSON.stringify(s2.oGiaHien)}`);
     assert.equal(s.discountReadOnly, false, `ô giảm giá của Bán hàng KHÔNG readOnly — ${JSON.stringify(s)}`);
+    // Form gọn KHÔNG áp cho Bán hàng (không giữ quyền Đối tác): khối chuyến hiện, nhãn «Giảm giá (₫)» còn, không có dòng Ghi chú gọn.
+    assert.equal(s.tripKhoi?.hien, true, `Bán hàng thấy khối “Thông tin chuyến” — ${JSON.stringify(s.tripKhoi)}`);
+    assert.equal(s.ghiChuGon, null, `Bán hàng KHÔNG có dòng Ghi chú gọn — ${JSON.stringify(s.ghiChuGon)}`);
+    assert.deepEqual([s.giamGia.nhan, s.giamGia.placeholder, s.giamGia.ariaLabel], ["Giảm giá (₫)", "0", null], `ô giảm giá của Bán hàng giữ nhãn nổi, không đổi chữ — ${JSON.stringify(s.giamGia)}`);
     assert.equal(s.partnerNoteAnywhere, false, `không có dòng “${PARTNER_NOTE}” — ${JSON.stringify(s)}`);
     assert.equal(s.catalogErrAnywhere, false, `không có “${CATALOG_ERR}” — ${JSON.stringify(s)}`);
     assert.deepEqual(p.consoleErrors, [], `lỗi console: ${p.consoleErrors}`);
@@ -237,6 +273,7 @@ try {
     await desk.waitFor(`(${ADULT_PRICE}).readOnly === true`, "ô đơn giá người lớn readOnly", 5000);
     const s = await formState(desk);
     kiemKhongSuaGia(s, "Đối tác 1040");
+    kiemFormGon(s, "Đối tác 1040");
     assert.equal(s.congTac, false, "Đối tác KHÔNG có công tắc “Đơn của”");
     assert.equal(s.chiDoc, BEN_DAT ? `Bên đặt: ${BEN_DAT.ten}` : null, `dòng chỉ đọc “Bên đặt” theo đúng benDatCuaToi của máy chủ — ${JSON.stringify(s.chiDoc)}`);
     assert.equal(s.nhapTay, false, "Đối tác KHÔNG thấy “+ Dịch vụ nhập tay” (công tắc đang bật, Bán hàng thấy ở bước 4)");
@@ -259,6 +296,7 @@ try {
     await mob.waitFor(`(${ADULT_PRICE}).readOnly === true`, "ô đơn giá người lớn readOnly", 5000);
     const s = await formState(mob);
     kiemKhongSuaGia(s, "Đối tác 390");
+    kiemFormGon(s, "Đối tác 390");
     assert.equal(s.nhapTay, false, "Đối tác KHÔNG thấy “+ Dịch vụ nhập tay”");
     assert.equal(s.discountReadOnly, true, `ô giảm giá readOnly — ${JSON.stringify(s)}`);
     assert.equal(s.note?.visible, true, `có dòng “${PARTNER_NOTE}” đang hiện — ${JSON.stringify(s.note)}`);
@@ -288,10 +326,11 @@ try {
     assert.equal(await mob.ev("location.pathname"), "/order-form", "vẫn ở form (400 không lưu)");
   });
 
-  await step("3", `Đối tác (điện thoại 390): điền tên/SĐT khách, chọn ngày, bấm Lưu → chuyển sang /order?id=…; đơn (API) tổng = ${PAX} × 1.350.000 = 2.700.000, giảm giá 0, đơn giá = giá danh mục`, async () => {
+  await step("3", `Đối tác (điện thoại 390): điền tên/SĐT khách, chọn ngày, gõ ghi chú «${GHI_CHU_GON}», bấm Lưu → chuyển sang /order?id=…; đơn (API) tổng = ${PAX} × 1.350.000 = 2.700.000, giảm giá 0, đơn giá = giá danh mục, ghi chú dịch vụ đã lưu`, async () => {
     await mob.ev(setInput("document.getElementById('customerName')", CUSTOMER));
     await mob.ev(setInput("document.getElementById('customerPhone')", "0903 555 777"));
     await mob.ev(setInput("document.getElementById('orderDate')", vnDate(3)));
+    await mob.ev(setInput(O_GHI_CHU_GON, GHI_CHU_GON));
     await sleep(200);
     await mob.ev("document.getElementById('save').click(); true");
     try {
@@ -315,12 +354,42 @@ try {
     const items = o.services[0].items.map((i) => [i.paxCode, i.quantity, i.unitPrice, i.catalogPrice]);
     assert.deepEqual(items, [["adult", PAX, TD101_ADULT, TD101_ADULT]], `dòng tiền — ${JSON.stringify(items)}`);
     assert.equal(o.services[0].departDate, vnDate(3), "ngày đi đã lưu");
+    assert.equal(o.services[0].note, GHI_CHU_GON, `ghi chú dịch vụ gõ ở dòng Ghi chú gọn đã lưu — ${JSON.stringify(o.services[0].note)}`);
     assert.deepEqual(await mob.ev("window.__dialogs"), [], "không bật hộp thoại confirm/alert nào");
     assert.deepEqual(mob.consoleErrors, [], `lỗi console: ${mob.consoleErrors}`);
     noteErrorLogs(mob, "Đối tác /order-form → /order điện thoại");
     console.log(`    đơn ${o.orderCode} (${o.status}): tạm tính ${o.subtotal}, giảm giá ${o.discount}, tổng ${o.total}, dòng ${JSON.stringify(items)}, ngày đi ${o.services[0].departDate}`);
   });
   mob.close();
+
+  // 3g (Task 1, §4.2): mở lại nháp CŨ — lập bằng API với giờ khởi hành 08:00, có mặt 07:30 tại «Cảng Vinpearl», ghi chú «Đón 7h sáng» (như nháp lập từ máy văn phòng, trước khi có form gọn).
+  // Form gọn ẩn khối chuyến nhưng không được làm mất ba giá trị đó: sửa mỗi ghi chú rồi Lưu thay đổi → đơn mang ghi chú mới, giờ khởi hành, giờ có mặt, nơi có mặt còn NGUYÊN.
+  await step("3g", "Đối tác (máy tính 1040): mở lại nháp cũ → dòng Ghi chú hiện chữ đã lưu, khối chuyến ẩn; sửa ghi chú + Lưu thay đổi → giờ khởi hành 08:00, có mặt 07:30 tại Cảng Vinpearl còn nguyên", async () => {
+    const GHI_CHU_CU = "Đón 7h sáng";
+    const GHI_CHU_MOI = "Đón 7h30 tại khách sạn";
+    const tao = await call(PARTNER, "POST", "/api/orders", {
+      customerName: "Khách Nháp Cũ", customerPhone: "0903 555 999", customerEmail: "", customerNote: "", discount: 0, depositAmount: 0, depositMethod: null, paymentNote: "",
+      services: [{ kind: "catalog", pickupChoice: "KHONG_DON", catalogCode: "TD101", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: TD101_ADULT }, departDate: vnDate(3), departTime: "08:00", pickupTime: "", pickupPlace: "", checkinDate: "", checkinTime: "07:30", checkinPlace: "Cảng Vinpearl", note: GHI_CHU_CU }],
+    });
+    assert.equal(tao.status, 201, `lập nháp cũ bằng API: ${tao.status} ${JSON.stringify(tao.json)}`);
+    const id = tao.json.order.id;
+    const p = await openAs(PARTNER, `/order-form?id=${encodeURIComponent(id)}`, DESK);
+    await p.waitFor(`document.querySelectorAll('#services .svc').length === 1 && !!${O_GHI_CHU_GON}`, "thẻ dịch vụ của nháp cũ dựng xong, có dòng Ghi chú gọn", 15000);
+    const s = await formState(p);
+    assert.equal(s.tripKhoi?.hien, false, `khối “Thông tin chuyến” ẨN ở nháp cũ — ${JSON.stringify(s.tripKhoi)}`);
+    assert.equal(s.ghiChuGon?.value, GHI_CHU_CU, `dòng Ghi chú hiện chữ đã lưu — ${JSON.stringify(s.ghiChuGon)}`);
+    await p.ev(setInput(O_GHI_CHU_GON, GHI_CHU_MOI));
+    await sleep(200);
+    await p.ev("document.getElementById('save').click(); true");
+    await p.waitFor("location.pathname === '/order' && !!new URLSearchParams(location.search).get('id')", "chuyển tới /order?id=… sau khi Lưu thay đổi", 15000);
+    const r = await call(PARTNER, "GET", `/api/orders/${id}`);
+    assert.equal(r.status, 200, `Đối tác đọc lại đơn của mình: ${r.status}`);
+    const sv = r.json.order.services[0];
+    assert.deepEqual([sv.note, sv.departTime, sv.checkinTime, sv.checkinPlace], [GHI_CHU_MOI, "08:00", "07:30", "Cảng Vinpearl"], `ghi chú mới, ba giá trị cũ còn nguyên — ${JSON.stringify([sv.note, sv.departTime, sv.checkinTime, sv.checkinPlace])}`);
+    assert.deepEqual(p.consoleErrors, [], `lỗi console: ${p.consoleErrors}`);
+    noteErrorLogs(p, "Đối tác mở lại nháp cũ /order-form?id=…");
+    p.close();
+  });
 
   if (AXE) {
     await step("5", "axe (Đối tác, /order-form máy tính, sau khi chọn TD101): 0 vi phạm critical/serious", async () => {
@@ -346,8 +415,12 @@ try {
       services: [{ kind: "catalog", pickupChoice: "DON", catalogCode: "TD101", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: TD101_ADULT }, departDate: vnDate(3), departTime: "", pickupTime: "07:30", pickupPlace: "Khách sạn Biển Xanh", checkinDate: "", checkinTime: "", checkinPlace: "", note: "" }],
     });
     assert.equal(r.status, 201, `lập đơn: ${JSON.stringify(r.json)}`);
-    const c = await call(ai, "POST", `/api/orders/${r.json.order.id}/status`, { status: "confirmed" });
+    // ADR-0135/0136: tài khoản giữ quyền Đối tác KHÔNG xác nhận bằng `/status` (409 partner_submit_required) mà bằng nút Gửi đơn = `/gui-don`; đơn không cờ cần xác nhận, giờ đón xa hơn mốc ⇒ nhánh B (xác nhận ngay).
+    const c = ai === PARTNER
+      ? await call(ai, "POST", `/api/orders/${r.json.order.id}/gui-don`)
+      : await call(ai, "POST", `/api/orders/${r.json.order.id}/status`, { status: "confirmed" });
     assert.equal(c.status, 200, `xác nhận đơn: ${c.status} ${JSON.stringify(c.json)}`);
+    if (ai === PARTNER) assert.equal(c.json?.nhanh, "B", `Gửi đơn tự xác nhận (nhánh B): ${JSON.stringify(c.json)}`);
     // Đối chứng máy chủ: sửa chuyến / đổi khách của đơn này bị từ chối (403) — đúng lý do giao diện phải ẩn hai nút.
     const trip = await call(ai, "PUT", `/api/orders/${r.json.order.id}/booker`, { expectedUpdatedAt: "x" });
     assert.equal(trip.status, 403, `máy chủ từ chối đổi khách: ${trip.status}`);
@@ -366,7 +439,8 @@ try {
     }))()`);
   // D5 (bản vẽ M3, ADR-0047 Phần B 2026-10-01): Đối tác, Thực tập (đơn mình lập) còn sửa được danh sách hành khách — câu khoá nói đúng điều đó, vẫn không hứa sửa chuyến.
   const LOCK_KHONG_SUA_CHUYEN = "Đơn đã xác nhận: dịch vụ và đơn giá đã khoá. Còn sửa được danh sách hành khách."; // phiếu kiểm A2 V-1
-  const TABS = [["Đơn hàng", "/orders", "page"], ["Tạo đơn", "/order-form", null], ["Tôi", "/account", null]];
+  // Thanh tab điện thoại nay có «Hỗ trợ» (đã có sẵn trên main trước đợt này; chốt cũ chỉ ba tab, kịch bản đỏ vì chốt cũ chứ không vì mã của đợt này).
+  const TABS = [["Đơn hàng", "/orders", "page"], ["Tạo đơn", "/order-form", null], ["Hỗ trợ", "/feedback", null], ["Tôi", "/account", null]];
   const goiHandlers = (p) => p.requests.filter((r) => r.url.includes("/api/dispatch/handlers")).map((r) => r.url);
   const goiDashboard = (p) => p.requests.filter((r) => r.url.includes("/api/orders/dashboard") || r.url.includes("/api/orders/dem-nhap")).map((r) => r.url); // ADR-0102: huy hiệu nay qua /api/orders/dem-nhap
   const kiemTrangDon = async (p, nhan) => {

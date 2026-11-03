@@ -1,7 +1,7 @@
 // Khối "Đưa đón" của thẻ dịch vụ (bản vẽ docs/design/2026-10-01-dua-don-hanh-khach/the-dua-don.dc.html — M1, M4, M6). Mô hình THUẦN của bản nháp chặng:
 // giá trị ô nhập, chữ gợi ý nhỏ, lỗi dòng, liên kết chiều về ↔ chiều đi, dời ngày, thân `LegInput`. Không DOM. Luật chặng thật ở chang-dua-don.ts (máy chủ
 // vẫn là nơi quyết định); mẫu gợi ý ở chang-mac-dinh.ts.
-import { CHIEU_LABEL, CHO_TOI_THIEU_MAX, CHO_TOI_THIEU_MIN, doiNgayChang, NOI_DON_CHUA_GHI } from "./chang-dua-don.ts";
+import { CHIEU_LABEL, CHO_TOI_THIEU_MAX, CHO_TOI_THIEU_MIN, changDauCuaDichVu, doiNgayChang, NOI_DON_CHUA_GHI } from "./chang-dua-don.ts";
 import { changMacDinh, type MauChang } from "./chang-mac-dinh.ts";
 import type { LegDirection, LegDto, LegInput } from "./contracts.ts";
 import type { KhungGio } from "./khung-gio-don.ts";
@@ -231,11 +231,33 @@ export const nhanNoiChang = (chon: string, chu: string, nhanLuu: string | null |
  * Dòng tóm tắt của chặng gọn: "Chiều đi · Đón 07:30 · Khách sạn ABC → Cảng Vinpearl" (chưa chốt giờ: "Chưa chốt giờ"; chưa chọn nơi trả: bỏ phần "→ …"). `nhanTheoId` tra nhãn ngắn của điểm danh mục
  * theo id (null = không biết → dùng nhãn đã lưu của chặng, rồi chữ "Điểm đã ngưng"); nơi "Gõ tự do" lấy địa chỉ đã gõ.
  */
-export function tomTatChang(l: ChangNhap, nhanTheoId: (id: string) => string | null): string {
+export function tomTatChang(l: ChangNhap, nhanTheoId: (id: string) => string | null, anGio = false): string {
   const don = nhanNoiChang(l.don, l.donTuDo, l.goc?.pickupLabel, nhanTheoId);
   const tra = nhanNoiChang(l.tra, l.traTuDo, l.goc?.dropoffLabel, nhanTheoId);
-  const gio = l.pickupTime !== "" ? `Đón ${l.pickupTime}` : "Chưa chốt giờ";
+  // Form đối tác (ADR-0154 Đ1.1) không có ô giờ: dòng tóm tắt không ghi giờ nào (kể cả giờ gợi ý đối tác chưa từng thấy) mà nói ai lo giờ.
+  const gio = anGio ? CAU_VAN_PHONG_BAO_GIO : l.pickupTime !== "" ? `Đón ${l.pickupTime}` : "Chưa chốt giờ";
   return [CHIEU_LABEL[l.direction], gio, `${don}${tra !== "" ? ` → ${tra}` : ""}`].join(" · ");
+}
+
+/** Câu thay giờ đón trên form đối tác (ADR-0154 Đ1.1, C1: văn phòng tự báo giờ với khách qua điện thoại). */
+export const CAU_VAN_PHONG_BAO_GIO = "Văn phòng sẽ báo giờ đón";
+
+/**
+ * Chặng form đối tác GỬI LÊN (ADR-0154 Đ1.1, Đ1.2, câu đã áp số 1 và 5): form không còn ô giờ nên lượt ĐẦU của dịch vụ luôn gửi TRỐNG giờ (và cuối khung) — nháp cũ đã lưu giờ lượt đầu cũng bị xoá khi
+ * lưu lại bằng form gọn. Lượt đầu chọn bằng `changDauCuaDichVu` (chiều đi trước chiều về, rồi ngày, giờ có trước trống…) — MỘT hàm với máy chủ. Lượt của form dùng `""` và chưa có `id`, nên phải
+ * chuẩn hoá TRƯỚC khi xếp (`id` = khoá cục bộ, ngày trống = ngày đi như máy chủ điền ở R4b, giờ trống = null) để trình duyệt và máy chủ chọn cùng một lượt. Xoá giờ làm «giờ có trước trống»
+ * đẩy một lượt khác có giờ lên đầu, nên LẶP tới khi lượt đầu trống giờ. Lượt còn lại giữ nguyên (giờ gợi ý chiều về: văn phòng thấy và sửa ở bảng Còn vé). Trả mảng MỚI cùng thứ tự; lượt không đổi là
+ * chính đối tượng cũ. Chỉ để gửi: máy chủ không dựa vào đây (Đ1.7 — giờ gửi thẳng qua API vẫn qua cổng 6 giờ).
+ */
+export function legsGuiFormGon<T extends ChangNhap>(legs: readonly T[], ngayDi: string): T[] {
+  const out = [...legs];
+  for (let lan = 0; lan <= out.length; lan++) {
+    const dau = changDauCuaDichVu(out.map((l) => ({ id: l.key, direction: l.direction, pickupDate: l.pickupDate || ngayDi || null, pickupTime: l.pickupTime || null })));
+    if (dau === null || dau.pickupTime === null) break;
+    const i = out.findIndex((l) => l.key === dau.id);
+    out[i] = { ...out[i]!, pickupTime: "", pickupSlotEnd: "" };
+  }
+  return out;
 }
 
 /** Ô "Số hiệu chuyến bay" hiện khi nơi đón / nơi trả là sân bay, hoặc chặng đã có số hiệu (không giấu dữ liệu đã lưu). */

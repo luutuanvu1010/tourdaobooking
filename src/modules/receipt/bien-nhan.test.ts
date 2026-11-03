@@ -15,7 +15,7 @@ const coLo = (json: string) => json.includes(LA) || json.includes("480.017");
 const COMPANY: CompanyDto = { name: "CÔNG TY TNHH TOUR ĐẢO", taxCode: "4201969169", address: "Nha Trang", hotline: "0845 256 256", email: null };
 
 const donBiMat = (): OrderDetailDto => ({
-  id: `ord-${LA}`, orderCode: "TD-20260930-0001", staffId: `stf-${LA}`, staffName: `NV ${LA}`, bookerPartyId: `pty-${LA}`, bookerName: `Đại lý ${LA}`, bookerLaDoiTac: true,
+  id: `ord-${LA}`, orderCode: "TD-20260930-0001", staffId: `stf-${LA}`, staffName: `NV ${LA}`, bookerPartyId: `pty-${LA}`, bookerName: `Đại lý ${LA}`, bookerLaDoiTac: true, manifestExempt: false,
   status: "confirmed", customerName: "Trần Văn Bình", customerPhone: "0901234567", customerEmail: null, customerNote: null,
   subtotal: 1_000_000, discount: 0, total: 1_000_000, giamGiaHieuLuc: 0, paymentNote: `ghi chú thanh toán ${LA}`, createdAt: "2026-09-30T01:00:00.000Z", updatedAt: `upd-${LA}`,
   confirmedAt: `cf-${LA}`, deliveredAt: null, completedAt: null,
@@ -250,7 +250,7 @@ async function don(w: W, o: { owner?: string; booker?: string | null; dichVu: Dv
   return id;
 }
 const thuR = async (w: W, as: string, id: string, body: Record<string, unknown>) => {
-  const r = await w.call("POST", `/api/orders/${id}/payments`, { as, body: { hinhThuc: "CASH", ...body } });
+  const r = await w.call("POST", `/api/orders/${id}/payments`, { as, body: { hinhThuc: "CASH", boQuaTrung: { ma: "lan_thu_tien_mat", lyDo: "Khách trả hai lần thật" }, ...body } }); // ADR-0092 Đ6a: ca gieo có thể có hai khoản giống nhau
   assert.equal(r.status, 201, r.text);
 };
 const bienNhan = async (w: W, id: string, as = R_SALES) => {
@@ -371,4 +371,16 @@ test("Task 8 đơn NHÁP (route thật — «Xem biên nhận» mở ngay sau kh
   const b = (await bienNhan(w, le)).json.receipt;
   assert.deepEqual(b.phan.map((p: { nguoiBan: string; dichVu: string[]; tong: number }) => [p.nguoiBan, p.dichVu, p.tong]), [[b.company.name, ["Thuê thuyền riêng"], 700_000], ["i-resort", ["Vé tắm bùn i-resort"], 300_000]]);
   assert.equal(b.phan.reduce((t: number, p: { tong: number }) => t + p.tong, 0), b.total);
+});
+
+test("Giảm trừ sau khi giao, đơn hai người bán: trừ vào phần Tour Đảo trước, phần sau chịu phần dư; Σ tong = total − giamTru; Σ conLai = 0 khi đã thu đủ phần sau giảm trừ", () => {
+  const a = chiaPhanBienNhan(donTron(), COMPANY.name, banTron(), { daTra: 1_300_000, giamTru: 300_000, theoThuCho: new Map([[CT, 700_000], [NCC_ID, 600_000]]) });
+  assert.deepEqual(a.map((p) => [p.tong, p.giamTru, p.daTra, p.conLai]), [[700_000, 300_000, 700_000, 0], [600_000, undefined, 600_000, 0]]);
+  const tongDon = 1_600_000;
+  assert.equal(a.reduce((s, p) => s + p.tong, 0), tongDon - 300_000);
+  // Giảm trừ lớn hơn phần Tour Đảo ⇒ tràn sang phần sau; không phần nào âm.
+  const b = chiaPhanBienNhan(donTron(), COMPANY.name, banTron(), { daTra: 500_000, giamTru: 1_100_000, theoThuCho: new Map([[NCC_ID, 500_000]]) });
+  assert.deepEqual(b.map((p) => [p.tong, p.giamTru, p.conLai]), [[0, 1_000_000, 0], [500_000, 100_000, 0]]);
+  // Không có giảm trừ: y như cũ.
+  assert.deepEqual(chiaPhanBienNhan(donTron(), COMPANY.name, banTron(), { daTra: 0 }).map((p) => p.giamTru), [undefined, undefined]);
 });

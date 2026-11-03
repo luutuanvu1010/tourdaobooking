@@ -14,7 +14,7 @@ const PARTNER = "88888888-8888-4888-8888-888888888888";
 const AT = "2026-09-01T00:00:00.000Z";
 const NHAN = "LE_TAN_SPA_HOA_SEN";
 const TEN_NHAN = "Lễ tân spa Hoa Sen";
-const CAU = "Nhân viên nội bộ không mang loại đối tác được hưởng hoa hồng.";
+const CAU = "Nhân viên nội bộ không mang vai trò đối tác được hưởng hoa hồng.";
 
 function nen() {
   const w = world();
@@ -126,7 +126,7 @@ function chanDungLyDo(w: any, k: any, a: string, ten: string) {
   assert.equal(k.xem.status, 200, `${ten} xem trước: ${k.xem.text}`);
   const ma = k.xem.json.chan.map((c: any) => c.code);
   assert.ok(ma.includes("merge_partner_label_internal"), `${ten}: chan = ${JSON.stringify(ma)}`);
-  assert.equal(k.gop.json.error.message, "Gộp xong, hồ sơ chính vừa là nhân viên nội bộ vừa mang loại đối tác — không được.");
+  assert.equal(k.gop.json.error.message, "Gộp xong, hồ sơ chính vừa là nhân viên nội bộ vừa mang vai trò đối tác được hưởng hoa hồng — không được.");
   assert.deepEqual(k.vaiSau, k.vaiTruoc, `${ten}: không dòng vai nào đổi`);
   assert.equal(w.q("SELECT merged_into_id m FROM pty_party WHERE id = ?", a)[0].m, null, `${ten}: hồ sơ phụ chưa gộp`);
 }
@@ -175,7 +175,7 @@ test("Ruling 7: gắn loại đối tác KÈM ngày kết thúc → 400, không 
   const r = await w.call("POST", `/api/parties/${le.partyId}/roles`, { as: ADM, body: { roleTypeCode: NHAN, validTo: "2027-06-30" } });
   assert.equal(r.status, 400, `loại kèm ngày kết thúc: ${r.status} ${r.text}`);
   assert.equal(r.json.error.code, "invalid_input");
-  assert.equal(r.json.error.message, "Loại đối tác không đặt trước ngày kết thúc — khi thôi thì bấm “Kết thúc”.");
+  assert.equal(r.json.error.message, "Vai người dùng không đặt trước ngày kết thúc — khi thôi thì bấm “Kết thúc”.");
   assert.equal(w.q("SELECT count(*) n FROM pty_party_role WHERE party_id = ? AND role_type_code = ?", le.partyId, NHAN)[0].n, 0, "không chèn dòng loại");
   // Đối chứng: không ngày kết thúc → 201; sau đó chiều 2 (PUT roles sang SALES_STAFF) bị chặn như thường.
   assert.equal((await ganNhan(w, le.partyId)).status, 201);
@@ -201,7 +201,7 @@ test("Ruling 8: kết thúc loại đối tác vào ngày TƯƠNG LAI → 400, d
   const r = await ketThuc(w, le.partyId, rid, "2027-06-30");
   assert.equal(r.status, 400, `kết thúc tương lai: ${r.status} ${r.text}`);
   assert.equal(r.json.error.code, "invalid_input");
-  assert.equal(r.json.error.message, "Loại đối tác kết thúc ngay hôm nay hoặc ngày đã qua — không đặt ngày trong tương lai.");
+  assert.equal(r.json.error.message, "Vai người dùng kết thúc ngay hôm nay hoặc ngày đã qua — không đặt ngày trong tương lai.");
   assert.equal(w.q("SELECT valid_to_date v FROM pty_party_role WHERE id = ?", rid)[0].v, null, "dòng loại vẫn mở");
   const doi = await w.call("PUT", `/api/staff/${le.staffId}/roles`, { as: SUP, body: { roles: ["SALES_STAFF"] } });
   assert.equal(doi.status, 409, `chiều 2: ${doi.status} ${doi.text}`);

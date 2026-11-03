@@ -7,16 +7,20 @@ import type { DongBoChuyenDto, IncompleteTripBody, LyDoCanXacNhan, OrderDetailDt
 import { can, holdsIntern, holdsPartner } from "../../shared/permissions";
 import { error, json } from "../../shared/http";
 import { vnToday } from "../../shared/vn-date";
+import { maskLongDigits } from "../../shared/text-guards";
 import { parseUnit } from "../../shared/order-lines";
 import type { DongBoTheoDon } from "../../shared/dong-bo-chuyen";
 import { CAU_THIEU_NGUOI_LON, donThieuNguoiLon } from "../../shared/nguoi-di-kem";
 import { cauThieuChonDon, thieuChonDon } from "../../shared/cong-chon-don";
 import type { MocToiThieu } from "../../shared/moc-toi-thieu";
 import { canXacNhan, duocQuyetDinh, quaHanXacNhan } from "../../shared/xac-nhan-don";
+import { thieuGioChangDau } from "../../shared/chang-dua-don";
 import { canhBaoMocCua } from "./dat-gap";
-import { coHienHanh, nhomTheoMa, tuXacNhanNoiBo, yeuCauMoCuaDon } from "./xac-nhan-repo";
+import { coHienHanh, nhomTheoMa, tuXacNhanNoiBo, yeuCauMoCuaDon, type YeuCauRow } from "./xac-nhan-repo";
 import { legDatGapByOrder } from "./chang-hanh-khach-repo";
-import { findOrder, getMeta, getStoredServices } from "./repository";
+import { KHONG_COC, findOrder, getMeta, getStoredServices, type KemCoc } from "./repository";
+import { CAU_VUOT_TONG, vuotTong } from "../../shared/dat-coc-truoc";
+import type { CauCocXacNhan, VaoCauCoc } from "../../shared/dat-coc-kieu";
 import { viPhamGiaDanhMuc, viPhamTranGiamGia } from "./price-guards";
 import { cauChupChuoi } from "./thuong-mai-repo";
 import { donChoTran, dongGhiTuChup, moTaChup } from "./thuong-mai";
@@ -125,6 +129,28 @@ export const kemChupXacNhan = (db: D1Database, i: { orderId: string; staffId: st
 ];
 
 /**
+ * ADR-0159 Đ1 mục 3, 4: cổng và câu khoản thu của lời khai «Khách đặt cọc trước» — MỘT hàm cho MỌI đường xác nhận (bài src/dat-coc-noi-goi.test.ts). Khai 0 ⇒ không câu nào, không hỏi hàm tiêm.
+ * Vượt tổng ⇒ 409 (`cauVuot` theo người đọc). Gốc lắp ráp không tiêm, hoặc hàm dựng ném lỗi ⇒ 503, KHÔNG xác nhận (đoán «không có cọc» là mất tiền âm thầm). Đối tượng `order` phải đọc SAU `getMeta`: đơn đổi sau đó thì lô thua khoá.
+ */
+export async function cocChoXacNhan(
+  cauCoc: (i: VaoCauCoc) => Promise<CauCocXacNhan | null>,
+  i: { order: { id: string; orderCode: string; staffId: string; total: number; declaredDeposit: number }; nguoiBamId: string; chup: readonly BanChup[]; today: string; cauVuot?: string },
+): Promise<{ loi: Response } | { coc: KemCoc }> {
+  const soTien = i.order.declaredDeposit;
+  if (soTien === 0) return { coc: KHONG_COC };
+  if (vuotTong(soTien, i.order.total)) return { loi: error(409, "declared_deposit_exceeds_total", i.cauVuot ?? CAU_VUOT_TONG) };
+  const ROI = () => ({ loi: error(503, "dat_coc_chua_dung_duoc", "Chưa ghi được khoản khách đặt cọc trước nên chưa xác nhận đơn — báo người phụ trách hệ thống.") });
+  let kq: CauCocXacNhan | null;
+  try {
+    kq = await cauCoc({ orderId: i.order.id, orderCode: i.order.orderCode, nguoiLapId: i.order.staffId, nguoiBamId: i.nguoiBamId, soTien, chup: i.chup, homNay: i.today });
+  } catch {
+    return ROI();
+  }
+  if (!kq) return ROI();
+  return kq.ok ? { coc: kq.cau } : { loi: error(kq.status, kq.code, kq.message) };
+}
+
+/**
  * Dịch LỖI do trigger khi chạy lô xác nhận → phản hồi, hoặc `null` (lỗi lạ: nơi gọi ném tiếp). F-03 (0081): tạm tính lệch Σ thành tiền dòng; bảng mức / điều khoản
  * đổi giữa lúc đọc và lúc ghi (`terms_rule_stale` / `terms_term_stale`) — cả lô rơi, đơn vẫn nháp; dịch vụ đổi mã giữa lúc đọc và lúc ghi (`terms_service_mismatch`).
  */
@@ -133,6 +159,9 @@ export function dichLoiXacNhan(e: unknown): Response | null {
     return error(409, "order_subtotal_mismatch", "Tiền của đơn chưa khớp các dòng dịch vụ — mở đơn, bấm Lưu rồi xác nhận lại.");
   }
   const loi = e instanceof Error ? e.message : String(e);
+  // ADR-0159: lớp CSDL của lời khai và khoá tháng của câu khoản thu đặt cọc — cả lô rơi, đơn ở lại nháp.
+  if (/\bdeclared_deposit_exceeds_total:/.test(loi)) return error(409, "declared_deposit_exceeds_total", CAU_VUOT_TONG);
+  if (/\bperiod_closed:/.test(loi)) return error(409, "period_closed", "Tháng này đã khoá sổ nên chưa ghi được khoản khách đặt cọc trước — báo Kế toán.");
   if (/\bterms_(rule|term)_stale:/.test(loi)) return error(409, "bang_muc_doi", "Bảng mức vừa đổi — thử lại");
   if (/\bterms_service_mismatch:/.test(loi)) return STALE();
   return null;
@@ -187,6 +216,19 @@ export async function tinhCanXacNhan(db: D1Database, order: DonXacNhan, moc: Moc
 }
 
 /**
+ * ADR-0154 Đ1.2: người lập giữ quyền Đối tác (kể cả lai) mà LƯỢT ĐẦU của một dịch vụ chọn Đón chưa có giờ ⇒ «Gửi đơn» luôn vào nhánh A (cờ «cần chốt giờ»). MỘT luật cho route Gửi đơn VÀ khối `xacNhan`
+ * của chi tiết đơn (`canXacNhan`: trang đơn dựa vào đó để biết đơn nháp này thuộc diện phải chờ văn phòng, chưa có ảnh xác nhận). Không nằm trong `tinhCanXacNhan` (đơn văn phòng không đổi).
+ */
+export const canChotGioCuaNguoiLap = (nguoiLap: Pick<StaffProfile, "permissions">, services: DonXacNhan["services"]): boolean => holdsPartner(nguoiLap) && thieuGioChangDau(services).length > 0;
+
+/**
+ * Lý do của MỘT yêu cầu đang mở = lý do TÍNH ĐƯỢC (`tinhCanXacNhan`, theo cờ dịch vụ / mốc hôm nay) cộng `CHOT_GIO` khi yêu cầu mang cờ «cần chốt giờ» (ADR-0154 Đ1.2). Cờ là DỮ LIỆU CHỤP lúc
+ * Gửi đơn — không tính lại theo giờ đang lưu, để người xét thấy lý do đúng như lúc người lập gửi. Dùng ở danh sách chờ và khối `xacNhan` của chi tiết đơn.
+ */
+export const viCuaYeuCau = (y: Pick<YeuCauRow, "pickup_time_required">, viTinh: readonly LyDoCanXacNhan[]): LyDoCanXacNhan[] =>
+  y.pickup_time_required === 1 && !viTinh.includes("CHOT_GIO") ? [...viTinh, "CHOT_GIO"] : [...viTinh];
+
+/**
  * KHOÁ KHI CHỜ (Đ3): đơn nháp đang có yêu cầu xác nhận mở ⇒ người lập không sửa / xác nhận / huỷ được — phải Rút lại. Gọi ngay SAU cổng 404 của nháp (`ghiDuocNhap`)
  * ở mọi route ghi của người lập, TRƯỚC các 409 khác (nếu không ca "sửa khi chờ" thấy `use_order_form`). Đơn đã xác nhận / huỷ: không truy vấn.
  */
@@ -198,8 +240,14 @@ export async function khoaKhiCho(db: D1Database, orderId: string, status: OrderS
 /**
  * Đ6: chi tiết đơn ĐANG CHỜ cho người xét duyệt KHÔNG phải người lập — bỏ SĐT, email, tên khách, ghi chú khách, ghi chú thanh toán (liên hệ người đặt vốn không nằm trong DTO này, chỉ có
  * `bookerName`). Dịch vụ, ngày, số khách, giờ đón, tiền giữ nguyên. Hành khách (họ tên, năm sinh) không bao giờ nằm trong DTO đơn — route `…/passengers` vẫn 404.
+ * ADR-0154 Đ1.6: `cheGhiChu` (người lập đơn HIỆN GIỮ quyền Đối tác — `nguoiLapGiuDoiTac`) thì ghi chú từng dịch vụ đi qua `maskLongDigits` (đối tác hay dán SĐT khách vào ô ghi chú); đơn
+ * của nhân viên công ty giữ nguyên chữ. Tham số BẮT BUỘC để hai nơi gọi (chi tiết đơn đang chờ, phản hồi đặt gấp của người xét) không quên tính cờ. Dựng đối tượng MỚI, không sửa `o`.
  */
-export const catChoXetDuyet = (o: OrderDetailDto): OrderDetailDto => ({ ...o, customerName: "", customerPhone: "", customerEmail: null, customerNote: null, paymentNote: null });
+export const catChoXetDuyet = (o: OrderDetailDto, tuyChon: { cheGhiChu: boolean }): OrderDetailDto => ({
+  ...o,
+  customerName: "", customerPhone: "", customerEmail: null, customerNote: null, paymentNote: null,
+  services: tuyChon.cheGhiChu ? o.services.map((s) => ({ ...s, note: s.note === null ? null : maskLongDigits(s.note) })) : o.services,
+});
 
 /**
  * Khối `xacNhan` của `GET /api/orders/:id` (Task 3.5): giao diện KHÔNG suy ra «đang chờ», «cần xác nhận», «quyết định được» — máy chủ quyết theo người xem, cùng hàm với các route
@@ -217,8 +265,8 @@ export async function xacNhanTrenDon(db: D1Database, i: { staff: StaffProfile; o
   const don = await findOrder(db, i.order.id);
   if (don) {
     const kq = await tinhCanXacNhan(db, don, i.moc, i.nowMs);
-    vi = kq.vi;
-    canXN = laNguoiLap && kq.can;
+    vi = y ? viCuaYeuCau(y, kq.vi) : kq.vi;
+    canXN = laNguoiLap && (kq.can || canChotGioCuaNguoiLap(i.staff, don.services)); // ADR-0154 Đ1.2: cùng luật với route Gửi đơn
   }
   const quyetDinhDuoc = y !== null && duocQuyetDinh({
     laNguoiLap, laNoiBo: !holdsPartner(i.staff) && !holdsIntern(i.staff), coQuyenXetDuyet,

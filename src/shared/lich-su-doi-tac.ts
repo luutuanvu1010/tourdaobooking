@@ -54,10 +54,10 @@ export const LICH_SU_DOI_TAC_AN = [
   "order_handler_changed", "order_claimed", "order_handler_refused", "booker_changed", "exported_png", "exported_pdf",
   // Sổ tiền, cọc đơn huỷ, đối soát
   "ledger_company_received", "ledger_counterparty_confirmed", "ledger_settlement", "ledger_refund", "ledger_adjustment", "ledger_adjustment_requested", "ledger_adjustment_approved", "ledger_adjustment_rejected", "ledger_adjustment_withdrawn", "ledger_adjustment_affected",
-  "ledger_receipt_replaced", "ledger_reversal", "ledger_bank_txn_linked",
+  "ledger_receipt_replaced", "ledger_receipt_collector_changed", "ledger_duplicate_overridden", "attribution_requested", "attribution_ruled", "attribution_posted", "attribution_reassigned", "attribution_reversed", "attribution_responded", "ledger_reversal", "ledger_bank_txn_linked",
   "deposit_refund_approved", "deposit_transfer_approved", "deposit_approval_voided", "deposit_refund_paid", "deposit_transferred_out", "deposit_transferred_in",
   "deposit_outside_recorded", "deposit_outside_confirmed", "deposit_outside_rejected", "prc_commission_rule_added", "prc_commission_rule_closed", "prc_supply_term_added",
-  "prc_supply_term_closed", "prc_partner_type_added", "prc_partner_type_off", "prc_partner_type_on", "prc_sales_block_added", "prc_sales_block_ended", "prc_rate_tier_added", "prc_rate_tier_off", "prc_rate_tier_on",
+  "prc_supply_term_closed", "prc_partner_type_added", "prc_partner_type_off", "prc_partner_type_on", "prc_partner_type_renamed", "prc_partner_type_note", "prc_sales_block_added", "prc_sales_block_ended", "prc_rate_tier_added", "prc_rate_tier_off", "prc_rate_tier_on", "prc_rate_tier_renamed", "prc_rate_tier_note",
   "prc_role_tier_set", "prc_role_tier_closed", "prc_party_tier_set", "prc_party_tier_closed", "prc_commission_rule_voided", "prc_role_tier_voided", "prc_party_tier_voided", "ledger_period_closed",
   // Không gắn đơn: tài khoản, hồ sơ
   "staff_created", "staff_updated", "staff_suspended", "staff_reactivated", "staff_role_changed", "pin_reset", "pin_changed", "passkey_added", "passkey_removed",
@@ -83,7 +83,7 @@ export const LICH_SU_DOI_TAC_AN = [
   "trip_driver_refused", "trip_appt_called", "trip_appt_call_undone", "trip_cost_adjusted", "trip_cost_reversed", "trip_cost_snapshot", "trip_cost_agreed",
   "rental_rate_added", "rental_rate_closed", "route_saved", "vehicle_size_saved",
   // Địa điểm, danh mục, hệ thống, góp ý, thông báo
-  "location_created", "location_updated", "maintenance_changed", "manual_service_policy_changed", "pickup_slot_policy_changed", "confirm_flag_changed", "confirm_policy_changed", "order_confirm_requested", "order_confirm_withdrawn", "tro_ly_settings_changed", "giao_dien_changed", "client_outdated_body",
+  "location_created", "location_updated", "maintenance_changed", "manual_service_policy_changed", "pickup_slot_policy_changed", "confirm_flag_changed", "confirm_policy_changed", "partner_customer_policy_changed", "order_confirm_requested", "order_confirm_withdrawn", "tro_ly_settings_changed", "giao_dien_changed", "client_outdated_body",
   "catalog_synced", "catalog_overridden", "catalog_override_cleared", "catalog_hidden", "catalog_unhidden", "catalog_group_created", "catalog_group_updated",
   "catalog_group_assigned", "catalog_groups_seeded", "catalog_service_transfer_set", "ctl_attribute_created", "ctl_attribute_updated", "ctl_attribute_value_created", "ctl_attribute_value_updated", "ctl_service_attribute_set", "ctl_group_attribute_set", "feedback_created", "feedback_replied", "feedback_status_changed", "feedback_assigned",
   "feedback_claimed", "feedback_team_changed", "feedback_priority_changed", "feedback_team_created", "feedback_team_updated", "feedback_team_member_changed", "notice_sent", "notice_revoked",
@@ -91,6 +91,8 @@ export const LICH_SU_DOI_TAC_AN = [
   "notice_acknowledged",
   // ADR-0032 (hạn mức Từ chối — G3 kế hoạch 2026-10-23): ẩn như lớp nội bộ.
   "refuse_limit_hit", "refuse_policy_changed", "refuse_counter_reset",
+  // ADR-0153 (đề xuất): giữ chỗ / trả vé điện tử — loại dòng MỚI nên mặc định ẩn cho tới khi chủ xếp loại. Trang Nhật ký (Toàn quyền) vẫn đọc được.
+  "ve_giu_cho", "ve_tra_ve", "ve_xem_anh", "ve_mo_anh_lo_huy", "ve_giao", "ve_tao_duong_dan", "ve_thu_hoi_duong_dan", "ve_nhap_lo", "ve_xac_nhan_lo", "ve_sua_ma_tour", "ve_bo_lo", "ve_doi_tran_lo",
 ] as const satisfies readonly AuditAction[];
 
 /** Hành động mới trong `AUDIT_ACTIONS` chưa có ở danh sách nào ⇒ kiểu này khác `never` và dòng ngay dưới không biên dịch (`npm run typecheck` đỏ). */

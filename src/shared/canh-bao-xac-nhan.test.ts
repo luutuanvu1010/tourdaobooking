@@ -17,6 +17,19 @@ test("câu chữ đúng bản vẽ", () => {
   assert.equal(cauThieuTen(1), "Còn 1 khách chưa có tên — cần đủ trước khi xe chạy");
 });
 
+test("ADR-0154 Đ3: đơn mang dấu miễn danh sách — câu nói rõ «không cần đủ tên để xe chạy»; câu thường không đổi", () => {
+  assert.equal(cauThieuTen(2, true), "Còn 2 khách chưa có tên. Đơn này không cần đủ tên để xe chạy.");
+  assert.equal(cauThieuTen(2, false), "Còn 2 khách chưa có tên — cần đủ trước khi xe chạy");
+  assert.equal(cauThieuTen(2), cauThieuTen(2, false));
+  assert.deepEqual(canhBaoXacNhan([svc([leg()])], ten(3), true), [cauThieuTen(1, true)]);
+  assert.deepEqual(canhBaoXacNhan([svc([leg()])], ten(3), false), [cauThieuTen(1)]);
+  assert.deepEqual(canhBaoXacNhan([svc([leg()])], ten(3)), [cauThieuTen(1)]);
+  // Dấu chỉ đổi CÂU tên: nơi trả vẫn cảnh báo; đủ tên thì vẫn không cảnh báo; không biết số tên (null) vẫn bỏ.
+  assert.deepEqual(canhBaoXacNhan([svc([leg({ dropoffLocationId: null, dropoffLabel: null })])], ten(0), true), [CAU_CAN_NOI_TRA, cauThieuTen(4, true)]);
+  assert.deepEqual(canhBaoXacNhan([svc([leg()])], ten(4), true), []);
+  assert.deepEqual(canhBaoXacNhan([svc([leg()])], null, true), []);
+});
+
 test("đủ nơi trả, đủ tên → không cảnh báo", () => {
   assert.deepEqual(canhBaoXacNhan([svc([leg()])], ten(4)), []);
 });

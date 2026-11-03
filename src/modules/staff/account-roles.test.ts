@@ -32,7 +32,8 @@ function fakeD1(sqlite: DatabaseSync): D1Database {
     run: async () => ({ meta: { changes: sqlite.prepare(sql).run(...args).changes } }),
   });
   return {
-    prepare: (sql: string) => ({ bind: (...args: SupportedValueType[]) => bound(sql, args) }),
+    // Như D1 thật: câu không tham số gọi thẳng .all()/.first() không qua bind (tenVaiTaiKhoan → tenLoaiVai — Task 3b).
+    prepare: (sql: string) => ({ ...bound(sql, []), bind: (...args: SupportedValueType[]) => bound(sql, args) }),
     batch: async (stmts: Stmt[]) => {
       sqlite.exec("BEGIN");
       try {

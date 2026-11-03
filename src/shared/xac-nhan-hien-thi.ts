@@ -1,5 +1,6 @@
 // Chữ hiển thị của bước xác nhận đơn (ADR-0136, Task 3.5) — thuần, dùng ở giao diện. Hạn do MÁY CHỦ gửi (`hanXacNhan`, bỏ 22:00–06:00); ở đây chỉ đổi ra chữ, KHÔNG tính lại hạn.
-import type { LyDoCanXacNhan } from "./contracts.ts";
+import { CHIEU_LABEL, changDauCuaDichVu } from "./chang-dua-don.ts";
+import type { LegDto, LyDoCanXacNhan, OrderServiceDto } from "./contracts.ts";
 import { vnDateTimeText } from "./vn-date.ts";
 
 /** Nhãn nút (ADR-0136 Đ3, Đ13). «Gửi đơn» là chữ chủ đã duyệt; hai nhãn còn lại lấy từ kế hoạch Task 3.5. */
@@ -18,6 +19,7 @@ export const CAU_TIEN_KHOA_KHI_CHO = "Đơn đang chờ nên tiền chỉ để 
 const NHAN_VI: Record<LyDoCanXacNhan, string> = {
   DICH_VU: "Có dịch vụ cần xác nhận còn vé.",
   DAT_GAP: "Có lượt đón dưới hạn chốt, cần Quản trị đặt gấp.",
+  CHOT_GIO: "Có lượt đưa đón chưa có giờ đón, văn phòng cần ghi giờ.",
 };
 export const nhanLyDoCanXacNhan = (vi: readonly LyDoCanXacNhan[]): string => vi.map((v) => NHAN_VI[v]).join(" ");
 
@@ -35,3 +37,34 @@ export function dongChoXacNhan(i: { hanLuc: string; nowMs: number }): { text: st
 /** Câu báo ở trang nháp khi ĐÃ lưu mà Gửi đơn thất bại (Review Focus 14): không để người dùng tưởng đơn mất, và không bấm lại tạo nháp trùng. */
 export const cauLoiGuiDon = (loiMayChu: string): string =>
   loiMayChu ? `Đơn đã được lưu nháp nhưng chưa gửi được: ${loiMayChu}` : "Đơn đã được lưu nháp nhưng chưa gửi được. Hãy mở đơn và bấm Gửi đơn lại.";
+
+// ---- Bảng Còn vé: giờ đón theo từng lượt (ADR-0154 Đ1.3, Đ1.4) ----
+/** Báo tại chỗ khi lượt bắt buộc chưa có giờ (không gọi máy chủ). */
+export const CAU_THIEU_GIO_LUOT = "Chọn giờ đón cho lượt này.";
+/** Người xét KHÔNG có ô `order.leg.short_notice` (Kế toán, HDV nội bộ) chọn giờ dưới hạn chốt: nhờ người có ô bấm Còn vé kèm đặt gấp (máy chủ vẫn trả 409 như hôm nay). */
+export const CAU_NHO_DAT_GAP = "Giờ này đã qua hạn chốt. Nhờ Bán hàng hoặc Quản trị bấm Còn vé kèm đặt gấp.";
+/** Nhãn ô giờ của một lượt: «Giờ đón · Chiều đi · <tên dịch vụ> (bắt buộc)». */
+export const nhanGioLuot = (chieu: string, tenDichVu: string, batBuoc: boolean): string => `Giờ đón · ${chieu} · ${tenDichVu}${batBuoc ? " (bắt buộc)" : ""}`;
+/** Nhãn ghi chú dịch vụ, đứng trên khối giờ của dịch vụ đó. */
+export const nhanGhiChuDichVu = (tenDichVu: string): string => `Ghi chú · ${tenDichVu}`;
+
+export interface LuotGioConVe { leg: LegDto; batBuoc: boolean; nhanChieu: string }
+export interface DongGioConVe { serviceId: string; ghiChu: string | null; luot: LuotGioConVe[] }
+
+/**
+ * Khối giờ của bảng Còn vé, mỗi dịch vụ MỘT khối: ghi chú dịch vụ (người lập đối tác ghi giờ đón mong muốn vào đây) + MỌI lượt còn mở (có giờ hay chưa — người xét sửa được). `batBuoc` CHỈ khi yêu cầu mang cờ
+ * «cần chốt giờ» (`viCoChotGio`) VÀ lượt là LƯỢT ĐẦU của dịch vụ theo `changDauCuaDichVu` (một hàm với máy chủ — chiều đi trước chiều về, rồi ngày, giờ) VÀ lượt chưa có giờ; máy chủ cũng chỉ từ chối
+ * (409 `pickup_time_required`) đúng ca đó. Dịch vụ không lượt (Không đón) và không ghi chú thì không có khối. `legs` = chặng còn hiệu lực, giữ thứ tự máy chủ trả.
+ */
+export function dongGioConVe(services: readonly Pick<OrderServiceDto, "id" | "name" | "note" | "legs">[], viCoChotGio: boolean): DongGioConVe[] {
+  return services.flatMap((s) => {
+    const ghiChu = s.note !== null && s.note.trim() !== "" ? s.note : null;
+    if (s.legs.length === 0 && ghiChu === null) return [];
+    const dau = viCoChotGio ? changDauCuaDichVu(s.legs) : null;
+    return [{
+      serviceId: s.id,
+      ghiChu,
+      luot: s.legs.map((leg) => ({ leg, batBuoc: dau !== null && leg.id === dau.id && leg.pickupTime === null, nhanChieu: CHIEU_LABEL[leg.direction] })),
+    }];
+  });
+}

@@ -16,6 +16,10 @@ const TRANG_THANH_BEN_CU: readonly KhoaTrang[] = [
   "luatBan",
   // Đặc điểm dịch vụ (ADR-0152 Đ3, Đ5; T12, 30/10): catalog.attribute.assign hoặc admin.manage, không Đối tác.
   "dacDiem",
+  // Kho vé điện tử (ADR-0153 Đ3; Task 9a, 1/11): ô ve.kho.manage (Bán hàng, Quản trị, Toàn quyền), không Đối tác.
+  "veKho",
+  // Cài đặt vé điện tử (ADR-0156 Đ3, 2/11): ô settings.ops, chỉ Toàn quyền.
+  "veCaiDat",
 ];
 const holder = (permissions: readonly PermissionCode[]) => ({ id: "x", permissions });
 

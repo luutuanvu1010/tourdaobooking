@@ -17,7 +17,7 @@ Vai trò nào làm được việc gì, phạm vi tới đâu (của mình, đan
   },
   {
     tieuDe: "Vòng đời một đơn: nháp, xác nhận, huỷ",
-    noiDung: `Đơn mới luôn bắt đầu là đơn nháp: lưu được khi chưa đủ thông tin, sửa thoải mái. Khi đủ thông tin thì bấm xác nhận; đơn đã xác nhận không quay lại nháp. Đơn đã xác nhận vẫn sửa được thông tin chuyến (giờ đón, nơi đón, ghi chú) theo quyền. Huỷ đơn là trạng thái cuối, đơn huỷ không bị xoá mà vẫn nằm trong danh sách để tra lại.
+    noiDung: `Đơn mới luôn bắt đầu là đơn nháp: lưu được khi chưa đủ thông tin, sửa thoải mái. Khi đủ thông tin thì bấm xác nhận; đơn đã xác nhận không quay lại nháp. Đơn của đối tác thì bấm Gửi đơn; đối tác không nhập giờ đón, nên đơn có đón luôn chờ văn phòng chốt giờ rồi mới xác nhận. Đơn đã xác nhận vẫn sửa được thông tin chuyến (giờ đón, nơi đón, ghi chú) theo quyền. Huỷ đơn là trạng thái cuối, đơn huỷ không bị xoá mà vẫn nằm trong danh sách để tra lại.
 Tiền của đơn (thành tiền, tổng, còn lại) do máy chủ tự tính từ giá danh mục và số khách; không ai gõ tay được tổng tiền. Mỗi lần sửa đơn đều được ghi vào lịch sử của đơn: đổi gì, lúc nào; tên người sửa chỉ người phụ trách hệ thống xem được.`,
   },
   {
@@ -26,7 +26,7 @@ Tiền của đơn (thành tiền, tổng, còn lại) do máy chủ tự tính 
   },
   {
     tieuDe: "Hạn chốt và Đặt gấp",
-    noiDung: `Không xác nhận được đơn thường vì giờ đón đã qua hạn chốt (quá sát giờ hiện tại): đơn vẫn lưu nháp được nhưng chưa xác nhận được. Nhân viên bán hàng, Quản trị hoặc Toàn quyền bấm Đặt gấp cho lượt đưa đón đó và chọn lý do; sau đó người lập mới xác nhận được. Đặt gấp chỉ bấm được khi lượt đó thật sự đã qua hạn chốt; lượt có dấu mà bị dời ra xa thì mất dấu (không cần nữa). Hạn chốt này không tắt được. Trên trang đơn, dải cảnh báo "giờ đón đã qua hạn chốt" cho biết lượt đưa đón nào đang chờ đặt gấp; lượt đã đặt gấp mang nhãn "Điều chỉnh khẩn cấp".`,
+    noiDung: `Không xác nhận được đơn thường vì giờ đón đã qua hạn chốt (quá sát giờ hiện tại): đơn vẫn lưu nháp được nhưng chưa xác nhận được. Nhân viên bán hàng, Quản trị hoặc Toàn quyền bấm Đặt gấp cho lượt đưa đón đó và chọn lý do; sau đó người lập mới xác nhận được. Đặt gấp chỉ bấm được khi lượt đó thật sự đã qua hạn chốt; lượt có dấu mà bị dời ra xa thì mất dấu (không cần nữa). Hạn chốt này không tắt được. Trên trang đơn, dải cảnh báo "giờ đón đã qua hạn chốt" cho biết lượt đưa đón nào đang chờ đặt gấp; lượt đã đặt gấp mang nhãn "Điều chỉnh khẩn cấp". Với đơn của đối tác đang chờ, giờ do người xét chọn ở bảng Còn vé: Bán hàng, Quản trị và Toàn quyền bấm Đặt gấp ngay trong bảng khi giờ đã qua hạn chốt; Kế toán và hướng dẫn viên nội bộ chọn giờ sát thì phải nhờ họ.`,
   },
   {
     tieuDe: "Thông báo: chuông, dải tin quan trọng, điện thoại",

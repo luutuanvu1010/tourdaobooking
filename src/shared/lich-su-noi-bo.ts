@@ -4,6 +4,7 @@
 // (`anNguoiLam`: `staffId: null`, `staffName: ""`), kể cả dòng hệ thống và nhãn "Văn phòng" của dòng đặt gấp (ADR-0107 mục 8).
 // Ngoại lệ DUY NHẤT ngoài danh sách: dòng nhập phần mềm kế toán (`order_accounting_entry_*`) hiện khi người xem có ô `accounting.entry.view` của đơn (ADR-0060), đúng như
 // lớp Đối tác — vì thế hai mã này nằm ở `LICH_SU_NOI_BO_AN`, không ở `CHO_PHEP`.
+// Ngoại lệ thứ hai, chủ duyệt 2026-11-02: dòng «Vẫn ghi» khi có thể trùng (`ledger_duplicate_overridden`, ADR-0092 Đ6) hiện với người giữ `ledger.write`, để Kế toán đọc lại lý do; không mở dòng ẩn nào khác.
 // Danh sách này chứa mọi thứ lớp Đối tác thấy (bài kiểm khoá) cộng nhóm "tiền của đơn trong sổ" (không gác thêm ô — ADR-0131 đ2b); khoá bằng bản chủ duyệt đặt trong
 // `lich-su-noi-bo.test.ts`: đổi danh sách = đổi bài cùng lúc.
 // HÀNG RÀO MÁY: mọi hành động của `AUDIT_ACTIONS` phải nằm ở MỘT trong hai danh sách — thiếu thì `npm run typecheck` đỏ (`_phanLoaiNoiBoDay`) và bài kiểm đỏ.
@@ -73,8 +74,8 @@ export const LICH_SU_NOI_BO_CHO_PHEP = {
 export const LICH_SU_NOI_BO_AN = [
   "order_accounting_entry_marked", "order_accounting_entry_unmarked", "exported_png", "exported_pdf", "ledger_settlement", "prc_commission_rule_added",
   "prc_commission_rule_closed", "prc_supply_term_added", "prc_supply_term_closed", "prc_partner_type_added", "prc_partner_type_off",
-  "prc_partner_type_on", "prc_sales_block_added", "prc_sales_block_ended", "prc_rate_tier_added", "prc_rate_tier_off", "prc_rate_tier_on", "prc_role_tier_set", "prc_role_tier_closed", "prc_party_tier_set", "prc_party_tier_closed",
-  "prc_commission_rule_voided", "prc_role_tier_voided", "prc_party_tier_voided", "ledger_period_closed", "staff_created", "staff_updated", "staff_suspended", "staff_reactivated", "staff_role_changed", "pin_reset", "pin_changed",
+  "prc_partner_type_on", "prc_partner_type_renamed", "prc_partner_type_note", "prc_sales_block_added", "prc_sales_block_ended", "prc_rate_tier_added", "prc_rate_tier_off", "prc_rate_tier_on", "prc_rate_tier_renamed", "prc_rate_tier_note", "prc_role_tier_set", "prc_role_tier_closed", "prc_party_tier_set", "prc_party_tier_closed",
+  "prc_commission_rule_voided", "prc_role_tier_voided", "prc_party_tier_voided", "ledger_period_closed", "ledger_receipt_collector_changed", "ledger_duplicate_overridden", "attribution_requested", "attribution_ruled", "attribution_posted", "attribution_reassigned", "attribution_reversed", "attribution_responded", /* ADR-0116, ADR-0092 Đ6a: chi tiết có lý do, số tiền; chưa có trong bản chủ duyệt nên ẩn */ "staff_created", "staff_updated", "staff_suspended", "staff_reactivated", "staff_role_changed", "pin_reset", "pin_changed",
   "passkey_added", "passkey_removed", "pin_set_by_passkey", "login_unlocked", "staff_synced", "permission_changed", "account_roles_changed",
   "session_policy_changed", "session_revoked", "mfa_enabled", "mfa_removed", "mfa_recovery_regenerated", "mfa_reset", "mfa_grace_reopened",
   "mfa_exception_set", "party_created", "party_updated", "party_contact_changed", "party_role_added", "party_role_ended", "party_relationship_changed",
@@ -94,7 +95,7 @@ export const LICH_SU_NOI_BO_AN = [
   "trip_transfer_expired", "trip_transfer_escalated", "trip_transfer_confirmed", "trip_transfer_rejected", "trip_driver_refused", "trip_appt_called",
   "trip_appt_call_undone", "trip_cost_adjusted", "trip_cost_reversed", "trip_cost_snapshot", "trip_cost_agreed", "rental_rate_added",
   "rental_rate_closed", "route_saved", "vehicle_size_saved", "location_created", "location_updated", "maintenance_changed",
-  "manual_service_policy_changed", "pickup_slot_policy_changed", "confirm_flag_changed", "confirm_policy_changed", "tro_ly_settings_changed", "giao_dien_changed", "client_outdated_body", "catalog_synced", "catalog_overridden",
+  "manual_service_policy_changed", "pickup_slot_policy_changed", "confirm_flag_changed", "confirm_policy_changed", "partner_customer_policy_changed", "tro_ly_settings_changed", "giao_dien_changed", "client_outdated_body", "catalog_synced", "catalog_overridden",
   "catalog_override_cleared", "catalog_hidden", "catalog_unhidden", "catalog_group_created", "catalog_group_updated", "catalog_group_assigned",
   "catalog_groups_seeded", "catalog_service_transfer_set", "ctl_attribute_created", "ctl_attribute_updated", "ctl_attribute_value_created", "ctl_attribute_value_updated", "ctl_service_attribute_set", "ctl_group_attribute_set", "feedback_created", "feedback_replied", "feedback_status_changed", "feedback_assigned", "feedback_claimed",
   "feedback_team_changed", "feedback_priority_changed", "feedback_team_created", "feedback_team_updated", "feedback_team_member_changed", "notice_sent",
@@ -106,6 +107,8 @@ export const LICH_SU_NOI_BO_AN = [
   // ADR-0032 (hạn mức Từ chối — G3 kế hoạch 2026-10-23): chạm hạn mức không đổi đơn và luôn nói về chính người bấm («tên người bấm chỉ Toàn quyền thấy»);
   // đổi cài đặt / đặt lại không gắn đơn. Toàn quyền đọc ở trang Nhật ký.
   "refuse_limit_hit", "refuse_policy_changed", "refuse_counter_reset",
+  // ADR-0153 (đề xuất): giữ chỗ / trả vé điện tử — loại dòng MỚI nên mặc định ẩn cho tới khi chủ xếp loại. Trang Nhật ký (Toàn quyền) vẫn đọc được.
+  "ve_giu_cho", "ve_tra_ve", "ve_xem_anh", "ve_mo_anh_lo_huy", "ve_giao", "ve_tao_duong_dan", "ve_thu_hoi_duong_dan", "ve_nhap_lo", "ve_xac_nhan_lo", "ve_sua_ma_tour", "ve_bo_lo", "ve_doi_tran_lo",
 ] as const satisfies readonly AuditAction[];
 
 /** Hành động mới trong `AUDIT_ACTIONS` chưa có ở danh sách nội bộ nào ⇒ kiểu này khác `never` và dòng ngay dưới không biên dịch (`npm run typecheck` đỏ). */
@@ -119,11 +122,12 @@ export const daPhanLoaiChoNoiBo = (action: string): boolean =>
 /**
  * Lịch sử đơn cho người nội bộ không đọc đủ nhật ký: chỉ hành động trong danh sách cho phép, `detail` theo cách của từng hành động, MỌI dòng bỏ tên / mã người làm.
  * `xemNhapKeToan` = người xem qua ô `accounting.entry.view` của đơn này (ADR-0060): thêm các dòng nhập phần mềm kế toán, nguyên chữ. Dựng dòng MỚI, không sửa mảng vào.
- * Gọi SAU `lichSuTheoVai` (rút gọn dấu đặt gấp — R-P21).
+ * `xemBoQuaTrung` = người xem giữ `ledger.write` (route hỏi): thêm ĐÚNG dòng «Vẫn ghi» kèm lý do. Gọi SAU `lichSuTheoVai` (rút gọn dấu đặt gấp — R-P21).
  */
-export function lichSuNoiBo(history: readonly AuditEntryDto[], xemNhapKeToan: boolean): AuditEntryDto[] {
+export function lichSuNoiBo(history: readonly AuditEntryDto[], xemNhapKeToan: boolean, xemBoQuaTrung = false): AuditEntryDto[] {
   return history.flatMap((e) => {
     if (xemNhapKeToan && laDongNhapKeToan(e.action)) return [anNguoiLam(e)];
+    if (xemBoQuaTrung && e.action === "ledger_duplicate_overridden") return [anNguoiLam(e)];
     if (!Object.hasOwn(LICH_SU_NOI_BO_CHO_PHEP, e.action)) return [];
     const cach = LICH_SU_NOI_BO_CHO_PHEP[e.action as keyof typeof LICH_SU_NOI_BO_CHO_PHEP];
     return [anNguoiLam({ ...e, detail: giuChiTiet(cach, e.detail) })];

@@ -98,7 +98,9 @@ for (const [ten, as] of [["Kế toán", KT], ["Quản trị", ADM], ["Toàn quy�
     const w = setup();
     const r = await ok(themMuc(w, "  TA1  ", as), 201);
     assert.match(r.json.muc.code, /^MT_[A-Z]{8}$/);
-    assert.deepEqual(r.json.muc, { code: r.json.muc.code, ten: "TA1", dangBat: true, dong: [], gan: [] });
+    const { ghiChu, soLoai, soDoiTac, taoLuc, suaLuc, updatedAt } = r.json.muc; // Mã định danh 5.26: DTO có thêm ghi chú, dấu vết, updatedAt, số gắn
+    assert.deepEqual([ghiChu, soLoai, soDoiTac, typeof taoLuc, suaLuc === taoLuc, updatedAt === taoLuc], [null, 0, 0, "string", true, true]);
+    assert.deepEqual({ code: r.json.muc.code, ten: r.json.muc.ten, dangBat: r.json.muc.dangBat, dong: r.json.muc.dong, gan: r.json.muc.gan }, { code: r.json.muc.code, ten: "TA1", dangBat: true, dong: [], gan: [] });
     assert.equal(r.headers.get("location"), "/hoa-hong");
     const hang = w.q("SELECT code, name, name_key, active, created_by FROM prc_rate_tier");
     assert.deepEqual(hang.map((x: object) => ({ ...x })), [{ code: r.json.muc.code, name: "TA1", name_key: "ta1", active: 1, created_by: as }]);
@@ -182,23 +184,23 @@ test("N-12: kiểm đầu vào ⇒ 400 / 404 / 409 rõ nghĩa tiếng Việt, kh
   const bang = () => [dem(w, "SELECT count(*) AS n FROM prc_rate_tier"), dem(w, "SELECT count(*) AS n FROM prc_role_tier"), dem(w, "SELECT count(*) AS n FROM prc_commission_rule"), dem(w, "SELECT count(*) AS n FROM audit_log")];
   const truoc = bang();
   const ca: [string, () => Promise<Res>, number, RegExp][] = [
-    ["dòng cho mức không có", () => themDong(w, "MT_KHONGCOO", { tyLeBp: 1000 }), 404, /Không tìm thấy cấp đại lý/],
-    ["dòng mã sai dạng", () => themDong(w, "khong-hop-le", { tyLeBp: 1000 }), 404, /Không tìm thấy cấp đại lý/],
+    ["dòng cho mức không có", () => themDong(w, "MT_KHONGCOO", { tyLeBp: 1000 }), 404, /Không tìm thấy cấp độ đại lý/],
+    ["dòng mã sai dạng", () => themDong(w, "khong-hop-le", { tyLeBp: 1000 }), 404, /Không tìm thấy cấp độ đại lý/],
     ["dòng thiếu mức", () => themDong(w, ta1, {}), 400, /Mức phải là tỷ lệ/],
     ["dòng tỷ lệ quá 100%", () => themDong(w, ta1, { tyLeBp: 10_001 }), 400, /Mức phải là tỷ lệ/],
     ["dòng dịch vụ không có", () => themDong(w, ta1, { tyLeBp: 1000, phamVi: "SERVICE", catalogCode: "KHONGCO" }), 400, /Không có dịch vụ này/],
     ["dòng chồng ngày (mọi dịch vụ đã có)", () => themDong(w, ta1, { tyLeBp: 1500, tuNgay: "2026-06-01" }), 409, /Đã có mức/],
     ["dòng ghi chú có số điện thoại", () => themDong(w, ta1, { tyLeBp: 1000, phamVi: "SERVICE", catalogCode: "ZA1", ghiChu: "gọi 0901234567" }), 400, /số điện thoại/],
-    ["gắn mức không có", () => gan(w, loai, "MT_KHONGCOO", "2027-01-01"), 404, /Không tìm thấy cấp đại lý/],
+    ["gắn mức không có", () => gan(w, loai, "MT_KHONGCOO", "2027-01-01"), 404, /Không tìm thấy cấp độ đại lý/],
     ["gắn loại không được hưởng", () => gan(w, "CUSTOMER", ta1), 400, /không nằm trong danh sách được hưởng/],
     ["gắn loại không có", () => gan(w, "LD_KHONGCOGI", ta1), 400, /không nằm trong danh sách được hưởng/],
-    ["gắn chồng ngày", () => gan(w, loai, ta1, "2026-05-01"), 409, /đã theo một cấp đại lý trong khoảng ngày này/],
+    ["gắn chồng ngày", () => gan(w, loai, ta1, "2026-05-01"), 409, /đã theo một cấp độ đại lý trong khoảng ngày này/],
     ["gắn thiếu ngày", () => w.call("POST", "/api/pricing/muc-ta/gan", { as: KT, body: { loai, muc: ta1 } }), 400, /Ngày bắt đầu/],
     ["gắn ngày kết thúc trước ngày bắt đầu", () => gan(w, loai, ta1, "2027-02-01", KT, "2027-01-01"), 400, /Ngày kết thúc/],
-    ["gắn thân rỗng", () => w.call("POST", "/api/pricing/muc-ta/gan", { as: KT, body: {} }), 400, /Chọn loại đối tác và cấp đại lý/],
+    ["gắn thân rỗng", () => w.call("POST", "/api/pricing/muc-ta/gan", { as: KT, body: {} }), 400, /Chọn vai người dùng và cấp độ đại lý/],
     ["kết thúc gắn không có", () => ketThucGan(w, "khong-co-gan", vnHomNay()), 404, /Không tìm thấy/],
     ["kết thúc gắn trước ngày bắt đầu", () => ketThucGan(w, g.json.gan.id, "2025-12-31"), 400, /Ngày kết thúc/],
-    ["tắt mức không có", () => w.call("POST", "/api/pricing/muc-ta/MT_KHONGCOO/tat", { as: KT, body: {} }), 404, /Không tìm thấy cấp đại lý/],
+    ["tắt mức không có", () => w.call("POST", "/api/pricing/muc-ta/MT_KHONGCOO/tat", { as: KT, body: {} }), 404, /Không tìm thấy cấp độ đại lý/],
     ["bật mức đang bật", () => w.call("POST", `/api/pricing/muc-ta/${ta1}/bat`, { as: KT, body: {} }), 409, /đang mở rồi/],
   ];
   for (const [ten, p, ma, cau] of ca) {
@@ -226,7 +228,7 @@ test("N-24: tên trùng khác dấu / hoa thường / khoảng trắng ⇒ 409 m
     const r = await themMuc(w, ten);
     assert.equal(r.status, 409, `${ten}: ${r.text}`);
     assert.equal(r.json.error.code, "muc_trung");
-    assert.equal(r.json.error.message, "Đã có cấp đại lý với tên này.");
+    assert.equal(r.json.error.message, "Đã có cấp độ đại lý với tên này.");
   }
   for (const x of ["", "   ", "x", "x".repeat(61), null, 5, ["TA"], "Gọi 0901 234 567", "ta@spa.vn", "̀̀"]) {
     const r = await themMuc(w, x);
@@ -259,14 +261,14 @@ test("N-23: tắt mức ⇒ 200 dangBat false, nhật ký; gắn mới và thêm
   const dong = await dongTyLe(w, ta1, 1000);
   await ganOk(w, l1, ta1);
   const t = await ok(w.call("POST", `/api/pricing/muc-ta/${ta1}/tat`, { as: KT, body: {} }), 200);
-  assert.deepEqual({ ...t.json.muc, dong: t.json.muc.dong.length, gan: t.json.muc.gan.length }, { code: ta1, ten: "TA1", dangBat: false, dong: 1, gan: 1 });
+  assert.deepEqual({ code: t.json.muc.code, ten: t.json.muc.ten, dangBat: t.json.muc.dangBat, dong: t.json.muc.dong.length, gan: t.json.muc.gan.length, soLoai: t.json.muc.soLoai }, { code: ta1, ten: "TA1", dangBat: false, dong: 1, gan: 1, soLoai: 1 });
   assert.deepEqual(nhatKy(w, "prc_rate_tier_off").map((x) => x.detail), ["TA1"]);
   assert.equal(dem(w, "SELECT active AS n FROM prc_rate_tier WHERE code = ?", ta1), 0);
 
   const g2 = await gan(w, l2, ta1);
   assert.equal(g2.status, 409, g2.text);
   assert.equal(g2.json.error.code, "muc_tat");
-  assert.match(g2.json.error.message, /Cấp đại lý này đang khoá/);
+  assert.match(g2.json.error.message, /Cấp độ đại lý này đang khoá/);
   const d2 = await themDong(w, ta1, { tyLeBp: 1500, phamVi: "SERVICE", catalogCode: "ZA1" });
   assert.equal(d2.status, 409, d2.text);
   assert.equal(d2.json.error.code, "muc_tat");
@@ -522,4 +524,24 @@ test("Bản tính thử đơn NHÁP (phần thương mại) với bên đặt c�
   const d = r.json.vanPhong.dong[0];
   assert.deepEqual([d.muc, d.hoaHong, d.thieu], ["12%", 240_000, null]);
   assert.equal(chup(w, id).length, 0, "tính thử không ghi bản chụp");
+});
+
+// Mã định danh 5.26, Task 2 — cấp đại lý có ghi chú; câu sửa tên + ghi chú khoá lạc quan theo updated_at.
+test("suaMucTaStatement: sai truocLuc ⇒ 0 dòng; đúng ⇒ đổi tên, khoá tên, ghi chú; tên trùng khoá cấp khác ⇒ UNIQUE", async () => {
+  const { fakeD1 } = await import("../../../tests/audit/harness.mjs");
+  const { suaMucTaStatement } = await import("./repository.ts");
+  const w = setup();
+  const a = await taoMuc(w, "TA1");
+  const b = await taoMuc(w, "TA2");
+  const db = fakeD1(w.sqlite) as unknown as D1Database;
+  const cu = w.q("SELECT updated_at FROM prc_rate_tier WHERE code = ?", a)[0].updated_at as string;
+  const sua = async (code: string, ten: string, khoa: string, truocLuc: string) =>
+    (await suaMucTaStatement(db, { code, ten, khoa, ghiChu: "Đại lý lớn", at: "2099-01-01T00:00:00.000Z", staffId: KT, truocLuc }).run()).meta.changes;
+  assert.equal(await sua(a, "Cấp vàng", "cap vang", "1999-01-01T00:00:00.000Z"), 0, "truocLuc cũ ⇒ 0 dòng");
+  assert.equal(await sua(a, "Cấp vàng", "cap vang", cu), 1);
+  const h = w.q("SELECT name, name_key, note, updated_at, updated_by FROM prc_rate_tier WHERE code = ?", a)[0];
+  assert.deepEqual({ ...h }, { name: "Cấp vàng", name_key: "cap vang", note: "Đại lý lớn", updated_at: "2099-01-01T00:00:00.000Z", updated_by: KT });
+  const cuB = w.q("SELECT updated_at FROM prc_rate_tier WHERE code = ?", b)[0].updated_at as string;
+  await assert.rejects(() => sua(b, "Cấp vàng", "cap vang", cuB), /UNIQUE/);
+  assert.throws(() => w.sqlite.prepare("UPDATE prc_rate_tier SET note = ? WHERE code = ?").run("a".repeat(501), a));
 });

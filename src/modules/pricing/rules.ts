@@ -6,7 +6,11 @@ import { giaVonDong, hoaHongDong, lamTronNuaLen, tinhDongDoiTac, type BanChup, t
 import { nhanMuc } from "../../shared/so-dai-ly-nhan.ts";
 import { MOI_KHACH_TOI_DA, docLyDoSua } from "../../shared/so-dai-ly-nhap.ts"; // trần «Số tiền mỗi khách» và lý do «Sửa» (ADR-0148): MỘT luật cho giao diện và máy chủ
 import { khoaTen } from "../../shared/khoa-ten.ts";
+import { sinhMa } from "../../shared/ma-dinh-danh.ts";
+import { coSoHoacEmail } from "../../shared/ghi-chu-danh-muc.ts";
 import { addDays, ngayDayDu } from "../../shared/vn-date.ts";
+import type { CapHienHanhDto, NguonCap } from "../../shared/contracts.ts";
+import { nutDoiNgung } from "../../shared/hoa-hong-hien-thi.ts"; // «đổi được không» của cột cấp: CÙNG hàm với nút Đổi / Ngừng của trang Hoa hồng (khớp `kiemDoi`)
 
 // Phép tính tiền MỘT dòng (làm tròn nửa lên, hoa hồng, giá vốn, `tinhDongDoiTac`) và kiểu bản chụp nằm ở src/shared/hoa-hong-dong.ts để `orders/thuong-mai.ts` (DTO) chạy được bằng node trực tiếp
 // mà không nhập index.ts của module khác; ở đây chỉ tái xuất — vẫn MỘT định nghĩa (Task 5, Ruling ở sổ thi công).
@@ -350,7 +354,7 @@ export function kiemThanMuc(raw: unknown): Ket<ThanMuc> {
   let targetRoleCode: string | null = null;
   if (dt?.loai === "VAI" && typeof dt.code === "string" && MA_RE.test(dt.code)) targetRoleCode = dt.code;
   else if (dt?.loai === "DOI_TAC" && typeof dt.partyId === "string" && PARTY_RE.test(dt.partyId)) targetPartyId = dt.partyId;
-  else return { ok: false, message: "Chọn áp cho một loại đối tác hoặc một đối tác cụ thể." };
+  else return { ok: false, message: "Chọn áp cho một vai người dùng hoặc một đối tác cụ thể." };
   const pm = docPhanMuc(b);
   if (!pm.ok) return pm;
   return { ok: true, value: { targetPartyId, targetRoleCode, ...pm.value } };
@@ -371,19 +375,19 @@ export function kiemThanDongMucTa(raw: unknown, tierCode: string): Ket<ThanMuc> 
  */
 export function kiemTenMucTa(raw: unknown): Ket<{ ten: string; khoa: string }> {
   const ten = typeof raw === "string" ? raw.trim().replace(/\s+/g, " ") : "";
-  if (ten.length < 2 || ten.length > 60) return { ok: false, message: "Tên cấp đại lý dài từ 2 đến 60 ký tự." };
-  if (/\d{8,}/.test(ten.replace(/[\s.]/g, "")) || /\d{9,}/.test(ten.replace(/[\s.-]/g, "")) || ten.includes("@")) return { ok: false, message: "Tên cấp đại lý không được chứa số điện thoại, số tài khoản hay địa chỉ email." };
+  if (ten.length < 2 || ten.length > 60) return { ok: false, message: "Tên cấp độ đại lý dài từ 2 đến 60 ký tự." };
+  if (coSoHoacEmail(ten)) return { ok: false, message: "Tên cấp độ đại lý không được chứa số điện thoại, số tài khoản hay địa chỉ email." };
   const khoa = khoaTen(ten);
-  if (khoa.length < 2) return { ok: false, message: "Tên cấp đại lý dài từ 2 đến 60 ký tự." };
+  if (khoa.length < 2) return { ok: false, message: "Tên cấp độ đại lý dài từ 2 đến 60 ký tự." };
   return { ok: true, value: { ten, khoa } };
 }
 /** Mã mức TA máy chủ sinh: `MT_` + 8 chữ hoa (không bao giờ trùng đoạn đường cố định như «gan»; khớp `MA_RE`). `bytes` lấy từ `crypto.getRandomValues` ở nơi gọi. */
-export const maMucTa = (bytes: Uint8Array): string => "MT_" + Array.from(bytes.slice(0, 8), (b) => String.fromCharCode(65 + (b % 26))).join("");
+export const maMucTa = (bytes: Uint8Array): string => sinhMa("MT", bytes);
 export const MUC_TA_RE = /^MT_[A-Z]{8}$/;
 /** Thân `POST /api/pricing/muc-ta/gan`: { loai, muc, tuNgay, denNgay? }. */
 export function kiemThanGan(raw: unknown): Ket<{ roleTypeCode: string; tierCode: string; validFrom: string; validTo: string | null }> {
   const b = raw && typeof raw === "object" && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};
-  if (typeof b.loai !== "string" || !MA_RE.test(b.loai) || typeof b.muc !== "string" || !MA_RE.test(b.muc)) return { ok: false, message: "Chọn loại đối tác và cấp đại lý." };
+  if (typeof b.loai !== "string" || !MA_RE.test(b.loai) || typeof b.muc !== "string" || !MA_RE.test(b.muc)) return { ok: false, message: "Chọn vai người dùng và cấp độ đại lý." };
   const kn = docKhoangNgay(b);
   if (!kn.ok) return kn;
   return { ok: true, value: { roleTypeCode: b.loai, tierCode: b.muc, ...kn.value } };
@@ -392,14 +396,14 @@ export function kiemThanGan(raw: unknown): Ket<{ roleTypeCode: string; tierCode:
 /** Thân `POST /api/pricing/muc-ta/gan/:id/doi` (Đổi chính sách của loại): { muc, tuNgay } — loại lấy từ gắn cũ; ngày kiểm ở `kiemDoi`. */
 export function kiemThanDoiChinhSach(raw: unknown): Ket<{ tierCode: string; tuNgay: unknown }> {
   const b = raw && typeof raw === "object" && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};
-  if (typeof b.muc !== "string" || !MA_RE.test(b.muc)) return { ok: false, message: "Chọn cấp đại lý." };
+  if (typeof b.muc !== "string" || !MA_RE.test(b.muc)) return { ok: false, message: "Chọn cấp độ đại lý." };
   return { ok: true, value: { tierCode: b.muc, tuNgay: b.tuNgay } };
 }
 
 /** Thân `POST /api/pricing/ho-so/:id/muc-rieng` (ADR-0138): { muc, tuNgay, denNgay? } — hồ sơ lấy từ đường dẫn. */
 export function kiemThanGanRieng(raw: unknown): Ket<{ tierCode: string; validFrom: string; validTo: string | null }> {
   const b = raw && typeof raw === "object" && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};
-  if (typeof b.muc !== "string" || !MA_RE.test(b.muc)) return { ok: false, message: "Chọn cấp đại lý." };
+  if (typeof b.muc !== "string" || !MA_RE.test(b.muc)) return { ok: false, message: "Chọn cấp độ đại lý." };
   const kn = docKhoangNgay(b);
   if (!kn.ok) return kn;
   return { ok: true, value: { tierCode: b.muc, ...kn.value } };
@@ -468,5 +472,32 @@ export function tomTatHoaHongHoSo(v: {
     mucRieng: r ? { mucCode: r.tierCode, tuNgay: r.validFrom } : null,
     dongRiengLoai: dongCon.filter((d) => d.targetRoleCode !== null && loai.includes(d.targetRoleCode)).length,
     dongRiengDoiTac: dongCon.filter((d) => d.targetPartyId === v.partyId).length,
+  };
+}
+
+/** Một lần gắn cấp RIÊNG của hồ sơ (cột của `prc_party_tier`, đã lọc chưa huỷ và chưa ngừng xong — `GanRiengRow` của repository đủ các khoá này). */
+export interface GanRiengCuaHoSo { id: string; tier_code: string; valid_from_date: string; valid_to_date: string | null }
+/**
+ * ADR-0155 Đ2.5 — cấp đại lý đang áp dụng hôm nay của MỘT hồ sơ, cho cột «Cấp độ đại lý». KHÔNG viết luật thứ hai: nguồn và cấp đọc từ kết quả của đúng `tomTatHoaHongHoSo`
+ * (`mucRieng`, `vai[].mucCode`, `xungDot`, `dongRiengLoai`, `dongRiengDoiTac`); ngày bắt đầu / hẹn ngừng và mã dòng cấp riêng tìm theo đúng dòng mà `tomTatHoaHongHoSo` đã chọn;
+ * «đổi được không» gọi `nutDoiNgung` (khớp `kiemDoi`). `ganCuaHoSo` = các lần gắn riêng chưa huỷ, chưa ngừng xong của CHÍNH hồ sơ này (đang áp dụng và sắp áp dụng).
+ */
+export function capHienHanhCuaHoSo(
+  t: TomTatHoaHongHoSo,
+  v: { partyId: string; homNay: string; tenCuaMuc: ReadonlyMap<string, string>; ganCuaHoSo: readonly GanRiengCuaHoSo[] },
+): CapHienHanhDto {
+  const ten = (code: string): { code: string; ten: string } => ({ code, ten: v.tenCuaMuc.get(code) ?? code });
+  const mucTheoVai = t.vai.find((x) => x.mucCode !== null)?.mucCode ?? null;
+  const nguon: NguonCap = t.mucRieng !== null ? "RIENG" : t.xungDot ? "XUNG_DOT" : mucTheoVai !== null ? "THEO_VAI" : "CHUA_CO";
+  const cap = nguon === "RIENG" ? ten(t.mucRieng!.mucCode) : nguon === "THEO_VAI" ? ten(mucTheoVai!) : null;
+  const dong = t.mucRieng === null ? undefined : v.ganCuaHoSo.find((g) => g.tier_code === t.mucRieng!.mucCode && g.valid_from_date === t.mucRieng!.tuNgay);
+  const rieng = dong === undefined ? null : { id: dong.id, tuNgay: dong.valid_from_date, denNgay: dong.valid_to_date };
+  const sap = v.ganCuaHoSo.filter((g) => g.valid_from_date > v.homNay).map((g) => g.valid_from_date).sort();
+  const sapApTu = sap[0] ?? null;
+  // Có cấp riêng đang áp mà không tìm được dòng của nó (không xảy ra: cùng nguồn) ⇒ KHÔNG cho đổi, đừng đoán «chưa có» rồi đặt chồng.
+  const doiDuoc = sapApTu === null && (t.mucRieng === null || (rieng !== null && nutDoiNgung({ tuNgay: rieng.tuNgay, denNgay: rieng.denNgay, conHieuLuc: true }, v.homNay).hien));
+  return {
+    partyId: v.partyId, nguon, cap, rieng, sapApTu, doiDuoc,
+    coMucRieng: t.dongRiengDoiTac > 0 || (nguon === "THEO_VAI" && t.dongRiengLoai > 0),
   };
 }

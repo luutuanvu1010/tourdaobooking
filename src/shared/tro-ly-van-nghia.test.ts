@@ -7,9 +7,10 @@ import {
   GIA_NHUNG, HET_GIO_NHUNG_MS, LO_GHI_D1, LO_NHUNG_DAU_VAO, LO_NHUNG_TOKEN_UOC, MAU_NHUNG, NGAY_TRA_GIA_NHUNG, NGUON_GIA_NHUNG, SO_CHIEU_NHUNG,
   K_RRF, NGUONG_COSIN, blobSangVec, chiaLo, chiaLoNhung, chiPhiNhungMicroUsd, chonDoanTron, cosin, daChonTuKhoa, docPhanHoiNhung, khoaDoan, khopManh, mucTranTren, thanNhung, tienBuUoc, vecSangBlob,
 } from "./tro-ly-van-nghia.ts";
-import { KHONG_TIM_THAY, SO_DOAN_TOI_DA, chiaKho, dinhDangDoan, dungLoiNhac, truyVanTim, uocToken, type DoanTriThuc } from "./tro-ly.ts";
+import { KHONG_TIM_THAY, SO_DOAN_TOI_DA, chiaKho, dinhDangDoan, dungLoiNhac, tachTu, truyVanTim, uocToken, type DoanTriThuc } from "./tro-ly.ts";
 import { GIOI_HAN_TRO_LY as G } from "./tro-ly-gioi-han.ts";
 import { xungHo } from "./xung-ho.ts";
+import type { PermissionCode } from "./permissions.ts";
 
 test("hằng embedding: mẫu text-embedding-3-small, 512 chiều, 0,02 USD / 1 triệu token = 20.000 micro-USD, có ngày tra + nguồn; hạn giờ riêng 8 giây", () => {
   assert.equal(MAU_NHUNG, "text-embedding-3-small");
@@ -194,7 +195,11 @@ test("C4: kho THẬT + mọi véc-tơ đoạn trực giao câu hỏi ⇒ chỉ c
   // 17 / 10 / 46 — MỘT đoạn chứa «lập đơn» vượt ngưỡng của câu lập đơn. Luật không đổi, trần 12 vẫn cắt; các tên đoạn khoá dưới đây giữ nguyên.
   // 2026-10-28 (rà chữ Trang chủ lượt 3): Trợ giúp Kế toán bỏ câu «Kế toán không lập đơn nên ô này luôn bằng không» (ô «Doanh thu của tôi» nay ẩn với người không
   // lập được đơn) ⇒ đo lại bằng chính bài này: 17 / 10 / 45 — MỘT đoạn chứa «lập đơn» rơi khỏi ngưỡng. Luật không đổi, trần 12 vẫn cắt; các tên đoạn khoá dưới đây giữ nguyên.
-  assert.deepEqual([dem("sao app khó dùng thế"), dem("đổi mã PIN thế nào"), dem("lập đơn mới ra sao")], [17, 10, 45]);
+  // 2026-11-02 (đặt vé của đối tác, lượt 1, Task 3): «Loại đối tác» → «Vai người dùng», «loại» → «vai trò» trong Trợ giúp và kho cấu trúc ⇒ chữ «dùng» có thêm ở ba đoạn
+  // («Bán hàng › Luật bán và đặc điểm dịch vụ», «Việc: xem bảng mức hoa hồng đối tác», «Việc: đặt và kết thúc luật bán theo vai người dùng») nên câu than phiền «sao app khó dùng thế»
+  // thêm ba đoạn vượt ngưỡng tương đối (17 → 20); đổi PIN và lập đơn không đổi ⇒ đo lại bằng chính bài này: 20 / 10 / 45. Số đo, không suy ra từng đoạn. Luật không đổi,
+  // trần 12 vẫn cắt (bài khoá `thanPhien.length === SO_DOAN_TOI_DA` ngay dưới); các tên đoạn khoá dưới đây giữ nguyên.
+  assert.deepEqual([dem("sao app khó dùng thế"), dem("đổi mã PIN thế nào"), dem("lập đơn mới ra sao")], [20, 9, 45]);
   // 2026-10-05 (1.81, Đợt 7): Trợ giúp thêm câu về hai ô "Xe riêng" / "Xe tối thiểu" (Bán hàng, Quản trị) và bỏ vài dòng trùng ý ⇒ hai đoạn nữa vượt ngưỡng tương đối của câu than phiền (15 → 17); luật không đổi, trần 12 vẫn cắt.
   const thanPhien = chonDoanTron("sao app khó dùng thế", mot(0), kho, vec, ["SALES"]).map((x) => x.doan.ten);
   assert.equal(thanPhien.length, SO_DOAN_TOI_DA);
@@ -206,7 +211,8 @@ test("C4: kho THẬT + mọi véc-tơ đoạn trực giao câu hỏi ⇒ chỉ c
   assert.equal(lapDon[0], "Cấu trúc Nền tảng › Việc: lập đơn mới");
   assert.ok(lapDon.includes("Bán hàng › Lập đơn mới"), JSON.stringify(lapDon));
   const doiPin = chonDoanTron("đổi mã PIN thế nào", mot(0), kho, vec, ["SALES"]).map((x) => x.doan.ten);
-  assert.equal(doiPin.length, 10);
+  // 2026-11-02 (đặt vé đối tác lượt 2, Đợt 5): cắt lời trùng ở Trợ giúp Kế toán / Bán hàng / Quản trị để giữ trần 30 phút ⇒ một đoạn chứa «PIN» rơi khỏi ngưỡng: đo lại 9. Luật không đổi.
+  assert.equal(doiPin.length, 9);
   assert.ok(doiPin.includes("Phần chung › Trang Tôi, đổi PIN, đăng xuất"), JSON.stringify(doiPin));
   assert.deepEqual(chonDoanTron("zzqx wqpv", mot(0), kho, vec, ["SALES"]), []);
   assert.ok(dungLoiNhac("Bạn là trợ lý.", ["SALES"], xungHo(null, null), []).endsWith(`TÀI LIỆU:\n${KHONG_TIM_THAY}`));
@@ -230,6 +236,20 @@ test("C4c (đổi chữ «Trợ giúp» → «Hướng dẫn», 2026-10-27): ng�
   for (const [cu, moi] of [["trợ giúp", "hướng dẫn"], ["mở trang Trợ giúp", "mở trang Hướng dẫn"]] as const) {
     assert.deepEqual(ten(cu), ten(moi), cu);
     assert.ok(ten(cu).includes("Sơ đồ trang › Hướng dẫn"), `${cu}: ${JSON.stringify(ten(cu))}`);
+  }
+});
+
+test("C4e (đổi tên «Loại đối tác» → «Vai người dùng», «Cấp đại lý» → «Cấp độ đại lý», 2/11): người gõ tên cũ được đối xử như tên mới — cùng đoạn, và có đoạn «Thêm vai trò» / «Cấp độ đại lý» ở kết quả đầu", () => {
+  assert.deepEqual(tachTu("loại đối tác"), tachTu("vai người dùng"));
+  assert.deepEqual(tachTu("cấp đại lý"), tachTu("cấp độ đại lý"));
+  const kho = chiaKho();
+  const vec = kho.map(() => mot(1));
+  const ten = (c: string, quyen: PermissionCode[]) => chonDoanTron(c, mot(0), kho, vec, quyen).map((x) => x.doan.ten);
+  for (const quyen of [["SALES"], ["ACCOUNTING"]] as PermissionCode[][]) {
+    assert.deepEqual(ten("loại đối tác là gì", quyen), ten("vai người dùng là gì", quyen), `${quyen}: loại đối tác`);
+    assert.ok(ten("loại đối tác là gì", quyen).slice(0, 5).includes("Kế toán › Thêm vai trò"), `${quyen}: ${JSON.stringify(ten("loại đối tác là gì", quyen).slice(0, 5))}`);
+    assert.deepEqual(ten("cấp đại lý là gì", quyen), ten("cấp độ đại lý là gì", quyen), `${quyen}: cấp đại lý`);
+    assert.ok(ten("cấp đại lý là gì", quyen).slice(0, 3).includes("Kế toán › Cấp độ đại lý"), `${quyen}: ${JSON.stringify(ten("cấp đại lý là gì", quyen).slice(0, 3))}`);
   }
 });
 

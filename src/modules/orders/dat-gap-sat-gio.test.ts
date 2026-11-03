@@ -462,6 +462,7 @@ test("ADR-0107 bài 7 — MỘT chỗ canh (bài tĩnh): dấu MỚI chỉ dựn
   const repo = readFileSync(new URL("./chang-hanh-khach-repo.ts", import.meta.url), "utf8");
   assert.match(repo, /const datGapBinds = \(d: DauGhi \| null \| undefined\)/, "bộ gắn năm cột của câu chèn / sửa chỉ nhận DauGhi");
   assert.match(repo, /export const legShortNotice = \(db: D1Database, legId: string, orderId: string, d: DauDatGapMoi[,)]/, "câu của nút Đặt gấp chỉ nhận dấu mới");
+  assert.match(repo, /export const legShortNoticeConVe = \(db: D1Database, v: \{[^}]*d: DauDatGapMoi/, "câu dấu của Còn vé (ADR-0154 Đ1.4) cũng chỉ nhận dấu mới");
 });
 
 test("ADR-0107 bài 7 — ngoại lệ có tên (chép dấu cũ khi lưu lại đơn nháp): Đối tác và Thực tập lưu lại nháp của mình có chặng Bán hàng vừa đặt gấp, không đổi giờ / nơi → 200, dấu còn nguyên (người đóng vẫn là Bán hàng)", async () => {

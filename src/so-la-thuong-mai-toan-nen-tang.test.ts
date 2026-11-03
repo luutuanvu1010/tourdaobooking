@@ -100,6 +100,11 @@ const ROUTE_GET: string[] = [...new Set(readdirSync(MODULES).flatMap((m) => {
  * Không bao giờ dùng danh sách này để che một chỗ lộ số: chỗ lộ đi danh sách (b).
  */
 const MIEN_200: Record<string, string> = {
+  "/api/ve/don/:orderId": "ADR-0153 (kho vé điện tử): danh sách vé của MỘT đơn có vé giữ — bài này không nhập kho vé nên mã đơn lạ ⇒ 404; DTO chỉ SỐ LƯỢNG theo nhóm khách + cờ thu đủ, không chở tiền; bangDien gọi bằng mã lạ nên thân 404 vẫn được quét",
+  "/api/ve/lo-da-huy/:veId/anh": "Chủ quyết 2/11/2026: thân là byte ảnh vé của lô đã huỷ (không phải JSON, không chở tiền) — cần vé đã mở; bài này không nhập kho; bangDien gọi bằng mã lạ nên thân 404 / 403 vẫn được quét",
+  "/api/ve/anh/:allocationId": "ADR-0153 Đ3: thân là byte ảnh vé (không phải JSON, không chở tiền) — cần vé đã giữ cho đơn thu đủ; bài này không nhập kho; bangDien gọi bằng mã lạ nên thân 404 / 403 vẫn được quét",
+  "/ve/:token": "ADR-0153 Đ2: trang công khai theo token — không đăng nhập; thân là HTML chỉ có ảnh + nhãn nhóm khách + khoảng ngày (không tên khách, mã đơn, giá); token lạ ⇒ 404 cùng một thân",
+  "/api/ve-khach/:token/anh/:slot": "ADR-0153 Đ2: ảnh vé công khai theo token (byte ảnh, không chở tiền); token lạ ⇒ 404 cùng một thân",
   "/api/orders/:id/han-muc-tu-choi": "ADR-0032 điều 9: «còn N lần» chỉ trả 200 cho người ĐANG phụ trách chính đơn (kể cả Toàn quyền phải đúng người) — bài này không giao đơn của B cho tài khoản nào; DTO chỉ hai số đếm { lienTiep, tuan } hoặc null, không chở tiền",
   "/api/bang-tin": "bắt tay WebSocket: khung thử không có trạm Bảng tin (426/503); sự kiện phát đi chỉ 5 khoá (ADR-0022 điều 4), không chở tiền",
   "/api/van-chuyen/chuyen/:id/xe-nhan": "gói A5 (ADR-0111): chỉ 200 khi chuyến ĐANG CHẠY có tài xế (409 nếu không) — khung thử không dựng chuyến chạy cho bài này; phản hồi chỉ chở năm khoá XeNhanDto (mã chuyến, tên tài xế, chỗ trống, điểm sắp tới; không biển số, không khách, không tiền, không hoa hồng); thân 4xx vẫn được quét",
@@ -159,6 +164,12 @@ function bangDien(g: Gieo): Record<string, string[]> {
     "/api/feedback/teams/:id/members": [`/api/feedback/teams/fbk-team-ky-thuat/members?ticket=${g.gopY}`],
     // ADR-0144: mở tệp kèm tin — bài không gieo tệp ⇒ mã tệp lạ trên vé thật của B (404 cho mọi người) — vẫn GỌI để thân được quét (MIEN_200 chỉ miễn 200).
     "/api/feedback/:id/tep/:tid": [`/api/feedback/${g.gopY}/tep/${uuid()}`],
+    // ADR-0153 (kho vé điện tử): danh sách vé của đơn B (chỉ số lượng), ảnh vé theo mã phân bổ lạ (404 / 403), trang và ảnh công khai theo token lạ (404) — vẫn GỌI để thân được quét.
+    "/api/ve/don/:orderId": [`/api/ve/don/${uuid()}`],
+    "/api/ve/anh/:allocationId": [`/api/ve/anh/${"0".repeat(32)}`],
+    "/api/ve/lo-da-huy/:veId/anh": [`/api/ve/lo-da-huy/${uuid()}/anh`],
+    "/ve/:token": [`/ve/${"A".repeat(43)}`],
+    "/api/ve-khach/:token/anh/:slot": [`/api/ve-khach/${"A".repeat(43)}/anh/1`],
     "/api/catalog/:code/group-history": ["/api/catalog/SLX/group-history"],
     "/api/parties/:id": [`/api/parties/${PTY_B}`, "/api/parties/pty-ncc"],
     "/api/parties/:id/documents": [`/api/parties/${PTY_B}/documents`],

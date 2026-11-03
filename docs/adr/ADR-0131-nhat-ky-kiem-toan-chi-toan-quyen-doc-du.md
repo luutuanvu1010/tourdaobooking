@@ -2,6 +2,7 @@
 
 - **Trạng thái:** **accepted** — chủ dự án, chat 2026-10-18: *"duyêt, thực thi kếh oạch"* (nguyên văn), sau khi chọn hướng *"ok theo khuyến nghị"* (cách "chia hai lớp"). Văn bản đề xuất: `docs/superpowers/specs/2026-10-18-thu-hep-doc-nhat-ky/ADR-0131-nhap.md` (đóng băng); trang ghép `docs/superpowers/specs/2026-10-18-thu-hep-doc-nhat-ky/TRANG-GHEP.md`.
   - AI soạn và ghi lại, không tự duyệt (Hiến pháp N3). Trước khi trình, một người đọc thử (chỉ đọc) đã đối chiếu văn bản với mã; người kiểm độc lập đọc sau khi thi công. Số 0131 vì 0130 đang được một bản sửa khác giữ (bảng từ giao diện, chưa nhập).
+  - **Làm rõ 2026-11-02 — chủ dự án ở hộp hỏi, nguyên văn «Mở thêm riêng dòng này cho Kế toán»:** dòng `ledger_duplicate_overridden` (lý do bỏ qua cảnh báo trùng, ADR-0092 đ6a) được mở cho người giữ `ledger.write`. Chỉ loại dòng này; mọi phần khác của quyết định giữ nguyên.
 - **Ngày:** 2026-10-18.
 - **Loại:** việc lớn (quyền). **Hai chiều**: chỉ đổi mã, không đổi dữ liệu, không migration; gỡ bằng một commit. Cần người kiểm độc lập.
 - **Quan hệ với ADR cũ:**

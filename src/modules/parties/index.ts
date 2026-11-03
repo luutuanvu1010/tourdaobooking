@@ -37,7 +37,7 @@ import {
   anDanhStatements, chanLoNeuThuaXoaStatement, coPhieuXoaChoHoacDa, demHoSoGopVao, demXemTruocXoa, listPhieuChuaChepNgoai, listPhieuXoaChoCoTen, listPhieuXoaDaXuLy, quyetPhieuXoaStatement, tepChoXoaCuaPhieu,
   tepChoXoaLyDoPhieu, timPhieuXoaCoTen, tuChoiPhieuXoaStatement, datChoXoaAnhHetGiuStatement, listAnhHetLyDoGiu, type AnhHetGiuRow,
   canXacMinhLaiStatement, chamCuaTaiKhoan, ghiDiaChiTuPhieuStatement, ghiGiayToTuPhieuStatement, ghiNgaySinhTuPhieuStatement, ghiXacMinhTuPhieuStatement, lamMoiHoSoTuPhieuStatement, quyetPhieuStatement, listPhieuCho, listPhieuDaXuLy, soDuCuaPhieuCho, timPhieuChoXet, trungSoHoSoKhac,
-  datHoatDongLoaiDoiTacStatement, hoSoMangNhan, openRoleCodesFor, themLoaiDoiTacStatement, ownerCompanyRows, relationshipEnds, renamePersonStatements, reopenRoleStatement, roleRowOf, roleTypeOf, updatePartyStatements, vaiDangMo,
+  datHoatDongLoaiDoiTacStatement, suaLoaiDoiTacStatement, hoSoMangNhan, openRoleCodesFor, themLoaiDoiTacStatement, ownerCompanyRows, relationshipEnds, renamePersonStatements, reopenRoleStatement, roleRowOf, roleTypeOf, updatePartyStatements, vaiDangMo,
   type BankAccountRow, type BankRow, type GopDocRow, type PartyListRow, type PartyRow, type ContactRow, type PersonDocFull, type PersonDocRow, type PersonDocValues, type RelationshipRow, type RoleRow,
 } from "./repository";
 import { chanCo, keHoachGop, type CongViecGop, type GiayToGop, type HoSoGop, type KeHoachGop, type NhomVai } from "./gop";
@@ -96,13 +96,15 @@ export const hoSoMangNhanDoiTac = (db: D1Database, partyIds: readonly string[]):
  * HÀM CÔNG BỐ (ADR-0117 điều 1) cho module pricing: MỌI loại vai kèm nhóm, cờ loại đối tác và cờ "đang dùng" của chính `pty_role_type` (pricing tự ghép cờ của danh sách
  * được hưởng). Đọc lại `listRoleTypes`, không thêm câu SQL.
  */
-export async function loaiVaiChiTiet(db: D1Database): Promise<{ code: string; ten: string; nhom: string; partnerLabel: boolean; dangBat: boolean }[]> {
-  return (await listRoleTypes(db)).map((t) => ({ code: t.code, ten: t.name, nhom: t.role_group, partnerLabel: t.partnerLabel, dangBat: t.active === 1 }));
+export async function loaiVaiChiTiet(db: D1Database): Promise<{ code: string; ten: string; nhom: string; partnerLabel: boolean; dangBat: boolean; ghiChu: string | null; taoLuc: string | null; taoBoi: string | null; suaLuc: string | null; suaBoi: string | null }[]> {
+  return (await listRoleTypes(db)).map((t) => ({ code: t.code, ten: t.name, nhom: t.role_group, partnerLabel: t.partnerLabel, dangBat: t.active === 1, ghiChu: t.note, taoLuc: t.created_at, taoBoi: t.created_by, suaLuc: t.updated_at, suaBoi: t.updated_by }));
 }
 /** CÂU CHƯA CHẠY: thêm một loại đối tác (nhóm OTHER, nhãn, đang dùng) — pricing gộp vào cùng `db.batch()` với dòng danh sách được hưởng và nhật ký. Chỉ module parties ghi `pty_role_type`. */
 export { themLoaiDoiTacStatement };
 /** CÂU CHƯA CHẠY: tắt / bật một loại đối tác (chỉ loại có nhãn; loại khác hoặc đã đúng trạng thái ⇒ 0 dòng đổi). */
 export { datHoatDongLoaiDoiTacStatement };
+/** CÂU CHƯA CHẠY: đổi tên + ghi chú một loại đối tác, khoá lạc quan theo `updated_at` (null = chưa từng sửa). Chỉ chạm loại nhãn / vai bên ngoài; route pricing kiểm thêm danh sách được hưởng. */
+export { suaLoaiDoiTacStatement };
 /** Câu mở lại một vai đã đóng trong hôm nay (tránh chèn dòng chồng lấn khi gỡ rồi gán lại cùng ngày). */
 export const reopenAccountRoleStatement = reopenRoleStatement;
 /** Tóm tắt hồ sơ cho module staff (tạo tài khoản trên hồ sơ có sẵn). */
@@ -281,7 +283,7 @@ const OWNER_COMPANY_KEEP_ACTIVE = () =>
   error(409, "owner_company_keep_active", "Hồ sơ này đang là công ty chủ nên không ngưng dùng được. Muốn thôi dùng thì đổi công ty chủ sang hồ sơ khác trước.");
 
 // ADR-0117 điều 4, chiều 1: hồ sơ «nội bộ» (rules.ts hoSoNoiBo) không mang loại đối tác được hưởng hoa hồng. Câu nêu "loại đối tác": người gọi giữ admin.manage.
-const ROLE_PARTNER_LABEL_CONFLICT = () => error(409, "role_partner_label_conflict", "Nhân viên nội bộ không mang loại đối tác được hưởng hoa hồng.");
+const ROLE_PARTNER_LABEL_CONFLICT = () => error(409, "role_partner_label_conflict", "Nhân viên nội bộ không mang vai trò đối tác được hưởng hoa hồng.");
 /** ADR-0117 quy ước đọc cờ vế 3: thiếu cờ ⇒ coi là có quyền nội bộ (siết). KHÔNG dùng `acc.linked` một mình (đếm cả tài khoản Đối tác). */
 const coQuyenNoiBoCua = (acc: PartyAccountVerdict): boolean => acc.linked && acc.coQuyenNoiBo !== false;
 
@@ -2103,10 +2105,10 @@ export const partiesModule: AppModule = {
       // CHỈ lớp này canh): hồ sơ nội bộ không nhận loại đối tác được hưởng hoa hồng.
       // Ruling 7 (kiểm độc lập Task 2): loại đối tác không đặt trước ngày kết thúc — view v_pty_party_partner_label, trigger *_partner_label_conflict và
       // hoSoMangNhanDoiTac chỉ đếm dòng valid_to_date IS NULL, nên dòng có hạn sẽ làm chiều 2 lọt. Thôi thì bấm "Kết thúc" (khuôn ownerCompanyAssignProblem).
-      if (loai?.partnerLabel && parsed.value.to !== null) return error(400, "invalid_input", "Loại đối tác không đặt trước ngày kết thúc — khi thôi thì bấm “Kết thúc”.");
+      if (loai?.partnerLabel && parsed.value.to !== null) return error(400, "invalid_input", "Vai người dùng không đặt trước ngày kết thúc — khi thôi thì bấm “Kết thúc”.");
       // Ruling 9 (kiểm toàn nhánh): cùng gốc với Ruling 7 — phía tiền đọc vai «đang mở» chỉ theo valid_to_date IS NULL (v_pty_open_role, LA_HUONG, VAI_MO), bỏ qua
       // valid_from_date, nên loại có ngày bắt đầu tương lai thành người hưởng NGAY. Loại đối tác có hiệu lực từ hôm nay (ngày quá khứ vẫn nhận). Không migration.
-      if (loai?.partnerLabel && parsed.value.from > today) return error(400, "invalid_input", "Loại đối tác có hiệu lực từ hôm nay — không đặt ngày bắt đầu trong tương lai.");
+      if (loai?.partnerLabel && parsed.value.from > today) return error(400, "invalid_input", "Vai người dùng có hiệu lực từ hôm nay — không đặt ngày bắt đầu trong tương lai.");
       if (loai?.partnerLabel && hoSoNoiBo({ vaiMo: await vaiDangMo(env.DB, id), coQuyenNoiBo: coQuyenNoiBoCua(acc) })) return ROLE_PARTNER_LABEL_CONFLICT();
       const stmts: D1PreparedStatement[] = [addRoleStatement(env.DB, id, parsed.value, staff.id, at)];
       if (doiCongTyChu) {
@@ -2163,7 +2165,7 @@ export const partiesModule: AppModule = {
       // Ruling 8 (kiểm độc lập Task 2, cùng gốc Ruling 7): loại đối tác chỉ kết thúc HÔM NAY hoặc ngày đã qua — dòng có ngày kết thúc tương lai không còn
       // valid_to_date IS NULL nên view v_pty_party_partner_label / trigger / hoSoMangNhanDoiTac coi như hết nhãn trong khi nhãn vẫn còn hiệu lực ⇒ chiều 2 lọt.
       if (row && to.value > homNay && (await roleTypeOf(env.DB, row.code))?.partnerLabel) {
-        return error(400, "invalid_input", "Loại đối tác kết thúc ngay hôm nay hoặc ngày đã qua — không đặt ngày trong tương lai.");
+        return error(400, "invalid_input", "Vai người dùng kết thúc ngay hôm nay hoặc ngày đã qua — không đặt ngày trong tương lai.");
       }
       const at = now.toISOString();
       let results: D1Result[];

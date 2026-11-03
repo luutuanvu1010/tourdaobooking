@@ -38,7 +38,7 @@ async function bundle(entry) {
 export const app = (await bundle(
   'export { default, taoAppChoKhungThu } from "./index"; export { createSessionToken } from "./modules/auth/session"; export { listAll } from "./modules/audit/repository"; export { xoaBoNhoVanNghia } from "./modules/tro-ly/van-nghia";' +
     ' export { isSingleDevice } from "./modules/auth/session-ledger"; export { accountRoleCodesOf, getActiveStaff } from "./modules/staff"; export { docTapNhieuMay } from "./modules/auth";' +
-    ' export { chuyenChoTinTheoId, dongBoChuyenChoDon, suKienTheoYeuCau } from "./modules/van-chuyen"; export { dongChuyenTheoId } from "./modules/thongbao";',
+    ' export { chuyenChoTinTheoId, dongBoChuyenChoDon, suKienTheoYeuCau } from "./modules/van-chuyen"; export { cauDatCocKhiXacNhan } from "./modules/billing"; export { dongChuyenTheoId } from "./modules/thongbao";',
 ));
 
 const isRead = (sql) => /^\s*(SELECT|WITH|PRAGMA|EXPLAIN)\b/i.test(sql);
@@ -157,6 +157,11 @@ export function khoR2Gia() {
       if (!x) return null;
       return { key, size: x.b.length, httpMetadata: { contentType: x.contentType }, body: new Response(x.b).body };
     },
+    async head(key) {
+      if (r2.hong.get) throw new Error("r2_head_gia_hong");
+      const x = kho.get(key);
+      return x ? { key, size: x.b.length } : null;
+    },
     async delete(keys) {
       r2.soLan.delete++;
       if (r2.hong.delete) throw new Error("r2_delete_gia_hong");
@@ -238,6 +243,18 @@ export function world(tuyChon = {}) {
         return d;
       },
     });
+  } else if (tuyChon.khongTiemCoc) {
+    ungDung = app.taoAppChoKhungThu({ cauCocKhiXacNhan: undefined }); // ADR-0159: gốc lắp ráp không dựng được câu ⇒ 503
+  } else if (tuyChon.chenTruocLoCoc) {
+    // ADR-0159: chen một việc SAU mọi cổng của route, TRƯỚC lô xác nhận (đơn vừa bị đổi / người khác vừa xác nhận) — để nhìn lô thua không ghi khoản thu.
+    const chen = tuyChon.chenTruocLoCoc;
+    ungDung = app.taoAppChoKhungThu({
+      cauCocKhiXacNhan: async (env, i) => {
+        const k = await app.cauDatCocKhiXacNhan(env.DB, i);
+        await chen(i);
+        return k;
+      },
+    });
   } else if (tuyChon.demNhan) {
     ungDung = app.taoAppChoKhungThu({ nhanNhanVien: async (_env, ids) => (goiNhan.push([...ids]), new Map(ids.map((id) => [id, `Nhãn ${id.slice(0, 4)}`]))) });
   }
@@ -282,7 +299,8 @@ export function world(tuyChon = {}) {
   }
   const r2 = khoR2Gia();
   const r2HoTro = khoR2Gia(); // kho tệp vé hỗ trợ (ADR-0144) — kho RIÊNG, không chung đối tượng với kho hồ sơ
-  const env = { DB: fakeD1(sqlite, moc), HO_SO: r2, HO_TRO: r2HoTro, SESSION_SECRET: SECRET, LAN_GUI_SECRET: LAN_GUI_SECRET_GIA, SERVICES_SHEET_ID: "x" };
+  const r2VeDienTu = khoR2Gia(); // kho vé điện tử (ADR-0153) — kho RIÊNG, không chung đối tượng với hai kho kia
+  const env = { DB: fakeD1(sqlite, moc), HO_SO: r2, HO_TRO: r2HoTro, VE_DIEN_TU: r2VeDienTu, SESSION_SECRET: SECRET, LAN_GUI_SECRET: LAN_GUI_SECRET_GIA, SERVICES_SHEET_ID: "x" };
   // Danh mục đã đồng bộ gần đây để POST /api/orders không đi gọi Google Sheet.
   sqlite.exec(`UPDATE catalog_sync SET last_attempt_at = '${new Date().toISOString()}', last_success_at = '${new Date().toISOString()}' WHERE id = 'default'`);
   // waitUntil THU promise (promise vốn đã chạy — bài cũ không đổi hành vi); `choNen()` chờ hết việc chạy nền (ADR-0094 L5: bước 6 cập nhật kết quả vé).
@@ -337,5 +355,5 @@ export function world(tuyChon = {}) {
     const laDoiTac = sqlite.prepare("SELECT 1 FROM stf_permission WHERE staff_id = ? AND permission_type_code = 'PARTNER' AND valid_to_at IS NULL").get(as) !== undefined;
     return laDoiTac ? call("POST", `/api/orders/${id}/gui-don`, { as, body: {} }) : call("POST", `/api/orders/${id}/status`, { as, body: { status: "confirmed" } });
   };
-  return { sqlite, env, r2, r2HoTro, call, xacNhanDon, token, choNen, raoTraVe, chenTruocLo, q:(sql, ...a) => sqlite.prepare(sql).all(...a), soLanGoiMoc: () => soLanGoiMoc, soLanGoiNhan: () => goiNhan.length, goiNhan: () => goiNhan };
+  return { sqlite, env, r2, r2HoTro, r2VeDienTu, call, xacNhanDon, token, choNen, raoTraVe, chenTruocLo, q:(sql, ...a) => sqlite.prepare(sql).all(...a), soLanGoiMoc: () => soLanGoiMoc, soLanGoiNhan: () => goiNhan.length, goiNhan: () => goiNhan };
 }

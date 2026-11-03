@@ -6,6 +6,7 @@
 //  3) Kế toán đặt mức 15% theo loại mới ⇒ 201; Bán hàng lập đơn với bên đặt là tổ chức đó, xác nhận ⇒ bản chụp SET đúng 15%, đúng người hưởng (đối chiếu SQL);
 //  4) Kế toán TẮT loại ⇒ 200, hai cờ cùng tắt; gắn mới ⇒ 409 role_type_inactive; đơn đã xác nhận GIỮ bản chụp (ADR điều 7); đơn xác nhận SAU khi tắt ⇒ bản chụp MISSING, không 0;
 //     /tat lần hai ⇒ 409 stale; /tat một vai có sẵn ⇒ 404; Bán hàng /tat ⇒ 403; BẬT lại ⇒ 200 và gắn mới được.
+//  4b) A9 (mã định danh 5.26): đổi tên + ghi chú ⇒ mã giữ, tên mới theo mã; đơn đã xác nhận giữ tiền hoa hồng; nhật ký mang mã, không chép ghi chú; lưu trên bản cũ 409.
 // Dùng accountant / admin / salesA / field (không đổi tài khoản dùng chung). Tên loại và hồ sơ tổ chức dùng một lần (hậu tố chữ suy từ Date.now() — tên loại không được chứa dãy ≥ 8 chữ số).
 // Mức theo loại dùng mã loại sinh mới mỗi lần nên không vướng "mọi dịch vụ chỉ thêm được một lần mỗi ngày". KHÔNG đổi công ty chủ, KHÔNG đụng tài khoản của `passkey`.
 import assert from "node:assert/strict";
@@ -24,6 +25,12 @@ const maLoi = (r) => r.body?.error?.code;
 const thongBao = (r) => r.body?.error?.message ?? "";
 const lamTronNuaLen = (tu, mau) => Math.floor((2 * tu + mau) / (2 * mau));
 const MA_THO = /\b(role_\w+|stale|loai_trung|invalid_input|forbidden|LD_[A-Z]{8})\b/;
+/** Mã định danh 5.26: DTO loại tự thêm đủ trường. Mốc giờ và tên người tạo / sửa (tên tài khoản dùng chung không cố định ở đây) kiểm theo khuôn; còn lại so đúng giá trị. */
+const dtoDu = (l, v) => {
+  for (const k of ["taoLuc", "suaLuc"]) assert.match(String(l[k]), /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/, k);
+  for (const k of ["taoBoi", "suaBoi"]) assert.ok(typeof l[k] === "string" && l[k].length > 0, `${k} là tên nhân viên`);
+  return { code: v.code, ten: TEN, coSan: false, dangBat: v.dangBat, ghiChu: null, taoLuc: l.taoLuc, taoBoi: l.taoBoi, suaLuc: l.suaLuc, suaBoi: l.suaBoi, updatedAt: l.suaLuc, soHoSo: v.soHoSo };
+};
 
 const congTyTruoc = (await sqlRows("SELECT party_id FROM v_pty_owner_company")).map((x) => x.party_id);
 assert.equal(congTyTruoc.length, 1, "D1 phải có đúng một công ty chủ");
@@ -41,10 +48,11 @@ assert.equal(r.status, 201, JSON.stringify(r.body));
 assert.equal(r.headers.get("location"), "/hoa-hong");
 const MA = r.body.loai.code;
 assert.match(MA, /^LD_[A-Z]{8}$/);
-assert.deepEqual(r.body.loai, { code: MA, ten: TEN, coSan: false, dangBat: true });
+assert.deepEqual(r.body.loai, dtoDu(r.body.loai, { code: MA, dangBat: true, soHoSo: 0 }));
 r = await call(ACC, "GET", "/api/pricing/loai-doi-tac");
 assert.equal(r.body.loai.length, 6);
-assert.deepEqual(r.body.loai.filter((x) => !x.coSan), [{ code: MA, ten: TEN, coSan: false, dangBat: true }]);
+const loaiMoi = r.body.loai.filter((x) => !x.coSan);
+assert.deepEqual(loaiMoi, [dtoDu(loaiMoi[0], { code: MA, dangBat: true, soHoSo: 0 })]);
 // DB: một dòng loại vai (nhóm «khác», nhãn), một dòng danh sách được hưởng, một dòng nhật ký không số / @
 const dongLoai = await sqlRows(`SELECT role_group AS g, is_partner_label AS n, active AS a FROM pty_role_type WHERE code = '${MA}'`);
 assert.deepEqual(dongLoai.map((x) => [x.g, x.n, x.a]), [["OTHER", 1, 1]]);
@@ -80,7 +88,7 @@ assert.ok(r.body.party.roleCodes.includes(MA), "hồ sơ tổ chức mang loại
 const idBanHang = (await sqlRows(`SELECT party_id AS id FROM staff WHERE phone = '${ACCOUNTS.salesA.phone}'`))[0].id;
 const nVaiTruoc = (await sqlRows(`SELECT count(*) AS n FROM pty_party_role WHERE party_id = '${idBanHang}'`))[0].n;
 r = await call(ADM, "POST", `/api/parties/${idBanHang}/roles`, { roleTypeCode: MA });
-assert.equal(r.status, 409, `gắn loại đối tác cho nhân viên Bán hàng phải 409: ${JSON.stringify(r.body)}`);
+assert.equal(r.status, 409, `gắn vai người dùng cho nhân viên Bán hàng phải 409: ${JSON.stringify(r.body)}`);
 assert.equal(maLoi(r), "role_partner_label_conflict");
 assert.match(thongBao(r), /nội bộ/, "câu tiếng Việt nói rõ lý do");
 assert.doesNotMatch(thongBao(r), MA_THO, "câu báo không lộ mã thô");
@@ -93,7 +101,7 @@ assert.equal(r.status, 201, JSON.stringify(r.body));
 const MUC = r.body.dong;
 assert.deepEqual([MUC.doiTuong.loai, MUC.doiTuong.code, MUC.doiTuong.ten ?? TEN, MUC.tyLeBp], ["VAI", MA, TEN, 1500]);
 r = await call(ACC, "GET", "/api/pricing/hoa-hong");
-assert.ok(r.body.vai.some((v) => v.code === MA && v.ten === TEN), "ô «Loại đối tác» của biểu mẫu mức thấy loại mới (cùng tên)");
+assert.ok(r.body.vai.some((v) => v.code === MA && v.ten === TEN), "ô «Vai người dùng» của biểu mẫu mức thấy loại mới (cùng tên)");
 const lapDon = async (bookerPartyId) => {
   const x = await call(A, "POST", "/api/orders", orderInput({ customerName: "Khách Đi Spa E2E", customerPhone: "0901 234 567", bookerPartyId, services: [catalogService({ pax: { adult: 2 }, departDate: vnDate(10) })] }));
   assert.equal(x.status, 201, JSON.stringify(x.body));
@@ -131,7 +139,7 @@ console.log(`✓ 3) Kế toán đặt mức 15% theo loại mới ⇒ 201; Bán 
 const don2 = await lapDon(SPA.id); // đơn NHÁP lập TRƯỚC khi tắt loại; xác nhận SAU khi tắt
 r = await call(ACC, "POST", `/api/pricing/loai-doi-tac/${MA}/tat`, {});
 assert.equal(r.status, 200, JSON.stringify(r.body));
-assert.deepEqual(r.body.loai, { code: MA, ten: TEN, coSan: false, dangBat: false });
+assert.deepEqual(r.body.loai, dtoDu(r.body.loai, { code: MA, dangBat: false, soHoSo: 1 }));
 assert.deepEqual((await sqlRows(`SELECT active AS a FROM pty_role_type WHERE code = '${MA}' UNION ALL SELECT active FROM prc_beneficiary_role WHERE role_type_code = '${MA}'`)).map((x) => x.a), [0, 0], "tắt đặt CẢ HAI cờ");
 r = await call(ADM, "POST", `/api/parties/${SPA2.id}/roles`, { roleTypeCode: MA });
 assert.equal(r.status, 409, `gắn loại đã tắt phải 409: ${JSON.stringify(r.body)}`);
@@ -163,12 +171,48 @@ assert.equal((await call(A, "POST", `/api/pricing/loai-doi-tac/${MA}/bat`, {})).
 // bật lại
 r = await call(ACC, "POST", `/api/pricing/loai-doi-tac/${MA}/bat`, {});
 assert.equal(r.status, 200, JSON.stringify(r.body));
-assert.deepEqual(r.body.loai, { code: MA, ten: TEN, coSan: false, dangBat: true });
+assert.deepEqual(r.body.loai, dtoDu(r.body.loai, { code: MA, dangBat: true, soHoSo: 1 }));
 assert.equal((await call(ADM, "POST", `/api/parties/${SPA2.id}/roles`, { roleTypeCode: MA })).status, 201, "bật lại ⇒ gắn mới được");
 assert.equal((await call(ACC, "POST", `/api/pricing/loai-doi-tac/${MA}/bat`, {})).status, 409, "/bat lần hai ⇒ stale");
 const nk = await sqlRows(`SELECT action, count(*) AS n FROM audit_log WHERE action IN ('prc_partner_type_off', 'prc_partner_type_on') GROUP BY action ORDER BY action`);
 assert.deepEqual(nk.map((x) => [x.action, x.n]), [["prc_partner_type_off", 1], ["prc_partner_type_on", 1]], "mỗi lần đổi thật một dòng nhật ký; lần thua (409) không ghi");
 console.log("✓ 4) Tắt loại ⇒ 200, hai cờ cùng tắt; gắn mới 409 role_type_inactive; đơn đã xác nhận giữ bản chụp 15%; đơn mới với bên đặt mang loại đã tắt ⇒ 400; đơn nháp lập trước, xác nhận sau khi tắt ⇒ MISSING / BOOKER_NOT_BENEFICIARY; /tat lần hai 409 stale; vai có sẵn 404; Bán hàng 403; bật lại ⇒ 200 và gắn mới được");
+
+// ---- 4b) A9 (mã định danh 5.26, đặc tả 2026-10-31 §3, §6): đổi tên + ghi chú loại tự thêm ⇒ mã giữ, tên mới hiện ở mọi chỗ tra tên theo mã; đơn đã xác nhận GIỮ tiền hoa hồng.
+// Bản chụp đơn KHÔNG chép chữ tên loại: `ord_service_terms` (migration 0090) chỉ lưu mã — người hưởng (party id), dòng mức (`commission_rule_id`), tỷ lệ, trạng thái —
+// nên tên loại luôn tra theo mã lúc đọc; đổi tên không đụng bản chụp. (Đặt SAU bước 4: `dtoDu` ở trên khoá tên cũ TEN và ghiChu null.)
+const TEN2 = `Nhân viên xông hơi ${CHU}`;
+const GHI_CHU = "Loại thử của kịch bản e2e, xoá được.";
+r = await call(ACC, "GET", "/api/pricing/loai-doi-tac");
+const truocSua = r.body.loai.find((x) => x.code === MA);
+assert.ok(truocSua && truocSua.updatedAt, "loại tự thêm có dấu phiên bản updatedAt");
+const chup1TruocSua = await banChup(don1.id);
+r = await call(ACC, "PATCH", `/api/pricing/loai-doi-tac/${MA}`, { ten: TEN2, ghiChu: GHI_CHU, updatedAt: truocSua.updatedAt });
+assert.equal(r.status, 200, `đổi tên + ghi chú: ${JSON.stringify(r.body)}`);
+assert.deepEqual([r.body.loai.code, r.body.loai.ten, r.body.loai.ghiChu, r.body.loai.coSan, r.body.loai.dangBat], [MA, TEN2, GHI_CHU, false, true], "mã giữ, tên + ghi chú mới");
+assert.notEqual(r.body.loai.updatedAt, truocSua.updatedAt, "dấu phiên bản đổi sau khi sửa");
+r = await call(ACC, "GET", "/api/pricing/loai-doi-tac");
+assert.equal(r.body.loai.find((x) => x.code === MA)?.ten, TEN2, "danh sách loại hiện tên mới theo mã");
+assert.ok(!r.body.loai.some((x) => x.ten === TEN), "tên cũ không còn trong danh sách");
+r = await call(ACC, "GET", "/api/pricing/hoa-hong");
+assert.ok(r.body.vai.some((v) => v.code === MA && v.ten === TEN2), "ô «Vai người dùng» của bảng mức hiện tên mới");
+// A9: đơn đã xác nhận giữ nguyên bản chụp và tiền hoa hồng
+assert.deepEqual(await banChup(don1.id), chup1TruocSua, "bản chụp đơn đã xác nhận không đổi sau khi đổi tên loại");
+assert.deepEqual(chup1TruocSua, chup1, "bản chụp vẫn là bản lúc xác nhận (AUTO/SET 1500)");
+vp = await thuongMai(don1.id);
+assert.equal(vp.tong.hoaHong, hh, "A9: hoa hồng của đơn đã xác nhận không đổi sau khi đổi tên loại");
+// Nhật ký: một dòng đổi tên (tên cũ → tên mới), một dòng sửa ghi chú KHÔNG chứa nội dung ghi chú; cả hai mang mã ở ô đối tượng
+const nkSua = await sqlRows(`SELECT action, target_id AS ma, detail FROM audit_log WHERE action IN ('prc_partner_type_renamed', 'prc_partner_type_note') AND target_id = '${MA}' ORDER BY action`);
+assert.deepEqual(nkSua.map((x) => [x.action, x.ma]), [["prc_partner_type_note", MA], ["prc_partner_type_renamed", MA]], "đúng hai dòng nhật ký, ô đối tượng = mã");
+assert.equal(nkSua.find((x) => x.action === "prc_partner_type_renamed").detail, `«${TEN}» → «${TEN2}»`);
+assert.ok(!nkSua.some((x) => x.detail.includes("e2e")), "nhật ký sửa ghi chú không chép nội dung ghi chú (A6)");
+// Lưu lại trên bản cũ (người khác vừa sửa) ⇒ 409, không ghi thêm
+r = await call(ACC, "PATCH", `/api/pricing/loai-doi-tac/${MA}`, { ten: `Nhân viên tắm bùn ${CHU}`, updatedAt: truocSua.updatedAt });
+assert.equal(r.status, 409, `lưu trên bản cũ: ${JSON.stringify(r.body)}`);
+assert.doesNotMatch(thongBao(r), MA_THO);
+assert.equal((await sqlRows(`SELECT count(*) AS n FROM audit_log WHERE action = 'prc_partner_type_renamed' AND target_id = '${MA}'`))[0].n, 1, "lần thua 409 không ghi nhật ký");
+assert.equal((await call(A, "PATCH", `/api/pricing/loai-doi-tac/${MA}`, { ten: `Loại Bán hàng ${CHU}`, updatedAt: null })).status, 403, "Bán hàng không sửa được");
+console.log(`✓ 4b) A9: Kế toán đổi tên loại «${TEN}» → «${TEN2}» + ghi chú ⇒ 200, mã ${"LD_…"} giữ, danh sách + bảng mức hiện tên mới; đơn đã xác nhận giữ bản chụp và hoa hồng ${hh.toLocaleString("vi-VN")}đ (bản chụp không chép chữ tên loại); nhật ký đổi tên + ghi chú mang mã, không chép ghi chú; lưu trên bản cũ 409; Bán hàng 403`);
 
 // ---- 5) Không đổi công ty chủ
 assert.deepEqual((await sqlRows("SELECT party_id FROM v_pty_owner_company")).map((x) => x.party_id), congTyTruoc, "công ty chủ không đổi");

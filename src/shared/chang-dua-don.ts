@@ -298,6 +298,14 @@ export function xepChang<T extends { id: string | null; direction: LegDirection;
 }
 
 /**
+ * Chặng CHIỀU ĐI còn mở sớm nhất của một dịch vụ (ngày — trống sau, rồi giờ có trước giờ trống, rồi giờ, rồi id) — MỘT hàm cho `chieuDiDau` và cho ghi kép cột cũ ở Còn vé
+ * (`R-ORD-7` xếp bằng câu con cùng thứ tự). Không có chiều đi → null. Trả đối tượng nguồn. KHÁC `changDauCuaDichVu` (lượt ĐẦU, kể cả chiều về — luật «cần chốt giờ»).
+ */
+export function changDiDau<T extends { id: string | null; direction: LegDirection; pickupDate: string | null; pickupTime: string | null }>(legs: readonly T[]): T | null {
+  return legs.filter((l) => l.direction === "OUT").sort(somHon)[0] ?? null;
+}
+
+/**
  * Hai khoá cũ `pickupTime`/`pickupPlace` của một dịch vụ, DẪN XUẤT từ chặng (Ruling R2a, một hàm cho mọi nơi đọc): chặng CHIỀU ĐI còn mở sớm nhất
  * (ngày, rồi giờ có trước giờ trống, rồi id); nơi = tên điểm danh mục hoặc chữ (`pickupLabel`). Không có chiều đi → hai khoá null.
  * `legs` = CHỈ chặng còn hiệu lực (nơi gọi lọc).
@@ -306,9 +314,38 @@ export function xepChang<T extends { id: string | null; direction: LegDirection;
  * (`legs[].pickupLabel`, hàm hẹp cho Vận chuyển) vẫn mang chữ tạm để văn phòng bổ sung (kiểm định kỳ R-ORD-12).
  */
 export function chieuDiDau(legs: readonly Pick<ChangDaLuu, "id" | "direction" | "pickupDate" | "pickupTime" | "pickupLabel">[]): { pickupTime: string | null; pickupPlace: string | null } {
-  const out = legs.filter((l) => l.direction === "OUT").sort(somHon)[0];
+  const out = changDiDau(legs);
   if (!out) return { pickupTime: null, pickupPlace: null };
   return { pickupTime: out.pickupTime, pickupPlace: out.pickupLabel === NOI_DON_CHUA_GHI ? null : out.pickupLabel };
+}
+
+/**
+ * LƯỢT ĐẦU của một dịch vụ (ADR-0154 Đ1.2 «chặng đầu tiên của dịch vụ», câu đã áp số 1, ĐỔI THỨ TỰ theo ruling R7 sau kiểm độc lập Đợt 1, N-3): CHIỀU ĐI trước chiều về → ngày (trống xếp sau)
+ * → giờ có trước giờ trống → giờ → id. Chiều đi luôn đứng trước chiều về BẤT KỂ ngày: một lượt về nằm trước lượt đi chỉ là dữ liệu lệch (gửi qua API, hoặc đổi ngày đi làm lượt về ở lại ngày cũ),
+ * không phải hành trình thật — nếu để ngày đứng trước, lượt về có giờ gợi ý sớm hơn sẽ đẩy chiều đi chưa giờ ra khỏi cổng giờ. Dịch vụ chỉ có chiều về vẫn có lượt đầu (chiều về).
+ * KHÁC `xepChang` (giờ đứng trước chiều, để hiển thị). MỘT hàm cho máy chủ, giao diện và kiểm định kỳ (`R-ORD-17w` xếp bằng câu con cùng thứ tự). `legs` = CHỈ chặng còn hiệu lực.
+ * Trả đối tượng nguồn (không sao chép); rỗng → null.
+ */
+export function changDauCuaDichVu<T extends { id: string; direction: LegDirection; pickupDate: string | null; pickupTime: string | null }>(legs: readonly T[]): T | null {
+  return (
+    [...legs].sort((a, b) => {
+      if (a.direction !== b.direction) return a.direction === "OUT" ? -1 : 1;
+      return somHon(a, b); // cùng chiều: ngày (trống sau), giờ có trước giờ trống, giờ sớm trước, rồi id
+    })[0] ?? null
+  );
+}
+
+/**
+ * Dịch vụ mà LƯỢT ĐẦU chưa có giờ đón (ADR-0154 Đ1.2): `{ serviceId, legId }` của lượt đầu đó. Dịch vụ không có lượt (Không đón) không bị nêu. Dùng ở Gửi đơn (cờ «cần chốt
+ * giờ») và cổng giờ của Còn vé. Không xét chiều về hay lượt sau: chúng không bắt buộc.
+ */
+export function thieuGioChangDau<T extends { id: string; direction: LegDirection; pickupDate: string | null; pickupTime: string | null }>(
+  dichVu: readonly { id: string; legs: readonly T[] }[],
+): { serviceId: string; legId: string }[] {
+  return dichVu.flatMap((s) => {
+    const dau = changDauCuaDichVu(s.legs);
+    return dau !== null && dau.pickupTime === null ? [{ serviceId: s.id, legId: dau.id }] : [];
+  });
 }
 
 const daysBetween = (from: string, to: string): number => Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000);

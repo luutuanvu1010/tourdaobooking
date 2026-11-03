@@ -16,6 +16,13 @@ test("buocXong: Khách cần ngày khởi hành + tên + SĐT (khoảng trắng 
   assert.equal(buocXong({ ...DU, sdt: "" })["khach"], false);
 });
 
+test("buocXong: khối khách đang ẩn (ADR-0154 Đ2.2) thì Khách ✓ chỉ cần ngày khởi hành — không đòi tên, SĐT mà form không còn ô", () => {
+  assert.equal(buocXong({ ...DU, ten: "", sdt: "", anKhach: true })["khach"], true);
+  assert.equal(buocXong({ ...DU, ten: "", sdt: "", anKhach: true, coNgayDi: false })["khach"], false);
+  assert.equal(buocXong({ ...DU, ten: "", sdt: "", anKhach: false })["khach"], false);
+  assert.equal(buocXong({ ...DU, ten: "", sdt: "" })["khach"], false, "không nêu anKhach = như cũ");
+});
+
 test("buocXong: Dịch vụ cần ít nhất một dịch vụ và không còn lỗi chặn Lưu", () => {
   assert.equal(buocXong(DU)["dich-vu"], true);
   assert.equal(buocXong({ ...DU, soDichVu: 0 })["dich-vu"], false);

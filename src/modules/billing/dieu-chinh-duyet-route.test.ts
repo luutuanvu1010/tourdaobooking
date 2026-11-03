@@ -485,7 +485,8 @@ async function donDaGiao(w: W, lanThu: [number, unknown][], booker: string | nul
     const xn = await w.call("POST", `/api/orders/${id}/status`, { as: SALES, body: { status: "confirmed" } });
     assert.equal(xn.status, 200, xn.text);
   }
-  for (const [soTien, nguoiThu] of lanThu) assert.equal((await thu(w, KT, id, soTien, nguoiThu)).status, 201);
+  // ADR-0092 Đ6a: ca gieo có hai khoản tiền mặt cùng số — khai sẵn lý do (không có ứng viên thì máy chủ bỏ qua).
+  for (const [soTien, nguoiThu] of lanThu) assert.equal((await w.call("POST", `/api/orders/${id}/payments`, { as: KT, body: { soTien, hinhThuc: "CASH", nguoiThu, boQuaTrung: { ma: "lan_thu_tien_mat", lyDo: "Khách trả hai lần thật" } } })).status, 201);
   if (!giao) return id; // `giao = false`: đơn đã xác nhận, CHƯA «Đã giao» (Ruling R-P15)
   const g = await w.call("POST", `/api/orders/${id}/delivered`, { as: SA, body: {} });
   assert.equal(g.status, 200, g.text);

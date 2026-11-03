@@ -55,6 +55,7 @@ const luonCo = (): boolean => true;
  * MỌI trang có lối vào. Đường gọi chính của từng trang ở bảng riêng `GOI_CHINH` (`muc-giao-dien-goi.ts`, chỉ bài rào đọc — Ruling R-P27); thêm trang ở
  * đây thì thêm dòng ở bảng đó (typecheck đỏ nếu quên).
  */
+const vaoSoDieuChinh = (s: PermissionHolder): boolean => (can(s, "ledger.write") || can(s, "ledger.adjust.approve")) && !holdsPartner(s);
 export const TRANG = {
   trangChu: { duong: "/", hien: seesAllOrders, tam: (k) => k.seesAll },
   donHang: {
@@ -98,7 +99,10 @@ export const TRANG = {
   // Sổ công nợ theo đối tác (kế hoạch 2026-10-24 P1; bản vẽ 2a): CÙNG ô với route GET /api/ledger — ledger.view không ngữ cảnh (Kế toán, Toàn quyền). Chỉ đọc.
   soCongNo: { duong: "/so-cong-no", hien: (s) => can(s, "ledger.view") },
   // Điều chỉnh công nợ cần người thứ hai duyệt (ADR-0115 đợt 1): xem danh sách = ô gửi (`ledger.write`) HOẶC ô duyệt (`ledger.adjust.approve`; Quản trị chỉ thấy yêu cầu chờ duyệt).
-  dieuChinhCongNo: { duong: "/dieu-chinh-cong-no", hien: (s) => (can(s, "ledger.write") || can(s, "ledger.adjust.approve")) && !holdsPartner(s) }, // R-P18: máy chủ chặn tài khoản giữ quyền Đối tác
+  dieuChinhCongNo: { duong: "/dieu-chinh-cong-no", hien: vaoSoDieuChinh }, // R-P18: máy chủ chặn tài khoản giữ quyền Đối tác
+  // Phân định trách nhiệm (ADR-0116): trên mọi tập quyền trùng điều kiện route GET /api/ledger/phan-dinh (ô attribution.request trùng ô ledger.adjust.approve; decide nằm trong đó). Không có mục thanh bên
+  // (trần 10 khối) và không có dòng trang Tôi (trần gói Đơn hàng): lối vào ở trang Điều chỉnh công nợ, trang đơn, tin báo.
+  phanDinh: { duong: "/phan-dinh", hien: vaoSoDieuChinh },
   // Bảng mức hoa hồng và điều khoản người bán (sổ đại lý đợt 1 Task 10): ô partner.commission.view / supply.terms.view không ngữ cảnh. Bảy route `pricing` chặn THÊM tài khoản giữ quyền
   // Đối tác (kể cả tài khoản lai, Ruling 12) — mục hiện phải chặn CÙNG điều kiện, nếu không tài khoản lai thấy mục mà bấm vào bị 403.
   hoaHong: { duong: "/hoa-hong", hien: (s) => can(s, "partner.commission.view") && !holdsPartner(s) },
@@ -109,6 +113,10 @@ export const TRANG = {
   nguoiBan: { duong: "/nguoi-ban", hien: (s) => can(s, "supply.terms.view") && !holdsPartner(s) },
   // Chụp bù mức (sổ đại lý đợt 2, Task 12; ADR-0079 điều 7 b2): CÙNG cổng route `GET /api/orders/cho-chup-bu` — ô order.terms.override và không giữ quyền Đối tác (kể cả lai).
   chupBu: { duong: "/chup-bu", hien: (s) => can(s, "order.terms.override") && !holdsPartner(s) },
+  // Kho vé điện tử (ADR-0153; Task 9a): CÙNG cổng route `GET /api/ve/kho` — ô ve.kho.manage (Bán hàng, Quản trị, Toàn quyền).
+  veKho: { duong: "/ve-kho", hien: (s) => can(s, "ve.kho.manage") },
+  // Cài đặt vé điện tử (ADR-0156 Đ3): CÙNG cổng route `GET /api/ve/cai-dat` — ô settings.ops (chỉ Toàn quyền).
+  veCaiDat: { duong: "/ve-cai-dat", hien: (s) => can(s, "settings.ops") },
   // Đơn chờ xác nhận (ADR-0136 Đ6; Task 3.5): CÙNG cổng route `GET /api/orders/cho-xac-nhan` — ô order.confirm.review không ngữ cảnh (Bán hàng, Kế toán, Quản trị, HDV, Toàn quyền).
   choXacNhan: { duong: "/cho-xac-nhan", hien: (s) => can(s, "order.confirm.review") },
   nhatKy: { duong: "/audit", hien: (s) => can(s, "audit.view") }, // ADR-0038 điều 6: chỉ Toàn quyền
@@ -202,6 +210,8 @@ export const THANH_BEN = [
   { nhom: "THIẾT LẬP", trang: "luatBan", nhan: "Luật bán" },
   { nhom: "THIẾT LẬP", trang: "nguoiBan", nhan: "Người bán dịch vụ" },
   { nhom: "THIẾT LẬP", trang: "chupBu", nhan: "Chụp bù mức" },
+  { nhom: "THIẾT LẬP", trang: "veKho", nhan: "Vé điện tử" },
+  { nhom: "THIẾT LẬP", trang: "veCaiDat", nhan: "Cài đặt vé điện tử" },
   { nhom: "THIẾT LẬP", trang: "dichVu", nhan: "Dịch vụ & giá" },
   { nhom: "THIẾT LẬP", trang: "dacDiem", nhan: "Đặc điểm dịch vụ" },
   { nhom: "THIẾT LẬP", trang: "diaDiem", nhan: "Địa điểm" },
@@ -293,6 +303,8 @@ export const TRANG_TOI = [
   { phan: "sau", trang: "dacDiem", nhan: "Đặc điểm dịch vụ" },
   { phan: "sau", trang: "nguoiBan", nhan: "Người bán dịch vụ" },
   { phan: "sau", trang: "chupBu", nhan: "Chụp bù mức" },
+  { phan: "sau", trang: "veKho", nhan: "Vé điện tử" },
+  { phan: "sau", trang: "veCaiDat", nhan: "Cài đặt vé điện tử" },
   { phan: "sau", trang: "nhatKy", nhan: "Nhật ký" },
   { phan: "sau", trang: "phien", nhan: "Máy đang đăng nhập" },
   { phan: "sau", trang: "guiThongBao", nhan: "Gửi thông báo" },

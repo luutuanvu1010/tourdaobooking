@@ -15,6 +15,8 @@ import { vnd } from "./format";
 import { ganDaiTrangAnhEm } from "./dai-trang-anh-em";
 import { initShell, showError } from "./shell";
 
+const NHAN_PHAN_DINH = "Khoản phải nộp do phân định";
+
 const errorEl = byId("error");
 const noiDungEl = byId("scn-noi-dung");
 const canhBaoEl = byId("scn-canh-bao");
@@ -45,7 +47,7 @@ if (!can(staff, "ledger.view")) {
   // Luật khung 30/10 [8]: màn rộng tự mở bên đầu danh sách (trước: ngăn chi tiết trống chiếm nửa màn). Cờ này nhớ «máy tự chọn» để khi thu về khổ hẹp
   // thì trả lại danh sách, không bày «trang con» mà người dùng chưa bấm.
   let tuDongChon = false;
-  const soDonHien = { dangGiu: DON_MOI_LAN, congTyNo: DON_MOI_LAN };
+  const soDonHien = { dangGiu: DON_MOI_LAN, congTyNo: DON_MOI_LAN, khoanPhanDinh: DON_MOI_LAN };
 
   for (const k of Object.keys(NHAN_XEP) as XepSoCongNo[]) xepEl.append(h("option", { value: k }, NHAN_XEP[k]));
   xepEl.addEventListener("change", () => { xep = xepEl.value as XepSoCongNo; soBenHien = BEN_MOI_LAN; veDanhSach(); });
@@ -58,7 +60,7 @@ if (!can(staff, "ledger.view")) {
 
   function veTong(s: Api.SoCongNoResponse): void {
     const o = (nhan: string, so: string) => h("div", { class: "scn-o-tong" }, h("span", { class: "muted" }, nhan), h("strong", null, so));
-    replaceChildren(tongEl, o("Các bên đang giữ", vnd(s.tongDangGiu)), o("Công ty đang nợ", vnd(s.tongCongTyNo)), o("Số bên", String(s.soDu.length)));
+    replaceChildren(tongEl, o("Các bên đang giữ", vnd(s.tongDangGiu)), o("Công ty đang nợ", vnd(s.tongCongTyNo)), ...(s.tongPhanDinh > 0 ? [o(NHAN_PHAN_DINH, vnd(s.tongPhanDinh))] : []), o("Số bên", String(s.soDu.length)));
   }
 
   function veLoc(s: Api.SoCongNoResponse): void {
@@ -80,7 +82,8 @@ if (!can(staff, "ledger.view")) {
     const ul = h("ul", { class: "scn-ds" }, ...hien.map((b) => {
       const nut = h("button", { type: "button", class: "scn-ben", "aria-current": String(b.partyId === dangChon), "data-ben": b.partyId },
         h("span", { class: "scn-ben-ten" }, b.ten),
-        h("span", { class: b.dangGiu > 0 ? "scn-so scn-giu" : "scn-so scn-no" }, cauSoDu(b.dangGiu, vnd)));
+        h("span", { class: b.dangGiu > 0 ? "scn-so scn-giu" : "scn-so scn-no" }, cauSoDu(b.dangGiu, vnd)),
+        b.khoanPhanDinh ? h("span", { class: "scn-so scn-khoan muted", "data-khoi": "khoan-phan-dinh" }, `${NHAN_PHAN_DINH}: ${vnd(b.khoanPhanDinh)}`) : false);
       nut.addEventListener("click", () => void chon(b.partyId));
       return h("li", null, nut);
     }));
@@ -90,7 +93,7 @@ if (!can(staff, "ledger.view")) {
     replaceChildren(dsEl, ul, them);
   }
 
-  function nhom(tieuDe: string, khoa: "dangGiu" | "congTyNo", n: Api.SoCongNoBenResponse["dangGiu"]): HTMLElement | false {
+  function nhom(tieuDe: string, khoa: "dangGiu" | "congTyNo" | "khoanPhanDinh", n: Api.SoCongNoBenResponse["dangGiu"]): HTMLElement | false {
     if (n.don.length === 0) return false;
     const hien = n.don.slice(0, soDonHien[khoa]);
     const con = n.don.length - hien.length;
@@ -123,9 +126,11 @@ if (!can(staff, "ledger.view")) {
       lech && h("div", { class: "alert scn-lech", role: "alert" }, CAU_LECH(vnd(Math.abs(c.lech)))),
       nhom("Bên này đang giữ", "dangGiu", c.dangGiu),
       nhom("Công ty nợ bên này", "congTyNo", c.congTyNo),
+      nhom(NHAN_PHAN_DINH, "khoanPhanDinh", c.khoanPhanDinh),
       h("div", { class: lech ? "scn-phep-tinh scn-phep-lech" : "scn-phep-tinh" },
         h("span", null, `Đang giữ ${vnd(c.dangGiu.tong)}`),
         h("span", null, `Công ty nợ ${vnd(c.congTyNo.tong)}`),
+        c.khoanPhanDinh.tong > 0 ? h("span", null, `${NHAN_PHAN_DINH} ${vnd(c.khoanPhanDinh.tong)}`) : false,
         h("span", null, `Cộng các đơn ${vnd(c.congCacDon)}`),
         h("strong", null, lech ? `Số dư sổ ${vnd(c.soDu)} — lệch ${vnd(Math.abs(c.lech))}` : `= Số dư ${vnd(c.soDu)} ✓ Khớp`)),
     );
@@ -148,6 +153,7 @@ if (!can(staff, "ledger.view")) {
     ct = null;
     ctLoi = null;
     soDonHien.dangGiu = DON_MOI_LAN;
+    soDonHien.khoanPhanDinh = DON_MOI_LAN;
     soDonHien.congTyNo = DON_MOI_LAN;
     if (!tuLichSu) history.pushState({ ben: partyId }, "", `#ben=${encodeURIComponent(partyId)}`);
     veBo();

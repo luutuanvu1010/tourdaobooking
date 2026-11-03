@@ -20,11 +20,11 @@ export const KHOA_BAT_BUOC = ["SESSION_SECRET", "LAN_GUI_SECRET"];
  */
 export const KHOA_HAI_LOP = "MFA_ENCRYPTION_KEY";
 /**
- * Kho R2 của Worker (cổng 1e): ADR-0123 kho tệp hồ sơ (`HO_SO`), ADR-0144 kho tệp vé hỗ trợ (`HO_TRO`). Tên kho đọc từ wrangler.jsonc — MỘT nguồn (kế hoạch H-2
+ * Kho R2 của Worker (cổng 1e): ADR-0123 kho tệp hồ sơ (`HO_SO`), ADR-0144 kho tệp vé hỗ trợ (`HO_TRO`), ADR-0153 kho vé điện tử (`VE_DIEN_TU`). Tên kho đọc từ wrangler.jsonc — MỘT nguồn (kế hoạch H-2
  * kho tệp, ruling R2, R10). Nhãn để in câu dừng; binding chưa có nhãn vẫn được kiểm (nhãn chung).
  */
-export const NHAN_KHO = { HO_SO: "kho tệp hồ sơ", HO_TRO: "kho tệp vé hỗ trợ" };
-const HAU_QUA_THIEU_KHO = { HO_SO: "ảnh giấy tờ không tải lên hay mở được", HO_TRO: "tệp đính kèm vé hỗ trợ không gửi hay mở được" };
+export const NHAN_KHO = { HO_SO: "kho tệp hồ sơ", HO_TRO: "kho tệp vé hỗ trợ", VE_DIEN_TU: "kho vé điện tử" };
+const HAU_QUA_THIEU_KHO = { HO_SO: "ảnh giấy tờ không tải lên hay mở được", HO_TRO: "tệp đính kèm vé hỗ trợ không gửi hay mở được", VE_DIEN_TU: "ảnh vé điện tử không nhập hay mở được" };
 const nhanKho = (binding) => NHAN_KHO[binding] ?? `kho R2 ${binding}`;
 /**
  * MỌI kho R2 trong nội dung wrangler.jsonc theo thứ tự khai (`[{ binding, ten }]`), hoặc null. Chỉ bỏ chú thích CẢ DÒNG (luật của tệp — như

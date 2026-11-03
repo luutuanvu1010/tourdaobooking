@@ -76,12 +76,12 @@ test("Task 12: HDV / Kế toán trên đơn đại lý có quầy nhà cung cấ
   const t = (await tien(w, id, HDV)).json;
   const a = await w.call("POST", `/api/orders/${id}/payments`, { as: HDV, body: { soTien: 100_000, hinhThuc: "CASH", nguoiThu: "ben_dat" } });
   assert.equal(a.status, 201, a.text);
-  const b = await w.call("POST", `/api/orders/${id}/payments`, { as: HDV, body: { soTien: 100_000, hinhThuc: "CASH", nguoiThu: { nhaCungCapPartyId: t.benKia.nhaCungCap[0].partyId } } });
+  const b = await w.call("POST", `/api/orders/${id}/payments`, { as: HDV, body: { soTien: 100_000, hinhThuc: "CASH", nguoiThu: { nhaCungCapPartyId: t.benKia.nhaCungCap[0].partyId }, boQuaTrung: { ma: "lan_thu_tien_mat", lyDo: "Khách trả hai lần thật" } } });
   assert.equal(b.status, 201, b.text);
-  const c = await w.call("POST", `/api/orders/${id}/payments`, { as: HDV, body: { soTien: 100_000, hinhThuc: "CASH", nguoiThu: "toi", thuChoNhaCungCapPartyId: t.benKia.nhaCungCap[0].partyId } });
+  const c = await w.call("POST", `/api/orders/${id}/payments`, { as: HDV, body: { soTien: 100_000, hinhThuc: "CASH", boQuaTrung: { ma: "lan_thu_tien_mat", lyDo: "Khách trả hai lần thật" }, nguoiThu: "toi", thuChoNhaCungCapPartyId: t.benKia.nhaCungCap[0].partyId } });
   assert.equal(c.status, 201, c.text);
   // Phần i-resort 300.000: đã 100.000 tại quầy + 100.000 «thu cho» ⇒ còn 100.000; 150.000 vượt trần ⇒ 400 (id đúng hồ sơ, chỉ số vượt).
-  const d = await w.call("POST", `/api/orders/${id}/payments`, { as: HDV, body: { soTien: 150_000, hinhThuc: "CASH", nguoiThu: "toi", thuChoNhaCungCapPartyId: t.benKia.nhaCungCap[0].partyId } });
+  const d = await w.call("POST", `/api/orders/${id}/payments`, { as: HDV, body: { soTien: 150_000, hinhThuc: "CASH", boQuaTrung: { ma: "lan_thu_tien_mat", lyDo: "Khách trả hai lần thật" }, nguoiThu: "toi", thuChoNhaCungCapPartyId: t.benKia.nhaCungCap[0].partyId } });
   assert.equal(d.status, 400, d.text);
   assert.match(d.text, /phần còn chưa thu cho nhà cung cấp/);
 });

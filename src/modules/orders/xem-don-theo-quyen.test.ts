@@ -284,7 +284,7 @@ test("ADR-0030 L1-12: MỌI ô của Đối tác (PARTNER) giữ nguyên — ghi
     "party.write": "none", "party.staff.write": "none",
     "party.personal.view": "none", // ADR-0122 đ5: Đối tác không xem ngày sinh / địa chỉ người khác
     "admin.manage": "none", "admin.manage.superadmin": "none", "feedback.submit": "any", "feedback.view": "own",
-    "feedback.triage": "none", "feedback.team.manage": "none", "settings.ops": "none", "dispatch.policy.lead": "none", "order.pool.view": "none", "account.access.manage": "none", "audit.view": "none", "notice.send": "none",
+    "feedback.triage": "none", "feedback.team.manage": "none", "settings.ops": "none", "dispatch.policy.lead": "none", "order.pool.view": "none", "ve.kho.manage": "none", "ve.cap.send": "none", /* ADR-0153 Đ3: Đối tác không có ô kho vé */ "account.access.manage": "none", "audit.view": "none", "notice.send": "none",
     "account.create": "none", "account.view": "none", "account.edit": "none", // ADR-0071: Quản lý tài khoản — Đối tác không
     "company.legal.write": "none", // T2b (ADR-0024 6.4 + ADR-0038 điều 7): ô mới, chỉ Toàn quyền — thêm khi gộp main 356084a vào nhánh T2b (D19)
     "party.document.view": "none", "party.document.write": "none", "party.document.reveal": "none", "party.attachment.view": "none", // ADR-0040 D2, ADR-0124 đ4: Đối tác không có giấy tờ / ảnh của người khác
@@ -298,6 +298,8 @@ test("ADR-0030 L1-12: MỌI ô của Đối tác (PARTNER) giữ nguyên — ghi
     "transport.cost.view": "none", "transport.cost.adjust": "none", // ADR-0057 C7 — chi phí xe thuê: không
     "order.handover": "none", "order.complete": "none", "ledger.view": "none", "ledger.write": "none", // sổ tiền lượt 1 (bản làm mới §2): Đối tác không có sổ ở lượt 1 (đ12)
     "ledger.adjust.approve": "none", // duyệt điều chỉnh công nợ (ADR-0115): Đối tác không duyệt
+    "attribution.request": "none", // ADR-0116: Đối tác không đề nghị, không phân định
+    "attribution.decide": "none",
     "ledger.period.close": "none", // khoá sổ tháng (ADR-0080 D1): Đối tác không khoá sổ
     "order.passenger.write": "own", // ADR-0047 A2: bằng order.modify — Đối tác nhập tên khách cho đơn CỦA MÌNH
     "order.leg.short_notice": "none", // ADR-0049 D3: đặt gấp chỉ Quản trị, Toàn quyền

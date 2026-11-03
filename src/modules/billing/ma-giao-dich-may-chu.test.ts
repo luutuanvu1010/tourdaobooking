@@ -104,7 +104,7 @@ test("máy chủ một mình — vượt: mã đã gắn 400.000 trong tổng th
   assert.equal(x.status, 409, x.text);
   assert.equal(x.json.error.code, "bank_txn_over");
   assert.deepEqual(anh(w), truoc, "lệnh bị từ chối không để lại dòng nào");
-  assert.equal((await thu(w, KT, b, ck(400_000, { maGiaoDich: "SV0003", soThucChuyen: 800_000 }))).status, 201, "đối chứng: đúng bằng phần còn lại thì ghi được");
+  assert.equal((await thu(w, KT, b, ck(400_000, { maGiaoDich: "SV0003", soThucChuyen: 800_000, boQuaTrung: { ma: "ma_giao_dich_khac_don", lyDo: "Một lần chuyển trả hai đơn" } }))).status, 201, "đối chứng: đúng bằng phần còn lại thì ghi được");
   assert.notDeepEqual(anh(w), truoc, "đối chứng: ảnh chụp có nhạy — lệnh được ghi thì ảnh đổi");
 });
 

@@ -24,11 +24,13 @@ export interface DauVaoBuoc {
   coLoiTien: boolean;
   /** Đã chọn người phụ trách. */
   daChonNguoi: boolean;
+  /** Khối khách đang ẨN (đối tác, công tắc «Ẩn thông tin khách» BẬT — ADR-0154 Đ2.2): bước Khách chỉ cần ngày khởi hành. Vắng = như cũ. */
+  anKhach?: boolean;
 }
 
 /**
  * Bước nào "đủ thông tin" (dấu ✓).
- * - Khách: có ngày khởi hành, tên và số điện thoại (hai ô bắt buộc của form; email, ghi chú không bắt buộc).
+ * - Khách: có ngày khởi hành, tên và số điện thoại (hai ô bắt buộc của form; email, ghi chú không bắt buộc); khối khách ẩn (`anKhach`) thì chỉ cần ngày khởi hành.
  * - Dịch vụ: có ít nhất một dịch vụ và không dịch vụ nào còn lỗi chặn Lưu.
  * - Thanh toán: bước này không có ô bắt buộc nên ✓ khi đã có dịch vụ và số tiền không lệch luật.
  * - Phụ trách: đã chọn người (không chọn vẫn lưu được — đơn "Chờ nhận").
@@ -36,7 +38,7 @@ export interface DauVaoBuoc {
 export function buocXong(v: DauVaoBuoc): Record<MaBuoc, boolean> {
   const dichVuOk = v.soDichVu > 0 && !v.coLoiDichVu;
   return {
-    "khach": v.coNgayDi && v.ten.trim() !== "" && v.sdt.trim() !== "",
+    "khach": v.coNgayDi && (v.anKhach === true || (v.ten.trim() !== "" && v.sdt.trim() !== "")),
     "dich-vu": dichVuOk,
     "thanh-toan": v.soDichVu > 0 && !v.coLoiTien,
     "phu-trach": v.daChonNguoi,

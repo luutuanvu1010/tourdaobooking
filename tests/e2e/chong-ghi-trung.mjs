@@ -84,8 +84,13 @@ const TAG = randomUUID().slice(0, 6);
   const o3 = await lapDon(`Thu Hai Lần Thật ${TAG}`);
   await xacNhan(o3.id);
   assert.equal((await guiVe(A, "POST", `/api/orders/${o3.id}/payments`, lanThu, randomUUID())).status, 201);
-  assert.equal((await guiVe(A, "POST", `/api/orders/${o3.id}/payments`, lanThu, randomUUID())).status, 201);
-  assert.equal(await soLanThu(o3.id), 2, "T4: hai lần thu thật (vé khác) ⇒ hai dòng — lớp không nuốt lần ghi thật");
+  // ADR-0092 Đ6a: vé khác nhưng giống hệt ⇒ lớp nghiệp vụ hỏi lại (409), có lý do thì ghi được; lớp vé vẫn không nuốt.
+  const hoiLai = await guiVe(A, "POST", `/api/orders/${o3.id}/payments`, lanThu, randomUUID());
+  assert.equal(hoiLai.status, 409);
+  assert.equal(hoiLai.body?.error?.code, "co_the_trung");
+  assert.equal(await soLanThu(o3.id), 1, "T4: chưa có lý do thì chưa ghi dòng thứ hai");
+  assert.equal((await guiVe(A, "POST", `/api/orders/${o3.id}/payments`, { ...lanThu, boQuaTrung: { ma: "lan_thu_tien_mat", lyDo: "Khách trả hai lần thật" } }, randomUUID())).status, 201);
+  assert.equal(await soLanThu(o3.id), 2, "T4: hai lần thu thật (vé khác, có lý do) ⇒ hai dòng — lớp không nuốt lần ghi thật");
   const o4 = await lapDon(`Thu Đổi Số ${TAG}`);
   await xacNhan(o4.id);
   assert.equal((await guiVe(A, "POST", `/api/orders/${o4.id}/payments`, lanThu, randomUUID())).status, 201);

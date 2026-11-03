@@ -68,12 +68,20 @@ export interface DongDieuChinh {
  * MỘT hàm cho mọi tin có tên (tin đơn, tin đổi, tin điều chỉnh); hộp thư và câu màn hình khoá (đẩy) đều đi qua locHopThongBao nên không lệch nhau.
  */
 const xemTenNguoiLam = (staff: PermissionHolder): boolean => can(staff, "audit.view") && !holdsPartner(staff);
-const CAU_DIEU_CHINH: Record<string, { coTen: (ten: string, ma: string) => string; khongTen: (ma: string) => string }> = {
+export const CAU_DIEU_CHINH: Record<string, { coTen: (ten: string, ma: string) => string; khongTen: (ma: string) => string }> = {
   ledger_adjustment_requested: { coTen: (t, m) => `${t} gửi yêu cầu điều chỉnh công nợ đơn ${m} — chờ bạn duyệt`, khongTen: (m) => `Có yêu cầu điều chỉnh công nợ đơn ${m} — chờ bạn duyệt` },
   ledger_adjustment_withdrawn: { coTen: (t, m) => `${t} đã rút yêu cầu điều chỉnh công nợ đơn ${m}`, khongTen: (m) => `Yêu cầu điều chỉnh công nợ đơn ${m} đã được rút` },
   ledger_adjustment_approved: { coTen: (t, m) => `${t} đã duyệt yêu cầu điều chỉnh công nợ đơn ${m} của bạn`, khongTen: (m) => `Yêu cầu điều chỉnh công nợ đơn ${m} của bạn đã được duyệt` },
   ledger_adjustment_rejected: { coTen: (t, m) => `${t} đã từ chối yêu cầu điều chỉnh công nợ đơn ${m} của bạn`, khongTen: (m) => `Yêu cầu điều chỉnh công nợ đơn ${m} của bạn bị từ chối` },
   ledger_adjustment_affected: { coTen: (_t, m) => `Số dư của bạn trên đơn ${m} vừa được điều chỉnh`, khongTen: (m) => `Số dư của bạn trên đơn ${m} vừa được điều chỉnh` },
+  // ADR-0116 (đ9 bước 3), ADR-0088 đ2: câu không số tiền, không lý do.
+  attribution_requested: { coTen: (t, m) => `${t} đề nghị phân định trách nhiệm đơn ${m}`, khongTen: (m) => `Có đề nghị phân định trách nhiệm đơn ${m}` },
+  attribution_ruled: { coTen: (t, m) => `${t} đã phân định trách nhiệm đơn ${m}, chờ ghi sổ`, khongTen: (m) => `Đơn ${m} đã được phân định trách nhiệm, chờ ghi sổ` },
+  attribution_posted: { coTen: (_t, m) => `Bạn có một khoản theo phân định trách nhiệm trên đơn ${m} — xem và phản hồi trong 3 ngày làm việc`, khongTen: (m) => `Bạn có một khoản theo phân định trách nhiệm trên đơn ${m} — xem và phản hồi trong 3 ngày làm việc` },
+  attribution_reassigned: { coTen: (_t, m) => `Khoản phân định của bạn trên đơn ${m} đã chuyển sang bên khác — bạn không còn chịu khoản này`, khongTen: (m) => `Khoản phân định của bạn trên đơn ${m} đã chuyển sang bên khác — bạn không còn chịu khoản này` },
+  attribution_reversed: { coTen: (_t, m) => `Khoản phân định của bạn trên đơn ${m} đã được huỷ hoặc giảm — xem số còn lại`, khongTen: (m) => `Khoản phân định của bạn trên đơn ${m} đã được huỷ hoặc giảm — xem số còn lại` },
+  attribution_responded: { coTen: (t, m) => `${t} đã phản hồi khoản phân định trên đơn ${m}`, khongTen: (m) => `Có phản hồi khoản phân định trên đơn ${m}` },
+  ledger_receipt_collector_changed: { coTen: (_t, m) => `Khoản thu có bạn là người thu tiền trên đơn ${m} vừa được sửa`, khongTen: (m) => `Khoản thu có bạn là người thu tiền trên đơn ${m} vừa được sửa` },
 };
 type LoaiTinDon = Exclude<LoaiTin, "thu_cong" | "chuyen" | "tai_khoan" | "dieu_chinh">;
 /** Phần đổi của một dòng đổi (ADR-0062 Đ2) — null = dòng không thành tin (không qua bộ lọc nguồn / không có đoạn nhận ra). */
@@ -290,6 +298,22 @@ export function locHopThongBao(
   const duyetDuoc = can(staff, "ledger.adjust.approve");
   for (const d of vao.dieuChinh ?? []) {
     if (d.luc < moc || d.actorId === staff.id) continue;
+    // ADR-0116: tin phân định — đề nghị mới cho người có ô phân định; đã phân định cho người có ô ghi sổ (khoá 'ledger'); bên chịu và người đề nghị theo khoá 'staff'. Tài khoản bên ngoài chỉ nhận đúng tin của chính mình.
+    if (d.action.startsWith("attribution_") || d.action === "ledger_receipt_collector_changed") {
+      const c = CAU_DIEU_CHINH[d.action];
+      const xemKhoanMinh = can(staff, "ledger.view", { ownerId: staff.id }); // CÙNG ô route khoản của tôi; Đối tác, tài xế không có
+      const denToi = d.mucLoai === "staff" ? d.mucId === staff.id && !(d.action === "attribution_ruled" && can(staff, "ledger.write"))
+        : d.action === "attribution_requested" ? can(staff, "attribution.decide") && !holdsPartner(staff)
+        : d.action === "attribution_ruled" ? can(staff, "ledger.write") && !holdsPartner(staff)
+        : false;
+      if (c && denToi) {
+        tat.push({
+          id: d.id, loai: "dieu_chinh", cau: d.action === "attribution_posted" && !xemKhoanMinh ? `Bạn có một khoản theo phân định trách nhiệm trên đơn ${d.maDon} — liên hệ văn phòng để biết chi tiết` : d.tenNguoiLam !== null && xemTenNguoiLam(staff) ? c.coTen(d.tenNguoiLam, d.maDon) : c.khongTen(d.maDon), maDon: d.maDon, noiDung: null, nguoiGui: null, nhomNhan: null, quanTrong: false, daHieuLuc: null,
+          lienKet: d.action === "ledger_receipt_collector_changed" || !xemKhoanMinh ? (isOffice(staff) ? "/order" : "/account") : "/phan-dinh", luc: d.luc, cuaToi: true, chuaDoc: d.luc > vao.docDenLuc, mo: false,
+        });
+      }
+      continue;
+    }
     const cho = d.mucLoai === "ledger" && (d.action === "ledger_adjustment_requested" || d.action === "ledger_adjustment_withdrawn");
     // «Số dư của bạn đổi» (ADR-0092 Đ5d) chỉ cho NHÂN VIÊN có tài khoản nội bộ: tài khoản giữ quyền Đối tác bên ngoài (kể cả lai) không nhận, vì tin kèm mã đơn.
     const biNgoai = d.action === "ledger_adjustment_affected" && staff.permissions.some(isExternalPermission);

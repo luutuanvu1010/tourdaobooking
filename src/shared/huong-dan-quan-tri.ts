@@ -19,7 +19,6 @@ export const HD_QUAN_TRI: NhomHuongDan = {
 - Nhóm **VẬN CHUYỂN**: [[Điều phối xe]], [[Xe đang chạy]], [[Đề nghị chuyển khách]], [[Xe & giấy tờ]] (gộp [[Xe]], [[Lịch xe bận]], [[Giấy tờ sắp hết hạn]]) và [[Giá & chi phí]].
 - Nhóm **TIỀN**: [[Điều chỉnh công nợ]]; [[Khoá sổ tháng]] chỉ Toàn quyền thấy.
 - Nhóm **THIẾT LẬP** (bấm để mở, thu gọn): [[Hoa hồng đối tác]], [[Luật bán]], [[Người bán dịch vụ]], [[Dịch vụ & giá]], [[Đặc điểm dịch vụ]], [[Địa điểm]], [[Loại giấy tờ cá nhân]], [[Loại giấy tờ xe]], [[Lý do điều phối]], [[Quản lý tài khoản]].
-- Số nhỏ cạnh Dịch vụ & giá: dịch vụ có giá Sheet vừa đổi; cạnh Xe & giấy tờ: giấy tờ đã hoặc sắp hết hạn.
 
 ### Trên điện thoại
 - Tab ở đáy: [[Trang chủ]], [[Đơn hàng]], [[Tạo đơn]], [[Dịch vụ]], [[Tài khoản]], **Tôi**.
@@ -37,7 +36,9 @@ Bạn không thấy các vai trò quản lý (Giám đốc, Điều hành chung,
 2. Sửa [[Họ tên]], [[Số điện thoại đăng nhập]] nếu cần. Đổi số là đổi tên đăng nhập của họ.
 3. Tick hoặc bỏ tick vai trò. Xem kỹ dòng **Sẽ thêm** và **Sẽ mất**. Đổi vai trò có thể đăng xuất máy thừa.
 4. Cần cộng hoặc bớt riêng một quyền: mở [[Chỉnh riêng cho người này (cộng hoặc bớt quyền)]], tick ở [[Cộng thêm]] hoặc [[Bớt đi]], gõ lý do (bắt buộc).
-5. Bấm [[Lưu]]; không lưu thì bấm [[Đóng]].`,
+5. Bấm [[Lưu]]; không lưu thì bấm [[Đóng]].
+
+Tài khoản đối tác có cột **Cấp độ đại lý**: bấm ô, [[Chọn cấp độ đại lý]], **Từ ngày**, [[Lưu]]; [[Dùng cấp theo vai trò]] để bỏ cấp riêng.`,
     },
     {
       tieuDe: "Quên PIN, bị khoá, mất máy, nghỉ việc",
@@ -68,7 +69,7 @@ Tìm: gõ tên hoặc số điện thoại, lọc theo loại, công việc, nơ
 
 - **Thông tin**: sửa rồi bấm [[Lưu thông tin]]. Bỏ tick [[Đang dùng]] để ngưng hồ sơ. Người có tài khoản thì ngưng ở màn Quản lý tài khoản.
 - **Liên hệ**: chọn loại, gõ giá trị, ghi chú (vd Zalo, hotline), tick [[Liên hệ chính]] nếu cần, bấm [[Thêm liên hệ]]. Liên hệ cũ bấm [[Đóng]], lịch sử vẫn giữ.
-- **Công việc tại đâu**: chọn công việc, nơi làm, ngày bắt đầu, bấm [[Thêm công việc]]. Hết làm thì bấm [[Kết thúc]]. Loại đối tác do Kế toán thêm (ghi « (đối tác)») cũng gắn ở đây; nhân viên nội bộ không gắn được.
+- **Công việc tại đâu**: chọn công việc, nơi làm, ngày bắt đầu, bấm [[Thêm công việc]]. Hết làm thì bấm [[Kết thúc]]. Vai người dùng do Kế toán thêm (ghi « (đối tác)») cũng gắn ở đây; nhân viên nội bộ không gắn được.
 - **Người liên hệ, tài xế**: chọn loại quan hệ, gõ tên hồ sơ cần nối, chọn, rồi bấm [[Thêm người liên hệ]], [[Thêm quan hệ tài xế]] hoặc [[Thêm tài xế]].`,
     },
     {
@@ -179,29 +180,23 @@ Mở [[Xe & giấy tờ]], chọn [[Giấy tờ sắp hết hạn]] (điện tho
 Mở [[Loại giấy tờ cá nhân]] (có cả [[Hạng giấy phép lái xe]]) hoặc [[Loại giấy tờ xe]]. Thêm: gõ mã, tên, tick [[Có ngày hết hạn]] nếu cần, thứ tự, [[Thêm]]. Sửa: [[Sửa]], [[Lưu]]. Không xoá, chỉ ngưng dùng.
 
 ### Trợ lý Hỗ trợ (chỉ Toàn quyền)
-Mở [[Trợ lý Hỗ trợ]] ở nhóm THIẾT LẬP (điện thoại: trang **Tôi**). Bảy phần, lưu riêng, hiệu lực ngay:
-1. **Tình trạng**: bật / tắt, trần chi phí tháng, số câu. [[Thử key]] cho biết key còn dùng được không.
-2. **Ai được dùng**: theo vai trò, số câu mỗi ngày, [[Lưu]].
-3. **Bộ não**: mẫu AI, mức suy nghĩ, lời nhắc, [[Lưu bộ não]]. [[Khôi phục mặc định]] chỉ đưa lời nhắc gốc vào ô soạn; Lịch sử bản có [[Quay lại bản này]].
-4. **Thử trước khi lưu**: [[Thử với cấu hình đang soạn]].
-5. **Lời dặn**: câu chào, câu hỏi mẫu, [[Lưu thành bản mới]].
-6. **Ngữ cảnh bổ sung**: [[Thêm đoạn]]; bỏ tick **Đang dùng** để tắt.
-7. **Lịch sử hỏi đáp**: lọc, [[Lọc]]. Không xoá được.
-
-Chữ tuỳ chỉnh không được có số điện thoại, email, số tiền; máy vẫn che chúng dù lời nhắc bị sửa.
+Mở [[Trợ lý Hỗ trợ]] ở nhóm THIẾT LẬP (điện thoại: trang **Tôi**). Bảy phần, lưu riêng, hiệu lực ngay: **Tình trạng** (bật / tắt, trần chi phí tháng, [[Thử key]]), **Ai được dùng**, **Bộ não** (lời nhắc, [[Lưu bộ não]], [[Quay lại bản này]]), **Thử trước khi lưu**, **Lời dặn**, **Ngữ cảnh bổ sung** và **Lịch sử hỏi đáp** (không xoá được). Chữ tuỳ chỉnh không được có số điện thoại, email, số tiền.
 
 ### Dịch vụ nhập tay (chỉ Toàn quyền bật / tắt)
 Trang **Tôi**, khối **Dịch vụ nhập tay**: [[Bật dịch vụ nhập tay]] hoặc [[Tắt dịch vụ nhập tay]] (mặc định tắt). Khi bật, văn phòng thêm được dịch vụ gõ tay ở form lập đơn ([[+ Dịch vụ nhập tay]]); Đối tác thì không. Khi tắt, dịch vụ nhập tay đã có vẫn giữ, chỉ xem.
 
+### Ẩn thông tin khách khi đối tác đặt vé (chỉ Toàn quyền bật / tắt)
+Trang **Tôi**: [[Bật ẩn thông tin khách]] hoặc [[Tắt ẩn thông tin khách]]. Bật thì form của đối tác chỉ còn ngày, dịch vụ và đưa đón; đơn lập lúc đó không cần danh sách khách để xe chạy (chi tiết chuyến ghi **Không cần danh sách khách**) và số liên hệ là của đối tác.
+
 ### Lý do điều phối
-Mở [[Lý do điều phối]]. Lý do chia nhóm, như [[Đổi giờ xe tới]], [[Huỷ chuyến]], [[Điều chỉnh khẩn cấp, phá lệ]]. Thêm: [[+ Thêm lý do]] ở nhóm cần, gõ lý do, [[Thêm]]. Sửa tên: [[Sửa]]. Không dùng nữa: [[Ngưng]]; dùng lại: [[Dùng lại]]. Lý do hệ thống tự dùng không ngưng được.`,
+Mở [[Lý do điều phối]]. Thêm: [[+ Thêm lý do]] ở nhóm cần, gõ lý do, [[Thêm]]. Sửa tên: [[Sửa]]. Không dùng nữa: [[Ngưng]]; dùng lại: [[Dùng lại]]. Lý do hệ thống tự dùng không ngưng được.`,
     },
     {
       tieuDe: "Tình huống hay gặp",
       noiDung: `- **Nhân viên không vào được Nền tảng**: xem dòng của họ. Bị khoá thì [[Mở khoá]]; có nhãn [[Ngưng]] thì hỏi lý do trước khi kích hoạt lại; quên PIN thì [[Đặt lại PIN]].
 - **Trang chủ báo Sheet đã đổi giá**: bấm vào, xem giá mới; đồng ý thì [[Bỏ ghi đè]], không thì [[Giữ ghi đè]].
 - **Đồng bộ báo lỗi**: vẫn dùng bản đã lưu. Kiểm tra Sheet, thử lại sau; vẫn lỗi thì báo ở Hỗ trợ.
-- **Nhân viên không xác nhận được đơn vì giờ đón sát**: bấm [[Đặt gấp]].
+- **Nhân viên không xác nhận được đơn vì giờ đón sát**: bấm [[Đặt gấp]] (đơn đối tác đang chờ: ngay trong bảng [[Còn vé]]).
 - **Hai hồ sơ trùng trong Danh bạ**: [[Danh bạ]] → [[Hồ sơ nghi trùng]] → [[Gộp]].`,
     },
     {

@@ -36,7 +36,13 @@ const CHO_PHEP_NHAT_KY = new Set(["web/help.ts"]);
 // Kế hoạch: docs/superpowers/plans/2026-10-30-sua-hien-thi-va-luat-khung.md.
 // Tính lại sau khi nhận main (31/10/2026): main đứng ở 102.250 (trần 102.250, dư 0); gói đo trên mã đã gộp = 102.454 byte (+204 so với main: phần luật khung 138 byte nói trên cộng phần cộng dồn
 // với mã vỏ chung mới của main). Cùng cách của kế hoạch: trần = số đo + 100. Số trần 102.554 mới là số đo sau gộp, CHƯA có lời duyệt riêng của chủ dự án cho con số này (lời duyệt 30/10 là cho 101.933).
-const TRAN_ORDERS = 102_554;
+// Nới 102.554 → 102.734 (ADR-0153 Đ3, 1/11/2026): thêm hai dòng bản đồ quyền `ve.kho.manage`, `ve.cap.send` vào `permissions.ts` (gói nhúng cả bản đồ; đo thật 102.634, +80 byte),
+// cùng cách các lần nới trước vì dòng quyền mới: trần = số đo + 100. Không thêm mã giao diện nào vào gói này. CHƯA có lời duyệt riêng của chủ dự án cho con số này.
+// Nới 102.734 → 102.937 (ADR-0153 Task 9a, 1/11/2026): thêm trang /ve-kho vào `TRANG`/`THANH_BEN`/`TRANG_TOI` của `muc-giao-dien.ts` (chỉ dữ liệu điều hướng, khuôn các lần /luat-ban, /dac-diem-dich-vu);
+// đo thật 102.837 byte (+203 so với 102.634), trần = số đo + 100. Không mã giao diện nghiệp vụ nào vào gói Đơn hàng. CHƯA có lời duyệt riêng của chủ dự án cho con số này.
+// Nới 102.937 → 103.178 (ADR-0156 Đ3, 2/11/2026): thêm trang /ve-cai-dat vào `TRANG`/`THANH_BEN`/`TRANG_TOI` của `muc-giao-dien.ts` và hai hành động nhật ký vào hai bảng phân loại lịch sử (chỉ dữ liệu);
+// đo thật 103.078 byte (+241 so với 102.837), trần = số đo + 100. Thư viện đọc QR chỉ ở gói trang Vé điện tử. ADR-0156 đã báo trước; chủ dự án duyệt con số này 2/11/2026.
+const TRAN_ORDERS = 103_178;
 
 function dung(trang: string) {
   const r = buildSync({

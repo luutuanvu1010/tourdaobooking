@@ -17,7 +17,7 @@ import {
 import {
   KHONG_NHAN_VAI_NOI_BO, accountRoleCodes, canManageAccount, checkAccountChange, chuPhienTheoId, hoSoCoNhanDoiTac, moNoiBoChoHoSoCoNhanProblem, checkStaffName, countActiveAdmins, createAccountStatements, createAccountWithRolesStatements, findStaffByPhone, hoSoKhopKhiTaoTaiKhoan,
   generatePin, getAccountRoleState, getStaffAccount, isValidPin, listStaffAccounts, mfaDeadlinesOf, normalizePhone, renameAccountStatements, roleChangeStatements,
-  setPermissionStatements, setPinStatement, touchCredentialsStatement, updateStaffStatement, validateFreshPin, validateNewPin, type StaffAccount,
+  setPermissionStatements, setPinStatement, tenVaiTaiKhoan, touchCredentialsStatement, updateStaffStatement, validateFreshPin, validateNewPin, type StaffAccount,
   MFA_ENROLL_WINDOW_MS, mfaEnrollWindowStatement, mfaGraceIfNullStatement, mfaSauDoiQuyen, mfaGraceOnReactivate, mfaGraceTheoId,
 } from "../staff";
 import type {
@@ -35,7 +35,7 @@ import { PERMISSION_CODES, PERMISSION_LABEL, can, isPermissionCode, type Permiss
 import { route, type AppModule, type Ctx } from "../../shared/router";
 import {
   TIEN_CHI_TOAN_QUYEN_MESSAGE, chamTaiKhoanTienDuoc, chanTatHaiLop, datLaiPinDuoc as datLaiPinDuocTheoDong, highPermissionProblem, tatHaiLopDuoc, parseRoleAssignment, permissionsLabel, roleAssignmentProblem,
-  rolesLabel, taiKhoanLaiProblem, laiNoiBoBenNgoaiProblem, type RoleCode, type RoleProblem,
+  rolesLabelTheo, taiKhoanLaiProblem, laiNoiBoBenNgoaiProblem, type RoleCode, type RoleProblem,
 } from "../../shared/roles";
 import { vnDateTimeText, vnToday } from "../../shared/vn-date";
 
@@ -454,8 +454,9 @@ export const accountsModule: AppModule = {
     // ---- Danh sách / tạo thủ công ------------------------------------------------
     route("GET", "/api/staff", "accounts", async ({ env, staff: admin }) => {
       if (!can(admin, "account.view")) return NOT_ACCOUNT_VIEW();
-      const [staff, locked, mfaLocked, passkeys, loaiYeuTo, anHan] = await Promise.all([
+      const [staff, locked, mfaLocked, passkeys, loaiYeuTo, anHan, tenVai] = await Promise.all([
         listStaffAccounts(env.DB), lockedPhones(env.DB), lockedMfaStaffIds(env.DB), countActivePasskeys(env.DB), factorKindsByStaff(env.DB), mfaGraceTheoId(env.DB),
+        tenVaiTaiKhoan(env.DB),
       ]);
       const roles = await accountRoleCodes(env.DB, staff);
       const seesHidden = can(admin, "admin.manage.superadmin"); // ADR-0042: Toàn quyền là vai ẩn với người khác
@@ -468,6 +469,7 @@ export const accountsModule: AppModule = {
             canResetMfa: tatHaiLopDuoc(admin, s), mfa: { enabled: daBat, graceUntil: daBat || !isInternal(s.permissions) ? null : (anHan.get(s.id) ?? null) },
           };
         }),
+        tenVai, // Task 3b: tên hiện hành của mọi mã vai tài khoản (đổi tên loại đối tác Có sẵn ở màn Hoa hồng → màn này hiện tên mới)
       } satisfies StaffListResponse);
     }),
 
@@ -497,7 +499,7 @@ export const accountsModule: AppModule = {
         const created = await createAccountWithRolesStatements(db, { fullName: name.value ?? null, phone, assignment: parsed.value, existingPartyId, xemDanhBa }, admin.id);
         if (!created.ok) return error(409, created.code ?? "account_rule", created.message);
         const detail = [
-          `vai trò: ${rolesLabel(parsed.value.roles)}`,
+          `vai trò: ${rolesLabelTheo(parsed.value.roles, await tenVaiTaiKhoan(db))}`, // Task 3b: tên hiện hành; nhật ký cũ giữ chữ đã ghi
           `quyền: ${permissionsLabel(created.permissions)}`,
           existingPartyId ? "dùng hồ sơ có sẵn" : "",
           parsed.value.reason ? `lý do: ${parsed.value.reason}` : "",
@@ -708,8 +710,9 @@ export const accountsModule: AppModule = {
       const accountProblem = checkAccountChange(admin.id, t, { permissions: change.next }, await countActiveAdmins(db));
       if (accountProblem) return error(409, "account_rule", accountProblem);
       if (!change.changed) return json({ staff: await one(db, t.id) } satisfies StaffResponse);
+      const tenVai = await tenVaiTaiKhoan(db); // Task 3b: tên hiện hành của vai cho nhật ký mới
       const detail = [
-        `vai trò: ${rolesLabel(state.roles)} → ${rolesLabel(parsed.value.roles)}`,
+        `vai trò: ${rolesLabelTheo(state.roles, tenVai)} → ${rolesLabelTheo(parsed.value.roles, tenVai)}`,
         `quyền: ${permissionsLabel(t.permissions)} → ${permissionsLabel(change.next)}`,
         change.dropped.length ? `luật cứng gạt: ${permissionsLabel(change.dropped)}` : "",
         parsed.value.reason ? `lý do: ${parsed.value.reason}` : "",

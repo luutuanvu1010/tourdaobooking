@@ -54,7 +54,9 @@ const ALLOWED_EDGES: Record<string, readonly string[]> = {
   orders: ["audit", "catalog", "staff", "parties", "locations", "pricing"],
   parties: ["locations", "audit"],
   // ADR-0024 điều 1–2, ADR-0077: bảng mức hoa hồng + điều khoản người bán — tạo ở sổ đại lý đợt 1 (route /api/pricing/*; đọc view công bố của parties, catalog; ghi nhật ký qua audit).
-  pricing: ["parties", "catalog", "audit"],
+  // + staff (mã định danh 5.26, kế hoạch docs/superpowers/plans/2026-10-31-ma-dinh-danh-va-sua-loai-doi-tac.md Task 3): CHỈ ở tầng SQL — tên người tạo / người sửa loại đối tác
+  // qua view công bố v_stf_staff_label (mẫu `feedback`, `tro-ly`); không import src/modules/staff. NỚI cạnh (Điều 9.4): ĐÃ DUYỆT 2026-10-31 (chủ duyệt nới cạnh này trong phiên chat 2026-10-31).
+  pricing: ["parties", "catalog", "audit", "staff"],
   // ADR-0024 điều 1: biên nhận theo danh sách trắng — KHÔNG bảng, KHÔNG SQL (hạng KHONG_BANG); chuyển tay cầm DB cho hàm công bố của các module dưới.
   receipt: ["orders", "billing", "parties", "company"],
   staff: ["parties", "audit"],
@@ -73,6 +75,9 @@ const ALLOWED_EDGES: Record<string, readonly string[]> = {
   // cùng lô với bản cài đặt mới (điều 5: "ai đổi lúc nào", không nội dung); `staff` — CHỈ ở tầng SQL, tên người hỏi / người lưu qua view công bố
   // v_stf_staff_label (điều 5: lịch sử "ai hỏi"; mẫu `feedback`). Không module nào import tro-ly. NỚI cạnh (Điều 9.4): ĐÃ DUYỆT 2026-09-30 (chủ chọn 'Đồng ý cả hai' sau báo cáo kiểm độc lập ADR-0069).
   "tro-ly": ["audit", "staff"],
+  // ADR-0153 Đ1 (ĐỀ XUẤT 2026-10-31, CHỜ CHỦ DUYỆT): kho vé điện tử. Hiện chỉ cạnh → audit (nhật ký chỉ số lượng); các cạnh staff / thongbao / catalog / orders (chỉ đọc view)
+  // thêm KHI ADR được duyệt. Không module nào import ve-dien-tu (orders đi bằng tiêm ở gốc lắp ráp).
+  "ve-dien-tu": ["audit", "auth", "catalog", "orders"], // + auth: ADR-0153 Đ2 — dùng lại bộ đếm chống dò (`reserveAttempts`) cho route công khai của đường dẫn khách. + orders: ADR-0153 Đ1 mục 4 — chỉ ĐỌC view công bố `v_ord_order_state` làm cổng cho câu trả vé của lô huỷ (không import mã orders). + catalog: ADR-0153 Đ1 mục 2 (đã duyệt 31/10) — chỉ ĐỌC dịch vụ qua hàm công bố getEffectiveServices để kiểm mã tour
 };
 
 /** Module đã áp điều 8(b) (SQL đăng ký qua defineSql). Module cũ nằm ở LEGACY cho tới hạn ghi kèm. */
@@ -82,6 +87,7 @@ const STRICT: readonly { module: string; file: string }[] = [
   { module: "billing", file: "modules/billing/repository.ts" }, // ADR-0024 điều 1: nghiêm từ ngày đầu (sổ tiền lượt 1 — NT-R2)
   { module: "billing", file: "modules/billing/coc-repo.ts" }, // ADR-0089 (cọc đơn huỷ, migration 0079) — SIẾT theo K-A-1 (kiểm toán 2026-10-12): SQL tiền này từng đứng ngoài bài EXPLAIN / ranh giới
   { module: "billing", file: "modules/billing/thay-lan-thu-repo.ts" }, // ADR-0088 đ2, đ6 (thay lần thu, migration 0083) — SIẾT theo K-A-1: SQL tiền này từng đứng ngoài bài EXPLAIN / ranh giới
+  { module: "billing", file: "modules/billing/phan-dinh-repo.ts" }, // ADR-0116 (phân định trách nhiệm, migration 0135) — nghiêm từ ngày đầu
   { module: "billing", file: "modules/billing/dieu-chinh-repo.ts" }, // ADR-0115 đợt 1 (điều chỉnh công nợ cần duyệt, migration 0094) — nghiêm từ ngày đầu: SQL tiền đi qua defineSql + EXPLAIN
   { module: "company", file: "modules/company/repository.ts" },
   { module: "dispatch", file: "modules/dispatch/repository.ts" },
@@ -104,6 +110,7 @@ const STRICT: readonly { module: string; file: string }[] = [
   { module: "van-chuyen", file: "modules/van-chuyen/khung-ban-tai-xe-repo.ts" }, // ADR-0053 D9 (kế hoạch A4 T4, G-A4-8): SQL khung bận TÀI XẾ — lọc subject = 'DRIVER' tường minh
   { module: "van-chuyen", file: "modules/van-chuyen/han-tu-choi-repo.ts" }, // ADR-0053 D7.2, D8 (kế hoạch A4 T3): SQL đọc hạn Từ chối, dấu Từ chối — EXPLAIN từng câu
   { module: "tro-ly", file: "modules/tro-ly/repository.ts" }, // ADR-0066: nghiêm từ ngày đầu
+  { module: "ve-dien-tu", file: "modules/ve-dien-tu/repository.ts" }, // ADR-0153 Đ1 (đề xuất): nghiêm từ ngày đầu — SQL kho vé đi qua defineSql + EXPLAIN
 ];
 
 /**
@@ -212,7 +219,7 @@ const DOC_AUDIT_LOG_WONGUARD = {
 // ctl_/catalog: ADR-0058 điều 1 (nhóm dịch vụ; bảng cũ catalog_* giữ tên) — NỚI hàng rào đã duyệt (Điều 9.4), chủ duyệt ADR-0058 ngày 2026-09-30 (lượt 1a).
 // ky_/ky-so (ADR-0080 D1, sổ đại lý đợt 1): khoá tháng. NỚI hàng rào đã duyệt (Điều 9.4) — chủ duyệt C12 2026-10-01, xem docs/superpowers/specs/2026-10-01-de-xuat-adr-so-tien-luot-2/de-xuat-luat.md.
 // VIEW_PREFIX thêm `ctl` (view công bố v_ctl_service_group của catalog) và `ky` (v_ky_closed_period của ky-so) — cùng khoản nới đã duyệt.
-const TABLE_PREFIX: Record<string, string> = { ctl_: "catalog", prc_: "pricing", pty_: "parties", loc_: "locations", stf_: "staff", fbk_: "feedback", dsp_: "dispatch", bil_: "billing", mnt_: "maintenance", aut_: "auth", ntf_: "thongbao", vc_: "van-chuyen", ord_: "orders", tl_: "tro-ly", gd_: "giao-dien", lg_: "lan-gui", ky_: "ky-so" };
+const TABLE_PREFIX: Record<string, string> = { ctl_: "catalog", prc_: "pricing", pty_: "parties", loc_: "locations", stf_: "staff", fbk_: "feedback", dsp_: "dispatch", bil_: "billing", mnt_: "maintenance", aut_: "auth", ntf_: "thongbao", vc_: "van-chuyen", ord_: "orders", tl_: "tro-ly", gd_: "giao-dien", lg_: "lan-gui", ky_: "ky-so", vdt_: "ve-dien-tu" };
 const VIEW_PREFIX: Record<string, string> = { prc: "pricing", pty: "parties", loc: "locations", stf: "staff", ord: "orders", dsp: "dispatch", bil: "billing", aud: "audit", vc: "van-chuyen", ctl: "catalog", ky: "ky-so" };
 
 // ---------------------------------------------------------------------------------------------------------------------

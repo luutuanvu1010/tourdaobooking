@@ -340,7 +340,7 @@ export const CHECKS = [
   // chưa bị đảo. R-BIL-2, R-BIL-5 (lượt 2) và R-BIL-7 (= R-PTY-1) ở danh sách GHI_CHU cuối tệp — không kiểm trùng, không in "đạt".
   {
     // R-BIL-1 (I1) — ADR-0088 đ1, đ7 (chủ chọn "Luôn luôn" 2/10): đơn đã Đã giao, MỌI LÚC: tổng lần thu còn hiệu lực = phải thu hiện hành = `due_snapshot`
-    // của phiếu Đã giao − giảm trừ đã phân định (đ9 chưa có ⇒ giảm trừ = 0). Mốc (bil_audit_cutoff 'R-BIL-1', 0083): phiếu Đã giao hoặc một lần thu của đơn
+    // của phiếu Đã giao − giảm trừ đã phân định (ADR-0116, view v_bil_phai_thu_hien_hanh — MỘT nguồn với trigger và máy chủ). Mốc (bil_audit_cutoff 'R-BIL-1', 0083): phiếu Đã giao hoặc một lần thu của đơn
     // ghi TỪ mốc ⇒ LỖI; dữ liệu cũ hơn mốc ⇒ cảnh báo kèm danh sách (R-BIL-1w) để Kế toán sửa bằng "Thay lần thu" (trước đây chỉ so "tại mốc" — bỏ, đ7).
     code: "R-BIL-1",
     what: "đơn Đã giao: tổng lần thu còn hiệu lực bằng phải thu phiếu Đã giao đã chụp, mọi lúc (ghi từ mốc 0083)",
@@ -348,7 +348,7 @@ export const CHECKS = [
      WHERE p.kind_code = 'DELIVERED' AND NOT EXISTS (SELECT 1 FROM bil_posting x WHERE x.reverses_posting_id = p.id)
        AND COALESCE((SELECT SUM(CASE WHEN r.kind_code = 'CUSTOMER_REFUND' THEN -r.amount ELSE r.amount END) FROM bil_payment_receipt r
                      WHERE r.order_id = p.order_id AND r.reverses_id IS NULL
-                       AND NOT EXISTS (SELECT 1 FROM bil_payment_receipt x WHERE x.reverses_id = r.id)), 0) IS NOT p.due_snapshot
+                       AND NOT EXISTS (SELECT 1 FROM bil_payment_receipt x WHERE x.reverses_id = r.id)), 0) IS NOT (SELECT v.phai_thu FROM v_bil_phai_thu_hien_hanh v WHERE v.order_id = p.order_id)
        AND (p.created_at >= (SELECT cutoff_at FROM bil_audit_cutoff WHERE code = 'R-BIL-1')
          OR EXISTS (SELECT 1 FROM bil_payment_receipt a WHERE a.order_id = p.order_id AND a.created_at >= (SELECT cutoff_at FROM bil_audit_cutoff WHERE code = 'R-BIL-1')))`,
     level: "fail",
@@ -363,7 +363,7 @@ export const CHECKS = [
      WHERE p.kind_code = 'DELIVERED' AND NOT EXISTS (SELECT 1 FROM bil_posting x WHERE x.reverses_posting_id = p.id)
        AND COALESCE((SELECT SUM(CASE WHEN r.kind_code = 'CUSTOMER_REFUND' THEN -r.amount ELSE r.amount END) FROM bil_payment_receipt r
                      WHERE r.order_id = p.order_id AND r.reverses_id IS NULL
-                       AND NOT EXISTS (SELECT 1 FROM bil_payment_receipt x WHERE x.reverses_id = r.id)), 0) IS NOT p.due_snapshot
+                       AND NOT EXISTS (SELECT 1 FROM bil_payment_receipt x WHERE x.reverses_id = r.id)), 0) IS NOT (SELECT v.phai_thu FROM v_bil_phai_thu_hien_hanh v WHERE v.order_id = p.order_id)
        AND p.created_at < (SELECT cutoff_at FROM bil_audit_cutoff WHERE code = 'R-BIL-1')
        AND NOT EXISTS (SELECT 1 FROM bil_payment_receipt a WHERE a.order_id = p.order_id AND a.created_at >= (SELECT cutoff_at FROM bil_audit_cutoff WHERE code = 'R-BIL-1'))`,
     mode: "rows",
@@ -696,9 +696,34 @@ export const CHECKS = [
     sql: `SELECT count(*) FROM (SELECT x.ben, x.order_id, SUM(x.so) AS so, MAX(x.luc) AS luc FROM (
        SELECT CASE WHEN l.creditor_party_id IN (SELECT party_id FROM v_pty_owner_company) THEN l.debtor_party_id ELSE l.creditor_party_id END AS ben, l.order_id,
               CASE WHEN l.creditor_party_id IN (SELECT party_id FROM v_pty_owner_company) THEN l.amount ELSE -l.amount END AS so, l.created_at AS luc
-       FROM bil_debt_line l WHERE l.order_id IS NOT NULL AND l.kind_code IN ('HELD', 'SETTLEMENT')
+       FROM bil_debt_line l WHERE l.order_id IS NOT NULL AND l.kind_code IN ('HELD', 'SETTLEMENT', 'ATTRIBUTION')
          AND (l.creditor_party_id IN (SELECT party_id FROM v_pty_owner_company) OR l.debtor_party_id IN (SELECT party_id FROM v_pty_owner_company))) x
      GROUP BY x.ben, x.order_id) WHERE so < 0 AND luc >= (SELECT cutoff_at FROM bil_audit_cutoff WHERE code = 'R-BIL-13')`,
+    level: "fail",
+  },
+  {
+    // ADR-0116 (đ9, migration 0135): lưới thứ hai sau trigger. Số ròng dòng nợ ATTRIBUTION của mỗi khoản đã ghi = số còn hiệu lực của khoản (bên chịu là công ty thì không dòng); tính theo đơn.
+    code: "R-BIL-PD1",
+    what: "phân định trách nhiệm: tổng dòng nợ theo đơn khớp số còn hiệu lực của các khoản do người khác công ty chịu",
+    sql: `SELECT count(*) FROM (SELECT g.order_id,
+        COALESCE(SUM(g.amount - COALESCE((SELECT SUM(d.amount) FROM bil_attribution d WHERE d.root_id = g.id AND d.step_code = 'REVERSAL'), 0)), 0) AS con,
+        COALESCE(SUM(CASE WHEN COALESCE((SELECT e.liable_party_id FROM bil_attribution e WHERE e.root_id = g.id AND e.step_code = 'REASSIGNED' ORDER BY e.rowid DESC LIMIT 1), g.liable_party_id) IN (SELECT party_id FROM v_pty_owner_company) THEN 0
+          ELSE g.amount - COALESCE((SELECT SUM(d.amount) FROM bil_attribution d WHERE d.root_id = g.id AND d.step_code = 'REVERSAL'), 0) END), 0) AS phai_co,
+        COALESCE((SELECT SUM(CASE WHEN l.debtor_party_id IN (SELECT party_id FROM v_pty_owner_company) THEN -l.amount ELSE l.amount END) FROM bil_debt_line l WHERE l.order_id = g.order_id AND l.kind_code = 'ATTRIBUTION'), 0) AS ghi
+      FROM bil_attribution g WHERE g.step_code = 'POSTED' GROUP BY g.order_id) WHERE phai_co <> ghi`,
+    level: "fail",
+  },
+  {
+    code: "R-BIL-PD2",
+    what: "phân định trách nhiệm: người ghi sổ khác người phân định",
+    sql: `SELECT count(*) FROM bil_attribution p JOIN bil_attribution r ON r.id = p.target_id WHERE p.step_code IN ('POSTED', 'REASSIGNED') AND r.step_code = 'RULING' AND p.created_by = r.created_by`,
+    level: "fail",
+  },
+  {
+    code: "R-BIL-PD3",
+    what: "lần trả khách sau Đã giao có đúng số của khoản có tiền ra; khoản có tiền ra có đúng một lần trả khách",
+    sql: `SELECT count(*) FROM bil_attribution p WHERE p.step_code = 'POSTED' AND p.money_out = 1
+      AND NOT EXISTS (SELECT 1 FROM bil_payment_receipt r WHERE r.attribution_id = p.id AND r.kind_code = 'CUSTOMER_REFUND' AND r.amount = p.amount)`,
     level: "fail",
   },
   {
@@ -707,7 +732,7 @@ export const CHECKS = [
     sql: `SELECT x.order_id, x.ben, SUM(x.so) AS so FROM (
        SELECT CASE WHEN l.creditor_party_id IN (SELECT party_id FROM v_pty_owner_company) THEN l.debtor_party_id ELSE l.creditor_party_id END AS ben, l.order_id,
               CASE WHEN l.creditor_party_id IN (SELECT party_id FROM v_pty_owner_company) THEN l.amount ELSE -l.amount END AS so, l.created_at AS luc
-       FROM bil_debt_line l WHERE l.order_id IS NOT NULL AND l.kind_code IN ('HELD', 'SETTLEMENT')
+       FROM bil_debt_line l WHERE l.order_id IS NOT NULL AND l.kind_code IN ('HELD', 'SETTLEMENT', 'ATTRIBUTION')
          AND (l.creditor_party_id IN (SELECT party_id FROM v_pty_owner_company) OR l.debtor_party_id IN (SELECT party_id FROM v_pty_owner_company))) x
      GROUP BY x.ben, x.order_id HAVING SUM(x.so) < 0 AND MAX(x.luc) < (SELECT cutoff_at FROM bil_audit_cutoff WHERE code = 'R-BIL-13')`,
     mode: "rows",
@@ -781,6 +806,33 @@ export const CHECKS = [
     what: "khoản duyệt hoàn cọc của đơn khách huỷ nằm trong hạn",
     sql: `SELECT count(*) FROM bil_deposit_approval a JOIN v_ord_cancel_state c ON c.order_id = a.order_id
      WHERE a.voids_id IS NULL AND c.group_code = 'KHACH_HUY' AND a.approved_date > c.refund_deadline`,
+    level: "fail",
+  },
+
+  // ---- Khách đặt cọc trước (ADR-0159, migration 0136). Lưới thứ hai sau lính gác của lô xác nhận và trigger của cột. Dấu nhận ra khoản: ghi chú cố định `GHI_CHU_KHOAN_LOI_KHAI`. ----
+  {
+    code: "R-BIL-DC1",
+    what: "đơn nháp có khoản thu sinh từ lời khai đặt cọc (ADR-0159 Đ1 mục 2; ADR-0135 Đ7)",
+    sql: `SELECT count(*) FROM bil_payment_receipt r JOIN orders o ON o.id = r.order_id WHERE o.status = 'draft' AND r.kind_code = 'CUSTOMER_PAYMENT' AND r.note = 'Khách đặt cọc trước' AND r.reverses_id IS NULL`,
+    level: "fail",
+  },
+  {
+    code: "R-BIL-DC2",
+    what: "đơn đã xác nhận có lời khai đặt cọc mà không có khoản thu đúng số (ADR-0159 Đ1 mục 3)",
+    sql: `SELECT count(*) FROM orders o WHERE o.status = 'confirmed' AND o.declared_deposit > 0
+      AND NOT EXISTS (SELECT 1 FROM bil_payment_receipt r WHERE r.order_id = o.id AND r.kind_code = 'CUSTOMER_PAYMENT' AND r.note = 'Khách đặt cọc trước' AND r.reverses_id IS NULL AND r.amount = o.declared_deposit)`,
+    level: "fail",
+  },
+  {
+    code: "R-BIL-DC3",
+    what: "khoản thu sinh từ lời khai đặt cọc mà mang dấu chờ đối chiếu — sẽ chặn «Đã giao» (ADR-0159 Đ1 mục 3)",
+    sql: `SELECT count(*) FROM bil_receipt_recon d JOIN bil_payment_receipt r ON r.id = d.receipt_id WHERE d.kind_code = 'DECLARED' AND r.kind_code = 'CUSTOMER_PAYMENT' AND r.note = 'Khách đặt cọc trước' AND r.reverses_id IS NULL`,
+    level: "fail",
+  },
+  {
+    code: "R-BIL-DC4",
+    what: "đơn nháp có lời khai đặt cọc lớn hơn tổng (ADR-0159 Đ1 mục 4)",
+    sql: `SELECT count(*) FROM orders o WHERE o.status = 'draft' AND o.declared_deposit > o.total`,
     level: "fail",
   },
 
@@ -1806,6 +1858,27 @@ export const CHECKS = [
     level: "warn",
     note: "cảnh báo (KHÔNG chặn phát hành — ADR-0114 D3 điều khoản 3): đơn cũ lập trước luật người lớn; rà soát tay theo mã đơn, máy chủ chỉ chặn việc sửa số khách đưa người đi kèm từ 1 trở lên xuống 0",
   },
+  // R-ORD-17w (ADR-0154 Đ1.7, kế hoạch lượt 2 Task 1.4, câu đã áp số 4; bài canh `src/audit-invariants.test.ts`): lớp BÙ cho lệch có chủ ý «đơn của tài khoản đã thôi quyền Đối tác xác nhận được qua `/status`
+  // dù lượt đưa đón đầu chưa có giờ» (Đối tác không còn tự nhập giờ; văn phòng chốt giờ ở bảng Còn vé). Chữ ADR «đơn đã xác nhận mà chặng đầu có Đón không giờ» sẽ báo cả đơn văn phòng hợp lệ (tiêu chí j:
+  // Bán hàng xác nhận được đơn Đón không giờ), nên khoanh: đơn tạo TỪ mốc phát hành (`MIN(created_at)` của bảng chính sách `ord_partner_customer_policy`, dòng gieo ở 0133) mà người lập TỪNG giữ
+  // quyền Đối tác — KHÔNG lọc dòng đã đóng, vì chính ca đáng báo là người đã thôi quyền. Lượt đầu của một dịch vụ = CÙNG thứ tự `changDauCuaDichVu` (src/shared/chang-dua-don.ts; ruling R7, kiểm độc lập
+  // Đợt 1 N-3): chiều đi trước chiều về (bất kể ngày) → ngày (trống sau) → giờ có trước giờ trống → giờ → id; bài đối chiếu hai phía trên bộ ca xếp chặng. Chỉ chặng còn mở; dịch vụ Không đón
+  // (không chặng) không đếm. Đếm SỐ ĐƠN.
+  // Mức "warn" (thoát 0; thoát 1 sẽ dừng `trien-khai`): tình trạng chấp nhận có kiểm, văn phòng rà tay theo mã đơn.
+  {
+    code: "R-ORD-17w",
+    what: "đơn đã xác nhận (tạo từ mốc phát hành ADR-0154) của người lập từng giữ quyền Đối tác mà lượt đưa đón đầu của một dịch vụ chưa có giờ đón (ADR-0154 Đ1.7)",
+    sql: `SELECT count(*) FROM orders o
+      WHERE o.status = 'confirmed'
+        AND o.created_at >= (SELECT MIN(created_at) FROM ord_partner_customer_policy)
+        AND EXISTS (SELECT 1 FROM stf_permission p WHERE p.staff_id = o.staff_id AND p.permission_type_code = 'PARTNER')
+        AND EXISTS (SELECT 1 FROM order_service s WHERE s.order_id = o.id
+          AND EXISTS (SELECT 1 FROM ord_transfer_leg l1 WHERE l1.order_service_id = s.id AND l1.closed_at IS NULL)
+          AND (SELECT l2.pickup_time FROM ord_transfer_leg l2 WHERE l2.order_service_id = s.id AND l2.closed_at IS NULL
+                 ORDER BY (l2.direction <> 'OUT'), (l2.pickup_date IS NULL), l2.pickup_date, (l2.pickup_time IS NULL), l2.pickup_time, l2.id LIMIT 1) IS NULL)`,
+    level: "warn",
+    note: "cảnh báo (KHÔNG chặn phát hành — ADR-0154 Đ1.7): đơn của tài khoản từng là Đối tác xác nhận qua /status khi lượt đón đầu chưa có giờ; văn phòng rà tay theo mã đơn và ghi giờ ở bảng Đưa đón",
+  },
   // R-AUT-1 (ADR-0016 điều 6/8): một tài khoản bị ngưng (`active = 0`) không được còn Face ID nào CÒN HIỆU LỰC (`valid_to_at IS NULL`) — đăng nhập
   // Face ID còn bị `getActiveStaff` chặn ở tầng ứng dụng, kiểm này là LƯỚI DỮ LIỆU cho bất biến đó, không phải đường chặn đăng nhập.
   // `PATCH /api/staff/:id` với `active: false` (ngưng tài khoản) gỡ mọi passkey trong CÙNG lô ghi với câu ngưng ("8b", chủ chọn A-4 phương án 1),
@@ -2086,6 +2159,50 @@ export const CHECKS = [
        AND NOT EXISTS (SELECT 1 FROM ky_period_close q WHERE q.period = strftime('%Y-%m', p.period || '-01', '-1 month'))`,
     level: "fail",
     note: "đặc tả sổ đại lý đợt 1 §9: tháng đã khoá không liền nhau — chỉ có thể do SQL chạy tay; khôi phục theo runbook",
+  },
+  // ---- Kho vé điện tử (ADR-0153; kế hoạch Task 10) ----
+  {
+    code: "R-VDT-1",
+    what: "mọi vé đang ALLOCATED có đúng một phân bổ đang mở",
+    sql: `SELECT count(*) FROM vdt_ticket t WHERE t.status = 'ALLOCATED' AND (SELECT count(*) FROM vdt_allocation a WHERE a.ticket_id = t.id AND a.released_at IS NULL) <> 1`,
+    level: "fail",
+    note: "vé ALLOCATED thiếu phân bổ mở (giữ chỗ hỏng giữa chừng) hoặc có hai phân bổ mở (chỉ mục duy nhất một phần bị gỡ) — chỉ có thể do SQL chạy tay hoặc chỉ mục bị sửa",
+  },
+  {
+    code: "R-VDT-2",
+    what: "mọi phân bổ đang mở trỏ tới vé đang ALLOCATED",
+    sql: `SELECT count(*) FROM vdt_allocation a JOIN vdt_ticket t ON t.id = a.ticket_id WHERE a.released_at IS NULL AND t.status <> 'ALLOCATED'`,
+    level: "fail",
+    note: "phân bổ mở nhưng vé đã AVAILABLE / VOID: vé có thể bị cấp cho chỗ khác trong khi chỗ cũ còn giữ — trả vé hỏng giữa chừng hoặc SQL chạy tay",
+  },
+  {
+    code: "R-VDT-3",
+    what: "vé đã lộ (revealed_at) không bao giờ ở trạng thái AVAILABLE",
+    sql: `SELECT count(*) FROM vdt_ticket t WHERE t.status = 'AVAILABLE' AND EXISTS (SELECT 1 FROM vdt_allocation a WHERE a.ticket_id = t.id AND a.revealed_at IS NOT NULL)`,
+    level: "fail",
+    note: "vé đã đưa cho khách mà quay về kho thì có thể cấp lại cho người khác (vé có giá trị như tiền) — bất biến Đ1 mục 6 của ADR-0153",
+  },
+  {
+    code: "R-VDT-4",
+    what: "không có hai vé trùng số S/N (12 số cuối của chuỗi QR 36 chữ số), kể cả vé VOID không mang dấu rút vì vé đó có thể đã tới tay khách",
+    sql: `SELECT count(*) FROM (SELECT substr(ticket_code, -12) FROM vdt_ticket WHERE withdrawn_at IS NULL AND length(ticket_code) = 36 AND ticket_code NOT GLOB '*[^0-9]*' GROUP BY 1 HAVING count(*) > 1)`,
+    level: "fail",
+    note: "chỉ mục duy nhất theo toàn chuỗi QR không bắt được ca nhà cung cấp phát lại chuỗi khác cho cùng S/N (ADR-0156 Đ1 mục 6): vé có thể đã bán trùng, kiểm tay từng vé — báo số nhóm, không in mã",
+  },
+  // R-VDT-6 (chủ quyết 2/11/2026): vé đã mở ảnh khi lô bị huỷ có thể đã tới tay khách nên không được có bản đang bán. Câu ghi và hai trigger ở `0132` đã giữ theo mã, băm và S/N; đây là lần kiểm lại trên dữ liệu thật.
+  {
+    code: "R-VDT-6",
+    what: "không có vé đang bán trùng mã, tệp hoặc số S/N với vé đã mở ảnh khi lô bị huỷ",
+    sql: `SELECT count(*) FROM vdt_ticket a JOIN vdt_ticket b ON b.id <> a.id AND b.withdrawn_at IS NULL WHERE a.opened_at IS NOT NULL AND (a.ticket_code = b.ticket_code OR a.content_hash = b.content_hash OR (length(a.ticket_code) = 36 AND length(b.ticket_code) = 36 AND a.ticket_code NOT GLOB '*[^0-9]*' AND b.ticket_code NOT GLOB '*[^0-9]*' AND substr(a.ticket_code, -12) = substr(b.ticket_code, -12)))`,
+    level: "fail",
+    note: "vé có thể đã bán trùng: rút vé đang bán khỏi kho hoặc kiểm tay từng vé, báo chủ",
+  },
+  // R-VDT-5 (ADR-0156 Đ2 mục 3; Hiến chương 5.16): như R-FBK-1 cho ảnh vé. Ảnh của lô đã huỷ lưu 3 ngày (`NGAY_LUU_ANH_LO_HUY`, chủ quyết 2/11) rồi việc định kỳ 15 phút xoá; 4 ngày mà còn nghĩa là kho đang hỏng. Mức warn: không chặn phát hành.
+  {
+    code: "R-VDT-5",
+    what: "ảnh vé quá hạn lưu mà kho R2 chưa xoá (việc định kỳ tự chạy lại)",
+    sql: `SELECT count(*) FROM vdt_ticket WHERE purged_at IS NOT NULL AND r2_deleted_at IS NULL AND purged_at < strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-4 days')`,
+    level: "warn",
   },
 ];
 

@@ -65,9 +65,11 @@ test("TC-20 lichChungChang: ĐÚNG các khoá của chặng (có khoaNoiDon / kh
   assert.deepEqual(kq.chang.map((c: any) => c.legId).sort(), o.services[0].legs.map((l: any) => l.id).sort(), "chỉ chặng của đơn đã xác nhận, chưa huỷ");
   for (const c of kq.chang) {
     assert.deepEqual(Object.keys(c).sort(), [
-      "choToiThieu", "datGap", "direction", "khoaNoiDon", "khoaNoiTra", "legId", "nguoiCuaDon", "noiDon", "noiDonDiemId", "noiTra", "noiTraDiemId", "orderCode", "orderId", "pickupDate",
+      "choToiThieu", "datGap", "direction", "khoaNoiDon", "khoaNoiTra", "legId", "mienDanhSach", "nguoiCuaDon", "noiDon", "noiDonDiemId", "noiTra", "noiTraDiemId", "orderCode", "orderId", "pickupDate",
       "pickupTime", "serviceName", "soHieuChuyenBay", "soNguoi", "xeRieng",
     ]);
+    // ADR-0154 Đ3 (đổi có chủ đích, khoá mới `mienDanhSach`): đơn lập thường KHÔNG mang dấu; dấu chỉ là CỜ đúng/sai, không lộ gì thêm.
+    assert.equal(c.mienDanhSach, false);
   }
   // ADR-0135: nháp chỉ người lập thấy → lịch chung TẮT phần chặng nháp (Task 3.3 của kế hoạch bật lại cho đơn «chờ xác nhận»). Khoá của phần nháp (khi bật lại): datGap, legId, orderCode, orderId, pickupDate, pickupTime.
   assert.ok(nhap.id);

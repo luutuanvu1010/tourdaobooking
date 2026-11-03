@@ -100,7 +100,7 @@ test("tra theo loại: loại đã tắt → 400", async () => {
 test("tra: gửi cả doiTac lẫn loai, hoặc không cái nào → 400", async () => {
   const w = setup();
   const L = await themLoai(w, "Spa Đối Tác");
-  const cau = "Chọn một đối tác hoặc một loại đối tác, dịch vụ và ngày hợp lệ.";
+  const cau = "Chọn một đối tác hoặc một vai người dùng, dịch vụ và ngày hợp lệ.";
   const ca = await w.call("GET", `/api/pricing/thu-tra?doiTac=${ORG}&loai=${L}&dichVu=ZA1`, { as: SALES });
   assert.equal(ca.status, 400);
   assert.ok(ca.text.includes(cau), ca.text);

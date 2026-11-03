@@ -5,8 +5,24 @@ import { DAU_DAT_GAP, GHI_CHU_DAT_GAP_TOI_DA, ghiDatGapNhatKy, isLyDoDatGap, typ
 import { kiemMocDat } from "../../shared/moc-toi-thieu";
 import { maskLongDigits } from "../../shared/text-guards";
 import type { AuditEntryDto, OrderDetailDto } from "../../shared/contracts";
-import type { DauChepNhap, LegDatGapRow } from "./chang-hanh-khach-repo";
+import type { PermissionHolder } from "../../shared/permissions";
+import type { MocToiThieu } from "../../shared/moc-toi-thieu";
+import type { DauChepNhap, DauDatGapMoi, LegDatGapRow } from "./chang-hanh-khach-repo";
 import type { ValidService } from "./service-rules";
+
+/**
+ * "Giấy đặt gấp" của một lệnh (ADR-0107 Hướng A): `lyDo` = lý do ĐÃ KIỂM của lệnh (đuôi nhật ký — đi theo LÝ DO, kể cả khi chặng không giữ dấu: G16); `dauCho`
+ * = dấu MỚI cho MỘT chặng theo giờ SAU lệnh của chính chặng đó — chỉ khi giờ đó dưới mốc lúc máy chủ nhận lệnh, không thì null (dấu cũ bỏ — I16; G15, G11).
+ * Chuyển từ `index.ts` sang đây (ADR-0154 Đ1.4) để `xac-nhan-route.ts` dùng được kiểu mà KHÔNG import `index.ts` (vòng); hàm dựng dấu vẫn chỉ là `xetDatGapSua`.
+ */
+export type GiayDatGap = { lyDo: LyDoDatGap | null; dauCho: (moi: { pickupDate: string | null; pickupTime: string | null } | null) => DauDatGapMoi | null };
+/**
+ * Dạng của hàm chỗ canh `xetDatGapSua` (orders/index.ts) — nơi DUY NHẤT dựng dấu mới. Route Còn vé (`xac-nhan-route.ts`) nhận nó làm tham số `xacNhanRoutes(xetDatGap)` thay vì
+ * tự dựng dấu hay import `index.ts`; bài tĩnh ADR-0107 (dat-gap-sat-gio.test.ts) vẫn đếm đúng MỘT chỗ ép kiểu dấu mới, trong thân `xetDatGapSua`.
+ */
+export type XetDatGapSua = (
+  staff: PermissionHolder & { id: string }, body: unknown, duoiMoc: boolean, moc: MocToiThieu, nowMs: number,
+) => { ok: true; value: GiayDatGap } | { ok: false; res: Response };
 
 /** Thân đặt gấp `{ lyDo, ghiChu? }` (route đặt gấp; khoá `datGap` của lệnh sửa / thêm chặng): lý do thuộc `LY_DO_DAT_GAP`, ghi chú che dãy số ≤ 120. */
 export function docDatGap(v: unknown): { ok: true; value: { lyDo: LyDoDatGap; ghiChu: string | null } } | { ok: false; message: string } {

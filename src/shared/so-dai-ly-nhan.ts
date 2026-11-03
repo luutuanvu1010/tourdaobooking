@@ -3,7 +3,7 @@ export const NHAN_LY_DO_THIEU = {
   NO_RULE: "Chưa có mức cho dịch vụ này",
   RULE_CONFLICT: "Hai mức khác nhau cùng áp — Kế toán chọn một",
   MANUAL_LINE: "Dòng nhập tay — Kế toán ghi mức",
-  BOOKER_NOT_BENEFICIARY: "Bên đặt không thuộc loại được hưởng hoa hồng",
+  BOOKER_NOT_BENEFICIARY: "Bên đặt không thuộc vai trò được hưởng hoa hồng",
   NOT_CAPTURED: "Đơn xác nhận trước khi có bảng mức",
 } as const;
 /** Đuôi câu của mọi cảnh báo thiếu mức (dòng đơn và «Thử tra»): nói rõ vì sao và hậu quả. */

@@ -12,6 +12,7 @@ export const AUDIT_GROUPS = {
   notice: "Thông báo",
   vehicle: "Xe", // ADR-0040 D1 (giả định G12): trang Nhật ký không có nhãn đối tượng cho xe — `detail` mở đầu bằng biển số
   ledger: "Sổ tiền", // sổ tiền lượt 1 (ADR-0026): nộp/trả, xác nhận công ty đã nhận, hoàn khách, điều chỉnh, đảo — `detail` KHÔNG số tiền chi tiết, không SĐT
+  ve: "Vé điện tử", // ADR-0153 (đề xuất): kho vé — `detail` CHỈ số lượng và nhãn nhóm khách, KHÔNG BAO GIỜ mã vé / nội dung QR / khoá kho
   trip: "Điều phối xe", // ADR-0049 (kế hoạch mục 1.1): chính sách điều phối, lý do; từ A13 thêm hành động chuyến `trip_*` (order_id luôn NULL — I17)
   system: "Hệ thống",
 } as const;
@@ -20,6 +21,19 @@ export type AuditGroup = keyof typeof AUDIT_GROUPS;
 
 export const AUDIT_ACTIONS = {
   created: { label: "Tạo đơn", group: "order" },
+  // ADR-0153 Đ1 (đề xuất): giữ chỗ / trả vé điện tử cho đơn. `detail` khuôn "Giữ chỗ vé · <nhóm khách>: cần N" / "Trả vé · <lý do>" — không mã vé.
+  ve_giu_cho: { label: "Giữ chỗ vé điện tử cho đơn", group: "ve" },
+  ve_tra_ve: { label: "Trả vé điện tử về kho", group: "ve" },
+  ve_xem_anh: { label: "Xem ảnh vé điện tử của đơn", group: "ve" }, // detail: số thứ tự vé trong đơn (KHÔNG mã vé)
+  ve_tao_duong_dan: { label: "Tạo đường dẫn vé cho khách", group: "ve" }, // detail: số vé + hạn (KHÔNG token)
+  ve_thu_hoi_duong_dan: { label: "Thu hồi đường dẫn vé của khách", group: "ve" },
+  ve_giao: { label: "Giao vé điện tử cho khách", group: "ve" }, // detail: kênh + số vé (KHÔNG mã vé)
+  ve_nhap_lo: { label: "Nhập lô vé điện tử", group: "ve" }, // detail: nhãn nhóm khách + số vé (KHÔNG mã vé)
+  ve_xac_nhan_lo: { label: "Đưa lô vé điện tử vào kho", group: "ve" },
+  ve_sua_ma_tour: { label: "Sửa dịch vụ của lô vé điện tử", group: "ve" },
+  ve_mo_anh_lo_huy: { label: "Mở ảnh vé của lô đã huỷ", group: "ve" }, // chủ quyết 2/11/2026; detail không chứa mã; target_id = mã dòng vé
+  ve_bo_lo: { label: "Huỷ lô vé điện tử", group: "ve" }, // ADR-0156 Đ2 mục 3; detail: nhãn nhóm khách (KHÔNG mã vé)
+  ve_doi_tran_lo: { label: "Đổi số vé tối đa mỗi lô", group: "ve" }, // ADR-0156 Đ3; detail: số cũ → số mới
   updated: { label: "Sửa đơn", group: "order" },
   trip_updated: { label: "Sửa thông tin chuyến", group: "order" },
   // ADR-0047 A1: chặng đưa đón sau xác nhận — `detail` "Chiều đi · <tên dịch vụ>: giờ đón 06:30 → 07:00; nơi đón A → B" (chữ tự do che dãy số — moTaChang).
@@ -71,6 +85,14 @@ export const AUDIT_ACTIONS = {
   ledger_adjustment_withdrawn: { label: "Rút yêu cầu điều chỉnh sổ", group: "ledger" },
   ledger_adjustment_affected: { label: "Điều chỉnh đổi số dư của một nhân viên", group: "ledger" },
   ledger_receipt_replaced: { label: "Sửa khoản thu đã ghi", group: "ledger" },
+  ledger_receipt_collector_changed: { label: "Báo người thu tiền: khoản thu đã được sửa", group: "ledger" }, // ADR-0088 đ2: nguồn tin, khoá = tài khoản nhận
+  ledger_duplicate_overridden: { label: "Vẫn ghi dù có cảnh báo trùng", group: "ledger" }, // ADR-0092 đ6, đ6a: detail = lý do của người bỏ qua
+  attribution_requested: { label: "Đề nghị phân định trách nhiệm", group: "ledger" }, // ADR-0116
+  attribution_ruled: { label: "Phân định trách nhiệm", group: "ledger" },
+  attribution_posted: { label: "Ghi sổ theo phân định trách nhiệm", group: "ledger" },
+  attribution_reassigned: { label: "Khoản phân định chuyển sang bên khác", group: "ledger" },
+  attribution_reversed: { label: "Huỷ hoặc giảm khoản phân định", group: "ledger" },
+  attribution_responded: { label: "Bên chịu phản hồi phân định", group: "ledger" },
   ledger_reversal: { label: "Huỷ một dòng sổ tiền", group: "ledger" },
   // ADR-0092 Đ6 (migration 0088): gắn mã giao dịch ngân hàng vào khoản thu — target = khoản thu (`ledger`, id khoản thu); `detail` = "gắn mã giao dịch ngân hàng"
   // (chữ cố định); KHÔNG chép mã giao dịch, không số tài khoản.
@@ -92,26 +114,33 @@ export const AUDIT_ACTIONS = {
   prc_supply_term_added: { label: "Thêm điều khoản người bán", group: "ledger" },
   prc_supply_term_closed: { label: "Ngừng điều khoản người bán", group: "ledger" },
   // ADR-0117 lần 1: Kế toán / Quản trị / Toàn quyền thêm, tắt, bật LOẠI ĐỐI TÁC — `detail` = tên loại (đã cấm số điện thoại / email trong tên), không mã thô.
-  prc_partner_type_added: { label: "Thêm loại đối tác", group: "ledger" },
-  prc_partner_type_off: { label: "Tắt loại đối tác", group: "ledger" },
-  prc_partner_type_on: { label: "Bật lại loại đối tác", group: "ledger" },
+  prc_partner_type_added: { label: "Thêm vai người dùng", group: "ledger" },
+  prc_partner_type_off: { label: "Tắt vai người dùng", group: "ledger" },
+  prc_partner_type_on: { label: "Bật lại vai người dùng", group: "ledger" },
+  // Mã định danh 5.26 (đặc tả 2026-10-31 §3): đổi tên — `detail` = «cũ» → «mới»; sửa ghi chú — `detail` = tên loại, KHÔNG chép nội dung ghi chú (chữ tự do, dễ lọt thông tin cá nhân).
+  // Mọi dòng `prc_partner_type_*` từ bản này ghi `target_type = 'ledger'`, `target_id` = mã loại.
+  prc_partner_type_renamed: { label: "Đổi tên vai người dùng", group: "ledger" },
+  prc_partner_type_note: { label: "Sửa ghi chú vai người dùng", group: "ledger" },
   // ADR-0146 Đ5: Bán hàng / Quản trị / Toàn quyền thêm và kết thúc LUẬT BÁN theo loại đối tác — `detail` = tên + mã loại, phạm vi (mã dịch vụ / mã nhóm / mã đặc điểm = mã giá trị),
   // ngày (ADR-0146 Đ5 «nhật ký ghi mã loại, mã nhóm hoặc dịch vụ, ngày»); không thông tin cá nhân.
   prc_sales_block_added: { label: "Thêm luật bán", group: "ledger" },
   prc_sales_block_ended: { label: "Kết thúc luật bán", group: "ledger" },
   // ADR-0117 lần 2: mức TA dùng chung — `detail` = tên mức / «tên loại → tên mức · từ … đến …» (tên đã cấm số điện thoại / email), không mã thô. Dòng của mức đi qua
   // `prc_commission_rule_added` / `_closed` (đối tượng «mức TA <tên>»).
-  prc_rate_tier_added: { label: "Thêm cấp đại lý", group: "ledger" },
-  prc_rate_tier_off: { label: "Khoá cấp đại lý", group: "ledger" },
-  prc_rate_tier_on: { label: "Mở lại cấp đại lý", group: "ledger" },
-  prc_role_tier_set: { label: "Áp dụng cấp đại lý cho loại", group: "ledger" },
-  prc_role_tier_closed: { label: "Ngừng áp dụng cấp đại lý cho loại", group: "ledger" },
+  prc_rate_tier_added: { label: "Thêm cấp độ đại lý", group: "ledger" },
+  prc_rate_tier_off: { label: "Khoá cấp độ đại lý", group: "ledger" },
+  prc_rate_tier_on: { label: "Mở lại cấp độ đại lý", group: "ledger" },
+  // Mã định danh 5.26: mọi dòng `prc_rate_tier_*` từ bản này ghi `target_type = 'ledger'`, `target_id` = mã cấp (`MT_…`).
+  prc_rate_tier_renamed: { label: "Đổi tên cấp độ đại lý", group: "ledger" },
+  prc_rate_tier_note: { label: "Sửa ghi chú cấp độ đại lý", group: "ledger" },
+  prc_role_tier_set: { label: "Áp dụng cấp độ đại lý cho vai trò", group: "ledger" },
+  prc_role_tier_closed: { label: "Ngừng áp dụng cấp độ đại lý cho vai trò", group: "ledger" },
   prc_party_tier_set: { label: "Áp dụng cấp riêng cho đối tác", group: "ledger" },
   prc_party_tier_closed: { label: "Ngừng áp dụng cấp riêng của đối tác", group: "ledger" },
   // ADR-0148 Đ1: nút «Sửa» huỷ dòng chưa đơn nào chụp và thay hẳn bằng dòng mới (đi cùng `_added` / `_set` của dòng mới). `detail` = «sửa · dòng <cũ> → <mới> · huỷ dòng cũ» —
   // KHÔNG chép lý do sửa (lý do ở cột `change_reason` của dòng mới). Sửa dòng ĐÃ có đơn chụp đóng dòng cũ ⇒ đi qua `_closed`.
   prc_commission_rule_voided: { label: "Huỷ mức hoa hồng nhập sai (đã thay bằng dòng sửa)", group: "ledger" },
-  prc_role_tier_voided: { label: "Huỷ lần áp dụng cấp đại lý cho loại (đã thay bằng dòng sửa)", group: "ledger" },
+  prc_role_tier_voided: { label: "Huỷ lần áp dụng cấp độ đại lý cho vai trò (đã thay bằng dòng sửa)", group: "ledger" },
   prc_party_tier_voided: { label: "Huỷ cấp riêng của đối tác (đã thay bằng dòng sửa)", group: "ledger" },
   // Khoá sổ tháng (ADR-0080 D1; module ky-so — route ở billing): `order_id` NULL; `detail` = "Khoá sổ tháng MM/YYYY" (không tiền, không SĐT).
   ledger_period_closed: { label: "Khoá sổ tháng", group: "ledger" },
@@ -268,6 +297,8 @@ export const AUDIT_ACTIONS = {
   // ADR-0136 Đ1, Đ5: cờ «cần xác nhận» theo dịch vụ / nhóm, công tắc «nội bộ tự xác nhận» — `detail` ghi mã dịch vụ / nhóm (không dữ liệu khách).
   confirm_flag_changed: { label: "Đổi cờ cần xác nhận", group: "system" },
   confirm_policy_changed: { label: "Đổi công tắc tự xác nhận", group: "system" },
+  // ADR-0154 Đ2.1: Toàn quyền bật / tắt «Ẩn thông tin khách khi đối tác đặt vé» (POST /api/cai-dat/an-thong-tin-khach) — không gắn đơn; detail «Bật …» / «Tắt …», không dữ liệu khách.
+  partner_customer_policy_changed: { label: "Đổi công tắc ẩn thông tin khách", group: "system" },
   // ADR-0069 điều 5 + Hiến chương 5.12: ai đổi cài đặt trợ lý Hỗ trợ lúc nào — detail chỉ nêu PHẦN đã đổi, KHÔNG nội dung lời dặn / ngữ cảnh.
   tro_ly_settings_changed: { label: "Đổi cài đặt trợ lý Hỗ trợ", group: "system" },
   // ADR-0087 điều 6: Toàn quyền đổi giao diện công ty — detail = các ô đổi (nhãn: cũ → mới), không dữ liệu cá nhân. KHÔNG im lặng (ADR-0038).

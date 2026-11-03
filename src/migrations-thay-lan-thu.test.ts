@@ -61,7 +61,7 @@ test("đ3 + đ4 (iv): sau phiếu Đã giao — lần thu mới, lần hoàn m�
   const { r600 } = daGiao(db, ct);
   const re = /receipt_after_delivered:/;
   assert.throws(() => thu(db, ct, { amount: 100_000 }), re, "lần thu mới");
-  assert.throws(() => thu(db, ct, { amount: 100_000, kind: "CUSTOMER_REFUND" }), re, "hoàn sau Đã giao (chờ đ9)");
+  assert.throws(() => thu(db, ct, { amount: 100_000, kind: "CUSTOMER_REFUND" }), re, "hoàn sau Đã giao không có attribution_id");
   assert.throws(() => thu(db, ct, { amount: 600_000, reverses: r600 }), re, "đảo đơn lẻ");
   assert.throws(() => thu(db, ct, { amount: 600_000, reverses: r600, thay: "m-x" }), re, "đảo có dấu nối nhưng lô chưa có lần thu mới");
   assert.throws(() => thu(db, ct, { amount: 100_000, kind: "CUSTOMER_REFUND", thay: "m-x" }), re, "lô Thay chỉ ghi LẦN THU mới");

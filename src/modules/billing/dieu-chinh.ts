@@ -16,10 +16,11 @@ import { PARTY_ID_RE, docLyDo, docNgay, docSoTien, layKyDaKhoa, lineOf, loi, loi
 
 // Sổ đại lý đợt 2 (Task 6; ADR-0079 7b1, đặc tả P6): điều chỉnh có duyệt nhận thêm ba loại dòng thương mại — Kế toán bổ sung giá vốn / sửa hoa hồng sau «Đã giao»
 // (ví dụ D-3 «đại lý → công ty 20.000 loại hoa hồng»). Cùng mọi giới hạn của `kiemDieuChinh` (không đổi dấu, trần cộng dồn), không nới.
-const LOAI_DONG_NHAN: Record<DebtKind, string> = {
+// ADR-0116 quy tắc 9: dòng ATTRIBUTION KHÔNG có ở đây — không có lối dùng điều chỉnh thay phân định (trigger 0135 canh thêm).
+const LOAI_DONG_NHAN: Record<Exclude<DebtKind, "ATTRIBUTION">, string> = {
   HELD: "Tiền chưa nộp về công ty", SETTLEMENT: "Quyết toán (nộp / trả)", REFUND: "Hoàn khách", HOA_HONG: "Hoa hồng", GIAM_GIA_BEN_DAT: "Giảm giá bên đặt chịu", GIA_VON: "Giá vốn",
 };
-const laLoaiDong = (x: unknown): x is DebtKind => typeof x === "string" && Object.hasOwn(LOAI_DONG_NHAN, x);
+const laLoaiDong = (x: unknown): x is Exclude<DebtKind, "ATTRIBUTION"> => typeof x === "string" && Object.hasOwn(LOAI_DONG_NHAN, x);
 const TOI_DA_DANH_SACH = 200;
 const MOT_NGAY_MS = 86_400_000;
 
@@ -242,8 +243,8 @@ export function yeuCauDto(r: YeuCauDbRow, v: { staffId: string; coTheDuyetO: boo
   const laCuaToi = r.created_by === v.staffId;
   const cho = trangThai === "cho_duyet";
   return {
-    id: r.id, orderId: r.order_id, maDon: r.order_code, benNo: r.debtor_label ?? "—", benDuocNo: r.creditor_label ?? "—", soTien: r.amount, loaiDong: r.line_kind_code,
-    loaiDongNhan: LOAI_DONG_NHAN[r.line_kind_code] ?? "—", ngayPhatSinh: r.occurred_date, lyDo: r.reason, huong: r.direction === "INCREASE" ? "tang" : "giam", taoLuc: r.created_at,
+    id: r.id, orderId: r.order_id, maDon: r.order_code, benNo: r.debtor_label ?? "—", benDuocNo: r.creditor_label ?? "—", soTien: r.amount, loaiDong: r.line_kind_code as YeuCauDieuChinhDto["loaiDong"],
+    loaiDongNhan: (LOAI_DONG_NHAN as Record<string, string>)[r.line_kind_code] ?? "—", ngayPhatSinh: r.occurred_date, lyDo: r.reason, huong: r.direction === "INCREASE" ? "tang" : "giam", taoLuc: r.created_at,
     hetHanLuc: hetHanLuc(r.created_at), nguoiTao: r.created_by_label ?? "—", trangThai, quyetLuc: r.decision_at, nguoiQuyet: r.decision_by_label,
     lyDoQuyet: r.decision_kind === "REJECT" ? r.decision_reason : null, laCuaToi,
     coTheDuyet: cho && v.coTheDuyetO && !laCuaToi, coTheTuChoi: cho && v.coTheDuyetO && !laCuaToi, coTheRut: cho && v.coTheTaoO && laCuaToi,

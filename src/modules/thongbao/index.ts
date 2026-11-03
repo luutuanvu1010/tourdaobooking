@@ -103,7 +103,8 @@ async function hop(db: D1Database, staff: StaffProfile, ngan: "cua-toi" | "tat-c
   // MQ-07 chỉ tới người có trip.view (văn phòng any / tài xế assigned) — người khác nhận tin đơn đổi thường, không tốn lời gọi dữ kiện chuyến.
   const doi = coTheNhan ? await ganChuyenCuaChang(doiTho, chuyenChoTin) : doiTho;
   const taiKhoan = can(staff, "admin.manage.superadmin") ? await tinTaiKhoan(db, tu) : []; // ADR-0090 đ3: chỉ Toàn quyền nhận — người khác không tốn truy vấn
-  const dieuChinh = await listTinDieuChinh(db, tu, staff.id, can(staff, "ledger.adjust.approve")); // ADR-0115: lọc người nhận ngay ở SQL
+  // ADR-0116: dòng khoá 'ledger' cũng là tin phân định — kéo khi có một trong các ô; hàm thuần `locHopThongBao` chọn đúng theo từng hành động.
+  const dieuChinh = await listTinDieuChinh(db, tu, staff.id, can(staff, "ledger.adjust.approve") || can(staff, "attribution.decide") || can(staff, "ledger.write")); // ADR-0115: lọc người nhận ngay ở SQL
   // Chưa từng mở hộp: mốc = ngày tạo tài khoản (không đổ dồn tin cũ lên người mới — đặc tả §4.4). createdAt không đảm bảo luôn ở dạng
   // ISO có mili-giây — locHopThongBao so mốc giờ BẰNG CHUỖI nên phải chuẩn hoá trước (chuanHoaMocGio, src/shared/thong-bao.ts).
   const docDenLuc = chuanHoaMocGio(mark ?? (await getStaffAccount(db, staff.id))?.createdAt ?? now);

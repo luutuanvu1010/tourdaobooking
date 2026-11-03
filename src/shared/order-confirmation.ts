@@ -236,7 +236,7 @@ function summaryBlock(order: ReceiptDto): SummaryBlock {
   const daGiao = order.status.khoa === "delivered" || order.status.khoa === "completed";
   return {
     kind: "summary",
-    rows: [...dau, { label: daGiao ? "Đã thu" : "Khách hàng đã trả trước", value: money(order.daTra), emphasis: false }, { label: "Còn lại", value: money(order.conLai), emphasis: true }, ...dongPhan(order)],
+    rows: [...dau, ...(order.giamTru ? [{ label: "Giảm sau khi giao", value: money(-order.giamTru), emphasis: false }] : []), { label: daGiao ? "Đã thu" : "Khách hàng đã trả trước", value: money(order.daTra), emphasis: false }, { label: "Còn lại", value: money(order.conLai), emphasis: true }, ...dongPhan(order)],
   };
 }
 
@@ -249,6 +249,7 @@ function dongPhan(order: ReceiptDto): { label: string; value: string; emphasis: 
   return order.phan.flatMap((p, i) => {
     const ten = clean(p.nguoiBan);
     const rows = [{ label: `Phần ${i + 1} · ${ten}`, value: money(p.tong), emphasis: false }];
+    if (p.giamTru) rows.push({ label: "Đã giảm sau khi giao", value: money(-p.giamTru), emphasis: false });
     if (p.daTra > 0) rows.push({ label: "Đã trả", value: money(p.daTra), emphasis: false });
     rows.push({ label: p.traTaiQuay && p.conLai > 0 ? `Trả tại quầy ${ten}` : "Còn lại", value: money(p.conLai), emphasis: false }); // đã trả đủ ⇒ «Còn lại 0 ₫», không «Trả tại quầy … 0 ₫»
     return rows;
@@ -277,7 +278,7 @@ function footerBlock(company: CompanyDto, order: ReceiptDto): FooterBlock {
   const contact = clean(company.hotline) === "" ? "" : `Cần hỗ trợ, quý khách vui lòng liên hệ hotline ${clean(company.hotline)}.`;
   // ADR-0089: thông báo huỷ in câu chính sách (đ9a); ảnh xác nhận (đơn không huỷ) in điều khoản huỷ kèm đường dẫn (đ10).
   const dau = order.status.khoa === "cancelled" ? cauHuy(order) : DIEU_KHOAN_HUY;
-  return { kind: "footer", lines: [dau ?? "", ...cauVaiPhan(order), "Cảm ơn quý khách đã tin tưởng và lựa chọn dịch vụ của chúng tôi.", contact].filter((l) => l !== "") };
+  return { kind: "footer", lines: [dau ?? "", ...(order.giamTru ? ["Khoản giảm sau khi giao đã được trừ vào số quý khách phải trả, quý khách không còn nợ phần này."] : []), ...cauVaiPhan(order), "Cảm ơn quý khách đã tin tưởng và lựa chọn dịch vụ của chúng tôi.", contact].filter((l) => l !== "") };
 }
 
 /** "xac-nhan-<mã đơn>.png"; ký tự ngoài chữ/số/gạch → gạch (gộp, bỏ ở hai đầu); mã trống → "xac-nhan.png". */

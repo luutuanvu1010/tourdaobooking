@@ -108,8 +108,8 @@ test("docThanGan: { loai, muc, tuNgay, denNgay? } — thiếu loại / mức / n
   assert.deepEqual(docThanGan({ loai: "LD_ABCDEFGH", muc: "MT_ABCDEFGH", tuNgay: "2026-10-15", denNgay: "2026-12-31" }), { ok: true, body: { loai: "LD_ABCDEFGH", muc: "MT_ABCDEFGH", tuNgay: "2026-10-15", denNgay: "2026-12-31" } });
   const r = docThanGan({ loai: "", muc: " ", tuNgay: "", denNgay: "" });
   assert.deepEqual(!r.ok && r.loi, [
-    { truong: "loai", message: "Chọn một loại đối tác." },
-    { truong: "mucTa", message: "Chọn một cấp đại lý." },
+    { truong: "loai", message: "Chọn một vai người dùng." },
+    { truong: "mucTa", message: "Chọn một cấp độ đại lý." },
     { truong: "tuNgay", message: "Chọn ngày bắt đầu." },
   ]);
   const nguoc = docThanGan({ loai: "LD_ABCDEFGH", muc: "MT_ABCDEFGH", tuNgay: "2026-10-15", denNgay: "2026-10-14" });
@@ -134,7 +134,7 @@ test("docThanGanRieng (Task 10): thân Đặt / Sửa cấp riêng { muc, tuNgay
   const r = docThanGanRieng({ partyId: " ", muc: "", tuNgay: "", denNgay: "" });
   assert.deepEqual(!r.ok && r.loi, [
     { truong: "doiTuong", message: "Chọn một đối tác." },
-    { truong: "mucTa", message: "Chọn một cấp đại lý." },
+    { truong: "mucTa", message: "Chọn một cấp độ đại lý." },
     { truong: "tuNgay", message: "Chọn ngày bắt đầu." },
   ]);
   const nguoc = docThanGanRieng({ partyId: "p1", muc: "MT_ABCDEFGH", tuNgay: "2026-10-30", denNgay: "2026-10-29" });

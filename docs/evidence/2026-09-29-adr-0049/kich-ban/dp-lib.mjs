@@ -162,7 +162,8 @@ export async function dungDuLieuDieuPhoi(env, call) {
       passengers: Array.from({ length: soTen }, (_, i) => ({ fullName: `Hành Khách Thử ${soDon}-${i + 1}`, birthYear: 1980 + i, paxCode: null })),
     });
     dung(r, 201, `lập đơn ${noiDon}`);
-    const c = await call(ACCOUNTS.admin, "POST", `/api/orders/${r.json.order.id}/status`, { status: "confirmed" });
+    // 2/11 (lượt 2, Đợt 5): nháp là của riêng người lập (ADR-0135) nên chính người lập xác nhận; Quản trị nhận 404.
+    const c = await call(ACCOUNTS.salesA, "POST", `/api/orders/${r.json.order.id}/status`, { status: "confirmed" });
     dung(c, 200, `xác nhận đơn ${noiDon}`);
     return { id: c.json.order.id, ma: c.json.order.orderCode, legId: c.json.order.services[0].legs[0].id, leg: c.json.order.services[0].legs[0] };
   };

@@ -14,7 +14,7 @@ import type { NhomHuy } from "../../shared/ly-do-huy.ts";
 export type ReceiptKind = "CUSTOMER_PAYMENT" | "CUSTOMER_REFUND";
 export type CollectorRole = "COMPANY" | "STAFF" | "BOOKER" | "SUPPLIER" | "UNKNOWN";
 /** Loại dòng nợ (`bil_debt_kind`). Ba loại thương mại của phiếu «Đã giao» từ sổ đại lý đợt 2 (ADR-0079 điều 2, migration 0112). */
-export type DebtKind = "HELD" | "SETTLEMENT" | "REFUND" | "HOA_HONG" | "GIAM_GIA_BEN_DAT" | "GIA_VON";
+export type DebtKind = "HELD" | "SETTLEMENT" | "REFUND" | "HOA_HONG" | "GIAM_GIA_BEN_DAT" | "GIA_VON" | "ATTRIBUTION";
 /**
  * Ba loại dòng THƯƠNG MẠI (sổ đại lý đợt 2, ADR-0079 điều 2). Chỉ thay đổi qua yêu cầu điều chỉnh có người thứ hai duyệt (ADR-0115): chờ «Đã giao» (Ruling R-P15) và
  * KHÔNG «Huỷ dòng sổ» riêng (`dao_dong` — BL-SDL2-DAO-DONG-TM, chủ chọn «Chặn» 19/10). MỘT nguồn cho cả `dieu-chinh.ts` lẫn `ghiDieuChinh`.
@@ -124,6 +124,43 @@ export function soDuCap(lines: readonly Pick<LineRow, "debtorPartyId" | "credito
     else if (l.debtorPartyId === chu && l.creditorPartyId === ben) so -= l.amount;
   }
   return so;
+}
+
+/**
+ * ADR-0159 Đ2 mục 2: phần tiền khai đặt cọc CHƯA về công ty, tính theo từng người thu. Sổ phân bổ tiền nộp theo đơn, không theo khoản thu, nên khi một người vừa có khoản khai vừa có khoản khác
+ * trên cùng đơn, số họ còn nợ được tính vào khoản khai TRƯỚC (cách chặt hơn). Dùng số dư MỌI loại dòng của đơn: hoa hồng cấn trừ lúc «Đã giao» làm giảm số phải nộp, nếu chỉ tính dòng giữ hộ thì vé
+ * khoá vĩnh viễn dù đối tác đã hết nợ. Người thu là Công ty: số dư với chính mình luôn 0, tiền đã về công ty.
+ */
+export function soKhaiChuaNop(
+  khoan: readonly { collectorPartyId: string | null; soTien: number }[],
+  lines: readonly Pick<LineRow, "debtorPartyId" | "creditorPartyId" | "amount">[],
+  congTyId: string,
+): number {
+  const theoNguoi = new Map<string, number>();
+  let so = 0;
+  for (const k of khoan) {
+    if (k.collectorPartyId === null) so += k.soTien; // sổ không nói ai cầm: coi như chưa nộp
+    else theoNguoi.set(k.collectorPartyId, (theoNguoi.get(k.collectorPartyId) ?? 0) + k.soTien);
+  }
+  for (const [nguoi, khai] of theoNguoi) so += Math.min(khai, Math.max(0, soDuCap(lines, nguoi, congTyId)));
+  return so;
+}
+
+/**
+ * «Sửa khoản thu» có khoản cũ mang dấu khoản khai (K7c): chọn khoản MỚI nào mang dấu, cho tới khi tổng khoản được chọn phủ đủ số khai; ưu tiên khoản cùng người thu với khoản khai. Khoản mới không tách
+ * theo nguồn: một khoản phủ qua ranh giới (gộp khai với thường) thì cả khoản mang dấu (Tự quyết, cách chặt hơn). Đổi người thu vẫn mang dấu, vì mất dấu thì chuyển cọc đi qua và tính hai lần.
+ */
+export function chonKhoanMangDau(moi: readonly { collectorPartyId: string | null; soTien: number }[], cuKhai: readonly { collectorPartyId: string | null; soTien: number }[]): Set<number> {
+  const nguoi = new Set(cuKhai.map((k) => k.collectorPartyId));
+  const thuTu = [...moi.keys()].sort((a, b) => Number(!nguoi.has(moi[a]!.collectorPartyId)) - Number(!nguoi.has(moi[b]!.collectorPartyId)) || a - b);
+  let con = cuKhai.reduce((s, k) => s + k.soTien, 0);
+  const chon = new Set<number>();
+  for (const i of thuTu) {
+    if (con <= 0) break;
+    chon.add(i);
+    con -= moi[i]!.soTien;
+  }
+  return chon;
 }
 
 /**
@@ -737,6 +774,57 @@ export function cauLoiCsdlThuongMai(e: unknown, anGiaVon?: boolean): string | nu
 }
 
 /** Số dư từng bên với công ty chủ: dương = bên đó còn NỢ công ty; âm = công ty còn nợ bên đó (gộp mọi dòng kể cả đảo). */
+/** ADR-0116: dòng nợ theo phân định là NỢ, không phải tiền đang giữ — không chặn Hoàn thành, không vào "đang giữ" của màn đơn. Vẫn ở Sổ của tôi và trả bằng lệnh nộp. */
+export const boNoPhanDinh = <T extends { kind: DebtKind }>(lines: readonly T[]): T[] => lines.filter((l) => l.kind !== "ATTRIBUTION");
+
+/**
+ * ADR-0116 đ4 (I1 của lô ghi sổ): sau lô, đã thu ròng = phải thu hiện hành − số giảm trừ. Có tiền ra: trả ĐÚNG số giảm trừ, không vượt đã thu ròng, đơn phải đang khớp. Không tiền ra: khoản thu sau
+ * lô (`daThuSauThay` khi lô kèm sửa khoản thu, ngược lại số hiện tại) phải đã đúng thực tế, nếu không từ chối.
+ */
+/** Chủ quyết 2026-11-02: ca khách chưa trả đồng nào (giảm trừ toàn bộ phải thu mà sổ đang ghi đã thu) CHƯA mở trên Nền tảng; BACKLOG `BL-PD-T4-TOAN-PHAN`. */
+export const CAU_KHACH_CHUA_TRA_DONG_NAO = "Khách chưa trả đồng nào cho đơn này thì Nền tảng chưa ghi được: lệnh sửa khoản thu phải còn ít nhất một khoản thu. Hãy xử lý ca này ngoài Nền tảng và báo Toàn quyền.";
+export function kiemLoPhanDinh(i: { soTien: number; phaiThuHienHanh: number; daThu: number; coTienRa: boolean; daThuSauThay: number | null }): { ok: true } | { ok: false; ma: string; cau: string } {
+  if (i.soTien > i.phaiThuHienHanh) return { ok: false, ma: "attribution_over_due", cau: `Giảm trừ cộng dồn vượt phải thu của đơn (còn ${dong(i.phaiThuHienHanh)}).` };
+  const sau = i.phaiThuHienHanh - i.soTien;
+  if (i.coTienRa) {
+    if (i.soTien > i.daThu) return { ok: false, ma: "refund_exceeds_paid", cau: `Số trả khách vượt số khách đã trả cho đơn (${dong(i.daThu)}).` };
+    if (i.daThu !== i.phaiThuHienHanh) return { ok: false, ma: "attribution_i1", cau: `Đơn đang lệch: đã thu ${dong(i.daThu)}, phải thu ${dong(i.phaiThuHienHanh)} — sửa khoản thu trước.` };
+    return { ok: true };
+  }
+  const daThuSau = i.daThuSauThay ?? i.daThu;
+  if (daThuSau !== sau) return { ok: false, ma: "attribution_i1", cau: `Sửa khoản thu trước: sau lần ghi số đã thu (${dong(daThuSau)}) phải bằng ${dong(sau)}. Khách thật sự chưa trả thì sổ phải ghi đúng số khách đã trả.` };
+  return { ok: true };
+}
+
+/**
+ * ADR-0116 (kiểm độc lập, R-BIL-13): phần bên chịu ĐÃ NỘP vào khoản phân định trên một đơn = tiền nộp ròng vượt tiền mặt đang giữ. Khác 0 ⇒ không đổi bên chịu, không huỷ khoản, vì dòng ngược sẽ làm số dư âm.
+ * Lớp CSDL cùng công thức: trigger `bil_attribution_da_nop`.
+ */
+export function soDaNopKhoanPhanDinh(lines: readonly Pick<LineRow, "kind" | "debtorPartyId" | "creditorPartyId" | "amount">[], ben: string, chu: string): number {
+  const nop = -soDuCap(lines.filter((l) => l.kind === "SETTLEMENT"), ben, chu);
+  return Math.min(Math.max(0, nop), Math.max(0, -soDuGiuHo(lines, ben, chu)));
+}
+export const CAU_DA_NOP_PHAN_DINH = "Bên chịu đã nộp tiền cho khoản này nên không đổi bên chịu hay huỷ khoản được trên Nền tảng. Cần xử lý thì báo Toàn quyền.";
+export const CAU_TU_NOP_PHAN_DINH = "Đây là khoản phân định của chính bạn. Nhờ người khác ghi lần nộp này.";
+
+/**
+ * MỘT phép tách số dư của một bên trên MỘT đơn: `giuHo` = dòng HELD + SETTLEMENT + REFUND, `nop` = riêng SETTLEMENT (âm khi đã nộp), `khac` = dòng thương mại (hoa hồng, giá vốn: công ty nợ bên đó), `khoan` = dòng phân định.
+ * CHỈ tiền nộp vượt tiền đang giữ mới trừ vào khoản (cùng công thức `soDaNopKhoanPhanDinh`): công ty còn nợ hoa hồng, giá vốn không làm khoản của T8, T9 biến mất. Tổng bốn số luôn = dangGiu + phaiNop.
+ */
+export function tachKhoanPhanDinh(d: { giuHo: number; nop: number; khac: number; khoan: number }): { dangGiu: number; phaiNop: number } {
+  const daNop = Math.min(Math.max(0, -d.nop), Math.max(0, -d.giuHo));
+  const phaiNop = Math.max(0, d.khoan - daNop);
+  return { dangGiu: d.giuHo + d.khac + d.khoan - phaiNop, phaiNop };
+}
+/** Cộng một dòng vào bốn số của `tachKhoanPhanDinh`. Vắng `kind` ⇒ dòng khác. */
+export function congVaoTach(d: { giuHo: number; nop: number; khac: number; khoan: number }, kind: string | undefined, so: number): void {
+  if (kind === "ATTRIBUTION") d.khoan += so;
+  else if ((LOAI_DONG_GIU_HO as readonly string[]).includes(kind ?? "")) {
+    d.giuHo += so;
+    if (kind === "SETTLEMENT") d.nop += so;
+  } else d.khac += so;
+}
+
 export function soDuTheoBen(lines: readonly Pick<LineRow, "debtorPartyId" | "creditorPartyId" | "amount">[], congTyId: string): Map<string, number> {
   const out = new Map<string, number>();
   const cong = (ben: string, so: number) => out.set(ben, (out.get(ben) ?? 0) + so);
@@ -752,31 +840,35 @@ export function soDuTheoBen(lines: readonly Pick<LineRow, "debtorPartyId" | "cre
  * dương ⇒ nhóm «bên này đang giữ», âm ⇒ nhóm «công ty nợ bên này» (số tiền trả về luôn dương), đơn cộng ra 0 bị bỏ. `congCacDon` = X − Y. Thứ tự: số tiền lớn trước,
  * rồi mã đơn. Không I/O; số dư so sánh (`lech`) do nơi gọi đưa từ nguồn KHÁC (view) để cờ lệch có nghĩa.
  */
-export interface DongCuaBen { orderId: string | null; maDon: string | null; ngay: string; debtorPartyId: string; creditorPartyId: string; amount: number }
+export interface DongCuaBen { orderId: string | null; maDon: string | null; ngay: string; debtorPartyId: string; creditorPartyId: string; amount: number; kind?: string }
 export interface DonCuaBen { orderId: string | null; maDon: string | null; ngayGanNhat: string; soTien: number }
-export function nhomDonCuaBen(lines: readonly DongCuaBen[], partyId: string, congTyId: string): { dangGiu: DonCuaBen[]; congTyNo: DonCuaBen[]; x: number; y: number } {
-  const theoDon = new Map<string, { orderId: string | null; maDon: string | null; ngay: string; so: number }>();
+export function nhomDonCuaBen(lines: readonly DongCuaBen[], partyId: string, congTyId: string): { dangGiu: DonCuaBen[]; congTyNo: DonCuaBen[]; phanDinh: DonCuaBen[]; x: number; y: number; z: number } {
+  const theoDon = new Map<string, { orderId: string | null; maDon: string | null; ngay: string; tach: { giuHo: number; nop: number; khac: number; khoan: number } }>();
   for (const l of lines) {
     const so = l.debtorPartyId === partyId && l.creditorPartyId === congTyId ? l.amount : l.creditorPartyId === partyId && l.debtorPartyId === congTyId ? -l.amount : 0;
     if (so === 0) continue;
     const k = l.orderId ?? "";
     const cu = theoDon.get(k);
-    if (cu) {
-      cu.so += so;
-      if (l.ngay > cu.ngay) cu.ngay = l.ngay;
-    } else theoDon.set(k, { orderId: l.orderId, maDon: l.maDon, ngay: l.ngay, so });
+    const d = cu ?? { orderId: l.orderId, maDon: l.maDon, ngay: l.ngay, tach: { giuHo: 0, nop: 0, khac: 0, khoan: 0 } };
+    congVaoTach(d.tach, l.kind, so);
+    if (l.ngay > d.ngay) d.ngay = l.ngay;
+    theoDon.set(k, d);
   }
   const dangGiu: DonCuaBen[] = [];
+  const phanDinh: DonCuaBen[] = [];
   const congTyNo: DonCuaBen[] = [];
   for (const d of theoDon.values()) {
-    if (d.so === 0) continue;
-    (d.so > 0 ? dangGiu : congTyNo).push({ orderId: d.orderId, maDon: d.maDon, ngayGanNhat: d.ngay, soTien: Math.abs(d.so) });
+    const t = tachKhoanPhanDinh(d.tach);
+    if (t.phaiNop > 0) phanDinh.push({ orderId: d.orderId, maDon: d.maDon, ngayGanNhat: d.ngay, soTien: t.phaiNop });
+    if (t.dangGiu === 0) continue;
+    (t.dangGiu > 0 ? dangGiu : congTyNo).push({ orderId: d.orderId, maDon: d.maDon, ngayGanNhat: d.ngay, soTien: Math.abs(t.dangGiu) });
   }
   const xep = (a: DonCuaBen, b: DonCuaBen) => b.soTien - a.soTien || String(a.maDon ?? "").localeCompare(String(b.maDon ?? ""));
   dangGiu.sort(xep);
   congTyNo.sort(xep);
+  phanDinh.sort(xep);
   const cong = (ds: DonCuaBen[]) => ds.reduce((t, d) => t + d.soTien, 0);
-  return { dangGiu, congTyNo, x: cong(dangGiu), y: cong(congTyNo) };
+  return { dangGiu, congTyNo, phanDinh, x: cong(dangGiu), y: cong(congTyNo), z: cong(phanDinh) };
 }
 
 /** 1000000 → "1.000.000 ₫" (không phụ thuộc bảng ngôn ngữ của máy chạy). */

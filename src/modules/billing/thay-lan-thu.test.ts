@@ -1,4 +1,4 @@
-// "Sửa khoản thu đã ghi" + I1 mọi lúc sau Đã giao (ADR-0088 đ1–đ5, đ8 — TNV-G3 phần thi công được; đ9 phân định trách nhiệm DỪNG chờ chủ) — hành vi qua ROUTE THẬT
+// "Sửa khoản thu đã ghi" + I1 mọi lúc sau Đã giao (ADR-0088 đ1–đ5, đ8 — TNV-G3 phần thi công được; đ9 phân định trách nhiệm: phan-dinh-route.test.ts) — hành vi qua ROUTE THẬT
 // trên khung thử (tests/audit/harness.mjs: cả ứng dụng + SQLite, lô `db.batch()` là một giao dịch). Lớp CSDL (0083) ở src/migrations-thay-lan-thu.test.ts.
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -101,13 +101,13 @@ test("đ2 (A-B18): TRƯỚC Đã giao Thay dùng được, kể cả đổi số
   assert.equal((await tien(w, id)).daThu, 450_000);
 });
 
-test("đ4 (iv): hoàn cho khách SAU Đã giao ⇒ 409 câu nguyên văn ADR (chờ phân định trách nhiệm — đ9); đ5: Hoàn thành khi I1 lệch ⇒ 409 + lý do trên màn đơn", async () => {
+test("đ4 (iv): hoàn cho khách SAU Đã giao ⇒ 409 chỉ sang màn Phân định trách nhiệm (ADR-0116 đ7); đ5: Hoàn thành khi I1 lệch ⇒ 409 + lý do trên màn đơn", async () => {
   const w = setup();
   const id = await daGiaoGhiNham(w);
   const h = await w.call("POST", "/api/ledger/refunds", { as: KT, body: { orderId: id, soTien: 100_000, hinhThuc: "CASH", nguoiTra: "cong_ty" } });
   assert.equal(h.status, 409, h.text);
   assert.equal(h.json.error.code, "refund_after_delivered");
-  assert.equal(h.json.error.message, "Đơn đã ở bước Đã giao — hoàn cho khách cần phân định trách nhiệm trước; báo Quản trị.");
+  assert.equal(h.json.error.message, "Đơn đã ở bước Đã giao — hoàn cho khách cần phân định trách nhiệm trước: mở màn «Phân định trách nhiệm».");
   // HDV nộp đủ để chỉ còn điều kiện I1; dữ liệu cũ lệch (SQL tay, gỡ trigger 0083 trong DB thử) ⇒ Hoàn thành bị chặn.
   assert.equal((await w.call("POST", "/api/ledger/settlements", { as: KT, body: { chieu: "nop", partyId: `pty-${HDV}`, phanBo: [{ orderId: id, soTien: 1_000_000 }] } })).status, 201);
   w.sqlite.exec("DROP TRIGGER bil_receipt_after_delivered");

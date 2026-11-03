@@ -2,9 +2,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  TU_DO, canHienNgayDon, cauDoiNgay, chiTietChangCoGiaTri, chonKhung, giuDatGapNhap, changDaDoi, changNenGon, changTaoSan, changTuDto, coOSoHieu, doiNgayDi, goiYChang, khungDangChon, legInput, loiChang, loiDanhSachChang, suaChang, themChangDi, themChieuVe, tomTatChang,
+  TU_DO, canHienNgayDon, cauDoiNgay, chiTietChangCoGiaTri, chonKhung, giuDatGapNhap, changDaDoi, changNenGon, changTaoSan, changTuDto, coOSoHieu, doiNgayDi, goiYChang, khungDangChon, legInput, loiChang, loiDanhSachChang, legsGuiFormGon, suaChang, themChangDi, themChieuVe, tomTatChang,
 } from "./chang-form.ts";
-import { CHO_TOI_THIEU_MAX, CHO_TOI_THIEU_MIN, NOI_DON_CHUA_GHI } from "./chang-dua-don.ts";
+import { CHO_TOI_THIEU_MAX, CHO_TOI_THIEU_MIN, NOI_DON_CHUA_GHI, changDauCuaDichVu } from "./chang-dua-don.ts";
 import type { MauChang } from "./chang-mac-dinh.ts";
 import type { LegDto } from "./contracts.ts";
 
@@ -271,4 +271,83 @@ test("ADR-0134: changTuDto đọc cuối khung; khungDangChon nhận ra khung đ
   assert.equal(khungDangChon(themChangDi(null, "2026-09-30", k()), KHUNG), null, "chưa có giờ → chưa chọn");
   // Khung đã lưu không còn trong bộ hiện hành (Toàn quyền đổi khung) → coi như Giờ khác (giữ giờ đã lưu, không mất dữ liệu).
   assert.equal(khungDangChon(changTuDto(dto({ pickupTime: "06:00", pickupSlotEnd: "06:30" }), k()), KHUNG), "khac");
+});
+
+// ---- Đợt 3 (ADR-0154 Đ1.1, câu đã áp số 5): form đối tác không còn ô giờ — `legsGuiFormGon` xoá giờ của LƯỢT ĐẦU dịch vụ trước khi gửi ----
+const NGAY_GON = "2026-10-20";
+const lg = (direction: "OUT" | "RETURN", pickupDate: string, pickupTime: string, pickupSlotEnd = ""): ChangNhap => ({ ...themChangDi(null, "", k()), direction, pickupDate, pickupTime, pickupSlotEnd });
+const gioCua = (legs: readonly ChangNhap[]): string[] => legs.map((l) => l.pickupTime);
+
+test("legsGuiFormGon: chiều đi 09:00 + chiều về 16:00 → chiều đi trống giờ, chiều về giữ 16:00 (lượt sau giữ nguyên)", () => {
+  const di = lg("OUT", NGAY_GON, "09:00", "09:30");
+  const ve = lg("RETURN", NGAY_GON, "16:00");
+  const r = legsGuiFormGon([di, ve], NGAY_GON);
+  assert.deepEqual(gioCua(r), ["", "16:00"]);
+  assert.equal(r[0]!.pickupSlotEnd, "", "cuối khung đi theo giờ: trống");
+  assert.equal(r[1], ve, "lượt còn lại là đúng đối tượng cũ (không sao chép)");
+  assert.equal(di.pickupTime, "09:00", "không sửa đối tượng nguồn");
+});
+
+test("legsGuiFormGon: chỉ còn chiều về 16:00 (đã «Bỏ lượt» chiều đi) → trống; không lượt → rỗng", () => {
+  assert.deepEqual(gioCua(legsGuiFormGon([lg("RETURN", NGAY_GON, "16:00", "16:30")], NGAY_GON)), [""]);
+  assert.equal(legsGuiFormGon([lg("RETURN", NGAY_GON, "16:00", "16:30")], NGAY_GON)[0]!.pickupSlotEnd, "");
+  assert.deepEqual(legsGuiFormGon([], NGAY_GON), []);
+});
+
+test("legsGuiFormGon: chiều đi «Khác ngày» sau ngày đi, chiều về ngày trống giờ gợi ý 16:00 → chiều đi trống giờ, chiều về giữ 16:00; cùng lượt đầu với máy chủ (ngày đi điền vào ngày trống)", () => {
+  const di = lg("OUT", "2026-10-22", "");
+  const ve = lg("RETURN", "", "16:00");
+  const r = legsGuiFormGon([di, ve], NGAY_GON);
+  assert.deepEqual(gioCua(r), ["", "16:00"]);
+  const may = r.map((l) => ({ id: l.key, direction: l.direction, pickupDate: l.pickupDate || NGAY_GON, pickupTime: l.pickupTime || null }));
+  assert.equal(changDauCuaDichVu(may)!.id, di.key);
+  assert.equal(changDauCuaDichVu(may)!.pickupTime, null);
+});
+
+test("legsGuiFormGon: hai chiều đi 08:00, 09:00 → cả hai trống (giờ có trước trống nên lượt kia nhảy lên đầu — phải xoá tiếp)", () => {
+  const r = legsGuiFormGon([lg("OUT", NGAY_GON, "08:00"), lg("OUT", NGAY_GON, "09:00")], NGAY_GON);
+  assert.deepEqual(gioCua(r), ["", ""]);
+});
+
+test("legsGuiFormGon: nháp lượt 1 đã lưu giờ lượt đầu, lưu lại bằng form gọn → giờ (và cuối khung) bị xoá, giữ id; chiều về đã lưu giờ giữ nguyên", () => {
+  const di = changTuDto(dto({ direction: "OUT", pickupTime: "07:30", pickupSlotEnd: "08:00" }), k());
+  const ve = changTuDto(dto({ id: "44444444-4444-4444-8444-444444444444", direction: "RETURN", pickupTime: "16:00", pickupSlotEnd: null }), k());
+  const r = legsGuiFormGon([ve, di], "2026-09-30");
+  assert.equal(r[1]!.pickupTime, "");
+  assert.equal(r[1]!.pickupSlotEnd, "");
+  assert.equal(r[1]!.id, di.id, "chặng đã lưu giữ id (route sửa vẫn nhận ra)");
+  assert.equal(r[0]!.pickupTime, "16:00");
+});
+
+test("legsGuiFormGon: mọi tổ hợp ≤ 3 lượt — lượt đầu theo changDauCuaDichVu luôn trống giờ; lượt khác hoặc là đối tượng cũ hoặc chỉ bị xoá sạch giờ", () => {
+  const chieu = ["OUT", "RETURN"] as const;
+  const ngay = ["", NGAY_GON, "2026-10-22"];
+  const gio = ["", "08:00", "09:00"];
+  const mot = chieu.flatMap((c) => ngay.flatMap((n) => gio.map((g) => ({ c, n, g }))));
+  let dem = 0;
+  const xet = (ds: typeof mot) => {
+    const vao = ds.map((x) => lg(x.c, x.n, x.g, x.g ? "09:30" : ""));
+    const r = legsGuiFormGon(vao, NGAY_GON);
+    assert.equal(r.length, vao.length);
+    const may = r.map((l) => ({ id: l.key, direction: l.direction, pickupDate: l.pickupDate || NGAY_GON, pickupTime: l.pickupTime || null }));
+    assert.equal(changDauCuaDichVu(may)!.pickupTime, null, JSON.stringify(ds));
+    r.forEach((l, i) => assert.ok(l === vao[i] || (l.pickupTime === "" && l.pickupSlotEnd === "" && l.key === vao[i]!.key), "chỉ xoá giờ, không đổi gì khác"));
+    dem++;
+  };
+  for (const a of mot) {
+    xet([a]);
+    for (const b of mot) {
+      xet([a, b]);
+      for (const c of mot.filter((_x, i) => i % 5 === 0)) xet([a, b, c]);
+    }
+  }
+  assert.ok(dem > 500);
+});
+
+test("tomTatChang với anGio: dòng tóm tắt không ghi giờ mà ghi «Văn phòng sẽ báo giờ đón» (cả khi lượt có giờ gợi ý đối tác chưa từng thấy)", () => {
+  const nhan = (): string | null => null;
+  const khongGio = { ...lg("OUT", NGAY_GON, ""), don: TU_DO, donTuDo: "12 Trần Phú" };
+  assert.equal(tomTatChang(khongGio, nhan, true), "Chiều đi · Văn phòng sẽ báo giờ đón · 12 Trần Phú");
+  assert.equal(tomTatChang({ ...khongGio, pickupTime: "16:00" }, nhan, true), "Chiều đi · Văn phòng sẽ báo giờ đón · 12 Trần Phú");
+  assert.equal(tomTatChang(khongGio, nhan), "Chiều đi · Chưa chốt giờ · 12 Trần Phú", "không anGio: như cũ");
 });

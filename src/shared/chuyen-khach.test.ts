@@ -12,7 +12,7 @@ const PHUT = 60_000;
 const T0 = Date.UTC(2026, 8, 29, 23, 20); // 06:20 giờ VN ngày 30/9
 const chang = (legId: string, o: Partial<ChangVao> = {}): ChangVao => ({
   legId, orderId: `don-${legId}`, orderCode: `ĐH-${legId}`, chieu: "OUT", ngayDon: "2026-09-30", gioDon: "06:30", coNoiTra: true, donDaXacNhan: true, donDaHuy: false,
-  changMo: true, soNguoi: 3, nguoiCuaDon: [], datGap: false, khoaNoiDon: `L:${legId}`, khoaNoiTra: "L:cang", xeRieng: false, choToiThieu: null, ...o,
+  changMo: true, soNguoi: 3, nguoiCuaDon: [], datGap: false, khoaNoiDon: `L:${legId}`, khoaNoiTra: "L:cang", xeRieng: false, choToiThieu: null, mienDanhSach: false, ...o,
 });
 const suat = (id: string, o: Partial<SuatVao> = {}): SuatVao => ({
   id, tripId: "a", loai: "PASSENGER", legId: "mt", personKey: null, crewPartyId: null, boardStopId: "d-mt", alightStopId: "d-cang", trangThai: "WAITING", mo: true, moTuMs: T0 - 60 * PHUT, ...o,

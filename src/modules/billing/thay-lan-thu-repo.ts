@@ -3,12 +3,18 @@
 // I1 và "đảo đơn lẻ sau Đã giao" nằm ở trigger 0083 (RAISE ⇒ cả lô huỷ). Import kèm đuôi .ts.
 import { defineSql } from "../../shared/sql-registry.ts";
 
-/** Phải thu lúc "Đã giao" (bản chụp `due_snapshot` của phiếu DELIVERED) — null nếu đơn chưa Đã giao. */
-const DELIVERED_DUE = defineSql("billing", "thay_delivered_due", `SELECT due_snapshot FROM bil_posting WHERE order_id = ?1 AND kind_code = 'DELIVERED'`);
-export async function phaiThuLucGiao(db: D1Database, orderId: string): Promise<number | null> {
-  const r = await db.prepare(DELIVERED_DUE).bind(orderId).first<{ due_snapshot: number }>();
-  return r ? r.due_snapshot : null;
+/**
+ * MỘT nguồn "phải thu hiện hành" của đơn ĐÃ Đã giao (ADR-0088 đ1, ADR-0116 đ5, Hiến chương 5.4): `due_snapshot` − giảm trừ đã phân định, đọc view `v_bil_phai_thu_hien_hanh` — trigger và R-BIL-1 đọc CÙNG view.
+ * null nếu đơn chưa Đã giao.
+ */
+const PHAI_THU_HIEN_HANH = defineSql("billing", "phai_thu_hien_hanh", `SELECT order_id, phai_thu, giam_tru FROM v_bil_phai_thu_hien_hanh WHERE order_id IN (SELECT value FROM json_each(?1))`);
+/** Chỉ có đơn đã Đã giao trong kết quả. Bài `phai-thu-mot-ham` H1b: không chỗ nào khác đọc view hay tự trừ giảm trừ. */
+export async function phaiThuHienHanhNhieuDon(db: D1Database, orderIds: readonly string[]): Promise<Map<string, { phaiThu: number; giamTru: number }>> {
+  if (orderIds.length === 0) return new Map();
+  const rows = (await db.prepare(PHAI_THU_HIEN_HANH).bind(JSON.stringify(orderIds)).all<{ order_id: string; phai_thu: number; giam_tru: number }>()).results;
+  return new Map(rows.map((r) => [r.order_id, { phaiThu: r.phai_thu, giamTru: r.giam_tru }]));
 }
+export const phaiThuHienHanh = async (db: D1Database, orderId: string): Promise<number | null> => (await phaiThuHienHanhNhieuDon(db, [orderId])).get(orderId)?.phaiThu ?? null;
 
 const COLS = `id, order_id, kind_code, amount, collector_party_id, collector_role_code, method_code, collected_for_party_id, stage_code, occurred_date,
   reverses_id, note, created_at, created_by, updated_at, updated_by, replacement_id`;

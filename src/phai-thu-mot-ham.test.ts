@@ -101,3 +101,20 @@ test("H1 (ADR-0109 bài 1): không tệp chạy thật nào trừ / so / kẹp g
   );
   for (const c of CHO_PHEP) assert.ok(all.some((h) => h.file === c.file && c.khuon.test(h.text)), `mục cho phép thừa (không còn dòng nào khớp): ${c.file} ${c.khuon}`);
 });
+
+// H1b — MỘT hàm phải thu HIỆN HÀNH của đơn đã giao (ADR-0116 đ5): số = view `v_bil_phai_thu_hien_hanh`, đọc qua `phaiThuHienHanhNhieuDon` (thay-lan-thu-repo.ts). Không tệp chạy thật nào tự trừ
+// giảm trừ khỏi phải thu, suy ngược giảm trừ từ phải thu, hay đọc thẳng view ngoài hai nơi có tên.
+const KHUON_GIAM_TRU: RegExp[] = [/phaiThu\w*\s*-\s*\(?[\w$.?!]*(?:giamTru|phaiThu)/i, /\s[-+]=?\s+\(?[\w$.?!]*giam_?tru\b/i, /phaiThu\w*\s*-\s*\(?giam/i];
+const DOC_VIEW_DUOC = new Set(["src/modules/billing/thay-lan-thu-repo.ts", "scripts/audit-checks.mjs"]);
+test("H1b: phải thu hiện hành chỉ có một chỗ tính (view đọc qua một hàm); không tự trừ giảm trừ", () => {
+  for (const d of ["const phaiThu = Math.max(0, b.phaiThu - (giamTru.get(id) ?? 0));", "giamTru: Math.max(0, info.phaiThu - phaiThuNay),"]) assert.ok(KHUON_GIAM_TRU.some((k) => k.test(d)), `phải bắt: ${d}`);
+  const files = [...walk(join(ROOT, "src"), [".ts"]), ...walk(join(ROOT, "web"), [".ts"]), ...walk(join(ROOT, "scripts"), [".ts", ".mjs"])];
+  const lot: string[] = [];
+  for (const f of files) {
+    const rel = relative(ROOT, f).split(sep).join("/");
+    const nguon = maskSource(readFileSync(f, "utf8"), { strings: false, comments: true });
+    if (nguon.includes("v_bil_phai_thu_hien_hanh") && !DOC_VIEW_DUOC.has(rel)) lot.push(`${rel}: đọc thẳng view`);
+    nguon.split("\n").forEach((l, i) => { if (KHUON_GIAM_TRU.some((k) => k.test(l))) lot.push(`${rel}:${i + 1} ${l.trim().slice(0, 120)}`); });
+  }
+  assert.deepEqual(lot, []);
+});

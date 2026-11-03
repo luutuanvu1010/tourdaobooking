@@ -1,24 +1,31 @@
 import { ApiError, api, type StaffAccount, type Api } from "./api";
 import { NHAN_LY_DO_KHOP } from "../src/shared/ho-so-trung";
 import { PERMISSION_CODES, PERMISSION_LABEL, can, type PermissionCode } from "../src/shared/permissions";
-import { ROLE_CODES, canManageAccount, rolesLabel, tuDoiQuyenCuaMinh } from "../src/shared/roles";
+import { ROLE_CODES, canManageAccount, rolesLabelTheo, tuDoiQuyenCuaMinh } from "../src/shared/roles";
+import { chonLocHopLe, locTheoVai, nutLocVai } from "../src/shared/loc-tai-khoan";
 import { byId, h, replaceChildren } from "./dom";
 import { dateTime } from "./format";
 import { rolePicker, type RolePicker, type RolePickerValue } from "./role-picker";
 import { initShell, showError } from "./shell";
 import { nhanHaiLop } from "../src/shared/hai-lop-hien-thi";
 import { dungHangChoXacMinh } from "./xac-minh-hang-cho";
+import { CHU_CAP, suaDuocCot, thayCotCap } from "../src/shared/cap-hien-hanh-hien-thi";
+import { datTieuDiemODongCap, oCap, oCapDangNap, oCapKhongTai, taiCapHienHanh } from "./cot-cap-dai-ly";
+import type { CapHienHanhDto } from "../src/shared/contracts";
 
 const errorEl = byId("error");
 const listEl = byId("list");
 const listCardsEl = byId("list-cards");
+const locVaiEl = byId("loc-vai");
 const secretEl = byId("secret");
 const editEl = byId("edit");
 const permissionsLabel = (list: readonly PermissionCode[]): string => (list.length ? list.map((p) => PERMISSION_LABEL[p]).join(", ") : "—");
 const sameSet = (a: readonly string[], b: readonly string[]): boolean => a.length === b.length && a.every((x) => b.includes(x));
 
 /** Tài khoản đã gán vai → tên vai; chưa gán → quyền cũ kèm ghi chú (chờ chuyển sang cách mới, đặc tả §14). */
-const accessLabel = (s: StaffAccount): string => (s.roles.length ? rolesLabel(s.roles) : `${permissionsLabel(s.permissions)} (chưa gán vai trò)`);
+// Task 3b: tên vai hiện hành từ máy chủ (GET /api/staff → tenVai); trước lần nạp đầu / nạp lỗi thì rỗng ⇒ tên gốc.
+let tenVai: Readonly<Record<string, string>> = {};
+const accessLabel = (s: StaffAccount): string => (s.roles.length ? rolesLabelTheo(s.roles, tenVai) : `${permissionsLabel(s.permissions)} (chưa gán vai trò)`);
 const EMPTY: RolePickerValue = { roles: [], adds: [], removes: [], reason: "" };
 const TU_DOI_QUYEN = "Vai trò vừa chọn làm đổi quyền của chính bạn — không ai tự đổi quyền của mình được (chống tự khoá). Hãy nhờ người quản trị khác. Chưa lưu gì.";
 const TU_DOI_QUYEN_TOAN_QUYEN =
@@ -30,6 +37,33 @@ let canAccessManage = false;
 
 let me: { id: string; permissions: readonly PermissionCode[] };
 let accounts: Api.StaffListRowDto[] = [];
+// Cột «Cấp độ đại lý» (ADR-0155 Đ2): chỉ khi người xem có ô xem hoa hồng đối tác và không giữ quyền Đối tác (`thayCotCap`) — Hành chính nhân sự không thấy và không gọi route.
+// `capHienHanh`: undefined = đang nạp lần đầu (ô hiện «Đang tải…»); null = nạp lỗi (ô hiện «—», bảng tài khoản vẫn vẽ).
+// Cấp nạp SONG SONG với danh sách tài khoản (kiểm độc lập m-2): bảng vẽ ngay khi danh sách về, không chờ route cấp.
+let hienCotCap = false;
+let capHienHanh: Map<string, CapHienHanhDto> | null | undefined = undefined;
+let lanNapCap = 0; // số thứ tự lần nạp: lần nạp cũ về muộn không ghi đè lần mới hơn
+let daVeLanDau = false; // đã vẽ bảng từ danh sách chưa — cấp về trước thì để `load` vẽ, về sau thì vẽ lại
+const cotCapEl = byId("cot-cap");
+
+// Bộ lọc theo vai trò (đặt vé của đối tác, lượt 1, Task 4; đặc tả §4.4): lọc ngay trên danh sách ĐÃ NẠP (`accounts`), cả bảng máy tính lẫn thẻ điện thoại; bấm nút chỉ vẽ lại, không gọi máy chủ.
+// Lựa chọn nhớ theo phiên (sessionStorage — có thể bị chặn / không có: bọc try/catch, trang vẫn chạy với «Tất cả»). Luật chọn nút / lọc / giữ lựa chọn ở src/shared/loc-tai-khoan.ts.
+const KHOA_NHO_LOC = "tk-loc-vai";
+const docLocNho = (): string | null => {
+  try {
+    return sessionStorage.getItem(KHOA_NHO_LOC);
+  } catch {
+    return null;
+  }
+};
+const nhoLoc = (khoa: string): void => {
+  try {
+    sessionStorage.setItem(KHOA_NHO_LOC, khoa);
+  } catch {
+    /* không nhớ được thì thôi */
+  }
+};
+let locVai: string | null = docLocNho();
 
 const reasonOf = (err: unknown): string => (err instanceof ApiError ? err.message : "Không kết nối được máy chủ.");
 const fail = (err: unknown) => showError(errorEl, reasonOf(err));
@@ -123,6 +157,31 @@ function openTatHaiLop(s: Api.StaffListRowDto): void {
   editEl.scrollIntoView({ block: "nearest" });
 }
 
+/** Nạp cấp hiện hành (MỘT chỗ duy nhất gọi route cấp). Không hiện cột ⇒ không gọi gì (Hành chính nhân sự không có ô xem). Về xong thì vẽ lại nếu bảng đã vẽ. */
+function napCap(): Promise<void> {
+  if (!hienCotCap) return Promise.resolve();
+  const lan = ++lanNapCap;
+  return taiCapHienHanh().then((m) => {
+    if (lan !== lanNapCap) return;
+    capHienHanh = m;
+    if (daVeLanDau) ve();
+  });
+}
+/** Sau khi lưu một cấp ở bảng bấm: nạp lại cấp hiện hành, vẽ lại (không gọi lại danh sách tài khoản), rồi đặt tiêu điểm bàn phím về ô của đúng hồ sơ vừa lưu (nút mở bảng đã bị vẽ lại). */
+async function lamMoiCap(partyId: string): Promise<void> {
+  await napCap();
+  datTieuDiemODongCap(partyId);
+}
+/** Nội dung ô «Cấp độ đại lý» của một dòng (bảng và thẻ dùng CHUNG một hàm); null = không có ô (người xem không thấy cột, hoặc dòng không giữ quyền Đối tác). */
+const oCapCuaS = (s: Api.StaffListRowDto): HTMLElement | null =>
+  !hienCotCap
+    ? null
+    : capHienHanh === undefined
+      ? oCapDangNap(s)
+      : capHienHanh === null
+        ? oCapKhongTai(s)
+        : oCap(s, s.partyId === null ? undefined : capHienHanh.get(s.partyId), suaDuocCot(me), lamMoiCap);
+
 function row(s: Api.StaffListRowDto): HTMLElement {
   const btn = (label: string, onclick: () => void, cls = "btn btn-link") => {
     const b = h("button", { type: "button", class: cls }, label);
@@ -136,6 +195,7 @@ function row(s: Api.StaffListRowDto): HTMLElement {
     h("td", null, s.fullName, isMe && h("span", { class: "muted" }, " (bạn)"), !s.active && h("span", { class: "badge badge-cancelled" }, "Ngưng"), s.locked && h("span", { class: "badge badge-draft" }, "Bị khoá đăng nhập"), h("div", null, nhanHaiLopEl(s))),
     h("td", null, s.phone),
     h("td", null, accessLabel(s)),
+    hienCotCap && h("td", null, oCapCuaS(s)),
     h("td", { class: "muted" }, dateTime(s.createdAt)),
     h("td", { class: "muted" }, s.lastLoginAt ? dateTime(s.lastLoginAt) : "Chưa ghi nhận"),
     h(
@@ -187,6 +247,7 @@ function card(s: Api.StaffListRowDto): HTMLElement {
     return b;
   };
   const isMe = s.id === me.id;
+  const oCapThe = oCapCuaS(s); // thẻ điện thoại có đúng ô của bảng; null ⇒ không dựng dòng
   return h(
     "div",
     { class: s.active ? "card card-col" : "card card-col row-off" },
@@ -195,6 +256,7 @@ function card(s: Api.StaffListRowDto): HTMLElement {
     s.locked && h("div", null, h("span", { class: "badge badge-draft" }, "Bị khoá đăng nhập")),
     h("div", null, nhanHaiLopEl(s)),
     h("div", { class: "muted" }, s.phone, " · ", accessLabel(s)),
+    oCapThe && h("div", null, h("span", { class: "muted" }, `${CHU_CAP.nhanCot}: `), oCapThe),
     h("div", { class: "muted" }, s.lastLoginAt ? `Đăng nhập gần nhất ${dateTime(s.lastLoginAt)}` : "Chưa ghi nhận đăng nhập"),
     h(
       "div",
@@ -250,7 +312,7 @@ async function openEdit(s: StaffAccount): Promise<void> {
   const name = h("input", { type: "text", value: s.fullName, maxLength: 200 });
   const phone = h("input", { type: "tel", value: s.phone });
   const isMe = s.id === me.id;
-  const picker = rolePicker({ initial: saved, actorIsSuperAdmin: meSuper, current: s.permissions });
+  const picker = rolePicker({ initial: saved, actorIsSuperAdmin: meSuper, current: s.permissions, tenVai });
   const boxes = new Map<PermissionCode, HTMLInputElement>();
   const permissionBoxes = PERMISSION_CODES.map((code) => {
     const box = h("input", { type: "checkbox", checked: s.permissions.includes(code), disabled: isMe, style: "width:auto;display:inline;margin:0 6px 0 0" });
@@ -304,11 +366,40 @@ async function openEdit(s: StaffAccount): Promise<void> {
 }
 
 async function load(): Promise<void> {
+  void napCap(); // chạy song song với danh sách, KHÔNG chờ: lỗi route cấp không chặn bảng (null ⇒ ô «—»), chậm cũng không làm bảng chậm theo
   const r = await act(() => api<Api.StaffListResponse>("/api/staff"));
   if (!r) return;
   accounts = r.staff;
-  replaceChildren(listEl, ...accounts.map(row));
-  replaceChildren(listCardsEl, ...accounts.map(card));
+  tenVai = r.tenVai;
+  ve();
+  daVeLanDau = true;
+}
+
+/** Vẽ hàng nút lọc, bảng và thẻ từ `accounts` đã nạp (không gọi máy chủ). Vai vừa hết người giữ thì nút biến mất và lựa chọn đã nhớ về «Tất cả». */
+function ve(): void {
+  const nut = nutLocVai(accounts, tenVai);
+  const khoa = chonLocHopLe(locVai, nut);
+  if (khoa !== locVai) {
+    locVai = khoa;
+    nhoLoc(khoa);
+  }
+  const coTieuDiem = locVaiEl.contains(document.activeElement); // bấm nút vẽ lại cả hàng nút: giữ tiêu điểm bàn phím ở đúng nút đó
+  const nutEl = new Map<string, HTMLButtonElement>();
+  for (const n of nut) {
+    const b = h("button", { type: "button", class: "loc-nut", "aria-pressed": n.khoa === khoa ? "true" : "false", "data-loc": n.khoa }, `${n.nhan} (${n.soLuong})`);
+    b.addEventListener("click", () => {
+      locVai = n.khoa;
+      nhoLoc(n.khoa);
+      ve();
+    });
+    nutEl.set(n.khoa, b);
+  }
+  replaceChildren(locVaiEl, ...nutEl.values());
+  locVaiEl.hidden = accounts.length === 0; // chỉ hiện khi có dữ liệu
+  if (coTieuDiem) nutEl.get(khoa)?.focus();
+  const hien = locTheoVai(accounts, khoa);
+  replaceChildren(listEl, ...hien.map(row));
+  replaceChildren(listCardsEl, ...hien.map(card));
 }
 
 // ---- Thêm thủ công (ADR-0018): chọn vai + xem trước; tuỳ chọn dùng hồ sơ cá nhân có sẵn (tra theo SĐT) để không tạo hồ sơ trùng.
@@ -320,7 +411,7 @@ const addPhone = byId<HTMLInputElement>("add-phone");
 const existingNote = h("div", { id: "add-khop", class: "muted", hidden: true });
 
 function setupAddForm(): void {
-  addPicker = rolePicker({ initial: EMPTY, actorIsSuperAdmin: meSuper, current: null });
+  addPicker = rolePicker({ initial: EMPTY, actorIsSuperAdmin: meSuper, current: null, tenVai });
   replaceChildren(byId("add-perms"), addPicker.el, existingNote);
 }
 
@@ -457,15 +548,18 @@ const staff = await initShell();
 me = staff;
 meSuper = can(staff, "admin.manage.superadmin"); // ADR-0072 mục 4a: hỏi bảng quyền (ô gán/gỡ Toàn quyền), không hỏi mã
 canAccessManage = can(staff, "account.access.manage");
+hienCotCap = thayCotCap(staff); // ADR-0155 Đ2.2: hỏi bảng quyền (ô xem hoa hồng đối tác, không giữ Đối tác), không hỏi mã vai
+cotCapEl.hidden = !hienCotCap;
 // ADR-0071 điều 1b: cổng trang theo ô account.view (Quản trị, Toàn quyền, Hành chính nhân sự — cùng đối tượng với cổng "accounts" của API); khung "Thêm tài khoản"
 // theo ô account.create (Hành chính nhân sự, Toàn quyền — Quản trị KHÔNG).
 if (!can(staff, "account.view")) showError(errorEl, "Tài khoản này không quản lý được tài khoản.");
 else {
   if (can(staff, "account.create")) {
     byId("add-card").hidden = false;
-    setupAddForm();
   }
   // ADR-0125 đ6: hàng chờ xác minh phiếu tự khai — ô party.verify (Quản trị, Nhân sự, Toàn quyền); khối tự dựng và hiện, máy chủ kiểm lại từng route.
   if (can(staff, "party.verify")) dungHangChoXacMinh(byId("xac-minh"), staff);
   await load();
+  // Task 3b: khối vai dựng SAU lần nạp đầu để ô vai mang tên hiện hành (tenVai) từ máy chủ.
+  if (can(staff, "account.create")) setupAddForm();
 }

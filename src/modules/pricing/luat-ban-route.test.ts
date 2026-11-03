@@ -91,6 +91,7 @@ test("ADR-0146 tiêu chí 8 + Đ1: tắt loại còn luật đang hoặc SẮP �
   assert.deepEqual([tat.status, tat.json.error.code], [409, "loai_con_luat_ban"]);
   assert.match(tat.json.error.message, /2 luật bán/);
   assert.match(tat.json.error.message, /Bán hàng, Quản trị hoặc Toàn quyền/);
+  assert.match(tat.json.error.message, /^Vai trò này còn 2 luật bán .* rồi mới tắt vai trò\.$/, "câu nói «vai trò», không còn «loại» nói tắt");
   assert.doesNotMatch(tat.json.error.message, /chính sách/);
   assert.equal(dem(w, "prc_partner_type_off"), 0, "409 không ghi gì");
   await w.call("POST", `/api/pricing/luat-ban/${dang}/ket-thuc`, { as: SALES, body: {} });

@@ -42,7 +42,7 @@ test("khoaNoi tính trên chữ CHƯA che: hai nơi chỉ khác ở một dãy t
 test("dựng điểm từ chặng rồi so NGAY → khớp (không giữ nhầm); đổi nơi → lệch", async () => {
   const khoaDon = (await khoaNoi({ locationId: null, placeText: "  Khách sạn Amiana  " }))!;
   const khoaTra = (await khoaNoi({ locationId: "loc-cang", placeText: null }))!;
-  const chang = { legId: "leg-1", khoaNoiDon: khoaDon, khoaNoiTra: khoaTra } as ChangVao;
+  const chang = { legId: "leg-1", khoaNoiDon: khoaDon, khoaNoiTra: khoaTra, mienDanhSach: false } as ChangVao;
   const diemLen = { id: "d-1", placeKey: chang.khoaNoiDon } as DiemVao;
   const diemXuong = { id: "d-9", placeKey: chang.khoaNoiTra! } as DiemVao;
   const suat = { id: "s-1", boardStopId: "d-1", alightStopId: "d-9" } as SuatVao;

@@ -87,6 +87,7 @@ const banHangQuanTri = (): Row => row("any", "none", "any", "none", "none", "any
  * ADR-0071 (accepted 2026-10-01): cột HR (Nhân sự — vai "Hành chính nhân sự") — CHỈ ba ô tài khoản (account.create/view/edit) + các ô của mọi tài khoản nội bộ
  * (gửi/xem góp ý của mình, hỏi trợ lý, giấy tờ của chính mình). Vào cổng "staff" và cổng "accounts". Có bài ghim cả hàng (permissions.test.ts).
  */
+const KE_TOAN_QUAN_TRI = row("none", "any", "any", "none", "none", "any", "none", "none", "none", "none");
 export const MATRIX = {
   "order.view": row("any", "any", "any", "assigned", "own", "any", "own", "none", "none", "none"), // xem đơn — FIELD: chỉ đơn đang phụ trách (ADR-0030 S23-1); chi tiết đơn khác → 404 (seesOnlyAssignedOrders)
   "money.view": row("any", "any", "any", "assigned", "own", "any", "own", "none", "none", "none"), // xem tiền, bảng giá danh mục — FIELD assigned (ADR-0030 S23-5): tiền đơn mình phụ trách, KHÔNG bảng giá (for-order chặn ở order.create)
@@ -156,7 +157,11 @@ export const MATRIX = {
   // ADR-0115 đợt 1 (điều 2, Q1 = A): DUYỆT hoặc TỪ CHỐI yêu cầu điều chỉnh công nợ — Kế toán, Quản trị, Toàn quyền; phải KHÁC người tạo (kiểm theo tài khoản ở máy chủ + trigger 0094, không ở
   // ô này). Quản trị chỉ thấy danh sách yêu cầu CHỜ DUYỆT, KHÔNG thấy cả sổ (`ledger.view` không đổi). KHÔNG thêm vào `O_GHI_TIEN` (duyệt không phải ghi tiền; Quản trị vẫn không ghi sổ).
   // `ledger.write` đổi nghĩa ở lệnh điều chỉnh công nợ: chỉ TẠO yêu cầu. Cột HR, DRIVER, DRIVER_PARTNER = none. Route: /api/ledger/adjustment-requests* (module billing).
-  "ledger.adjust.approve": row("none", "any", "any", "none", "none", "any", "none", "none", "none", "none"),
+  "ledger.adjust.approve": KE_TOAN_QUAN_TRI,
+  // ADR-0116 (Q3 = A, QT2): mở đề nghị phân định trách nhiệm — Kế toán, Quản trị, Toàn quyền. Phân định — Quản trị, Toàn quyền. Ghi sổ theo phân định dùng `ledger.write` (+ `payment.refund` nếu có tiền ra);
+  // không thêm vào `O_GHI_TIEN` (phân định là quyết định, không phải ghi tiền; Quản trị vẫn không ghi sổ). Route: /api/ledger/phan-dinh* (module billing).
+  "attribution.request": KE_TOAN_QUAN_TRI,
+  "attribution.decide": quanTri(),
   // Khoá sổ tháng (ADR-0080 phần D1; đặc tả sổ đại lý đợt 1 §6): khoá MỘT tháng đã qua, lần lượt, không mở lại — CHỈ Kế toán, Toàn quyền (Quản trị KHÔNG; cột HR, DRIVER, DRIVER_PARTNER = none).
   // KHÔNG đổi `O_GHI_TIEN` (đặc tả §6, N6). Route: POST /api/ledger/ky/:period/khoa (module billing); xem kỳ dùng ô `ledger.view` any.
   "ledger.period.close": row("none", "any", "none", "none", "none", "any", "none", "none", "none", "none"),
@@ -207,6 +212,11 @@ export const MATRIX = {
   "feedback.view": row("own", "own", "own", "own", "own", "any", "own", "own", "own", "own"), // xem yêu cầu: chỉ của mình (ownerId = người gửi); đọc mọi yêu cầu chỉ Toàn quyền (ADR-0038)
   "feedback.triage": chiToanQuyen(), // tiếp nhận: đổi trạng thái/người xử lý, ghi chú nội bộ, hàng đợi — chỉ Toàn quyền (ADR-0038)
   "feedback.team.manage": chiToanQuyen(), // tạo/ngưng nhóm hỗ trợ, gán/gỡ thành viên — chỉ Toàn quyền (ADR-0119)
+  // ADR-0153 Đ3 (accepted 2026-10-31): KHO VÉ ĐIỆN TỬ. `ve.kho.manage` = nhập lô, xem kho và thống kê, sửa mã tour lô chưa giữ chỗ, thu hồi vé (Toàn quyền, Quản trị, Bán hàng — chủ chốt 31/10;
+  // Kế toán không). `ve.cap.send` = nút Cấp vé, xem ảnh vé, gửi Zalo, tạo / thu hồi đường dẫn khách: Bán hàng chỉ đơn của mình hoặc được giao, Quản trị, Toàn quyền. Danh sách vé của đơn
+  // (số lượng, không ảnh, không mã) đi theo quyền xem đơn `order.view` nên Kế toán thấy. Xem ảnh còn bị cổng thu đủ chặn ở máy chủ, không chỉ ô này.
+  "ve.kho.manage": row("any", "none", "any", "none", "none", "any", "none", "none", "none", "none"),
+  "ve.cap.send": row("ownOrAssigned", "none", "any", "none", "none", "any", "none", "none", "none", "none"),
   "settings.ops": chiToanQuyen(), // cài đặt vận hành: chế độ bảo trì (ADR-0019); thời hạn nhận, giờ làm việc (giai đoạn 5 mô hình vai — đặc tả §5, §9)
   // hàng chờ nhận — PHẦN HẸP của đơn chưa có người phụ trách (ADR-0030 S23-1, S23-2; route GET /api/orders/pool, module orders, còn chặn tài khoản có quyền
   // Đối tác). ADMIN "none": Quản trị đã thấy đủ mọi đơn qua order.view. Nơi đón/giờ đón ở phần hẹp là NGOẠI LỆ CÓ TÊN của chú thích ô contact.view (không

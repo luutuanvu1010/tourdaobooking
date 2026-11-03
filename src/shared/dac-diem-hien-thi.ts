@@ -11,7 +11,7 @@ export interface DvTrangThai extends DichVuPhu {
 }
 
 export const CAU_CHUA_KIEM_LUAT =
-  "Chưa kiểm được luật bán (không tải được danh sách luật). Đổi giá trị có thể bỏ chặn hoặc bắt đầu chặn dịch vụ cho một loại đối tác — tải lại trang để xem trước khi lưu.";
+  "Chưa kiểm được luật bán (không tải được danh sách luật). Đổi giá trị có thể bỏ chặn hoặc bắt đầu chặn dịch vụ cho một vai trò — tải lại trang để xem trước khi lưu.";
 export const nhanNguon = (n: "SERVICE" | "GROUP"): string => (n === "SERVICE" ? "riêng" : "theo nhóm");
 
 /**
@@ -99,7 +99,7 @@ export function canhBaoDoiTen(v: { luat: readonly LuatBanDto[] | null; ma: strin
 }
 
 export const CAU_CHUA_KIEM_NHOM =
-  "Chưa kiểm được luật bán và đặc điểm (không tải được danh sách). Chuyển nhóm có thể thôi chặn hoặc bắt đầu chặn dịch vụ cho một loại đối tác — tải lại trang để xem trước khi chuyển.";
+  "Chưa kiểm được luật bán và đặc điểm (không tải được danh sách). Chuyển nhóm có thể thôi chặn hoặc bắt đầu chặn dịch vụ cho một vai trò — tải lại trang để xem trước khi chuyển.";
 
 /**
  * ADR-0146 Đ3 (màn gán nhóm phải cảnh báo), ADR-0152 Đ4 (c); kế hoạch T13: chuyển `codes` sang nhóm `nhomMoi` (`null` = rời nhóm). So trước / sau bằng cùng phép phủ của máy chủ:

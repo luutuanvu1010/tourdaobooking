@@ -81,7 +81,7 @@ const vang = (x: unknown): boolean => x === undefined || x === null || x === "";
 export function kiemThanLuatBan(raw: unknown, homNay: string): Ket<ThanLuatBan> {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return { ok: false, message: "Thiếu thông tin luật bán." };
   const b = raw as Record<string, unknown>;
-  if (!ma(b.loai)) return { ok: false, message: "Chọn loại đối tác." };
+  if (!ma(b.loai)) return { ok: false, message: "Chọn vai người dùng." };
   const loiPhamVi = { ok: false as const, message: "Chọn phạm vi: một dịch vụ, một nhóm dịch vụ, hoặc một đặc điểm dịch vụ (kèm nhóm nếu muốn)." };
   const scope = b.phamVi as PhamViLuatBan;
   if (!PHAM_VI.includes(scope)) return loiPhamVi;
@@ -115,5 +115,5 @@ export function kiemThanLuatBan(raw: unknown, homNay: string): Ket<ThanLuatBan> 
 /** Câu 409 `sales_blocked` (ADR-0146 Đ3): nêu tên dịch vụ; luật theo đặc điểm nêu thêm «(đặc điểm: giá trị)» — tên lấy từ dữ liệu (hàm công bố của catalog), không viết trong mã. */
 export function cauBiChan(v: { tenDichVu: string; tenDacDiem?: string | null; tenGiaTri?: string | null }): string {
   const dacDiem = v.tenDacDiem && v.tenGiaTri ? ` (${v.tenDacDiem}: ${v.tenGiaTri})` : "";
-  return `Dịch vụ «${v.tenDichVu}» không bán cho loại đối tác của bên đặt này${dacDiem}.`;
+  return `Dịch vụ «${v.tenDichVu}» không bán cho vai trò của bên đặt này${dacDiem}.`;
 }

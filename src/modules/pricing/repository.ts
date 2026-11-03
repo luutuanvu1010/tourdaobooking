@@ -12,7 +12,7 @@ export interface RuleRow {
   /** ADR-0148 (migration 0126): dấu huỷ (dòng chưa đơn nào chụp, đã thay hẳn), dòng mà dòng này thay, lý do sửa. Câu «tra» loại dòng huỷ; câu «lịch sử» trả cả dòng huỷ. */
   voided_at: string | null; replaces_id: string | null; change_reason: string | null;
 }
-export interface TierRow { code: string; name: string; active: number }
+export interface TierRow { code: string; name: string; active: number; note: string | null; created_at: string; created_by: string | null; updated_at: string; updated_by: string | null }
 export interface RoleTierRow { id: string; role_type_code: string; tier_code: string; valid_from_date: string; valid_to_date: string | null; voided_at: string | null; replaces_id: string | null; change_reason: string | null }
 /** ADR-0138 (migration 0118): mức TA gắn riêng cho một hồ sơ. */
 export interface PartyTierRow { id: string; party_id: string; tier_code: string; valid_from_date: string; valid_to_date: string | null; voided_at: string | null; replaces_id: string | null; change_reason: string | null }
@@ -76,12 +76,20 @@ const VAI_MO = defineSql("pricing", "open_roles_of",
   `SELECT r.role_type_code, r.role_group, t.is_partner_label FROM v_pty_open_role r JOIN v_pty_role_type t ON t.code = r.role_type_code WHERE r.party_id = ?1`);
 // ADR-0117 điều 1: danh sách vai được hưởng ĐỦ hai trạng thái (màn "Loại đối tác" cần thấy cả loại đang tắt); `VAI_HUONG` ở trên chỉ lấy dòng đang bật.
 const VAI_HUONG_TAT_CA = defineSql("pricing", "beneficiary_roles_all", "SELECT role_type_code, active FROM prc_beneficiary_role ORDER BY role_type_code");
+// Mã định danh 5.26: tên người tạo / người sửa loại đối tác qua view công bố nhãn nhân viên của staff (cạnh pricing → staff, chỉ tầng SQL); số hồ sơ đang mang từng loại qua
+// v_pty_open_role (chỉ đếm). Một tham số JSON (`json_each`) — câu tĩnh dù số id đổi.
+const TEN_NHAN_VIEN = defineSql("pricing", "staff_labels", "SELECT id, label FROM v_stf_staff_label WHERE id IN (SELECT value FROM json_each(?1))");
+const SO_HO_SO_THEO_VAI = defineSql("pricing", "open_role_counts", "SELECT role_type_code, count(DISTINCT party_id) AS n FROM v_pty_open_role GROUP BY role_type_code");
 const VAI_HUONG_THEM = defineSql("pricing", "beneficiary_role_insert",
   `INSERT INTO prc_beneficiary_role (role_type_code, active, created_at, created_by, updated_at, updated_by) VALUES (?1, 1, ?2, ?3, ?2, ?3)`);
 // Không có `AND active <> ?2`: dòng lệch cờ (đặt tay) vẫn được kéo về đúng trạng thái. `changes() > 0` = câu đứng ngay trước (cập nhật loại ở parties) đã đổi dòng —
 // bên thua một lượt tranh chấp không ghi gì (khuôn của nhật ký "changes() > 0").
 const VAI_HUONG_DAT = defineSql("pricing", "beneficiary_role_set_active",
   `UPDATE prc_beneficiary_role SET active = ?2, updated_at = ?3, updated_by = ?4 WHERE role_type_code = ?1 AND changes() > 0`);
+// ADR-0155 Đ2.5: MỌI cặp (hồ sơ, vai trò được hưởng đang bật) — một câu cho cột «Cấp độ đại lý» (không lặp theo hồ sơ). Cùng điều kiện nối với `LA_HUONG` và `VAI_MO`
+// (view công bố v_pty_open_role, vai được hưởng đang bật); chỉ mã hồ sơ + mã vai, không tên, không liên hệ.
+const VAI_MO_CUA_NGUOI_HUONG = defineSql("pricing", "open_beneficiary_roles_all",
+  `SELECT r.party_id, r.role_type_code FROM v_pty_open_role r JOIN prc_beneficiary_role b ON b.role_type_code = r.role_type_code AND b.active = 1 ORDER BY r.party_id, r.role_type_code`);
 const LA_HUONG = defineSql("pricing", "is_beneficiary",
   `SELECT 1 AS ok FROM v_pty_open_role r JOIN prc_beneficiary_role b ON b.role_type_code = r.role_type_code AND b.active = 1 WHERE r.party_id = ?1 LIMIT 1`);
 // Task 11 (Ruling 21): CÙNG điều kiện `is_beneficiary` (không xét `active` của hồ sơ — đúng điều máy chủ dùng để ÉP bên đặt cho tài khoản Đối tác) + tên hồ sơ qua view công bố. Chỉ id + tên.
@@ -95,12 +103,15 @@ const TIM_HUONG = defineSql("pricing", "find_beneficiaries",
    WHERE l.active = 1 AND EXISTS (SELECT 1 FROM v_pty_open_role r JOIN prc_beneficiary_role b ON b.role_type_code = r.role_type_code AND b.active = 1 WHERE r.party_id = l.id)
      AND (?1 = '' OR l.display_name LIKE '%' || ?1 || '%' ESCAPE '\\') ORDER BY l.display_name LIMIT 20`);
 // ===== Mức TA dùng chung (ADR-0117 lần 2, migration 0096): prc_rate_tier (mức), prc_role_tier (gắn loại↔mức theo ngày). Khoá tên `name_key` do máy chủ ghi, không đọc ra. =====
-const MUC_TA_TAT_CA = defineSql("pricing", "rate_tiers_all", "SELECT code, name, active FROM prc_rate_tier ORDER BY name_key, code");
-const MUC_TA_MA = defineSql("pricing", "rate_tier_by_code", "SELECT code, name, active FROM prc_rate_tier WHERE code = ?1");
+const MUC_TA_TAT_CA = defineSql("pricing", "rate_tiers_all", "SELECT code, name, active, note, created_at, created_by, updated_at, updated_by FROM prc_rate_tier ORDER BY name_key, code");
+const MUC_TA_MA = defineSql("pricing", "rate_tier_by_code", "SELECT code, name, active, note, created_at, created_by, updated_at, updated_by FROM prc_rate_tier WHERE code = ?1");
 const MUC_TA_THEM = defineSql("pricing", "rate_tier_insert",
   `INSERT INTO prc_rate_tier (code, name, name_key, active, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, 1, ?4, ?5, ?4, ?5)`);
 // Chỉ đổi dòng khi mức CHƯA ở trạng thái đích ⇒ bên thua một lượt tranh chấp không ghi gì (nhật ký đi theo `changes() > 0`).
 const MUC_TA_DAT = defineSql("pricing", "rate_tier_set_active", "UPDATE prc_rate_tier SET active = ?2, updated_at = ?3, updated_by = ?4 WHERE code = ?1 AND active <> ?2");
+// Mã định danh 5.26: đổi tên + ghi chú cấp đại lý, khoá lạc quan theo `updated_at` (cột này NOT NULL nên so bằng). `name_key` do nơi gọi tính (kiemTenMucTa).
+const MUC_TA_SUA = defineSql("pricing", "rate_tier_update",
+  "UPDATE prc_rate_tier SET name = ?2, name_key = ?3, note = ?4, updated_at = ?5, updated_by = ?6 WHERE code = ?1 AND updated_at = ?7");
 const COT_GAN = "g.id, g.role_type_code, g.tier_code, g.valid_from_date, g.valid_to_date, g.voided_at, g.replaces_id, g.change_reason";
 const GAN_TAT_CA = defineSql("pricing", "role_tiers_all", `SELECT ${COT_GAN} FROM prc_role_tier g ORDER BY (g.voided_at IS NOT NULL), (g.valid_to_date IS NOT NULL), g.valid_from_date DESC, g.id`);
 // Gắn hiệu lực ở ?1 (cho `chonMuc`): KHÔNG lọc theo `prc_rate_tier.active` — mức đã tắt vẫn áp cho gắn đang có (N-23).
@@ -211,7 +222,14 @@ export const insertTermStatement = (db: D1Database, id: string, v: { scope: stri
 export const closeTermStatement = (db: D1Database, id: string, den: string, at: string, by: string) => db.prepare(DK_DONG).bind(id, den, at, by);
 export const beneficiaryRoles = async (db: D1Database): Promise<string[]> => (await db.prepare(VAI_HUONG).all<{ role_type_code: string }>()).results.map((r) => r.role_type_code);
 export const openRolesOf = async (db: D1Database, partyId: string) => (await db.prepare(VAI_MO).bind(partyId).all<{ role_type_code: string; role_group: string; is_partner_label: number }>()).results;
+/** ADR-0155 Đ2.5: mọi (hồ sơ, vai trò được hưởng) đang mở — đầu vào của `GET /api/pricing/cap-hien-hanh`. */
+export const openBeneficiaryRolesAll = async (db: D1Database): Promise<{ party_id: string; role_type_code: string }[]> =>
+  (await db.prepare(VAI_MO_CUA_NGUOI_HUONG).all<{ party_id: string; role_type_code: string }>()).results;
 export const beneficiaryRolesAll = async (db: D1Database): Promise<{ role_type_code: string; active: number }[]> => (await db.prepare(VAI_HUONG_TAT_CA).all<{ role_type_code: string; active: number }>()).results;
+export const tenNhanVienTheoId = async (db: D1Database, ids: readonly string[]): Promise<Map<string, string>> => ids.length === 0 ? new Map()
+  : new Map((await db.prepare(TEN_NHAN_VIEN).bind(JSON.stringify([...new Set(ids)])).all<{ id: string; label: string }>()).results.map((r) => [r.id, r.label]));
+export const soHoSoTheoVai = async (db: D1Database): Promise<Map<string, number>> =>
+  new Map((await db.prepare(SO_HO_SO_THEO_VAI).all<{ role_type_code: string; n: number }>()).results.map((r) => [r.role_type_code, Number(r.n)]));
 export const insertBeneficiaryStatement = (db: D1Database, code: string, at: string, by: string) => db.prepare(VAI_HUONG_THEM).bind(code, at, by);
 export const setBeneficiaryActiveStatement = (db: D1Database, code: string, active: boolean, at: string, by: string) => db.prepare(VAI_HUONG_DAT).bind(code, active ? 1 : 0, at, by);
 export const isBeneficiary = async (db: D1Database, partyId: string): Promise<boolean> => (await db.prepare(LA_HUONG).bind(partyId).first()) !== null;
@@ -226,6 +244,8 @@ export const suppliers = async (db: D1Database) => (await db.prepare(NHA_CUNG_CA
 export const rateTiers = async (db: D1Database) => (await db.prepare(MUC_TA_TAT_CA).all<TierRow>()).results;
 export const rateTierByCode = (db: D1Database, code: string) => db.prepare(MUC_TA_MA).bind(code).first<TierRow>();
 export const insertRateTierStatement = (db: D1Database, v: { code: string; ten: string; khoa: string }, at: string, by: string) => db.prepare(MUC_TA_THEM).bind(v.code, v.ten, v.khoa, at, by);
+export const suaMucTaStatement = (db: D1Database, v: { code: string; ten: string; khoa: string; ghiChu: string | null; at: string; staffId: string; truocLuc: string }) =>
+  db.prepare(MUC_TA_SUA).bind(v.code, v.ten, v.khoa, v.ghiChu, v.at, v.staffId, v.truocLuc);
 export const setRateTierActiveStatement = (db: D1Database, code: string, active: boolean, at: string, by: string) => db.prepare(MUC_TA_DAT).bind(code, active ? 1 : 0, at, by);
 export const roleTiersAll = async (db: D1Database) => (await db.prepare(GAN_TAT_CA).all<RoleTierRow>()).results;
 export const roleTiersOn = async (db: D1Database, ngay: string) => (await db.prepare(GAN_NGAY).bind(ngay).all<RoleTierRow>()).results;

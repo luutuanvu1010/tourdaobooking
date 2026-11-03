@@ -33,7 +33,7 @@ try {
   const moTrang = taoMoTrang(env);
   const phai = (r, status, nhan) => { assert.equal(r.status, status, `${nhan}: ${r.status} ${JSON.stringify(r.json)}`); return r.json; };
   const L = phai(await call(ACCOUNTS.admin, "GET", "/api/pricing/loai-doi-tac"), 200, "loại").loai.find((l) => l.dangBat);
-  assert.ok(L, "D1 tạm phải có một loại đối tác đang bật");
+  assert.ok(L, "D1 tạm phải có một vai người dùng đang bật");
 
   const choTrang = (p) => p.waitFor("!document.getElementById('dd-noi-dung').hidden && !!document.querySelector('#dd-the-gan select, #dd-the-gan .rong')", "trang Đặc điểm đã vẽ");
   const chuyenThe = async (p, t) => { assert.equal(await bam(p, `#dd-tab-${t}`), true, `thẻ ${t}`); await p.waitFor(`!document.getElementById('dd-the-${t}').hidden`, `thẻ ${t} hiện`); };

@@ -29,6 +29,15 @@ const inDays = (n: number) => new Date(Date.now() + 7 * 3600e3 + n * 86400e3).to
 let seq = 0;
 const uuid = () => `99999999-9999-4999-8999-${String(++seq).padStart(12, "0")}`;
 type W = ReturnType<typeof world>;
+const ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
+/** Mã định danh 5.26: DTO loại tự thêm đủ trường — mốc giờ lấy từ chính DTO (kiểm khuôn ISO), tên người tạo / sửa và số hồ sơ so đúng giá trị. */
+function dtoDu(l: Record<string, unknown>, v: { code: string; dangBat: boolean; taoBoi: string; suaBoi: string; soHoSo: number; daSua: boolean }): Record<string, unknown> {
+  assert.match(String(l.taoLuc), ISO);
+  assert.match(String(l.suaLuc), ISO);
+  if (v.daSua) assert.ok(String(l.suaLuc) > String(l.taoLuc), "Tắt / Bật là một lần sửa ⇒ mốc sửa sau mốc tạo");
+  else assert.equal(l.suaLuc, l.taoLuc);
+  return { code: v.code, ten: TEN, coSan: false, dangBat: v.dangBat, ghiChu: null, taoLuc: l.taoLuc, taoBoi: v.taoBoi, suaLuc: l.suaLuc, suaBoi: v.suaBoi, updatedAt: l.suaLuc, soHoSo: v.soHoSo };
+}
 
 function setup(): W {
   const w = world();
@@ -108,14 +117,14 @@ const nguoiHuongTim = async (w: W, q: string, as = SALES): Promise<string[]> => 
 // ---------------------------------------------------------------------------------------------------------------------------------------------
 // N-1 — thêm loại bằng route
 // ---------------------------------------------------------------------------------------------------------------------------------------------
-for (const [ten, as] of [["Kế toán", KT], ["Quản trị", ADM], ["Toàn quyền", SA]] as const) {
+for (const [ten, as, nguoi] of [["Kế toán", KT, "Lan Kế Toán"], ["Quản trị", ADM, "Quản Trị"], ["Toàn quyền", SA, "Chủ"]] as const) {
   test(`N-1: ${ten} thêm loại «${TEN}» ⇒ 201; đúng 1 dòng loại vai (OTHER, nhãn, đang dùng), 1 dòng danh sách được hưởng, 1 dòng nhật ký không số / @`, async () => {
     const w = setup();
     const truoc = dem(w, "SELECT count(*) AS n FROM pty_role_type");
     const r = await them(w, as);
     assert.equal(r.status, 201, r.text);
     assert.match(r.json.loai.code, /^LD_[A-Z]{8}$/);
-    assert.deepEqual(r.json.loai, { code: r.json.loai.code, ten: TEN, coSan: false, dangBat: true });
+    assert.deepEqual(r.json.loai, dtoDu(r.json.loai, { code: r.json.loai.code, dangBat: true, taoBoi: nguoi, suaBoi: nguoi, soHoSo: 0, daSua: false }));
     assert.equal(r.headers.get("location"), "/hoa-hong", "Location trỏ trang có thật (không phải /loai-doi-tac)");
     assert.equal(dem(w, "SELECT count(*) AS n FROM pty_role_type"), truoc + 1);
     const loai = w.q("SELECT code, name, role_group, is_partner_label, active FROM pty_role_type WHERE is_partner_label = 1");
@@ -171,7 +180,8 @@ test("N-1: GET liệt kê năm vai bên ngoài có sẵn (coSan, đang bật) v�
   const sanCo = r.json.loai.filter((x: { coSan: boolean }) => x.coSan);
   assert.deepEqual(sanCo.map((x: { code: string }) => x.code).sort(), ["COLLABORATOR", "GUIDE_FREELANCE", "HOTEL_RECEPTION", "TAXI_DRIVER", "TRAVEL_AGENCY"]);
   assert.ok(sanCo.every((x: { dangBat: boolean }) => x.dangBat));
-  assert.deepEqual(r.json.loai.filter((x: { coSan: boolean }) => !x.coSan), [{ code: ma, ten: TEN, coSan: false, dangBat: true }]);
+  const moi = r.json.loai.filter((x: { coSan: boolean }) => !x.coSan);
+  assert.deepEqual(moi, [dtoDu(moi[0], { code: ma, dangBat: true, taoBoi: "Lan Kế Toán", suaBoi: "Lan Kế Toán", soHoSo: 0, daSua: false })]);
   const dto = async () => (await w.call("GET", "/api/pricing/loai-doi-tac", { as: KT })).json.loai.find((x: { code: string }) => x.code === ma).dangBat;
   w.sqlite.prepare("UPDATE prc_beneficiary_role SET active = 0 WHERE role_type_code = ?").run(ma);
   assert.equal(await dto(), false, "chỉ cờ danh sách được hưởng tắt ⇒ lệch");
@@ -353,7 +363,7 @@ test("Ruling 9: gắn loại đối tác với ngày bắt đầu TƯƠNG LAI �
   assert.equal(c[0].commission_status, "NONE", `bản chụp không được là SET cho dòng loại chưa hiệu lực: ${c[0].commission_status} / ${c[0].commission_rate_bp} / ${c[0].beneficiary_party_id}`);
   assert.equal(r.status, 400, `ngày bắt đầu tương lai: ${r.status} ${r.text}`);
   assert.equal(r.json.error.code, "invalid_input");
-  assert.equal(r.json.error.message, "Loại đối tác có hiệu lực từ hôm nay — không đặt ngày bắt đầu trong tương lai.");
+  assert.equal(r.json.error.message, "Vai người dùng có hiệu lực từ hôm nay — không đặt ngày bắt đầu trong tương lai.");
   assert.equal(dem(w, "SELECT count(*) AS n FROM pty_party_role WHERE party_id = ? AND role_type_code = ?", ORG, ma), 0, "không chèn dòng loại");
 });
 
@@ -381,7 +391,7 @@ test("N-6: tắt loại đặt CẢ HAI cờ; Danh bạ gán mới ⇒ 409 role_
   const chupTruoc = chup(w, id);
   const r = await tat(w, ma);
   assert.equal(r.status, 200, r.text);
-  assert.deepEqual(r.json.loai, { code: ma, ten: TEN, coSan: false, dangBat: false });
+  assert.deepEqual(r.json.loai, dtoDu(r.json.loai, { code: ma, dangBat: false, taoBoi: "Lan Kế Toán", suaBoi: "Lan Kế Toán", soHoSo: 1, daSua: true }));
   assert.deepEqual(hai(w, ma), { pty: 0, prc: 0 });
   const gan = await ganLoai(w, ORG2, ma);
   assert.equal(gan.status, 409, gan.text);
@@ -399,15 +409,18 @@ test("N-6: tắt loại đặt CẢ HAI cờ; Danh bạ gán mới ⇒ 409 role_
   const hai2 = await tat(w, ma);
   assert.equal(hai2.status, 409, hai2.text);
   assert.equal(hai2.json.error.code, "stale");
+  assert.equal(hai2.json.error.message, "Vai trò này đã tắt rồi — tải lại.");
   assert.equal(nhatKy(w, "prc_partner_type_off").length, 1);
   // /bat bật lại CẢ HAI cờ.
   const b = await bat(w, ma);
   assert.equal(b.status, 200, b.text);
-  assert.deepEqual(b.json.loai, { code: ma, ten: TEN, coSan: false, dangBat: true });
+  assert.deepEqual(b.json.loai, dtoDu(b.json.loai, { code: ma, dangBat: true, taoBoi: "Lan Kế Toán", suaBoi: "Lan Kế Toán", soHoSo: 1, daSua: true }));
   assert.deepEqual(hai(w, ma), { pty: 1, prc: 1 });
   assert.ok((await nguoiHuongTim(w, "Hoa Sen")).includes(ORG));
   assert.equal(nhatKy(w, "prc_partner_type_on").length, 1);
-  assert.equal((await bat(w, ma)).status, 409, "/bat lần hai ⇒ stale");
+  const bat2 = await bat(w, ma);
+  assert.equal(bat2.status, 409, "/bat lần hai ⇒ stale");
+  assert.equal(bat2.json.error.message, "Vai trò này đang bật rồi — tải lại.");
   assert.equal((await ganLoai(w, ORG2, ma)).status, 201, "bật lại ⇒ gán mới được");
 });
 

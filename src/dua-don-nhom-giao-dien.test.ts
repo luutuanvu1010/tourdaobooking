@@ -45,7 +45,8 @@ test("N-19: nhóm tắt đưa đón — form ẩn khối, không tạo chặng s
   assert.match(of, /const nap = theoNhomDuaDon\(draftFromDto\(s, live, newKey\(\)\)\)/, "nạp nháp đi qua theoNhomDuaDon");
   assert.match(of, /const nap = theoNhomDuaDon\(en\.draft\)/, "sau 409 transfer_disabled đi qua theoNhomDuaDon");
   assert.match(of, /pickupChoice: chonDonTheoNhom\(!tatDuaDon, chonDonGoiY\(tao\.legs\.length\)\)/, "thêm dịch vụ nhóm tắt → «Không đón»");
-  assert.match(of, /toServiceInput\(\{ \.\.\.e\.draft, pickupChoice: chonDonTheoNhom\(coDuaDon\(e\.draft\), e\.draft\.pickupChoice\) \}, suaSoVe\)/, "gói gửi máy chủ: dịch vụ nhóm tắt luôn «Không đón»");
+  // ADR-0154 Đ1.1: form gọn của Đối tác thêm MỘT dòng `legs:` (lượt đầu gửi trống giờ) giữa `...e.draft` và `pickupChoice`; vế «nhóm tắt luôn Không đón» giữ nguyên.
+  assert.match(of, /toServiceInput\(\{ \.\.\.e\.draft, (?:legs: formGon \? legsGuiFormGon\(e\.draft\.legs, orderDate\) : e\.draft\.legs, )?pickupChoice: chonDonTheoNhom\(coDuaDon\(e\.draft\), e\.draft\.pickupChoice\) \}, suaSoVe\)/, "gói gửi máy chủ: dịch vụ nhóm tắt luôn «Không đón»");
   assert.match(of, /coDuaDon: \(\) => coDuaDon\(entry\.draft\)/);
   assert.match(of, /err\.code === "transfer_disabled" \? await boChangNhomVuaTat\(\)/);
   const sc = boChuThich(doc("web/service-card.ts"));

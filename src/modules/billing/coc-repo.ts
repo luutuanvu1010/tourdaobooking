@@ -215,3 +215,32 @@ const TRANSFER_IN_OF = defineSql("billing", "coc_transfer_in_of", `SELECT id FRO
 export async function transferInOf(db: D1Database, receiptId: string): Promise<string[]> {
   return (await db.prepare(TRANSFER_IN_OF).bind(receiptId).all<{ id: string }>()).results.map((r) => r.id);
 }
+
+// ---- ADR-0159 + ADR-0089 đ7: đơn huỷ để lập lại (hoặc lý do chưa kết luận) do người này lập, còn giữ tiền chưa hoàn / chưa chuyển — chặn khai lại cùng số tiền ở đơn mới ----
+const COC_LAP_LAI_CON_GIU = defineSql(
+  "billing",
+  "coc_lap_lai_con_giu",
+  `SELECT ol.order_code, v.con_giu
+   FROM v_ord_order_owner o JOIN v_ord_cancel_state c ON c.order_id = o.id JOIN v_bil_coc_don v ON v.order_id = o.id LEFT JOIN v_ord_order_label ol ON ol.id = o.id
+   WHERE o.staff_id = ?1 AND c.group_code IN ('LAP_LAI', 'CHUA_KET_LUAN') AND v.con_giu > 0
+   ORDER BY c.cancelled_date LIMIT 1`,
+);
+export const cocLapLaiConGiu = (db: D1Database, staffId: string): Promise<{ order_code: string | null; con_giu: number } | null> =>
+  db.prepare(COC_LAP_LAI_CON_GIU).bind(staffId).first<{ order_code: string | null; con_giu: number }>();
+const HO_SO_NHAN_VIEN = defineSql("billing", "ho_so_nhan_vien", `SELECT party_id FROM v_stf_staff_label WHERE id = ?1`);
+export const hoSoNhanVien = async (db: D1Database, staffId: string): Promise<string | null> =>
+  (await db.prepare(HO_SO_NHAN_VIEN).bind(staffId).first<{ party_id: string | null }>())?.party_id ?? null;
+
+/** Chữ ghi chú cố định của khoản thu sinh từ lời khai (ADR-0159); cùng là dấu nhận ra khoản đó. */
+export const GHI_CHU_KHOAN_LOI_KHAI = "Khách đặt cọc trước";
+const DON_CUA_KHOAN = defineSql("billing", "coc_don_cua_khoan", `SELECT order_id FROM bil_payment_receipt WHERE id = ?1`);
+/** Đơn chứa một khoản thu: để đi ngược `transfer_of_id` về đơn nguồn của khoản chuyển (ADR-0159 Đ2 mục 2). */
+export const donCuaKhoan = async (db: D1Database, receiptId: string): Promise<string | null> => (await db.prepare(DON_CUA_KHOAN).bind(receiptId).first<{ order_id: string }>())?.order_id ?? null;
+const KHOAN_LOI_KHAI_CON_HIEU_LUC = defineSql(
+  "billing",
+  "khoan_loi_khai_con_hieu_luc",
+  `SELECT 1 AS co FROM bil_payment_receipt r
+   WHERE r.order_id = ?1 AND r.kind_code = 'CUSTOMER_PAYMENT' AND r.note = ?2 AND r.reverses_id IS NULL AND NOT EXISTS (SELECT 1 FROM bil_payment_receipt y WHERE y.reverses_id = r.id) LIMIT 1`,
+);
+export const coKhoanLoiKhai = async (db: D1Database, orderId: string): Promise<boolean> =>
+  (await db.prepare(KHOAN_LOI_KHAI_CON_HIEU_LUC).bind(orderId, GHI_CHU_KHOAN_LOI_KHAI).first<{ co: number }>()) !== null;

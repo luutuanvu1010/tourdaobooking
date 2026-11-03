@@ -664,3 +664,61 @@ Ghi 2026-10-29 khi đồng bộ bộ «Island Booking System — Design System v
 - **BL-TKL-0B · Đợt 0b khung tải — thi công xong, CHƯA gộp, chưa phát hành.** Nhánh `dot-0b-khung-tai` (17 commit trên `dac-ta-dot-0b`, đầu `86fb949d`, chưa push); nhật ký `docs/superpowers/plans/2026-10-29-dot-0b-khung-tai-nhat-ky.md`, bằng chứng `docs/evidence/2026-10-29-dot-0b-khung-tai/` (đều nằm trên nhánh). Đạt: tổng JS thô −73 % (5,46 MB → 1,47 MB), nạp sẵn lúc cài 108 mục / 2,0 MB → 24 mục / 0,31 MB nén, mọi bài kiểm xanh. **Không đạt 11.4:** trung vị FCP lạnh chậm hơn ≈ 570 ms ở 390 và 1040 (984 → 1550 / 1558 ms, đo 30/10 trên `main` `a129d3dd`), do `preload` phông + `modulepreload` ở `<head>` tranh băng thông với `app.css` trên 4G chậm. Đo riêng `/orders`: bản nhánh 1660 · bỏ preload phông 1236 · bỏ cả hai 1000 · `main` 996 ms — không cách nào đạt «nhanh hơn ≥ 150 ms» vì FCP do CSS quyết. Khi mở lại: chủ chọn bỏ cả hai loại tải trước (đề xuất) hay chỉ bỏ phông, rồi đo đủ 45 trang hai khổ, sửa tiêu chí 11.4 (đặc tả bản 5 đang đóng băng), QA2, cổng phát hành. Nợ kèm: 11.6 còn trượt (`/` ở 390 do vỏ; 4 trang do dải nhắc bảo mật hai lớp `#strips`; nhiều trang do thân chưa tách phần khung xương); bộ DS v2 đã xuất bản lệch mã cho tới khi xuất bản lại.
 - **BL-TKL-CHANG-3 · Chặng 3 (lưới bố cục và thân trang)** — gác cùng; đề bài lưới bố cục 1b nằm trên nhánh `chang-3-luoi-bo-cuc` (phiên khác soạn), chưa gửi Claude Design.
 - **Nếu để nguyên:** Nền tảng chạy như bản 2.47 hiện tại; không mất dữ liệu, không đổi quyền. Nhánh `dot-0b-khung-tai` càng để lâu càng phải gộp lại với `main` và đo lại «trước».
+
+## 56. Rà khuôn mã định danh toàn Nền tảng theo Hiến chương 5.26 (mã `BL-MA-DINH-DANH`, 2026-10-31)
+
+- **Trạng thái:** `chưa làm` · Ghi khi thi công điều 5.26 (đặc tả `docs/superpowers/specs/2026-10-31-ma-dinh-danh-va-sua-loai-doi-tac-design.md` §2, kế hoạch `docs/superpowers/plans/2026-10-31-ma-dinh-danh-va-sua-loai-doi-tac.md`). Điều 5.26 chỉ áp cho loại bản ghi **mới**; các khuôn cũ dưới đây là nợ có tên, rà riêng, **không đổi mã đã cấp**. Mỗi mục cần chủ quyết có đổi khuôn cho bản ghi mới hay giữ nguyên.
+- **BL-MA-36-KY-TU** — chuỗi ngẫu nhiên 36 ký tự (đơn, hồ sơ, nhật ký…): không theo khuôn `<TIỀN TỐ>_<8 chữ>`, không cho biết loại bản ghi khi chép.
+- **BL-MA-DON-NGAY** — mã đơn `TD-YYYYMMDD-NNNN` mang ngày và số thứ tự (nghĩa nghiệp vụ trong mã).
+- **BL-MA-DIA-DIEM-NGUOI-GO** — mã địa điểm do người gõ (5.26: người dùng không gõ mã).
+- **BL-MA-LOAI-CO-SAN-TIENG-ANH** — năm loại đối tác có sẵn mang mã tiếng Anh (`TRAVEL_AGENCY`…); giao diện hiện «Loại có sẵn của hệ thống — mã cố định» thay cho mã thô.
+- **BL-MA-NO-NHO** — lỗi nhỏ để sau của đợt này (sổ thi công `docs/superpowers/plans/2026-10-31-ma-dinh-danh-thi-cong-nhat-ky.md`, dòng «minor (deferred)»):
+  - `sinhMa` không kiểm đủ 8 byte ngẫu nhiên; `kiemGhiChu(null)` chưa có bài; độ dài tên / ghi chú đếm theo UTF-16.
+  - Bài CSDL thiếu ca vai EXTERNAL không nhãn; (tuỳ) ghi chú cột mới vào phần ghi chú bảng ở `docs/data-dictionary.json`.
+  - Hai loại khác nhau cùng đổi sang một tên cùng lúc có thể lọt trùng (giống lệnh thêm loại cũ); route đọc danh sách loại bốn câu; PATCH cấp đọc cả danh sách cấp để tìm một cấp.
+  - Màn tài khoản: tên vai đọc hai lần ở đường lỗi; ô chọn vai giữ tên cũ tới khi tải lại trang; ô vai trống lúc đang tải, bấm tạo không báo gì.
+  - Hộp Sửa: «Mở lại» im lặng nếu không còn mã; ghi chú toàn khoảng trắng không cắt ở giao diện; hướng dẫn Kế toán còn khoảng một chữ trước trần thời gian đọc.
+  - Bộ sinh sơ đồ trang không bắt nút «Sửa» dựng lúc chạy.
+
+## 57. Dọn bốn loại đối tác thử còn mức đang áp (mã `BL-R-PRC-2-TA-THU`, 2026-10-31)
+
+- **Trạng thái:** `xong` 2026-11-02: mọi mức hoa hồng đã bị xoá trong lần dọn dữ liệu thử (ADR-0158), `R-PRC-2` hết; bốn loại thử vẫn ở trạng thái tắt. · Chủ chọn 31/10: «Đóng mức, giữ tắt», rồi chọn **tạm để đó** tới lần dọn dữ liệu thử trước khi dùng thật. Bài dò `audit-invariants --db remote` sẽ báo `R-PRC-2` (98 vi phạm, không chặn ai làm việc) tới khi dọn.
+- **Nguồn:** «Đối tác TA1», «Lữ hành TA2», «Lễ tân TA3», «HDV TA4» (`LD_JUJURAFN`, `LD_IRVXLDKL`, `LD_ZQZTYMPF`, `LD_EPNWLOUL`) do chủ tắt lúc 14:52–14:53 giờ VN 31/10; mỗi loại còn 24–26 dòng mức hiệu lực. Tắt loại không tự đóng mức (ADR-0117).
+- **Cách dọn:** Kế toán bấm «Ngừng» từng dòng mức của bốn loại ở thẻ Loại đối tác (đủ nhật ký). Không sửa bằng SQL tay (mất dấu vết, Hiến chương 5.12).
+- **Ý tưởng kèm (chưa duyệt):** nút «Ngừng mọi mức của loại này» chỉ hiện khi loại đã tắt mà còn mức đang áp — để «tắt loại mà quên đóng mức» không lặp lại.
+
+## 58. Nợ của «Đặt vé của đối tác» lượt 1 (mã `BL-DV-…`, 2026-11-02)
+
+- **Trạng thái:** `để sau` · Ghi khi đóng lượt 1 (đặc tả `docs/superpowers/specs/2026-11-01-dat-ve-doi-tac-design.md` §4.4, kế hoạch `docs/superpowers/plans/2026-11-02-dat-ve-doi-tac-luot-1.md`). Không chặn ai làm việc.
+- **BL-DV-LOC-VAI-TU-THEM** — bộ lọc theo vai trò ở Quản lý tài khoản chỉ lọc được theo vai có trong danh sách vai của tài khoản. Vai do Kế toán tự thêm (thẻ «Vai người dùng» của trang Hoa hồng) nằm trên hồ sơ, không nằm trong danh sách đó, nên chưa có nút lọc riêng cho chúng.
+- **BL-DV-SUA-CHUYEN-TRANG-DON** — chỗ đổi giờ khởi hành của đối tác không còn ở đâu cả (đúng đặc tả lượt 1, chưa quyết có thay bằng chỗ khác không). Form Tạo đơn gọn (khối «Thông tin chuyến» ẩn, thay bằng một dòng «Ghi chú») áp cho mọi tài khoản có quyền Đối tác, kể cả tài khoản lai. Ở trang đơn, nút «Sửa thông tin chuyến» KHÔNG hiện với Đối tác thuần: `suaChuyenDuoc` (`src/shared/order-view.ts`) hỏi ô `order.trip.edit` của `src/shared/permissions.ts`, cột Đối tác của ô đó là «none». Chỉ tài khoản lai (có thêm quyền như Bán hàng) mới có nút, và chỉ ở đơn đã xác nhận. Hệ quả: Đối tác thuần ở mọi trạng thái đơn, và tài khoản lai ở đơn nháp, không có chỗ nào đổi giờ khởi hành (đơn nháp của tài khoản lai chỉ còn «Sửa đưa đón» trong form, không có giờ khởi hành). Việc cần quyết sau: có thu gọn bảng «Sửa thông tin chuyến» theo cùng khuôn cho Đối tác hay giữ như hiện nay.
+- **BL-DV-NHAP-CU-GIA-TRI-AN** — nháp lập trước lượt 1 còn giá trị mà đối tác không thấy nữa. `canhBaoChuyenThe` (`src/shared/dong-gap-the.ts`) vẫn có thể hiện «Giờ đón sau giờ khởi hành» theo giờ khởi hành cũ nằm trong nháp, trong khi form gọn của đối tác ẩn các ô đó nên họ không có chỗ sửa. Đổi ngày của đơn cũng không đổi «Ngày khách có mặt» đã lưu trong nháp cũ (ô đó lưu riêng, ẩn ở form gọn). Đơn lập mới bằng form gọn không dính (không có các giá trị ẩn). Cách xử lý chưa chọn (xoá giá trị ẩn khi mở nháp ở form gọn, hoặc bỏ cảnh báo cho tài khoản có quyền Đối tác).
+- **BL-DV-LOC-CHUA-GAN-GOM-VAI-TU-THEM** — nút lọc «Chưa gán vai trò» ở Quản lý tài khoản đếm cả tài khoản chỉ mang vai do Kế toán tự thêm (vai trên hồ sơ, không nằm trong danh sách vai của tài khoản), nên những tài khoản đó nằm chung nhóm «chưa gán» dù đã có vai. Gắn với `BL-DV-LOC-VAI-TU-THEM` ở trên; sửa cùng lúc khi có nút lọc riêng cho vai tự thêm.
+- **BL-DV-HOP-DICH-VU-TRONG** — hộp danh sách dịch vụ ở màn Tạo đơn để trống một khoảng rất cao khi chỉ có một kết quả tìm; tên thẻ ở trang Hoa hồng lặp lại ở tiêu đề khối ngay dưới. Có từ trước lượt 1 (ảnh `docs/evidence/2026-11-02-dat-ve-luot-1/`). Việc giao diện nhỏ, chưa ai giao.
+- **BL-DV-KICH-BAN-CU** — hai kịch bản Chrome đỏ không do lượt 1: `so-dai-ly-smoke` còn cho Đối tác xác nhận bằng `/status` (nay phải `/gui-don`), đỏ y như trên bản xuất `origin/main`; `dot-a-smoke` đỏ sẵn ở trang Nhật ký theo `web/CLAUDE.md`, chưa chạy bản đối chứng. Sửa kịch bản, không phải sửa sản phẩm.
+
+## 59. Nợ khi đóng «Đặt vé của đối tác» lượt 2 (mã `BL-DV2-…`, 2026-11-02)
+
+- **Trạng thái:** `để sau` · Ghi khi chủ yêu cầu rút gọn Đợt 5 (kế hoạch `docs/superpowers/plans/2026-11-02-dat-ve-doi-tac-luot-2.md`).
+- **BL-DV2-E2E** — khối e2e lượt 2 CHƯA viết (`tests/e2e/gui-don.mjs`, `xac-nhan-don.mjs`, `so-dai-ly.mjs`, đơn có dấu ở `dieu-phoi.mjs`) và `npm run test:e2e` chưa chạy trên nhánh này.
+- **BL-DV2-CHROME-CU** — các kịch bản Chrome cũ ở Task 5.2 Step 5 (xac-nhan-smoke, doi-tac-lap-don-smoke, a2-smoke, chuyen/dat-gap/cuoc, dot-c, vai, va3) chưa chạy lại; chỉ chạy `luot-2-smoke.mjs` và `cot-cap-smoke.mjs`.
+- **BL-DV2-TAI-LIEU** — còn thiếu: ma trận §3 và bẫy §4 của `docs/CHANGE-GUIDE.md` chưa thêm dòng riêng, `tests/e2e/README.md`, đề xuất `src/CLAUDE.md` / `web/CLAUDE.md` (chủ làm), khổ 1280 và các cảnh ảnh còn lại của Task 5.3, sửa cố ý hai dòng cuối sổ hàng rào.
+- **BL-DV2-PHI-DON** — khoá phí đón theo giờ dự kiến (ADR-0147) sẽ vướng vì đối tác không có giờ; xét khi thi công ADR-0147.
+- **BL-DV2-GHI-KEP** — ghi kép cột cũ theo chặng đi đầu (`R-ORD-7`) phải bỏ ở phát hành 2.
+- **BL-DV2-C5B** — chưa kiểm có tới được qua API không: dịch vụ trống ngày đi mà chặng có ngày; sau Còn vé kèm `ngayDi` thì chặng ở lại, sớm hơn ngày đi quá mức cho phép.
+
+## 60. Nợ của «Phân định trách nhiệm» (mã `BL-PD-…`, 2026-11-02)
+
+- **Trạng thái:** `để sau` · Chủ quyết 2026-11-02 sau kiểm độc lập ADR-0116.
+- **BL-PD-T4-TOAN-PHAN** — ca khách chưa trả đồng nào (giảm trừ toàn bộ phải thu mà sổ đang ghi đã thu): chủ chọn «Chưa mở, để sau». Lệnh sửa khoản thu phải còn ít nhất một khoản thu nên ca này báo 409 `attribution_i1` với câu bảo xử lý ngoài Nền tảng. Mở ra thì phải bàn lại trigger `bil_posting_replacement_check`.
+- **BL-PD-TRA-LAI** — chưa có đường trả lại tiền đã nộp vào khoản phân định; khoản đã nộp không đổi, không huỷ được trên màn Phân định (409 `attribution_da_nop`, báo Toàn quyền). Nút thử làm 2/11 đã gỡ khỏi giao diện theo phán quyết kiểm độc lập vì trả quá phần đã nộp được (trả cả dòng nộp) và là đường chi tiền một người. **Máy chủ chưa gỡ:** `POST /api/ledger/adjustments` loại `dao_dong` trên dòng nộp vẫn chạy (có từ ADR-0115 điều 3), một người, không kiểm trần phần đã nộp; chưa có nút nào gọi, nhưng rủi ro này còn đó. Làm thật cần chủ duyệt: hình thức trả, người nhận, người thứ hai, trần đúng bằng số đã nộp, báo tin bên bị đổi.
+- **BL-PD-PHAN-HOI-THAY** — chủ chọn «Chỉ nhận tin, liên hệ văn phòng»: tài khoản Đối tác, tài xế nhận tin, không xem và không phản hồi khoản của mình trên Nền tảng (403). Đặc tả ADR-0116 và ADR-0088 đ9 không có chỗ để văn phòng ghi phản hồi thay họ, nên chưa làm: cần một ô ghi trên phiếu ở màn Phân định, chủ duyệt trước.
+
+## 61. Nợ của «Khách đặt cọc trước» (mã `BL-DC-…`, 2026-11-03)
+
+- **Trạng thái:** `để sau` · Chủ quyết 2026-11-03 sau kiểm độc lập ADR-0159 vòng 3, nguyên văn: *«Để nguyên, ghi sổ việc»*. Cả hai đường dưới đây chỉ Kế toán đi được, đối tác không tự làm được; vé có thể mở khi công ty chưa nhận tiền. Nên xem lại khi có ca thật hoặc khi có trần công nợ của đối tác.
+- **BL-DC-HUY-GHI-TAY** — Kế toán huỷ khoản khai rồi ghi tay khoản mới: khoản mới không còn ghi chú «Khách đặt cọc trước» nên `thuDu` coi như đã thu thật, vé mở dù đối tác còn giữ tiền. Một người làm được. Có thể tính tiền hai lần nếu thêm đối tác huỷ đơn và Quản trị duyệt. Muốn chặn thì phải có dấu thật cho khoản khai thay vì ghi chú, cần chủ duyệt.
+- **BL-DC-CHUYEN-CONG-TY-GIU** — khi chuyển cọc của đơn huỷ sang đơn mới, Kế toán chọn «Công ty đang giữ» trong khi đối tác chưa nộp: khoản chuyển mang vai công ty nên vé mở (`ghiChuyen` trong `src/modules/billing/coc.ts`). Cần Quản trị duyệt khoản chuyển trước. Muốn chặn thì máy phải đối chiếu số đối tác còn giữ của khoản nguồn.
+- **BL-DC-LY-DO-HUY** — huỷ với lý do khách đổi ý rồi khai lại cọc vẫn đi qua luật chặn (ADR-0159 Đ2 mục 1, chủ đã biết). Ghi lại để không quên, chưa định làm.
+- **BL-DC-CHUA-KIEM** — chưa kiểm: iPhone; câu «chờ đối tác nộp tiền» trên màn vé bằng Chrome; bản in biên nhận (chữ ghi «Khách hàng đã trả trước», không nói đối tác giữ hộ); tải đồng thời; `/ve/:token` đã tạo khi việc nộp bị đảo.
+- **BL-DC-KHO-390** — thẻ «Xác nhận đơn» hẹp, chữ tràn ở khổ 390 và dòng «Chưa tải được» có sẵn trên `main`, không do đặt cọc; chưa sửa.

@@ -18,7 +18,7 @@ export const CAU_RONG_THE: Readonly<Record<TrangThaiLuatBan, string>> = {
   SAP_AP_DUNG: "Chưa có luật bán nào sắp áp dụng.",
   DA_KET_THUC: "Chưa có luật bán nào đã kết thúc.",
 };
-export const CAU_GIOI_THIEU = "Luật bán chặn một loại đối tác đặt một dịch vụ, cả một nhóm, hoặc mọi dịch vụ mang một giá trị đặc điểm. Đơn đã xác nhận không bị xét lại.";
+export const CAU_GIOI_THIEU = "Luật bán chặn một vai trò đặt một dịch vụ, cả một nhóm, hoặc mọi dịch vụ mang một giá trị đặc điểm. Đơn đã xác nhận không bị xét lại.";
 
 /** Phạm vi bằng TÊN. Thiếu tên (dịch vụ / nhóm / đặc điểm không còn) ⇒ chữ thay, không mã. Luật theo đặc điểm trỏ giá trị hoặc đặc điểm đang tắt ⇒ «Không phủ dịch vụ nào». */
 export function moTaPhamVi(l: LuatBanDto): string {
