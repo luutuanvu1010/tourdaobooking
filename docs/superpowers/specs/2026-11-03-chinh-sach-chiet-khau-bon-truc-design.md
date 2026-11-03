@@ -1,6 +1,6 @@
 # Đặc tả — Chính sách chiết khấu theo bốn trục ở trang Hoa hồng đối tác
 
-> Bản 2, 2026-11-03, AI soạn, **chờ chủ duyệt, chưa thi công**. Bản 2 sửa theo một vòng đọc độc lập và các lần chạy thử cùng ngày. Việc lớn (tiền, dữ liệu, quyền): duyệt xong chép phần quyết định thành ADR số kế tiếp (0160 đang dùng ở nhánh `worktree-rut-gon-claude-md`, nên kiểm lại số lúc chép), rồi kế hoạch, thi công, người kiểm độc lập.
+> Bản 2, 2026-11-03, AI soạn, **chờ chủ duyệt, chưa thi công**. Bản 2 sửa theo một vòng đọc độc lập và các lần chạy thử cùng ngày. Việc lớn (tiền, dữ liệu, quyền): duyệt xong chép phần quyết định thành ADR số kế tiếp (0160 đang dùng ở nhánh `worktree-rut-gon-claude-md`, nên dự kiến 0161, kiểm lại số lúc chép), rồi kế hoạch, thi công, người kiểm độc lập.
 > Xây trên lỗ đang hở: không. Bốn mục `thao_tac` và sáu mục `phat_hien` của `docs/quyen-hoan.json` không chạm việc nhập mức (người đọc độc lập đã rà 3/11). Điều kiện chung: `HC-5.19` (diễn tập khôi phục) hạn 2026-11-05, quá hạn thì `npm test` đỏ tới khi chủ diễn tập hoặc gia hạn.
 
 ## 0. Vì sao
@@ -62,13 +62,15 @@ Chữ ở ô «—» giữ nguyên nghĩa `CAU_O_TRONG`. Dòng đã có, thứ t
 
 **Hiện trạng đã chạy thử:** mức 500.000 đ/khách cho vé 300.000 đ được nhận; đơn 2 khách xác nhận được, màn hình hiện hoa hồng 1.000.000 đ, giá đại lý −400.000 đ; bấm Đã giao thì `tinhTrangThuongMai` trả trạng thái `VUOT`, route trả 409 `not_deliverable` với câu của `terms_exceed_price`, sổ công nợ không có dòng nào. Vậy **rào sổ đã có**, chỉ báo muộn.
 
-**Một chỗ hở thật, cũng đã chạy thử:** trần giảm giá của đối tác bằng tổng hoa hồng thô của đơn (`tranGiamGiaDon`), nên mức vượt nới luôn trần. Với mức «tất cả dịch vụ» 500.000 đ/khách, tài khoản Đối tác tự lập được đơn 600.000 đ giảm hết còn 0 đ (201). Đối chứng với mức 100.000 đ/khách: 400 `discount_exceeds_commission`, giảm tối đa 200.000 đ. Mới thử tới đơn nháp, chưa thử tới xác nhận.
+**Mức vượt còn nới trần giảm giá, đã chạy thử tới cuối:** trần giảm giá của đối tác bằng tổng hoa hồng thô của đơn (`tranGiamGiaDon`). Với mức «tất cả dịch vụ» 500.000 đ/khách, tài khoản Đối tác lập được đơn 600.000 đ giảm hết còn 0 đ (201), bấm Gửi đơn là xác nhận ngay (nhánh B). Đã giao vẫn 409, sổ rỗng. Kế toán ghi mức tay 100.000 đ/khách rồi Đã giao thì 200: sổ ghi hoa hồng 200.000 đ và `GIAM_GIA_BEN_DAT` 600.000 đ, đơn hiện cảnh báo vượt 400.000 đ. Đối chứng với mức 100.000 đ/khách: 400 `discount_exceeds_commission`, giảm tối đa 200.000 đ.
+
+Vậy **sổ không sai**, phần giảm vượt thành khoản đối tác nợ Tour Đảo. Rủi ro còn lại là khoản nợ đó không ai định cho, và đơn 0 đ đã xác nhận nên có thể đi tiếp tới phân công trước khi ai thấy nó bị giữ (phần sau suy ra từ luồng, chưa thử).
 
 Thêm ba việc, không đổi công thức hoa hồng:
 
 1. **Lúc nhập:** dòng phạm vi một dịch vụ, tính bằng số tiền, vượt giá thì máy chủ trả 400 bằng câu tiếng Việt. «Riêng từng loại khách»: mỗi số so với giá bán lẻ hiệu lực của loại đó; loại không có giá thì bỏ qua. «Mọi khách như nhau»: so với giá cao nhất trong các loại có giá, để chỉ chặn lỗi gõ rõ ràng và không cản dịch vụ trẻ em miễn phí (người soạn chọn). Dịch vụ tính theo nhóm so số tiền mỗi lượt với giá mỗi lượt. Giá đọc qua chỗ `catalog` công bố, không đọc thẳng bảng. Phạm vi nhóm và tất cả không có một giá để so, nên vẫn dựa vào rào Đã giao và việc 3.
 2. **Trên màn đơn:** dòng vượt hiện «Hoa hồng vượt thành tiền — Kế toán xem lại», không hiện số âm, ở cả phần văn phòng và phần đối tác. Đơn vẫn xác nhận được rồi giữ ở Đã giao, đúng ADR-0077 về thiếu mức.
-3. **Trần giảm giá:** khi tính trần, dòng vượt thành tiền được tính 0, như dòng thiếu mức đang được tính 0. Áp ở mọi đường dùng trần (lập đơn, sửa nháp, xác nhận, đổi bên đặt). Việc này thi hành quyết định 5 của chủ; số hoa hồng và sổ không đổi. Người lập kế hoạch rà ca sổ vàng của trần giảm giá (ADR-0079, ca C-5); ca đã có phải giữ nguyên đáp án, ca mới về dòng vượt để Kế toán xác nhận (Hiến chương 5.17).
+3. **Trần giảm giá (chủ quyết riêng, AI khuyên làm):** khi tính trần, dòng vượt thành tiền được tính 0, như dòng thiếu mức đang được tính 0 (chế độ `tinh0` của `tongHoaHongDon`, các nơi dùng là `donChoTran` và `cauDoiBenDatVuotHoaHong`). Chế độ `null` của cảnh báo, số hoa hồng và sổ không đổi. Chủ để sau thì việc 1 và 2 vẫn đứng được, vì sổ đã an toàn; tiêu chí 7 đi theo việc này. Người lập kế hoạch rà bài `src/modules/orders/tran-giam-gia-don.test.ts` và ca sổ vàng của trần (ADR-0079); ca đã có phải giữ nguyên đáp án, ca mới về dòng vượt để Kế toán xác nhận (Hiến chương 5.17).
 
 ### D. Chữ
 
@@ -94,11 +96,11 @@ Nhập từ tệp bảng tính (đặc tả riêng, làm ngay sau đặc tả n�
 
 ## 6. Trang ghép (`CLAUDE.md` §9)
 
-Ba quyết định chạm quyền hoặc dữ liệu trong lượt này: B (bảng mới), C (chặn thêm ở route ghi và kẹp trần giảm giá), A.6 (bỏ lối thêm mức riêng của vai trò trên giao diện).
+Ba quyết định chạm quyền, dữ liệu hoặc tiền trong lượt này: B (bảng mới), C.1 (chặn thêm ở route ghi mức của `pricing`), C.3 (trần giảm giá ở `orders`). A.6 không tính vào ba vì chỉ bỏ lối trên giao diện, đảo được, không đổi route hay ô quyền; vẫn ghi ở dòng giao diện bên dưới.
 
 - **Bảng chứa gì:** `prc_commission_rule` vẫn chứa dòng mức của cấp, của vai trò, của đối tác; đặc tả không thêm loại nào. `prc_entry_limit_policy` chỉ chứa giới hạn nhập, không có số tiền của giao dịch.
 - **Bản đồ quyền:** `partner.commission.view` (Bán hàng, Kế toán, Quản trị, Toàn quyền) xem bảng; `partner.commission.write` (Kế toán, Quản trị, Toàn quyền) ghi; `settings.ops` (chỉ Toàn quyền) đổi giới hạn. Không thêm ô, không đổi ô.
-- **Cổng:** route ghi mức giữ `can` cộng `holdsPartner`; route giới hạn: đọc cổng `office` để hộp nhập biết giới hạn, ghi cổng `settings.ops`.
+- **Cổng:** route ghi mức giữ `can` cộng `holdsPartner`; route giới hạn: đọc cổng `office` để hộp nhập biết giới hạn, ghi cổng `settings.ops`. Trần giảm giá: các cổng của `orders` đang dùng trần giữ nguyên (lập đơn, sửa nháp, gửi đơn, xác nhận, đổi bên đặt), C.3 chỉ đổi số đưa vào cổng.
 - **Chỗ giao diện ẩn hiện:** ô bấm được theo `partner.commission.write`; mục Thiết lập mới theo `settings.ops`; hai lối thêm mức riêng của vai trò bỏ với mọi người, dòng riêng đã có vẫn hiện và vẫn ngừng được.
 
 ## 7. Giả định và phần để người thi công
@@ -106,4 +108,4 @@ Ba quyết định chạm quyền hoặc dữ liệu trong lượt này: B (bả
 - **Người soạn hiểu:** chủ chỉ chốt hai số «trần 50%, bước 1.000 đ», nên không có trần 500.000 đ riêng; luật C đã chặn số vượt giá. Bước tiền chỉ áp cho số tiền, không áp cho phần trăm; phần trăm giữ hai chữ số thập phân như hôm nay.
 - **Người soạn chọn:** mục C.2 chỉ đổi chữ hiển thị, DTO vẫn có số thật cho bài kiểm và nhật ký; tên route, tên trang mới, cách lọc và cuộn của bảng 720 ô, cách phân trang nếu đo thấy chậm.
 - **Rủi ro còn lại, chấp nhận trong đặc tả này:** số tiền «mọi khách» vẫn tính cả trẻ em miễn phí, nên đơn toàn trẻ em miễn phí có thể vượt thành tiền và bị giữ ở Đã giao. Hạ mức sau khi đơn đã giảm giá thì vẫn chỉ cảnh báo, theo ADR-0079 điều 8.
-- **Chưa kiểm:** dữ liệu production hôm nay; hiệu năng trên màn hình thật với 720 ô (máy chủ đã thử 720 dòng trên SQLite tạm, phản hồi `GET /api/pricing/muc-ta` khoảng 258 KB); đơn giảm hết về 0 đ đi tiếp thế nào sau bước nháp.
+- **Chưa kiểm:** dữ liệu production hôm nay; hiệu năng trên màn hình thật với 720 ô (máy chủ đã thử 720 dòng trên SQLite tạm, phản hồi `GET /api/pricing/muc-ta` khoảng 258 KB); đơn 0 đ đã xác nhận có được phân công thực hiện hay không.
