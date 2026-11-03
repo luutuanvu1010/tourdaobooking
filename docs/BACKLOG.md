@@ -724,3 +724,11 @@ Ghi 2026-10-29 khi đồng bộ bộ «Island Booking System — Design System v
 - **BL-DC-LY-DO-HUY** — huỷ với lý do khách đổi ý rồi khai lại cọc vẫn đi qua luật chặn (ADR-0159 Đ2 mục 1, chủ đã biết). Ghi lại để không quên, chưa định làm.
 - **BL-DC-CHUA-KIEM** — chưa kiểm: iPhone; câu «chờ đối tác nộp tiền» trên màn vé bằng Chrome; bản in biên nhận (chữ ghi «Khách hàng đã trả trước», không nói đối tác giữ hộ); tải đồng thời; `/ve/:token` đã tạo khi việc nộp bị đảo.
 - **BL-DC-KHO-390** — thẻ «Xác nhận đơn» hẹp, chữ tràn ở khổ 390 và dòng «Chưa tải được» có sẵn trên `main`, không do đặt cọc; chưa sửa.
+
+## 62. Các việc để sau từ buổi bàn chính sách chiết khấu (mã `BL-CK-…`, 2026-11-03)
+
+- **Trạng thái:** `để sau` · Chủ nêu trong chat 2026-11-03 khi chốt đặc tả `docs/superpowers/specs/2026-11-03-chinh-sach-chiet-khau-bon-truc-design.md`.
+- **BL-CK-NHAP-TEP** — nhập mức từ tệp bảng tính, mỗi hàng một dịch vụ, mỗi cột một cấp, có xem trước và máy kiểm; làm ngay sau đặc tả trên vì 720 ô bằng tay vẫn nặng. Không dùng Sheet bảng giá vì Sheet đọc công khai.
+- **BL-CK-DIEU-KIEN** — chủ: «Điều kiện áp dụng» hôm nay là ghi chú để đọc, sau này cụ thể hoá theo doanh thu, quy mô, cam kết của đối tác. Khi mở lại cần ADR mới, vì lời chủ 8/10 và ADR-0117 ghi mức «không theo doanh số». Trong Oracle Advanced Pricing đây là phần điều kiện (qualifier).
+- **BL-CK-BANG-DONG-BO** — chủ: Sheet là một nguồn sự thật cho bảng dịch vụ, cần trực quan hoá việc đồng bộ ở bảng điều khiển Quản trị, không đồng bộ tự động. Hiện trạng: Cron 15 phút chạy `runScheduledSync`, cùng Cron còn chạy `donHangChoXoaVe` nên chỉ gỡ việc đồng bộ, không gỡ Cron; trang Dịch vụ & giá đã có đồng bộ tay, lần cuối, dòng lỗi, nhưng chưa xem trước thay đổi; đây là đảo quyết định 2026-09-19. Hệ quả cần nói với chủ: quên bấm thì giá Nền tảng lệch giá trên Sheet và website. Giá ghi đè của Quản trị (`catalog_override`) vẫn còn, nên «một nguồn» có ngoại lệ, cần chủ quyết giữ hay bỏ.
+- **BL-CK-BANG-QUYEN** — chủ: trực quan hoá việc thiết lập quyền của mọi vai ở bảng điều khiển của Toàn quyền. Hiện trạng: chưa có màn nào; bản đồ quyền chỉ ở `src/shared/permissions.ts` (ADR-0007), có bài kiểm khoá. AI khuyên làm trước bản **chỉ xem**, sinh từ chính bản đồ nên không lệch; sửa quyền trên màn hình là cửa một chiều về tiền, cần ADR riêng do chủ duyệt. Chưa hỏi chủ chốt.
