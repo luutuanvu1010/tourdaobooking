@@ -1,5 +1,6 @@
 // Kịch bản Chrome — trang «Giới hạn nhập hoa hồng» (ADR-0161 Đ3; kế hoạch docs/superpowers/plans/2026-11-03-chinh-sach-chiet-khau-bon-truc.md, Task 8).
-// BẢN ĐẦU do Task 8 viết để thử một lần trước khi commit; Task 9 nâng thành kịch bản chính thức. Chưa phá thử, chưa là hàng rào.
+// Kịch bản CHÍNH THỨC (Task 9): Toàn quyền đổi giới hạn (số sai báo ngay không gọi máy chủ, số đúng lưu 200, 409 giữ số đang gõ, tải lại thấy số của người kia), khổ 390, và MỌI người khác bị chặn:
+// Kế toán, Bán hàng, Quản trị, Đối tác (route 403, trang chỉ câu «Trang này chỉ Toàn quyền dùng được.» hoặc trạng thái 403, không form, không mục ở thanh bên). Phá thử ghi ở sổ thi công.
 // Môi trường: D1 tạm + wrangler dev + Chrome headless qua CDP (docs/evidence/2026-09-20-a2/kich-ban/a2-cdp.mjs) — Turnstile TẮT, KHÔNG --remote, không đụng dữ liệu thật.
 // Quy tắc ADR-0074/0075: một lần đăng nhập MỚI của cùng tài khoản đá phiên của trang đang mở ⇒ lúc trang của «Chủ Thử» đang mở, việc đổi giới hạn «của người khác» làm bằng MỘT tài khoản Toàn quyền thứ hai.
 // Chạy (sau `npm run build:web`, từ GỐC repo):
@@ -78,6 +79,8 @@ try {
   const CHU_HAI = { name: "Chủ Hai", phone: "0900000278", pin: "246820", permissions: ["ADMIN", "SUPER_ADMIN"] };
   const { insertStaffSql } = await import(pathToFileURL(join(process.cwd(), "scripts", "staff-lib.mjs")).href);
   for (const stmt of (await insertStaffSql(CHU_HAI)).split("\n")) env.sql(stmt);
+  const DOI_TAC = { name: "Đối Tác Thử", phone: "0900000279", pin: "246821", permissions: ["PARTNER"] };
+  for (const stmt of (await insertStaffSql(DOI_TAC)).split("\n")) env.sql(stmt);
 
   const moTrang = async (account, vp) => {
     const p = await env.openPage(vp);
@@ -178,6 +181,25 @@ try {
       }
     });
   }
+  // Đối tác: bị chặn cả đọc lẫn ghi ở máy chủ; trang không dựng form và không có mục ở thanh bên.
+  await buoc("H-Đối tác", "[1440] Đối tác: GET và POST giới hạn 403; trang không có form, không có mục ở thanh bên", async () => {
+    for (const [m, than] of [["GET"], ["POST", { tranTyLeBp: 6000, buocTien: 1000, tuLuc: "2026-01-01T00:00:00.000Z" }]]) {
+      const r = await call(DOI_TAC, m, "/api/pricing/gioi-han-nhap", than);
+      assert.equal(r.status, 403, `Đối tác ${m}: ${r.status} ${JSON.stringify(r.json)}`);
+    }
+    const q = await moTrang(DOI_TAC, KHO_1440);
+    try {
+      await sleep(2000);
+      const t = await q.ev("JSON.stringify({ form: !!document.getElementById('hgh-form'), loi: document.getElementById('error') && !document.getElementById('error').hidden ? document.getElementById('error').textContent : null, trangThai: !!document.querySelector('.trang-thai[data-loai]'), muc: !!document.querySelector('a[href=\"/hoa-hong-gioi-han\"]'), url: location.pathname })");
+      const r = JSON.parse(t);
+      assert.equal(r.form, false, `Đối tác thấy form: ${t}`);
+      assert.equal(r.muc, false, `Đối tác thấy mục ở thanh bên: ${t}`);
+      assert.ok(r.loi === CAU_CHI_TOAN_QUYEN || r.trangThai || r.url !== "/hoa-hong-gioi-han", `Đối tác không nhận câu chặn nào: ${t}`);
+    } finally {
+      q.close();
+      trangHienTai = null;
+    }
+  });
   // Kế toán vẫn ĐỌC được giới hạn (hộp nhập báo sớm): cổng đọc là `office` + partner.commission.view.
   await buoc("I", "Kế toán đọc được giới hạn đang áp bằng API (đúng 35% và 5.000), còn GHI thì bị từ chối", async () => {
     const r = await call(ACCOUNTS.accounting, "GET", "/api/pricing/gioi-han-nhap");

@@ -1,5 +1,7 @@
 // Kịch bản Chrome — BẢNG NHẬP hoa hồng theo hàng dịch vụ và cột cấp (ADR-0161 Đ1, Đ2, Đ3; kế hoạch docs/superpowers/plans/2026-11-03-chinh-sach-chiet-khau-bon-truc.md, Task 6 bước 6).
-// BẢN ĐẦU: Task 6 viết để thử một lần trước khi commit; Task 9 sẽ nâng thành kịch bản chính thức (và sửa `hoa-hong-smoke.mjs` bám chữ cũ — xem nhật ký thi công).
+// Kịch bản CHÍNH THỨC (Task 9): bảng nhập đủ hàng và giá, cột cấp rộng đều (ở 1440 thấy đủ sáu cột cấp không cuộn ngang trong khung), căn dọc, ghi một ô và ba ô liên tiếp, bộ lọc, tiêu điểm sau khi
+// ô biến khỏi bảng, hộp (chữ «Dịch vụ» không lặp), Bán hàng không có nút ghi, Đối tác bị chặn, Toàn quyền đổi giới hạn thì hộp báo sớm theo số mới, màn đơn ghi cảnh báo thay cho số âm.
+// Phá thử (sửa cố ý → đỏ → hoàn nguyên) ghi ở docs/superpowers/plans/2026-11-03-chinh-sach-chiet-khau-thi-cong-nhat-ky.md; kịch bản này có dòng ở docs/SO-HANG-RAO.md khi đã có ngày phá thử.
 // Môi trường: D1 tạm + wrangler dev + Chrome headless qua CDP (docs/evidence/2026-09-20-a2/kich-ban/a2-cdp.mjs) — Turnstile TẮT, KHÔNG --remote, không đụng dữ liệu thật.
 // Quy tắc ADR-0074/0075: dữ liệu dựng bằng API TRƯỚC khi mở trang; mỗi lúc chỉ một trang mở cho mỗi tài khoản; trong lúc trang mở thì đọc / ghi bằng chính trang (fetch trong trang).
 // Dữ liệu dựng: 120 dịch vụ (DV001…DV120, 12 dịch vụ tính theo lượt) cộng 3 dịch vụ mẫu của môi trường, 3 nhóm có dịch vụ (30 mỗi nhóm), 6 cấp. Năm cấp phủ đủ mọi dịch vụ,
@@ -7,10 +9,10 @@
 // Chạy (sau `npm run build:web`, từ GỐC repo):
 //   AXE_JS=<…/axe.min.js> CHROME_BIN=$PWD/docs/evidence/2026-09-20-a2/kich-ban/chrome-wrap.sh OUT=docs/evidence/2026-11-03-chiet-khau-bon-truc/anh node docs/evidence/2026-11-03-chiet-khau-bon-truc/kich-ban/bang-nhap-smoke.mjs
 // Cuối: "BANG NHAP SMOKE OK" hoặc danh sách bước đỏ (thoát 1). BN_KHO=390|1040|1440 chạy một khổ (khổ 1440 là khổ duy nhất GHI dữ liệu).
-// Chưa có PHÁ THỬ (sửa cố ý → đỏ → hoàn nguyên): việc của Task 9; bản đầu này chưa được coi là hàng rào.
 import assert from "node:assert/strict";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 import { ACCOUNTS, docAxe, goiApi, ok, setInput, sleep, startEnv } from "../../2026-10-08-qr-thanh-toan/kich-ban/qr-chung.mjs";
 
 const AXE = process.env.AXE_JS ? docAxe() : null;
@@ -106,6 +108,10 @@ const chuanHoa = (s) => s.normalize("NFD").replace(/\p{Diacritic}/gu, "").replac
 const env = await startEnv();
 try {
   const { call } = goiApi(env);
+  // Tài khoản Đối tác (không có trong ACCOUNTS của a2-cdp.mjs): dựng bằng SQL local như kịch bản gioi-han-smoke.mjs dựng Chủ Hai.
+  const DOI_TAC = { name: "Đối Tác Thử", phone: "0900000279", pin: "246821", permissions: ["PARTNER"] };
+  const { insertStaffSql } = await import(pathToFileURL(join(process.cwd(), "scripts", "staff-lib.mjs")).href);
+  for (const stmt of (await insertStaffSql(DOI_TAC)).split("\n")) env.sql(stmt);
   const phai = (r, status, nhan) => { assert.equal(r.status, status, `${nhan}: ${r.status} ${JSON.stringify(r.json)}`); return r.json; };
   const T = "'2026-01-01T00:00:00.000Z'";
 
@@ -172,6 +178,7 @@ try {
   };
   const sodong = (p) => p.ev("document.querySelectorAll('.hh-ma-tran tbody tr').length");
   const bam = (p, sel) => p.ev(`(() => { const e = document.querySelector(${JSON.stringify(sel)}); if (!e) return false; e.click(); return true; })()`);
+  const p_ev_chu = (p, sel) => p.ev(`document.querySelector(${JSON.stringify(sel)}).innerText.trim()`);
   const choHop = (p) => p.waitFor("!!document.querySelector('.sheet')", "hộp mở");
   const choDongHop = (p) => p.waitFor("!document.querySelector('.sheet')", "hộp đóng");
   const bamNutHop = (p, chu) => p.ev(`(() => { const b = [...document.querySelectorAll('.sheet-foot button')].find((x) => x.textContent.trim() === ${JSON.stringify(chu)}); if (!b) return false; b.click(); return true; })()`);
@@ -231,6 +238,49 @@ try {
       });
       if (p === null) continue;
 
+      // ================= 1040 và 1440: cột cấp rộng ĐỀU, đủ cột trong khung ở 1440, căn dọc =================
+      if (tenKho !== "390") {
+        await buoc(`R${tenKho}`, `${nhanKho} cột cấp rộng đều (lệch ≤ 1 px)${tenKho === "1440" ? ", mọi đầu cột cấp nằm trọn trong khung, khung không cuộn ngang" : ""}; nhãn dài xuống dòng, không kéo rộng cột`, async () => {
+          const m = await p.ev(`(() => {
+            const kh = document.querySelector('.hh-ma-tran-khung'); const k = kh.getBoundingClientRect(); const bien = k.left + kh.clientWidth;
+            const nut = [...kh.querySelectorAll('thead [data-chon-cap]')].map((b) => b.getBoundingClientRect());
+            const th = [...kh.querySelectorAll('thead th')].map((t) => t.getBoundingClientRect().width);
+            const cot = [...kh.querySelectorAll('thead th')].slice(2).map((t) => t.getBoundingClientRect().width);
+            return { khung: Math.round(kh.clientWidth), cuonNgang: kh.scrollWidth > kh.clientWidth + 1, nTrong: nut.filter((r) => r.left >= k.left - 0.5 && r.right <= bien + 0.5).length, nNut: nut.length, rongCap: cot.map((w) => Math.round(w * 10) / 10),
+              lech: Math.max(...cot) - Math.min(...cot), dv: Math.round(th[0]), gia: Math.round(th[1]), bangRong: Math.round(kh.querySelector('table').getBoundingClientRect().width) };
+          })()`);
+          assert.equal(m.nNut, SO_COT, `đủ ${SO_COT} đầu cột cấp`);
+          assert.ok(m.lech <= 1, `cột cấp lệch nhau ${m.lech} px (${m.rongCap.join(", ")}); bề rộng bảng ${m.bangRong}, khung ${m.khung}`);
+          dongHo.push(`${tenKho}: khung ${m.khung} px, cột Dịch vụ ${m.dv}, Giá ${m.gia}, mỗi cột cấp ${m.rongCap[0]} px, bảng rộng ${m.bangRong} px, cuộn ngang trong khung: ${m.cuonNgang ? "có" : "không"}`);
+          if (tenKho === "1440") {
+            assert.equal(m.nTrong, SO_COT, `ở 1440 chỉ ${m.nTrong}/${SO_COT} đầu cột cấp nằm trọn trong khung (khung ${m.khung} px, bảng ${m.bangRong} px, cột cấp ${m.rongCap[0]} px)`);
+            assert.equal(m.cuonNgang, false, `khung cuộn ngang ở 1440 (bảng ${m.bangRong} px > khung ${m.khung} px)`);
+          }
+        });
+        await buoc(`V${tenKho}`, `${nhanKho} căn dọc: tên dịch vụ, giá và ô mức cùng một đường ở dòng đầu (lệch ≤ 3 px); đầu cột cùng một đường`, async () => {
+          const m = await p.ev(`(() => {
+            const giuaDong = (e) => { const w = document.createTreeWalker(e, NodeFilter.SHOW_TEXT, { acceptNode: (n) => (n.textContent.trim() ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT) }); const n = w.nextNode(); if (!n) return null; const r = document.createRange(); r.selectNodeContents(n); const q = r.getClientRects()[0]; return q ? (q.top + q.bottom) / 2 : null; };
+            const hang = (tuKhoa) => { const tr = [...document.querySelectorAll('.hh-ma-tran tbody tr')].find((x) => x.querySelector('th')?.textContent.includes(tuKhoa)); if (!tr) return null;
+              return { ten: giuaDong(tr.querySelector('th')), gia: giuaDong(tr.querySelector('td.hh-gia')), o: giuaDong(tr.querySelector('td button.hh-o-nut')) }; };
+            const dau = [...document.querySelectorAll('.hh-ma-tran thead th')].map((t) => giuaDong(t.querySelector('button') ?? t));
+            return { mau: hang('Tour thử 001'), bon: hang('Tour 4 đảo'), dau };
+          })()`);
+          for (const [ten, h2] of [["Tour thử 001", m.mau], ["Tour 4 đảo Nha Trang", m.bon]]) {
+            if (h2 === null) { assert.equal(ten, "Tour 4 đảo Nha Trang", `thiếu hàng ${ten}`); continue; } // dịch vụ mẫu của môi trường: có thể không có
+            const gt = [h2.ten, h2.gia, h2.o].filter((x) => x !== null);
+            assert.ok(gt.length >= 2 && Math.max(...gt) - Math.min(...gt) <= 3, `${ten}: dòng đầu của tên / giá / ô lệch ${Math.round(Math.max(...gt) - Math.min(...gt))} px (${JSON.stringify(h2)})`);
+          }
+          // Ô hẹp không cắt giữa chữ: «50.000đ/khách» ngắt SAU dấu «/» (<wbr>), chữ «khách» còn nguyên trên một dòng và ô không tràn.
+          const cat = await p.ev(`(() => { const nut = [...document.querySelectorAll('.hh-ma-tran tbody button.hh-o-nut')].find((b) => b.innerText.trim() === '50.000đ/khách'); if (!nut) return null;
+            const div = nut.querySelector('div'); const cuoi = div.lastChild; const r = document.createRange(); r.selectNodeContents(cuoi);
+            return { chu: cuoi.textContent, dong: r.getClientRects().length, tran: nut.scrollWidth > nut.clientWidth + 1 }; })()`);
+          assert.notEqual(cat, null, "có ô «50.000đ/khách» (Kim cương, Tour thử 001)");
+          assert.deepEqual(cat, { chu: "khách", dong: 1, tran: false }, "chữ «khách» còn nguyên một dòng, ô không tràn");
+          const dd = m.dau.filter((x) => x !== null);
+          assert.ok(Math.max(...dd) - Math.min(...dd) <= 3, `đầu cột lệch nhau ${Math.round(Math.max(...dd) - Math.min(...dd))} px (${dd.map((x) => Math.round(x)).join(", ")})`);
+        });
+      }
+
       // ================= 390: danh sách theo cấp, hộp có Tính bằng / Áp cho =================
       if (tenKho === "390") {
         await buoc("B390", "[390] dải chọn cấp hiện, ô trống không có trong chữ nhìn thấy; hộp «＋ Thêm hoa hồng cho dịch vụ» có Tính bằng, Áp cho, giới hạn", async () => {
@@ -267,7 +317,9 @@ try {
           await choHop(p);
           const t0 = await p.ev("document.querySelector('.sheet').innerText");
           assert.ok(t0.includes("Cấp Đồng"), "đích là cấp Đồng");
-          assert.ok(t0.includes("Dịch vụ Tour thử 100"), "hàng cố định là dịch vụ DV100");
+          const pv = await p.ev("(() => { const e = document.querySelector('.sheet .hh-pham-vi p'); return e ? { nhan: e.querySelector('.hh-nhan-nho')?.textContent ?? null, ten: e.querySelector('strong')?.textContent ?? null } : null; })()");
+          assert.deepEqual(pv, { nhan: "Dịch vụ", ten: "Tour thử 100" }, "hàng cố định: nhãn «Dịch vụ» rồi CHỈ tên, không lặp chữ «Dịch vụ»");
+          assert.ok(!t0.includes("Dịch vụ Tour thử 100") && !t0.includes("Dịch vụ\nDịch vụ"), "hộp không còn chữ lặp «Dịch vụ Dịch vụ …»");
           assert.equal(await p.ev("!!document.querySelector('.sheet #hh-hop-pham-vi')"), false, "hàng đã điền sẵn: không còn ô chọn dịch vụ");
           assert.ok(!t0.includes("Vai người dùng"), "hộp của cấp không hỏi vai");
           // xem trước giá đại lý
@@ -368,12 +420,35 @@ try {
           // gõ «thu» (khớp 120 dịch vụ DVxxx, không khớp 3 dịch vụ mẫu) ⇒ còn thiếu = 60; nhập một ô của cấp Đồng ở DV100 ⇒ 59, hai bộ lọc vẫn bật
           await p.ev(setInput("document.getElementById('hh-mt-tim')", "thu"));
           assert.equal(await sodong(p), THIEU_DUNG - 3, "«thu» + Còn thiếu mức: 60 dịch vụ");
+          await p.ev(`document.querySelector(${JSON.stringify(oNut(khoa("Đồng", "DV100")))}).scrollIntoView({ block: 'center' }); true`);
+          await sleep(200);
+          const cuonTruoc = await p.ev("Math.round(document.querySelector('.hh-ma-tran-khung').scrollTop)");
+          assert.ok(cuonTruoc > 300, `khung đã cuộn tới giữa danh sách (${cuonTruoc})`);
           await nhapPhanTram(p, khoa("Đồng", "DV100"), "4", { choO: false });
           await p.waitFor(`document.querySelectorAll('.hh-ma-tran tbody tr').length === ${THIEU_DUNG - 4}`, "DV100 rời khỏi danh sách còn thiếu");
+          await sleep(250);
+          // B4: hàng vừa đủ mức biến mất ⇒ tiêu điểm sang ô TRỐNG kế tiếp (ô đầu của hàng DV101), không rơi về đầu trang; khung giữ vị trí cuộn.
+          const sauGhi = await p.ev("(() => { const a = document.activeElement; return { o: a?.dataset?.o ?? null, laONut: !!a && a.classList.contains('hh-o-them'), cuon: Math.round(document.querySelector('.hh-ma-tran-khung').scrollTop), trongBang: !!a && !!a.closest('.hh-ma-tran') }; })()");
+          assert.ok(sauGhi.laONut && sauGhi.trongBang, `tiêu điểm phải ở một ô trống trong bảng (đang ở ${JSON.stringify(sauGhi)})`);
+          assert.ok(sauGhi.o.includes("|SERVICE|DV101"), `ô trống kế tiếp phải ở hàng DV101 (đang ở ${sauGhi.o})`);
+          assert.ok(Math.abs(sauGhi.cuon - cuonTruoc) <= 2, `khung giữ vị trí cuộn (${cuonTruoc} → ${sauGhi.cuon})`);
           const sau = await p.ev("({ tim: document.getElementById('hh-mt-tim').value, thieu: document.getElementById('hh-mt-thieu').checked, hang: document.querySelectorAll('.hh-ma-tran tbody tr').length, trangThai: document.querySelector('.hh-ma-tran-bang [role=status]').textContent })");
           assert.equal(sau.tim, "thu", "ô tìm giữ chữ");
           assert.equal(sau.thieu, true, "«Còn thiếu mức» giữ bật");
           assert.equal(sau.hang, THIEU_DUNG - 4, `DV100 đã đủ mức ở cấp Đồng ⇒ ${THIEU_DUNG - 4} dịch vụ còn thiếu (có ${sau.hang})`);
+          await datLaiLoc(p);
+        });
+
+        await buoc("C4b", "[1440] bộ lọc «Còn thiếu mức» + «thu 120»: nhập ô cuối cùng còn thiếu ⇒ bảng hết hàng, tiêu điểm về ô Tìm (không còn ô trống)", async () => {
+          await datLaiLoc(p);
+          await p.ev("(() => { const c = document.getElementById('hh-mt-thieu'); c.checked = true; c.dispatchEvent(new Event('change', { bubbles: true })); return true; })()");
+          await p.ev(setInput("document.getElementById('hh-mt-tim')", "thu 120"));
+          assert.equal(await sodong(p), 1, "còn đúng một dịch vụ DV120 thiếu mức");
+          await nhapPhanTram(p, khoa("Đồng", "DV120"), "3", { choO: false });
+          await p.waitFor("!document.querySelector('.hh-ma-tran tbody button')", "DV120 rời khỏi danh sách, bảng hết ô");
+          await sleep(250);
+          assert.equal(await p.ev("document.activeElement?.id ?? document.activeElement?.tagName"), "hh-mt-tim", "không còn ô trống nào ⇒ tiêu điểm về ô Tìm");
+          assert.equal(await p.ev("document.getElementById('hh-mt-thieu').checked"), true, "«Còn thiếu mức» giữ bật");
           await datLaiLoc(p);
         });
 
@@ -385,6 +460,10 @@ try {
           const viec = await p.ev("[...document.querySelectorAll('.sheet .hh-viec-nut')].map((b) => b.textContent.trim())");
           assert.deepEqual(viec, ["Đổi", "Sửa", "Ngừng"], `việc của ô đã có mức: ${viec.join(" | ")}`);
           await chup(p, "bang-nhap-1440-viec", false);
+          // B3: hộp «Đổi mức» ghi nhãn «Dịch vụ» rồi CHỈ tên, không lặp chữ «Dịch vụ».
+          assert.equal(await p.ev(`(() => { const b = [...document.querySelectorAll('.sheet .hh-viec-nut')].find((x) => x.textContent.trim() === 'Đổi'); if (!b) return false; b.click(); return true; })()`), true, "nút «Đổi» của hộp việc");
+          await p.waitFor("!!document.querySelector('.sheet .sheet-title') && document.querySelector('.sheet .sheet-title').textContent.includes('Đổi mức')", "hộp «Đổi mức» mở");
+          assert.deepEqual(await p.ev("(() => { const e = document.querySelector('.sheet .hh-nhan-nho + strong'); const nhan = [...document.querySelectorAll('.sheet .hh-nhan-nho')].find((x) => x.textContent === 'Dịch vụ'); return { nhan: nhan?.textContent ?? null, ten: nhan?.nextElementSibling?.textContent ?? null }; })()"), { nhan: "Dịch vụ", ten: "Tour thử 001" }, "hộp Đổi: nhãn rồi chỉ tên");
           await p.ev("document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })), true");
           await choDongHop(p);
           const dinh = await p.ev(`(() => {
@@ -431,16 +510,140 @@ try {
     }
   }
 
-  // ---- Người chỉ xem (Bán hàng): bảng hiện, không có nút ghi.
-  if (!process.env.BN_KHO || process.env.BN_KHO === "1440") {
-    await buoc("D", "[1440] Bán hàng: bảng nhập hiện (nếu có quyền xem) và KHÔNG có nút ghi", async () => {
-      const p = await moTrang(ACCOUNTS.salesA, { width: 1440, height: 900, mobile: false }, { cho: 1 }).catch(() => null);
+  const khoKhac = !process.env.BN_KHO || process.env.BN_KHO === "1440";
+  const VP_1440 = { width: 1440, height: 900, mobile: false };
+  if (khoKhac) {
+    // ---- Người chỉ xem (Bán hàng): bảng hiện đủ hàng, KHÔNG có nút ghi (tiêu chí 1).
+    await buoc("D", "[1440] Bán hàng: bảng nhập hiện đủ hàng và giá, KHÔNG có nút ghi trong bảng", async () => {
+      const p = await moTrang(ACCOUNTS.salesA, VP_1440);
       try {
-        if (p === null) { axeNhe.push("D: Bán hàng không mở được bảng (không có quyền xem trang) — hợp lệ, không phải lỗi"); return; }
-        const r = await p.ev("({ nut: document.querySelectorAll('.hh-ma-tran button.hh-o-nut').length, hang: document.querySelectorAll('.hh-ma-tran tbody tr').length })");
+        const r = await p.ev("({ nut: document.querySelectorAll('.hh-ma-tran button.hh-o-nut').length, hang: document.querySelectorAll('.hh-ma-tran tbody tr').length, chu: document.querySelectorAll('.hh-ma-tran td.hh-gia').length })");
+        assert.equal(r.hang, SO_HANG, "Bán hàng thấy đủ hàng");
         assert.equal(r.nut, 0, "Bán hàng không có nút ghi trong bảng");
-      } finally { p?.close(); trangHienTai = null; }
+        assert.equal(await p.ev("!!document.querySelector('.hh-cap-dau button')"), false, "Bán hàng không có nút «Thêm cấp độ đại lý»");
+      } finally { p.close(); trangHienTai = null; }
     });
+
+    // ---- Đối tác: bị chặn ở máy chủ (403 mọi đường đọc và ghi mức) và trang không dựng bảng.
+    await buoc("E", "[1440] Đối tác bị chặn: 403 ở các route mức và giới hạn; trang Hoa hồng không dựng bảng, không có nút ghi", async () => {
+      for (const [m, path, than] of [["GET", "/api/pricing/muc-ta"], ["GET", "/api/pricing/gioi-han-nhap"], ["POST", "/api/pricing/hoa-hong", { tuNgay: "2026-01-01", doiTuong: { loai: "VAI", code: "TRAVEL_AGENCY" }, phamVi: "ALL", kieu: "RATE", tyLeBp: 100 }]]) {
+        const r = await call(DOI_TAC, m, path, than);
+        assert.equal(r.status, 403, `Đối tác ${m} ${path}: ${r.status} ${JSON.stringify(r.json)}`);
+      }
+      const p = await moTrang(DOI_TAC, VP_1440, { cho: 0 }).catch(() => null);
+      assert.notEqual(p, null, "mở được trang để xem");
+      try {
+        await sleep(1500);
+        const r = await p.ev("({ bang: !!document.querySelector('.hh-ma-tran'), nut: document.querySelectorAll('.hh-o-nut').length })");
+        assert.deepEqual(r, { bang: false, nut: 0 }, "Đối tác: không bảng, không nút");
+      } finally { p.close(); trangHienTai = null; }
+    });
+
+    // ---- Toàn quyền đổi giới hạn (API, trang của Toàn quyền không mở) ⇒ hộp của Kế toán báo sớm theo SỐ MỚI; 55% (> 50% cũ) nay được nhận (tiêu chí 4).
+    await buoc("F", "[1440] Toàn quyền đổi giới hạn sang 60% và 500đ ⇒ hộp của Kế toán nêu số mới, 61% bị báo sớm, 55% được nhận và ghi đúng một dòng", async () => {
+      const hien = await call(ACCOUNTS.chu, "GET", "/api/pricing/gioi-han-nhap");
+      assert.equal(hien.status, 200, JSON.stringify(hien.json));
+      assert.deepEqual([hien.json.tranTyLeBp, hien.json.buocTien], [5000, 1000], "giới hạn gieo");
+      const doi = await call(ACCOUNTS.chu, "POST", "/api/pricing/gioi-han-nhap", { tranTyLeBp: 6000, buocTien: 500, tuLuc: hien.json.tuLuc });
+      assert.equal(doi.status, 200, JSON.stringify(doi.json));
+      const p = await moTrang(ACCOUNTS.accounting, VP_1440);
+      try {
+        const k = khoa("Gỗ", "DV061");
+        assert.equal(await bam(p, oNut(k)), true);
+        await choHop(p);
+        const t = await p.ev("document.querySelector('.sheet').innerText");
+        assert.ok(t.includes("Giới hạn đang áp: phần trăm không quá 60%; số tiền chia hết cho 500đ"), `hộp nêu số mới: ${t.slice(0, 500)}`);
+        await p.ev("window.__ghi.length = 0; true");
+        await p.ev(setInput("document.getElementById('hh-hop-ty-le')", "61"));
+        assert.equal(await bamNutHop(p, "Thêm mức"), true);
+        await p.waitFor("document.querySelector('.sheet').innerText.includes('Phần trăm không quá 60%.')", "báo sớm theo trần mới");
+        assert.equal(await p.ev("window.__ghi.length"), 0, "báo sớm: không gọi máy chủ");
+        await p.ev(setInput("document.getElementById('hh-hop-ty-le')", "55"));
+        assert.equal(await bamNutHop(p, "Thêm mức"), true);
+        await choDongHop(p);
+        const d = await dongCua(p, "Gỗ", "DV061");
+        assert.equal(d.length, 1, "đúng một dòng");
+        assert.equal(d[0].tyLeBp, 5500, "55% được nhận nhờ giới hạn mới");
+      } finally { p.close(); trangHienTai = null; }
+    });
+
+    // ---- Màn đơn: mức nhóm 500.000 đ/khách cho vé 300.000 đ ⇒ chữ cảnh báo, KHÔNG số âm (tiêu chí 6, phần màn hình).
+    await buoc("G", "[1440] màn đơn có mức vượt giá bán: ô Tổng giá đại lý ghi «Hoa hồng vượt thành tiền — Kế toán xem lại», không có số âm ở phần đối tác", async () => {
+      const ORG = "dda00000-0000-4000-8000-0000000000f1";
+      const hom = new Date().toISOString();
+      env.sql(`INSERT INTO catalog_item (code,name,unit,price_adult,sheet_row,in_sheet,first_seen_at,updated_at) VALUES ('VE300','Vé thử 300','perPax',300000,500,1,'${hom}','${hom}');
+        INSERT INTO pty_party (id,party_kind,display_name,active,created_at,updated_at) VALUES ('${ORG}','ORGANIZATION','Đại lý Thử Vượt',1,'${hom}','${hom}');
+        INSERT INTO pty_organization (party_id,created_at,updated_at) VALUES ('${ORG}','${hom}','${hom}');
+        INSERT INTO pty_party_role (id,party_id,role_type_code,valid_from_date,created_at,updated_at) VALUES ('r-${ORG}','${ORG}','TRAVEL_AGENCY','2026-01-01','${hom}','${hom}');`);
+      phai(await call(ACCOUNTS.admin, "PUT", "/api/catalog/group-assignments", { codes: ["VE300"], groupCode: G1 }), 200, "gán VE300 vào nhóm");
+      phai(await call(ACCOUNTS.accounting, "POST", "/api/pricing/hoa-hong", { tuNgay: "2026-01-01", doiTuong: { loai: "DOI_TAC", partyId: ORG }, phamVi: "GROUP", groupCode: G1, kieu: "PER_PAX", moiKhach: 500000 }), 201, "mức nhóm 500.000 đ/khách (nhóm không có một giá để so nên được nhận)");
+      const r = phai(await call(ACCOUNTS.salesA, "POST", "/api/orders", {
+        customerName: "Khách Thử Vượt", customerPhone: "0912345678", bookerPartyId: ORG, discount: 0,
+        services: [{ kind: "catalog", pickupChoice: "KHONG_DON", catalogCode: "VE300", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 300000 }, departDate: new Date(Date.now() + 7 * 3600e3 + 3 * 864e5).toISOString().slice(0, 10) }],
+      }), 201, "lập đơn");
+      phai(await call(ACCOUNTS.salesA, "POST", `/api/orders/${r.order.id}/status`, { status: "confirmed" }), 200, "xác nhận đơn có dòng vượt (vẫn được, ADR-0077)");
+      const p = await env.openPage(VP_1440);
+      trangHienTai = p;
+      try {
+        const c = await env.login(ACCOUNTS.accounting);
+        await p.send("Network.setCookie", { name: c.name, value: c.value, url: env.base, httpOnly: true });
+        await p.send("Page.navigate", { url: `${env.base}/order?id=${r.order.id}` });
+        await p.waitFor("!!document.getElementById('phan-doi-tac') && !document.getElementById('phan-doi-tac').hidden && document.getElementById('phan-doi-tac').innerText.includes('Tổng giá đại lý')", "phần đối tác hiện", 30000);
+        const t = await p.ev("document.getElementById('phan-doi-tac').innerText");
+        assert.ok(t.includes("Hoa hồng vượt thành tiền — Kế toán xem lại"), `thiếu câu cảnh báo: ${t.slice(0, 500)}`);
+        assert.ok(!/(^|\s)[-−]\s?\d/.test(t), `phần đối tác còn số âm: ${t.slice(0, 600)}`);
+        await chup(p, "man-don-hoa-hong-vuot");
+      } finally { p.close(); trangHienTai = null; }
+    });
+  }
+
+  if (khoKhac) {
+    // ---- K: các chỗ trước đây CHƯA THỬ trên Chrome — hàng nhóm, hàng «Mọi dịch vụ», cấp đã khoá. Đặt CUỐI vì «Mọi dịch vụ» của cấp Đồng làm mọi dịch vụ hết thiếu mức (đếm «Còn thiếu mức» ở C4 đã xong).
+    const pk = await moTrang(ACCOUNTS.accounting, VP_1440);
+    try {
+      await buoc("K1", "[1440] bấm ô trống ở HÀNG NHÓM và hàng «Mọi dịch vụ»: hộp ghi đúng tên hàng, mỗi lần tạo đúng một dòng đúng cấp và đúng phạm vi", async () => {
+        const hopHang = () => pk.ev(`(() => { const nhan = [...document.querySelectorAll('.sheet .hh-nhan-nho')].find((x) => x.textContent === 'Dịch vụ'); return { cap: document.querySelector('.sheet').innerText.split('\\n').find((d) => d.startsWith('Cấp ')) ?? null, nhan: nhan?.textContent ?? null, ten: nhan?.nextElementSibling?.textContent ?? null }; })()`);
+        const tenNhom = DM.groups.find((g) => g.code === G3).name;
+        const kN = `${CAP["Bạc"]}|GROUP|${G3}`;
+        assert.equal(await bam(pk, oNut(kN)), true, "ô trống của hàng nhóm là nút");
+        await choHop(pk);
+        assert.deepEqual(await hopHang(), { cap: "Cấp Bạc", nhan: "Dịch vụ", ten: `Nhóm ${tenNhom}` }, "hộp ghi cấp và hàng nhóm");
+        await pk.ev(setInput("document.getElementById('hh-hop-ty-le')", "6"));
+        assert.equal(await bamNutHop(pk, "Thêm mức"), true);
+        await choDongHop(pk);
+        const dongNhom = (await goi(pk, "GET", "/api/pricing/muc-ta")).json.muc.find((m) => m.code === CAP["Bạc"]).dong.filter((r) => r.phamVi === "GROUP" && r.groupCode === G3);
+        assert.equal(dongNhom.length, 1, "đúng một dòng phạm vi nhóm ở cấp Bạc");
+        assert.equal(dongNhom[0].tyLeBp, 600);
+        const kA = `${CAP["Đồng"]}|ALL|`;
+        assert.equal(await bam(pk, oNut(kA)), true, "ô trống của hàng «Mọi dịch vụ» là nút");
+        await choHop(pk);
+        assert.deepEqual(await hopHang(), { cap: "Cấp Đồng", nhan: "Dịch vụ", ten: "Mọi dịch vụ" }, "hộp ghi cấp và hàng «Mọi dịch vụ»");
+        await pk.ev(setInput("document.getElementById('hh-hop-ty-le')", "3"));
+        assert.equal(await bamNutHop(pk, "Thêm mức"), true);
+        await choDongHop(pk);
+        const dongTatCa = (await goi(pk, "GET", "/api/pricing/muc-ta")).json.muc.find((m) => m.code === CAP["Đồng"]).dong.filter((r) => r.phamVi === "ALL");
+        assert.equal(dongTatCa.length, 1, "đúng một dòng phạm vi «tất cả» ở cấp Đồng");
+        assert.equal(dongTatCa[0].tyLeBp, 300);
+        assert.equal(await p_ev_chu(pk, oNut(kA)), "3%", "ô «Mọi dịch vụ» hiện số mới");
+      });
+
+      await buoc("K2", "[1440] cấp đã KHOÁ: ô trống không bấm được (chữ thường), ô có mức chỉ còn «Ngừng»", async () => {
+        const khoa2 = await goi(pk, "POST", `/api/pricing/muc-ta/${CAP["Sắt"]}/tat`, {});
+        assert.equal(khoa2.status, 200, JSON.stringify(khoa2.json));
+        await pk.send("Page.reload", {});
+        await pk.waitFor(`document.querySelectorAll('.hh-ma-tran tbody tr').length >= ${SO_HANG}`, "bảng đủ hàng sau tải lại", 30000);
+        const r = await pk.ev(`(() => ({ oTrong: !!document.querySelector(${JSON.stringify(oNut(khoa("Sắt", "DV010")))}), oTatCa: !!document.querySelector(${JSON.stringify(`button[data-o="${CAP["Sắt"]}|ALL|"]`)}), oCapKhac: !!document.querySelector(${JSON.stringify(oNut(khoa("Gỗ", "DV010")))}) }))()`);
+        assert.equal(r.oTrong, false, "ô trống của cấp khoá KHÔNG phải nút");
+        assert.equal(r.oCapKhac, true, "đối chứng: ô trống của cấp còn bật vẫn là nút");
+        assert.equal(r.oTatCa, true, "ô «Mọi dịch vụ» của cấp khoá có mức nên vẫn là nút (việc Ngừng)");
+        assert.equal(await bam(pk, `button[data-o="${CAP["Sắt"]}|ALL|"]`), true);
+        await choHop(pk);
+        const viec = await pk.ev("[...document.querySelectorAll('.sheet .hh-viec-nut')].map((b) => b.textContent.trim())");
+        assert.deepEqual(viec, ["Ngừng"], `cấp khoá chỉ còn «Ngừng» (thấy: ${viec.join(" | ")})`);
+        await pk.ev("document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })), true");
+        await choDongHop(pk);
+      });
+    } finally { pk.close(); trangHienTai = null; }
   }
 
   console.log("\n--- Thời gian mở bảng ---\n" + dongHo.join("\n"));

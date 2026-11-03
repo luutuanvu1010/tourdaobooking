@@ -1,3 +1,11 @@
+// 3/11 (chính sách chiết khấu bốn trục, ADR-0161, Task 9): PHẦN ĐÃ THAY so với các đoạn bên dưới (những dòng chú thích cũ giữ làm lịch sử):
+//   - Bước 2 (hộp «Thêm mức»): nút nay là «＋ Thêm mức riêng cho đối tác» (id `hh-them-muc` / `hh-them-muc-day`); hộp KHÔNG còn lựa chọn «Một vai người dùng» / «Một đối tác» (radio `hh-hop-ai` đã bỏ:
+//     vai trò chỉ đi qua cấp) mà chỉ còn ô tìm đối tác; ô tích «Tách theo loại khách» (`hh-hop-theo-loai`) đã thay bằng hai ô chọn «Tính bằng» (`hh-hop-kieu`) và «Áp cho» (`hh-hop-ap-cho`,
+//     khoá khi Phần trăm; chọn Số tiền + «Riêng từng loại khách» thì hiện `hh-hop-tre-em`). Câu «Sẽ tạo…» tìm theo chữ đầu vì hộp nay có thêm câu giới hạn và xem trước giá đại lý cùng `aria-live`.
+//   - Bước 3, 5b: câu «Mức cũ … sẽ ngừng, đến hết …» tìm theo chữ đầu (hộp Đổi nay có thêm câu «Giá đại lý xem trước» đứng trước, cùng `.hint[aria-live]`).
+//   - Bước 1m (1040): thêm cột «Giá» (td.hh-gia) vào mỗi hàng nên ô theo cấp lấy `td:not(.hh-gia)`; ma trận không còn thuộc tính `data-nhieu` (bố cục cố định, cuộn ngang trong khung khi tổng cột lớn hơn khung) ⇒ chỉ đòi `scrollWidth > clientWidth` và `overflow-x` auto.
+//   - Bước MỚI 2v: thẻ «Vai người dùng» không còn nút thêm mức riêng cho vai trò, còn «Chọn cấp cho vai trò này». Bước MỚI 2s: hộp «Sửa cấp độ đại lý» có câu ghi điều kiện (CAU_GHI_DIEU_KIEN_CAP), hộp «Sửa vai trò» thì không.
+//   - Bảng nhập (hàng nhóm, hàng «Mọi dịch vụ», cấp khoá, ô trống / ô có mức) do `docs/evidence/2026-11-03-chiet-khau-bon-truc/kich-ban/bang-nhap-smoke.mjs` canh; trang Giới hạn do `gioi-han-smoke.mjs`.
 // 2/11 (đợt «dat-ve-doi-tac» lượt 1, Task 2; đặc tả docs/superpowers/specs/2026-11-01-dat-ve-doi-tac-design.md §4.3): trang chỉ còn HAI thẻ `cap` / `loai` (chữ «Cấp độ đại lý» / «Vai người dùng»). Thẻ `doi-tac` (nút `#hh-tab-doi-tac`, vùng `#hh-the-doi-tac`) đã bỏ:
 // khối «Người có cấp riêng» nằm DƯỚI danh sách vai, trong `#hh-the-loai`, vùng `#hh-loai-rieng` (danh sách vai ở `#hh-loai-ds`). Mọi bước tìm `#hh-the-doi-tac` nay tìm `#hh-loai-rieng`, mọi `chuyenThe(p, "doi-tac")` nay `chuyenThe(p, "loai")`;
 // `hh-the=doi-tac` còn trong bộ nhớ tạm của phiên cũ mở thẻ `loai`. Các dòng chú thích bên dưới nói «ba thẻ» là lịch sử, không sửa.
@@ -106,6 +114,7 @@ const CHU_CAM = [/Mức TA/, /Đóng mức/, /Kết thúc gắn/, /Đang áp(?! 
 const CHINH_SACH = /[Cc]hính sách(?! (riêng tư|điều phối|đăng nhập|nhập tay|khung giờ đón|huỷ))/;
 // Nút ghi mà Bán hàng KHÔNG được thấy (chữ đầu của nút).
 const NUT_GHI = /^(＋|Thêm|Đổi|Ngừng|Sửa|Tắt|Bật|Áp dụng|Khoá|Mở lại|Đặt|Chọn cấp cho vai trò|Chọn cấp riêng|Thôi theo cấp)/;
+const CAU_GHI_DIEU_KIEN_CAP = "Ghi điều kiện áp dụng ở đây để mọi người đọc (doanh thu, quy mô, cam kết). Nền tảng không tự kiểm điều kiện này."; // ADR-0161 Đ2: hộp «Sửa cấp độ đại lý»
 const CAU_SUA_HUY_THAY = "Chưa có đơn nào dùng mức này — sửa sẽ thay hẳn.";
 const NHAN_DA_HUY = "Đã thay bằng mức mới";
 const CAU_SUA_CS_HUY_THAY = "Chưa có đơn nào dùng cấp độ đại lý này — sửa sẽ thay hẳn.";
@@ -267,6 +276,8 @@ try {
   const goiTrongTrang = (p, method, path, body) => p.ev(`fetch(${JSON.stringify(path)}, { method: ${JSON.stringify(method)}, headers: { 'content-type': 'application/json' }, body: ${body === undefined ? "undefined" : JSON.stringify(JSON.stringify(body))} }).then(async (r) => ({ status: r.status, json: await r.json().catch(() => null) }))`);
   const choHop = (p, sel) => p.waitFor(`!!document.querySelector(${JSON.stringify(sel)})`, `hộp có ${sel}`);
   const choDongHop = (p) => p.waitFor("!document.querySelector('.sheet')", "hộp đã đóng");
+  /** Câu `.hint[aria-live]` của hộp bắt đầu bằng `tienTo` («Sẽ tạo», «Mức cũ»): hộp nay có nhiều câu cùng `aria-live` (giới hạn, xem trước giá đại lý), nên không lấy câu đầu tiên. */
+  const cauHop = (p, tienTo) => p.ev(`(() => { const e = [...document.querySelectorAll('.sheet .hint[aria-live]')].find((x) => x.textContent.trim().startsWith(${JSON.stringify(tienTo)})); return e ? e.textContent.trim() : null; })()`);
   const chuyenThe = async (p, the) => { assert.equal(await bam(p, `#hh-tab-${the}`), true, `nút thẻ ${the}`); await p.waitFor(`!document.getElementById('hh-the-${the}').hidden`, `thẻ ${the} hiện`); };
   /** Chọn cấp: đầu cột ma trận (≥ 900) hoặc chip (< 900) — cái nào đang hiện. */
   const chonCap = async (p, code) => {
@@ -562,9 +573,9 @@ try {
               return;
             }
             const mt = await p.ev(`(() => { const kh = document.querySelector('.hh-ma-tran-khung'); const bang = kh.querySelector('table'); const cot = [...bang.querySelectorAll('thead [data-chon-cap]')].map((b) => b.dataset.chonCap);
-              const hang = [...bang.querySelectorAll('tbody tr')].map((tr) => ({ ten: tr.querySelector('th').textContent.trim(), o: [...tr.querySelectorAll('td')].map((td) => ({ chu: td.textContent.trim(), trong: td.classList.contains('hh-o-trong') })) }));
+              const hang = [...bang.querySelectorAll('tbody tr')].map((tr) => ({ ten: tr.querySelector('th').textContent.trim(), o: [...tr.querySelectorAll('td:not(.hh-gia)')].map((td) => ({ chu: td.textContent.trim(), trong: td.classList.contains('hh-o-trong') })) }));
               return { cot, hang, nhieu: kh.hasAttribute('data-nhieu'), sw: kh.scrollWidth, cw: kh.clientWidth, ox: getComputedStyle(kh).overflowX, chip: document.querySelector('.hh-cap-chon').offsetParent !== null }; })()`);
-            assert.ok(mt.nhieu && mt.sw > mt.cw && (mt.ox === "auto" || mt.ox === "scroll"), `1040: ma trận > 5 cấp cuộn trong khung (${mt.sw} > ${mt.cw}, ${mt.ox})`);
+            assert.ok(mt.sw > mt.cw && (mt.ox === "auto" || mt.ox === "scroll"), `1040: ma trận > 5 cấp cuộn trong khung (${mt.sw} > ${mt.cw}, ${mt.ox})`);
             assert.equal(mt.chip, false, "1040: chip chọn cấp ẩn");
             assert.equal(mt.hang[0]?.ten, "Mọi dịch vụ", "hàng đầu «Mọi dịch vụ»");
             const hNhom = mt.hang.find((x) => x.ten === `Nhóm ${TEN_NHOM}`);
@@ -944,24 +955,31 @@ try {
             await choDongHop(p);
           });
 
-          await buoc(`2${kho}`, "«＋ Thêm mức» → «Một đối tác» → tạo → đối tác hiện ở khối «Người có cấp riêng»; ô «Tách theo loại khách» không bị kéo dài", async () => {
-            assert.equal(await p.ev(`(() => { const b = [...document.querySelectorAll('#hh-them-muc, #hh-them-muc-day')].find((x) => x.offsetParent !== null); if (!b) return false; b.click(); return true; })()`), true, "nút «＋ Thêm mức» đang hiện");
+          await buoc(`2${kho}`, "«＋ Thêm mức riêng cho đối tác» → hộp chỉ còn ô tìm đối tác (không lựa chọn vai trò) → «Tính bằng» / «Áp cho» → tạo → đối tác hiện ở khối «Người có cấp riêng»", async () => {
+            assert.equal(await p.ev(`(() => { const b = [...document.querySelectorAll('#hh-them-muc, #hh-them-muc-day')].find((x) => x.offsetParent !== null); if (!b || b.textContent.trim() !== '＋ Thêm mức riêng cho đối tác') return false; b.click(); return true; })()`), true, "nút «＋ Thêm mức riêng cho đối tác» đang hiện");
             await choHop(p, "#hh-hop-pham-vi");
             assert.equal(await p.ev("document.querySelector('.sheet-title').textContent"), "Thêm mức hoa hồng");
-            assert.equal(await bam(p, "input[name='hh-hop-ai'][value='DOI_TAC']"), true);
+            assert.equal(await p.ev("!!document.querySelector(\"input[name='hh-hop-ai']\")"), false, "hộp không còn lựa chọn «Một vai người dùng» / «Một đối tác»: vai trò chỉ đi qua cấp");
+            assert.equal(await p.ev("!!document.querySelector('.sheet #hh-hop-doi-tac')"), true, "hộp có ô tìm đối tác");
+            assert.ok(!(await p.ev("document.querySelector('.sheet').innerText")).includes("Vai người dùng"), "hộp không nhắc vai người dùng");
             await p.ev(setInput("document.getElementById('hh-hop-doi-tac')", `Hải Sản ${CHU} ${D}`));
             await p.waitFor(`!!document.querySelector('.sheet button[data-party="${ORG2.id}"]')`, "kết quả tìm có đối tác");
             await bam(p, `.sheet button[data-party="${ORG2.id}"]`);
             await p.ev("(() => { const s = document.getElementById('hh-hop-pham-vi'); s.value = 'SERVICE'; s.dispatchEvent(new Event('change', { bubbles: true })); return true; })()");
             await p.ev("(() => { const s = document.getElementById('hh-hop-dich-vu'); s.value = 'TD101'; s.dispatchEvent(new Event('change', { bubbles: true })); return true; })()");
-            await p.ev("(() => { const k = document.getElementById('hh-hop-kieu'); k.value = 'PER_PAX'; k.dispatchEvent(new Event('change', { bubbles: true })); document.getElementById('hh-hop-theo-loai').click(); return true; })()");
-            const rongO = await p.ev("document.getElementById('hh-hop-theo-loai').getBoundingClientRect().width");
-            assert.ok(rongO > 0 && rongO <= 32, `ô «Tách theo loại khách» rộng ${rongO}px — bị kéo dài (thiếu lớp o-tick)`);
-            await chup(p, `05b-o-tach-theo-loai-${tenKho}`, false);
-            await p.ev("(() => { document.getElementById('hh-hop-theo-loai').click(); const k = document.getElementById('hh-hop-kieu'); k.value = 'RATE'; k.dispatchEvent(new Event('change', { bubbles: true })); return true; })()");
+            // «Tính bằng» = Phần trăm thì «Áp cho» khoá ở «Mọi khách như nhau»; chọn Số tiền mở «Riêng từng loại khách» kèm hai ô trẻ em, người cao tuổi.
+            assert.deepEqual(await p.ev("(() => { const k = document.getElementById('hh-hop-kieu'); const a = document.getElementById('hh-hop-ap-cho'); return { kieu: k.selectedOptions[0].textContent, apCho: a.selectedOptions[0].textContent, khoa: a.disabled }; })()"), { kieu: "Phần trăm", apCho: "Mọi khách như nhau", khoa: true });
+            await p.ev("(() => { const k = document.getElementById('hh-hop-kieu'); k.value = 'PER_PAX'; k.dispatchEvent(new Event('change', { bubbles: true })); return true; })()");
+            await p.waitFor("document.getElementById('hh-hop-ap-cho').disabled === false", "«Áp cho» mở khi chọn Số tiền");
+            await p.ev("(() => { const a = document.getElementById('hh-hop-ap-cho'); a.value = 'LOAI'; a.dispatchEvent(new Event('change', { bubbles: true })); return true; })()");
+            await p.waitFor("!!document.getElementById('hh-hop-tre-em') && document.getElementById('hh-hop-tre-em').offsetParent !== null", "hai ô theo loại hiện");
+            const rongO = await p.ev("(() => { const r = document.getElementById('hh-hop-ap-cho').getBoundingClientRect(); const s = document.querySelector('.sheet').getBoundingClientRect(); return { o: Math.round(r.width), hop: Math.round(s.width) }; })()");
+            assert.ok(rongO.o > 0 && rongO.o <= rongO.hop, `ô «Áp cho» rộng ${rongO.o}px trong hộp ${rongO.hop}px`);
+            await chup(p, `05b-tinh-bang-ap-cho-${tenKho}`, false);
+            await p.ev("(() => { const a = document.getElementById('hh-hop-ap-cho'); a.value = 'CHUNG'; a.dispatchEvent(new Event('change', { bubbles: true })); const k = document.getElementById('hh-hop-kieu'); k.value = 'RATE'; k.dispatchEvent(new Event('change', { bubbles: true })); return true; })()");
             await p.ev(setInput("document.getElementById('hh-hop-ty-le')", "12,5"));
-            await p.waitFor("!document.querySelector('.sheet .hint[aria-live]').hidden", "câu «Sẽ tạo…» hiện");
-            assert.match(await p.ev("document.querySelector('.sheet .hint[aria-live]').textContent"), /^Sẽ tạo: .*12,5\s*%.*không thời hạn\.$/);
+            await p.waitFor("document.querySelector('.sheet') && !!(Array.from(document.querySelectorAll('.sheet .hint[aria-live]')).find((x) => !x.hidden && x.textContent.trim().startsWith('Sẽ tạo')))", "câu «Sẽ tạo…» hiện");
+            assert.match(await cauHop(p, "Sẽ tạo"), /^Sẽ tạo: .*12,5\s*%.*không thời hạn\.$/);
             await bocucSach(p, `bước 2 hộp Thêm mức ${kho}`);
             await axeKiem(p, `hộp Thêm mức ${kho}`);
             await chup(p, `05-hop-them-muc-${tenKho}`, false);
@@ -1020,11 +1038,57 @@ try {
             await bocucSach(p, `bước 2b ${kho}`);
           });
 
+          await buoc(`2v${kho}`, "Thẻ «Vai người dùng» (ADR-0161 Đ2): không nút thêm mức riêng cho vai trò (vai chỉ đi qua cấp), mỗi cụm vai còn «Sửa»; vai chưa theo cấp có «Chọn cấp cho vai trò này»; hộp «Sửa vai trò» không có câu điều kiện của cấp", async () => {
+            await chuyenThe(p, "loai");
+            await locLoai(p, "tat-ca");
+            await p.waitFor("document.querySelector('#hh-loai-ds article[data-loai]') !== null", "thẻ vai có cụm");
+            const the = await p.ev(`(() => {
+              const nutCuaThe = [...document.querySelectorAll('#hh-the-loai button')].filter((b) => b.offsetParent !== null).map((b) => b.textContent.trim());
+              const cum = [...document.querySelectorAll('#hh-loai-ds article[data-loai]')];
+              return { them: nutCuaThe.filter((t) => /^＋ Thêm mức/.test(t)), themVai: nutCuaThe.filter((t) => t === '＋ Thêm vai trò').length, cum: cum.length, chonCap: cum.filter((a) => [...a.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Chọn cấp cho vai trò này')).length, thieuSua: cum.filter((a) => ![...a.querySelectorAll('.hh-loai-dau button')].some((b) => b.textContent.trim() === 'Sửa')).length };
+            })()`);
+            assert.deepEqual(the.them, [], "thẻ vai không có nút «＋ Thêm mức…» (mức riêng của vai trò không đặt từ đây)");
+            assert.equal(the.themVai, 1, "vẫn có «＋ Thêm vai trò»");
+            assert.ok(the.cum > 0, "có cụm vai");
+            assert.equal(the.thieuSua, 0, "mỗi cụm vai có «Sửa»");
+            assert.ok(the.chonCap >= 1, `có ít nhất một vai chưa theo cấp với nút «Chọn cấp cho vai trò này» (${the.chonCap})`);
+            // Hộp «Sửa vai trò» KHÔNG có câu điều kiện áp dụng (chỉ cấp độ đại lý có).
+            const loaiSua = await p.ev("document.querySelector('#hh-loai-ds article[data-loai]').dataset.loai");
+            assert.ok(await cuonToi(p, `article[data-loai="${loaiSua}"]`), "cụm vai");
+            assert.equal(await clickTrong(p, `article[data-loai="${loaiSua}"] .hh-loai-dau`, "Sửa"), true, "nút «Sửa» của vai trò");
+            await choHop(p, "#hh-sua-ten");
+            assert.equal(await p.ev("document.querySelector('.sheet-title').textContent"), "Sửa vai trò");
+            assert.equal(await p.ev(`document.querySelector('.sheet').innerText.includes(${JSON.stringify(CAU_GHI_DIEU_KIEN_CAP)})`), false, "hộp Sửa vai trò không có câu điều kiện của cấp");
+            await bocucSach(p, `bước 2v hộp ${kho}`);
+            assert.equal(await clickTrong(p, ".sheet .sheet-foot", "Huỷ"), true);
+            await choDongHop(p);
+            await locLoai(p, "ap");
+            await chup(p, `06v-the-vai-khong-them-muc-${tenKho}`);
+          });
+
+          await buoc(`2s${kho}`, "Hộp «Sửa cấp độ đại lý» (ADR-0161 Đ2): có câu ghi điều kiện nguyên văn; Huỷ không ghi gì", async () => {
+            await chuyenThe(p, "cap");
+            await chonCap(p, C_A.code);
+            const ghiTruoc = (await p.ev("(window.__hhGhi ?? []).length"));
+            assert.equal(await clickTrong(p, "#hh-cap-ct", "Sửa"), true, "nút «Sửa» của cấp");
+            await choHop(p, "#hh-sua-ten");
+            const hop = await p.ev("(() => { const s = document.querySelector('.sheet'); return { t: s.querySelector('.sheet-title').textContent, hint: [...s.querySelectorAll('p.hint')].map((x) => x.textContent.trim()), nut: [...s.querySelectorAll('.sheet-foot button')].map((b) => b.textContent.trim()) }; })()");
+            assert.equal(hop.t, "Sửa cấp độ đại lý");
+            assert.ok(hop.hint.includes(CAU_GHI_DIEU_KIEN_CAP), `hộp có câu điều kiện nguyên văn (${JSON.stringify(hop.hint)})`);
+            assert.deepEqual(hop.nut.slice(0, 1), ["Huỷ"]);
+            await bocucSach(p, `bước 2s hộp ${kho}`);
+            await axeKiem(p, `hộp Sửa cấp độ đại lý ${kho}`);
+            await chup(p, `06s-hop-sua-cap-do-dai-ly-${tenKho}`, false);
+            assert.equal(await clickTrong(p, ".sheet .sheet-foot", "Huỷ"), true);
+            await choDongHop(p);
+            assert.equal(await p.ev("(window.__hhGhi ?? []).length"), ghiTruoc, "Huỷ không gửi yêu cầu ghi nào");
+          });
+
           await buoc(`3${kho}`, "Thẻ loại — «Đổi» dòng mức riêng: Từ = hôm nay → cũ ngừng hôm qua; Từ = hôm nay + 5 → cũ ngừng hôm nay + 4; «Tất cả» hiện dòng đã ngừng", async () => {
             await chuyenThe(p, "loai");
             await locLoai(p, "ap");
             await moDoi(p, R_B.id);
-            assert.match(await p.ev("document.querySelector('.sheet .hint[aria-live]').textContent"), /^Mức cũ .* sẽ ngừng, đến hết /);
+            assert.match(await cauHop(p, "Mức cũ"), /^Mức cũ .* sẽ ngừng, đến hết /);
             await p.ev(setInput("document.getElementById('hh-doi-ty-le')", "20"));
             await bocucSach(p, `bước 3a hộp Đổi ${kho}`);
             await axeKiem(p, `hộp Đổi ${kho}`);
@@ -1048,7 +1112,7 @@ try {
             await moDoi(p, R_C.id);
             await p.ev(setInput("document.getElementById('hh-doi-tu-ngay')", vnDate(5)));
             await p.ev(setInput("document.getElementById('hh-doi-ty-le')", "15"));
-            assert.match(await p.ev("document.querySelector('.sheet .hint[aria-live]').textContent"), /^Mức cũ .* sẽ ngừng, đến hết /);
+            assert.match(await cauHop(p, "Mức cũ"), /^Mức cũ .* sẽ ngừng, đến hết /);
             assert.equal(await clickTrong(p, ".sheet .sheet-foot", "Đổi mức"), true);
             await choOk(p, "Đã đổi mức.");
             await choDongHop(p);
@@ -1107,7 +1171,7 @@ try {
             await moDoi(p, R_H.id);
             assert.deepEqual(await p.ev("(() => { const t = document.getElementById('hh-doi-tu-ngay'); return { v: t.value, min: t.min }; })()"), { v: MAI, min: MAI }, "ô Từ mặc định và sớm nhất là ngày mai");
             assert.ok(await p.ev(`[...document.querySelectorAll('.sheet .hint')].some((x) => x.textContent.trim() === ${JSON.stringify(CAU_DOI_TU_NGAY_MAI)})`), "câu vì sao mức mới từ ngày mai");
-            assert.ok((await p.ev("document.querySelector('.sheet .hint[aria-live]').textContent")).endsWith(`đến hết ${ngayVi(HOM_NAY)}.`), "mức cũ ngừng hết hôm nay");
+            assert.ok(((await cauHop(p, "Mức cũ")) ?? "").endsWith(`đến hết ${ngayVi(HOM_NAY)}.`), "mức cũ ngừng hết hôm nay");
             await p.ev(setInput("document.getElementById('hh-doi-ty-le')", "25"));
             await bocucSach(p, `bước 5b hộp Đổi ${kho}`);
             await axeKiem(p, `hộp Đổi dòng bắt đầu hôm nay ${kho}`);
