@@ -792,3 +792,10 @@ test("cấp đã khoá: ô có mức chỉ còn «Ngừng», cột mang cờ kho
   for (const r of o.dong) assert.deepEqual(HT.viecDongMuc(r, { homNay: HOM_NAY, capDangBat: mt.cot[0]!.dangBat, ghi: true, sua: true }), ["NGUNG"]);
   assert.ok(mt.hang.find((x) => x.code === "S2")!.o[0]!.dong.length === 0 && mt.cot[0]!.dangBat === false, "ô trống của cấp khoá: giao diện kiểm cột dangBat nên là chữ thường");
 });
+
+test("ADR-0161: nhãn «Tính bằng» / «Áp cho» đúng từng chữ; câu nhắc giới hạn và dòng đếm hàng", () => {
+  assert.deepEqual([HT.NHAN_TINH_BANG, HT.NHAN_AP_CHO, HT.TINH_BANG_PHAN_TRAM, HT.TINH_BANG_SO_TIEN, HT.AP_CHO_CHUNG, HT.AP_CHO_THEO_LOAI], ["Tính bằng", "Áp cho", "Phần trăm", "Số tiền", "Mọi khách như nhau", "Riêng từng loại khách"]);
+  assert.equal(HT.cauGioiHanDangAp({ tranTyLeBp: 5000, buocTien: 1000 }), "Giới hạn đang áp: phần trăm không quá 50%; số tiền chia hết cho 1.000đ (không trả thì gõ 0).");
+  assert.equal(HT.cauGioiHanDangAp({ tranTyLeBp: 6050, buocTien: 500 }), "Giới hạn đang áp: phần trăm không quá 60,5%; số tiền chia hết cho 500đ (không trả thì gõ 0).");
+  assert.equal(HT.cauDemHangMaTran(3, 129), "Hiện 3 trong 129 hàng.");
+});

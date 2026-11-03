@@ -560,16 +560,38 @@ export function cauXemTruocGiaDaiLy(v: {
   return phan.length === 0 ? null : `Giá đại lý xem trước: ${phan.join(" · ")}`;
 }
 
+// ADR-0161 Đ2: bốn trục độc lập; «Tính bằng» và «Áp cho» là tập đóng (mỗi giá trị là một công thức). Chữ đúng từng chữ theo kế hoạch.
+export const NHAN_TINH_BANG = "Tính bằng";
+export const NHAN_AP_CHO = "Áp cho";
+export const TINH_BANG_PHAN_TRAM = "Phần trăm";
+export const TINH_BANG_SO_TIEN = "Số tiền";
+export const AP_CHO_CHUNG = "Mọi khách như nhau";
+export const AP_CHO_THEO_LOAI = "Riêng từng loại khách";
+/** Câu nhắc giới hạn nhập đang áp (hộp Thêm / Đổi / Sửa): hộp báo sớm, máy chủ vẫn kiểm lại và có thể đã đổi số (Toàn quyền vừa sửa). */
+export const cauGioiHanDangAp = (gh: { tranTyLeBp: number; buocTien: number }): string =>
+  `Giới hạn đang áp: phần trăm không quá ${nhanTyLeBp(gh.tranTyLeBp)}; số tiền chia hết cho ${nhanDong(gh.buocTien)}đ (không trả thì gõ 0).`;
+// Chữ của bảng nhập cấp × dịch vụ (ADR-0161 Đ1): thanh lọc, cột giá bán lẻ.
+export const NHAN_GIA_BAN_LE = "Giá bán lẻ";
+export const NHAN_TIM_HANG = "Tìm dịch vụ hoặc nhóm";
+export const NHAN_LOC_NHOM = "Lọc theo nhóm";
+export const NHAN_TAT_CA_NHOM = "Tất cả nhóm";
+export const NHAN_CON_THIEU = "Còn thiếu mức";
+/** Chú thích của ô «Còn thiếu mức» khi không tải được danh mục dịch vụ (không biết dịch vụ nào thiếu thì không lọc, như dải cảnh báo). */
+export const CAU_CON_THIEU_CHUA_KIEM = "Chưa kiểm được vì không tải được danh mục dịch vụ.";
+export const CAU_CHUA_CO_GIA = "Chưa có giá";
+/** Dòng đếm dưới bộ lọc của bảng nhập, để người dùng đọc màn hình biết lọc ra bao nhiêu hàng. */
+export const cauDemHangMaTran = (hien: number, tong: number): string => `Hiện ${hien} trong ${tong} hàng.`;
+
 /**
  * Cột của bảng «Mức của cấp»: «Tính bằng» (Phần trăm | Số tiền), «Áp cho» (Mọi khách như nhau | Riêng từng loại khách; phần trăm luôn «Mọi khách như nhau»), rồi mức người lớn (hoặc phần trăm) · trẻ em · người cao tuổi.
  * Không khai theo loại khách ⇒ hai cột sau «—» (không chép số người lớn sang). ADR-0161 Đ2: hai chữ thay cho «Cách tính».
  */
 export function cotMucCap(r: Pick<CommissionRuleDto, "kieu" | "tyLeBp" | "moiKhach" | "theoLoai">): { tinhBang: string; apCho: string; nguoiLon: string; treEm: string; nguoiCaoTuoi: string } {
-  if (r.kieu === "RATE") return { tinhBang: "Phần trăm", apCho: "Mọi khách như nhau", nguoiLon: nhanTyLeBp(r.tyLeBp ?? 0), treEm: "—", nguoiCaoTuoi: "—" };
+  if (r.kieu === "RATE") return { tinhBang: TINH_BANG_PHAN_TRAM, apCho: AP_CHO_CHUNG, nguoiLon: nhanTyLeBp(r.tyLeBp ?? 0), treEm: "—", nguoiCaoTuoi: "—" };
   const tien = (n: number): string => `${nhanDong(n)}đ`;
   return {
-    tinhBang: "Số tiền",
-    apCho: r.theoLoai ? "Riêng từng loại khách" : "Mọi khách như nhau",
+    tinhBang: TINH_BANG_SO_TIEN,
+    apCho: r.theoLoai ? AP_CHO_THEO_LOAI : AP_CHO_CHUNG,
     nguoiLon: tien(r.moiKhach ?? 0),
     treEm: r.theoLoai ? tien(r.theoLoai.treEm) : "—",
     nguoiCaoTuoi: r.theoLoai ? tien(r.theoLoai.nguoiCaoTuoi) : "—",

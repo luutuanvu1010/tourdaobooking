@@ -104,6 +104,16 @@ function docMucForm(f: { kieu: "RATE" | "PER_PAX"; tyLe: string; moiKhach: strin
   return treEm === null || nguoiCaoTuoi === null ? null : { kieu: "PER_PAX", moiKhach: r.dong, theoLoai: { treEm, nguoiCaoTuoi } };
 }
 
+/**
+ * Mức đang gõ dưới dạng số, CHỈ để xem trước giá đại lý trong hộp (ADR-0161): không phụ thuộc ngày hay đối tượng (xem trước vẫn hiện khi ngày chưa chọn). Ô chưa đọc được ⇒ null (không đoán).
+ * Phần trăm bỏ qua «riêng từng loại khách» (phần trăm luôn «mọi khách như nhau»). Dùng cùng `docMucForm` với thân gửi máy chủ nên hai nơi không lệch.
+ */
+export function docMucXemTruoc(f: { kieu: "RATE" | "PER_PAX"; tyLe: string; moiKhach: string } & FormTheoLoai): { kieu: "RATE" | "PER_PAX"; tyLeBp: number | null; moiKhach: number | null; theoLoai: { treEm: number; nguoiCaoTuoi: number } | null } | null {
+  const m = docMucForm(f, []);
+  if (m === null) return null;
+  return m.kieu === "RATE" ? { kieu: "RATE", tyLeBp: m.tyLeBp, moiKhach: null, theoLoai: null } : { kieu: "PER_PAX", tyLeBp: null, moiKhach: m.moiKhach, theoLoai: m.theoLoai ?? null };
+}
+
 export interface FormMuc extends FormPhamViNgay, FormTheoLoai {
   /** Áp cho một loại đối tác (mã vai) hoặc một đối tác cụ thể (mã hồ sơ); `null` = chưa chọn. */
   doiTuong: { loai: "VAI"; code: string } | { loai: "DOI_TAC"; partyId: string } | null;

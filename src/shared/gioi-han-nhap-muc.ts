@@ -17,6 +17,36 @@ export function viPhamGioiHanNhap(m: { tyLeBp: number | null; soTien: readonly n
   return null;
 }
 
+/** Mức đang nhập ở hộp, dạng thân gửi máy chủ (người lớn LUÔN ở `moiKhach`; `theoLoai` chỉ có khi «Riêng từng loại khách»). */
+export type MucNhap = { kieu: "RATE"; tyLeBp: number } | { kieu: "PER_PAX"; moiKhach: number; theoLoai?: { treEm: number; nguoiCaoTuoi: number } | null };
+/** Mức của một dòng đã có, khuôn DTO `CommissionRuleDto` (số người lớn ở `moiKhach`; `theoLoai` có thêm `nguoiLon` thì dư, không dùng). */
+export interface MucDongCu { kieu: "RATE" | "PER_PAX"; tyLeBp: number | null; moiKhach: number | null; theoLoai?: { treEm: number; nguoiCaoTuoi: number } | null }
+
+/** Số mới của MỘT mức theo khuôn `viPhamGioiHanNhap`: phần trăm (kiểu phần trăm), các số đồng (người lớn, rồi trẻ em và người cao tuổi nếu có). Khớp cách máy chủ gom ở `kiemSoMucMoi`. */
+export const soCuaMucNhap = (m: MucNhap): { tyLeBp: number | null; soTien: number[] } =>
+  m.kieu === "RATE" ? { tyLeBp: m.tyLeBp, soTien: [] } : { tyLeBp: null, soTien: [m.moiKhach, ...(m.theoLoai ? [m.theoLoai.treEm, m.theoLoai.nguoiCaoTuoi] : [])] };
+
+/** Số của mức mới khác số của dòng cũ? (kiểu, phần trăm, số người lớn, số theo loại — KHÔNG so ngày, ghi chú). Một bản cho trình duyệt của `cungMuc` ở máy chủ, chỉ để báo sớm. */
+export function mucKhacDongCu(cu: MucDongCu, moi: MucNhap): boolean {
+  if (cu.kieu !== moi.kieu) return true;
+  if (moi.kieu === "RATE") return cu.tyLeBp !== moi.tyLeBp;
+  if (cu.moiKhach !== moi.moiKhach) return true;
+  const a = cu.theoLoai ?? null, b = moi.theoLoai ?? null;
+  if (!a || !b) return Boolean(a) !== Boolean(b);
+  return a.treEm !== b.treEm || a.nguoiCaoTuoi !== b.nguoiCaoTuoi;
+}
+
+/**
+ * Báo SỚM ở hộp nhập (máy chủ vẫn quyết và đọc giới hạn mới nhất): `gh` null (chưa đọc được) ⇒ null. Có `cu` (hộp Sửa) mà số không đổi ⇒ null, để dòng cũ vượt giới hạn mới vẫn sửa được ngày
+ * (đúng route Sửa: chỉ kiểm khi `!cungMuc`). Thêm và Đổi không truyền `cu`: luôn kiểm số mới.
+ */
+export function baoSomGioiHan(gh: GioiHanNhap | null, moi: MucNhap, cu?: MucDongCu): string | null {
+  if (gh === null) return null;
+  if (cu !== undefined && !mucKhacDongCu(cu, moi)) return null;
+  const { tyLeBp, soTien } = soCuaMucNhap(moi);
+  return viPhamGioiHanNhap({ tyLeBp, soTien }, { tranTyLeBp: gh.tranTyLeBp, buocTien: gh.buocTien });
+}
+
 type Ket<T> = { ok: true; value: T } | { ok: false; message: string };
 const laSoNguyenTrong = (v: unknown, tu: number, den: number): v is number => typeof v === "number" && Number.isInteger(v) && v >= tu && v <= den;
 

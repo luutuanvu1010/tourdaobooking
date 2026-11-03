@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { MOI_KHACH_TOI_DA, docNgayDong, docThanDieuKhoan, docThanDongMucTa, docThanGan, docThanMuc, docTienMoiKhach, docTyLePhanTram, ngayDongMacDinh, type FormDieuKhoan, type FormDongMucTa, type FormMuc } from "./so-dai-ly-nhap.ts";
+import { MOI_KHACH_TOI_DA, docNgayDong, docThanDieuKhoan, docThanDongMucTa, docThanGan, docMucXemTruoc, docThanMuc, docTienMoiKhach, docTyLePhanTram, ngayDongMacDinh, type FormDieuKhoan, type FormDongMucTa, type FormMuc } from "./so-dai-ly-nhap.ts";
 
 test("docTyLePhanTram: dấu phẩy hoặc chấm, tối đa hai chữ số thập phân, 0…100", () => {
   assert.deepEqual(docTyLePhanTram("12,5"), { ok: true, bp: 1250 });
@@ -139,4 +139,16 @@ test("docThanGanRieng (Task 10): thân Đặt / Sửa cấp riêng { muc, tuNgay
   ]);
   const nguoc = docThanGanRieng({ partyId: "p1", muc: "MT_ABCDEFGH", tuNgay: "2026-10-30", denNgay: "2026-10-29" });
   assert.deepEqual(!nguoc.ok && nguoc.loi, [{ truong: "denNgay", message: "Ngày kết thúc không được trước ngày bắt đầu." }]);
+});
+
+// ADR-0161 Task 6: mức đang gõ → số để XEM TRƯỚC giá đại lý trong hộp (không cần ngày, không đoán khi ô chưa đọc được).
+test("docMucXemTruoc: phần trăm / số tiền / theo loại; ô chưa đọc được ⇒ null; phần trăm bỏ qua «riêng từng loại»", () => {
+  assert.deepEqual(docMucXemTruoc({ kieu: "RATE", tyLe: "18", moiKhach: "" }), { kieu: "RATE", tyLeBp: 1800, moiKhach: null, theoLoai: null });
+  assert.deepEqual(docMucXemTruoc({ kieu: "PER_PAX", tyLe: "", moiKhach: "100.000" }), { kieu: "PER_PAX", tyLeBp: null, moiKhach: 100_000, theoLoai: null });
+  assert.deepEqual(docMucXemTruoc({ kieu: "PER_PAX", tyLe: "", moiKhach: "100.000", theoLoai: true, treEm: "50.000", nguoiCaoTuoi: "0" }), { kieu: "PER_PAX", tyLeBp: null, moiKhach: 100_000, theoLoai: { treEm: 50_000, nguoiCaoTuoi: 0 } });
+  assert.equal(docMucXemTruoc({ kieu: "RATE", tyLe: "", moiKhach: "" }), null, "phần trăm chưa gõ");
+  assert.equal(docMucXemTruoc({ kieu: "RATE", tyLe: "abc", moiKhach: "" }), null);
+  assert.equal(docMucXemTruoc({ kieu: "PER_PAX", tyLe: "", moiKhach: "" }), null);
+  assert.equal(docMucXemTruoc({ kieu: "PER_PAX", tyLe: "", moiKhach: "100.000", theoLoai: true, treEm: "", nguoiCaoTuoi: "0" }), null, "riêng từng loại mà ô trẻ em trống: không đoán là 0");
+  assert.deepEqual(docMucXemTruoc({ kieu: "RATE", tyLe: "10", moiKhach: "", theoLoai: true, treEm: "5", nguoiCaoTuoi: "5" }), { kieu: "RATE", tyLeBp: 1000, moiKhach: null, theoLoai: null }, "phần trăm luôn «mọi khách như nhau»");
 });

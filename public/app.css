@@ -143,6 +143,10 @@
   --w-o-hep: 12rem;         /* Tạo đơn: bề rộng tối thiểu một ô nhãn nổi ở cột hẹp của form (ba / hai ô cạnh nhau tự xuống hàng) và bề rộng tối đa dòng ghi chú giá trong danh sách dịch vụ */
   --w-o-chon-mui: 5px;      /* Tạo đơn (vòng sửa 19/10): cạnh mỗi nửa mũi tên tự vẽ của ô chọn một có nhãn nổi — ô tự vẽ (appearance: none) vì Safari / iPhone bỏ đệm trên của ô chọn kiểu máy */
   --w-hh-loc: 14rem;        /* Hoa hồng đối tác / Người bán dịch vụ (sổ đại lý đợt 1 Task 10): bề rộng tối thiểu một ô lọc trên hàng lọc — hẹp hơn thì xuống dòng */
+  --h-hh-ma-tran: 70vh;     /* Hoa hồng đối tác — bảng nhập cấp × dịch vụ (ADR-0161, 3/11): chiều cao tối đa của khung cuộn; vượt thì cuộn TRONG khung (đầu cột và cột Dịch vụ dính), trang không dài thêm theo 129 hàng */
+  --w-hh-cot-dv: 14rem;     /* cột Dịch vụ của bảng nhập (dính bên trái khi cuộn ngang) */
+  --w-hh-cot-gia: 10rem;    /* cột Giá bán lẻ của bảng nhập */
+  --w-hh-cot-cap: 8rem;     /* mỗi cột cấp của bảng nhập */
   --tabbar-h: 56px;         /* thanh tab dưới đáy, chưa tính vùng an toàn */
   --h-trang-toi-thieu: calc(100vh + env(safe-area-inset-bottom)); /* trang có thanh tab luôn cao ≥ cả màn hình kể cả vùng vạch vuốt: iPhone (app cài ra màn hình chính) đặt thanh tab cao hơn đúng một vùng an toàn khi trang NGẮN hơn màn hình → thanh nhảy khi dữ liệu về (video của chủ dự án 2026-09-27) */
   --tab-icon: 36px;
@@ -4022,13 +4026,27 @@ a.bk-hang:hover, a.bk-the:hover { background: var(--c-soft-hover); }
    ≥ 900: ma trận đủ cột, cuộn ngang trong khung riêng (không cuộn cả trang); < 900 (gồm 641–899): chọn cấp bằng .tab-phu[data-kieu="vien"], bảng «Mức của cấp» xếp thành dòng.
    Nút việc: máy tính «Đổi» thấy sẵn + «⋯»; điện thoại chỉ «⋯». Chỉ token. Khối đứng TRƯỚC «Thành phần chung v2» (phần đó chép sang bộ v2) nên chọn lọc ghép lớp gốc (.bang., .nut., .tab-phu.) để thắng luật v2 khai sau. */
 .hh-cap-dau { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s2) var(--s3); }
-.hh-ma-tran-khung { max-width: 100%; min-width: 0; margin: var(--s2) 0; overflow-x: auto; border: 1px solid var(--c-border); border-radius: var(--radius-md); }
-.hh-ma-tran-khung[data-nhieu] .bang.hh-ma-tran { width: max-content; min-width: 100%; }
-.bang.hh-ma-tran td, .bang.hh-ma-tran td:last-child { text-align: left; white-space: normal; vertical-align: top; }
+/* Bảng NHẬP (ADR-0161 Đ1): khung cuộn hai chiều có chiều cao tối đa; đầu cột dính ở đỉnh khung, cột Dịch vụ dính bên trái (nền đặc để chữ cuộn qua không lộ); trang không cuộn ngang. */
+.hh-ma-tran-bang { min-width: 0; }
+.hh-ma-tran-loc .check { align-self: end; min-height: var(--tap-min); }
+.hh-ma-tran-khung { max-width: 100%; min-width: 0; max-height: var(--h-hh-ma-tran); margin: var(--s2) 0; overflow: auto; border: 1px solid var(--c-border); border-radius: var(--radius-md); }
+.bang.hh-ma-tran { width: max-content; min-width: 100%; }
+.bang.hh-ma-tran td, .bang.hh-ma-tran td:last-child { padding: var(--s1) var(--s2); text-align: left; white-space: normal; vertical-align: top; }
+.bang.hh-ma-tran th { padding: var(--s1) var(--s2); }
 .hh-ma-tran th { vertical-align: bottom; }
-.bang.hh-ma-tran th[scope="row"] { position: static; font-size: var(--fs-ui); color: var(--c-text); background: none; border-bottom: 1px solid var(--c-border); }
+.bang.hh-ma-tran th[scope="col"] { min-width: var(--w-hh-cot-cap); }
+.bang.hh-ma-tran thead th:first-child { left: 0; z-index: calc(var(--z-dinh) + 1); min-width: var(--w-hh-cot-dv); }
+.bang.hh-ma-tran th[scope="row"] { position: sticky; left: 0; z-index: var(--z-dinh); min-width: var(--w-hh-cot-dv); font-size: var(--fs-ui); font-weight: var(--fw-regular); color: var(--c-text); background: var(--c-surface); border-bottom: 1px solid var(--c-border); }
+.hh-ma-tran tr[data-pham-vi="ALL"] th[scope="row"], .hh-ma-tran tr[data-pham-vi="GROUP"] th[scope="row"] { font-weight: var(--fw-semibold); }
+.hh-ma-tran-nhom { display: block; font-size: var(--fs-label); font-weight: var(--fw-regular); color: var(--c-text-muted); }
+.hh-ma-tran .hh-gia { min-width: var(--w-hh-cot-gia); font-size: var(--fs-label); white-space: nowrap; }
 .hh-o-trong { color: var(--c-text-muted); }
-.hh-cot-cap { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--s1) var(--s2); min-height: var(--tap-min); padding: 0; font: inherit; font-weight: var(--fw-semibold); color: var(--c-primary); text-align: left; background: none; border: 0; cursor: pointer; }
+.hh-o-nut { display: block; width: 100%; min-height: var(--tap-min); padding: var(--s1) var(--s2); font: inherit; font-weight: var(--fw-semibold); color: var(--c-primary); text-align: left; background: none; border: 1px solid transparent; border-radius: var(--radius-sm); cursor: pointer; }
+.hh-o-them { font-weight: var(--fw-regular); color: var(--c-text-muted); text-align: center; border: 1px dashed var(--c-border); }
+.hh-o-nut:hover { background: var(--c-primary-soft); }
+.hh-o-nut:focus-visible { outline: var(--focus-ring) solid var(--c-focus); outline-offset: var(--vanh-cach); }
+.hh-xem-truoc { font-weight: var(--fw-semibold); color: var(--c-text); }
+.hh-cot-cap { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--s1) var(--s2); min-width: var(--tap-min); min-height: var(--tap-min); padding: 0; font: inherit; font-weight: var(--fw-semibold); color: var(--c-primary); text-align: left; background: none; border: 0; cursor: pointer; }
 .hh-cot-cap[aria-pressed="true"] { color: var(--c-primary-strong); text-decoration: underline; }
 .hh-cot-cap:focus-visible { outline: var(--focus-ring) solid var(--c-focus); outline-offset: var(--vanh-cach); }
 .hh-cap-cau { margin: var(--s1) 0; }

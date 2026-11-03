@@ -2,7 +2,7 @@
 // Task 2 thêm vế «vượt giá bán» (`mucVuotGiaBan`) vào cùng tệp luật.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { kiemThanGioiHan, mucVuotGiaBan, viPhamGioiHanNhap } from "./gioi-han-nhap-muc.ts";
+import { baoSomGioiHan, kiemThanGioiHan, mucKhacDongCu, mucVuotGiaBan, viPhamGioiHanNhap } from "./gioi-han-nhap-muc.ts";
 
 const GH = { tranTyLeBp: 5000, buocTien: 1000 };
 
@@ -77,4 +77,36 @@ test("dịch vụ tính theo nhóm / lượt: chỉ so số mỗi lượt với 
   assert.equal(mucVuotGiaBan({ unit: "per1Pax", gia: G, moiKhach: 9000000, theoLoai: null, ten: "X" }), null, "nhóm 1 khách không phải đơn vị hợp lệ");
   assert.equal(mucVuotGiaBan({ unit: "perPax", gia: { adult: null, child: null, senior: null }, moiKhach: 9000000, theoLoai: null, ten: "X" }), null, "chưa có giá nào");
   assert.equal(mucVuotGiaBan({ unit: "per5Pax", gia: { adult: null, child: null, senior: null }, moiKhach: 9000000, theoLoai: null, ten: "X" }), null, "nhóm chưa có giá");
+});
+
+// Task 6: hộp nhập báo sớm giới hạn ở trình duyệt (máy chủ vẫn quyết). Thêm và Đổi luôn kiểm số mới; Sửa chỉ kiểm khi SỐ đổi — để dòng cũ vượt giới hạn mới (Toàn quyền vừa hạ trần) vẫn sửa được ngày.
+test("baoSomGioiHan: số mới vượt trần hoặc lệch bước ⇒ câu của luật thuần; đúng giới hạn, hoặc 0 ⇒ null; chưa đọc được giới hạn ⇒ null", () => {
+  assert.equal(baoSomGioiHan(GH, { kieu: "RATE", tyLeBp: 5100 }), "Phần trăm không quá 50%.");
+  assert.equal(baoSomGioiHan(GH, { kieu: "RATE", tyLeBp: 5000 }), null);
+  assert.match(baoSomGioiHan(GH, { kieu: "PER_PAX", moiKhach: 123_456 })!, /chia hết cho 1\.000đ/);
+  assert.equal(baoSomGioiHan(GH, { kieu: "PER_PAX", moiKhach: 50_000, theoLoai: { treEm: 0, nguoiCaoTuoi: 30_000 } }), null, "0đ luôn nhận");
+  assert.match(baoSomGioiHan(GH, { kieu: "PER_PAX", moiKhach: 50_000, theoLoai: { treEm: 1_500, nguoiCaoTuoi: 0 } })!, /chia hết cho 1\.000đ/, "số theo loại cũng phải chia hết bước");
+  assert.equal(baoSomGioiHan(null, { kieu: "RATE", tyLeBp: 9999 }), null, "không đọc được giới hạn: máy chủ quyết");
+  assert.equal(baoSomGioiHan({ ...GH, tuLuc: "x" } as typeof GH, { kieu: "RATE", tyLeBp: 1 }), null, "nhận cả khuôn phản hồi có tuLuc");
+});
+
+test("baoSomGioiHan khi Sửa: số không đổi thì không kiểm (dòng cũ vượt giới hạn mới vẫn sửa được ngày); số đổi thì kiểm như thêm mới", () => {
+  const cuVuot = { kieu: "RATE" as const, tyLeBp: 6000, moiKhach: null, theoLoai: null };
+  assert.equal(baoSomGioiHan(GH, { kieu: "RATE", tyLeBp: 6000 }, cuVuot), null, "cùng số cũ, chỉ đổi ngày");
+  assert.equal(baoSomGioiHan(GH, { kieu: "RATE", tyLeBp: 6100 }, cuVuot), "Phần trăm không quá 50%.", "đổi số vượt trần");
+  const cuTien = { kieu: "PER_PAX" as const, tyLeBp: null, moiKhach: 123_456, theoLoai: { nguoiLon: 123_456, treEm: 7, nguoiCaoTuoi: 0 } };
+  assert.equal(baoSomGioiHan(GH, { kieu: "PER_PAX", moiKhach: 123_456, theoLoai: { treEm: 7, nguoiCaoTuoi: 0 } }, cuTien), null);
+  assert.match(baoSomGioiHan(GH, { kieu: "PER_PAX", moiKhach: 123_456, theoLoai: { treEm: 8, nguoiCaoTuoi: 0 } }, cuTien)!, /chia hết/, "đổi một số theo loại là số đổi");
+});
+
+test("mucKhacDongCu: cùng kiểu, cùng số, cùng số theo loại thì không khác (đúng cungMuc của máy chủ)", () => {
+  const rate = { kieu: "RATE" as const, tyLeBp: 1000, moiKhach: null, theoLoai: null };
+  assert.equal(mucKhacDongCu(rate, { kieu: "RATE", tyLeBp: 1000 }), false);
+  assert.equal(mucKhacDongCu(rate, { kieu: "RATE", tyLeBp: 1001 }), true);
+  assert.equal(mucKhacDongCu(rate, { kieu: "PER_PAX", moiKhach: 1000 }), true, "đổi kiểu là số đổi");
+  const tien = { kieu: "PER_PAX" as const, tyLeBp: null, moiKhach: 50_000, theoLoai: null };
+  assert.equal(mucKhacDongCu(tien, { kieu: "PER_PAX", moiKhach: 50_000 }), false);
+  assert.equal(mucKhacDongCu(tien, { kieu: "PER_PAX", moiKhach: 50_000, theoLoai: null }), false);
+  assert.equal(mucKhacDongCu(tien, { kieu: "PER_PAX", moiKhach: 50_000, theoLoai: { treEm: 0, nguoiCaoTuoi: 0 } }), true, "thêm số theo loại là số đổi");
+  assert.equal(mucKhacDongCu({ ...tien, theoLoai: { treEm: 0, nguoiCaoTuoi: 0 } }, { kieu: "PER_PAX", moiKhach: 50_000 }), true, "bỏ số theo loại là số đổi");
 });

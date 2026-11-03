@@ -1,6 +1,6 @@
 // Trang «Hoa hồng đối tác» (thiết kế lại, PR 2) — KHUNG: nạp dữ liệu, vẽ dải cảnh báo, chuyển hai thẻ «Các cấp đại lý» / «Loại đối tác», truyền dữ liệu cho các khối nội dung.
 // Thẻ «Loại đối tác» gồm hai vùng: `#hh-loai-ds` (danh sách các loại) và `#hh-loai-rieng` (khối «Riêng từng đối tác», từng là thẻ thứ ba; đặc tả dat-ve-doi-tac §4.3).
-// Gọi (chỉ đọc, ở đây): GET /api/pricing/hoa-hong (CommissionRuleListResponse), /api/pricing/muc-ta (MucTaListResponse), /api/pricing/loai-doi-tac (LoaiDoiTacListResponse), /api/catalog.
+// Gọi (chỉ đọc, ở đây): GET /api/pricing/hoa-hong (CommissionRuleListResponse), /api/pricing/muc-ta (MucTaListResponse), /api/pricing/loai-doi-tac (LoaiDoiTacListResponse), /api/catalog, /api/pricing/gioi-han-nhap (ADR-0161; lỗi ⇒ null).
 // Khối «Riêng từng đối tác» gọi thêm GET /api/pricing/ho-so/:id/hoa-hong khi mở một đối tác; hộp cấp riêng gọi GET /api/pricing/nguoi-huong (tìm đối tác) và ba route ghi cấp riêng.
 // Ẩn/hiện hỏi bảng quyền (`can`): xem = partner.commission.view, thêm mức = partner.commission.write; máy chủ kiểm lại (403 ⇒ «Bạn không có quyền xem trang này.»).
 // Trang không tính tiền, không chọn mức: số và lời từ máy chủ / luật thuần ở src/shared/hoa-hong-hien-thi.ts. Tra nhanh (đứng trên hai thẻ): web/hoa-hong-tra-nhanh.ts; dải: -dai.ts; hộp: -hop.ts. Thẻ «Các cấp đại lý» = -cap.ts (menu «⋯»: -menu.ts). Thẻ «Loại đối tác» = -loai.ts (vùng danh sách) + -doi-tac.ts (vùng «Riêng từng đối tác»).
@@ -33,6 +33,8 @@ export interface DuLieuHoaHong {
   dm: DanhMuc;
   /** Dịch vụ cho luật phủ mức; null khi danh mục lỗi (`dm.loi !== null`) ⇒ dải chỉ ghi «chưa kiểm được». */
   dichVuPhu: DichVuPhu[] | null;
+  /** Giới hạn nhập mức hiện hành (ADR-0161 Đ3) để hộp báo sớm; null khi không đọc được — không chặn trang, máy chủ vẫn kiểm. Nạp lại mỗi lần ghi xong, nên số Toàn quyền vừa đổi đến kịp lần mở hộp sau. */
+  gioiHan: Api.GioiHanNhapResponse | null;
   nguoiDung: PermissionHolder;
 }
 
@@ -174,16 +176,20 @@ function veTatCa(d: DuLieuHoaHong): void {
   veTheDoiTac(loaiRiengEl, d, moHop);
 }
 
+/** Giới hạn nhập: lỗi (mạng, 403, 503) thì null — hộp không báo sớm, máy chủ vẫn quyết. */
+const docGioiHan = (): Promise<Api.GioiHanNhapResponse | null> => api<Api.GioiHanNhapResponse>("/api/pricing/gioi-han-nhap").catch(() => null);
+
 /** Nạp lại dữ liệu có thể đổi sau khi ghi, rồi vẽ lại cả hai thẻ. */
 export async function napLai(): Promise<void> {
   if (!du) return;
   try {
-    const [ds, mucTa, loai] = await Promise.all([
+    const [ds, mucTa, loai, gioiHan] = await Promise.all([
       api<Api.CommissionRuleListResponse>("/api/pricing/hoa-hong"),
       api<Api.MucTaListResponse>("/api/pricing/muc-ta"),
       api<Api.LoaiDoiTacListResponse>("/api/pricing/loai-doi-tac"),
+      docGioiHan(),
     ]);
-    du = { ...du, homNay: ds.homNay, dong: ds.dong, vai: ds.vai, mucTa, loai: loai.loai };
+    du = { ...du, homNay: ds.homNay, dong: ds.dong, vai: ds.vai, mucTa, loai: loai.loai, gioiHan };
     veTatCa(du);
   } catch (err) {
     baoLoi(err);
@@ -194,13 +200,14 @@ async function main(): Promise<void> {
   const dangTai = h("p", { class: "muted", role: "status" }, "Đang tải…");
   noiDungEl.before(dangTai);
   try {
-    const [ds, dm, loai, mucTa] = await Promise.all([
+    const [ds, dm, loai, mucTa, gioiHan] = await Promise.all([
       api<Api.CommissionRuleListResponse>("/api/pricing/hoa-hong"),
       taiDanhMuc(),
       api<Api.LoaiDoiTacListResponse>("/api/pricing/loai-doi-tac"),
       api<Api.MucTaListResponse>("/api/pricing/muc-ta"),
+      docGioiHan(),
     ]);
-    du = { homNay: ds.homNay, dong: ds.dong, vai: ds.vai, mucTa, loai: loai.loai, ten: dm.ten, dm, dichVuPhu: dm.loi === null ? dm.dichVu.map((s) => ({ code: s.code, groupCode: s.groupCode, ten: s.name })) : null, nguoiDung: staff };
+    du = { homNay: ds.homNay, dong: ds.dong, vai: ds.vai, mucTa, loai: loai.loai, ten: dm.ten, dm, dichVuPhu: dm.loi === null ? dm.dichVu.map((s) => ({ code: s.code, groupCode: s.groupCode, ten: s.name })) : null, gioiHan, nguoiDung: staff };
     if (dm.loi) showError(errorEl, dm.loi);
   } catch (err) {
     dangTai.remove();
