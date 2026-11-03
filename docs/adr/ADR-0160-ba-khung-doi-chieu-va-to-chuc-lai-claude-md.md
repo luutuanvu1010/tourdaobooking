@@ -56,7 +56,7 @@ Chủ cần AI cân nhắc ba khung khi khuyên, không cần thêm một bộ l
 
 Hai chỗ AI tự chọn, chủ đọc và nhập ADR này là đồng ý, muốn khác thì sửa một dòng ở `CLAUDE.md` §2:
 
-- **Anthropic chỉ nêu khi việc là cách làm với AI.** Lời chủ có câu «Oracle và hoặc Anthropic và MWG», rồi hai câu sau chỉ còn Oracle, MWG, Kernel 18. Anthropic không có lời nào cho dữ liệu, quyền, tiền, nên bắt nêu ở mọi quyết định chỉ thêm chữ, không chặn lỗi nào.
+- **Anthropic chỉ nêu khi việc là cách làm với AI.** Lời chủ có câu «Oracle và hoặc Anthropic và MWG», rồi các lệnh sau chỉ còn Oracle, MWG, Kernel 18. Anthropic không có lời nào cho dữ liệu, quyền, tiền, nên bắt nêu ở mọi quyết định chỉ thêm chữ, không chặn lỗi nào.
 - **Câu «thêm thành phần hay thủ tục thì nên chỉ ra lỗi thật nó chặn» không phải của MWG.** MWG chỉ nói không sao chép quy mô. Câu này rút từ lời chủ 2026-10-05 («đi sâu vào giải quyết thủ tục hành chính, luật lệ đồ sộ»), nên để ở mức «nên» và ghi chưa phải luật. Tương tự, «quy trình bằng văn bản trước» và «lõi tự xây, phổ thông thì mua» mới là ý của MWG T4, Hiến chương chưa có điều nào; HC 5.13 chỉ nói thứ tự xây.
 
 ## Phương án bị loại

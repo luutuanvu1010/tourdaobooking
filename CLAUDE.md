@@ -1,6 +1,6 @@
 # CLAUDE.md — tourdao-sales
 
-> Đọc trước mỗi phiên. Đây là **lời khuyên cho AI, không phải cưỡng chế**; riêng các lệnh cấm ở §8 có thêm hàng rào máy. Chi tiết ở tài liệu được trỏ tới, không chép lại ở đây. Luật theo thư mục: `src/CLAUDE.md`, `web/CLAUDE.md`, bẫy theo vùng ở `src/modules/<tên>/CLAUDE.md` (chỉ tự nạp khi bạn ĐỌC tệp ở đó — làm việc bằng lệnh shell thì tự mở chúng; chỉ mục ở §10).
+> Đọc trước mỗi phiên. Đây là **lời khuyên cho AI, không phải cưỡng chế**; riêng các lệnh cấm ở §8 có thêm hàng rào máy. Chi tiết ở tài liệu được trỏ tới, không chép lại ở đây. Luật theo thư mục: `src/CLAUDE.md`, `web/CLAUDE.md`, bẫy theo vùng ở `src/modules/<tên>/CLAUDE.md` (cả ba chỉ tự nạp khi bạn ĐỌC tệp ở đó — làm việc bằng lệnh shell thì tự mở chúng; chỉ mục tệp con ở §10).
 > Hai nửa theo `playbook/FRAMEWORK.md` §4.6: **luật vận hành phiên** §2, §3, §4, §6, §9; **luật thi công** §5, §7, §8, §10. Cỡ tệp có bài kiểm canh (`src/claude-md-gioi-han.test.ts`): thêm chữ thì phải bớt chữ.
 
 ## 1. Dự án
@@ -29,7 +29,7 @@ Mỗi ADR, đặc tả và lời khuyên có chọn lựa chạm dữ liệu, qu
 - **Cấu hình:** điều hay đổi là dữ liệu có kiểu, có ngày hiệu lực, không sửa lõi; Oracle cho trường mở rộng tự do nhưng HC 5.2 cấm, HC thắng (Oracle 5).
 - **AI và tác vụ tự động:** có định danh riêng, đi qua cổng như người, không phải nguồn sự thật, không tự ra số tiền (Oracle 6; HC 5.11, 5.15). AI không tự viết, tự kiểm, tự duyệt, tự triển khai; con người giữ độc quyền quyết định chạm tiền, pháp lý, khách thật (báo cáo MWG Phần V; N8, P7).
 - **Trình tự và chủ sở hữu:** nền trước tính năng (HC 5.13), từng bước nhỏ (MWG T4); quy trình ngoài đời thống nhất bằng văn bản rồi mới viết mã, lõi tự xây, thứ phổ thông thì mua (MWG T4, chưa phải luật); mỗi bảng một module chủ, lý do nằm trong Git (MWG T5; HC 5.3; P5).
-- **Đúng quy mô:** sao chép nguyên lý, không sao chép quy mô (MWG; ~30 nhân viên, ~1000 đối tác, một người cùng AI). Thêm thành phần hay thủ tục thì nên chỉ ra lỗi thật nó chặn (chưa phải luật; lời chủ 2026-10-05, ADR-0160).
+- **Đúng quy mô:** sao chép nguyên lý, không sao chép quy mô (MWG; ~30 nhân viên, ~1000 đối tác, một người cùng AI). Thêm thành phần hay thủ tục thì nên chỉ ra lỗi thật nó chặn (chưa phải luật; rút từ lời chủ 2026-10-05, ADR-0160).
 - **Kernel 18** (tờ khai `docs/kernel-18.md`, định nghĩa ở kho luật gốc): đề xuất nói rõ chạm dòng nào; làm tờ khai sai thì sửa tờ khai cùng lần lưu.
 
 ## 3. Vai của AI (quan trọng nhất)

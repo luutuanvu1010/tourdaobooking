@@ -52,7 +52,7 @@ Dòng nào không có ở đây thì giữ nguyên văn ở bản mới hoặc t
 
 Đo ngày 2026-11-03, người thi công, trên bản đã sửa theo mục 5; người kiểm độc lập chạy lại riêng trên bản đầu.
 
-- **Cỡ `CLAUDE.md` gốc:** từ 30.638 byte, 4.571 từ xuống 27.594 byte, 4.122 từ (cùng đếm bằng `wc -w`), từ 130 lên 137 dòng. Đã bỏ khỏi gốc khoảng 6 KB bẫy theo vùng; đã thêm gần 3 KB khối ba khung và 0,7 KB câu trỏ, luật phiên, chỉ mục. Con số 24 KB ở đề xuất trước chưa tính khối ba khung. Trần mới 27.800 byte.
+- **Cỡ `CLAUDE.md` gốc:** từ 30.638 byte, 4.571 từ xuống 27.622 byte, 4.128 từ (cùng đếm bằng `wc -w`), từ 130 lên 137 dòng. Đã bỏ khỏi gốc khoảng 6 KB bẫy theo vùng; đã thêm gần 3 KB khối ba khung và 0,7 KB câu trỏ, luật phiên, chỉ mục. Con số 24 KB ở đề xuất trước chưa tính khối ba khung. Trần mới 27.800 byte.
 - **B2:** 118 dòng cũ có chữ, 104 dòng còn nguyên văn (98 ở gốc, 6 ở năm tệp con), 14 dòng khác, cả 14 có tên ở bảng mục 3.
 - **B5:** bốn phiên mới `claude -p` trên kho này, đọc mục `nested_memory` trong nhật ký phiên. Đọc tệp ở `src/modules/maintenance` bằng công cụ đọc: có tệp con. Đọc tệp ở `src/modules/feedback`: chỉ có `src/CLAUDE.md`. Chạy `head -3` một tệp ở `src/modules/maintenance`: có tệp con. Chạy `grep -rlc` trên `src/modules`: không có mục `nested_memory` nào. Ghi ở `RANG_BUOC_NGOAI.md` A4. Chưa thử phiên trên web.
 - **B1, B3, B4, B6:** 27 phép phá trên bản sao tạm, cả 27 đỏ đúng bài, hoàn nguyên xanh. Danh sách ở `docs/SO-HANG-RAO.md`.
@@ -76,3 +76,5 @@ Người kiểm độc lập, chỉ đọc, đọc bản đầu ngày 2026-11-03
 | M8 | Khối §2 và bảng tiêu chí là hai bản của một sự thật | Chấp nhận: §2 ghi rõ là bản rút, cả hai có bài kiểm trích dẫn |
 | M8 | `tro-ly-may/tho-san-loi/agent.md` chỉ dặn đọc hai tệp | Ghi `docs/BACKLOG.md` mục 62; phạm vi săn lỗi hôm nay chỉ về tiền nên chưa thiệt |
 | M9 | Hai chỗ trỏ §8 trong runbook có ngày | Không sửa: hồ sơ đóng băng, §8 vẫn đúng chủ đề |
+
+Người kiểm đọc lại lần sửa: **đạt**, rút lại điểm về `EXC-2026-001`. Ba chỗ chữ nhỏ còn sót đã sửa ở lần lưu kế: C15 ghi rõ hai nghĩa vụ chỉ có ở ADR-0160 chưa duyệt, trỏ đúng `KERNEL-18.md` mục 4; `CLAUDE.md` §2 ghi «rút từ lời chủ»; đầu tệp ghi «cả ba» cho khỏi đọc hẹp.

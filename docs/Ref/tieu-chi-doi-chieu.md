@@ -36,7 +36,7 @@ Mỗi ADR, đặc tả có một mục `## Đối chiếu`; lời khuyên có ch
 | C12 | Lõi nghiệp vụ tự xây, thứ phổ thông thì mua? | MWG T4 | chưa phải luật |
 | C13 | Mỗi bảng, mỗi năng lực dùng chung có một chủ; lý do nằm trong ADR, Git để người khác tiếp quản được? | MWG T5 | HC 5.3; P5, P9 |
 | C14 | Có đơn giản nhất mà vẫn giữ kỷ luật không (~30 nhân viên, ~1000 đối tác, một người cùng AI)? Thêm thành phần hay thủ tục thì chặn được lỗi thật nào đã xảy ra? | MWG điều không sao chép; vế «lỗi thật» từ lời chủ 2026-10-05, MWG không nói | ADR-0014 về quy mô; vế «lỗi thật» chưa phải luật |
-| C15 | Đề xuất chạm dòng nào của Kernel 18; làm tờ khai sai thì đã sửa tờ khai cùng lần lưu chưa? | Kernel 18 | ADR-0160 Đ3; `KERNEL-18.md` mục 2 ở kho luật gốc |
+| C15 | Đề xuất chạm dòng nào của Kernel 18; làm tờ khai sai thì đã sửa tờ khai cùng lần lưu chưa? | Kernel 18 | ADR-0160 Đ3 (đề xuất, chưa duyệt); nền: `KERNEL-18.md` mục 4 ở kho luật gốc, dòng chỉ đường |
 
 ## Chỗ các nguồn lệch nhau đã biết
 
