@@ -40,6 +40,7 @@ import {
   nhanMucDto,
   nhanNguoiBan,
   nhanPhamVi,
+  tenSauNhanDichVu,
   nhanTyLeMua,
   trangThaiDong,
 } from "./hoa-hong-hien-thi.ts";
@@ -65,6 +66,13 @@ test("nhanPhamVi: có tên thì in tên, thiếu tên thì in mã, «Mọi dịc
   assert.equal(nhanPhamVi({ phamVi: "SERVICE", catalogCode: "MA_LA", groupCode: null }, ten), "Dịch vụ MA_LA");
   assert.equal(nhanPhamVi({ phamVi: "GROUP", catalogCode: null, groupCode: "DTH" }, ten), "Nhóm Du thuyền");
   assert.equal(nhanPhamVi({ phamVi: "GROUP", catalogCode: null, groupCode: "TXE" }, ten), "Nhóm TXE");
+});
+
+test("tenSauNhanDichVu: sau nhãn «Dịch vụ» chỉ in tên (hoặc mã), không lặp chữ «Dịch vụ»; nhóm và mọi dịch vụ giữ chữ như nhanPhamVi", () => {
+  assert.equal(tenSauNhanDichVu({ phamVi: "SERVICE", catalogCode: "HONTAM", groupCode: null }, ten), "Hòn Tằm");
+  assert.equal(tenSauNhanDichVu({ phamVi: "SERVICE", catalogCode: "MA_LA", groupCode: null }, ten), "MA_LA");
+  assert.equal(tenSauNhanDichVu({ phamVi: "GROUP", catalogCode: null, groupCode: "DTH" }, ten), "Nhóm Du thuyền");
+  assert.equal(tenSauNhanDichVu({ phamVi: "ALL", catalogCode: null, groupCode: null }, ten), "Mọi dịch vụ");
 });
 
 test("nhanMucDto đổi khuôn DTO sang nhanMuc: phần trăm và đồng mỗi khách, không mã thô", () => {
@@ -801,4 +809,15 @@ test("ADR-0161: nhãn «Tính bằng» / «Áp cho» đúng từng chữ; câu n
   assert.equal(HT.cauGioiHanDangAp({ tranTyLeBp: 5000, buocTien: 1000 }), "Giới hạn đang áp: phần trăm không quá 50%; số tiền chia hết cho 1.000đ (không trả thì gõ 0).");
   assert.equal(HT.cauGioiHanDangAp({ tranTyLeBp: 6050, buocTien: 500 }), "Giới hạn đang áp: phần trăm không quá 60,5%; số tiền chia hết cho 500đ (không trả thì gõ 0).");
   assert.equal(HT.cauDemHangMaTran(3, 129), "Hiện 3 trong 129 hàng.");
+});
+
+test("oTrongKeTiep: ô vừa bấm biến khỏi bảng ⇒ ô trống kế tiếp theo thứ tự bảng cũ; không còn ô trống phía sau ⇒ null (về ô Tìm); ô lạ ⇒ null", () => {
+  const cu = ["c1|SERVICE|A", "c2|SERVICE|A", "c1|SERVICE|B", "c2|SERVICE|B", "c1|SERVICE|C"];
+  // hàng A vừa đủ mức nên rời bảng; hàng B còn ô trống ở cột c2; hàng C còn ô trống ở cột c1
+  assert.equal(HT.oTrongKeTiep(cu, "c1|SERVICE|A", new Set(["c2|SERVICE|B", "c1|SERVICE|C"])), "c2|SERVICE|B");
+  assert.equal(HT.oTrongKeTiep(cu, "c1|SERVICE|A", new Set(["c1|SERVICE|C"])), "c1|SERVICE|C");
+  assert.equal(HT.oTrongKeTiep(cu, "c1|SERVICE|C", new Set(["c2|SERVICE|B"])), null, "chỉ xét ô đứng SAU ô vừa bấm");
+  assert.equal(HT.oTrongKeTiep(cu, "c2|SERVICE|B", new Set()), null, "bảng hết ô trống");
+  assert.equal(HT.oTrongKeTiep(cu, "khong-co", new Set(["c1|SERVICE|C"])), null, "ô không có trong bảng cũ");
+  assert.equal(HT.oTrongKeTiep([], "c1|SERVICE|A", new Set(["c1|SERVICE|A"])), null);
 });

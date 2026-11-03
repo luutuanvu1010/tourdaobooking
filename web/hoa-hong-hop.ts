@@ -38,6 +38,7 @@ import {
   nhanDoiTuong,
   nhanMucDto,
   nhanPhamVi,
+  tenSauNhanDichVu,
 } from "../src/shared/hoa-hong-hien-thi";
 import { baoSomGioiHan, type GiaBanLe } from "../src/shared/gioi-han-nhap-muc";
 import type { PermissionHolder } from "../src/shared/permissions";
@@ -372,7 +373,7 @@ export function taoMoHop(ctx: NguCanhHop): MoHop {
     let dichVu: HTMLElement;
     let docDichVu: () => { phamVi: PhamViForm; catalogCode: string; groupCode: string };
     if (ph) {
-      dichVu = h("div", { class: "hh-pham-vi" }, h("p", null, h("span", { class: "hh-nhan-nho" }, "Dịch vụ"), h("strong", null, ph.phamVi === "SERVICE" ? `Dịch vụ ${ph.ten}` : ph.ten)), loi.dong("phamVi"));
+      dichVu = h("div", { class: "hh-pham-vi" }, h("p", null, h("span", { class: "hh-nhan-nho" }, "Dịch vụ"), h("strong", null, ph.ten)), loi.dong("phamVi"));
       docDichVu = () => ({ phamVi: ph.phamVi, catalogCode: ph.phamVi === "SERVICE" ? (ph.code ?? "") : "", groupCode: ph.phamVi === "GROUP" ? (ph.code ?? "") : "" });
     } else {
       const pv = h("select", { id: "hh-hop-pham-vi", "aria-label": "Dịch vụ" }, h("option", { value: "ALL" }, "Tất cả dịch vụ"), h("option", { value: "GROUP" }, "Một nhóm"), h("option", { value: "SERVICE" }, "Một dịch vụ"));
@@ -467,7 +468,7 @@ export function taoMoHop(ctx: NguCanhHop): MoHop {
       title: "Đổi mức",
       body: [
         h("p", null, h("span", { class: "hh-nhan-nho" }, "Ai được hưởng"), h("strong", null, ten.ten), " ", h("span", { class: "muted" }, ten.loai)),
-        h("p", null, h("span", { class: "hh-nhan-nho" }, "Dịch vụ"), h("strong", null, nhanPhamVi(dong, d.ten))),
+        h("p", null, h("span", { class: "hh-nhan-nho" }, "Dịch vụ"), h("strong", null, tenSauNhanDichVu(dong, d.ten))),
         ct.root,
         cauCu,
         ...(cauMai ? [h("p", { class: "hint" }, cauMai)] : []),
@@ -538,7 +539,7 @@ export function taoMoHop(ctx: NguCanhHop): MoHop {
       body: [
         h("p", { class: "hint", role: "status" }, h("strong", null, cauXemTruocSua(xt))),
         h("p", null, h("span", { class: "hh-nhan-nho" }, "Ai được hưởng"), h("strong", null, ten.ten), " ", h("span", { class: "muted" }, ten.loai)),
-        h("p", null, h("span", { class: "hh-nhan-nho" }, "Dịch vụ"), h("strong", null, nhanPhamVi(dong, d.ten))),
+        h("p", null, h("span", { class: "hh-nhan-nho" }, "Dịch vụ"), h("strong", null, tenSauNhanDichVu(dong, d.ten))),
         ct.root,
         cauCu,
         lyDo.root,

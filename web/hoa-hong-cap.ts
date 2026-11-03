@@ -41,6 +41,7 @@ import {
   nhanPhamVi,
   nhanSapAp,
   nhanViec,
+  oTrongKeTiep,
   thuTuMenu,
   trangThaiDong,
   viecDongMuc,
@@ -53,7 +54,7 @@ import { dichVuThieuCuaCap, phuMucCap } from "../src/shared/hoa-hong-phu-muc";
 import { can } from "../src/shared/permissions";
 import type { Api } from "./api";
 import { hoiXacNhan } from "./bang-truot";
-import { h, replaceChildren } from "./dom";
+import { h, replaceChildren, type Child } from "./dom";
 import type { DuLieuHoaHong } from "./hoa-hong";
 import { urlNgung } from "./hoa-hong-bang";
 import { dongMa, thamSuaCap, type MoHop } from "./hoa-hong-hop";
@@ -104,6 +105,8 @@ export function oViec(tenDong: string, viec: readonly Viec[], loai: "dong" | "ga
 }
 
 const khoaO = (cap: string, x: HangMaTran): string => `${cap}|${x.phamVi}|${x.code ?? ""}`;
+/** Chữ của ô ngắt được SAU dấu «/» («50.000đ/» rồi «khách») bằng `<wbr>` — không đổi chữ đọc ra (innerText, đọc màn hình); cột cấp hẹp nên «50.000đ/khách» không bị cắt giữa chữ «khách». */
+const ngatSauGach = (chu: string): Child[] => chu.split("/").flatMap((phan, i, ds): Child[] => (i < ds.length - 1 ? [`${phan}/`, h("wbr", null)] : [phan]));
 
 /**
  * Bảng NHẬP (khổ ≥ 900; ADR-0161 Đ1): hàng = «Mọi dịch vụ», nhóm, MỌI dịch vụ kèm giá bán lẻ; cột = từng cấp. Ô trống của cấp đang bật là nút «—» mở hộp «Thêm hoa hồng» đã điền sẵn cấp và hàng; ô có mức là
@@ -140,7 +143,7 @@ function veMaTran(mt: ReturnType<typeof maTranCap>, d: DuLieuHoaHong, mo: MoHop,
       return h("td", { class: "hh-o-trong" }, nut);
     }
     const viec = o.dong.flatMap((r, i) => viecDongMuc(r, { homNay: d.homNay, capDangBat: c.dangBat, ghi, sua }).map((v) => ({ r, v, nhan: o.nhan![i]! })));
-    const noiDung = o.nhan.map((n) => h("div", null, n));
+    const noiDung = o.nhan.map((n) => h("div", null, ...ngatSauGach(n)));
     if (viec.length === 0) return h("td", null, ...noiDung);
     const nut = h("button", { type: "button", class: "hh-o-nut", "data-o": khoa, "aria-haspopup": "dialog", "aria-label": `Đổi, sửa hoặc ngừng hoa hồng: ${tenO(c, x)} · ${o.nhan.join(" · ")}` }, ...noiDung);
     const nhieuDong = o.dong.length > 1;
@@ -370,13 +373,14 @@ function chiTietCap(m: Api.MucTaDto, d: DuLieuHoaHong, mo: MoHop): HTMLElement {
 }
 
 /** Vị trí cần giữ qua lần vẽ lại: cuộn cả trang, cuộn trong khung bảng, ô đang gõ (id, vùng chọn). Chỉ có khi thẻ đã vẽ ít nhất một lần. */
-interface ViTri { y: number; top: number; left: number; dangGo: { id: string; dau: number | null; cuoi: number | null } | null }
+interface ViTri { y: number; top: number; left: number; dangGo: { id: string; dau: number | null; cuoi: number | null } | null; oCu: string[] }
 function chupViTri(goc: HTMLElement): ViTri | null {
   if (goc.childElementCount === 0) return null;
   const khung = goc.querySelector<HTMLElement>(".hh-ma-tran-khung");
   const dang = document.activeElement;
   const dangGo = dang instanceof HTMLInputElement && dang.id !== "" && goc.contains(dang) ? { id: dang.id, dau: dang.selectionStart, cuoi: dang.selectionEnd } : null;
-  return { y: window.scrollY, top: khung?.scrollTop ?? 0, left: khung?.scrollLeft ?? 0, dangGo };
+  const oCu = [...goc.querySelectorAll<HTMLElement>("[data-o]")].map((e) => e.dataset.o ?? "");
+  return { y: window.scrollY, top: khung?.scrollTop ?? 0, left: khung?.scrollLeft ?? 0, dangGo, oCu };
 }
 function traViTri(goc: HTMLElement, v: ViTri | null): void {
   if (v !== null) {
@@ -389,7 +393,16 @@ function traViTri(goc: HTMLElement, v: ViTri | null): void {
   }
   let dich: HTMLElement | null = null;
   if (v?.dangGo) dich = [...goc.querySelectorAll<HTMLElement>("input")].find((e) => e.id === v.dangGo!.id) ?? null;
-  else if (oVuaBam !== null) dich = [...goc.querySelectorAll<HTMLElement>("[data-o]")].find((e) => e.dataset.o === oVuaBam) ?? null;
+  else if (oVuaBam !== null) {
+    const cacO = [...goc.querySelectorAll<HTMLElement>("[data-o]")];
+    dich = cacO.find((e) => e.dataset.o === oVuaBam) ?? null;
+    if (dich === null && v !== null) {
+      // Ô vừa bấm đã biến khỏi bảng (hàng vừa đủ mức khi bộ lọc «Còn thiếu mức» bật): sang ô trống kế tiếp, hết thì về ô Tìm — không để tiêu điểm rơi về đầu trang.
+      const tiep = oTrongKeTiep(v.oCu, oVuaBam, new Set(cacO.filter((e) => e.classList.contains("hh-o-them")).map((e) => e.dataset.o ?? "")));
+      const oTiep = tiep === null ? undefined : cacO.find((e) => e.dataset.o === tiep);
+      dich = oTiep ?? goc.querySelector<HTMLElement>("#hh-mt-tim");
+    }
+  }
   oVuaBam = null;
   if (!dich) return;
   dich.focus({ preventScroll: true });

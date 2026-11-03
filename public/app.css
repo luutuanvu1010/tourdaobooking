@@ -144,9 +144,9 @@
   --w-o-chon-mui: 5px;      /* Tạo đơn (vòng sửa 19/10): cạnh mỗi nửa mũi tên tự vẽ của ô chọn một có nhãn nổi — ô tự vẽ (appearance: none) vì Safari / iPhone bỏ đệm trên của ô chọn kiểu máy */
   --w-hh-loc: 14rem;        /* Hoa hồng đối tác / Người bán dịch vụ (sổ đại lý đợt 1 Task 10): bề rộng tối thiểu một ô lọc trên hàng lọc — hẹp hơn thì xuống dòng */
   --h-hh-ma-tran: 70vh;     /* Hoa hồng đối tác — bảng nhập cấp × dịch vụ (ADR-0161, 3/11): chiều cao tối đa của khung cuộn; vượt thì cuộn TRONG khung (đầu cột và cột Dịch vụ dính), trang không dài thêm theo 129 hàng */
-  --w-hh-cot-dv: 14rem;     /* cột Dịch vụ của bảng nhập (dính bên trái khi cuộn ngang) */
-  --w-hh-cot-gia: 10rem;    /* cột Giá bán lẻ của bảng nhập */
-  --w-hh-cot-cap: 8rem;     /* mỗi cột cấp của bảng nhập */
+  --w-hh-cot-dv: 11rem;     /* cột Dịch vụ của bảng nhập (dính bên trái khi cuộn ngang); tên dài xuống dòng trong ô */
+  --w-hh-cot-gia: 12rem;    /* cột Giá bán lẻ của bảng nhập; dòng giá dài như «Người cao tuổi 1.200.000đ» xuống dòng được */
+  --w-hh-cot-cap: 7.5rem;   /* mỗi cột cấp của bảng nhập: MỘT bề rộng cho mọi cột cấp (bảng bố cục cố định, nhãn dài xuống dòng trong ô); 6 cấp + hai cột đầu vừa khung ~1.100 px ở khổ 1440 */
   --tabbar-h: 56px;         /* thanh tab dưới đáy, chưa tính vùng an toàn */
   --h-trang-toi-thieu: calc(100vh + env(safe-area-inset-bottom)); /* trang có thanh tab luôn cao ≥ cả màn hình kể cả vùng vạch vuốt: iPhone (app cài ra màn hình chính) đặt thanh tab cao hơn đúng một vùng an toàn khi trang NGẮN hơn màn hình → thanh nhảy khi dữ liệu về (video của chủ dự án 2026-09-27) */
   --tab-icon: 36px;
@@ -4030,16 +4030,21 @@ a.bk-hang:hover, a.bk-the:hover { background: var(--c-soft-hover); }
 .hh-ma-tran-bang { min-width: 0; }
 .hh-ma-tran-loc .check { align-self: end; min-height: var(--tap-min); }
 .hh-ma-tran-khung { max-width: 100%; min-width: 0; max-height: var(--h-hh-ma-tran); margin: var(--s2) 0; overflow: auto; border: 1px solid var(--c-border); border-radius: var(--radius-md); }
-.bang.hh-ma-tran { width: max-content; min-width: 100%; }
-.bang.hh-ma-tran td, .bang.hh-ma-tran td:last-child { padding: var(--s1) var(--s2); text-align: left; white-space: normal; vertical-align: top; }
+/* Bố cục CỐ ĐỊNH: bề rộng cột lấy từ hàng đầu (token), nên một ô có nhãn dài («Riêng từng loại khách») không kéo rộng cả cột; nhãn xuống dòng trong ô. Tổng cột lớn hơn khung thì bảng rộng ra và khung cuộn ngang. */
+.bang.hh-ma-tran { table-layout: fixed; width: 100%; }
+.bang.hh-ma-tran td, .bang.hh-ma-tran td:last-child { padding: var(--s1) var(--s2); text-align: left; white-space: normal; overflow-wrap: break-word; vertical-align: top; }
 .bang.hh-ma-tran th { padding: var(--s1) var(--s2); }
-.hh-ma-tran th { vertical-align: bottom; }
-.bang.hh-ma-tran th[scope="col"] { min-width: var(--w-hh-cot-cap); }
-.bang.hh-ma-tran thead th:first-child { left: 0; z-index: calc(var(--z-dinh) + 1); min-width: var(--w-hh-cot-dv); }
-.bang.hh-ma-tran th[scope="row"] { position: sticky; left: 0; z-index: var(--z-dinh); min-width: var(--w-hh-cot-dv); font-size: var(--fs-ui); font-weight: var(--fw-regular); color: var(--c-text); background: var(--c-surface); border-bottom: 1px solid var(--c-border); }
+/* Căn dọc: đầu cột cùng một đường (giữa), tên dịch vụ / giá / ô mức cùng căn ĐỈNH; chữ dòng đầu của tên và giá dịch xuống nửa phần thừa của ô 44 px để thẳng với chữ trong nút ô. */
+.bang.hh-ma-tran thead th { vertical-align: middle; }
+.bang.hh-ma-tran tbody th, .bang.hh-ma-tran tbody td { vertical-align: top; }
+.bang.hh-ma-tran tbody th, .bang.hh-ma-tran td.hh-gia { padding-top: calc((var(--tap-min) - 1lh) / 2 + var(--s1)); }
+.bang.hh-ma-tran th[scope="col"] { width: var(--w-hh-cot-cap); }
+.bang.hh-ma-tran thead th:first-child { left: 0; z-index: calc(var(--z-dinh) + 1); width: var(--w-hh-cot-dv); }
+.bang.hh-ma-tran thead th:nth-child(2) { width: var(--w-hh-cot-gia); }
+.bang.hh-ma-tran th[scope="row"] { position: sticky; left: 0; z-index: var(--z-dinh); font-size: var(--fs-ui); font-weight: var(--fw-regular); color: var(--c-text); background: var(--c-surface); border-bottom: 1px solid var(--c-border); overflow-wrap: break-word; }
 .hh-ma-tran tr[data-pham-vi="ALL"] th[scope="row"], .hh-ma-tran tr[data-pham-vi="GROUP"] th[scope="row"] { font-weight: var(--fw-semibold); }
 .hh-ma-tran-nhom { display: block; font-size: var(--fs-label); font-weight: var(--fw-regular); color: var(--c-text-muted); }
-.hh-ma-tran .hh-gia { min-width: var(--w-hh-cot-gia); font-size: var(--fs-label); white-space: nowrap; }
+.hh-ma-tran .hh-gia { font-size: var(--fs-label); }
 .hh-o-trong { color: var(--c-text-muted); }
 .hh-o-nut { display: block; width: 100%; min-height: var(--tap-min); padding: var(--s1) var(--s2); font: inherit; font-weight: var(--fw-semibold); color: var(--c-primary); text-align: left; background: none; border: 1px solid transparent; border-radius: var(--radius-sm); cursor: pointer; }
 .hh-o-them { font-weight: var(--fw-regular); color: var(--c-text-muted); text-align: center; border: 1px dashed var(--c-border); }

@@ -47,6 +47,15 @@ export function nhanPhamVi(d: { phamVi: "SERVICE" | "GROUP" | "ALL"; catalogCode
 }
 
 /**
+ * Chữ đứng SAU nhãn «Dịch vụ» trong hộp (Đổi mức, Sửa mức): nhãn đã nói «Dịch vụ» nên một dịch vụ chỉ in tên (hoặc mã nếu thiếu tên), không lặp «Dịch vụ Tour thử 060».
+ * Nhóm vẫn «Nhóm …», «Mọi dịch vụ» giữ chữ của hàng ở bảng nhập. Chỗ nhãn không đứng trước (câu «Ngừng mức: …») vẫn dùng `nhanPhamVi`.
+ */
+export function tenSauNhanDichVu(d: { phamVi: "SERVICE" | "GROUP" | "ALL"; catalogCode: string | null; groupCode: string | null }, ten: TenDanhMuc): string {
+  if (d.phamVi === "SERVICE") return d.catalogCode === null ? "" : (ten.dichVu(d.catalogCode) ?? d.catalogCode);
+  return nhanPhamVi(d, ten);
+}
+
+/**
  * Mức của một dòng, từ DTO (`kieu/tyLeBp/moiKhach`) sang khuôn của `nhanMuc` (`kind/rateBp/perPax`): «12,5%» / «50.000đ/khách». Có `theoLoai` (ADR-0133) thì nêu đủ ba số,
  * ô khai 0 hiện «0đ»: «người lớn 50.000đ · trẻ em 30.000đ · người cao tuổi 0đ/khách».
  */
@@ -583,6 +592,17 @@ export const CAU_CON_THIEU_CHUA_KIEM = "Chưa kiểm được vì không tải �
 export const CAU_CHUA_CO_GIA = "Chưa có giá";
 /** Dòng đếm dưới bộ lọc của bảng nhập, để người dùng đọc màn hình biết lọc ra bao nhiêu hàng. */
 export const cauDemHangMaTran = (hien: number, tong: number): string => `Hiện ${hien} trong ${tong} hàng.`;
+/**
+ * Tiêu điểm sau khi ghi một ô của bảng nhập (ADR-0161 Đ1; Review Focus: nhập liên tiếp nhiều ô). Ô vừa bấm biến khỏi bảng (bộ lọc «Còn thiếu mức» đang bật, hàng vừa đủ mức) thì
+ * tiêu điểm sang ô TRỐNG kế tiếp: ô trống đầu tiên còn trong bảng mới, xét theo thứ tự ô của bảng CŨ kể từ sau ô vừa bấm (hàng rồi tới cột). Không có thì `null` (giao diện đưa về ô Tìm).
+ * `thuTuCu` = khoá `data-o` các ô của bảng cũ theo thứ tự trên màn; `conTrong` = khoá các ô trống bấm được của bảng mới.
+ */
+export function oTrongKeTiep(thuTuCu: readonly string[], vuaBam: string, conTrong: ReadonlySet<string>): string | null {
+  const i = thuTuCu.indexOf(vuaBam);
+  if (i === -1) return null;
+  for (let k = i + 1; k < thuTuCu.length; k++) if (conTrong.has(thuTuCu[k]!)) return thuTuCu[k]!;
+  return null;
+}
 
 /**
  * Cột của bảng «Mức của cấp»: «Tính bằng» (Phần trăm | Số tiền), «Áp cho» (Mọi khách như nhau | Riêng từng loại khách; phần trăm luôn «Mọi khách như nhau»), rồi mức người lớn (hoặc phần trăm) · trẻ em · người cao tuổi.
