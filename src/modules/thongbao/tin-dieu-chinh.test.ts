@@ -37,7 +37,7 @@ function don(w: W, tong = 500_000): string {
     VALUES (?, ?, 'HANDLE', ?, 'PENDING', ?, ?, NULL, ?, NULL)`).run(uuid(), id, `pty-${HDV}`, AT, AT, AT);
   return id;
 }
-type Tin = { loai: string; cau: string; lienKet: string | null; cuaToi: boolean; maDon: string | null };
+type Tin = { id: string; loai: string; cau: string; lienKet: string | null; cuaToi: boolean; maDon: string | null };
 const dieuChinh = async (w: W, as: string): Promise<Tin[]> => {
   const r = await w.call("GET", "/api/thong-bao?ngan=cua-toi", { as });
   assert.equal(r.status, 200, r.text);
@@ -127,29 +127,46 @@ async function doiSoDu(w: W, ai: string): Promise<string> {
   return String(w.q("SELECT order_code FROM orders WHERE id = ?", id)[0].order_code);
 }
 
-test("Đ5d (thay bài L-1 cũ): Đối tác và Tài xế đối tác NHẬN tin «số dư của bạn đổi» của chính mình — câu nhắc liên hệ văn phòng, liên kết /account; người khác không nhận", async () => {
+// Tài xế đối tác chỉ thấy mã đơn như một ngoại lệ có tên, trong khung thấy khách của chuyến họ chạy (ADR-0053 D7, ADR-0048 D2); ngoài khung đó họ «không thấy đơn hàng».
+// Nên tin số dư tới họ KHÔNG kèm mã đơn — ở cả câu lẫn trường maDon của DTO. ADR-0092 Đ5d chỉ đòi tin phải tới, câu không mã đơn thoả cả hai văn bản.
+const cauTaiXeDoiTac = "Số dư của bạn vừa được điều chỉnh — liên hệ văn phòng để biết chi tiết";
+const soDu = async (w: W, ai: string): Promise<Tin[]> => (await dieuChinh(w, ai)).filter((t) => /Số dư của bạn/.test(t.cau));
+
+test("Đ5d (thay bài L-1 cũ): Đối tác, Tài xế đối tác, Nhân sự NHẬN tin «số dư của bạn đổi» của chính mình — câu nhắc liên hệ văn phòng, liên kết /account, riêng Tài xế đối tác KHÔNG có mã đơn; người khác không nhận", async () => {
   const w = setup();
   const DT = "0d000000-0000-4000-8000-000000000007"; // Đối tác thuần
   const TX = "0d000000-0000-4000-8000-000000000009"; // Tài xế đối tác (đứng một mình)
+  const NS = "0d000000-0000-4000-8000-00000000000b"; // Nhân sự thuần (không có ô xem khoản của mình)
   const DT2 = "0d000000-0000-4000-8000-00000000000a"; // một Đối tác khác, không dính dòng điều chỉnh
   seedStaff(w.sqlite, { id: DT, phone: "0903000007", name: "Đối Tác", perms: ["PARTNER"] });
   seedStaff(w.sqlite, { id: TX, phone: "0903000009", name: "Tài Xế Đối Tác", perms: ["DRIVER_PARTNER"] });
+  seedStaff(w.sqlite, { id: NS, phone: "0903000011", name: "Nhân Sự", perms: ["HR"] });
   seedStaff(w.sqlite, { id: DT2, phone: "0903000010", name: "Đối Tác Khác", perms: ["PARTNER"] });
-  for (const ai of [DT, TX]) {
+  const tatCa = [DT, TX, NS, DT2, SALES, HDV, KT, KT2];
+  for (const ai of [DT, TX, NS]) {
+    const truoc = new Map<string, Tin[]>();
+    for (const a of tatCa) truoc.set(a, await soDu(w, a));
     const ma = await doiSoDu(w, ai);
-    // Phía phát tin ghi dòng nhật ký khoá đúng tài khoản Đối tác / Tài xế đối tác (taiKhoanCuaHoSo trả được tài khoản bên ngoài).
+    // Phía phát tin ghi dòng nhật ký khoá đúng tài khoản Đối tác / Tài xế đối tác / Nhân sự (taiKhoanCuaHoSo trả được mọi tài khoản có hồ sơ).
     const dong = w.q("SELECT target_type, target_id, staff_id FROM audit_log WHERE action = 'ledger_adjustment_affected' AND order_id = (SELECT id FROM orders WHERE order_code = ?)", ma) as { target_type: string; target_id: string; staff_id: string }[];
     assert.deepEqual(dong.map((x) => [x.target_type, x.target_id, x.staff_id]), [["staff", ai, KT2]], `nhật ký tin cho ${ai}`);
-    const ds = await dieuChinh(w, ai);
-    assert.equal(ds.length, 1, `${ai}: ${JSON.stringify(ds)}`);
-    assert.equal(ds[0]!.cau, cauNgoai(ma));
-    assert.equal(ds[0]!.lienKet, "/account");
-    assert.equal(ds[0]!.cuaToi, true);
-    assert.equal(ds[0]!.maDon, ma);
-    assert.doesNotMatch(ds[0]!.cau, /100\.000|khách gửi|Lan|Mai|Công ty/, "câu không chứa số tiền, lý do, tên bên nợ, tên người làm");
-    // Người không phải bên bị đổi: Đối tác khác, tài khoản còn lại của hai bên, Bán hàng, người làm việc (HDV) — không ai nhận tin «số dư của bạn».
-    for (const khac of [DT, TX, DT2, SALES, HDV].filter((x) => x !== ai)) assert.deepEqual((await dieuChinh(w, khac)).filter((t) => t.maDon === ma), [], `${khac} không phải bên bị đổi`);
-    for (const khac of [KT, KT2]) assert.deepEqual((await dieuChinh(w, khac)).filter((t) => t.maDon === ma && /Số dư của bạn/.test(t.cau)), [], `${khac} (người tạo / người duyệt) không nhận tin số dư`);
+    const daCo = new Set(truoc.get(ai)!.map((x) => x.id));
+    const moi = (await soDu(w, ai)).filter((x) => !daCo.has(x.id));
+    assert.equal(moi.length, 1, `${ai}: ${JSON.stringify(moi)}`);
+    const t = moi[0]!;
+    assert.equal(t.lienKet, "/account");
+    assert.equal(t.cuaToi, true);
+    if (ai === TX) {
+      assert.equal(t.cau, cauTaiXeDoiTac);
+      assert.equal(t.maDon, null, "DTO không được lộ mã đơn cho Tài xế đối tác");
+      assert.ok(!JSON.stringify(t).includes(ma), "không chỗ nào trong tin chứa mã đơn");
+    } else {
+      assert.equal(t.cau, cauNgoai(ma));
+      assert.equal(t.maDon, ma);
+    }
+    assert.doesNotMatch(t.cau, /100\.000|khách gửi|Lan|Mai|Công ty/, "câu không chứa số tiền, lý do, tên bên nợ, tên người làm");
+    // Người không phải bên bị đổi (Đối tác khác, các tài khoản bên ngoài còn lại, Bán hàng, HDV, người tạo, người duyệt): số tin «Số dư của bạn» không đổi.
+    for (const khac of tatCa.filter((x) => x !== ai)) assert.equal((await soDu(w, khac)).length, truoc.get(khac)!.length, `${khac} không phải bên bị đổi, không được nhận tin số dư`);
   }
 });
 

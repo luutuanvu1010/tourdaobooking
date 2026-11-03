@@ -78,15 +78,23 @@ test("ADR-0092 Đ5d / ADR-0115 điều 5: «số dư của bạn đổi» tới 
   const xem = (staff: ReturnType<typeof ai>, d: DongDieuChinh[]) => locHopThongBao(staff, { don: [], thuCong: [], dieuChinh: d, docDenLuc: "2026-09-26T00:00:00.000Z", now: NOW, ngan: "cua-toi" }).tin;
   const CAU_NGOAI = "Số dư của bạn trên đơn TD-20260927-0001 vừa được điều chỉnh — liên hệ văn phòng để biết chi tiết";
   const CAU_NOI_BO = "Số dư của bạn trên đơn TD-20260927-0001 vừa được điều chỉnh";
-  // Đối tác thuần và Tài xế đối tác: không xem được sổ của mình ⇒ câu nhắc liên hệ văn phòng; liên kết /account (không phải trang văn phòng).
-  const tx = ai("tx", "DRIVER_PARTNER");
-  for (const [staff, mucId] of [[BX, "bx"], [tx, "tx"]] as const) {
+  // Tài xế đối tác chỉ thấy mã đơn trong khung thấy khách của chuyến họ chạy (ADR-0053 D7, ADR-0048 D2) ⇒ tin số dư của họ KHÔNG có mã đơn, cả câu lẫn trường maDon.
+  const CAU_TAI_XE_DOI_TAC = "Số dư của bạn vừa được điều chỉnh — liên hệ văn phòng để biết chi tiết";
+  // Đối tác thuần và Nhân sự thuần: không xem được sổ của mình ⇒ câu nhắc liên hệ văn phòng, CÓ mã đơn; liên kết /account (không phải trang văn phòng).
+  for (const [staff, mucId] of [[BX, "bx"], [ai("ns", "HR"), "ns"]] as const) {
     const t = xem(staff, [dc({ mucId })]);
     assert.deepEqual(t.map((x) => x.cau), [CAU_NGOAI], staff.id);
+    assert.equal(t[0]!.maDon, "TD-20260927-0001");
     assert.equal(t[0]!.lienKet, "/account");
     assert.equal(t[0]!.cuaToi, true);
     assert.ok(!JSON.stringify(t).includes("Hà Kế Toán"), "không tên người làm");
   }
+  const tx = xem(ai("tx", "DRIVER_PARTNER"), [dc({ mucId: "tx" })]);
+  assert.deepEqual(tx.map((x) => x.cau), [CAU_TAI_XE_DOI_TAC]);
+  assert.equal(tx[0]!.maDon, null, "DTO không lộ mã đơn cho Tài xế đối tác");
+  assert.ok(!JSON.stringify(tx).includes("TD-20260927-0001"), "không chỗ nào trong tin chứa mã đơn");
+  assert.equal(tx[0]!.lienKet, "/account");
+  assert.equal(tx[0]!.cuaToi, true);
   // Tài khoản lai Bán hàng + Đối tác có ô xem khoản của mình (ledger.view own) ⇒ giữ câu nội bộ; liên kết /order.
   const lai = xem(LAI, [dc({ mucId: "lai" })]);
   assert.deepEqual(lai.map((x) => x.cau), [CAU_NOI_BO]);

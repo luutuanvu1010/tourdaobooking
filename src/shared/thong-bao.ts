@@ -320,8 +320,10 @@ export function locHopThongBao(
     const rieng = d.mucLoai === "staff" && d.mucId === staff.id && d.action !== "ledger_adjustment_requested" && d.action !== "ledger_adjustment_withdrawn";
     const cau = CAU_DIEU_CHINH[d.action];
     if (!cau || !(cho ? duyetDuoc : rieng)) continue;
+    // Tài xế đối tác chỉ thấy mã đơn như một ngoại lệ có tên, trong khung thấy khách của chuyến họ chạy (ADR-0053 D7, ADR-0048 D2): tin số dư của họ KHÔNG kèm mã đơn, cả câu lẫn `maDon`.
+    const anMaDon = d.action === "ledger_adjustment_affected" && hasPermission(staff, "DRIVER_PARTNER");
     tat.push({
-      id: d.id, loai: "dieu_chinh", cau: d.action === "ledger_adjustment_affected" && !xemKhoanMinh ? `Số dư của bạn trên đơn ${d.maDon} vừa được điều chỉnh — liên hệ văn phòng để biết chi tiết` : d.tenNguoiLam !== null && xemTenNguoiLam(staff) ? cau.coTen(d.tenNguoiLam, d.maDon) : cau.khongTen(d.maDon), maDon: d.maDon, noiDung: null, nguoiGui: null, nhomNhan: null, quanTrong: false, daHieuLuc: null,
+      id: d.id, loai: "dieu_chinh", cau: anMaDon ? "Số dư của bạn vừa được điều chỉnh — liên hệ văn phòng để biết chi tiết" : d.action === "ledger_adjustment_affected" && !xemKhoanMinh ? `Số dư của bạn trên đơn ${d.maDon} vừa được điều chỉnh — liên hệ văn phòng để biết chi tiết` : d.tenNguoiLam !== null && xemTenNguoiLam(staff) ? cau.coTen(d.tenNguoiLam, d.maDon) : cau.khongTen(d.maDon), maDon: anMaDon ? null : d.maDon, noiDung: null, nguoiGui: null, nhomNhan: null, quanTrong: false, daHieuLuc: null,
       lienKet: (cho || can(staff, "ledger.write")) && !holdsPartner(staff) ? "/dieu-chinh-cong-no" : isOffice(staff) ? "/order" : "/account", luc: d.luc, cuaToi: true, chuaDoc: d.luc > vao.docDenLuc, mo: false,
     });
   }
