@@ -18,7 +18,7 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // Phân định trách nhiệm sau «Đã giao» (ADR-0116, TNV-G3) và cảnh báo khoản thu giống nhau (ADR-0092 Đ6a, TNV-G4). Có migration 0135; thêm hai ô quyền attribution.request, attribution.decide.
-    // Cùng bản: Khách đặt cọc trước (ADR-0159, migration 0136). Chỉ phát hành sau khi diễn tập khôi phục HC-5.19 (ADR-0159).
+    // Cùng bản: Khách đặt cọc trước (ADR-0159, migration 0136). Lên 3/11 trước diễn tập khôi phục HC-5.19, do chủ dự án quyết; xem docs/HANDOFF-N1.md.
     // Cùng bản: Chính sách chiết khấu bốn trục (ADR-0161, migration 0137, không thêm ô quyền, công thức hoa hồng và sổ không đổi).
     // Số 2.58 và ngày chỉ là tạm cho nhánh: bước A.0 của lần triển khai đặt lại nếu cần.
     version: "2.58",
