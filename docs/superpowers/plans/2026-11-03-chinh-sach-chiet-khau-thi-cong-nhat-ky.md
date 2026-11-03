@@ -15,7 +15,7 @@ Kế hoạch: `2026-11-03-chinh-sach-chiet-khau-bon-truc.md`. Quyết định: A
 | Task 7 Bỏ lối vai trò, chữ | Xanh | xong 3/11, chờ người kiểm độc lập (chưa thử Chrome hộp «Thêm mức riêng cho đối tác») |
 | Task 8 Trang giới hạn | Xanh | xong 3/11: nhóm bài menu, PWA, gói trang, hỏi bảng quyền xanh; kịch bản `gioi-han-smoke.mjs` (bản đầu) 9/9 bước xanh; chờ người kiểm độc lập |
 | Task 9 Tài liệu, bộ kiểm dài | Mọi bộ xanh, có ảnh ba khổ | xong 3/11 (lần giao 3), chờ người kiểm độc lập: `npm run typecheck` 0 lỗi; `npm test` bước 1 = 7.566 bài (7.561 xanh, 4 todo, **1 đỏ** `K-A-3 (2)` do lời gọi `hoaHongDong(` mới ở `hoa-hong-hien-thi.ts` chưa vào danh sách đã rà; sửa danh sách, chạy lại riêng tệp đó 7/7 xanh, KHÔNG chạy lại cả bộ), 339 giây; bước 2 (đo giờ hook) 1/1 xanh; e2e `muc-ta` `so-dai-ly` `so-dai-ly-dot-2`: 6/6 xanh, 72 giây, `audit-invariants --strict` thoát 0 (1 cảnh báo cũ R-CTL-1, 4 dịch vụ chưa phân nhóm); Chrome (axe CÓ chạy, không dòng «BỎ QUA axe»): `bang-nhap-smoke.mjs` 23/23 (390, 1040, 1440), `gioi-han-smoke.mjs` 10/10, `hoa-hong-smoke.mjs` 59/59 (390 + 1040), `a2-smoke-form.mjs` OK (kịch bản này không dùng axe); ảnh ba khổ ở `docs/evidence/2026-11-03-chiet-khau-bon-truc/anh/` |
-| Người kiểm độc lập | Không còn lỗi Cao, Trung | ĐẠT 3/11, không lỗi Cao; hai điểm Trung đã sửa, chờ người kiểm xác nhận |
+| Người kiểm độc lập | Không còn lỗi Cao, Trung | ĐẠT 3/11: lượt đọc cả nhánh ở `2a479344` không có lỗi Cao, hai điểm Trung; hai điểm đó sửa ở `f54f8f55`, người kiểm xác nhận lại ĐẠT ở `df6117dd` |
 
 ## Bằng chứng quan sát chặn thật
 
@@ -133,3 +133,13 @@ Việc còn lại / chưa kiểm, nói thẳng:
 - Hộp «＋ Thêm hoa hồng cho dịch vụ» ở ô «Cấp Gỗ» còn một khoảng trống dưới «Ai được hưởng» (bề mặt, ngoài phạm vi, chưa sửa).
 - Quản trị / Toàn quyền bấm ô nhập bằng Chrome và bước H-Đối tác chưa phá thử riêng (nêu ở trên).
 - Cổng vượt giá bán bỏ qua dịch vụ đang ẩn (điều phối tự chọn).
+
+## Kết luận người kiểm độc lập và việc còn lại (3/11, cuối)
+
+Lượt đọc cả nhánh: `npm test` 7.566 bài, 7.562 đạt, 0 đỏ, 4 todo. Lượt xác nhận đợt sửa: bài liên quan 443/443, `bang-nhap-smoke` khổ 1440 đạt kèm axe, phá vế `WHERE` đỏ 15/15 khi chạy cả tệp. Người thi công đợt sửa: `npm test` 7.574 bài, 7.570 đạt, 0 đỏ, 4 todo; `bang-nhap-smoke` 25/25; `hoa-hong-smoke` 59/59. Mục nhật ký thay đổi thêm vào bản 2.58 sau đó do điều phối viết, chỉ chữ, không qua người kiểm.
+
+**Nợ Thấp thêm từ lượt xác nhận, không sửa:** ô «Kiểm tra hoa hồng», câu nguồn của mức, phần đơn và nhật ký còn ghi «/khách» với dịch vụ theo lượt; cột Mức ở bảng dòng của cấp không có đuôi; ô hàng nhóm và «Mọi dịch vụ» chỉ ghi «/khách», câu gợi ý nằm trong hộp; đổi dịch vụ ngay trong hộp tự chọn chỉ đọc mã, chưa thử Chrome; e2e không chạy lại sau đợt sửa; chưa thử iPhone thật.
+
+**Kiểm định `R-ORD-DC1` trên production CHƯA CHẠY được trước khi triển khai:** `node scripts/audit-invariants.mjs --db remote` thoát 2, không có lời báo lỗi. Suy luận (chưa tái hiện riêng): câu kiểm đọc bảng `bil_attribution` của migration `0135`, mà `wrangler d1 migrations list --remote` cho thấy `0135`, `0136`, `0137` chưa áp. Kiểm định sẽ chạy tự động ở bước sau deploy của `npm run trien-khai`; lần đó phải đọc dòng `R-ORD-DC1` (ADR-0161 phần Hệ quả).
+
+**Điều phối tự chọn, chủ được báo ở báo cáo cuối:** giữ chỗ gọi `hoaHongDong` thêm vào `GOI_HAM` (người kiểm kết luận không phải công thức thứ hai); giữ trần gói trang Đơn hàng 103.523 (chênh so với `main` +284 nằm ở dữ liệu điều hướng); cổng vượt giá bỏ qua dịch vụ đang ẩn; cảnh báo sau xác nhận giữ số gốc.

@@ -19,6 +19,7 @@ export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // Phân định trách nhiệm sau «Đã giao» (ADR-0116, TNV-G3) và cảnh báo khoản thu giống nhau (ADR-0092 Đ6a, TNV-G4). Có migration 0135; thêm hai ô quyền attribution.request, attribution.decide.
     // Cùng bản: Khách đặt cọc trước (ADR-0159, migration 0136). Chỉ phát hành sau khi diễn tập khôi phục HC-5.19 (ADR-0159).
+    // Cùng bản: Chính sách chiết khấu bốn trục (ADR-0161, migration 0137, không thêm ô quyền, công thức hoa hồng và sổ không đổi).
     // Số 2.58 và ngày chỉ là tạm cho nhánh: bước A.0 của lần triển khai đặt lại nếu cần.
     version: "2.58",
     date: "2026-11-02",
@@ -32,6 +33,10 @@ export const CHANGELOG: readonly ReleaseNote[] = [
       { kind: "moi", text: "Sửa khoản thu đã ghi: người thu cũ và người thu mới đều nhận tin báo." },
       { kind: "moi", text: "Khoản thu tiền mặt cùng số, cùng ngày trên một đơn hoặc mã giao dịch đã gắn ở đơn khác: Nền tảng hỏi lại, vẫn ghi được khi có lý do." },
       { kind: "doi", text: "Đơn đã giao có giảm trừ theo phân định: số phải thu trên đơn đã trừ phần này và ghi rõ một dòng." },
+      { kind: "moi", text: "Trang Hoa hồng đối tác có bảng nhập: mỗi hàng là một dịch vụ kèm giá bán lẻ, mỗi cột là một cấp đại lý. Bấm vào ô để nhập mức, chọn «Tính bằng» và «Áp cho»." },
+      { kind: "moi", text: "Toàn quyền đổi được phần trăm tối đa và bước tiền khi nhập hoa hồng; mức đã có và đơn đã xác nhận giữ nguyên.", bai: { id: "viec/gioi-han-nhap-hoa-hong", ten: "Đổi giới hạn nhập hoa hồng" } },
+      { kind: "doi", text: "Hoa hồng một dịch vụ không nhập được lớn hơn giá bán. Đơn có hoa hồng vượt thành tiền hiện lời nhắc Kế toán xem lại; dòng đó không làm tăng mức giảm giá tối đa." },
+      { kind: "doi", text: "Vai trò nay đi theo cấp đại lý: màn hình không còn lối thêm mức riêng cho vai trò. Mức riêng đã có vẫn Đổi, Sửa, Ngừng được." },
     ],
   },
   {
