@@ -10,6 +10,8 @@ type Lib = {
   conChoTrong: (devText: string) => string[];
   lenDev: (d: any) => Promise<number>;
   docCommitDev: (goi?: any) => Promise<string | null>;
+  lenChinhThuc: (d: any) => Promise<number>;
+  chiDoiTaiLieu: (ten: string[]) => boolean;
 };
 const lib = (await import(new URL("../scripts/moi-truong-lib.mjs", import.meta.url).href)) as Lib;
 
@@ -327,4 +329,115 @@ test("docCommitDev: null khi lỗi mạng, không phải JSON, mã sai khuôn, m
   assert.equal(await lib.docCommitDev(async () => ({ ok: true, json: async () => ({ commit: "abc" }) })), null);
   assert.equal(await lib.docCommitDev(async () => ({ ok: true, json: async () => ({ commit: MA.toUpperCase() }) })), null);
   assert.equal(await lib.docCommitDev(async () => ({ ok: false, json: async () => ({ commit: MA }) })), null);
+});
+
+// ─────────────────────────── lenChinhThuc (Task 5) ───────────────────────────
+test("chiDoiTaiLieu: đúng khi mọi tệp là docs/, .claude/ hoặc .md ngoài public/; sai ở các trường hợp còn lại", () => {
+  assert.equal(lib.chiDoiTaiLieu(["docs/a.md", ".claude/x.json", "README.md", "docs/adr/b.md"]), true);
+  for (const t of ["src/x.ts", "public/a.md", "migrations/x.sql", "scripts/x.mjs"]) assert.equal(lib.chiDoiTaiLieu(["docs/a.md", t]), false, t);
+  assert.equal(lib.chiDoiTaiLieu([]), false);
+});
+
+const NH = "worktree-x";
+const GOC = "c".repeat(40);
+function chayChinh(over: Record<string, KQ | KQ[]> = {}, o: { isTTY?: boolean; target?: string | undefined; ma?: string | null; tep?: string } = {}) {
+  const script: Record<string, KQ | KQ[]> = {
+    [`git rev-parse ${NH}`]: kq(MA + "\n"),
+    [`git diff --name-only main...${NH}`]: kq(o.tep ?? "src/a.ts\n"),
+    [`npm run day-len -- ${NH}`]: kq(),
+    "git rev-parse main": kq(MA + "\n"),
+    "git rev-parse origin/main": kq(MA + "\n"),
+    "npm run trien-khai": kq(),
+    ...over,
+  };
+  const calls: string[] = [];
+  const stream: Record<string, unknown> = {};
+  const lines: string[] = [];
+  let docMa = 0;
+  const deps = {
+    isTTY: o.isTTY ?? true,
+    target: "target" in o ? o.target : NH,
+    log: (l: string) => lines.push(l),
+    docCommitDev: async () => { docMa++; return o.ma === undefined ? MA : o.ma; },
+    run: (cmd: string, args: string[], opts?: { stream?: boolean }) => {
+      const k = `${cmd} ${args.join(" ")}`;
+      calls.push(k);
+      stream[k] = opts?.stream;
+      const r = script[k];
+      if (!r) throw new Error(`lệnh ngoài kịch bản: ${k}`);
+      return r as KQ;
+    },
+  };
+  return { deps, calls, stream, text: () => lines.join("\n"), docMa: () => docMa };
+}
+const CUOI = ["npm run day-len -- " + NH, "npm run trien-khai"];
+
+test("lenChinhThuc đường đạt: day-len rồi trien-khai, cả hai là tiến trình con có stream", async () => {
+  const h = chayChinh();
+  assert.equal(await lib.lenChinhThuc(h.deps), 0, h.text());
+  assert.deepEqual(h.calls.filter((c) => CUOI.includes(c)), CUOI);
+  for (const c of CUOI) assert.equal(h.stream[c], true, c);
+});
+
+test("lenChinhThuc dừng, chưa gọi gì: không TTY, thiếu hoặc lạ tên nhánh", async () => {
+  for (const o of [{ isTTY: false }, { target: undefined }, { target: "--force" }, { target: "a b" }]) {
+    const h = chayChinh({}, o as any);
+    assert.notEqual(await lib.lenChinhThuc(h.deps), 0);
+    assert.deepEqual(h.calls, []);
+  }
+});
+
+test("lenChinhThuc dừng, không gọi day-len: mã Development khác mã nhánh, hoặc không đọc được", async () => {
+  for (const ma of [MA2, null]) {
+    const h = chayChinh({}, { ma });
+    assert.notEqual(await lib.lenChinhThuc(h.deps), 0);
+    assert.deepEqual(h.calls.filter((c) => CUOI.includes(c)), []);
+  }
+});
+
+test("lenChinhThuc: day-len khác 0 trả đúng mã đó, không trien-khai", async () => {
+  const h = chayChinh({ [CUOI[0]]: kq("", 7) });
+  assert.equal(await lib.lenChinhThuc(h.deps), 7);
+  assert.ok(!h.calls.includes("npm run trien-khai"));
+});
+
+test("lenChinhThuc: sau day-len main hoặc origin/main khác mã nhánh thì dừng, không trien-khai", async () => {
+  for (const k of ["git rev-parse main", "git rev-parse origin/main"]) {
+    const h = chayChinh({ [k]: kq(MA2 + "\n") });
+    assert.notEqual(await lib.lenChinhThuc(h.deps), 0);
+    assert.ok(!h.calls.includes("npm run trien-khai"));
+  }
+});
+
+test("lenChinhThuc: trien-khai khác 0 trả đúng mã đó và nói «Đã nhập, chưa triển khai» kèm cách chạy tiếp", async () => {
+  const h = chayChinh({ "npm run trien-khai": kq("", 5) });
+  assert.equal(await lib.lenChinhThuc(h.deps), 5);
+  assert.match(h.text(), /Đã nhập, chưa triển khai/);
+  assert.match(h.text(), /npm run trien-khai/);
+  assert.match(h.text(), /tourdao-sales/);
+});
+
+test("lenChinhThuc chỉ đổi tài liệu: không đọc mã Development, gọi day-len, không trien-khai, có câu báo", async () => {
+  const h = chayChinh({}, { tep: "docs/a.md\nREADME.md\n", ma: MA2 });
+  assert.equal(await lib.lenChinhThuc(h.deps), 0, h.text());
+  assert.equal(h.docMa(), 0);
+  assert.ok(h.calls.includes(CUOI[0]));
+  assert.ok(!h.calls.includes("npm run trien-khai"));
+  assert.match(h.text(), /tài liệu/);
+});
+
+test("lenChinhThuc dừng: không đọc được danh sách tệp đổi, hoặc không đọc được mã nhánh", async () => {
+  for (const k of [`git diff --name-only main...${NH}`, `git rev-parse ${NH}`]) {
+    const h = chayChinh({ [k]: kq("", 1, "lỗi") });
+    assert.notEqual(await lib.lenChinhThuc(h.deps), 0);
+    assert.deepEqual(h.calls.filter((c) => CUOI.includes(c)), []);
+  }
+});
+
+test("lenChinhThuc: câu hướng dẫn dùng lệnh nói rõ thư mục gốc, đứng ở main, thư mục sạch", async () => {
+  const h = chayChinh({}, { target: undefined });
+  await lib.lenChinhThuc(h.deps);
+  assert.match(h.text(), /tourdao-sales/);
+  assert.match(h.text(), /main/);
+  assert.match(h.text(), /sạch/);
 });

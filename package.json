@@ -15,6 +15,7 @@
     "test:e2e": "node tests/e2e/run.mjs",
     "dict": "node scripts/gen-data-dictionary.mjs",
     "len-dev": "node scripts/len-dev.mjs",
+    "len-chinh-thuc": "node scripts/len-chinh-thuc.mjs",
     "day-len": "node scripts/day-len.mjs",
     "trien-khai": "node scripts/trien-khai.mjs"
   },

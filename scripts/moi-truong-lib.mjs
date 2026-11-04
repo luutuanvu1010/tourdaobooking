@@ -2,7 +2,7 @@
 // Cũng chứa `lenDev` (lệnh `npm run len-dev`, Đ5): chạy wrangler THẬT lên Development qua bộ chạy tiêm vào; test dùng bộ chạy giả.
 // Đ1: Development độc lập hoàn toàn; lớp chống nhầm là bài so cấu hình ở đây (cùng tài khoản Cloudflare, không có ranh giới vật lý).
 
-import { KHOA_BAT_BUOC, KHOA_HAI_LOP, docCacKhoTuCauHinh, makeStop, parseR2BucketNames, parseSecretNames, trimOut } from "./release-lib.mjs";
+import { KHOA_BAT_BUOC, KHOA_HAI_LOP, NOT_TTY, docCacKhoTuCauHinh, isSafeBranchName, makeStop, parseR2BucketNames, parseSecretNames, trimOut } from "./release-lib.mjs";
 
 export const CAU_HINH_DEV = "wrangler.dev.jsonc";
 
@@ -299,4 +299,72 @@ export async function lenDev({ run, log, args = [], docTep, tenMigration, docCom
   }
   log(`Đã đưa mã ${ma.slice(0, 8)} lên dev.tourdao.vn.`);
   return 0;
+}
+
+// ─────────────────────── len-chinh-thuc (ADR-0162 Đ4, Đ5) ───────────────────────
+// Chủ gõ MỘT lệnh: chỉ lên chính thức khi đúng bản (mã commit) đã thử trên Development. Gọi `day-len` và `trien-khai` thành TIẾN TRÌNH CON,
+// không gọi hàm trực tiếp: trien-khai.mjs đọc số phiên bản lúc khởi động, cùng tiến trình sẽ dùng số phiên bản trước khi gộp.
+// `day-len` chỉ gộp tiến thẳng nên mã nhánh không đổi sau khi nhập; vì vậy so mã nhánh với mã Development là đủ.
+
+/** Đúng khi mọi tệp đổi là tài liệu: thuộc docs/, .claude/, hoặc là .md ngoài public/. Mảng rỗng ⇒ sai (không có gì để khẳng định). */
+export function chiDoiTaiLieu(tenTep) {
+  if (!Array.isArray(tenTep) || tenTep.length === 0) return false;
+  return tenTep.every((t) => typeof t === "string" && !t.startsWith("public/") && (t.startsWith("docs/") || t.startsWith(".claude/") || t.endsWith(".md")));
+}
+
+const CACH_DUNG_LENH = "Gõ ở thư mục gốc `tourdao-sales` (không phải thư mục làm việc của nhánh), đứng ở nhánh `main`, thư mục sạch (không còn thay đổi chưa commit).";
+
+/**
+ * @param run (cmd, args, { stream }) → { code, stdout, stderr }
+ * @param target tên nhánh cần đưa lên
+ * @param docCommitDev đọc mã bản đang chạy trên Development
+ * @returns mã thoát (0 = xong)
+ */
+export async function lenChinhThuc({ run, log, isTTY, target, docCommitDev: docMa = docCommitDev }) {
+  const stop = makeStop(log);
+  if (!isTTY) return stop(NOT_TTY);
+  if (!isSafeBranchName(target)) return stop("thiếu hoặc sai tên nhánh. Dùng: npm run len-chinh-thuc -- <tên-nhánh>", CACH_DUNG_LENH);
+
+  const ma = await run("git", ["rev-parse", target]);
+  const maNhanh = trimOut(ma);
+  if (ma.code !== 0 || !MA_COMMIT.test(maNhanh)) return stop(`không đọc được mã của nhánh ${target}. CHƯA có gì bị đổi.`, CACH_DUNG_LENH);
+  const tep = await run("git", ["diff", "--name-only", `main...${target}`]);
+  if (tep.code !== 0) return stop("không đọc được danh sách tệp mà nhánh đã đổi. CHƯA có gì bị đổi.", CACH_DUNG_LENH);
+  const dsTep = trimOut(tep).split("\n").filter(Boolean);
+
+  const nhap = async () => {
+    log("\n▶ npm run day-len -- " + target);
+    return (await run("npm", ["run", "day-len", "--", target], { stream: true })).code;
+  };
+
+  if (chiDoiTaiLieu(dsTep)) {
+    const c = await nhap();
+    if (c !== 0) return c;
+    log("Nhánh này chỉ đổi tài liệu nên đã nhập vào bản chính, và KHÔNG cần triển khai (Nền tảng đang chạy không đổi).");
+    return 0;
+  }
+
+  const dev = await docMa();
+  if (dev === null || dev === undefined) return stop("không đọc được mã bản đang chạy trên dev.tourdao.vn (https://dev.tourdao.vn/ban-thu.json). CHƯA có gì bị đổi.");
+  if (dev !== maNhanh) {
+    return stop(
+      `bản trên dev.tourdao.vn (${dev.slice(0, 8)}) không phải bản của nhánh ${target} (${maNhanh.slice(0, 8)}). CHƯA có gì bị đổi.`,
+      "Chạy `npm run len-dev` từ nhánh này, thử trên dev.tourdao.vn, rồi chạy lại lệnh này.",
+    );
+  }
+
+  const code = await nhap();
+  if (code !== 0) return code;
+  const [m, o] = [await run("git", ["rev-parse", "main"]), await run("git", ["rev-parse", "origin/main"])];
+  if (m.code !== 0 || o.code !== 0 || trimOut(m) !== maNhanh || trimOut(o) !== maNhanh) {
+    return stop("sau khi nhập, `main` hoặc `origin/main` không đúng mã bản đã thử. KHÔNG triển khai.", CACH_DUNG_LENH);
+  }
+
+  log("\n▶ npm run trien-khai");
+  const tk = (await run("npm", ["run", "trien-khai"], { stream: true })).code;
+  if (tk !== 0) {
+    log("Đã nhập, chưa triển khai: bản đã vào `main` và lên GitHub, nhưng bước triển khai lên booking.tourdao.vn chưa xong.");
+    log("Để làm tiếp, gõ `npm run trien-khai` ở thư mục gốc `tourdao-sales`, đứng ở nhánh `main`, thư mục sạch.");
+  }
+  return tk;
 }
