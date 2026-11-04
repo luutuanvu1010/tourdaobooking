@@ -660,6 +660,8 @@ export interface OrderDetailResponse {
    * (không phải người lập, không xét duyệt được). Vắng khoá = máy chủ cũ.
    */
   xacNhan?: XacNhanTrenDonDto | null;
+  /** ADR-0142: người xem là Bán hàng phụ trách ĐANG MỞ của đơn (không phải người phụ trách HDV). Giao diện dùng cho nút sửa chuyến / hành khách / đổi người; máy chủ vẫn kiểm lại ở từng route. */
+  laBanHangPhuTrach: boolean;
 }
 /**
  * `yeuCau` = yêu cầu xác nhận ĐANG MỞ của đơn (null = chưa gửi / đã rút). `canXacNhan` = đơn thuộc diện phải qua bước xác nhận (chỉ tính cho người lập; người khác false).

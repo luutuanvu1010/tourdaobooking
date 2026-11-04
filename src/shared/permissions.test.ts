@@ -24,7 +24,7 @@ const ADR: Record<string, [Scope, Scope, Scope, Scope, Scope, Scope, Scope, Scop
   "order.trip.edit": ["ownOrAssigned", "none", "any", "none", "none", "any", "none", "none", "none", "none"],
   "order.leg.short_notice": ["any", "none", "any", "none", "none", "any", "none", "none", "none", "none"], // ADR-0049 D3: ô MỚI — đặt gấp chặng dưới mốc 6 giờ; ADR-0107 (i) NỚI có tên (Điều 9.4, chủ Q-3 a 8/10): + SALES any
   "order.leg.short_notice.view": ["any", "any", "any", "none", "none", "any", "none", "none", "none", "none"], // chủ H4/N-14 (29/9, Trả lời lần 12): ô MỚI — xem ĐỦ dấu đặt gấp; mã khác chỉ cờ
-  "order.confirm.review": ["any", "any", "any", "any", "none", "any", "none", "none", "none", "none"], // ADR-0136 Đ4 (chủ duyệt 25/10): ô MỚI — người quyết định đơn đang chờ xác nhận (Còn vé / Hết vé / Huỷ); Đối tác, Thực tập, tài xế, Nhân sự none
+  "order.confirm.review": ["any", "none", "any", "none", "none", "any", "none", "none", "none", "none"], // ADR-0136 Đ4; ADR-0142 (chủ duyệt 27/10): CHỈ Bán hàng / Quản trị / Toàn quyền — Kế toán và HDV mất ô này; Đối tác, Thực tập, tài xế, Nhân sự none
   "order.submit": ["none", "none", "none", "none", "own", "any", "none", "none", "none", "none"], // ADR-0136 Đ13.6 (ADR-0018 đ6): ô MỚI — nút «Gửi đơn» của Đối tác (own), Toàn quyền any; mọi mã khác none
   "trip.view": ["any", "any", "any", "none", "none", "any", "none", "assigned", "assigned", "none"], // ADR-0049 D3: ô MỚI — DRIVER assigned (NỚI ghim DRIVER — ĐÃ DUYỆT 2026-09-30 (lần 17), đề xuất luật mục 2); ADR-0053 D7.1 (A4 T6): DRIVER_PARTNER assigned
   "trip.dispatch": ["any", "none", "any", "none", "none", "any", "none", "none", "none", "none"], // ADR-0049 D3: ô MỚI
@@ -50,6 +50,9 @@ const ADR: Record<string, [Scope, Scope, Scope, Scope, Scope, Scope, Scope, Scop
   "deposit.outside.record": ["none", "none", "none", "none", "none", "any", "none", "none", "none", "none"], // ADR-0089 đ16, X-4: ghi đã hoàn ngoài hệ thống — chỉ Toàn quyền
   "dispatch.assign": ["ownOrAssigned", "none", "any", "none", "none", "any", "none", "none", "none", "none"],
   "dispatch.claim": ["any", "none", "any", "any", "none", "any", "none", "none", "none", "none"], // ADR-0009 điều 2: nhận phụ trách đơn chưa có người (điều kiện do dịch vụ của dispatch kiểm, không phải ô ma trận); ADR-0030 S20-6/S20-12: FIELD any
+  "dispatch.sales.claim": ["any", "none", "any", "none", "none", "any", "none", "none", "none", "none"], // ADR-0142: nhận Bán hàng phụ trách một đơn (điều kiện «chưa có người», ưu tiên lời mời do dispatch kiểm); không có ô tiền
+  "dispatch.sales.assign": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "none"], // ADR-0142: Quản trị / Toàn quyền đặt, đổi, gỡ Bán hàng phụ trách (khuôn quanTri())
+  "dispatch.sales.invitees": ["any", "none", "any", "none", "any", "any", "any", "none", "none", "none"], // ADR-0142: xem danh sách Bán hàng để mời — cùng hàng order.create (người lập đơn chọn người được mời)
   "dispatch.guides.view": ["none", "none", "none", "none", "any", "any", "none", "none", "none", "none"], // ADR-0014 điều 9: thao tác MỚI
   "dispatch.refuse": ["assigned", "none", "assigned", "assigned", "none", "any", "none", "none", "none", "none"], // ADR-0030 điều 1: tự trả đơn đang phụ trách; route còn chốt ĐÚNG người phụ trách (cả Toàn quyền)
   // Sổ tiền lượt 1 (ADR-0026 điều 10 + bảng 9 cột của bản làm mới §2, accepted 2026-09-29): FIELD none → assigned, PARTNER none → own, INTERN none → own
@@ -375,6 +378,7 @@ test("ADR-0040 D3 + ADR-0049 D3: MỌI ô của Tài xế (DRIVER) — ghim nguy
     "order.passenger.write": "none", // ADR-0047 A2: tài xế KHÔNG đi qua ô này (đường ghi của tài xế, nếu có, do ADR lượt 2 quyết)
     "order.leg.short_notice": "none", // ADR-0049 D3 + ADR-0107: đặt gấp chỉ Bán hàng, Quản trị, Toàn quyền
     "order.leg.short_notice.view": "none", // chủ H4/N-14: tài xế không xem chi tiết đơn (không đổi)
+    "dispatch.sales.claim": "none", "dispatch.sales.assign": "none", "dispatch.sales.invitees": "none", // ADR-0142: tài xế / Nhân sự không dính Bán hàng phụ trách
     "order.confirm.review": "none", "order.submit": "none", // ADR-0136 Đ4, Đ13.6: không xét duyệt, không «Gửi đơn»
     "order.service.manual": "none", // ADR-0061 điều 2: tài xế không nhập tay
     "ve.kho.manage": "none", "ve.cap.send": "none", // ADR-0153 Đ3: tài xế không đụng kho vé
@@ -431,6 +435,7 @@ test("ADR-0048 D2: MỌI ô của Tài xế đối tác (DRIVER_PARTNER) — ghi
     "order.passenger.write": "none", // ADR-0047 A2 × ADR-0048 D2 (mọi ô nghiệp vụ của tài xế đối tác = none): không nhập / sửa / huỷ danh sách hành khách
     "order.leg.short_notice": "none", // ADR-0049 D3 × ADR-0048 D2
     "order.leg.short_notice.view": "none", // chủ H4/N-14 × ADR-0048 D2
+    "dispatch.sales.claim": "none", "dispatch.sales.assign": "none", "dispatch.sales.invitees": "none", // ADR-0142: tài xế / Nhân sự không dính Bán hàng phụ trách
     "order.confirm.review": "none", "order.submit": "none", // ADR-0136 Đ4, Đ13.6: không xét duyệt, không «Gửi đơn»
     "order.service.manual": "none", // ADR-0061 điều 2 × ADR-0048 D2
     "ve.kho.manage": "none", "ve.cap.send": "none", // ADR-0153 Đ3
@@ -490,6 +495,7 @@ test("ADR-0071: MỌI ô của Nhân sự (HR) — ghim nguyên dòng, chỉ ba 
   const HR_ROW: Record<string, Scope> = {
     "order.view": "none", "money.view": "none", "order.history.view": "none", "contact.view": "none", "order.create": "none", "order.modify": "none",
     "order.trip.edit": "none", "order.leg.short_notice": "none", "order.leg.short_notice.view": "none", "order.passenger.write": "none", "order.service.manual": "none",
+    "dispatch.sales.claim": "none", "dispatch.sales.assign": "none", "dispatch.sales.invitees": "none", // ADR-0142: tài xế / Nhân sự không dính Bán hàng phụ trách
     "order.confirm.review": "none", "order.submit": "none", // ADR-0136 Đ4, Đ13.6: Nhân sự không xét duyệt, không «Gửi đơn»
     "ve.kho.manage": "none", "ve.cap.send": "none", // ADR-0153 Đ3
     "task.progress": "none", "order.money.edit": "none", "order.cancel": "none", "order.cancel.classify": "none", "deposit.refund.approve": "none", "deposit.transfer.approve": "none", "deposit.outside.record": "none", "dispatch.assign": "none", "dispatch.claim": "none", "dispatch.guides.view": "none", "dispatch.refuse": "none",

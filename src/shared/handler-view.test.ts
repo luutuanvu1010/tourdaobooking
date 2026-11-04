@@ -16,8 +16,8 @@ const ORDER = { staffId: "a" }; // đơn do A lập
 const handler = (staffId: string | null, name = "Sales Hai"): HandlerDto => ({ partyId: `p-${staffId ?? "x"}`, staffId, name });
 
 /** [nút đổi, nút nhận] của `staff` với người phụ trách `h` của đơn do A lập. */
-const buttons = (staff: ReturnType<typeof who>, h: HandlerDto | null | undefined): [boolean, boolean] => {
-  const c = handlerControls(staff, ORDER, h);
+const buttons = (staff: ReturnType<typeof who>, h: HandlerDto | null | undefined, banHang = false): [boolean, boolean] => {
+  const c = handlerControls(staff, ORDER, h, banHang);
   return [c.assign, c.claim];
 };
 
@@ -245,4 +245,12 @@ test("dongTuChoiTruoc: «Đã từ chối đơn này lúc HH:MM DD/MM/YYYY — <
   assert.equal(dongTuChoiTruoc({ luc: "2026-10-23T03:05:00.000Z", lyDo: "BAN_LICH" }), "Đã từ chối đơn này lúc 10:05 23/10/2026 — Bận lịch khác");
   assert.equal(dongTuChoiTruoc({ luc: "2026-10-23T03:05:00.000Z", lyDo: "OTHER" }), "Đã từ chối đơn này lúc 10:05 23/10/2026 — Khác");
   assert.equal(dongTuChoiTruoc(undefined), null);
+});
+
+// ADR-0142: Bán hàng phụ trách (không phải người lập, không phụ trách HDV) có nút đổi người (danh sách trắng ô dispatch.assign); KHÔNG có nút nhận / từ chối thêm.
+test("handlerControls: Bán hàng phụ trách đổi được người phụ trách; không phải Bán hàng phụ trách thì vẫn không", () => {
+  assert.deepEqual(buttons(C, handler("b")), [false, false]);
+  assert.deepEqual(buttons(C, handler("b"), true), [true, false]);
+  assert.deepEqual(buttons(C, null, true), [true, true], "đơn chưa có HDV: đổi (chọn) được, nhận như mọi Bán hàng");
+  assert.equal(handlerControls(C, { staffId: "a", status: "confirmed", daGiao: false, quaMuon: false }, handler("b"), true).refuse, false, "không phải người phụ trách HDV ⇒ không Từ chối");
 });

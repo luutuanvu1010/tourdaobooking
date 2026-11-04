@@ -7,8 +7,8 @@ import { PERMISSION_CODES, can, type PermissionHolder } from "./permissions.ts";
 
 const nguoi = (...p: string[]): PermissionHolder => ({ id: `t-${p.join("-")}`, permissions: p as PermissionHolder["permissions"] });
 
-test("thẻ donCho: hiện cho Kế toán, HDV, Bán hàng, Quản trị, Toàn quyền khi có đơn chờ; không cho Đối tác, Thực tập, Nhân sự, Tài xế", () => {
-  for (const p of ["ACCOUNTING", "FIELD", "SALES", "ADMIN", "SUPER_ADMIN"]) {
+test("thẻ donCho: hiện cho Bán hàng, Quản trị, Toàn quyền khi có đơn chờ (ADR-0142: Kế toán và HDV không còn); không cho Kế toán, HDV, Đối tác, Thực tập, Nhân sự, Tài xế", () => {
+  for (const p of ["SALES", "ADMIN", "SUPER_ADMIN"]) {
     const kq = viecCuaBan(nguoi(p), { donCho: { count: 3, quaHan: 1 } });
     const the = kq.the.find((t) => t.khoa === "donCho");
     assert.ok(the, p);
@@ -17,17 +17,17 @@ test("thẻ donCho: hiện cho Kế toán, HDV, Bán hàng, Quản trị, Toàn 
     assert.equal(the!.nhan, "Đơn chờ xác nhận");
     assert.match(the!.phu, /1 đơn quá hạn/);
   }
-  for (const p of ["PARTNER", "INTERN", "HR", "DRIVER", "DRIVER_PARTNER"]) {
+  for (const p of ["ACCOUNTING", "FIELD", "PARTNER", "INTERN", "HR", "DRIVER", "DRIVER_PARTNER"]) {
     assert.equal(viecCuaBan(nguoi(p), { donCho: { count: 3, quaHan: 0 } }).the.length, 0, p);
     assert.ok(!nguonCanTai(nguoi(p)).includes("donCho"), p);
   }
 });
 
 test("thẻ donCho: không có đơn thì vắng; nguồn lỗi (null) hiện «—» chứ không phải 0; không quá hạn thì dòng phụ không nói quá hạn", () => {
-  assert.equal(viecCuaBan(nguoi("ACCOUNTING"), { donCho: { count: 0, quaHan: 0 } }).the.some((t) => t.khoa === "donCho"), false);
-  const loi = viecCuaBan(nguoi("ACCOUNTING"), { donCho: null }).the.find((t) => t.khoa === "donCho");
+  assert.equal(viecCuaBan(nguoi("SALES"), { donCho: { count: 0, quaHan: 0 } }).the.some((t) => t.khoa === "donCho"), false);
+  const loi = viecCuaBan(nguoi("SALES"), { donCho: null }).the.find((t) => t.khoa === "donCho");
   assert.equal(loi?.so, null);
-  const yen = viecCuaBan(nguoi("ACCOUNTING"), { donCho: { count: 2, quaHan: 0 } }).the.find((t) => t.khoa === "donCho")!;
+  const yen = viecCuaBan(nguoi("SALES"), { donCho: { count: 2, quaHan: 0 } }).the.find((t) => t.khoa === "donCho")!;
   assert.doesNotMatch(yen.phu, /quá hạn/);
 });
 

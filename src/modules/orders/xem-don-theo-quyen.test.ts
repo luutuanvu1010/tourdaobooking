@@ -304,6 +304,7 @@ test("ADR-0030 L1-12: MỌI ô của Đối tác (PARTNER) giữ nguyên — ghi
     "order.passenger.write": "own", // ADR-0047 A2: bằng order.modify — Đối tác nhập tên khách cho đơn CỦA MÌNH
     "order.leg.short_notice": "none", // ADR-0049 D3: đặt gấp chỉ Quản trị, Toàn quyền
     "order.leg.short_notice.view": "none", // chủ H4/N-14: Đối tác chỉ thấy cờ "đặt gấp — Quản trị đã duyệt"
+    "dispatch.sales.claim": "none", "dispatch.sales.assign": "none", "dispatch.sales.invitees": "any", // ADR-0142: Đối tác chỉ chọn người được mời (cùng hàng order.create), không nhận / không đổi Bán hàng phụ trách
     "order.confirm.review": "none", // ADR-0136 Đ4: Đối tác không xét duyệt xác nhận
     "order.submit": "own", // ADR-0136 Đ13.6: «Gửi đơn» của Đối tác — đơn của mình
     "order.service.manual": "none", // ADR-0061 điều 2: Đối tác không bao giờ nhập tay (máy chủ còn chặn mọi tài khoản có quyền Đối tác — holdsPartner)

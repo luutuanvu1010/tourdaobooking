@@ -864,7 +864,7 @@ async function loadOrder(): Promise<void> {
     if (order.status !== "draft") return lockForm(banner("danger", "Chỉ sửa được đơn chưa xác nhận."));
     byId("form-title").textContent = `Sửa đơn ${order.orderCode}`;
     setBarTitle(`Sửa đơn ${order.orderCode}`);
-    suaSoVe = suaChuyenDuoc(staff, order.staffId, canModify); // trước fill: thẻ dựng ô "Số người chiều về" theo cờ này
+    suaSoVe = suaChuyenDuoc(staff, order.staffId, canModify, false /* ADR-0142: cờ Bán hàng phụ trách nối ở Task 7 */); // trước fill: thẻ dựng ô "Số người chiều về" theo cờ này
     const baoBoChang = fill(order);
     if (baoBoChang.length > 0) renderBanner(saveErrorEl, banner("warning", `${baoBoChang.join(" ")} Bấm Lưu thay đổi để ghi lại.`));
     // Hành khách của nháp: chỉ người có ô order.passenger.write; tải hỏng → KHÔNG dựng khối và KHÔNG gửi khoá `passengers` (máy chủ giữ danh sách đang lưu —
@@ -872,7 +872,7 @@ async function loadOrder(): Promise<void> {
     // Tải lại đơn (sau 409 stale): bỏ khối cũ TRƯỚC — tải danh sách hỏng thì không được gửi lại danh sách cũ đè lên bản người khác vừa sửa (R6).
     hk = null;
     hkCard.hidden = true;
-    suaKhachCuaNhap = suaKhachDuoc(staff, order.staffId, canModify);
+    suaKhachCuaNhap = suaKhachDuoc(staff, order.staffId, canModify, false /* ADR-0142: nối ở Task 7 */);
     if (suaKhachCuaNhap && !anKhach) {
       try {
         const ds = await api<Api.PassengerListResponse>(`/api/orders/${encodeURIComponent(order.id)}/passengers`);

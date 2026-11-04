@@ -105,9 +105,9 @@ export const MATRIX = {
   // (`legs[].datGap = { daDuyet: true }`). Không phạm vi đơn: phạm vi đã do order.view quyết. Hỏi ở `loadOrderView` qua `xemDuDatGap` (orders/index.ts).
   "order.leg.short_notice.view": row("any", "any", "any", "none", "none", "any", "none", "none", "none", "none"),
   // ADR-0136 Đ4 (chủ duyệt 25/10/2026): QUYẾT ĐỊNH đơn đang chờ xác nhận (Còn vé / Hết vé / Huỷ) và đọc đơn chờ ở phần hẹp (route `quyet-dinh`, danh sách chờ).
-  // Bán hàng, Kế toán, Quản trị, HDV (FIELD), Toàn quyền; KHÔNG Đối tác, Thực tập, tài xế, Nhân sự. Không phạm vi đơn. `can()` lấy HỢP các ô của mọi quyền
+  // ADR-0142 (chủ duyệt 27/10): CHỈ Bán hàng, Quản trị, Toàn quyền — Kế toán và HDV (FIELD) không còn quyết định đơn chờ xác nhận; KHÔNG Đối tác, Thực tập, tài xế, Nhân sự. Không phạm vi đơn. `can()` lấy HỢP các ô của mọi quyền
   // tài khoản giữ — tài khoản lai (Bán hàng + Đối tác) có ô này; cổng «không tự quyết đơn của mình» đặt ở route bằng `duocQuyetDinh` (src/shared/xac-nhan-don.ts).
-  "order.confirm.review": row("any", "any", "any", "any", "none", "any", "none", "none", "none", "none"),
+  "order.confirm.review": row("any", "none", "any", "none", "none", "any", "none", "none", "none", "none"),
   // ADR-0136 Đ13.6 (đúng hàng đích ADR-0018 đ6): nút «Gửi đơn» của ĐỐI TÁC (own = đơn của mình). Toàn quyền any (bài «Toàn quyền = any ở mọi thao tác»); mọi mã khác none —
   // văn phòng không «gửi» mà xác nhận thẳng. KHÔNG tách ô `order.confirm`: `order.modify` giữ nguyên giá trị.
   "order.submit": row("none", "none", "none", "none", "own", "any", "none", "none", "none", "none"),
@@ -125,6 +125,11 @@ export const MATRIX = {
   "order.cancel.classify": quanTri(),
   "dispatch.assign": row("ownOrAssigned", "none", "any", "none", "none", "any", "none", "none", "none", "none"), // đặt/đổi người phụ trách và nhiệm vụ (ADR-0009: cả người phụ trách hiện tại)
   "dispatch.claim": row("any", "none", "any", "any", "none", "any", "none", "none", "none", "none"), // nhận phụ trách đơn CHƯA có người (ADR-0009; điều kiện "chưa có người" do dịch vụ của dispatch kiểm, không phải ô này) — FIELD any (ADR-0030 S20-6/S20-12); chốt Nhận (đã huỷ/qua ngày đi) + chặn tài khoản có quyền Đối tác ở route PUT /api/orders/:id/handler
+  // ADR-0142 (chủ duyệt 27/10): BÁN HÀNG PHỤ TRÁCH đơn — ô riêng, KHÔNG phải người phụ trách (HANDLE). Nhận: Bán hàng, Quản trị, Toàn quyền (ưu tiên lời mời, đơn chưa có người, tài khoản lai
+  // bị chặn do dispatch kiểm, không phải ô này). Đặt / đổi / gỡ: Quản trị + Toàn quyền. Xem danh sách Bán hàng để mời: cùng hàng order.create. Không ô nào chạm tiền.
+  "dispatch.sales.claim": banHangQuanTri(),
+  "dispatch.sales.assign": quanTri(),
+  "dispatch.sales.invitees": row("any", "none", "any", "none", "any", "any", "any", "none", "none", "none"),
   // ADR-0030 điều 1 (nút «Từ chối»): người ĐANG phụ trách tự trả đơn — ô `assigned` cho Bán hàng / Quản trị / Hướng dẫn viên, `any` cho Toàn quyền, NHƯNG route
   // POST /api/orders/:id/handler-refuse còn chốt "người gọi đúng là người đang phụ trách" áp CẢ Toàn quyền (không ai trả đơn hộ người khác; văn phòng đổi
   // người bằng PUT …/handler). Ô chỉ là sàng sớm + câu hỏi ẩn/hiện nút ở giao diện.

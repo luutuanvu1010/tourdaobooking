@@ -3,6 +3,7 @@
 import type { HandlerDto, OrderStatus, StaffProfile } from "./contracts.ts";
 import { banner, type Banner, type ErrorInput } from "./order-errors.ts";
 import { can, seesOnlyAssignedOrders, type PermissionHolder } from "./permissions.ts";
+import { duocGiaoTheoO } from "./ban-hang-phu-trach.ts";
 import { LY_DO_TU_CHOI } from "./ly-do-tu-choi.ts";
 import { vnDateTimeText } from "./vn-date.ts";
 
@@ -61,10 +62,11 @@ export interface DonChoNutPhuTrach {
  * Nút nào hiện ở trang đơn. `handler`: người phụ trách đang mở; `null` = CHƯA có; `undefined` = CHƯA BIẾT (lời gọi lỗi/chưa xong) → KHÔNG nút nào: nói "chưa có người" rồi mời nhận là khẳng định điều
  * chưa biết, còn ẩn nút đổi thì chỉ tạm thiếu một đường (tải lại là có).
  */
-export function handlerControls(staff: PermissionHolder, order: DonChoNutPhuTrach, handler: HandlerDto | null | undefined): HandlerControls {
+export function handlerControls(staff: PermissionHolder, order: DonChoNutPhuTrach, handler: HandlerDto | null | undefined, laBanHangPhuTrach: boolean): HandlerControls {
   if (handler === undefined) return { assign: false, assignLabel: "", claim: false, refuse: false };
   const dangPhuTrach = handler !== null && handler.staffId === staff.id;
-  const assign = can(staff, "dispatch.assign", { ownerId: order.staffId, assigned: dangPhuTrach });
+  // ADR-0142: Bán hàng phụ trách (cờ từ DTO trang đơn) được cộng như người phụ trách ở ô đổi người — danh sách trắng, không ô nhận / từ chối.
+  const assign = can(staff, "dispatch.assign", { ownerId: order.staffId, assigned: duocGiaoTheoO("dispatch.assign", { laNguoiPhuTrach: dangPhuTrach, laBanHangPhuTrach }) });
   // Từ chối (ADR-0030 điều 1): hỏi bảng quyền với `assigned` = đang phụ trách thật — máy chủ còn chốt đúng người (cả Toàn quyền), nên KHÔNG hỏi không ngữ cảnh.
   const refuse = dangPhuTrach && can(staff, "dispatch.refuse", { assigned: true }) && order.status === "confirmed" && order.daGiao !== true && order.quaMuon === false;
   return { assign, assignLabel: handler === null ? "Chọn người phụ trách" : "Đổi người phụ trách", claim: handler === null && can(staff, "dispatch.claim"), refuse };

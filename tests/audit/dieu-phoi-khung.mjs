@@ -167,7 +167,7 @@ export async function datCongTacAnKhach(w, bat) {
 }
 /**
  * Đơn ĐÃ XÁC NHẬN do tài khoản ĐỐI TÁC lập bằng ĐƯỜNG THẬT, công tắc «Ẩn thông tin khách» ĐANG ở trạng thái nào thì lập theo trạng thái đó (không đổi công tắc): đối tác
- * `POST /api/orders` (một chặng đón KHÔNG giờ) → `gui-don` (nhánh A, cờ «cần chốt giờ») → người xét Kế toán `quyet-dinh` CON_VE kèm giờ đón. `guiKhachGia: true` = trình duyệt cũ gửi
+ * `POST /api/orders` (một chặng đón KHÔNG giờ) → `gui-don` (nhánh A, cờ «cần chốt giờ») → người xét Quản trị (ADR-0142: Kế toán không còn ô xét duyệt) `quyet-dinh` CON_VE kèm giờ đón. `guiKhachGia: true` = trình duyệt cũ gửi
  * kèm danh sách khách giả (chỉ hợp lệ khi công tắc BẬT — TẮT thì máy chủ 403 vì đối tác không được gửi `passengers`). Trả như `don()`: `{ id, code, legId }`. `soNguoi` người lớn; giờ
  * đón mặc định 13:00 (qua mốc 6 giờ). Dấu miễn danh sách của đơn là điều máy chủ chụp lúc lập — hàm này không gieo dấu (trigger cấm UPDATE dấu).
  */
@@ -196,7 +196,7 @@ export async function donDoiTac(w, v = {}) {
   const moc = w.q("SELECT updated_at u FROM orders WHERE id = ?", o.id)[0].u;
   const yc = w.q("SELECT id FROM ord_confirm_request WHERE order_id = ? AND decided_at IS NULL", o.id)[0];
   assert.ok(yc, "chống bài rỗng: có yêu cầu đang mở");
-  const x = await w.call("POST", `/api/orders/${o.id}/quyet-dinh`, { as: ACC, body: { yeuCauId: yc.id, updatedAt: moc, ketQua: "CON_VE", gioDon: [{ legId, pickupTime: v.gio ?? "13:00" }] } });
+  const x = await w.call("POST", `/api/orders/${o.id}/quyet-dinh`, { as: ADM, body: { yeuCauId: yc.id, updatedAt: moc, ketQua: "CON_VE", gioDon: [{ legId, pickupTime: v.gio ?? "13:00" }] } });
   assert.equal(x.status, 200, x.text);
   assert.equal(w.q("SELECT status s FROM orders WHERE id = ?", o.id)[0].s, "confirmed");
   return { id: o.id, code: o.orderCode, legId };

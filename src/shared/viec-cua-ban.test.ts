@@ -70,7 +70,7 @@ test("thẻ chuyenHomNay đếm ĐƠN, không phải chuyến xe: «Đơn đi h�
 });
 test("nguonCanTai: chỉ nguồn người này dùng; không nguồn quản trị cho Bán hàng/Kế toán", () => {
   assert.deepEqual([...nguonCanTai(who("SALES"))], ["donCho", "nhap", "conThieu", "chuaPhuTrach", "chuyenHomNay"]);
-  assert.deepEqual([...nguonCanTai(who("ACCOUNTING"))], ["donCho", "doiChieu", "thuTruoc", "dieuChinh", "nhap", "conThieu", "chuyenHomNay"]); // Phương án A (31/10): hai dòng chờ đối chiếu / thu trước theo cổng của khối cũ
+  assert.deepEqual([...nguonCanTai(who("ACCOUNTING"))], ["doiChieu", "thuTruoc", "dieuChinh", "nhap", "conThieu", "chuyenHomNay"]); // ADR-0142: Kế toán không còn thẻ donCho. Phương án A (31/10): hai dòng chờ đối chiếu / thu trước theo cổng của khối cũ
   assert.ok(nguonCanTai(who("ADMIN")).includes("xemLai"));
   assert.ok(!nguonCanTai(who("ADMIN")).includes("gopY"));
   assert.ok(nguonCanTai(who("SUPER_ADMIN")).includes("gopY"));

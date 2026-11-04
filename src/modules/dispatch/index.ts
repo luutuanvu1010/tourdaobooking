@@ -15,6 +15,7 @@ import type {
   HanMucCaiDatResponse, HanMucDatLaiResponse, HanMucTuChoiNguoiDto, HanMucTuChoiResponse, MyAssignmentsResponse, SetHandlerResponse, StaffAccount, TuChoiTruocResponse,
 } from "../../shared/contracts";
 import { assigneeRoleLabel } from "../../shared/assignee-pick";
+import { duocGiaoTheoO } from "../../shared/ban-hang-phu-trach";
 import { thayDoiCuaHandler, type TrangThaiPhuTrach } from "../../shared/bang-tin";
 import { UUID_RE, error, json, readJson } from "../../shared/http";
 import { can, hasPermission, holdsPartner, MATRIX } from "../../shared/permissions";
@@ -236,11 +237,11 @@ export const dispatchModule: AppModule = {
     // hôm nay SALES/ADMIN/SUPER_ADMIN và — từ ADR-0030 S20-6/S20-12 — FIELD, cả bốn đều `dispatch.claim` = any ⇒ luôn qua sàng; FIELD không có
     // `dispatch.assign` nên chỉ tự Nhận được, giao cho người khác → 403); ai không có cả hai (kế toán, Đối tác, Thực tập) vốn chỉ nhận "forbidden" — nay
     // nhận sớm hơn, trước mọi đọc CSDL/thân yêu cầu.
-    route("PUT", "/api/orders/:id/handler", "orders", async ({ env, request, params, staff, baoThayDoi }) => {
+    route("PUT", "/api/orders/:id/handler", "orders", async ({ env, request, params, staff, baoThayDoi, isSalesOwner }) => {
       if (!can(staff, "dispatch.claim") && !can(staff, "dispatch.assign", { ownerId: staff.id })) return FORBIDDEN();
       const orderId = params.id!;
       if (!UUID_RE.test(orderId)) return NOT_FOUND();
-      const [order, current] = await Promise.all([findOrderOwner(env.DB, orderId), findHandlerOf(env.DB, orderId)]);
+      const [order, current, laBanHang] = await Promise.all([findOrderOwner(env.DB, orderId), findHandlerOf(env.DB, orderId), isSalesOwner(orderId)]);
       if (!order) return NOT_FOUND();
       // ADR-0135 Đ2: đơn NHÁP là vùng riêng của người lập — người khác (kể cả Toàn quyền, người được chọn sẵn) nhận 404, trước mọi đọc thân; người lập đổi người trên nháp của mình thì đi tiếp.
       if (!chiNguoiLapGhiNhap({ status: order.status, laNguoiLap: order.staffId === staff.id })) return NOT_FOUND();
@@ -253,7 +254,7 @@ export const dispatchModule: AppModule = {
       const input = parseSetHandler(await readJson(request));
       if (!input.ok) return error(400, "invalid_input", input.message);
       // "Nhận" đơn ĐÃ có người phụ trách (người có quyền nhận thua đua) là 409 stale để giao diện tải lại — không phải 403 (xem `handlerChangeVerdict`).
-      const verdict = handlerChangeVerdict(staff, { ownerId: order.staffId }, current ? { staffId: current.staff_id } : null, input.staffId);
+      const verdict = handlerChangeVerdict(staff, { ownerId: order.staffId }, current ? { staffId: current.staff_id } : null, input.staffId, laBanHang);
       if (verdict === "stale") return STALE();
       if (verdict === "forbidden") return FORBIDDEN();
       if (await orderDelivered(env.DB, orderId)) return DA_GIAO();
@@ -502,12 +503,13 @@ export const dispatchModule: AppModule = {
 
     // Bảng chọn người khi văn phòng giao đơn (điều 10): lần Từ chối MỚI NHẤT của CHÍNH đơn này, mỗi người một mục. Nguồn = sổ sự kiện (không nhật ký — ADR-0131).
     // Ai gọi được = ai mở được bảng chọn người của đơn (`dispatch.assign` với người lập + đang phụ trách — đúng `handlerControls`).
-    route("GET", "/api/orders/:id/tu-choi-truoc", "orders", async ({ env, params, staff, isAssigned }) => {
+    route("GET", "/api/orders/:id/tu-choi-truoc", "orders", async ({ env, params, staff, isAssigned, isSalesOwner }) => {
       const orderId = params.id!;
       if (!UUID_RE.test(orderId)) return NOT_FOUND();
-      const [order, assigned] = await Promise.all([findOrderOwner(env.DB, orderId), isAssigned(orderId)]);
+      const [order, dangPhuTrach, laBanHang] = await Promise.all([findOrderOwner(env.DB, orderId), isAssigned(orderId), isSalesOwner(orderId)]);
       if (!order) return NOT_FOUND();
       if (!chiNguoiLapGhiNhap({ status: order.status, laNguoiLap: order.staffId === staff.id })) return NOT_FOUND(); // ADR-0135 Đ2
+      const assigned = duocGiaoTheoO("dispatch.assign", { laNguoiPhuTrach: dangPhuTrach, laBanHangPhuTrach: laBanHang }); // ADR-0142: danh sách trắng
       if (!can(staff, "dispatch.assign", { ownerId: order.staffId, assigned })) return FORBIDDEN();
       const tuChoi: TuChoiTruocResponse["tuChoi"] = {};
       for (const r of await tuChoiCuaDon(env.DB, orderId)) tuChoi[r.party_id] ??= { luc: r.occurred_at, lyDo: r.reason_code as MaLyDoTuChoi };

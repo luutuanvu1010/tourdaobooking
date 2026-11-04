@@ -462,6 +462,7 @@ function handlerCard(order: Order, handler: Handler): HTMLElement | null {
     staff!,
     { staffId: order.staffId, status: order.status, daGiao: Boolean(order.deliveredAt), quaMuon: tuChoiQuaMuon(order.services.map((s) => s.departDate), vnToday(new Date())) },
     handler,
+    false, // ADR-0142: cờ Bán hàng phụ trách của DTO nối ở Task 7
   );
   const buttons: HTMLElement[] = [];
   let summary: HTMLElement;
@@ -1318,7 +1319,7 @@ function khoiLichSuSoKhach(dong: DongLichSuHienThi[] | null): HTMLElement | null
 function render(order: Order, history: AuditEntry[], canModify: boolean, handler: Handler): void {
   current = order;
   // L1 (lỗi báo 30/9): nút "Sửa thông tin chuyến" / "Đổi khách" theo ô order.trip.edit (Đối tác, Thực tập: không) — không chỉ theo canModify.
-  const suaChuyen = suaChuyenDuoc(staff!, order.staffId, canModify);
+  const suaChuyen = suaChuyenDuoc(staff!, order.staffId, canModify, false); // ADR-0142: Task 7 nối cờ Bán hàng phụ trách (qua banHangSuaDuoc)
   // ADR-0136: cờ bước xác nhận do MÁY CHỦ gửi (`xacNhan`); riêng «người lập giữ quyền Đối tác» suy ở đây (chỉ đổi nút — máy chủ vẫn trả 409 `partner_submit_required`).
   const giuDoiTacLap = order.staffId === staff!.id && holdsPartner(staff!);
   const cho: ChoXacNhan | undefined = order.status === "draft" ? { canXacNhan: xacNhan?.canXacNhan ?? false, dangCho: xacNhan?.yeuCau != null, quyetDinhDuoc: xacNhan?.quyetDinhDuoc ?? false, giuDoiTacLap } : undefined;
@@ -1326,7 +1327,7 @@ function render(order: Order, history: AuditEntry[], canModify: boolean, handler
   // Người xét duyệt (không phải người lập) mở đơn ĐANG CHỜ: khối "Người phụ trách" ẩn (HDV tự coi mình là người phụ trách — sai với đơn chưa giao cho họ) và không có "Xem biên nhận" (Đ11: ảnh chỉ sau khi xác nhận).
   const nguoiXetDuyet = cho?.dangCho === true && order.staffId !== staff!.id;
   if (nguoiXetDuyet) handler = HANDLER_HIDDEN;
-  const suaKhach = suaKhachDuoc(staff!, order.staffId, canModify) && order.deliveredAt === null;
+  const suaKhach = suaKhachDuoc(staff!, order.staffId, canModify, false) && order.deliveredAt === null; // ADR-0142: nối ở Task 7
   // ADR-0063 D1: người lập đơn (Bán hàng), Kế toán, Quản trị, Toàn quyền sửa số khách đơn đã xác nhận, chưa Đã giao — cùng luật ẩn/hiện với máy chủ
   // (`duocSuaSoKhachVanPhong`, hỏi bảng quyền) VÀ máy chủ phải gửi loại khách sửa được (`suaSoKhach`); không dịch vụ nào sửa được thì không có nút.
   const nguonSoKhach = duocSuaSoKhachVanPhong(staff!, order) ? nguonBangSuaSoKhach(order.services, suaSoKhach) : null;
