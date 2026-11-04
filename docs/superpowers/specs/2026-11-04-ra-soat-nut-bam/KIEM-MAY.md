@@ -4,8 +4,8 @@ Sinh bởi `kiem-va-sinh.mjs` từ `nut-quan-trong.json` và `danh-sach-day-du.j
 
 - Nút thật trong mã: **874**. Máy coi là ứng viên (có ghi, tông nguy hiểm, hoặc nút chính): **422**.
 - Hàng trong danh sách quan trọng: **298** (mỗi hàng một việc, nút mở và nút trong hộp tính một). Ứng viên có lý do bỏ qua: **74**.
-- Kết luận: đúng 186 · chưa rõ 98 · gây hiểu lầm 14. Ưu tiên: cao 9 · vừa 57 · thấp 46.
-- Số tên đề xuất đã kiểm với bảng từ: 177.
+- Kết luận: đúng 185 · chưa rõ 99 · gây hiểu lầm 14. Ưu tiên: cao 9 · vừa 58 · thấp 46.
+- Số tên đề xuất đã kiểm với bảng từ: 179.
 
 ## Số hàng theo vai
 

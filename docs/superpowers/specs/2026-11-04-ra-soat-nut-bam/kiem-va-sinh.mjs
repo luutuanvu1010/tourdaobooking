@@ -150,6 +150,9 @@ if ((QT.chu_khac ?? []).length) {
   for (const c of QT.chu_khac) md += `| ${NHAN_LOAI[c.loai] ?? oc(c.loai)} | ${oc(c.man_hinh)} | ${oc(c.hien_tai)} | ${oc(c.van_de)} | ${oc(c.de_xuat)} | \`${oc(c.nguon)}\` |\n`;
   md += `\n`;
 }
+for (const n of QT.nut_sap_co ?? []) {
+  md += `## Nút sắp có, chưa có trong mã: ${oc(n.ten)}\n\n${oc(n.trang_thai)} Vai: ${oc(n.vai)}.\n\n- Thật sự làm gì: ${oc(n.that_su_lam)}\n- Vấn đề: ${oc(n.van_de)}\n- Đề xuất: ${oc(n.de_xuat)}\n- Nguồn: ${oc(n.nguon)}\n\n`;
+}
 if ((QT.chua_kiem ?? []).length) {
   md += `## Điều chưa kiểm (${QT.chua_kiem.length})\n\nDo các trợ lý đọc mã tự khai. Không ai mở trình duyệt trong lượt này, nên màu nút lấy từ tên lớp trong mã, chưa có ảnh thật.\n\n`;
   for (const c of QT.chua_kiem) md += `- ${oc(c)}\n`;

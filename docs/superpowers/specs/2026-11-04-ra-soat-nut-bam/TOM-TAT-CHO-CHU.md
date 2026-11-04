@@ -1,6 +1,6 @@
 # Rà soát tên nút bấm: tóm tắt cho chủ (2026-11-04)
 
-Nền tảng có 874 nút. Tôi chọn ra 298 việc quan trọng, tức những việc ghi dữ liệu, chạm tiền, chạm quyền, gửi ra ngoài, không hoàn tác được, hoặc là việc chính của một màn hình, rồi đọc mã của từng việc. Có 186 việc tên đã đúng, 98 việc tên chưa rõ, 14 việc tên gây hiểu lầm. Lượt này chưa đổi chữ nào trên màn hình, kể cả ví dụ của bạn, vì bạn chọn xong tôi mới làm.
+Nền tảng có 874 nút. Tôi chọn ra 298 việc quan trọng, tức những việc ghi dữ liệu, chạm tiền, chạm quyền, gửi ra ngoài, không hoàn tác được, hoặc là việc chính của một màn hình, rồi đọc mã của từng việc. Có 185 việc tên đã đúng, 99 việc tên chưa rõ, 14 việc tên gây hiểu lầm. Lượt này chưa đổi chữ nào trên màn hình, kể cả ví dụ của bạn, vì bạn chọn xong tôi mới làm.
 
 ## Ví dụ của bạn: «Thêm vai trò vào cấp này»
 
@@ -23,6 +23,10 @@ Việc cấp riêng lại đang mang ba tên ở ba nơi cho cùng một lệnh:
 
 Ngoài ra còn vài chỗ nên xem: «Thêm công việc» khi chọn «Công ty chủ» là đổi tên, mã số thuế và tài khoản nhận tiền của cả công ty; lý do ở «Huỷ đơn» quyết định hạn hoàn tiền mà hộp không nói; «Dự kiến hoàn tất» ở bảo trì thật ra là giờ Nền tảng tự mở lại; «Quay lại bản này» của Trợ lý áp dụng ngay cho cả công ty. Toàn bộ nằm trong `NUT-QUAN-TRONG.md`.
 
+## Sắp có hai nút «Ẩn» khác nghĩa
+
+Đề xuất ẩn dữ liệu đang chờ bạn duyệt (ADR-0164) sẽ thêm nút «Ẩn» của Toàn quyền, nghĩa là vô hiệu hoá và cô lập bản ghi. Ở Dịch vụ & giá đã có nút «Ẩn» của Quản trị, nghĩa là ngừng bán. Trùng không chỉ một chữ mà ba chữ «Ẩn», «Hiện lại», «Đã ẩn», và hành vi trái nhau: «Hiện lại» có sẵn bán lại ngay, còn «Hiện lại» mới không bật lại gì. Ví dụ Toàn quyền dọn một dịch vụ thử: theo đề xuất phải bấm «Ẩn» để ngừng bán rồi bấm «Ẩn» nữa để cô lập, và sau khi hiện lại thì dịch vụ vẫn mang nhãn «Đã ẩn», chưa bán được. Vì vậy bạn nên chốt tên một lần ở câu 12, trước khi làm nút mới.
+
 ## Tên cần bạn chọn
 
 Bạn chỉ cần trả lời «theo khuyến nghị», hoặc nêu số câu muốn khác. Tên in đậm là khuyến nghị của tôi. Đổi tên nào thì tôi sửa luôn Hướng dẫn và bảng từ của tên đó.
@@ -40,6 +44,7 @@ Bạn chỉ cần trả lời «theo khuyến nghị», hoặc nêu số câu mu
 | 9 | Đóng | **Ngừng dùng** (liên hệ), **Ngừng điều kiện**, **Ngừng điều khoản** | |
 | 10 | Khách đã chuyển khoản | **Ghi khoản thu này**, hoặc Ghi khoản thu từ mã này | |
 | 11 | Hẹn ngày kết thúc | **Đặt ngày kết thúc** | Thêm câu «chỉ đặt được một lần» |
+| 12 | Ẩn / Hiện lại có sẵn (ngừng bán dịch vụ) và Ẩn / Hiện lại sắp có (Toàn quyền) | **Nút có sẵn thành «Ngừng bán» / «Mở bán lại», nhãn «Đã ngừng bán». Nút mới giữ «Ẩn» / «Hiện lại», trang «Dữ liệu đã ẩn»**. Khác: nút mới «Ẩn và vô hiệu hoá» | Nút mới chỉ làm nếu bạn duyệt đề xuất; đổi tên nút có sẵn thì vẫn có ích nếu không duyệt. Hộp hỏi của nút mới phải nói đường dẫn đã gửi khách sẽ hết hiệu lực |
 
 ## Đã kiểm và chưa kiểm
 

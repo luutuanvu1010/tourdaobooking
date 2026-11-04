@@ -10413,16 +10413,22 @@
    "nhat_ky": "Ẩn dịch vụ · Hiện lại dịch vụ",
    "huong_dan": "Ẩn · Hiện lại",
    "hai_ten": "Chữ «ẩn» còn dùng trong câu báo đồng bộ cho dịch vụ «Không còn trong Sheet» (việc khác)",
-   "ket_luan": "dung",
-   "vi_du": "",
-   "van_de_hien_thi": "Nút Ẩn vẽ chữ đỏ dù đảo ngược được ngay; chấp nhận được vì tác động tới bán hàng. Góc nhỏ: Hiện lại trên dịch vụ đã «Không còn trong Sheet» chỉ gỡ dấu ẩn, dịch vụ vẫn chưa hiện cho người lập đơn.",
-   "de_xuat": [],
+   "ket_luan": "mo_ho",
+   "vi_du": "Hôm nay tên này còn hiểu được, vì Hướng dẫn cũng giải thích «Tạm ngưng bán: Ẩn. Bán lại: Hiện lại». Vấn đề sinh ra nếu đề xuất ADR-0164 được duyệt. Toàn quyền muốn dọn một dịch vụ thử: theo đề xuất phải ngừng nó bằng nút có sẵn trước, mà nút có sẵn duy nhất cũng tên «Ẩn», rồi bấm tiếp «Ẩn» mới để vô hiệu hoá và cô lập. Khi bấm «Hiện lại» mới, dịch vụ quay về danh sách nhưng vẫn mang nhãn «Đã ẩn» và chưa bán được, vì «Hiện lại» mới không tự bật lại, trong khi «Hiện lại» cũ thì bán lại ngay.",
+   "van_de_hien_thi": "Nút Ẩn vẽ chữ đỏ dù đảo ngược được ngay; chấp nhận được vì tác động tới bán hàng. Góc nhỏ: Hiện lại trên dịch vụ đã «Không còn trong Sheet» chỉ gỡ dấu ẩn, dịch vụ vẫn chưa hiện cho người lập đơn. Đổi tên thì nhãn và bộ lọc «Đã ẩn», nhật ký «Ẩn dịch vụ», «Hiện lại dịch vụ» và Hướng dẫn phải đổi cùng. Hướng dẫn còn một nghĩa thứ ba của chữ này: «sắp ẩn nhiều dịch vụ» khi đồng bộ Sheet (src/shared/huong-dan-quan-tri.ts:96).",
+   "de_xuat": [
+    "Ngừng bán / Mở bán lại",
+    "Tạm ngừng bán / Mở bán lại"
+   ],
    "chu_da_chon": "",
-   "uu_tien": "khong",
+   "uu_tien": "vua",
    "nguon": [
     "web/catalog.ts:122",
     "src/modules/catalog/index.ts:394",
-    "src/modules/catalog/rules.ts:135"
+    "src/modules/catalog/rules.ts:135",
+    "web/catalog.ts:111",
+    "src/shared/huong-dan-quan-tri.ts:102",
+    "src/shared/audit-actions.ts:314"
    ]
   },
   {
@@ -13564,5 +13570,16 @@
   "[D3-ho-tro-thong-bao-khung] Không kiểm được nội dung gửi thực tế cho OpenAI ngoài việc đọc hàm thanYeuCau/che câu hỏi; chưa đọc src/shared/tro-ly.ts từng dòng."
  ],
  "kiem_doc_lap": "Người kiểm độc lập đọc lại 30 hàng ngày 2026-11-04 (cả 9 hàng ưu tiên cao, 6 hiểu lầm, 6 chưa rõ, 9 đúng, chọn ngẫu nhiên; khoảng 24 hàng lần tới tận câu ghi). Không hàng nào nói sai việc chính của nút. Có ba chỗ sai ở cột phụ, một chỗ tự mâu thuẫn và ba kết luận hạ từ «gây hiểu lầm» xuống «chưa rõ»; đã sửa sau khi tự đọc lại mã. Người kiểm không ghi kết luận riêng trước khi mở bảng, nên phần «đồng ý» không hoàn toàn mù. Các hàng ngoài mẫu chưa ai đọc lại, cột phụ ở đó có thể còn lỗi tương tự.",
- "ghi_chu_trung_ten": "Đã đọc tay cả bảy mục: «Bên kia đã nhận», «Lưu số khách», «Lưu cấp riêng», «Tạo chuyến», «Đăng xuất máy này», «Chọn cấp riêng cho đối tác» đều đang chỉ cùng một việc, nên trùng là đúng ý. «Ngừng dùng» đang là nút của xe, đề xuất cho liên hệ: cùng kiểu việc, khác đối tượng, chấp nhận được."
+ "ghi_chu_trung_ten": "Đã đọc tay cả bảy mục: «Bên kia đã nhận», «Lưu số khách», «Lưu cấp riêng», «Tạo chuyến», «Đăng xuất máy này», «Chọn cấp riêng cho đối tác» đều đang chỉ cùng một việc, nên trùng là đúng ý. «Ngừng dùng» đang là nút của xe, đề xuất cho liên hệ: cùng kiểu việc, khác đối tượng, chấp nhận được.",
+ "nut_sap_co": [
+  {
+   "ten": "Ẩn · Hiện lại · trang «Dữ liệu đã ẩn» (của Toàn quyền)",
+   "trang_thai": "Chưa có trong mã. Đề xuất ADR-0164, trạng thái proposed, chưa có hiệu lực; đọc ở nhánh claude/admin-delete-data-decision-31f0fc, lần lưu 6c00dc47, ngày 2026-11-04.",
+   "vai": "Toàn quyền",
+   "that_su_lam": "Theo đề xuất: vô hiệu hoá và cô lập một đơn, hồ sơ, tài khoản hoặc cấu hình, gồm cả dịch vụ. Mọi người trừ Toàn quyền không còn thấy; không ghi thêm được; đường dẫn biên nhận, vé, QR đã gửi khách hết hiệu lực; tài khoản bị đăng xuất. Mỗi lần cần lý do và ghi nhật ký. «Hiện lại» đưa bản ghi về danh sách nhưng không tự bật lại.",
+   "van_de": "Trùng ba chữ với nút có sẵn ở Dịch vụ & giá: «Ẩn», «Hiện lại», «Đã ẩn», và hành vi trái nhau: «Hiện lại» có sẵn bán lại ngay, «Hiện lại» mới không bật lại gì. Trên cùng dòng dịch vụ, Toàn quyền sẽ thấy cả hai. Chữ «Ẩn» cũng chưa nói được hậu quả đường dẫn đã gửi khách hết hiệu lực, nên hộp hỏi phải nói.",
+   "de_xuat": "Nút có sẵn thành «Ngừng bán» / «Mở bán lại», nhãn và bộ lọc «Đã ngừng bán». Nút mới giữ «Ẩn» / «Hiện lại» và trang «Dữ liệu đã ẩn», vì «ẩn» là chữ của chủ. Phương án khác: nút mới «Ẩn và vô hiệu hoá».",
+   "nguon": "ADR-0164 Đ2, Đ3, Đ5, mục «Việc kèm khi thi công»; trang ghép docs/superpowers/specs/2026-11-04-trang-ghep-an-du-lieu.md dòng 55 (cùng nhánh)"
+  }
+ ]
 }
