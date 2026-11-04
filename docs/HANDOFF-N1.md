@@ -2,7 +2,17 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.60 ĐÃ LÊN PRODUCTION (công ty lữ hành và đối tác chưa có tài khoản gắn vai ở Danh bạ, hưởng hoa hồng theo cấp, ADR-0155 Đ1, C3, C4, C6) — không migration — triển khai 2026-11-04 14:04 giờ Việt Nam
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.61 ĐÃ LÊN PRODUCTION (màn «Cấp độ đại lý» gán cấp TA nhanh; đổi 12 tên nút và tách nhãn đơn nháp, ADR-0166) — không migration — triển khai 2026-11-04 16:40 giờ Việt Nam
+
+Ghi từ khối tóm tắt của `npm run trien-khai` (chủ tự chạy) và lệnh chỉ đọc của phiên hoa hồng:
+- Commit `origin/main`: `5a89ebae`. Worker Version ID: `c6c57d2b-1921-4173-938e-a832a2b21b02`. e2e: xanh 82/82. Cổng phiên bản trước và sau deploy: ĐẠT. GET công khai sau deploy: `version` 2.61.
+- **`audit-invariants --db remote`: ĐẠT, ba cảnh báo như 2.60:** `R-VC-14` 7 xe thiếu giấy tờ là điều kiện xuất bến; `R-CTL-1` 9 dịch vụ chưa phân nhóm; `R-DSP-2b` một người phụ trách đang mở có tài khoản đã ngưng, nên giao lại đơn (chưa xem là đơn nào).
+- **Chế độ bảo trì đã tắt** (GET công khai 4/11 sau deploy: `maintenance.on` false), nên người dùng thật nhận bản này ngay.
+- **Phiên mở thử bằng Chrome của chủ, tài khoản Toàn quyền, chỉ xem, không lưu:** màn hiện 8 hồ sơ, đều có tài khoản; ô chọn có đủ TA1 đến TA6; mở rồi đóng bảng chọn cấp, dòng không đổi. Khách vãng lai gọi route đọc nhận 401.
+- **Chưa kiểm:** lệnh Lưu trên production (chủ tự nghiệm thu); hồ sơ chưa có tài khoản trên production (hiện chưa có hồ sơ nào như vậy mang vai được hưởng); iPhone thật; vai Kế toán trên production; hàng nghìn hồ sơ.
+- **Việc kế tiếp:** `docs/superpowers/plans/2026-11-03-hoan-thien-hoa-hong-bang-viec.md`.
+
+## (Cũ) TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.60 ĐÃ LÊN PRODUCTION (công ty lữ hành và đối tác chưa có tài khoản gắn vai ở Danh bạ, hưởng hoa hồng theo cấp, ADR-0155 Đ1, C3, C4, C6) — không migration — triển khai 2026-11-04 14:04 giờ Việt Nam
 
 Ghi từ khối tóm tắt của `npm run trien-khai` (chủ tự chạy) và lệnh chỉ đọc của phiên chiết khấu:
 - Commit `origin/main`: `c7ba67e7`. Worker Version ID: `825b3994-769a-4984-87b0-79313c0957fb`. Cổng phiên bản trước và sau deploy: ĐẠT. GET công khai sau deploy: `version` 2.60.

@@ -9,7 +9,7 @@ Chủ dự án 3/11/2026, nguyên văn: «để diễn tập sau, giờ là lúc
 | 3 | Trả tiền theo tháng (ADR-0080 phần D2, ADR-0081): gộp nhiều đơn vào một phiếu, bảng kê tháng, đối tác tự xem sổ | Ca sổ vàng qua; khoá tháng vẫn đúng; đối tác chỉ thấy phần của mình | chưa; đọc nhanh, chưa kiểm kỹ phần đã có |
 | 4 | Đã gộp vào Việc 2 (chủ 4/11) | Theo Việc 2 | gộp |
 | 5 | Dọn chỗ nhỏ: chữ «/khách» còn sót với dịch vụ theo lượt, `BL-SDL-TAY-BI-DE`, `BL-SDL2-CHUP-BU-TRAN`, `BL-SDL2-DON-LAI` | Mỗi mục có bài đỏ trước, xanh sau | chưa |
-| 6 | Màn «Cấp độ đại lý»: gán cấp TA nhanh cho mọi đối tác, không vào trang Hoa hồng. Chủ 4/11, nguyên văn: «Làm màn gom». Đặc tả: `docs/superpowers/specs/2026-11-04-man-cap-dai-ly.md` | Đạt chín tiêu chí của đặc tả; lên production | đã thi công, người kiểm độc lập đạt; chờ nhập, chờ triển khai |
+| 6 | Màn «Cấp độ đại lý»: gán cấp TA nhanh cho mọi đối tác, không vào trang Hoa hồng. Chủ 4/11, nguyên văn: «Làm màn gom». Đặc tả: `docs/superpowers/specs/2026-11-04-man-cap-dai-ly.md` | Đạt chín tiêu chí của đặc tả; lên production | **xong**: bản 2.61 lên production 4/11 16:40 (`5a89ebae`), người kiểm độc lập đạt, e2e 82/82. Phiên mở thử trên production chỉ xem, không lưu: đủ TA1 đến TA6. Chờ chủ bấm Lưu thật; chưa thử iPhone |
 
 ## Ngoài bảng
 
