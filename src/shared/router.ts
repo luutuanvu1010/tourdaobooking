@@ -60,6 +60,12 @@ export type NewOrderHandler = { ok: true; statements: (orderId: string, at: stri
 export interface ViecCuaHoSo { phuTrachDon: number; laiChuyen: number; toLaiChuyen: number; chuXeChuyen: number; soXe: number }
 /** `maDoi` = mã các đơn sẽ đổi người đặt (nháp + đã xác nhận chưa giao) — route gộp nêu tên khi lô bị trigger tiền của đơn huỷ (ADR-0068 Đ1 bước 5). */
 export interface DonCuaNguoiDatTom { doi: number; giuDaGiao: number; giuDaHuy: number; lechTien: string[]; maDoi: string[] }
+/**
+ * ADR-0155 C3 — việc dở khi gỡ vai được hưởng cuối cùng của hồ sơ chưa có tài khoản. `parties` không import orders / pricing: gốc lắp ráp nối (khuôn `GopHoSoNoi`).
+ * `conVaiHuong` = trong `vaiConLai` (mã các vai còn mở sau khi gỡ) còn vai được hưởng hoa hồng. Đơn nháp riêng tư (ADR-0135 Đ1): CHỈ đếm (`donNhap`), mã đơn chỉ ra cho
+ * đơn đang chờ xác nhận (`maDonChoXacNhan`, đã nằm trong tay người xét duyệt).
+ */
+export interface ViecDoKhiThoiVai { conVaiHuong: boolean; donNhap: number; maDonChoXacNhan: string[]; capRiengMo: boolean; mucRiengMo: boolean }
 export interface GopHoSoNoi {
   viecCua: (partyId: string) => Promise<ViecCuaHoSo>;
   donNguoiDat: (partyId: string) => Promise<DonCuaNguoiDatTom>;
@@ -212,6 +218,8 @@ export interface Ctx<A extends Access = Access> {
   dichVuBiChanChoToi: (codes: readonly string[]) => Promise<ReadonlySet<string>>;
   /** GỘP HỒ SƠ (ADR-0068) — do gốc lắp ráp tiêm; xem `GopHoSoNoi`. Lười: chỉ gọi hàm tiêm khi route dùng (khung thử cũ không có hàm này vẫn chạy route khác). */
   gopHoSo: GopHoSoNoi;
+  /** ADR-0155 C3 — xem `ViecDoKhiThoiVai`. `null` = môi trường không tiêm (khung thử cố ý) ⇒ route từ chối gỡ (503), không đoán «không có việc dở». */
+  viecDoKhiThoiVai: (partyId: string, vaiConLai: readonly string[]) => Promise<ViecDoKhiThoiVai | null>;
   /**
    * DẤU "ĐÃ NHẬP PHẦN MỀM KẾ TOÁN" (ADR-0060 điều 5) — do gốc lắp ráp tiêm (`billing.nhapKeToanCuaDon`; `orders` KHÔNG đọc bảng `bil_`, không import `billing` —
    * khuôn `ordersWithHandler`): trong các đơn `orderIds`, đơn nào có trạng thái hiện tại = đã nhập. KHÔNG phụ thuộc người gọi và KHÔNG tự kiểm quyền — route
@@ -386,6 +394,8 @@ export interface AppOptions {
     dichVuBiChanChoToi: (env: Env, actor: StaffProfile, codes: readonly string[]) => Promise<ReadonlySet<string>>;
     /** GỘP HỒ SƠ (ADR-0068). BẮT BUỘC trong mã chạy thật (`src/index.ts`). */
     gopHoSo: (env: Env) => GopHoSoNoi;
+    /** ADR-0155 C3. BẮT BUỘC trong mã chạy thật (`src/index.ts`: `donChuaXacNhanCua` của orders + `viecDoKhiThoiVai` của pricing); thiếu (khung thử cố ý) → router trả `null`. */
+    viecDoKhiThoiVai: (env: Env, partyId: string, vaiConLai: readonly string[]) => Promise<ViecDoKhiThoiVai>;
     /** ADR-0060 điều 5. BẮT BUỘC trong mã chạy thật (`src/index.ts`: `nhapKeToanCuaDon` của billing); thiếu (khung thử cố ý) → router trả `null`. */
     nhapKeToanCuaDon: (env: Env, orderIds: readonly string[]) => Promise<Set<string>>;
     /** ADR-0136 Đ3. BẮT BUỘC trong mã chạy thật (`src/index.ts`: `daThuCuaDon` của billing); thiếu (khung thử cố ý) → router trả `null`. */
@@ -540,6 +550,7 @@ export function createApp(opts: AppOptions) {
         soDongNo: (id) => opts.injected.gopHoSo(envH).soDongNo(id),
         soDangNhap: () => opts.injected.gopHoSo(envH).soDangNhap(),
       },
+      viecDoKhiThoiVai: (id, vai) => (typeof opts.injected.viecDoKhiThoiVai !== "function" ? Promise.resolve(null) : opts.injected.viecDoKhiThoiVai(envH, id, vai)),
       nhapKeToanCuaDon: (ids) =>
         typeof opts.injected.nhapKeToanCuaDon !== "function" ? Promise.resolve(null) : ids.length === 0 ? Promise.resolve(new Set<string>()) : opts.injected.nhapKeToanCuaDon(envH, ids),
       daThuCuaDon: (id) => (typeof opts.injected.daThuCuaDon !== "function" ? Promise.resolve(null) : opts.injected.daThuCuaDon(envH, id)),

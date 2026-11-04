@@ -93,6 +93,17 @@ const VAI_MO_CUA_NGUOI_HUONG = defineSql("pricing", "open_beneficiary_roles_all"
 const LA_HUONG = defineSql("pricing", "is_beneficiary",
   `SELECT 1 AS ok FROM v_pty_open_role r JOIN prc_beneficiary_role b ON b.role_type_code = r.role_type_code AND b.active = 1 WHERE r.party_id = ?1 LIMIT 1`);
 // Task 11 (Ruling 21): CÙNG điều kiện `is_beneficiary` (không xét `active` của hồ sơ — đúng điều máy chủ dùng để ÉP bên đặt cho tài khoản Đối tác) + tên hồ sơ qua view công bố. Chỉ id + tên.
+// ADR-0155 C3: việc của hồ sơ buộc phải xử lý TRƯỚC khi gỡ vai được hưởng cuối cùng — cùng nghĩa R-PRC-5 (chưa hết hạn, chưa huỷ; dòng bắt đầu tương lai cũng tính, vì rồi sẽ có hiệu lực).
+// ?1 hồ sơ, ?2 hôm nay (ngày VN), ?3 mảng JSON mã vai CÒN LẠI sau khi gỡ. `vai` = còn vai trong danh sách được hưởng đang bật (cùng điều kiện `is_beneficiary`).
+const VIEC_DO_KHI_THOI_VAI = defineSql("pricing", "party_open_work_on_role_end",
+  `SELECT
+     (SELECT count(*) FROM prc_party_tier g WHERE g.party_id = ?1 AND g.voided_at IS NULL AND (g.valid_to_date IS NULL OR g.valid_to_date >= ?2)) AS cap,
+     (SELECT count(*) FROM prc_commission_rule r WHERE r.target_party_id = ?1 AND r.voided_at IS NULL AND (r.valid_to_date IS NULL OR r.valid_to_date >= ?2)) AS muc,
+     (SELECT count(*) FROM prc_beneficiary_role b WHERE b.active = 1 AND b.role_type_code IN (SELECT value FROM json_each(?3))) AS vai`);
+export const viecDoKhiThoiVai = async (db: D1Database, v: { partyId: string; homNay: string; vaiConLai: readonly string[] }): Promise<{ capRiengMo: boolean; mucRiengMo: boolean; conVaiHuong: boolean }> => {
+  const r = await db.prepare(VIEC_DO_KHI_THOI_VAI).bind(v.partyId, v.homNay, JSON.stringify(v.vaiConLai)).first<{ cap: number; muc: number; vai: number }>();
+  return { capRiengMo: (r?.cap ?? 0) > 0, mucRiengMo: (r?.muc ?? 0) > 0, conVaiHuong: (r?.vai ?? 0) > 0 };
+};
 const HUONG_CUA_HO_SO = defineSql("pricing", "beneficiary_of_party",
   `SELECT l.id, l.display_name FROM v_pty_party_label l
    WHERE l.id = ?1 AND EXISTS (SELECT 1 FROM v_pty_open_role r JOIN prc_beneficiary_role b ON b.role_type_code = r.role_type_code AND b.active = 1 WHERE r.party_id = l.id)`);

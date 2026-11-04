@@ -29,8 +29,8 @@ import { feedbackModule } from "./modules/feedback";
 import { canBangVeTheoSoKhach, capVeChoDon, donHangChoXoaVe, nhatKyThat, soanTraVeKhiHuy, veDienTuModule } from "./modules/ve-dien-tu";
 import { maintenanceBlock, maintenanceModule, type MaintenanceState } from "./modules/maintenance";
 import { hanGiuPhienNgay, partiesModule } from "./modules/parties";
-import { kiemLuatBan, nguoiHuongCuaHoSo, pricingModule } from "./modules/pricing";
-import { cauDoiNguoiDat, dichVuChoVe, donCuaNguoiDat, findOrderRef, ngayChupGanNhat, ordersModule } from "./modules/orders";
+import { kiemLuatBan, nguoiHuongCuaHoSo, pricingModule, viecDoKhiThoiVai } from "./modules/pricing";
+import { cauDoiNguoiDat, dichVuChoVe, donChuaXacNhanCua, donCuaNguoiDat, findOrderRef, ngayChupGanNhat, ordersModule } from "./modules/orders";
 import { accountOfParty, listStaffAccounts, nhanNhanVienTheoId, soDangNhapTheoHoSo, taiKhoanChoXacMinh } from "./modules/staff";
 import { dayGoCua, dayGoCuaDoi, dongChuyenTheoId, tatMayCuaCacPhienStatement, tatMayCuaPhienStatement, tatMayStatement, tatMayTruPhienStatement, thongbaoModule } from "./modules/thongbao";
 import { troLyModule } from "./modules/tro-ly";
@@ -211,6 +211,11 @@ const APP_OPTIONS: AppOptions = {
       soDongNo: (partyId) => soDongNoCuaNguoi(env.DB, partyId),
       soDangNhap: () => soDangNhapTheoHoSo(env.DB),
     }),
+    // GỠ VAI ĐƯỢC HƯỞNG CUỐI CÙNG (ADR-0155 C3): parties không import orders / pricing — gốc lắp ráp ghép đơn nháp (orders) với cấp riêng, mức riêng, vai còn lại (pricing).
+    viecDoKhiThoiVai: async (env, partyId, vaiConLai) => {
+      const [don, gia] = await Promise.all([donChuaXacNhanCua(env.DB, partyId), viecDoKhiThoiVai(env.DB, { partyId, homNay: vnToday(new Date()), vaiConLai })]);
+      return { ...don, ...gia };
+    },
     // DẤU "ĐÃ NHẬP PHẦN MỀM KẾ TOÁN" (ADR-0060 điều 5): `orders` không đọc bảng bil_ — gốc lắp ráp gọi hàm đọc tập id của billing (lọc + nhãn danh sách đơn).
     nhapKeToanCuaDon: (env, ids) => nhapKeToanCuaDon(env.DB, ids),
     // SỐ ĐÃ THU RÒNG CỦA ĐƠN (ADR-0136 Đ3): `orders` không đọc bảng bil_ — gốc lắp ráp gọi hàm công bố của billing (chặn mở yêu cầu xác nhận khi đơn đã có khoản thu).

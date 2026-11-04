@@ -38,5 +38,17 @@ export async function donCuaNguoiDat(db: D1Database, partyId: string): Promise<D
     maDoi: seDoi.filter((r) => r.status !== "draft").map((r) => r.order_code),
   };
 }
+// ADR-0155 C3: đơn NHÁP đứng tên hồ sơ (kể cả nháp chờ xác nhận = nháp có yêu cầu xác nhận còn mở). Nháp là riêng tư (ADR-0135 Đ1): hàm chỉ trả số nháp, còn MÃ ĐƠN chỉ
+// trả cho đơn đang chờ xác nhận (đơn đã nằm trong tay người xét duyệt). Chỉ gốc lắp ráp gọi (qua ctx.viecDoKhiThoiVai của route gỡ vai ở parties).
+const DON_NHAP_CUA_NGUOI_DAT = defineSql(
+  "orders",
+  "don_nhap_cua_nguoi_dat",
+  `SELECT o.order_code, EXISTS (SELECT 1 FROM ord_confirm_request r WHERE r.order_id = o.id AND r.decided_at IS NULL) AS cho FROM orders o
+   WHERE o.booker_party_id = ?1 AND o.status = 'draft' ORDER BY o.order_code`,
+);
+export async function donChuaXacNhanCua(db: D1Database, partyId: string): Promise<{ donNhap: number; maDonChoXacNhan: string[] }> {
+  const { results } = await db.prepare(DON_NHAP_CUA_NGUOI_DAT).bind(partyId).all<{ order_code: string; cho: number }>();
+  return { donNhap: results.length, maDonChoXacNhan: results.filter((r) => r.cho === 1).map((r) => r.order_code) };
+}
 export const cauDoiNguoiDat = (db: D1Database, tuPartyId: string, sangPartyId: string, at: string): D1PreparedStatement =>
   db.prepare(DOI_NGUOI_DAT).bind(tuPartyId, sangPartyId, at);

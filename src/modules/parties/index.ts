@@ -20,7 +20,7 @@ import { UUID_RE, error, intParam, mauLikeChua, json, kemLocation, readJson } fr
 import { can, holdsPartner, type PermissionCode } from "../../shared/permissions";
 import { normalizePhone } from "../../shared/phone";
 import { route, type AppModule, type Ctx } from "../../shared/router";
-import type { DonCuaNguoiDatTom, GopHoSoNoi, PartyAccountVerdict, TaiKhoanXacMinh } from "../../shared/router";
+import type { DonCuaNguoiDatTom, GopHoSoNoi, PartyAccountVerdict, TaiKhoanXacMinh, ViecDoKhiThoiVai } from "../../shared/router";
 import { vnToday } from "../../shared/vn-date";
 import { gioiTinhHopLe } from "../../shared/xung-ho";
 import {
@@ -249,6 +249,19 @@ const isAccountGroup = (g: string | null): boolean => g === "INTERNAL" || g === 
 // kể cả tài khoản đã ngưng — `acc.linked` đếm cả hai). Còn lại (vai nội bộ, DRIVER_EXTERNAL, hồ sơ có tài khoản) vẫn 409 role_via_account. Chỉ lớp route (CSDL chỉ đỡ
 // pty_party_role_group_conflict, party_role_overlap) — mỗi chốt dưới đây có dòng ở docs/SO-HANG-RAO.md.
 const moKhongTaiKhoan = (code: string, group: string | null, acc: PartyAccountVerdict): boolean => group === "EXTERNAL" && vaiMoChoHoSoKhongTaiKhoan(code) && !acc.linked;
+/** ADR-0155 C3: câu chặn gỡ vai cuối khi còn việc dở; null = không còn việc. Đơn nháp riêng tư (ADR-0135 Đ1): chỉ nêu SỐ nháp, nêu mã (tối đa 5) cho đơn đang chờ xác nhận. */
+const TOI_DA_MA_DON = 5;
+function cauViecDoKhiThoiVai(v: ViecDoKhiThoiVai): string | null {
+  const viec: string[] = [];
+  if (v.donNhap > 0) {
+    const ma = v.maDonChoXacNhan.slice(0, TOI_DA_MA_DON);
+    const them = v.maDonChoXacNhan.length - ma.length;
+    viec.push(`${v.donNhap} đơn chưa xác nhận đứng tên hồ sơ này${ma.length > 0 ? ` (đang chờ xác nhận: ${ma.join(", ")}${them > 0 ? ` và ${them} đơn khác` : ""})` : ""}`);
+  }
+  if (v.capRiengMo) viec.push("còn cấp riêng đang áp dụng");
+  if (v.mucRiengMo) viec.push("còn mức riêng đang áp dụng");
+  return viec.length === 0 ? null : `Chưa gỡ được vai trò này vì đây là vai trò hưởng hoa hồng cuối cùng của hồ sơ mà hồ sơ ${viec.join("; ")}. Hãy xử lý đơn nháp, kết thúc cấp riêng, ngừng mức riêng, rồi gỡ.`;
+}
 const NO_LOCATION = () => error(400, "invalid_input", "Vai trò này không gắn với một nơi làm — để trống ô “Nơi làm”.");
 const PARTY_INACTIVE = () => error(409, "party_inactive", "Hồ sơ này đang ngưng dùng nên chưa gắn vai trò được. Bật lại “Đang dùng” cho hồ sơ rồi thử lại.");
 const OWNER_COMPANY_NO_PARTNER_ROLE = () => error(409, "owner_company_no_partner_role", "Hồ sơ công ty chủ không mang vai trò đối tác được hưởng hoa hồng.");
@@ -2186,6 +2199,17 @@ export const partiesModule: AppModule = {
       // valid_to_date IS NULL nên view v_pty_party_partner_label / trigger / hoSoMangNhanDoiTac coi như hết nhãn trong khi nhãn vẫn còn hiệu lực ⇒ chiều 2 lọt.
       if (row && to.value > homNay && (moKTK || (await roleTypeOf(env.DB, row.code))?.partnerLabel)) {
         return error(400, "invalid_input", "Vai người dùng kết thúc ngay hôm nay hoặc ngày đã qua — không đặt ngày trong tương lai.");
+      }
+      // ADR-0155 C3: gỡ vai được hưởng CUỐI CÙNG của hồ sơ chưa có tài khoản khi còn đơn chưa xác nhận đứng tên, cấp riêng hoặc mức riêng ⇒ hoa hồng mất lặng lẽ
+      // (đơn nháp thành «không hoa hồng», cấp riêng thành dòng mồ côi `R-PRC-5`), nên chặn và nói lối ra. Chỉ năm vai; loại tự thêm và đường Quản lý tài khoản giữ nguyên.
+      if (moKTK && row) {
+        const conLai = (await vaiDangMo(env.DB, id)).map((r) => r.code);
+        const viTri = conLai.indexOf(row.code);
+        if (viTri >= 0) conLai.splice(viTri, 1);
+        const viec = await ctx.viecDoKhiThoiVai(id, conLai);
+        if (viec === null) return error(503, "unavailable", "Chưa kiểm được việc còn dở của hồ sơ này nên chưa gỡ vai trò được. Thử lại sau ít phút.");
+        const chan = viec.conVaiHuong ? null : cauViecDoKhiThoiVai(viec);
+        if (chan) return error(409, "role_end_has_open_work", chan);
       }
       const at = now.toISOString();
       let results: D1Result[];
