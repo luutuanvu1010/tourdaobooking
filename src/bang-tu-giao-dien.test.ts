@@ -73,7 +73,8 @@ function tepTs(thuMuc: string): string[] {
 }
 
 // Bảng nội bộ cho người làm mã, không trang nào hiện (lượt 2 rà soát ngôn ngữ, 18/10): `bang-su-kien-van-chuyen.ts` (chỉ bài kiểm của nó đọc), `lan-gui-no.ts`.
-const NGOAI_LE = new Set(["src/shared/changelog.ts", "src/shared/bang-tu-giao-dien.ts", "src/shared/bang-su-kien-van-chuyen.ts", "src/shared/lan-gui-no.ts"]);
+// Bảng tham chiếu ngôn ngữ (ADR-0167): phải ghi cả chữ đã loại (cột «chữ đã loại», nguồn «thay …») và không trang nào nạp nó; `kiemKhongDungChuLoai` (src/bang-tham-chieu.test.ts) canh phần TÊN thay cho bài này.
+const NGOAI_LE = new Set(["src/shared/changelog.ts", "src/shared/bang-tu-giao-dien.ts", "src/shared/bang-su-kien-van-chuyen.ts", "src/shared/lan-gui-no.ts", "src/shared/bang-tham-chieu-viec.ts"]);
 // Chuỗi có tên được giữ nguyên văn: câu chào mặc định của Trợ lý Mai PHẢI trùng bản gieo trong migration (đã áp, không sửa được — bài
 // `migrations-pty-person-gender.test.ts`). Đổi câu chào đang dùng = Toàn quyền lưu lời dặn mới ở trang Trợ lý (dữ liệu, không phải mã).
 // Lượt 2 (18/10): «cập nhật chặng đưa đón» là chữ nhật ký mà hàm đọc tin (`CAP_NHAT_CHANG`, tin-doi-don.ts) so nguyên văn — nhật ký chỉ-thêm, dòng cũ mang chữ này.

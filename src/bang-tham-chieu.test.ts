@@ -1,10 +1,14 @@
 // Bảng tham chiếu ngôn ngữ (ADR-0167): máy canh sáu điều kiện đỏ. Phần đầu thử từng phép kiểm bằng dữ liệu mẫu; phần sau chạy trên mã thật.
 import assert from "node:assert/strict";
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { test } from "node:test";
 // @ts-expect-error — tệp .mjs không có kiểu
 import { kiemDuong, kiemHuongDan, kiemKhaiNiem, kiemKhongDungChuLoai, kiemNoiDat, kiemTenLacCho, kiemUngVien, renderBangThamChieu } from "../scripts/bang-tham-chieu-lib.mjs";
 // @ts-expect-error — tệp .mjs không có kiểu
-import { chuanNhan, khoaNut, lietKeNut } from "../scripts/quet-nut-lib.mjs";
+import { chuanNhan, duongTrongMa, khoaNut, lietKeNut } from "../scripts/quet-nut-lib.mjs";
+import { AUDIT_ACTIONS } from "./shared/audit-actions.ts";
+import { BO_QUA, VIEC_QUAN_TRONG } from "./shared/bang-tham-chieu-viec.ts";
 import type { ChuDungChung, KhaiNiem, MucBoQua, ViecQuanTrong } from "./shared/bang-tham-chieu.ts";
 
 const ROOT = new URL("..", import.meta.url).pathname.replace(/\/$/, "");
@@ -130,4 +134,35 @@ test("bộ quét chạy được trên mã thật", () => {
   const ds = lietKeNut(ROOT);
   assert.ok(ds.length > 800, `chỉ quét được ${ds.length} nút`);
   assert.ok(ds.every((n: { kenh: string }) => n.kenh !== "khuon"));
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Chạy trên mã thật
+// ---------------------------------------------------------------------------------------------------------------------
+const NUT_THAT = lietKeNut(ROOT);
+const kể = (loi: string[]) => `${loi.length} chỗ lệch:\n${loi.slice(0, 30).join("\n")}${loi.length > 30 ? `\n… và ${loi.length - 30} chỗ nữa` : ""}`;
+
+test("bảng khớp mã: điều 1, 3, 4 (nút đã khai đúng tên; nút ghi/nút chính có dòng; đường lệnh và mã nhật ký còn thật)", () => {
+  const l1 = kiemNoiDat(VIEC_QUAN_TRONG, NUT_THAT);
+  assert.deepEqual(l1, [], `điều 1 — ${kể(l1)}`);
+  const l3 = kiemUngVien(VIEC_QUAN_TRONG, BO_QUA, NUT_THAT);
+  assert.deepEqual(l3, [], `điều 3 — ${kể(l3)}`);
+  const l4 = kiemDuong(VIEC_QUAN_TRONG, duongTrongMa(ROOT), new Set(Object.keys(AUDIT_ACTIONS)));
+  assert.deepEqual(l4, [], `điều 4 — ${kể(l4)}`);
+});
+
+test("không tệp nào ngoài bài kiểm và kịch bản nạp bảng", () => {
+  const loi: string[] = [];
+  const duyet = (thuMuc: string) => {
+    for (const e of readdirSync(join(ROOT, thuMuc), { recursive: true, withFileTypes: true })) {
+      if (!e.isFile() || !/\.(ts|mjs|html)$/.test(e.name) || e.name.endsWith(".test.ts")) continue;
+      const tep = join(e.parentPath, e.name).slice(ROOT.length + 1);
+      if (/^src\/shared\/bang-tham-chieu[^/]*\.ts$/.test(tep)) continue; // chính các tệp bảng nhập nhau
+      if (/bang-tham-chieu/.test(readFileSync(join(ROOT, tep), "utf8").replace(/\/\/.*$/gm, "").split("\n").filter((d) => /\b(?:import|from)\b|import\(/.test(d)).join("\n"))) loi.push(tep);
+    }
+  };
+  duyet("web");
+  duyet("src");
+  duyet("public");
+  assert.deepEqual(loi.filter((t) => !t.startsWith("scripts/")), [], "bảng tham chiếu chỉ để bài kiểm và kịch bản sinh tài liệu đọc; giao diện và máy chủ không nạp (sẽ làm nặng trang)");
 });
