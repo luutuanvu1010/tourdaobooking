@@ -179,7 +179,7 @@ function dung(ngay: string, chuyen: ChuyenChiTietResponse["chuyen"] | null, xe: 
 
   // Trang Chuyến mới ghi «Tạo chuyến», trang Sửa chuyến ghi «Lưu chuyến» (bảng tham chiếu, chủ 2026-11-05).
   const nhanLuu = chuyen ? "Lưu chuyến" : "Tạo chuyến";
-  const luuMay = h("button", { type: "submit", class: "vc-btn btn btn-accent", "data-action": "luu-chuyen" }, nhanLuu);
+  const luuMay = h("button", { type: "submit", class: "vc-btn btn btn-accent", "data-action": "luu-chuyen" }, chuyen ? "Lưu chuyến" : "Tạo chuyến");
   const huyMay = h("a", { class: "vc-btn vc-btn-ghost-primary", href: document.body.dataset.back ?? "/dieu-phoi" }, "Huỷ bỏ");
   replaceChildren(
     formEl,

@@ -353,7 +353,7 @@
   --w-hk-so: 28px;             /* bảng hành khách máy tính: cột # */
   --w-hk-nam: 112px;           /* cột Năm sinh */
   --w-hk-loai: 176px;          /* cột Loại khách */
-  --w-hk-xoa: 96px;            /* cột nút Xoá */
+  --w-hk-xoa: 150px;           /* cột nút «Bỏ khỏi danh sách» (chữ dài hơn «Xoá» cũ) */
   --w-sheet-hk: 640px;         /* bảng trượt "Sửa danh sách hành khách" ở máy tính (bản vẽ M5) */
   /* Đưa đón — danh mục (bản vẽ M7 docs/design/2026-10-01-dua-don-hanh-khach/) */
   --w-dd-che-do: 150px;        /* bề rộng gốc một thẻ chọn "Không / Một / Hai chiều" (xuống dòng khi hẹp) */
