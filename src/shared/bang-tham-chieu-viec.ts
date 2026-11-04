@@ -737,6 +737,21 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
   },
   {
     nhom: "Cài đặt vận hành",
+    manHinh: "Dịch vụ cần kiểm vé › công tắc «Cả nhóm cần kiểm vé» › hộp hỏi lại",
+    ten: "Bật cả nhóm · Tắt cả nhóm",
+    thatSuLam: "Đổi cài đặt kiểm vé cho mọi vé của một nhóm dịch vụ. Bật thì đơn mới có vé thuộc nhóm phải chờ người kiểm vé báo còn vé rồi mới được xác nhận; tắt thì xác nhận như thường. Vé đã đặt riêng không đổi; đơn đã xác nhận không đổi.",
+    hoiLai: "có: hộp nói rõ hậu quả trước khi đổi",
+    hoanTac: "được: gạt ngược lại",
+    duongLenh: ["/api/cai-dat/xac-nhan-don"],
+    maNhatKy: ["confirm_flag_changed"],
+    noiDat: [
+      { tep: "web/dich-vu-kiem-ve.ts", chu: "Bật cả nhóm / Tắt cả nhóm" },
+    ],
+    trangThai: "cho-chon",
+    nguonTen: "tên mới 2026-11-04, chờ chủ chọn",
+  },
+  {
+    nhom: "Cài đặt vận hành",
     manHinh: "Tôi (trang cá nhân) › khối «Dịch vụ nhập tay»",
     ten: "Bật dịch vụ nhập tay · Tắt dịch vụ nhập tay",
     thatSuLam: "Đổi công tắc chung. Bật thì Bán hàng, Quản trị, Toàn quyền thêm được dịch vụ gõ tên và giá tay khi lập, sửa đơn nháp; Đối tác thì không bao giờ dùng được. Tắt thì dịch vụ nhập tay đã có trên đơn vẫn giữ, chỉ xem.",

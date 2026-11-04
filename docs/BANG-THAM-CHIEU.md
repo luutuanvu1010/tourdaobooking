@@ -189,7 +189,7 @@ Cùng một việc có nhiều lối vào, hoặc khác việc và đang chờ c
 | Gửi yêu cầu | chờ chủ | Một nơi mở hộp gửi yêu cầu hỗ trợ, một nơi là nút chốt của hộp xin xoá dữ liệu cá nhân. Hộp xoá có câu hỏi riêng nói rõ, nhưng hai việc khác nhau xa; chờ chủ xem có đổi không. |
 | Sửa giá | chờ chủ | Ở Dịch vụ & giá là ghi đè giá cho mọi đơn lập sau; trong thẻ dịch vụ của đơn chỉ sửa đơn giá của đơn đang lập. Hậu quả khác xa nhau; chờ chủ chọn tên. |
 
-## Việc chờ chọn (102)
+## Việc chờ chọn (103)
 
 Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ chọn tên mới thì sửa bảng và nút trong cùng một lần lưu.
 
@@ -216,6 +216,7 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 | Từ chối đơn | `web/order.ts`: Từ chối đơn | Người phụ trách | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Đặt gấp | `web/xac-nhan-don-ui.ts`: Đặt gấp | Kiểm vé | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Bật ẩn thông tin khách · Tắt ẩn thông tin khách | `web/an-khach-cai-dat.ts`: Tắt ẩn thông tin khách / Bật ẩn thông tin khách | Cài đặt vận hành | rà soát 2026-11-04: chưa rõ, chờ chủ |
+| Bật cả nhóm · Tắt cả nhóm | `web/dich-vu-kiem-ve.ts`: Bật cả nhóm / Tắt cả nhóm | Cài đặt vận hành | tên mới 2026-11-04, chờ chủ chọn |
 | Lưu khách | `web/booker-sheet.ts`: Lưu khách<br>`web/booker-sheet.ts`: [biểu tượng close] | Sửa đơn đã xác nhận: khách và bên đặt | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Đặt gấp (mở khung) · Duyệt đặt gấp | `web/dat-gap-ui.ts`: Duyệt đặt gấp<br>`web/dat-gap-ui.ts`: Đặt gấp<br>`web/dat-gap-ui.ts`: Đóng | Đặt gấp (dưới hạn chốt) | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Bên kia đã nhận | `web/home.ts`: Xác nhận đã nhận<br>`web/home.ts`: ⟪nutXacNhanDoiChieu(k.loai)⟫ | Đối chiếu tiền | rà soát 2026-11-04: chưa rõ, chờ chủ |
@@ -298,7 +299,7 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 | Quay lại bản này | `web/tro-ly-cai-dat.ts`: Quay lại bản này | Cài đặt Trợ lý: bộ não và lời dặn | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Lưu thành bản mới | `web/tro-ly-cai-dat.ts`: Lưu thành bản mới | Cài đặt Trợ lý: bộ não và lời dặn | rà soát 2026-11-04: chưa rõ, chờ chủ |
 
-## Việc quan trọng (302)
+## Việc quan trọng (303)
 
 ### Kiểm vé đơn chờ
 
@@ -447,6 +448,7 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 | Tên | Màn hình | Thật sự làm gì | Hỏi lại | Hoàn tác | Đường lệnh, nhật ký | Nơi đặt nút | Trạng thái |
 |---|---|---|---|---|---|---|---|
 | **Bật ẩn thông tin khách · Tắt ẩn thông tin khách** | Tôi (trang cá nhân) › khối «Ẩn thông tin khách khi đối tác đặt vé» | Đổi công tắc chung. Khi bật, form Tạo đơn của tài khoản Đối tác thuần không còn ô tên, số điện thoại và danh sách khách, và đơn lập lúc bật không cần danh sách khách để xe chạy. Đơn đã lập không đổi, đơn của Bán hàng không đổi, thông tin khách đã có không bị che đi. | không | được: bấm Tắt ẩn thông tin khách (đơn lập lúc đang bật vẫn giữ dấu miễn danh sách) | `/api/cai-dat/an-thong-tin-khach`<br>nhật ký `partner_customer_policy_changed` | `web/an-khach-cai-dat.ts`: Tắt ẩn thông tin khách / Bật ẩn thông tin khách | chờ chọn (rà soát 2026-11-04: chưa rõ, chờ chủ) |
+| **Bật cả nhóm · Tắt cả nhóm** | Dịch vụ cần kiểm vé › công tắc «Cả nhóm cần kiểm vé» › hộp hỏi lại | Đổi cài đặt kiểm vé cho mọi vé của một nhóm dịch vụ. Bật thì đơn mới có vé thuộc nhóm phải chờ người kiểm vé báo còn vé rồi mới được xác nhận; tắt thì xác nhận như thường. Vé đã đặt riêng không đổi; đơn đã xác nhận không đổi. | có: hộp nói rõ hậu quả trước khi đổi | được: gạt ngược lại | `/api/cai-dat/xac-nhan-don`<br>nhật ký `confirm_flag_changed` | `web/dich-vu-kiem-ve.ts`: Bật cả nhóm / Tắt cả nhóm | chờ chọn (tên mới 2026-11-04, chờ chủ chọn) |
 | **Bật dịch vụ nhập tay · Tắt dịch vụ nhập tay** | Tôi (trang cá nhân) › khối «Dịch vụ nhập tay» | Đổi công tắc chung. Bật thì Bán hàng, Quản trị, Toàn quyền thêm được dịch vụ gõ tên và giá tay khi lập, sửa đơn nháp; Đối tác thì không bao giờ dùng được. Tắt thì dịch vụ nhập tay đã có trên đơn vẫn giữ, chỉ xem. | không | được: bấm nút ngược lại | `/api/cai-dat/nhap-tay`<br>nhật ký `manual_service_policy_changed` | `web/nhap-tay-cai-dat.ts`: Tắt dịch vụ nhập tay / Bật dịch vụ nhập tay | tên hiện tại, chủ chưa chọn riêng (rà soát 2026-11-04: tên đúng) |
 
 ### Sửa đơn đã xác nhận: khách và bên đặt

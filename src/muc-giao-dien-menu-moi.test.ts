@@ -20,6 +20,8 @@ const TRANG_THANH_BEN_CU: readonly KhoaTrang[] = [
   "veKho",
   // Cài đặt vé điện tử (ADR-0156 Đ3, 2/11): ô settings.ops, chỉ Toàn quyền.
   "veCaiDat",
+  // Dịch vụ cần kiểm vé (ADR-0136 Đ1, Đ5; 4/11): ô settings.ops, chỉ Toàn quyền, không Đối tác.
+  "dichVuKiemVe",
   // Giới hạn nhập hoa hồng (ADR-0161 Đ3, 3/11): ô settings.ops, chỉ Toàn quyền, không Đối tác.
   "hoaHongGioiHan",
   // Màn «Cấp độ đại lý» (đặc tả 2026-11-04-man-cap-dai-ly): ô partner.commission.write, không Đối tác.

@@ -18,7 +18,7 @@ import { CAU_BAO_GUI_DON } from "../../shared/gui-don-cau-bao";
 import { chiNguoiLapGhiNhap } from "../../shared/xem-don-nhap";
 import { canhBaoMocCua, type XetDatGapSua } from "./dat-gap";
 import { getEffectiveServices } from "../catalog";
-import { anKhachBat, anKhachMoiNhat, cauDoiGioChang, cauDoiNgayChang, cauDoiNgayDichVu, cauGhiKepGio, cauKhepYeuCau, cauMoYeuCau, cauThemAnKhach, cauThemChinhSach, cauThemCo, chinhSachMoiNhat, coHienHanh, coMoiNhat, nhomDangDung, orderTouchDraft, tuXacNhanNoiBo, yeuCauMoCuaDon, yeuCauMoTatCa, yeuCauTheoId, type YeuCauRow } from "./xac-nhan-repo";
+import { anKhachBat, anKhachMoiNhat, cauDoiGioChang, cauDoiNgayChang, cauDoiNgayDichVu, cauGhiKepGio, cauKhepYeuCau, cauMoYeuCau, cauThemAnKhach, cauThemChinhSach, cauThemCo, chinhSachMoiNhat, coHienHanh, coMoiNhat, nhomDangDung, nhomTheoMa, orderTouchDraft, tuXacNhanNoiBo, yeuCauMoCuaDon, yeuCauMoTatCa, yeuCauTheoId, type YeuCauRow } from "./xac-nhan-repo";
 import { legDatGapByOrder, legShortNoticeConVe, slotPolicy, type DauDatGapMoi } from "./chang-hanh-khach-repo";
 import { daHuy, daXacNhan, findOrder, getMeta, nextStamp, soanHuyDon, soanXacNhan } from "./repository";
 import { CAU_VUOT_TONG_NGUOI_XET } from "../../shared/dat-coc-truoc";
@@ -468,8 +468,12 @@ export const xacNhanRoutes = (xetDatGap: XetDatGapSua) => [
     if ((pham !== "SERVICE" && pham !== "GROUP") || typeof ma !== "string" || ma.trim() === "" || typeof canXacNhan !== "boolean") return error(400, "invalid_input", "Chọn dịch vụ hoặc nhóm và bật / tắt cần xác nhận.");
     const coThat = pham === "SERVICE" ? (await getEffectiveServices(env.DB, [ma])).has(ma) : await nhomDangDung(env.DB, ma);
     if (!coThat) return error(400, "invalid_input", pham === "SERVICE" ? "Mã dịch vụ không có trong danh mục." : "Nhóm này chưa có dịch vụ nào.");
-    const hien = (await coHienHanh(env.DB, now.toISOString())).find((r) => r.scope === pham && r.code === ma);
-    if ((hien?.required === 1) !== canXacNhan) {
+    const co = await coHienHanh(env.DB, now.toISOString());
+    const hien = co.find((r) => r.scope === pham && r.code === ma);
+    // Đ1: dịch vụ chưa có dòng riêng đang ĐI THEO NHÓM — so với giá trị đang hiệu lực, nếu không «không cần» của một dịch vụ trong nhóm «cần» không bao giờ được ghi.
+    const nhomCua = !hien && pham === "SERVICE" ? (await nhomTheoMa(env.DB, [ma])).get(ma) : undefined;
+    const dangCan = (hien ?? co.find((r) => r.scope === "GROUP" && r.code === nhomCua))?.required === 1;
+    if (dangCan !== canXacNhan) {
       const at = lanSau(await coMoiNhat(env.DB), now);
       const loi = await luu(cauThemCo(env.DB, { id: crypto.randomUUID(), pham, ma, can: canXacNhan, at, by: staff.id }), "confirm_flag_changed", at, `${pham === "SERVICE" ? "Dịch vụ" : "Nhóm"} ${ma}: ${canXacNhan ? "cần xác nhận" : "không cần xác nhận"}`);
       if (loi) return loi;

@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"><meta name="robots" content="noindex"><meta name="theme-color" content="#ffffff"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><link rel="stylesheet" href="/giao-dien.css"><title>Dịch vụ cần kiểm vé — Island Booking System</title></head>
+<body data-khuon="bieu-mau" data-title="Dịch vụ cần kiểm vé" data-back="/account">
+<header id="topbar"></header>
+<main>
+  <!-- Dịch vụ cần kiểm vé (ADR-0136 Đ1, Đ5). Ô settings.ops (chỉ Toàn quyền), không giữ quyền Đối tác. web/dich-vu-kiem-ve.ts dựng nội dung; luật ở src/shared/dich-vu-kiem-ve.ts. -->
+  <h1>Dịch vụ cần kiểm vé</h1>
+  <p class="muted">Bật cho vé phụ thuộc chỗ trống, ví dụ vé kèm buffet: đơn có vé này phải chờ người kiểm vé báo còn vé rồi mới được xác nhận. Vé không bật thì xác nhận như thường.</p>
+  <div id="error" class="alert" role="alert" hidden></div>
+  <div id="kv-noi-dung" hidden></div>
+</main>
+<script type="module" src="/js/dich-vu-kiem-ve.js"></script>
+</body></html>
