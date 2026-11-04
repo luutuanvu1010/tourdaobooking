@@ -105,6 +105,8 @@ export const TEN_THAO_TAC: Readonly<Record<OperationCode, TenLoiThuong>> = {
   "partner.commission.write": { ten: "đặt mức hoa hồng đối tác", moTa: "Thêm mức hoa hồng mới, đóng mức cũ (không sửa, không xoá)." },
   "catalog.attribute.assign": { ten: "gắn đặc điểm cho dịch vụ", moTa: "Chọn giá trị đặc điểm (ví dụ có gồm vận chuyển hay không) cho từng dịch vụ, hoặc để dịch vụ theo giá trị chung của nhóm." },
   "sales.block.write": { ten: "đặt và kết thúc luật bán theo vai người dùng", moTa: "Thêm luật «vai trò này không được đặt dịch vụ, nhóm hoặc đặc điểm này», đặt ngày kết thúc luật (không sửa, không xoá)." },
+  "credit.limit.write": { ten: "đặt và ngừng hạn mức trả sau", moTa: "Cấp, đổi hoặc ngừng hạn mức trả sau và số ngày được nợ của một đối tác (đổi thì đóng dòng cũ, thêm dòng mới)." },
+  "credit.limit.view": { ten: "xem hạn mức trả sau và nợ", moTa: "Xem hạn mức, số đang nợ, số còn được dùng và các đơn trả sau còn nợ của từng đối tác." },
   "supply.terms.view": { ten: "xem người bán dịch vụ", moTa: "Xem dịch vụ nào do Tour Đảo bán, dịch vụ nào do nhà cung cấp bán và tỷ lệ mua lại." },
   "supply.terms.write": { ten: "đặt người bán dịch vụ", moTa: "Thêm điều khoản người bán mới, đóng điều khoản cũ." },
   "order.terms.view": { ten: "xem phần đối tác của đơn", moTa: "Xem hoa hồng, giá đại lý của từng dịch vụ trên đơn; Đối tác chỉ thấy số tiền hoa hồng của mình." },
