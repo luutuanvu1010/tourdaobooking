@@ -184,7 +184,7 @@ test("(man-4) vẽ theo từng phím không dựng lại cả bảng: ô tìm c�
 });
 
 test("(man-5) Quản lý tài khoản có đường dẫn sang màn, chỉ hiện cho người sửa được (cùng hàm suaDuocCot)", () => {
-  assert.match(doc("public/staff.html"), /<a id="lien-ket-cap-dai-ly" href="\/cap-dai-ly" hidden>/);
+  assert.match(doc("public/staff.html"), /<p id="lien-ket-cap-dai-ly" hidden><a href="\/cap-dai-ly">/);
   assert.match(boChuThich(doc("web/staff.ts")), /byId\("lien-ket-cap-dai-ly"\)\.hidden = !suaDuocCot\(me\)/);
 });
 
