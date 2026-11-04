@@ -22,6 +22,9 @@ export const nhanTaiKhoan = (co: boolean): string => (co ? "Có tài khoản" : 
 export const nhanVaiTro = (d: Pick<CapDaiLyDongDto, "vaiTro">): string => d.vaiTro.map((v) => v.ten).join(", ");
 export const cauDem = (hien: number, tong: number): string => (hien === tong ? `${tong} hồ sơ` : `${hien} / ${tong} hồ sơ`);
 
+/** Ô có được mở bảng đặt cấp không. Hết cấp đang bật thì hồ sơ chưa có cấp riêng không có gì để làm ở bảng; hồ sơ đang có cấp riêng vẫn mở để «Dùng cấp theo vai trò». */
+export const suaDuocDong = (coCapBat: boolean, d: Pick<CapDaiLyDongDto, "cap">): boolean => coCapBat || d.cap.rieng !== null;
+
 /** Tìm theo tên (bỏ dấu, không phân biệt hoa thường) và lọc «Chưa có cấp». «Hai vai trò khác cấp» không tính là chưa có cấp: ô đó vẫn nói rõ riêng. */
 export function locDong(ds: readonly CapDaiLyDongDto[], loc: { tim: string; chiChuaCoCap: boolean }): CapDaiLyDongDto[] {
   const tim = khoaTen(loc.tim);

@@ -1,5 +1,5 @@
 // Đặc tả docs/superpowers/specs/2026-11-04-man-cap-dai-ly.md: route đọc `GET /api/pricing/cap-dai-ly` của màn gom mọi hồ sơ đang mang vai trò được hưởng, có hay chưa có tài khoản.
-// Cổng: `office` + ô `partner.commission.write` + chặn `holdsPartner`. Cấp lấy nguyên từ `capHienHanhMoiHoSo` (không luật thứ hai). Chạy CẢ ứng dụng trên SQLite thật (tests/audit/harness.mjs); tên GIẢ.
+// Cổng: `office` + ô `partner.commission.write` + chặn `holdsPartner`. Cấp lấy nguyên từ `capVaVaiMoiHoSo`, hàm chung với `capHienHanhMoiHoSo` của cột cũ (không luật thứ hai). Chạy CẢ ứng dụng trên SQLite thật (tests/audit/harness.mjs); tên GIẢ.
 // Khuôn: cap-hien-hanh-route.test.ts, parties/vai-khong-tai-khoan-route.test.ts.
 import { test } from "node:test";
 import assert from "node:assert/strict";

@@ -22,7 +22,7 @@ export const CHANGELOG: readonly ReleaseNote[] = [
     version: "2.61",
     date: "2026-11-04",
     items: [
-      { kind: "moi", text: "Trang mới «Cấp độ đại lý»: Kế toán và Quản trị xem và đặt cấp cho mọi đối tác ở một nơi, gồm cả công ty chưa có tài khoản, không cần mở trang Hoa hồng đối tác." },
+      { kind: "moi", text: "Có màn Cấp độ đại lý: gán cấp hoa hồng nhanh cho mọi đối tác, kể cả công ty chưa có tài khoản, không cần vào trang Hoa hồng đối tác." },
     ],
   },
   {

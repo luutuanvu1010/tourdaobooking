@@ -137,7 +137,7 @@ test("(e3-5) tệp cột: không confirm / alert / innerHTML; lỗi đọc khôn
   assert.match(doc1, /\.homNay/, "lấy homNay của máy chủ");
   assert.match(doc1, /catch\s*\{\s*return null/, "không đọc được ⇒ null (hàm thuần sẽ không gửi)");
   // R13: câu cố định cạnh nút
-  assert.match(ma, /dung,\s*h\("div",\s*\{\s*class:\s*"vc-hint"\s*\},\s*CHU_CAP\.dungTheoVaiTroLuuY\)/, "câu «Có hiệu lực từ ngày mai. Nếu vai trò chưa có cấp…» nằm ngay cạnh nút");
+  assert.match(ma, /dung,\s*h\("div",\s*\{\s*class:\s*"vc-hint"\s*\},\s*cauDungTheoVaiTro\(coTaiKhoan\)\)/, "câu «Có hiệu lực từ ngày mai. Nếu vai trò chưa có cấp…» nằm ngay cạnh nút (chữ hai trường hợp ghim ở cap-hien-hanh-hien-thi.test.ts)");
   assert.ok(!/\/api\/pricing\/muc-rieng\/\$\{[^}]*\}\/(doi|ket-thuc)|ho-so\/\$\{[^}]*\}\/muc-rieng/.test(ma), "địa chỉ ba route chỉ ở hàm thuần yeuCauGhiCap, không chép tay");
   for (const o of ma.matchAll(/h\("(input|select)",\s*\{([^}]*)\}/g)) assert.match(o[2]!, /vc-input/, `ô gõ thiếu lớp vc-input: ${o[0].slice(0, 60)}`);
   assert.ok([...ma.matchAll(/h\("(input|select)"/g)].length >= 2, "chống bài rỗng: có ô chọn cấp và ô ngày");
@@ -172,7 +172,11 @@ test("(man-3) không có cấp đang bật: màn nói rõ, trỏ sang /hoa-hong 
   assert.match(man, /soCapDangBat === 0/);
   assert.match(man, /CHU_MAN\.khongCoCap/);
   assert.match(man, /href: "\/hoa-hong"/);
-  assert.match(man, /oCapHoSo\([^)]*coCapBat/, "chỉ cho mở bảng khi còn cấp đang bật");
+  assert.match(man, /oCapHoSo\(.*suaDuocDong\(coCapBat, d\)/, "mở bảng khi còn cấp đang bật, hoặc hồ sơ đang có cấp riêng (luật ở suaDuocDong)");
+  const cot = boChuThich(doc("web/cot-cap-dai-ly.ts"));
+  assert.match(cot, /if \(bat\.length === 0 && !m\.dungTheoVaiDuoc\) return baoLoi/, "không cấp và không lối theo vai trò ⇒ báo trong ô, không mở bảng");
+  assert.match(cot, /conCap \? h\("div", \{ class: "vc-field" \}, h\("label", \{ for: "cap-chon" \}/, "ô chọn cấp chỉ dựng khi còn cấp đang bật: không có ô chọn rỗng");
+  assert.match(cot, /foot: conCap \? \[luu\] : \[\]/, "hết cấp thì không có nút Lưu");
 });
 
 test("(man-4) vẽ theo từng phím không dựng lại cả bảng: ô tìm có độ trễ, mỗi lần chỉ vẽ một phần danh sách", () => {
@@ -194,4 +198,22 @@ test("(man-6) gói Đơn hàng không kéo màn; gói màn có tệp cột, khô
   const man = dauVaoGoi("web/cap-dai-ly.ts");
   assert.ok(man.some((t) => t.endsWith("web/cot-cap-dai-ly.ts")));
   assert.ok(!man.some((t) => t.endsWith("web/staff.ts")));
+});
+
+test("(man-7) mọi lỗi của màn đi qua hienLoi và vào tầm nhìn; nạp lại lỗi thì không đặt tiêu điểm về ô (kẻo cuộn mất câu lỗi); #error có khoảng chừa thanh trên", () => {
+  const man = moMan();
+  assert.match(man, /function hienLoi\(cau: string\): void \{\s*showError\(errorEl, cau\);\s*errorEl\.scrollIntoView\(/);
+  const goi = [...man.matchAll(/showError\(errorEl, ([^)]*)\)/g)].map((m) => m[1]);
+  assert.deepEqual(goi.sort(), ["cau", "null"], "ngoài hienLoi chỉ còn lần xoá lỗi");
+  const lamMoi = man.slice(man.indexOf("async function lamMoi("), man.indexOf("const oCuaDong"));
+  assert.ok(lamMoi.indexOf("return") >= 0 && lamMoi.indexOf("return") < lamMoi.indexOf("datTieuDiemODongCap("), "nạp lại lỗi thì dừng trước khi đặt tiêu điểm");
+  assert.match(doc("public/app.css"), /#error \{ scroll-margin-top: calc\(var\(--bar-h\)/);
+});
+
+test("(man-8) chữ bảng đặt cấp: cột ở Quản lý tài khoản luôn là dòng có tài khoản; màn truyền đúng cờ của hồ sơ", () => {
+  const cot = boChuThich(doc("web/cot-cap-dai-ly.ts"));
+  assert.match(cot, /return dungO\(o, dong\.partyId, dong\.fullName, true, v, suaDuoc, lamMoi\)/);
+  assert.match(cot, /ho\.coTaiKhoan, v, suaDuoc, lamMoi\)/);
+  assert.match(cot, /cauNgayMacDinh\(m, v, homNay, xem, coTaiKhoan\)/);
+  assert.match(moMan(), /coTaiKhoan: d\.coTaiKhoan/);
 });

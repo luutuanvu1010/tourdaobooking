@@ -5,7 +5,7 @@ import { ApiError, api, type Api } from "./api";
 import { datTieuDiemODongCap, oCapHoSo } from "./cot-cap-dai-ly";
 import { byId, h, replaceChildren } from "./dom";
 import { initShell, showError } from "./shell";
-import { CHU_MAN, SO_DONG_MOI_LAN, cauDem, locDong, nhanLoaiHoSo, nhanTaiKhoan, nhanVaiTro } from "../src/shared/cap-dai-ly-hien-thi";
+import { CHU_MAN, SO_DONG_MOI_LAN, cauDem, locDong, nhanLoaiHoSo, nhanTaiKhoan, nhanVaiTro, suaDuocDong } from "../src/shared/cap-dai-ly-hien-thi";
 import { coQuyenSua } from "../src/shared/hoa-hong-hien-thi";
 
 const errorEl = byId("error");
@@ -26,6 +26,12 @@ let soHien = SO_DONG_MOI_LAN;
 let chiChuaCoCap = false;
 let tre: ReturnType<typeof setTimeout> | undefined;
 
+/** Mọi lỗi của trang đi qua đây: đưa #error vào tầm nhìn. Thanh trên dính không che nhờ `scroll-margin-top` của #error (public/app.css). */
+function hienLoi(cau: string): void {
+  showError(errorEl, cau);
+  errorEl.scrollIntoView({ block: "nearest" });
+}
+
 /** Nạp lại cả danh sách; lỗi hiện ở đầu trang, dữ liệu đã vẽ giữ nguyên. Trả false khi không nạp được. */
 async function nap(): Promise<boolean> {
   try {
@@ -35,17 +41,19 @@ async function nap(): Promise<boolean> {
     showError(errorEl, null);
     return true;
   } catch (err) {
-    showError(errorEl, err instanceof ApiError ? err.message : "Không kết nối được máy chủ.");
+    hienLoi(err instanceof ApiError ? err.message : "Không kết nối được máy chủ.");
     return false;
   }
 }
 
 async function lamMoi(partyId: string): Promise<void> {
-  if (await nap()) ve();
+  // Nạp lại lỗi thì KHÔNG đặt tiêu điểm về ô: trình duyệt sẽ cuộn theo ô và đẩy câu lỗi ra khỏi tầm nhìn.
+  if (!(await nap())) return;
+  ve();
   datTieuDiemODongCap(partyId);
 }
 
-const oCuaDong = (d: Api.CapDaiLyDongDto): HTMLElement => oCapHoSo({ partyId: d.partyId, ten: d.ten }, d.cap, coCapBat, lamMoi);
+const oCuaDong = (d: Api.CapDaiLyDongDto): HTMLElement => oCapHoSo({ partyId: d.partyId, ten: d.ten, coTaiKhoan: d.coTaiKhoan }, d.cap, suaDuocDong(coCapBat, d), lamMoi);
 
 const hang = (d: Api.CapDaiLyDongDto): HTMLElement =>
   h("tr", null,
@@ -79,7 +87,7 @@ function ve(): void {
 
 const staff = await initShell();
 if (!coQuyenSua(staff)) {
-  showError(errorEl, CHU_MAN.chiMoDuoc);
+  hienLoi(CHU_MAN.chiMoDuoc);
 } else {
   replaceChildren(baoCapEl, CHU_MAN.khongCoCap, " ", h("a", { href: "/hoa-hong" }, CHU_MAN.trangHoaHong), ".");
   timEl.addEventListener("input", () => {

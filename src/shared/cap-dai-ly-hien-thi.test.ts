@@ -1,7 +1,7 @@
 // Luật thuần của màn «Cấp độ đại lý» (đặc tả 2026-11-04-man-cap-dai-ly): tìm theo tên, lọc «Chưa có cấp», nhãn dòng, giới hạn số dòng vẽ.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { CHU_MAN, SO_DONG_MOI_LAN, locDong, nhanLoaiHoSo, nhanTaiKhoan, nhanVaiTro } from "./cap-dai-ly-hien-thi.ts";
+import { CHU_MAN, SO_DONG_MOI_LAN, locDong, nhanLoaiHoSo, nhanTaiKhoan, nhanVaiTro, suaDuocDong } from "./cap-dai-ly-hien-thi.ts";
 import type { CapDaiLyDongDto, NguonCap } from "./contracts.ts";
 
 const dong = (ten: string, nguon: NguonCap, tk = false): CapDaiLyDongDto => ({
@@ -35,4 +35,13 @@ test("chữ: câu không có cấp nói rõ và tên trang đích khớp nhãn t
   assert.equal(CHU_MAN.trangHoaHong, "Hoa hồng đối tác");
   assert.match(CHU_MAN.khongCoCap, /[Cc]hưa có cấp độ đại lý nào/);
   assert.ok(SO_DONG_MOI_LAN >= 50 && SO_DONG_MOI_LAN <= 500);
+});
+
+test("suaDuocDong: còn cấp đang bật ⇒ mở; hết cấp ⇒ chỉ hồ sơ đang có cấp riêng mở (để «Dùng cấp theo vai trò»), không ô chọn rỗng cho hồ sơ khác", () => {
+  const coRieng = { cap: { ...dong("x", "RIENG").cap, rieng: { id: "g", tuNgay: "2026-01-01", denNgay: null } } };
+  const khong = dong("y", "CHUA_CO");
+  assert.equal(suaDuocDong(true, khong), true);
+  assert.equal(suaDuocDong(true, coRieng), true);
+  assert.equal(suaDuocDong(false, coRieng), true);
+  assert.equal(suaDuocDong(false, khong), false);
 });

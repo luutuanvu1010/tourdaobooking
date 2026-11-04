@@ -3,6 +3,8 @@
 //   2. Kế toán 1040, có cấp: thấy hồ sơ có và chưa có tài khoản; hồ sơ không vai trò không hiện; mục ở thanh bên; đặt cấp cho công ty chưa có tài khoản; tìm bỏ dấu; lọc «Chưa có cấp».
 //   3. Kế toán 390: thẻ, không bảng, ô tìm ≥ 16px, mở được bảng đặt cấp, không tràn ngang.
 //   4. Bán hàng, Hành chính nhân sự: câu từ chối, không mục thanh bên, không gọi route đọc.
+//   6. Nạp lại lỗi sau khi lưu: câu lỗi vào tầm nhìn, không bị thanh trên che (390 và 1040). Chữ bảng: hồ sơ chưa có tài khoản không nghe «tài khoản», hồ sơ có tài khoản giữ chữ cũ.
+//   7. Hết cấp đang bật: hồ sơ có cấp riêng vẫn mở bảng, chỉ còn «Dùng cấp theo vai trò», không ô chọn; hồ sơ khác không có nút.
 //   5. Quản trị ở Quản lý tài khoản: có đường dẫn sang màn, cột cấp vẫn chạy. Hành chính nhân sự: không có đường dẫn.
 // Thứ tự (kho cookie dùng chung, đăng nhập lại đá phiên): dựng dữ liệu bằng tài khoản không đang mở trang. Tên, SĐT đều GIẢ. Môi trường: D1 tạm + wrangler dev + Chrome headless; không --remote.
 // Chạy từ GỐC repo, sau `npm run build:web`:
@@ -26,6 +28,7 @@ const CTY_KHAC = "Khách sạn Đà Nẵng Chrome";
 const KHONG_VAI = "Công ty Không Vai Chrome";
 const DAI_LY_TK = "Đại Lý Có Tài Khoản";
 const CAP = "Tên thử TA3 Chrome";
+const KHONG_CAP_RIENG = "Công ty Chưa Cấp Riêng Chrome"; // không bước nào đặt cấp cho hồ sơ này
 
 const { env, call } = await dungMoiTruong([CHU, NHAN_SU, BAN_HANG]);
 const b = boDem("CAP DAI LY SMOKE");
@@ -43,6 +46,7 @@ try {
   await taoCty(CTY, "TRAVEL_AGENCY");
   await taoCty(CTY_KHAC, "HOTEL_RECEPTION");
   await taoCty(KHONG_VAI, null);
+  await taoCty(KHONG_CAP_RIENG, "HOTEL_RECEPTION");
   dung(await call(CHU, "POST", "/api/staff", { taoHoSoMoi: true, fullName: DAI_LY_TK, phone: "0900000573", roles: ["GUIDE_FREELANCE"] }), 201, "tài khoản đại lý");
 
   const moTrang = async (account, path, viewport) => {
@@ -147,6 +151,58 @@ try {
   });
   p.close();
 
+  // Câu lỗi nằm trong khung nhìn, dưới mép dưới của thanh trên (thanh dính không che). Hỏng GET route đọc ngay trong trang, POST lưu vẫn đi thật.
+  const hongDoc = `(() => { const goc = window.fetch; window.fetch = function (i, o) { if (String(typeof i === 'string' ? i : i.url).includes('/api/pricing/cap-dai-ly')) return Promise.reject(new TypeError('hong')); return goc.apply(this, arguments); }; return true; })()`;
+  const loiTrongTam = `(() => { const e = document.querySelector('#error'); if (e.hidden) return 'ẩn'; const r = e.getBoundingClientRect(); const t = document.querySelector('#topbar').getBoundingClientRect(); return r.top >= t.bottom - 1 && r.bottom <= window.innerHeight ? 'ok' : JSON.stringify({ top: r.top, bottom: r.bottom, bar: t.bottom, cao: window.innerHeight }); })()`;
+  for (const [nhan, khung, goc, ten] of [["390", MOB, THE, DAI_LY_TK], ["1040", DESK, HANG, CTY_KHAC]]) {
+    p = await moTrang(KT, "/cap-dai-ly", khung);
+    await b.step(`6-${nhan}`, `${nhan}: chữ bảng đúng theo tài khoản; nạp lại lỗi sau khi lưu ⇒ câu lỗi vào tầm nhìn, thanh trên không che`, async () => {
+      await p.waitFor(`!!${hang(ten, goc)}`, "danh sách đã vẽ");
+      assert.ok(await p.ev(bamNutO(ten, goc)), "bấm được ô");
+      await p.waitFor(`!!document.querySelector('#cap-chon')`, "bảng đặt cấp mở");
+      const chuBang = await p.ev(`document.querySelector('.sheet-root').innerText`);
+      if (ten === DAI_LY_TK) assert.match(chuBang, /đơn của tài khoản tính theo cấp riêng/, "hồ sơ có tài khoản giữ chữ cũ");
+      else {
+        assert.match(chuBang, /đơn của đại lý này tính theo cấp riêng/);
+        assert.doesNotMatch(chuBang, /tài khoản/, "hồ sơ chưa có tài khoản không nghe chữ tài khoản");
+      }
+      assert.ok(await p.ev(chonCap(CAP)), "chọn cấp");
+      await p.ev(`window.scrollTo(0, document.documentElement.scrollHeight)`);
+      assert.ok(await p.ev(hongDoc));
+      assert.ok(await p.ev(bamLuu), "bấm Lưu");
+      await p.waitFor(`document.querySelector('#error').hidden === false`, "câu lỗi hiện");
+      await sleep(600); // chờ cuộn và mọi lần đặt tiêu điểm nếu có
+      assert.equal(await p.ev(loiTrongTam), "ok", "câu lỗi trong tầm nhìn");
+      await shotView(p, `cap-${nhan}-loi-nap-lai.png`);
+    });
+    p.close();
+  }
+
+  // Tắt cấp duy nhất. CTY đang có cấp riêng từ bước 2b; KHONG_CAP_RIENG thì không.
+  dung(await call(ACCOUNTS.admin, "POST", `/api/pricing/muc-ta/${r.json.muc.code}/tat`, {}), 200, "tắt cấp");
+  p = await moTrang(KT, "/cap-dai-ly", DESK);
+  await b.step("7", "Hết cấp đang bật: câu báo hiện; hồ sơ có cấp riêng mở bảng chỉ còn «Dùng cấp theo vai trò»; bấm được; hồ sơ khác không có nút", async () => {
+    await p.waitFor(`!!${hang(CTY, HANG)}`, "danh sách đã vẽ");
+    assert.equal(await p.ev(`document.querySelector('#cdl-khong-cap').hidden`), false);
+    assert.ok(!(await p.ev(`!!(${hang(KHONG_CAP_RIENG, HANG)}).querySelector('.cot-cap button')`)), "hồ sơ chưa có cấp riêng: không có nút");
+    assert.ok(await p.ev(bamNutO(CTY, HANG)), "hồ sơ có cấp riêng: có nút");
+    await p.waitFor(`!!document.querySelector('#cap-dung-theo-vai-tro')`, "bảng mở, có «Dùng cấp theo vai trò»");
+    assert.equal(await p.ev(`!!document.querySelector('#cap-chon')`), false, "không có ô chọn rỗng");
+    assert.equal(await p.ev(`!!document.querySelector('#cap-tu-ngay')`), false);
+    assert.equal(await p.ev(`document.querySelectorAll('.sheet-foot button').length`), 0, "không có nút Lưu");
+    const chuBang = await p.ev(`document.querySelector('.sheet-root').innerText`);
+    assert.doesNotMatch(chuBang, /tài khoản/);
+    assert.match(chuBang, /đại lý này sẽ thành «Chưa có cấp»/);
+    await sleep(500); // chờ bảng trượt xong rồi mới đo màu
+    await axe(p, "Bảng đặt cấp khi hết cấp");
+    await shotView(p, "cap-1040-het-cap-bang.png");
+    await p.ev(`document.querySelector('#cap-dung-theo-vai-tro').click()`);
+    await p.waitFor(`!document.querySelector('.sheet-root')`, "bảng đóng");
+    await p.waitFor(`(${chuO(CTY, HANG)} || '').includes('Theo vai trò từ')`, "ô nói sẽ theo vai trò từ ngày mai");
+    assert.ok(apiCalls(p).some((c) => c.method === "POST" && /^\/api\/pricing\/muc-rieng\/[^/]+\/ket-thuc$/.test(c.path)), "đi đúng lệnh ngừng có sẵn");
+  });
+  p.close();
+
   for (const [nhan, tk] of [["Bán hàng", BAN_HANG], ["Hành chính nhân sự", NHAN_SU]]) {
     p = await moTrang(tk, "/cap-dai-ly", DESK);
     await b.step(`4-${nhan}`, `${nhan}: câu từ chối, không mục thanh bên, không gọi route đọc của màn`, async () => {
@@ -165,7 +221,7 @@ try {
     await p.waitFor(`!!(${chuO(DAI_LY_TK, "#list tr")})`, "cột cấp đã dựng");
     assert.equal(await p.ev(`document.querySelector('#lien-ket-cap-dai-ly').hidden`), false);
     assert.equal(await p.ev(`document.querySelector('#lien-ket-cap-dai-ly a').getAttribute('href')`), "/cap-dai-ly");
-    assert.match(await p.ev(chuO(DAI_LY_TK, "#list tr")), /^Chưa có cấp/);
+    assert.match(await p.ev(chuO(DAI_LY_TK, "#list tr")), /\(cấp riêng\)/, "cấp đặt ở màn gom hiện ở cột cũ (bước 6-390)");
     assert.ok(await p.ev(`!!(${hang(DAI_LY_TK, "#list tr")}).querySelector('.cot-cap button')`), "ô cấp vẫn bấm được");
     await shotView(p, "tai-khoan-1040-lien-ket.png");
   });
