@@ -45,7 +45,7 @@ test("(c) Còn vé + đổi giờ 08:30–09:00 → đơn confirmed, chặng 08:
   assert.equal(y[0].decided_by, ACC);
   const nk = nhatKy(w, id, "confirmed");
   assert.equal(nk.length, 1);
-  assert.match(nk[0].detail, /Còn vé, đổi giờ/);
+  assert.match(nk[0].detail, /Còn vé, xác nhận đơn, đổi giờ/);
   assert.equal(nk[0].staff_id, ACC);
 });
 
@@ -65,7 +65,7 @@ test("đổi ngày đi dời cả dịch vụ lẫn chặng đón cùng ngày; n
   assert.equal(w.q("SELECT depart_date d FROM order_service WHERE order_id = ?", id)[0].d, moi);
   assert.equal(chang(w, legId).d, moi);
   assert.notEqual(moi, ngay);
-  assert.match(nhatKy(w, id, "confirmed")[0].detail, /Còn vé, đổi ngày/);
+  assert.match(nhatKy(w, id, "confirmed")[0].detail, /Còn vé, xác nhận đơn, đổi ngày/);
 });
 
 test("(i) Còn vé: giờ MỚI dưới mốc 6 giờ chưa đặt gấp → 409 short_notice_required, KHÔNG ghi gì (chặng, ngày, yêu cầu, đơn nguyên) — không qua mặt mốc bằng cách đổi sang khung sớm", async () => {

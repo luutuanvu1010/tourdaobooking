@@ -63,7 +63,7 @@ test("(c) yêu cầu mang cờ, Còn vé không gửi giờ → 409 pickup_time_
   const r = await qd(w, id, ACC, { ketQua: "CON_VE" });
   assert.equal(r.status, 409, r.text);
   assert.equal(r.json.error.code, "pickup_time_required");
-  assert.equal(r.json.error.message, "Còn lượt đưa đón chưa có giờ đón. Ghi giờ đón rồi bấm Còn vé.");
+  assert.equal(r.json.error.message, "Còn lượt đưa đón chưa có giờ đón. Ghi giờ đón rồi bấm Còn vé, xác nhận đơn.");
   assert.deepEqual(r.json.error.legs, [{ legId }]);
   assert.deepEqual(hoSo(w, id), truoc, "không ghi gì");
   assert.equal(q(w, id).moc.s, "draft");

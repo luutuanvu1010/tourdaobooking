@@ -866,7 +866,7 @@ async function loadOrder(): Promise<void> {
     setBarTitle(`Sửa đơn ${order.orderCode}`);
     suaSoVe = suaChuyenDuoc(staff, order.staffId, canModify); // trước fill: thẻ dựng ô "Số người chiều về" theo cờ này
     const baoBoChang = fill(order);
-    if (baoBoChang.length > 0) renderBanner(saveErrorEl, banner("warning", `${baoBoChang.join(" ")} Bấm Lưu nháp để ghi lại.`));
+    if (baoBoChang.length > 0) renderBanner(saveErrorEl, banner("warning", `${baoBoChang.join(" ")} Bấm Lưu thay đổi để ghi lại.`));
     // Hành khách của nháp: chỉ người có ô order.passenger.write; tải hỏng → KHÔNG dựng khối và KHÔNG gửi khoá `passengers` (máy chủ giữ danh sách đang lưu —
     // không bao giờ gửi [] khi chưa biết danh sách thật).
     // Tải lại đơn (sau 409 stale): bỏ khối cũ TRƯỚC — tải danh sách hỏng thì không được gửi lại danh sách cũ đè lên bản người khác vừa sửa (R6).
