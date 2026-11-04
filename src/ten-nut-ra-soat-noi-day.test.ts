@@ -24,7 +24,7 @@ test("câu 1: ba nơi đặt cấp riêng dùng chung tên «Chọn cấp riêng
   assert.match(doc("src/shared/cap-hien-hanh-hien-thi.ts"), /chonCapRieng: "Chọn cấp riêng cho đối tác"/);
   assert.match(doc("web/hoa-hong-hop.ts"), /title: "Chọn cấp riêng cho đối tác"/);
   assert.match(doc("web/parties.ts"), /button\("Chọn cấp riêng cho đối tác", \(\) => void moGan\(\)/);
-  assert.match(doc("web/cot-cap-dai-ly.ts"), /title: `\$\{CHU_CAP\.chonCapRieng\}: \$\{dong\.fullName\}`/);
+  assert.match(doc("web/cot-cap-dai-ly.ts"), /title: `\$\{CHU_CAP\.chonCapRieng\}: \$\{ten\}`/);
 });
 
 test("câu 4: hộp hỏi lại nói đủ năm hậu quả; bấm «Còn vé, xác nhận đơn» phải qua hộp TRƯỚC khi gọi máy chủ", () => {

@@ -90,6 +90,10 @@ const VAI_HUONG_DAT = defineSql("pricing", "beneficiary_role_set_active",
 // (view công bố v_pty_open_role, vai được hưởng đang bật); chỉ mã hồ sơ + mã vai, không tên, không liên hệ.
 const VAI_MO_CUA_NGUOI_HUONG = defineSql("pricing", "open_beneficiary_roles_all",
   `SELECT r.party_id, r.role_type_code FROM v_pty_open_role r JOIN prc_beneficiary_role b ON b.role_type_code = r.role_type_code AND b.active = 1 ORDER BY r.party_id, r.role_type_code`);
+// Màn «Cấp độ đại lý» (đặc tả 2026-11-04-man-cap-dai-ly): hồ sơ đang mở mang vai trò được hưởng, kèm nhãn và có tài khoản hay chưa. Chỉ view công bố của parties, staff (mã, tên, loại hồ sơ); không liên hệ.
+const HO_SO_CAP_DAI_LY = defineSql("pricing", "cap_dai_ly_parties",
+  `SELECT l.id, l.display_name, l.party_kind, EXISTS (SELECT 1 FROM v_stf_staff_label s WHERE s.party_id = l.id) AS co_tai_khoan FROM v_pty_party_label l
+   WHERE l.active = 1 AND EXISTS (SELECT 1 FROM v_pty_open_role r JOIN prc_beneficiary_role b ON b.role_type_code = r.role_type_code AND b.active = 1 WHERE r.party_id = l.id)`);
 const LA_HUONG = defineSql("pricing", "is_beneficiary",
   `SELECT 1 AS ok FROM v_pty_open_role r JOIN prc_beneficiary_role b ON b.role_type_code = r.role_type_code AND b.active = 1 WHERE r.party_id = ?1 LIMIT 1`);
 // Task 11 (Ruling 21): CÙNG điều kiện `is_beneficiary` (không xét `active` của hồ sơ — đúng điều máy chủ dùng để ÉP bên đặt cho tài khoản Đối tác) + tên hồ sơ qua view công bố. Chỉ id + tên.
@@ -243,6 +247,8 @@ export const openRolesOf = async (db: D1Database, partyId: string) => (await db.
 /** ADR-0155 Đ2.5: mọi (hồ sơ, vai trò được hưởng) đang mở — đầu vào của `GET /api/pricing/cap-hien-hanh`. */
 export const openBeneficiaryRolesAll = async (db: D1Database): Promise<{ party_id: string; role_type_code: string }[]> =>
   (await db.prepare(VAI_MO_CUA_NGUOI_HUONG).all<{ party_id: string; role_type_code: string }>()).results;
+export const hoSoCapDaiLy = async (db: D1Database): Promise<{ id: string; display_name: string; party_kind: "PERSON" | "ORGANIZATION"; co_tai_khoan: number }[]> =>
+  (await db.prepare(HO_SO_CAP_DAI_LY).all<{ id: string; display_name: string; party_kind: "PERSON" | "ORGANIZATION"; co_tai_khoan: number }>()).results;
 export const beneficiaryRolesAll = async (db: D1Database): Promise<{ role_type_code: string; active: number }[]> => (await db.prepare(VAI_HUONG_TAT_CA).all<{ role_type_code: string; active: number }>()).results;
 export const tenNhanVienTheoId = async (db: D1Database, ids: readonly string[]): Promise<Map<string, string>> => ids.length === 0 ? new Map()
   : new Map((await db.prepare(TEN_NHAN_VIEN).bind(JSON.stringify([...new Set(ids)])).all<{ id: string; label: string }>()).results.map((r) => [r.id, r.label]));

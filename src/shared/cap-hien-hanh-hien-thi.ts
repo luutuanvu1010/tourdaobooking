@@ -35,6 +35,9 @@ export const CHU_CAP = {
   khongSuaDuoc: "Cấp riêng này không đổi được ở đây — sửa ở trang Hoa hồng.",
   luuXong: "Đã lưu.",
   datCauChu: "Từ ngày này, đơn của tài khoản tính theo cấp riêng, không theo cấp của vai trò nữa. Đơn đã xác nhận không đổi.",
+  // Hai câu cùng nghĩa cho hồ sơ CHƯA có tài khoản ở màn «Cấp độ đại lý»: nói «tài khoản» với hồ sơ không có tài khoản là sai sự thật.
+  dungTheoVaiTroLuuYHoSo: "Có hiệu lực từ ngày mai. Nếu vai trò chưa có cấp, đại lý này sẽ thành «Chưa có cấp».",
+  datCauChuHoSo: "Từ ngày này, đơn của đại lý này tính theo cấp riêng, không theo cấp của vai trò nữa. Đơn đã xác nhận không đổi.",
 } as const;
 
 /** Ai thấy cột: có ô xem hoa hồng đối tác và KHÔNG giữ quyền Đối tác (kể cả tài khoản lai) — cùng cổng với route `GET /api/pricing/cap-hien-hanh`. Hành chính nhân sự không có ô xem nên không thấy. */
@@ -62,6 +65,13 @@ export interface OCap {
 export function oCapCuaDong(dong: Pick<PermissionHolder, "permissions"> & { partyId: string | null }, v: CapHienHanhDto | undefined): OCap | null {
   if (!holdsPartner(dong)) return null;
   if (v === undefined || dong.partyId === null) return { chu: CHU_CAP.chuaCoVaiTro, moBang: false, coMucRieng: false, theoVaiTu: null, troHoaHong: false };
+  return oCapCuaHoSo(v);
+}
+/**
+ * Nội dung ô cấp của MỘT hồ sơ đang mang vai trò được hưởng, KHÔNG hỏi quyền của tài khoản: màn «Cấp độ đại lý» (đặc tả 2026-11-04-man-cap-dai-ly) có cả hồ sơ chưa có tài khoản,
+ * máy chủ đã chỉ trả hồ sơ được hưởng nên không cần giả quyền Đối tác. Dòng tài khoản đi qua `oCapCuaDong` ở trên rồi vào đây.
+ */
+export function oCapCuaHoSo(v: CapHienHanhDto): OCap {
   const chu =
     v.nguon === "RIENG" ? `${v.cap?.ten ?? ""} (cấp riêng)`
     : v.nguon === "THEO_VAI" ? `${v.cap?.ten ?? ""} (theo vai trò)`
@@ -103,12 +113,15 @@ export function macDinhBangCap(v: CapHienHanhDto, homNay: string, xem: SuaXemTru
   return { kieu: "DOI", tuNgay: tu, dungTheoVaiDuoc: r.tuNgay <= homNay && (r.denNgay === null || r.denNgay > homNay) && !daChupQuaHomNay };
 }
 /** Câu giải thích dưới ô «Từ ngày» của bảng bấm. */
-export function cauNgayMacDinh(m: MacDinhBang, v: CapHienHanhDto, homNay: string, xem: SuaXemTruocResponse | null): string {
-  if (m.kieu === "DAT") return CHU_CAP.datCauChu;
+export function cauNgayMacDinh(m: MacDinhBang, v: CapHienHanhDto, homNay: string, xem: SuaXemTruocResponse | null, coTaiKhoan = true): string {
+  if (m.kieu === "DAT") return coTaiKhoan ? CHU_CAP.datCauChu : CHU_CAP.datCauChuHoSo;
   if (xem !== null && xem.duong === "TU_NGAY") return `Đã có đơn dùng cấp riêng này — cấp mới áp dụng sớm nhất từ ngày ${ngayVN(m.tuNgay)}; đơn cũ giữ cấp cũ.`;
   if (v.rieng !== null && v.rieng.tuNgay >= homNay) return "Cấp riêng cũ bắt đầu hôm nay nên cấp mới áp dụng sớm nhất từ ngày mai; đơn xác nhận trong hôm nay vẫn tính theo cấp cũ.";
   return "Đơn đã xác nhận không đổi; đơn xác nhận từ ngày này tính theo cấp mới.";
 }
+
+/** Câu cố định cạnh nút «Dùng cấp theo vai trò»: hồ sơ chưa có tài khoản không được nghe chữ «tài khoản». */
+export const cauDungTheoVaiTro = (coTaiKhoan: boolean): string => (coTaiKhoan ? CHU_CAP.dungTheoVaiTroLuuY : CHU_CAP.dungTheoVaiTroLuuYHoSo);
 
 /**
  * Ngày «hôm nay» của bảng bấm = ngày MÁY CHỦ vừa trả lúc MỞ bảng (ruling R12): `xem.homNay` của `GET …/muc-rieng/:id/sua` nếu có (hồ sơ đã có cấp riêng), không thì `homNay` của danh sách cấp

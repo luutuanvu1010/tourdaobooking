@@ -9,6 +9,7 @@
 //  6) cảnh báo N-17: loại thứ hai còn dòng riêng «mọi dịch vụ» 8% ⇒ gắn vào mức vẫn 201 (không chặn) và `dongRieng` có đúng dòng đó;
 //  7) tắt mức ⇒ gắn mới 409 muc_tat, thêm dòng 409 muc_tat; dòng / gắn đang có vẫn áp (Thử tra loại cũ vẫn bậc 7); bật lại ⇒ gắn được; mọi câu lỗi không lộ mã thô.
 //  7b) mã định danh 5.26: đổi tên cấp 2 ⇒ mã giữ, GET / gắn / Thử tra hiện tên mới; lưu trên bản cũ 409; trùng tên 409 muc_trung.
+//  7c) màn «Cấp độ đại lý» (đặc tả 2026-11-04-man-cap-dai-ly): công ty CHƯA có tài khoản hiện trên route đọc của màn; Kế toán đặt cấp thứ ba qua đúng lệnh có sẵn; đơn xác nhận sau đó tính theo cấp đó; Bán hàng, HDV 403.
 // Dùng accountant / admin / salesA / field (không đổi tài khoản dùng chung). Tên loại, tên mức và hồ sơ dùng một lần (hậu tố chữ suy từ Date.now() — tên không được chứa dãy ≥ 8 chữ số;
 // `name_key` của mức là UNIQUE nên tên cố định sẽ 409 khi chạy lại trên cùng D1). KHÔNG gắn mức cho vai có sẵn (TRAVEL_AGENCY…): dòng riêng 10% của «so-dai-ly» sẽ thắng ở bậc 6 và
 // làm bẩn kịch bản sau. KHÔNG đổi công ty chủ, KHÔNG đụng tài khoản của `passkey`.
@@ -197,6 +198,33 @@ assert.equal((await call(A, "PATCH", `/api/pricing/muc-ta/${TA2}`, { ten: `Cấp
 const nkTen = await sqlRows(`SELECT target_id AS ma, detail FROM audit_log WHERE action = 'prc_rate_tier_renamed' AND target_id = '${TA2}'`);
 assert.deepEqual(nkTen.map((x) => [x.ma, x.detail]), [[TA2, `«${TEN_TA2}» → «${TEN_TA2_MOI}»`]], "một dòng nhật ký đổi tên, ô đối tượng = mã; lần thua không ghi");
 console.log("✓ 7b) Đổi tên cấp «Đại lý cấp 2 …» ⇒ 200, mã giữ; GET danh sách, gắn loại↔cấp, Thử tra ngày mai hiện tên mới; lưu trên bản cũ 409; trùng tên 409 muc_trung; Bán hàng 403; nhật ký đổi tên mang mã");
+
+// ---- 7c) Màn «Cấp độ đại lý»: công ty chưa có tài khoản, cấp riêng thứ ba, đơn tính theo cấp đó. Loại mới dùng một lần, chưa gắn cấp nào: chỉ cấp riêng quyết.
+const TEN_TA3 = `Đại lý cấp 3 ${CHU}`;
+const TA3 = phai(await call(ACC, "POST", "/api/pricing/muc-ta", { ten: TEN_TA3 }), 201, "tạo cấp thứ ba").muc.code;
+const DONG_TA3 = phai(await call(ACC, "POST", `/api/pricing/muc-ta/${TA3}/dong`, { phamVi: "SERVICE", catalogCode: "ZE1", kieu: "RATE", tyLeBp: 1200, tuNgay: HOM_QUA }), 201, "dòng cấp thứ ba").dong;
+const LOAI3 = await themLoai(`Cộng tác viên cấp ${CHU}`);
+const ORG3 = await taoToChuc(`Công ty Chưa Tài Khoản E2E ${CHU}`, LOAI3);
+const manCap = async (phien) => phai(await call(phien, "GET", "/api/pricing/cap-dai-ly"), 200, "route đọc của màn");
+const dongMan = async () => (await manCap(ACC)).hoSo.find((x) => x.partyId === ORG3.id);
+for (const [phien, ten] of [[A, "Bán hàng"], [F, "Hướng dẫn viên"]]) assert.equal((await call(phien, "GET", "/api/pricing/cap-dai-ly")).status, 403, `${ten} không đọc được màn`);
+await manCap(ADM);
+const dongTruoc = await dongMan();
+assert.deepEqual([dongTruoc?.ten, dongTruoc?.loaiHoSo, dongTruoc?.coTaiKhoan, dongTruoc?.cap.nguon, dongTruoc?.cap.cap], [ORG3.displayName ?? `Công ty Chưa Tài Khoản E2E ${CHU}`, "ORGANIZATION", false, "CHUA_CO", null], JSON.stringify(dongTruoc));
+assert.deepEqual(dongTruoc.vaiTro.map((v) => v.code), [LOAI3]);
+assert.equal((await sqlRows(`SELECT count(*) AS n FROM staff WHERE party_id = '${ORG3.id}'`))[0].n, 0, "công ty không sinh tài khoản");
+phai(await call(ACC, "POST", `/api/pricing/ho-so/${ORG3.id}/muc-rieng`, { muc: TA3, tuNgay: HOM_NAY }), 201, "Kế toán đặt cấp riêng ngay trên màn");
+const dongSau = await dongMan();
+assert.deepEqual([dongSau.cap.nguon, dongSau.cap.cap?.code, dongSau.cap.cap?.ten], ["RIENG", TA3, TEN_TA3], JSON.stringify(dongSau));
+const donC = await lapDon(ORG3.id);
+await xacNhan(donC.id);
+const chupC = await banChup(donC.id);
+assert.equal(chupC.length, 1);
+assert.deepEqual([chupC[0].source, chupC[0].st, chupC[0].bp, chupC[0].rule, chupC[0].ben], ["AUTO", "SET", 1200, DONG_TA3.id, ORG3.id], "bản chụp theo đúng dòng của cấp vừa đặt");
+const hhC = lamTronNuaLen(1200 * thanhTien, 10000);
+const vpC = await thuongMai(donC.id);
+assert.deepEqual([vpC.tong.thanhTien, vpC.tong.hoaHong], [thanhTien, hhC], "hoa hồng đúng cấp vừa đặt");
+console.log(`✓ 7c) Công ty chưa có tài khoản hiện ở màn Cấp độ đại lý (Bán hàng, HDV 403); Kế toán đặt cấp riêng; đơn xác nhận ⇒ bản chụp AUTO/SET 1200 đúng dòng của cấp đó, hoa hồng ${hhC.toLocaleString("vi-VN")}đ`);
 
 // ---- 8) Không đổi công ty chủ
 assert.deepEqual((await sqlRows("SELECT party_id FROM v_pty_owner_company")).map((x) => x.party_id), congTyTruoc, "công ty chủ không đổi");
