@@ -11,3 +11,4 @@ public/sw.js
 .claude/settings.local.json
 .claude/scheduled_tasks.lock
 .DS_Store
+dist-dev/
