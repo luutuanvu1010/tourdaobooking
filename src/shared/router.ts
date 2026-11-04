@@ -60,7 +60,11 @@ export type NewOrderHandler = { ok: true; statements: (orderId: string, at: stri
  */
 export interface ViecCuaHoSo { phuTrachDon: number; laiChuyen: number; toLaiChuyen: number; chuXeChuyen: number; soXe: number }
 /** `maDoi` = mã các đơn sẽ đổi người đặt (nháp + đã xác nhận chưa giao) — route gộp nêu tên khi lô bị trigger tiền của đơn huỷ (ADR-0068 Đ1 bước 5). */
-export interface DonCuaNguoiDatTom { doi: number; giuDaGiao: number; giuDaHuy: number; lechTien: string[]; maDoi: string[] }
+export interface DonCuaNguoiDatTom {
+  doi: number; giuDaGiao: number; giuDaHuy: number; lechTien: string[]; maDoi: string[];
+  /** ADR-0168 Đ2 mục 6: mã các đơn Trả sau còn nợ của hồ sơ — `orders` không biết nợ (billing tính), gốc lắp ráp điền; vắng = không có. */
+  conNoTraSau?: string[];
+}
 /**
  * ADR-0155 C3 — việc dở khi gỡ vai được hưởng cuối cùng của hồ sơ chưa có tài khoản. `parties` không import orders / pricing: gốc lắp ráp nối (khuôn `GopHoSoNoi`).
  * `conVaiHuong` = trong `vaiConLai` (mã các vai còn mở sau khi gỡ) còn vai được hưởng hoa hồng. Đơn nháp riêng tư (ADR-0135 Đ1): CHỈ đếm (`donNhap`), mã đơn chỉ ra cho
@@ -247,6 +251,8 @@ export interface Ctx<A extends Access = Access> {
   kiemTraSau: (i: { benDat: string; soTienDon: number; boQuaDon?: string }) => Promise<KetQuaKiemTraSau | null>;
   cauGacPhienBanTraSau: (partyId: string, version: number, at: string) => D1PreparedStatement[];
   traSauCuaDon: (orderId: string) => Promise<{ hanTra: string | null; no: number } | null>;
+  /** ADR-0168 Đ3 mục 3: đơn đã có vé bị mở (lộ) cho khách chưa — `ve-dien-tu` trả lời, `orders` không import nó. `null` = không tiêm / không đọc được ⇒ cổng huỷ đơn Trả sau còn nợ chặn 503. */
+  veDaMoCuaDon: (orderId: string) => Promise<boolean | null>;
   /** ADR-0089 đ7 + ADR-0159: người lập còn giữ tiền của đơn huỷ để lập lại ⇒ không khai lại. Không tiêm ⇒ câu chặn 503 (không đoán «không có»). */
   chanKhaiCocLai: (nguoiLapId: string) => Promise<ChanKhaiLai>;
   /**
@@ -416,6 +422,7 @@ export interface AppOptions {
     kiemTraSau: (env: Env, i: { benDat: string; soTienDon: number; boQuaDon?: string }) => Promise<KetQuaKiemTraSau>;
     cauGacPhienBanTraSau: (env: Env, partyId: string, version: number, at: string) => D1PreparedStatement[];
     traSauCuaDon: (env: Env, orderId: string) => Promise<{ hanTra: string | null; no: number } | null>;
+    veDaMoCuaDon: (env: Env, orderId: string) => Promise<boolean>;
     chanKhaiCocLai: (env: Env, nguoiLapId: string) => Promise<ChanKhaiLai>;
     /** ADR-0153 Đ1 mục 4. BẮT BUỘC trong mã chạy thật (`src/index.ts`: `ve-dien-tu` + `dichVuChoVe` của orders); thiếu (khung thử cố ý) → router không cấp / không trả vé. Tự nuốt lỗi. */
     capVeSauXacNhan: (env: Env, actor: StaffProfile, orderId: string) => Promise<void>;
@@ -572,6 +579,7 @@ export function createApp(opts: AppOptions) {
       kiemTraSau: (i) => (typeof opts.injected.kiemTraSau !== "function" ? Promise.resolve(null) : opts.injected.kiemTraSau(envH, i)),
       cauGacPhienBanTraSau: (partyId, version, at) => (typeof opts.injected.cauGacPhienBanTraSau !== "function" ? [] : opts.injected.cauGacPhienBanTraSau(envH, partyId, version, at)),
       traSauCuaDon: (id) => (typeof opts.injected.traSauCuaDon !== "function" ? Promise.resolve(null) : opts.injected.traSauCuaDon(envH, id)),
+      veDaMoCuaDon: (id) => (typeof opts.injected.veDaMoCuaDon !== "function" ? Promise.resolve(null) : opts.injected.veDaMoCuaDon(envH, id)),
       chanKhaiCocLai: (id) =>
         typeof opts.injected.chanKhaiCocLai !== "function"
           ? Promise.resolve({ status: 503 as const, code: "dat_coc_chua_kiem", message: "Chưa kiểm được tiền đặt cọc của đơn cũ — báo người phụ trách hệ thống." })

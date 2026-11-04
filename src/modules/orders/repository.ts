@@ -420,6 +420,11 @@ export interface OrderMeta {
   paymentTerm: "PREPAID" | "CREDIT";
 }
 
+/** Giảm giá cấp đơn đang lưu (đóng băng sau xác nhận) — để tính tổng phải thu SAU lần sửa số khách của đơn Trả sau (ADR-0168 Đ2 mục 5). Không có đơn ⇒ 0. */
+export async function getGiamGia(db: D1Database, id: string): Promise<number> {
+  return (await db.prepare("SELECT discount FROM orders WHERE id = ?").bind(id).first<{ discount: number }>())?.discount ?? 0;
+}
+
 /** Mã đơn + người lập — chỉ hai trường này (Bảng tin, ADR-0022 điều 4: sự kiện không mang tên/SĐT khách, không tiền). null nếu không có đơn. */
 export async function getOrderRef(db: D1Database, id: string): Promise<{ staffId: string; orderCode: string; status: OrderStatus } | null> {
   const row = await db.prepare("SELECT staff_id, order_code, status FROM orders WHERE id = ?").bind(id).first<{ staff_id: string; order_code: string; status: OrderStatus }>();

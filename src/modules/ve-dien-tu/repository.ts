@@ -354,4 +354,7 @@ export const docVeCuaLink = async (db: D1Database, orderId: string): Promise<VeC
 
 const TRANG_THAI_DON = defineSql("ve-dien-tu", "trang_thai_don", "SELECT status FROM v_ord_order_state WHERE id = ?1");
 /** Trạng thái đơn (view công bố của orders); null = không có đơn. */
+const VE_DA_MO = defineSql("ve-dien-tu", "ve_da_mo_cua_don", "SELECT 1 AS co FROM vdt_allocation WHERE order_id = ?1 AND revealed_at IS NOT NULL LIMIT 1");
+/** Đơn đã có vé bị lộ (xem ảnh / giao) chưa — kể cả phân bổ đã trả: vé đã lộ không về kho (ADR-0168 Đ3 mục 3). */
+export const veDaMoCuaDon = async (db: D1Database, orderId: string): Promise<boolean> => (await db.prepare(VE_DA_MO).bind(orderId).first()) !== null;
 export const docTrangThaiDon = async (db: D1Database, orderId: string): Promise<string | null> => (await db.prepare(TRANG_THAI_DON).bind(orderId).first<{ status: string }>())?.status ?? null;

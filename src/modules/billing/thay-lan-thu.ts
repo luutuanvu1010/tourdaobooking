@@ -19,6 +19,7 @@ import {
   type LanThuHopLe, type NguoiGoi,
 } from "./service";
 import { phaiThuHienHanh, receiptThayDaoStatement, receiptThayMoiStatement } from "./thay-lan-thu-repo";
+import { cauTangChoDon } from "./tra-sau-tang";
 
 /** ADR-0088 đ2: lý do tối thiểu (ký tự, bỏ khoảng trắng hai đầu) — trigger 0083 ép cùng số. */
 export const LY_DO_THAY_TOI_THIEU = 10;
@@ -208,5 +209,6 @@ export async function chuanBiLoThay(db: D1Database, input: { orderId: string; ph
   for (const nv of new Set(nguoiThu.flatMap((p) => (taiKhoan.has(p) && taiKhoan.get(p) !== by ? [taiKhoan.get(p)!] : [])))) {
     stmts.push(auditStatement(db, { orderId, staffId: by, action: "ledger_receipt_collector_changed", at, targetType: "staff", targetId: nv, detail: "Khoản thu có bạn là người thu tiền vừa được sửa" }));
   }
+  stmts.push(...(await cauTangChoDon(db, orderId, at))); // ADR-0168 Đ2 mục 4–5: sửa khoản thu KHÔNG bị chặn nhưng có thể làm nợ tăng ⇒ tăng phiên bản (chỉ đơn Trả sau)
   return { ok: true, value: { stmts, ngay: ngay.value, daThuSau: daThuTruoc - tongCu + tongMoi } };
 }

@@ -6,7 +6,7 @@ import { hieuLuc, khoanChoXacNhan, soKhaiChuaNop, type DoiChieuRow, type LineRow
 import { ownerCompanyId, receiptsOfOrders } from "./repository";
 import { tienNhieuDon, toReceiptRow } from "./service";
 import {
-  benCoDonTraSau, dongCuaCacDon, doiChieuCuaCacDon, donTraSauCuaCacBen, donTraSauTheoId, guardChenStatement, guardGacStatement, guardTangStatement, hanMucRowMoiBen, hanMucRowTai, phienBanHienTai,
+  benCoDonTraSau, dongCuaCacDon, doiChieuCuaCacDon, donTraSauCuaCacBen, donTraSauTheoId, hanMucRowMoiBen, hanMucRowTai, phienBanHienTai,
   type DonTraSauRow, type HanMucRow,
 } from "./tra-sau-repo";
 
@@ -100,12 +100,7 @@ export async function kiemTraSau(db: D1Database, i: { benDat: string; soTienDon:
   return { ok: true, hanMuc: hanMuc!, version };
 }
 
-/** Câu gác phiên bản cho lô xác nhận: tạo dòng phiên bản nếu chưa có, rồi chỉ tăng được khi phiên bản vẫn là số đã đọc (sai thì trigger huỷ cả lô — `credit_version_stale`). */
-export const cauGacPhienBan = (db: D1Database, partyId: string, version: number, at: string): D1PreparedStatement[] =>
-  [guardChenStatement(db, partyId, at), guardGacStatement(db, partyId, version, at)];
-/** Câu tăng phiên bản cho đường làm nợ thay đổi mà không cần đọc trước (đảo, sửa khoản thu, đổi hạn mức): lệnh đang chờ xác nhận sẽ thua. */
-export const cauTangPhienBan = (db: D1Database, partyId: string, at: string): D1PreparedStatement[] =>
-  [guardChenStatement(db, partyId, at), guardTangStatement(db, partyId, at)];
+export { cauGacPhienBan, cauTangPhienBan } from "./tra-sau-gac";
 
 /** Ngày hôm qua theo giờ Việt Nam — ngày kết thúc của dòng hạn mức bị thay hoặc ngừng (hạn mức hết hiệu lực từ hôm nay). */
 export const homQua = (homNay: string): string => addDays(homNay, -1);

@@ -275,7 +275,7 @@ export const dispatchModule: AppModule = {
     // = ngày khởi hành lớn nhất trong các dịch vụ, đã qua ⇔ < hôm nay giờ VN; ngay trong ngày đi vẫn huỷ được; từ hôm sau chỉ văn phòng huỷ qua
     // /status) → 400 (lý do) → ghi. Đổi ngày giữa lúc đọc và lúc ghi (PUT /trip) làm đổi `updated_at` (KHÔNG đổi `status`) → khoá lạc quan của
     // cancelOrderByHandler (khoá theo CẢ `status` VÀ `updated_at`, T1d) thua → 409.
-    route("POST", "/api/orders/:id/handler-cancel", "staff", async ({ env, request, params, staff, isAssigned, baoThayDoi, dongBoChuyen, traVeKhiHuy }) => {
+    route("POST", "/api/orders/:id/handler-cancel", "staff", async ({ env, request, params, staff, isAssigned, baoThayDoi, dongBoChuyen, traVeKhiHuy, traSauCuaDon, veDaMoCuaDon }) => {
       const orderId = params.id!;
       if (!UUID_RE.test(orderId)) return NOT_FOUND();
       const [order, assigned] = await Promise.all([findOrderOwner(env.DB, orderId), isAssigned(orderId)]);
@@ -296,7 +296,7 @@ export const dispatchModule: AppModule = {
       // hỏi lại dòng phụ trách mở lúc GHI (đổi người giữa lúc đọc và lúc ghi).
       const cauAbort = assigned && staff.partyId ? [chenAbortSauStatement(env.DB, { id: crypto.randomUUID(), partyId: staff.partyId, orderId, at: new Date().toISOString(), actorId: staff.id })] : [];
       const cauSauHuy = [...cauAbort, ...(await traVeKhiHuy(orderId, "DON_HUY"))]; // ADR-0153: trả vé cùng nguyên tử với việc huỷ (cổng: đơn đã `cancelled` trong lô)
-      const r = await cancelOrderByHandler(env.DB, orderId, staff.id, order.updatedAt, lyDoHuyCuaHdv(input.reason, input.note), label, cauSauHuy, (x) => dongBoChuyen(x));
+      const r = await cancelOrderByHandler(env.DB, orderId, staff.id, order.updatedAt, lyDoHuyCuaHdv(input.reason, input.note), label, { traSauCuaDon, veDaMoCuaDon }, cauSauHuy, (x) => dongBoChuyen(x));
       if (r.kq === "loi") return r.res;
       if (r.kq === "thua") {
         const now = await findOrderOwner(env.DB, orderId);
@@ -311,7 +311,7 @@ export const dispatchModule: AppModule = {
     // giao → 409 `departed` (qua ngày đi — chủ dự án duyệt 2026-09-30 "Cho sửa đến hết ngày đi": cùng `tripDeparted` + `vnToday` với huỷ đơn,
     // DK-T4-02; ĐÚNG ngày đi vẫn sửa được; Toàn quyền KHÔNG bị chặn) → 409/400 do editMoneyAsHandler tự kiểm (không phải đơn đã xác nhận; thân yêu
     // cầu sai/thiếu/thừa dịch vụ; lý do có SĐT — `hasLongDigitRun`) → 409 stale nếu thua khoá lạc quan.
-    route("POST", "/api/orders/:id/handler-money-edit", "staff", async ({ env, request, params, staff, isAssigned, baoThayDoi, dongBoChuyen, canBangVeSauSuaKhach }) => {
+    route("POST", "/api/orders/:id/handler-money-edit", "staff", async ({ env, request, params, staff, isAssigned, baoThayDoi, dongBoChuyen, canBangVeSauSuaKhach, kiemTraSau, cauGacPhienBanTraSau }) => {
       const orderId = params.id!;
       if (!UUID_RE.test(orderId)) return NOT_FOUND();
       const [order, assigned] = await Promise.all([findOrderOwner(env.DB, orderId), isAssigned(orderId)]);
@@ -326,7 +326,7 @@ export const dispatchModule: AppModule = {
       if (await orderDelivered(env.DB, orderId)) return DA_GIAO();
       if (!hasPermission(staff, "SUPER_ADMIN") && tripDeparted(await findOrderDepartDates(env.DB, orderId), vnToday(new Date()))) return MONEY_EDIT_DEPARTED();
       // ADR-0104 Đ2 (điểm gọi 7): máy đồng bộ chuyến nối vào CHÍNH lô sửa số khách (HDV không có trip.view — phản hồi chỉ câu cố định + cờ, Đ2.13).
-      const result = await editMoneyAsHandler(env.DB, orderId, staff.id, await readJson(request), (x) => dongBoChuyen(x));
+      const result = await editMoneyAsHandler(env.DB, orderId, staff.id, await readJson(request), { kiemTraSau, cauGacPhienBanTraSau }, (x) => dongBoChuyen(x));
       if (!result.ok) {
         if (result.code === "trip_rule") return result.res;
         if (result.code === "not_found") return NOT_FOUND();
