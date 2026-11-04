@@ -1,7 +1,7 @@
 // Dựng tài sản tĩnh riêng cho bản Development (ADR-0162 Đ3): sao chép public/ sang dist-dev/ rồi đổi tên cài, CSP, robots, thêm dải «BẢN THỬ».
 // Chạy: node scripts/dung-tai-san-dev.mjs <mã-commit-40-hex>. Không chạm mạng, không ghi vào public/.
 import { cpSync, existsSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
-import { dirname, join, relative, resolve } from "node:path";
+import { basename, dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const MIEN_CHINH_THUC = "booking.tourdao.vn";
@@ -57,7 +57,11 @@ const doiTep = (dich, ten, f) => {
 
 export function dungTaiSanDev({ goc, dich, commit }) {
   if (typeof commit !== "string" || !KHUON_COMMIT.test(commit)) throw new Error("Mã commit phải đúng 40 ký tự hex chữ thường.");
-  if (resolve(goc) === resolve(dich)) throw new Error("Thư mục đích trùng thư mục gốc.");
+  // Chốt chặn trước khi xoá gì: đích phải tên đúng `dist-dev` và không được chứa (hay trùng) thư mục gốc.
+  const g = resolve(goc);
+  const d = resolve(dich);
+  if (basename(d) !== "dist-dev") throw new Error("Thư mục đích phải có tên dist-dev.");
+  if (g === d || g.startsWith(d + sep) || d.startsWith(g + sep)) throw new Error("Thư mục gốc và thư mục đích trùng nhau hoặc lồng nhau.");
   rmSync(dich, { recursive: true, force: true });
   cpSync(goc, dich, { recursive: true });
 

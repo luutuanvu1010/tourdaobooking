@@ -62,7 +62,7 @@ test("manifest, _headers, robots.txt, app.css, ban-thu.json", () => {
 
 test("commit sai khuôn thì ném lỗi", () => {
   for (const c of ["", "abc", "G".repeat(40), COMMIT.toUpperCase(), COMMIT + "0"]) {
-    const dich = join(tam(), "d");
+    const dich = join(tam(), "dist-dev");
     assert.throws(() => lib.dungTaiSanDev({ goc: GOC, dich, commit: c }), /commit/i, c);
   }
 });
@@ -75,7 +75,7 @@ test("tệp văn bản cài sẵn chứa booking.tourdao.vn thì ném lỗi", ()
     if (t.endsWith(".html") || t === "_headers" || t === "app.css" || t === "manifest.webmanifest") writeFileSync(join(goc, t), readFileSync(join(GOC, t)));
   }
   writeFileSync(join(goc, "la.js"), "fetch(\"https://booking.tourdao.vn/x\")\n");
-  const dich = join(tam(), "d");
+  const dich = join(tam(), "dist-dev");
   assert.throws(() => lib.dungTaiSanDev({ goc, dich, commit: COMMIT }), /booking\.tourdao\.vn/);
 });
 
@@ -85,4 +85,18 @@ test("quetBanChinh trả danh sách tệp còn chứa miền chính thức", () 
   writeFileSync(join(d, "b.js"), "x booking.tourdao.vn y");
   assert.deepEqual(lib.quetBanChinh(d), ["b.js"]);
   assert.ok(existsSync(d));
+});
+
+test("chốt chặn xoá: dich là thư mục cha của goc, hoặc tên khác dist-dev, thì ném lỗi và goc còn nguyên", () => {
+  const cha = tam();
+  const goc = join(cha, "public");
+  mkdirSync(goc);
+  writeFileSync(join(goc, "a.txt"), "giữ");
+  for (const dich of [cha, goc, join(goc, "dist-dev"), join(tam(), "khac")]) {
+    mkdirSync(dich, { recursive: true });
+    writeFileSync(join(dich, "x.txt"), "giữ");
+    assert.throws(() => lib.dungTaiSanDev({ goc, dich, commit: COMMIT }), /dist-dev|thư mục/i, dich);
+    assert.equal(readFileSync(join(goc, "a.txt"), "utf8"), "giữ");
+    assert.ok(existsSync(join(dich, "x.txt")), dich);
+  }
 });
