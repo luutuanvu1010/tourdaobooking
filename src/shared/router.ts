@@ -308,7 +308,7 @@ const WRITE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
  * Chặn yêu cầu ghi không đến từ chính trang này (CSRF). Cookie SameSite=Lax đã chặn site khác; lớp này chặn thêm trang
  * cùng site (*.tourdao.vn) và form `enctype="text/plain"` giả JSON. Trả Response lỗi, hoặc null nếu hợp lệ.
  */
-function checkWriteRequest(request: Request, url: URL): Response | null {
+export function checkWriteRequest(request: Request, url: URL): Response | null {
   if (!WRITE_METHODS.has(request.method)) return null;
   const origin = request.headers.get("origin");
   const sameOrigin = origin ? origin === url.origin : request.headers.get("sec-fetch-site") === "same-origin";
