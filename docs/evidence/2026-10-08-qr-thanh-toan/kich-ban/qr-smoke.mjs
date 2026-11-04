@@ -226,7 +226,7 @@ try {
     assert.deepEqual(d.dong.slice(1), [`Vietcombank · ${SO_1}`, "Chủ tài khoản: CONG TY TNHH TOUR DAO", "Số tiền: 850.000đ", `Nội dung: ${noiDung}`, `Mã đơn: ${don1.orderCode}`]);
     assert.equal(d.amount, "850.000", "ô số tiền hiện số còn lại do máy chủ trả (điền SAU khi mở, không lấy từ dữ liệu lúc tải trang)");
     assert.equal(d.font, "16px", "ô số tiền 16px");
-    assert.deepEqual(d.foot, ["Lưu ảnh", "Khách đã chuyển khoản"]);
+    assert.deepEqual(d.foot, ["Lưu ảnh", "Ghi khoản thu này"]);
     assert.equal(d.lechNgang, false, "không tràn ngang");
     assert.ok(d.cssW <= 289, `ảnh mã ≤ 18rem (đo ${d.cssW})`);
     assert.doesNotMatch(d.dong.join("\n"), /hoa hồng|giá vốn|nợ|NV Bán|Sales/i, "không lộ hoa hồng / giá vốn / người thu");
@@ -259,7 +259,7 @@ try {
     const nutTat = `[...document.querySelectorAll('.sheet-foot button')].map((b) => b.disabled)`;
     assert.deepEqual(await p.ev(nutTat), [false, false], "trước khi gõ: hai nút bật");
     await p.ev(setInput(`document.getElementById('qr-so-tien')`, "100000"));
-    assert.deepEqual(await p.ev(nutTat), [true, true], "gõ số khác ⇒ Lưu ảnh và Khách đã chuyển khoản tắt");
+    assert.deepEqual(await p.ev(nutTat), [true, true], "gõ số khác ⇒ Lưu ảnh và Ghi khoản thu này tắt");
     assert.match(await p.ev(`document.querySelector('[data-khoi="qr-trang-thai"]').textContent`), /Tạo lại mã/);
     await chup(p, `qr-bang-doi-so-chua-tao-lai-${kho}`);
     await p.ev(`document.querySelector('[data-action="qr-tao-lai"]').click(), true`);

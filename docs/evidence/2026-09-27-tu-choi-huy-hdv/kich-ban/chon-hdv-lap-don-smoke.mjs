@@ -458,7 +458,7 @@ try {
   // ==================================================================================================
   await step("11", "Đối tác thuần (390): khối “Người phụ trách” KHÔNG hiện (không phải hiện rồi báo lỗi), không gọi /api/dispatch/assignees; form vẫn dùng được", async () => {
     const q = await openAs(PARTNER, "/order-form", MOB);
-    await q.waitFor("!!document.getElementById('catalog-q') && document.getElementById('save').textContent === 'Lưu, chờ xác nhận'", "form Đối tác dựng xong", 10000);
+    await q.waitFor("!!document.getElementById('catalog-q') && document.getElementById('save').textContent === 'Lưu đơn (chưa xác nhận)'", "form Đối tác dựng xong", 10000);
     await sleep(500);
     const s = await ownerState(q);
     assert.deepEqual([s.hidden, s.shown, s.buttons.length], [true, false, 0], JSON.stringify(s));
@@ -470,7 +470,7 @@ try {
 
   await step("12", "Thực tập (390, trang mở SAU CÙNG): khối “Người phụ trách” KHÔNG hiện, không gọi /api/dispatch/assignees" + axeNote(), async () => {
     const q = await openAs(INTERN, "/order-form", MOB);
-    await q.waitFor("!!document.getElementById('catalog-q') && document.getElementById('save').textContent === 'Lưu, chờ xác nhận'", "form Thực tập dựng xong", 10000);
+    await q.waitFor("!!document.getElementById('catalog-q') && document.getElementById('save').textContent === 'Lưu đơn (chưa xác nhận)'", "form Thực tập dựng xong", 10000);
     await sleep(500);
     const s = await ownerState(q);
     assert.deepEqual([s.hidden, s.shown, s.buttons.length], [true, false, 0], JSON.stringify(s));
