@@ -21,6 +21,8 @@ Chủ chọn ở hộp hỏi cùng ngày: «Mỗi đơn một hạn», «Toàn b
 
 «Đã giao» vẫn nghĩa là đã thu đủ. Đơn Trả sau ở «Đã xác nhận» tới khi thu đủ, rồi bấm «Đã giao» như thường, và hoa hồng được ghi sổ từ lúc đó. Câu giữ ở bước «Đã giao» của đơn Trả sau đổi thành: «Đơn trả sau còn nợ … — chờ đối tác thanh toán», người xử lý là Kế toán.
 
+**Đổi tên, việc riêng:** chủ 5/11/2026 («chốt hướng», sau đề nghị của người soạn) đổi chữ «Đã giao» trên giao diện thành «Đã thu đủ sau dịch vụ»; chỗ chật ghi «Xong và đủ tiền», nút ghi «Xác nhận đã thu đủ sau dịch vụ». Mã và cơ sở dữ liệu giữ tên cũ. Bản này còn viết «Đã giao» cho tới khi việc đổi tên xong.
+
 ## Giả định của người soạn, chủ sửa được
 
 - Đơn đã quá hạn còn nợ: không mở thêm vé chưa mở của đơn đó; vé đã mở không thu hồi.
