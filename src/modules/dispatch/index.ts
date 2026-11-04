@@ -322,7 +322,9 @@ export const dispatchModule: AppModule = {
       // ADR-0032 điều 1 (Q-P2 — chỉ thống kê): sự kiện ABORT chỉ khi người gọi ĐANG là người phụ trách (Toàn quyền huỷ hộ qua route này thì không); câu còn tự
       // hỏi lại dòng phụ trách mở lúc GHI (đổi người giữa lúc đọc và lúc ghi).
       const cauAbort = assigned && staff.partyId ? [chenAbortSauStatement(env.DB, { id: crypto.randomUUID(), partyId: staff.partyId, orderId, at: new Date().toISOString(), actorId: staff.id })] : [];
-      const cauSauHuy = [...cauAbort, ...(await traVeKhiHuy(orderId, "DON_HUY"))]; // ADR-0153: trả vé cùng nguyên tử với việc huỷ (cổng: đơn đã `cancelled` trong lô)
+      const sauHuy = [...cauAbort, ...(await traVeKhiHuy(orderId, "DON_HUY"))]; // ADR-0153: trả vé cùng nguyên tử với việc huỷ (cổng: đơn đã `cancelled` trong lô)
+      // ADR-0142: lời mời Bán hàng đang mở (nếu có) khép «đơn huỷ» cùng lô, gác theo id dòng nhật ký huỷ (sinh bên trong `soanHuyDon`, nên câu dựng bằng hàm nhận id).
+      const cauSauHuy = (auditId: string): D1PreparedStatement[] => [...sauHuy, banHang.cauKhepLoiMoiSauLenhDon(env.DB, { orderId, outcome: "HUY_DON", at: new Date().toISOString(), actorId: staff.id, auditId })];
       const r = await cancelOrderByHandler(env.DB, orderId, staff.id, order.updatedAt, lyDoHuyCuaHdv(input.reason, input.note), label, cauSauHuy, (x) => dongBoChuyen(x));
       if (r.kq === "loi") return r.res;
       if (r.kq === "thua") {

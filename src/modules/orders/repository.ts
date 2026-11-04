@@ -1035,6 +1035,8 @@ export async function updateDraftOrder(
   datGapNhap: DatGapNhap = new Map(),
   /** Q2 (ADR-0026 đ9): câu thêm vào nhật ký `updated` khi lưu nháp đưa cọc cũ về 0 (route tính từ `cocCuNhap`). */
   ghiChuThem: string | null = null,
+  /** ADR-0142: ý định mời Bán hàng. Vắng ⇒ GIỮ cột `sales_invitee_party_id`; có ⇒ ghi (`partyId` null = xoá) NGAY trong câu UPDATE chính, nên thắng/thua cùng khoá lạc quan với phần còn lại của lần lưu. */
+  nguoiMoi?: { partyId: string | null },
 ): Promise<boolean> {
   const at = nextStamp(order.expectedUpdatedAt);
   const auditId = crypto.randomUUID();
@@ -1053,13 +1055,14 @@ export async function updateDraftOrder(
            deposit_method = CASE WHEN ? < deposit_amount THEN NULL ELSE deposit_method END,
            remaining_amount = CASE WHEN ? < deposit_amount THEN ? ELSE ? - deposit_amount END,
            payment_note = ?, declared_deposit = COALESCE(?, declared_deposit),
-           booker_party_id = ${BOOKER_VALUE}, updated_at = ?
+           booker_party_id = ${BOOKER_VALUE}, updated_at = ?,
+           sales_invitee_party_id = CASE WHEN ? = 1 THEN ? ELSE sales_invitee_party_id END
          WHERE id = ? AND status = 'draft' AND updated_at = ?`,
       )
       .bind(
         order.customerName, order.customerPhone, order.customerEmail, order.customerNote,
         order.subtotal, order.discount, order.total, order.total, order.total, order.total, order.total, order.total, order.paymentNote, order.declaredDeposit,
-        booker.partyId, at, id, order.expectedUpdatedAt,
+        booker.partyId, at, nguoiMoi ? 1 : 0, nguoiMoi?.partyId ?? null, id, order.expectedUpdatedAt,
       ),
     auditStatement(db, { id: auditId, orderId: id, staffId, action: "updated", at, detail: joinDetail(summarizeDeviations(order.items), booker.note, paxNote, ghiChuThem) }, "changes() > 0"),
     db.prepare(`DELETE FROM order_item WHERE order_id = ? AND ${guard.sql}`).bind(id, ...guard.binds),
