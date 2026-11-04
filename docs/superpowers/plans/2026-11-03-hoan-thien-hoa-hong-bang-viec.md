@@ -9,6 +9,7 @@ Chủ dự án 3/11/2026, nguyên văn: «để diễn tập sau, giờ là lúc
 | 3 | Trả tiền theo tháng (ADR-0080 phần D2, ADR-0081): gộp nhiều đơn vào một phiếu, bảng kê tháng, đối tác tự xem sổ | Ca sổ vàng qua; khoá tháng vẫn đúng; đối tác chỉ thấy phần của mình | chưa; đọc nhanh, chưa kiểm kỹ phần đã có |
 | 4 | Đã gộp vào Việc 2 (chủ 4/11) | Theo Việc 2 | gộp |
 | 5 | Dọn chỗ nhỏ: chữ «/khách» còn sót với dịch vụ theo lượt, `BL-SDL-TAY-BI-DE`, `BL-SDL2-CHUP-BU-TRAN`, `BL-SDL2-DON-LAI` | Mỗi mục có bài đỏ trước, xanh sau | chưa |
+| 6 | Màn «Cấp độ đại lý»: gán cấp TA nhanh cho mọi đối tác, không vào trang Hoa hồng. Chủ 4/11, nguyên văn: «Làm màn gom». Đặc tả: `docs/superpowers/specs/2026-11-04-man-cap-dai-ly.md` | Đạt chín tiêu chí của đặc tả; lên production | đã thi công, người kiểm độc lập đạt; chờ nhập, chờ triển khai |
 
 ## Ngoài bảng
 
@@ -39,5 +40,7 @@ Chủ dự án 3/11/2026, nguyên văn: «để diễn tập sau, giờ là lúc
 - **Kịch bản `xoa-an-danh` đỏ một lần trong lần triển khai 2.60:** chủ chọn đi tiếp; chạy lại ba lần đều xanh, chưa rõ nguyên nhân vì dòng lỗi đã trôi. Nếu đỏ lại phải đọc lỗi ngay; bộ chạy e2e nên ghi đầu ra ra tệp.
 
 ## Quyết định của chủ trong lúc thi công
+
+- **Màn Cấp độ đại lý, 4/11, giả định của người soạn đã báo chủ:** chỉ Kế toán, Quản trị, Toàn quyền mở; Bán hàng không mở dù có ô xem hoa hồng đối tác, vì màn gom tên đối tác với cấp của họ. Đảo ngược được.
 
 - **Việc 1, 4/11, đơn nháp chặn gỡ vai.** Được hỏi: khi còn đơn nháp người khác giữ, Nền tảng giúp Quản trị bằng cách nêu tên người lập hay để Quản trị huỷ thay; chủ trả lời, nguyên văn: «Nêu tên người lập». Hệ quả cần ghi: đây là ngoại lệ hẹp của ADR-0135 Đ1 (nháp chỉ người lập thấy). Người giữ `admin.manage` khi gỡ vai cuối thấy tên người lập và số nháp của họ đứng tên hồ sơ đó; nội dung và mã nháp chưa gửi vẫn kín, các đường đọc và ghi nháp vẫn 404. Chưa ghi vào ADR-0135 hay ADR-0155 vì ADR đã duyệt chỉ chủ sửa.
