@@ -18,15 +18,18 @@ function qd(w: any, id: string, as: string, extra: Record<string, unknown>, chup
   return w.call("POST", `/api/orders/${id}/quyet-dinh`, { as, body: { yeuCauId: chup?.yc ?? y?.id, updatedAt: chup?.moc ?? moc.u, ...extra } });
 }
 /** Đơn có cờ + chặng đón 07:00 sau 3 ngày + đã gửi xác nhận. */
-async function choXacNhan(w: any, as = A): Promise<{ id: string; legId: string; ngay: string }> {
+async function choXacNhan(w: any, as = A, extra: Record<string, unknown> = {}): Promise<{ id: string; legId: string; ngay: string }> {
   datCo(w, "SERVICE", "ZA1", true);
   const ngay = inDays(3);
-  const o = await lap(w, as, [svc("ZA1", ngay, [leg(ngay, "07:00")])]);
+  const o = await lap(w, as, [svc("ZA1", ngay, [leg(ngay, "07:00")])], extra);
   assert.equal((await gui(w, o.id, as)).status, 201);
   return { id: o.id, legId: o.services[0].legs[0].id, ngay };
 }
 const chang = (w: any, legId: string) => w.q("SELECT pickup_date d, pickup_time t, pickup_slot_end e FROM ord_transfer_leg WHERE id = ?", legId)[0];
 const nhatKy = (w: any, id: string, action: string) => w.q("SELECT * FROM audit_log WHERE order_id = ? AND action = ?", id, action);
+/** ADR-0142: dòng ô Bán hàng phụ trách (mọi dòng, kể cả đã khép) và kết quả các lời mời của đơn, theo thứ tự ghi. */
+const oBanHang = (w: any, id: string) => w.q("SELECT count(*) n FROM dsp_sales_owner WHERE order_id = ?", id)[0].n;
+const loiMoiCua = (w: any, id: string) => w.q("SELECT outcome FROM dsp_sales_invite WHERE order_id = ? ORDER BY recorded_at, rowid", id).map((r: any) => r.outcome);
 const soQuyetDinh = (w: any, id: string) => nhatKy(w, id, "confirmed").length + nhatKy(w, id, "cancelled").length;
 
 test("(c) Còn vé + đổi giờ 08:30–09:00 → đơn confirmed, chặng 08:30, yêu cầu khép XAC_NHAN/CON_VE, nhật ký confirmed «Còn vé, đổi giờ»", async () => {
@@ -198,7 +201,8 @@ test("ĐUA THẬT thua ở khoá updated_at (người khác — gộp hồ sơ�
 test("ĐUA THẬT Rút lại chen GIỮA lúc đọc và lúc ghi: Còn vé (kèm đổi ngày + giờ) và Hết vé đều THUA 409 — đơn vẫn nháp, yêu cầu RUT_LAI, chặng + ngày nguyên, không dòng quyết định", async () => {
   for (const [ketQua, khop] of [["CON_VE", laXacNhan], ["HET_VE", laHuy]] as const) {
     const w = setup();
-    const { id, legId, ngay } = await choXacNhan(w);
+    const { id, legId, ngay } = await choXacNhan(w, A, { banHangMoiStaffId: B }); // ADR-0142: có lời mời của chính người bấm — lô THUA không được mở ô cũng không được khép lời mời (NHAN)
+    assert.deepEqual(loiMoiCua(w, id), [null], "trước đua: một lời mời mở");
     const truoc = chang(w, legId);
     w.chenTruocLo(khop, async () => { assert.equal((await rut(w, id, A)).status, 200); });
     const r = await qd(w, id, B, { ketQua, ...(ketQua === "CON_VE" ? { ngayDi: inDays(6), gioDon: [{ legId, pickupTime: "08:30", pickupSlotEnd: "09:00" }] } : {}) });
@@ -209,16 +213,20 @@ test("ĐUA THẬT Rút lại chen GIỮA lúc đọc và lúc ghi: Còn vé (kè
     assert.equal(w.q("SELECT depart_date d FROM order_service WHERE order_id = ?", id)[0].d, ngay);
     assert.equal(soQuyetDinh(w, id), 0, ketQua);
     assert.equal(w.q("SELECT count(*) n FROM ord_cancel_reason WHERE order_id = ?", id)[0].n, 0, `${ketQua}: không dòng lý do huỷ mồ côi`);
+    assert.equal(oBanHang(w, id), 0, `${ketQua}: lô thua không để lại dòng ô Bán hàng phụ trách`);
+    assert.deepEqual(loiMoiCua(w, id), ["RUT_LAI"], `${ketQua}: lời mời đúng trạng thái do Rút lại để lại, không bị NHAN / HUY_DON của lô thua`);
   }
 });
 
 test("ĐUA THẬT Gửi lại chen sau Rút lại: người xét duyệt cầm yêu cầu cũ (đã khép) bấm Hết vé / Còn vé → 409; yêu cầu MỚI vẫn mở nguyên", async () => {
   for (const [ketQua, khop] of [["CON_VE", laXacNhan], ["HET_VE", laHuy]] as const) {
     const w = setup();
-    const { id } = await choXacNhan(w);
+    const { id } = await choXacNhan(w, A, { banHangMoiStaffId: B });
     w.chenTruocLo(khop, async () => { assert.equal((await rut(w, id, A)).status, 200); assert.equal((await gui(w, id, A)).status, 201); });
     const r = await qd(w, id, B, { ketQua });
     assert.equal(r.status, 409, `${ketQua}: ${r.text}`);
+    assert.equal(oBanHang(w, id), 0, `${ketQua}: lô thua không mở ô`);
+    assert.deepEqual(loiMoiCua(w, id), ["RUT_LAI", null], `${ketQua}: lời mời cũ khép RUT_LAI, lời mời MỚI của lần gửi lại vẫn mở nguyên`);
     assert.equal(q(w, id).moc.s, "draft");
     assert.equal(q(w, id).yc.filter((y: any) => y.decided_at === null).length, 1);
     assert.equal(soQuyetDinh(w, id), 0);

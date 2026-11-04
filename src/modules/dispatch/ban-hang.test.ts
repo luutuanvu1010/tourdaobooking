@@ -171,7 +171,7 @@ test("laBanHangPhuTrach: đơn nháp ⇒ false (dù có dòng mở); đơn đã 
   assert.equal(await M.laBanHangPhuTrach(w.env.DB, SALES2, orderId), true);
   assert.equal(await M.laBanHangPhuTrach(w.env.DB, SALES, orderId), false);
   const m = await M.banHangCuaDon(w.env.DB, [orderId, "khong-co"]);
-  assert.deepEqual([...m.entries()], [[orderId, { staffId: SALES2, name: "Bình" }]]);
+  assert.deepEqual([...m.entries()], [[orderId, { staffId: SALES2, partyId: pty(SALES2), name: "Bình" }]]);
   assert.equal((await M.banHangCuaDon(w.env.DB, [])).size, 0);
 });
 
