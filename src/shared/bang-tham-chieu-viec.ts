@@ -1484,7 +1484,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
   },
   {
     nhom: "Tài khoản: đặt cấp riêng cho MỘT tài khoản đối tác ngay ở bảng tài khoản",
-    manHinh: "Quản lý tài khoản › cột «Cấp độ đại lý» › chữ bấm được › hộp «Cấp độ đại lý: tên tài khoản»",
+    manHinh: "Quản lý tài khoản › cột «Cấp độ đại lý» › chữ bấm được › hộp «Cấp độ đại lý: tên tài khoản»; màn «Cấp độ đại lý» dùng cùng ô và cùng hộp này cho cả hồ sơ chưa có tài khoản",
     ten: "Chữ trong ô cột «Cấp độ đại lý» (ví dụ «Đại lý cấp 2 (theo vai trò)»), bấm để mở hộp",
     thatSuLam: "Đặt hoặc đổi CẤP RIÊNG cho đúng một tài khoản đối tác, dù ô đang hiện «(theo vai trò)». Từ ngày chọn, tài khoản này thôi theo cấp của vai trò; sau đó đổi cấp của vai trò (ở trang Hoa hồng) không còn ảnh hưởng tới họ. Dùng đúng ba route ghi của trang Hoa hồng.",
     hoiLai: "có hộp nhập",
@@ -1492,7 +1492,8 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     duongLenh: ["/api/pricing/muc-ta","/api/pricing/muc-rieng/:x/sua"],
     maNhatKy: ["prc_party_tier_set","prc_party_tier_closed"],
     noiDat: [
-      { tep: "web/cot-cap-dai-ly.ts", chu: "⟪o.chu⟫" },
+      { tep: "web/cot-cap-dai-ly.ts", chu: "⟪o⟫" },
+      { tep: "web/cot-cap-dai-ly.ts", chu: "⟪oCapCuaHoSo(v)⟫" },
       { tep: "web/cot-cap-dai-ly.ts", chu: "Lưu" },
     ],
     trangThai: "cho-chon",
