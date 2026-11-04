@@ -732,3 +732,9 @@ Ghi 2026-10-29 khi đồng bộ bộ «Island Booking System — Design System v
 - **BL-CK-DIEU-KIEN** — chủ: «Điều kiện áp dụng» hôm nay là ghi chú để đọc, sau này cụ thể hoá theo doanh thu, quy mô, cam kết của đối tác. Khi mở lại cần ADR mới, vì lời chủ 8/10 và ADR-0117 ghi mức «không theo doanh số». Trong Oracle Advanced Pricing đây là phần điều kiện (qualifier).
 - **BL-CK-BANG-DONG-BO** — chủ: Sheet là một nguồn sự thật cho bảng dịch vụ, cần trực quan hoá việc đồng bộ ở bảng điều khiển Quản trị, không đồng bộ tự động. Hiện trạng: Cron 15 phút chạy `runScheduledSync`, cùng Cron còn chạy `donHangChoXoaVe` nên chỉ gỡ việc đồng bộ, không gỡ Cron; trang Dịch vụ & giá đã có đồng bộ tay, lần cuối, dòng lỗi, nhưng chưa xem trước thay đổi; đây là đảo quyết định 2026-09-19. Hệ quả cần nói với chủ: quên bấm thì giá Nền tảng lệch giá trên Sheet và website. Giá ghi đè của Quản trị (`catalog_override`) vẫn còn, nên «một nguồn» có ngoại lệ, cần chủ quyết giữ hay bỏ.
 - **BL-CK-BANG-QUYEN** — chủ: trực quan hoá việc thiết lập quyền của mọi vai ở bảng điều khiển của Toàn quyền. Hiện trạng: chưa có màn nào; bản đồ quyền chỉ ở `src/shared/permissions.ts` (ADR-0007), có bài kiểm khoá. AI khuyên làm trước bản **chỉ xem**, sinh từ chính bản đồ nên không lệch; sửa quyền trên màn hình là cửa một chiều về tiền, cần ADR riêng do chủ duyệt. Chưa hỏi chủ chốt.
+
+## 63. Xoá hẳn dữ liệu trên bản chính thức (mã `BL-XOA-HAN`, 2026-11-04)
+
+- **Trạng thái:** `để sau` · Chủ 4/11, nguyên văn: «ok tạm chưa xóa dữ liệu trong Production, mà cho ẩn». Đề xuất nằm ở ADR-0163 (proposed, tạm gác).
+- **Vướng:** Hiến pháp 5.8 xếp N5 trên dữ liệu đã phát hành vào hạng «không bao giờ bẻ, kể cả chủ dự án». Muốn mở lại phải sửa Hiến pháp ở kho luật gốc theo Điều 9 (ít nhất 7 ngày cân nhắc), và phải trả lời trước câu: hạng tuyệt đối có sửa được không, vì câu đầu của 9.4 chỉ cho siết.
+- **Trong lúc chờ:** ẩn dữ liệu theo ADR-0164, ADR-0165; thử nghiệm trên bản Development theo ADR-0162.
