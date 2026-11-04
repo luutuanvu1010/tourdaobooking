@@ -17,7 +17,7 @@ import { accountsModule } from "./modules/accounts";
 import { auditModule } from "./modules/audit";
 import { anDanhPhienCuaTaiKhoanStatement, authModule, checkAuthConfig, currentStaff } from "./modules/auth";
 import { bangtinModule, dongCua, phatChuyen, phatDon, xepHangDay } from "./modules/bangtin";
-import { billingModule, cauDatCocKhiXacNhan, chanKhaiCocLai, daThuCuaDon, tienDonVe, nhapKeToanCuaDon, soDongNoCuaNguoi } from "./modules/billing";
+import { billingModule, cauDatCocKhiXacNhan, cauGacPhienBan, chanKhaiCocLai, daThuCuaDon, kiemTraSau, tienDonVe, nhapKeToanCuaDon, soDongNoCuaNguoi, traSauCuaDon } from "./modules/billing";
 import { receiptModule } from "./modules/receipt";
 import { catalogModule, runScheduledSync } from "./modules/catalog";
 import { companyModule } from "./modules/company";
@@ -222,6 +222,10 @@ const APP_OPTIONS: AppOptions = {
     daThuCuaDon: (env, id) => daThuCuaDon(env.DB, id),
     // KHÁCH ĐẶT CỌC TRƯỚC (ADR-0159 Đ1 mục 3; ADR-0024 đ4): `orders` không đọc, không ghi bảng bil_ — billing dựng câu, lô xác nhận của `orders` chạy chung.
     cauCocKhiXacNhan: (env, i) => cauDatCocKhiXacNhan(env.DB, i),
+    // TRẢ SAU THEO HẠN MỨC (ADR-0168): `orders` không import `billing` — gốc lắp ráp tiêm cổng hạn mức, câu gác phiên bản và hạn trả / nợ của một đơn.
+    kiemTraSau: (env, i) => kiemTraSau(env.DB, i),
+    cauGacPhienBanTraSau: (env, partyId, version, at) => cauGacPhienBan(env.DB, partyId, version, at),
+    traSauCuaDon: (env, id) => traSauCuaDon(env.DB, id),
     chanKhaiCocLai: (env, staffId) => chanKhaiCocLai(env.DB, staffId),
     // KHO VÉ ĐIỆN TỬ (ADR-0153 Đ1 mục 4): `orders` và `ve-dien-tu` không import nhau — gốc lắp ráp đọc dịch vụ qua hàm công bố của orders (số khách hiệu lực) rồi đưa sang kho vé.
     // Cấp / cân bằng chạy SAU lô của lệnh và NUỐT lỗi (lệnh đã thắng; thiếu vé là suy ra lúc đọc); câu trả vé khi huỷ nối vào CHÍNH lô huỷ. Log chỉ ghi mã đơn lỗi, không mã vé.

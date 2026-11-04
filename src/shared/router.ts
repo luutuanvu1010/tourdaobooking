@@ -10,6 +10,7 @@ import { HEADER_PHAT_LAI, HEADER_VE, ketQuaDeLuu, kiemKhoa, phanLoai, thanPhatLa
 import { laMienLanGui } from "./lan-gui-mien.ts";
 import type { MocToiThieu } from "./moc-toi-thieu.ts";
 import type { CauCocXacNhan, ChanKhaiLai, VaoCauCoc } from "./dat-coc-kieu.ts";
+import type { KetQuaKiemTraSau } from "./tra-sau.ts";
 import { dongBoDiThang, type DongBoTheoDon, type VaoDongBoTheoDon } from "./dong-bo-chuyen.ts";
 import type { ChuyenChoTin, HoiChuyenChoTin } from "./tin-chuyen.ts";
 import { canAccessOrders, isOffice, passesAccountsGate, passesAdminGate, type PermissionCode } from "./permissions.ts";
@@ -239,6 +240,13 @@ export interface Ctx<A extends Access = Access> {
    * ADR-0159 Đ1 mục 3: dựng câu khoản thu của lời khai đặt cọc — gốc lắp ráp tiêm từ billing (`orders` không đọc, không ghi `bil_*`). `null` = không tiêm: route trả 503, không xác nhận.
    */
   cauCocKhiXacNhan: (i: VaoCauCoc) => Promise<CauCocXacNhan | null>;
+  /**
+   * ADR-0168 Đ2 mục 3, 4: cổng hạn mức Trả sau do billing dựng (`orders` không import billing). `null` = không tiêm: đơn Trả sau bị chặn 503, KHÔNG đoán «đủ hạn mức».
+   * `cauGacPhienBanTraSau` dựng câu gác phiên bản của lô xác nhận (không tiêm ⇒ rỗng; chỉ dùng sau khi `kiemTraSau` đã trả `ok`). `traSauCuaDon`: hạn trả và nợ của MỘT đơn (`null` = không phải Trả sau / không đọc được).
+   */
+  kiemTraSau: (i: { benDat: string; soTienDon: number; boQuaDon?: string }) => Promise<KetQuaKiemTraSau | null>;
+  cauGacPhienBanTraSau: (partyId: string, version: number, at: string) => D1PreparedStatement[];
+  traSauCuaDon: (orderId: string) => Promise<{ hanTra: string | null; no: number } | null>;
   /** ADR-0089 đ7 + ADR-0159: người lập còn giữ tiền của đơn huỷ để lập lại ⇒ không khai lại. Không tiêm ⇒ câu chặn 503 (không đoán «không có»). */
   chanKhaiCocLai: (nguoiLapId: string) => Promise<ChanKhaiLai>;
   /**
@@ -404,6 +412,10 @@ export interface AppOptions {
     daThuCuaDon: (env: Env, orderId: string) => Promise<number | null>;
     /** ADR-0159. BẮT BUỘC trong mã chạy thật (`src/index.ts`: billing); thiếu (khung thử cố ý) → `null` / câu chặn 503. */
     cauCocKhiXacNhan: (env: Env, i: VaoCauCoc) => Promise<CauCocXacNhan>;
+    /** ADR-0168. BẮT BUỘC trong mã chạy thật (`src/index.ts`: billing); thiếu (khung thử cố ý) → `null` (đơn Trả sau bị chặn 503) / câu gác rỗng. */
+    kiemTraSau: (env: Env, i: { benDat: string; soTienDon: number; boQuaDon?: string }) => Promise<KetQuaKiemTraSau>;
+    cauGacPhienBanTraSau: (env: Env, partyId: string, version: number, at: string) => D1PreparedStatement[];
+    traSauCuaDon: (env: Env, orderId: string) => Promise<{ hanTra: string | null; no: number } | null>;
     chanKhaiCocLai: (env: Env, nguoiLapId: string) => Promise<ChanKhaiLai>;
     /** ADR-0153 Đ1 mục 4. BẮT BUỘC trong mã chạy thật (`src/index.ts`: `ve-dien-tu` + `dichVuChoVe` của orders); thiếu (khung thử cố ý) → router không cấp / không trả vé. Tự nuốt lỗi. */
     capVeSauXacNhan: (env: Env, actor: StaffProfile, orderId: string) => Promise<void>;
@@ -557,6 +569,9 @@ export function createApp(opts: AppOptions) {
         typeof opts.injected.nhapKeToanCuaDon !== "function" ? Promise.resolve(null) : ids.length === 0 ? Promise.resolve(new Set<string>()) : opts.injected.nhapKeToanCuaDon(envH, ids),
       daThuCuaDon: (id) => (typeof opts.injected.daThuCuaDon !== "function" ? Promise.resolve(null) : opts.injected.daThuCuaDon(envH, id)),
       cauCocKhiXacNhan: (i) => (typeof opts.injected.cauCocKhiXacNhan !== "function" ? Promise.resolve(null) : opts.injected.cauCocKhiXacNhan(envH, i)),
+      kiemTraSau: (i) => (typeof opts.injected.kiemTraSau !== "function" ? Promise.resolve(null) : opts.injected.kiemTraSau(envH, i)),
+      cauGacPhienBanTraSau: (partyId, version, at) => (typeof opts.injected.cauGacPhienBanTraSau !== "function" ? [] : opts.injected.cauGacPhienBanTraSau(envH, partyId, version, at)),
+      traSauCuaDon: (id) => (typeof opts.injected.traSauCuaDon !== "function" ? Promise.resolve(null) : opts.injected.traSauCuaDon(envH, id)),
       chanKhaiCocLai: (id) =>
         typeof opts.injected.chanKhaiCocLai !== "function"
           ? Promise.resolve({ status: 503 as const, code: "dat_coc_chua_kiem", message: "Chưa kiểm được tiền đặt cọc của đơn cũ — báo người phụ trách hệ thống." })

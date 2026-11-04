@@ -5,6 +5,7 @@ import type { CatalogService, PaxCode, PaxCounts, Prices } from "./order-lines.t
 import type { FeedbackKind, FeedbackStatus } from "./feedback-catalog.ts";
 import type { Priority, TeamRole } from "./ve-ho-tro.ts";
 import type { LyDoSuaSai } from "./giay-to.ts";
+import type { HinhThucThanhToan } from "./tra-sau.ts";
 import type { NhomLyDo } from "./dieu-phoi-kieu.ts";
 import type { PermissionCode } from "./permissions.ts";
 import type { RoleCode } from "./roles.ts";
@@ -344,6 +345,10 @@ export interface OrderDto {
    * Lời khai «Khách đặt cọc trước» của người lập (ADR-0159): chỉ có nghĩa khi đơn còn NHÁP, không phải khoản thu. Đơn đã rời nháp luôn là 0 — tiền đã thu đọc từ sổ, không đọc cột.
    */
   declaredDeposit: number;
+  /** Hình thức thanh toán (ADR-0168): `PREPAID` (mặc định) hoặc `CREDIT` (Trả sau). Nhãn hiện cho người dùng: `NHAN_HINH_THUC` (src/shared/tra-sau.ts). */
+  paymentTerm: HinhThucThanhToan;
+  /** Hạn trả của đơn Trả sau đã xác nhận (YYYY-MM-DD, giờ Việt Nam); `null` ở đơn Trả trước hoặc đơn chưa xác nhận. */
+  hanTra: string | null;
   createdAt: string;
   updatedAt: string;
   confirmedAt: string | null;
@@ -448,6 +453,8 @@ export interface OrderInput {
   paymentNote: string;
   /** ADR-0159: lời khai «Khách đặt cọc trước», chỉ tài khoản giữ quyền Đối tác gửi; vắng = giữ số đang lưu. */
   declaredDeposit?: number;
+  /** ADR-0168: hình thức thanh toán; vắng = giữ hình thức đang lưu (đơn mới: Trả trước). Trả sau chỉ nhận được khi bên đặt có hạn mức còn hiệu lực. */
+  paymentTerm?: HinhThucThanhToan;
   /** Gắn hồ sơ có sẵn (id `pty_party`, chỉ cá nhân đang hoạt động); null/vắng = không gắn. Không gửi kèm `newBooker`. */
   bookerPartyId?: string | null;
   /** Tạo hồ sơ cá nhân mới + vai CUSTOMER cùng lúc lưu đơn (ADR-0011 điều 1). Không gửi kèm `bookerPartyId`. */

@@ -40,6 +40,9 @@ export function hanTraTu(ngayXacNhan: string, soNgay: number): string {
 
 export type MaKhongTraSau = "khong_co_han_muc" | "vuot_han_muc" | "co_don_qua_han";
 
+/** Kết quả cổng hạn mức (billing dựng, orders đọc qua `ctx` do gốc lắp ráp tiêm): `version` là phiên bản đã đọc, đưa vào câu gác của lô xác nhận. */
+export type KetQuaKiemTraSau = { ok: true; hanMuc: HanMucHieuLuc; version: number } | { ok: false; ma: MaKhongTraSau; cau: string };
+
 /** Lý do một đơn không được xác nhận theo Trả sau (ADR-0168 Đ2 mục 3); `null` = được. */
 export function lyDoKhongTraSau(i: { hanMuc: HanMucHieuLuc | null; noHienTai: number; soTienDon: number; coDonQuaHan: boolean }): { ma: MaKhongTraSau; cau: string } | null {
   if (!i.hanMuc) return { ma: "khong_co_han_muc", cau: "Bên đặt chưa có hạn mức trả sau còn hiệu lực. Hãy chọn trả trước hoặc nhờ Toàn quyền cấp hạn mức." };

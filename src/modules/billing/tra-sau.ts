@@ -1,6 +1,6 @@
 // Trả sau theo hạn mức — phần điều phối của billing (ADR-0168 Đ1, Đ2). Số nợ KHÔNG lưu cột: tính bằng JS từ số thật (phải thu hiện hành do `tienNhieuDon`, khoản thu, dòng sổ, dấu đối chiếu),
 // một lượt cho cả danh sách đơn (không truy vấn lặp theo từng đơn). Luật thuần ở src/shared/tra-sau.ts. KHÔNG tự kiểm quyền — route hỏi `can(` trước.
-import { lyDoKhongTraSau, noMotDon, quaHan, type HanMucHieuLuc, type MaKhongTraSau } from "../../shared/tra-sau";
+import { lyDoKhongTraSau, noMotDon, quaHan, type HanMucHieuLuc, type KetQuaKiemTraSau } from "../../shared/tra-sau";
 import { addDays, vnToday } from "../../shared/vn-date";
 import { hieuLuc, khoanChoXacNhan, soKhaiChuaNop, type DoiChieuRow, type LineRow } from "./rules";
 import { ownerCompanyId, receiptsOfOrders } from "./repository";
@@ -86,7 +86,6 @@ export async function benCoLienQuanTraSau(db: D1Database, ngay: string = vnToday
   return [...new Set([...han.keys(), ...co])];
 }
 
-export type KetQuaKiemTraSau = { ok: true; hanMuc: HanMucHieuLuc; version: number } | { ok: false; ma: MaKhongTraSau; cau: string };
 /**
  * Cổng hạn mức (ADR-0168 Đ2 mục 3): có hạn mức hiệu lực, không đơn quá hạn còn nợ, nợ + đơn này không vượt hạn mức. Đọc PHIÊN BẢN TRƯỚC khi tính nợ: mọi lệnh làm tăng nợ
  * sau đó đều tăng phiên bản, nên lô gác `cauGacPhienBan` của lệnh này sẽ hỏng nếu có ai chen vào. `boQuaDon` = đơn đang xét (khỏi tính nợ của chính nó hai lần).

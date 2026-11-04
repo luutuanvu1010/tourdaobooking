@@ -3,6 +3,7 @@
 // Chỉ import file thuần của shared, không chạm I/O để kiểm thử độc lập bằng `npm test`.
 import { parseBooker, type BookerInput } from "../../shared/booker.ts";
 import { docLoiKhai } from "../../shared/dat-coc-truoc.ts";
+import type { HinhThucThanhToan } from "../../shared/tra-sau.ts";
 import { MAX_CHANG_MOI_DICH_VU, doiNgayChang, kiemChang, tronChangCu, type ChangHopLe } from "../../shared/chang-dua-don.ts";
 import type { OrderStatus } from "../../shared/contracts.ts";
 import { kiemDanhSachHanhKhach, type HanhKhachHopLe } from "../../shared/hanh-khach.ts";
@@ -33,6 +34,8 @@ export interface ValidOrder {
   paymentNote: string | null;
   /** ADR-0159: lời khai «Khách đặt cọc trước». `null` = thân không có khoá này (máy còn bản giao diện cũ): lập đơn coi là 0, lưu nháp giữ số đang lưu. Cổng quyền và trần tổng ở route. */
   declaredDeposit: number | null;
+  /** ADR-0168: hình thức thanh toán. `null` = thân không có khoá này (máy còn bản giao diện cũ): lập đơn coi là Trả trước, lưu nháp giữ hình thức đang lưu. Cổng hạn mức ở route. */
+  paymentTerm: HinhThucThanhToan | null;
   /** Chỉ dùng cho PUT: `updated_at` mà client đã đọc (khoá lạc quan). */
   expectedUpdatedAt: string | null;
   /**
@@ -187,6 +190,7 @@ export function validateOrder(input: unknown, ctx: ServiceContext): Validated {
   const total = subtotal - discount.value;
   const datCoc = docLoiKhai(b.declaredDeposit);
   if (!datCoc.ok) return fail(datCoc.message);
+  if (b.paymentTerm !== undefined && b.paymentTerm !== null && b.paymentTerm !== "PREPAID" && b.paymentTerm !== "CREDIT") return fail("Hình thức thanh toán không hợp lệ.");
 
   // Sổ tiền lượt 1 (ADR-0026 đ9): tiền trả trước KHÔNG còn nằm trong đơn — trình duyệt ghi KHOẢN THU ở bước hai (billing) sau khi đơn đã lưu. Trang lập
   // đơn CŨ (bộ nhớ đệm PWA chưa tải bản mới) còn gửi khoản trả trước trong thân đơn → từ chối rõ ràng thay vì lặng lẽ bỏ mất số tiền đó.
@@ -209,6 +213,7 @@ export function validateOrder(input: unknown, ctx: ServiceContext): Validated {
       total,
       paymentNote: paymentNote.value,
       declaredDeposit: datCoc.value,
+      paymentTerm: b.paymentTerm === "PREPAID" || b.paymentTerm === "CREDIT" ? b.paymentTerm : null,
       expectedUpdatedAt: typeof b.expectedUpdatedAt === "string" && b.expectedUpdatedAt ? b.expectedUpdatedAt : null,
       passengers,
       legsGiven: withLegsResult.legsGiven,
