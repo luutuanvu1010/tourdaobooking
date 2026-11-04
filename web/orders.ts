@@ -105,7 +105,7 @@ function row(o: OrderSummary, index: number): Row {
     pickupPlace: o.trip.pickupPlace,
     index,
     ...(o.nhapKeToan ? { nhapKeToan: true as const } : {}),
-    ...(o.dangChoXacNhan ? { dangChoXacNhan: true as const } : {}),
+    dangCho: o.dangCho,
   });
   return { id: o.id, el, slot: handlerSlot, tien };
 }

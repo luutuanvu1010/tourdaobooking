@@ -1,4 +1,4 @@
-// ADR-0166 câu 5 — cờ `dangChoXacNhan` của danh sách đơn (`GET /api/orders`): đơn NHÁP đã gửi đi kiểm vé và chưa ai quyết thì có cờ (thẻ ghi «Chờ xác nhận»); đơn nháp
+// ADR-0166 câu 5 — cờ `dangCho` của danh sách đơn (`GET /api/orders`): đơn NHÁP đã gửi đi kiểm vé và chưa ai quyết thì có cờ (thẻ ghi «Chờ xác nhận»); đơn nháp
 // chưa gửi, đơn đã Rút lại, và mọi đơn đã quyết (Còn vé, Hết vé, Huỷ) thì VẮNG khoá (không gửi false). Chạy CẢ ứng dụng trên SQLite thật (tests/audit/harness.mjs).
 // Phạm vi xem không đổi: đơn nháp vẫn chỉ người lập thấy trong danh sách (ADR-0135).
 import { test } from "node:test";
@@ -24,32 +24,32 @@ async function donCoCo(w: any) {
   return lap(w, A, [svc("ZA1", ngay, [leg(ngay, "07:00")])]);
 }
 
-test("cờ dangChoXacNhan: chưa gửi → vắng khoá; gửi → true; Rút lại → vắng khoá; gửi lại rồi Còn vé → vắng khoá", async () => {
+test("cờ dangCho: chưa gửi → vắng khoá; gửi → true; Rút lại → vắng khoá; gửi lại rồi Còn vé → vắng khoá", async () => {
   const w = setup();
   datCo(w, "SERVICE", "ZA1", true);
   const o = await donCoCo(w);
   const truoc = await dong(w, o.id, A);
   assert.equal(truoc.status, "draft");
-  assert.equal("dangChoXacNhan" in truoc, false, "đơn nháp chưa gửi: không có khoá (không gửi false)");
+  assert.equal("dangCho" in truoc, false, "đơn nháp chưa gửi: không có khoá (không gửi false)");
 
   assert.equal((await gui(w, o.id, A)).status, 201);
-  assert.equal((await dong(w, o.id, A)).dangChoXacNhan, true, "sau Gửi xác nhận có cờ");
+  assert.equal((await dong(w, o.id, A)).dangCho, true, "sau Gửi xác nhận có cờ");
 
   assert.equal((await rut(w, o.id, A)).status, 200);
   const sauRut = await dong(w, o.id, A);
   assert.equal(sauRut.status, "draft");
-  assert.equal("dangChoXacNhan" in sauRut, false, "sau Rút lại hết cờ");
+  assert.equal("dangCho" in sauRut, false, "sau Rút lại hết cờ");
 
   assert.equal((await gui(w, o.id, A)).status, 201);
-  assert.equal((await dong(w, o.id, A)).dangChoXacNhan, true, "gửi lại có cờ lại");
+  assert.equal((await dong(w, o.id, A)).dangCho, true, "gửi lại có cờ lại");
   const qd = await quyet(w, o.id, ACC, { ketQua: "CON_VE" });
   assert.equal(qd.status, 200, qd.text);
   const sauConVe = await dong(w, o.id, A);
   assert.equal(sauConVe.status, "confirmed");
-  assert.equal("dangChoXacNhan" in sauConVe, false, "sau Còn vé (đơn đã xác nhận) không cờ");
+  assert.equal("dangCho" in sauConVe, false, "sau Còn vé (đơn đã xác nhận) không cờ");
 });
 
-test("cờ dangChoXacNhan hết sau Hết vé và sau Huỷ; đơn khác còn chờ vẫn giữ cờ; đơn thường không bao giờ có cờ", async () => {
+test("cờ dangCho hết sau Hết vé và sau Huỷ; đơn khác còn chờ vẫn giữ cờ; đơn thường không bao giờ có cờ", async () => {
   const w = setup();
   datCo(w, "SERVICE", "ZA1", true);
   const hetVe = await donCoCo(w);
@@ -61,17 +61,17 @@ test("cờ dangChoXacNhan hết sau Hết vé và sau Huỷ; đơn khác còn ch
   assert.equal((await quyet(w, huy.id, ACC, { ketQua: "HUY", lyDo: "KHACH_DOI_Y" })).status, 200);
   const r = await w.call("GET", "/api/orders", { as: A });
   const theo = (id: string) => r.json.orders.find((o: any) => o.id === id);
-  assert.deepEqual([theo(hetVe.id).status, "dangChoXacNhan" in theo(hetVe.id)], ["cancelled", false]);
-  assert.deepEqual([theo(huy.id).status, "dangChoXacNhan" in theo(huy.id)], ["cancelled", false]);
-  assert.equal(theo(conCho.id).dangChoXacNhan, true);
-  assert.equal("dangChoXacNhan" in theo(thuong.id), false);
+  assert.deepEqual([theo(hetVe.id).status, "dangCho" in theo(hetVe.id)], ["cancelled", false]);
+  assert.deepEqual([theo(huy.id).status, "dangCho" in theo(huy.id)], ["cancelled", false]);
+  assert.equal(theo(conCho.id).dangCho, true);
+  assert.equal("dangCho" in theo(thuong.id), false);
 });
 
-test("cờ dangChoXacNhan không mở rộng phạm vi xem: người khác vẫn không thấy đơn nháp đang chờ trong danh sách (ADR-0135)", async () => {
+test("cờ dangCho không mở rộng phạm vi xem: người khác vẫn không thấy đơn nháp đang chờ trong danh sách (ADR-0135)", async () => {
   const w = setup();
   datCo(w, "SERVICE", "ZA1", true);
   const o = await donCoCo(w);
   assert.equal((await gui(w, o.id, A)).status, 201);
   for (const as of [B, ACC]) assert.equal(await dong(w, o.id, as), undefined, as);
-  assert.equal((await dong(w, o.id, A)).dangChoXacNhan, true);
+  assert.equal((await dong(w, o.id, A)).dangCho, true);
 });

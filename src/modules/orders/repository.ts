@@ -491,7 +491,7 @@ async function toSummaryDtos(db: D1Database, rows: readonly OrderRow[]): Promise
       id: d.id,
       orderCode: d.orderCode,
       status: d.status,
-      ...(dangCho.has(d.id) ? { dangChoXacNhan: true as const } : {}),
+      ...(dangCho.has(d.id) ? { dangCho: true as const } : {}),
       customerName: d.customerName,
       customerPhone: d.customerPhone,
       customerNote: d.customerNote,

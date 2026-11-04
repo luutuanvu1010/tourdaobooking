@@ -22,18 +22,18 @@ test("STATUS_LABEL (ADR-0166 câu 5): đơn nháp chưa gửi kiểm vé ghi 'Ch
   assert.deepEqual(STATUS_LABEL, { draft: "Chưa xác nhận", confirmed: "Đã xác nhận", cancelled: "Đã huỷ" });
 });
 
-test("trangThaiHienThi + cờ dangChoXacNhan: nháp có cờ → 'Chờ xác nhận', không cờ / cờ false / null → 'Chưa xác nhận'; khoá luôn 'draft' (màu không đổi)", () => {
-  assert.deepEqual(trangThaiHienThi({ status: "draft", dangChoXacNhan: true }), { khoa: "draft", nhan: "Chờ xác nhận" });
-  assert.deepEqual(trangThaiHienThi({ status: "draft", dangChoXacNhan: false }), { khoa: "draft", nhan: "Chưa xác nhận" });
-  assert.deepEqual(trangThaiHienThi({ status: "draft", dangChoXacNhan: null }), { khoa: "draft", nhan: "Chưa xác nhận" });
+test("trangThaiHienThi + cờ dangCho: nháp có cờ → 'Chờ xác nhận', không cờ / cờ false / null → 'Chưa xác nhận'; khoá luôn 'draft' (màu không đổi)", () => {
+  assert.deepEqual(trangThaiHienThi({ status: "draft", dangCho: true }), { khoa: "draft", nhan: "Chờ xác nhận" });
+  assert.deepEqual(trangThaiHienThi({ status: "draft", dangCho: false }), { khoa: "draft", nhan: "Chưa xác nhận" });
+  assert.deepEqual(trangThaiHienThi({ status: "draft", dangCho: null }), { khoa: "draft", nhan: "Chưa xác nhận" });
   assert.deepEqual(trangThaiHienThi({ status: "draft" }), { khoa: "draft", nhan: "Chưa xác nhận" });
 });
 
-test("trangThaiHienThi: cờ dangChoXacNhan bị bỏ qua với đơn đã xác nhận / đã huỷ / đã giao / hoàn thành", () => {
-  assert.deepEqual(trangThaiHienThi({ status: "confirmed", dangChoXacNhan: true }), { khoa: "confirmed", nhan: "Đã xác nhận" });
-  assert.deepEqual(trangThaiHienThi({ status: "cancelled", dangChoXacNhan: true }), { khoa: "cancelled", nhan: "Đã huỷ" });
-  assert.deepEqual(trangThaiHienThi({ status: "confirmed", deliveredAt: "x", dangChoXacNhan: true }), { khoa: "delivered", nhan: "Đã giao – đã thu đủ" });
-  assert.deepEqual(trangThaiHienThi({ status: "confirmed", deliveredAt: "x", completedAt: "y", dangChoXacNhan: true }), { khoa: "completed", nhan: "Hoàn thành" });
+test("trangThaiHienThi: cờ dangCho bị bỏ qua với đơn đã xác nhận / đã huỷ / đã giao / hoàn thành", () => {
+  assert.deepEqual(trangThaiHienThi({ status: "confirmed", dangCho: true }), { khoa: "confirmed", nhan: "Đã xác nhận" });
+  assert.deepEqual(trangThaiHienThi({ status: "cancelled", dangCho: true }), { khoa: "cancelled", nhan: "Đã huỷ" });
+  assert.deepEqual(trangThaiHienThi({ status: "confirmed", deliveredAt: "x", dangCho: true }), { khoa: "delivered", nhan: "Đã giao – đã thu đủ" });
+  assert.deepEqual(trangThaiHienThi({ status: "confirmed", deliveredAt: "x", completedAt: "y", dangCho: true }), { khoa: "completed", nhan: "Hoàn thành" });
 });
 
 test("trangThaiHienThi (ADR-0025 đ9): hai mốc sổ tiền suy ra nhãn 'Đã giao – đã thu đủ' / 'Hoàn thành'; không lộ mã delivered/completed ra chữ", () => {

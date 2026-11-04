@@ -1641,7 +1641,7 @@ Cột «Ai vào được» ở bảng trên mô tả cổng và ô của đườ
 |---|---|---|
 | đơn (booking) | bảng `orders`, DTO `OrderDto` | `ORDER` là từ khoá SQL nên bảng số nhiều; mã đơn `orders.order_code` dạng `TD-YYYYMMDD-NNNN` theo giờ VN |
 | trạng thái đơn | `orders.status` | `draft` nháp · `confirmed` đã xác nhận · `cancelled` đã huỷ |
-| nhãn trạng thái đơn nháp (ADR-0166 câu 5) | `STATUS_LABEL.draft`, `NHAN_DANG_CHO_XAC_NHAN`, cờ `dangChoXacNhan` của `OrderSummaryDto` | **«Chưa xác nhận»** = đơn nháp chưa gửi đi kiểm vé; **«Chờ xác nhận»** = đơn nháp đã gửi và còn một dòng `ord_confirm_request` mở (máy chủ điền cờ ở `toSummaryDtos`; trang đơn lấy từ `xacNhan.yeuCau`). `status` vẫn chỉ ba giá trị; lớp màu theo `khoa` = `draft`. Chữ KHÁCH đọc (biên nhận, ảnh gửi khách) luôn «Chờ xác nhận» cho đơn nháp. Màn không có cờ (Việc của tôi, ô «Đơn liên quan» của vé hỗ trợ, sổ công nợ) hiện «Chưa xác nhận» kể cả khi đơn đang chờ |
+| nhãn trạng thái đơn nháp (ADR-0166 câu 5) | `STATUS_LABEL.draft`, `NHAN_DANG_CHO_XAC_NHAN`, cờ `dangCho` của `OrderSummaryDto` | **«Chưa xác nhận»** = đơn nháp chưa gửi đi kiểm vé; **«Chờ xác nhận»** = đơn nháp đã gửi và còn một dòng `ord_confirm_request` mở (máy chủ điền cờ ở `toSummaryDtos`; trang đơn lấy từ `xacNhan.yeuCau`). `status` vẫn chỉ ba giá trị; lớp màu theo `khoa` = `draft`. Chữ KHÁCH đọc (biên nhận, ảnh gửi khách) luôn «Chờ xác nhận» cho đơn nháp. Màn không có cờ (Việc của tôi, ô «Đơn liên quan» của vé hỗ trợ, sổ công nợ) hiện «Chưa xác nhận» kể cả khi đơn đang chờ |
 | dịch vụ trong đơn | bảng `order_service` | số khách 4 loại + thông tin chuyến |
 | dòng tiền | bảng `order_item` | `quantity × unit_price = line_total` |
 | thông tin chuyến | `TripInfoDto`, `validateTrip` | ngày/giờ khởi hành, đón, khách có mặt, ghi chú |

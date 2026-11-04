@@ -534,7 +534,7 @@ function summaryBand(order: Order): HTMLElement {
 /** Huy hiệu trạng thái: "Đã giao – đã thu đủ" / "Hoàn thành" suy ra từ mốc (`trangThaiHienThi`, src/shared — một nguồn nhãn). */
 function badgeTrangThai(order: Order): HTMLElement {
   // ADR-0166 câu 5: «Chờ xác nhận» khi đơn nháp có yêu cầu xác nhận đang mở (cùng dữ liệu với dải «Chờ xác nhận · còn N phút»); chưa gửi → «Chưa xác nhận».
-  const tt = trangThaiHienThi({ ...order, dangChoXacNhan: xacNhan?.yeuCau != null });
+  const tt = trangThaiHienThi({ ...order, dangCho: xacNhan?.yeuCau != null });
   return h("span", { class: `badge badge-${tt.khoa}` }, tt.nhan);
 }
 

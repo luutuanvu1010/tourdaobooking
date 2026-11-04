@@ -390,7 +390,7 @@ export type OrderSummaryDto = Pick<
    * ADR-0166 câu 5: đơn NHÁP đã gửi đi kiểm vé và chưa ai quyết (có dòng `ord_confirm_request` còn mở) → thẻ ghi «Chờ xác nhận»; đơn nháp chưa gửi ghi «Chưa xác nhận».
    * CHỈ có (true) khi đúng; mọi trường hợp khác VẮNG khoá (không gửi false). Hết sau Rút lại và sau mọi quyết định (Còn vé, Hết vé, Huỷ).
    */
-  dangChoXacNhan?: true;
+  dangCho?: true;
 };
 
 /** Thông tin chuyến client gửi lên: "" = chưa có. */
