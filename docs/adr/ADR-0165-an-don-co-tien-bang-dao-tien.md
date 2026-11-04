@@ -1,10 +1,10 @@
 # ADR-0165 — Ẩn đơn đã có tiền: đơn biến mất, Sổ công nợ giữ nguyên
 
-- **Trạng thái:** **proposed** 2026-11-04, chờ chủ dự án duyệt. Lời chủ, chọn trong hộp hỏi: trước hết *«Ẩn luôn, báo cáo tự loại ra»*; sau khi được báo cách tự đảo tiền không đạt kiểm tra và Nền tảng chưa có báo cáo doanh thu theo tháng, chủ chọn *«Đơn biến mất, sổ giữ nguyên»*.
+- **Trạng thái:** **accepted** 2026-11-04 — chủ dự án chọn ở hộp bước tiếp theo, câu «Bạn duyệt quyết định nào trước?», nguyên văn: *«Duyệt cả ba»* (cùng ADR-0162, ADR-0164), theo ba câu duyệt ở trang ghép. Lời chủ trước đó, chọn trong hộp hỏi: trước hết *«Ẩn luôn, báo cáo tự loại ra»*; sau khi được báo cách tự đảo tiền không đạt kiểm tra và Nền tảng chưa có báo cáo doanh thu theo tháng, chủ chọn *«Đơn biến mất, sổ giữ nguyên»*.
 - **Cửa:** hai chiều. Không dòng sổ nào được ghi, hiện lại là về nguyên trạng.
 - **Loại:** việc lớn (tiền, dữ liệu).
 - **Số quyết định chạm quyền/dữ liệu trong lượt duyệt này: 3** ([ADR-0162](ADR-0162-ban-development-doc-lap-va-mot-lenh-len-chinh-thuc.md), [ADR-0164](ADR-0164-toan-quyen-an-du-lieu-vo-hieu-hoa-va-co-lap.md), ADR-0165). Trang ghép: `docs/superpowers/specs/2026-11-04-trang-ghep-an-du-lieu.md`.
-- **Xây trên lỗ đang hở: TNV-G1, TNV-G3, TNV-G4, HC-4.2.** Quyết định này không thêm dòng sổ nào nên không làm các lỗi đó nặng thêm, nhưng nó chạm vùng sổ tiền và có thể che triệu chứng, ví dụ ẩn một đơn đang lệch tiền. Theo `CLAUDE.md` §3, khi duyệt chủ phải chọn «Cho phép, có ghi lý do» cho bốn mã này.
+- **Xây trên lỗ đang hở: TNV-G1, TNV-G3, TNV-G4, HC-4.2.** Quyết định này không thêm dòng sổ nào nên không làm các lỗi đó nặng thêm, nhưng nó chạm vùng sổ tiền và có thể che triệu chứng, ví dụ ẩn một đơn đang lệch tiền. Theo `CLAUDE.md` §3, khi duyệt chủ phải chọn «Cho phép, có ghi lý do» cho bốn mã này. Câu duyệt 3 ở trang ghép ghi kèm việc đó, và ngay trước lời duyệt chủ được báo bằng lời thường rằng phần này chạm vùng sổ tiền còn bốn lỗi đang mở. Chủ không gõ lại cụm trên; người soạn hiểu *«Duyệt cả ba»* đã gồm nó, ghi ở `docs/quyen-hoan.json` (trường `xay_tren_cho_phep`) và báo lại chủ. Hạn của bốn mã giữ nguyên.
 - **Áp luật:** Hiến chương hệ thống 4.2 (số dư là cộng dồn các dòng), 4.2a và 5.5 (sửa sai bằng dòng đảo), 5.14 (khoá kỳ); Hiến pháp N5 và N7. Sổ không bị sửa, không bị lọc, nên không lệch điều nào.
 
 ## Hai cách đã bỏ

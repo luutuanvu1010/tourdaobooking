@@ -1,6 +1,6 @@
 # Trang ghép — ADR-0162, ADR-0164, ADR-0165 (bản Development; ẩn dữ liệu; ẩn đơn có tiền)
 
-> Trạng thái: **NHÁP, CHỜ CHỦ DUYỆT**. Bắt buộc theo `CLAUDE.md` §9 vì lượt duyệt có 3 quyết định, đúng trần cho phép. ADR-0163 (xoá hẳn) đã tạm gác, không thuộc lượt này. Hồ sơ có ngày: khi đã duyệt thì không sửa lại cho khớp hiện trạng.
+> Trạng thái: **ĐÃ DUYỆT 2026-11-04**, chủ dự án nguyên văn: *«Duyệt cả ba»*. Bắt buộc theo `CLAUDE.md` §9 vì lượt duyệt có 3 quyết định, đúng trần cho phép. ADR-0163 (xoá hẳn) đã tạm gác, không thuộc lượt này. Hồ sơ có ngày: khi đã duyệt thì không sửa lại cho khớp hiện trạng.
 
 ## (1) Những bảng này chứa loại thực thể nào
 
@@ -52,7 +52,7 @@ Thứ tự 10 cột: SALES, ACCOUNTING, ADMIN, FIELD, PARTNER, SUPER_ADMIN, INTE
 - Tra trùng số điện thoại không còn báo hồ sơ đã ẩn, nên dễ sinh hồ sơ trùng.
 - Sổ công nợ có dòng «Đơn đã ẩn»: bấm vào phải hiện câu giải thích, không phải trang lỗi.
 - Chuyến đã kết thúc hiện «Đơn đã ẩn» thay cho tên khách, số khách giữ nguyên.
-- Hai chữ «Ẩn» khác nghĩa: nút có sẵn của Quản trị (ngừng bán dịch vụ) và nút mới của Toàn quyền. Phải chốt nhãn trước khi thi công.
+- Hai chữ «Ẩn» khác nghĩa: nút có sẵn của Quản trị (ngừng bán dịch vụ) và nút mới của Toàn quyền. Nhãn đã chốt, xem ADR-0164 phần «Việc kèm khi thi công».
 
 ## Ghép ba quyết định
 

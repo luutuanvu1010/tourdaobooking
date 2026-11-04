@@ -1,6 +1,6 @@
 # ADR-0162 — Bản Development độc lập ở dev.tourdao.vn và một lệnh lên bản chính thức
 
-- **Trạng thái:** **proposed** 2026-11-04, chờ chủ dự án duyệt. Lời chủ, nguyên văn: *«Vậy thì cả 2, vừa cho phép xóa ở bản thật, vừa tạo 1 bản hoàn toàn độc lập là Development (staging) để phát triển, sau đó chỉ với 1 lệnh là đẩy sang bản chính thức được . Bản thử nghiệm chạy ở tên miền dev.tourdao.vn»*.
+- **Trạng thái:** **accepted** 2026-11-04 — chủ dự án chọn ở hộp bước tiếp theo, câu «Bạn duyệt quyết định nào trước?», nguyên văn: *«Duyệt cả ba»* (cùng ADR-0164, ADR-0165), theo ba câu duyệt ở trang ghép. Chủ không ghi gì thêm về Đ4 mục 3, nên mọi câu hỏi xác nhận giữ nguyên. Phần «xóa ở bản thật» trong lời dưới đây thuộc ADR-0163, đang tạm gác. Lời chủ trước đó, nguyên văn: *«Vậy thì cả 2, vừa cho phép xóa ở bản thật, vừa tạo 1 bản hoàn toàn độc lập là Development (staging) để phát triển, sau đó chỉ với 1 lệnh là đẩy sang bản chính thức được . Bản thử nghiệm chạy ở tên miền dev.tourdao.vn»*.
 - **Cửa:** hai chiều. Tắt bản Development không ảnh hưởng bản chính thức.
 - **Loại:** việc lớn (triển khai, luật).
 - **Số quyết định chạm quyền/dữ liệu trong lượt duyệt này: 3** (cùng [ADR-0164](ADR-0164-toan-quyen-an-du-lieu-vo-hieu-hoa-va-co-lap.md), [ADR-0165](ADR-0165-an-don-co-tien-bang-dao-tien.md)). Trang ghép: `docs/superpowers/specs/2026-11-04-trang-ghep-an-du-lieu.md`.

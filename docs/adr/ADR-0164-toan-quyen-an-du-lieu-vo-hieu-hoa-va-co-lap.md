@@ -1,6 +1,6 @@
 # ADR-0164 — Toàn quyền ẩn dữ liệu: ẩn là vô hiệu hoá và cô lập
 
-- **Trạng thái:** **proposed** 2026-11-04, chờ chủ dự án duyệt. Lời chủ, nguyên văn: *«ok tạm chưa xóa dữ liệu trong Production, mà cho ẩn , tạo quyết định đi, ẩn để không bị rối mắt , đồng thời khi ẩn tức vô hiệu hóa nó luôn, cô lập dữ liệu bị vô hiệu hóa»*. Phạm vi chủ chọn: *«Đơn hàng»*, *«Hồ sơ và tài khoản đối tác»*, *«Cấu hình hoa hồng, dịch vụ»*. Đơn đã có tiền tách sang [ADR-0165](ADR-0165-an-don-co-tien-bang-dao-tien.md).
+- **Trạng thái:** **accepted** 2026-11-04 — chủ dự án chọn ở hộp bước tiếp theo, câu «Bạn duyệt quyết định nào trước?», nguyên văn: *«Duyệt cả ba»* (cùng ADR-0162, ADR-0165), theo ba câu duyệt ở trang ghép. Lời chủ trước đó, nguyên văn: *«ok tạm chưa xóa dữ liệu trong Production, mà cho ẩn , tạo quyết định đi, ẩn để không bị rối mắt , đồng thời khi ẩn tức vô hiệu hóa nó luôn, cô lập dữ liệu bị vô hiệu hóa»*. Phạm vi chủ chọn: *«Đơn hàng»*, *«Hồ sơ và tài khoản đối tác»*, *«Cấu hình hoa hồng, dịch vụ»*. Đơn đã có tiền tách sang [ADR-0165](ADR-0165-an-don-co-tien-bang-dao-tien.md).
 - **Cửa:** hai chiều, vì có «Hiện lại» và không dòng nghiệp vụ nào bị xoá hay sửa.
 - **Loại:** việc lớn (dữ liệu, quyền).
 - **Số quyết định chạm quyền/dữ liệu trong lượt duyệt này: 3** ([ADR-0162](ADR-0162-ban-development-doc-lap-va-mot-lenh-len-chinh-thuc.md), ADR-0164, ADR-0165). Trang ghép: `docs/superpowers/specs/2026-11-04-trang-ghep-an-du-lieu.md`.
@@ -24,7 +24,7 @@ Chỉ Toàn quyền, qua thao tác mới `data.hide` (mọi quyền khác là `n
 | **Tài khoản** | như hồ sơ | máy tự ngưng, đóng mọi phiên đang mở, tắt thông báo; không đăng nhập được |
 | **Cấu hình:** loại đối tác, cấp, mức hoa hồng, dịch vụ | đã tắt hoặc ngừng bằng nút có sẵn; không còn gì đang áp theo nó | không chọn được, không hiện ở trang cấu hình; đơn cũ giữ nguyên bản chụp |
 
-Điều kiện không đạt thì máy từ chối và nói rõ còn vướng gì, ví dụ «Còn 2 đơn chưa ẩn». ADR-0165, nếu được duyệt, bỏ điều kiện tiền về 0 của đơn. **Không ẩn được:** chính mình, tài khoản Toàn quyền cuối cùng, hồ sơ công ty chủ. Chuyến xe, vé, khoản thu riêng lẻ và nhật ký không thuộc quyết định này.
+Điều kiện không đạt thì máy từ chối và nói rõ còn vướng gì, ví dụ «Còn 2 đơn chưa ẩn». ADR-0165, duyệt cùng lượt, bỏ điều kiện tiền về 0 của đơn. **Không ẩn được:** chính mình, tài khoản Toàn quyền cuối cùng, hồ sơ công ty chủ. Chuyến xe, vé, khoản thu riêng lẻ và nhật ký không thuộc quyết định này.
 
 ## Đ3 — Cô lập nghĩa là gì
 
@@ -48,7 +48,7 @@ Ba thứ **không** bị cô lập, vì đó là việc của luật: Sổ công
 
 ## Đ5 — Hiện lại
 
-Toàn quyền có trang «Dữ liệu đã ẩn» (tên đề xuất) xem được đầy đủ, và nút «Hiện lại» kèm lý do. Hiện lại **không tự bật lại**: tài khoản vẫn ngưng, cấu hình vẫn tắt, phải bật bằng nút có sẵn. Nhờ vậy, hiện lại không vô tình làm đổi giá hay mở đăng nhập.
+Toàn quyền có trang «Dữ liệu đã ẩn» xem được đầy đủ, và nút «Hiện lại» kèm lý do. Hiện lại **không tự bật lại**: tài khoản vẫn ngưng, cấu hình vẫn tắt, phải bật bằng nút có sẵn. Nhờ vậy, hiện lại không vô tình làm đổi giá hay mở đăng nhập.
 
 ## Hệ quả chủ cần biết
 
@@ -61,7 +61,7 @@ Toàn quyền có trang «Dữ liệu đã ẩn» (tên đề xuất) xem đư�
 
 ## Việc kèm khi thi công
 
-Migration mới cho trạng thái đã ẩn và trigger; thêm mã vào bản đồ quyền và bài ghim quyền; `docs/data-dictionary.json`; `docs/SO-HANG-RAO.md`; tờ khai `docs/kernel-18.md` nếu đổi chỗ trỏ. Cột `hidden` của dịch vụ đang mang nghĩa khác (ngừng bán), giữ nguyên nghĩa đó và đặt tên cột mới khác đi. **Phải chốt nhãn trước khi thi công:** Quản trị đã có nút ẩn dịch vụ nghĩa là ngừng bán, nên trên màn hình sẽ có hai chữ «Ẩn» khác nghĩa; đưa vào lượt chọn tên của phiên rà soát nút bấm. ADR-0042 dùng chữ «vai ẩn» cho chuyện khác; chữ trên màn hình phải theo bảng từ `src/shared/bang-tu-giao-dien.ts` và trình chủ bằng ảnh thật.
+Migration mới cho trạng thái đã ẩn và trigger; thêm mã vào bản đồ quyền và bài ghim quyền; `docs/data-dictionary.json`; `docs/SO-HANG-RAO.md`; tờ khai `docs/kernel-18.md` nếu đổi chỗ trỏ. Cột `hidden` của dịch vụ đang mang nghĩa khác (ngừng bán), giữ nguyên nghĩa đó và đặt tên cột mới khác đi. **Nhãn đã chốt 2026-11-04** (câu 12 của phiên rà soát nút bấm, lời chủ *«Về cơ bản tôi đồng ý với tất cả những đề xuất của bạn ở trên»*; ADR-0166 ở nhánh `claude/ra-soat-nut-bam-va-tu-ngu-8a4adb`, chưa nhập lúc ghi): nút có sẵn của Quản trị thành «Ngừng bán» / «Mở bán lại», nhãn «Đã ngừng bán»; nút mới của Toàn quyền giữ «Ẩn» / «Hiện lại», trang «Dữ liệu đã ẩn»; hộp hỏi của nút mới phải nói đường dẫn đã gửi khách sẽ hết hiệu lực. ADR-0042 dùng chữ «vai ẩn» cho chuyện khác; chữ trên màn hình phải theo bảng từ `src/shared/bang-tu-giao-dien.ts` và trình chủ bằng ảnh thật.
 
 ## Tiêu chí nghiệm thu
 
