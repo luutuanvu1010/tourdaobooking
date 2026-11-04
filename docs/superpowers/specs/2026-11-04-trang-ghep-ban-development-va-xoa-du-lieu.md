@@ -1,6 +1,6 @@
 # Trang ghép — ADR-0162 (bản Development) và ADR-0163 (xoá dữ liệu để thử nghiệm)
 
-> Trạng thái: **NHÁP, CHỜ CHỦ DUYỆT**, cùng hai ADR. Bắt buộc theo `CLAUDE.md` §9 vì lượt duyệt có 2 quyết định. Hồ sơ có ngày: khi đã duyệt thì không sửa lại cho khớp hiện trạng.
+> Trạng thái: **NHÁP**. ADR-0162 chờ chủ duyệt và đứng được một mình. **ADR-0163 bị Hiến pháp 5.8 (N5) chặn tới khi kho luật gốc sửa**, nên phần về nó ở đây là để chuẩn bị, chưa phải để duyệt. Bắt buộc theo `CLAUDE.md` §9 khi hai quyết định cùng trình. Hồ sơ có ngày: khi đã duyệt thì không sửa lại cho khớp hiện trạng.
 
 ## (1) Những bảng này chứa loại thực thể nào
 
@@ -15,6 +15,7 @@ ADR-0163 chạm **mọi bảng dữ liệu**, nên điều cần ghép là: cùn
 | Người: `pty_*`, `loc_*`, `stf_*`, `staff`, `aut_*`, `login_*` | hồ sơ khách, đại lý, nhân viên, tài khoản, Face ID, phiên, địa điểm | **một hồ sơ có thể vừa là khách vừa là nhân viên hay đối tác**; xoá hồ sơ kéo theo mọi đơn và sổ của họ |
 | Danh mục: `ctl_*`, `catalog_*`, `company_*`, `mnt_*` | dịch vụ, nhóm, hồ sơ công ty, chế độ bảo trì | hồ sơ công ty chủ không xoá được |
 | Tin: `ntf_*`, `fbk_*` | thông báo, vé hỗ trợ, tệp kèm | có thể trỏ tới bản ghi đã xoá |
+| Trợ lý và hạ tầng: `tl_*`, `lg_*`, `gd_*` | lượt hỏi trợ lý, lớp chống ghi trùng, giao diện công ty | `lg_*` chính là lớp route xoá dùng để chống ghi trùng; kế hoạch phải nói rõ có xoá được không |
 | Nhật ký: `audit*` | nhật ký thao tác | xoá thì mất dấu vết việc cũ |
 | **Mới:** sổ xoá | ai đã xoá gì | không bao giờ xoá được |
 
@@ -56,6 +57,16 @@ Quyền trên Development dùng cùng bản đồ, nhưng tài khoản Toàn quy
 
 ## Ghép hai quyết định
 
-ADR-0163 chỉ lên bản chính thức sau ADR-0162, vì chính tính năng xoá phải được thử trên Development trước (ADR-0163 Đ7). Hai quyết định không phụ thuộc ngược: ADR-0162 đứng được một mình nếu chủ không duyệt ADR-0163.
+ADR-0163 chỉ lên bản chính thức sau ADR-0162, vì chính tính năng xoá phải được thử trên Development trước (ADR-0163 Đ7). Hai quyết định không phụ thuộc ngược: ADR-0162 đứng được một mình, và duyệt được ngay trong khi ADR-0163 chờ Hiến pháp.
+
+Migration thay trigger của ADR-0163 không thể chỉ nằm ở Development, vì hai bản dùng chung thư mục `migrations/`. Đây là lý do nó phải chờ Hiến pháp sửa, kể cả khi chỉ muốn thử trên Development trước.
 
 Xoá là đường đi một chiều, và điểm khôi phục chưa từng được diễn tập (HC-5.19). Development là nơi có thể tập khôi phục trước mà không đụng dữ liệu thật; việc tập trên đó có được tính là đạt HC-5.19 hay không thì chủ quyết sau.
+
+## Điều người kiểm độc lập ghi lại, không chặn (2026-11-04)
+
+Người kiểm đọc bản đầu và báo KHÔNG ĐẠT vì lập luận N5 sai; lỗi đó và các lỗi có thể làm chủ quyết sai đã sửa ở ADR-0162, ADR-0163. Còn lại:
+
+- Có 3 khoá ngoại `CASCADE` cũ trỏ về `orders`, nên «không `CASCADE`» ở 5.5 đã có ngoại lệ từ trước; 239 khoá `NO ACTION` phải xoá con trước cha bằng tay.
+- 57 bảng hiện không có trigger chặn xoá. Số đếm của người kiểm lấy từ cơ sở dữ liệu dựng bằng toàn bộ `migrations/`: 104 trigger sự kiện xoá trên 100 trong 157 bảng.
+- Hôm nay có bao nhiêu tài khoản giữ Toàn quyền vẫn chưa đối chiếu.
