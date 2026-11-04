@@ -723,7 +723,7 @@ Ghi 2026-10-29 khi đồng bộ bộ «Island Booking System — Design System v
 - **BL-DC-CHUYEN-CONG-TY-GIU** — khi chuyển cọc của đơn huỷ sang đơn mới, Kế toán chọn «Công ty đang giữ» trong khi đối tác chưa nộp: khoản chuyển mang vai công ty nên vé mở (`ghiChuyen` trong `src/modules/billing/coc.ts`). Cần Quản trị duyệt khoản chuyển trước. Muốn chặn thì máy phải đối chiếu số đối tác còn giữ của khoản nguồn.
 - **BL-DC-LY-DO-HUY** — huỷ với lý do khách đổi ý rồi khai lại cọc vẫn đi qua luật chặn (ADR-0159 Đ2 mục 1, chủ đã biết). Ghi lại để không quên, chưa định làm.
 - **BL-DC-CHUA-KIEM** — chưa kiểm: iPhone; câu «chờ đối tác nộp tiền» trên màn vé bằng Chrome; bản in biên nhận (chữ ghi «Khách hàng đã trả trước», không nói đối tác giữ hộ); tải đồng thời; `/ve/:token` đã tạo khi việc nộp bị đảo.
-- **BL-DC-KHO-390** — thẻ «Xác nhận đơn» hẹp, chữ tràn ở khổ 390 và dòng «Chưa tải được» có sẵn trên `main`, không do đặt cọc; chưa sửa.
+- **BL-DC-KHO-390** — thẻ «Xác nhận đơn» hẹp, chữ tràn ở khổ 390 và dòng «Chưa tải được» có sẵn trên `main`, không do đặt cọc; chưa sửa. Phần thẻ hẹp, chữ tràn đã sửa ở lần đổi 12 tên 4/11 (ADR-0166); dòng «Chưa tải được» còn.
 
 ## 62. Các việc để sau từ buổi bàn chính sách chiết khấu (mã `BL-CK-…`, 2026-11-03)
 
@@ -732,3 +732,10 @@ Ghi 2026-10-29 khi đồng bộ bộ «Island Booking System — Design System v
 - **BL-CK-DIEU-KIEN** — chủ: «Điều kiện áp dụng» hôm nay là ghi chú để đọc, sau này cụ thể hoá theo doanh thu, quy mô, cam kết của đối tác. Khi mở lại cần ADR mới, vì lời chủ 8/10 và ADR-0117 ghi mức «không theo doanh số». Trong Oracle Advanced Pricing đây là phần điều kiện (qualifier).
 - **BL-CK-BANG-DONG-BO** — chủ: Sheet là một nguồn sự thật cho bảng dịch vụ, cần trực quan hoá việc đồng bộ ở bảng điều khiển Quản trị, không đồng bộ tự động. Hiện trạng: Cron 15 phút chạy `runScheduledSync`, cùng Cron còn chạy `donHangChoXoaVe` nên chỉ gỡ việc đồng bộ, không gỡ Cron; trang Dịch vụ & giá đã có đồng bộ tay, lần cuối, dòng lỗi, nhưng chưa xem trước thay đổi; đây là đảo quyết định 2026-09-19. Hệ quả cần nói với chủ: quên bấm thì giá Nền tảng lệch giá trên Sheet và website. Giá ghi đè của Quản trị (`catalog_override`) vẫn còn, nên «một nguồn» có ngoại lệ, cần chủ quyết giữ hay bỏ.
 - **BL-CK-BANG-QUYEN** — chủ: trực quan hoá việc thiết lập quyền của mọi vai ở bảng điều khiển của Toàn quyền. Hiện trạng: chưa có màn nào; bản đồ quyền chỉ ở `src/shared/permissions.ts` (ADR-0007), có bài kiểm khoá. AI khuyên làm trước bản **chỉ xem**, sinh từ chính bản đồ nên không lệch; sửa quyền trên màn hình là cửa một chiều về tiền, cần ADR riêng do chủ duyệt. Chưa hỏi chủ chốt.
+
+## 63. Kịch bản Chrome cũ đỏ sẵn trên bản chính và chữ chờ bảng tham chiếu (mã `BL-KB-…`, 2026-11-04)
+
+- **Trạng thái:** `để sau` · Phát hiện khi chạy lại kịch bản cho ADR-0166. So với `main` aa4086f6 từng dòng lỗi giống hệt, tức không do ADR-0166.
+- **BL-KB-DO-SAN** — tám kịch bản đỏ hoặc dừng sớm vì đã cũ so với mã: `dat-gap-smoke` (dựng dữ liệu nhận 404, đơn nháp chỉ người lập đọc), `dieu-phoi-smoke` ở 2026-09-29 (6 bước) và ở 2026-10-12-c3 (3 bước), `chon-hdv-lap-don-smoke` (bước 8, 11), `xe-dang-chay-smoke` (dừng lúc dựng dữ liệu), `nhat-ky-loc-smoke` (đếm cứng 47 hành động), `v1-xac-nhan-png` (11 bước), `qr-smoke` (ô trả trước đã bỏ 26/10). Chữ bấm ADR-0166 sửa trong các kịch bản này chưa được chạy tới.
+- **BL-KB-CHUA-CHAY** — `kiem-tra-giao-dien`, `hanh-trinh`: cần dựng máy chủ riêng, chưa chạy lại sau ADR-0166.
+- **BL-KB-CHU-DOT-2** — đưa vào đợt 2 của bảng tham chiếu (đặc tả `docs/superpowers/specs/2026-11-04-bang-tham-chieu-ngon-ngu-design.md`): hộp hỏi của nút «Xác nhận đơn» của người lập nói ít hậu quả hơn hộp «Còn vé, xác nhận đơn»; ô «Đơn nháp» ở Trang chủ gọi cùng loại đơn bằng tên khác; chữ «ẩn» trong thông báo đồng bộ Sheet giữ nguyên vì nói về dịch vụ đã rời Sheet, khác «Ngừng bán» do người bấm.
