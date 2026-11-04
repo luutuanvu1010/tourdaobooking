@@ -4,7 +4,7 @@
 
 ## Vì sao
 
-Lời chủ, nguyên văn: *«tạo và cố định 1 bảng tham chiếu ngôn ngữ chuẩn, cả từ chuyên ngành cũng như các nút lệnh, giải thích, các khái niệm để toàn hệ thống nhìn vào đó, và AI khi viết, đọc, sửa giao diện không bị nhầm lẫn hoặc suy diễn (Nguyên tắc sự thật duy nhất); giống như lấy giá từ 1 nguồn, lấy từ vựng từ 1 nguồn, có giảng hoặc chú thích ngữ nghĩa»*.
+Lời chủ, nguyên văn: *«tạo và cố định 1 bảng tham chiếu ngôn ngữ chuẩn, cả từ chuyên ngành cũng như các nút lệnh, giải thích, các khái niệm để toàn hệ thống nhìn vào đó, và AI khi viết, đọc , sửa giao diện không bị nhầm lẫn hoặc suy diễn (Nguyen tắc sự thật duy nhất); giống như lấy giá từ 1 nguồn, lấy từ vựng từ 1 nguồn, có giảng hoặc chú thích ngữ nghĩa»*.
 
 Rà soát nút bấm 4/11 cho thấy gốc lỗi: một lệnh mang ba tên (cấp riêng), một tên chỉ nhiều việc («Đóng»), và AI chép lại chữ cũ từ các quyết định cũ. Hôm nay từ ngữ được định nghĩa ở năm nơi: bảng từ (`src/shared/bang-tu-giao-dien.ts`), `docs/SYSTEM-DESIGN.md` §15, phụ lục B của `playbook/FRAMEWORK.md`, nhãn nhật ký (`src/shared/audit-actions.ts`) và Hướng dẫn. Bảng từ chỉ nói chữ nào cấm, chưa nói chữ nào nghĩa gì.
 
@@ -24,8 +24,8 @@ Rà soát nút bấm 4/11 cho thấy gốc lỗi: một lệnh mang ba tên (c�
 Bảng nằm trong mã, cạnh bảng từ, để máy đọc được; giao diện không nạp nó nên không trang nào nặng thêm. Bản đọc cho người do máy sinh, theo khuôn `npm run dict` sinh `docs/DATA-DICTIONARY.md`. Bảng từ hiện có giữ nguyên vai trò chữ đã loại. Cách kiểm hai chiều theo khuôn bảng sự kiện Vận chuyển chủ đã duyệt 9/10 (`src/shared/bang-su-kien-van-chuyen.ts`).
 
 1. **Khái niệm** (từ chuyên ngành, trạng thái đơn, vai): tên chuẩn · giải nghĩa một câu · khác với khái niệm gần nó thế nào · chữ đã loại · mã nội bộ · chủ chọn ngày nào.
-2. **Việc quan trọng** (298 hàng của rà soát, sau khi đổi 12 tên): tên nút chuẩn · thật sự làm gì · đường lệnh và mã nhật ký · có hỏi lại không · hoàn tác được không · nơi đặt nút (tệp và chữ) · tên khác được phép, nếu một việc có hai lối vào · trạng thái *đã chốt* hoặc *chờ chọn*.
-3. **Chữ dùng chung:** các chữ theo ngữ cảnh như «Lưu», «Sửa», «Huỷ», «Thêm», được dùng lại vì tiêu đề hộp đã nói đối tượng. Rà soát đếm 43 tên xuất hiện ở hơn một nhóm việc (có lẫn ghi chú trong tên hàng, số thật ít hơn); mỗi tên phải được xếp vào một trong hai loại: chữ dùng chung, hoặc lỗi thật cần đặt tên riêng.
+2. **Việc quan trọng** (298 hàng của rà soát, sau khi đổi 12 tên): tên nút chuẩn · thật sự làm gì · đường lệnh và mã nhật ký · có hỏi lại không · hoàn tác được không · nơi đặt nút (tệp và chữ) · tên khác được phép, nếu một việc có hai lối vào · trạng thái *đã chốt* hoặc *chờ chọn*. Hàng *chờ chọn* vẫn ghi chữ đang hiện làm tên hiện hành, nên máy cũng canh chữ đó; khi chủ chọn tên mới thì sửa bảng và nút trong cùng một lần lưu.
+3. **Chữ dùng chung:** các chữ theo ngữ cảnh như «Lưu», «Sửa», «Huỷ», «Thêm», được dùng lại vì tiêu đề hộp đã nói đối tượng. Một chữ chỉ thuộc loại này khi người đọc thấy đối tượng ngay cạnh nút, trong tiêu đề hộp hoặc dòng đang xem. «Đóng» để gập khung là chữ dùng chung; ba nơi «Đóng» nghĩa là ngừng đã đổi tên ở câu 9. Rà soát đếm 43 tên xuất hiện ở hơn một nhóm việc (có lẫn ghi chú trong tên hàng, số thật ít hơn); mỗi tên phải được xếp vào một trong hai loại: chữ dùng chung, hoặc lỗi thật cần đặt tên riêng.
 
 ## Máy báo đỏ khi nào (`npm test`)
 
@@ -37,6 +37,8 @@ Bảng nằm trong mã, cạnh bảng từ, để máy đọc được; giao di�
 6. Bản đọc cho người lệch với bảng.
 
 Cơ chế quét dựa trên `docs/superpowers/specs/2026-11-04-ra-soat-nut-bam/liet-ke-nut.mjs`. Tệp đó là hồ sơ có ngày, nên chép sang chỗ của kịch bản rồi mới sửa.
+
+**Ngày đầu phải xanh.** 422 nút máy coi là ứng viên đã có hàng hoặc có lý do bỏ qua (đã kiểm ở hồ sơ), nên điểm xuất phát là 298 hàng cộng 74 mục bỏ qua. Các nút còn lại chỉ chịu điều 2. 39 mục «chưa kiểm» và 39 mục chữ khác trong tệp rà soát là ghi chú, không phải nút, nên không nạp vào bảng; chữ khác chuyển sang đợt 2. Dấu hiệu của máy chỉ là gợi ý: máy coi nhầm một nút là nút ghi thì thêm vào danh sách bỏ qua kèm lý do, không nới bài kiểm.
 
 **Giới hạn phải nói thẳng.** Máy kiểm tên có nhất quán, không kiểm tên có đúng sự thật: cột «thật sự làm gì» dựa vào người đọc mã, và hành vi đổi mà bảng không đổi thì máy không biết. Có 85 nút chữ ghép từ mã: máy đọc được tới đâu thì so tới đó, phần còn lại ghi tên ra và đọc tay. Lời AI trả lời chủ trong trò chuyện thì máy không canh được, phần đó dựa vào kỷ luật.
 
@@ -54,8 +56,8 @@ Một ADR mới ghi quyết định này và đề xuất điều Hiến chươn
 
 ## Làm theo đợt
 
-- **Trước đó:** xong việc đổi 12 tên, vì cùng các tệp đó.
-- **Đợt 1:** dựng bảng và máy canh, nạp việc quan trọng từ `nut-quan-trong.json`, nạp khái niệm đợt đầu gồm các tên ở cột `thay` của bảng từ, trạng thái đơn, mười vai và các khái niệm tiền (chưa đếm, tôi đoán 40–60 dòng). Chủ chỉ đọc phần giải nghĩa khái niệm; 298 việc thì không phải đọc, chúng đã có tệp:dòng. Ước chừng nửa ngày, chưa chắc. Việc này đụng luật nên có một người kiểm độc lập, một vòng ở cuối.
+- **Trước đó:** việc đổi 12 tên đã qua người kiểm độc lập, vì cùng các tệp đó. `nut-quan-trong.json` là ảnh chụp trước khi đổi, nên tên của 12 việc đó lấy từ mã và ADR-0166; nếu ADR-0166 lệch `QUYET-DINH-CHU.md` thì tin tệp sau và báo chủ.
+- **Đợt 1:** dựng bảng và máy canh, nạp việc quan trọng từ `nut-quan-trong.json`, nạp khái niệm đợt đầu gồm các tên ở cột `thay` của bảng từ, trạng thái đơn, mười vai và các khái niệm tiền (chưa đếm, tôi đoán 40–60 dòng). Người thi công soạn giải nghĩa theo thứ tự: ADR đã duyệt, rồi mã hiện hành. Chỗ ADR lệch mã, hoặc các nơi gọi khác nhau, thì không tự hoà giải mà ghi thành một danh sách, trình chủ một lần cùng bản đọc, không dừng hỏi từng chỗ. Chủ chỉ đọc phần giải nghĩa khái niệm; 298 việc thì không phải đọc, chúng đã có tệp:dòng. Ước chừng nửa ngày, chưa chắc. Việc này đụng luật nên có một người kiểm độc lập, một vòng ở cuối.
 - **Đợt 2:** trình chủ theo lô các tên còn *chưa rõ* (99 hàng, nhiều hàng chỉ thiếu ý nhỏ), trả lời «theo khuyến nghị» được.
 - **Để sau:** trang giải nghĩa cho nhân viên, Trợ lý Mai đọc bảng.
 
@@ -70,6 +72,10 @@ Mỗi điều phải quan sát thật một lần rồi hoàn nguyên, ghi vào 
 5. Bài trần dung lượng `src/goi-trang-nhe.test.ts` vẫn xanh, không nới trần.
 6. Mọi khái niệm *đã chốt* có giải nghĩa và có nguồn ghi ngày chủ chọn.
 
+## Điều người soạn tự quyết, chủ sửa được
+
+So nút với bảng thay vì viết lại 874 nút; nút mới khai dòng *chờ chọn* là qua để không chặn việc; trang giải nghĩa cho nhân viên để sau; một người kiểm độc lập, một vòng ở cuối.
+
 ## Để người thi công tự quyết
 
-Tên tệp và cách chia tệp bảng; cách nhận diện một nút ổn định khi số dòng đổi; khuôn cụ thể của bản đọc; cách đánh dấu nút chữ ghép. Giữ đúng các điều trên là đủ.
+Tên tệp và cách chia tệp bảng; cách nhận diện một nút ổn định khi số dòng đổi (mã `N….` của hồ sơ sẽ trôi, không dùng làm khoá); khuôn cụ thể của bản đọc; cách đánh dấu nút chữ ghép. Giữ đúng các điều trên là đủ.
