@@ -325,7 +325,7 @@
    "huong_dan": "Nhận phụ trách",
    "hai_ten": "",
    "ket_luan": "mo_ho",
-   "vi_du": "Bán hàng mở đơn còn «Chờ xác nhận» (chưa chốt), thấy nút xanh «Nhận phụ trách» và bấm; máy chủ từ chối vì «Đơn chưa xác nhận, chưa nhận được». Đơn đã huỷ hoặc đã qua ngày đi cũng hiện nút rồi bị từ chối.",
+   "vi_du": "Tên nút đúng; lỗi nằm ở chỗ nút vẫn hiện khi máy chủ sẽ từ chối. Bán hàng mở đơn còn «Chờ xác nhận» (chưa chốt), thấy nút xanh «Nhận phụ trách» và bấm; máy chủ từ chối vì «Đơn chưa xác nhận, chưa nhận được». Đơn đã huỷ hoặc đã qua ngày đi cũng hiện nút rồi bị từ chối.",
    "van_de_hien_thi": "Nút hiện theo quyền nhận đơn nhưng không xét trạng thái đơn (nháp, đã huỷ, qua ngày đi) như máy chủ; bấm xong mới thấy lỗi.",
    "de_xuat": [],
    "chu_da_chon": "",
@@ -876,7 +876,7 @@
    ],
    "ten": "Đề nghị phân định",
    "that_su_lam": "Gửi một đề nghị (số tiền, lý do ít nhất 10 ký tự) để Quản trị hoặc Toàn quyền quyết định ai chịu khoản hoàn hay bồi thường khách sau khi đơn đã giao. Chỉ gửi đề nghị, chưa trừ tiền ai.",
-   "dao_nguoc": "một phần: rút đề nghị ở màn Phân định trách nhiệm",
+   "dao_nguoc": "không: không có nút rút đề nghị; bước tiếp theo là Quản trị hoặc Toàn quyền quyết ở màn Phân định trách nhiệm",
    "mau": "chữ",
    "xac_nhan": "có hộp nhập (số tiền, lý do)",
    "nguon": [
@@ -1441,13 +1441,13 @@
    "ghi_du_lieu": true,
    "cham_tien": true,
    "cham_quyen": false,
-   "gui_ra_ngoai": "khác: trả vé điện tử và cập nhật chuyến xe",
+   "gui_ra_ngoai": "không",
    "cau_bao": "Đã huỷ đơn.",
    "nhat_ky": "Huỷ đơn",
    "huong_dan": "Huỷ đơn",
    "hai_ten": "«Huỷ» ở bảng Xác nhận đơn của người kiểm vé; «Hết vé»",
    "ket_luan": "mo_ho",
-   "vi_du": "Bán hàng chọn lý do «Khách đổi ý» cho đơn khách đã đặt cọc, chỉ thấy chữ nhóm nhỏ «Khách huỷ» bên cạnh; thật ra nhóm này bắt đầu tính hạn hoàn thu trước, quá hạn thì Quản trị không duyệt hoàn tiền cho khách được nữa. Hộp huỷ không nói việc chọn lý do ảnh hưởng tiền.",
+   "vi_du": "Tên nút đúng, phần thiếu nằm ở hộp hỏi. Bán hàng chọn lý do «Khách đổi ý» cho đơn khách đã đặt cọc, chỉ thấy chữ nhóm nhỏ «Khách huỷ» bên cạnh; thật ra nhóm này bắt đầu tính hạn hoàn thu trước, quá hạn thì Quản trị không duyệt hoàn tiền cho khách được nữa. Hộp huỷ không nói việc chọn lý do ảnh hưởng tiền.",
    "van_de_hien_thi": "Câu hỏi chỉ nhắc «không hoàn tác được», không nhắc lý do quyết định hoàn tiền. Nút mở và nút xác nhận trong hộp cùng chữ «Huỷ đơn» đỏ.",
    "de_xuat": [],
    "chu_da_chon": "",
@@ -1462,14 +1462,14 @@
     "/order"
    ],
    "vai": [
-    "Bán hàng",
+    "Bán hàng (đơn của mình hoặc đang phụ trách)",
     "Thực tập",
     "Đối tác (đơn mình)",
     "Quản trị",
     "Toàn quyền"
    ],
    "ten": "Huỷ đơn",
-   "that_su_lam": "Huỷ đơn kèm lý do bắt buộc. Lý do thuộc nhóm Khách huỷ, Công ty huỷ hay Huỷ để lập lại, và nhóm đó quyết định công ty có giữ khoản khách đã trả và có hạn hoàn tiền hay không. Vé điện tử được trả lại, chuyến xe được cập nhật. «Công ty huỷ» chỉ Quản trị, Toàn quyền chọn được.",
+   "that_su_lam": "Huỷ đơn kèm lý do bắt buộc. Lý do thuộc nhóm Khách huỷ, Công ty huỷ hay Huỷ để lập lại, và nhóm đó quyết định công ty có giữ khoản khách đã trả và có hạn hoàn tiền hay không. Vé điện tử chưa mở được trả về kho, vé đã mở thì bị huỷ, không về kho; chuyến xe được cập nhật. «Công ty huỷ» chỉ Quản trị, Toàn quyền chọn được.",
    "dao_nguoc": "không: huỷ không hoàn tác được; chỉ Quản trị, Toàn quyền đổi nhóm lý do «Khác» bằng «Phân loại lý do»",
    "mau": "nguy hiểm",
    "xac_nhan": "có: hộp chọn lý do ngay dưới nút («Huỷ đơn này? Việc huỷ không hoàn tác được.»)",
@@ -1477,7 +1477,8 @@
     "web/order.ts:1561",
     "web/order.ts:1567",
     "src/modules/orders/index.ts:1748",
-    "src/shared/ly-do-huy.ts:14"
+    "src/shared/ly-do-huy.ts:14",
+    "src/modules/ve-dien-tu/repository.ts:77"
    ]
   },
   {
@@ -1673,7 +1674,7 @@
     "Còn vé, xác nhận đơn",
     "Xác nhận đơn: còn vé"
    ],
-   "chu_da_chon": "«Còn vé / Hết vé» theo đặc tả chủ duyệt 2026-10-19 và ADR-0136. Đặc tả ghi hai bước «chọn Còn vé, bấm Xác nhận», màn hình hiện chỉ có một nút (docs/superpowers/specs/2026-10-19-xac-nhan-don-luong-thuc-te.md:35)",
+   "chu_da_chon": "«Còn vé / Hết vé» theo đặc tả chủ duyệt 2026-10-19 và ADR-0136. Đặc tả ghi hai bước «chọn Còn vé, bấm Xác nhận», màn hình hiện chỉ có một nút (docs/superpowers/specs/2026-10-19-xac-nhan-don-luong-thuc-te.md:34)",
    "uu_tien": "cao",
    "ma_may": [
     "N0894"
@@ -1937,7 +1938,7 @@
    ],
    "ten": "Lưu, chờ xác nhận (đơn mới, người không giữ quyền Đối tác) · Lưu thay đổi (đang sửa đơn nháp) · Gửi đơn (đơn mới, người giữ quyền Đối tác)",
    "ten_trong_hop": "",
-   "that_su_lam": "Với Bán hàng, Quản trị, Toàn quyền, Thực tập: chỉ lưu đơn ở dạng nháp. Không gửi cho ai, không xác nhận, không báo ai (tin Bảng tin chỉ làm mới màn hình), nhật ký ghi «Tạo đơn». Người lập phải tự mở trang đơn bấm «Xác nhận đơn» (hoặc «Gửi xác nhận» nếu đơn thuộc diện cần xét). Với người giữ quyền Đối tác thì nút này tên «Gửi đơn», lưu rồi gọi tiếp lệnh gửi: máy chủ hoặc mở yêu cầu xác nhận (đơn chờ nhân viên xét «Còn vé»), hoặc tự xác nhận luôn nếu đơn không cần xét (khi đó đơn thành «Đã xác nhận» ngay và chuyển cho chuyên viên phụ trách). Lưu xong mà gửi hỏng thì đơn vẫn còn ở nháp.",
+   "that_su_lam": "Với Bán hàng, Quản trị, Toàn quyền, Thực tập: chỉ lưu đơn ở dạng nháp. Không gửi cho ai, không xác nhận, không báo ai (tin Bảng tin chỉ làm mới màn hình), nhật ký ghi «Tạo đơn». Màn hình tự chuyển sang trang đơn và mở hộp «Xác nhận đơn để gửi khách» (hộp này chỉ dựng ảnh gửi khách, chưa xác nhận gì); người lập phải đóng hộp rồi tự bấm «Xác nhận đơn» (hoặc «Gửi xác nhận» nếu đơn thuộc diện cần xét). Với người giữ quyền Đối tác thì nút này tên «Gửi đơn», lưu rồi gọi tiếp lệnh gửi: máy chủ hoặc mở yêu cầu xác nhận (đơn chờ nhân viên xét «Còn vé»), hoặc tự xác nhận luôn nếu đơn không cần xét (khi đó đơn thành «Đã xác nhận» ngay và chuyển cho chuyên viên phụ trách). Lưu xong mà gửi hỏng thì đơn vẫn còn ở nháp.",
    "ghi_du_lieu": true,
    "cham_tien": true,
    "cham_quyen": false,
@@ -1950,7 +1951,7 @@
    "huong_dan": "Lưu, chờ xác nhận (Bán hàng) · Gửi đơn (Đối tác)",
    "hai_ten": "Cùng một lệnh lưu mang ba tên (Lưu, chờ xác nhận / Lưu thay đổi / Gửi đơn). Chữ «Lưu nháp» chỉ có trong câu báo và dải đặt gấp, không có trên nút nào. Trạng thái đơn nháp cũng hiện chữ «Chờ xác nhận» (xem chu_khac).",
    "ket_luan": "hieu_lam",
-   "vi_du": "Nhân viên Bán hàng lập đơn, bấm «Lưu, chờ xác nhận», tưởng đơn đã gửi cho quản lý hay Kế toán và đang chờ họ xác nhận. Thật ra không ai nhận được gì, đơn nằm nháp và chỉ chính người lập mới xác nhận được: nếu họ không mở lại đơn bấm «Xác nhận đơn» thì đơn không có người phụ trách, không giữ vé điện tử, không vào điều phối xe. Hướng dẫn Bán hàng có nói bước «Xác nhận đơn», nhưng chính chữ trên nút lại nói điều ngược lại.",
+   "vi_du": "Nhân viên Bán hàng lập đơn, bấm «Lưu, chờ xác nhận», tưởng đơn đã gửi cho quản lý hay Kế toán và đang chờ họ xác nhận. Thật ra không ai nhận được gì, đơn nằm nháp và chỉ chính người lập mới xác nhận được: nếu họ không bấm «Xác nhận đơn» thì đơn không giữ vé điện tử, không vào điều phối xe, và nếu lúc lập không chọn người phụ trách thì cũng chưa có ai phụ trách. Ngay sau khi lưu, màn hình còn tự mở hộp tên «Xác nhận đơn để gửi khách» nên càng dễ tưởng đơn đã xác nhận, dù hộp chỉ dựng ảnh. Hướng dẫn Bán hàng có nói bước «Xác nhận đơn», nhưng chính chữ trên nút lại nói điều ngược lại.",
    "van_de_hien_thi": "Nút chính của form nói «chờ xác nhận» như thể đã giao cho ai đó; nhật ký lại ghi «Tạo đơn». Lúc sửa nháp, banner (web/order-form.ts:869) bảo «Bấm Lưu nháp để ghi lại» nhưng trên màn hình không có nút nào tên «Lưu nháp» (nút là «Lưu thay đổi»). Nhãn trạng thái của đơn nháp cũng là «Chờ xác nhận» (src/shared/order-status-label.ts:8), nên đổi tên nút mà giữ nhãn này thì người đọc vẫn hiểu đơn đang chờ ai đó.",
    "de_xuat": [
     "Lưu đơn (chưa xác nhận)",
@@ -1967,7 +1968,9 @@
     "src/modules/orders/xac-nhan-route.ts:159",
     "src/shared/order-status-label.ts:8",
     "src/shared/audit-actions.ts:23",
-    "src/modules/orders/index.ts:92"
+    "src/modules/orders/index.ts:92",
+    "web/order-form.ts:740",
+    "web/confirmation-dialog.ts:153"
    ]
   },
   {
@@ -2847,7 +2850,7 @@
    ],
    "ten": "Huỷ đơn",
    "ten_trong_hop": "Huỷ đơn <mã>? · Huỷ đơn · Không huỷ",
-   "that_su_lam": "Huỷ cả đơn của khách (không phải chỉ rời việc), đơn chuyển «Đã huỷ». Chỉ với đơn đã xác nhận, chưa qua ngày đi, chưa Đã giao. Chọn lý do: Không liên hệ được với khách, Khách yêu cầu huỷ, hoặc Khác (gõ lý do, không chứa số điện thoại). Vé điện tử được trả và chuyến xe đồng bộ.",
+   "that_su_lam": "Huỷ cả đơn của khách (không phải chỉ rời việc), đơn chuyển «Đã huỷ». Chỉ với đơn đã xác nhận, chưa qua ngày đi, chưa Đã giao. Chọn lý do: Không liên hệ được với khách, Khách yêu cầu huỷ, hoặc Khác (gõ lý do, không chứa số điện thoại). Vé điện tử chưa mở được trả về kho (vé đã mở thì bị huỷ) và chuyến xe đồng bộ.",
    "ghi_du_lieu": true,
    "cham_tien": true,
    "cham_quyen": false,
@@ -3500,7 +3503,7 @@
    ],
    "ten": "Thêm vai trò vào cấp này (ở cấp) · Chọn cấp cho vai trò này (ở vai trò chưa theo cấp nào)",
    "ten_trong_hop": "Thêm vai trò vào cấp (hoặc Chọn cấp cho vai trò) · Lưu · Huỷ",
-   "that_su_lam": "Cho CẢ MỘT vai trò (mọi đối tác đang mang vai trò đó) theo một cấp từ ngày chọn. Không phải một đối tác riêng lẻ. Đối tác có mức riêng hoặc cấp riêng vẫn được tính trước cấp này. Đây là bậc cuối trong thứ tự tính: mức riêng của đối tác, cấp riêng của đối tác, mức riêng của vai trò, cấp của vai trò. Nếu vai trò còn mức riêng thì hiện khung vàng cảnh báo mức riêng thắng cấp.",
+   "that_su_lam": "Cho CẢ MỘT vai trò (mọi đối tác đang mang vai trò đó) theo một cấp từ ngày chọn. Không phải một đối tác riêng lẻ. Đối tác có mức riêng hoặc cấp riêng vẫn được tính trước cấp này. Đây là bậc cuối trong thứ tự tính: mức riêng của đối tác, cấp riêng của đối tác, mức riêng của vai trò, cấp của vai trò. Nếu vai trò còn mức riêng thì hiện khung vàng cảnh báo mức riêng thắng cấp. Đối tác có cấp riêng không bao giờ rơi xuống cấp của vai trò, kể cả với dịch vụ cấp riêng không có mức. Đối tác mang hai vai trò ở hai cấp khác mức thì không có hoa hồng cho tới khi sửa. Đơn đã xác nhận giữ mức đã chụp, không tính lại.",
    "ghi_du_lieu": true,
    "cham_tien": true,
    "cham_quyen": false,
@@ -3514,7 +3517,7 @@
    "hai_ten": "Hai cửa cho cùng một việc (từ cấp và từ vai trò), tiêu đề hộp cũng hai kiểu",
    "ket_luan": "mo_ho",
    "vi_du": "Chủ dự án đề nghị đổi thành «Gán cho đối tác», nhưng đổi nguyên chữ đó sẽ sai bản chất: nút này gán cấp cho cả một vai trò, không cho một đối tác. Kế toán đang xem cấp «Đại lý cấp 3», bấm nút tên «Gán cho đối tác», hộp lại hỏi «Vai người dùng», chọn «Công ty lữ hành» rồi «Lưu», và mọi đối tác mang vai trò đó đổi hoa hồng từ ngày chọn, trừ ai có mức riêng hay cấp riêng. Tên hiện tại đúng việc nhưng «thêm vào» chưa nói được là cả nhóm đổi tiền; việc gán một đối tác là việc khác (cấp riêng) và chưa có nút ở chi tiết cấp.",
-   "van_de_hien_thi": "Nút xác nhận chỉ là «Lưu»; tiêu đề hộp đã nêu việc nên chấp nhận được.",
+   "van_de_hien_thi": "Nút xác nhận chỉ là «Lưu»; tiêu đề hộp đã nêu việc nên chấp nhận được. Trong cùng hộp, nút và tiêu đề nói «vai trò», ô chọn nói «Vai người dùng» (chữ chủ chọn 2026-11-01, bảng từ dòng 67): hai tên cho một thứ.",
    "de_xuat": [
     "Gán cho vai trò",
     "Gán cho cả vai trò",
@@ -5647,8 +5650,8 @@
    "nhat_ky": "Kết thúc chuyến gián đoạn",
    "huong_dan": "«Cứu hộ» và «Gửi đề nghị cứu hộ» (Hướng dẫn Bán hàng, nói «Cứu hộ rồi xếp khách ở khối Cứu hộ»)",
    "hai_ten": "Cùng lệnh với «Kết thúc gián đoạn» ở cuối danh sách điểm; và gần tên «Gửi đề nghị cứu hộ» là việc khác.",
-   "ket_luan": "hieu_lam",
-   "vi_du": "Xe 16 chỗ hỏng giữa đường, nhân viên Bán hàng vào Chi tiết chuyến thấy hai nút cạnh nhau «Gửi đề nghị cứu hộ» và «Cứu hộ» (đỏ). Tưởng «Cứu hộ» là gọi xe đến cứu nên bấm, rồi chọn lý do «Xe hỏng» và bấm nút đỏ trong hộp. Thật ra chuyến bị kết thúc, không mở lại được, và chưa có xe nào được nhờ; việc nhờ xe khác nhận khách chỉ có ở nút «Gửi đề nghị cứu hộ».",
+   "ket_luan": "mo_ho",
+   "vi_du": "Xe 16 chỗ hỏng giữa đường, nhân viên Bán hàng vào Chi tiết chuyến thấy hai nút cạnh nhau «Gửi đề nghị cứu hộ» và «Cứu hộ» (đỏ). Tưởng «Cứu hộ» là gọi xe đến cứu nên bấm, rồi chọn lý do «Xe hỏng» và bấm nút đỏ trong hộp. Thật ra chuyến bị kết thúc, không mở lại được, và chưa có xe nào được nhờ; việc nhờ xe khác nhận khách chỉ có ở nút «Gửi đề nghị cứu hộ». Hộp mở ra đã ghi rõ «Kết thúc gián đoạn» và «xếp khách sang xe cứu hộ», và khi xe hỏng thật thì đây đúng là bước đầu của việc cứu hộ, nên phần dễ sai nằm ở tên nút mở và ở hai nút gần tên nhau; khi xe còn chạy được mà bấm thì chuyến mất luôn.",
    "van_de_hien_thi": "Hai nút cùng chữ «cứu hộ» làm hai việc ngược nhau về mức không đảo ngược; nút đỏ mang tên một việc nhẹ hơn thực tế. Hộp có dòng giải thích và tiêu đề «Kết thúc gián đoạn» nên còn cơ hội dừng lại, nhưng tên nút mở hộp là thứ người dùng đọc trước. Trang ghép lượt duyệt 8d (docs/superpowers/specs/2026-10-08-luot-duyet-8d/02-trang-ghep.md:13,126) đã ghi «hai nút gần tên nhau» và để chữ cuối chờ ảnh thật, chưa thấy lần nào chốt.",
    "de_xuat": [
     "Kết thúc gián đoạn (xe hỏng)",
@@ -6494,7 +6497,7 @@
    "cham_tien": false,
    "cham_quyen": false,
    "gui_ra_ngoai": "không",
-   "dao_nguoc": "một phần: màn Chi tiết chuyến không có nút gỡ riêng người đi kèm (chưa kiểm hết)",
+   "dao_nguoc": "được khi chưa đón: nút «Rút khỏi xe» ở nhóm «Người đi kèm · N» rút cả nhóm cùng lúc, không rút lẻ từng người",
    "mau": "chính",
    "xac_nhan": "có hộp chọn người",
    "cau_bao": "Đã gắn người đi kèm",
@@ -6503,7 +6506,7 @@
    "hai_ten": "Nút mở là «Thêm người đi kèm», nút xác nhận là «Gắn lên xe», dải báo «Đã gắn người đi kèm»; nhật ký chỉ ghi «Xếp khách lên xe»",
    "ket_luan": "mo_ho",
    "vi_du": "Bán hàng mở hộp «Thêm người đi kèm», chọn hướng dẫn viên rồi thấy nút «Gắn lên xe»; chữ «gắn» lạ, nghe như lắp đồ lên xe. Nhật ký sau đó chỉ ghi «Xếp khách lên xe» nên tìm lại cũng khó.",
-   "van_de_hien_thi": "Chữ «gắn» nằm trong danh sách từ nên tránh; nút mở và nút xác nhận khác chữ.",
+   "van_de_hien_thi": "Chữ «gắn» lạ với người dùng, nơi khác của Nền tảng đã bỏ dần; nút mở và nút xác nhận khác chữ.",
    "de_xuat": [
     "Thêm vào xe",
     "Thêm người đi kèm"
@@ -6513,7 +6516,9 @@
    "nguon": [
     "web/chuyen.ts:1118",
     "web/chuyen.ts:1076",
-    "src/modules/van-chuyen/index.ts:1357"
+    "src/modules/van-chuyen/index.ts:1357",
+    "web/chuyen.ts:1087",
+    "src/shared/dieu-phoi-man.ts:505"
    ]
   },
   {
@@ -9214,7 +9219,7 @@
    "mau": "chính",
    "xac_nhan": "không",
    "cau_bao": "Đã gửi. Người khác sẽ xác minh trước khi thông tin được dùng.",
-   "nhat_ky": "Gửi phiếu tự khai",
+   "nhat_ky": "Gửi phiếu tự khai hồ sơ",
    "huong_dan": "không nhắc",
    "hai_ten": "",
    "ket_luan": "dung",
@@ -10124,7 +10129,7 @@
    "mau": "chính",
    "xac_nhan": "có: Chấp nhận nguyên văn thông tin khai?",
    "cau_bao": "Đã chấp nhận.",
-   "nhat_ky": "Chấp nhận phiếu tự khai",
+   "nhat_ky": "Chấp nhận phiếu tự khai hồ sơ",
    "huong_dan": "không nhắc",
    "hai_ten": "",
    "ket_luan": "mo_ho",
@@ -10150,12 +10155,13 @@
     "Toàn quyền"
    ],
    "ten": "Chấp nhận",
-   "that_su_lam": "Ghi nguyên văn ngày sinh, địa chỉ hoặc giấy tờ người dùng khai vào hồ sơ thật và đánh dấu đã xác minh. Phiếu giấy tờ chưa có ảnh đối chiếu thì nút bị khoá. Người từng tạo hoặc chạm tài khoản của người gửi bị chặn xử lý.",
+   "that_su_lam": "Ghi nguyên văn ngày sinh hoặc địa chỉ người dùng khai vào hồ sơ thật và đánh dấu đã xác minh. Phiếu giấy tờ hôm nay luôn không chấp nhận được, vì chưa có ảnh nào nối với phiếu: giao diện khoá nút và máy chủ cũng chặn, nên chỉ từ chối được. Người từng tạo hoặc chạm tài khoản của người gửi bị chặn xử lý.",
    "dao_nguoc": "không: không có nút hoàn tác; sửa bằng cách khác ở Danh bạ",
    "nguon": [
     "web/xac-minh-hang-cho.ts:175",
     "web/xac-minh-hang-cho.ts:178",
-    "src/modules/parties/index.ts:1147"
+    "src/modules/parties/index.ts:1147",
+    "src/modules/parties/index.ts:1154"
    ]
   },
   {
@@ -10893,7 +10899,7 @@
    ],
    "ten": "Đóng",
    "ten_trong_hop": "",
-   "that_su_lam": "Kết thúc dòng liên hệ này từ hôm nay: số hay email đó không còn là liên hệ đang dùng của hồ sơ (dòng còn nằm làm lịch sử, mờ đi). Tìm hồ sơ theo số đó và cảnh báo trùng số cũng không còn tính nó. Bấm là ghi ngay, không hỏi.",
+   "that_su_lam": "Kết thúc dòng liên hệ này từ hôm nay: số hay email đó không còn là liên hệ đang dùng của hồ sơ (dòng còn nằm làm lịch sử, mờ đi). Tìm hồ sơ theo số đó và cảnh báo trùng số cũng không còn tính nó. Bấm là ghi ngay, không hỏi. Hồ sơ có tài khoản thì chỉ Quản trị, Toàn quyền đóng được; hồ sơ công ty chủ thì chỉ Toàn quyền.",
    "ghi_du_lieu": true,
    "cham_tien": false,
    "cham_quyen": false,
@@ -10916,7 +10922,8 @@
    "uu_tien": "vua",
    "nguon": [
     "web/parties.ts:296",
-    "src/modules/parties/index.ts:2006"
+    "src/modules/parties/index.ts:2006",
+    "src/modules/parties/index.ts:2012"
    ]
   },
   {
@@ -12469,19 +12476,21 @@
    "mau": "chính",
    "xac_nhan": "không",
    "cau_bao": "Đã lưu.",
-   "nhat_ky": "Đổi cài đặt trợ lý Hỗ trợ (hai dòng: công tắc theo vai trò, bật / tắt và trần chi phí)",
+   "nhat_ky": "Đổi cài đặt trợ lý Hỗ trợ (dòng công tắc theo vai trò chỉ ghi khi có vai trò thật sự đổi; thêm dòng bật / tắt và trần chi phí)",
    "huong_dan": "Có (Ai được dùng)",
    "hai_ten": "",
    "ket_luan": "dung",
    "vi_du": "",
-   "van_de_hien_thi": "Lưu hai bước: lần đầu thành công, lần hai lỗi thì công tắc vai trò đã đổi nhưng số câu mỗi ngày chưa, và câu báo chỉ nói lỗi chung. Hiếm; ghi nhận.",
+   "van_de_hien_thi": "Lưu hai bước: lần đầu thành công, lần hai lỗi thì công tắc vai trò đã đổi nhưng số câu mỗi ngày chưa, và câu báo chỉ nói lỗi chung. Hiếm; ghi nhận. Lần gọi thứ hai gửi lại bật / tắt và trần chi phí đã nạp trên trình duyệt, nên có thể đè thay đổi của Toàn quyền khác vừa lưu.",
    "de_xuat": [],
    "chu_da_chon": "",
    "uu_tien": "khong",
    "nguon": [
     "web/tro-ly-cai-dat.ts:106",
     "src/modules/tro-ly/index.ts:268",
-    "src/modules/tro-ly/index.ts:259"
+    "src/modules/tro-ly/index.ts:259",
+    "web/tro-ly-cai-dat.ts:122",
+    "src/modules/tro-ly/index.ts:276"
    ]
   },
   {
@@ -12595,18 +12604,19 @@
    "nhat_ky": "",
    "huong_dan": "không nhắc riêng",
    "hai_ten": "Nút «Quay lại bản này» làm việc tương tự (đưa lại một bản cũ) nhưng lưu và áp dụng ngay",
-   "ket_luan": "hieu_lam",
-   "vi_du": "Toàn quyền bấm «Khôi phục mặc định» tưởng toàn bộ bộ não (mẫu, mức suy nghĩ, độ dài, lời nhắc) đã về mặc định như tên nói. Thật ra chỉ ô lời nhắc đổi chữ, các ô còn lại giữ nguyên, và chưa lưu gì. Ngược lại nút «Quay lại bản này» ngay dưới (Lịch sử bản) lại lưu và áp dụng ngay; hai nút cùng ý «quay về» mà hành xử trái nhau.",
+   "ket_luan": "mo_ho",
+   "vi_du": "Toàn quyền bấm «Khôi phục mặc định» tưởng toàn bộ bộ não (mẫu, mức suy nghĩ, độ dài, lời nhắc) đã về mặc định như tên nói. Thật ra chỉ ô lời nhắc đổi chữ, các ô còn lại giữ nguyên, và chưa lưu gì. Ngược lại nút «Quay lại bản này» ngay dưới (Lịch sử bản) lại lưu và áp dụng ngay; hai nút cùng ý «quay về» mà hành xử trái nhau. Câu báo ngay sau khi bấm nói rõ phải bấm «Lưu bộ não», nên hiểu lầm được sửa ngay, không mất dữ liệu.",
    "van_de_hien_thi": "Nút xác nhận «Thay» đỏ nhưng việc thật chỉ là sửa ô chưa lưu. Câu hỏi của hộp khớp nút (Thay / Giữ chỗ đang sửa). Câu báo sau khi xong nói rõ phải bấm «Lưu bộ não».",
    "de_xuat": [
     "Đưa lời nhắc mặc định vào ô",
     "Điền lời nhắc mặc định"
    ],
    "chu_da_chon": "",
-   "uu_tien": "vua",
+   "uu_tien": "thap",
    "nguon": [
     "web/tro-ly-cai-dat.ts:217",
-    "web/tro-ly-cai-dat.ts:223"
+    "web/tro-ly-cai-dat.ts:223",
+    "web/tro-ly-cai-dat.ts:226"
    ]
   },
   {
@@ -12716,18 +12726,19 @@
    "nhat_ky": "Đổi cài đặt trợ lý Hỗ trợ (lời dặn)",
    "huong_dan": "Mục «Lời dặn» (bài Quản trị)",
    "hai_ten": "«Lời dặn» (trang này) và «Lời nhắc» (Bộ não) và «Ngữ cảnh bổ sung»: ba nơi gõ chữ cho trợ lý",
-   "ket_luan": "hieu_lam",
-   "vi_du": "Toàn quyền muốn bảo Mai «đừng nói giá tiền», mở mục «Lời dặn» (chữ gần nghĩa «dặn dò» nhất) và gõ vào đó. Thật ra mục đó chỉ chứa câu chào và câu hỏi mẫu; lời dặn đó không điều khiển cách trả lời. Chỗ nhập cách trả lời tên là «Lời nhắc» trong «Bộ não».",
+   "ket_luan": "mo_ho",
+   "vi_du": "Tên nút đúng việc; chữ dễ gây lầm là tên mục «Lời dặn». Toàn quyền muốn bảo Mai «đừng nói giá tiền», mở mục «Lời dặn» (chữ gần nghĩa «dặn dò» nhất) và gõ vào đó. Thật ra mục đó chỉ chứa câu chào và câu hỏi mẫu; lời dặn đó không điều khiển cách trả lời. Chỗ nhập cách trả lời tên là «Lời nhắc» trong «Bộ não».",
    "van_de_hien_thi": "Tên mục «Lời dặn» nghe như chỉ dẫn cho AI nhưng chỉ là câu chào và câu hỏi mẫu; dòng giải thích «Cách trợ lý trả lời nằm ở mục Bộ não» nằm cuối form.",
    "de_xuat": [
     "Câu chào và câu hỏi mẫu",
     "Câu chào và gợi ý hỏi"
    ],
    "chu_da_chon": "",
-   "uu_tien": "vua",
+   "uu_tien": "thap",
    "nguon": [
     "web/tro-ly-cai-dat.ts:362",
-    "src/modules/tro-ly/index.ts:307"
+    "src/modules/tro-ly/index.ts:307",
+    "web/tro-ly-cai-dat.ts:372"
    ]
   },
   {
@@ -12807,6 +12818,45 @@
     "web/tro-ly-cai-dat.ts:414",
     "src/modules/tro-ly/index.ts:321",
     "src/modules/tro-ly/index.ts:332"
+   ]
+  },
+  {
+   "goi": "D1-tai-khoan",
+   "ma_may": [
+    "N0390"
+   ],
+   "nhom": "Mã dự phòng",
+   "man_hinh": "Khối «Mã dự phòng» hiện sau khi bật ứng dụng xác thực hoặc tạo bộ mã mới",
+   "trang": [
+    "/account",
+    "/login"
+   ],
+   "vai": [
+    "Mọi vai có ứng dụng xác thực"
+   ],
+   "ten": "Tải tệp .txt",
+   "ten_trong_hop": "",
+   "that_su_lam": "Tải bộ mã dự phòng ra một tệp văn bản trên máy đang dùng. Không ghi gì lên Nền tảng. Tệp chứa mã chưa che, nên người dùng phải tự cất kỹ.",
+   "ghi_du_lieu": false,
+   "cham_tien": false,
+   "cham_quyen": false,
+   "gui_ra_ngoai": "không",
+   "dao_nguoc": "không áp dụng: tệp nằm trên máy, người dùng tự xoá",
+   "mau": "phụ",
+   "xac_nhan": "không",
+   "cau_bao": "",
+   "nhat_ky": "",
+   "huong_dan": "Tải tệp .txt",
+   "hai_ten": "",
+   "ket_luan": "dung",
+   "vi_du": "",
+   "van_de_hien_thi": "",
+   "de_xuat": [],
+   "chu_da_chon": "",
+   "uu_tien": "khong",
+   "nguon": [
+    "web/hai-lop-ui.ts:195",
+    "src/shared/huong-dan-hai-lop.ts:30"
    ]
   }
  ],
@@ -13512,5 +13562,6 @@
   "[D3-ho-tro-thong-bao-khung] Chưa đọc từng bài trong web/ho-tro-danh-sach.ts ngoài đoạn bộ lọc, nút «Tải thêm» và nhận việc ở dòng danh sách (cùng route /claim đã đọc).",
   "[D3-ho-tro-thong-bao-khung] Chưa xác nhận trên production biến FEEDBACK_NOTIFY_EMAIL có được đặt hay không (chỉ biết mã gửi tới MỘT địa chỉ chung).",
   "[D3-ho-tro-thong-bao-khung] Không kiểm được nội dung gửi thực tế cho OpenAI ngoài việc đọc hàm thanYeuCau/che câu hỏi; chưa đọc src/shared/tro-ly.ts từng dòng."
- ]
+ ],
+ "kiem_doc_lap": "Người kiểm độc lập đọc lại 30 hàng ngày 2026-11-04 (cả 9 hàng ưu tiên cao, 6 hiểu lầm, 6 chưa rõ, 9 đúng, chọn ngẫu nhiên; khoảng 24 hàng lần tới tận câu ghi). Không hàng nào nói sai việc chính của nút. Có ba chỗ sai ở cột phụ, một chỗ tự mâu thuẫn và ba kết luận hạ từ «gây hiểu lầm» xuống «chưa rõ»; đã sửa sau khi tự đọc lại mã. Người kiểm không ghi kết luận riêng trước khi mở bảng, nên phần «đồng ý» không hoàn toàn mù. Các hàng ngoài mẫu chưa ai đọc lại, cột phụ ở đó có thể còn lỗi tương tự."
 }

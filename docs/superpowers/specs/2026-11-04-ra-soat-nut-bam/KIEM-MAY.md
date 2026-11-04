@@ -3,24 +3,24 @@
 Sinh bởi `kiem-va-sinh.mjs` từ `nut-quan-trong.json` và `danh-sach-day-du.json`.
 
 - Nút thật trong mã: **874**. Máy coi là ứng viên (có ghi, tông nguy hiểm, hoặc nút chính): **422**.
-- Hàng trong danh sách quan trọng: **297** (mỗi hàng một việc, nút mở và nút trong hộp tính một). Ứng viên có lý do bỏ qua: **74**.
-- Kết luận: đúng 185 · chưa rõ 95 · gây hiểu lầm 17. Ưu tiên: cao 9 · vừa 59 · thấp 44.
+- Hàng trong danh sách quan trọng: **298** (mỗi hàng một việc, nút mở và nút trong hộp tính một). Ứng viên có lý do bỏ qua: **74**.
+- Kết luận: đúng 186 · chưa rõ 98 · gây hiểu lầm 14. Ưu tiên: cao 9 · vừa 57 · thấp 46.
 - Số tên đề xuất đã kiểm với bảng từ: 177.
 
 ## Số hàng theo vai
 
 | Vai | Số hàng |
 |---|---:|
-| Bán hàng | 117 |
-| Kế toán | 112 |
-| Quản trị | 215 |
-| Hiện trường | 52 |
-| Đối tác | 40 |
-| Toàn quyền | 277 |
-| Thực tập | 48 |
-| Tài xế công ty | 46 |
-| Tài xế đối tác | 44 |
-| Nhân sự | 39 |
+| Bán hàng | 118 |
+| Kế toán | 113 |
+| Quản trị | 216 |
+| Hiện trường | 53 |
+| Đối tác | 41 |
+| Toàn quyền | 278 |
+| Thực tập | 49 |
+| Tài xế công ty | 47 |
+| Tài xế đối tác | 45 |
+| Nhân sự | 40 |
 
 ## Trang không có hàng (có lý do)
 

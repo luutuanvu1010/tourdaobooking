@@ -128,7 +128,7 @@ const BAC = { cao: 0, vua: 1, thap: 2, khong: 3 };
 const NHAN_KL = { dung: "Đúng", mo_ho: "Chưa rõ", hieu_lam: "**Gây hiểu lầm**" };
 const NHAN_UT = { cao: "**Cao**", vua: "Vừa", thap: "Thấp", khong: "" };
 const nhomThuTu = [...new Set(hang.map((h) => h.nhom))];
-let md = `# Danh sách nút quan trọng (2026-11-04)\n\nHồ sơ có ngày. Tóm tắt cho chủ: \`TOM-TAT-CHO-CHU.md\`. Bảng này do \`kiem-va-sinh.mjs\` sinh từ \`nut-quan-trong.json\`; sửa ở tệp JSON rồi chạy lại. ${hang.length} việc, ${dem((h) => h.ket_luan === "hieu_lam")} gây hiểu lầm, ${dem((h) => h.ket_luan === "mo_ho")} chưa rõ. Trong mỗi nhóm, chỗ cần xem đứng trước.\n\n`;
+let md = `# Danh sách nút quan trọng (2026-11-04)\n\nHồ sơ có ngày. Tóm tắt cho chủ: \`TOM-TAT-CHO-CHU.md\`. Bảng này do \`kiem-va-sinh.mjs\` sinh từ \`nut-quan-trong.json\`; sửa ở tệp JSON rồi chạy lại. ${hang.length} việc, ${dem((h) => h.ket_luan === "hieu_lam")} gây hiểu lầm, ${dem((h) => h.ket_luan === "mo_ho")} chưa rõ. Trong mỗi nhóm, chỗ cần xem đứng trước.\n\n${QT.kiem_doc_lap ?? ""}\n\n`;
 md += `Cột «Ghi · Tiền · Gửi · Đảo ngược» trả lời: có ghi dữ liệu không, có chạm tiền không, có gửi gì ra ngoài không, đảo ngược được không. «Hiển thị» ghi màu nút và có hỏi xác nhận không.\n\n`;
 for (const n of nhomThuTu) {
   const ds = hang.filter((h) => h.nhom === n).sort((a, b) => BAC[a.uu_tien] - BAC[b.uu_tien]);

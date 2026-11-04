@@ -21,7 +21,7 @@ Sinh bởi `liet-ke-nut.mjs`. Mục đích: chứng minh danh sách không sót 
 
 ## So với đếm độc lập
 
-| Phép đếm | grep | Kịch bản | Khớp |
+| Phép đếm | Đếm độc lập (tìm qua nhiều dòng, nên grep từng dòng ra ít hơn) | Kịch bản | Khớp |
 |---|---:|---:|---|
 | `h("button"` trên tệp thô, kể cả chú thích | 599 | 599 (đã bỏ chú thích) | khớp |
 | `h("button")` đều có một hàng (thẻ gốc button, gồm cả hàng khuôn) | 599 | 599 | khớp |
