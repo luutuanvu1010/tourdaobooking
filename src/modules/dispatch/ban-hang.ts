@@ -18,7 +18,7 @@ const LA_BAN_HANG = defineSql(
 const BAN_HANG_CUA_DON = defineSql(
   "dispatch",
   "ban_hang_cua_don",
-  `SELECT order_id, staff_id, name FROM v_dsp_sales_owner WHERE order_id IN (SELECT value FROM json_each(?1))`,
+  `SELECT order_id, staff_id, party_id, name FROM v_dsp_sales_owner WHERE order_id IN (SELECT value FROM json_each(?1))`,
 );
 const LOI_MOI_MO = defineSql(
   "dispatch",
@@ -29,6 +29,15 @@ const CHINH_SACH = defineSql(
   "dispatch",
   "chinh_sach_ban_hang",
   `SELECT priority_minutes, work_start_minute, work_end_minute, release_cutoff_at FROM v_dsp_sales_policy_current`,
+);
+
+// Chính sách: dòng MỚI NHẤT (mốc `valid_from_at` để dòng kế tiếp đi sau nó) và câu thêm dòng (bảng chỉ-thêm; UNIQUE `valid_from_at` là lưới va nhau).
+const CHINH_SACH_MOI_NHAT = defineSql("dispatch", "chinh_sach_ban_hang_moi_nhat", `SELECT max(valid_from_at) AS luc FROM dsp_sales_policy`);
+const THEM_CHINH_SACH = defineSql(
+  "dispatch",
+  "them_chinh_sach_ban_hang",
+  `INSERT INTO dsp_sales_policy (id, valid_from_at, priority_minutes, work_start_minute, work_end_minute, created_at, created_by, updated_at, updated_by)
+   VALUES (?1, ?2, ?3, ?4, ?5, ?2, ?6, ?2, ?6)`,
 );
 
 // ---- Ghi: ô Bán hàng phụ trách --------------------------------------------------------------------------------------------------------------------
@@ -103,16 +112,24 @@ export async function khungGioHanhChinh(db: D1Database): Promise<KhungGioHanhChi
   return { phutUuTien: r.priority_minutes, tuPhut: r.work_start_minute, denPhut: r.work_end_minute, mocPhatHanh: r.release_cutoff_at };
 }
 
+/** Mốc `valid_from_at` của dòng chính sách mới nhất (null nếu bảng rỗng — không xảy ra vì dòng gieo). */
+export async function moiNhatChinhSach(db: D1Database): Promise<string | null> {
+  return (await db.prepare(CHINH_SACH_MOI_NHAT).first<{ luc: string | null }>())?.luc ?? null;
+}
+/** Câu thêm MỘT dòng chính sách (chưa chạy). */
+export const cauThemChinhSach = (db: D1Database, x: { id: string; at: string; phutUuTien: number; tuPhut: number; denPhut: number; by: string }): D1PreparedStatement =>
+  db.prepare(THEM_CHINH_SACH).bind(x.id, x.at, x.phutUuTien, x.tuPhut, x.denPhut, x.by);
+
 export async function laBanHangPhuTrach(db: D1Database, staffId: string, orderId: string): Promise<boolean> {
   return (await db.prepare(LA_BAN_HANG).bind(orderId, staffId).first()) !== null;
 }
 
 /** Bán hàng phụ trách (dòng mở) của các đơn. `staffId` null khi hồ sơ không có tài khoản. Mảng rỗng: không truy vấn. */
-export async function banHangCuaDon(db: D1Database, orderIds: readonly string[]): Promise<Map<string, { staffId: string | null; name: string }>> {
-  const out = new Map<string, { staffId: string | null; name: string }>();
+export async function banHangCuaDon(db: D1Database, orderIds: readonly string[]): Promise<Map<string, { staffId: string | null; name: string; partyId: string }>> {
+  const out = new Map<string, { staffId: string | null; name: string; partyId: string }>();
   if (orderIds.length === 0) return out;
-  const { results } = await db.prepare(BAN_HANG_CUA_DON).bind(JSON.stringify(orderIds)).all<{ order_id: string; staff_id: string | null; name: string }>();
-  for (const r of results) out.set(r.order_id, { staffId: r.staff_id, name: r.name });
+  const { results } = await db.prepare(BAN_HANG_CUA_DON).bind(JSON.stringify(orderIds)).all<{ order_id: string; staff_id: string | null; party_id: string; name: string }>();
+  for (const r of results) out.set(r.order_id, { staffId: r.staff_id, name: r.name, partyId: r.party_id });
   return out;
 }
 

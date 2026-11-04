@@ -2,7 +2,7 @@
 // Tệp riêng để `index.ts` (cửa vào module) không phình thêm và để KHÔNG import vòng: tệp này chỉ import `repository.ts`, `xac-nhan-chung.ts`, `xac-nhan-repo.ts` và các module khác QUA `index.ts` của chúng.
 // SQL ở `xac-nhan-repo.ts` (nửa nghiêm). KHÔNG tự kiểm quyền bằng vai hồ sơ; mọi cổng hỏi `can(…)` viết thẳng ô.
 import { auditStatement } from "../audit";
-import type { AnThongTinKhachResponse, CaiDatXacNhanResponse, DonChoXacNhanDto, DonChoXacNhanResponse, GuiDonResponse, GuiXacNhanResponse, LyDoCanXacNhan, PickupTimeRequiredBody, StaffProfile, QuyetDinhXacNhanResponse, ShortNoticeRequiredBody, YeuCauXacNhanDto } from "../../shared/contracts";
+import type { AnThongTinKhachResponse, CaiDatXacNhanResponse, ChuaCoBanHangResponse, TheDonDto, DonChoXacNhanDto, DonChoXacNhanResponse, GuiDonResponse, GuiXacNhanResponse, LyDoCanXacNhan, PickupTimeRequiredBody, StaffProfile, QuyetDinhXacNhanResponse, ShortNoticeRequiredBody, YeuCauXacNhanDto } from "../../shared/contracts";
 import { UUID_RE, error, json, readJson, trangDon } from "../../shared/http";
 import { apCongTacAnKhach } from "../../shared/an-thong-tin-khach";
 import { can, holdsIntern, holdsPartner, passesAdminGate } from "../../shared/permissions";
@@ -14,14 +14,15 @@ import { KHUNG_MAC_DINH, kiemDanhSachKhung } from "../../shared/khung-gio-don";
 import { duoiMocKhiSua, nguongMocVn } from "../../shared/moc-toi-thieu";
 import { isHHMM, isISODate, vnToday } from "../../shared/vn-date";
 import { duocQuyetDinh, hanXacNhan, quaHanXacNhan } from "../../shared/xac-nhan-don";
-import { laVaChamOBanHang, phutGioHanhChinhConLai, trangThaiLoiMoi, type KhungGioHanhChinh } from "../../shared/ban-hang-phu-trach";
+import { cachThayTheCanhBao, laVaChamOBanHang, phutGioHanhChinhConLai, trangThaiLoiMoi, vaoTheCanhBao, type KhungGioHanhChinh } from "../../shared/ban-hang-phu-trach";
+import { tripDeparted } from "../../shared/trip-rules";
 import type { BanHangNoi } from "../../shared/router";
-import { GIO_HANH_CHINH_CHUA_CO, docKhungGio, soanGhiNhan } from "./ban-hang-ghi-nhan";
+import { docKhungGio, soanGhiNhan } from "./ban-hang-ghi-nhan";
 import { CAU_BAO_GUI_DON } from "../../shared/gui-don-cau-bao";
 import { chiNguoiLapGhiNhap } from "../../shared/xem-don-nhap";
 import { canhBaoMocCua, type XetDatGapSua } from "./dat-gap";
 import { getEffectiveServices } from "../catalog";
-import { anKhachBat, anKhachMoiNhat, cauDoiGioChang, cauDoiNgayChang, cauDoiNgayDichVu, cauGhiKepGio, cauKhepYeuCau, cauMoYeuCau, cauThemAnKhach, cauThemChinhSach, cauThemCo, chinhSachMoiNhat, coHienHanh, coMoiNhat, nhomDangDung, nhomTheoMa, orderTouchDraft, tuXacNhanNoiBo, yeuCauMoCuaDon, yeuCauMoTatCa, yeuCauTheoId, type YeuCauRow } from "./xac-nhan-repo";
+import { anKhachBat, anKhachMoiNhat, cauDoiGioChang, cauDoiNgayChang, cauDoiNgayDichVu, cauGhiKepGio, cauKhepYeuCau, cauMoYeuCau, cauThemAnKhach, cauThemChinhSach, cauThemCo, chinhSachMoiNhat, coHienHanh, coMoiNhat, nhomDangDung, nhomTheoMa, orderTouchDraft, tuXacNhanNoiBo, ungVienTheBanHang, yeuCauMoCuaDon, yeuCauMoTatCa, yeuCauTheoId, type YeuCauRow } from "./xac-nhan-repo";
 import { legDatGapByOrder, legShortNoticeConVe, slotPolicy, type DauDatGapMoi } from "./chang-hanh-khach-repo";
 import { daHuy, daXacNhan, findOrder, getMeta, nextStamp, soanHuyDon, soanXacNhan } from "./repository";
 import { CAU_VUOT_TONG_NGUOI_XET } from "../../shared/dat-coc-truoc";
@@ -117,6 +118,33 @@ export const xacNhanRoutes = (xetDatGap: XetDatGapSua) => [
       });
     }
     return json({ don } satisfies DonChoXacNhanResponse);
+  }),
+
+  // THẺ CẢNH BÁO «Đơn chưa có Bán hàng phụ trách» (ADR-0142 Đ6; `GET`, cổng `order.view` theo đơn CỦA MÌNH nên Đối tác / Thực tập qua được cho đơn họ lập). Nguồn: đơn đã xác nhận (lúc ghi nhận = `confirmed_at`)
+  // hoặc đơn nháp có yêu cầu xác nhận mở (lúc ghi nhận = `submitted_at`), từ mốc phát hành; lọc bằng luật thuần `vaoTheCanhBao` + `cachThayTheCanhBao`. Kế toán: đơn chờ xác nhận chỉ là SỐ (`soDonChoXacNhanAn`),
+  // không mã đơn. Không tên khách / SĐT. Phải đứng TRƯỚC `GET /api/orders/:id` (index.ts spread mảng này ở đầu).
+  route("GET", "/api/orders/chua-co-ban-hang", "orders", async ({ env, staff, banHang }) => {
+    if (!can(staff, "order.view", { ownerId: staff.id })) return error(403, "forbidden", "Tài khoản này không xem được thẻ này.");
+    const gio = await docKhungGio(banHang);
+    if ("loi" in gio) return gio.loi;
+    const ungVien = await ungVienTheBanHang(env.DB, gio.khung.mocPhatHanh);
+    const co = ungVien.length === 0 ? new Map<string, unknown>() : await banHang.banHangCuaDon(ungVien.map((u) => u.id));
+    const nowMs = Date.now();
+    const homNay = vnToday(new Date(nowMs));
+    const don: TheDonDto[] = [];
+    let soAn = 0;
+    for (const u of ungVien) {
+      const cach = cachThayTheCanhBao(staff, { laNguoiLap: u.staff_id === staff.id, choXacNhan: u.cho_xac_nhan === 1 });
+      if (cach === "khong") continue;
+      if (!vaoTheCanhBao({ ghiNhanLuc: u.ghi_nhan_luc, nowMs, khung: gio.khung, coBanHang: co.has(u.id), donHuy: false, quaNgayDi: false, daGiao: false, hoanThanh: false })) continue;
+      const o = await findOrder(env.DB, u.id);
+      if (!o) continue;
+      const ngay = o.services.map((s) => s.departDate);
+      if (tripDeparted(ngay, homNay)) continue;
+      if (cach === "chi_so") { soAn++; continue; }
+      don.push({ orderId: u.id, orderCode: u.order_code, ghiNhanLuc: u.ghi_nhan_luc, choXacNhan: u.cho_xac_nhan === 1, ngayDi: ngay.filter((d): d is string => d !== null).sort()[0] ?? null, dichVu: o.services.map((s) => s.name), laCuaToi: u.staff_id === staff.id });
+    }
+    return json({ don, soDonChoXacNhanAn: soAn } satisfies ChuaCoBanHangResponse);
   }),
 
   // GỬI XÁC NHẬN (Đ3): người lập, đơn nháp, thuộc diện cần xác nhận (Đ1), đã chọn Đón / Không đón, chưa có yêu cầu mở, đơn CHƯA CÓ KHOẢN THU. Không chạy R2 / R3 ở bước này

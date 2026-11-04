@@ -1969,5 +1969,7 @@ export const ordersModule: AppModule = {
 export type { PhanThuongMai } from "./thuong-mai";
 // ADR-0068 Đ1 bước 5: CHỈ gốc lắp ráp gọi (ctx.gopHoSo của route gộp hồ sơ) — bài siết ở src/architecture.test.ts.
 export { cauDoiNguoiDat, donChuaXacNhanCua, donCuaNguoiDat } from "./nguoi-dat-gop-repo";
+// ADR-0142: `dispatch` hỏi đơn có yêu cầu xác nhận đang mở không, và lúc ghi nhận của đơn (đơn cũ). Chỉ trả kết luận / mốc, không dữ liệu khách.
+export { donDangChoXacNhan, ghiNhanCuaDon } from "./xac-nhan-repo";
 // ADR-0148 Đ1: «dòng mức / gắn này đã được chụp chưa» — CHỈ gốc lắp ráp gọi, tiêm vào `ctx.hoiDaChup` cho route của pricing (pricing không phụ thuộc orders).
 export { ngayChupGanNhat } from "./thuong-mai-repo";

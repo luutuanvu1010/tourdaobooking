@@ -30,6 +30,7 @@ import {
   CANCEL_REASON_LABEL, checkAssignee, handlerChangeVerdict, isDeliveredLock, isOpenHandlerCollision, parseCancelReason, parseOrderIds, parseSetHandler,
 } from "./rules";
 import * as banHang from "./ban-hang";
+import { banHangRoutes } from "./ban-hang-route";
 import * as banHangMoi from "./ban-hang-moi";
 import { handlerChangeStatements, ketQuaTuChoi, newOrderHandlerStatements, refuseStatements } from "./service";
 import {
@@ -181,6 +182,7 @@ export { banHangThang } from "./ban-hang";
 export const dispatchModule: AppModule = {
   name: "dispatch",
   routes: [
+    ...banHangRoutes, // ADR-0142: Bán hàng phụ trách (nhận / từ chối / đổi, danh sách, cài đặt giờ hành chính)
     // Người phụ trách của các đơn đang hiện ở danh sách (một lời gọi mỗi trang). Mọi id gửi lên đều có mặt trong kết quả; đơn chưa có người → null.
     // ADR-0019: cổng "orders" (màn đơn) chỉ lọc thô; route nhận id BẤT KỲ nên thân hỏi `order.view` KHÔNG ngữ cảnh (= xem được mọi đơn) TRƯỚC khi
     // đọc tham số — Đối tác/Thực tập (`own`) → 403.
