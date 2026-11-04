@@ -28,8 +28,8 @@ test("không lộ mã thô: lý do cần xác nhận và kết quả đều là 
   assert.equal(nhanLyDoCanXacNhan(["DAT_GAP"]), "Có lượt đón dưới hạn chốt, cần Quản trị đặt gấp.");
   assert.equal(nhanLyDoCanXacNhan(["DICH_VU", "DAT_GAP"]), "Có dịch vụ cần xác nhận còn vé. Có lượt đón dưới hạn chốt, cần Quản trị đặt gấp.");
   assert.equal(nhanLyDoCanXacNhan([]), "");
-  assert.deepEqual(NHAN_KET_QUA, { CON_VE: "Còn vé", HET_VE: "Hết vé", HUY: "Huỷ" });
-  assert.equal(NHAN_NUT_XAC_NHAN.send, "Gửi xác nhận");
+  assert.deepEqual(NHAN_KET_QUA, { CON_VE: "Còn vé, xác nhận đơn", HET_VE: "Hết vé", HUY: "Huỷ" });
+  assert.equal(NHAN_NUT_XAC_NHAN.send, "Gửi kiểm vé");
   assert.equal(NHAN_NUT_XAC_NHAN.withdraw, "Rút lại");
   assert.equal(NHAN_NUT_XAC_NHAN.submit, "Gửi đơn");
   for (const v of Object.values(NHAN_NUT_XAC_NHAN)) assert.ok(!/[A-Z_]{4,}/.test(v), v);
@@ -104,7 +104,7 @@ test("chữ của bảng Còn vé: nhãn giờ theo tên đã chọn, câu thi�
   assert.equal(nhanGioLuot("Chiều về", "Tour 4 đảo", false), "Giờ đón · Chiều về · Tour 4 đảo");
   assert.equal(nhanGhiChuDichVu("Tour 4 đảo"), "Ghi chú · Tour 4 đảo");
   assert.equal(CAU_THIEU_GIO_LUOT, "Chọn giờ đón cho lượt này.");
-  assert.equal(CAU_NHO_DAT_GAP, "Giờ này đã qua hạn chốt. Nhờ Bán hàng hoặc Quản trị bấm Còn vé kèm đặt gấp.");
+  assert.equal(CAU_NHO_DAT_GAP, "Giờ này đã qua hạn chốt. Nhờ Bán hàng hoặc Quản trị bấm Còn vé, xác nhận đơn kèm đặt gấp.");
 });
 
 const doc = (tep: string): string => readFileSync(fileURLToPath(new URL(`../../${tep}`, import.meta.url)), "utf8");

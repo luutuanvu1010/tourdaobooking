@@ -77,7 +77,7 @@ test("`/status` xác nhận đơn cần xác nhận → 409 confirm_request_requ
   const s1 = await w.call("POST", `/api/orders/${o.id}/status`, { as: A, body: { status: "confirmed" } });
   assert.equal(s1.status, 409, s1.text);
   assert.equal(s1.json.error.code, "confirm_request_required");
-  assert.equal(s1.json.error.message, "Đơn có dịch vụ cần xác nhận, hãy bấm Gửi xác nhận.");
+  assert.equal(s1.json.error.message, "Đơn có dịch vụ cần xác nhận, hãy bấm Gửi kiểm vé.");
   assert.equal((await gui(w, o.id, A)).status, 201);
   for (const body of [{ status: "confirmed" }, { status: "cancelled", reason: "KHACH_DOI_Y" }]) {
     const s = await w.call("POST", `/api/orders/${o.id}/status`, { as: A, body });
@@ -161,7 +161,7 @@ test("Đ3 chưa có khoản thu: số đã thu > 0 → 409 confirm_blocked_has_p
       assert.equal(mo(w, o.id).length, 0);
       assert.equal(w.q("SELECT status FROM orders WHERE id = ?", o.id)[0].status, "draft");
     }
-    if (ma === "confirm_blocked_has_payment") assert.equal(r.json.error.message, "Đơn đã có khoản thu nên chưa gửi xác nhận được. Hãy báo Kế toán.");
+    if (ma === "confirm_blocked_has_payment") assert.equal(r.json.error.message, "Đơn đã có khoản thu nên chưa gửi kiểm vé được. Hãy báo Kế toán.");
   }
 });
 

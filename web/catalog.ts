@@ -9,6 +9,7 @@ import { CHE_DO_DUA_DON, type CheDoDuaDon } from "../src/shared/chang-mac-dinh";
 import { QUY_TAC_DUA_DON, type QuyTacDuaDon } from "../src/shared/dua-don-dich-vu";
 import { dongLichSuMauChang, nhanCheDoCua } from "../src/shared/lich-su-mau-chang";
 import { canhBaoDoiNhom } from "../src/shared/dac-diem-hien-thi";
+import { CAU_HOI_BO_GHI_DE_GIA } from "../src/shared/catalog-nut";
 import { hoiXacNhan, moBangTruot } from "./bang-truot";
 import { initShell, showError } from "./shell";
 
@@ -108,7 +109,7 @@ function row(it: CatalogAdminItem): HTMLElement {
     { class: it.hidden || !it.inSheet ? "row-off" : "", "data-code": it.code },
     h("td", { class: "chon-td" }, oChon(it)),
     h("td", null, it.code),
-    h("td", null, it.name, chipDuaDon(it, "dd-chip-dong"), chipQuyTac(it), it.hidden && h("span", { class: "badge badge-cancelled" }, "Đã ẩn"), !it.inSheet && h("span", { class: "badge badge-draft" }, "Không còn trong Sheet"), !it.supported && h("span", { class: "badge badge-draft", title: "Chỉ nhập tay được" }, `Đơn vị ${it.unit} chưa hỗ trợ`), it.conflicts.length > 0 && h("div", { class: "alert warn", style: "margin:6px 0 0" }, `Sheet đã đổi giá kể từ khi ghi đè — ${conflicts}. Giá đang bán vẫn là giá ghi đè.`)),
+    h("td", null, it.name, chipDuaDon(it, "dd-chip-dong"), chipQuyTac(it), it.hidden && h("span", { class: "badge badge-cancelled" }, "Đã ngừng bán"), !it.inSheet && h("span", { class: "badge badge-draft" }, "Không còn trong Sheet"), !it.supported && h("span", { class: "badge badge-draft", title: "Chỉ nhập tay được" }, `Đơn vị ${it.unit} chưa hỗ trợ`), it.conflicts.length > 0 && h("div", { class: "alert warn", style: "margin:6px 0 0" }, `Sheet đã đổi giá kể từ khi ghi đè — ${conflicts}. Giá đang bán vẫn là giá ghi đè.`)),
     h("td", { class: "nhom-o" }, tenNhomCua(it)),
     h("td", { class: "muted" }, unitLabel(it.unit)),
     ...PAX_ORDER.map((c) => priceCell(it, c)),
@@ -118,8 +119,8 @@ function row(it: CatalogAdminItem): HTMLElement {
       btn("Sửa giá", () => openEdit(it)),
       duocSuaDuaDon && nutDuaDon(btn("Đưa đón", () => moDuaDon(it, nutDuaDonCua(it.code, "bang"))), it.code, "bang"),
       it.conflicts.length > 0 && btn("Giữ ghi đè", () => update(`/api/catalog/${encodeURIComponent(it.code)}/ack`, { method: "POST" })),
-      it.overridden.length > 0 && btn("Bỏ ghi đè", () => confirm(`Quay ${it.code} về giá theo Sheet?`) && update(`/api/catalog/${encodeURIComponent(it.code)}/override`, { method: "DELETE" })),
-      btn(it.hidden ? "Hiện lại" : "Ẩn", () => update(`/api/catalog/${encodeURIComponent(it.code)}`, { method: "PATCH", body: { hidden: !it.hidden } }), it.hidden ? "btn btn-link" : "btn btn-link danger"),
+      it.overridden.length > 0 && btn("Bỏ ghi đè giá", () => confirm(CAU_HOI_BO_GHI_DE_GIA(it.code, it.hidden)) && update(`/api/catalog/${encodeURIComponent(it.code)}/override`, { method: "DELETE" })),
+      btn(it.hidden ? "Mở bán lại" : "Ngừng bán", () => update(`/api/catalog/${encodeURIComponent(it.code)}`, { method: "PATCH", body: { hidden: !it.hidden } }), it.hidden ? "btn btn-link" : "btn btn-link danger"),
     ),
   );
 }
@@ -149,7 +150,7 @@ function card(it: CatalogAdminItem): HTMLElement {
     "div",
     { class: it.hidden || !it.inSheet ? "card card-col row-off" : "card card-col", "data-code": it.code },
     h("div", { class: "the-dau" }, oChon(it), h("span", { class: "muted" }, it.code, " · ", unitLabel(it.unit))),
-    h("div", { class: "dd-ten-dong" }, h("strong", null, it.name), chipDuaDon(it), chipQuyTac(it), it.hidden && h("span", { class: "badge badge-cancelled" }, " Đã ẩn"), !it.inSheet && h("span", { class: "badge badge-draft" }, " Không còn trong Sheet"), !it.supported && h("span", { class: "badge badge-draft", title: "Chỉ nhập tay được" }, ` Đơn vị ${it.unit} chưa hỗ trợ`)),
+    h("div", { class: "dd-ten-dong" }, h("strong", null, it.name), chipDuaDon(it), chipQuyTac(it), it.hidden && h("span", { class: "badge badge-cancelled" }, " Đã ngừng bán"), !it.inSheet && h("span", { class: "badge badge-draft" }, " Không còn trong Sheet"), !it.supported && h("span", { class: "badge badge-draft", title: "Chỉ nhập tay được" }, ` Đơn vị ${it.unit} chưa hỗ trợ`)),
     h("div", { class: "nhom-o muted" }, `Nhóm: ${tenNhomCua(it)}`),
     h("div", null, priceLine(it), it.overridden.length > 0 && h("span", { class: "mark", style: "color:var(--c-accent);font-weight:var(--fw-bold)", title: "Có giá ghi đè" }, " ✎")),
     it.conflicts.length > 0 && h("div", { class: "alert warn" }, `Sheet đã đổi giá kể từ khi ghi đè — ${conflicts}. Giá đang bán vẫn là giá ghi đè.`),
@@ -159,8 +160,8 @@ function card(it: CatalogAdminItem): HTMLElement {
       btn("Sửa giá", () => openEdit(it)),
       duocSuaDuaDon && nutDuaDon(btn("Đưa đón", () => moDuaDon(it, nutDuaDonCua(it.code, "the"))), it.code, "the"),
       it.conflicts.length > 0 && btn("Giữ ghi đè", () => update(`/api/catalog/${encodeURIComponent(it.code)}/ack`, { method: "POST" })),
-      it.overridden.length > 0 && btn("Bỏ ghi đè", () => confirm(`Quay ${it.code} về giá theo Sheet?`) && update(`/api/catalog/${encodeURIComponent(it.code)}/override`, { method: "DELETE" })),
-      btn(it.hidden ? "Hiện lại" : "Ẩn", () => update(`/api/catalog/${encodeURIComponent(it.code)}`, { method: "PATCH", body: { hidden: !it.hidden } }), !it.hidden),
+      it.overridden.length > 0 && btn("Bỏ ghi đè giá", () => confirm(CAU_HOI_BO_GHI_DE_GIA(it.code, it.hidden)) && update(`/api/catalog/${encodeURIComponent(it.code)}/override`, { method: "DELETE" })),
+      btn(it.hidden ? "Mở bán lại" : "Ngừng bán", () => update(`/api/catalog/${encodeURIComponent(it.code)}`, { method: "PATCH", body: { hidden: !it.hidden } }), !it.hidden),
     ),
   );
 }
@@ -407,7 +408,7 @@ function renderNhom(): void {
     h("p", { class: "muted" }, "Nhóm giúp người lập đơn lọc nhanh dịch vụ. Nhóm không xoá được: không dùng nữa thì chuyển hết dịch vụ sang nhóm khác rồi tắt."),
     h("div", { id: "nhom-loi", class: "alert", role: "alert", hidden: !nhomLoi }, nhomLoi),
     h("ul", { class: "nhom-ds" }, ...nhoms.map(dongNhom)),
-    h("p", { id: "nhom-chua", class: "muted" }, `Chưa phân loại (kể cả dịch vụ ẩn): ${chuaPhanLoai} dịch vụ`),
+    h("p", { id: "nhom-chua", class: "muted" }, `Chưa phân loại (kể cả dịch vụ đã ngừng bán): ${chuaPhanLoai} dịch vụ`),
     them,
   );
 }

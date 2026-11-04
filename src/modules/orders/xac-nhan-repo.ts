@@ -34,6 +34,22 @@ const YC_MO_TAT_CA = defineSql(
 );
 export const yeuCauMoTatCa = async (db: D1Database): Promise<YeuCauRow[]> => (await db.prepare(YC_MO_TAT_CA).all<YeuCauRow>()).results;
 
+/**
+ * Trong danh sách id đưa vào, những đơn NHÁP đang có yêu cầu còn mở (ADR-0166 câu 5: nhãn «Chờ xác nhận»). `json_each(?1)` nhận mảng JSON các id nên câu vẫn TĨNH;
+ * lọc `status = 'draft'` để đơn đã quyết xong (xác nhận / huỷ) không bao giờ mang cờ, kể cả nếu dòng yêu cầu bị kẹt mở.
+ */
+const YC_MO_TRONG_DANH_SACH = defineSql(
+  "orders",
+  "confirm_request_open_among",
+  `SELECT DISTINCT r.order_id FROM ord_confirm_request r JOIN orders o ON o.id = r.order_id
+   WHERE r.order_id IN (SELECT value FROM json_each(?1)) AND r.decided_at IS NULL AND o.status = 'draft'`,
+);
+export async function donDangChoXacNhan(db: D1Database, orderIds: readonly string[]): Promise<Set<string>> {
+  if (orderIds.length === 0) return new Set();
+  const { results } = await db.prepare(YC_MO_TRONG_DANH_SACH).bind(JSON.stringify(orderIds)).all<{ order_id: string }>();
+  return new Set(results.map((r) => r.order_id));
+}
+
 // ---- Mở / rút lại (Đ3) ---------------------------------------------------------------------------------------------------------------------------
 
 /**

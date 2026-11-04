@@ -422,7 +422,7 @@ try {
       await p.waitFor("!document.getElementById('error').hidden", "dải lỗi hiện");
       const d = await dai(p);
       assert.deepEqual([d.lop, d.tieuDe, d.nut], [["banner-danger"], CAU_THIEU_NGUOI_LON, []], `dải đỏ câu máy chủ, không nút tải lại. Thực tế: ${JSON.stringify(d)}`);
-      assert.equal(await p.ev("document.querySelector('#order .badge').textContent"), "Chờ xác nhận", "đơn vẫn là nháp (nhãn \"Chờ xác nhận\"), chưa xác nhận được");
+      assert.equal(await p.ev("document.querySelector('#order .badge').textContent"), "Chưa xác nhận", "đơn vẫn là nháp (nhãn \"Chưa xác nhận\"), chưa xác nhận được");
       await shotKhung(p, "15-xac-nhan-nhap-thieu-nguoi-lon-1040.png");
       console.log(`   dải: ${JSON.stringify(d)}`);
     } finally {

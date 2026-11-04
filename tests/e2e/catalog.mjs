@@ -291,6 +291,16 @@ await call(ADMIN, "PATCH", `/api/catalog/${MA2}`, { hidden: false });
 assert.ok((await call(SALES, "GET", "/api/catalog")).body.items.some((i) => i.code === MA2));
 console.log("✓ ẩn/hiện dịch vụ");
 
+// --- «Bỏ ghi đè giá» chỉ bỏ giá, giữ dấu Ngừng bán (ADR-0166 câu 2)
+r = await call(ADMIN, "PATCH", `/api/catalog/${MA2}`, { prices: { adult: 777000 }, hidden: true });
+assert.equal(r.body.item.hidden, true);
+r = await call(ADMIN, "DELETE", `/api/catalog/${MA2}/override`);
+assert.equal(r.body.item.hidden, true, "bỏ ghi đè giá nhưng dịch vụ vẫn ngừng bán");
+assert.deepEqual(r.body.item.overridden, []);
+assert.ok(!(await call(SALES, "GET", "/api/catalog")).body.items.some((i) => i.code === MA2), "bên bán hàng vẫn không thấy");
+await call(ADMIN, "PATCH", `/api/catalog/${MA2}`, { hidden: false });
+console.log("✓ bỏ ghi đè giá giữ dấu Ngừng bán");
+
 // --- Cron (giả lập): không có người thao tác → nhật ký "Hệ thống (tự động)"
 await sql(`UPDATE catalog_item SET price_child = 1 WHERE code = '${MA3}'`);
 const cron = await fetch(B + "/__scheduled?cron=*/15+*+*+*+*");

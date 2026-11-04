@@ -190,7 +190,7 @@ export async function chanDoanXacNhan(db: D1Database, i: { id: string; today: st
 }
 
 // ---- Bước xác nhận đơn (Task 3.3, ADR-0136) — phần dùng chung giữa `index.ts` (`/status`, khoá khi chờ) và `xac-nhan-route.ts` ------------------------------------------
-export const CAN_YEU_CAU = () => error(409, "confirm_request_required", "Đơn có dịch vụ cần xác nhận, hãy bấm Gửi xác nhận.");
+export const CAN_YEU_CAU = () => error(409, "confirm_request_required", "Đơn có dịch vụ cần xác nhận, hãy bấm Gửi kiểm vé.");
 export const KHOA_KHI_CHO = () => error(409, "confirm_pending_locked", "Đơn đang chờ xác nhận, hãy Rút lại trước khi sửa.");
 
 /**

@@ -694,7 +694,7 @@ try {
             assert.deepEqual(await ghiCuoi(p, `/muc-ta/${C_K.code}/tat`), [200], "POST khoá cấp 200");
             await chonCap(p, C_K.code);
             const ct = await p.ev(`(() => { const c = document.querySelector('#hh-cap-ct[data-cap="${C_K.code}"]'); const hh = c.querySelector('.hh-cap-ct-dau .huy-hieu'); return { tong: hh?.dataset.tong, chu: hh?.textContent.trim(), nut: [...c.querySelectorAll('.hh-cap-nut button')].map((b) => b.textContent.trim()) }; })()`);
-            assert.deepEqual(ct, { tong: "cat", chu: NHAN_CAP_DA_KHOA, nut: ["Sửa", "Mở lại cấp"] }, "huy hiệu `cat` nguyên văn; chỉ còn «Sửa» (5.26 — cấp khoá vẫn đổi tên / ghi chú được) + «Mở lại cấp» (không «Thêm vai trò vào cấp này», «＋ Thêm hoa hồng cho dịch vụ»)");
+            assert.deepEqual(ct, { tong: "cat", chu: NHAN_CAP_DA_KHOA, nut: ["Sửa", "Mở lại cấp"] }, "huy hiệu `cat` nguyên văn; chỉ còn «Sửa» (5.26 — cấp khoá vẫn đổi tên / ghi chú được) + «Mở lại cấp» (không «Gán cho vai trò», «＋ Thêm hoa hồng cho dịch vụ»)");
             const R_K = phai(await goiTrongTrang(p, "GET", "/api/pricing/muc-ta"), 200, "cấp").muc.find((m) => m.code === C_K.code).dong[0];
             const v = await viecCua(p, `#hh-cap-ct tr[data-dong-id="${R_K.id}"]`);
             assert.ok(v, "dòng mức của cấp khoá còn hiện");
@@ -1258,7 +1258,7 @@ try {
             assert.ok(maCap, "cấp mới có ở máy chủ");
             await chonCap(p, maCap);
             assert.ok((await p.ev("document.querySelector('#hh-cap-ct').innerText")).includes("Cấp này chưa có mức nào."), "câu nhắc §4.3 của cấp rỗng");
-            assert.equal(await clickTrong(p, "#hh-cap-ct", "Thêm vai trò vào cấp này"), true, "nút «Thêm vai trò vào cấp này»");
+            assert.equal(await clickTrong(p, "#hh-cap-ct", "Gán cho vai trò"), true, "nút «Gán cho vai trò»");
             await choHop(p, "#hh-adcs-loai");
             await p.ev(`(() => { const s = document.getElementById('hh-adcs-loai'); s.value = ${JSON.stringify(L_G.code)}; s.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
             await bocucSach(p, `bước 6 hộp Áp dụng ${kho}`);
@@ -1437,7 +1437,7 @@ try {
             assert.equal(sap0.length, 1, `một lần sắp áp: ${JSON.stringify(sap0)}`);
             assert.ok(sap0[0].chu.includes(`Cấp riêng: ${TEN_CS_1}`) && sap0[0].chu.includes(`Sắp áp dụng từ ${ngayVi(TU_SAP)}`), `dòng sắp áp: ${sap0[0].chu}`);
             assert.deepEqual(sap0[0].nut, ["Sửa"]);
-            assert.deepEqual(await p.ev(`[...document.querySelectorAll('${SEC} .actions button')].map((b) => b.textContent.trim())`), ["Áp dụng cấp riêng"], "hôm nay chưa có cấp riêng đang áp: nút như cũ");
+            assert.deepEqual(await p.ev(`[...document.querySelectorAll('${SEC} .actions button')].map((b) => b.textContent.trim())`), ["Chọn cấp riêng cho đối tác"], "hôm nay chưa có cấp riêng đang áp: nút như cũ");
             assert.equal(await p.ev(`!!document.querySelector('${SEC} .hh-lich-su-khoi')`), false, "chưa có lịch sử");
             const kiemMuc = async (nhan) => {
               const m = await p.ev(`(() => ({ sw: document.documentElement.scrollWidth, iw: innerWidth,

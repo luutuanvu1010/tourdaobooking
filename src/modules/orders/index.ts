@@ -94,7 +94,7 @@ const ghiDuocNhap = (meta: { status: OrderStatus; staffId: string }, staff: { id
 const FORBIDDEN_TERMS = () => error(403, "forbidden", "Chỉ Kế toán, Quản trị hoặc Toàn quyền mới ghi được mức hoa hồng tay.");
 /** «Chụp bù» (sổ đại lý đợt 2): cùng ô `order.terms.override` và cùng luật không cho tài khoản có quyền Đối tác với ghi mức tay. */
 const FORBIDDEN_CHUP_BU = () => error(403, "forbidden", "Chỉ Kế toán, Quản trị hoặc Toàn quyền mới chụp bù được mức hoa hồng.");
-const NOT_EDITABLE = () => error(409, "not_editable", "Chỉ sửa được đơn đang chờ xác nhận. Muốn đổi đơn đã xác nhận, hãy huỷ và tạo đơn mới.");
+const NOT_EDITABLE = () => error(409, "not_editable", "Chỉ sửa được đơn chưa xác nhận. Muốn đổi đơn đã xác nhận, hãy huỷ và tạo đơn mới.");
 const CANCELLED = () => error(409, "not_editable", "Đơn đã huỷ, không sửa được.");
 /** Sổ tiền lượt 1 (ADR-0025 đ5): đơn đã "Đã giao – đã thu đủ" bị khoá — mọi route ghi từ chối SỚM bằng câu tiếng Việt (trigger 0044 là lưới cuối). */
 const DA_GIAO = () => error(409, "order_delivered", "Đơn đã ở bước Đã giao – đã thu đủ: không sửa, huỷ hay đổi người phụ trách được nữa. Sai sót thì Kế toán dùng “Sửa khoản thu đã ghi”.");

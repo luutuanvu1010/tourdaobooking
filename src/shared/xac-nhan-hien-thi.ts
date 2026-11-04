@@ -4,14 +4,26 @@ import type { LegDto, LyDoCanXacNhan, OrderServiceDto } from "./contracts.ts";
 import { vnDateTimeText } from "./vn-date.ts";
 
 /** Nhãn nút (ADR-0136 Đ3, Đ13). «Gửi đơn» là chữ chủ đã duyệt; hai nhãn còn lại lấy từ kế hoạch Task 3.5. */
-export const NHAN_NUT_XAC_NHAN = { send: "Gửi xác nhận", withdraw: "Rút lại", submit: "Gửi đơn" } as const;
+export const NHAN_NUT_XAC_NHAN = { send: "Gửi kiểm vé", withdraw: "Rút lại", submit: "Gửi đơn" } as const;
 
 /** Nhãn trên thẻ ở danh sách chờ (kế hoạch Task 3.3: «Cần Quản trị đặt gấp» khi đơn vào bước chỉ vì chặng dưới mốc và người xem không giữ ô đặt gấp). */
 export const NHAN_CAN_DAT_GAP = "Cần Quản trị đặt gấp";
 export const NHAN_QUA_HAN = "Quá hạn";
 
 /** Ba kết quả của người xét duyệt (mã → chữ). */
-export const NHAN_KET_QUA = { CON_VE: "Còn vé", HET_VE: "Hết vé", HUY: "Huỷ" } as const;
+export const NHAN_KET_QUA = { CON_VE: "Còn vé, xác nhận đơn", HET_VE: "Hết vé", HUY: "Huỷ" } as const;
+
+/**
+ * Hộp hỏi lại trước khi bấm «Còn vé, xác nhận đơn» (ADR-0166 câu 4): nút này chốt đơn ngay, không hoàn tác được. Năm hậu quả phải nói đủ:
+ * giá bị khoá, hoa hồng được chụp, vé được cấp, tiền cọc khách khai thành khoản thu, không hoàn tác.
+ */
+export const HOI_CON_VE = {
+  tieuDe: "Còn vé, xác nhận đơn?",
+  hauQua:
+    "Bấm là chốt đơn ngay và không hoàn tác được. Giá của đơn bị khoá, hoa hồng được chụp lại theo mức lúc này, vé được cấp nếu kho còn, và tiền cọc khách đã khai (nếu có) thành khoản thu trong sổ.",
+  nhanNguyHiem: "Xác nhận đơn",
+  nhanGiu: "Xem lại",
+} as const;
 
 /** Người xét duyệt không sửa được tiền khi đơn đang chờ (chạy tạm Hướng 2 — Task 3.3b hoãn). Chữ này chờ chủ duyệt nhãn. */
 export const CAU_TIEN_KHOA_KHI_CHO = "Đơn đang chờ nên tiền chỉ để xem. Muốn đổi tiền, hãy chọn Huỷ để người lập đơn tạo lại.";
@@ -42,7 +54,7 @@ export const cauLoiGuiDon = (loiMayChu: string): string =>
 /** Báo tại chỗ khi lượt bắt buộc chưa có giờ (không gọi máy chủ). */
 export const CAU_THIEU_GIO_LUOT = "Chọn giờ đón cho lượt này.";
 /** Người xét KHÔNG có ô `order.leg.short_notice` (Kế toán, HDV nội bộ) chọn giờ dưới hạn chốt: nhờ người có ô bấm Còn vé kèm đặt gấp (máy chủ vẫn trả 409 như hôm nay). */
-export const CAU_NHO_DAT_GAP = "Giờ này đã qua hạn chốt. Nhờ Bán hàng hoặc Quản trị bấm Còn vé kèm đặt gấp.";
+export const CAU_NHO_DAT_GAP = "Giờ này đã qua hạn chốt. Nhờ Bán hàng hoặc Quản trị bấm Còn vé, xác nhận đơn kèm đặt gấp.";
 /** Nhãn ô giờ của một lượt: «Giờ đón · Chiều đi · <tên dịch vụ> (bắt buộc)». */
 export const nhanGioLuot = (chieu: string, tenDichVu: string, batBuoc: boolean): string => `Giờ đón · ${chieu} · ${tenDichVu}${batBuoc ? " (bắt buộc)" : ""}`;
 /** Nhãn ghi chú dịch vụ, đứng trên khối giờ của dịch vụ đó. */

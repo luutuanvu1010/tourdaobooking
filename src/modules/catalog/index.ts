@@ -432,13 +432,16 @@ export const catalogModule: AppModule = {
       return json({ item: await adminItemKemNhom(env.DB, (await loadOne(env.DB, item.code))!) } satisfies CatalogItemResponse);
     }),
 
-    // Bỏ toàn bộ ghi đè (giá + ẩn), quay về theo Sheet
+    // Bỏ ghi đè GIÁ, quay về giá theo Sheet (ADR-0166 câu 2). Dấu «Ngừng bán» (hidden) được GIỮ: dịch vụ đang ngừng bán vẫn ngừng bán.
+    // Không còn gì để giữ (không ngừng bán) thì dòng ghi đè bị xoá hẳn như trước (`patchOverride` trả null).
     route("DELETE", "/api/catalog/:code/override", "admin", async ({ env, params, staff }) => {
       if (!can(staff, "admin.manage")) return error(403, "forbidden", "Chỉ quản trị viên được thực hiện thao tác này.");
       const item = await loadByParam(env.DB, params.code);
       if (!item) return NOT_FOUND();
-      if (!item.override) return json({ item: await adminItemKemNhom(env.DB, item) } satisfies CatalogItemResponse);
-      await saveOverride(env.DB, item.code, null, staff.id, new Date().toISOString(), [{ action: "catalog_override_cleared", detail: "quay về giá theo Sheet" }]);
+      if (!item.override || Object.keys(item.override.prices).length === 0) return json({ item: await adminItemKemNhom(env.DB, item) } satisfies CatalogItemResponse); // không có giá ghi đè nào: không đổi gì
+      const conNgungBan = item.override.hidden;
+      const next = patchOverride(item.prices, item.override, { prices: Object.fromEntries(PAX_ORDER.map((c) => [c, null])) });
+      await saveOverride(env.DB, item.code, next, staff.id, new Date().toISOString(), [{ action: "catalog_override_cleared", detail: `bỏ ghi đè giá, quay về giá theo Sheet${conNgungBan ? " (dịch vụ vẫn ngừng bán)" : ""}` }]);
       return json({ item: await adminItemKemNhom(env.DB, (await loadOne(env.DB, item.code))!) } satisfies CatalogItemResponse);
     }),
   ],

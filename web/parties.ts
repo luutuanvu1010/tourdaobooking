@@ -299,7 +299,7 @@ async function openDetail(id: string): Promise<void> {
 
   // -- liên hệ
   const contactRows = p.contacts.map((c) =>
-    h("tr", { class: c.validTo ? "row-off" : "" }, h("td", null, nhanLoaiLienHe(c.kind)), h("td", null, c.value, c.isPrimary && !c.validTo && h("span", { class: "badge" }, "chính")), h("td", { class: "muted" }, c.label ?? ""), h("td", { class: "muted" }, period(c.validFrom, c.validTo)), h("td", null, p.editable && !c.validTo && button("Đóng", (b) => void act(async () => { await api(`/api/parties/${id}/contacts/${c.id}/end`, { method: "POST", body: {} }); await reload(); }, b)))),
+    h("tr", { class: c.validTo ? "row-off" : "" }, h("td", null, nhanLoaiLienHe(c.kind)), h("td", null, c.value, c.isPrimary && !c.validTo && h("span", { class: "badge" }, "chính")), h("td", { class: "muted" }, c.label ?? ""), h("td", { class: "muted" }, period(c.validFrom, c.validTo)), h("td", null, p.editable && !c.validTo && button("Ngừng dùng", (b) => void act(async () => { await api(`/api/parties/${id}/contacts/${c.id}/end`, { method: "POST", body: {} }); await reload(); }, b)))),
   );
   const cKind = select([{ value: "PHONE", label: "Điện thoại" }, { value: "EMAIL", label: "Email" }]);
   const cValue = input("", { maxLength: 200 });
@@ -815,7 +815,7 @@ async function veHoaHongHienHanh(sec: HTMLElement, p: Api.PartyDto, tin?: string
     if (bat.length === 0) return baoLoi("Chưa có cấp độ đại lý nào đang mở — tạo cấp độ đại lý ở trang Hoa hồng đối tác trước.");
     const oMuc = select([{ value: "", label: "Chọn cấp độ đại lý" }, ...bat.map((m) => ({ value: m.code, label: m.ten }))], "");
     const oTu = input(r.homNay, { type: "date" }) as HTMLInputElement;
-    const luu = button("Lưu cấp riêng", (b) => {
+    const luu = button("Lưu", (b) => {
       if (!oMuc.value) return baoLoi("Chọn cấp độ đại lý.");
       guiLenh(b, `/api/pricing/ho-so/${encodeURIComponent(p.id)}/muc-rieng`, { muc: oMuc.value, tuNgay: oTu.value }, "Đã áp dụng cấp riêng cho đại lý này.");
     }, "btn btn-primary");
@@ -873,7 +873,7 @@ async function veHoaHongHienHanh(sec: HTMLElement, p: Api.PartyDto, tin?: string
   const nutSuaRieng = rieng && coQuyenSua(me) && nutSua(rieng, r.homNay) ? button("Sửa", () => void moSua(rieng), "btn") : null;
   const nut: HTMLElement[] = !duocGhi ? []
     : rieng ? [nutNgung, nutSuaRieng].filter((x): x is HTMLButtonElement => x !== null)
-    : [button("Áp dụng cấp riêng", () => void moGan(), "btn")];
+    : [button("Chọn cấp riêng cho đối tác", () => void moGan(), "btn")];
   // N5 (R3): lần gắn riêng đang áp vẫn đọc từ `mucRieng` (câu tra, nút như trên); `ganRieng` (lịch sử) chỉ cho lần sắp áp và nút «Xem lịch sử».
   const lan = chiaLanGan(r.ganRieng, r.homNay);
   const nutSuaSap = (g: Api.GanRiengLichSuDto): HTMLButtonElement => {

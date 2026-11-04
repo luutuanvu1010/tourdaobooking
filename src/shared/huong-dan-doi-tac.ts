@@ -105,7 +105,7 @@ Giờ đón quá sát không chặn bạn gửi đơn: văn phòng chốt giờ 
       tieuDe: "Gửi biên nhận cho khách",
       noiDung: `1. Mở đơn.
 2. Bấm [[Xem biên nhận]].
-3. Hộp **Xác nhận đơn để gửi khách** hiện ảnh xác nhận. Ảnh của đối tác không có dòng người phụ trách.
+3. Hộp **Ảnh gửi khách** hiện ảnh xác nhận. Ảnh của đối tác không có dòng người phụ trách.
 4. Bấm [[Chia sẻ]] để gửi qua Zalo, hoặc [[Tải ảnh PNG]] để lưu về máy.
 
 > Ví dụ: Sau khi xác nhận đơn cho gia đình khách, chị Hoa bấm Xem biên nhận rồi Chia sẻ, chọn Zalo, gửi ảnh cho khách.`,

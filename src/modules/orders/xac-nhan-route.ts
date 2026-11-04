@@ -62,12 +62,12 @@ async function moYeuCau(db: D1Database, i: { id: string; staffId: string; meta: 
   try {
     kq = await db.batch([
       orderTouchDraft(db, i.id, at, i.meta.updatedAt),
-      auditStatement(db, { id: auditId, orderId: i.id, staffId: i.staffId, action: "order_confirm_requested", at, detail: `Gửi xác nhận · ${i.vi.map((v) => NHAN_VI[v]).join("; ")}` }, "changes() > 0"),
+      auditStatement(db, { id: auditId, orderId: i.id, staffId: i.staffId, action: "order_confirm_requested", at, detail: `Gửi kiểm vé · ${i.vi.map((v) => NHAN_VI[v]).join("; ")}` }, "changes() > 0"),
       cauMoYeuCau(db, { id: yeuCauId, orderId: i.id, at, by: i.staffId, han, auditId, canChotGio: i.canChotGio }),
     ]);
   } catch (e) {
     if (/ord_confirm_request.*order_id|ord_confirm_request_one_open|UNIQUE constraint failed: ord_confirm_request/i.test(String((e as Error)?.message ?? e))) {
-      return { loi: error(409, "confirm_already_open", "Đơn này đã gửi xác nhận và đang chờ.") };
+      return { loi: error(409, "confirm_already_open", "Đơn này đã gửi kiểm vé và đang chờ.") };
     }
     throw e;
   }
@@ -78,8 +78,8 @@ async function moYeuCau(db: D1Database, i: { id: string; staffId: string; meta: 
 /** Kiểm «chưa có khoản thu» (Đ3; áp cho Gửi xác nhận và nhánh A của Gửi đơn): hàm TIÊM — không đọc được ⇒ 503, KHÔNG đoán «chưa có». Trả `null` khi được phép mở yêu cầu. */
 async function chanKhoanThu(daThuCuaDon: (orderId: string) => Promise<number | null>, id: string): Promise<Response | null> {
   const daThu = await daThuCuaDon(id);
-  if (daThu === null) return error(503, "khoan_thu_chua_kiem", "Chưa kiểm được khoản thu của đơn nên chưa gửi xác nhận được — báo người phụ trách hệ thống.");
-  if (daThu > 0) return error(409, "confirm_blocked_has_payment", "Đơn đã có khoản thu nên chưa gửi xác nhận được. Hãy báo Kế toán.");
+  if (daThu === null) return error(503, "khoan_thu_chua_kiem", "Chưa kiểm được khoản thu của đơn nên chưa gửi kiểm vé được — báo người phụ trách hệ thống.");
+  if (daThu > 0) return error(409, "confirm_blocked_has_payment", "Đơn đã có khoản thu nên chưa gửi kiểm vé được. Hãy báo Kế toán.");
   return null;
 }
 
@@ -124,8 +124,8 @@ export const xacNhanRoutes = (xetDatGap: XetDatGapSua) => [
     if (!can(staff, "order.modify", { ownerId: meta.staffId, assigned })) return FORBIDDEN_NGUOI_LAP();
     if (phaiGuiDon(staff, meta)) return PHAI_GUI_DON(); // Đ13.5: người lập giữ quyền Đối tác chỉ có nút «Gửi đơn»
     if (meta.deliveredAt) return DA_GIAO_DON();
-    if (meta.status !== "draft" || meta.staffId !== staff.id) return error(409, "invalid_state", "Chỉ gửi xác nhận được đơn nháp của chính bạn.");
-    if (await yeuCauMoCuaDon(env.DB, id)) return error(409, "confirm_already_open", "Đơn này đã gửi xác nhận và đang chờ.");
+    if (meta.status !== "draft" || meta.staffId !== staff.id) return error(409, "invalid_state", "Chỉ gửi kiểm vé được đơn nháp của chính bạn.");
+    if (await yeuCauMoCuaDon(env.DB, id)) return error(409, "confirm_already_open", "Đơn này đã gửi kiểm vé và đang chờ.");
     const order = await findOrder(env.DB, id);
     if (!order) return NOT_FOUND_DON();
     const moc = await mocToiThieu(); // MỘT lần mỗi request (TC-26); chưa có mốc thì không xét được "chặng dưới mốc" ⇒ từ chối kín
@@ -165,7 +165,7 @@ export const xacNhanRoutes = (xetDatGap: XetDatGapSua) => [
     if (!can(staff, "order.submit", { ownerId: meta.staffId })) return error(403, "forbidden", "Chỉ tài khoản Đối tác mới dùng nút Gửi đơn.");
     if (meta.deliveredAt) return DA_GIAO_DON();
     if (meta.status !== "draft" || meta.staffId !== staff.id) return error(409, "order_not_draft", "Chỉ gửi được đơn nháp của chính bạn.");
-    if (await yeuCauMoCuaDon(env.DB, id)) return error(409, "confirm_already_open", "Đơn này đã gửi xác nhận và đang chờ.");
+    if (await yeuCauMoCuaDon(env.DB, id)) return error(409, "confirm_already_open", "Đơn này đã gửi kiểm vé và đang chờ.");
     const order = await findOrder(env.DB, id);
     if (!order) return NOT_FOUND_DON();
     const moc = await mocToiThieu(); // MỘT lần mỗi request (TC-26); chưa có ⇒ không xét được «chặng dưới mốc» ⇒ từ chối kín
@@ -243,7 +243,7 @@ export const xacNhanRoutes = (xetDatGap: XetDatGapSua) => [
     if (!UUID_RE.test(id)) return NOT_FOUND_DON();
     const body = await readJson(request);
     const ketQua = body?.ketQua;
-    if (ketQua !== "CON_VE" && ketQua !== "HET_VE" && ketQua !== "HUY") return error(400, "invalid_input", "Chọn Còn vé, Hết vé hoặc Huỷ.");
+    if (ketQua !== "CON_VE" && ketQua !== "HET_VE" && ketQua !== "HUY") return error(400, "invalid_input", "Chọn Hết vé, Huỷ, hoặc Còn vé, xác nhận đơn.");
     if (typeof body?.yeuCauId !== "string" || body.yeuCauId === "" || typeof body?.updatedAt !== "string" || body.updatedAt === "") return error(400, "invalid_input", "Thiếu yêu cầu xác nhận hoặc mốc cập nhật của đơn — tải lại rồi thử lại.");
     const meta = await getMeta(env.DB, id);
     if (!meta) return NOT_FOUND_DON();
@@ -347,7 +347,7 @@ export const xacNhanRoutes = (xetDatGap: XetDatGapSua) => [
     if (y.pickup_time_required === 1) {
       const thieu = thieuGioChangDau(order.services.map((s) => ({ id: s.id, legs: legsMoi.filter((l) => l.serviceId === s.id) })));
       if (thieu.length > 0) {
-        return json({ error: { code: "pickup_time_required", message: "Còn lượt đưa đón chưa có giờ đón. Ghi giờ đón rồi bấm Còn vé.", legs: thieu.map((t) => ({ legId: t.legId })) } } satisfies PickupTimeRequiredBody, 409);
+        return json({ error: { code: "pickup_time_required", message: "Còn lượt đưa đón chưa có giờ đón. Ghi giờ đón rồi bấm Còn vé, xác nhận đơn.", legs: thieu.map((t) => ({ legId: t.legId })) } } satisfies PickupTimeRequiredBody, 409);
       }
     }
     // ADR-0154 Đ1.4: giờ nhập dưới hạn chốt — mỗi lượt có `datGap` qua MỘT chỗ canh `xetDatGap` (ô `order.leg.short_notice` 403 → lý do 400 → giờ SAU lệnh phải dưới mốc, không thì 409
@@ -412,7 +412,7 @@ export const xacNhanRoutes = (xetDatGap: XetDatGapSua) => [
     }
     const doi = doiNgay && doiGio ? ", đổi ngày và giờ" : doiNgay ? ", đổi ngày" : doiGio ? ", đổi giờ" : "";
     const lyDoNhatKy = [...dauMoi.values()][0]?.lyDo ?? null; // đuôi nhật ký đi theo LÝ DO (G16); mỗi lượt đã có dòng nhật ký riêng với lý do của nó
-    const detail = [`Còn vé${doi}${lyDoNhatKy ? ghiDatGapNhatKy(LY_DO_DAT_GAP[lyDoNhatKy]) : ""}`, cong.detail].filter(Boolean).join(" | ");
+    const detail = [`Còn vé, xác nhận đơn${doi}${lyDoNhatKy ? ghiDatGapNhatKy(LY_DO_DAT_GAP[lyDoNhatKy]) : ""}`, cong.detail].filter(Boolean).join(" | ");
     const auditId = crypto.randomUUID();
     const xn = soanXacNhan(env.DB, id, staff.id, cong.today, meta.updatedAt, nguongMocVn(nowMs, moc.phut), detail, kemChupXacNhan(env.DB, { orderId: id, staffId: staff.id, today: cong.today, chup: cong.chup }), cocXn.coc, { auditId, yeuCauId: y.id });
     const khep = cauKhepYeuCau(env.DB, { id: y.id, at: xn.at, by: staff.id, outcome: "XAC_NHAN", ticket: "CON_VE", note: null, auditId });

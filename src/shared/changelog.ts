@@ -18,11 +18,19 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // Màn «Cấp độ đại lý» (đặc tả docs/superpowers/specs/2026-11-04-man-cap-dai-ly.md). Không migration, không ô quyền mới, không lệnh ghi mới.
+    // Đổi 12 tên nút sau rà soát 4/11 và tách nhãn đơn nháp (ADR-0166). Không migration, không ô quyền; có đổi cách chạy ở «Bỏ ghi đè giá», hộp hỏi «Còn vé, xác nhận đơn», cờ `dangCho` ở danh sách đơn.
     // Số 2.61 và ngày chỉ là tạm cho nhánh: bước A.0 của lần triển khai đặt lại nếu cần.
     version: "2.61",
     date: "2026-11-04",
     items: [
       { kind: "moi", text: "Có màn Cấp độ đại lý: gán cấp hoa hồng nhanh cho mọi đối tác, kể cả công ty chưa có tài khoản, không cần vào trang Hoa hồng đối tác." },
+      { kind: "doi", text: "Đơn chưa gửi kiểm vé nay ghi «Chưa xác nhận»; đơn đã gửi và đang chờ người kiểm vé ghi «Chờ xác nhận». Ảnh gửi khách không đổi." },
+      { kind: "doi", text: "Bấm «Còn vé, xác nhận đơn» nay được hỏi lại và nói rõ việc gì sẽ xảy ra, vì bước này không hoàn tác được." },
+      { kind: "moi", text: "Hoa hồng đối tác: trong một cấp đại lý có hai nút «Gán cho vai trò» và «Gán cho đối tác»." },
+      { kind: "sua", text: "Dịch vụ & giá: «Bỏ ghi đè giá» chỉ đưa giá về theo Sheet, dịch vụ đang ngừng bán vẫn ngừng bán." },
+      { kind: "doi", text: "Đổi tên nút cho đúng việc: «Gửi kiểm vé», «Lưu đơn (chưa xác nhận)», «Ghi khoản thu này», «Ghi khoản thu đòi được», «Mở vé để gửi khách»." },
+      { kind: "doi", text: "Đổi tên nút cho đúng việc: «Ngừng bán», «Mở bán lại», «Kết thúc gián đoạn (xe hỏng)», «Đặt ngày kết thúc», «Ngừng dùng»." },
+      { kind: "sua", text: "Điện thoại: khung «Xác nhận đơn» trải đủ bề ngang, chữ không còn tràn khỏi viền." },
     ],
   },
   {

@@ -10,7 +10,7 @@ export const HD_BAN_HANG: NhomHuongDan = {
   batDauNhanh: `1. Bấm [[Tạo đơn]].
 2. Ở đầu trang, chọn [[Ngày khởi hành]], rồi điền **Tên khách** và [[Số điện thoại]].
 3. Gõ tên dịch vụ vào ô [[Tìm theo tên hoặc mã dịch vụ]], chạm dịch vụ đúng, rồi bấm **+** để nhập số khách.
-4. Bấm [[Lưu, chờ xác nhận]].
+4. Bấm [[Lưu đơn (chưa xác nhận)]].
 5. Trên trang đơn, bấm [[Xác nhận đơn]] và đồng ý.
 6. Bấm [[Xem biên nhận]], rồi [[Chia sẻ]] (gửi qua Zalo) hoặc [[Tải ảnh PNG]].`,
   muc: [
@@ -18,7 +18,7 @@ export const HD_BAN_HANG: NhomHuongDan = {
       tieuDe: "Menu của bạn",
       noiDung: `### Trên máy tính (thanh bên trái)
 
-- **Đầu menu**: [[Tạo đơn]], [[Trang chủ]], [[Đơn hàng]] (số nhỏ bên cạnh là số đơn đang chờ xác nhận), [[Danh bạ]].
+- **Đầu menu**: [[Tạo đơn]], [[Trang chủ]], [[Đơn hàng]] (số nhỏ bên cạnh là số đơn chưa xác nhận), [[Danh bạ]].
 - Nhóm **VẬN CHUYỂN**: [[Điều phối xe]], [[Xe đang chạy]].
 - Nhóm **THIẾT LẬP** (bấm để mở, thu gọn): [[Hoa hồng đối tác]] (chỉ xem), [[Luật bán]], [[Đặc điểm dịch vụ]].
 - **Chân menu**: [[Của tôi]], [[Hỗ trợ]], [[Hướng dẫn]]. Nút [[Đăng xuất]] ở dưới cùng.
@@ -49,12 +49,12 @@ Bốn tab: [[Trang chủ]], [[Đơn hàng]], [[Tạo đơn]], [[Tôi]]. Trong tr
 7. Thêm dịch vụ: lặp bước 4–6 (tối đa 20). Mỗi lúc chỉ một thẻ mở; chạm dòng gập để mở, thùng rác để bỏ.
 8. Khối [[Thanh toán]]: [[Giảm giá (₫)]], [[Ghi chú thanh toán]]. Đơn chưa xác nhận thì chưa ghi thu tiền được: khách trả tiền thì bấm [[Ghi khoản thu]] trên trang đơn sau khi đơn đã **xác nhận**.
 9. Khối [[Người phụ trách]]: để trống thì đơn ở [[Chờ nhận]] — hướng dẫn viên nào cũng nhận được. Muốn giao luôn thì bấm [[Chọn người phụ trách]], tìm tên, chạm người đó. Đổi ý thì bấm [[Đổi]] hoặc [[Bỏ chọn — để Chờ nhận]].
-10. Xem tổng ở thanh dưới cùng (chạm để xem chi tiết; máy tính: [[Tóm tắt]]) rồi bấm [[Lưu, chờ xác nhận]]. Đơn lưu ở [[Chờ xác nhận]], rồi trang đơn mở kèm hộp ảnh biên nhận.
+10. Xem tổng ở thanh dưới cùng (chạm để xem chi tiết; máy tính: [[Tóm tắt]]) rồi bấm [[Lưu đơn (chưa xác nhận)]]. Đơn lưu ở [[Chưa xác nhận]], rồi trang đơn mở kèm hộp ảnh biên nhận.
 
 > Lưu ý: số tiền chỉ để xem trước; máy chủ tính lại khi lưu. Thiếu gì thì khung đỏ [[Chưa lưu được — kiểm tra lại:]] hiện ngay trên nút Lưu.`,
     },
     {
-      tieuDe: "Sửa đơn đang chờ xác nhận",
+      tieuDe: "Sửa đơn chưa xác nhận",
       noiDung: `1. Mở đơn từ [[Đơn hàng]] hoặc [[Trang chủ]].
 2. Bấm [[Sửa]]. Form giống lúc lập.
 3. Sửa xong bấm [[Lưu thay đổi]].
@@ -65,7 +65,7 @@ Bốn tab: [[Trang chủ]], [[Đơn hàng]], [[Tạo đơn]], [[Tôi]]. Trong tr
     },
     {
       tieuDe: "Xác nhận đơn",
-      noiDung: `1. Mở đơn đang [[Chờ xác nhận]].
+      noiDung: `1. Mở đơn đang [[Chưa xác nhận]].
 2. Bấm [[Xác nhận đơn]]. Hộp hỏi lại: sau khi xác nhận, dịch vụ và đơn giá bị khoá. Bấm đồng ý.
 3. Đơn chuyển sang [[Đã xác nhận]].
 
@@ -76,7 +76,7 @@ Nền tảng chỉ cho xác nhận khi mỗi dịch vụ đã chọn Đón hoặ
     {
       tieuDe: "Gửi ảnh biên nhận cho khách",
       noiDung: `1. Trên trang đơn, bấm [[Xem biên nhận]] (lần đầu sau khi lập đơn, hộp này tự mở).
-2. Hộp [[Xác nhận đơn để gửi khách]] vẽ ảnh gồm thông tin công ty, mã đơn, trạng thái, khách, dịch vụ, tiền.
+2. Hộp [[Ảnh gửi khách]] vẽ ảnh gồm thông tin công ty, mã đơn, trạng thái, khách, dịch vụ, tiền.
 3. Bấm [[Tải ảnh PNG]] để lưu về máy, hoặc [[Chia sẻ]] (chỉ có trên máy hỗ trợ, ví dụ iPhone) để gửi thẳng qua Zalo.
 
 > Ví dụ: xác nhận xong đơn của chị Lan → [[Xem biên nhận]] → [[Chia sẻ]] → chọn Zalo → gửi chị Lan.
@@ -98,14 +98,14 @@ Nền tảng chỉ cho xác nhận khi mỗi dịch vụ đã chọn Đón hoặ
       noiDung: `### Đơn hàng
 
 1. Bấm [[Đơn hàng]].
-2. Gõ vào ô tìm (mã đơn, tên, số điện thoại), hoặc bấm nút **Lọc** để lọc theo ngày đi, dịch vụ, trạng thái ([[Chờ xác nhận]], [[Đã xác nhận]], [[Đã huỷ]]) và người lập ([[Đơn tôi lập]] hoặc gõ tên người lập), rồi bấm [[Áp dụng]]. Điều kiện đang lọc hiện thành nhãn trên danh sách; bấm × để bỏ từng cái, [[Xoá lọc]] để bỏ hết. Máy nhớ bộ lọc cho lần sau.
+2. Gõ vào ô tìm (mã đơn, tên, số điện thoại), hoặc bấm nút **Lọc** để lọc theo ngày đi, dịch vụ, trạng thái ([[Chưa xác nhận]], [[Đã xác nhận]], [[Đã huỷ]]) và người lập ([[Đơn tôi lập]] hoặc gõ tên người lập), rồi bấm [[Áp dụng]]. Điều kiện đang lọc hiện thành nhãn trên danh sách; bấm × để bỏ từng cái, [[Xoá lọc]] để bỏ hết. Máy nhớ bộ lọc cho lần sau.
 3. Mỗi thẻ hiện mã, trạng thái, ngày, khách, tiền; mở phần xổ xuống để thấy người phụ trách ("HDV: tên" hoặc [[Chờ nhận]]). Bấm [[Tải thêm]] để xem đơn cũ hơn.
 
 ### Trang chủ
 
 - Máy tính có thẻ [[Lối tắt]]; bấm [[Tất cả]] để xem mọi chức năng.
 - Máy tính: thẻ [[Đang chờ bạn]] liệt kê việc đang chờ, mỗi dòng có số, bấm để làm tiếp: [[Đơn nháp]], [[Đơn còn thiếu tiền]], [[Đơn chưa có người phụ trách]]. Nhãn **Toàn công ty** là số của cả công ty.
-- Điện thoại: các ô số **Còn thiếu tiền**, [[Chờ xác nhận]], [[Chưa phụ trách]] — bấm để sang [[Đơn hàng]].
+- Điện thoại: các ô số **Còn thiếu tiền**, [[Đơn nháp]], [[Chưa phụ trách]] — bấm để sang [[Đơn hàng]].
 - [[Đơn đi]]: đơn đã xác nhận có ngày đi trong ngày đang chọn, xếp theo giờ đón; bấm [[Hôm nay]] / [[Ngày mai]] / [[Ngày kia]] để đổi ngày. Điện thoại có nút [[Gọi]] khách.
 - [[Doanh thu của tôi]]: chỉ đơn **bạn lập** đã xác nhận trong tuần.`,
     },
@@ -121,7 +121,7 @@ Nền tảng chỉ cho xác nhận khi mỗi dịch vụ đã chọn Đón hoặ
       tieuDe: "Điều phối xe",
       noiDung: `Ở [[Điều phối xe]], chọn ngày; cột **Chưa xếp** có các lượt đưa đón của đơn đã xác nhận. Bấm [[+ Chuyến mới]] (xe, tài xế, giờ) → [[Lưu chuyến]], rồi kéo lượt vào chuyến hoặc bấm [[Xếp vào chuyến]]. Chuyến bị giữ thì [[Mở chuyến]] xem lý do và ai xử lý.
 
-Xe đã chạy: mở [[Xe đang chạy]], bấm chuyến. Thêm khách: [[Thêm điểm đón / thêm khách]]. Khách huỷ: [[Báo huỷ]]; ghế giữ tới khi tài xế xác nhận. Đổi nơi đón: [[Cập nhật điểm theo đơn]]. Xe hỏng: [[Gửi đề nghị cứu hộ]] nhờ xe đang chạy (gõ nơi gặp), hoặc [[Cứu hộ]] rồi xếp khách ở khối **Cứu hộ**.
+Xe đã chạy: mở [[Xe đang chạy]], bấm chuyến. Thêm khách: [[Thêm điểm đón / thêm khách]]. Khách huỷ: [[Báo huỷ]]; ghế giữ tới khi tài xế xác nhận. Đổi nơi đón: [[Cập nhật điểm theo đơn]]. Xe hỏng: [[Gửi đề nghị cứu hộ]] nhờ xe đang chạy (gõ nơi gặp), hoặc [[Kết thúc gián đoạn (xe hỏng)]] rồi xếp khách ở khối **Cứu hộ**.
 
 > Lưu ý: xe chỉ chạy được khi đơn đủ họ tên, năm sinh khách và nơi trả. Khi đã tới hạn chốt trước giờ xe chạy, xếp, rút khách, đổi xe, tài xế, huỷ chuyến là **điều chỉnh khẩn cấp**: bạn làm kèm lý do.
 
@@ -132,12 +132,12 @@ Mục "Giờ hẹn đổi — gọi báo khách" ở [[Cần xử lý]]: gọi k
       noiDung: `**Luật bán**: vai trò không được đặt một dịch vụ, một nhóm, hoặc dịch vụ mang một đặc điểm; đơn có dịch vụ bị chặn thì không lập, lưu, xác nhận hay gửi được.
 
 1. [[Luật bán]], [[Thêm luật]]: chọn vai người dùng, phạm vi, ngày.
-2. [[Kết thúc ngay]]: thôi chặn từ bây giờ. [[Hẹn ngày kết thúc]]: ngày đó **tính trọn** — hẹn đến hôm nay vẫn chặn tới hết hôm nay.
+2. [[Kết thúc ngay]]: thôi chặn từ bây giờ. [[Đặt ngày kết thúc]]: ngày đó **tính trọn** — hẹn đến hôm nay vẫn chặn tới hết hôm nay.
 3. [[Đặc điểm dịch vụ]]: chọn giá trị cho từng dịch vụ. Dịch vụ «Chưa khai» không bị chặn theo đặc điểm. Đổi giá trị làm đổi luật bán thì Nền tảng hỏi lại ([[Vẫn lưu]]).`,
     },
     {
-      tieuDe: "Đơn của đối tác chờ xác nhận: bảng Còn vé",
-      noiDung: `Đơn đối tác gửi lên ở trạng thái [[Chờ xác nhận]]; khối **Xác nhận đơn** có [[Còn vé]], [[Hết vé]] và Huỷ. Mỗi dịch vụ có dòng **Ghi chú** của đối tác và ô **Giờ đón** từng lượt. Đối tác không nhập giờ: lượt đầu ghi **(bắt buộc)**, chọn giờ rồi mới bấm [[Còn vé]]. Giờ đã qua hạn chốt thì bấm [[Đặt gấp]] ngay trong bảng. Xác nhận xong, gọi số liên hệ trên đơn để báo giờ; số này là của đối tác khi công tắc ẩn thông tin khách đang bật.`,
+      tieuDe: "Đơn của đối tác chờ xác nhận: kiểm vé",
+      noiDung: `Đơn đối tác gửi lên ở trạng thái [[Chờ xác nhận]]; khối **Xác nhận đơn** có [[Còn vé, xác nhận đơn]], [[Hết vé]] và Huỷ. Mỗi dịch vụ có dòng **Ghi chú** của đối tác và ô **Giờ đón** từng lượt. Đối tác không nhập giờ: lượt đầu ghi **(bắt buộc)**, chọn giờ rồi mới bấm [[Còn vé, xác nhận đơn]]. Giờ đã qua hạn chốt thì bấm [[Đặt gấp]] ngay trong bảng. Xác nhận xong, gọi số liên hệ trên đơn để báo giờ; số này là của đối tác khi công tắc ẩn thông tin khách đang bật.`,
     },
     {
       tieuDe: "Tình huống hay gặp",
@@ -175,7 +175,7 @@ Nền tảng tự tính lại tiền (giảm giá giữ nguyên), ghi [[Lịch s
 
 ### Thiếu thông tin chuyến
 
-- Chưa biết giờ đón: vẫn lưu được; lượt ghi "Chưa chốt giờ". Bổ sung sau bằng [[Sửa]] (đơn chờ xác nhận) hoặc [[Sửa đưa đón]] (đơn đã xác nhận).
+- Chưa biết giờ đón: vẫn lưu được; lượt ghi "Chưa chốt giờ". Bổ sung sau bằng [[Sửa]] (đơn chưa xác nhận) hoặc [[Sửa đưa đón]] (đơn đã xác nhận).
 
 ### Khách huỷ
 
@@ -216,7 +216,7 @@ Huỷ được đơn bạn lập hoặc đang phụ trách. Đơn đã xếp xe 
       tieuDe: "Câu hỏi thường gặp",
       noiDung: `### Lưu xong đơn đã chắc chắn chưa?
 
-Chưa. Đơn mới lưu ở trạng thái [[Chờ xác nhận]]. Phải bấm [[Xác nhận đơn]] thì mới chốt.
+Chưa. Đơn mới lưu ở trạng thái [[Chưa xác nhận]]. Phải bấm [[Xác nhận đơn]] thì mới chốt.
 
 ### Sao tôi không bấm được "Xác nhận đơn"?
 

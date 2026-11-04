@@ -723,7 +723,7 @@ Ghi 2026-10-29 khi đồng bộ bộ «Island Booking System — Design System v
 - **BL-DC-CHUYEN-CONG-TY-GIU** — khi chuyển cọc của đơn huỷ sang đơn mới, Kế toán chọn «Công ty đang giữ» trong khi đối tác chưa nộp: khoản chuyển mang vai công ty nên vé mở (`ghiChuyen` trong `src/modules/billing/coc.ts`). Cần Quản trị duyệt khoản chuyển trước. Muốn chặn thì máy phải đối chiếu số đối tác còn giữ của khoản nguồn.
 - **BL-DC-LY-DO-HUY** — huỷ với lý do khách đổi ý rồi khai lại cọc vẫn đi qua luật chặn (ADR-0159 Đ2 mục 1, chủ đã biết). Ghi lại để không quên, chưa định làm.
 - **BL-DC-CHUA-KIEM** — chưa kiểm: iPhone; câu «chờ đối tác nộp tiền» trên màn vé bằng Chrome; bản in biên nhận (chữ ghi «Khách hàng đã trả trước», không nói đối tác giữ hộ); tải đồng thời; `/ve/:token` đã tạo khi việc nộp bị đảo.
-- **BL-DC-KHO-390** — thẻ «Xác nhận đơn» hẹp, chữ tràn ở khổ 390 và dòng «Chưa tải được» có sẵn trên `main`, không do đặt cọc; chưa sửa.
+- **BL-DC-KHO-390** — thẻ «Xác nhận đơn» hẹp, chữ tràn ở khổ 390 và dòng «Chưa tải được» có sẵn trên `main`, không do đặt cọc; chưa sửa. Phần thẻ hẹp, chữ tràn đã sửa ở lần đổi 12 tên 4/11 (ADR-0166); dòng «Chưa tải được» còn.
 
 ## 62. Các việc để sau từ buổi bàn chính sách chiết khấu (mã `BL-CK-…`, 2026-11-03)
 
@@ -738,3 +738,11 @@ Ghi 2026-10-29 khi đồng bộ bộ «Island Booking System — Design System v
 - **Trạng thái:** `để sau` · Chủ 4/11, nguyên văn: «ok tạm chưa xóa dữ liệu trong Production, mà cho ẩn». Đề xuất nằm ở ADR-0163 (proposed, tạm gác).
 - **Vướng:** Hiến pháp 5.8 xếp N5 trên dữ liệu đã phát hành vào hạng «không bao giờ bẻ, kể cả chủ dự án». Muốn mở lại phải sửa Hiến pháp ở kho luật gốc theo Điều 9 (ít nhất 7 ngày cân nhắc), và phải trả lời trước câu: hạng tuyệt đối có sửa được không, vì câu đầu của 9.4 chỉ cho siết.
 - **Trong lúc chờ:** ẩn dữ liệu theo ADR-0164, ADR-0165; thử nghiệm trên bản Development theo ADR-0162.
+
+## 64. Kịch bản Chrome cũ đỏ sẵn trên bản chính và chữ chờ bảng tham chiếu (mã `BL-KB-…`, 2026-11-04)
+
+- **Trạng thái:** `để sau` · Phát hiện khi chạy lại kịch bản cho ADR-0166. So với `main` aa4086f6 từng dòng lỗi giống hệt, tức không do ADR-0166.
+- **BL-KB-DO-SAN** — mười hai kịch bản đỏ hoặc dừng sớm vì đã cũ so với mã: `dat-gap-smoke` (dựng dữ liệu nhận 404, đơn nháp chỉ người lập đọc), `dieu-phoi-smoke` ở 2026-09-29 (6 bước) và ở 2026-10-12-c3 (3 bước), `chon-hdv-lap-don-smoke` (bước 8, 11), `xe-dang-chay-smoke` (dừng lúc dựng dữ liệu), `nhat-ky-loc-smoke` (đếm cứng 47 hành động), `v1-xac-nhan-png` (11 bước), `qr-smoke` (ô trả trước đã bỏ 26/10), `loc-don-smoke` (hết giờ ở «3 đơn, chưa lọc»), `hdv-viec-cua-toi-smoke` (lần thu nhận 409), `ve-ho-tro-2a-smoke` (hết giờ ở bước 1), `adr-0114-smoke` (bước 9 Trợ giúp). Chữ ADR-0166 sửa trong các kịch bản này chưa được trình duyệt thật chạy tới.
+- **BL-KB-THE-CHUA-NGAY** — đơn chưa có ngày: chữ «Chưa có ngày đón» bị cắt ở thẻ điện thoại (nhãn trạng thái dài hơn một chút làm cắt sớm hơn) và đè sang cột Khách ở bảng máy tính. Thấy trên ảnh thật 4/11; đơn có ngày không bị.
+- **BL-KB-CHUA-CHAY** — `kiem-tra-giao-dien`, `hanh-trinh`: cần dựng máy chủ riêng, chưa chạy lại sau ADR-0166.
+- **BL-KB-CHU-DOT-2** — đưa vào đợt 2 của bảng tham chiếu (đặc tả `docs/superpowers/specs/2026-11-04-bang-tham-chieu-ngon-ngu-design.md`): hộp hỏi của nút «Xác nhận đơn» của người lập nói ít hậu quả hơn hộp «Còn vé, xác nhận đơn»; ô «Đơn nháp» ở Trang chủ gọi cùng loại đơn bằng tên khác; chữ «ẩn» trong thông báo đồng bộ Sheet giữ nguyên vì nói về dịch vụ đã rời Sheet, khác «Ngừng bán» do người bấm.

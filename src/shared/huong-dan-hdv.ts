@@ -48,7 +48,7 @@ Không nhận được đơn **đã huỷ** hay **đã qua ngày đi**.`,
       tieuDe: "Xem và lo đơn của mình",
       noiDung: `Mỗi thẻ ở **Đơn của tôi** có:
 - Ngày đi, mã đơn, nhãn ngày như "Hôm nay", "Ngày mai".
-- Trạng thái: **Chờ xác nhận**, **Đã xác nhận** hoặc **Đã đi tour**.
+- Trạng thái: **Chưa xác nhận**, **Đã xác nhận** hoặc **Đã đi tour**.
 - Tên khách, số điện thoại và nút [[Gọi]]. Bấm là điện thoại quay số.
 - Từng dịch vụ: giờ đón, số khách, nơi đón, giờ khởi hành, khách có mặt, ghi chú.
 - Ba ô tiền: **Tổng tiền**, **Đã thu**, **Còn lại**.
@@ -98,7 +98,7 @@ Bấm [[Xem đơn]] để mở trang đầy đủ. Ở đó không sửa hay hu�
 
 Thẻ đơn biến khỏi Đơn của tôi; người khác thấy đơn ở Đơn chờ nhận, có chữ "được trả lại". Bạn không mở được đơn đó nữa.
 
-- Chỉ trả được đơn **Đã xác nhận**. Đơn chờ xác nhận: báo người lập đơn đổi người phụ trách.
+- Chỉ trả được đơn **Đã xác nhận**. Đơn chưa xác nhận: báo người lập đơn đổi người phụ trách.
 - Đơn đi **hôm nay hoặc ngày mai** thì không còn nút này: **gọi văn phòng** để đổi người.
 - **Có giới hạn số lần:** tối đa **2 đơn liên tiếp** và **15 lần mỗi tuần** (thứ Hai – Chủ nhật). Nhận hoặc được giao một đơn khác và giữ đơn đó thì đếm "liên tiếp" lại từ đầu. Huỷ đơn không tính. Khi đang chặn, hộp Từ chối ghi sẵn "Bạn còn được từ chối … đơn liên tiếp, … lần trong tuần này". Hết lượt thì bấm sẽ hiện **"Hãy gọi văn phòng"** — gọi văn phòng để đổi người.
 
@@ -136,12 +136,12 @@ Tin quan trọng có nút [[Đã hiểu]]. Đọc xong thì bấm.
 4. Muốn tắt: bấm [[Tắt]] ở cùng mục.`,
     },
     {
-      tieuDe: "Đơn của đối tác chờ xác nhận: bảng Còn vé",
-      noiDung: `Đơn đối tác gửi lên ở trạng thái [[Chờ xác nhận]]; khối **Xác nhận đơn** có [[Còn vé]], [[Hết vé]] và Huỷ. Mỗi dịch vụ có dòng **Ghi chú** của đối tác và ô **Giờ đón** từng lượt. Đối tác không nhập giờ: lượt đầu ghi **(bắt buộc)**, chọn giờ rồi mới bấm [[Còn vé]]. Hướng dẫn viên nội bộ không có nút Đặt gấp: giờ đã qua hạn chốt thì nhờ Bán hàng hoặc Quản trị bấm [[Còn vé]] kèm đặt gấp. Xác nhận xong, gọi số liên hệ trên đơn để báo giờ; số này là của đối tác khi công tắc ẩn thông tin khách đang bật.`,
+      tieuDe: "Đơn của đối tác chờ xác nhận: kiểm vé",
+      noiDung: `Đơn đối tác gửi lên ở trạng thái [[Chờ xác nhận]]; khối **Xác nhận đơn** có [[Còn vé, xác nhận đơn]], [[Hết vé]] và Huỷ. Mỗi dịch vụ có dòng **Ghi chú** của đối tác và ô **Giờ đón** từng lượt. Đối tác không nhập giờ: lượt đầu ghi **(bắt buộc)**, chọn giờ rồi mới bấm [[Còn vé, xác nhận đơn]]. Hướng dẫn viên nội bộ không có nút Đặt gấp: giờ đã qua hạn chốt thì nhờ Bán hàng hoặc Quản trị bấm [[Còn vé, xác nhận đơn]] kèm đặt gấp. Xác nhận xong, gọi số liên hệ trên đơn để báo giờ; số này là của đối tác khi công tắc ẩn thông tin khách đang bật.`,
     },
     {
       tieuDe: "Tình huống hay gặp",
-      noiDung: `- **Nhận đơn Chờ xác nhận:** vẫn nhận được, nhưng chưa sửa hay huỷ được. Thẻ ghi "Đơn đang chờ xác nhận — chưa thể huỷ hay sửa số khách." Đợi văn phòng xác nhận.
+      noiDung: `- **Nhận đơn Chưa xác nhận:** vẫn nhận được, nhưng chưa sửa hay huỷ được. Thẻ ghi "Đơn chưa xác nhận — chưa thể huỷ hay sửa số khách." Đợi văn phòng xác nhận.
 - **Nhận nhầm, bận không đi được:** bấm [[Từ chối đơn]] ở thẻ đơn (xem mục Trả đơn). Đơn đi hôm nay hoặc ngày mai thì gọi văn phòng giao cho người khác.
 - **Đơn đã qua ngày đi:** không còn nút [[Huỷ đơn]] và [[Sửa số khách]]. Cần huỷ hay sửa số khách thì nhờ văn phòng (người lập đơn, Kế toán hoặc Quản trị).
 - **Đang sửa thì văn phòng cũng sửa đơn đó:** Nền tảng đóng bảng, hiện dòng báo màu vàng rồi tải lại. Bạn xem lại rồi làm lại.

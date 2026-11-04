@@ -229,6 +229,7 @@ body.tabbar-an .vc-bottom-bar, body.tabbar-dinh .vc-bottom-bar { bottom: 0; }
 @media (max-width: 640px) {
   .thanh-cong-cu-don, .thanh-cong-cu-don > .actions { display: grid; grid-template-columns: minmax(0, 1fr); width: 100%; }
   .thanh-cong-cu-don > #actions { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; }
+  .thanh-cong-cu-don > #actions > .cx-bang, .thanh-cong-cu-don > #actions > p { grid-column: 1 / -1; } /* lưới hai cột dành cho NÚT: khối «Xác nhận đơn» và câu cảnh báo phải trải hết bề ngang, không chữ tràn viền */
   .thanh-cong-cu-don .actions > .btn, .thanh-cong-cu-don .huy-don > .btn { width: 100%; height: 100%; margin: 0; }
   .thanh-cong-cu-don .huy-don { margin-left: 0; }
 }

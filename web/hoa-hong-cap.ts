@@ -343,11 +343,14 @@ function chiTietCap(m: Api.MucTaDto, d: DuLieuHoaHong, mo: MoHop): HTMLElement {
     sua.addEventListener("click", () => mo.suaDanhMuc(thamSuaCap(m)));
     nut.append(sua);
     if (m.dangBat) {
-      const ad = h("button", { type: "button", class: "nut", "data-cap": "phu" }, "Thêm vai trò vào cấp này");
+      const ad = h("button", { type: "button", class: "nut", "data-cap": "phu", "data-viec": "gan-vai-tro" }, "Gán cho vai trò");
       ad.addEventListener("click", () => mo.apDungChinhSach(m));
+      // ADR-0166 câu 1: gán cho MỘT đối tác là việc khác (cấp riêng) — mở hộp cấp riêng với cấp đang xem chọn sẵn, vẫn bắt chọn đối tác; không đổi dữ liệu nào.
+      const gd = h("button", { type: "button", class: "nut", "data-cap": "phu", "data-viec": "gan-doi-tac" }, "Gán cho đối tác");
+      gd.addEventListener("click", () => mo.datCapRieng(undefined, m.code));
       const them = h("button", { type: "button", class: "nut", "data-cap": "phu" }, "＋ Thêm hoa hồng cho dịch vụ");
       them.addEventListener("click", () => mo.themMuc({ ai: { loai: "MUC", code: m.code } }));
-      nut.append(ad, them);
+      nut.append(ad, gd, them);
     }
     nut.append(nutKhoaCap(m, mo, loiEl));
   }

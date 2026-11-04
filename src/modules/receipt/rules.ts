@@ -107,7 +107,9 @@ export function dungBienNhan(order: OrderDetailDto, company: CompanyDto, tien: T
   return {
     company: { name: company.name, taxCode: company.taxCode, address: company.address, hotline: company.hotline, email: company.email },
     orderCode: order.orderCode,
-    status: trangThaiHienThi({ status: order.status, deliveredAt: order.deliveredAt, completedAt: order.completedAt }),
+    // Chữ KHÁCH đọc (biên nhận, ảnh gửi khách): đơn nháp luôn «Chờ xác nhận», KHÔNG đi theo nhãn nội bộ «Chưa xác nhận» (ADR-0166 câu 5) — khách không cần biết
+    // đơn đã qua bước kiểm vé hay chưa. Cờ `true` cố định; bài `bien-nhan.test.ts` khoá.
+    status: trangThaiHienThi({ status: order.status, deliveredAt: order.deliveredAt, completedAt: order.completedAt, dangCho: true }),
     createdAt: order.createdAt,
     customerName: order.customerName,
     customerPhone: order.customerPhone,

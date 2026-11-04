@@ -756,7 +756,7 @@ function theViecVanPhong(): HTMLElement | null {
   them.addEventListener("click", () => void moThemDiem(them));
   const capNhat = h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary", "data-action": "cap-nhat-diem" }, "Cập nhật điểm theo đơn") as HTMLButtonElement;
   capNhat.addEventListener("click", () => void capNhatDiem(capNhat));
-  const cuuHoNut = coTienDo ? (h("button", { type: "button", class: "vc-btn vc-btn-danger", "data-action": "cuu-ho" }, "Cứu hộ") as HTMLButtonElement) : null;
+  const cuuHoNut = coTienDo ? (h("button", { type: "button", class: "vc-btn vc-btn-danger", "data-action": "cuu-ho" }, "Kết thúc gián đoạn (xe hỏng)") as HTMLButtonElement) : null;
   cuuHoNut?.addEventListener("click", () => moGianDoan(cuuHoNut, true));
   // Gói A5 (ADR-0111 Đ4): văn phòng gửi THAY tài xế đề nghị cứu hộ — xe đang chạy khác tới nơi gặp nhận cả khách trên xe và khách chờ (ô trip.progress).
   const deNghiNut = coTienDo ? (h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary", "data-action": "gui-de-nghi-cuu-ho" }, "Gửi đề nghị cứu hộ") as HTMLButtonElement) : null;
@@ -821,7 +821,7 @@ async function moGuiCuuHo(opener: HTMLButtonElement): Promise<void> {
             chon = c;
             guiNut.disabled = false;
           })
-        : h("p", { class: "dp-note" }, `Hôm nay không có xe đang chạy nào khác còn đủ chỗ cho ${soKhach} khách — dùng "Cứu hộ" để kết thúc gián đoạn rồi xếp xe.`),
+        : h("p", { class: "dp-note" }, `Hôm nay không có xe đang chạy nào khác còn đủ chỗ cho ${soKhach} khách — dùng "Kết thúc gián đoạn (xe hỏng)" rồi xếp xe.`),
       ...xe.filter((v) => !v.d.du).map((v) => h("p", { class: "dp-note" }, `${v.d.nhan} — ${v.d.cho}, không đủ chỗ`)),
       h("div", { class: "vc-field" }, h("label", { class: "vc-label", for: "ct-noi-gap" }, "Nơi gặp *"), noiGap),
       loi,

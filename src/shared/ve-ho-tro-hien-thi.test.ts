@@ -139,7 +139,7 @@ test("huyHieuUuTien: Thường không gắn nhãn; Cao, Khẩn có nhãn tiếng
 });
 
 test("nhanDonChon: mã đơn + trạng thái bằng chữ tiếng Việt, không lộ mã thô", () => {
-  assert.equal(nhanDonChon({ orderCode: "TD-20261017-0001", status: "draft" }), "TD-20261017-0001 · Chờ xác nhận");
+  assert.equal(nhanDonChon({ orderCode: "TD-20261017-0001", status: "draft" }), "TD-20261017-0001 · Chưa xác nhận");
   assert.equal(nhanDonChon({ orderCode: "TD-20261017-0002", status: "confirmed" }), "TD-20261017-0002 · Đã xác nhận");
   assert.equal(nhanDonChon({ orderCode: "TD-20261017-0003", status: "cancelled" }), "TD-20261017-0003 · Đã huỷ");
   for (const s of ["draft", "confirmed", "cancelled"] as const) assert.doesNotMatch(nhanDonChon({ orderCode: "X", status: s }), /draft|confirmed|cancelled/);

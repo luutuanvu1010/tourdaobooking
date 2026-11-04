@@ -495,7 +495,7 @@ function recompute(): void {
   capNhatBuoc();
   const tooMany = ds.some((d) => draftIssues(d).some((i) => i.code === "too_many_guests")); // vượt 50 khách khoá nút Lưu (đặc tả 5.1)
   saveBtn.disabled = formLocked || saving || tooMany;
-  saveBtn.textContent = saving ? (guiDonKhiLuu && !editId ? "Đang gửi…" : "Đang lưu…") : editId ? "Lưu thay đổi" : guiDonKhiLuu ? NHAN_NUT_XAC_NHAN.submit : "Lưu, chờ xác nhận";
+  saveBtn.textContent = saving ? (guiDonKhiLuu && !editId ? "Đang gửi…" : "Đang lưu…") : editId ? "Lưu thay đổi" : guiDonKhiLuu ? NHAN_NUT_XAC_NHAN.submit : "Lưu đơn (chưa xác nhận)";
 }
 
 for (const id of ["discount", "declaredDeposit"]) {
@@ -861,12 +861,12 @@ async function loadOrder(): Promise<void> {
     const { order, canModify } = await layDon!();
     // `canModify` do MÁY CHỦ quyết (người lập, người phụ trách đơn — ADR-0009 — hoặc quản trị); câu này chỉ giải thích khi bị từ chối.
     if (!canModify) return lockForm(banner("danger", "Chỉ người lập đơn, người phụ trách đơn hoặc quản trị viên mới được sửa đơn này."));
-    if (order.status !== "draft") return lockForm(banner("danger", "Chỉ sửa được đơn đang chờ xác nhận."));
+    if (order.status !== "draft") return lockForm(banner("danger", "Chỉ sửa được đơn chưa xác nhận."));
     byId("form-title").textContent = `Sửa đơn ${order.orderCode}`;
     setBarTitle(`Sửa đơn ${order.orderCode}`);
     suaSoVe = suaChuyenDuoc(staff, order.staffId, canModify); // trước fill: thẻ dựng ô "Số người chiều về" theo cờ này
     const baoBoChang = fill(order);
-    if (baoBoChang.length > 0) renderBanner(saveErrorEl, banner("warning", `${baoBoChang.join(" ")} Bấm Lưu nháp để ghi lại.`));
+    if (baoBoChang.length > 0) renderBanner(saveErrorEl, banner("warning", `${baoBoChang.join(" ")} Bấm Lưu thay đổi để ghi lại.`));
     // Hành khách của nháp: chỉ người có ô order.passenger.write; tải hỏng → KHÔNG dựng khối và KHÔNG gửi khoá `passengers` (máy chủ giữ danh sách đang lưu —
     // không bao giờ gửi [] khi chưa biết danh sách thật).
     // Tải lại đơn (sau 409 stale): bỏ khối cũ TRƯỚC — tải danh sách hỏng thì không được gửi lại danh sách cũ đè lên bản người khác vừa sửa (R6).

@@ -1,5 +1,5 @@
 // GHI CHÚ 27/10/2026 (ADR-0135/0136): đỏ từ 27/10: dựng đơn bằng ô «Thanh toán trước» / ghi thu lên nháp (ADR-0135 Đ7: màn Tạo đơn không còn ô này, nháp không ghi thu được). Thay bằng `docs/evidence/2026-10-26-xac-nhan-don/kich-ban/xac-nhan-smoke.mjs` (ảnh xác nhận chỉ sau khi đơn đã xác nhận); sửa dựng dữ liệu nếu cần kiểm PNG (ghi nợ).
-// Kiểm ẢNH XÁC NHẬN ĐƠN (PNG dựng bằng canvas ở trình duyệt) + hộp thoại "Xác nhận đơn để gửi khách" bằng Chrome thật. Nằm trong repo, không thêm dependency (dùng esbuild
+// Kiểm ẢNH XÁC NHẬN ĐƠN (PNG dựng bằng canvas ở trình duyệt) + hộp thoại "Ảnh gửi khách" bằng Chrome thật. Nằm trong repo, không thêm dependency (dùng esbuild
 // đã có ở devDependencies để đóng gói bộ vẽ + mô hình thuần thành một script chạy được trong trang, phục vụ đối chiếu byte và đo bố cục).
 // Dựa trên môi trường của A2 (`../../2026-09-20-a2/kich-ban/a2-cdp.mjs`: D1 tạm + `wrangler dev` + Chrome headless qua CDP; Turnstile TẮT). Chạy từ GỐC repo, sau `npm run build:web`:
 //   npm run build:web && AXE_JS=<…/axe/package/axe.min.js> CHROME_BIN=<…/kich-ban/chrome-wrap.sh> node docs/evidence/2026-09-21-v1-0/kich-ban/v1-xac-nhan-png.mjs
@@ -372,7 +372,7 @@ function getUi() {
 await step("a", "tạo đơn bằng giao diện (dịch vụ theo người có thông tin chuyến + dịch vụ danh mục thứ hai) → tự chuyển tới /order?id=…&moi=1, hộp thoại tự mở đúng một lần, ảnh hiện, URL đã bỏ moi", async () => {
   const ui = await getUi();
   assert.equal(ui.dialogs, 1, "đúng một hộp thoại");
-  assert.equal(ui.title, "Xác nhận đơn để gửi khách");
+  assert.equal(ui.title, "Ảnh gửi khách");
   assert.equal(ui.search, `?id=${ui.id}`, `URL phải bỏ moi=1 sau khi mở hộp thoại (thấy "${ui.search}")`);
   const navs = ui.p.requests.filter((r) => /\/order\?id=/.test(r.url)).map((r) => r.url.replace(env.base, ""));
   assert.ok(navs.some((u) => u === `/order?id=${ui.id}&moi=1`), `phải có lần điều hướng /order?id=…&moi=1 (thấy ${JSON.stringify(navs)})`);
@@ -759,7 +759,7 @@ async function dialogChecks(p, label, opener) {
       overflow: document.documentElement.scrollWidth - innerWidth, dialogOverflow: d.scrollWidth - d.clientWidth, imgInFrame: !frame || !img || (img.left >= frame.left - 0.5 && img.right <= frame.right + 0.5) };
   })()`);
   assert.equal(st.modal, "true", `${label}: aria-modal`);
-  assert.equal(st.title, "Xác nhận đơn để gửi khách", `${label}: tên hộp thoại (aria-labelledby)`);
+  assert.equal(st.title, "Ảnh gửi khách", `${label}: tên hộp thoại (aria-labelledby)`);
   assert.deepEqual([st.inertAll, st.rootInert, st.bodyOpen], [true, false, true], `${label}: nền inert (${st.inertCount} phần tử), bản thân hộp thoại không inert, body.sheet-open`);
   assert.equal(st.focusIn, true, `${label}: focus nằm trong hộp thoại`);
   assert.deepEqual(st.small, [], `${label}: vùng chạm < 44 px`);

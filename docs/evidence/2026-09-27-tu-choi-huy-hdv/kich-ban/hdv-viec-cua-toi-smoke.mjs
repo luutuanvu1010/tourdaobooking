@@ -184,10 +184,10 @@ try {
     // Đơn của tôi: chưa đi tour theo ngày gần nhất (M1 +2, M2 +4, M4 +6), đã đi tour cuối (M3).
     assert.deepEqual(s.mine.map((c) => c.id), [M1.id, M2.id, M4.id, M3.id], JSON.stringify(s.mine.map((c) => c.code)));
     const [m1, m2, m4, m3] = s.mine;
-    assert.deepEqual([m1.chip, m2.chip, m4.chip, m3.chip], ["Chờ xác nhận", "Đã xác nhận", "Đã xác nhận", "Đã đi tour"]);
+    assert.deepEqual([m1.chip, m2.chip, m4.chip, m3.chip], ["Chưa xác nhận", "Đã xác nhận", "Đã xác nhận", "Đã đi tour"]);
     assert.equal(m3.code, `${M3.orderCode} · Đã đi 2 ngày trước`);
-    assert.equal(m1.note, "Đơn đang chờ xác nhận — chưa thể huỷ hay sửa số khách.");
-    assert.deepEqual(m1.buttons, [], "đơn chờ xác nhận: KHÔNG nút nào");
+    assert.equal(m1.note, "Đơn chưa xác nhận — chưa thể huỷ hay sửa số khách.");
+    assert.deepEqual(m1.buttons, [], "đơn chưa xác nhận: KHÔNG nút nào");
     assert.deepEqual(m2.buttons, ["Sửa số khách", "Từ chối đơn", "Huỷ đơn"]); // ADR-0030 điều 1 (2026-10-23): đơn đã xác nhận đi sau ngày mai có thêm «Từ chối đơn»
     // Chủ dự án 2026-10-23 («duyệt, đổi thứ tự nút»): «Từ chối đơn» lên trên, «Huỷ đơn» xuống CUỐI (sau «Xem đơn») để khỏi bấm nhầm Huỷ.
     assert.deepEqual(m2.actions, ["Sửa số khách", "Từ chối đơn", "Xem đơn", "Huỷ đơn"]);
@@ -255,7 +255,7 @@ try {
     assert.deepEqual(JSON.parse(puts[0].postData), { staffId: hdv.id }, "thân Nhận = { staffId: chính mình }");
   });
 
-  await step("4", "Bấm Nhận → đơn sang “Đơn của tôi” (tải lại từ máy chủ: đủ SĐT, nơi đón, tiền, chip “Chờ xác nhận”), hàng chờ trống “Không có đơn nào đang chờ nhận.”, banner cũ biến mất" + axeNote(), async () => {
+  await step("4", "Bấm Nhận → đơn sang “Đơn của tôi” (tải lại từ máy chủ: đủ SĐT, nơi đón, tiền, chip “Chưa xác nhận”), hàng chờ trống “Không có đơn nào đang chờ nhận.”, banner cũ biến mất" + axeNote(), async () => {
     assert.ok(await desk.ev(`(() => { const b = (${poolCard(P3.orderCode)}).querySelector('button'); b.click(); return true; })()`));
     await desk.waitFor(`!!(${mineCard(P3)})`, "P3 hiện trong Đơn của tôi", 10000);
     await desk.waitFor(`!(${poolCard(P3.orderCode)})`, "P3 rời hàng chờ", 10000);
@@ -267,7 +267,7 @@ try {
     assert.equal(s.poolCount, "0");
     assert.equal(s.mineCount, "5");
     const p3 = s.mine.find((c) => c.id === P3.id);
-    assert.equal(p3.chip, "Chờ xác nhận");
+    assert.equal(p3.chip, "Chưa xác nhận");
     assert.deepEqual(p3.buttons, []);
     assert.deepEqual(p3.money, await moneyOf(await detail(P3)));
     assert.ok(p3.customer.includes("Khách Chờ Ba") && p3.customer.includes(POOL_PHONE), "sau khi nhận: thấy tên + SĐT khách");

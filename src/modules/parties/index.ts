@@ -2071,7 +2071,7 @@ export const partiesModule: AppModule = {
       const at = now.toISOString();
       const results = await env.DB.batch([
         endContactStatement(env.DB, id, cid, to.value, staff.id, at),
-        auditStatement(env.DB, { staffId: staff.id, action: "party_contact_changed", at, targetType: "party", targetId: id, detail: "đóng một liên hệ" }, "changes() > 0"),
+        auditStatement(env.DB, { staffId: staff.id, action: "party_contact_changed", at, targetType: "party", targetId: id, detail: "ngừng dùng một liên hệ" }, "changes() > 0"),
       ]);
       if ((results[0]!.meta.changes ?? 0) === 0) return NOT_OPEN();
       return respondParty(ctx, id);

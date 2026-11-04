@@ -58,7 +58,7 @@ try {
     await s.ev(click(".xdc-the"));
     await moChuyen(s);
     // A-1b (cứu hộ đơn giản): nút "Cứu hộ" ở cuối khối — kịch bản riêng cuu-ho-smoke.mjs kiểm hộp + khối CH.2.
-    assert.deepEqual(await s.ev(`[...document.querySelectorAll('.dp-viec-vp button')].map((x) => x.innerText.trim())`), ["Thêm điểm đón / thêm khách", "Cập nhật điểm theo đơn", "Gửi đề nghị cứu hộ", "Cứu hộ"]); // + "Gửi đề nghị cứu hộ" (gói A5, ADR-0111)
+    assert.deepEqual(await s.ev(`[...document.querySelectorAll('.dp-viec-vp button')].map((x) => x.innerText.trim())`), ["Thêm điểm đón / thêm khách", "Cập nhật điểm theo đơn", "Gửi đề nghị cứu hộ", "Kết thúc gián đoạn (xe hỏng)"]); // + "Gửi đề nghị cứu hộ" (gói A5, ADR-0111)
     assert.equal(await s.ev(`document.querySelectorAll('.dp-kc').length`), 2);
     assert.equal(await s.ev(`document.querySelectorAll('.dp-kc [data-action="bao-huy"]').length`), 2);
     assert.match(await s.ev(txt(".dp-kc")), /^Hành Khách Thử 5-1 TD-\d{8}-\d{4} · Điểm 1 · Citadines Bayfront · 10:00 Báo huỷ$/);

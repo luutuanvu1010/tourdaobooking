@@ -56,9 +56,9 @@ test("paxSummary: tổng khách + chi tiết theo loại (chữ thường, bỏ 
   assert.deepEqual(paxSummary(pax()), { total: 0, detail: "" });
 });
 
-test("myJobChip: chờ xác nhận = cát; đã xác nhận còn ngày đi = xanh; đã xác nhận qua ngày đi = 'Đã đi tour' xám", () => {
-  assert.deepEqual(myJobChip("draft", false), { label: "Chờ xác nhận", tone: "warn" });
-  assert.deepEqual(myJobChip("draft", true), { label: "Chờ xác nhận", tone: "warn" }, "nháp qua ngày đi vẫn là chờ xác nhận (bản thiết kế: isPast chỉ khi đã xác nhận)");
+test("myJobChip: chưa xác nhận = cát; đã xác nhận còn ngày đi = xanh; đã xác nhận qua ngày đi = 'Đã đi tour' xám", () => {
+  assert.deepEqual(myJobChip("draft", false), { label: "Chưa xác nhận", tone: "warn" });
+  assert.deepEqual(myJobChip("draft", true), { label: "Chưa xác nhận", tone: "warn" }, "nháp qua ngày đi vẫn là chưa xác nhận (bản thiết kế: isPast chỉ khi đã xác nhận)");
   assert.deepEqual(myJobChip("confirmed", false), { label: "Đã xác nhận", tone: "ok" });
   assert.deepEqual(myJobChip("confirmed", true), { label: "Đã đi tour", tone: "muted" });
 });
