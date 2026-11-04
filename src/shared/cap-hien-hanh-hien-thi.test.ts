@@ -5,7 +5,7 @@
 import { test, mock } from "node:test";
 import assert from "node:assert/strict";
 import type { CapHienHanhDto, SuaXemTruocResponse } from "./contracts.ts";
-import { CHU_CAP, cauNgayMacDinh, macDinhBangCap, nhanTheoVaiTu, ngayMayLucMo, nutMoBang, oCapCuaDong, suaDuocCot, thayCotCap, thucHienLenhGhiCap, yeuCauGhiCap, type DuongGhiCap } from "./cap-hien-hanh-hien-thi.ts";
+import { CHU_CAP, cauNgayMacDinh, macDinhBangCap, nhanTheoVaiTu, ngayMayLucMo, nutMoBang, oCapCuaDong, oCapCuaHoSo, suaDuocCot, thayCotCap, thucHienLenhGhiCap, yeuCauGhiCap, type DuongGhiCap } from "./cap-hien-hanh-hien-thi.ts";
 import { PERMISSION_CODES, can, holdsPartner, type PermissionCode } from "./permissions.ts";
 import { NGHIA_HON_DAO, TU_DA_LOAI } from "./bang-tu-giao-dien.ts";
 import { addDays, vnToday } from "./vn-date.ts";
@@ -467,4 +467,15 @@ test("(n5) «Dùng cấp theo vai trò» đọc ngày bằng …/sua: mọi tr�
     }
   }
   assert.ok(soTrangThai > 100 && soBiChan > 20, `chống bài rỗng: ${soTrangThai} trạng thái, ${soBiChan} bị …/sua chặn`);
+});
+
+test("oCapCuaHoSo (màn «Cấp độ đại lý»): hồ sơ không cần quyền nào, bốn nguồn ra đúng chữ như dòng tài khoản; oCapCuaDong giữ nguyên cổng quyền", () => {
+  const coDoiTac = { permissions: ["PARTNER"] as const, partyId: "p1" };
+  const mau = (nguon: CapHienHanhDto["nguon"], cap: CapHienHanhDto["cap"]): CapHienHanhDto => ({ partyId: "p1", nguon, cap, coMucRieng: false, rieng: null, sapApTu: null, doiDuoc: true });
+  for (const v of [mau("RIENG", { code: "A", ten: "TA1" }), mau("THEO_VAI", { code: "A", ten: "TA1" }), mau("XUNG_DOT", null), mau("CHUA_CO", null)]) {
+    assert.deepEqual(oCapCuaHoSo(v), oCapCuaDong({ ...coDoiTac, permissions: ["PARTNER"] }, v), v.nguon);
+    assert.equal(oCapCuaHoSo(v).moBang, true, "hồ sơ đang mang vai trò được hưởng luôn mở được bảng");
+  }
+  assert.equal(oCapCuaDong({ permissions: ["SALES"], partyId: "p1" }, mau("CHUA_CO", null)), null, "dòng tài khoản không giữ quyền Đối tác vẫn là ô trống");
+  assert.equal(oCapCuaDong({ permissions: ["PARTNER"], partyId: "p1" }, undefined)?.chu, CHU_CAP.chuaCoVaiTro, "dòng tài khoản ngoài kết quả vẫn «Chưa có vai trò»");
 });

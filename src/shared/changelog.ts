@@ -17,6 +17,15 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Màn «Cấp độ đại lý» (đặc tả docs/superpowers/specs/2026-11-04-man-cap-dai-ly.md). Không migration, không ô quyền mới, không lệnh ghi mới.
+    // Số 2.61 và ngày chỉ là tạm cho nhánh: bước A.0 của lần triển khai đặt lại nếu cần.
+    version: "2.61",
+    date: "2026-11-04",
+    items: [
+      { kind: "moi", text: "Trang mới «Cấp độ đại lý»: Kế toán và Quản trị xem và đặt cấp cho mọi đối tác ở một nơi, gồm cả công ty chưa có tài khoản, không cần mở trang Hoa hồng đối tác." },
+    ],
+  },
+  {
     // Hồ sơ chưa có tài khoản (cả tổ chức) mang năm vai đối tác ở Danh bạ và hưởng hoa hồng theo cấp (ADR-0155 Đ1, C3, C4, C6). Không migration, không ô quyền mới.
     // Số 2.60 và ngày chỉ là tạm cho nhánh: bước A.0 của lần triển khai đặt lại nếu cần.
     version: "2.60",

@@ -548,6 +548,7 @@ const staff = await initShell();
 me = staff;
 meSuper = can(staff, "admin.manage.superadmin"); // ADR-0072 mục 4a: hỏi bảng quyền (ô gán/gỡ Toàn quyền), không hỏi mã
 canAccessManage = can(staff, "account.access.manage");
+byId("lien-ket-cap-dai-ly").hidden = !suaDuocCot(me); // lối sang màn gom (đặc tả 2026-11-04-man-cap-dai-ly): cùng cổng với route đọc của màn
 hienCotCap = thayCotCap(staff); // ADR-0155 Đ2.2: hỏi bảng quyền (ô xem hoa hồng đối tác, không giữ Đối tác), không hỏi mã vai
 cotCapEl.hidden = !hienCotCap;
 // ADR-0071 điều 1b: cổng trang theo ô account.view (Quản trị, Toàn quyền, Hành chính nhân sự — cùng đối tượng với cổng "accounts" của API); khung "Thêm tài khoản"

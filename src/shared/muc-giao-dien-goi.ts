@@ -32,6 +32,7 @@ export const GOI_CHINH = {
   dieuChinhCongNo: "GET /api/ledger/adjustment-requests",
   phanDinh: "GET /api/ledger/phan-dinh",
   hoaHong: "GET /api/pricing/hoa-hong",
+  capDaiLy: "GET /api/pricing/cap-dai-ly",
   luatBan: "GET /api/pricing/luat-ban",
   dacDiem: "GET /api/catalog/dac-diem",
   nguoiBan: "GET /api/pricing/cung-ung",

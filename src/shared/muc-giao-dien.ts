@@ -108,6 +108,8 @@ export const TRANG = {
   // Bảng mức hoa hồng và điều khoản người bán (sổ đại lý đợt 1 Task 10): ô partner.commission.view / supply.terms.view không ngữ cảnh. Bảy route `pricing` chặn THÊM tài khoản giữ quyền
   // Đối tác (kể cả tài khoản lai, Ruling 12) — mục hiện phải chặn CÙNG điều kiện, nếu không tài khoản lai thấy mục mà bấm vào bị 403.
   hoaHong: { duong: "/hoa-hong", hien: (s) => can(s, "partner.commission.view") && !holdsPartner(s) },
+  // Màn «Cấp độ đại lý» (đặc tả 2026-11-04-man-cap-dai-ly): CÙNG cổng route `GET /api/pricing/cap-dai-ly` — ô partner.commission.write, không giữ quyền Đối tác (Kế toán, Quản trị, Toàn quyền). Bán hàng có ô xem nhưng không mở màn gom này.
+  capDaiLy: { duong: "/cap-dai-ly", hien: (s) => can(s, "partner.commission.write") && !holdsPartner(s) },
   // Luật bán theo loại đối tác (ADR-0146 Đ5; kế hoạch 2026-10-30 T11): CÙNG điều kiện ba route `/api/pricing/luat-ban` — ô sales.block.write và không giữ quyền Đối tác (Q-2 (a)).
   luatBan: { duong: "/luat-ban", hien: (s) => can(s, "sales.block.write") && !holdsPartner(s) },
   // Đặc điểm dịch vụ (ADR-0152 Đ3, Đ5; T12): CÙNG điều kiện route `GET /api/catalog/dac-diem` — catalog.attribute.assign hoặc admin.manage, không giữ quyền Đối tác (Q-2 (a)).
@@ -195,6 +197,8 @@ export interface ChoThanhBen extends ChoDat {
   readonly moTu?: (duongHienTai: string) => string;
 }
 
+// Một hằng cho nhãn nhóm lặp ở mọi dòng Thiết lập: chữ có dấu thành \uXXXX trong gói nén nên dòng nào cũng tốn ~20 byte (trần gói trang Đơn hàng, src/goi-trang-nhe.test.ts). Giá trị không đổi.
+const THIET_LAP = "THIẾT LẬP";
 export const THANH_BEN = [
   { nhom: "HẰNG NGÀY", trang: "trangChu", nhan: "Trang chủ", bieuTuong: "home" },
   // Tài xế: "Trang chủ" của họ là /tai-xe; "Cuốc của tôi" cho mọi tài khoản tài xế công ty (kể cả kiêm văn phòng — K2b T2).
@@ -212,26 +216,27 @@ export const THANH_BEN = [
   { nhom: "TIỀN", trang: "dieuChinhCongNo", nhan: "Điều chỉnh công nợ", bieuTuong: "money" },
   // Sổ công nợ (25/10) gộp với Khoá sổ tháng — cùng điều kiện hiện (ledger.view không ngữ cảnh); giữ trần 10 mục hiện sẵn của Toàn quyền. Trang Sổ công nợ có lối sang Khoá sổ tháng.
   { nhom: "TIỀN", trang: "soCongNo", nhan: "Sổ công nợ & khoá sổ", bieuTuong: "lock", gom: ["soCongNo", "khoaThang"] },
-  { nhom: "THIẾT LẬP", trang: "hoaHong", nhan: "Hoa hồng đối tác" },
-  { nhom: "THIẾT LẬP", trang: "luatBan", nhan: "Luật bán" },
-  { nhom: "THIẾT LẬP", trang: "nguoiBan", nhan: "Người bán dịch vụ" },
-  { nhom: "THIẾT LẬP", trang: "chupBu", nhan: "Chụp bù mức" },
-  { nhom: "THIẾT LẬP", trang: "veKho", nhan: "Vé điện tử" },
-  { nhom: "THIẾT LẬP", trang: "veCaiDat", nhan: "Cài đặt vé điện tử" },
-  { nhom: "THIẾT LẬP", trang: "hoaHongGioiHan", nhan: "Giới hạn nhập hoa hồng" },
-  { nhom: "THIẾT LẬP", trang: "dichVu", nhan: "Dịch vụ & giá" },
-  { nhom: "THIẾT LẬP", trang: "dacDiem", nhan: "Đặc điểm dịch vụ" },
-  { nhom: "THIẾT LẬP", trang: "diaDiem", nhan: "Địa điểm" },
-  { nhom: "THIẾT LẬP", trang: "loaiGiayToNguoi", nhan: "Loại giấy tờ cá nhân" },
-  { nhom: "THIẾT LẬP", trang: "loaiGiayToXe", nhan: "Loại giấy tờ xe" },
-  { nhom: "THIẾT LẬP", trang: "lyDoDieuPhoi", nhan: "Lý do điều phối" },
-  { nhom: "THIẾT LẬP", trang: "chinhSachDieuPhoi", nhan: "Chính sách điều phối" },
-  { nhom: "THIẾT LẬP", trang: "taiKhoan", nhan: "Quản lý tài khoản" },
-  { nhom: "THIẾT LẬP", trang: "phien", nhan: "Máy đang đăng nhập" },
-  { nhom: "THIẾT LẬP", trang: "nhatKy", nhan: "Nhật ký" },
-  { nhom: "THIẾT LẬP", trang: "guiThongBao", nhan: "Gửi thông báo" },
-  { nhom: "THIẾT LẬP", trang: "troLy", nhan: "Trợ lý Hỗ trợ" },
-  { nhom: "THIẾT LẬP", trang: "giaoDien", nhan: "Giao diện" },
+  { nhom: THIET_LAP, trang: "hoaHong", nhan: "Hoa hồng đối tác" },
+  { nhom: THIET_LAP, trang: "capDaiLy", nhan: "Cấp độ đại lý" },
+  { nhom: THIET_LAP, trang: "luatBan", nhan: "Luật bán" },
+  { nhom: THIET_LAP, trang: "nguoiBan", nhan: "Người bán dịch vụ" },
+  { nhom: THIET_LAP, trang: "chupBu", nhan: "Chụp bù mức" },
+  { nhom: THIET_LAP, trang: "veKho", nhan: "Vé điện tử" },
+  { nhom: THIET_LAP, trang: "veCaiDat", nhan: "Cài đặt vé điện tử" },
+  { nhom: THIET_LAP, trang: "hoaHongGioiHan", nhan: "Giới hạn nhập hoa hồng" },
+  { nhom: THIET_LAP, trang: "dichVu", nhan: "Dịch vụ & giá" },
+  { nhom: THIET_LAP, trang: "dacDiem", nhan: "Đặc điểm dịch vụ" },
+  { nhom: THIET_LAP, trang: "diaDiem", nhan: "Địa điểm" },
+  { nhom: THIET_LAP, trang: "loaiGiayToNguoi", nhan: "Loại giấy tờ cá nhân" },
+  { nhom: THIET_LAP, trang: "loaiGiayToXe", nhan: "Loại giấy tờ xe" },
+  { nhom: THIET_LAP, trang: "lyDoDieuPhoi", nhan: "Lý do điều phối" },
+  { nhom: THIET_LAP, trang: "chinhSachDieuPhoi", nhan: "Chính sách điều phối" },
+  { nhom: THIET_LAP, trang: "taiKhoan", nhan: "Quản lý tài khoản" },
+  { nhom: THIET_LAP, trang: "phien", nhan: "Máy đang đăng nhập" },
+  { nhom: THIET_LAP, trang: "nhatKy", nhan: "Nhật ký" },
+  { nhom: THIET_LAP, trang: "guiThongBao", nhan: "Gửi thông báo" },
+  { nhom: THIET_LAP, trang: "troLy", nhan: "Trợ lý Hỗ trợ" },
+  { nhom: THIET_LAP, trang: "giaoDien", nhan: "Giao diện" },
   { nhom: "CHÂN MENU", trang: "toi", nhan: "Của tôi", bieuTuong: "me" },
   { nhom: "CHÂN MENU", trang: "gopY", nhan: "Hỗ trợ", bieuTuong: "handset", moTu: (p: string) => `/huong-dan?from=${encodeURIComponent(p)}` },
   { nhom: "CHÂN MENU", trang: "troGiup", nhan: "Nhật ký thay đổi", bieuTuong: "megaphone" },
@@ -305,6 +310,7 @@ export const TRANG_TOI = [
   { phan: "sau", trang: "khoaThang", nhan: "Khoá sổ tháng" },
   { phan: "sau", trang: "dieuChinhCongNo", nhan: "Điều chỉnh công nợ" },
   { phan: "sau", trang: "hoaHong", nhan: "Hoa hồng đối tác" },
+  { phan: "sau", trang: "capDaiLy", nhan: "Cấp độ đại lý" },
   { phan: "sau", trang: "luatBan", nhan: "Luật bán" },
   { phan: "sau", trang: "dacDiem", nhan: "Đặc điểm dịch vụ" },
   { phan: "sau", trang: "nguoiBan", nhan: "Người bán dịch vụ" },

@@ -60,6 +60,13 @@ export interface OCap {
 export function oCapCuaDong(dong: Pick<PermissionHolder, "permissions"> & { partyId: string | null }, v: CapHienHanhDto | undefined): OCap | null {
   if (!holdsPartner(dong)) return null;
   if (v === undefined || dong.partyId === null) return { chu: CHU_CAP.chuaCoVaiTro, moBang: false, coMucRieng: false, theoVaiTu: null, troHoaHong: false };
+  return oCapCuaHoSo(v);
+}
+/**
+ * Nội dung ô cấp của MỘT hồ sơ đang mang vai trò được hưởng, KHÔNG hỏi quyền của tài khoản: màn «Cấp độ đại lý» (đặc tả 2026-11-04-man-cap-dai-ly) có cả hồ sơ chưa có tài khoản,
+ * máy chủ đã chỉ trả hồ sơ được hưởng nên không cần giả quyền Đối tác. Dòng tài khoản đi qua `oCapCuaDong` ở trên rồi vào đây.
+ */
+export function oCapCuaHoSo(v: CapHienHanhDto): OCap {
   const chu =
     v.nguon === "RIENG" ? `${v.cap?.ten ?? ""} (cấp riêng)`
     : v.nguon === "THEO_VAI" ? `${v.cap?.ten ?? ""} (theo vai trò)`
