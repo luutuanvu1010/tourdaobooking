@@ -26,7 +26,8 @@
       "Edit(web/CLAUDE.md)",
       "Edit(.claude/**)",
       "Edit(playbook/**)",
-      "Edit(docs/adr/**)"
+      "Edit(docs/adr/**)",
+      "Edit(src/shared/bang-tham-chieu*.ts)"
     ]
   },
   "hooks": {

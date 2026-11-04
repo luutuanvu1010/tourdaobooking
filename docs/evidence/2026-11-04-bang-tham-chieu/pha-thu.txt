@@ -1,0 +1,49 @@
+# Phá thử máy canh bảng tham chiếu, 2026-11-04 (sửa cố ý, chạy node --test src/bang-tham-chieu.test.ts, hoàn nguyên)
+
+ĐÚNG | mong đỏ, ra đỏ | 1. Đổi chữ nút đã khai «Gửi kiểm vé»
+    bài đỏ: bảng khớp mã: điều 1, 3, 4 (nút đã khai đúng tên; nút ghi/nút chính có
+    câu: điều 1 — 1 chỗ lệch: web/xac-nhan-don-ui.ts: việc «Gửi kiểm vé» khai tên «Gửi kiểm vé» nhưng nút không còn mang tên đó (tệp đang có: Gửi kiểm vé nhầm · Rút lại · Rút lại yêu cầu xác nhận? Đơn trở về nháp để bạn sửa tiếp. · Gửi đơn · Đặt gấp · Còn vé, xác nhận đơn). Sửa nút về tên chuẩn; nếu chủ đã chọn tên mới thì sửa bảng cùng 
+
+ĐÚNG | mong đỏ, ra đỏ | 2a. Thêm nút mang tên đã khai «Gửi kiểm vé» ở tệp khác (web/ve-don.ts)
+    bài đỏ: điều 2: tên đã khai không xuất hiện ở chỗ chưa khai (trừ chữ dùng chun
+    câu: điều 2 — 1 chỗ lệch: web/ve-don.ts:129 nút «Gửi kiểm vé» mang tên đã khai cho việc «Gửi kiểm vé» nhưng nút này chưa khai. Làm một trong ba: sửa nút về tên khác; khai nút vào bảng (một việc có hai lối vào thì thêm nơi đặt); hoặc nếu chữ này đủ rõ nhờ tiêu đề hộp cạnh nút thì thêm vào chữ dùng chung kèm lý do. + actual - expected 
+
+ĐÚNG | mong xanh, ra xanh | 2b. Thêm nút «Lưu» ở chỗ mới (web/ve-don.ts)
+    bài đỏ: (không)
+    câu: 
+
+ĐÚNG | mong đỏ, ra đỏ | 3a. Thêm nút mới có gọi lệnh ghi mà không khai (web/ve-don.ts)
+    bài đỏ: bảng khớp mã: điều 1, 3, 4 (nút đã khai đúng tên; nút ghi/nút chính có
+    câu: điều 3 — 1 chỗ lệch: web/ve-don.ts:129 nút «Nút thử chưa khai» (dấu hiệu: ghi) chưa có trong bảng. Khai một việc (trạng thái «cho-chon» nếu chưa có tên chốt), hoặc thêm vào danh sách bỏ qua kèm lý do nếu máy coi nhầm. + actual - expected + [
+
+ĐÚNG | mong xanh, ra xanh | 3b. Cùng nút đó, khai dòng cho-chon trong bảng
+    bài đỏ: (không)
+    câu: 
+
+ĐÚNG | mong đỏ, ra đỏ | 4a. Khai sai đường lệnh trong bảng
+    bài đỏ: bảng khớp mã: điều 1, 3, 4 (nút đã khai đúng tên; nút ghi/nút chính có; docs/BANG-THAM-CHIEU.md khớp bản sinh (chạy `npm run tham-chieu`)
+    câu: điều 4 — 1 chỗ lệch: việc «Chụp bù»: đường lệnh «/api/khong-co-duong-nay» không còn route nào trong mã. Sửa hoặc bỏ khỏi bảng. + actual - expected + [
+
+ĐÚNG | mong đỏ, ra đỏ | 4b. Khai sai mã nhật ký trong bảng
+    bài đỏ: bảng khớp mã: điều 1, 3, 4 (nút đã khai đúng tên; nút ghi/nút chính có; docs/BANG-THAM-CHIEU.md khớp bản sinh (chạy `npm run tham-chieu`)
+    câu: điều 4 — 1 chỗ lệch: việc «Chụp bù»: mã nhật ký «khong_co_ma_nay» không có trong audit-actions. Sửa hoặc bỏ khỏi bảng. + actual - expected + [
+
+ĐÚNG | mong đỏ, ra đỏ | 5. Nạp bảng vào một trang (web/ve-don.ts)
+    bài đỏ: không tệp nào ngoài bài kiểm và kịch bản nạp bảng
+    câu: bảng tham chiếu chỉ để bài kiểm và kịch bản sinh tài liệu đọc; giao diện và máy chủ không nạp (sẽ làm nặng trang) + actual - expected + [ + 'web/ve-don.ts'
+
+ĐÚNG | mong đỏ, ra đỏ | 6. Xoá ngày chủ chọn của một khái niệm đã chốt
+    bài đỏ: khái niệm: đã chốt có giải nghĩa và ngày chủ chọn; chữ đã loại có dòng; docs/BANG-THAM-CHIEU.md khớp bản sinh (chạy `npm run tham-chieu`)
+    câu: 1 chỗ lệch: khái niệm «Chưa xác nhận» đã chốt mà thiếu ngày chủ chọn (dạng 2026-10-18); chưa có ngày thì để «cho-chon». + actual - expected + [
+
+ĐÚNG | mong đỏ, ra đỏ | 7. Bỏ «Từ chối» khỏi chữ dùng chung (tên nhiều hàng chưa xếp)
+    bài đỏ: mọi tên nằm ở nhiều hàng việc đã được xếp: chữ dùng chung, cùng một vi; docs/BANG-THAM-CHIEU.md khớp bản sinh (chạy `npm run tham-chieu`)
+    câu: tên nhiều hàng — 1 chỗ lệch: Tên «Từ chối» nằm ở 5 hàng việc («Xác nhận · Từ chối», «Từ chối → Xác nhận từ chối», «Thực hiện») mà chưa xếp loại. Thấy đối tượng ngay cạnh nút thì thêm vào CHU_DUNG_CHUNG; cùng một việc nhiều lối vào thì thêm vào TEN_NHIEU_HANG loại cung-viec; khác việc mà không thấy đối tượng thì thêm loại cho-chu
+
+ĐÚNG | mong đỏ, ra đỏ | 8. Sửa tay bản đọc cho người
+    bài đỏ: docs/BANG-THAM-CHIEU.md khớp bản sinh (chạy `npm run tham-chieu`)
+    câu: Expected values to be strictly equal: + actual - expected ... Skipped lines '# Bảng tham chiếu ngôn ngữ\n' +
+
+ĐÚNG | mong đỏ, ra đỏ | 9. Hướng dẫn gọi nút không có thật bằng [[…]]
+    bài đỏ: điều 5: mọi [[tên nút]] của Hướng dẫn có thật và không phải chữ đã loạ
+    câu: điều 5 — 1 chỗ lệch: src/shared/huong-dan-ban-hang.ts:10: Hướng dẫn gọi [[Nút không có thật xyz]] nhưng không nút nào và không chữ nào trong giao diện mang tên đó. Sửa Hướng dẫn cho đúng tên đang hiện. + actual - expected + [

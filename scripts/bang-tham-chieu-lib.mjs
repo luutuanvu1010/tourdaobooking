@@ -158,8 +158,9 @@ const biBatToanCuc = (chu, tuDaLoai) => {
 export function kiemKhaiNiem(khaiNiem, tuDaLoai, camTheoTep) {
   const loi = [];
   for (const k of khaiNiem) {
+    if (k.trangThai !== "cho-chon" && (!k.giaiNghia || !k.giaiNghia.trim())) loi.push(`khái niệm «${k.ten}» thiếu giải nghĩa.`);
+    if (k.trangThai === "trong-ma" && !k.maNoiBo.length) loi.push(`thuật ngữ trong mã «${k.ten}» chưa ghi mã nội bộ.`);
     if (k.trangThai === "da-chot") {
-      if (!k.giaiNghia || !k.giaiNghia.trim()) loi.push(`khái niệm «${k.ten}» đã chốt mà thiếu giải nghĩa.`);
       if (!/20\d\d-\d\d-\d\d/.test(k.chuChon ?? "")) loi.push(`khái niệm «${k.ten}» đã chốt mà thiếu ngày chủ chọn (dạng 2026-10-18); chưa có ngày thì để «cho-chon».`);
     }
     for (const c of k.chuDaLoai) if (!biBat(c, tuDaLoai, camTheoTep)) loi.push(`khái niệm «${k.ten}»: chữ đã loại «${c}» không bị dòng cấm nào của bảng từ bắt. Thêm dòng cấm ở bang-tu-giao-dien.ts (khi chủ đã chọn) hoặc bỏ chữ khỏi bảng.`);
@@ -197,7 +198,9 @@ export function renderBangThamChieu({ khaiNiem, chuDungChung, tenNhieuHang = [],
   ra.push("**Giới hạn phải nói thẳng.** Máy kiểm tên có nhất quán, không kiểm tên có đúng sự thật: cột «Thật sự làm gì» dựa vào người đọc mã. Hai nút cùng chữ trong một tệp tính là một nơi đặt. Nút có chữ ghép từ mã (đánh dấu ‹…› hoặc ⟪…⟫) thì khi đổi tên biến, khoá đổi theo: máy báo đỏ, người đọc tay rồi sửa bảng. Lời Nền tảng trả lời người dùng trong trò chuyện thì máy không canh được.", "");
   ra.push("## Khái niệm", "");
   ra.push("| Tên chuẩn | Nghĩa | Khác với | Chữ đã loại | Mã nội bộ | Trạng thái | Chủ chọn |", "|---|---|---|---|---|---|---|");
-  for (const k of khaiNiem) ra.push(`| **${o(k.ten)}** | ${o(k.giaiNghia)} | ${o(k.khacVoi)} | ${k.chuDaLoai.map(o).join("; ")} | ${k.maNoiBo.map((x) => `\`${o(x)}\``).join(" ")} | ${nhanTrangThai(k.trangThai)} | ${o(k.chuChon)} |`);
+  for (const k of khaiNiem.filter((x) => x.trangThai !== "trong-ma")) ra.push(`| **${o(k.ten)}** | ${o(k.giaiNghia)} | ${o(k.khacVoi)} | ${k.chuDaLoai.map(o).join("; ")} | ${k.maNoiBo.map((x) => `\`${o(x)}\``).join(" ")} | ${nhanTrangThai(k.trangThai)} | ${o(k.chuChon)} |`);
+  ra.push("", "## Thuật ngữ trong mã", "", "Không hiện cho người dùng, chủ dự án không cần đọc; người làm mã tra ở đây.", "", "| Thuật ngữ | Nghĩa | Khác với | Mã nội bộ |", "|---|---|---|---|");
+  for (const k of khaiNiem.filter((x) => x.trangThai === "trong-ma")) ra.push(`| **${o(k.ten)}** | ${o(k.giaiNghia)} | ${o(k.khacVoi)} | ${k.maNoiBo.map((x) => `\`${o(x)}\``).join(" ")} |`);
   ra.push("", "## Chữ dùng chung", "", "Chữ theo ngữ cảnh: người đọc thấy đối tượng ngay cạnh nút, trong tiêu đề hộp hoặc dòng đang xem.", "", "| Chữ | Vì sao đủ rõ |", "|---|---|");
   for (const c of chuDungChung) ra.push(`| ${o(c.chu)} | ${o(c.vi)} |`);
   ra.push("", "## Tên dùng ở nhiều hàng việc", "", "Cùng một việc có nhiều lối vào, hoặc khác việc và đang chờ chủ chọn tên. Tên mới rơi vào diện này mà chưa xếp thì máy báo đỏ.", "", "| Tên | Loại | Vì sao |", "|---|---|---|");

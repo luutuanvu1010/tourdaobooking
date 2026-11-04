@@ -77,6 +77,42 @@ Mỗi khái niệm một tên, mỗi tên một nghĩa, tra từ một nguồn. 
 | **Giấy tờ** | Giấy tờ của một người (căn cước, bằng lái, khám sức khoẻ…) hoặc của một xe (đăng ký, kiểm định, bảo hiểm…), có hạn dùng. Số giấy tờ của người luôn bị che, chỉ «Xem đủ số» mới thấy và việc xem được ghi nhật ký. | Gia hạn thêm một dòng mới nối vào dòng cũ, không sửa đè. Chỉ dòng hiện hành mới gia hạn hay sửa sai được. |  | `pty_person_document` `vc_vehicle_document` | chờ chọn |  |
 | **Khoá tháng** | Chốt sổ một tháng: sau khi khoá, không thêm được dòng tiền vào tháng đó. Chỉ Kế toán và Toàn quyền khoá. |  |  | `ky_period_close` `ledger.period.close` | đã chốt | 2026-10-01 (ADR-0080) |
 | **Mã QR thanh toán** | Mã chuyển khoản dựng theo từng đơn, trả về tài khoản nhận tiền mà công ty đã cài ở Danh bạ. | Bấm «Ghi khoản thu này» sau khi khách trả thì mới ghi khoản thu. |  | `VietQR` `pty_bank_account` | đã chốt | 2026-10-08 (ADR-0108) |
+| **Thông tin chuyến** | Ngày giờ khởi hành, giờ đón, khách có mặt và ghi chú của một dịch vụ trong đơn. | Khác «Chuyến xe» (lượt xe chạy do Điều phối xếp). |  | `TripInfoDto` `validateTrip` | chờ chọn |  |
+| **Dịch vụ & giá** | Màn danh sách dịch vụ và giá lấy từ Google Sheet. Giá đang dùng là giá Sheet sau khi áp ghi đè; đồng bộ Sheet không làm mất ghi đè. | Khác «Dịch vụ trong đơn» (dịch vụ đã nằm trong một đơn). |  | `catalog_item` `catalog_override` `applyOverride` | chờ chọn |  |
+| **Người liên hệ, tài xế** | Mục trên hồ sơ ghi hồ sơ này liên quan tới người nào, ví dụ người liên hệ của công ty hay tài xế của nhà xe. | Khác «Công việc tại đâu» (ghi chính hồ sơ này làm việc gì). |  | `pty_party_relationship` `pty_role_type` | chờ chọn |  |
+| **Tài xế của** | Quan hệ nói một người lái cho nhà xe nào. Nhà xe cá nhân tự lái thì tài xế chính là nhà xe đó. | Không sinh quyền: tài khoản lái được chuyến nhờ quyền, không nhờ quan hệ này. |  | `DRIVES_FOR` `v_pty_carrier_driver` | chờ chọn |  |
+| **Quyền** | Thứ quyết định một tài khoản được làm gì trên Nền tảng. Một tài khoản có thể giữ nhiều quyền. | Khác «Vai trò»: vai chỉ sinh sẵn bộ quyền mặc định, máy chủ chỉ hỏi quyền. |  | `stf_permission` `PermissionCode` | chờ chọn |  |
+| **Nhật ký** | Sổ ghi ai đã làm gì, lúc nào. Chỉ thêm dòng, không sửa và không xoá. |  |  | `audit_log` `AUDIT_ACTIONS` | chờ chọn |  |
+| **Chế độ bảo trì** | Khi bật, mọi tài khoản không giữ Toàn quyền đều bị chặn, kể cả Quản trị và các máy đang đăng nhập. | Khác «Development Mode» của Cloudflare (chỉ tắt bộ nhớ đệm). |  | `maintenance` `mnt_setting` | chờ chọn |  |
+| **Gia hạn** | Ghi giấy tờ mới được cấp thay cho giấy cũ: thêm một dòng mới nối vào dòng cũ, không sửa đè. Không nhập số thì lấy số cũ. | Khác «Sửa sai» (sửa lỗi nhập trên chính dòng đó). |  | `previous_id` `…/renew` `…/gia-han` | chờ chọn |  |
+| **Sửa sai** | Sửa đúng một ô nhập sai trên dòng giấy tờ đang dùng, bắt buộc chọn lý do. Lý do «nhập nhầm cả dòng» thì huỷ dòng đó, không xoá, và dòng trước đó dùng lại. | Khác «Gia hạn» (có giấy mới thật). |  | `LY_DO_SUA_SAI` `…/correct` `…/sua-sai` `voided_at` | chờ chọn |  |
+| **Xem đủ số** | Cách duy nhất thấy đầy đủ số giấy tờ của một người. Việc xem được ghi vào nhật ký trước, nhưng nhật ký không ghi số. |  |  | `…/reveal` `party.document.reveal` | chờ chọn |  |
+| **Mốc nhắc** | Số ngày trước hạn của giấy tờ thì bắt đầu nhắc. Chỉ Toàn quyền đổi được. | Khác «Hạn chốt» (số phút trước giờ đón). |  | `vc_expiry_policy` `warnDays` | chờ chọn |  |
+| **Trạng thái xe** | Một trong ba: Đang dùng, Bảo dưỡng, Ngừng dùng. Xe đã ngừng dùng lại được, trừ khi biển số đã thuộc xe khác chưa ngừng. |  |  | `vc_vehicle.status` `TRANG_THAI_XE` | chờ chọn |  |
+| **Điều chỉnh khẩn cấp** | Việc xếp, rút, dời khách, đổi xe, đổi tài xế hay huỷ chuyến còn khách khi đã sát giờ hơn hạn chốt. Chỉ Bán hàng, Quản trị, Toàn quyền làm được. | Khác «Đặt gấp» (xác nhận đơn khi đã sát giờ). |  | `trip.urgent_adjust` | chờ chọn |  |
+| **Chuyến bị giữ** | Chuyến chưa đủ điều kiện cho xe chạy nên ở lại «Lên kế hoạch», hiện lý do và người cần xử lý. Máy tính lại mỗi lần đọc. |  |  | `LyDoGiu` `MA_GIU` `kiemXuatBen` | chờ chọn |  |
+| **Chính sách điều phối** | Bộ cài đặt của Điều phối, gồm cả hạn chốt. Mỗi lần lưu thành một bản mới. |  |  | `vc_dispatch_policy` | chờ chọn |  |
+| **Điều kiện cho xe chạy** | Danh sách việc phải đạt thì chuyến mới được cho chạy, ví dụ xe còn hạn kiểm định và bảo hiểm. |  |  | `vc_departure_rule` | chờ chọn |  |
+| **Hạng bằng và số khách** | Bảng cho biết mỗi hạng bằng lái chở được tối đa bao nhiêu khách. |  |  | `vc_license_capacity` | chờ chọn |  |
+| **Lý do điều phối** | Danh sách lý do để chọn khi làm các việc của Điều phối cần ghi lý do. |  |  | `vc_reason` | chờ chọn |  |
+| **Giá đại lý** | Số tiền đại lý phải trả công ty cho một đơn, bằng thành tiền của đơn trừ hoa hồng. | Khác giá bán lẻ (giá trong Dịch vụ & giá). |  | `hoaHongDong` `tinhDongDoiTac` | chờ chọn |  |
+| **Người bán dịch vụ** | Bên cung ứng dịch vụ cho công ty, kèm điều khoản công ty mua lại dịch vụ đó. | Khác «Đối tác» (bên đưa khách đến và hưởng hoa hồng). |  | `prc_supply_term` | chờ chọn |  |
+
+## Thuật ngữ trong mã
+
+Không hiện cho người dùng, chủ dự án không cần đọc; người làm mã tra ở đây.
+
+| Thuật ngữ | Nghĩa | Khác với | Mã nội bộ |
+|---|---|---|---|
+| **Dòng tiền** | Một dòng tính tiền của dịch vụ trong đơn: số lượng nhân đơn giá ra thành tiền. |  | `order_item` `quantity × unit_price = line_total` |
+| **Bản chụp** | Dựng lại dịch vụ danh mục từ dữ liệu đã lưu của đơn. |  | `snapshotService` |
+| **Quyền bên ngoài** | Hai quyền của người ngoài công ty: Đối tác và Tài xế đối tác. Một hằng dùng chung cho trigger LC-1 và nghĩa «Toàn công ty». |  | `EXTERNAL_PERMISSIONS` |
+| **Thao tác** | Một ô của bản đồ quyền: ai được làm việc gì, trên phạm vi nào. |  | `OperationCode` `MATRIX` `can()` |
+| **Nhân sự văn phòng** | Cổng cho route chỉ người trong văn phòng dùng được. | Khác cổng đơn: cổng đơn cho cả tài khoản Đối tác. | `isOffice` `access: "office"` `OFFICE_GATE` |
+| **Cổng đơn** | Cổng cho route đơn hàng: văn phòng hoặc tài khoản Đối tác. |  | `canAccessOrders` `access: "orders"` `ORDERS_GATE` |
+| **Khoá lạc quan** | Cách phát hiện người khác vừa sửa cùng dòng: dấu thời gian lệch thì máy chủ trả 409 `stale`. |  | `expectedUpdatedAt` `updated_at` |
+| **View công bố** | Cách duy nhất để module khác đọc nhãn của một module, chỉ đọc. |  | `v_<tiền tố>_<tên>` |
+| **Giấy tờ hiện hành** | Dòng giấy tờ chưa huỷ và chưa có dòng gia hạn chưa huỷ nối vào. Chỉ dòng này gia hạn hay sửa sai được, dòng khác trả 409 `document_not_current`. |  | `is_current` `HIEN_HANH` `current` |
 
 ## Chữ dùng chung
 

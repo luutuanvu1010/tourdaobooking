@@ -15,9 +15,9 @@ import { basename, resolve } from "node:path";
 import { candidates } from "./guard-remote-lib.mjs";
 
 /** Tệp luật, tính theo đường dẫn tương đối từ gốc một cây làm việc (checkout gốc hoặc một worktree). Khớp danh sách `ask` ở .claude/settings.json. */
-const LUAT = [/(?:^|\/)CLAUDE\.md$/, /^\.claude\/?$/, /^\.claude\/(?:settings(?:\.local)?\.json$|hooks(?:\/|$)|agents(?:\/|$))/, /^playbook(?:\/|$)/, /^docs\/adr(?:\/|$)/];
+const LUAT = [/(?:^|\/)CLAUDE\.md$/, /^\.claude\/?$/, /^\.claude\/(?:settings(?:\.local)?\.json$|hooks(?:\/|$)|agents(?:\/|$))/, /^playbook(?:\/|$)/, /^docs\/adr(?:\/|$)/, /^src\/shared\/bang-tham-chieu(?:-[a-z-]+)?\.ts$/];
 // Lệnh không nhắc gì tới luật VÀ thư mục hiện tại không nằm trong/cạnh thư mục luật thì khỏi phân tích (nhanh; lệnh dị dạng không tốn giờ của móc).
-const TU_KHOA = /CLAUDE\.md|\.claude|playbook|adr/;
+const TU_KHOA = /CLAUDE\.md|\.claude|playbook|adr|bang-tham-chieu/;
 const CWD_GAN_LUAT = /^(?:\.claude|playbook|docs)(?:\/|$)/;
 const TIEN_TO_WORKTREE = /^\.claude\/worktrees\/[^/]+\//;
 const MAX_DOAN = 2000;

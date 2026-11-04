@@ -1,6 +1,6 @@
 # Danh sách trình chủ: bảng tham chiếu ngôn ngữ (đợt 1)
 
-Hồ sơ có ngày, viết 2026-11-04 khi dựng bảng (ADR-0167). Người soạn giải nghĩa theo thứ tự ADR đã duyệt rồi mã hiện hành; chỗ nào hai nơi nói khác nhau thì ghi ở đây và không tự hoà giải. Bản đọc đầy đủ của bảng là `docs/BANG-THAM-CHIEU.md`. Chủ chỉ cần đọc phần «Khái niệm» của bản đó và tệp này; 299 việc quan trọng đã có nơi đặt nút kèm tệp để người kiểm tra.
+Hồ sơ có ngày, viết 2026-11-04 khi dựng bảng (ADR-0167). Người soạn giải nghĩa theo thứ tự ADR đã duyệt rồi mã hiện hành; chỗ nào hai nơi nói khác nhau thì ghi ở đây và không tự hoà giải. Bản đọc đầy đủ của bảng là `docs/BANG-THAM-CHIEU.md`. Chủ chỉ cần đọc phần «Khái niệm» của bản đó và tệp này; phần «Thuật ngữ trong mã» và 299 việc quan trọng đã có nơi đặt nút kèm tệp để người kiểm tra.
 
 ## 1. Hai việc khác nhau đang mang cùng một tên (nên quyết trước)
 
@@ -15,9 +15,9 @@ Máy đã khai các chỗ này để không chặn việc. Chủ chọn tên th�
 
 Mỗi chữ được xếp vì đối tượng đứng ngay cạnh nút hoặc trong tiêu đề hộp. Mười ba chữ đầu đã đọc từng chỗ trong mã: **Đóng, Huỷ, Quay lại, Thôi, Thử lại, Lưu, Đổi, Đổi tên, Tắt, Bật, Dùng lại, Gỡ, Để sau.** Hai mươi mốt chữ sau xếp theo cột «thật sự làm gì» của từng hàng, chưa mở từng chỗ trong mã: **Sửa, Thêm, Từ chối, Xác nhận, Xác nhận từ chối, Xác nhận đã nhận, Xác nhận bật, Kết thúc, Gửi, Gửi từ chối, Gửi đề nghị, Rút lại, Rút yêu cầu, Nhận, Thu hồi, Duyệt, Điều chỉnh, Lưu sửa, Ngừng dùng, Thêm nhóm, Lưu thành bản mới.** Riêng «Đóng» chỉ còn nghĩa gập khung hoặc thoát hộp, vì ba nơi «Đóng» từng nghĩa là ngừng đã đổi tên ở ADR-0166 câu 9. Lý do từng chữ ở mục «Chữ dùng chung» của bản đọc.
 
-## 3. Khái niệm chưa tìm thấy ngày chủ chọn tên (6)
+## 3. Khái niệm chưa tìm thấy ngày chủ chọn tên (26)
 
-Bảng ghi sáu khái niệm này là «chờ chọn» vì tôi không tìm thấy ngày chủ chọn tên trong ADR hay đặc tả, và không bịa ngày. Chủ chỉ cần nói tên đó đúng thì chuyển thành đã chốt: **Đơn, Dịch vụ trong đơn, Loại khách, Chuyến xe, Giấy tờ, Công việc tại đâu.** Hai khái niệm khác («Hồ sơ», «Tài khoản») có ngày 2026-09-25 lấy từ nhật ký thay đổi bản 1.10, là ngày đổi tên chứ chưa thấy lời chủ chọn riêng; tôi ghi rõ như vậy ở cột «Chủ chọn».
+Bảng ghi các khái niệm này là «chờ chọn» vì không tìm thấy ngày chủ chọn tên trong ADR hay đặc tả, và không bịa ngày. Đây là các tên đang dùng, chưa ai đề nghị đổi. Chủ chỉ cần nói «đúng hết», hoặc nêu tên muốn đổi, thì chuyển thành đã chốt: **Đơn, Dịch vụ trong đơn, Loại khách, Chuyến xe, Giấy tờ, Công việc tại đâu, Thông tin chuyến, Dịch vụ & giá, Người liên hệ tài xế, Tài xế của, Quyền, Nhật ký, Chế độ bảo trì, Gia hạn, Sửa sai, Xem đủ số, Mốc nhắc, Trạng thái xe, Điều chỉnh khẩn cấp, Chuyến bị giữ, Chính sách điều phối, Điều kiện cho xe chạy, Hạng bằng và số khách, Lý do điều phối, Giá đại lý, Người bán dịch vụ.** Hai khái niệm khác («Hồ sơ», «Tài khoản») có ngày 2026-09-25 lấy từ nhật ký thay đổi bản 1.10, là ngày đổi tên chứ chưa thấy lời chủ chọn riêng; tôi ghi rõ như vậy ở cột «Chủ chọn».
 
 ## 4. Chỗ ADR, mã và tài liệu nói khác nhau (không tự hoà giải)
 

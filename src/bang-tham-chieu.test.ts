@@ -133,6 +133,16 @@ test("tên việc và chữ nơi đặt không được là chữ đã loại", 
   assert.deepEqual(kiemKhongDungChuLoai([viec("V", [{ tep: "web/b.ts", chu: "Đóng" }])], tu, theoTep), []);
 });
 
+test("thuật ngữ trong mã: bắt buộc có mã nội bộ và giải nghĩa, bản đọc tách khỏi phần chủ đọc", () => {
+  const tm = (rieng: Partial<KhaiNiem>): KhaiNiem => ({ ten: "Khoá lạc quan", giaiNghia: "Nghĩa.", khacVoi: "", chuDaLoai: [], maNoiBo: ["expectedUpdatedAt"], trangThai: "trong-ma", chuChon: "", ...rieng });
+  assert.deepEqual(kiemKhaiNiem([tm({})], [], []), []);
+  assert.match(kiemKhaiNiem([tm({ maNoiBo: [] })], [], []).join(), /mã nội bộ/);
+  assert.match(kiemKhaiNiem([tm({ giaiNghia: " " })], [], []).join(), /giải nghĩa/);
+  const ra = renderBangThamChieu({ khaiNiem: [tm({})], chuDungChung: [], viec: [], boQua: [] });
+  assert.ok(ra.indexOf("## Khái niệm") < ra.indexOf("## Thuật ngữ trong mã"));
+  assert.ok(ra.indexOf("Khoá lạc quan") > ra.indexOf("## Thuật ngữ trong mã"), "thuật ngữ trong mã không nằm trong bảng chủ đọc");
+});
+
 test("điều 6: bản đọc cho người ổn định, có Khái niệm trước Việc quan trọng, hàng chờ chọn hiện «chờ chọn»", () => {
   const dau = {
     khaiNiem: [{ ten: "Khoản thu", giaiNghia: "Nghĩa.", khacVoi: "", chuDaLoai: [], maNoiBo: ["ledger"], trangThai: "da-chot", chuChon: "2026-10-08" } as KhaiNiem],

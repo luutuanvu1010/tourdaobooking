@@ -51,7 +51,8 @@ export interface KhaiNiem {
   chuDaLoai: readonly string[];
   /** Tên trong mã (mã quyền, tên cột, trạng thái thô). Chỉ để người làm mã tra, không hiện cho người dùng. */
   maNoiBo: readonly string[];
-  trangThai: TrangThaiTen;
+  /** `trong-ma`: thuật ngữ của người làm mã, không hiện cho người dùng nên không cần chủ chọn tên; bắt buộc có `maNoiBo`. */
+  trangThai: TrangThaiTen | "trong-ma";
   /** Ngày chủ chọn kèm nguồn, dạng `2026-10-18 (…)`. Bắt buộc có ngày khi `da-chot`. */
   chuChon: string;
 }
