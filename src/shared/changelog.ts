@@ -17,6 +17,14 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Màn «Dịch vụ cần kiểm vé» (ADR-0136 Đ1, Đ5) và sửa máy chủ: vé tắt riêng trong nhóm đang bật. Không migration, không ô quyền mới.
+    version: "2.62",
+    date: "2026-11-04",
+    items: [
+      { kind: "moi", text: "Toàn quyền có màn Dịch vụ cần kiểm vé: đánh dấu vé phải chờ người kiểm vé báo còn vé rồi đơn mới được xác nhận, theo từng vé hoặc cả nhóm.", bai: { id: "viec/dich-vu-can-kiem-ve", ten: "Đánh dấu vé cần kiểm vé" } },
+    ],
+  },
+  {
     // Màn «Cấp độ đại lý» (đặc tả docs/superpowers/specs/2026-11-04-man-cap-dai-ly.md). Không migration, không ô quyền mới, không lệnh ghi mới.
     // Đổi 12 tên nút sau rà soát 4/11 và tách nhãn đơn nháp (ADR-0166). Không migration, không ô quyền; có đổi cách chạy ở «Bỏ ghi đè giá», hộp hỏi «Còn vé, xác nhận đơn», cờ `dangCho` ở danh sách đơn.
     // Số 2.61 và ngày chỉ là tạm cho nhánh: bước A.0 của lần triển khai đặt lại nếu cần.
