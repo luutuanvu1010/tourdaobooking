@@ -20,7 +20,7 @@ export const NHAN_KET_QUA = { CON_VE: "Còn vé, xác nhận đơn", HET_VE: "H�
 export const HOI_CON_VE = {
   tieuDe: "Còn vé, xác nhận đơn?",
   hauQua:
-    "Bấm là chốt đơn ngay và không hoàn tác được. Giá của đơn bị khoá, hoa hồng được chụp lại theo mức lúc này, vé được cấp cho đơn, và tiền cọc khách đã khai (nếu có) thành khoản thu trong sổ.",
+    "Bấm là chốt đơn ngay và không hoàn tác được. Giá của đơn bị khoá, hoa hồng được chụp lại theo mức lúc này, vé được cấp nếu kho còn, và tiền cọc khách đã khai (nếu có) thành khoản thu trong sổ.",
   nhanNguyHiem: "Xác nhận đơn",
   nhanGiu: "Xem lại",
 } as const;

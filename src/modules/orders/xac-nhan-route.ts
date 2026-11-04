@@ -243,7 +243,7 @@ export const xacNhanRoutes = (xetDatGap: XetDatGapSua) => [
     if (!UUID_RE.test(id)) return NOT_FOUND_DON();
     const body = await readJson(request);
     const ketQua = body?.ketQua;
-    if (ketQua !== "CON_VE" && ketQua !== "HET_VE" && ketQua !== "HUY") return error(400, "invalid_input", "Chọn Còn vé, xác nhận đơn, Hết vé hoặc Huỷ.");
+    if (ketQua !== "CON_VE" && ketQua !== "HET_VE" && ketQua !== "HUY") return error(400, "invalid_input", "Chọn Hết vé, Huỷ, hoặc Còn vé, xác nhận đơn.");
     if (typeof body?.yeuCauId !== "string" || body.yeuCauId === "" || typeof body?.updatedAt !== "string" || body.updatedAt === "") return error(400, "invalid_input", "Thiếu yêu cầu xác nhận hoặc mốc cập nhật của đơn — tải lại rồi thử lại.");
     const meta = await getMeta(env.DB, id);
     if (!meta) return NOT_FOUND_DON();
