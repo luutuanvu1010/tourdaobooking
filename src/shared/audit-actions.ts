@@ -45,7 +45,7 @@ export const AUDIT_ACTIONS = {
   order_passenger_changed: { label: "Sửa danh sách hành khách", group: "order" },
   confirmed: { label: "Xác nhận đơn", group: "order" },
   // ADR-0136 Đ3: gửi / rút lại yêu cầu xác nhận — `detail` là khuôn cố định ("Gửi xác nhận · cần: dịch vụ cần xác nhận / đặt gấp"), không dữ liệu khách.
-  order_confirm_requested: { label: "Gửi xác nhận đơn", group: "order" },
+  order_confirm_requested: { label: "Gửi kiểm vé", group: "order" },
   order_confirm_withdrawn: { label: "Rút lại yêu cầu xác nhận", group: "order" },
   cancelled: { label: "Huỷ đơn", group: "order" },
   order_cancelled_by_field: { label: "Huỷ đơn (hướng dẫn viên đang phụ trách)", group: "order" },
@@ -135,7 +135,7 @@ export const AUDIT_ACTIONS = {
   prc_rate_tier_note: { label: "Sửa ghi chú cấp độ đại lý", group: "ledger" },
   prc_role_tier_set: { label: "Áp dụng cấp độ đại lý cho vai trò", group: "ledger" },
   prc_role_tier_closed: { label: "Ngừng áp dụng cấp độ đại lý cho vai trò", group: "ledger" },
-  prc_party_tier_set: { label: "Áp dụng cấp riêng cho đối tác", group: "ledger" },
+  prc_party_tier_set: { label: "Chọn cấp riêng cho đối tác", group: "ledger" },
   prc_party_tier_closed: { label: "Ngừng áp dụng cấp riêng của đối tác", group: "ledger" },
   // ADR-0148 Đ1: nút «Sửa» huỷ dòng chưa đơn nào chụp và thay hẳn bằng dòng mới (đi cùng `_added` / `_set` của dòng mới). `detail` = «sửa · dòng <cũ> → <mới> · huỷ dòng cũ» —
   // KHÔNG chép lý do sửa (lý do ở cột `change_reason` của dòng mới). Sửa dòng ĐÃ có đơn chụp đóng dòng cũ ⇒ đi qua `_closed`.
@@ -227,7 +227,7 @@ export const AUDIT_ACTIONS = {
   // danh mục; không order_id, không target (khuôn expiry_policy_changed).
   dispatch_policy_changed: { label: "Đổi chính sách điều phối", group: "trip" },
   departure_rule_added: { label: "Thêm điều kiện cho xe chạy", group: "trip" },
-  departure_rule_closed: { label: "Đóng điều kiện cho xe chạy", group: "trip" },
+  departure_rule_closed: { label: "Ngừng điều kiện cho xe chạy", group: "trip" },
   license_capacity_changed: { label: "Đổi số khách theo hạng bằng", group: "trip" },
   trip_reason_added: { label: "Thêm lý do điều phối", group: "trip" },
   trip_reason_updated: { label: "Sửa lý do điều phối", group: "trip" },
@@ -310,9 +310,9 @@ export const AUDIT_ACTIONS = {
   client_outdated_body: { label: "Máy dùng Nền tảng bản cũ", group: "system" },
   catalog_synced: { label: "Đồng bộ dịch vụ từ Sheet", group: "catalog" },
   catalog_overridden: { label: "Ghi đè giá dịch vụ", group: "catalog" },
-  catalog_override_cleared: { label: "Bỏ ghi đè dịch vụ", group: "catalog" },
-  catalog_hidden: { label: "Ẩn dịch vụ", group: "catalog" },
-  catalog_unhidden: { label: "Hiện lại dịch vụ", group: "catalog" },
+  catalog_override_cleared: { label: "Bỏ ghi đè giá dịch vụ", group: "catalog" },
+  catalog_hidden: { label: "Ngừng bán dịch vụ", group: "catalog" },
+  catalog_unhidden: { label: "Mở bán lại dịch vụ", group: "catalog" },
   // ADR-0058 Đ3: nhóm dịch vụ — targetType "catalog". Nhóm: targetId NULL (mã nhóm máy sinh không lên trang Nhật ký), detail = tên / trước → sau.
   // Gán: targetId = mã dịch vụ, detail "Tour đảo → Thể thao biển" (tên; "Chưa phân loại" khi không nhóm), mỗi dịch vụ một dòng cùng lô.
   catalog_group_created: { label: "Thêm nhóm dịch vụ", group: "catalog" },

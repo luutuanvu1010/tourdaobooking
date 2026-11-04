@@ -43,6 +43,7 @@ import {
   tenSauNhanDichVu,
   type CachGhiTien,
 } from "../src/shared/hoa-hong-hien-thi";
+import { CHU_CAP } from "../src/shared/cap-hien-hanh-hien-thi";
 import { baoSomGioiHan, type GiaBanLe } from "../src/shared/gioi-han-nhap-muc";
 import type { PermissionHolder } from "../src/shared/permissions";
 import { nhanDong, nhanTyLeBp } from "../src/shared/so-dai-ly-nhan";
@@ -80,7 +81,7 @@ export interface MoHop {
   /** Lệnh một bước không cần hộp (Tắt / Bật): gửi, nạp lại trang; trả câu lỗi nguyên văn của máy chủ, hoặc null nếu xong. */
   guiNhanh(path: string, thongBao: string): Promise<string | null>;
   /** Q-8: đặt cấp riêng cho một đối tác (`POST /api/pricing/ho-so/:id/muc-rieng`). `dien` = đối tác đã chọn sẵn (mở từ cụm của đối tác đó); không có thì tìm theo tên. */
-  datCapRieng(dien?: { partyId: string; ten: string }): void;
+  datCapRieng(dien?: { partyId: string; ten: string }, capSan?: string): void;
   /** ADR-0148 Đ1: Sửa một lần gắn cấp riêng (GET rồi POST `/api/pricing/muc-rieng/:id/sua`), lý do bắt buộc. */
   suaCapRieng(g: Api.GanRiengLichSuDto, partyId: string): void;
   /** Ngừng một lần gắn cấp riêng: chọn ngày cuối, `POST /api/pricing/muc-rieng/:id/ket-thuc`. */
@@ -723,7 +724,7 @@ export function taoMoHop(ctx: NguCanhHop): MoHop {
     const tu = h("input", { id: "hh-adcs-tu", type: "date", value: d.homNay });
     const loi = h("p", { class: "field-error", role: "alert", hidden: true });
     moHop(ctx, {
-      title: loaiCode === undefined ? "Thêm vai trò vào cấp" : "Chọn cấp cho vai trò",
+      title: loaiCode === undefined ? "Gán cho vai trò" : "Chọn cấp cho vai trò",
       body: [h("p", null, h("span", { class: "hh-nhan-nho" }, "Cấp độ đại lý"), h("strong", null, muc.ten)), h("label", null, "Vai người dùng", loai), h("label", null, "Từ ngày", tu), loi],
       nhan: "Lưu",
       chuan() {
@@ -763,17 +764,17 @@ export function taoMoHop(ctx: NguCanhHop): MoHop {
     return { root, tu, den: () => (denChon.value === "NGAY" ? den.value : "") };
   };
 
-  function datCapRieng(dien?: { partyId: string; ten: string }): void {
+  function datCapRieng(dien?: { partyId: string; ten: string }, capSan?: string): void {
     const d = ctx.lay();
     const loi = taoBangLoi();
     const tim = dien ? null : taoTimDoiTac({ choPhep: duocTimTen, id: "hh-dcr-doi-tac" });
     tim?.khiDoi(() => loi.xoa());
     const doc = (): { partyId: string; ten: string } => dien ?? { partyId: tim?.chon()?.partyId ?? "", ten: tim?.chon()?.ten ?? "" };
-    const cap = oCapMo("hh-dcr-muc", "");
+    const cap = oCapMo("hh-dcr-muc", capSan ?? ""); // `capSan` (ADR-0166 câu 1): nút «Gán cho đối tác» ở trang chi tiết cấp chọn sẵn cấp đang xem
     const hl = oHieuLuc("hh-dcr", loi, d.homNay, null);
     let gui = "";
     moHop(ctx, {
-      title: "Chọn cấp riêng cho đối tác",
+      title: CHU_CAP.chonCapRieng,
       body: [
         dien
           ? h("p", null, h("span", { class: "hh-nhan-nho" }, "Đối tác"), h("strong", null, dien.ten))

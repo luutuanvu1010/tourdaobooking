@@ -60,7 +60,7 @@ export function oCap(dong: DongTaiKhoan, v: CapHienHanhDto | undefined, suaDuoc:
   const loi = h("div", { class: "vc-field-error", role: "alert", hidden: true });
   let chinh: HTMLElement;
   if (v !== undefined && nutMoBang(o, suaDuoc)) {
-    const nut = h("button", { type: "button", class: "btn btn-link", "aria-label": `${CHU_CAP.nhanCot} của ${dong.fullName}: ${o.chu}` }, o.chu);
+    const nut = h("button", { type: "button", class: "btn btn-link", "aria-label": `${CHU_CAP.chonCapRieng}: ${dong.fullName} — ${o.chu}` }, o.chu);
     nut.addEventListener("click", () => void moBangDatCap(dong, v, nut, loi, lamMoi));
     chinh = nut;
   } else {
@@ -102,7 +102,7 @@ async function moBangDatCap(dong: DongTaiKhoan, v: CapHienHanhDto, opener: HTMLE
   const luu = h("button", { type: "button", class: "btn btn-primary btn-block" }, CHU_CAP.luu);
   const dung = m.dungTheoVaiDuoc ? h("button", { type: "button", class: "btn", id: "cap-dung-theo-vai-tro" }, CHU_CAP.dungTheoVaiTro) : null;
   const bang = moBangTruot({
-    title: `${CHU_CAP.nhanCot}: ${dong.fullName}`,
+    title: `${CHU_CAP.chonCapRieng}: ${dong.fullName}`,
     body: [
       h(
         "div",

@@ -20,7 +20,7 @@ export const XEP: Readonly<Record<string, XepNhom>> = {
     "Bắt đầu": [["Menu của bạn", null], ["Danh sách đơn và Trang chủ", "donHang"], ["Thông báo", null]],
     "Đơn hàng": [
       ["Lập đơn mới", "taoDon"], ["Sửa đơn đang chờ xác nhận", DON], ["Xác nhận đơn", DON], ["Người phụ trách đơn", DON],
-      ["Đơn của đối tác chờ xác nhận: bảng Còn vé", "choXacNhan"],
+      ["Đơn của đối tác chờ xác nhận: kiểm vé", "choXacNhan"],
     ],
     "Gửi cho khách": [["Gửi ảnh biên nhận cho khách", DON]],
     "Xe và dịch vụ": [["Điều phối xe", "dieuPhoi"], ["Luật bán và đặc điểm dịch vụ", "luatBan"]],
@@ -30,7 +30,7 @@ export const XEP: Readonly<Record<string, XepNhom>> = {
     "Bắt đầu": [["Menu của bạn", null], ["Thông báo", null]],
     "Đơn của tôi": [
       ["Nhận một đơn đang chờ", "donHang"], ["Xem và lo đơn của mình", "donHang"], ["Sửa số khách", DON], ["Huỷ đơn", DON], ["Trả đơn (Từ chối)", DON],
-      ["Thu tiền và bấm Đã giao", DON], ["Đơn của đối tác chờ xác nhận: bảng Còn vé", "choXacNhan"],
+      ["Thu tiền và bấm Đã giao", DON], ["Đơn của đối tác chờ xác nhận: kiểm vé", "choXacNhan"],
     ],
     "Khi vướng": VUONG("Tình huống hay gặp", "Điều bạn không làm được — hỏi ai", "Câu hỏi thường gặp"),
     "Bảo mật": [["Bật bảo mật hai lớp", "toi"], ["Nhận mã đăng nhập qua email", "toi"]],
@@ -39,7 +39,7 @@ export const XEP: Readonly<Record<string, XepNhom>> = {
     "Bắt đầu": [["Menu của bạn", null], ["Xem tình hình chung ở Trang chủ", "trangChu"]],
     "Đơn và tiền": [
       ["Tìm và lọc đơn", "donHang"], ["Xem tiền của một đơn", DON], ["Sửa số khách đơn đã xác nhận", DON], ["Mở biên nhận để gửi khách", DON],
-      ["Đơn của đối tác chờ xác nhận: bảng Còn vé", "choXacNhan"],
+      ["Đơn của đối tác chờ xác nhận: kiểm vé", "choXacNhan"],
     ],
     "Sổ và hoa hồng": [
       ["Đặt mức hoa hồng cho đối tác", "hoaHong"], ["Thêm vai trò", "hoaHong"], ["Cấp độ đại lý", "hoaHong"], ["Chụp bù, ghi mức tay cho một đơn", "chupBu"],

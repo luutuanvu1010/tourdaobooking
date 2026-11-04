@@ -4,12 +4,13 @@ import { ApiError, api, type Api, type Order, type Staff } from "./api";
 import { h, replaceChildren } from "./dom";
 import { icon } from "./icons";
 import { vnd } from "./format";
+import { hoiXacNhan } from "./bang-truot";
 import { LY_DO_DAT_GAP, type LyDoDatGap } from "../src/shared/chang-dua-don";
 import { canhBaoChangForm } from "../src/shared/dat-gap-hien-thi";
 import { KHUNG_MAC_DINH, type KhungGio } from "../src/shared/khung-gio-don";
 import { GHI_CHU_HUY_TOI_DA, luaChonLyDo, nhanNhomHuy } from "../src/shared/ly-do-huy";
 import { can } from "../src/shared/permissions";
-import { CAU_NHO_DAT_GAP, CAU_THIEU_GIO_LUOT, CAU_TIEN_KHOA_KHI_CHO, NHAN_KET_QUA, NHAN_NUT_XAC_NHAN, dongChoXacNhan, dongGioConVe, nhanGhiChuDichVu, nhanGioLuot, nhanLyDoCanXacNhan, type DongGioConVe, type LuotGioConVe } from "../src/shared/xac-nhan-hien-thi";
+import { CAU_NHO_DAT_GAP, CAU_THIEU_GIO_LUOT, CAU_TIEN_KHOA_KHI_CHO, HOI_CON_VE, NHAN_KET_QUA, NHAN_NUT_XAC_NHAN, dongChoXacNhan, dongGioConVe, nhanGhiChuDichVu, nhanGioLuot, nhanLyDoCanXacNhan, type DongGioConVe, type LuotGioConVe } from "../src/shared/xac-nhan-hien-thi";
 import { taoKhungDatGap } from "./dat-gap-ui";
 
 /** Những gì trang đơn cung cấp: tải lại đơn, báo thành công / lỗi. */
@@ -45,7 +46,7 @@ export function nutGuiXacNhan(c: BoiCanhXacNhan, chan: string | null): HTMLButto
     c.xoaBao();
     try {
       await api<Api.GuiXacNhanResponse>(`/api/orders/${encodeURIComponent(c.orderId)}/gui-xac-nhan`, { method: "POST", body: {} });
-      await c.lamMoi({ tone: "success", text: "Đã gửi xác nhận. Đơn đang chờ người kiểm vé." });
+      await c.lamMoi({ tone: "success", text: "Đã gửi kiểm vé. Đơn đang chờ người kiểm vé." });
     } catch (err) {
       c.baoLoi(err);
     }
@@ -309,6 +310,8 @@ export function bangXacNhanDon(c: BoiCanhXacNhan, order: Order, y: Api.YeuCauXac
       dauTien.focus();
       return;
     }
+    // ADR-0166 câu 4: nút này chốt đơn ngay (giá khoá, hoa hồng chụp, vé cấp, cọc thành khoản thu) — hỏi lại trước khi gọi máy chủ; huỷ hộp thì không gọi gì.
+    if (!(await hoiXacNhan({ ...HOI_CON_VE, opener: nutConVe }))) return;
     nutConVe.disabled = true;
     const than: Omit<Api.QuyetDinhXacNhanInput, "yeuCauId" | "updatedAt"> = { ketQua: "CON_VE" };
     if (ngayOng.value && ngayOng.value !== ngayHienTai) than.ngayDi = ngayOng.value;

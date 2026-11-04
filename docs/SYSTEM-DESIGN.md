@@ -1006,7 +1006,7 @@ Mọi route khai bằng `route(...)` trong `src/modules/*/index.ts` (288 tại 2
 | POST | `/api/catalog/sync` | admin | catalog | "Đồng bộ ngay" (nhận `force` để vượt chốt chặn) |
 | PATCH | `/api/catalog/:code` | admin | catalog | ghi đè giá và/hoặc ẩn/hiện một dịch vụ |
 | POST | `/api/catalog/:code/ack` | admin | catalog | "Giữ ghi đè" sau khi Sheet đổi giá |
-| DELETE | `/api/catalog/:code/override` | admin | catalog | bỏ toàn bộ ghi đè, quay về theo Sheet |
+| DELETE | `/api/catalog/:code/override` | admin | catalog | bỏ ghi đè GIÁ, quay về giá theo Sheet; dấu Ngừng bán giữ nguyên (ADR-0166) |
 | GET | `/api/catalog/groups` | admin | catalog | nhóm dịch vụ (ADR-0058 Đ4): mọi nhóm kể cả đã tắt, kèm `soDichVu` hiện hành, `updatedAt`, và `chuaPhanLoai` = số dịch vụ của danh mục (kể cả ẩn / đã rời Sheet) không có nhóm hiện hành |
 | POST | `/api/catalog/groups` | admin | catalog | thêm nhóm `{ name, sortOrder? }` → 201 `{ group }` (mã máy sinh; thứ tự vắng = lớn nhất + 1); tên 1–40 ký tự; trùng tên nhóm đang dùng → 409; nhật ký `catalog_group_created` |
 | PATCH | `/api/catalog/groups/:code` | admin | catalog | đổi `name` / `sortOrder` / `active` / `transferEnabled` (boolean — «Có đưa đón», ADR-0118; sai kiểu → 400; nhật ký thêm đoạn «đưa đón: bật → tắt»), khoá lạc quan `expectedUpdatedAt` (sai → 409); 404 mã lạ; 409 trùng tên, bật lại nhóm tắt mà tên trùng nhóm đang dùng, tắt nhóm còn dịch vụ ("Nhóm còn N dịch vụ, chuyển chúng sang nhóm khác trước."); nhật ký `catalog_group_updated` (trước → sau) |

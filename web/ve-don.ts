@@ -17,6 +17,8 @@ interface VeDonRes {
   duongDan: { id: string; hetHan: string; daThuHoi: boolean; luotMo: number }[];
   veXem: { id: string; stt: number }[];
 }
+/** ADR-0166 câu 3: nói trước khi bấm — mở vé hoặc tạo đường dẫn là coi mọi vé của đơn đã lộ, vé đã lộ không về lại kho. */
+const CAU_VE_KHONG_VE_KHO = "Bấm là coi như vé đã giao cho khách: vé của đơn này sẽ không quay về kho nữa, kể cả khi khách huỷ. Chưa chắc khách lấy thì đừng bấm.";
 export interface VeDonVao { orderId: string; coQuyenGui: boolean }
 
 const ngayVn = (iso: string): string => new Date(new Date(iso).getTime() + 7 * 3600 * 1000).toISOString().slice(0, 10).split("-").reverse().join("/");
@@ -61,7 +63,8 @@ function veKhoi(el: HTMLElement, vao: VeDonVao, res: VeDonRes, dong: VeDonRes["d
   } else if (vao.coQuyenGui && res.veXem.length > 0) {
     // ---- Gửi Zalo / tải ảnh -------------------------------------------------------------------------------------------------------------------------------
     let tep: File[] = [];
-    const nutChuanBi = h("button", { type: "button", class: "btn btn-primary", "data-action": "chuan-bi-ve" }, `Chuẩn bị ${res.veXem.length} vé để gửi`);
+    const nutChuanBi = h("button", { type: "button", class: "btn btn-primary", "data-action": "chuan-bi-ve" }, `Mở ${res.veXem.length} vé để gửi khách`);
+    const canhBaoMo = h("p", { class: "muted", "data-khoi": "ve-khong-ve-kho" }, CAU_VE_KHONG_VE_KHO);
     const nutGui = h("button", { type: "button", class: "btn btn-primary", "data-action": "gui-zalo", hidden: true }, "Gửi Zalo");
     const khuTai = h("div", { class: "handler-actions", hidden: true });
     const ghiLanGiao = async (): Promise<void> => {
@@ -77,7 +80,7 @@ function veKhoi(el: HTMLElement, vao: VeDonVao, res: VeDonRes, dong: VeDonRes["d
           return new File([blob], `ve-${v.stt}.${blob.type === "image/jpeg" ? "jpg" : "png"}`, { type: blob.type || "image/png" });
         }));
       } catch (err) { hien(err instanceof Error ? err.message : lyDoLoi(err), true); nutChuanBi.disabled = false; return; }
-      nutChuanBi.hidden = true; hien(`Đã chuẩn bị ${tep.length} vé.`);
+      nutChuanBi.hidden = true; canhBaoMo.hidden = true; hien(`Đã mở ${tep.length} vé. Các vé này sẽ không quay về kho nữa, kể cả khi khách huỷ.`);
       const chiaSeDuoc = typeof navigator.canShare === "function" && typeof navigator.share === "function" && navigator.canShare({ files: tep });
       nutGui.hidden = !chiaSeDuoc;
       khuTai.hidden = false;
@@ -91,7 +94,7 @@ function veKhoi(el: HTMLElement, vao: VeDonVao, res: VeDonRes, dong: VeDonRes["d
       // GỌI NGAY trong lần bấm (không await trước đó) — iOS chỉ cho phép bảng chia sẻ trong cử chỉ của người dùng.
       navigator.share({ files: tep, title: "Vé tham quan" }).then(() => ghiLanGiao()).catch(() => { /* người dùng đóng bảng chia sẻ: không ghi lần giao */ });
     });
-    khoi.push(h("div", { class: "handler-actions" }, nutChuanBi, nutGui), khuTai);
+    khoi.push(h("div", { class: "handler-actions" }, nutChuanBi, nutGui), canhBaoMo, khuTai);
 
     // ---- Đường dẫn riêng cho khách -------------------------------------------------------------------------------------------------------------------------
     const khuLink = h("div", { "data-khoi": "duong-dan" });
@@ -119,7 +122,7 @@ function veKhoi(el: HTMLElement, vao: VeDonVao, res: VeDonRes, dong: VeDonRes["d
       } catch (err) { hien(lyDoLoi(err), true); }
       nutLink.disabled = false;
     });
-    khoi.push(h("div", { class: "handler-actions" }, nutLink), oLink, khuLink);
+    khoi.push(h("div", { class: "handler-actions" }, nutLink), h("p", { class: "muted", "data-khoi": "ve-khong-ve-kho-link" }, CAU_VE_KHONG_VE_KHO), oLink, khuLink);
   }
   replaceChildren(el, ...khoi, thongBao, loi);
 }

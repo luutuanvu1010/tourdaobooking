@@ -495,7 +495,7 @@ function recompute(): void {
   capNhatBuoc();
   const tooMany = ds.some((d) => draftIssues(d).some((i) => i.code === "too_many_guests")); // vượt 50 khách khoá nút Lưu (đặc tả 5.1)
   saveBtn.disabled = formLocked || saving || tooMany;
-  saveBtn.textContent = saving ? (guiDonKhiLuu && !editId ? "Đang gửi…" : "Đang lưu…") : editId ? "Lưu thay đổi" : guiDonKhiLuu ? NHAN_NUT_XAC_NHAN.submit : "Lưu, chờ xác nhận";
+  saveBtn.textContent = saving ? (guiDonKhiLuu && !editId ? "Đang gửi…" : "Đang lưu…") : editId ? "Lưu thay đổi" : guiDonKhiLuu ? NHAN_NUT_XAC_NHAN.submit : "Lưu đơn (chưa xác nhận)";
 }
 
 for (const id of ["discount", "declaredDeposit"]) {

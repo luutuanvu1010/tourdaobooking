@@ -199,10 +199,10 @@ function formDoiBen(p: Api.PhieuPhanDinhDto): HTMLElement {
   });
 }
 
-/** Đòi được khách: ghi khoản thu mới và huỷ giảm trừ, nợ trong cùng lần ghi; được huỷ một phần. */
+/** Ghi khoản thu đòi được (khách trả phần đã giảm trừ): ghi khoản thu mới và huỷ giảm trừ, nợ trong cùng lần ghi; được huỷ một phần. */
 function formHuy(p: Api.PhieuPhanDinhDto): HTMLElement {
   const g = p.ghi!;
-  return khoiMo("Đòi được khách / huỷ khoản", "huy-khoan", () => {
+  return khoiMo("Ghi khoản thu đòi được", "huy-khoan", () => {
     const so = oTien(g.conHieuLuc, "Số đòi được (₫)");
     const ht = oHinhThuc();
     const ma = oMa(ht.o);

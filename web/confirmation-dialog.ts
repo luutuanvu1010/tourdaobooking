@@ -150,7 +150,7 @@ export function openConfirmationDialog(o: ConfirmationDialogOptions): void {
   const dialog = h(
     "div",
     { class: "sheet sheet-wide", role: "dialog", "aria-modal": "true", "aria-labelledby": "confirm-sheet-title", tabindex: -1 },
-    h("div", { class: "sheet-head" }, h("h2", { id: "confirm-sheet-title", class: "sheet-title" }, "Xác nhận đơn để gửi khách"), closeBtn),
+    h("div", { class: "sheet-head" }, h("h2", { id: "confirm-sheet-title", class: "sheet-title" }, "Ảnh gửi khách"), closeBtn),
     // Vùng cuộn được (ảnh cao hơn khung nhìn) mà không có phần tử nhận focus nào bên trong → phải tự nhận focus để cuộn được bằng bàn phím (axe: scrollable-region-focusable).
     h("div", { class: "sheet-body", tabindex: 0, role: "region", "aria-label": "Xem trước ảnh xác nhận" }, h("p", { class: "confirm-hint" }, "Ảnh xác nhận gửi cho khách: tải về máy hoặc chia sẻ qua Zalo."), stage),
     h("div", { class: "sheet-foot confirm-foot" }, noteSlot, downloadEl, shareSlot),

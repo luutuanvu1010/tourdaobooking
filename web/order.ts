@@ -1203,7 +1203,7 @@ function moBangQr(order: Order, t: Api.OrderPaymentsResponse, opener: HTMLElemen
   const dong = h("div", { class: "qr-dong", "data-khoi": "qr-thong-tin" });
   const loiEl = h("p", { class: "alert danger", role: "alert", hidden: true });
   const luu = h("button", { type: "button", class: "btn btn-primary", "data-action": "qr-luu-anh", disabled: true }, "Lưu ảnh");
-  const daChuyen = t.coTheGhiThu ? h("button", { type: "button", class: "btn", "data-action": "qr-da-chuyen", disabled: true }, "Khách đã chuyển khoản") : null;
+  const daChuyen = t.coTheGhiThu ? h("button", { type: "button", class: "btn", "data-action": "qr-da-chuyen", disabled: true }, "Ghi khoản thu này") : null;
   let anh: Blob | null = null;
   let hien: Api.QrThanhToanDto | null = null;
   let dangChiaSe = false;

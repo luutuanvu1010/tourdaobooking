@@ -18,6 +18,8 @@ export const CHU_CAP = {
   troHoaHong: "Sửa ở trang Hoa hồng",
   khongTaiDuoc: "—",
   chonCap: "Chọn cấp độ đại lý",
+  /** Tên MỘT việc ở cả ba nơi (ADR-0166 câu 1): trang Hoa hồng, Danh bạ, Quản lý tài khoản — đặt cấp riêng cho một đối tác. */
+  chonCapRieng: "Chọn cấp riêng cho đối tác",
   tuNgay: "Từ ngày",
   luu: "Lưu",
   dungTheoVaiTro: "Dùng cấp theo vai trò",

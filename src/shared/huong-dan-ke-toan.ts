@@ -91,7 +91,7 @@ Không bớt hết người lớn được: đơn luôn cần ít nhất một n
       tieuDe: "Mở biên nhận để gửi khách",
       noiDung: `1. Mở trang **Chi tiết đơn**.
 2. Bấm [[Xem biên nhận]].
-3. Hộp **Xác nhận đơn để gửi khách** hiện ra. Ảnh xác nhận được vẽ sẵn.
+3. Hộp **Ảnh gửi khách** hiện ra. Ảnh xác nhận được vẽ sẵn.
 4. Bấm [[Tải ảnh PNG]] để lưu ảnh về máy, hoặc bấm [[Chia sẻ]] (có trên điện thoại) để gửi qua Zalo.
 5. Thấy dòng báo lỗi thì bấm [[Thử lại]].`,
     },
@@ -143,7 +143,7 @@ Gắn vai trò cho hồ sơ ở Danh bạ là việc của Quản trị hoặc T
 
 1. [[＋ Thêm cấp độ đại lý]], gõ tên.
 2. Mở cấp, bấm [[＋ Thêm hoa hồng cho dịch vụ]]: chọn dịch vụ và mức.
-3. [[Chọn cấp cho vai trò này]] hoặc [[Thêm vai trò vào cấp này]]: chọn vai trò, ngày bắt đầu.
+3. [[Chọn cấp cho vai trò này]], [[Gán cho vai trò]], [[Gán cho đối tác]]: chọn người nhận, ngày bắt đầu.
 4. Đổi tên, ghi chú: [[Sửa]].
 
 Cấp của vai trò xét sau cùng. Đổi sang cấp khác: [[Đổi cấp]]. Ngừng chi: [[Thôi theo cấp này]]. [[Khoá cấp]] chặn thêm vai trò và mức mới, vai trò đang theo vẫn tính; dùng lại: [[Mở lại cấp]].
@@ -190,8 +190,8 @@ Cần biết:
 > Lưu ý: Chỉ lệnh điều chỉnh cần người khác duyệt. Việc khác như [[Huỷ khoản thu]] vẫn làm như trước.`,
     },
     {
-      tieuDe: "Đơn của đối tác chờ xác nhận: bảng Còn vé",
-      noiDung: `Đơn đối tác gửi lên ở trạng thái [[Chờ xác nhận]]; khối **Xác nhận đơn** có [[Còn vé]], [[Hết vé]] và Huỷ. Mỗi dịch vụ có dòng **Ghi chú** của đối tác và ô **Giờ đón** từng lượt. Đối tác không nhập giờ: lượt đầu ghi **(bắt buộc)**, chọn giờ rồi mới bấm [[Còn vé]]. Bạn không có nút Đặt gấp: giờ đã qua hạn chốt thì nhờ Bán hàng hoặc Quản trị. Xác nhận xong, gọi số liên hệ trên đơn để báo giờ; số này là của đối tác khi công tắc ẩn thông tin khách đang bật.`,
+      tieuDe: "Đơn của đối tác chờ xác nhận: kiểm vé",
+      noiDung: `Đơn đối tác gửi lên ở trạng thái [[Chờ xác nhận]]; khối **Xác nhận đơn** có [[Còn vé, xác nhận đơn]], [[Hết vé]] và Huỷ. Mỗi dịch vụ có dòng **Ghi chú** của đối tác và ô **Giờ đón** từng lượt. Đối tác không nhập giờ: lượt đầu ghi **(bắt buộc)**, chọn giờ rồi mới xác nhận. Bạn không có nút Đặt gấp: giờ đã qua hạn chốt thì nhờ Bán hàng hoặc Quản trị. Xác nhận xong, gọi số liên hệ trên đơn để báo giờ; số này là của đối tác khi công tắc ẩn thông tin khách đang bật.`,
     },
     {
       tieuDe: "Tình huống hay gặp",
