@@ -46,7 +46,12 @@ const STALE_NOTICE = "Hồ sơ vừa được người khác thay đổi nên b�
 /** Câu xác nhận trước khi đổi công ty chủ (ADR-0024 6.2: trang đăng nhập và biên nhận đọc hồ sơ công ty chủ). Không nói "Toàn quyền" (vai ẩn). */
 const XAC_NHAN_DOI_CONG_TY_CHU =
   "Đặt hồ sơ này làm công ty chủ? Trang đăng nhập và biên nhận sẽ dùng thông tin của hồ sơ này từ hôm nay (tên, mã số thuế, địa chỉ, liên hệ ghi chú “Hotline”, email). Công ty chủ hiện tại sẽ thôi giữ công việc này. Sau khi đổi, kiểm lại mục “Tài khoản nhận tiền” của hồ sơ mới — chưa cài thì mã QR thanh toán báo lỗi.";
-const fail = (err: unknown) => showError(errorEl, err instanceof ApiError ? err.message : "Không kết nối được máy chủ.");
+/** Hiện lỗi của trang VÀ đưa vào tầm nhìn: người dùng thường đang cuộn xuống tận mục «Công việc tại đâu»; `center` để thanh trên dính không che. */
+function hienLoi(message: string): void {
+  showError(errorEl, message);
+  errorEl.scrollIntoView({ block: "center" });
+}
+const fail = (err: unknown) => hienLoi(err instanceof ApiError ? err.message : "Không kết nối được máy chủ.");
 
 /**
  * Chạy một thao tác. Thao tác GHI truyền `btn`: nút bị khoá từ lúc bấm đến khi xong cả phần nạp lại (bấm đúp không tạo trùng), mở lại ở `finally`.
@@ -61,7 +66,7 @@ async function act<T>(fn: () => Promise<T>, btn?: HTMLButtonElement | null, onSt
   } catch (err) {
     if (onStale && err instanceof ApiError && err.code === "stale") {
       await onStale();
-      if (errorEl.hidden) showError(errorEl, STALE_NOTICE); // nạp lại thất bại thì giữ lỗi của lần nạp
+      if (errorEl.hidden) hienLoi(STALE_NOTICE); // nạp lại thất bại thì giữ lỗi của lần nạp
     } else fail(err);
     return undefined;
   } finally {
@@ -329,7 +334,7 @@ async function openDetail(id: string): Promise<void> {
   rType.addEventListener("change", capNhatONoi);
   capNhatONoi();
   const addRole = button("Thêm công việc", (b) => {
-    if (!rType.value) { showError(errorEl, "Chọn công việc trước khi thêm."); return; }
+    if (!rType.value) { hienLoi("Chọn công việc trước khi thêm."); return; }
     if (rType.value === OWNER_COMPANY_ROLE && !confirm(XAC_NHAN_DOI_CONG_TY_CHU)) return;
     const body = { roleTypeCode: rType.value, locationId: rLoc.value || null, validFrom: rFrom.value || undefined };
     void act(async () => { await api(`/api/parties/${id}/roles`, { method: "POST", body }); await reload(); }, b);
@@ -361,7 +366,7 @@ async function openDetail(id: string): Promise<void> {
     }, 300);
   });
   const addRel = button(loaiQuanHe().nut, (b) => {
-    if (!relPick.value) return showError(errorEl, "Chọn hồ sơ cần liên kết.");
+    if (!relPick.value) return hienLoi("Chọn hồ sơ cần liên kết.");
     const l = loaiQuanHe();
     const body = l.laDauTu ? { fromPartyId: id, toPartyId: relPick.value, relationshipTypeCode: l.code } : { fromPartyId: relPick.value, toPartyId: id, relationshipTypeCode: l.code };
     void act(async () => { await api(`/api/parties/${id}/relationships`, { method: "POST", body }); await reload(); }, b);
@@ -507,7 +512,7 @@ function moHopGop(nguon: { id: string; displayName: string }, dichSan: { id: str
       // act() mở lại nút ở finally: tính lại nút theo bản xem trước mới; giữ câu lỗi của lần gộp (xem trước gọi act() nên xoá lỗi ở đầu).
       const loi = errorEl.hidden ? null : errorEl.textContent;
       await xemTruoc();
-      if (loi && errorEl.hidden) showError(errorEl, loi);
+      if (loi && errorEl.hidden) hienLoi(loi);
     })();
   });
   replaceChildren(

@@ -209,8 +209,7 @@ test("C3 (a): còn đơn nháp đứng tên ⇒ gỡ vai cuối 409 role_end_has
   assert.ok(r.json.error.message.includes(cho1), "nêu mã đơn đang chờ xác nhận");
   assert.ok(!r.json.error.message.includes(nhap1), "mã đơn nháp riêng tư (ADR-0135 Đ1) không ra khỏi hàm");
   assert.match(r.json.error.message, /nhờ người lập huỷ hoặc xác nhận đơn nháp/);
-  assert.match(r.json.error.message, /«Thôi theo cấp này»/);
-  assert.match(r.json.error.message, /«Ngừng»/);
+  assert.doesNotMatch(r.json.error.message, /Thôi theo cấp này|«Ngừng»/, "chỉ nêu lối ra của việc còn thật");
   assert.match(r.json.error.message, /«Kết thúc»/);
   assert.equal(dem(w, "SELECT COUNT(*) AS n FROM pty_party_role WHERE id = ? AND valid_to_date IS NULL", rid), 1, "vai vẫn mở");
   // xử lý xong nháp (huỷ) ⇒ gỡ được
@@ -235,7 +234,7 @@ test("C3 (b): còn cấp riêng mở ⇒ 409; kết thúc cấp riêng (hết h�
   const r = await go(w, ORG, rid);
   assert.equal(r.status, 409, r.text);
   assert.equal(maLoi(r), "role_end_has_open_work");
-  assert.match(r.json.error.message, /còn cấp riêng đang áp dụng/);
+  assert.match(r.json.error.message, /cấp riêng đang áp dụng/);
   const kt = await w.call("POST", `/api/pricing/muc-rieng/${capId}/ket-thuc`, { as: KT, body: { denNgay: inDays(-1) } });
   assert.equal(kt.status, 200, kt.text);
   assert.equal((await go(w, ORG, rid)).status, 200);
@@ -248,7 +247,7 @@ test("C3 (c): còn mức riêng của hồ sơ còn hiệu lực (không phải 
   const r = await go(w, ORG, rid);
   assert.equal(r.status, 409, r.text);
   assert.equal(maLoi(r), "role_end_has_open_work");
-  assert.match(r.json.error.message, /còn mức riêng đang áp dụng/);
+  assert.match(r.json.error.message, /mức riêng đang áp dụng/);
   const dong = await w.call("POST", `/api/pricing/hoa-hong/${mucId}/dong`, { as: KT, body: { denNgay: inDays(-1) } });
   assert.equal(dong.status, 200, dong.text);
   assert.equal((await go(w, ORG, rid)).status, 200);
@@ -418,7 +417,7 @@ test("Tên người lập (a): một người lập ⇒ «N đơn do <tên> lậ
   const nhap = don(w, ORG, "draft");
   const cho = don(w, ORG, "draft", true);
   const c = await cauChan(w, rid);
-  assert.match(c, /2 đơn chưa xác nhận đứng tên hồ sơ này \(2 đơn do An Bán lập/);
+  assert.match(c, /2 đơn chưa xác nhận \(2 đơn do An Bán lập/);
   assert.ok(c.includes(`đang chờ xác nhận: ${cho}`), c);
   assert.ok(!c.includes(nhap) && !c.includes("Khách Giả") && !c.includes("0900000099"), `không lộ nháp / khách / SĐT: ${c}`);
   assert.ok(!c.includes("ngưng"), "tài khoản đang hoạt động thì không có câu ngưng");
@@ -431,7 +430,7 @@ test("Tên người lập (b): hai người lập ⇒ nêu từng người, ngư
   const b = themNguoiLap(w, "Trần Thị B");
   don(w, ORG, "draft", false, a); don(w, ORG, "draft", false, a); don(w, ORG, "draft", false, b);
   const c = await cauChan(w, rid);
-  assert.match(c, /3 đơn chưa xác nhận đứng tên hồ sơ này \(2 đơn do Nguyễn Văn A lập, 1 đơn do Trần Thị B lập\)/);
+  assert.match(c, /3 đơn chưa xác nhận \(2 đơn do Nguyễn Văn A lập, 1 đơn do Trần Thị B lập\)/);
 });
 
 test("Tên người lập (c): tài khoản người lập đang ngưng ⇒ có câu «bật lại tạm»", async () => {
@@ -470,4 +469,49 @@ test("Câu C3 khớp tên nút / thẻ thật trong giao diện (web/): «Thôi 
   for (const nhan of ['"Thôi theo cấp này"', '"Hoa hồng hiện hành"', '"Công việc tại đâu"', '"Kết thúc"']) assert.ok(parties.includes(nhan), `web/parties.ts thiếu ${nhan}`);
   assert.ok(dem("src/shared/hoa-hong-hien-thi.ts").includes('"Ngừng"'), "nhãn «Ngừng» của dòng mức");
   assert.ok(dem("public/hoa-hong.html").includes("<h1>Hoa hồng đối tác</h1>"), "trang Hoa hồng đối tác");
+});
+
+// ---- Câu chặn đúng ngữ pháp ở mọi tổ hợp; CHỈ nêu lối ra của việc còn thật (khoá nguyên câu) ----
+const DAU = "Chưa gỡ được vai trò này vì đây là vai trò hưởng hoa hồng cuối cùng và hồ sơ còn: ";
+const CUOI = " Xong việc thì bấm lại «Kết thúc».";
+const RA_NHAP = "nhờ người lập huỷ hoặc xác nhận đơn nháp";
+const RA_CAP = "kết thúc cấp riêng bằng nút «Thôi theo cấp này» ở mục «Hoa hồng hiện hành»";
+const RA_MUC = "ngừng mức riêng bằng nút «Ngừng» ở trang «Hoa hồng đối tác»";
+
+test("Câu chặn nguyên văn — chỉ đơn nháp", async () => {
+  const w = setup();
+  const rid = await ganId(w, ORG, "TRAVEL_AGENCY");
+  don(w, ORG, "draft");
+  assert.equal(await cauChan(w, rid), `${DAU}1 đơn chưa xác nhận (1 đơn do An Bán lập). Hãy ${RA_NHAP}.${CUOI}`);
+});
+
+test("Câu chặn nguyên văn — chỉ cấp riêng", async () => {
+  const w = setup();
+  const rid = await ganId(w, ORG, "TRAVEL_AGENCY");
+  await datCapRieng(w, ORG);
+  assert.equal(await cauChan(w, rid), `${DAU}cấp riêng đang áp dụng. Hãy ${RA_CAP}.${CUOI}`);
+});
+
+test("Câu chặn nguyên văn — chỉ mức riêng", async () => {
+  const w = setup();
+  const rid = await ganId(w, ORG, "TRAVEL_AGENCY");
+  await datMucRieng(w, ORG);
+  assert.equal(await cauChan(w, rid), `${DAU}mức riêng đang áp dụng. Hãy ${RA_MUC}.${CUOI}`);
+});
+
+test("Câu chặn nguyên văn — đủ ba việc (hai người lập, một đơn chờ xác nhận)", async () => {
+  const w = setup();
+  const rid = await ganId(w, ORG, "TRAVEL_AGENCY");
+  const cho = don(w, ORG, "draft", true);
+  don(w, ORG, "draft", false, themNguoiLap(w, "Nhân viên Thử"));
+  await datCapRieng(w, ORG);
+  await datMucRieng(w, ORG);
+  assert.equal(await cauChan(w, rid),
+    `${DAU}2 đơn chưa xác nhận (1 đơn do An Bán lập, 1 đơn do Nhân viên Thử lập; đang chờ xác nhận: ${cho}); cấp riêng đang áp dụng; mức riêng đang áp dụng. Hãy ${RA_NHAP}; ${RA_CAP}; ${RA_MUC}.${CUOI}`);
+});
+
+test("Giao diện Danh bạ: mọi chỗ hiện lỗi của trang đi qua hienLoi (đưa vào tầm nhìn, block center)", () => {
+  const src = readFileSync(new URL("../../../web/parties.ts", import.meta.url), "utf8");
+  assert.match(src, /function hienLoi[\s\S]{0,260}scrollIntoView\(\{ block: "center" \}\)/);
+  assert.equal([...src.matchAll(/showError\(errorEl, [^n]/g)].length, 1, "chỉ còn đúng một chỗ gọi showError với chữ (bên trong hienLoi)");
 });

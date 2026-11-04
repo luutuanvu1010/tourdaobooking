@@ -263,7 +263,8 @@ function cauNguoiLap(ds: ViecDoKhiThoiVai["nguoiLap"]): string {
   return them > 0 ? `${hien.join(", ")} và ${them} người khác` : hien.join(", ");
 }
 function cauViecDoKhiThoiVai(v: ViecDoKhiThoiVai): string | null {
-  const viec: string[] = [];
+  const con: string[] = [];
+  const ra: string[] = [];
   if (v.donNhap > 0) {
     const ma = v.maDonChoXacNhan.slice(0, TOI_DA_MA_DON);
     const them = v.maDonChoXacNhan.length - ma.length;
@@ -271,11 +272,18 @@ function cauViecDoKhiThoiVai(v: ViecDoKhiThoiVai): string | null {
       v.nguoiLap.length > 0 ? cauNguoiLap(v.nguoiLap) : "",
       ma.length > 0 ? `đang chờ xác nhận: ${ma.join(", ")}${them > 0 ? ` và ${them} đơn khác` : ""}` : "",
     ].filter((x) => x !== "");
-    viec.push(`${v.donNhap} đơn chưa xác nhận đứng tên hồ sơ này${chiTiet.length > 0 ? ` (${chiTiet.join("; ")})` : ""}`);
+    con.push(`${v.donNhap} đơn chưa xác nhận${chiTiet.length > 0 ? ` (${chiTiet.join("; ")})` : ""}`);
+    ra.push("nhờ người lập huỷ hoặc xác nhận đơn nháp");
   }
-  if (v.capRiengMo) viec.push("còn cấp riêng đang áp dụng");
-  if (v.mucRiengMo) viec.push("còn mức riêng đang áp dụng");
-  return viec.length === 0 ? null : `Chưa gỡ được vai trò này vì đây là vai trò hưởng hoa hồng cuối cùng của hồ sơ mà hồ sơ ${viec.join("; ")}. Hãy nhờ người lập huỷ hoặc xác nhận đơn nháp, kết thúc cấp riêng (nút «Thôi theo cấp này» ở mục «Hoa hồng hiện hành» của hồ sơ), ngừng mức riêng (nút «Ngừng» ở trang «Hoa hồng đối tác»), rồi bấm «Kết thúc» ở mục «Công việc tại đâu».`;
+  if (v.capRiengMo) {
+    con.push("cấp riêng đang áp dụng");
+    ra.push("kết thúc cấp riêng bằng nút «Thôi theo cấp này» ở mục «Hoa hồng hiện hành»");
+  }
+  if (v.mucRiengMo) {
+    con.push("mức riêng đang áp dụng");
+    ra.push("ngừng mức riêng bằng nút «Ngừng» ở trang «Hoa hồng đối tác»");
+  }
+  return con.length === 0 ? null : `Chưa gỡ được vai trò này vì đây là vai trò hưởng hoa hồng cuối cùng và hồ sơ còn: ${con.join("; ")}. Hãy ${ra.join("; ")}. Xong việc thì bấm lại «Kết thúc».`;
 }
 const NO_LOCATION = () => error(400, "invalid_input", "Vai trò này không gắn với một nơi làm — để trống ô “Nơi làm”.");
 const PARTY_INACTIVE = () => error(409, "party_inactive", "Hồ sơ này đang ngưng dùng nên chưa gắn vai trò được. Bật lại “Đang dùng” cho hồ sơ rồi thử lại.");
