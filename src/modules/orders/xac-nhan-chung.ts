@@ -4,7 +4,7 @@
 import { auditStatement } from "../audit";
 import { chupDon, docBangChoChup, soKhachTinhHoaHong, type BanChup } from "../pricing";
 import type { DongBoChuyenDto, IncompleteTripBody, LyDoCanXacNhan, OrderDetailDto, OrderStatus, PaxCounts, ShortNoticeRequiredBody, StaffProfile, XacNhanTrenDonDto } from "../../shared/contracts";
-import { can, holdsIntern, holdsPartner } from "../../shared/permissions";
+import { can, holdsIntern, holdsPartner, passesAdminGate } from "../../shared/permissions";
 import { error, json } from "../../shared/http";
 import { vnToday } from "../../shared/vn-date";
 import { maskLongDigits } from "../../shared/text-guards";
@@ -271,6 +271,8 @@ export async function xacNhanTrenDon(db: D1Database, i: { staff: StaffProfile; o
   const quyetDinhDuoc = y !== null && duocQuyetDinh({
     laNguoiLap, laNoiBo: !holdsPartner(i.staff) && !holdsIntern(i.staff), coQuyenXetDuyet,
     choTuXacNhan: laNguoiLap ? await tuXacNhanNoiBo(db, new Date(i.nowMs).toISOString()) : false,
+    uuTienCuaNguoiKhac: false, // tạm: Task 5 đổi sang đọc lời mời còn ưu tiên (ADR-0142)
+    laQuanTriHoacToanQuyen: passesAdminGate(i.staff), giuDoiTac: holdsPartner(i.staff),
   });
   return { yeuCau: y ? { id: y.id, guiLuc: y.submitted_at, hanLuc: y.deadline_at, quaHan: quaHanXacNhan(y.deadline_at, i.nowMs), vi } : null, canXacNhan: canXN, quyetDinhDuoc };
 }

@@ -5,7 +5,7 @@ import { auditStatement } from "../audit";
 import type { AnThongTinKhachResponse, CaiDatXacNhanResponse, DonChoXacNhanDto, DonChoXacNhanResponse, GuiDonResponse, GuiXacNhanResponse, LyDoCanXacNhan, PickupTimeRequiredBody, StaffProfile, QuyetDinhXacNhanResponse, ShortNoticeRequiredBody, YeuCauXacNhanDto } from "../../shared/contracts";
 import { UUID_RE, error, json, readJson, trangDon } from "../../shared/http";
 import { apCongTacAnKhach } from "../../shared/an-thong-tin-khach";
-import { can, holdsIntern, holdsPartner } from "../../shared/permissions";
+import { can, holdsIntern, holdsPartner, passesAdminGate } from "../../shared/permissions";
 import { route } from "../../shared/router";
 import { cauThieuChonDon, thieuChonDon } from "../../shared/cong-chon-don";
 import { CHIEU_LABEL, LY_DO_DAT_GAP, changDiDau, ghiDatGapNhatKy, thieuGioChangDau, type LyDoDatGap } from "../../shared/chang-dua-don";
@@ -14,6 +14,7 @@ import { KHUNG_MAC_DINH, kiemDanhSachKhung } from "../../shared/khung-gio-don";
 import { duoiMocKhiSua, nguongMocVn } from "../../shared/moc-toi-thieu";
 import { isHHMM, isISODate, vnToday } from "../../shared/vn-date";
 import { duocQuyetDinh, hanXacNhan, quaHanXacNhan } from "../../shared/xac-nhan-don";
+import { KHUNG_MAC_DINH as KHUNG_HANH_CHINH_MAC_DINH } from "../../shared/ban-hang-phu-trach";
 import { CAU_BAO_GUI_DON } from "../../shared/gui-don-cau-bao";
 import { chiNguoiLapGhiNhap } from "../../shared/xem-don-nhap";
 import { canhBaoMocCua, type XetDatGapSua } from "./dat-gap";
@@ -55,7 +56,7 @@ async function docAnKhach(db: D1Database, staff: StaffProfile, luc: string): Pro
  */
 async function moYeuCau(db: D1Database, i: { id: string; staffId: string; meta: { updatedAt: string }; vi: LyDoCanXacNhan[]; nowMs: number; canChotGio: boolean }): Promise<{ loi: Response } | { yeuCau: YeuCauXacNhanDto }> {
   const at = nextStamp(i.meta.updatedAt);
-  const han = hanXacNhan(at);
+  const han = hanXacNhan(at, KHUNG_HANH_CHINH_MAC_DINH); // Task 5 đổi sang đọc chính sách (ADR-0142)
   const yeuCauId = crypto.randomUUID();
   const auditId = crypto.randomUUID();
   let kq: D1Result[];
@@ -259,7 +260,8 @@ export const xacNhanRoutes = (xetDatGap: XetDatGapSua) => [
     if (y.id !== body.yeuCauId) return RACED(); // yêu cầu đã khép / đã thay bằng yêu cầu khác
     const laNguoiLap = meta.staffId === staff.id;
     const nowIso = new Date().toISOString();
-    if (!duocQuyetDinh({ laNguoiLap, laNoiBo: !holdsPartner(staff) && !holdsIntern(staff), coQuyenXetDuyet: true, choTuXacNhan: laNguoiLap ? await tuXacNhanNoiBo(env.DB, nowIso) : false })) {
+    // uuTienCuaNguoiKhac tạm false: Task 5 đổi sang đọc lời mời còn ưu tiên (ADR-0142)
+    if (!duocQuyetDinh({ laNguoiLap, laNoiBo: !holdsPartner(staff) && !holdsIntern(staff), coQuyenXetDuyet: true, choTuXacNhan: laNguoiLap ? await tuXacNhanNoiBo(env.DB, nowIso) : false, uuTienCuaNguoiKhac: false, laQuanTriHoacToanQuyen: passesAdminGate(staff), giuDoiTac: holdsPartner(staff) })) {
       return error(403, "forbidden", "Bạn không quyết định được đơn này.");
     }
     if (body.updatedAt !== meta.updatedAt) return STALE();
