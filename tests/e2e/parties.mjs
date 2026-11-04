@@ -174,13 +174,24 @@ for (const code of ["GUIDE", "DRIVER"]) {
   assert.equal(x.body.error.code, "role_type_inactive");
 }
 
-// ADR-0018: vai quyết định quyền đăng nhập không gán/gỡ ở trang Hồ sơ.
-for (const code of ["SALES_STAFF", "COLLABORATOR"]) {
+// ADR-0018: vai quyết định quyền đăng nhập không gán/gỡ ở trang Hồ sơ. ADR-0155 Đ1/C6 (đảo có chủ đích 2026-11-04): vai nội bộ và DRIVER_EXTERNAL vẫn 409; năm vai bên
+// ngoài (Công ty lữ hành, Hướng dẫn viên độc lập, Lễ tân khách sạn, Tài xế taxi, Cộng tác viên) trên hồ sơ CHƯA có tài khoản nay gắn được, không sinh quyền.
+for (const code of ["SALES_STAFF", "DRIVER_EXTERNAL"]) {
   const x = await call(ADMIN, "POST", `${P(A.id)}/roles`, { roleTypeCode: code });
   assert.equal(x.status, 409, `${code}: ${JSON.stringify(x.body)}`);
   assert.equal(x.body.error.code, "role_via_account");
 }
-console.log("✓ vai nội bộ/bên ngoài chỉ gán ở trang Nhân viên");
+{
+  const kt = await call(SALES, "POST", "/api/parties", { kind: "PERSON", fullName: `Cộng Tác ${tag} Viên` });
+  assert.equal(kt.status, 201, JSON.stringify(kt.body));
+  const g = await call(ADMIN, "POST", `${P(kt.body.party.id)}/roles`, { roleTypeCode: "COLLABORATOR" });
+  assert.equal(g.status, 201, JSON.stringify(g.body));
+  const g2 = await call(ADMIN, "POST", `${P(kt.body.party.id)}/roles`, { roleTypeCode: "HOTEL_RECEPTION", locationId: pier.id });
+  assert.equal(g2.status, 400, "vai bên ngoài không gắn nơi: " + JSON.stringify(g2.body));
+  const rid = g.body.party.roles.find((x) => x.roleTypeCode === "COLLABORATOR").id;
+  assert.equal((await call(ADMIN, "POST", `${P(kt.body.party.id)}/roles/${rid}/end`, {})).status, 200);
+}
+console.log("✓ vai nội bộ chỉ gán ở trang Nhân viên; năm vai bên ngoài gắn được cho hồ sơ chưa có tài khoản");
 
 // Truy vấn của đợt N1: ai giữ vai HDV ở Bến cảng Vinpearl hôm nay
 r = await call(SALES, "GET", `/api/parties?role=BOAT_CAPTAIN&location=${vinpearl.id}`);

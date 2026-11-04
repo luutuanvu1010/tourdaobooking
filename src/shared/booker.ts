@@ -14,7 +14,7 @@ export type BookerChoice = { kind: "none" } | { kind: "existing"; partyId: strin
  * ADR-0077 điều 3 (i), THU HẸP theo lời chủ (đặc tả sổ đại lý đợt 1 §7): tài khoản Đối tác mà hồ sơ cá nhân đang mang vai được hưởng ⇒ bên đặt = chính hồ sơ đó,
  * bỏ qua bên đặt trình duyệt gửi. Đối tác khác (hồ sơ không mang vai được hưởng, chưa gắn hồ sơ) và tài khoản không giữ quyền Đối tác giữ điều thân gửi — riêng việc
  * Đối tác CHỌN một đại lý / cộng tác viên khác thì bị `benDatDoiTacBiCam` chặn. (Tài khoản lai thường không có vai được hưởng trên hồ sơ của nó: chặn ở TẦNG ỨNG DỤNG —
- * route vai của `parties` trả 409 `role_via_account` cho vai nhóm nội bộ / bên ngoài (`isAccountGroup`), `src/shared/roles.ts` xếp quyền theo nhóm vai — và kiểm định kỳ
+ * route vai của `parties` trả 409 `role_via_account` cho vai nhóm nội bộ, `DRIVER_EXTERNAL` và vai bên ngoài trên hồ sơ ĐÃ có tài khoản (`isAccountGroup`; từ ADR-0155 năm vai hưởng gắn được cho hồ sơ CHƯA có tài khoản), `src/shared/roles.ts` xếp quyền theo nhóm vai — và kiểm định kỳ
  * `R-LC-1`; KHÔNG có trigger CSDL nào chặn vai bên ngoài trên hồ sơ của tài khoản lai, trigger LC-1 chỉ canh lúc cấp quyền.)
  * `laDoiTac` = giữ mã quyền Đối tác (`holdsPartner`); `laNguoiHuong` = hồ sơ của tài khoản đang mang vai được hưởng (máy chủ tính, `laNguoiHuong` của pricing).
  */

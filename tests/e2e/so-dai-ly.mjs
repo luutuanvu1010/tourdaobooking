@@ -6,8 +6,8 @@
 // Dùng accountant / admin / hr / salesA / field (không đổi tài khoản dùng chung; Nhân sự chỉ tạo hai tài khoản Đối tác dùng một lần). Hồ sơ đại lý dùng một lần (tên theo Date.now()). KHÔNG đóng dòng điều khoản gieo sẵn `prc-st-goc-all`, KHÔNG đổi
 // công ty chủ (D1 dùng chung — đặc tả §13). Mức theo vai TRAVEL_AGENCY · mọi dịch vụ chỉ thêm được một lần mỗi ngày trên cùng một D1 (dòng đã đóng ở hôm nay vẫn chồng hiệu lực
 // hôm nay) — run.mjs dựng D1 mới mỗi lần nên không vướng; chạy lẻ lại trên server có sẵn trong cùng ngày thì bước 2 sẽ 409.
-// Lệch brief Task 13 bước 1 (ghi ở sổ thi công): route gán vai của Danh bạ là ô `admin.manage` (Kế toán 403) VÀ từ chối mọi vai nhóm bên ngoài (409 `role_via_account`), nên
-// hồ sơ TỔ CHỨC không có đường thật nào để mang vai "Công ty lữ hành" — kịch bản gieo vai đó bằng SQL cho đại lý tổ chức (xem mục 1), còn đại lý cá nhân đi đường tạo tài khoản thật.
+// ADR-0155 Đ1/C6 (2026-11-04): route gán vai của Danh bạ (ô `admin.manage`, Kế toán 403) nay gắn được năm vai bên ngoài cho hồ sơ chưa có tài khoản, kể cả tổ chức — mục 1 gắn vai
+// "Công ty lữ hành" cho đại lý tổ chức bằng route thật (trước đây gieo SQL vì route trả 409 `role_via_account`).
 // Ca đua (mục 10) chỉ chứng minh "không ai nhận 500, đúng một bên thắng, D1 chỉ có một thế hệ bản chụp" — `wrangler dev` cục bộ thường chạy hai yêu cầu nối đuôi, nên KHÔNG chứng minh
 // khoá `updated_at` của câu xác nhận (bài khung thử src/modules/orders/chup-xac-nhan.test.ts ghim khoá đó).
 import assert from "node:assert/strict";
@@ -28,10 +28,8 @@ const lamTronNuaLen = (tu, mau) => Math.floor((2 * tu + mau) / (2 * mau));
 const congTyTruoc = (await sqlRows("SELECT party_id FROM v_pty_owner_company")).map((x) => x.party_id);
 assert.equal(congTyTruoc.length, 1, "D1 phải có đúng một công ty chủ");
 
-// ---- 1) Hồ sơ đại lý. LỖ ĐÃ GHI (Task 13, 2026-10-12): KHÔNG có đường nào của Nền tảng gán vai được hưởng (nhóm "bên ngoài": Công ty lữ hành, Lễ tân khách sạn…) cho hồ sơ
-// TỔ CHỨC — route vai của Danh bạ (POST /api/parties/:id/roles, ô admin.manage) trả 409 `role_via_account` cho mọi vai nhóm bên ngoài, còn tài khoản chỉ gắn hồ sơ CÁ NHÂN.
-// Vì vậy: (a) đại lý TỔ CHỨC `DL` — Kế toán tạo hồ sơ qua route thật, rồi vai "Công ty lữ hành" gieo THẲNG bằng SQL trên D1 tạm (cùng cách bài khung thử ben-dat-doi-tac.test.ts),
-// để thử đường tổ chức mới của resolveBooker / BOOKER_VALUE (Task 6); (b) đại lý CÁ NHÂN `DL2` và lễ tân `KS` đi đường thật: Nhân sự tạo tài khoản Đối tác theo vai.
+// ---- 1) Hồ sơ đại lý: (a) đại lý TỔ CHỨC `DL` — Kế toán tạo hồ sơ qua route thật, Quản trị gắn vai "Công ty lữ hành" qua route Danh bạ (ADR-0155 Đ1); (b) đại lý CÁ NHÂN `DL2` và lễ tân
+// `KS` đi đường tạo tài khoản thật: Nhân sự tạo tài khoản Đối tác theo vai.
 const taoToChuc = async (ten) => {
   const r = await call(ACC, "POST", "/api/parties", { kind: "ORGANIZATION", displayName: ten });
   assert.equal(r.status, 201, `Kế toán tạo hồ sơ tổ chức "${ten}": ${JSON.stringify(r.body)}`);
@@ -40,9 +38,9 @@ const taoToChuc = async (ten) => {
 const DL = await taoToChuc(`Đại lý E2E ${T}`);
 assert.equal((await call(ACC, "POST", `/api/parties/${DL.id}/roles`, { roleTypeCode: "TRAVEL_AGENCY" })).status, 403, "Kế toán không giữ ô admin.manage nên không gán vai được");
 const ganToChuc = await call(ADM, "POST", `/api/parties/${DL.id}/roles`, { roleTypeCode: "TRAVEL_AGENCY" });
-console.log(`ℹ 1) Quản trị gán vai «Công ty lữ hành» cho hồ sơ TỔ CHỨC qua route Danh bạ: ${ganToChuc.status} ${maLoi(ganToChuc) ?? ""} «${ganToChuc.body?.error?.message ?? ""}» — không có đường thật nào cho tổ chức mang vai được hưởng`);
-await sql(`INSERT INTO pty_party_role (id, party_id, role_type_code, location_id, valid_from_date, created_at, updated_at) VALUES ('e2e-sdl-${T}', '${DL.id}', 'TRAVEL_AGENCY', NULL, '${HOM_NAY}', '${new Date().toISOString()}', '${new Date().toISOString()}')`);
-assert.ok((await call(ACC, "GET", `/api/parties/${DL.id}`)).body.party.roleCodes.includes("TRAVEL_AGENCY"), "hồ sơ tổ chức mang vai Công ty lữ hành (gieo SQL)");
+assert.equal(ganToChuc.status, 201, `Quản trị gắn vai «Công ty lữ hành» cho hồ sơ TỔ CHỨC: ${JSON.stringify(ganToChuc.body)}`);
+assert.equal((await sqlRows(`SELECT COUNT(*) AS n FROM staff WHERE party_id = '${DL.id}'`))[0].n, 0, "không sinh tài khoản");
+assert.ok((await call(ACC, "GET", `/api/parties/${DL.id}`)).body.party.roleCodes.includes("TRAVEL_AGENCY"), "hồ sơ tổ chức mang vai Công ty lữ hành (gắn qua route)");
 const CHU = String(T).slice(-6).replace(/\d/g, (d) => "ABCDEGHKLM"[d]); // tên người không chứa chữ số
 const taoDoiTac = async (fullName, vai) => {
   const r = await call(HR, "POST", "/api/staff", { taoHoSoMoi: true, fullName, phone: randomPhone(), roles: [vai] });
@@ -55,7 +53,7 @@ const taoDoiTac = async (fullName, vai) => {
 const DL2 = await taoDoiTac(`Đại Lý Hai ${CHU}`, "TRAVEL_AGENCY");
 const KS = await taoDoiTac(`Lễ Tân ${CHU}`, "HOTEL_RECEPTION"); // mang vai được hưởng nhưng KHÔNG có mức nào ⇒ dòng thiếu mức
 const KHONG = await taoToChuc(`Tổ chức không hưởng E2E ${T}`); // không mang vai được hưởng
-console.log("✓ 1) Kế toán tạo hồ sơ tổ chức (gán vai: Kế toán 403); đại lý tổ chức mang vai gieo SQL (lỗ ở dòng ℹ); Nhân sự tạo hai tài khoản Đối tác theo vai «Công ty lữ hành», «Lễ tân khách sạn»");
+console.log("✓ 1) Kế toán tạo hồ sơ tổ chức (gán vai: Kế toán 403); Quản trị gắn vai cho đại lý tổ chức qua route (ADR-0155); Nhân sự tạo hai tài khoản Đối tác theo vai «Công ty lữ hành», «Lễ tân khách sạn»");
 
 // ---- 2) Mức hoa hồng: Kế toán thêm 10% cho "Công ty lữ hành" · mọi dịch vụ từ hôm nay ⇒ 201 + Location; trùng ⇒ 409; Bán hàng thêm ⇒ 403; HDV đọc ⇒ 403
 const thanMuc = { doiTuong: { loai: "VAI", code: "TRAVEL_AGENCY" }, phamVi: "ALL", kieu: "RATE", tyLeBp: 1000, tuNgay: HOM_NAY };
