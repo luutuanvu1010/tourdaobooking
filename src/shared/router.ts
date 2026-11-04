@@ -12,6 +12,7 @@ import type { MocToiThieu } from "./moc-toi-thieu.ts";
 import type { CauCocXacNhan, ChanKhaiLai, VaoCauCoc } from "./dat-coc-kieu.ts";
 import { dongBoDiThang, type DongBoTheoDon, type VaoDongBoTheoDon } from "./dong-bo-chuyen.ts";
 import type { ChuyenChoTin, HoiChuyenChoTin } from "./tin-chuyen.ts";
+import type { KetQuaLoiMoi, KhungGioHanhChinh } from "./ban-hang-phu-trach.ts";
 import { canAccessOrders, isOffice, passesAccountsGate, passesAdminGate, type PermissionCode } from "./permissions.ts";
 
 /**
@@ -65,6 +66,27 @@ export interface DonCuaNguoiDatTom { doi: number; giuDaGiao: number; giuDaHuy: n
  * `conVaiHuong` = trong `vaiConLai` (mã các vai còn mở sau khi gỡ) còn vai được hưởng hoa hồng. Đơn nháp riêng tư (ADR-0135 Đ1): CHỈ đếm (`donNhap`), mã đơn chỉ ra cho
  * đơn đang chờ xác nhận (`maDonChoXacNhan`, đã nằm trong tay người xét duyệt).
  */
+/**
+ * BÁN HÀNG PHỤ TRÁCH ĐƠN (ADR-0142) — hàm đọc và câu lệnh CHƯA CHẠY do `dispatch` công bố, gốc lắp ráp tiêm (`orders` không import `dispatch`, khuôn `isAssigned`,
+ * `GopHoSoNoi`). Mỗi hàm đọc là MỘT truy vấn D1. Câu nối vào lô của `orders` mang `auditId` = id dòng nhật ký của lệnh đơn (gác «lệnh chính đã thắng»);
+ * câu đi sau câu chính của `dispatch` gác bằng id dòng ô vừa mở. Ý nghĩa từng câu: xem `src/modules/dispatch/ban-hang.ts`.
+ */
+export interface BanHangNoi {
+  laBanHangPhuTrach: (staffId: string, orderId: string) => Promise<boolean>;
+  kiemBanHangMoi: (staffId: string) => Promise<{ ok: true; partyId: string; name: string } | { ok: false; message: string }>;
+  danhSachBanHangMoi: () => Promise<{ staffId: string; name: string }[]>;
+  gioHanhChinh: () => Promise<KhungGioHanhChinh | null>;
+  loiMoiMoCua: (orderId: string) => Promise<{ staffId: string | null; name: string; hanIso: string; xConHopLe: boolean } | null>;
+  banHangCuaDon: (orderIds: readonly string[]) => Promise<Map<string, { staffId: string | null; name: string }>>;
+  cauMoLoiMoi: (x: { orderId: string; inviteePartyId: string; invitedBy: string | null; at: string; hanIso: string; auditId: string }) => D1PreparedStatement;
+  cauMoBanHangBatBuoc: (x: { id: string; orderId: string; partyId: string; actorId: string; at: string; auditId: string }) => D1PreparedStatement;
+  cauKhepLoiMoiSauLenhDon: (x: { orderId: string; outcome: KetQuaLoiMoi; at: string; actorId: string; auditId: string }) => D1PreparedStatement;
+  cauMoBanHangNeuTrong: (x: { id: string; orderId: string; partyId: string; actorId: string; at: string }) => D1PreparedStatement;
+  cauKhepLoiMoiSauNhan: (x: { orderId: string; outcome: "NHAN" | "NGUOI_KHAC"; at: string; actorId: string; ownerRowId: string }) => D1PreparedStatement;
+  cauTuChoiLoiMoi: (x: { orderId: string; inviteePartyId: string; at: string; actorId: string }) => D1PreparedStatement;
+  cauDoiBanHang: (x: { orderId: string; partyIdCu: string | null; idMoi: string; partyIdMoi: string | null; actorId: string; at: string }) => D1PreparedStatement[];
+}
+
 /** Số đơn nháp của một người lập (chủ 2026-11-04: «Nêu tên người lập»); `ten` null = không rõ tên. */
 export interface NguoiLapNhapTom { ten: string | null; ngung: boolean; so: number }
 export interface ViecDoKhiThoiVai { conVaiHuong: boolean; donNhap: number; maDonChoXacNhan: string[]; nguoiLap: NguoiLapNhapTom[]; capRiengMo: boolean; mucRiengMo: boolean }
@@ -108,6 +130,13 @@ export interface Ctx<A extends Access = Access> {
    * người dùng đằng nào cũng là người lập — chứ KHÔNG gọi lười sau khi biết cần. Chưa đăng nhập → false.
    */
   isAssigned: (orderId: string) => Promise<boolean>;
+  /**
+   * BÁN HÀNG PHỤ TRÁCH (ADR-0142): người đang đăng nhập có phải Bán hàng phụ trách ĐANG MỞ của đơn không — điền `assigned` cho năm ô danh sách trắng
+   * (`QUYEN_DUOC_GIAO_BAN_HANG`). Một truy vấn mỗi lần gọi; chưa đăng nhập hoặc môi trường không tiêm (khung thử cũ) ⇒ false (từ chối, không đoán).
+   */
+  isSalesOwner: (orderId: string) => Promise<boolean>;
+  /** Các hàm đọc / dựng câu còn lại của Bán hàng phụ trách (xem `BanHangNoi`), đã bọc `env` của lệnh. Môi trường không tiêm ⇒ ném lỗi khi gọi (không lặng lẽ bỏ lời mời). */
+  banHang: BanHangNoi;
   /**
    * Người phụ trách do người lập CHỌN ngay lúc lập đơn (ADR-0030 S20-4, ADR-0020 điều 1, Q-C) — đơn mới KHÔNG BAO GIỜ tự gắn người lập; không chọn thì
    * route không gọi hàm này và đơn "chờ nhận". `dispatch` đọc tài khoản `staffId` và xét bằng CHÍNH luật người được giao (`checkAssignee`: đang hoạt
@@ -344,6 +373,8 @@ export interface AppOptions {
    */
   injected: {
     isAssigned: (env: Env, staffId: string, orderId: string) => Promise<boolean>;
+    /** BÁN HÀNG PHỤ TRÁCH (ADR-0142). BẮT BUỘC trong mã chạy thật (`src/index.ts`); thiếu (khung thử cũ) ⇒ `ctx.isSalesOwner` = false, các hàm khác ném lỗi khi gọi. */
+    banHang: (env: Env) => BanHangNoi;
     /** ADR-0030 S20-4. BẮT BUỘC. `actor` = người đang đăng nhập (người lập — ghi vào cột người thao tác và nhật ký), `staffId` = người được chọn. */
     newOrderHandler: (env: Env, actor: StaffProfile, staffId: string) => Promise<NewOrderHandler>;
     /** ADR-0030 S20-13. BẮT BUỘC: thiếu là `orders` không biết đơn nào đang có người phụ trách (Trang chủ đếm sai "Chưa phụ trách"). */
@@ -448,6 +479,29 @@ async function maLoiCua(res: Response): Promise<string | null> {
   }
 }
 
+/** `ctx.banHang`: mỗi phương thức hỏi hàm tiêm khi GỌI (không lúc dựng ctx); thiếu tiêm ⇒ ném lỗi rõ, không trả giá trị đoán. */
+function banHangLuoi(opts: AppOptions, envH: Env): BanHangNoi {
+  const lay = (): BanHangNoi => {
+    if (typeof opts.injected.banHang !== "function") throw new Error("banHang chưa được tiêm vào gốc lắp ráp (ADR-0142)");
+    return opts.injected.banHang(envH);
+  };
+  return {
+    laBanHangPhuTrach: (s, o) => lay().laBanHangPhuTrach(s, o),
+    kiemBanHangMoi: (s) => lay().kiemBanHangMoi(s),
+    danhSachBanHangMoi: () => lay().danhSachBanHangMoi(),
+    gioHanhChinh: () => lay().gioHanhChinh(),
+    loiMoiMoCua: (o) => lay().loiMoiMoCua(o),
+    banHangCuaDon: (ids) => lay().banHangCuaDon(ids),
+    cauMoLoiMoi: (x) => lay().cauMoLoiMoi(x),
+    cauMoBanHangBatBuoc: (x) => lay().cauMoBanHangBatBuoc(x),
+    cauKhepLoiMoiSauLenhDon: (x) => lay().cauKhepLoiMoiSauLenhDon(x),
+    cauMoBanHangNeuTrong: (x) => lay().cauMoBanHangNeuTrong(x),
+    cauKhepLoiMoiSauNhan: (x) => lay().cauKhepLoiMoiSauNhan(x),
+    cauTuChoiLoiMoi: (x) => lay().cauTuChoiLoiMoi(x),
+    cauDoiBanHang: (x) => lay().cauDoiBanHang(x),
+  };
+}
+
 /** `ctx.newOrderHandler` ở route công khai (không ai đăng nhập): không đạt, không truy vấn. */
 const NOT_SIGNED_IN: NewOrderHandler = { ok: false, message: "Chưa đăng nhập hoặc đã hết hạn đăng nhập." };
 
@@ -501,6 +555,9 @@ export function createApp(opts: AppOptions) {
     const chayHandler = (envH: Env): Promise<Response> => hit.r.handler({
       request, env: envH, exec, url, params: hit.params, staff, sessionId, baoTri,
       isAssigned: (orderId) => (who ? opts.injected.isAssigned(envH, who.id, orderId) : Promise.resolve(false)),
+      // Bán hàng phụ trách (ADR-0142). Lười: kiểm lúc GỌI — khung thử cũ không tiêm vẫn chạy route khác; thiếu tiêm thì isSalesOwner = false (từ chối), hàm khác ném lỗi.
+      isSalesOwner: (orderId) => (who && typeof opts.injected.banHang === "function" ? opts.injected.banHang(envH).laBanHangPhuTrach(who.id, orderId) : Promise.resolve(false)),
+      banHang: banHangLuoi(opts, envH),
       newOrderHandler: (staffId) => (who ? opts.injected.newOrderHandler(envH, who, staffId) : Promise.resolve(NOT_SIGNED_IN)),
       ordersWithHandler: (orderIds) => opts.injected.ordersWithHandler(envH, orderIds),
       myHandledOrderIds: () => (who ? opts.injected.handledOrderIdsOf(envH, who.id) : Promise.resolve([])),

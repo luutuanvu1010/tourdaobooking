@@ -21,7 +21,7 @@ import { billingModule, cauDatCocKhiXacNhan, chanKhaiCocLai, daThuCuaDon, tienDo
 import { receiptModule } from "./modules/receipt";
 import { catalogModule, runScheduledSync } from "./modules/catalog";
 import { companyModule } from "./modules/company";
-import { dispatchModule, handledOrderIdsOf, handlerOf, isOrderHandler, newOrderHandler, ordersWithHandler, soDonDangPhuTrachCua } from "./modules/dispatch";
+import { banHangNoi, dispatchModule, handledOrderIdsOf, handlerOf, isOrderHandler, newOrderHandler, ordersWithHandler, soDonDangPhuTrachCua } from "./modules/dispatch";
 import { giaoDienModule } from "./modules/giao-dien";
 import { checkLanGuiConfig, lanGuiNoi } from "./modules/lan-gui";
 import { locationsModule } from "./modules/locations";
@@ -67,6 +67,8 @@ const APP_OPTIONS: AppOptions = {
   injected: {
     isAssigned: (env, staffId, orderId) => isOrderHandler(env.DB, staffId, orderId),
     newOrderHandler: (env, actor, staffId) => newOrderHandler(env.DB, actor.id, staffId),
+    // BÁN HÀNG PHỤ TRÁCH (ADR-0142): `orders` không import `dispatch` — gốc lắp ráp là nơi duy nhất tiêm hàm công bố của dispatch (khuôn isAssigned).
+    banHang: (env) => banHangNoi(env.DB),
     ordersWithHandler: (env, orderIds) => ordersWithHandler(env.DB, orderIds),
     handledOrderIdsOf: (env, staffId) => handledOrderIdsOf(env.DB, staffId),
     maintenanceBlock: (env, staff, truoc) => maintenanceBlock(env.DB, () => staff.permissions, truoc as MaintenanceState | undefined), // ADR-0071 điều 3a: theo QUYỀN của phiên, không theo SĐT

@@ -21,13 +21,15 @@ import { can, hasPermission, holdsPartner, MATRIX } from "../../shared/permissio
 import { lyDoHuyCuaHdv } from "../../shared/ly-do-huy";
 import { docLyDoTuChoi } from "../../shared/ly-do-tu-choi";
 import { chiNguoiLapGhiNhap } from "../../shared/xem-don-nhap";
-import { route, type AppModule, type NewOrderHandler } from "../../shared/router";
+import { route, type AppModule, type BanHangNoi, type NewOrderHandler } from "../../shared/router";
 import { tripDeparted, tuChoiQuaMuon } from "../../shared/trip-rules";
 import { vnToday } from "../../shared/vn-date";
 import { findHandledOrderIds, findHandlerOf, findHandlersOf, guardHandlerStatement, isHandler, orderDelivered, soDonDangPhuTrach, type HandlerRow } from "./repository";
 import {
   CANCEL_REASON_LABEL, checkAssignee, handlerChangeVerdict, isDeliveredLock, isOpenHandlerCollision, parseCancelReason, parseOrderIds, parseSetHandler,
 } from "./rules";
+import * as banHang from "./ban-hang";
+import * as banHangMoi from "./ban-hang-moi";
 import { handlerChangeStatements, ketQuaTuChoi, newOrderHandlerStatements, refuseStatements } from "./service";
 import {
   caiDatHienHanh, chenAbortSauStatement, chenCaiDatStatement, chenResetStatement, demTheoNguoi, demTuChoiCua, mocCaiDatMoiNhat, tuChoiCuaDon,
@@ -150,6 +152,29 @@ export const cauBaoVeNguoiPhuTrach = (db: D1Database, orderId: string, partyId: 
 /** ADR-0068 Đ2 — CHỈ gốc lắp ráp gọi (ctx.gopHoSo): hồ sơ `partyId` đang phụ trách bao nhiêu đơn chưa xong. Không có câu bảo vệ trong lô gộp: hồ sơ phụ không có
  * tài khoản nên không được giao mới (checkAssignee đòi tài khoản) — khe giữa kiểm và ghi chấp nhận được, R-PTY-MERGE-4 bắt nếu lọt. */
 export const soDonDangPhuTrachCua = (db: D1Database, partyId: string): Promise<number> => soDonDangPhuTrach(db, partyId);
+
+/**
+ * BÁN HÀNG PHỤ TRÁCH (ADR-0142) — gốc lắp ráp tiêm vào `ctx.banHang` / `ctx.isSalesOwner` (`orders` không import `dispatch`). Mọi hàm đã bọc `db`; câu lệnh
+ * trả CHƯA CHẠY để người gọi gộp vào `db.batch()` của mình. Chi tiết luật lô: `ban-hang.ts`.
+ */
+export const banHangNoi = (db: D1Database): BanHangNoi => ({
+  laBanHangPhuTrach: (staffId, orderId) => banHang.laBanHangPhuTrach(db, staffId, orderId),
+  kiemBanHangMoi: (staffId) => banHangMoi.kiemBanHangMoi(db, staffId),
+  danhSachBanHangMoi: () => banHangMoi.danhSachBanHangMoi(db),
+  gioHanhChinh: () => banHang.khungGioHanhChinh(db),
+  loiMoiMoCua: (orderId) => banHangMoi.loiMoiMoCua(db, orderId),
+  banHangCuaDon: (orderIds) => banHang.banHangCuaDon(db, orderIds),
+  cauMoLoiMoi: (x) => banHang.cauMoLoiMoi(db, x),
+  cauMoBanHangBatBuoc: (x) => banHang.cauMoBanHangBatBuoc(db, x),
+  cauKhepLoiMoiSauLenhDon: (x) => banHang.cauKhepLoiMoiSauLenhDon(db, x),
+  cauMoBanHangNeuTrong: (x) => banHang.cauMoBanHangNeuTrong(db, x),
+  cauKhepLoiMoiSauNhan: (x) => banHang.cauKhepLoiMoiSauNhan(db, x),
+  cauTuChoiLoiMoi: (x) => banHang.cauTuChoiLoiMoi(db, x),
+  cauDoiBanHang: (x) => banHang.cauDoiBanHang(db, x),
+});
+
+/** Câu thứ `viTri` của lô Bán hàng phụ trách có ghi dòng nào không (thắng thua đua). */
+export { banHangThang } from "./ban-hang";
 
 export const dispatchModule: AppModule = {
   name: "dispatch",
