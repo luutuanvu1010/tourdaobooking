@@ -418,4 +418,12 @@ test("ADR-0155 Đ1.5: phiếu phân định cờ benChiuKhongTaiKhoan — true k
   const id3 = await daGiao(w);
   await deNghiVaQuyet(w, id3, 100_000, { truongHop: "T10", coTienRa: false });
   assert.equal((await cua(id3)).benChiuKhongTaiKhoan, false, "công ty chịu");
+  // bên chịu có tài khoản nhưng đã NGƯNG: cũng không nhận được tin ⇒ true; bật lại ⇒ false
+  const id4 = await daGiao(w);
+  await deNghiVaQuyet(w, id4, 100_000, { truongHop: "T6", benChiuPartyId: `pty-${TT}`, coTienRa: false });
+  assert.equal((await cua(id4)).benChiuKhongTaiKhoan, false, "tài khoản đang hoạt động");
+  w.sqlite.prepare("UPDATE staff SET active = 0 WHERE id = ?").run(TT);
+  assert.equal((await cua(id4)).benChiuKhongTaiKhoan, true, "tài khoản đã ngưng ⇒ không nhận được tin");
+  w.sqlite.prepare("UPDATE staff SET active = 1 WHERE id = ?").run(TT);
+  assert.equal((await cua(id4)).benChiuKhongTaiKhoan, false, "bật lại");
 });

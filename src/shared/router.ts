@@ -65,7 +65,9 @@ export interface DonCuaNguoiDatTom { doi: number; giuDaGiao: number; giuDaHuy: n
  * `conVaiHuong` = trong `vaiConLai` (mã các vai còn mở sau khi gỡ) còn vai được hưởng hoa hồng. Đơn nháp riêng tư (ADR-0135 Đ1): CHỈ đếm (`donNhap`), mã đơn chỉ ra cho
  * đơn đang chờ xác nhận (`maDonChoXacNhan`, đã nằm trong tay người xét duyệt).
  */
-export interface ViecDoKhiThoiVai { conVaiHuong: boolean; donNhap: number; maDonChoXacNhan: string[]; capRiengMo: boolean; mucRiengMo: boolean }
+/** Số đơn nháp của một người lập (chủ 2026-11-04: «Nêu tên người lập»); `ten` null = không rõ tên. */
+export interface NguoiLapNhapTom { ten: string | null; ngung: boolean; so: number }
+export interface ViecDoKhiThoiVai { conVaiHuong: boolean; donNhap: number; maDonChoXacNhan: string[]; nguoiLap: NguoiLapNhapTom[]; capRiengMo: boolean; mucRiengMo: boolean }
 export interface GopHoSoNoi {
   viecCua: (partyId: string) => Promise<ViecCuaHoSo>;
   donNguoiDat: (partyId: string) => Promise<DonCuaNguoiDatTom>;

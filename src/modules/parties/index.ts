@@ -249,18 +249,33 @@ const isAccountGroup = (g: string | null): boolean => g === "INTERNAL" || g === 
 // kể cả tài khoản đã ngưng — `acc.linked` đếm cả hai). Còn lại (vai nội bộ, DRIVER_EXTERNAL, hồ sơ có tài khoản) vẫn 409 role_via_account. Chỉ lớp route (CSDL chỉ đỡ
 // pty_party_role_group_conflict, party_role_overlap) — mỗi chốt dưới đây có dòng ở docs/SO-HANG-RAO.md.
 const moKhongTaiKhoan = (code: string, group: string | null, acc: PartyAccountVerdict): boolean => group === "EXTERNAL" && vaiMoChoHoSoKhongTaiKhoan(code) && !acc.linked;
-/** ADR-0155 C3: câu chặn gỡ vai cuối khi còn việc dở; null = không còn việc. Đơn nháp riêng tư (ADR-0135 Đ1): chỉ nêu SỐ nháp, nêu mã (tối đa 5) cho đơn đang chờ xác nhận. */
+/**
+ * ADR-0155 C3: câu chặn gỡ vai cuối khi còn việc dở; null = không còn việc. Đơn nháp riêng tư (ADR-0135 Đ1, Đ2): KHÔNG nêu mã nháp chưa gửi; chỉ nêu SỐ nháp theo từng người
+ * lập (chủ 2026-11-04, nguyên văn: «Nêu tên người lập» — Quản trị huỷ thay KHÔNG làm), mã (tối đa 5) chỉ cho đơn đang chờ xác nhận. Tên nút khớp web/parties.ts,
+ * web/hoa-hong-*.ts (bài ghim trong vai-khong-tai-khoan-route.test.ts). Giới hạn đã biết — «dựa vào kỷ luật» (docs/SO-HANG-RAO.md): chặn này chỉ ở lớp route, không ở
+ * trigger; một đơn nháp tạo đúng lúc đang gỡ vai, hoặc cấp / mức riêng thêm sau lần kiểm, lọt qua cửa sổ đua (không tạo lỗi cứng: R-PRC-5 vẫn bắt dòng mồ côi).
+ */
 const TOI_DA_MA_DON = 5;
+const TOI_DA_NGUOI_LAP = 5;
+function cauNguoiLap(ds: ViecDoKhiThoiVai["nguoiLap"]): string {
+  const hien = ds.slice(0, TOI_DA_NGUOI_LAP).map((n) => `${n.so} đơn do ${n.ten ?? "một nhân viên"} lập${n.ngung ? " (tài khoản đang ngưng, bật lại tạm để người đó xử lý)" : ""}`);
+  const them = ds.length - hien.length;
+  return them > 0 ? `${hien.join(", ")} và ${them} người khác` : hien.join(", ");
+}
 function cauViecDoKhiThoiVai(v: ViecDoKhiThoiVai): string | null {
   const viec: string[] = [];
   if (v.donNhap > 0) {
     const ma = v.maDonChoXacNhan.slice(0, TOI_DA_MA_DON);
     const them = v.maDonChoXacNhan.length - ma.length;
-    viec.push(`${v.donNhap} đơn chưa xác nhận đứng tên hồ sơ này${ma.length > 0 ? ` (đang chờ xác nhận: ${ma.join(", ")}${them > 0 ? ` và ${them} đơn khác` : ""})` : ""}`);
+    const chiTiet = [
+      v.nguoiLap.length > 0 ? cauNguoiLap(v.nguoiLap) : "",
+      ma.length > 0 ? `đang chờ xác nhận: ${ma.join(", ")}${them > 0 ? ` và ${them} đơn khác` : ""}` : "",
+    ].filter((x) => x !== "");
+    viec.push(`${v.donNhap} đơn chưa xác nhận đứng tên hồ sơ này${chiTiet.length > 0 ? ` (${chiTiet.join("; ")})` : ""}`);
   }
   if (v.capRiengMo) viec.push("còn cấp riêng đang áp dụng");
   if (v.mucRiengMo) viec.push("còn mức riêng đang áp dụng");
-  return viec.length === 0 ? null : `Chưa gỡ được vai trò này vì đây là vai trò hưởng hoa hồng cuối cùng của hồ sơ mà hồ sơ ${viec.join("; ")}. Hãy xử lý đơn nháp, kết thúc cấp riêng, ngừng mức riêng, rồi gỡ.`;
+  return viec.length === 0 ? null : `Chưa gỡ được vai trò này vì đây là vai trò hưởng hoa hồng cuối cùng của hồ sơ mà hồ sơ ${viec.join("; ")}. Hãy nhờ người lập huỷ hoặc xác nhận đơn nháp, kết thúc cấp riêng (nút «Thôi theo cấp này» ở mục «Hoa hồng hiện hành» của hồ sơ), ngừng mức riêng (nút «Ngừng» ở trang «Hoa hồng đối tác»), rồi bấm «Kết thúc» ở mục «Công việc tại đâu».`;
 }
 const NO_LOCATION = () => error(400, "invalid_input", "Vai trò này không gắn với một nơi làm — để trống ô “Nơi làm”.");
 const PARTY_INACTIVE = () => error(409, "party_inactive", "Hồ sơ này đang ngưng dùng nên chưa gắn vai trò được. Bật lại “Đang dùng” cho hồ sơ rồi thử lại.");

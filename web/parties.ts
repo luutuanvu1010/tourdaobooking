@@ -314,7 +314,9 @@ async function openDetail(id: string): Promise<void> {
   const doiCongTyChu = can(me, "company.legal.write") && p.kind === "ORGANIZATION" && !p.roles.some((x) => x.roleTypeCode === OWNER_COMPANY_ROLE && x.validTo === null);
   // ADR-0155 Đ1.1: hồ sơ CHƯA có tài khoản gắn thêm được năm vai đối tác (không sinh đăng nhập); hồ sơ có tài khoản vẫn đổi vai ở màn Quản lý tài khoản.
   const namVai = p.accountLinked || !p.active ? [] : meta.roleTypes.filter((t) => t.active && vaiMoChoHoSoKhongTaiKhoan(t.code));
+  // Không chọn sẵn vai nào (nhất là vai có hưởng tiền): phải chọn chủ động, tránh bấm «Thêm công việc» nhầm.
   const rType = select([
+    { value: "", label: "— Chọn công việc —" },
     ...namVai.map((t) => ({ value: t.code, label: t.name })),
     ...meta.roleTypes.filter((t) => t.active && t.group === "OTHER").map((t) => ({ value: t.code, label: t.partnerLabel ? `${t.name} (đối tác)` : t.name })), // ADR-0117: loại đối tác mới (cờ máy chủ) có hậu tố để phân biệt với vai công việc
     ...(doiCongTyChu ? [{ value: OWNER_COMPANY_ROLE, label: roleLabel(OWNER_COMPANY_ROLE) }] : []),
@@ -327,6 +329,7 @@ async function openDetail(id: string): Promise<void> {
   rType.addEventListener("change", capNhatONoi);
   capNhatONoi();
   const addRole = button("Thêm công việc", (b) => {
+    if (!rType.value) { showError(errorEl, "Chọn công việc trước khi thêm."); return; }
     if (rType.value === OWNER_COMPANY_ROLE && !confirm(XAC_NHAN_DOI_CONG_TY_CHU)) return;
     const body = { roleTypeCode: rType.value, locationId: rLoc.value || null, validFrom: rFrom.value || undefined };
     void act(async () => { await api(`/api/parties/${id}/roles`, { method: "POST", body }); await reload(); }, b);

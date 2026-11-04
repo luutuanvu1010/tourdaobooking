@@ -6,6 +6,8 @@ import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { world, seedStaff } from "../../../tests/audit/harness.mjs";
 import { vaiMoChoHoSoKhongTaiKhoan } from "../../shared/roles.ts";
+import { gieoBanChup } from "../../../tests/audit/gieo-ban-chup.mjs";
+import { readFileSync } from "node:fs";
 
 const ADM = "55555555-5555-4555-8555-555555555555";
 const SA = "33333333-3333-4333-8333-333333333333";
@@ -164,11 +166,11 @@ function huy(w: W, id: string): void {
   w.sqlite.prepare("UPDATE orders SET status = 'cancelled', updated_at = ? WHERE id = ?").run(AT, id);
 }
 /** Đơn bằng SQL: tổng 0, không dòng — đủ để thử trạng thái và người đặt (`booker_party_id`); nháp / đã xác nhận / đã huỷ. `cho` = có yêu cầu xác nhận còn mở. */
-function don(w: W, booker: string, status: "draft" | "confirmed" | "cancelled", cho = false): string {
+function don(w: W, booker: string, status: "draft" | "confirmed" | "cancelled", cho = false, lap: string = SALES): string {
   const id = uuid();
   const ma = `TH-${String(seq).padStart(3, "0")}`;
   w.sqlite.prepare(`INSERT INTO orders (id, order_code, staff_id, status, customer_name, customer_phone, subtotal, total, remaining_amount, booker_party_id, created_at, updated_at)
-    VALUES (?, ?, ?, 'draft', 'Khách Giả', '0900000099', 0, 0, 0, ?, ?, ?)`).run(id, ma, SALES, booker, AT, AT);
+    VALUES (?, ?, ?, 'draft', 'Khách Giả', '0900000099', 0, 0, 0, ?, ?, ?)`).run(id, ma, lap, booker, AT, AT);
   w.sqlite.prepare("INSERT INTO order_service (pickup_choice, id, order_id, sort_order, catalog_code, name, unit, pax_adult, depart_date) VALUES ('KHONG_DON', ?, ?, 0, 'HONTAM', 'DV 0', 'perPax', 1, ?)").run(`${id}-s0`, id, inDays(3));
   if (status === "confirmed") w.sqlite.prepare("UPDATE orders SET status = 'confirmed', confirmed_at = ?, updated_at = ? WHERE id = ?").run(AT, AT, id);
   if (status === "cancelled") huy(w, id);
@@ -206,7 +208,10 @@ test("C3 (a): còn đơn nháp đứng tên ⇒ gỡ vai cuối 409 role_end_has
   assert.match(r.json.error.message, /2 đơn chưa xác nhận/);
   assert.ok(r.json.error.message.includes(cho1), "nêu mã đơn đang chờ xác nhận");
   assert.ok(!r.json.error.message.includes(nhap1), "mã đơn nháp riêng tư (ADR-0135 Đ1) không ra khỏi hàm");
-  assert.match(r.json.error.message, /xử lý đơn nháp, kết thúc cấp riêng, ngừng mức riêng, rồi gỡ/);
+  assert.match(r.json.error.message, /nhờ người lập huỷ hoặc xác nhận đơn nháp/);
+  assert.match(r.json.error.message, /«Thôi theo cấp này»/);
+  assert.match(r.json.error.message, /«Ngừng»/);
+  assert.match(r.json.error.message, /«Kết thúc»/);
   assert.equal(dem(w, "SELECT COUNT(*) AS n FROM pty_party_role WHERE id = ? AND valid_to_date IS NULL", rid), 1, "vai vẫn mở");
   // xử lý xong nháp (huỷ) ⇒ gỡ được
   for (const o of w.q("SELECT id FROM orders WHERE booker_party_id = ?", ORG) as { id: string }[]) huy(w, o.id);
@@ -249,14 +254,18 @@ test("C3 (c): còn mức riêng của hồ sơ còn hiệu lực (không phải 
   assert.equal((await go(w, ORG, rid)).status, 200);
 });
 
-test("C3 đối chứng: đơn đã xác nhận / đã huỷ đứng tên không chặn gỡ; bản chụp hoa hồng của đơn đã xác nhận giữ nguyên", async () => {
+test("C3 đối chứng: đơn đã xác nhận / đã huỷ đứng tên không chặn gỡ; bản chụp hoa hồng của đơn đã xác nhận có thật và giữ nguyên", async () => {
   const w = setup();
   const rid = await ganId(w, ORG, "HOTEL_RECEPTION");
   don(w, ORG, "confirmed");
   don(w, ORG, "cancelled");
-  const truoc = JSON.stringify(w.q("SELECT * FROM ord_service_terms ORDER BY order_id, order_service_id"));
+  for (const o of w.q("SELECT id FROM orders WHERE status = 'confirmed'") as { id: string }[]) gieoBanChup(w.sqlite, o.id);
+  const truoc = w.q("SELECT * FROM ord_service_terms ORDER BY order_id, order_service_id");
+  assert.ok(truoc.length > 0, "vế trước có bản chụp thật (không so rỗng với rỗng)");
   assert.equal((await go(w, ORG, rid)).status, 200);
-  assert.equal(JSON.stringify(w.q("SELECT * FROM ord_service_terms ORDER BY order_id, order_service_id")), truoc);
+  const sau = w.q("SELECT * FROM ord_service_terms ORDER BY order_id, order_service_id");
+  assert.ok(sau.length > 0, "vế sau có bản chụp thật");
+  assert.equal(JSON.stringify(sau), JSON.stringify(truoc));
 });
 
 test("C3: hồ sơ còn vai được hưởng khác ⇒ gỡ một vai vẫn 200 dù còn nháp, cấp riêng, mức riêng; gỡ vai cuối mới bị chặn", async () => {
@@ -385,4 +394,80 @@ test("Đ1.7: tạo tài khoản cho TỔ CHỨC (dù đã gắn TRAVEL_AGENCY) �
   const r = await w.call("POST", "/api/staff", { as: SA, body: { partyId: ORG, phone: "0900000124", roles: ["TRAVEL_AGENCY"] } });
   assert.equal(r.status, 409, r.text);
   assert.equal(dem(w, "SELECT COUNT(*) AS n FROM staff"), truoc);
+});
+
+// ---- Lượt sửa sau kiểm: nêu TÊN người lập đơn nháp (chủ 2026-11-04: «Nêu tên người lập»), không lộ mã nháp chưa gửi / tên khách / SĐT ----
+let nv = 0;
+/** Thêm một nhân viên (tài khoản + hồ sơ có tên) để làm người lập đơn. */
+function themNguoiLap(w: W, ten: string, ngung = false): string {
+  const id = `7777${String(++nv).padStart(4, "0")}-7777-4777-8777-777777777777`;
+  seedStaff(w.sqlite, { id, phone: `09100000${String(nv).padStart(2, "0")}`, name: ten, perms: ["SALES"] });
+  if (ngung) w.sqlite.prepare("UPDATE staff SET active = 0 WHERE id = ?").run(id);
+  return id;
+}
+const cauChan = async (w: W, rid: string): Promise<string> => {
+  const r = await go(w, ORG, rid);
+  assert.equal(r.status, 409, r.text);
+  assert.equal(maLoi(r), "role_end_has_open_work");
+  return r.json.error.message as string;
+};
+
+test("Tên người lập (a): một người lập ⇒ «N đơn do <tên> lập»; không lộ mã nháp chưa gửi, tên khách, SĐT; mã đơn chờ xác nhận vẫn nêu", async () => {
+  const w = setup();
+  const rid = await ganId(w, ORG, "TRAVEL_AGENCY");
+  const nhap = don(w, ORG, "draft");
+  const cho = don(w, ORG, "draft", true);
+  const c = await cauChan(w, rid);
+  assert.match(c, /2 đơn chưa xác nhận đứng tên hồ sơ này \(2 đơn do An Bán lập/);
+  assert.ok(c.includes(`đang chờ xác nhận: ${cho}`), c);
+  assert.ok(!c.includes(nhap) && !c.includes("Khách Giả") && !c.includes("0900000099"), `không lộ nháp / khách / SĐT: ${c}`);
+  assert.ok(!c.includes("ngưng"), "tài khoản đang hoạt động thì không có câu ngưng");
+});
+
+test("Tên người lập (b): hai người lập ⇒ nêu từng người, người nhiều đơn trước", async () => {
+  const w = setup();
+  const rid = await ganId(w, ORG, "TRAVEL_AGENCY");
+  const a = themNguoiLap(w, "Nguyễn Văn A");
+  const b = themNguoiLap(w, "Trần Thị B");
+  don(w, ORG, "draft", false, a); don(w, ORG, "draft", false, a); don(w, ORG, "draft", false, b);
+  const c = await cauChan(w, rid);
+  assert.match(c, /3 đơn chưa xác nhận đứng tên hồ sơ này \(2 đơn do Nguyễn Văn A lập, 1 đơn do Trần Thị B lập\)/);
+});
+
+test("Tên người lập (c): tài khoản người lập đang ngưng ⇒ có câu «bật lại tạm»", async () => {
+  const w = setup();
+  const rid = await ganId(w, ORG, "TRAVEL_AGENCY");
+  don(w, ORG, "draft", false, themNguoiLap(w, "Lê Văn Đã Nghỉ", true));
+  const c = await cauChan(w, rid);
+  assert.match(c, /1 đơn do Lê Văn Đã Nghỉ lập \(tài khoản đang ngưng, bật lại tạm để người đó xử lý\)/);
+});
+
+test("Tên người lập (d): không rõ tên (nhân viên chưa có hồ sơ) ⇒ «một nhân viên», không lỗi, không để trống", async () => {
+  const w = setup();
+  const rid = await ganId(w, ORG, "TRAVEL_AGENCY");
+  const x = themNguoiLap(w, "Không Tên");
+  w.sqlite.prepare("UPDATE staff SET party_id = NULL WHERE id = ?").run(x);
+  don(w, ORG, "draft", false, x);
+  const c = await cauChan(w, rid);
+  assert.match(c, /1 đơn do một nhân viên lập/);
+  assert.ok(!c.includes("chưa có hồ sơ"), "nhãn dự phòng của view không lộ ra");
+});
+
+test("Tên người lập (e): quá 5 người ⇒ nêu 5 tên rồi «và N người khác»", async () => {
+  const w = setup();
+  const rid = await ganId(w, ORG, "TRAVEL_AGENCY");
+  const ten = ["Ánh", "Bích", "Cúc", "Dũng", "Em", "Giang", "Hà"].map((t) => `Người ${t}`);
+  ten.forEach((t) => don(w, ORG, "draft", false, themNguoiLap(w, t)));
+  const c = await cauChan(w, rid);
+  assert.equal(ten.filter((t) => c.includes(t)).length, 5, c);
+  assert.match(c, /và 2 người khác/);
+  assert.match(c, /7 đơn chưa xác nhận/);
+});
+
+test("Câu C3 khớp tên nút / thẻ thật trong giao diện (web/): «Thôi theo cấp này», «Ngừng», «Kết thúc», «Hoa hồng hiện hành», «Công việc tại đâu», trang «Hoa hồng đối tác»", () => {
+  const dem = (f: string): string => readFileSync(new URL(`../../../${f}`, import.meta.url), "utf8");
+  const parties = dem("web/parties.ts");
+  for (const nhan of ['"Thôi theo cấp này"', '"Hoa hồng hiện hành"', '"Công việc tại đâu"', '"Kết thúc"']) assert.ok(parties.includes(nhan), `web/parties.ts thiếu ${nhan}`);
+  assert.ok(dem("src/shared/hoa-hong-hien-thi.ts").includes('"Ngừng"'), "nhãn «Ngừng» của dòng mức");
+  assert.ok(dem("public/hoa-hong.html").includes("<h1>Hoa hồng đối tác</h1>"), "trang Hoa hồng đối tác");
 });
