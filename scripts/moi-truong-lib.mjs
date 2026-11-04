@@ -1,5 +1,8 @@
 // Thư viện cho bản Development (ADR-0162). Hàm thuần: không chạm mạng, không chạy wrangler.
+// Cũng chứa `lenDev` (lệnh `npm run len-dev`, Đ5): chạy wrangler THẬT lên Development qua bộ chạy tiêm vào; test dùng bộ chạy giả.
 // Đ1: Development độc lập hoàn toàn; lớp chống nhầm là bài so cấu hình ở đây (cùng tài khoản Cloudflare, không có ranh giới vật lý).
+
+import { KHOA_BAT_BUOC, KHOA_HAI_LOP, docCacKhoTuCauHinh, makeStop, parseR2BucketNames, parseSecretNames, trimOut } from "./release-lib.mjs";
 
 export const CAU_HINH_DEV = "wrangler.dev.jsonc";
 
@@ -125,4 +128,175 @@ export function conChoTrong(devText) {
   if (mang(d.d1_databases).some((x) => x?.database_id === MA_D1_TRONG)) ra.push("database_id");
   if (bang(d.vars).VAPID_PUBLIC_KEY === VAPID_TRONG) ra.push("VAPID_PUBLIC_KEY");
   return ra;
+}
+
+// ─────────────────────────── len-dev (ADR-0162 Đ5) ───────────────────────────
+// Lệnh DUY NHẤT AI được chạy chạm wrangler. Hàng rào (hook) không nhìn được bên trong, nên chính lệnh tự kiểm: cấu hình đạt bài so, không còn chỗ trống,
+// thư mục sạch, rồi mới dựng và ghi. Rủi ro số một: một lời gọi wrangler thiếu `--config wrangler.dev.jsonc` ghi thẳng lên bản chính thức.
+// Vì vậy MỌI wrangler đi qua đúng hàm `wr` dưới đây (gắn --config và CI=1); bài src/moi-truong-lib.test.ts đếm: tên lệnh wrangler (trong dấu nháy kép) chỉ xuất hiện MỘT lần trong tệp này.
+
+const CHO_THU_LAI_MA_MS = 20_000;
+const MA_COMMIT = /^[0-9a-f]{40}$/;
+/** Tên bảng migration mặc định của wrangler (cấu hình Development không đổi tên bảng). */
+const DOC_MIGRATION_SQL = "SELECT name FROM d1_migrations";
+
+/** Mã commit bản Development đang chạy (đọc /ban-thu.json do dung-tai-san-dev ghi); null khi lỗi mạng, không phải JSON, hay mã sai khuôn. */
+export async function docCommitDev(goi = fetch) {
+  try {
+    const res = await goi(`https://dev.tourdao.vn/ban-thu.json?t=${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`);
+    if (!res?.ok) return null;
+    const j = await res.json();
+    return typeof j?.commit === "string" && MA_COMMIT.test(j.commit) ? j.commit : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * @param run  (cmd, args, { env, stream }) → { code, stdout, stderr } (hoặc Promise)
+ * @param args tham số dòng lệnh (không nhận tham số nào)
+ * @param docTep (tên tệp ở thư mục gốc) → nội dung chữ
+ * @param tenMigration tên các tệp .sql ở migrations/
+ * @param docCommitDev đọc mã bản đang chạy trên Development
+ * @param sleep chờ trước khi thử lại đọc mã
+ * @returns mã thoát (0 = xong)
+ */
+export async function lenDev({ run, log, args = [], docTep, tenMigration, docCommitDev: docMa = docCommitDev, sleep }) {
+  const stop = makeStop(log);
+  // Hàm DUY NHẤT gọi wrangler: luôn gắn --config bản Development và CI=1. Không có đường gọi nào khác.
+  const wr = (thamSo, opts = {}) => run("npx", ["wrangler", ...thamSo, "--config", CAU_HINH_DEV], { ...opts, env: { CI: "1" } });
+  const HD_CONFIG = ` --config ${CAU_HINH_DEV}`;
+
+  if (args.filter((a) => a !== "--").length) return stop("lệnh này không nhận tham số. Dùng: npm run len-dev");
+
+  // 1. cấu hình: đột biến và chỗ trống (trước cả kiểm thư mục)
+  let prodText;
+  let devText;
+  try {
+    prodText = docTep("wrangler.jsonc");
+    devText = docTep(CAU_HINH_DEV);
+  } catch (e) {
+    return stop(`không đọc được tệp cấu hình (${String(e?.message ?? e).slice(0, 200)}). CHƯA có gì bị đổi.`);
+  }
+  const loi = kiemCauHinhDev(prodText, devText);
+  if (loi.length) return stop(`cấu hình Development không đạt bài so với bản chính thức — CHƯA có gì bị đổi.`, ...loi.map((l) => `  - ${l}`));
+  const trong = conChoTrong(devText);
+  if (trong.length) {
+    return stop(`${CAU_HINH_DEV} còn chỗ trống chưa thay bằng giá trị thật: ${trong.join(", ")}. CHƯA có gì bị đổi.`, "Chủ tạo tài nguyên Development một lần (danh sách lệnh AI soạn sẵn) rồi điền giá trị.");
+  }
+  const cfg = docCauHinh(devText);
+  const tenDb = cfg?.d1_databases?.[0]?.database_name;
+  if (typeof tenDb !== "string" || tenDb === "") return stop(`không đọc được tên D1 trong ${CAU_HINH_DEV}. CHƯA có gì bị đổi.`);
+
+  // 2. thư mục sạch; mã để dựng
+  const sach = async (nhan) => {
+    const st = await run("git", ["status", "--porcelain"]);
+    if (st.code !== 0) return stop(`không đọc được trạng thái thư mục (\`git status\` lỗi) ${nhan}.`);
+    const t = trimOut(st);
+    return t === "" ? null : { bat: t };
+  };
+  const s1 = await sach("");
+  if (s1 && typeof s1 === "number") return s1;
+  if (s1) return stop("thư mục còn thay đổi chưa commit. Commit hoặc bỏ chúng rồi chạy lại. CHƯA có gì bị đổi.", s1.bat);
+  const head = await run("git", ["rev-parse", "HEAD"]);
+  const ma = trimOut(head);
+  if (head.code !== 0 || !MA_COMMIT.test(ma)) return stop("không đọc được mã commit hiện tại (`git rev-parse HEAD` lỗi). CHƯA có gì bị đổi.");
+
+  // 3. dựng
+  log("\n▶ npm run build:web");
+  if ((await run("npm", ["run", "build:web"], { stream: true })).code !== 0) return stop("`npm run build:web` đỏ. CHƯA có gì bị đổi trên Development.");
+  log("\n▶ Dựng tài sản riêng của bản Development (dist-dev)");
+  if ((await run("node", ["scripts/dung-tai-san-dev.mjs", ma], { stream: true })).code !== 0) return stop("dựng tài sản Development đỏ. CHƯA có gì bị đổi trên Development.");
+  const s2 = await sach("sau khi dựng");
+  if (s2 && typeof s2 === "number") return s2;
+  if (s2) {
+    return stop(
+      "lệnh dựng làm đổi các tệp sau (tệp sinh ra chưa được commit, nên mã đưa lên không khớp commit). Hãy commit chúng rồi chạy lại. CHƯA có gì bị đổi trên Development.",
+      s2.bat,
+    );
+  }
+
+  // 4. cổng chỉ-đọc (mọi lệnh dưới đây qua `wr`)
+  log("\n▶ Kiểm đăng nhập Cloudflare");
+  const who = await wr(["whoami"]);
+  if (who.code !== 0 || !/You are logged in/i.test(`${who.stdout}\n${who.stderr ?? ""}`)) {
+    return stop("chưa đăng nhập Cloudflare. CHƯA có gì bị đổi trên Development.", "Chủ chạy `npx wrangler login` (đúng tài khoản Lưu Tuấn Vũ) rồi chạy lại.");
+  }
+
+  log("\n▶ Cổng chỉ-đọc: khoá bí mật của Development");
+  const sec = await wr(["secret", "list", "--format", "json"]);
+  if (sec.code !== 0) return stop("`wrangler secret list` lỗi — chưa kiểm được khoá bí mật nên KHÔNG đi tiếp. CHƯA có gì bị đổi.", String(sec.stderr ?? "").trim().slice(0, 400));
+  const tenKhoa = parseSecretNames(String(sec.stdout ?? ""));
+  if (tenKhoa === null) return stop("không đọc được danh sách khoá bí mật (đầu ra lạ) — KHÔNG đi tiếp. CHƯA có gì bị đổi.", String(sec.stdout ?? "").slice(0, 400));
+  const thieuKhoa = [...KHOA_BAT_BUOC, KHOA_HAI_LOP].filter((k) => !tenKhoa.includes(k));
+  if (thieuKhoa.length) {
+    return stop(
+      `Development chưa có khoá: ${thieuKhoa.join(", ")}. CHƯA có gì bị đổi.`,
+      `Chủ chạy trong Terminal, ở thư mục tourdao-sales:\n${thieuKhoa.map((k) => `  ${k === KHOA_HAI_LOP ? "openssl rand -base64 32" : "openssl rand -base64 48 | tr -d '\\n'"} | npx wrangler secret put ${k}${HD_CONFIG}`).join("\n")}\nrồi chạy lại \`npm run len-dev\`.`,
+    );
+  }
+
+  log("\n▶ Cổng chỉ-đọc: kho tệp của Development");
+  const cacKho = docCacKhoTuCauHinh(devText);
+  if (!cacKho) return stop(`không đọc được mục kho tệp (r2_buckets) trong ${CAU_HINH_DEV}. CHƯA có gì bị đổi.`);
+  const kho = await wr(["r2", "bucket", "list"]);
+  if (kho.code !== 0) return stop("`wrangler r2 bucket list` lỗi — chưa kiểm được kho tệp nên KHÔNG đi tiếp. CHƯA có gì bị đổi.", String(kho.stderr ?? "").trim().slice(0, 400));
+  const coKho = parseR2BucketNames(String(kho.stdout ?? ""));
+  const thieuKho = cacKho.filter((k) => !coKho.includes(k.ten));
+  if (thieuKho.length) {
+    return stop(
+      `Development chưa có kho tệp: ${thieuKho.map((k) => k.ten).join(", ")}. CHƯA có gì bị đổi.`,
+      `Chủ chạy trong Terminal, ở thư mục tourdao-sales (nếu wrangler hỏi có sửa cấu hình không thì trả lời n):\n${thieuKho.map((k) => `  npx wrangler r2 bucket create ${k.ten}${HD_CONFIG}`).join("\n")}\nrồi chạy lại \`npm run len-dev\`.`,
+    );
+  }
+
+  log("\n▶ Cổng chỉ-đọc: migration đã áp trên Development");
+  const doc = await wr(["d1", "execute", tenDb, "--remote", "--json", "--command", DOC_MIGRATION_SQL]);
+  let daAp = [];
+  if (doc.code !== 0) {
+    if (!/no such table: d1_migrations/i.test(`${doc.stdout ?? ""}\n${doc.stderr ?? ""}`)) {
+      return stop("không đọc được danh sách migration đã áp trên Development. CHƯA có gì bị đổi.", String(doc.stderr ?? "").trim().slice(0, 400));
+    }
+  } else {
+    const o = String(doc.stdout ?? "");
+    const i = o.indexOf("[");
+    const j = o.lastIndexOf("]");
+    try {
+      const x = JSON.parse(o.slice(i, j + 1));
+      const kqs = x?.[0]?.results;
+      if (!Array.isArray(kqs) || !kqs.every((r) => typeof r?.name === "string")) throw new Error("dạng lạ");
+      daAp = kqs.map((r) => r.name);
+    } catch {
+      return stop("đầu ra đọc migration đã áp của Development không hiểu được. CHƯA có gì bị đổi.", o.slice(0, 400));
+    }
+  }
+  const la = daAp.filter((n) => !tenMigration.includes(n));
+  if (la.length) {
+    return stop(
+      `Development đã áp migration không có trong migrations/ của mã này: ${la.join(", ")} (Development đang mang một nhánh khác). CHƯA có gì bị đổi.`,
+      "Chủ chạy `npm run lam-moi-dev` để dựng lại Development từ đầu, rồi chạy lại lệnh này.",
+    );
+  }
+
+  // 5. cổng cuối đã qua: từ đây là lệnh GHI (chỉ lên Development nhờ `wr`)
+  log("\n▶ Áp migration lên Development");
+  if ((await wr(["d1", "migrations", "apply", tenDb, "--remote"], { stream: true })).code !== 0) {
+    return stop("áp migration lên Development LỖI — KHÔNG deploy. Đọc lỗi ở trên.");
+  }
+  log("\n▶ Deploy Worker Development");
+  if ((await wr(["deploy"], { stream: true })).code !== 0) return stop("`wrangler deploy` lên Development LỖI — Worker Development có thể chưa đổi. Đọc lỗi ở trên.");
+
+  // 6. đọc lại mã đang chạy
+  log("\n▶ Kiểm mã đang chạy trên dev.tourdao.vn");
+  let dang = await docMa();
+  if (dang !== ma) {
+    log(`Mã đọc được (${dang ? dang.slice(0, 8) : "chưa đọc được"}) chưa khớp mã vừa đưa lên (${ma.slice(0, 8)}) — chờ ${CHO_THU_LAI_MA_MS / 1000} giây rồi thử lại một lần.`);
+    await sleep(CHO_THU_LAI_MA_MS);
+    dang = await docMa();
+  }
+  if (dang !== ma) {
+    return stop(`mã đang chạy trên dev.tourdao.vn (${dang ? dang.slice(0, 8) : "không đọc được"}) khác mã vừa đưa lên (${ma.slice(0, 8)}). Chờ vài phút rồi kiểm lại tay: https://dev.tourdao.vn/ban-thu.json`);
+  }
+  log(`Đã đưa mã ${ma.slice(0, 8)} lên dev.tourdao.vn.`);
+  return 0;
 }

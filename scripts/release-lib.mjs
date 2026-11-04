@@ -157,10 +157,10 @@ export function parseE2eFailures(output) {
 /** Tên nhánh an toàn để đưa vào git: không bắt đầu bằng '-' (tránh bị hiểu là tuỳ chọn như --force), chỉ ký tự thường gặp. */
 export const isSafeBranchName = (name) => typeof name === "string" && /^[A-Za-z0-9][A-Za-z0-9._\/-]*$/.test(name) && !name.includes("..");
 
-const NOT_TTY =
+export const NOT_TTY =
   "Lệnh này chỉ chạy trong terminal thật (TTY) do chủ dự án tự gõ. Không có TTY — ví dụ AI gọi qua công cụ — nên từ chối, không chạy git/wrangler nào.";
 
-function makeStop(log) {
+export function makeStop(log) {
   return (msg, ...extra) => {
     log(`${RED}${BOLD}DỪNG:${RESET} ${msg}`);
     for (const l of extra) log(l);
@@ -168,7 +168,7 @@ function makeStop(log) {
   };
 }
 
-const trimOut = (r) => String(r?.stdout ?? "").trim();
+export const trimOut = (r) => String(r?.stdout ?? "").trim();
 
 /** Bước chung: đang ở main, cây làm việc sạch, fetch được. Trả về null khi đạt, hoặc mã thoát khi dừng. */
 async function checkMainCleanFetched(run, stop) {
@@ -185,7 +185,7 @@ async function checkMainCleanFetched(run, stop) {
   return null;
 }
 
-const yes = (answer) => String(answer ?? "").trim() === "c";
+export const yes = (answer) => String(answer ?? "").trim() === "c";
 
 /**
  * Mã trong thư mục còn ĐÚNG mã đã qua các bước kiểm không: HEAD = commit ghi lúc bắt đầu VÀ cây làm việc sạch. Trả về null khi còn đúng, hoặc câu nói
