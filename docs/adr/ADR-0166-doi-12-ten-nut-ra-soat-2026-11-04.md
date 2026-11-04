@@ -50,4 +50,4 @@ Rà soát 4/11 đọc 298 việc quan trọng trong 874 nút (hồ sơ `docs/sup
 
 - Mục cũ của `src/shared/changelog.ts` giữ nguyên chữ cũ (hồ sơ có ngày).
 - Nút «Ẩn» mới của Toàn quyền (ADR-0164, chưa duyệt) không bị ràng buộc bởi bản ghi này; khi làm sẽ giữ «Ẩn» / «Hiện lại».
-- Ô «Đơn nháp» ở Trang chủ gọi cùng loại đơn bằng tên khác và trái mục 4; giữ nguyên tới khi chủ chọn tên (`docs/BACKLOG.md` mục 63, `BL-KB-CHU-DOT-2`).
+- Ô «Đơn nháp» ở Trang chủ gọi cùng loại đơn bằng tên khác và trái mục 4; giữ nguyên tới khi chủ chọn tên (`docs/BACKLOG.md` mục 64, `BL-KB-CHU-DOT-2`).

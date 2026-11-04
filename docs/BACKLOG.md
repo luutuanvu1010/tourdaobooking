@@ -733,7 +733,13 @@ Ghi 2026-10-29 khi đồng bộ bộ «Island Booking System — Design System v
 - **BL-CK-BANG-DONG-BO** — chủ: Sheet là một nguồn sự thật cho bảng dịch vụ, cần trực quan hoá việc đồng bộ ở bảng điều khiển Quản trị, không đồng bộ tự động. Hiện trạng: Cron 15 phút chạy `runScheduledSync`, cùng Cron còn chạy `donHangChoXoaVe` nên chỉ gỡ việc đồng bộ, không gỡ Cron; trang Dịch vụ & giá đã có đồng bộ tay, lần cuối, dòng lỗi, nhưng chưa xem trước thay đổi; đây là đảo quyết định 2026-09-19. Hệ quả cần nói với chủ: quên bấm thì giá Nền tảng lệch giá trên Sheet và website. Giá ghi đè của Quản trị (`catalog_override`) vẫn còn, nên «một nguồn» có ngoại lệ, cần chủ quyết giữ hay bỏ.
 - **BL-CK-BANG-QUYEN** — chủ: trực quan hoá việc thiết lập quyền của mọi vai ở bảng điều khiển của Toàn quyền. Hiện trạng: chưa có màn nào; bản đồ quyền chỉ ở `src/shared/permissions.ts` (ADR-0007), có bài kiểm khoá. AI khuyên làm trước bản **chỉ xem**, sinh từ chính bản đồ nên không lệch; sửa quyền trên màn hình là cửa một chiều về tiền, cần ADR riêng do chủ duyệt. Chưa hỏi chủ chốt.
 
-## 63. Kịch bản Chrome cũ đỏ sẵn trên bản chính và chữ chờ bảng tham chiếu (mã `BL-KB-…`, 2026-11-04)
+## 63. Xoá hẳn dữ liệu trên bản chính thức (mã `BL-XOA-HAN`, 2026-11-04)
+
+- **Trạng thái:** `để sau` · Chủ 4/11, nguyên văn: «ok tạm chưa xóa dữ liệu trong Production, mà cho ẩn». Đề xuất nằm ở ADR-0163 (proposed, tạm gác).
+- **Vướng:** Hiến pháp 5.8 xếp N5 trên dữ liệu đã phát hành vào hạng «không bao giờ bẻ, kể cả chủ dự án». Muốn mở lại phải sửa Hiến pháp ở kho luật gốc theo Điều 9 (ít nhất 7 ngày cân nhắc), và phải trả lời trước câu: hạng tuyệt đối có sửa được không, vì câu đầu của 9.4 chỉ cho siết.
+- **Trong lúc chờ:** ẩn dữ liệu theo ADR-0164, ADR-0165; thử nghiệm trên bản Development theo ADR-0162.
+
+## 64. Kịch bản Chrome cũ đỏ sẵn trên bản chính và chữ chờ bảng tham chiếu (mã `BL-KB-…`, 2026-11-04)
 
 - **Trạng thái:** `để sau` · Phát hiện khi chạy lại kịch bản cho ADR-0166. So với `main` aa4086f6 từng dòng lỗi giống hệt, tức không do ADR-0166.
 - **BL-KB-DO-SAN** — mười hai kịch bản đỏ hoặc dừng sớm vì đã cũ so với mã: `dat-gap-smoke` (dựng dữ liệu nhận 404, đơn nháp chỉ người lập đọc), `dieu-phoi-smoke` ở 2026-09-29 (6 bước) và ở 2026-10-12-c3 (3 bước), `chon-hdv-lap-don-smoke` (bước 8, 11), `xe-dang-chay-smoke` (dừng lúc dựng dữ liệu), `nhat-ky-loc-smoke` (đếm cứng 47 hành động), `v1-xac-nhan-png` (11 bước), `qr-smoke` (ô trả trước đã bỏ 26/10), `loc-don-smoke` (hết giờ ở «3 đơn, chưa lọc»), `hdv-viec-cua-toi-smoke` (lần thu nhận 409), `ve-ho-tro-2a-smoke` (hết giờ ở bước 1), `adr-0114-smoke` (bước 9 Trợ giúp). Chữ ADR-0166 sửa trong các kịch bản này chưa được trình duyệt thật chạy tới.
