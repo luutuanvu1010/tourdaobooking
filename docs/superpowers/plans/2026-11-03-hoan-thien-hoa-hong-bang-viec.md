@@ -5,9 +5,9 @@ Chủ dự án 3/11/2026, nguyên văn: «để diễn tập sau, giờ là lúc
 | # | Việc | Xong khi | Trạng thái |
 |---|---|---|---|
 | 1 | Công ty lữ hành chưa có tài khoản hưởng theo cấp (ADR-0155 Đ1, câu C3, C4, C6). Điều kiện trước: đóng `TNV-G3`, `TNV-G4` | Công ty không tài khoản gắn vai trò, gắn cấp, văn phòng chọn «Qua đối tác», xác nhận đơn, hoa hồng đúng cấp, Đã giao ghi sổ đúng; đạt tiêu chí nghiệm thu của ADR-0155 | Điều kiện trước đã đóng 4/11. Trang ghép: `docs/superpowers/specs/2026-11-03-trang-ghep-lu-hanh-khong-tai-khoan.md`; đang trình chủ |
-| 2 | Nhập mức từ tệp bảng tính (`BL-CK-NHAP-TEP`) | Kế toán nhập một tệp đủ dịch vụ và cấp, thấy xem trước; dòng sai bị từ chối theo đúng cổng `kiemSoMucMoi`; Sheet bảng giá không dùng làm nguồn | chưa |
+| 2 | Nhập mức bằng tệp bảng tính hai chiều, nhận cả giá đại lý (`BL-CK-NHAP-TEP`, ADR-0148 Đ2, Đ3). Gộp Việc 4 theo lời chủ 4/11, nguyên văn: «Gộp vào Việc 2» | Kế toán xuất bảng điền sẵn dịch vụ, giá bán lẻ và mức hiện có; sửa rồi tải lên, xem trước chỉ các ô đổi; dòng sai bị từ chối theo đúng cổng `kiemSoMucMoi`; mức kỳ mới có ngày bắt đầu riêng; Kế toán đã xác nhận ca mẫu giá đại lý; giá đại lý cao hơn giá bán lẻ vào «thiếu mức»; hoa hồng không âm; Sheet bảng giá không dùng làm nguồn | chưa; chờ bảng giá đại lý hoặc 3–5 ca mẫu của Kế toán |
 | 3 | Trả tiền theo tháng (ADR-0080 phần D2, ADR-0081): gộp nhiều đơn vào một phiếu, bảng kê tháng, đối tác tự xem sổ | Ca sổ vàng qua; khoá tháng vẫn đúng; đối tác chỉ thấy phần của mình | chưa; đọc nhanh, chưa kiểm kỹ phần đã có |
-| 4 | Nhập bằng giá đại lý (ADR-0148 Đ2, Đ3) | Kế toán đã xác nhận ca mẫu; giá đại lý cao hơn giá bán lẻ vào «thiếu mức»; hoa hồng không âm | chưa |
+| 4 | Đã gộp vào Việc 2 (chủ 4/11) | Theo Việc 2 | gộp |
 | 5 | Dọn chỗ nhỏ: chữ «/khách» còn sót với dịch vụ theo lượt, `BL-SDL-TAY-BI-DE`, `BL-SDL2-CHUP-BU-TRAN`, `BL-SDL2-DON-LAI` | Mỗi mục có bài đỏ trước, xanh sau | chưa |
 
 ## Ngoài bảng
@@ -17,7 +17,8 @@ Chủ dự án 3/11/2026, nguyên văn: «để diễn tập sau, giờ là lúc
 ## Việc của chủ và Kế toán
 
 - Diễn tập khôi phục `HC-5.19`: hạn 2026-11-30.
-- Kế toán nhập mức thật, nên làm sau Việc 2. Năm vai trò đang thiếu mức.
+- Kế toán gửi bảng giá đại lý đang dùng, hoặc 3–5 ca mẫu, để chốt mẫu tệp và xác nhận cách tính.
+- Kế toán nhập mức thật, nên làm sau Việc 2, chưa nhập tay trước đó. Năm vai trò đang thiếu mức.
 - Xác nhận ca sổ vàng SV-TG-01…03.
 - Thử bảng nhập trên iPhone thật.
 
