@@ -662,6 +662,8 @@ export interface OrderDetailResponse {
   xacNhan?: XacNhanTrenDonDto | null;
   /** ADR-0142: người xem là Bán hàng phụ trách ĐANG MỞ của đơn (không phải người phụ trách HDV). Giao diện dùng cho nút sửa chuyến / hành khách / đổi người; máy chủ vẫn kiểm lại ở từng route. */
   laBanHangPhuTrach: boolean;
+  /** ADR-0142: Bán hàng người lập đã MỜI trên đơn NHÁP (chỉ người lập thấy, chỉ khi còn là Bán hàng mời được); null = chưa mời. Vắng khoá = máy chủ cũ / không phải nháp của người xem. */
+  banHangMoi?: { staffId: string; name: string } | null;
 }
 /**
  * `yeuCau` = yêu cầu xác nhận ĐANG MỞ của đơn (null = chưa gửi / đã rút). `canXacNhan` = đơn thuộc diện phải qua bước xác nhận (chỉ tính cho người lập; người khác false).
@@ -3103,3 +3105,38 @@ export interface CaiDatXacNhanResponse {
   tuXacNhanNoiBo: boolean;
 }
 export type CaiDatXacNhanInput = { pham: "SERVICE" | "GROUP"; ma: string; canXacNhan: boolean } | { tuXacNhanNoiBo: boolean };
+
+// ---- Bán hàng phụ trách đơn (ADR-0142) ------------------------------------------------------------------------------------------------------------------
+/** `GET /api/dispatch/ban-hang-moi`: người mời được làm Bán hàng phụ trách — CHỈ mã tài khoản + tên (không SĐT, không email). */
+export interface BanHangMoiResponse { banHang: { staffId: string; name: string }[] }
+/**
+ * `GET /api/dispatch/ban-hang?orderIds=…` — một phần tử cho MỖI đơn người gọi xem được. Đối tác / Thực tập chỉ nhận TÊN Bán hàng phụ trách (không `staffId`, `loiMoi` luôn null).
+ * `loiMoi.conPhut` = phút giờ hành chính còn lại của ưu tiên (đã hết ưu tiên hoặc người được mời mất quyền ⇒ `loiMoi` = null).
+ */
+export interface BanHangDonDto {
+  banHang: { staffId?: string | null; name: string } | null;
+  loiMoi: { staffId: string | null; name: string; conPhut: number } | null;
+  laBanHangPhuTrach: boolean;
+}
+export type BanHangCuaDonResponse = Record<string, BanHangDonDto>;
+/** Trả lời của `POST /api/orders/:id/ban-hang/nhan`, `…/tu-choi`, `PUT …/ban-hang`. */
+export interface BanHangGhiResponse { ok: true; banHang: { staffId: string | null; name: string } | null }
+/** `PUT /api/orders/:id/ban-hang`: `staffId` null = bỏ trống ô. */
+export interface DoiBanHangBody { staffId: string | null }
+/** Thẻ «Đơn chưa có Bán hàng phụ trách» của Trang chủ (ADR-0142 Đ6). Không tên khách, không SĐT. */
+export interface TheDonDto {
+  orderId: string;
+  orderCode: string;
+  /** Lúc đơn được ghi nhận (xác nhận, hoặc lúc gửi yêu cầu xác nhận). */
+  ghiNhanLuc: string;
+  /** Đơn còn chờ xác nhận (nháp có yêu cầu mở). */
+  choXacNhan: boolean;
+  ngayDi: string | null;
+  dichVu: string[];
+  /** Người xem là người lập đơn này (thẻ hiện chữ «đang chờ văn phòng nhận»). */
+  laCuaToi: boolean;
+}
+/** `GET /api/orders/chua-co-ban-hang`. `soDonChoXacNhanAn` = đơn chờ xác nhận mà người xem (Kế toán) chỉ được biết SỐ LƯỢNG. */
+export interface ChuaCoBanHangResponse { don: TheDonDto[]; soDonChoXacNhanAn: number }
+/** `GET`/`POST /api/cai-dat/ban-hang-phu-trach`: dòng chính sách hiện hành. `doiDuoc` = người gọi giữ `settings.ops`. */
+export interface BanHangChinhSachResponse { phutUuTien: number; tuPhut: number; denPhut: number; mocPhatHanh: string | null; doiDuoc: boolean }

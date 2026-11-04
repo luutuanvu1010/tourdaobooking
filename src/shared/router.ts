@@ -74,6 +74,8 @@ export interface DonCuaNguoiDatTom { doi: number; giuDaGiao: number; giuDaHuy: n
 export interface BanHangNoi {
   laBanHangPhuTrach: (staffId: string, orderId: string) => Promise<boolean>;
   kiemBanHangMoi: (staffId: string) => Promise<{ ok: true; partyId: string; name: string } | { ok: false; message: string }>;
+  /** Như `kiemBanHangMoi` nhưng đi từ HỒ SƠ (ý định mời ghi trên đơn là hồ sơ). */
+  kiemBanHangMoiTheoHoSo: (partyId: string) => Promise<{ ok: true; partyId: string; name: string; staffId: string } | { ok: false; message: string }>;
   danhSachBanHangMoi: () => Promise<{ staffId: string; name: string }[]>;
   gioHanhChinh: () => Promise<KhungGioHanhChinh | null>;
   loiMoiMoCua: (orderId: string) => Promise<{ staffId: string | null; name: string; hanIso: string; xConHopLe: boolean } | null>;
@@ -488,6 +490,7 @@ function banHangLuoi(opts: AppOptions, envH: Env): BanHangNoi {
   return {
     laBanHangPhuTrach: (s, o) => lay().laBanHangPhuTrach(s, o),
     kiemBanHangMoi: (s) => lay().kiemBanHangMoi(s),
+    kiemBanHangMoiTheoHoSo: (p) => lay().kiemBanHangMoiTheoHoSo(p),
     danhSachBanHangMoi: () => lay().danhSachBanHangMoi(),
     gioHanhChinh: () => lay().gioHanhChinh(),
     loiMoiMoCua: (o) => lay().loiMoiMoCua(o),

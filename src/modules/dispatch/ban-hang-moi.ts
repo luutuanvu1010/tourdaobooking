@@ -2,7 +2,7 @@
 // nghiêm phải nạp được trực tiếp bằng node (bài EXPLAIN của architecture.test.ts) và không kéo module staff theo. Không có SQL ở đây.
 import { hasPermission, holdsPartner } from "../../shared/permissions";
 import type { StaffAccount } from "../../shared/contracts";
-import { getStaffAccount, listStaffAccounts } from "../staff";
+import { getStaffAccount, getStaffAccountOfParty, listStaffAccounts } from "../staff";
 import { loiMoiMoTho } from "./ban-hang";
 
 /** Hồ sơ mời được làm Bán hàng phụ trách: đang hoạt động, có hồ sơ, giữ `SALES`, không giữ `PARTNER` (kể cả tài khoản lai). */
@@ -17,6 +17,13 @@ function hopLeMoi(a: StaffAccount | null): { ok: true; partyId: string; name: st
 
 export async function kiemBanHangMoi(db: D1Database, staffId: string): Promise<{ ok: true; partyId: string; name: string } | { ok: false; message: string }> {
   return hopLeMoi(await getStaffAccount(db, staffId));
+}
+
+/** Kiểm lại người được mời từ HỒ SƠ ghi trên đơn (lúc ghi nhận). Thành công trả thêm `staffId` để báo / hiện tên. */
+export async function kiemBanHangMoiTheoHoSo(db: D1Database, partyId: string): Promise<{ ok: true; partyId: string; name: string; staffId: string } | { ok: false; message: string }> {
+  const a = await getStaffAccountOfParty(db, partyId);
+  const r = hopLeMoi(a);
+  return r.ok ? { ...r, staffId: a!.id } : r;
 }
 
 /** Những người mời được (chỉ id tài khoản và tên — không SĐT, không email), thứ tự theo `listStaffAccounts`. */

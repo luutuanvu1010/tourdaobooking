@@ -161,6 +161,7 @@ export const soDonDangPhuTrachCua = (db: D1Database, partyId: string): Promise<n
 export const banHangNoi = (db: D1Database): BanHangNoi => ({
   laBanHangPhuTrach: (staffId, orderId) => banHang.laBanHangPhuTrach(db, staffId, orderId),
   kiemBanHangMoi: (staffId) => banHangMoi.kiemBanHangMoi(db, staffId),
+  kiemBanHangMoiTheoHoSo: (partyId) => banHangMoi.kiemBanHangMoiTheoHoSo(db, partyId),
   danhSachBanHangMoi: () => banHangMoi.danhSachBanHangMoi(db),
   gioHanhChinh: () => banHang.khungGioHanhChinh(db),
   loiMoiMoCua: (orderId) => banHangMoi.loiMoiMoCua(db, orderId),
