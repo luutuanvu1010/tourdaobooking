@@ -1,9 +1,9 @@
 # ADR-0168 — Thanh toán trả sau theo hạn mức riêng của đối tác
 
-- **Trạng thái:** **đề xuất** 2026-11-05, chờ chủ dự án duyệt. Người kiểm độc lập đã đọc một vòng, các phát hiện đã đưa vào bản này. Lời chủ và tiêu chí nghiệm thu: `docs/superpowers/specs/2026-11-05-tra-sau-han-muc.md`. Lệch giữa hai nơi: ADR này thắng.
+- **Trạng thái:** **accepted** 2026-11-05 — chủ dự án, nguyên văn: *«Duyệt cả ba điểm»*, trả lời câu hỏi nêu rõ: đơn còn nợ chưa qua bước thu đủ; không huỷ được khi còn nợ mà đã mở vé; được xây trên các lỗi đang mở nhưng chỉ phát hành sau diễn tập khôi phục. Người kiểm độc lập đã đọc một vòng, các phát hiện đã đưa vào bản này. Lời chủ và tiêu chí nghiệm thu: `docs/superpowers/specs/2026-11-05-tra-sau-han-muc.md`. Lệch giữa hai nơi: ADR này thắng.
 - **Loại:** việc lớn (tiền, dữ liệu, quyền). Hai chiều về mã; đối tác đã nhận vé trên đơn Trả sau thì không lấy lại được tiền bằng cách hoàn mã.
 - **Số quyết định chạm quyền/dữ liệu trong lượt duyệt này: 3** (Đ1, Đ2, Đ3). Trang ghép nằm trong đặc tả.
-- **Xây trên lỗ đang hở:** `TNV-G1`, `HC-5.19`, `HC-4.2`; cần chủ cho phép có ghi lý do.
+- **Xây trên lỗ đang hở:** `TNV-G1`, `HC-5.19`, `HC-4.2`; chủ đã cho phép ở lời duyệt trên. **Chỉ phát hành sau khi đã diễn tập khôi phục `HC-5.19`.** Lý do được xây: việc này không sinh dòng sổ mới và không nới luật của các lỗi đó.
 - **Quan hệ với ADR cũ:**
   - Sửa cho riêng đơn Trả sau: ADR-0153 Đ1 mục 4(c) (thu đủ mới mở vé), ADR-0153 Đ2 (thu đủ mới tạo đường dẫn), ADR-0159 Đ1 mục 1–2 (không nhận lời khai đặt cọc).
   - Thêm điều kiện: cổng xác nhận chung của ADR-0136; các đường sửa tiền sau xác nhận (ADR-0063, ADR-0114); huỷ đơn và huỷ để lập lại (ADR-0089); đổi bên đặt và gộp hồ sơ (ADR-0068).

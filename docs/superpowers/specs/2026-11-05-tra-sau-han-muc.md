@@ -1,6 +1,6 @@
 # Thanh toán trả sau theo hạn mức riêng của đối tác
 
-Trạng thái: **đề xuất, chờ chủ duyệt**. Quyết định và luật chi tiết: `docs/adr/ADR-0168-thanh-toan-tra-sau-va-han-muc.md`.
+Trạng thái: **đã duyệt 2026-11-05** (chủ: «Duyệt cả ba điểm»). Quyết định và luật chi tiết: `docs/adr/ADR-0168-thanh-toan-tra-sau-va-han-muc.md`.
 
 Chủ 4/11/2026, nguyên văn: «Hình thức thanh toán mặc định dành cho tất cả TA là trả trước, tức công ty nhận đủ tiền rồi mới trả vé. Bây giờ thêm 1 hình thức nữa là Trả sau/ Credit dành cho một số đối tác cụ thể (chọn riêng giống như cách thiết lập mức chiết khấu riêng bên cạnh mức chiết khấu chung). Trong bảng điều khiển của Super Admin, thiết lập tổng hạn mức, thời gian hiệu lực (Ngày). Ví dụ tổng hạn mức là 50 triêụ, khách hàng cần phải trả khi tới hạn mức hoặc trả trước khi tới hạn để tiếp tục được đặt vé với hình thức trả sau.»
 
@@ -81,4 +81,4 @@ Không tính lãi hay phí phạt. Không tự nhắc nợ bằng thông báo. K
 
 ## Xây trên lỗ đang hở
 
-`TNV-G1` (đơn huỷ còn tiền), `HC-5.19` (chưa diễn tập khôi phục), `HC-4.2`, đều hạn 30/11: chủ cần ghi «Cho phép, có ghi lý do» hoặc chờ đóng lỗ. Việc này cho đối tác nhận vé trước khi trả tiền, nên người soạn đề nghị **chỉ phát hành sau diễn tập khôi phục**.
+`TNV-G1` (đơn huỷ còn tiền), `HC-5.19` (chưa diễn tập khôi phục), `HC-4.2`, đều hạn 30/11: chủ đã cho phép 5/11. Việc này cho đối tác nhận vé trước khi trả tiền, nên **chỉ phát hành sau diễn tập khôi phục**.
