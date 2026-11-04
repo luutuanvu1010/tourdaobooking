@@ -8,7 +8,7 @@ import type { DanhSachPhanDinhResponse, KhoanTrachNhiemDto, PhieuPhanDinhDto } f
 import { UUID_RE } from "../../shared/http";
 import { LY_DO_PHAN_DINH_TOI_THIEU, NGAY_LAM_VIEC_PHAN_HOI, TRUONG_HOP, congNgayLamViec, laMaTruongHop, quaHanNhac, quaHanT11, type MaTruongHop, type TrangThaiPhieu } from "../../shared/phan-dinh";
 import { vnToday } from "../../shared/vn-date";
-import { taiKhoanCuaHoSo } from "./dieu-chinh-repo";
+import { taiKhoanCuaHoSo, taiKhoanDangDungCuaHoSo } from "./dieu-chinh-repo";
 import { chenPhanDinhStatement, dongGiuHoCacDon, dsPhanDinh, hoanPhanDinhStatement, phanDinhCuaBenChiu, phanDinhTheoDon, phanDinhTheoId, thongTinBenChiu, type DongGiuHo, type DongPhanDinh } from "./phan-dinh-repo";
 import { lineIfPostingStatement, linesOfOrder, orderOwners, ownerCompanyId, partyLabels, postingIfReceiptStatement, postingPlainStatement, receiptsOfOrder } from "./repository";
 import { CAU_DA_NOP_PHAN_DINH, CAU_KHACH_CHUA_TRA_DONG_NAO, METHOD_CODES, conLai, dong, kiemHoanNguoiGiu, kiemLoPhanDinh, sinhDongHoanKhach, soDaNopKhoanPhanDinh, soDuGiuHo } from "./rules";
@@ -377,7 +377,7 @@ function daNopCua(ben: string | null, cty: string | null, dong: readonly DongGiu
   return soDaNopKhoanPhanDinh(dong.map((l) => ({ kind: l.kind_code as "HELD", debtorPartyId: l.debtor_party_id, creditorPartyId: l.creditor_party_id, amount: l.amount })), ben, cty);
 }
 
-function dungPhieu(q: DongPhanDinh, dongDon: readonly DongPhanDinh[], ai: NguoiGoi, quyen: QuyenPhanDinh, bayGio: string, cty: string | null, giuHo: readonly DongGiuHo[]): PhieuPhanDinhDto {
+function dungPhieu(q: DongPhanDinh, dongDon: readonly DongPhanDinh[], ai: NguoiGoi, quyen: QuyenPhanDinh, bayGio: string, cty: string | null, giuHo: readonly DongGiuHo[], coTaiKhoan: ReadonlySet<string>): PhieuPhanDinhDto {
   const ruling = dongDon.find((d) => d.target_id === q.id && d.step_code === "RULING") ?? null;
   const goc = ruling ? dongDon.find((d) => d.target_id === ruling.id && d.step_code === "POSTED") ?? null : null;
   const k = goc ? khoanCua(dongDon, goc) : null;
@@ -386,7 +386,11 @@ function dungPhieu(q: DongPhanDinh, dongDon: readonly DongPhanDinh[], ai: NguoiG
   const dang = k?.dangDoi ?? null;
   const moneyOut = ruling?.money_out === 1;
   const daNop = k ? daNopCua(k.benChiu, cty, giuHo) : 0;
+  // ADR-0155 Đ1.5: bên chịu hiện tại là hồ sơ không có tài khoản ĐANG HOẠT ĐỘNG (chưa có, hoặc đã ngưng — đều không nhận được tin) ⇒ không nhận được tin, không phản hồi được trên Nền tảng — văn phòng báo trực tiếp.
+  const benHienTai = k ? k.benChiu : (ruling?.liable_party_id ?? null);
+  const benChiuKhongTaiKhoan = benHienTai !== null && benHienTai !== cty && !coTaiKhoan.has(benHienTai);
   return {
+    benChiuKhongTaiKhoan,
     id: q.id, orderId: q.order_id, maDon: q.order_code ?? "", trangThai, soTienDeNghi: q.amount ?? 0, lyDoDeNghi: q.reason ?? "", nguoiDeNghi: q.created_by_label ?? "—", luc: q.created_at,
     quaHanNhac: chuaXong && q.ngay_giao !== null && quaHanNhac(q.ngay_giao, vnToday(new Date(bayGio))),
     phanDinh: ruling ? {
@@ -411,7 +415,8 @@ export async function danhSachPhanDinh(db: D1Database, input: { ai: NguoiGoi; qu
   const [cty, giuHo] = await Promise.all([ownerCompanyId(db), dongGiuHoCacDon(db, [...new Set(rows.filter((r) => r.step_code === "POSTED").map((r) => r.order_id))])]);
   const theoDon = new Map<string, DongPhanDinh[]>();
   for (const r of rows) theoDon.set(r.order_id, [...(theoDon.get(r.order_id) ?? []), r]);
-  const phieu = rows.filter((r) => r.step_code === "REQUEST").map((q) => dungPhieu(q, theoDon.get(q.order_id) ?? [], input.ai, input.quyen, bayGio, cty, giuHo.filter((l) => l.order_id === q.order_id)));
+  const coTaiKhoan = await taiKhoanDangDungCuaHoSo(db, [...new Set(rows.flatMap((r) => (r.liable_party_id ? [r.liable_party_id] : [])))]);
+  const phieu = rows.filter((r) => r.step_code === "REQUEST").map((q) => dungPhieu(q, theoDon.get(q.order_id) ?? [], input.ai, input.quyen, bayGio, cty, giuHo.filter((l) => l.order_id === q.order_id), coTaiKhoan));
   const cuaMinh = (p: PhieuPhanDinhDto): boolean => {
     const ds = theoDon.get(p.orderId) ?? [];
     return ds.some((d) => (d.id === p.id || d.id === p.phanDinh?.id) && d.created_by === input.ai.staffId);

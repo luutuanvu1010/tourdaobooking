@@ -2420,6 +2420,8 @@ export interface PhieuPhanDinhDto {
   ghi: { id: string; conHieuLuc: number; truongHopHienTai: string; nguoiGhi: string; luc: string; daNop: number } | null;
   /** T11 quá 7 ngày chưa rõ ai chịu: hiện đỏ, không tự gán (QT4). */
   t11QuaHan: boolean;
+  /** ADR-0155 Đ1.5: bên chịu hiện tại là hồ sơ chưa có tài khoản (không nhận tin, không phản hồi được trên Nền tảng) — văn phòng báo trực tiếp. Công ty chịu hoặc chưa phân định ⇒ false. */
+  benChiuKhongTaiKhoan: boolean;
   dangDoiBenChiu: { id: string; truongHop: string; benChiu: string; lyDo: string; nguoiPhanDinh: string } | null;
   phanHoi: { noiDung: string; nguoi: string; luc: string }[];
   coThePhanDinh: boolean; coTheGhi: boolean; coTheGhiDoi: boolean; coTheDoiBenChiu: boolean; coTheHuy: boolean;

@@ -9,6 +9,7 @@ import { NHAN_LY_DO_KHOP, chuanHoaTen } from "../src/shared/ho-so-trung";
 import { cauXemTruocSua, chiaLanGan, coQuyenSua, nhanSapAp, nutSua } from "../src/shared/hoa-hong-hien-thi";
 import { nhanLoaiLienHe } from "../src/shared/lien-he";
 import { can } from "../src/shared/permissions";
+import { vaiMoChoHoSoKhongTaiKhoan } from "../src/shared/roles";
 import { docLyDoSua } from "../src/shared/so-dai-ly-nhap";
 import { GIOI_TINH, GIOI_TINH_NHAN } from "../src/shared/xung-ho";
 import { ApiError, api, type Api, type Staff } from "./api";
@@ -45,7 +46,12 @@ const STALE_NOTICE = "Hồ sơ vừa được người khác thay đổi nên b�
 /** Câu xác nhận trước khi đổi công ty chủ (ADR-0024 6.2: trang đăng nhập và biên nhận đọc hồ sơ công ty chủ). Không nói "Toàn quyền" (vai ẩn). */
 const XAC_NHAN_DOI_CONG_TY_CHU =
   "Đặt hồ sơ này làm công ty chủ? Trang đăng nhập và biên nhận sẽ dùng thông tin của hồ sơ này từ hôm nay (tên, mã số thuế, địa chỉ, liên hệ ghi chú “Hotline”, email). Công ty chủ hiện tại sẽ thôi giữ công việc này. Sau khi đổi, kiểm lại mục “Tài khoản nhận tiền” của hồ sơ mới — chưa cài thì mã QR thanh toán báo lỗi.";
-const fail = (err: unknown) => showError(errorEl, err instanceof ApiError ? err.message : "Không kết nối được máy chủ.");
+/** Hiện lỗi của trang VÀ đưa vào tầm nhìn: người dùng thường đang cuộn xuống tận mục «Công việc tại đâu»; `center` để thanh trên dính không che. */
+function hienLoi(message: string): void {
+  showError(errorEl, message);
+  errorEl.scrollIntoView({ block: "center" });
+}
+const fail = (err: unknown) => hienLoi(err instanceof ApiError ? err.message : "Không kết nối được máy chủ.");
 
 /**
  * Chạy một thao tác. Thao tác GHI truyền `btn`: nút bị khoá từ lúc bấm đến khi xong cả phần nạp lại (bấm đúp không tạo trùng), mở lại ở `finally`.
@@ -60,7 +66,7 @@ async function act<T>(fn: () => Promise<T>, btn?: HTMLButtonElement | null, onSt
   } catch (err) {
     if (onStale && err instanceof ApiError && err.code === "stale") {
       await onStale();
-      if (errorEl.hidden) showError(errorEl, STALE_NOTICE); // nạp lại thất bại thì giữ lỗi của lần nạp
+      if (errorEl.hidden) hienLoi(STALE_NOTICE); // nạp lại thất bại thì giữ lỗi của lần nạp
     } else fail(err);
     return undefined;
   } finally {
@@ -306,18 +312,29 @@ async function openDetail(id: string): Promise<void> {
 
   // -- vai trò theo nơi
   const roleRows = p.roles.map((r2) =>
-    h("tr", { class: r2.validTo ? "row-off" : "" }, h("td", null, r2.roleName), h("td", null, r2.locationName ?? "(mọi nơi)"), h("td", { class: "muted" }, period(r2.validFrom, r2.validTo)), h("td", null, quanTri && !r2.validTo && (isAccountRole(r2.roleTypeCode) ? h("span", { class: "muted" }, "Đổi ở màn Quản lý tài khoản") : button("Kết thúc", (b) => void act(async () => { await api(`/api/parties/${id}/roles/${r2.id}/end`, { method: "POST", body: {} }); await reload(); }, b))))),
+    h("tr", { class: r2.validTo ? "row-off" : "" }, h("td", null, r2.roleName), h("td", null, r2.locationName ?? "(mọi nơi)"), h("td", { class: "muted" }, period(r2.validFrom, r2.validTo)), h("td", null, quanTri && !r2.validTo && (isAccountRole(r2.roleTypeCode) && !(!p.accountLinked && vaiMoChoHoSoKhongTaiKhoan(r2.roleTypeCode)) ? h("span", { class: "muted" }, "Đổi ở màn Quản lý tài khoản") : button("Kết thúc", (b) => void act(async () => { await api(`/api/parties/${id}/roles/${r2.id}/end`, { method: "POST", body: {} }); await reload(); }, b))))),
   );
   // Vai "Công ty chủ" gieo "ngưng gán thường" (active = false) nên không có trong danh sách chung; chỉ người giữ ô company.legal.write thấy nó, trên hồ sơ tổ
   // chức chưa phải công ty chủ — gán = ĐỔI công ty chủ (chủ dự án 2026-09-28).
   const doiCongTyChu = can(me, "company.legal.write") && p.kind === "ORGANIZATION" && !p.roles.some((x) => x.roleTypeCode === OWNER_COMPANY_ROLE && x.validTo === null);
+  // ADR-0155 Đ1.1: hồ sơ CHƯA có tài khoản gắn thêm được năm vai đối tác (không sinh đăng nhập); hồ sơ có tài khoản vẫn đổi vai ở màn Quản lý tài khoản.
+  const namVai = p.accountLinked || !p.active ? [] : meta.roleTypes.filter((t) => t.active && vaiMoChoHoSoKhongTaiKhoan(t.code));
+  // Không chọn sẵn vai nào (nhất là vai có hưởng tiền): phải chọn chủ động, tránh bấm «Thêm công việc» nhầm.
   const rType = select([
+    { value: "", label: "— Chọn công việc —" },
+    ...namVai.map((t) => ({ value: t.code, label: t.name })),
     ...meta.roleTypes.filter((t) => t.active && t.group === "OTHER").map((t) => ({ value: t.code, label: t.partnerLabel ? `${t.name} (đối tác)` : t.name })), // ADR-0117: loại đối tác mới (cờ máy chủ) có hậu tố để phân biệt với vai công việc
     ...(doiCongTyChu ? [{ value: OWNER_COMPANY_ROLE, label: roleLabel(OWNER_COMPANY_ROLE) }] : []),
   ]);
   const rLoc = select([{ value: "", label: "(mọi nơi)" }, ...locations.filter((l) => l.active).map((l) => ({ value: l.id, label: l.name }))]);
   const rFrom = input("", { type: "date" });
+  // Năm vai đối tác không gắn nơi làm (máy chủ trả 400 nếu có nơi) — ẩn ô «Nơi làm» khi chọn một trong năm vai.
+  const oNoiLam = field("Nơi làm", rLoc);
+  const capNhatONoi = (): void => { oNoiLam.hidden = !p.accountLinked && vaiMoChoHoSoKhongTaiKhoan(rType.value); if (oNoiLam.hidden) rLoc.value = ""; };
+  rType.addEventListener("change", capNhatONoi);
+  capNhatONoi();
   const addRole = button("Thêm công việc", (b) => {
+    if (!rType.value) { hienLoi("Chọn công việc trước khi thêm."); return; }
     if (rType.value === OWNER_COMPANY_ROLE && !confirm(XAC_NHAN_DOI_CONG_TY_CHU)) return;
     const body = { roleTypeCode: rType.value, locationId: rLoc.value || null, validFrom: rFrom.value || undefined };
     void act(async () => { await api(`/api/parties/${id}/roles`, { method: "POST", body }); await reload(); }, b);
@@ -349,7 +366,7 @@ async function openDetail(id: string): Promise<void> {
     }, 300);
   });
   const addRel = button(loaiQuanHe().nut, (b) => {
-    if (!relPick.value) return showError(errorEl, "Chọn hồ sơ cần liên kết.");
+    if (!relPick.value) return hienLoi("Chọn hồ sơ cần liên kết.");
     const l = loaiQuanHe();
     const body = l.laDauTu ? { fromPartyId: id, toPartyId: relPick.value, relationshipTypeCode: l.code } : { fromPartyId: relPick.value, toPartyId: id, relationshipTypeCode: l.code };
     void act(async () => { await api(`/api/parties/${id}/relationships`, { method: "POST", body }); await reload(); }, b);
@@ -393,7 +410,7 @@ async function openDetail(id: string): Promise<void> {
     h("h3", null, "Công việc tại đâu"),
     h("table", { class: "items" }, h("tbody", null, ...roleRows)),
     quanTri
-      ? h("div", null, h("div", { class: "grid three" }, field("Công việc", rType), field("Nơi làm", rLoc), field("Từ ngày (mặc định hôm nay)", rFrom)), h("div", { class: "actions" }, addRole))
+      ? h("div", null, h("div", { class: "grid three" }, field("Công việc", rType), oNoiLam, field("Từ ngày (mặc định hôm nay)", rFrom)), h("div", { class: "actions" }, addRole))
       : daGop ? null : h("p", { class: "muted" }, "Chỉ quản trị viên thêm hoặc kết thúc công việc."),
     h("h3", null, "Người liên hệ, tài xế"), // G3 (ADR-0048): mục này nay gồm cả quan hệ "Tài xế của"
     h("table", { class: "items" }, h("tbody", null, ...relRows)),
@@ -495,7 +512,7 @@ function moHopGop(nguon: { id: string; displayName: string }, dichSan: { id: str
       // act() mở lại nút ở finally: tính lại nút theo bản xem trước mới; giữ câu lỗi của lần gộp (xem trước gọi act() nên xoá lỗi ở đầu).
       const loi = errorEl.hidden ? null : errorEl.textContent;
       await xemTruoc();
-      if (loi && errorEl.hidden) showError(errorEl, loi);
+      if (loi && errorEl.hidden) hienLoi(loi);
     })();
   });
   replaceChildren(

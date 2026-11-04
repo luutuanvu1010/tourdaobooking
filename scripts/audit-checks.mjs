@@ -2070,10 +2070,13 @@ export const CHECKS = [
   {
     // R-PRC-6 (ADR-0117 lần 1, migration 0095): lưới THỨ HAI cho các trigger `pty_party_role_partner_label_conflict_*`, `adr0117_permission_partner_label_internal`, `prc_beneficiary_role_kind`.
     // Hai nhánh, đếm cộng: (i) hồ sơ ĐANG mang loại đối tác mà còn vai nội bộ đang mở (nhóm INTERNAL, hoặc vai cũ STAFF/SALES — tạm, như trigger) hoặc có tài khoản giữ quyền ngoài {PARTNER, DRIVER_PARTNER};
+    // ADR-0155 Đ1.6: «mang loại đối tác» ở (i) gồm CẢ năm vai TRAVEL_AGENCY / GUIDE_FREELANCE / HOTEL_RECEPTION / TAXI_DRIVER / COLLABORATOR (cờ is_partner_label của chúng là 0, trigger CSDL không canh);
+    // tập mã này được ghim bằng bài trong src/audit-invariants.test.ts với vaiMoChoHoSoKhongTaiKhoan của src/shared/roles.ts.
     // (ii) dòng danh sách được hưởng thuộc vai nhóm INTERNAL, hoặc nhóm OTHER mà không phải loại đối tác. Không lọc `active`: dòng tắt có thể bật lại bằng UPDATE mà trigger chỉ canh INSERT.
     code: "R-PRC-6",
     what: "hồ sơ mang loại đối tác (được hưởng hoa hồng) mà còn vai nội bộ đang mở hoặc có tài khoản giữ quyền nội bộ; hoặc danh sách vai được hưởng hoa hồng chứa vai nội bộ / vai nhóm OTHER không phải loại đối tác",
-    sql: `SELECT (SELECT count(*) FROM v_pty_party_partner_label l
+    sql: `SELECT (SELECT count(*) FROM (SELECT party_id FROM v_pty_party_partner_label
+         UNION SELECT party_id FROM v_pty_open_role WHERE role_type_code IN ('TRAVEL_AGENCY', 'GUIDE_FREELANCE', 'HOTEL_RECEPTION', 'TAXI_DRIVER', 'COLLABORATOR')) l
          WHERE EXISTS (SELECT 1 FROM v_pty_open_role o WHERE o.party_id = l.party_id AND (o.role_group = 'INTERNAL' OR o.role_type_code IN ('STAFF', 'SALES')))
             OR EXISTS (SELECT 1 FROM staff s JOIN stf_permission p ON p.staff_id = s.id AND p.valid_to_at IS NULL AND p.permission_type_code NOT IN ('PARTNER', 'DRIVER_PARTNER')
                        WHERE s.party_id = l.party_id))

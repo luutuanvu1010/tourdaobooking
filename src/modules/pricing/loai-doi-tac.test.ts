@@ -216,7 +216,7 @@ test("N-2: thêm loại không đổi ROLE_CODES, không đổi quyền nào; PU
 // ---------------------------------------------------------------------------------------------------------------------------------------------
 // N-3 — gắn loại mới cho hồ sơ tổ chức; chọn làm bên đặt; đối chứng vai đăng nhập
 // ---------------------------------------------------------------------------------------------------------------------------------------------
-test("N-3: Quản trị gắn loại mới cho hồ sơ tổ chức ⇒ 201; hiện ở tìm người hưởng (Bán hàng); chọn làm bên đặt khi lập đơn; đối chứng TRAVEL_AGENCY ⇒ 409 role_via_account", async () => {
+test("N-3: Quản trị gắn loại mới cho hồ sơ tổ chức ⇒ 201; hiện ở tìm người hưởng (Bán hàng); chọn làm bên đặt khi lập đơn; đối chứng SALES_STAFF ⇒ 409 role_via_account (ADR-0155: TRAVEL_AGENCY nay 201)", async () => {
   const w = setup();
   const ma = await themLoai(w);
   assert.ok(!(await nguoiHuongTim(w, "Hoa Sen")).includes(ORG), "chưa gắn loại ⇒ chưa là người hưởng");
@@ -229,9 +229,12 @@ test("N-3: Quản trị gắn loại mới cho hồ sơ tổ chức ⇒ 201; hi�
   assert.equal(don.status, 201, don.text);
   assert.equal(don.json.order.bookerPartyId, ORG);
   assert.equal(don.json.order.bookerLaDoiTac, true);
+  // ADR-0155 Đ1/C6 (đảo có chủ đích 2026-11-04): TRAVEL_AGENCY trên tổ chức CHƯA có tài khoản nay 201 (trước đây 409 role_via_account); đối chứng 409 chuyển sang vai nội bộ.
   const cu = await ganLoai(w, ORG2, "TRAVEL_AGENCY");
-  assert.equal(cu.status, 409, cu.text);
-  assert.equal(cu.json.error.code, "role_via_account");
+  assert.equal(cu.status, 201, cu.text);
+  const doi = await ganLoai(w, ORG2, "SALES_STAFF");
+  assert.equal(doi.status, 409, doi.text);
+  assert.equal(doi.json.error.code, "role_via_account");
 });
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------

@@ -18,8 +18,8 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // Đổi 12 tên nút sau rà soát 4/11 và tách nhãn đơn nháp (ADR-0166). Không migration, không ô quyền; có đổi cách chạy ở «Bỏ ghi đè giá», hộp hỏi «Còn vé, xác nhận đơn», cờ `dangCho` ở danh sách đơn.
-    // Số 2.60 và ngày chỉ là tạm cho nhánh: bước A.0 của lần triển khai đặt lại nếu cần.
-    version: "2.60",
+    // Số 2.61 và ngày chỉ là tạm cho nhánh: bước A.0 của lần triển khai đặt lại nếu cần.
+    version: "2.61",
     date: "2026-11-04",
     items: [
       { kind: "doi", text: "Đơn chưa gửi kiểm vé nay ghi «Chưa xác nhận»; đơn đã gửi và đang chờ người kiểm vé ghi «Chờ xác nhận». Ảnh gửi khách không đổi." },
@@ -29,6 +29,15 @@ export const CHANGELOG: readonly ReleaseNote[] = [
       { kind: "doi", text: "Đổi tên nút cho đúng việc: «Gửi kiểm vé», «Lưu đơn (chưa xác nhận)», «Ghi khoản thu này», «Ghi khoản thu đòi được», «Mở vé để gửi khách»." },
       { kind: "doi", text: "Đổi tên nút cho đúng việc: «Ngừng bán», «Mở bán lại», «Kết thúc gián đoạn (xe hỏng)», «Đặt ngày kết thúc», «Ngừng dùng»." },
       { kind: "sua", text: "Điện thoại: khung «Xác nhận đơn» trải đủ bề ngang, chữ không còn tràn khỏi viền." },
+    ],
+  },
+  {
+    // Hồ sơ chưa có tài khoản (cả tổ chức) mang năm vai đối tác ở Danh bạ và hưởng hoa hồng theo cấp (ADR-0155 Đ1, C3, C4, C6). Không migration, không ô quyền mới.
+    // Số 2.60 và ngày chỉ là tạm cho nhánh: bước A.0 của lần triển khai đặt lại nếu cần.
+    version: "2.60",
+    date: "2026-11-04",
+    items: [
+      { kind: "moi", text: "Công ty lữ hành và đối tác chưa có tài khoản nay gắn được vai trò ở Danh bạ và hưởng hoa hồng theo cấp." },
     ],
   },
   {

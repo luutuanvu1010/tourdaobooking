@@ -2,7 +2,19 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.58 ĐÃ LÊN PRODUCTION (phân định trách nhiệm ADR-0116, cảnh báo khoản thu giống nhau, Khách đặt cọc trước ADR-0159, mục Hướng dẫn riêng, chính sách chiết khấu bốn trục ADR-0161) — migration `0135`, `0136`, `0137` — triển khai 2026-11-03 22:20 giờ Việt Nam
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.59 ĐÃ LÊN PRODUCTION (tin «số dư của bạn đổi» tới Đối tác và Tài xế đối tác, ADR-0092 Đ5d, ADR-0115 điều 5) — không migration — triển khai 2026-11-04 07:05 giờ Việt Nam
+
+Ghi từ khối tóm tắt của `npm run trien-khai` (chủ tự chạy) và lệnh chỉ đọc của phiên chiết khấu:
+- Commit `origin/main`: `aa4086f6`. Worker Version ID: `83d4f17c-2388-452c-b1ef-7e64bc6c8339`. e2e xanh. Cổng phiên bản trước và sau deploy: ĐẠT. GET công khai 4/11 07:20: `version` 2.59; `wrangler d1 migrations list --remote`: không còn migration chờ.
+- **`audit-invariants --db remote`: ĐẠT.** Hai cảnh báo như bản trước: `R-VC-14` 7 xe thiếu giấy tờ là điều kiện xuất bến; `R-CTL-1` 9 dịch vụ chưa phân nhóm.
+- **Cùng lần nhập:** hạn diễn tập khôi phục `HC-5.19` dời sang 2026-11-30, do chủ quyết.
+- **Chủ 4/11 thấy dòng nhật ký thay đổi và hỏi vì sao ngoài kế hoạch.** Bản sửa này là phần còn thiếu của `TNV-G4`, AI làm rồi mới báo. Sau khi được giải thích, chủ chọn, nguyên văn: «Giữ tin báo».
+- **Chế độ bảo trì đang bật** tới 2026-11-05 22:26 giờ Việt Nam (GET công khai 4/11 07:20).
+- **Chưa kiểm:** iPhone thật; chủ chưa thử tin này trên tài khoản đối tác; số tin số dư phát từ 2/11 sẽ hiện chưa đọc cho đối tác.
+- **`TNV-G3`, `TNV-G4` đã đóng 2026-11-04** sau khi người kiểm độc lập đối chiếu trên mã đã phát hành `aa4086f6`; chưa có người dùng thật chạy bản này vì đang bảo trì.
+- **Việc kế tiếp:** `docs/superpowers/plans/2026-11-03-hoan-thien-hoa-hong-bang-viec.md`.
+
+## (Cũ) TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.58 ĐÃ LÊN PRODUCTION (phân định trách nhiệm ADR-0116, cảnh báo khoản thu giống nhau, Khách đặt cọc trước ADR-0159, mục Hướng dẫn riêng, chính sách chiết khấu bốn trục ADR-0161) — migration `0135`, `0136`, `0137` — triển khai 2026-11-03 22:20 giờ Việt Nam
 
 Ghi từ khối tóm tắt của `npm run trien-khai` (chủ tự chạy) và ô Terminal của phiên chiết khấu:
 - Commit `origin/main`: `8e6de707`. Worker Version ID: `58cfe2c1-9699-48c7-a595-7eaa58263f3b`. Điểm khôi phục Time Travel trước khi áp: `00002169-00000000-00005118-b6957c4775c2654ffbc428cadf2a1306`. Cổng phiên bản trước và sau deploy: ĐẠT. e2e: xanh.

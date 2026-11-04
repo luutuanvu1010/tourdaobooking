@@ -231,6 +231,7 @@ function thePhieu(p: Api.PhieuPhanDinhDto): HTMLElement {
     h("p", { class: "muted" }, `${p.nguoiDeNghi} · ${dateTime(p.luc)} · ${p.lyDoDeNghi}`),
     pd ? h("p", null, `Phân định: ${nhanTH(pd.truongHop)} · ${pd.benChiu} chịu ${vnd(pd.soTien)}${pd.coTienRa ? " · có trả tiền cho khách" : " · không trả tiền cho khách"}`) : null,
     pd ? h("p", { class: "muted" }, `${pd.nguoiPhanDinh} · ${dateTime(pd.luc)} · ${pd.lyDo}`) : null,
+    p.benChiuKhongTaiKhoan ? h("p", { "data-khoi": "ben-chiu-khong-tai-khoan" }, "Bên này chưa có tài khoản nên không nhận được tin và không phản hồi trên Nền tảng; văn phòng cần báo trực tiếp.") : null,
     p.ghi ? h("p", null, `Đã ghi sổ: ${vnd(p.ghi.conHieuLuc)} còn hiệu lực · ${p.ghi.nguoiGhi} · ${dateTime(p.ghi.luc)}`) : null,
     p.ghi && p.ghi.daNop > 0 ? h("p", { "data-khoi": "da-nop" }, `Bên chịu đã nộp ${vnd(p.ghi.daNop)} cho khoản này nên không đổi hay huỷ được trên Nền tảng. Cần xử lý thì báo Toàn quyền.`) : null,
     p.dangDoiBenChiu ? h("p", null, `Đổi bên chịu chờ ghi: ${nhanTH(p.dangDoiBenChiu.truongHop)} · ${p.dangDoiBenChiu.benChiu} · ${p.dangDoiBenChiu.lyDo}`) : null,

@@ -51,6 +51,15 @@ export const ROLES: Readonly<Record<RoleCode, RoleDef>> = {
   DRIVER_EXTERNAL: { name: "Tài xế đối tác", group: "EXTERNAL", defaults: ["DRIVER_PARTNER"], handles: "never", superAdminOnly: false },
 };
 
+/**
+ * ADR-0155 Đ1.1: vai mà hồ sơ CHƯA CÓ TÀI KHOẢN gắn được ở Danh bạ — nhóm bên ngoài VÀ có quyền mặc định PARTNER (đúng năm vai: Công ty lữ hành, Hướng dẫn viên
+ * độc lập, Lễ tân khách sạn, Tài xế taxi, Cộng tác viên). `DRIVER_EXTERNAL` (mặc định DRIVER_PARTNER, ADR-0048) và vai nội bộ tự loại. Mã lạ ⇒ false.
+ */
+export const vaiMoChoHoSoKhongTaiKhoan = (code: string): boolean => {
+  const r = (ROLES as Readonly<Record<string, RoleDef | undefined>>)[code];
+  return r !== undefined && r.group === "EXTERNAL" && r.defaults.includes("PARTNER");
+};
+
 export const ROLE_GROUP_LABEL: Readonly<Record<RoleGroup, string>> = { INTERNAL: "Nội bộ", EXTERNAL: "Bên ngoài" };
 export const isRoleCode = (v: unknown): v is RoleCode => typeof v === "string" && (ROLE_CODES as readonly string[]).includes(v);
 

@@ -10,6 +10,7 @@ import { allowedFactors, isInternal } from "./modules/auth/mfa-rules.ts";
 import { EXTERNAL_PERMISSIONS, PERMISSION_CODES } from "./shared/permissions.ts";
 import { OWNER_COMPANY_ROLE } from "./shared/cong-ty-chu.ts";
 import { vnToday } from "./shared/vn-date.ts";
+import { ROLES, vaiMoChoHoSoKhongTaiKhoan } from "./shared/roles.ts";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts — hàm gieo DÙNG CHUNG mốc giờ hẹn (ADR-0051)
 import { gieoMocXep } from "../tests/audit/gieo-vc.mjs";
 import { gieoLyDoHuy } from "../tests/audit/huy-don.mjs";
@@ -3772,6 +3773,42 @@ test("R-PRC-6 (ADR-0117 lần 1): hồ sơ mang loại đối tác còn vai/quy�
   db.prepare("DELETE FROM prc_beneficiary_role WHERE role_type_code IN ('SALES_STAFF', 'CUSTOMER')").run();
   assert.equal(violations(db, c), 0, "gỡ hai dòng sai → hết; năm vai EXTERNAL gieo sẵn và loại nhãn không bị tính");
 });
+
+test("R-PRC-6 (ADR-0155 Đ1.6): hồ sơ mang MỘT TRONG NĂM VAI (cờ loại đối tác = 0) mà còn vai nội bộ / vai cũ STAFF-SALES / tài khoản giữ quyền nội bộ → vi phạm; tập mã trong SQL = năm vai của roles.ts", () => {
+  const c = one("R-PRC-6");
+  // Ghim tập mã: SQL phải nhắc đúng năm mã mà vaiMoChoHoSoKhongTaiKhoan chấp nhận (thêm / bớt một vai ở roles.ts mà quên kiểm định kỳ ⇒ đỏ ở đây).
+  assert.equal(NAM_VAI_KTK.length, 5, "roles.ts khai đúng năm vai");
+  const trongSql = [...c.sql.matchAll(/'([A-Z_]+)'/g)].map((m) => m[1]!);
+  for (const ma of NAM_VAI_KTK) assert.ok(trongSql.includes(ma), `SQL R-PRC-6 thiếu ${ma}`);
+  const db = build();
+  assert.equal(violations(db, c), 0, "CSDL khoẻ");
+  for (const ma of NAM_VAI_KTK) {
+    assert.equal((db.prepare("SELECT is_partner_label p FROM pty_role_type WHERE code = ?").get(ma) as { p: number }).p, 0, `${ma}: cờ loại đối tác = 0 (lý do cần nhánh riêng)`);
+  }
+  toChucSdl(db, "nam-1", "COLLABORATOR");
+  assert.equal(violations(db, c), 0, "chỉ mang một vai trong năm");
+  // vai cũ STAFF (nhóm OTHER): trigger LC-3 không chặn, trigger nhãn không canh năm vai ⇒ chỉ kiểm định kỳ bắt được
+  vaiSdl(db, "nam-1", "STAFF");
+  assert.equal(violations(db, c), 1, "năm vai + vai cũ STAFF");
+  dongVaiSdl(db, "nam-1", "STAFF");
+  vaiSdl(db, "nam-1", "SALES");
+  assert.equal(violations(db, c), 1, "năm vai + vai cũ SALES");
+  dongVaiSdl(db, "nam-1", "SALES");
+  assert.equal(violations(db, c), 0, "đóng vai cũ → hết");
+  db.exec("DROP TRIGGER pty_party_role_group_conflict_ins");
+  vaiSdl(db, "nam-1", "DIRECTOR");
+  assert.equal(violations(db, c), 1, "năm vai + vai nhóm INTERNAL (dựng bằng SQL tay)");
+  dongVaiSdl(db, "nam-1", "DIRECTOR");
+  assert.equal(violations(db, c), 0);
+  db.exec("DROP TRIGGER adr0117_permission_partner_label_internal");
+  db.exec("DROP TRIGGER lc1_stf_permission_external_partner_only"); // LC-1: tài khoản có vai bên ngoài chỉ giữ quyền bên ngoài — dựng ca lậu bằng SQL tay
+  db.prepare("INSERT INTO staff (id, full_name, phone, pin_hash, role, active, created_at, party_id) VALUES ('s-nam', '', '0901000077', 'x', 'sales', 1, ?, 'nam-1')").run(T1);
+  db.prepare("INSERT INTO stf_permission (id, staff_id, permission_type_code, valid_from_at, created_at, updated_at) VALUES ('stp-nam-p', 's-nam', 'PARTNER', ?, ?, ?)").run(T1, T1, T1);
+  assert.equal(violations(db, c), 0, "tài khoản chỉ giữ quyền Đối tác");
+  db.prepare("INSERT INTO stf_permission (id, staff_id, permission_type_code, valid_from_at, created_at, updated_at) VALUES ('stp-nam-s', 's-nam', 'SALES', ?, ?, ?)").run(T1, T1, T1);
+  assert.equal(violations(db, c), 1, "tài khoản của hồ sơ mang năm vai giữ quyền Bán hàng");
+});
+const NAM_VAI_KTK: string[] = Object.keys(ROLES).filter(vaiMoChoHoSoKhongTaiKhoan);
 
 // ---------------------------------------------------------------------------------------------------------------------
 // R-ORD-T1 / R-ORD-T1w / R-ORD-T2 — bản chụp thương mại của đơn (đặc tả §5, §9). Mốc của R-ORD-T1 = ord_audit_cutoff 'R-ORD-T1' = LÚC ÁP MIGRATION, tức lúc
