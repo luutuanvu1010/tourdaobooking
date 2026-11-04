@@ -2962,6 +2962,20 @@ export interface CapHienHanhDto {
 }
 export interface CapHienHanhResponse { homNay: string; hoSo: CapHienHanhDto[] }
 /**
+ * Một dòng của màn «Cấp độ đại lý» (`GET /api/pricing/cap-dai-ly`, đặc tả 2026-11-04-man-cap-dai-ly): hồ sơ đang mở mang vai trò được hưởng, có hay chưa có tài khoản. `vaiTro` chỉ gồm vai trò được hưởng đang bật.
+ * `coTaiKhoan` tính cả tài khoản đã ngưng. Danh sách trắng: không SĐT, email, mã số thuế, địa chỉ. `cap` là nguyên `CapHienHanhDto` của cột ở Quản lý tài khoản.
+ */
+export interface CapDaiLyDongDto {
+  partyId: string;
+  ten: string;
+  loaiHoSo: "PERSON" | "ORGANIZATION";
+  vaiTro: { code: string; ten: string }[];
+  coTaiKhoan: boolean;
+  cap: CapHienHanhDto;
+}
+/** `soCapDangBat` = số cấp đang bật; 0 ⇒ màn nói rõ và trỏ sang trang Hoa hồng đối tác để tạo tên cấp. */
+export interface CapDaiLyResponse { homNay: string; soCapDangBat: number; hoSo: CapDaiLyDongDto[] }
+/**
  * ADR-0148 Đ1: xem trước «Sửa» một dòng có ngày (mức, gắn loại, gắn đối tác — `GET …/:id/sua`). HUY_THAY = chưa đơn nào dùng dòng này: sửa sẽ huỷ dòng cũ và thay hẳn. TU_NGAY = đã có
  * đơn dùng: phần sửa áp từ `tuNgaySomNhat`, bắt đầu không sau `denNgayToiDa` (ngày kết thúc của dòng cũ; null = không thời hạn); đơn cũ giữ mức cũ.
  */

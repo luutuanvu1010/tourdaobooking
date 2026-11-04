@@ -230,6 +230,7 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "GET", path: "/api/pricing/hoa-hong/:id/sua", access: "office" }, // partner.commission.write + không giữ quyền Đối tác — ADR-0148 xem trước «Sửa» (đường, ngày sớm nhất)
   { method: "POST", path: "/api/pricing/hoa-hong/:id/sua", access: "office" }, // partner.commission.write + không giữ quyền Đối tác — ADR-0148 Sửa (huỷ–thay hoặc từ ngày)
   { method: "GET", path: "/api/pricing/thu-tra", access: "office" }, // partner.commission.view — thử tra, chỉ đọc
+  { method: "GET", path: "/api/pricing/cap-dai-ly", access: "office" }, // partner.commission.write + không giữ quyền Đối tác — màn «Cấp độ đại lý» (đặc tả 2026-11-04-man-cap-dai-ly), chỉ đọc: tên, loại hồ sơ, vai trò, có tài khoản hay chưa, cấp; không SĐT, email, MST, địa chỉ
   { method: "GET", path: "/api/pricing/cap-hien-hanh", access: "office" }, // partner.commission.view + không giữ quyền Đối tác — ADR-0155 Đ2.5 cột «Cấp độ đại lý», chỉ đọc (mã hồ sơ, mã + tên cấp, ngày; không tên hồ sơ, không SĐT)
   { method: "GET", path: "/api/pricing/ho-so/:id/hoa-hong", access: "office" }, // partner.commission.view — YC-0020 khối «Hoa hồng hiện hành» trên hồ sơ, chỉ đọc (mã, tên, số đếm; không tiền)
   { method: "POST", path: "/api/pricing/ho-so/:id/muc-rieng", access: "office" }, // partner.commission.write + không giữ quyền Đối tác — ADR-0138 gắn mức TA riêng
@@ -713,6 +714,7 @@ test("mức truy cập của 424 route hiện có khớp ảnh chụp đã duy�
   // 2026-11-02 (ADR-0154 Đ2.1, lượt 2 Task 2.1): + GET (orders), POST (admin) /api/cai-dat/an-thong-tin-khach = 422.
   // 2026-11-02 (ADR-0155 Đ2.5, lượt 2 Task 4.1): + GET /api/pricing/cap-hien-hanh (office; partner.commission.view, không Đối tác) = 423.
   // 2026-11-03 (ADR-0161 Đ3, Task 1): + GET (office; partner.commission.view, không Đối tác), POST (admin; settings.ops) /api/pricing/gioi-han-nhap = 440 (hai route mới của giới hạn nhập mức hoa hồng).
-  assert.equal(actual.length, 440, "số route thực tế lệch 440 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 440, "SNAPSHOT phải có đúng 440 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // 2026-11-04 (màn «Cấp độ đại lý», đặc tả 2026-11-04-man-cap-dai-ly): + GET /api/pricing/cap-dai-ly (office; partner.commission.write, không Đối tác) = 441.
+  assert.equal(actual.length, 441, "số route thực tế lệch 441 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 441, "SNAPSHOT phải có đúng 441 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });
