@@ -343,7 +343,7 @@ const GOC = "c".repeat(40);
 function chayChinh(over: Record<string, KQ | KQ[]> = {}, o: { isTTY?: boolean; target?: string | undefined; ma?: string | null; tep?: string } = {}) {
   const script: Record<string, KQ | KQ[]> = {
     [`git rev-parse ${NH}`]: kq(MA + "\n"),
-    [`git diff --name-only main...${NH}`]: kq(o.tep ?? "src/a.ts\n"),
+    [`git diff --name-only --no-renames main...${NH}`]: kq(o.tep ?? "src/a.ts\n"),
     [`npm run day-len -- ${NH}`]: kq(),
     "git rev-parse main": kq(MA + "\n"),
     "git rev-parse origin/main": kq(MA + "\n"),
@@ -427,7 +427,7 @@ test("lenChinhThuc chỉ đổi tài liệu: không đọc mã Development, gọ
 });
 
 test("lenChinhThuc dừng: không đọc được danh sách tệp đổi, hoặc không đọc được mã nhánh", async () => {
-  for (const k of [`git diff --name-only main...${NH}`, `git rev-parse ${NH}`]) {
+  for (const k of [`git diff --name-only --no-renames main...${NH}`, `git rev-parse ${NH}`]) {
     const h = chayChinh({ [k]: kq("", 1, "lỗi") });
     assert.notEqual(await lib.lenChinhThuc(h.deps), 0);
     assert.deepEqual(h.calls.filter((c) => CUOI.includes(c)), []);
@@ -440,4 +440,30 @@ test("lenChinhThuc: câu hướng dẫn dùng lệnh nói rõ thư mục gốc, 
   assert.match(h.text(), /tourdao-sales/);
   assert.match(h.text(), /main/);
   assert.match(h.text(), /sạch/);
+});
+
+test("lenChinhThuc với git thật: đổi tên src/x.ts thành docs/x.md liệt kê CẢ tên cũ lẫn mới, không bị coi là chỉ đổi tài liệu", async () => {
+  const { execFileSync } = await import("node:child_process");
+  const { mkdtempSync, mkdirSync, writeFileSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const dir = mkdtempSync(`${tmpdir()}/doi-ten-`);
+  const g = (...a: string[]) => execFileSync("git", ["-C", dir, "-c", "user.email=t@t", "-c", "user.name=t", ...a], { encoding: "utf8" });
+  g("init", "-q", "-b", "main");
+  mkdirSync(`${dir}/src`);
+  writeFileSync(`${dir}/src/x.ts`, "export const x = 'noi dung du dai de git nhan ra doi ten';\n".repeat(5));
+  g("add", "."); g("commit", "-qm", "a");
+  g("checkout", "-qb", "nhanh");
+  mkdirSync(`${dir}/docs`);
+  g("mv", "src/x.ts", "docs/x.md"); g("commit", "-qam", "b");
+  let lenh: string[] = [];
+  const gia = chayChinh({ [`git rev-parse nhanh`]: kq(g("rev-parse", "nhanh")) }, { target: "nhanh" });
+  const run = (c: string, a: string[], o: any) => {
+    if (c === "git" && a[0] === "diff") { lenh = a; return kq(g(...a)); }
+    return gia.deps.run(c, a, o);
+  };
+  await lib.lenChinhThuc({ ...gia.deps, run });
+  assert.ok(lenh.includes("--no-renames"), "lệnh diff phải có --no-renames");
+  const ra = g(...lenh).split("\n").filter(Boolean).sort();
+  assert.deepEqual(ra, ["docs/x.md", "src/x.ts"]);
+  assert.equal(lib.chiDoiTaiLieu(ra), false);
 });

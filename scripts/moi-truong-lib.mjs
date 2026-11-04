@@ -328,7 +328,7 @@ export async function lenChinhThuc({ run, log, isTTY, target, docCommitDev: docM
   const ma = await run("git", ["rev-parse", target]);
   const maNhanh = trimOut(ma);
   if (ma.code !== 0 || !MA_COMMIT.test(maNhanh)) return stop(`không đọc được mã của nhánh ${target}. CHƯA có gì bị đổi.`, CACH_DUNG_LENH);
-  const tep = await run("git", ["diff", "--name-only", `main...${target}`]);
+  const tep = await run("git", ["diff", "--name-only", "--no-renames", `main...${target}`]);
   if (tep.code !== 0) return stop("không đọc được danh sách tệp mà nhánh đã đổi. CHƯA có gì bị đổi.", CACH_DUNG_LENH);
   const dsTep = trimOut(tep).split("\n").filter(Boolean);
 
