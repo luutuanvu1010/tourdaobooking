@@ -389,3 +389,33 @@ test("tachKhoanPhanDinh: chỉ tiền NỘP vượt tiền giữ mới trừ và
   assert.deepEqual(t({ giuHo: -30, nop: 0, khac: 0, khoan: 100 }), { dangGiu: -30, phaiNop: 100 }, "ứng tiền hoàn khách không phải nộp");
   assert.deepEqual(t({ giuHo: 50, nop: -10, khac: 0, khoan: 100 }), { dangGiu: 50, phaiNop: 100 });
 });
+
+test("ADR-0155 Đ1.5: phiếu phân định cờ benChiuKhongTaiKhoan — true khi bên chịu là hồ sơ chưa có tài khoản (công ty lữ hành, cộng tác viên…); false khi có tài khoản, khi là công ty, khi chưa phân định", async () => {
+  const w = setup();
+  const KHONG_TK = "dda00000-0000-4000-8000-0000000000e1";
+  w.sqlite.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES (?, 'ORGANIZATION', 'Lữ hành Không Tài Khoản', 1, ?, ?)").run(KHONG_TK, AT, AT);
+  w.sqlite.prepare("INSERT INTO pty_organization (party_id, created_at, updated_at) VALUES (?, ?, ?)").run(KHONG_TK, AT, AT);
+  w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES ('r-ktk', ?, 'TRAVEL_AGENCY', '2026-01-01', ?, ?)").run(KHONG_TK, AT, AT);
+  const cua = async (orderId: string) => (await w.call("GET", "/api/ledger/phan-dinh", { as: KT })).json.phieu.find((p: { orderId: string }) => p.orderId === orderId);
+  // chưa phân định
+  const id0 = await daGiao(w);
+  const q0 = await deNghi(w, id0, 100_000);
+  assert.equal(q0.status, 201, q0.text);
+  assert.equal((await cua(id0)).benChiuKhongTaiKhoan, false, "chưa có bên chịu");
+  // bên chịu chưa có tài khoản — đã phân định, chờ ghi
+  const id1 = await daGiao(w);
+  const { r } = await deNghiVaQuyet(w, id1, 100_000, { truongHop: "T6", benChiuPartyId: KHONG_TK, coTienRa: true });
+  assert.equal((await cua(id1)).benChiuKhongTaiKhoan, true, "đã phân định, chờ ghi");
+  // …và sau khi ghi sổ
+  const g = await ghi(w, r, { hinhThuc: "CASH", nguoiTra: "cong_ty" });
+  assert.equal(g.status, 201, g.text);
+  assert.equal((await cua(id1)).benChiuKhongTaiKhoan, true, "đã ghi sổ");
+  // bên chịu có tài khoản
+  const id2 = await daGiao(w);
+  await deNghiVaQuyet(w, id2, 100_000, { truongHop: "T6", benChiuPartyId: hdv, coTienRa: false });
+  assert.equal((await cua(id2)).benChiuKhongTaiKhoan, false, "bên chịu có tài khoản");
+  // bên chịu là công ty
+  const id3 = await daGiao(w);
+  await deNghiVaQuyet(w, id3, 100_000, { truongHop: "T10", coTienRa: false });
+  assert.equal((await cua(id3)).benChiuKhongTaiKhoan, false, "công ty chịu");
+});

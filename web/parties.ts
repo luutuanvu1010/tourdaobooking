@@ -9,6 +9,7 @@ import { NHAN_LY_DO_KHOP, chuanHoaTen } from "../src/shared/ho-so-trung";
 import { cauXemTruocSua, chiaLanGan, coQuyenSua, nhanSapAp, nutSua } from "../src/shared/hoa-hong-hien-thi";
 import { nhanLoaiLienHe } from "../src/shared/lien-he";
 import { can } from "../src/shared/permissions";
+import { vaiMoChoHoSoKhongTaiKhoan } from "../src/shared/roles";
 import { docLyDoSua } from "../src/shared/so-dai-ly-nhap";
 import { GIOI_TINH, GIOI_TINH_NHAN } from "../src/shared/xung-ho";
 import { ApiError, api, type Api, type Staff } from "./api";
@@ -306,17 +307,25 @@ async function openDetail(id: string): Promise<void> {
 
   // -- vai trò theo nơi
   const roleRows = p.roles.map((r2) =>
-    h("tr", { class: r2.validTo ? "row-off" : "" }, h("td", null, r2.roleName), h("td", null, r2.locationName ?? "(mọi nơi)"), h("td", { class: "muted" }, period(r2.validFrom, r2.validTo)), h("td", null, quanTri && !r2.validTo && (isAccountRole(r2.roleTypeCode) ? h("span", { class: "muted" }, "Đổi ở màn Quản lý tài khoản") : button("Kết thúc", (b) => void act(async () => { await api(`/api/parties/${id}/roles/${r2.id}/end`, { method: "POST", body: {} }); await reload(); }, b))))),
+    h("tr", { class: r2.validTo ? "row-off" : "" }, h("td", null, r2.roleName), h("td", null, r2.locationName ?? "(mọi nơi)"), h("td", { class: "muted" }, period(r2.validFrom, r2.validTo)), h("td", null, quanTri && !r2.validTo && (isAccountRole(r2.roleTypeCode) && !(!p.accountLinked && vaiMoChoHoSoKhongTaiKhoan(r2.roleTypeCode)) ? h("span", { class: "muted" }, "Đổi ở màn Quản lý tài khoản") : button("Kết thúc", (b) => void act(async () => { await api(`/api/parties/${id}/roles/${r2.id}/end`, { method: "POST", body: {} }); await reload(); }, b))))),
   );
   // Vai "Công ty chủ" gieo "ngưng gán thường" (active = false) nên không có trong danh sách chung; chỉ người giữ ô company.legal.write thấy nó, trên hồ sơ tổ
   // chức chưa phải công ty chủ — gán = ĐỔI công ty chủ (chủ dự án 2026-09-28).
   const doiCongTyChu = can(me, "company.legal.write") && p.kind === "ORGANIZATION" && !p.roles.some((x) => x.roleTypeCode === OWNER_COMPANY_ROLE && x.validTo === null);
+  // ADR-0155 Đ1.1: hồ sơ CHƯA có tài khoản gắn thêm được năm vai đối tác (không sinh đăng nhập); hồ sơ có tài khoản vẫn đổi vai ở màn Quản lý tài khoản.
+  const namVai = p.accountLinked || !p.active ? [] : meta.roleTypes.filter((t) => t.active && vaiMoChoHoSoKhongTaiKhoan(t.code));
   const rType = select([
+    ...namVai.map((t) => ({ value: t.code, label: t.name })),
     ...meta.roleTypes.filter((t) => t.active && t.group === "OTHER").map((t) => ({ value: t.code, label: t.partnerLabel ? `${t.name} (đối tác)` : t.name })), // ADR-0117: loại đối tác mới (cờ máy chủ) có hậu tố để phân biệt với vai công việc
     ...(doiCongTyChu ? [{ value: OWNER_COMPANY_ROLE, label: roleLabel(OWNER_COMPANY_ROLE) }] : []),
   ]);
   const rLoc = select([{ value: "", label: "(mọi nơi)" }, ...locations.filter((l) => l.active).map((l) => ({ value: l.id, label: l.name }))]);
   const rFrom = input("", { type: "date" });
+  // Năm vai đối tác không gắn nơi làm (máy chủ trả 400 nếu có nơi) — ẩn ô «Nơi làm» khi chọn một trong năm vai.
+  const oNoiLam = field("Nơi làm", rLoc);
+  const capNhatONoi = (): void => { oNoiLam.hidden = !p.accountLinked && vaiMoChoHoSoKhongTaiKhoan(rType.value); if (oNoiLam.hidden) rLoc.value = ""; };
+  rType.addEventListener("change", capNhatONoi);
+  capNhatONoi();
   const addRole = button("Thêm công việc", (b) => {
     if (rType.value === OWNER_COMPANY_ROLE && !confirm(XAC_NHAN_DOI_CONG_TY_CHU)) return;
     const body = { roleTypeCode: rType.value, locationId: rLoc.value || null, validFrom: rFrom.value || undefined };
@@ -393,7 +402,7 @@ async function openDetail(id: string): Promise<void> {
     h("h3", null, "Công việc tại đâu"),
     h("table", { class: "items" }, h("tbody", null, ...roleRows)),
     quanTri
-      ? h("div", null, h("div", { class: "grid three" }, field("Công việc", rType), field("Nơi làm", rLoc), field("Từ ngày (mặc định hôm nay)", rFrom)), h("div", { class: "actions" }, addRole))
+      ? h("div", null, h("div", { class: "grid three" }, field("Công việc", rType), oNoiLam, field("Từ ngày (mặc định hôm nay)", rFrom)), h("div", { class: "actions" }, addRole))
       : daGop ? null : h("p", { class: "muted" }, "Chỉ quản trị viên thêm hoặc kết thúc công việc."),
     h("h3", null, "Người liên hệ, tài xế"), // G3 (ADR-0048): mục này nay gồm cả quan hệ "Tài xế của"
     h("table", { class: "items" }, h("tbody", null, ...relRows)),

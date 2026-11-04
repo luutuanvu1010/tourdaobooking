@@ -73,8 +73,8 @@ export const chanCo = (code: keyof typeof CAU): LyDoChan => ({ code, message: CA
  * Quản lý tài khoản nào để bỏ chọn). Thứ tự gỡ theo C3: vai hưởng cuối còn đơn nháp / cấp riêng / mức riêng thì phải xử lý những việc đó trước.
  */
 const CAU_PHU_VAI_DANH_BA =
-  "Hồ sơ phụ đang giữ vai trò đối tác (công ty lữ hành, hướng dẫn viên tự do, lễ tân, tài xế taxi hoặc cộng tác viên) — kết thúc vai đó ở Danh bạ (mở hồ sơ, mục Vai trò) rồi gộp lại. " +
-  "Nếu đó là vai hưởng hoa hồng cuối của hồ sơ, hãy xử lý trước các đơn nháp, cấp riêng và mức riêng còn mở, vì Nền tảng không cho kết thúc vai khi còn những việc này.";
+  "Hồ sơ phụ đang giữ vai trò đối tác (công ty lữ hành, hướng dẫn viên tự do, lễ tân, tài xế taxi hoặc cộng tác viên) — kết thúc vai trò đó ở Danh bạ (mở hồ sơ, mục Công việc) rồi gộp lại. " +
+  "Nếu đó là vai trò hưởng hoa hồng cuối của hồ sơ, hãy xử lý trước các đơn nháp, cấp riêng và mức riêng còn mở, vì Nền tảng không cho kết thúc vai trò khi còn những việc này.";
 function chanVaiPhu(a: HoSoGop, vaiMoA: CongViecGop[]): LyDoChan {
   const chiNamVai = !a.coTaiKhoan && vaiMoA.filter((r) => r.group !== "OTHER").every((r) => vaiMoChoHoSoKhongTaiKhoan(r.code));
   return chiNamVai ? { code: "merge_source_account_role", message: CAU_PHU_VAI_DANH_BA } : chanCo("merge_source_account_role");

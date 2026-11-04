@@ -17,6 +17,15 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Hồ sơ chưa có tài khoản (cả tổ chức) mang năm vai đối tác ở Danh bạ và hưởng hoa hồng theo cấp (ADR-0155 Đ1, C3, C4, C6). Không migration, không ô quyền mới.
+    // Số 2.60 và ngày chỉ là tạm cho nhánh: bước A.0 của lần triển khai đặt lại nếu cần.
+    version: "2.60",
+    date: "2026-11-04",
+    items: [
+      { kind: "moi", text: "Công ty lữ hành và đối tác chưa có tài khoản nay gắn được vai trò ở Danh bạ và hưởng hoa hồng theo cấp." },
+    ],
+  },
+  {
     // Tin «số dư của bạn đổi» tới cả Đối tác và Tài xế đối tác (ADR-0092 Đ5d, ADR-0115 điều 5; sửa mã cho khớp tài liệu đã duyệt). Không migration, không ô quyền mới.
     // Số 2.59 và ngày chỉ là tạm cho nhánh: bước A.0 của lần triển khai đặt lại nếu cần.
     version: "2.59",

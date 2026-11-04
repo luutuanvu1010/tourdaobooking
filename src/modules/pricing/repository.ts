@@ -99,10 +99,10 @@ const VIEC_DO_KHI_THOI_VAI = defineSql("pricing", "party_open_work_on_role_end",
   `SELECT
      (SELECT count(*) FROM prc_party_tier g WHERE g.party_id = ?1 AND g.voided_at IS NULL AND (g.valid_to_date IS NULL OR g.valid_to_date >= ?2)) AS cap,
      (SELECT count(*) FROM prc_commission_rule r WHERE r.target_party_id = ?1 AND r.voided_at IS NULL AND (r.valid_to_date IS NULL OR r.valid_to_date >= ?2)) AS muc,
-     (SELECT count(*) FROM prc_beneficiary_role b WHERE b.active = 1 AND b.role_type_code IN (SELECT value FROM json_each(?3))) AS vai`);
+     (SELECT count(*) FROM prc_beneficiary_role b WHERE b.active = 1 AND b.role_type_code IN (SELECT value FROM json_each(?3))) AS con_huong`);
 export const viecDoKhiThoiVai = async (db: D1Database, v: { partyId: string; homNay: string; vaiConLai: readonly string[] }): Promise<{ capRiengMo: boolean; mucRiengMo: boolean; conVaiHuong: boolean }> => {
-  const r = await db.prepare(VIEC_DO_KHI_THOI_VAI).bind(v.partyId, v.homNay, JSON.stringify(v.vaiConLai)).first<{ cap: number; muc: number; vai: number }>();
-  return { capRiengMo: (r?.cap ?? 0) > 0, mucRiengMo: (r?.muc ?? 0) > 0, conVaiHuong: (r?.vai ?? 0) > 0 };
+  const r = await db.prepare(VIEC_DO_KHI_THOI_VAI).bind(v.partyId, v.homNay, JSON.stringify(v.vaiConLai)).first<{ cap: number; muc: number; con_huong: number }>();
+  return { capRiengMo: (r?.cap ?? 0) > 0, mucRiengMo: (r?.muc ?? 0) > 0, conVaiHuong: (r?.con_huong ?? 0) > 0 };
 };
 const HUONG_CUA_HO_SO = defineSql("pricing", "beneficiary_of_party",
   `SELECT l.id, l.display_name FROM v_pty_party_label l
