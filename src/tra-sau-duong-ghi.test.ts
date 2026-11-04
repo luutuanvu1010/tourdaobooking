@@ -127,6 +127,22 @@ test("đổi bên đặt: đơn Trả sau đã xác nhận còn nợ 409; hết 
   assert.equal((await doi(n.json.order.id, n.json.order.updatedAt)).status, 200);
 });
 
+test("đổi bên đặt: có lệnh làm tăng nợ chen giữa lúc kiểm nợ và lúc ghi thì lô đổi thua (phiên bản của bên đặt CŨ), bên đặt không đổi", async () => {
+  const w = dung();
+  assert.equal((await hanMuc(w, 1_000_000)).status, 201);
+  const d = await donTS(w);
+  assert.equal((await thu(w, d.id, T_ZB1)).status, 201); // nợ 0 ⇒ phép đổi qua cổng
+  const moi = (await w.call("GET", `/api/orders/${d.id}`, { as: A })).json.order;
+  // Ngay trước lô đổi, một lệnh khác (vd đảo khoản thu) vừa làm tăng phiên bản của bên đặt cũ.
+  w.chenTruocLo((stmts: { sql: string }[]) => stmts.some((s) => /booker_party_id/.test(s.sql) && /UPDATE orders/.test(s.sql)), () => {
+    w.sqlite.prepare("UPDATE bil_credit_guard SET version = version + 1 WHERE party_id = ?").run(BEN);
+  });
+  const r = await w.call("PUT", `/api/orders/${d.id}/booker`, { as: A, body: { customerName: "Khách Thử", customerPhone: "0912345678", bookerPartyId: BEN2, expectedUpdatedAt: moi.updatedAt } });
+  assert.deepEqual([r.status, r.json.error.code], [409, "credit_version_stale"], r.text);
+  assert.equal(w.q("SELECT booker_party_id AS b FROM orders WHERE id = ?", d.id)[0].b, BEN, "bên đặt không đổi");
+  assert.equal(w.q("SELECT count(*) AS n FROM audit_log WHERE order_id = ? AND action = 'booker_changed'", d.id)[0].n, 0, "không nhật ký đổi nào");
+});
+
 test("gộp hồ sơ: hồ sơ phụ còn đơn Trả sau còn nợ thì xem trước báo chặn và lệnh gộp 409; hết nợ thì không chặn vì lý do này", async () => {
   const w = dung();
   const TEN = "Đại Lý Không Tài Khoản";

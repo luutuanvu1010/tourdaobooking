@@ -1695,7 +1695,7 @@ export const ordersModule: AppModule = {
     }),
 
     // Đổi khách (hồ sơ người đặt + tên/SĐT trên đơn) — đơn nháp HOẶC đã xác nhận: coi như thông tin vận hành, cùng quyền với sửa chuyến (ADR-0011 điều 2).
-    route("PUT", "/api/orders/:id/booker", "orders", async ({ env, request, params, staff, isAssigned, baoThayDoi, traSauCuaDon }) => {
+    route("PUT", "/api/orders/:id/booker", "orders", async ({ env, request, params, staff, isAssigned, baoThayDoi, traSauCuaDon, cauGacPhienBanTraSau }) => {
       const id = params.id!;
       if (!UUID_RE.test(id)) return NOT_FOUND();
       const [meta, assigned] = await Promise.all([getMeta(env.DB, id), isAssigned(id)]);
@@ -1728,8 +1728,8 @@ export const ordersModule: AppModule = {
       // xác nhận trước đợt 1 (chưa có bản chụp) KHÔNG chụp — N15, đợt 2 chụp bù; đơn nháp chụp ở lúc xác nhận.
       const benMoi = booker.write.partyId;
       // ADR-0168 Đ2 mục 6: đơn Trả sau đã xác nhận còn nợ thì không đổi bên đặt (nợ không được chuyển sang bên khác); chỉ xét khi bên đặt đổi thật.
-      const chanDoiBen = await congDoiBenDatTraSau({ traSauCuaDon }, { id, paymentTerm: meta.paymentTerm, status: meta.status, doiThat: benMoi !== meta.bookerPartyId });
-      if (chanDoiBen) return chanDoiBen;
+      const congDoiBen = await congDoiBenDatTraSau({ traSauCuaDon, cauGacPhienBanTraSau }, { id, paymentTerm: meta.paymentTerm, status: meta.status, doiThat: benMoi !== meta.bookerPartyId });
+      if ("loi" in congDoiBen) return congDoiBen.loi;
       let kemChup: ((at: string) => D1PreparedStatement[]) | undefined;
       if (meta.status === "confirmed" && benMoi !== meta.bookerPartyId && (await demBanChup(env.DB, id)) > 0) {
         const order = await findOrder(env.DB, id); // chỉ cần mã dòng dịch vụ + mã danh mục: không phụ thuộc điều chỉnh số khách / tiền
@@ -1755,9 +1755,11 @@ export const ordersModule: AppModule = {
       }
       let daDoi: boolean;
       try {
-        daDoi = await changeBooker(env.DB, id, staff.id, v, booker.write, detail, kemChup);
+        daDoi = await changeBooker(env.DB, id, staff.id, v, booker.write, detail, (at) => [...(kemChup?.(at) ?? []), ...congDoiBen.kem(at)]);
       } catch (e) {
         const loi = e instanceof Error ? e.message : String(e);
+        const traSauThua = dichLoiTraSau(e); // ADR-0168: khoản thu bị đảo chen giữa — phiên bản bên đặt cũ đã tăng
+        if (traSauThua) return traSauThua;
         // Bảng mức / điều khoản đổi giữa lúc đọc và lúc ghi (trigger terms_rule_stale / terms_term_stale): cả lô rơi, bên đặt cũ giữ nguyên — bấm lại là chụp theo bảng mới.
         if (/\bterms_(rule|term)_stale:/.test(loi)) return error(409, "bang_muc_doi", "Bảng mức vừa đổi — thử lại");
         // Bản chụp hiện hành bị bản khác thay giữa lúc đọc và lúc ghi (ghi mức tay chen vào: UNIQUE supersedes_id / terms_one_current), hoặc dòng dịch vụ không còn ⇒ cả lô rơi.

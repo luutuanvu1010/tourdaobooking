@@ -72,7 +72,7 @@ export async function congSuaTangTraSau(
 
 /** Hai hàm do gốc lắp ráp tiêm cho huỷ đơn và đổi bên đặt (xem `ctx.traSauCuaDon`, `ctx.veDaMoCuaDon` ở src/shared/router.ts). Không tiêm ⇒ hàm trả null ⇒ cổng chặn 503 (không đoán). */
 export interface HamNoTraSau {
-  traSauCuaDon: (orderId: string) => Promise<{ hanTra: string | null; no: number } | null>;
+  traSauCuaDon: (orderId: string) => Promise<{ hanTra: string | null; no: number; benDat?: string | null; version?: number } | null>;
   veDaMoCuaDon: (orderId: string) => Promise<boolean | null>;
 }
 export const CAU_HUY_CON_NO = (no: number): string => `Đơn trả sau còn nợ ${dongTien(no)} mà vé đã mở cho khách nên chưa huỷ được. Hãy thu đủ tiền, hoặc nhờ Kế toán xử lý.`;
@@ -90,11 +90,18 @@ export async function congHuyTraSau(h: Pick<HamNoTraSau, "traSauCuaDon" | "veDaM
 }
 
 /** Đổi bên đặt (mọi nơi gọi `changeBooker`): đơn Trả sau ĐÃ xác nhận còn nợ thì 409; chỉ xét khi bên đặt ĐỔI THẬT. `null` = qua. */
-export async function congDoiBenDatTraSau(h: Pick<HamNoTraSau, "traSauCuaDon">, d: { id: string; paymentTerm: HinhThucThanhToan; status: string; doiThat: boolean }): Promise<Response | null> {
-  if (!d.doiThat || d.paymentTerm !== "CREDIT" || d.status !== "confirmed") return null;
+export async function congDoiBenDatTraSau(
+  h: Pick<HamNoTraSau, "traSauCuaDon"> & Partial<Pick<HamTraSau, "cauGacPhienBanTraSau">>,
+  d: { id: string; paymentTerm: HinhThucThanhToan; status: string; doiThat: boolean },
+): Promise<{ loi: Response } | { kem: (at: string) => D1PreparedStatement[] }> {
+  const KHONG = { kem: () => [] as D1PreparedStatement[] };
+  if (!d.doiThat || d.paymentTerm !== "CREDIT" || d.status !== "confirmed") return KHONG;
   const t = await h.traSauCuaDon(d.id);
-  if (!t) return CHUA_DUNG_DUOC();
-  return t.no > 0 ? error(409, "tra_sau_con_no_doi_ben_dat", CAU_DOI_BEN_CON_NO(t.no)) : null;
+  if (!t || t.benDat === undefined || t.version === undefined || !h.cauGacPhienBanTraSau) return { loi: CHUA_DUNG_DUOC() };
+  if (t.no > 0) return { loi: error(409, "tra_sau_con_no_doi_ben_dat", CAU_DOI_BEN_CON_NO(t.no)) };
+  // Hết nợ lúc kiểm: gác phiên bản của bên đặt CŨ trong chính lô đổi — khoản thu đảo chen giữa (làm nợ lại có) thì lô thua cả lô, nợ không dời sang bên mới.
+  const { benDat, version } = t;
+  return benDat === null ? KHONG : { kem: (at) => h.cauGacPhienBanTraSau!(benDat, version, at) };
 }
 
 /** Lô có câu gác phiên bản mà thua (có lệnh khác vừa làm tăng nợ của cùng bên đặt) ⇒ cả lô huỷ; dịch thành 409 cho mọi đường sửa. */

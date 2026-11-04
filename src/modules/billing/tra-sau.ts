@@ -67,10 +67,12 @@ export const noCuaBenDat = async (db: D1Database, partyId: string, homNay: strin
   (await noCacBenDat(db, [partyId], homNay)).get(partyId)!;
 
 /** Hạn trả và nợ của MỘT đơn; `null` = đơn không phải Trả sau. */
-export async function traSauCuaDon(db: D1Database, orderId: string): Promise<{ hanTra: string | null; no: number } | null> {
+export async function traSauCuaDon(db: D1Database, orderId: string): Promise<{ hanTra: string | null; no: number; benDat: string | null; version: number } | null> {
   const d = await donTraSauTheoId(db, orderId);
   if (!d) return null;
-  return { hanTra: d.credit_due_date, no: (await noTheoDon(db, [d])).get(d.id) ?? 0 };
+  // Phiên bản của bên đặt đọc TRƯỚC khi tính nợ (khuôn `kiemTraSau`): đường đổi bên đặt gác đúng số này trong lô, nên khoản thu bị đảo chen giữa làm lô thua.
+  const version = d.booker_party_id ? await phienBanHienTai(db, d.booker_party_id) : 0;
+  return { hanTra: d.credit_due_date, no: (await noTheoDon(db, [d])).get(d.id) ?? 0, benDat: d.booker_party_id, version };
 }
 
 export async function hanMucHieuLuc(db: D1Database, partyId: string, ngay: string = vnToday(new Date())): Promise<HanMucHieuLuc | null> {
