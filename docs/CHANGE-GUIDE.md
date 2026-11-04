@@ -1451,7 +1451,9 @@ Tra `docs/BANG-THAM-CHIEU.md` trước. Chưa có tên thì đưa 2–3 tên cho
 - **Thêm nút ghi, nguy hiểm, nút chính:** `npm test` đỏ tới khi khai. Chủ chưa chọn tên thì khai `trangThai: "cho-chon"` với chữ đang hiện, không chặn việc. Máy coi nhầm thì thêm `BO_QUA` kèm lý do, không nới bài.
 - **Nút phụ:** tên thuộc `CHU_DUNG_CHUNG` thì không cần khai. Tên đã khai mà dùng chỗ khác là đỏ: cùng việc thì thêm `noiDat`.
 - **Một tên ở nhiều hàng việc:** phải xếp vào `CHU_DUNG_CHUNG` (thấy đối tượng ngay cạnh nút) hoặc `TEN_NHIEU_HANG` (`cung-viec`, hoặc `cho-chu` khi khác việc và không thấy đối tượng).
-- **Khái niệm:** `src/shared/bang-tham-chieu-khai-niem.ts`. `da-chot` phải có ngày chủ chọn; chưa có thì `cho-chon`, không đoán ngày. Thuật ngữ không hiện cho người dùng thì `trong-ma`.
+- **Khái niệm:** `src/shared/bang-tham-chieu-khai-niem.ts`. `da-chot` phải có ngày và nguồn chủ chọn; chưa có thì `cho-chon`, không đoán ngày. Thuật ngữ không hiện cho người dùng thì `trong-ma`.
+- **Trạng thái hàng việc:** `da-chot` phải chỉ ra lời chủ hoặc số ADR (máy kiểm). AI rà soát thấy tên đúng mà chủ chưa chọn riêng thì `ten-hien-tai`; đổi tên vẫn phải hỏi chủ.
+- **Cột đường lệnh:** chỉ ghi đường chính nút gọi để ghi, đọc từ mã; không chép kết quả quét của hàm lân cận. Không chắc thì để trống.
 - **Kiểm:** `node --test src/bang-tham-chieu.test.ts`. Bản đọc do máy sinh, đừng sửa tay.
 
 ### Phân định trách nhiệm và cảnh báo trùng (ADR-0116, ADR-0092 Đ6a; migration `0135`)

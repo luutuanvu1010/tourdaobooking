@@ -30,13 +30,14 @@ export interface ViecQuanTrong {
   hoiLai: string;
   /** Hoàn tác được không (lời thường). */
   hoanTac: string;
-  /** Đường máy chủ nút gọi (không có `?…`), tham số `:x`. Không chắc thì để mảng rỗng. */
+  /** Đường máy chủ CHÍNH nút này gọi để ghi (không có `?…`), tham số `:x`; không chép đường của hàm lân cận. Không chắc thì để mảng rỗng: rỗng không có nghĩa là nút không gọi gì. */
   duongLenh: readonly string[];
   /** Mã nhật ký (`AUDIT_ACTIONS`) việc này ghi. Không chắc thì để mảng rỗng. */
   maNhatKy: readonly AuditAction[];
   noiDat: readonly NoiDatNut[];
-  trangThai: TrangThaiTen;
-  /** Chủ chọn tên ở đâu (số ADR, ngày rà soát). */
+  /** Thêm `ten-hien-tai`: tên đang hiện, AI rà soát thấy đúng nhưng chủ chưa chọn riêng; đổi tên vẫn phải hỏi chủ. `da-chot` phải chỉ ra lời chủ hoặc số ADR (máy kiểm). */
+  trangThai: TrangThaiTen | "ten-hien-tai";
+  /** Chủ chọn tên ở đâu (số ADR, ngày); `ten-hien-tai` thì ghi ngày rà soát. */
   nguonTen: string;
 }
 

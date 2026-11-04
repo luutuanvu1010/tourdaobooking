@@ -125,6 +125,13 @@ export function kiemDuong(viec, duong, maHopLe) {
   return loi;
 }
 
+/** Hàng việc ghi «đã chốt» phải chỉ ra lời chủ hoặc số ADR đã duyệt. AI rà soát thấy tên đúng thì ghi `ten-hien-tai`, không gắn «đã chốt». */
+export function kiemNguonTen(viec) {
+  const loi = [];
+  for (const v of viec) if (v.trangThai === "da-chot" && !/ADR-\d{4}|(?:^|[\s(«])[Cc]hủ(?:\s|$)/u.test(v.nguonTen ?? "")) loi.push(`việc «${v.ten}» ghi đã chốt mà nguồn không chỉ ra lời chủ hay số ADR: «${v.nguonTen}». Chủ chưa chọn riêng thì để «ten-hien-tai».`);
+  return loi;
+}
+
 /** Điều 5: tên Hướng dẫn gọi bằng [[tên]] phải có thật và không phải chữ đã loại. */
 export function kiemHuongDan(ten, nut, toanChu, tuDaLoai) {
   const nhanNut = new Set();
@@ -161,7 +168,7 @@ export function kiemKhaiNiem(khaiNiem, tuDaLoai, camTheoTep) {
     if (k.trangThai !== "cho-chon" && (!k.giaiNghia || !k.giaiNghia.trim())) loi.push(`khái niệm «${k.ten}» thiếu giải nghĩa.`);
     if (k.trangThai === "trong-ma" && !k.maNoiBo.length) loi.push(`thuật ngữ trong mã «${k.ten}» chưa ghi mã nội bộ.`);
     if (k.trangThai === "da-chot") {
-      if (!/20\d\d-\d\d-\d\d/.test(k.chuChon ?? "")) loi.push(`khái niệm «${k.ten}» đã chốt mà thiếu ngày chủ chọn (dạng 2026-10-18); chưa có ngày thì để «cho-chon».`);
+      if (!/20\d\d-\d\d-\d\d\s*\(.+\)/.test(k.chuChon ?? "")) loi.push(`khái niệm «${k.ten}» đã chốt mà thiếu ngày và nguồn chủ chọn (dạng 2026-10-18 (ADR-0166)); chưa có thì để «cho-chon».`);
     }
     for (const c of k.chuDaLoai) if (!biBat(c, tuDaLoai, camTheoTep)) loi.push(`khái niệm «${k.ten}»: chữ đã loại «${c}» không bị dòng cấm nào của bảng từ bắt. Thêm dòng cấm ở bang-tu-giao-dien.ts (khi chủ đã chọn) hoặc bỏ chữ khỏi bảng.`);
     const bi = biBatToanCuc(k.ten, tuDaLoai);
@@ -187,7 +194,7 @@ export function kiemKhongDungChuLoai(viec, tuDaLoai, camTheoTep) {
 const o = (s) => String(s ?? "").replace(/\|/g, "\\|").replace(/\s*\n\s*/g, " ").trim();
 const nhatKy = (v) => [...v.duongLenh.map((x) => `\`${x}\``), ...v.maNhatKy.map((x) => `nhật ký \`${x}\``)].join("<br>") || "(chưa nối)";
 const noiDatChu = (v) => v.noiDat.map((d) => `\`${d.tep}\`: ${o(d.chu)}`).join("<br>");
-const nhanTrangThai = (t) => (t === "da-chot" ? "đã chốt" : "chờ chọn");
+const nhanTrangThai = (t) => (t === "da-chot" ? "đã chốt" : t === "ten-hien-tai" ? "tên hiện tại, chủ chưa chọn riêng" : "chờ chọn");
 
 /** Điều 6: bản đọc cho người. Cùng đầu vào cho cùng chuỗi. */
 export function renderBangThamChieu({ khaiNiem, chuDungChung, tenNhieuHang = [], viec, boQua }) {
@@ -196,6 +203,7 @@ export function renderBangThamChieu({ khaiNiem, chuDungChung, tenNhieuHang = [],
   ra.push("> Do máy sinh, đừng sửa tay; sửa ở `src/shared/bang-tham-chieu*.ts` rồi chạy `npm run tham-chieu`. Quyết định: `docs/adr/ADR-0167-bang-tham-chieu-ngon-ngu.md`.", "");
   ra.push("Mỗi khái niệm một tên, mỗi tên một nghĩa, tra từ một nguồn. Viết hay sửa chữ giao diện thì tra ở đây trước; chưa có thì đưa 2 đến 3 tên cho chủ chọn, không tự đặt. Chữ đã loại nằm ở `src/shared/bang-tu-giao-dien.ts`.", "");
   ra.push("**Giới hạn phải nói thẳng.** Máy kiểm tên có nhất quán, không kiểm tên có đúng sự thật: cột «Thật sự làm gì» dựa vào người đọc mã. Hai nút cùng chữ trong một tệp tính là một nơi đặt. Nút có chữ ghép từ mã (đánh dấu ‹…› hoặc ⟪…⟫) thì khi đổi tên biến, khoá đổi theo: máy báo đỏ, người đọc tay rồi sửa bảng. Lời Nền tảng trả lời người dùng trong trò chuyện thì máy không canh được.", "");
+  ra.push("**Đọc cột Trạng thái.** «Đã chốt»: có lời chủ hoặc ADR đã duyệt (máy kiểm phải chỉ ra nguồn). «Tên hiện tại, chủ chưa chọn riêng»: AI rà soát thấy đúng, không phải chủ chọn; đổi tên vẫn phải hỏi chủ. «Chờ chọn»: đang chờ chủ chọn tên. **Đọc cột Đường lệnh.** Máy dò rồi lọc, chỉ giữ đường ghi thấy được ở chính nút; hàng không chắc thì để trống, nên trống không có nghĩa là nút không gọi gì. Chưa đọc tay từng hàng, vì vậy muốn biết chắc thì đọc mã.", "");
   ra.push("## Khái niệm", "");
   ra.push("| Tên chuẩn | Nghĩa | Khác với | Chữ đã loại | Mã nội bộ | Trạng thái | Chủ chọn |", "|---|---|---|---|---|---|---|");
   for (const k of khaiNiem.filter((x) => x.trangThai !== "trong-ma")) ra.push(`| **${o(k.ten)}** | ${o(k.giaiNghia)} | ${o(k.khacVoi)} | ${k.chuDaLoai.map(o).join("; ")} | ${k.maNoiBo.map((x) => `\`${o(x)}\``).join(" ")} | ${nhanTrangThai(k.trangThai)} | ${o(k.chuChon)} |`);

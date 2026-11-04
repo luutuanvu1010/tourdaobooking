@@ -47,3 +47,13 @@
 ĐÚNG | mong đỏ, ra đỏ | 9. Hướng dẫn gọi nút không có thật bằng [[…]]
     bài đỏ: điều 5: mọi [[tên nút]] của Hướng dẫn có thật và không phải chữ đã loạ
     câu: điều 5 — 1 chỗ lệch: src/shared/huong-dan-ban-hang.ts:10: Hướng dẫn gọi [[Nút không có thật xyz]] nhưng không nút nào và không chữ nào trong giao diện mang tên đó. Sửa Hướng dẫn cho đúng tên đang hiện. + actual - expected + [
+
+Sau người kiểm độc lập, cùng ngày 2026-11-04 (sửa cố ý rồi hoàn nguyên):
+
+ĐÚNG | mong đỏ, ra đỏ | 13. Nút ghi với `method` là biến ở web/ve-don.ts (trước khi sửa bộ quét: lọt, người kiểm thấy)
+    câu: web/ve-don.ts:130 nút «Dọn dẹp tất» (dấu hiệu: ghi) chưa có trong bảng.
+
+ĐÚNG | mong đỏ, ra đỏ | 14. Hàng ghi đã chốt với nguồn «rà soát 2026-11-04: tên đúng» (trước khi sửa dữ liệu)
+    câu: 170 chỗ lệch: việc «Kiểm vé» ghi đã chốt mà nguồn không chỉ ra lời chủ hay số ADR
+
+GIỚI HẠN | đã đo trên cây thử | 15. Nút gọi hàm tệp khác: một bước thấy ghi, hai bước thấy ghi, ba bước không thấy.

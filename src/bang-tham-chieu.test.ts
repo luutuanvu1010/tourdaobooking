@@ -1,10 +1,11 @@
 // Bảng tham chiếu ngôn ngữ (ADR-0167): máy canh sáu điều kiện đỏ. Phần đầu thử từng phép kiểm bằng dữ liệu mẫu; phần sau chạy trên mã thật.
 import assert from "node:assert/strict";
-import { readdirSync, readFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 // @ts-expect-error — tệp .mjs không có kiểu
-import { kiemDuong, kiemHuongDan, kiemKhaiNiem, kiemKhongDungChuLoai, kiemNoiDat, kiemTenLacCho, kiemTenNhieuHang, kiemUngVien, renderBangThamChieu } from "../scripts/bang-tham-chieu-lib.mjs";
+import { kiemDuong, kiemHuongDan, kiemKhaiNiem, kiemKhongDungChuLoai, kiemNguonTen, kiemNoiDat, kiemTenLacCho, kiemTenNhieuHang, kiemUngVien, renderBangThamChieu } from "../scripts/bang-tham-chieu-lib.mjs";
 // @ts-expect-error — tệp .mjs không có kiểu
 import { chuanNhan, duongTrongMa, khoaNut, lietKeNut, tenHuongDan, toanChu } from "../scripts/quet-nut-lib.mjs";
 import { AUDIT_ACTIONS } from "./shared/audit-actions.ts";
@@ -124,6 +125,30 @@ test("khái niệm: đã chốt cần giải nghĩa, ngày chủ chọn; chữ �
   assert.equal(kiemKhaiNiem([{ ...ok, ten: "Ghi lần thu" }], tu, theoTep).length, 1);
 });
 
+test("«đã chốt» ở hàng việc phải chỉ ra lời chủ hoặc số ADR; AI rà soát thì để «tên hiện tại»", () => {
+  const moc = (trangThai: ViecQuanTrong["trangThai"], nguonTen: string) => viec("V", [], { trangThai, nguonTen });
+  assert.equal(kiemNguonTen([moc("da-chot", "rà soát 2026-11-04: tên đúng")]).length, 1);
+  assert.deepEqual(kiemNguonTen([moc("da-chot", "ADR-0166 câu 9"), moc("da-chot", "rà soát 2026-11-04: tên đúng; chủ 2026-10-18 (hộp hỏi)"), moc("ten-hien-tai", "rà soát 2026-11-04: tên đúng"), moc("cho-chon", "chờ chủ")]), []);
+});
+
+test("bộ quét nhận lệnh ghi ở cả ba dạng: method viết thẳng, tham số của hàm bọc, method là biến", () => {
+  const goc = mkdtempSync(join(tmpdir(), "quet-nut-"));
+  try {
+    for (const d of ["web", "public", "src/shared"]) mkdirSync(join(goc, d), { recursive: true });
+    const nutMau = (bien: string, chu: string, than: string) => `const ${bien} = h("button", { type: "button" }, "${chu}");\n${bien}.addEventListener("click", () => void ${than});\n`;
+    writeFileSync(join(goc, "web", "mau.ts"), [
+      nutMau("a", "Một", 'api("/api/x", { method: "POST" })'),
+      nutMau("b", "Hai", 'gui("/api/x", "PATCH", {})'),
+      nutMau("c", "Ba", 'api("/api/x", { method: PHUONG_THUC })'),
+      nutMau("d", "Bốn", 'api("/api/x")'),
+    ].join(""));
+    const ghi = (lietKeNut(goc) as Nut[]).filter((r) => r.lyDo.includes("ghi")).map((r) => r.nhan[0]).sort();
+    assert.deepEqual(ghi, ["Ba", "Hai", "Một"]);
+  } finally {
+    rmSync(goc, { recursive: true, force: true });
+  }
+});
+
 test("tên việc và chữ nơi đặt không được là chữ đã loại", () => {
   const tu = [{ cam: /Ghi lần thu/u, thay: "Ghi khoản thu", nguon: "x" }];
   const theoTep = [{ tep: [/^web\/a\.ts$/], cam: /^Đóng$/u, thay: "Ngừng", nguon: "x" }];
@@ -197,6 +222,11 @@ test("không tệp nào ngoài bài kiểm và kịch bản nạp bảng", () =>
 test("điều 2: tên đã khai không xuất hiện ở chỗ chưa khai (trừ chữ dùng chung)", () => {
   const l2 = kiemTenLacCho(VIEC_QUAN_TRONG, BO_QUA, CHU_DUNG_CHUNG, NUT_THAT);
   assert.deepEqual(l2, [], `điều 2 — ${kể(l2)}`);
+});
+
+test("mọi hàng việc «đã chốt» trên bảng thật chỉ ra được lời chủ hoặc số ADR", () => {
+  const loi = kiemNguonTen(VIEC_QUAN_TRONG);
+  assert.deepEqual(loi, [], kể(loi));
 });
 
 test("mọi tên nằm ở nhiều hàng việc đã được xếp: chữ dùng chung, cùng một việc, hoặc chờ chủ", () => {

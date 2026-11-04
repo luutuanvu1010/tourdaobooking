@@ -288,3 +288,9 @@ Người kiểm độc lập `nguoi-kiem-doc-lap` đọc một vòng, tự chạ
 - Phá thử chạy TRƯỚC khi bật hook, vì sau đó sửa tệp bảng bằng dòng lệnh bị chặn.
 - Hook trong phiên thật chưa thấy chặn: phiên dùng móc ở thư mục gốc. Xem dòng ở `docs/SO-HANG-RAO.md`; phải thử lại sau khi nhập.
 - Bỏ ca `python -c` khỏi bài hook: đó là giới hạn đã ghi của `guard-luat-lib.mjs`.
+- Sau người kiểm độc lập (cùng ngày), bốn việc ngoài kế hoạch:
+  - Thêm trạng thái hàng việc `ten-hien-tai` và phép kiểm `kiemNguonTen`: 171 hàng ghi «đã chốt» chỉ vì AI rà soát thấy tên đúng, chủ chưa chọn riêng. Đặc tả nói hai trạng thái; ghi ba để không gắn nhầm lời chủ. Năm khái niệm hạ về `cho-chon`: Hồ sơ, Tài khoản, Không huỷ, Bỏ đánh dấu, Khoản hoàn tiền.
+  - Lọc cột đường lệnh: bản đầu chép kết quả quét nên có đường mà nút không gọi. 93 hàng rút gọn; hàng không chắc để trống; 17 hàng xem tay. Chưa đọc tay hết (nợ ở `BL-THAM-CHIEU-DOT-2`).
+  - Bộ quét nhận thêm hai dạng lệnh ghi (tham số của hàm bọc, `method` là biến); lộ ra 9 nơi đặt chưa khai, thành 3 hàng `cho-chon`.
+  - Thêm ba tệp máy canh vào danh sách hỏi quyền, vì nới bài kiểm cũng là đổi luật.
+- Người kiểm báo «thiếu khuôn mã đơn» là báo nhầm: khái niệm «Đơn» có ghi bằng lời («TD-năm tháng ngày-số thứ tự»).

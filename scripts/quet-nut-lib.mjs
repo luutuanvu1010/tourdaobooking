@@ -300,7 +300,9 @@ function vungXuLy(p, s, e, buoc = 2, daTham = new Set()) {
     kq.hop = kq.hop || o.hop;
   };
   for (const m of doan.matchAll(/["`](\/api\/[^"`]*)["`]/g)) kq.api.add(m[1].replace(/\$\{[^}]*\}/g, ":x"));
-  for (const m of doan.matchAll(/method:\s*"(POST|PATCH|PUT|DELETE)"/g)) kq.ghi.add(m[1]);
+  // Lệnh ghi có ba dạng: `method: "POST"`, tham số của hàm bọc (`gui(url, "POST", …)`), `method` là biến. Ghi gián tiếp sâu hơn hai bước thì không thấy (giới hạn ghi ở sổ hàng rào).
+  for (const m of doan.matchAll(/(?:method:\s*|,\s*)"(POST|PATCH|PUT|DELETE)"/g)) kq.ghi.add(m[1]);
+  if (/\bmethod:\s*(?!string\b)[A-Za-z_$]/.test(doan)) kq.ghi.add("(biến)");
   if (/\b(hoiXacNhan|confirm)\(/.test(doan)) {
     for (const m of doan.matchAll(/nhanNguyHiem:\s*"([^"]*)"/g)) kq.xacNhan.add(m[1]);
     if (!kq.xacNhan.size) kq.xacNhan.add("(có hỏi)");

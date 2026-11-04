@@ -15,9 +15,13 @@ Máy đã khai các chỗ này để không chặn việc. Chủ chọn tên th�
 
 Mỗi chữ được xếp vì đối tượng đứng ngay cạnh nút hoặc trong tiêu đề hộp. Mười ba chữ đầu đã đọc từng chỗ trong mã: **Đóng, Huỷ, Quay lại, Thôi, Thử lại, Lưu, Đổi, Đổi tên, Tắt, Bật, Dùng lại, Gỡ, Để sau.** Hai mươi mốt chữ sau xếp theo cột «thật sự làm gì» của từng hàng, chưa mở từng chỗ trong mã: **Sửa, Thêm, Từ chối, Xác nhận, Xác nhận từ chối, Xác nhận đã nhận, Xác nhận bật, Kết thúc, Gửi, Gửi từ chối, Gửi đề nghị, Rút lại, Rút yêu cầu, Nhận, Thu hồi, Duyệt, Điều chỉnh, Lưu sửa, Ngừng dùng, Thêm nhóm, Lưu thành bản mới.** Riêng «Đóng» chỉ còn nghĩa gập khung hoặc thoát hộp, vì ba nơi «Đóng» từng nghĩa là ngừng đã đổi tên ở ADR-0166 câu 9. Lý do từng chữ ở mục «Chữ dùng chung» của bản đọc.
 
-## 3. Khái niệm chưa tìm thấy ngày chủ chọn tên (26)
+## 3. Khái niệm chưa tìm thấy ngày chủ chọn tên (31)
 
-Bảng ghi các khái niệm này là «chờ chọn» vì không tìm thấy ngày chủ chọn tên trong ADR hay đặc tả, và không bịa ngày. Đây là các tên đang dùng, chưa ai đề nghị đổi. Chủ chỉ cần nói «đúng hết», hoặc nêu tên muốn đổi, thì chuyển thành đã chốt: **Đơn, Dịch vụ trong đơn, Loại khách, Chuyến xe, Giấy tờ, Công việc tại đâu, Thông tin chuyến, Dịch vụ & giá, Người liên hệ tài xế, Tài xế của, Quyền, Nhật ký, Chế độ bảo trì, Gia hạn, Sửa sai, Xem đủ số, Mốc nhắc, Trạng thái xe, Điều chỉnh khẩn cấp, Chuyến bị giữ, Chính sách điều phối, Điều kiện cho xe chạy, Hạng bằng và số khách, Lý do điều phối, Giá đại lý, Người bán dịch vụ.** Hai khái niệm khác («Hồ sơ», «Tài khoản») có ngày 2026-09-25 lấy từ nhật ký thay đổi bản 1.10, là ngày đổi tên chứ chưa thấy lời chủ chọn riêng; tôi ghi rõ như vậy ở cột «Chủ chọn».
+Bảng ghi các khái niệm này là «chờ chọn» vì không tìm thấy ngày chủ chọn tên trong ADR hay đặc tả, và không bịa ngày. Đây là các tên đang dùng, chưa ai đề nghị đổi. Chủ chỉ cần nói «đúng hết», hoặc nêu tên muốn đổi, thì chuyển thành đã chốt: **Đơn, Dịch vụ trong đơn, Loại khách, Chuyến xe, Giấy tờ, Công việc tại đâu, Thông tin chuyến, Dịch vụ & giá, Người liên hệ tài xế, Tài xế của, Quyền, Nhật ký, Chế độ bảo trì, Gia hạn, Sửa sai, Xem đủ số, Mốc nhắc, Trạng thái xe, Điều chỉnh khẩn cấp, Chuyến bị giữ, Chính sách điều phối, Điều kiện cho xe chạy, Hạng bằng và số khách, Lý do điều phối, Giá đại lý, Người bán dịch vụ, Hồ sơ, Tài khoản, Không huỷ, Bỏ đánh dấu, Khoản hoàn tiền.** Năm tên cuối được hạ về đây sau khi người kiểm độc lập đọc nguồn: AI từng tự đổi hoặc tự đặt, chủ chưa chọn riêng. Hai khái niệm khác («Hồ sơ», «Tài khoản») có ngày 2026-09-25 lấy từ nhật ký thay đổi bản 1.10, là ngày đổi tên chứ chưa thấy lời chủ chọn riêng; tôi ghi rõ như vậy ở cột «Chủ chọn».
+
+## 3b. Tên hàng việc: AI thấy đúng, chủ chưa chọn riêng (171)
+
+Trong rà soát 4/11, AI thấy 171 tên nút đúng nên giữ nguyên, nhưng chủ chưa xét từng tên. Bảng ghi chúng là «tên hiện tại, chủ chưa chọn riêng», không ghi «đã chốt». Máy vẫn canh chữ, AI không được tự đổi. Chủ không cần làm gì, trừ khi thấy tên nào muốn đổi.
 
 ## 4. Chỗ ADR, mã và tài liệu nói khác nhau (không tự hoà giải)
 

@@ -19,7 +19,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/cho-xac-nhan.ts", chu: "Kiểm vé" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -90,12 +90,12 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Mở bảng sửa, thêm hoặc bỏ từng lượt đưa đón (giờ đón, nơi đón) của đơn đã xác nhận; bấm Lưu mới ghi từng lệnh. Lượt dưới hạn chốt phải có đặt gấp. Lệnh ghi xong thì chuyến xe bên Điều phối được cập nhật theo, và ảnh xác nhận đã gửi khách cũ thành lỗi thời (bảng có dòng cảnh báo).",
     hoiLai: "không (bảng có dòng cảnh báo ảnh xác nhận cũ)",
     hoanTac: "được: sửa lại bằng chính nút này, mỗi lần đều ghi nhật ký",
-    duongLenh: ["/api/locations","/api/orders/:x/legs/:x/replace","/api/orders/:x/legs/:x/close","/api/orders/:x/legs/:x","/api/orders/:x/legs"],
+    duongLenh: ["/api/orders/:x/legs/:x/replace","/api/orders/:x/legs/:x/close","/api/orders/:x/legs/:x","/api/orders/:x/legs"],
     maNhatKy: ["order_leg_updated","order_leg_added","order_leg_closed","order_leg_short_notice"],
     noiDat: [
       { tep: "web/order.ts", chu: "Sửa đưa đón" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -135,12 +135,12 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Mở bảng chọn nhân viên rồi Lưu: người phụ trách cũ (nếu có) bị gỡ, người mới nhận đơn. Sau Đã giao thì bị từ chối nên nút ẩn.",
     hoiLai: "không (bấm Lưu trong bảng)",
     hoanTac: "được: đổi lại bằng chính nút này (trước Đã giao)",
-    duongLenh: ["/api/dispatch/assignees","/api/orders/:x/tu-choi-truoc","/api/orders/:x/handler"],
+    duongLenh: ["/api/orders/:x/handler"],
     maNhatKy: ["order_handler_changed"],
     noiDat: [
       { tep: "web/order.ts", chu: "⟪controls.assignLabel⟫" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -170,7 +170,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/order.ts", chu: "Chuyển tiền sang đơn mới" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -185,7 +185,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/order.ts", chu: "Huỷ duyệt" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -231,7 +231,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/order.ts", chu: "c.coTheDuyet ? \"Duyệt hoàn thu trước\" : \"Duyệt chuyển sang đơn mới\"" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -246,7 +246,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/order.ts", chu: "Ghi đã hoàn ngoài hệ thống" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -256,7 +256,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Kế toán xác nhận công ty đã thật sự nhận khoản thu do người khác khai là «Công ty thu». Chuyển khoản thì phải nhập mã giao dịch và số tiền thực chuyển theo sao kê. Tiền mặt thì người khai không còn phải nộp khoản đó nữa.",
     hoiLai: "có hộp nhập (mã giao dịch, số tiền thực chuyển nếu chuyển khoản)",
     hoanTac: "một phần: khoản đã xác nhận chỉ sửa bằng «Sửa khoản thu đã ghi» hoặc huỷ bằng «Huỷ khoản thu» (trước Đã giao)",
-    duongLenh: ["/api/ledger/company-receipts/:x/confirm","/api/orders/:x/thuong-mai","/api/van-chuyen/chuyen","/api/van-chuyen/chuyen/:x"],
+    duongLenh: ["/api/ledger/company-receipts/:x/confirm"],
     maNhatKy: ["ledger_company_received"],
     noiDat: [
       { tep: "web/order.ts", chu: "Xác nhận đã nhận" },
@@ -276,7 +276,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/order.ts", chu: "Bên kia đã nhận" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -286,7 +286,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Đổi số tiền, hình thức hoặc người thu tiền của một khoản thu đã ghi. Khoản cũ được ghi «đã huỷ», khoản đúng được ghi thay trong cùng một lần; lý do ít nhất 10 ký tự. Sau Đã giao thì tổng đã thu phải giữ nguyên, và đây là đường sửa duy nhất.",
     hoiLai: "có hộp nhập (số tiền đúng, hình thức, người thu tiền, mã giao dịch, lý do ≥ 10 ký tự)",
     hoanTac: "một phần: sửa tiếp bằng chính nút này; sổ vẫn giữ dòng cũ",
-    duongLenh: ["/api/ledger/receipt-replacements","/api/orders/:x/thuong-mai","/api/van-chuyen/chuyen","/api/van-chuyen/chuyen/:x"],
+    duongLenh: ["/api/ledger/receipt-replacements"],
     maNhatKy: ["ledger_receipt_replaced"],
     noiDat: [
       { tep: "web/order.ts", chu: "Sửa khoản thu đã ghi" },
@@ -351,7 +351,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/order.ts", chu: "Ghi hoàn cho khách" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -361,7 +361,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Với đơn đã giao mà sổ thu còn thiếu so với phải thu (dữ liệu cũ), thêm một khoản thu bù cho đủ. Đi cùng đường «Sửa khoản thu đã ghi» nhưng không có khoản cũ nào bị huỷ.",
     hoiLai: "có hộp nhập (số tiền, hình thức, người thu tiền, lý do ≥ 10 ký tự)",
     hoanTac: "một phần: sửa bằng «Sửa khoản thu đã ghi»",
-    duongLenh: ["/api/ledger/receipt-replacements","/api/orders/:x/thuong-mai","/api/van-chuyen/chuyen","/api/van-chuyen/chuyen/:x"],
+    duongLenh: ["/api/ledger/receipt-replacements"],
     maNhatKy: ["ledger_receipt_replaced"],
     noiDat: [
       { tep: "web/order.ts", chu: "Ghi bù khoản thu" },
@@ -407,7 +407,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Ghi một khoản khách đã trả vào đơn (số tiền, hình thức, ai thu). Nếu người ghi không phải Kế toán và chọn «Công ty» với chuyển khoản, khoản này chỉ là lời khai chờ Kế toán đối chiếu: nó được cộng vào đã thu nhưng đơn chưa Đã giao được. Chọn khách trả cho đại lý hoặc nhà cung cấp thì chờ Kế toán xác nhận với bên đó. Không ghi được sau Đã giao.",
     hoiLai: "không (bấm Ghi trong hàng mở là ghi luôn; có hỏi riêng khi nghi trùng khoản)",
     hoanTac: "một phần: trước Đã giao sửa bằng «Sửa khoản thu đã ghi» hoặc huỷ bằng «Huỷ khoản thu» (chỉ Kế toán, Toàn quyền)",
-    duongLenh: ["/api/orders/:x/payments","/api/orders/:x/thuong-mai"],
+    duongLenh: ["/api/orders/:x/payments"],
     maNhatKy: ["payment_recorded"],
     noiDat: [
       { tep: "web/order.ts", chu: "Ghi khoản thu" },
@@ -428,7 +428,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/order.ts", chu: "Lưu ảnh" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -458,7 +458,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
 
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -474,7 +474,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
       { tep: "web/order.ts", chu: "Xác nhận đơn" },
       { tep: "web/order.ts", chu: "‹…› ‹…› / ⟪prompt⟫" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -484,7 +484,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Đổi tên, số điện thoại khách trên đơn và hồ sơ người đặt (khách lẻ hoặc đối tác). Nếu đổi bên đặt, mức hoa hồng được chụp lại theo bên mới và đơn có thể bị từ chối nếu giảm giá vượt hoa hồng mới, hoặc bên mới bị chặn bán.",
     hoiLai: "không (bấm Lưu khách trong bảng)",
     hoanTac: "được: đổi lại bằng chính nút này",
-    duongLenh: ["/api/pricing/nguoi-huong","/api/orders/:x/booker","/api/parties/lookup"],
+    duongLenh: ["/api/orders/:x/booker"],
     maNhatKy: ["booker_changed","order_terms_recaptured"],
     noiDat: [
       { tep: "web/order.ts", chu: "Đổi khách" },
@@ -504,7 +504,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/order.ts", chu: "Sửa số khách dịch vụ" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -519,7 +519,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/order.ts", chu: "Sửa thông tin chuyến" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -549,7 +549,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/phan-doi-tac.ts", chu: "Ghi mức" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -626,7 +626,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
       { tep: "web/xac-nhan-don-ui.ts", chu: "Hết vé" },
       { tep: "web/xac-nhan-don-ui.ts", chu: "Báo hết vé? Đơn sẽ được huỷ với lý do «hết chỗ»." },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -642,7 +642,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
       { tep: "web/xac-nhan-don-ui.ts", chu: "Huỷ" },
       { tep: "web/xac-nhan-don-ui.ts", chu: "Huỷ đơn" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -687,7 +687,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/canh-bao-doi-tac.ts", chu: "Đúng, qua ‹…›" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -697,7 +697,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Với Bán hàng, Quản trị, Toàn quyền, Thực tập: chỉ lưu đơn ở dạng nháp. Không gửi cho ai, không xác nhận, không báo ai (tin Bảng tin chỉ làm mới màn hình), nhật ký ghi «Tạo đơn». Màn hình tự chuyển sang trang đơn và mở hộp «Ảnh gửi khách» (hộp này chỉ dựng ảnh gửi khách, chưa xác nhận gì); người lập phải đóng hộp rồi tự bấm «Xác nhận đơn» (hoặc «Gửi kiểm vé» nếu đơn thuộc diện cần xét). Với người giữ quyền Đối tác thì nút này tên «Gửi đơn», lưu rồi gọi tiếp lệnh gửi: máy chủ hoặc mở yêu cầu xác nhận (đơn chờ nhân viên xét «Còn vé, xác nhận đơn»), hoặc tự xác nhận luôn nếu đơn không cần xét (khi đó đơn thành «Đã xác nhận» ngay và chuyển cho chuyên viên phụ trách). Lưu xong mà gửi hỏng thì đơn vẫn còn ở nháp.",
     hoiLai: "không",
     hoanTac: "một phần: nháp sửa được bằng «Lưu thay đổi»; đơn Đối tác đã gửi rút lại được bằng «Rút lại»; nhánh tự xác nhận thì dịch vụ và đơn giá bị khoá",
-    duongLenh: ["/api/orders","/api/orders/:x/gui-don"],
+    duongLenh: ["/api/orders","/api/orders/:x"],
     maNhatKy: ["created"],
     noiDat: [
       { tep: "public/order-form.html", chu: "Lưu đơn (chưa xác nhận)" },
@@ -717,7 +717,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "public/orders.html", chu: "Tạo đơn" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -747,7 +747,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/nhap-tay-cai-dat.ts", chu: "Tắt dịch vụ nhập tay / Bật dịch vụ nhập tay" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -773,13 +773,13 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Gửi lại đúng lệnh ghi khoản thu vừa bị máy chủ nghi trùng, kèm lý do (tối thiểu 10 ký tự, không ghi số điện thoại). Khoản thu được ghi như bình thường; lý do và người bấm vào nhật ký. «Xem bản cũ» không hiện gì thêm, chỉ đóng hộp và báo «Chưa ghi gì».",
     hoiLai: "có hộp nhập: bắt buộc nhập lý do",
     hoanTac: "một phần: huỷ được bằng «Huỷ khoản thu» (ghi dòng ngược, không xoá)",
-    duongLenh: ["/api/parties/cua-toi","/api/parties/phieu-xoa/chay-lai","/api/parties/phieu-xoa","/api/parties/phieu-xoa/:x","/api/parties/phieu-xoa/:x/thuc-hien","/api/parties/phieu-xoa/:x/tu-choi","/api/parties/anh-can-xoa/xoa","/api/parties/anh-can-xoa","/api/van-chuyen/chuyen","/api/van-chuyen/chuyen/:x"],
+    duongLenh: [],
     maNhatKy: [],
     noiDat: [
       { tep: "web/canh-bao-trung.ts", chu: "Vẫn ghi" },
       { tep: "web/canh-bao-trung.ts", chu: "Xem bản cũ" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -812,7 +812,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
       { tep: "web/handler-sheet.ts", chu: "Lưu người phụ trách" },
       { tep: "web/handler-sheet.ts", chu: "[biểu tượng close]" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -892,7 +892,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
       { tep: "web/sheet-hanh-khach.ts", chu: "Lưu" },
       { tep: "web/sheet-hanh-khach.ts", chu: "Huỷ" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -908,7 +908,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
       { tep: "web/service-card.ts", chu: "Xoá dòng" },
       { tep: "web/service-card.ts", chu: "[biểu tượng trash]" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -918,13 +918,13 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Gửi lần lượt từng lệnh: thay lượt, bỏ lượt, sửa lượt, thêm lượt, mỗi lệnh ghi riêng. Lệnh nào hỏng thì dừng; các lệnh trước đó đã lưu (có nút «Tải lại đơn»). Lượt dưới hạn chốt 6 giờ cần đặt gấp trong bảng.",
     hoiLai: "không",
     hoanTac: "một phần: sửa lại; lượt đã bỏ không hiện lại",
-    duongLenh: ["/api/orders/:x/legs/:x","/api/orders/:x/legs/:x/close"],
+    duongLenh: ["/api/orders/:x/legs/:x/replace","/api/orders/:x/legs/:x/close","/api/orders/:x/legs/:x","/api/orders/:x/legs"],
     maNhatKy: [],
     noiDat: [
       { tep: "web/sheet-dua-don.ts", chu: "Lưu" },
       { tep: "web/sheet-dua-don.ts", chu: "Huỷ" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -940,7 +940,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
       { tep: "web/sheet-so-khach.ts", chu: "Lưu số khách" },
       { tep: "web/sheet-so-khach.ts", chu: "Huỷ" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -1015,7 +1015,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Huỷ cả đơn của khách (không phải chỉ rời việc), đơn chuyển «Đã huỷ». Chỉ với đơn đã xác nhận, chưa qua ngày đi, chưa Đã giao. Chọn lý do: Không liên hệ được với khách, Khách yêu cầu huỷ, hoặc Khác (gõ lý do, không chứa số điện thoại). Vé điện tử chưa mở được trả về kho (vé đã mở thì bị huỷ) và chuyến xe đồng bộ.",
     hoiLai: "có: «Đơn của <khách>, đi <ngày>. Thao tác này không hoàn tác được.» và chọn lý do",
     hoanTac: "không: «Thao tác này không hoàn tác được.»",
-    duongLenh: ["/api/orders/:x/handler-cancel","/api/orders/:x/handler-money-edit"],
+    duongLenh: ["/api/orders/:x/handler-cancel"],
     maNhatKy: ["order_cancelled_by_field"],
     noiDat: [
       { tep: "web/viec-cua-toi.ts", chu: "Huỷ đơn" },
@@ -1036,7 +1036,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/ve-cai-dat.ts", chu: "Lưu" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -1051,7 +1051,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/ve-don.ts", chu: "Cấp vé" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -1061,7 +1061,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Nút này tải ảnh của MỌI vé của đơn về máy. Mỗi lần tải ảnh, máy chủ ghi nhật ký «Xem ảnh vé» và đóng dấu «đã lộ» cho vé đó ngay lần đầu. Vé đã lộ không bao giờ về lại kho, kể cả khi đơn bị huỷ hoặc số khách giảm. Nút «Tải vé <số>» còn ghi thêm một lần «giao vé qua Zalo» khi bấm dù chỉ là lưu ảnh.",
     hoiLai: "không",
     hoanTac: "không: vé đã lộ không về kho",
-    duongLenh: ["/api/ve/anh/:x","/api/ve/giao"],
+    duongLenh: ["/api/ve/giao"],
     maNhatKy: ["ve_xem_anh"],
     noiDat: [
       { tep: "web/ve-don.ts", chu: "Mở ‹…› vé để gửi khách" },
@@ -1092,7 +1092,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Tạo một đường dẫn riêng để khách tự mở và lưu vé; đường dẫn chỉ hiện đúng một lần (mất là phải tạo lại), hết hạn sau ngày dùng cuối của vé thêm 7 ngày. Đồng thời đóng dấu «đã lộ» cho MỌI vé của đơn, nên cả vé chưa gửi cũng không về kho được nữa, kể cả khi thu hồi đường dẫn.",
     hoiLai: "không",
     hoanTac: "một phần: «Thu hồi» khoá đường dẫn, nhưng vé vẫn đã lộ",
-    duongLenh: ["/api/ve/duong-dan","/api/ve/duong-dan/:x/thu-hoi","/api/ve/don/:x"],
+    duongLenh: ["/api/ve/duong-dan"],
     maNhatKy: ["ve_tao_duong_dan"],
     noiDat: [
       { tep: "web/ve-don.ts", chu: "Tạo đường dẫn cho khách" },
@@ -1113,7 +1113,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/ve-don.ts", chu: "Thu hồi" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -1123,13 +1123,13 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Mở ảnh của một vé trong lô đã huỷ. Lần mở đầu tiên khoá hẳn vé: không nhập lại vào kho để bán được nữa, không hoàn tác được, ghi nhật ký. Từ lần sau chỉ «Xem ảnh».",
     hoiLai: "có: Mở ảnh vé này? — «Vé đã mở sẽ bị khoá hẳn: không nhập lại vào kho để bán được nữa và không hoàn tác được. Lần mở được ghi vào nhật ký.»",
     hoanTac: "không: «không hoàn tác được»",
-    duongLenh: ["/api/ve/lo-da-huy/:x/mo","/api/ve/lo-da-huy/:x/anh","/api/ve/lo-da-huy"],
+    duongLenh: ["/api/ve/lo-da-huy/:x/mo"],
     maNhatKy: ["ve_mo_anh_lo_huy"],
     noiDat: [
       { tep: "web/ve-kho.ts", chu: "Mở ảnh" },
       { tep: "web/ve-kho.ts", chu: "Xem ảnh" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -1139,12 +1139,12 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Gỡ cả lô vé khỏi kho (chỉ lô chưa có vé nào từng được giữ cho đơn). Ảnh được lưu thêm vài ngày rồi tự xoá. Muốn dùng lại thì nhập đúng các ảnh đó trong lô mới.",
     hoiLai: "có: Huỷ lô vé này? — «<N> vé của lô sẽ bị gỡ khỏi kho. Ảnh được lưu thêm <số> ngày rồi tự xoá. Muốn dùng lại thì nhập đúng các ảnh đó trong lô mới.»",
     hoanTac: "một phần: nhập lại các ảnh trong lô mới trong thời hạn lưu ảnh",
-    duongLenh: ["/api/ve/lo/:x/bo","/api/ve/kho","/api/ve/lo","/api/ve/lo-da-huy"],
+    duongLenh: ["/api/ve/lo/:x/bo"],
     maNhatKy: ["ve_bo_lo"],
     noiDat: [
       { tep: "web/ve-kho.ts", chu: "Huỷ lô" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -1154,12 +1154,12 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Đọc mã QR của từng ảnh ngay trên máy, loại ảnh hỏng hoặc trùng, tạo lô, gửi các ảnh lên kho rồi đưa lô vào kho để bán. Ảnh nào bị loại thì báo kèm tên tệp. Lô gửi dở thì để lại trong danh sách «Các lô» để bấm «Huỷ lô».",
     hoiLai: "không",
     hoanTac: "được: «Huỷ lô» cho tới khi có vé được giữ cho đơn",
-    duongLenh: ["/api/ve/lo","/api/ve/lo/:x/xac-nhan"],
+    duongLenh: ["/api/ve/lo","/api/ve/lo/:x/ve","/api/ve/lo/:x/xac-nhan"],
     maNhatKy: ["ve_nhap_lo","ve_xac_nhan_lo"],
     noiDat: [
       { tep: "web/ve-kho.ts", chu: "Nhập lô vé" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -1186,14 +1186,14 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Thêm một dòng mức vào CẤP đang xem. Dòng này áp cho mọi vai trò đang theo cấp đó và mọi đối tác có cấp riêng là cấp đó, không riêng ai. Thứ tự khi tính hoa hồng: mức riêng của đối tác, cấp riêng của đối tác, mức riêng của vai trò, rồi cấp của vai trò; trong mỗi bước xét dịch vụ đó trước, rồi nhóm, rồi mọi dịch vụ. Cấp đã khoá thì không thêm được.",
     hoiLai: "có hộp nhập",
     hoanTac: "một phần: «Ngừng» hoặc «Đổi» dòng đó; dòng đã ngừng không mở lại",
-    duongLenh: ["/api/pricing/muc-ta/:x/dong","/api/pricing/hoa-hong","/api/pricing/hoa-hong/:x/doi"],
+    duongLenh: [],
     maNhatKy: ["prc_commission_rule_added"],
     noiDat: [
       { tep: "web/hoa-hong-cap.ts", chu: "Thêm hoa hồng cho dịch vụ" },
       { tep: "web/hoa-hong-cap.ts", chu: "—" },
       { tep: "web/hoa-hong-hop.ts", chu: "Thêm mức" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -1209,7 +1209,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
       { tep: "web/hoa-hong-hop.ts", chu: "Đổi mức" },
       { tep: "web/hoa-hong-cap.ts", chu: "⟪nhanViec(\"DOI\", loai)⟫" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -1224,7 +1224,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/hoa-hong-hop.ts", chu: "Lưu sửa" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -1250,7 +1250,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Cho CẢ MỘT vai trò (mọi đối tác đang mang vai trò đó) theo một cấp từ ngày chọn. Không phải một đối tác riêng lẻ. Đối tác có mức riêng hoặc cấp riêng vẫn được tính trước cấp này. Đây là bậc cuối trong thứ tự tính: mức riêng của đối tác, cấp riêng của đối tác, mức riêng của vai trò, cấp của vai trò. Nếu vai trò còn mức riêng thì hiện khung vàng cảnh báo mức riêng thắng cấp. Đối tác có cấp riêng không bao giờ rơi xuống cấp của vai trò, kể cả với dịch vụ cấp riêng không có mức. Đối tác mang hai vai trò ở hai cấp khác mức thì không có hoa hồng cho tới khi sửa. Đơn đã xác nhận giữ mức đã chụp, không tính lại.",
     hoiLai: "có hộp nhập",
     hoanTac: "một phần: «Thôi theo cấp này» hoặc «Đổi cấp»; lần gán đã ghi không xoá",
-    duongLenh: ["/api/pricing/muc-ta/gan","/api/pricing/muc-ta/:x/dong","/api/pricing/hoa-hong","/api/pricing/hoa-hong/:x/doi"],
+    duongLenh: [],
     maNhatKy: ["prc_role_tier_set"],
     noiDat: [
       { tep: "web/hoa-hong-hop.ts", chu: "Lưu" },
@@ -1274,7 +1274,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
       { tep: "web/hoa-hong-hop.ts", chu: "Lưu" },
       { tep: "web/hoa-hong-cap.ts", chu: "⟪nhanViec(\"DOI\", loai)⟫" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -1336,7 +1336,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/hoa-hong-hop.ts", chu: "Lưu sửa" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -1351,7 +1351,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/hoa-hong-hop.ts", chu: "Lưu" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -1381,7 +1381,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/hoa-hong-cap.ts", chu: "⟪nhan.nhan⟫" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -1433,7 +1433,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
       { tep: "web/hoa-hong-hop.ts", chu: "Thêm vai trò" },
       { tep: "web/hoa-hong-hop.ts", chu: "⟪o.nhan⟫" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -1448,7 +1448,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/hoa-hong-loai.ts", chu: "⟪nhan.nut⟫" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -1463,7 +1463,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/hoa-hong-gioi-han.ts", chu: "Lưu" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -1479,7 +1479,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
       { tep: "web/hoa-hong-tra-nhanh.ts", chu: "Tra" },
       { tep: "web/hoa-hong-tra-nhanh.ts", chu: "Kiểm tra hoa hồng" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -1489,7 +1489,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Đặt hoặc đổi CẤP RIÊNG cho đúng một tài khoản đối tác, dù ô đang hiện «(theo vai trò)». Từ ngày chọn, tài khoản này thôi theo cấp của vai trò; sau đó đổi cấp của vai trò (ở trang Hoa hồng) không còn ảnh hưởng tới họ. Dùng đúng ba route ghi của trang Hoa hồng.",
     hoiLai: "có hộp nhập",
     hoanTac: "một phần: bấm «Dùng cấp theo vai trò»; bản cũ không mở lại",
-    duongLenh: ["/api/pricing/muc-ta","/api/pricing/muc-rieng/:x/sua"],
+    duongLenh: ["/api/pricing/muc-rieng/:x/sua"],
     maNhatKy: ["prc_party_tier_set","prc_party_tier_closed"],
     noiDat: [
       { tep: "web/cot-cap-dai-ly.ts", chu: "⟪o⟫" },
@@ -1511,7 +1511,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/cot-cap-dai-ly.ts", chu: "Dùng cấp theo vai trò" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -1542,7 +1542,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/luat-ban.ts", chu: "Kết thúc ngay" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -1588,7 +1588,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/nguoi-ban.ts", chu: "Thêm điều khoản" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -1603,7 +1603,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "public/dieu-chinh-cong-no.html", chu: "Gửi yêu cầu chờ duyệt" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -1618,7 +1618,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/dieu-chinh-cong-no.ts", chu: "Duyệt" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -1634,7 +1634,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
       { tep: "web/dieu-chinh-cong-no.ts", chu: "Xác nhận từ chối" },
       { tep: "web/dieu-chinh-cong-no.ts", chu: "Từ chối" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -1649,7 +1649,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/dieu-chinh-cong-no.ts", chu: "Rút yêu cầu" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -1675,13 +1675,13 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Ghi QUYẾT ĐỊNH: trường hợp nào, ai chịu, giảm trừ bao nhiêu, có trả tiền cho khách không. Chưa ghi tiền; một người khác (Kế toán) phải bấm «Ghi sổ» sau đó. Nhắn người đã mở đề nghị. Ô «Trả tiền cho khách» mặc định đã tích.",
     hoiLai: "có hộp nhập",
     hoanTac: "một phần: «Đổi bên chịu» sau khi ghi sổ; chính quyết định này không sửa được",
-    duongLenh: ["/api/ledger/phan-dinh/:x/quyet","/api/orders/:x/thuong-mai"],
+    duongLenh: ["/api/ledger/phan-dinh/:x/quyet"],
     maNhatKy: ["attribution_ruled"],
     noiDat: [
       { tep: "web/phan-dinh.ts", chu: "Phân định" },
       { tep: "web/phan-dinh.ts", chu: "Lưu phân định" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -1691,7 +1691,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Ghi tiền thật theo quyết định, người ghi phải khác người phân định: giảm trừ phải thu của đơn; ghi nợ cho bên chịu (trừ khi công ty chịu) và nhắn họ; nếu có trả khách thì ghi hoàn tiền (người trả: Công ty); nếu khách thật sự chưa trả thì sửa khoản thu đã ghi ngay trong lần này. Ghi vào tháng đang mở, tháng đã khoá thì từ chối.",
     hoiLai: "có hộp nhập",
     hoanTac: "một phần: «Ghi khoản thu đòi được» hoặc «Đổi bên chịu»; không được nếu bên chịu đã nộp tiền",
-    duongLenh: ["/api/ledger/phan-dinh/:x/ghi","/api/orders/:x/payments","/api/orders/:x/thuong-mai","/api/van-chuyen/chuyen","/api/van-chuyen/chuyen/:x"],
+    duongLenh: ["/api/ledger/phan-dinh/:x/ghi"],
     maNhatKy: ["attribution_posted"],
     noiDat: [
       { tep: "web/phan-dinh.ts", chu: "Ghi sổ theo phân định" },
@@ -1707,13 +1707,13 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Ghi quyết định đổi người chịu của khoản đã ghi sổ (giảm trừ và tiền trả khách không đổi). Chưa đổi sổ nợ: chờ một người khác bấm «Ghi sổ lần đổi bên chịu». Không làm được nếu bên chịu hiện tại đã nộp tiền.",
     hoiLai: "có hộp nhập",
     hoanTac: "một phần: đổi lại lần nữa (cũng cần người khác ghi sổ)",
-    duongLenh: ["/api/ledger/phan-dinh/:x/doi-ben-chiu","/api/orders/:x/thuong-mai"],
+    duongLenh: ["/api/ledger/phan-dinh/:x/doi-ben-chiu"],
     maNhatKy: ["attribution_ruled"],
     noiDat: [
       { tep: "web/phan-dinh.ts", chu: "Đổi bên chịu" },
       { tep: "web/phan-dinh.ts", chu: "Lưu phân định mới" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -1728,7 +1728,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/phan-dinh.ts", chu: "Ghi sổ lần đổi bên chịu" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -1738,7 +1738,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Luôn làm HAI việc cùng lúc: (1) ghi thêm một khoản thu bằng đúng số nhập (người thu tiền: Công ty, ngày hôm nay); (2) bỏ phần giảm trừ và nợ của bên chịu bằng đúng số đó. Có thể làm một phần. Không có đường chỉ huỷ mà không ghi thu. Khác người đã phân định; không làm được nếu bên chịu đã nộp tiền. Nhắn bên chịu.",
     hoiLai: "có hộp nhập",
     hoanTac: "không: khoản thu đã ghi chỉ huỷ được bằng «Huỷ khoản thu» riêng; phần giảm trừ đã bỏ không phục hồi",
-    duongLenh: ["/api/ledger/phan-dinh/:x/huy","/api/van-chuyen/chuyen","/api/van-chuyen/chuyen/:x","/api/orders/:x/thuong-mai"],
+    duongLenh: ["/api/ledger/phan-dinh/:x/huy"],
     maNhatKy: ["attribution_posted"],
     noiDat: [
       { tep: "web/phan-dinh.ts", chu: "Ghi khoản thu đòi được" },
@@ -1754,7 +1754,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Ghi một dòng chữ vào phiếu và nhắn người đã phân định. Không đổi số nợ, không tạm dừng, không đưa việc ra xem xét lại. Hạn 3 ngày làm việc chỉ để nhắc, phản hồi muộn vẫn nhận. Chỉ xem được khoản của chính hồ sơ mình.",
     hoiLai: "có hộp nhập",
     hoanTac: "không: dòng phản hồi đã gửi không xoá được, gửi thêm được",
-    duongLenh: ["/api/ledger/phan-dinh-cua-toi/:x/phan-hoi","/api/orders/:x/thuong-mai"],
+    duongLenh: ["/api/ledger/phan-dinh-cua-toi/:x/phan-hoi"],
     maNhatKy: ["attribution_responded"],
     noiDat: [
       { tep: "web/phan-dinh.ts", chu: "Phản hồi" },
@@ -1775,7 +1775,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/dac-diem-dich-vu.ts", chu: "Vẫn lưu" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -1790,7 +1790,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/dac-diem-dich-vu.ts", chu: "Vẫn lưu" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -1806,7 +1806,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
       { tep: "web/dac-diem-dich-vu.ts", chu: "Bật lại / Tắt" },
       { tep: "web/dac-diem-dich-vu.ts", chu: "Tắt / Bật lại" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -1816,12 +1816,12 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Tạo một đặc điểm mới (ví dụ «Gồm vé tàu») cùng danh sách giá trị, mỗi dòng một giá trị. Chưa gán cho dịch vụ nào nên chưa ảnh hưởng luật bán.",
     hoiLai: "có hộp nhập",
     hoanTac: "một phần: tắt được, không xoá",
-    duongLenh: ["/api/catalog/dac-diem","/api/pricing/luat-ban"],
+    duongLenh: ["/api/catalog/dac-diem"],
     maNhatKy: ["ctl_attribute_created","ctl_attribute_value_created"],
     noiDat: [
       { tep: "web/dac-diem-dich-vu.ts", chu: "Thêm đặc điểm" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -1831,12 +1831,12 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Thêm một giá trị vào đặc điểm đang dùng. Chưa gán cho dịch vụ nào.",
     hoiLai: "có hộp nhập",
     hoanTac: "một phần: tắt được, không xoá",
-    duongLenh: ["/api/catalog/dac-diem/:x/gia-tri","/api/pricing/luat-ban"],
+    duongLenh: ["/api/catalog/dac-diem/:x/gia-tri"],
     maNhatKy: ["ctl_attribute_value_created"],
     noiDat: [
       { tep: "web/dac-diem-dich-vu.ts", chu: "Thêm giá trị" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -1852,7 +1852,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
       { tep: "web/dac-diem-dich-vu.ts", chu: "Sửa" },
       { tep: "web/dac-diem-dich-vu.ts", chu: "Lưu" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -1894,7 +1894,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Gửi lại ĐÚNG lệnh vừa bị từ chối, kèm một lý do và cờ bỏ qua luật; lệnh gốc được thực hiện ngay. Dưới hạn chốt trước giờ xe chạy thì gọi là «Điều chỉnh khẩn cấp» (Bán hàng, Quản trị, Toàn quyền làm được); ngoài hạn chốt mà thiếu nghỉ hay xe nhỏ hơn cam kết thì gọi là «Phá lệ» (chỉ Quản trị, Toàn quyền). Lý do ghi vào nhật ký chuyến kèm tên người bấm; tài xế đang lái nhận tin có chữ «điều chỉnh khẩn cấp».",
     hoiLai: "có hộp chọn lý do (nút xác nhận khoá tới khi chọn)",
     hoanTac: "tuỳ lệnh gốc: xem các hàng Xếp vào chuyến, Rút khỏi xe, Chuyển sang xe khác, Thêm điểm đón, Huỷ chuyến, Lưu chuyến",
-    duongLenh: ["/api/van-chuyen/chuyen","/api/van-chuyen/chuyen/:x","/api/van-chuyen/chuyen/:x/huy","/api/van-chuyen/chuyen/:x/phan-bo"],
+    duongLenh: [],
     maNhatKy: [],
     noiDat: [
       { tep: "web/chuyen-sua.ts", chu: "NUT_VUOT.luu[l.lop]" },
@@ -1904,7 +1904,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
       { tep: "web/dieu-phoi.ts", chu: "NUT_VUOT.xep[l.lop]" },
       { tep: "web/dieu-phoi.ts", chu: "NUT_VUOT.luu[le.lop]" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -1914,14 +1914,14 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Máy tự tìm mọi khách trong chuyến có nơi đón hay nơi trả khác với đơn hiện tại rồi dời họ sang điểm đúng; điểm hết khách chuyển sang «bỏ qua — không còn khách». Không cần chọn tay, không bị khoá theo hạn chốt, không cần điều chỉnh khẩn cấp. Xe đang chạy: chỉ dời khách còn chờ ở điểm xe chưa tới, phần còn lại bỏ qua. Tài xế đang lái nhận tin.",
     hoiLai: "không",
     hoanTac: "không: không có nút hoàn lại; đơn đổi nơi lần nữa thì bấm lại",
-    duongLenh: ["/api/van-chuyen/chuyen/:x/cap-nhat-khach","/api/van-chuyen/chuyen/:x/phan-bo","/api/van-chuyen/chuyen","/api/van-chuyen/chuyen/:x/cap-nhat-diem"],
+    duongLenh: ["/api/van-chuyen/chuyen/:x/cap-nhat-khach","/api/van-chuyen/chuyen/:x/cap-nhat-diem"],
     maNhatKy: ["trip_stops_synced"],
     noiDat: [
       { tep: "web/chuyen.ts", chu: "Cập nhật điểm theo đơn" },
       { tep: "web/dieu-phoi.ts", chu: "Cập nhật điểm theo đơn" },
       { tep: "web/dieu-phoi.ts", chu: "⟪a.nhan⟫" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -1937,7 +1937,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
       { tep: "web/chuyen.ts", chu: "Cập nhật khách theo đơn" },
       { tep: "web/dieu-phoi.ts", chu: "Cập nhật khách theo đơn" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -1947,7 +1947,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Văn phòng ghi thay tài xế là xe đã lăn bánh: chuyến từ «Lên kế hoạch» sang «Đang chạy», máy chụp lại xe, tài xế, số khách lúc chạy. Giờ ghi là lúc bấm, hoặc giờ văn phòng khai trong khoảng được lùi. Từ lúc này tài xế đối tác mới được xem tên khách. Nút khoá khi chuyến còn bị giữ.",
     hoiLai: "có hộp (mô tả, cảnh báo ngày chạy, ô giờ)",
     hoanTac: "một phần: bằng nút «Thu hồi lệnh cho xe chạy», chỉ khi chưa có bước nào sau đó và chưa quá thời gian được lùi",
-    duongLenh: ["/api/van-chuyen/chuyen/:x","/api/van-chuyen/chuyen/:x/huy"],
+    duongLenh: ["/api/van-chuyen/chuyen/:x/huy"],
     maNhatKy: ["trip_departed"],
     noiDat: [
       { tep: "web/chuyen.ts", chu: "Cho xe chạy" },
@@ -1963,12 +1963,12 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Đưa chuyến đang chạy về «chưa chạy» khi tài xế bấm Cho xe chạy nhầm. Bản chụp lúc xe chạy vẫn giữ trong nhật ký. Chỉ được khi chưa có bước nào sau đó (đã tới, đã đón… đều đóng nút) và chưa quá thời gian được lùi. Tài xế đang lái và người điều phối nhận tin; tài xế phải bấm lại Cho xe chạy khi xe thật sự lăn bánh.",
     hoiLai: "có hộp chọn lý do (nêu rõ chuyến về chưa chạy)",
     hoanTac: "được: tài xế hoặc văn phòng bấm lại «Cho xe chạy»",
-    duongLenh: ["/api/van-chuyen/chuyen","/api/van-chuyen/chuyen/:x","/api/van-chuyen/chuyen/:x/huy"],
+    duongLenh: ["/api/van-chuyen/chuyen/:x/huy"],
     maNhatKy: ["trip_departure_revoked"],
     noiDat: [
       { tep: "web/chuyen.ts", chu: "Thu hồi lệnh cho xe chạy" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -1978,7 +1978,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Sửa kết quả đã ghi cho một khách trên xe đang chạy, ví dụ Đã đón → Vắng, Vắng → Khách huỷ tại điểm, Đã trả → Còn trên xe. Kết quả cũ không bị xoá, Nền tảng ghi thêm một lần điều chỉnh kèm lý do. Tài xế đang lái và người điều phối nhận tin. Chỉ làm được khi chuyến còn đang chạy.",
     hoiLai: "có hộp chọn kết quả mới và lý do",
     hoanTac: "một phần: điều chỉnh tiếp theo bảng cho phép; sau «Kết thúc chuyến» thì không sửa được nữa",
-    duongLenh: ["/api/van-chuyen/chuyen/:x","/api/van-chuyen/chuyen/:x/huy","/api/van-chuyen/chuyen"],
+    duongLenh: ["/api/van-chuyen/chuyen/:x/huy"],
     maNhatKy: ["trip_allocation_corrected"],
     noiDat: [
       { tep: "web/chuyen.ts", chu: "Điều chỉnh…" },
@@ -1994,12 +1994,12 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Văn phòng ghi thay tài xế là chuyến đã chạy xong: chuyến sang «Đã kết thúc». Chỉ bấm được khi mọi khách đã có kết quả (đã trả, vắng hoặc huỷ) và người đi kèm đã xuống; chưa đủ thì nút khoá kèm dòng giải thích. Sau khi kết thúc, kết quả đã chốt: không còn Điều chỉnh, không mở lại chuyến.",
     hoiLai: "có hộp (chỉ mô tả và ô giờ, không tóm tắt kết quả khách, không nói không mở lại được)",
     hoanTac: "không: chuyến không mở lại và kết quả khách không sửa được nữa",
-    duongLenh: ["/api/van-chuyen/chuyen/:x","/api/van-chuyen/chuyen/:x/huy"],
+    duongLenh: ["/api/van-chuyen/chuyen/:x/huy"],
     maNhatKy: ["trip_ended"],
     noiDat: [
       { tep: "web/chuyen.ts", chu: "Kết thúc chuyến" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -2009,12 +2009,12 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Văn phòng ghi thay tài xế là xe không đi tiếp được. Chuyến sang «Kết thúc gián đoạn», các chỗ khách còn chờ hay còn trên xe bị đóng lại, khách cần xếp sang xe khác ở khối «Cứu hộ». Chuyến không mở lại.",
     hoiLai: "có hộp chọn lý do và ô giờ",
     hoanTac: "không: chuyến đã kết thúc không mở lại; khách xếp lại sang chuyến khác",
-    duongLenh: ["/api/van-chuyen/chuyen/:x/cuu-ho","/api/van-chuyen/chuyen/:x","/api/van-chuyen/chuyen/:x/huy"],
+    duongLenh: ["/api/van-chuyen/chuyen/:x/huy"],
     maNhatKy: ["trip_ended_interrupted"],
     noiDat: [
       { tep: "web/chuyen.ts", chu: "Kết thúc gián đoạn" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -2040,13 +2040,13 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Văn phòng gửi THAY tài xế một đề nghị tới một xe khác đang chạy cùng ngày: nhận cả khách đang trên xe và khách chờ đón, gặp nhau ở nơi gõ vào. Tài xế xe kia bấm Nhận hoặc Không nhận; hết giờ chờ mà không ai trả lời thì khách vẫn ở xe này. Chuyến này vẫn chạy, chưa kết thúc.",
     hoiLai: "có hộp chọn xe và gõ nơi gặp",
     hoanTac: "một phần: tài xế xe này bấm «Rút lại» khi đề nghị còn chờ; đã nhận thì khách đã sang xe kia",
-    duongLenh: ["/api/van-chuyen/chuyen/:x/cuu-ho","/api/van-chuyen/chuyen/:x/huy","/api/van-chuyen/chuyen/:x","/api/van-chuyen/de-nghi"],
+    duongLenh: ["/api/van-chuyen/chuyen/:x/cuu-ho"],
     maNhatKy: ["trip_transfer_sent"],
     noiDat: [
       { tep: "web/chuyen.ts", chu: "Gửi đề nghị" },
       { tep: "web/chuyen.ts", chu: "Gửi đề nghị cứu hộ" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -2056,14 +2056,14 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Ghi xe đã tới điểm đón; điểm chuyển sang «đang ở đây» và các nút Đã đón / Vắng / Khách đã huỷ cho khách ở điểm mở ra. Tài xế bấm thì giờ ghi là lúc bấm, một chạm. Văn phòng bấm thay thì có hộp với ô «Xảy ra lúc».",
     hoiLai: "tài xế: không; văn phòng: có hộp",
     hoanTac: "không: không có nút gỡ «đã tới»",
-    duongLenh: ["/api/van-chuyen/chuyen/:x","/api/van-chuyen/chuyen/:x/huy"],
+    duongLenh: ["/api/van-chuyen/chuyen/:x/huy"],
     maNhatKy: ["trip_stop_arrived"],
     noiDat: [
       { tep: "web/chuyen.ts", chu: "Ghi “Đã tới”" },
       { tep: "web/tien-do-ui.ts", chu: "⟪b.nut.nhan⟫" },
       { tep: "web/cuoc-chuyen.ts", chu: "⟪viec⟫" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -2073,7 +2073,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Ghi mọi khách đang trên xe xuống ở điểm này là đã trả; nếu chưa bấm «Đã tới» thì ghi luôn xe đã tới. Khi không có khách nào trên xe để xuống, hộp đổi nút thành «Vẫn ghi đã tới» và chỉ ghi xe tới điểm.",
     hoiLai: "có: «Trả khách ở <nơi>?» kèm số khách và câu «Đã ghi thì không tự sửa được — sai thì báo văn phòng»",
     hoanTac: "một phần: tài xế không tự sửa; văn phòng sửa từng khách bằng «Điều chỉnh…» khi chuyến còn đang chạy và điểm trả chưa xong",
-    duongLenh: ["/api/van-chuyen/chuyen/:x","/api/van-chuyen/chuyen/:x/huy"],
+    duongLenh: ["/api/van-chuyen/chuyen/:x/huy"],
     maNhatKy: ["trip_passenger_dropped"],
     noiDat: [
       { tep: "web/chuyen.ts", chu: "Ghi “Đã trả”" },
@@ -2081,7 +2081,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
       { tep: "web/cuoc-chuyen.ts", chu: "⟪hopTraCaDiem({ tenNoi: d.tenNoi, soKhach: l.buoc.traCho.length })⟫" },
       { tep: "web/cuoc-chuyen.ts", chu: "⟪viec⟫" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -2091,7 +2091,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Ghi khách đã lên xe. Bấm ở dòng một khách thì một chạm, không hỏi; «Đã đón N khách» ở thanh dưới ghi một lần cho mọi khách còn chờ ở điểm bằng cách gửi lần lượt lệnh «Đã đón» từng người. Có thể bấm lại «Đã đón» cho khách đã bị ghi «Vắng».",
     hoiLai: "từng khách: không (chỉ hiện dòng «Vừa ghi … Sai? Báo văn phòng»); cả điểm: có hộp",
     hoanTac: "một phần: tài xế không tự gỡ; văn phòng đổi thành Vắng hoặc Khách huỷ tại điểm bằng «Điều chỉnh…» khi chuyến còn đang chạy",
-    duongLenh: ["/api/van-chuyen/chuyen/:x","/api/van-chuyen/chuyen/:x/huy","/api/van-chuyen/chuyen"],
+    duongLenh: ["/api/van-chuyen/chuyen/:x/huy"],
     maNhatKy: ["trip_passenger_boarded"],
     noiDat: [
       { tep: "web/tien-do-ui.ts", chu: "⟪NHAN_LENH_SUAT[l]⟫" },
@@ -2099,7 +2099,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
       { tep: "web/cuoc-chuyen.ts", chu: "⟪hopDonTatCa({ tenNoi: d.tenNoi, soKhach: v.suatIds.length })⟫" },
       { tep: "web/cuoc-chuyen.ts", chu: "⟪viec⟫" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -2109,13 +2109,13 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Ghi khách không ra điểm đón. Chỗ của khách chuyển sang trạng thái «Vắng». Nếu khách tới sau, bấm «Đã đón» là gỡ lại được. Người lập hay phụ trách đơn nhận tin khách vắng.",
     hoiLai: "không (có dòng «Vừa ghi … Sai? Báo văn phòng»)",
     hoanTac: "được: bằng nút «Đã đón» (tài xế) khi khách tới sau",
-    duongLenh: ["/api/van-chuyen/chuyen/:x","/api/van-chuyen/chuyen/:x/huy"],
+    duongLenh: ["/api/van-chuyen/chuyen/:x/huy"],
     maNhatKy: ["trip_passenger_no_show"],
     noiDat: [
       { tep: "web/tien-do-ui.ts", chu: "⟪NHAN_LENH_SUAT[l]⟫" },
       { tep: "web/chuyen.ts", chu: "Ghi “${nhan}”" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -2125,7 +2125,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Ghi khách huỷ tại điểm đón để trả chỗ trên xe; chỉ ghi ở chuyến, không huỷ đơn của khách. Từ lúc ghi, tài xế không còn nút nào gỡ lại (khác «Vắng» vẫn bấm «Đã đón» được); chỉ văn phòng sửa được bằng «Điều chỉnh…» khi chuyến còn chạy.",
     hoiLai: "không (có dòng «Vừa ghi … Sai? Báo văn phòng»)",
     hoanTac: "một phần: tài xế không tự gỡ; văn phòng đổi lại bằng «Điều chỉnh…» khi chuyến còn đang chạy",
-    duongLenh: ["/api/van-chuyen/chuyen/:x","/api/van-chuyen/chuyen/:x/huy"],
+    duongLenh: ["/api/van-chuyen/chuyen/:x/huy"],
     maNhatKy: ["trip_passenger_cancelled_at_stop"],
     noiDat: [
       { tep: "web/tien-do-ui.ts", chu: "⟪NHAN_LENH_SUAT[l]⟫" },
@@ -2147,7 +2147,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
       { tep: "web/chuyen.ts", chu: "⟪v.nhan!⟫" },
       { tep: "web/cuoc-chuyen.ts", chu: "⟪v.nhan!⟫" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -2179,7 +2179,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/cuoc-chuyen.ts", chu: "Kết thúc gián đoạn" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -2211,7 +2211,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
       { tep: "web/cuoc-chuyen.ts", chu: "Từ chối chuyến" },
       { tep: "web/cuoc-chuyen.ts", chu: "Xác nhận từ chối" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -2238,7 +2238,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Tài xế xe nhận đồng ý nhận khách của xe kia. Máy kiểm lại các điều kiện (chỗ, giờ, giấy tờ…): đạt hết và công tắc tự đồng ý đang bật thì khách vào chuyến của mình ngay; không thì đề nghị chuyển lên văn phòng duyệt và khách CHƯA vào chuyến. Một chạm, không hỏi lại.",
     hoiLai: "không",
     hoanTac: "không: nhận xong tài xế không có nút trả lại",
-    duongLenh: ["/api/van-chuyen/de-nghi/:x/nhan","/api/van-chuyen/de-nghi-cua-toi"],
+    duongLenh: ["/api/van-chuyen/de-nghi/:x/nhan"],
     maNhatKy: ["trip_transfer_confirmed"],
     noiDat: [
       { tep: "web/cuoc-chuyen.ts", chu: "Nhận" },
@@ -2253,7 +2253,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Tài xế xe nhận từ chối đề nghị kèm một lý do chọn sẵn. Khách ở lại xe kia; tài xế xe kia nhận tin kèm lý do.",
     hoiLai: "có hộp chọn lý do",
     hoanTac: "không: từ chối rồi thì đề nghị đóng",
-    duongLenh: ["/api/van-chuyen/de-nghi/:x/khong-nhan","/api/van-chuyen/de-nghi-cua-toi"],
+    duongLenh: ["/api/van-chuyen/de-nghi/:x/khong-nhan"],
     maNhatKy: ["trip_transfer_declined"],
     noiDat: [
       { tep: "web/cuoc-chuyen.ts", chu: "Gửi lý do" },
@@ -2269,7 +2269,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Tài xế xe nhờ rút đề nghị còn chờ trả lời; khách vẫn ở xe mình, xe kia không còn thấy đề nghị. Làm lại được bằng cách gửi đề nghị mới. Không hỏi lại.",
     hoiLai: "không",
     hoanTac: "được: gửi đề nghị mới",
-    duongLenh: ["/api/van-chuyen/de-nghi/:x/rut","/api/van-chuyen/de-nghi-cua-toi"],
+    duongLenh: ["/api/van-chuyen/de-nghi/:x/rut"],
     maNhatKy: ["trip_transfer_withdrawn"],
     noiDat: [
       { tep: "web/cuoc-chuyen.ts", chu: "Rút lại" },
@@ -2284,14 +2284,32 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Tài xế công ty nhập họ tên và năm sinh cho một khách còn thiếu tên (chỉ chuyến mình đang lái, trong ngày chạy). Tên được ghi thẳng vào danh sách khách của ĐƠN, văn phòng thấy ở cả chuyến lẫn đơn; tài xế không sửa lại được.",
     hoiLai: "có hộp nhập (nút Lưu); không hỏi lại",
     hoanTac: "không: tài xế không có nút sửa; văn phòng sửa ở đơn",
-    duongLenh: ["/api/van-chuyen/chuyen","/api/van-chuyen/chuyen/:x"],
+    duongLenh: ["/api/van-chuyen/cuoc-cua-toi/:x/hanh-khach"],
     maNhatKy: ["trip_passenger_named"],
     noiDat: [
       { tep: "web/cuoc-chuyen.ts", chu: "Lưu" },
       { tep: "web/cuoc-chuyen.ts", chu: "Bổ sung tên" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
+  },
+  {
+    nhom: "Sửa chuyến đang chạy",
+    manHinh: "Chi tiết chuyến và Cuốc của tôi › cạnh từng điểm chưa tới",
+    ten: "↑ / ↓ (đọc màn hình: «Đưa <điểm> lên trước», «Đưa <điểm> xuống sau»)",
+    thatSuLam: "Đổi thứ tự các điểm chưa tới. Bấm là ghi ngay, không hỏi lại; khi xe đang chạy, nút khoá nếu thứ tự mới làm khách đang chờ lên bị đảo.",
+    hoiLai: "không",
+    hoanTac: "được: bấm mũi tên ngược lại, khi điểm còn chưa tới",
+    duongLenh: ["/api/van-chuyen/chuyen/:x","/api/van-chuyen/chuyen/:x/thu-tu","/api/van-chuyen/cuoc-cua-toi/:x/thu-tu"],
+    maNhatKy: [],
+    noiDat: [
+      { tep: "web/chuyen.ts", chu: "↑" },
+      { tep: "web/chuyen.ts", chu: "↓" },
+      { tep: "web/cuoc-chuyen.ts", chu: "↑" },
+      { tep: "web/cuoc-chuyen.ts", chu: "↓" },
+    ],
+    trangThai: "cho-chon",
+    nguonTen: "máy lộ thêm 2026-11-04 khi bộ quét nhận lệnh ghi qua hàm bọc; chưa trình chủ",
   },
   {
     nhom: "Sửa chuyến đang chạy",
@@ -2300,13 +2318,13 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Đưa một lượt đưa đón đang chờ xếp (với số khách chọn) vào chuyến đang chạy: máy thêm điểm đón mới ở lộ trình, tài xế nhận tin ngay. Lượt không phải đặt gấp thì phải qua hộp «Điều chỉnh khẩn cấp»; người không có quyền thấy dòng khoá.",
     hoiLai: "có hộp chọn lượt và số khách",
     hoanTac: "một phần: không có nút gỡ; chỉ báo huỷ rồi tài xế bấm «Khách đã huỷ»",
-    duongLenh: ["/api/van-chuyen/lich","/api/van-chuyen/chuyen/:x","/api/van-chuyen/chuyen/:x/huy"],
+    duongLenh: ["/api/van-chuyen/chuyen/:x/huy"],
     maNhatKy: ["trip_stop_added_running"],
     noiDat: [
       { tep: "web/chuyen.ts", chu: "Thêm điểm đón / thêm khách" },
       { tep: "web/chuyen.ts", chu: "Thêm vào chuyến" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -2316,7 +2334,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Chỉ đánh dấu cho tài xế: khách này đã huỷ. Chỗ vẫn bị giữ, tài xế thấy nhãn «Văn phòng đã báo huỷ» và vẫn tới điểm; chỉ khi tài xế bấm «Khách đã huỷ» (hoặc «Đã đón» nếu khách vẫn có mặt) thì chỗ mới được xử lý. Nút không huỷ đơn của khách.",
     hoiLai: "có hộp chọn lý do, nêu rõ «Thẻ vẫn chiếm chỗ»",
     hoanTac: "không: không thấy nút bỏ đánh dấu; tài xế vẫn quyết cuối cùng bằng Đã đón / Khách đã huỷ",
-    duongLenh: ["/api/van-chuyen/chuyen","/api/van-chuyen/chuyen/:x"],
+    duongLenh: ["/api/van-chuyen/chuyen/:x/phan-bo/:x/bao-huy"],
     maNhatKy: ["trip_allocation_office_cancelled"],
     noiDat: [
       { tep: "web/chuyen.ts", chu: "Báo huỷ" },
@@ -2331,7 +2349,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Thêm một hướng dẫn viên có tài khoản vào chuyến làm người đi kèm. Người đi kèm cũng phải «Đã lên xe» rồi «Đã xuống» thì «Kết thúc chuyến» thường mới bấm được. Chỉ chuyến chưa chạy và ngoài vùng khoá.",
     hoiLai: "có hộp chọn người",
     hoanTac: "được khi chưa đón: nút «Rút khỏi xe» ở nhóm «Người đi kèm · N» rút cả nhóm cùng lúc, không rút lẻ từng người",
-    duongLenh: ["/api/van-chuyen/chuyen/:x/phan-bo","/api/van-chuyen/chuyen/:x","/api/van-chuyen/chuyen/:x/huy"],
+    duongLenh: ["/api/van-chuyen/chuyen/:x/phan-bo"],
     maNhatKy: ["trip_allocated"],
     noiDat: [
       { tep: "web/chuyen.ts", chu: "Gắn lên xe" },
@@ -2347,12 +2365,12 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Đưa nhóm khách này ra khỏi chuyến, trở về cột «Chưa xếp» của Điều phối xe; điểm dừng không còn khách thì bỏ qua. Trong vùng khoá trước giờ xe chạy cần người có quyền «Điều chỉnh khẩn cấp». Tài xế chỉ nhận tin khi lệnh phải bỏ qua luật.",
     hoiLai: "có hộp (nêu số khách trở về Chưa xếp)",
     hoanTac: "được: xếp lại bằng «Xếp vào chuyến»",
-    duongLenh: ["/api/van-chuyen/chuyen/:x/rut","/api/van-chuyen/chuyen/:x","/api/van-chuyen/chuyen/:x/huy"],
+    duongLenh: ["/api/van-chuyen/chuyen/:x/rut"],
     maNhatKy: ["trip_allocation_removed"],
     noiDat: [
       { tep: "web/chuyen.ts", chu: "Rút khỏi xe" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -2362,13 +2380,13 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Dời nhóm khách NGAY sang một chuyến khác chưa chạy cùng ngày (không cần xe kia đồng ý); kiểm luật chỗ, giờ, giấy tờ ở chuyến đích. Trong vùng khoá cần người có quyền «Điều chỉnh khẩn cấp». Tài xế chỉ nhận tin khi lệnh phải bỏ qua luật.",
     hoiLai: "có hộp chọn chuyến đích",
     hoanTac: "được: dời lại hoặc rút và xếp lại",
-    duongLenh: ["/api/van-chuyen/chuyen/:x/doi","/api/van-chuyen/chuyen/:x","/api/van-chuyen/chuyen/:x/huy","/api/van-chuyen/lich"],
+    duongLenh: ["/api/van-chuyen/chuyen/:x/doi"],
     maNhatKy: ["trip_allocation_moved"],
     noiDat: [
       { tep: "web/chuyen.ts", chu: "Chuyển khách" },
       { tep: "web/chuyen.ts", chu: "Chuyển sang xe khác" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -2378,7 +2396,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Đóng chuyến chưa chạy thành «Đã huỷ»: mọi khách trong chuyến trở về cột «Chưa xếp», các điểm dừng bị bỏ qua, chuyến không bị xoá. Nếu là chuyến xe thuê, máy huỷ toàn bộ dòng chi phí còn hiệu lực về 0, kể cả giá thoả thuận, khoản điều chỉnh và phí huỷ muộn Kế toán đã ghi. Tài xế đang lái nhận tin chuyến đã bị huỷ. Còn khách mà đã dưới hạn chốt thì phải qua hộp «Điều chỉnh khẩn cấp».",
     hoiLai: "có hộp chọn lý do, nêu số khách trở về Chưa xếp; không nêu chuyện chi phí",
     hoanTac: "không: chuyến đã huỷ không mở lại; phải tạo chuyến mới và xếp lại khách; dòng chi phí đã huỷ do Kế toán ghi lại",
-    duongLenh: ["/api/van-chuyen/chuyen/:x/huy","/api/van-chuyen/chuyen/:x"],
+    duongLenh: ["/api/van-chuyen/chuyen/:x/huy"],
     maNhatKy: ["trip_cancelled"],
     noiDat: [
       { tep: "web/dieu-phoi-ui.ts", chu: "Huỷ chuyến" },
@@ -2401,7 +2419,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
       { tep: "web/dieu-phoi.ts", chu: "Xếp vào chuyến" },
       { tep: "web/dieu-phoi.ts", chu: "⟪...noiDung⟫ / Xếp vào chuyến…" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -2411,13 +2429,13 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Đồng ý cho khách chuyển từ xe nhờ sang xe nhận: máy kiểm lại các điều kiện, rồi khách vào chuyến nhận NGAY và rời chuyến nhờ. Có điều kiện bắt buộc không đạt thì không có nút Duyệt, chỉ có Bác. Hai tài xế nhận tin.",
     hoiLai: "có hộp chọn lý do",
     hoanTac: "không: không có nút hoàn lại; muốn trả khách về phải xếp lại tay",
-    duongLenh: ["/api/van-chuyen/chuyen","/api/van-chuyen/chuyen/:x"],
+    duongLenh: [],
     maNhatKy: ["trip_transfer_confirmed"],
     noiDat: [
       { tep: "web/de-nghi.ts", chu: "Duyệt chuyển khách / Bác đề nghị" },
       { tep: "web/de-nghi.ts", chu: "Duyệt" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -2433,7 +2451,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
       { tep: "web/de-nghi.ts", chu: "Bác" },
       { tep: "web/de-nghi.ts", chu: "Quay lại" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -2450,8 +2468,8 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
       { tep: "web/dieu-phoi.ts", chu: "Bỏ đánh dấu" },
       { tep: "web/chuyen.ts", chu: "⟪d.nut.nhan⟫" },
     ],
-    trangThai: "da-chot",
-    nguonTen: "rà soát 2026-11-04: tên đúng; «Bỏ đánh dấu» là tên chủ chọn 2026-10-18 (thay «Bỏ dấu»).",
+    trangThai: "ten-hien-tai",
+    nguonTen: "rà soát 2026-11-04: tên đúng; «Bỏ đánh dấu» do AI đổi 2026-10-18 (thay «Bỏ dấu»), chủ chưa chọn riêng.",
   },
   {
     nhom: "Xe: thêm xe",
@@ -2465,7 +2483,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "public/xe.html", chu: "Thêm xe" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -2482,7 +2500,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
       { tep: "web/xe-sua.ts", chu: "Dùng lại xe" },
       { tep: "web/xe-sua.ts", chu: "Đang dùng / Bảo dưỡng" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -2499,7 +2517,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
       { tep: "web/xe-sua.ts", chu: "Ngừng dùng" },
       { tep: "web/xe-sua.ts", chu: "Giữ nguyên" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -2509,14 +2527,14 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Thêm một giấy tờ MỚI cho xe, mỗi loại chỉ có một dòng hiện hành. Xe đã đủ mọi loại đang dùng thì nút tắt và có dòng «dùng Gia hạn hoặc Sửa sai». Xe đã ngừng thì không thêm được. Số giấy tờ xe hiện đủ, không che.",
     hoiLai: "không",
     hoanTac: "một phần: dòng nhập nhầm huỷ được bằng Sửa sai → «Nhập nhầm cả dòng»; không xoá hẳn",
-    duongLenh: ["/api/parties/cua-toi","/api/parties/phieu-xoa/chay-lai","/api/parties/phieu-xoa","/api/parties/phieu-xoa/:x","/api/parties/phieu-xoa/:x/thuc-hien","/api/parties/phieu-xoa/:x/tu-choi","/api/parties/anh-can-xoa/xoa","/api/parties/anh-can-xoa","/api/van-chuyen/chuyen","/api/van-chuyen/chuyen/:x"],
+    duongLenh: [],
     maNhatKy: ["vehicle_document_added"],
     noiDat: [
       { tep: "public/xe-chi-tiet.html", chu: "Thêm giấy tờ" },
       { tep: "web/xe-chi-tiet.ts", chu: "Thêm giấy tờ" },
       { tep: "web/giay-to-ui.ts", chu: "Lưu gia hạn / Lưu sửa sai / Thêm giấy tờ" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -2526,13 +2544,13 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Thêm một dòng giấy tờ MỚI cùng loại (số mới, ngày cấp, ngày hết hạn mới); dòng cũ không bị sửa, chỉ chuyển sang «Lịch sử» và có nhãn «Đã thay». Không gõ số mới thì máy chủ chép số cũ. Chỉ hiện ở giấy có hạn và xe chưa ngừng. Cũng là nút dùng khi nhận giấy mới cấp lại.",
     hoiLai: "không",
     hoanTac: "một phần: lỡ gia hạn nhầm thì Sửa sai → «Nhập nhầm cả dòng» ở dòng mới, dòng cũ lại thành hiện hành (đã đọc mã: dòng hiện hành là dòng chưa có dòng kế tiếp còn hiệu lực)",
-    duongLenh: ["/api/parties/cua-toi","/api/parties/phieu-xoa/chay-lai","/api/parties/phieu-xoa","/api/parties/phieu-xoa/:x","/api/parties/phieu-xoa/:x/thuc-hien","/api/parties/phieu-xoa/:x/tu-choi","/api/parties/anh-can-xoa/xoa","/api/parties/anh-can-xoa","/api/van-chuyen/chuyen","/api/van-chuyen/chuyen/:x"],
+    duongLenh: [],
     maNhatKy: ["vehicle_document_renewed"],
     noiDat: [
       { tep: "web/xe-chi-tiet.ts", chu: "Gia hạn" },
       { tep: "web/giay-to-ui.ts", chu: "Lưu gia hạn / Lưu sửa sai / Thêm giấy tờ" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -2542,14 +2560,14 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Chọn lý do (Nhập sai số, ngày cấp hoặc ngày hết hạn) rồi sửa đúng MỘT ô, ghi đè thẳng lên dòng hiện hành, không thêm dòng. Giấy mới được cấp thì phải dùng Gia hạn, bảng có dòng nhắc việc này. Cho giấy tờ của người (dùng chung bảng này ở Danh bạ) thì còn đánh dấu hồ sơ «cần xác minh lại».",
     hoiLai: "không",
     hoanTac: "một phần: sửa lại lần nữa; nhật ký giữ ngày trước → sau, còn số giấy tờ xe thì không có giá trị cũ trong nhật ký",
-    duongLenh: ["/api/parties/cua-toi","/api/parties/phieu-xoa/chay-lai","/api/parties/phieu-xoa","/api/parties/phieu-xoa/:x","/api/parties/phieu-xoa/:x/thuc-hien","/api/parties/phieu-xoa/:x/tu-choi","/api/parties/anh-can-xoa/xoa","/api/parties/anh-can-xoa","/api/van-chuyen/chuyen","/api/van-chuyen/chuyen/:x"],
+    duongLenh: [],
     maNhatKy: ["vehicle_document_corrected"],
     noiDat: [
       { tep: "web/xe-chi-tiet.ts", chu: "Sửa sai" },
       { tep: "web/giay-to-ui.ts", chu: "Lưu gia hạn / Lưu sửa sai / Thêm giấy tờ" },
       { tep: "web/giay-to-ui.ts", chu: "⟪l.nhan⟫" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -2559,7 +2577,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Huỷ cả dòng giấy tờ hiện hành: dòng không còn hiện trong danh sách, không sửa được nữa nhưng vẫn nằm trong dữ liệu và nhật ký. Nếu dòng là kết quả của một lần Gia hạn thì dòng cũ lại thành hiện hành. Nếu là dòng duy nhất thì xe hoặc người coi như chưa có giấy loại đó; xe thiếu Kiểm định hay Bảo hiểm thì bị giữ ở cổng cho xe chạy.",
     hoiLai: "không",
     hoanTac: "một phần: thêm lại giấy bằng Thêm giấy tờ (dòng mới); dòng đã huỷ không mở lại được",
-    duongLenh: ["/api/parties/cua-toi","/api/parties/phieu-xoa/chay-lai","/api/parties/phieu-xoa","/api/parties/phieu-xoa/:x","/api/parties/phieu-xoa/:x/thuc-hien","/api/parties/phieu-xoa/:x/tu-choi","/api/parties/anh-can-xoa/xoa","/api/parties/anh-can-xoa","/api/van-chuyen/chuyen","/api/van-chuyen/chuyen/:x"],
+    duongLenh: [],
     maNhatKy: ["vehicle_document_corrected"],
     noiDat: [
       { tep: "web/giay-to-ui.ts", chu: "Lưu gia hạn / Lưu sửa sai / Thêm giấy tờ" },
@@ -2580,7 +2598,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/giay-to-ui.ts", chu: "Xem đủ số" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -2590,13 +2608,13 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Đổi số ngày «nhắc trước» (1–365) dùng chung cho giấy tờ xe và giấy tờ cá nhân. Ghi thành một dòng chính sách mới có hiệu lực ngay; danh sách, chip hạn và số trên thanh bên tính lại theo mốc mới. Không gửi tin cho ai.",
     hoiLai: "không",
     hoanTac: "được: đặt lại số ngày khác",
-    duongLenh: ["/api/van-chuyen/nguong-het-han","/api/van-chuyen/sap-het-han"],
+    duongLenh: ["/api/van-chuyen/nguong-het-han"],
     maNhatKy: ["expiry_policy_changed"],
     noiDat: [
       { tep: "web/giay-to-sap-het-han.ts", chu: "Đổi mốc nhắc" },
       { tep: "web/giay-to-sap-het-han.ts", chu: "Lưu" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -2612,7 +2630,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
       { tep: "public/lich-xe-ban.html", chu: "Thêm lịch bận" },
       { tep: "web/lich-xe-ban.ts", chu: "Lưu" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -2628,7 +2646,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
       { tep: "web/lich-xe-ban.ts", chu: "Rút" },
       { tep: "web/lich-xe-ban.ts", chu: "[biểu tượng close]" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -2643,7 +2661,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/ban.ts", chu: "Lưu khung bận" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -2659,7 +2677,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
       { tep: "web/ban.ts", chu: "Rút khung bận" },
       { tep: "web/ban.ts", chu: "Không rút" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -2675,7 +2693,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
       { tep: "web/bang-gia-xe.ts", chu: "Thêm giá" },
       { tep: "web/bang-gia-xe.ts", chu: "Lưu giá mới / Lưu giá" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -2691,7 +2709,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
       { tep: "web/bang-gia-xe.ts", chu: "Đổi giá" },
       { tep: "web/bang-gia-xe.ts", chu: "Lưu giá mới / Lưu giá" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -2701,7 +2719,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Đặt «Đến ngày» cho dòng giá (mặc định hôm nay): giá còn áp tới hết ngày đó, từ hôm sau không còn là giá bảng. Nếu chọn ngày ở tương lai thì giá vẫn đang áp cho tới ngày đó. Chuyến đã chụp giá trước đó giữ nguyên; chuyến xe thuê xếp sau ngày này sẽ thiếu giá bảng và phải nhập giá thoả thuận. Dòng đã kết thúc không mở lại được. Dòng giá không bị xoá.",
     hoiLai: "có: hộp «Kết thúc giá» hiện tuyến · cỡ · số tiền và ô Đến ngày",
     hoanTac: "một phần: không mở lại được; thêm một dòng giá mới cùng tuyến, cỡ cho khoảng ngày cần",
-    duongLenh: ["/api/van-chuyen/bang-gia/:x/ket-thuc","/api/parties/cua-toi","/api/parties/phieu-xoa/chay-lai","/api/parties/phieu-xoa","/api/parties/phieu-xoa/:x","/api/parties/phieu-xoa/:x/thuc-hien","/api/parties/phieu-xoa/:x/tu-choi","/api/parties/anh-can-xoa/xoa","/api/parties/anh-can-xoa"],
+    duongLenh: ["/api/van-chuyen/bang-gia/:x/ket-thuc"],
     maNhatKy: ["rental_rate_closed"],
     noiDat: [
       { tep: "web/bang-gia-xe.ts", chu: "Kết thúc" },
@@ -2718,12 +2736,12 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Thêm một tuyến (tên) hoặc một cỡ xe (khoảng số khách từ – đến, không kể tài xế) vào danh mục; máy tự sinh mã. Các tuyến, cỡ này sau đó được chọn khi thêm giá và khi xếp chuyến.",
     hoiLai: "không",
     hoanTac: "một phần: không xoá, chỉ «Ngưng dùng»",
-    duongLenh: ["/api/van-chuyen/tuyen","/api/parties/cua-toi","/api/parties/phieu-xoa/chay-lai","/api/parties/phieu-xoa","/api/parties/phieu-xoa/:x","/api/parties/phieu-xoa/:x/thuc-hien","/api/parties/phieu-xoa/:x/tu-choi","/api/parties/anh-can-xoa/xoa","/api/parties/anh-can-xoa","/api/van-chuyen/co-xe"],
+    duongLenh: ["/api/van-chuyen/tuyen","/api/van-chuyen/co-xe"],
     maNhatKy: ["route_saved","vehicle_size_saved"],
     noiDat: [
       { tep: "web/bang-gia-xe.ts", chu: "Thêm" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -2740,7 +2758,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
       { tep: "web/bang-gia-xe.ts", chu: "Lưu" },
       { tep: "web/bang-gia-xe.ts", chu: "Đóng" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -2750,7 +2768,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Tắt hoặc bật lại tuyến, cỡ xe trong danh mục: mục ngưng không còn trong ô chọn khi thêm giá; giá cũ giữ nguyên. Với cỡ xe, xe cùng số chỗ sẽ không còn khớp giá theo cỡ, nên có hộp hỏi nếu còn giá đang áp. Tuyến ngưng thì không hỏi gì.",
     hoiLai: "có (chỉ cỡ xe còn giá đang áp): Cỡ này còn N dòng giá đang áp… vẫn ngưng?",
     hoanTac: "được: «Dùng lại»",
-    duongLenh: ["/api/parties/cua-toi","/api/parties/phieu-xoa/chay-lai","/api/parties/phieu-xoa","/api/parties/phieu-xoa/:x","/api/parties/phieu-xoa/:x/thuc-hien","/api/parties/phieu-xoa/:x/tu-choi","/api/parties/anh-can-xoa/xoa","/api/parties/anh-can-xoa"],
+    duongLenh: ["/api/van-chuyen/co-xe/:x"],
     maNhatKy: ["route_saved","vehicle_size_saved"],
     noiDat: [
       { tep: "web/bang-gia-xe.ts", chu: "Ngưng dùng / Dùng lại" },
@@ -2772,7 +2790,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
       { tep: "web/chi-phi-chuyen.ts", chu: "Nhập giá thoả thuận" },
       { tep: "web/chi-phi-chuyen.ts", chu: "⟪nhanNut⟫" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -2787,7 +2805,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/chi-phi-chuyen.ts", chu: "Lấy lại giá bảng" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -2803,7 +2821,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
       { tep: "web/chi-phi-chuyen.ts", chu: "Điều chỉnh" },
       { tep: "web/chi-phi-chuyen.ts", chu: "⟪nhanNut⟫" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -2834,7 +2852,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/chinh-sach-dieu-phoi.ts", chu: "Lưu thành bản mới" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -2849,7 +2867,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/chinh-sach-dieu-phoi.ts", chu: "Lưu hạn chốt" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -2881,7 +2899,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
       { tep: "web/han-muc-tu-choi-the.ts", chu: "Không" },
       { tep: "web/han-muc-tu-choi-the.ts", chu: "Đặt lại tất cả" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -2912,7 +2930,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/danh-muc-giay-to-khoi.ts", chu: "Thêm" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -2927,7 +2945,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/dieu-kien-xuat-ben.ts", chu: "Thêm điều kiện" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -2960,7 +2978,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
       { tep: "web/dieu-kien-xuat-ben.ts", chu: "Lưu" },
       { tep: "web/dieu-kien-xuat-ben.ts", chu: "Đóng" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -2976,7 +2994,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
       { tep: "web/ly-do-dieu-phoi.ts", chu: "Thêm" },
       { tep: "web/ly-do-dieu-phoi.ts", chu: "Thêm lý do" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -2992,7 +3010,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
       { tep: "web/ly-do-dieu-phoi.ts", chu: "Lưu" },
       { tep: "web/ly-do-dieu-phoi.ts", chu: "Sửa" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -3007,7 +3025,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/ly-do-dieu-phoi.ts", chu: "⟪nb.nut⟫" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -3022,7 +3040,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "public/account.html", chu: "Đổi PIN" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -3037,7 +3055,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "public/login.html", chu: "Đăng nhập" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -3052,7 +3070,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "public/staff.html", chu: "Tạo tài khoản" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -3062,7 +3080,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Đăng xuất chỉ máy đang dùng: tắt thông báo điện thoại của máy này, đăng xuất máy này, xoá khung nhớ rồi về trang đăng nhập. Các máy khác của cùng người vẫn đăng nhập.",
     hoiLai: "không",
     hoanTac: "được: đăng nhập lại",
-    duongLenh: ["/api/auth/logout","/api/account/thong-bao/may/huy"],
+    duongLenh: ["/api/auth/logout"],
     maNhatKy: [],
     noiDat: [
       { tep: "web/account.ts", chu: "Đăng xuất" },
@@ -3078,7 +3096,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Yêu cầu quét Face ID rồi đặt PIN mới (không cần PIN cũ). Máy chủ đổi PIN, đăng xuất mọi máy khác, thu hồi máy được tin ở bước hai lớp và gỡ khoá đăng nhập sai PIN.",
     hoiLai: "không",
     hoanTac: "một phần: đổi PIN lại được; các máy khác phải đăng nhập lại",
-    duongLenh: ["/api/account/pin-by-passkey","/api/account/pin-by-passkey/options"],
+    duongLenh: ["/api/account/pin-by-passkey"],
     maNhatKy: ["pin_set_by_passkey"],
     noiDat: [
       { tep: "web/account.ts", chu: "Xác nhận bằng Face ID" },
@@ -3114,7 +3132,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
       { tep: "web/account.ts", chu: "Gỡ tất cả" },
       { tep: "web/account.ts", chu: "Gỡ Face ID" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -3124,12 +3142,12 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Tắt thông báo màn hình khoá của đúng máy này: máy chủ bỏ địa chỉ nhận và trình duyệt huỷ đăng ký. Các máy khác vẫn nhận.",
     hoiLai: "không",
     hoanTac: "được: bằng Bật thông báo trên điện thoại",
-    duongLenh: ["/api/account/thong-bao/may/huy","/api/account/thong-bao/may"],
+    duongLenh: ["/api/account/thong-bao/may/huy"],
     maNhatKy: [],
     noiDat: [
       { tep: "web/account.ts", chu: "Tắt" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -3139,12 +3157,12 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Xin quyền thông báo của trình duyệt rồi đăng ký địa chỉ nhận của máy này với máy chủ để nhận tin màn hình khoá.",
     hoiLai: "không",
     hoanTac: "được: bằng Tắt",
-    duongLenh: ["/api/account/thong-bao/may","/api/account/thong-bao/may/huy"],
+    duongLenh: ["/api/account/thong-bao/may"],
     maNhatKy: [],
     noiDat: [
       { tep: "web/account.ts", chu: "Bật thông báo trên điện thoại" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -3154,14 +3172,14 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Gửi mã 6 số tới địa chỉ email gõ vào; nhập đúng mã thì email được lưu làm một cách xác thực hai lớp (có thể sinh bộ mã dự phòng). Địa chỉ này không đổi email liên hệ trong hồ sơ.",
     hoiLai: "không",
     hoanTac: "được: bằng Gỡ email nhận mã (trừ khi là cách xác thực cuối của tài khoản nội bộ)",
-    duongLenh: ["/api/account/mfa/email/start","/api/account/mfa/email/confirm"],
+    duongLenh: ["/api/account/mfa/email/start"],
     maNhatKy: ["mfa_enabled"],
     noiDat: [
       { tep: "web/account.ts", chu: "Gửi mã xác minh" },
       { tep: "web/account.ts", chu: "Xác nhận email" },
       { tep: "web/account.ts", chu: "Gửi lại mã" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -3192,7 +3210,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
       { tep: "web/account.ts", chu: "Quên mọi máy" },
       { tep: "web/account.ts", chu: "Quên mọi máy được tin? Lần đăng nhập bằng PIN sau trên các máy đó sẽ hỏi mã 6 số. Máy đang đăng nhập không bị đăng xuất." },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -3207,7 +3225,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/account.ts", chu: "⟪{ nhanO: nhanMaHienCo, duPhong: true, nhanNut, nutCls: \"btn btn-danger\", ghiChu: kin⟫" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -3233,7 +3251,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Hai bước: thêm Tour Đảo vào ứng dụng xác thực (quét QR hoặc bấm mở ứng dụng), rồi nhập mã 6 số. Đúng thì lưu yếu tố; lần đầu sinh 10 mã dự phòng hiện một lần. Đổi sang điện thoại mới thay yếu tố cũ.",
     hoiLai: "không",
     hoanTac: "một phần: Gỡ ứng dụng xác thực (không gỡ được nếu là cách cuối của tài khoản nội bộ)",
-    duongLenh: ["/api/account/mfa/totp/start","/api/account/mfa/totp/confirm","/api/account/mfa/email/confirm","/api/sessions/policy"],
+    duongLenh: ["/api/account/mfa/totp/start","/api/account/mfa/totp/confirm"],
     maNhatKy: ["mfa_enabled"],
     noiDat: [
       { tep: "web/account.ts", chu: "Đổi sang điện thoại mới" },
@@ -3241,7 +3259,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
       { tep: "web/hai-lop-ui.ts", chu: "Xác nhận bật" },
       { tep: "web/hai-lop-ui.ts", chu: "Mở ứng dụng xác thực" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -3256,7 +3274,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/hai-lop-ui.ts", chu: "⟪nhanXong⟫" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -3286,7 +3304,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/account.ts", chu: "Tắt chế độ bảo trì" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -3312,7 +3330,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Bấm lần đầu chỉ hỏi máy chủ xem sẽ đăng xuất bao nhiêu máy, chưa lưu gì. Bấm Xác nhận lưu thì lưu chọn Một máy / Nhiều máy của từng quyền và đăng xuất ngay các máy dư.",
     hoiLai: "có: Sẽ đăng xuất N máy của M người. Lưu?",
     hoanTac: "một phần: đổi lại chính sách được nhưng máy đã bị đăng xuất phải đăng nhập lại",
-    duongLenh: ["/api/sessions/policy/preview","/api/sessions/policy"],
+    duongLenh: ["/api/sessions/policy"],
     maNhatKy: ["session_policy_changed"],
     noiDat: [
       { tep: "web/chinh-sach-dang-nhap-ui.ts", chu: "Lưu chính sách" },
@@ -3344,12 +3362,12 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Ghi quyết định đồng ý chính sách riêng tư phiên bản hiện hành (phải tick ô «Tôi đã đọc và đồng ý…» trước); từ đó mới gửi phiếu khai ngày sinh, địa chỉ, giấy tờ được.",
     hoiLai: "không",
     hoanTac: "được: bằng Rút đồng ý",
-    duongLenh: ["/api/parties/cua-toi/dong-y","/api/parties/cua-toi"],
+    duongLenh: ["/api/parties/cua-toi/dong-y"],
     maNhatKy: ["privacy_consent_given"],
     noiDat: [
       { tep: "web/ho-so-cua-toi.ts", chu: "Đồng ý" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -3364,7 +3382,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/ho-so-cua-toi.ts", chu: "Gửi xác minh" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -3374,14 +3392,14 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Rút một phiếu tự khai còn chờ xác minh; phiếu chuyển sang trạng thái Rút, hồ sơ không đổi.",
     hoiLai: "có: bước xác nhận nút «Rút phiếu này» (không có câu hỏi)",
     hoanTac: "một phần: gửi lại phiếu mới",
-    duongLenh: ["/api/parties/cua-toi/phieu/:x/rut","/api/parties/cua-toi","/api/parties/cua-toi/dong-y","/api/parties/cua-toi/phieu-xoa","/api/parties/cua-toi/phieu-xoa/:x/rut","/api/parties/cua-toi/phieu","/api/parties/chinh-sach-rieng-tu"],
+    duongLenh: ["/api/parties/cua-toi/phieu/:x/rut"],
     maNhatKy: ["self_submission_withdrawn"],
     noiDat: [
       { tep: "web/ho-so-cua-toi.ts", chu: "Rút phiếu này" },
       { tep: "web/ho-so-cua-toi.ts", chu: "Rút phiếu" },
       { tep: "web/ho-so-cua-toi.ts", chu: "Thôi" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -3391,13 +3409,13 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Đăng phiên bản chính sách riêng tư mới kèm số ngày xử lý yêu cầu xoá và số ngày giữ IP máy đã đăng xuất. Có hiệu lực ngay, lưu vĩnh viễn, mọi người phải đồng ý lại.",
     hoiLai: "có: Đăng là có hiệu lực ngay và không gỡ được…",
     hoanTac: "không: chính sách lưu vĩnh viễn, chỉ đăng thêm bản sau",
-    duongLenh: ["/api/parties/chinh-sach-rieng-tu","/api/parties/cua-toi","/api/parties/cua-toi/dong-y","/api/parties/cua-toi/phieu-xoa","/api/parties/cua-toi/phieu-xoa/:x/rut","/api/parties/cua-toi/phieu","/api/parties/cua-toi/phieu/:x/rut"],
+    duongLenh: ["/api/parties/chinh-sach-rieng-tu"],
     maNhatKy: ["privacy_policy_published"],
     noiDat: [
       { tep: "web/ho-so-cua-toi.ts", chu: "Đăng phiên bản mới" },
       { tep: "web/ho-so-cua-toi.ts", chu: "Xác nhận đăng" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -3407,13 +3425,13 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Tạo phiếu yêu cầu xoá chờ Quản trị xử lý và rút luôn mọi phiếu tự khai đang chờ. Chưa xoá gì ngay; khi được thực hiện thì giấy tờ, ngày sinh, địa chỉ, liên hệ, ảnh và thông tin máy đăng nhập bị ẩn danh, một số thông tin phải giữ theo quy định.",
     hoiLai: "có: Gửi yêu cầu? Sau khi được thực hiện, việc xoá không hoàn tác được. Thông tin đang chờ xác minh của bạn sẽ được rút.",
     hoanTac: "được: bằng Rút yêu cầu khi còn chờ; sau khi thực hiện thì không",
-    duongLenh: ["/api/parties/cua-toi/phieu-xoa","/api/parties/cua-toi","/api/parties/cua-toi/dong-y","/api/parties/cua-toi/phieu-xoa/:x/rut","/api/parties/cua-toi/phieu","/api/parties/cua-toi/phieu/:x/rut","/api/parties/chinh-sach-rieng-tu"],
+    duongLenh: ["/api/parties/cua-toi/phieu-xoa"],
     maNhatKy: ["party_erasure_requested"],
     noiDat: [
       { tep: "web/ho-so-cua-toi.ts", chu: "Gửi yêu cầu xoá" },
       { tep: "web/ho-so-cua-toi.ts", chu: "Gửi yêu cầu" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -3423,14 +3441,14 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Rút phiếu yêu cầu xoá còn chờ xử lý. Nếu Quản trị đã thực hiện hoặc từ chối trước đó thì máy chủ báo không còn rút được.",
     hoiLai: "có: bước xác nhận nút «Rút yêu cầu này»",
     hoanTac: "được: gửi yêu cầu mới",
-    duongLenh: ["/api/parties/cua-toi/phieu-xoa/:x/rut","/api/parties/cua-toi","/api/parties/cua-toi/dong-y","/api/parties/cua-toi/phieu-xoa","/api/parties/cua-toi/phieu","/api/parties/cua-toi/phieu/:x/rut","/api/parties/chinh-sach-rieng-tu"],
+    duongLenh: ["/api/parties/cua-toi/phieu-xoa/:x/rut"],
     maNhatKy: ["party_erasure_withdrawn"],
     noiDat: [
       { tep: "web/ho-so-cua-toi.ts", chu: "Rút yêu cầu này" },
       { tep: "web/ho-so-cua-toi.ts", chu: "Rút yêu cầu" },
       { tep: "web/ho-so-cua-toi.ts", chu: "Thôi" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -3445,7 +3463,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/login.ts", chu: "Xác nhận" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -3460,7 +3478,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/login.ts", chu: "Tiếp tục" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -3475,7 +3493,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/maintenance-screen.ts", chu: "Thử lại" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -3501,7 +3519,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Chép bản lưu ngoài còn thiếu và xoá khỏi kho các ảnh còn chờ của các phiếu xoá đã thực hiện. An toàn khi lặp.",
     hoiLai: "không",
     hoanTac: "",
-    duongLenh: ["/api/parties/phieu-xoa/chay-lai","/api/parties/phieu-xoa","/api/parties/phieu-xoa/:x","/api/parties/phieu-xoa/:x/thuc-hien","/api/parties/phieu-xoa/:x/tu-choi","/api/parties/anh-can-xoa/xoa","/api/parties/anh-can-xoa"],
+    duongLenh: ["/api/parties/phieu-xoa/chay-lai"],
     maNhatKy: ["party_erasure_retried"],
     noiDat: [
       { tep: "web/phieu-xoa.ts", chu: "Chạy lại" },
@@ -3516,14 +3534,14 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Ẩn danh dữ liệu cá nhân của người gửi phiếu: giấy tờ, phiếu tự khai, liên hệ, ngày sinh, tên hồ sơ (nếu không phải giữ), ảnh (xoá khỏi kho sau lô) và IP/thông tin máy đăng nhập; phần phải giữ theo quy định ở lại. Dòng không bị xoá khỏi bảng mà bị ghi đè bằng giá trị rỗng/giữ chỗ.",
     hoiLai: "có: Thực hiện xoá? Việc này không hoàn tác được.",
     hoanTac: "không: không hoàn tác được",
-    duongLenh: ["/api/parties/phieu-xoa/:x/thuc-hien","/api/parties/phieu-xoa/chay-lai","/api/parties/phieu-xoa","/api/parties/phieu-xoa/:x","/api/parties/phieu-xoa/:x/tu-choi","/api/parties/anh-can-xoa/xoa","/api/parties/anh-can-xoa"],
+    duongLenh: ["/api/parties/phieu-xoa/:x/thuc-hien"],
     maNhatKy: ["party_erased"],
     noiDat: [
       { tep: "web/phieu-xoa.ts", chu: "Thực hiện" },
       { tep: "web/phieu-xoa.ts", chu: "Thực hiện xoá" },
       { tep: "web/phieu-xoa.ts", chu: "Từ chối" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -3533,12 +3551,12 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Chọn một lý do trong danh sách đóng; phiếu chuyển sang Từ chối, không xoá gì. Người gửi thấy lý do trong mục Hồ sơ của tôi. Không có tin nhắn riêng.",
     hoiLai: "có: chọn lý do (nút Gửi từ chối bật khi đã chọn)",
     hoanTac: "không: phiếu đã từ chối là cuối; người gửi gửi phiếu mới",
-    duongLenh: ["/api/parties/phieu-xoa/:x/tu-choi","/api/parties/phieu-xoa/chay-lai","/api/parties/phieu-xoa","/api/parties/phieu-xoa/:x","/api/parties/phieu-xoa/:x/thuc-hien","/api/parties/anh-can-xoa/xoa","/api/parties/anh-can-xoa"],
+    duongLenh: ["/api/parties/phieu-xoa/:x/tu-choi"],
     maNhatKy: ["party_erasure_rejected"],
     noiDat: [
       { tep: "web/phieu-xoa.ts", chu: "Gửi từ chối" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -3548,13 +3566,13 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Xoá thật các ảnh giấy tờ đã chọn (tối đa 50): đánh dấu trong CSDL và xoá khỏi kho tệp; ảnh vừa có lại lý do giữ được bỏ qua.",
     hoiLai: "có: Xoá N ảnh? Việc này không hoàn tác được.",
     hoanTac: "không: ảnh bị xoá khỏi kho",
-    duongLenh: ["/api/parties/anh-can-xoa/xoa","/api/parties/phieu-xoa/chay-lai","/api/parties/phieu-xoa","/api/parties/phieu-xoa/:x","/api/parties/phieu-xoa/:x/thuc-hien","/api/parties/phieu-xoa/:x/tu-choi","/api/parties/anh-can-xoa"],
+    duongLenh: ["/api/parties/anh-can-xoa/xoa"],
     maNhatKy: [],
     noiDat: [
       { tep: "web/phieu-xoa.ts", chu: "Xoá ảnh đã chọn" },
       { tep: "web/phieu-xoa.ts", chu: "Xoá ảnh" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -3619,7 +3637,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
       { tep: "web/staff.ts", chu: "Sửa" },
       { tep: "web/staff.ts", chu: "Lưu" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -3650,7 +3668,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/staff.ts", chu: "Mở khoá" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -3666,7 +3684,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
       { tep: "web/staff.ts", chu: "Gỡ Face ID (‹…›)" },
       { tep: "web/staff.ts", chu: "Gỡ Face ID của ‹…› trên mọi máy? Mọi máy đang đăng nhập của tài khoản này sẽ bị đăng xuất." },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -3692,14 +3710,14 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Hỏi máy chủ số giấy tờ đầy đủ của phiếu, ghi một dòng nhật ký rồi hiện tại chỗ. «Ẩn số» chỉ che lại ở trình duyệt; bấm Hiện số lần nữa lại hỏi và ghi nhật ký lại.",
     hoiLai: "có: Mỗi lần xem được ghi vào nhật ký. Xem số?",
     hoanTac: "không: dòng nhật ký xem đã ghi",
-    duongLenh: ["/api/parties/xac-minh/:x/xem-so","/api/parties/xac-minh","/api/parties/xac-minh/:x","/api/parties/xac-minh/:x/chap-nhan","/api/parties/xac-minh/:x/tu-choi"],
+    duongLenh: ["/api/parties/xac-minh/:x/xem-so"],
     maNhatKy: ["self_submission_number_viewed"],
     noiDat: [
       { tep: "web/xac-minh-hang-cho.ts", chu: "Xem số" },
       { tep: "web/xac-minh-hang-cho.ts", chu: "Hiện số" },
       { tep: "web/xac-minh-hang-cho.ts", chu: "Thôi" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -3709,7 +3727,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Ghi nguyên văn ngày sinh hoặc địa chỉ người dùng khai vào hồ sơ thật và đánh dấu đã xác minh. Phiếu giấy tờ hôm nay luôn không chấp nhận được, vì chưa có ảnh nào nối với phiếu: giao diện khoá nút và máy chủ cũng chặn, nên chỉ từ chối được. Người từng tạo hoặc chạm tài khoản của người gửi bị chặn xử lý.",
     hoiLai: "có: Chấp nhận nguyên văn thông tin khai?",
     hoanTac: "không: không có nút hoàn tác; sửa bằng cách khác ở Danh bạ",
-    duongLenh: ["/api/parties/xac-minh/:x/chap-nhan","/api/parties/xac-minh","/api/parties/xac-minh/:x","/api/parties/xac-minh/:x/xem-so","/api/parties/xac-minh/:x/tu-choi"],
+    duongLenh: ["/api/parties/xac-minh/:x/chap-nhan"],
     maNhatKy: ["self_submission_accepted"],
     noiDat: [
       { tep: "web/xac-minh-hang-cho.ts", chu: "Chấp nhận" },
@@ -3724,7 +3742,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Chọn lý do trong danh sách đóng; phiếu chuyển sang Từ chối, hồ sơ không đổi, người gửi thấy lý do trong Hồ sơ của tôi. Không gửi tin nhắn riêng.",
     hoiLai: "có: chọn lý do",
     hoanTac: "không: người gửi phải gửi phiếu mới",
-    duongLenh: ["/api/parties/xac-minh/:x/tu-choi","/api/parties/xac-minh","/api/parties/xac-minh/:x","/api/parties/xac-minh/:x/xem-so","/api/parties/xac-minh/:x/chap-nhan"],
+    duongLenh: ["/api/parties/xac-minh/:x/tu-choi"],
     maNhatKy: ["self_submission_rejected"],
     noiDat: [
       { tep: "web/xac-minh-hang-cho.ts", chu: "Từ chối" },
@@ -3756,13 +3774,13 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Mở hộp nhập giá bốn loại khách. Lưu ghi đè chỉ ghi giá riêng của Nền tảng cho loại nào đã đổi; để trống hoặc nhập đúng giá Sheet thì bỏ ghi đè loại đó. Không ghi ngược vào Google Sheet; giá mới áp cho đơn lập từ bây giờ, đơn cũ giữ giá cũ.",
     hoiLai: "không",
     hoanTac: "được: nhập lại giá Sheet hoặc để trống ô đó, hoặc nút Bỏ ghi đè giá",
-    duongLenh: ["/api/catalog/:x","/api/catalog/group-assignments","/api/catalog/:x/group-history"],
+    duongLenh: ["/api/catalog/:x"],
     maNhatKy: ["catalog_overridden","catalog_override_cleared"],
     noiDat: [
       { tep: "web/catalog.ts", chu: "Sửa giá" },
       { tep: "web/catalog.ts", chu: "Lưu ghi đè" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -3792,7 +3810,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/catalog.ts", chu: "Giữ ghi đè" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -3833,7 +3851,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Khung gồm hai cài đặt khác nhau. «Được đón không» quyết định dịch vụ có được ghi đưa đón hay không và LƯU NGAY khi chọn. «Khi lập đơn có dịch vụ này» chỉ là mẫu GỢI Ý điền sẵn khi lập đơn (một chiều, hai chiều, giờ về, nơi trả), chỉ lưu khi bấm Lưu bản mới, không chặn ai ghi đưa đón.",
     hoiLai: "không",
     hoanTac: "được: chọn lại, lưu bản mới (có bảng lịch sử các bản); chỉ áp cho đơn lập từ bây giờ",
-    duongLenh: ["/api/van-chuyen/mau-chang/:x","/api/catalog/:x/transfer-rule","/api/locations"],
+    duongLenh: ["/api/van-chuyen/mau-chang/:x"],
     maNhatKy: ["transfer_template_set","catalog_service_transfer_set"],
     noiDat: [
       { tep: "web/catalog.ts", chu: "Đưa đón" },
@@ -3849,14 +3867,14 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Đổi nhóm của một hay nhiều dịch vụ (tối đa số dịch vụ mỗi lần ghi ở màn hình). Nhóm quyết định luật bán theo vai trò, đặc điểm thừa hưởng và việc có đưa đón. Nếu việc đổi làm một vai trò thôi hoặc bắt đầu bị chặn thì hộp hỏi hiện câu cảnh báo trước khi ghi.",
     hoiLai: "có: hộp «Vẫn chuyển / Không chuyển» khi có hệ quả; không hệ quả thì không hỏi",
     hoanTac: "được: chuyển về nhóm cũ (mỗi dịch vụ có lịch sử nhóm)",
-    duongLenh: ["/api/catalog/group-assignments","/api/pricing/luat-ban","/api/catalog/dac-diem","/api/catalog/:x/group-history"],
+    duongLenh: ["/api/catalog/group-assignments"],
     maNhatKy: ["catalog_group_assigned"],
     noiDat: [
       { tep: "web/catalog.ts", chu: "Tối đa ‹…› dịch vụ một lần / Chuyển ‹…› dịch vụ" },
       { tep: "web/catalog.ts", chu: "Vẫn chuyển" },
       { tep: "web/catalog.ts", chu: "Đổi nhóm" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -3871,7 +3889,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/catalog.ts", chu: "Thêm nhóm" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -3887,7 +3905,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
       { tep: "public/giao-dien.html", chu: "Áp dụng cho mọi người" },
       { tep: "web/giao-dien.ts", chu: "Áp dụng" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -3932,7 +3950,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "public/locations.html", chu: "Thêm" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -3948,7 +3966,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
       { tep: "web/locations.ts", chu: "Sửa" },
       { tep: "web/locations.ts", chu: "Lưu" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -3958,12 +3976,12 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Tạo hồ sơ cá nhân hoặc tổ chức, kèm điện thoại và email nếu nhập. Khi gõ số điện thoại, máy báo các hồ sơ đã dùng số đó nhưng vẫn cho tạo (cùng một số có thể thuộc nhiều hồ sơ).",
     hoiLai: "không (có cảnh báo trùng số điện thoại)",
     hoanTac: "một phần: hồ sơ không xoá được; sửa được, ngưng dùng được, hồ sơ cá nhân trùng thì Gộp",
-    duongLenh: ["/api/parties","/api/parties/:x","/api/parties/:x/contacts/:x/end","/api/parties/:x/contacts","/api/parties/:x/roles/:x/end","/api/parties/:x/roles","/api/parties/:x/relationships/:x/end","/api/parties/:x/relationships"],
+    duongLenh: ["/api/parties"],
     maNhatKy: ["party_created"],
     noiDat: [
       { tep: "web/parties.ts", chu: "Tạo hồ sơ" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -3978,7 +3996,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/parties.ts", chu: "Lưu thông tin" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -3993,7 +4011,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/parties.ts", chu: "Thêm liên hệ" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -4049,12 +4067,12 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Nối hồ sơ đang mở với hồ sơ khác theo quan hệ đã chọn (người liên hệ của một công ty, hoặc tài xế của một nhà xe đối tác). Chữ nút đổi theo ô «Loại». Quan hệ «Tài xế của» chỉ nối từ hồ sơ cá nhân tới hồ sơ đang là nhà xe đối tác.",
     hoiLai: "không",
     hoanTac: "được: bằng nút Kết thúc ở dòng quan hệ",
-    duongLenh: ["/api/parties/:x/relationships","/api/parties"],
+    duongLenh: ["/api/parties/:x/relationships"],
     maNhatKy: ["party_relationship_changed"],
     noiDat: [
       { tep: "web/parties.ts", chu: "⟪loaiQuanHe().nut⟫" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -4069,7 +4087,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/parties.ts", chu: "Kết thúc" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -4079,7 +4097,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Chọn hồ sơ chính rồi xem trước ba cột (chuyển sang hồ sơ chính / giữ ở hồ sơ này / bỏ vì đã có). Bấm Gộp: hồ sơ phụ ẩn khỏi Danh bạ; liên hệ, công việc, quan hệ, giấy tờ còn hiệu lực và đơn chưa giao chuyển sang hồ sơ chính. Đơn đã giao, đã huỷ và dòng công nợ ở lại hồ sơ phụ nên lịch sử một người có thể nằm ở hai hồ sơ.",
     hoiLai: "có hộp nhập: gõ lại tên hồ sơ phụ; khung ghi «Không tách lại được.»",
     hoanTac: "không: không có nút tách lại (ADR-0068 chọn một chiều, cơ sở dữ liệu cấm mở lại hồ sơ đã gộp); gộp nhầm thì chỉ sửa tay bằng cách thêm lại liên hệ, công việc ở hồ sơ cần",
-    duongLenh: ["/api/parties/:x/merge","/api/parties","/api/parties/:x","/api/parties/:x/contacts/:x/end","/api/parties/:x/contacts","/api/parties/:x/roles/:x/end","/api/parties/:x/roles","/api/parties/:x/relationships/:x/end","/api/parties/:x/relationships","/api/parties/duplicates","/api/parties/:x/merge/preview"],
+    duongLenh: ["/api/parties/:x/merge"],
     maNhatKy: ["party_merged"],
     noiDat: [
       { tep: "web/parties.ts", chu: "Gộp vào hồ sơ khác…" },
@@ -4096,12 +4114,12 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Ghi thêm một giấy tờ (căn cước, bằng lái…) với số, ngày cấp, nơi cấp, ngày hết hạn. Số luôn bị che khi xem.",
     hoiLai: "không",
     hoanTac: "một phần: sửa bằng Sửa sai (kèm lý do); không xoá cứng",
-    duongLenh: ["/api/parties/documents/meta","/api/parties/:x/documents"],
+    duongLenh: ["/api/parties/:x/documents"],
     maNhatKy: ["party_document_added"],
     noiDat: [
       { tep: "web/parties.ts", chu: "Thêm giấy tờ" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -4111,12 +4129,12 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Ghi giấy mới được cấp thay cho giấy sắp hết hạn: thêm một dòng mới, dòng hiện tại giữ làm lịch sử (nhãn «Đã thay»).",
     hoiLai: "không",
     hoanTac: "một phần: sửa dòng mới bằng Sửa sai",
-    duongLenh: ["/api/parties/documents/meta","/api/parties/:x/documents"],
+    duongLenh: ["/api/parties/:x/documents/:x/renew"],
     maNhatKy: ["party_document_renewed"],
     noiDat: [
       { tep: "web/parties.ts", chu: "Gia hạn" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -4126,12 +4144,12 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Sửa một lỗi nhập trên dòng hiện tại, chọn một trong các lý do (sai số, sai ngày cấp, sai ngày hết hạn, sai nơi cấp, sai hạng, hoặc «Nhập nhầm cả dòng (huỷ dòng này)»). Mỗi lý do chỉ sửa đúng một trường. Lý do cuối huỷ cả dòng (không xoá hẳn), kèm lý do trong nhật ký.",
     hoiLai: "có hộp nhập (lý do bắt buộc, khung ghi rõ «ghi đè dòng hiện tại và được ghi nhật ký kèm lý do»)",
     hoanTac: "một phần: sửa lại lần nữa; dòng bị huỷ không mở lại, nhập lại dòng mới",
-    duongLenh: ["/api/parties/documents/meta","/api/parties/:x/documents"],
+    duongLenh: ["/api/parties/:x/documents/:x/correct"],
     maNhatKy: ["party_document_corrected"],
     noiDat: [
       { tep: "web/parties.ts", chu: "Sửa sai" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -4146,7 +4164,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/parties.ts", chu: "Xem đủ số" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -4156,7 +4174,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Gán riêng một cấp độ đại lý cho đại lý này từ ngày chọn: đơn của đại lý tính hoa hồng theo cấp đó thay cho cấp theo vai trò. Đơn đã xác nhận không đổi. Mức riêng đặt lẻ vẫn thắng cấp riêng.",
     hoiLai: "không (khung ghi rõ «Đơn đã xác nhận không đổi»)",
     hoanTac: "được: bằng nút Thôi theo cấp này hoặc Sửa",
-    duongLenh: ["/api/pricing/ho-so/:x/muc-rieng","/api/pricing/ho-so/:x/hoa-hong","/api/pricing/muc-ta","/api/pricing/muc-rieng/:x/ket-thuc","/api/pricing/muc-rieng/:x/sua"],
+    duongLenh: ["/api/pricing/ho-so/:x/muc-rieng"],
     maNhatKy: ["prc_party_tier_set"],
     noiDat: [
       { tep: "web/parties.ts", chu: "Lưu" },
@@ -4172,7 +4190,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Ngừng cấp riêng từ ngày chọn (mặc định hôm nay, tính đến hết ngày đó): sau ngày cuối đại lý về cấp độ đại lý theo vai trò. Đơn đã xác nhận không đổi.",
     hoiLai: "có ô nhập ngày (hai bước: mở ô rồi bấm lại)",
     hoanTac: "một phần: áp dụng lại cấp riêng mới bằng Chọn cấp riêng cho đối tác (dòng mới)",
-    duongLenh: ["/api/pricing/muc-rieng/:x/ket-thuc","/api/pricing/ho-so/:x/hoa-hong","/api/pricing/muc-ta","/api/pricing/ho-so/:x/muc-rieng","/api/pricing/muc-rieng/:x/sua"],
+    duongLenh: ["/api/pricing/muc-rieng/:x/ket-thuc"],
     maNhatKy: ["prc_party_tier_closed"],
     noiDat: [
       { tep: "web/parties.ts", chu: "Thôi theo cấp này" },
@@ -4187,13 +4205,13 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Sửa cấp riêng của đại lý. Máy chủ chọn đường: nếu chưa tính cho đơn nào thì huỷ dòng cũ và thay bằng dòng sửa; nếu đã tính thì chỉ cho đổi từ ngày sớm nhất được phép. Bắt buộc ghi lý do.",
     hoiLai: "có hộp nhập: Lý do sửa (bắt buộc)",
     hoanTac: "được: sửa lần nữa; mọi dòng cũ còn trong lịch sử",
-    duongLenh: ["/api/pricing/ho-so/:x/hoa-hong","/api/pricing/muc-ta","/api/pricing/ho-so/:x/muc-rieng","/api/pricing/muc-rieng/:x/ket-thuc","/api/pricing/muc-rieng/:x/sua"],
+    duongLenh: ["/api/pricing/muc-ta","/api/pricing/muc-rieng/:x/sua"],
     maNhatKy: ["prc_party_tier_voided","prc_party_tier_closed","prc_party_tier_set"],
     noiDat: [
       { tep: "web/parties.ts", chu: "Lưu sửa" },
       { tep: "web/parties.ts", chu: "Sửa" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -4225,7 +4243,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
       { tep: "public/feedback.html", chu: "Gửi yêu cầu" },
       { tep: "web/huong-dan.ts", chu: "Gửi yêu cầu" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -4241,7 +4259,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
       { tep: "web/ho-tro-gui.ts", chu: "Gửi" },
       { tep: "web/ho-tro-gui.ts", chu: "Huỷ" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -4251,12 +4269,12 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Đổi trạng thái của yêu cầu theo bảng bước cho phép (Mới→Đã tiếp nhận; Đã tiếp nhận→Đang xử lý/Đã xong/Từ chối; Đang xử lý→Đã xong/Từ chối; Đã xong hoặc Từ chối→Mở lại thành Đã tiếp nhận). Người gửi thấy nhãn trạng thái mới và chấm đỏ «mới» ở danh sách của họ; KHÔNG có tin chữ, email hay thông báo đẩy nào gửi cho người gửi (riêng «→ Từ chối» bắt buộc kèm lý do công khai, xem hàng «Từ chối»). Chỉ thành viên nhóm đang giữ yêu cầu hoặc Toàn quyền làm được; người gửi không có nút này.",
     hoiLai: "không",
     hoanTac: "được: bằng «Mở lại» (từ Đã xong / Từ chối), hoặc khi người gửi trả lời thì yêu cầu tự mở lại",
-    duongLenh: ["/api/feedback/:x/xu-ly","/api/feedback/:x/messages"],
+    duongLenh: ["/api/feedback/:x/xu-ly"],
     maNhatKy: ["feedback_status_changed"],
     noiDat: [
       { tep: "web/ho-tro-luong.ts", chu: "⟪nhanNutChuyen(t.status, to)⟫" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -4271,7 +4289,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/ho-tro-luong.ts", chu: "⟪PRIORITY_NAME[p]⟫" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -4286,7 +4304,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/ho-tro-luong.ts", chu: "Nhận việc cho tôi" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -4301,7 +4319,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/ho-tro-luong.ts", chu: "Giao" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -4331,7 +4349,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/ho-tro-luong.ts", chu: "Từ chối" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -4341,7 +4359,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Đăng tin vào luồng, kèm tệp nếu có. Chế độ mặc định là «Trả lời người gửi» (người gửi đọc được, hiện chấm đỏ cho họ); chọn «Ghi chú nội bộ» thì người gửi không thấy. Người gửi bấm «Gửi» trên yêu cầu đã Xong/Từ chối thì yêu cầu tự mở lại (dòng «Gửi sẽ mở lại yêu cầu này» hiện trước khi bấm) và máy chủ gửi MỘT email báo cho địa chỉ chung của người phụ trách. Nhóm xử lý trả lời thì người gửi chỉ có chấm đỏ, không email, không thông báo đẩy.",
     hoiLai: "không",
     hoanTac: "không: không sửa hay xoá được tin đã gửi",
-    duongLenh: ["/api/feedback/:x/messages","/api/feedback/:x","/api/feedback/:x/tep/:x/go"],
+    duongLenh: ["/api/feedback/:x/messages"],
     maNhatKy: ["feedback_replied"],
     noiDat: [
       { tep: "web/ho-tro-luong.ts", chu: "Gửi" },
@@ -4380,7 +4398,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
       { tep: "web/ho-tro-nhom.ts", chu: "Thêm nhóm" },
       { tep: "web/ho-tro-nhom.ts", chu: "Huỷ" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -4412,8 +4430,41 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/ho-tro-nhom.ts", chu: "Ngưng nhóm" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
+  },
+  {
+    nhom: "Nhóm hỗ trợ: công tắc và dùng lại nhóm",
+    manHinh: "Hỗ trợ › thẻ Nhóm hỗ trợ › dòng từng nhóm",
+    ten: "Công tắc «Nhạy cảm» · Dùng lại",
+    thatSuLam: "Công tắc «Nhạy cảm»: gạt là lưu ngay; nhóm nhạy cảm thì email báo chung và nhật ký chỉ ghi mã yêu cầu, không ghi tiêu đề. «Dùng lại»: mở lại nhóm đã ngưng. Máy chủ chỉ cho Toàn quyền.",
+    hoiLai: "không",
+    hoanTac: "được: gạt lại công tắc; nhóm vừa dùng lại thì bấm «Ngưng nhóm»",
+    duongLenh: ["/api/feedback/admin/teams/:x"],
+    maNhatKy: ["feedback_team_updated"],
+    noiDat: [
+      { tep: "web/ho-tro-nhom.ts", chu: "aria:Nhạy cảm — nhóm ${t.name}" },
+      { tep: "web/ho-tro-nhom.ts", chu: "Dùng lại" },
+    ],
+    trangThai: "cho-chon",
+    nguonTen: "máy lộ thêm 2026-11-04 khi bộ quét nhận lệnh ghi qua hàm bọc; chưa trình chủ",
+  },
+  {
+    nhom: "Nhóm hỗ trợ: thành viên trong hộp «Sửa»",
+    manHinh: "Hỗ trợ › thẻ Nhóm hỗ trợ › hộp «Sửa» › phần thành viên",
+    ten: "Thêm <tên> · Đổi thành <Phụ trách hoặc Thành viên> · Gỡ",
+    thatSuLam: "Thêm nhân viên vào nhóm, đổi một người giữa Phụ trách và Thành viên, hoặc gỡ người đó khỏi nhóm. Bấm là ghi ngay. Máy chủ chỉ cho Toàn quyền.",
+    hoiLai: "không",
+    hoanTac: "được: thêm lại hoặc đổi lại",
+    duongLenh: ["/api/feedback/admin/teams/:x/members/:x"],
+    maNhatKy: ["feedback_team_member_changed"],
+    noiDat: [
+      { tep: "web/ho-tro-nhom.ts", chu: "Thêm ‹…›" },
+      { tep: "web/ho-tro-nhom.ts", chu: "Đổi thành ‹…›" },
+      { tep: "web/ho-tro-nhom.ts", chu: "Gỡ" },
+    ],
+    trangThai: "cho-chon",
+    nguonTen: "máy lộ thêm 2026-11-04 khi bộ quét nhận lệnh ghi qua hàm bọc; chưa trình chủ",
   },
   {
     nhom: "Khung chung: tài khoản",
@@ -4422,7 +4473,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Đăng xuất MÁY NÀY (máy khác của cùng tài khoản vẫn đăng nhập), tắt thông báo đẩy của máy này, xoá bản nhớ khung giao diện rồi về trang đăng nhập. Nếu máy chủ lỗi thì máy này vẫn thoát ra.",
     hoiLai: "không",
     hoanTac: "được: đăng nhập lại; riêng thông báo đẩy của máy này phải bật lại ở mục Thông báo trang Tôi",
-    duongLenh: ["/api/auth/logout","/api/account/thong-bao/may/huy"],
+    duongLenh: ["/api/auth/logout"],
     maNhatKy: [],
     noiDat: [
       { tep: "web/shell.ts", chu: "Đăng xuất" },
@@ -4442,7 +4493,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/shell.ts", chu: "⟪m.nhan⟫" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -4458,7 +4509,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
       { tep: "web/dai.ts", chu: "Thử lại" },
       { tep: "web/trang-thai-he-thong.ts", chu: "Thử lại" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -4468,7 +4519,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Bấm chuông mở ngăn tin và ĐÁNH DẤU ĐÃ ĐỌC TẤT CẢ ngay (số đỏ tắt), kể cả tin bạn chưa kéo xuống đọc; dòng tin chưa đọc vẫn còn chấm trong lần mở này. Bấm một dòng: tin công ty thì mở hộp đọc, tin khác thì đi tới đơn hoặc chuyến liên quan. Bản thân dòng tin không ghi thêm gì.",
     hoiLai: "không",
     hoanTac: "không: mốc đã đọc không lùi lại được",
-    duongLenh: ["/api/account/thong-bao/:x/da-hieu","/api/thong-bao/tom-tat"],
+    duongLenh: ["/api/account/thong-bao/:x/da-hieu"],
     maNhatKy: [],
     noiDat: [
       { tep: "web/thong-bao-ui.ts", chu: "⟪tinBadge(t)⟫ / ⟪t.cau⟫ / ⟪tinMeta(t, now)⟫" },
@@ -4492,7 +4543,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
       { tep: "web/thong-bao-ui.ts", chu: "Để sau" },
       { tep: "web/thong-bao-ui.ts", chu: "Đóng" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -4558,7 +4609,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/tro-ly-cai-dat.ts", chu: "Lưu" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -4615,7 +4666,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Lưu NGAY bản cũ đó thành một bản mới và áp dụng cho cả công ty từ lúc bấm (mẫu AI, mức suy nghĩ, độ dài, token, lời nhắc cùng đổi). Không hỏi lại. Form phía trên được vẽ lại theo bản mới, nên chỗ đang sửa chưa lưu trong ô lời nhắc MẤT.",
     hoiLai: "không",
     hoanTac: "được: bấm «Quay lại bản này» ở bản trước nữa (mỗi lần tạo thêm một bản)",
-    duongLenh: ["/api/tro-ly/bo-nao","/api/tro-ly/bo-nao/lich-su","/api/tro-ly/loi-dan"],
+    duongLenh: ["/api/tro-ly/bo-nao","/api/tro-ly/loi-dan"],
     maNhatKy: ["tro_ly_settings_changed"],
     noiDat: [
       { tep: "web/tro-ly-cai-dat.ts", chu: "Quay lại bản này" },
@@ -4630,12 +4681,12 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Gửi câu hỏi thử cùng cấu hình đang soạn (chưa lưu) tới OpenAI giống một câu hỏi thật, kể cả tìm đoạn hướng dẫn theo nghĩa. Tốn tiền thật và tính vào trần tháng (không tính vào số câu mỗi ngày); chạy được cả khi trợ lý đang tắt; không ghi vào lịch sử hỏi đáp và không đổi bộ não đã lưu. Trả về đoạn đã dùng và chi phí lượt thử.",
     hoiLai: "không",
     hoanTac: "không: tiền đã tính",
-    duongLenh: ["/api/tro-ly/thu","/api/tro-ly/cai-dat","/api/tro-ly/thu-khoa","/api/tro-ly/vai"],
+    duongLenh: ["/api/tro-ly/thu"],
     maNhatKy: [],
     noiDat: [
       { tep: "web/tro-ly-cai-dat.ts", chu: "Thử với cấu hình đang soạn" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -4660,12 +4711,12 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Lưu ngay câu chào và câu hỏi mẫu của bản cũ thành bản mới, dùng ngay cho khung Trợ lý. Không hỏi lại.",
     hoiLai: "không",
     hoanTac: "được: quay lại bản trước nữa",
-    duongLenh: ["/api/tro-ly/bo-nao","/api/tro-ly/bo-nao/lich-su","/api/tro-ly/loi-dan"],
+    duongLenh: ["/api/tro-ly/bo-nao","/api/tro-ly/loi-dan"],
     maNhatKy: ["tro_ly_settings_changed"],
     noiDat: [
       { tep: "web/tro-ly-cai-dat.ts", chu: "Quay lại bản này" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -4682,7 +4733,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
       { tep: "web/tro-ly-cai-dat.ts", chu: "Huỷ sửa" },
       { tep: "web/tro-ly-cai-dat.ts", chu: "Sửa" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
@@ -4697,7 +4748,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/hai-lop-ui.ts", chu: "Tải tệp .txt" },
     ],
-    trangThai: "da-chot",
+    trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
 ];
