@@ -302,6 +302,11 @@ const PHAN_BO_MO_CUA_DON = defineSql(
   "phan_bo_mo_cua_don",
   "SELECT id FROM vdt_allocation WHERE order_id = ?1 AND released_at IS NULL AND (?2 IS NULL OR order_service_id = ?2) ORDER BY order_service_id, pax_group, slot_no",
 );
+const PHAN_BO_MO_KEM_LO = defineSql(
+  "ve-dien-tu",
+  "phan_bo_mo_kem_lo",
+  "SELECT id, revealed_at IS NOT NULL AS lo FROM vdt_allocation WHERE order_id = ?1 AND released_at IS NULL AND (?2 IS NULL OR order_service_id = ?2) ORDER BY order_service_id, pax_group, slot_no",
+);
 const DANH_DAU_LO = defineSql("ve-dien-tu", "danh_dau_lo", "UPDATE vdt_allocation SET revealed_at = ?2, updated_at = ?2, updated_by = ?3 WHERE id = ?1 AND revealed_at IS NULL AND released_at IS NULL");
 const CHEN_GIAO = defineSql(
   "ve-dien-tu",
@@ -315,6 +320,9 @@ export const docPhanBoDeXem = (db: D1Database, id: string): Promise<PhanBoDeXem 
 export const docChuDon = async (db: D1Database, orderId: string): Promise<string | null> => (await db.prepare(CHU_DON).bind(orderId).first<{ staff_id: string }>())?.staff_id ?? null;
 export const docPhanBoMoCuaDon = async (db: D1Database, orderId: string, serviceId: string | null): Promise<string[]> =>
   (await db.prepare(PHAN_BO_MO_CUA_DON).bind(orderId, serviceId).all<{ id: string }>()).results.map((r) => r.id);
+/** Như `docPhanBoMoCuaDon` nhưng kèm cờ «đã lộ» của từng phân bổ — để cổng `moVeDuoc` biết vé nào đã mở (ADR-0168 Đ3 mục 1). */
+export const docPhanBoMoKemLo = async (db: D1Database, orderId: string, serviceId: string | null): Promise<{ id: string; lo: boolean }[]> =>
+  (await db.prepare(PHAN_BO_MO_KEM_LO).bind(orderId, serviceId).all<{ id: string; lo: number }>()).results.map((r) => ({ id: r.id, lo: r.lo === 1 }));
 /** Đóng dấu «đã lộ» MỘT LẦN (dòng đã có dấu thì câu không đổi gì). */
 export const cauDanhDauLo = (db: D1Database, allocId: string, at: string, by: string | null): D1PreparedStatement => db.prepare(DANH_DAU_LO).bind(allocId, at, by);
 export const cauChenGiao = (db: D1Database, p: { id: string; allocId: string; by: string | null; at: string; kenh: "ZALO" | "LINK" }): D1PreparedStatement =>

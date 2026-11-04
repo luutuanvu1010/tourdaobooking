@@ -16,6 +16,10 @@ export interface HanMucHieuLuc {
 
 /** Số tiền hiện cho người dùng: «5.000.000 ₫». */
 export const dongTien = (n: number): string => `${Math.trunc(n).toLocaleString("vi-VN")} ₫`;
+/** Lý do giữ bước «Đã giao» của đơn Trả sau còn nợ (ADR-0168 Đ3 mục 2) — MỘT câu cho máy chủ và giao diện. */
+export const cauChoDoiTacThanhToan = (no: number): string => `Đơn trả sau còn nợ ${dongTien(no)} — chờ đối tác thanh toán.`;
+/** Vé chưa mở của đơn Trả sau đã quá hạn còn nợ (ADR-0168 Đ3 mục 1): vé đã mở vẫn xem được. */
+export const CAU_VE_QUA_HAN_TRA_SAU = "Đơn trả sau đã quá hạn còn nợ nên vé chưa mở chưa xem hoặc gửi được. Hãy thu đủ tiền, hoặc nhờ Kế toán xử lý.";
 
 /**
  * Nợ của MỘT đơn Trả sau đã xác nhận (ADR-0168 Đ2 mục 2) = max(0, phải thu − số đã về công ty).

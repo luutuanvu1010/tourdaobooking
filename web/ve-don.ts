@@ -8,12 +8,15 @@
 // máy không chia sẻ được tệp thì có «Tải ảnh về» và «Sao chép đường dẫn». Không innerHTML.
 import { ApiError, api } from "./api";
 import { h, replaceChildren } from "./dom";
+import { CAU_VE_QUA_HAN_TRA_SAU } from "../src/shared/tra-sau";
 
 interface NhomVe { nhom: string; nhan: string; can: number; giu: number; thieu: number }
 interface VeDonRes {
   dichVu: { serviceId: string; catalogCode: string; nhom: NhomVe[] }[];
   thuDu: boolean;
   choDoiTacNop?: boolean;
+  /** ADR-0168 Đ3 mục 1: đơn Trả sau quá hạn còn nợ — vé chưa mở chưa xem được, vé đã mở (trong `veXem`) vẫn xem. */
+  traSauQuaHan?: boolean;
   duongDan: { id: string; hetHan: string; daThuHoi: boolean; luotMo: number }[];
   veXem: { id: string; stt: number }[];
 }
@@ -58,8 +61,8 @@ function veKhoi(el: HTMLElement, vao: VeDonVao, res: VeDonRes, dong: VeDonRes["d
   });
   const khoi: (Node | null)[] = [h("h2", null, "Vé điện tử"), tongThieu > 0 ? h("p", { class: "muted" }, `Còn thiếu ${tongThieu} vé. Nhập thêm vé vào kho rồi bấm Cấp vé.`) : null, danhSach, nutCap ? h("div", { class: "handler-actions" }, nutCap) : null];
 
-  if (!res.thuDu) {
-    khoi.push(h("p", { class: "muted" }, res.choDoiTacNop ? "Đang chờ đối tác nộp tiền về công ty nên chưa xem hoặc gửi được vé." : "Đơn chưa thu đủ tiền nên chưa xem hoặc gửi được vé."));
+  if (!res.thuDu && res.veXem.length === 0) {
+    khoi.push(h("p", { class: "muted" }, res.traSauQuaHan ? CAU_VE_QUA_HAN_TRA_SAU : res.choDoiTacNop ? "Đang chờ đối tác nộp tiền về công ty nên chưa xem hoặc gửi được vé." : "Đơn chưa thu đủ tiền nên chưa xem hoặc gửi được vé."));
   } else if (vao.coQuyenGui && res.veXem.length > 0) {
     // ---- Gửi Zalo / tải ảnh -------------------------------------------------------------------------------------------------------------------------------
     let tep: File[] = [];
