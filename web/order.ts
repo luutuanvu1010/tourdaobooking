@@ -339,7 +339,7 @@ function nutSuaDuaDon(order: Order): HTMLButtonElement {
 }
 
 function nutSuaDanhSach(order: Order, ds: Api.PassengerListResponse): HTMLButtonElement {
-  const btn = h("button", { type: "button", class: "btn", "data-action": "sua-danh-sach" }, "Sửa danh sách");
+  const btn = h("button", { type: "button", class: "btn", "data-action": "sua-danh-sach" }, "Sửa danh sách hành khách");
   btn.addEventListener("click", () =>
     openSheetHanhKhach(
       {
@@ -1323,7 +1323,7 @@ function render(order: Order, history: AuditEntry[], canModify: boolean, handler
   const giuDoiTacLap = order.staffId === staff!.id && holdsPartner(staff!);
   const cho: ChoXacNhan | undefined = order.status === "draft" ? { canXacNhan: xacNhan?.canXacNhan ?? false, dangCho: xacNhan?.yeuCau != null, quyetDinhDuoc: xacNhan?.quyetDinhDuoc ?? false, giuDoiTacLap } : undefined;
   const a = orderActions(order.status, canModify, suaChuyen, cho);
-  // Người xét duyệt (không phải người lập) mở đơn ĐANG CHỜ: khối "Người phụ trách" ẩn (HDV tự coi mình là người phụ trách — sai với đơn chưa giao cho họ) và không có "Xem biên nhận" (Đ11: ảnh chỉ sau khi xác nhận).
+  // Người xét duyệt (không phải người lập) mở đơn ĐANG CHỜ: khối "Người phụ trách" ẩn (HDV tự coi mình là người phụ trách — sai với đơn chưa giao cho họ) và không có "Xem ảnh gửi khách" (Đ11: ảnh chỉ sau khi xác nhận).
   const nguoiXetDuyet = cho?.dangCho === true && order.staffId !== staff!.id;
   if (nguoiXetDuyet) handler = HANDLER_HIDDEN;
   const suaKhach = suaKhachDuoc(staff!, order.staffId, canModify) && order.deliveredAt === null;
@@ -1343,7 +1343,7 @@ function render(order: Order, history: AuditEntry[], canModify: boolean, handler
       ? order.status === "confirmed"
         ? h("div", { class: "dd-nut" }, nutSuaDanhSach(order, khachDon))
         : order.status === "draft"
-          ? h("div", { class: "dd-nut" }, h("a", { class: "btn", href: formHref, "data-action": "sua-danh-sach" }, "Sửa danh sách"))
+          ? h("div", { class: "dd-nut" }, h("a", { class: "btn", href: formHref, "data-action": "sua-danh-sach" }, "Sửa danh sách hành khách"))
           : null
       : null;
   // Cảnh báo sớm lúc xác nhận (lời chủ 1/10 "2 — Có"): chỉ cảnh báo, vẫn xác nhận được.
@@ -1473,7 +1473,7 @@ function render(order: Order, history: AuditEntry[], canModify: boolean, handler
   if (chanXacNhan) btns.push(duocDatGap ? h("p", { class: "dg-lock dg-lock-note", "data-chan": "xac-nhan" }, chanXacNhan) : h("p", { class: "dg-lock", "data-chan": "xac-nhan" }, icon("lock", 16), chanXacNhan));
   replaceChildren(actions, ...btns);
   // Nút riêng, ngoài `#actions` (bộ nút sửa/xác nhận/huỷ phụ thuộc trạng thái và quyền; nút này luôn có).
-  const send = h("button", { type: "button", class: "btn btn-primary", "data-action": "send-confirmation" }, "Xem biên nhận");
+  const send = h("button", { type: "button", class: "btn btn-primary", "data-action": "send-confirmation" }, "Xem ảnh gửi khách");
   send.addEventListener("click", openConfirmation);
   // Đ11: đơn cần xác nhận (đang chờ, hoặc thuộc diện phải gửi) chỉ có ảnh XÁC NHẬN ĐƠN DỊCH VỤ sau khi đã xác nhận; người xét duyệt không mở được biên nhận của đơn chờ (máy chủ trả 404).
   replaceChildren(sendEl, anhXacNhanLuc() ? send : null);

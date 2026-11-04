@@ -71,7 +71,7 @@ export type ConfirmationBlock = HeaderBlock | TitleBlock | CustomerBlock | Servi
 
 export interface ConfirmationModel {
   orderCode: string;
-  /** "xac-nhan-<mã đơn>.png" (ký tự ngoài chữ/số/gạch được thay bằng gạch) — tên tệp cho nút "Tải ảnh PNG". */
+  /** "xac-nhan-<mã đơn>.png" (ký tự ngoài chữ/số/gạch được thay bằng gạch) — tên tệp cho nút "Tải ảnh về máy". */
   fileName: string;
   blocks: ConfirmationBlock[];
 }

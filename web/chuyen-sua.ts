@@ -177,7 +177,9 @@ function dung(ngay: string, chuyen: ChuyenChiTietResponse["chuyen"] | null, xe: 
   });
   veGoiYDen();
 
-  const luuMay = h("button", { type: "submit", class: "vc-btn btn btn-accent", "data-action": "luu-chuyen" }, "Lưu chuyến");
+  // Trang Chuyến mới ghi «Tạo chuyến», trang Sửa chuyến ghi «Lưu chuyến» (bảng tham chiếu, chủ 2026-11-05).
+  const nhanLuu = chuyen ? "Lưu chuyến" : "Tạo chuyến";
+  const luuMay = h("button", { type: "submit", class: "vc-btn btn btn-accent", "data-action": "luu-chuyen" }, nhanLuu);
   const huyMay = h("a", { class: "vc-btn vc-btn-ghost-primary", href: document.body.dataset.back ?? "/dieu-phoi" }, "Huỷ bỏ");
   replaceChildren(
     formEl,
@@ -192,7 +194,7 @@ function dung(ngay: string, chuyen: ChuyenChiTietResponse["chuyen"] | null, xe: 
       : null,
     h("div", { class: "dp-cx-actions" }, huyMay, luuMay),
   );
-  const luuDay = h("button", { type: "button", class: "vc-btn btn btn-accent", "data-action": "luu-chuyen-day" }, "Lưu chuyến");
+  const luuDay = h("button", { type: "button", class: "vc-btn btn btn-accent", "data-action": "luu-chuyen-day" }, nhanLuu);
   luuDay.addEventListener("click", () => formEl.requestSubmit());
   replaceChildren(bottomEl, h("a", { class: "vc-btn vc-btn-ghost-primary", href: document.body.dataset.back ?? "/dieu-phoi" }, "Huỷ bỏ"), luuDay);
 
@@ -310,7 +312,7 @@ function dung(ngay: string, chuyen: ChuyenChiTietResponse["chuyen"] | null, xe: 
       dangGui = false;
       for (const b of [luuMay, luuDay]) {
         b.disabled = false;
-        b.textContent = "Lưu chuyến";
+        b.textContent = nhanLuu;
       }
     }
   });

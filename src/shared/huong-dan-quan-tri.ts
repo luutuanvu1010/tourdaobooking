@@ -96,13 +96,13 @@ Tìm: gõ tên hoặc số điện thoại, lọc theo loại, công việc, nơ
 3. Nền tảng hỏi vì Sheet thiếu nhiều dịch vụ: chỉ đồng ý khi chắc Sheet đúng.
 
 ### Ghi đè giá (không ghi vào Sheet)
-1. Tìm theo mã hoặc tên, bấm [[Sửa giá]], gõ giá loại khách cần đổi, [[Lưu ghi đè]].
+1. Tìm theo mã hoặc tên, bấm [[Ghi đè giá]], gõ giá loại khách cần đổi, [[Lưu ghi đè]].
 2. Về giá Sheet: [[Bỏ ghi đè giá]].
 3. Sheet đổi giá sau khi bạn ghi đè: dòng có cảnh báo; giữ giá của bạn: [[Giữ ghi đè]].
 4. Tạm ngưng bán: [[Ngừng bán]]. Bán lại: [[Mở bán lại]].
 
 ### Nhóm dịch vụ (không lấy từ Sheet)
-Khối [[Nhóm dịch vụ]]: [[Thêm nhóm]], [[Lên]], [[Xuống]], [[Tắt]] (nhóm phải trống; dùng lại: [[Bật]]). Chuyển nhóm: tick ô chọn (tối đa 50), chọn nhóm đích; một dịch vụ: [[Sửa giá]] → [[Đổi nhóm]], có lịch sử. Tắt [[Có đưa đón]] thì dịch vụ của nhóm không còn phần Đưa đón.
+Khối [[Nhóm dịch vụ]]: [[Thêm nhóm]], [[Lên]], [[Xuống]], [[Tắt]] (nhóm phải trống; dùng lại: [[Bật]]). Chuyển nhóm: tick ô chọn (tối đa 50), chọn nhóm đích; một dịch vụ: [[Ghi đè giá]] → [[Đổi nhóm]], có lịch sử. Tắt [[Có đưa đón]] thì dịch vụ của nhóm không còn phần Đưa đón.
 
 Lọc: [[Đang ghi đè giá]], [[Sheet đã đổi giá (cần xem)]], [[Đã ngừng bán]], [[Không còn trong Sheet]]. Đơn đã lập luôn giữ giá lúc lập.`,
     },
@@ -180,7 +180,7 @@ Mở [[Xe & giấy tờ]], chọn [[Giấy tờ sắp hết hạn]] (điện tho
 Mở [[Loại giấy tờ cá nhân]] (có cả [[Hạng giấy phép lái xe]]) hoặc [[Loại giấy tờ xe]]. Thêm: gõ mã, tên, tick [[Có ngày hết hạn]] nếu cần, thứ tự, [[Thêm]]. Sửa: [[Sửa]], [[Lưu]]. Không xoá, chỉ ngưng dùng.
 
 ### Trợ lý Hỗ trợ (chỉ Toàn quyền)
-Mở [[Trợ lý Hỗ trợ]] ở nhóm THIẾT LẬP (điện thoại: trang **Tôi**). Bảy phần, lưu riêng, hiệu lực ngay: **Tình trạng** (bật / tắt, trần chi phí tháng, [[Thử key]]), **Ai được dùng**, **Bộ não** (lời nhắc, [[Lưu bộ não]], [[Quay lại bản này]]), **Thử trước khi lưu**, **Lời dặn**, **Ngữ cảnh bổ sung** và **Lịch sử hỏi đáp** (không xoá được). Chữ tuỳ chỉnh không được có số điện thoại, email, số tiền.
+Mở [[Trợ lý Hỗ trợ]] ở nhóm THIẾT LẬP (điện thoại: trang **Tôi**). Bảy phần, lưu riêng, hiệu lực ngay: **Tình trạng** (bật / tắt, trần chi phí tháng, [[Thử khoá]]), **Ai được dùng**, **Bộ não** (lời nhắc, [[Lưu bộ não]], [[Dùng bản này]]), **Thử trước khi lưu**, **Lời dặn**, **Ngữ cảnh bổ sung** và **Lịch sử hỏi đáp** (không xoá được). Chữ tuỳ chỉnh không được có số điện thoại, email, số tiền.
 
 ### Dịch vụ nhập tay (chỉ Toàn quyền bật / tắt)
 Trang **Tôi**, khối **Dịch vụ nhập tay**: [[Bật dịch vụ nhập tay]] hoặc [[Tắt dịch vụ nhập tay]] (mặc định tắt). Khi bật, văn phòng thêm được dịch vụ gõ tay ở form lập đơn ([[+ Dịch vụ nhập tay]]); Đối tác thì không. Khi tắt, dịch vụ nhập tay đã có vẫn giữ, chỉ xem.
@@ -197,7 +197,7 @@ Mở [[Lý do điều phối]]. Thêm: [[+ Thêm lý do]] ở nhóm cần, gõ l
 - **Trang chủ báo Sheet đã đổi giá**: bấm vào, xem giá mới; đồng ý thì [[Bỏ ghi đè giá]], không thì [[Giữ ghi đè]].
 - **Đồng bộ báo lỗi**: vẫn dùng bản đã lưu. Kiểm tra Sheet, thử lại sau; vẫn lỗi thì báo ở Hỗ trợ.
 - **Nhân viên không xác nhận được đơn vì giờ đón sát**: bấm [[Đặt gấp]] (đơn đối tác đang chờ: ngay trong bảng [[Còn vé, xác nhận đơn]]).
-- **Hai hồ sơ trùng trong Danh bạ**: [[Danh bạ]] → [[Hồ sơ nghi trùng]] → [[Gộp]].`,
+- **Hai hồ sơ trùng trong Danh bạ**: [[Danh bạ]] → [[Hồ sơ nghi trùng]] → [[Gộp…]] → [[Gộp hồ sơ]].`,
     },
     {
       tieuDe: "Điều bạn không làm được — hỏi ai",
@@ -227,7 +227,7 @@ Mở [[Lý do điều phối]]. Thêm: [[+ Thêm lý do]] ở nhóm cần, gõ l
 Ở trang Tôi. Khi bật, mọi tài khoản khác (kể cả Quản trị) thấy màn hình bảo trì.
 1. Mục [[Chế độ bảo trì]]: chọn **30 phút**, **60 phút**, **120 phút** hoặc giờ dự kiến hoàn tất.
 2. Bấm [[Bật chế độ bảo trì]], đọc cảnh báo, bấm [[Xác nhận bật]] (hoặc [[Quay lại]]).
-3. Đổi giờ: [[Cập nhật giờ dự kiến]]. Mở lại: [[Tắt chế độ bảo trì]].
+3. Đổi giờ: [[Đổi giờ dự kiến]]. Mở lại: [[Tắt chế độ bảo trì]].
 
 > Lưu ý: chỉ bật khi cột Đăng nhập gần nhất cho thấy mọi người đã dùng bản mới.
 
