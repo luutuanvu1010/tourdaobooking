@@ -14,7 +14,8 @@ export interface HanMucHieuLuc {
   readonly denNgay: string | null;
 }
 
-const dong = (n: number): string => `${Math.trunc(n).toLocaleString("vi-VN")} ₫`;
+/** Số tiền hiện cho người dùng: «5.000.000 ₫». */
+export const dongTien = (n: number): string => `${Math.trunc(n).toLocaleString("vi-VN")} ₫`;
 
 /**
  * Nợ của MỘT đơn Trả sau đã xác nhận (ADR-0168 Đ2 mục 2) = max(0, phải thu − số đã về công ty).
@@ -45,7 +46,7 @@ export function lyDoKhongTraSau(i: { hanMuc: HanMucHieuLuc | null; noHienTai: nu
   if (i.coDonQuaHan) return { ma: "co_don_qua_han", cau: "Bên đặt còn đơn trả sau quá hạn chưa thanh toán. Cần thanh toán đủ các đơn đó trước khi đặt thêm đơn trả sau." };
   const conLai = Math.max(0, i.hanMuc.hanMuc - i.noHienTai);
   if (i.soTienDon > conLai) {
-    return { ma: "vuot_han_muc", cau: `Đơn trả sau ${dong(i.soTienDon)} vượt hạn mức: bên đặt còn được dùng ${dong(conLai)} (hạn mức ${dong(i.hanMuc.hanMuc)}, đang nợ ${dong(i.noHienTai)}).` };
+    return { ma: "vuot_han_muc", cau: `Đơn trả sau ${dongTien(i.soTienDon)} vượt hạn mức: bên đặt còn được dùng ${dongTien(conLai)} (hạn mức ${dongTien(i.hanMuc.hanMuc)}, đang nợ ${dongTien(i.noHienTai)}).` };
   }
   return null;
 }

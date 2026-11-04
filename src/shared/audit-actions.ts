@@ -145,6 +145,10 @@ export const AUDIT_ACTIONS = {
   // ADR-0161 Đ3: Toàn quyền đổi GIỚI HẠN NHẬP mức hoa hồng (trần phần trăm, bước số tiền; POST /api/pricing/gioi-han-nhap) — `target_type = 'ledger'`, không gắn đơn;
   // `detail` = «trần 50% → 60% · bước 1.000đ → 1.000đ» (hai con số, không dữ liệu cá nhân). Đổi giới hạn không đổi dòng mức đã có hay đơn đã chụp.
   prc_entry_limit_changed: { label: "Đổi giới hạn nhập hoa hồng", group: "ledger" },
+  // ADR-0168 Đ1: Toàn quyền đặt / ngừng hạn mức Trả sau của một đối tác (route /api/tra-sau/han-muc*) — `target_type = 'ledger'`, `target_id` = mã hồ sơ, không gắn đơn.
+  // `detail` = «hạn mức 50.000.000 ₫ · 7 ngày» / «ngừng hạn mức» (số tiền và số ngày, KHÔNG tên, SĐT, email, MST, lý do tự do).
+  credit_limit_set: { label: "Đặt hạn mức trả sau", group: "ledger" },
+  credit_limit_stopped: { label: "Ngừng hạn mức trả sau", group: "ledger" },
   // Khoá sổ tháng (ADR-0080 D1; module ky-so — route ở billing): `order_id` NULL; `detail` = "Khoá sổ tháng MM/YYYY" (không tiền, không SĐT).
   ledger_period_closed: { label: "Khoá sổ tháng", group: "ledger" },
   order_handler_changed: { label: "Đổi người phụ trách", group: "order" },

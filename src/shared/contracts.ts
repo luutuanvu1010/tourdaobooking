@@ -3101,3 +3101,48 @@ export interface CaiDatXacNhanResponse {
   tuXacNhanNoiBo: boolean;
 }
 export type CaiDatXacNhanInput = { pham: "SERVICE" | "GROUP"; ma: string; canXacNhan: boolean } | { tuXacNhanNoiBo: boolean };
+
+// ---- Trả sau theo hạn mức (ADR-0168; billing) ----
+/** Một hồ sơ trên màn «Hạn mức trả sau». `coHanMuc` false = hồ sơ còn đơn Trả sau đang nợ nhưng hạn mức đã ngừng. Số tiền VNĐ, tính ở máy chủ. */
+export interface HanMucTraSauDto {
+  partyId: string;
+  ten: string;
+  coHanMuc: boolean;
+  hanMuc: number | null;
+  soNgay: number | null;
+  tuNgay: string | null;
+  dangNo: number;
+  conDuocDung: number | null;
+  soDonNo: number;
+  soDonQuaHan: number;
+}
+export interface HanMucTraSauListResponse {
+  danhSach: HanMucTraSauDto[];
+  /** Toàn quyền sửa được; Kế toán chỉ xem. */
+  coQuyenSua: boolean;
+}
+export interface DonNoTraSauDto {
+  orderId: string;
+  maDon: string;
+  /** Ngày hạn trả (YYYY-MM-DD, giờ Việt Nam). */
+  hanTra: string | null;
+  no: number;
+  quaHan: boolean;
+}
+export interface DonNoTraSauResponse {
+  partyId: string;
+  ten: string;
+  don: DonNoTraSauDto[];
+}
+export interface DatHanMucTraSauInput {
+  partyId: string;
+  hanMuc: number;
+  soNgay: number;
+  lyDo?: string;
+}
+/** Đường đọc hẹp cho người lập đơn: chỉ số còn được dùng của đúng bên đặt, không kèm danh sách đơn. */
+export interface ConDuocDungTraSauResponse {
+  coHanMuc: boolean;
+  conDuocDung: number;
+  coDonQuaHan: boolean;
+}
