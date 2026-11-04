@@ -120,6 +120,7 @@ for (const [t, ds] of muc) {
   km += `\n## ${t}: ${ds.length} mục\n\n`;
   for (const d of ds) km += `- ${d}\n`;
 }
+if (QT.ghi_chu_trung_ten) km += `\n${QT.ghi_chu_trung_ten}\n`;
 writeFileSync(join(HERE, "KIEM-MAY.md"), km);
 
 // ---------- sinh bảng ----------

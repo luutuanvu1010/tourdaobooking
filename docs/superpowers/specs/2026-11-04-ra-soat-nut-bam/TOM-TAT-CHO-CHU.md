@@ -11,7 +11,7 @@ Việc cấp riêng lại đang mang ba tên ở ba nơi cho cùng một lệnh:
 ## Mười chỗ dễ gây hiểu lầm nhất
 
 1. **«Bỏ ghi đè»** (dịch vụ và giá). Quản trị tưởng chỉ về giá Sheet, hộp hỏi cũng chỉ nói chuyện giá. Thật ra nút xoá luôn dấu Ẩn, nên dịch vụ đang ngừng bán hiện lại và nhân viên bán được. Đổi tên chưa đủ, cần sửa cách nút chạy.
-2. **«Chuẩn bị N vé để gửi»** và **«Tạo đường dẫn cho khách»**. Nhân viên bấm để xem thử, nhưng mọi vé của đơn bị đánh dấu đã mở và không bao giờ về kho, kể cả khi khách huỷ, nên công ty mất tiền vé. Chỉ Hướng dẫn cảnh báo, màn hình thì không.
+2. **«Chuẩn bị N vé để gửi»** và **«Tạo đường dẫn cho khách»**. Nhân viên bấm để xem thử, nhưng mọi vé của đơn bị đánh dấu đã mở và không bao giờ về kho, kể cả khi khách huỷ, nên vé đó bị huỷ và không dùng cho khách khác được. Chỉ Hướng dẫn cảnh báo, màn hình thì không.
 3. **«Còn vé»**. Người kiểm vé tưởng chỉ báo còn chỗ. Thật ra đơn được chốt ngay: giá khoá, hoa hồng chụp, vé cấp, tiền cọc khách khai thành khoản thu. Nút này không hỏi lại và không hoàn tác được, trong khi «Hết vé» bên cạnh thì có hỏi.
 4. **«Lưu, chờ xác nhận»** (nút dùng hằng ngày khi lập đơn). Nhân viên tưởng đơn đã gửi đi và có người đang xét. Thật ra không ai nhận được gì và chỉ chính người lập xác nhận được. Ngay sau khi lưu, màn hình còn tự mở hộp tên «Xác nhận đơn để gửi khách», dù hộp đó chỉ dựng ảnh, nên càng dễ tưởng đơn đã xác nhận.
 5. **«Đòi được khách / huỷ khoản»** (phân định). Kế toán muốn huỷ một phiếu ghi nhầm. Thật ra nút luôn ghi thêm một khoản thu bằng số đó. Ô «Số đòi được» và nút trong hộp khá rõ, nên phần sai nằm ở tên nút mở.
@@ -29,7 +29,7 @@ Bạn chỉ cần trả lời «theo khuyến nghị», hoặc nêu số câu mu
 
 | Câu | Nút hiện tại | Đề xuất | Kèm theo |
 |---|---|---|---|
-| 1 | Thêm vai trò vào cấp này | (C) **hai nút «Gán cho vai trò» và «Gán cho đối tác»**. (A) chỉ đổi thành «Gán cho vai trò». (B) «Gán cho nhóm đối tác» | C thêm một nút mở hộp cấp riêng, sửa mã nhỏ, không đổi dữ liệu. Ô chọn trong hộp giữ chữ «Vai người dùng» theo quyết định 1/11 của bạn |
+| 1 | Thêm vai trò vào cấp này | (C) **hai nút «Gán cho vai trò» và «Gán cho đối tác»**. (A) chỉ đổi thành «Gán cho vai trò». (B) «Gán cho nhóm đối tác» | C thêm một nút mở hộp cấp riêng, sửa mã nhỏ, không đổi dữ liệu. Hộp này đang dùng hai chữ cho một thứ: nút nói «vai trò», ô chọn nói «Vai người dùng» (chữ bạn chốt 1/11). Tên đề xuất theo chữ trên nút; muốn một chữ thống nhất thì bạn nói chữ nào, còn không tôi giữ nguyên hai chữ như hôm nay |
 | 2 | Bỏ ghi đè | **Bỏ ghi đè giá**, và dấu Ẩn được giữ nguyên | Đổi cách nút chạy, cần kiểm kỹ vì chạm dữ liệu |
 | 3 | Chuẩn bị N vé để gửi | **Mở vé để gửi khách** | Thêm câu báo vé sẽ không về kho, cả ở «Tạo đường dẫn cho khách» |
 | 4 | Còn vé | **Còn vé, xác nhận đơn** | Thêm hộp hỏi lại nói rõ hậu quả; đặc tả 19/10 vốn ghi hai bước |

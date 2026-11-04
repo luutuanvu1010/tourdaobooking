@@ -61,3 +61,5 @@ Sinh bởi `kiem-va-sinh.mjs` từ `nut-quan-trong.json` và `danh-sach-day-du.j
 - «Đăng xuất máy này» (đề xuất cho «Đăng xuất», web/account.ts:40) đang là tên nút ở web/sessions.ts:172: đọc xem có chỉ cùng việc không
 - «Ngừng dùng» (đề xuất cho «Đóng», web/parties.ts:296) đang là tên nút ở web/xe-sua.ts:180: đọc xem có chỉ cùng việc không
 - «Chọn cấp riêng cho đối tác» (đề xuất cho «Áp dụng cấp riêng», web/parties.ts:859) đang là tên nút ở web/hoa-hong-doi-tac.ts:75: đọc xem có chỉ cùng việc không
+
+Đã đọc tay cả bảy mục: «Bên kia đã nhận», «Lưu số khách», «Lưu cấp riêng», «Tạo chuyến», «Đăng xuất máy này», «Chọn cấp riêng cho đối tác» đều đang chỉ cùng một việc, nên trùng là đúng ý. «Ngừng dùng» đang là nút của xe, đề xuất cho liên hệ: cùng kiểu việc, khác đối tượng, chấp nhận được.

@@ -1669,7 +1669,7 @@
    "hai_ten": "Cùng việc với «Xác nhận đơn» của người lập",
    "ket_luan": "hieu_lam",
    "vi_du": "Người kiểm vé bấm «Còn vé» tưởng chỉ ghi nhận còn chỗ để người lập tự xác nhận tiếp; thật ra đơn được chốt ngay, giá bị khoá, vé điện tử được cấp, tiền khách khai đặt cọc thành khoản thu của người lập; bấm xong không có hộp hỏi và không hoàn tác được, trong khi «Hết vé» bên cạnh thì có hộp hỏi.",
-   "van_de_hien_thi": "Nút xác nhận đơn không có hộp hỏi lại, lệch với «Xác nhận đơn» của người lập (có hộp) và «Hết vé» (có hộp). Tên nói kết quả kiểm vé, không nói là chốt đơn. Tiêu đề bảng «Xác nhận đơn» trùng nút «Xác nhận đơn» của người lập.",
+   "van_de_hien_thi": "Nút xác nhận đơn không có hộp hỏi lại, lệch với «Xác nhận đơn» của người lập (có hộp) và «Hết vé» (có hộp). Tên nói kết quả kiểm vé, không nói là chốt đơn. Tiêu đề bảng «Xác nhận đơn» trùng nút «Xác nhận đơn» của người lập. Đặc tả 2026-10-19 dòng 35 có ghi gửi email QR khi xác nhận; mã hiện chưa gửi thư nào cho khách ở bước này, thư kèm QR còn nằm ở Đợt 4 trong sổ việc để sau (docs/BACKLOG.md:578).",
    "de_xuat": [
     "Còn vé, xác nhận đơn",
     "Xác nhận đơn: còn vé"
@@ -2990,7 +2990,7 @@
    "huong_dan": "Chuẩn bị … vé để gửi (có cảnh báo trong «Điều dễ sai», không có trên màn hình)",
    "hai_ten": "Giao vé: «Chuẩn bị … vé để gửi», «Gửi Zalo», «Tải vé N», «Tạo đường dẫn cho khách» đều làm lộ vé; mỗi nút một cách giao.",
    "ket_luan": "hieu_lam",
-   "vi_du": "Nhân viên vừa thu đủ tiền, bấm «Chuẩn bị 6 vé để gửi» để xem thử vé đã đủ chưa. Cả 6 vé bị đóng dấu đã lộ, không về kho được nữa. Hôm sau khách huỷ chuyến, 6 vé điện tử mất luôn, công ty mất tiền mua vé. Chữ «Chuẩn bị» nghe như bước nháp vô hại, và màn hình không cảnh báo điều này; chỉ Hướng dẫn nói «chưa chắc khách lấy thì đừng bấm».",
+   "vi_du": "Nhân viên vừa thu đủ tiền, bấm «Chuẩn bị 6 vé để gửi» để xem thử vé đã đủ chưa. Cả 6 vé bị đóng dấu đã lộ, không về kho được nữa. Hôm sau khách huỷ chuyến, 6 vé đó bị huỷ, không dùng cho khách khác được. Chữ «Chuẩn bị» nghe như bước nháp vô hại, và màn hình không cảnh báo điều này; chỉ Hướng dẫn nói «chưa chắc khách lấy thì đừng bấm».",
    "van_de_hien_thi": "Việc không đảo ngược mà nút màu chính, không hộp hỏi. Cũng không đúng với gợi ý của máy ghi dữ liệu POST: thực ra là lời gọi đọc (GET) nhưng có ghi dấu lộ vé.",
    "de_xuat": [
     "Lấy vé về máy để gửi (vé sẽ không trả về kho)",
@@ -13563,5 +13563,6 @@
   "[D3-ho-tro-thong-bao-khung] Chưa xác nhận trên production biến FEEDBACK_NOTIFY_EMAIL có được đặt hay không (chỉ biết mã gửi tới MỘT địa chỉ chung).",
   "[D3-ho-tro-thong-bao-khung] Không kiểm được nội dung gửi thực tế cho OpenAI ngoài việc đọc hàm thanYeuCau/che câu hỏi; chưa đọc src/shared/tro-ly.ts từng dòng."
  ],
- "kiem_doc_lap": "Người kiểm độc lập đọc lại 30 hàng ngày 2026-11-04 (cả 9 hàng ưu tiên cao, 6 hiểu lầm, 6 chưa rõ, 9 đúng, chọn ngẫu nhiên; khoảng 24 hàng lần tới tận câu ghi). Không hàng nào nói sai việc chính của nút. Có ba chỗ sai ở cột phụ, một chỗ tự mâu thuẫn và ba kết luận hạ từ «gây hiểu lầm» xuống «chưa rõ»; đã sửa sau khi tự đọc lại mã. Người kiểm không ghi kết luận riêng trước khi mở bảng, nên phần «đồng ý» không hoàn toàn mù. Các hàng ngoài mẫu chưa ai đọc lại, cột phụ ở đó có thể còn lỗi tương tự."
+ "kiem_doc_lap": "Người kiểm độc lập đọc lại 30 hàng ngày 2026-11-04 (cả 9 hàng ưu tiên cao, 6 hiểu lầm, 6 chưa rõ, 9 đúng, chọn ngẫu nhiên; khoảng 24 hàng lần tới tận câu ghi). Không hàng nào nói sai việc chính của nút. Có ba chỗ sai ở cột phụ, một chỗ tự mâu thuẫn và ba kết luận hạ từ «gây hiểu lầm» xuống «chưa rõ»; đã sửa sau khi tự đọc lại mã. Người kiểm không ghi kết luận riêng trước khi mở bảng, nên phần «đồng ý» không hoàn toàn mù. Các hàng ngoài mẫu chưa ai đọc lại, cột phụ ở đó có thể còn lỗi tương tự.",
+ "ghi_chu_trung_ten": "Đã đọc tay cả bảy mục: «Bên kia đã nhận», «Lưu số khách», «Lưu cấp riêng», «Tạo chuyến», «Đăng xuất máy này», «Chọn cấp riêng cho đối tác» đều đang chỉ cùng một việc, nên trùng là đúng ý. «Ngừng dùng» đang là nút của xe, đề xuất cho liên hệ: cùng kiểu việc, khác đối tượng, chấp nhận được."
 }
