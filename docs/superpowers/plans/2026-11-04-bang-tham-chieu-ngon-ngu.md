@@ -280,3 +280,11 @@ git commit -m "Bảng tham chiếu ngôn ngữ: điều 5.27, hỏi quyền khi 
 ### Sau khi thi công
 
 Người kiểm độc lập `nguoi-kiem-doc-lap` đọc một vòng, tự chạy lại bộ kiểm và ít nhất hai phép ở Step 3 của Task 4. Trình chủ một lần: phần giải nghĩa khái niệm của `docs/BANG-THAM-CHIEU.md` và `DANH-SACH-TRINH-CHU.md`. Bản này không đổi gì trên giao diện nên không cần mục nhật ký thay đổi và không cần triển khai; đưa chủ lệnh nhập, nói rõ «không cần triển khai».
+
+## Chỗ làm khác kế hoạch (ghi lúc thi công, 2026-11-04)
+
+- Thêm `kiemTenNhieuHang` và `TEN_NHIEU_HANG`: đặc tả đòi xếp loại mọi tên trùng nhóm việc, kế hoạch chỉ phủ điều 2 nên 46 tên còn để ngỏ.
+- Thêm trạng thái khái niệm `trong-ma`: §15 có các thuật ngữ không hiện cho người dùng, không cần chủ chọn tên, và bản đọc tách khỏi phần chủ đọc.
+- Phá thử chạy TRƯỚC khi bật hook, vì sau đó sửa tệp bảng bằng dòng lệnh bị chặn.
+- Hook trong phiên thật chưa thấy chặn: phiên dùng móc ở thư mục gốc. Xem dòng ở `docs/SO-HANG-RAO.md`; phải thử lại sau khi nhập.
+- Bỏ ca `python -c` khỏi bài hook: đó là giới hạn đã ghi của `guard-luat-lib.mjs`.

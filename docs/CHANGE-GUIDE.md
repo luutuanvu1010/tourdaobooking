@@ -17,7 +17,7 @@ Mục lục: §1 Bảng tra nhanh · §2 Công thức a1–a3, b–v · §3 Ma t
 
 | Muốn | Tệp chính | Công thức |
 |---|---|---|
-| Đổi chữ trên giao diện (nhãn, nút, tiêu đề) | `public/*.html`, `web/*.ts`, `web/format.ts` (`METHOD_LABEL`; `STATUS_LABEL` xuất lại từ `src/shared/order-status-label.ts`) | i (mục "Chữ"), m |
+| Đổi chữ trên giao diện (nhãn, nút, tiêu đề) | `public/*.html`, `web/*.ts`, `web/format.ts` (`METHOD_LABEL`; `STATUS_LABEL` xuất lại từ `src/shared/order-status-label.ts`) | **z34 trước**, rồi i (mục "Chữ"), m |
 | Đổi tên app / thông tin công ty / số phiên bản | `public/manifest.webmanifest`, `public/*.html`, `web/shell.ts`, `public/login.html`, `src/shared/app-info.ts` (phiên bản); thông tin công ty = **hồ sơ công ty chủ** ở Danh bạ (`parties.ownerCompany`, sửa/đổi chỉ người giữ `company.legal.write` — T2b) + chữ tĩnh dự phòng ở `public/login.html` | j |
 | Thêm route ghi mới; lệnh bị ghi trùng khi mất mạng; "Lần bấm trước đã được ghi" (ADR-0094) | `src/shared/router.ts`, `src/shared/lan-gui-*.ts`, `src/modules/lan-gui/`, `web/api.ts` | z11 |
 | Thêm luật điều phối xe vượt được (cam kết xe riêng / số chỗ… — điều chỉnh khẩn cấp hoặc phá lệ, ADR-0104 Đ1) | `src/shared/dieu-phoi-kieu.ts` (`MA_LUAT_PHA_LE`), `src/shared/moc-toi-thieu.ts` (`lopCuaLuat`), `src/shared/ly-do-giu.ts` (`MA_GIU`), `src/modules/van-chuyen/dieu-phoi-route.ts` (`loiKiem`, `chanCoVuot`), `dieu-phoi-lenh.ts` (`phaLeCua`), `src/shared/dieu-phoi-man.ts` (`thanPhaLe`) | z13 |
@@ -1189,6 +1189,7 @@ Hiện trạng và luồng: `docs/SYSTEM-DESIGN.md` §6 (m), (o). Mỗi mảnh m
 
 | Bạn chạm | Chạy |
 |---|---|
+| Chữ nút ở `web/`, `public/`; `src/shared/bang-tham-chieu*.ts` | `node --test src/bang-tham-chieu.test.ts`; đổi bảng thì `npm run tham-chieu` |
 | `src/shared/*.ts`, `rules.ts`, `fields.ts`, `sheet.ts` (luật thuần) | `node --test <tệp>.test.ts` → `npm test` → `npm run typecheck` (mã dùng cả ở `web/` nên `tsc -p web` cũng kiểm) |
 | Trợ lý Hỗ trợ: `src/shared/tro-ly*.ts`, `src/shared/so-do-trang.ts`, `scripts/sinh-so-do-trang.mjs`, `scripts/tro-ly-cau-truc-lib.mjs`, `src/modules/tro-ly/*`, `web/tro-ly*.ts` | công thức z5 (mục **Kiểm**); đổi giao diện bất kỳ (nhãn nút, tiêu đề, menu), module, ô quyền ⇒ `npm test` tự sinh lại kho (bước 0; đỏ một lần nếu tệp sinh vừa đổi) → commit `src/shared/so-do-trang.ts` / `src/shared/tro-ly-cau-truc.ts` → `npm test` xanh; ADR-0073: `node --test src/shared/tro-ly-mau.test.ts src/shared/tro-ly-bo-nao.test.ts src/shared/tro-ly-loc-tien.test.ts src/modules/tro-ly/bo-nao-route.test.ts`, `npm run test:e2e -- tro-ly`, Chrome `bang-dieu-khien-tro-ly-smoke.mjs` + `khung-tro-ly-smoke.mjs`; ADR-0082: `node --test src/shared/tro-ly-van-nghia.test.ts src/modules/tro-ly/van-nghia*.test.ts`, `npm run test:e2e -- tro-ly` (BLOB trên D1 thật), Chrome `bang-dieu-khien-tro-ly-smoke.mjs` (bước k "Đoạn đã dùng"); ADR-0084: `node --test src/shared/xung-ho.test.ts src/modules/tro-ly/tro-ly-route.test.ts src/modules/parties/gioi-tinh-route.test.ts src/migrations-pty-person-gender.test.ts`, `npm run test:e2e -- tro-ly parties`, Chrome `khung-tro-ly-smoke.mjs` (bước n) + `t2b-danh-ba-smoke.mjs` (bước A2); in đậm: `node --test src/shared/in-dam.test.ts src/shared/tro-ly.test.ts src/shared/tro-ly-bo-nao.test.ts`, Chrome `khung-tro-ly-smoke.mjs` (bước o) |
 | `src/modules/parties/gop*.ts`, luật gộp, route gộp / nghi trùng | npm test + e2e gop-ho-so + Chrome gop-ho-so-smoke |
@@ -1440,6 +1441,17 @@ Hiện trạng: `docs/SYSTEM-DESIGN.md` §5 (`prc_entry_limit_policy`), §6 (o),
 - **Bảng nhập (`web/hoa-hong-cap.ts`):** ô = nút mở hộp có sẵn (`web/hoa-hong-hop.ts`), KHÔNG route ghi mới; sau mỗi lần ghi trang vẽ lại nên `chupViTri` / `traViTri` giữ cuộn trang, cuộn trong khung, ô đang gõ; ô vừa bấm biến khỏi bảng (bộ lọc «Còn thiếu mức») thì tiêu điểm sang ô trống kế tiếp (`oTrongKeTiep`), hết thì về ô Tìm. Bố cục bảng CỐ ĐỊNH (`table-layout: fixed`): bề rộng cột lấy từ ba token `--w-hh-cot-dv`, `--w-hh-cot-gia`, `--w-hh-cot-cap`; đừng trả về `max-content` (một nhãn dài kéo rộng cả cột cấp).
 - **Màn đơn không số âm:** công thức và sổ không đổi (máy chủ vẫn trả giá đại lý âm khi hoa hồng > thành tiền); CHỮ do `chuGiaDaiLy` / `chuTongGiaDaiLy` quyết («Hoa hồng vượt thành tiền — Kế toán xem lại»).
 - **Kiểm:** `node --test src/modules/pricing/gioi-han-nhap.test.ts src/modules/pricing/ghi-muc-qua-cong.test.ts src/shared/gioi-han-nhap-muc.test.ts src/muc-nhom-vuot-gia-route.test.ts src/modules/orders/tran-giam-gia-don.test.ts src/shared/hoa-hong-hien-thi.test.ts`, rồi kịch bản Chrome `docs/evidence/2026-11-03-chiet-khau-bon-truc/kich-ban/{bang-nhap,gioi-han}-smoke.mjs` và `docs/evidence/2026-10-26-hoa-hong-thiet-ke-lai/kich-ban/hoa-hong-smoke.mjs`.
+
+### z34. Viết, sửa chữ giao diện: bảng tham chiếu ngôn ngữ (ADR-0167)
+
+Tra `docs/BANG-THAM-CHIEU.md` trước. Chưa có tên thì đưa 2–3 tên cho chủ chọn, không tự đặt (ADR-0130).
+
+- **Đổi tên nút:** sửa nút và `src/shared/bang-tham-chieu-viec.ts` trong cùng một lần lưu, thêm chữ cũ vào `src/shared/bang-tu-giao-dien.ts` nếu chủ đã loại, rồi `npm run tham-chieu`. Tệp bảng sửa bằng công cụ sửa tệp để chủ được hỏi.
+- **Thêm nút ghi, nguy hiểm, nút chính:** `npm test` đỏ tới khi khai. Chủ chưa chọn tên thì khai `trangThai: "cho-chon"` với chữ đang hiện, không chặn việc. Máy coi nhầm thì thêm `BO_QUA` kèm lý do, không nới bài.
+- **Nút phụ:** tên thuộc `CHU_DUNG_CHUNG` thì không cần khai. Tên đã khai mà dùng chỗ khác là đỏ: cùng việc thì thêm `noiDat`.
+- **Một tên ở nhiều hàng việc:** phải xếp vào `CHU_DUNG_CHUNG` (thấy đối tượng ngay cạnh nút) hoặc `TEN_NHIEU_HANG` (`cung-viec`, hoặc `cho-chu` khi khác việc và không thấy đối tượng).
+- **Khái niệm:** `src/shared/bang-tham-chieu-khai-niem.ts`. `da-chot` phải có ngày chủ chọn; chưa có thì `cho-chon`, không đoán ngày. Thuật ngữ không hiện cho người dùng thì `trong-ma`.
+- **Kiểm:** `node --test src/bang-tham-chieu.test.ts`. Bản đọc do máy sinh, đừng sửa tay.
 
 ### Phân định trách nhiệm và cảnh báo trùng (ADR-0116, ADR-0092 Đ6a; migration `0135`)
 - Bên chịu đã nộp một phần trở lên thì không đổi bên chịu, không huỷ khoản (409 `attribution_da_nop`, hai lớp; chưa có đường trả lại: BL-PD-TRA-LAI). Không tự ghi đã nộp khoản của chính mình (409 `attribution_tu_nop`, hai lớp). Khoản phân định không nằm trong «đang giữ»: tách bằng MỘT hàm `tachKhoanPhanDinh` / câu `phan_dinh_theo_ben`. Phải thu hiện hành chỉ đọc qua `phaiThuHienHanhNhieuDon` (bài H1b). Kịch bản Chrome: `docs/evidence/2026-11-02-phan-dinh/kich-ban/phan-dinh-smoke.mjs`.

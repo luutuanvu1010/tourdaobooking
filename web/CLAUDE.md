@@ -13,6 +13,7 @@
 
 ## Luật
 - **Không `innerHTML`.** Dựng DOM bằng `h()` ở `web/dom.ts`.
+- **Tên nút, nhãn, câu báo:** tra `docs/BANG-THAM-CHIEU.md` trước (ADR-0167); chưa có thì đưa 2–3 tên cho chủ chọn, không tự đặt. Đổi tên nút thì sửa bảng cùng lần lưu; nút ghi mới phải khai dòng, chưa có tên chốt thì `cho-chon` (`docs/CHANGE-GUIDE.md` công thức z34).
 - `web/` import `src/shared` **không đuôi**; **không** import `src/modules/`. Luật dùng ở cả server và giao diện là tệp thuần ở `src/shared/`, không chép tay sang đây.
 - Giao diện chỉ **ẩn/hiện** theo quyền; máy chủ luôn kiểm lại. Thông báo, nhãn, lỗi: tiếng Việt có dấu, không lộ chữ Anh hay mã thô (vd `cancelled`).
 - **Ẩn/hiện phải hỏi bảng quyền:** `can(staff, "<thao tác>")` — cùng bảng với máy chủ. `hasPermission` chỉ để hỏi **danh tính** ("người này là hướng dẫn viên / tài xế / đối tác"), không để hỏi "được làm việc gì" (chủ duyệt 2026-10-01; bài học: trang hỏi "có phải Quản trị" lệch máy chủ từ khi có Toàn quyền — `docs/superpowers/specs/2026-10-01-han-che-quan-tri-hcns/NGUYEN-NHAN-GOC-GIAO-DIEN-HOI-MA-QUYEN.md`). Ép bằng `src/giao-dien-hoi-bang-quyen.test.ts`.

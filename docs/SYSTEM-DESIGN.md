@@ -1637,47 +1637,7 @@ Cột «Ai vào được» ở bảng trên mô tả cổng và ô của đườ
 
 ## 15. Thuật ngữ
 
-| Tiếng Việt | Định danh mã | Ghi chú |
-|---|---|---|
-| đơn (booking) | bảng `orders`, DTO `OrderDto` | `ORDER` là từ khoá SQL nên bảng số nhiều; mã đơn `orders.order_code` dạng `TD-YYYYMMDD-NNNN` theo giờ VN |
-| trạng thái đơn | `orders.status` | `draft` nháp · `confirmed` đã xác nhận · `cancelled` đã huỷ |
-| nhãn trạng thái đơn nháp (ADR-0166 câu 5) | `STATUS_LABEL.draft`, `NHAN_DANG_CHO_XAC_NHAN`, cờ `dangCho` của `OrderSummaryDto` | **«Chưa xác nhận»** = đơn nháp chưa gửi đi kiểm vé; **«Chờ xác nhận»** = đơn nháp đã gửi và còn một dòng `ord_confirm_request` mở (máy chủ điền cờ ở `toSummaryDtos`; trang đơn lấy từ `xacNhan.yeuCau`). `status` vẫn chỉ ba giá trị; lớp màu theo `khoa` = `draft`. Chữ KHÁCH đọc (biên nhận, ảnh gửi khách) luôn «Chờ xác nhận» cho đơn nháp. Màn không có cờ (Việc của tôi, ô «Đơn liên quan» của vé hỗ trợ, sổ công nợ) hiện «Chưa xác nhận» kể cả khi đơn đang chờ |
-| dịch vụ trong đơn | bảng `order_service` | số khách 4 loại + thông tin chuyến |
-| dòng tiền | bảng `order_item` | `quantity × unit_price = line_total` |
-| thông tin chuyến | `TripInfoDto`, `validateTrip` | ngày/giờ khởi hành, đón, khách có mặt, ghi chú |
-| loại khách | `PaxCode` | `adult`, `child`, `senior`, `infant` |
-| khoản thu (trên giao diện); «lần thu» trong mã, tài liệu và ADR cũ | bảng `bil_payment_receipt`, DTO `LanThuDto` | ADR-0130: giao diện nói «khoản thu»; «đảo» một khoản (dòng ngược) hiện là «huỷ», dòng huỷ có dấu trừ; chữ đã loại ghi ở `src/shared/bang-tu-giao-dien.ts` (bài `src/bang-tu-giao-dien.test.ts` chặn) |
-| bản chụp | `snapshotService` | dựng lại dịch vụ danh mục từ dữ liệu đã lưu của đơn |
-| danh mục dịch vụ, ghi đè | `catalog_item`, `catalog_override`, `applyOverride` | "giá hiệu lực" = giá Sheet đã áp ghi đè; ghi đè không bị đồng bộ sau đè mất |
-| hồ sơ (màn **Danh bạ**, `/parties`) | bảng `pty_party` ("party") | cá nhân `PERSON` hoặc tổ chức `ORGANIZATION`; mỗi mục trong Danh bạ vẫn gọi là "hồ sơ" (từ bản 1.10, trước đó màn tên "Hồ sơ") |
-| vai trò hồ sơ (trên màn: mục **"Công việc tại đâu"**; quan hệ `pty_party_relationship` hiện ở mục **"Người liên hệ, tài xế"** — tên cũ "Người liên hệ" tới ADR-0048) | `pty_party_role`, `pty_role_type` | HDV, tài xế, `STAFF`… — **không** dùng để cho/chặn thao tác |
-| tài khoản (màn **Quản lý tài khoản**, `/staff`; tab điện thoại "Tài khoản") | bảng `staff`, module `staff`/`accounts` | đăng nhập (SĐT, PIN, Face ID), vai và quyền, khoá/nghỉ việc; mỗi tài khoản trỏ đúng một hồ sơ. Trang cá nhân `/account` là "Tôi" (mục thanh bên: "Của tôi"). Từ bản 1.10; trước đó màn tên "Nhân viên" |
-| quyền app | `stf_permission`, `PermissionCode` | `SALES`, `ACCOUNTING`, `ADMIN`, `FIELD`, `PARTNER`, `SUPER_ADMIN` (hai mã: ADR-0014), `INTERN` (ADR-0018), `DRIVER` "Tài xế" (ADR-0040), `DRIVER_PARTNER` "Tài xế đối tác" (ADR-0048), `HR` "Nhân sự" (ADR-0071) |
-| quyền bên ngoài | `EXTERNAL_PERMISSIONS` (`src/shared/permissions.ts`) | `PARTNER`, `DRIVER_PARTNER` — một hằng cho LC-1 và nghĩa "Toàn công ty" (ADR-0048) |
-| Tài xế đối tác | vai tài khoản `DRIVER_EXTERNAL` (nhóm EXTERNAL) → quyền app `DRIVER_PARTNER` | người lái của nhà xe đối tác, có tài khoản; không phải bên đặt; đứng một mình (LC-1b); khác quyền `DRIVER` (tài xế công ty) |
-| Nhà xe đối tác | vai hồ sơ `CARRIER` (nhóm OTHER) | hồ sơ tổ chức hoặc người; không sinh quyền, không có tài khoản (Q5 = (a)); xe của nhà xe là `vc_vehicle` có `owner_party_id` = hồ sơ nhà xe; danh sách qua `nhaXeDangHopTac` / `GET /api/van-chuyen/nha-xe` |
-| Tài xế của | loại quan hệ `DRIVES_FOR` (người → nhà xe), view `v_pty_carrier_driver` | "tài xế T thuộc nhà xe X": T = X (nhà xe cá nhân tự lái) hoặc quan hệ đang mở tới X, X đang mở vai Nhà xe |
-| thao tác | `OperationCode`, `MATRIX`, `can()` | ô của bản đồ ADR-0007 + ADR-0014 |
-| nhân sự văn phòng; đơn (văn phòng hoặc Đối tác); nhật ký | `isOffice` / `access: "office"`; `canAccessOrders` / `access: "orders"` (ADR-0014, ADR-0019); `audit_log`, `AUDIT_ACTIONS` | `OFFICE_GATE`; `ORDERS_GATE`; nhật ký chỉ-thêm |
-| chế độ bảo trì | module `maintenance`, bảng `mnt_setting`, mã lỗi 503 `maintenance` | bật thì chặn mọi tài khoản không giữ Toàn quyền (ADR-0071 — kể cả Quản trị), kể cả phiên đang mở; khác "Development Mode" của Cloudflare (chỉ tắt cache) |
-| khoá lạc quan; view công bố | `expectedUpdatedAt` / `updated_at`; `v_<tiền tố>_<tên>` | lệch → 409 `stale`; view là cách duy nhất đọc nhãn của module khác |
-| Tài xế công ty | vai tài khoản `DRIVER_INTERNAL` (nhóm INTERNAL) → quyền app `DRIVER` | nhân viên có tài khoản (ADR-0040 D3); khác mã vai hồ sơ CŨ `DRIVER` "Tài xế" (nhóm OTHER, đã ngưng gán mới) — cùng chữ `DRIVER` ở hai bảng khác nghĩa |
-| giấy tờ (của người / của xe) | `pty_person_document` / `vc_vehicle_document` | CCCD, bằng lái (GPLX, có hạng), khám sức khoẻ…; đăng ký, kiểm định, bảo hiểm… Số của NGƯỜI luôn che (`••••` + 4 ký tự cuối); số của xe không che |
-| giấy tờ hiện hành | `is_current` (SQL `HIEN_HANH`), DTO `current` | dòng chưa huỷ và chưa có dòng gia hạn chưa huỷ nối vào; chỉ dòng này gia hạn / sửa sai được (khác → 409 `document_not_current`) |
-| gia hạn | `previous_id`, route `…/renew`, `…/gia-han` | chèn dòng MỚI nối dòng cũ (không sửa đè — trigger chặn); không gửi số thì chép số cũ |
-| sửa sai; huỷ dòng nhập nhầm | `LY_DO_SUA_SAI`, route `…/correct`, `…/sua-sai`; `voided_at` | sửa đúng một trường của dòng hiện hành, lý do bắt buộc trong danh sách đóng; "nhập nhầm cả dòng" = đặt `voided_at` (không xoá), dòng trước thành hiện hành lại |
-| xem đủ số | route `…/reveal`, ô `party.document.reveal` | cách DUY NHẤT thấy số giấy tờ của người; ghi nhật ký (không số) trước khi trả |
-| mốc nhắc (ngưỡng sắp hết hạn) | `vc_expiry_policy`, `warnDays` | số ngày trước hạn bắt đầu nhắc (gieo 30); đổi = chèn dòng mới, chỉ Toàn quyền |
-| trạng thái xe; dùng lại xe | `vc_vehicle.status` (`TRANG_THAI_XE`) | Đang dùng · Bảo dưỡng · Ngừng dùng (có ngày ngừng); "dùng lại xe" = Ngừng → Đang dùng, vấp khi biển đã thuộc xe khác chưa ngừng (409 `vehicle_plate_taken`) |
-| mốc tối thiểu (mốc 6 giờ) | `vc_dispatch_policy.min_lead_minutes`, `src/shared/moc-toi-thieu.ts` | số phút tối thiểu trước giờ đón (lúc đặt) / trước giờ xuất bến (lúc xếp); gieo 360; dưới mốc thì xác nhận đơn cần "đặt gấp" của Bán hàng, Quản trị, Toàn quyền (ADR-0049 D2, ADR-0107 — chỉ chặng đang dưới mốc, nhãn dấu "Điều chỉnh khẩn cấp"); xếp / rút / dời khách, đổi xe / tài xế, huỷ chuyến còn khách dưới mốc là "điều chỉnh khẩn cấp" (Bán hàng, Quản trị, Toàn quyền — ADR-0104 Đ1) |
-| giữ (chuyến bị giữ) | `LyDoGiu`, `MA_GIU` (`src/shared/ly-do-giu.ts`), `kiemXuatBen` | chuyến chưa đủ điều kiện xuất bến ở lại "lên kế hoạch", hiện lý do + ai xử lý; không lưu cột, tính lại mỗi lần đọc |
-| chính sách điều phối; điều kiện xuất bến; hạng bằng → số khách; lý do điều phối | `vc_dispatch_policy`, `vc_departure_rule`, `vc_license_capacity`, `vc_reason` | xem §5 (0041, ADR-0049 — bản 1.38) |
-| hoa hồng đối tác; giá đại lý; người bán dịch vụ | `prc_commission_rule`, `prc_supply_term`, `hoaHongDong` / `tinhDongDoiTac` (`src/shared/hoa-hong-dong.ts`) | sổ đại lý đợt 1 (ADR-0077, ADR-0078): mức hoa hồng theo bên hưởng × dịch vụ/nhóm, chụp lại lúc xác nhận đơn; giá đại lý = thành tiền − hoa hồng; «người bán dịch vụ» = bên cung ứng, điều khoản mua lại ở `prc_supply_term` |
-| Vai người dùng (thẻ trên màn **Hoa hồng đối tác**, `/hoa-hong`; tên cũ «Loại đối tác», đổi 1/11/2026) | vai hồ sơ nhóm `OTHER` mang cờ `is_partner_label` cùng năm vai bên ngoài có sẵn; mã `loai` (`#hh-the-loai`, `data-loai`), route `/api/pricing/loai-doi-tac` — mã và tên bảng KHÔNG đổi theo chữ | nhóm được hưởng hoa hồng (Công ty lữ hành, Lễ tân khách sạn…). Từng mục gọi gọn là «vai trò» (＋ Thêm vai trò, Tắt vai trò, Chọn cấp cho vai trò này); «Vai người dùng» là tên thẻ và tên cột. Không phải vai đăng nhập (xem §8). Bảng chữ cấm: `src/shared/bang-tu-giao-dien.ts` (lượt 8) |
-| Cấp độ đại lý (thẻ đầu của màn **Hoa hồng đối tác**; tên cũ «Các cấp đại lý», «Cấp đại lý»; trước nữa «Mức TA», «Chính sách hoa hồng») | bảng `prc_rate_tier` (mã `MT_…`), route `/api/pricing/muc-ta` | bộ mức có tên dùng chung cho nhiều vai trò. TÊN một cấp là dữ liệu do Kế toán đặt («Đại lý cấp 3»), không nằm trong bảng chữ cấm |
-| Người có cấp riêng (khối dưới danh sách vai trong thẻ Vai người dùng; tên cũ: thẻ «Riêng từng đối tác», bỏ 1/11/2026) | `#hh-loai-rieng`, `web/hoa-hong-doi-tac.ts` (`ghepDoiTacRieng`) | đối tác có mức riêng hoặc cấp riêng; mở một đối tác thấy vai trò của họ, mức riêng và cấp riêng. Giá trị `doi-tac` còn trong bộ nhớ tạm của trình duyệt (`hh-the`) mở thẻ Vai người dùng (`docThe`); «Xem dòng ↓» của Tra nhanh trỏ bậc 1–6 về thẻ này |
-| khoá tháng | `ky_period_close`, module `ky-so`, ô `ledger.period.close` | ADR-0080 D1: chèn dòng tiền vào tháng đã khoá bị chặn ở CSDL (trigger `*_period_closed`: lần thu, bút toán, hoàn ngoài, chi phí chuyến xe); chỉ Kế toán, Toàn quyền khoá |
-| QR thanh toán; tài khoản nhận tiền | `GET /api/orders/:id/qr-thanh-toan`, `pty_bank_account` | ADR-0108: công ty chủ cài MỘT tài khoản nhận tiền ở Danh bạ; máy chủ dựng chuỗi VietQR cho đơn, trình duyệt chỉ vẽ ma trận; mã giao dịch ngân hàng của lần thu CK – Công ty thu ở `bil_receipt_bank_txn` |
+Tên, nghĩa và định danh mã của mọi khái niệm nay ghi ở một nơi: `docs/BANG-THAM-CHIEU.md` (do máy sinh, nguồn `src/shared/bang-tham-chieu*.ts`, ADR-0167). Phần «Thuật ngữ trong mã» của bản đó dành cho người làm mã. Bảng cũ của mục này đã chuyển hết sang đó; bản trước còn trong lịch sử git.
 
 ---
 
