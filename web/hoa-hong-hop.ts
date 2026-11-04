@@ -43,7 +43,6 @@ import {
   tenSauNhanDichVu,
   type CachGhiTien,
 } from "../src/shared/hoa-hong-hien-thi";
-import { CHU_CAP } from "../src/shared/cap-hien-hanh-hien-thi";
 import { baoSomGioiHan, type GiaBanLe } from "../src/shared/gioi-han-nhap-muc";
 import type { PermissionHolder } from "../src/shared/permissions";
 import { nhanDong, nhanTyLeBp } from "../src/shared/so-dai-ly-nhan";
@@ -774,7 +773,7 @@ export function taoMoHop(ctx: NguCanhHop): MoHop {
     const hl = oHieuLuc("hh-dcr", loi, d.homNay, null);
     let gui = "";
     moHop(ctx, {
-      title: CHU_CAP.chonCapRieng,
+      title: "Chọn cấp riêng cho đối tác",
       body: [
         dien
           ? h("p", null, h("span", { class: "hh-nhan-nho" }, "Đối tác"), h("strong", null, dien.ten))

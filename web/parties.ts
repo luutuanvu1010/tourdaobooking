@@ -6,7 +6,6 @@
 import { OWNER_COMPANY_ROLE } from "../src/shared/cong-ty-chu";
 import { chipHan, lichSuCua, ngayVN, tenGiayTo, xepTheoHan } from "../src/shared/giay-to-hien-thi";
 import { NHAN_LY_DO_KHOP, chuanHoaTen } from "../src/shared/ho-so-trung";
-import { CHU_CAP } from "../src/shared/cap-hien-hanh-hien-thi";
 import { cauXemTruocSua, chiaLanGan, coQuyenSua, nhanSapAp, nutSua } from "../src/shared/hoa-hong-hien-thi";
 import { nhanLoaiLienHe } from "../src/shared/lien-he";
 import { can } from "../src/shared/permissions";
@@ -857,7 +856,7 @@ async function veHoaHongHienHanh(sec: HTMLElement, p: Api.PartyDto, tin?: string
   const nutSuaRieng = rieng && coQuyenSua(me) && nutSua(rieng, r.homNay) ? button("Sửa", () => void moSua(rieng), "btn") : null;
   const nut: HTMLElement[] = !duocGhi ? []
     : rieng ? [nutNgung, nutSuaRieng].filter((x): x is HTMLButtonElement => x !== null)
-    : [button(CHU_CAP.chonCapRieng, () => void moGan(), "btn")];
+    : [button("Chọn cấp riêng cho đối tác", () => void moGan(), "btn")];
   // N5 (R3): lần gắn riêng đang áp vẫn đọc từ `mucRieng` (câu tra, nút như trên); `ganRieng` (lịch sử) chỉ cho lần sắp áp và nút «Xem lịch sử».
   const lan = chiaLanGan(r.ganRieng, r.homNay);
   const nutSuaSap = (g: Api.GanRiengLichSuDto): HTMLButtonElement => {

@@ -22,8 +22,8 @@ test("câu 1: trang chi tiết cấp có hai nút; «Gán cho đối tác» mở
 
 test("câu 1: ba nơi đặt cấp riêng dùng chung tên «Chọn cấp riêng cho đối tác»", () => {
   assert.match(doc("src/shared/cap-hien-hanh-hien-thi.ts"), /chonCapRieng: "Chọn cấp riêng cho đối tác"/);
-  assert.match(doc("web/hoa-hong-hop.ts"), /title: CHU_CAP\.chonCapRieng/);
-  assert.match(doc("web/parties.ts"), /button\(CHU_CAP\.chonCapRieng, \(\) => void moGan\(\)/);
+  assert.match(doc("web/hoa-hong-hop.ts"), /title: "Chọn cấp riêng cho đối tác"/);
+  assert.match(doc("web/parties.ts"), /button\("Chọn cấp riêng cho đối tác", \(\) => void moGan\(\)/);
   assert.match(doc("web/cot-cap-dai-ly.ts"), /title: `\$\{CHU_CAP\.chonCapRieng\}: \$\{dong\.fullName\}`/);
 });
 
