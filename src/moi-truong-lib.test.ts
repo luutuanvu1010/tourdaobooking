@@ -628,3 +628,35 @@ test("taoTaiKhoanThu: bảy tài khoản, SĐT cố định, PIN 6 số không y
   for (const x of a) assert.match(x.pin, /^\d{6}$/);
   assert.deepEqual(a[6].permissions, ["DRIVER_PARTNER"]);
 });
+
+// Trang hướng dẫn chủ tạo tài nguyên Development (ADR-0162, Task 7). Lệnh sai trong trang này là ghi đè bản chính thức, nên máy canh từng dòng.
+const HD_TRANG = "docs/HUONG-DAN-TAO-BAN-DEVELOPMENT.md";
+const hdText = () => readFileSync(new URL(`../${HD_TRANG}`, import.meta.url), "utf8");
+const hdDongLenh = () => hdText().split("\n").filter((d) => /wrangler/.test(d) && !/^\s*$/.test(d));
+
+test("trang hướng dẫn: mọi dòng có wrangler đều kèm --config wrangler.dev.jsonc", () => {
+  const dong = hdDongLenh().filter((d) => /(npx\s+wrangler|wrangler\s+(d1|r2|secret|deploy|login|whoami))/.test(d));
+  assert.ok(dong.length >= 8, "trang phải có các lệnh wrangler (d1 create, 3 r2 bucket create, các secret put)");
+  for (const d of dong) assert.ok(d.includes("--config wrangler.dev.jsonc"), `thiếu --config wrangler.dev.jsonc: ${d}`);
+  assert.ok(dong.some((d) => /d1 create/.test(d)) && dong.filter((d) => /r2 bucket create/.test(d)).length === 3);
+});
+
+test("trang hướng dẫn: tên D1 và tên kho khớp wrangler.dev.jsonc, không nhắc tên bản chính thức", () => {
+  const text = hdText();
+  const d = dev();
+  const tenD1 = d.d1_databases[0].database_name;
+  assert.ok(new RegExp(`d1 create ${tenD1}\\b`).test(text), "d1 create phải đúng tên D1 Development");
+  const kho = [...text.matchAll(/r2 bucket create (\S+)/g)].map((m) => m[1]).sort();
+  assert.deepEqual(kho, d.r2_buckets.map((b: any) => b.bucket_name).sort());
+  for (const cam of ["tourdao-sales-db", "tourdao-sales-ho-so", "booking.tourdao.vn"]) assert.ok(!text.includes(cam), `trang không được chứa ${cam}`);
+});
+
+test("trang hướng dẫn: đủ các bí mật, hai lời dặn in đậm, một địa chỉ nhận Góp ý", () => {
+  const text = hdText();
+  for (const k of ["SESSION_SECRET", "LAN_GUI_SECRET", "MFA_ENCRYPTION_KEY", "VAPID_PRIVATE_KEY", "FEEDBACK_MAIL_FROM", "FEEDBACK_NOTIFY_EMAIL", "THU_CHO_PHEP"]) {
+    assert.ok(new RegExp(`secret put ${k} --config wrangler.dev.jsonc`).test(text), `thiếu lệnh đặt ${k}`);
+  }
+  assert.ok(text.includes("**n**"), "thiếu lời dặn trả lời n");
+  assert.ok(/\*\*[^*]*--config wrangler\.dev\.jsonc[^*]*\*\*/.test(text), "thiếu lời dặn in đậm về --config");
+  assert.ok(text.includes("Chưa kiểm"), "thiếu dòng Chưa kiểm");
+});
