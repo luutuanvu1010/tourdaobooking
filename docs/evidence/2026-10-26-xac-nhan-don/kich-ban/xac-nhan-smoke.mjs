@@ -5,7 +5,7 @@
 //   4) Đối tác lập đơn thường → «Gửi đơn» → nhánh B: câu B nguyên văn rồi hộp ảnh tự mở (Đ13.7).
 //   5) Bán hàng (KHÔNG giữ Đối tác): đơn có dịch vụ cờ → nút «Gửi kiểm vé» (không «Xác nhận đơn»), đơn thường vẫn «Xác nhận đơn»; «Gửi kiểm vé» → dải chờ + «Rút lại».
 //   6) HDV (FIELD, người xét duyệt nhưng không lập): thấy thẻ Trang chủ và trang /cho-xac-nhan; trang đơn chờ có bảng quyết định, không nút lập đơn.
-//   7) Điều phối: ô đếm đổi chữ thành «CHỜ XÁC NHẬN».
+//   7) Điều phối: ô đếm đổi chữ thành «CHƯA XÁC NHẬN».
 // Trình duyệt dùng chung kho cookie: dựng dữ liệu bằng API XONG mới mở trang; tài khoản mở SAU CÙNG là tài khoản trang cần.
 // Chạy từ GỐC repo, sau `npm run build:web`:
 //   AXE_JS=<…/axe.min.js> CHROME_BIN=docs/evidence/2026-09-20-a2/kich-ban/chrome-wrap.sh OUT=docs/evidence/2026-10-26-xac-nhan-don node docs/evidence/2026-10-26-xac-nhan-don/kich-ban/xac-nhan-smoke.mjs
@@ -191,8 +191,8 @@ try {
 
   // ---- 7) Điều phối -------------------------------------------------------------------------------------------------------------------------------------------
   p = await env.as(ACCOUNTS.admin, "/dieu-phoi", DESK);
-  await b.step("7", "1040 Quản trị, Điều phối: ô đếm đơn nháp đổi chữ thành «CHỜ XÁC NHẬN»", async () => {
-    await p.waitFor(`document.body.innerText.includes('CHỜ XÁC NHẬN')`, "ô CHỜ XÁC NHẬN", 12000);
+  await b.step("7", "1040 Quản trị, Điều phối: ô đếm đơn nháp đổi chữ thành «CHƯA XÁC NHẬN»", async () => {
+    await p.waitFor(`document.body.innerText.includes('CHƯA XÁC NHẬN')`, "ô CHƯA XÁC NHẬN", 12000);
     assert.equal(await p.ev(`document.body.innerText.includes('ĐƠN NHÁP')`), false);
     await chup(p, "7-dieu-phoi-1040", DESK);
     loiConsole(p, "Điều phối");

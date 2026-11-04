@@ -21,6 +21,7 @@ import { NHAN_THAN_CU, type LoaiThanCu } from "./than-cu";
 import { orderCodePrefix, type OrderStatus, type ValidOrder } from "./rules";
 import { cauHuyCoLyDo } from "./huy-don-repo";
 import { nhanLyDoHuy, nhanNhomHuy, type LyDoHuy } from "../../shared/ly-do-huy";
+import { donDangChoXacNhan } from "./xac-nhan-repo";
 import { confirmWindow, summarizeDeviations, type StoredService, type ValidService, type ValidTrip } from "./service-rules";
 
 interface OrderRow {
@@ -480,12 +481,17 @@ async function toSummaryDtos(db: D1Database, rows: readonly OrderRow[]): Promise
     ? summarizeServices(applyAdjustedPax(await summaryRows(db, page.map((d) => d.id)), afterByOrder))
     : new Map<string, ServiceSummary>();
 
+  // ADR-0166 câu 5: chỉ hỏi khi trang có đơn nháp (đa số trang không có); cờ chỉ gắn khi đúng — vắng khoá, không gửi false.
+  const idNhap = page.filter((d) => d.status === "draft").map((d) => d.id);
+  const dangCho = idNhap.length ? await donDangChoXacNhan(db, idNhap) : new Set<string>();
+
   return page.map((d) => {
     const s = summaries.get(d.id) ?? emptySummary();
     return {
       id: d.id,
       orderCode: d.orderCode,
       status: d.status,
+      ...(dangCho.has(d.id) ? { dangChoXacNhan: true as const } : {}),
       customerName: d.customerName,
       customerPhone: d.customerPhone,
       customerNote: d.customerNote,

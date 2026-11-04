@@ -39,6 +39,12 @@ test("NT-B1 (luật): số lạ 480017 ở mọi ô KHÔNG được phép của 
   assert.equal(dungBienNhan({ ...donBiMat(), deliveredAt: "x" }, COMPANY, { daTra: 1, conLai: 0 }, null).status.nhan, "Đã giao – đã thu đủ");
 });
 
+test("ADR-0166 câu 5: chữ khách đọc — đơn nháp (chưa gửi hay đã gửi kiểm vé) vẫn ghi «Chờ xác nhận» trên biên nhận / ảnh gửi khách, không đi theo nhãn nội bộ «Chưa xác nhận»", () => {
+  const r = dungBienNhan({ ...donBiMat(), status: "draft" }, COMPANY, { daTra: 0, conLai: 1_000_000 }, null);
+  assert.deepEqual([r.status.khoa, r.status.nhan], ["draft", "Chờ xác nhận"]);
+  assert.equal(dungBienNhan({ ...donBiMat(), status: "cancelled" }, COMPANY, { daTra: 0, conLai: 0 }, null).status.nhan, "Đã huỷ");
+});
+
 test("NT-B1 (route thật): GET /api/orders/:id/receipt — số lạ ở ô bí mật của đơn và SỔ (ghi chú lần thu, tên người thu) không lộ; đã trả / còn lại từ billing; khuôn quyền chi tiết đơn", async () => {
   const w = world();
   const SALES = "11111111-1111-4111-8111-111111111111";

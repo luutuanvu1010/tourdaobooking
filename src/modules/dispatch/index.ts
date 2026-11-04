@@ -47,7 +47,7 @@ const VIEW_FORBIDDEN = () => error(403, "forbidden", "Tài khoản này không �
 const NO_CHANGE = () => error(409, "no_change", "Người này đang phụ trách đơn rồi.");
 const STALE = () => error(409, "stale", "Người phụ trách đơn vừa được người khác đổi, hãy tải lại rồi thử lại.");
 const CANCEL_FORBIDDEN = () => error(403, "forbidden", "Chỉ hướng dẫn viên đang phụ trách đơn mới huỷ được đơn theo cách này.");
-const NOT_CONFIRMED = () => error(409, "not_editable", "Chỉ huỷ được đơn đã xác nhận qua đường này; đơn chờ xác nhận hoặc đã huỷ không dùng được.");
+const NOT_CONFIRMED = () => error(409, "not_editable", "Chỉ huỷ được đơn đã xác nhận qua đường này; đơn chưa xác nhận hoặc đã huỷ không dùng được.");
 const DEPARTED = () => error(409, "departed", "Tour đã qua ngày đi — hướng dẫn viên không huỷ được nữa. Nhờ văn phòng huỷ nếu cần.");
 const MONEY_EDIT_DEPARTED = () => error(409, "departed", "Đơn đã qua ngày đi — không sửa số khách được nữa. Cần sửa, nhờ tài khoản Toàn quyền.");
 const HANDLER_RACED = () => error(409, "stale", "Đơn vừa được người khác đổi, hãy tải lại rồi thử lại.");

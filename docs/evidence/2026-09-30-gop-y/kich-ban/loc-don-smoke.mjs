@@ -85,9 +85,9 @@ try {
   assert.deepEqual(await p.ev("[...document.querySelectorAll('.sheet .loc-nguoi-dau label')].map((l) => l.textContent)"), ["Mọi người", "Đơn tôi lập"]);
   await p.ev("document.querySelectorAll('.sheet .loc-nguoi-dau input[type=radio]')[1].click()");
   await p.ev("document.querySelector('.sheet [data-action=\"ap-dung-loc\"]').click()");
-  await doiDanhSach(p, [A1, A2], "đơn tôi lập, chờ xác nhận");
-  assert.deepEqual(await p.ev(chip), ["Chờ xác nhận", "Đơn tôi lập"]);
-  ok("Từ > Đến: câu \"Từ ngày không được sau Đến ngày.\", bảng giữ nguyên; Chờ xác nhận + Đơn tôi lập → 2 đơn của mình");
+  await doiDanhSach(p, [A1, A2], "đơn tôi lập, chưa xác nhận");
+  assert.deepEqual(await p.ev(chip), ["Chưa xác nhận", "Đơn tôi lập"]);
+  ok("Từ > Đến: câu \"Từ ngày không được sau Đến ngày.\", bảng giữ nguyên; Chưa xác nhận + Đơn tôi lập → 2 đơn của mình");
 
   // 4b) ADR-0067: gõ tìm một người đã lập đơn (không dấu) → chọn → chỉ đơn người đó, chip đúng tên; chính mình không nằm trong danh sách dưới.
   const dsNguoi = `[...document.querySelectorAll('.sheet [data-ds=\"nguoiLap\"] label')].map((l) => l.textContent)`;
@@ -101,7 +101,7 @@ try {
   await p.ev("document.querySelector('.sheet [data-ds=\"nguoiLap\"] input[type=radio]').click()");
   await p.ev("document.querySelector('.sheet [data-action=\"ap-dung-loc\"]').click()");
   await doiDanhSach(p, [B1], "lọc người lập Sales Hai");
-  assert.deepEqual(await p.ev(chip), ["Chờ xác nhận", ACCOUNTS.salesB.name]);
+  assert.deepEqual(await p.ev(chip), ["Chưa xác nhận", ACCOUNTS.salesB.name]);
   await p.shot("/tmp/loc-don-390-nguoi-lap.png");
   ok("ADR-0067: ô Người lập — lối tắt Mọi người / Đơn tôi lập; danh sách không có chính mình; gõ 'hai' lọc tại chỗ; chọn Sales Hai → đúng 1 đơn, chip ghi tên");
 
@@ -110,7 +110,7 @@ try {
   await p.send("Page.reload", {});
   await sleep(300);
   await doiDanhSach(p, [A1, A2], "bộ lọc cũ Đơn tôi lập");
-  await p.waitFor(`JSON.stringify(${chip}) === ${JSON.stringify(JSON.stringify(["Chờ xác nhận", "Đơn tôi lập"]))}`, "chip của bộ lọc cũ");
+  await p.waitFor(`JSON.stringify(${chip}) === ${JSON.stringify(JSON.stringify(["Chưa xác nhận", "Đơn tôi lập"]))}`, "chip của bộ lọc cũ");
   const nhoMoi = JSON.parse(await p.ev("localStorage.getItem('td.locDon.v1')"));
   assert.equal(nhoMoi.cuaToi, undefined, "không còn khoá cũ");
   assert.match(nhoMoi.nguoiLap, /^[0-9a-f-]{36}$/, "nhớ dạng mới: mã chính mình");
