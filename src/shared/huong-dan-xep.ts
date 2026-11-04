@@ -19,7 +19,7 @@ export const XEP: Readonly<Record<string, XepNhom>> = {
   "ban-hang": {
     "Bắt đầu": [["Menu của bạn", null], ["Danh sách đơn và Trang chủ", "donHang"], ["Thông báo", null]],
     "Đơn hàng": [
-      ["Lập đơn mới", "taoDon"], ["Sửa đơn đang chờ xác nhận", DON], ["Xác nhận đơn", DON], ["Người phụ trách đơn", DON],
+      ["Lập đơn mới", "taoDon"], ["Sửa đơn chưa xác nhận", DON], ["Xác nhận đơn", DON], ["Người phụ trách đơn", DON],
       ["Đơn của đối tác chờ xác nhận: kiểm vé", "choXacNhan"],
     ],
     "Gửi cho khách": [["Gửi ảnh biên nhận cho khách", DON]],

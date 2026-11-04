@@ -51,7 +51,7 @@ Thanh tab dưới đáy có [[Trang chủ]], [[Đơn hàng]] và [[Tôi]]. Các 
       tieuDe: "Tìm và lọc đơn",
       noiDung: `1. Bấm [[Đơn hàng]].
 2. Gõ vào ô tìm kiếm của danh sách: mã đơn, tên hoặc số điện thoại. Danh sách tự lọc sau khi bạn ngừng gõ.
-3. Muốn lọc thì bấm nút **Lọc**: chọn cùng lúc ngày đi (có nút nhanh [[Hôm nay]], [[Ngày mai]], [[3 ngày tới]], [[Tuần này]]), dịch vụ, trạng thái (**Chờ xác nhận**, **Đã xác nhận**, **Đã huỷ**) và người lập (gõ tên để chọn từng người đã lập đơn), rồi bấm [[Áp dụng]]. Ô **Nhập phần mềm kế toán** lọc đơn chưa nhập / đã nhập, cần chọn cả Từ ngày và Đến ngày. Bấm × trên nhãn để bỏ từng điều kiện, [[Xoá lọc]] để bỏ hết; máy nhớ bộ lọc cho lần sau.
+3. Muốn lọc thì bấm nút **Lọc**: chọn cùng lúc ngày đi (có nút nhanh [[Hôm nay]], [[Ngày mai]], [[3 ngày tới]], [[Tuần này]]), dịch vụ, trạng thái (**Chưa xác nhận**, **Đã xác nhận**, **Đã huỷ**) và người lập (gõ tên để chọn từng người đã lập đơn), rồi bấm [[Áp dụng]]. Ô **Nhập phần mềm kế toán** lọc đơn chưa nhập / đã nhập, cần chọn cả Từ ngày và Đến ngày. Bấm × trên nhãn để bỏ từng điều kiện, [[Xoá lọc]] để bỏ hết; máy nhớ bộ lọc cho lần sau.
 4. Cuối danh sách có nút [[Tải thêm]] nếu còn đơn.
 5. Mỗi thẻ đơn ghi **Còn thu**; nút xổ xuống cho xem thêm **Đã trả**, **Tổng**, người phụ trách. Đơn đã nhập phần mềm kế toán có nhãn riêng.`,
     },
