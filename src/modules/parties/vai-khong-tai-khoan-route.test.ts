@@ -292,3 +292,97 @@ test("C3: vai còn lại đã bị tắt khỏi danh sách được hưởng th�
   assert.equal(r.status, 409, r.text);
   assert.equal(maLoi(r), "role_end_has_open_work");
 });
+
+// ---- Task 3: gộp hồ sơ ----
+async function thuGopHai(w: W, a: string, b: string, ten: string) {
+  const xem = await w.call("POST", `/api/parties/${a}/merge/preview`, { as: ADM, body: { intoPartyId: b } });
+  const gop = await w.call("POST", `/api/parties/${a}/merge`, { as: ADM, body: { intoPartyId: b, xacNhan: ten } });
+  return { xem, gop };
+}
+
+test("Task 3 (a): gộp hồ sơ nội bộ cũ (STAFF) vào hồ sơ mang COLLABORATOR, và ngược lại ⇒ merge_partner_label_internal (năm vai tính là «mang loại đối tác»)", async () => {
+  const w = setup();
+  assert.equal((await gan(w, NGUOI, "COLLABORATOR")).status, 201);
+  const k1 = await thuGopHai(w, NGUOI_NOI_BO, NGUOI, "Anh Cũ");
+  assert.equal(k1.gop.status, 409, k1.gop.text);
+  assert.equal(k1.gop.json.error.code, "merge_partner_label_internal", k1.gop.text);
+  assert.ok(k1.xem.json.chan.some((c: { code: string }) => c.code === "merge_partner_label_internal"));
+  const k2 = await thuGopHai(w, NGUOI, NGUOI_NOI_BO, "Chị Mai");
+  assert.ok(k2.xem.json.chan.some((c: { code: string }) => c.code === "merge_partner_label_internal"), "chiều ngược lại");
+  assert.equal(w.q("SELECT merged_into_id m FROM pty_party WHERE id = ?", NGUOI_NOI_BO)[0].m, null, "không gộp");
+});
+
+test("Task 3 (b): xem trước gộp nguồn mang năm vai ⇒ câu trỏ Danh bạ, không trỏ Quản lý tài khoản", async () => {
+  const w = setup();
+  assert.equal((await gan(w, NGUOI, "GUIDE_FREELANCE")).status, 201);
+  const hai = "dda00000-0000-4000-8000-0000000000b3";
+  w.sqlite.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES (?, 'PERSON', 'Chị Hai', 1, ?, ?)").run(hai, AT, AT);
+  w.sqlite.prepare("INSERT INTO pty_person (party_id, given_name, created_at, updated_at) VALUES (?, 'Chị Hai', ?, ?)").run(hai, AT, AT);
+  const xem = await w.call("POST", `/api/parties/${NGUOI}/merge/preview`, { as: ADM, body: { intoPartyId: hai } });
+  const c = xem.json.chan.find((x: { code: string }) => x.code === "merge_source_account_role");
+  assert.ok(c, xem.text);
+  assert.match(c.message, /Danh bạ/);
+  assert.doesNotMatch(c.message, /Quản lý tài khoản/);
+});
+
+// ---- Task 3: Hành chính nhân sự (C4), tạo tài khoản cho hồ sơ đã gắn vai, kiểm định kỳ ----
+const HR = "44444444-4444-4444-8444-4444444444aa";
+function themHr(w: W): void {
+  seedStaff(w.sqlite, { id: HR, phone: "0900000011", name: "Nhân Sự", perms: ["HR"] });
+}
+/** Các kiểm định kỳ R-LC-1* và R-PRC-* (trừ R-PRC-5 — cảnh báo vĩnh viễn) chạy trên CSDL của khung: trả mã kiểm có vi phạm. */
+async function kiemDinhKyDo(w: W): Promise<string[]> {
+  const { CHECKS, demViPham } = (await import(new URL("../../../scripts/audit-checks.mjs", import.meta.url).href)) as {
+    CHECKS: { code: string; sql: string; mode?: string; dem?: unknown }[];
+    demViPham: (c: unknown, rows: unknown[]) => number;
+  };
+  return CHECKS.filter((c) => /^R-(LC-1|PRC-)/.test(c.code) && c.code !== "R-PRC-5")
+    .filter((c) => demViPham(c, w.sqlite.prepare(c.sql.replace(/\s+/g, " ").trim()).all()) > 0).map((c) => c.code);
+}
+
+test("C4: Hành chính nhân sự gõ tên hồ sơ KHÔNG tài khoản đã gắn COLLABORATOR ⇒ thấy id, tên, vai (không phải chỉ cờ)", async () => {
+  const w = setup();
+  themHr(w);
+  assert.equal((await gan(w, NGUOI, "COLLABORATOR")).status, 201);
+  const r = await w.call("GET", `/api/staff/ho-so-khop?ten=${encodeURIComponent("Chị Mai")}`, { as: HR });
+  assert.equal(r.status, 200, r.text);
+  const x = r.json.khop.find((k: { id: string }) => k.id === NGUOI);
+  assert.ok(x, r.text);
+  assert.equal(x.displayName, "Chị Mai");
+  assert.deepEqual(x.vaiTaiKhoan, ["COLLABORATOR"]);
+  assert.equal(x.coTaiKhoan, false);
+  assert.ok(x.vai.includes("Cộng tác viên"), JSON.stringify(x.vai));
+});
+
+test("C4 đối chứng: hồ sơ chỉ là khách (không năm vai) ⇒ HR vẫn không thấy id, tên, chỉ cờ", async () => {
+  const w = setup();
+  themHr(w);
+  assert.equal((await gan(w, NGUOI, "CUSTOMER")).status, 201);
+  const r = await w.call("GET", `/api/staff/ho-so-khop?ten=${encodeURIComponent("Chị Mai")}`, { as: HR });
+  assert.equal(r.status, 200, r.text);
+  assert.deepEqual(r.json.khop, []);
+  assert.equal(r.json.coHoSoKhacTrongDanhBa, true);
+});
+
+test("Đ1.7: tạo tài khoản cho CÁ NHÂN đã gắn COLLABORATOR ⇒ 201, quyền PARTNER sinh đúng lúc, cấp riêng còn nguyên, vai không bị nhân đôi; R-LC-1 và R-PRC-* không vi phạm", async () => {
+  const w = setup();
+  assert.equal((await gan(w, NGUOI, "COLLABORATOR")).status, 201);
+  const cap = await datCapRieng(w, NGUOI);
+  assert.deepEqual(await kiemDinhKyDo(w), [], "trước khi tạo tài khoản");
+  const r = await w.call("POST", "/api/staff", { as: SA, body: { partyId: NGUOI, phone: "0900000123", roles: ["COLLABORATOR"] } });
+  assert.equal(r.status, 201, r.text);
+  const sid = r.json.staff.id as string;
+  assert.deepEqual(w.q("SELECT permission_type_code p FROM stf_permission WHERE staff_id = ? AND valid_to_at IS NULL ORDER BY 1", sid).map((x: { p: string }) => x.p), ["PARTNER"]);
+  assert.equal(dem(w, "SELECT COUNT(*) AS n FROM prc_party_tier WHERE id = ? AND valid_to_date IS NULL AND voided_at IS NULL", cap), 1, "cấp riêng còn");
+  assert.equal(dem(w, "SELECT COUNT(*) AS n FROM pty_party_role WHERE party_id = ? AND role_type_code = 'COLLABORATOR' AND valid_to_date IS NULL", NGUOI), 1, "một dòng vai mở");
+  assert.deepEqual(await kiemDinhKyDo(w), [], "sau khi tạo tài khoản");
+});
+
+test("Đ1.7: tạo tài khoản cho TỔ CHỨC (dù đã gắn TRAVEL_AGENCY) ⇒ 409 như cũ, không sinh dòng staff", async () => {
+  const w = setup();
+  assert.equal((await gan(w, ORG, "TRAVEL_AGENCY")).status, 201);
+  const truoc = dem(w, "SELECT COUNT(*) AS n FROM staff");
+  const r = await w.call("POST", "/api/staff", { as: SA, body: { partyId: ORG, phone: "0900000124", roles: ["TRAVEL_AGENCY"] } });
+  assert.equal(r.status, 409, r.text);
+  assert.equal(dem(w, "SELECT COUNT(*) AS n FROM staff"), truoc);
+});

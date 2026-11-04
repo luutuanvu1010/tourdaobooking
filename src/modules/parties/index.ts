@@ -394,7 +394,8 @@ async function docHoSoGop(ctx: Ctx<"admin">, id: string, nhom: ReadonlyMap<strin
 async function tinhGop(ctx: Ctx<"admin">, aId: string, bId: string, homNay: string): Promise<Response | TinhGop> {
   const loai = await listRoleTypes(ctx.env.DB);
   const nhom = new Map(loai.map((t) => [t.code, t.role_group as NhomVai]));
-  const nhan = new Set(loai.filter((t) => t.partnerLabel).map((t) => t.code)); // ADR-0117: mã loại đối tác được hưởng
+  // ADR-0117: mã loại đối tác được hưởng; ADR-0155 Đ1.4: năm vai mở cho hồ sơ không tài khoản cũng tính (cờ `is_partner_label` của chúng là 0, trigger CSDL không canh)
+  const nhan = new Set(loai.filter((t) => t.partnerLabel || vaiMoChoHoSoKhongTaiKhoan(t.code)).map((t) => t.code));
   const [A, B] = await Promise.all([docHoSoGop(ctx, aId, nhom, nhan, homNay), docHoSoGop(ctx, bId, nhom, nhan, homNay)]);
   if (!A || !B) return NOT_FOUND();
   // G12: hồ sơ chính gắn tài khoản mà người gộp không quản được (Quản trị khác / Toàn quyền) → 403 — luật cấp bậc có sẵn (staff tính qua ctx.partyAccount).

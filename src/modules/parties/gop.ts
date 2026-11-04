@@ -3,6 +3,8 @@
 // "Còn mở" = valid_to_date IS NULL hoặc > hôm nay (giờ VN) — dòng đóng đúng hôm nay coi là "vừa kết thúc" (kế hoạch R7).
 // Hệ quả (phán quyết F16): các đường đọc cũ dùng `>= hôm nay`, nên dòng của A đóng đúng hôm nay vẫn hiện là hiệu lực trong ngày ở đó — chấp nhận được vì A bị ẩn sau khi gộp.
 
+import { vaiMoChoHoSoKhongTaiKhoan } from "../../shared/roles.ts";
+
 export type NhomVai = "INTERNAL" | "EXTERNAL" | "OTHER";
 export interface LienHeGop { id: string; kind: string; value: string; valueNormalized: string; label: string | null; isPrimary: boolean; validFrom: string; validTo: string | null }
 export interface CongViecGop { id: string; code: string; name: string; group: NhomVai; locationId: string | null; locationName: string | null; validFrom: string; validTo: string | null }
@@ -66,6 +68,17 @@ const CAU: Record<Exclude<MaChanGop, "merge_source_busy" | "merge_order_invalid"
   merge_erasure: "Hồ sơ đang có hoặc đã thực hiện yêu cầu xoá dữ liệu — không gộp được.",
 };
 export const chanCo = (code: keyof typeof CAU): LyDoChan => ({ code, message: CAU[code] });
+/**
+ * ADR-0155 Đ1.4: hồ sơ phụ KHÔNG tài khoản mà mọi vai bên ngoài/nội bộ đang giữ đều thuộc năm vai mở cho hồ sơ không tài khoản → vai đó gỡ ở Danh bạ (không có màn
+ * Quản lý tài khoản nào để bỏ chọn). Thứ tự gỡ theo C3: vai hưởng cuối còn đơn nháp / cấp riêng / mức riêng thì phải xử lý những việc đó trước.
+ */
+const CAU_PHU_VAI_DANH_BA =
+  "Hồ sơ phụ đang giữ vai trò đối tác (công ty lữ hành, hướng dẫn viên tự do, lễ tân, tài xế taxi hoặc cộng tác viên) — kết thúc vai đó ở Danh bạ (mở hồ sơ, mục Vai trò) rồi gộp lại. " +
+  "Nếu đó là vai hưởng hoa hồng cuối của hồ sơ, hãy xử lý trước các đơn nháp, cấp riêng và mức riêng còn mở, vì Nền tảng không cho kết thúc vai khi còn những việc này.";
+function chanVaiPhu(a: HoSoGop, vaiMoA: CongViecGop[]): LyDoChan {
+  const chiNamVai = !a.coTaiKhoan && vaiMoA.filter((r) => r.group !== "OTHER").every((r) => vaiMoChoHoSoKhongTaiKhoan(r.code));
+  return chiNamVai ? { code: "merge_source_account_role", message: CAU_PHU_VAI_DANH_BA } : chanCo("merge_source_account_role");
+}
 const conMo = (validTo: string | null, homNay: string): boolean => validTo === null || validTo > homNay;
 const cungNoi = (x: string | null, y: string | null): boolean => (x ?? "") === (y ?? "");
 
@@ -102,7 +115,7 @@ export function keHoachGop(a: HoSoGop, b: HoSoGop, ngoai: NgoaiGop, homNay: stri
   if (a.coTaiKhoan && b.coTaiKhoan) chan.push(chanCo("merge_both_accounts"));
   else if (a.coTaiKhoan) chan.push(chanCo("merge_source_has_account"));
   const vaiMoA = a.congViec.filter((r) => r.validFrom <= homNay && conMo(r.validTo, homNay));
-  if (vaiMoA.some((r) => r.group !== "OTHER")) chan.push(chanCo("merge_source_account_role"));
+  if (vaiMoA.some((r) => r.group !== "OTHER")) chan.push(chanVaiPhu(a, vaiMoA));
   const nhomSau = new Set([...b.congViec.filter((r) => conMo(r.validTo, homNay)).map((r) => r.group), ...vaiMoA.map((r) => r.group)]);
   if (nhomSau.has("INTERNAL") && nhomSau.has("EXTERNAL")) chan.push(chanCo("merge_role_group_conflict"));
   // ADR-0117 điều 4: nhân viên nội bộ không mang loại đối tác được hưởng — chặn ở kế hoạch (lý do riêng), không để trigger huỷ lô thành merge_stale.
