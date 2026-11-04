@@ -2,7 +2,7 @@
 
 - **Trạng thái:** **accepted** — chủ dự án trả lời trang `docs/superpowers/specs/2026-11-04-ra-soat-nut-bam/TOM-TAT-CHO-CHU.md` ngày 2026-11-04, nguyên văn: *«Về cơ bản tôi đồng ý với tất cả những đề xuất của bạn ở trên»* (ghi ở `QUYET-DINH-CHU.md` cùng thư mục). AI soạn và ghi lại, không tự duyệt (Hiến pháp N3, N9).
 - **Ngày:** 2026-11-04. **Số:** 0166 (0161 là số lớn nhất trong thư mục lúc soạn; 0162–0165 đang chờ ở nhánh khác, chưa nhập).
-- **Thay câu của** (chỉ CHỮ hiện cho người dùng và các chỗ nêu ở mục «Đổi cách chạy»; thân các ADR cũ không sửa): **ADR-0030** (nhãn «Chờ xác nhận» cho đơn chưa gửi, Q-A2: phần này CHỈ bị thay khi việc tách nhãn ở câu 5 được thi công, xem mục «Chưa thi công»); **ADR-0108 điểm (f)** (tên nút «Khách đã chuyển khoản» → «Ghi khoản thu này»); **ADR-0136** (dòng 33: nút «Gửi xác nhận» → «Gửi kiểm vé»; dòng 58: nút «Lưu, chờ xác nhận» → «Lưu đơn (chưa xác nhận)»; nút «Còn vé» → «Còn vé, xác nhận đơn» và thêm một bước hỏi). Cơ chế và mã nội bộ (`data-action`, đường API, tên cột, mã nhật ký) không đổi.
+- **Thay câu của** (chỉ CHỮ hiện cho người dùng và các chỗ nêu ở mục «Đổi cách chạy»; thân các ADR cũ không sửa): **ADR-0030** (nhãn «Chờ xác nhận» cho đơn chưa gửi, Q-A2, xem mục 3 của phần Quyết định); **ADR-0108 điểm (f)** (tên nút «Khách đã chuyển khoản» → «Ghi khoản thu này»); **ADR-0136** (dòng 33: nút «Gửi xác nhận» → «Gửi kiểm vé»; dòng 58: nút «Lưu, chờ xác nhận» → «Lưu đơn (chưa xác nhận)»; nút «Còn vé» → «Còn vé, xác nhận đơn» và thêm một bước hỏi). Cơ chế và mã nội bộ (`data-action`, đường API, tên cột, mã nhật ký) không đổi.
 
 ## Bối cảnh
 
@@ -33,7 +33,7 @@ Rà soát 4/11 đọc 298 việc quan trọng trong 874 nút (hồ sơ `docs/sup
    - **Câu 4:** bấm «Còn vé, xác nhận đơn» hiện hộp hỏi nói rõ: giá bị khoá, hoa hồng được chụp, vé được cấp, tiền cọc khách khai thành khoản thu, không hoàn tác được. Chỉ khi đồng ý mới gọi máy chủ. Áp cho mọi nơi có nút này.
    - **Câu 5 (phần nút):** nút lưu đơn đổi tên; hộp dựng ảnh đổi tên «Ảnh gửi khách».
 
-3. **Chưa thi công, chờ chủ quyết (câu 5, tách nhãn):** nhãn «Chưa xác nhận» cho đơn chưa gửi và giữ «Chờ xác nhận» cho đơn đang chờ người kiểm vé cần cờ «có yêu cầu xác nhận đang mở» ở danh sách đơn, lọc, Việc của tôi, biên nhận và vé hỗ trợ. Danh sách đơn hiện không có cờ này (chỉ trang chi tiết có `xacNhan`, và chỉ cho người lập hoặc người xét duyệt). Thêm cờ là đổi dữ liệu trả về và phải quyết ai được thấy gì. Trong khi chờ, nhãn trạng thái giữ «Chờ xác nhận» (ADR-0030 còn hiệu lực).
+3. **Câu 5, tách nhãn (chủ quyết 2026-11-04, nguyên văn: *«Làm nốt rồi nhập»*):** đơn nháp chưa gửi ghi «Chưa xác nhận»; đơn có yêu cầu xác nhận đang mở ghi «Chờ xác nhận». Danh sách đơn nhận thêm cờ `dangChoXacNhan` (chỉ có khi đúng, chỉ đi kèm đơn người xem vốn đã thấy; không đổi phạm vi xem, không migration); trang chi tiết đọc `xacNhan`. Ảnh gửi khách và biên nhận giữ «Chờ xác nhận» cho mọi đơn nháp, vì khách không cần biết đơn đã qua bước kiểm vé hay chưa (AI đề xuất trong trả lời cùng ngày, chủ không bác). Nơi không có cờ (Việc của tôi, ô Đơn liên quan của vé hỗ trợ, sổ công nợ, bộ lọc trạng thái, câu báo đổi trạng thái) hiện «Chưa xác nhận» kể cả khi đơn đang chờ, vẫn đúng sự thật. Ô đếm ở bảng Điều phối đổi thành «Chưa xác nhận» vì nó đếm mọi đơn nháp. Từ đây phần nhãn ở ADR-0030 Q-A2 được thay.
 
 4. Chữ «Nháp» không dùng lại trên giao diện.
 
@@ -50,4 +50,4 @@ Rà soát 4/11 đọc 298 việc quan trọng trong 874 nút (hồ sơ `docs/sup
 
 - Mục cũ của `src/shared/changelog.ts` giữ nguyên chữ cũ (hồ sơ có ngày).
 - Nút «Ẩn» mới của Toàn quyền (ADR-0164, chưa duyệt) không bị ràng buộc bởi bản ghi này; khi làm sẽ giữ «Ẩn» / «Hiện lại».
-- Còn lại: nhãn đơn chưa gửi «Chưa xác nhận» (mục 3).
+- Ô «Đơn nháp» ở Trang chủ gọi cùng loại đơn bằng tên khác và trái mục 4; giữ nguyên tới khi chủ chọn tên (`docs/BACKLOG.md` mục 63, `BL-KB-CHU-DOT-2`).

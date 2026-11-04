@@ -75,6 +75,12 @@ try {
     await p.waitFor(coNut("Gửi kiểm vé"), "nút Gửi kiểm vé (đơn sẽ gửi)", 15000);
     await bam(p, "Gửi kiểm vé");
     await p.waitFor(`!!document.querySelector('[data-khoi="cho-xac-nhan"]')`, "đơn đã gửi kiểm vé");
+    // Câu 5: danh sách của người lập phân biệt đơn chưa gửi và đơn đang chờ người kiểm vé.
+    await p.send("Page.navigate", { url: `${env.base}/orders` });
+    await p.waitFor("document.querySelectorAll('main .badge-draft').length >= 2", "danh sách đơn", 15000);
+    const nhanDon = await p.ev("[...document.querySelectorAll('main .badge-draft')].map((x) => x.textContent.trim())");
+    assert.ok(nhanDon.includes("Chưa xác nhận") && nhanDon.includes("Chờ xác nhận"), `danh sách phải có cả hai nhãn: ${nhanDon.join(", ")}`);
+    await shotView(p, anh(`cau-5-danh-sach-${kho}`));
     p.close();
 
     // Câu 4: bảng quyết định và hộp hỏi lại. Chỉ mở hộp, không bấm xác nhận.
