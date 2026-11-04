@@ -2,7 +2,17 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.59 ĐÃ LÊN PRODUCTION (tin «số dư của bạn đổi» tới Đối tác và Tài xế đối tác, ADR-0092 Đ5d, ADR-0115 điều 5) — không migration — triển khai 2026-11-04 07:05 giờ Việt Nam
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.60 ĐÃ LÊN PRODUCTION (công ty lữ hành và đối tác chưa có tài khoản gắn vai ở Danh bạ, hưởng hoa hồng theo cấp, ADR-0155 Đ1, C3, C4, C6) — không migration — triển khai 2026-11-04 14:04 giờ Việt Nam
+
+Ghi từ khối tóm tắt của `npm run trien-khai` (chủ tự chạy) và lệnh chỉ đọc của phiên chiết khấu:
+- Commit `origin/main`: `c7ba67e7`. Worker Version ID: `825b3994-769a-4984-87b0-79313c0957fb`. Cổng phiên bản trước và sau deploy: ĐẠT. GET công khai sau deploy: `version` 2.60.
+- **e2e: ĐỎ, 1/82 (`xoa-an-danh`); chủ chọn tiếp tục.** Dòng báo lỗi đã trôi khỏi màn hình nên chưa rõ nguyên nhân. Phiên chạy lại trên `c7ba67e7` ba lần đều xanh: chạy riêng; cùng các kịch bản hồ sơ; đúng dãy kịch bản đứng trước nó trong nhóm 2 với `E2E_SONG_SONG=1`. Chưa tái hiện với cả 82 kịch bản song song. Nghi tải máy, chưa chứng minh.
+- **`audit-invariants --db remote`: ĐẠT, ba cảnh báo.** `R-VC-14` 7 xe thiếu giấy tờ là điều kiện xuất bến; `R-CTL-1` 9 dịch vụ chưa phân nhóm; **mới so với 2.59:** `R-DSP-2b` một người phụ trách đang mở có tài khoản đã ngưng, nên giao lại đơn (chưa xem là đơn nào).
+- **Lời chủ 4/11:** «Duyệt cả ba» (ADR-0155); «Nêu tên người lập» (đơn nháp chặn gỡ vai trò; ngoại lệ hẹp của ADR-0135 Đ1, ghi ở bảng việc hoa hồng).
+- **Chế độ bảo trì đang bật** tới 2026-11-05 22:26 giờ Việt Nam (GET công khai sau deploy).
+- **Chưa kiểm:** iPhone thật; dòng cảnh báo trên phiếu phân định chưa nhìn trên màn hình; chưa có công ty lữ hành thật gắn vai trên production.
+
+## (Cũ) TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.59 ĐÃ LÊN PRODUCTION (tin «số dư của bạn đổi» tới Đối tác và Tài xế đối tác, ADR-0092 Đ5d, ADR-0115 điều 5) — không migration — triển khai 2026-11-04 07:05 giờ Việt Nam
 
 Ghi từ khối tóm tắt của `npm run trien-khai` (chủ tự chạy) và lệnh chỉ đọc của phiên chiết khấu:
 - Commit `origin/main`: `aa4086f6`. Worker Version ID: `83d4f17c-2388-452c-b1ef-7e64bc6c8339`. e2e xanh. Cổng phiên bản trước và sau deploy: ĐẠT. GET công khai 4/11 07:20: `version` 2.59; `wrangler d1 migrations list --remote`: không còn migration chờ.
