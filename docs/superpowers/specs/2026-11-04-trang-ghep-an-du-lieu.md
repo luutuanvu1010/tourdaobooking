@@ -40,12 +40,15 @@ Thứ tự 10 cột: SALES, ACCOUNTING, ADMIN, FIELD, PARTNER, SUPER_ADMIN, INTE
 | Đường dẫn công khai (biên nhận, vé, QR) | máy chủ trả «không còn hiệu lực» | gửi rồi không thu hồi được, chỉ làm chết đường dẫn |
 | Sổ công nợ | **không lọc**, chỉ đổi nhãn thành «Đơn đã ẩn» | số dư không đổi |
 
-**View công bố đọc xuyên module phải mang được trạng thái đã ẩn hoặc nhãn thay thế**, vì đây là chỗ dễ sót nhất: `v_ord_order_label`, `v_pty_party_label`, `v_pty_party_partner_label`, `v_stf_staff_label`. Các view sổ `v_bil_party_balance`, `v_bil_order_paid` **giữ nguyên**, không lọc.
+**View công bố đọc xuyên module phải mang được trạng thái đã ẩn hoặc nhãn thay thế**, vì đây là chỗ dễ sót nhất: `v_ord_order_label`, `v_pty_party_label`, `v_pty_party_partner_label`, `v_stf_staff_label`. Các view sổ `v_bil_party_balance`, `v_bil_order_paid` và các view trạng thái, chủ đơn `v_ord_order_state`, `v_ord_order_owner`, `v_ord_cancel_state` **giữ nguyên**, không lọc, vì lệnh sổ tiền và kiểm dữ liệu đọc qua đó.
+
+**Dữ liệu máy chủ trả cho Đối tác và Tài xế đối tác** về dòng sổ của đơn đã ẩn phải bỏ cả mã đơn lẫn mã nội bộ của đơn, không chỉ che trên màn hình.
 
 **Chỗ giao diện đổi nghĩa vì có dữ liệu đã ẩn** (không chỉ route máy chủ):
 
 - Các ô chọn hồ sơ, loại đối tác, cấp, dịch vụ không còn thấy thứ đã ẩn. Danh sách «đã tắt» hiện có sẽ ngắn đi, người dùng có thể hỏi sao mất.
-- Số đếm trên Trang chủ, Việc của bạn và «Doanh thu của tôi» phải khớp danh sách sau khi lọc; đếm và lọc lệch nhau là lỗi dễ gặp nhất.
+- Số đếm trên Trang chủ, Việc của bạn, «Doanh thu của tôi» và «Còn thiếu tiền» phải khớp danh sách sau khi lọc; đếm và lọc lệch nhau là lỗi dễ gặp nhất. Riêng «Còn thiếu tiền» có thể nhỏ hơn số sổ đang đòi, có chủ ý (ADR-0165 Đ2).
+- Sổ cọc vẫn hiện đơn huỷ đã ẩn còn giữ cọc, ghi «Đơn đã ẩn», để nghĩa vụ hoàn tiền không biến mất.
 - Tra trùng số điện thoại không còn báo hồ sơ đã ẩn, nên dễ sinh hồ sơ trùng.
 - Sổ công nợ có dòng «Đơn đã ẩn»: bấm vào phải hiện câu giải thích, không phải trang lỗi.
 - Chuyến đã kết thúc hiện «Đơn đã ẩn» thay cho tên khách, số khách giữ nguyên.

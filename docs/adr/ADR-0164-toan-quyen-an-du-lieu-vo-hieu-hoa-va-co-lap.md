@@ -36,15 +36,15 @@ Với mọi người, kể cả Kế toán và Quản trị, bản ghi đã ẩn
 
 Mở thẳng đường dẫn thì thấy câu «Dữ liệu này đã ẩn», không có nội dung. Chuyến đã kết thúc có khách của đơn đã ẩn thì giữ số khách và chi phí, hiện «Đơn đã ẩn» thay cho tên (đề xuất của người soạn).
 
-Ba thứ **không** bị cô lập, vì đó là việc của luật: Sổ công nợ không bị lọc (ADR-0165), kiểm dữ liệu `audit-invariants` vẫn quét đủ mọi dòng, và phiếu yêu cầu xoá dữ liệu cá nhân (5.24) vẫn tới được hồ sơ đã ẩn.
+Ba thứ **không** bị cô lập, vì đó là việc của luật: Sổ công nợ không bị lọc dòng (ADR-0165; chỉ bỏ hàng của hồ sơ đã ẩn có số dư 0 khỏi danh sách số dư), kiểm dữ liệu `audit-invariants` vẫn quét đủ mọi dòng, và phiếu yêu cầu xoá dữ liệu cá nhân (5.24) vẫn tới được hồ sơ đã ẩn.
 
 ## Đ4 — Máy giữ, không chỉ giao diện
 
 - **Ghi:** trigger ở cơ sở dữ liệu từ chối mọi dòng mới trỏ tới bản ghi đã ẩn và mọi lệnh sửa nó, ví dụ thu tiền vào đơn đã ẩn, lập đơn cho hồ sơ đã ẩn. Miễn cho: nhật ký, chính lệnh ẩn và hiện lại, đóng phiên đăng nhập, tác vụ dọn ảnh vé, và các lệnh sổ tiền ở ADR-0165 Đ3.
-- **Đọc:** mỗi module chủ giữ trạng thái đã ẩn của bản ghi gốc của mình và công bố qua một view `v_<tiền tố>_*`; module khác chỉ đọc view đó (ADR-0002).
+- **Đọc:** mỗi module chủ giữ trạng thái đã ẩn của bản ghi gốc của mình và công bố qua một view `v_<tiền tố>_*`; module khác chỉ đọc view đó (ADR-0002). Các view trạng thái và chủ đơn (`v_ord_order_state`, `v_ord_order_owner`, `v_ord_cancel_state`) **không lọc**, vì lệnh sổ tiền và kiểm dữ liệu đọc qua đó.
 - **Đăng nhập:** máy chủ từ chối tài khoản đã ẩn và đóng phiên đang mở.
 - **Bài kiểm:** một bộ quét mới, dựng trên khung thử `tests/audit/harness.mjs`, gọi mọi route đọc theo từng vai với dữ liệu đã ẩn gieo sẵn, đỏ khi có route trả về mã đã ẩn. Thêm route mới mà quên lọc thì bài này bắt. Bài `src/route-access.test.ts` có sẵn chỉ kiểm quyền vào route, không đọc nội dung trả về nên không thay được.
-- `audit-invariants` thêm luật: không có dòng còn hiệu lực trỏ tới bản ghi đã ẩn.
+- `audit-invariants` thêm luật: không có dòng còn hiệu lực trỏ tới bản ghi đã ẩn, trừ dòng sổ tiền và chuyến đã kết thúc.
 
 ## Đ5 — Hiện lại
 
@@ -57,6 +57,7 @@ Toàn quyền có trang «Dữ liệu đã ẩn» (tên đề xuất) xem đư�
 - **Nhân viên đang mở một đơn mà đơn bị ẩn** sẽ nhận câu «Dữ liệu này đã ẩn» ở lần bấm kế tiếp, không có tin báo trước.
 - **Đường dẫn đã gửi khách sẽ chết.** Ẩn nhầm đơn thật thì khách không xem được biên nhận cho tới khi hiện lại.
 - **Việc lớn hơn vẻ ngoài:** phải sửa mọi đường đọc của ba nhóm dữ liệu. **Chưa kiểm:** số route và số màn hình cần sửa; kế hoạch thi công phải đếm.
+- Trạng thái đã ẩn và trigger đi lên bản chính thức bằng migration, trong lúc việc diễn tập khôi phục (HC-5.19) vẫn chưa làm.
 
 ## Việc kèm khi thi công
 
