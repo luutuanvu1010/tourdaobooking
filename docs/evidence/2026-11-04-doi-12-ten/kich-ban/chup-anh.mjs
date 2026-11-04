@@ -81,6 +81,9 @@ try {
     const nhanDon = await p.ev("[...document.querySelectorAll('main .badge-draft')].map((x) => x.textContent.trim())");
     assert.ok(nhanDon.includes("Chưa xác nhận") && nhanDon.includes("Chờ xác nhận"), `danh sách phải có cả hai nhãn: ${nhanDon.join(", ")}`);
     await shotView(p, anh(`cau-5-danh-sach-${kho}`));
+    await p.ev(click("#loc-mo"));
+    await p.waitFor(`!!document.querySelector('[data-trang-thai="draft"]')`, "bảng lọc");
+    assert.equal(await p.ev(`document.querySelector('[data-trang-thai="draft"]').textContent.trim()`), "Chưa xác nhận", "nút lọc theo trạng thái");
     p.close();
 
     // Câu 4: bảng quyết định và hộp hỏi lại. Chỉ mở hộp, không bấm xác nhận.

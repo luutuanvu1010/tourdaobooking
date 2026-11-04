@@ -17,6 +17,20 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Đổi 12 tên nút sau rà soát 4/11 và tách nhãn đơn nháp (ADR-0166). Không migration, không ô quyền; có đổi cách chạy ở «Bỏ ghi đè giá», hộp hỏi «Còn vé, xác nhận đơn», cờ `dangCho` ở danh sách đơn.
+    // Số 2.60 và ngày chỉ là tạm cho nhánh: bước A.0 của lần triển khai đặt lại nếu cần.
+    version: "2.60",
+    date: "2026-11-04",
+    items: [
+      { kind: "doi", text: "Đơn chưa gửi kiểm vé nay ghi «Chưa xác nhận»; đơn đã gửi và đang chờ người kiểm vé ghi «Chờ xác nhận». Ảnh gửi khách không đổi." },
+      { kind: "doi", text: "Bấm «Còn vé, xác nhận đơn» nay được hỏi lại và nói rõ việc gì sẽ xảy ra, vì bước này không hoàn tác được." },
+      { kind: "moi", text: "Hoa hồng đối tác: trong một cấp đại lý có hai nút «Gán cho vai trò» và «Gán cho đối tác»." },
+      { kind: "sua", text: "Dịch vụ & giá: «Bỏ ghi đè giá» chỉ đưa giá về theo Sheet, dịch vụ đang ngừng bán vẫn ngừng bán." },
+      { kind: "doi", text: "Một số nút đổi tên cho đúng việc: «Gửi kiểm vé», «Lưu đơn (chưa xác nhận)», «Ghi khoản thu này», «Ghi khoản thu đòi được», «Ngừng bán», «Mở bán lại», «Mở vé để gửi khách», «Kết thúc gián đoạn (xe hỏng)», «Đặt ngày kết thúc», «Ngừng dùng»." },
+      { kind: "sua", text: "Điện thoại: khung «Xác nhận đơn» trải đủ bề ngang, chữ không còn tràn khỏi viền." },
+    ],
+  },
+  {
     // Tin «số dư của bạn đổi» tới cả Đối tác và Tài xế đối tác (ADR-0092 Đ5d, ADR-0115 điều 5; sửa mã cho khớp tài liệu đã duyệt). Không migration, không ô quyền mới.
     // Số 2.59 và ngày chỉ là tạm cho nhánh: bước A.0 của lần triển khai đặt lại nếu cần.
     version: "2.59",
