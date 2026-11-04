@@ -30,7 +30,10 @@ export interface ViecQuanTrong {
   hoiLai: string;
   /** Hoàn tác được không (lời thường). */
   hoanTac: string;
-  /** Đường máy chủ CHÍNH nút này gọi để ghi (không có `?…`), tham số `:x`; không chép đường của hàm lân cận. Không chắc thì để mảng rỗng: rỗng không có nghĩa là nút không gọi gì. */
+  /**
+   * Đường máy chủ CHÍNH nút này gọi (không có `?…`), tham số `:x`; không chép đường của hàm lân cận. Không chắc thì để mảng rỗng: rỗng không có nghĩa là nút không gọi gì.
+   * Dữ liệu hiện có do máy lọc một lần: nhiều hàng chưa đối chiếu với mã, có hàng là đường đọc. Chỉ dùng để tìm mã; muốn chắc thì đọc mã.
+   */
   duongLenh: readonly string[];
   /** Mã nhật ký (`AUDIT_ACTIONS`) việc này ghi. Không chắc thì để mảng rỗng. */
   maNhatKy: readonly AuditAction[];

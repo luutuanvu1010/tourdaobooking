@@ -6,7 +6,7 @@ Mỗi khái niệm một tên, mỗi tên một nghĩa, tra từ một nguồn. 
 
 **Giới hạn phải nói thẳng.** Máy kiểm tên có nhất quán, không kiểm tên có đúng sự thật: cột «Thật sự làm gì» dựa vào người đọc mã. Hai nút cùng chữ trong một tệp tính là một nơi đặt. Nút có chữ ghép từ mã (đánh dấu ‹…› hoặc ⟪…⟫) thì khi đổi tên biến, khoá đổi theo: máy báo đỏ, người đọc tay rồi sửa bảng. Lời Nền tảng trả lời người dùng trong trò chuyện thì máy không canh được.
 
-**Đọc cột Trạng thái.** «Đã chốt»: có lời chủ hoặc ADR đã duyệt (máy kiểm phải chỉ ra nguồn). «Tên hiện tại, chủ chưa chọn riêng»: AI rà soát thấy đúng, không phải chủ chọn; đổi tên vẫn phải hỏi chủ. «Chờ chọn»: đang chờ chủ chọn tên. **Đọc cột Đường lệnh.** Máy dò rồi lọc, chỉ giữ đường ghi thấy được ở chính nút; hàng không chắc thì để trống, nên trống không có nghĩa là nút không gọi gì. Chưa đọc tay từng hàng, vì vậy muốn biết chắc thì đọc mã.
+**Đọc cột Trạng thái.** «Đã chốt»: có lời chủ hoặc ADR đã duyệt (máy kiểm phải chỉ ra nguồn). «Tên hiện tại, chủ chưa chọn riêng»: AI rà soát thấy đúng, không phải chủ chọn; đổi tên vẫn phải hỏi chủ. «Chờ chọn»: đang chờ chủ chọn tên. **Đọc cột Đường lệnh.** Chỉ dùng để tìm mã. Máy lọc một lần: nhiều hàng chưa đối chiếu với mã, có hàng là đường đọc; hàng không chắc thì để trống, nên trống không có nghĩa là nút không gọi gì. Muốn biết chắc thì đọc mã.
 
 ## Khái niệm
 
