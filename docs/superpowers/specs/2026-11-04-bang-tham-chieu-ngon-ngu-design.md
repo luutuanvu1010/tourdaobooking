@@ -1,6 +1,6 @@
 # Bảng tham chiếu ngôn ngữ: đặc tả (2026-11-04)
 
-**Trạng thái:** chờ chủ dự án duyệt, chưa dựng gì. Chủ đã chọn phạm vi A: ghi các việc quan trọng, trạng thái đơn và từ chuyên ngành, không ghi cả 874 nút.
+**Trạng thái:** **chủ dự án đã duyệt** ngày 2026-11-04, nguyên văn: *«Duyệt»* (ADR-0167). Kế hoạch: `docs/superpowers/plans/2026-11-04-bang-tham-chieu-ngon-ngu.md`. Chủ đã chọn phạm vi A: ghi các việc quan trọng, trạng thái đơn và từ chuyên ngành, không ghi cả 874 nút.
 
 ## Vì sao
 
