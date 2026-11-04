@@ -12,6 +12,7 @@ type Lib = {
   docCommitDev: (goi?: any) => Promise<string | null>;
   lenChinhThuc: (d: any) => Promise<number>;
   chiDoiTaiLieu: (ten: string[]) => boolean;
+  lamMoiDev: (d: any) => Promise<number>;
 };
 const lib = (await import(new URL("../scripts/moi-truong-lib.mjs", import.meta.url).href)) as Lib;
 
@@ -466,4 +467,164 @@ test("lenChinhThuc với git thật: đổi tên src/x.ts thành docs/x.md liệ
   const ra = g(...lenh).split("\n").filter(Boolean).sort();
   assert.deepEqual(ra, ["docs/x.md", "src/x.ts"]);
   assert.equal(lib.chiDoiTaiLieu(ra), false);
+});
+
+// ─────────────────────────── lamMoiDev (Task 6) ───────────────────────────
+// Xoá sạch D1 của bản Development rồi dựng lại. Bộ chạy giả NÉM LỖI khi gặp lệnh ngoài kịch bản. Không bài nào chạy wrangler thật.
+const SQL_DOC = "SELECT type, name FROM sqlite_master";
+const masterJson = (...d: { type: string; name: string }[]) => JSON.stringify([{ results: d, success: true }]);
+const MASTER = masterJson(
+  { type: "table", name: "staff" },
+  { type: "table", name: "sqlite_sequence" },
+  { type: "table", name: "_cf_KV" },
+  { type: "table", name: "d1_migrations" },
+  { type: "index", name: "idx_staff" },
+  { type: "trigger", name: "trg_staff" },
+  { type: "view", name: "v_stf_a" },
+  { type: "view", name: "v_stf_b" },
+);
+const DROP_VIEW = 'DROP VIEW IF EXISTS "v_stf_a"; DROP VIEW IF EXISTS "v_stf_b";';
+const DROP_BANG = 'PRAGMA defer_foreign_keys = ON; DROP TABLE IF EXISTS "staff"; DROP TABLE IF EXISTS "d1_migrations";';
+const TK = [
+  { name: "A Thử", phone: "0900000001", pin: "123457", permissions: ["SALES"] },
+  { name: "B Thử", phone: "0900000002", pin: "654329", permissions: ["ADMIN"] },
+];
+const lenhD1 = (sql: string) => wr(`d1 execute ${DB_DEV} --remote --json --command ${sql}`);
+const KB_LM = {
+  [lenhD1(SQL_DOC)]: kq(MASTER),
+  [lenhD1(DROP_VIEW)]: kq(),
+  [lenhD1(DROP_BANG)]: kq(),
+  [wr(`d1 migrations apply ${DB_DEV} --remote`)]: kq(),
+  [lenhD1("INSERT:0900000001")]: kq(),
+  [lenhD1("INSERT:0900000002")]: kq(),
+};
+function chayLam(over: Record<string, KQ | KQ[]> = {}, o: { isTTY?: boolean; tra?: string; dev?: string; prod?: string } = {}) {
+  const script: Record<string, KQ | KQ[]> = { ...KB_LM, ...over };
+  const calls: string[] = [];
+  const raw: { cmd: string; args: string[]; env?: Record<string, string> }[] = [];
+  const lines: string[] = [];
+  let hoi = 0;
+  const deps = {
+    isTTY: o.isTTY ?? true,
+    log: (l: string) => lines.push(l),
+    ask: async () => { hoi++; return o.tra ?? "dev"; },
+    docTep: (ten: string) => (ten === "wrangler.dev.jsonc" ? (o.dev ?? devDienDu()) : ten === "wrangler.jsonc" ? (o.prod ?? prodText) : (() => { throw new Error("tệp lạ " + ten); })()),
+    taoTaiKhoan: () => TK,
+    sqlTaiKhoan: async (a: any) => `INSERT:${a.phone}`,
+    run: (cmd: string, args: string[], opts?: { env?: Record<string, string> }) => {
+      raw.push({ cmd, args, env: opts?.env });
+      const k = `${opts?.env ? Object.entries(opts.env).map(([a, b]) => `${a}=${b} `).join("") : ""}${cmd} ${args.join(" ")}`.trim();
+      calls.push(k);
+      const v = script[k];
+      const r = Array.isArray(v) ? (v.length > 1 ? v.shift() : v[0]) : v;
+      if (!r) throw new Error(`lệnh ngoài kịch bản: ${k}`);
+      return r;
+    },
+  };
+  return { deps, calls, raw, hoi: () => hoi, text: () => lines.join("\n") };
+}
+
+test("lamMoiDev đường đạt: đúng thứ tự; xoá view rồi MỘT lệnh xoá bảng có PRAGMA; bỏ sqlite_/_cf_; in SĐT + PIN", async () => {
+  const h = chayLam();
+  assert.equal(await lib.lamMoiDev(h.deps), 0, h.text());
+  assert.deepEqual(h.calls, [
+    lenhD1(SQL_DOC),
+    lenhD1(DROP_VIEW),
+    lenhD1(DROP_BANG),
+    wr(`d1 migrations apply ${DB_DEV} --remote`),
+    lenhD1("INSERT:0900000001"),
+    lenhD1("INSERT:0900000002"),
+  ]);
+  for (const a of TK) { assert.match(h.text(), new RegExp(a.phone)); assert.match(h.text(), new RegExp(a.pin)); }
+  assert.match(h.text(), /Bảng tin/);
+  assert.match(h.text(), /kho tệp/i);
+});
+
+test("lamMoiDev: MỌI lời gọi mang --config wrangler.dev.jsonc + CI=1, không --file, không tham số chứa tourdao-sales-db", async () => {
+  const kichBan: Record<string, KQ | KQ[]>[] = [{}, { [lenhD1(DROP_BANG)]: kq("", 1) }, { [lenhD1(SQL_DOC)]: kq("lạ") }];
+  for (const over of kichBan) {
+    const h = chayLam(over);
+    await lib.lamMoiDev(h.deps);
+    assert.ok(h.raw.length > 0);
+    for (const c of h.raw) {
+      assert.equal(c.cmd, "npx");
+      const i = c.args.indexOf("--config");
+      assert.ok(i >= 0 && c.args[i + 1] === "wrangler.dev.jsonc", `thiếu --config: ${c.args.join(" ")}`);
+      assert.equal(c.env?.CI, "1");
+      assert.ok(!c.args.includes("--file"));
+      for (const a of c.args) assert.ok(!a.includes("tourdao-sales-db"), `chạm tên D1 chính thức: ${a}`);
+    }
+  }
+});
+
+test("lamMoiDev dừng, không lệnh nào chạy: không TTY; trả lời khác đúng chữ dev; cấu hình đột biến; còn chỗ trống", async () => {
+  let h = chayLam({}, { isTTY: false });
+  assert.notEqual(await lib.lamMoiDev(h.deps), 0);
+  assert.deepEqual(h.calls, []);
+  assert.equal(h.hoi(), 0);
+  for (const tra of ["", "Dev", "dev ", "yes", "prod"]) {
+    h = chayLam({}, { tra });
+    assert.notEqual(await lib.lamMoiDev(h.deps), 0, tra);
+    assert.deepEqual(h.calls, [], tra);
+  }
+  const d = JSON.parse(devDienDu());
+  d.d1_databases[0].database_id = prod().d1_databases[0].database_id;
+  h = chayLam({}, { dev: JSON.stringify(d) });
+  assert.notEqual(await lib.lamMoiDev(h.deps), 0);
+  assert.deepEqual(h.calls, []);
+  assert.equal(h.hoi(), 0);
+  h = chayLam({}, { dev: devText });
+  assert.notEqual(await lib.lamMoiDev(h.deps), 0);
+  assert.deepEqual(h.calls, []);
+});
+
+test("lamMoiDev dừng: tên D1 không kết thúc bằng -dev-db (kể cả khi tên khác bản chính thức) — không lệnh nào chạy", async () => {
+  const d = JSON.parse(devDienDu());
+  d.d1_databases[0].database_name = "tourdao-sales-dev-khac";
+  const h = chayLam({}, { dev: JSON.stringify(d) });
+  assert.notEqual(await lib.lamMoiDev(h.deps), 0);
+  assert.deepEqual(h.calls, []);
+  assert.match(h.text(), /-dev-db/);
+});
+
+test("lamMoiDev dừng và báo đã làm tới đâu khi một bước đỏ", async () => {
+  let h = chayLam({ [lenhD1(SQL_DOC)]: kq("", 1, "lỗi") });
+  assert.notEqual(await lib.lamMoiDev(h.deps), 0);
+  assert.match(h.text(), /CHƯA có gì bị đổi/);
+  h = chayLam({ [lenhD1(DROP_BANG)]: kq("", 1, "lỗi") });
+  assert.notEqual(await lib.lamMoiDev(h.deps), 0);
+  assert.ok(!h.calls.includes(wr(`d1 migrations apply ${DB_DEV} --remote`)));
+  assert.match(h.text(), /xoá view/);
+  h = chayLam({ [wr(`d1 migrations apply ${DB_DEV} --remote`)]: kq("", 1) });
+  assert.notEqual(await lib.lamMoiDev(h.deps), 0);
+  assert.ok(!h.calls.includes(lenhD1("INSERT:0900000001")));
+  assert.match(h.text(), /xoá bảng/);
+  h = chayLam({ [lenhD1("INSERT:0900000002")]: kq("", 1) });
+  assert.notEqual(await lib.lamMoiDev(h.deps), 0);
+  assert.match(h.text(), /0900000001/);
+  assert.ok(!h.text().includes("654329"), "tài khoản chưa tạo được thì không in PIN");
+});
+
+test("lamMoiDev: không có view thì bỏ bước xoá view; tên đối tượng lạ khuôn thì dừng, không xoá gì", async () => {
+  let h = chayLam({ [lenhD1(SQL_DOC)]: kq(masterJson({ type: "table", name: "staff" })), [lenhD1('PRAGMA defer_foreign_keys = ON; DROP TABLE IF EXISTS "staff";')]: kq() });
+  assert.equal(await lib.lamMoiDev(h.deps), 0, h.text());
+  assert.ok(!h.calls.some((c) => c.includes("DROP VIEW")));
+  h = chayLam({ [lenhD1(SQL_DOC)]: kq(masterJson({ type: "table", name: 'x"; DROP TABLE y; --' })) });
+  assert.notEqual(await lib.lamMoiDev(h.deps), 0);
+  assert.ok(!h.calls.some((c) => c.includes("DROP")));
+});
+
+test("lamMoiDev: PIN không vào tệp — thư viện không ghi tệp", () => {
+  const src = readFileSync(new URL("../scripts/moi-truong-lib.mjs", import.meta.url), "utf8");
+  assert.ok(!/writeFile|appendFile|createWriteStream/.test(src));
+  for (const t of ["lam-moi-dev.mjs", "tai-khoan-thu.mjs"]) assert.ok(!/writeFile|appendFile|createWriteStream/.test(readFileSync(new URL(`../scripts/${t}`, import.meta.url), "utf8")), t);
+});
+
+test("taoTaiKhoanThu: bảy tài khoản, SĐT cố định, PIN 6 số không yếu và khác nhau giữa các lần gọi", async () => {
+  const { taoTaiKhoanThu } = (await import(new URL("../scripts/tai-khoan-thu.mjs", import.meta.url).href)) as { taoTaiKhoanThu: () => any[] };
+  const a = taoTaiKhoanThu();
+  assert.equal(a.length, 7);
+  assert.deepEqual(a.map((x) => x.phone), ["0900000001", "0900000002", "0900000003", "0900000004", "0900000005", "0900000006", "0900000007"]);
+  for (const x of a) assert.match(x.pin, /^\d{6}$/);
+  assert.deepEqual(a[6].permissions, ["DRIVER_PARTNER"]);
 });

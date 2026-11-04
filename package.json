@@ -16,6 +16,7 @@
     "dict": "node scripts/gen-data-dictionary.mjs",
     "len-dev": "node scripts/len-dev.mjs",
     "len-chinh-thuc": "node scripts/len-chinh-thuc.mjs",
+    "lam-moi-dev": "node scripts/lam-moi-dev.mjs",
     "day-len": "node scripts/day-len.mjs",
     "trien-khai": "node scripts/trien-khai.mjs"
   },

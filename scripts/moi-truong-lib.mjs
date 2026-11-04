@@ -152,6 +152,11 @@ export async function docCommitDev(goi = fetch) {
   }
 }
 
+/** Hàm DUY NHẤT gọi wrangler (dùng chung `lenDev` và `lamMoiDev`): luôn gắn --config bản Development và CI=1. Không có đường gọi nào khác. */
+function taoWr(run) {
+  return (thamSo, opts = {}) => run("npx", ["wrangler", ...thamSo, "--config", CAU_HINH_DEV], { ...opts, env: { CI: "1" } });
+}
+
 /**
  * @param run  (cmd, args, { env, stream }) → { code, stdout, stderr } (hoặc Promise)
  * @param args tham số dòng lệnh (không nhận tham số nào)
@@ -163,8 +168,7 @@ export async function docCommitDev(goi = fetch) {
  */
 export async function lenDev({ run, log, args = [], docTep, tenMigration, docCommitDev: docMa = docCommitDev, sleep }) {
   const stop = makeStop(log);
-  // Hàm DUY NHẤT gọi wrangler: luôn gắn --config bản Development và CI=1. Không có đường gọi nào khác.
-  const wr = (thamSo, opts = {}) => run("npx", ["wrangler", ...thamSo, "--config", CAU_HINH_DEV], { ...opts, env: { CI: "1" } });
+  const wr = taoWr(run);
   const HD_CONFIG = ` --config ${CAU_HINH_DEV}`;
 
   if (args.filter((a) => a !== "--").length) return stop("lệnh này không nhận tham số. Dùng: npm run len-dev");
@@ -367,4 +371,120 @@ export async function lenChinhThuc({ run, log, isTTY, target, docCommitDev: docM
     log("Để làm tiếp, gõ `npm run trien-khai` ở thư mục gốc `tourdao-sales`, đứng ở nhánh `main`, thư mục sạch.");
   }
   return tk;
+}
+
+// ─────────────────────────── lam-moi-dev (ADR-0162 Đ2) ───────────────────────────
+// Xoá SẠCH D1 của bản Development rồi dựng lại từ migration và gieo bảy tài khoản thử. CHỦ gõ; hook chặn AI.
+// Rủi ro số một: một lời gọi thiếu --config xoá D1 THẬT. Vì vậy chỉ qua `taoWr`, và `ghi` kiểm tên D1 kết thúc `-dev-db` ngay trước MỖI lệnh ghi.
+// Chỉ dùng --command (không --file: `--remote --file` hỏng với OAuth). PIN chỉ in ra Terminal, không ghi tệp.
+
+const TEN_DOI_TUONG = /^[A-Za-z0-9_]+$/;
+const dongNhay = (t) => `"${t}"`;
+
+/**
+ * @param run  như lenDev
+ * @param ask  (câu hỏi) → Promise<chữ trả lời>
+ * @param isTTY có terminal thật
+ * @param docTep (tên tệp) → nội dung chữ
+ * @param taoTaiKhoan () → [{ name, phone, pin, permissions }]
+ * @param sqlTaiKhoan (tài khoản) → Promise<chuỗi SQL tạo tài khoản>
+ * @returns mã thoát (0 = xong)
+ */
+export async function lamMoiDev({ run, ask, log, isTTY, docTep, taoTaiKhoan, sqlTaiKhoan }) {
+  const stop = makeStop(log);
+  if (!isTTY) return stop(NOT_TTY);
+
+  // 1. cấu hình: đột biến, chỗ trống, tên D1 (trước cả khi hỏi và trước mọi lệnh)
+  let prodText;
+  let devText;
+  try {
+    prodText = docTep("wrangler.jsonc");
+    devText = docTep(CAU_HINH_DEV);
+  } catch (e) {
+    return stop(`không đọc được tệp cấu hình (${String(e?.message ?? e).slice(0, 200)}). CHƯA có gì bị đổi.`);
+  }
+  const loi = kiemCauHinhDev(prodText, devText);
+  if (loi.length) return stop("cấu hình Development không đạt bài so với bản chính thức — CHƯA có gì bị đổi.", ...loi.map((l) => `  - ${l}`));
+  const trong = conChoTrong(devText);
+  if (trong.length) return stop(`${CAU_HINH_DEV} còn chỗ trống chưa thay bằng giá trị thật: ${trong.join(", ")}. CHƯA có gì bị đổi.`);
+  const tenDb = docCauHinh(devText)?.d1_databases?.[0]?.database_name;
+  if (typeof tenDb !== "string" || !tenDb.endsWith("-dev-db")) return stop(`tên D1 trong ${CAU_HINH_DEV} phải kết thúc bằng "-dev-db". CHƯA có gì bị đổi.`);
+
+  // 2. xác nhận bằng chữ
+  log(`Lệnh này XOÁ SẠCH mọi bảng và dữ liệu trong cơ sở dữ liệu ${tenDb} (bản Development), rồi dựng lại và tạo bảy tài khoản thử.`);
+  log("Không đụng bản chính thức. Kho tệp (R2) và Bảng tin của Development KHÔNG được dọn.");
+  const tra = await ask("Gõ đúng chữ dev để tiếp tục: ");
+  if (tra !== "dev") return stop("câu trả lời không phải đúng chữ `dev`. CHƯA có gì bị đổi.");
+
+  const wr = taoWr(run);
+  const d1 = (sql, opts) => wr(["d1", "execute", tenDb, "--remote", "--json", "--command", sql], opts);
+  // Mọi lệnh GHI đi qua đây: kiểm lại tên D1 ngay trước khi ghi.
+  const ghi = (sql) => {
+    if (!tenDb.endsWith("-dev-db")) throw new Error("tên D1 không kết thúc bằng -dev-db");
+    return d1(sql);
+  };
+  const xong = [];
+  const dungTai = (buoc, r) =>
+    stop(
+      `bước "${buoc}" LỖI. Đã làm tới: ${xong.length ? xong.join(" → ") : "chưa có gì (CHƯA có gì bị đổi)"}. Development đang ở trạng thái nửa chừng nếu đã xoá; chạy lại \`npm run lam-moi-dev\` để làm lại từ đầu.`,
+      String(r?.stderr ?? "").trim().slice(0, 400),
+    );
+
+  // 3. đọc danh sách đối tượng
+  log("\n▶ Đọc danh sách bảng và view của Development");
+  const doc = await d1("SELECT type, name FROM sqlite_master");
+  if (doc.code !== 0) return stop("không đọc được danh sách đối tượng của Development. CHƯA có gì bị đổi.", String(doc.stderr ?? "").trim().slice(0, 400));
+  let dong;
+  try {
+    const o = String(doc.stdout ?? "");
+    const x = JSON.parse(o.slice(o.indexOf("["), o.lastIndexOf("]") + 1));
+    dong = x?.[0]?.results;
+    if (!Array.isArray(dong) || !dong.every((r) => typeof r?.type === "string" && typeof r?.name === "string")) throw new Error("dạng lạ");
+  } catch {
+    return stop("đầu ra danh sách đối tượng của Development không hiểu được. CHƯA có gì bị đổi.", String(doc.stdout ?? "").slice(0, 400));
+  }
+  dong = dong.filter((r) => !r.name.startsWith("sqlite_") && !r.name.startsWith("_cf_"));
+  const lat = dong.filter((r) => (r.type === "table" || r.type === "view") && !TEN_DOI_TUONG.test(r.name));
+  if (lat.length) return stop(`có đối tượng tên lạ, không dám xoá: ${lat.map((r) => JSON.stringify(r.name)).join(", ")}. CHƯA có gì bị đổi.`);
+  const view = dong.filter((r) => r.type === "view").map((r) => r.name);
+  const bang = dong.filter((r) => r.type === "table").map((r) => r.name);
+
+  // 4. xoá. Trigger và chỉ mục mất theo bảng (SQLite không chạy trigger khi xoá bảng), nên không xoá riêng.
+  if (view.length) {
+    log("\n▶ Xoá view");
+    const r = await ghi(view.map((n) => `DROP VIEW IF EXISTS ${dongNhay(n)};`).join(" "));
+    if (r.code !== 0) return dungTai("xoá view", r);
+    xong.push("xoá view");
+  }
+  if (bang.length) {
+    log("\n▶ Xoá bảng");
+    const r = await ghi(`PRAGMA defer_foreign_keys = ON; ${bang.map((n) => `DROP TABLE IF EXISTS ${dongNhay(n)};`).join(" ")}`);
+    if (r.code !== 0) return dungTai("xoá bảng", r);
+    xong.push("xoá bảng");
+  }
+
+  // 5. dựng lại
+  log("\n▶ Áp lại toàn bộ migration");
+  if (!tenDb.endsWith("-dev-db")) return stop("tên D1 không kết thúc bằng -dev-db.");
+  const ap = await wr(["d1", "migrations", "apply", tenDb, "--remote"], { stream: true });
+  if (ap.code !== 0) return dungTai("áp migration", ap);
+  xong.push("áp migration");
+
+  // 6. gieo tài khoản thử, mỗi tài khoản một --command
+  const lam = [];
+  for (const a of taoTaiKhoan()) {
+    const r = await ghi(await sqlTaiKhoan(a));
+    if (r.code !== 0) {
+      return stop(`tạo tài khoản ${a.phone} LỖI. Đã tạo: ${lam.length ? lam.map((x) => x.phone).join(", ") : "chưa có"}. Chạy lại \`npm run lam-moi-dev\` để làm lại từ đầu.`, String(r.stderr ?? "").trim().slice(0, 400));
+    }
+    lam.push(a);
+  }
+
+  // 7. PIN chỉ in ra Terminal này
+  log("\n================ TÀI KHOẢN THỬ (Development) ================");
+  for (const a of lam) log(`  ${a.permissions.join(",").padEnd(15)}  SĐT ${a.phone}  PIN ${a.pin}`);
+  log("PIN chỉ hiện ở đây một lần, không lưu vào đâu.");
+  log("Kho tệp và Bảng tin của Development không được dọn lần này.");
+  log("==============================================================");
+  return 0;
 }
