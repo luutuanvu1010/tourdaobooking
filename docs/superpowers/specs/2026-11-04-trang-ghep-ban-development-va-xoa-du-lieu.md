@@ -1,5 +1,7 @@
 # Trang ghép — ADR-0162 (bản Development) và ADR-0163 (xoá dữ liệu để thử nghiệm)
 
+> **Đã được thay bằng `docs/superpowers/specs/2026-11-04-trang-ghep-an-du-lieu.md`** cho lượt duyệt hiện tại, vì ADR-0163 đã tạm gác. Tệp này giữ làm tư liệu khi mở lại ADR-0163.
+>
 > Trạng thái: **NHÁP**. ADR-0162 chờ chủ duyệt và đứng được một mình. **ADR-0163 bị Hiến pháp 5.8 (N5) chặn tới khi kho luật gốc sửa**, nên phần về nó ở đây là để chuẩn bị, chưa phải để duyệt. Bắt buộc theo `CLAUDE.md` §9 khi hai quyết định cùng trình. Hồ sơ có ngày: khi đã duyệt thì không sửa lại cho khớp hiện trạng.
 
 ## (1) Những bảng này chứa loại thực thể nào

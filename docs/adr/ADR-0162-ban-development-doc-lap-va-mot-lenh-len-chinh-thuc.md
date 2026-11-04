@@ -3,7 +3,7 @@
 - **Trạng thái:** **proposed** 2026-11-04, chờ chủ dự án duyệt. Lời chủ, nguyên văn: *«Vậy thì cả 2, vừa cho phép xóa ở bản thật, vừa tạo 1 bản hoàn toàn độc lập là Development (staging) để phát triển, sau đó chỉ với 1 lệnh là đẩy sang bản chính thức được . Bản thử nghiệm chạy ở tên miền dev.tourdao.vn»*.
 - **Cửa:** hai chiều. Tắt bản Development không ảnh hưởng bản chính thức.
 - **Loại:** việc lớn (triển khai, luật).
-- **Số quyết định chạm quyền/dữ liệu trong lượt duyệt này: 2** (cùng [ADR-0163](ADR-0163-toan-quyen-xoa-han-du-lieu-de-thu-nghiem.md)). Trang ghép: `docs/superpowers/specs/2026-11-04-trang-ghep-ban-development-va-xoa-du-lieu.md`.
+- **Số quyết định chạm quyền/dữ liệu trong lượt duyệt này: 3** (cùng [ADR-0164](ADR-0164-toan-quyen-an-du-lieu-vo-hieu-hoa-va-co-lap.md), [ADR-0165](ADR-0165-an-don-co-tien-bang-dao-tien.md)). Trang ghép: `docs/superpowers/specs/2026-11-04-trang-ghep-an-du-lieu.md`.
 - **Xây trên lỗ đang hở:** không chạm lỗ mới. Lệnh mới gọi lại nguyên các cổng phát hành đang có, không bỏ cổng nào. Development chạy cùng Cron nên mang cùng nợ HC-5.11, nhưng trên dữ liệu thử.
 - **Quan hệ với luật:** thi hành Hiến pháp N2 ở bản kho luật gốc (không đi thẳng ra môi trường thật mà không qua một môi trường thử giống thật). Đ5 **nới một hàng rào của chính AI** (Hiến pháp Điều 9.4), nên chỉ có hiệu lực khi chủ duyệt. `CLAUDE.md` §5, §8 và `docs/SO-HANG-RAO.md` được sửa khi thi công, không sửa trong bản đề xuất này.
 

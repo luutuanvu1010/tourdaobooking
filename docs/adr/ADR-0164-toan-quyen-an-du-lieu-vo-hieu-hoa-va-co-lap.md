@@ -36,7 +36,7 @@ Với mọi người, kể cả Kế toán và Quản trị, bản ghi đã ẩn
 
 Mở thẳng đường dẫn thì thấy câu «Dữ liệu này đã ẩn», không có nội dung. Chuyến đã kết thúc có khách của đơn đã ẩn thì giữ số khách và chi phí, hiện «Đơn đã ẩn» thay cho tên (đề xuất của người soạn).
 
-Ba thứ **không** bị cô lập, vì đó là việc của luật: Sổ công nợ không bị lọc dòng (ADR-0165; chỉ bỏ hàng của hồ sơ đã ẩn có số dư 0 khỏi danh sách số dư), kiểm dữ liệu `audit-invariants` vẫn quét đủ mọi dòng, và phiếu yêu cầu xoá dữ liệu cá nhân (5.24) vẫn tới được hồ sơ đã ẩn.
+Ba thứ **không** bị cô lập, vì đó là việc của luật: Sổ công nợ không bị lọc dòng (ADR-0165; chỉ bỏ hàng của hồ sơ đã ẩn có số dư 0 khỏi danh sách số dư, đề xuất của người soạn), kiểm dữ liệu `audit-invariants` vẫn quét đủ mọi dòng, và phiếu yêu cầu xoá dữ liệu cá nhân (5.24) vẫn tới được hồ sơ đã ẩn.
 
 ## Đ4 — Máy giữ, không chỉ giao diện
 
