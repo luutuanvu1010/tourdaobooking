@@ -14,6 +14,7 @@
 | `v_aud_ledger_event` | view công bố | cột: id, order_id, target_type, target_id, staff_id, action, created_at |
 | `v_aud_order_change` | view công bố | cột: id, order_id, staff_id, action, detail, created_at, leg_id |
 | `v_aud_order_cmd` | view công bố | cột: id, order_id, action |
+| `v_aud_order_ban_hang` | view công bố | cột: id, order_id |
 
 ## auth
 
@@ -86,9 +87,15 @@
 | `dsp_refuse_policy` | bảng | ADR-0032 điều 6–7: cài đặt hạn mức «Từ chối» của hướng dẫn viên, CHỈ THÊM (trigger cấm sửa/xoá), có hiệu lực (dòng đang dùng = valid_from_at lớn nhất ≤ lúc hỏi). mode OFF (Tắt) / MEASURE (Chỉ đo) / BLOCK (Chặn) — danh sách đóng, CHECK; max_consecutive 1–10, max_per_week 1–100. Toàn quyền đổi (ô settings.ops). Dòng gieo id 'gieo-han-muc' (Chỉ đo 2/15): created_at của nó là MỐC PHÁT HÀNH mà kiểm R-DSP-5/6 dùng để miễn trừ dòng phụ trách mở trước đó (R-DSP-7 canh dòng gieo còn). updated_* luôn bằng created_* (bảng chỉ thêm) |
 | `dsp_release_event` | bảng | ADR-0032 điều 1: sổ sự kiện phân công, CHỈ THÊM (trigger cấm sửa/xoá). Mỗi dòng = một người (party_id), một đơn (NULL chỉ ở RESET), một loại (CLAIM tự nhận, ASSIGN được giao / được chọn lúc lập đơn, REFUSE Từ chối, ABORT người phụ trách tự huỷ đơn, RESET Toàn quyền đặt lại), lúc xảy ra (ISO UTC), người ghi, mã lý do (chỉ REFUSE — mã của src/shared/ly-do-tu-choi.ts). seq = thứ tự chèn toàn bảng do câu chèn cấp (max + 1, UNIQUE) — luật «sau dòng đó» so theo seq. Ghi CÙNG LÔ với lệnh sinh ra nó; câu REFUSE là câu đầu lô Từ chối, mang điều kiện hạn mức. Không SĐT / tên khách. Bộ đếm bắt đầu từ 0 ở ngày phát hành (không chép dữ liệu cũ). updated_* luôn bằng created_* |
 | `dsp_release_kind` | bảng tra cứu | ADR-0032 điều 1: loại sự kiện phân công — CLAIM, ASSIGN, REFUSE, ABORT, RESET |
+| `dsp_sales_owner` | bảng | ADR-0142: Bán hàng phụ trách đơn — ô RIÊNG, không phải người phụ trách (dsp_assignment HANDLE). Mỗi đơn tối đa MỘT dòng mở (chỉ mục duy nhất có điều kiện dsp_sales_owner_open_uq); đổi người = khép dòng cũ (valid_to_at, closed_by — đúng một lần, trigger) rồi mở dòng mới; không xoá. Đơn đã Đã giao: không nhận, không khép (đọc v_ord_order_state). Không tên: tên đọc qua v_dsp_sales_owner |
+| `dsp_sales_invite` | bảng | ADR-0142: lời mời một Bán hàng nhận đơn, có ưu tiên đến priority_until_at (giờ hành chính). Mỗi đơn tối đa MỘT lời mời mở; khép đúng một lần (closed_at, closed_by, outcome cùng có, trigger) với outcome thuộc tập đóng NHAN / TU_CHOI / NGUOI_KHAC / HUY_DON / RUT_LAI; không xoá. recorded_at = lúc đơn được ghi nhận, gốc của đồng hồ ưu tiên |
+| `dsp_sales_policy` | bảng | ADR-0142: chính sách Bán hàng phụ trách, CHỈ THÊM (trigger cấm sửa/xoá), dòng đang dùng = valid_from_at lớn nhất. priority_minutes 1–120 (phút ưu tiên), work_start_minute / work_end_minute là phút trong ngày giờ Việt Nam (0 ≤ bắt đầu < kết thúc ≤ 1440). Dòng gieo id 'gieo-ban-hang' (15, 420, 1020): created_at của nó là MỐC PHÁT HÀNH (đơn ghi nhận trước đó không vào thẻ cảnh báo), thêm dòng mới không đổi mốc. updated_* luôn bằng created_* |
 | `dsp_assignment_status` | bảng tra cứu |  |
 | `dsp_task_kind` | bảng tra cứu |  |
 | `v_dsp_order_handler` | view công bố | cột: order_id, party_id, staff_id, label, since |
+| `v_dsp_sales_owner` | view công bố | cột: order_id, staff_id, party_id, name |
+| `v_dsp_sales_invite_open` | view công bố | cột: order_id, staff_id, party_id, name, recorded_at, priority_until_at |
+| `v_dsp_sales_policy_current` | view công bố | cột: priority_minutes, work_start_minute, work_end_minute, release_cutoff_at |
 | `v_dsp_first_handler` | view công bố | cột: order_id, first_at |
 
 ## feedback
@@ -371,6 +378,8 @@
 | `tl_hoi_dap` |  | `cau_hoi`, `tra_loi` |  |  |
 | `v_aud_order_change` |  | `detail` |  |  |
 | `v_dsp_order_handler` |  | `label` |  |  |
+| `v_dsp_sales_owner` |  | `name` |  |  |
+| `v_dsp_sales_invite_open` |  | `name` |  |  |
 | `v_ord_passenger_key` |  | `person_key` |  |  |
 | `v_ord_passenger_row` |  | `person_key` |  |  |
 | `v_pty_party_label` |  | `display_name`, `sort_key` |  |  |
