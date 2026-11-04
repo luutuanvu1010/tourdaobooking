@@ -1,54 +1,57 @@
-# ADR-0165 — Ẩn đơn đã có tiền: đảo tiền rồi ẩn, báo cáo tự bớt
+# ADR-0165 — Ẩn đơn đã có tiền: đơn biến mất, Sổ công nợ giữ nguyên
 
-- **Trạng thái:** **proposed** 2026-11-04, **chưa duyệt được** tới khi đạt điều kiện ở dòng «Xây trên lỗ đang hở». Lời chủ, chọn trong hộp hỏi: *«Ẩn luôn, báo cáo tự loại ra»*, với câu hỏi nêu ví dụ đơn có khoản thu 2 triệu đồng và rủi ro đơn thật bị ẩn nhầm làm sổ thiếu tiền. Phương án đó có ghi «có thể vướng luật sổ tiền (tôi phải kiểm lại trước khi trình)»; quyết định này là kết quả kiểm lại.
-- **Cửa:** một chiều về sổ tiền, vì dòng đảo là chỉ-thêm và ở lại trong sổ; việc ẩn thì hai chiều.
+- **Trạng thái:** **proposed** 2026-11-04, chờ chủ dự án duyệt. Lời chủ, chọn trong hộp hỏi: trước hết *«Ẩn luôn, báo cáo tự loại ra»*; sau khi được báo cách tự đảo tiền không đạt kiểm tra và Nền tảng chưa có báo cáo doanh thu theo tháng, chủ chọn *«Đơn biến mất, sổ giữ nguyên»*.
+- **Cửa:** hai chiều. Không dòng sổ nào được ghi, hiện lại là về nguyên trạng.
 - **Loại:** việc lớn (tiền, dữ liệu).
 - **Số quyết định chạm quyền/dữ liệu trong lượt duyệt này: 3** ([ADR-0162](ADR-0162-ban-development-doc-lap-va-mot-lenh-len-chinh-thuc.md), [ADR-0164](ADR-0164-toan-quyen-an-du-lieu-vo-hieu-hoa-va-co-lap.md), ADR-0165). Trang ghép: `docs/superpowers/specs/2026-11-04-trang-ghep-an-du-lieu.md`.
-- **Xây trên lỗ đang hở: TNV-G3** (sửa sai sau Đã giao có thể làm tiền biến khỏi sổ), **TNV-G4** (đảo sai thứ tự có thể làm «đã thu» âm), **TNV-G1** (đơn huỷ còn tiền đã thu), **HC-4.2** (mục điều chỉnh sổ tiền chưa được đóng ở `docs/quyen-hoan.json`). Theo `CLAUDE.md` §3, quyết định này không được duyệt trước khi từng lỗ được sửa, hoặc chủ chọn «Cho phép, có ghi lý do» cho từng mã.
-- **Thay một câu:** ADR-0088 đ3 («Đảo đơn lẻ một lần thu trên đơn đã Đã giao bị chặn») thêm một ngoại lệ có tên duy nhất là lệnh ẩn đơn ở Đ3 dưới đây. Không sửa thân ADR-0088.
-- **Áp luật:** Hiến chương hệ thống 4.2 (số dư là cộng dồn các dòng), 4.2a và 5.5 (sửa sai bằng dòng đảo), 5.14 (kỳ đã khoá); Phần I 4.2; Hiến pháp N5 («chỉ tiến tới bằng một thay đổi mới»).
+- **Xây trên lỗ đang hở: TNV-G1, TNV-G3, TNV-G4, HC-4.2.** Quyết định này không thêm dòng sổ nào nên không làm các lỗi đó nặng thêm, nhưng nó chạm vùng sổ tiền và có thể che triệu chứng, ví dụ ẩn một đơn đang lệch tiền. Theo `CLAUDE.md` §3, khi duyệt chủ phải chọn «Cho phép, có ghi lý do» cho bốn mã này.
+- **Áp luật:** Hiến chương hệ thống 4.2 (số dư là cộng dồn các dòng), 4.2a và 5.5 (sửa sai bằng dòng đảo), 5.14 (khoá kỳ); Hiến pháp N5 và N7. Sổ không bị sửa, không bị lọc, nên không lệch điều nào.
 
-## Vì sao không lọc báo cáo
+## Hai cách đã bỏ
 
-Lọc đơn ẩn khỏi báo cáo sẽ làm số dư thành tổng của các dòng do người chọn, trái Hiến chương hệ thống 4.2. Nó còn làm tháng đã khoá đổi số âm thầm (5.14), và sổ với báo cáo sẽ ra hai số dư khác nhau cho cùng một đối tác (Hiến pháp N7). **Lựa chọn của người soạn:** đạt đúng kết quả chủ muốn bằng dòng đảo, là đường Hiến pháp cho phép. Không báo cáo nào phải sửa, vì con số tự giảm theo đúng sổ.
+- **Lọc đơn ẩn khỏi Sổ công nợ:** số dư thành tổng của các dòng do người chọn (trái 4.2), tháng đã khoá có thể đổi số, và người đang giữ tiền không còn bị đòi.
+- **Máy tự đảo tiền rồi ẩn:** trái quyết định 19/10 của chủ (dòng hoa hồng, giá vốn, giảm giá phải có người thứ hai duyệt); đơn đã giao không có đường đảo và kiểm dữ liệu `R-BIL-1` sẽ báo lỗi; hiện lại không làm được nếu không có migration mới.
 
-## Đ1 — Khi bấm Ẩn một đơn có tiền
+## Đ1 — Đơn có tiền ẩn được
 
-Trong **một lô**, theo đúng thứ tự để không làm số âm: máy ghi dòng đảo cho mọi khoản thu và dòng công nợ, kể cả hoa hồng, còn hiệu lực của đơn, ngày phát sinh là hôm nay, lý do «Ẩn đơn: <lý do>»; rồi ẩn đơn theo ADR-0164. Toàn quyền chỉ bấm một lần, vì lệnh đảo một dòng gốc không cần người thứ hai duyệt (ADR-0115 điều 3).
+Quyết định này bỏ điều kiện «mọi khoản tiền của đơn về 0» ở ADR-0164 Đ2, kể cả với đơn đã giao. Các điều kiện còn lại giữ nguyên: không còn khách trên chuyến chưa kết thúc, không còn vé đã cấp chưa đóng.
 
-## Đ2 — Báo cáo thay đổi thế nào
+## Đ2 — Số nào đổi, số nào không
 
-Đơn có khoản thu 2 triệu đồng thu trong **tháng đang mở**: bấm Ẩn thì báo cáo tháng này giảm 2 triệu. Đơn thu trong **tháng đã khoá sổ**: báo cáo tháng đó giữ nguyên 2 triệu, còn dòng đảo nằm ở tháng đang mở, nên tháng đang mở giảm 2 triệu.
+Đây là toàn bộ các nơi có tiền hôm nay; Nền tảng chưa có báo cáo doanh thu theo tháng.
 
-## Đ3 — Đơn đã giao
+| Con số | Sau khi ẩn |
+|---|---|
+| Giá trị, đã thu, còn lại, biên nhận của đơn | đi theo đơn, chỉ Toàn quyền còn xem được |
+| «Doanh thu của tôi» và các số đếm đơn (tính từ đơn) | **không còn tính đơn này** |
+| Sổ công nợ, số dư từng bên, sổ của Đối tác | **không đổi** |
+| Bảng kiểm khoá tháng, tháng đã khoá | **không đổi** |
+| Kiểm dữ liệu `audit-invariants` | quét đủ, kể cả đơn đã ẩn |
 
-Hôm nay không đảo riêng lẻ được khoản thu của đơn đã giao. Lệnh ẩn được đảo cả đơn trong một lô, và chỉ lệnh này (ngoại lệ có tên của ADR-0088 đ3).
+Ví dụ đơn có khoản thu 2 triệu do nhân viên đang giữ: bấm Ẩn thì đơn biến mất, doanh thu của người lập đơn giảm theo giá trị đơn, nhưng sổ vẫn đòi nhân viên đó nộp 2 triệu.
 
-## Đ4 — Tiền đã ra khỏi công ty thì chưa ẩn được
+## Đ3 — Sổ vẫn làm việc bình thường
 
-Đơn đã có **khoản hoàn cho khách** hoặc đã **quyết toán với đối tác** bị từ chối, kèm câu nói rõ lý do (đề xuất của người soạn). Tiền đó đã thật sự đi ra ngoài, một dòng đảo trong sổ không làm nó quay về, và sổ sẽ nói sai sự thật.
+- Trên Sổ công nợ, dòng của đơn đã ẩn hiện «Đơn đã ẩn» thay cho tên, bấm vào thì có câu giải thích. Nhân viên nội bộ thấy kèm mã đơn để còn hỏi Toàn quyền; Đối tác và Tài xế đối tác không thấy mã (đề xuất của người soạn).
+- Kế toán vẫn nộp, quyết toán, đảo, điều chỉnh các dòng đã có, theo đúng luật hiện hành. Trigger của ADR-0164 miễn cho các lệnh này, vì đó là tiền giữa các bên chứ không phải thao tác trên đơn.
+- Không ai ghi được khoản thu mới vào đơn đã ẩn.
 
-## Đ5 — Hiện lại đơn có tiền
+## Đ4 — Không phát sinh gì thêm
 
-Máy ghi **dòng mới** cùng số tiền, ngày hôm nay, trỏ về dòng gốc, rồi hiện đơn. Không đảo của đảo, vì cơ sở dữ liệu cấm. Vậy một lần ẩn rồi hiện lại để lại trong sổ hai cặp dòng, tổng bằng 0 ngoài số gốc.
-
-## Đ6 — Ai thấy gì
-
-- **Kế toán** thấy dòng đảo trong sổ: số tiền, ngày, người làm, lý do, và «Đơn đã ẩn» thay cho nội dung đơn. Nhờ vậy, số giảm luôn có lời giải thích. Chỉ Toàn quyền mở được đơn đó.
-- **Đối tác** nhận tin số dư đổi theo luật đang có (ADR-0092 Đ5d, ADR-0115), không kèm mã đơn; chủ đang cân nhắc giữ hay bỏ tin này thì quyết định đó áp ở đây.
-- **Người thu tiền** thấy số «chưa nộp về công ty» giảm theo.
+Lệnh ẩn không gửi tin, không ghi vào sổ. Số dư không đổi nên không có tin «số dư của bạn đổi». Hiện lại đơn là mọi số về như cũ.
 
 ## Hệ quả chủ cần biết
 
-- **Ẩn nhầm đơn thật làm số trong sổ giảm thật.** Ví dụ một nhân viên thật sự đang giữ 2 triệu tiền mặt: sau khi ẩn, sổ không còn đòi người đó nộp 2 triệu nữa, cho tới khi hiện lại. Dấu vết nằm ở dòng đảo và lý do, nhưng không có người thứ hai chặn trước.
-- **Sổ sẽ có thêm các dòng đảo**, nên không «sạch» như lúc chưa có gì. Muốn sổ sạch hẳn thì chỉ có xoá, đang tạm gác.
-- **Chưa kiểm:** nghĩa vụ kế toán và thuế với khoản thu đã xuất hoá đơn hay biên nhận đã gửi khách. Cần kế toán xác nhận trước khi dùng trên đơn thật.
+- **Đối tác vẫn thấy số dư gồm cả hoa hồng của đơn đã ẩn.** Muốn bớt thì Kế toán dùng yêu cầu điều chỉnh có người thứ hai duyệt (ADR-0115). Với đơn thử có tiền, phần dọn sổ này vẫn là việc tay.
+- **Sổ công nợ vẫn còn dòng «Đơn đã ẩn»**, nên không sạch hoàn toàn; chỉ danh sách đơn là sạch.
+- **Ẩn đơn đang lệch tiền có thể che lỗi trên màn hình**, nhưng kiểm dữ liệu vẫn báo.
+- **Ẩn đơn thật làm chết đường dẫn biên nhận đã gửi khách**, kể cả khách đã trả tiền, cho tới khi hiện lại.
 
 ## Tiêu chí nghiệm thu
 
-1. Sổ vàng thêm ca: ẩn đơn có khoản thu ở tháng đang mở, số báo cáo giảm đúng số đó, `R-BIL` đạt; Kế toán hoặc chủ xác nhận ca này.
-2. Đơn có khoản thu ở tháng đã khoá: báo cáo tháng đó không đổi một đồng, dòng đảo nằm ở tháng đang mở.
-3. Đơn đã giao ẩn được bằng lệnh ẩn; đảo riêng lẻ ở route cũ vẫn bị chặn như trước.
-4. Đơn đã có khoản hoàn hoặc đã quyết toán bị từ chối, không dòng nào được ghi.
-5. Một câu trong lô hỏng thì không dòng đảo nào được ghi và đơn không bị ẩn.
-6. Ẩn rồi hiện lại: tổng phải thu, đã thu, số dư đối tác về đúng số trước khi ẩn; `audit-invariants` đạt.
+1. Ẩn đơn có tiền: mọi bảng `bil_*` có đúng số dòng như trước; số dư từ `v_bil_party_balance` giống hệt.
+2. `audit-invariants` đạt trước và sau khi ẩn, kể cả với đơn đã giao.
+3. «Doanh thu của tôi» và số đếm giảm đúng đơn đó; hai con số khớp với danh sách đơn sau khi lọc.
+4. Kế toán nộp, đảo được dòng của đơn đã ẩn; ghi khoản thu mới vào đơn đó bị từ chối ở cơ sở dữ liệu (quan sát chặn thật, ghi sổ hàng rào).
+5. Ẩn rồi hiện lại: mọi con số như cũ.
+6. Đối tác thấy «Đơn đã ẩn», không thấy mã và không mở được đơn.

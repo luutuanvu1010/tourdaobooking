@@ -24,26 +24,26 @@ Chỉ Toàn quyền, qua thao tác mới `data.hide` (mọi quyền khác là `n
 | **Tài khoản** | như hồ sơ | máy tự ngưng, đóng mọi phiên đang mở, tắt thông báo; không đăng nhập được |
 | **Cấu hình:** loại đối tác, cấp, mức hoa hồng, dịch vụ | đã tắt hoặc ngừng bằng nút có sẵn; không còn gì đang áp theo nó | không chọn được, không hiện ở trang cấu hình; đơn cũ giữ nguyên bản chụp |
 
-Điều kiện không đạt thì máy từ chối và nói rõ còn vướng gì, ví dụ «Còn 2 đơn chưa ẩn». **Không ẩn được:** chính mình, tài khoản Toàn quyền cuối cùng, hồ sơ công ty chủ. Chuyến xe, vé, khoản thu riêng lẻ và nhật ký không thuộc quyết định này.
+Điều kiện không đạt thì máy từ chối và nói rõ còn vướng gì, ví dụ «Còn 2 đơn chưa ẩn». ADR-0165, nếu được duyệt, bỏ điều kiện tiền về 0 của đơn. **Không ẩn được:** chính mình, tài khoản Toàn quyền cuối cùng, hồ sơ công ty chủ. Chuyến xe, vé, khoản thu riêng lẻ và nhật ký không thuộc quyết định này.
 
 ## Đ3 — Cô lập nghĩa là gì
 
 Với mọi người, kể cả Kế toán và Quản trị, bản ghi đã ẩn không còn xuất hiện ở:
 
-- danh sách, tìm kiếm, Trang chủ, Việc của bạn, ô chọn, bộ lọc, số đếm, báo cáo;
+- danh sách, tìm kiếm, Trang chủ, Việc của bạn, ô chọn, bộ lọc, số đếm và các số tính từ đơn;
 - màn hình của Đối tác và Tài xế;
 - thông báo và các tác vụ tự động chạy theo lịch.
 
 Mở thẳng đường dẫn thì thấy câu «Dữ liệu này đã ẩn», không có nội dung. Chuyến đã kết thúc có khách của đơn đã ẩn thì giữ số khách và chi phí, hiện «Đơn đã ẩn» thay cho tên (đề xuất của người soạn).
 
-Hai thứ **không** bị cô lập, vì đó là việc của luật: kiểm dữ liệu `audit-invariants` vẫn quét đủ mọi dòng, và phiếu yêu cầu xoá dữ liệu cá nhân (5.24) vẫn tới được hồ sơ đã ẩn.
+Ba thứ **không** bị cô lập, vì đó là việc của luật: Sổ công nợ không bị lọc (ADR-0165), kiểm dữ liệu `audit-invariants` vẫn quét đủ mọi dòng, và phiếu yêu cầu xoá dữ liệu cá nhân (5.24) vẫn tới được hồ sơ đã ẩn.
 
 ## Đ4 — Máy giữ, không chỉ giao diện
 
-- **Ghi:** trigger ở cơ sở dữ liệu từ chối mọi dòng mới trỏ tới bản ghi đã ẩn và mọi lệnh sửa nó, ví dụ thu tiền vào đơn đã ẩn, lập đơn cho hồ sơ đã ẩn.
+- **Ghi:** trigger ở cơ sở dữ liệu từ chối mọi dòng mới trỏ tới bản ghi đã ẩn và mọi lệnh sửa nó, ví dụ thu tiền vào đơn đã ẩn, lập đơn cho hồ sơ đã ẩn. Miễn cho: nhật ký, chính lệnh ẩn và hiện lại, đóng phiên đăng nhập, tác vụ dọn ảnh vé, và các lệnh sổ tiền ở ADR-0165 Đ3.
 - **Đọc:** mỗi module chủ giữ trạng thái đã ẩn của bản ghi gốc của mình và công bố qua một view `v_<tiền tố>_*`; module khác chỉ đọc view đó (ADR-0002).
 - **Đăng nhập:** máy chủ từ chối tài khoản đã ẩn và đóng phiên đang mở.
-- **Bài kiểm:** một bài quét mọi route đọc, theo từng vai, với dữ liệu đã ẩn gieo sẵn, đỏ khi có route trả về mã đã ẩn. Thêm route mới mà quên lọc thì bài này bắt.
+- **Bài kiểm:** một bộ quét mới, dựng trên khung thử `tests/audit/harness.mjs`, gọi mọi route đọc theo từng vai với dữ liệu đã ẩn gieo sẵn, đỏ khi có route trả về mã đã ẩn. Thêm route mới mà quên lọc thì bài này bắt. Bài `src/route-access.test.ts` có sẵn chỉ kiểm quyền vào route, không đọc nội dung trả về nên không thay được.
 - `audit-invariants` thêm luật: không có dòng còn hiệu lực trỏ tới bản ghi đã ẩn.
 
 ## Đ5 — Hiện lại
@@ -60,7 +60,7 @@ Toàn quyền có trang «Dữ liệu đã ẩn» (tên đề xuất) xem đư�
 
 ## Việc kèm khi thi công
 
-Migration mới cho trạng thái đã ẩn và trigger; thêm mã vào bản đồ quyền và bài ghim quyền; `docs/data-dictionary.json`; `docs/SO-HANG-RAO.md`; tờ khai `docs/kernel-18.md` nếu đổi chỗ trỏ. Cột `hidden` của dịch vụ đang mang nghĩa khác (ngừng bán), giữ nguyên nghĩa đó và đặt tên cột mới khác đi. ADR-0042 dùng chữ «vai ẩn» cho chuyện khác; chữ trên màn hình phải theo bảng từ `src/shared/bang-tu-giao-dien.ts` và trình chủ bằng ảnh thật.
+Migration mới cho trạng thái đã ẩn và trigger; thêm mã vào bản đồ quyền và bài ghim quyền; `docs/data-dictionary.json`; `docs/SO-HANG-RAO.md`; tờ khai `docs/kernel-18.md` nếu đổi chỗ trỏ. Cột `hidden` của dịch vụ đang mang nghĩa khác (ngừng bán), giữ nguyên nghĩa đó và đặt tên cột mới khác đi. **Phải chốt nhãn trước khi thi công:** Quản trị đã có nút ẩn dịch vụ nghĩa là ngừng bán, nên trên màn hình sẽ có hai chữ «Ẩn» khác nghĩa; đưa vào lượt chọn tên của phiên rà soát nút bấm. ADR-0042 dùng chữ «vai ẩn» cho chuyện khác; chữ trên màn hình phải theo bảng từ `src/shared/bang-tu-giao-dien.ts` và trình chủ bằng ảnh thật.
 
 ## Tiêu chí nghiệm thu
 
