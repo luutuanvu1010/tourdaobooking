@@ -97,6 +97,59 @@ Chữ theo ngữ cảnh: người đọc thấy đối tượng ngay cạnh nút
 | Dùng lại | Đứng trên dòng của mục đã ngừng (nhóm hỗ trợ, tuyến, cỡ xe) và dùng lại đúng mục đó. |
 | Gỡ | Đứng trên dòng của thứ bị gỡ (thành viên nhóm, máy đã nhớ) và gỡ đúng thứ đó. |
 | Để sau | Trong hộp mời làm một việc (mời bật Face ID, hộp đọc tin): bỏ qua lần này; hộp nói rõ việc được mời. |
+| Sửa | Đứng trên dòng của mục cần sửa (cấp, đặc điểm, địa điểm, tài khoản…) và mở hộp sửa đúng mục đó; tiêu đề hộp nói đang sửa gì. |
+| Thêm | Là nút trong khung thêm, hoặc đứng ngay dưới danh sách đang xem; tiêu đề khung nói đang thêm gì. |
+| Từ chối | Đứng trên dòng yêu cầu, đề nghị hay phiếu đang xem và từ chối đúng thứ đó; bước sau luôn đòi lý do. |
+| Xác nhận | Trong hộp hỏi hoặc trên dòng đang xem; câu hỏi hay dòng đứng ngay cạnh nói đang xác nhận việc gì. |
+| Xác nhận từ chối | Nút chốt của hộp từ chối; tiêu đề hộp nói đang từ chối đơn, chuyến hay yêu cầu nào. |
+| Xác nhận đã nhận | Nút chốt trên dòng hoặc trong hộp của đúng khoản tiền đang xem; hộp nói rõ bên nào đã nhận. |
+| Xác nhận bật | Nút chốt của hộp bật một chế độ; tiêu đề hộp nói đang bật gì. |
+| Kết thúc | Đứng trên dòng có hiệu lực (dòng giá, công việc, quan hệ) và kết thúc đúng dòng đó. |
+| Gửi | Đứng ngay dưới ô đang gõ (yêu cầu hỗ trợ, trả lời, câu hỏi cho Trợ lý); ô đó nói đang gửi gì. |
+| Gửi từ chối | Nút chốt của hộp từ chối một phiếu; hộp nói đang từ chối phiếu nào, kèm lý do đã chọn. |
+| Gửi đề nghị | Nút chốt của hộp đề nghị xe khác nhận khách; tiêu đề hộp nói đề nghị gì. |
+| Rút lại | Đứng cạnh yêu cầu hoặc đề nghị đang chờ của chính mình và rút đúng thứ đó. |
+| Rút yêu cầu | Đứng trên dòng yêu cầu của chính mình và rút đúng yêu cầu đó. |
+| Nhận | Đứng trên thẻ đơn chờ nhận hoặc đề nghị chuyển khách và nhận đúng thứ đó. |
+| Thu hồi | Đứng trên dòng đường dẫn vé hoặc tin đã gửi và thu hồi đúng thứ đó. |
+| Duyệt | Đứng trên dòng yêu cầu hoặc đề nghị đang chờ và duyệt đúng thứ đó. |
+| Điều chỉnh | Đứng trên dòng khách hoặc khối chi phí đang xem và mở khung điều chỉnh đúng thứ đó. |
+| Lưu sửa | Nút lưu của hộp sửa; tiêu đề hộp nói đang sửa gì. |
+| Ngừng dùng | Đứng trên dòng liên hệ hoặc ở màn của một xe: cùng kiểu việc, khác đối tượng (ADR-0166 câu 9; hồ sơ rà soát 2026-11-04). |
+| Thêm nhóm | Ở trang của từng loại nhóm (nhóm dịch vụ, nhóm hỗ trợ): tiêu đề trang nói đang thêm nhóm gì. |
+| Lưu thành bản mới | Ở trang cài đặt có nhiều bản (chính sách điều phối, Trợ lý): tiêu đề khối nói đang lưu cái gì. |
+
+## Tên dùng ở nhiều hàng việc
+
+Cùng một việc có nhiều lối vào, hoặc khác việc và đang chờ chủ chọn tên. Tên mới rơi vào diện này mà chưa xếp thì máy báo đỏ.
+
+| Tên | Loại | Vì sao |
+|---|---|---|
+| Thêm giấy tờ | cùng một việc | Nút lưu của cùng một hộp giấy tờ, đổi chữ theo việc đang làm; tiêu đề hộp nói đang thêm, gia hạn hay sửa sai. |
+| Lưu gia hạn | cùng một việc | Nút lưu của cùng một hộp giấy tờ, đổi chữ theo việc đang làm. |
+| Lưu sửa sai | cùng một việc | Nút lưu của cùng một hộp giấy tờ, đổi chữ theo việc đang làm. |
+| Gia hạn | cùng một việc | Giấy tờ của xe và giấy tờ của người: cùng một việc trên hai màn. |
+| Sửa sai | cùng một việc | Giấy tờ của xe và giấy tờ của người: cùng một việc trên hai màn. |
+| Xem đủ số | cùng một việc | Cùng một việc xem số giấy tờ của người, vào từ hai màn. |
+| Huỷ đơn | cùng một việc | Cùng một việc huỷ đơn, vào từ trang đơn, bảng Kiểm vé và Việc của tôi. |
+| Đã giao – đã thu đủ | cùng một việc | Cùng một nút ở trang đơn, đổi chữ theo bước chốt của đơn. |
+| Hoàn thành | cùng một việc | Cùng một nút ở trang đơn, đổi chữ theo bước chốt của đơn. |
+| Từ chối đơn | cùng một việc | Cùng một việc trả đơn, vào từ trang đơn và Việc của tôi. |
+| Đặt gấp | cùng một việc | Cùng một việc đặt gấp, vào từ khung của người lập và bảng Kiểm vé. |
+| Thêm mức | cùng một việc | Nút lưu của cùng một hộp nhập mức hoa hồng; tiêu đề hộp nói mức của cấp hay của đối tác. |
+| Chọn cấp riêng cho đối tác | cùng một việc | Cùng một việc, vào từ trang Hoa hồng đối tác và hồ sơ ở Danh bạ (ADR-0166 câu 1). |
+| Vẫn lưu | cùng một việc | Nút của cùng một hộp cảnh báo khi đổi giá trị đặc điểm dịch vụ. |
+| Cho xe chạy | cùng một việc | Cùng một việc: tài xế bấm, hoặc văn phòng bấm thay. |
+| Kết thúc chuyến | cùng một việc | Cùng một việc: tài xế bấm, hoặc văn phòng bấm thay. |
+| Kết thúc gián đoạn | cùng một việc | Cùng một việc: tài xế bấm, hoặc văn phòng bấm thay. |
+| Gửi đề nghị cứu hộ | cùng một việc | Cùng một khối cứu hộ ở màn chuyến, nút đổi chữ theo việc đang làm. |
+| Ghi “${nhan}” | cùng một việc | Nút chốt của một hộp tiến độ chuyến; chữ ghép theo việc đang ghi (đã đón, vắng, khách huỷ). |
+| Lưu giá | cùng một việc | Nút lưu của cùng một form bảng giá thuê xe, đổi chữ theo việc thêm giá hay đổi giá. |
+| Lưu giá mới | cùng một việc | Nút lưu của cùng một form bảng giá thuê xe, đổi chữ theo việc thêm giá hay đổi giá. |
+| Đăng xuất | cùng một việc | Cùng một việc thoát máy này, vào từ trang Tôi và khung chung. |
+| Quay lại bản này | cùng một việc | Cùng một việc ở hai khối của trang cài đặt Trợ lý. |
+| Gửi yêu cầu | chờ chủ | Một nơi mở hộp gửi yêu cầu hỗ trợ, một nơi là nút chốt của hộp xin xoá dữ liệu cá nhân. Hộp xoá có câu hỏi riêng nói rõ, nhưng hai việc khác nhau xa; chờ chủ xem có đổi không. |
+| Sửa giá | chờ chủ | Ở Dịch vụ & giá là ghi đè giá cho mọi đơn lập sau; trong thẻ dịch vụ của đơn chỉ sửa đơn giá của đơn đang lập. Hậu quả khác xa nhau; chờ chủ chọn tên. |
 
 ## Việc chờ chọn (99)
 

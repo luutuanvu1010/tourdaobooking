@@ -66,3 +66,13 @@ export interface ChuDungChung {
   chu: string;
   vi: string;
 }
+
+/**
+ * Một tên nằm ở nhiều hàng việc mà không phải chữ dùng chung. `cung-viec`: một việc có nhiều lối vào, hoặc một nút đổi chữ theo bước.
+ * `cho-chu`: khác việc mà trùng tên, đang chờ chủ chọn tên; khi chủ chọn thì sửa nút, bảng và bỏ dòng này trong cùng một lần lưu.
+ */
+export interface TenNhieuHang {
+  chu: string;
+  loai: "cung-viec" | "cho-chu";
+  vi: string;
+}

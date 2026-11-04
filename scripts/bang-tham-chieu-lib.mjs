@@ -62,6 +62,42 @@ export function kiemTenLacCho(viec, boQua, chuDungChung, nut) {
   return loi;
 }
 
+/**
+ * Mỗi tên nằm ở hơn một hàng việc phải được xếp loại: chữ dùng chung, cùng một việc, hoặc chờ chủ (đặc tả mục «Chữ dùng chung»).
+ * Đây là chỗ canh lỗi gốc «một tên chỉ nhiều việc»; dòng xếp thừa cũng đỏ để danh sách không cũ đi.
+ */
+export function kiemTenNhieuHang(viec, chuDungChung, tenNhieuHang, nut) {
+  const chung = new Set(chuDungChung.map((c) => chuanNhan(c.chu)));
+  const daXep = new Set(tenNhieuHang.map((t) => chuanNhan(t.chu)));
+  const theoViTri = new Map();
+  for (const n of nut) {
+    const k = khoaViTri(n.tep, khoaNut(n));
+    if (!theoViTri.has(k)) theoViTri.set(k, []);
+    theoViTri.get(k).push(n);
+  }
+  const ten = new Map();
+  for (const v of viec) {
+    for (const d of v.noiDat) {
+      for (const n of theoViTri.get(khoaViTri(d.tep, d.chu)) ?? []) {
+        for (const t of tenCuaNut(n)) {
+          if (!ten.has(t)) ten.set(t, new Set());
+          ten.get(t).add(v);
+        }
+      }
+    }
+  }
+  const loi = [];
+  for (const [t, hang] of ten) {
+    if (hang.size < 2 || chung.has(t) || daXep.has(t)) continue;
+    const ds = [...hang].slice(0, 3).map((v) => `«${cat(v.ten, 40)}»`).join(", ");
+    loi.push(`Tên «${t}» nằm ở ${hang.size} hàng việc (${ds}) mà chưa xếp loại. Thấy đối tượng ngay cạnh nút thì thêm vào CHU_DUNG_CHUNG; cùng một việc nhiều lối vào thì thêm vào TEN_NHIEU_HANG loại cung-viec; khác việc mà không thấy đối tượng thì thêm loại cho-chu và trình chủ, không tự đặt tên.`);
+  }
+  for (const t of daXep) {
+    if ((ten.get(t)?.size ?? 0) < 2) loi.push(`TEN_NHIEU_HANG còn «${t}» nhưng tên này không còn ở nhiều hàng việc; bỏ dòng đó.`);
+  }
+  return loi;
+}
+
 /** Điều 3: nút dò thấy ghi, nguy hiểm hoặc nút chính phải có dòng trong bảng hoặc trong danh sách bỏ qua. */
 export function kiemUngVien(viec, boQua, nut) {
   const daKhai = new Set([...viec.flatMap((v) => v.noiDat), ...boQua].map((d) => khoaViTri(d.tep, d.chu)));
@@ -153,7 +189,7 @@ const noiDatChu = (v) => v.noiDat.map((d) => `\`${d.tep}\`: ${o(d.chu)}`).join("
 const nhanTrangThai = (t) => (t === "da-chot" ? "đã chốt" : "chờ chọn");
 
 /** Điều 6: bản đọc cho người. Cùng đầu vào cho cùng chuỗi. */
-export function renderBangThamChieu({ khaiNiem, chuDungChung, viec, boQua }) {
+export function renderBangThamChieu({ khaiNiem, chuDungChung, tenNhieuHang = [], viec, boQua }) {
   const ra = [];
   ra.push("# Bảng tham chiếu ngôn ngữ", "");
   ra.push("> Do máy sinh, đừng sửa tay; sửa ở `src/shared/bang-tham-chieu*.ts` rồi chạy `npm run tham-chieu`. Quyết định: `docs/adr/ADR-0167-bang-tham-chieu-ngon-ngu.md`.", "");
@@ -164,6 +200,8 @@ export function renderBangThamChieu({ khaiNiem, chuDungChung, viec, boQua }) {
   for (const k of khaiNiem) ra.push(`| **${o(k.ten)}** | ${o(k.giaiNghia)} | ${o(k.khacVoi)} | ${k.chuDaLoai.map(o).join("; ")} | ${k.maNoiBo.map((x) => `\`${o(x)}\``).join(" ")} | ${nhanTrangThai(k.trangThai)} | ${o(k.chuChon)} |`);
   ra.push("", "## Chữ dùng chung", "", "Chữ theo ngữ cảnh: người đọc thấy đối tượng ngay cạnh nút, trong tiêu đề hộp hoặc dòng đang xem.", "", "| Chữ | Vì sao đủ rõ |", "|---|---|");
   for (const c of chuDungChung) ra.push(`| ${o(c.chu)} | ${o(c.vi)} |`);
+  ra.push("", "## Tên dùng ở nhiều hàng việc", "", "Cùng một việc có nhiều lối vào, hoặc khác việc và đang chờ chủ chọn tên. Tên mới rơi vào diện này mà chưa xếp thì máy báo đỏ.", "", "| Tên | Loại | Vì sao |", "|---|---|---|");
+  for (const t of tenNhieuHang) ra.push(`| ${o(t.chu)} | ${t.loai === "cho-chu" ? "chờ chủ" : "cùng một việc"} | ${o(t.vi)} |`);
   const cho = viec.filter((v) => v.trangThai === "cho-chon");
   ra.push("", `## Việc chờ chọn (${cho.length})`, "", "Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ chọn tên mới thì sửa bảng và nút trong cùng một lần lưu.", "", "| Việc | Chữ đang hiện | Nhóm | Ghi chú |", "|---|---|---|---|");
   for (const v of cho) ra.push(`| ${o(v.ten)} | ${noiDatChu(v)} | ${o(v.nhom)} | ${o(v.nguonTen)} |`);

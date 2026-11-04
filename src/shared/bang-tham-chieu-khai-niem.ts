@@ -4,7 +4,7 @@
  * `chuChon` ghi ngày chủ chọn tên kèm nguồn; khái niệm chưa tìm thấy ngày chủ chọn thì `cho-chon`, không đoán ngày.
  * Thêm hay đổi tên = chủ đã chọn (AI đưa 2–3 tên, không tự đặt; ADR-0130). Giao diện KHÔNG nạp tệp này.
  */
-import type { ChuDungChung, KhaiNiem } from "./bang-tham-chieu.ts";
+import type { ChuDungChung, KhaiNiem, TenNhieuHang } from "./bang-tham-chieu.ts";
 
 const KN = (k: KhaiNiem): KhaiNiem => k;
 
@@ -639,4 +639,54 @@ export const CHU_DUNG_CHUNG: readonly ChuDungChung[] = [
   { chu: "Dùng lại", vi: "Đứng trên dòng của mục đã ngừng (nhóm hỗ trợ, tuyến, cỡ xe) và dùng lại đúng mục đó." },
   { chu: "Gỡ", vi: "Đứng trên dòng của thứ bị gỡ (thành viên nhóm, máy đã nhớ) và gỡ đúng thứ đó." },
   { chu: "Để sau", vi: "Trong hộp mời làm một việc (mời bật Face ID, hộp đọc tin): bỏ qua lần này; hộp nói rõ việc được mời." },
+  { chu: "Sửa", vi: "Đứng trên dòng của mục cần sửa (cấp, đặc điểm, địa điểm, tài khoản…) và mở hộp sửa đúng mục đó; tiêu đề hộp nói đang sửa gì." },
+  { chu: "Thêm", vi: "Là nút trong khung thêm, hoặc đứng ngay dưới danh sách đang xem; tiêu đề khung nói đang thêm gì." },
+  { chu: "Từ chối", vi: "Đứng trên dòng yêu cầu, đề nghị hay phiếu đang xem và từ chối đúng thứ đó; bước sau luôn đòi lý do." },
+  { chu: "Xác nhận", vi: "Trong hộp hỏi hoặc trên dòng đang xem; câu hỏi hay dòng đứng ngay cạnh nói đang xác nhận việc gì." },
+  { chu: "Xác nhận từ chối", vi: "Nút chốt của hộp từ chối; tiêu đề hộp nói đang từ chối đơn, chuyến hay yêu cầu nào." },
+  { chu: "Xác nhận đã nhận", vi: "Nút chốt trên dòng hoặc trong hộp của đúng khoản tiền đang xem; hộp nói rõ bên nào đã nhận." },
+  { chu: "Xác nhận bật", vi: "Nút chốt của hộp bật một chế độ; tiêu đề hộp nói đang bật gì." },
+  { chu: "Kết thúc", vi: "Đứng trên dòng có hiệu lực (dòng giá, công việc, quan hệ) và kết thúc đúng dòng đó." },
+  { chu: "Gửi", vi: "Đứng ngay dưới ô đang gõ (yêu cầu hỗ trợ, trả lời, câu hỏi cho Trợ lý); ô đó nói đang gửi gì." },
+  { chu: "Gửi từ chối", vi: "Nút chốt của hộp từ chối một phiếu; hộp nói đang từ chối phiếu nào, kèm lý do đã chọn." },
+  { chu: "Gửi đề nghị", vi: "Nút chốt của hộp đề nghị xe khác nhận khách; tiêu đề hộp nói đề nghị gì." },
+  { chu: "Rút lại", vi: "Đứng cạnh yêu cầu hoặc đề nghị đang chờ của chính mình và rút đúng thứ đó." },
+  { chu: "Rút yêu cầu", vi: "Đứng trên dòng yêu cầu của chính mình và rút đúng yêu cầu đó." },
+  { chu: "Nhận", vi: "Đứng trên thẻ đơn chờ nhận hoặc đề nghị chuyển khách và nhận đúng thứ đó." },
+  { chu: "Thu hồi", vi: "Đứng trên dòng đường dẫn vé hoặc tin đã gửi và thu hồi đúng thứ đó." },
+  { chu: "Duyệt", vi: "Đứng trên dòng yêu cầu hoặc đề nghị đang chờ và duyệt đúng thứ đó." },
+  { chu: "Điều chỉnh", vi: "Đứng trên dòng khách hoặc khối chi phí đang xem và mở khung điều chỉnh đúng thứ đó." },
+  { chu: "Lưu sửa", vi: "Nút lưu của hộp sửa; tiêu đề hộp nói đang sửa gì." },
+  { chu: "Ngừng dùng", vi: "Đứng trên dòng liên hệ hoặc ở màn của một xe: cùng kiểu việc, khác đối tượng (ADR-0166 câu 9; hồ sơ rà soát 2026-11-04)." },
+  { chu: "Thêm nhóm", vi: "Ở trang của từng loại nhóm (nhóm dịch vụ, nhóm hỗ trợ): tiêu đề trang nói đang thêm nhóm gì." },
+  { chu: "Lưu thành bản mới", vi: "Ở trang cài đặt có nhiều bản (chính sách điều phối, Trợ lý): tiêu đề khối nói đang lưu cái gì." },
+];
+
+/** Tên nằm ở nhiều hàng việc mà không phải chữ dùng chung. Tên mới rơi vào diện này mà chưa xếp thì `npm test` đỏ. */
+export const TEN_NHIEU_HANG: readonly TenNhieuHang[] = [
+  { chu: "Thêm giấy tờ", loai: "cung-viec", vi: "Nút lưu của cùng một hộp giấy tờ, đổi chữ theo việc đang làm; tiêu đề hộp nói đang thêm, gia hạn hay sửa sai." },
+  { chu: "Lưu gia hạn", loai: "cung-viec", vi: "Nút lưu của cùng một hộp giấy tờ, đổi chữ theo việc đang làm." },
+  { chu: "Lưu sửa sai", loai: "cung-viec", vi: "Nút lưu của cùng một hộp giấy tờ, đổi chữ theo việc đang làm." },
+  { chu: "Gia hạn", loai: "cung-viec", vi: "Giấy tờ của xe và giấy tờ của người: cùng một việc trên hai màn." },
+  { chu: "Sửa sai", loai: "cung-viec", vi: "Giấy tờ của xe và giấy tờ của người: cùng một việc trên hai màn." },
+  { chu: "Xem đủ số", loai: "cung-viec", vi: "Cùng một việc xem số giấy tờ của người, vào từ hai màn." },
+  { chu: "Huỷ đơn", loai: "cung-viec", vi: "Cùng một việc huỷ đơn, vào từ trang đơn, bảng Kiểm vé và Việc của tôi." },
+  { chu: "Đã giao – đã thu đủ", loai: "cung-viec", vi: "Cùng một nút ở trang đơn, đổi chữ theo bước chốt của đơn." },
+  { chu: "Hoàn thành", loai: "cung-viec", vi: "Cùng một nút ở trang đơn, đổi chữ theo bước chốt của đơn." },
+  { chu: "Từ chối đơn", loai: "cung-viec", vi: "Cùng một việc trả đơn, vào từ trang đơn và Việc của tôi." },
+  { chu: "Đặt gấp", loai: "cung-viec", vi: "Cùng một việc đặt gấp, vào từ khung của người lập và bảng Kiểm vé." },
+  { chu: "Thêm mức", loai: "cung-viec", vi: "Nút lưu của cùng một hộp nhập mức hoa hồng; tiêu đề hộp nói mức của cấp hay của đối tác." },
+  { chu: "Chọn cấp riêng cho đối tác", loai: "cung-viec", vi: "Cùng một việc, vào từ trang Hoa hồng đối tác và hồ sơ ở Danh bạ (ADR-0166 câu 1)." },
+  { chu: "Vẫn lưu", loai: "cung-viec", vi: "Nút của cùng một hộp cảnh báo khi đổi giá trị đặc điểm dịch vụ." },
+  { chu: "Cho xe chạy", loai: "cung-viec", vi: "Cùng một việc: tài xế bấm, hoặc văn phòng bấm thay." },
+  { chu: "Kết thúc chuyến", loai: "cung-viec", vi: "Cùng một việc: tài xế bấm, hoặc văn phòng bấm thay." },
+  { chu: "Kết thúc gián đoạn", loai: "cung-viec", vi: "Cùng một việc: tài xế bấm, hoặc văn phòng bấm thay." },
+  { chu: "Gửi đề nghị cứu hộ", loai: "cung-viec", vi: "Cùng một khối cứu hộ ở màn chuyến, nút đổi chữ theo việc đang làm." },
+  { chu: "Ghi “${nhan}”", loai: "cung-viec", vi: "Nút chốt của một hộp tiến độ chuyến; chữ ghép theo việc đang ghi (đã đón, vắng, khách huỷ)." },
+  { chu: "Lưu giá", loai: "cung-viec", vi: "Nút lưu của cùng một form bảng giá thuê xe, đổi chữ theo việc thêm giá hay đổi giá." },
+  { chu: "Lưu giá mới", loai: "cung-viec", vi: "Nút lưu của cùng một form bảng giá thuê xe, đổi chữ theo việc thêm giá hay đổi giá." },
+  { chu: "Đăng xuất", loai: "cung-viec", vi: "Cùng một việc thoát máy này, vào từ trang Tôi và khung chung." },
+  { chu: "Quay lại bản này", loai: "cung-viec", vi: "Cùng một việc ở hai khối của trang cài đặt Trợ lý." },
+  { chu: "Gửi yêu cầu", loai: "cho-chu", vi: "Một nơi mở hộp gửi yêu cầu hỗ trợ, một nơi là nút chốt của hộp xin xoá dữ liệu cá nhân. Hộp xoá có câu hỏi riêng nói rõ, nhưng hai việc khác nhau xa; chờ chủ xem có đổi không." },
+  { chu: "Sửa giá", loai: "cho-chu", vi: "Ở Dịch vụ & giá là ghi đè giá cho mọi đơn lập sau; trong thẻ dịch vụ của đơn chỉ sửa đơn giá của đơn đang lập. Hậu quả khác xa nhau; chờ chủ chọn tên." },
 ];
