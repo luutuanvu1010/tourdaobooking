@@ -6,8 +6,12 @@ import { test } from "node:test";
 // @ts-expect-error — tệp .mjs không có kiểu
 import { kiemDuong, kiemHuongDan, kiemKhaiNiem, kiemKhongDungChuLoai, kiemNoiDat, kiemTenLacCho, kiemUngVien, renderBangThamChieu } from "../scripts/bang-tham-chieu-lib.mjs";
 // @ts-expect-error — tệp .mjs không có kiểu
-import { chuanNhan, duongTrongMa, khoaNut, lietKeNut } from "../scripts/quet-nut-lib.mjs";
+import { chuanNhan, duongTrongMa, khoaNut, lietKeNut, tenHuongDan, toanChu } from "../scripts/quet-nut-lib.mjs";
 import { AUDIT_ACTIONS } from "./shared/audit-actions.ts";
+import { CAM_THEO_TEP, TU_DA_LOAI } from "./shared/bang-tu-giao-dien.ts";
+import { PERMISSION_LABEL } from "./shared/permissions.ts";
+import { NHAN_DANG_CHO_XAC_NHAN, STATUS_LABEL } from "./shared/order-status-label.ts";
+import { CHU_DUNG_CHUNG, KHAI_NIEM } from "./shared/bang-tham-chieu-khai-niem.ts";
 import { BO_QUA, VIEC_QUAN_TRONG } from "./shared/bang-tham-chieu-viec.ts";
 import type { ChuDungChung, KhaiNiem, MucBoQua, ViecQuanTrong } from "./shared/bang-tham-chieu.ts";
 
@@ -165,4 +169,43 @@ test("không tệp nào ngoài bài kiểm và kịch bản nạp bảng", () =>
   duyet("src");
   duyet("public");
   assert.deepEqual(loi.filter((t) => !t.startsWith("scripts/")), [], "bảng tham chiếu chỉ để bài kiểm và kịch bản sinh tài liệu đọc; giao diện và máy chủ không nạp (sẽ làm nặng trang)");
+});
+
+test("điều 2: tên đã khai không xuất hiện ở chỗ chưa khai (trừ chữ dùng chung)", () => {
+  const l2 = kiemTenLacCho(VIEC_QUAN_TRONG, BO_QUA, CHU_DUNG_CHUNG, NUT_THAT);
+  assert.deepEqual(l2, [], `điều 2 — ${kể(l2)}`);
+});
+
+test("điều 5: mọi [[tên nút]] của Hướng dẫn có thật và không phải chữ đã loại", () => {
+  const l5 = kiemHuongDan(tenHuongDan(ROOT), NUT_THAT, toanChu(ROOT), TU_DA_LOAI);
+  assert.deepEqual(l5, [], `điều 5 — ${kể(l5)}`);
+});
+
+test("khái niệm: đã chốt có giải nghĩa và ngày chủ chọn; chữ đã loại có dòng cấm; tên chuẩn không là chữ đã loại", () => {
+  const loi = kiemKhaiNiem(KHAI_NIEM, TU_DA_LOAI, CAM_THEO_TEP);
+  assert.deepEqual(loi, [], kể(loi));
+  const trung = KHAI_NIEM.map((k) => k.ten).filter((t, i, a) => a.indexOf(t) !== i);
+  assert.deepEqual(trung, [], "mỗi tên chuẩn chỉ một dòng khái niệm (mỗi tên một nghĩa)");
+});
+
+test("tên việc và chữ khai ở nơi đặt không phải chữ đã loại", () => {
+  const loi = kiemKhongDungChuLoai(VIEC_QUAN_TRONG, TU_DA_LOAI, CAM_THEO_TEP);
+  assert.deepEqual(loi, [], kể(loi));
+});
+
+test("có mỗi trạng thái đơn và mười quyền", () => {
+  const ten = new Set(KHAI_NIEM.map((k) => k.ten));
+  for (const nhan of [...Object.values(STATUS_LABEL), NHAN_DANG_CHO_XAC_NHAN, ...Object.values(PERMISSION_LABEL)]) assert.ok(ten.has(nhan), `thiếu khái niệm «${nhan}»`);
+  assert.equal(Object.values(PERMISSION_LABEL).length, 10);
+});
+
+test("chữ dùng chung không trùng nhau và mỗi chữ có lý do", () => {
+  const chu = CHU_DUNG_CHUNG.map((c) => c.chu);
+  assert.equal(new Set(chu).size, chu.length);
+  for (const c of CHU_DUNG_CHUNG) assert.ok(c.vi.trim().length > 10, `«${c.chu}» thiếu lý do`);
+});
+
+test("docs/BANG-THAM-CHIEU.md khớp bản sinh (chạy `npm run tham-chieu`)", () => {
+  const sinh = renderBangThamChieu({ khaiNiem: KHAI_NIEM, chuDungChung: CHU_DUNG_CHUNG, viec: VIEC_QUAN_TRONG, boQua: BO_QUA });
+  assert.equal(readFileSync(join(ROOT, "docs/BANG-THAM-CHIEU.md"), "utf8"), sinh);
 });
