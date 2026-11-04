@@ -50,3 +50,16 @@ test("câu 11: hộp «Đặt ngày kết thúc» nói chỉ đặt được m�
   assert.match(lb, /title: "Đặt ngày kết thúc"/);
   assert.match(lb, /CAU_CHI_DAT_MOT_LAN/);
 });
+
+test("câu 5: cờ «đang chờ xác nhận» đi từ danh sách tới thẻ đơn và từ yêu cầu mở tới huy hiệu trang đơn (quét mã nguồn, không chạy giao diện)", () => {
+  // Danh sách: thẻ được dựng từ trường của OrderSummaryDto — phải chép cờ sang dữ liệu thẻ, và thẻ phải đưa cờ vào hàm nhãn chung.
+  assert.match(doc("web/orders.ts"), /\.\.\.\(o\.dangChoXacNhan \? \{ dangChoXacNhan: true as const \} : \{\}\)/, "danh sách chép cờ sang thẻ");
+  assert.match(doc("web/order-card.ts"), /dangChoXacNhan\?: true;/, "dữ liệu thẻ có trường cờ");
+  assert.match(doc("web/order-card.ts"), /const tt = trangThaiHienThi\(o\);/, "thẻ đưa cả dữ liệu (kèm cờ) vào hàm nhãn chung, không tự chép nhãn");
+  // Trang chi tiết: cờ = có yêu cầu xác nhận đang mở (cùng nguồn với dải «Chờ xác nhận · còn N phút»).
+  assert.match(doc("web/order.ts"), /trangThaiHienThi\(\{ \.\.\.order, dangChoXacNhan: xacNhan\?\.yeuCau != null \}\)/, "huy hiệu trang đơn lấy cờ từ yêu cầu mở");
+  // Máy chủ: cờ điền trong toSummaryDtos từ câu SQL tĩnh ở xac-nhan-repo.
+  assert.match(doc("src/modules/orders/repository.ts"), /dangCho\.has\(d\.id\) \? \{ dangChoXacNhan: true as const \}/, "máy chủ chỉ gắn cờ khi đúng");
+  // Chữ khách đọc không đi theo nhãn nội bộ.
+  assert.match(doc("src/modules/receipt/rules.ts"), /completedAt: order\.completedAt, dangChoXacNhan: true \}/, "biên nhận / ảnh gửi khách giữ «Chờ xác nhận» cho đơn nháp");
+});
