@@ -23,12 +23,12 @@ test("đơn NHÁP gửi kiểm vé có mời B: B có tin lời mời VÀ tin ch
   assert.equal((await goi(w, o.id, A, "gui-xac-nhan")).status, 201);
   const bTin = await hop(w, B, o.orderCode);
   assert.deepEqual(loai(bTin), ["cho_xac_nhan", "moi_ban_hang"], JSON.stringify(bTin));
-  assert.equal(bTin.find((t: any) => t.loai === "moi_ban_hang").cau, `Đơn ${o.orderCode}: bạn được mời làm Bán hàng phụ trách`);
+  assert.equal(bTin.find((t: any) => t.loai === "moi_ban_hang").cau, `Đơn ${o.orderCode}: bạn được mời làm người phụ trách`);
   assert.equal(bTin.find((t: any) => t.loai === "moi_ban_hang").cuaToi, true);
   for (const as of [ADM, SUP, A]) assert.deepEqual(loai(await hop(w, as, o.orderCode)).filter((l) => l === "cho_xac_nhan" || l === "moi_ban_hang"), [], as);
 });
 
-test("đơn không cần kiểm có mời B: B có tin mời; B Nhận → người lập có tin «đã có Bán hàng phụ trách», B không tự nhận tin; Quản trị Đổi sang Y → người mới + người lập có tin Đổi, B (người cũ) không", async () => {
+test("đơn không cần kiểm có mời B: B có tin mời; B Nhận → người lập có tin «đã có người phụ trách», B không tự nhận tin; Quản trị Đổi sang Y → người mới + người lập có tin Đổi, B (người cũ) không", async () => {
   const w = setup();
   themY(w);
   const o = await lap(w, A, [svc("ZB1", inDays(3))], { banHangMoiStaffId: B });
@@ -36,7 +36,7 @@ test("đơn không cần kiểm có mời B: B có tin mời; B Nhận → ngư�
   assert.deepEqual(loai(await hop(w, B, o.orderCode)).filter((l) => l === "moi_ban_hang"), ["moi_ban_hang"]);
   assert.equal((await goi(w, o.id, B, "ban-hang/nhan")).status, 200);
   const a = await hop(w, A, o.orderCode);
-  assert.ok(a.some((t: any) => t.loai === "ban_hang_nhan" && t.cuaToi && t.cau === `Đơn ${o.orderCode} đã có Bán hàng phụ trách`), JSON.stringify(a));
+  assert.ok(a.some((t: any) => t.loai === "ban_hang_nhan" && t.cuaToi && t.cau === `Đơn ${o.orderCode} đã có người phụ trách`), JSON.stringify(a));
   assert.ok(!(await hop(w, B, o.orderCode)).some((t: any) => t.loai === "ban_hang_nhan"));
   const doi = await w.call("PUT", `/api/orders/${o.id}/ban-hang`, { as: ADM, body: { staffId: Y } });
   assert.equal(doi.status, 200, doi.text);

@@ -145,7 +145,7 @@ test("ADR-0045: lưu NHÁP không vào 'Của tôi' của ai (kể cả chủ đ
   const r = hop(VU, [nhapChuaAi, xn], [], "cua-toi");
   assert.equal(r.tin.length, 1);
   assert.equal(r.tin[0]!.loai, "cho_nhan");
-  assert.equal(r.tin[0]!.cau, "Bảo vừa xác nhận đơn TD-20260927-0001, chưa có người phụ trách");
+  assert.equal(r.tin[0]!.cau, "Bảo vừa xác nhận đơn TD-20260927-0001, chưa có Hướng dẫn viên");
   // Có người nhận rồi → dòng xác nhận thành tin "xác nhận" thường, rời "Của tôi" của người không liên quan
   assert.equal(hop(LAN, [don({ ...xn, phuTrach: { coNguoi: true, staffId: "hung" } })], [], "cua-toi").tin.length, 0);
 });

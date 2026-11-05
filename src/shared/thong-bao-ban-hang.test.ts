@@ -42,7 +42,7 @@ test("L9 lời mời: tới X khi lời mời còn mở — kể cả khi đơn 
   assert.equal(t.loai, "moi_ban_hang");
   assert.equal(t.cuaToi, true);
   assert.equal(t.lienKet, "/order?id=o1");
-  assert.equal(t.cau, "Đơn TD-20261105-0001: bạn được mời làm Bán hàng phụ trách");
+  assert.equal(t.cau, "Đơn TD-20261105-0001: bạn được mời làm người phụ trách");
 });
 test("L9 lời mời: khi X đã là Bán hàng phụ trách (đã nhận) vẫn thấy; Y được mời lại sau đó thì X cũ không còn thấy (trạng thái hiện tại)", () => {
   const cu = don({ action: "sales_invited", actorId: "lap", loiMoi: null, banHangStaffId: "x" });
@@ -61,7 +61,7 @@ test("L9 nhận phụ trách: người lập có tin (hộp thư); X khi ngườ
   const d = don({ action: "sales_owner_claimed", actorId: "bh", banHangStaffId: "bh" });
   assert.deepEqual(ai_nhan(d), ["lap"]);
   assert.equal(hop(LAP, [d]).tin[0]!.loai, "ban_hang_nhan");
-  assert.equal(hop(LAP, [d]).tin[0]!.cau, "Đơn TD-20261105-0001 đã có Bán hàng phụ trách");
+  assert.equal(hop(LAP, [d]).tin[0]!.cau, "Đơn TD-20261105-0001 đã có người phụ trách");
   assert.equal(hop(SA, [don({ ...d, ownerId: "sa2" })], "tat-ca").tin.length, 0, "Toàn quyền không phải người lập: không nhận");
 });
 test("L9 X từ chối: người lập có tin; cả hai ngăn; Quản trị / Bán hàng khác không nhận trong hộp thư", () => {
@@ -84,7 +84,7 @@ test("L9 Chờ Bán hàng nhận (cho_ban_hang): không có hành động nhật
 test("L9 Bảng tin: nhãn cho-ban-hang chỉ cho người nhận Bán hàng phụ trách (Bán hàng, Quản trị, Toàn quyền), không Đối tác / Kế toán / HDV; câu thông báo nổi đúng", () => {
   for (const s of [BH, QT, SA]) assert.ok(nhanKetNoi(s).includes("cho-ban-hang"), s.id);
   for (const s of [KT, HDV, DT, TT]) assert.ok(!nhanKetNoi(s).includes("cho-ban-hang"), s.id);
-  assert.ok(!nhanKetNoi(ai("lai", "PARTNER", "SALES")).includes("cho-ban-hang"), "tài khoản lai Đối tác không làm Bán hàng phụ trách");
+  assert.ok(!nhanKetNoi(ai("lai", "PARTNER", "SALES")).includes("cho-ban-hang"), "tài khoản lai Đối tác không làm người phụ trách");
   const sk = { loai: "don" as const, orderId: "o1", maDon: "TD-1", thayDoi: "cho_ban_hang" as const, luc: NOW };
   assert.equal(thongBaoNoi(BH, sk)?.cau, "Đơn TD-1 đang Chờ Bán hàng nhận");
   assert.equal(thongBaoNoi(DT, sk), null);
@@ -186,10 +186,10 @@ test("Hộp thư nhận tin về đơn của chính mình: Bán hàng khác Đ�
 // ---- Thông báo nổi ----
 test("thongBaoNoi: câu của các loại mới (khong tên người), người không đủ quyền không có", () => {
   const sk = (thayDoi: ThayDoiDon) => ({ loai: "don" as const, orderId: "o1", maDon: "TD-1", thayDoi, luc: NOW });
-  assert.equal(thongBaoNoi(X, sk("moi_ban_hang"))?.cau, "Đơn TD-1: bạn được mời làm Bán hàng phụ trách");
-  assert.equal(thongBaoNoi(LAP, sk("ban_hang_nhan"))?.cau, "Đơn TD-1 đã có Bán hàng phụ trách");
-  assert.equal(thongBaoNoi(LAP, sk("ban_hang_tu_choi"))?.cau, "Đơn TD-1: Bán hàng được mời đã từ chối");
-  assert.equal(thongBaoNoi(BH2, sk("doi_ban_hang"))?.cau, "Đơn TD-1 vừa đổi Bán hàng phụ trách");
+  assert.equal(thongBaoNoi(X, sk("moi_ban_hang"))?.cau, "Đơn TD-1: bạn được mời làm người phụ trách");
+  assert.equal(thongBaoNoi(LAP, sk("ban_hang_nhan"))?.cau, "Đơn TD-1 đã có người phụ trách");
+  assert.equal(thongBaoNoi(LAP, sk("ban_hang_tu_choi"))?.cau, "Đơn TD-1: người được mời đã từ chối");
+  assert.equal(thongBaoNoi(BH2, sk("doi_ban_hang"))?.cau, "Đơn TD-1 vừa đổi người phụ trách");
   assert.equal(thongBaoNoi(BH2, sk("moi_ban_hang"))?.lienKet, "/order?id=o1");
   assert.equal(thongBaoNoi(BH2, sk("hoan_thanh")), null, "Hoàn thành chỉ làm mới màn hình (ADR-0025 đ8), tin nằm ở hộp thư");
 });

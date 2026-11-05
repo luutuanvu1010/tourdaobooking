@@ -179,17 +179,17 @@ export interface ThongBaoNoi {
 /** Chỉ 5 loại thay đổi hiện thông báo nổi (TD-4 + `tu_choi` của ADR-0030 điều 1) — `tao`, `tao_cho_nhan` (ADR-0045: lưu nháp không báo), `sua`, `chuyen`, `tien` chỉ làm mới màn hình, không nổi. */
 const CAU_THONG_BAO: { [K in ThayDoiDon]?: (maDon: string) => string } = {
   nhan: (maDon) => `Đơn ${maDon} vừa có người nhận`,
-  giao: (maDon) => `Đơn ${maDon} vừa đổi người phụ trách`,
+  giao: (maDon) => `Đơn ${maDon} vừa đổi Hướng dẫn viên`,
   xac_nhan: (maDon) => `Đơn ${maDon} đã được xác nhận`,
   huy: (maDon) => `Đơn ${maDon} đã bị huỷ`,
   tu_choi: (maDon) => `Đơn ${maDon} vừa được trả lại, đang chờ người nhận`,
   cho_xac_nhan: (maDon) => `Đơn ${maDon} đang chờ xác nhận`, // ADR-0136 Đ10 — không tên người gửi
   // ADR-0142 Đ7 — không bao giờ kèm tên người làm (tin tới Đối tác / Thực tập không có tên: ADR-0131 đ3; ở đây chỉ nhóm nội bộ thấy nổi, cũng không tên).
-  moi_ban_hang: (maDon) => `Đơn ${maDon}: bạn được mời làm Bán hàng phụ trách`,
-  ban_hang_nhan: (maDon) => `Đơn ${maDon} đã có Bán hàng phụ trách`,
-  ban_hang_tu_choi: (maDon) => `Đơn ${maDon}: Bán hàng được mời đã từ chối`,
+  moi_ban_hang: (maDon) => `Đơn ${maDon}: bạn được mời làm người phụ trách`,
+  ban_hang_nhan: (maDon) => `Đơn ${maDon} đã có người phụ trách`,
+  ban_hang_tu_choi: (maDon) => `Đơn ${maDon}: người được mời đã từ chối`,
   cho_ban_hang: (maDon) => `Đơn ${maDon} đang Chờ Bán hàng nhận`,
-  doi_ban_hang: (maDon) => `Đơn ${maDon} vừa đổi Bán hàng phụ trách`,
+  doi_ban_hang: (maDon) => `Đơn ${maDon} vừa đổi người phụ trách`,
 };
 
 /**

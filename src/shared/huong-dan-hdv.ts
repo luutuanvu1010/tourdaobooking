@@ -125,7 +125,7 @@ Sau Đã giao, đơn **bị khoá**: không sửa số khách, không huỷ, kh�
 - [[Của tôi]]: tin công ty gửi bạn, tin về đơn bạn lo, đơn mới đang chờ nhận.
 - [[Tất cả]]: thêm các tin khác.
 
-Khi văn phòng xác nhận một đơn chưa có ai lo, bạn nhận tin "Có đơn mới …, chưa có người phụ trách". Bấm vào tin là Nền tảng mở trang [[Tôi]].
+Khi văn phòng xác nhận một đơn chưa có ai lo, bạn nhận tin "Có đơn mới …, chưa có Hướng dẫn viên". Bấm vào tin là Nền tảng mở trang [[Tôi]].
 
 Tin quan trọng có nút [[Đã hiểu]]. Đọc xong thì bấm.
 

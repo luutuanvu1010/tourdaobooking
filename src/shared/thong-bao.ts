@@ -97,7 +97,7 @@ const phanCua = phanDoiCuaDong;
 
 export function loaiTinDon(d: DongDon): LoaiTinDon | null {
   switch (d.action) {
-    // ADR-0045: lưu NHÁP không báo ai (chỉ còn ở ngăn "Tất cả", xem locHopThongBao); "chờ nhận" nảy ra lúc XÁC NHẬN đơn chưa có người phụ trách
+    // ADR-0045: lưu NHÁP không báo ai (chỉ còn ở ngăn "Tất cả", xem locHopThongBao); "chờ nhận" nảy ra lúc XÁC NHẬN đơn chưa có Hướng dẫn viên
     // (theo người phụ trách HIỆN TẠI — có người nhận rồi thì thành tin "xác nhận" thường). `lapChuaCoNguoi` không còn quyết loại tin.
     case "created": return "lap";
     case "order_claimed": return "nhan";
@@ -136,24 +136,24 @@ const uuTienConHieuLuc = (l: NonNullable<DongDon["loiMoi"]>, now: string): boole
 
 const CAU: Record<Exclude<LoaiTinDon, "doi_sau_xac_nhan">, { coTen: (ten: string, ma: string) => string; khongTen: (ma: string) => string }> = {
   lap: { coTen: (t, m) => `${t} vừa lập đơn mới ${m}`, khongTen: (m) => `Có đơn mới ${m}` },
-  cho_nhan: { coTen: (t, m) => `${t} vừa xác nhận đơn ${m}, chưa có người phụ trách`, khongTen: (m) => `Có đơn mới ${m}, chưa có người phụ trách` },
+  cho_nhan: { coTen: (t, m) => `${t} vừa xác nhận đơn ${m}, chưa có Hướng dẫn viên`, khongTen: (m) => `Có đơn mới ${m}, chưa có Hướng dẫn viên` },
   nhan: { coTen: (t, m) => `${t} vừa nhận đơn ${m}`, khongTen: (m) => `Đơn ${m} vừa có người nhận` },
-  giao: { coTen: (t, m) => `${t} vừa giao đơn ${m} cho người khác phụ trách`, khongTen: (m) => `Đơn ${m} vừa đổi người phụ trách` },
+  giao: { coTen: (t, m) => `${t} vừa giao đơn ${m} cho người khác làm Hướng dẫn viên`, khongTen: (m) => `Đơn ${m} vừa đổi Hướng dẫn viên` },
   xac_nhan: { coTen: (t, m) => `${t} vừa xác nhận đơn ${m}`, khongTen: (m) => `Đơn ${m} vừa được xác nhận` },
   huy: { coTen: (t, m) => `${t} vừa huỷ đơn ${m}`, khongTen: (m) => `Đơn ${m} vừa bị huỷ` },
   cho_xac_nhan: { coTen: (_t, m) => `Đơn ${m} đang chờ xác nhận`, khongTen: (m) => `Đơn ${m} đang chờ xác nhận` }, // ADR-0136 Đ10: không bao giờ kèm tên người gửi
   // ADR-0089 NT-V7: không số tiền (nhật ký duyệt chỉ ghi lý do — khuôn tin điều chỉnh ADR-0115), chữ «thu trước» không «cọc» (chủ 14/10).
   // ADR-0142 Đ7: tin tới Đối tác / Thực tập (người lập) không kèm tên người làm — `coTen` chỉ dùng cho người qua `xemTenNguoiLam` (Toàn quyền, không giữ quyền Đối tác).
-  moi_ban_hang: { coTen: (t, m) => `${t} mời bạn làm Bán hàng phụ trách đơn ${m}`, khongTen: (m) => `Đơn ${m}: bạn được mời làm Bán hàng phụ trách` },
-  ban_hang_nhan: { coTen: (t, m) => `${t} đã nhận phụ trách đơn ${m}`, khongTen: (m) => `Đơn ${m} đã có Bán hàng phụ trách` },
-  ban_hang_tu_choi: { coTen: (t, m) => `${t} không nhận phụ trách đơn ${m}, đơn đang Chờ Bán hàng nhận`, khongTen: (m) => `Đơn ${m}: Bán hàng được mời chưa nhận phụ trách, đang Chờ Bán hàng nhận` },
-  doi_ban_hang: { coTen: (t, m) => `${t} đã đổi Bán hàng phụ trách đơn ${m}`, khongTen: (m) => `Đơn ${m} vừa đổi Bán hàng phụ trách` },
+  moi_ban_hang: { coTen: (t, m) => `${t} mời bạn làm người phụ trách đơn ${m}`, khongTen: (m) => `Đơn ${m}: bạn được mời làm người phụ trách` },
+  ban_hang_nhan: { coTen: (t, m) => `${t} đã nhận phụ trách đơn ${m}`, khongTen: (m) => `Đơn ${m} đã có người phụ trách` },
+  ban_hang_tu_choi: { coTen: (t, m) => `${t} không nhận phụ trách đơn ${m}, đơn đang Chờ Bán hàng nhận`, khongTen: (m) => `Đơn ${m}: người được mời chưa nhận, đang Chờ Bán hàng nhận` },
+  doi_ban_hang: { coTen: (t, m) => `${t} đã đổi người phụ trách đơn ${m}`, khongTen: (m) => `Đơn ${m} vừa đổi người phụ trách` },
   hoan_thanh: { coTen: (t, m) => `${t} đã bấm Hoàn thành đơn ${m}`, khongTen: (m) => `Đơn ${m} đã Hoàn thành` },
   duyet_hoan: { coTen: (t, m) => `${t} đã duyệt hoàn thu trước đơn ${m} cho khách, chờ ghi chi hoàn`, khongTen: (m) => `Đơn ${m} đã được duyệt hoàn thu trước cho khách, chờ ghi chi hoàn` },
 };
 /** Tin "giao" đọc bởi chính người đang phụ trách đơn: "cho người khác" dễ làm họ tưởng mình không phải đi (B-01). Chọn theo `d.phuTrach` (người HIỆN TẠI —
  * nhật ký chỉ ghi tên) VÀ dòng phải là lần đổi người MỚI NHẤT của đơn (giao / tự nhận; kiểm độc lập F-1): dòng giao cũ hơn đã có người khác nhận sau. */
-const CAU_GIAO_CHO_BAN = { coTen: (t: string, m: string) => `${t} vừa giao đơn ${m} cho bạn phụ trách`, khongTen: (m: string) => `Đơn ${m} vừa được giao cho bạn phụ trách` };
+const CAU_GIAO_CHO_BAN = { coTen: (t: string, m: string) => `${t} vừa giao đơn ${m} cho bạn làm Hướng dẫn viên`, khongTen: (m: string) => `Đơn ${m} vừa được giao cho bạn làm Hướng dẫn viên` };
 
 /** Chữ của một phần đổi khi GHÉP nhiều dòng cùng lô (câu chung thành cụm cố định — không chữ thô). */
 const chuPhan = (p: PhanDoiTin): string => (p.loai === "cu-the" ? p.phan : p.cau === "so-khach" ? "đổi số khách" : "đổi lượt đưa đón");
