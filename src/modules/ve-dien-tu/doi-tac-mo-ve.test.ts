@@ -437,3 +437,42 @@ test("Đ1: Hướng dẫn viên, Thực tập, Kế toán ở sáu route vé: 40
   assert.equal((await w.call("GET", `/api/ve/don/${ma}`, { as: ACC })).status, 404);
   assert.equal((await w.call("POST", "/api/ve/cap", { as: ACC, body: { orderId: ma } })).status, 403);
 });
+
+// Sửa sau người kiểm độc lập: nộp MỘT PHẦN không được mở vé (khoản «Công ty thu» có dòng giữ hộ rời diện chờ xác nhận ngay khi nộp một phần). Đơn của khung thử 600.000 ₫.
+for (const hinhThuc of ["CASH", "OTHER"]) {
+  test(`đối tác ghi «Công ty thu» (${hinhThuc}) đủ tiền: nộp một phần vẫn khoá, nộp đủ mới mở`, async () => {
+    const w = dung();
+    const id = await moDon(w, PARTNER);
+    assert.equal((await thu(w, id, PARTNER, { hinhThuc, nguoiThu: "cong_ty" })).status, 201);
+    assert.equal((await veDon(w, id)).thuDu, false);
+    assert.equal((await nop(w, id, 1000)).status, 201);
+    assert.equal((await veDon(w, id)).thuDu, false, "nộp 1.000");
+    assert.equal((await nop(w, id, TONG - 1000 - 1)).status, 201);
+    assert.equal((await veDon(w, id)).thuDu, false, "thiếu 1 đồng");
+    assert.equal((await nop(w, id, 1)).status, 201);
+    assert.equal((await veDon(w, id)).thuDu, true, "nộp đủ");
+  });
+}
+
+test("hai khoản «Công ty thu» 500.000 + 100.000: nộp 500.001 vẫn khoá; nộp đủ mở", async () => {
+  const w = dung();
+  const id = await moDon(w, PARTNER);
+  assert.equal((await thu(w, id, PARTNER, { soTien: 500000, nguoiThu: "cong_ty" })).status, 201);
+  assert.equal((await thu(w, id, PARTNER, { soTien: 100000, nguoiThu: "cong_ty" })).status, 201);
+  assert.equal((await nop(w, id, 500001)).status, 201);
+  assert.equal((await veDon(w, id)).thuDu, false);
+  assert.equal((await nop(w, id, 99999)).status, 201);
+  assert.equal((await veDon(w, id)).thuDu, true);
+});
+
+test("Quản trị ghi «Công ty thu» tiền mặt trên đơn đối tác, nộp một phần cho Quản trị: khoá; nộp đủ mở", async () => {
+  const w = dung();
+  const id = await moDon(w, PARTNER);
+  assert.equal((await thu(w, id, ADM, { nguoiThu: "cong_ty" })).status, 201);
+  const nopQT = (soTien: number) => w.call("POST", "/api/ledger/settlements", { as: ACC, body: { chieu: "nop", partyId: `pty-${ADM}`, phanBo: [{ orderId: id, soTien }] } });
+  assert.equal((await nopQT(1000)).status, 201);
+  assert.equal((await veDon(w, id)).thuDu, false);
+  assert.equal((await nopQT(TONG - 1000)).status, 201);
+  assert.equal((await veDon(w, id)).thuDu, true);
+});
+

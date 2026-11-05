@@ -191,9 +191,9 @@ assert.deepEqual([khoChung.nhomKhach, khoChung.conTrong, khoChung.daGiu], ["ALL"
   };
   const DT = await taoDoiTac("Đối Tác Vé E2E");
   const DT2 = await taoDoiTac("Đối Tác Khác Vé E2E");
-  // thêm 4 vé riêng cho đoạn này: hai đơn × 2 khách, không phụ thuộc số vé còn lại của các ca trên
+  // thêm 6 vé riêng cho đoạn này: ba đơn × 2 khách, không phụ thuộc số vé còn lại của các ca trên
   const loDT = await moLo();
-  assert.equal((await themVe(loDT, [81, 82, 83, 84].map((n) => veThu(n, `E2E.${tag}.dt.${n}`)))).body.themDuoc, 4);
+  assert.equal((await themVe(loDT, [81, 82, 83, 84, 85, 86].map((n) => veThu(n, `E2E.${tag}.dt.${n}`)))).body.themDuoc, 6);
   assert.equal((await call(SALES, "POST", `/api/ve/lo/${loDT}/xac-nhan`, {})).status, 200);
   const donDoiTac = async () => {
     const r = await call(DT, "POST", "/api/orders", orderInput({ customerName: `Khách Vé Đối Tác ${tag}`, customerPhone: "0913571359", services: [catalogService({ catalogCode: "ZVD1", catalogPriceSeen: { adult: 100000 }, pax: { adult: 2 }, departDate: vnDate(14) })] }));
@@ -226,6 +226,18 @@ assert.deepEqual([khoChung.nhomKhach, khoChung.conTrong, khoChung.daGiu], ["ALL"
   assert.equal(dd.status, 200, JSON.stringify(dd.body));
   assert.equal((await call(DT, "POST", `/api/ve/duong-dan/${dd.body.id}/thu-hoi`, {})).status, 200);
   assert.equal((await call(DT, "POST", "/api/ve/cap", { orderId: daKT.id })).status, 200);
+  // nộp MỘT PHẦN không mở vé (sửa sau người kiểm độc lập): đối tác ghi «Công ty thu» đủ tiền, Kế toán ghi nộp 1.000 ₫ ⇒ vẫn khoá; nộp đủ ⇒ mở
+  const daNop = await donDoiTac();
+  assert.equal((await ghiThu(DT, daNop, "cong_ty")).status, 201);
+  const partyDT = (await sqlRows(`SELECT s.party_id AS p FROM orders o JOIN staff s ON s.id = o.staff_id WHERE o.id = '${daNop.id}'`))[0].p;
+  const nopTien = (soTien) => call(KT, "POST", "/api/ledger/settlements", { chieu: "nop", partyId: partyDT, phanBo: [{ orderId: daNop.id, soTien }] });
+  assert.equal((await call(DT, "GET", `/api/ve/don/${daNop.id}`)).body.thuDu, false, "chưa nộp");
+  assert.equal((await nopTien(1000)).status, 201);
+  const mot = await call(DT, "GET", `/api/ve/don/${daNop.id}`);
+  assert.equal(mot.body.thuDu, false, "nộp một phần vẫn khoá");
+  assert.deepEqual(mot.body.veXem, []);
+  assert.equal((await nopTien(daNop.total - 1000)).status, 201);
+  assert.equal((await call(DT, "GET", `/api/ve/don/${daNop.id}`)).body.thuDu, true, "nộp đủ thì mở");
   // đơn người khác: đối tác khác không thấy, không mở ảnh; kho vé đóng với đối tác
   for (const r of [await call(DT2, "GET", `/api/ve/don/${daKT.id}`), await call(DT2, "GET", `/api/ve/anh/${mo.body.veXem[0].id}`), await call(DT2, "POST", "/api/ve/duong-dan", { orderId: daKT.id })]) {
     assert.ok(r.status === 403 || r.status === 404, `đối tác khác: ${r.status}`);

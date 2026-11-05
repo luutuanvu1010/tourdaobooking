@@ -173,9 +173,19 @@ export function soChuaVeCongTy(i: {
       linesDaTru.push({ debtorPartyId: i.congTyId, creditorPartyId: l.debtorPartyId, amount: l.amount });
     }
   }
-  // Một danh sách khoản, không trùng: khoản người lập cầm (số đủ của khoản thu) và khoản khai do người khác cầm.
+  // Một danh sách khoản, không trùng, mỗi khoản gắn với NGƯỜI ĐANG CẦM tiền: người nợ của dòng giữ hộ gốc chưa đảo (khoản «Công ty thu» tiền mặt do ai ghi thì người đó cầm, dù người thu là Công ty),
+  // không có dòng giữ hộ thì người thu. Khoản vừa rời diện chờ xác nhận (nộp MỘT PHẦN) vẫn còn nợ thật nên phải được trừ theo số dư thực ở đây, không được rơi lọt cả hai phần.
+  // Miễn: nhân viên cầm hộ (vai STAFF, khác người lập) — tin nhân viên, có chủ ý (ADR-0170 Đ2 mục 2). Bên đặt / quầy nhà cung cấp khác người lập KHÔNG được miễn: tiền ở tay họ chưa về công ty.
+  const khaiId = new Set((i.khaiThem ?? []).map((k) => k.receiptId));
+  const nguoiCam = (r: ReceiptRow): string | null =>
+    i.lines.find((l) => l.kind === "HELD" && l.reversesLineId === null && !daoDong.has(l.id) && l.receiptId === r.id && l.creditorPartyId === i.congTyId)?.debtorPartyId ?? r.collectorPartyId;
   const khoan = new Map<string, { collectorPartyId: string | null; soTien: number }>();
-  for (const r of thu) if (!cho.has(r.id) && r.collectorPartyId === i.nguoiLapPartyId) khoan.set(r.id, { collectorPartyId: r.collectorPartyId, soTien: r.amount });
+  for (const r of thu) {
+    if (cho.has(r.id)) continue;
+    const cam = nguoiCam(r);
+    if (r.collectorRole === "STAFF" && cam !== i.nguoiLapPartyId && !khaiId.has(r.id)) continue;
+    khoan.set(r.id, { collectorPartyId: cam, soTien: r.amount });
+  }
   for (const k of i.khaiThem ?? []) if (!khoan.has(k.receiptId) && !cho.has(k.receiptId)) khoan.set(k.receiptId, { collectorPartyId: k.collectorPartyId, soTien: k.soTien });
   const tong = thu.reduce((s, r) => s + r.amount, 0);
   const nguoiLapGiu = Math.min(soKhaiChuaNop([...khoan.values()], linesDaTru, i.congTyId), Math.max(0, tong - choXacNhan));
