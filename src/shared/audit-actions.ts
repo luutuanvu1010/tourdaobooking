@@ -68,7 +68,7 @@ export const AUDIT_ACTIONS = {
   // không tỷ lệ, không tiền, không tên đối tác). Tiền tố `ord_terms_` thuộc nhóm hành động thương mại (`laHanhDongThuongMai`); ẩn khỏi lịch sử đơn của Đối tác.
   ord_terms_backfilled: { label: "Chụp bù mức hoa hồng", group: "order" },
   // Sổ tiền lượt 1 (ADR-0025, ADR-0026) — `detail` không SĐT, không số tiền chi tiết (kế hoạch §3.4).
-  order_delivered: { label: "Đã giao – đã thu đủ", group: "order" },
+  order_delivered: { label: "Xong và đủ tiền", group: "order" },
   order_completed: { label: "Hoàn thành", group: "order" },
   payment_recorded: { label: "Ghi khoản thu", group: "order" },
   // ADR-0060: dấu "đã nhập phần mềm kế toán" (bảng chỉ-thêm bil_accounting_entry) — detail = moTaDauNhap (số hoá đơn nguyên văn; lý do đã chặn dãy số dài).

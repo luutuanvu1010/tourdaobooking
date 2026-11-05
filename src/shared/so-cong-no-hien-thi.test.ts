@@ -8,7 +8,7 @@ test("nhãn đơn trong sổ: huỷ + bên đang giữ ⇒ «Đã huỷ — cọ
   assert.equal(nhanDonTrongSo({ status: "cancelled", deliveredAt: null, completedAt: null }, true), "Đã huỷ — cọc còn giữ");
   assert.equal(nhanDonTrongSo({ status: "cancelled", deliveredAt: null, completedAt: null }, false), "Đã huỷ");
   assert.equal(nhanDonTrongSo(null, true), "Không gắn đơn");
-  assert.equal(nhanDonTrongSo({ status: "confirmed", deliveredAt: "x", completedAt: null }, true), "Đã giao – đã thu đủ");
+  assert.equal(nhanDonTrongSo({ status: "confirmed", deliveredAt: "x", completedAt: null }, true), "Xong và đủ tiền");
   assert.equal(nhanDonTrongSo({ status: "confirmed", deliveredAt: "x", completedAt: "y" }, false), "Hoàn thành");
 });
 

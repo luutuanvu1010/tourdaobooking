@@ -617,6 +617,8 @@ Module `ve-dien-tu` (tiền tố `vdt_`, module nghiêm). **Dữ liệu:** `vdt_
 
 ## 6. Luồng nghiệp vụ chính
 
+> **Tên trên giao diện (chủ 2026-11-05):** bước tài liệu này và mã gọi «Đã giao» (`delivered`, `deliveredAt`) hiện cho người dùng là **«Xong và đủ tiền»**; nút ghi «Xác nhận xong và đủ tiền». Nguồn tên: `docs/BANG-THAM-CHIEU.md`.
+
 ### (a) Đăng nhập
 
 ```mermaid
