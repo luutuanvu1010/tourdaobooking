@@ -3,10 +3,10 @@
 // Vai BOOKER / STAFF theo bản chụp của CHÍNH lô: `benDatHuong` trên đơn chưa chụp trả null, nên không đọc phần thương mại đang lưu.
 import type { CauCocXacNhan, ChanKhaiLai, VaoCauCoc } from "../../shared/dat-coc-kieu";
 import { CAU_CHUA_GAN_HO_SO } from "../../shared/dat-coc-truoc";
-import { benDatHuong, soKhaiChuaNop } from "./rules";
+import { benDatHuong, soChuaVeCongTy, soKhaiChuaNop } from "./rules";
 import { GHI_CHU_KHOAN_LOI_KHAI, cocLapLaiConGiu, donCuaKhoan, hoSoNhanVien } from "./coc-repo";
-import { linesOfOrder, ownerCompanyId, receiptOnConfirmStatement, receiptsOfOrder } from "./repository";
-import { cauLanThu, tienNhieuDon, toLineRow } from "./service";
+import { linesOfOrder, nguoiLapGiuDoiTac, orderOwners, ownerCompanyId, receiptOnConfirmStatement, receiptsOfOrder, reconOfOrder } from "./repository";
+import { cauLanThu, tienNhieuDon, toDoiChieuRow, toLineRow, toReceiptRow } from "./service";
 
 const dong = (n: number): string => `${n.toLocaleString("vi-VN")} ₫`;
 
@@ -56,19 +56,31 @@ async function phanKhaiCuaDon(db: D1Database, receipts: readonly KhoanDon[], daQ
 }
 
 /**
- * ADR-0153 Đ3 sửa bởi ADR-0159 Đ2 mục 2 — {số tính «thu đủ», phải thu} của MỘT đơn do GỐC LẮP RÁP tiêm vào `ctx.tienDonVe` (kho vé so ở MỘT hàm thuần `thuDu`; ve-dien-tu không đọc bảng bil_).
+ * ADR-0153 Đ3 sửa bởi ADR-0159 Đ2 mục 2 và ADR-0170 Đ2 — {số tính «thu đủ», phải thu} của MỘT đơn do GỐC LẮP RÁP tiêm vào `ctx.tienDonVe` (kho vé so ở MỘT hàm thuần `thuDu`; ve-dien-tu không đọc bảng bil_).
  * `daThu` Ở ĐÂY đã trừ số khai chưa nộp, chỉ dùng cho vé; «đã thu» hiển thị ở nơi khác vẫn đọc `tienNhieuDon`. KHÔNG tự kiểm quyền — route của ve-dien-tu hỏi `can(` trước.
- * `null` khi không đọc được: không mở vé. `choNop` để giao diện nói đúng ca chờ nộp.
+ * Đơn do người HIỆN giữ quyền Đối tác lập (ADR-0170): chỉ tính tiền ĐÃ VỀ công ty — trừ thêm khoản người lập còn giữ và khoản đang chờ Kế toán xác nhận (`soChuaVeCongTy`), áp cho mọi người xem.
+ * Đơn của nhân viên văn phòng đi nhánh cũ nguyên vẹn. `null` khi không đọc được (kể cả quyền / hồ sơ người lập): không mở vé. `choNop` / `choXacNhan` để giao diện nói đúng câu.
  */
-export async function tienDonVe(db: D1Database, orderId: string): Promise<{ daThu: number; phaiThu: number; choNop: number } | null> {
+export async function tienDonVe(db: D1Database, orderId: string): Promise<{ daThu: number; phaiThu: number; choNop: number; choXacNhan: number } | null> {
   const t = (await tienNhieuDon(db, [orderId])).get(orderId);
   if (!t) return null;
-  const khoan = await phanKhaiCuaDon(db, await receiptsOfOrder(db, orderId), new Set([orderId]));
-  if (khoan.length === 0) return { daThu: t.daThu, phaiThu: t.phaiThu, choNop: 0 };
+  const chu = (await orderOwners(db, [orderId])).get(orderId);
+  const laDoiTac = chu === undefined ? false : await nguoiLapGiuDoiTac(db, chu);
+  const receipts = await receiptsOfOrder(db, orderId);
+  const khoan = await phanKhaiCuaDon(db, receipts, new Set([orderId]));
+  if (!laDoiTac && khoan.length === 0) return { daThu: t.daThu, phaiThu: t.phaiThu, choNop: 0, choXacNhan: 0 };
   const [congTyId, lines] = await Promise.all([ownerCompanyId(db), linesOfOrder(db, orderId)]);
   if (!congTyId) return null;
-  const choNop = soKhaiChuaNop(khoan, lines.map(toLineRow), congTyId);
-  return { daThu: t.daThu - choNop, phaiThu: t.phaiThu, choNop };
+  const choNopKhai = khoan.length === 0 ? 0 : soKhaiChuaNop(khoan, lines.map(toLineRow), congTyId);
+  if (!laDoiTac || chu === undefined) return { daThu: t.daThu - choNopKhai, phaiThu: t.phaiThu, choNop: choNopKhai, choXacNhan: 0 };
+  // Người lập giữ quyền Đối tác. Không đọc được hồ sơ của họ ⇒ không biết khoản nào là của họ ⇒ chưa mở (null).
+  const partyId = await hoSoNhanVien(db, chu);
+  if (!partyId) return null;
+  const recon = await reconOfOrder(db, orderId);
+  const v = soChuaVeCongTy({ receipts: receipts.map(toReceiptRow), lines: lines.map(toLineRow), doiChieu: recon.map(toDoiChieuRow), nguoiLapPartyId: partyId, congTyId });
+  // Phần khai đặt cọc (ADR-0159) cũng là tiền người lập đang giữ: lấy số lớn hơn để không trừ hai lần mà cũng không bỏ sót.
+  const choNop = Math.max(choNopKhai, v.nguoiLapGiu);
+  return { daThu: t.daThu - choNop - v.choXacNhan, phaiThu: t.phaiThu, choNop, choXacNhan: v.choXacNhan };
 }
 
 /** Dựng câu khoản thu cho lô xác nhận; câu dựng ra CHƯA chạy, nằm sau câu xác nhận trong cùng một lô. Tháng đã khoá: trigger huỷ cả lô, `orders` dịch thành 409. */

@@ -6,7 +6,7 @@ import { auditStatement } from "../audit";
 import { clearAttempts, reserveAttempts } from "../auth";
 import { getEffectiveServices } from "../catalog";
 import { UUID_RE, error, json, kemLocation, readJson } from "../../shared/http";
-import { can } from "../../shared/permissions";
+import { can, holdsPartner } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
 import { LOAI_NOI_DUNG, bamSha256, dauPhanHoiTepChung, giaiBase64, nhanLoaiTep, taoKhoaNgauNhien, type LoaiTep } from "../../shared/tep-dinh-kem";
 import { vnToday } from "../../shared/vn-date";
@@ -63,7 +63,10 @@ async function mocDuongDanKhach(env: Env, request: Request, token: string): Prom
 const DON_KHONG_THAY = () => error(404, "not_found", "Không tìm thấy đơn.");
 const VE_KHONG_THAY = () => error(404, "not_found", "Không tìm thấy vé.");
 const KHONG_QUYEN_GUI = () => error(403, "forbidden", "Bạn không có quyền xem hoặc gửi vé của đơn này.");
-const CHUA_THU_DU = (t: Parameters<typeof choDoiTacNop>[0]) => error(403, "chua_thu_du", choDoiTacNop(t) ? "Đang chờ đối tác nộp tiền về công ty nên chưa xem hoặc gửi được vé." : "Đơn chưa thu đủ tiền nên chưa xem hoặc gửi được vé.");
+/** ADR-0170 Đ2 mục 5: người giữ quyền Đối tác nghe «Công ty chưa xác nhận…»; nhân viên giữ câu cũ. Chữ dùng chung với `web/ve-don.ts` (cùng nội dung, hai nơi vì giao diện không import module). */
+const CAU_CHO_CONG_TY_XAC_NHAN = "Công ty chưa xác nhận đã nhận đủ tiền nên chưa mở được vé.";
+const CHUA_THU_DU = (t: Parameters<typeof choDoiTacNop>[0], nguoiXemLaDoiTac: boolean) =>
+  error(403, "chua_thu_du", choDoiTacNop(t) ? (nguoiXemLaDoiTac ? CAU_CHO_CONG_TY_XAC_NHAN : "Đang chờ đối tác nộp tiền về công ty nên chưa xem hoặc gửi được vé.") : "Đơn chưa thu đủ tiền nên chưa xem hoặc gửi được vé.");
 const mocLoHuy = (): string => new Date(Date.now() - NGAY_LUU_ANH_LO_HUY * 864e5).toISOString();
 const VE_DA_NHAP_LAI = () => error(409, "ve_da_nhap_lai", "Vé này đã được nhập lại vào kho nên không mở được ảnh cũ.");
 const KHO_CHUA_BAT = () => error(503, "storage_unavailable", "Kho vé điện tử chưa được bật. Vui lòng báo người phụ trách hệ thống.");
@@ -382,7 +385,7 @@ export const veDienTuModule: AppModule = {
       const du = thuDu(tien);
       // Mã phân bổ (KHÔNG phải mã vé) để giao diện gọi route ảnh — chỉ khi người xem có ô gửi vé VÀ đơn thu đủ; route ảnh vẫn kiểm lại cả hai.
       const veXem = du && can(staff, "ve.cap.send", { ownerId: chu, assigned }) ? (await docPhanBoMoCuaDon(env.DB, orderId, null)).map((id, i) => ({ id, stt: i + 1 })) : [];
-      return json({ dichVu, thuDu: du, choDoiTacNop: choDoiTacNop(tien), duongDan, veXem });
+      return json({ dichVu, thuDu: du, choDoiTacNop: choDoiTacNop(tien), nguoiXemLaDoiTac: holdsPartner(staff), duongDan, veXem });
     }),
 
     // ẢNH VÉ (ADR-0153 Đ3): chỉ khi đơn THU ĐỦ. Thứ tự cố định (bài khoá thứ tự ở xem-giao-ve.test.ts): sec-fetch-site → kho → mã → phân bổ → chủ đơn → `can(ve.cap.send)` → thu đủ
@@ -400,7 +403,7 @@ export const veDienTuModule: AppModule = {
       if (chu === null) return VE_KHONG_THAY();
       if (!can(staff, "ve.cap.send", { ownerId: chu, assigned })) return KHONG_QUYEN_GUI();
       const tien = await tienDonVe(pb.order_id);
-      if (!thuDu(tien)) return CHUA_THU_DU(tien);
+      if (!thuDu(tien)) return CHUA_THU_DU(tien, holdsPartner(staff));
       const at = new Date().toISOString();
       await env.DB.batch([
         auditStatement(env.DB, { staffId: staff.id, action: "ve_xem_anh", at, orderId: pb.order_id, targetType: "ve", targetId: pb.order_service_id, detail: `Xem ảnh vé số ${pb.slot_no}` }),
@@ -426,7 +429,7 @@ export const veDienTuModule: AppModule = {
       if (chu === null) return DON_KHONG_THAY();
       if (!can(staff, "ve.cap.send", { ownerId: chu, assigned })) return KHONG_QUYEN_GUI();
       const tien = await tienDonVe(orderId);
-      if (!thuDu(tien)) return CHUA_THU_DU(tien);
+      if (!thuDu(tien)) return CHUA_THU_DU(tien, holdsPartner(staff));
       const ds = await docPhanBoMoCuaDon(env.DB, orderId, serviceId);
       if (ds.length === 0) return json({ daGiao: 0 });
       const at = new Date().toISOString();
@@ -464,7 +467,7 @@ export const veDienTuModule: AppModule = {
       if (chu === null) return DON_KHONG_THAY();
       if (!can(staff, "ve.cap.send", { ownerId: chu, assigned })) return KHONG_QUYEN_GUI();
       const tien = await tienDonVe(orderId);
-      if (!thuDu(tien)) return CHUA_THU_DU(tien);
+      if (!thuDu(tien)) return CHUA_THU_DU(tien, holdsPartner(staff));
       const [den, ds] = await Promise.all([docHanCuoiCuaDon(env.DB, orderId), docPhanBoMoCuaDon(env.DB, orderId, null)]);
       if (den === null || ds.length === 0) return error(409, "chua_co_ve", "Đơn chưa được giữ vé nào nên chưa tạo được đường dẫn cho khách.");
       const token = taoToken();

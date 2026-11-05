@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 import {
-  HAN_YEU_CAU_NGAY, LOAI_DONG_GIU_HO, VAI_DOI_CHIEU, benDatHuong, canDoiChieu, cauLoiCsdlThuongMai, conLai, cumDoiChieu, dong, laLoiKhaiBenKia, nhaCungCapCuaDon, phanChuaThuNhaCungCap, soDuGiuHo, dongThuongMaiTu, hetHanYeuCau, hieuLuc, khoanChoXacNhan, khoanMoiDoiChieu, kiemDieuChinh, lyDoChuaGiaoDuoc, lyDoChuaHoanThanh, lyDoGiuThuongMai,
+  HAN_YEU_CAU_NGAY, LOAI_DONG_GIU_HO, VAI_DOI_CHIEU, benDatHuong, canDoiChieu, cauLoiCsdlThuongMai, conLai, cumDoiChieu, dong, laLoiKhaiBenKia, nhaCungCapCuaDon, phanChuaThuNhaCungCap, soDuGiuHo, dongThuongMaiTu, hetHanYeuCau, hieuLuc, khoanChoXacNhan, khoanMoiDoiChieu, soChuaVeCongTy, kiemDieuChinh, lyDoChuaGiaoDuoc, lyDoChuaHoanThanh, lyDoGiuThuongMai,
   ngayPhatSinh, sinhDongDao, sinhDongHoanKhach, sinhDongLanThu, sinhDongQuyetToan, sinhDongXacNhanCongTy, sinhPhieuDaGiao, soDuTheoBen, tinhTrangThuongMai, type DongThuongMai, type LineDraft, type LineRow,
   type ReceiptRow, type TinhTrangThuongMai,
 } from "./rules.ts";
@@ -502,4 +502,43 @@ test("cumDoiChieu + lyDoChuaGiaoDuoc (ADR-0132 Hệ quả): câu nói khoản b�
   const moi = lyDoChuaGiaoDuoc({ ...base, soKhoanDoiChieu: 2, cumDoiChieu: ["khách trả cho Đại Lý A", ct], so: du(1, 1) })!;
   assert.deepEqual([moi.ma, moi.aiXuLy], ["reconciling", "Kế toán"]);
   assert.equal(moi.cau, "Còn khoản khách trả cho Đại Lý A, chuyển khoản “Công ty thu” đang chờ Kế toán xác nhận — Kế toán xác nhận xong mới bấm Đã giao được.");
+});
+
+// ADR-0170 Đ2: tiền CHƯA về công ty của đơn do tài khoản giữ quyền Đối tác lập — tiêu chí là tình trạng của tiền, không phải ai ghi khoản.
+test("soChuaVeCongTy (ADR-0170 Đ2): giữ hộ trên người lập, chờ xác nhận (tiền mặt, chuyển khoản, lời khai bên kia), tiền đã về, tiền của người khác", () => {
+  const LAP = "doi-tac-lap";
+  const KHAC = "nhan-vien-khac";
+  const khoan = (id: string, role: ReceiptRow["collectorRole"], thu: string | null, amount = 600_000, them: Partial<ReceiptRow> = {}): ReceiptRow => ({ id, kind: "CUSTOMER_PAYMENT", amount, collectorRole: role, collectorPartyId: thu, reversesId: null, ...them });
+  const giuHo = (id: string, receiptId: string, ben: string, amount = 600_000, them: Partial<LineRow> = {}): LineRow => ({ id, debtorPartyId: ben, creditorPartyId: CT, amount, kind: "HELD", orderId: "o1", receiptId, reversesLineId: null, ...them });
+  const tinh = (receipts: ReceiptRow[], lines: LineRow[], doiChieu: { receiptId: string; kind: "DECLARED" | "CONFIRMED" }[] = []) =>
+    soChuaVeCongTy({ receipts, lines, doiChieu, nguoiLapPartyId: LAP, congTyId: CT });
+  // «Tôi thu»: dòng giữ hộ trên người lập, chưa nộp.
+  assert.deepEqual(tinh([khoan("a", "STAFF", LAP)], [giuHo("la", "a", LAP)]), { nguoiLapGiu: 600_000, choXacNhan: 0 });
+  // Đã nộp đủ (dòng quyết toán trả nợ): về công ty.
+  const nop = { id: "n1", debtorPartyId: CT, creditorPartyId: LAP, amount: 600_000, kind: "SETTLEMENT" as const, orderId: "o1", receiptId: null, reversesLineId: null };
+  assert.deepEqual(tinh([khoan("a", "STAFF", LAP)], [giuHo("la", "a", LAP), nop]), { nguoiLapGiu: 0, choXacNhan: 0 });
+  // «Công ty thu» tiền mặt: dòng giữ hộ trên người khai ⇒ chờ xác nhận, không đếm lần nữa ở phần giữ.
+  assert.deepEqual(tinh([khoan("a", "COMPANY", CT)], [giuHo("la", "a", LAP)]), { nguoiLapGiu: 0, choXacNhan: 600_000 });
+  // «Công ty thu» chuyển khoản: dấu DECLARED chưa CONFIRMED; có CONFIRMED thì về.
+  assert.deepEqual(tinh([khoan("a", "COMPANY", CT)], [], [{ receiptId: "a", kind: "DECLARED" }]), { nguoiLapGiu: 0, choXacNhan: 600_000 });
+  assert.deepEqual(tinh([khoan("a", "COMPANY", CT)], [], [{ receiptId: "a", kind: "DECLARED" }, { receiptId: "a", kind: "CONFIRMED" }]), { nguoiLapGiu: 0, choXacNhan: 0 });
+  // Lời khai bên đặt, không dòng nợ.
+  assert.deepEqual(tinh([khoan("a", "BOOKER", "dai-ly")], [], [{ receiptId: "a", kind: "DECLARED" }]), { nguoiLapGiu: 0, choXacNhan: 600_000 });
+  // 250.000 «Tôi thu» + 350.000 «Công ty thu» tiền mặt: cả hai còn nợ ⇒ 250.000 giữ + 350.000 chờ, không cộng trùng.
+  const hai = [khoan("t", "STAFF", LAP, 250_000), khoan("c", "COMPANY", CT, 350_000)];
+  assert.deepEqual(tinh(hai, [giuHo("lt", "t", LAP, 250_000), giuHo("lc", "c", LAP, 350_000)]), { nguoiLapGiu: 250_000, choXacNhan: 350_000 });
+  // Dòng giữ hộ 350.000 bị đảo: còn đúng 250.000.
+  const dao = { ...giuHo("ld", "c", LAP, 350_000), id: "ld", reversesLineId: "lc" };
+  const kq = tinh(hai, [giuHo("lt", "t", LAP, 250_000), giuHo("lc", "c", LAP, 350_000), { ...dao, debtorPartyId: CT, creditorPartyId: LAP }]);
+  assert.equal(kq.nguoiLapGiu + kq.choXacNhan, 250_000);
+  // Nợ còn lại chỉ đủ một khoản: không đếm hai lần (nộp 250.000 của tổng 600.000, còn 350.000 do khoản «Công ty thu» chiếm).
+  const nopMotPhan = { ...nop, amount: 250_000 };
+  const chung = tinh(hai, [giuHo("lt", "t", LAP, 250_000), giuHo("lc", "c", LAP, 350_000), nopMotPhan]);
+  assert.equal(chung.nguoiLapGiu + chung.choXacNhan, 350_000, "tổng hai phần không vượt số nợ thật");
+  // Kế toán ghi «Công ty thu»: không dòng, không dấu ⇒ đã về.
+  assert.deepEqual(tinh([khoan("a", "COMPANY", CT)], []), { nguoiLapGiu: 0, choXacNhan: 0 });
+  // «Tôi thu» của nhân viên khác (người thu khác người lập): tin nhân viên, tính là đã về.
+  assert.deepEqual(tinh([khoan("a", "STAFF", KHAC)], [giuHo("la", "a", KHAC)]), { nguoiLapGiu: 0, choXacNhan: 0 });
+  // Khoản đã bị đảo thì không tính.
+  assert.deepEqual(tinh([khoan("a", "STAFF", LAP), khoan("b", "STAFF", LAP, 600_000, { reversesId: "a" })], [giuHo("la", "a", LAP)]), { nguoiLapGiu: 0, choXacNhan: 0 });
 });

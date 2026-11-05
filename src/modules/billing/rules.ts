@@ -147,6 +147,35 @@ export function soKhaiChuaNop(
 }
 
 /**
+ * ADR-0170 Đ2: tiền của một đơn do tài khoản giữ quyền Đối tác lập mà CHƯA về công ty — HÀM DUY NHẤT để mở vé (ADR-0168 Đ2 mục 2 dùng chung, không viết hai bản). Tiêu chí là tình trạng của
+ * tiền, không phải ai ghi khoản (Kế toán sửa khoản thì người ghi đổi mà dòng giữ hộ vẫn nằm trên người lập). Hai phần, không cộng trùng:
+ *  - `choXacNhan`: khoản còn hiệu lực nằm trong `khoanChoXacNhan` (Công ty thu tiền mặt còn dòng giữ hộ, Công ty thu chuyển khoản DECLARED, lời khai bên đặt / quầy nhà cung cấp);
+ *  - `nguoiLapGiu`: khoản không nằm ở trên mà người thu là chính người lập (`toi`, `ben_dat` tự ghi), tính như `soKhaiChuaNop`; số nợ của người lập đã bị khoản chờ chiếm thì không tính lần nữa.
+ * Tổng hai phần không vượt tổng khoản thu còn hiệu lực. Tiền nhân viên khác cầm hộ (người thu khác người lập) tính là đã về, có chủ ý (ADR-0170 Đ2 mục 2).
+ */
+export function soChuaVeCongTy(i: {
+  receipts: readonly ReceiptRow[];
+  lines: readonly LineRow[];
+  doiChieu: readonly DoiChieuRow[];
+  nguoiLapPartyId: string;
+  congTyId: string;
+}): { nguoiLapGiu: number; choXacNhan: number } {
+  const cho = khoanChoXacNhan(i.receipts, i.lines, i.doiChieu);
+  const thu = hieuLuc(i.receipts).filter((r) => r.kind === "CUSTOMER_PAYMENT");
+  const choXacNhan = thu.filter((r) => cho.has(r.id)).reduce((s, r) => s + r.amount, 0);
+  const daoDong = new Set(i.lines.flatMap((l) => (l.reversesLineId ? [l.reversesLineId] : [])));
+  // Nợ của người lập mà một khoản đang chờ xác nhận đã chiếm: không để nó tính thêm lần nữa ở phần «người lập giữ».
+  const noDaChoChiem = i.lines
+    .filter((l) => l.kind === "HELD" && l.reversesLineId === null && !daoDong.has(l.id) && l.receiptId !== null && cho.has(l.receiptId) && l.debtorPartyId === i.nguoiLapPartyId && l.creditorPartyId === i.congTyId)
+    .reduce((s, l) => s + l.amount, 0);
+  const khai = thu.filter((r) => !cho.has(r.id) && r.collectorPartyId === i.nguoiLapPartyId).map((r) => ({ collectorPartyId: r.collectorPartyId, soTien: r.amount }));
+  const linesDaTru = noDaChoChiem > 0 ? [...i.lines, { debtorPartyId: i.congTyId, creditorPartyId: i.nguoiLapPartyId, amount: noDaChoChiem }] : i.lines;
+  const tong = thu.reduce((s, r) => s + r.amount, 0);
+  const nguoiLapGiu = Math.min(soKhaiChuaNop(khai, linesDaTru, i.congTyId), Math.max(0, tong - choXacNhan));
+  return { nguoiLapGiu, choXacNhan };
+}
+
+/**
  * «Sửa khoản thu» có khoản cũ mang dấu khoản khai (K7c): chọn khoản MỚI nào mang dấu, cho tới khi tổng khoản được chọn phủ đủ số khai; ưu tiên khoản cùng người thu với khoản khai. Khoản mới không tách
  * theo nguồn: một khoản phủ qua ranh giới (gộp khai với thường) thì cả khoản mang dấu (Tự quyết, cách chặt hơn). Đổi người thu vẫn mang dấu, vì mất dấu thì chuyển cọc đi qua và tính hai lần.
  */

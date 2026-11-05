@@ -248,6 +248,13 @@ export async function orderOwners(db: D1Database, ids: readonly string[]): Promi
   return new Map((await db.prepare(ORDER_OWNERS).bind(JSON.stringify(ids)).all<{ id: string; staff_id: string }>()).results.map((r) => [r.id, r.staff_id]));
 }
 
+/**
+ * ADR-0170 Đ2 mục 3: tài khoản `staffId` HIỆN GIỮ quyền Đối tác không — đọc lúc xét qua view công bố `v_stf_quyen_mo` của `staff` (khuôn `orders/xac-nhan-repo.ts`, billing tự khai câu của mình),
+ * gồm cả tài khoản lai. Mã `PARTNER` là điều kiện DỮ LIỆU của luật tiền, không phải điều kiện cho phép.
+ */
+const NGUOI_LAP_GIU_DOI_TAC = defineSql("billing", "order_creator_holds_partner", `SELECT 1 AS co FROM v_stf_quyen_mo WHERE staff_id = ?1 AND permission_code = 'PARTNER' LIMIT 1`);
+export const nguoiLapGiuDoiTac = async (db: D1Database, staffId: string): Promise<boolean> => (await db.prepare(NGUOI_LAP_GIU_DOI_TAC).bind(staffId).first()) !== null;
+
 /** Trạng thái của các đơn (view công bố v_ord_order_state) — để áp luật «ai đọc được đơn nháp» (ADR-0135 Đ1) cho lời gọi nhiều đơn như `POST /api/ledger/balances`. */
 const ORDER_STATUSES = defineSql("billing", "order_statuses", `SELECT id, status FROM v_ord_order_state WHERE id IN (SELECT value FROM json_each(?1))`);
 export async function orderStatuses(db: D1Database, ids: readonly string[]): Promise<Map<string, "draft" | "confirmed" | "cancelled">> {
