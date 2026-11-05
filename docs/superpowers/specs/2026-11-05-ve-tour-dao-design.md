@@ -1,6 +1,6 @@
 # Vé Tour Đảo và quét vé (bản đề xuất, 2026-11-05)
 
-**Trạng thái:** chờ chủ dự án duyệt toàn bản; đã viết lại theo báo cáo người kiểm lần hai 5/11 (đọc mã, chưa chạy) và các câu chủ chốt 5/11. Chưa có mã. Sau khi duyệt mới lập kế hoạch và soạn ADR. Việc lớn theo `CLAUDE.md` §3 vì chạm dữ liệu, quyền và cổng tiền.
+**Trạng thái:** **chủ dự án duyệt 2026-11-05**, nguyên văn: «Duyệt, soạn ADR». Quyết định chính thức ở `docs/adr/ADR-0175-ve-tour-dao-va-quet-ve.md` (chờ duyệt); chỗ nào khác nhau thì ADR thắng. Đã viết lại theo báo cáo người kiểm lần hai 5/11 (đọc mã, chưa chạy). Chưa có mã. Sau khi ADR được duyệt mới lập kế hoạch. Việc lớn theo `CLAUDE.md` §3 vì chạm dữ liệu, quyền và cổng tiền.
 
 ## 1. Trang cho chủ dự án
 
