@@ -3,6 +3,7 @@ import { KHOANG_NHANH, LOC_TRONG, NGUOI_LAP_TOI_CU, boDieuKien, chipLocDon, chot
 import { STATUS_LABEL } from "../src/shared/order-status-label";
 import { vnToday } from "../src/shared/vn-date";
 import { moBangTruot } from "./bang-truot";
+import { dongBanHangDanhSach } from "../src/shared/ban-hang-dong";
 import { NO_HANDLER_TEXT, handlerText, hoiDuocNguoiPhuTrach, nguoiPhuTrachTuPhien } from "../src/shared/handler-view";
 import { ApiError, api, type OrderSummary, type Api, type Staff } from "./api";
 import { byId, h, replaceChildren } from "./dom";
@@ -77,6 +78,8 @@ interface Row {
   id: string;
   el: HTMLElement;
   slot: HTMLElement;
+  /** Dòng «Phụ trách: <tên>» (ADR-0142), điền sau khi `GET /api/dispatch/ban-hang` về. */
+  bh: HTMLElement;
   tien: { tienSlot: HTMLElement; daTraSlot: HTMLElement };
 }
 
@@ -107,7 +110,9 @@ function row(o: OrderSummary, index: number): Row {
     ...(o.nhapKeToan ? { nhapKeToan: true as const } : {}),
     dangCho: o.dangCho,
   });
-  return { id: o.id, el, slot: handlerSlot, tien };
+  const bh = h("div", { class: "order-row-handler is-pending" });
+  handlerSlot.before(bh);
+  return { id: o.id, el, slot: handlerSlot, bh, tien };
 }
 
 /** "Còn thu" / "Đã trả" của các thẻ vừa dựng: MỘT lời gọi billing cho cả trang (sổ tiền lượt 1 — ADR-0026 đ9). Lỗi → chỗ tiền giữ ẩn, danh sách vẫn dùng được. */
@@ -154,6 +159,25 @@ async function fillHandlers(rows: readonly Row[]): Promise<void> {
   }
 }
 
+/** Dòng người phụ trách (Bán hàng) của các thẻ vừa dựng: MỘT lời gọi cho cả trang, không chờ; lỗi hoặc Hướng dẫn viên (không có dòng này) → ẩn dòng. */
+async function fillBanHang(rows: readonly Row[]): Promise<void> {
+  if (rows.length === 0) return;
+  let ra: Api.BanHangCuaDonResponse | null = null;
+  try {
+    if (!nguoiPhuTrachTuPhien(await nhanVien)) ra = await api<Api.BanHangCuaDonResponse>(`/api/dispatch/ban-hang?orderIds=${rows.map((r) => encodeURIComponent(r.id)).join(",")}`);
+  } catch {
+    ra = null;
+  }
+  for (const { id, bh } of rows) {
+    if (!bh.isConnected) continue;
+    bh.classList.remove("is-pending");
+    const d = ra?.[id];
+    if (!d) bh.hidden = true;
+    else if (d.banHang || d.loiMoi) bh.textContent = dongBanHangDanhSach(d);
+    else replaceChildren(bh, h("span", { class: "chip chip-warn" }, dongBanHangDanhSach(d)));
+  }
+}
+
 /**
  * `refresh` = làm mới theo tin của Bảng tin (Task 9): giữ bộ lọc/ô tìm (đọc lại từ `qInput`/`statusSel`), KHÔNG hiện khung "đang tải", lỗi mạng thì
  * giữ danh sách cũ và không hiện lỗi, giữ vị trí cuộn, và xin `limit` = số dòng đang xem (sau "Tải thêm", tối đa 100) để không mất dòng đang xem.
@@ -191,6 +215,7 @@ async function load(reset: boolean, refresh = false): Promise<void> {
     moreBtn.hidden = !hasMore;
     emptyEl.hidden = offset > 0;
     void fillHandlers(rows); // không chờ: danh sách hiện ngay, người phụ trách điền vào khi về
+    void fillBanHang(rows);
     void fillTien(rows); // như trên: tiền của billing điền vào khi về
   } catch (err) {
     // Làm mới lặng lẽ giữ danh sách cũ — trừ khi khung "đang tải" của lần tải ĐẦU (bị làm mới này thay thế) còn hiện: lúc đó phải báo lỗi, không để trang kẹt.
