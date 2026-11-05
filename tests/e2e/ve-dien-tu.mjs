@@ -279,7 +279,8 @@ assert.deepEqual([khoChung.nhomKhach, khoChung.conTrong, khoChung.daGiu], ["ALL"
   const tongMoi = (await call(QT, "GET", `/api/orders/${daLink.id}`)).body.order.total;
   const chenh = tongMoi - daLink.total;
   assert.ok(chenh > 0);
-  assert.equal((await call(KT, "POST", `/api/orders/${daLink.id}/payments`, { soTien: chenh, hinhThuc: "CASH", nguoiThu: "cong_ty" })).status, 201);
+  // hai khoản KHÁC số tiền khoản đầu: tăng 2→4 khách thì phần thêm bằng đúng khoản đầu và bị cảnh báo «có thể trùng» (409 co_the_trung)
+  for (const soTien of [chenh - 1000, 1000]) { const t = await call(KT, "POST", `/api/orders/${daLink.id}/payments`, { soTien, hinhThuc: "CASH", nguoiThu: "cong_ty" }); assert.equal(t.status, 201, JSON.stringify(t.body)); }
   assert.deepEqual(slotTrang((await layTrang()).text), [1, 2, 3, 4]);
   assert.equal((await call(undefined, "GET", `/api/ve-khach/${tokenLink}/anh/3`)).status, 200);
 }

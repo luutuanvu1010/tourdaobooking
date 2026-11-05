@@ -295,7 +295,7 @@ export async function ghiChiHoan(db: D1Database, input: { orderId: string; raw: 
 // Chuyển tiền sang đơn mới (đ6) — Kế toán, Toàn quyền; MỘT lô HAI đơn: chi khỏi đơn huỷ (gắn khoản TRANSFER) + thu vào đơn nhận (trỏ nửa chi), cùng số,
 // cùng người đang giữ; nhật ký trên cả hai đơn.
 // ---------------------------------------------------------------------------------------------------------------------------------------------------
-const CAU_CON_NGUOI_GIU = "Đơn cũ còn người chưa nộp tiền về công ty nên chưa ghi “Công ty giữ” được. Chọn đúng người đang giữ, hoặc ghi họ nộp tiền trước.";
+const CAU_CON_NGUOI_GIU = "Đơn cũ còn người chưa nộp tiền về công ty nên chưa ghi “Công ty giữ” được. Chọn đúng người chưa nộp, hoặc ghi họ nộp tiền trước.";
 export async function ghiChuyen(db: D1Database, input: { orderId: string; raw: unknown; ai: NguoiGoi }): Promise<KetQua<{ donNhanId: string }>> {
   const b = (input.raw ?? {}) as Record<string, unknown>;
   if (typeof b.duyetId !== "string" || !UUID_RE.test(b.duyetId)) return loi(400, "invalid_input", "Chọn khoản duyệt chuyển.");

@@ -820,11 +820,11 @@ function khoiCoc(order: Order, c: Api.CocDonDto): HTMLElement {
       const chonGiu = giu.length > 1 ? (h("select", null, ...giu.map((g) => h("option", { value: g.partyId }, `${g.ten} (${vnd(g.soTien)})`))) as HTMLSelectElement) : null;
       chonGiu?.addEventListener("change", () => { const g = giu.find((x) => x.partyId === chonGiu.value); if (g) { so.value = String(Math.min(k.conLai, g.soTien)); regroupMoney(so); } });
       const nguoiGiu = (): "cong_ty" | { partyId: string } => (giu.length === 0 ? "cong_ty" : { partyId: chonGiu ? chonGiu.value : giu[0]!.partyId });
-      const cauGiu = giu.length === 0 ? "tiền do Công ty giữ" : giu.length === 1 ? `tiền do ${giu[0]!.ten} giữ` : "chọn người đang giữ tiền";
+      const cauGiu = giu.length === 0 ? "tiền do Công ty giữ" : giu.length === 1 ? `tiền do ${giu[0]!.ten} giữ` : "chọn người chưa nộp tiền về công ty";
       nut.push(hangXacNhan({
         nhan: "Chuyển tiền sang đơn mới", action: "coc-chuyen", nutGhi: "Ghi chuyển",
         cau: `Chuyển ${vnd(k.conLai)} sang đơn ${k.donNhan ?? ""} (${cauGiu}). Người duyệt không tự chuyển.`,
-        o: [...(chonGiu ? [h("label", null, "Người đang giữ", chonGiu)] : []), h("label", null, "Số tiền (₫)", so)],
+        o: [...(chonGiu ? [h("label", null, "Người chưa nộp tiền", chonGiu)] : []), h("label", null, "Số tiền (₫)", so)],
         kiem: () => (parseMoney(so.value) > 0 ? null : "Nhập số tiền chuyển."),
         ghi: () => api(`/api/orders/${encodeURIComponent(order.id)}/coc/chuyen`, { method: "POST", body: { duyetId: k.id, soTien: parseMoney(so.value), nguoiGiu: nguoiGiu() } }),
         bao: "Đã chuyển tiền sang đơn mới.",
