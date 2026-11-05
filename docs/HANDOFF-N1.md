@@ -80,6 +80,16 @@ Ghi 29/10/2026 từ khối tóm tắt của `npm run trien-khai` (chủ chạy `
 - Nghiệm thu: phiên kế hoạch tự chạy lại 132 bài N5 + typecheck trên nhánh; người kiểm độc lập ĐẠT. Chưa bấm «Sửa» trên production (bấm là ghi thật), chưa thử iPhone thật. Còn chờ chủ: NO-N5-4 (chữ «Chưa áp dụng cho loại nào» cạnh dòng «Sắp áp dụng»), nợ NO-N5-1…3.
 - **Hoàn tác:** `wrangler rollback` về `ba3d7b56` (2.45) an toàn — 2.46 không đổi dữ liệu.
 
+## ĐANG CHỜ PHÁT HÀNH: Bán hàng phụ trách đơn (ADR-0142 Phần 1; mục nhật ký 2.64 là số TẠM)
+
+Ghi 5/11/2026, nhánh `claude/dispatch-pickup-order-display-1da7b5`. **Cần `npm run trien-khai`, CÓ migration** `0138_ban_hang_phu_trach`, `0140_hop_thu_ban_hang` (chỉ thêm: ba bảng `dsp_*`, cột `orders.sales_invitee_party_id`, dựng lại view, trigger). Hoàn tác mã: `wrangler rollback`; mã cũ không nhắc bảng, cột mới nên vẫn chạy.
+
+- **Khe giữa áp migration và deploy:** mốc phát hành là lúc áp `0138` (dòng gieo `gieo-ban-hang`). Đơn mã cũ xác nhận trong khe này không có người phụ trách và sẽ hiện ở thẻ cảnh báo sau 15 phút giờ hành chính. Giữ đúng thứ tự migration rồi deploy ngay, `npm run trien-khai` làm đúng vậy.
+- **Đụng nhánh Trả sau theo hạn mức (`0139_tra_sau_han_muc`, chưa nhập):** cả hai cùng dựng lại trigger `orders_delivered_lock` từ `0136`, và wrangler áp theo tên nên `0139` sẽ xoá cột `sales_invitee_party_id` khỏi danh sách khoá của `0138`. Nhánh nào nhập SAU phải thêm migration mới dựng lại trigger phủ đủ các cột của cả hai bên; bài NT-R6 ở `src/migrations-orders-da-giao.test.ts` sẽ đỏ nếu quên. Số `0140` cũng có ở nhánh `claude/sales-order-review-check-b67b86` (`0140_quan_ly_ban_hang`), khác tên nên không đụng.
+- **Trần gói trang Đơn hàng:** chủ duyệt 5/11 nâng lên 105.100 byte. Nhập cùng nhánh khác có thể phải đo lại.
+- **Sau khi triển khai:** nhắc nhân viên tải lại Nền tảng, vì bản cũ chưa biết các loại tin mới.
+- **Chưa làm (Phần 2):** máy chủ vẫn cho Bán hàng nhận ô Hướng dẫn viên qua API (giao diện đã ẩn); Hướng dẫn viên được mời, đồng ý hay từ chối.
+
 ## Lần phát hành kế tiếp (chưa số): Kho vé điện tử (ADR-0153, ADR-0156 đã ở `main`, lần lưu `45e91b68`; migration `0131_ve_dien_tu`, `0132_ve_qr_tran_lo`; ADR-0157 và `0134_ve_lo_moi_loai_khach` ở nhánh `claude/ve-dien-tu-qr-tran-lo`, chủ duyệt 2/11, chờ `day-len`) — CHƯA lên production (kiểm chỉ đọc 2/11: `0131`, `0132` đều chưa áp) — GHI CHÚ CHO CHỦ
 
 - **Hai điều kiện trước khi phát hành ADR-0156:** (a) tải **cùng một vé hai lần** rồi so chuỗi QR; khác nhau thì đổi khoá sang 12 số cuối (công thức z31). Coi là đạt theo lời chủ 2/11 (tải lại không đổi QR); máy chưa so vì thư mục mẫu chưa có tệp tải lại. Nếu sai thì `S/N` và dấu vân tệp vẫn chặn trùng. (b) Vé Harbour: ĐẠT 2/11 trên hai mẫu của chủ (Harbour, Harbour + Tata show): đủ 36 chữ số, mỗi ảnh một QR, `S/N` in trên vé bằng 12 số cuối, số `TA.` không nằm trong QR; đọc qua hai bộ đọc và qua trang `/ve-kho` thật khổ 390.
