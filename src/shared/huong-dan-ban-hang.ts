@@ -12,7 +12,7 @@ export const HD_BAN_HANG: NhomHuongDan = {
 3. Gõ tên dịch vụ vào ô [[Tìm theo tên hoặc mã dịch vụ]], chạm dịch vụ đúng, rồi bấm **+** để nhập số khách.
 4. Bấm [[Lưu đơn (chưa xác nhận)]].
 5. Trên trang đơn, bấm [[Xác nhận đơn]] và đồng ý.
-6. Bấm [[Xem biên nhận]], rồi [[Chia sẻ]] (gửi qua Zalo) hoặc [[Tải ảnh PNG]].`,
+6. Bấm [[Xem ảnh gửi khách]], rồi [[Chia sẻ]] (gửi qua Zalo) hoặc [[Tải ảnh về máy]].`,
   muc: [
     {
       tieuDe: "Menu của bạn",
@@ -44,7 +44,7 @@ Bốn tab: [[Trang chủ]], [[Đơn hàng]], [[Tạo đơn]], [[Tôi]]. Trong tr
 5. Trên thẻ, bấm **+** và **−** để nhập số khách theo từng loại ([[Người lớn]], [[Trẻ em]], [[Người cao tuổi]], [[Em bé]] — tuỳ dịch vụ).
    - Dịch vụ tính theo nhóm chỉ có một ô [[Số khách]]; số lượt tự tính.
    - Mỗi dịch vụ tối đa 50 khách, phải có ít nhất 1 khách không phải em bé. Cả đơn cần ít nhất một người lớn.
-   - [[Sửa giá]] để đổi đơn giá; dòng đã sửa hiện nhãn [[Khác giá danh mục]].
+   - [[Sửa giá đơn này]] để đổi đơn giá; dòng đã sửa hiện nhãn [[Khác giá danh mục]].
 6. Phần [[Đưa đón]] trên thẻ: mỗi dịch vụ phải chọn [[Đón]] hoặc [[Không đón]] (có mẫu đưa đón thì [[Đón]] chọn sẵn). Mỗi lượt có giờ đón (chạm khung giờ hoặc [[Giờ khác]]), [[Nơi đón]], [[Nơi trả]] (chọn điểm có sẵn hoặc [[Gõ tự do…]]). [[Ngày đón]] tự lấy ngày khởi hành (khác ngày: [[Đón khác ngày]]). Lượt đủ thông tin gập thành một dòng; chạm để sửa. [[Xe riêng]] và [[Xe tối thiểu]] (số chỗ, không kể tài xế) nằm trong [[Thêm chi tiết (xe riêng, số chỗ)]]. Bấm dòng [[Thông tin chuyến]] để điền [[Giờ khởi hành]] và nếu có thì [[Có mặt lúc]], [[Có mặt tại]] (khác ngày: [[Có mặt khác ngày]]), [[Ghi chú dịch vụ]].
 7. Thêm dịch vụ: lặp bước 4–6 (tối đa 20). Mỗi lúc chỉ một thẻ mở; chạm dòng gập để mở, thùng rác để bỏ.
 8. Khối [[Thanh toán]]: [[Giảm giá (₫)]], [[Ghi chú thanh toán]]. Đơn chưa xác nhận thì chưa ghi thu tiền được: khách trả tiền thì bấm [[Ghi khoản thu]] trên trang đơn sau khi đơn đã **xác nhận**.
@@ -75,11 +75,11 @@ Nền tảng chỉ cho xác nhận khi mỗi dịch vụ đã chọn Đón hoặ
     },
     {
       tieuDe: "Gửi ảnh biên nhận cho khách",
-      noiDung: `1. Trên trang đơn, bấm [[Xem biên nhận]] (lần đầu sau khi lập đơn, hộp này tự mở).
+      noiDung: `1. Trên trang đơn, bấm [[Xem ảnh gửi khách]] (lần đầu sau lập đơn, hộp tự mở).
 2. Hộp [[Ảnh gửi khách]] vẽ ảnh gồm thông tin công ty, mã đơn, trạng thái, khách, dịch vụ, tiền.
-3. Bấm [[Tải ảnh PNG]] để lưu về máy, hoặc [[Chia sẻ]] (chỉ có trên máy hỗ trợ, ví dụ iPhone) để gửi thẳng qua Zalo.
+3. Bấm [[Tải ảnh về máy]] để lưu ảnh, hoặc [[Chia sẻ]] (chỉ có trên máy hỗ trợ, ví dụ iPhone) để gửi qua Zalo.
 
-> Ví dụ: xác nhận xong đơn của chị Lan → [[Xem biên nhận]] → [[Chia sẻ]] → chọn Zalo → gửi chị Lan.
+> Ví dụ: xác nhận xong đơn của chị Lan → [[Xem ảnh gửi khách]] → [[Chia sẻ]] → chọn Zalo → gửi chị Lan.
 
 - Ảnh ghi trạng thái lúc tạo ảnh: đơn chưa xác nhận thì ảnh ghi "Chờ xác nhận". Nên gửi **sau** khi xác nhận.
 - Đơn chưa có Hướng dẫn viên thì ảnh ghi đơn đang chờ hướng dẫn viên nhận khách.
@@ -118,7 +118,7 @@ Nền tảng chỉ cho xác nhận khi mỗi dịch vụ đã chọn Đón hoặ
     },
     {
       tieuDe: "Điều phối xe",
-      noiDung: `Ở [[Điều phối xe]], chọn ngày; cột **Chưa xếp** có các lượt đưa đón của đơn đã xác nhận. Bấm [[+ Chuyến mới]] (xe, tài xế, giờ) → [[Lưu chuyến]], rồi kéo lượt vào chuyến hoặc bấm [[Xếp vào chuyến]]. Chuyến bị giữ thì [[Mở chuyến]] xem lý do và ai xử lý.
+      noiDung: `Ở [[Điều phối xe]], chọn ngày; cột **Chưa xếp** có lượt đưa đón của đơn đã xác nhận. Bấm [[+ Chuyến mới]] (xe, tài xế, giờ) → [[Tạo chuyến]], rồi kéo lượt vào chuyến hoặc bấm [[Xếp vào chuyến]]. Chuyến bị giữ thì [[Mở chuyến]] xem lý do và ai xử lý.
 
 Xe đã chạy: mở [[Xe đang chạy]], bấm chuyến. Thêm khách: [[Thêm điểm đón / thêm khách]]. Khách huỷ: [[Báo huỷ]]; ghế giữ tới khi tài xế xác nhận. Đổi nơi đón: [[Cập nhật điểm theo đơn]]. Xe hỏng: [[Gửi đề nghị cứu hộ]] nhờ xe đang chạy (gõ nơi gặp), hoặc [[Kết thúc gián đoạn (xe hỏng)]] rồi xếp khách ở khối **Cứu hộ**.
 
@@ -147,7 +147,7 @@ Mục "Giờ hẹn đổi — gọi báo khách" ở [[Cần xử lý]]: gọi k
 1. Mở đơn → ở khối [[Đưa đón]] bấm [[Sửa đưa đón]].
 2. Sửa [[Giờ đón]] (hoặc [[Nơi đón]], [[Nơi trả]] của lượt). Ngày khởi hành của cả đơn đổi ở [[Sửa thông tin chuyến]].
 3. Bấm [[Lưu]].
-4. Nền tảng nhắc bản xác nhận đã gửi khách có thể lỗi thời → bấm [[Xem biên nhận]] và gửi lại ảnh mới.
+4. Nền tảng nhắc bản xác nhận đã gửi khách có thể lỗi thời → bấm [[Xem ảnh gửi khách]] và gửi lại ảnh.
 5. Tự gọi hoặc nhắn hướng dẫn viên phụ trách: họ chưa được tự báo khi giờ hoặc nơi đón đổi.
 
 > Lưu ý: nếu giờ đón cũ hoặc mới đã qua hạn chốt, bảng mở khung [[Đặt gấp]]: chọn lý do rồi bấm [[Duyệt đặt gấp]]. Muốn đổi hồ sơ khách của đơn đã xác nhận thì bấm [[Đổi khách]].
@@ -200,7 +200,7 @@ Huỷ được đơn bạn lập hoặc đang phụ trách. Đơn đã xếp xe 
 - **Không thấy ai phụ trách đơn** (cả trên ảnh biên nhận).
 - **Sau khi xác nhận, Thực tập không có nút** [[Sửa thông tin chuyến]], [[Đổi khách]], [[Sửa số khách dịch vụ]] — nhờ người phụ trách hoặc Quản trị.
 - **Không nhận phụ trách, không giao đơn**: không có nút [[Nhận phụ trách]].
-- **Chỉ giá danh mục, không giảm giá**: không có [[Sửa giá]], ô giảm giá chỉ đọc; cần giá khác nhờ Bán hàng.`,
+- **Chỉ giá danh mục, không giảm giá**: không có [[Sửa giá đơn này]], ô giảm giá chỉ đọc; cần giá khác nhờ Bán hàng.`,
     },
     {
       tieuDe: "Điều bạn không làm được — hỏi ai",

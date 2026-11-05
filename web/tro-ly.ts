@@ -91,7 +91,7 @@ let kepKhungDangMo: (() => void) | null = null;
 
 /**
  * Khung hỏi đáp KHÔNG modal, nổi ở góc phải dưới: kéo bằng thanh tiêu đề, đổi cỡ bằng tay nắm góc trên-trái, nhớ vị trí / cỡ theo máy (localStorage),
- * nút "Về góc". Toạ độ tính ở src/shared/tro-ly-khung.ts, đặt qua biến CSS --tl-x/--tl-y/--tl-w/--tl-h (giá trị lúc chạy).
+ * nút "Đặt lại khung". Toạ độ tính ở src/shared/tro-ly-khung.ts, đặt qua biến CSS --tl-x/--tl-y/--tl-w/--tl-h (giá trị lúc chạy).
  * KHÔNG dùng bảng trượt dùng chung (.sheet-root): bảng đó chặn mọi bảng khác mở cùng lúc và khoá trang phía sau.
  */
 function moKhung(fab: HTMLElement, khung: Api.TroLyKhungResponse): void {
@@ -131,7 +131,7 @@ function moKhung(fab: HTMLElement, khung: Api.TroLyKhungResponse): void {
     { class: "tl-keo", role: "button", tabindex: 0, "aria-label": "Di chuyển khung Trợ lý: kéo thanh này, hoặc dùng phím mũi tên" },
     h("h2", { id: "tl-khung-tieu-de", class: "tl-tieu-de" }, "Trợ lý"),
   );
-  const veGoc = h("button", { class: "btn btn-link tl-ve-goc", type: "button" }, "Về góc");
+  const veGoc = h("button", { class: "btn btn-link tl-ve-goc", type: "button" }, "Đặt lại khung");
   const dong = h("button", { class: "btn btn-link tl-dong", type: "button", "aria-label": "Đóng" }, icon("close", 20));
   const nutMoi = h("button", { class: "btn btn-link tl-cuoc-moi", type: "button" }, "Cuộc trò chuyện mới");
   const dau = h("div", { class: "tl-dau" }, co, keoThanh, veGoc, dong);
@@ -202,7 +202,7 @@ function moKhung(fab: HTMLElement, khung: Api.TroLyKhungResponse): void {
     window.addEventListener("pointercancel", xong);
   };
   dau.addEventListener("pointerdown", (e) => {
-    if ((e.target as Element).closest("button")) return; // "Về góc", ✕, tay nắm giữ việc của mình
+    if ((e.target as Element).closest("button")) return; // "Đặt lại khung", ✕, tay nắm giữ việc của mình
     batDau(e, keo);
   });
   co.addEventListener("pointerdown", (e) => batDau(e, doiCo));

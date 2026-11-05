@@ -326,7 +326,7 @@ try {
   r = await call(OWNER, "POST", "/api/tro-ly/thu-khoa", {});
   assert.equal(r.status, 200);
   assert.equal(r.body.ma, "sai_khoa", JSON.stringify(r.body));
-  assert.match(r.body.cau, /^Sai key/);
+  assert.match(r.body.cau, /^Sai khoá/);
   chu.push(JSON.stringify(r.body));
   cheDo = "429q";
   r = await call(OWNER, "POST", "/api/tro-ly/thu-khoa", {});

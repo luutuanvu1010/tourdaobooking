@@ -433,7 +433,7 @@ function moHopGop(nguon: { id: string; displayName: string }, dichSan: { id: str
   const chon = h("select", { "aria-label": "Hồ sơ chính" });
   const bang = h("div", { "aria-live": "polite" });
   const xacNhan = input("", { placeholder: nguon.displayName, "aria-label": "Gõ lại tên hồ sơ phụ để xác nhận", autocomplete: "off" });
-  const nutGop = h("button", { type: "button", class: "btn btn-danger", disabled: true }, "Gộp");
+  const nutGop = h("button", { type: "button", class: "btn btn-danger", disabled: true }, "Gộp hồ sơ");
   let chan = true;
   let lanXem = 0; // chỉ nhận kết quả xem trước MỚI NHẤT (đổi hồ sơ chính nhanh)
   const capNhatNut = () => { nutGop.disabled = chan || !dich || chuanHoaTen(xacNhan.value) !== chuanHoaTen(nguon.displayName); };
@@ -924,7 +924,7 @@ async function veTaiKhoanNhanTien(sec: HTMLElement, p: Api.PartyDto, tin?: TinTa
   const nh = select([...(coSan ? [] : [{ value: "", label: "Chọn ngân hàng" }]), ...r.nganHang.map((b) => ({ value: b.ma, label: b.ten }))], coSan ? r.hienTai!.maNganHang : "");
   const so = input("", { inputmode: "numeric", autocomplete: "off", maxlength: "23", id: "tknt-so" }) as HTMLInputElement;
   const ten = input("", { autocomplete: "off", maxlength: "100", id: "tknt-ten", placeholder: "Như ngân hàng in, vd CONG TY TNHH TOUR DAO" }) as HTMLInputElement;
-  const luu = button(r.hienTai ? "Đổi tài khoản" : "Lưu tài khoản", (b) => {
+  const luu = button(r.hienTai ? "Đổi tài khoản nhận tiền" : "Lưu tài khoản nhận tiền", (b) => {
     if (b.disabled) return;
     datTin(null);
     if (!nh.value) return datTin({ kieu: "loi", chu: "Chọn ngân hàng nhận tiền." });
