@@ -12,7 +12,7 @@ import type {
 import { UUID_RE, error, intParam, json, readJson, trangDon } from "../../shared/http";
 import { apCongTacAnKhach } from "../../shared/an-thong-tin-khach";
 import { can, seesOnlyAssignedOrders, type PermissionHolder } from "../../shared/permissions";
-import { chanDoiTacHuy, chanVeDaMoTrongLo, laLoiVeDaMoTrongLo } from "../../shared/chan-doi-tac-huy";
+import { chanDoiTacHuy, chanDoiTacSuaSoKhach, chanVeDaMoTrongLo, laLoiVeDaMoTrongLo } from "../../shared/chan-doi-tac-huy";
 import { duocGiaoTheoO, laVaChamOBanHang } from "../../shared/ban-hang-phu-trach";
 import { route, type AppModule, type BanHangNoi } from "../../shared/router";
 import { vnToday, vnWeekRange } from "../../shared/vn-date";
@@ -1673,7 +1673,7 @@ export const ordersModule: AppModule = {
     // thân; trigger 0044 là lưới cuối) → 409 nháp / huỷ → 400 thân (lý do MÃ ĐÓNG ADR-0023 điều 4, không chữ tự gõ, không số tiền) → 409 stale. KHÔNG chặn theo
     // ngày đi; KHÔNG chặn giảm giá vượt tạm tính (chỉ cảnh báo — ADR-0109; phải thu kẹp 0 ở effectiveMoney). Tiền: `planMoneyEdit` (một luật với đường HDV) — không bao giờ tin số từ trình duyệt. Đây không phải đường
     // thêm / sửa dịch vụ nhập tay (chỉ số khách của dịch vụ danh mục đã có — ADR-0061 điều 5 không áp, câu duyệt của chủ).
-    route("POST", "/api/orders/:id/money-edit", "office", async ({ env, request, params, staff, baoThayDoi, dongBoChuyen, canBangVeSauSuaKhach }) => {
+    route("POST", "/api/orders/:id/money-edit", "office", async ({ env, request, params, staff, baoThayDoi, dongBoChuyen, canBangVeSauSuaKhach, veDaMoCuaDon }) => {
       const id = params.id!;
       if (!UUID_RE.test(id)) return NOT_FOUND();
       const meta = await getMeta(env.DB, id);
@@ -1683,6 +1683,7 @@ export const ordersModule: AppModule = {
       if (meta.deliveredAt) return DA_GIAO();
       if (meta.status === "draft") return MONEY_EDIT_DRAFT();
       if (meta.status === "cancelled") return CANCELLED();
+      { const chan = await chanDoiTacSuaSoKhach(staff, id, veDaMoCuaDon); if (chan) return chan; } // ADR-0171 Đ1: người giữ quyền Đối tác (kể cả lai) không tự sửa số khách đơn đã mở vé (không đọc được ⇒ chặn)
       const than = docThanSuaSoKhach(await readJson(request));
       if (!than.ok) return error(400, "invalid_input", than.message);
       // Lý do đi vào luật chung dưới dạng NHÃN cố định do máy chủ chọn (planMoneyEdit nhận `reason` chữ — cùng bộ đọc với đường HDV).

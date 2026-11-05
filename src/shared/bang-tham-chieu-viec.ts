@@ -207,7 +207,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     nhom: "Tiền của đơn huỷ",
     manHinh: "Chi tiết đơn › thẻ Thanh toán › khối «Tiền của đơn huỷ»",
     ten: "Chuyển tiền sang đơn mới",
-    thatSuLam: "Chuyển phần tiền công ty đang giữ của đơn huỷ sang một đơn mới theo khoản đã duyệt chuyển, ghi cả hai đơn trong một lần. Người chuyển phải khác người duyệt.",
+    thatSuLam: "Chuyển phần tiền công ty đang giữ của đơn huỷ sang một đơn mới theo khoản đã duyệt chuyển, ghi cả hai đơn trong một lần. Người chuyển phải khác người duyệt. Tiền do ai đang giữ thì ghi đúng người đó; còn người chưa nộp thì không ghi được «Công ty giữ».",
     hoiLai: "có hộp nhập (hàng mở ngay trong thẻ)",
     hoanTac: "không: đã chuyển thì hai nửa bị khoá, không huỷ riêng được",
     duongLenh: ["/api/orders/:x/coc/chuyen"],

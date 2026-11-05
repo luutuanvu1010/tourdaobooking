@@ -521,19 +521,23 @@ export const veDienTuModule: AppModule = {
 
     // HAI ROUTE CÔNG KHAI CHỈ ĐỌC (ADR-0153 Đ2). Cùng một khuôn: giới hạn tốc độ (đặt chỗ TRƯỚC khi tra; thành công thì trả chỗ nên chỉ lần SAI mới tính) → tra theo BĂM token
     // → so băm hằng thời gian → hạn / thu hồi. Sai, hết hạn, thu hồi, vé ngoài khoảng: CÙNG một 404 (cùng thân, cùng đầu). Trang không script, không tên khách / mã đơn / giá / mã vé.
-    route("GET", "/ve/:token", "public", async ({ env, request, params }) => {
+    // ADR-0171 Đ2: vé ĐÃ có dấu lộ thì khách vẫn xem như cũ (không tắt đường dẫn đã gửi); vé CHƯA có dấu chỉ hiện và chỉ trả ảnh khi cổng tiền của đơn đạt (`thuDu` trên `tienDonVe`, ADR-0168 sẽ đổi
+    // sang `veMoDuoc`). Không đọc được tiền ⇒ chưa đạt. SỐ THỨ TỰ vé (`slot`) tính trên DANH SÁCH ĐỦ vé đang giữ rồi mới lọc: lọc không được làm dồn số, vé hiện thêm không làm đổi số vé cũ.
+    route("GET", "/ve/:token", "public", async ({ env, request, params, tienDonVe }) => {
       const kq = await mocDuongDanKhach(env, request, params.token!);
       if (kq.loi) return kq.loi;
       const ve = await docVeCuaLink(env.DB, kq.link.order_id);
       if (ve.length === 0) return khongThayDuongDan();
+      const duTien = ve.some((v) => v.revealed_at === null) ? thuDu(await tienDonVe(kq.link.order_id)) : true;
+      const hien = ve.map((v, i) => ({ v, slot: i + 1 })).filter((x) => duTien || x.v.revealed_at !== null);
       const at = new Date().toISOString();
-      await env.DB.batch([cauDemMoLink(env.DB, kq.link.id, at), ...ve.map((v) => cauDanhDauLo(env.DB, v.id, at, null))]);
+      await env.DB.batch([cauDemMoLink(env.DB, kq.link.id, at), ...hien.map((x) => cauDanhDauLo(env.DB, x.v.id, at, null))]);
       await kq.tra();
-      const html = trangVeKhach(params.token!, ve.map((v, i) => ({ slot: i + 1, nhom: v.pax_group as "ADULT" | "CHILD" | "SENIOR", tuNgay: v.valid_from, denNgay: v.valid_to })));
+      const html = trangVeKhach(params.token!, hien.map((x) => ({ slot: x.slot, nhom: x.v.pax_group as "ADULT" | "CHILD" | "SENIOR", tuNgay: x.v.valid_from, denNgay: x.v.valid_to })), ve.length - hien.length);
       return new Response(html, { status: 200, headers: { ...DAU_KHACH, "content-type": "text/html; charset=utf-8", "content-security-policy": "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'" } });
     }),
 
-    route("GET", "/api/ve-khach/:token/anh/:slot", "public", async ({ env, request, params }) => {
+    route("GET", "/api/ve-khach/:token/anh/:slot", "public", async ({ env, request, params, tienDonVe }) => {
       const kho = env.VE_DIEN_TU;
       if (!kho) return khongThayDuongDan();
       const kq = await mocDuongDanKhach(env, request, params.token!);
@@ -542,6 +546,7 @@ export const veDienTuModule: AppModule = {
       const ve = await docVeCuaLink(env.DB, kq.link.order_id);
       const v = slot >= 1 ? ve[slot - 1] : undefined;
       if (!v) return khongThayDuongDan();
+      if (v.revealed_at === null && !thuDu(await tienDonVe(kq.link.order_id))) return khongThayDuongDan(); // ADR-0171 Đ2: vé chưa mở + cổng tiền chưa đạt ⇒ 404 TRƯỚC nhật ký, dấu lộ và kho
       const at = new Date().toISOString();
       await env.DB.batch([cauDanhDauLo(env.DB, v.id, at, null)]);
       const obj = await kho.get(v.storage_key);

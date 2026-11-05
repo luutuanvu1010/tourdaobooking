@@ -61,7 +61,7 @@ import { canhBaoGiamGiaVuot, duocSuaSoKhachVanPhong, nguonBangSuaSoKhach } from 
 import { cauNhacSoKhach, daiSauSuaSoKhach, dongLichSuHienThi, type DongLichSuHienThi } from "../src/shared/so-khach-hien-thi";
 import type { MoneyEditSource } from "../src/shared/viec-cua-toi";
 import type { SuKienDon } from "../src/shared/bang-tin";
-import { CAU_DON_DA_MO_VE } from "../src/shared/chan-doi-tac-huy";
+import { CAU_DON_DA_MO_VE, CAU_DON_DA_MO_VE_SUA_KHACH } from "../src/shared/chan-doi-tac-huy";
 
 const id = new URLSearchParams(location.search).get("id");
 const bannerEl = byId("error");
@@ -814,13 +814,19 @@ function khoiCoc(order: Order, c: Api.CocDonDto): HTMLElement {
       }));
     }
     if (k.loai === "chuyen" && c.coTheChuyen && k.conLai > 0) {
-      const so = oSoTien(k.conLai);
+      // ADR-0171 Đ3: tiền do ai đang giữ thì ghi đúng người đó; không ai giữ thì mới là Công ty. Nhiều người giữ: chọn một người, số tiền không vượt phần người đó giữ.
+      const giu = c.nguoiGiu ?? [];
+      const so = oSoTien(giu.length > 0 ? Math.min(k.conLai, giu[0]!.soTien) : k.conLai);
+      const chonGiu = giu.length > 1 ? (h("select", null, ...giu.map((g) => h("option", { value: g.partyId }, `${g.ten} (${vnd(g.soTien)})`))) as HTMLSelectElement) : null;
+      chonGiu?.addEventListener("change", () => { const g = giu.find((x) => x.partyId === chonGiu.value); if (g) { so.value = String(Math.min(k.conLai, g.soTien)); regroupMoney(so); } });
+      const nguoiGiu = (): "cong_ty" | { partyId: string } => (giu.length === 0 ? "cong_ty" : { partyId: chonGiu ? chonGiu.value : giu[0]!.partyId });
+      const cauGiu = giu.length === 0 ? "tiền do Công ty giữ" : giu.length === 1 ? `tiền do ${giu[0]!.ten} giữ` : "chọn người đang giữ tiền";
       nut.push(hangXacNhan({
         nhan: "Chuyển tiền sang đơn mới", action: "coc-chuyen", nutGhi: "Ghi chuyển",
-        cau: `Chuyển ${vnd(k.conLai)} sang đơn ${k.donNhan ?? ""} (tiền do Công ty giữ). Người duyệt không tự chuyển.`,
-        o: [h("label", null, "Số tiền (₫)", so)],
+        cau: `Chuyển ${vnd(k.conLai)} sang đơn ${k.donNhan ?? ""} (${cauGiu}). Người duyệt không tự chuyển.`,
+        o: [...(chonGiu ? [h("label", null, "Người đang giữ", chonGiu)] : []), h("label", null, "Số tiền (₫)", so)],
         kiem: () => (parseMoney(so.value) > 0 ? null : "Nhập số tiền chuyển."),
-        ghi: () => api(`/api/orders/${encodeURIComponent(order.id)}/coc/chuyen`, { method: "POST", body: { duyetId: k.id, soTien: parseMoney(so.value), nguoiGiu: "cong_ty" } }),
+        ghi: () => api(`/api/orders/${encodeURIComponent(order.id)}/coc/chuyen`, { method: "POST", body: { duyetId: k.id, soTien: parseMoney(so.value), nguoiGiu: nguoiGiu() } }),
         bao: "Đã chuyển tiền sang đơn mới.",
       }));
     }
@@ -1539,7 +1545,7 @@ function render(order: Order, history: AuditEntry[], canModify: boolean, handler
     btns.push(nut);
   }
   if (a.editTrip) btns.push(editTripButton(order));
-  if (nguonSoKhach) btns.push(nutSuaSoKhach(order, nguonSoKhach));
+  if (nguonSoKhach) btns.push(coVeDaMo ? h("p", { class: "muted", "data-chan": "sua-so-khach-da-mo-ve" }, CAU_DON_DA_MO_VE_SUA_KHACH) : nutSuaSoKhach(order, nguonSoKhach)); // ADR-0171 Đ1: coVeDaMo chỉ có với người giữ quyền Đối tác
   // ADR-0136 Task 3.5: bước xác nhận. `chanXacNhan` / `chuaCoNgay` khoá nút gửi như khoá «Xác nhận đơn» (cùng lý do; máy chủ vẫn chặn).
   const boiCanh: BoiCanhXacNhan = { orderId: order.id, staff: staff!, lamMoi: lamMoiSauBuoc, baoLoi: (err) => show(errorBanner(err)), xoaBao: () => show(null), moAnhXacNhan: openConfirmation, mocPhut };
   if (a.send) btns.push(nutGuiXacNhan(boiCanh, null)); // chưa có ngày vẫn gửi được: người kiểm vé chọn ngày ở bảng Còn vé

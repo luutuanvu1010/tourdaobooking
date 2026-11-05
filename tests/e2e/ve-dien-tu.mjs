@@ -2,7 +2,7 @@
 // huỷ đơn (trả vé về kho) → chưa thu đủ thì ảnh 403 → đường dẫn khách sai token 404 → Kế toán 403. Dùng RIÊNG mã danh mục giả ZVD1; mọi vé của kịch bản nằm trong lô riêng.
 // ADR-0156: chống trùng theo mã + dấu vân tệp, trần lô (chỉ Toàn quyền đổi, khoá lạc quan, đợt sau cộng dồn), Bỏ lô rồi nhập lại đúng ảnh đó, lô từng giữ chỗ không bỏ được.
 import assert from "node:assert/strict";
-import { ACCOUNTS, call, catalogService, ensureFakeCatalog, login, orderInput, randomPhone, session, sql, sqlRows, vnDate } from "./lib.mjs";
+import { ACCOUNTS, BASE, call, catalogService, ensureFakeCatalog, login, orderInput, randomPhone, session, sql, sqlRows, vnDate } from "./lib.mjs";
 
 await ensureFakeCatalog();
 const AT = "'2026-01-01T00:00:00.000Z'";
@@ -252,6 +252,36 @@ assert.deepEqual([khoChung.nhomKhach, khoChung.conTrong, khoChung.daGiu], ["ALL"
   assert.equal((await call(QT, "POST", `/api/orders/${daKT.id}/status`, { status: "cancelled", lyDo: "KHACH_DOI_Y" })).status, 200);
   // đơn CHƯA mở vé: đối tác huỷ được
   assert.equal((await call(DT, "POST", `/api/orders/${daDM.id}/status`, { status: "cancelled", lyDo: "KHACH_DOI_Y" })).status, 200);
+
+  // ADR-0171 Đ2: đường dẫn khách — số khách 2→4 chưa thu thêm thì chỉ thấy 2 vé đã mở; ảnh vé 3 không trả; thu đủ phần tăng thì thấy 4, vé 1 giữ nguyên số
+  const loLink = await moLo();
+  assert.equal((await themVe(loLink, [91, 92, 93, 94].map((n) => veThu(n, `E2E.${tag}.lk.${n}`)))).body.themDuoc, 4);
+  assert.equal((await call(SALES, "POST", `/api/ve/lo/${loLink}/xac-nhan`, {})).status, 200);
+  const daLink = await donDoiTac();
+  assert.equal((await ghiThu(KT, daLink, "cong_ty")).status, 201);
+  const dl = await call(DT, "POST", "/api/ve/duong-dan", { orderId: daLink.id });
+  assert.equal(dl.status, 200, JSON.stringify(dl.body));
+  const tokenLink = String(dl.body.duongDan).replace("/ve/", "");
+  const dichVuLink = (await sqlRows(`SELECT id FROM order_service WHERE order_id = '${daLink.id}'`))[0].id;
+  const tang = await call(QT, "POST", `/api/orders/${daLink.id}/money-edit`, { lyDo: "THEM_NGUOI", services: [{ id: dichVuLink, pax: { adult: 4, child: 0, senior: 0, infant: 0 } }] });
+  assert.equal(tang.status, 200, JSON.stringify(tang.body));
+  const giu = Number((await sqlRows(`SELECT count(*) AS n FROM vdt_allocation WHERE order_id = '${daLink.id}' AND released_at IS NULL`))[0].n);
+  assert.equal(giu, 4, "tăng khách thì cấp thêm 2 vé");
+  const slotTrang = (t) => [...t.matchAll(/\/anh\/(\d+)"/g)].map((m) => Number(m[1]));
+  const layTrang = async () => { const r = await fetch(`${BASE}/ve/${tokenLink}`, { headers: { "cf-connecting-ip": `198.51.100.${Math.floor(Math.random() * 200) + 1}` } }); return { status: r.status, text: await r.text() }; };
+  const trangKhach = await layTrang();
+  assert.equal(trangKhach.status, 200);
+  assert.deepEqual(slotTrang(trangKhach.text), [1, 2]);
+  assert.match(trangKhach.text, /Còn 2 vé chưa sẵn sàng/);
+  assert.equal((await call(undefined, "GET", `/api/ve-khach/${tokenLink}/anh/3`)).status, 404);
+  assert.equal(Number((await sqlRows(`SELECT count(*) AS n FROM vdt_allocation WHERE order_id = '${daLink.id}' AND released_at IS NULL AND revealed_at IS NOT NULL`))[0].n), 2, "vé 3, 4 chưa đóng dấu lộ");
+  assert.equal((await call(undefined, "GET", `/api/ve-khach/${tokenLink}/anh/1`)).status, 200, "vé đã mở vẫn tải được dù đơn đang thiếu tiền");
+  const tongMoi = (await call(QT, "GET", `/api/orders/${daLink.id}`)).body.order.total;
+  const chenh = tongMoi - daLink.total;
+  assert.ok(chenh > 0);
+  assert.equal((await call(KT, "POST", `/api/orders/${daLink.id}/payments`, { soTien: chenh, hinhThuc: "CASH", nguoiThu: "cong_ty" })).status, 201);
+  assert.deepEqual(slotTrang((await layTrang()).text), [1, 2, 3, 4]);
+  assert.equal((await call(undefined, "GET", `/api/ve-khach/${tokenLink}/anh/3`)).status, 200);
 }
 
 // 12. nhật ký không chứa mã vé

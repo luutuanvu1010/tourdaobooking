@@ -344,7 +344,7 @@ const HAN_CUOI_CUA_DON = defineSql(
 const VE_CUA_LINK = defineSql(
   "ve-dien-tu",
   "ve_cua_link",
-  `SELECT a.id, a.pax_group, t.valid_from, t.valid_to, t.storage_key, t.content_kind FROM vdt_allocation a JOIN vdt_ticket t ON t.id = a.ticket_id
+  `SELECT a.id, a.pax_group, a.revealed_at, t.valid_from, t.valid_to, t.storage_key, t.content_kind FROM vdt_allocation a JOIN vdt_ticket t ON t.id = a.ticket_id
    WHERE a.order_id = ?1 AND a.released_at IS NULL AND t.stored_at IS NOT NULL AND t.purged_at IS NULL ORDER BY a.order_service_id, a.pax_group, a.slot_no`,
 );
 
@@ -358,7 +358,7 @@ export const cauDemMoLink = (db: D1Database, id: string, at: string): D1Prepared
 export const docLinkCuaDon = async (db: D1Database, orderId: string): Promise<{ id: string; expires_at: string; revoked_at: string | null; opened_count: number }[]> =>
   (await db.prepare(DS_LINK_CUA_DON).bind(orderId).all<{ id: string; expires_at: string; revoked_at: string | null; opened_count: number }>()).results;
 export const docHanCuoiCuaDon = async (db: D1Database, orderId: string): Promise<string | null> => (await db.prepare(HAN_CUOI_CUA_DON).bind(orderId).first<{ den: string | null }>())?.den ?? null;
-export interface VeCuaLink { id: string; pax_group: string; valid_from: string; valid_to: string; storage_key: string; content_kind: string }
+export interface VeCuaLink { id: string; pax_group: string; revealed_at: string | null; valid_from: string; valid_to: string; storage_key: string; content_kind: string }
 export const docVeCuaLink = async (db: D1Database, orderId: string): Promise<VeCuaLink[]> => (await db.prepare(VE_CUA_LINK).bind(orderId).all<VeCuaLink>()).results;
 
 const TRANG_THAI_DON = defineSql("ve-dien-tu", "trang_thai_don", "SELECT status FROM v_ord_order_state WHERE id = ?1");

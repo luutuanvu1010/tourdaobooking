@@ -2332,7 +2332,7 @@ export interface CocDonDto {
   choChi: number;
   khoanDuyet: KhoanDuyetDto[];
   hoanNgoaiDong: HoanNgoaiDto[];
-  nguoiGiu: { ten: string; soTien: number }[] | null;
+  nguoiGiu: { partyId: string; ten: string; soTien: number }[] | null;
   coThePhanLoai: boolean;
   /** Nút duyệt HOÀN cho khách / huỷ duyệt khoản hoàn (ô `deposit.refund.approve`). */
   coTheDuyet: boolean;
