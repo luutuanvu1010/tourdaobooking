@@ -159,22 +159,20 @@ async function fillHandlers(rows: readonly Row[]): Promise<void> {
   }
 }
 
-/** Dòng người phụ trách (Bán hàng) của các thẻ vừa dựng: MỘT lời gọi cho cả trang, không chờ; lỗi hoặc Hướng dẫn viên (không có dòng này) → ẩn dòng. */
+/** Dòng người phụ trách (Bán hàng) của các thẻ vừa dựng: MỘT lời gọi cho cả trang, không chờ; lỗi → ẩn dòng. Gọn cố ý: gói trang Đơn hàng có trần dung lượng. */
 async function fillBanHang(rows: readonly Row[]): Promise<void> {
   if (rows.length === 0) return;
-  let ra: Api.BanHangCuaDonResponse | null = null;
+  let ra: Api.BanHangCuaDonResponse | undefined;
   try {
-    if (!nguoiPhuTrachTuPhien(await nhanVien)) ra = await api<Api.BanHangCuaDonResponse>(`/api/dispatch/ban-hang?orderIds=${rows.map((r) => encodeURIComponent(r.id)).join(",")}`);
+    ra = await api<Api.BanHangCuaDonResponse>(`/api/dispatch/ban-hang?orderIds=${rows.map((r) => encodeURIComponent(r.id)).join(",")}`);
   } catch {
-    ra = null;
+    /* ẩn dòng */
   }
   for (const { id, bh } of rows) {
-    if (!bh.isConnected) continue;
     bh.classList.remove("is-pending");
     const d = ra?.[id];
-    if (!d) bh.hidden = true;
-    else if (d.banHang || d.loiMoi) bh.textContent = dongBanHangDanhSach(d);
-    else replaceChildren(bh, h("span", { class: "chip chip-warn" }, dongBanHangDanhSach(d)));
+    if (d) bh.textContent = dongBanHangDanhSach(d);
+    else bh.hidden = true;
   }
 }
 
