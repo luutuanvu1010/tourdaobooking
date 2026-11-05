@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Đóng bảy mục nợ và các việc chưa làm của Trả sau, gộp đúng với luật vé mới, để nhánh sẵn sàng phát hành ngay khi có diễn tập khôi phục.
+**Goal:** Đóng bảy mục nợ và các việc chưa làm của Trả sau, gộp đúng với luật vé mới, làm phần cài đặt của ADR-0172, rồi đưa lệnh phát hành.
 
-**Architecture:** Không có luật mới; mọi việc thi hành ADR đã duyệt. Số «chưa về công ty» chỉ còn một hàm dùng chung. Cổng Trả sau đổi từ «tin bài quét chữ» sang «trình biên dịch buộc qua cổng» và bảng bài chạy thật.
+**Architecture:** Mọi việc thi hành ADR đã duyệt. Số «chưa về công ty» chỉ còn một hàm dùng chung. Cổng Trả sau đổi từ «tin bài quét chữ» sang «trình biên dịch buộc qua cổng» và bảng bài chạy thật.
 
 **Tech Stack:** TypeScript, Cloudflare Worker, D1, `node --test`, khung thử `tests/audit/harness.mjs`, e2e `tests/e2e/`.
 
@@ -14,13 +14,13 @@
 
 ## Global Constraints
 
-- **Diễn tập khôi phục `HC-5.19` chủ để sau (5/11, «Diễn tập sau»).** Điều kiện của ADR-0168 không đổi: chưa diễn tập thì không nhập `main`, không triển khai. Kế hoạch này dừng ở «nhánh sẵn sàng».
+- **Diễn tập khôi phục `HC-5.19` dời tới 2026-12-31, không hỏi lại.** Theo ADR-0172, Trả sau lên khi xong và người kiểm độc lập đạt, không chờ diễn tập. Việc của `docs/adr/ADR-0172-cai-dat-cong-no-theo-gio-va-an-han.md` nằm ở Task 4.
 - Task 1 chỉ bắt đầu khi ADR-0170, 0171 đã trên `origin/main`. Chưa có thì dừng trước Task 1, không chép mã từ nhánh kia.
 - Không migration mới, trừ khi đổi số tệp `0141_tra_sau_han_muc` theo số lớn nhất trên `main` lúc nối. Giữ cảnh báo đụng trigger `orders_delivered_lock` ở `docs/HANDOFF-N1.md`.
 - AI không `git push`, không nhập `main`, không triển khai. Không sửa `docs/adr/`.
 - Tiền là `INTEGER` VNĐ, chỉ tính ở máy chủ. Câu người dùng thấy bằng tiếng Việt có dấu; tên nút tra `docs/BANG-THAM-CHIEU.md`.
 - `orders` không import `billing`, không đọc `bil_`, `vdt_`.
-- Bộ kiểm dài (`npm test`, `npm run test:e2e`, Chrome) chạy một lần ở Task 4, kiểm `ps` trước.
+- Bộ kiểm dài (`npm test`, `npm run test:e2e`, Chrome) chạy một lần ở Task 5, kiểm `ps` trước.
 - Giả định ghi sổ, không hỏi lại: mục nợ 5 và 6 đúng với ADR nên giữ cách làm, chỉ thêm bài ghim (xem Task 3).
 
 ## Review Focus
@@ -92,15 +92,33 @@ Mỗi dòng đã có bài ở task sở hữu.
 - [ ] **Step 4: Thử phá** công thức tăng và đường gộp, đỏ rồi hoàn nguyên. Ghi sổ hàng rào: R-CRD-3 «chỉ cảnh báo, dựa vào người xem», có lý do từ `scripts/audit-checks.mjs`.
 - [ ] **Step 5: Chạy, xanh.** Commit.
 
-### Task 4: Việc chưa làm, tên nút, kiểm tổng
+### Task 4: Cài đặt công nợ theo ADR-0172
+
+**Files:**
+- Modify: `migrations/0141_tra_sau_han_muc.sql` (chưa áp production, sửa tại chỗ; kiểm lại bằng `wrangler d1 migrations list --remote` trước khi sửa), `docs/data-dictionary.json`, `src/shared/permissions.ts`, `src/shared/permissions.test.ts`, `src/shared/tra-sau.ts`, `src/modules/billing/tra-sau.ts`, `src/modules/billing/tra-sau-repo.ts`, `src/modules/billing/index.ts`, `src/modules/orders/tra-sau-cong.ts`, `web/cap-dai-ly.ts`, `web/han-muc-tra-sau.ts`, `src/shared/han-muc-tra-sau-hien-thi.ts`
+- Create: `web/o-cong-no.ts`
+- Test: `src/shared/tra-sau.test.ts`, `src/modules/billing/tra-sau-csdl.test.ts`, `src/tra-sau-duong-ghi.test.ts`
+
+**Interfaces:**
+- Produces: `hanTraTu(xacNhanLuc: string, gio: number): string` và `hetAnHanTu(hanTra: string, gioAnHan: number): string` trả ISO UTC; `trangThaiHan(i: { hanTra: string | null; hetAnHan: string | null; bayGio: string; no: number }): "trong_han" | "an_han" | "qua_han"`; `quaHan` đổi thành `trangThaiHan(...) === "qua_han"`. Cột `bil_credit_limit.term_hours`, `grace_hours`; `orders.credit_due_at`, `orders.credit_grace_until` thay `credit_due_date`.
+- `moVeDuoc` nhận `bayGio` thay `homNay`. Mọi nơi đang truyền ngày đổi theo.
+
+- [ ] **Step 1: Bài đỏ** theo sáu tiêu chí nghiệm thu của ADR-0172, đúng các số trong đó. Thêm ca chặn tự đặt: tài khoản Quản trị đồng thời là hồ sơ đại lý đặt cho chính mình: 403. Thêm ca: `SALES_MANAGER`, `HR`: 403. Bài gợi ý: bật không gửi số: 400; đổi số gợi ý: công nợ đã bật không đổi.
+- [ ] **Step 2: Chạy, đỏ.**
+- [ ] **Step 3: Dữ liệu.** Sửa migration: `term_hours INTEGER CHECK (term_hours BETWEEN 1 AND 8760)`, `grace_hours INTEGER NOT NULL DEFAULT 0 CHECK (grace_hours BETWEEN 0 AND 8760)`; bảng `bil_credit_tier_default` theo khuôn `updated_at`, `updated_by` của `src/architecture.test.ts`; hai cột giờ trên `orders`; sửa các trigger, view đang nhắc `credit_due_date`, `term_days`. `npm run dict`.
+- [ ] **Step 4: Máy chủ.** Cổng theo giờ; lô xác nhận chụp hai mốc từ một mốc giờ máy chủ duy nhất của request. Thêm cột `ADMIN` vào ô ghi hạn mức, ghim ở `permissions.test.ts`. Route đặt số gợi ý theo cấp. Đọc cấp qua view của `pricing`, không đọc bảng.
+- [ ] **Step 5: Giao diện.** `web/o-cong-no.ts` theo khuôn `web/cot-cap-dai-ly.ts`, không `innerHTML`, ô gõ 16px; `/han-muc-tra-sau` bỏ phần ghi; nút điều hướng tới `/cap-dai-ly`. Đo `src/goi-trang-nhe.test.ts`. Trang màn đơn hiện hạn trả có giờ.
+- [ ] **Step 6: Thử phá** từng luật giờ và ô quyền, đỏ rồi hoàn nguyên; dòng sổ hàng rào. Chạy các tệp bài bị đụng, `npm run typecheck`, `npm run build:web`. Commit.
+
+### Task 5: Việc chưa làm, tên nút, kiểm tổng
 
 **Files:**
 - Modify: `tests/e2e/tra-sau.mjs`, `src/shared/bang-tham-chieu*.ts`, `docs/SYSTEM-DESIGN.md`, `docs/CHANGE-GUIDE.md`, `docs/HANDOFF-N1.md`, sổ thi công Trả sau
 
 - [ ] **Step 1: e2e vé của đơn Trả sau**, gieo kho theo `moLo`, `themVe` ở `tests/e2e/ve-dien-tu.mjs`: xác nhận, đối tác mở và gửi; nộp một phần vẫn còn nợ; đường dẫn khách thấy đủ vé; không huỷ được khi còn nợ và đã mở; thu đủ rồi «Xong và đủ tiền». Bộ `run.mjs` đã chạy `audit-invariants` ở cuối nên đóng mục đó, không viết thêm.
 - [ ] **Step 2: Lệch bảng từ.** Chạy `node --test src/bang-tham-chieu.test.ts`; còn đỏ ở `web/hoa-hong-cap.ts:149` thì xem có do nhánh này không, không phải thì ghi sổ nợ chung, không sửa ở đây.
-- [ ] **Step 3: Tên nút.** Điều phối hỏi chủ MỘT lần về «Đặt hạn mức», «Ngừng hạn mức», «Hạn mức trả sau», «Còn được dùng»: mỗi tên kèm 2–3 phương án, có khuyến nghị. Ghi lời chủ vào nguồn bảng từ bằng Edit, `npm run tham-chieu`. Tên «Xong và đủ tiền» đã chốt, không hỏi lại.
-- [ ] **Step 4: Tài liệu.** Sổ thi công: đánh dấu đóng từng mục nợ kèm commit. `HANDOFF-N1`: mục chờ phát hành nêu «chờ diễn tập khôi phục», migration, số bản đặt lúc phát hành.
+- [ ] **Step 3: Tên nút.** Điều phối hỏi chủ MỘT lần về «Đặt hạn mức», «Ngừng hạn mức», «Hạn mức trả sau», «Còn được dùng» và tên ô công nợ (chữ «Công nợ» đang trùng «Sổ công nợ»), kèm hai chữ «Thời hạn trả», «Ân hạn»: mỗi tên kèm 2–3 phương án, có khuyến nghị. Ghi lời chủ vào nguồn bảng từ bằng Edit, `npm run tham-chieu`. Tên «Xong và đủ tiền» đã chốt, không hỏi lại.
+- [ ] **Step 4: Tài liệu.** Sổ thi công: đánh dấu đóng từng mục nợ kèm commit. `HANDOFF-N1`: mục chờ phát hành nêu migration, «không chờ diễn tập theo ADR-0172», số bản đặt lúc phát hành. Hướng dẫn bài «Cấp hạn mức trả sau cho đối tác» đổi theo màn mới.
 - [ ] **Step 5: Một lần duy nhất:** `npm test`, `npm run typecheck`, `npm run test:e2e`, kịch bản `tra-sau-smoke` khổ 390 và 1440 kèm `AXE_JS`. Đọc đầu ra, ghi sổ.
-- [ ] **Step 6: `nguoi-kiem-doc-lap`** đọc toàn nhánh theo ADR-0168, 0170, 0171, chạy lại, tự thử phá. Chỉ báo đạt theo báo cáo đó.
-- [ ] **Step 7: Dừng.** Báo chủ nhánh sẵn sàng, còn diễn tập khôi phục; không đưa lệnh `day-len` trước khi diễn tập xong.
+- [ ] **Step 6: `nguoi-kiem-doc-lap`** đọc toàn nhánh theo ADR-0168, 0170, 0171, 0172, chạy lại, tự thử phá. Chỉ báo đạt theo báo cáo đó.
+- [ ] **Step 7: Đưa lệnh.** Đạt thì đưa chủ lệnh `npm run day-len` và `npm run trien-khai`, kèm câu cần thử trên iPhone thật. Không tự chạy.
