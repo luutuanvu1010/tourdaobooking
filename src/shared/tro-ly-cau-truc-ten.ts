@@ -91,7 +91,7 @@ export const TEN_THAO_TAC: Readonly<Record<OperationCode, TenLoiThuong>> = {
   "dispatch.claim": { ten: "nhận đơn đang chờ", moTa: "Bấm nhận phụ trách một đơn chưa có người phụ trách." },
   "dispatch.sales.claim": { ten: "nhận Bán hàng phụ trách", moTa: "Bấm nhận làm Bán hàng phụ trách một đơn chưa có người (người được mời có ưu tiên trong giờ hành chính)." },
   "dispatch.sales.assign": { ten: "đổi Bán hàng phụ trách", moTa: "Quản trị hoặc Toàn quyền đặt, đổi hoặc gỡ Bán hàng phụ trách của một đơn." },
-  "dispatch.sales.invitees": { ten: "xem danh sách Bán hàng để mời", moTa: "Chọn người Bán hàng để mời nhận đơn khi lập đơn; chỉ hiện tên, không có số điện thoại." },
+  "dispatch.sales.invitees": { ten: "xem danh sách Bán hàng để mời làm người phụ trách", moTa: "Ở trang Tạo đơn, chọn người Bán hàng để mời nhận phụ trách đơn; chỉ hiện tên, không có số điện thoại." },
   "dispatch.refuse": { ten: "trả đơn mình đang phụ trách (Từ chối)", moTa: "Người đang phụ trách bấm Từ chối đơn, chọn lý do; đơn về hàng chờ. Không trả được khi đơn đi hôm nay hoặc ngày mai — gọi văn phòng để đổi người." },
   "dispatch.guides.view": { ten: "xem danh sách hướng dẫn viên", moTa: "Danh sách hẹp các hướng dẫn viên nội bộ." },
   "payment.receive": { ten: "ghi khoản thu tiền", moTa: "Ghi số tiền khách đã trả cho đơn ở mục Thanh toán của trang đơn." },
