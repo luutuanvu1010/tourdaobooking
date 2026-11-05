@@ -128,7 +128,7 @@ function row(it: CatalogAdminItem): HTMLElement {
     { class: it.hidden || !it.inSheet ? "row-off" : "", "data-code": it.code },
     h("td", { class: "chon-td" }, oChon(it)),
     h("td", null, it.code),
-    h("td", null, it.name, chipDuaDon(it, "dd-chip-dong"), chipQuyTac(it), it.hidden && h("span", { class: "badge badge-cancelled" }, "Đã ngừng bán"), !it.inSheet && h("span", { class: "badge badge-draft" }, "Không còn trong Sheet"), !it.supported && h("span", { class: "badge badge-draft", title: "Chỉ nhập tay được" }, `Đơn vị ${it.unit} chưa hỗ trợ`), it.conflicts.length > 0 && h("div", { class: "alert warn", style: "margin:6px 0 0" }, `Sheet đã đổi giá kể từ khi ghi đè — ${conflicts}. Giá đang bán vẫn là giá ghi đè.`), oKiemVe(it)),
+    h("td", null, it.name, chipDuaDon(it, "dd-chip-dong"), chipQuyTac(it), it.hidden && h("span", { class: "badge badge-cancelled" }, "Đã ngừng bán"), !it.inSheet && h("span", { class: "badge badge-draft" }, "Không còn trong Sheet"), !it.supported && h("span", { class: "badge badge-draft", title: "Chỉ nhập tay được" }, `Đơn vị ${it.unit} chưa hỗ trợ`), it.conflicts.length > 0 && h("div", { class: "alert warn", style: "margin:6px 0 0" }, `Sheet đã đổi giá kể từ khi ghi đè — ${conflicts}. Giá đang bán vẫn là giá ghi đè.`), oKiemVe(it), coVe.oDichVu(it.code, it.name)),
     h("td", { class: "nhom-o" }, tenNhomCua(it)),
     h("td", { class: "muted" }, unitLabel(it.unit)),
     ...PAX_ORDER.map((c) => priceCell(it, c)),
