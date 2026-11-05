@@ -59,20 +59,24 @@ export const banHangRoutes = [
     if (parsed.ids.length > TOI_DA_TRA_BAN_HANG) return error(400, "invalid_input", `Chỉ tra được tối đa ${TOI_DA_TRA_BAN_HANG} đơn mỗi lần.`);
     const ra: BanHangCuaDonResponse = {};
     if (parsed.ids.length === 0) return json(ra);
-    const [chu, cua, daPhuTrach] = await Promise.all([
+    const [chu, cua, daPhuTrach, dangCho] = await Promise.all([
       Promise.all(parsed.ids.map((id) => findOrderOwner(env.DB, id))),
       banHangCuaDon(env.DB, parsed.ids),
       findHandledOrderIds(env.DB, staff.id).then((a) => new Set(a)),
+      donDangChoXacNhan(env.DB, parsed.ids), // đơn nháp ĐANG CHỜ xác nhận: người xét (`order.confirm.review`) được tra để vẽ khối Người phụ trách
     ]);
+    const nguoiXet = can(staff, "order.confirm.review");
     const hep = holdsPartner(staff) || holdsIntern(staff); // chỉ tên
     const khung = hep ? null : await khungGioHanhChinh(env.DB);
     const nowIso = new Date().toISOString();
     for (const [i, id] of parsed.ids.entries()) {
       const o = chu[i];
-      if (!o || !chiNguoiLapGhiNhap({ status: o.status, laNguoiLap: o.staffId === staff.id })) continue;
+      if (!o) continue;
+      const choXet = o.status === "draft" && o.staffId !== staff.id && dangCho.has(id) && nguoiXet; // nháp của người khác: CHỈ khi đang chờ xác nhận VÀ người gọi là người xét
+      if (!choXet && !chiNguoiLapGhiNhap({ status: o.status, laNguoiLap: o.staffId === staff.id })) continue;
       const bh = cua.get(id) ?? null;
       const duocGiao = daPhuTrach.has(id) || (bh !== null && bh.staffId === staff.id);
-      if (!can(staff, "order.view", { ownerId: o.staffId, assigned: duocGiao })) continue;
+      if (!choXet && !can(staff, "order.view", { ownerId: o.staffId, assigned: duocGiao })) continue;
       let loiMoi: BanHangCuaDonResponse[string]["loiMoi"] = null;
       if (!hep) {
         const lm = await loiMoiMoCua(env.DB, id);

@@ -176,8 +176,10 @@ try {
     await axe(p, "X đơn chờ 390");
     loiConsole(p, "X đơn chờ");
   });
-  await b.step("3b", "390 X, đơn chờ có lời mời: nếu khối Người phụ trách có «Nhận phụ trách» thì bấm chỉ đưa tới bảng (focus), không gọi máy chủ. KHOẢNG TRỐNG ĐÃ BIẾT: GET /api/dispatch/ban-hang chưa trả đơn nháp đang chờ cho người xét (khác người lập) nên khối chưa hiện — báo cáo Task 7", async () => {
-    if (!(await p.ev(co('[data-action="claim-ban-hang"]')))) return console.log("   (bỏ qua: khối Người phụ trách không hiện cho X ở đơn chờ — route chưa trả đơn chờ cho người xét)");
+  await b.step("3b", "390 X (người xét), đơn chờ có lời mời: khối Người phụ trách hiện «Đang mời …» kèm «Nhận phụ trách»; bấm chỉ đưa tới bảng (focus), không gọi máy chủ", async () => {
+    await p.waitFor(co(khoiBH), "khối Người phụ trách ở đơn chờ", 12000);
+    assert.equal(await p.ev(`/Đang mời/.test(document.querySelector('${khoiBH}')?.innerText ?? '')`), true, "khối ghi «Đang mời …»");
+    await p.waitFor(co('[data-action="claim-ban-hang"]'), "nút Nhận phụ trách ở đơn chờ", 12000);
     p.requests.length = 0;
     await p.ev(click('[data-action="claim-ban-hang"]'));
     await sleep(500);

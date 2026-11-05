@@ -151,6 +151,20 @@ try {
   assert.equal(await oMo(o4.id), 0);
   r = await nhan(Y.cookie, o4.id);
   assert.deepEqual([r.status, r.body.error?.code], [409, "can_quyet_dinh"], `đơn cần kiểm không Nhận ở đây: ${JSON.stringify(r.body)}`);
+  // Người xét (giữ order.confirm.review) tra được đơn CHỜ xác nhận của người khác để vẽ khối Người phụ trách; Kế toán, HDV, Đối tác thì không; nháp chưa gửi thì không ai (ngoài người lập).
+  const nhapChuaGui = await lap(SALES, "ZXN1");
+  for (const [ten, who] of [["Quản trị", ADMIN], ["Toàn quyền", SUPER], ["Bán hàng khác", Y.cookie]]) {
+    r = await call(who, "GET", `/api/dispatch/ban-hang?orderIds=${o4.id},${nhapChuaGui.id}`);
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+    assert.deepEqual(Object.keys(r.body), [o4.id], `${ten} thấy đơn chờ xác nhận, không thấy nháp chưa gửi: ${JSON.stringify(r.body)}`);
+    assert.equal(r.body[o4.id].loiMoi?.staffId, ID_B, `${ten} thấy lời mời của X`);
+  }
+  for (const [ten, who] of [["Kế toán", ACC], ["HDV", FIELD], ["Đối tác", DOI_TAC.cookie]]) {
+    r = await call(who, "GET", `/api/dispatch/ban-hang?orderIds=${o4.id}`);
+    assert.deepEqual([r.status, r.body], [200, {}], `${ten} không đọc được đơn chờ xác nhận: ${JSON.stringify(r.body)}`);
+  }
+  r = await call(SALES, "GET", `/api/dispatch/ban-hang?orderIds=${nhapChuaGui.id}`);
+  assert.ok(nhapChuaGui.id in r.body, "người lập vẫn thấy nháp của mình");
   r = await quyet(SALES_B, o4.id, "CON_VE");
   assert.equal(r.status, 200, JSON.stringify(r.body));
   assert.deepEqual([await trangThai(o4.id), await oMo(o4.id), (await loiMoi(o4.id))[0].outcome], ["confirmed", 1, "NHAN"], "xác nhận + ô + khép lời mời cùng một lô");
