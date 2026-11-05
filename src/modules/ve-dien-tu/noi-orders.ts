@@ -3,14 +3,18 @@
 import { soanCapVe, soanTraVe, type DichCapVe, type GhiNhatKy } from "./cap-ve.ts";
 import { canVe } from "./rules.ts";
 
+/** Dịch vụ kèm ô «Có vé» (ADR-0174). */
+export type DichCapVeCoO = DichCapVe & { coVe: boolean };
+
 /**
- * Cấp vé cho mọi dịch vụ của đơn theo số khách hiệu lực — MỘT `db.batch` RIÊNG, chạy SAU lô xác nhận (xác nhận đã thắng; thất bại ở đây không làm xác nhận thất bại,
+ * Cấp vé cho mọi dịch vụ Có vé của đơn theo số khách hiệu lực — MỘT `db.batch` RIÊNG, chạy SAU lô xác nhận (xác nhận đã thắng; thất bại ở đây không làm xác nhận thất bại,
  * nơi gọi bắt lỗi). Chạy lại bao nhiêu lần cũng không giữ thừa (số lấy tính trong SQL lúc chạy). Trả số dịch vụ có chạy câu giữ chỗ.
  */
-export async function capVeChoDon(db: D1Database, dichVu: readonly DichCapVe[], nguoi: string | null, nhatKy: GhiNhatKy, at: string): Promise<number> {
+export async function capVeChoDon(db: D1Database, dichVu: readonly DichCapVeCoO[], nguoi: string | null, nhatKy: GhiNhatKy, at: string): Promise<number> {
   const cau: D1PreparedStatement[] = [];
   let soDichVu = 0;
   for (const dv of dichVu) {
+    if (!dv.coVe) continue; // ADR-0174 Đ3
     const c = soanCapVe(db, dv, nguoi, at, nhatKy);
     if (c.cau.length === 0) continue;
     cau.push(...c.cau);
@@ -29,11 +33,11 @@ export async function soanTraVeKhiHuy(db: D1Database, p: { orderId: string; lyDo
  * Cân lại vé theo số khách hiệu lực SAU khi sửa số khách: bớt khách thì trả vé CHƯA LỘ (vé đã lộ không tự thu hồi), thêm khách thì cấp thêm. Một `db.batch`; nơi gọi bắt lỗi
  * (đơn đã sửa xong, vé lệch được cấp bù ở lần sau). Mỗi dịch vụ: trả trước, cấp sau.
  */
-export async function canBangVeTheoSoKhach(db: D1Database, dichVu: readonly DichCapVe[], nguoi: string | null, nhatKy: GhiNhatKy, at: string, homNay: string): Promise<void> {
+export async function canBangVeTheoSoKhach(db: D1Database, dichVu: readonly DichCapVeCoO[], nguoi: string | null, nhatKy: GhiNhatKy, at: string, homNay: string): Promise<void> {
   const cau: D1PreparedStatement[] = [];
   for (const dv of dichVu) {
     const tra = await soanTraVe(db, { orderId: dv.orderId, serviceId: dv.serviceId, lyDo: "GIAM_SO_KHACH", at, by: nguoi, homNay, conLai: canVe(dv.pax) }, nhatKy);
-    cau.push(...tra.cau, ...soanCapVe(db, dv, nguoi, at, nhatKy).cau);
+    cau.push(...tra.cau, ...(dv.coVe ? soanCapVe(db, dv, nguoi, at, nhatKy).cau : [])); // ADR-0174 Đ3: Không vé thì vẫn trả vé thừa, không cấp thêm
   }
   if (cau.length > 0) await db.batch(cau);
 }

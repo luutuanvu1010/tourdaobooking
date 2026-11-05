@@ -168,6 +168,8 @@ const LEGACY_TABLES: readonly string[] = [
  * module (SQL cũ của `orders/repository.ts` vẫn là nợ LEGACY). Module lên STRICT thì bỏ khỏi đây.
  */
 const NUA_NGHIEM: readonly { module: string; file: string }[] = [
+  // ADR-0174 Đ1: ô «Có vé», mọi câu qua defineSql + EXPLAIN.
+  { module: "catalog", file: "modules/catalog/co-ve-repo.ts" },
   { module: "orders", file: "modules/orders/chang-hanh-khach-repo.ts" },
   // Sổ tiền lượt 1 (ADR-0024 điều 3–4 — SIẾT): câu mốc "Đã giao" / "Hoàn thành" + đọc trạng thái cho billing, mọi câu qua defineSql + EXPLAIN.
   { module: "orders", file: "modules/orders/hoan-tat-repo.ts" },

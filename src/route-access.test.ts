@@ -120,6 +120,8 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "DELETE", path: "/api/catalog/:code/override", access: "admin" },
   { method: "GET", path: "/api/catalog/admin", access: "admin" },
   // ADR-0152 Đ3 (T7): đọc / gắn cho một dịch vụ cổng office (catalog.attribute.assign hoặc admin.manage, không Đối tác); định nghĩa và gắn theo nhóm cổng admin.
+  { method: "GET", path: "/api/catalog/co-ve", access: "office" }, // ADR-0174 Đ4; thân hỏi catalog.ticket_flag.write
+  { method: "POST", path: "/api/catalog/co-ve", access: "office" },
   { method: "GET", path: "/api/catalog/dac-diem", access: "office" },
   { method: "GET", path: "/api/catalog/dac-diem/dem-chua-khai", access: "office" },
   { method: "POST", path: "/api/catalog/dac-diem", access: "admin" },

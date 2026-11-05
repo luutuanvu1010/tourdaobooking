@@ -1,6 +1,6 @@
 # ADR-0174 — Ô «Có vé» trên nhóm và dịch vụ; máy chỉ giữ vé và báo thiếu vé cho dịch vụ Có vé
 
-- **Trạng thái:** **proposed** — chưa có hiệu lực, chờ chủ dự án duyệt. Số 0174: đã soát mọi nhánh 5/11, số lớn nhất đang dùng là 0173; đề xuất vé Tour Đảo được báo dùng từ 0175.
+- **Trạng thái:** **accepted** 2026-11-05 — chủ dự án trong chat, nguyên văn: *«Duyệt, theo cách (a)»*. Số 0174: đã soát mọi nhánh 5/11, số lớn nhất đang dùng là 0173; đề xuất vé Tour Đảo được báo dùng từ 0175.
 - **Ngày:** 2026-11-05   **Loại:** việc lớn (dữ liệu, quyền). **Không chạm tiền.** **Cửa:** dữ liệu một chiều mềm (bảng mới chỉ thêm, ở lại); hành vi đảo ngược được bằng cách đổi giá trị ô.
 - **Lời chủ dự án (chat 2026-11-05, AI ghi lại, không tự quyết):**
   - *«thêm 1 trường (field) cho nhóm dịch vụ và/hoặc dịch vụ cụ thể là cần vé hay không, và lấy đó làm điều kiện để xác định có thiếu vé hay không»*
@@ -31,9 +31,9 @@
 
 **Đ6 — Nhập lô cho dịch vụ Không vé.** Không chặn. Khi xác nhận lô, máy báo: vé sẽ chưa được giữ cho đơn tới khi Quản trị bật ô. Lý do không chặn: Bán hàng nhập lô được nhưng không đặt được ô, chặn thì họ phải chờ. Người có quyền bật không được nhận thông báo tự động ở bản này (dựa vào kỷ luật).
 
-**Đ7 — Đơn đã xác nhận khi ô đổi (chờ chủ quyết).**
-- **Khuyến nghị (a) theo giá trị hiện tại:** bật ô thì đơn đã xác nhận chưa đi cũng hiện thiếu và cấp được vé; tắt ô thì hết báo thiếu. Không lưu thêm gì trên đơn. Được: dịch vụ mới có vé vẫn cấp được cho đơn đã bán. Mất: đơn đã đi của dịch vụ vừa bật cũng hiện thiếu, nên chỉ báo thiếu khi ngày đi chưa qua.
-- **(b) Chụp giá trị lúc xác nhận:** đổi ô chỉ áp cho đơn xác nhận sau, như đề xuất vé Tour Đảo đang ghi. Được: đơn cũ không đổi nghĩa. Mất: đơn đã bán trước khi bật không được cấp vé qua luồng thường, và phải thêm cột trên đơn.
+**Đ7 — Đơn đã xác nhận khi ô đổi: chủ chọn (a).**
+- **(a) theo giá trị hiện tại — đã chọn:** bật ô thì đơn đã xác nhận chưa đi cũng hiện thiếu và cấp được vé; tắt ô thì hết báo thiếu. Không lưu thêm gì trên đơn. Được: dịch vụ mới có vé vẫn cấp được cho đơn đã bán. Mất: đơn đã đi của dịch vụ vừa bật cũng hiện thiếu, nên chỉ báo thiếu khi ngày đi chưa qua.
+- **(b) Chụp giá trị lúc xác nhận — không chọn:** đổi ô chỉ áp cho đơn xác nhận sau, như đề xuất vé Tour Đảo đang ghi. Được: đơn cũ không đổi nghĩa. Mất: đơn đã bán trước khi bật không được cấp vé qua luồng thường, và phải thêm cột trên đơn.
 
 ## Từ ngữ
 

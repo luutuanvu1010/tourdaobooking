@@ -326,6 +326,12 @@
       "note": "cờ «cần xác nhận» theo dịch vụ (scope SERVICE, code = mã dịch vụ) hoặc nhóm (scope GROUP, code = mã nhóm) (ADR-0136 Đ1, migration 0119), CHỈ-THÊM; required 1 = cần, 0 = không cần (ghi tường minh để dòng dịch vụ thắng dòng nhóm); dòng hiệu lực của từng (scope, code) = valid_from_at lớn nhất ≤ bây giờ"
     },
     {
+      "name": "ctl_service_ticket_flag",
+      "module": "catalog",
+      "kind": "table",
+      "note": "ô «Có vé» theo dịch vụ (scope SERVICE, code = mã dịch vụ) hoặc nhóm (scope GROUP, code = mã nhóm) (ADR-0174, migration 0142), CHỈ-THÊM; has_ticket 1 = Có vé, 0 = Không vé (ghi tường minh để dòng dịch vụ thắng nhóm); chưa khai là Không vé; luật xét ở src/shared/co-ve.ts"
+    },
+    {
       "name": "ord_confirm_policy",
       "module": "orders",
       "kind": "table",
@@ -1409,6 +1415,16 @@
       ]
     },
     {
+      "name": "v_ctl_service_ticket_flag",
+      "module": "catalog",
+      "columns": [
+        "scope",
+        "code",
+        "has_ticket"
+      ],
+      "note": "giá trị hiện hành của từng ô «Có vé» (ADR-0174)"
+    },
+    {
       "name": "v_ctl_service_group",
       "module": "catalog",
       "columns": [
@@ -1615,6 +1631,7 @@
     "ord_cancel_reason": { "id": "N1", "order_id": "N1", "reason_code": "N1", "group_code": "N1", "note": "N2", "cancelled_date": "N1", "reclassifies_id": "N1", "legacy": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "ord_manual_service_policy": { "id": "N1", "enabled": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "ord_confirm_request": { "id": "N1", "order_id": "N1", "submitted_at": "N1", "submitted_by": "N1", "deadline_at": "N1", "decided_at": "N1", "decided_by": "N1", "outcome": "N1", "ticket": "N1", "note": "N2", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "pickup_time_required": "N1" },
+    "ctl_service_ticket_flag": { "id": "N1", "scope": "N1", "code": "N1", "has_ticket": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "ord_service_confirm_flag": { "id": "N1", "scope": "N1", "code": "N1", "required": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "ord_confirm_policy": { "id": "N1", "self_confirm_internal": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "ord_partner_customer_policy": { "id": "N1", "hide_customer_info": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
@@ -1695,6 +1712,7 @@
     "v_bil_order_paid": { "order_id": "N1", "paid_net": "N1", "unknown_count": "N1" },
     "v_bil_party_balance": { "party_id": "N1", "counterparty_id": "N1", "order_id": "N1", "balance": "N1" },
     "v_ctl_service_group": { "catalog_code": "N1", "group_code": "N1" },
+    "v_ctl_service_ticket_flag": { "scope": "N1", "code": "N1", "has_ticket": "N1" },
     "v_ctl_service_transfer": { "catalog_code": "N1", "transfer_enabled": "N1" },
     "v_ctl_service_attribute": { "catalog_code": "N1", "attribute_code": "N1", "value_code": "N1", "source": "N1" },
     "v_ctl_attribute_value": { "attribute_code": "N1", "code": "N1", "active": "N1", "attribute_active": "N1" },

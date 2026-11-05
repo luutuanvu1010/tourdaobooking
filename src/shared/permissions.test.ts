@@ -134,6 +134,7 @@ const ADR: Record<string, [Scope, Scope, Scope, Scope, Scope, Scope, Scope, Scop
   // ADR-0169 Đ1 (chủ duyệt 2026-11-05): Quản lý bán hàng, Quản trị, Toàn quyền; thay một phần ADR-0136 Đ1. Mọi cột khác, kể cả Bán hàng thường, không có.
   "catalog.confirm_flag.write": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "none", "any"],
   "catalog.hidden.write": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "none", "any"],
+  "catalog.ticket_flag.write": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "none", "none"], // ADR-0174 Đ4
 };
 const ORDER: readonly PermissionCode[] = ["SALES", "ACCOUNTING", "ADMIN", "FIELD", "PARTNER", "SUPER_ADMIN", "INTERN", "DRIVER", "DRIVER_PARTNER", "HR", "SALES_MANAGER"];
 const OPS = Object.keys(ADR) as OperationCode[];
@@ -428,7 +429,7 @@ test("ADR-0040 D3 + ADR-0049 D3: MỌI ô của Tài xế (DRIVER) — ghim nguy
     "sales.block.write": "none", // ADR-0146 Đ5: luật bán chỉ Bán hàng, Quản trị, Toàn quyền
     "credit.limit.write": "none", "credit.limit.view": "none", // ADR-0168 Đ1: hạn mức trả sau chỉ Toàn quyền (đặt), Kế toán + Toàn quyền (xem)
     "catalog.attribute.assign": "none", // ADR-0152 Đ3: gắn đặc điểm chỉ Bán hàng, Quản trị, Toàn quyền
-    "catalog.confirm_flag.write": "none", "catalog.hidden.write": "none", // ADR-0169 Đ1: chỉ Quản lý bán hàng, Quản trị, Toàn quyền
+    "catalog.confirm_flag.write": "none", "catalog.hidden.write": "none", "catalog.ticket_flag.write": "none", // ADR-0169 Đ1: chỉ Quản lý bán hàng, Quản trị, Toàn quyền; ADR-0174 Đ4: chỉ Quản trị, Toàn quyền
     "order.terms.view": "none", "order.terms.override": "none", // Task 5: tài xế không xem phần đối tác của đơn
   };
   assert.deepEqual(Object.fromEntries((Object.keys(MATRIX) as OperationCode[]).map((op) => [op, MATRIX[op].DRIVER])), DRIVER_ROW);
@@ -489,7 +490,7 @@ test("ADR-0048 D2: MỌI ô của Tài xế đối tác (DRIVER_PARTNER) — ghi
     "sales.block.write": "none", // ADR-0146 Đ5: luật bán chỉ Bán hàng, Quản trị, Toàn quyền
     "credit.limit.write": "none", "credit.limit.view": "none", // ADR-0168 Đ1: hạn mức trả sau chỉ Toàn quyền (đặt), Kế toán + Toàn quyền (xem)
     "catalog.attribute.assign": "none", // ADR-0152 Đ3: gắn đặc điểm chỉ Bán hàng, Quản trị, Toàn quyền
-    "catalog.confirm_flag.write": "none", "catalog.hidden.write": "none", // ADR-0169 Đ1: chỉ Quản lý bán hàng, Quản trị, Toàn quyền
+    "catalog.confirm_flag.write": "none", "catalog.hidden.write": "none", "catalog.ticket_flag.write": "none", // ADR-0169 Đ1: chỉ Quản lý bán hàng, Quản trị, Toàn quyền; ADR-0174 Đ4: chỉ Quản trị, Toàn quyền
     "order.terms.view": "none", "order.terms.override": "none", // Task 5: tài xế đối tác không thấy phần đối tác của đơn
   };
   assert.deepEqual(Object.fromEntries((Object.keys(MATRIX) as OperationCode[]).map((op) => [op, MATRIX[op].DRIVER_PARTNER])), DRIVER_PARTNER_ROW);
@@ -544,7 +545,7 @@ test("ADR-0071: MỌI ô của Nhân sự (HR) — ghim nguyên dòng, chỉ ba 
     "sales.block.write": "none", // ADR-0146 Đ5: luật bán chỉ Bán hàng, Quản trị, Toàn quyền
     "credit.limit.write": "none", "credit.limit.view": "none", // ADR-0168 Đ1: hạn mức trả sau chỉ Toàn quyền (đặt), Kế toán + Toàn quyền (xem)
     "catalog.attribute.assign": "none", // ADR-0152 Đ3: gắn đặc điểm chỉ Bán hàng, Quản trị, Toàn quyền
-    "catalog.confirm_flag.write": "none", "catalog.hidden.write": "none", // ADR-0169 Đ1: chỉ Quản lý bán hàng, Quản trị, Toàn quyền
+    "catalog.confirm_flag.write": "none", "catalog.hidden.write": "none", "catalog.ticket_flag.write": "none", // ADR-0169 Đ1: chỉ Quản lý bán hàng, Quản trị, Toàn quyền; ADR-0174 Đ4: chỉ Quản trị, Toàn quyền
     "order.terms.view": "none", "order.terms.override": "none", // Task 5: Nhân sự không thấy phần đối tác của đơn
   };
   assert.deepEqual(Object.fromEntries((Object.keys(MATRIX) as OperationCode[]).map((op) => [op, MATRIX[op].HR])), HR_ROW);

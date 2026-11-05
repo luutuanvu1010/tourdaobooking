@@ -4,7 +4,7 @@
 // Module khác CHỈ import từ file này.
 import { auditStatement } from "../audit";
 import { clearAttempts, reserveAttempts } from "../auth";
-import { getEffectiveServices } from "../catalog";
+import { coVeTheoMa, getEffectiveServices } from "../catalog";
 import { UUID_RE, error, json, kemLocation, readJson } from "../../shared/http";
 import { can } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
@@ -323,7 +323,9 @@ export const veDienTuModule: AppModule = {
         auditStatement(env.DB, { staffId: staff.id, action: "ve_xac_nhan_lo", at, targetType: "ve", targetId: lo.catalog_code, detail: `Đưa lô vé vào kho · ${NHAN_NHOM_LO[lo.pax_group as keyof typeof NHAN_NHOM_LO]}` }, "changes() > 0"),
       ]);
       if ((kq[0]?.meta?.changes ?? 0) === 0) return error(409, "batch_not_ready", "Lô chưa có vé nào lưu được vào kho, hoặc đã được đưa vào kho trước đó.");
-      return json({ loId, trangThai: "ACTIVE", veTrongLo: (await demVeCuaLo(env.DB, loId)).daLuu });
+      // ADR-0174 Đ6: không chặn nhập lô; dịch vụ đang Không vé thì báo để người nhập nhờ Quản trị bật ô.
+      const coVe = await coVeTheoMa(env.DB, [lo.catalog_code]);
+      return json({ loId, trangThai: "ACTIVE", veTrongLo: (await demVeCuaLo(env.DB, loId)).daLuu, dichVuKhongVe: coVe.get(lo.catalog_code) !== true });
     }),
 
     // Huỷ lô (nút «Huỷ lô»; ADR-0156 Đ2 mục 3): lô chưa có vé nào TỪNG được giữ chỗ. Một lô D1 nguyên khối. Vé mang dấu rút nên nhập lại được. Ảnh KHÔNG xoá ngay: lưu `NGAY_LUU_ANH_LO_HUY` ngày rồi việc định kỳ xoá (chủ quyết 2/11).
@@ -376,11 +378,14 @@ export const veDienTuModule: AppModule = {
       const [chu, assigned] = await Promise.all([docChuDon(env.DB, orderId), isAssigned(orderId)]);
       if (chu === null || !can(staff, "order.view", { ownerId: chu, assigned })) return DON_KHONG_THAY();
       const dv = await dichVuChoVe(orderId);
+      const homNay = vnToday(new Date());
       const dichVu = [];
       for (const d of dv) {
         const can_ = canVe(d.pax);
         const giu = await veDangGiu(env.DB, d.serviceId);
-        const nhom = (["ADULT", "CHILD", "SENIOR"] as const).filter((n) => can_[n] > 0 || giu[n] > 0).map((n) => ({ nhom: n, nhan: NHAN_NHOM[n], can: can_[n], giu: giu[n], thieu: Math.max(0, can_[n] - giu[n]) }));
+        // ADR-0174 Đ3, Đ7: chỉ dịch vụ Có vé, ngày đi chưa qua mới báo thiếu. Còn lại chỉ hiện vé đang giữ (nếu có).
+        const baoThieu = d.coVe && d.ngayDi >= homNay;
+        const nhom = (["ADULT", "CHILD", "SENIOR"] as const).filter((n) => (baoThieu && can_[n] > 0) || giu[n] > 0).map((n) => ({ nhom: n, nhan: NHAN_NHOM[n], can: can_[n], giu: giu[n], thieu: baoThieu ? Math.max(0, can_[n] - giu[n]) : 0 }));
         dichVu.push({ serviceId: d.serviceId, catalogCode: d.catalogCode, nhom });
       }
       const duongDan = (await docLinkCuaDon(env.DB, orderId)).map((l) => ({ id: l.id, hetHan: l.expires_at, daThuHoi: l.revoked_at !== null, luotMo: l.opened_count })); // KHÔNG token (chỉ lưu băm)

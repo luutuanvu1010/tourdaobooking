@@ -187,6 +187,8 @@ export const MATRIX = {
   // ADR-0169 Đ1 (chủ duyệt 2026-11-05): bật, tắt «cần kiểm vé» theo vé và cả nhóm (thay một phần ADR-0136 Đ1); Ngừng bán, Mở bán lại. Bán hàng thường không có. Route còn chặn tài khoản giữ Đối tác.
   "catalog.confirm_flag.write": quanLyBanHang(),
   "catalog.hidden.write": quanLyBanHang(),
+  // ADR-0174 Đ4 (chủ duyệt 2026-11-05): đặt ô «Có vé» theo dịch vụ và nhóm. Chỉ Quản trị, Toàn quyền; Quản lý bán hàng không có việc này.
+  "catalog.ticket_flag.write": quanTri(),
   "supply.terms.view": row("none", "any", "any", "none", "none", "any", "none", "none", "none", "none"), // Bán hàng KHÔNG xem tỷ lệ mua lại của nhà cung cấp
   "supply.terms.write": row("none", "any", "any", "none", "none", "any", "none", "none", "none", "none"),
   // Phần đối tác của đơn (đặc tả §6; Task 5): xem = bằng `order.view` ở MỌI cột (supply.terms.view ⊆ order.terms.view ⊆ money.view — bài khoá ở permissions.test.ts), nhưng tài khoản giữ
