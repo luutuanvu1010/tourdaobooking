@@ -13,13 +13,16 @@ Kế hoạch: `2026-11-05-doi-tac-xem-ve.md`. Quyết định: ADR-0170. Thêm v
 | Việc | Xong khi | Trạng thái |
 |---|---|---|
 | Task 0 Chốt nền | Sổ này có nền và lời chủ | xong 5/11 |
-| Task 1 Đ2 tiền đã về công ty | Bài thuần, bài route xanh, đã thấy hàng rào chặn thật | xong 5/11, chờ người kiểm độc lập |
+| Task 1 Đ2 tiền đã về công ty | Bài thuần, bài route xanh, đã thấy hàng rào chặn thật | xong 5/11; người kiểm tìm lỗ nộp một phần, sửa ở `b33973dd`, chờ đọc lại |
+| Task 2 Đ3 không tự huỷ đơn đã mở vé | Hai đường huỷ chặn, khe đua bịt | xong 5/11, vòng sửa 1 xong |
+| Task 3 Đ1 mở quyền, cổng route, giao diện | Bài đối tác mở vé đơn mình, đơn người khác 403/404 | xong 5/11, vòng sửa 1 xong |
+| Task 4 Tài liệu, Hướng dẫn, bằng chứng giao diện | Tài liệu và ảnh đủ | xong 5/11 |
 
 ## Quyết định đã tự chọn
 
 - **Tên trường `nguoiXemLaDoiTac`** (brief ghi `laNguoiLapDoiTac`): trường này nói NGƯỜI XEM giữ quyền Đối tác (`holdsPartner(staff)`), không phải người lập; đặt tên đúng nghĩa. Chủ dự án giao 5/11.
-- **`choNop` của đơn do đối tác lập** lấy số lớn hơn giữa phần khai đặt cọc (ADR-0159) và phần người lập giữ (`nguoiLapGiu`): hai phần chồng nhau (khoản khai cũng là khoản người lập giữ), cộng thẳng sẽ trừ hai lần.
-- **Quyền người lập** đọc bằng câu mới của `billing` (`order_creator_holds_partner`, view `v_stf_quyen_mo`); chủ đơn đọc qua `orderOwners` như `info.ownerId`; hồ sơ qua `hoSoNhanVien`. Không đọc được hồ sơ của người lập đang giữ quyền Đối tác ⇒ `tienDonVe` trả `null` (không mở); không đọc được chủ đơn ⇒ coi như đơn nhân viên (nhánh cũ), vì đơn thật luôn có chủ.
+- **`choNop` của đơn do đối tác lập** là `nguoiLapGiu`: khoản khai đặt cọc (ADR-0159) và khoản người đang cầm được gộp thành MỘT danh sách không trùng id khoản thu rồi tính một lượt; mỗi khoản gắn với người đang cầm tiền (người nợ của dòng giữ hộ chưa đảo). Không dùng `max` nữa vì bỏ sót khi hai khoản do hai người cầm.
+- **Quyền người lập** đọc bằng câu mới của `billing` (`order_creator_holds_partner`, view `v_stf_quyen_mo`); chủ đơn đọc qua `orderOwners` như `info.ownerId`; hồ sơ qua `hoSoNhanVien`. Không đọc được hồ sơ của người lập đang giữ quyền Đối tác ⇒ `tienDonVe` trả `null` (không mở); không đọc được chủ đơn ⇒ `null` (không mở).
 - **Hai bài cũ đổi có chủ ý** (`src/modules/billing/dat-coc-route.test.ts`: «I-4 Tôi thu đủ tiền vẫn mở», «I-5 cọc Tôi thu chuyển…, vé mở»): ADR-0170 Đ2 đổi nghĩa — đối tác tự ghi «Tôi thu» thì khoá tới khi nộp. Đổi thành «khoá, nộp đủ thì mở».
 - **Chữ mới chưa vào bảng tham chiếu:** câu «Công ty chưa xác nhận đã nhận đủ tiền nên chưa mở được vé.» là thông báo, không phải nút hay khái niệm; bảng tham chiếu chỉ khai nút ghi, khái niệm có tên chủ chọn. Thêm một khái niệm cần chủ chọn tên (ADR-0130), nên để cho Task 3 (cùng lúc mở giao diện cho đối tác) hỏi chủ một lần.
 
@@ -30,3 +33,7 @@ Kế hoạch: `2026-11-05-doi-tac-xem-ve.md`. Quyết định: ADR-0170. Thêm v
 ## Nợ
 
 - Chưa có kịch bản Chrome cho câu thông báo mới (giao diện của đối tác chưa mở, Task 3).
+
+## Sửa sau người kiểm (Task 1)
+
+Lỗ: khoản «Công ty thu» có dòng giữ hộ rời diện chờ xác nhận ngay khi nộp MỘT PHẦN và vì người thu là Công ty nên không vào phần «người lập giữ»: tiền chưa về mà vé mở. Sửa trong `soChuaVeCongTy` (không đổi `khoanChoXacNhan`, màn Kế toán dùng nó): mỗi khoản gắn với người đang cầm và trừ theo số dư giữ hộ thực. Tự chọn: bên đặt khác người lập (đại lý khác) KHÔNG được miễn, vì tiền còn ở đại lý, ADR chỉ miễn nhân viên công ty cầm hộ (vai `STAFF`).

@@ -86,8 +86,8 @@ Ghi 5/11/2026, nhánh `claude/adr-0170-doi-tac-xem-ve`, đã nối bản chính 
 
 - **Điều đối tác sẽ thấy khác:** thấy khối «Vé điện tử» của đơn mình lập; vé chỉ mở khi tiền đã về công ty (khách trả tiền mặt cho đối tác thì phải nộp về công ty rồi vé mới mở); không còn nút «Huỷ đơn» với đơn đã mở vé. Nhắc văn phòng biết để trả lời đối tác.
 - **Khi nhánh ADR-0168 (Trả sau theo hạn mức) nhập sau bản này**, người nhập phải: (1) đưa `veMoDuoc` vào đúng chỗ đang gọi `thuDu`, giữ `choXacNhan` trong kiểu `tienDonVe`; (2) dùng chung `soChuaVeCongTy` với «số đã về công ty» của `noMotDon`, không để hai bản; (3) giữ MỘT hàm `veDaMoCuaDon` (và `coVeDaMo` ở chi tiết đơn, `soanTraVeKhiHuy({ chanVeDaMo })` ở lô huỷ — không nhân đôi); (4) thêm ca Trả sau vào bài của Task 3 (`doi-tac-mo-ve.test.ts`).
-- **Việc còn lại trước khi phát hành:** `npm test`, `npm run typecheck`, `npm run test:e2e` một lần ở máy rảnh (mục 11c của `tests/e2e/ve-dien-tu.mjs` viết chưa chạy); kịch bản Chrome trang đơn bằng tài khoản đối tác, hai khổ; người kiểm độc lập; chủ thử iPhone thật bằng tài khoản đối tác, gửi nhiều ảnh sang Zalo.
-- **Trần gói trang Đơn hàng:** đo 105.084 byte, trần 105.100; không nới.
+- **Việc còn lại trước khi phát hành:** `npm test`, `npm run typecheck` và `npm run test:e2e -- ve-dien-tu` một lần ở máy rảnh (mục 11c của `tests/e2e/ve-dien-tu.mjs`, có thêm ca nộp một phần, chưa chạy lần nào); chủ thử iPhone thật bằng tài khoản đối tác, gửi nhiều ảnh sang Zalo. Người kiểm độc lập đã đọc, lỗ «nộp một phần tiền thì mở toàn bộ vé» đã sửa và cần đọc lại phần sửa đó.
+- **Trần gói trang Đơn hàng:** trần hiện là 105.363 byte (`TRAN_ORDERS` ở `src/goi-trang-nhe.test.ts`), gói đo được còn dưới trần; chủ duyệt nới theo ADR-0170.
 
 ## ĐANG CHỜ PHÁT HÀNH: Bán hàng phụ trách đơn (ADR-0142 Phần 1; mục nhật ký 2.64 là số TẠM)
 
