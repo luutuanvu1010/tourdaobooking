@@ -13,6 +13,8 @@ export interface DongDichVuKiemVe {
   rieng: boolean;
   /** Dịch vụ nằm trong một nhóm đang hiện trên màn (false = «Chưa phân loại», không có gì để theo). */
   coNhom: boolean;
+  /** ADR-0169 Đ4: false = đã ngừng bán. Chỉ màn hẹp mới có dòng false. */
+  dangBan: boolean;
 }
 export interface NhomKiemVe {
   /** null = dịch vụ chưa phân loại (không đặt được cả nhóm). */
@@ -29,16 +31,19 @@ export function xepNhomKiemVe(
   dichVu: readonly { code: string; ten: string; dangBan: boolean; groupCode: string | null }[],
   nhom: readonly { code: string; ten: string }[],
   dongCo: readonly DongCoXacNhanDto[],
+  /** ADR-0169 Đ4: màn hẹp giữ cả vé đã ngừng bán để còn Mở bán lại. */
+  kemNgungBan = false,
 ): NhomKiemVe[] {
   const coDichVu = new Map(dongCo.filter((d) => d.pham === "SERVICE").map((d) => [d.ma, d.canXacNhan]));
   const coNhom = new Map(dongCo.filter((d) => d.pham === "GROUP").map((d) => [d.ma, d.canXacNhan]));
-  const dangBan = dichVu.filter((d) => d.dangBan);
+  const dangBan = kemNgungBan ? [...dichVu] : dichVu.filter((d) => d.dangBan);
   const dung = (ma: string | null, ten: string): NhomKiemVe => {
     const ds = dangBan
       .filter((d) => (ma === null ? d.groupCode === null || !nhom.some((n) => n.code === d.groupCode) : d.groupCode === ma))
       .map((d) => ({
         ma: d.code,
         ten: d.ten,
+        dangBan: d.dangBan,
         can: canXacNhan({ dichVu: [{ ma: d.code, nhom: d.groupCode }], coDichVu, coNhom, coChangDuoiMocChuaDatGap: false }).can,
         rieng: coDichVu.has(d.code),
         coNhom: ma !== null,
@@ -61,3 +66,12 @@ export function locNhomKiemVe(ds: readonly NhomKiemVe[], tu: string): NhomKiemVe
 
 export const nhanNguonKiemVe = (d: DongDichVuKiemVe): string => (d.rieng ? "Đặt riêng cho vé này" : d.coNhom ? "Theo nhóm" : "Chưa đặt");
 export const demKiemVe = (n: NhomKiemVe): string => (n.soCan === 0 ? "Không có vé cần kiểm" : `${n.soCan}/${n.dichVu.length} vé cần kiểm`);
+
+/** ADR-0169 Đ4: một dòng của màn đủ (Dịch vụ & giá): đang cần kiểm không, do dòng riêng hay theo nhóm. Cùng `canXacNhan` với máy chủ. */
+export function kiemVeCua(ma: string, nhom: string | null, dongCo: readonly DongCoXacNhanDto[]): { can: boolean; rieng: boolean } {
+  const coDichVu = new Map(dongCo.filter((d) => d.pham === "SERVICE").map((d) => [d.ma, d.canXacNhan]));
+  const coNhom = new Map(dongCo.filter((d) => d.pham === "GROUP").map((d) => [d.ma, d.canXacNhan]));
+  return { can: canXacNhan({ dichVu: [{ ma, nhom }], coDichVu, coNhom, coChangDuoiMocChuaDatGap: false }).can, rieng: coDichVu.has(ma) };
+}
+/** Cả nhóm đang đặt «cần kiểm vé» (dòng nhóm, không tính dòng riêng của từng vé). */
+export const caNhomCanKiem = (nhom: string, dongCo: readonly DongCoXacNhanDto[]): boolean => dongCo.some((d) => d.pham === "GROUP" && d.ma === nhom && d.canXacNhan);

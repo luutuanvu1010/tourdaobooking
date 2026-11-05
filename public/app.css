@@ -4535,5 +4535,10 @@ main select { max-width: 100%; }
 .kv-chu { display: flex; flex-direction: column; gap: var(--s1); min-width: 0; }
 .kv-ten { font-size: var(--fs-ui); font-weight: var(--fw-semibold); color: var(--c-text); overflow-wrap: anywhere; }
 /* Công tắc giữ nguyên hình, vùng chạm đủ --tap-min: phần đệm trong suốt trên dưới. */
-.kv-dong .dp-switch { box-sizing: border-box; height: var(--tap-min); padding-block: calc((var(--tap-min) - var(--h-switch)) / 2); background-clip: content-box; }
-.kv-dong .dp-switch-knob { top: calc((var(--tap-min) - var(--h-switch)) / 2 + var(--switch-inset)); }
+.kv-dong .dp-switch, .kv-o .dp-switch, .nhom-dua-don .dp-switch { box-sizing: border-box; height: var(--tap-min); padding-block: calc((var(--tap-min) - var(--h-switch)) / 2); background-clip: content-box; }
+.kv-dong .dp-switch-knob, .kv-o .dp-switch-knob, .nhom-dua-don .dp-switch-knob { top: calc((var(--tap-min) - var(--h-switch)) / 2 + var(--switch-inset)); }
+/* ADR-0169 Đ4: công tắc kiểm vé ở màn Dịch vụ & giá; khối đặt riêng trống thì ẩn */
+.kv-tu-kiem-the:empty { display: none; }
+.kv-o { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0 var(--s2); }
+.kv-the { border-top: 1px solid var(--c-border); }
+.kv-viec { display: flex; flex: none; align-items: center; gap: var(--s2); }

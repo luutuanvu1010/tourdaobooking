@@ -737,7 +737,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
   },
   {
     nhom: "Cài đặt vận hành",
-    manHinh: "Dịch vụ cần kiểm vé › công tắc «Cả nhóm cần kiểm vé» › hộp hỏi lại",
+    manHinh: "Dịch vụ & giá › Nhóm dịch vụ › công tắc «Cần kiểm vé» › hộp hỏi lại",
     ten: "Bật cả nhóm · Tắt cả nhóm",
     thatSuLam: "Đổi cài đặt kiểm vé cho mọi vé của một nhóm dịch vụ. Bật thì đơn mới có vé thuộc nhóm phải chờ người kiểm vé báo còn vé rồi mới được xác nhận; tắt thì xác nhận như thường. Vé đã đặt riêng không đổi; đơn đã xác nhận không đổi.",
     hoiLai: "có: hộp nói rõ hậu quả trước khi đổi",
@@ -745,7 +745,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     duongLenh: ["/api/cai-dat/xac-nhan-don"],
     maNhatKy: ["confirm_flag_changed"],
     noiDat: [
-      { tep: "web/dich-vu-kiem-ve.ts", chu: "Bật cả nhóm / Tắt cả nhóm" },
+      { tep: "web/catalog-kiem-ve.ts", chu: "Bật cả nhóm / Tắt cả nhóm" },
     ],
     trangThai: "cho-chon",
     nguonTen: "tên mới 2026-11-04, chờ chủ chọn",
@@ -3851,10 +3851,11 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     thatSuLam: "Ngừng bán: người lập đơn không thấy dịch vụ này khi chọn dịch vụ nữa (đơn đã lập giữ nguyên). Mở bán lại: gỡ dấu ngừng bán. Bấm là lưu ngay, không hỏi.",
     hoiLai: "không",
     hoanTac: "được: bằng nút Mở bán lại",
-    duongLenh: ["/api/catalog/:x"],
+    duongLenh: ["/api/catalog/:x", "/api/catalog/:x/ngung-ban"],
     maNhatKy: ["catalog_hidden","catalog_unhidden"],
     noiDat: [
       { tep: "web/catalog.ts", chu: "Mở bán lại / Ngừng bán" },
+      { tep: "web/catalog-kiem-ve.ts", chu: "Ngừng bán / Mở bán lại" },
     ],
     trangThai: "da-chot",
     nguonTen: "ADR-0166 câu 12",

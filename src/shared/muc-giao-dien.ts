@@ -12,7 +12,7 @@
 // "thêm trang".
 // Không có điều kiện nào ở web/shell.ts, web/account.ts: hai tệp đó chỉ vẽ danh sách hàm dưới đây trả về.
 import { thayDieuPhoiXe } from "./dieu-phoi-man.ts";
-import { can, canAccessOrders, holdsPartner, isOffice, seesAllOrders, type PermissionHolder } from "./permissions.ts";
+import { can, canAccessOrders, dungManHepDichVu, holdsPartner, isOffice, seesAllOrders, type PermissionHolder } from "./permissions.ts";
 import { TRANG_CUOC, TRANG_DAU_TAI_XE, chiTaiXe, coCuocCuaToi, coMucDonHang } from "./start-page.ts";
 
 /** Đường gọi chính của một trang: lời gọi mà trang cần để làm việc của nó (đọc, không ghi). Máy chủ không từ chối nó ⇔ trang mở được. */
@@ -71,7 +71,7 @@ export const TRANG = {
   },
   taoDon: { duong: "/order-form", hien: (s) => can(s, "order.create"), tam: (k) => k.canCreate },
   danhBa: { duong: "/parties", hien: isOffice, tam: (k) => k.office },
-  dichVu: { duong: "/catalog", hien: (s) => can(s, "admin.manage"), tam: (k) => k.admin },
+  dichVu: { duong: "/catalog", hien: (s) => can(s, "admin.manage") || dungManHepDichVu(s), tam: (k) => k.admin }, // ADR-0169 Đ4
   // ADR-0071: ô account.view (Quản trị, Nhân sự, Toàn quyền). Bản nhớ khung không có cờ này (ADR-0035): khung tạm dùng `admin` — Nhân sự thiếu mục một nhịp.
   taiKhoan: { duong: "/staff", hien: (s) => can(s, "account.view"), tam: (k) => k.admin },
   phien: { duong: "/sessions", hien: (s) => can(s, "auth.session.viewAll") }, // ADR-0075 điều 7
@@ -122,7 +122,6 @@ export const TRANG = {
   // Cài đặt vé điện tử (ADR-0156 Đ3): CÙNG cổng route `GET /api/ve/cai-dat` — ô settings.ops (chỉ Toàn quyền).
   veCaiDat: { duong: "/ve-cai-dat", hien: (s) => can(s, "settings.ops") },
   // Dịch vụ cần kiểm vé (ADR-0136 Đ1, Đ5): cờ đọc ở `GET /api/cai-dat/xac-nhan-don` (settings.ops), danh sách dịch vụ ở `GET /api/catalog/dac-diem` (chặn tài khoản giữ quyền Đối tác) ⇒ cùng hàm cho mục và trang.
-  dichVuKiemVe: { duong: "/dich-vu-kiem-ve", hien: chiToanQuyenKhongDoiTac, moTrang: chiToanQuyenKhongDoiTac },
   // Giới hạn nhập hoa hồng (ADR-0161 Đ3): trang chỉ Toàn quyền (ô settings.ops, như ghi của route) và KHÔNG Đối tác. Đường gọi chính `GET /api/pricing/gioi-han-nhap` rộng hơn (office, partner.commission.view, không Đối tác — cho hộp
   // nhập báo sớm), nên trang tự chặn ở trình duyệt bằng `moTrang` (web/hoa-hong-gioi-han.ts): người xem được giới hạn mà không phải Toàn quyền không thấy mục và không mở được trang.
   hoaHongGioiHan: { duong: "/hoa-hong-gioi-han", hien: chiToanQuyenKhongDoiTac, moTrang: chiToanQuyenKhongDoiTac },
@@ -225,7 +224,6 @@ export const THANH_BEN = [
   { nhom: THIET_LAP, trang: "chupBu", nhan: "Chụp bù mức" },
   { nhom: THIET_LAP, trang: "veKho", nhan: "Vé điện tử" },
   { nhom: THIET_LAP, trang: "veCaiDat", nhan: "Cài đặt vé điện tử" },
-  { nhom: THIET_LAP, trang: "dichVuKiemVe", nhan: "Dịch vụ cần kiểm vé" },
   { nhom: THIET_LAP, trang: "hoaHongGioiHan", nhan: "Giới hạn nhập hoa hồng" },
   { nhom: THIET_LAP, trang: "dichVu", nhan: "Dịch vụ & giá" },
   { nhom: THIET_LAP, trang: "dacDiem", nhan: "Đặc điểm dịch vụ" },
@@ -320,7 +318,6 @@ export const TRANG_TOI = [
   { phan: "sau", trang: "chupBu", nhan: "Chụp bù mức" },
   { phan: "sau", trang: "veKho", nhan: "Vé điện tử" },
   { phan: "sau", trang: "veCaiDat", nhan: "Cài đặt vé điện tử" },
-  { phan: "sau", trang: "dichVuKiemVe", nhan: "Dịch vụ cần kiểm vé" },
   { phan: "sau", trang: "hoaHongGioiHan", nhan: "Giới hạn nhập hoa hồng" },
   { phan: "sau", trang: "nhatKy", nhan: "Nhật ký" },
   { phan: "sau", trang: "phien", nhan: "Máy đang đăng nhập" },

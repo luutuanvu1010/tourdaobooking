@@ -3,7 +3,7 @@
 import type { SessionPolicyChange, SessionPolicyRowDto } from "./contracts.ts";
 import { PERMISSION_LABEL, type PermissionCode } from "./permissions.ts";
 
-/** Quyền đặt được = 9 mã quyền app trừ SUPER_ADMIN (Toàn quyền luôn nhiều máy — khoá cứng). Thứ tự = PERMISSION_CODES. */
+/** Quyền đặt được = mã quyền app trừ SUPER_ADMIN (Toàn quyền luôn nhiều máy — khoá cứng) và SALES_MANAGER (ADR-0169 Đ1: đi kèm SALES, theo dòng của Bán hàng). Thứ tự = PERMISSION_CODES. */
 export const QUYEN_DAT_DUOC = ["SALES", "ACCOUNTING", "ADMIN", "FIELD", "PARTNER", "INTERN", "DRIVER", "DRIVER_PARTNER", "HR"] as const satisfies readonly PermissionCode[];
 export type QuyenDatDuoc = (typeof QUYEN_DAT_DUOC)[number];
 export const isQuyenDatDuoc = (v: unknown): v is QuyenDatDuoc => typeof v === "string" && (QUYEN_DAT_DUOC as readonly string[]).includes(v);

@@ -45,7 +45,7 @@ test("quyetDinhHanMuc: ba chế độ × bị/không bị giới hạn × vượ
   assert.equal(quyetDinhHanMuc(CS("BLOCK", 3, 3), { chuoi: 2, tuan: 2 }, true), "cho");
 });
 
-test("biGioiHanTuChoi trên 1024 tập con của 10 mã quyền: đúng ⇔ có FIELD và không có SALES/ACCOUNTING/ADMIN/SUPER_ADMIN", () => {
+test("biGioiHanTuChoi trên 2048 tập con của 11 mã quyền: đúng ⇔ có FIELD và không có SALES/ACCOUNTING/ADMIN/SUPER_ADMIN", () => {
   const VP: PermissionCode[] = ["SALES", "ACCOUNTING", "ADMIN", "SUPER_ADMIN"];
   for (let mask = 0; mask < 1 << PERMISSION_CODES.length; mask++) {
     const tap = PERMISSION_CODES.filter((_, i) => mask & (1 << i));

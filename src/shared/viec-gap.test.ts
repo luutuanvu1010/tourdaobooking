@@ -65,7 +65,7 @@ test("guiLuc không đọc được → không tính là quá 2 giờ (không đ
   assert.equal(viecGap(KT, [{ ngayDi: "2026-11-20", guiLuc: "" }], BAY_GIO).hien, false);
 });
 
-test("vắng quyền: chỉ người giữ ô order.confirm.review có dải — 1024 tập quyền khớp can()", () => {
+test("vắng quyền: chỉ người giữ ô order.confirm.review có dải — 2048 tập quyền khớp can()", () => {
   const don = [{ ngayDi: "2026-10-31", guiLuc: truoc(5 * 60 * PHUT) }];
   let co = 0;
   for (let m = 0; m < 1 << PERMISSION_CODES.length; m++) {

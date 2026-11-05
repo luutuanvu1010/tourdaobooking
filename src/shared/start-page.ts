@@ -59,6 +59,7 @@ export function homeRedirect(who: PermissionHolder): string | null {
   if (coCuocCuaToi(who)) return TRANG_CUOC;
   if (coPhanTaiXe(who)) return TRANG_DAU_TAI_XE;
   if (can(who, "account.view")) return TRANG_TAI_KHOAN; // ADR-0071: Hành chính nhân sự
+  if (hasPermission(who, "SALES_MANAGER")) return "/account"; // ADR-0169: mã này bị bớt tay Bán hàng thì không có trang nghiệp vụ nào, về trang Tôi
   return null;
 }
 

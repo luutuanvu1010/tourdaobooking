@@ -16,7 +16,7 @@ assert.equal(r.status, 200);
 // ADR-0018: meta trả MỌI loại vai (kể cả vai cũ đã ngưng) kèm nhóm và trạng thái; vai nội bộ/bên ngoài chỉ gán ở trang Nhân viên.
 assert.deepEqual(r.body.roleTypes.map((t) => t.code).sort(), [
   "ACCOUNTANT", "AGENT", "BOAT_CAPTAIN", "CARRIER", "COLLABORATOR", "CUSTOMER", "DIRECTOR", "DRIVER", "DRIVER_EXTERNAL", "DRIVER_INTERNAL", "GUIDE", "GUIDE_FREELANCE", "GUIDE_INTERNAL",
-  "HOTEL_RECEPTION", "HR_STAFF", "INTERN", "IT", "OPERATIONS_MANAGER", "OWNER_COMPANY", "SALES", "SALES_STAFF", "STAFF", "SUPPLIER", "TAXI_DRIVER", "TRAVEL_AGENCY", // IT: ADR-0044; OWNER_COMPANY: T2b; DRIVER_INTERNAL: ADR-0040; DRIVER_EXTERNAL, CARRIER: ADR-0048; HR_STAFF: ADR-0071; SUPPLIER: sổ đại lý đợt 1 (migration 0090)
+  "HOTEL_RECEPTION", "HR_STAFF", "INTERN", "IT", "OPERATIONS_MANAGER", "OWNER_COMPANY", "SALES", "SALES_MANAGER", "SALES_STAFF", "STAFF", "SUPPLIER", "TAXI_DRIVER", "TRAVEL_AGENCY", // IT: ADR-0044; OWNER_COMPANY: T2b; DRIVER_INTERNAL: ADR-0040; DRIVER_EXTERNAL, CARRIER: ADR-0048; HR_STAFF: ADR-0071; SUPPLIER: sổ đại lý đợt 1 (migration 0090)
 ]);
 // Sổ đại lý đợt 1 (migration 0090): vai hồ sơ "Nhà cung cấp" — nhóm OTHER, đang dùng (người bán dịch vụ ở /nguoi-ban phải mang vai này).
 // ADR-0117 lần 1: mỗi dòng loại vai kèm cờ `partnerLabel` (loại đối tác do Kế toán thêm); mọi loại có sẵn đều false.

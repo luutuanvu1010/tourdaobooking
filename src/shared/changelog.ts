@@ -17,6 +17,15 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // ADR-0169: vai Quản lý bán hàng, công tắc kiểm vé về Dịch vụ & giá. Migration 0140. Số và ngày đặt lại ở bước A.0 nếu cần.
+    version: "2.63",
+    date: "2026-11-05",
+    items: [
+      { kind: "moi", text: "Có vai mới Quản lý bán hàng: làm mọi việc của Bán hàng, thêm bật, tắt cần kiểm vé và Ngừng bán, Mở bán lại. Quản trị, Giám đốc, Toàn quyền gán được vai này." },
+      { kind: "doi", text: "Công tắc Cần kiểm vé nay nằm ngay trong Dịch vụ & giá, theo từng vé và cả nhóm. Trang Dịch vụ cần kiểm vé không còn nữa. Quản trị cũng gạt được.", bai: { id: "viec/dich-vu-can-kiem-ve", ten: "Đánh dấu vé cần kiểm vé" } },
+    ],
+  },
+  {
     // Màn «Dịch vụ cần kiểm vé» (ADR-0136 Đ1, Đ5) và sửa máy chủ: vé tắt riêng trong nhóm đang bật. Không migration, không ô quyền mới.
     version: "2.62",
     date: "2026-11-04",

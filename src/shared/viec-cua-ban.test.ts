@@ -76,7 +76,7 @@ test("nguonCanTai: chỉ nguồn người này dùng; không nguồn quản tr�
   assert.ok(nguonCanTai(who("SUPER_ADMIN")).includes("gopY"));
 });
 
-test("1024 tập quyền: không xem mọi đơn ⇒ không thẻ đơn/tiền/chuyến và không đòi nguồn đó", () => {
+test("2048 tập quyền: không xem mọi đơn ⇒ không thẻ đơn/tiền/chuyến và không đòi nguồn đó", () => {
   const DON = ["nhap", "conThieu", "chuaPhuTrach", "chuyenHomNay"];
   const dayDu = { ...day, conThieu: { count: 5, total: 1 } };
   let xet = 0;
@@ -163,6 +163,6 @@ test("R-P18: mọi tập quyền có PARTNER (kể cả lai Kế toán / Toàn q
     assert.ok(!viecCuaBan(who(...p), day).the.concat(viecCuaBan(who(...p), day).conLaiThe).some((t) => t.khoa === "dieuChinh"), p.join("+"));
     assert.ok(!nguonCanTai(who(...p)).includes("dieuChinh"), p.join("+"));
   }
-  assert.equal(soTap, 512);
+  assert.equal(soTap, 1024);
   assert.ok(viecCuaBan(who("ACCOUNTING"), day).the.some((t) => t.khoa === "dieuChinh"), "Kế toán thường vẫn có thẻ");
 });

@@ -809,6 +809,11 @@ export interface CatalogGroupAssignResponse { doi: number; boQua: number }
 /** `GET /api/catalog/:code/group-history` — mới nhất trước; `createdBy` là id tài khoản (`null` = Hệ thống gieo); `nhom` là tên (`null` = Chưa phân loại). */
 export interface CatalogGroupHistoryResponse { items: { luc: string; createdBy: string | null; nhom: string | null }[] }
 export interface CatalogItemResponse { item: CatalogAdminItemDto }
+/** `GET /api/catalog/quan-ly-ban` (ADR-0169 Đ5): màn hẹp của Quản lý bán hàng. Không có giá, không có dữ liệu nhà cung cấp. `dangBan` = false là đã ngừng bán. */
+export interface CatalogQuanLyBanResponse { dichVu: { code: string; ten: string; dangBan: boolean; groupCode: string | null }[]; nhom: { code: string; ten: string }[] }
+/** `PUT /api/catalog/:code/ngung-ban` (ADR-0169 Đ5). */
+export interface CatalogNgungBanInput { ngungBan: boolean }
+export interface CatalogNgungBanResponse { code: string; ngungBan: boolean }
 export interface CatalogSyncResponse {
   ok: true;
   added: number;

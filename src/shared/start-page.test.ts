@@ -79,7 +79,7 @@ test("homeRedirect: chỉ Tài xế đối tác (DRIVER_PARTNER) → /cuoc (A4 T
   assert.equal(coPhanTaiXe(who("SALES", "FIELD")), false);
 });
 
-test("homeRedirect: 1024 tập con quyền — tập KHÔNG có phần tài xế (DRIVER hoặc DRIVER_PARTNER) cho đúng kết quả cũ; trang đầu tài xế chỉ khi có phần tài xế và không xem đơn nào", () => {
+test("homeRedirect: 2048 tập con quyền — tập KHÔNG có phần tài xế (DRIVER hoặc DRIVER_PARTNER) cho đúng kết quả cũ; trang đầu tài xế chỉ khi có phần tài xế và không xem đơn nào", () => {
   const cu = (w: { id: string; permissions: PermissionCode[] }) => (!seesAllOrders(w) && canAccessOrders(w) ? "/orders" : null); // công thức trước ADR-0040, chép nguyên
   let n = 0;
   for (let mask = 0; mask < 1 << PERMISSION_CODES.length; mask++, n++) {
@@ -88,10 +88,12 @@ test("homeRedirect: 1024 tập con quyền — tập KHÔNG có phần tài xế
     // A4 T6 (NT-12): mọi phần tài xế (DRIVER hoặc DRIVER_PARTNER) nay có Cuốc (trip.view assigned) → /cuoc; /tai-xe không còn là trang đầu của tập nào.
     const truocHr = !coTaiXe || seesAllOrders(w) || canAccessOrders(w) ? cu(w) : TRANG_CUOC;
     // ADR-0071: tài khoản không có trang đầu nào khác mà xem được Quản lý tài khoản (Hành chính nhân sự) → /staff.
-    const kyVong = truocHr === null && !seesAllOrders(w) && can(w, "account.view") ? TRANG_TAI_KHOAN : truocHr;
+    const sauHr = truocHr === null && !seesAllOrders(w) && can(w, "account.view") ? TRANG_TAI_KHOAN : truocHr;
+    // ADR-0169: tài khoản chỉ còn mã Quản lý bán hàng (bị bớt tay Bán hàng) không có trang nghiệp vụ nào → trang Tôi. Tập không có mã này giữ nguyên.
+    const kyVong = sauHr === null && !seesAllOrders(w) && w.permissions.includes("SALES_MANAGER") ? "/account" : sauHr;
     assert.equal(homeRedirect(w), kyVong, w.permissions.join("+") || "(không quyền)");
   }
-  assert.equal(n, 1024); // 10 mã (ADR-0071 thêm HR)
+  assert.equal(n, 2048); // 11 mã (ADR-0169 thêm SALES_MANAGER)
 });
 
 // ADR-0071: tài khoản chỉ Hành chính nhân sự (HR) không qua cổng orders — ở lại "/" thì Trang chủ gọi dashboard đơn và nhận 403. Đưa tới trang Quản lý tài khoản.

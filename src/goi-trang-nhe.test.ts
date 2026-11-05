@@ -45,7 +45,8 @@ const CHO_PHEP_NHAT_KY = new Set(["web/help.ts"]);
 // Nới 103.178 → 103.523 (ADR-0161 Đ3, 3/11/2026; kế hoạch Task 8): thêm trang /hoa-hong-gioi-han vào `TRANG`/`THANH_BEN`/`TRANG_TOI` của `muc-giao-dien.ts` (cộng một hàm chốt chặn dùng chung `chiToanQuyenKhongDoiTac`) và một dòng
 // bài theo việc; chỉ dữ liệu điều hướng. Đo thật 103.423 byte trên nhánh; `main` đo 103.139 (3/11/2026), chênh +284 nằm trọn ở `src/shared/muc-giao-dien.ts` (dữ liệu điều hướng; không tệp nào khác trong gói đổi so với `main`). Trần = số đo + 100. Không mã giao diện nghiệp vụ nào vào gói Đơn hàng. CHƯA có lời duyệt riêng của chủ dự án cho con số này.
 // Nới 103.523 → 103.692 (ADR-0136 Đ1, 4/11/2026): thêm trang /dich-vu-kiem-ve vào `TRANG`/`THANH_BEN`/`TRANG_TOI` (chỉ dữ liệu điều hướng, khuôn các lần /ve-cai-dat). Đo thật 103.592 byte, trần = số đo + 100. CHƯA có lời duyệt riêng của chủ dự án cho con số này.
-const TRAN_ORDERS = 103_692;
+// Nới 103.692 → 103.836 (ADR-0169, 5/11/2026): thêm mã quyền, vai, hai ô vào bản đồ (dữ liệu quyền, không mã giao diện); gỡ trang riêng bù được một phần. Đo thật 103.736 byte, trần = số đo + 100.
+const TRAN_ORDERS = 103_836;
 
 function dung(trang: string) {
   const r = buildSync({
