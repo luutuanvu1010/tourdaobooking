@@ -12,7 +12,7 @@
 // "thêm trang".
 // Không có điều kiện nào ở web/shell.ts, web/account.ts: hai tệp đó chỉ vẽ danh sách hàm dưới đây trả về.
 import { thayDieuPhoiXe } from "./dieu-phoi-man.ts";
-import { can, canAccessOrders, dungManHepDichVu, holdsPartner, isOffice, seesAllOrders, type PermissionHolder } from "./permissions.ts";
+import { can, canAccessOrders, dungManHepDichVu, holdsPartner, isOffice, seesAllOrders, type OperationCode, type PermissionHolder } from "./permissions.ts";
 import { TRANG_CUOC, TRANG_DAU_TAI_XE, chiTaiXe, coCuocCuaToi, coMucDonHang } from "./start-page.ts";
 
 /** Đường gọi chính của một trang: lời gọi mà trang cần để làm việc của nó (đọc, không ghi). Máy chủ không từ chối nó ⇔ trang mở được. */
@@ -50,6 +50,8 @@ export interface TrangDich {
 
 const quanLyXe = (s: PermissionHolder): boolean => can(s, "vehicle.manage");
 const luonCo = (): boolean => true;
+const ve = (o: OperationCode) => (s: PermissionHolder): boolean => can(s, o);
+const vk = (o: OperationCode) => (s: PermissionHolder): boolean => can(s, o) && !holdsPartner(s);
 
 /**
  * MỌI trang có lối vào. Đường gọi chính của từng trang ở bảng riêng `GOI_CHINH` (`muc-giao-dien-goi.ts`, chỉ bài rào đọc — Ruling R-P27); thêm trang ở
@@ -69,22 +71,22 @@ export const TRANG = {
     hien: canAccessOrders,
     tam: (k) => coMucDonHang(k),
   },
-  taoDon: { duong: "/order-form", hien: (s) => can(s, "order.create"), tam: (k) => k.canCreate },
+  taoDon: { duong: "/order-form", hien: ve("order.create"), tam: (k) => k.canCreate },
   danhBa: { duong: "/parties", hien: isOffice, tam: (k) => k.office },
   dichVu: { duong: "/catalog", hien: (s) => can(s, "admin.manage") || dungManHepDichVu(s), tam: (k) => k.admin }, // ADR-0169 Đ4
   // ADR-0071: ô account.view (Quản trị, Nhân sự, Toàn quyền). Bản nhớ khung không có cờ này (ADR-0035): khung tạm dùng `admin` — Nhân sự thiếu mục một nhịp.
-  taiKhoan: { duong: "/staff", hien: (s) => can(s, "account.view"), tam: (k) => k.admin },
-  phien: { duong: "/sessions", hien: (s) => can(s, "auth.session.viewAll") }, // ADR-0075 điều 7
+  taiKhoan: { duong: "/staff", hien: ve("account.view"), tam: (k) => k.admin },
+  phien: { duong: "/sessions", hien: ve("auth.session.viewAll") }, // ADR-0075 điều 7
   // GET /api/locations mở cho mọi tài khoản (form đơn, form chuyến cần danh sách) — trang quản lý chỉ mở cho ô admin.manage (web/locations.ts).
-  diaDiem: { duong: "/locations", hien: (s) => can(s, "admin.manage"), moTrang: (s) => can(s, "admin.manage"), tam: (k) => k.admin },
-  loaiGiayToNguoi: { duong: "/loai-giay-to-nguoi", hien: (s) => can(s, "admin.manage") },
+  diaDiem: { duong: "/locations", hien: ve("admin.manage"), moTrang: ve("admin.manage"), tam: (k) => k.admin },
+  loaiGiayToNguoi: { duong: "/loai-giay-to-nguoi", hien: ve("admin.manage") },
   // Bảng điều phối (ADR-0049, Q-B-4): ô trip.view không ngữ cảnh — văn phòng.
   dieuPhoi: { duong: "/dieu-phoi", cungSang: ["/chuyen", "/chuyen-sua"], hien: thayDieuPhoiXe },
   xeDangChay: { duong: "/xe-dang-chay", hien: thayDieuPhoiXe },
   // Gói A5 (ADR-0111; bản vẽ V10): duyệt / bác đề nghị chuyển khách leo thang — CHỈ ô trip.override (Quản trị, Toàn quyền). Đường gọi chính hỏi trip.view (rộng hơn).
   deNghi: { duong: "/de-nghi", hien: (s) => thayDieuPhoiXe(s) && can(s, "trip.override") },
-  bangGiaXe: { duong: "/bang-gia-xe", hien: (s) => can(s, "transport.rate.view") }, // ADR-0057 T1
-  bangKeXe: { duong: "/bang-ke-xe", hien: (s) => can(s, "transport.cost.view") }, // ADR-0057 T2
+  bangGiaXe: { duong: "/bang-gia-xe", hien: ve("transport.rate.view") }, // ADR-0057 T1
+  bangKeXe: { duong: "/bang-ke-xe", hien: ve("transport.cost.view") }, // ADR-0057 T2
   xe: { duong: "/xe", cungSang: ["/xe-sua", "/xe-chi-tiet"], hien: quanLyXe }, // ADR-0040 D1
   lichXeBan: { duong: "/lich-xe-ban", hien: quanLyXe }, // ADR-0055 VK2-A
   sapHetHan: { duong: "/giay-to-sap-het-han", hien: quanLyXe },
@@ -97,9 +99,9 @@ export const TRANG = {
   },
   lyDoDieuPhoi: { duong: "/ly-do-dieu-phoi", hien: (s) => quanLyXe(s) && can(s, "admin.manage") },
   // Khoá sổ tháng (sổ đại lý đợt 1 Task 12): ô ledger.view không ngữ cảnh — Kế toán, Toàn quyền.
-  khoaThang: { duong: "/khoa-thang", hien: (s) => can(s, "ledger.view") },
+  khoaThang: { duong: "/khoa-thang", hien: ve("ledger.view") },
   // Sổ công nợ theo đối tác (kế hoạch 2026-10-24 P1; bản vẽ 2a): CÙNG ô với route GET /api/ledger — ledger.view không ngữ cảnh (Kế toán, Toàn quyền). Chỉ đọc.
-  soCongNo: { duong: "/so-cong-no", hien: (s) => can(s, "ledger.view") },
+  soCongNo: { duong: "/so-cong-no", hien: ve("ledger.view") },
   // Điều chỉnh công nợ cần người thứ hai duyệt (ADR-0115 đợt 1): xem danh sách = ô gửi (`ledger.write`) HOẶC ô duyệt (`ledger.adjust.approve`; Quản trị chỉ thấy yêu cầu chờ duyệt).
   dieuChinhCongNo: { duong: "/dieu-chinh-cong-no", hien: vaoSoDieuChinh }, // R-P18: máy chủ chặn tài khoản giữ quyền Đối tác
   // Phân định trách nhiệm (ADR-0116): trên mọi tập quyền trùng điều kiện route GET /api/ledger/phan-dinh (ô attribution.request trùng ô ledger.adjust.approve; decide nằm trong đó). Không có mục thanh bên
@@ -107,30 +109,32 @@ export const TRANG = {
   phanDinh: { duong: "/phan-dinh", hien: vaoSoDieuChinh },
   // Bảng mức hoa hồng và điều khoản người bán (sổ đại lý đợt 1 Task 10): ô partner.commission.view / supply.terms.view không ngữ cảnh. Bảy route `pricing` chặn THÊM tài khoản giữ quyền
   // Đối tác (kể cả tài khoản lai, Ruling 12) — mục hiện phải chặn CÙNG điều kiện, nếu không tài khoản lai thấy mục mà bấm vào bị 403.
-  hoaHong: { duong: "/hoa-hong", hien: (s) => can(s, "partner.commission.view") && !holdsPartner(s) },
+  hoaHong: { duong: "/hoa-hong", hien: vk("partner.commission.view") },
   // Màn «Cấp độ đại lý» (đặc tả 2026-11-04-man-cap-dai-ly): CÙNG cổng route `GET /api/pricing/cap-dai-ly` — ô partner.commission.write, không giữ quyền Đối tác (Kế toán, Quản trị, Toàn quyền). Bán hàng có ô xem nhưng không mở màn gom này.
-  capDaiLy: { duong: "/cap-dai-ly", hien: (s) => can(s, "partner.commission.write") && !holdsPartner(s) },
+  capDaiLy: { duong: "/cap-dai-ly", hien: vk("partner.commission.write") },
+  // Hạn mức trả sau (ADR-0168): CÙNG cổng route `GET /api/tra-sau/han-muc` — ô credit.limit.view (Kế toán, Toàn quyền), không giữ quyền Đối tác.
+  hanMucTraSau: { duong: "/han-muc-tra-sau", hien: vk("credit.limit.view"), moTrang: vk("credit.limit.view") },
   // Luật bán theo loại đối tác (ADR-0146 Đ5; kế hoạch 2026-10-30 T11): CÙNG điều kiện ba route `/api/pricing/luat-ban` — ô sales.block.write và không giữ quyền Đối tác (Q-2 (a)).
-  luatBan: { duong: "/luat-ban", hien: (s) => can(s, "sales.block.write") && !holdsPartner(s) },
+  luatBan: { duong: "/luat-ban", hien: vk("sales.block.write") },
   // Đặc điểm dịch vụ (ADR-0152 Đ3, Đ5; T12): CÙNG điều kiện route `GET /api/catalog/dac-diem` — catalog.attribute.assign hoặc admin.manage, không giữ quyền Đối tác (Q-2 (a)).
   dacDiem: { duong: "/dac-diem-dich-vu", hien: (s) => (can(s, "catalog.attribute.assign") || can(s, "admin.manage")) && !holdsPartner(s) },
-  nguoiBan: { duong: "/nguoi-ban", hien: (s) => can(s, "supply.terms.view") && !holdsPartner(s) },
+  nguoiBan: { duong: "/nguoi-ban", hien: vk("supply.terms.view") },
   // Chụp bù mức (sổ đại lý đợt 2, Task 12; ADR-0079 điều 7 b2): CÙNG cổng route `GET /api/orders/cho-chup-bu` — ô order.terms.override và không giữ quyền Đối tác (kể cả lai).
-  chupBu: { duong: "/chup-bu", hien: (s) => can(s, "order.terms.override") && !holdsPartner(s) },
+  chupBu: { duong: "/chup-bu", hien: vk("order.terms.override") },
   // Kho vé điện tử (ADR-0153; Task 9a): CÙNG cổng route `GET /api/ve/kho` — ô ve.kho.manage (Bán hàng, Quản trị, Toàn quyền).
-  veKho: { duong: "/ve-kho", hien: (s) => can(s, "ve.kho.manage") },
+  veKho: { duong: "/ve-kho", hien: ve("ve.kho.manage") },
   // Cài đặt vé điện tử (ADR-0156 Đ3): CÙNG cổng route `GET /api/ve/cai-dat` — ô settings.ops (chỉ Toàn quyền).
-  veCaiDat: { duong: "/ve-cai-dat", hien: (s) => can(s, "settings.ops") },
+  veCaiDat: { duong: "/ve-cai-dat", hien: ve("settings.ops") },
   // Dịch vụ cần kiểm vé (ADR-0136 Đ1, Đ5): cờ đọc ở `GET /api/cai-dat/xac-nhan-don` (settings.ops), danh sách dịch vụ ở `GET /api/catalog/dac-diem` (chặn tài khoản giữ quyền Đối tác) ⇒ cùng hàm cho mục và trang.
   // Giới hạn nhập hoa hồng (ADR-0161 Đ3): trang chỉ Toàn quyền (ô settings.ops, như ghi của route) và KHÔNG Đối tác. Đường gọi chính `GET /api/pricing/gioi-han-nhap` rộng hơn (office, partner.commission.view, không Đối tác — cho hộp
   // nhập báo sớm), nên trang tự chặn ở trình duyệt bằng `moTrang` (web/hoa-hong-gioi-han.ts): người xem được giới hạn mà không phải Toàn quyền không thấy mục và không mở được trang.
   hoaHongGioiHan: { duong: "/hoa-hong-gioi-han", hien: chiToanQuyenKhongDoiTac, moTrang: chiToanQuyenKhongDoiTac },
   // Đơn chờ xác nhận (ADR-0136 Đ6; Task 3.5): CÙNG cổng route `GET /api/orders/cho-xac-nhan` — ô order.confirm.review không ngữ cảnh (Bán hàng, Kế toán, Quản trị, HDV, Toàn quyền).
-  choXacNhan: { duong: "/cho-xac-nhan", hien: (s) => can(s, "order.confirm.review") },
-  nhatKy: { duong: "/audit", hien: (s) => can(s, "audit.view") }, // ADR-0038 điều 6: chỉ Toàn quyền
-  guiThongBao: { duong: "/gui-thong-bao", hien: (s) => can(s, "notice.send") }, // ADR-0034
-  troLy: { duong: "/tro-ly-cai-dat", hien: (s) => can(s, "settings.ops") }, // ADR-0069 điều 1
-  giaoDien: { duong: "/giao-dien", hien: (s) => can(s, "settings.ops") }, // ADR-0087
+  choXacNhan: { duong: "/cho-xac-nhan", hien: ve("order.confirm.review") },
+  nhatKy: { duong: "/audit", hien: ve("audit.view") }, // ADR-0038 điều 6: chỉ Toàn quyền
+  guiThongBao: { duong: "/gui-thong-bao", hien: ve("notice.send") }, // ADR-0034
+  troLy: { duong: "/tro-ly-cai-dat", hien: ve("settings.ops") }, // ADR-0069 điều 1
+  giaoDien: { duong: "/giao-dien", hien: ve("settings.ops") }, // ADR-0087
   // Trang đầu của tài khoản "chỉ tài xế" (ADR-0040 D3) — web/tai-xe.ts tự chuyển người khác về "/"; giấy tờ của tôi (đường gọi chính) mở cho mọi nhân viên nội bộ.
   trangTaiXe: { duong: TRANG_DAU_TAI_XE, hien: chiTaiXe, moTrang: chiTaiXe },
   // Q5: tài xế công ty. Đường gọi chính cho cả văn phòng (ô trip.view mọi chuyến) — web/cuoc.ts báo "Tài khoản này không có cuốc xe." với người không lái.
@@ -147,8 +151,8 @@ export const TRANG = {
     get cungSang(): readonly string[] {
       return [...(THANH_BEN as readonly ChoThanhBen[]).filter((c) => c.nhom === "THIẾT LẬP").flatMap((c) => [TRANG[c.trang].duong, ...((TRANG[c.trang] as TrangDich).cungSang ?? [])])];
     },
-    hien: (s) => can(s, "admin.manage"),
-    moTrang: (s) => can(s, "admin.manage"),
+    hien: ve("admin.manage"),
+    moTrang: ve("admin.manage"),
     tam: (k) => k.admin,
   },
 } as const satisfies Record<string, TrangDich>;
@@ -200,6 +204,7 @@ export interface ChoThanhBen extends ChoDat {
 
 // Một hằng cho nhãn nhóm lặp ở mọi dòng Thiết lập: chữ có dấu thành \uXXXX trong gói nén nên dòng nào cũng tốn ~20 byte (trần gói trang Đơn hàng, src/goi-trang-nhe.test.ts). Giá trị không đổi.
 const THIET_LAP = "THIẾT LẬP";
+const tl = <T extends string, N extends string>(trang: T, nhan: N) => ({ nhom: THIET_LAP, trang, nhan }) as const;
 export const THANH_BEN = [
   { nhom: "HẰNG NGÀY", trang: "trangChu", nhan: "Trang chủ", bieuTuong: "home" },
   // Tài xế: "Trang chủ" của họ là /tai-xe; "Cuốc của tôi" cho mọi tài khoản tài xế công ty (kể cả kiêm văn phòng — K2b T2).
@@ -219,6 +224,7 @@ export const THANH_BEN = [
   { nhom: "TIỀN", trang: "soCongNo", nhan: "Sổ công nợ & khoá sổ", bieuTuong: "lock", gom: ["soCongNo", "khoaThang"] },
   { nhom: THIET_LAP, trang: "hoaHong", nhan: "Hoa hồng đối tác" },
   { nhom: THIET_LAP, trang: "capDaiLy", nhan: "Cấp độ đại lý" },
+  { nhom: THIET_LAP, trang: "hanMucTraSau", nhan: "Hạn mức trả sau" },
   { nhom: THIET_LAP, trang: "luatBan", nhan: "Luật bán" },
   { nhom: THIET_LAP, trang: "nguoiBan", nhan: "Người bán dịch vụ" },
   { nhom: THIET_LAP, trang: "chupBu", nhan: "Chụp bù mức" },

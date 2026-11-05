@@ -5,6 +5,7 @@ import type { CatalogService, PaxCode, PaxCounts, Prices } from "./order-lines.t
 import type { FeedbackKind, FeedbackStatus } from "./feedback-catalog.ts";
 import type { Priority, TeamRole } from "./ve-ho-tro.ts";
 import type { LyDoSuaSai } from "./giay-to.ts";
+import type { HinhThucThanhToan } from "./tra-sau.ts";
 import type { NhomLyDo } from "./dieu-phoi-kieu.ts";
 import type { PermissionCode } from "./permissions.ts";
 import type { RoleCode } from "./roles.ts";
@@ -344,6 +345,10 @@ export interface OrderDto {
    * Lời khai «Khách đặt cọc trước» của người lập (ADR-0159): chỉ có nghĩa khi đơn còn NHÁP, không phải khoản thu. Đơn đã rời nháp luôn là 0 — tiền đã thu đọc từ sổ, không đọc cột.
    */
   declaredDeposit: number;
+  /** Hình thức thanh toán (ADR-0168): `PREPAID` (mặc định) hoặc `CREDIT` (Trả sau). Nhãn hiện cho người dùng: `NHAN_HINH_THUC` (src/shared/tra-sau.ts). */
+  paymentTerm: HinhThucThanhToan;
+  /** Hạn trả của đơn Trả sau đã xác nhận (YYYY-MM-DD, giờ Việt Nam); `null` ở đơn Trả trước hoặc đơn chưa xác nhận. */
+  hanTra: string | null;
   createdAt: string;
   updatedAt: string;
   confirmedAt: string | null;
@@ -448,6 +453,8 @@ export interface OrderInput {
   paymentNote: string;
   /** ADR-0159: lời khai «Khách đặt cọc trước», chỉ tài khoản giữ quyền Đối tác gửi; vắng = giữ số đang lưu. */
   declaredDeposit?: number;
+  /** ADR-0168: hình thức thanh toán; vắng = giữ hình thức đang lưu (đơn mới: Trả trước). Trả sau chỉ nhận được khi bên đặt có hạn mức còn hiệu lực. */
+  paymentTerm?: HinhThucThanhToan;
   /** Gắn hồ sơ có sẵn (id `pty_party`, chỉ cá nhân đang hoạt động); null/vắng = không gắn. Không gửi kèm `newBooker`. */
   bookerPartyId?: string | null;
   /** Tạo hồ sơ cá nhân mới + vai CUSTOMER cùng lúc lưu đơn (ADR-0011 điều 1). Không gửi kèm `bookerPartyId`. */
@@ -3112,6 +3119,50 @@ export interface CaiDatXacNhanResponse {
 }
 export type CaiDatXacNhanInput = { pham: "SERVICE" | "GROUP"; ma: string; canXacNhan: boolean } | { tuXacNhanNoiBo: boolean };
 
+// ---- Trả sau theo hạn mức (ADR-0168; billing) ----
+/** Một hồ sơ trên màn «Hạn mức trả sau». `coHanMuc` false = hồ sơ còn đơn Trả sau đang nợ nhưng hạn mức đã ngừng. Số tiền VNĐ, tính ở máy chủ. */
+export interface HanMucTraSauDto {
+  partyId: string;
+  ten: string;
+  coHanMuc: boolean;
+  hanMuc: number | null;
+  soNgay: number | null;
+  tuNgay: string | null;
+  dangNo: number;
+  conDuocDung: number | null;
+  soDonNo: number;
+  soDonQuaHan: number;
+}
+export interface HanMucTraSauListResponse {
+  danhSach: HanMucTraSauDto[];
+  /** Toàn quyền sửa được; Kế toán chỉ xem. */
+  coQuyenSua: boolean;
+}
+export interface DonNoTraSauDto {
+  orderId: string;
+  maDon: string;
+  /** Ngày hạn trả (YYYY-MM-DD, giờ Việt Nam). */
+  hanTra: string | null;
+  no: number;
+  quaHan: boolean;
+}
+export interface DonNoTraSauResponse {
+  partyId: string;
+  ten: string;
+  don: DonNoTraSauDto[];
+}
+export interface DatHanMucTraSauInput {
+  partyId: string;
+  hanMuc: number;
+  soNgay: number;
+  lyDo?: string;
+}
+/** Đường đọc hẹp cho người lập đơn: chỉ số còn được dùng của đúng bên đặt, không kèm danh sách đơn. */
+export interface ConDuocDungTraSauResponse {
+  coHanMuc: boolean;
+  conDuocDung: number;
+  coDonQuaHan: boolean;
+}
 // ---- Bán hàng phụ trách đơn (ADR-0142) ------------------------------------------------------------------------------------------------------------------
 /** `GET /api/dispatch/ban-hang-moi`: người mời được làm Bán hàng phụ trách — CHỈ mã tài khoản + tên (không SĐT, không email). */
 export interface BanHangMoiResponse { banHang: { staffId: string; name: string }[] }

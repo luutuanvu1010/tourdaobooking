@@ -10,6 +10,7 @@ import { chiaPhanNguoiBan, nguoiBanCuaDong } from "../../shared/chia-phan-nguoi-
 import { tinhDongDoiTac, type BanChup } from "../../shared/hoa-hong-dong.ts";
 import { cauKyKhoa, kyCua } from "../../shared/ky-khoa.ts";
 import type { NhomHuy } from "../../shared/ly-do-huy.ts";
+import { cauChoDoiTacThanhToan } from "../../shared/tra-sau.ts";
 
 export type ReceiptKind = "CUSTOMER_PAYMENT" | "CUSTOMER_REFUND";
 export type CollectorRole = "COMPANY" | "STAFF" | "BOOKER" | "SUPPLIER" | "UNKNOWN";
@@ -908,6 +909,8 @@ export function lyDoChuaGiaoDuoc(input: {
   soKhoanDoiChieu: number;
   /** Cụm lời thường của từng khoản đang đối chiếu (`cumDoiChieu`). Vắng, hoặc mọi khoản là «Công ty thu» ⇒ câu cũ của ADR-0120 giữ nguyên chữ. */
   cumDoiChieu?: readonly string[];
+  /** ADR-0168 Đ3 mục 2: đơn Trả sau — còn nợ thì cùng mã `underpaid` nhưng câu khác và Kế toán xử lý. Vắng / false = đơn Trả trước, giữ nguyên chữ. */
+  traSau?: boolean;
   so: SoTienDon;
 }): LyDoGiu | null {
   if (input.deliveredAt) return { ma: "already_delivered", cau: "Đơn đã ở bước Xong và đủ tiền.", aiXuLy: "Văn phòng" };
@@ -932,6 +935,9 @@ export function lyDoChuaGiaoDuoc(input: {
   }
   if (input.so.chuaRo > 0) {
     return { ma: "unknown_collector", cau: "Còn tiền trả trước chưa rõ người thu tiền — Kế toán xác nhận lại người thu tiền trước.", aiXuLy: "Kế toán" };
+  }
+  if (input.so.conLai > 0 && input.traSau) {
+    return { ma: "underpaid", cau: cauChoDoiTacThanhToan(input.so.conLai), aiXuLy: "Kế toán" };
   }
   if (input.so.conLai > 0) {
     return { ma: "underpaid", cau: `Còn thiếu ${dong(input.so.conLai)} — ghi thêm khoản thu hoặc sửa đơn trước.`, aiXuLy: "Hướng dẫn viên" };

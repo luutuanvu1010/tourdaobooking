@@ -423,8 +423,8 @@ async function tinhGop(ctx: Ctx<"admin">, aId: string, bId: string, homNay: stri
   if (!A || !B) return NOT_FOUND();
   // G12: hồ sơ chính gắn tài khoản mà người gộp không quản được (Quản trị khác / Toàn quyền) → 403 — luật cấp bậc có sẵn (staff tính qua ctx.partyAccount).
   if (B.acc.linked && !B.acc.manageable) return MERGE_FORBIDDEN();
-  const [viec, don, soNo] = await Promise.all([ctx.gopHoSo.viecCua(aId), ctx.gopHoSo.donNguoiDat(aId), ctx.gopHoSo.soDongNo(aId)]);
-  const ke = keHoachGop(A.hs, B.hs, { ...viec, donLechTien: don.lechTien }, homNay);
+  const [viec, don, soNo, conNo] = await Promise.all([ctx.gopHoSo.viecCua(aId), ctx.gopHoSo.donNguoiDat(aId), ctx.gopHoSo.soDongNo(aId), ctx.gopHoSo.conNoTraSau?.(aId) ?? Promise.resolve([])]);
+  const ke = keHoachGop(A.hs, B.hs, { ...viec, donLechTien: don.lechTien, donConNoTraSau: conNo }, homNay);
   // ADR-0126 (ruling R16): hồ sơ đang có / đã thực hiện phiếu xoá thì không gộp (hồ sơ phụ gộp vào hồ sơ đã ẩn danh sẽ mang dữ liệu thật vào hồ sơ "đã xoá"). Đứng ĐẦU danh sách
   // chặn để câu trả lời của route là câu này, kể cả khi hồ sơ đã xoá là hồ sơ phụ có tài khoản.
   if (await coPhieuXoaChoHoacDa(ctx.env.DB, aId, bId)) ke.chan.unshift(chanCo("merge_erasure"));

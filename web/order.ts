@@ -1,5 +1,6 @@
 import { ApiError, api, vuaLamBoiTabNay, type Api, type AuditEntry, type Order, type Staff } from "./api";
 import { NHAN_DAT_COC_CHO } from "../src/shared/dat-coc-truoc";
+import { nhanHinhThucDon } from "../src/shared/han-muc-tra-sau-hien-thi";
 import { renderBanner } from "./banner";
 import { openBookerSheet } from "./booker-sheet";
 import { openConfirmationDialog } from "./confirmation-dialog";
@@ -626,6 +627,7 @@ function tienCard(order: Order): HTMLElement {
     rows.push(kv(nhanTienDaTra(order).nhan, vnd(t.daThu)));
     rows.push(t.du > 0 ? kv("Khách trả dư", `${vnd(t.du)} — chờ Kế toán hoàn`, "strong") : kv("Còn lại", vnd(t.conLai), "strong"));
   } else rows.push(kv("Đã thu / còn lại", "Chưa tải được"));
+  if (order.paymentTerm === "CREDIT") rows.push(kv("Hình thức thanh toán", nhanHinhThucDon(order.paymentTerm, order.hanTra)));
   rows.push(kv("Ghi chú thanh toán", order.paymentNote));
   // ADR-0063 D1 + ADR-0109 QĐ3: bớt khách tới mức giảm giá lớn hơn tạm tính KHÔNG bị chặn — câu cảnh báo hiện thường trực trên khối tiền (phải thu đã kẹp 0).
   // ADR-0114 D1: thêm câu nhắc khuyến mại MÀU ĐỎ (máy chủ gửi `canhBaoKhuyenMai`) cạnh câu vàng cũ — hai câu có thể cùng hiện. Hiện đúng chỗ trang đã hiện giảm giá (khối này), không thêm cổng quyền.

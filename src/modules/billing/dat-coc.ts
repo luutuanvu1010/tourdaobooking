@@ -7,6 +7,7 @@ import { benDatHuong, soKhaiChuaNop } from "./rules";
 import { GHI_CHU_KHOAN_LOI_KHAI, cocLapLaiConGiu, donCuaKhoan, hoSoNhanVien } from "./coc-repo";
 import { linesOfOrder, ownerCompanyId, receiptOnConfirmStatement, receiptsOfOrder } from "./repository";
 import { cauLanThu, tienNhieuDon, toLineRow } from "./service";
+import { traSauCuaDon } from "./tra-sau";
 
 const dong = (n: number): string => `${n.toLocaleString("vi-VN")} ₫`;
 
@@ -60,15 +61,17 @@ async function phanKhaiCuaDon(db: D1Database, receipts: readonly KhoanDon[], daQ
  * `daThu` Ở ĐÂY đã trừ số khai chưa nộp, chỉ dùng cho vé; «đã thu» hiển thị ở nơi khác vẫn đọc `tienNhieuDon`. KHÔNG tự kiểm quyền — route của ve-dien-tu hỏi `can(` trước.
  * `null` khi không đọc được: không mở vé. `choNop` để giao diện nói đúng ca chờ nộp.
  */
-export async function tienDonVe(db: D1Database, orderId: string): Promise<{ daThu: number; phaiThu: number; choNop: number } | null> {
+export async function tienDonVe(db: D1Database, orderId: string): Promise<{ daThu: number; phaiThu: number; choNop: number; traSau: { hanTra: string | null; no: number } | null } | null> {
   const t = (await tienNhieuDon(db, [orderId])).get(orderId);
   if (!t) return null;
+  // ADR-0168 Đ3 mục 1: đơn Trả sau mở vé không cần thu đủ — hạn trả và nợ đi kèm để route vé hỏi MỘT hàm `moVeDuoc`. `null` = đơn Trả trước.
+  const traSau = await traSauCuaDon(db, orderId);
   const khoan = await phanKhaiCuaDon(db, await receiptsOfOrder(db, orderId), new Set([orderId]));
-  if (khoan.length === 0) return { daThu: t.daThu, phaiThu: t.phaiThu, choNop: 0 };
+  if (khoan.length === 0) return { daThu: t.daThu, phaiThu: t.phaiThu, choNop: 0, traSau };
   const [congTyId, lines] = await Promise.all([ownerCompanyId(db), linesOfOrder(db, orderId)]);
   if (!congTyId) return null;
   const choNop = soKhaiChuaNop(khoan, lines.map(toLineRow), congTyId);
-  return { daThu: t.daThu - choNop, phaiThu: t.phaiThu, choNop };
+  return { daThu: t.daThu - choNop, phaiThu: t.phaiThu, choNop, traSau };
 }
 
 /** Dựng câu khoản thu cho lô xác nhận; câu dựng ra CHƯA chạy, nằm sau câu xác nhận trong cùng một lô. Tháng đã khoá: trigger huỷ cả lô, `orders` dịch thành 409. */

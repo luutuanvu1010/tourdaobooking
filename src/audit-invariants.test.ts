@@ -4456,3 +4456,28 @@ test("R-ORD-17w và changDauCuaDichVu chọn CÙNG lượt: trên mỗi ca xếp
   }
   assert.ok(mong >= 5 && mong < ca.length, "chống bài rỗng: có ca đếm và có ca không đếm");
 });
+
+// ---------------------------------------------------------------------------------------------------------------------------------------------------
+// R-CRD-1, R-CRD-2 (ADR-0168 Đ2 mục 1, 7; migration 0141): hình thức thanh toán và hạn trả đi cùng nhau.
+// ---------------------------------------------------------------------------------------------------------------------------------------------------
+test("R-CRD-1 / R-CRD-2: Trả sau đã xác nhận thiếu hạn trả, hoặc Trả trước có hạn trả → vi phạm; đủ cặp / còn nháp → 0", () => {
+  const db = build();
+  const c1 = one("R-CRD-1");
+  const c2 = one("R-CRD-2");
+  assert.deepEqual([c1.level, c2.level], ["fail", "fail"]);
+  /** Đơn nháp có hình thức `term`; `xacNhan` đưa lên «Đã xác nhận» (hình thức chỉ đổi được lúc nháp); `han` gán sau cùng (cột hạn trả không bị khoá). */
+  const don = (term: string, xacNhan: boolean, han: string | null): string => {
+    const { order } = donKhach(db, [{ adult: 1 }], "draft");
+    db.prepare("UPDATE orders SET payment_term = ? WHERE id = ?").run(term, order);
+    if (xacNhan) db.prepare("UPDATE orders SET status = 'confirmed', confirmed_at = ? WHERE id = ?").run(T1, order);
+    if (han !== null) db.prepare("UPDATE orders SET credit_due_date = ? WHERE id = ?").run(han, order);
+    return order;
+  };
+  don("CREDIT", true, "2026-11-20");
+  don("CREDIT", false, null);
+  assert.deepEqual([violations(db, c1), violations(db, c2)], [0, 0], "đơn Trả sau nháp chưa cần hạn; đơn xác nhận có đủ hạn");
+  don("CREDIT", true, null);
+  assert.equal(violations(db, c1), 1, "đơn Trả sau đã xác nhận mà thiếu hạn trả");
+  don("PREPAID", false, "2026-11-20");
+  assert.equal(violations(db, c2), 1, "đơn Trả trước mà có hạn trả");
+});

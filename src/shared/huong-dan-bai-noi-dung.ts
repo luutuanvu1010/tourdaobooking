@@ -45,7 +45,7 @@ export const BAI_VIEC: readonly BaiViec[] = [
 1. **Tải vé từ nhà cung cấp.** Mỗi lần chỉ tải đúng một sản phẩm, một loại khách, một khoảng ngày dùng. Giữ nguyên ảnh gốc, vì ảnh nén quá nhỏ có thể không đọc được QR.
 2. **Nhập vào kho.** Chọn dịch vụ và loại khách, gõ tên sản phẩm, chọn ngày dùng, chọn các ảnh vé rồi bấm [[Nhập lô vé]]. Giữ nguyên trang này cho tới khi gửi xong. Ảnh hỏng hoặc trùng bị loại kèm tên tệp, các ảnh còn lại vẫn vào kho.
 3. **Máy giữ vé cho đơn.** Máy tự giữ vé theo số khách khi đơn được xác nhận; em bé không có vé. Máy lấy lô đúng loại khách trước, rồi đến lô «Mọi loại khách»; trong mỗi nhóm, vé sắp hết hạn ra trước. Kho thiếu thì đơn báo còn thiếu vé: nhập thêm lô, mở đơn rồi bấm [[Cấp vé]].
-4. **Giao vé.** Vé chỉ mở khi đơn đã thu đủ. Bấm nút **Mở … vé để gửi khách** (có số vé của đơn; màn hình nhắc vé sẽ không về kho nữa), rồi bấm [[Gửi Zalo]] và tự chọn người nhận. Máy không có nút này thì bấm các nút **Tải vé** để lưu ảnh rồi tự gửi. Hoặc bấm [[Tạo đường dẫn cho khách]] để khách tự mở và lưu vé; đường dẫn chỉ hiện một lần, nên chép gửi ngay.
+4. **Giao vé.** Vé chỉ mở khi đơn đã thu đủ; đơn trả sau thì vé mở trước, trừ khi đơn đã quá hạn còn nợ. Bấm nút **Mở … vé để gửi khách** (có số vé của đơn; màn hình nhắc vé sẽ không về kho nữa), rồi bấm [[Gửi Zalo]] và tự chọn người nhận. Máy không có nút này thì bấm các nút **Tải vé** để lưu ảnh rồi tự gửi. Hoặc bấm [[Tạo đường dẫn cho khách]] để khách tự mở và lưu vé; đường dẫn chỉ hiện một lần, nên chép gửi ngay.
 
 ### Điều dễ sai
 - Đừng trộn loại vé trong một lô: vé trẻ em lẫn vào lô người lớn sẽ tới tay khách người lớn.
@@ -130,6 +130,27 @@ export const BAI_VIEC: readonly BaiViec[] = [
 - Hạ giới hạn không sửa các mức đã nhập. Muốn sửa mức cũ thì bấm Đổi ở trang Hoa hồng đối tác.
 - Số **0** luôn được nhận, nên loại khách không hưởng thì gõ 0.
 - Nâng giới hạn rồi quên hạ lại thì mức gõ nhầm dễ lọt hơn.`,
+  },
+  {
+    id: "han-muc-tra-sau",
+    tieuDe: "Cấp hạn mức trả sau cho đối tác",
+    nhomViec: "Cài đặt",
+    trang: "hanMucTraSau",
+    o: ["credit.limit.write"],
+    gioiHan: [],
+    neo: ["web/han-muc-tra-sau.ts", "src/shared/han-muc-tra-sau-hien-thi.ts"],
+    moDau: "Đối tác có hạn mức thì đặt được đơn trả sau: vé mở trước, tiền thu sau trong số ngày được nợ (ADR-0168).",
+    noiDung: `### Các bước
+1. Mở **Hạn mức trả sau**.
+2. Ở ô **Hồ sơ đối tác**, gõ tên rồi chọn đúng hồ sơ.
+3. Gõ **Hạn mức (đồng)** và **Số ngày được nợ**.
+4. Bấm [[Đặt hạn mức]].
+
+### Điều dễ sai
+- Chỉ hồ sơ đang mang Vai người dùng của đối tác mới cấp được hạn mức.
+- Đặt lại số mới thì hạn mức cũ đóng lại; đơn trả sau đã xác nhận giữ nguyên hạn trả cũ.
+- Bấm [[Ngừng hạn mức]] thì đối tác không đặt thêm đơn trả sau được, nhưng nợ cũ vẫn phải thu.
+- Đối tác còn đơn trả sau quá hạn chưa thanh toán thì không đặt thêm đơn trả sau được.`,
   },
   {
     id: "giao-dien",

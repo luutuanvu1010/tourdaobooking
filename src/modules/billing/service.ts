@@ -17,6 +17,8 @@ import {
 import { GHI_CHU_KHOAN_LOI_KHAI, transferInOf } from "./coc-repo";
 import { docGiaoDich, kiemMaGiaoDich, type GiaoDich } from "./ma-giao-dich";
 import { phaiThuHienHanh, phaiThuHienHanhNhieuDon } from "./thay-lan-thu-repo";
+import { cauTangChoDon } from "./tra-sau-tang";
+import { donTraSauTheoId } from "./tra-sau-repo";
 import { CAU_HOAN_SAU_GIAO } from "../../shared/phan-dinh";
 import { MA_LOI_TRUNG, kiemTrung, type UngVienTrung } from "../../shared/luat-trung";
 import {
@@ -444,6 +446,7 @@ export async function tienCuaDon(db: D1Database, info: ThongTinGiaoDon, phan: Ph
   const lyGiao = lyDoChuaGiaoDuoc({
     status: info.status, deliveredAt: info.deliveredAt, homNay: vnToday(new Date()), ngayDi: info.ngayDi, dichVuThieuNgay: info.dichVuThieuNgay, thuongMai: thuongMaiCuaDon(phan).tinhTrang,
     soKhoanDoiChieu: dangDoiChieu.size, cumDoiChieu: cumCuaKhoan(receipts, dangDoiChieu, quyen.laDoiTac), so, anGiaVon: quyen.anGiaVon,
+    traSau: (await donTraSauTheoId(db, info.orderId)) !== null, // ADR-0168 Đ3 mục 2
   });
   const soDu = congTyId ? soDuTheoBen(boNoPhanDinh(lines.map(toLineRow)), congTyId) : new Map<string, number>();
   const ten = await partyLabels(db, [...soDu.keys()]);
@@ -630,7 +633,7 @@ export async function daGiao(
   const homNay = vnToday(new Date());
   const ly = lyDoChuaGiaoDuoc({
     status: info.status, deliveredAt: info.deliveredAt, homNay, ngayDi: info.ngayDi, dichVuThieuNgay: info.dichVuThieuNgay, thuongMai: tm.tinhTrang, soKhoanDoiChieu, cumDoiChieu: cum,
-    so: conLai(receipts, info.phaiThu, info.status), anGiaVon: input.anGiaVon,
+    so: conLai(receipts, info.phaiThu, info.status), anGiaVon: input.anGiaVon, traSau: (await donTraSauTheoId(db, input.orderId)) !== null, // ADR-0168 Đ3 mục 2
   });
   if (ly) return loi(409, ly.ma === "already_delivered" ? "order_delivered" : ly.ma === "stale" ? "stale" : "not_deliverable", ly.cau);
   if (input.canCauBaoVe && !ai.partyId) return loi(403, "forbidden", "Chỉ hướng dẫn viên đang phụ trách đơn mới bấm được Xác nhận xong và đủ tiền.");
@@ -961,6 +964,7 @@ export async function ghiHoanKhach(db: D1Database, input: { raw: unknown; ai: Ng
     stmts.push(postingIfReceiptStatement(db, { id: postingId, kind: "REFUND", orderId: b.orderId, reason: ghiChu.value, reversesPostingId: null, occurredDate: ngay.value, dueSnapshot: null, at, by: input.ai.staffId }, receiptId));
     for (const d of dong) stmts.push(lineIfPostingStatement(db, lineOf(d, postingId, b.orderId, receiptId, at, input.ai.staffId)));
   }
+  stmts.push(...(await cauTangChoDon(db, b.orderId, at))); // ADR-0168 Đ2 mục 4: hoàn tiền làm nợ của đơn Trả sau tăng ⇒ tăng phiên bản
   try {
     await db.batch(stmts);
   } catch (e) {
@@ -1024,6 +1028,7 @@ export async function ghiDieuChinh(db: D1Database, input: { raw: unknown; ai: Ng
       stmts.push(postingIfReceiptStatement(db, { id: postingId, kind: "REVERSAL", orderId: rc.order_id, reason: lyDo.value, reversesPostingId: null, occurredDate: ngay.value, dueSnapshot: null, at, by }, daoId));
       for (const l of dongDao) stmts.push(lineIfPostingStatement(db, lineOf(sinhDongDao(toLineRow(l)), postingId, rc.order_id, rc.id, at, by)));
     }
+    stmts.push(...(await cauTangChoDon(db, rc.order_id, at))); // ADR-0168 Đ2 mục 4–5: đảo khoản thu KHÔNG bị chặn nhưng làm nợ tăng ⇒ tăng phiên bản (chỉ đơn Trả sau)
     try {
       const kq = await db.batch(stmts);
       if ((kq[0]!.meta.changes ?? 0) === 0) return loi(409, "stale", "Khoản này vừa được Kế toán xác nhận — tải lại rồi huỷ khoản thu lại.");
@@ -1058,6 +1063,7 @@ export async function ghiDieuChinh(db: D1Database, input: { raw: unknown; ai: Ng
       postingPlainStatement(db, { id: postingId, kind: "REVERSAL", orderId: l.order_id, reason: lyDo.value, reversesPostingId: null, occurredDate: ngay.value, dueSnapshot: null, at, by }),
       lineIfPostingStatement(db, lineOf(sinhDongDao(toLineRow(l)), postingId, l.order_id, l.receipt_id, at, by)),
       auditStatement(db, { orderId: l.order_id, staffId: by, action: "ledger_reversal", at, detail: lyDo.value ?? undefined }),
+      ...(await cauTangChoDon(db, l.order_id, at)), // ADR-0168 Đ2 mục 4: huỷ dòng nộp / giữ hộ có thể làm nợ tăng ⇒ tăng phiên bản
     ];
     try {
       await db.batch(stmts);
