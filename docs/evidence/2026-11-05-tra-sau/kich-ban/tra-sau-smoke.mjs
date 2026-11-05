@@ -282,6 +282,8 @@ try {
     const q = await moNhap();
     try {
       await q.waitFor("!document.getElementById('tra-sau-bao').hidden", "câu báo hiện");
+      await sleep(1500); // câu báo phải còn sau các lần hỏi hạn mức kế tiếp (từng bị lần hỏi sau xoá, tuỳ tốc độ mạng)
+      assert.equal(await q.ev("document.getElementById('tra-sau-bao').hidden"), false, "câu báo vẫn còn");
       const k = await khoiHien(q);
       assert.equal(k.hien, false, "khối ẩn");
       assert.ok(k.bao.includes("chuyển về Trả trước"), k.bao);

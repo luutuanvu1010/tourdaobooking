@@ -854,13 +854,9 @@ function napBenDat(o: Api.OrderDetailDto): void {
     return;
   }
   datQua?.datChon(null);
-  // `datBenDat(null)` chạy TRƯỚC `set`: giữa hai bước ô bên đặt trống tạm, kể cả khi nạp lại nháp sau lỗi lưu (đã qua lần mở đầu), nên tạm coi là chưa nạp để không đổi hình thức đang chọn.
-  const daNapTruoc = donDaNap;
-  donDaNap = false;
   datBenDat(null);
   bookerPicker.set(o.bookerPartyId, o.bookerName);
-  donDaNap = daNapTruoc;
-  void napTraSau(); // hỏi lại khi bên đặt đã nạp xong, nếu không khối Trả sau ẩn nhầm
+  void napTraSau(); // `datBenDat(null)` chạy TRƯỚC `set`: hỏi lại khi bên đặt đã nạp xong, nếu không khối Trả sau ẩn nhầm
 }
 
 /** Trả các câu báo (dịch vụ thuộc nhóm tắt đưa đón mà nháp còn chặng → form bỏ chặng đó; ADR-0118 Đ5). */
@@ -1060,7 +1056,13 @@ function anHienDatCoc(): void {
   byId("dat-coc-o").hidden = !coODatCoc || an;
   byId("dat-coc-goi-y").hidden = !coODatCoc || an;
 }
+/**
+ * Hình thức của nháp hoặc người dùng đã chọn, tách khỏi ô đang hiện: `napTraSau` có thể đưa ô về Trả trước vì hết hạn mức, và các lần hỏi sau phải vẫn biết đơn muốn Trả sau.
+ * Đọc từ ô thì lần hỏi thứ hai thấy Trả trước, xoá câu báo, và bấm lưu sẽ đổi đơn mà người dùng không được báo.
+ */
+let hinhThucMuon: "PREPAID" | "CREDIT" = "PREPAID";
 function datHinhThuc(v: "PREPAID" | "CREDIT"): void {
+  hinhThucMuon = v;
   oHinhThuc(v).checked = true;
   anHienDatCoc();
 }
@@ -1080,7 +1082,7 @@ async function napTraSau(): Promise<void> {
     try { c = cauChonTraSau(await api<Api.ConDuocDungTraSauResponse>(`/api/tra-sau/con-duoc-dung?benDat=${encodeURIComponent(id)}`)); } catch { return; /* không đọc được: giữ nguyên lựa chọn đang có, máy chủ vẫn kiểm lại lúc lưu */ }
   }
   if (luot !== traSauLuot) return; // có lần hỏi mới hơn (đổi bên đặt liên tục): bỏ kết quả cũ
-  const q = quyetHinhThuc({ dangChon: hinhThucChon(), c, benDatChuaNap: id === null && !donDaNap });
+  const q = quyetHinhThuc({ dangChon: hinhThucMuon, c, benDatChuaNap: id === null && !donDaNap });
   traSauHien = c.hien;
   khoiTraSau.hidden = !c.hien;
   byId("tra-sau-cau").textContent = c.khoa ?? c.cau;
@@ -1091,7 +1093,7 @@ async function napTraSau(): Promise<void> {
   bao.hidden = q.bao === null;
   anHienDatCoc();
 }
-for (const v of ["PREPAID", "CREDIT"]) oHinhThuc(v).addEventListener("change", () => { anHienDatCoc(); });
+for (const v of ["PREPAID", "CREDIT"]) oHinhThuc(v).addEventListener("change", () => { hinhThucMuon = hinhThucChon(); byId("tra-sau-bao").hidden = true; anHienDatCoc(); });
 void napTraSau();
 if (khoiBenDat.kieu === "chi-doc") {
   bookerPicker.tat();
