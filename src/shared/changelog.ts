@@ -18,11 +18,20 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // ADR-0169: vai Quản lý bán hàng, công tắc kiểm vé về Dịch vụ & giá. Migration 0140. Số và ngày đặt lại ở bước A.0 nếu cần.
-    version: "2.63",
+    version: "2.64",
     date: "2026-11-05",
     items: [
       { kind: "moi", text: "Có vai mới Quản lý bán hàng: làm mọi việc của Bán hàng, thêm bật, tắt cần kiểm vé và Ngừng bán, Mở bán lại. Quản trị, Giám đốc, Toàn quyền gán được vai này." },
       { kind: "doi", text: "Công tắc Cần kiểm vé nay nằm ngay trong Dịch vụ & giá, theo từng vé và cả nhóm. Trang Dịch vụ cần kiểm vé không còn nữa. Quản trị cũng gạt được.", bai: { id: "viec/dich-vu-can-kiem-ve", ten: "Đánh dấu vé cần kiểm vé" } },
+    ],
+  },
+  {
+    // Bảng tham chiếu ngôn ngữ đợt 2 (ADR-0167): 16 tên nút đổi theo lời chủ 2026-11-05. Không migration, không ô quyền, không lệnh ghi mới.
+    version: "2.63",
+    date: "2026-11-05",
+    items: [
+      { kind: "doi", text: "Đổi chữ trên một số nút cho dễ hiểu hơn, ví dụ «Tải ảnh về máy», «Xem ảnh gửi khách», «Bỏ khỏi danh sách», «Đổi giờ dự kiến». Việc nút làm không đổi." },
+      { kind: "doi", text: "Nút «Sửa giá» trong đơn nay là «Sửa giá đơn này»; ở màn Dịch vụ & giá là «Ghi đè giá», để hai việc khác nhau không trùng tên." },
     ],
   },
   {

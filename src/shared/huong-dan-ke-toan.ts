@@ -12,7 +12,7 @@ export const HD_KE_TOAN: NhomHuongDan = {
 3. Bấm [[Đơn hàng]] để xem danh sách đơn.
 4. Gõ tên khách, số điện thoại hoặc mã đơn vào ô tìm kiếm của danh sách.
 5. Bấm vào một đơn, xem khối **Thanh toán** để biết tổng tiền, đã thu và còn lại.
-6. Cần gửi phiếu cho khách: trong đơn, bấm [[Xem biên nhận]].`,
+6. Cần gửi phiếu cho khách: trong đơn, bấm [[Xem ảnh gửi khách]].`,
   muc: [
     {
       tieuDe: "Menu của bạn",
@@ -90,9 +90,9 @@ Không bớt hết người lớn được: đơn luôn cần ít nhất một n
     {
       tieuDe: "Mở biên nhận để gửi khách",
       noiDung: `1. Mở trang **Chi tiết đơn**.
-2. Bấm [[Xem biên nhận]].
+2. Bấm [[Xem ảnh gửi khách]].
 3. Hộp **Ảnh gửi khách** hiện ra. Ảnh xác nhận được vẽ sẵn.
-4. Bấm [[Tải ảnh PNG]] để lưu ảnh về máy, hoặc bấm [[Chia sẻ]] (có trên điện thoại) để gửi qua Zalo.
+4. Bấm [[Tải ảnh về máy]] để lưu ảnh về máy, hoặc bấm [[Chia sẻ]] (có trên điện thoại) để gửi qua Zalo.
 5. Thấy dòng báo lỗi thì bấm [[Thử lại]].`,
     },
     {

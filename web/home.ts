@@ -555,7 +555,7 @@ function datDaiGap(staff: Staff, ds: readonly Api.DonChoXacNhanDto[] | null | un
   replaceChildren(
     el,
     h("div", { class: "dash-gap-chu" }, h("p", { class: "dash-gap-cau" }, g.cau), g.phu ? h("p", { class: "dash-gap-phu" }, g.phu) : false),
-    h("a", { class: "btn btn-accent", href: "/cho-xac-nhan" }, "Xác nhận ngay"),
+    h("a", { class: "btn btn-accent", href: "/cho-xac-nhan" }, "Xem đơn chờ xác nhận"),
   );
   el.hidden = false;
 }

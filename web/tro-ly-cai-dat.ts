@@ -1,5 +1,5 @@
 // Trang "Trợ lý Hỗ trợ" (/tro-ly-cai-dat — ADR-0069): bảng điều khiển trợ lý AI của Toàn quyền (ô settings.ops; máy chủ kiểm lại ở MỌI route).
-// Sáu phần: Tình trạng (bật / tắt, key đã đặt + 4 ký tự cuối, Thử key, chi phí, lượt thử), Ai được dùng (9 công tắc + trần ngày), Bộ não (ADR-0073: mẫu,
+// Sáu phần: Tình trạng (bật / tắt, khoá đã đặt + 4 ký tự cuối, Thử khoá, chi phí, lượt thử), Ai được dùng (9 công tắc + trần ngày), Bộ não (ADR-0073: mẫu,
 // mức suy nghĩ, độ dài, token ra, lời nhắc, lịch sử bản, ô thử), Lời dặn (câu chào, câu hỏi mẫu), Ngữ cảnh bổ sung, Lịch sử hỏi đáp (lọc ngày / người / vai,
 // tìm chữ). Không innerHTML; chữ người dùng hiện bằng textContent. Ước tính giá lấy từ src/shared/tro-ly-mau.ts (không import gì).
 // Không import src/shared/tro-ly.ts (kéo cả kho tri thức vào bundle): giới hạn độ dài lấy từ tệp riêng tro-ly-gioi-han.ts; câu lỗi lời thường do máy chủ soạn.
@@ -73,7 +73,7 @@ function veTinhTrang(daLuu = false): void {
     });
   });
   if (daLuu) bao.ok("Đã lưu.");
-  const thu = h("button", { class: "btn", type: "button" }, "Thử key");
+  const thu = h("button", { class: "btn", type: "button" }, "Thử khoá");
   const baoThu = dongBao();
   thu.addEventListener("click", () => void bam(thu, baoThu, async () => (await api<Api.TroLyThuKhoaResponse>("/api/tro-ly/thu-khoa", { method: "POST", body: {} })).cau));
   const [nam, thang] = s.thang.split("-");
@@ -81,12 +81,12 @@ function veTinhTrang(daLuu = false): void {
     byId("tl-tinh-trang"),
     h("h2", { id: "tl-tinh-trang-h" }, "Tình trạng"),
     h("p", null, s.bat ? "Đang bật." : "Đang tắt — không ai hỏi được."),
-    h("p", null, s.coKhoa ? `Key: đã đặt${s.khoaCuoi ? ` (kết thúc bằng …${s.khoaCuoi})` : ""}.` : "Key: chưa đặt — trợ lý báo “chưa bật” tới khi có key."),
-    h("p", { class: "muted" }, "Đổi key làm trên Cloudflare, không nhập trong Nền tảng."),
+    h("p", null, s.coKhoa ? `Khoá: đã đặt${s.khoaCuoi ? ` (kết thúc bằng …${s.khoaCuoi})` : ""}.` : "Khoá: chưa đặt — trợ lý báo “chưa bật” tới khi có khoá."),
+    h("p", { class: "muted" }, "Đổi khoá làm trên Cloudflare, không nhập trong Nền tảng."),
     h("div", { class: "tl-cd-hang" }, thu),
     baoThu.el,
     h("p", null, `Tháng ${thang}/${nam}: đã dùng ${usd(s.chiPhiThangUsd)} trên trần ${usd(s.tranThangUsd)} · ${s.soCauThang} câu. Hôm nay: ${s.soCauHomNay} câu.`),
-    h("p", { id: "tl-luot-thu" }, `Lượt thử tháng này: ${s.soLuotThuThang} lượt thử (Thử key và ô thử) — tiền tháng ở trên đã gồm cả lượt thử.`),
+    h("p", { id: "tl-luot-thu" }, `Lượt thử tháng này: ${s.soLuotThuThang} lượt thử (Thử khoá và ô thử) — tiền tháng ở trên đã gồm cả lượt thử.`),
     s.theoVai.length
       ? h("ul", { class: "tl-cd-ds" }, ...s.theoVai.map((v) => h("li", null, `${PERMISSION_LABEL[v.vai]}: ${v.soCau} câu · ${usd(v.chiPhiUsd)}`)))
       : h("p", { class: "muted" }, "Tháng này chưa có câu hỏi nào theo vai trò."),
@@ -214,16 +214,16 @@ function veBoNao(d: Api.TroLyBoNaoResponse, daLuu = false): void {
   layCauHinh = () => ({ mau: mau.value, mucSuyNghi: muc.value, doDai: doDai.value, tokenRaToiDa: Number(token.value), loiNhac: loiNhac.value });
 
   const luu = h("button", { class: "btn btn-primary", type: "submit" }, "Lưu bộ não");
-  const khoiPhuc = h("button", { class: "btn", type: "button" }, "Khôi phục mặc định");
+  const khoiPhuc = h("button", { class: "btn", type: "button" }, "Điền lời nhắc mặc định");
   const bao = dongBao();
   const gui = async (body: Api.TroLyBoNao): Promise<void> => veBoNao(await api<Api.TroLyBoNaoResponse>("/api/tro-ly/bo-nao", { method: "PUT", body }), true);
   // Khôi phục chỉ đưa bản mặc định vào Ô LỜI NHẮC (không lưu, không đụng mẫu / mức / độ dài); người dùng bấm "Lưu bộ não" để dùng.
   khoiPhuc.addEventListener("click", async () => {
     if (boNaoBan) return;
-    if (loiNhac.value !== hh.loiNhac && !(await hoiXacNhan({ tieuDe: "Thay bằng bản mặc định?", hauQua: "Lời nhắc trong ô đang có chỗ sửa chưa lưu. Thay bằng bản mặc định?", nhanNguyHiem: "Thay", nhanGiu: "Giữ chỗ đang sửa", opener: khoiPhuc }))) return;
+    if (loiNhac.value !== hh.loiNhac && !(await hoiXacNhan({ tieuDe: "Thay bằng lời nhắc mặc định?", hauQua: "Lời nhắc trong ô đang có chỗ sửa chưa lưu. Thay bằng lời nhắc mặc định?", nhanNguyHiem: "Thay", nhanGiu: "Giữ chỗ đang sửa", opener: khoiPhuc }))) return;
     loiNhac.value = d.loiNhacMacDinh;
     veDem();
-    bao.ok("Đã đưa bản mặc định vào ô lời nhắc — bấm “Lưu bộ não” để dùng.");
+    bao.ok("Đã đưa lời nhắc mặc định vào ô lời nhắc — bấm “Lưu bộ não” để dùng.");
   });
 
   const dsBan = h("ol", { class: "tl-cd-ds" });
@@ -237,7 +237,7 @@ function veBoNao(d: Api.TroLyBoNaoResponse, daLuu = false): void {
           dsBan,
           ...(r.cacBan.length
             ? r.cacBan.map((b, i) => {
-              const nut = h("button", { class: "btn", type: "button", disabled: boNaoBan }, "Quay lại bản này");
+              const nut = h("button", { class: "btn", type: "button", disabled: boNaoBan }, "Dùng bản này");
               const baoBan = dongBao();
               nut.addEventListener("click", () => void bamBoNao(baoBan, () => gui({ mau: b.mau, mucSuyNghi: b.mucSuyNghi, doDai: b.doDai, tokenRaToiDa: b.tokenRaToiDa, loiNhac: b.loiNhac })));
               return h(
@@ -387,7 +387,7 @@ function veLoiDan(d: Api.TroLyLoiDanResponse, daLuu = false): void {
       "ol",
       { class: "tl-cd-ds" },
       ...d.cacBan.map((b, i) => {
-        const nut = h("button", { class: "btn", type: "button" }, "Quay lại bản này");
+        const nut = h("button", { class: "btn", type: "button" }, "Dùng bản này");
         const baoBan = dongBao();
         nut.addEventListener("click", () => void bam(nut, baoBan, () => gui({ cauChao: b.cauChao, giong: b.giong, loiDanThem: b.loiDanThem, cauHoiMau: b.cauHoiMau })));
         return h(

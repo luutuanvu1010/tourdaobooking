@@ -726,7 +726,7 @@ export const TEN_NHIEU_HANG: readonly TenNhieuHang[] = [
   { chu: "Lưu giá", loai: "cung-viec", vi: "Nút lưu của cùng một form bảng giá thuê xe, đổi chữ theo việc thêm giá hay đổi giá." },
   { chu: "Lưu giá mới", loai: "cung-viec", vi: "Nút lưu của cùng một form bảng giá thuê xe, đổi chữ theo việc thêm giá hay đổi giá." },
   { chu: "Đăng xuất", loai: "cung-viec", vi: "Cùng một việc thoát máy này, vào từ trang Tôi và khung chung." },
-  { chu: "Quay lại bản này", loai: "cung-viec", vi: "Cùng một việc ở hai khối của trang cài đặt Trợ lý." },
+  { chu: "Tạo chuyến", loai: "cung-viec", vi: "Cùng một việc tạo chuyến mới: hộp ở bảng Điều phối và trang Chuyến mới (trang Sửa chuyến vẫn ghi «Lưu chuyến»)." },
+  { chu: "Dùng bản này", loai: "cung-viec", vi: "Cùng một việc ở hai khối của trang cài đặt Trợ lý." },
   { chu: "Gửi yêu cầu", loai: "cho-chu", vi: "Một nơi mở hộp gửi yêu cầu hỗ trợ, một nơi là nút chốt của hộp xin xoá dữ liệu cá nhân. Hộp xoá có câu hỏi riêng nói rõ, nhưng hai việc khác nhau xa; chờ chủ xem có đổi không." },
-  { chu: "Sửa giá", loai: "cho-chu", vi: "Ở Dịch vụ & giá là ghi đè giá cho mọi đơn lập sau; trong thẻ dịch vụ của đơn chỉ sửa đơn giá của đơn đang lập. Hậu quả khác xa nhau; chờ chủ chọn tên." },
 ];

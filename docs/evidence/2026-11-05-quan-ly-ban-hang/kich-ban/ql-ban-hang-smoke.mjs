@@ -100,6 +100,29 @@ try {
         assert.equal(await coCua("GROUP", G.code), true);
         assert.match(await q.ev(`document.querySelector('[data-ma="TTB06"]').textContent`), /Theo nhóm/);
       });
+      await buoc(`5b${kho}`, "Quy tắc riêng thắng quy tắc chung, cả hai chiều", async () => {
+        const ve = `[data-ma="TTB06"] [data-action="kiem-ve"]`;
+        const nhom = `[data-nhom="${G.code}"] [data-action="ca-nhom"]`;
+        // Nhóm bật, vé tắt riêng ⇒ vé không cần
+        assert.equal(await bam(q, ve), true);
+        await q.waitFor(`document.querySelector('${ve}')?.getAttribute('aria-checked') === 'false'`, "vé tắt riêng");
+        assert.equal(await coCua("SERVICE", "TTB06"), false);
+        assert.match(await q.ev(`document.querySelector('[data-ma="TTB06"]').textContent`), /Đặt riêng/);
+        assert.equal(await dau(q, nhom), "true");
+        await chup(q, `ql-${tenKho}-4b-rieng-thang`);
+        // Nhóm tắt, vé vẫn giữ dòng riêng; gạt vé bật ⇒ vé cần dù nhóm tắt
+        await daMo(q, "TTB06");
+        assert.equal(await bam(q, nhom), true);
+        await choHop(q);
+        assert.equal(await bamHop(q, "Tắt cả nhóm"), true);
+        await choDongHop(q);
+        await q.waitFor(`document.querySelector('${nhom}')?.getAttribute('aria-checked') === 'false'`, "nhóm tắt");
+        await daMo(q, "TTB06");
+        assert.equal(await bam(q, ve), true);
+        await q.waitFor(`document.querySelector('${ve}')?.getAttribute('aria-checked') === 'true'`, "vé bật riêng");
+        assert.equal(await coCua("SERVICE", "TTB06"), true);
+        assert.equal(await coCua("GROUP", G.code), false);
+      });
     } finally { q.close(); }
 
     const a = await moTrang(ACCOUNTS.admin, "/catalog", vp);
