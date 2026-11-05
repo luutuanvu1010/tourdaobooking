@@ -25,6 +25,8 @@ Hôm nay chỉ có ba chỗ: `/ve-kho` (nhập lô, số còn, lô đã huỷ), 
 | 13 | Cài đặt vé (sửa `/ve-cai-dat`) | Trần lô, ngưỡng báo thiếu, nội dung lưu ý trên vé | Toàn quyền | Mới | 1 |
 | 14 | Trang khách (đã có) | Chỉ hiện vé đã mở; thêm hiển thị vé đoàn | Khách | Có sẵn | 1 |
 
+Ngoài ra, màn Danh mục có thêm công tắc «dùng vé Tour Đảo» trên từng dịch vụ (Quản trị, đợt 1); đây là một ô trên màn có sẵn nên không tính thành màn mới.
+
 Phân loại không cần màn riêng: nhà cung cấp, nguồn, nhóm dịch vụ, dịch vụ, loại khách, trạng thái, hạn dùng là bộ lọc dùng chung cho các màn 2, 6, 10, 12. Menu đề xuất: một nhóm «Vé điện tử», ai không có quyền thì không thấy mục đó. Hướng dẫn viên và Tài xế chỉ thấy «Quét vé».
 
 ## Tiền: nên và không nên
