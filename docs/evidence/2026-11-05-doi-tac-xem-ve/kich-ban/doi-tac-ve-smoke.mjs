@@ -364,7 +364,7 @@ try {
       await sangTrang(pd, `/order?id=${ts[kho].TS2.id}`);
       await choKhoi(pd);
       const t = await vanBan(pd);
-      assert.ok(t.includes("Đơn trả sau đã quá hạn còn nợ nên vé chưa mở chưa xem hoặc gửi được. Hãy thu đủ tiền, hoặc nhờ Kế toán xử lý."), `thiếu câu quá hạn: ${t}`);
+      assert.ok(t.includes("Đơn trả sau đã quá hạn nên chưa mở được thêm vé."), `thiếu câu quá hạn: ${t}`);
       assert.ok(!(await coNut(pd, '#ve-don [data-action="chuan-bi-ve"], #ve-don [data-action="tao-duong-dan"], #ve-don [data-action="gui-zalo"]')), "còn nút mở vé ở đơn quá hạn");
       await chung(pd, `${kho}-10b`);
       await axeKiem(pd, `${kho}-10b`);

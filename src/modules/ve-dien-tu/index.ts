@@ -10,7 +10,7 @@ import { MATRIX, can, holdsPartner, isOffice } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
 import { LOAI_NOI_DUNG, bamSha256, dauPhanHoiTepChung, giaiBase64, nhanLoaiTep, taoKhoaNgauNhien, type LoaiTep } from "../../shared/tep-dinh-kem";
 import { vnToday } from "../../shared/vn-date";
-import { CAU_VE_QUA_HAN_TRA_SAU, moVeDuoc } from "../../shared/tra-sau";
+import { CAU_VE_QUA_HAN_TRA_SAU, CAU_VE_QUA_HAN_TRA_SAU_DOI_TAC, moVeDuoc } from "../../shared/tra-sau";
 import { canVe, choDoiTacNop, thuDu } from "./rules.ts";
 import { DANG_TOKEN, bamToken, hanDuongDan, soSanhHangThoiGian, taoToken, trangVeKhach } from "./duong-dan-khach.ts";
 import { NHAN_NHOM, NHAN_NHOM_LO, soanCapVe, soanTraVe, veDangGiu, type GhiNhatKy, type NhatKyVe } from "./cap-ve.ts";
@@ -83,7 +83,7 @@ type TienVe = { daThu: number; phaiThu: number; choNop?: number; choXacNhan?: nu
 /** ADR-0168 Đ3 mục 1: MỘT cửa quyết vé có mở được không — đơn Trả trước phải thu đủ; đơn Trả sau mở trước, trừ khi quá hạn còn nợ mà vé CHƯA mở (`veDaMo`). Mọi route vé, KỂ CẢ hai route công khai của đường dẫn khách (ADR-0171 Đ2), chỉ hỏi hàm này. */
 const veMoDuoc = (tien: TienVe, veDaMo: boolean): boolean => moVeDuoc({ thuDu: thuDu(tien), traSau: tien?.traSau ?? null, veDaMo, homNay: vnToday(new Date()) });
 /** Câu khoá: đơn Trả sau quá hạn có câu riêng; đơn Trả trước giữ câu cũ (và ca chờ đối tác nộp, câu riêng cho đối tác). */
-const CHUA_MO_VE = (t: TienVe, nguoiXemLaDoiTac: boolean) => (t?.traSau ? error(403, "tra_sau_qua_han", CAU_VE_QUA_HAN_TRA_SAU) : CHUA_THU_DU(t, nguoiXemLaDoiTac));
+const CHUA_MO_VE = (t: TienVe, nguoiXemLaDoiTac: boolean) => (t?.traSau ? error(403, "tra_sau_qua_han", nguoiXemLaDoiTac ? CAU_VE_QUA_HAN_TRA_SAU_DOI_TAC : CAU_VE_QUA_HAN_TRA_SAU) : CHUA_THU_DU(t, nguoiXemLaDoiTac));
 const mocLoHuy = (): string => new Date(Date.now() - NGAY_LUU_ANH_LO_HUY * 864e5).toISOString();
 const VE_DA_NHAP_LAI = () => error(409, "ve_da_nhap_lai", "Vé này đã được nhập lại vào kho nên không mở được ảnh cũ.");
 const KHO_CHUA_BAT = () => error(503, "storage_unavailable", "Kho vé điện tử chưa được bật. Vui lòng báo người phụ trách hệ thống.");

@@ -20,6 +20,8 @@ export const dongTien = (n: number): string => `${Math.trunc(n).toLocaleString("
 export const cauChoDoiTacThanhToan = (no: number): string => `Đơn trả sau còn nợ ${dongTien(no)} — chờ đối tác thanh toán.`;
 /** Vé chưa mở của đơn Trả sau đã quá hạn còn nợ (ADR-0168 Đ3 mục 1): vé đã mở vẫn xem được. */
 export const CAU_VE_QUA_HAN_TRA_SAU = "Đơn trả sau đã quá hạn còn nợ nên vé chưa mở chưa xem hoặc gửi được. Hãy thu đủ tiền, hoặc nhờ Kế toán xử lý.";
+/** Cùng tình huống, câu cho người giữ quyền Đối tác: họ không ghi được khoản thu nên không bảo «thu đủ tiền». */
+export const CAU_VE_QUA_HAN_TRA_SAU_DOI_TAC = "Đơn trả sau đã quá hạn nên chưa mở được thêm vé. Bạn thanh toán phần còn nợ cho công ty để mở lại.";
 
 /**
  * Nợ của MỘT đơn Trả sau đã xác nhận (ADR-0168 Đ2 mục 2) = max(0, phải thu − số đã về công ty).

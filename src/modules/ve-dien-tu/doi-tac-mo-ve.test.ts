@@ -513,6 +513,8 @@ test("I-B: đơn Trả sau quá hạn còn nợ: vé chưa mở 403, vé đã m�
   const chan = await w.call("GET", `/api/ve/anh/${pb[1]}`, { as: PARTNER });
   assert.equal(chan.status, 403, chan.text);
   assert.equal(chan.json.error.code, "tra_sau_qua_han");
+  assert.match(chan.json.error.message, /thanh toán phần còn nợ/, "đối tác không ghi được khoản thu nên câu không bảo «thu đủ tiền»");
+  assert.doesNotMatch(chan.json.error.message, /Kế toán/);
   assert.equal((await w.call("GET", `/api/ve/anh/${pb[0]}`, { as: PARTNER })).status, 200, "vé đã mở vẫn xem");
   assert.equal((await w.call("POST", "/api/ve/giao", { as: PARTNER, body: { orderId: id, requestId: crypto.randomUUID() } })).status, 403, "giao cả đơn khi còn vé chưa mở");
 });
