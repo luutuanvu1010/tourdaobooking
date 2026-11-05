@@ -736,6 +736,7 @@ test("mức truy cập của 443 route hiện có khớp ảnh chụp đã duy�
   // 2026-11-05 (ADR-0142, Task 5): + GET /api/orders/chua-co-ban-hang, POST /api/orders/:id/ban-hang/nhan, POST …/ban-hang/tu-choi, PUT /api/orders/:id/ban-hang (orders; dispatch.sales.*), GET /api/dispatch/ban-hang-moi, GET /api/dispatch/ban-hang (orders), GET, POST /api/cai-dat/ban-hang-phu-trach (admin; settings.ops) = 451.
   // 2026-11-05 (ADR-0169 Đ5): + GET /api/catalog/quan-ly-ban, PUT /api/catalog/:code/ngung-ban (office; thân hỏi ô, chặn Đối tác) = 451.
   // 2026-11-05 (ADR-0168, Trả sau): thêm năm route hạn mức trả sau của billing = 456.
-  assert.equal(actual.length, 456, "số route thực tế lệch 456 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 456, "SNAPSHOT phải có đúng 456 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // 2026-11-05 (ADR-0174 Đ4): + GET, POST /api/catalog/co-ve (office; thân hỏi catalog.ticket_flag.write, chặn Đối tác) = 458.
+  assert.equal(actual.length, 458, "số route thực tế lệch 458 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 458, "SNAPSHOT phải có đúng 458 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

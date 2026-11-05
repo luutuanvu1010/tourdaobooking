@@ -20,7 +20,7 @@ export interface CoVe {
 export function taoCoVe(errorEl: HTMLElement, coQuyen: boolean, sauKhiDoi: () => void): CoVe {
   let duLieu: Api.CatalogCoVeResponse = { dichVu: [], nhom: [] };
 
-  const luu = async (nut: HTMLButtonElement, than: Api.CatalogCoVeInput, cauBao: string): Promise<void> => {
+  const luuCoVe = async (nut: HTMLButtonElement, than: Api.CatalogCoVeInput, cauBao: string): Promise<void> => {
     errorEl.hidden = true;
     nut.disabled = true;
     try {
@@ -51,28 +51,29 @@ export function taoCoVe(errorEl: HTMLElement, coQuyen: boolean, sauKhiDoi: () =>
         "div",
         { class: "kv-o" },
         h("span", { class: "hint" }, `Có vé · ${NHAN_NGUON[d?.nguon ?? "CHUA_KHAI"]}`),
-        congTac(`Có vé: ${ten}`, bat, "co-ve", (nut) => void luu(nut, { pham: "SERVICE", ma, coVe: !bat }, bat ? `${ten}: không vé.` : `${ten}: có vé.`)),
+        congTac(`Có vé: ${ten}`, bat, "co-ve", (nut) => void luuCoVe(nut, { pham: "SERVICE", ma, coVe: !bat }, bat ? `${ten}: không vé.` : `${ten}: có vé.`)),
       );
     },
     oNhom: (ma, ten) => {
       if (!coQuyen) return null;
       const bat = duLieu.nhom.find((x) => x.code === ma)?.coVe === true;
-      const doi = async (nut: HTMLButtonElement): Promise<void> => {
+      const batMoi = !bat;
+      const doiCaNhomCoVe = async (nut: HTMLButtonElement): Promise<void> => {
         const dongY = await hoiXacNhan({
-          tieuDe: bat ? `Tắt «Có vé» cả nhóm ${ten}?` : `Bật «Có vé» cho cả nhóm ${ten}?`,
-          hauQua: bat
-            ? "Máy ngừng giữ vé và ngừng báo thiếu vé cho dịch vụ của nhóm này, trừ dịch vụ đã đặt riêng. Vé đơn đã giữ vẫn còn."
-            : "Đơn đã xác nhận và chưa tới ngày đi của nhóm này sẽ báo thiếu vé nếu chưa đủ vé. Dịch vụ đã đặt riêng không đổi.",
-          nhanNguyHiem: bat ? "Tắt cả nhóm" : "Bật cả nhóm",
+          tieuDe: batMoi ? `Bật «Có vé» cho cả nhóm ${ten}?` : `Tắt «Có vé» cả nhóm ${ten}?`,
+          hauQua: batMoi
+            ? "Đơn đã xác nhận và chưa tới ngày đi của nhóm này sẽ báo thiếu vé nếu chưa đủ vé. Dịch vụ đã đặt riêng không đổi."
+            : "Máy ngừng giữ vé và ngừng báo thiếu vé cho dịch vụ của nhóm này, trừ dịch vụ đã đặt riêng. Vé đơn đã giữ vẫn còn.",
+          nhanNguyHiem: batMoi ? "Bật cả nhóm" : "Tắt cả nhóm",
           opener: nut,
         });
-        if (dongY) await luu(nut, { pham: "GROUP", ma, coVe: !bat }, bat ? `Nhóm ${ten}: không vé.` : `Nhóm ${ten}: có vé.`);
+        if (dongY) await luuCoVe(nut, { pham: "GROUP", ma, coVe: batMoi }, batMoi ? `Nhóm ${ten}: có vé.` : `Nhóm ${ten}: không vé.`);
       };
       return h(
         "div",
         { class: "nhom-dua-don" },
         h("span", { class: "nhom-so" }, "Có vé"),
-        congTac(`Cả nhóm có vé: ${ten}`, bat, "co-ve-nhom", (nut) => void doi(nut)),
+        congTac(`Cả nhóm có vé: ${ten}`, bat, "co-ve-nhom", (nut) => void doiCaNhomCoVe(nut)),
         h("span", { class: "nhom-so", "aria-hidden": "true" }, bat ? "Bật" : "Tắt"),
       );
     },
