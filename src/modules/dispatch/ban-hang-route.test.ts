@@ -186,3 +186,58 @@ test("GET ban-hang: đơn nháp đang chờ xác nhận của người khác ch�
     assert.ok(r.json[cho.id], `${as}: người xét đọc được`);
   }
 });
+
+// Đơn bị huỷ chen vào SAU các cổng của route, TRƯỚC lô ghi (khe đua có thật trên D1: đọc rồi ghi không cùng một giao dịch).
+const huyChenVao = (w: any, id: string) =>
+  w.chenTruocLo((stmts: { sql: string }[]) => stmts.some((s) => /dsp_sales_owner/.test(s.sql)), async () => {
+    assert.equal((await goi(w, id, ADM, "status", { status: "cancelled", lyDo: "KHACH_DOI_Y" })).status, 200);
+  });
+const nhatKy = (w: any, id: string, action: string) => w.q("SELECT 1 FROM audit_log WHERE order_id = ? AND action = ?", id, action).length;
+
+test("đua huỷ đúng lúc NHẬN: 409 cancelled, không có người đứng tên trên đơn huỷ, không nhật ký, lời mời không bị ghi NHAN", async () => {
+  const w = setup();
+  const o = await xacNhan(w);
+  moi(w, o.id, B, +10);
+  huyChenVao(w, o.id);
+  const r = await goi(w, o.id, B, "ban-hang/nhan");
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "cancelled");
+  assert.equal(chuO(w, o.id), null);
+  assert.equal(nhatKy(w, o.id, "sales_owner_claimed"), 0);
+  assert.notEqual(loiMoi(w, o.id)[0]?.o, "NHAN");
+});
+
+test("đua huỷ đúng lúc ĐỔI người: 409 cancelled, người cũ giữ nguyên (không bị khép nửa chừng), không nhật ký", async () => {
+  const w = setup();
+  const o = await xacNhan(w);
+  assert.equal((await goi(w, o.id, A, "ban-hang/nhan")).status, 200);
+  huyChenVao(w, o.id);
+  const r = await w.call("PUT", `/api/orders/${o.id}/ban-hang`, { as: ADM, body: { staffId: B } });
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "cancelled");
+  assert.equal(chuO(w, o.id), pty(A));
+  assert.equal(nhatKy(w, o.id, "sales_owner_changed"), 0);
+});
+
+test("đua huỷ đúng lúc BỎ TRỐNG người phụ trách: 409 cancelled, người cũ giữ nguyên, không nhật ký", async () => {
+  const w = setup();
+  const o = await xacNhan(w);
+  assert.equal((await goi(w, o.id, A, "ban-hang/nhan")).status, 200);
+  huyChenVao(w, o.id);
+  const r = await w.call("PUT", `/api/orders/${o.id}/ban-hang`, { as: ADM, body: { staffId: null } });
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "cancelled");
+  assert.equal(chuO(w, o.id), pty(A));
+  assert.equal(nhatKy(w, o.id, "sales_owner_changed"), 0);
+});
+
+test("đua huỷ đúng lúc ĐỔI TỪ TRỐNG: 409 cancelled, đơn huỷ không có người đứng tên, không nhật ký (câu mở sau đổi là lớp chặn duy nhất ở nhánh này)", async () => {
+  const w = setup();
+  const o = await xacNhan(w);
+  huyChenVao(w, o.id);
+  const r = await w.call("PUT", `/api/orders/${o.id}/ban-hang`, { as: ADM, body: { staffId: B } });
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "cancelled");
+  assert.equal(chuO(w, o.id), null);
+  assert.equal(nhatKy(w, o.id, "sales_owner_changed"), 0);
+});
