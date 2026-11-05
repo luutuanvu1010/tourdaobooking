@@ -1,9 +1,17 @@
 // ADR-0170 Đ3: người giữ quyền Đối tác (kể cả tài khoản lai) không tự huỷ đơn đã có vé mở. MỘT luật cho hai đường huỷ (`POST /status` nhánh cancelled của orders,
 // `POST /handler-cancel` của dispatch). Không I/O, không import module: hàm hỏi «đơn có vé đã mở không» do gốc lắp ráp tiêm (`ctx.veDaMoCuaDon`); `null` = không đọc được ⇒ CHẶN.
+// Hai lớp: (1) kiểm TRƯỚC khi soạn lô (`chanDoiTacHuy`); (2) câu bảo vệ NỐI VÀO lô huỷ (module `ve-dien-tu`, `cauChanVeDaMo`) làm hỏng cả lô nếu vé vừa được mở xen giữa — route bắt lỗi
+// bằng `laLoiVeDaMoTrongLo` và trả cùng câu với lớp (1).
 import { error } from "./http.ts";
 import { holdsPartner, type PermissionHolder } from "./permissions.ts";
 
 export const CAU_DON_DA_MO_VE = "Đơn đã mở vé nên bạn không tự huỷ được. Liên hệ văn phòng.";
+export const CAU_CHUA_KIEM_DUOC_VE = "Chưa kiểm tra được vé của đơn này nên chưa huỷ được. Bạn thử lại sau.";
+/** Dấu nhận ra lỗi của câu bảo vệ trong lô: câu bảo vệ cố ý đưa đường dẫn JSON này vào `json_extract`, thông báo lỗi của SQLite nêu lại nó. */
+export const DAU_LOI_VE_DA_MO = "don_da_mo_ve";
+
+export const laLoiVeDaMoTrongLo = (e: unknown): boolean => (e instanceof Error ? e.message : String(e)).includes(DAU_LOI_VE_DA_MO);
+export const chanVeDaMoTrongLo = (): Response => error(409, "don_da_mo_ve", CAU_DON_DA_MO_VE);
 
 /** Trả câu 409 khi phải chặn, `null` khi cho đi tiếp. Người không giữ quyền Đối tác: không hỏi gì (không tốn truy vấn). */
 export async function chanDoiTacHuy(
@@ -13,5 +21,6 @@ export async function chanDoiTacHuy(
 ): Promise<Response | null> {
   if (!holdsPartner(staff)) return null;
   const daMo = await veDaMoCuaDon(orderId);
-  return daMo === false ? null : error(409, "don_da_mo_ve", CAU_DON_DA_MO_VE);
+  if (daMo === false) return null;
+  return daMo === true ? chanVeDaMoTrongLo() : error(409, "chua_kiem_duoc_ve", CAU_CHUA_KIEM_DUOC_VE);
 }

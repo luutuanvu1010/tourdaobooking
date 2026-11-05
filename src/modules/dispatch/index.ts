@@ -19,7 +19,7 @@ import { duocGiaoTheoO } from "../../shared/ban-hang-phu-trach";
 import { thayDoiCuaHandler, type TrangThaiPhuTrach } from "../../shared/bang-tin";
 import { UUID_RE, error, json, readJson } from "../../shared/http";
 import { can, hasPermission, holdsPartner, MATRIX } from "../../shared/permissions";
-import { chanDoiTacHuy } from "../../shared/chan-doi-tac-huy";
+import { chanDoiTacHuy, chanVeDaMoTrongLo, laLoiVeDaMoTrongLo } from "../../shared/chan-doi-tac-huy";
 import { lyDoHuyCuaHdv } from "../../shared/ly-do-huy";
 import { docLyDoTuChoi } from "../../shared/ly-do-tu-choi";
 import { chiNguoiLapGhiNhap } from "../../shared/xem-don-nhap";
@@ -329,7 +329,8 @@ export const dispatchModule: AppModule = {
       const sauHuy = [...cauAbort, ...(await traVeKhiHuy(orderId, "DON_HUY"))]; // ADR-0153: trả vé cùng nguyên tử với việc huỷ (cổng: đơn đã `cancelled` trong lô)
       // ADR-0142: lời mời Bán hàng đang mở (nếu có) khép «đơn huỷ» cùng lô, gác theo id dòng nhật ký huỷ (sinh bên trong `soanHuyDon`, nên câu dựng bằng hàm nhận id).
       const cauSauHuy = (auditId: string): D1PreparedStatement[] => [...sauHuy, banHang.cauKhepLoiMoiSauLenhDon(env.DB, { orderId, outcome: "HUY_DON", at: new Date().toISOString(), actorId: staff.id, auditId })];
-      const r = await cancelOrderByHandler(env.DB, orderId, staff.id, order.updatedAt, lyDoHuyCuaHdv(input.reason, input.note), label, cauSauHuy, (x) => dongBoChuyen(x));
+      let r: Awaited<ReturnType<typeof cancelOrderByHandler>>;
+      try { r = await cancelOrderByHandler(env.DB, orderId, staff.id, order.updatedAt, lyDoHuyCuaHdv(input.reason, input.note), label, cauSauHuy, (x) => dongBoChuyen(x)); } catch (e) { if (laLoiVeDaMoTrongLo(e)) return chanVeDaMoTrongLo(); throw e; } // ADR-0170 Đ3: vé vừa mở xen giữa ⇒ cả lô lui
       if (r.kq === "loi") return r.res;
       if (r.kq === "thua") {
         const now = await findOrderOwner(env.DB, orderId);

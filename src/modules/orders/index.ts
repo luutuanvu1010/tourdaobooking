@@ -12,7 +12,7 @@ import type {
 import { UUID_RE, error, intParam, json, readJson, trangDon } from "../../shared/http";
 import { apCongTacAnKhach } from "../../shared/an-thong-tin-khach";
 import { can, seesOnlyAssignedOrders, type PermissionHolder } from "../../shared/permissions";
-import { chanDoiTacHuy } from "../../shared/chan-doi-tac-huy";
+import { chanDoiTacHuy, chanVeDaMoTrongLo, laLoiVeDaMoTrongLo } from "../../shared/chan-doi-tac-huy";
 import { duocGiaoTheoO, laVaChamOBanHang } from "../../shared/ban-hang-phu-trach";
 import { route, type AppModule, type BanHangNoi } from "../../shared/router";
 import { vnToday, vnWeekRange } from "../../shared/vn-date";
@@ -623,6 +623,11 @@ export { datGiaoStatement, hoanThanhStatement, type DatGiaoInput } from "./hoan-
  * API công khai cho module `receipt` (biên nhận — ADR-0024 đ1): chi tiết đơn HIỆN HÀNH (đã áp điều chỉnh) để receipt CHÉP TỪNG trường được phép vào
  * `ReceiptDto` (danh sách trắng — không trải đối tượng). KHÔNG tự kiểm quyền — route của receipt hỏi can() trước khi trả.
  */
+/** ADR-0170 Đ3: khoá `coVeDaMo` của chi tiết đơn cho người giữ quyền Đối tác; không đọc được ⇒ không có khoá (không nói sai «đã mở vé»). */
+const coVeDaMoTrenDon = async (hoi: (orderId: string) => Promise<boolean | null>, orderId: string): Promise<{ coVeDaMo?: boolean }> => {
+  const r = await hoi(orderId);
+  return r === null ? {} : { coVeDaMo: r };
+};
 export const donChoBienNhan = (db: D1Database, id: string): Promise<OrderDetailDto | null> => loadOrderView(db, id, false);
 
 /** `detail` (ADR-0062 Đ2) = chữ dòng nhật ký VỪA ghi; vắng = y nguyên số khách, không ghi gì. Route KHÔNG chuyển nó đi đâu: màn hình khoá do gốc lắp ráp tự đọc lại dòng đổi của chính request (`dayGoCuaDoi`, mốc `batDau` của router). */
@@ -1293,7 +1298,7 @@ export const ordersModule: AppModule = {
         // ADR-0114 D2: lịch sử số khách CHỈ cho người qua `order.history.view` với đơn này (cùng điều kiện khối `history` ở trên), còn lại null — không đổi ai được xem gì.
         lichSuSoKhach: can(staff, "order.history.view", scopeDuocGiao) ? await lichSuSoKhachCuaDon(env.DB, order) : null,
         canhBaoGiamGia: await canhBaoGiamGiaCuaDon(), xacNhan, laBanHangPhuTrach: laBanHang,
-        ...(holdsPartner(staff) ? { coVeDaMo: (await veDaMoCuaDon(order.id)) !== false } : {}), // ADR-0170 Đ3: chỉ để giao diện ẩn nút Huỷ (null = không đọc được ⇒ coi như đã mở); máy chủ vẫn chặn ở hai đường huỷ
+        ...(holdsPartner(staff) ? await coVeDaMoTrenDon(veDaMoCuaDon, order.id) : {}), // ADR-0170 Đ3: chỉ để giao diện ẩn nút Huỷ (không đọc được ⇒ bỏ khoá, nút còn và máy chủ nói «chưa kiểm tra được»); máy chủ vẫn chặn ở hai đường huỷ
         // ADR-0142: Bán hàng người lập đã mời — CHỈ người lập đơn nháp thấy (tên + mã tài khoản để chọn lại), và chỉ khi người đó còn mời được.
         ...(order.status === "draft" && order.staffId === staff.id ? { banHangMoi: await banHangMoiCuaNhap(env.DB, banHang, order.id) } : {}),
       } satisfies OrderDetailResponse);
@@ -1813,7 +1818,8 @@ export const ordersModule: AppModule = {
         // ADR-0142: lời mời Bán hàng đang mở (nếu có) khép «đơn huỷ» CÙNG lô, gác theo dòng nhật ký huỷ; đứng sau câu trả vé nên chỉ số câu đơn không đổi.
         const khepMoi = cauKhepLoiMoi(banHang, { orderId: id, outcome: "HUY_DON", at: nextStamp(meta.updatedAt), actorId: staff.id, auditId: huy.auditId });
         const dong = await dongBoChuyen({ orderId: id, auditIdDon: huy.auditId, bayGioMs: Date.now(), sau: { trangThai: "cancelled" }, cauDon: [...huy.cau, ...(await traVeKhiHuy(id, "DON_HUY")), khepMoi] }); // ADR-0153: trả vé cùng nguyên tử với việc huỷ
-        const r = await chayLoNoiChuyen(env.DB, dong, daHuy);
+        let r: KetQuaLenhDon;
+        try { r = await chayLoNoiChuyen(env.DB, dong, daHuy); } catch (e) { if (laLoiVeDaMoTrongLo(e)) return chanVeDaMoTrongLo(); throw e; } // ADR-0170 Đ3: vé vừa mở xen giữa ⇒ câu bảo vệ trong lô làm cả lô lui
         if (r.kq === "loi") return r.res;
         if (r.kq === "thua") return RACED();
         dongBo = r.dongBoChuyen;

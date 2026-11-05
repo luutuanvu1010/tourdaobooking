@@ -164,6 +164,7 @@ test("không đọc được chủ đơn: vé khoá (không rơi về nhánh nh�
 // ===== ADR-0170 Đ3: đối tác không tự huỷ đơn đã mở vé (hai đường huỷ: POST /status và POST /handler-cancel) =====
 const PNG = (n: number) => { const u = new Uint8Array(40); u.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0x0d, 0x49, 0x48, 0x44, 0x52, 0, 0, n, n]); return u; };
 const CAU_CHAN = "Đơn đã mở vé nên bạn không tự huỷ được. Liên hệ văn phòng.";
+const CAU_CHUA_KIEM = "Chưa kiểm tra được vé của đơn này nên chưa huỷ được. Bạn thử lại sau.";
 const PF = "88888888-8888-4888-8888-888888888889"; // Đối tác + Hướng dẫn viên (tài khoản lai), đang phụ trách
 async function nhapKho(w: any, soVe: number, batDau = 1) {
   const lo = await w.call("POST", "/api/ve/lo", { as: ADM, body: { catalogCode: "ZA1", nhomKhach: "ADULT", tenSanPham: "Tour đảo" } });
@@ -245,9 +246,10 @@ test("Đ3: không đọc được vé đã mở thì chặn (veDaMoCuaDon trả 
   const truoc = dem(w);
   const r1 = await huy(w, a, PARTNER);
   assert.equal(r1.status, 409, r1.text);
-  assert.equal(r1.json.error.message, CAU_CHAN);
+  assert.equal(r1.json.error.message, CAU_CHUA_KIEM, "không đọc được thì KHÔNG nói «đã mở vé» (sai sự thật)");
   const r2 = await w.call("POST", `/api/orders/${b}/handler-cancel`, { as: PF, body: { reason: "customer_requested" } });
   assert.equal(r2.status, 409, r2.text);
+  assert.equal(r2.json.error.message, CAU_CHUA_KIEM);
   assert.equal(trangThai(w, a), "confirmed");
   assert.equal(trangThai(w, b), "confirmed");
   assert.deepEqual(dem(w), truoc);
@@ -368,4 +370,70 @@ test("Đ1: đối tác đơn của mình nhưng tiền chưa về công ty (tự
   assert.equal(r.status, 403, r.text);
   assert.equal(r.json.error.code, "chua_thu_du");
   assert.equal((await w.call("GET", `/api/ve/anh/${phanBo(w, id)[0]!.id}`, { as: PARTNER })).status, 403);
+});
+
+// ===== Vòng sửa 1: hai khe đua và 403 tuyệt đối =====
+test("Đ3 khe đua: vé vừa được mở GIỮA lúc kiểm và lúc ghi lô huỷ ⇒ cả lô lui, 409 đúng câu, đơn còn confirmed, không dòng bil_* / audit_log mới (cả hai đường huỷ)", async () => {
+  const w = dung();
+  seedStaff(w.sqlite, { id: PF, phone: "0900000018", name: "Lai PF", perms: ["PARTNER", "FIELD"] });
+  await nhapKho(w, 6);
+  const a = await donDaXacNhan(w, PARTNER);
+  const b = await donDaXacNhan(w, A, PF);
+  for (const [id, goi] of [[a, () => huy(w, a, PARTNER)], [b, () => w.call("POST", `/api/orders/${b}/handler-cancel`, { as: PF, body: { reason: "customer_requested" } })]] as [string, () => Promise<any>][]) {
+    assert.equal(soVeGiu(w, id), 2);
+    const truoc = dem(w);
+    // lúc kiểm (veDaMoCuaDon) chưa mở; ngay trước lô có câu bảo vệ, vé được mở (đối tác khác bấm xem ảnh)
+    w.chenTruocLo((stmts: any[]) => stmts.some((x) => String(x.sql).includes("don_da_mo_ve")), async () => { moVe(w, id); });
+    const r = await goi();
+    assert.equal(r.status, 409, r.text);
+    assert.equal(r.json.error.message, CAU_CHAN);
+    assert.equal(trangThai(w, id), "confirmed");
+    assert.deepEqual(dem(w), truoc);
+    assert.equal(soVeGiu(w, id), 2, "vé không bị trả về kho");
+  }
+});
+
+test("Đ3 khe đua: câu bảo vệ chỉ áp cho người giữ quyền Đối tác — văn phòng huỷ đơn đã mở vé vẫn qua", async () => {
+  const w = dung();
+  await nhapKho(w, 3);
+  const id = await donDaXacNhan(w, PARTNER);
+  moVe(w, id);
+  assert.equal((await huy(w, id, ADM)).status, 200);
+});
+
+test("Đ1 khe đua: lệnh huỷ chen vào giữa lúc đọc phân bổ và lúc đóng dấu ⇒ /anh 404, không đọc kho (đối tác và văn phòng)", async () => {
+  for (const [as, dat] of [[PARTNER, PARTNER], [ADM, A]] as [string, string][]) {
+    const w = dung();
+    await nhapKho(w, 3);
+    const id = await donDaXacNhan(w, dat);
+    assert.equal((await thu(w, id, ACC, { soTien: await phaiThu(w, id), nguoiThu: "cong_ty" })).status, 201);
+    const pb = phanBo(w, id)[0]!.id;
+    const truoc = w.r2VeDienTu.soLan.get;
+    w.chenTruocLo((stmts: any[]) => stmts.some((x) => String(x.sql).includes("SET revealed_at")), async () => {
+      w.sqlite.prepare("UPDATE vdt_allocation SET released_at = ?, release_reason = 'DON_HUY' WHERE id = ?").run(AT, pb); // lô huỷ đã trả vé về kho
+    });
+    const r = await w.call("GET", `/api/ve/anh/${pb}`, { as });
+    assert.equal(r.status, 404, `${as}: ${r.text}`);
+    assert.equal(w.r2VeDienTu.soLan.get, truoc, "không đọc kho");
+  }
+});
+
+test("Đ1: Hướng dẫn viên, Thực tập, Kế toán ở sáu route vé: 403 NGAY dù mã đơn / vé / đường dẫn không tồn tại", async () => {
+  const w = dung();
+  const ma = crypto.randomUUID();
+  const pb = "0".repeat(32);
+  for (const as of [H, INTERN]) {
+    const kq = [
+      await w.call("GET", `/api/ve/don/${ma}`, { as }),
+      await w.call("GET", `/api/ve/anh/${pb}`, { as }),
+      await w.call("POST", "/api/ve/giao", { as, body: { orderId: ma, requestId: crypto.randomUUID() } }),
+      await w.call("POST", "/api/ve/cap", { as, body: { orderId: ma } }),
+      await w.call("POST", "/api/ve/duong-dan", { as, body: { orderId: ma } }),
+      await w.call("POST", `/api/ve/duong-dan/${ma}/thu-hoi`, { as, body: {} }),
+    ];
+    for (const r of kq) assert.equal(r.status, 403, `${as}: ${r.text}`);
+  }
+  // Kế toán vẫn xem được số lượng (order.view), không có ô gửi: GET mã không tồn tại 404 như cũ, năm route kia 403
+  assert.equal((await w.call("GET", `/api/ve/don/${ma}`, { as: ACC })).status, 404);
+  assert.equal((await w.call("POST", "/api/ve/cap", { as: ACC, body: { orderId: ma } })).status, 403);
 });

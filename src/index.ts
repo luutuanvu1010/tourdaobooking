@@ -258,7 +258,7 @@ const APP_OPTIONS: AppOptions = {
       try { await capVeChoDon(env.DB, await dichVuChoVe(env.DB, orderId), actor.id, nhatKyThat(env.DB), new Date().toISOString()); } catch (e) { console.error("ve_cap_loi", orderId, e instanceof Error ? e.name : "loi"); }
     },
     traVeKhiHuy: async (env, actor, orderId, lyDo) => {
-      try { return await soanTraVeKhiHuy(env.DB, { orderId, lyDo, by: actor.id, at: new Date().toISOString(), homNay: vnToday(new Date()) }, nhatKyThat(env.DB)); } catch (e) { console.error("ve_tra_loi", orderId, e instanceof Error ? e.name : "loi"); return []; }
+      try { return await soanTraVeKhiHuy(env.DB, { orderId, lyDo, by: actor.id, at: new Date().toISOString(), homNay: vnToday(new Date()), chanVeDaMo: holdsPartner(actor) }, nhatKyThat(env.DB)); } catch (e) { console.error("ve_tra_loi", orderId, e instanceof Error ? e.name : "loi"); return []; }
     },
     // ĐƠN CÓ VÉ ĐÃ MỞ (ADR-0170 Đ3): `orders`, `dispatch` không đọc `vdt_*` — hai đường huỷ của người giữ quyền Đối tác hỏi qua hàm này; null = không đọc được ⇒ chặn.
     veDaMoCuaDon: (env, orderId) => veDaMoCuaDon(env.DB, orderId),

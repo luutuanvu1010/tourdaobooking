@@ -2,6 +2,7 @@
 // gốc lắp ráp (src/index.ts) đọc dịch vụ của đơn qua hàm công bố `orders.dichVuChoVe` (số khách HIỆU LỰC) rồi đưa vào đây. Không SQL thô ở tệp này — mọi câu đi qua cap-ve.ts.
 import { soanCapVe, soanTraVe, type DichCapVe, type GhiNhatKy } from "./cap-ve.ts";
 import { canVe } from "./rules.ts";
+import { cauChanVeDaMo } from "./repository.ts";
 
 /**
  * Cấp vé cho mọi dịch vụ của đơn theo số khách hiệu lực — MỘT `db.batch` RIÊNG, chạy SAU lô xác nhận (xác nhận đã thắng; thất bại ở đây không làm xác nhận thất bại,
@@ -21,8 +22,10 @@ export async function capVeChoDon(db: D1Database, dichVu: readonly DichCapVe[], 
 }
 
 /** Câu trả hết vé của đơn, để NỐI VÀO lô huỷ / rút xác nhận của `orders` (cùng nguyên tử với việc huỷ). Đơn không giữ vé nào: câu vẫn vô hại (mọi câu gác điều kiện dòng). */
-export async function soanTraVeKhiHuy(db: D1Database, p: { orderId: string; lyDo: "DON_HUY" | "RUT_XAC_NHAN"; by: string | null; at: string; homNay: string }, nhatKy: GhiNhatKy): Promise<D1PreparedStatement[]> {
-  return (await soanTraVe(db, { orderId: p.orderId, lyDo: p.lyDo, at: p.at, by: p.by, homNay: p.homNay, chiKhiDon: p.lyDo === "DON_HUY" ? "cancelled" : "draft" }, nhatKy)).cau;
+export async function soanTraVeKhiHuy(db: D1Database, p: { orderId: string; lyDo: "DON_HUY" | "RUT_XAC_NHAN"; by: string | null; at: string; homNay: string; chanVeDaMo?: boolean }, nhatKy: GhiNhatKy): Promise<D1PreparedStatement[]> {
+  // ADR-0170 Đ3: người giữ quyền Đối tác huỷ ⇒ câu bảo vệ ĐỨNG ĐẦU phần của kho vé (vé vừa được mở xen giữa lúc kiểm và lúc ghi làm hỏng cả lô; lô là một giao dịch nên câu đơn lui theo).
+  const chan = p.chanVeDaMo === true && p.lyDo === "DON_HUY" ? [cauChanVeDaMo(db, p.orderId)] : [];
+  return [...chan, ...(await soanTraVe(db, { orderId: p.orderId, lyDo: p.lyDo, at: p.at, by: p.by, homNay: p.homNay, chiKhiDon: p.lyDo === "DON_HUY" ? "cancelled" : "draft" }, nhatKy)).cau];
 }
 
 /**
