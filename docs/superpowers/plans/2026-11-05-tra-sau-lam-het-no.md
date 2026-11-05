@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Đóng bảy mục nợ và các việc chưa làm của Trả sau, gộp đúng với luật vé mới, làm phần cài đặt của ADR-0172, rồi đưa lệnh phát hành.
+**Goal:** Đóng bảy mục nợ và các việc chưa làm của Trả sau, gộp đúng với luật vé mới, làm phần cài đặt của ADR-0172, luật vận hành của ADR-0173, rồi đưa lệnh phát hành.
 
 **Architecture:** Mọi việc thi hành ADR đã duyệt. Số «chưa về công ty» chỉ còn một hàm dùng chung. Cổng Trả sau đổi từ «tin bài quét chữ» sang «trình biên dịch buộc qua cổng» và bảng bài chạy thật.
 
@@ -110,6 +110,19 @@ Mỗi dòng đã có bài ở task sở hữu.
 - [ ] **Step 5: Giao diện.** `web/o-cong-no.ts` theo khuôn `web/cot-cap-dai-ly.ts`, không `innerHTML`, ô gõ 16px; `/han-muc-tra-sau` bỏ phần ghi; nút điều hướng tới `/cap-dai-ly`. Đo `src/goi-trang-nhe.test.ts`. Trang màn đơn hiện hạn trả có giờ.
 - [ ] **Step 6: Thử phá** từng luật giờ và ô quyền, đỏ rồi hoàn nguyên; dòng sổ hàng rào. Chạy các tệp bài bị đụng, `npm run typecheck`, `npm run build:web`. Commit.
 
+### Task 4b: Luật vận hành theo ADR-0173
+
+**Files:**
+- Modify: `src/shared/permissions.ts`, `src/shared/permissions.test.ts`, `src/modules/billing/tra-sau.ts`, `src/modules/billing/tra-sau-repo.ts`, `src/modules/billing/index.ts`, `src/modules/parties/index.ts`, `src/index.ts`, `migrations/0141_tra_sau_han_muc.sql`, `web/o-cong-no.ts`, `web/order.ts`, chỗ tính kỳ trả hoa hồng (tra `docs/CHANGE-GUIDE.md`), chỗ gửi tin Nền tảng hiện có
+- Create: `web/cong-no-cua-toi.ts`, kèm khai `PAGES` và `build:web`
+- Test: `src/tra-sau-van-hanh.test.ts`, `tests/e2e/tra-sau.mjs`
+
+- [ ] **Step 1: Bài đỏ** đúng chín tiêu chí nghiệm thu của ADR-0173, với đúng các số trong đó.
+- [ ] **Step 2: Chạy, đỏ.**
+- [ ] **Step 3: Đ1.** Bảng trần, so trần ở máy chủ; route nới hạn `POST /api/tra-sau/don/:orderId/noi-han`, thân `{ hanMoi, lyDo }`, ghi nhật ký trong cùng lô, gác phiên bản bên đặt.
+- [ ] **Step 4: Đ3.** Kiểm trước cách kỳ trả hoa hồng đang chọn đơn; thêm điều kiện còn nợ bằng 0. Nhắc nợ gắn vào lịch chạy định kỳ hiện có, khoá chống lặp theo đơn và mốc; chưa có lịch chạy thì dừng báo điều phối vì đây là cấu hình triển khai. Đường đại lý xem lấy `partyId` từ phiên. Luật ngừng hồ sơ đi qua hàm tiêm bắt buộc, lỗi thì chặn.
+- [ ] **Step 5: Thử phá** từng điều, đỏ rồi hoàn nguyên, ghi sổ hàng rào. Chạy các tệp bài bị đụng, `npm run typecheck`, `npm run build:web`. Commit.
+
 ### Task 5: Việc chưa làm, tên nút, kiểm tổng
 
 **Files:**
@@ -120,5 +133,5 @@ Mỗi dòng đã có bài ở task sở hữu.
 - [ ] **Step 3: Tên nút.** Điều phối hỏi chủ MỘT lần về «Đặt hạn mức», «Ngừng hạn mức», «Hạn mức trả sau», «Còn được dùng» và tên ô công nợ (chữ «Công nợ» đang trùng «Sổ công nợ»), kèm hai chữ «Thời hạn trả», «Ân hạn»: mỗi tên kèm 2–3 phương án, có khuyến nghị. Ghi lời chủ vào nguồn bảng từ bằng Edit, `npm run tham-chieu`. Tên «Xong và đủ tiền» đã chốt, không hỏi lại.
 - [ ] **Step 4: Tài liệu.** Sổ thi công: đánh dấu đóng từng mục nợ kèm commit. `HANDOFF-N1`: mục chờ phát hành nêu migration, «không chờ diễn tập theo ADR-0172», số bản đặt lúc phát hành. Hướng dẫn bài «Cấp hạn mức trả sau cho đối tác» đổi theo màn mới.
 - [ ] **Step 5: Một lần duy nhất:** `npm test`, `npm run typecheck`, `npm run test:e2e`, kịch bản `tra-sau-smoke` khổ 390 và 1440 kèm `AXE_JS`. Đọc đầu ra, ghi sổ.
-- [ ] **Step 6: `nguoi-kiem-doc-lap`** đọc toàn nhánh theo ADR-0168, 0170, 0171, 0172, chạy lại, tự thử phá. Chỉ báo đạt theo báo cáo đó.
+- [ ] **Step 6: `nguoi-kiem-doc-lap`** đọc toàn nhánh theo ADR-0168, 0170, 0171, 0172, 0173, chạy lại, tự thử phá. Chỉ báo đạt theo báo cáo đó.
 - [ ] **Step 7: Đưa lệnh.** Đạt thì đưa chủ lệnh `npm run day-len` và `npm run trien-khai`, kèm câu cần thử trên iPhone thật. Không tự chạy.
