@@ -25,7 +25,7 @@ export const CHANGELOG: readonly ReleaseNote[] = [
       { kind: "doi", text: "Đơn do Đối tác lập: khoản Đối tác tự ghi chỉ tính sau khi đã nộp về công ty hoặc Kế toán xác nhận, nên vé mở sau bước đó." },
       { kind: "doi", text: "Đối tác không tự huỷ hoặc tự sửa số khách trên đơn đã mở vé; cần thì liên hệ văn phòng." },
       { kind: "doi", text: "Đường dẫn gửi khách: vé đã mở vẫn xem được, vé chưa mở chỉ hiện khi đơn đủ tiền." },
-      { kind: "doi", text: "Chuyển tiền sang đơn mới: phải ghi đúng người chưa nộp tiền; đơn mới chỉ mở vé sau khi người đó nộp." },
+      { kind: "doi", text: "Chuyển tiền sang đơn mới: phải ghi đúng người chưa nộp tiền; đơn của Đối tác chỉ mở vé sau khi người đó nộp." },
       { kind: "sua", text: "Đơn trả sau: số nợ tính đúng khi mới nộp một phần tiền." },
     ],
   },

@@ -58,7 +58,7 @@
     {
       "ma": "TRA-SAU-NO-MOT-PHAN",
       "muc_do": "HIGH",
-      "ly_do": "Lỗi tính nợ Trả sau trên bản 2.67 đang chạy: khi Kế toán ghi nộp MỘT PHẦN khoản «Công ty thu» do đối tác ghi, khoản rời diện chờ xác nhận mà phép tính nợ riêng (noTheoDon) không trừ phần đối tác còn giữ, nên nợ ra 0, hạn mức trống ra, đơn thứ hai xác nhận được và đơn quá hạn vẫn mở vé. Hạn mức thật chưa cấp (dựa vào kỷ luật, không có máy chặn).",
+      "ly_do": "Lỗi tính nợ Trả sau trên các bản 2.67, 2.68: khi Kế toán ghi nộp MỘT PHẦN khoản «Công ty thu» do đối tác ghi, khoản rời diện chờ xác nhận mà phép tính nợ riêng (noTheoDon) không trừ phần đối tác còn giữ, nên nợ ra 0, hạn mức trống ra, đơn thứ hai xác nhận được và đơn quá hạn vẫn mở vé. Hạn mức thật chưa cấp (dựa vào kỷ luật, không có máy chặn).",
       "ke_hoach": "Phát hành bản sửa của nhánh claude/adr-0170-doi-tac-xem-ve (noTheoDon dùng chung soChuaVeCongTy với vé; bài src/tra-sau-no-doi-tac.test.ts); sau phát hành xoá mục này trong cùng commit ghi trạng thái.",
       "han": "2026-11-08",
       "nguoi_chiu_trach_nhiem": "chủ dự án",

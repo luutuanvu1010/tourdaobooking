@@ -10,6 +10,8 @@
 
 **Spec:** `docs/adr/ADR-0168-thanh-toan-tra-sau-va-han-muc.md` và `docs/superpowers/specs/2026-11-05-tra-sau-han-muc.md` (đang ở nhánh Trả sau), `docs/adr/ADR-0170-doi-tac-xem-va-gui-ve-cua-don-minh.md`, `docs/adr/ADR-0171-siet-tien-va-ve-sau-kiem-doc-lap-0170.md`; nợ ở `docs/superpowers/plans/2026-11-05-tra-sau-thi-cong-nhat-ky.md` (nhánh Trả sau).
 
+**Xây trên lỗ đang hở:** `TRA-SAU-NO-MOT-PHAN` (`docs/quyen-hoan.json`); chỉ thi công Task 2 trở đi sau khi bản sửa lỗi này đã lên production.
+
 **Nhánh thi công:** nhánh mới từ `origin/main` sau khi ADR-0170, 0171 đã nhập. Đính chính 5/11: Trả sau đã lên `main` từ 15:28 nhưng `0141` đã áp production từ bản 2.67 (kiểm 5/11 bằng lệnh chỉ đọc) — Trả sau đã chạy trên production, lỗi tính nợ có trên bản đó; phần nối của Task 1 Step 1 đã làm trên nhánh ADR-0170 (`b7d759af`).
 
 ## Global Constraints
@@ -130,6 +132,7 @@ Mỗi dòng đã có bài ở task sở hữu.
 - Modify: `tests/e2e/tra-sau.mjs`, `src/shared/bang-tham-chieu*.ts`, `docs/SYSTEM-DESIGN.md`, `docs/CHANGE-GUIDE.md`, `docs/HANDOFF-N1.md`, sổ thi công Trả sau
 
 - [ ] **Step 1: e2e vé của đơn Trả sau**, gieo kho theo `moLo`, `themVe` ở `tests/e2e/ve-dien-tu.mjs`: xác nhận, đối tác mở và gửi; nộp một phần vẫn còn nợ; đường dẫn khách thấy đủ vé; không huỷ được khi còn nợ và đã mở; thu đủ rồi «Xong và đủ tiền». Bộ `run.mjs` đã chạy `audit-invariants` ở cuối nên đóng mục đó, không viết thêm.
+- [ ] **Bài còn thiếu từ Task 1 (người kiểm 5/11):** thêm vào `src/tra-sau-no-doi-tac.test.ts` hai ca: đại lý khác giữ tiền «Bên kia đã nhận» thì vẫn còn nợ; khoản `toi` cùng khoản khai của người khác. Task 1 Step 2 đánh dấu xong trước khi có hai bài này.
 - [ ] **Step 2: Lệch bảng từ.** Chạy `node --test src/bang-tham-chieu.test.ts`; còn đỏ ở `web/hoa-hong-cap.ts:149` thì xem có do nhánh này không, không phải thì ghi sổ nợ chung, không sửa ở đây.
 - [ ] **Step 3: Tên nút.** Điều phối hỏi chủ MỘT lần về «Đặt hạn mức», «Ngừng hạn mức», «Hạn mức trả sau», «Còn được dùng» và tên ô công nợ (chữ «Công nợ» đang trùng «Sổ công nợ»), kèm hai chữ «Thời hạn trả», «Ân hạn»: mỗi tên kèm 2–3 phương án, có khuyến nghị. Ghi lời chủ vào nguồn bảng từ bằng Edit, `npm run tham-chieu`. Tên «Xong và đủ tiền» đã chốt, không hỏi lại.
 - [ ] **Step 4: Tài liệu.** Sổ thi công: đánh dấu đóng từng mục nợ kèm commit. `HANDOFF-N1`: mục chờ phát hành nêu migration, «không chờ diễn tập theo ADR-0172», số bản đặt lúc phát hành. Hướng dẫn bài «Cấp hạn mức trả sau cho đối tác» đổi theo màn mới.
