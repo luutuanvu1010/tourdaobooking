@@ -25,7 +25,7 @@ Hôm nay có bốn chỗ: `/ve-kho` (nhập lô, số còn, lô đã huỷ), kh�
 | 13 | Cài đặt vé (sửa `/ve-cai-dat`) | Trần lô, ngưỡng báo thiếu, nội dung lưu ý trên vé | Toàn quyền | Mới | 1 |
 | 14 | Trang khách (đã có) | Chỉ hiện vé đã mở ở đợt 1; thêm vé đoàn ở đợt 3 | Khách | Có sẵn | 1, 3 |
 
-Ngoài ra, màn Danh mục có thêm hai ô trên từng dịch vụ: «Có vé» và «Vé do ai phát» (Quản trị, Toàn quyền, đợt 1). Đây là hai ô trên màn có sẵn nên không tính thành màn mới. Nhà cung cấp dịch vụ vẫn đặt ở màn «Người bán dịch vụ», độc lập với hai ô này.
+Ngoài ra, màn Danh mục có thêm ô «Vé do ai phát» trên từng dịch vụ (Quản trị, Toàn quyền, đợt 1) và ô «Có vé» đặt được ở nhóm và từng dịch vụ (ADR-0174, chưa duyệt). Đây là ô trên màn có sẵn nên không tính thành màn mới. Nhà cung cấp dịch vụ vẫn đặt ở màn «Người bán dịch vụ», độc lập với hai ô này.
 
 Phân loại không cần màn riêng: vé do ai phát, nhóm dịch vụ, dịch vụ, loại khách, trạng thái, hạn dùng là bộ lọc dùng chung cho các màn 2, 10, 12. Menu đề xuất: một nhóm «Vé điện tử», ai không có quyền thì không thấy mục đó. Hướng dẫn viên và Tài xế công ty chỉ thấy «Quét vé».
 

@@ -28,7 +28,7 @@ Tour Đảo là một trong nhiều nhà cung cấp. Ba câu hỏi dưới đây
 | Ô | Trả lời câu | Nằm ở đâu |
 |---|---|---|
 | Nhà cung cấp dịch vụ | Ai cung cấp dịch vụ này? | Đã có: màn «Người bán dịch vụ». Bản này không đụng tới, đổi ô này không ảnh hưởng vé |
-| Có vé hay không | Dịch vụ này có dùng vé không? | Mới, trên từng dịch vụ. «Không vé» thì máy không bao giờ báo thiếu vé. Đây cũng là chỗ dứt điểm lỗi «Thiếu vé» hiện sai |
+| Có vé hay không | Dịch vụ này có dùng vé không? | Mới, đặt được cho cả nhóm dịch vụ và từng dịch vụ (chủ chốt 5/11). «Không vé» thì máy không bao giờ báo thiếu vé. Ô này thuộc bản đề xuất ADR-0174 của phiên sửa nhãn «Thiếu vé», bản này chỉ dùng lại |
 | Vé do ai phát | Vé của dịch vụ này là vé hãng ngoài hay vé Tour Đảo? | Mới, trên từng dịch vụ có vé, và ghi cố định trên từng lô |
 
 Ví dụ: dịch vụ Tour Đảo cung cấp mà kèm vé Vinpearl thì Có vé, vé hãng ngoài. Dịch vụ của đối tác khác mà Tour Đảo tự in vé thì Có vé, vé Tour Đảo. Thuê xe thì Không vé. Mọi luật mở vé, quét và huỷ chỉ xét «vé do ai phát», không xét nhà cung cấp.
@@ -76,7 +76,7 @@ Bản này được xây trong lúc hai rủi ro cũ chưa xong: chưa diễn t�
 | Kho hết vé | Báo thiếu, người có quyền tạo thêm; đơn vẫn xác nhận được |
 | Chọn vé đoàn | Nhân viên chọn trên từng đơn; mặc định vé từng khách |
 | Giá trên vé | Không ghi giá; biên nhận vẫn là chứng từ tiền |
-| Ai đặt ô «Có vé» và «Vé do ai phát» | Quản trị, Toàn quyền |
+| Ai đặt ô «Vé do ai phát» | Quản trị, Toàn quyền. Ai đặt ô «Có vé» do ADR-0174 quyết |
 | Đơn Trả sau trong hạn mức khi quét | Không báo «chưa thu đủ», quét xanh; quá hạn còn nợ thì báo vàng |
 | Tiếng Anh trên vé | In thêm: tiếng Việt là chính, tiếng Anh nhỏ hơn bên dưới. Chỉ áp cho tấm vé gửi khách; giao diện vẫn không có chữ Anh |
 | Nhà cung cấp và giá mua theo lô | Không làm ở đây, thuộc phân hệ kế toán làm về sau |
@@ -84,7 +84,7 @@ Bản này được xây trong lúc hai rủi ro cũ chưa xong: chưa diễn t�
 ### Người viết tự chọn, bạn sửa được khi duyệt
 
 1. **Giảm số khách:** không giảm xuống dưới số vé đã dùng, trừ khi bỏ lượt quét trước. Cùng lý do với chặn huỷ, nhưng bạn chưa nói tới.
-2. **Đổi ô «Có vé» hoặc «Vé do ai phát»:** chỉ áp cho đơn xác nhận sau lúc đổi; đơn cũ giữ nguyên vé đang có.
+2. **Đổi ô «Vé do ai phát»:** chỉ áp cho đơn xác nhận sau lúc đổi; đơn cũ giữ nguyên vé đang có. Với ô «Có vé», câu này đang chờ bạn quyết trong ADR-0174.
 3. **Bỏ lượt quét:** người quét tự bỏ được trong 5 phút; sau đó chỉ Quản trị, Toàn quyền. Luôn phải ghi lý do, và lượt bỏ hiện ở màn theo dõi người quét.
 4. **Đơn đổi ngày đi:** vé từng khách không in ngày đi nên không phải vẽ lại; máy so với ngày đi mới nhất khi quét.
 5. **Báo thiếu vé:** áp cho cả hai loại vé. Vé Tour Đảo báo người được tạo vé; vé hãng ngoài báo người quản lý kho.
@@ -102,10 +102,10 @@ Bốn câu dưới đây dựa trên trang tổng hợp, chưa đọc được v
 
 ### Thứ tự làm
 
-Tất cả làm **sau khi** phần đối tác xem vé nhập vào bản chính, vì phần đó viết lại đúng chỗ quyết định mở vé. Phát hành sau diễn tập khôi phục và sau khi kế toán trả lời câu 1; thi công không phải chờ câu đó (lựa chọn của người viết).
+Tất cả làm **sau khi** phần đối tác xem vé nhập vào bản chính, vì phần đó viết lại đúng chỗ quyết định mở vé, và sau khi ô «Có vé» (ADR-0174, chưa duyệt) đã có. Phát hành sau diễn tập khôi phục và sau khi kế toán trả lời câu 1; thi công không phải chờ câu đó (lựa chọn của người viết).
 
 - **Bước 0:** thử camera trên iPhone thật (khoảng một giờ, chủ dự án cầm máy). Hỏng thì đổi cách quét trước khi làm tiếp.
-- **Đợt 1:** ô «Có vé», ô «Vé do ai phát», tạo vé vào kho, cho phép mở vé từ lúc xác nhận, gửi khách, báo thiếu.
+- **Đợt 1:** ô «Vé do ai phát», tạo vé vào kho, cho phép mở vé từ lúc xác nhận, gửi khách, báo thiếu.
 - **Đợt 2:** màn quét, số vé đã dùng trên đơn, đối chiếu.
 - **Đợt 3:** vé đoàn.
 
@@ -124,11 +124,12 @@ Trong phần này, «lộ» nghĩa là `revealed_at` có giá trị, tức vé �
 ### 2.2 Dữ liệu (dùng lại module `ve-dien-tu`)
 
 - `vdt_batch` thêm `source` (`HANG_NGOAI`, `TOUR_DAO`; tên giá trị không được gợi «nhà cung cấp»), mặc định `HANG_NGOAI`, không đổi sau khi tạo. Đây là «vé do ai phát» của từng lô, và mọi luật mở vé, quét, huỷ, quyền đều đọc từ đây.
-- Trên từng dịch vụ (thuộc `catalog`, có ngày hiệu lực như các đặc điểm dịch vụ khác; hình dạng do kế hoạch quyết): ô «Có vé» (có/không) và ô «Vé do ai phát» (`HANG_NGOAI`, `TOUR_DAO`), chỉ có nghĩa khi có vé. Giá trị ban đầu của «Có vé» suy từ kho vé hiện có, khớp với cách tạm của phiên sửa nhãn «Thiếu vé» nếu chủ chọn cách đó. Đơn phải giữ được giá trị hai ô tại lúc xác nhận, nên đổi ô không làm đơn cũ đổi nghĩa; chỗ lưu do kế hoạch quyết, theo luật ranh giới module.
+- Ô «Có vé»: theo ADR-0174 (đề xuất, nhánh `claude/interesting-hodgkin-cde2fd`, chưa duyệt), đặt được ở nhóm và từng dịch vụ; khai riêng ở dịch vụ thắng khai ở nhóm là khuyến nghị của phiên đó, chủ chưa nói riêng. Bản này không định nghĩa lại ô đó.
+- Trên từng dịch vụ (thuộc `catalog`, có ngày hiệu lực như các đặc điểm dịch vụ khác; hình dạng do kế hoạch quyết): ô «Vé do ai phát» (`HANG_NGOAI`, `TOUR_DAO`), chỉ có nghĩa khi có vé. Đơn phải giữ được giá trị «Vé do ai phát» tại lúc xác nhận, nên đổi ô không làm đơn cũ đổi nghĩa; chỗ lưu do kế hoạch quyết, theo luật ranh giới module.
 - Vé Tour Đảo vẫn là dòng `vdt_ticket` đủ `storage_key`, `content_hash`, `byte_size`: không phải dựng lại bảng, nên đường dẫn khách và gửi vé chạy nguyên.
 - Bảng mới `vdt_scan`, chỉ thêm: vé, phân bổ, đơn, dòng dịch vụ, `ket_qua` (`DA_TINH`, `CHI_XEM`, `TU_CHOI`), lý do, số khách, cờ đã xác nhận lệch ngày / chưa thu đủ / vượt số khách, giờ và người quét, giờ / người / lý do bỏ lượt (ghi một lần). «Đã dùng» suy ra từ bảng này, không thêm trạng thái vào `vdt_ticket`.
 - Chặn trùng ở CSDL: chỉ mục duy nhất một phần cho vé từng khách trên lượt `DA_TINH` chưa bị bỏ, và phải chừa đường cho vé đoàn (nhiều lượt trên một vé).
-- Số migration và số ADR tạm: migration ≥ `0142` (`0141` thuộc nhánh Trả sau), ADR ≥ `0174` (`0172`, `0173` thuộc nhánh ADR-0170). Kiểm lại mọi nhánh trước khi đặt. Cột mới cập nhật `docs/data-dictionary.json` kèm hạng dữ liệu.
+- Số migration và số ADR tạm: migration ≥ `0142` (`0141` thuộc nhánh Trả sau), ADR ≥ `0175` (`0172`, `0173` thuộc nhánh ADR-0170, `0174` là ô «Có vé» của phiên sửa nhãn). Kiểm lại mọi nhánh trước khi đặt. Cột mới cập nhật `docs/data-dictionary.json` kèm hạng dữ liệu.
 
 ### 2.3 Tạo vé
 
@@ -139,7 +140,7 @@ Trong phần này, «lộ» nghĩa là `revealed_at` có giá trị, tức vé �
 - **Ảnh vé** vẽ bằng canvas trên trình duyệt người tạo, dùng lại `veMaQr` và cách nạp phông của `web/qr-ve.ts`, `web/confirmation-image.ts`. Vẽ xong tự đọc lại QR bằng `web/qr-doc-ve.ts`; đọc không ra hoặc lệch mã thì không gửi. Máy chủ không đọc lại QR, như ADR-0156. Kết quả quét luôn lấy từ máy chủ, nên ảnh sai chữ không làm sai việc kiểm.
 - **Nội dung vé:** logo, tên công ty và Hotline (qua `ownerCompany`), «VÉ DỊCH VỤ», tên dịch vụ, loại khách, hạn cuối kèm chữ «dùng vào ngày đi đã đặt», QR đen trên nền trắng, 4 ký tự cuối của mã, «Mỗi vé dùng một lần», «Không phải hóa đơn». **Không** giá, tên khách, số điện thoại, mã đơn. Bố cục dọc như vé Vinpearl mẫu.
 - **Hai thứ tiếng:** mọi dòng cố định có tiếng Anh nhỏ hơn bên dưới. Danh mục hiện không có tên dịch vụ tiếng Anh (đã tra `catalog`, migration, từ điển dữ liệu), nên lựa chọn của người viết là: màn tạo vé có ô tuỳ chọn «Tên tiếng Anh»; để trống thì dòng tên dịch vụ chỉ in tiếng Việt. Không tự dịch bằng máy. Chỗ lưu ô này do kế hoạch quyết.
-- **Hai ô trên dịch vụ** (Quản trị, Toàn quyền đặt): «Không vé» thì không giữ vé, không báo thiếu; «Có vé» thì chỉ giữ vé từ lô đúng «Vé do ai phát». Không chặn đổi theo trạng thái lô, vì lô từng được cấp không bao giờ thành `VOID` (`BO_LO`), nên chặn kiểu đó khiến dịch vụ không đổi được loại vé.
+- **Hai ô** («Vé do ai phát» do Quản trị, Toàn quyền đặt): «Không vé» thì không giữ vé, không báo thiếu; «Có vé» thì chỉ giữ vé từ lô đúng «Vé do ai phát». Không chặn đổi theo trạng thái lô, vì lô từng được cấp không bao giờ thành `VOID` (`BO_LO`), nên chặn kiểu đó khiến dịch vụ không đổi được loại vé.
 - **«Thiếu vé» theo ô «Có vé», ở cả hai loại vé:** `SERVICE_CHO_VE` (`orders/chang-hanh-khach-repo.ts`) và `GET /api/ve/don/:orderId` hiện tính thiếu cho mọi dòng có mã danh mục và ngày đi, kể cả đơn huỷ (phiên sửa nhãn đã tái hiện trên dữ liệu thử). Báo thiếu, «Đã dùng x/y» và đối chiếu không được thừa hưởng cách tính đó, và đơn huỷ không tính.
 - Mười route kho đang chỉ hỏi `ve.kho.manage`: `GET /kho`, `GET`/`POST /lo`, ba route lô đã huỷ, `/ve`, `/xac-nhan`, `/bo`, `/sua-ma-tour`. Route theo lô phải hỏi ô theo `source`; route danh sách phải lọc theo `source`, vì Kế toán đang là `none` và câu đọc chưa có nguồn. Không sửa thì Bán hàng thường thao tác được lô Tour Đảo. Lô Tour Đảo chưa từng cấp cho đơn nào thì người giữ `ve.phat-hanh` huỷ được.
 - Sau khi lô vào kho, máy cấp bù cho các đơn đã xác nhận còn thiếu, ngày đi gần trước. Thiếu vé Tour Đảo thì báo người giữ `ve.phat-hanh`, thiếu vé hãng ngoài thì báo người giữ `ve.kho.manage`, qua `thongbao`. Cả hai việc này hiện chưa có, ghi ở `docs/SYSTEM-DESIGN.md` mục kho vé.
@@ -214,7 +215,7 @@ Tài xế đối tác không có ô quét nào. Kế toán xem và quét đượ
 
 ### 2.10 Bảng tóm tắt để lập trang ghép (`CLAUDE.md` §9)
 
-Bảng dùng chung `vdt_batch`, `vdt_ticket` nhận thêm vé Tour Đảo, nên phải có trang ghép khi trình ADR. Trang ghép phải nói rõ ba ô độc lập. Tối đa ba quyết định một lượt: (1) ô «Có vé», ô «Vé do ai phát» và ô tạo vé, (2) mở vé khi xác nhận kèm ngoại lệ ở ADR-0153, 0168, 0170, 0171, (3) quét vé, camera, ô quét, chặn huỷ khi đã dùng. Vé đoàn là lượt sau.
+Bảng dùng chung `vdt_batch`, `vdt_ticket` nhận thêm vé Tour Đảo, nên phải có trang ghép khi trình ADR. Trang ghép phải nói rõ ba ô độc lập. Tối đa ba quyết định một lượt: (1) ô «Vé do ai phát» và ô tạo vé, (2) mở vé khi xác nhận kèm ngoại lệ ở ADR-0153, 0168, 0170, 0171, (3) quét vé, camera, ô quét, chặn huỷ khi đã dùng. Vé đoàn là lượt sau.
 
 | Cửa | Cổng máy chủ | Giao diện đổi nghĩa |
 |---|---|---|
@@ -238,7 +239,7 @@ Theo Hiến chương 5.27, chủ dự án chọn tên, bảng tham chiếu ghi. 
 5. Huỷ đơn có vé đã mở chưa dùng: huỷ được, quét ra «Vé đã huỷ». Đơn có lượt `CHI_XEM`: huỷ được. Đơn có vé đã dùng: huỷ bị chặn, bỏ lượt rồi huỷ được.
 6. Vé trong kho chưa cấp, vé Vinpearl, mã lạ: đều đỏ, không có `DA_TINH`, vé Vinpearl và mã lạ cùng một câu.
 7. Lệch ngày, chưa thu đủ, vượt số khách: vàng, chưa ghi `DA_TINH` khi chưa bấm; bấm thì ghi kèm cờ.
-8. Bán hàng thường gọi route lô Tour Đảo: 403 (Bán hàng thường không có `ve.phat-hanh`). Toàn quyền, Quản trị, Quản lý bán hàng tạo được lô. Kế toán tạo được lô, không thấy lô Vinpearl ở mọi route danh sách. Dịch vụ «Không vé» và đơn huỷ không bị báo thiếu ở cả hai loại vé. Dịch vụ do Tour Đảo cung cấp mà «vé hãng ngoài» chỉ giữ lô hãng ngoài. Dịch vụ của bên khác mà «vé Tour Đảo» chỉ giữ lô Tour Đảo. Đổi người bán dịch vụ không làm đổi vé hay luật vé. Đổi hai ô không làm đơn đã xác nhận đổi nghĩa.
+8. Bán hàng thường gọi route lô Tour Đảo: 403 (Bán hàng thường không có `ve.phat-hanh`). Toàn quyền, Quản trị, Quản lý bán hàng tạo được lô. Kế toán tạo được lô, không thấy lô Vinpearl ở mọi route danh sách. Dịch vụ «Không vé» và đơn huỷ không bị báo thiếu ở cả hai loại vé. Dịch vụ do Tour Đảo cung cấp mà «vé hãng ngoài» chỉ giữ lô hãng ngoài. Dịch vụ của bên khác mà «vé Tour Đảo» chỉ giữ lô Tour Đảo. Đổi người bán dịch vụ không làm đổi vé hay luật vé. Đổi ô «Vé do ai phát» không làm đơn đã xác nhận đổi nghĩa.
 9. `Permissions-Policy` thật: `/quet-ve` có `camera=(self)`, trang khác `camera=()`; mở camera được trên iPhone thật, và cách chụp ảnh chạy được khi từ chối quyền camera.
 10. Bài khoá không lộ mã vé thêm ca cho mọi route mới. Người quét không quyền xem đơn không nhận tên, số điện thoại, giá, mã đơn.
 11. Hàng rào mới ghi vào `docs/SO-HANG-RAO.md` kèm ngày quan sát chặn thật. Người kiểm độc lập đọc mã và chạy lại lệnh, e2e đủ bộ, kịch bản Chrome, thử iPhone thật.
