@@ -15,7 +15,7 @@
 ## Global Constraints
 
 - **Diễn tập khôi phục `HC-5.19` dời tới 2026-12-31, không hỏi lại.** Theo ADR-0172, Trả sau lên khi xong và người kiểm độc lập đạt, không chờ diễn tập. Việc của `docs/adr/ADR-0172-cai-dat-cong-no-theo-gio-va-an-han.md` nằm ở Task 4.
-- Task 1 chỉ bắt đầu khi ADR-0170, 0171 đã trên `origin/main`. Chưa có thì dừng trước Task 1, không chép mã từ nhánh kia.
+- Task 1 đã làm trên nhánh `claude/adr-0170-doi-tac-xem-ve` (nối bản chính 5/11, nơi ADR-0170, 0171 đang nằm) vì ADR-0170, 0171 chưa lên `origin/main`; khi nhập nhánh này vào `main` thì Task 1 thành có trên `main`. Task 2 trở đi chỉ bắt đầu sau khi nhánh này đã nhập.
 - `0141_tra_sau_han_muc` đã trên `main`: không sửa. Task 4, Task 4b đổi cấu trúc bằng một migration mới theo số kế tiếp, kể cả `term_days` sang giờ và `credit_due_date` sang hai mốc giờ. Giữ cảnh báo đụng trigger `orders_delivered_lock` ở `docs/HANDOFF-N1.md`.
 - AI không `git push`, không nhập `main`, không triển khai. Không sửa `docs/adr/`.
 - Tiền là `INTEGER` VNĐ, chỉ tính ở máy chủ. Câu người dùng thấy bằng tiếng Việt có dấu; tên nút tra `docs/BANG-THAM-CHIEU.md`.
@@ -48,7 +48,7 @@ Mỗi dòng đã có bài ở task sở hữu.
 - [ ] **Step 1: Nối.** `git merge origin/main`. Xử lý theo mục «người nhập ADR-0168» ở `docs/HANDOFF-N1.md`. Sau bước này chỉ còn một `veDaMoCuaDon`, kiểu `tienDonVe` có cả `traSau` và `choXacNhan`.
 - [ ] **Step 2: Bài đỏ.** Ở `tra-sau.test.ts`, tên «nợ đơn Trả sau theo tiền đã về công ty»: `cong_ty` 1.000.000 nộp 1.000 → `no === 999_000`; nộp đủ → 0; `toi` 200.000 + khai 100.000 do người khác → nợ tính đủ cả hai; đại lý khác giữ «Bên kia đã nhận» → còn nợ tới khi nộp. Ở `tra-sau-ve.test.ts`: đường dẫn khách, trong hạn thấy đủ vé; quá hạn còn nợ không trả ảnh vé chưa mở và không đóng dấu; vé đã mở vẫn trả; đơn Trả sau của tài khoản giữ quyền Đối tác: đối tác tự mở trong hạn (ADR-0170 Đ2 mục 6).
 - [ ] **Step 3: Chạy, đỏ.** `node --test src/modules/billing/tra-sau.test.ts src/tra-sau-ve.test.ts`.
-- [ ] **Step 4: Viết.** `noTheoDon` lấy `dangDoiChieu`, `benDatDangGiu` từ `soChuaVeCongTy` với `nguoiLapPartyId` = bên đặt, bỏ phép tính riêng; `noMotDon` giữ chữ ký. Cổng đường dẫn khách đổi sang `moVeDuoc`.
+- [x] **Step 4: Viết** (đã làm 5/11, commit ghi ở mục «Sau kiểm độc lập lần hai» của báo cáo; xem mã commit trong `git log` nhánh `claude/adr-0170-doi-tac-xem-ve`). `noTheoDon` lấy `dangDoiChieu`, `benDatDangGiu` từ `soChuaVeCongTy` với `nguoiLapPartyId` = bên đặt, bỏ phép tính riêng; `noMotDon` giữ chữ ký. Cổng đường dẫn khách đổi sang `moVeDuoc`.
 - [ ] **Step 5: Chạy, xanh** gồm `src/modules/billing/*.test.ts`, `src/modules/ve-dien-tu/*.test.ts`, `src/tra-sau-*.test.ts`, `src/architecture.test.ts`, `npm run typecheck`. Commit.
 
 ### Task 2: Huỷ đơn và đường làm nợ tăng

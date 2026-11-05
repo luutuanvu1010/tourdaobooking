@@ -4,10 +4,11 @@
 import type { CauCocXacNhan, ChanKhaiLai, VaoCauCoc } from "../../shared/dat-coc-kieu";
 import { CAU_CHUA_GAN_HO_SO } from "../../shared/dat-coc-truoc";
 import { benDatHuong, soChuaVeCongTy, soKhaiChuaNop } from "./rules";
-import { GHI_CHU_KHOAN_LOI_KHAI, cocLapLaiConGiu, donCuaKhoan, hoSoNhanVien } from "./coc-repo";
+import { GHI_CHU_KHOAN_LOI_KHAI, cocLapLaiConGiu, hoSoNhanVien } from "./coc-repo";
 import { linesOfOrder, nguoiLapGiuDoiTac, orderOwners, ownerCompanyId, receiptOnConfirmStatement, receiptsOfOrder, reconOfOrder } from "./repository";
 import { cauLanThu, tienNhieuDon, toDoiChieuRow, toLineRow, toReceiptRow } from "./service";
 import { traSauCuaDon } from "./tra-sau";
+import { phanKhaiCuaDon } from "./khoan-khai";
 
 const dong = (n: number): string => `${n.toLocaleString("vi-VN")} ₫`;
 
@@ -27,33 +28,6 @@ export async function chanKhaiCocLai(db: D1Database, nguoiLapId: string): Promis
     code: "declared_deposit_reissue_held",
     message: `Đơn đã huỷ ${cu.order_code ?? ""} còn giữ ${dong(cu.con_giu)} tiền khách trả trước. Đừng khai lại ở đây: để trống ô này và nhờ Kế toán chuyển số tiền đó sang đơn mới sau khi đơn được xác nhận.`,
   };
-}
-
-type PhanKhai = { receiptId: string; collectorPartyId: string | null; soTien: number };
-type KhoanDon = Awaited<ReturnType<typeof receiptsOfOrder>>[number];
-
-/**
- * Phần tiền có nguồn là khoản khai trên một đơn: khoản mang dấu, và khoản chuyển từ đơn huỷ (đi ngược `transfer_of_id`, kể cả chuyển nhiều lần): khoản «Chuyển từ đơn huỷ» không mang dấu,
- * nếu bỏ qua thì tiền vẫn ở tay đối tác mà vé đơn nhận mở (I-5). Tự quyết: đơn nguồn vừa có khoản khai vừa có khoản khác, sổ không nói phần chuyển lấy từ đâu ⇒ lấy từ khoản khai trước.
- * Cọc «Tôi thu» thuần tuý chuyển sang tính 0. Không đọc được đơn nguồn, hoặc gặp vòng: coi cả khoản là khoản khai.
- */
-async function phanKhaiCuaDon(db: D1Database, receipts: readonly KhoanDon[], daQua: ReadonlySet<string>): Promise<PhanKhai[]> {
-  const out: PhanKhai[] = [];
-  for (const r of receipts) {
-    if (r.reverses_id !== null || receipts.some((y) => y.reverses_id === r.id)) continue;
-    if (r.kind_code === "CUSTOMER_PAYMENT" && r.note === GHI_CHU_KHOAN_LOI_KHAI) {
-      out.push({ receiptId: r.id, collectorPartyId: r.collector_party_id, soTien: r.amount });
-    } else if (r.transfer_of_id !== null) {
-      const nguon = await donCuaKhoan(db, r.transfer_of_id);
-      let tuKhai = r.amount;
-      if (nguon !== null && !daQua.has(nguon)) {
-        const phan = await phanKhaiCuaDon(db, await receiptsOfOrder(db, nguon), new Set([...daQua, nguon]));
-        tuKhai = Math.min(r.amount, phan.reduce((s, p) => s + p.soTien, 0));
-      }
-      if (tuKhai > 0) out.push({ receiptId: r.id, collectorPartyId: r.collector_party_id, soTien: tuKhai });
-    }
-  }
-  return out;
 }
 
 /**

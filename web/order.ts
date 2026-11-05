@@ -818,14 +818,15 @@ function khoiCoc(order: Order, c: Api.CocDonDto): HTMLElement {
     if (k.loai === "chuyen" && c.coTheChuyen && k.conLai > 0) {
       // ADR-0171 Đ3: tiền do ai đang giữ thì ghi đúng người đó; không ai giữ thì mới là Công ty. Nhiều người giữ: chọn một người, số tiền không vượt phần người đó giữ.
       const giu = c.nguoiGiu ?? [];
-      const so = oSoTien(giu.length > 0 ? Math.min(k.conLai, giu[0]!.soTien) : k.conLai);
+      const macDinh = giu.length > 0 ? Math.min(k.conLai, giu[0]!.soTien) : k.conLai; // số mặc định ĐÃ kẹp theo phần người đầu tiên giữ
+      const so = oSoTien(macDinh);
       const chonGiu = giu.length > 1 ? (h("select", null, ...giu.map((g) => h("option", { value: g.partyId }, `${g.ten} (${vnd(g.soTien)})`))) as HTMLSelectElement) : null;
       chonGiu?.addEventListener("change", () => { const g = giu.find((x) => x.partyId === chonGiu.value); if (g) { so.value = String(Math.min(k.conLai, g.soTien)); regroupMoney(so); } });
       const nguoiGiu = (): "cong_ty" | { partyId: string } => (giu.length === 0 ? "cong_ty" : { partyId: chonGiu ? chonGiu.value : giu[0]!.partyId });
       const cauGiu = giu.length === 0 ? "tiền do Công ty giữ" : giu.length === 1 ? `tiền do ${giu[0]!.ten} giữ` : "chọn người chưa nộp tiền về công ty";
       nut.push(hangXacNhan({
         nhan: "Chuyển tiền sang đơn mới", action: "coc-chuyen", nutGhi: "Ghi chuyển",
-        cau: `Chuyển ${vnd(k.conLai)} sang đơn ${k.donNhan ?? ""} (${cauGiu}). Người duyệt không tự chuyển.`,
+        cau: `Chuyển sang đơn ${k.donNhan ?? ""} (${cauGiu}). Số tiền nhập ở ô bên dưới, tối đa ${giu.length > 1 ? "phần người được chọn đang giữ" : vnd(macDinh)}. Người duyệt không tự chuyển.`,
         o: [...(chonGiu ? [h("label", null, "Người chưa nộp tiền", chonGiu)] : []), h("label", null, "Số tiền (₫)", so)],
         kiem: () => (parseMoney(so.value) > 0 ? null : "Nhập số tiền chuyển."),
         ghi: () => api(`/api/orders/${encodeURIComponent(order.id)}/coc/chuyen`, { method: "POST", body: { duyetId: k.id, soTien: parseMoney(so.value), nguoiGiu: nguoiGiu() } }),

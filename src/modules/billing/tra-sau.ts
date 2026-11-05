@@ -2,7 +2,8 @@
 // một lượt cho cả danh sách đơn (không truy vấn lặp theo từng đơn). Luật thuần ở src/shared/tra-sau.ts. KHÔNG tự kiểm quyền — route hỏi `can(` trước.
 import { lyDoKhongTraSau, noMotDon, quaHan, type HanMucHieuLuc, type KetQuaKiemTraSau } from "../../shared/tra-sau";
 import { addDays, vnToday } from "../../shared/vn-date";
-import { hieuLuc, khoanChoXacNhan, soKhaiChuaNop, type DoiChieuRow, type LineRow } from "./rules";
+import { soChuaVeCongTy, type DoiChieuRow, type LineRow } from "./rules";
+import { phanKhaiCuaDon } from "./khoan-khai";
 import { ownerCompanyId, receiptsOfOrders } from "./repository";
 import { tienNhieuDon, toReceiptRow } from "./service";
 import {
@@ -37,13 +38,10 @@ async function noTheoDon(db: D1Database, dons: readonly DonTraSauRow[]): Promise
       id: l.id, debtorPartyId: l.debtor_party_id, creditorPartyId: l.creditor_party_id, amount: l.amount, kind: l.kind_code as LineRow["kind"], orderId: l.order_id, receiptId: l.receipt_id, reversesLineId: l.reverses_line_id,
     }));
     const dc: DoiChieuRow[] = (dcTheoDon.get(d.id) ?? []).map((x) => ({ receiptId: x.receipt_id, kind: x.kind_code, occurredDate: x.occurred_date }));
-    const cho = khoanChoXacNhan(rs, ls, dc);
-    const thu = hieuLuc(rs).filter((r) => r.kind === "CUSTOMER_PAYMENT");
-    const dangDoiChieu = thu.filter((r) => cho.has(r.id)).reduce((s, r) => s + r.amount, 0);
-    // Tiền bên đặt tự thu mà chưa nộp về công ty: cùng hàm với «khai đặt cọc chưa nộp» của vé (ADR-0159 Đ2 mục 2) — số dư mọi loại dòng của đơn, kẹp theo số họ đã thu.
-    const khoan = thu.filter((r) => !cho.has(r.id) && d.booker_party_id !== null && r.collectorPartyId === d.booker_party_id).map((r) => ({ collectorPartyId: r.collectorPartyId, soTien: r.amount }));
-    const benDatDangGiu = khoan.length === 0 ? 0 : congTyId ? soKhaiChuaNop(khoan, ls, congTyId) : khoan.reduce((s, k) => s + k.soTien, 0);
-    out.set(d.id, noMotDon({ daHuy: d.status === "cancelled", phaiThu: t.phaiThu, daThuRong: t.daThu, dangDoiChieu, benDatDangGiu }));
+    // ADR-0171 / ADR-0168 Đ2 mục 2: nợ tính bằng ĐÚNG hàm mở vé `soChuaVeCongTy` (một bản, không viết hai) với người lập = BÊN ĐẶT; khoản khai đặt cọc và phần chuyển từ đơn huỷ gộp vào cùng lượt.
+    const khai = await phanKhaiCuaDon(db, rcTheoDon.get(d.id) ?? [], new Set([d.id]));
+    const v = congTyId ? soChuaVeCongTy({ receipts: rs, lines: ls, doiChieu: dc, nguoiLapPartyId: d.booker_party_id ?? "", congTyId, khaiThem: khai }) : { nguoiLapGiu: t.daThu, choXacNhan: 0 }; // không đọc được công ty ⇒ coi như chưa về (không mở)
+    out.set(d.id, noMotDon({ daHuy: d.status === "cancelled", phaiThu: t.phaiThu, daThuRong: t.daThu, dangDoiChieu: v.choXacNhan, benDatDangGiu: v.nguoiLapGiu }));
   }
   return out;
 }
