@@ -1,6 +1,6 @@
 # Vé Tour Đảo và quét vé (bản đề xuất, 2026-11-05)
 
-**Trạng thái:** chờ chủ dự án duyệt; đã sửa theo báo cáo người kiểm 5/11 (đọc mã, chưa chạy). Chưa có mã. Sau khi duyệt mới lập kế hoạch và soạn ADR. Việc lớn theo `CLAUDE.md` §3 vì chạm dữ liệu, quyền và cổng tiền.
+**Trạng thái:** chờ chủ dự án duyệt toàn bản; ba câu về người tạo vé, chặn huỷ và tiếng Anh đã chốt 5/11; đã sửa theo báo cáo người kiểm 5/11 (đọc mã, chưa chạy). Chưa có mã. Sau khi duyệt mới lập kế hoạch và soạn ADR. Việc lớn theo `CLAUDE.md` §3 vì chạm dữ liệu, quyền và cổng tiền.
 
 **Xây trên lỗ đang hở:** `HC-5.19` (chưa diễn tập khôi phục, chỉ phát hành sau diễn tập), `TNV-G1` (đơn huỷ còn tiền; vé chạm đường huỷ đơn). Cần chủ thêm dòng `xay_tren_cho_phep` khi duyệt. Không chạm `HC-4.2`, `HC-5.11`.
 
@@ -20,12 +20,12 @@ Chủ dự án nêu vé là cam kết dịch vụ, đồng thời là xác nhậ
 
 | Thời điểm | Việc thật | Về sổ sách (chờ kế toán xác nhận) | Ai làm |
 |---|---|---|---|
-| Tạo vé vào kho | Vé trắng, chưa có khách, chưa có tiền | Chưa có gì để ghi; chỉ cần đếm được như giấy tờ in sẵn | **Đề xuất: Kế toán, Toàn quyền** |
+| Tạo vé vào kho | Vé trắng, chưa có khách, chưa có tiền | Chưa có gì để ghi; chỉ cần đếm được như giấy tờ in sẵn | **Chủ chốt: Toàn quyền, Kế toán, Quản lý bán hàng, Quản trị** |
 | Cấp cho đơn đã xác nhận | Công ty cam kết phục vụ | Khách đã trả thì là khoản trả trước, chưa phải doanh thu. Chưa trả thì mới là cam kết | Máy tự cấp; cổng kiểm soát là việc xác nhận đơn (Bán hàng, Quản trị, Toàn quyền) |
 | Quét, dịch vụ xong | Công ty đã thực hiện cam kết | Căn cứ để ghi doanh thu và xác định thời điểm hóa đơn | Hướng dẫn viên, Bán hàng, Quản trị, Toàn quyền |
 | Đối chiếu | So vé tạo, vé cấp, vé quét và tiền | Sổ vé hỗ trợ kế toán, Nền tảng không tự ghi bút toán | Kế toán, Quản trị, Toàn quyền, Quản lý bán hàng |
 
-**Vì sao Kế toán tạo vé:** nguyên tắc kiểm soát nội bộ là tách người duyệt, người giữ, người ghi chép và người đối chiếu. Bán hàng và Hướng dẫn viên là người bán, thu tiền hoặc quét nên không nên tự tạo vé. Kế toán không xác nhận đơn và không quét, nên không bị vướng. Cách này khớp ô `ledger.write` hiện có (Kế toán, Toàn quyền). Giới hạn cần nói thẳng: Kế toán vừa tạo vừa đối chiếu nên chưa tách trọn; chấp nhận được vì vé trong kho chưa có giá trị và máy ghi hết. Hệ quả có lợi: vì vé trắng vô hại nên tạo dư được, giảm nỗi lo kho hết ngoài giờ làm việc.
+**Ai tạo vé (chủ chốt 5/11):** Toàn quyền, Kế toán, Quản lý bán hàng, Quản trị. Người viết từng khuyến nghị chỉ Kế toán và Toàn quyền để tách người bán khỏi người tạo vé; chủ chọn rộng hơn, và đã nghe điều này. Giới hạn cần ghi: Quản lý bán hàng và Quản trị có thể làm đủ tạo, xác nhận đơn, quét và đối chiếu trên cùng một việc, nên việc tách người không còn. Rủi ro thấp vì vé trong kho vô giá trị: vé chưa cấp cho đơn đã xác nhận thì quét ra đỏ (2.5), nên tạo dư không dùng gian lận được; máy ghi người tạo từng lô. Bán hàng thường và Hướng dẫn viên vẫn không tạo được. Hệ quả có lợi: có người trực tạo vé ngoài giờ làm việc.
 
 ### Chủ dự án đã chọn (5/11, hộp câu hỏi)
 
@@ -45,12 +45,9 @@ Chủ dự án nêu vé là cam kết dịch vụ, đồng thời là xác nhậ
 | Dịch vụ nào dùng vé | Công tắc trên từng dịch vụ, Quản trị bật |
 | Đơn nhân viên lập mà bên đặt là đại lý | Thu đủ mới mở, trừ đơn Trả sau trong hạn mức |
 | Đơn Trả sau trong hạn mức khi quét | Không báo «chưa thu đủ», quét xanh; quá hạn còn nợ thì báo vàng |
-
-### Cần chủ dự án quyết khi duyệt bản này
-
-1. **Ai tạo vé:** Kế toán và Toàn quyền (khuyến nghị), hay thêm Quản trị để có người trực ngoài giờ.
-2. **Đơn đã có vé được tính đã dùng:** không huỷ được và không giảm số khách xuống dưới số đã dùng, trừ khi bỏ lượt quét trước (khuyến nghị), hay vẫn cho huỷ kèm cảnh báo. Khuyến nghị vì khách đã dùng dịch vụ thì huỷ đơn sẽ làm sai tiền và hoa hồng.
-3. **Tiếng Anh trên vé:** khách nước ngoài nhiều thì in hai thứ tiếng như vé Vinpearl (khuyến nghị); luật «không chữ Anh» ở `CLAUDE.md` §7 nói về giao diện, nên vé gửi khách cần chủ dự án nói rõ.
+| Ai tạo vé | Toàn quyền, Kế toán, Quản lý bán hàng, Quản trị |
+| Đơn có vé đã được quét | Không cho huỷ. Người viết hiểu là vé đã tính đã dùng: không giảm số khách xuống dưới số đó, và bỏ lượt quét rồi mới huỷ được. Vé mới gửi chưa quét, hoặc Tài xế chỉ xem, thì không chặn |
+| Tiếng Anh trên vé | In thêm: tiếng Việt là chính, tiếng Anh nhỏ hơn bên dưới. Đây là ngoại lệ riêng cho tấm vé gửi khách; giao diện vẫn theo luật «không chữ Anh» ở `CLAUDE.md` §7 |
 
 ### Cần hỏi kế toán, người viết chưa kiểm
 
@@ -93,6 +90,7 @@ ADR-0168 đã ở `main`. Tất cả làm **sau khi** nhánh ADR-0170, ADR-0171 
 - Máy chủ kiểm: lô `TOUR_DAO` chỉ nhận đúng dạng trên; lô `NCC` từ chối tiền tố `TD1.`.
 - **Ảnh vé** vẽ bằng canvas trên trình duyệt người tạo, dùng lại `veMaQr` và cách nạp phông của `web/qr-ve.ts`, `web/confirmation-image.ts`. Vẽ xong tự đọc lại QR bằng `web/qr-doc-ve.ts`; đọc không ra hoặc lệch mã thì không gửi. Máy chủ không đọc lại QR, như ADR-0156. Kết quả quét luôn lấy từ máy chủ, nên ảnh sai chữ không làm sai việc kiểm.
 - **Nội dung vé:** logo, tên công ty và Hotline (qua `ownerCompany`), «VÉ DỊCH VỤ», tên dịch vụ, loại khách, hạn cuối kèm chữ «dùng vào ngày đi đã đặt», QR đen trên nền trắng, 4 ký tự cuối của mã, «Mỗi vé dùng một lần», «Không phải hóa đơn». **Không** giá, tên khách, số điện thoại, mã đơn. Bố cục dọc như vé Vinpearl mẫu.
+- **Hai thứ tiếng:** mọi dòng cố định có tiếng Anh nhỏ hơn bên dưới. Danh mục hiện không có tên dịch vụ tiếng Anh (đã tra `catalog`, migration, từ điển dữ liệu), nên lựa chọn của người viết là: màn tạo vé có ô tuỳ chọn «Tên tiếng Anh»; để trống thì dòng tên dịch vụ chỉ in tiếng Việt. Không tự dịch bằng máy. Chỗ lưu ô này do kế hoạch quyết.
 - **Công tắc «dùng vé Tour Đảo»** trên từng dịch vụ (đặc điểm dịch vụ của `catalog`, Quản trị bật): bật thì chỉ giữ vé từ lô `TOUR_DAO`, tắt thì chỉ từ lô `NCC`. Không chặn theo trạng thái lô, vì lô từng được cấp không bao giờ thành `VOID` (`BO_LO`), nên chặn kiểu đó khiến dịch vụ không đổi nguồn được.
 - **«Thiếu vé» phải theo công tắc với vé Tour Đảo:** `GET /api/ve/don/:orderId` hiện tính thiếu cho mọi dòng dịch vụ có mã danh mục, kể cả dịch vụ không bao giờ có vé. Báo thiếu, «Đã dùng x/y» và đối chiếu không được thừa hưởng cách tính đó.
 - Mười route kho đang chỉ hỏi `ve.kho.manage`: `GET /kho`, `GET`/`POST /lo`, ba route lô đã huỷ, `/ve`, `/xac-nhan`, `/bo`, `/sua-ma-tour`. Route theo lô phải hỏi ô theo `source`; route danh sách phải lọc theo `source`, vì Kế toán đang là `none` và câu đọc chưa có nguồn. Không sửa thì Bán hàng thao tác được lô Tour Đảo.
@@ -128,7 +126,7 @@ Thứ tự kiểm ở máy chủ, một mốc giờ cho cả yêu cầu:
 - **Chưa thu đủ:** đơn Trả sau trong hạn mức không báo vàng (dùng cùng kết quả với `moVeDuoc`, không dùng `thuDu`); quá hạn còn nợ thì báo vàng. Chỉ người có `money.view` trên đơn đó mới thấy số tiền; người khác thấy «Đơn chưa thu đủ, báo văn phòng trước khi thu khách». Câu này tránh cảnh khách đã trả đại lý mà bị đòi tiền ở bến.
 - **Dữ liệu trả về:** tên dịch vụ, loại khách, ngày đi, số khách vé đoàn, 4 ký tự cuối của mã. Mã đơn chỉ hiện khi có `order.view` trên đơn. Không tên, số điện thoại, giá. Quét không mở quyền xem đơn cho Hướng dẫn viên.
 - **Bỏ lượt quét:** người quét trong 5 phút, hoặc Quản trị, Toàn quyền bất kỳ lúc nào; bắt buộc lý do; ghi nhật ký.
-- **Đơn có vé đã tính** (chờ chủ duyệt câu 2 ở phần 1): chặn huỷ ở mọi đường huỷ và rút xác nhận; chặn sửa số khách xuống dưới số đã tính.
+- **Đơn có vé đã tính** (chủ chốt 5/11): chặn huỷ ở mọi đường huỷ và rút xác nhận; chặn sửa số khách xuống dưới số đã tính. Chỉ lượt `DA_TINH` chưa bị bỏ mới chặn; `CHI_XEM`, `TU_CHOI` thì không.
 
 ### 2.6 Camera và trang quét
 
@@ -158,7 +156,7 @@ Thứ tự kiểm ở máy chủ, một mốc giờ cho cả yêu cầu:
 
 | Ô | Được |
 |---|---|
-| `ve.phat-hanh` (tạo vé, lô Tour Đảo) | Kế toán, Toàn quyền (chờ chủ duyệt) |
+| `ve.phat-hanh` (tạo vé, lô Tour Đảo) | Toàn quyền, Kế toán, Quản lý bán hàng, Quản trị, phạm vi `any` (chủ chốt 5/11). Cột `SALES` là `none`, dù `SALES` đang có `ve.kho.manage`: quyền phải nằm ở cột `SALES_MANAGER`. Người thi công kiểm lại cổng route theo ADR-0169 Đ4, vì tài khoản bị bớt tay `SALES` không vào được cổng `office` |
 | `ve.quet.tinh` (tính đã dùng) | Hướng dẫn viên, Bán hàng, Quản lý bán hàng, Quản trị, Toàn quyền, phạm vi `any` |
 | `ve.quet.xem` (chỉ xem) | Tài xế công ty và mọi người giữ `ve.quet.tinh` |
 | `ve.doi-chieu.view` | Kế toán, Quản trị, Toàn quyền, Quản lý bán hàng |
@@ -171,7 +169,7 @@ Bảng dùng chung `vdt_batch`, `vdt_ticket` nhận thêm loại vé Tour Đảo
 
 | Cửa | Cổng máy chủ | Giao diện đổi nghĩa |
 |---|---|---|
-| Tạo vé, thao tác lô Tour Đảo | `ve.phat-hanh` theo `source` của lô | Mục «Kho vé» hiện cho Kế toán; Bán hàng thấy số nhưng không nút tạo |
+| Tạo vé, thao tác lô Tour Đảo | `ve.phat-hanh` theo `source` của lô | Mục «Kho vé» hiện cho Kế toán; Bán hàng thường thấy số nhưng không nút tạo; Quản lý bán hàng, Quản trị có nút tạo |
 | Xem ảnh, gửi, đường dẫn vé Tour Đảo | `ve.cap.send` + hàm mở vé theo từng vé | Khối vé trên đơn hiện nút trước khi thu đủ cho riêng vé Tour Đảo |
 | Trang khách `/ve/:token` | Mã đường dẫn + hàm mở vé theo từng vé | Khách có thể thấy vé Tour Đảo mà chưa thấy vé Vinpearl cùng đơn |
 | Quét | `ve.quet.tinh` hoặc `ve.quet.xem` | Mục mới «Quét vé» cho Hướng dẫn viên, Tài xế |
@@ -191,7 +189,7 @@ Theo Hiến chương 5.27, chủ dự án chọn tên, bảng tham chiếu ghi. 
 5. Huỷ đơn có vé đã lộ chưa dùng: quét ra «Vé đã huỷ». Đơn có vé đã tính: huỷ bị chặn, bỏ lượt rồi huỷ được.
 6. Vé trong kho chưa cấp, vé Vinpearl, mã lạ: đều đỏ, không có `DA_TINH`, vé Vinpearl và mã lạ cùng một câu.
 7. Lệch ngày, chưa thu đủ, vượt số khách: vàng, chưa ghi `DA_TINH` khi chưa bấm; bấm thì ghi kèm cờ.
-8. Bán hàng gọi route lô Tour Đảo: 403. Kế toán tạo được lô, không thấy lô Vinpearl ở mọi route danh sách. Dịch vụ chưa bật công tắc không bị báo thiếu vé Tour Đảo.
+8. Bán hàng thường gọi route lô Tour Đảo: 403. Toàn quyền, Quản trị, Quản lý bán hàng tạo được lô. Kế toán tạo được lô, không thấy lô Vinpearl ở mọi route danh sách. Dịch vụ chưa bật công tắc không bị báo thiếu vé Tour Đảo.
 9. `Permissions-Policy` thật: `/quet-ve` có `camera=(self)`, trang khác `camera=()`; mở camera được trên iPhone thật, và cách chụp ảnh chạy được khi từ chối quyền camera.
 10. Bài khoá không lộ mã vé thêm ca cho mọi route mới. Người quét không quyền xem đơn không nhận tên, số điện thoại, giá, mã đơn.
 11. Hàng rào mới ghi vào `docs/SO-HANG-RAO.md` kèm ngày quan sát chặn thật. Người kiểm độc lập đọc mã và chạy lại lệnh, e2e đủ bộ, kịch bản Chrome, thử iPhone thật.

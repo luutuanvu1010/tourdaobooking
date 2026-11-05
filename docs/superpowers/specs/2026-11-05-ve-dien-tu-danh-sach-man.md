@@ -14,7 +14,7 @@ Hôm nay chỉ có ba chỗ: `/ve-kho` (nhập lô, số còn, lô đã huỷ), 
 | 2 | Tồn kho (sửa `/ve-kho`) | Lọc theo nhà cung cấp, nguồn, nhóm dịch vụ, dịch vụ, loại khách, hạn dùng | Như `ve.kho.manage`; Kế toán thấy vé Tour Đảo | Có sẵn | 1 |
 | 3 | Chi tiết lô | Vé trong lô: trong kho, đang giữ, đã dùng, đã huỷ; không hiện mã đủ | Như màn 2 | Có sẵn | 1 |
 | 4 | Nhập lô nhà cung cấp (đã có) | Thêm chọn nhà cung cấp và giá mua | Như `ve.kho.manage` | **Mới** | 2 |
-| 5 | Tạo vé Tour Đảo | Chọn dịch vụ, số lượng, hạn; xem trước vé rồi tạo | Kế toán, Toàn quyền (chờ chốt) | Mới | 1 |
+| 5 | Tạo vé Tour Đảo | Chọn dịch vụ, số lượng, hạn, tên tiếng Anh nếu có; xem trước vé rồi tạo | Toàn quyền, Kế toán, Quản lý bán hàng, Quản trị | Mới | 1 |
 | 6 | Nhà cung cấp vé | Theo từng nhà cung cấp: số nhập, còn, đã cấp, đã huỷ, tiền mua | Kế toán, Quản trị, Toàn quyền | **Mới** | 3 |
 | 7 | Khối vé trên đơn (đã có) | Thêm nguồn vé, «Đã dùng x/y», chuyển sang vé đoàn | Như hiện tại | Quét | 1–2 |
 | 8 | Quét vé | Camera, ba màu kết quả, bỏ lượt quét, các lượt vừa quét | Người có quyền quét | Mới | 2 |
