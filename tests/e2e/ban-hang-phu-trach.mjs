@@ -24,7 +24,7 @@ const ACC = await session(ACCOUNTS.accountant);
 const FIELD = await session(ACCOUNTS.field);
 const SUPER = await session(ACCOUNTS.superAdmin);
 const Y = await gieoTaiKhoanLai(`Bán hàng Y ${tag}`, ["SALES"]); // Bán hàng khác (không được mời)
-const X2 = await gieoTaiKhoanLai(`Bán hàng X2 ${tag}`, ["SALES"]); // sẽ MẤT quyền (R1)
+const X2 = await gieoTaiKhoanLai(`Bán hàng X2 ${tag}`, ["SALES", "FIELD"]); // sẽ MẤT quyền Bán hàng (R1), còn quyền HDV để không thành tài khoản rỗng quyền
 const LAI = await gieoTaiKhoanLai(`Lai Bán hàng Đối tác ${tag}`, ["SALES", "PARTNER"]);
 const DOI_TAC = await gieoTaiKhoanLai(`Đối tác ${tag}`, ["PARTNER"]);
 const idCua = async (phone) => (await sqlRows(`SELECT id FROM staff WHERE phone = '${phone}'`))[0].id;
@@ -200,7 +200,7 @@ try {
   r = await nhan(X2.cookie, o7.id);
   assert.equal(r.status, 403, `X mất quyền Bán hàng bấm Nhận: ${JSON.stringify(r.body)}`);
   assert.equal((await nhan(Y.cookie, o7.id)).status, 200, "người khác nhận được ngay khi X mất quyền");
-  const x3 = await gieoTaiKhoanLai(`Bán hàng X3 ${tag}`, ["SALES"]);
+  const x3 = await gieoTaiKhoanLai(`Bán hàng X3 ${tag}`, ["SALES", "FIELD"]);
   const o8 = await lap(SALES, "ZXN2", { banHangMoiStaffId: x3.id });
   await sql(`UPDATE stf_permission SET valid_to_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE staff_id = '${x3.id}' AND permission_type_code = 'SALES'`);
   assert.equal((await status(SALES, o8.id, "confirmed")).status, 200);
