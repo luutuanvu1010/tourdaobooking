@@ -2,7 +2,16 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.62 ĐÃ LÊN PRODUCTION (màn «Dịch vụ cần kiểm vé», ADR-0136 Đ1, Đ5; vé tắt riêng trong nhóm đang bật) — không migration — triển khai 2026-11-05 05:47 giờ Việt Nam
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.68 ĐÃ LÊN PRODUCTION (nhận hoặc đổi người phụ trách đúng lúc đơn vừa bị huỷ, nợ T4 của ADR-0142 Phần 1) — không migration — triển khai 2026-11-05 21:34 giờ Việt Nam
+
+Ghi từ khối tóm tắt của `npm run trien-khai` (chủ tự chạy) và lệnh chỉ đọc của phiên làm bản sửa:
+- Commit `origin/main`: `757673a1`. Worker Version ID: `b1b8e2c6-db2a-4d20-b0c5-47107074600c`. e2e: xanh. Cổng phiên bản trước và sau deploy: ĐẠT. GET công khai sau deploy: `version` 2.68, `maintenance.on` false.
+- **`audit-invariants --db remote`: ĐẠT, ba cảnh báo như 2.62:** `R-VC-14` 7 xe thiếu giấy tờ là điều kiện xuất bến; `R-CTL-1` 8 dịch vụ chưa phân nhóm; `R-DSP-2b` một người phụ trách đang mở có tài khoản đã ngưng.
+- **Người kiểm độc lập, chỉ đọc: ĐẠT.** Bỏ từng điều kiện «đơn còn xác nhận» ở ba câu ghi thì bài đua đỏ đúng chỗ. Bài đua giả lập việc huỷ chen vào giữa lúc đọc và lúc ghi, chưa tái hiện hai request đồng thời thật.
+- **Chưa kiểm:** thao tác này trên production (không ghi thử lên bản thật); iPhone thật.
+- **Khoảng trống của tệp này:** các bản 2.63 đến 2.67 không có mục trạng thái riêng ở đây; phiên này không có khối tóm tắt của các lần đó nên không ghi lại. Mục nhật ký thay đổi của từng bản ở `src/shared/changelog.ts`.
+
+## (Cũ) TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.62 ĐÃ LÊN PRODUCTION (màn «Dịch vụ cần kiểm vé», ADR-0136 Đ1, Đ5; vé tắt riêng trong nhóm đang bật) — không migration — triển khai 2026-11-05 05:47 giờ Việt Nam
 
 Ghi từ khối tóm tắt của `npm run trien-khai` (chủ tự chạy) và lệnh chỉ đọc của phiên làm màn này:
 - Commit `origin/main`: `546f3b54`. Worker Version ID: `f19bbe2b-ac26-41be-9850-11cde2f42aff`. Cổng phiên bản trước và sau deploy: ĐẠT.
@@ -80,7 +89,9 @@ Ghi 29/10/2026 từ khối tóm tắt của `npm run trien-khai` (chủ chạy `
 - Nghiệm thu: phiên kế hoạch tự chạy lại 132 bài N5 + typecheck trên nhánh; người kiểm độc lập ĐẠT. Chưa bấm «Sửa» trên production (bấm là ghi thật), chưa thử iPhone thật. Còn chờ chủ: NO-N5-4 (chữ «Chưa áp dụng cho loại nào» cạnh dòng «Sắp áp dụng»), nợ NO-N5-1…3.
 - **Hoàn tác:** `wrangler rollback` về `ba3d7b56` (2.45) an toàn — 2.46 không đổi dữ liệu.
 
-## ĐANG CHỜ PHÁT HÀNH: Bán hàng phụ trách đơn (ADR-0142 Phần 1; mục nhật ký 2.64 là số TẠM)
+## ĐÃ PHÁT HÀNH: Bán hàng phụ trách đơn (ADR-0142 Phần 1; mục nhật ký 2.64)
+
+Ghi chú 5/11: tiêu đề cũ của mục này là «ĐANG CHỜ PHÁT HÀNH»; lần triển khai 2.68 báo không còn migration chờ áp, nên phần này đã chạy trên production. Đoạn dưới là ghi chú gốc lúc chờ, giữ nguyên.
 
 Ghi 5/11/2026, nhánh `claude/dispatch-pickup-order-display-1da7b5`. **Cần `npm run trien-khai`, CÓ migration** `0138_ban_hang_phu_trach`, `0140_hop_thu_ban_hang` (chỉ thêm: ba bảng `dsp_*`, cột `orders.sales_invitee_party_id`, dựng lại view, trigger). Hoàn tác mã: `wrangler rollback`; mã cũ không nhắc bảng, cột mới nên vẫn chạy.
 
