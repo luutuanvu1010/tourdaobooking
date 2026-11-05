@@ -308,6 +308,20 @@ try {
     loiConsole(p, "Bán hàng");
   });
   p.close();
+
+  // ---- 9) Form lập đơn của Đối tác và của Quản trị (ảnh còn thiếu) ------------------------------------------------------------------------------------------------------
+  for (const [vai, tk] of [["doi-tac", DOITAC], ["quan-tri", ACCOUNTS.admin]]) {
+    p = await env.as(tk, "/order-form", MOB);
+    await b.step(`9-${vai}`, `390 ${vai} mở form lập đơn: khối «Người phụ trách» hiện (mời Bán hàng, chỉ tên); ảnh hai khổ${axeNote()}`, async () => {
+      await p.waitFor(co("#ban-hang-card:not([hidden])"), "khối Người phụ trách ở form", 12000);
+      assert.equal(await p.ev(chu("#ban-hang-title")), "Người phụ trách");
+      await haiKho(p, vai, "form", co("#ban-hang-card:not([hidden])"));
+      assert.equal(await p.ev(noOverflowX), true, "390 không tràn ngang");
+      await axe(p, `${vai} form 390`);
+      loiConsole(p, `${vai} form`);
+    });
+    p.close();
+  }
 } catch (e) {
   console.log(`✗ dựng dữ liệu hỏng${dungXong ? " (sau khi dựng)" : ""}: ${String(e?.stack ?? e).split("\n").slice(0, 10).join("\n")}`);
   process.exitCode = 1;
