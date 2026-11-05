@@ -482,7 +482,7 @@ function handlerCard(order: Order, handler: Handler): HTMLElement | null {
   const buttons: HTMLElement[] = [];
   let summary: HTMLElement;
   if (handler === undefined) {
-    summary = h("p", { class: "handler-unknown" }, "Chưa tải được người phụ trách.");
+    summary = h("p", { class: "handler-unknown" }, "Chưa tải được Hướng dẫn viên.");
     const retry = h("button", { type: "button", class: "btn", "data-action": "retry-handler" }, "Thử lại");
     retry.addEventListener("click", () => void load().then(focusHandlerControl));
     buttons.push(retry);

@@ -58,7 +58,7 @@ export function checkAssignee(who: AssigneeCandidate | null): Parsed<{ partyId: 
   if (!who) return { ok: false, message: "Không tìm thấy nhân viên được chọn." };
   if (!who.active) return { ok: false, message: "Nhân viên này đã ngưng hoạt động, không thể giao phụ trách." };
   if (!who.partyId) return { ok: false, message: "Nhân viên này chưa có hồ sơ, không thể giao phụ trách." };
-  if (holdsPartner(who)) return { ok: false, message: "Tài khoản có quyền Đối tác không làm người phụ trách được." };
+  if (holdsPartner(who)) return { ok: false, message: "Tài khoản có quyền Đối tác không làm Hướng dẫn viên được." };
   const narrowTier = who.permissions.some((p) => MATRIX["order.money.edit"][p] === "assigned");
   const eligible = can(who, "order.modify", { assigned: true }) || narrowTier;
   if (!eligible) return { ok: false, message: "Chỉ giao phụ trách cho người có quyền Bán hàng, Quản trị hoặc Hướng dẫn viên." };

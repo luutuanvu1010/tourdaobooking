@@ -73,7 +73,7 @@ class StageError extends Error {
 
 const MESSAGES: Record<Stage, string> = {
   company: "Chưa tải được biên nhận (thông tin công ty và số tiền) để in lên ảnh. Kiểm tra kết nối mạng rồi bấm “Thử lại”.",
-  handler: "Chưa tải được người phụ trách, vui lòng thử lại.",
+  handler: "Chưa tải được Hướng dẫn viên, vui lòng thử lại.",
   font: "Chưa tải được phông chữ để vẽ ảnh. Kiểm tra kết nối mạng rồi bấm “Thử lại”.",
   canvas: "Trình duyệt chưa vẽ được ảnh xác nhận. Bấm “Thử lại”; nếu vẫn lỗi, hãy đóng rồi mở lại đơn này.",
   encode: "Trình duyệt chưa vẽ được ảnh xác nhận (không tạo được tệp PNG). Bấm “Thử lại”.",

@@ -1,4 +1,4 @@
--- Migration 0139 — ADR-0142 Đ7 (thiết kế L9; kế hoạch «Bán hàng phụ trách đơn» Task 6): năm hành động mới vào HỘP THÔNG BÁO — lời mời (`sales_invited`), nhận phụ trách
+-- Migration 0140 — ADR-0142 Đ7 (thiết kế L9; kế hoạch «Bán hàng phụ trách đơn» Task 6): năm hành động mới vào HỘP THÔNG BÁO — lời mời (`sales_invited`), nhận phụ trách
 -- (`sales_owner_claimed`), đổi Bán hàng phụ trách (`sales_owner_changed`), X từ chối (`sales_invite_refused`) và Hoàn thành (`order_completed`, hôm nay chưa báo ai). Module audit.
 -- Dựng lại view (DROP + CREATE — khuôn CHANGE-GUIDE công thức w bước 1; 0125 đã áp remote nên không sửa tệp đó): CÙNG 5 cột, CÙNG điều kiện `order_id IS NOT NULL`, CÙNG chín hành động của 0125
 -- (kể cả `order_confirm_withdrawn` mà bộ lọc `yeuCauDaKhep` của 0120 cần, và `deposit_refund_approved` của 0125), chỉ THÊM năm hành động trên. KHÔNG thêm `order_handler_refused`

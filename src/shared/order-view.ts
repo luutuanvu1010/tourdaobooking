@@ -94,7 +94,7 @@ export interface OrderActions {
   editTrip: boolean;
   /** Nút "Huỷ đơn" — đơn nháp hoặc đã xác nhận. */
   cancel: boolean;
-  /** Dòng "Chỉ <người lập> (người lập đơn), người phụ trách đơn hoặc quản trị viên mới được sửa, xác nhận hoặc huỷ đơn này." (ADR-0009; chữ do web/order.ts dựng, quyền do máy chủ quyết qua `canModify`) */
+  /** Dòng "Chỉ <người lập> (người lập đơn), Hướng dẫn viên của đơn hoặc quản trị viên mới được sửa, xác nhận hoặc huỷ đơn này." (ADR-0009; chữ do web/order.ts dựng, quyền do máy chủ quyết qua `canModify`) */
   noPermission: boolean;
   /** Đơn đã xác nhận: dòng nhắc "dịch vụ và đơn giá đã khoá" (`cauKhoaXacNhan`) và biểu tượng khoá. */
   locked: boolean;
@@ -114,7 +114,7 @@ export function khongQuyenSuaText(input: { ownerName: string; status: OrderStatu
       ? `Hướng dẫn viên không sửa, xác nhận hoặc huỷ đơn ở trang này. Việc hướng dẫn viên làm được với đơn đã xác nhận nằm ở mục “Việc của tôi” (trang Tôi); việc khác, nhờ ${ownerName} (người lập đơn) hoặc văn phòng.`
       : `Hướng dẫn viên không sửa, xác nhận hoặc huỷ đơn ở trang này — cần đổi gì, nhờ ${ownerName} (người lập đơn) hoặc văn phòng.`;
   }
-  const goc = `Chỉ ${ownerName} (người lập đơn), người phụ trách đơn hoặc quản trị viên mới được sửa, xác nhận hoặc huỷ đơn này.`;
+  const goc = `Chỉ ${ownerName} (người lập đơn), Hướng dẫn viên của đơn hoặc quản trị viên mới được sửa, xác nhận hoặc huỷ đơn này.`;
   // ADR-0063 D1 (phiếu kiểm A2 V-1): Kế toán / Quản trị thấy nút "Sửa số khách dịch vụ" ngay dưới câu này — nói rõ để câu "chỉ … mới được sửa" không mâu thuẫn.
   return input.suaSoKhach ? `${goc} Số khách thì bạn sửa được bằng nút “Sửa số khách dịch vụ”.` : goc;
 }

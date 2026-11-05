@@ -45,18 +45,18 @@ const toDto = (r: HandlerRow): HandlerDto => ({ partyId: r.party_id, staffId: r.
 
 const NOT_FOUND = () => error(404, "not_found", "Không tìm thấy đơn.");
 const FORBIDDEN = () =>
-  error(403, "forbidden", "Chỉ người lập đơn, người phụ trách hiện tại hoặc quản trị viên mới được đổi người phụ trách. Đơn chưa có người phụ trách thì nhân viên bán hàng hoặc hướng dẫn viên nhận cho chính mình được.");
+  error(403, "forbidden", "Chỉ người lập đơn, Hướng dẫn viên hiện tại hoặc quản trị viên mới được đổi Hướng dẫn viên. Đơn chưa có Hướng dẫn viên thì nhân viên bán hàng hoặc hướng dẫn viên nhận cho chính mình được.");
 /** Từ chối XEM (người phụ trách của mọi đơn, liên hệ khách của "Việc của tôi" — ADR-0019 điều 2). */
 const VIEW_FORBIDDEN = () => error(403, "forbidden", "Tài khoản này không được xem thông tin này.");
 const NO_CHANGE = () => error(409, "no_change", "Người này đang phụ trách đơn rồi.");
-const STALE = () => error(409, "stale", "Người phụ trách đơn vừa được người khác đổi, hãy tải lại rồi thử lại.");
+const STALE = () => error(409, "stale", "Hướng dẫn viên của đơn vừa được người khác đổi, hãy tải lại rồi thử lại.");
 const CANCEL_FORBIDDEN = () => error(403, "forbidden", "Chỉ hướng dẫn viên đang phụ trách đơn mới huỷ được đơn theo cách này.");
 const NOT_CONFIRMED = () => error(409, "not_editable", "Chỉ huỷ được đơn đã xác nhận qua đường này; đơn chưa xác nhận hoặc đã huỷ không dùng được.");
 const DEPARTED = () => error(409, "departed", "Tour đã qua ngày đi — hướng dẫn viên không huỷ được nữa. Nhờ văn phòng huỷ nếu cần.");
 const MONEY_EDIT_DEPARTED = () => error(409, "departed", "Đơn đã qua ngày đi — không sửa số khách được nữa. Cần sửa, nhờ tài khoản Toàn quyền.");
 const HANDLER_RACED = () => error(409, "stale", "Đơn vừa được người khác đổi, hãy tải lại rồi thử lại.");
 /** Chốt "Nhận" (ADR-0030 S20-5, lệch có chủ ý 5.1 — `docs/SYSTEM-DESIGN.md` §16): áp CHỈ cho tự nhận đơn chưa có người, không áp cho "giao". */
-const CLAIM_PARTNER_FORBIDDEN = () => error(403, "forbidden", "Tài khoản có quyền Đối tác không làm người phụ trách được.");
+const CLAIM_PARTNER_FORBIDDEN = () => error(403, "forbidden", "Tài khoản có quyền Đối tác không làm Hướng dẫn viên được.");
 const CLAIM_CANCELLED = () => error(409, "cancelled", "Đơn đã huỷ, không nhận được.");
 const CLAIM_DEPARTED = () => error(409, "departed", "Tour đã qua ngày đi, không nhận được.");
 const MONEY_EDIT_FORBIDDEN = () => error(403, "forbidden", "Chỉ hướng dẫn viên đang phụ trách đơn mới sửa được số khách theo cách này.");
@@ -65,14 +65,14 @@ const MONEY_EDIT_STALE = () => error(409, "stale", "Đơn vừa được sửa b
 /** Sổ tiền lượt 1 (ADR-0025 đ5, bản làm mới §3 mục 12): đơn đã "Đã giao – đã thu đủ" — không đổi / nhận người phụ trách, không huỷ, không sửa số khách. */
 /** Nút «Từ chối» (ADR-0030 điều 1). */
 const REFUSE_FORBIDDEN = () => error(403, "forbidden", "Chỉ người đang phụ trách đơn mới trả được đơn này.");
-const REFUSE_NOT_CONFIRMED = () => error(409, "order_not_confirmed", "Đơn chưa xác nhận — báo người lập đơn đổi người phụ trách.");
+const REFUSE_NOT_CONFIRMED = () => error(409, "order_not_confirmed", "Đơn chưa xác nhận — báo người lập đơn đổi Hướng dẫn viên.");
 const REFUSE_CANCELLED = () => error(409, "cancelled", "Đơn đã huỷ, không cần trả đơn.");
 const REFUSE_TOO_LATE = () => error(409, "too_late", "Đơn đi hôm nay hoặc ngày mai — không trả được nữa. Gọi văn phòng để đổi người.");
 /** ADR-0032 điều 5: hết lượt Từ chối — câu nguyên văn ADR. */
 const REFUSE_LIMIT = () => error(409, "refuse_limit", CAU_HET_LUOT);
 /** ADR-0032 (G6): không có dòng cài đặt hạn mức hiệu lực — không đoán con số (khuôn mốc 6 giờ). Thực tế không xảy ra (dòng gieo + trigger cấm xoá + R-DSP-7). */
 const REFUSE_POLICY_MISSING = () => error(503, "refuse_policy_missing", "Chưa có cài đặt hạn mức Từ chối — báo Toàn quyền.");
-const DA_GIAO = () => error(409, "order_delivered", "Đơn đã ở bước Đã giao – đã thu đủ: không sửa, huỷ hay đổi người phụ trách được nữa. Sai sót thì Kế toán dùng “Sửa khoản thu đã ghi”.");
+const DA_GIAO = () => error(409, "order_delivered", "Đơn đã ở bước Đã giao – đã thu đủ: không sửa, huỷ hay đổi Hướng dẫn viên được nữa. Sai sót thì Kế toán dùng “Sửa khoản thu đã ghi”.");
 
 /**
  * Nhật ký `refuse_limit_hit` (ADR-0032 điều 5, 6) — LÔ RIÊNG một câu, sau khi đã biết lý do. `detail` chỉ số + chế độ (không tên, không SĐT).

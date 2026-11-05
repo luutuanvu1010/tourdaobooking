@@ -673,7 +673,7 @@ export async function daGiao(
   if (sau?.deliveredAt === at) return { ok: true, value: null };
   // Lô không áp (thua khoá lạc quan / không còn là người phụ trách / vừa đổi ngày hay bên đặt): đọc lại để trả đúng lý do.
   if (sau && sau.deliveredAt) return loi(409, "order_delivered", "Đơn vừa được người khác bấm Đã giao.");
-  return loi(409, "stale", "Đơn vừa thay đổi (số khách, người phụ trách, ngày đi…) — tải lại màn hình rồi thử lại.");
+  return loi(409, "stale", "Đơn vừa thay đổi (số khách, Hướng dẫn viên, ngày đi…) — tải lại màn hình rồi thử lại.");
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------

@@ -89,7 +89,7 @@ test("orderActions: nút theo trạng thái và quyền; đơn đã xác nhận 
   assert.deepEqual(orderActions("cancelled", false, false), A({ noPermission: true }));
 });
 
-// Vòng sửa 1 (I-2): câu "Chỉ <người lập>, người phụ trách đơn hoặc quản trị viên mới được sửa…" mâu thuẫn khi CHÍNH người đang xem là người phụ trách mà
+// Vòng sửa 1 (I-2): câu "Chỉ <người lập>, Hướng dẫn viên của đơn hoặc quản trị viên mới được sửa…" mâu thuẫn khi CHÍNH người đang xem là người phụ trách mà
 // là hướng dẫn viên (order.modify ô FIELD = none). Câu cho HDV nói điều trang này không làm được và nhờ ai — không hứa nút cụ thể.
 test("khongQuyenSuaText: HDV (chỉ xem đơn mình phụ trách) — câu riêng, KHÔNG nói 'người phụ trách đơn … mới được sửa'; đơn đã xác nhận chỉ tới mục “Việc của tôi”", () => {
   const hdv = { permissions: ["FIELD"] as const };
@@ -105,7 +105,7 @@ test("khongQuyenSuaText: người khác (kế toán, bán hàng không liên qua
   for (const perms of [["ACCOUNTING"], ["SALES"], ["FIELD", "INTERN"]] as const) {
     assert.equal(
       khongQuyenSuaText({ ownerName: "Sales Một", status: "draft", viewer: { permissions: perms } }),
-      "Chỉ Sales Một (người lập đơn), người phụ trách đơn hoặc quản trị viên mới được sửa, xác nhận hoặc huỷ đơn này.",
+      "Chỉ Sales Một (người lập đơn), Hướng dẫn viên của đơn hoặc quản trị viên mới được sửa, xác nhận hoặc huỷ đơn này.",
       JSON.stringify(perms),
     );
   }
@@ -222,7 +222,7 @@ test("cauKhoaXacNhan (ADR-0063 D1, phiếu kiểm A2 V-1): không còn nói 's�
 test("khongQuyenSuaText + nút sửa số khách (ADR-0063 D1, phiếu kiểm A2 V-1): Kế toán thấy nút thì câu nói rõ số khách sửa được", () => {
   assert.equal(
     khongQuyenSuaText({ ownerName: "Sales Một", status: "confirmed", viewer: { permissions: ["ACCOUNTING"] }, suaSoKhach: true }),
-    "Chỉ Sales Một (người lập đơn), người phụ trách đơn hoặc quản trị viên mới được sửa, xác nhận hoặc huỷ đơn này. Số khách thì bạn sửa được bằng nút “Sửa số khách dịch vụ”.",
+    "Chỉ Sales Một (người lập đơn), Hướng dẫn viên của đơn hoặc quản trị viên mới được sửa, xác nhận hoặc huỷ đơn này. Số khách thì bạn sửa được bằng nút “Sửa số khách dịch vụ”.",
   );
 });
 

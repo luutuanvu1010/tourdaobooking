@@ -896,7 +896,7 @@ async function loadOrder(): Promise<void> {
   try {
     const { order, canModify, laBanHangPhuTrach, banHangMoi } = await layDon!();
     // `canModify` do MÁY CHỦ quyết (người lập, người phụ trách đơn — ADR-0009 — hoặc quản trị); câu này chỉ giải thích khi bị từ chối.
-    if (!canModify) return lockForm(banner("danger", "Chỉ người lập đơn, người phụ trách đơn hoặc quản trị viên mới được sửa đơn này."));
+    if (!canModify) return lockForm(banner("danger", "Chỉ người lập đơn, Hướng dẫn viên của đơn hoặc quản trị viên mới được sửa đơn này."));
     if (order.status !== "draft") return lockForm(banner("danger", "Chỉ sửa được đơn chưa xác nhận."));
     byId("form-title").textContent = `Sửa đơn ${order.orderCode}`;
     setBarTitle(`Sửa đơn ${order.orderCode}`);

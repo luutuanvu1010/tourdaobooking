@@ -167,3 +167,22 @@ test("Nhận / Đổi / Từ chối: cổng quyền và trạng thái (403 Kế 
   assert.equal((await goi(w, nhap.id, B, "ban-hang/nhan")).status, 404, "nháp của người khác không chờ ⇒ 404");
   assert.equal((await goi(w, cho.id, B, "ban-hang/nhan")).json.error.code, "can_quyet_dinh", "đơn chờ xác nhận ⇒ phải quyết Còn vé / Hết vé");
 });
+
+test("GET ban-hang: đơn nháp đang chờ xác nhận của người khác chỉ người xét đọc được; Kế toán, HDV, Đối tác nhận rỗng, không lộ tên", async () => {
+  const w = setup();
+  datCo(w, "SERVICE", "ZA1", true);
+  const cho = await lap(w, A, [svc("ZA1", inDays(3))]);
+  assert.equal((await goi(w, cho.id, A, "gui-xac-nhan")).status, 201);
+  moi(w, cho.id, B, +10);
+  const doc = (as: string) => w.call("GET", `/api/dispatch/ban-hang?orderIds=${cho.id}`, { as });
+  for (const as of [ACC, H, PARTNER]) {
+    const r = await doc(as);
+    assert.equal(r.status, 200, r.text);
+    assert.deepEqual(r.json, {}, `${as}: không được thấy đơn chờ của người khác`);
+  }
+  for (const as of [B, ADM, SUP]) {
+    const r = await doc(as);
+    assert.equal(r.status, 200, r.text);
+    assert.ok(r.json[cho.id], `${as}: người xét đọc được`);
+  }
+});

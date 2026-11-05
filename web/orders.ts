@@ -369,7 +369,7 @@ function moBoLoc(): void {
         h("input", { type: "checkbox", class: "o-tick", checked: nhap.phuTrach === "chua", onchange: (e: Event) => {
           nhap.phuTrach = (e.target as HTMLInputElement).checked ? "chua" : null;
         } }),
-        "Chỉ đơn chưa có người phụ trách")
+        "Chỉ đơn chưa có Hướng dẫn viên")
     : null;
 
   // ADR-0060: "Nhập phần mềm kế toán" — chỉ người có ô xem dấu không ngữ cảnh (máy chủ 403 với người khác); bắt buộc kèm khoảng ngày (≤ 92 ngày).
