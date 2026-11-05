@@ -10,10 +10,10 @@ const VAI_QUAN_LY = "Chỉ người phụ trách hệ thống mới gán hoặc 
 const TIEN = "Tài khoản giữ tiền — chỉ người phụ trách hệ thống (Toàn quyền) làm việc này."; // ADR-0090 đ1, nguyên văn
 const assignment = (roles: RoleAssignment["roles"], extra: Partial<RoleAssignment> = {}): RoleAssignment => ({ roles, adds: [], removes: [], reason: null, ...extra });
 
-test("danh mục: đủ 15 vai, 9 nội bộ + 6 bên ngoài (ADR-0044 thêm vai IT; ADR-0040 D3 thêm vai Tài xế công ty; ADR-0048 D2 thêm vai Tài xế đối tác; ADR-0071 thêm vai Hành chính nhân sự), bộ mặc định là mã quyền hợp lệ", () => {
-  assert.equal(ROLE_CODES.length, 15);
+test("danh mục: đủ 16 vai, 10 nội bộ + 6 bên ngoài (ADR-0044 thêm vai IT; ADR-0040 D3 thêm vai Tài xế công ty; ADR-0048 D2 thêm vai Tài xế đối tác; ADR-0071 thêm vai Hành chính nhân sự; ADR-0169 thêm vai Quản lý bán hàng), bộ mặc định là mã quyền hợp lệ", () => {
+  assert.equal(ROLE_CODES.length, 16);
   assert.deepEqual(Object.keys(ROLES).sort(), [...ROLE_CODES].sort());
-  assert.equal(ROLE_CODES.filter((r) => ROLES[r].group === "INTERNAL").length, 9);
+  assert.equal(ROLE_CODES.filter((r) => ROLES[r].group === "INTERNAL").length, 10);
   assert.equal(ROLE_CODES.filter((r) => ROLES[r].group === "EXTERNAL").length, 6);
   for (const r of ROLE_CODES) for (const p of ROLES[r].defaults) assert.ok((PERMISSION_CODES as readonly string[]).includes(p), `${r} → ${p}`);
   // Mọi vai bên ngoài sinh ĐÚNG MỘT quyền bên ngoài: Đối tác, trừ ngoại lệ có tên "Tài xế đối tác" sinh Tài xế đối tác (ADR-0048 D2 — người lái chuyến,

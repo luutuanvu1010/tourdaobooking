@@ -113,6 +113,8 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/auth/mfa/enroll/confirm", access: "public" },
   { method: "GET", path: "/api/catalog", access: "office" }, // ADR-0033 (2026-09-27): về cổng office như ADR-0019 điều 1 — đảo có chủ đích bản 1.15 (ADR-0028 điều 1: orders)
   { method: "GET", path: "/api/catalog/for-order", access: "orders" }, // ADR-0033: danh mục cho form lập đơn (Đối tác, Thực tập); chốt chặn thật là can(order.create) trong thân
+  { method: "GET", path: "/api/catalog/quan-ly-ban", access: "office" }, // ADR-0169 Đ5: mã, tên, nhóm, đã ngừng bán; thân hỏi admin.manage hoặc catalog.hidden.write, chặn tài khoản giữ Đối tác
+  { method: "PUT", path: "/api/catalog/:code/ngung-ban", access: "office" }, // ADR-0169 Đ5: thân hỏi catalog.hidden.write, chặn tài khoản giữ Đối tác
   { method: "PATCH", path: "/api/catalog/:code", access: "admin" },
   { method: "POST", path: "/api/catalog/:code/ack", access: "admin" },
   { method: "DELETE", path: "/api/catalog/:code/override", access: "admin" },
@@ -315,8 +317,8 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "GET", path: "/api/orders/moc-toi-thieu", access: "orders" }, // ruling R-P15 (ADR-0049 I31 cách a): thân hỏi can(order.create) trước mọi đọc; mốc qua ctx.mocToiThieu
   { method: "GET", path: "/api/cai-dat/nhap-tay", access: "orders" }, // ADR-0061 điều 6: công tắc nhập tay (module orders) — thân hỏi can(order.create); trả duocNhapTay của người gọi
   { method: "POST", path: "/api/cai-dat/nhap-tay", access: "admin" }, // ADR-0061 điều 6: bật / tắt — thân hỏi can(settings.ops) (chỉ Toàn quyền)
-  { method: "GET", path: "/api/cai-dat/xac-nhan-don", access: "admin" }, // ADR-0136 Đ1, Đ5: cờ cần xác nhận + công tắc tự xác nhận — thân hỏi can(settings.ops)
-  { method: "POST", path: "/api/cai-dat/xac-nhan-don", access: "admin" }, // như trên; chỉ Toàn quyền ghi
+  { method: "GET", path: "/api/cai-dat/xac-nhan-don", access: "office" }, // ADR-0136 Đ1, Đ5 + ADR-0169 Đ5: cờ cần xác nhận + công tắc tự xác nhận — thân hỏi ô theo từng việc
+  { method: "POST", path: "/api/cai-dat/xac-nhan-don", access: "office" }, // ADR-0169 Đ5: thân có tuXacNhanNoiBo hỏi settings.ops; thân cờ hỏi catalog.confirm_flag.write
   { method: "GET", path: "/api/cai-dat/an-thong-tin-khach", access: "orders" }, // ADR-0154 Đ2: công tắc «Ẩn thông tin khách khi đối tác đặt vé» — thân hỏi can(order.create); trả apChoToi của người gọi
   { method: "POST", path: "/api/cai-dat/an-thong-tin-khach", access: "admin" }, // như trên; bật / tắt — thân hỏi can(settings.ops) (chỉ Toàn quyền)
   { method: "GET", path: "/api/cai-dat/khung-gio-don", access: "orders" }, // ADR-0134 Đ6: bộ khung giờ đón — thân hỏi can(order.create) hoặc can(order.confirm.review) (ADR-0154 Đ1.5)
@@ -586,7 +588,7 @@ test("MODULES liệt kê ĐỦ mọi thư mục module có khai `...Module: AppM
   assert.deepEqual(routedDirs, listed, "có thư mục module khai AppModule nhưng chưa có trong MODULES của bài kiểm route-access này — thêm vào MODULES và SNAPSHOT");
 });
 
-test("mức truy cập của 424 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
+test("mức truy cập của 443 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
   const actual = await collectRealRoutes();
   // deepEqual TRƯỚC: khi có route mới/bị xoá, thông báo của nó chỉ ra ĐÚNG route lệch — hai assert.equal độ dài bên dưới chỉ để phòng hờ
   // (không bao giờ tự chạy tới nếu deepEqual đã trượt) và tài liệu hoá con số 86 để đối chiếu nhanh bằng mắt.
@@ -724,7 +726,8 @@ test("mức truy cập của 424 route hiện có khớp ảnh chụp đã duy�
   // 2026-11-02 (ADR-0155 Đ2.5, lượt 2 Task 4.1): + GET /api/pricing/cap-hien-hanh (office; partner.commission.view, không Đối tác) = 423.
   // 2026-11-03 (ADR-0161 Đ3, Task 1): + GET (office; partner.commission.view, không Đối tác), POST (admin; settings.ops) /api/pricing/gioi-han-nhap = 440 (hai route mới của giới hạn nhập mức hoa hồng).
   // 2026-11-04 (màn «Cấp độ đại lý», đặc tả 2026-11-04-man-cap-dai-ly): + GET /api/pricing/cap-dai-ly (office; partner.commission.write, không Đối tác) = 441.
-  // 2026-11-05 (ADR-0142, Task 5): + GET /api/orders/chua-co-ban-hang, POST /api/orders/:id/ban-hang/nhan, POST …/ban-hang/tu-choi, PUT /api/orders/:id/ban-hang (orders; dispatch.sales.*), GET /api/dispatch/ban-hang-moi, GET /api/dispatch/ban-hang (orders), GET, POST /api/cai-dat/ban-hang-phu-trach (admin; settings.ops) = 449.
-  assert.equal(actual.length, 449, "số route thực tế lệch 449 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 449, "SNAPSHOT phải có đúng 449 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // 2026-11-05 (ADR-0142, Task 5): + GET /api/orders/chua-co-ban-hang, POST /api/orders/:id/ban-hang/nhan, POST …/ban-hang/tu-choi, PUT /api/orders/:id/ban-hang (orders; dispatch.sales.*), GET /api/dispatch/ban-hang-moi, GET /api/dispatch/ban-hang (orders), GET, POST /api/cai-dat/ban-hang-phu-trach (admin; settings.ops) = 451.
+  // 2026-11-05 (ADR-0169 Đ5): + GET /api/catalog/quan-ly-ban, PUT /api/catalog/:code/ngung-ban (office; thân hỏi ô, chặn Đối tác) = 451.
+  assert.equal(actual.length, 451, "số route thực tế lệch 451 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 451, "SNAPSHOT phải có đúng 451 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

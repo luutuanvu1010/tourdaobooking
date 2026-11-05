@@ -8,7 +8,7 @@ import {
 import { PERMISSION_CODES } from "./permissions.ts";
 
 test("9 mã đặt được = mọi mã quyền trừ SUPER_ADMIN, đúng thứ tự PERMISSION_CODES", () => {
-  assert.deepEqual([...QUYEN_DAT_DUOC], PERMISSION_CODES.filter((c) => c !== "SUPER_ADMIN"));
+  assert.deepEqual([...QUYEN_DAT_DUOC], PERMISSION_CODES.filter((c) => c !== "SUPER_ADMIN" && c !== "SALES_MANAGER"));
   assert.equal(isQuyenDatDuoc("SUPER_ADMIN"), false);
   assert.equal(isQuyenDatDuoc("BOSS"), false);
   assert.equal(isQuyenDatDuoc("PARTNER"), true);

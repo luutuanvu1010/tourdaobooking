@@ -1,6 +1,6 @@
 import { ApiError, api, datNguoiDangNhap, type Staff, type Api } from "./api";
 import { BO_CHON_THANH_DINH, boTheoDoi, thanhDinhHien } from "../src/shared/thanh-dinh-day";
-import { PERMISSION_LABEL } from "../src/shared/permissions";
+import { PERMISSION_LABEL, can } from "../src/shared/permissions";
 import {
   THANH_BEN,
   THANH_TAB,
@@ -310,6 +310,7 @@ function sidebarGroup(nhom: NhomThanhBen, muc: readonly Muc[], path: string, loa
  * Đăng xuất là thao tác BẮT BUỘC PHẢI CÒN (trang Tôi cũng có "Đăng xuất" riêng, `web/account.ts`).
  */
 function sidebar(n: NguoiXem, path: string, staff: Staff | null, loaders: (() => void)[], tat = ""): HTMLElement {
+  if (staff && !can(staff, "admin.manage")) xungDotHoi ??= Promise.resolve(0); // ADR-0169: Quản lý bán hàng thấy mục Dịch vụ & giá nhưng không có quyền đếm lệch giá
   const seesAll = ("staff" in n ? coKhungNho(n.staff) : n.khungNho).seesAll;
   const hien = thanhBen(n, path);
   const chan = hien.pop()!; // CHÂN MENU luôn là nhóm cuối của NHOM_THANH_BEN

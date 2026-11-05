@@ -28,13 +28,13 @@ for (const [cookie, perms] of [[SALES, ["SALES"]], [ADMIN, ["ADMIN"]], [ACC, ["A
 }
 console.log("✓ /me trả quyền + hồ sơ");
 
-// --- ADR-0136 (Task 3.3) + ADR-0142 QĐ2(a): ô order.confirm.review mở danh sách chờ cho Bán hàng, Quản trị, Toàn quyền — Kế toán và HDV nhận 403; cài đặt cờ + công tắc (settings.ops) chỉ Toàn quyền.
+// --- ADR-0136 (Task 3.3) + ADR-0142 QĐ2(a): ô order.confirm.review mở danh sách chờ cho Bán hàng, Quản trị, Toàn quyền — Kế toán và HDV nhận 403; đọc cờ: Quản lý bán hàng, Quản trị, Toàn quyền (ADR-0169); công tắc tự kiểm (settings.ops) chỉ Toàn quyền.
 for (const [cookie, nhan, duoc] of [[SALES, "Bán hàng", true], [ADMIN, "Quản trị", true], [ACC, "Kế toán", false], [FIELD, "HDV", false], [TAO_TK, "Toàn quyền", true]]) {
   assert.equal((await call(cookie, "GET", "/api/orders/cho-xac-nhan")).status, duoc ? 200 : 403, `${nhan}: danh sách chờ xác nhận`);
-  assert.equal((await call(cookie, "GET", "/api/cai-dat/xac-nhan-don")).status, nhan === "Toàn quyền" ? 200 : 403, `${nhan}: cài đặt xác nhận đơn`);
+  assert.equal((await call(cookie, "GET", "/api/cai-dat/xac-nhan-don")).status, (nhan === "Toàn quyền" || nhan === "Quản trị") ? 200 : 403, `${nhan}: cài đặt xác nhận đơn (ADR-0169)`);
 }
 assert.equal((await call(null, "GET", "/api/orders/cho-xac-nhan")).status, 401);
-console.log("✓ ADR-0136 + ADR-0142: danh sách chờ xác nhận mở cho 3 vai (Kế toán, HDV 403); cài đặt cờ / công tắc chỉ Toàn quyền");
+console.log("✓ ADR-0136 + ADR-0142: danh sách chờ xác nhận mở cho 3 vai (Kế toán, HDV 403); đọc cờ: Quản lý bán hàng, Quản trị, Toàn quyền");
 
 // --- ADR-0136 Đ13.6 (Task 3.4): ô order.submit — «Gửi đơn» chỉ Đối tác (đơn của mình) và Toàn quyền. Bán hàng gọi gui-don trên nháp CỦA MÌNH → 403; người không lập → 404; chưa đăng nhập → 401.
 {

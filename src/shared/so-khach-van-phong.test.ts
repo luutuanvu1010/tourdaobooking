@@ -62,7 +62,7 @@ test("ai thấy nút: Bán hàng đơn MÌNH lập; Kế toán, Quản trị, To
   assert.equal(duocSuaSoKhachVanPhong(ai(KHAC, "SALES", "FIELD"), don()), false);
   for (const p of ["ACCOUNTING", "ADMIN", "SUPER_ADMIN"] as const) assert.equal(duocSuaSoKhachVanPhong(ai(KHAC, p), don()), true, p);
   const khong = PERMISSION_CODES.filter((p) => !["SALES", "ACCOUNTING", "ADMIN", "SUPER_ADMIN"].includes(p));
-  assert.deepEqual([...khong].sort(), ["DRIVER", "DRIVER_PARTNER", "FIELD", "HR", "INTERN", "PARTNER"]);
+  assert.deepEqual([...khong].sort(), ["DRIVER", "DRIVER_PARTNER", "FIELD", "HR", "INTERN", "PARTNER", "SALES_MANAGER"]); // ADR-0169: mã SALES_MANAGER một mình không sửa số khách; người giữ vai có thêm SALES nên được như Bán hàng
   for (const p of khong) assert.equal(duocSuaSoKhachVanPhong(ai(NGUOI_LAP, p), don()), false, `${p} (kể cả là người lập)`);
 });
 

@@ -2,9 +2,10 @@
 // Sheet là nguồn chính; Admin có thể ghi đè giá/ẩn dịch vụ (ghi đè không bị lần đồng bộ sau đè mất). App KHÔNG BAO GIỜ ghi ngược vào Sheet.
 import { auditStatement, type AuditAction } from "../audit";
 import { error, json, readJson } from "../../shared/http";
-import { can, isOffice } from "../../shared/permissions";
+import { can, holdsPartner, isOffice } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
 import type {
+  CatalogNgungBanResponse,
   CatalogAdminGroupDto, CatalogAdminItemDto, CatalogAdminResponse, CatalogConflictCountResponse, CatalogGroupAssignResponse, CatalogGroupHistoryResponse, CatalogGroupResponse,
   CatalogGroupsResponse, CatalogItemResponse, CatalogPublicResponse, CatalogServiceDto, CatalogSyncResponse,
 } from "../../shared/contracts";
@@ -416,6 +417,19 @@ export const catalogModule: AppModule = {
       if (audits.length === 0 && !cleared) return json({ item: await adminItemKemNhom(env.DB, item) } satisfies CatalogItemResponse); // không đổi gì
       await saveOverride(env.DB, item.code, next, staff.id, new Date().toISOString(), audits);
       return json({ item: await adminItemKemNhom(env.DB, (await loadOne(env.DB, item.code))!) } satisfies CatalogItemResponse);
+    }),
+
+    // ADR-0169 Đ5: Ngừng bán, Mở bán lại cho Quản lý bán hàng. Tuyến riêng để không phải mở PATCH trên (PATCH còn sửa giá, chỉ admin.manage).
+    route("PUT", "/api/catalog/:code/ngung-ban", "office", async ({ env, request, params, staff }) => {
+      if (!can(staff, "catalog.hidden.write") || holdsPartner(staff)) return error(403, "forbidden", "Tài khoản này không ngừng bán được dịch vụ.");
+      const item = await loadByParam(env.DB, params.code);
+      if (!item) return NOT_FOUND();
+      const ngungBan = ((await readJson(request)) as { ngungBan?: unknown } | null)?.ngungBan;
+      if (typeof ngungBan !== "boolean") return error(400, "invalid_input", "Chọn ngừng bán hoặc mở bán lại.");
+      if (applyOverride(item.prices, item.override).hidden !== ngungBan) {
+        await saveOverride(env.DB, item.code, patchOverride(item.prices, item.override, { hidden: ngungBan }), staff.id, new Date().toISOString(), [{ action: ngungBan ? "catalog_hidden" : "catalog_unhidden" }]);
+      }
+      return json({ code: item.code, ngungBan } satisfies CatalogNgungBanResponse);
     }),
 
     // "Giữ ghi đè": đã xem Sheet đổi giá, xác nhận giữ giá ghi đè

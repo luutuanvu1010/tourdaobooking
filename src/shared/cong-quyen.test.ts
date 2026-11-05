@@ -9,6 +9,7 @@ import {
 
 test("ADR-0019: ba danh sách cổng khai tường minh (khoá giá trị)", () => {
   assert.deepEqual([...ADMIN_GATE], ["ADMIN", "SUPER_ADMIN"]);
+  // ADR-0169: SALES_MANAGER cố ý KHÔNG vào cổng này (cổng còn mở Danh bạ, tin đơn).
   assert.deepEqual([...OFFICE_GATE], ["SALES", "ACCOUNTING", "ADMIN", "SUPER_ADMIN"]);
   // ADR-0030 S23-5 (sửa ADR-0019 điều 1): FIELD vào cổng orders cùng lần phát hành với phần xem của ADR-0023 — đúng thứ tự PERMISSION_CODES.
   assert.deepEqual([...ORDERS_GATE], ["SALES", "ACCOUNTING", "ADMIN", "FIELD", "PARTNER", "SUPER_ADMIN", "INTERN"]);
@@ -66,9 +67,10 @@ test("ADR-0019 + ADR-0033: GET /api/catalog/for-order hỏi money.view phạm vi
 // Hai tổ hợp có DRIVER_PARTNER (ADR-0048 D2): cũng qua NHỜ FIELD — DRIVER_PARTNER không nằm trong cổng nào. Hai tổ hợp này BẤT HỢP LỆ về dữ liệu (LC-1b:
 // tài khoản giữ DRIVER_PARTNER không giữ quyền nào khác — trigger + lời kiểm máy chủ) nhưng hàm cổng thuần không biết luật đó nên vẫn liệt kê.
 // ADR-0071: HR (Nhân sự) không nằm trong cổng orders — bốn tổ hợp trên ghép thêm HR cũng qua NHỜ FIELD (tám tổ hợp).
-const DOI_CO_CHU_Y_CANH_CUA_DON = new Set(["FIELD", "FIELD+DRIVER", "FIELD+DRIVER_PARTNER", "FIELD+DRIVER+DRIVER_PARTNER"].flatMap((x) => [x, `${x}+HR`]));
+// ADR-0169: SALES_MANAGER không nằm trong cổng orders — tám tổ hợp trên ghép thêm mã này cũng qua NHỜ FIELD (mười sáu tổ hợp).
+const DOI_CO_CHU_Y_CANH_CUA_DON = new Set(["FIELD", "FIELD+DRIVER", "FIELD+DRIVER_PARTNER", "FIELD+DRIVER+DRIVER_PARTNER"].flatMap((x) => [x, `${x}+HR`]).flatMap((x) => [x, `${x}+SALES_MANAGER`]));
 
-test("ADR-0019 phần B không đổi hành vi: với mọi tổ hợp 10 mã quyền, isOffice/canAccessOrders mới = công thức cũ — trừ đúng các tổ hợp liệt kê ở ADR-0030 S23-5 (bốn tổ hợp chỉ có FIELD trong cổng cũ)", () => {
+test("ADR-0019 phần B không đổi hành vi: với mọi tổ hợp 11 mã quyền, isOffice/canAccessOrders mới = công thức cũ — trừ đúng các tổ hợp liệt kê ở ADR-0030 S23-5 (bốn tổ hợp chỉ có FIELD trong cổng cũ) và các tổ hợp qua cổng office chỉ nhờ SALES_MANAGER (ADR-0169)", () => {
   const oldIsOffice = (w: { id: string; permissions: readonly PermissionCode[] }) => can(w, "order.view");
   const oldCanAccessOrders = (w: { id: string; permissions: readonly PermissionCode[] }) => oldIsOffice(w) || can(w, "order.view", { ownerId: w.id });
   const seen = new Set<string>();

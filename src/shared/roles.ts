@@ -5,7 +5,7 @@
 import { MA_QUYEN_TIEN, PERMISSION_CODES, PERMISSION_LABEL, can, coQuyenTien, isExternalPermission, isPermissionCode, type PermissionCode, type PermissionHolder } from "./permissions.ts";
 
 export const ROLE_CODES = [
-  "DIRECTOR", "OPERATIONS_MANAGER", "GUIDE_INTERNAL", "SALES_STAFF", "INTERN", "ACCOUNTANT", "IT", "DRIVER_INTERNAL", "HR_STAFF",
+  "DIRECTOR", "OPERATIONS_MANAGER", "GUIDE_INTERNAL", "SALES_STAFF", "INTERN", "ACCOUNTANT", "IT", "DRIVER_INTERNAL", "HR_STAFF", "SALES_MANAGER",
   "TRAVEL_AGENCY", "GUIDE_FREELANCE", "HOTEL_RECEPTION", "TAXI_DRIVER", "COLLABORATOR", "DRIVER_EXTERNAL",
 ] as const;
 export type RoleCode = (typeof ROLE_CODES)[number];
@@ -20,6 +20,8 @@ export interface RoleDef {
   readonly handles: HandlesOrders;
   /** LC-4: chỉ Toàn quyền được gán hoặc gỡ vai này. */
   readonly superAdminOnly: boolean;
+  /** ADR-0169 Đ3: chỉ người giữ Quản trị hoặc Toàn quyền gán, gỡ (Nhân sự không). */
+  readonly chiQuanTriGan?: boolean;
 }
 
 export const ROLES: Readonly<Record<RoleCode, RoleDef>> = {
@@ -41,6 +43,8 @@ export const ROLES: Readonly<Record<RoleCode, RoleDef>> = {
   // ADR-0071 điều 1a, 1d: Hành chính nhân sự — nhập MỌI tài khoản (nội bộ, đối tác, tài xế đối tác), không nhận đơn. CHỈ Toàn quyền gán (vai này tạo được mọi
   // tài khoản), như Giám đốc / Điều hành chung.
   HR_STAFF: { name: "Hành chính nhân sự", group: "INTERNAL", defaults: ["HR"], handles: "never", superAdminOnly: true },
+  // ADR-0169 Đ1, Đ3: mọi việc của Bán hàng, thêm công tắc kiểm vé và Ngừng bán. Quản trị (kể cả Giám đốc, Điều hành chung vì giữ ADMIN) và Toàn quyền gán; Nhân sự không.
+  SALES_MANAGER: { name: "Quản lý bán hàng", group: "INTERNAL", defaults: ["SALES", "SALES_MANAGER"], handles: "substitute", superAdminOnly: false, chiQuanTriGan: true },
   TRAVEL_AGENCY: { name: "Công ty lữ hành", group: "EXTERNAL", defaults: ["PARTNER"], handles: "never", superAdminOnly: false },
   GUIDE_FREELANCE: { name: "Hướng dẫn viên độc lập", group: "EXTERNAL", defaults: ["PARTNER"], handles: "never", superAdminOnly: false },
   HOTEL_RECEPTION: { name: "Lễ tân khách sạn", group: "EXTERNAL", defaults: ["PARTNER"], handles: "never", superAdminOnly: false },
@@ -71,6 +75,10 @@ export const SUPER_ADMIN_GRANTED: readonly PermissionCode[] = ["ADMIN", "SUPER_A
  * `ADMIN`, `SUPER_ADMIN` hay `HR` (Quản trị không sửa HCNS; HCNS không sửa HCNS khác, không sửa Quản trị). `SUPER_ADMIN` quản lý được mọi tài khoản. Không
  * phải một ô của MATRIX (Scope không diễn đạt được "so cấp bậc mục tiêu"). MỘT nguồn cho máy chủ (`accounts`, `staff`) và giao diện (web/staff.ts).
  */
+/** ADR-0169 Đ3: quyền chỉ Quản trị, Toàn quyền cấp hoặc gỡ. KHÔNG gộp vào SUPER_ADMIN_GRANTED: canManageAccount đọc danh sách đó, Quản trị sẽ mất quyền quản lý các tài khoản này. */
+export const QUAN_TRI_GRANTED: readonly PermissionCode[] = ["SALES_MANAGER"];
+const QUAN_TRI_GAN_PROBLEM: RoleProblem = { forbidden: true, message: "Chỉ Quản trị hoặc Toàn quyền mới gán hoặc gỡ vai trò Quản lý bán hàng." };
+
 export function canManageAccount(actor: readonly PermissionCode[], target: readonly PermissionCode[]): boolean {
   if (actor.includes("SUPER_ADMIN")) return true;
   if (!actor.includes("ADMIN") && !actor.includes("HR")) return false;
@@ -218,12 +226,14 @@ export interface RoleProblem {
 }
 
 /** LC-4 cho MỌI đường đổi quyền (gán vai, route cũ PUT …/permissions, tạo tài khoản): chỉ Toàn quyền cấp hoặc gỡ Quản trị/Toàn quyền/Nhân sự. */
-export function highPermissionProblem(actorIsSuper: boolean, current: readonly PermissionCode[], next: readonly PermissionCode[]): RoleProblem | null {
+export function highPermissionProblem(actorIsSuper: boolean, current: readonly PermissionCode[], next: readonly PermissionCode[], actorLaQuanTri = false): RoleProblem | null {
   if (actorIsSuper) return null;
   const changed = SUPER_ADMIN_GRANTED.filter((p) => current.includes(p) !== next.includes(p));
   if (changed.length) return { forbidden: true, message: capCaoMessage(changed) };
   // ADR-0090 đ1(ii), (iii): cấp hoặc gỡ quyền tiền (gồm tạo tài khoản mang quyền tiền — current rỗng) chỉ Toàn quyền.
-  return MA_QUYEN_TIEN.some((p) => current.includes(p) !== next.includes(p)) ? TIEN_PROBLEM : null;
+  if (MA_QUYEN_TIEN.some((p) => current.includes(p) !== next.includes(p))) return TIEN_PROBLEM;
+  // ADR-0169 Đ3: mặc định `actorLaQuanTri = false` là từ chối, nơi gọi quên truyền thì chặn chứ không nới.
+  return !actorLaQuanTri && QUAN_TRI_GRANTED.some((p) => current.includes(p) !== next.includes(p)) ? QUAN_TRI_GAN_PROBLEM : null;
 }
 
 /**
@@ -233,6 +243,8 @@ export function highPermissionProblem(actorIsSuper: boolean, current: readonly P
  */
 export function roleAssignmentProblem(a: {
   actorIsSuper: boolean;
+  /** ADR-0169 Đ3: người làm giữ `admin.manage`. Vắng = không (từ chối). */
+  actorLaQuanTri?: boolean;
   currentRoles: readonly RoleCode[];
   currentPermissions: readonly PermissionCode[];
   currentAdjustments: Adjustments;
@@ -257,6 +269,11 @@ export function roleAssignmentProblem(a: {
     );
     if (vaiTien || chinhTayTien) return TIEN_PROBLEM;
     if (touched.some((r) => ROLES[r].superAdminOnly)) return { forbidden: true, message: VAI_QUAN_LY_MESSAGE };
+    if (!a.actorLaQuanTri) {
+      // ADR-0169 Đ3: gán, gỡ vai hoặc ĐỔI dòng chỉnh tay (kể cả «ngủ», như I-1 bên dưới).
+      const chinhTay = QUAN_TRI_GRANTED.some((p) => a.next.adds.includes(p) !== a.currentAdjustments.adds.includes(p) || a.next.removes.includes(p) !== a.currentAdjustments.removes.includes(p));
+      if (chinhTay || touched.some((r) => ROLES[r].chiQuanTriGan)) return QUAN_TRI_GAN_PROBLEM;
+    }
     // I-1 (kiểm độc lập vòng 1): chặn cả khi chỉnh tay Quản trị/Toàn quyền "ngủ" — quyền hiệu lực hôm nay không đổi (vai hiện tại đã có sẵn hoặc
     // chưa từng cần đến quyền đó) nhưng dòng chỉnh tay sẽ phát tác khi vai đổi sau này. So danh sách chỉnh tay MUỐN với danh sách chỉnh tay ĐANG CÓ,
     // không so quyền hiệu lực ròng (highPermissionProblem ở dưới lo phần đó).
@@ -266,7 +283,7 @@ export function roleAssignmentProblem(a: {
     if (adjustmentChanged.length) return { forbidden: true, message: capCaoMessage(adjustmentChanged) };
   }
   const next = effectivePermissions(a.next.roles, a.next).permissions;
-  const high = highPermissionProblem(a.actorIsSuper, a.currentPermissions, next);
+  const high = highPermissionProblem(a.actorIsSuper, a.currentPermissions, next, a.actorLaQuanTri);
   if (high) return high;
   // LC-1b, rồi ADR-0083 điều 1e (chủ dự án 2026-10-01 "chặn luôn"): vai nội bộ + cộng tay quyền bên ngoài = tài khoản lai — cùng câu với đường quyền cũ.
   const lai = taiKhoanLaiProblem(next) ?? laiNoiBoBenNgoaiProblem(next);

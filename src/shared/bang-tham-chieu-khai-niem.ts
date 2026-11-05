@@ -155,6 +155,15 @@ export const KHAI_NIEM: readonly KhaiNiem[] = [
     trangThai: "da-chot",
     chuChon: "2026-10-01 (ADR-0071)",
   }),
+  KN({
+    ten: "Quản lý bán hàng",
+    giaiNghia: "Người làm được mọi việc của Bán hàng, thêm bật, tắt cần kiểm vé và Ngừng bán, Mở bán lại dịch vụ. Không sửa giá, không đồng bộ Sheet, không sửa nhóm.",
+    khacVoi: "Bán hàng không có hai việc thêm đó. Quản trị làm được thêm giá, Sheet, nhóm và tài khoản.",
+    chuDaLoai: [],
+    maNoiBo: ["SALES_MANAGER"],
+    trangThai: "da-chot",
+    chuChon: "2026-11-05 (ADR-0169)",
+  }),
   // ---- Người, hồ sơ, tài khoản ----
   KN({
     ten: "Hồ sơ",

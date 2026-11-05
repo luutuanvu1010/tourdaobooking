@@ -21,7 +21,7 @@ test("trangChaCua: trang cấp một / lạ → null", () => {
   assert.equal(trangChaCua("/khong-co-trang-nay"), null);
 });
 
-test("trangChaCua: mọi trang cha trả về phải hiện với bộ quyền mở được trang con (1024 tập)", () => {
+test("trangChaCua: mọi trang cha trả về phải hiện với bộ quyền mở được trang con (2048 tập)", () => {
   const khoaTheoDuong = new Map(KHOA_TRANG.map((k) => [TRANG[k].duong, k]));
   for (let m = 0; m < 1 << PERMISSION_CODES.length; m++) {
     const s: PermissionHolder = { id: `tap-${m}`, permissions: PERMISSION_CODES.filter((_, i) => m & (1 << i)) };

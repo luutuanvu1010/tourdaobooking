@@ -1,4 +1,4 @@
-import { can } from "../src/shared/permissions";
+import { can, dungManHepDichVu } from "../src/shared/permissions";
 import { ApiError, api, type CatalogAdminItem, type CatalogSyncState, type PaxCode, type Api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
 import { dateTime, grouped, parseMoney, vnd } from "./format";
@@ -10,7 +10,9 @@ import { QUY_TAC_DUA_DON, type QuyTacDuaDon } from "../src/shared/dua-don-dich-v
 import { dongLichSuMauChang, nhanCheDoCua } from "../src/shared/lich-su-mau-chang";
 import { canhBaoDoiNhom } from "../src/shared/dac-diem-hien-thi";
 import { CAU_HOI_BO_GHI_DE_GIA } from "../src/shared/catalog-nut";
+import { caNhomCanKiem, kiemVeCua } from "../src/shared/dich-vu-kiem-ve";
 import { hoiXacNhan, moBangTruot } from "./bang-truot";
+import { taoKiemVe, veManHep } from "./catalog-kiem-ve";
 import { initShell, showError } from "./shell";
 
 const errorEl = byId("error");
@@ -24,6 +26,20 @@ const filterEl = byId<HTMLSelectElement>("filter");
 const pullBtn = byId<HTMLButtonElement>("pull");
 const nhomEl = byId("nhom-dv");
 const chonBarEl = byId("chon-bar");
+
+const kiemVe = taoKiemVe(errorEl, () => {
+  renderTuKiem();
+  renderNhom();
+  render();
+});
+/** Công tắc «Cần kiểm vé» của một dòng dịch vụ (ADR-0169 Đ4): vé đặt riêng hay đang theo nhóm thì câu phụ nói rõ. */
+const oKiemVe = (it: CatalogAdminItem): HTMLElement => {
+  const kv = kiemVeCua(it.code, it.groupCode, kiemVe.dongCo());
+  return h("div", { class: "kv-o" }, h("span", { class: "hint" }, `Cần kiểm vé · ${kv.rieng ? "Đặt riêng" : it.groupCode === null ? "Chưa đặt" : "Theo nhóm"}`), kiemVe.congTacVe(it.code, it.name, kv.can));
+};
+function renderTuKiem(): void {
+  if (can(staff, "settings.ops")) replaceChildren(byId("kv-tu-kiem"), kiemVe.khoiTuKiem());
+}
 
 let items: CatalogAdminItem[] = [];
 let sync: CatalogSyncState;
@@ -109,7 +125,7 @@ function row(it: CatalogAdminItem): HTMLElement {
     { class: it.hidden || !it.inSheet ? "row-off" : "", "data-code": it.code },
     h("td", { class: "chon-td" }, oChon(it)),
     h("td", null, it.code),
-    h("td", null, it.name, chipDuaDon(it, "dd-chip-dong"), chipQuyTac(it), it.hidden && h("span", { class: "badge badge-cancelled" }, "Đã ngừng bán"), !it.inSheet && h("span", { class: "badge badge-draft" }, "Không còn trong Sheet"), !it.supported && h("span", { class: "badge badge-draft", title: "Chỉ nhập tay được" }, `Đơn vị ${it.unit} chưa hỗ trợ`), it.conflicts.length > 0 && h("div", { class: "alert warn", style: "margin:6px 0 0" }, `Sheet đã đổi giá kể từ khi ghi đè — ${conflicts}. Giá đang bán vẫn là giá ghi đè.`)),
+    h("td", null, it.name, chipDuaDon(it, "dd-chip-dong"), chipQuyTac(it), it.hidden && h("span", { class: "badge badge-cancelled" }, "Đã ngừng bán"), !it.inSheet && h("span", { class: "badge badge-draft" }, "Không còn trong Sheet"), !it.supported && h("span", { class: "badge badge-draft", title: "Chỉ nhập tay được" }, `Đơn vị ${it.unit} chưa hỗ trợ`), it.conflicts.length > 0 && h("div", { class: "alert warn", style: "margin:6px 0 0" }, `Sheet đã đổi giá kể từ khi ghi đè — ${conflicts}. Giá đang bán vẫn là giá ghi đè.`), oKiemVe(it)),
     h("td", { class: "nhom-o" }, tenNhomCua(it)),
     h("td", { class: "muted" }, unitLabel(it.unit)),
     ...PAX_ORDER.map((c) => priceCell(it, c)),
@@ -152,6 +168,7 @@ function card(it: CatalogAdminItem): HTMLElement {
     h("div", { class: "the-dau" }, oChon(it), h("span", { class: "muted" }, it.code, " · ", unitLabel(it.unit))),
     h("div", { class: "dd-ten-dong" }, h("strong", null, it.name), chipDuaDon(it), chipQuyTac(it), it.hidden && h("span", { class: "badge badge-cancelled" }, " Đã ngừng bán"), !it.inSheet && h("span", { class: "badge badge-draft" }, " Không còn trong Sheet"), !it.supported && h("span", { class: "badge badge-draft", title: "Chỉ nhập tay được" }, ` Đơn vị ${it.unit} chưa hỗ trợ`)),
     h("div", { class: "nhom-o muted" }, `Nhóm: ${tenNhomCua(it)}`),
+    h("div", { class: "kv-the" }, oKiemVe(it)),
     h("div", null, priceLine(it), it.overridden.length > 0 && h("span", { class: "mark", style: "color:var(--c-accent);font-weight:var(--fw-bold)", title: "Có giá ghi đè" }, " ✎")),
     it.conflicts.length > 0 && h("div", { class: "alert warn" }, `Sheet đã đổi giá kể từ khi ghi đè — ${conflicts}. Giá đang bán vẫn là giá ghi đè.`),
     h(
@@ -171,6 +188,7 @@ function render(): void {
   const f = filterEl.value;
   const shown = items.filter((it) => {
     if (q && !it.code.toLowerCase().includes(q) && !it.name.toLowerCase().includes(q)) return false;
+    if (f === "kiem-ve") return kiemVeCua(it.code, it.groupCode, kiemVe.dongCo()).can;
     if (f === "overridden") return it.overridden.length > 0;
     if (f === "conflict") return it.conflicts.length > 0;
     if (f === "hidden") return it.hidden;
@@ -349,6 +367,7 @@ function dongNhom(g: Nhom, i: number): HTMLElement {
     h("span", { class: "nhom-so" }, `${g.soDichVu} dịch vụ`),
     !g.active && h("span", { class: "badge badge-cancelled" }, "Đã tắt"),
     congTacDuaDon(g),
+    h("div", { class: "nhom-dua-don" }, h("span", { class: "nhom-so" }, "Cần kiểm vé"), kiemVe.congTacNhom(g.code, g.name, caNhomCanKiem(g.code, kiemVe.dongCo())), h("span", { class: "nhom-so", "aria-hidden": "true" }, caNhomCanKiem(g.code, kiemVe.dongCo()) ? "Bật" : "Tắt")),
     h(
       "div",
       { class: "nhom-nut" },
@@ -860,8 +879,14 @@ qEl.addEventListener("input", render);
 filterEl.addEventListener("change", render);
 
 const staff = await initShell();
-if (!can(staff, "admin.manage")) showError(errorEl, "Chỉ quản trị viên được vào trang này.");
-else {
+if (!can(staff, "admin.manage")) {
+  // ADR-0169 Đ4: Quản lý bán hàng dùng màn hẹp; còn lại máy chủ từ chối, trang báo lỗi.
+  byId("man-du").hidden = true;
+  if (dungManHepDichVu(staff)) await veManHep(byId("man-hep"), errorEl);
+  else showError(errorEl, "Tài khoản này không vào được trang này.");
+} else {
+  await kiemVe.tai().catch((err) => fail(err));
+  renderTuKiem();
   duocSuaDuaDon = can(staff, "admin.manage");
   tenNguoi = api<Api.StaffListResponse>("/api/staff")
     .then((r) => new Map(r.staff.map((s) => [s.id, s.fullName])))
