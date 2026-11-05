@@ -20,18 +20,18 @@ import { parseOrderIds } from "./rules";
 const TOI_DA_TRA_BAN_HANG = 30;
 
 const NOT_FOUND = () => error(404, "not_found", "Không tìm thấy đơn.");
-const DA_GIAO = () => error(409, "order_delivered", "Đơn đã ở bước Đã giao – đã thu đủ: không đổi hay nhận Bán hàng phụ trách được nữa.");
-const GIO_CHUA_CO = () => error(503, "gio_hanh_chinh_chua_co", "Chưa có cài đặt giờ hành chính của Bán hàng phụ trách — báo Toàn quyền.");
-const STALE_NHAN = () => error(409, "stale", "Đơn vừa có Bán hàng phụ trách, hãy tải lại.");
-const KHONG_HO_SO = () => error(409, "khong_co_ho_so", "Tài khoản này chưa có hồ sơ nên chưa làm Bán hàng phụ trách được — báo Quản trị.");
+const DA_GIAO = () => error(409, "order_delivered", "Đơn đã ở bước Đã giao – đã thu đủ: không đổi hay nhận người phụ trách được nữa.");
+const GIO_CHUA_CO = () => error(503, "gio_hanh_chinh_chua_co", "Chưa có cài đặt giờ hành chính của người phụ trách — báo Toàn quyền.");
+const STALE_NHAN = () => error(409, "stale", "Đơn vừa có người phụ trách, hãy tải lại.");
+const KHONG_HO_SO = () => error(409, "khong_co_ho_so", "Tài khoản này chưa có hồ sơ nên chưa làm người phụ trách được — báo Quản trị.");
 
 const LOI_NHAN: Record<LyDoKhongNhan, () => Response> = {
   don_nhap: () => error(409, "order_not_confirmed", "Đơn chưa xác nhận, chưa nhận được."),
-  tai_khoan_lai: () => error(403, "forbidden", "Tài khoản có quyền Đối tác không làm Bán hàng phụ trách được."),
-  khong_du_quyen: () => error(403, "forbidden", "Tài khoản này không nhận Bán hàng phụ trách được."),
+  tai_khoan_lai: () => error(403, "forbidden", "Tài khoản có quyền Đối tác không làm người phụ trách được."),
+  khong_du_quyen: () => error(403, "forbidden", "Tài khoản này không nhận người phụ trách được."),
   don_huy: () => error(409, "cancelled", "Đơn đã huỷ, không nhận được."),
   qua_ngay_di: () => error(409, "departed", "Tour đã qua ngày đi, không nhận được."),
-  don_cu: () => error(409, "don_cu", "Đơn này lập trước khi có Bán hàng phụ trách nên không tự nhận được — nhờ Quản trị hoặc Toàn quyền gán."),
+  don_cu: () => error(409, "don_cu", "Đơn này lập trước khi có người phụ trách nên không tự nhận được — nhờ Quản trị hoặc Toàn quyền gán."),
   da_co_nguoi: STALE_NHAN,
   dang_cho_nguoi_khac: STALE_NHAN, // thay bằng câu có tên + số phút ở nơi gọi
 };
@@ -47,7 +47,7 @@ async function docChinhSach(db: D1Database, staff: Parameters<typeof can>[0]): P
 export const banHangRoutes = [
   // Danh sách để MỜI lúc lập (mọi người giữ `order.create`): CHỈ mã tài khoản + tên.
   route("GET", "/api/dispatch/ban-hang-moi", "orders", async ({ env, staff }) => {
-    if (!can(staff, "dispatch.sales.invitees")) return error(403, "forbidden", "Tài khoản này không chọn Bán hàng phụ trách được.");
+    if (!can(staff, "dispatch.sales.invitees")) return error(403, "forbidden", "Tài khoản này không chọn người phụ trách được.");
     return json({ banHang: await danhSachBanHangMoi(env.DB) } satisfies BanHangMoiResponse);
   }),
 
@@ -91,7 +91,7 @@ export const banHangRoutes = [
 
   // NHẬN PHỤ TRÁCH (đơn đã xác nhận, chưa có Bán hàng phụ trách). Đơn còn chờ xác nhận: phải quyết Còn vé / Hết vé (ở route quyết định), không nhận ở đây.
   route("POST", "/api/orders/:id/ban-hang/nhan", "orders", async ({ env, params, staff, baoThayDoi }) => {
-    if (!can(staff, "dispatch.sales.claim")) return error(403, "forbidden", "Tài khoản này không nhận Bán hàng phụ trách được.");
+    if (!can(staff, "dispatch.sales.claim")) return error(403, "forbidden", "Tài khoản này không nhận người phụ trách được.");
     const orderId = params.id!;
     if (!UUID_RE.test(orderId)) return NOT_FOUND();
     const order = await findOrderOwner(env.DB, orderId);
@@ -138,7 +138,7 @@ export const banHangRoutes = [
 
   // TỪ CHỐI lời mời: chỉ đúng người được mời, khi lời mời còn mở. Đơn sang «Chờ Bán hàng nhận». Không hạn mức (ADR-0032).
   route("POST", "/api/orders/:id/ban-hang/tu-choi", "orders", async ({ env, params, staff, baoThayDoi }) => {
-    if (!can(staff, "dispatch.sales.claim")) return error(403, "forbidden", "Tài khoản này không nhận Bán hàng phụ trách được.");
+    if (!can(staff, "dispatch.sales.claim")) return error(403, "forbidden", "Tài khoản này không nhận người phụ trách được.");
     const orderId = params.id!;
     if (!UUID_RE.test(orderId)) return NOT_FOUND();
     const loiMoi = await loiMoiMoCua(env.DB, orderId);
@@ -155,7 +155,7 @@ export const banHangRoutes = [
 
   // ĐỔI / BỎ TRỐNG Bán hàng phụ trách (Quản trị, Toàn quyền): chỉ đơn đã xác nhận; không chặn đơn cũ. Người được đặt phải qua `kiemBanHangMoi`, hoặc là chính người đang gọi.
   route("PUT", "/api/orders/:id/ban-hang", "orders", async ({ env, request, params, staff, baoThayDoi }) => {
-    if (!can(staff, "dispatch.sales.assign")) return error(403, "forbidden", "Chỉ Quản trị hoặc Toàn quyền đổi được Bán hàng phụ trách.");
+    if (!can(staff, "dispatch.sales.assign")) return error(403, "forbidden", "Chỉ Quản trị hoặc Toàn quyền đổi được người phụ trách.");
     const orderId = params.id!;
     if (!UUID_RE.test(orderId)) return NOT_FOUND();
     const order = await findOrderOwner(env.DB, orderId);
@@ -163,15 +163,15 @@ export const banHangRoutes = [
     if (order.status === "draft" && !chiNguoiLapGhiNhap({ status: order.status, laNguoiLap: order.staffId === staff.id }) && !(await donDangChoXacNhan(env.DB, [orderId])).has(orderId)) return NOT_FOUND();
     const body = (await readJson(request)) as Record<string, unknown> | null;
     const dich = body?.staffId;
-    if (dich !== null && (typeof dich !== "string" || !UUID_RE.test(dich))) return error(400, "invalid_input", "Chọn Bán hàng phụ trách, hoặc bỏ trống.");
-    if (order.status === "draft") return error(409, "don_nhap", "Đơn chưa xác nhận, chưa đổi Bán hàng phụ trách được.");
-    if (order.status !== "confirmed") return error(409, "cancelled", "Đơn đã huỷ, không đổi Bán hàng phụ trách được.");
+    if (dich !== null && (typeof dich !== "string" || !UUID_RE.test(dich))) return error(400, "invalid_input", "Chọn người phụ trách, hoặc bỏ trống.");
+    if (order.status === "draft") return error(409, "don_nhap", "Đơn chưa xác nhận, chưa đổi người phụ trách được.");
+    if (order.status !== "confirmed") return error(409, "cancelled", "Đơn đã huỷ, không đổi người phụ trách được.");
     if (await orderDelivered(env.DB, orderId)) return DA_GIAO();
     const hien = (await banHangCuaDon(env.DB, [orderId])).get(orderId) ?? null;
     let partyMoi: string | null = null;
     if (dich !== null) {
       if (dich === staff.id) {
-        if (holdsPartner(staff)) return error(403, "forbidden", "Tài khoản có quyền Đối tác không làm Bán hàng phụ trách được.");
+        if (holdsPartner(staff)) return error(403, "forbidden", "Tài khoản có quyền Đối tác không làm người phụ trách được.");
         if (staff.partyId === null) return KHONG_HO_SO();
         partyMoi = staff.partyId;
       } else {
@@ -180,21 +180,21 @@ export const banHangRoutes = [
         partyMoi = x.partyId;
       }
     }
-    if ((hien?.partyId ?? null) === partyMoi) return error(409, "no_change", partyMoi === null ? "Đơn đang chưa có Bán hàng phụ trách." : "Người này đang là Bán hàng phụ trách rồi.");
+    if ((hien?.partyId ?? null) === partyMoi) return error(409, "no_change", partyMoi === null ? "Đơn đang chưa có người phụ trách." : "Người này đang là người phụ trách rồi.");
     const at = new Date().toISOString();
     const [c0, c1, c2] = cauDoiBanHang(env.DB, { orderId, partyIdCu: hien?.partyId ?? null, idMoi: crypto.randomUUID(), partyIdMoi: partyMoi, actorId: staff.id, at });
-    const nhatKy = auditStatement(env.DB, { orderId, staffId: staff.id, action: "sales_owner_changed", at, detail: partyMoi === null ? "Bỏ trống Bán hàng phụ trách" : "Đổi Bán hàng phụ trách" }, "changes() > 0");
+    const nhatKy = auditStatement(env.DB, { orderId, staffId: staff.id, action: "sales_owner_changed", at, detail: partyMoi === null ? "Bỏ trống người phụ trách" : "Đổi người phụ trách" }, "changes() > 0");
     // nhật ký đứng NGAY SAU câu quyết định thắng/thua: có người mới ⇒ sau câu mở [1]; bỏ trống ⇒ sau câu khép [0]
     const lo = partyMoi === null ? [c0!, nhatKy, c1!, c2!] : [c0!, c1!, nhatKy, c2!];
     let ket: D1Result[];
     try {
       ket = await env.DB.batch(lo);
     } catch (e) {
-      if (laVaChamOBanHang(e)) return error(409, "stale", "Bán hàng phụ trách vừa được đổi, hãy tải lại.");
+      if (laVaChamOBanHang(e)) return error(409, "stale", "Người phụ trách vừa được đổi, hãy tải lại.");
       if (/order_delivered/.test(String((e as Error)?.message ?? e))) return DA_GIAO();
       throw e;
     }
-    if (!banHangThang(ket, partyMoi === null ? 0 : 1)) return error(409, "stale", "Bán hàng phụ trách vừa được đổi, hãy tải lại.");
+    if (!banHangThang(ket, partyMoi === null ? 0 : 1)) return error(409, "stale", "Người phụ trách vừa được đổi, hãy tải lại.");
     const moi = (await banHangCuaDon(env.DB, [orderId])).get(orderId) ?? null;
     baoThayDoi({ orderId, thayDoi: "doi_ban_hang", banHangTruoc: hien?.staffId ?? null }); // người cũ nhận ở Bảng tin lúc sự kiện, không có dòng hộp thư
     return json({ ok: true, banHang: moi ? { staffId: moi.staffId, name: moi.name } : null } satisfies BanHangGhiResponse);
@@ -202,12 +202,12 @@ export const banHangRoutes = [
 
   // CÀI ĐẶT ba con số giờ hành chính (ADR-0142 Đ5): chỉ API, không giao diện. Khuôn `/api/cai-dat/xac-nhan-don`: dòng mới chỉ-thêm, gửi đúng giá trị đang hiệu lực ⇒ 200 không ghi, va UNIQUE ⇒ 409 `stale`.
   route("GET", "/api/cai-dat/ban-hang-phu-trach", "admin", async ({ env, staff }) => {
-    if (!can(staff, "settings.ops")) return error(403, "forbidden", "Chỉ Toàn quyền xem cài đặt Bán hàng phụ trách.");
+    if (!can(staff, "settings.ops")) return error(403, "forbidden", "Chỉ Toàn quyền xem cài đặt người phụ trách.");
     const r = await docChinhSach(env.DB, staff);
     return r ? json(r) : GIO_CHUA_CO();
   }),
   route("POST", "/api/cai-dat/ban-hang-phu-trach", "admin", async ({ env, request, staff }) => {
-    if (!can(staff, "settings.ops")) return error(403, "forbidden", "Chỉ Toàn quyền đổi cài đặt Bán hàng phụ trách.");
+    if (!can(staff, "settings.ops")) return error(403, "forbidden", "Chỉ Toàn quyền đổi cài đặt người phụ trách.");
     const b = (await readJson(request)) as Record<string, unknown> | null;
     const { phutUuTien, tuPhut, denPhut } = b ?? {};
     const so = (v: unknown, lo: number, hi: number): v is number => typeof v === "number" && Number.isInteger(v) && v >= lo && v <= hi;

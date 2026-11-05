@@ -48,9 +48,9 @@ export const AUDIT_ACTIONS = {
   order_confirm_requested: { label: "Gửi kiểm vé", group: "order" },
   order_confirm_withdrawn: { label: "Rút lại yêu cầu xác nhận", group: "order" },
   // ADR-0142: Bán hàng phụ trách. `detail` KHÔNG tên, mã người hay SĐT (chỉ chữ cố định); người mời / người nhận nằm ở cột người làm của dòng nhật ký.
-  sales_invited: { label: "Mời Bán hàng phụ trách", group: "order" },
-  sales_owner_claimed: { label: "Nhận Bán hàng phụ trách", group: "order" },
-  sales_owner_changed: { label: "Đổi Bán hàng phụ trách", group: "order" },
+  sales_invited: { label: "Mời người phụ trách", group: "order" },
+  sales_owner_claimed: { label: "Nhận phụ trách", group: "order" },
+  sales_owner_changed: { label: "Đổi người phụ trách", group: "order" },
   sales_invite_refused: { label: "Từ chối phụ trách đơn", group: "order" },
   cancelled: { label: "Huỷ đơn", group: "order" },
   order_cancelled_by_field: { label: "Huỷ đơn (hướng dẫn viên đang phụ trách)", group: "order" },
@@ -306,7 +306,7 @@ export const AUDIT_ACTIONS = {
   confirm_flag_changed: { label: "Đổi cờ cần xác nhận", group: "system" },
   confirm_policy_changed: { label: "Đổi công tắc tự xác nhận", group: "system" },
   // ADR-0142 Đ5: ba con số giờ hành chính của Bán hàng phụ trách (POST /api/cai-dat/ban-hang-phu-trach) — không gắn đơn; detail chỉ số.
-  sales_policy_changed: { label: "Đổi cài đặt Bán hàng phụ trách", group: "system" },
+  sales_policy_changed: { label: "Đổi cài đặt người phụ trách", group: "system" },
   // ADR-0154 Đ2.1: Toàn quyền bật / tắt «Ẩn thông tin khách khi đối tác đặt vé» (POST /api/cai-dat/an-thong-tin-khach) — không gắn đơn; detail «Bật …» / «Tắt …», không dữ liệu khách.
   partner_customer_policy_changed: { label: "Đổi công tắc ẩn thông tin khách", group: "system" },
   // ADR-0069 điều 5 + Hiến chương 5.12: ai đổi cài đặt trợ lý Hỗ trợ lúc nào — detail chỉ nêu PHẦN đã đổi, KHÔNG nội dung lời dặn / ngữ cảnh.

@@ -198,7 +198,7 @@ Huỷ được đơn bạn lập hoặc đang phụ trách. Đơn đã xếp xe 
 - **Menu hẹp hơn**: không có [[Trang chủ]], [[Danh bạ]], [[Điều phối xe]]. Mục [[Đơn hàng]] chỉ có đơn bạn lập. Trên điện thoại có tab [[Đơn hàng]], [[Tạo đơn]] và [[Tôi]].
 - **Mời được người phụ trách**; không chọn Hướng dẫn viên.
 - **Không thấy ai phụ trách đơn** (cả trên ảnh biên nhận).
-- **Sau khi xác nhận, Thực tập không có nút** [[Sửa thông tin chuyến]], [[Đổi khách]], [[Sửa số khách dịch vụ]] — nhờ Bán hàng phụ trách hoặc Quản trị.
+- **Sau khi xác nhận, Thực tập không có nút** [[Sửa thông tin chuyến]], [[Đổi khách]], [[Sửa số khách dịch vụ]] — nhờ người phụ trách hoặc Quản trị.
 - **Không nhận phụ trách, không giao đơn**: không có nút [[Nhận phụ trách]].
 - **Chỉ giá danh mục, không giảm giá**: không có [[Sửa giá]], ô giảm giá chỉ đọc; cần giá khác nhờ Bán hàng.`,
     },

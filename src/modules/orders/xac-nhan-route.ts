@@ -483,7 +483,7 @@ export const xacNhanRoutes = (xetDatGap: XetDatGapSua) => [
     try {
       kq = await env.DB.batch([...cauDau, ...xn.cau, khep, ...cauBanHang]);
     } catch (e) {
-      if (laVaChamOBanHang(e)) return error(409, "stale", "Đơn vừa có Bán hàng phụ trách, hãy tải lại."); // xét TRƯỚC `dichLoiXacNhan`: cả lô lui, đơn vẫn chờ
+      if (laVaChamOBanHang(e)) return error(409, "stale", "Đơn vừa có người phụ trách, hãy tải lại."); // xét TRƯỚC `dichLoiXacNhan`: cả lô lui, đơn vẫn chờ
       const res = dichLoiXacNhan(e);
       if (res) return res;
       throw e;

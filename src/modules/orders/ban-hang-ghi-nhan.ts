@@ -7,7 +7,7 @@ import { error } from "../../shared/http";
 import { nguoiDuocMoiCuaDon } from "./xac-nhan-repo";
 
 /** 503 khi chưa có dòng chính sách giờ hành chính — không đoán con số (khuôn `MOC_CHUA_CO`). */
-export const GIO_HANH_CHINH_CHUA_CO = () => error(503, "gio_hanh_chinh_chua_co", "Chưa có cài đặt giờ hành chính của Bán hàng phụ trách — báo Toàn quyền.");
+export const GIO_HANH_CHINH_CHUA_CO = () => error(503, "gio_hanh_chinh_chua_co", "Chưa có cài đặt giờ hành chính của người phụ trách — báo Toàn quyền.");
 
 /** Đọc khung giờ MỘT lần mỗi request; thiếu ⇒ trả sẵn 503. */
 export async function docKhungGio(banHang: BanHangNoi): Promise<{ khung: KhungGioHanhChinh } | { loi: Response }> {

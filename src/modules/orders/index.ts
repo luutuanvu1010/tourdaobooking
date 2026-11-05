@@ -1843,7 +1843,7 @@ export const ordersModule: AppModule = {
           const gn = await soanGhiNhan({ db: env.DB, banHang, orderId: id, nguoiLap: { id: staff.id, partyId: staff.partyId }, at: xn.at, auditId: xn.auditId, canKiem: false, khung: gio.khung });
           thang = daXacNhan(await env.DB.batch([...xn.cau, ...gn.cau]));
         } catch (e) {
-          if (laVaChamOBanHang(e)) return error(409, "stale", "Đơn vừa có Bán hàng phụ trách, hãy tải lại.");
+          if (laVaChamOBanHang(e)) return error(409, "stale", "Đơn vừa có người phụ trách, hãy tải lại.");
           const res = dichLoiXacNhan(e);
           if (res) return res;
           throw e;

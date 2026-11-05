@@ -10,7 +10,7 @@ function hopLeMoi(a: StaffAccount | null): { ok: true; partyId: string; name: st
   if (!a) return { ok: false, message: "Không tìm thấy nhân viên được chọn." };
   if (!a.active) return { ok: false, message: "Nhân viên này đã ngưng hoạt động, không mời được." };
   if (!a.partyId) return { ok: false, message: "Nhân viên này chưa có hồ sơ, không mời được." };
-  if (holdsPartner(a)) return { ok: false, message: "Tài khoản có quyền Đối tác không làm Bán hàng phụ trách được." };
+  if (holdsPartner(a)) return { ok: false, message: "Tài khoản có quyền Đối tác không làm người phụ trách được." };
   if (!hasPermission(a, "SALES")) return { ok: false, message: "Chỉ mời được người có quyền Bán hàng." };
   return { ok: true, partyId: a.partyId, name: a.fullName };
 }
