@@ -854,9 +854,13 @@ function napBenDat(o: Api.OrderDetailDto): void {
     return;
   }
   datQua?.datChon(null);
+  // `datBenDat(null)` chạy TRƯỚC `set`: giữa hai bước ô bên đặt trống tạm, kể cả khi nạp lại nháp sau lỗi lưu (đã qua lần mở đầu), nên tạm coi là chưa nạp để không đổi hình thức đang chọn.
+  const daNapTruoc = donDaNap;
+  donDaNap = false;
   datBenDat(null);
   bookerPicker.set(o.bookerPartyId, o.bookerName);
-  void napTraSau(); // `datBenDat(null)` chạy TRƯỚC `set`: hỏi lại khi bên đặt đã nạp xong, nếu không khối Trả sau ẩn nhầm
+  donDaNap = daNapTruoc;
+  void napTraSau(); // hỏi lại khi bên đặt đã nạp xong, nếu không khối Trả sau ẩn nhầm
 }
 
 /** Trả các câu báo (dịch vụ thuộc nhóm tắt đưa đón mà nháp còn chặng → form bỏ chặng đó; ADR-0118 Đ5). */
