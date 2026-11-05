@@ -230,3 +230,14 @@ test("đua huỷ đúng lúc BỎ TRỐNG người phụ trách: 409 cancelled, 
   assert.equal(chuO(w, o.id), pty(A));
   assert.equal(nhatKy(w, o.id, "sales_owner_changed"), 0);
 });
+
+test("đua huỷ đúng lúc ĐỔI TỪ TRỐNG: 409 cancelled, đơn huỷ không có người đứng tên, không nhật ký (câu mở sau đổi là lớp chặn duy nhất ở nhánh này)", async () => {
+  const w = setup();
+  const o = await xacNhan(w);
+  huyChenVao(w, o.id);
+  const r = await w.call("PUT", `/api/orders/${o.id}/ban-hang`, { as: ADM, body: { staffId: B } });
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "cancelled");
+  assert.equal(chuO(w, o.id), null);
+  assert.equal(nhatKy(w, o.id, "sales_owner_changed"), 0);
+});
