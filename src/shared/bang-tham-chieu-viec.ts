@@ -185,8 +185,8 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/order.ts", chu: "⟪t.doiNhan⟫" },
     ],
-    trangThai: "da-chot",
-    nguonTen: "chủ 2026-11-05 (nút «Đổi người phụ trách» nay thuộc ô người phụ trách mới); ADR-0142",
+    trangThai: "ten-hien-tai",
+    nguonTen: "rà soát 2026-11-05: «Đổi người phụ trách» chủ đã nêu; «Chọn người phụ trách» chủ chưa chọn riêng",
   },
   {
     nhom: "Tiền của đơn huỷ",
@@ -887,8 +887,8 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/handler-sheet.ts", chu: "Lưu người phụ trách" },
     ],
-    trangThai: "da-chot",
-    nguonTen: "chủ 2026-11-05 (người phụ trách là vai khác Hướng dẫn viên); ADR-0142",
+    trangThai: "ten-hien-tai",
+    nguonTen: "rà soát 2026-11-05: chủ chưa chọn riêng tên nút lưu này (chỉ nêu «Lưu Hướng dẫn viên»)",
   },
   {
     nhom: "Đối chiếu tiền",
