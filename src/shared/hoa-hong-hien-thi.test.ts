@@ -217,7 +217,7 @@ test("PR2 T1: nhãn mới và các câu nguyên văn", () => {
   // Chủ chọn 28/10 (thay «Loại gốc»): nhãn ngắn + một câu nói lý do không tắt được.
   assert.equal(NHAN_LOAI_GOC, "Có sẵn");
   assert.equal(CAU_LOAI_CO_SAN, "Vai trò có sẵn đi kèm tài khoản đăng nhập của đối tác nên không tắt được.");
-  assert.equal(CAU_CHUA_CO_MUC_LOAI, "Vai trò này chưa có hoa hồng cho dịch vụ nào: đơn sẽ chờ ở bước «Đã thu đủ sau dịch vụ» tới khi có mức hoặc Kế toán nhập tay.");
+  assert.equal(CAU_CHUA_CO_MUC_LOAI, "Vai trò này chưa có hoa hồng cho dịch vụ nào: đơn sẽ chờ ở bước «Xong và đủ tiền» tới khi có mức hoặc Kế toán nhập tay.");
   assert.equal(NHAN_CHUA_CO_MUC, "Chưa có mức");
   assert.equal(CAU_NHAC_UU_TIEN, "Mức riêng được ưu tiên hơn cấp độ đại lý. Mức nào áp cho một đối tác cụ thể: dùng «Kiểm tra hoa hồng».");
   assert.equal(CAU_TRA_THEO_LOAI, "Đang tra theo vai trò. Một đối tác cụ thể của vai trò này có thể có mức riêng hoặc cấp riêng — gõ tên đối tác để chắc.");
@@ -394,9 +394,9 @@ test("§5.1 dải cảnh báo: câu ghim nguyên văn", () => {
   assert.equal(HT.cauTieuDeDai(3), "Có 3 vai trò còn thiếu mức hôm nay");
   assert.equal(
     HT.CAU_THAN_DAI,
-    "Đối tác chỉ thuộc vai trò này và chưa có mức riêng hay cấp riêng sẽ bị chờ ở bước «Đã thu đủ sau dịch vụ» nếu đơn xác nhận từ hôm nay có dịch vụ chưa có mức. Đối tác thuộc thêm vai trò khác có mức thì vẫn tính theo vai trò đó. Đơn đã xác nhận trước đó không tự tính lại khi thêm mức: Kế toán dùng «Ghi mức tay» cho từng đơn.",
+    "Đối tác chỉ thuộc vai trò này và chưa có mức riêng hay cấp riêng sẽ bị chờ ở bước «Xong và đủ tiền» nếu đơn xác nhận từ hôm nay có dịch vụ chưa có mức. Đối tác thuộc thêm vai trò khác có mức thì vẫn tính theo vai trò đó. Đơn đã xác nhận trước đó không tự tính lại khi thêm mức: Kế toán dùng «Ghi mức tay» cho từng đơn.",
   );
-  assert.equal(HT.cauLoaiTatDai(2), "2 vai trò đã tắt: đối tác chỉ mang vai trò đã tắt không được hưởng hoa hồng, đơn của họ bị giữ ở bước Đã thu đủ sau dịch vụ.");
+  assert.equal(HT.cauLoaiTatDai(2), "2 vai trò đã tắt: đối tác chỉ mang vai trò đã tắt không được hưởng hoa hồng, đơn của họ bị giữ ở bước Xong và đủ tiền.");
   assert.equal(HT.CAU_DAI_CHUA_KIEM, "Chưa kiểm được vai trò nào thiếu mức vì không tải được danh mục dịch vụ. Tải lại trang.");
   for (const c of [HT.cauTieuDeDai(1), HT.CAU_THAN_DAI, HT.cauLoaiTatDai(1), HT.CAU_DAI_CHUA_KIEM, HT.cauDongLoaiDai("L", { kieu: "KHONG_CO", thieu: [] }, null)]) {
     assert.ok(!/mở khoá|tự động/u.test(c), c);
@@ -436,7 +436,7 @@ test("§5.2 §5.4 §3 §3.3 câu hộp, huy hiệu, ô trống, xung đột, toa
   assert.deepEqual(HT.hopTatLoai("Đại lý"), {
     tieuDe: "Tắt vai trò «Đại lý»?",
     hauQua:
-      "Đối tác chỉ thuộc vai trò này sẽ không được hưởng hoa hồng. Đơn của họ xác nhận từ lúc tắt sẽ chờ ở bước «Đã thu đủ sau dịch vụ» tới khi Kế toán nhập tay («Ghi mức tay»). Đơn đã xác nhận trước lúc tắt giữ nguyên hoa hồng.",
+      "Đối tác chỉ thuộc vai trò này sẽ không được hưởng hoa hồng. Đơn của họ xác nhận từ lúc tắt sẽ chờ ở bước «Xong và đủ tiền» tới khi Kế toán nhập tay («Ghi mức tay»). Đơn đã xác nhận trước lúc tắt giữ nguyên hoa hồng.",
     nhanNguyHiem: "Tắt vai trò",
   });
   assert.equal(HT.NHAN_CAP_DA_KHOA, "Đã khoá — vẫn áp cho vai trò và đối tác đang theo");
@@ -451,7 +451,7 @@ test("§5.2 §5.4 §3 §3.3 câu hộp, huy hiệu, ô trống, xung đột, toa
   assert.equal(HT.NHAN_XUNG_DOT, "Hai mức khác nhau");
   assert.equal(
     HT.CAU_XUNG_DOT,
-    "Đối tác này mang hai vai trò ra hai mức khác nhau cho cùng một dịch vụ. Đơn của dịch vụ đó bị giữ ở bước Đã thu đủ sau dịch vụ cho tới khi đặt mức riêng hoặc cấp riêng cho đối tác này.",
+    "Đối tác này mang hai vai trò ra hai mức khác nhau cho cùng một dịch vụ. Đơn của dịch vụ đó bị giữ ở bước Xong và đủ tiền cho tới khi đặt mức riêng hoặc cấp riêng cho đối tác này.",
   );
   assert.equal(HT.CAU_DUOI_DS_DOI_TAC, "Đối tác không có mức riêng hay cấp riêng không nằm ở đây. Muốn biết một đối tác đang ra mức nào: dùng «Kiểm tra hoa hồng».");
   assert.equal(HT.CAU_KHONG_THAY_DONG, "Không thấy mục này trên trang — tải lại trang.");

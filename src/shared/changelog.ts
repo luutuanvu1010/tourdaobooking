@@ -21,7 +21,7 @@ export const CHANGELOG: readonly ReleaseNote[] = [
     version: "2.66",
     date: "2026-11-05",
     items: [
-      { kind: "doi", text: "Trạng thái Đã giao đổi tên thành Đã thu đủ sau dịch vụ để khỏi nhầm với giao vé; chỗ chật ghi Xong và đủ tiền. Cách làm việc không đổi." },
+      { kind: "doi", text: "Trạng thái Đã giao đổi tên thành Xong và đủ tiền để khỏi nhầm với giao vé; nút ghi Xác nhận xong và đủ tiền. Cách làm việc không đổi." },
     ],
   },
   {

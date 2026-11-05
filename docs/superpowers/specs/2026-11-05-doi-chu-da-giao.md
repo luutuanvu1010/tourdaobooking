@@ -2,19 +2,21 @@
 
 Hồ sơ có ngày, ghi lại quyết định của chủ để bảng tham chiếu có nguồn ngay trên `main`.
 
-**Quyết định của chủ (5/11/2026, «chốt hướng»; ghi đầu tiên ở `docs/superpowers/specs/2026-11-05-tra-sau-han-muc.md` trên nhánh Trả sau; cùng ngày chủ ra lệnh làm ngay):** chữ «Đã giao» trên giao diện đổi thành «Đã thu đủ sau dịch vụ»; chỗ chật ghi «Xong và đủ tiền»; nút ghi «Xác nhận đã thu đủ sau dịch vụ». Mã và cơ sở dữ liệu giữ tên cũ.
+**Quyết định cuối của chủ (5/11/2026):** bước này hiện cho người dùng là **«Xong và đủ tiền»**, ở mọi chỗ, không tách tên dài và tên ngắn. Chủ chọn trong hộp hỏi, sau khi nhận xét nguyên văn: *«chữ "Đã thu đủ sau dịch vụ" là một câu rất tối nghĩa»*. Mã và cơ sở dữ liệu giữ tên cũ.
 
-**Vì sao:** «Đã giao» dễ bị hiểu là đã giao vé, trong khi bước này nghĩa là đơn đã phục vụ xong và đã thu đủ tiền (ADR-0026 điều 13, ADR-0088).
+**Lịch sử trong ngày:** trước đó chủ «chốt hướng» bộ ba tên: «Đã thu đủ sau dịch vụ», chỗ chật «Xong và đủ tiền», nút «Xác nhận đã thu đủ sau dịch vụ» (`docs/superpowers/specs/2026-11-05-tra-sau-han-muc.md`, nhánh Trả sau). Tên dài chưa từng lên production và nay bị cấm trong bảng từ.
 
-**Cách làm:** đổi tên thuần theo ADR-0130 (thêm dòng vào bảng từ, không cần ADR mới); thân các ADR cũ không sửa, tên trong ADR-0025 và các ADR sau hiểu là tên cũ của cùng bước.
+**Vì sao đổi:** «Đã giao» dễ bị hiểu là đã giao vé. Bản chất bước này là đơn đã phục vụ xong và khách đã trả đủ tiền (ADR-0026 điều 13, ADR-0088). «sau dịch vụ» lại gợi ý tiền thu sau tour, trong khi khách trả trước đủ vẫn qua bước này.
 
-## Tên nào ở chỗ nào (người thi công tự chọn, chủ xem lại được)
+**Cách làm:** đổi tên thuần theo ADR-0130 (thêm dòng vào bảng từ, không cần ADR mới); thân các ADR cũ không sửa, «Đã giao» trong ADR là tên cũ của cùng bước.
+
+## Tên ở từng chỗ
 
 | Chỗ | Chữ |
 |---|---|
-| Nút trên trang đơn, Hướng dẫn, câu «bấm …» | Xác nhận đã thu đủ sau dịch vụ |
-| Huy hiệu trang đơn, biên nhận và ảnh gửi khách, câu báo của máy chủ, nhật ký | Đã thu đủ sau dịch vụ |
-| Huy hiệu trên thẻ danh sách đơn, Sổ công nợ, loại phiếu và giai đoạn khoản thu trong sổ | Xong và đủ tiền |
+| Trạng thái ở mọi màn, biên nhận, ảnh gửi khách, nhật ký, sổ | Xong và đủ tiền |
+| Nút trên trang đơn; câu «bấm …» trong Hướng dẫn và câu báo (người thi công viết, theo đề xuất chủ đã đọc) | Xác nhận xong và đủ tiền |
+| Câu «chưa Đã giao» (người thi công viết) | chưa tới bước Xong và đủ tiền |
 
 ## Cố ý giữ nguyên
 

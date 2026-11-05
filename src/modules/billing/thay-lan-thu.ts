@@ -36,7 +36,7 @@ export function kiemI1SauThay(input: { daThuTruoc: number; tongCu: number; tongM
   if (input.phaiThuLucGiao === null) return { ok: true };
   const sau = input.daThuTruoc - input.tongCu + input.tongMoi;
   if (sau !== input.phaiThuLucGiao) {
-    return { ok: false, cau: `Sau khi thay, số đã thu (${dong(sau)}) phải bằng phải thu của đơn lúc xác nhận đã thu đủ sau dịch vụ (${dong(input.phaiThuLucGiao)}).` };
+    return { ok: false, cau: `Sau khi thay, số đã thu (${dong(sau)}) phải bằng phải thu của đơn lúc xác nhận xong và đủ tiền (${dong(input.phaiThuLucGiao)}).` };
   }
   return { ok: true };
 }
@@ -101,7 +101,7 @@ export async function chuanBiLoThay(db: D1Database, input: { orderId: string; ph
   const [st, receipts, hienHanh, dongDon] = await Promise.all([orderState(db, orderId), receiptsOfOrder(db, orderId), phaiThuHienHanh(db, orderId), linesOfOrder(db, orderId)]);
   const due = hienHanh === null ? null : input.phaiThuDich ?? hienHanh;
   if (!st) return loi(404, "not_found", "Không tìm thấy đơn.");
-  if (cu.length === 0 && due === null) return loi(400, "invalid_input", "Đơn chưa thu đủ sau dịch vụ — chọn khoản thu cần thay, hoặc ghi khoản thu như thường.");
+  if (cu.length === 0 && due === null) return loi(400, "invalid_input", "Đơn chưa tới bước Xong và đủ tiền — chọn khoản thu cần thay, hoặc ghi khoản thu như thường.");
   // ADR-0088 đ4 (i) + kiểm độc lập vòng 3 (CAO): khoản "Công ty thu – CK" do người khác khai còn CHỜ XÁC NHẬN thì KHÔNG đảo — dòng giữ hộ trên người khai còn
   // nguyên tới khi Kế toán xác nhận đã nhận hoặc người khai nộp (một khoản thu mới do Kế toán ghi "Công ty thu" sẽ xoá khoản người khai đang giữ).
   const choXacNhan = khoanChoXacNhan(receipts.map(toReceiptRow), dongDon.map(toLineRow), (await reconOfOrder(db, orderId)).map(toDoiChieuRow));

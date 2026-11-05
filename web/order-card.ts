@@ -23,7 +23,7 @@
 // theo P8).
 import { type OrderStatus } from "./api";
 import { h, replaceChildren, type Child } from "./dom";
-import { dateTime, nhanNgan, ngayNganHomNay, paxCounts, paxCountsShort, trangThaiHienThi, vnd, vndShort } from "./format";
+import { dateTime, ngayNganHomNay, paxCounts, paxCountsShort, trangThaiHienThi, vnd, vndShort } from "./format";
 import { icon } from "./icons";
 import { type PaxCounts } from "../src/shared/order-lines";
 import { NHAN_DA_NHAP } from "../src/shared/nhap-ke-toan";
@@ -110,7 +110,7 @@ export function orderCard(o: OrderCardData, opts: OrderCardOptions = {}): OrderC
     h("span", { class: "order-row-name" }, o.customerName),
     (() => {
       const tt = trangThaiHienThi(o);
-      return h("span", { class: `badge badge-${tt.khoa}` }, nhanNgan(tt));
+      return h("span", { class: `badge badge-${tt.khoa}` }, tt.nhan);
     })(),
   );
 

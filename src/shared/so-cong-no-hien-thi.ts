@@ -1,13 +1,13 @@
 // Chữ của màn «Sổ công nợ» (Kế toán, Toàn quyền — bản vẽ docs/design/so-cong-no-2026-10-25/ bản 2a). Luật thuần dùng ở CẢ máy chủ (nhãn trạng thái đơn trong DTO
 // chi tiết một bên) và giao diện (web/so-cong-no.ts). Không cộng trừ tiền ở đây — số do máy chủ tính; tệp chỉ đặt chữ. Bài kiểm: so-cong-no-hien-thi.test.ts.
-import { nhanNgan, trangThaiHienThi } from "./order-status-label.ts";
+import { trangThaiHienThi } from "./order-status-label.ts";
 import type { OrderStatus } from "./contracts.ts";
 
 /** Nhãn trạng thái của một đơn trong chi tiết một bên. Đơn đã huỷ mà bên này còn giữ tiền: nói rõ cọc còn giữ (ADR-0089 — huỷ mặc định giữ cọc). */
 export function nhanDonTrongSo(o: { status: OrderStatus; deliveredAt: string | null; completedAt: string | null } | null, benDangGiu: boolean): string {
   if (!o) return "Không gắn đơn";
   if (o.status === "cancelled" && benDangGiu) return "Đã huỷ — cọc còn giữ";
-  return nhanNgan(trangThaiHienThi(o));
+  return trangThaiHienThi(o).nhan;
 }
 
 /** Câu số dư một bên bằng LỜI (không chỉ dấu ±): dương = bên đó còn tiền chưa nộp về công ty; âm = công ty nợ bên đó. */

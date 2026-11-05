@@ -562,7 +562,7 @@ test("Task 6 (P6 a — kết quả ghi ở sổ thi công): nhà cung cấp đan
 });
 
 // ---- Vòng sửa 1 Task 6 (người kiểm): R-P15 — loại dòng thương mại chỉ cho đơn ĐÃ «Đã giao»; R-P18 — tài khoản giữ quyền Đối tác không chạm yêu cầu điều chỉnh ----
-const CAU_CHUA_GIAO = "Đơn chưa thu đủ sau dịch vụ — chưa bổ sung được khoản này; chờ bước Đã thu đủ sau dịch vụ rồi tạo yêu cầu.";
+const CAU_CHUA_GIAO = "Đơn chưa tới bước Xong và đủ tiền — chưa bổ sung được khoản này; chờ bước Xong và đủ tiền rồi tạo yêu cầu.";
 /** Dòng REQUEST chờ duyệt chèn thẳng (giả yêu cầu tạo TRƯỚC khi có luật R-P15) — để thử vế kiểm lúc DUYỆT. */
 function yeuCauCho(w: W, orderId: string, v: { benNo: string; benDuocNo: string; loai: string; soTien: number }): string {
   const id = uuid();

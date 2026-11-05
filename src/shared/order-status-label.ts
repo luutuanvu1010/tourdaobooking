@@ -27,11 +27,9 @@ export function cauKhongDoiDuocTrangThai(tu: OrderStatus, sang: OrderStatus): st
  * RA từ mốc; đơn nháp có cờ `dangCho` ghi «Chờ xác nhận», không cờ ghi «Chưa xác nhận». MỘT hàm cho danh sách, chi tiết, Trang chủ, biên nhận — không chép tay nhãn ở `web/`. `khoa` (dùng cho lớp CSS) KHÔNG phải chữ hiển thị.
  */
 export type KhoaTrangThai = OrderStatus | "delivered" | "completed";
-/** Chỗ chật (huy hiệu trên thẻ, cột hẹp): cùng nghĩa với nhãn đầy đủ, chủ chốt 2026-11-05. */
-export const nhanNgan = (t: { khoa: KhoaTrangThai; nhan: string }): string => (t.khoa === "delivered" ? "Xong và đủ tiền" : t.nhan);
 export function trangThaiHienThi(o: { status: OrderStatus; deliveredAt?: string | null; completedAt?: string | null; dangCho?: boolean | null }): { khoa: KhoaTrangThai; nhan: string } {
   if (o.status === "confirmed" && o.completedAt) return { khoa: "completed", nhan: "Hoàn thành" };
-  if (o.status === "confirmed" && o.deliveredAt) return { khoa: "delivered", nhan: "Đã thu đủ sau dịch vụ" };
+  if (o.status === "confirmed" && o.deliveredAt) return { khoa: "delivered", nhan: "Xong và đủ tiền" };
   // Cờ chỉ có nghĩa với đơn nháp; `khoa` vẫn `draft` (lớp CSS, màu không đổi). Viết gọn một lệnh vì hàm này nằm trong gói trang Đơn hàng, đang sát trần dung lượng.
   return { khoa: o.status, nhan: o.status === "draft" && o.dangCho ? NHAN_DANG_CHO_XAC_NHAN : STATUS_LABEL[o.status] };
 }

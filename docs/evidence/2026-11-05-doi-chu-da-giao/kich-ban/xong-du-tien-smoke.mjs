@@ -1,6 +1,6 @@
 // Đổi chữ «Đã giao» (chủ 2026-11-05): trang đơn, danh sách đơn, Việc của tôi, Sổ công nợ, ảnh gửi khách không còn chữ cũ; chữ dài không tràn dòng ở khổ 390 và 1440.
-// Chạy từ gốc repo: npm run build:web && CHROME_BIN=$PWD/docs/evidence/2026-09-20-a2/kich-ban/chrome-wrap.sh node docs/evidence/2026-11-05-doi-chu-da-giao/kich-ban/da-thu-du-smoke.mjs
-// Dữ liệu dựng bằng API trên D1 tạm, không đụng dữ liệu thật. Cuối: "DA THU DU SMOKE OK".
+// Chạy từ gốc repo: npm run build:web && CHROME_BIN=$PWD/docs/evidence/2026-09-20-a2/kich-ban/chrome-wrap.sh node docs/evidence/2026-11-05-doi-chu-da-giao/kich-ban/xong-du-tien-smoke.mjs
+// Dữ liệu dựng bằng API trên D1 tạm, không đụng dữ liệu thật. Cuối: "XONG DU TIEN SMOKE OK".
 import assert from "node:assert/strict";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
@@ -41,28 +41,28 @@ try {
   for (const { ten, vp } of KHO) {
     const p = await env.as(ACCOUNTS.admin, `/order?id=${o.id}`, vp);
     await p.waitFor("!!document.querySelector('[data-action=\"da-giao\"]')", "nút chốt");
-    assert.equal(await p.ev("document.querySelector('[data-action=\"da-giao\"]').textContent"), "Xác nhận đã thu đủ sau dịch vụ");
+    assert.equal(await p.ev("document.querySelector('[data-action=\"da-giao\"]').textContent"), "Xác nhận xong và đủ tiền");
     assert.equal(await p.ev(nutTron), true, `nút không tràn ${ten}`);
     assert.equal(await p.ev(khongTran), true, `trang không tràn ${ten}`);
     assert.equal(await p.ev(chuCu), false, `không còn chữ cũ ${ten}`);
     await p.ev("document.querySelector('[data-action=\"da-giao\"]').scrollIntoView({ block: 'center' }); true");
     await p.shot(`${OUT}/1-nut-${ten}.png`);
     p.close();
-    ok(`Trang đơn ${ten}: nút Xác nhận đã thu đủ sau dịch vụ`);
+    ok(`Trang đơn ${ten}: nút Xác nhận xong và đủ tiền`);
   }
 
   // 2) Bấm nút thật: hộp hỏi đúng chữ, đơn khoá, huy hiệu tên đầy đủ
   const q = await env.as(ACCOUNTS.admin, `/order?id=${o.id}`);
   await q.waitFor("document.querySelector('[data-action=\"da-giao\"]') && !document.querySelector('[data-action=\"da-giao\"]').disabled", "nút bật");
   await q.ev("window.__hoi = ''; window.confirm = (c) => { window.__hoi = c; return true; }; document.querySelector('[data-action=\"da-giao\"]').click(); true");
-  await q.waitFor("[...document.querySelectorAll('.lock-note')].some((n) => /Đơn đã ở bước Đã thu đủ sau dịch vụ/.test(n.textContent))", "câu khoá");
-  assert.match(await q.ev("window.__hoi"), /^Xác nhận đã thu đủ sau dịch vụ\? /, "hộp hỏi đúng chữ, không lặp «Xác nhận»");
+  await q.waitFor("[...document.querySelectorAll('.lock-note')].some((n) => /Đơn đã ở bước Xong và đủ tiền/.test(n.textContent))", "câu khoá");
+  assert.match(await q.ev("window.__hoi"), /^Xác nhận xong và đủ tiền\? /, "hộp hỏi đúng chữ, không lặp «Xác nhận»");
   q.close();
 
   for (const { ten, vp } of KHO) {
     const p = await env.as(ACCOUNTS.admin, `/order?id=${o.id}`, vp);
     await p.waitFor("!!document.querySelector('.badge-delivered')", "huy hiệu");
-    assert.equal(await p.ev("document.querySelector('.badge-delivered').textContent"), "Đã thu đủ sau dịch vụ");
+    assert.equal(await p.ev("document.querySelector('.badge-delivered').textContent"), "Xong và đủ tiền");
     assert.equal(await p.ev("(() => { const b = document.querySelector('.badge-delivered'); return b.getBoundingClientRect().right <= innerWidth && b.getBoundingClientRect().height < 44; })()"), true, `huy hiệu đơn gọn ${ten}`);
     assert.equal(await p.ev(khongTran), true, `trang đơn không tràn ${ten}`);
     assert.equal(await p.ev(chuCu), false, `trang đơn không còn chữ cũ ${ten}`);
@@ -77,7 +77,7 @@ try {
     assert.equal(await l.ev(chuCu), false, `danh sách không còn chữ cũ ${ten}`);
     await l.shot(`${OUT}/3-danh-sach-${ten}.png`);
     l.close();
-    ok(`${ten}: trang đơn ghi tên đầy đủ, thẻ danh sách ghi Xong và đủ tiền, không tràn`);
+    ok(`${ten}: trang đơn và thẻ danh sách ghi Xong và đủ tiền, không tràn`);
   }
 
   // 3) Ảnh gửi khách của đơn đã thu đủ: máy chủ gửi tên đầy đủ, ảnh vẽ được
@@ -108,7 +108,7 @@ try {
 
     // 5) Việc của tôi của Hướng dẫn viên (thẻ điện thoại)
     const v = await env.as(HDV, "/account", vp);
-    await v.waitFor("[...document.querySelectorAll('.hdv-card .hdv-note')].some((n) => n.textContent === 'Đã thu đủ sau dịch vụ: đơn đã khoá.')", "câu khoá trên thẻ Việc của tôi", 15000);
+    await v.waitFor("[...document.querySelectorAll('.hdv-card .hdv-note')].some((n) => n.textContent === 'Xong và đủ tiền: đơn đã khoá.')", "câu khoá trên thẻ Việc của tôi", 15000);
     assert.equal(await v.ev(khongTran), true, `Việc của tôi không tràn ${ten}`);
     assert.equal(await v.ev(chuCu), false, `Việc của tôi không còn chữ cũ ${ten}`);
     await v.ev("document.querySelector('.hdv-card .hdv-note').scrollIntoView({ block: 'center' }); true");
@@ -116,7 +116,7 @@ try {
     v.close();
     ok(`${ten}: Sổ công nợ và Việc của tôi đúng chữ, không tràn`);
   }
-  console.log("DA THU DU SMOKE OK");
+  console.log("XONG DU TIEN SMOKE OK");
 } finally {
   await env.stop?.();
 }

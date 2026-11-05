@@ -7,7 +7,7 @@ export const HD_HDV: NhomHuongDan = {
   tieuDe: "Hướng dẫn viên",
   quyen: ["FIELD"],
   gioiThieu:
-    "Bạn là hướng dẫn viên. Trong Nền tảng, bạn nhận đơn đang chờ người lo, gọi khách, xem thông tin chuyến và tiền của đơn mình lo, ghi tiền đã thu và bấm Xác nhận đã thu đủ sau dịch vụ khi xong; khi cần thì sửa số khách hoặc huỷ đơn, luôn kèm lý do.",
+    "Bạn là hướng dẫn viên. Trong Nền tảng, bạn nhận đơn đang chờ người lo, gọi khách, xem thông tin chuyến và tiền của đơn mình lo, ghi tiền đã thu và bấm Xác nhận xong và đủ tiền khi xong; khi cần thì sửa số khách hoặc huỷ đơn, luôn kèm lý do.",
   batDauNhanh: `1. Bấm [[Tôi]] ở thanh dưới đáy.
 2. Kéo tới mục **Việc của tôi**. Có hai ô: **Chờ nhận** và **Đơn của tôi**.
 3. Ở khối **Đơn chờ nhận**, xem ngày đi, giờ đón, số khách.
@@ -56,7 +56,7 @@ Không nhận được đơn **đã huỷ** hay **đã qua ngày đi**.`,
 
 Đơn sắp đi ở trên. Đơn đã đi tour ở dưới cùng, sau dòng **Đã đi tour**.
 
-Bấm [[Xem đơn]] để mở trang đầy đủ. Ở đó không sửa hay huỷ được (làm ở **Việc của tôi**), nhưng có khối **Thanh toán** để ghi tiền và bấm Xác nhận đã thu đủ sau dịch vụ (xem mục dưới).
+Bấm [[Xem đơn]] để mở trang đầy đủ. Ở đó không sửa hay huỷ được (làm ở **Việc của tôi**), nhưng có khối **Thanh toán** để ghi tiền và bấm Xác nhận xong và đủ tiền (xem mục dưới).
 
 > Ví dụ: Tối trước ngày đi, chị Lan bấm Gọi để hẹn khách 07:30 ở sảnh khách sạn. Chị xem ô Còn lại để biết có phải thu thêm không.`,
     },
@@ -105,7 +105,7 @@ Thẻ đơn biến khỏi Đơn của tôi; người khác thấy đơn ở Đơ
 > Ví dụ: Anh Tâm nhận đơn đi thứ Sáu rồi bị ốm. Thứ Tư anh bấm Từ chối đơn, chọn Ốm / việc riêng, bấm Xác nhận từ chối. Đơn về Chờ nhận cho người khác.`,
     },
     {
-      tieuDe: "Thu tiền và bấm Xác nhận đã thu đủ sau dịch vụ",
+      tieuDe: "Thu tiền và bấm Xác nhận xong và đủ tiền",
       noiDung: `Làm trên trang đơn (bấm [[Xem đơn]]), khối **Thanh toán**. Khối này ghi **Đã thu**, **Còn lại** và từng khoản thu.
 
 **Ghi tiền khách trả:**
@@ -113,11 +113,11 @@ Thẻ đơn biến khỏi Đơn của tôi; người khác thấy đơn ở Đơ
 2. Gõ số tiền, chọn hình thức, chọn người thu tiền: [[Tôi thu]] (tiền mặt bạn cầm) hoặc [[Công ty (vào tài khoản công ty)]].
 3. Bấm [[Ghi]].
 
-**Khách trả cho đại lý hoặc trả tại quầy nhà cung cấp** (bạn không cầm tiền): ở ô người thu tiền chọn "Khách trả cho đại lý …" hoặc "Khách trả tại quầy …"; đơn có dịch vụ của nhà cung cấp thì chọn thêm **Phần tiền này cho**. Khoản này chờ Kế toán xác nhận với bên kia; trong lúc chờ, đơn chưa xác nhận đã thu đủ sau dịch vụ được.
+**Khách trả cho đại lý hoặc trả tại quầy nhà cung cấp** (bạn không cầm tiền): ở ô người thu tiền chọn "Khách trả cho đại lý …" hoặc "Khách trả tại quầy …"; đơn có dịch vụ của nhà cung cấp thì chọn thêm **Phần tiền này cho**. Khoản này chờ Kế toán xác nhận với bên kia; trong lúc chờ, đơn chưa xác nhận xong và đủ tiền được.
 
-**Xong tour, khách đã trả đủ:** bấm [[Xác nhận đã thu đủ sau dịch vụ]] rồi đồng ý. Nút chỉ bấm được khi đơn đã xác nhận, từ ngày đi trở đi, và số đã thu **bằng đúng** số phải thu. Nút bị mờ thì dòng **Đang giữ đơn** ghi lý do và ai xử lý.
+**Xong tour, khách đã trả đủ:** bấm [[Xác nhận xong và đủ tiền]] rồi đồng ý. Nút chỉ bấm được khi đơn đã xác nhận, từ ngày đi trở đi, và số đã thu **bằng đúng** số phải thu. Nút bị mờ thì dòng **Đang giữ đơn** ghi lý do và ai xử lý.
 
-Sau bước Đã thu đủ sau dịch vụ, đơn **bị khoá**: không sửa số khách, không huỷ, không ghi thêm khoản thu. Thẻ ghi "Đã thu đủ sau dịch vụ: đơn đã khoá." Bạn đang cầm tiền mặt của công ty thì nhớ nộp về; Kế toán ghi đã nộp rồi bấm **Hoàn thành**.`,
+Sau bước Xong và đủ tiền, đơn **bị khoá**: không sửa số khách, không huỷ, không ghi thêm khoản thu. Thẻ ghi "Xong và đủ tiền: đơn đã khoá." Bạn đang cầm tiền mặt của công ty thì nhớ nộp về; Kế toán ghi đã nộp rồi bấm **Hoàn thành**.`,
     },
     {
       tieuDe: "Thông báo",
@@ -147,7 +147,7 @@ Tin quan trọng có nút [[Đã hiểu]]. Đọc xong thì bấm.
 - **Đang sửa thì văn phòng cũng sửa đơn đó:** Nền tảng đóng bảng, hiện dòng báo màu vàng rồi tải lại. Bạn xem lại rồi làm lại.
 - **Mất mạng:** Nền tảng báo chưa tải được đơn. Có mạng thì tải lại trang.
 - **Không thấy khối Đơn chờ nhận:** tài khoản có thêm quyền Đối tác. Hỏi Quản trị.
-- **Không bấm được Xác nhận đã thu đủ sau dịch vụ:** đọc dòng **Đang giữ đơn** trên trang đơn. Còn thiếu tiền thì ghi thêm khoản thu; khách trả dư hay khoản thu chưa rõ người thu tiền thì chờ Kế toán.`,
+- **Không bấm được Xác nhận xong và đủ tiền:** đọc dòng **Đang giữ đơn** trên trang đơn. Còn thiếu tiền thì ghi thêm khoản thu; khách trả dư hay khoản thu chưa rõ người thu tiền thì chờ Kế toán.`,
     },
     {
       tieuDe: "Điều bạn không làm được — hỏi ai",

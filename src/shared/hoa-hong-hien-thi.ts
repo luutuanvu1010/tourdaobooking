@@ -287,7 +287,7 @@ export function tomTatMuc(dong: readonly CommissionRuleDto[], ten: TenDanhMuc): 
   return dong.filter((d) => d.conHieuLuc).map((d) => `${nhanMucDto(d)} ${nhanPhamVi(d, ten)}`).join(" · ");
 }
 
-export const CAU_CHUA_CO_MUC_LOAI = "Vai trò này chưa có hoa hồng cho dịch vụ nào: đơn sẽ chờ ở bước «Đã thu đủ sau dịch vụ» tới khi có mức hoặc Kế toán nhập tay.";
+export const CAU_CHUA_CO_MUC_LOAI = "Vai trò này chưa có hoa hồng cho dịch vụ nào: đơn sẽ chờ ở bước «Xong và đủ tiền» tới khi có mức hoặc Kế toán nhập tay.";
 export const NHAN_CHUA_CO_MUC = "Chưa có mức";
 export const CAU_NHAC_UU_TIEN = "Mức riêng được ưu tiên hơn cấp độ đại lý. Mức nào áp cho một đối tác cụ thể: dùng «Kiểm tra hoa hồng».";
 /** Đặc tả hoa-hong-cap-dai-ly §5.3 (Q-2, tiêu chí 2): thứ tự áp mức, ghim nguyên văn. */
@@ -378,7 +378,7 @@ const tenThieu = (thieu: readonly DichVuPhu[]): string => {
 // §5.1 dải cảnh báo đầu trang
 export const cauTieuDeDai = (n: number): string => `Có ${n} vai trò còn thiếu mức hôm nay`;
 export const CAU_THAN_DAI =
-  "Đối tác chỉ thuộc vai trò này và chưa có mức riêng hay cấp riêng sẽ bị chờ ở bước «Đã thu đủ sau dịch vụ» nếu đơn xác nhận từ hôm nay có dịch vụ chưa có mức. Đối tác thuộc thêm vai trò khác có mức thì vẫn tính theo vai trò đó. Đơn đã xác nhận trước đó không tự tính lại khi thêm mức: Kế toán dùng «Ghi mức tay» cho từng đơn.";
+  "Đối tác chỉ thuộc vai trò này và chưa có mức riêng hay cấp riêng sẽ bị chờ ở bước «Xong và đủ tiền» nếu đơn xác nhận từ hôm nay có dịch vụ chưa có mức. Đối tác thuộc thêm vai trò khác có mức thì vẫn tính theo vai trò đó. Đơn đã xác nhận trước đó không tự tính lại khi thêm mức: Kế toán dùng «Ghi mức tay» cho từng đơn.";
 /** Một dòng cho mỗi loại thiếu mức; phụ chú §4.2 «Có thay đổi sắp áp dụng từ <ngày>» nối sau dấu «—». Loại không thiếu (TAT, DU, CHUA_KIEM) không có dòng: trả rỗng. */
 export function cauDongLoaiDai(ten: string, kq: KetQuaPhu, sapApTu: string | null): string {
   let dong: string;
@@ -387,7 +387,7 @@ export function cauDongLoaiDai(ten: string, kq: KetQuaPhu, sapApTu: string | nul
   else return "";
   return sapApTu === null ? dong : `${dong} — Có thay đổi sắp áp dụng từ ${ngayVN(sapApTu)}`;
 }
-export const cauLoaiTatDai = (m: number): string => `${m} vai trò đã tắt: đối tác chỉ mang vai trò đã tắt không được hưởng hoa hồng, đơn của họ bị giữ ở bước Đã thu đủ sau dịch vụ.`;
+export const cauLoaiTatDai = (m: number): string => `${m} vai trò đã tắt: đối tác chỉ mang vai trò đã tắt không được hưởng hoa hồng, đơn của họ bị giữ ở bước Xong và đủ tiền.`;
 export const CAU_DAI_CHUA_KIEM = "Chưa kiểm được vai trò nào thiếu mức vì không tải được danh mục dịch vụ. Tải lại trang.";
 
 export interface NoiDungDai { tieuDe: string | null; than: string | null; dong: string[]; tat: string | null; chuaKiem: string | null }
@@ -428,7 +428,7 @@ export const hopKhoaCap = (ten: string): { tieuDe: string; hauQua: string; nhanN
 export const hopTatLoai = (ten: string): { tieuDe: string; hauQua: string; nhanNguyHiem: string } => ({
   tieuDe: `Tắt vai trò «${ten}»?`,
   hauQua:
-    "Đối tác chỉ thuộc vai trò này sẽ không được hưởng hoa hồng. Đơn của họ xác nhận từ lúc tắt sẽ chờ ở bước «Đã thu đủ sau dịch vụ» tới khi Kế toán nhập tay («Ghi mức tay»). Đơn đã xác nhận trước lúc tắt giữ nguyên hoa hồng.",
+    "Đối tác chỉ thuộc vai trò này sẽ không được hưởng hoa hồng. Đơn của họ xác nhận từ lúc tắt sẽ chờ ở bước «Xong và đủ tiền» tới khi Kế toán nhập tay («Ghi mức tay»). Đơn đã xác nhận trước lúc tắt giữ nguyên hoa hồng.",
   nhanNguyHiem: "Tắt vai trò",
 });
 /** Huy hiệu tông `cat` của cấp đã khoá. */
@@ -437,7 +437,7 @@ export const NHAN_CAP_DA_KHOA = "Đã khoá — vẫn áp cho vai trò và đố
 // §3 thẻ «Riêng từng đối tác»
 export const NHAN_XUNG_DOT = "Hai mức khác nhau";
 export const CAU_XUNG_DOT =
-  "Đối tác này mang hai vai trò ra hai mức khác nhau cho cùng một dịch vụ. Đơn của dịch vụ đó bị giữ ở bước Đã thu đủ sau dịch vụ cho tới khi đặt mức riêng hoặc cấp riêng cho đối tác này.";
+  "Đối tác này mang hai vai trò ra hai mức khác nhau cho cùng một dịch vụ. Đơn của dịch vụ đó bị giữ ở bước Xong và đủ tiền cho tới khi đặt mức riêng hoặc cấp riêng cho đối tác này.";
 export const CAU_DUOI_DS_DOI_TAC = "Đối tác không có mức riêng hay cấp riêng không nằm ở đây. Muốn biết một đối tác đang ra mức nào: dùng «Kiểm tra hoa hồng».";
 export const CAU_KHONG_CO_DOI_TAC_RIENG = "Chưa có đối tác nào có mức riêng hoặc cấp riêng.";
 export const CAU_DT_CHUA_CO_MUC_RIENG = "Đối tác này chưa có mức riêng.";

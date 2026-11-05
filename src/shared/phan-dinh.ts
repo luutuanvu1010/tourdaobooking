@@ -40,10 +40,10 @@ export function congNgayLamViec(ngay: string, n: number): string {
   return d.toISOString().slice(0, 10);
 }
 
-export const CAU_MAN_HINH = "Khi khách cần được hoàn hoặc bồi thường sau khi đơn đã thu đủ sau dịch vụ: một người mở đề nghị, Quản trị hoặc Toàn quyền phân định ai chịu, rồi Kế toán ghi vào sổ trong một lần. Người ghi phải khác người phân định.";
+export const CAU_MAN_HINH = "Khi khách cần được hoàn hoặc bồi thường sau khi đơn đã xong và đủ tiền: một người mở đề nghị, Quản trị hoặc Toàn quyền phân định ai chịu, rồi Kế toán ghi vào sổ trong một lần. Người ghi phải khác người phân định.";
 export const NHAN_TRANG_THAI_PHIEU = { cho_phan_dinh: "Chờ phân định", cho_ghi: "Chờ ghi sổ", da_ghi: "Đã ghi sổ", da_dao: "Đã huỷ khoản" } as const;
 export type TrangThaiPhieu = keyof typeof NHAN_TRANG_THAI_PHIEU;
 export const TONG_TRANG_THAI_PHIEU: Record<TrangThaiPhieu, "cat" | "bien" | "la" | "xam"> = { cho_phan_dinh: "cat", cho_ghi: "bien", da_ghi: "la", da_dao: "xam" };
 
 /** Câu chặn `refund_after_delivered` (ADR-0116 đ7) — đổi đuôi, chỉ tới đúng màn. */
-export const CAU_HOAN_SAU_GIAO = "Đơn đã ở bước Đã thu đủ sau dịch vụ — hoàn cho khách cần phân định trách nhiệm trước: mở màn «Phân định trách nhiệm».";
+export const CAU_HOAN_SAU_GIAO = "Đơn đã ở bước Xong và đủ tiền — hoàn cho khách cần phân định trách nhiệm trước: mở màn «Phân định trách nhiệm».";

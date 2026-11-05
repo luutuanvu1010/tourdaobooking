@@ -1,7 +1,7 @@
 import { AUDIT_ACTIONS } from "../src/shared/audit-actions";
 import { vndShort } from "../src/shared/money";
 import { PAX_ORDER, type PaxCounts } from "../src/shared/order-lines";
-import { STATUS_LABEL, nhanNgan, trangThaiHienThi } from "../src/shared/order-status-label";
+import { STATUS_LABEL, trangThaiHienThi } from "../src/shared/order-status-label";
 import { ngayNgan, vnToday } from "../src/shared/vn-date";
 import type { AuditAction } from "./api";
 
@@ -11,7 +11,7 @@ const nf = new Intl.NumberFormat("vi-VN");
 export const vnd = (n: number): string => `${nf.format(n)} ₫`;
 export const grouped = (n: number): string => nf.format(n);
 
-export { STATUS_LABEL, nhanNgan, trangThaiHienThi, vndShort };
+export { STATUS_LABEL, trangThaiHienThi, vndShort };
 
 /** "1.350.000 đ" / "1350000" → 1350000; rỗng → 0. */
 export function parseMoney(text: string): number {

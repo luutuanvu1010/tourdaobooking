@@ -19,7 +19,8 @@ export const TU_DA_LOAI: readonly TuDaLoai[] = [
   // «Đảo» theo nghĩa ghi dòng ngược để huỷ một khoản (bút toán đảo). Chữ «đảo» theo nghĩa hòn đảo (Tour Đảo, tour 4 đảo…) không bị chặn — xem NGHIA_HON_DAO.
   { cam: /[Đđ]ảo/u, thay: "Huỷ khoản thu · (đã huỷ) · Huỷ dòng (chi phí xe)", nguon: "chủ 2026-10-18 (hộp hỏi: «Huỷ khoản thu»)" },
   // «Đã giao» theo nghĩa trạng thái đơn dễ hiểu nhầm là đã giao vé. Mẫu hẹp theo đúng nghĩa đã đổi: «Đã giao đơn cho …» (giao đơn cho Hướng dẫn viên), «Đã giao vé», «vé đã giao» là nghĩa khác, giữ nguyên.
-  { cam: /Đã giao(?! đơn cho| vé)|[Đđ]ơn (?:đã |chưa )giao(?!\p{L})/u, thay: "Đã thu đủ sau dịch vụ · chỗ chật: Xong và đủ tiền · nút: Xác nhận đã thu đủ sau dịch vụ", nguon: "chủ 2026-11-05 («chốt hướng», docs/superpowers/specs/2026-11-05-doi-chu-da-giao.md)" },
+  // «thu đủ sau dịch vụ»: tên chốt rồi bỏ cùng ngày, chủ chê tối nghĩa.
+  { cam: /Đã giao(?! đơn cho| vé)|[Đđ]ơn (?:đã |chưa )giao(?!\p{L})|thu đủ sau dịch vụ/u, thay: "Xong và đủ tiền · nút: Xác nhận xong và đủ tiền", nguon: "chủ 2026-11-05 (docs/superpowers/specs/2026-11-05-doi-chu-da-giao.md)" },
   { cam: /(?<![\p{L}\p{N}_.\-/])[Aa]pp(?![\p{L}\p{N}_]| Store)/u, thay: "Nền tảng", nguon: "chủ 2026-10-02 («dùng từ Nền tảng thay cho App»)" },
   { cam: /Bỏ dấu(?! chọn)/u, thay: "Bỏ đánh dấu", nguon: "2026-10-18 («bỏ dấu» dễ hiểu là bỏ dấu thanh)" },
   { cam: /^Giữ đơn$/u, thay: "Không huỷ (nút trong hộp huỷ đơn)", nguon: "2026-10-18 (trùng chữ «Đang giữ đơn»)" },

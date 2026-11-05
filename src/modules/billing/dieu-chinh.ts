@@ -60,7 +60,7 @@ async function kiemTheoSoLieuHienTai(
   // Ruling R-P15 (người kiểm Task 6): loại dòng thương mại chỉ cho đơn ĐÃ «Đã giao» — trước đó lô «Đã giao» còn tự sinh dòng gốc, điều chỉnh sớm thành TRÙNG
   // (đơn đại lý: yêu cầu hoa hồng 100.000 duyệt trước rồi «Đã giao» ⇒ Tour Đảo nợ 200.000). Kiểm ở cả lúc tạo lẫn lúc duyệt (cùng hàm này).
   if (LOAI_DONG_THUONG_MAI.has(y.loaiDong) && !(await orderState(db, y.orderId))?.delivered_at) {
-    return loi(409, "commercial_before_delivered", "Đơn chưa thu đủ sau dịch vụ — chưa bổ sung được khoản này; chờ bước Đã thu đủ sau dịch vụ rồi tạo yêu cầu.");
+    return loi(409, "commercial_before_delivered", "Đơn chưa tới bước Xong và đủ tiền — chưa bổ sung được khoản này; chờ bước Xong và đủ tiền rồi tạo yêu cầu.");
   }
   const dongSo = dongDon.map(toLineRow);
   const bo = base.get(y.orderId);
