@@ -10,13 +10,13 @@
 
 **Spec:** `docs/adr/ADR-0168-thanh-toan-tra-sau-va-han-muc.md` và `docs/superpowers/specs/2026-11-05-tra-sau-han-muc.md` (đang ở nhánh Trả sau), `docs/adr/ADR-0170-doi-tac-xem-va-gui-ve-cua-don-minh.md`, `docs/adr/ADR-0171-siet-tien-va-ve-sau-kiem-doc-lap-0170.md`; nợ ở `docs/superpowers/plans/2026-11-05-tra-sau-thi-cong-nhat-ky.md` (nhánh Trả sau).
 
-**Nhánh thi công:** `claude/partner-type-ta-oracle-18-efd687`. Kế hoạch này nằm trên nhánh ADR-0170, tới nhánh Trả sau khi nối `main` ở Task 1.
+**Nhánh thi công:** nhánh mới từ `origin/main` sau khi ADR-0170, 0171 đã nhập. Đính chính 5/11: Trả sau đã lên `main` từ 15:28 nhưng `0141` chưa áp production; phần nối của Task 1 Step 1 đã làm trên nhánh ADR-0170 (`b7d759af`).
 
 ## Global Constraints
 
 - **Diễn tập khôi phục `HC-5.19` dời tới 2026-12-31, không hỏi lại.** Theo ADR-0172, Trả sau lên khi xong và người kiểm độc lập đạt, không chờ diễn tập. Việc của `docs/adr/ADR-0172-cai-dat-cong-no-theo-gio-va-an-han.md` nằm ở Task 4.
 - Task 1 chỉ bắt đầu khi ADR-0170, 0171 đã trên `origin/main`. Chưa có thì dừng trước Task 1, không chép mã từ nhánh kia.
-- Không migration mới, trừ khi đổi số tệp `0141_tra_sau_han_muc` theo số lớn nhất trên `main` lúc nối. Giữ cảnh báo đụng trigger `orders_delivered_lock` ở `docs/HANDOFF-N1.md`.
+- `0141_tra_sau_han_muc` đã trên `main`: không sửa. Task 4, Task 4b đổi cấu trúc bằng một migration mới theo số kế tiếp, kể cả `term_days` sang giờ và `credit_due_date` sang hai mốc giờ. Giữ cảnh báo đụng trigger `orders_delivered_lock` ở `docs/HANDOFF-N1.md`.
 - AI không `git push`, không nhập `main`, không triển khai. Không sửa `docs/adr/`.
 - Tiền là `INTEGER` VNĐ, chỉ tính ở máy chủ. Câu người dùng thấy bằng tiếng Việt có dấu; tên nút tra `docs/BANG-THAM-CHIEU.md`.
 - `orders` không import `billing`, không đọc `bil_`, `vdt_`.
@@ -95,7 +95,8 @@ Mỗi dòng đã có bài ở task sở hữu.
 ### Task 4: Cài đặt công nợ theo ADR-0172
 
 **Files:**
-- Modify: `migrations/0141_tra_sau_han_muc.sql` (chưa áp production, sửa tại chỗ; kiểm lại bằng `wrangler d1 migrations list --remote` trước khi sửa), `docs/data-dictionary.json`, `src/shared/permissions.ts`, `src/shared/permissions.test.ts`, `src/shared/tra-sau.ts`, `src/modules/billing/tra-sau.ts`, `src/modules/billing/tra-sau-repo.ts`, `src/modules/billing/index.ts`, `src/modules/orders/tra-sau-cong.ts`, `web/cap-dai-ly.ts`, `web/han-muc-tra-sau.ts`, `src/shared/han-muc-tra-sau-hien-thi.ts`
+- Create: migration theo số kế tiếp
+- Modify: `docs/data-dictionary.json`, `src/shared/permissions.ts`, `src/shared/permissions.test.ts`, `src/shared/tra-sau.ts`, `src/modules/billing/tra-sau.ts`, `src/modules/billing/tra-sau-repo.ts`, `src/modules/billing/index.ts`, `src/modules/orders/tra-sau-cong.ts`, `web/cap-dai-ly.ts`, `web/han-muc-tra-sau.ts`, `src/shared/han-muc-tra-sau-hien-thi.ts`
 - Create: `web/o-cong-no.ts`
 - Test: `src/shared/tra-sau.test.ts`, `src/modules/billing/tra-sau-csdl.test.ts`, `src/tra-sau-duong-ghi.test.ts`
 
@@ -105,7 +106,7 @@ Mỗi dòng đã có bài ở task sở hữu.
 
 - [ ] **Step 1: Bài đỏ** theo sáu tiêu chí nghiệm thu của ADR-0172, đúng các số trong đó. Thêm ca chặn tự đặt: tài khoản Quản trị đồng thời là hồ sơ đại lý đặt cho chính mình: 403. Thêm ca: `SALES_MANAGER`, `HR`: 403. Bài gợi ý: bật không gửi số: 400; đổi số gợi ý: công nợ đã bật không đổi.
 - [ ] **Step 2: Chạy, đỏ.**
-- [ ] **Step 3: Dữ liệu.** Sửa migration: `term_hours INTEGER CHECK (term_hours BETWEEN 1 AND 8760)`, `grace_hours INTEGER NOT NULL DEFAULT 0 CHECK (grace_hours BETWEEN 0 AND 8760)`; bảng `bil_credit_tier_default` theo khuôn `updated_at`, `updated_by` của `src/architecture.test.ts`; hai cột giờ trên `orders`; sửa các trigger, view đang nhắc `credit_due_date`, `term_days`. `npm run dict`.
+- [ ] **Step 3: Dữ liệu.** Trong migration mới: `term_hours INTEGER CHECK (term_hours BETWEEN 1 AND 8760)`, `grace_hours INTEGER NOT NULL DEFAULT 0 CHECK (grace_hours BETWEEN 0 AND 8760)`; bảng `bil_credit_tier_default` theo khuôn `updated_at`, `updated_by` của `src/architecture.test.ts`; hai cột giờ trên `orders`; sửa các trigger, view đang nhắc `credit_due_date`, `term_days`. `npm run dict`.
 - [ ] **Step 4: Máy chủ.** Cổng theo giờ; lô xác nhận chụp hai mốc từ một mốc giờ máy chủ duy nhất của request. Thêm cột `ADMIN` vào ô ghi hạn mức, ghim ở `permissions.test.ts`. Route đặt số gợi ý theo cấp. Đọc cấp qua view của `pricing`, không đọc bảng.
 - [ ] **Step 5: Giao diện.** `web/o-cong-no.ts` theo khuôn `web/cot-cap-dai-ly.ts`, không `innerHTML`, ô gõ 16px; `/han-muc-tra-sau` bỏ phần ghi; nút điều hướng tới `/cap-dai-ly`. Đo `src/goi-trang-nhe.test.ts`. Trang màn đơn hiện hạn trả có giờ.
 - [ ] **Step 6: Thử phá** từng luật giờ và ô quyền, đỏ rồi hoàn nguyên; dòng sổ hàng rào. Chạy các tệp bài bị đụng, `npm run typecheck`, `npm run build:web`. Commit.
@@ -113,7 +114,7 @@ Mỗi dòng đã có bài ở task sở hữu.
 ### Task 4b: Luật vận hành theo ADR-0173
 
 **Files:**
-- Modify: `src/shared/permissions.ts`, `src/shared/permissions.test.ts`, `src/modules/billing/tra-sau.ts`, `src/modules/billing/tra-sau-repo.ts`, `src/modules/billing/index.ts`, `src/modules/parties/index.ts`, `src/index.ts`, `migrations/0141_tra_sau_han_muc.sql`, `web/o-cong-no.ts`, `web/order.ts`, chỗ tính kỳ trả hoa hồng (tra `docs/CHANGE-GUIDE.md`), chỗ gửi tin Nền tảng hiện có
+- Modify: `src/shared/permissions.ts`, `src/shared/permissions.test.ts`, `src/modules/billing/tra-sau.ts`, `src/modules/billing/tra-sau-repo.ts`, `src/modules/billing/index.ts`, `src/modules/parties/index.ts`, `src/index.ts`, migration mới của Task 4, `web/o-cong-no.ts`, `web/order.ts`, chỗ tính kỳ trả hoa hồng (tra `docs/CHANGE-GUIDE.md`), chỗ gửi tin Nền tảng hiện có
 - Create: `web/cong-no-cua-toi.ts`, kèm khai `PAGES` và `build:web`
 - Test: `src/tra-sau-van-hanh.test.ts`, `tests/e2e/tra-sau.mjs`
 

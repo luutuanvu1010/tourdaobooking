@@ -1,7 +1,7 @@
 # ADR-0172 — Cài đặt công nợ: Quản trị đặt, gợi ý theo cấp, hạn theo giờ và ân hạn
 
 - **Trạng thái:** **accepted** 2026-11-05 — chủ dự án trong chat. Nguyên văn: *«Các tùy chọn về hạn mức, số ngày ân hạn ... cần được thiết lập trong tùy chọn của Admin, Super Admin»*, *«Tổng hạn mức của công nợ cho 1 đại lý cụ thể ở cấp TA1 là 50 triệu, thời hạn trả (tính theo từng đơn) là (ví dụ) 36 giờ kể từ khi đơn được xác nhận thành công»*. Trả lời câu hỏi, chọn: *«Bật riêng từng đại lý»*, *«Trong Cấp độ đại lý»*, *«Có thêm ân hạn»*, *«Lên trước diễn tập»*.
-- **Loại:** việc lớn (quyền, tiền, dữ liệu). **Cửa:** hai chiều; migration `0141_tra_sau_han_muc` chưa áp production nên sửa được.
+- **Loại:** việc lớn (quyền, tiền, dữ liệu). **Cửa:** hai chiều. Đính chính cùng ngày, trước khi văn bản này nhập `main`: `0141_tra_sau_han_muc` đã nằm trên `main` từ 15:28 nên không sửa tại chỗ; đổi cấu trúc bằng migration mới.
 - **Số quyết định chạm quyền/dữ liệu trong lượt duyệt:** 3 (Đ1, Đ2, Đ3), đúng trần `CLAUDE.md` §9. Trang ghép ở cuối.
 - **Quan hệ với ADR cũ:** **sửa** ADR-0168: thêm Quản trị vào người đặt hạn mức; đổi hạn trả từ ngày sang giờ; thêm ân hạn; bỏ điều kiện «chỉ phát hành sau diễn tập» cho riêng việc này. Các điều khác của ADR-0168 giữ nguyên, gồm luật hai lớp: nợ cộng đơn mới không vượt hạn mức, và mỗi đơn có hạn riêng.
 
