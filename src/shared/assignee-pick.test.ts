@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { ASSIGNEE_GROUP_ORDER, assigneeRoleLabel, groupAssignees, mayPickHandlerOnCreate, normName } from "./assignee-pick.ts";
+import { ASSIGNEE_GROUP_ORDER, assigneeRoleLabel, groupAssignees, laNhomHdv, mayPickHandlerOnCreate, normName } from "./assignee-pick.ts";
 import { PERMISSION_CODES, type PermissionCode } from "./permissions.ts";
 
 const who = (id: string, ...permissions: PermissionCode[]) => ({ id, permissions });
@@ -75,4 +75,9 @@ test("mayPickHandlerOnCreate = đúng câu máy chủ hỏi ở POST /api/orders
   // Mọi mã quyền đơn lẻ đều được xét (thêm mã mới mà quên bảng này thì vòng trên không phủ — vòng này bắt).
   const yes = PERMISSION_CODES.filter((c) => mayPickHandlerOnCreate(who("me", c)));
   assert.deepEqual(yes, ["SALES", "ADMIN", "SUPER_ADMIN"]);
+});
+
+test("laNhomHdv (chủ 5/11): bảng chọn Hướng dẫn viên chỉ giữ nhóm «Hướng dẫn viên» — người giữ FIELD; Bán hàng, Quản trị thì không", () => {
+  const ds = [["FIELD"], ["SALES"], ["ADMIN"], ["FIELD", "SALES"], ["SUPER_ADMIN"]] as const;
+  assert.deepEqual(ds.map((p) => laNhomHdv({ roleLabel: assigneeRoleLabel([...p]) })), [true, false, false, true, false]);
 });
