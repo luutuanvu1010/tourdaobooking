@@ -36,7 +36,7 @@ async function buoc(id, ten, fn) {
     const msg = String(e?.message ?? e).split("\n").slice(0, 10).join("\n    ");
     loi.push(`${id}) ${ten}: ${msg.split("\n")[0]}`);
     console.log(`✗ ${id}) ${ten}\n    ${msg}`);
-    if (trangHienTai) console.log(`    trang lúc đỏ: ${await trangHienTai.ev("JSON.stringify({ url: location.pathname, main: (document.querySelector('main')?.innerText ?? '').slice(0, 300) })").catch(() => "?")}`);
+    if (trangHienTai) console.log(`    trang lúc đỏ: ${await trangHienTai.ev("JSON.stringify({ url: location.pathname, main: (document.querySelector('main')?.innerText ?? '').slice(0, 300), loiLuu: document.getElementById('save-error')?.textContent ?? '' })").catch(() => "?")}`);
   }
 }
 async function chup(p, ten) {

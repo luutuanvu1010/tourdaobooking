@@ -103,6 +103,7 @@ const bookerPicker = createBookerPicker({
   traDoiTac: async (ten) => (await api<Api.NguoiHuongTimResponse>(`/api/pricing/nguoi-huong?q=${encodeURIComponent(ten)}`)).ketQua,
   onDoiTacTrung: (d, soDt) => canhBao.hien(d, soDt),
   khachLe: () => daChonBenDat === null,
+  onDoiBenDat: () => void napTraSau(),
 });
 byId("booker-slot").append(bookerPicker.root);
 byId("canh-bao-slot").append(canhBao.root);
@@ -1065,6 +1066,8 @@ function benDatId(): string | null {
   return (bookerPicker.payload() as { bookerPartyId?: string | null }).bookerPartyId ?? null;
 }
 let traSauLuot = 0;
+/** Đã mở xong nháp (hoặc form trắng): từ đây «chưa có bên đặt» mới là thật, không còn là bên đặt chưa kịp nạp. */
+let donDaNap = false;
 async function napTraSau(): Promise<void> {
   const luot = ++traSauLuot;
   const id = benDatId();
@@ -1073,7 +1076,7 @@ async function napTraSau(): Promise<void> {
     try { c = cauChonTraSau(await api<Api.ConDuocDungTraSauResponse>(`/api/tra-sau/con-duoc-dung?benDat=${encodeURIComponent(id)}`)); } catch { return; /* không đọc được: giữ nguyên lựa chọn đang có, máy chủ vẫn kiểm lại lúc lưu */ }
   }
   if (luot !== traSauLuot) return; // có lần hỏi mới hơn (đổi bên đặt liên tục): bỏ kết quả cũ
-  const q = quyetHinhThuc({ dangChon: hinhThucChon(), c });
+  const q = quyetHinhThuc({ dangChon: hinhThucChon(), c, benDatChuaNap: id === null && !donDaNap });
   traSauHien = c.hien;
   khoiTraSau.hidden = !c.hien;
   byId("tra-sau-cau").textContent = c.khoa ?? c.cau;
@@ -1085,7 +1088,6 @@ async function napTraSau(): Promise<void> {
   anHienDatCoc();
 }
 for (const v of ["PREPAID", "CREDIT"]) oHinhThuc(v).addEventListener("change", () => { anHienDatCoc(); });
-bookerPicker.root.addEventListener("click", () => setTimeout(() => void napTraSau(), 400));
 void napTraSau();
 if (khoiBenDat.kieu === "chi-doc") {
   bookerPicker.tat();
@@ -1169,6 +1171,8 @@ if (editId) {
   suaSoVe = can(staff, "order.trip.edit", { ownerId: staff.id, assigned: false });
   if (!anKhach && can(staff, "order.passenger.write", { ownerId: staff.id, assigned: false })) dungKhoiKhach([]); // khối khách ẩn (ADR-0154 Đ2.2): không dựng khối Hành khách
 }
+donDaNap = true; // nháp (nếu có) đã nạp xong, kể cả bên đặt
+void napTraSau();
 mocPhut = await layMoc;
 {
   // Dòng báo nằm DƯỚI cả hàng ba ô Thanh toán (không trong cột hẹp của ô giảm giá — ở máy tính từng xuống 3 hàng), ô trỏ tới nó cho trình đọc màn hình.

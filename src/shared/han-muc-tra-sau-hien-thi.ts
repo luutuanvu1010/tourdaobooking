@@ -44,7 +44,7 @@ export const CAU_VE_TRA_TRUOC = "Bên đặt không còn hạn mức trả sau d
  * Sau khi biết hạn mức của bên đặt, đơn đang chọn hình thức nào: dùng được thì giữ nguyên; không dùng được (không hạn mức, hoặc còn đơn quá hạn)
  * thì về Trả trước KÈM câu báo nếu đang là Trả sau — không bao giờ đổi âm thầm, và luôn có một hình thức rõ ràng để gửi lên máy chủ.
  */
-export function quyetHinhThuc(i: { dangChon: HinhThucThanhToan; c: ReturnType<typeof cauChonTraSau> }): { chon: HinhThucThanhToan; bao: string | null } {
-  if (i.dangChon === "PREPAID") return { chon: "PREPAID", bao: null };
+export function quyetHinhThuc(i: { dangChon: HinhThucThanhToan; c: ReturnType<typeof cauChonTraSau>; benDatChuaNap?: boolean }): { chon: HinhThucThanhToan; bao: string | null } {
+  if (i.dangChon === "PREPAID" || i.benDatChuaNap) return { chon: i.dangChon, bao: null }; // bên đặt chưa nạp xong (đang mở nháp): chưa đủ căn cứ để đổi lựa chọn của người dùng
   return i.c.hien && i.c.khoa === null ? { chon: "CREDIT", bao: null } : { chon: "PREPAID", bao: CAU_VE_TRA_TRUOC };
 }

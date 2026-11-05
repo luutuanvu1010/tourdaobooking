@@ -58,3 +58,11 @@ test("quyết hình thức sau khi biết hạn mức của bên đặt: giữ l
   assert.deepEqual(quyetHinhThuc({ dangChon: "CREDIT", c: quaHan }), { chon: "PREPAID", bao: CAU_VE_TRA_TRUOC });
   assert.ok(CAU_VE_TRA_TRUOC.includes("Trả trước") && CAU_VE_TRA_TRUOC.includes("hạn mức"));
 });
+
+test("bên đặt CHƯA nạp xong (đang mở nháp): không đổi lựa chọn, không báo — tránh đổi âm thầm Trả sau về Trả trước", () => {
+  const chuaCo = cauChonTraSau({ coHanMuc: false, conDuocDung: 0, coDonQuaHan: false });
+  assert.deepEqual(quyetHinhThuc({ dangChon: "CREDIT", c: chuaCo, benDatChuaNap: true }), { chon: "CREDIT", bao: null });
+  assert.deepEqual(quyetHinhThuc({ dangChon: "PREPAID", c: chuaCo, benDatChuaNap: true }), { chon: "PREPAID", bao: null });
+  // đã nạp xong mà không có bên đặt / không hạn mức: về Trả trước kèm câu báo
+  assert.deepEqual(quyetHinhThuc({ dangChon: "CREDIT", c: chuaCo, benDatChuaNap: false }), { chon: "PREPAID", bao: CAU_VE_TRA_TRUOC });
+});
