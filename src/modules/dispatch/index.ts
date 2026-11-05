@@ -72,7 +72,7 @@ const REFUSE_TOO_LATE = () => error(409, "too_late", "Đơn đi hôm nay hoặc 
 const REFUSE_LIMIT = () => error(409, "refuse_limit", CAU_HET_LUOT);
 /** ADR-0032 (G6): không có dòng cài đặt hạn mức hiệu lực — không đoán con số (khuôn mốc 6 giờ). Thực tế không xảy ra (dòng gieo + trigger cấm xoá + R-DSP-7). */
 const REFUSE_POLICY_MISSING = () => error(503, "refuse_policy_missing", "Chưa có cài đặt hạn mức Từ chối — báo Toàn quyền.");
-const DA_GIAO = () => error(409, "order_delivered", "Đơn đã ở bước Đã giao – đã thu đủ: không sửa, huỷ hay đổi Hướng dẫn viên được nữa. Sai sót thì Kế toán dùng “Sửa khoản thu đã ghi”.");
+const DA_GIAO = () => error(409, "order_delivered", "Đơn đã ở bước Đã thu đủ sau dịch vụ: không sửa, huỷ hay đổi Hướng dẫn viên được nữa. Sai sót thì Kế toán dùng “Sửa khoản thu đã ghi”.");
 
 /**
  * Nhật ký `refuse_limit_hit` (ADR-0032 điều 5, 6) — LÔ RIÊNG một câu, sau khi đã biết lý do. `detail` chỉ số + chế độ (không tên, không SĐT).

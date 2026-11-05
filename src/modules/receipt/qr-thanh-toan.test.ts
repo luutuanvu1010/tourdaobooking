@@ -7,7 +7,7 @@ import { world, seedStaff } from "../../../tests/audit/harness.mjs";
 import { gieoBanChup } from "../../../tests/audit/gieo-ban-chup.mjs";
 
 test("luật số tiền: Đã giao TRƯỚC còn lại; thiếu ⇒ còn lại; chỉ số nguyên dương viết thường ≤ còn lại", () => {
-  assert.deepEqual(kiemSoTienQr({ daGiao: true, conLai: 500, soTienRaw: null }), { ok: false, status: 409, ma: "order_delivered", cau: "Đơn đã giao — không thu thêm." });
+  assert.deepEqual(kiemSoTienQr({ daGiao: true, conLai: 500, soTienRaw: null }), { ok: false, status: 409, ma: "order_delivered", cau: "Đơn đã thu đủ sau dịch vụ — không thu thêm." });
   assert.deepEqual(kiemSoTienQr({ daGiao: false, conLai: 0, soTienRaw: null }), { ok: false, status: 409, ma: "nothing_due", cau: "Đơn không còn tiền cần thu." });
   assert.deepEqual(kiemSoTienQr({ daGiao: false, conLai: 700_000, soTienRaw: null }), { ok: true, soTien: 700_000 });
   assert.deepEqual(kiemSoTienQr({ daGiao: false, conLai: 700_000, soTienRaw: "" }), { ok: true, soTien: 700_000 });
@@ -135,7 +135,7 @@ test("§8.4: đơn huỷ / đã thu đủ ⇒ 409 không còn tiền; đơn đã
   assert.equal(g.status, 200, g.text);
   r = await qr(w, SALES, du);
   assert.equal(r.status, 409);
-  assert.equal(r.json.error.message, "Đơn đã giao — không thu thêm.");
+  assert.equal(r.json.error.message, "Đơn đã thu đủ sau dịch vụ — không thu thêm.");
   const huy = don(w, "99999999-9999-4999-8999-000000000032", "TD-20261008-0032", SALES);
   assert.equal((await w.call("POST", `/api/orders/${huy}/status`, { as: SALES, body: { status: "cancelled", lyDo: "SAI_THONG_TIN" } })).status, 200);
   assert.equal((await qr(w, SALES, huy)).json.error.code, "qr_requires_confirmed", "ADR-0135 Đ8: đơn huỷ không có QR (trước đây 'không còn tiền cần thu')");

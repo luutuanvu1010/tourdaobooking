@@ -123,7 +123,7 @@ test("đại lý A: đơn a (giữ hộ 300.000) ở nhóm «đang giữ», đơ
   assert.equal(j.ten, "Đại Lý A");
   assert.match(j.dangGiu.don[0].maDon, /^TD-SB-/);
   assert.equal(j.dangGiu.don[0].trangThai, "Đã xác nhận", "nhãn tiếng Việt, không mã thô");
-  assert.equal(j.congTyNo.don[0].trangThai, "Đã giao – đã thu đủ");
+  assert.equal(j.congTyNo.don[0].trangThai, "Xong và đủ tiền");
 });
 
 test("HDV: dòng mà bên kia KHÔNG phải công ty không được tính (chỉ dòng giữa bên và công ty — cùng bộ lọc với số dư)", async () => {

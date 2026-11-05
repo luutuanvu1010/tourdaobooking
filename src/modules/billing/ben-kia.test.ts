@@ -317,7 +317,7 @@ test("từ chối: «khách trả cho đại lý» trên đơn khách lẻ ⇒ 4
   assert.match(vuot.json.error.message, /600\.000 ₫/, "nói phần còn chưa thu");
   assert.equal((await thu(w, HDV, id, mat(400_000, { nhaCungCapPartyId: NCC }))).status, 201);
   assert.equal((await thu(w, HDV, id, mat(200_001, { nhaCungCapPartyId: NCC }))).status, 400, "lời khai đang chờ cũng tính là đã thu cho nhà cung cấp");
-  const CAU_GIAO = "Ghi khoản khách trả cho đại lý / tại quầy trước, chờ Kế toán xác nhận rồi mới Đã giao.";
+  const CAU_GIAO = "Ghi khoản khách trả cho đại lý / tại quầy trước, chờ Kế toán xác nhận rồi mới xác nhận đã thu đủ sau dịch vụ.";
   for (const nguoiThu of ["ben_dat", { nhaCungCapPartyId: NCC }]) {
     const g = await giao(w, id, { lanThu: mat(100_000, nguoiThu) });
     assert.equal(g.status, 400, g.text);

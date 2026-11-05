@@ -36,7 +36,7 @@ test("NT-B1 (luật): số lạ 480017 ở mọi ô KHÔNG được phép của 
   assert.deepEqual(Object.keys(r.services[0]!).sort(), ["checkinDate", "checkinPlace", "checkinTime", "departDate", "departTime", "items", "name", "pax", "pickupPlace", "pickupTime", "unit"]);
   assert.deepEqual(Object.keys(r.services[0]!.items[0]!).sort(), ["description", "detail", "lineTotal", "quantity", "unitPrice"]);
   assert.deepEqual([r.daTra, r.conLai, r.status.nhan], [300_000, 700_000, "Đã xác nhận"]);
-  assert.equal(dungBienNhan({ ...donBiMat(), deliveredAt: "x" }, COMPANY, { daTra: 1, conLai: 0 }, null).status.nhan, "Đã giao – đã thu đủ");
+  assert.equal(dungBienNhan({ ...donBiMat(), deliveredAt: "x" }, COMPANY, { daTra: 1, conLai: 0 }, null).status.nhan, "Đã thu đủ sau dịch vụ");
 });
 
 test("ADR-0166 câu 5: chữ khách đọc — đơn nháp (chưa gửi hay đã gửi kiểm vé) vẫn ghi «Chờ xác nhận» trên biên nhận / ảnh gửi khách, không đi theo nhãn nội bộ «Chưa xác nhận»", () => {

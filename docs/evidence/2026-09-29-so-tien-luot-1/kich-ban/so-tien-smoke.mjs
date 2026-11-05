@@ -60,13 +60,13 @@ try {
   await q.waitFor("[...document.querySelectorAll('[data-khoi=\"thanh-toan\"] .kv')].some((k) => k.children[0].textContent === 'Còn lại' && k.children[1].textContent === '0 ₫')", "Còn lại 0 ₫ sau khi ghi", 10000);
   await q.waitFor("document.querySelector('[data-action=\"da-giao\"]') && !document.querySelector('[data-action=\"da-giao\"]').disabled", "nút Đã giao bật");
   await q.ev("window.confirm = () => true; document.querySelector('[data-action=\"da-giao\"]').click(); true");
-  await q.waitFor("[...document.querySelectorAll('.lock-note')].some((n) => /Đơn đã ở bước Đã giao – đã thu đủ/.test(n.textContent))", "câu khoá sau Đã giao", 10000);
+  await q.waitFor("[...document.querySelectorAll('.lock-note')].some((n) => /Đơn đã ở bước Đã thu đủ sau dịch vụ/.test(n.textContent))", "câu khoá sau Đã giao", 10000);
   assert.equal(await q.ev("!!document.querySelector('[data-action=\"da-giao\"]')"), false, "hết nút Đã giao");
   assert.equal(await q.ev("!!document.querySelector('[data-action=\"hoan-thanh\"]')"), false, "Quản trị KHÔNG có nút Hoàn thành (order.complete = none)");
   assert.equal(await q.ev("!!document.querySelector('[data-khoi=\"ke-toan\"], [data-action=\"dao-lan-thu\"]')"), false, "Quản trị KHÔNG thấy thao tác Kế toán (ledger.write = none)");
   assert.equal(await q.ev("!!document.querySelector('[data-action=\"ghi-lan-thu\"]')"), false, "đơn đã khoá: không ghi lần thu");
   assert.equal(await q.ev("document.querySelectorAll('.handler-card button').length"), 0, "đơn đã khoá: không nút đổi / nhận người phụ trách");
-  assert.ok(/Đã giao – đã thu đủ/.test(await q.ev("document.body.textContent")), "nhãn trạng thái tiếng Việt");
+  assert.ok(/Đã thu đủ sau dịch vụ/g.test(await q.ev("document.body.textContent")), "nhãn trạng thái tiếng Việt");
   assert.equal(await q.ev("document.documentElement.scrollWidth - document.documentElement.clientWidth <= 1"), true, "không tràn ngang 390");
   await q.shot(`${OUT}/3-da-giao-390.png`);
   const errs = [...q.consoleErrors];

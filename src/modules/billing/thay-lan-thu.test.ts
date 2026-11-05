@@ -78,7 +78,7 @@ test("đ2 + đ1: Thay làm lệch I1 (600.000 → 500.000 sau Đã giao) ⇒ 409
   const lech = await thay(w, KT, { orderId: id, cu: [r600], moi: [{ soTien: 500_000, hinhThuc: "CASH", nguoiThu: { partyId: `pty-${HDV}` } }], lyDo: "HDV ghi nhầm số tiền thu" });
   assert.equal(lech.status, 409, lech.text);
   assert.equal(lech.json.error.code, "replacement_i1");
-  assert.match(lech.json.error.message, /phải bằng phải thu của đơn lúc Đã giao \(1\.000\.000 ₫\)/);
+  assert.match(lech.json.error.message, /phải bằng phải thu của đơn lúc xác nhận đã thu đủ sau dịch vụ \(1\.000\.000 ₫\)/);
   assert.equal(dem(w, "SELECT count(*) AS n FROM bil_payment_receipt WHERE order_id = ?", id), n0);
   const dung = { orderId: id, cu: [r600], moi: [{ soTien: 600_000, hinhThuc: "BANK_TRANSFER", nguoiThu: "cong_ty", maGiaoDich: "FTTH0002", soThucChuyen: 600_000 }] };
   assert.equal((await thay(w, KT, { ...dung, lyDo: "nhầm" })).status, 400);
@@ -107,7 +107,7 @@ test("đ4 (iv): hoàn cho khách SAU Đã giao ⇒ 409 chỉ sang màn Phân đ�
   const h = await w.call("POST", "/api/ledger/refunds", { as: KT, body: { orderId: id, soTien: 100_000, hinhThuc: "CASH", nguoiTra: "cong_ty" } });
   assert.equal(h.status, 409, h.text);
   assert.equal(h.json.error.code, "refund_after_delivered");
-  assert.equal(h.json.error.message, "Đơn đã ở bước Đã giao — hoàn cho khách cần phân định trách nhiệm trước: mở màn «Phân định trách nhiệm».");
+  assert.equal(h.json.error.message, "Đơn đã ở bước Đã thu đủ sau dịch vụ — hoàn cho khách cần phân định trách nhiệm trước: mở màn «Phân định trách nhiệm».");
   // HDV nộp đủ để chỉ còn điều kiện I1; dữ liệu cũ lệch (SQL tay, gỡ trigger 0083 trong DB thử) ⇒ Hoàn thành bị chặn.
   assert.equal((await w.call("POST", "/api/ledger/settlements", { as: KT, body: { chieu: "nop", partyId: `pty-${HDV}`, phanBo: [{ orderId: id, soTien: 1_000_000 }] } })).status, 201);
   w.sqlite.exec("DROP TRIGGER bil_receipt_after_delivered");

@@ -225,7 +225,7 @@ function thePhieu(p: Api.PhieuPhanDinhDto): HTMLElement {
     h("div", { class: "dc-dau" },
       h("a", { href: `/order?id=${encodeURIComponent(p.orderId)}` }, h("strong", null, p.maDon || "—")),
       h("span", { class: "huy-hieu", "data-tong": TONG_TRANG_THAI_PHIEU[p.trangThai] }, NHAN_TRANG_THAI_PHIEU[p.trangThai]),
-      p.quaHanNhac ? h("span", { class: "huy-hieu", "data-tong": "cat" }, "Đơn đã giao quá 60 ngày") : null,
+      p.quaHanNhac ? h("span", { class: "huy-hieu", "data-tong": "cat" }, "Đơn đã thu đủ sau dịch vụ quá 60 ngày") : null,
       p.t11QuaHan ? h("span", { class: "huy-hieu", "data-tong": "do", "data-khoi": "t11-qua-han" }, "Quá 7 ngày chưa rõ ai chịu") : null),
     h("p", { class: "dc-tien" }, `Đề nghị ${vnd(p.soTienDeNghi)}`),
     h("p", { class: "muted" }, `${p.nguoiDeNghi} · ${dateTime(p.luc)} · ${p.lyDoDeNghi}`),
@@ -264,7 +264,7 @@ async function taiLai(): Promise<void> {
   replaceChildren(byId("pd-phieu-ds"), ...ds.phieu.map(thePhieu));
   const rong = byId("pd-phieu-rong");
   rong.hidden = ds.phieu.length > 0;
-  rong.textContent = ds.phieu.length > 0 ? "" : "Chưa có phiếu nào. Mở đề nghị ở trang đơn đã giao.";
+  rong.textContent = ds.phieu.length > 0 ? "" : "Chưa có phiếu nào. Mở đề nghị ở trang đơn đã thu đủ sau dịch vụ.";
 }
 
 try {

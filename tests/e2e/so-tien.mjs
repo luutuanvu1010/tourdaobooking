@@ -97,7 +97,7 @@ const fldB = await me(await session(ACCOUNTS.fieldB));
   // Biên nhận: đã trả đủ, còn lại 0, nhãn trạng thái tiếng Việt, không lộ id nội bộ.
   const bn = await call(A, "GET", `/api/orders/${o.id}/receipt`);
   assert.equal(bn.status, 200, JSON.stringify(bn.body));
-  assert.deepEqual([bn.body.receipt.daTra, bn.body.receipt.conLai, bn.body.receipt.status.nhan], [tong, 0, "Đã giao – đã thu đủ"]);
+  assert.deepEqual([bn.body.receipt.daTra, bn.body.receipt.conLai, bn.body.receipt.status.nhan], [tong, 0, "Đã thu đủ sau dịch vụ"]);
   assert.ok(!JSON.stringify(bn.body).includes(o.id), "biên nhận không chứa id đơn");
 
   // Hoàn thành bị giữ: còn người giữ tiền của công ty.

@@ -731,7 +731,7 @@ export function createApp(opts: AppOptions) {
         const msg = e instanceof Error ? e.message : String(e);
         if (/\border_(delivered|completed):/.test(msg)) {
           console.warn(JSON.stringify({ level: "warn", event: "order_delivered_race", requestId, method: request.method, path: new URL(request.url).pathname }));
-          return json({ error: { code: "order_delivered", message: "Đơn đã ở bước Đã giao – đã thu đủ (vừa có người bấm) — không sửa được nữa. Tải lại để xem đơn mới nhất." } }, 409);
+          return json({ error: { code: "order_delivered", message: "Đơn đã ở bước Đã thu đủ sau dịch vụ (vừa có người bấm) — không sửa được nữa. Tải lại để xem đơn mới nhất." } }, 409);
         }
         const err = e instanceof Error ? { name: e.name, message: e.message, stack: e.stack } : { message: String(e) };
         console.error(JSON.stringify({ level: "error", event: "unhandled", requestId, method: request.method, path: new URL(request.url).pathname, error: err }));

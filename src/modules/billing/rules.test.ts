@@ -501,5 +501,5 @@ test("cumDoiChieu + lyDoChuaGiaoDuoc (ADR-0132 Hệ quả): câu nói khoản b�
   assert.equal(lyDoChuaGiaoDuoc({ ...base, soKhoanDoiChieu: 1, cumDoiChieu: [ct], so: du(1, 1) })!.cau, cu.cau, "chỉ Công ty thu: giữ nguyên câu ADR-0120");
   const moi = lyDoChuaGiaoDuoc({ ...base, soKhoanDoiChieu: 2, cumDoiChieu: ["khách trả cho Đại Lý A", ct], so: du(1, 1) })!;
   assert.deepEqual([moi.ma, moi.aiXuLy], ["reconciling", "Kế toán"]);
-  assert.equal(moi.cau, "Còn khoản khách trả cho Đại Lý A, chuyển khoản “Công ty thu” đang chờ Kế toán xác nhận — Kế toán xác nhận xong mới bấm Đã giao được.");
+  assert.equal(moi.cau, "Còn khoản khách trả cho Đại Lý A, chuyển khoản “Công ty thu” đang chờ Kế toán xác nhận — Kế toán xác nhận xong mới bấm Xác nhận đã thu đủ sau dịch vụ được.");
 });

@@ -154,7 +154,7 @@ Mục "Giờ hẹn đổi — gọi báo khách" ở [[Cần xử lý]]: gọi k
 
 ### Khách đổi số người hoặc dịch vụ sau khi đã xác nhận
 
-Sau xác nhận, dịch vụ và tiền **bị khoá**. Số khách của đơn **bạn lập** thì sửa được tới khi đơn **Đã giao**, kể cả sau ngày đi:
+Sau xác nhận, dịch vụ và tiền **bị khoá**. Số khách của đơn **bạn lập** thì sửa được tới khi đơn **Đã thu đủ sau dịch vụ**, kể cả sau ngày đi:
 
 1. Trên trang đơn, bấm [[Sửa số khách dịch vụ]].
 2. Bấm **+** hoặc **−**; dịch vụ nhập tay chỉ để xem.

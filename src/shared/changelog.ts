@@ -17,6 +17,14 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Đổi chữ trạng thái đơn (chủ 2026-11-05, «chốt hướng»): chỉ đổi chữ người dùng thấy, mã và CSDL giữ tên cũ; không có migration.
+    version: "2.66",
+    date: "2026-11-05",
+    items: [
+      { kind: "doi", text: "Trạng thái Đã giao đổi tên thành Đã thu đủ sau dịch vụ để khỏi nhầm với giao vé; chỗ chật ghi Xong và đủ tiền. Cách làm việc không đổi." },
+    ],
+  },
+  {
     // ADR-0169: vai Quản lý bán hàng, công tắc kiểm vé về Dịch vụ & giá. Migration 0140_quan_ly_ban_hang (khác tệp 0140_hop_thu_ban_hang của mục 2.64).
     version: "2.65",
     date: "2026-11-05",

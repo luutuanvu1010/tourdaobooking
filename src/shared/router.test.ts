@@ -678,7 +678,7 @@ test("T-1: lỗi trigger 'order_delivered:' / 'order_completed:' trong lô ghi �
       assert.equal(r.status, 409, msg);
       const b = (await r.json()) as { error: { code: string; message: string } };
       assert.equal(b.error.code, "order_delivered");
-      assert.match(b.error.message, /Đã giao – đã thu đủ/);
+      assert.match(b.error.message, /Đã thu đủ sau dịch vụ/);
       assert.doesNotMatch(b.error.message, /SQLITE|D1_ERROR|order_delivered:/);
     }
     const khac = await buildThrowing(new Error("D1_ERROR: something else"));
