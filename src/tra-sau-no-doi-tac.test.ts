@@ -3,13 +3,15 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
-import { seedStaff } from "../tests/audit/harness.mjs";
+import { app, seedStaff } from "../tests/audit/harness.mjs";
 import { ACC, ADM, SUP, inDays, setup, svc } from "../tests/audit/xac-nhan-khung.mjs";
 import { addDays, vnToday } from "./shared/vn-date.ts";
 
 const AT = "2026-10-01T00:00:00.000Z";
 const DT = "88888888-8888-4888-8888-888888888801";
 const BEN = `pty-${DT}`;
+const DT2 = "88888888-8888-4888-8888-888888888802"; // Đối tác Hai: khai cọc trên đơn của họ rồi huỷ
+const BEN2 = `pty-${DT2}`;
 const TONG = 600_000; // ZB1: 2 người lớn × 300.000
 type W = ReturnType<typeof setup>;
 
@@ -17,6 +19,8 @@ function dung(): W {
   const w = setup();
   seedStaff(w.sqlite, { id: DT, phone: "0900000021", name: "Đối Tác Hưởng", perms: ["PARTNER"] });
   w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES (?, ?, 'TRAVEL_AGENCY', '2026-01-01', ?, ?)").run(`r-${DT}`, BEN, AT, AT);
+  seedStaff(w.sqlite, { id: DT2, phone: "0900000022", name: "Đối Tác Hai", perms: ["PARTNER"] });
+  w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES (?, ?, 'TRAVEL_AGENCY', '2026-01-01', ?, ?)").run(`r-${DT2}`, BEN2, AT, AT);
   return w;
 }
 const hanMuc = (w: W, so: number) => w.call("POST", "/api/tra-sau/han-muc", { as: SUP, body: { partyId: BEN, hanMuc: so, soNgay: 7, lyDo: "thử" } });
@@ -25,7 +29,7 @@ async function nhapTS(w: W): Promise<string> {
   assert.equal(r.status, 201, r.text);
   return r.json.order.id as string;
 }
-const guiDon = (w: W, id: string) => w.call("POST", `/api/orders/${id}/gui-don`, { as: DT, body: {} });
+const guiDon = (w: W, id: string, as: string = DT) => w.call("POST", `/api/orders/${id}/gui-don`, { as, body: {} });
 const thu = (w: W, id: string, as: string, nguoiThu: string, soTien = TONG) => w.call("POST", `/api/orders/${id}/payments`, { as, body: { soTien, hinhThuc: "CASH", nguoiThu } });
 const nop = (w: W, id: string, soTien: number) => w.call("POST", "/api/ledger/settlements", { as: ACC, body: { chieu: "nop", partyId: BEN, phanBo: [{ orderId: id, soTien }] } });
 const donNo = async (w: W) => (await w.call("GET", `/api/tra-sau/han-muc/${BEN}/don`, { as: ACC })).json.don as { orderId: string; no: number; quaHan: boolean }[];
@@ -89,4 +93,44 @@ test("C-A: «Bên kia đã nhận» (đại lý cầm tiền) còn nợ tới kh
   assert.equal(await dangNo(w), TONG - 1000);
   assert.equal((await nop(w, a, TONG - 1000)).status, 201);
   assert.equal(await dangNo(w), 0);
+});
+
+// ===== I-2 (vòng cuối): khoản chuyển từ đơn huỷ của đối tác khác là khoản KHAI — tiền còn ở tay người khai, tới khi họ nộp =====
+/** Đối tác Hai khai cọc 200.000 trên đơn của họ, đơn huỷ, Quản trị duyệt chuyển, Kế toán ghi chuyển sang đơn nhận `nhan` (đã xác nhận). */
+async function chuyenCocKhaiSang(w: W, nhan: string): Promise<void> {
+  const r = await w.call("POST", "/api/orders", { as: DT2, body: { customerName: "Khách Hai", customerPhone: "0912345679", services: [svc("ZB1", inDays(3))], declaredDeposit: 200_000 } });
+  assert.equal(r.status, 201, r.text);
+  const cu = r.json.order.id as string;
+  assert.equal((await guiDon(w, cu, DT2)).status, 200);
+  const don = (await w.call("GET", `/api/orders/${cu}`, { as: DT2 })).json.order;
+  assert.equal((await w.call("POST", `/api/orders/${cu}/status`, { as: DT2, body: { status: "cancelled", lyDo: "SAI_THONG_TIN", updatedAt: don.updatedAt } })).status, 200);
+  const ma = String(w.q("SELECT order_code AS c FROM orders WHERE id = ?", nhan)[0].c);
+  const d = await w.call("POST", `/api/orders/${cu}/coc/duyet`, { as: ADM, body: { loai: "chuyen", soTien: 200_000, lyDo: "Lập lại đơn cho khách", donNhan: ma } });
+  assert.ok(d.status === 200 || d.status === 201, d.text);
+  const c = await w.call("POST", `/api/orders/${cu}/coc/chuyen`, { as: ACC, body: { duyetId: d.json.duyetId, soTien: 200_000, ngayPhatSinh: inDays(0), nguoiGiu: { partyId: BEN2 } } });
+  assert.equal(c.status, 201, c.text);
+}
+const nopHai = (w: W, id: string, soTien: number) => w.call("POST", "/api/ledger/settlements", { as: ACC, body: { chieu: "nop", partyId: BEN2, phanBo: [{ orderId: id, soTien }] } });
+
+test("I-2: cọc 200.000 của Đối tác Hai chuyển sang đơn Trả sau 600.000 của bên đặt khác: nợ 600.000; Hai nộp đủ thì 400.000", async () => {
+  const w = dung();
+  assert.equal((await hanMuc(w, 5_000_000)).status, 201);
+  const a = await nhapTS(w);
+  assert.equal((await guiDon(w, a)).status, 200);
+  await chuyenCocKhaiSang(w, a);
+  assert.deepEqual((await donNo(w)).map((x) => [x.orderId, x.no]), [[a, 600_000]], "tiền còn ở tay người khai: nợ nguyên");
+  assert.equal((await nopHai(w, a, 200_000)).status, 201);
+  assert.deepEqual((await donNo(w)).map((x) => [x.orderId, x.no]), [[a, 400_000]], "Hai nộp đủ: giảm đúng 200.000");
+});
+
+test("I-2: cùng đường ở đơn Trả trước của đối tác: khoản chuyển còn khai thì vé không tính, Hai nộp thì tính", async () => {
+  const w = dung();
+  const r = await w.call("POST", "/api/orders", { as: DT, body: { customerName: "Khách Thử", customerPhone: "0912345678", services: [svc("ZB1", inDays(3))] } });
+  assert.equal(r.status, 201, r.text);
+  const a = r.json.order.id as string;
+  assert.equal((await guiDon(w, a)).status, 200);
+  await chuyenCocKhaiSang(w, a);
+  assert.equal((await app.tienDonVe(w.env.DB, a))?.daThu, 0, "200.000 còn ở tay người khai: chưa tính vào số mở vé");
+  assert.equal((await nopHai(w, a, 200_000)).status, 201);
+  assert.equal((await app.tienDonVe(w.env.DB, a))?.daThu, 200_000);
 });

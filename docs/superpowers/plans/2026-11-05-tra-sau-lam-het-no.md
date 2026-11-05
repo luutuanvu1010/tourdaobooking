@@ -10,7 +10,7 @@
 
 **Spec:** `docs/adr/ADR-0168-thanh-toan-tra-sau-va-han-muc.md` và `docs/superpowers/specs/2026-11-05-tra-sau-han-muc.md` (đang ở nhánh Trả sau), `docs/adr/ADR-0170-doi-tac-xem-va-gui-ve-cua-don-minh.md`, `docs/adr/ADR-0171-siet-tien-va-ve-sau-kiem-doc-lap-0170.md`; nợ ở `docs/superpowers/plans/2026-11-05-tra-sau-thi-cong-nhat-ky.md` (nhánh Trả sau).
 
-**Nhánh thi công:** nhánh mới từ `origin/main` sau khi ADR-0170, 0171 đã nhập. Đính chính 5/11: Trả sau đã lên `main` từ 15:28 nhưng `0141` chưa áp production; phần nối của Task 1 Step 1 đã làm trên nhánh ADR-0170 (`b7d759af`).
+**Nhánh thi công:** nhánh mới từ `origin/main` sau khi ADR-0170, 0171 đã nhập. Đính chính 5/11: Trả sau đã lên `main` từ 15:28 nhưng `0141` đã áp production từ bản 2.67 (kiểm 5/11 bằng lệnh chỉ đọc) — Trả sau đã chạy trên production, lỗi tính nợ có trên bản đó; phần nối của Task 1 Step 1 đã làm trên nhánh ADR-0170 (`b7d759af`).
 
 ## Global Constraints
 
@@ -45,11 +45,11 @@ Mỗi dòng đã có bài ở task sở hữu.
 - Consumes (từ `main`): `soChuaVeCongTy({ receipts, lines, doiChieu, nguoiLapPartyId, congTyId, khaiThem? }): { nguoiLapGiu, choXacNhan }`; `tienDonVe` trả `choXacNhan`, `nguoiXemLaDoiTac`; `ctx.veDaMoCuaDon`; cổng đường dẫn khách của ADR-0171 Đ2.
 - Produces: một `veDaMoCuaDon` duy nhất; `moVeDuoc` đứng ở mọi chỗ trên `main` đang gọi `thuDu` để mở vé, gồm cả hai route đường dẫn khách.
 
-- [ ] **Step 1: Nối.** `git merge origin/main`. Xử lý theo mục «người nhập ADR-0168» ở `docs/HANDOFF-N1.md`. Sau bước này chỉ còn một `veDaMoCuaDon`, kiểu `tienDonVe` có cả `traSau` và `choXacNhan`.
-- [ ] **Step 2: Bài đỏ.** Ở `tra-sau.test.ts`, tên «nợ đơn Trả sau theo tiền đã về công ty»: `cong_ty` 1.000.000 nộp 1.000 → `no === 999_000`; nộp đủ → 0; `toi` 200.000 + khai 100.000 do người khác → nợ tính đủ cả hai; đại lý khác giữ «Bên kia đã nhận» → còn nợ tới khi nộp. Ở `tra-sau-ve.test.ts`: đường dẫn khách, trong hạn thấy đủ vé; quá hạn còn nợ không trả ảnh vé chưa mở và không đóng dấu; vé đã mở vẫn trả; đơn Trả sau của tài khoản giữ quyền Đối tác: đối tác tự mở trong hạn (ADR-0170 Đ2 mục 6).
-- [ ] **Step 3: Chạy, đỏ.** `node --test src/modules/billing/tra-sau.test.ts src/tra-sau-ve.test.ts`.
+- [x] **Step 1: Nối.** `git merge origin/main` (làm 5/11, commit b7d759af; ghép theo đoạn «Ghép với ADR-0168» ở mục chờ phát hành của `docs/HANDOFF-N1.md`). Sau bước này chỉ còn một `veDaMoCuaDon`, kiểu `tienDonVe` có cả `traSau` và `choXacNhan`.
+- [x] **Step 2: Bài đỏ.** Ở `tra-sau.test.ts`, tên «nợ đơn Trả sau theo tiền đã về công ty»: `cong_ty` 1.000.000 nộp 1.000 → `no === 999_000`; nộp đủ → 0; `toi` 200.000 + khai 100.000 do người khác → nợ tính đủ cả hai; đại lý khác giữ «Bên kia đã nhận» → còn nợ tới khi nộp. Ở `tra-sau-ve.test.ts`: đường dẫn khách, trong hạn thấy đủ vé; quá hạn còn nợ không trả ảnh vé chưa mở và không đóng dấu; vé đã mở vẫn trả; đơn Trả sau của tài khoản giữ quyền Đối tác: đối tác tự mở trong hạn (ADR-0170 Đ2 mục 6). (Thực tế: bài nằm ở `src/tra-sau-no-doi-tac.test.ts` chứ không ở `tra-sau.test.ts`, vì cần khung thử có đối tác và vé; thêm ca khoản chuyển từ đơn huỷ của đối tác khác ở mục I-2.)
+- [x] **Step 3: Chạy, đỏ.** `node --test src/modules/billing/tra-sau.test.ts src/tra-sau-ve.test.ts`. (Đã thấy đỏ: trả `tra-sau.ts` về bản cũ ⇒ đỏ bài C-A.)
 - [x] **Step 4: Viết** (đã làm 5/11, commit 66618a26). `noTheoDon` lấy `dangDoiChieu`, `benDatDangGiu` từ `soChuaVeCongTy` với `nguoiLapPartyId` = bên đặt, bỏ phép tính riêng; `noMotDon` giữ chữ ký. Cổng đường dẫn khách đổi sang `moVeDuoc`.
-- [ ] **Step 5: Chạy, xanh** gồm `src/modules/billing/*.test.ts`, `src/modules/ve-dien-tu/*.test.ts`, `src/tra-sau-*.test.ts`, `src/architecture.test.ts`, `npm run typecheck`. Commit.
+- [x] **Step 5: Chạy, xanh** gồm `src/modules/billing/*.test.ts`, `src/modules/ve-dien-tu/*.test.ts`, `src/tra-sau-*.test.ts`, `src/architecture.test.ts`, `npm run typecheck`. Commit. (Đã chạy xanh 5/11, commit 66618a26 và các commit sau trên nhánh.)
 
 ### Task 2: Huỷ đơn và đường làm nợ tăng
 

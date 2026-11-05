@@ -56,6 +56,15 @@
   "_phat_hien_mo_ta": "Phát hiện an ninh/tiền mức HIGH trở lên từ kiểm toán/red team còn MỞ (luật 'dừng dây chuyền', CLAUDE.md §3, chủ duyệt 2026-09-24). Mỗi mục có người chịu trách nhiệm và hạn; quá hạn → npm test đỏ (src/phat-hien-han.test.ts) cho tới khi vá (xoá mục trong cùng commit vá) hoặc chủ dự án gia hạn bằng diff có lý do trong thông điệp commit.",
   "phat_hien": [
     {
+      "ma": "TRA-SAU-NO-MOT-PHAN",
+      "muc_do": "HIGH",
+      "ly_do": "Lỗi tính nợ Trả sau trên bản 2.67 đang chạy: khi Kế toán ghi nộp MỘT PHẦN khoản «Công ty thu» do đối tác ghi, khoản rời diện chờ xác nhận mà phép tính nợ riêng (noTheoDon) không trừ phần đối tác còn giữ, nên nợ ra 0, hạn mức trống ra, đơn thứ hai xác nhận được và đơn quá hạn vẫn mở vé. Hạn mức thật chưa cấp (dựa vào kỷ luật, không có máy chặn).",
+      "ke_hoach": "Phát hành bản sửa của nhánh claude/adr-0170-doi-tac-xem-ve (noTheoDon dùng chung soChuaVeCongTy với vé; bài src/tra-sau-no-doi-tac.test.ts); sau phát hành xoá mục này trong cùng commit ghi trạng thái.",
+      "han": "2026-11-08",
+      "nguoi_chiu_trach_nhiem": "chủ dự án",
+      "nguon": "kiểm độc lập lần hai và kiểm vòng cuối ADR-0170/0171, 2026-11-05"
+    },
+    {
       "ma": "TNV-G1",
       "muc_do": "HIGH",
       "ly_do": "Đơn huỷ còn tiền đã thu: \"phải thu\" không xét trạng thái huỷ nên sổ, trang đơn và biên nhận gửi khách vẫn ghi \"còn lại\" (khách trông như CÒN NỢ), không có đường ghi \"cọc giữ lại\" hay quyết định hoàn (src/modules/orders/hoan-tat.ts:9-18,64). Tình huống 09, 26, HD06, HD08, QT05, DT04. Chính sách chủ 2026-10-02: khách huỷ thì mặc định KHÔNG hoàn cọc; công ty có thể hoàn (không bắt buộc), tối đa 60 ngày sau ngày khởi hành dự kiến.",
