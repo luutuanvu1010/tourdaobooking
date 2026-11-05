@@ -2,7 +2,16 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.62 ĐÃ LÊN PRODUCTION (màn «Dịch vụ cần kiểm vé», ADR-0136 Đ1, Đ5; vé tắt riêng trong nhóm đang bật) — không migration — triển khai 2026-11-05 05:47 giờ Việt Nam
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.68 ĐÃ LÊN PRODUCTION (nhận hoặc đổi người phụ trách đúng lúc đơn vừa bị huỷ, nợ T4 của ADR-0142 Phần 1) — không migration — triển khai 2026-11-05 21:34 giờ Việt Nam
+
+Ghi từ khối tóm tắt của `npm run trien-khai` (chủ tự chạy) và lệnh chỉ đọc của phiên làm bản sửa:
+- Commit `origin/main`: `757673a1`. Worker Version ID: `b1b8e2c6-db2a-4d20-b0c5-47107074600c`. e2e: xanh. Cổng phiên bản trước và sau deploy: ĐẠT. GET công khai sau deploy: `version` 2.68, `maintenance.on` false.
+- **`audit-invariants --db remote`: ĐẠT, ba cảnh báo như 2.62:** `R-VC-14` 7 xe thiếu giấy tờ là điều kiện xuất bến; `R-CTL-1` 8 dịch vụ chưa phân nhóm; `R-DSP-2b` một người phụ trách đang mở có tài khoản đã ngưng.
+- **Người kiểm độc lập, chỉ đọc: ĐẠT.** Bỏ từng điều kiện «đơn còn xác nhận» ở ba câu ghi thì bài đua đỏ đúng chỗ. Bài đua giả lập việc huỷ chen vào giữa lúc đọc và lúc ghi, chưa tái hiện hai request đồng thời thật.
+- **Chưa kiểm:** thao tác này trên production (không ghi thử lên bản thật); iPhone thật.
+- **Khoảng trống của tệp này:** các bản 2.63 đến 2.67 không có mục trạng thái riêng ở đây; phiên này không có khối tóm tắt của các lần đó nên không ghi lại. Mục nhật ký thay đổi của từng bản ở `src/shared/changelog.ts`.
+
+## (Cũ) TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.62 ĐÃ LÊN PRODUCTION (màn «Dịch vụ cần kiểm vé», ADR-0136 Đ1, Đ5; vé tắt riêng trong nhóm đang bật) — không migration — triển khai 2026-11-05 05:47 giờ Việt Nam
 
 > Mục dưới do lần phát hành 2.62 ghi và có thể đã cũ. **Hiện trạng production xem bằng lệnh chỉ đọc, không tin tài liệu:** `curl -s https://booking.tourdao.vn/api/auth/config` (số bản), `wrangler deployments list`, `wrangler d1 migrations list tourdao-sales-db --remote`. Lần cuối kiểm (5/11): bản 2.67, `0141` đã áp.
 
@@ -92,7 +101,7 @@ Ghi 5/11/2026, nhánh `claude/adr-0170-doi-tac-xem-ve`, đã nối bản chính 
 - **Việc còn lại trước khi phát hành:** chủ thử iPhone thật bằng tài khoản đối tác, gửi nhiều ảnh sang Zalo. Bộ kiểm đủ, e2e và kịch bản Chrome đã chạy xanh 5/11; người kiểm độc lập đã đọc lại phần sửa.
 - **Trần gói trang Đơn hàng:** trần hiện là 105.546 byte (`TRAN_ORDERS` ở `src/goi-trang-nhe.test.ts`); chủ duyệt nới theo ADR-0170. Nhập cùng nhánh khác có thể phải đo lại.
 
-## ĐÃ LÊN PRODUCTION: Bán hàng phụ trách đơn (ADR-0142 Phần 1, bản 2.64)
+## ĐÃ PHÁT HÀNH: Bán hàng phụ trách đơn (ADR-0142 Phần 1; mục nhật ký 2.64)
 
 Ghi 5/11/2026, nhánh `claude/dispatch-pickup-order-display-1da7b5`. Hai migration `0138_ban_hang_phu_trach`, `0140_hop_thu_ban_hang` đã áp production (kiểm 5/11; chỉ thêm: ba bảng `dsp_*`, cột `orders.sales_invitee_party_id`, dựng lại view, trigger). Hoàn tác mã: `wrangler rollback`; mã cũ không nhắc bảng, cột mới nên vẫn chạy.
 
