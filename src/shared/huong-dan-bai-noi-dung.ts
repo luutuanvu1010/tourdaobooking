@@ -32,7 +32,7 @@ export const BAI_VIEC: readonly BaiViec[] = [
     tieuDe: "Kho vé điện tử",
     nhomViec: "Gửi cho khách",
     trang: "veKho",
-    o: ["ve.kho.manage", "ve.cap.send"],
+    o: ["ve.kho.manage"], // bài này là của màn Kho vé; ADR-0170 mở ve.cap.send cho Đối tác nhưng Đối tác không vào kho, nên không tính ô này (bài riêng của Đối tác ở huong-dan-doi-tac.ts)
     gioiHan: [
       `Mỗi lô mặc định tối đa ${TRAN_LO_MAC_DINH} vé; Toàn quyền đổi được từ ${TRAN_LO_NHO_NHAT} đến ${TRAN_LO_LON_NHAT}`,
       `Mỗi ảnh tối đa ${SO_MB_ANH} MB, ảnh JPG hoặc PNG`,
@@ -45,7 +45,7 @@ export const BAI_VIEC: readonly BaiViec[] = [
 1. **Tải vé từ nhà cung cấp.** Mỗi lần chỉ tải đúng một sản phẩm, một loại khách, một khoảng ngày dùng. Giữ nguyên ảnh gốc, vì ảnh nén quá nhỏ có thể không đọc được QR.
 2. **Nhập vào kho.** Chọn dịch vụ và loại khách, gõ tên sản phẩm, chọn ngày dùng, chọn các ảnh vé rồi bấm [[Nhập lô vé]]. Giữ nguyên trang này cho tới khi gửi xong. Ảnh hỏng hoặc trùng bị loại kèm tên tệp, các ảnh còn lại vẫn vào kho.
 3. **Máy giữ vé cho đơn.** Máy tự giữ vé theo số khách khi đơn được xác nhận; em bé không có vé. Máy lấy lô đúng loại khách trước, rồi đến lô «Mọi loại khách»; trong mỗi nhóm, vé sắp hết hạn ra trước. Kho thiếu thì đơn báo còn thiếu vé: nhập thêm lô, mở đơn rồi bấm [[Cấp vé]].
-4. **Giao vé.** Vé chỉ mở khi đơn đã thu đủ. Bấm nút **Mở … vé để gửi khách** (có số vé của đơn; màn hình nhắc vé sẽ không về kho nữa), rồi bấm [[Gửi Zalo]] và tự chọn người nhận. Máy không có nút này thì bấm các nút **Tải vé** để lưu ảnh rồi tự gửi. Hoặc bấm [[Tạo đường dẫn cho khách]] để khách tự mở và lưu vé; đường dẫn chỉ hiện một lần, nên chép gửi ngay.
+4. **Giao vé.** Vé chỉ mở khi đơn đã thu đủ; với đơn do đối tác lập, chỉ tính tiền đã về công ty (đối tác tự ghi «Tôi thu» chưa đủ để mở). Bấm nút **Mở … vé để gửi khách** (có số vé của đơn; màn hình nhắc vé sẽ không về kho nữa), rồi bấm [[Gửi Zalo]] và tự chọn người nhận. Máy không có nút này thì bấm các nút **Tải vé** để lưu ảnh rồi tự gửi. Hoặc bấm [[Tạo đường dẫn cho khách]] để khách tự mở và lưu vé; đường dẫn chỉ hiện một lần, nên chép gửi ngay.
 
 ### Điều dễ sai
 - Đừng trộn loại vé trong một lô: vé trẻ em lẫn vào lô người lớn sẽ tới tay khách người lớn.

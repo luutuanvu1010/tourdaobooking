@@ -80,6 +80,15 @@ Ghi 29/10/2026 từ khối tóm tắt của `npm run trien-khai` (chủ chạy `
 - Nghiệm thu: phiên kế hoạch tự chạy lại 132 bài N5 + typecheck trên nhánh; người kiểm độc lập ĐẠT. Chưa bấm «Sửa» trên production (bấm là ghi thật), chưa thử iPhone thật. Còn chờ chủ: NO-N5-4 (chữ «Chưa áp dụng cho loại nào» cạnh dòng «Sắp áp dụng»), nợ NO-N5-1…3.
 - **Hoàn tác:** `wrangler rollback` về `ba3d7b56` (2.45) an toàn — 2.46 không đổi dữ liệu.
 
+## ĐANG CHỜ PHÁT HÀNH: Đối tác xem và gửi vé của đơn mình lập (ADR-0170; chưa số bản, chưa có mục nhật ký thay đổi)
+
+Ghi 5/11/2026, nhánh `claude/adr-0170-doi-tac-xem-ve`, đã nối bản chính (có ADR-0169). **KHÔNG có migration**; cần `npm run trien-khai`. Hoàn tác: `wrangler rollback` (mã cũ chạy được, không đụng bảng). Mục nhật ký thay đổi và số bản làm lúc phát hành, không ghi sẵn ở đây.
+
+- **Điều đối tác sẽ thấy khác:** thấy khối «Vé điện tử» của đơn mình lập; vé chỉ mở khi tiền đã về công ty (khách trả tiền mặt cho đối tác thì phải nộp về công ty rồi vé mới mở); không còn nút «Huỷ đơn» với đơn đã mở vé. Nhắc văn phòng biết để trả lời đối tác.
+- **Khi nhánh ADR-0168 (Trả sau theo hạn mức) nhập sau bản này**, người nhập phải: (1) đưa `veMoDuoc` vào đúng chỗ đang gọi `thuDu`, giữ `choXacNhan` trong kiểu `tienDonVe`; (2) dùng chung `soChuaVeCongTy` với «số đã về công ty» của `noMotDon`, không để hai bản; (3) giữ MỘT hàm `veDaMoCuaDon` (và `coVeDaMo` ở chi tiết đơn, `soanTraVeKhiHuy({ chanVeDaMo })` ở lô huỷ — không nhân đôi); (4) thêm ca Trả sau vào bài của Task 3 (`doi-tac-mo-ve.test.ts`).
+- **Việc còn lại trước khi phát hành:** `npm test`, `npm run typecheck`, `npm run test:e2e` một lần ở máy rảnh (mục 11c của `tests/e2e/ve-dien-tu.mjs` viết chưa chạy); kịch bản Chrome trang đơn bằng tài khoản đối tác, hai khổ; người kiểm độc lập; chủ thử iPhone thật bằng tài khoản đối tác, gửi nhiều ảnh sang Zalo.
+- **Trần gói trang Đơn hàng:** đo 105.084 byte, trần 105.100; không nới.
+
 ## ĐANG CHỜ PHÁT HÀNH: Bán hàng phụ trách đơn (ADR-0142 Phần 1; mục nhật ký 2.64 là số TẠM)
 
 Ghi 5/11/2026, nhánh `claude/dispatch-pickup-order-display-1da7b5`. **Cần `npm run trien-khai`, CÓ migration** `0138_ban_hang_phu_trach`, `0140_hop_thu_ban_hang` (chỉ thêm: ba bảng `dsp_*`, cột `orders.sales_invitee_party_id`, dựng lại view, trigger). Hoàn tác mã: `wrangler rollback`; mã cũ không nhắc bảng, cột mới nên vẫn chạy.

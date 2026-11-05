@@ -51,7 +51,7 @@ export const XEP: Readonly<Record<string, XepNhom>> = {
   "doi-tac": {
     "Bắt đầu": [["Menu của bạn", null], ["Đăng nhập và đổi mã PIN", "toi"]],
     "Đơn của tôi": [
-      ["Lập đơn cho khách", "taoDon"], ["Sửa đơn nháp", DON], ["Xác nhận đơn", DON], ["Gửi biên nhận cho khách", DON], ["Huỷ đơn", DON], ["Xem lại đơn của mình", "donHang"],
+      ["Lập đơn cho khách", "taoDon"], ["Sửa đơn nháp", DON], ["Xác nhận đơn", DON], ["Gửi biên nhận cho khách", DON], ["Huỷ đơn", DON], ["Xem và gửi vé cho khách", DON], ["Xem lại đơn của mình", "donHang"],
     ],
     "Hoa hồng": [["Xem hoa hồng của bạn", null]],
     "Khi vướng": VUONG("Tình huống hay gặp", "Điều bạn không làm được — hỏi ai", "Câu hỏi thường gặp"),

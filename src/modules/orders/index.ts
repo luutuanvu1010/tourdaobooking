@@ -619,15 +619,16 @@ export type { KetQuaLenhDon };
 export { donDangThuTien, phaiThuNhieuDon, thongTinGiaoDon, type PhaiThuDon, type ThongTinGiaoDon } from "./hoan-tat";
 export { datGiaoStatement, hoanThanhStatement, type DatGiaoInput } from "./hoan-tat-repo";
 
-/**
- * API công khai cho module `receipt` (biên nhận — ADR-0024 đ1): chi tiết đơn HIỆN HÀNH (đã áp điều chỉnh) để receipt CHÉP TỪNG trường được phép vào
- * `ReceiptDto` (danh sách trắng — không trải đối tượng). KHÔNG tự kiểm quyền — route của receipt hỏi can() trước khi trả.
- */
 /** ADR-0170 Đ3: khoá `coVeDaMo` của chi tiết đơn cho người giữ quyền Đối tác; không đọc được ⇒ không có khoá (không nói sai «đã mở vé»). */
 const coVeDaMoTrenDon = async (hoi: (orderId: string) => Promise<boolean | null>, orderId: string): Promise<{ coVeDaMo?: boolean }> => {
   const r = await hoi(orderId);
   return r === null ? {} : { coVeDaMo: r };
 };
+
+/**
+ * API công khai cho module `receipt` (biên nhận — ADR-0024 đ1): chi tiết đơn HIỆN HÀNH (đã áp điều chỉnh) để receipt CHÉP TỪNG trường được phép vào
+ * `ReceiptDto` (danh sách trắng — không trải đối tượng). KHÔNG tự kiểm quyền — route của receipt hỏi can() trước khi trả.
+ */
 export const donChoBienNhan = (db: D1Database, id: string): Promise<OrderDetailDto | null> => loadOrderView(db, id, false);
 
 /** `detail` (ADR-0062 Đ2) = chữ dòng nhật ký VỪA ghi; vắng = y nguyên số khách, không ghi gì. Route KHÔNG chuyển nó đi đâu: màn hình khoá do gốc lắp ráp tự đọc lại dòng đổi của chính request (`dayGoCuaDoi`, mốc `batDau` của router). */
