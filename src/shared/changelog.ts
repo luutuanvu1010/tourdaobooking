@@ -17,6 +17,19 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Đối tác xem và gửi vé (ADR-0170), siết ba đường (ADR-0171), sửa số nợ Trả sau khi nộp một phần. Không migration. Số và ngày tạm: bước A.0 đặt lại nếu cần.
+    version: "2.69",
+    date: "2026-11-05",
+    items: [
+      { kind: "moi", text: "Đối tác xem và gửi được vé của đơn mình lập, khi tiền của đơn đã về công ty." },
+      { kind: "doi", text: "Đơn do Đối tác lập: khoản Đối tác tự ghi chỉ tính sau khi đã nộp về công ty hoặc Kế toán xác nhận, nên vé mở sau bước đó." },
+      { kind: "doi", text: "Đối tác không tự huỷ hoặc tự sửa số khách trên đơn đã mở vé; cần thì liên hệ văn phòng." },
+      { kind: "doi", text: "Đường dẫn gửi khách: vé đã mở vẫn xem được, vé chưa mở chỉ hiện khi đơn đủ tiền." },
+      { kind: "doi", text: "Chuyển tiền sang đơn mới: phải ghi đúng người chưa nộp tiền; đơn mới chỉ mở vé sau khi người đó nộp." },
+      { kind: "sua", text: "Đơn trả sau: số nợ tính đúng khi mới nộp một phần tiền." },
+    ],
+  },
+  {
     // Sửa khe đua ADR-0142 (nợ T4): nhận / đổi người phụ trách đúng lúc đơn bị huỷ. Không migration. Số và ngày tạm cho nhánh: bước A.0 đặt lại nếu cần.
     version: "2.68",
     date: "2026-11-05",
