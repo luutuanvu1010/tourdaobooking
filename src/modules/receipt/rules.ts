@@ -150,7 +150,7 @@ export type KiemSoTienQr = { ok: true; soTien: number } | { ok: false; status: 4
 
 /** Thứ tự: đơn đã giao (kể cả đơn lệch cũ còn lại > 0) → hết tiền cần thu → số gõ. Thiếu số ⇒ bằng còn lại. */
 export function kiemSoTienQr(i: { daGiao: boolean; conLai: number; soTienRaw: string | null }): KiemSoTienQr {
-  if (i.daGiao) return { ok: false, status: 409, ma: "order_delivered", cau: "Đơn đã giao — không thu thêm." };
+  if (i.daGiao) return { ok: false, status: 409, ma: "order_delivered", cau: "Đơn đã xong và đủ tiền — không thu thêm." };
   if (i.conLai <= 0) return { ok: false, status: 409, ma: "nothing_due", cau: "Đơn không còn tiền cần thu." };
   if (i.soTienRaw === null || i.soTienRaw === "") return { ok: true, soTien: i.conLai };
   if (!SO_TIEN_QR_RE.test(i.soTienRaw)) return { ok: false, status: 400, ma: "invalid_input", cau: "Số tiền phải là số nguyên dương (đồng)." };

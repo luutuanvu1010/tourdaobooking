@@ -93,6 +93,8 @@ export const LICH_SU_DOI_TAC_AN = [
   "refuse_limit_hit", "refuse_policy_changed", "refuse_counter_reset",
   // ADR-0153 (đề xuất): giữ chỗ / trả vé điện tử — loại dòng MỚI nên mặc định ẩn cho tới khi chủ xếp loại. Trang Nhật ký (Toàn quyền) vẫn đọc được.
   "ve_giu_cho", "ve_tra_ve", "ve_xem_anh", "ve_mo_anh_lo_huy", "ve_giao", "ve_tao_duong_dan", "ve_thu_hoi_duong_dan", "ve_nhap_lo", "ve_xac_nhan_lo", "ve_sua_ma_tour", "ve_bo_lo", "ve_doi_tran_lo",
+  // ADR-0168: hạn mức Trả sau — việc nội bộ của Toàn quyền, ẩn khỏi lịch sử Đối tác.
+  "credit_limit_set", "credit_limit_stopped",
 ] as const satisfies readonly AuditAction[];
 
 /** Hành động mới trong `AUDIT_ACTIONS` chưa có ở danh sách nào ⇒ kiểu này khác `never` và dòng ngay dưới không biên dịch (`npm run typecheck` đỏ). */

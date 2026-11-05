@@ -2248,6 +2248,20 @@ export const CHECKS = [
     sql: `SELECT count(*) FROM vdt_ticket WHERE purged_at IS NOT NULL AND r2_deleted_at IS NULL AND purged_at < strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-4 days')`,
     level: "warn",
   },
+  // R-CRD-1, R-CRD-2 (ADR-0168 Đ2 mục 1, 7; migration 0141): hình thức thanh toán và hạn trả đi cùng nhau. R-CRD-3 («hồ sơ nợ vượt hạn mức hiện hành», chỉ cảnh báo) KHÔNG làm bằng SQL:
+  // số nợ tính bằng JS từ phải thu hiện hành (đặc tả «Điểm dễ sai») — màn «Hạn mức trả sau» hiện đang nợ và còn được dùng cho Kế toán xem; chờ chủ quyết cách làm (báo cáo Task 2).
+  {
+    code: "R-CRD-1",
+    what: "đơn Trả sau đã xác nhận mà thiếu hạn trả",
+    sql: `SELECT count(*) FROM orders WHERE payment_term = 'CREDIT' AND status = 'confirmed' AND credit_due_date IS NULL`,
+    level: "fail",
+  },
+  {
+    code: "R-CRD-2",
+    what: "đơn Trả trước mà có hạn trả",
+    sql: `SELECT count(*) FROM orders WHERE payment_term = 'PREPAID' AND credit_due_date IS NOT NULL`,
+    level: "fail",
+  },
 ];
 
 /**

@@ -296,9 +296,6 @@ const PHAN_BO_DE_XEM = defineSql(
   `SELECT a.id, a.order_id, a.order_service_id, a.slot_no, a.revealed_at, t.storage_key, t.content_kind FROM vdt_allocation a JOIN vdt_ticket t ON t.id = a.ticket_id
    WHERE a.id = ?1 AND a.released_at IS NULL AND t.stored_at IS NOT NULL AND t.purged_at IS NULL`,
 );
-const VE_DA_MO_CUA_DON = defineSql("ve-dien-tu", "ve_da_mo_cua_don", "SELECT 1 AS co FROM vdt_allocation WHERE order_id = ?1 AND revealed_at IS NOT NULL LIMIT 1");
-/** Đơn có ít nhất một vé ĐÃ MỞ (`revealed_at` khác null — đã xem, giao hoặc lập đường dẫn) không. */
-export const veDaMoCuaDon = async (db: D1Database, orderId: string): Promise<boolean> => (await db.prepare(VE_DA_MO_CUA_DON).bind(orderId).first()) !== null;
 // Câu bảo vệ NỐI VÀO lô huỷ của người giữ quyền Đối tác (ADR-0170 Đ3): có vé đã mở thì `json_extract` với đường dẫn hỏng ném lỗi ⇒ cả lô lui. Đường dẫn là dấu nhận ra lỗi (`DAU_LOI_VE_DA_MO`).
 const CHAN_VE_DA_MO = defineSql("ve-dien-tu", "chan_ve_da_mo", "SELECT json_extract('{}', 'don_da_mo_ve') WHERE EXISTS (SELECT 1 FROM vdt_allocation WHERE order_id = ?1 AND revealed_at IS NOT NULL)");
 export const cauChanVeDaMo = (db: D1Database, orderId: string): D1PreparedStatement => db.prepare(CHAN_VE_DA_MO).bind(orderId);
@@ -310,6 +307,11 @@ const PHAN_BO_MO_CUA_DON = defineSql(
   "ve-dien-tu",
   "phan_bo_mo_cua_don",
   "SELECT id FROM vdt_allocation WHERE order_id = ?1 AND released_at IS NULL AND (?2 IS NULL OR order_service_id = ?2) ORDER BY order_service_id, pax_group, slot_no",
+);
+const PHAN_BO_MO_KEM_LO = defineSql(
+  "ve-dien-tu",
+  "phan_bo_mo_kem_lo",
+  "SELECT id, revealed_at IS NOT NULL AS lo FROM vdt_allocation WHERE order_id = ?1 AND released_at IS NULL AND (?2 IS NULL OR order_service_id = ?2) ORDER BY order_service_id, pax_group, slot_no",
 );
 const DANH_DAU_LO = defineSql("ve-dien-tu", "danh_dau_lo", "UPDATE vdt_allocation SET revealed_at = ?2, updated_at = ?2, updated_by = ?3 WHERE id = ?1 AND revealed_at IS NULL AND released_at IS NULL");
 const CHEN_GIAO = defineSql(
@@ -324,6 +326,9 @@ export const docPhanBoDeXem = (db: D1Database, id: string): Promise<PhanBoDeXem 
 export const docChuDon = async (db: D1Database, orderId: string): Promise<string | null> => (await db.prepare(CHU_DON).bind(orderId).first<{ staff_id: string }>())?.staff_id ?? null;
 export const docPhanBoMoCuaDon = async (db: D1Database, orderId: string, serviceId: string | null): Promise<string[]> =>
   (await db.prepare(PHAN_BO_MO_CUA_DON).bind(orderId, serviceId).all<{ id: string }>()).results.map((r) => r.id);
+/** Như `docPhanBoMoCuaDon` nhưng kèm cờ «đã lộ» của từng phân bổ — để cổng `moVeDuoc` biết vé nào đã mở (ADR-0168 Đ3 mục 1). */
+export const docPhanBoMoKemLo = async (db: D1Database, orderId: string, serviceId: string | null): Promise<{ id: string; lo: boolean }[]> =>
+  (await db.prepare(PHAN_BO_MO_KEM_LO).bind(orderId, serviceId).all<{ id: string; lo: number }>()).results.map((r) => ({ id: r.id, lo: r.lo === 1 }));
 /** Đóng dấu «đã lộ» MỘT LẦN (dòng đã có dấu thì câu không đổi gì). */
 export const cauDanhDauLo = (db: D1Database, allocId: string, at: string, by: string | null): D1PreparedStatement => db.prepare(DANH_DAU_LO).bind(allocId, at, by);
 export const cauChenGiao = (db: D1Database, p: { id: string; allocId: string; by: string | null; at: string; kenh: "ZALO" | "LINK" }): D1PreparedStatement =>
@@ -363,4 +368,7 @@ export const docVeCuaLink = async (db: D1Database, orderId: string): Promise<VeC
 
 const TRANG_THAI_DON = defineSql("ve-dien-tu", "trang_thai_don", "SELECT status FROM v_ord_order_state WHERE id = ?1");
 /** Trạng thái đơn (view công bố của orders); null = không có đơn. */
+const VE_DA_MO = defineSql("ve-dien-tu", "ve_da_mo_cua_don", "SELECT 1 AS co FROM vdt_allocation WHERE order_id = ?1 AND revealed_at IS NOT NULL LIMIT 1");
+/** Đơn đã có vé bị lộ (xem ảnh / giao) chưa — kể cả phân bổ đã trả: vé đã lộ không về kho (ADR-0168 Đ3 mục 3). */
+export const veDaMoCuaDon = async (db: D1Database, orderId: string): Promise<boolean> => (await db.prepare(VE_DA_MO).bind(orderId).first()) !== null;
 export const docTrangThaiDon = async (db: D1Database, orderId: string): Promise<string | null> => (await db.prepare(TRANG_THAI_DON).bind(orderId).first<{ status: string }>())?.status ?? null;

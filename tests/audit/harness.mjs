@@ -254,6 +254,8 @@ export function world(tuyChon = {}) {
         return d;
       },
     });
+  } else if (tuyChon.khongTiemTraSau) {
+    ungDung = app.taoAppChoKhungThu({ kiemTraSau: undefined }); // ADR-0168: gốc lắp ráp không tiêm cổng hạn mức ⇒ đơn Trả sau bị chặn 503
   } else if (tuyChon.khongTiemCoc) {
     ungDung = app.taoAppChoKhungThu({ cauCocKhiXacNhan: undefined }); // ADR-0159: gốc lắp ráp không dựng được câu ⇒ 503
   } else if (tuyChon.chenTruocLoCoc) {

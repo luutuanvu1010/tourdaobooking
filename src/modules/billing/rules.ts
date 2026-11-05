@@ -10,6 +10,7 @@ import { chiaPhanNguoiBan, nguoiBanCuaDong } from "../../shared/chia-phan-nguoi-
 import { tinhDongDoiTac, type BanChup } from "../../shared/hoa-hong-dong.ts";
 import { cauKyKhoa, kyCua } from "../../shared/ky-khoa.ts";
 import type { NhomHuy } from "../../shared/ly-do-huy.ts";
+import { cauChoDoiTacThanhToan } from "../../shared/tra-sau.ts";
 
 export type ReceiptKind = "CUSTOMER_PAYMENT" | "CUSTOMER_REFUND";
 export type CollectorRole = "COMPANY" | "STAFF" | "BOOKER" | "SUPPLIER" | "UNKNOWN";
@@ -954,9 +955,11 @@ export function lyDoChuaGiaoDuoc(input: {
   soKhoanDoiChieu: number;
   /** Cụm lời thường của từng khoản đang đối chiếu (`cumDoiChieu`). Vắng, hoặc mọi khoản là «Công ty thu» ⇒ câu cũ của ADR-0120 giữ nguyên chữ. */
   cumDoiChieu?: readonly string[];
+  /** ADR-0168 Đ3 mục 2: đơn Trả sau — còn nợ thì cùng mã `underpaid` nhưng câu khác và Kế toán xử lý. Vắng / false = đơn Trả trước, giữ nguyên chữ. */
+  traSau?: boolean;
   so: SoTienDon;
 }): LyDoGiu | null {
-  if (input.deliveredAt) return { ma: "already_delivered", cau: "Đơn đã ở bước Đã giao – đã thu đủ.", aiXuLy: "Văn phòng" };
+  if (input.deliveredAt) return { ma: "already_delivered", cau: "Đơn đã ở bước Xong và đủ tiền.", aiXuLy: "Văn phòng" };
   if (input.status === "cancelled") return { ma: "cancelled", cau: "Đơn đã huỷ.", aiXuLy: "Văn phòng" };
   if (input.status !== "confirmed") return { ma: "not_confirmed", cau: "Đơn chưa xác nhận — xác nhận đơn trước.", aiXuLy: "Người lập đơn" };
   if (input.dichVuThieuNgay.length > 0 || input.ngayDi.length === 0 || input.ngayDi.some((d) => d === null)) {
@@ -972,12 +975,15 @@ export function lyDoChuaGiaoDuoc(input: {
   if (input.soKhoanDoiChieu > 0) {
     const cum = [...new Set(input.cumDoiChieu ?? [])];
     if (cum.length > 0 && cum.some((c) => c !== cumDoiChieu({ collectorRole: "COMPANY", ten: null, anTen: true }))) {
-      return { ma: "reconciling", cau: `Còn khoản ${cum.join(", ")} đang chờ Kế toán xác nhận — Kế toán xác nhận xong mới bấm Đã giao được.`, aiXuLy: "Kế toán" };
+      return { ma: "reconciling", cau: `Còn khoản ${cum.join(", ")} đang chờ Kế toán xác nhận — Kế toán xác nhận xong mới bấm Xác nhận xong và đủ tiền được.`, aiXuLy: "Kế toán" };
     }
-    return { ma: "reconciling", cau: "Còn khoản chuyển khoản “Công ty thu” đang chờ Kế toán đối chiếu — Kế toán bấm “Xác nhận đã nhận” rồi mới bấm Đã giao được.", aiXuLy: "Kế toán" };
+    return { ma: "reconciling", cau: "Còn khoản chuyển khoản “Công ty thu” đang chờ Kế toán đối chiếu — Kế toán bấm “Xác nhận đã nhận” rồi mới bấm Xác nhận xong và đủ tiền được.", aiXuLy: "Kế toán" };
   }
   if (input.so.chuaRo > 0) {
     return { ma: "unknown_collector", cau: "Còn tiền trả trước chưa rõ người thu tiền — Kế toán xác nhận lại người thu tiền trước.", aiXuLy: "Kế toán" };
+  }
+  if (input.so.conLai > 0 && input.traSau) {
+    return { ma: "underpaid", cau: cauChoDoiTacThanhToan(input.so.conLai), aiXuLy: "Kế toán" };
   }
   if (input.so.conLai > 0) {
     return { ma: "underpaid", cau: `Còn thiếu ${dong(input.so.conLai)} — ghi thêm khoản thu hoặc sửa đơn trước.`, aiXuLy: "Hướng dẫn viên" };
@@ -1017,7 +1023,7 @@ export function lyDoChuaHoanThanh(input: {
   /** Task 9: người xem thấy tới đâu. Nơi gọi trong máy chủ luôn truyền (vắng chỉ ở bài luật cũ = thấy đủ). */
   che?: CheSoDu;
 }): { ma: MaLyDoHoanThanh; cau: string; aiXuLy: AiXuLy } | null {
-  if (!input.deliveredAt) return { ma: "not_delivered", cau: "Đơn chưa Đã giao – đã thu đủ.", aiXuLy: "Hướng dẫn viên" };
+  if (!input.deliveredAt) return { ma: "not_delivered", cau: "Đơn chưa tới bước Xong và đủ tiền.", aiXuLy: "Hướng dẫn viên" };
   if (input.completedAt) return { ma: "already_completed", cau: "Đơn đã Hoàn thành.", aiXuLy: "Kế toán" };
   const no = [...input.soDu.entries()].filter(([, so]) => so > 0);
   if (no.length > 0) {
@@ -1031,7 +1037,7 @@ export function lyDoChuaHoanThanh(input: {
   if (input.phaiThuLucGiao !== null && input.daThu !== input.phaiThuLucGiao) {
     return {
       ma: "due_mismatch", aiXuLy: "Kế toán",
-      cau: `Số đã thu (${dong(input.daThu)}) khác phải thu lúc Đã giao (${dong(input.phaiThuLucGiao)}) — Kế toán dùng “Sửa khoản thu đã ghi” trước khi Hoàn thành.`,
+      cau: `Số đã thu (${dong(input.daThu)}) khác phải thu lúc xác nhận xong và đủ tiền (${dong(input.phaiThuLucGiao)}) — Kế toán dùng “Sửa khoản thu đã ghi” trước khi Hoàn thành.`,
     };
   }
   return null;

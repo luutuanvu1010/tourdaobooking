@@ -50,7 +50,8 @@ const CHO_PHEP_NHAT_KY = new Set(["web/help.ts"]);
 // CHƯA có lời duyệt riêng của chủ dự án cho con số này (người thi công theo tiền lệ các lần nới trước — cần chủ xác nhận); Task 7 (nút giao diện) sẽ phải đo lại.
 // Chủ duyệt nâng trần 5/11/2026 cho dòng «Phụ trách» của ADR-0142 (đo 105.086 byte, gốc 103.692).
 // Nới 105.100 → 105.363 (ADR-0169 ghép trên ADR-0142, 5/11/2026): mã quyền, vai, hai ô vào bản đồ (dữ liệu quyền, không mã giao diện). Đo thật 105.263 byte, trần = số đo + 100.
-const TRAN_ORDERS = 105_363;
+// Nới 105.363 → 105.546 (ADR-0168, ghép Trả sau với bản chính 5/11/2026): trang /han-muc-tra-sau vào `TRANG`/`THANH_BEN`/`TRANG_TOI` và hai ô quyền credit.limit.* (chỉ dữ liệu); đo thật 105.446 byte, trần = số đo + 100. Không mã giao diện nghiệp vụ nào vào gói Đơn hàng. CHƯA có lời duyệt riêng của chủ dự án cho con số này.
+const TRAN_ORDERS = 105_546;
 
 function dung(trang: string) {
   const r = buildSync({

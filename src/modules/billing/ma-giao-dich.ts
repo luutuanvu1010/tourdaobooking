@@ -67,7 +67,7 @@ export function kiemMaGiaoDich(i: { soThucChuyen: number; soTien: number; orderI
   if (a !== undefined && a !== i.soThucChuyen) {
     return {
       ok: false, ma: "bank_txn_amount_mismatch", soThucChuyen: a,
-      cau: `Mã này đã ghi số tiền thực chuyển ${dong(a)} — nhập đúng số đó theo sao kê. Lần trước nhập nhầm thì sửa bằng “Sửa khoản thu đã ghi” (hoặc “Huỷ khoản thu” khi đơn chưa giao).`,
+      cau: `Mã này đã ghi số tiền thực chuyển ${dong(a)} — nhập đúng số đó theo sao kê. Lần trước nhập nhầm thì sửa bằng “Sửa khoản thu đã ghi” (hoặc “Huỷ khoản thu” khi đơn chưa tới bước Xong và đủ tiền).`,
     };
   }
   const tong = i.daCo.reduce((s, d) => s + d.soTien, 0) + i.soTien;

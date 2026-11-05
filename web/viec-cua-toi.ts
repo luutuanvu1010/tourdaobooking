@@ -574,7 +574,7 @@ export async function initViecCuaToi(el: HTMLElement, staff: Staff): Promise<voi
         h("div", null, h("dt", null, nhanTienDaTra({ status: a.status, deliveredAt: tien?.daGiao ? "x" : null }).nhan), h("dd", null, tien ? vnd(tien.daThu) : "—")),
         h("div", null, h("dt", null, "Còn lại"), h("dd", { class: tien && tien.conLai > 0 ? "money-due" : null }, tien ? vnd(tien.conLai) : "—")),
       ),
-      tien?.daGiao ? h("p", { class: "hdv-note" }, tien.hoanThanh ? "Hoàn thành." : "Đã giao – đã thu đủ: đơn đã khoá.") : null,
+      tien?.daGiao ? h("p", { class: "hdv-note" }, tien.hoanThanh ? "Hoàn thành." : "Xong và đủ tiền: đơn đã khoá.") : null,
       a.status === "draft" ? h("p", { class: "hdv-note" }, "Đơn chưa xác nhận — chưa thể huỷ hay sửa số khách.") : null,
       // bản 1.39: "Xem đơn" mở trang đơn (hướng dẫn viên xem được đơn mình đang phụ trách — máy chủ quyết). Ghi tiền đã thu / bấm "Đã giao – đã thu đủ"
       // làm ở đó (mục Thanh toán — sổ tiền lượt 1).

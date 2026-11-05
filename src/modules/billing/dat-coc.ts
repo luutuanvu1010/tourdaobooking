@@ -7,6 +7,7 @@ import { benDatHuong, soChuaVeCongTy, soKhaiChuaNop } from "./rules";
 import { GHI_CHU_KHOAN_LOI_KHAI, cocLapLaiConGiu, donCuaKhoan, hoSoNhanVien } from "./coc-repo";
 import { linesOfOrder, nguoiLapGiuDoiTac, orderOwners, ownerCompanyId, receiptOnConfirmStatement, receiptsOfOrder, reconOfOrder } from "./repository";
 import { cauLanThu, tienNhieuDon, toDoiChieuRow, toLineRow, toReceiptRow } from "./service";
+import { traSauCuaDon } from "./tra-sau";
 
 const dong = (n: number): string => `${n.toLocaleString("vi-VN")} ₫`;
 
@@ -61,19 +62,21 @@ async function phanKhaiCuaDon(db: D1Database, receipts: readonly KhoanDon[], daQ
  * Đơn do người HIỆN giữ quyền Đối tác lập (ADR-0170): chỉ tính tiền ĐÃ VỀ công ty — trừ thêm khoản người lập còn giữ và khoản đang chờ Kế toán xác nhận (`soChuaVeCongTy`), áp cho mọi người xem.
  * Đơn của nhân viên văn phòng đi nhánh cũ nguyên vẹn. `null` khi không đọc được (kể cả quyền / hồ sơ người lập): không mở vé. `choNop` / `choXacNhan` để giao diện nói đúng câu.
  */
-export async function tienDonVe(db: D1Database, orderId: string): Promise<{ daThu: number; phaiThu: number; choNop: number; choXacNhan: number } | null> {
+export async function tienDonVe(db: D1Database, orderId: string): Promise<{ daThu: number; phaiThu: number; choNop: number; choXacNhan: number; traSau: { hanTra: string | null; no: number } | null } | null> {
   const t = (await tienNhieuDon(db, [orderId])).get(orderId);
   if (!t) return null;
+  // ADR-0168 Đ3 mục 1: đơn Trả sau mở vé không cần thu đủ — hạn trả và nợ đi kèm để route vé hỏi MỘT hàm `moVeDuoc`. `null` = đơn Trả trước.
+  const traSau = await traSauCuaDon(db, orderId);
   const chu = (await orderOwners(db, [orderId])).get(orderId);
   if (chu === undefined) return null; // không đọc được chủ đơn ⇒ không biết ai lập ⇒ chưa mở
   const laDoiTac = await nguoiLapGiuDoiTac(db, chu);
   const receipts = await receiptsOfOrder(db, orderId);
   const khoan = await phanKhaiCuaDon(db, receipts, new Set([orderId]));
-  if (!laDoiTac && khoan.length === 0) return { daThu: t.daThu, phaiThu: t.phaiThu, choNop: 0, choXacNhan: 0 };
+  if (!laDoiTac && khoan.length === 0) return { daThu: t.daThu, phaiThu: t.phaiThu, choNop: 0, choXacNhan: 0, traSau };
   const [congTyId, lines] = await Promise.all([ownerCompanyId(db), linesOfOrder(db, orderId)]);
   if (!congTyId) return null;
   const choNopKhai = khoan.length === 0 ? 0 : soKhaiChuaNop(khoan, lines.map(toLineRow), congTyId);
-  if (!laDoiTac) return { daThu: t.daThu - choNopKhai, phaiThu: t.phaiThu, choNop: choNopKhai, choXacNhan: 0 };
+  if (!laDoiTac) return { daThu: t.daThu - choNopKhai, phaiThu: t.phaiThu, choNop: choNopKhai, choXacNhan: 0, traSau };
   // Người lập giữ quyền Đối tác. Không đọc được hồ sơ của họ ⇒ không biết khoản nào là của họ ⇒ chưa mở (null).
   const partyId = await hoSoNhanVien(db, chu);
   if (!partyId) return null;
@@ -81,7 +84,7 @@ export async function tienDonVe(db: D1Database, orderId: string): Promise<{ daTh
   const v = soChuaVeCongTy({ receipts: receipts.map(toReceiptRow), lines: lines.map(toLineRow), doiChieu: recon.map(toDoiChieuRow), nguoiLapPartyId: partyId, congTyId, khaiThem: khoan });
   // Khoản khai đặt cọc đã gộp vào cùng lượt tính (không trừ hai lần, không bỏ sót khoản do người khác cầm): `nguoiLapGiu` là tổng chưa nộp của mọi khoản đang giữ.
   const choNop = v.nguoiLapGiu;
-  return { daThu: t.daThu - choNop - v.choXacNhan, phaiThu: t.phaiThu, choNop, choXacNhan: v.choXacNhan };
+  return { daThu: t.daThu - choNop - v.choXacNhan, phaiThu: t.phaiThu, choNop, choXacNhan: v.choXacNhan, traSau };
 }
 
 /** Dựng câu khoản thu cho lô xác nhận; câu dựng ra CHƯA chạy, nằm sau câu xác nhận trong cùng một lô. Tháng đã khoá: trigger huỷ cả lô, `orders` dịch thành 409. */

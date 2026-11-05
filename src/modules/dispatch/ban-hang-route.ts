@@ -20,7 +20,7 @@ import { parseOrderIds } from "./rules";
 const TOI_DA_TRA_BAN_HANG = 30;
 
 const NOT_FOUND = () => error(404, "not_found", "Không tìm thấy đơn.");
-const DA_GIAO = () => error(409, "order_delivered", "Đơn đã ở bước Đã giao – đã thu đủ: không đổi hay nhận người phụ trách được nữa.");
+const DA_GIAO = () => error(409, "order_delivered", "Đơn đã ở bước Xong và đủ tiền: không đổi hay nhận người phụ trách được nữa.");
 const GIO_CHUA_CO = () => error(503, "gio_hanh_chinh_chua_co", "Chưa có cài đặt giờ hành chính của người phụ trách — báo Toàn quyền.");
 const STALE_NHAN = () => error(409, "stale", "Đơn vừa có người phụ trách, hãy tải lại.");
 const KHONG_HO_SO = () => error(409, "khong_co_ho_so", "Tài khoản này chưa có hồ sơ nên chưa làm người phụ trách được — báo Quản trị.");

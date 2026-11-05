@@ -68,7 +68,7 @@ export const AUDIT_ACTIONS = {
   // không tỷ lệ, không tiền, không tên đối tác). Tiền tố `ord_terms_` thuộc nhóm hành động thương mại (`laHanhDongThuongMai`); ẩn khỏi lịch sử đơn của Đối tác.
   ord_terms_backfilled: { label: "Chụp bù mức hoa hồng", group: "order" },
   // Sổ tiền lượt 1 (ADR-0025, ADR-0026) — `detail` không SĐT, không số tiền chi tiết (kế hoạch §3.4).
-  order_delivered: { label: "Đã giao – đã thu đủ", group: "order" },
+  order_delivered: { label: "Xong và đủ tiền", group: "order" },
   order_completed: { label: "Hoàn thành", group: "order" },
   payment_recorded: { label: "Ghi khoản thu", group: "order" },
   // ADR-0060: dấu "đã nhập phần mềm kế toán" (bảng chỉ-thêm bil_accounting_entry) — detail = moTaDauNhap (số hoá đơn nguyên văn; lý do đã chặn dãy số dài).
@@ -150,6 +150,10 @@ export const AUDIT_ACTIONS = {
   // ADR-0161 Đ3: Toàn quyền đổi GIỚI HẠN NHẬP mức hoa hồng (trần phần trăm, bước số tiền; POST /api/pricing/gioi-han-nhap) — `target_type = 'ledger'`, không gắn đơn;
   // `detail` = «trần 50% → 60% · bước 1.000đ → 1.000đ» (hai con số, không dữ liệu cá nhân). Đổi giới hạn không đổi dòng mức đã có hay đơn đã chụp.
   prc_entry_limit_changed: { label: "Đổi giới hạn nhập hoa hồng", group: "ledger" },
+  // ADR-0168 Đ1: Toàn quyền đặt / ngừng hạn mức Trả sau của một đối tác (route /api/tra-sau/han-muc*) — `target_type = 'ledger'`, `target_id` = mã hồ sơ, không gắn đơn.
+  // `detail` = «hạn mức 50.000.000 ₫ · 7 ngày» / «ngừng hạn mức» (số tiền và số ngày, KHÔNG tên, SĐT, email, MST, lý do tự do).
+  credit_limit_set: { label: "Đặt hạn mức trả sau", group: "ledger" },
+  credit_limit_stopped: { label: "Ngừng hạn mức trả sau", group: "ledger" },
   // Khoá sổ tháng (ADR-0080 D1; module ky-so — route ở billing): `order_id` NULL; `detail` = "Khoá sổ tháng MM/YYYY" (không tiền, không SĐT).
   ledger_period_closed: { label: "Khoá sổ tháng", group: "ledger" },
   order_handler_changed: { label: "Đổi Hướng dẫn viên", group: "order" },

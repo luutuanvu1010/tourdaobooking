@@ -17,6 +17,25 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Thanh toán trả sau theo hạn mức (ADR-0168): migration 0141, ô quyền credit.limit.view / credit.limit.write.
+    // Số 2.67 và ngày chỉ là tạm cho nhánh: bước A.0 của lần triển khai đặt lại nếu cần.
+    version: "2.67",
+    date: "2026-11-05",
+    items: [
+      { kind: "moi", text: "Đối tác có hạn mức được chọn «Trả sau» khi lập đơn: vé mở trước, tiền thu sau trong số ngày được nợ." },
+      { kind: "moi", text: "Toàn quyền có màn Hạn mức trả sau để cấp hoặc ngừng hạn mức cho từng đối tác; Kế toán xem được số nợ và đơn quá hạn.", bai: { id: "viec/han-muc-tra-sau", ten: "Cấp hạn mức trả sau cho đối tác" } },
+      { kind: "moi", text: "Đơn trả sau vượt hạn mức, hoặc của đối tác còn đơn quá hạn, không xác nhận được; chi tiết đơn ghi hình thức thanh toán và hạn trả." },
+    ],
+  },
+  {
+    // Đổi chữ trạng thái đơn (chủ 2026-11-05, «chốt hướng»): chỉ đổi chữ người dùng thấy, mã và CSDL giữ tên cũ; không có migration.
+    version: "2.66",
+    date: "2026-11-05",
+    items: [
+      { kind: "doi", text: "Trạng thái Đã giao đổi tên thành Xong và đủ tiền để khỏi nhầm với giao vé; nút ghi Xác nhận xong và đủ tiền. Cách làm việc không đổi." },
+    ],
+  },
+  {
     // ADR-0169: vai Quản lý bán hàng, công tắc kiểm vé về Dịch vụ & giá. Migration 0140_quan_ly_ban_hang (khác tệp 0140_hop_thu_ban_hang của mục 2.64).
     version: "2.65",
     date: "2026-11-05",

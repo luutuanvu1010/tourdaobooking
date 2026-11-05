@@ -1,4 +1,5 @@
 import { auditStatement, type AuditAction } from "../audit";
+import type { KemTraSau } from "./tra-sau-cong";
 import type { HanhDongDoiSoKhach } from "../../shared/audit-actions";
 import { LY_DO_DAT_GAP, chieuDiDau, isLyDoDatGap, xepChang, type ChangDaLuu, type ChangHopLe, type LyDoDongChang } from "../../shared/chang-dua-don";
 import type { LegDto, OrderDetailDto, OrderDto, OrderItemDto, OrderServiceDto, OrderSummaryDto, OrderSummaryTripDto } from "../../shared/contracts";
@@ -42,6 +43,9 @@ interface OrderRow {
   payment_note: string | null;
   /** ADR-0159: lời khai đặt cọc trước (0136). */
   declared_deposit: number;
+  /** ADR-0168 (0141): hình thức thanh toán và hạn trả (chụp lúc xác nhận đơn Trả sau). */
+  payment_term: "PREPAID" | "CREDIT";
+  credit_due_date: string | null;
   created_at: string;
   updated_at: string;
   confirmed_at: string | null;
@@ -190,6 +194,8 @@ function toDto(r: OrderRow): OrderDto {
     paymentNote: r.payment_note,
     // ADR-0159 Đ1 mục 6: sau xác nhận đọc từ sổ, không đọc cột — nên chỉ đơn nháp mang số này.
     declaredDeposit: r.status === "draft" ? r.declared_deposit : 0,
+    paymentTerm: r.payment_term,
+    hanTra: r.payment_term === "CREDIT" ? r.credit_due_date : null,
     createdAt: r.created_at,
     updatedAt: r.updated_at,
     confirmedAt: r.confirmed_at,
@@ -410,6 +416,13 @@ export interface OrderMeta {
   bookerName: string | null;
   customerName: string;
   customerPhone: string;
+  /** ADR-0168: hình thức thanh toán đang lưu. */
+  paymentTerm: "PREPAID" | "CREDIT";
+}
+
+/** Giảm giá cấp đơn đang lưu (đóng băng sau xác nhận) — để tính tổng phải thu SAU lần sửa số khách của đơn Trả sau (ADR-0168 Đ2 mục 5). Không có đơn ⇒ 0. */
+export async function getGiamGia(db: D1Database, id: string): Promise<number> {
+  return (await db.prepare("SELECT discount FROM orders WHERE id = ?").bind(id).first<{ discount: number }>())?.discount ?? 0;
 }
 
 /** Mã đơn + người lập — chỉ hai trường này (Bảng tin, ADR-0022 điều 4: sự kiện không mang tên/SĐT khách, không tiền). null nếu không có đơn. */
@@ -421,15 +434,15 @@ export async function getOrderRef(db: D1Database, id: string): Promise<{ staffId
 export async function getMeta(db: D1Database, id: string): Promise<OrderMeta | null> {
   const row = await db
     .prepare(
-      `SELECT o.status, o.staff_id, o.updated_at, o.booker_party_id, b.display_name AS booker_name, o.customer_name, o.customer_phone, o.delivered_at
+      `SELECT o.status, o.staff_id, o.updated_at, o.booker_party_id, b.display_name AS booker_name, o.customer_name, o.customer_phone, o.delivered_at, o.payment_term
        FROM orders o LEFT JOIN v_pty_party_label b ON b.id = o.booker_party_id WHERE o.id = ?`,
     )
     .bind(id)
-    .first<{ status: OrderStatus; staff_id: string; updated_at: string; booker_party_id: string | null; booker_name: string | null; customer_name: string; customer_phone: string; delivered_at: string | null }>();
+    .first<{ status: OrderStatus; staff_id: string; updated_at: string; booker_party_id: string | null; booker_name: string | null; customer_name: string; customer_phone: string; delivered_at: string | null; payment_term: "PREPAID" | "CREDIT" }>();
   return row
     ? {
         status: row.status, staffId: row.staff_id, updatedAt: row.updated_at, bookerPartyId: row.booker_party_id, bookerName: row.booker_name, customerName: row.customer_name,
-        customerPhone: row.customer_phone, deliveredAt: row.delivered_at,
+        customerPhone: row.customer_phone, deliveredAt: row.delivered_at, paymentTerm: row.payment_term,
       }
     : null;
 }
@@ -992,15 +1005,15 @@ export async function createOrder(
         db
           .prepare(
             `INSERT INTO orders (id, order_code, staff_id, status, customer_name, customer_phone, customer_email, customer_note,
-               subtotal, discount, total, deposit_amount, deposit_method, remaining_amount, payment_note, created_at, updated_at, booker_party_id, manifest_exempt, declared_deposit)
+               subtotal, discount, total, deposit_amount, deposit_method, remaining_amount, payment_note, created_at, updated_at, booker_party_id, manifest_exempt, declared_deposit, payment_term)
              SELECT ?, ? || printf('%04d', COALESCE((SELECT MAX(CAST(substr(order_code, length(?) + 1) AS INTEGER)) FROM orders WHERE order_code LIKE ?), 0) + 1),
-               ?, 'draft', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ${BOOKER_VALUE}, ?, ?`,
+               ?, 'draft', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ${BOOKER_VALUE}, ?, ?, ?`,
           )
           .bind(
             id, prefix, prefix, `${prefix}%`, staffId, order.customerName, order.customerPhone, order.customerEmail, order.customerNote,
             // Ba cột cọc cũ KHÔNG mang nghĩa nữa (ADR-0026 đ9): đơn mới ghi 0 / NULL / total — chỉ để thoả trigger 0007 (không ai đọc).
             order.subtotal, order.discount, order.total, 0, null, order.total, order.paymentNote, at, at,
-            booker.partyId, manifestExempt ? 1 : 0, order.declaredDeposit ?? 0,
+            booker.partyId, manifestExempt ? 1 : 0, order.declaredDeposit ?? 0, order.paymentTerm ?? "PREPAID",
           ),
         ...services.stmts,
         ...legs,
@@ -1054,14 +1067,14 @@ export async function updateDraftOrder(
            deposit_amount = CASE WHEN ? < deposit_amount THEN 0 ELSE deposit_amount END,
            deposit_method = CASE WHEN ? < deposit_amount THEN NULL ELSE deposit_method END,
            remaining_amount = CASE WHEN ? < deposit_amount THEN ? ELSE ? - deposit_amount END,
-           payment_note = ?, declared_deposit = COALESCE(?, declared_deposit),
+           payment_note = ?, declared_deposit = COALESCE(?, declared_deposit), payment_term = COALESCE(?, payment_term),
            booker_party_id = ${BOOKER_VALUE}, updated_at = ?,
            sales_invitee_party_id = CASE WHEN ? = 1 THEN ? ELSE sales_invitee_party_id END
          WHERE id = ? AND status = 'draft' AND updated_at = ?`,
       )
       .bind(
         order.customerName, order.customerPhone, order.customerEmail, order.customerNote,
-        order.subtotal, order.discount, order.total, order.total, order.total, order.total, order.total, order.total, order.paymentNote, order.declaredDeposit,
+        order.subtotal, order.discount, order.total, order.total, order.total, order.total, order.total, order.total, order.paymentNote, order.declaredDeposit, order.paymentTerm,
         booker.partyId, at, nguoiMoi ? 1 : 0, nguoiMoi?.partyId ?? null, id, order.expectedUpdatedAt,
       ),
     auditStatement(db, { id: auditId, orderId: id, staffId, action: "updated", at, detail: joinDetail(summarizeDeviations(order.items), booker.note, paxNote, ghiChuThem) }, "changes() > 0"),
@@ -1081,6 +1094,7 @@ export async function updateDraftOrder(
 export type KemCoc = (i: { at: string; auditId: string }) => D1PreparedStatement[];
 /** Chỉ bài kiểm và lời khai 0 (`cocChoXacNhan`) dùng. */
 export const KHONG_COC: KemCoc = () => [];
+// ADR-0168: `KemTraSau` (câu gác phiên bản + hạn trả của đơn Trả sau) ở ./tra-sau-cong — import kiểu để chữ ký `soanXacNhan` / `confirmOrder` buộc nơi gọi truyền.
 const moTaLoiKhai = (n: number | null): string | null => (n !== null && n > 0 ? `khai khách đặt cọc trước ${n.toLocaleString("vi-VN")} ₫` : null);
 
 /**
@@ -1096,9 +1110,9 @@ const moTaLoiKhai = (n: number | null): string | null => (n !== null && n > 0 ? 
  */
 export async function confirmOrder(
   db: D1Database, id: string, staffId: string, today: string, prevUpdatedAt: string, nguongMoc: string, detail: string | undefined,
-  alsoConfirm: ((at: string) => D1PreparedStatement[]) | undefined, coc: KemCoc,
+  alsoConfirm: ((at: string) => D1PreparedStatement[]) | undefined, coc: KemCoc, traSau: KemTraSau,
 ): Promise<boolean> {
-  return daXacNhan(await db.batch(soanXacNhan(db, id, staffId, today, prevUpdatedAt, nguongMoc, detail, alsoConfirm, coc).cau));
+  return daXacNhan(await db.batch(soanXacNhan(db, id, staffId, today, prevUpdatedAt, nguongMoc, detail, alsoConfirm, coc, traSau).cau));
 }
 
 /**
@@ -1109,7 +1123,7 @@ export async function confirmOrder(
  */
 export function soanXacNhan(
   db: D1Database, id: string, staffId: string, today: string, prevUpdatedAt: string, nguongMoc: string, detail: string | undefined,
-  alsoConfirm: ((at: string) => D1PreparedStatement[]) | undefined, coc: KemCoc, opts?: { auditId?: string; yeuCauId?: string },
+  alsoConfirm: ((at: string) => D1PreparedStatement[]) | undefined, coc: KemCoc, traSau: KemTraSau, opts?: { auditId?: string; yeuCauId?: string },
 ): { at: string; cau: D1PreparedStatement[]; auditId: string } {
   const at = nextStamp(prevUpdatedAt);
   const { from, to } = confirmWindow(today);
@@ -1127,6 +1141,8 @@ export function soanXacNhan(
       ...(alsoConfirm?.(at) ?? []),
       // ADR-0159 Đ1 mục 3: đứng CUỐI phần soạn nên chỉ số câu đổi trạng thái không đổi; `auditId` là lính gác — thua khoá hoặc mốc thì không có dòng nhật ký, không có khoản thu.
       ...coc({ at, auditId }),
+      // ADR-0168 Đ2 mục 3, 4, 7: đơn Trả sau — câu gác phiên bản của bên đặt (sai phiên bản ⇒ trigger huỷ CẢ lô) và ghi hạn trả; đơn Trả trước: không câu nào. Cũng đứng cuối để chỉ số câu đổi trạng thái không đổi.
+      ...traSau({ at, auditId }),
     ],
   };
 }

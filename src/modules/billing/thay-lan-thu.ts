@@ -19,6 +19,7 @@ import {
   type LanThuHopLe, type NguoiGoi,
 } from "./service";
 import { phaiThuHienHanh, receiptThayDaoStatement, receiptThayMoiStatement } from "./thay-lan-thu-repo";
+import { cauTangChoDon } from "./tra-sau-tang";
 
 /** ADR-0088 đ2: lý do tối thiểu (ký tự, bỏ khoảng trắng hai đầu) — trigger 0083 ép cùng số. */
 export const LY_DO_THAY_TOI_THIEU = 10;
@@ -36,7 +37,7 @@ export function kiemI1SauThay(input: { daThuTruoc: number; tongCu: number; tongM
   if (input.phaiThuLucGiao === null) return { ok: true };
   const sau = input.daThuTruoc - input.tongCu + input.tongMoi;
   if (sau !== input.phaiThuLucGiao) {
-    return { ok: false, cau: `Sau khi thay, số đã thu (${dong(sau)}) phải bằng phải thu của đơn lúc Đã giao (${dong(input.phaiThuLucGiao)}).` };
+    return { ok: false, cau: `Sau khi thay, số đã thu (${dong(sau)}) phải bằng phải thu của đơn lúc xác nhận xong và đủ tiền (${dong(input.phaiThuLucGiao)}).` };
   }
   return { ok: true };
 }
@@ -101,7 +102,7 @@ export async function chuanBiLoThay(db: D1Database, input: { orderId: string; ph
   const [st, receipts, hienHanh, dongDon] = await Promise.all([orderState(db, orderId), receiptsOfOrder(db, orderId), phaiThuHienHanh(db, orderId), linesOfOrder(db, orderId)]);
   const due = hienHanh === null ? null : input.phaiThuDich ?? hienHanh;
   if (!st) return loi(404, "not_found", "Không tìm thấy đơn.");
-  if (cu.length === 0 && due === null) return loi(400, "invalid_input", "Đơn chưa Đã giao — chọn khoản thu cần thay, hoặc ghi khoản thu như thường.");
+  if (cu.length === 0 && due === null) return loi(400, "invalid_input", "Đơn chưa tới bước Xong và đủ tiền — chọn khoản thu cần thay, hoặc ghi khoản thu như thường.");
   // ADR-0088 đ4 (i) + kiểm độc lập vòng 3 (CAO): khoản "Công ty thu – CK" do người khác khai còn CHỜ XÁC NHẬN thì KHÔNG đảo — dòng giữ hộ trên người khai còn
   // nguyên tới khi Kế toán xác nhận đã nhận hoặc người khai nộp (một khoản thu mới do Kế toán ghi "Công ty thu" sẽ xoá khoản người khai đang giữ).
   const choXacNhan = khoanChoXacNhan(receipts.map(toReceiptRow), dongDon.map(toLineRow), (await reconOfOrder(db, orderId)).map(toDoiChieuRow));
@@ -208,5 +209,6 @@ export async function chuanBiLoThay(db: D1Database, input: { orderId: string; ph
   for (const nv of new Set(nguoiThu.flatMap((p) => (taiKhoan.has(p) && taiKhoan.get(p) !== by ? [taiKhoan.get(p)!] : [])))) {
     stmts.push(auditStatement(db, { orderId, staffId: by, action: "ledger_receipt_collector_changed", at, targetType: "staff", targetId: nv, detail: "Khoản thu có bạn là người thu tiền vừa được sửa" }));
   }
+  stmts.push(...(await cauTangChoDon(db, orderId, at))); // ADR-0168 Đ2 mục 4–5: sửa khoản thu KHÔNG bị chặn nhưng có thể làm nợ tăng ⇒ tăng phiên bản (chỉ đơn Trả sau)
   return { ok: true, value: { stmts, ngay: ngay.value, daThuSau: daThuTruoc - tongCu + tongMoi } };
 }

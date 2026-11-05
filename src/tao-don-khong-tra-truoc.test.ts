@@ -13,7 +13,8 @@ test("form Tạo đơn: không còn ô / mã / lời gọi trả trước", () =
   const html = boChuThich(doc("public/order-form.html"));
   for (const [ten, nguon] of [["web/order-form.ts", ts], ["public/order-form.html", html]] as const) {
     for (const chuoi of ["prepaid", "traTruoc", "tra-truoc", "thutruoc", "/payments", "LanThuInput"]) assert.equal(nguon.includes(chuoi), false, `${ten} còn «${chuoi}»`);
-    for (const chu of ["Thanh toán trước", "Hình thức", "Người thu tiền", "Trả trước"]) assert.equal(nguon.includes(chu), false, `${ten} còn chữ «${chu}»`);
+    // ADR-0168: «Hình thức thanh toán» (Trả trước / Trả sau) là khái niệm khác ô ghi khoản thu trả trước — chỉ cấm đúng các chữ của ô ghi thu cũ.
+    for (const chu of ["Thanh toán trước", "Hình thức thu", "Người thu tiền", "Số tiền trả trước"]) assert.equal(nguon.includes(chu), false, `${ten} còn chữ «${chu}»`);
   }
 });
 

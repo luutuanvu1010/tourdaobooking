@@ -33,6 +33,8 @@ export interface BookerPickerOptions {
   onDoiTacTrung?: (d: DoiTacTrung | null, soDt: string) => void;
   /** Công tắc «Đơn của» đang ở «Khách lẻ» không (mặc định: có). Đã chọn đối tác thì không hỏi nữa. */
   khachLe?: () => boolean;
+  /** Người dùng vừa chọn / bỏ chọn hồ sơ khách (không gọi khi `set` nạp từ đơn đã lưu): nơi dùng hỏi lại những điều phụ thuộc bên đặt (hạn mức trả sau). */
+  onDoiBenDat?: () => void;
 }
 
 export function createBookerPicker(o: BookerPickerOptions): BookerPicker {
@@ -54,6 +56,7 @@ export function createBookerPicker(o: BookerPickerOptions): BookerPicker {
   const choose = (next: BookerChoice): void => {
     choice = next;
     renderStatus();
+    o.onDoiBenDat?.();
   };
 
   function renderStatus(): void {
