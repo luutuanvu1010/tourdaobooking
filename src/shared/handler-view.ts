@@ -2,7 +2,7 @@
 // Quyền đi qua `can()` (một nguồn — permissions.ts), KHÔNG chép ma trận: "được giao" = `handler.staffId` là chính người dùng. Máy chủ vẫn kiểm lại mọi thao tác (`PUT /api/orders/:id/handler`).
 import type { HandlerDto, OrderStatus, StaffProfile } from "./contracts.ts";
 import { banner, type Banner, type ErrorInput } from "./order-errors.ts";
-import { can, seesOnlyAssignedOrders, type PermissionHolder } from "./permissions.ts";
+import { can, hasPermission, seesOnlyAssignedOrders, type PermissionHolder } from "./permissions.ts";
 import { duocGiaoTheoO } from "./ban-hang-phu-trach.ts";
 import { LY_DO_TU_CHOI } from "./ly-do-tu-choi.ts";
 import { vnDateTimeText } from "./vn-date.ts";
@@ -69,7 +69,8 @@ export function handlerControls(staff: PermissionHolder, order: DonChoNutPhuTrac
   const assign = can(staff, "dispatch.assign", { ownerId: order.staffId, assigned: duocGiaoTheoO("dispatch.assign", { laNguoiPhuTrach: dangPhuTrach, laBanHangPhuTrach }) });
   // Từ chối (ADR-0030 điều 1): hỏi bảng quyền với `assigned` = đang phụ trách thật — máy chủ còn chốt đúng người (cả Toàn quyền), nên KHÔNG hỏi không ngữ cảnh.
   const refuse = dangPhuTrach && can(staff, "dispatch.refuse", { assigned: true }) && order.status === "confirmed" && order.daGiao !== true && order.quaMuon === false;
-  return { assign, assignLabel: handler === null ? "Chọn người phụ trách" : "Đổi người phụ trách", claim: handler === null && can(staff, "dispatch.claim"), refuse };
+  return { assign, // Chủ dự án 5/11: khối này là «Hướng dẫn viên»; «Nhận làm HDV» CHỈ cho tài khoản giữ quyền Hướng dẫn viên (chỉ ẩn trên màn hình, máy chủ không đổi).
+  assignLabel: handler === null ? "Chọn Hướng dẫn viên" : "Đổi Hướng dẫn viên", claim: handler === null && can(staff, "dispatch.claim") && hasPermission(staff, "FIELD"), refuse };
 }
 
 export interface HandlerFailure {
@@ -85,23 +86,23 @@ export interface HandlerFailure {
 export function handlerFailure(e: ErrorInput | null, kind: "assign" | "claim" | "refuse"): HandlerFailure {
   if (e === null) return { banner: banner("danger", "Không kết nối được máy chủ.", { lines: [{ text: "Kiểm tra kết nối mạng rồi thử lại." }] }), reload: false };
   // Từ chối (ADR-0030 điều 1): 409 hạn / đã huỷ / nháp / Đã giao là câu máy chủ nói rõ việc phải làm ("Gọi văn phòng để đổi người") — giữ nguyên, không tải lại.
-  if (kind === "refuse" && e.status === 403) return { banner: banner("warning", "Bạn không còn phụ trách đơn này. Đã tải lại."), reload: true };
+  if (kind === "refuse" && e.status === 403) return { banner: banner("warning", "Bạn không còn là Hướng dẫn viên của đơn này. Đã tải lại."), reload: true };
   // ADR-0032 điều 5, 9: hết lượt Từ chối — hiện NGUYÊN câu máy chủ («… Hãy gọi văn phòng.»), hộp không đóng, không tải lại.
   if (kind === "refuse" && e.status === 409 && e.code === "refuse_limit") return { banner: banner("warning", e.message), reload: false };
   if (e.status === 409 && e.code === "stale") {
-    const title = kind === "claim" ? "Đơn này vừa có người khác nhận phụ trách. Đã tải lại đơn." : "Người phụ trách của đơn vừa được đổi ở nơi khác. Đã tải lại — hãy xem người phụ trách hiện tại rồi thử lại nếu cần.";
+    const title = kind === "claim" ? "Đơn này vừa có người khác nhận làm Hướng dẫn viên. Đã tải lại đơn." : "Hướng dẫn viên của đơn vừa được đổi ở nơi khác. Đã tải lại — hãy xem Hướng dẫn viên hiện tại rồi thử lại nếu cần.";
     return { banner: banner("warning", title), reload: true };
   }
-  if (e.status === 409 && e.code === "no_change") return { banner: banner("info", "Người này đang phụ trách đơn rồi. Đã tải lại đơn."), reload: true };
-  if (e.status === 403) return { banner: banner("danger", "Bạn không còn quyền đổi người phụ trách của đơn này. Đã tải lại đơn."), reload: true };
+  if (e.status === 409 && e.code === "no_change") return { banner: banner("info", "Người này đang là Hướng dẫn viên của đơn rồi. Đã tải lại đơn."), reload: true };
+  if (e.status === 403) return { banner: banner("danger", "Bạn không còn quyền đổi Hướng dẫn viên của đơn này. Đã tải lại đơn."), reload: true };
   return { banner: banner("danger", e.message || "Có lỗi xảy ra, thử lại sau."), reload: false };
 }
 
 /** Câu báo (banner thông tin) sau khi lưu thành công. `hadHandler`: trước đó đơn đã có người phụ trách. */
 export function handlerSaved(kind: "assign" | "claim" | "refuse", name: string, hadHandler: boolean): string {
-  if (kind === "claim") return "Bạn đã nhận phụ trách đơn này.";
+  if (kind === "claim") return "Bạn đã nhận làm Hướng dẫn viên của đơn này.";
   if (kind === "refuse") return "Đã trả đơn. Đơn quay về danh sách Chờ nhận.";
-  return hadHandler ? `Đã đổi người phụ trách sang ${name}.` : `Đã giao đơn cho ${name} phụ trách.`;
+  return hadHandler ? `Đã đổi Hướng dẫn viên sang ${name}.` : `Đã giao đơn cho ${name} làm Hướng dẫn viên.`;
 }
 
 export interface MyJobActions {
