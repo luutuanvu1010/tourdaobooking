@@ -11,7 +11,7 @@ Kế hoạch: `2026-11-05-tra-sau-han-muc-ke-hoach.md`. Đặc tả: `docs/super
 - **Chữ mới** («Đặt hạn mức», «Ngừng hạn mức», «Hạn mức trả sau», «Còn được dùng …») dùng đúng chữ đã có ở ADR-0168; vào `docs/BANG-THAM-CHIEU.md` ở trạng thái «tên hiện tại», chủ chưa chọn riêng.
 - **Trần gói trang Đơn hàng không đụng.** Trang mới vào `TRANG`/`THANH_BEN` làm gói `web/orders.ts` thêm byte, và các Task trước đã làm gói vượt trần 16 byte. Bù bằng hai hàm gom `ve`/`vk` (điều kiện hiện của mục) và `tl` (dòng nhóm Thiết lập) ở `src/shared/muc-giao-dien.ts`, giá trị không đổi.
 - **Không có dòng ở trang «Tôi» (`TRANG_TOI`)** cho Hạn mức trả sau, để giữ trần; lối vào là thanh bên nhóm Thiết lập.
-- **Số phiên bản 2.63, ngày 2026-11-05** ở `changelog.ts` là tạm cho nhánh; bước A.0 của lần triển khai đặt lại nếu cần.
+- **Số phiên bản:** mục nhật ký của Trả sau đã đặt 2.63 khi làm; sau khi nhập bản chính (9813f1a4) mục đó là 2.65 và migration là `0141_tra_sau_han_muc` (đổi từ 0139). Bước A.0 của lần triển khai đặt lại nếu cần.
 - **Hướng dẫn:** bài mới «Cấp hạn mức trả sau cho đối tác»; bài «Kho vé điện tử» sửa một câu (đơn trả sau mở vé trước) vì `web/ve-don.ts` đổi.
 
 ## Nợ / điều chưa làm
