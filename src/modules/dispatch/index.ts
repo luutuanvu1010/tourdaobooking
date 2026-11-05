@@ -19,6 +19,7 @@ import { duocGiaoTheoO } from "../../shared/ban-hang-phu-trach";
 import { thayDoiCuaHandler, type TrangThaiPhuTrach } from "../../shared/bang-tin";
 import { UUID_RE, error, json, readJson } from "../../shared/http";
 import { can, hasPermission, holdsPartner, MATRIX } from "../../shared/permissions";
+import { chanDoiTacHuy } from "../../shared/chan-doi-tac-huy";
 import { lyDoHuyCuaHdv } from "../../shared/ly-do-huy";
 import { docLyDoTuChoi } from "../../shared/ly-do-tu-choi";
 import { chiNguoiLapGhiNhap } from "../../shared/xem-don-nhap";
@@ -304,13 +305,14 @@ export const dispatchModule: AppModule = {
     // = ngày khởi hành lớn nhất trong các dịch vụ, đã qua ⇔ < hôm nay giờ VN; ngay trong ngày đi vẫn huỷ được; từ hôm sau chỉ văn phòng huỷ qua
     // /status) → 400 (lý do) → ghi. Đổi ngày giữa lúc đọc và lúc ghi (PUT /trip) làm đổi `updated_at` (KHÔNG đổi `status`) → khoá lạc quan của
     // cancelOrderByHandler (khoá theo CẢ `status` VÀ `updated_at`, T1d) thua → 409.
-    route("POST", "/api/orders/:id/handler-cancel", "staff", async ({ env, request, params, staff, isAssigned, baoThayDoi, dongBoChuyen, traVeKhiHuy }) => {
+    route("POST", "/api/orders/:id/handler-cancel", "staff", async ({ env, request, params, staff, isAssigned, baoThayDoi, dongBoChuyen, traVeKhiHuy, veDaMoCuaDon }) => {
       const orderId = params.id!;
       if (!UUID_RE.test(orderId)) return NOT_FOUND();
       const [order, assigned] = await Promise.all([findOrderOwner(env.DB, orderId), isAssigned(orderId)]);
       if (!order) return NOT_FOUND();
       if (!chiNguoiLapGhiNhap({ status: order.status, laNguoiLap: order.staffId === staff.id })) return NOT_FOUND(); // ADR-0135: nháp của người khác (kể cả HDV chọn sẵn, Toàn quyền) → 404
       if (!can(staff, "order.cancel", { assigned })) return CANCEL_FORBIDDEN();
+      { const chan = await chanDoiTacHuy(staff, orderId, veDaMoCuaDon); if (chan) return chan; } // ADR-0170 Đ3: người giữ quyền Đối tác (kể cả lai) không tự huỷ đơn đã mở vé
       if (await orderDelivered(env.DB, orderId)) return DA_GIAO();
       if (order.status !== "confirmed") return NOT_CONFIRMED();
       if (tripDeparted(await findOrderDepartDates(env.DB, orderId), vnToday(new Date()))) return DEPARTED();

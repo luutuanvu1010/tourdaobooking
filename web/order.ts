@@ -61,6 +61,7 @@ import { canhBaoGiamGiaVuot, duocSuaSoKhachVanPhong, nguonBangSuaSoKhach } from 
 import { cauNhacSoKhach, daiSauSuaSoKhach, dongLichSuHienThi, type DongLichSuHienThi } from "../src/shared/so-khach-hien-thi";
 import type { MoneyEditSource } from "../src/shared/viec-cua-toi";
 import type { SuKienDon } from "../src/shared/bang-tin";
+import { CAU_DON_DA_MO_VE } from "../src/shared/chan-doi-tac-huy";
 
 const id = new URLSearchParams(location.search).get("id");
 const bannerEl = byId("error");
@@ -388,6 +389,8 @@ async function loadHandler(orderId: string): Promise<Handler> {
 /** `undefined` = chưa tải được (không khối, không đoán). Cờ `laBanHang` lấy từ DTO TRANG ĐƠN (`laBanHangPhuTrach`), không từ lời gọi này. */
 let banHang: Api.BanHangDonDto | undefined;
 let laBanHang = false;
+/** ADR-0170 Đ3: máy chủ báo đơn đã mở vé (chỉ gửi cho người giữ quyền Đối tác) ⇒ ẩn nút Huỷ, nói vì sao. Máy chủ vẫn chặn. */
+let coVeDaMo = false;
 let banHangMoiNhap: { staffId: string; name: string } | null = null;
 /** KHÔNG ném lỗi: 403 / lỗi mạng / thiếu khoá → undefined, đơn vẫn hiển thị. */
 async function loadBanHang(orderId: string): Promise<Api.BanHangDonDto | undefined> {
@@ -1543,7 +1546,7 @@ function render(order: Order, history: AuditEntry[], canModify: boolean, handler
   if (a.submit) btns.push(nutGuiDon(boiCanh, chuaCoNgay));
   if (a.withdraw) btns.push(nutRutLai(boiCanh));
   if (a.decide && xacNhan?.yeuCau) btns.push(bangXacNhanDon(boiCanh, order, xacNhan.yeuCau));
-  if (a.cancel) btns.push(nutHuyDon());
+  if (a.cancel) btns.push(coVeDaMo ? h("p", { class: "muted", "data-chan": "huy-da-mo-ve" }, CAU_DON_DA_MO_VE) : nutHuyDon());
   for (const cau of canhBaoXN) btns.push(h("p", { class: "dd-canh-xn", "data-canh-bao": "xac-nhan" }, icon("alert", 16), cau));
   if (chuaCoNgay) btns.push(h("p", { class: "dg-lock", "data-chan": "chua-co-ngay" }, icon("lock", 16), chuaCoNgay));
   if (chanXacNhan) btns.push(duocDatGap ? h("p", { class: "dg-lock dg-lock-note", "data-chan": "xac-nhan" }, chanXacNhan) : h("p", { class: "dg-lock", "data-chan": "xac-nhan" }, icon("lock", 16), chanXacNhan));
@@ -1713,7 +1716,7 @@ async function load(quiet = false): Promise<void> {
   const seq = ++loadSeq;
   try {
     // Người phụ trách tải song song với đơn; lời gọi của nó không bao giờ ném lỗi (xem loadHandler) nên đơn luôn hiển thị được.
-    const [{ order, history, canModify, mocToiThieuPhut, suaSoKhach: soKhach, canhBaoKhuyenMai: nhacKhuyenMai, canhBaoGiamGia: canhBaoHoaHong, lichSuSoKhach: lichSu, xacNhan: xn, laBanHangPhuTrach, banHangMoi }, handler, banHangDon, tienDon, xe, nhapKtDon, khach] = await Promise.all([layDon!(), layNguoiPhuTrach(id!), loadBanHang(id!), layTien(id!), layXe(id!), layNhapKt(id!), layKhach(id!)]);
+    const [{ order, history, canModify, mocToiThieuPhut, suaSoKhach: soKhach, canhBaoKhuyenMai: nhacKhuyenMai, canhBaoGiamGia: canhBaoHoaHong, lichSuSoKhach: lichSu, xacNhan: xn, laBanHangPhuTrach, banHangMoi, coVeDaMo: veDaMo }, handler, banHangDon, tienDon, xe, nhapKtDon, khach] = await Promise.all([layDon!(), layNguoiPhuTrach(id!), loadBanHang(id!), layTien(id!), layXe(id!), layNhapKt(id!), layKhach(id!)]);
     if (seq !== loadSeq) return;
     mocPhut = mocToiThieuPhut;
     suaSoKhach = soKhach;
@@ -1726,6 +1729,7 @@ async function load(quiet = false): Promise<void> {
     khachDon = khach;
     xacNhan = xn ?? null;
     banHang = banHangDon;
+    coVeDaMo = veDaMo === true;
     laBanHang = laBanHangPhuTrach === true; // `=== true`: máy chủ cũ không gửi khoá
     banHangMoiNhap = banHangMoi ?? null;
     show(null);

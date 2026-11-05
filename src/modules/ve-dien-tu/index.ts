@@ -19,6 +19,11 @@ import { che4SoCuoi, kiemLo, kiemVeMoi } from "./nhap-lo.ts";
 import { bamDaCo, cauBoLo, cauChenLink, cauDemMoLink, cauDoiTranLo, cauRutVeCuaLo, cauThuHoiLink, docCaiDatVe, docHanCuoiCuaDon, docLinkCuaDon, docLinkTheoBam, docLinkTheoId, docVeCuaLink, dsLoBoDuoc, dsLoDaHuy, bamDaMo, cauMoAnhVe, docVeLoHuy, maVeDaMo, type LinkKhach, cauChenGiao, cauChenLo, cauChenVe, cauDanhDauLo, docChuDon, docTrangThaiDon, docPhanBoDeXem, docPhanBoMoCuaDon, cauKichHoatLo, cauSuaMaTour, demVeCuaLo, docLo, maVeDaCo, thongKeKho } from "./repository.ts";
 
 export { demVeTheoTrangThai } from "./repository.ts";
+import { veDaMoCuaDon as docVeDaMoCuaDon } from "./repository.ts";
+/** ADR-0170 Đ3: «đơn có vé đã mở không» cho gốc lắp ráp tiêm. Không đọc được ⇒ `null` (bên gọi CHẶN, không đoán «chưa mở»). */
+export const veDaMoCuaDon = async (db: D1Database, orderId: string): Promise<boolean | null> => {
+  try { return await docVeDaMoCuaDon(db, orderId); } catch (e) { console.error("ve_da_mo_loi", orderId, e instanceof Error ? e.name : "loi"); return null; }
+};
 
 /** Nối nhật ký thật (module audit) vào các hàm soạn câu của cap-ve.ts. Gốc lắp ráp dùng khi tiêm (Task 5). */
 export const nhatKyThat = (db: D1Database): GhiNhatKy => (e: NhatKyVe, onlyIf: string) => auditStatement(db, e, onlyIf);

@@ -664,6 +664,8 @@ export interface OrderDetailResponse {
   laBanHangPhuTrach: boolean;
   /** ADR-0142: Bán hàng người lập đã MỜI trên đơn NHÁP (chỉ người lập thấy, chỉ khi còn là Bán hàng mời được); null = chưa mời. Vắng khoá = máy chủ cũ / không phải nháp của người xem. */
   banHangMoi?: { staffId: string; name: string } | null;
+  /** ADR-0170 Đ3: đơn có vé đã mở (hoặc không đọc được). CHỈ có khi người xem giữ quyền Đối tác (kể cả lai); giao diện ẩn nút Huỷ theo cờ này, máy chủ vẫn chặn. */
+  coVeDaMo?: boolean;
 }
 /**
  * `yeuCau` = yêu cầu xác nhận ĐANG MỞ của đơn (null = chưa gửi / đã rút). `canXacNhan` = đơn thuộc diện phải qua bước xác nhận (chỉ tính cho người lập; người khác false).

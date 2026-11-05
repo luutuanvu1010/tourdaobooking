@@ -291,6 +291,8 @@ export interface Ctx<A extends Access = Access> {
   /** {số tính «thu đủ», phải thu, số khai chưa nộp, số chờ Kế toán xác nhận} (`billing.tienDonVe`; `daThu` đã trừ `choNop`, ADR-0159 Đ2, và `choXacNhan`, ADR-0170 Đ2) — để so ở một hàm thuần. Không tiêm / không đọc được ⇒ `null` (KHÔNG mở khoá). */
   tienDonVe: (orderId: string) => Promise<{ daThu: number; phaiThu: number; choNop?: number; choXacNhan?: number } | null>;
   traVeKhiHuy: (orderId: string, lyDo: "DON_HUY" | "RUT_XAC_NHAN") => Promise<D1PreparedStatement[]>;
+  /** ADR-0170 Đ3: đơn có vé đã mở (`revealed_at`) không — gốc lắp ráp tiêm từ `ve-dien-tu`. `null` = không đọc được / không tiêm ⇒ người giữ quyền Đối tác KHÔNG huỷ được (chặn, không đoán). */
+  veDaMoCuaDon: (orderId: string) => Promise<boolean | null>;
   canBangVeSauSuaKhach: (orderId: string) => Promise<void>;
   /**
    * «DÒNG NÀY ĐÃ ĐƯỢC CHỤP CHƯA» (ADR-0148 Đ1) — do gốc lắp ráp tiêm (`orders.ngayChupGanNhat`; `pricing` KHÔNG đọc bảng `ord_`, không phụ thuộc `orders` — sẽ thành vòng; khuôn
@@ -449,6 +451,8 @@ export interface AppOptions {
     capVeSauXacNhan: (env: Env, actor: StaffProfile, orderId: string) => Promise<void>;
     traVeKhiHuy: (env: Env, actor: StaffProfile, orderId: string, lyDo: "DON_HUY" | "RUT_XAC_NHAN") => Promise<D1PreparedStatement[]>;
     canBangVeSauSuaKhach: (env: Env, actor: StaffProfile, orderId: string) => Promise<void>;
+    /** ADR-0170 Đ3. BẮT BUỘC trong mã chạy thật (`src/index.ts`: `ve-dien-tu`); thiếu (khung thử cố ý) → `null` ⇒ chặn. */
+    veDaMoCuaDon: (env: Env, orderId: string) => Promise<boolean | null>;
     /** ADR-0153 Đ3. BẮT BUỘC trong mã chạy thật (`src/index.ts`: `orders.dichVuChoVe`, `billing.tienDonVe`); thiếu (khung thử cố ý) → rỗng / null. */
     dichVuChoVe: (env: Env, orderId: string) => Promise<{ serviceId: string; catalogCode: string; ngayDi: string; pax: { adult: number; child: number; senior: number; infant: number } }[]>;
     tienDonVe: (env: Env, orderId: string) => Promise<{ daThu: number; phaiThu: number; choNop?: number; choXacNhan?: number } | null>;
@@ -633,6 +637,7 @@ export function createApp(opts: AppOptions) {
       dichVuChoVe: async (id) => (typeof opts.injected.dichVuChoVe === "function" ? opts.injected.dichVuChoVe(envH, id) : []),
       tienDonVe: async (id) => (typeof opts.injected.tienDonVe === "function" ? opts.injected.tienDonVe(envH, id) : null),
       traVeKhiHuy: async (id, lyDo) => (who && typeof opts.injected.traVeKhiHuy === "function" ? opts.injected.traVeKhiHuy(envH, who, id, lyDo) : []),
+      veDaMoCuaDon: async (id) => (typeof opts.injected.veDaMoCuaDon === "function" ? opts.injected.veDaMoCuaDon(envH, id) : null),
       canBangVeSauSuaKhach: async (id) => { if (who && typeof opts.injected.canBangVeSauSuaKhach === "function") await opts.injected.canBangVeSauSuaKhach(envH, who, id); },
       hoiDaChup: (q) => (typeof opts.injected.hoiDaChup !== "function" ? Promise.resolve(null) : opts.injected.hoiDaChup(envH, q).then((ngay) => ({ ngay }))),
       chuyenChoTin: (q) =>

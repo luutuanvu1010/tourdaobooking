@@ -4,7 +4,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
-import { app } from "../../../tests/audit/harness.mjs";
+import { app, seedStaff } from "../../../tests/audit/harness.mjs";
 import { A, ACC, ADM, LAI, PARTNER, inDays, setup, svc } from "../../../tests/audit/xac-nhan-khung.mjs";
 
 const AT = "2026-10-01T00:00:00.000Z";
@@ -159,4 +159,110 @@ test("không đọc được chủ đơn: vé khoá (không rơi về nhánh nh�
   assert.notEqual(await app.tienDonVe(w.env.DB, id), null);
   w.sqlite.exec("DROP VIEW v_ord_order_owner; CREATE VIEW v_ord_order_owner AS SELECT id, staff_id FROM orders WHERE 0");
   assert.equal(await app.tienDonVe(w.env.DB, id), null);
+});
+
+// ===== ADR-0170 Đ3: đối tác không tự huỷ đơn đã mở vé (hai đường huỷ: POST /status và POST /handler-cancel) =====
+const PNG = (n: number) => { const u = new Uint8Array(40); u.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0x0d, 0x49, 0x48, 0x44, 0x52, 0, 0, n, n]); return u; };
+const CAU_CHAN = "Đơn đã mở vé nên bạn không tự huỷ được. Liên hệ văn phòng.";
+const PF = "88888888-8888-4888-8888-888888888889"; // Đối tác + Hướng dẫn viên (tài khoản lai), đang phụ trách
+async function nhapKho(w: any, soVe: number) {
+  const lo = await w.call("POST", "/api/ve/lo", { as: ADM, body: { catalogCode: "ZA1", nhomKhach: "ADULT", tenSanPham: "Tour đảo" } });
+  assert.equal(lo.status, 201, lo.text);
+  const ve = Array.from({ length: soVe }, (_x, i) => ({ noiDung: Buffer.from(PNG(i + 1)).toString("base64"), maVe: `BI.MAT.${i + 1}`, tuNgay: "2026-01-01", denNgay: "2027-12-31" }));
+  assert.equal((await w.call("POST", `/api/ve/lo/${lo.json.loId}/ve`, { as: ADM, body: { ve } })).json.themDuoc, soVe);
+  assert.equal((await w.call("POST", `/api/ve/lo/${lo.json.loId}/xac-nhan`, { as: ADM, body: {} })).status, 200);
+}
+/** Đơn ZA1 (2 khách) đã xác nhận, kho 3 vé ⇒ giữ 2 vé. `dat` = người lập; `handler` = người phụ trách chọn sẵn. */
+async function donDaXacNhan(w: any, dat: string, handler?: string) {
+  const r = await w.call("POST", "/api/orders", { as: dat, body: { customerName: "Khách Thử", customerPhone: "0912345678", services: [svc("ZA1", inDays(3))] } });
+  assert.equal(r.status, 201, r.text);
+  const id = r.json.order.id as string;
+  const x = dat === PARTNER ? await w.call("POST", `/api/orders/${id}/gui-don`, { as: dat, body: {} }) : await w.call("POST", `/api/orders/${id}/status`, { as: dat, body: { status: "confirmed" } });
+  assert.equal(x.status, 200, x.text);
+  assert.equal(w.q("SELECT status FROM orders WHERE id = ?", id)[0].status, "confirmed");
+  // Tài khoản lai Đối tác + HDV không chọn được qua route (409 invalid_assignee) nên gán thẳng dòng HANDLE đang mở — đủ để `isAssigned` đúng.
+  if (handler) w.sqlite.prepare("INSERT INTO dsp_assignment (id, order_id, task_kind_code, party_id, status_code, valid_from_at, created_at, updated_at) VALUES (?, ?, 'HANDLE', ?, 'PENDING', ?, ?, ?)").run(crypto.randomUUID(), id, `pty-${handler}`, AT, AT, AT);
+  return id;
+}
+const moVe = (w: any, id: string) => w.sqlite.prepare("UPDATE vdt_allocation SET revealed_at = ? WHERE order_id = ? AND released_at IS NULL").run(AT, id);
+const soVeGiu = (w: any, id: string) => Number(w.q("SELECT count(*) AS n FROM vdt_allocation WHERE order_id = ? AND released_at IS NULL", id)[0].n);
+const trangThai = (w: any, id: string) => String(w.q("SELECT status FROM orders WHERE id = ?", id)[0].status);
+function dem(w: any) {
+  const bang = w.q("SELECT name FROM sqlite_master WHERE type = 'table' AND name LIKE 'bil\\_%' ESCAPE '\\' ORDER BY name").map((x: any) => String(x.name));
+  return { audit: Number(w.q("SELECT count(*) AS n FROM audit_log")[0].n), bil: bang.map((t: string) => Number(w.q(`SELECT count(*) AS n FROM ${t}`)[0].n)) };
+}
+const huy = (w: any, id: string, as: string) => w.call("POST", `/api/orders/${id}/status`, { as, body: { status: "cancelled", lyDo: "KHACH_DOI_Y" } });
+
+test("Đ3: đối tác huỷ đơn đã mở vé qua /status: 409 đúng câu, đơn giữ nguyên, sổ không đổi; hai lần song song cùng 409", async () => {
+  const w = dung();
+  await nhapKho(w, 3);
+  const id = await donDaXacNhan(w, PARTNER);
+  assert.equal(soVeGiu(w, id), 2);
+  moVe(w, id);
+  const truoc = dem(w);
+  const [a, b] = await Promise.all([huy(w, id, PARTNER), huy(w, id, PARTNER)]);
+  for (const r of [a, b]) { assert.equal(r.status, 409, r.text); assert.equal(r.json.error.message, CAU_CHAN); }
+  assert.equal(trangThai(w, id), "confirmed");
+  assert.deepEqual(dem(w), truoc);
+});
+
+test("Đ3: tài khoản lai Đối tác + Hướng dẫn viên đang phụ trách huỷ đơn đã mở vé qua handler-cancel: 409; đơn chưa mở vé: huỷ được", async () => {
+  const w = dung();
+  seedStaff(w.sqlite, { id: PF, phone: "0900000018", name: "Lai PF", perms: ["PARTNER", "FIELD"] });
+  await nhapKho(w, 3);
+  const id = await donDaXacNhan(w, A, PF);
+  moVe(w, id);
+  const truoc = dem(w);
+  const r = await w.call("POST", `/api/orders/${id}/handler-cancel`, { as: PF, body: { reason: "customer_requested" } });
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.message, CAU_CHAN);
+  assert.equal(trangThai(w, id), "confirmed");
+  assert.deepEqual(dem(w), truoc);
+  const chua = await donDaXacNhan(w, A, PF);
+  const ok = await w.call("POST", `/api/orders/${chua}/handler-cancel`, { as: PF, body: { reason: "customer_requested" } });
+  assert.equal(ok.status, 200, ok.text);
+});
+
+test("Đ3: đối tác huỷ đơn CHƯA mở vé: 200; Quản trị huỷ đơn ĐÃ mở vé: 200", async () => {
+  const w = dung();
+  await nhapKho(w, 6);
+  const chua = await donDaXacNhan(w, PARTNER);
+  assert.equal((await huy(w, chua, PARTNER)).status, 200);
+  assert.equal(trangThai(w, chua), "cancelled");
+  const da = await donDaXacNhan(w, PARTNER);
+  moVe(w, da);
+  assert.equal((await huy(w, da, ADM)).status, 200);
+  assert.equal(trangThai(w, da), "cancelled");
+});
+
+test("Đ3: không đọc được vé đã mở thì chặn (veDaMoCuaDon trả null) — cả hai đường huỷ", async () => {
+  const w = dung();
+  seedStaff(w.sqlite, { id: PF, phone: "0900000018", name: "Lai PF", perms: ["PARTNER", "FIELD"] });
+  await nhapKho(w, 6);
+  const a = await donDaXacNhan(w, PARTNER); // chưa mở vé nào: đọc được thì huỷ được
+  const b = await donDaXacNhan(w, A, PF);
+  w.sqlite.exec("PRAGMA legacy_alter_table = ON; ALTER TABLE vdt_allocation RENAME TO vdt_allocation_hong");
+  const truoc = dem(w);
+  const r1 = await huy(w, a, PARTNER);
+  assert.equal(r1.status, 409, r1.text);
+  assert.equal(r1.json.error.message, CAU_CHAN);
+  const r2 = await w.call("POST", `/api/orders/${b}/handler-cancel`, { as: PF, body: { reason: "customer_requested" } });
+  assert.equal(r2.status, 409, r2.text);
+  assert.equal(trangThai(w, a), "confirmed");
+  assert.equal(trangThai(w, b), "confirmed");
+  assert.deepEqual(dem(w), truoc);
+});
+
+test("Đ3: GET /api/orders/:id trả coVeDaMo CHỈ cho người giữ quyền Đối tác; nhân viên không có khoá", async () => {
+  const w = dung();
+  await nhapKho(w, 3);
+  const id = await donDaXacNhan(w, PARTNER);
+  const truoc = await w.call("GET", `/api/orders/${id}`, { as: PARTNER });
+  assert.equal(truoc.status, 200, truoc.text);
+  assert.equal(truoc.json.coVeDaMo, false);
+  moVe(w, id);
+  assert.equal((await w.call("GET", `/api/orders/${id}`, { as: PARTNER })).json.coVeDaMo, true);
+  const nv = await w.call("GET", `/api/orders/${id}`, { as: ADM });
+  assert.equal(nv.status, 200, nv.text);
+  assert.equal("coVeDaMo" in nv.json, false, "nhân viên không thấy cờ");
 });

@@ -26,7 +26,7 @@ import { giaoDienModule } from "./modules/giao-dien";
 import { checkLanGuiConfig, lanGuiNoi } from "./modules/lan-gui";
 import { locationsModule } from "./modules/locations";
 import { feedbackModule } from "./modules/feedback";
-import { canBangVeTheoSoKhach, capVeChoDon, donHangChoXoaVe, nhatKyThat, soanTraVeKhiHuy, veDienTuModule } from "./modules/ve-dien-tu";
+import { canBangVeTheoSoKhach, capVeChoDon, donHangChoXoaVe, nhatKyThat, soanTraVeKhiHuy, veDaMoCuaDon, veDienTuModule } from "./modules/ve-dien-tu";
 import { maintenanceBlock, maintenanceModule, type MaintenanceState } from "./modules/maintenance";
 import { hanGiuPhienNgay, partiesModule } from "./modules/parties";
 import { kiemLuatBan, nguoiHuongCuaHoSo, pricingModule, viecDoKhiThoiVai } from "./modules/pricing";
@@ -260,6 +260,8 @@ const APP_OPTIONS: AppOptions = {
     traVeKhiHuy: async (env, actor, orderId, lyDo) => {
       try { return await soanTraVeKhiHuy(env.DB, { orderId, lyDo, by: actor.id, at: new Date().toISOString(), homNay: vnToday(new Date()) }, nhatKyThat(env.DB)); } catch (e) { console.error("ve_tra_loi", orderId, e instanceof Error ? e.name : "loi"); return []; }
     },
+    // ĐƠN CÓ VÉ ĐÃ MỞ (ADR-0170 Đ3): `orders`, `dispatch` không đọc `vdt_*` — hai đường huỷ của người giữ quyền Đối tác hỏi qua hàm này; null = không đọc được ⇒ chặn.
+    veDaMoCuaDon: (env, orderId) => veDaMoCuaDon(env.DB, orderId),
     canBangVeSauSuaKhach: async (env, actor, orderId) => {
       try { await canBangVeTheoSoKhach(env.DB, await dichVuChoVe(env.DB, orderId), actor.id, nhatKyThat(env.DB), new Date().toISOString(), vnToday(new Date())); } catch (e) { console.error("ve_can_bang_loi", orderId, e instanceof Error ? e.name : "loi"); }
     },

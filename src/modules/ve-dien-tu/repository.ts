@@ -296,6 +296,9 @@ const PHAN_BO_DE_XEM = defineSql(
   `SELECT a.id, a.order_id, a.order_service_id, a.slot_no, a.revealed_at, t.storage_key, t.content_kind FROM vdt_allocation a JOIN vdt_ticket t ON t.id = a.ticket_id
    WHERE a.id = ?1 AND a.released_at IS NULL AND t.stored_at IS NOT NULL AND t.purged_at IS NULL`,
 );
+const VE_DA_MO_CUA_DON = defineSql("ve-dien-tu", "ve_da_mo_cua_don", "SELECT 1 AS co FROM vdt_allocation WHERE order_id = ?1 AND revealed_at IS NOT NULL LIMIT 1");
+/** Đơn có ít nhất một vé ĐÃ MỞ (`revealed_at` khác null — đã xem, giao hoặc lập đường dẫn) không. */
+export const veDaMoCuaDon = async (db: D1Database, orderId: string): Promise<boolean> => (await db.prepare(VE_DA_MO_CUA_DON).bind(orderId).first()) !== null;
 const CHU_DON = defineSql("ve-dien-tu", "chu_don", "SELECT staff_id FROM v_ord_order_owner WHERE id = ?1");
 const PHAN_BO_MO_CUA_DON = defineSql(
   "ve-dien-tu",
