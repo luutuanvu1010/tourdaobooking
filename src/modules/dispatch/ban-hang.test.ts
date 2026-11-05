@@ -165,7 +165,7 @@ test("cauTuChoiLoiMoi chỉ khép lời mời của đúng người được m�
 test("laBanHangPhuTrach: đơn nháp ⇒ false (dù có dòng mở); đơn đã xác nhận ⇒ đúng người true, người khác false", async () => {
   const w = setup();
   const orderId = await newDraft(w);
-  await w.env.DB.batch([M.cauMoBanHangNeuTrong(w.env.DB, { id: "o1", orderId, partyId: pty(SALES2), actorId: ADM, at: NOW() })]);
+  await w.env.DB.batch([M.cauMoBanHangBatBuoc(w.env.DB, { id: "o1", orderId, partyId: pty(SALES2), actorId: ADM, at: NOW(), auditId: ghiNhatKy(w, orderId) })]); // câu «nếu trống» không mở trên nháp, nên gieo qua câu bắt buộc
   assert.equal(await M.laBanHangPhuTrach(w.env.DB, SALES2, orderId), false, "đơn nháp");
   xacNhanBangSql(w, orderId);
   assert.equal(await M.laBanHangPhuTrach(w.env.DB, SALES2, orderId), true);

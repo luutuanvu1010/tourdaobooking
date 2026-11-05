@@ -17,6 +17,14 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Sửa khe đua ADR-0142 (nợ T4): nhận / đổi người phụ trách đúng lúc đơn bị huỷ. Không migration. Số và ngày tạm cho nhánh: bước A.0 đặt lại nếu cần.
+    version: "2.68",
+    date: "2026-11-05",
+    items: [
+      { kind: "sua", text: "Bấm nhận hoặc đổi người phụ trách đúng lúc đơn vừa bị huỷ: Nền tảng báo đơn đã huỷ và không ghi tên người lên đơn đó nữa." },
+    ],
+  },
+  {
     // Thanh toán trả sau theo hạn mức (ADR-0168): migration 0141, ô quyền credit.limit.view / credit.limit.write.
     // Số 2.67 và ngày chỉ là tạm cho nhánh: bước A.0 của lần triển khai đặt lại nếu cần.
     version: "2.67",
