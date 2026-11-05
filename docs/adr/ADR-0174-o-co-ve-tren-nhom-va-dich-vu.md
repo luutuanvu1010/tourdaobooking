@@ -35,6 +35,10 @@
 - **(a) theo giá trị hiện tại — đã chọn:** bật ô thì đơn đã xác nhận chưa đi cũng hiện thiếu và cấp được vé; tắt ô thì hết báo thiếu. Không lưu thêm gì trên đơn. Được: dịch vụ mới có vé vẫn cấp được cho đơn đã bán. Mất: đơn đã đi của dịch vụ vừa bật cũng hiện thiếu, nên chỉ báo thiếu khi ngày đi chưa qua.
 - **(b) Chụp giá trị lúc xác nhận — không chọn:** đổi ô chỉ áp cho đơn xác nhận sau, như đề xuất vé Tour Đảo đang ghi. Được: đơn cũ không đổi nghĩa. Mất: đơn đã bán trước khi bật không được cấp vé qua luồng thường, và phải thêm cột trên đơn.
 
+## Làm rõ Đ3 (chủ duyệt 2026-11-05, nguyên văn: *«Duyệt câu làm rõ»*)
+
+Câu «chỉ một điều kiện lọc ở `dichVuChoVe`» ở Đ3 đọc theo nghĩa: `dichVuChoVe` là **một nguồn** của giá trị ô, trả cả dịch vụ Không vé kèm cờ `coVe`; nơi giữ vé và nơi báo thiếu tự xét cờ đó. Lý do: lọc bỏ dịch vụ Không vé ngay ở `dichVuChoVe` thì vé đang giữ không còn hiện, và giảm khách không trả được vé thừa, trái với chính Đ3. Luật xét ô vẫn chỉ ở một hàm thuần (Đ2). Các câu khác của Đ3 giữ nguyên.
+
 ## Từ ngữ
 
 Tên «Có vé» / «Không vé» lấy theo đề xuất vé Tour Đảo. Khi thi công, thêm vào `docs/BANG-THAM-CHIEU.md` theo ADR-0167; không dùng «Cần vé» vì quá gần «Cần kiểm vé».
