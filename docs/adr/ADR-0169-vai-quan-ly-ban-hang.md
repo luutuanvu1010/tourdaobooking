@@ -49,7 +49,7 @@ Cách đọc lời chủ: *"Admin và giám đốc"* = người giữ quyền `A
 | `admin.manage` | Giá, Sheet, nhóm | Giữ nguyên | Các khối đó không vẽ ở màn hẹp |
 | Gán vai, mã quyền | Tài khoản nội bộ | `account.edit` + `roleAssignmentProblem`, `highPermissionProblem`; `account.create` + hai hàm đó | `web/role-picker.ts` khoá ô với người không có `admin.manage` |
 
-**Cổng không đổi nghĩa:** mã mới cố ý KHÔNG vào `OFFICE_GATE`, vì `isOffice` còn mở Danh bạ, tin đơn và trang đầu. Người giữ vai qua cổng nhờ mã `SALES` đi kèm. Tài khoản bị bớt tay `SALES` thì không qua cổng và không dùng được hai việc mới (`dungManHepDichVu`).
+**Cổng không đổi nghĩa:** mã mới cố ý KHÔNG vào `OFFICE_GATE`, vì `isOffice` còn mở Danh bạ, tin đơn và trang đầu. Người giữ vai qua cổng nhờ mã `SALES` đi kèm. Tài khoản bị bớt tay `SALES` mà không còn mã văn phòng nào khác thì không qua cổng và không dùng được hai việc mới (`dungManHepDichVu`); còn mã văn phòng khác, ví dụ Kế toán, thì vẫn dùng được màn hẹp.
 
 **Rủi ro đã nói với chủ:** người giữ vai tắt được bước kiểm của vé; có nhật ký, không ngăn. Bớt được rủi ro cũ là mọi Bán hàng đều làm được.
 
