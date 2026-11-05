@@ -14,7 +14,17 @@ Kế hoạch: `2026-11-05-tra-sau-han-muc-ke-hoach.md`. Đặc tả: `docs/super
 - **Số phiên bản:** mục nhật ký của Trả sau đã đặt 2.63 khi làm; sau khi nhập bản chính (9813f1a4) mục đó là 2.65 và migration là `0141_tra_sau_han_muc` (đổi từ 0139). Bước A.0 của lần triển khai đặt lại nếu cần.
 - **Hướng dẫn:** bài mới «Cấp hạn mức trả sau cho đối tác»; bài «Kho vé điện tử» sửa một câu (đơn trả sau mở vé trước) vì `web/ve-don.ts` đổi.
 
-## Nợ / điều chưa làm
+## Nợ đã biết (ghi để làm sau, KHÔNG sửa trong lượt này)
+
+1. Phân định trách nhiệm và `coc/chuyen` chưa nối `cauTangChoDon`: chưa thấy đường làm nợ đơn Trả sau tăng, nhưng chưa chứng minh bằng bài.
+2. Cổng huỷ đơn Trả sau không gác phiên bản khi vé được mở đúng giữa hai bước (kiểm rồi mới ghi).
+3. Cổng sửa tăng tiền quá chặt: tính theo nợ cả bên đặt, bỏ qua phần đã thu của chính đơn đó.
+4. Bài quét đường thu tiền (`src/tra-sau-duong-ghi.test.ts`) yếu: chỉ đọc văn bản mã trong 2500–3500 ký tự, không chứng minh cổng đứng trên mọi nhánh.
+5. R-CRD-3 (nợ vượt hạn mức) thay bằng cảnh báo trên màn Hạn mức trả sau, không có hàng rào máy.
+6. `GET /api/tra-sau/con-duoc-dung` nhận `benDat` từ trình duyệt (tài khoản Đối tác bị ép về hồ sơ của phiên, văn phòng thì tự chọn).
+7. Gộp hồ sơ: chặn nợ trả sau fail-open khi hàm đọc nợ không được tiêm (`conNoTraSau` vắng ⇒ không chặn).
+
+## Điều chưa làm
 
 - e2e vé của đơn Trả sau (cần gieo kho vé): chỉ có bài đơn vị `src/tra-sau-ve.test.ts`.
 - `audit-invariants` chạy cuối bộ e2e đủ bộ của `run.mjs`, không chạy riêng trong `tests/e2e/tra-sau.mjs`.
