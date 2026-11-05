@@ -17,7 +17,7 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
-    // ADR-0169: vai Quản lý bán hàng, công tắc kiểm vé về Dịch vụ & giá. Migration 0140. Số và ngày đặt lại ở bước A.0 nếu cần.
+    // ADR-0169: vai Quản lý bán hàng, công tắc kiểm vé về Dịch vụ & giá. Migration 0140_quan_ly_ban_hang (khác tệp 0140_hop_thu_ban_hang của mục 2.64).
     version: "2.65",
     date: "2026-11-05",
     items: [
