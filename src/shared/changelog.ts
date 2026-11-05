@@ -17,6 +17,15 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Bảng tham chiếu ngôn ngữ đợt 2 (ADR-0167): 16 tên nút đổi theo lời chủ 2026-11-05. Không migration, không ô quyền, không lệnh ghi mới.
+    version: "2.63",
+    date: "2026-11-05",
+    items: [
+      { kind: "doi", text: "Đổi chữ trên một số nút cho dễ hiểu hơn, ví dụ «Tải ảnh về máy», «Xem ảnh gửi khách», «Bỏ khỏi danh sách», «Đổi giờ dự kiến». Việc nút làm không đổi." },
+      { kind: "doi", text: "Nút «Sửa giá» trong đơn nay là «Sửa giá đơn này»; ở màn Dịch vụ & giá là «Ghi đè giá», để hai việc khác nhau không trùng tên." },
+    ],
+  },
+  {
     // Màn «Dịch vụ cần kiểm vé» (ADR-0136 Đ1, Đ5) và sửa máy chủ: vé tắt riêng trong nhóm đang bật. Không migration, không ô quyền mới.
     version: "2.62",
     date: "2026-11-04",
