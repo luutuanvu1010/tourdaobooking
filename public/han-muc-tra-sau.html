@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"><meta name="robots" content="noindex"><meta name="theme-color" content="#ffffff"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><link rel="stylesheet" href="/giao-dien.css"><title>Hạn mức trả sau — Island Booking System</title></head>
+<body data-title="Hạn mức trả sau" data-back="/account">
+<header id="topbar"></header>
+<main>
+  <!-- Hạn mức trả sau theo từng đối tác (ADR-0168). Ô credit.limit.view (Kế toán, Toàn quyền), không Đối tác; ghi chỉ Toàn quyền (credit.limit.write). web/han-muc-tra-sau.ts dựng nội dung. -->
+  <h1>Hạn mức trả sau</h1>
+  <p class="muted">Đối tác được đặt đơn trả sau trong hạn mức và số ngày được nợ do Toàn quyền cấp.</p>
+  <div id="error" class="alert" role="alert" hidden></div>
+  <div id="ok" class="alert ok" role="status" hidden></div>
+  <section id="hm-dat" class="card" hidden></section>
+  <div id="hm-khung" hidden>
+    <section id="hm-bang-wrap" class="card table-wrap">
+      <table class="items">
+        <thead><tr><th>Đối tác</th><th>Hạn mức</th><th>Đang nợ</th><th>Còn được dùng</th><th>Đơn quá hạn</th><th></th></tr></thead>
+        <tbody id="hm-bang"></tbody>
+      </table>
+    </section>
+    <div id="hm-the" class="card-list"></div>
+    <p id="hm-rong" class="muted" hidden></p>
+    <section id="hm-don" class="card" hidden></section>
+  </div>
+</main>
+<script type="module" src="/js/han-muc-tra-sau.js"></script>
+</body></html>

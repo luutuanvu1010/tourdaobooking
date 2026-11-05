@@ -299,7 +299,7 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 | Quay lại bản này | `web/tro-ly-cai-dat.ts`: Quay lại bản này | Cài đặt Trợ lý: bộ não và lời dặn | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Lưu thành bản mới | `web/tro-ly-cai-dat.ts`: Lưu thành bản mới | Cài đặt Trợ lý: bộ não và lời dặn | rà soát 2026-11-04: chưa rõ, chờ chủ |
 
-## Việc quan trọng (303)
+## Việc quan trọng (305)
 
 ### Kiểm vé đơn chờ
 
@@ -690,6 +690,13 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 | Tên | Màn hình | Thật sự làm gì | Hỏi lại | Hoàn tác | Đường lệnh, nhật ký | Nơi đặt nút | Trạng thái |
 |---|---|---|---|---|---|---|---|
 | **Lưu** | Giới hạn nhập hoa hồng › biểu mẫu | Đặt phần trăm tối đa và bước số tiền áp cho các mức NHẬP MỚI ở trang Hoa hồng. Mức đã có và đơn đã xác nhận không đổi. Có khoá lạc quan: người khác vừa đổi thì báo tải lại. | không | được: lưu lại số cũ | `/api/pricing/gioi-han-nhap`<br>nhật ký `prc_entry_limit_changed` | `web/hoa-hong-gioi-han.ts`: Lưu | tên hiện tại, chủ chưa chọn riêng (rà soát 2026-11-04: tên đúng) |
+
+### Trả sau: hạn mức theo đối tác
+
+| Tên | Màn hình | Thật sự làm gì | Hỏi lại | Hoàn tác | Đường lệnh, nhật ký | Nơi đặt nút | Trạng thái |
+|---|---|---|---|---|---|---|---|
+| **Đặt hạn mức** | Hạn mức trả sau › biểu mẫu «Đặt hạn mức» và nút ở từng dòng đối tác | Toàn quyền đặt hạn mức tiền và số ngày được nợ cho một đối tác; dòng hạn mức cũ (nếu có) đóng lại, dòng mới có hiệu lực từ hôm nay. Từ lúc này đối tác đặt được đơn trả sau trong hạn mức đó. Đơn trả sau đã xác nhận không đổi. | không | được: đặt lại số cũ hoặc bấm «Ngừng hạn mức» | `/api/tra-sau/han-muc`<br>nhật ký `credit_limit_set` | `web/han-muc-tra-sau.ts`: Đặt hạn mức | tên hiện tại, chủ chưa chọn riêng (Trả sau 2026-11-05: dùng chữ đã có ở ADR-0168, chủ chưa chọn riêng) |
+| **Ngừng hạn mức** | Hạn mức trả sau › nút ở từng dòng đối tác đang có hạn mức | Toàn quyền ngừng hạn mức trả sau của một đối tác: từ lúc này đối tác không đặt thêm đơn trả sau được. Đơn trả sau đã xác nhận vẫn giữ nguyên và nợ vẫn phải thu. | có: hộp «Ngừng hạn mức của …?» với nút «Ngừng hạn mức» và «Giữ hạn mức» | được: đặt lại hạn mức mới | `/api/tra-sau/han-muc/:x/ngung`<br>nhật ký `credit_limit_stopped` | `web/han-muc-tra-sau.ts`: Ngừng hạn mức | tên hiện tại, chủ chưa chọn riêng (Trả sau 2026-11-05: dùng chữ đã có ở ADR-0168, chủ chưa chọn riêng) |
 
 ### Hoa hồng: tra mức nào thắng (chỉ đọc)
 

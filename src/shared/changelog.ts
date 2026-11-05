@@ -17,6 +17,17 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Thanh toán trả sau theo hạn mức (ADR-0168): migration 0139, ô quyền credit.limit.view / credit.limit.write.
+    // Số 2.63 và ngày chỉ là tạm cho nhánh: bước A.0 của lần triển khai đặt lại nếu cần.
+    version: "2.63",
+    date: "2026-11-05",
+    items: [
+      { kind: "moi", text: "Đối tác có hạn mức được chọn «Trả sau» khi lập đơn: vé mở trước, tiền thu sau trong số ngày được nợ." },
+      { kind: "moi", text: "Toàn quyền có màn Hạn mức trả sau để cấp hoặc ngừng hạn mức cho từng đối tác; Kế toán xem được số nợ và đơn quá hạn.", bai: { id: "viec/han-muc-tra-sau", ten: "Cấp hạn mức trả sau cho đối tác" } },
+      { kind: "moi", text: "Đơn trả sau vượt hạn mức, hoặc của đối tác còn đơn quá hạn, không xác nhận được; chi tiết đơn ghi hình thức thanh toán và hạn trả." },
+    ],
+  },
+  {
     // Màn «Dịch vụ cần kiểm vé» (ADR-0136 Đ1, Đ5) và sửa máy chủ: vé tắt riêng trong nhóm đang bật. Không migration, không ô quyền mới.
     version: "2.62",
     date: "2026-11-04",

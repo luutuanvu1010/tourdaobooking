@@ -26,6 +26,8 @@ const TRANG_THANH_BEN_CU: readonly KhoaTrang[] = [
   "hoaHongGioiHan",
   // Màn «Cấp độ đại lý» (đặc tả 2026-11-04-man-cap-dai-ly): ô partner.commission.write, không Đối tác.
   "capDaiLy",
+  // Hạn mức trả sau (ADR-0168): ô credit.limit.view, không Đối tác (Kế toán, Toàn quyền).
+  "hanMucTraSau",
 ];
 const holder = (permissions: readonly PermissionCode[]) => ({ id: "x", permissions });
 
@@ -69,9 +71,9 @@ test("hướng dẫn viên: có Đơn hàng + chân menu, không có nhóm khác
   assert.deepEqual(g[0].muc.map((m) => m.nhan), ["Đơn hàng"]);
 });
 
-test("Kế toán: Hoa hồng đối tác, Cấp độ đại lý (đặc tả 2026-11-04-man-cap-dai-ly), Người bán dịch vụ (chủ duyệt 14/10) và Chụp bù mức (sổ đại lý đợt 2) nằm trong Thiết lập", () => {
+test("Kế toán: Hoa hồng đối tác, Cấp độ đại lý (đặc tả 2026-11-04-man-cap-dai-ly), Hạn mức trả sau (ADR-0168), Người bán dịch vụ (chủ duyệt 14/10) và Chụp bù mức (sổ đại lý đợt 2) nằm trong Thiết lập", () => {
   const tl = thanhBen({ staff: holder(["ACCOUNTING"]) }, "/").find((x) => x.nhom === "THIẾT LẬP");
-  assert.deepEqual(tl?.muc.map((m) => m.nhan), ["Hoa hồng đối tác", "Cấp độ đại lý", "Người bán dịch vụ", "Chụp bù mức"]);
+  assert.deepEqual(tl?.muc.map((m) => m.nhan), ["Hoa hồng đối tác", "Cấp độ đại lý", "Hạn mức trả sau", "Người bán dịch vụ", "Chụp bù mức"]);
 });
 
 test("Quản trị chưa có Phiên đăng nhập, Nhật ký (chỉ Toàn quyền); có Chính sách điều phối để đặt mốc (ADR-0128 Q1)", () => {
@@ -106,4 +108,10 @@ test("Cấp độ đại lý (đặc tả 2026-11-04-man-cap-dai-ly): hiện cho
   const co = (p: PermissionCode[]) => thanhBen({ staff: holder(p) }, "/").flatMap((g) => g.muc).some((m) => m.trang === "capDaiLy");
   for (const p of [["ACCOUNTING"], ["ADMIN"], ["SUPER_ADMIN"]] as PermissionCode[][]) assert.equal(co(p), true, p.join("+"));
   for (const p of [["SALES"], ["HR"], ["PARTNER"], ["DRIVER_PARTNER"], ["FIELD"], ["INTERN"], ["DRIVER"], ["ACCOUNTING", "PARTNER"]] as PermissionCode[][]) assert.equal(co(p), false, p.join("+"));
+});
+
+test("Hạn mức trả sau (ADR-0168): hiện cho Kế toán và Toàn quyền; không hiện cho Bán hàng, Quản trị, Hành chính nhân sự, Đối tác, Tài xế đối tác, tài khoản lai Kế toán + Đối tác", () => {
+  const co = (p: PermissionCode[]) => thanhBen({ staff: holder(p) }, "/").flatMap((g) => g.muc).some((m) => m.trang === "hanMucTraSau");
+  for (const p of [["ACCOUNTING"], ["SUPER_ADMIN"]] as PermissionCode[][]) assert.equal(co(p), true, p.join("+"));
+  for (const p of [["SALES"], ["ADMIN"], ["HR"], ["PARTNER"], ["DRIVER_PARTNER"], ["FIELD"], ["INTERN"], ["DRIVER"], ["ACCOUNTING", "PARTNER"]] as PermissionCode[][]) assert.equal(co(p), false, p.join("+"));
 });

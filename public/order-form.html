@@ -41,6 +41,12 @@
       </section>
       <section class="card buoc" id="pay-card" data-buoc-khoi="thanh-toan" tabindex="-1" aria-labelledby="pay-title">
         <h2 id="pay-title">Thanh toán</h2>
+        <fieldset id="tra-sau-khoi" class="tra-sau-khoi" hidden>
+          <legend>Hình thức thanh toán</legend>
+          <label><input type="radio" name="paymentTerm" value="PREPAID" checked> Trả trước</label>
+          <label><input type="radio" name="paymentTerm" value="CREDIT" aria-describedby="tra-sau-cau"> Trả sau</label>
+          <p id="tra-sau-cau" class="muted" role="status"></p>
+        </fieldset>
         <div class="grid three">
           <label class="o-noi"><span class="o-noi-khung"><input id="discount" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="o-noi-chu">Giảm giá (₫)</span></span></label>
           <label id="dat-coc-o" class="o-noi" hidden><span class="o-noi-khung"><input id="declaredDeposit" type="text" inputmode="numeric" autocomplete="off" placeholder="0" aria-describedby="dat-coc-goi-y"><span class="o-noi-chu">Khách đặt cọc trước (₫)</span></span></label>
