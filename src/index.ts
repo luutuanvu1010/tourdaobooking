@@ -207,7 +207,8 @@ const APP_OPTIONS: AppOptions = {
         return { phuTrachDon, ...xe };
       },
       // ADR-0168 Đ2 mục 6: orders liệt kê đơn của hồ sơ, billing cho biết đơn nào Trả sau còn nợ — gốc lắp ráp ghép (hai module không import nhau).
-      donNguoiDat: async (partyId) => ({ ...(await donCuaNguoiDat(env.DB, partyId)), conNoTraSau: (await noCuaBenDat(env.DB, partyId)).don.map((d) => d.maDon) }),
+      donNguoiDat: (partyId) => donCuaNguoiDat(env.DB, partyId),
+      conNoTraSau: async (partyId) => (await noCuaBenDat(env.DB, partyId)).don.map((d) => d.maDon),
       cauDoiDon: (tu, sang, at) => cauDoiNguoiDat(env.DB, tu, sang, at),
       soDongNo: (partyId) => soDongNoCuaNguoi(env.DB, partyId),
       soDangNhap: () => soDangNhapTheoHoSo(env.DB),

@@ -601,7 +601,7 @@ export const billingModule: AppModule = {
           auditStatement(env.DB, { staffId: staff.id, action: "credit_limit_set", at, targetType: "ledger", targetId: b.partyId, detail: `hạn mức ${dongTien(b.hanMuc)} · ${b.soNgay} ngày` }),
         ]);
       } catch (e) {
-        if (loiTrigger(e, "bil_credit_not_beneficiary")) return error(409, "not_beneficiary", "Hồ sơ này không mang loại đối tác, không cấp được hạn mức trả sau.");
+        if (loiTrigger(e, "bil_credit_not_beneficiary")) return error(409, "not_beneficiary", "Hồ sơ này chưa mang Vai người dùng của đối tác nên chưa cấp được hạn mức trả sau.");
         throw e;
       }
       return json({ ok: true }, 201, { location: "/han-muc-tra-sau" });

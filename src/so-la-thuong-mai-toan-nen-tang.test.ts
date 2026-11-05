@@ -156,6 +156,8 @@ function bangDien(g: Gieo): Record<string, string[]> {
     "/api/staff/:id/roles": [`/api/staff/${DT_B}/roles`],
     // Sổ công nợ P1 (25/10): chi tiết một bên — bên B (hoa hồng của B) và nhà cung cấp (giá vốn); chỉ Kế toán / Toàn quyền không giữ quyền Đối tác nhận 200.
     "/api/ledger/ben/:partyId": [`/api/ledger/ben/${PTY_B}`, "/api/ledger/ben/pty-ncc"],
+    // ADR-0168: danh sách đơn còn nợ trả sau của MỘT bên (Kế toán, Toàn quyền); Đối tác và tài khoản lai Đối tác nhận 403 — vẫn GỌI để thân được quét.
+    "/api/tra-sau/han-muc/:partyId/don": [`/api/tra-sau/han-muc/${PTY_B}/don`],
     "/api/feedback/:id": [`/api/feedback/${g.gopY}`],
     // ADR-0119 Việc 5b: hàng đợi MỘT nhóm (cần ?team) — nhóm Kỹ thuật giữ góp ý thử của B; Toàn quyền nhận 200.
     "/api/feedback/queue": ["/api/feedback/queue?team=fbk-team-ky-thuat"],

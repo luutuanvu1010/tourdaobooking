@@ -336,6 +336,7 @@
 | `bil_accounting_entry` |  | `reason` |  |  |
 | `bil_attribution` |  | `reason` |  |  |
 | `bil_adjustment_request` |  | `reason` |  |  |
+| `bil_credit_limit` |  | `reason` |  |  |
 | `bil_deposit_approval` |  | `reason` |  |  |
 | `bil_outside_refund` |  | `reason` |  |  |
 | `bil_payment_receipt` |  | `note` |  |  |

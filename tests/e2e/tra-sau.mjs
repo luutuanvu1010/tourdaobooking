@@ -41,7 +41,7 @@ r = await call(ACC, "POST", "/api/parties", { kind: "PERSON", fullName: TEN, con
 assert.equal(r.status, 201, JSON.stringify(r.body));
 const BEN = r.body.party.id;
 r = await call(SA, "POST", "/api/tra-sau/han-muc", { partyId: BEN, hanMuc: HAN_MUC, soNgay: 7 });
-assert.equal(r.status, 409, `hồ sơ chưa mang loại đối tác thì không cấp được: ${JSON.stringify(r.body)}`);
+assert.equal(r.status, 409, `hồ sơ chưa mang Vai người dùng của đối tác thì không cấp được: ${JSON.stringify(r.body)}`);
 assert.doesNotMatch(thongBao(r), MA_THO, "câu báo không lộ mã thô");
 r = await call(ADM, "POST", `/api/parties/${BEN}/roles`, { roleTypeCode: "TRAVEL_AGENCY" });
 assert.equal(r.status, 201, JSON.stringify(r.body));

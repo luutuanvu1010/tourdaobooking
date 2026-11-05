@@ -147,7 +147,7 @@ export const BAI_VIEC: readonly BaiViec[] = [
 4. Bấm [[Đặt hạn mức]].
 
 ### Điều dễ sai
-- Chỉ hồ sơ đang mang loại đối tác mới cấp được hạn mức.
+- Chỉ hồ sơ đang mang Vai người dùng của đối tác mới cấp được hạn mức.
 - Đặt lại số mới thì hạn mức cũ đóng lại; đơn trả sau đã xác nhận giữ nguyên hạn trả cũ.
 - Bấm [[Ngừng hạn mức]] thì đối tác không đặt thêm đơn trả sau được, nhưng nợ cũ vẫn phải thu.
 - Đối tác còn đơn trả sau quá hạn chưa thanh toán thì không đặt thêm đơn trả sau được.`,
