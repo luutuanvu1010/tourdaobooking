@@ -27,6 +27,7 @@ const MIEN: { route: string; lyDo: string }[] = [
   { route: "POST /api/cai-dat/nhap-tay", lyDo: "đổi chính sách nhập tay toàn hệ thống, không ghi đơn nào, không có đơn để khoá" },
   { route: "POST /api/cai-dat/xac-nhan-don", lyDo: "đổi cờ «cần xác nhận» / công tắc tự xác nhận toàn hệ thống (ADR-0136 Đ1, Đ5), không ghi đơn nào, không có đơn để khoá" },
   { route: "POST /api/cai-dat/an-thong-tin-khach", lyDo: "đổi công tắc «Ẩn thông tin khách» toàn hệ thống (ADR-0154 Đ2.1), không ghi đơn nào, không có đơn để khoá" },
+  { route: "POST /api/cai-dat/ban-hang-phu-trach", lyDo: "đổi giờ hành chính của lời mời người phụ trách toàn hệ thống (ADR-0142 Đ5), không ghi đơn nào, không có đơn để khoá" },
   { route: "POST /api/cai-dat/khung-gio-don", lyDo: "đổi khung giờ đón toàn hệ thống (ADR-0134 Đ6), không ghi đơn nào, không có đơn để khoá" },
   // ADR-0089 đ8: phân loại lý do huỷ chỉ chạy trên ĐƠN ĐÃ HUỶ; đơn đã Đã giao không huỷ được (ADR-0025 đ1) ⇒ route trả 409 invalid_state "đơn chưa huỷ".
   // ADR-0032: hai route cài đặt / đặt lại hạn mức Từ chối của dispatch — không ghi đơn nào (sổ sự kiện + cài đặt), không có đơn để khoá.
@@ -65,6 +66,10 @@ const CA: Record<string, unknown> = {
   // ADR-0030 điều 1 (nút Từ chối): chỉ CHÍNH người phụ trách qua được chốt đúng người (Toàn quyền không phụ trách → 403 có chủ ý) ⇒ dòng này gọi bằng người phụ
   // trách của đơn khoá (HDV, xem NGUOI_GOI) — vẫn phải 409 order_delivered.
   "POST /api/orders/:id/handler-refuse": { lyDo: "BAN_LICH" },
+  // ADR-0142: ba route ghi của người phụ trách.
+  "POST /api/orders/:id/ban-hang/nhan": {},
+  "POST /api/orders/:id/ban-hang/tu-choi": {},
+  "PUT /api/orders/:id/ban-hang": { staffId: HDV },
 };
 /** Route mà Toàn quyền KHÔNG qua được chốt riêng của route (không phải ô quyền) — gọi bằng người duy nhất qua được chốt; kỳ vọng vẫn là 409 order_delivered. */
 const NGUOI_GOI: Record<string, string> = { "POST /api/orders/:id/handler-refuse": HDV };

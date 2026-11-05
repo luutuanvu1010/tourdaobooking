@@ -3,7 +3,7 @@
 import type { BanHangDonDto, OrderStatus } from "./contracts.ts";
 import { banner, type Banner, type ErrorInput } from "./order-errors.ts";
 import { dongBanHangDanhSach } from "./ban-hang-dong.ts";
-import { can, hasPermission, holdsPartner, passesAdminGate, type PermissionHolder } from "./permissions.ts";
+import { can, holdsIntern, holdsPartner, passesAdminGate, type PermissionHolder } from "./permissions.ts";
 
 /** Điều kiện của đơn mà khối cần (trang đơn gom từ DTO đơn). */
 export interface DonChoBanHang {
@@ -43,7 +43,7 @@ export function banHangTrang(viewer: PermissionHolder, dto: BanHangDonDto | unde
   const uuTienNguoiKhac = dto.loiMoi !== null && !laX && !passesAdminGate(viewer);
   const nhan = dangMo && dto.banHang === null && duocNhan && !uuTienNguoiKhac && (don.status === "confirmed" || don.quyetDinhDuoc);
   const tuChoi = dangMo && dto.banHang === null && laX && duocNhan;
-  const doi = don.status === "confirmed" && !don.daGiao && can(viewer, "dispatch.sales.assign") && !holdsPartner(viewer) && !hasPermission(viewer, "INTERN");
+  const doi = don.status === "confirmed" && !don.daGiao && can(viewer, "dispatch.sales.assign") && !holdsPartner(viewer) && !holdsIntern(viewer);
   return { dong, nhan, tuChoi, doi, doiNhan: dto.banHang ? "Đổi người phụ trách" : "Chọn người phụ trách" };
 }
 

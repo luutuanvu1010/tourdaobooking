@@ -80,7 +80,7 @@ test("người được giao: chỉ kế toán, không quyền nào, đã ngưng
 test("người được giao: tài khoản LAI (còn quyền Đối tác kèm quyền khác) không đủ điều kiện dù quyền khác đủ cấp (ADR-0030 S20-5)", () => {
   for (const perms of [["PARTNER", "FIELD"], ["PARTNER", "SALES"]] as PermissionCode[][]) {
     const r = checkAssignee(account(perms));
-    assert.ok(!r.ok && /Tài khoản có quyền Đối tác không làm người phụ trách được\./.test(r.message), `${perms.join("+")} → ${JSON.stringify(r)}`);
+    assert.ok(!r.ok && /Tài khoản có quyền Đối tác không làm Hướng dẫn viên được\./.test(r.message), `${perms.join("+")} → ${JSON.stringify(r)}`);
   }
 });
 

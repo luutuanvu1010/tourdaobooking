@@ -98,7 +98,7 @@ export const banHangRoutes = [
     if (!order) return NOT_FOUND();
     const dangCho = order.status === "draft" && (await donDangChoXacNhan(env.DB, [orderId])).has(orderId);
     if (!dangCho && !chiNguoiLapGhiNhap({ status: order.status, laNguoiLap: order.staffId === staff.id })) return NOT_FOUND(); // nháp của người khác (không chờ) như không có (ADR-0135 Đ2)
-    if (dangCho) return error(409, "can_quyet_dinh", "Đơn cần kiểm vé — hãy chọn Còn vé / Hết vé.");
+    if (dangCho) return error(409, "can_quyet_dinh", "Đơn cần kiểm vé — hãy chọn «Còn vé, xác nhận đơn» hoặc «Hết vé».");
     if (await orderDelivered(env.DB, orderId)) return DA_GIAO();
     const khung = await khungGioHanhChinh(env.DB);
     if (!khung) return GIO_CHUA_CO();
@@ -141,6 +141,7 @@ export const banHangRoutes = [
     if (!can(staff, "dispatch.sales.claim")) return error(403, "forbidden", "Tài khoản này không nhận người phụ trách được.");
     const orderId = params.id!;
     if (!UUID_RE.test(orderId)) return NOT_FOUND();
+    if (await orderDelivered(env.DB, orderId)) return DA_GIAO();
     const loiMoi = await loiMoiMoCua(env.DB, orderId);
     if (!loiMoi || loiMoi.staffId !== staff.id || staff.partyId === null) return error(409, "khong_co_loi_moi", "Bạn không có lời mời nào còn mở cho đơn này.");
     const at = new Date().toISOString();
