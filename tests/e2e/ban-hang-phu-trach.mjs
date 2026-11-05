@@ -2,7 +2,9 @@
 //   B.10 1 (mời, Nhận trong ưu tiên)  2 (X từ chối)  3 (đơn cần kiểm, Còn vé + ô trong một lô)  4 (Kế toán, HDV quyết định 403)  6 (đua)  7 (đơn cũ)  8 (sửa chuyến được, KHÔNG huỷ)
 //   9 (danh sách mời: mã + tên)  11 (HDV mở đơn chờ 404, nằm ở xac-nhan-don.mjs)  13 (lai)  14 (Rút lại rồi gửi lại)   ADR: Quản trị nhận thay · Bán hàng khác 409 · huỷ 403 · Đối tác thấy tên, handlers 403
 //   Review Focus: R1 (X mất quyền)  R2 (huỷ trong ưu tiên)  R4 (tài khoản lai)  lô nguyên khối  Đổi (nháp 409, lời mời khép NGUOI_KHAC)  cài đặt giờ hành chính
-// KHÔNG phủ ở đây (cần thời gian trôi, e2e không giả đồng hồ được; phủ bằng bài Node có đồng hồ tiêm — xem báo cáo Task 5): ca 5 đồng hồ, ca 10 hộp thư (Task 6), ca 12 thẻ cảnh báo đủ 15 phút,
+// Task 6 (thông báo): hộp thư của lời mời · Nhận · Từ chối · Đổi · yêu cầu xác nhận có X chỉ tới X · Hoàn thành (B.10 ca 10; đọc dòng `order_completed` gieo thẳng — đường bấm Hoàn thành thật nằm ở so-tien.mjs).
+// Bảng tin / báo đẩy KHÔNG kiểm ở e2e (chạy không có trạm BANG_TIN / khoá VAPID — `baoThayDoi` thoát sớm); luật nhãn và người nhận phủ bằng bài Node (thong-bao-ban-hang.test.ts, tin-ban-hang-hop.test.ts).
+// KHÔNG phủ ở đây (cần thời gian trôi, e2e không giả đồng hồ được; phủ bằng bài Node có đồng hồ tiêm — xem báo cáo Task 5): ca 5 đồng hồ (không thuộc thông báo), ca 12 thẻ cảnh báo đủ 15 phút,
 // Nhận SAU hạn ưu tiên. Ca 6 «sau hạn» dùng đơn KHÔNG có lời lời mời (trạng thái tương đương: không ai có ưu tiên).
 // D1 chung với kịch bản khác: mã danh mục giả ZXN1 (đánh cờ rồi TRẢ cờ về) / ZXN2; tài khoản Bán hàng / Đối tác / lai dùng một lần. Không đổi công ty chủ; chính sách giờ hành chính thêm hai dòng rồi trả về giá trị cũ.
 import assert from "node:assert/strict";
@@ -51,6 +53,7 @@ const sqlMoc = async (id) => (await sqlRows(`SELECT updated_at AS u FROM orders 
 const yeuCauMo = async (id) => (await sqlRows(`SELECT id FROM ord_confirm_request WHERE order_id = '${id}' AND decided_at IS NULL`))[0]?.id;
 const quyet = async (who, id, ketQua, extra = {}) => call(who, "POST", `/api/orders/${id}/quyet-dinh`, { ketQua, yeuCauId: await yeuCauMo(id), updatedAt: await sqlMoc(id), ...extra });
 const partyCua = async (staffId) => (await sqlRows(`SELECT party_id FROM staff WHERE id = '${staffId}'`))[0].party_id;
+const tin = async (who, ma) => (await call(who, "GET", "/api/thong-bao?ngan=tat-ca")).body.tin.filter((t) => t.maDon === ma).map((t) => t.loai).sort();
 let r;
 
 const dauChinhSach = (await call(SUPER, "GET", URL_BH)).body;
@@ -81,6 +84,8 @@ try {
   assert.equal((await status(SALES, o1.id, "confirmed")).status, 200);
   assert.equal(((await loiMoi(o1.id)).length), 1, "lời mời có từ lúc ghi nhận");
   assert.equal(await nhatKy(o1.id, "sales_invited"), 1);
+  assert.ok((await tin(SALES_B, o1.orderCode)).includes("moi_ban_hang"), "X có tin lời mời ở hộp thư");
+  assert.ok(!(await tin(Y.cookie, o1.orderCode)).includes("moi_ban_hang"), "Bán hàng khác không có tin lời mời của X");
   r = await nhan(Y.cookie, o1.id);
   assert.deepEqual([r.status, r.body.error?.code], [409, "dang_cho_nguoi_khac"], `Bán hàng khác trong ưu tiên: ${JSON.stringify(r.body)}`);
   assert.equal(await oMo(o1.id), 0);
@@ -92,6 +97,12 @@ try {
   assert.equal(await oMo(o1.id), 1);
   assert.equal((await loiMoi(o1.id))[0].outcome, "NHAN");
   assert.equal(await nhatKy(o1.id, "sales_owner_claimed"), 1);
+  assert.ok((await tin(SALES, o1.orderCode)).includes("ban_hang_nhan"), "người lập có tin «đã có Bán hàng phụ trách»");
+  assert.ok(!(await tin(SALES_B, o1.orderCode)).includes("ban_hang_nhan"), "người nhận không tự nhận tin của mình");
+  // B.10 ca 10 (đường đọc): Hoàn thành tới Bán hàng phụ trách + người lập, không tới người khác.
+  await sql(`INSERT INTO audit_log (id, order_id, staff_id, action, created_at) VALUES ('e2e-bh-${tag}', '${o1.id}', '${await idCua(ACCOUNTS.accountant.phone)}', 'order_completed', '${new Date().toISOString()}')`);
+  for (const [ten, who] of [["Bán hàng phụ trách", SALES_B], ["người lập", SALES]]) assert.ok((await tin(who, o1.orderCode)).includes("hoan_thanh"), `${ten} có tin Hoàn thành`);
+  for (const [ten, who] of [["Bán hàng khác", Y.cookie], ["Quản trị", ADMIN], ["HDV", FIELD]]) assert.ok(!(await tin(who, o1.orderCode)).includes("hoan_thanh"), `${ten} không có tin Hoàn thành`);
   r = await call(SALES_B, "GET", `/api/orders/${o1.id}`);
   assert.deepEqual([r.body.laBanHangPhuTrach, r.body.canModify], [true, false]);
   const dv = r.body.order.services[0];
@@ -110,6 +121,8 @@ try {
   assert.equal((await tuChoi(SALES_B, o2.id)).status, 200);
   assert.equal((await loiMoi(o2.id))[0].outcome, "TU_CHOI");
   assert.equal(await nhatKy(o2.id, "sales_invite_refused"), 1);
+  assert.ok((await tin(SALES, o2.orderCode)).includes("ban_hang_tu_choi"), "người lập có tin X từ chối");
+  assert.ok(!(await tin(SALES_B, o2.orderCode)).includes("ban_hang_tu_choi"), "X không tự nhận tin của mình");
   assert.equal((await nhan(Y.cookie, o2.id)).status, 200, "sau khi X từ chối, Bán hàng khác nhận ngay");
   assert.equal(await chuO(o2.id), await partyCua(Y.id));
   console.log("✓ ca 2: X từ chối → TU_CHOI, Y nhận 200");
@@ -126,6 +139,9 @@ try {
   const o4 = await lap(SALES, "ZXN1", { banHangMoiStaffId: ID_B });
   assert.equal((await gui(SALES, o4.id)).status, 201);
   assert.equal((await loiMoi(o4.id)).length, 1, "lời mời mở lúc gửi xác nhận");
+  // Đơn còn NHÁP chờ xác nhận mà X vẫn nhận tin mời; trong ưu tiên chỉ X nhận tin «chờ xác nhận» (Quản trị, Toàn quyền, Bán hàng khác không).
+  assert.deepEqual((await tin(SALES_B, o4.orderCode)).filter((l) => l === "moi_ban_hang" || l === "cho_xac_nhan"), ["cho_xac_nhan", "moi_ban_hang"]);
+  for (const [ten, who] of [["Quản trị", ADMIN], ["Toàn quyền", SUPER], ["Bán hàng khác", Y.cookie]]) assert.ok(!(await tin(who, o4.orderCode)).includes("cho_xac_nhan"), `${ten} không có tin chờ xác nhận trong ưu tiên của X`);
   for (const [ten, who] of [["Kế toán", ACC], ["HDV", FIELD]]) assert.equal((await quyet(who, o4.id, "CON_VE")).status, 403, `${ten} quyết định 403`);
   r = await quyet(Y.cookie, o4.id, "CON_VE");
   assert.deepEqual([r.status, r.body.error?.code], [409, "dang_cho_nguoi_khac"], `Bán hàng khác chen trong ưu tiên: ${JSON.stringify(r.body)}`);
@@ -224,6 +240,9 @@ try {
   assert.equal((await status(SALES, o13.id, "confirmed")).status, 200);
   assert.equal((await doi(ADMIN, o13.id, Y.id)).status, 200);
   assert.equal((await loiMoi(o13.id))[0].outcome, "NGUOI_KHAC", "Đổi khép lời mời đang mở");
+  assert.ok((await tin(Y.cookie, o13.orderCode)).includes("doi_ban_hang"), "người mới có tin Đổi");
+  assert.ok((await tin(SALES, o13.orderCode)).includes("doi_ban_hang"), "người lập có tin Đổi");
+  assert.ok(!(await tin(SALES_B, o13.orderCode)).includes("doi_ban_hang"), "người được mời cũ không có dòng hộp thư của Đổi");
   console.log("✓ ca 7 + Đổi: đơn cũ Nhận 409 don_cu nhưng Quản trị Đổi được; nháp 409 don_nhap; Đổi khép lời mời NGUOI_KHAC");
 
   // ---- ca 6: hai người Nhận cùng lúc (đơn không lời mời — trạng thái tương đương «sau hạn»), và X cùng Quản trị trong ưu tiên --------------------------------------------------

@@ -71,6 +71,13 @@ export interface DonCuaNguoiDatTom { doi: number; giuDaGiao: number; giuDaHuy: n
  * `GopHoSoNoi`). Mỗi hàm đọc là MỘT truy vấn D1. Câu nối vào lô của `orders` mang `auditId` = id dòng nhật ký của lệnh đơn (gác «lệnh chính đã thắng»);
  * câu đi sau câu chính của `dispatch` gác bằng id dòng ô vừa mở. Ý nghĩa từng câu: xem `src/modules/dispatch/ban-hang.ts`.
  */
+/**
+ * Một lệnh báo Bảng tin / báo đẩy về đơn (`ctx.baoThayDoi`). Ngoài `orderId` + `thayDoi`: `handlerTruoc` (chỉ `PUT …/handler` truyền thật — xem `nhanSuKien`);
+ * ADR-0142: `banHangTruoc` = Bán hàng phụ trách TRƯỚC khi Đổi (mã tài khoản, null = chưa ai) và `nguoiMoi` = người được mời mà người khác vừa nhận thay (route biết vì đọc lời mời TRƯỚC lô).
+ * Gốc lắp ráp tự đọc Bán hàng phụ trách / lời mời HIỆN TẠI và tự thêm tin phụ («Chờ Bán hàng nhận», lời mời) — route chỉ gọi MỘT lần (hàng rào `bang-tin-guard.test.ts`).
+ */
+export interface BaoThayDoiDon { orderId: string; thayDoi: ThayDoiDon; handlerTruoc?: TrangThaiPhuTrach; banHangTruoc?: string | null; nguoiMoi?: string | null }
+
 export interface BanHangNoi {
   laBanHangPhuTrach: (staffId: string, orderId: string) => Promise<boolean>;
   kiemBanHangMoi: (staffId: string) => Promise<{ ok: true; partyId: string; name: string } | { ok: false; message: string }>;
@@ -170,7 +177,7 @@ export interface Ctx<A extends Access = Access> {
    * KHÔNG `await` được (bắn-và-quên, DP-3) — router tự bọc `exec.waitUntil` + bắt lỗi, lỗi phát tin không bao giờ làm hỏng hay làm chậm thao tác
    * ghi. Route công khai (`staff` null, chưa đăng nhập) → no-op, không có ai "báo" thay mặt.
    */
-  baoThayDoi: (e: { orderId: string; thayDoi: ThayDoiDon; handlerTruoc?: TrangThaiPhuTrach }) => void;
+  baoThayDoi: (e: BaoThayDoiDon) => void;
   /**
    * TIN CHUYẾN (ADR-0052 D6.3) — route van-chuyen báo "lệnh chuyến vừa ghi xong" SAU lô thành công; KHÔNG gọi khi 4xx hay lệnh lặp. Kiểu `void`: bắn-và-quên
    * (router bọc waitUntil + bắt lỗi → một dòng `bang_tin_loi` viec "bao_chuyen"). Gốc lắp ráp tự đọc hành động từ nhật ký theo `requestId` (không tin chữ route).
@@ -397,7 +404,7 @@ export interface AppOptions {
      * `batDau` (ADR-0062 Đ4): mốc ISO router chụp TRƯỚC khi chạy handler của request này — gốc lắp ráp chỉ gõ cửa theo dòng đổi ghi từ mốc đó (dòng do CHÍNH
      * request này ghi), nên lệnh báo "chuyen" / "tien" mà không ghi dòng đổi (ghi khoản thu, đặt gấp…) không gõ cửa lại dòng đổi cũ. Không vào sự kiện Bảng tin.
      */
-    baoThayDoi: (env: Env, actor: StaffProfile, e: { orderId: string; thayDoi: ThayDoiDon; handlerTruoc?: TrangThaiPhuTrach }, batDau: string) => Promise<void>;
+    baoThayDoi: (env: Env, actor: StaffProfile, e: BaoThayDoiDon, batDau: string) => Promise<void>;
     /** TIN CHUYẾN (ADR-0052 D6.3, D6.4). BẮT BUỘC trong mã chạy thật (`src/index.ts`): phát Bảng tin chuyến + gõ cửa tin chuyến; thiếu (khung thử cũ) → no-op. */
     baoThayDoiChuyen: (env: Env, actor: StaffProfile, e: { tripId: string; requestId: string }) => Promise<void>;
     /** BẢNG TIN (ADR-0022). BẮT BUỘC. Bản thật ở `src/index.ts` (`dongCua` của module `bangtin`); chỉ là no-op khi môi trường không có binding `BANG_TIN`. */

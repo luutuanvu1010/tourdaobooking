@@ -35,7 +35,7 @@ import { accountOfParty, listStaffAccounts, nhanNhanVienTheoId, soDangNhapTheoHo
 import { dayGoCua, dayGoCuaDoi, dongChuyenTheoId, tatMayCuaCacPhienStatement, tatMayCuaPhienStatement, tatMayStatement, tatMayTruPhienStatement, thongbaoModule } from "./modules/thongbao";
 import { troLyModule } from "./modules/tro-ly";
 import { chuyenChoTinTheoId, dongBoChuyenChoDon, mocToiThieuHienHanh, nguongHetHanHienHanh, suKienTheoYeuCau, vanChuyenModule, viecXeCuaNguoi } from "./modules/van-chuyen";
-import { HANDLER_TRUOC_KHONG_BIET, nhanSuKien, nhanSuKienChuyen } from "./shared/bang-tin";
+import { HANDLER_TRUOC_KHONG_BIET, nhanSuKien, nhanSuKienChuyen, type ThayDoiDon } from "./shared/bang-tin";
 import { dangChayLucSuKien, dongCoTheSinhTin, taiXeNhanSuKien, thayDoiCuaHanhDongChuyen } from "./shared/tin-chuyen";
 import { hanhDongCuaThayDoi, khoaVapid } from "./shared/web-push";
 import { holdsPartner } from "./shared/permissions";
@@ -48,6 +48,9 @@ export { BangTin } from "./modules/bangtin/tram";
  * Gộp kết quả `allSettled` của các việc ĐỘC LẬP (đặt tên): một lỗi → ném lại chính nó; nhiều lỗi → một Error có `name` = "tram:<tên lỗi>; day:<tên lỗi>"
  * (router chỉ ghi `name` vào dòng `bang_tin_loi` — biết nửa nào hỏng, không lộ nội dung lỗi). Không nuốt lỗi.
  */
+/** Loại báo KHÔNG cần đọc Bán hàng phụ trách / lời mời hiện tại (ADR-0142): không đổi người nhận, và không tự sinh tin phụ. Mọi loại khác đọc thêm hai lần. */
+const LOAI_KHONG_CAN_BAN_HANG: ReadonlySet<ThayDoiDon> = new Set<ThayDoiDon>(["tao", "tao_cho_nhan", "sua", "chuyen", "tien", "chot_giao", "tu_choi"]);
+
 async function nemNeuLoi(viec: [string, Promise<unknown> | null][]): Promise<void> {
   const kq = await Promise.allSettled(viec.map(([, p]) => p));
   const loi = kq.flatMap((r, i) => (r.status === "rejected" ? [[viec[i]![0], r.reason] as const] : []));
@@ -78,37 +81,59 @@ const APP_OPTIONS: AppOptions = {
     baoThayDoi: async (env, actor, e, batDau) => {
       // Kiểm TRƯỚC hai lần đọc D1: không trạm VÀ không khoá gõ cửa (khung thử, e2e) → không đọc gì.
       if (!env.BANG_TIN && !khoaVapid(env)) return;
-      const [ref, handlerSau] = await Promise.all([findOrderRef(env.DB, e.orderId), handlerOf(env.DB, e.orderId)]);
+      // ADR-0142: loại báo cần biết Bán hàng phụ trách / lời mời HIỆN TẠI (hai lần đọc thêm); các loại khác không đọc gì thêm.
+      const canBanHang = !LOAI_KHONG_CAN_BAN_HANG.has(e.thayDoi);
+      const bhNoi = banHangNoi(env.DB);
+      const [ref, handlerSau, banHangMap, loiMo] = await Promise.all([
+        findOrderRef(env.DB, e.orderId), handlerOf(env.DB, e.orderId),
+        canBanHang ? bhNoi.banHangCuaDon([e.orderId]) : null, canBanHang ? bhNoi.loiMoiMoCua(e.orderId) : null,
+      ]);
       if (!ref) return;
+      const banHang = banHangMap?.get(e.orderId)?.staffId ?? null;
+      const nguoiDuocMoi = loiMo?.staffId ?? null;
+      const loiMoi = loiMo && nguoiDuocMoi !== null ? { staffId: nguoiDuocMoi, hanIso: loiMo.hanIso } : null;
       // Đơn mới mà không ai phụ trách (người lập không chọn ai — ADR-0030 S20-4 — hoặc không đủ điều kiện: Đối tác, chưa có hồ sơ) → loại sự kiện
       // riêng (màn hình làm mới); ADR-0045: lưu nháp KHÔNG thông báo nổi / gõ cửa ai — tin "chờ nhận" nảy ra lúc xác nhận (luật ở src/shared/thong-bao.ts).
       const thayDoi = e.thayDoi === "tao" && !handlerSau.coNguoi ? "tao_cho_nhan" : e.thayDoi;
+      // ADR-0142 L9: tin PHỤ suy từ trạng thái hiện tại (route chỉ gọi một lần). Có lời mời mở sau khi gửi xác nhận / xác nhận ⇒ báo lời mời cho X; đơn đã xác nhận mà chưa ai phụ trách và không còn lời mời
+      // (xác nhận không mời ai, hoặc X vừa từ chối) ⇒ «Chờ Bán hàng nhận» (chỉ Bảng tin, không báo đẩy).
+      const moiThem = (thayDoi === "cho_xac_nhan" || thayDoi === "xac_nhan") && nguoiDuocMoi !== null;
+      const choBanHang = (thayDoi === "xac_nhan" && ref.status === "confirmed" && banHang === null && loiMo === null) || thayDoi === "ban_hang_tu_choi";
       // ADR-0030 S20-8/9: route không tự đọc lại trạng thái trước khi ghi (chỉ `PUT .../handler` mới truyền `e.handlerTruoc` thật) mặc định
       // là "KHÔNG BIẾT" — hằng dùng chung `HANDLER_TRUOC_KHONG_BIET` (`null`), KHÔNG PHẢI "chưa ai phụ trách": coi nhầm thành "chưa ai" làm
       // `nhanSuKien` gắn `cho-nhan` sai cho đơn ĐÃ có người, lộ tin sang mọi HDV khác (xem chú thích `nhanSuKien`). KHÔNG viết tay giá trị
       // mặc định ở đây: bài hàng rào "(2)" ở `src/shared/bang-tin.test.ts` đọc chính dòng này và đỏ nếu đối số khác `e.handlerTruoc ?? HANDLER_TRUOC_KHONG_BIET`.
       const luc = new Date().toISOString();
-      const action = hanhDongCuaThayDoi(thayDoi);
+      /** Phát MỘT sự kiện (Bảng tin + báo đẩy): sự kiện chính hoặc tin phụ. `moi` = người được mời gắn vào nhãn / DongDon của riêng sự kiện này. */
+      const phatMot = (t: ThayDoiDon, moi: string | null, khongDay: boolean): [string, Promise<unknown> | null][] => {
+        const action = hanhDongCuaThayDoi(t);
+        return [
+          ["tram", phatDon(
+            env,
+            { loai: "don", orderId: e.orderId, maDon: ref.orderCode, thayDoi: t, luc },
+            nhanSuKien({ ownerId: ref.staffId, handlerTruoc: e.handlerTruoc ?? HANDLER_TRUOC_KHONG_BIET, handlerSau, laNhap: ref.status === "draft", choXacNhan: t === "cho_xac_nhan", thayDoi: t, banHang, banHangTruoc: e.banHangTruoc ?? null, nguoiMoi: moi }), // ADR-0135 Đ4; ADR-0136 Đ10: gửi xác nhận thêm nhãn xet-duyet: tin của nháp chỉ tới người lập; ADR-0142: Bán hàng phụ trách
+          )],
+          ["day", khongDay || action === null ? null : dayGoCua(env, {
+            don: {
+              id: "day", orderId: e.orderId, maDon: ref.orderCode, action, actorId: actor.id, tenNguoiLam: null, luc, ownerId: ref.staffId,
+              phuTrach: handlerSau, lapChuaCoNguoi: t === "tao_cho_nhan", cungLoLap: false, laNhap: ref.status === "draft", banHangStaffId: banHang, loiMoi,
+            },
+            quanTrong: false,
+          }, (ds) => xepHangDay(env, ds))],
+        ];
+      };
       // ADR-0062 Đ4 + ADR-0052 D6.2 MQ-07: lệnh báo "chuyen" (chuyến / chặng / đặt gấp) hay "tien" (số khách, sổ tiền) → gõ cửa theo DÒNG ĐỔI mà CHÍNH request
-      // này ghi (đọc lại từ v_aud_order_change qua thongbao, của người này trên đơn, ghi từ `batDau` — mốc router chụp trước handler). Lệnh không ghi dòng đổi
-      // (ghi khoản thu, đặt gấp, số khách y nguyên) → không có dòng → không gõ cửa. Route KHÔNG truyền chữ nhật ký qua ctx, nên sự kiện Bảng tin vẫn đúng id +
-      // loại; cùng hàm locHopThongBao với hộp thư (mỗi người tối đa một tin: MQ-07 hoặc tin đơn đổi). Câu trên màn hình khoá do GET …/moi-nhat đọc lại từ hộp thư.
+      // này ghi (đọc lại từ v_aud_order_change qua thongbao, của người này trên đơn, ghi từ `batDau` — mốc router chụp trước handler). Lệnh không ghi dòng đổi (ghi khoản thu, đặt gấp,
+      // số khách y nguyên) → không có dòng → không gõ cửa. Route KHÔNG truyền chữ nhật ký qua ctx, nên sự kiện Bảng tin vẫn đúng id + loại; cùng hàm locHopThongBao với hộp thư
+      // (mỗi người tối đa một tin: MQ-07 hoặc tin đơn đổi). Câu trên màn hình khoá do GET …/moi-nhat đọc lại từ hộp thư.
+      const action = hanhDongCuaThayDoi(thayDoi);
       const tinDoi = action === null && (thayDoi === "chuyen" || thayDoi === "tien") && khoaVapid(env) !== null;
-      // Hai việc ĐỘC LẬP: trạm lỗi thì vẫn gõ cửa, và ngược lại.
-      await nemNeuLoi([
-        ["tram", phatDon(
-          env,
-          { loai: "don", orderId: e.orderId, maDon: ref.orderCode, thayDoi, luc },
-          nhanSuKien({ ownerId: ref.staffId, handlerTruoc: e.handlerTruoc ?? HANDLER_TRUOC_KHONG_BIET, handlerSau, laNhap: ref.status === "draft", choXacNhan: thayDoi === "cho_xac_nhan" }), // ADR-0135 Đ4; ADR-0136 Đ10: gửi xác nhận thêm nhãn xet-duyet: tin của nháp chỉ tới người lập
-        )],
-        ["day", tinDoi ? dayGoCuaDoi(env, e.orderId, actor.id, batDau, (q) => chuyenChoTinTheoId(env.DB, q), (ds) => xepHangDay(env, ds)) : action === null ? null : dayGoCua(env, {
-          don: {
-            id: "day", orderId: e.orderId, maDon: ref.orderCode, action, actorId: actor.id, tenNguoiLam: null, luc, ownerId: ref.staffId,
-            phuTrach: handlerSau, lapChuaCoNguoi: thayDoi === "tao_cho_nhan", cungLoLap: false, laNhap: ref.status === "draft",
-          },
-          quanTrong: false,
-        }, (ds) => xepHangDay(env, ds))],
-      ]);
+      const viec = phatMot(thayDoi, thayDoi === "ban_hang_nhan" ? (e.nguoiMoi ?? null) : nguoiDuocMoi, moiThem && thayDoi === "cho_xac_nhan"); // có tin phụ lời mời thì bỏ đẩy của chính nó: X chỉ nhận MỘT cú gõ cửa
+      if (tinDoi) viec[1] = ["day", dayGoCuaDoi(env, e.orderId, actor.id, batDau, (q) => chuyenChoTinTheoId(env.DB, q), (ds) => xepHangDay(env, ds))];
+      if (moiThem) viec.push(...phatMot("moi_ban_hang", nguoiDuocMoi, false));
+      if (choBanHang) viec.push(...phatMot("cho_ban_hang", null, false));
+      // Các việc ĐỘC LẬP: trạm lỗi thì vẫn gõ cửa, và ngược lại.
+      await nemNeuLoi(viec);
     },
     // TIN CHUYẾN (ADR-0052 D6.3, D6.4). Bảng tin: MỌI lệnh chuyến (màn đang mở tự tải lại) — chuyến nguồn và chuyến liên quan (dời khách); gõ cửa: chỉ
     // hành động sinh tin (HANH_DONG_TIN_CHUYEN). Hai việc độc lập. Kiểm TRƯỚC mọi lần đọc D1: không trạm VÀ không khoá gõ cửa (khung thử, e2e) → thôi.

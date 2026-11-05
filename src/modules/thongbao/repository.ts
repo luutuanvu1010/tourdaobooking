@@ -1,5 +1,5 @@
 // SQL của module thongbao (bảng ntf_*; ADR-0034 + ADR-0036). Mọi câu qua defineSql, tham số ?N. Đọc xuyên module CHỈ qua view công bố:
-// v_aud_order_event + v_aud_order_change + v_aud_trip_event + v_aud_account_event + v_aud_ledger_event (audit), v_ord_order_label + v_ord_order_owner (orders), v_dsp_order_handler + v_dsp_first_handler (dispatch), v_stf_staff_label (staff).
+// v_aud_order_event + v_aud_order_change + v_aud_trip_event + v_aud_account_event + v_aud_ledger_event (audit), v_ord_order_label + v_ord_order_owner (orders), v_dsp_order_handler + v_dsp_first_handler + v_dsp_sales_owner + v_dsp_sales_invite_open (dispatch; ADR-0142), v_stf_staff_label (staff).
 // Không DELETE, không OR REPLACE (R-N1-9).
 import { defineSql } from "../../shared/sql-registry.ts";
 import type { DongDieuChinh, DongDon, DongThuCong } from "../../shared/thong-bao.ts";
@@ -12,13 +12,16 @@ const LIST_DON = defineSql("thongbao", "list_don", `
          (e.action = 'order_handler_changed' AND EXISTS (SELECT 1 FROM v_aud_order_event c
             WHERE c.order_id = e.order_id AND c.action = 'created' AND c.created_at = e.created_at)) AS cung_lo_lap,
          (e.action = 'order_confirm_requested' AND EXISTS (SELECT 1 FROM v_aud_order_event k
-            WHERE k.order_id = e.order_id AND k.action IN ('order_confirm_withdrawn', 'confirmed', 'cancelled') AND k.created_at > e.created_at)) AS yeu_cau_da_khep
+            WHERE k.order_id = e.order_id AND k.action IN ('order_confirm_withdrawn', 'confirmed', 'cancelled') AND k.created_at > e.created_at)) AS yeu_cau_da_khep,
+         bh.staff_id AS ban_hang_staff_id, (lm.order_id IS NOT NULL) AS co_loi_moi, lm.staff_id AS loi_moi_staff_id, lm.priority_until_at AS loi_moi_han
   FROM v_aud_order_event e
   JOIN v_ord_order_label o ON o.id = e.order_id
   JOIN v_ord_order_owner w ON w.id = e.order_id
   JOIN v_ord_order_state st ON st.id = e.order_id
   LEFT JOIN v_dsp_order_handler h ON h.order_id = e.order_id
   LEFT JOIN v_dsp_first_handler f ON f.order_id = e.order_id
+  LEFT JOIN v_dsp_sales_owner bh ON bh.order_id = e.order_id
+  LEFT JOIN v_dsp_sales_invite_open lm ON lm.order_id = e.order_id
   LEFT JOIN v_stf_staff_label s ON s.id = e.staff_id
   WHERE e.created_at >= ?1
   ORDER BY e.created_at DESC LIMIT 3000`);
@@ -26,13 +29,14 @@ const LIST_DON = defineSql("thongbao", "list_don", `
 // "Sau xác nhận" TÍNH từ nhật ký: có dòng `confirmed` của đơn TRƯỚC dòng đổi (v_aud_order_event, KHÔNG cửa sổ — đơn xác nhận 40 ngày trước vẫn đúng).
 const DOI_CHON = `
   SELECT e.id, e.order_id, o.order_code AS ma_don, e.action, e.detail, e.leg_id, e.staff_id AS actor_id, s.label AS ten_nguoi_lam, e.created_at AS luc,
-         w.staff_id AS owner_id, (h.order_id IS NOT NULL) AS co_nguoi, h.staff_id AS handler_staff_id, (st.status = 'draft') AS la_nhap,
+         w.staff_id AS owner_id, (h.order_id IS NOT NULL) AS co_nguoi, h.staff_id AS handler_staff_id, (st.status = 'draft') AS la_nhap, bh.staff_id AS ban_hang_staff_id,
          EXISTS (SELECT 1 FROM v_aud_order_event c WHERE c.order_id = e.order_id AND c.action = 'confirmed' AND c.created_at < e.created_at) AS sau_xac_nhan
   FROM v_aud_order_change e
   JOIN v_ord_order_label o ON o.id = e.order_id
   JOIN v_ord_order_owner w ON w.id = e.order_id
   JOIN v_ord_order_state st ON st.id = e.order_id
   LEFT JOIN v_dsp_order_handler h ON h.order_id = e.order_id
+  LEFT JOIN v_dsp_sales_owner bh ON bh.order_id = e.order_id
   LEFT JOIN v_stf_staff_label s ON s.id = e.staff_id`;
 const LIST_DOI = defineSql("thongbao", "list_doi", `${DOI_CHON}
   WHERE e.created_at >= ?1 AND e.created_at >= ?2
@@ -94,7 +98,8 @@ const INSERT_ACK = defineSql("thongbao", "insert_ack", `
   ON CONFLICT (notice_id, staff_id) DO NOTHING`);
 
 interface DonRow { id: string; order_id: string; ma_don: string; action: string; actor_id: string | null; ten_nguoi_lam: string | null; luc: string;
-  owner_id: string; co_nguoi: number; handler_staff_id: string | null; lap_chua_co_nguoi: number; cung_lo_lap: number; la_nhap: number; yeu_cau_da_khep: number }
+  owner_id: string; co_nguoi: number; handler_staff_id: string | null; lap_chua_co_nguoi: number; cung_lo_lap: number; la_nhap: number; yeu_cau_da_khep: number;
+  ban_hang_staff_id: string | null; co_loi_moi: number; loi_moi_staff_id: string | null; loi_moi_han: string | null }
 interface ThuCongRow { id: string; tieu_de: string; noi_dung: string; quan_trong: number; created_by: string; ten_nguoi_gui: string; created_at: string;
   thu_hoi: number; tags: string | null; da_hieu_luc: string | null }
 interface ThuCongLookupRow { id: string; quan_trong: number; created_by: string | null; thu_hoi: number; tags: string | null; da_hieu_luc: string | null }
@@ -105,14 +110,15 @@ export async function listDon(db: D1Database, tu: string): Promise<DongDon[]> {
   const r = (await db.prepare(LIST_DON).bind(tu).all<DonRow>()).results;
   return r.map((x) => ({ id: x.id, orderId: x.order_id, maDon: x.ma_don, action: x.action, actorId: x.actor_id, tenNguoiLam: x.ten_nguoi_lam, luc: x.luc,
     ownerId: x.owner_id, phuTrach: { coNguoi: x.co_nguoi === 1, staffId: x.handler_staff_id }, lapChuaCoNguoi: x.lap_chua_co_nguoi === 1, cungLoLap: x.cung_lo_lap === 1, laNhap: x.la_nhap === 1,
-    yeuCauDaKhep: x.yeu_cau_da_khep === 1 }));
+    yeuCauDaKhep: x.yeu_cau_da_khep === 1, banHangStaffId: x.ban_hang_staff_id,
+    loiMoi: x.co_loi_moi === 1 && x.loi_moi_han !== null ? { staffId: x.loi_moi_staff_id, hanIso: x.loi_moi_han } : null }));
 }
 interface DoiRow { id: string; order_id: string; ma_don: string; action: string; detail: string | null; leg_id: string | null; actor_id: string | null;
-  ten_nguoi_lam: string | null; luc: string; owner_id: string; co_nguoi: number; handler_staff_id: string | null; sau_xac_nhan: number; la_nhap: number }
+  ten_nguoi_lam: string | null; luc: string; owner_id: string; co_nguoi: number; handler_staff_id: string | null; sau_xac_nhan: number; la_nhap: number; ban_hang_staff_id: string | null }
 /** Dòng đổi (ADR-0062) dạng DongDon — `chuyenCuaChang` (MQ-07) do index.ts ghép từ hàm tiêm. */
 const dongDoi = (x: DoiRow): DongDon => ({ id: x.id, orderId: x.order_id, maDon: x.ma_don, action: x.action, actorId: x.actor_id, tenNguoiLam: x.ten_nguoi_lam, luc: x.luc,
   ownerId: x.owner_id, phuTrach: { coNguoi: x.co_nguoi === 1, staffId: x.handler_staff_id }, lapChuaCoNguoi: false, cungLoLap: false, laNhap: x.la_nhap === 1,
-  detail: x.detail, sauXacNhan: x.sau_xac_nhan === 1, legId: x.leg_id });
+  detail: x.detail, sauXacNhan: x.sau_xac_nhan === 1, legId: x.leg_id, banHangStaffId: x.ban_hang_staff_id });
 export async function listDoi(db: D1Database, tu: string, mocTinDoi: string): Promise<DongDon[]> {
   return (await db.prepare(LIST_DOI).bind(tu, mocTinDoi).all<DoiRow>()).results.map(dongDoi);
 }

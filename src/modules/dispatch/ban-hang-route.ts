@@ -1,6 +1,6 @@
 // ROUTE «Bán hàng phụ trách đơn» của dispatch (ADR-0142; migration 0138). KHÔNG có SQL ở đây (SQL ở `ban-hang.ts`, đọc tài khoản ở `ban-hang-moi.ts`). Mỗi lệnh ghi là MỘT `db.batch`,
 // thứ tự cổng: 403 quyền → 404 → đọc thân 400 → 409 trạng thái → ghi (thua đua ⇒ 409 `stale`, không 500). Nhật ký ghi ngay sau câu chính, gác `changes() > 0`; chi tiết nhật ký KHÔNG tên, mã người, SĐT.
-// Thông báo / Bảng tin là Task 6, không làm ở đây.
+// Thông báo (Task 6): sau lô THẮNG, MỘT lời gọi `baoThayDoi` — gốc lắp ráp tự suy tin phụ («Chờ Bán hàng nhận» khi X từ chối). Thua đua / 4xx thì không gọi.
 import { auditStatement } from "../audit";
 import { donDangChoXacNhan, findOrderDepartDates, findOrderOwner, ghiNhanCuaDon } from "../orders";
 import type { BanHangCuaDonResponse, BanHangChinhSachResponse, BanHangGhiResponse, BanHangMoiResponse } from "../../shared/contracts";
@@ -86,7 +86,7 @@ export const banHangRoutes = [
   }),
 
   // NHẬN PHỤ TRÁCH (đơn đã xác nhận, chưa có Bán hàng phụ trách). Đơn còn chờ xác nhận: phải quyết Còn vé / Hết vé (ở route quyết định), không nhận ở đây.
-  route("POST", "/api/orders/:id/ban-hang/nhan", "orders", async ({ env, params, staff }) => {
+  route("POST", "/api/orders/:id/ban-hang/nhan", "orders", async ({ env, params, staff, baoThayDoi }) => {
     if (!can(staff, "dispatch.sales.claim")) return error(403, "forbidden", "Tài khoản này không nhận Bán hàng phụ trách được.");
     const orderId = params.id!;
     if (!UUID_RE.test(orderId)) return NOT_FOUND();
@@ -128,11 +128,12 @@ export const banHangRoutes = [
       throw e;
     }
     if (!banHangThang(ket, 0)) return STALE_NHAN();
+    baoThayDoi({ orderId, thayDoi: "ban_hang_nhan", nguoiMoi: laX ? null : (loiMoi?.staffId ?? null) }); // X bị người khác nhận thay chỉ nhận ở Bảng tin (lời mời đã khép, hộp thư không biết)
     return json({ ok: true, banHang: { staffId: staff.id, name: staff.fullName } } satisfies BanHangGhiResponse);
   }),
 
   // TỪ CHỐI lời mời: chỉ đúng người được mời, khi lời mời còn mở. Đơn sang «Chờ Bán hàng nhận». Không hạn mức (ADR-0032).
-  route("POST", "/api/orders/:id/ban-hang/tu-choi", "orders", async ({ env, params, staff }) => {
+  route("POST", "/api/orders/:id/ban-hang/tu-choi", "orders", async ({ env, params, staff, baoThayDoi }) => {
     if (!can(staff, "dispatch.sales.claim")) return error(403, "forbidden", "Tài khoản này không nhận Bán hàng phụ trách được.");
     const orderId = params.id!;
     if (!UUID_RE.test(orderId)) return NOT_FOUND();
@@ -144,11 +145,12 @@ export const banHangRoutes = [
       auditStatement(env.DB, { orderId, staffId: staff.id, action: "sales_invite_refused", at, detail: "Từ chối phụ trách đơn" }, "changes() > 0"),
     ]);
     if (!banHangThang(ket, 0)) return error(409, "stale", "Lời mời vừa được xử lý, hãy tải lại.");
+    baoThayDoi({ orderId, thayDoi: "ban_hang_tu_choi" });
     return json({ ok: true, banHang: null } satisfies BanHangGhiResponse);
   }),
 
   // ĐỔI / BỎ TRỐNG Bán hàng phụ trách (Quản trị, Toàn quyền): chỉ đơn đã xác nhận; không chặn đơn cũ. Người được đặt phải qua `kiemBanHangMoi`, hoặc là chính người đang gọi.
-  route("PUT", "/api/orders/:id/ban-hang", "orders", async ({ env, request, params, staff }) => {
+  route("PUT", "/api/orders/:id/ban-hang", "orders", async ({ env, request, params, staff, baoThayDoi }) => {
     if (!can(staff, "dispatch.sales.assign")) return error(403, "forbidden", "Chỉ Quản trị hoặc Toàn quyền đổi được Bán hàng phụ trách.");
     const orderId = params.id!;
     if (!UUID_RE.test(orderId)) return NOT_FOUND();
@@ -190,6 +192,7 @@ export const banHangRoutes = [
     }
     if (!banHangThang(ket, partyMoi === null ? 0 : 1)) return error(409, "stale", "Bán hàng phụ trách vừa được đổi, hãy tải lại.");
     const moi = (await banHangCuaDon(env.DB, [orderId])).get(orderId) ?? null;
+    baoThayDoi({ orderId, thayDoi: "doi_ban_hang", banHangTruoc: hien?.staffId ?? null }); // người cũ nhận ở Bảng tin lúc sự kiện, không có dòng hộp thư
     return json({ ok: true, banHang: moi ? { staffId: moi.staffId, name: moi.name } : null } satisfies BanHangGhiResponse);
   }),
 

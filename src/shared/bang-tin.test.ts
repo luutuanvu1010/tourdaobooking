@@ -21,8 +21,8 @@ import {
   type TrangThaiPhuTrach,
 } from "./bang-tin.ts";
 
-test("THAY_DOI đúng 13 giá trị (điều 4 + điều 7 ADR-0022; + chot_giao, hoan_thanh — ADR-0025 điều 8; + tu_choi — ADR-0030 điều 1)", () => {
-  assert.deepEqual([...THAY_DOI], ["tao", "tao_cho_nhan", "nhan", "giao", "xac_nhan", "huy", "sua", "chuyen", "tien", "chot_giao", "hoan_thanh", "tu_choi", "cho_xac_nhan"]);
+test("THAY_DOI đúng 18 giá trị (điều 4 + điều 7 ADR-0022; + chot_giao, hoan_thanh — ADR-0025 điều 8; + tu_choi — ADR-0030 điều 1; + 5 loại Bán hàng phụ trách — ADR-0142 Đ7)", () => {
+  assert.deepEqual([...THAY_DOI], ["tao", "tao_cho_nhan", "nhan", "giao", "xac_nhan", "huy", "sua", "chuyen", "tien", "chot_giao", "hoan_thanh", "tu_choi", "cho_xac_nhan", "moi_ban_hang", "ban_hang_nhan", "ban_hang_tu_choi", "cho_ban_hang", "doi_ban_hang"]);
 });
 
 // 512 tập con của 9 mã quyền (ADR-0040 D3 thêm DRIVER, ADR-0048 D2 thêm DRIVER_PARTNER) — suy kỳ vọng từ MATRIX/can(), không chép tay (P16: bài kiểm không được tự khoá giá trị đọc nhầm là luật).
@@ -43,6 +43,7 @@ test("nhanKetNoi: mọi tập con quyền (1024) khớp can(order.view)/(can(dis
     if (can(staff, "dispatch.claim") && !holdsPartner(staff)) ky_vong.add("cho-nhan");
     if (can(staff, "trip.view")) ky_vong.add("dieu-xe"); // ADR-0052 D6.4: trip.view KHÔNG ngữ cảnh (ô any)
     if (can(staff, "order.confirm.review")) ky_vong.add("xet-duyet"); // ADR-0136 Đ10
+    if (can(staff, "dispatch.sales.claim") && !holdsPartner(staff)) ky_vong.add("cho-ban-hang"); // ADR-0142 L9: người nhận được Bán hàng phụ trách
     assert.deepEqual(nhanKetNoi(staff), [...ky_vong].sort(), `permissions=${JSON.stringify(permissions)}`);
   }
 });
@@ -61,8 +62,8 @@ test("nhanKetNoi: tài khoản lai Đối tác + quyền có dispatch.claim (SAL
 });
 
 test("nhanKetNoi: bảng ảnh chụp hôm nay theo từng quyền đơn lẻ (ADR-0052 D6.4: SALES, ACCOUNTING, ADMIN, SUPER_ADMIN thêm 'dieu-xe')", () => {
-  const nhomDayDu = ["cho-nhan", "dieu-xe", "nguoi:x", "tat-ca", "xet-duyet"]; // ADR-0136 Đ10: + xet-duyet
-  const nhomTatCa = ["dieu-xe", "nguoi:x", "tat-ca", "xet-duyet"];
+  const nhomDayDu = ["cho-ban-hang", "cho-nhan", "dieu-xe", "nguoi:x", "tat-ca", "xet-duyet"]; // ADR-0136 Đ10: + xet-duyet; ADR-0142 L9: + cho-ban-hang (Bán hàng, Quản trị, Toàn quyền)
+  const nhomTatCa = ["cho-ban-hang", "dieu-xe", "nguoi:x", "tat-ca", "xet-duyet"];
   const chiNguoi = ["nguoi:x"];
   assert.deepEqual(nhanKetNoi({ id: "x", permissions: ["SALES"] }), nhomDayDu);
   assert.deepEqual(nhanKetNoi({ id: "x", permissions: ["ADMIN"] }), nhomDayDu);
