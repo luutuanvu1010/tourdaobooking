@@ -3,7 +3,7 @@
 // Ô vai mang data-kind="role", ô chỉnh tay data-kind="add"/"remove": mã INTERN vừa là mã vai vừa là mã quyền, chọn phần tử phải kèm data-kind.
 import { MA_QUYEN_TIEN, PERMISSION_CODES, PERMISSION_LABEL, isExternalPermission, type PermissionCode } from "../src/shared/permissions";
 import {
-  ROLES, ROLE_CODES, ROLE_GROUP_LABEL, SUPER_ADMIN_GRANTED, effectivePermissions, groupOf, laiNoiBoBenNgoaiProblem, permissionsLabel, taiKhoanLaiProblem, vaiTaiXeDoiTacXungDot,
+  ROLES, ROLE_CODES, ROLE_GROUP_LABEL, QUAN_TRI_GRANTED, SUPER_ADMIN_GRANTED, effectivePermissions, groupOf, laiNoiBoBenNgoaiProblem, permissionsLabel, taiKhoanLaiProblem, vaiTaiXeDoiTacXungDot,
   type RoleCode, type RoleGroup,
 } from "../src/shared/roles";
 import { h } from "./dom";
@@ -14,15 +14,15 @@ export interface RolePicker { readonly el: HTMLElement; value(): RolePickerValue
 const CHECK_STYLE = "width:auto;display:inline;margin:0 6px 0 0"; // như ô tick sẵn có của web/staff.ts
 
 // `tenVai`: tên hiện hành (CSDL) của vai do máy chủ trả (GET /api/staff — Task 3b); mã thiếu → tên gốc ROLES[c].name.
-export function rolePicker(opts: { initial: RolePickerValue; actorIsSuperAdmin: boolean; current: readonly PermissionCode[] | null; tenVai?: Readonly<Record<string, string>> }): RolePicker {
+export function rolePicker(opts: { initial: RolePickerValue; actorIsSuperAdmin: boolean; actorLaQuanTri: boolean; current: readonly PermissionCode[] | null; tenVai?: Readonly<Record<string, string>> }): RolePicker {
   const roleBoxes = new Map<RoleCode, HTMLInputElement>();
   const addBoxes = new Map<PermissionCode, HTMLInputElement>();
   const removeBoxes = new Map<PermissionCode, HTMLInputElement>();
   const reason = h("input", { type: "text", maxLength: 200, placeholder: "Vì sao chỉnh riêng cho người này" });
   const preview = h("p", { class: "muted", "aria-live": "polite", "data-role-preview": "" });
-  const roleLocked = (c: RoleCode) => ROLES[c].superAdminOnly && !opts.actorIsSuperAdmin; // LC-4
+  const roleLocked = (c: RoleCode) => (ROLES[c].superAdminOnly && !opts.actorIsSuperAdmin) || (ROLES[c].chiQuanTriGan === true && !opts.actorLaQuanTri); // LC-4, ADR-0169 Đ3
   // LC-4 + ADR-0090 đ1(ii): quyền tiền (MA_QUYEN_TIEN — suy từ bảng quyền) cũng chỉ Toàn quyền cộng/bớt tay. Máy chủ vẫn kiểm lại.
-  const permLocked = (p: PermissionCode) => (SUPER_ADMIN_GRANTED.includes(p) || MA_QUYEN_TIEN.includes(p)) && !opts.actorIsSuperAdmin;
+  const permLocked = (p: PermissionCode) => ((SUPER_ADMIN_GRANTED.includes(p) || MA_QUYEN_TIEN.includes(p)) && !opts.actorIsSuperAdmin) || (QUAN_TRI_GRANTED.includes(p) && !opts.actorLaQuanTri);
 
   const value = (): RolePickerValue => ({
     roles: ROLE_CODES.filter((c) => roleBoxes.get(c)!.checked),
@@ -73,7 +73,7 @@ export function rolePicker(opts: { initial: RolePickerValue; actorIsSuperAdmin: 
         roleBoxes.set(c, b);
         // ADR-0042: Toàn quyền là vai ẩn — người không giữ Toàn quyền không thấy vai chỉ Toàn quyền gán (Giám đốc, Điều hành chung).
         // Ô vẫn được tạo (value()/set() đọc đủ mọi mã), chỉ không đưa lên màn hình.
-        return opts.actorIsSuperAdmin || !ROLES[c].superAdminOnly ? h("label", { class: "check" }, b, opts.tenVai?.[c] ?? ROLES[c].name) : null;
+        return !roleLocked(c) ? h("label", { class: "check" }, b, opts.tenVai?.[c] ?? ROLES[c].name) : null;
       }));
   const permBox = (map: Map<PermissionCode, HTMLInputElement>, p: PermissionCode, kind: "add" | "remove"): HTMLElement => {
     const b = h("input", { type: "checkbox", style: CHECK_STYLE, value: p, "data-kind": kind });

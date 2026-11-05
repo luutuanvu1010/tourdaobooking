@@ -1,4 +1,4 @@
-// CHỤP "MỤC HIỆN" TỪ MÃ GIAO DIỆN THẬT trên DOM GIẢ — đủ 1024 tập con của PERMISSION_CODES; không mạng, không trình duyệt, không D1.
+// CHỤP "MỤC HIỆN" TỪ MÃ GIAO DIỆN THẬT trên DOM GIẢ — đủ 2048 tập con của PERMISSION_CODES; không mạng, không trình duyệt, không D1.
 // Bước K-c của sổ đại lý đợt 1 (rào "mục hiện ⇔ trang mở được"): ghi ảnh chụp mã CŨ TRƯỚC khi gom khai báo mục về src/shared/muc-giao-dien.ts, rồi đối chiếu
 // mã MỚI với mã cũ. Chạy CHÍNH web/account.ts (kéo theo initShell của web/shell.ts: thanh bên, thanh tab, thanh trên) và src/shared/trang-chu-o.ts (ô Trang chủ),
 // không chép lại điều kiện nào — điều kiện chính là thứ đang được dời đi.
@@ -6,8 +6,8 @@
 //   node scripts/chup-muc-giao-dien.mjs --ghi src/muc-giao-dien-hien-trang.json [--rev <mã lần lưu>]
 //       ghi ảnh chụp mục hiện (bài src/muc-giao-dien-hien-trang.test.ts đọc) từ cây làm việc, hoặc từ nguồn ở <mã lần lưu> (`git show`, không đụng cây làm việc).
 //   node scripts/chup-muc-giao-dien.mjs --so-sanh <mã lần lưu>
-//       dựng DOM bằng mã ở <mã lần lưu> và bằng cây làm việc, so TỪNG PHẦN TỬ (thẻ, lớp, href, chữ, biểu tượng, aria-current, huy hiệu): khung thật 1024 tập,
-//       khung tạm từ bản nhớ khung (ADR-0035) 1024 tập, khung mất mạng, chữ thanh trên + mục đang sáng ở mọi trang của PAGES (3 tài khoản), ô Trang chủ 1024 tập.
+//       dựng DOM bằng mã ở <mã lần lưu> và bằng cây làm việc, so TỪNG PHẦN TỬ (thẻ, lớp, href, chữ, biểu tượng, aria-current, huy hiệu): khung thật 2048 tập,
+//       khung tạm từ bản nhớ khung (ADR-0035) 2048 tập, khung mất mạng, chữ thanh trên + mục đang sáng ở mọi trang của PAGES (3 tài khoản), ô Trang chủ 2048 tập.
 //
 // DOM giả chỉ đủ cho đường chạy của hai tệp này (createElement, append/prepend/before/after, dataset, querySelectorAll đơn giản). Mô-đun web/ ngoài danh sách
 // THAT được thay bằng bản rỗng tự sinh (mỗi hàm trả lời hứa không bao giờ xong) — chúng là mạng/Bảng tin/trợ lý, không quyết mục nào hiện. web/api.ts thay riêng:
@@ -433,7 +433,7 @@ async function chup(ng) {
       kq.ngoaiTuyen = { muc: docMuc(body), dom: docDom(body, false) };
     }
 
-    // Chữ thanh trên + mục đang sáng ở mọi trang có khung (3 tài khoản: đủ 10 quyền, chỉ tài xế, tài xế + Bán hàng).
+    // Chữ thanh trên + mục đang sáng ở mọi trang có khung (3 tài khoản: đủ 11 quyền, chỉ tài xế, tài xế + Bán hàng).
     const BA = { "du-quyen": SO_TAP - 1, "chi-tai-xe": 1 << PERMISSION_CODES.indexOf("DRIVER"), "tai-xe-ban-hang": (1 << PERMISSION_CODES.indexOf("DRIVER")) | (1 << PERMISSION_CODES.indexOf("SALES")) };
     for (const p of pages) {
       if (["/login", "/home", "/danh-muc-giay-to"].includes(p)) continue; // không có khung (trang đăng nhập / chỉ chuyển hướng)
@@ -454,7 +454,7 @@ async function chup(ng) {
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------
-// Ảnh chụp mục hiện: mỗi nơi = từ điển mục (thứ tự chung của mọi tập) + mặt nạ 1024 bit cho từng mục.
+// Ảnh chụp mục hiện: mỗi nơi = từ điển mục (thứ tự chung của mọi tập) + mặt nạ 2048 bit cho từng mục.
 
 /** Thứ tự chung khớp mọi dãy (sắp xếp tô-pô, hoà thì theo lần gặp đầu); dãy mâu thuẫn ⇒ ném. */
 function thuTuChung(cacDay, noi) {
@@ -528,7 +528,7 @@ function soSanh(a, b, tenA, tenB) {
   so("mất mạng", a.ngoaiTuyen.dom, b.ngoaiTuyen.dom);
   so("danh sách trang", Object.keys(a.duong), Object.keys(b.duong));
   for (const p of Object.keys(a.duong)) for (const t of Object.keys(a.duong[p])) so(`trang ${p} · ${t}`, a.duong[p][t], b.duong[p]?.[t]);
-  console.log(`So ${tenA} ↔ ${tenB}: ${lech.length === 0 ? "GIỐNG HỆT" : `${lech.length} chỗ lệch`} (khung thật + khung tạm 1024 tập, ô Trang chủ 1024 tập, mất mạng, ${Object.keys(a.duong).length} trang × 3 tài khoản).`);
+  console.log(`So ${tenA} ↔ ${tenB}: ${lech.length === 0 ? "GIỐNG HỆT" : `${lech.length} chỗ lệch`} (khung thật + khung tạm 2048 tập, ô Trang chủ 2048 tập, mất mạng, ${Object.keys(a.duong).length} trang × 3 tài khoản).`);
   for (const l of lech.slice(0, 15)) console.log(`  ✘ ${l.khoa}\n     ${tenA}: ${String(JSON.stringify(l.a)).slice(0, 400)}\n     ${tenB}: ${String(JSON.stringify(l.b)).slice(0, 400)}`);
   // Số mục thanh bên (kịch bản Chrome trang-chu-smoke.mjs đếm cứng): theo vai thường gặp.
   const dem = (kq, ma) => kq.muc[ma.reduce((s, c) => s | (1 << PERMISSION_CODES.indexOf(c)), 0)].thanhBen.length;

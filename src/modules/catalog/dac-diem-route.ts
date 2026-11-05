@@ -4,10 +4,10 @@
 // của giao diện (Đ4 mục 2). Mọi SQL ở `dac-diem-repo.ts` (hàng rào (f)); dữ liệu + nhật ký MỘT `db.batch`, nhật ký chỉ ghi khi câu chốt đổi dòng.
 import { auditStatement } from "../audit";
 import type {
-  CatalogDacDiemDemResponse, CatalogDacDiemGanResponse, CatalogDacDiemMotResponse, CatalogDacDiemResponse, DacDiemDto,
+  CatalogDacDiemDemResponse, CatalogDacDiemGanResponse, CatalogDacDiemMotResponse, CatalogDacDiemResponse, CatalogQuanLyBanResponse, DacDiemDto,
 } from "../../shared/contracts";
 import { error, json, readJson } from "../../shared/http";
-import { can, holdsPartner } from "../../shared/permissions";
+import { can, dungManHepDichVu, holdsPartner } from "../../shared/permissions";
 import { route, type Route } from "../../shared/router";
 import { vnToday } from "../../shared/vn-date";
 import { CATALOG_CODE_RE } from "../../shared/order-lines";
@@ -98,6 +98,16 @@ async function chayGan(db: D1Database, lo: D1PreparedStatement[], chot: number):
 }
 
 export const dacDiemRoutes: Route[] = [
+  // ADR-0169 Đ5: danh sách hẹp cho màn của Quản lý bán hàng: mã, tên, nhóm, còn bán hay không; KHÔNG giá. Dịch vụ đã rời Sheet không bán lại được nên không trả.
+  route("GET", "/api/catalog/quan-ly-ban", "office", async ({ env, staff }) => {
+    if (!(can(staff, "admin.manage") || dungManHepDichVu(staff))) return error(403, "forbidden", "Tài khoản này không xem được danh sách này.");
+    const [dv, items, nhomCuaDv, nhoms] = await Promise.all([dichVuXet(env.DB), loadAll(env.DB), nhomHienHanhTheoMa(env.DB), danhSachNhom(env.DB)]);
+    const theoMa = new Map(dv.map((d) => [d.code, d]));
+    return json({
+      dichVu: items.filter((i) => theoMa.get(i.code)?.inSheet === true).map((i) => ({ code: i.code, ten: i.name, dangBan: theoMa.get(i.code)?.hidden === false, groupCode: nhomCuaDv.get(i.code) ?? null })),
+      nhom: nhoms.map((g) => ({ code: g.code, ten: g.name })),
+    } satisfies CatalogQuanLyBanResponse);
+  }),
   route("GET", "/api/catalog/dac-diem", "office", async ({ env, staff }) => {
     if (!(can(staff, "catalog.attribute.assign") || can(staff, "admin.manage")) || holdsPartner(staff)) return CAM_XEM();
     return json((await docManDacDiem(env.DB)) satisfies CatalogDacDiemResponse);

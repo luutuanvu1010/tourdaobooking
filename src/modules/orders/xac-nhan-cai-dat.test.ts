@@ -105,9 +105,9 @@ test("công tắc tự xác nhận: tắt → GET false + nhật ký; gửi lạ
   assert.equal(w.q("SELECT count(*) AS n FROM ord_confirm_policy")[0].n, 3);
 });
 
-test("cổng quyền (ô settings.ops): Quản trị, Bán hàng, Kế toán, HDV, Thực tập, Đối tác → 403 cả GET lẫn POST, không ghi gì", async () => {
+test("cổng quyền (ADR-0169 thay một phần ADR-0136 Đ1): Bán hàng, Kế toán, HDV, Thực tập, Đối tác → 403 cả GET lẫn POST, không ghi gì; Quản trị, Quản lý bán hàng ở quan-ly-ban-hang.test.ts", async () => {
   const w = setup();
-  for (const ai of [ADM, A, ACC, H, INTERN, PARTNER]) {
+  for (const ai of [A, ACC, H, INTERN, PARTNER]) {
     assert.equal((await w.call("GET", URL, { as: ai })).status, 403, `GET ${ai}`);
     assert.equal((await dat(w, ai, { pham: "SERVICE", ma: "ZA1", canXacNhan: true })).status, 403, `POST ${ai}`);
     assert.equal((await dat(w, ai, { tuXacNhanNoiBo: false })).status, 403, `POST công tắc ${ai}`);

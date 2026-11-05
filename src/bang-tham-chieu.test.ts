@@ -251,10 +251,10 @@ test("tên việc và chữ khai ở nơi đặt không phải chữ đã loại
   assert.deepEqual(loi, [], kể(loi));
 });
 
-test("có mỗi trạng thái đơn và mười quyền", () => {
+test("có mỗi trạng thái đơn và mười một quyền", () => {
   const ten = new Set(KHAI_NIEM.map((k) => k.ten));
   for (const nhan of [...Object.values(STATUS_LABEL), NHAN_DANG_CHO_XAC_NHAN, ...Object.values(PERMISSION_LABEL)]) assert.ok(ten.has(nhan), `thiếu khái niệm «${nhan}»`);
-  assert.equal(Object.values(PERMISSION_LABEL).length, 10);
+  assert.equal(Object.values(PERMISSION_LABEL).length, 11);
 });
 
 test("chữ dùng chung không trùng nhau và mỗi chữ có lý do", () => {

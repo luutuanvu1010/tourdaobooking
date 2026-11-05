@@ -18,13 +18,22 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // Thanh toán trả sau theo hạn mức (ADR-0168): migration 0141, ô quyền credit.limit.view / credit.limit.write.
-    // Số 2.65 và ngày chỉ là tạm cho nhánh: bước A.0 của lần triển khai đặt lại nếu cần.
-    version: "2.65",
+    // Số 2.66 và ngày chỉ là tạm cho nhánh: bước A.0 của lần triển khai đặt lại nếu cần.
+    version: "2.66",
     date: "2026-11-05",
     items: [
       { kind: "moi", text: "Đối tác có hạn mức được chọn «Trả sau» khi lập đơn: vé mở trước, tiền thu sau trong số ngày được nợ." },
       { kind: "moi", text: "Toàn quyền có màn Hạn mức trả sau để cấp hoặc ngừng hạn mức cho từng đối tác; Kế toán xem được số nợ và đơn quá hạn.", bai: { id: "viec/han-muc-tra-sau", ten: "Cấp hạn mức trả sau cho đối tác" } },
       { kind: "moi", text: "Đơn trả sau vượt hạn mức, hoặc của đối tác còn đơn quá hạn, không xác nhận được; chi tiết đơn ghi hình thức thanh toán và hạn trả." },
+    ],
+  },
+  {
+    // ADR-0169: vai Quản lý bán hàng, công tắc kiểm vé về Dịch vụ & giá. Migration 0140_quan_ly_ban_hang (khác tệp 0140_hop_thu_ban_hang của mục 2.64).
+    version: "2.65",
+    date: "2026-11-05",
+    items: [
+      { kind: "moi", text: "Có vai mới Quản lý bán hàng: làm mọi việc của Bán hàng, thêm bật, tắt cần kiểm vé và Ngừng bán, Mở bán lại. Quản trị, Giám đốc, Toàn quyền gán được vai này." },
+      { kind: "doi", text: "Công tắc Cần kiểm vé nay nằm ngay trong Dịch vụ & giá, theo từng vé và cả nhóm. Trang Dịch vụ cần kiểm vé không còn nữa. Quản trị cũng gạt được.", bai: { id: "viec/dich-vu-can-kiem-ve", ten: "Đánh dấu vé cần kiểm vé" } },
     ],
   },
   {

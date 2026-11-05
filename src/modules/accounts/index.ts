@@ -489,7 +489,7 @@ export const accountsModule: AppModule = {
         const name: { value?: string | null; error?: string } = existingPartyId ? { value: null } : cleanName(body.fullName);
         if (name.error) return error(400, "invalid_input", name.error);
         if (!phone) return error(400, "invalid_input", "Số điện thoại không hợp lệ (cần 10 số, bắt đầu bằng 0 hoặc +84).");
-        const problem = roleAssignmentProblem({ actorIsSuper, currentRoles: [], currentPermissions: [], currentAdjustments: { adds: [], removes: [] }, next: parsed.value });
+        const problem = roleAssignmentProblem({ actorIsSuper, actorLaQuanTri: can(admin, "admin.manage"), currentRoles: [], currentPermissions: [], currentAdjustments: { adds: [], removes: [] }, next: parsed.value });
         if (problem) return problemResponse(problem);
         if (await findStaffByPhone(db, phone)) return PHONE_TAKEN();
         if (!existingPartyId && body.taoHoSoMoi !== true) {
@@ -523,7 +523,7 @@ export const accountsModule: AppModule = {
       const perms = body?.permissions === undefined ? { value: [] } : cleanPermissions(body.permissions);
       if (perms.error) return error(400, "invalid_input", perms.error);
       // LC-4 (ADR-0018 điều 5): chỉ Toàn quyền cấp Quản trị/Toàn quyền — thay luật cũ chỉ chặn SUPER_ADMIN (trước đây Quản trị cấp được Quản trị).
-      const high = highPermissionProblem(actorIsSuper, [], perms.value!);
+      const high = highPermissionProblem(actorIsSuper, [], perms.value!, can(admin, "admin.manage"));
       if (high) return problemResponse(high);
       // LC-1b (ADR-0048 B2.2) rồi chặn lai nội bộ + bên ngoài (ADR-0083 điều 1b): đường cũ không qua roleAssignmentProblem.
       const lai = taiKhoanLaiProblem(perms.value!) ?? laiNoiBoBenNgoaiProblem(perms.value!);
@@ -630,7 +630,7 @@ export const accountsModule: AppModule = {
       const next = perms.value!;
       const problem = checkAccountChange(admin.id, t, { permissions: next }, await countActiveAdmins(db));
       if (problem) return error(409, "account_rule", problem);
-      const high = highPermissionProblem(actorIsSuper, t.permissions, next); // LC-4 (ADR-0018 điều 5), thay luật riêng cho SUPER_ADMIN
+      const high = highPermissionProblem(actorIsSuper, t.permissions, next, can(admin, "admin.manage")); // LC-4 (ADR-0018 điều 5), thay luật riêng cho SUPER_ADMIN
       if (high) return problemResponse(high);
       const lai = taiKhoanLaiProblem(next) ?? laiNoiBoBenNgoaiProblem(next); // LC-1b (ADR-0048 B2.2) rồi chặn lai nội bộ + bên ngoài (ADR-0083 điều 1b)
       if (lai) return problemResponse(lai);
@@ -700,7 +700,7 @@ export const accountsModule: AppModule = {
       const today = vnToday(now);
       const state = await getAccountRoleState(db, t, today);
       if (!state || !t.partyId) return NO_PARTY();
-      const problem = roleAssignmentProblem({ actorIsSuper, currentRoles: state.roles, currentPermissions: t.permissions, currentAdjustments: { adds: state.adds, removes: state.removes }, next: parsed.value });
+      const problem = roleAssignmentProblem({ actorIsSuper, actorLaQuanTri: can(admin, "admin.manage"), currentRoles: state.roles, currentPermissions: t.permissions, currentAdjustments: { adds: state.adds, removes: state.removes }, next: parsed.value });
       if (problem) return problemResponse(problem);
       const change = roleChangeStatements(db, { account: t, partyId: t.partyId, state, next: parsed.value, actorId: admin.id, at, today });
       // ADR-0117 điều 4, chiều 2 — kiểm bằng hàm thuần TRƯỚC lô thứ nhất: nhánh gỡ ADMIN chạy HAI lô (quyền rồi vai), nếu để trigger ở lô hai chặn thì quyền đã

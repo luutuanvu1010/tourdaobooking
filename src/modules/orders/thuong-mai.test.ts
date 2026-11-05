@@ -281,9 +281,9 @@ test("cheDoThuongMai: thứ tự luật — Đối tác & đơn người khác �
   assert.equal(che({ laDoiTac: true, partyId: null, nguoiHuong: [null] }), "doiTac");
 });
 
-// Tiêu chí 7 của đặc tả (kế hoạch bỏ sót; người kiểm Task 5 xác nhận hai bài 1024 cũ không chạm ô mới): duyệt MỌI tập con của 10 mã quyền, dùng can() / holdsPartner() /
+// Tiêu chí 7 của đặc tả (kế hoạch bỏ sót; người kiểm Task 5 xác nhận hai bài 1024 cũ không chạm ô mới): duyệt MỌI tập con của 11 mã quyền, dùng can() / holdsPartner() /
 // seesOnlyAssignedOrders() THẬT của permissions.ts để dựng đầu vào — nên đổi một ô order.view / order.terms.view của cột nào làm lệch kết quả là bài này đỏ.
-test("cheDoThuongMai trên cả 1024 tập quyền × {đơn của mình, đơn người khác} × {được giao, không} × {hồ sơ có, không} × sáu dạng người hưởng: có PARTNER thì không bao giờ ra DTO văn phòng", () => {
+test("cheDoThuongMai trên cả 2048 tập quyền × {đơn của mình, đơn người khác} × {được giao, không} × {hồ sơ có, không} × sáu dạng người hưởng: có PARTNER thì không bao giờ ra DTO văn phòng", () => {
   const DANG_NGUOI_HUONG: { ten: string; ds: (string | null)[]; khac: boolean }[] = [
     { ten: "không dòng nào (chưa đọc)", ds: [], khac: false },
     { ten: "khách lẻ (null)", ds: [null], khac: false },
@@ -322,7 +322,7 @@ test("cheDoThuongMai trên cả 1024 tập quyền × {đơn của mình, đơn 
       }
     }
   }
-  assert.equal(tapCon, 1024);
+  assert.equal(tapCon, 2048);
   assert.ok(caKiem > 40_000, `số ca ${caKiem}`);
   assert.deepEqual([...thay].sort(), ["403", "404", "doiTac", "vanPhong"], "bài có đủ bốn kết quả (không kiểm rỗng)");
 });

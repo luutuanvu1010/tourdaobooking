@@ -33,9 +33,9 @@ function moiTapCon<T>(mang: readonly T[]): T[][] {
   return [...conCacTap, ...conCacTap.map((t) => [dau as T, ...t])];
 }
 
-test("nhanKetNoi: mọi tập con quyền (1024) khớp can(order.view)/(can(dispatch.claim) && !holdsPartner)/can(trip.view) suy từ MATRIX (ADR-0030 S20-8; 'dieu-xe' — ADR-0052 D6.4, đã duyệt)", () => {
+test("nhanKetNoi: mọi tập con quyền (2048) khớp can(order.view)/(can(dispatch.claim) && !holdsPartner)/can(trip.view) suy từ MATRIX (ADR-0030 S20-8; 'dieu-xe' — ADR-0052 D6.4, đã duyệt)", () => {
   const tapCon = moiTapCon(PERMISSION_CODES as readonly PermissionCode[]);
-  assert.equal(tapCon.length, 1024); // 10 mã (ADR-0071 thêm HR)
+  assert.equal(tapCon.length, 2048); // 11 mã (ADR-0169 thêm SALES_MANAGER)
   for (const permissions of tapCon) {
     const staff = { id: "nv1", permissions };
     const ky_vong = new Set<string>(["nguoi:nv1"]);

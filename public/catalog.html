@@ -6,6 +6,9 @@
   <h1>Danh mục dịch vụ &amp; giá</h1>
   <div id="error" class="alert" role="alert" hidden></div>
   <div id="notice" class="alert ok" hidden></div>
+  <div id="man-hep" hidden></div>
+  <div id="man-du">
+  <section id="kv-tu-kiem" class="card kv-tu-kiem-the"></section>
   <section class="card">
     <p style="margin-top:0">Nguồn chính là Google Sheet. Ở đây có thể <strong>ghi đè giá</strong> hoặc <strong>ngừng bán</strong> một dịch vụ; ghi đè chỉ có hiệu lực trong hệ thống này và không bị lần đồng bộ sau đè mất. Đơn đã lập luôn giữ giá lúc lập.</p>
     <div id="status"></div>
@@ -16,7 +19,7 @@
   <div class="toolbar">
     <input id="q" type="search" placeholder="Tìm theo mã hoặc tên dịch vụ…" autocomplete="off">
     <select id="filter" aria-label="Lọc">
-      <option value="">Tất cả</option><option value="overridden">Đang ghi đè giá</option><option value="conflict">Sheet đã đổi giá (cần xem)</option><option value="hidden">Đã ngừng bán</option><option value="missing">Không còn trong Sheet</option>
+      <option value="">Tất cả</option><option value="kiem-ve">Cần kiểm vé</option><option value="overridden">Đang ghi đè giá</option><option value="conflict">Sheet đã đổi giá (cần xem)</option><option value="hidden">Đã ngừng bán</option><option value="missing">Không còn trong Sheet</option>
     </select>
   </div>
   <div id="chon-bar" class="chon-bar"></div>
@@ -27,6 +30,7 @@
     </table>
   </section>
   <div id="list-cards" class="card-list"></div>
+  </div>
 </main>
 <script type="module" src="/js/catalog.js"></script>
 </body></html>

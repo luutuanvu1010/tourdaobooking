@@ -19,7 +19,7 @@ test("dòng doiChieu / thuTruoc: có số thì hiện kèm đích cuộn tới k
   assert.equal(TAT(kt, { doiChieu: null }).find((t) => t.khoa === "doiChieu")?.so, null);
 });
 
-test("1024 tập quyền: dòng và nguồn cần tải khớp ĐÚNG hàm gốc của khối cũ (coKhoiChoDoiChieu, coKhoiThuTruoc); không ai có quyền Đối tác thấy", () => {
+test("2048 tập quyền: dòng và nguồn cần tải khớp ĐÚNG hàm gốc của khối cũ (coKhoiChoDoiChieu, coKhoiThuTruoc); không ai có quyền Đối tác thấy", () => {
   for (let m = 0; m < 1 << PERMISSION_CODES.length; m++) {
     const w = nguoi(...PERMISSION_CODES.filter((_, i) => m & (1 << i)));
     const dong = TAT(w, { doiChieu: 5, thuTruoc: 5 }).map((t) => t.khoa);

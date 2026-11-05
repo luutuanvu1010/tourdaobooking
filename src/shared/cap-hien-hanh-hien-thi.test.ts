@@ -83,7 +83,7 @@ test("(k3) nhãn «có mức riêng»: dongRiengDoiTac > 0 ở mọi nguồn; do
   assert.equal(capHienHanhCuaHoSo(tom({ mucRieng: true, vai: ["M1"], xungDot: false, doiTac: 0, loai: 5 }), { partyId: "p", homNay: HN, tenCuaMuc: ten, ganCuaHoSo: gan }).coMucRieng, false);
 });
 
-test("(k8) thayCotCap, suaDuocCot trên cả 1024 tập quyền: thấy cột ⇔ ô xem hoa hồng đối tác và không giữ Đối tác; sửa ⇔ ô ghi và không giữ Đối tác; Hành chính nhân sự không thấy", () => {
+test("(k8) thayCotCap, suaDuocCot trên cả 2048 tập quyền: thấy cột ⇔ ô xem hoa hồng đối tác và không giữ Đối tác; sửa ⇔ ô ghi và không giữ Đối tác; Hành chính nhân sự không thấy", () => {
   let thay = 0, sua = 0, lai = 0;
   for (let mask = 0; mask < 1 << PERMISSION_CODES.length; mask++) {
     const permissions: PermissionCode[] = PERMISSION_CODES.filter((_, i) => mask & (1 << i));

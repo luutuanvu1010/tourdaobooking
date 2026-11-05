@@ -506,12 +506,13 @@ export const xacNhanRoutes = (xetDatGap: XetDatGapSua) => [
   // CÀI ĐẶT CỜ «CẦN XÁC NHẬN» VÀ CÔNG TẮC TỰ XÁC NHẬN (Đ1, Đ5): cổng admin, thân hỏi `settings.ops` (hôm nay chỉ Toàn quyền). Khuôn đúng `/api/cai-dat/nhap-tay`: mỗi lần đổi chèn MỘT
   // dòng mới chỉ-thêm với valid_from_at = max(lúc ghi, mới nhất + 1 ms) cùng nhật ký không gắn đơn; gửi đúng trạng thái đang hiệu lực = 200, không ghi; va UNIQUE → 409 `stale`.
   // Cờ chỉ đặt cho mã danh mục có thật (dịch vụ nhập tay không có mã → 400) hoặc nhóm đang có dịch vụ.
-  route("GET", "/api/cai-dat/xac-nhan-don", "admin", async ({ env, staff }) => {
-    if (!can(staff, "settings.ops")) return error(403, "forbidden", "Chỉ Toàn quyền xem cài đặt xác nhận đơn.");
+  // ADR-0169 Đ5 (thay một phần ADR-0136 Đ1): cổng office, thân hỏi ô theo từng việc. Cờ: catalog.confirm_flag.write, không giữ Đối tác. Công tắc tự kiểm: settings.ops.
+  route("GET", "/api/cai-dat/xac-nhan-don", "office", async ({ env, staff }) => {
+    if (!(can(staff, "catalog.confirm_flag.write") || can(staff, "settings.ops")) || holdsPartner(staff)) return error(403, "forbidden", "Tài khoản này không xem được cài đặt kiểm vé.");
     return json(await docCaiDat(env.DB, new Date().toISOString()));
   }),
-  route("POST", "/api/cai-dat/xac-nhan-don", "admin", async ({ env, request, staff }) => {
-    if (!can(staff, "settings.ops")) return error(403, "forbidden", "Chỉ Toàn quyền đổi cài đặt xác nhận đơn.");
+  route("POST", "/api/cai-dat/xac-nhan-don", "office", async ({ env, request, staff }) => {
+    if (!(can(staff, "catalog.confirm_flag.write") || can(staff, "settings.ops"))) return error(403, "forbidden", "Tài khoản này không đổi được cài đặt kiểm vé.");
     const b = (await readJson(request)) as Record<string, unknown> | null;
     if (!b || typeof b !== "object") return error(400, "invalid_input", "Thiếu nội dung cài đặt.");
     const now = new Date();
@@ -525,6 +526,7 @@ export const xacNhanRoutes = (xetDatGap: XetDatGapSua) => [
       }
     };
     if (typeof b.tuXacNhanNoiBo === "boolean") {
+      if (!can(staff, "settings.ops")) return error(403, "forbidden", "Chỉ Toàn quyền đổi công tắc tự kiểm vé."); // thân lẫn cả cờ cũng dừng ở đây, không ghi nửa chừng
       if ((await tuXacNhanNoiBo(env.DB, now.toISOString())) !== b.tuXacNhanNoiBo) {
         const at = lanSau(await chinhSachMoiNhat(env.DB), now);
         const loi = await luu(cauThemChinhSach(env.DB, { id: crypto.randomUUID(), bat: b.tuXacNhanNoiBo, at, by: staff.id }), "confirm_policy_changed", at, b.tuXacNhanNoiBo ? "Bật tự xác nhận cho nhân viên nội bộ" : "Tắt tự xác nhận cho nhân viên nội bộ");
@@ -532,6 +534,7 @@ export const xacNhanRoutes = (xetDatGap: XetDatGapSua) => [
       }
       return json(await docCaiDat(env.DB, new Date().toISOString()));
     }
+    if (!can(staff, "catalog.confirm_flag.write") || holdsPartner(staff)) return error(403, "forbidden", "Tài khoản này không đổi được cài đặt kiểm vé.");
     const { pham, ma, canXacNhan } = b;
     if ((pham !== "SERVICE" && pham !== "GROUP") || typeof ma !== "string" || ma.trim() === "" || typeof canXacNhan !== "boolean") return error(400, "invalid_input", "Chọn dịch vụ hoặc nhóm và bật / tắt cần xác nhận.");
     const coThat = pham === "SERVICE" ? (await getEffectiveServices(env.DB, [ma])).has(ma) : await nhomDangDung(env.DB, ma);
