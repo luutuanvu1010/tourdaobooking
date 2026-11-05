@@ -12,6 +12,7 @@ import type {
 import { UUID_RE, error, intParam, json, readJson, trangDon } from "../../shared/http";
 import { apCongTacAnKhach } from "../../shared/an-thong-tin-khach";
 import { can, seesOnlyAssignedOrders, type PermissionHolder } from "../../shared/permissions";
+import { chanDoiTacHuy, chanDoiTacSuaSoKhach, chanVeDaMoTrongLo, laLoiVeDaMoTrongLo } from "../../shared/chan-doi-tac-huy";
 import { duocGiaoTheoO, laVaChamOBanHang } from "../../shared/ban-hang-phu-trach";
 import { route, type AppModule, type BanHangNoi } from "../../shared/router";
 import { vnToday, vnWeekRange } from "../../shared/vn-date";
@@ -623,6 +624,12 @@ export type { KetQuaLenhDon };
 // MỘT db.batch() (quy tắc 3 ADR-0002). `orders` không đọc bảng của billing. KHÔNG tự kiểm quyền — route của billing hỏi can() trước.
 export { donDangThuTien, phaiThuNhieuDon, thongTinGiaoDon, type PhaiThuDon, type ThongTinGiaoDon } from "./hoan-tat";
 export { datGiaoStatement, hoanThanhStatement, type DatGiaoInput } from "./hoan-tat-repo";
+
+/** ADR-0170 Đ3: khoá `coVeDaMo` của chi tiết đơn cho người giữ quyền Đối tác; không đọc được ⇒ không có khoá (không nói sai «đã mở vé»). */
+const coVeDaMoTrenDon = async (hoi: (orderId: string) => Promise<boolean | null>, orderId: string): Promise<{ coVeDaMo?: boolean }> => {
+  const r = await hoi(orderId);
+  return r === null ? {} : { coVeDaMo: r };
+};
 
 /**
  * API công khai cho module `receipt` (biên nhận — ADR-0024 đ1): chi tiết đơn HIỆN HÀNH (đã áp điều chỉnh) để receipt CHÉP TỪNG trường được phép vào
@@ -1243,7 +1250,7 @@ export const ordersModule: AppModule = {
       return json({ order: taoXong, ...(await phanHoiMoc(env.DB, id, taoXong, moc)) } satisfies OrderResponse, 201, { location: trangDon(id) });
     }),
 
-    route("GET", "/api/orders/:id", "orders", async ({ env, params, staff, isAssigned, isSalesOwner, mocToiThieu, banHang }) => {
+    route("GET", "/api/orders/:id", "orders", async ({ env, params, staff, isAssigned, isSalesOwner, mocToiThieu, banHang, veDaMoCuaDon }) => {
       if (!UUID_RE.test(params.id!)) return NOT_FOUND();
       // ADR-0049 I31: kèm mốc tối thiểu đang hiệu lực (biểu mẫu cảnh báo trước khi xác nhận) — đọc không bị chặn khi chưa có mốc (null).
       const [order, assigned, laBanHang, moc] = await Promise.all([loadOrderView(env.DB, params.id!, xemDuDatGap(staff)), isAssigned(params.id!), isSalesOwner(params.id!), mocToiThieu()]);
@@ -1315,6 +1322,7 @@ export const ordersModule: AppModule = {
         // ADR-0114 D2: lịch sử số khách CHỈ cho người qua `order.history.view` với đơn này (cùng điều kiện khối `history` ở trên), còn lại null — không đổi ai được xem gì.
         lichSuSoKhach: can(staff, "order.history.view", scopeDuocGiao) ? await lichSuSoKhachCuaDon(env.DB, order) : null,
         canhBaoGiamGia: await canhBaoGiamGiaCuaDon(), xacNhan, laBanHangPhuTrach: laBanHang,
+        ...(holdsPartner(staff) ? await coVeDaMoTrenDon(veDaMoCuaDon, order.id) : {}), // ADR-0170 Đ3: chỉ để giao diện ẩn nút Huỷ (không đọc được ⇒ bỏ khoá, nút còn và máy chủ nói «chưa kiểm tra được»); máy chủ vẫn chặn ở hai đường huỷ
         // ADR-0142: Bán hàng người lập đã mời — CHỈ người lập đơn nháp thấy (tên + mã tài khoản để chọn lại), và chỉ khi người đó còn mời được.
         ...(order.status === "draft" && order.staffId === staff.id ? { banHangMoi: await banHangMoiCuaNhap(env.DB, banHang, order.id) } : {}),
       } satisfies OrderDetailResponse);
@@ -1691,7 +1699,7 @@ export const ordersModule: AppModule = {
     // thân; trigger 0044 là lưới cuối) → 409 nháp / huỷ → 400 thân (lý do MÃ ĐÓNG ADR-0023 điều 4, không chữ tự gõ, không số tiền) → 409 stale. KHÔNG chặn theo
     // ngày đi; KHÔNG chặn giảm giá vượt tạm tính (chỉ cảnh báo — ADR-0109; phải thu kẹp 0 ở effectiveMoney). Tiền: `planMoneyEdit` (một luật với đường HDV) — không bao giờ tin số từ trình duyệt. Đây không phải đường
     // thêm / sửa dịch vụ nhập tay (chỉ số khách của dịch vụ danh mục đã có — ADR-0061 điều 5 không áp, câu duyệt của chủ).
-    route("POST", "/api/orders/:id/money-edit", "office", async ({ env, request, params, staff, baoThayDoi, dongBoChuyen, canBangVeSauSuaKhach, kiemTraSau, cauGacPhienBanTraSau }) => {
+    route("POST", "/api/orders/:id/money-edit", "office", async ({ env, request, params, staff, baoThayDoi, dongBoChuyen, canBangVeSauSuaKhach, kiemTraSau, cauGacPhienBanTraSau, veDaMoCuaDon }) => {
       const id = params.id!;
       if (!UUID_RE.test(id)) return NOT_FOUND();
       const meta = await getMeta(env.DB, id);
@@ -1701,6 +1709,7 @@ export const ordersModule: AppModule = {
       if (meta.deliveredAt) return DA_GIAO();
       if (meta.status === "draft") return MONEY_EDIT_DRAFT();
       if (meta.status === "cancelled") return CANCELLED();
+      { const chan = await chanDoiTacSuaSoKhach(staff, id, veDaMoCuaDon); if (chan) return chan; } // ADR-0171 Đ1: người giữ quyền Đối tác (kể cả lai) không tự sửa số khách đơn đã mở vé (không đọc được ⇒ chặn)
       const than = docThanSuaSoKhach(await readJson(request));
       if (!than.ok) return error(400, "invalid_input", than.message);
       // Lý do đi vào luật chung dưới dạng NHÃN cố định do máy chủ chọn (planMoneyEdit nhận `reason` chữ — cùng bộ đọc với đường HDV).
@@ -1834,6 +1843,7 @@ export const ordersModule: AppModule = {
 
       let dongBo: DongBoChuyenDto | undefined;
       if (to === "cancelled") {
+        { const chan = await chanDoiTacHuy(staff, id, veDaMoCuaDon); if (chan) return chan; } // ADR-0170 Đ3: đối tác không tự huỷ đơn đã mở vé (không đọc được ⇒ chặn)
         // ADR-0089 đ8 (H-C4): lý do bắt buộc; nhóm "Công ty huỷ" chỉ khi có ô `order.cancel.classify` (Quản trị, Toàn quyền — Đ-2).
         const lyDo = docLyDoHuy(body, { coTheChonCongTy: can(staff, "order.cancel.classify") });
         if (!lyDo.ok) return error(lyDo.status, lyDo.status === 403 ? "forbidden" : "invalid_input", lyDo.message);
@@ -1845,7 +1855,8 @@ export const ordersModule: AppModule = {
         // ADR-0142: lời mời Bán hàng đang mở (nếu có) khép «đơn huỷ» CÙNG lô, gác theo dòng nhật ký huỷ; đứng sau câu trả vé nên chỉ số câu đơn không đổi.
         const khepMoi = cauKhepLoiMoi(banHang, { orderId: id, outcome: "HUY_DON", at: nextStamp(meta.updatedAt), actorId: staff.id, auditId: huy.auditId });
         const dong = await dongBoChuyen({ orderId: id, auditIdDon: huy.auditId, bayGioMs: Date.now(), sau: { trangThai: "cancelled" }, cauDon: [...huy.cau, ...(await traVeKhiHuy(id, "DON_HUY")), khepMoi] }); // ADR-0153: trả vé cùng nguyên tử với việc huỷ
-        const r = await chayLoNoiChuyen(env.DB, dong, daHuy);
+        let r: KetQuaLenhDon;
+        try { r = await chayLoNoiChuyen(env.DB, dong, daHuy); } catch (e) { if (laLoiVeDaMoTrongLo(e)) return chanVeDaMoTrongLo(); throw e; } // ADR-0170 Đ3: vé vừa mở xen giữa ⇒ câu bảo vệ trong lô làm cả lô lui
         if (r.kq === "loi") return r.res;
         if (r.kq === "thua") return RACED();
         dongBo = r.dongBoChuyen;

@@ -131,7 +131,7 @@ export const banHangRoutes = [
       if (/order_delivered/.test(String((e as Error)?.message ?? e))) return DA_GIAO();
       throw e;
     }
-    if (!banHangThang(ket, 0)) return STALE_NHAN();
+    if (!banHangThang(ket, 0)) return (await findOrderOwner(env.DB, orderId))?.status === "cancelled" ? LOI_NHAN.don_huy() : STALE_NHAN();
     baoThayDoi({ orderId, thayDoi: "ban_hang_nhan", nguoiMoi: laX ? null : (loiMoi?.staffId ?? null) }); // X bị người khác nhận thay chỉ nhận ở Bảng tin (lời mời đã khép, hộp thư không biết)
     return json({ ok: true, banHang: { staffId: staff.id, name: staff.fullName } } satisfies BanHangGhiResponse);
   }),
@@ -195,7 +195,10 @@ export const banHangRoutes = [
       if (/order_delivered/.test(String((e as Error)?.message ?? e))) return DA_GIAO();
       throw e;
     }
-    if (!banHangThang(ket, partyMoi === null ? 0 : 1)) return error(409, "stale", "Người phụ trách vừa được đổi, hãy tải lại.");
+    if (!banHangThang(ket, partyMoi === null ? 0 : 1)) {
+      if ((await findOrderOwner(env.DB, orderId))?.status === "cancelled") return error(409, "cancelled", "Đơn đã huỷ, không đổi người phụ trách được.");
+      return error(409, "stale", "Người phụ trách vừa được đổi, hãy tải lại.");
+    }
     const moi = (await banHangCuaDon(env.DB, [orderId])).get(orderId) ?? null;
     baoThayDoi({ orderId, thayDoi: "doi_ban_hang", banHangTruoc: hien?.staffId ?? null }); // người cũ nhận ở Bảng tin lúc sự kiện, không có dòng hộp thư
     return json({ ok: true, banHang: moi ? { staffId: moi.staffId, name: moi.name } : null } satisfies BanHangGhiResponse);

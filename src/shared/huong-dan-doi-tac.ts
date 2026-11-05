@@ -116,7 +116,20 @@ Giờ đón quá sát không chặn bạn gửi đơn: văn phòng chốt giờ 
 2. Bấm [[Huỷ đơn]]. Nền tảng hỏi: "Huỷ đơn này? Việc huỷ không thể hoàn tác."
 3. Đồng ý thì đơn chuyển sang **Đã huỷ**.
 
-> Lưu ý: Đơn đã huỷ không mở lại được. Khách muốn đi lại thì phải lập đơn mới.`,
+> Lưu ý: Đơn đã huỷ không mở lại được. Khách muốn đi lại thì phải lập đơn mới.
+
+Đơn đã mở vé thì bạn không tự huỷ được: trang đơn không có nút [[Huỷ đơn]] và hiện câu "Đơn đã mở vé nên bạn không tự huỷ được. Liên hệ văn phòng." Vé đã mở thì khách có thể đã cầm ảnh trong tay, nên việc huỷ do văn phòng quyết.`,
+    },
+    {
+      tieuDe: "Xem và gửi vé cho khách",
+      noiDung: `1. Mở đơn đã xác nhận do bạn lập, kéo xuống khối **Vé điện tử**.
+2. Vé chỉ mở khi tiền của đơn đã về công ty. Khách trả tiền mặt cho bạn thì bạn nộp về công ty, Kế toán ghi nhận xong thì vé mới mở. Chưa mở thì khối báo "Công ty chưa xác nhận đã nhận đủ tiền nên chưa mở được vé." Tiền bạn tự ghi là "Tôi thu" chưa đủ để mở vé.
+3. Khi mở được, bấm [[Cấp vé]] nếu khối báo còn thiếu vé. Vẫn thiếu thì báo văn phòng nhập thêm vé.
+4. Bấm nút **Mở … vé để gửi khách**, rồi bấm [[Gửi Zalo]] và chọn người nhận.
+
+Bạn chỉ thấy vé của đơn do chính bạn lập, không thấy vé của đơn người khác.
+
+> Lưu ý: Đã bấm mở vé thì vé coi như đã đến tay khách, không trả về kho được và bạn không tự huỷ đơn được nữa. Chưa chắc khách lấy thì đừng bấm.`,
     },
     {
       tieuDe: "Xem lại đơn của mình",
@@ -161,6 +174,7 @@ Vẫn lập đơn và bấm [[Gửi đơn]] được. Văn phòng chọn giờ v
 - Chọn hướng dẫn viên phụ trách: không. Nhờ văn phòng.
 - Sửa giờ đón, điểm đón, đổi khách sau khi xác nhận: không. Nhờ văn phòng.
 - Sửa số khách, tiền sau khi xác nhận: không. Nhờ văn phòng.
+- Huỷ đơn đã mở vé: không. Nhờ văn phòng.
 - Nhập giờ đón: không. Ghi giờ khách muốn vào dòng **Ghi chú**, văn phòng chốt giờ.
 - Bấm "Đặt gấp": không. Nhờ văn phòng (nhân viên bán hàng hoặc Quản trị).
 - Xem Danh bạ, Trang chủ của công ty: không.

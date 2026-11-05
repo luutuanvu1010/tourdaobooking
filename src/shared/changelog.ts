@@ -17,6 +17,36 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Ô «Có vé» theo nhóm và dịch vụ (ADR-0174), CÓ migration 0142. Số riêng để cổng phiên bản vẫn đạt dù 2.69 lên trước hay lên cùng. Bước A.0 đặt lại nếu cần.
+    version: "2.70",
+    date: "2026-11-05",
+    items: [
+      { kind: "moi", text: "Màn Dịch vụ & giá có ô «Có vé» cho từng nhóm và từng dịch vụ; Quản trị và Toàn quyền bật tắt được." },
+      { kind: "sua", text: "Dịch vụ không dùng vé không còn hiện «Thiếu vé» và nút «Cấp vé» trên trang đơn." },
+    ],
+  },
+  {
+    // Đối tác xem và gửi vé (ADR-0170), siết ba đường (ADR-0171), sửa số nợ Trả sau khi nộp một phần. Không migration. Số và ngày tạm: bước A.0 đặt lại nếu cần.
+    version: "2.69",
+    date: "2026-11-05",
+    items: [
+      { kind: "moi", text: "Đối tác xem và gửi được vé của đơn mình lập, khi tiền của đơn đã về công ty." },
+      { kind: "doi", text: "Đơn do Đối tác lập: khoản Đối tác tự ghi chỉ tính sau khi đã nộp về công ty hoặc Kế toán xác nhận, nên vé mở sau bước đó." },
+      { kind: "doi", text: "Đối tác không tự huỷ hoặc tự sửa số khách trên đơn đã mở vé; cần thì liên hệ văn phòng." },
+      { kind: "doi", text: "Đường dẫn gửi khách: vé đã mở vẫn xem được, vé chưa mở chỉ hiện khi đơn đủ tiền." },
+      { kind: "doi", text: "Chuyển tiền sang đơn mới: phải ghi đúng người chưa nộp tiền; đơn của Đối tác chỉ mở vé sau khi người đó nộp." },
+      { kind: "sua", text: "Đơn trả sau: số nợ tính đúng khi mới nộp một phần tiền." },
+    ],
+  },
+  {
+    // Sửa khe đua ADR-0142 (nợ T4): nhận / đổi người phụ trách đúng lúc đơn bị huỷ. Không migration. Số và ngày tạm cho nhánh: bước A.0 đặt lại nếu cần.
+    version: "2.68",
+    date: "2026-11-05",
+    items: [
+      { kind: "sua", text: "Bấm nhận hoặc đổi người phụ trách đúng lúc đơn vừa bị huỷ: Nền tảng báo đơn đã huỷ và không ghi tên người lên đơn đó nữa." },
+    ],
+  },
+  {
     // Thanh toán trả sau theo hạn mức (ADR-0168): migration 0141, ô quyền credit.limit.view / credit.limit.write.
     // Số 2.67 và ngày chỉ là tạm cho nhánh: bước A.0 của lần triển khai đặt lại nếu cần.
     version: "2.67",

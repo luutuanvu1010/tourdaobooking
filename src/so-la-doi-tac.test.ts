@@ -506,8 +506,8 @@ test("Task 9 (6) — I-1 người kiểm Task 8+9: tài khoản lai Kế toán +
   const c = await w.call("POST", `/api/orders/${huy}/status`, { as: SUP, body: { status: "cancelled", lyDo: "THOI_TIET" } });
   assert.equal(c.status, 200, c.text);
   const ktCoc = (await tienT9(w, huy, KT)).json.coc;
-  assert.deepEqual(ktCoc.nguoiGiu, [{ ten: TEN_HDV, soTien: 300_000 }], "có răng: Kế toán thuần thấy người giữ tiền");
+  assert.deepEqual(ktCoc.nguoiGiu, [{ partyId: `pty-${T9_HDV}`, ten: TEN_HDV, soTien: 300_000 }], "có răng: Kế toán thuần thấy người giữ tiền, kèm mã hồ sơ (ADR-0171 Đ3: nút chuyển cọc gửi đúng người)");
   const r = await tienT9(w, huy, T9_KTP);
   assert.equal(r.json.coc.nguoiGiu, null, `lai thấy người giữ: ${JSON.stringify(r.json.coc.nguoiGiu)}`);
-  for (const cam of ["Nam Số Lạ", "4817"]) assert.ok(!r.text.includes(cam), `lai thấy «${cam}» ở màn tiền đơn huỷ: ${r.text}`);
+  for (const cam of ["Nam Số Lạ", "4817", "partyId", `pty-${T9_HDV}`]) assert.ok(!r.text.includes(cam), `lai thấy «${cam}» ở màn tiền đơn huỷ: ${r.text}`);
 });

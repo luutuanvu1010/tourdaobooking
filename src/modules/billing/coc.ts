@@ -139,7 +139,7 @@ export async function cocCuaDon(db: D1Database, orderId: string, co: CoCoc): Pro
   if (co.xemNguoiGiu) {
     const giu = [...d.soDu].filter(([, v]) => v > 0);
     const ten = await partyLabels(db, giu.map(([id]) => id));
-    nguoiGiu = giu.map(([id, soTien]) => ({ ten: ten.get(id)?.label ?? "Một người", soTien }));
+    nguoiGiu = giu.map(([id, soTien]) => ({ partyId: id, ten: ten.get(id)?.label ?? "Một người", soTien })); // ADR-0171 Đ3: partyId để nút chuyển cọc gửi đúng người (chỉ có khi người xem có ledger.view any)
   }
   const coHieuLuc = hoanNgoaiTrangThai(d.hoanNgoai).dangHieuLuc;
   const choXacNhan = coHieuLuc.some((g) => !d.hoanNgoai.some((x) => x.kind === "CONFIRM" && x.targetId === g.id));
@@ -295,6 +295,7 @@ export async function ghiChiHoan(db: D1Database, input: { orderId: string; raw: 
 // Chuyển tiền sang đơn mới (đ6) — Kế toán, Toàn quyền; MỘT lô HAI đơn: chi khỏi đơn huỷ (gắn khoản TRANSFER) + thu vào đơn nhận (trỏ nửa chi), cùng số,
 // cùng người đang giữ; nhật ký trên cả hai đơn.
 // ---------------------------------------------------------------------------------------------------------------------------------------------------
+const CAU_CON_NGUOI_GIU = "Đơn cũ còn người chưa nộp tiền về công ty nên chưa ghi “Công ty giữ” được. Chọn đúng người chưa nộp, hoặc ghi họ nộp tiền trước.";
 export async function ghiChuyen(db: D1Database, input: { orderId: string; raw: unknown; ai: NguoiGoi }): Promise<KetQua<{ donNhanId: string }>> {
   const b = (input.raw ?? {}) as Record<string, unknown>;
   if (typeof b.duyetId !== "string" || !UUID_RE.test(b.duyetId)) return loi(400, "invalid_input", "Chọn khoản duyệt chuyển.");
@@ -316,6 +317,8 @@ export async function ghiChuyen(db: D1Database, input: { orderId: string; raw: u
   if (await coKhoanLoiKhai(db, goc.targetOrderId)) return DON_NHAN_CO_LOI_KHAI();
   const giu = await docBen(db, b.nguoiGiu, d.congTyId, "Chọn ai đang cầm khoản tiền này (Công ty, hoặc nhân viên chưa nộp về công ty).");
   if (!giu.ok) return giu;
+  // ADR-0171 Đ3 mục 2: «Công ty giữ» chỉ hợp lệ khi KHÔNG còn ai chưa nộp trên đơn cũ — giao diện tự chọn đúng người, máy chủ vẫn chặn khi gọi API trực tiếp.
+  if (giu.value === d.congTyId && [...d.soDu].some(([id, v]) => id !== d.congTyId && v > 0)) return loi(409, "coc_con_nguoi_giu", CAU_CON_NGUOI_GIU);
   const tc = tuChoi(kiemChi({
     conLaiKhoan: conLaiCuaKhoan(goc.id, d.duyet, d.receipts), soTien: so.value, nguoiChi: input.ai.staffId, nguoiDuyet: goc.createdBy,
     nguoiTraDangGiu: giu.value === d.congTyId ? null : Math.max(0, d.soDu.get(giu.value) ?? 0),

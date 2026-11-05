@@ -497,12 +497,18 @@ test("I-4: khai đủ chưa nộp thì khoá và báo chờ đối tác nộp; n
   assert.equal(v.choDoiTacNop, false);
 });
 
-test("I-4: «Tôi thu» đủ tiền vẫn mở như cũ, không phải đợi nộp", async () => {
+// Đổi CÓ CHỦ Ý (ADR-0170 Đ2, mở rộng ADR-0159 Đ2 mục 2): bản cũ nói «Tôi thu» đủ tiền thì vé mở ngay. Nay đơn do người giữ quyền Đối tác lập chỉ mở khi tiền ĐÃ VỀ công ty,
+// nên «Tôi thu» của chính họ khoá tới khi nộp (đơn do nhân viên văn phòng lập vẫn mở ngay: doi-tac-mo-ve.test.ts).
+test("I-4 (đổi theo ADR-0170): «Tôi thu» đủ tiền của đối tác khoá tới khi nộp về công ty", async () => {
   const w = dung();
   const o = await moDon(w, PARTNER, 0);
   const t = await w.call("POST", `/api/orders/${o.id}/payments`, { as: PARTNER, body: { soTien: 600000, hinhThuc: "CASH", nguoiThu: "toi" } });
   assert.equal(t.status, 201, t.text);
-  const v = await veDon(w, o.id);
+  let v = await veDon(w, o.id);
+  assert.equal(v.thuDu, false);
+  assert.equal(v.choDoiTacNop, true);
+  assert.equal((await nop(w, o.id, 600000)).status, 201);
+  v = await veDon(w, o.id);
   assert.equal(v.thuDu, true);
   assert.equal(v.choDoiTacNop, false);
 });
@@ -661,14 +667,18 @@ test("I-5: chuyển hai lần vẫn truy về khoản khai", async () => {
   assert.equal((await veDon(w, c.id)).thuDu, true);
 });
 
-test("I-5: cọc «Tôi thu» chuyển sang giữ quy tắc cũ, vé mở", async () => {
+// Đổi CÓ CHỦ Ý (ADR-0170 Đ2): tiền «Tôi thu» của đối tác chuyển sang đơn mới vẫn nằm ở tay đối tác (dòng giữ hộ trên họ), nên vé đơn nhận khoá tới khi nộp.
+test("I-5 (đổi theo ADR-0170): cọc «Tôi thu» chuyển sang đơn mới vẫn ở tay đối tác, vé khoá tới khi nộp", async () => {
   const w = dung();
   const cu = await moDon(w, PARTNER, 0);
   assert.equal((await w.call("POST", `/api/orders/${cu.id}/payments`, { as: PARTNER, body: { soTien: 600000, hinhThuc: "CASH", nguoiThu: "toi" } })).status, 201);
   await huyDon(w, cu.id);
   const nhan = await moDon(w, PARTNER, 0);
   await chuyenCoc(w, cu, nhan, 600000);
-  const v = await veDon(w, nhan.id);
+  let v = await veDon(w, nhan.id);
+  assert.equal(v.thuDu, false);
+  assert.equal((await nop(w, nhan.id, 600000)).status, 201);
+  v = await veDon(w, nhan.id);
   assert.equal(v.thuDu, true);
   assert.equal(v.choDoiTacNop, false);
 });

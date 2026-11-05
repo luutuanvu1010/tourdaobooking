@@ -560,12 +560,12 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/tra-sau/han-muc", access: "office" }, // credit.limit.write (chỉ Toàn quyền)
   { method: "POST", path: "/api/tra-sau/han-muc/:partyId/ngung", access: "office" }, // như trên
   { method: "GET", path: "/api/tra-sau/con-duoc-dung", access: "orders" }, // đường đọc hẹp cho người lập đơn: order.create; Đối tác bị ép về hồ sơ của phiên
-  { method: "GET", path: "/api/ve/don/:orderId", access: "office" }, // ADR-0153 Đ3 (Task 6); thân hỏi order.view
-  { method: "GET", path: "/api/ve/anh/:allocationId", access: "office" }, // ADR-0153 Đ3 (Task 6); thân hỏi ve.cap.send + thu đủ
-  { method: "POST", path: "/api/ve/giao", access: "office" }, // ADR-0153 Đ3 (Task 6); thân hỏi ve.cap.send + thu đủ
-  { method: "POST", path: "/api/ve/cap", access: "office" }, // ADR-0153 Đ1 mục 3: cấp bù bằng tay; thân hỏi ve.cap.send
-  { method: "POST", path: "/api/ve/duong-dan", access: "office" }, // ADR-0153 Đ2 (Task 7); thân hỏi ve.cap.send + thu đủ
-  { method: "POST", path: "/api/ve/duong-dan/:id/thu-hoi", access: "office" }, // như trên (ve.cap.send)
+  { method: "GET", path: "/api/ve/don/:orderId", access: "orders" }, // ADR-0153 Đ3 (Task 6); thân hỏi order.view rồi isOffice hoặc ve.cap.send (ADR-0170 Đ1: cổng orders mở cho Đối tác; FIELD, INTERN vẫn 403)
+  { method: "GET", path: "/api/ve/anh/:allocationId", access: "orders" }, // ADR-0153 Đ3 (Task 6); thân hỏi ve.cap.send + thu đủ
+  { method: "POST", path: "/api/ve/giao", access: "orders" }, // ADR-0153 Đ3 (Task 6); thân hỏi ve.cap.send + thu đủ
+  { method: "POST", path: "/api/ve/cap", access: "orders" }, // ADR-0153 Đ1 mục 3: cấp bù bằng tay; thân hỏi ve.cap.send
+  { method: "POST", path: "/api/ve/duong-dan", access: "orders" }, // ADR-0153 Đ2 (Task 7); thân hỏi ve.cap.send + thu đủ
+  { method: "POST", path: "/api/ve/duong-dan/:id/thu-hoi", access: "orders" }, // như trên (ve.cap.send)
   { method: "GET", path: "/ve/:token", access: "public" }, // ADR-0153 Đ2: trang khách; token băm + hạn + thu hồi + giới hạn tốc độ; CHỈ ĐỌC
   { method: "GET", path: "/api/ve-khach/:token/anh/:slot", access: "public" }, // ADR-0153 Đ2: ảnh vé của khách; như trên
   { method: "GET", path: "/api/tro-ly/khung", access: "staff" }, // ADR-0069 điều 3, 4 — cờ được dùng + câu chào (mọi tài khoản, không dữ liệu nghiệp vụ); ADR-0084: + cách gọi / xưng của chính người gọi
@@ -723,6 +723,7 @@ test("mức truy cập của 443 route hiện có khớp ảnh chụp đã duy�
   // 2026-10-31 (mã định danh 5.26, Task 3): + PATCH /api/pricing/loai-doi-tac/:code (office; partner.commission.write, không Đối tác) = 406.
   // 2026-11-02 (ADR-0116): + 6 route /api/ledger/phan-dinh* (office) + 2 route /api/ledger/phan-dinh-cua-toi* (staff, chỉ hồ sơ của chính người gọi) = 438.
   // 2026-11-05 (ADR-0168 Task 2): + 5 route /api/tra-sau/* (4 office, 1 orders). Tổng sau khi nhập bản chính (9813f1a4): 454 (con số hiện ở hai dòng assert dưới).
+  // 2026-11-05 (ADR-0170 Đ1): sáu route /api/ve/don, anh, giao, cap, duong-dan, duong-dan/thu-hoi đổi cổng office → orders (số route không đổi = 438); thân vẫn hỏi ve.cap.send.
   // 2026-11-02 (ADR-0156): + GET /api/ve/lo, POST /api/ve/lo/:id/bo (office; ve.kho.manage), GET, PUT /api/ve/cai-dat (admin; settings.ops) = 424.
   // 2026-11-01 (ADR-0153 cấp bù bằng tay): + POST /api/ve/cap (office; ve.cap.send) = 420.
   // 2026-11-01 (ADR-0153 Task 7): + POST /api/ve/duong-dan, …/:id/thu-hoi (office), GET /ve/:token, GET /api/ve-khach/:token/anh/:slot (public, chỉ đọc) = 420.

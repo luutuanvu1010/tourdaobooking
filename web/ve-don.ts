@@ -8,13 +8,15 @@
 // máy không chia sẻ được tệp thì có «Tải ảnh về» và «Sao chép đường dẫn». Không innerHTML.
 import { ApiError, api } from "./api";
 import { h, replaceChildren } from "./dom";
-import { CAU_VE_QUA_HAN_TRA_SAU } from "../src/shared/tra-sau";
+import { CAU_VE_QUA_HAN_TRA_SAU, CAU_VE_QUA_HAN_TRA_SAU_DOI_TAC } from "../src/shared/tra-sau";
 
 interface NhomVe { nhom: string; nhan: string; can: number; giu: number; thieu: number }
 interface VeDonRes {
   dichVu: { serviceId: string; catalogCode: string; nhom: NhomVe[] }[];
   thuDu: boolean;
   choDoiTacNop?: boolean;
+  /** ADR-0170 Đ2 mục 5: người xem giữ quyền Đối tác — nói câu «Công ty chưa xác nhận…». */
+  nguoiXemLaDoiTac?: boolean;
   /** ADR-0168 Đ3 mục 1: đơn Trả sau quá hạn còn nợ — vé chưa mở chưa xem được, vé đã mở (trong `veXem`) vẫn xem. */
   traSauQuaHan?: boolean;
   duongDan: { id: string; hetHan: string; daThuHoi: boolean; luotMo: number }[];
@@ -59,10 +61,10 @@ function veKhoi(el: HTMLElement, vao: VeDonVao, res: VeDonRes, dong: VeDonRes["d
     nutCap.disabled = true; hien(null);
     try { await api("/api/ve/cap", { method: "POST", body: { orderId: vao.orderId } }); await initVeDon(el, vao); } catch (err) { hien(lyDoLoi(err), true); nutCap.disabled = false; }
   });
-  const khoi: (Node | null)[] = [h("h2", null, "Vé điện tử"), tongThieu > 0 ? h("p", { class: "muted" }, `Còn thiếu ${tongThieu} vé. Nhập thêm vé vào kho rồi bấm Cấp vé.`) : null, danhSach, nutCap ? h("div", { class: "handler-actions" }, nutCap) : null];
+  const khoi: (Node | null)[] = [h("h2", null, "Vé điện tử"), tongThieu > 0 ? h("p", { class: "muted" }, res.nguoiXemLaDoiTac ? `Còn thiếu ${tongThieu} vé. Bấm Cấp vé; nếu vẫn thiếu, báo văn phòng.` : `Còn thiếu ${tongThieu} vé. Nhập thêm vé vào kho rồi bấm Cấp vé.`) : null, danhSach, nutCap ? h("div", { class: "handler-actions" }, nutCap) : null];
 
   if (!res.thuDu && res.veXem.length === 0) {
-    khoi.push(h("p", { class: "muted" }, res.traSauQuaHan ? CAU_VE_QUA_HAN_TRA_SAU : res.choDoiTacNop ? "Đang chờ đối tác nộp tiền về công ty nên chưa xem hoặc gửi được vé." : "Đơn chưa thu đủ tiền nên chưa xem hoặc gửi được vé."));
+    khoi.push(h("p", { class: "muted" }, res.traSauQuaHan ? (res.nguoiXemLaDoiTac ? CAU_VE_QUA_HAN_TRA_SAU_DOI_TAC : CAU_VE_QUA_HAN_TRA_SAU) : res.choDoiTacNop ? (res.nguoiXemLaDoiTac ? "Công ty chưa xác nhận đã nhận đủ tiền nên chưa mở được vé." : "Đang chờ đối tác nộp tiền về công ty nên chưa xem hoặc gửi được vé.") : "Đơn chưa thu đủ tiền nên chưa xem hoặc gửi được vé."));
   } else if (vao.coQuyenGui && res.veXem.length > 0) {
     // ---- Gửi Zalo / tải ảnh -------------------------------------------------------------------------------------------------------------------------------
     let tep: File[] = [];

@@ -20,6 +20,8 @@ import { readdirSync, readFileSync } from "node:fs";
 import { performance } from "node:perf_hooks";
 import { PERMISSION_CODES, can, holdsPartner, isExternalPermission, type PermissionCode } from "./shared/permissions.ts";
 import { HANH_DONG_TIN_DON } from "./shared/thong-bao.ts";
+import { noiDungChuyenKhoan } from "./shared/noi-dung-chuyen-khoan.ts";
+import { payloadVietQr } from "./shared/vietqr.ts";
 import { HANH_DONG_TIN_CHUYEN } from "./shared/tin-chuyen.ts";
 import { THAY_DOI } from "./shared/bang-tin.ts";
 import { hanhDongCuaThayDoi } from "./shared/web-push.ts";
@@ -228,12 +230,19 @@ const NGOAI_GET: Record<string, string> = {
 };
 
 /** Đơn NHÁP gieo bằng SQL (khuôn so-la-doi-tac): chủ `chu`, bên đặt `booker`, ngày đi = hôm nay giờ VN (đồng hồ giả). */
+let soMaGieo = 0;
 function nhap(w: W, chu: string, booker: string | null, dv: [string, number][]): string {
   const id = uuid();
   const tong = dv.reduce((s, [, t]) => s + t, 0);
+  // Mã gieo CỐ ĐỊNH (không lấy từ uuid ngẫu nhiên): payload QR có CRC-16 ghép từ mã đơn, mã ngẫu nhiên có lúc làm CRC ra đúng một dãy «số lạ» (vd 4261) ⇒ đỏ ngẫu nhiên.
+  // Kiểm trước: payload QR của mã này (tài khoản và số tiền của bài) không chứa số lạ nào. Không thu hẹp phép quét, không bỏ CRC.
+  const ma = `TD-SL-${String(++soMaGieo).padStart(3, "0")}`;
+  const qr = payloadVietQr({ bin: "970436", soTaiKhoan: "0011001234567", soTien: tong, noiDung: noiDungChuyenKhoan(ma) });
+  assert.ok(qr.ok, "payload QR của mã gieo dựng được");
+  if (qr.ok) assert.deepEqual(soLaTrong(qr.payload).map((x) => x.ten), [], `mã gieo ${ma} (số tiền ${tong}): payload QR chứa số lạ — đổi số thứ tự mã`);
   const ngay = new Date(Date.now() + 7 * 3600_000).toISOString().slice(0, 10);
   w.sqlite.prepare(`INSERT INTO orders (id, order_code, staff_id, status, customer_name, customer_phone, subtotal, total, remaining_amount, booker_party_id, created_at, updated_at)
-    VALUES (?, ?, ?, 'draft', 'Khách Giả', '0900000099', ?, ?, ?, ?, ?, ?)`).run(id, `TD-SL-${id.slice(0, 4)}`, chu, tong, tong, tong, booker, AT, AT);
+    VALUES (?, ?, ?, 'draft', 'Khách Giả', '0900000099', ?, ?, ?, ?, ?, ?)`).run(id, ma, chu, tong, tong, tong, booker, AT, AT);
   dv.forEach(([code, t], i) => {
     const s = `${id}-s${i}`;
     w.sqlite.prepare("INSERT INTO order_service (pickup_choice, id, order_id, sort_order, catalog_code, name, unit, pax_adult, depart_date) VALUES ('KHONG_DON', ?, ?, ?, ?, ?, 'perPax', 1, ?)").run(s, id, i, code, `Dịch vụ ${code}`, ngay);
