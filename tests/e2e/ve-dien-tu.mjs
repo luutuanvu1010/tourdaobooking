@@ -2,7 +2,7 @@
 // huỷ đơn (trả vé về kho) → chưa thu đủ thì ảnh 403 → đường dẫn khách sai token 404 → Kế toán 403. Dùng RIÊNG mã danh mục giả ZVD1; mọi vé của kịch bản nằm trong lô riêng.
 // ADR-0156: chống trùng theo mã + dấu vân tệp, trần lô (chỉ Toàn quyền đổi, khoá lạc quan, đợt sau cộng dồn), Bỏ lô rồi nhập lại đúng ảnh đó, lô từng giữ chỗ không bỏ được.
 import assert from "node:assert/strict";
-import { ACCOUNTS, call, catalogService, ensureFakeCatalog, orderInput, session, sql, sqlRows, vnDate } from "./lib.mjs";
+import { ACCOUNTS, call, catalogService, ensureFakeCatalog, login, orderInput, randomPhone, session, sql, sqlRows, vnDate } from "./lib.mjs";
 
 await ensureFakeCatalog();
 const AT = "'2026-01-01T00:00:00.000Z'";
@@ -180,6 +180,67 @@ const suatChung = await sqlRows(`SELECT pax_group FROM vdt_allocation WHERE orde
 assert.deepEqual(suatChung.map((r) => r.pax_group), ["ADULT", "CHILD"]);
 const khoChung = (await call(SALES, "GET", "/api/ve/kho")).body.kho.find((d) => d.catalogCode === "ZVD2");
 assert.deepEqual([khoChung.nhomKhach, khoChung.conTrong, khoChung.daGiu], ["ALL", 1, 2]);
+
+// 11c. ADR-0170 Đ1 + Đ3 trên API THẬT: đối tác xem và gửi vé của đơn MÌNH lập, sau khi Kế toán ghi tiền về công ty; đơn người khác không mở; đã mở vé thì không tự huỷ.
+{
+  const TQ2 = await session(ACCOUNTS.superAdmin);
+  const taoDoiTac = async (ten) => {
+    const t = await call(TQ2, "POST", "/api/staff", { taoHoSoMoi: true, fullName: `${ten} ${tag}`, phone: randomPhone(), roles: ["COLLABORATOR"] });
+    assert.equal(t.status, 201, JSON.stringify(t.body));
+    return (await login(t.body.staff.phone, t.body.pin)).cookie;
+  };
+  const DT = await taoDoiTac("Đối Tác Vé E2E");
+  const DT2 = await taoDoiTac("Đối Tác Khác Vé E2E");
+  // thêm 4 vé riêng cho đoạn này: hai đơn × 2 khách, không phụ thuộc số vé còn lại của các ca trên
+  const loDT = await moLo();
+  assert.equal((await themVe(loDT, [81, 82, 83, 84].map((n) => veThu(n, `E2E.${tag}.dt.${n}`)))).body.themDuoc, 4);
+  assert.equal((await call(SALES, "POST", `/api/ve/lo/${loDT}/xac-nhan`, {})).status, 200);
+  const donDoiTac = async () => {
+    const r = await call(DT, "POST", "/api/orders", orderInput({ customerName: `Khách Vé Đối Tác ${tag}`, customerPhone: "0913571359", services: [catalogService({ catalogCode: "ZVD1", catalogPriceSeen: { adult: 100000 }, pax: { adult: 2 }, departDate: vnDate(14) })] }));
+    assert.equal(r.status, 201, JSON.stringify(r.body));
+    const g = await call(DT, "POST", `/api/orders/${r.body.order.id}/gui-don`, {});
+    assert.equal(g.status, 200, JSON.stringify(g.body));
+    return { id: r.body.order.id, total: r.body.order.total };
+  };
+  const ghiThu = (cookie, d, nguoiThu) => call(cookie, "POST", `/api/orders/${d.id}/payments`, { soTien: d.total, hinhThuc: "CASH", nguoiThu });
+  const daDM = await donDoiTac();
+  const phanBoDM = await sqlRows(`SELECT id FROM vdt_allocation WHERE order_id = '${daDM.id}' AND released_at IS NULL`);
+  assert.equal(phanBoDM.length, 2, "đơn đối tác giữ 2 vé");
+  // tự ghi «Tôi thu» đủ tiền: vẫn khoá (Đ2)
+  assert.equal((await ghiThu(DT, daDM, "toi")).status, 201);
+  const khoa = await call(DT, "GET", `/api/ve/don/${daDM.id}`);
+  assert.equal(khoa.status, 200, JSON.stringify(khoa.body));
+  assert.equal(khoa.body.thuDu, false);
+  assert.equal((await call(DT, "POST", "/api/ve/duong-dan", { orderId: daDM.id })).status, 403);
+  // đơn khác: Kế toán ghi thẳng «Công ty thu» đủ tiền (tiền đã về công ty) ⇒ đối tác mở được
+  const daKT = await donDoiTac();
+  assert.equal((await ghiThu(KT, daKT, "cong_ty")).status, 201);
+  const mo = await call(DT, "GET", `/api/ve/don/${daKT.id}`);
+  assert.equal(mo.status, 200, JSON.stringify(mo.body));
+  assert.equal(mo.body.thuDu, true);
+  assert.equal(mo.body.veXem.length, 2);
+  assert.doesNotMatch(JSON.stringify(mo.body), new RegExp(`E2E\\.${tag}|vdt/`));
+  assert.equal((await call(DT, "GET", `/api/ve/anh/${mo.body.veXem[0].id}`)).status, 200, "đối tác mở ảnh vé đơn mình");
+  assert.equal((await call(DT, "POST", "/api/ve/giao", { orderId: daKT.id, requestId: crypto.randomUUID() })).status, 200);
+  const dd = await call(DT, "POST", "/api/ve/duong-dan", { orderId: daKT.id });
+  assert.equal(dd.status, 200, JSON.stringify(dd.body));
+  assert.equal((await call(DT, "POST", `/api/ve/duong-dan/${dd.body.id}/thu-hoi`, {})).status, 200);
+  assert.equal((await call(DT, "POST", "/api/ve/cap", { orderId: daKT.id })).status, 200);
+  // đơn người khác: đối tác khác không thấy, không mở ảnh; kho vé đóng với đối tác
+  for (const r of [await call(DT2, "GET", `/api/ve/don/${daKT.id}`), await call(DT2, "GET", `/api/ve/anh/${mo.body.veXem[0].id}`), await call(DT2, "POST", "/api/ve/duong-dan", { orderId: daKT.id })]) {
+    assert.ok(r.status === 403 || r.status === 404, `đối tác khác: ${r.status}`);
+  }
+  assert.equal((await call(DT, "GET", "/api/ve/kho")).status, 403);
+  // Đ3: đã mở vé thì đối tác không tự huỷ (409, đơn giữ nguyên); Quản trị huỷ được
+  const huyDT = await call(DT, "POST", `/api/orders/${daKT.id}/status`, { status: "cancelled", lyDo: "KHACH_DOI_Y" });
+  assert.equal(huyDT.status, 409, JSON.stringify(huyDT.body));
+  assert.equal((await sqlRows(`SELECT status FROM orders WHERE id = '${daKT.id}'`))[0].status, "confirmed");
+  const ct = await call(DT, "GET", `/api/orders/${daKT.id}`);
+  assert.equal(ct.body.coVeDaMo, true);
+  assert.equal((await call(QT, "POST", `/api/orders/${daKT.id}/status`, { status: "cancelled", lyDo: "KHACH_DOI_Y" })).status, 200);
+  // đơn CHƯA mở vé: đối tác huỷ được
+  assert.equal((await call(DT, "POST", `/api/orders/${daDM.id}/status`, { status: "cancelled", lyDo: "KHACH_DOI_Y" })).status, 200);
+}
 
 // 12. nhật ký không chứa mã vé
 const nk =JSON.stringify(await sqlRows(`SELECT detail, target_id FROM audit_log WHERE action LIKE 've_%'`));

@@ -5,7 +5,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { app, seedStaff } from "../../../tests/audit/harness.mjs";
-import { A, ACC, ADM, LAI, PARTNER, inDays, setup, svc } from "../../../tests/audit/xac-nhan-khung.mjs";
+import { A, ACC, ADM, H, INTERN, LAI, PARTNER, inDays, setup, svc } from "../../../tests/audit/xac-nhan-khung.mjs";
 
 const AT = "2026-10-01T00:00:00.000Z";
 const TONG = 600000;
@@ -165,10 +165,10 @@ test("không đọc được chủ đơn: vé khoá (không rơi về nhánh nh�
 const PNG = (n: number) => { const u = new Uint8Array(40); u.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0x0d, 0x49, 0x48, 0x44, 0x52, 0, 0, n, n]); return u; };
 const CAU_CHAN = "Đơn đã mở vé nên bạn không tự huỷ được. Liên hệ văn phòng.";
 const PF = "88888888-8888-4888-8888-888888888889"; // Đối tác + Hướng dẫn viên (tài khoản lai), đang phụ trách
-async function nhapKho(w: any, soVe: number) {
+async function nhapKho(w: any, soVe: number, batDau = 1) {
   const lo = await w.call("POST", "/api/ve/lo", { as: ADM, body: { catalogCode: "ZA1", nhomKhach: "ADULT", tenSanPham: "Tour đảo" } });
   assert.equal(lo.status, 201, lo.text);
-  const ve = Array.from({ length: soVe }, (_x, i) => ({ noiDung: Buffer.from(PNG(i + 1)).toString("base64"), maVe: `BI.MAT.${i + 1}`, tuNgay: "2026-01-01", denNgay: "2027-12-31" }));
+  const ve = Array.from({ length: soVe }, (_x, i) => ({ noiDung: Buffer.from(PNG(i + batDau)).toString("base64"), maVe: `BI.MAT.${i + batDau}`, tuNgay: "2026-01-01", denNgay: "2027-12-31" }));
   assert.equal((await w.call("POST", `/api/ve/lo/${lo.json.loId}/ve`, { as: ADM, body: { ve } })).json.themDuoc, soVe);
   assert.equal((await w.call("POST", `/api/ve/lo/${lo.json.loId}/xac-nhan`, { as: ADM, body: {} })).status, 200);
 }
@@ -265,4 +265,107 @@ test("Đ3: GET /api/orders/:id trả coVeDaMo CHỈ cho người giữ quyền �
   const nv = await w.call("GET", `/api/orders/${id}`, { as: ADM });
   assert.equal(nv.status, 200, nv.text);
   assert.equal("coVeDaMo" in nv.json, false, "nhân viên không thấy cờ");
+});
+
+// ===== ADR-0170 Đ1: đối tác xem và gửi vé của đơn MÌNH lập (sáu route sang cổng `orders`, `ve.cap.send` cột Đối tác = own) =====
+const PARTNER2 = "88888888-8888-4888-8888-888888888890";
+const phanBo = (w: any, id: string) => w.q("SELECT id, revealed_at FROM vdt_allocation WHERE order_id = ? AND released_at IS NULL ORDER BY slot_no", id) as { id: string; revealed_at: string | null }[];
+const phaiThu = async (w: any, id: string) => (await w.call("GET", `/api/orders/${id}`, { as: ADM })).json.order.total as number;
+/** Đơn ZA1 của đối tác đã xác nhận, có 2 vé giữ, Kế toán ghi «Công ty thu» đủ tiền (tiền ĐÃ về công ty). */
+async function donDoiTacDuTien(w: any, nhap = true) {
+  if (nhap) await nhapKho(w, 3);
+  const id = await donDaXacNhan(w, PARTNER);
+  assert.equal((await thu(w, id, ACC, { soTien: await phaiThu(w, id), nguoiThu: "cong_ty" })).status, 201);
+  assert.equal(phanBo(w, id).length, 2);
+  return id;
+}
+
+test("Đ1: đối tác, đơn tự lập, Kế toán ghi đủ: xem danh sách, mở ảnh (có dấu lộ), giao (ghi một dòng), tạo và thu hồi đường dẫn, cấp bù", async () => {
+  const w = dung();
+  const id = await donDoiTacDuTien(w);
+  const ds = await w.call("GET", `/api/ve/don/${id}`, { as: PARTNER });
+  assert.equal(ds.status, 200, ds.text);
+  assert.equal(ds.json.thuDu, true);
+  assert.equal(ds.json.veXem.length, 2);
+  assert.equal(phanBo(w, id)[0]!.revealed_at, null);
+  const anh = await w.call("GET", `/api/ve/anh/${ds.json.veXem[0].id}`, { as: PARTNER });
+  assert.equal(anh.status, 200);
+  assert.ok(phanBo(w, id)[0]!.revealed_at, "mở ảnh đóng dấu lộ");
+  assert.equal(w.q("SELECT count(*) AS n FROM audit_log WHERE order_id = ? AND action = 've_xem_anh'", id)[0].n, 1);
+  const g = await w.call("POST", "/api/ve/giao", { as: PARTNER, body: { orderId: id, requestId: crypto.randomUUID() } });
+  assert.equal(g.status, 200, g.text);
+  assert.equal(g.json.daGiao, 2);
+  assert.equal(w.q("SELECT count(*) AS n FROM audit_log WHERE order_id = ? AND action = 've_giao'", id)[0].n, 1);
+  const d = await w.call("POST", "/api/ve/duong-dan", { as: PARTNER, body: { orderId: id } });
+  assert.equal(d.status, 200, d.text);
+  const th = await w.call("POST", `/api/ve/duong-dan/${d.json.id}/thu-hoi`, { as: PARTNER, body: {} });
+  assert.equal(th.status, 200, th.text);
+  const cap = await w.call("POST", "/api/ve/cap", { as: PARTNER, body: { orderId: id } });
+  assert.equal(cap.status, 200, cap.text);
+  assert.equal(phanBo(w, id).length, 2, "cấp bù chạy lại không giữ thừa");
+});
+
+test("Đ1: đơn của đối tác khác và đơn văn phòng lập: sáu route 404/403, không đọc kho, không dấu lộ", async () => {
+  const w = dung();
+  seedStaff(w.sqlite, { id: PARTNER2, phone: "0900000019", name: "Đối tác khác", perms: ["PARTNER"] });
+  await nhapKho(w, 6);
+  const cua = await donDoiTacDuTien(w, false); // của PARTNER
+  const vp = await donDaXacNhan(w, A); // văn phòng lập
+  assert.equal((await thu(w, vp, ACC, { soTien: await phaiThu(w, vp), nguoiThu: "cong_ty" })).status, 201);
+  for (const [id, as] of [[cua, PARTNER2], [vp, PARTNER], [vp, PARTNER2]] as [string, string][]) {
+    const pb = phanBo(w, id)[0]!.id;
+    const truoc = w.r2VeDienTu.soLan.get;
+    const kq = [
+      await w.call("GET", `/api/ve/don/${id}`, { as }),
+      await w.call("GET", `/api/ve/anh/${pb}`, { as }),
+      await w.call("POST", "/api/ve/giao", { as, body: { orderId: id, requestId: crypto.randomUUID() } }),
+      await w.call("POST", "/api/ve/cap", { as, body: { orderId: id } }),
+      await w.call("POST", "/api/ve/duong-dan", { as, body: { orderId: id } }),
+    ];
+    for (const r of kq) assert.ok(r.status === 404 || r.status === 403, `${as}/${id}: ${r.status} ${r.text}`);
+    assert.equal(w.r2VeDienTu.soLan.get, truoc, "không đọc kho");
+    assert.ok(phanBo(w, id).every((x) => x.revealed_at === null), "không dấu lộ");
+  }
+  // thu hồi đường dẫn của người khác: văn phòng tạo, đối tác không thu hồi được
+  const link = await w.call("POST", "/api/ve/duong-dan", { as: ADM, body: { orderId: cua } });
+  assert.equal(link.status, 200, link.text);
+  const th = await w.call("POST", `/api/ve/duong-dan/${link.json.id}/thu-hoi`, { as: PARTNER2, body: {} });
+  assert.ok(th.status === 404 || th.status === 403, th.text);
+  assert.equal(w.q("SELECT revoked_at FROM vdt_guest_link WHERE id = ?", link.json.id)[0].revoked_at, null);
+});
+
+test("Đ1: Hướng dẫn viên đang phụ trách và Thực tập có đơn của mình vẫn 403 ở GET /api/ve/don/:orderId", async () => {
+  const w = dung();
+  await nhapKho(w, 3);
+  const id = await donDaXacNhan(w, A);
+  w.sqlite.prepare("INSERT INTO dsp_assignment (id, order_id, task_kind_code, party_id, status_code, valid_from_at, created_at, updated_at) VALUES (?, ?, 'HANDLE', ?, 'PENDING', ?, ?, ?)").run(crypto.randomUUID(), id, `pty-${H}`, AT, AT, AT);
+  const f = await w.call("GET", `/api/ve/don/${id}`, { as: H });
+  assert.equal(f.status, 403, f.text);
+  const o = await w.call("POST", "/api/orders", { as: INTERN, body: { customerName: "Khách Thử", customerPhone: "0912345678", services: [svc("ZA1", inDays(3))] } });
+  assert.equal(o.status, 201, o.text);
+  const t = await w.call("GET", `/api/ve/don/${o.json.order.id}`, { as: INTERN });
+  assert.equal(t.status, 403, t.text);
+});
+
+test("Đ1: đối tác không vào kho, lô, cài đặt vé; không phản hồi nào của đối tác chứa mã vé", async () => {
+  const w = dung();
+  const id = await donDoiTacDuTien(w);
+  for (const [m, u] of [["GET", "/api/ve/kho"], ["GET", "/api/ve/lo"], ["POST", "/api/ve/lo"], ["GET", "/api/ve/cai-dat"], ["PUT", "/api/ve/cai-dat"], ["GET", "/api/ve/lo-da-huy"]] as [string, string][]) {
+    assert.equal((await w.call(m, u, { as: PARTNER, ...(m === "GET" ? {} : { body: {} }) })).status, 403, `${m} ${u}`);
+  }
+  const ds = await w.call("GET", `/api/ve/don/${id}`, { as: PARTNER });
+  const g = await w.call("POST", "/api/ve/giao", { as: PARTNER, body: { orderId: id, requestId: crypto.randomUUID() } });
+  const d = await w.call("POST", "/api/ve/duong-dan", { as: PARTNER, body: { orderId: id } });
+  for (const r of [ds, g, d]) assert.doesNotMatch(r.text, /BI\.MAT|vdt\//, r.text);
+});
+
+test("Đ1: đối tác đơn của mình nhưng tiền chưa về công ty (tự ghi «Tôi thu»): 403 chua_thu_du, đúng câu cho đối tác", async () => {
+  const w = dung();
+  await nhapKho(w, 3);
+  const id = await donDaXacNhan(w, PARTNER);
+  assert.equal((await thu(w, id, PARTNER, { soTien: await phaiThu(w, id), nguoiThu: "toi" })).status, 201);
+  const r = await w.call("POST", "/api/ve/duong-dan", { as: PARTNER, body: { orderId: id } });
+  assert.equal(r.status, 403, r.text);
+  assert.equal(r.json.error.code, "chua_thu_du");
+  assert.equal((await w.call("GET", `/api/ve/anh/${phanBo(w, id)[0]!.id}`, { as: PARTNER })).status, 403);
 });
