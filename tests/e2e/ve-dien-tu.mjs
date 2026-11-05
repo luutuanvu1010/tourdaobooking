@@ -192,7 +192,6 @@ const donKhongVe = await call(SALES, "POST", "/api/orders", orderInput({ custome
 assert.equal(donKhongVe.status, 201, JSON.stringify(donKhongVe.body));
 assert.equal((await call(SALES, "POST", `/api/orders/${donKhongVe.body.order.id}/status`, { status: "confirmed" })).status, 200);
 const nhomKhongVe = async () => (await call(SALES, "GET", `/api/ve/don/${donKhongVe.body.order.id}`)).body.dichVu.flatMap((d) => d.nhom);
-const QT = await session(ACCOUNTS.admin);
 const coZvd3 = (await call(QT, "GET", "/api/catalog/co-ve")).body.dichVu.find((d) => d.code === "ZVD3");
 if (coZvd3.coVe) assert.equal((await call(QT, "POST", "/api/catalog/co-ve", { pham: "SERVICE", ma: "ZVD3", coVe: false })).status, 200); // chạy lại trên cùng D1
 assert.deepEqual(await nhomKhongVe(), []);
