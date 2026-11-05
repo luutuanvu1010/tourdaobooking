@@ -11,11 +11,11 @@ Hôm nay chỉ có ba chỗ: `/ve-kho` (nhập lô, số còn, lô đã huỷ), 
 | # | Màn | Dùng để | Ai xem | Dữ liệu | Đợt |
 |---|---|---|---|---|---|
 | 1 | Tổng quan vé | Tồn kho, sắp hết hạn, đơn thiếu vé, cấp và dùng hôm nay; bấm vào để tới màn chi tiết | Bán hàng, Quản lý bán hàng, Quản trị, Toàn quyền, Kế toán | Có sẵn + quét | 2 |
-| 2 | Tồn kho (sửa `/ve-kho`) | Lọc theo nhà cung cấp, nguồn, nhóm dịch vụ, dịch vụ, loại khách, hạn dùng | Như `ve.kho.manage`; Kế toán thấy vé Tour Đảo | Có sẵn | 1 |
+| 2 | Tồn kho (sửa `/ve-kho`) | Lọc theo nguồn vé, nhóm dịch vụ, dịch vụ, loại khách, hạn dùng | Như `ve.kho.manage`; Kế toán thấy vé Tour Đảo | Có sẵn | 1 |
 | 3 | Chi tiết lô | Vé trong lô: trong kho, đang giữ, đã dùng, đã huỷ; không hiện mã đủ | Như màn 2 | Có sẵn | 1 |
-| 4 | Nhập lô nhà cung cấp (đã có) | Thêm chọn nhà cung cấp và giá mua | Như `ve.kho.manage` | **Mới** | 2 |
+| 4 | Nhập lô nhà cung cấp (đã có) | Giữ nguyên, không thêm nhà cung cấp và giá mua (chủ chốt 5/11) | Như `ve.kho.manage` | Có sẵn | Đã có |
 | 5 | Tạo vé Tour Đảo | Chọn dịch vụ, số lượng, hạn, tên tiếng Anh nếu có; xem trước vé rồi tạo | Toàn quyền, Kế toán, Quản lý bán hàng, Quản trị | Mới | 1 |
-| 6 | Nhà cung cấp vé | Theo từng nhà cung cấp: số nhập, còn, đã cấp, đã huỷ, tiền mua | Kế toán, Quản trị, Toàn quyền | **Mới** | 3 |
+| 6 | Nhà cung cấp vé | **Không làm ở phân hệ này**; chuyển sang phân hệ kế toán, làm về sau (chủ chốt 5/11) | — | — | — |
 | 7 | Khối vé trên đơn (đã có) | Thêm nguồn vé, «Đã dùng x/y», chuyển sang vé đoàn | Như hiện tại | Quét | 1–2 |
 | 8 | Quét vé | Camera, ba màu kết quả, bỏ lượt quét, các lượt vừa quét | Người có quyền quét | Mới | 2 |
 | 9 | Tra cứu một vé | Nhập số cuối, xem vòng đời: tạo, cấp, gửi, quét, huỷ | Quản trị, Toàn quyền, Kế toán | Có sẵn + quét | 2 |
@@ -27,7 +27,7 @@ Hôm nay chỉ có ba chỗ: `/ve-kho` (nhập lô, số còn, lô đã huỷ), 
 
 Ngoài ra, màn Danh mục có thêm công tắc «dùng vé Tour Đảo» trên từng dịch vụ (Quản trị, đợt 1); đây là một ô trên màn có sẵn nên không tính thành màn mới.
 
-Phân loại không cần màn riêng: nhà cung cấp, nguồn, nhóm dịch vụ, dịch vụ, loại khách, trạng thái, hạn dùng là bộ lọc dùng chung cho các màn 2, 6, 10, 12. Menu đề xuất: một nhóm «Vé điện tử», ai không có quyền thì không thấy mục đó. Hướng dẫn viên và Tài xế chỉ thấy «Quét vé».
+Phân loại không cần màn riêng: nguồn vé, nhóm dịch vụ, dịch vụ, loại khách, trạng thái, hạn dùng là bộ lọc dùng chung cho các màn 2, 10, 12. Menu đề xuất: một nhóm «Vé điện tử», ai không có quyền thì không thấy mục đó. Hướng dẫn viên và Tài xế chỉ thấy «Quét vé».
 
 ## Tiền: nên và không nên
 
@@ -35,14 +35,13 @@ Vé không mang giá, vì giá thuộc từng đơn. Số tiền ở màn 12 **t
 
 - **Bán ra:** tiền của các dòng dịch vụ có vé, trên đơn đã xác nhận.
 - **Đã thực hiện:** phần tương ứng với vé đã dùng. **Chưa thực hiện:** phần còn lại. Đây là số tham khảo cho kế toán, không phải bút toán.
-- **Vốn mua vé:** chỉ có khi lô ghi giá mua; từ đó suy ra chênh lệch. Khác với tỷ lệ ở điều khoản cung ứng (`v_prc_supply_term`), vốn áp theo phạm vi dịch vụ và Bán hàng không được xem.
+- **Vốn mua vé, chênh lệch:** không có ở đây, thuộc phân hệ kế toán làm về sau (chủ chốt 5/11).
 - **Sổ vé:** đã tạo = trong kho + đang giữ + đã huỷ; đã cấp = đã dùng + chưa dùng.
 
 Vẫn giữ lựa chọn của chủ dự án 5/11: số quét **không** tự đổi tiền, hoa hồng hay sổ công nợ. Các màn này chỉ đọc.
 
 ## Cần chủ dự án quyết
 
-1. **Nhà cung cấp và giá mua theo lô:** thêm vào khi nhập lô (khuyến nghị, vì không có thì màn 6 và vốn không có số), hay chỉ quản lý số lượng. Tour Đảo được coi như một nhà cung cấp trong bộ lọc; về dữ liệu nên dùng hồ sơ nhà cung cấp có sẵn thay vì thêm danh sách mới, người thi công kiểm lại khi lập kế hoạch.
-2. **Tiền «đã thực hiện» tính theo mốc nào:** vé đã dùng (khuyến nghị, đúng bản chất cam kết đã thực hiện), hay bước «Xong và đủ tiền». Kế toán nên xác nhận, vì hai mốc có thể lệch ngày.
+1. **Tiền «đã thực hiện» tính theo mốc nào:** vé đã dùng (khuyến nghị, đúng bản chất cam kết đã thực hiện), hay bước «Xong và đủ tiền». Kế toán nên xác nhận, vì hai mốc có thể lệch ngày.
 
-Đề xuất làm màn 12 và màn 6 sau cùng, vì cần giá mua và lời xác nhận của kế toán.
+Đề xuất làm màn 12 sau cùng, vì cần lời xác nhận của kế toán.

@@ -747,3 +747,8 @@ Ghi 2026-10-29 khi đồng bộ bộ «Island Booking System — Design System v
 - **BL-KB-CHUA-CHAY** — `kiem-tra-giao-dien`, `hanh-trinh`: cần dựng máy chủ riêng, chưa chạy lại sau ADR-0166.
 - **BL-THAM-CHIEU-DOT-2** — bảng tham chiếu ngôn ngữ, đợt 2 (ADR-0167): trình chủ theo lô 102 việc chờ chọn, trả lời «theo khuyến nghị» được. Đọc tay cột đường lệnh: hàng còn trống (đường ghép từ hàm như Vận chuyển) và hàng chưa đối chiếu. `kiemNguonTen` nhận mọi nguồn có chữ «chủ», kể cả câu phủ định; phép kiểm khái niệm đã chốt chỉ kiểm dạng ngày kèm nguồn, chưa đọc nguồn của Hướng dẫn, Việc của nhóm, Đơn đi và các khái niệm nguồn là bàn giao. Để sau nữa: trang giải nghĩa cho nhân viên, Trợ lý Mai đọc bảng.
 - **BL-KB-CHU-DOT-2** — đưa vào đợt 2 của bảng tham chiếu (đặc tả `docs/superpowers/specs/2026-11-04-bang-tham-chieu-ngon-ngu-design.md`): hộp hỏi của nút «Xác nhận đơn» của người lập nói ít hậu quả hơn hộp «Còn vé, xác nhận đơn»; ô «Đơn nháp» ở Trang chủ gọi cùng loại đơn bằng tên khác; chữ «ẩn» trong thông báo đồng bộ Sheet giữ nguyên vì nói về dịch vụ đã rời Sheet, khác «Ngừng bán» do người bấm.
+
+## 65. Nhà cung cấp và giá mua vé (mã `BL-VE-VON`, 2026-11-05)
+
+- **Trạng thái:** `để sau` · Chủ 5/11, nguyên văn: «à không cần, cái đó sẽ nằm trong phân hệ kế toán, làm về sau».
+- **Việc:** ghi mua vé của ai, giá mua bao nhiêu theo từng lô; từ đó có số tiền mua theo nhà cung cấp, vốn và chênh lệch. Phân hệ vé điện tử chỉ quản lý số lượng, không làm phần này (đề xuất `docs/superpowers/specs/2026-11-05-ve-dien-tu-danh-sach-man.md`).
