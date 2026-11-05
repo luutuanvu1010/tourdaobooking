@@ -95,6 +95,24 @@ export const BAI_VIEC: readonly BaiViec[] = [
 - Lô càng lớn thì khai sai càng tốn công sửa, vì lô đã có vé được giữ thì không huỷ được. Chỉ nâng số khi thật cần.`,
   },
   {
+    id: "dich-vu-can-kiem-ve",
+    tieuDe: "Đánh dấu vé cần kiểm vé",
+    nhomViec: "Cài đặt",
+    trang: "dichVuKiemVe",
+    o: ["settings.ops"],
+    gioiHan: [],
+    neo: ["web/dich-vu-kiem-ve.ts", "src/shared/dich-vu-kiem-ve.ts"],
+    moDau: "Vé được bật phải chờ người kiểm vé báo còn vé rồi đơn mới được xác nhận. Vé không bật thì xác nhận như thường. Đơn đã xác nhận không đổi (ADR-0136).",
+    noiDung: `### Các bước
+1. Mở **Dịch vụ cần kiểm vé**.
+2. Tìm vé ở ô **Tìm vé**, ví dụ gõ «buffet».
+3. Gạt công tắc ở dòng vé đó. Muốn áp cho mọi vé của một nhóm thì gạt **Cả nhóm cần kiểm vé**.
+
+### Điều dễ sai
+- Vé đã gạt riêng không đổi theo nhóm nữa. Ví dụ nhóm đang bật mà một vé gạt tắt thì vé đó không cần kiểm vé.
+- Công tắc **Nhân viên tự kiểm vé đơn mình lập** đang bật thì người kiểm vé tự quyết được đơn do chính mình lập. Đối tác và Thực tập luôn chờ người khác.`,
+  },
+  {
     id: "gioi-han-nhap-hoa-hong",
     tieuDe: "Đổi giới hạn nhập hoa hồng",
     nhomViec: "Cài đặt",

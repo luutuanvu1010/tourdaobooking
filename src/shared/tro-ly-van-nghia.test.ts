@@ -200,7 +200,8 @@ test("C4: kho THẬT + mọi véc-tơ đoạn trực giao câu hỏi ⇒ chỉ c
   // thêm ba đoạn vượt ngưỡng tương đối (17 → 20); đổi PIN và lập đơn không đổi ⇒ đo lại bằng chính bài này: 20 / 10 / 45. Số đo, không suy ra từng đoạn. Luật không đổi,
   // trần 12 vẫn cắt (bài khoá `thanPhien.length === SO_DOAN_TOI_DA` ngay dưới); các tên đoạn khoá dưới đây giữ nguyên.
   // 2026-11-03 (Hướng dẫn thành mục riêng): thêm các đoạn «Bài theo việc» vào kho và tách «khó» khỏi «kho» ở `tachTu`, ngưỡng tương đối đổi ⇒ đo lại bằng chính bài này: 15 / 9 / 45. Số đo, luật không đổi; các tên đoạn khoá dưới đây giữ nguyên.
-  assert.deepEqual([dem("sao app khó dùng thế"), dem("đổi mã PIN thế nào"), dem("lập đơn mới ra sao")], [15, 9, 45]);
+  // 2026-11-04 (màn Dịch vụ cần kiểm vé, ADR-0136 Đ1): bài Hướng dẫn mới có chữ «đơn mình lập» ⇒ đo lại bằng chính bài này: 15 / 9 / 46 — MỘT đoạn nữa vượt ngưỡng của câu lập đơn. Luật không đổi, trần 12 vẫn cắt.
+  assert.deepEqual([dem("sao app khó dùng thế"), dem("đổi mã PIN thế nào"), dem("lập đơn mới ra sao")], [15, 9, 46]);
   // 2026-10-05 (1.81, Đợt 7): Trợ giúp thêm câu về hai ô "Xe riêng" / "Xe tối thiểu" (Bán hàng, Quản trị) và bỏ vài dòng trùng ý ⇒ hai đoạn nữa vượt ngưỡng tương đối của câu than phiền (15 → 17); luật không đổi, trần 12 vẫn cắt.
   const thanPhien = chonDoanTron("sao app khó dùng thế", mot(0), kho, vec, ["SALES"]).map((x) => x.doan.ten);
   assert.equal(thanPhien.length, SO_DOAN_TOI_DA);

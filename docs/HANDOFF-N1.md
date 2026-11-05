@@ -2,7 +2,16 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.61 ĐÃ LÊN PRODUCTION (màn «Cấp độ đại lý» gán cấp TA nhanh; đổi 12 tên nút và tách nhãn đơn nháp, ADR-0166) — không migration — triển khai 2026-11-04 16:40 giờ Việt Nam
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.62 ĐÃ LÊN PRODUCTION (màn «Dịch vụ cần kiểm vé», ADR-0136 Đ1, Đ5; vé tắt riêng trong nhóm đang bật) — không migration — triển khai 2026-11-05 05:47 giờ Việt Nam
+
+Ghi từ khối tóm tắt của `npm run trien-khai` (chủ tự chạy) và lệnh chỉ đọc của phiên làm màn này:
+- Commit `origin/main`: `546f3b54`. Worker Version ID: `f19bbe2b-ac26-41be-9850-11cde2f42aff`. Cổng phiên bản trước và sau deploy: ĐẠT.
+- **e2e: ĐỎ 28/82, chủ chọn tiếp tục.** Lần kiểm kéo dài 18.367 giây vì máy ngủ rồi thức liên tục trong đêm (`pmset -g log`). Phiên chạy lại đúng 28 kịch bản đỏ trên `546f3b54`, giữ máy thức: 31/31 xanh trong 281 giây. Nguyên nhân máy ngủ là suy luận, chưa đọc từng dòng lỗi của lần đỏ vì đã trôi khỏi màn hình.
+- **`audit-invariants --db remote`: ĐẠT, ba cảnh báo:** `R-VC-14` 7 xe thiếu giấy tờ là điều kiện xuất bến; `R-CTL-1` 8 dịch vụ chưa phân nhóm; `R-DSP-2b` một người phụ trách đang mở có tài khoản đã ngưng.
+- **Phiên mở thử bằng Chrome của chủ, tài khoản Toàn quyền, chỉ xem, không gạt:** màn hiện đủ các nhóm và «Chưa phân loại», mọi nhóm báo không có vé cần kiểm.
+- **Chưa làm / chưa kiểm:** chủ chưa gạt vé nào (đề xuất VB16, VB350, VB500, VHBTB; AI không ghi lên bản thật), nên hành vi bán chưa đổi; lệnh gạt trên production; iPhone thật; tên màn và nút «Bật / Tắt cả nhóm» còn chờ chủ chọn; trần gói Đơn hàng 103.692 chưa có lời duyệt riêng.
+
+## (Cũ) TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.61 ĐÃ LÊN PRODUCTION (màn «Cấp độ đại lý» gán cấp TA nhanh; đổi 12 tên nút và tách nhãn đơn nháp, ADR-0166) — không migration — triển khai 2026-11-04 16:40 giờ Việt Nam
 
 Ghi từ khối tóm tắt của `npm run trien-khai` (chủ tự chạy) và lệnh chỉ đọc của phiên hoa hồng:
 - Commit `origin/main`: `5a89ebae`. Worker Version ID: `c6c57d2b-1921-4173-938e-a832a2b21b02`. e2e: xanh 82/82. Cổng phiên bản trước và sau deploy: ĐẠT. GET công khai sau deploy: `version` 2.61.

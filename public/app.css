@@ -4524,3 +4524,16 @@ main select { max-width: 100%; }
 .dd-dinh-nghia { display: grid; gap: var(--s3); margin-top: var(--s3); }
 .dd-gia-tri { display: grid; gap: var(--s2); margin: 0; padding: 0; list-style: none; }
 .dd-gia-tri > li { display: grid; gap: var(--s2); padding: var(--s2) 0; border-top: 1px solid var(--c-border); }
+
+/* Màn «Dịch vụ cần kiểm vé» (ADR-0136 Đ1, Đ5). Chỉ token. */
+#kv-noi-dung, .kv-ds { display: flex; flex-direction: column; gap: var(--s3); }
+.kv-nhom { padding-block: var(--s2); }
+.kv-dau { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--s1) var(--s3); min-height: var(--tap-min); padding-block: var(--s2); cursor: pointer; }
+.kv-dau h2 { margin: 0; font-size: var(--fs-ui); font-weight: var(--fw-bold); }
+.kv-dong { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); min-height: var(--tap-min); padding-block: var(--s2); }
+.kv-nhom .kv-dong { border-top: 1px solid var(--c-border); }
+.kv-chu { display: flex; flex-direction: column; gap: var(--s1); min-width: 0; }
+.kv-ten { font-size: var(--fs-ui); font-weight: var(--fw-semibold); color: var(--c-text); overflow-wrap: anywhere; }
+/* Công tắc giữ nguyên hình, vùng chạm đủ --tap-min: phần đệm trong suốt trên dưới. */
+.kv-dong .dp-switch { box-sizing: border-box; height: var(--tap-min); padding-block: calc((var(--tap-min) - var(--h-switch)) / 2); background-clip: content-box; }
+.kv-dong .dp-switch-knob { top: calc((var(--tap-min) - var(--h-switch)) / 2 + var(--switch-inset)); }
