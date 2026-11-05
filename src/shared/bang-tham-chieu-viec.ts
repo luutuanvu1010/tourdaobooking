@@ -428,7 +428,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
       { tep: "web/order.ts", chu: "⟪loai === \"delivered\"⟫" },
     ],
     trangThai: "da-chot",
-    nguonTen: "chủ 2026-11-05 («chốt hướng», ghi ở đặc tả Trả sau ADR-0168): thay «Đã giao – đã thu đủ»",
+    nguonTen: "chủ 2026-11-05 («chốt hướng», docs/superpowers/specs/2026-11-05-doi-chu-da-giao.md): thay «Đã giao – đã thu đủ»",
   },
   {
     nhom: "Chốt đơn",

@@ -1,8 +1,10 @@
-// Đổi chữ «Đã giao» (chủ 2026-11-05): trang đơn, danh sách đơn, Việc của tôi không còn chữ cũ; chữ dài không tràn dòng ở khổ 390 và 1440.
+// Đổi chữ «Đã giao» (chủ 2026-11-05): trang đơn, danh sách đơn, Việc của tôi, Sổ công nợ, ảnh gửi khách không còn chữ cũ; chữ dài không tràn dòng ở khổ 390 và 1440.
 // Chạy từ gốc repo: npm run build:web && CHROME_BIN=$PWD/docs/evidence/2026-09-20-a2/kich-ban/chrome-wrap.sh node docs/evidence/2026-11-05-doi-chu-da-giao/kich-ban/da-thu-du-smoke.mjs
 // Dữ liệu dựng bằng API trên D1 tạm, không đụng dữ liệu thật. Cuối: "DA THU DU SMOKE OK".
 import assert from "node:assert/strict";
 import { mkdirSync } from "node:fs";
+import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 import { ACCOUNTS, ok, startEnv, vnDate } from "../../2026-09-20-a2/kich-ban/a2-cdp.mjs";
 
 const OUT = "docs/evidence/2026-11-05-doi-chu-da-giao/anh";
@@ -11,15 +13,19 @@ const KHO = [{ ten: "390", vp: undefined }, { ten: "1440", vp: { width: 1440, he
 const khongTran = "document.documentElement.scrollWidth - document.documentElement.clientWidth <= 1";
 const chuCu = "/Đã giao(?! đơn cho| vé)|[Đđ]ơn (?:đã |chưa )giao/u.test(document.body.innerText)";
 const nutTron = "(() => { const b = document.querySelector('[data-action=\"da-giao\"]'); return b.scrollWidth <= b.clientWidth + 1 && b.getBoundingClientRect().right <= innerWidth; })()";
+const HDV = { name: "Nguyễn Minh Tâm", phone: "0900000281", pin: "246881", permissions: ["FIELD"] };
 const env = await startEnv();
 try {
+  const { insertStaffSql } = await import(pathToFileURL(join(process.cwd(), "scripts", "staff-lib.mjs")).href);
+  for (const stmt of (await insertStaffSql(HDV)).split("\n")) if (stmt.trim()) env.sql(stmt);
+  const [hdv] = env.sql(`SELECT id FROM staff WHERE phone = '${HDV.phone}'`);
   const call = async (account, method, path, body) => {
     const c = await env.login(account);
     const r = await fetch(env.base + path, { method, headers: { "content-type": "application/json", origin: env.base, cookie: `${c.name}=${c.value}` }, body: body === undefined ? undefined : JSON.stringify(body) });
     return { status: r.status, json: await r.json().catch(() => null) };
   };
   const created = await call(ACCOUNTS.salesA, "POST", "/api/orders", {
-    customerName: "Khách Có Tên Khá Dài Để Thử Thẻ", customerPhone: "0903 222 333", customerEmail: "", customerNote: "", discount: 0, paymentNote: "",
+    customerName: "Khách Có Tên Khá Dài Để Thử Thẻ", customerPhone: "0903 222 333", customerEmail: "", customerNote: "", discount: 0, paymentNote: "", handlerStaffId: hdv.id,
     services: [{ kind: "catalog", pickupChoice: "DON", catalogCode: "TD101", pax: { adult: 1, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 1350000, child: 950000, senior: 1200000, infant: 0 },
       departDate: vnDate(3), departTime: "07:30", pickupTime: "07:00", pickupPlace: "Khách sạn Sunrise", checkinDate: "", checkinTime: "", checkinPlace: "", note: "" }],
   });
@@ -50,6 +56,7 @@ try {
   await q.waitFor("document.querySelector('[data-action=\"da-giao\"]') && !document.querySelector('[data-action=\"da-giao\"]').disabled", "nút bật");
   await q.ev("window.__hoi = ''; window.confirm = (c) => { window.__hoi = c; return true; }; document.querySelector('[data-action=\"da-giao\"]').click(); true");
   await q.waitFor("[...document.querySelectorAll('.lock-note')].some((n) => /Đơn đã ở bước Đã thu đủ sau dịch vụ/.test(n.textContent))", "câu khoá");
+  assert.match(await q.ev("window.__hoi"), /^Xác nhận đã thu đủ sau dịch vụ\? /, "hộp hỏi đúng chữ, không lặp «Xác nhận»");
   q.close();
 
   for (const { ten, vp } of KHO) {
@@ -71,6 +78,43 @@ try {
     await l.shot(`${OUT}/3-danh-sach-${ten}.png`);
     l.close();
     ok(`${ten}: trang đơn ghi tên đầy đủ, thẻ danh sách ghi Xong và đủ tiền, không tràn`);
+  }
+
+  // 3) Ảnh gửi khách của đơn đã thu đủ: máy chủ gửi tên đầy đủ, ảnh vẽ được
+  const a = await env.as(ACCOUNTS.admin, `/order?id=${o.id}`);
+  await a.waitFor("!!document.querySelector('[data-action=\"send-confirmation\"]')", "nút xem ảnh");
+  await a.ev("document.querySelector('[data-action=\"send-confirmation\"]').click(); true");
+  await a.waitFor("!!document.querySelector('img.confirm-img') && document.querySelector('img.confirm-img').naturalWidth > 0", "ảnh gửi khách", 15000);
+  await a.shot(`${OUT}/4-anh-gui-khach-390.png`);
+  a.close();
+  ok("Ảnh gửi khách vẽ được");
+
+  for (const { ten, vp } of KHO) {
+    // 4) Sổ công nợ (cột hẹp): Kế toán mở bên Bán hàng đang giữ tiền
+    const c = await env.as(ACCOUNTS.accounting, "/so-cong-no", vp);
+    await c.waitFor("document.querySelectorAll('.scn-ben').length > 0", "danh sách bên");
+    let thay = false;
+    for (let i = 0; i < (await c.ev("document.querySelectorAll('.scn-ben').length")) && !thay; i++) {
+      await c.ev(`document.querySelectorAll('.scn-ben')[${i}].click(); true`);
+      await c.waitFor("document.querySelectorAll('.scn-don').length > 0 || /không|Chưa/.test(document.body.innerText)", "chi tiết bên");
+      await new Promise((k) => setTimeout(k, 700));
+      thay = await c.ev("[...document.querySelectorAll('.scn-don-tt')].some((x) => x.textContent === 'Xong và đủ tiền')");
+    }
+    assert.equal(thay, true, `Sổ công nợ có dòng Xong và đủ tiền ${ten}`);
+    assert.equal(await c.ev(khongTran), true, `Sổ công nợ không tràn ${ten}`);
+    assert.equal(await c.ev(chuCu), false, `Sổ công nợ không còn chữ cũ ${ten}`);
+    await c.shot(`${OUT}/5-so-cong-no-${ten}.png`);
+    c.close();
+
+    // 5) Việc của tôi của Hướng dẫn viên (thẻ điện thoại)
+    const v = await env.as(HDV, "/account", vp);
+    await v.waitFor("[...document.querySelectorAll('.hdv-card .hdv-note')].some((n) => n.textContent === 'Đã thu đủ sau dịch vụ: đơn đã khoá.')", "câu khoá trên thẻ Việc của tôi", 15000);
+    assert.equal(await v.ev(khongTran), true, `Việc của tôi không tràn ${ten}`);
+    assert.equal(await v.ev(chuCu), false, `Việc của tôi không còn chữ cũ ${ten}`);
+    await v.ev("document.querySelector('.hdv-card .hdv-note').scrollIntoView({ block: 'center' }); true");
+    await v.shot(`${OUT}/6-viec-cua-toi-${ten}.png`);
+    v.close();
+    ok(`${ten}: Sổ công nợ và Việc của tôi đúng chữ, không tràn`);
   }
   console.log("DA THU DU SMOKE OK");
 } finally {

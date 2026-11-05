@@ -53,7 +53,7 @@ export const KHAI_NIEM: readonly KhaiNiem[] = [
     chuDaLoai: ["Đã giao – đã thu đủ", "Đã giao"],
     maNoiBo: ["deliveredAt", "KhoaTrangThai delivered", "POST …/delivered"],
     trangThai: "da-chot",
-    chuChon: "2026-11-05 (chủ «chốt hướng», ghi ở đặc tả Trả sau ADR-0168; thay tên chủ chọn 2026-09-29 ở ADR-0025)",
+    chuChon: "2026-11-05 (chủ «chốt hướng», docs/superpowers/specs/2026-11-05-doi-chu-da-giao.md; thay tên chủ chọn 2026-09-29 ở ADR-0025)",
   }),
   KN({
     ten: "Hoàn thành",
