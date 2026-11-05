@@ -1,6 +1,6 @@
 # Lệnh vẽ mẫu vé Tour Đảo cho Claude Design (2026-11-05)
 
-Dán khối dưới đây vào dự án Claude Design «Tour Đảo Booking Design System» (`https://claude.ai/design/p/34f284df-c97a-4672-bb66-d7df03a0d97a`), kèm tệp logo `public/icons/icon-512.png`. Vẽ xong gửi lại đường dẫn để đối chiếu với thiết kế `2026-11-05-ve-tour-dao-design.md`. Lệnh này chỉ vẽ tấm vé; các màn quản lý ở `2026-11-05-ve-dien-tu-danh-sach-man.md` vẽ sau khi chủ dự án chốt danh sách.
+Dán khối dưới đây vào dự án Claude Design «Tour Đảo Booking Design System» (`https://claude.ai/design/p/34f284df-c97a-4672-bb66-d7df03a0d97a`), kèm tệp logo `public/icons/icon-512.png`. Vẽ xong gửi lại đường dẫn để đối chiếu với thiết kế `2026-11-05-ve-tour-dao-design.md`. Dòng «không phải hóa đơn» giữ lại để vẽ, nhưng câu chữ cuối chờ kế toán trả lời. Lệnh này chỉ vẽ tấm vé; các màn quản lý ở `2026-11-05-ve-dien-tu-danh-sach-man.md` vẽ sau khi chủ dự án chốt danh sách.
 
 ```
 Thiết kế mẫu vé điện tử cho Công ty TNHH Tour Đảo (Nha Trang), công ty tổ chức tour đảo và dịch vụ du lịch biển. Dùng logo đính kèm và hệ thiết kế của dự án này: phông Be Vietnam Pro, xanh biển đậm #0C4A6E, màu cát #F5A623 làm điểm nhấn.
@@ -48,7 +48,8 @@ A. Ba hướng thiết kế khác hẳn nhau, đặt cạnh nhau, mỗi hướng
    1. «Thẻ lên tàu»: dải màu đầu vé, các ô thông tin chia cột, cảm giác hàng không cao cấp.
    2. «Hải trình»: một đường nét mảnh gợi hải đồ hoặc sóng làm điểm nhấn duy nhất, ấm và có bản sắc biển đảo.
    3. «Tối giản»: gần như toàn trắng, logo nhỏ, chữ làm chủ, một vạch màu duy nhất.
-B. Một khung điện thoại rộng 390 px cho hướng 1, hiển thị vé trên màn hình, để kiểm tra vé có vừa một màn và mã đủ lớn để quét không, kể cả khi đã in hai thứ tiếng.
+B. Với mỗi hướng, thêm một mẫu vé từng khách mà dòng tên dịch vụ chỉ có tiếng Việt, vì có dịch vụ chưa có tên tiếng Anh; các dòng khác vẫn hai thứ tiếng.
+C. Một khung điện thoại rộng 390 px cho hướng 1, hiển thị vé trên màn hình, để kiểm tra vé có vừa một màn và mã đủ lớn để quét không, kể cả khi đã in hai thứ tiếng.
 
 Ghi ngắn dưới mỗi hướng: điểm mạnh và điểm yếu của hướng đó khi khách mở trên điện thoại ở bến tàu ngoài nắng.
 ```
