@@ -41,7 +41,7 @@ import { dongBenDatChiDoc, oDatQuaDoiTac, type DatQuaDoiTac } from "./dat-qua-do
 import { byId, h, replaceChildren } from "./dom";
 import { grouped, parseMoney, vnd } from "./format";
 import { CAU_VUOT_TONG, conPhaiTra, vuotTong } from "../src/shared/dat-coc-truoc";
-import { cauChonTraSau } from "../src/shared/han-muc-tra-sau-hien-thi";
+import { cauChonTraSau, quyetHinhThuc } from "../src/shared/han-muc-tra-sau-hien-thi";
 import { suKienVeDon } from "./lam-moi-logic";
 import { regroupMoney } from "./money-input";
 import { createServiceCard, type ServiceCard } from "./service-card";
@@ -610,7 +610,7 @@ function collect(): OrderInput | OrderInputAn {
     discount: num("discount"),
     paymentNote: field("paymentNote").value,
     // Trả sau (ADR-0168): khối chỉ hiện khi bên đặt có hạn mức; Trả sau không kèm tiền đặt cọc (gửi 0 để máy chủ không giữ số cũ).
-    ...(traSauHien ? { paymentTerm: hinhThucChon() } : {}),
+    paymentTerm: hinhThucChon(), // luôn gửi: khối ẩn thì là Trả trước, để PUT không giữ Trả sau cũ mà không còn chỗ chọn lại
     ...(coODatCoc ? { declaredDeposit: traSauHien && hinhThucChon() === "CREDIT" ? 0 : num("declaredDeposit") } : {}),
     ...(orderUpdatedAt ? { expectedUpdatedAt: orderUpdatedAt } : {}),
     // Chỉ khi LẬP đơn và đã chọn người: chưa chọn → KHÔNG gửi trường này (đơn "Chờ nhận"), sửa đơn → không bao giờ gửi (PUT không đổi người phụ trách).
@@ -855,6 +855,7 @@ function napBenDat(o: Api.OrderDetailDto): void {
   datQua?.datChon(null);
   datBenDat(null);
   bookerPicker.set(o.bookerPartyId, o.bookerName);
+  void napTraSau(); // `datBenDat(null)` chạy TRƯỚC `set`: hỏi lại khi bên đặt đã nạp xong, nếu không khối Trả sau ẩn nhầm
 }
 
 /** Trả các câu báo (dịch vụ thuộc nhóm tắt đưa đón mà nháp còn chặng → form bỏ chặng đó; ADR-0118 Đ5). */
@@ -1063,17 +1064,24 @@ function benDatId(): string | null {
   if (daChonBenDat) return daChonBenDat.partyId;
   return (bookerPicker.payload() as { bookerPartyId?: string | null }).bookerPartyId ?? null;
 }
+let traSauLuot = 0;
 async function napTraSau(): Promise<void> {
+  const luot = ++traSauLuot;
   const id = benDatId();
   let c = cauChonTraSau({ coHanMuc: false, conDuocDung: 0, coDonQuaHan: false });
   if (id) {
-    try { c = cauChonTraSau(await api<Api.ConDuocDungTraSauResponse>(`/api/tra-sau/con-duoc-dung?benDat=${encodeURIComponent(id)}`)); } catch { /* không đọc được thì coi như không có hạn mức; máy chủ vẫn chặn */ }
+    try { c = cauChonTraSau(await api<Api.ConDuocDungTraSauResponse>(`/api/tra-sau/con-duoc-dung?benDat=${encodeURIComponent(id)}`)); } catch { return; /* không đọc được: giữ nguyên lựa chọn đang có, máy chủ vẫn kiểm lại lúc lưu */ }
   }
+  if (luot !== traSauLuot) return; // có lần hỏi mới hơn (đổi bên đặt liên tục): bỏ kết quả cũ
+  const q = quyetHinhThuc({ dangChon: hinhThucChon(), c });
   traSauHien = c.hien;
   khoiTraSau.hidden = !c.hien;
   byId("tra-sau-cau").textContent = c.khoa ?? c.cau;
   oHinhThuc("CREDIT").disabled = c.khoa !== null;
-  if (!c.hien || c.khoa !== null) oHinhThuc("PREPAID").checked = true;
+  oHinhThuc(q.chon).checked = true;
+  const bao = byId("tra-sau-bao");
+  bao.textContent = q.bao ?? "";
+  bao.hidden = q.bao === null;
   anHienDatCoc();
 }
 for (const v of ["PREPAID", "CREDIT"]) oHinhThuc(v).addEventListener("change", () => { anHienDatCoc(); });

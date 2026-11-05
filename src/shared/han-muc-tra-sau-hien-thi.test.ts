@@ -1,7 +1,7 @@
 // Luật hiển thị của màn «Hạn mức trả sau» và khối Thanh toán trên đơn (ADR-0168; kế hoạch Task 6). Thay R-CRD-3 (bộ kiểm dữ liệu không tính được phải thu).
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { cauChonTraSau, cauHanMuc, canhBaoVuotHanMuc, docHanMuc, docSoNgay, nhanHinhThucDon, nhanQuaHan } from "./han-muc-tra-sau-hien-thi.ts";
+import { CAU_VE_TRA_TRUOC, cauChonTraSau, cauHanMuc, canhBaoVuotHanMuc, docHanMuc, docSoNgay, nhanHinhThucDon, nhanQuaHan, quyetHinhThuc } from "./han-muc-tra-sau-hien-thi.ts";
 
 test("cảnh báo khi nợ vượt hạn mức hiện hành; vừa bằng thì chưa cảnh báo", () => {
   assert.equal(canhBaoVuotHanMuc({ hanMuc: 50_000_000, dangNo: 50_000_000 }), null);
@@ -45,4 +45,16 @@ test("ô nhập hạn mức: số nguyên đồng dương, bỏ dấu chấm ngh
   assert.equal(docHanMuc("10.000.000.001").ok, false);
   assert.deepEqual(docSoNgay("30"), { ok: true, ngay: 30 });
   for (const sai of ["", "0", "366", "1,5", "abc"]) assert.equal(docSoNgay(sai).ok, false, sai);
+});
+
+test("quyết hình thức sau khi biết hạn mức của bên đặt: giữ lựa chọn khi dùng được; về Trả trước KÈM câu báo khi không dùng được (không đổi âm thầm)", () => {
+  const co = cauChonTraSau({ coHanMuc: true, conDuocDung: 1_000_000, coDonQuaHan: false });
+  const khong = cauChonTraSau({ coHanMuc: false, conDuocDung: 0, coDonQuaHan: false });
+  const quaHan = cauChonTraSau({ coHanMuc: true, conDuocDung: 1_000_000, coDonQuaHan: true });
+  assert.deepEqual(quyetHinhThuc({ dangChon: "CREDIT", c: co }), { chon: "CREDIT", bao: null });
+  assert.deepEqual(quyetHinhThuc({ dangChon: "PREPAID", c: co }), { chon: "PREPAID", bao: null });
+  assert.deepEqual(quyetHinhThuc({ dangChon: "PREPAID", c: khong }), { chon: "PREPAID", bao: null }, "đang Trả trước thì không có gì để báo");
+  assert.deepEqual(quyetHinhThuc({ dangChon: "CREDIT", c: khong }), { chon: "PREPAID", bao: CAU_VE_TRA_TRUOC });
+  assert.deepEqual(quyetHinhThuc({ dangChon: "CREDIT", c: quaHan }), { chon: "PREPAID", bao: CAU_VE_TRA_TRUOC });
+  assert.ok(CAU_VE_TRA_TRUOC.includes("Trả trước") && CAU_VE_TRA_TRUOC.includes("hạn mức"));
 });

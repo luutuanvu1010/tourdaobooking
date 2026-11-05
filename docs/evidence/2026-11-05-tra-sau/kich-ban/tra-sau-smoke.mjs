@@ -99,7 +99,8 @@ try {
   // Hồ sơ thứ hai chưa có hạn mức: dùng để thử biểu mẫu «Đặt hạn mức».
   r = await call(ACCOUNTS.accounting, "POST", "/api/parties", { kind: "PERSON", fullName: "Công Ty Mới Thử", contacts: [{ kind: "PHONE", value: "0912000222" }] });
   assert.equal(r.status, 201, JSON.stringify(r.json));
-  r = await call(ACCOUNTS.admin, "POST", `/api/parties/${r.json.party.id}/roles`, { roleTypeCode: "TRAVEL_AGENCY" });
+  const BEN2 = r.json.party.id;
+  r = await call(ACCOUNTS.admin, "POST", `/api/parties/${BEN2}/roles`, { roleTypeCode: "TRAVEL_AGENCY" });
   assert.equal(r.status, 201, JSON.stringify(r.json));
 
   const moTrang = async (account, vp, duong = "/han-muc-tra-sau") => {
@@ -205,6 +206,76 @@ try {
       q.close();
       trangHienTai = null;
     }
+  });
+
+  // ---------------- Màn lập đơn: khối «Hình thức thanh toán» (I-1) ----------------
+  const dichVuTD101 = { kind: "catalog", pickupChoice: "DON", catalogCode: "TD101", pax: { adult: 1, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 1350000, child: 950000, senior: 1200000, infant: 0 },
+    departDate: vnDate(3), departTime: "07:30", pickupTime: "07:00", pickupPlace: "Khách sạn Sunrise", checkinDate: "", checkinTime: "", checkinPlace: "", note: "" };
+  const lapNhap = async (benDat, term) => {
+    const x = await call(ACCOUNTS.salesA, "POST", "/api/orders", { customerName: "Khách Thử", customerPhone: "0901234567", customerEmail: "", customerNote: "", discount: 0, paymentNote: "", bookerPartyId: benDat, paymentTerm: term, services: [dichVuTD101] });
+    assert.equal(x.status, 201, JSON.stringify(x.json));
+    return x.json.order;
+  };
+  const khoiHien = (q) => q.ev("(() => { const k = document.getElementById('tra-sau-khoi'); return { hien: !!k && !k.hidden, cau: document.getElementById('tra-sau-cau').textContent, credit: document.querySelector('input[name=paymentTerm][value=CREDIT]').checked, bao: document.getElementById('tra-sau-bao').hidden ? '' : document.getElementById('tra-sau-bao').textContent }; })()");
+  const bamLuuDon = (q) => q.ev("document.getElementById('save').click(); true");
+  const luuDon = (id) => `/api/orders/${encodeURIComponent(id)}`;
+  const nhap = await lapNhap(BEN2, "CREDIT");
+  for (const [nhan, kho] of [["1440", KHO_1440], ["390", KHO_390]]) {
+    await buoc(`F1-${nhan}`, `[${nhan}] mở nháp Trả sau của bên có hạn mức: thấy ô Trả sau đang chọn và «Còn được dùng 20.000.000 ₫»; vùng chạm, không tràn ngang`, async () => {
+      const q = await moTrang(ACCOUNTS.salesA, kho, `/order-form?id=${encodeURIComponent(nhap.id)}`);
+      try {
+        await q.waitFor("(() => { const k = document.getElementById('tra-sau-khoi'); return !!k && !k.hidden && document.getElementById('tra-sau-cau').textContent.length > 0; })()", "khối Trả sau hiện");
+        const k = await khoiHien(q);
+        assert.equal(k.credit, true, "Trả sau đang chọn");
+        assert.ok(k.cau.includes("Còn được dùng 20.000.000"), k.cau);
+        await chup(q, `lap-don-tra-sau-${nhan}`);
+      } finally { q.close(); trangHienTai = null; }
+    });
+  }
+  await buoc("F2", "[1440] chọn Trả trước rồi lưu ⇒ PUT 200; mở lại vẫn Trả trước; chọn Trả sau lưu ⇒ mở lại vẫn Trả sau", async () => {
+    const q = await moTrang(ACCOUNTS.salesA, KHO_1440, `/order-form?id=${encodeURIComponent(nhap.id)}`);
+    try {
+      await q.waitFor("(() => { const k = document.getElementById('tra-sau-khoi'); return !!k && !k.hidden && document.getElementById('tra-sau-cau').textContent.length > 0; })()", "khối Trả sau hiện");
+      for (const [gt, mong] of [["PREPAID", "PREPAID"], ["CREDIT", "CREDIT"]]) {
+        await q.ev(`document.querySelector('input[name=paymentTerm][value=${gt}]').click(); true`);
+        await q.ev("window.__ghi.length = 0; true");
+        await bamLuuDon(q);
+        await q.waitFor("window.__ghi.some((x) => x.m === 'PUT')", `PUT lưu đơn (${gt})`);
+        assert.deepEqual(await q.ev("window.__ghi.filter((x) => x.m === 'PUT').map((x) => x.s)"), [200], `lưu ${gt}`);
+        const g = await call(ACCOUNTS.salesA, "GET", luuDon(nhap.id));
+        assert.equal(g.json.order.paymentTerm, mong, `đơn đã lưu là ${mong}`);
+        await q.send("Page.reload", {});
+        await q.waitFor("document.readyState === 'complete'", "tải lại");
+        await q.waitFor("(() => { const k = document.getElementById('tra-sau-khoi'); return !!k && !k.hidden && document.getElementById('tra-sau-cau').textContent.length > 0; })()", "khối hiện lại");
+        assert.equal((await khoiHien(q)).credit, mong === "CREDIT", `mở lại vẫn ${mong}`);
+      }
+    } finally { q.close(); trangHienTai = null; }
+  });
+  await buoc("F3", "[1440] đơn mới không bên đặt: KHÔNG có ô chọn hình thức", async () => {
+    const q = await moTrang(ACCOUNTS.salesA, KHO_1440, "/order-form");
+    try {
+      await sleep(2500);
+      const k = await khoiHien(q);
+      assert.equal(k.hien, false, "không có hạn mức thì không có ô chọn");
+    } finally { q.close(); trangHienTai = null; }
+  });
+  // Hết hạn mức giữa lúc lưu và lúc mở lại: nháp Trả sau tự về Trả trước KÈM câu báo, lưu được (không ngõ cụt).
+  const rr = await call(ACCOUNTS.chu, "POST", `/api/tra-sau/han-muc/${BEN2}/ngung`, {});
+  assert.equal(rr.status, 200, JSON.stringify(rr.json));
+  await buoc("F4", "[1440] bên đặt hết hạn mức: nháp Trả sau về Trả trước kèm câu báo, khối ẩn, lưu ⇒ PUT 200 và đơn thành Trả trước", async () => {
+    const q = await moTrang(ACCOUNTS.salesA, KHO_1440, `/order-form?id=${encodeURIComponent(nhap.id)}`);
+    try {
+      await q.waitFor("!document.getElementById('tra-sau-bao').hidden", "câu báo hiện");
+      const k = await khoiHien(q);
+      assert.equal(k.hien, false, "khối ẩn");
+      assert.ok(k.bao.includes("chuyển về Trả trước"), k.bao);
+      await chup(q, "lap-don-het-han-muc-1440");
+      await q.ev("window.__ghi.length = 0; true");
+      await bamLuuDon(q);
+      await q.waitFor("window.__ghi.some((x) => x.m === 'PUT')", "PUT lưu đơn");
+      assert.deepEqual(await q.ev("window.__ghi.filter((x) => x.m === 'PUT').map((x) => x.s)"), [200]);
+      assert.equal((await call(ACCOUNTS.salesA, "GET", luuDon(nhap.id))).json.order.paymentTerm, "PREPAID");
+    } finally { q.close(); trangHienTai = null; }
   });
 
   console.log("\n--- Ảnh đã chụp ---\n" + anh.join("\n"));

@@ -37,3 +37,14 @@ export function docSoNgay(raw: string): { ok: true; ngay: number } | { ok: false
   const s = raw.trim();
   return /^\d{1,3}$/.test(s) && Number(s) >= 1 && Number(s) <= 365 ? { ok: true, ngay: Number(s) } : { ok: false, message: "Số ngày được nợ là số nguyên từ 1 đến 365." };
 }
+
+export const CAU_VE_TRA_TRUOC = "Bên đặt không còn hạn mức trả sau dùng được nên đơn này chuyển về Trả trước. Kiểm lại rồi lưu.";
+
+/**
+ * Sau khi biết hạn mức của bên đặt, đơn đang chọn hình thức nào: dùng được thì giữ nguyên; không dùng được (không hạn mức, hoặc còn đơn quá hạn)
+ * thì về Trả trước KÈM câu báo nếu đang là Trả sau — không bao giờ đổi âm thầm, và luôn có một hình thức rõ ràng để gửi lên máy chủ.
+ */
+export function quyetHinhThuc(i: { dangChon: HinhThucThanhToan; c: ReturnType<typeof cauChonTraSau> }): { chon: HinhThucThanhToan; bao: string | null } {
+  if (i.dangChon === "PREPAID") return { chon: "PREPAID", bao: null };
+  return i.c.hien && i.c.khoa === null ? { chon: "CREDIT", bao: null } : { chon: "PREPAID", bao: CAU_VE_TRA_TRUOC };
+}
