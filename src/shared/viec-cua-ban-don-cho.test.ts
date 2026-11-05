@@ -15,7 +15,7 @@ test("thẻ donCho: hiện cho Bán hàng, Quản trị, Toàn quyền khi có �
     assert.equal(the!.so, 3);
     assert.equal(the!.href, "/cho-xac-nhan");
     assert.equal(the!.nhan, "Đơn chờ xác nhận");
-    assert.match(the!.phu, /1 đơn quá hạn/);
+    assert.doesNotMatch(the!.phu, /quá hạn/, "ADR-0142: quá hạn nay hiện ở thẻ «Đơn chưa có người phụ trách»");
   }
   for (const p of ["ACCOUNTING", "FIELD", "PARTNER", "INTERN", "HR", "DRIVER", "DRIVER_PARTNER"]) {
     assert.equal(viecCuaBan(nguoi(p), { donCho: { count: 3, quaHan: 0 } }).the.length, 0, p);
