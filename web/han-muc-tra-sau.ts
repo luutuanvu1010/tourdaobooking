@@ -56,7 +56,7 @@ async function xemDon(d: Api.HanMucTraSauDto): Promise<void> {
   }
 }
 
-async function ngung(d: Api.HanMucTraSauDto, opener: HTMLElement): Promise<void> {
+async function ngungHanMuc(d: Api.HanMucTraSauDto, opener: HTMLElement): Promise<void> {
   const dongY = await hoiXacNhan({
     tieuDe: `Ngừng hạn mức của ${d.ten}?`,
     hauQua: "Từ lúc này đối tác không đặt thêm đơn trả sau được. Các đơn trả sau đã xác nhận vẫn giữ nguyên, nợ vẫn phải thu.",
@@ -78,7 +78,7 @@ const nutHanh = (d: Api.HanMucTraSauDto): HTMLElement[] => {
   if (d.soDonNo > 0) kq.push(h("button", { type: "button", class: "btn", "data-action": "xem-don-no", onclick: () => void xemDon(d) }, "Xem đơn nợ"));
   if (suaDuoc) {
     kq.push(h("button", { type: "button", class: "btn", "data-action": "dat-han-muc", onclick: () => veForm({ id: d.partyId, ten: d.ten }, d) }, "Đặt hạn mức"));
-    if (d.coHanMuc) kq.push(h("button", { type: "button", class: "btn", "data-action": "ngung-han-muc", onclick: (ev: Event) => void ngung(d, ev.currentTarget as HTMLElement) }, "Ngừng hạn mức"));
+    if (d.coHanMuc) kq.push(h("button", { type: "button", class: "btn", "data-action": "ngung-han-muc", onclick: (ev: Event) => void ngungHanMuc(d, ev.currentTarget as HTMLElement) }, "Ngừng hạn mức"));
   }
   return kq;
 };
