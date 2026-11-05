@@ -1,3 +1,6 @@
+// GHI CHÚ 5/11 (ADR-0142, Task 7): thẻ `chuaPhuTrach` nay ghi «Đơn chưa có HDV nhận» (nút «Xem đơn» cho Bán hàng, «Phân công» cho Quản trị); thẻ MỚI `chuaBanHang`
+//   «Đơn chưa có người phụ trách» chỉ hiện khi có đơn quá thời gian ưu tiên — dữ liệu của tệp này không gieo đơn như vậy nên danh sách khoá thẻ ở các bước Quản trị giữ nguyên.
+//   Thẻ `donCho` bỏ dòng phụ «quá hạn». Phần thẻ mới do ban-hang-phu-trach-smoke.mjs kiểm; tệp này CHƯA chạy lại (giới hạn của Task 7).
 // BẢN CHÉP (đợt 0 khung chung, 29/10/2026) của docs/evidence/2026-09-23-trang-chu-moi/kich-ban/trang-chu-smoke.mjs — hồ sơ có ngày giữ nguyên.
 // Sửa theo vỏ mới (đặc tả đợt 0): token --w-main nay là var(--w-noi-dung-max) (đọc qua một bậc var); các chỗ khác ghi «đợt 0» tại dòng sửa. Mặc định OUT=/tmp/trang-chu-smoke.
 // GHI CHÚ 27/10/2026 (ADR-0135/0136): đỏ từ 27/10: hàm `createAndConfirm` nhận 409 `confirm_request_required` (chặng dưới mốc nay đi qua bước xác nhận / người lập tự đặt gấp trước). Phần xác nhận đơn thay bằng `docs/evidence/2026-10-26-xac-nhan-don/kich-ban/xac-nhan-smoke.mjs`; muốn chạy tiếp phải đặt gấp từng chặng rồi xác nhận lại (chưa sửa, ghi nợ).

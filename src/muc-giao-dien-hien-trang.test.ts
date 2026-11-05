@@ -27,7 +27,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { PERMISSION_CODES, type PermissionHolder } from "./shared/permissions.ts";
+import { can, PERMISSION_CODES, type PermissionHolder } from "./shared/permissions.ts";
 import { KHUNG_MAT_MANG, coKhungNho, thanhBen, thanhTab, thanhTren, trangToi, type NguoiXem } from "./shared/muc-giao-dien.ts";
 import { nhomMayTinh } from "./shared/trang-chu-o.ts";
 
@@ -82,10 +82,18 @@ const tapDoiTacTungThay = (khoa: string): number[] => {
   const i = muc.indexOf(phan.join("|"));
   return i < 0 ? [] : TAP.filter((m) => nguoi(m).permissions.includes("PARTNER") && co(tap[i]!, m));
 };
+/** ADR-0142 Đ2: Kế toán, Hướng dẫn viên không còn ô `order.confirm.review` ⇒ mục «Đơn chờ xác nhận» ẩn với mọi tập nay mất ô mà ảnh chụp từng thấy. */
+const tapMatOXet = (khoa: string): number[] => {
+  const [noi, ...phan] = khoa.split("|");
+  const { muc, tap } = ANH.noi[noi!]!;
+  const i = muc.indexOf(phan.join("|"));
+  return i < 0 ? [] : TAP.filter((m) => co(tap[i]!, m) && !can(nguoi(m), "order.confirm.review"));
+};
 const AN_DI: Record<string, readonly number[]> = Object.fromEntries(
   // Ruling R-P18 (sổ đại lý đợt 2, vòng sửa 1 Task 6): route yêu cầu điều chỉnh công nợ chặn tài khoản giữ quyền Đối tác (yêu cầu có thể là giá vốn / hoa hồng của
   // đối tác khác) ⇒ mục «Điều chỉnh công nợ» ẩn với mọi tập có PARTNER mà mã cũ từng hiện (bài src/muc-hien-mo-duoc-*.test.ts: hiện ⇒ đường gọi chính không bị từ chối).
-  ["thanh-ben|TIỀN||Điều chỉnh công nợ|/dieu-chinh-cong-no", "trang-toi|links|Điều chỉnh công nợ|/dieu-chinh-cong-no"].map((k) => [k, tapDoiTacTungThay(k)]),
+  ["thanh-ben|TIỀN||Điều chỉnh công nợ|/dieu-chinh-cong-no", "trang-toi|links|Điều chỉnh công nợ|/dieu-chinh-cong-no"].map((k) => [k, tapDoiTacTungThay(k)] as [string, number[]])
+    .concat(["trang-toi|links|Đơn chờ xác nhận|/cho-xac-nhan", "trang-toi|links-top|Đơn chờ xác nhận|/cho-xac-nhan"].map((k) => [k, tapMatOXet(k)] as [string, number[]])),
 );
 
 test("ảnh chụp đủ 2048 tập, đúng thứ tự mã quyền, đủ tám nơi", () => {

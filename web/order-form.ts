@@ -12,7 +12,8 @@ import { canHienLaiKhoiKhach } from "../src/shared/an-thong-tin-khach";
 import type { MauChang } from "../src/shared/chang-mac-dinh";
 import { dongTuDto, loiDanhSachKhach, passengersNhap, type DongKhach } from "../src/shared/hanh-khach-form";
 import { soKhachDoan } from "../src/shared/hanh-khach";
-import { suaChuyenDuoc, suaKhachDuoc } from "../src/shared/order-view";
+import { banHangSuaDuoc, suaChuyenDuoc, suaKhachDuoc } from "../src/shared/order-view";
+import { can as canNv } from "../src/shared/permissions";
 import { NHAN_NUT_XAC_NHAN } from "../src/shared/xac-nhan-hien-thi";
 import { gopBenDat, khoiBenDatForm, nhanSdtKhach, nhanTenKhach, noiNapBenDat, type BenDatChon } from "../src/shared/phan-doi-tac-hien-thi";
 import { NETWORK_BANNER, banner, classifyOrderError, type Banner } from "../src/shared/order-errors";
@@ -387,17 +388,17 @@ function renderOwner(focus = false): void {
   const head = h(
     "div",
     { class: "owner-head" },
-    h("h2", { id: "owner-title", class: "owner-title" }, "Người phụ trách"),
+    h("h2", { id: "owner-title", class: "owner-title" }, "Hướng dẫn viên"),
     p === null ? h("span", { class: "chip hdv-chip chip-warn" }, "Chờ nhận") : null,
   );
   let opener: HTMLButtonElement;
   if (p === null) {
-    opener = h("button", { type: "button", class: "owner-pick", "data-action": "pick-handler" }, h("span", null, "Chọn người phụ trách"), icon("next", 18));
-    replaceChildren(ownerEl, head, h("div", { class: "owner-body" }, h("p", { class: "owner-text" }, "Chưa chọn ai — hướng dẫn viên nào cũng bấm Nhận được."), opener));
+    opener = h("button", { type: "button", class: "owner-pick", "data-action": "pick-handler" }, h("span", null, "Chọn Hướng dẫn viên"), icon("next", 18));
+    replaceChildren(ownerEl, head, h("div", { class: "owner-body" }, h("p", { class: "owner-text" }, "Chưa chọn ai — Hướng dẫn viên nào cũng bấm Nhận làm HDV được."), opener));
   } else {
     opener = h(
       "button",
-      { type: "button", class: "owner-current", "data-action": "pick-handler", "aria-label": `Đổi người phụ trách, đang chọn ${p.name}` },
+      { type: "button", class: "owner-current", "data-action": "pick-handler", "aria-label": `Đổi Hướng dẫn viên, đang chọn ${p.name}` },
       h("span", { class: "owner-current-text" }, h("span", { class: "owner-name" }, `HDV: ${p.name}`), h("span", { class: "owner-role" }, p.roleLabel)),
       h("span", { class: "owner-change" }, "Đổi"),
     );
@@ -406,6 +407,39 @@ function renderOwner(focus = false): void {
     replaceChildren(ownerEl, head, h("div", { class: "owner-body" }, opener, clear));
   }
   opener.addEventListener("click", () => openAssigneePicker({ current: handlerPick, onPick: setHandlerPick }, opener));
+  if (focus) opener.focus();
+}
+
+// ---- người phụ trách (Bán hàng) mời ngay lúc lập / sửa nháp (ADR-0142 L1; chủ 5/11) ----
+// Khác khối «Hướng dẫn viên» ở trên: ai giữ ô `dispatch.sales.invitees` (kể cả Đối tác, Thực tập) đều mời được; danh sách chỉ có TÊN (`GET /api/dispatch/ban-hang-moi`);
+// không có nút Lưu riêng — lựa chọn nằm trong state của form, máy chủ nhận khi bấm Lưu cả đơn (`banHangMoiStaffId`). Lúc SỬA nháp, vắng khoá = giữ lời mời đang lưu, `null` = bỏ.
+const banHangEl = byId("ban-hang-card");
+let banHangPick: AssigneeDto | null = null;
+let banHangDaDoi = false;
+function setBanHangPick(picked: AssigneeDto | null): void {
+  banHangPick = picked;
+  banHangDaDoi = true;
+  renderBanHang(true);
+}
+function renderBanHang(focus = false): void {
+  const p = banHangPick;
+  const head = h("div", { class: "owner-head" }, h("h2", { id: "ban-hang-title", class: "owner-title" }, "Người phụ trách"), p === null ? h("span", { class: "chip hdv-chip chip-warn" }, "Chờ Bán hàng nhận") : null);
+  let opener: HTMLButtonElement;
+  if (p === null) {
+    opener = h("button", { type: "button", class: "owner-pick", "data-action": "pick-ban-hang" }, h("span", null, "Chọn người phụ trách"), icon("next", 18));
+    replaceChildren(banHangEl, head, h("div", { class: "owner-body" }, h("p", { class: "owner-text" }, "Chưa mời ai — Bán hàng nào cũng bấm Nhận phụ trách được."), opener));
+  } else {
+    opener = h(
+      "button",
+      { type: "button", class: "owner-current", "data-action": "pick-ban-hang", "aria-label": `Đổi người phụ trách, đang chọn ${p.name}` },
+      h("span", { class: "owner-current-text" }, h("span", { class: "owner-name" }, p.name), h("span", { class: "owner-role" }, "Bán hàng")),
+      h("span", { class: "owner-change" }, "Đổi"),
+    );
+    const clear = h("button", { type: "button", class: "owner-clear", "data-action": "clear-ban-hang" }, "Bỏ chọn — để Chờ Bán hàng nhận");
+    clear.addEventListener("click", () => setBanHangPick(null));
+    replaceChildren(banHangEl, head, h("div", { class: "owner-body" }, opener, clear));
+  }
+  opener.addEventListener("click", () => openAssigneePicker({ kieu: "ban-hang", current: banHangPick, onPick: setBanHangPick }, opener));
   if (focus) opener.focus();
 }
 
@@ -578,6 +612,8 @@ function collect(): OrderInput | OrderInputAn {
     ...(orderUpdatedAt ? { expectedUpdatedAt: orderUpdatedAt } : {}),
     // Chỉ khi LẬP đơn và đã chọn người: chưa chọn → KHÔNG gửi trường này (đơn "Chờ nhận"), sửa đơn → không bao giờ gửi (PUT không đổi người phụ trách).
     ...(canPickHandler && !editId && handlerPick ? { handlerStaffId: handlerPick.staffId } : {}),
+    // ADR-0142 L1: lập mới chỉ gửi khi đã mời; sửa nháp chỉ gửi khi người dùng đã đổi (vắng khoá = giữ lời mời đang lưu; null = bỏ lời mời).
+    ...(banHangDaDoi && !banHangEl.hidden ? { banHangMoiStaffId: banHangPick ? banHangPick.staffId : null } : {}),
   };
   if (anKhach) return chung; // ADR-0154 Đ2.2, Đ2.3: khối khách đang ẩn
   return {
@@ -858,13 +894,13 @@ async function loadOrder(): Promise<void> {
   renderBanner(errorEl, null);
   renderBanner(saveErrorEl, null);
   try {
-    const { order, canModify } = await layDon!();
+    const { order, canModify, laBanHangPhuTrach, banHangMoi } = await layDon!();
     // `canModify` do MÁY CHỦ quyết (người lập, người phụ trách đơn — ADR-0009 — hoặc quản trị); câu này chỉ giải thích khi bị từ chối.
-    if (!canModify) return lockForm(banner("danger", "Chỉ người lập đơn, người phụ trách đơn hoặc quản trị viên mới được sửa đơn này."));
+    if (!canModify) return lockForm(banner("danger", "Chỉ người lập đơn, Hướng dẫn viên của đơn hoặc quản trị viên mới được sửa đơn này."));
     if (order.status !== "draft") return lockForm(banner("danger", "Chỉ sửa được đơn chưa xác nhận."));
     byId("form-title").textContent = `Sửa đơn ${order.orderCode}`;
     setBarTitle(`Sửa đơn ${order.orderCode}`);
-    suaSoVe = suaChuyenDuoc(staff, order.staffId, canModify); // trước fill: thẻ dựng ô "Số người chiều về" theo cờ này
+    suaSoVe = suaChuyenDuoc(staff, order.staffId, canModify, banHangSuaDuoc(order, laBanHangPhuTrach === true)); // ADR-0142: Bán hàng phụ trách (chưa Đã giao) sửa được như người phụ trách; trước fill: thẻ dựng ô "Số người chiều về" theo cờ này
     const baoBoChang = fill(order);
     if (baoBoChang.length > 0) renderBanner(saveErrorEl, banner("warning", `${baoBoChang.join(" ")} Bấm Lưu thay đổi để ghi lại.`));
     // Hành khách của nháp: chỉ người có ô order.passenger.write; tải hỏng → KHÔNG dựng khối và KHÔNG gửi khoá `passengers` (máy chủ giữ danh sách đang lưu —
@@ -872,7 +908,10 @@ async function loadOrder(): Promise<void> {
     // Tải lại đơn (sau 409 stale): bỏ khối cũ TRƯỚC — tải danh sách hỏng thì không được gửi lại danh sách cũ đè lên bản người khác vừa sửa (R6).
     hk = null;
     hkCard.hidden = true;
-    suaKhachCuaNhap = suaKhachDuoc(staff, order.staffId, canModify);
+    suaKhachCuaNhap = suaKhachDuoc(staff, order.staffId, canModify, banHangSuaDuoc(order, laBanHangPhuTrach === true));
+    // Lời mời chỉ của người lập (máy chủ trả `banHangMoi` cho người lập nháp); người khác sửa hộ nháp thì khối ẩn và không gửi khoá.
+    banHangEl.hidden = banHangAn || order.staffId !== staff.id;
+    if (!banHangEl.hidden) { banHangPick = banHangMoi ? { staffId: banHangMoi.staffId, partyId: "", name: banHangMoi.name, roleLabel: "Bán hàng" } : null; renderBanHang(); }
     if (suaKhachCuaNhap && !anKhach) {
       try {
         const ds = await api<Api.PassengerListResponse>(`/api/orders/${encodeURIComponent(order.id)}/passengers`);
@@ -1014,6 +1053,12 @@ const layMoc = can(staff, "order.create")
   : Promise.resolve(null);
 // Khối "Người phụ trách": chỉ lập đơn mới, chỉ ai máy chủ cho chọn (Thực tập, Đối tác thuần: khối KHÔNG hiện — không phải hiện rồi báo lỗi).
 canPickHandler = !editId && mayPickHandlerOnCreate(staff);
+// Khối «Người phụ trách» (mời Bán hàng): mọi người giữ ô mời (kể cả Đối tác, Thực tập); sửa nháp thì khối hiện lại khi tải được đơn (`loadOrder`).
+const banHangAn = !canNv(staff, "dispatch.sales.invitees");
+if (!banHangAn && !editId) {
+  banHangEl.hidden = false;
+  renderBanHang();
+}
 thanhBuoc.an("phu-trach", !canPickHandler); // bước "Phụ trách" chỉ có khi khối người phụ trách có (lập đơn mới, người lập chọn được)
 if (canPickHandler) {
   ownerEl.hidden = false;

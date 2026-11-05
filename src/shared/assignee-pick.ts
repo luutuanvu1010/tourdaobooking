@@ -20,6 +20,9 @@ export function assigneeRoleLabel(permissions: readonly PermissionCode[]): strin
   return PERMISSION_LABEL.SALES;
 }
 
+/** Người thuộc nhóm «Hướng dẫn viên» của bảng chọn (chủ dự án 5/11: bảng và khối Hướng dẫn viên chỉ liệt kê nhóm này; HIỂN THỊ, không phải luật quyền — máy chủ vẫn nhận mọi người hợp lệ). */
+export const laNhomHdv = (a: { roleLabel: string }): boolean => a.roleLabel === PERMISSION_LABEL.FIELD;
+
 /** Chuỗi để so khi tìm theo tên: bỏ dấu tiếng Việt (NFD rồi bỏ dấu kết hợp; `đ`/`Đ` không tách được bằng NFD nên thay riêng), về chữ thường. */
 export const normName = (s: string): string =>
   s.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/g, "d").replace(/Đ/g, "D").toLowerCase();

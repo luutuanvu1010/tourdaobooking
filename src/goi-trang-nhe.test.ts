@@ -45,8 +45,12 @@ const CHO_PHEP_NHAT_KY = new Set(["web/help.ts"]);
 // Nới 103.178 → 103.523 (ADR-0161 Đ3, 3/11/2026; kế hoạch Task 8): thêm trang /hoa-hong-gioi-han vào `TRANG`/`THANH_BEN`/`TRANG_TOI` của `muc-giao-dien.ts` (cộng một hàm chốt chặn dùng chung `chiToanQuyenKhongDoiTac`) và một dòng
 // bài theo việc; chỉ dữ liệu điều hướng. Đo thật 103.423 byte trên nhánh; `main` đo 103.139 (3/11/2026), chênh +284 nằm trọn ở `src/shared/muc-giao-dien.ts` (dữ liệu điều hướng; không tệp nào khác trong gói đổi so với `main`). Trần = số đo + 100. Không mã giao diện nghiệp vụ nào vào gói Đơn hàng. CHƯA có lời duyệt riêng của chủ dự án cho con số này.
 // Nới 103.523 → 103.692 (ADR-0136 Đ1, 4/11/2026): thêm trang /dich-vu-kiem-ve vào `TRANG`/`THANH_BEN`/`TRANG_TOI` (chỉ dữ liệu điều hướng, khuôn các lần /ve-cai-dat). Đo thật 103.592 byte, trần = số đo + 100. CHƯA có lời duyệt riêng của chủ dự án cho con số này.
-// Nới 103.692 → 103.836 (ADR-0169, 5/11/2026): thêm mã quyền, vai, hai ô vào bản đồ (dữ liệu quyền, không mã giao diện); gỡ trang riêng bù được một phần. Đo thật 103.736 byte, trần = số đo + 100.
-const TRAN_ORDERS = 103_836;
+// Nới 103.692 → 103.844 (ADR-0142 Task 4, 5/11/2026): ba dòng ma trận quyền mới (`dispatch.sales.claim/assign/invitees`, dùng chung hàng `banHangQuanTri()` / `quanTri()` cho gọn) và hàm
+// `duocGiaoTheoO` / `banHangSuaDuoc` kéo vào gói qua `permissions.ts`, `order-view.ts`, `handler-view.ts` (chỉ luật thuần dùng chung, không mã giao diện). Đo thật 103.744 byte, trần = số đo + 100.
+// CHƯA có lời duyệt riêng của chủ dự án cho con số này (người thi công theo tiền lệ các lần nới trước — cần chủ xác nhận); Task 7 (nút giao diện) sẽ phải đo lại.
+// Chủ duyệt nâng trần 5/11/2026 cho dòng «Phụ trách» của ADR-0142 (đo 105.086 byte, gốc 103.692).
+// Nới 105.100 → 105.363 (ADR-0169 ghép trên ADR-0142, 5/11/2026): mã quyền, vai, hai ô vào bản đồ (dữ liệu quyền, không mã giao diện). Đo thật 105.263 byte, trần = số đo + 100.
+const TRAN_ORDERS = 105_363;
 
 function dung(trang: string) {
   const r = buildSync({

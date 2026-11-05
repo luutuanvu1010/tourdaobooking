@@ -94,7 +94,7 @@ export interface OrderActions {
   editTrip: boolean;
   /** Nút "Huỷ đơn" — đơn nháp hoặc đã xác nhận. */
   cancel: boolean;
-  /** Dòng "Chỉ <người lập> (người lập đơn), người phụ trách đơn hoặc quản trị viên mới được sửa, xác nhận hoặc huỷ đơn này." (ADR-0009; chữ do web/order.ts dựng, quyền do máy chủ quyết qua `canModify`) */
+  /** Dòng "Chỉ <người lập> (người lập đơn), Hướng dẫn viên của đơn hoặc quản trị viên mới được sửa, xác nhận hoặc huỷ đơn này." (ADR-0009; chữ do web/order.ts dựng, quyền do máy chủ quyết qua `canModify`) */
   noPermission: boolean;
   /** Đơn đã xác nhận: dòng nhắc "dịch vụ và đơn giá đã khoá" (`cauKhoaXacNhan`) và biểu tượng khoá. */
   locked: boolean;
@@ -114,7 +114,7 @@ export function khongQuyenSuaText(input: { ownerName: string; status: OrderStatu
       ? `Hướng dẫn viên không sửa, xác nhận hoặc huỷ đơn ở trang này. Việc hướng dẫn viên làm được với đơn đã xác nhận nằm ở mục “Việc của tôi” (trang Tôi); việc khác, nhờ ${ownerName} (người lập đơn) hoặc văn phòng.`
       : `Hướng dẫn viên không sửa, xác nhận hoặc huỷ đơn ở trang này — cần đổi gì, nhờ ${ownerName} (người lập đơn) hoặc văn phòng.`;
   }
-  const goc = `Chỉ ${ownerName} (người lập đơn), người phụ trách đơn hoặc quản trị viên mới được sửa, xác nhận hoặc huỷ đơn này.`;
+  const goc = `Chỉ ${ownerName} (người lập đơn), Hướng dẫn viên của đơn hoặc quản trị viên mới được sửa, xác nhận hoặc huỷ đơn này.`;
   // ADR-0063 D1 (phiếu kiểm A2 V-1): Kế toán / Quản trị thấy nút "Sửa số khách dịch vụ" ngay dưới câu này — nói rõ để câu "chỉ … mới được sửa" không mâu thuẫn.
   return input.suaSoKhach ? `${goc} Số khách thì bạn sửa được bằng nút “Sửa số khách dịch vụ”.` : goc;
 }
@@ -129,6 +129,9 @@ export function orderActions(status: OrderStatus, canModify: boolean, canEditTri
     // Đang chờ xác nhận (Đ3): người lập chỉ còn Rút lại; người quyết định được có nút quyết định. Người xét duyệt không phải người lập không "thiếu quyền sửa" — họ không đến đây để sửa.
     return { ...none, withdraw: canModify, decide: cho.quyetDinhDuoc };
   }
+  // ADR-0142: Bán hàng phụ trách không có `order.modify` nhưng sửa được chuyến / hành khách (danh sách trắng): đơn đã xác nhận cho nút sửa chuyến, không có nút huỷ,
+  // không nói «thiếu quyền» (họ có quyền ở đúng phần này).
+  if (!canModify && status === "confirmed" && canEditTrip) return { ...none, editTrip: true, cancel: false, noPermission: false, locked: true };
   if (!canModify) return { ...none, noPermission: true };
   if (status === "draft") {
     // Người lập giữ quyền Đối tác (Đ13): nút duy nhất là «Gửi đơn». Cần xác nhận: «Gửi xác nhận» thay «Xác nhận đơn» (Đ3).
@@ -147,17 +150,23 @@ export function orderActions(status: OrderStatus, canModify: boolean, canEditTri
  * chủ: không sửa được đơn → không sửa được chuyến; là người lập → phạm vi "own"; không phải người lập mà máy chủ vẫn cho sửa → chỉ có thể do đang phụ trách
  * hoặc ô "any" → hỏi với `assigned: true`. Bài `order-view.test.ts` thử mọi tổ hợp quyền để ghim rằng cách suy này bằng đúng điều máy chủ quyết.
  */
-export function suaChuyenDuoc(viewer: PermissionHolder, ownerId: string, canModify: boolean): boolean {
-  if (!canModify) return false;
+export function suaChuyenDuoc(viewer: PermissionHolder, ownerId: string, canModify: boolean, laBanHangPhuTrach: boolean): boolean {
+  if (!canModify && !laBanHangPhuTrach) return false;
   return can(viewer, "order.trip.edit", { ownerId, assigned: ownerId !== viewer.id });
 }
+
+/**
+ * ADR-0142: Bán hàng phụ trách chỉ sửa được khi đơn CHƯA Đã giao. Hôm nay `canModify` tự tắt khi đơn Đã giao (orders/index.ts) và máy chủ trả `DA_GIAO` ở
+ * `PUT …/trip`; đường mới của Bán hàng phụ trách phải giữ đúng điều đó. `suaChuyenDuoc` / `suaKhachDuoc` nhận KẾT QUẢ của hàm này, không nhận cờ thô.
+ */
+export const banHangSuaDuoc = (order: { deliveredAt: string | null }, laBanHangPhuTrach: boolean): boolean => laBanHangPhuTrach && order.deliveredAt === null;
 
 /**
  * ADR-0047 Phần B (bản vẽ M3, M5): người xem có nhập / sửa / huỷ được DANH SÁCH HÀNH KHÁCH của đơn này không (ô `order.passenger.write`). Cùng cách suy phạm vi
  * với `suaChuyenDuoc` (từ `canModify` của máy chủ); bài order-view.test.ts thử mọi tổ hợp quyền để ghim rằng bằng đúng điều máy chủ quyết.
  */
-export function suaKhachDuoc(viewer: PermissionHolder, ownerId: string, canModify: boolean): boolean {
-  if (!canModify) return false;
+export function suaKhachDuoc(viewer: PermissionHolder, ownerId: string, canModify: boolean, laBanHangPhuTrach: boolean): boolean {
+  if (!canModify && !laBanHangPhuTrach) return false;
   return can(viewer, "order.passenger.write", { ownerId, assigned: ownerId !== viewer.id });
 }
 

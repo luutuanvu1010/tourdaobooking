@@ -1,5 +1,6 @@
 // Luật THUẦN của bước xác nhận đơn (ADR-0136 Đ1, Đ5, Đ9) — một nguồn cho máy chủ (orders) và giao diện. Không I/O, không import module.
 // Test cạnh tệp: xac-nhan-don.test.ts.
+import { congPhutGioHanhChinh, type KhungGioHanhChinh } from "./ban-hang-phu-trach.ts";
 
 /** Kết quả một lần quyết định: Còn vé (xác nhận), Hết vé (huỷ, lý do HET_CHO), Huỷ. Mã lưu ở `ord_confirm_request.ticket`; không hiện mã ra người dùng. */
 export type KetQuaXacNhan = "CON_VE" | "HET_VE" | "HUY";
@@ -34,37 +35,26 @@ export function canXacNhan(i: {
   return { can: vi.length > 0, vi };
 }
 
-const PHUT = 60_000;
-const GIO = 60 * PHUT;
-const NGAY = 24 * GIO;
-const LECH_VN = 7 * GIO;
 const HAN_PHUT = 15;
-const GIO_DEM_TU = 22 * GIO; // từ 22:00 giờ VN
-const GIO_DEM_DEN = 6 * GIO; // đến 06:00 giờ VN
 
 /**
- * Hạn xác nhận (Đ9): 15 phút LÀM VIỆC kể từ lúc gửi, khoảng 22:00–06:00 giờ Việt Nam không tính. Trả ISO UTC.
- * Gửi trong khoảng đêm thì đồng hồ chạy từ 06:00; gửi sát 22:00 thì phần còn lại sang 06:00 hôm sau.
+ * Hạn xác nhận (Đ9, đổi theo ADR-0142 Đ5): 15 phút GIỜ HÀNH CHÍNH kể từ lúc gửi — khung do nơi gọi truyền (hôm nay 07:00–17:00 giờ Việt Nam, mọi ngày trong
+ * tuần). Gửi ngoài khung thì đồng hồ chạy từ đầu khung; gửi sát cuối khung thì phần còn lại sang đầu khung hôm sau. Trả ISO UTC.
  */
-export function hanXacNhan(guiLucIso: string): string {
-  const ms = Date.parse(guiLucIso);
-  if (!Number.isFinite(ms)) throw new Error("hanXacNhan: mốc gửi không hợp lệ");
-  const vnMs = ms + LECH_VN;
-  const dauNgay = Math.floor(vnMs / NGAY) * NGAY;
-  let batDau = vnMs;
-  if (vnMs - dauNgay < GIO_DEM_DEN) batDau = dauNgay + GIO_DEM_DEN;
-  else if (vnMs - dauNgay >= GIO_DEM_TU) batDau = dauNgay + NGAY + GIO_DEM_DEN;
-  const cuoiNgayLam = Math.floor(batDau / NGAY) * NGAY + GIO_DEM_TU;
-  const can = HAN_PHUT * PHUT;
-  const hanVn = batDau + can <= cuoiNgayLam ? batDau + can : cuoiNgayLam + (NGAY - GIO_DEM_TU + GIO_DEM_DEN) + (can - (cuoiNgayLam - batDau));
-  return new Date(hanVn - LECH_VN).toISOString();
+export function hanXacNhan(guiLucIso: string, khung: Pick<KhungGioHanhChinh, "tuPhut" | "denPhut">): string {
+  return congPhutGioHanhChinh(guiLucIso, HAN_PHUT, khung);
 }
 
 /**
  * Ai quyết định (Còn vé / Hết vé / Huỷ) được một đơn đang chờ (Đ5): người giữ ô `order.confirm.review`, và không phải người lập — trừ khi người lập là nội bộ
  * (không giữ PARTNER, không giữ INTERN) VÀ công tắc «tự xác nhận» đang bật. `laNoiBo` do route tính.
+ * ADR-0142 Đ5: đơn đang trong ưu tiên của một Bán hàng được mời (`uuTienCuaNguoiKhac`) thì không ai quyết định, trừ Quản trị / Toàn quyền KHÔNG giữ quyền Đối tác.
  */
-export function duocQuyetDinh(i: { laNguoiLap: boolean; laNoiBo: boolean; coQuyenXetDuyet: boolean; choTuXacNhan: boolean }): boolean {
+export function duocQuyetDinh(i: {
+  laNguoiLap: boolean; laNoiBo: boolean; coQuyenXetDuyet: boolean; choTuXacNhan: boolean;
+  uuTienCuaNguoiKhac: boolean; laQuanTriHoacToanQuyen: boolean; giuDoiTac: boolean;
+}): boolean {
+  if (i.uuTienCuaNguoiKhac && !(i.laQuanTriHoacToanQuyen && !i.giuDoiTac)) return false;
   return i.coQuyenXetDuyet && (!i.laNguoiLap || (i.laNoiBo && i.choTuXacNhan));
 }
 

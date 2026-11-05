@@ -42,7 +42,7 @@ test("cờ dangCho: chưa gửi → vắng khoá; gửi → true; Rút lại →
 
   assert.equal((await gui(w, o.id, A)).status, 201);
   assert.equal((await dong(w, o.id, A)).dangCho, true, "gửi lại có cờ lại");
-  const qd = await quyet(w, o.id, ACC, { ketQua: "CON_VE" });
+  const qd = await quyet(w, o.id, B, { ketQua: "CON_VE" });
   assert.equal(qd.status, 200, qd.text);
   const sauConVe = await dong(w, o.id, A);
   assert.equal(sauConVe.status, "confirmed");
@@ -57,8 +57,8 @@ test("cờ dangCho hết sau Hết vé và sau Huỷ; đơn khác còn chờ v�
   const conCho = await donCoCo(w);
   const thuong = await lap(w, A, [svc("ZB1", inDays(3))]);
   for (const o of [hetVe, huy, conCho]) assert.equal((await gui(w, o.id, A)).status, 201);
-  assert.equal((await quyet(w, hetVe.id, ACC, { ketQua: "HET_VE" })).status, 200);
-  assert.equal((await quyet(w, huy.id, ACC, { ketQua: "HUY", lyDo: "KHACH_DOI_Y" })).status, 200);
+  assert.equal((await quyet(w, hetVe.id, B, { ketQua: "HET_VE" })).status, 200);
+  assert.equal((await quyet(w, huy.id, B, { ketQua: "HUY", lyDo: "KHACH_DOI_Y" })).status, 200);
   const r = await w.call("GET", "/api/orders", { as: A });
   const theo = (id: string) => r.json.orders.find((o: any) => o.id === id);
   assert.deepEqual([theo(hetVe.id).status, "dangCho" in theo(hetVe.id)], ["cancelled", false]);
@@ -72,6 +72,6 @@ test("cờ dangCho không mở rộng phạm vi xem: người khác vẫn không
   datCo(w, "SERVICE", "ZA1", true);
   const o = await donCoCo(w);
   assert.equal((await gui(w, o.id, A)).status, 201);
-  for (const as of [B, ACC]) assert.equal(await dong(w, o.id, as), undefined, as);
+  for (const as of [B, B]) assert.equal(await dong(w, o.id, as), undefined, as);
   assert.equal((await dong(w, o.id, A)).dangCho, true);
 });

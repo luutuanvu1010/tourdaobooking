@@ -60,8 +60,8 @@ test("câu phụ thẻ conThieu nói số tiền còn thu; nguồn lỗi thì kh
   const loi = viecCuaBan(who("SALES"), { ...day, conThieu: null }).the.find((t) => t.khoa === "conThieu");
   assert.ok(!/\d/.test(loi?.phu ?? ""));
 });
-test("thẻ chuaPhuTrach: Bán hàng 'Nhận phụ trách', Quản trị 'Phân công'", () => {
-  assert.equal(viecCuaBan(who("SALES"), day).the.find((t) => t.khoa === "chuaPhuTrach")?.nut, "Nhận phụ trách");
+test("thẻ chuaPhuTrach (nay là «Đơn chưa có HDV nhận»): Bán hàng 'Xem đơn', Quản trị 'Phân công'", () => {
+  assert.equal(viecCuaBan(who("SALES"), day).the.find((t) => t.khoa === "chuaPhuTrach")?.nut, "Xem đơn");
   assert.equal(viecCuaBan(who("ADMIN"), { chuaPhuTrach: 2 }).the[0]?.nut, "Phân công");
 });
 test("thẻ chuyenHomNay đếm ĐƠN, không phải chuyến xe: «Đơn đi hôm nay» (chủ chọn 28/10)", () => {
@@ -69,8 +69,8 @@ test("thẻ chuyenHomNay đếm ĐƠN, không phải chuyến xe: «Đơn đi h�
   assert.deepEqual([t?.nhan, t?.nut, t?.phu], ["Đơn đi hôm nay", "Xem đơn", "Các đơn có ngày đi hôm nay"]);
 });
 test("nguonCanTai: chỉ nguồn người này dùng; không nguồn quản trị cho Bán hàng/Kế toán", () => {
-  assert.deepEqual([...nguonCanTai(who("SALES"))], ["donCho", "nhap", "conThieu", "chuaPhuTrach", "chuyenHomNay"]);
-  assert.deepEqual([...nguonCanTai(who("ACCOUNTING"))], ["donCho", "doiChieu", "thuTruoc", "dieuChinh", "nhap", "conThieu", "chuyenHomNay"]); // Phương án A (31/10): hai dòng chờ đối chiếu / thu trước theo cổng của khối cũ
+  assert.deepEqual([...nguonCanTai(who("SALES"))], ["donCho", "chuaBanHang", "nhap", "conThieu", "chuaPhuTrach", "chuyenHomNay"]);
+  assert.deepEqual([...nguonCanTai(who("ACCOUNTING"))], ["chuaBanHang", "doiChieu", "thuTruoc", "dieuChinh", "nhap", "conThieu", "chuyenHomNay"]); // ADR-0142: Kế toán không còn thẻ donCho. Phương án A (31/10): hai dòng chờ đối chiếu / thu trước theo cổng của khối cũ
   assert.ok(nguonCanTai(who("ADMIN")).includes("xemLai"));
   assert.ok(!nguonCanTai(who("ADMIN")).includes("gopY"));
   assert.ok(nguonCanTai(who("SUPER_ADMIN")).includes("gopY"));
@@ -148,7 +148,7 @@ test("conLaiThe: phần dồn theo thứ tự ưu tiên; cauConLai viết nhãn 
 test("nhãn phạm vi: mỗi khoá thẻ có phạm vi trong bảng chung (điều chỉnh và đơn nháp = Của tôi — ADR-0135; còn lại Toàn công ty)", () => {
   assert.deepEqual(
     Object.entries(KHOA_PHAM_VI).map(([k, v]) => [k, PHAM_VI_O_TRANG_CHU[v]]),
-    [["xemLai", "TOAN_CONG_TY"], ["dieuChinh", "CUA_TOI"], ["nhap", "CUA_TOI"], ["conThieu", "TOAN_CONG_TY"], ["chuaPhuTrach", "TOAN_CONG_TY"], ["chuyenHomNay", "TOAN_CONG_TY"], ["gopY", "TOAN_CONG_TY"], ["donCho", "TOAN_CONG_TY"], ["doiChieu", "TOAN_CONG_TY"], ["thuTruoc", "TOAN_CONG_TY"]],
+    [["xemLai", "TOAN_CONG_TY"], ["dieuChinh", "CUA_TOI"], ["nhap", "CUA_TOI"], ["conThieu", "TOAN_CONG_TY"], ["chuaPhuTrach", "TOAN_CONG_TY"], ["chuaBanHang", "TOAN_CONG_TY"], ["chuyenHomNay", "TOAN_CONG_TY"], ["gopY", "TOAN_CONG_TY"], ["donCho", "TOAN_CONG_TY"], ["doiChieu", "TOAN_CONG_TY"], ["thuTruoc", "TOAN_CONG_TY"]],
   );
 });
 

@@ -365,7 +365,7 @@ test("(4b) Thực tập (không giữ quyền Đối tác): đơn của người
   const cuaNguoiKhac = await xem(w, cuaSales, TTS);
   assert.equal(cuaNguoiKhac.status, 403, cuaNguoiKhac.text);
   assert.equal(cuaNguoiKhac.json.error.code, "forbidden");
-  assert.equal(cuaNguoiKhac.json.error.message,"Chỉ người lập đơn, người phụ trách đơn hoặc quản trị viên mới được thay đổi đơn này.", "câu 403 có sẵn của khuôn chi tiết đơn (nợ Task 14: đổi câu)");
+  assert.equal(cuaNguoiKhac.json.error.message,"Chỉ người lập đơn, Hướng dẫn viên của đơn hoặc quản trị viên mới được thay đổi đơn này.", "câu 403 có sẵn của khuôn chi tiết đơn (nợ Task 14: đổi câu)");
   const minh = await xem(w, cuaMinh, TTS);
   assert.equal(minh.status, 200, minh.text);
   assert.deepEqual(Object.keys(minh.json), ["vanPhong"]);

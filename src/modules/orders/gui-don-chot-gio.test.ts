@@ -245,11 +245,11 @@ test("khoản thu đã có: nhánh A (kể cả vì CHOT_GIO) bị chặn 409 co
   assert.equal(mo(w, o.id).length, 0);
 });
 
-test("danh sách chờ và chi tiết đơn: yêu cầu mang cờ nêu CHOT_GIO với người xét (Kế toán) và với người lập; đơn văn phòng không có", async () => {
+test("danh sách chờ và chi tiết đơn: yêu cầu mang cờ nêu CHOT_GIO với người xét (Bán hàng khác) và với người lập; đơn văn phòng không có", async () => {
   const w = setup();
   const o = await lap(w, PARTNER, [dichVuDon(null)]);
   assert.equal((await guiDon(w, o.id, PARTNER)).status, 201);
-  const ds = await w.call("GET", "/api/orders/cho-xac-nhan", { as: ACC });
+  const ds = await w.call("GET", "/api/orders/cho-xac-nhan", { as: B });
   assert.equal(ds.status, 200, ds.text);
   const dong = (ds.json.don as any[]).find((d) => d.orderId === o.id);
   assert.ok(dong, "đơn có trong danh sách chờ");
@@ -257,13 +257,13 @@ test("danh sách chờ và chi tiết đơn: yêu cầu mang cờ nêu CHOT_GIO 
   const chiTiet = await w.call("GET", `/api/orders/${o.id}`, { as: PARTNER });
   assert.equal(chiTiet.status, 200, chiTiet.text);
   assert.deepEqual(chiTiet.json.xacNhan.yeuCau.vi, ["CHOT_GIO"]);
-  const xet = await w.call("GET", `/api/orders/${o.id}`, { as: ACC });
+  const xet = await w.call("GET", `/api/orders/${o.id}`, { as: B });
   assert.deepEqual(xet.json.xacNhan.yeuCau.vi, ["CHOT_GIO"]);
   // đơn văn phòng cờ dịch vụ: vi không có CHOT_GIO
   datCo(w, "SERVICE", "ZA1", true);
   const vp = await lap(w, A, [svc("ZA1", NGAY(), [leg(NGAY(), null)])]);
   assert.equal((await w.call("POST", `/api/orders/${vp.id}/gui-xac-nhan`, { as: A, body: {} })).status, 201);
-  const ds2 = await w.call("GET", "/api/orders/cho-xac-nhan", { as: ACC });
+  const ds2 = await w.call("GET", "/api/orders/cho-xac-nhan", { as: B });
   const dongVp = (ds2.json.don as any[]).find((d) => d.orderId === vp.id);
   assert.deepEqual(dongVp.vi, ["DICH_VU"]);
 });

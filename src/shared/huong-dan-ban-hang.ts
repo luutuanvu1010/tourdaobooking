@@ -48,7 +48,7 @@ Bốn tab: [[Trang chủ]], [[Đơn hàng]], [[Tạo đơn]], [[Tôi]]. Trong tr
 6. Phần [[Đưa đón]] trên thẻ: mỗi dịch vụ phải chọn [[Đón]] hoặc [[Không đón]] (có mẫu đưa đón thì [[Đón]] chọn sẵn). Mỗi lượt có giờ đón (chạm khung giờ hoặc [[Giờ khác]]), [[Nơi đón]], [[Nơi trả]] (chọn điểm có sẵn hoặc [[Gõ tự do…]]). [[Ngày đón]] tự lấy ngày khởi hành (khác ngày: [[Đón khác ngày]]). Lượt đủ thông tin gập thành một dòng; chạm để sửa. [[Xe riêng]] và [[Xe tối thiểu]] (số chỗ, không kể tài xế) nằm trong [[Thêm chi tiết (xe riêng, số chỗ)]]. Bấm dòng [[Thông tin chuyến]] để điền [[Giờ khởi hành]] và nếu có thì [[Có mặt lúc]], [[Có mặt tại]] (khác ngày: [[Có mặt khác ngày]]), [[Ghi chú dịch vụ]].
 7. Thêm dịch vụ: lặp bước 4–6 (tối đa 20). Mỗi lúc chỉ một thẻ mở; chạm dòng gập để mở, thùng rác để bỏ.
 8. Khối [[Thanh toán]]: [[Giảm giá (₫)]], [[Ghi chú thanh toán]]. Đơn chưa xác nhận thì chưa ghi thu tiền được: khách trả tiền thì bấm [[Ghi khoản thu]] trên trang đơn sau khi đơn đã **xác nhận**.
-9. Khối [[Người phụ trách]]: để trống thì đơn ở [[Chờ nhận]] — hướng dẫn viên nào cũng nhận được. Muốn giao luôn thì bấm [[Chọn người phụ trách]], tìm tên, chạm người đó. Đổi ý thì bấm [[Đổi]] hoặc [[Bỏ chọn — để Chờ nhận]].
+9. Khối [[Người phụ trách]] (Bán hàng): bấm [[Chọn người phụ trách]] rồi chạm tên để mời; để trống thì đơn ở [[Chờ Bán hàng nhận]]. Khối [[Hướng dẫn viên]] (nếu hiện): để trống thì đơn ở [[Chờ nhận]]. Đổi ý: [[Đổi]] hoặc [[Bỏ chọn — để Chờ Bán hàng nhận]].
 10. Xem tổng ở thanh dưới cùng (chạm để xem chi tiết; máy tính: [[Tóm tắt]]) rồi bấm [[Lưu đơn (chưa xác nhận)]]. Đơn lưu ở [[Chưa xác nhận]], rồi trang đơn mở kèm hộp ảnh biên nhận.
 
 > Lưu ý: số tiền chỉ để xem trước; máy chủ tính lại khi lưu. Thiếu gì thì khung đỏ [[Chưa lưu được — kiểm tra lại:]] hiện ngay trên nút Lưu.`,
@@ -82,16 +82,15 @@ Nền tảng chỉ cho xác nhận khi mỗi dịch vụ đã chọn Đón hoặ
 > Ví dụ: xác nhận xong đơn của chị Lan → [[Xem ảnh gửi khách]] → [[Chia sẻ]] → chọn Zalo → gửi chị Lan.
 
 - Ảnh ghi trạng thái lúc tạo ảnh: đơn chưa xác nhận thì ảnh ghi "Chờ xác nhận". Nên gửi **sau** khi xác nhận.
-- Đơn chưa có người phụ trách thì ảnh ghi đơn đang chờ hướng dẫn viên nhận khách.
+- Đơn chưa có Hướng dẫn viên thì ảnh ghi đơn đang chờ hướng dẫn viên nhận khách.
 - Hộp báo chưa tạo được ảnh thì bấm [[Thử lại]].`,
     },
     {
       tieuDe: "Người phụ trách đơn",
-      noiDung: `Khối [[Người phụ trách]] trên trang đơn cho biết ai đang lo đơn, hoặc [[Chờ nhận]].
+      noiDung: `**Người phụ trách** là Bán hàng chịu trách nhiệm chính; **Hướng dẫn viên** đón, gặp khách, thu tiền tại cảng.
 
-- Đơn chưa có ai: bấm [[Nhận phụ trách]] để tự nhận, kể cả đơn người khác lập. Nhận rồi bạn sửa, xác nhận, huỷ được đơn đó.
-- Đơn bạn lập hoặc đang phụ trách: bấm [[Chọn người phụ trách]] hoặc [[Đổi người phụ trách]], chọn người, bấm [[Lưu người phụ trách]].
-- Người nhận được đơn gồm hướng dẫn viên, bán hàng và quản trị.`,
+- Người được mời bấm [[Nhận phụ trách]] hoặc [[Từ chối]]. Hết ưu tiên hoặc khi họ từ chối, đơn ở [[Chờ Bán hàng nhận]] cho Bán hàng nào cũng nhận.
+- Nhận rồi bạn sửa được chuyến và danh sách khách.`,
     },
     {
       tieuDe: "Danh sách đơn và Trang chủ",
@@ -99,7 +98,7 @@ Nền tảng chỉ cho xác nhận khi mỗi dịch vụ đã chọn Đón hoặ
 
 1. Bấm [[Đơn hàng]].
 2. Gõ vào ô tìm (mã đơn, tên, số điện thoại), hoặc bấm nút **Lọc** để lọc theo ngày đi, dịch vụ, trạng thái ([[Chưa xác nhận]], [[Đã xác nhận]], [[Đã huỷ]]) và người lập ([[Đơn tôi lập]] hoặc gõ tên người lập), rồi bấm [[Áp dụng]]. Điều kiện đang lọc hiện thành nhãn trên danh sách; bấm × để bỏ từng cái, [[Xoá lọc]] để bỏ hết. Máy nhớ bộ lọc cho lần sau.
-3. Mỗi thẻ hiện mã, trạng thái, ngày, khách, tiền; mở phần xổ xuống để thấy người phụ trách ("HDV: tên" hoặc [[Chờ nhận]]). Bấm [[Tải thêm]] để xem đơn cũ hơn.
+3. Mỗi thẻ hiện mã, trạng thái, ngày, khách, tiền; mở phần xổ xuống để thấy người phụ trách ("Phụ trách: tên", "Đang mời …" hoặc [[Chờ Bán hàng nhận]]). Bấm [[Tải thêm]] để xem đơn cũ hơn.
 
 ### Trang chủ
 
@@ -187,7 +186,7 @@ Huỷ được đơn bạn lập hoặc đang phụ trách. Đơn đã xếp xe 
 
 ### Hướng dẫn viên nhận, huỷ, sửa đơn — bạn thấy gì
 
-- **HDV bấm Nhận**: thẻ đơn đổi từ [[Chờ nhận]] sang "HDV: tên".
+- **HDV bấm Nhận**: khối [[Hướng dẫn viên]] của đơn đổi từ [[Chờ nhận]] sang tên người nhận.
 - **HDV huỷ đơn** hoặc **sửa số khách**: bạn nhận tin; khối [[Lịch sử]] có dòng kèm lý do. Đơn huỷ thành [[Đã huỷ]].
 - **HDV, bạn bấm [[Từ chối đơn]]**: đơn về Chờ nhận ("được trả lại").`,
     },
@@ -197,15 +196,15 @@ Huỷ được đơn bạn lập hoặc đang phụ trách. Đơn đã xếp xe 
 
 - **Chỉ thấy đơn mình lập.** Mở đơn người khác bị từ chối.
 - **Menu hẹp hơn**: không có [[Trang chủ]], [[Danh bạ]], [[Điều phối xe]]. Mục [[Đơn hàng]] chỉ có đơn bạn lập. Trên điện thoại có tab [[Đơn hàng]], [[Tạo đơn]] và [[Tôi]].
-- **Không chọn người phụ trách** khi lập đơn: khối [[Người phụ trách]] không hiện, đơn luôn ở [[Chờ nhận]].
+- **Mời được người phụ trách**; không chọn Hướng dẫn viên.
 - **Không thấy ai phụ trách đơn** (cả trên ảnh biên nhận).
-- **Sau khi xác nhận, Thực tập không có nút** [[Sửa thông tin chuyến]], [[Đổi khách]], [[Sửa số khách dịch vụ]] — nhờ Bán hàng phụ trách hoặc Quản trị.
+- **Sau khi xác nhận, Thực tập không có nút** [[Sửa thông tin chuyến]], [[Đổi khách]], [[Sửa số khách dịch vụ]] — nhờ người phụ trách hoặc Quản trị.
 - **Không nhận phụ trách, không giao đơn**: không có nút [[Nhận phụ trách]].
 - **Chỉ giá danh mục, không giảm giá**: không có [[Sửa giá đơn này]], ô giảm giá chỉ đọc; cần giá khác nhờ Bán hàng.`,
     },
     {
       tieuDe: "Điều bạn không làm được — hỏi ai",
-      noiDung: `- Sửa, xác nhận, huỷ đơn người khác lập mà bạn không phụ trách → người lập đơn, người phụ trách, hoặc **Quản trị** (đơn đang [[Chờ nhận]] thì bạn tự bấm [[Nhận phụ trách]]).
+      noiDung: `- Sửa, xác nhận, huỷ đơn người khác lập mà bạn không phụ trách → người lập đơn, người phụ trách, hoặc **Quản trị** (đơn đang [[Chờ Bán hàng nhận]] thì bạn tự bấm [[Nhận phụ trách]]).
 - Sửa số khách sau khi đã xác nhận của đơn người khác lập → người lập đơn, **Kế toán** hoặc **Quản trị** (đơn bạn lập thì tự bấm [[Sửa số khách dịch vụ]]). Dịch vụ, giá → chưa sửa được, báo **Quản trị**.
 - Thêm, sửa dịch vụ và giá trong danh mục; dịch vụ "chưa có giá" → **Quản trị**.
 - Khách trả tiền (đơn đã xác nhận): bấm [[Ghi khoản thu]] trên đơn bạn lập. Hoàn tiền, hoá đơn → **Kế toán**.
@@ -224,7 +223,7 @@ Hoặc có lượt đưa đón đã qua hạn chốt chưa đặt gấp (dòng [
 
 ### Sao tôi không thấy nút Sửa, Xác nhận, Huỷ?
 
-Đơn không phải của bạn và bạn không phụ trách; trang ghi rõ ai được sửa. Nếu đơn đang [[Chờ nhận]], bạn có thể bấm [[Nhận phụ trách]].
+Đơn không phải của bạn và bạn không phụ trách; trang ghi rõ ai được sửa. Nếu đơn đang [[Chờ Bán hàng nhận]], bạn có thể bấm [[Nhận phụ trách]].
 
 ### Hai dịch vụ khác ngày trong cùng một đơn được không?
 

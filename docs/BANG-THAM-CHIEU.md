@@ -190,7 +190,7 @@ Cùng một việc có nhiều lối vào, hoặc khác việc và đang chờ c
 | Dùng bản này | cùng một việc | Cùng một việc ở hai khối của trang cài đặt Trợ lý. |
 | Gửi yêu cầu | chờ chủ | Một nơi mở hộp gửi yêu cầu hỗ trợ, một nơi là nút chốt của hộp xin xoá dữ liệu cá nhân. Hộp xoá có câu hỏi riêng nói rõ, nhưng hai việc khác nhau xa; chờ chủ xem có đổi không. |
 
-## Việc chờ chọn (80)
+## Việc chờ chọn (79)
 
 Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ chọn tên mới thì sửa bảng và nút trong cùng một lần lưu.
 
@@ -198,7 +198,6 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 |---|---|---|---|
 | Chụp bù | `web/chup-bu.ts`: Chụp bù<br>`web/phan-doi-tac.ts`: Chụp bù | Chụp bù mức hoa hồng | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Chụp bù cả danh sách (‹n› đơn) | `web/chup-bu.ts`: Chụp bù cả danh sách (‹…› đơn) | Chụp bù mức hoa hồng | rà soát 2026-11-04: chưa rõ, chờ chủ |
-| Nhận phụ trách | `web/order.ts`: Nhận phụ trách | Người phụ trách | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Ghi chi hoàn | `web/order.ts`: Ghi chi hoàn | Tiền của đơn huỷ | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Xác nhận · Từ chối | `web/order.ts`: Xác nhận<br>`web/order.ts`: Từ chối | Tiền của đơn huỷ | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Phân loại lý do | `web/order.ts`: Phân loại lý do | Tiền của đơn huỷ | rà soát 2026-11-04: chưa rõ, chờ chủ |
@@ -277,7 +276,7 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 | Lưu bộ não | `web/tro-ly-cai-dat.ts`: Lưu bộ não | Cài đặt Trợ lý: bộ não và lời dặn | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Lưu thành bản mới | `web/tro-ly-cai-dat.ts`: Lưu thành bản mới | Cài đặt Trợ lý: bộ não và lời dặn | rà soát 2026-11-04: chưa rõ, chờ chủ |
 
-## Việc quan trọng (303)
+## Việc quan trọng (307)
 
 ### Kiểm vé đơn chờ
 
@@ -310,13 +309,21 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 | **Sửa số khách dịch vụ** | Chi tiết đơn › nhóm nút đầu trang (đơn đã xác nhận, chưa giao) › bảng «Sửa số khách dịch vụ» | Đổi số người lớn, trẻ em… của từng dịch vụ trong đơn đã xác nhận, kèm lý do chọn trong danh sách. Tiền phải thu được máy chủ tính lại; giảm giá vượt tạm tính thì hiện cảnh báo vàng, khuyến mại thì cảnh báo đỏ. Chuyến xe và vé điện tử được cân lại theo số khách mới. | không (bấm Lưu số khách trong bảng) | được: sửa lại bằng chính nút này, mỗi lần có lý do và nhật ký | `/api/orders/:x/money-edit`<br>nhật ký `order_money_adjusted` | `web/order.ts`: Sửa số khách dịch vụ | tên hiện tại, chủ chưa chọn riêng (rà soát 2026-11-04: tên đúng) |
 | **Sửa thông tin chuyến** | Chi tiết đơn › nhóm nút đầu trang (đơn đã xác nhận) › bảng sửa chuyến | Sửa các trường vận hành của đơn đã xác nhận (ngày giờ khởi hành, đón, ghi chú). Không đổi khách và không đổi tiền. Dưới hạn chốt phải đặt gấp. | không (bấm Lưu thông tin chuyến trong bảng) | được: sửa lại bằng chính nút này | `/api/orders/:x/trip`<br>nhật ký `trip_updated` | `web/order.ts`: Sửa thông tin chuyến | tên hiện tại, chủ chưa chọn riêng (rà soát 2026-11-04: tên đúng) |
 
-### Người phụ trách
+### Hướng dẫn viên của đơn
 
 | Tên | Màn hình | Thật sự làm gì | Hỏi lại | Hoàn tác | Đường lệnh, nhật ký | Nơi đặt nút | Trạng thái |
 |---|---|---|---|---|---|---|---|
-| **Nhận phụ trách** | Chi tiết đơn › thẻ Người phụ trách | Gán chính người bấm làm người phụ trách đơn đang chưa có ai. Từ lúc đó đơn xuất hiện ở «Việc của tôi» và người bấm có thể Đã giao, Từ chối đơn. | không | một phần: trả lại bằng «Từ chối đơn» (có hạn mức mỗi tuần) hoặc nhờ người có quyền đổi người phụ trách | `/api/orders/:x/handler`<br>nhật ký `order_claimed` | `web/order.ts`: Nhận phụ trách | chờ chọn (rà soát 2026-11-04: chưa rõ, chờ chủ) |
-| **Chọn người phụ trách / Đổi người phụ trách** | Chi tiết đơn › thẻ Người phụ trách › bảng chọn người | Mở bảng chọn nhân viên rồi Lưu: người phụ trách cũ (nếu có) bị gỡ, người mới nhận đơn. Sau Đã giao thì bị từ chối nên nút ẩn. | không (bấm Lưu trong bảng) | được: đổi lại bằng chính nút này (trước Đã giao) | `/api/orders/:x/handler`<br>nhật ký `order_handler_changed` | `web/order.ts`: ⟪controls.assignLabel⟫ | tên hiện tại, chủ chưa chọn riêng (rà soát 2026-11-04: tên đúng) |
-| **Từ chối đơn** | Chi tiết đơn › thẻ Người phụ trách | Người đang phụ trách trả đơn lại danh sách chờ nhận, kèm lý do chọn trong danh sách. Mỗi người có hạn mức số lần từ chối mỗi tuần; chạm hạn thì bị chặn. Chỉ khi đơn đã xác nhận, chưa giao và còn sau ngày mai. | có: hộp «Từ chối đơn ‹mã›?» chọn lý do | một phần: nhận lại bằng «Nhận phụ trách» nếu chưa ai nhận | `/api/orders/:x/handler-refuse`<br>nhật ký `order_handler_refused` | `web/order.ts`: Từ chối đơn | đã chốt (chủ 2026-11-05 (chốt theo khuyến nghị, docs/evidence/2026-11-04-bang-tham-chieu/DE-XUAT-DOT-2.md)) |
+| **Nhận làm HDV** | Chi tiết đơn › khối Hướng dẫn viên | Gán chính người bấm làm Hướng dẫn viên của đơn đang chưa có ai. Chỉ tài khoản giữ quyền Hướng dẫn viên thấy nút này. Từ lúc đó đơn xuất hiện ở «Việc của tôi» và người bấm có thể Đã giao, Từ chối đơn. | không | một phần: trả lại bằng «Từ chối đơn» (có hạn mức mỗi tuần) hoặc nhờ người có quyền đổi Hướng dẫn viên | `/api/orders/:x/handler`<br>nhật ký `order_claimed` | `web/order.ts`: Nhận làm HDV | đã chốt (chủ 2026-11-05 (hai vai khác nhau trên mỗi đơn: «Nhận làm HDV» chỉ cho quyền Hướng dẫn viên)) |
+| **Chọn Hướng dẫn viên / Đổi Hướng dẫn viên** | Chi tiết đơn › khối Hướng dẫn viên › bảng chọn người | Mở bảng chọn (chỉ nhóm Hướng dẫn viên) rồi Lưu: Hướng dẫn viên cũ (nếu có) bị gỡ, người mới nhận đơn. Sau Đã giao thì bị từ chối nên nút ẩn. | không (bấm Lưu trong bảng) | được: đổi lại bằng chính nút này (trước Đã giao) | `/api/orders/:x/handler`<br>nhật ký `order_handler_changed` | `web/order.ts`: ⟪controls.assignLabel⟫ | đã chốt (chủ 2026-11-05 (hai vai khác nhau trên mỗi đơn: nút «Chọn / Đổi Hướng dẫn viên»)) |
+| **Từ chối đơn** | Chi tiết đơn › khối Hướng dẫn viên | Hướng dẫn viên đang phụ trách đơn trả đơn lại danh sách chờ nhận, kèm lý do chọn trong danh sách. Mỗi người có hạn mức số lần từ chối mỗi tuần; chạm hạn thì bị chặn. Chỉ khi đơn đã xác nhận, chưa giao và còn sau ngày mai. | có: hộp «Từ chối đơn ‹mã›?» chọn lý do | một phần: nhận lại bằng «Nhận làm HDV» nếu chưa ai nhận | `/api/orders/:x/handler-refuse`<br>nhật ký `order_handler_refused` | `web/order.ts`: Từ chối đơn | đã chốt (chủ 2026-11-05 (chốt theo khuyến nghị, docs/evidence/2026-11-04-bang-tham-chieu/DE-XUAT-DOT-2.md)) |
+
+### Người phụ trách (Bán hàng)
+
+| Tên | Màn hình | Thật sự làm gì | Hỏi lại | Hoàn tác | Đường lệnh, nhật ký | Nơi đặt nút | Trạng thái |
+|---|---|---|---|---|---|---|---|
+| **Nhận phụ trách** | Chi tiết đơn › khối Người phụ trách | Gán chính người bấm làm người phụ trách của đơn đã xác nhận đang chưa có ai (Bán hàng, hoặc Quản trị / Toàn quyền). Người được mời bấm trong thời gian ưu tiên; Bán hàng khác chỉ nhận được khi hết ưu tiên. Với đơn còn chờ xác nhận, nút chỉ đưa tới bảng «Còn vé, xác nhận đơn» (nhận bằng cách bấm Còn vé). | không | một phần: Quản trị, Toàn quyền đổi người phụ trách bằng «Đổi người phụ trách»; chưa có nút trả lại cho người đã nhận | `/api/orders/:x/ban-hang/nhan`<br>nhật ký `sales_owner_claimed` | `web/order.ts`: Nhận phụ trách | đã chốt (chủ 2026-11-05 (người phụ trách «là vai bán hàng phụ trách và chịu trách nhiệm chính cho đơn»); ADR-0142) |
+| **Từ chối** | Chi tiết đơn › khối Người phụ trách (chỉ người được mời thấy) | Người được mời làm người phụ trách từ chối lời mời còn mở. Không hỏi lý do, không có hạn mức. Đơn chuyển sang «Chờ Bán hàng nhận» và người lập nhận tin. | không | không: lời mời đã khép; người lập hoặc Quản trị phải mời / gán lại | `/api/orders/:x/ban-hang/tu-choi`<br>nhật ký `sales_invite_refused` | `web/order.ts`: Từ chối | đã chốt (chủ 2026-11-05 (nút «Từ chối» cho lời mời); ADR-0142) |
+| **Chọn người phụ trách / Đổi người phụ trách** | Chi tiết đơn › khối Người phụ trách › bảng chọn người | Chỉ Quản trị, Toàn quyền, đơn đã xác nhận: mở bảng chọn Bán hàng rồi Lưu. Người cũ (nếu có) bị gỡ, người mới thành người phụ trách. Sau Đã giao thì bị từ chối nên nút ẩn. | không (bấm Lưu trong bảng) | được: đổi lại bằng chính nút này (trước Đã giao) | `/api/orders/:x/ban-hang`<br>nhật ký `sales_owner_changed` | `web/order.ts`: ⟪t.doiNhan⟫ | tên hiện tại, chủ chưa chọn riêng (rà soát 2026-11-05: «Đổi người phụ trách» chủ đã nêu; «Chọn người phụ trách» chủ chưa chọn riêng) |
 
 ### Tiền của đơn huỷ
 
@@ -384,7 +391,7 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 | Tên | Màn hình | Thật sự làm gì | Hỏi lại | Hoàn tác | Đường lệnh, nhật ký | Nơi đặt nút | Trạng thái |
 |---|---|---|---|---|---|---|---|
 | **Xác nhận đơn** | Chi tiết đơn › nhóm nút đầu trang (đơn nháp) | Chốt đơn nháp thành đơn đã xác nhận ngay (khi đơn không thuộc diện cần người kiểm vé): dịch vụ và đơn giá bị khoá, mức hoa hồng của ngày xác nhận được chụp lại, vé điện tử được cấp, khoản khách khai đặt cọc trở thành khoản thu của người lập. | có: hộp của trình duyệt (confirm) kèm các cảnh báo sớm | một phần: không về nháp được; chỉ sửa thông tin chuyến, số khách có lý do, hoặc huỷ đơn | `/api/orders/:x/status`<br>nhật ký `confirmed` | `web/order.ts`: Xác nhận đơn<br>`web/order.ts`: ‹…› ‹…› / ⟪prompt⟫ | tên hiện tại, chủ chưa chọn riêng (rà soát 2026-11-04: tên đúng) |
-| **Gửi kiểm vé** | Chi tiết đơn › nhóm nút đầu trang (đơn nháp cần người kiểm vé) | Gửi đơn nháp cho người kiểm vé (Bán hàng, Kế toán, Quản trị, Hướng dẫn viên) kiểm còn vé; đơn vào hàng chờ có hạn, trong lúc chờ không sửa được cho tới khi «Rút lại». Không gửi gì cho khách. Chỉ khi đơn thuộc diện cần xác nhận, lúc đó nút thay cho «Xác nhận đơn». | không | được: bằng nút «Rút lại» | `/api/orders/:x/gui-xac-nhan`<br>nhật ký `order_confirm_requested` | `web/xac-nhan-don-ui.ts`: Gửi kiểm vé | đã chốt (ADR-0166 câu 8) |
+| **Gửi kiểm vé** | Chi tiết đơn › nhóm nút đầu trang (đơn nháp cần người kiểm vé) | Gửi đơn nháp cho người kiểm vé (Bán hàng, Quản trị, Toàn quyền; Kế toán và Hướng dẫn viên không kiểm vé) kiểm còn vé; đơn vào hàng chờ có hạn, trong lúc chờ không sửa được cho tới khi «Rút lại». Không gửi gì cho khách. Chỉ khi đơn thuộc diện cần xác nhận, lúc đó nút thay cho «Xác nhận đơn». | không | được: bằng nút «Rút lại» | `/api/orders/:x/gui-xac-nhan`<br>nhật ký `order_confirm_requested` | `web/xac-nhan-don-ui.ts`: Gửi kiểm vé | đã chốt (ADR-0166 câu 8) |
 | **Rút lại** | Chi tiết đơn › nhóm nút đầu trang (đơn đang chờ người kiểm vé) | Người lập rút yêu cầu kiểm vé đang chờ; yêu cầu khép lại và đơn sửa được trở lại. Người kiểm vé đang mở đơn bấm sau sẽ bị báo đơn vừa đổi. | có: hộp của trình duyệt (confirm) | được: gửi lại bằng «Gửi kiểm vé» hoặc «Gửi đơn» | `/api/orders/:x/rut-xac-nhan`<br>nhật ký `order_confirm_withdrawn` | `web/xac-nhan-don-ui.ts`: Rút lại<br>`web/xac-nhan-don-ui.ts`: Rút lại yêu cầu xác nhận? Đơn trở về nháp để bạn sửa tiếp. | chờ chọn (rà soát 2026-11-04: chưa rõ, chờ chủ) |
 | **Gửi đơn** | Chi tiết đơn › nhóm nút đầu trang (đơn nháp của Đối tác) | Đối tác gửi đơn nháp lên văn phòng. Nếu đơn thuộc diện cần kiểm vé hay có lượt Đón chưa có giờ thì vào hàng chờ kiểm vé (nhánh A). Nếu không thì đơn được xác nhận ngay: dịch vụ và tiền bị khoá, mức hoa hồng được chụp, vé điện tử được cấp (nhánh B). | không | một phần: nhánh A rút bằng «Rút lại»; nhánh B không rút được, chỉ huỷ đơn | `/api/orders/:x/gui-don`<br>nhật ký `order_confirm_requested` | `web/xac-nhan-don-ui.ts`: Gửi đơn | chờ chọn (rà soát 2026-11-04: chưa rõ, chờ chủ) |
 
@@ -447,11 +454,17 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 |---|---|---|---|---|---|---|---|
 | **Đặt gấp (mở khung) · Duyệt đặt gấp** | Form Tạo đơn / Sửa đơn nháp, dải cảnh báo dưới hạn chốt; cũng ở Chi tiết đơn và bảng «Sửa đưa đón» | Người lập tự chọn lý do và ghi chú ngắn rồi đóng dấu «đặt gấp» cho lượt đưa đón đang dưới hạn chốt 6 giờ, để xác nhận đơn và xếp xe được. Không có người thứ hai duyệt. Riêng trong form Tạo đơn, nút này lưu luôn cả đơn (cùng lệnh lưu nháp) rồi mới đóng dấu, và chuyển sang trang đơn; nếu đóng dấu hỏng thì đơn vẫn đã lưu. | có hộp nhập: lý do bắt buộc, ghi chú ngắn tuỳ ý | một phần: dấu đặt gấp bị bỏ khi giờ lượt đó được sửa lại thành trên hạn chốt; không có nút gỡ riêng (chưa tìm thấy) | `/api/orders/:x/legs/:x/short-notice`<br>nhật ký `order_leg_short_notice` | `web/dat-gap-ui.ts`: Duyệt đặt gấp<br>`web/dat-gap-ui.ts`: Đặt gấp<br>`web/dat-gap-ui.ts`: Đóng | chờ chọn (rà soát 2026-11-04: chưa rõ, chờ chủ) |
 
-### Phân công: người phụ trách
+### Phân công: Hướng dẫn viên
 
 | Tên | Màn hình | Thật sự làm gì | Hỏi lại | Hoàn tác | Đường lệnh, nhật ký | Nơi đặt nút | Trạng thái |
 |---|---|---|---|---|---|---|---|
-| **Lưu người phụ trách** | Chi tiết đơn › khối Người phụ trách, bảng «Chọn người phụ trách» / «Đổi người phụ trách» | Giao đơn cho nhân viên đã chọn. Người cũ (nếu có) bị đóng dòng phụ trách, người mới nhận đơn trong «Đơn của tôi». Dùng chung lệnh với nút «Nhận» của hướng dẫn viên, khác ở chỗ ở đây người khác được giao hộ. Không có hộp hỏi lại. | không | được: giao lại cho người khác (người cũ là hướng dẫn viên thì mất đơn) | `/api/orders/:x/handler`<br>nhật ký `order_handler_changed` | `web/handler-sheet.ts`: Lưu người phụ trách<br>`web/handler-sheet.ts`: [biểu tượng close] | tên hiện tại, chủ chưa chọn riêng (rà soát 2026-11-04: tên đúng) |
+| **Lưu Hướng dẫn viên** | Chi tiết đơn › khối Hướng dẫn viên, bảng «Chọn Hướng dẫn viên» / «Đổi Hướng dẫn viên» | Giao đơn cho Hướng dẫn viên đã chọn. Người cũ (nếu có) bị đóng dòng phụ trách, người mới nhận đơn trong «Đơn của tôi». Dùng chung lệnh với nút «Nhận làm HDV» của Hướng dẫn viên, khác ở chỗ ở đây người khác được giao hộ. Không có hộp hỏi lại. | không | được: giao lại cho người khác (người cũ là Hướng dẫn viên thì mất đơn) | `/api/orders/:x/handler`<br>nhật ký `order_handler_changed` | `web/handler-sheet.ts`: Lưu Hướng dẫn viên<br>`web/handler-sheet.ts`: [biểu tượng close] | đã chốt (chủ 2026-11-05 (hai vai khác nhau trên mỗi đơn: nút lưu trong bảng «Lưu Hướng dẫn viên»)) |
+
+### Phân công: người phụ trách (Bán hàng)
+
+| Tên | Màn hình | Thật sự làm gì | Hỏi lại | Hoàn tác | Đường lệnh, nhật ký | Nơi đặt nút | Trạng thái |
+|---|---|---|---|---|---|---|---|
+| **Lưu người phụ trách** | Chi tiết đơn › khối Người phụ trách, bảng «Chọn người phụ trách» / «Đổi người phụ trách» | Đặt người Bán hàng đã chọn làm người phụ trách của đơn đã xác nhận (hoặc thay người cũ). Chỉ Quản trị, Toàn quyền. Người cũ nhận tin ở Bảng tin, người lập nhận tin trong hộp thư. Không có hộp hỏi lại. | không | được: đổi lại bằng nút «Đổi người phụ trách» (trước Đã giao) | `/api/orders/:x/ban-hang`<br>nhật ký `sales_owner_changed` | `web/handler-sheet.ts`: Lưu người phụ trách | tên hiện tại, chủ chưa chọn riêng (rà soát 2026-11-05: chủ chưa chọn riêng tên nút lưu này (chỉ nêu «Lưu Hướng dẫn viên»)) |
 
 ### Đối chiếu tiền
 
@@ -506,7 +519,7 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 
 | Tên | Màn hình | Thật sự làm gì | Hỏi lại | Hoàn tác | Đường lệnh, nhật ký | Nơi đặt nút | Trạng thái |
 |---|---|---|---|---|---|---|---|
-| **Từ chối đơn** | Việc của tôi › thẻ Đơn của tôi, nút «Từ chối đơn» mở hộp «Từ chối đơn <mã>?»; cũng ở Chi tiết đơn › khối Người phụ trách | Người đang phụ trách trả đơn lại: dòng phụ trách của họ đóng, đơn quay về danh sách «Chờ nhận» (kèm chữ «được trả lại»), người khác nhận được. Không huỷ đơn, không đổi gì với khách. Phải chọn một lý do (không có ô gõ chữ). Có hạn mức: tối đa 2 đơn liên tiếp, 15 lần mỗi tuần; đơn đi hôm nay hoặc ngày mai thì không còn nút. Người trả không mở được đơn đó nữa. | có hộp chọn lý do: «Đơn sẽ quay về danh sách Chờ nhận để người khác nhận.» | không: người trả phải nhờ người nhận hoặc văn phòng giao lại; còn tính vào hạn mức | `/api/orders/:x/handler-refuse`<br>nhật ký `order_handler_refused` | `web/tu-choi-sheet.ts`: Xác nhận từ chối<br>`web/tu-choi-sheet.ts`: Không từ chối<br>`web/viec-cua-toi.ts`: Từ chối đơn | đã chốt (chủ 2026-11-05 (chốt theo khuyến nghị, docs/evidence/2026-11-04-bang-tham-chieu/DE-XUAT-DOT-2.md)) |
+| **Từ chối đơn** | Việc của tôi › thẻ Đơn của tôi, nút «Từ chối đơn» mở hộp «Từ chối đơn <mã>?»; cũng ở Chi tiết đơn › khối Hướng dẫn viên | Người đang phụ trách trả đơn lại: dòng phụ trách của họ đóng, đơn quay về danh sách «Chờ nhận» (kèm chữ «được trả lại»), người khác nhận được. Không huỷ đơn, không đổi gì với khách. Phải chọn một lý do (không có ô gõ chữ). Có hạn mức: tối đa 2 đơn liên tiếp, 15 lần mỗi tuần; đơn đi hôm nay hoặc ngày mai thì không còn nút. Người trả không mở được đơn đó nữa. | có hộp chọn lý do: «Đơn sẽ quay về danh sách Chờ nhận để người khác nhận.» | không: người trả phải nhờ người nhận hoặc văn phòng giao lại; còn tính vào hạn mức | `/api/orders/:x/handler-refuse`<br>nhật ký `order_handler_refused` | `web/tu-choi-sheet.ts`: Xác nhận từ chối<br>`web/tu-choi-sheet.ts`: Không từ chối<br>`web/viec-cua-toi.ts`: Từ chối đơn | đã chốt (chủ 2026-11-05 (chốt theo khuyến nghị, docs/evidence/2026-11-04-bang-tham-chieu/DE-XUAT-DOT-2.md)) |
 
 ### Việc của tôi: nhận đơn
 

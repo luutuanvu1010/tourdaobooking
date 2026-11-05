@@ -122,6 +122,24 @@
       "note": "ADR-0032 điều 1: loại sự kiện phân công — CLAIM, ASSIGN, REFUSE, ABORT, RESET"
     },
     {
+      "name": "dsp_sales_owner",
+      "module": "dispatch",
+      "kind": "table",
+      "note": "ADR-0142: Bán hàng phụ trách đơn — ô RIÊNG, không phải người phụ trách (dsp_assignment HANDLE). Mỗi đơn tối đa MỘT dòng mở (chỉ mục duy nhất có điều kiện dsp_sales_owner_open_uq); đổi người = khép dòng cũ (valid_to_at, closed_by — đúng một lần, trigger) rồi mở dòng mới; không xoá. Đơn đã Đã giao: không nhận, không khép (đọc v_ord_order_state). Không tên: tên đọc qua v_dsp_sales_owner"
+    },
+    {
+      "name": "dsp_sales_invite",
+      "module": "dispatch",
+      "kind": "table",
+      "note": "ADR-0142: lời mời một Bán hàng nhận đơn, có ưu tiên đến priority_until_at (giờ hành chính). Mỗi đơn tối đa MỘT lời mời mở; khép đúng một lần (closed_at, closed_by, outcome cùng có, trigger) với outcome thuộc tập đóng NHAN / TU_CHOI / NGUOI_KHAC / HUY_DON / RUT_LAI; không xoá. recorded_at = lúc đơn được ghi nhận, gốc của đồng hồ ưu tiên"
+    },
+    {
+      "name": "dsp_sales_policy",
+      "module": "dispatch",
+      "kind": "table",
+      "note": "ADR-0142: chính sách Bán hàng phụ trách, CHỈ THÊM (trigger cấm sửa/xoá), dòng đang dùng = valid_from_at lớn nhất. priority_minutes 1–120 (phút ưu tiên), work_start_minute / work_end_minute là phút trong ngày giờ Việt Nam (0 ≤ bắt đầu < kết thúc ≤ 1440). Dòng gieo id 'gieo-ban-hang' (15, 420, 1020): created_at của nó là MỐC PHÁT HÀNH (đơn ghi nhận trước đó không vào thẻ cảnh báo), thêm dòng mới không đổi mốc. updated_* luôn bằng created_*"
+    },
+    {
       "name": "dsp_assignment_status",
       "module": "dispatch",
       "kind": "lookup"
@@ -957,6 +975,38 @@
       ]
     },
     {
+      "name": "v_dsp_sales_owner",
+      "module": "dispatch",
+      "columns": [
+        "order_id",
+        "staff_id",
+        "party_id",
+        "name"
+      ]
+    },
+    {
+      "name": "v_dsp_sales_invite_open",
+      "module": "dispatch",
+      "columns": [
+        "order_id",
+        "staff_id",
+        "party_id",
+        "name",
+        "recorded_at",
+        "priority_until_at"
+      ]
+    },
+    {
+      "name": "v_dsp_sales_policy_current",
+      "module": "dispatch",
+      "columns": [
+        "priority_minutes",
+        "work_start_minute",
+        "work_end_minute",
+        "release_cutoff_at"
+      ]
+    },
+    {
       "name": "v_loc_location_label",
       "module": "locations",
       "columns": [
@@ -1175,6 +1225,14 @@
         "id",
         "order_id",
         "action"
+      ]
+    },
+    {
+      "name": "v_aud_order_ban_hang",
+      "module": "audit",
+      "columns": [
+        "id",
+        "order_id"
       ]
     },
     {
@@ -1498,6 +1556,9 @@
     "dsp_refuse_policy": { "id": "N1", "mode": "N1", "max_consecutive": "N1", "max_per_week": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "dsp_release_event": { "id": "N1", "seq": "N1", "party_id": "N1", "order_id": "N1", "kind_code": "N1", "reason_code": "N1", "occurred_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "dsp_release_kind": { "code": "N1", "name": "N1", "sort_order": "N1", "active": "N1" },
+    "dsp_sales_owner": { "id": "N1", "order_id": "N1", "party_id": "N1", "valid_from_at": "N1", "valid_to_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "closed_by": "N1" },
+    "dsp_sales_invite": { "id": "N1", "order_id": "N1", "invitee_party_id": "N1", "invited_by": "N1", "recorded_at": "N1", "priority_until_at": "N1", "closed_at": "N1", "closed_by": "N1", "outcome": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "dsp_sales_policy": { "id": "N1", "valid_from_at": "N1", "priority_minutes": "N1", "work_start_minute": "N1", "work_end_minute": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "dsp_task_kind": { "code": "N1", "name": "N1", "sort_order": "N1", "active": "N1" },
     "fbk_attachment": {
       "id": "N1", "message_id": "N1", "storage_key": "N3", "content_kind": "N1", "byte_size": "N1", "content_hash": "N3", "stored_at": "N1",
@@ -1539,7 +1600,7 @@
     "order_item": { "id": "N1", "order_id": "N1", "description": "N1", "detail": "N1", "quantity": "N1", "unit_price": "N1", "line_total": "N1", "sort_order": "N1", "catalog_code": "N1", "service_id": "N1", "catalog_price": "N1", "pax_code": "N1" },
     "order_money_adjustment": { "id": "N1", "order_id": "N1", "seq": "N1", "before_json": "N1", "after_json": "N1", "subtotal_before": "N1", "subtotal_after": "N1" },
     "order_service": { "id": "N1", "order_id": "N1", "sort_order": "N1", "catalog_code": "N1", "name": "N1", "unit": "N1", "pax_adult": "N1", "pax_child": "N1", "pax_senior": "N1", "pax_infant": "N1", "depart_date": "N1", "depart_time": "N1", "pickup_time": "N1", "pickup_place": "N2", "checkin_date": "N1", "checkin_time": "N1", "checkin_place": "N2", "note": "N2", "pickup_choice": "N1" },
-    "orders": { "id": "N1", "order_code": "N1", "staff_id": "N1", "status": "N1", "customer_name": "N2", "customer_phone": "N2", "customer_email": "N2", "customer_note": "N2", "subtotal": "N1", "discount": "N1", "total": "N1", "declared_deposit": "N1", "deposit_amount": "N1", "deposit_method": "N1", "remaining_amount": "N1", "payment_note": "N2", "created_at": "N1", "updated_at": "N1", "confirmed_at": "N1", "booker_party_id": "N1", "delivered_at": "N1", "delivered_by": "N1", "completed_at": "N1", "completed_by": "N1", "manifest_exempt": "N1" },
+    "orders": { "id": "N1", "order_code": "N1", "staff_id": "N1", "status": "N1", "customer_name": "N2", "customer_phone": "N2", "customer_email": "N2", "customer_note": "N2", "subtotal": "N1", "discount": "N1", "total": "N1", "declared_deposit": "N1", "deposit_amount": "N1", "deposit_method": "N1", "remaining_amount": "N1", "payment_note": "N2", "created_at": "N1", "updated_at": "N1", "confirmed_at": "N1", "booker_party_id": "N1", "delivered_at": "N1", "delivered_by": "N1", "completed_at": "N1", "completed_by": "N1", "manifest_exempt": "N1", "sales_invitee_party_id": "N1" },
     "prc_beneficiary_role": { "role_type_code": "N1", "active": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "prc_commission_rule": { "id": "N1", "target_party_id": "N1", "target_role_code": "N1", "scope": "N1", "catalog_code": "N1", "group_code": "N1", "kind": "N1", "rate_bp": "N1", "per_pax_amount": "N1", "valid_from_date": "N1", "valid_to_date": "N1", "note": "N2", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "target_tier_code": "N1", "voided_at": "N1", "voided_by": "N1", "replaces_id": "N1", "change_reason": "N2" },
     "prc_commission_rule_pax": { "rule_id": "N1", "adult_amount": "N1", "child_amount": "N1", "senior_amount": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
@@ -1601,6 +1662,7 @@
     "v_aud_ledger_event": { "id": "N1", "order_id": "N1", "target_type": "N1", "target_id": "N1", "staff_id": "N1", "action": "N1", "created_at": "N1" },
     "v_aud_order_change": { "id": "N1", "order_id": "N1", "staff_id": "N1", "action": "N1", "detail": "N2", "created_at": "N1", "leg_id": "N1" },
     "v_aud_order_cmd": { "id": "N1", "order_id": "N1", "action": "N1" },
+    "v_aud_order_ban_hang": { "id": "N1", "order_id": "N1" },
     "v_aud_order_event": { "id": "N1", "order_id": "N1", "staff_id": "N1", "action": "N1", "created_at": "N1" },
     "v_aud_trip_event": { "id": "N1", "trip_id": "N1", "staff_id": "N1", "action": "N1", "created_at": "N1" },
     "v_bil_coc_don": { "order_id": "N1", "da_tra": "N1", "dang_doi_chieu": "N1", "hoan_truoc_huy": "N1", "da_duyet": "N1", "da_chi": "N1", "da_chuyen": "N1", "hoan_ngoai": "N1", "con_giu_luc_huy": "N1", "con_giu": "N1", "cho_chi": "N1" },
@@ -1612,6 +1674,9 @@
     "v_ctl_attribute_value": { "attribute_code": "N1", "code": "N1", "active": "N1", "attribute_active": "N1" },
     "v_dsp_first_handler": { "order_id": "N1", "first_at": "N1" },
     "v_dsp_order_handler": { "order_id": "N1", "party_id": "N1", "staff_id": "N1", "label": "N2", "since": "N1" },
+    "v_dsp_sales_owner": { "order_id": "N1", "staff_id": "N1", "party_id": "N1", "name": "N2" },
+    "v_dsp_sales_invite_open": { "order_id": "N1", "staff_id": "N1", "party_id": "N1", "name": "N2", "recorded_at": "N1", "priority_until_at": "N1" },
+    "v_dsp_sales_policy_current": { "priority_minutes": "N1", "work_start_minute": "N1", "work_end_minute": "N1", "release_cutoff_at": "N1" },
     "v_ky_closed_period": { "period": "N1" },
     "v_loc_location_dia_chi": { "id": "N1", "address": "N1", "active": "N1" },
     "v_loc_location_label": { "id": "N1", "code": "N1", "name": "N1", "location_type_code": "N1", "active": "N1" },

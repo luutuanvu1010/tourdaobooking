@@ -9,8 +9,9 @@ import { coKhoiChoDoiChieu } from "./ben-kia-hien-thi.ts";
 import { coKhoiThuTruoc, NGAY_NHAC_DUYET_HIEN_THI } from "./thu-truoc-hien-thi.ts";
 import { NGAY_NHAC_DOI_CHIEU_HIEN_THI } from "./doi-chieu-hien-thi.ts";
 import type { PermissionHolder } from "./permissions.ts";
+import { cachThayTheCanhBao } from "./ban-hang-phu-trach.ts";
 
-export type KhoaThe = "xemLai" | "dieuChinh" | "nhap" | "conThieu" | "chuaPhuTrach" | "chuyenHomNay" | "gopY" | "donCho" | "doiChieu" | "thuTruoc";
+export type KhoaThe = "xemLai" | "dieuChinh" | "nhap" | "conThieu" | "chuaPhuTrach" | "chuaBanHang" | "chuyenHomNay" | "gopY" | "donCho" | "doiChieu" | "thuTruoc";
 
 /** Số đã tải; `null` = nguồn lỗi (thẻ hiện "—" + Thử lại), KHÔNG phải 0. Khoá vắng = người này không dùng nguồn đó. */
 export interface NguonSo {
@@ -20,6 +21,8 @@ export interface NguonSo {
   readonly nhap?: number | null;
   readonly conThieu?: { count: number; total: number } | null;
   readonly chuaPhuTrach?: number | null;
+  /** ADR-0142 Đ6: «Đơn chưa có người phụ trách» (`GET /api/orders/chua-co-ban-hang`): đơn hiện được + số đơn chờ xác nhận chỉ là con số (Kế toán). */
+  readonly chuaBanHang?: number | null;
   readonly chuyenHomNay?: number | null;
   /** Lấy từ trường `queue` của `GET /api/feedback/badge` (không phải `mine`). */
   readonly gopY?: number | null;
@@ -63,7 +66,7 @@ const TOI_DA = 4;
 
 /** Khoá thẻ → khoá phạm vi trong `PHAM_VI_O_TRANG_CHU` (bảng chung; CHANGE-GUIDE bẫy 59(3): ô số khác phạm vi đứng cạnh nhau phải mang nhãn "Toàn công ty" / "Của tôi"). */
 export const KHOA_PHAM_VI: Readonly<Record<KhoaThe, keyof typeof PHAM_VI_O_TRANG_CHU>> = {
-  xemLai: "xemLai", dieuChinh: "dieuChinh", nhap: "donNhap", conThieu: "conThieu", chuaPhuTrach: "chuaPhuTrach", chuyenHomNay: "chuyenHomNay", gopY: "gopY", donCho: "donCho", doiChieu: "doiChieu", thuTruoc: "thuTruoc",
+  xemLai: "xemLai", dieuChinh: "dieuChinh", nhap: "donNhap", conThieu: "conThieu", chuaPhuTrach: "chuaPhuTrach", chuaBanHang: "chuaBanHang", chuyenHomNay: "chuyenHomNay", gopY: "gopY", donCho: "donCho", doiChieu: "doiChieu", thuTruoc: "thuTruoc",
 };
 
 interface MoTa {
@@ -95,7 +98,10 @@ const THE: readonly MoTa[] = [
     phu: () => "Những điều Nền tảng đang nhắc Quản trị" },
   // ADR-0136 Đ9: người giữ ô xét duyệt — KHÔNG đòi xem được mọi đơn (hướng dẫn viên chưa phụ trách cũng kiểm vé); đứng sau "Cần xem lại" vì là việc có hạn 15 phút.
   { khoa: "donCho", uuTien: () => 1.5, hien: (w) => can(w, "order.confirm.review"), nhan: "Đơn chờ xác nhận", nut: () => "Kiểm vé", href: "/cho-xac-nhan", tone: "cat", chot: khong,
-    phu: (n) => (n.donCho && n.donCho.quaHan > 0 ? `${n.donCho.quaHan} đơn quá hạn — hạn 15 phút` : "Đơn đã gửi, chờ kiểm vé") },
+    phu: () => "Đơn đã gửi, chờ kiểm vé" }, // ADR-0142: «quá hạn» nay hiện ở thẻ «Đơn chưa có người phụ trách»
+  // ADR-0142 Đ6: hết thời gian ưu tiên mà đơn chưa có người phụ trách. Người thấy thẻ do luật thuần `cachThayTheCanhBao` (Bán hàng, Quản trị, Toàn quyền, Kế toán; người lập thấy đơn của mình).
+  { khoa: "chuaBanHang", uuTien: () => 1.55, hien: (w) => cachThayTheCanhBao(w, { laNguoiLap: can(w, "order.create"), choXacNhan: false }) !== "khong", nhan: "Đơn chưa có người phụ trách", nut: () => "Xem đơn", href: "/orders", tone: "cat", chot: khong,
+    phu: () => "Chưa ai nhận phụ trách đơn" },
   // Trang chủ Phương án A (31/10, chủ duyệt quyết định 2): hai khối chi tiết cũ thành dòng; bấm cuộn tới khối chi tiết (còn nguyên, có nút «Bên kia đã nhận»). Cổng là hàm gốc của từng khối.
   { khoa: "doiChieu", uuTien: () => 1.6, hien: (w) => coKhoiChoDoiChieu(w), nhan: "Chờ đối chiếu", nut: () => "Đối chiếu", href: "#dash-doi-chieu", tone: "xanh", chot: khong,
     phu: (n) => phuDoiChieu(n.doiChieuQuaHan) },
@@ -108,8 +114,8 @@ const THE: readonly MoTa[] = [
     phu: () => "Đơn nháp của bạn, chưa xác nhận" },
   { khoa: "conThieu", uuTien: (w) => (quanTri(w) ? 9 : 4), hien: xemDon, nhan: "Đơn còn thiếu tiền", nut: (w) => (can(w, "ledger.write") ? "Ghi thu" : "Xem đơn"), href: "/orders",
     tone: "cat", chot: khong, phu: (n) => (n.conThieu ? `Còn phải thu ${vndShort(n.conThieu.total)} ₫` : "Chưa tải được số tiền còn thu") },
-  { khoa: "chuaPhuTrach", uuTien: () => 5, hien: (w) => xemDon(w) && (can(w, "order.create") || quanTri(w)), nhan: "Đơn chưa có người phụ trách",
-    nut: (w) => (quanTri(w) ? "Phân công" : "Nhận phụ trách"), href: "/orders", tone: "xanh", chot: khong, phu: () => "Chưa ai nhận chăm sóc khách" },
+  { khoa: "chuaPhuTrach", uuTien: () => 5, hien: (w) => xemDon(w) && (can(w, "order.create") || quanTri(w)), nhan: "Đơn chưa có HDV nhận",
+    nut: (w) => (quanTri(w) ? "Phân công" : "Xem đơn"), href: "/orders", tone: "xanh", chot: khong, phu: () => "Chưa có Hướng dẫn viên nhận khách" },
   { khoa: "chuyenHomNay", uuTien: () => 6, hien: xemDon, nhan: "Đơn đi hôm nay", nut: () => "Xem đơn", href: "#dash-today", tone: "xanh", chot: khong,
     phu: () => "Các đơn có ngày đi hôm nay" },
   { khoa: "gopY", uuTien: () => 10, hien: (w) => can(w, "feedback.triage"), nhan: "Góp ý chờ xử lý", nut: () => "Xử lý", href: "/feedback", tone: "xanh", chot: khong,

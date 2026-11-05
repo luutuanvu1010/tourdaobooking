@@ -1,4 +1,4 @@
-// B-01 (rà soát trước launch): người ĐƯỢC GIAO đơn đọc "cho bạn phụ trách", không đọc "cho người khác" (dễ hiểu nhầm mình không phải đi).
+// B-01 (rà soát trước launch): người ĐƯỢC GIAO đơn đọc "cho bạn làm Hướng dẫn viên", không đọc "cho người khác" (dễ hiểu nhầm mình không phải đi).
 // Mọi người xem khác giữ câu cũ. Chữ chọn theo người đang phụ trách HIỆN TẠI (`d.phuTrach`) — nhật ký chỉ ghi tên, không ghi người được giao —
 // và chỉ cho lần đổi người MỚI NHẤT của đơn (kiểm độc lập F-1).
 import { test } from "node:test";
@@ -13,17 +13,17 @@ const giao = (o: Partial<DongDon> = {}): DongDon => ({ id: "e" + Math.random(), 
   tenNguoiLam: "Hùng", luc: "2026-09-27T02:00:00.000Z", ownerId: "lan", phuTrach: { coNguoi: true, staffId: "tam" }, lapChuaCoNguoi: false, cungLoLap: false, ...o });
 const hop = (staff: ReturnType<typeof ai>, d: DongDon[]) => locHopThongBao(staff, { don: d, thuCong: [], docDenLuc: "2026-09-26T00:00:00.000Z", now: NOW, ngan: "tat-ca" });
 
-test("B-01: tin giao đơn — người đang phụ trách đọc 'cho bạn phụ trách', người khác giữ câu cũ", () => {
+test("B-01: tin giao đơn — người đang phụ trách đọc 'cho bạn làm Hướng dẫn viên', người khác giữ câu cũ", () => {
   // (a) HDV được giao: ADR-0131 — không tên (chỉ Toàn quyền có audit.view); Toàn quyền đang phụ trách thì có tên
-  assert.equal(hop(TAM, [giao()]).tin[0]!.cau, "Đơn TD-20260927-0001 vừa được giao cho bạn phụ trách");
-  assert.equal(hop(SUP, [giao({ phuTrach: { coNguoi: true, staffId: "sup" } })]).tin[0]!.cau, "Hùng vừa giao đơn TD-20260927-0001 cho bạn phụ trách");
+  assert.equal(hop(TAM, [giao()]).tin[0]!.cau, "Đơn TD-20260927-0001 vừa được giao cho bạn làm Hướng dẫn viên");
+  assert.equal(hop(SUP, [giao({ phuTrach: { coNguoi: true, staffId: "sup" } })]).tin[0]!.cau, "Hùng vừa giao đơn TD-20260927-0001 cho bạn làm Hướng dẫn viên");
   // (b) cùng người, nhánh không tên (dòng không có người làm)
-  assert.equal(hop(TAM, [giao({ actorId: null, tenNguoiLam: null })]).tin[0]!.cau, "Đơn TD-20260927-0001 vừa được giao cho bạn phụ trách");
+  assert.equal(hop(TAM, [giao({ actorId: null, tenNguoiLam: null })]).tin[0]!.cau, "Đơn TD-20260927-0001 vừa được giao cho bạn làm Hướng dẫn viên");
   // (c) người không phụ trách: chủ đơn và Kế toán nay không tên (ADR-0131), cả khi dòng không có người làm; Toàn quyền vẫn có tên
-  assert.equal(hop(LAN, [giao()]).tin[0]!.cau, "Đơn TD-20260927-0001 vừa đổi người phụ trách");
-  assert.equal(hop(MAI, [giao()]).tin[0]!.cau, "Đơn TD-20260927-0001 vừa đổi người phụ trách");
-  assert.equal(hop(SUP, [giao()]).tin[0]!.cau, "Hùng vừa giao đơn TD-20260927-0001 cho người khác phụ trách");
-  assert.equal(hop(MAI, [giao({ actorId: null, tenNguoiLam: null })]).tin[0]!.cau, "Đơn TD-20260927-0001 vừa đổi người phụ trách");
+  assert.equal(hop(LAN, [giao()]).tin[0]!.cau, "Đơn TD-20260927-0001 vừa đổi Hướng dẫn viên");
+  assert.equal(hop(MAI, [giao()]).tin[0]!.cau, "Đơn TD-20260927-0001 vừa đổi Hướng dẫn viên");
+  assert.equal(hop(SUP, [giao()]).tin[0]!.cau, "Hùng vừa giao đơn TD-20260927-0001 cho người khác làm Hướng dẫn viên");
+  assert.equal(hop(MAI, [giao({ actorId: null, tenNguoiLam: null })]).tin[0]!.cau, "Đơn TD-20260927-0001 vừa đổi Hướng dẫn viên");
   // loại tin khác không bị đụng: người phụ trách xem tin "xác nhận" vẫn câu cũ
   assert.equal(hop(TAM, [giao({ action: "confirmed" })]).tin[0]!.cau, "Đơn TD-20260927-0001 vừa được xác nhận");
 });
@@ -33,10 +33,10 @@ test("B-01 (kiểm độc lập F-1): chỉ dòng đổi người phụ trách M
   // giao hai lần (lần 1 cho người khác lúc 01:00, lần 2 cho Tâm lúc 02:00): Tâm là người phụ trách hiện tại của CẢ hai dòng
   const lan1 = giao({ luc: "2026-09-27T01:00:00.000Z" }), lan2 = giao({ luc: "2026-09-27T02:00:00.000Z" });
   assert.deepEqual(cau([lan2, lan1]), [
-    ["2026-09-27T02:00:00.000Z", "Đơn TD-20260927-0001 vừa được giao cho bạn phụ trách"],
-    ["2026-09-27T01:00:00.000Z", "Đơn TD-20260927-0001 vừa đổi người phụ trách"],
+    ["2026-09-27T02:00:00.000Z", "Đơn TD-20260927-0001 vừa được giao cho bạn làm Hướng dẫn viên"],
+    ["2026-09-27T01:00:00.000Z", "Đơn TD-20260927-0001 vừa đổi Hướng dẫn viên"],
   ]);
   // giao cho người khác rồi Tâm TỰ NHẬN (dòng tự nhận của chính Tâm không thành tin của Tâm, nhưng vẫn là lần đổi người mới nhất)
   const tuNhan = giao({ action: "order_claimed", actorId: "tam", tenNguoiLam: "Tâm", luc: "2026-09-27T02:00:00.000Z" });
-  assert.deepEqual(cau([tuNhan, lan1]), [["2026-09-27T01:00:00.000Z", "Đơn TD-20260927-0001 vừa đổi người phụ trách"]]);
+  assert.deepEqual(cau([tuNhan, lan1]), [["2026-09-27T01:00:00.000Z", "Đơn TD-20260927-0001 vừa đổi Hướng dẫn viên"]]);
 });

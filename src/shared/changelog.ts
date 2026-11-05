@@ -18,11 +18,23 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // ADR-0169: vai Quản lý bán hàng, công tắc kiểm vé về Dịch vụ & giá. Migration 0140. Số và ngày đặt lại ở bước A.0 nếu cần.
-    version: "2.64",
+    version: "2.65",
     date: "2026-11-05",
     items: [
       { kind: "moi", text: "Có vai mới Quản lý bán hàng: làm mọi việc của Bán hàng, thêm bật, tắt cần kiểm vé và Ngừng bán, Mở bán lại. Quản trị, Giám đốc, Toàn quyền gán được vai này." },
       { kind: "doi", text: "Công tắc Cần kiểm vé nay nằm ngay trong Dịch vụ & giá, theo từng vé và cả nhóm. Trang Dịch vụ cần kiểm vé không còn nữa. Quản trị cũng gạt được.", bai: { id: "viec/dich-vu-can-kiem-ve", ten: "Đánh dấu vé cần kiểm vé" } },
+    ],
+  },
+  {
+    // Bán hàng phụ trách đơn (ADR-0142; migration 0138, 0140; ô quyền mới `dispatch.sales.*`; `order.confirm.review` thu về Bán hàng, Quản trị, Toàn quyền).
+    version: "2.64",
+    date: "2026-11-05",
+    items: [
+      { kind: "moi", text: "Mỗi đơn có hai người: «Người phụ trách» là Bán hàng chịu trách nhiệm chính; «Hướng dẫn viên» đón, hướng dẫn, gặp khách, thu tiền tại cảng." },
+      { kind: "moi", text: "Lập đơn có thể mời một Bán hàng làm người phụ trách. Người đó bấm «Nhận phụ trách» hoặc «Từ chối» trong thời gian ưu tiên; hết hạn thì Bán hàng nào cũng nhận." },
+      { kind: "moi", text: "Danh sách đơn có dòng «Phụ trách: tên» hoặc «Chờ Bán hàng nhận»; Trang chủ có thẻ «Đơn chưa có người phụ trách». Quản trị, Toàn quyền đổi được người phụ trách." },
+      { kind: "doi", text: "Kế toán và Hướng dẫn viên không còn bấm «Còn vé, xác nhận đơn» nữa: đơn cần kiểm vé do Bán hàng, Quản trị hoặc Toàn quyền xác nhận." },
+      { kind: "doi", text: "Nút «Nhận làm HDV» nay chỉ hiện với tài khoản có quyền Hướng dẫn viên." },
     ],
   },
   {

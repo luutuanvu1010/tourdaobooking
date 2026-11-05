@@ -9,7 +9,7 @@ import { A, ADM, B, ACC, H, INTERN, LAI, PARTNER, SUP, datCo, lap, setup } from 
 
 const cuaDon = (res: any, ma: string) => res.json.tin.filter((t: any) => t.loai === "cho_xac_nhan" && t.maDon === ma);
 
-test("gửi xác nhận → người xét duyệt có tin «đang chờ xác nhận» ở hộp thư và ở câu màn hình khoá; người gửi, Đối tác, Thực tập không có", async () => {
+test("gửi xác nhận → người xét duyệt có tin «đang chờ xác nhận» ở hộp thư và ở câu màn hình khoá; người gửi, Kế toán, HDV (ADR-0142), Đối tác, Thực tập không có", async () => {
   const w = setup();
   datCo(w, "SERVICE", "ZA1", true);
   // Tin chưa đọc CŨ HƠN trong ngăn «Của tôi» của mọi người nội bộ: thiếu tin chờ xác nhận thì màn hình khoá đọc nhầm câu này.
@@ -21,8 +21,8 @@ test("gửi xác nhận → người xét duyệt có tin «đang chờ xác nh�
   assert.equal(g.status, 201, g.text);
   const cau = `Đơn ${o.orderCode} đang chờ xác nhận`;
 
-  // Bán hàng khác, tài khoản lai Bán hàng + Đối tác, Quản trị, Kế toán, HDV, Toàn quyền: đều giữ ô xét duyệt (permissions.ts — order.confirm.review).
-  for (const as of [B, LAI, ADM, ACC, H, SUP]) {
+  // Bán hàng khác, tài khoản lai Bán hàng + Đối tác, Quản trị, Toàn quyền: đều giữ ô xét duyệt (permissions.ts — order.confirm.review).
+  for (const as of [B, LAI, ADM, SUP]) {
     const hop = await w.call("GET", "/api/thong-bao?ngan=cua-toi", { as });
     assert.equal(hop.status, 200, hop.text);
     const tin = cuaDon(hop, o.orderCode);
@@ -35,8 +35,8 @@ test("gửi xác nhận → người xét duyệt có tin «đang chờ xác nh�
     assert.equal(moi.status, 200, moi.text);
     assert.equal(moi.json.tin?.cau, cau, `${as}: màn hình khoá phải đọc đúng câu tin mới nhất — ${moi.text}`);
   }
-  // Người gửi không nhận tin của chính mình; Đối tác, Thực tập không giữ ô xét duyệt — ở cả hai ngăn.
-  for (const as of [A, PARTNER, INTERN]) {
+  // Người gửi không nhận tin của chính mình; Kế toán, HDV, Đối tác, Thực tập không giữ ô xét duyệt — ở cả hai ngăn.
+  for (const as of [A, ACC, H, PARTNER, INTERN]) {
     for (const ngan of ["cua-toi", "tat-ca"]) {
       const hop = await w.call("GET", `/api/thong-bao?ngan=${ngan}`, { as });
       assert.equal(hop.status, 200, hop.text);
@@ -71,13 +71,13 @@ test("hết chờ → tin «đang chờ xác nhận» biến mất: rút lại, 
   assert.equal((await w.call("POST", `/api/orders/${r.id}/rut-xac-nhan`, { as: A, body: {} })).status, 200);
   await khongConTinCho(w, r.orderCode, "rút lại");
   assert.equal((await gui(r.id)).status, 201);
-  const sauGuiLai = await w.call("GET", "/api/thong-bao?ngan=cua-toi", { as: ACC });
+  const sauGuiLai = await w.call("GET", "/api/thong-bao?ngan=cua-toi", { as: B });
   assert.equal(cuaDon(sauGuiLai, r.orderCode).length, 1, sauGuiLai.text);
 
   for (const [ketQua, them] of [["CON_VE", {}], ["HET_VE", {}], ["HUY", { lyDo: "KHACH_DOI_Y" }]] as const) {
     const o = await lap(w, A);
     assert.equal((await gui(o.id)).status, 201);
-    const qd = await w.call("POST", `/api/orders/${o.id}/quyet-dinh`, { as: ACC, body: { ketQua, yeuCauId: yeuCauMo(w, o.id), updatedAt: mocDon(w, o.id), ...them } });
+    const qd = await w.call("POST", `/api/orders/${o.id}/quyet-dinh`, { as: B, body: { ketQua, yeuCauId: yeuCauMo(w, o.id), updatedAt: mocDon(w, o.id), ...them } });
     assert.equal(qd.status, 200, `${ketQua}: ${qd.text}`);
     await khongConTinCho(w, o.orderCode, ketQua);
   }

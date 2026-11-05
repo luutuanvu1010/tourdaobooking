@@ -20,15 +20,15 @@ test("loaiTinDon: order_confirm_requested → cho_xac_nhan", () => {
   assert.equal(loaiTinDon(don({})), "cho_xac_nhan");
 });
 
-test("lúc GỬI: Kế toán, HDV, Bán hàng khác, Quản trị nhận (ngăn «Của tôi»); người gửi, Đối tác, Thực tập, Nhân sự thì không; câu không có tên người gửi", () => {
-  for (const s of [KT, HDV, BH, QT]) {
+test("lúc GỬI: Bán hàng khác, Quản trị nhận (ngăn «Của tôi»); người gửi, Kế toán, HDV (ADR-0142 mất ô xét duyệt), Đối tác, Thực tập, Nhân sự thì không; câu không có tên người gửi", () => {
+  for (const s of [BH, QT]) {
     const h = hop(s, [don({})]);
     assert.equal(h.tin.length, 1, s.id);
     assert.equal(h.tin[0]!.cau, "Đơn TD-20261026-0001 đang chờ xác nhận", s.id);
-    assert.equal(h.tin[0]!.lienKet, "/order?id=o1", `${s.id}: HDV cũng mở được đơn chờ (Đ6)`);
+    assert.equal(h.tin[0]!.lienKet, "/order?id=o1", `${s.id}: mở được đơn chờ (Đ6)`);
     assert.ok(!JSON.stringify(h).includes("Lập"), "không lộ tên người gửi");
   }
-  for (const s of [LAP, DT, TT, HR]) assert.equal(hop(s, [don({})], "tat-ca").tin.length, 0, s.id);
+  for (const s of [LAP, KT, HDV, DT, TT, HR]) assert.equal(hop(s, [don({})], "tat-ca").tin.length, 0, s.id);
 });
 
 test("lúc GỬI: HDV được người lập CHỌN SẴN làm người phụ trách của nháp vẫn KHÔNG nhận tin giao đơn (Review Focus 7), và chỉ nhận tin xét duyệt vì giữ ô xét duyệt", () => {
@@ -48,9 +48,9 @@ test("lúc XÁC NHẬN / HUỶ: người lập giữ quyền Đối tác hoặc 
   assert.equal(hop(DT, [don({ action: "created", ownerId: "dt", actorId: "dt", laNhap: true })], "tat-ca").tin.length, 0);
 });
 
-test("nhãn kết nối: `xet-duyet` ⇔ giữ ô xét duyệt (kể cả HDV, không kể Đối tác, Thực tập, Nhân sự)", () => {
-  for (const s of [KT, HDV, BH, QT, ai("vu", "SUPER_ADMIN")]) assert.ok(nhanKetNoi(s).includes("xet-duyet"), s.id);
-  for (const s of [DT, TT, HR, ai("tx", "DRIVER")]) assert.ok(!nhanKetNoi(s).includes("xet-duyet"), s.id);
+test("nhãn kết nối: `xet-duyet` ⇔ giữ ô xét duyệt (Bán hàng, Quản trị, Toàn quyền; không kể Kế toán, HDV, Đối tác, Thực tập, Nhân sự — ADR-0142)", () => {
+  for (const s of [BH, QT, ai("vu", "SUPER_ADMIN")]) assert.ok(nhanKetNoi(s).includes("xet-duyet"), s.id);
+  for (const s of [KT, HDV, DT, TT, HR, ai("tx", "DRIVER")]) assert.ok(!nhanKetNoi(s).includes("xet-duyet"), s.id);
 });
 
 test("nhãn sự kiện: nháp vừa gửi / rút → người lập + `xet-duyet`, KHÔNG `tat-ca`, không `cho-nhan`, không người phụ trách chọn sẵn; nháp thường vẫn chỉ người lập", () => {
@@ -62,13 +62,14 @@ test("nhãn sự kiện: nháp vừa gửi / rút → người lập + `xet-duye
 test("Bảng tin: sự kiện `cho_xac_nhan` hợp lệ; thông báo nổi chỉ cho người giữ ô xét duyệt, không tên", () => {
   const ev = { loai: "don", orderId: "o1", maDon: "TD-1", thayDoi: "cho_xac_nhan", luc: NOW };
   assert.ok(laSuKienHopLe(ev));
-  assert.deepEqual(thongBaoNoi(KT, ev as never), { cau: "Đơn TD-1 đang chờ xác nhận", lienKet: "/order?id=o1" });
-  assert.deepEqual(thongBaoNoi(HDV, ev as never), { cau: "Đơn TD-1 đang chờ xác nhận", lienKet: "/order?id=o1" });
+  assert.deepEqual(thongBaoNoi(BH, ev as never), { cau: "Đơn TD-1 đang chờ xác nhận", lienKet: "/order?id=o1" });
+  assert.equal(thongBaoNoi(KT, ev as never), null, "ADR-0142: Kế toán không còn ô xét duyệt");
+  assert.equal(thongBaoNoi(HDV, ev as never), null, "ADR-0142: HDV không còn ô xét duyệt");
   assert.equal(thongBaoNoi(DT, ev as never), null);
 });
 
 test("yêu cầu đã khép (rút lại / xác nhận / huỷ — chủ dự án 27/10): dòng gửi cũ KHÔNG còn là tin «đang chờ xác nhận» ở ngăn nào", () => {
-  for (const s of [KT, HDV, BH, QT]) {
+  for (const s of [BH, QT]) {
     for (const ngan of ["cua-toi", "tat-ca"] as const) {
       assert.equal(hop(s, [don({ yeuCauDaKhep: true })], ngan).tin.length, 0, `${s.id} ${ngan}`);
       assert.equal(hop(s, [don({ yeuCauDaKhep: true, laNhap: false })], ngan).tin.length, 0, `${s.id} ${ngan} (đơn đã quyết)`);

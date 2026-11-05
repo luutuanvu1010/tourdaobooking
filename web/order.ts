@@ -10,6 +10,7 @@ import { regroupMoney, setMoneyValue } from "./money-input";
 import { moBangTruot } from "./bang-truot";
 import { guiCoCanhBaoTrung } from "./canh-bao-trung";
 import { openHandlerSheet } from "./handler-sheet";
+import { banHangDaLuu, banHangFailure, banHangTrang } from "../src/shared/ban-hang-view";
 import { icon } from "./icons";
 import { suKienVeDon, taoBoLamMoi } from "./lam-moi-logic";
 import { renderServices } from "./order-services";
@@ -51,7 +52,7 @@ import { HANDLER_HIDDEN } from "../src/shared/order-confirmation";
 import { type PaxCounts } from "../src/shared/order-lines";
 import { LOI_409_KHONG_CU, banner, classifyOrderError, type Banner } from "../src/shared/order-errors";
 import { cauDongBoChuyen } from "../src/shared/dong-bo-chuyen-cau";
-import { cauChuaCoNgay, cauKhoaXacNhan, khongQuyenSuaText, orderActions, paxFullText, suaChuyenDuoc, suaKhachDuoc, type ChoXacNhan } from "../src/shared/order-view";
+import { banHangSuaDuoc, cauChuaCoNgay, cauKhoaXacNhan, khongQuyenSuaText, orderActions, paxFullText, suaChuyenDuoc, suaKhachDuoc, type ChoXacNhan } from "../src/shared/order-view";
 import { bangXacNhanDon, daiChoXacNhan, nutGuiDon, nutGuiXacNhan, nutRutLai, type BoiCanhXacNhan } from "./xac-nhan-don-ui";
 import { cauLoiGuiDon } from "../src/shared/xac-nhan-hien-thi";
 import { CAU_BAO_GUI_DON } from "../src/shared/gui-don-cau-bao";
@@ -383,6 +384,20 @@ async function loadHandler(orderId: string): Promise<Handler> {
   }
 }
 
+// ---- người phụ trách (Bán hàng, ADR-0142; chủ dự án 5/11: khác khối «Hướng dẫn viên» bên dưới) ----
+/** `undefined` = chưa tải được (không khối, không đoán). Cờ `laBanHang` lấy từ DTO TRANG ĐƠN (`laBanHangPhuTrach`), không từ lời gọi này. */
+let banHang: Api.BanHangDonDto | undefined;
+let laBanHang = false;
+let banHangMoiNhap: { staffId: string; name: string } | null = null;
+/** KHÔNG ném lỗi: 403 / lỗi mạng / thiếu khoá → undefined, đơn vẫn hiển thị. */
+async function loadBanHang(orderId: string): Promise<Api.BanHangDonDto | undefined> {
+  try {
+    return (await api<Api.BanHangCuaDonResponse>(`/api/dispatch/ban-hang?orderIds=${encodeURIComponent(orderId)}`))[orderId];
+  } catch {
+    return undefined;
+  }
+}
+
 const asErrorInput = (err: unknown) => (err instanceof ApiError ? { status: err.status, code: err.code, message: err.message } : null);
 /** Sau đổi/nhận người phụ trách hoặc khi màn hình đã lỗi thời: tải lại đơn, báo bằng `b` (tải lại lỗi thì giữ banner lỗi của `load()`, không đè), trả focus. */
 async function reloadWith(b: Banner): Promise<void> {
@@ -391,7 +406,7 @@ async function reloadWith(b: Banner): Promise<void> {
   focusHandlerControl();
 }
 /** Nút đổi đã bị dựng lại sau khi tải lại → trả focus về nút mới; người dùng không còn nút nào (vd vừa giao đơn đi) thì focus tiêu đề khối để không rơi ra `body`. */
-const focusHandlerControl = (): void => (document.querySelector<HTMLElement>('[data-action="change-handler"]') ?? document.getElementById("handler-title"))?.focus();
+const focusHandlerControl = (): void => (document.querySelector<HTMLElement>('[data-action="change-handler"], [data-action="change-ban-hang"]') ?? document.getElementById("handler-title"))?.focus();
 
 function changeButton(order: Order, handler: Api.HandlerDto | null, label: string): HTMLButtonElement {
   const btn = h("button", { type: "button", class: "btn", "data-action": "change-handler" }, label);
@@ -400,7 +415,7 @@ function changeButton(order: Order, handler: Api.HandlerDto | null, label: strin
       {
         order,
         current: handler,
-        onSaved: (saved) => void reloadWith(banner("info", handlerSaved("assign", saved.name, handler !== null))),
+        onSaved: (ten) => void reloadWith(banner("info", handlerSaved("assign", ten, handler !== null))),
         onOutdated: (b) => void reloadWith(b),
       },
       btn,
@@ -411,7 +426,7 @@ function changeButton(order: Order, handler: Api.HandlerDto | null, label: strin
 
 /** "Nhận phụ trách": nhận cho CHÍNH MÌNH khi đơn chưa có người (máy chủ kiểm lại `dispatch.claim` và "chưa có người"). */
 function claimButton(order: Order): HTMLButtonElement {
-  const btn = h("button", { type: "button", class: "btn btn-primary", "data-action": "claim-handler" }, "Nhận phụ trách");
+  const btn = h("button", { type: "button", class: "btn btn-primary", "data-action": "claim-handler" }, "Nhận làm HDV");
   btn.addEventListener("click", async () => {
     btn.disabled = true;
     show(null);
@@ -462,11 +477,12 @@ function handlerCard(order: Order, handler: Handler): HTMLElement | null {
     staff!,
     { staffId: order.staffId, status: order.status, daGiao: Boolean(order.deliveredAt), quaMuon: tuChoiQuaMuon(order.services.map((s) => s.departDate), vnToday(new Date())) },
     handler,
+    banHangSuaDuoc(order, laBanHang), // ADR-0142: Bán hàng phụ trách (chưa Đã giao) đổi được Hướng dẫn viên như người phụ trách
   );
   const buttons: HTMLElement[] = [];
   let summary: HTMLElement;
   if (handler === undefined) {
-    summary = h("p", { class: "handler-unknown" }, "Chưa tải được người phụ trách.");
+    summary = h("p", { class: "handler-unknown" }, "Chưa tải được Hướng dẫn viên.");
     const retry = h("button", { type: "button", class: "btn", "data-action": "retry-handler" }, "Thử lại");
     retry.addEventListener("click", () => void load().then(focusHandlerControl));
     buttons.push(retry);
@@ -480,9 +496,68 @@ function handlerCard(order: Order, handler: Handler): HTMLElement | null {
   return h(
     "section",
     { class: "card handler-card", "aria-labelledby": "handler-title" },
-    h("h2", { id: "handler-title", tabindex: -1 }, "Người phụ trách"),
+    h("h2", { id: "handler-title", tabindex: -1 }, "Hướng dẫn viên"),
     summary,
     buttons.length ? h("div", { class: "handler-actions" }, ...buttons) : null,
+  );
+}
+
+/**
+ * Khối «Người phụ trách» (Bán hàng chịu trách nhiệm chính cho đơn — ADR-0142, chủ 5/11): tên, chip «Chờ Bán hàng nhận» hoặc «Đang mời <X> · còn N phút»; nút Nhận phụ trách /
+ * Từ chối chỉ người được mời (và Nhận cho Bán hàng, Quản trị, Toàn quyền khi đơn chưa có ai); Đổi người phụ trách cho Quản trị, Toàn quyền (đơn đã xác nhận). Đối tác, Thực tập chỉ
+ * thấy dòng tên (DTO của họ không có mã tài khoản). Đơn đang chờ xác nhận: «Nhận phụ trách» mở bảng Còn vé / Hết vé có sẵn (nhận = bấm Còn vé).
+ */
+function banHangCard(order: Order): HTMLElement | null {
+  const t = banHangTrang(staff!, banHang, { status: order.status, daGiao: Boolean(order.deliveredAt), dangChoQuyet: xacNhan?.yeuCau != null, quyetDinhDuoc: xacNhan?.quyetDinhDuoc ?? false, banHangMoi: banHangMoiNhap });
+  if (!t) return null;
+  const ghi = async (btn: HTMLButtonElement, kind: "nhan" | "tu-choi", duong: string): Promise<void> => {
+    btn.disabled = true;
+    show(null);
+    try {
+      await api(`/api/orders/${encodeURIComponent(order.id)}/ban-hang/${duong}`, { method: "POST" });
+      await reloadWith(banner("info", banHangDaLuu(kind, "")));
+    } catch (err) {
+      const f = banHangFailure(asErrorInput(err), kind);
+      if (f.reload) await reloadWith(f.banner);
+      else {
+        show(f.banner);
+        btn.disabled = false;
+      }
+    }
+  };
+  const nut: HTMLElement[] = [];
+  if (t.nhan) {
+    const b = h("button", { type: "button", class: "btn btn-primary", "data-action": "claim-ban-hang" }, "Nhận phụ trách");
+    b.addEventListener("click", () => {
+      if (order.status !== "draft") return void ghi(b, "nhan", "nhan");
+      // Đơn đang chờ xác nhận: nhận = bấm «Còn vé, xác nhận đơn» ở bảng có sẵn (máy chủ trả 409 `can_quyet_dinh` nếu nhận thẳng) — cuộn tới bảng và đặt focus.
+      const bang = document.querySelector<HTMLElement>('[data-khoi="xac-nhan-don"]');
+      bang?.scrollIntoView({ block: "start" });
+      bang?.querySelector<HTMLElement>("button, input")?.focus();
+    });
+    nut.push(b);
+  }
+  if (t.tuChoi) {
+    const b = h("button", { type: "button", class: "btn", "data-action": "refuse-invite" }, "Từ chối");
+    b.addEventListener("click", () => void ghi(b, "tu-choi", "tu-choi"));
+    nut.push(b);
+  }
+  if (t.doi) {
+    const b = h("button", { type: "button", class: "btn", "data-action": "change-ban-hang" }, t.doiNhan);
+    b.addEventListener("click", () =>
+      openHandlerSheet(
+        { order, kieu: "ban-hang", current: banHang?.banHang ? { name: banHang.banHang.name, staffId: banHang.banHang.staffId ?? null } : null, onSaved: (ten) => void reloadWith(banner("info", banHangDaLuu("doi", ten))), onOutdated: (bn) => void reloadWith(bn) },
+        b,
+      ),
+    );
+    nut.push(b);
+  }
+  return h(
+    "section",
+    { class: "card handler-card", "aria-labelledby": "ban-hang-title", "data-khoi": "ban-hang-phu-trach" },
+    h("h2", { id: "ban-hang-title", tabindex: -1 }, "Người phụ trách"),
+    h("p", { class: "handler-name" }, t.dong.kieu === "ten" ? t.dong.text : h("span", { class: t.dong.kieu === "cho" ? "chip chip-warn" : "chip" }, t.dong.text)),
+    nut.length ? h("div", { class: "handler-actions" }, ...nut) : null,
   );
 }
 
@@ -1318,7 +1393,7 @@ function khoiLichSuSoKhach(dong: DongLichSuHienThi[] | null): HTMLElement | null
 function render(order: Order, history: AuditEntry[], canModify: boolean, handler: Handler): void {
   current = order;
   // L1 (lỗi báo 30/9): nút "Sửa thông tin chuyến" / "Đổi khách" theo ô order.trip.edit (Đối tác, Thực tập: không) — không chỉ theo canModify.
-  const suaChuyen = suaChuyenDuoc(staff!, order.staffId, canModify);
+  const suaChuyen = suaChuyenDuoc(staff!, order.staffId, canModify, banHangSuaDuoc(order, laBanHang)); // ADR-0142: Bán hàng phụ trách (chưa Đã giao) sửa chuyến như người phụ trách
   // ADR-0136: cờ bước xác nhận do MÁY CHỦ gửi (`xacNhan`); riêng «người lập giữ quyền Đối tác» suy ở đây (chỉ đổi nút — máy chủ vẫn trả 409 `partner_submit_required`).
   const giuDoiTacLap = order.staffId === staff!.id && holdsPartner(staff!);
   const cho: ChoXacNhan | undefined = order.status === "draft" ? { canXacNhan: xacNhan?.canXacNhan ?? false, dangCho: xacNhan?.yeuCau != null, quyetDinhDuoc: xacNhan?.quyetDinhDuoc ?? false, giuDoiTacLap } : undefined;
@@ -1326,7 +1401,7 @@ function render(order: Order, history: AuditEntry[], canModify: boolean, handler
   // Người xét duyệt (không phải người lập) mở đơn ĐANG CHỜ: khối "Người phụ trách" ẩn (HDV tự coi mình là người phụ trách — sai với đơn chưa giao cho họ) và không có "Xem ảnh gửi khách" (Đ11: ảnh chỉ sau khi xác nhận).
   const nguoiXetDuyet = cho?.dangCho === true && order.staffId !== staff!.id;
   if (nguoiXetDuyet) handler = HANDLER_HIDDEN;
-  const suaKhach = suaKhachDuoc(staff!, order.staffId, canModify) && order.deliveredAt === null;
+  const suaKhach = suaKhachDuoc(staff!, order.staffId, canModify, banHangSuaDuoc(order, laBanHang)) && order.deliveredAt === null; // ADR-0142
   // ADR-0063 D1: người lập đơn (Bán hàng), Kế toán, Quản trị, Toàn quyền sửa số khách đơn đã xác nhận, chưa Đã giao — cùng luật ẩn/hiện với máy chủ
   // (`duocSuaSoKhachVanPhong`, hỏi bảng quyền) VÀ máy chủ phải gửi loại khách sửa được (`suaSoKhach`); không dịch vụ nào sửa được thì không có nút.
   const nguonSoKhach = duocSuaSoKhachVanPhong(staff!, order) ? nguonBangSuaSoKhach(order.services, suaSoKhach) : null;
@@ -1372,6 +1447,7 @@ function render(order: Order, history: AuditEntry[], canModify: boolean, handler
       h(
         "div",
         null,
+        banHangCard(order),
         handlerCard(order, handler),
 
         h(
@@ -1637,7 +1713,7 @@ async function load(quiet = false): Promise<void> {
   const seq = ++loadSeq;
   try {
     // Người phụ trách tải song song với đơn; lời gọi của nó không bao giờ ném lỗi (xem loadHandler) nên đơn luôn hiển thị được.
-    const [{ order, history, canModify, mocToiThieuPhut, suaSoKhach: soKhach, canhBaoKhuyenMai: nhacKhuyenMai, canhBaoGiamGia: canhBaoHoaHong, lichSuSoKhach: lichSu, xacNhan: xn }, handler, tienDon, xe, nhapKtDon, khach] = await Promise.all([layDon!(), layNguoiPhuTrach(id!), layTien(id!), layXe(id!), layNhapKt(id!), layKhach(id!)]);
+    const [{ order, history, canModify, mocToiThieuPhut, suaSoKhach: soKhach, canhBaoKhuyenMai: nhacKhuyenMai, canhBaoGiamGia: canhBaoHoaHong, lichSuSoKhach: lichSu, xacNhan: xn, laBanHangPhuTrach, banHangMoi }, handler, banHangDon, tienDon, xe, nhapKtDon, khach] = await Promise.all([layDon!(), layNguoiPhuTrach(id!), loadBanHang(id!), layTien(id!), layXe(id!), layNhapKt(id!), layKhach(id!)]);
     if (seq !== loadSeq) return;
     mocPhut = mocToiThieuPhut;
     suaSoKhach = soKhach;
@@ -1649,6 +1725,9 @@ async function load(quiet = false): Promise<void> {
     nhapKt = nhapKtDon;
     khachDon = khach;
     xacNhan = xn ?? null;
+    banHang = banHangDon;
+    laBanHang = laBanHangPhuTrach === true; // `=== true`: máy chủ cũ không gửi khoá
+    banHangMoiNhap = banHangMoi ?? null;
     show(null);
     render(order, history, canModify, handler);
     if (thamSoGui.nhanh || thamSoGui.loi) {
