@@ -238,3 +238,20 @@ test("quét nơi gọi: mọi lời gọi `soanXacNhan` / `confirmOrder` ngoài 
   }
   assert.equal(soLoiGoi, 3, "ba đường xác nhận: /status, quyet-dinh Còn vé, gui-don nhánh B");
 });
+
+test("«Đã giao» đơn Trả sau còn nợ đi qua ROUTE THẬT: 409 «Đơn trả sau còn nợ … — chờ đối tác thanh toán»; thu đủ thì qua (tiêu chí 8, không chỉ quét chữ trong mã)", async () => {
+  const w = dung();
+  assert.equal((await hanMuc(w, 10_000_000, 7)).status, 201);
+  // Bên đặt mang vai được hưởng nên «Đã giao» đòi có mức hoa hồng: đặt một mức để lý do «còn nợ» là lý do duy nhất còn lại.
+  assert.equal((await w.call("POST", "/api/pricing/hoa-hong", { as: ACC, body: { doiTuong: { loai: "VAI", code: "TRAVEL_AGENCY" }, phamVi: "ALL", kieu: "PER_PAX", moiKhach: 50_000, tuNgay: "2026-01-01" } })).status, 201);
+  const o = await nhapTS(w, A);
+  assert.equal((await w.call("POST", `/api/orders/${o.id}/status`, { as: A, body: { status: "confirmed" } })).status, 200);
+  w.sqlite.prepare("UPDATE order_service SET depart_date = ? WHERE order_id = ?").run(HOM_NAY(), o.id); // «Đã giao» chỉ bấm từ ngày đi trở đi
+  const chua = await w.call("POST", `/api/orders/${o.id}/delivered`, { as: SUP, body: {} });
+  assert.equal(chua.status, 409, chua.text);
+  assert.ok(String(chua.json.error.message).includes(`Đơn trả sau còn nợ ${T_ZB1.toLocaleString("vi-VN")} ₫ — chờ đối tác thanh toán.`), chua.text);
+  assert.equal(w.q("SELECT delivered_at FROM orders WHERE id = ?", o.id)[0].delivered_at, null, "đơn chưa sang Đã giao");
+  assert.equal((await w.call("POST", `/api/orders/${o.id}/payments`, { as: ACC, body: { soTien: T_ZB1, hinhThuc: "CASH", nguoiThu: "cong_ty" } })).status, 201);
+  const du = await w.call("POST", `/api/orders/${o.id}/delivered`, { as: SUP, body: {} });
+  assert.equal(du.status, 200, du.text);
+});
