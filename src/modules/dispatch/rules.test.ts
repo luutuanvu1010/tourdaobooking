@@ -80,7 +80,7 @@ test("người được giao: chỉ kế toán, không quyền nào, đã ngưng
 test("người được giao: tài khoản LAI (còn quyền Đối tác kèm quyền khác) không đủ điều kiện dù quyền khác đủ cấp (ADR-0030 S20-5)", () => {
   for (const perms of [["PARTNER", "FIELD"], ["PARTNER", "SALES"]] as PermissionCode[][]) {
     const r = checkAssignee(account(perms));
-    assert.ok(!r.ok && /Tài khoản có quyền Đối tác không làm người phụ trách được\./.test(r.message), `${perms.join("+")} → ${JSON.stringify(r)}`);
+    assert.ok(!r.ok && /Tài khoản có quyền Đối tác không làm Hướng dẫn viên được\./.test(r.message), `${perms.join("+")} → ${JSON.stringify(r)}`);
   }
 });
 
@@ -230,4 +230,14 @@ test("isDeliveredLock: chỉ nhận lỗi trigger 'order_delivered:' (khoá Đã
   assert.equal(isDeliveredLock(new Error("D1_ERROR: order_delivered: đơn đã Đã giao")), true);
   assert.equal(isDeliveredLock(new Error("UNIQUE constraint failed: dsp_assignment.order_id")), false);
   assert.equal(isDeliveredLock("order_delivered:"), false);
+});
+
+// ADR-0142: Bán hàng phụ trách được cộng như người phụ trách ở ô dispatch.assign (đổi người), không ở ô nhận.
+test("mayChangeHandler / handlerChangeVerdict: Bán hàng phụ trách đổi người được; người khác thì không", () => {
+  const current = { staffId: "handler" };
+  assert.ok(!mayChangeHandler(who("ban", ["SALES"]), ORDER, current, "x", false));
+  assert.ok(mayChangeHandler(who("ban", ["SALES"]), ORDER, current, "x", true));
+  assert.equal(handlerChangeVerdict(who("ban", ["SALES"]), ORDER, current, "x", true), "allow");
+  assert.equal(handlerChangeVerdict(who("ban", ["SALES"]), ORDER, current, "x", false), "forbidden");
+  assert.ok(!mayChangeHandler(who("kt", ["ACCOUNTING"]), ORDER, current, "x", true), "Kế toán không có ô dispatch.assign dù cờ true");
 });

@@ -1,4 +1,4 @@
-// Kiểm migration 0139 (ADR-0168; kế hoạch 2026-11-05 Task 1) trên SQLite thật: chèn/sửa THẲNG bằng SQL để chứng minh khoá nằm ở CSDL.
+// Kiểm migration 0141 (ADR-0168; kế hoạch 2026-11-05 Task 1) trên SQLite thật: chèn/sửa THẲNG bằng SQL để chứng minh khoá nằm ở CSDL.
 // Tên, SĐT dùng ở đây là GIẢ.
 import { test } from "node:test";
 import assert from "node:assert/strict";

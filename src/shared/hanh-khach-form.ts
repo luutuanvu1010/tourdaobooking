@@ -93,4 +93,4 @@ export function thayDoiXacNhan(rows: readonly DongKhach[], huy: readonly string[
 }
 
 /** Câu hỏi huỷ người (bảng sửa sau xác nhận). */
-export const cauHuyNguoi = (r: DongKhach, so: number): string => `Huỷ ${r.ten.trim() || `khách ${so}`} khỏi danh sách? (dùng khi nhập nhầm)`;
+export const cauHuyNguoi = (r: DongKhach, so: number): string => `Bỏ ${r.ten.trim() || `khách ${so}`} khỏi danh sách? (dùng khi nhập nhầm)`;

@@ -1,5 +1,5 @@
 /**
- * Lịch sử nhóm của một dịch vụ ở hộp "Sửa giá" màn Danh mục (ADR-0058 Đ4, Task A7). Luật thuần, dùng ở `web/catalog.ts`.
+ * Lịch sử nhóm của một dịch vụ ở hộp "Ghi đè giá" màn Danh mục (ADR-0058 Đ4, Task A7). Luật thuần, dùng ở `web/catalog.ts`.
  * Máy chủ (`GET /api/catalog/:code/group-history`) trả các TRẠNG THÁI, mới nhất trước: `{ luc, createdBy: id | null, nhom: tên | null }`.
  * Mỗi dòng hiện "30/09 14:05 — Lan: Tour đảo → Thể thao biển": "từ" là nhóm của dòng cũ hơn kế tiếp (dòng cũ nhất: "Chưa phân loại").
  * Tên người ghép từ danh sách tài khoản (`GET /api/staff`); `null` → "Hệ thống"; id không có trong danh sách → "Người dùng cũ".

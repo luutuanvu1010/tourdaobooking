@@ -6,7 +6,7 @@ import { NGUONG_CHO_QUA_MS, viecGap } from "./viec-gap.ts";
 import { PERMISSION_CODES, can, type PermissionHolder } from "./permissions.ts";
 
 const nguoi = (...p: string[]): PermissionHolder => ({ id: `t-${p.join("-")}`, permissions: p as PermissionHolder["permissions"] });
-const KT = nguoi("ACCOUNTING");
+const KT = nguoi("SALES"); // ADR-0142: người giữ ô xét duyệt (trước đây dùng Kế toán, nay Kế toán không còn ô này)
 /** 2026-10-31 10:00 giờ VN = 03:00Z. */
 const BAY_GIO = Date.parse("2026-10-31T03:00:00.000Z");
 const truoc = (ms: number): string => new Date(BAY_GIO - ms).toISOString();
@@ -75,8 +75,8 @@ test("vắng quyền: chỉ người giữ ô order.confirm.review có dải —
     if (hien) co++;
   }
   assert.ok(co > 0);
-  for (const p of ["PARTNER", "INTERN", "HR", "DRIVER", "DRIVER_PARTNER"]) assert.equal(viecGap(nguoi(p), don, BAY_GIO).hien, false, p);
-  for (const p of ["ACCOUNTING", "FIELD", "SALES", "ADMIN", "SUPER_ADMIN"]) assert.equal(viecGap(nguoi(p), don, BAY_GIO).hien, true, p);
+  for (const p of ["ACCOUNTING", "FIELD", "PARTNER", "INTERN", "HR", "DRIVER", "DRIVER_PARTNER"]) assert.equal(viecGap(nguoi(p), don, BAY_GIO).hien, false, p);
+  for (const p of ["SALES", "ADMIN", "SUPER_ADMIN"]) assert.equal(viecGap(nguoi(p), don, BAY_GIO).hien, true, p);
 });
 
 test("chỉ web/home.ts import viec-gap (gói web/orders.ts sát trần byte)", () => {

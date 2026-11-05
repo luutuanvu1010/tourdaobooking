@@ -14,6 +14,7 @@
 | `v_aud_ledger_event` | view công bố | cột: id, order_id, target_type, target_id, staff_id, action, created_at |
 | `v_aud_order_change` | view công bố | cột: id, order_id, staff_id, action, detail, created_at, leg_id |
 | `v_aud_order_cmd` | view công bố | cột: id, order_id, action |
+| `v_aud_order_ban_hang` | view công bố | cột: id, order_id |
 
 ## auth
 
@@ -49,8 +50,8 @@
 | `bil_debt_line` | bảng | dòng nợ hai chân (ADR-0026 đ3), CHỈ-THÊM; nguồn = đơn HOẶC chuyến (ADR-0057 T3 — trip_id cột dự trữ, không khoá ngoại, lượt 1 luôn trống). 0080 (ADR-0092 Đ2, Đ2b): trigger bil_debt_line_settlement_no_flip — dòng quyết toán gốc gắn đơn không làm số dư cặp (bên, công ty chủ) đổi dấu; bil_debt_line_held_once — dòng đảo giữ hộ chỉ khi người giữ hộ còn nợ ≥ số dòng gốc (một dòng giữ hộ tất toán MỘT lần: "Công ty đã nhận" HOẶC "Nộp"). 0112 (sổ đại lý đợt 2): ba loại HOA_HONG / GIAM_GIA_BEN_DAT / GIA_VON (ADR-0079 điều 2) — order_service_id bắt buộc cho HOA_HONG / GIA_VON gốc của phiếu Đã giao, chỉ mục duy nhất một phần bil_debt_line_one_commercial (phiếu, dòng dịch vụ, loại), trigger bil_debt_line_commercial_service / _direction / _gross / _discount (ADR-0079 điều 6 (i)–(iv); miễn dòng đảo, phiếu điều chỉnh, phiếu Đã giao gross_snapshot NULL); held_once tạo lại chỉ cộng HELD / SETTLEMENT / REFUND của cặp (đặc tả P10) |
 | `bil_receipt_recon` | bảng | dấu đối chiếu của khoản "Công ty thu" bằng CHUYỂN KHOẢN do người không phải Kế toán khai (ADR-0120 Điều 1; migration 0099; tiền mặt giữ luật giữ hộ cũ, không có dấu), CHỈ-THÊM. DECLARED = đang đối chiếu (không có dòng giữ hộ nào), CONFIRMED = Kế toán đã bấm "Công ty đã nhận"; đang đối chiếu = có DECLARED chưa có CONFIRMED, lần thu còn hiệu lực. Khoản khai trước ngày áp luật không có dòng ở đây (đi đường dòng giữ hộ cũ). Đơn còn khoản đang đối chiếu chưa Đã giao được (trigger bil_posting_delivered_reconciling). 0112 (ADR-0132): DECLARED nhận thêm lần thu người thu BOOKER / SUPPLIER ở mọi hình thức (khách trả cho bên đặt / tại quầy nhà cung cấp, người không giữ ledger.write khai — không sinh dòng giữ hộ); CONFIRMED của loại này = Kế toán bấm «Bên kia đã nhận»; mã giao dịch ngân hàng chỉ đòi cho người thu Công ty; view cọc v_bil_coc_don và trigger đảo cọc coi khoản loại mới chưa CONFIRMED là đang đối chiếu |
 | `bil_receipt_bank_txn` | bảng | nối lần thu ↔ mã giao dịch ngân hàng + số tiền thực chuyển theo sao kê (ADR-0092 Đ6, ADR-0108 đ4 T2; migration 0088), CHỈ-THÊM, receipt_id duy nhất. Chỉ lần thu chuyển khoản – Công ty thu. Ba luật ở trigger (trùng cùng đơn, số thực chuyển lệch, tổng vượt) theo vị từ hieuLuc. Chỉ người có ledger.write thấy mã; nhật ký không chép mã |
-| `bil_credit_limit` | bảng | hạn mức Trả sau riêng của một hồ sơ đối tác (ADR-0168 Đ1; migration 0139): tổng hạn mức (INTEGER VNĐ, > 0) và số ngày được nợ của mỗi đơn (1–365), theo khoảng ngày; chỉ thêm, chỉ đóng một lần (đổi hoặc ngừng = đóng dòng cũ, thêm dòng mới; dòng đóng ngay trong ngày bắt đầu là khoảng rỗng); hai dòng cùng hồ sơ không chồng ngày (bil_credit_limit_overlap); hồ sơ phải đang mở vai bên ngoài hoặc loại đối tác (bil_credit_not_beneficiary, đọc v_pty_open_role + v_pty_role_type; hồ sơ nội bộ bị từ chối). Không có dòng hiệu lực nghĩa là chỉ Trả trước |
-| `bil_credit_guard` | bảng | dòng phiên bản của từng bên đặt (ADR-0168 Đ2 mục 4; migration 0139): lệnh làm tăng nợ đọc phiên bản, tính, rồi trong lô có câu UPDATE version = đã đọc + 1; sai phiên bản thì trigger bil_credit_guard_version huỷ cả lô (credit_version_stale). Không chứa tiền |
+| `bil_credit_limit` | bảng | hạn mức Trả sau riêng của một hồ sơ đối tác (ADR-0168 Đ1; migration 0141): tổng hạn mức (INTEGER VNĐ, > 0) và số ngày được nợ của mỗi đơn (1–365), theo khoảng ngày; chỉ thêm, chỉ đóng một lần (đổi hoặc ngừng = đóng dòng cũ, thêm dòng mới; dòng đóng ngay trong ngày bắt đầu là khoảng rỗng); hai dòng cùng hồ sơ không chồng ngày (bil_credit_limit_overlap); hồ sơ phải đang mở vai bên ngoài hoặc loại đối tác (bil_credit_not_beneficiary, đọc v_pty_open_role + v_pty_role_type; hồ sơ nội bộ bị từ chối). Không có dòng hiệu lực nghĩa là chỉ Trả trước |
+| `bil_credit_guard` | bảng | dòng phiên bản của từng bên đặt (ADR-0168 Đ2 mục 4; migration 0141): lệnh làm tăng nợ đọc phiên bản, tính, rồi trong lô có câu UPDATE version = đã đọc + 1; sai phiên bản thì trigger bil_credit_guard_version huỷ cả lô (credit_version_stale). Không chứa tiền |
 | `v_bil_phai_thu_hien_hanh` | view công bố | cột: order_id, due_snapshot, giam_tru, phai_thu |
 | `v_bil_order_paid` | view công bố | cột: order_id, paid_net, unknown_count |
 | `v_bil_coc_don` | view công bố | cột: order_id, da_tra, dang_doi_chieu, hoan_truoc_huy, da_duyet, da_chi, da_chuyen, hoan_ngoai, con_giu_luc_huy, con_giu, cho_chi |
@@ -88,9 +89,15 @@
 | `dsp_refuse_policy` | bảng | ADR-0032 điều 6–7: cài đặt hạn mức «Từ chối» của hướng dẫn viên, CHỈ THÊM (trigger cấm sửa/xoá), có hiệu lực (dòng đang dùng = valid_from_at lớn nhất ≤ lúc hỏi). mode OFF (Tắt) / MEASURE (Chỉ đo) / BLOCK (Chặn) — danh sách đóng, CHECK; max_consecutive 1–10, max_per_week 1–100. Toàn quyền đổi (ô settings.ops). Dòng gieo id 'gieo-han-muc' (Chỉ đo 2/15): created_at của nó là MỐC PHÁT HÀNH mà kiểm R-DSP-5/6 dùng để miễn trừ dòng phụ trách mở trước đó (R-DSP-7 canh dòng gieo còn). updated_* luôn bằng created_* (bảng chỉ thêm) |
 | `dsp_release_event` | bảng | ADR-0032 điều 1: sổ sự kiện phân công, CHỈ THÊM (trigger cấm sửa/xoá). Mỗi dòng = một người (party_id), một đơn (NULL chỉ ở RESET), một loại (CLAIM tự nhận, ASSIGN được giao / được chọn lúc lập đơn, REFUSE Từ chối, ABORT người phụ trách tự huỷ đơn, RESET Toàn quyền đặt lại), lúc xảy ra (ISO UTC), người ghi, mã lý do (chỉ REFUSE — mã của src/shared/ly-do-tu-choi.ts). seq = thứ tự chèn toàn bảng do câu chèn cấp (max + 1, UNIQUE) — luật «sau dòng đó» so theo seq. Ghi CÙNG LÔ với lệnh sinh ra nó; câu REFUSE là câu đầu lô Từ chối, mang điều kiện hạn mức. Không SĐT / tên khách. Bộ đếm bắt đầu từ 0 ở ngày phát hành (không chép dữ liệu cũ). updated_* luôn bằng created_* |
 | `dsp_release_kind` | bảng tra cứu | ADR-0032 điều 1: loại sự kiện phân công — CLAIM, ASSIGN, REFUSE, ABORT, RESET |
+| `dsp_sales_owner` | bảng | ADR-0142: Bán hàng phụ trách đơn — ô RIÊNG, không phải người phụ trách (dsp_assignment HANDLE). Mỗi đơn tối đa MỘT dòng mở (chỉ mục duy nhất có điều kiện dsp_sales_owner_open_uq); đổi người = khép dòng cũ (valid_to_at, closed_by — đúng một lần, trigger) rồi mở dòng mới; không xoá. Đơn đã Đã giao: không nhận, không khép (đọc v_ord_order_state). Không tên: tên đọc qua v_dsp_sales_owner |
+| `dsp_sales_invite` | bảng | ADR-0142: lời mời một Bán hàng nhận đơn, có ưu tiên đến priority_until_at (giờ hành chính). Mỗi đơn tối đa MỘT lời mời mở; khép đúng một lần (closed_at, closed_by, outcome cùng có, trigger) với outcome thuộc tập đóng NHAN / TU_CHOI / NGUOI_KHAC / HUY_DON / RUT_LAI; không xoá. recorded_at = lúc đơn được ghi nhận, gốc của đồng hồ ưu tiên |
+| `dsp_sales_policy` | bảng | ADR-0142: chính sách Bán hàng phụ trách, CHỈ THÊM (trigger cấm sửa/xoá), dòng đang dùng = valid_from_at lớn nhất. priority_minutes 1–120 (phút ưu tiên), work_start_minute / work_end_minute là phút trong ngày giờ Việt Nam (0 ≤ bắt đầu < kết thúc ≤ 1440). Dòng gieo id 'gieo-ban-hang' (15, 420, 1020): created_at của nó là MỐC PHÁT HÀNH (đơn ghi nhận trước đó không vào thẻ cảnh báo), thêm dòng mới không đổi mốc. updated_* luôn bằng created_* |
 | `dsp_assignment_status` | bảng tra cứu |  |
 | `dsp_task_kind` | bảng tra cứu |  |
 | `v_dsp_order_handler` | view công bố | cột: order_id, party_id, staff_id, label, since |
+| `v_dsp_sales_owner` | view công bố | cột: order_id, staff_id, party_id, name |
+| `v_dsp_sales_invite_open` | view công bố | cột: order_id, staff_id, party_id, name, recorded_at, priority_until_at |
+| `v_dsp_sales_policy_current` | view công bố | cột: priority_minutes, work_start_minute, work_end_minute, release_cutoff_at |
 | `v_dsp_first_handler` | view công bố | cột: order_id, first_at |
 
 ## feedback
@@ -375,6 +382,8 @@
 | `tl_hoi_dap` |  | `cau_hoi`, `tra_loi` |  |  |
 | `v_aud_order_change` |  | `detail` |  |  |
 | `v_dsp_order_handler` |  | `label` |  |  |
+| `v_dsp_sales_owner` |  | `name` |  |  |
+| `v_dsp_sales_invite_open` |  | `name` |  |  |
 | `v_ord_passenger_key` |  | `person_key` |  |  |
 | `v_ord_passenger_row` |  | `person_key` |  |  |
 | `v_pty_party_label` |  | `display_name`, `sort_key` |  |  |

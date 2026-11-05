@@ -784,7 +784,7 @@ function renderMaintenance(status: Api.MaintenanceResponse): void {
       h(
         "div",
         { class: "maint-actions" },
-        button("Cập nhật giờ dự kiến", "btn", () => {
+        button("Đổi giờ dự kiến", "btn", () => {
           const iso = chosen();
           if (iso) void send({ on: true, endsAt: iso });
         }),

@@ -136,6 +136,12 @@ export async function getStaffAccount(db: D1Database, id: string): Promise<Staff
   return s ? toAccount(s) : null;
 }
 
+/** Tài khoản của một hồ sơ (ADR-0142: ý định mời Bán hàng nằm trên đơn dưới dạng hồ sơ, kiểm lại phải đi từ hồ sơ sang tài khoản). Hồ sơ không có tài khoản ⇒ null. */
+export async function getStaffAccountOfParty(db: D1Database, partyId: string): Promise<StaffAccount | null> {
+  const id = await accountIdOfParty(db, partyId);
+  return id ? getStaffAccount(db, id) : null;
+}
+
 /**
  * ADR-0013 điều 4 — gốc lắp ráp tiêm vào `ctx.partyAccount` (module `parties` không import `staff`). Trả KẾT LUẬN, không trả id/quyền
  * của tài khoản. Hai lượt đọc: id theo hồ sơ, rồi tài khoản đầy đủ (có quyền) bằng hàm đã có.

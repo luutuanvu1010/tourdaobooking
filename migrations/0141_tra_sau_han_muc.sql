@@ -1,5 +1,5 @@
--- Migration 0139 — ADR-0168 (chủ duyệt 2026-11-05): thanh toán Trả sau theo hạn mức riêng của đối tác. Kế hoạch docs/superpowers/plans/2026-11-05-tra-sau-han-muc-ke-hoach.md Task 1.
--- (Số 0138 đã có ở nhánh chưa nhập claude/dispatch-pickup-order-display-1da7b5 nên dùng 0139; wrangler theo dõi theo TÊN đầy đủ.)
+-- Migration 0141 — ADR-0168 (chủ duyệt 2026-11-05): thanh toán Trả sau theo hạn mức riêng của đối tác. Kế hoạch docs/superpowers/plans/2026-11-05-tra-sau-han-muc-ke-hoach.md Task 1.
+-- (Số kế tiếp sau 0140 của bản chính. Trigger khoá dựng lại từ 0138, giữ cột `sales_invitee_party_id` của ADR-0142 và thêm hai cột của ADR-0168.)
 -- CHỈ THÊM: bảng hạn mức chỉ-thêm (billing), dòng phiên bản chống ghi trùng (billing), hai cột của orders, view công bố, và tạo lại trigger khoá Đã giao để phủ hai cột mới.
 -- Tệp KHÔNG tự mở/đóng giao dịch. Không `CASE … END)` trong trigger (bộ tách câu của wrangler — scripts/audit-checks.mjs R-ORD-T1).
 
@@ -76,6 +76,6 @@ WHEN OLD.delivered_at IS NOT NULL
     AND NEW.deposit_amount IS OLD.deposit_amount AND NEW.deposit_method IS OLD.deposit_method AND NEW.remaining_amount IS OLD.remaining_amount
     AND NEW.payment_note IS OLD.payment_note AND NEW.created_at IS OLD.created_at AND NEW.confirmed_at IS OLD.confirmed_at
     AND NEW.booker_party_id IS OLD.booker_party_id AND NEW.delivered_at IS OLD.delivered_at AND NEW.delivered_by IS OLD.delivered_by
-    AND NEW.manifest_exempt IS OLD.manifest_exempt AND NEW.declared_deposit IS OLD.declared_deposit
+    AND NEW.manifest_exempt IS OLD.manifest_exempt AND NEW.declared_deposit IS OLD.declared_deposit AND NEW.sales_invitee_party_id IS OLD.sales_invitee_party_id
     AND NEW.payment_term IS OLD.payment_term AND NEW.credit_due_date IS OLD.credit_due_date)
 BEGIN SELECT RAISE(ABORT, 'order_delivered: đơn đã Đã giao – đã thu đủ, không sửa được'); END;

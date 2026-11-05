@@ -1,4 +1,4 @@
-// Hộp thoại "Xác nhận đơn để gửi khách" (v1.0, đặc tả "Việc 2"): dựng ảnh PNG xác nhận từ đơn đang xem rồi cho xem trước, tải về ("Tải ảnh PNG") hoặc chia sẻ ("Chia sẻ" — chỉ khi
+// Hộp thoại "Xác nhận đơn để gửi khách" (v1.0, đặc tả "Việc 2"): dựng ảnh PNG xác nhận từ đơn đang xem rồi cho xem trước, tải về ("Tải ảnh về máy") hoặc chia sẻ ("Chia sẻ" — chỉ khi
 // `navigator.canShare({ files })`, vd iPhone → Zalo). Cùng khuôn với bảng trượt "Sửa thông tin chuyến" (trip-sheet.ts, dùng chung CSS `.sheet*`): role=dialog + aria-modal, phần nền `inert`,
 // Esc / ✕ / chạm nền để đóng, trả focus về nút mở. Đóng được mọi lúc (kể cả lúc đang dựng ảnh): kết quả đến muộn bị bỏ và `blob:` URL luôn được thu hồi.
 // Dựng ảnh: tên người phụ trách (hướng dẫn viên xem đơn mình phụ trách: chính họ, từ phiên — không gọi route bị chặn; người khác: GET /api/dispatch/handlers,
@@ -73,7 +73,7 @@ class StageError extends Error {
 
 const MESSAGES: Record<Stage, string> = {
   company: "Chưa tải được biên nhận (thông tin công ty và số tiền) để in lên ảnh. Kiểm tra kết nối mạng rồi bấm “Thử lại”.",
-  handler: "Chưa tải được người phụ trách, vui lòng thử lại.",
+  handler: "Chưa tải được Hướng dẫn viên, vui lòng thử lại.",
   font: "Chưa tải được phông chữ để vẽ ảnh. Kiểm tra kết nối mạng rồi bấm “Thử lại”.",
   canvas: "Trình duyệt chưa vẽ được ảnh xác nhận. Bấm “Thử lại”; nếu vẫn lỗi, hãy đóng rồi mở lại đơn này.",
   encode: "Trình duyệt chưa vẽ được ảnh xác nhận (không tạo được tệp PNG). Bấm “Thử lại”.",
@@ -145,7 +145,7 @@ export function openConfirmationDialog(o: ConfirmationDialogOptions): void {
   const scrim = h("div", { class: "sheet-scrim" });
   const stage = h("div", { class: "confirm-stage" });
   const noteSlot = h("div", { class: "confirm-note-slot" });
-  const downloadEl = h("a", { class: "btn btn-primary btn-block confirm-download", hidden: true }, "Tải ảnh PNG");
+  const downloadEl = h("a", { class: "btn btn-primary btn-block confirm-download", hidden: true }, "Tải ảnh về máy");
   const shareSlot = h("div", { class: "confirm-share-slot" });
   const dialog = h(
     "div",
@@ -217,7 +217,7 @@ export function openConfirmationDialog(o: ConfirmationDialogOptions): void {
           .then(() => navigator.share({ files: [file], title: `Xác nhận đơn ${made.orderCode}` }))
           .catch((err: unknown) => {
             if (err instanceof DOMException && err.name === "AbortError") return; // người dùng tự huỷ: im lặng
-            showNote("Chưa mở được bảng chia sẻ. Hãy dùng nút “Tải ảnh PNG”.");
+            showNote("Chưa mở được bảng chia sẻ. Hãy dùng nút “Tải ảnh về máy”.");
           })
           .finally(() => {
             sharing = false;

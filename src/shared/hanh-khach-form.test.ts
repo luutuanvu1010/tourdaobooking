@@ -49,6 +49,6 @@ test("thân đã xác nhận: thêm dòng mới, sửa người có đổi, khô
     sua: [{ personKey: "pk2", fullName: "Trần Thị Bình", birthYear: 1989, paxCode: "adult" }],
     huy: ["pk3"],
   });
-  assert.equal(cauHuyNguoi(binh, 2), "Huỷ Trần Thị Bình khỏi danh sách? (dùng khi nhập nhầm)");
-  assert.equal(cauHuyNguoi(dongTrong("x"), 4), "Huỷ khách 4 khỏi danh sách? (dùng khi nhập nhầm)");
+  assert.equal(cauHuyNguoi(binh, 2), "Bỏ Trần Thị Bình khỏi danh sách? (dùng khi nhập nhầm)");
+  assert.equal(cauHuyNguoi(dongTrong("x"), 4), "Bỏ khách 4 khỏi danh sách? (dùng khi nhập nhầm)");
 });

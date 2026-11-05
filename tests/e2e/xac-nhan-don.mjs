@@ -40,7 +40,7 @@ const status = (who, id, s, extra = {}) => call(who, "POST", `/api/orders/${id}/
 const sqlMoc = async (id) => (await sqlRows(`SELECT updated_at AS u FROM orders WHERE id = '${id}'`))[0].u;
 /** Quyết định bằng yêu cầu đang mở (đọc từ danh sách chờ) và mốc cập nhật hiện tại của đơn. */
 const quyet = async (who, id, ketQua, extra = {}) => {
-  const ds = (await call(ACC, "GET", "/api/orders/cho-xac-nhan")).body.don.find((d) => d.orderId === id);
+  const ds = (await call(SALES_B, "GET", "/api/orders/cho-xac-nhan")).body.don.find((d) => d.orderId === id);
   return call(who, "POST", `/api/orders/${id}/quyet-dinh`, { ketQua, yeuCauId: ds?.yeuCauId, updatedAt: await sqlMoc(id), ...extra });
 };
 const datCo = (pham, ma, canXacNhan) => call(SUPER, "POST", URL_CD, { pham, ma, canXacNhan });
@@ -70,7 +70,7 @@ try {
   r = await call(SALES, "POST", `/api/orders/${a.id}/quyet-dinh`, { ketQua: "CON_VE", yeuCauId: yc.id, updatedAt: aMoc.updatedAt });
   assert.equal(r.status, 403, `công tắc tắt: ${JSON.stringify(r.body)}`);
   // (b)
-  for (const [ten, who] of [["Kế toán", ACC], ["HDV", FIELD], ["Quản trị", ADMIN], ["Toàn quyền", SUPER]]) {
+  for (const [ten, who] of [["Bán hàng khác", SALES_B], ["Quản trị", ADMIN], ["Toàn quyền", SUPER]]) {
     r = await call(who, "GET", "/api/orders/cho-xac-nhan");
     assert.equal(r.status, 200, `${ten}: ${JSON.stringify(r.body)}`);
     const d = r.body.don.find((x) => x.orderId === a.id);
@@ -79,20 +79,26 @@ try {
     khongLo(JSON.stringify(r.body));
   }
   assert.equal((await call(HR, "GET", "/api/orders/cho-xac-nhan")).status, 403, "Hành chính nhân sự không xét duyệt");
+  // ADR-0142 QĐ2(a): Kế toán và HDV không còn xét duyệt — danh sách chờ và quyết định đều 403 (kể cả khi cầm đúng yêu cầu).
+  for (const [ten, who] of [["Kế toán", ACC], ["HDV", FIELD]]) {
+    assert.equal((await call(who, "GET", "/api/orders/cho-xac-nhan")).status, 403, `${ten}: danh sách chờ`);
+    r = await call(who, "POST", `/api/orders/${a.id}/quyet-dinh`, { ketQua: "CON_VE", yeuCauId: yc.id, updatedAt: aMoc.updatedAt });
+    assert.equal(r.status, 403, `${ten} quyết định: ${JSON.stringify(r.body)}`);
+  }
   // ADR-0136 Đ10 (migration 0120): tin «Đơn … đang chờ xác nhận» ở hộp thư người xét duyệt — bản 2.36 thiếu vì view hộp thư không có order_confirm_requested.
   const cauCho = `Đơn ${a.orderCode} đang chờ xác nhận`;
   const tinCho = (body) => (body.tin ?? []).filter((t) => t.loai === "cho_xac_nhan" && t.maDon === a.orderCode);
-  for (const [ten, who] of [["Kế toán", ACC], ["HDV", FIELD], ["Quản trị", ADMIN], ["Toàn quyền", SUPER], ["Bán hàng khác", SALES_B]]) {
+  for (const [ten, who] of [["Quản trị", ADMIN], ["Toàn quyền", SUPER], ["Bán hàng khác", SALES_B]]) {
     r = await call(who, "GET", "/api/thong-bao?ngan=cua-toi");
     assert.equal(r.status, 200, `${ten}: ${JSON.stringify(r.body)}`);
     assert.deepEqual(tinCho(r.body).map((t) => t.cau), [cauCho], `${ten}: hộp thư phải có đúng một tin chờ xác nhận`);
   }
-  for (const [ten, who] of [["người gửi", SALES], ["Hành chính nhân sự", HR]]) {
+  for (const [ten, who] of [["người gửi", SALES], ["Hành chính nhân sự", HR], ["Kế toán", ACC], ["HDV", FIELD]]) { // Kế toán, HDV hết ô xét duyệt (ADR-0142) nên không nhận tin chờ
     r = await call(who, "GET", "/api/thong-bao?ngan=tat-ca");
     assert.equal(r.status, 200, `${ten}: ${JSON.stringify(r.body)}`);
     assert.equal(tinCho(r.body).length, 0, `${ten} không nhận tin chờ xác nhận`);
   }
-  for (const [ten, who] of [["Kế toán", ACC], ["HDV chưa phụ trách", FIELD]]) {
+  for (const [ten, who] of [["Bán hàng khác", SALES_B], ["Quản trị", ADMIN]]) {
     r = await call(who, "GET", `/api/orders/${a.id}`);
     assert.equal(r.status, 200, `${ten}: ${JSON.stringify(r.body)}`);
     assert.equal(r.body.order.customerPhone, "");
@@ -101,6 +107,9 @@ try {
     khongLo(JSON.stringify(r.body));
     assert.equal((await call(who, "GET", `/api/orders/${a.id}/passengers`)).status, 404, `${ten}: hành khách`);
   }
+  for (const [ten, who] of [["Kế toán", ACC], ["HDV chưa phụ trách", FIELD]]) {
+    assert.equal((await call(who, "GET", `/api/orders/${a.id}`)).status, 404, `${ten} (ADR-0142): hết đọc đơn đang chờ xác nhận`);
+  }
   // (l) khoá khi chờ
   r = await call(SALES, "PUT", `/api/orders/${a.id}`, orderInput({ services: [dichVu("ZXN1", ngay, [chang(ngay, "07:00")])], expectedUpdatedAt: aMoc.updatedAt }));
   assert.deepEqual([r.status, r.body.error?.code], [409, "confirm_pending_locked"], JSON.stringify(r.body));
@@ -108,13 +117,13 @@ try {
   assert.equal(r.body.error?.code, "confirm_pending_locked", JSON.stringify(r.body));
   // (c) Còn vé + đổi giờ
   const legId = (await lay(SALES, a.id)).services[0].legs[0].id;
-  r = await quyet(ACC, a.id, "CON_VE", { gioDon: [{ legId, pickupTime: "08:30" }] });
+  r = await quyet(SALES_B, a.id, "CON_VE", { gioDon: [{ legId, pickupTime: "08:30" }] });
   assert.equal(r.status, 200, JSON.stringify(r.body));
   assert.deepEqual(r.body, { ketQua: "CON_VE", trangThai: "confirmed" });
   const sau = await lay(SALES, a.id);
   assert.equal(sau.status, "confirmed");
   assert.equal(sau.services[0].legs[0].pickupTime, "08:30");
-  assert.equal((await call(ACC, "GET", "/api/orders/cho-xac-nhan")).body.don.some((x) => x.orderId === a.id), false, "đã quyết thì rời danh sách chờ");
+  assert.equal((await call(SALES_B, "GET", "/api/orders/cho-xac-nhan")).body.don.some((x) => x.orderId === a.id), false, "đã quyết thì rời danh sách chờ");
   // Chủ dự án 27/10: hết chờ thì tin «đang chờ xác nhận» biến mất khỏi hộp thư (câu list_don đọc dòng confirmed ghi SAU dòng gửi — chạy trên D1 thật).
   for (const [ten, who] of [["Kế toán", ACC], ["Toàn quyền", SUPER], ["Bán hàng khác", SALES_B]]) {
     for (const ngan of ["cua-toi", "tat-ca"]) {
@@ -128,13 +137,13 @@ try {
   // ---- (d) Hết vé / Huỷ ------------------------------------------------------------------------------------------------------------------------------------
   const d1 = await lap(SALES, [dichVu("ZXN1", ngay)]);
   assert.equal((await gui(SALES, d1.id)).status, 201);
-  r = await quyet(ACC, d1.id, "HET_VE");
+  r = await quyet(SALES_B, d1.id, "HET_VE");
   assert.equal(r.status, 200, JSON.stringify(r.body));
   assert.equal((await lay(SALES, d1.id)).status, "cancelled");
   const d2 = await lap(SALES, [dichVu("ZXN1", ngay)]);
   assert.equal((await gui(SALES, d2.id)).status, 201);
-  assert.equal((await quyet(ACC, d2.id, "HUY")).status, 400, "Huỷ thiếu lý do");
-  r = await quyet(ACC, d2.id, "HUY", { lyDo: "KHACH_DOI_Y" });
+  assert.equal((await quyet(SALES_B, d2.id, "HUY")).status, 400, "Huỷ thiếu lý do");
+  r = await quyet(SALES_B, d2.id, "HUY", { lyDo: "KHACH_DOI_Y" });
   assert.equal(r.status, 200, JSON.stringify(r.body));
   assert.equal((await lay(SALES, d2.id)).status, "cancelled");
   console.log("✓ (d): Hết vé và Huỷ có lý do → đơn cancelled; Huỷ thiếu lý do 400");
@@ -143,7 +152,7 @@ try {
   const e = await lap(SALES, [dichVu("ZXN1", ngay)]);
   const eYc = (await gui(SALES, e.id)).body.yeuCau;
   const eMoc = await sqlMoc(e.id);
-  const kq = await Promise.all([ACC, SUPER].map((who) => call(who, "POST", `/api/orders/${e.id}/quyet-dinh`, { ketQua: "CON_VE", yeuCauId: eYc.id, updatedAt: eMoc })));
+  const kq = await Promise.all([SALES_B, ADMIN].map((who) => call(who, "POST", `/api/orders/${e.id}/quyet-dinh`, { ketQua: "CON_VE", yeuCauId: eYc.id, updatedAt: eMoc })));
   const ma = kq.map((x) => x.status).sort();
   assert.deepEqual(ma, [200, 409], `đua: ${JSON.stringify(kq.map((x) => x.body))}`);
   console.log("✓ (e): hai người cùng quyết định → đúng một 200, một 409");
@@ -162,7 +171,7 @@ try {
   const g = await lap(SALES, [dichVu("ZXN1", ngay)]);
   assert.equal((await gui(SALES, g.id)).status, 201);
   assert.equal((await datCo("SERVICE", "ZXN1", false)).status, 200);
-  assert.equal((await quyet(ACC, g.id, "CON_VE")).status, 200, "bỏ cờ không làm đơn đang chờ mất quyết định");
+  assert.equal((await quyet(SALES_B, g.id, "CON_VE")).status, 200, "bỏ cờ không làm đơn đang chờ mất quyết định");
   const g2 = await lap(SALES, [dichVu("ZXN1", ngay)]);
   assert.equal((await status(SALES, g2.id, "confirmed")).status, 200, "nháp mới của mã vừa bỏ cờ không phải gửi");
   assert.equal((await datCo("SERVICE", "ZXN1", true)).status, 200);
@@ -195,14 +204,14 @@ try {
   r = await gui(SALES, m.id);
   assert.equal(r.status, 201, JSON.stringify(r.body));
   assert.ok(r.body.yeuCau.vi.includes("DAT_GAP"));
-  const dsM = (await call(ACC, "GET", "/api/orders/cho-xac-nhan")).body.don.find((x) => x.orderId === m.id);
+  const dsM = (await call(SALES_B, "GET", "/api/orders/cho-xac-nhan")).body.don.find((x) => x.orderId === m.id);
   assert.equal(dsM.canDatGap, true);
-  r = await quyet(ACC, m.id, "CON_VE");
+  r = await quyet(SALES_B, m.id, "CON_VE");
   assert.deepEqual([r.status, r.body.error?.code], [409, "short_notice_required"], JSON.stringify(r.body));
   const mLeg = (await lay(SALES, m.id)).services[0].legs[0].id;
   r = await call(ADMIN, "POST", `/api/orders/${m.id}/legs/${mLeg}/short-notice`, { lyDo: "KHACH_DOAN_GOI_GAP" });
   assert.equal(r.status, 200, `Quản trị đặt gấp nháp đang chờ: ${JSON.stringify(r.body)}`);
-  assert.equal((await quyet(ACC, m.id, "CON_VE")).status, 200);
+  assert.equal((await quyet(SALES_B, m.id, "CON_VE")).status, 200);
   console.log("✓ (m): chặng dưới mốc gửi được, Còn vé 409 short_notice_required, Quản trị đặt gấp rồi Còn vé 200");
 
   // ---- (p)(r) tài khoản lai --------------------------------------------------------------------------------------------------------------------------------

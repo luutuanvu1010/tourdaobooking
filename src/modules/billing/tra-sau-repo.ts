@@ -1,4 +1,4 @@
-// SQL của Trả sau theo hạn mức (ADR-0168; migration 0139): bảng `bil_credit_limit`, `bil_credit_guard` và đọc đơn Trả sau qua view công bố `v_ord_don_tra_sau` của orders.
+// SQL của Trả sau theo hạn mức (ADR-0168; migration 0141): bảng `bil_credit_limit`, `bil_credit_guard` và đọc đơn Trả sau qua view công bố `v_ord_don_tra_sau` của orders.
 // Module NGHIÊM: mọi câu qua `defineSql` (câu TĨNH, tham số ?N), chịu bài EXPLAIN. Hạn mức chỉ-thêm; chỉ câu đóng dòng mới UPDATE bảng này.
 // Import kèm đuôi .ts (bài kiểm kiến trúc nạp tệp này thẳng bằng Node).
 import { defineSql } from "../../shared/sql-registry.ts";

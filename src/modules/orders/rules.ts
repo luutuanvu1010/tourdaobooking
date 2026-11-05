@@ -113,6 +113,18 @@ export function parseHandlerPick(body: Record<string, unknown> | null): { ok: tr
   return { ok: true, staffId: v };
 }
 
+/**
+ * Bán hàng người lập MỜI lúc lập / sửa nháp (ADR-0142 L1) — trường tuỳ chọn `banHangMoiStaffId`: vắng ⇒ `co: false` (GIỮ lời mời đang lưu, khuôn «giữ bên đặt cũ» của `noBookerKeys`; form cũ không gửi
+ * trường này không xoá lời mời); `null` ⇒ xoá ý định; chuỗi ⇒ mã tài khoản (UUID) phải qua `kiemBanHangMoi` ở route. Dạng sai ⇒ lỗi (route trả 400 `invalid_invitee`).
+ */
+export function parseBanHangMoi(body: Record<string, unknown> | null): { ok: true; co: boolean; staffId: string | null } | Failure {
+  if (body === null || !("banHangMoiStaffId" in body) || body.banHangMoiStaffId === undefined) return { ok: true, co: false, staffId: null };
+  const v = body.banHangMoiStaffId;
+  if (v === null) return { ok: true, co: true, staffId: null };
+  if (typeof v !== "string" || !UUID_RE.test(v)) return fail("Bán hàng được mời không hợp lệ. Hãy chọn lại.");
+  return { ok: true, co: true, staffId: v };
+}
+
 /** Tên + SĐT khách (bản chụp trên đơn) — dùng chung cho tạo/sửa đơn và đổi khách. */
 function validateCustomer(b: Record<string, unknown>): { ok: true; name: string; phone: string } | Failure {
   const name = text(b.customerName, "Tên khách hàng", 200, true);

@@ -50,9 +50,9 @@ test("thẻ «Đang chờ bạn» có chỗ trong cột phụ, đủ neo cuộn,
   assert.doesNotMatch(home, /href: "\/order-form" \}, "Tạo đơn"/, "nút «Tạo đơn» san hô của trạng thái rỗng đã bỏ");
 });
 
-test("luật khung 7: nút san hô (btn-accent) duy nhất của Trang chủ máy tính là «Xác nhận ngay» của dải việc gấp", () => {
+test("luật khung 7: nút san hô (btn-accent) duy nhất của Trang chủ máy tính là «Xem đơn chờ xác nhận» của dải việc gấp", () => {
   assert.equal([...home.matchAll(/btn btn-accent/g)].length, 1);
-  assert.match(home, /h\("a", \{ class: "btn btn-accent", href: "\/cho-xac-nhan" \}, "Xác nhận ngay"\)/);
+  assert.match(home, /h\("a", \{ class: "btn btn-accent", href: "\/cho-xac-nhan" \}, "Xem đơn chờ xác nhận"\)/);
 });
 
 test("dải việc gấp: luật ở viec-gap.ts, dựng cùng lúc với lưới (không nhảy bố cục), cập nhật theo đồng hồ phút, không giật tiêu điểm", () => {

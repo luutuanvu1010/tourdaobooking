@@ -1,5 +1,5 @@
 // Khối "Hành khách" (bản vẽ docs/design/2026-10-01-dua-don-hanh-khach/khoi-hanh-khach.dc.html): form đơn (M2 — `che: "form"`; máy tính dạng bảng 28/1fr/112/
-// 176/96, điện thoại mỗi khách một thẻ) và bảng "Sửa danh sách hành khách" (M5 — `che: "bang"`: luôn dạng thẻ, "Huỷ người" hỏi lại ngay trong thẻ). Luật ở
+// 176/96, điện thoại mỗi khách một thẻ) và bảng "Sửa danh sách hành khách" (M5 — `che: "bang"`: luôn dạng thẻ, "Bỏ khỏi danh sách" hỏi lại ngay trong thẻ). Luật ở
 // src/shared/hanh-khach-form.ts; ở đây chỉ dựng DOM. Gõ chữ chỉ cập nhật dòng đếm / câu nhắc / lỗi tại chỗ (không dựng lại ô đang gõ).
 // Đoạn "Số khách đi xe" (ADR-0065, chưa duyệt — D2) KHÔNG dựng.
 import { LUA_CHON_LOAI, cauHuyNguoi, chuanNam, dongTrong, loiDong, tomTatKhach, type DongKhach } from "../src/shared/hanh-khach-form";
@@ -22,7 +22,7 @@ export interface KhoiHanhKhachOptions {
 export interface KhoiHanhKhach {
   root: HTMLElement;
   rows(): DongKhach[];
-  /** Khoá người đã chọn "Huỷ người" (bảng sửa sau xác nhận). */
+  /** Khoá người đã chọn "Bỏ khỏi danh sách" (bảng sửa sau xác nhận). */
   huy(): string[];
   showIssues(show: boolean): void;
   /** Vẽ lại (đổi khổ màn hình, đổi số khách dịch vụ). */
@@ -32,7 +32,7 @@ export interface KhoiHanhKhach {
 export function taoKhoiHanhKhach(o: KhoiHanhKhachOptions): KhoiHanhKhach {
   let rows = o.rows;
   let daLuu = false;
-  let hoiHuy: string | null = null; // key dòng đang mở hộp "Huỷ người"
+  let hoiHuy: string | null = null; // key dòng đang mở hộp "Bỏ khỏi danh sách"
   const daHuy: string[] = [];
   const bangMo = o.che === "bang";
   const root = h("div", { class: "hk", "data-hanh-khach": o.ma });
@@ -63,7 +63,7 @@ export function taoKhoiHanhKhach(o: KhoiHanhKhachOptions): KhoiHanhKhach {
     const loai = h("select", { id: id("loai"), "data-o": `${r.key}:loai` }, ...LUA_CHON_LOAI.map((x) => h("option", { value: x.value }, x.label)));
     loai.value = r.loai;
     loai.addEventListener("change", () => sua(i, { loai: loai.value as DongKhach["loai"] }));
-    const xoa = h("button", { type: "button", class: "btn-link hk-xoa", "data-action": bangMo ? "huy-nguoi" : "xoa-khach" }, bangMo ? "Huỷ người" : "Xoá");
+    const xoa = h("button", { type: "button", class: "btn-link hk-xoa", "data-action": bangMo ? "huy-nguoi" : "xoa-khach" }, "Bỏ khỏi danh sách");
     xoa.addEventListener("click", () => {
       if (bangMo && r.personKey) {
         hoiHuy = r.key;
@@ -74,7 +74,7 @@ export function taoKhoiHanhKhach(o: KhoiHanhKhachOptions): KhoiHanhKhach {
     refs[i] = { ten, nam, loi };
     let hoi: HTMLElement | null = null;
     if (hoiHuy === r.key) {
-      const chac = h("button", { type: "button", class: "btn btn-danger", "data-action": "xac-nhan-huy" }, "Huỷ người");
+      const chac = h("button", { type: "button", class: "btn btn-danger", "data-action": "xac-nhan-huy" }, "Bỏ khỏi danh sách");
       chac.addEventListener("click", () => {
         hoiHuy = null;
         if (r.personKey) daHuy.push(r.personKey);

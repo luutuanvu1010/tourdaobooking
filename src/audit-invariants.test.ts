@@ -117,7 +117,7 @@ test("danh sách kiểm: một nguồn duy nhất (script import scripts/audit-c
 
   assert.deepEqual(
     CHECKS.filter((c) => c.code.startsWith("R-DSP")).map((c) => [c.code, c.level]),
-    [["R-DSP-1", "fail"], ["R-DSP-2a", "warn-unless-strict"], ["R-DSP-2b", "warn"], ["R-DSP-3", "fail"], ["R-DSP-4", "warn-unless-strict"], ["R-DSP-5", "fail"], ["R-DSP-6", "warn-unless-strict"], ["R-DSP-7", "fail"]],
+    [["R-DSP-1", "fail"], ["R-DSP-2a", "warn-unless-strict"], ["R-DSP-2b", "warn"], ["R-DSP-3", "fail"], ["R-DSP-4", "warn-unless-strict"], ["R-DSP-5", "fail"], ["R-DSP-6", "warn-unless-strict"], ["R-DSP-7", "fail"], ["R-DSP-8", "fail"], ["R-DSP-9", "fail"], ["R-DSP-10", "warn"], ["R-DSP-11", "warn"], ["R-DSP-12", "fail"]],
     "2a (không tài khoản/mất quyền) đỏ khi --strict; 2b (tài khoản đã ngưng) chỉ cảnh báo; R-DSP-3 (chồng lấn) là vi phạm thật; R-DSP-4 (LC-8 mới) cảnh báo trước",
   );
   for (const c of CHECKS) {
@@ -4173,6 +4173,90 @@ test("R-DSP-7: dòng gieo `gieo-han-muc` còn → 0; mất (gỡ trigger chỉ-t
 });
 
 // ---------------------------------------------------------------------------------------------------------------------
+// R-DSP-8…12 (ADR-0142, migration 0138): Bán hàng phụ trách đơn (`dsp_sales_owner`) và lời mời (`dsp_sales_invite`). Tên trong mã: ô này KHÔNG phải ô `HANDLE`
+// (Hướng dẫn viên); R-DSP-1…7 vẫn nói về `HANDLE`.
+// ---------------------------------------------------------------------------------------------------------------------
+function oBanHang(db: DatabaseSync, o: { id: string; order: string; party: string; to?: string | null }): void {
+  db.prepare(`INSERT INTO dsp_sales_owner (id, order_id, party_id, valid_from_at, valid_to_at, created_at, created_by, updated_at, updated_by, closed_by) VALUES (?, ?, ?, ?, ?, ?, NULL, ?, NULL, ?)`)
+    .run(o.id, o.order, o.party, T1, o.to ?? null, T1, T1, o.to ? "s-admin" : null);
+}
+function loiMoiBanHang(db: DatabaseSync, o: { id: string; order: string; party: string; dong?: boolean }): void {
+  db.prepare(`INSERT INTO dsp_sales_invite (id, order_id, invitee_party_id, invited_by, recorded_at, priority_until_at, closed_at, closed_by, outcome, created_at, created_by, updated_at, updated_by)
+    VALUES (?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, NULL, ?, NULL)`).run(o.id, o.order, o.party, T1, T2, o.dong ? T3 : null, o.dong ? "s-admin" : null, o.dong ? "NHAN" : null, T1, T1);
+}
+
+test("R-DSP-8: hai ô Bán hàng phụ trách đang mở cùng một đơn là vi phạm (chỉ khi chỉ mục duy nhất bị gỡ); ô đã đóng và đơn khác không tính", () => {
+  const db = build();
+  addOrder(db, "o-1");
+  addOrder(db, "o-2");
+  oBanHang(db, { id: "a", order: "o-1", party: "pty-s-an", to: T2 });
+  oBanHang(db, { id: "b", order: "o-1", party: "pty-s-admin" });
+  oBanHang(db, { id: "c", order: "o-2", party: "pty-s-admin" });
+  assert.equal(violations(db, one("R-DSP-8")), 0);
+  assert.throws(() => oBanHang(db, { id: "d", order: "o-1", party: "pty-s-an" }), /UNIQUE/, "chỉ mục duy nhất chặn từ gốc");
+  db.exec("DROP INDEX dsp_sales_owner_open_uq");
+  oBanHang(db, { id: "d", order: "o-1", party: "pty-s-an" });
+  assert.equal(violations(db, one("R-DSP-8")), 1, "bỏ chỉ mục thì kiểm này là lưới cuối");
+});
+
+test("R-DSP-9: hai lời mời đang mở cùng một đơn là vi phạm (chỉ khi chỉ mục duy nhất bị gỡ); lời mời đã khép không tính", () => {
+  const db = build();
+  addOrder(db, "o-1");
+  loiMoiBanHang(db, { id: "a", order: "o-1", party: "pty-s-an", dong: true });
+  loiMoiBanHang(db, { id: "b", order: "o-1", party: "pty-s-admin" });
+  assert.equal(violations(db, one("R-DSP-9")), 0);
+  assert.throws(() => loiMoiBanHang(db, { id: "c", order: "o-1", party: "pty-s-an" }), /UNIQUE/);
+  db.exec("DROP INDEX dsp_sales_invite_open_uq");
+  loiMoiBanHang(db, { id: "c", order: "o-1", party: "pty-s-an" });
+  assert.equal(violations(db, one("R-DSP-9")), 1);
+});
+
+test("R-DSP-10 (cảnh báo): lời mời còn mở trên đơn đã huỷ = 1; đơn chưa huỷ, hoặc lời mời đã khép = 0", () => {
+  const db = build();
+  addOrder(db, "o-1");
+  addOrder(db, "o-2");
+  addOrder(db, "o-3");
+  loiMoiBanHang(db, { id: "a", order: "o-1", party: "pty-s-an" });
+  loiMoiBanHang(db, { id: "b", order: "o-2", party: "pty-s-an", dong: true });
+  loiMoiBanHang(db, { id: "c", order: "o-3", party: "pty-s-an" });
+  assert.equal(violations(db, one("R-DSP-10")), 0, "chưa đơn nào huỷ");
+  for (const o of ["o-2", "o-3"]) {
+    db.exec(`INSERT INTO ord_cancel_reason (id, order_id, reason_code, group_code, cancelled_date, created_at, updated_at) VALUES ('cr-${o}', '${o}', 'KHACH_DOI_Y', 'KHACH_HUY', '2026-09-21', '${T1}', '${T1}')`);
+    db.exec(`UPDATE orders SET status = 'cancelled' WHERE id = '${o}'`);
+  }
+  assert.equal(violations(db, one("R-DSP-10")), 1, "chỉ lời mời MỞ trên đơn huỷ (o-3)");
+});
+
+test("R-DSP-11 (cảnh báo): người giữ ô Bán hàng phụ trách phải còn Bán hàng / Quản trị / Toàn quyền và không giữ Đối tác; Hướng dẫn viên thuần, tài khoản lai, hồ sơ không tài khoản = vi phạm", () => {
+  const cases: [string, string, number][] = [
+    ["An: còn SALES", "pty-s-an", 0],
+    ["Quản trị", "pty-s-admin", 0],
+    ["Bình: đã ngưng nhưng còn quyền SALES (lịch sử hợp lệ)", "pty-s-binh", 0],
+    ["Cửu: chỉ còn FIELD — không phải Bán hàng", "pty-s-cuu", 1],
+    ["Lai: còn SALES nhưng thêm Đối tác", "pty-s-lai", 1],
+    ["Xa: hồ sơ không có tài khoản", "pty-xa", 1],
+  ];
+  for (const [what, party, n] of cases) {
+    const db = build();
+    addOrder(db, "o-1");
+    oBanHang(db, { id: "a", order: "o-1", party });
+    assert.equal(violations(db, one("R-DSP-11")), n, what);
+  }
+  const dong = build();
+  addOrder(dong, "o-1");
+  oBanHang(dong, { id: "a", order: "o-1", party: "pty-xa", to: T2 });
+  assert.equal(violations(dong, one("R-DSP-11")), 0, "ô đã đóng không xét");
+});
+
+test("R-DSP-12: dòng gieo `gieo-ban-hang` của chính sách còn → 0; mất (gỡ trigger chỉ-thêm trong bài để xoá) → 1", () => {
+  assert.equal(violations(build(), one("R-DSP-12")), 0);
+  const db = build();
+  db.exec("DROP TRIGGER dsp_sales_policy_no_delete");
+  db.exec("DELETE FROM dsp_sales_policy WHERE id = 'gieo-ban-hang'");
+  assert.equal(violations(db, one("R-DSP-12")), 1);
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
 // ADR-0148 Đ1 (migration 0126): dấu huỷ ở ba bảng mức. R-PRC-7 = mọi bản chụp AUTO trỏ dòng mức CHƯA HUỶ chứa ngày chụp; R-PRC-1/2/5 bỏ qua dòng huỷ.
 // Ca đỏ của R-PRC-7 đi đường mà trigger CHO PHÉP (rút ngắn / huỷ dòng mức là quyết định của máy chủ — CSDL không biết «đã chụp»): đúng lỗ mà kiểm này canh.
 // ---------------------------------------------------------------------------------------------------------------------
@@ -4374,7 +4458,7 @@ test("R-ORD-17w và changDauCuaDichVu chọn CÙNG lượt: trên mỗi ca xếp
 });
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------
-// R-CRD-1, R-CRD-2 (ADR-0168 Đ2 mục 1, 7; migration 0139): hình thức thanh toán và hạn trả đi cùng nhau.
+// R-CRD-1, R-CRD-2 (ADR-0168 Đ2 mục 1, 7; migration 0141): hình thức thanh toán và hạn trả đi cùng nhau.
 // ---------------------------------------------------------------------------------------------------------------------------------------------------
 test("R-CRD-1 / R-CRD-2: Trả sau đã xác nhận thiếu hạn trả, hoặc Trả trước có hạn trả → vi phạm; đủ cặp / còn nháp → 0", () => {
   const db = build();

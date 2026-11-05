@@ -264,7 +264,7 @@ function hopNhom(b: Bo, opener: HTMLElement): void {
   mo("Chuyển nhóm", opener, (hop) => {
     const chon = h("select", { id: "fb-chuyen-nhom", "aria-label": "Nhóm nhận" }, ...dich.map((x) => h("option", { value: x.id }, x.name)));
     const lyDo = h("input", { id: "fb-chuyen-ly-do", type: "text", maxLength: 300, "aria-label": "Lý do chuyển nhóm" });
-    const nut = h("button", { type: "button", class: "btn btn-primary" }, "Chuyển");
+    const nut = h("button", { type: "button", class: "btn btn-primary" }, "Chuyển nhóm");
     nut.addEventListener("click", async () => {
       const ly = lyDo.value.trim();
       if (!ly) return hop.hienLoi("Ghi lý do chuyển nhóm.");

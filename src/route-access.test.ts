@@ -137,6 +137,8 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "PUT", path: "/api/catalog/:code/transfer-rule", access: "admin" }, // ADR-0149 Đ1: ô «Được đón không» của dịch vụ — cổng admin + can(admin.manage) dòng đầu thân
   { method: "GET", path: "/api/company", access: "public" },
   { method: "GET", path: "/api/dispatch/assignees", access: "office" },
+  { method: "GET", path: "/api/dispatch/ban-hang-moi", access: "orders" }, // ADR-0142: danh sách Bán hàng để mời lúc lập (mã + tên) — thân hỏi can(dispatch.sales.invitees)
+  { method: "GET", path: "/api/dispatch/ban-hang", access: "orders" }, // ADR-0142: Bán hàng phụ trách + lời mời của các đơn (≤ 30) — lọc từng đơn bằng can(order.view); Đối tác, Thực tập chỉ nhận tên
   { method: "GET", path: "/api/dispatch/handlers", access: "orders" }, // ADR-0019 điều 1: màn đơn; thân hỏi can(order.view) không ngữ cảnh
   { method: "GET", path: "/api/dispatch/mine", access: "staff" }, // "việc của tôi" (FIELD) — ADR-0014 điều 6/11, tự khoanh phạm vi bằng staff.id
   // ADR-0032 (hạn mức Từ chối, 2026-10-23): bảng số lần (admin.manage), đổi cài đặt / đặt lại (settings.ops) — can() dòng đầu thân
@@ -276,6 +278,12 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/orders/:id/gui-xac-nhan", access: "orders" }, // ADR-0136 Đ3 (Task 3.3): người lập gửi xác nhận — thân hỏi can(order.modify) + chỉ người lập
   { method: "POST", path: "/api/orders/:id/rut-xac-nhan", access: "orders" },
   { method: "POST", path: "/api/orders/:id/quyet-dinh", access: "orders" }, // ADR-0136 Đ5, Đ7: Còn vé / Hết vé / Huỷ — thân hỏi can(order.confirm.review) + duocQuyetDinh
+  { method: "GET", path: "/api/orders/chua-co-ban-hang", access: "orders" }, // ADR-0142 Đ6: thẻ cảnh báo — thân hỏi can(order.view, đơn của mình) rồi lọc theo người xem (cachThayTheCanhBao); đứng TRƯỚC /api/orders/:id
+  { method: "POST", path: "/api/orders/:id/ban-hang/nhan", access: "orders" }, // ADR-0142: thân hỏi can(dispatch.sales.claim) + duocNhanBanHang
+  { method: "POST", path: "/api/orders/:id/ban-hang/tu-choi", access: "orders" }, // ADR-0142: thân hỏi can(dispatch.sales.claim) + chỉ người được mời
+  { method: "PUT", path: "/api/orders/:id/ban-hang", access: "orders" }, // ADR-0142: thân hỏi can(dispatch.sales.assign) — Quản trị, Toàn quyền
+  { method: "GET", path: "/api/cai-dat/ban-hang-phu-trach", access: "admin" }, // ADR-0142 Đ5: giờ hành chính + phút ưu tiên — thân hỏi can(settings.ops)
+  { method: "POST", path: "/api/cai-dat/ban-hang-phu-trach", access: "admin" }, // như trên; chỉ Toàn quyền ghi
   { method: "GET", path: "/api/orders/cho-xac-nhan", access: "orders" }, // ADR-0136 Đ6: danh sách chờ (không tên / SĐT / email khách) — thân hỏi can(order.confirm.review); đứng TRƯỚC /api/orders/:id // ADR-0136 Đ3: người lập rút lại — thân hỏi can(order.modify) + chỉ người lập
   { method: "POST", path: "/api/orders/:id/cancel-reason", access: "orders" }, // ADR-0089 đ8: phân loại lý do huỷ — tự kiểm can(order.cancel.classify) bên trong
   // ADR-0089 (cọc đơn huỷ, migration 0079): sáu lệnh ghi văn phòng (tự kiểm ô bên trong) + ba route đọc của Kế toán (ledger.view any).
@@ -721,6 +729,8 @@ test("mức truy cập của 424 route hiện có khớp ảnh chụp đã duy�
   // 2026-11-02 (ADR-0155 Đ2.5, lượt 2 Task 4.1): + GET /api/pricing/cap-hien-hanh (office; partner.commission.view, không Đối tác) = 423.
   // 2026-11-03 (ADR-0161 Đ3, Task 1): + GET (office; partner.commission.view, không Đối tác), POST (admin; settings.ops) /api/pricing/gioi-han-nhap = 440 (hai route mới của giới hạn nhập mức hoa hồng).
   // 2026-11-04 (màn «Cấp độ đại lý», đặc tả 2026-11-04-man-cap-dai-ly): + GET /api/pricing/cap-dai-ly (office; partner.commission.write, không Đối tác) = 441.
-  assert.equal(actual.length, 446, "số route thực tế lệch 446 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 446, "SNAPSHOT phải có đúng 446 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // 2026-11-05 (ADR-0142, Task 5): + GET /api/orders/chua-co-ban-hang, POST /api/orders/:id/ban-hang/nhan, POST …/ban-hang/tu-choi, PUT /api/orders/:id/ban-hang (orders; dispatch.sales.*), GET /api/dispatch/ban-hang-moi, GET /api/dispatch/ban-hang (orders), GET, POST /api/cai-dat/ban-hang-phu-trach (admin; settings.ops) = 449.
+  // 2026-11-05 (ADR-0168, Trả sau): thêm năm route hạn mức trả sau của billing = 454.
+  assert.equal(actual.length, 454, "số route thực tế lệch 454 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 454, "SNAPSHOT phải có đúng 454 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

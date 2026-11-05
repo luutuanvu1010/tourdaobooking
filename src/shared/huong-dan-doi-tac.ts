@@ -14,7 +14,7 @@ export const HD_DOI_TAC: NhomHuongDan = {
    Muốn lọc nhanh, chạm một nhóm ở hàng nhóm ngay dưới ô tìm ([[Tất cả]] để xem lại toàn bộ).
 4. Nhập số khách. Form có ô tên và số điện thoại của khách thì nhập luôn.
 5. Bấm [[Gửi đơn]]. Nền tảng lưu đơn rồi gửi đi. Đơn có đón thì văn phòng chốt giờ đón rồi mới xác nhận.
-6. Đơn đã xác nhận thì bấm [[Xem biên nhận]] để gửi ảnh cho khách.`,
+6. Đơn đã xác nhận thì bấm [[Xem ảnh gửi khách]] để gửi ảnh cho khách.`,
   muc: [
     {
       tieuDe: "Menu của bạn",
@@ -68,14 +68,14 @@ Muốn đăng nhập nhanh bằng Face ID: vào [[Tôi]], phần **Đăng nhập
 
 ### Giá của đối tác
 
-- Đơn giá là giá bán lẻ của danh mục. Thẻ dịch vụ của bạn không có nút **Sửa giá** như của văn phòng.
+- Đơn giá là giá bán lẻ của danh mục. Thẻ dịch vụ của bạn không có nút **Sửa giá đơn này** như của văn phòng.
 - Ô có chữ mờ «Giảm giá cho khách»: đơn bạn được hưởng hoa hồng thì giảm được tới mức hoa hồng của đơn; còn lại ô khoá.
 - Bạn không thêm được dịch vụ nhập tay (dịch vụ ngoài danh mục).
 - Muốn giảm giá, dùng giá khác hay thêm dịch vụ ngoài danh mục thì **nhờ văn phòng**.
 
 ### Người phụ trách
 
-Tài khoản đối tác không chọn được hướng dẫn viên khi lập đơn. Đơn của bạn chờ nhân viên Tour Đảo nhận lo.`,
+Ở trang Tạo đơn, bạn có thể mời một nhân viên Bán hàng làm người phụ trách ở khối [[Người phụ trách]] (chỉ thấy tên). Không mời ai thì đơn chờ Bán hàng nhận. Bạn không chọn được Hướng dẫn viên: đơn chờ nhân viên Tour Đảo lo.`,
     },
     {
       tieuDe: "Sửa đơn nháp",
@@ -104,11 +104,11 @@ Giờ đón quá sát không chặn bạn gửi đơn: văn phòng chốt giờ 
     {
       tieuDe: "Gửi biên nhận cho khách",
       noiDung: `1. Mở đơn.
-2. Bấm [[Xem biên nhận]].
+2. Bấm [[Xem ảnh gửi khách]].
 3. Hộp **Ảnh gửi khách** hiện ảnh xác nhận. Ảnh của đối tác không có dòng người phụ trách.
-4. Bấm [[Chia sẻ]] để gửi qua Zalo, hoặc [[Tải ảnh PNG]] để lưu về máy.
+4. Bấm [[Chia sẻ]] để gửi qua Zalo, hoặc [[Tải ảnh về máy]] để lưu lại.
 
-> Ví dụ: Sau khi xác nhận đơn cho gia đình khách, chị Hoa bấm Xem biên nhận rồi Chia sẻ, chọn Zalo, gửi ảnh cho khách.`,
+> Ví dụ: Sau khi xác nhận đơn cho gia đình khách, chị Hoa bấm Xem ảnh gửi khách rồi Chia sẻ, chọn Zalo, gửi ảnh cho khách.`,
     },
     {
       tieuDe: "Huỷ đơn",
@@ -169,15 +169,15 @@ Vẫn lập đơn và bấm [[Gửi đơn]] được. Văn phòng chọn giờ v
     },
     {
       tieuDe: "Câu hỏi thường gặp",
-      noiDung: `### Sao trang đơn không ghi ai phụ trách?
+      noiDung: `### Sao trang đơn không ghi Hướng dẫn viên?
 
-Tài khoản đối tác không xem tên người phụ trách đơn, nên trang đơn và danh sách đơn không có phần này. Muốn biết ai lo đơn thì gọi văn phòng.
+Tài khoản đối tác chỉ thấy tên **Người phụ trách** (nhân viên Bán hàng) ở trang đơn và danh sách đơn, không thấy Hướng dẫn viên. Muốn biết ai đón khách thì gọi văn phòng.
 
 ### Sao tôi không thấy Trang chủ?
 
 Trang chủ là màn tổng hợp của văn phòng. Tài khoản đối tác mở Nền tảng sẽ vào thẳng danh sách đơn của mình.
 
-### Sao thẻ dịch vụ không có nút Sửa giá?
+### Sao thẻ dịch vụ không có nút Sửa giá đơn này?
 
 Đối tác dùng giá bán lẻ của danh mục nên không sửa đơn giá. Cần giá khác thì nhờ văn phòng.
 

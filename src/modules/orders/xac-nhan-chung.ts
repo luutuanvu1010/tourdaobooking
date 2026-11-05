@@ -4,7 +4,7 @@
 import { auditStatement } from "../audit";
 import { chupDon, docBangChoChup, soKhachTinhHoaHong, type BanChup } from "../pricing";
 import type { DongBoChuyenDto, IncompleteTripBody, LyDoCanXacNhan, OrderDetailDto, OrderStatus, PaxCounts, ShortNoticeRequiredBody, StaffProfile, XacNhanTrenDonDto } from "../../shared/contracts";
-import { can, holdsIntern, holdsPartner } from "../../shared/permissions";
+import { can, holdsIntern, holdsPartner, passesAdminGate } from "../../shared/permissions";
 import { error, json } from "../../shared/http";
 import { vnToday } from "../../shared/vn-date";
 import { maskLongDigits } from "../../shared/text-guards";
@@ -14,6 +14,8 @@ import { CAU_THIEU_NGUOI_LON, donThieuNguoiLon } from "../../shared/nguoi-di-kem
 import { cauThieuChonDon, thieuChonDon } from "../../shared/cong-chon-don";
 import type { MocToiThieu } from "../../shared/moc-toi-thieu";
 import { canXacNhan, duocQuyetDinh, quaHanXacNhan } from "../../shared/xac-nhan-don";
+import { trangThaiLoiMoi } from "../../shared/ban-hang-phu-trach";
+import type { BanHangNoi } from "../../shared/router";
 import { thieuGioChangDau } from "../../shared/chang-dua-don";
 import { canhBaoMocCua } from "./dat-gap";
 import { coHienHanh, nhomTheoMa, tuXacNhanNoiBo, yeuCauMoCuaDon, type YeuCauRow } from "./xac-nhan-repo";
@@ -260,7 +262,7 @@ export const catChoXetDuyet = (o: OrderDetailDto, tuyChon: { cheGhiChu: boolean 
  * (`tinhCanXacNhan`, `duocQuyetDinh`, `tuXacNhanNoiBo`). Chỉ cho đơn NHÁP và chỉ người liên quan (người lập; hoặc người giữ ô xét duyệt khi đơn đang chờ); còn lại null.
  * `canXacNhan` chỉ tính cho người lập. Không chứa dữ liệu khách.
  */
-export async function xacNhanTrenDon(db: D1Database, i: { staff: StaffProfile; order: { id: string; staffId: string; status: OrderStatus }; moc: MocToiThieu | null; nowMs: number }): Promise<XacNhanTrenDonDto | null> {
+export async function xacNhanTrenDon(db: D1Database, i: { staff: StaffProfile; order: { id: string; staffId: string; status: OrderStatus }; moc: MocToiThieu | null; nowMs: number; banHang: Pick<BanHangNoi, "loiMoiMoCua"> }): Promise<XacNhanTrenDonDto | null> {
   if (i.order.status !== "draft") return null;
   const laNguoiLap = i.order.staffId === i.staff.id;
   const coQuyenXetDuyet = can(i.staff, "order.confirm.review");
@@ -274,9 +276,14 @@ export async function xacNhanTrenDon(db: D1Database, i: { staff: StaffProfile; o
     vi = y ? viCuaYeuCau(y, kq.vi) : kq.vi;
     canXN = laNguoiLap && (kq.can || canChotGioCuaNguoiLap(i.staff, don.services)); // ADR-0154 Đ1.2: cùng luật với route Gửi đơn
   }
+  // ADR-0142: cùng phép tính «lời mời còn ưu tiên của người KHÁC» với route `quyet-dinh` (một lần đọc, chỉ khi có yêu cầu mở).
+  const loiMoi = y !== null ? await i.banHang.loiMoiMoCua(i.order.id) : null;
+  const uuTienCuaNguoiKhac = loiMoi !== null && loiMoi.staffId !== i.staff.id && trangThaiLoiMoi({ hanIso: loiMoi.hanIso, nowMs: i.nowMs, xConHopLe: loiMoi.xConHopLe, daKhep: false }) === "UU_TIEN";
   const quyetDinhDuoc = y !== null && duocQuyetDinh({
     laNguoiLap, laNoiBo: !holdsPartner(i.staff) && !holdsIntern(i.staff), coQuyenXetDuyet,
     choTuXacNhan: laNguoiLap ? await tuXacNhanNoiBo(db, new Date(i.nowMs).toISOString()) : false,
+    uuTienCuaNguoiKhac,
+    laQuanTriHoacToanQuyen: passesAdminGate(i.staff), giuDoiTac: holdsPartner(i.staff),
   });
   return { yeuCau: y ? { id: y.id, guiLuc: y.submitted_at, hanLuc: y.deadline_at, quaHan: quaHanXacNhan(y.deadline_at, i.nowMs), vi } : null, canXacNhan: canXN, quyetDinhDuoc };
 }

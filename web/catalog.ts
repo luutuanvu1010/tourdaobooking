@@ -116,7 +116,7 @@ function row(it: CatalogAdminItem): HTMLElement {
     h(
       "td",
       { class: "row-actions" },
-      btn("Sửa giá", () => openEdit(it)),
+      btn("Ghi đè giá", () => openEdit(it)),
       duocSuaDuaDon && nutDuaDon(btn("Đưa đón", () => moDuaDon(it, nutDuaDonCua(it.code, "bang"))), it.code, "bang"),
       it.conflicts.length > 0 && btn("Giữ ghi đè", () => update(`/api/catalog/${encodeURIComponent(it.code)}/ack`, { method: "POST" })),
       it.overridden.length > 0 && btn("Bỏ ghi đè giá", () => confirm(CAU_HOI_BO_GHI_DE_GIA(it.code, it.hidden)) && update(`/api/catalog/${encodeURIComponent(it.code)}/override`, { method: "DELETE" })),
@@ -157,7 +157,7 @@ function card(it: CatalogAdminItem): HTMLElement {
     h(
       "div",
       { style: "display:flex;flex-wrap:wrap;gap:var(--s2);margin-top:var(--s1)" },
-      btn("Sửa giá", () => openEdit(it)),
+      btn("Ghi đè giá", () => openEdit(it)),
       duocSuaDuaDon && nutDuaDon(btn("Đưa đón", () => moDuaDon(it, nutDuaDonCua(it.code, "the"))), it.code, "the"),
       it.conflicts.length > 0 && btn("Giữ ghi đè", () => update(`/api/catalog/${encodeURIComponent(it.code)}/ack`, { method: "POST" })),
       it.overridden.length > 0 && btn("Bỏ ghi đè giá", () => confirm(CAU_HOI_BO_GHI_DE_GIA(it.code, it.hidden)) && update(`/api/catalog/${encodeURIComponent(it.code)}/override`, { method: "DELETE" })),
@@ -508,7 +508,7 @@ function openEdit(it: CatalogAdminItem): void {
   const nhomKhoi = h("div", { class: "nhom-sua" });
   replaceChildren(
     editEl,
-    h("h2", null, `Sửa giá: ${it.code} — ${it.name}`),
+    h("h2", null, `Ghi đè giá: ${it.code} — ${it.name}`),
     h("p", { class: "muted" }, "Giá ghi đè chỉ có hiệu lực trong hệ thống này (không ghi ngược vào Google Sheet) và không bị lần đồng bộ sau đè mất. Để trống hoặc nhập đúng giá Sheet để bỏ ghi đè loại đó."),
     unit,
     h("div", { class: "grid three" }, ...PAX_ORDER.map((c) => h("label", null, `${PAX_LABEL[c]} (₫)`, fields.get(c)!))),
@@ -580,7 +580,7 @@ function renderNhomSua(khoi: HTMLElement, it: CatalogAdminItem): void {
   })();
 }
 
-// ---- Khung "Đưa đón" của một dịch vụ (bản vẽ M7). Máy tính (≥900px — cùng mốc bảng ↔ thẻ): khung ở đúng chỗ khung "Sửa giá" (#edit). Hẹp hơn: bảng trượt
+// ---- Khung "Đưa đón" của một dịch vụ (bản vẽ M7). Máy tính (≥900px — cùng mốc bảng ↔ thẻ): khung ở đúng chỗ khung "Ghi đè giá" (#edit). Hẹp hơn: bảng trượt
 // dùng chung (web/bang-truot.ts). Mỗi lần lưu = MỘT BẢN ĐẦY ĐỦ (thân luôn mang đủ `mode`, `returnTimeHint`, `noiTraMacDinhId` — không dựa vào luật "khoá vắng =
 // chép" của máy chủ dành cho màn cũ). Cột "Người đổi": `createdBy` (id tài khoản) ghép tên qua `GET /api/staff` như lịch sử nhóm (`tenNguoi`).
 const rong = (): boolean => window.matchMedia("(min-width: 900px)").matches;
@@ -647,7 +647,7 @@ function moDuaDon(it: CatalogAdminItem, opener: HTMLElement | null): void {
   const truongTra = h("div", { class: "dd-o" }, h("label", { for: oNoiTra.id }, "Nơi trả gợi ý"), oNoiTra, h("div", { id: `dd-tra-${luot}-goi-y`, class: "dd-goi-y" }, "Để trống nếu không gợi ý"), ghiNgung);
   const apDung = h("p", { class: "dd-ghi muted" }, "Áp dụng cho đơn lập từ bây giờ; đơn đã có không đổi.");
   const lichSuEl = h("div", { class: "dd-lich-su" }, h("p", { class: "muted" }, "Đang tải…"));
-  const luu = h("button", { type: "button", class: mayTinh ? "btn btn-primary btn-chinh" : "btn btn-primary btn-chinh dd-luu-day", "data-action": "dd-luu", disabled: true }, "Lưu bản mới");
+  const luu = h("button", { type: "button", class: mayTinh ? "btn btn-primary btn-chinh" : "btn btn-primary btn-chinh dd-luu-day", "data-action": "dd-luu", disabled: true }, "Lưu thành bản mới");
   function ve(): void {
     for (const [m, o] of radio) {
       o.checked = m === mode;

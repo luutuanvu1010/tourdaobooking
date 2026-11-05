@@ -17,14 +17,35 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
-    // Thanh toán trả sau theo hạn mức (ADR-0168): migration 0139, ô quyền credit.limit.view / credit.limit.write.
-    // Số 2.63 và ngày chỉ là tạm cho nhánh: bước A.0 của lần triển khai đặt lại nếu cần.
-    version: "2.63",
+    // Thanh toán trả sau theo hạn mức (ADR-0168): migration 0141, ô quyền credit.limit.view / credit.limit.write.
+    // Số 2.65 và ngày chỉ là tạm cho nhánh: bước A.0 của lần triển khai đặt lại nếu cần.
+    version: "2.65",
     date: "2026-11-05",
     items: [
       { kind: "moi", text: "Đối tác có hạn mức được chọn «Trả sau» khi lập đơn: vé mở trước, tiền thu sau trong số ngày được nợ." },
       { kind: "moi", text: "Toàn quyền có màn Hạn mức trả sau để cấp hoặc ngừng hạn mức cho từng đối tác; Kế toán xem được số nợ và đơn quá hạn.", bai: { id: "viec/han-muc-tra-sau", ten: "Cấp hạn mức trả sau cho đối tác" } },
       { kind: "moi", text: "Đơn trả sau vượt hạn mức, hoặc của đối tác còn đơn quá hạn, không xác nhận được; chi tiết đơn ghi hình thức thanh toán và hạn trả." },
+    ],
+  },
+  {
+    // Bán hàng phụ trách đơn (ADR-0142; migration 0138, 0140; ô quyền mới `dispatch.sales.*`; `order.confirm.review` thu về Bán hàng, Quản trị, Toàn quyền).
+    version: "2.64",
+    date: "2026-11-05",
+    items: [
+      { kind: "moi", text: "Mỗi đơn có hai người: «Người phụ trách» là Bán hàng chịu trách nhiệm chính; «Hướng dẫn viên» đón, hướng dẫn, gặp khách, thu tiền tại cảng." },
+      { kind: "moi", text: "Lập đơn có thể mời một Bán hàng làm người phụ trách. Người đó bấm «Nhận phụ trách» hoặc «Từ chối» trong thời gian ưu tiên; hết hạn thì Bán hàng nào cũng nhận." },
+      { kind: "moi", text: "Danh sách đơn có dòng «Phụ trách: tên» hoặc «Chờ Bán hàng nhận»; Trang chủ có thẻ «Đơn chưa có người phụ trách». Quản trị, Toàn quyền đổi được người phụ trách." },
+      { kind: "doi", text: "Kế toán và Hướng dẫn viên không còn bấm «Còn vé, xác nhận đơn» nữa: đơn cần kiểm vé do Bán hàng, Quản trị hoặc Toàn quyền xác nhận." },
+      { kind: "doi", text: "Nút «Nhận làm HDV» nay chỉ hiện với tài khoản có quyền Hướng dẫn viên." },
+    ],
+  },
+  {
+    // Bảng tham chiếu ngôn ngữ đợt 2 (ADR-0167): 16 tên nút đổi theo lời chủ 2026-11-05. Không migration, không ô quyền, không lệnh ghi mới.
+    version: "2.63",
+    date: "2026-11-05",
+    items: [
+      { kind: "doi", text: "Đổi chữ trên một số nút cho dễ hiểu hơn, ví dụ «Tải ảnh về máy», «Xem ảnh gửi khách», «Bỏ khỏi danh sách», «Đổi giờ dự kiến». Việc nút làm không đổi." },
+      { kind: "doi", text: "Nút «Sửa giá» trong đơn nay là «Sửa giá đơn này»; ở màn Dịch vụ & giá là «Ghi đè giá», để hai việc khác nhau không trùng tên." },
     ],
   },
   {

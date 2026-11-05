@@ -1638,6 +1638,47 @@ export const CHECKS = [
     sql: "SELECT CASE WHEN EXISTS (SELECT 1 FROM dsp_refuse_policy WHERE id = 'gieo-han-muc') THEN 0 ELSE 1 END",
     level: "fail",
   },
+  // ---- Bán hàng phụ trách đơn (ADR-0142, migration 0138). Tên trong mã `dsp_sales_*`: ô RIÊNG, không phải ô `HANDLE` (Hướng dẫn viên) của R-DSP-1…7.
+  // R-DSP-8 / R-DSP-9: lưới cuối của hai chỉ mục duy nhất một phần (`dsp_sales_owner_open_uq`, `dsp_sales_invite_open_uq`) — khuôn R-DSP-1.
+  {
+    code: "R-DSP-8",
+    what: "mỗi đơn có tối đa một dòng Bán hàng phụ trách đang mở",
+    sql: "SELECT count(*) FROM (SELECT order_id FROM dsp_sales_owner WHERE valid_to_at IS NULL GROUP BY order_id HAVING count(*) > 1)",
+    level: "fail",
+  },
+  {
+    code: "R-DSP-9",
+    what: "mỗi đơn có tối đa một lời mời Bán hàng đang mở",
+    sql: "SELECT count(*) FROM (SELECT order_id FROM dsp_sales_invite WHERE closed_at IS NULL GROUP BY order_id HAVING count(*) > 1)",
+    level: "fail",
+  },
+  // R-DSP-10 (cảnh báo): huỷ đơn khép lời mời cùng lô (outcome HUY_DON); lời mời mở trên đơn đã huỷ là dấu một đường huỷ quên khép.
+  {
+    code: "R-DSP-10",
+    what: "không có lời mời Bán hàng còn mở trên đơn đã huỷ",
+    sql: "SELECT count(*) FROM dsp_sales_invite i JOIN orders o ON o.id = i.order_id WHERE i.closed_at IS NULL AND o.status = 'cancelled'",
+    level: "warn",
+    note: "cảnh báo: một đường huỷ đơn không khép lời mời — khép tay bằng outcome HUY_DON và tìm đường huỷ đó",
+  },
+  // R-DSP-11 (cảnh báo): khuôn `handlerAccountEligible`, nhưng đúng tập quyền Bán hàng phụ trách (`dispatch.sales.claim`): SALES / ADMIN / SUPER_ADMIN, không giữ PARTNER.
+  // Tài khoản đã ngưng vẫn tính còn quyền (lịch sử: người nghỉ việc vẫn đứng tên đơn cũ), như R-DSP-2b.
+  {
+    code: "R-DSP-11",
+    what: "người giữ ô Bán hàng phụ trách đang mở là hồ sơ có tài khoản còn quyền Bán hàng / Quản trị / Toàn quyền và không giữ quyền Đối tác",
+    sql: `SELECT count(*) FROM dsp_sales_owner o WHERE o.valid_to_at IS NULL AND NOT EXISTS (
+      SELECT 1 FROM staff s JOIN stf_permission p ON p.staff_id = s.id AND p.permission_type_code IN ('SALES', 'ADMIN', 'SUPER_ADMIN') AND p.valid_to_at IS NULL
+      WHERE s.party_id = o.party_id
+        AND NOT EXISTS (SELECT 1 FROM stf_permission pp WHERE pp.staff_id = s.id AND pp.permission_type_code = 'PARTNER' AND pp.valid_to_at IS NULL))`,
+    level: "warn",
+    note: "cảnh báo: người phụ trách (Bán hàng) mất quyền hoặc thành tài khoản lai — nhờ Quản trị / Toàn quyền đổi người phụ trách",
+  },
+  // R-DSP-12: dòng gieo của chính sách là MỐC PHÁT HÀNH (đơn xác nhận trước mốc là «đơn cũ», không tự nhận được); trigger cấm xoá là lớp một. Khuôn R-DSP-7.
+  {
+    code: "R-DSP-12",
+    what: "dòng gieo chính sách Bán hàng phụ trách (gieo-ban-hang) còn nguyên",
+    sql: "SELECT CASE WHEN EXISTS (SELECT 1 FROM dsp_sales_policy WHERE id = 'gieo-ban-hang') THEN 0 ELSE 1 END",
+    level: "fail",
+  },
   // R-ORD-4: seq của order_money_adjustment liên tục từ 1, không trùng, không nhảy cóc theo từng đơn — lưới thứ hai cho khoá lạc quan ở
   // insertMoneyAdjustment (P21: mọi kiểm soát trọng yếu có ≥ 2 lớp). Chỉ mục duy nhất idx_order_money_adjustment_seq là lưới thứ nhất (chặn ngay
   // lúc ghi); kiểm này phát hiện nếu có lỗ trong logic ghi (vd một đường code khác lỡ chèn thẳng, bỏ qua insertMoneyAdjustment).
@@ -2207,7 +2248,7 @@ export const CHECKS = [
     sql: `SELECT count(*) FROM vdt_ticket WHERE purged_at IS NOT NULL AND r2_deleted_at IS NULL AND purged_at < strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-4 days')`,
     level: "warn",
   },
-  // R-CRD-1, R-CRD-2 (ADR-0168 Đ2 mục 1, 7; migration 0139): hình thức thanh toán và hạn trả đi cùng nhau. R-CRD-3 («hồ sơ nợ vượt hạn mức hiện hành», chỉ cảnh báo) KHÔNG làm bằng SQL:
+  // R-CRD-1, R-CRD-2 (ADR-0168 Đ2 mục 1, 7; migration 0141): hình thức thanh toán và hạn trả đi cùng nhau. R-CRD-3 («hồ sơ nợ vượt hạn mức hiện hành», chỉ cảnh báo) KHÔNG làm bằng SQL:
   // số nợ tính bằng JS từ phải thu hiện hành (đặc tả «Điểm dễ sai») — màn «Hạn mức trả sau» hiện đang nợ và còn được dùng cho Kế toán xem; chờ chủ quyết cách làm (báo cáo Task 2).
   {
     code: "R-CRD-1",

@@ -25,6 +25,11 @@ const KIND_ICON: Record<LoaiTin, IconName> = {
   dieu_chinh: "checkCircle", // yêu cầu điều chỉnh công nợ (ADR-0115) — giữ màu mặc định `.ntf-badge`
   cho_xac_nhan: "clock", // ADR-0136 Đ10: đơn đang chờ người kiểm vé
   duyet_hoan: "money", // ADR-0089 NT-V7: thu trước của đơn huỷ đã duyệt hoàn, chờ Kế toán ghi chi — màu cát như việc đang chờ
+  moi_ban_hang: "userPlus", // ADR-0142: lời mời làm Bán hàng phụ trách
+  ban_hang_nhan: "checkCircle", // đã có Bán hàng phụ trách
+  ban_hang_tu_choi: "swap", // Bán hàng được mời chưa nhận — đơn Chờ Bán hàng nhận
+  doi_ban_hang: "swap", // đổi Bán hàng phụ trách
+  hoan_thanh: "checkCircle", // đơn Hoàn thành
   doi_sau_xac_nhan: "history", // đơn đã xác nhận đổi giờ / nơi đón / số khách (ADR-0062) — giữ màu mặc định `.ntf-badge`
 };
 /** Màu vòng biểu tượng theo loại (đúng bản mẫu: chờ nhận = cát, nhận/xác nhận = xanh lá, huỷ = nguy hiểm, tin công ty = primary/cát đậm nếu quan trọng; "lập"/"giao" giữ màu mặc định `.ntf-badge`).

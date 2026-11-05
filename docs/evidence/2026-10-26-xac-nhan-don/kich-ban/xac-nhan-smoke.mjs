@@ -1,3 +1,6 @@
+// GHI CHÚ 5/11 (ADR-0142, Task 7): từ bản Bán hàng phụ trách chỉ Bán hàng, Quản trị, Toàn quyền xét duyệt đơn chờ — Kế toán và Hướng dẫn viên MẤT ô `order.confirm.review`.
+//   Bước 2, 2c, 3 đổi người xét sang Quản trị (ACCOUNTS.admin); bước 6 (HDV vào /cho-xac-nhan) bị thay bằng ban-hang-phu-trach-smoke.mjs (bước 7) và KHÔNG chạy lại; bước 7 giữ.
+//   Chưa chạy lại tệp này sau khi sửa (giới hạn của Task 7); kịch bản mới thay phần đổi nhãn.
 // Bước xác nhận đơn + «Gửi đơn» của Đối tác (ADR-0136, Task 3.5, lần giao L6) trên Chrome thật, D1 tạm, 390 + 1040. Dữ liệu đi đường thật (route API); tên, SĐT GIẢ.
 //   1) Đối tác (PARTNER thuần) lập nháp CÓ dịch vụ cờ «cần xác nhận» → trang đơn nháp có «Gửi đơn», KHÔNG có «Gửi kiểm vé» / «Xác nhận đơn» → bấm → câu A nguyên văn, dải «Chờ xác nhận», nút «Rút lại».
 //   2) Kế toán (người xét duyệt): Trang chủ có thẻ «Đơn chờ xác nhận»; trang /cho-xac-nhan có thẻ đơn (không tên khách / SĐT); mở đơn → bảng «Xác nhận đơn» có Còn vé / Hết vé / Huỷ; không ảnh, không biên nhận.
@@ -126,7 +129,7 @@ try {
   p.close();
 
   // ---- 2) Kế toán ---------------------------------------------------------------------------------------------------------------------------------------------
-  p = await env.as(ACCOUNTS.accounting, "/", DESK);
+  p = await env.as(ACCOUNTS.admin, "/", DESK); // 5/11: Quản trị thay Kế toán (Kế toán mất ô xét duyệt)
   await b.step("2", `1040 Kế toán: Trang chủ có thẻ «Đơn chờ xác nhận»; trang /cho-xac-nhan có thẻ đơn, không lộ tên / SĐT khách${axeNote()}`, async () => {
     await p.waitFor(`!!document.querySelector('[data-khoa="donCho"]')`, "thẻ Trang chủ donCho", 12000);
     await chup(p, "2-ke-toan-trang-chu-1040", DESK);
@@ -152,7 +155,7 @@ try {
     await axe(p, "Kế toán bảng 390");
     loiConsole(p, "Kế toán");
   });
-  await b.step("3", "Kế toán bấm «Còn vé» → đơn đã xác nhận", async () => {
+  await b.step("3", "Quản trị bấm «Còn vé» → đơn đã xác nhận", async () => {
     await p.ev(click('[data-action="quyet-dinh-con-ve"]'));
     await p.waitFor(`!!document.querySelector('.sheet-foot-xac-nhan .btn-danger')`, "hộp hỏi lại trước Còn vé, xác nhận đơn (ADR-0166)", 8000);
     await p.ev(click('.sheet-foot-xac-nhan .btn-danger'));
@@ -164,7 +167,8 @@ try {
 
   // ---- 6) HDV -------------------------------------------------------------------------------------------------------------------------------------------------
   p = await env.as(HDV, "/cho-xac-nhan", MOB);
-  await b.step("6", `390 HDV (FIELD): trang /cho-xac-nhan mở được, thấy đơn chờ của Bán hàng và nút Kiểm vé; không lộ tên / SĐT khách${axeNote()}`, async () => {
+  // 5/11: thay bằng ban-hang-phu-trach-smoke.mjs bước 7 — HDV không còn xét duyệt, bước dưới KHÔNG chạy lại.
+  if (false) await b.step("6", `390 HDV (FIELD): trang /cho-xac-nhan mở được, thấy đơn chờ của Bán hàng và nút Kiểm vé; không lộ tên / SĐT khách${axeNote()}`, async () => {
     await p.waitFor(`document.querySelectorAll('.cx-the').length >= 1`, "thẻ đơn chờ cho HDV", 12000);
     await chup(p, "6-hdv-danh-sach-390", MOB);
     khongLo(await p.ev("document.querySelector('main').innerText"), "HDV");

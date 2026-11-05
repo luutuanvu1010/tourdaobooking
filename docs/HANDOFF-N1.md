@@ -2,7 +2,16 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.61 ĐÃ LÊN PRODUCTION (màn «Cấp độ đại lý» gán cấp TA nhanh; đổi 12 tên nút và tách nhãn đơn nháp, ADR-0166) — không migration — triển khai 2026-11-04 16:40 giờ Việt Nam
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.62 ĐÃ LÊN PRODUCTION (màn «Dịch vụ cần kiểm vé», ADR-0136 Đ1, Đ5; vé tắt riêng trong nhóm đang bật) — không migration — triển khai 2026-11-05 05:47 giờ Việt Nam
+
+Ghi từ khối tóm tắt của `npm run trien-khai` (chủ tự chạy) và lệnh chỉ đọc của phiên làm màn này:
+- Commit `origin/main`: `546f3b54`. Worker Version ID: `f19bbe2b-ac26-41be-9850-11cde2f42aff`. Cổng phiên bản trước và sau deploy: ĐẠT.
+- **e2e: ĐỎ 28/82, chủ chọn tiếp tục.** Lần kiểm kéo dài 18.367 giây vì máy ngủ rồi thức liên tục trong đêm (`pmset -g log`). Phiên chạy lại đúng 28 kịch bản đỏ trên `546f3b54`, giữ máy thức: 31/31 xanh trong 281 giây. Nguyên nhân máy ngủ là suy luận, chưa đọc từng dòng lỗi của lần đỏ vì đã trôi khỏi màn hình.
+- **`audit-invariants --db remote`: ĐẠT, ba cảnh báo:** `R-VC-14` 7 xe thiếu giấy tờ là điều kiện xuất bến; `R-CTL-1` 8 dịch vụ chưa phân nhóm; `R-DSP-2b` một người phụ trách đang mở có tài khoản đã ngưng.
+- **Phiên mở thử bằng Chrome của chủ, tài khoản Toàn quyền, chỉ xem, không gạt:** màn hiện đủ các nhóm và «Chưa phân loại», mọi nhóm báo không có vé cần kiểm.
+- **Chưa làm / chưa kiểm:** chủ chưa gạt vé nào (đề xuất VB16, VB350, VB500, VHBTB; AI không ghi lên bản thật), nên hành vi bán chưa đổi; lệnh gạt trên production; iPhone thật; tên màn và nút «Bật / Tắt cả nhóm» còn chờ chủ chọn; trần gói Đơn hàng 103.692 chưa có lời duyệt riêng.
+
+## (Cũ) TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.61 ĐÃ LÊN PRODUCTION (màn «Cấp độ đại lý» gán cấp TA nhanh; đổi 12 tên nút và tách nhãn đơn nháp, ADR-0166) — không migration — triển khai 2026-11-04 16:40 giờ Việt Nam
 
 Ghi từ khối tóm tắt của `npm run trien-khai` (chủ tự chạy) và lệnh chỉ đọc của phiên hoa hồng:
 - Commit `origin/main`: `5a89ebae`. Worker Version ID: `c6c57d2b-1921-4173-938e-a832a2b21b02`. e2e: xanh 82/82. Cổng phiên bản trước và sau deploy: ĐẠT. GET công khai sau deploy: `version` 2.61.
@@ -70,6 +79,16 @@ Ghi 29/10/2026 từ khối tóm tắt của `npm run trien-khai` (chủ chạy `
 - Đổi hợp đồng (thêm, không đổi): `GET /api/pricing/ho-so/:id/hoa-hong` trả thêm `ganRieng` (lịch sử gắn riêng, kể cả dòng huỷ; KHÔNG lý do sửa vì Bán hàng cũng đọc khối này). Route, quyền không đổi.
 - Nghiệm thu: phiên kế hoạch tự chạy lại 132 bài N5 + typecheck trên nhánh; người kiểm độc lập ĐẠT. Chưa bấm «Sửa» trên production (bấm là ghi thật), chưa thử iPhone thật. Còn chờ chủ: NO-N5-4 (chữ «Chưa áp dụng cho loại nào» cạnh dòng «Sắp áp dụng»), nợ NO-N5-1…3.
 - **Hoàn tác:** `wrangler rollback` về `ba3d7b56` (2.45) an toàn — 2.46 không đổi dữ liệu.
+
+## ĐANG CHỜ PHÁT HÀNH: Bán hàng phụ trách đơn (ADR-0142 Phần 1; mục nhật ký 2.64 là số TẠM)
+
+Ghi 5/11/2026, nhánh `claude/dispatch-pickup-order-display-1da7b5`. **Cần `npm run trien-khai`, CÓ migration** `0138_ban_hang_phu_trach`, `0140_hop_thu_ban_hang` (chỉ thêm: ba bảng `dsp_*`, cột `orders.sales_invitee_party_id`, dựng lại view, trigger). Hoàn tác mã: `wrangler rollback`; mã cũ không nhắc bảng, cột mới nên vẫn chạy.
+
+- **Khe giữa áp migration và deploy:** mốc phát hành là lúc áp `0138` (dòng gieo `gieo-ban-hang`). Đơn mã cũ xác nhận trong khe này không có người phụ trách và sẽ hiện ở thẻ cảnh báo sau 15 phút giờ hành chính. Giữ đúng thứ tự migration rồi deploy ngay, `npm run trien-khai` làm đúng vậy.
+- **Trả sau theo hạn mức (`0141_tra_sau_han_muc`, chưa nhập):** đã đổi số và dựng lại trigger `orders_delivered_lock` phủ đủ cột của `0138`; bài NT-R6 ở `src/migrations-orders-da-giao.test.ts` canh. Số `0140` cũng có ở nhánh `claude/sales-order-review-check-b67b86` (`0140_quan_ly_ban_hang`), khác tên nên không đụng.
+- **Trần gói trang Đơn hàng:** chủ duyệt 5/11 nâng lên 105.100 byte. Nhập cùng nhánh khác có thể phải đo lại.
+- **Sau khi triển khai:** nhắc nhân viên tải lại Nền tảng, vì bản cũ chưa biết các loại tin mới.
+- **Chưa làm (Phần 2):** máy chủ vẫn cho Bán hàng nhận ô Hướng dẫn viên qua API (giao diện đã ẩn); Hướng dẫn viên được mời, đồng ý hay từ chối.
 
 ## Lần phát hành kế tiếp (chưa số): Kho vé điện tử (ADR-0153, ADR-0156 đã ở `main`, lần lưu `45e91b68`; migration `0131_ve_dien_tu`, `0132_ve_qr_tran_lo`; ADR-0157 và `0134_ve_lo_moi_loai_khach` ở nhánh `claude/ve-dien-tu-qr-tran-lo`, chủ duyệt 2/11, chờ `day-len`) — CHƯA lên production (kiểm chỉ đọc 2/11: `0131`, `0132` đều chưa áp) — GHI CHÚ CHO CHỦ
 
