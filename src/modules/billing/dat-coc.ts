@@ -28,7 +28,7 @@ export async function chanKhaiCocLai(db: D1Database, nguoiLapId: string): Promis
   };
 }
 
-type PhanKhai = { collectorPartyId: string | null; soTien: number };
+type PhanKhai = { receiptId: string; collectorPartyId: string | null; soTien: number };
 type KhoanDon = Awaited<ReturnType<typeof receiptsOfOrder>>[number];
 
 /**
@@ -41,7 +41,7 @@ async function phanKhaiCuaDon(db: D1Database, receipts: readonly KhoanDon[], daQ
   for (const r of receipts) {
     if (r.reverses_id !== null || receipts.some((y) => y.reverses_id === r.id)) continue;
     if (r.kind_code === "CUSTOMER_PAYMENT" && r.note === GHI_CHU_KHOAN_LOI_KHAI) {
-      out.push({ collectorPartyId: r.collector_party_id, soTien: r.amount });
+      out.push({ receiptId: r.id, collectorPartyId: r.collector_party_id, soTien: r.amount });
     } else if (r.transfer_of_id !== null) {
       const nguon = await donCuaKhoan(db, r.transfer_of_id);
       let tuKhai = r.amount;
@@ -49,7 +49,7 @@ async function phanKhaiCuaDon(db: D1Database, receipts: readonly KhoanDon[], daQ
         const phan = await phanKhaiCuaDon(db, await receiptsOfOrder(db, nguon), new Set([...daQua, nguon]));
         tuKhai = Math.min(r.amount, phan.reduce((s, p) => s + p.soTien, 0));
       }
-      if (tuKhai > 0) out.push({ collectorPartyId: r.collector_party_id, soTien: tuKhai });
+      if (tuKhai > 0) out.push({ receiptId: r.id, collectorPartyId: r.collector_party_id, soTien: tuKhai });
     }
   }
   return out;
@@ -65,21 +65,22 @@ export async function tienDonVe(db: D1Database, orderId: string): Promise<{ daTh
   const t = (await tienNhieuDon(db, [orderId])).get(orderId);
   if (!t) return null;
   const chu = (await orderOwners(db, [orderId])).get(orderId);
-  const laDoiTac = chu === undefined ? false : await nguoiLapGiuDoiTac(db, chu);
+  if (chu === undefined) return null; // không đọc được chủ đơn ⇒ không biết ai lập ⇒ chưa mở
+  const laDoiTac = await nguoiLapGiuDoiTac(db, chu);
   const receipts = await receiptsOfOrder(db, orderId);
   const khoan = await phanKhaiCuaDon(db, receipts, new Set([orderId]));
   if (!laDoiTac && khoan.length === 0) return { daThu: t.daThu, phaiThu: t.phaiThu, choNop: 0, choXacNhan: 0 };
   const [congTyId, lines] = await Promise.all([ownerCompanyId(db), linesOfOrder(db, orderId)]);
   if (!congTyId) return null;
   const choNopKhai = khoan.length === 0 ? 0 : soKhaiChuaNop(khoan, lines.map(toLineRow), congTyId);
-  if (!laDoiTac || chu === undefined) return { daThu: t.daThu - choNopKhai, phaiThu: t.phaiThu, choNop: choNopKhai, choXacNhan: 0 };
+  if (!laDoiTac) return { daThu: t.daThu - choNopKhai, phaiThu: t.phaiThu, choNop: choNopKhai, choXacNhan: 0 };
   // Người lập giữ quyền Đối tác. Không đọc được hồ sơ của họ ⇒ không biết khoản nào là của họ ⇒ chưa mở (null).
   const partyId = await hoSoNhanVien(db, chu);
   if (!partyId) return null;
   const recon = await reconOfOrder(db, orderId);
-  const v = soChuaVeCongTy({ receipts: receipts.map(toReceiptRow), lines: lines.map(toLineRow), doiChieu: recon.map(toDoiChieuRow), nguoiLapPartyId: partyId, congTyId });
-  // Phần khai đặt cọc (ADR-0159) cũng là tiền người lập đang giữ: lấy số lớn hơn để không trừ hai lần mà cũng không bỏ sót.
-  const choNop = Math.max(choNopKhai, v.nguoiLapGiu);
+  const v = soChuaVeCongTy({ receipts: receipts.map(toReceiptRow), lines: lines.map(toLineRow), doiChieu: recon.map(toDoiChieuRow), nguoiLapPartyId: partyId, congTyId, khaiThem: khoan });
+  // Khoản khai đặt cọc đã gộp vào cùng lượt tính (không trừ hai lần, không bỏ sót khoản do người khác cầm): `nguoiLapGiu` là tổng chưa nộp của mọi khoản đang giữ.
+  const choNop = v.nguoiLapGiu;
   return { daThu: t.daThu - choNop - v.choXacNhan, phaiThu: t.phaiThu, choNop, choXacNhan: v.choXacNhan };
 }
 

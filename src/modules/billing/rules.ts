@@ -159,19 +159,26 @@ export function soChuaVeCongTy(i: {
   doiChieu: readonly DoiChieuRow[];
   nguoiLapPartyId: string;
   congTyId: string;
+  /** Khoản khai đặt cọc (ADR-0159) và phần chuyển từ đơn huỷ, mỗi khoản kèm id khoản thu của đơn này: gộp vào CÙNG một lượt tính, khoản trùng id chỉ tính một lần, người cầm có thể khác người lập. */
+  khaiThem?: readonly { receiptId: string; collectorPartyId: string | null; soTien: number }[];
 }): { nguoiLapGiu: number; choXacNhan: number } {
   const cho = khoanChoXacNhan(i.receipts, i.lines, i.doiChieu);
   const thu = hieuLuc(i.receipts).filter((r) => r.kind === "CUSTOMER_PAYMENT");
   const choXacNhan = thu.filter((r) => cho.has(r.id)).reduce((s, r) => s + r.amount, 0);
   const daoDong = new Set(i.lines.flatMap((l) => (l.reversesLineId ? [l.reversesLineId] : [])));
-  // Nợ của người lập mà một khoản đang chờ xác nhận đã chiếm: không để nó tính thêm lần nữa ở phần «người lập giữ».
-  const noDaChoChiem = i.lines
-    .filter((l) => l.kind === "HELD" && l.reversesLineId === null && !daoDong.has(l.id) && l.receiptId !== null && cho.has(l.receiptId) && l.debtorPartyId === i.nguoiLapPartyId && l.creditorPartyId === i.congTyId)
-    .reduce((s, l) => s + l.amount, 0);
-  const khai = thu.filter((r) => !cho.has(r.id) && r.collectorPartyId === i.nguoiLapPartyId).map((r) => ({ collectorPartyId: r.collectorPartyId, soTien: r.amount }));
-  const linesDaTru = noDaChoChiem > 0 ? [...i.lines, { debtorPartyId: i.congTyId, creditorPartyId: i.nguoiLapPartyId, amount: noDaChoChiem }] : i.lines;
+  // Nợ của từng người mà một khoản đang chờ xác nhận đã chiếm: không để nó tính thêm lần nữa ở phần «đang giữ».
+  const linesDaTru: Pick<LineRow, "debtorPartyId" | "creditorPartyId" | "amount">[] = [...i.lines];
+  for (const l of i.lines) {
+    if (l.kind === "HELD" && l.reversesLineId === null && !daoDong.has(l.id) && l.receiptId !== null && cho.has(l.receiptId) && l.creditorPartyId === i.congTyId) {
+      linesDaTru.push({ debtorPartyId: i.congTyId, creditorPartyId: l.debtorPartyId, amount: l.amount });
+    }
+  }
+  // Một danh sách khoản, không trùng: khoản người lập cầm (số đủ của khoản thu) và khoản khai do người khác cầm.
+  const khoan = new Map<string, { collectorPartyId: string | null; soTien: number }>();
+  for (const r of thu) if (!cho.has(r.id) && r.collectorPartyId === i.nguoiLapPartyId) khoan.set(r.id, { collectorPartyId: r.collectorPartyId, soTien: r.amount });
+  for (const k of i.khaiThem ?? []) if (!khoan.has(k.receiptId) && !cho.has(k.receiptId)) khoan.set(k.receiptId, { collectorPartyId: k.collectorPartyId, soTien: k.soTien });
   const tong = thu.reduce((s, r) => s + r.amount, 0);
-  const nguoiLapGiu = Math.min(soKhaiChuaNop(khai, linesDaTru, i.congTyId), Math.max(0, tong - choXacNhan));
+  const nguoiLapGiu = Math.min(soKhaiChuaNop([...khoan.values()], linesDaTru, i.congTyId), Math.max(0, tong - choXacNhan));
   return { nguoiLapGiu, choXacNhan };
 }
 

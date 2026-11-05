@@ -4,7 +4,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
-import { seedStaff } from "../../../tests/audit/harness.mjs";
+import { app } from "../../../tests/audit/harness.mjs";
 import { A, ACC, ADM, LAI, PARTNER, inDays, setup, svc } from "../../../tests/audit/xac-nhan-khung.mjs";
 
 const AT = "2026-10-01T00:00:00.000Z";
@@ -133,4 +133,30 @@ test("câu nói đúng người nghe: người xem giữ quyền Đối tác (t�
   const lv = await w.call("GET", `/api/ve/don/${id}`, { as: LAI });
   assert.equal(lv.status, 200, lv.text);
   assert.equal(lv.json.nguoiXemLaDoiTac, true);
+});
+
+// Đọc không được thì không mở (ADR-0170 Đ2 mục 3): cả hai ca sẽ mở nếu đọc được (Kế toán đã ghi «Công ty thu» đủ tiền).
+test("người lập đang giữ quyền Đối tác nhưng mất hồ sơ: tienDonVe trả null, vé khoá và không báo chờ nộp", async () => {
+  const w = dung();
+  const id = await moDon(w, PARTNER);
+  assert.equal((await thu(w, id, ACC, { nguoiThu: "cong_ty" })).status, 201);
+  assert.equal((await veDon(w, id)).thuDu, true, "đọc được thì mở");
+  w.sqlite.prepare("UPDATE staff SET party_id = NULL WHERE id = ?").run(PARTNER);
+  assert.equal(await app.tienDonVe(w.env.DB, id), null, "tienDonVe trả null khi không đọc được hồ sơ người lập");
+  const v = await veDon(w, id);
+  assert.equal(v.thuDu, false);
+  assert.equal(v.choDoiTacNop, false);
+  const chan = await w.call("POST", "/api/ve/duong-dan", { as: ADM, body: { orderId: id } });
+  assert.equal(chan.status, 403, chan.text);
+  assert.equal(chan.json.error.code, "chua_thu_du");
+});
+
+test("không đọc được chủ đơn: vé khoá (không rơi về nhánh nhân viên)", async () => {
+  const w = dung();
+  const id = await moDon(w, A);
+  assert.equal((await thu(w, id, A, { nguoiThu: "toi" })).status, 201);
+  assert.equal((await veDon(w, id)).thuDu, true, "đọc được thì mở");
+  assert.notEqual(await app.tienDonVe(w.env.DB, id), null);
+  w.sqlite.exec("DROP VIEW v_ord_order_owner; CREATE VIEW v_ord_order_owner AS SELECT id, staff_id FROM orders WHERE 0");
+  assert.equal(await app.tienDonVe(w.env.DB, id), null);
 });

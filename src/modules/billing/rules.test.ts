@@ -541,4 +541,16 @@ test("soChuaVeCongTy (ADR-0170 Đ2): giữ hộ trên người lập, chờ xác
   assert.deepEqual(tinh([khoan("a", "STAFF", KHAC)], [giuHo("la", "a", KHAC)]), { nguoiLapGiu: 0, choXacNhan: 0 });
   // Khoản đã bị đảo thì không tính.
   assert.deepEqual(tinh([khoan("a", "STAFF", LAP), khoan("b", "STAFF", LAP, 600_000, { reversesId: "a" })], [giuHo("la", "a", LAP)]), { nguoiLapGiu: 0, choXacNhan: 0 });
+  // Vòng sửa 1: hai khoản do HAI người khác nhau cầm không bị lẫn: khai 100.000 do X cầm + «Tôi thu» 200.000 do người lập giữ ⇒ chưa về thật là 300.000.
+  const X = "nguoi-khac";
+  const haiNguoi = [khoan("k", "STAFF", X, 100_000), khoan("t", "STAFF", LAP, 200_000)];
+  const noHaiNguoi = [giuHo("lk", "k", X, 100_000), giuHo("lt", "t", LAP, 200_000)];
+  const khaiX = [{ receiptId: "k", collectorPartyId: X, soTien: 100_000 }];
+  assert.deepEqual(soChuaVeCongTy({ receipts: haiNguoi, lines: noHaiNguoi, doiChieu: [], nguoiLapPartyId: LAP, congTyId: CT, khaiThem: khaiX }), { nguoiLapGiu: 300_000, choXacNhan: 0 });
+  // Cùng một người: khai 100.000 + «Tôi thu» 200.000, nợ 300.000 ⇒ 300.000, không thành 400.000 (khoản khai đã nằm trong danh sách khoản của người lập).
+  const mot = [khoan("k", "STAFF", LAP, 100_000), khoan("t", "STAFF", LAP, 200_000)];
+  const noMot = [giuHo("lk", "k", LAP, 100_000), giuHo("lt", "t", LAP, 200_000)];
+  assert.deepEqual(soChuaVeCongTy({ receipts: mot, lines: noMot, doiChieu: [], nguoiLapPartyId: LAP, congTyId: CT, khaiThem: [{ receiptId: "k", collectorPartyId: LAP, soTien: 100_000 }] }), { nguoiLapGiu: 300_000, choXacNhan: 0 });
+  // Ca 250.000 «Tôi thu» + 350.000 «Công ty thu» vẫn đúng khi có khoản khai kèm theo.
+  assert.deepEqual(soChuaVeCongTy({ receipts: hai, lines: [giuHo("lt", "t", LAP, 250_000), giuHo("lc", "c", LAP, 350_000)], doiChieu: [], nguoiLapPartyId: LAP, congTyId: CT, khaiThem: [{ receiptId: "t", collectorPartyId: LAP, soTien: 100_000 }] }), { nguoiLapGiu: 250_000, choXacNhan: 350_000 });
 });
