@@ -601,7 +601,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     nhom: "Xác nhận đơn",
     manHinh: "Chi tiết đơn › nhóm nút đầu trang (đơn nháp cần người kiểm vé)",
     ten: "Gửi kiểm vé",
-    thatSuLam: "Gửi đơn nháp cho người kiểm vé (Bán hàng, Kế toán, Quản trị, Hướng dẫn viên) kiểm còn vé; đơn vào hàng chờ có hạn, trong lúc chờ không sửa được cho tới khi «Rút lại». Không gửi gì cho khách. Chỉ khi đơn thuộc diện cần xác nhận, lúc đó nút thay cho «Xác nhận đơn».",
+    thatSuLam: "Gửi đơn nháp cho người kiểm vé (Bán hàng, Quản trị, Toàn quyền; Kế toán và Hướng dẫn viên không kiểm vé) kiểm còn vé; đơn vào hàng chờ có hạn, trong lúc chờ không sửa được cho tới khi «Rút lại». Không gửi gì cho khách. Chỉ khi đơn thuộc diện cần xác nhận, lúc đó nút thay cho «Xác nhận đơn».",
     hoiLai: "không",
     hoanTac: "được: bằng nút «Rút lại»",
     duongLenh: ["/api/orders/:x/gui-xac-nhan"],

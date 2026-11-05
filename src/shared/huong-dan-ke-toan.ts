@@ -191,7 +191,7 @@ Cần biết:
     },
     {
       tieuDe: "Đơn của đối tác chờ xác nhận: kiểm vé",
-      noiDung: `Đơn đối tác gửi lên ở trạng thái [[Chờ xác nhận]]; khối **Xác nhận đơn** có [[Còn vé, xác nhận đơn]], [[Hết vé]] và Huỷ. Mỗi dịch vụ có dòng **Ghi chú** của đối tác và ô **Giờ đón** từng lượt. Đối tác không nhập giờ: lượt đầu ghi **(bắt buộc)**, chọn giờ rồi mới xác nhận. Bạn không có nút Đặt gấp: giờ đã qua hạn chốt thì nhờ Bán hàng hoặc Quản trị. Xác nhận xong, gọi số liên hệ trên đơn để báo giờ; số này là của đối tác khi công tắc ẩn thông tin khách đang bật.`,
+      noiDung: `Đơn đối tác gửi lên ở trạng thái [[Chờ xác nhận]] cần người kiểm vé. Bạn **không** bấm [[Còn vé, xác nhận đơn]] được: việc này do Bán hàng, Quản trị hoặc Toàn quyền làm. Muốn đơn đi tiếp thì báo một trong những người đó. Đơn xác nhận xong thì bạn xem như mọi đơn đã xác nhận.`,
     },
     {
       tieuDe: "Tình huống hay gặp",

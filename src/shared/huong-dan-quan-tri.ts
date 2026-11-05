@@ -117,10 +117,11 @@ Lọc: [[Đang ghi đè giá]], [[Sheet đã đổi giá (cần xem)]], [[Đã n
     },
     {
       tieuDe: "Người phụ trách đơn",
-      noiDung: `1. Mở đơn, tìm khối [[Người phụ trách]]. Đơn chưa có ai hiện [[Chờ nhận]].
-2. Bấm [[Chọn người phụ trách]] hoặc [[Đổi người phụ trách]], chọn người, bấm [[Lưu người phụ trách]].
+      noiDung: `**Người phụ trách** (Bán hàng):
+1. Mở đơn, tìm khối [[Người phụ trách]]. Đơn chưa có ai hiện [[Chờ Bán hàng nhận]].
+2. Bấm [[Chọn người phụ trách]] hoặc [[Đổi người phụ trách]], chọn Bán hàng, bấm [[Lưu người phụ trách]].
 
-Người đang lo đơn tự trả bằng [[Từ chối đơn]]: đơn về Chờ nhận, chữ "được trả lại". Đơn đi hôm nay, ngày mai thì họ gọi bạn đổi người. Người đi kèm chuyến xe không tự đổi theo.`,
+**Hướng dẫn viên**: khối [[Hướng dẫn viên]], [[Chọn Hướng dẫn viên]] hoặc [[Đổi Hướng dẫn viên]], rồi [[Lưu Hướng dẫn viên]]. Hướng dẫn viên tự trả bằng [[Từ chối đơn]].`,
     },
     {
       tieuDe: "Đặt gấp (giờ đón đã qua hạn chốt)",

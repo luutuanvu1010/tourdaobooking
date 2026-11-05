@@ -1376,6 +1376,8 @@ Hiện trạng và luồng: `docs/SYSTEM-DESIGN.md` §6 (m), (o). Mỗi mảnh m
 
 90. **Hai nhãn của đơn nháp (ADR-0166 câu 5, 2026-11-04):** `STATUS_LABEL.draft` là «Chưa xác nhận»; «Chờ xác nhận» chỉ hiện khi truyền cờ `dangCho` vào `trangThaiHienThi` (danh sách: `OrderSummaryDto.dangCho` do `toSummaryDtos` điền, vắng khoá khi không đúng; trang đơn: `xacNhan.yeuCau`). Màn mới gọi `trangThaiHienThi` / `STATUS_LABEL` mà không truyền cờ sẽ ghi «Chưa xác nhận» kể cả khi đơn đang chờ — chấp nhận được ở màn không cần phân biệt, nhưng phải nghĩ trước. Chữ khách đọc (`dungBienNhan`) cố định `dangCho: true`, đừng bỏ (bài `src/modules/receipt/bien-nhan.test.ts`). Câu chữ nói về đơn nháp nói chung viết «chưa xác nhận»; chỉ câu nói về đơn đã gửi kiểm vé (dải `dongChoXacNhan`, thẻ «Đơn chờ xác nhận», tin thông báo) mới giữ «chờ xác nhận». Bài: `src/modules/orders/dang-cho-xac-nhan-nhan.test.ts`, `src/shared/order-status-label.test.ts`, quét nối dây ở `src/ten-nut-ra-soat-noi-day.test.ts`.
 
+91. **Hai tên «người phụ trách» (ADR-0142, chủ chọn 5/11/2026):** trên giao diện «Người phụ trách» là Bán hàng (`dsp_sales_owner`), «Hướng dẫn viên» là ô `HANDLE`; trước đây một số tài liệu và Hướng dẫn gọi cả hai là «người phụ trách». Viết mới phải dùng đúng hai tên; `GET /api/dispatch/handlers` vẫn là Hướng dẫn viên và vẫn 403 với Đối tác, còn `GET /api/dispatch/ban-hang` trả tên Người phụ trách cho Đối tác. Người phụ trách KHÔNG có `order.modify`: huỷ đơn vẫn nhờ Quản trị.
+
 ## 5. Danh sách kiểm
 
 **Trước khi commit (mọi thay đổi):**
@@ -1455,6 +1457,16 @@ Tra `docs/BANG-THAM-CHIEU.md` trước. Chưa có tên thì đưa 2–3 tên cho
 - **Trạng thái hàng việc:** `da-chot` phải chỉ ra lời chủ hoặc số ADR (máy kiểm). AI rà soát thấy tên đúng mà chủ chưa chọn riêng thì `ten-hien-tai`; đổi tên vẫn phải hỏi chủ.
 - **Cột đường lệnh:** chỉ ghi đường chính nút gọi để ghi, đọc từ mã; không chép kết quả quét của hàm lân cận. Không chắc thì để trống.
 - **Kiểm:** `node --test src/bang-tham-chieu.test.ts`. Bản đọc do máy sinh, đừng sửa tay.
+
+### z35. Người phụ trách (Bán hàng) và Hướng dẫn viên trên mỗi đơn (ADR-0142 — migration `0138`, `0140`; số tạm)
+
+Hai ô khác nhau: **Người phụ trách** = `dsp_sales_owner` (Bán hàng, chịu trách nhiệm chính); **Hướng dẫn viên** = ô `HANDLE` của `dsp_assignment` (đón, hướng dẫn, gặp khách, thu tiền tại cảng). Chữ trên giao diện, Hướng dẫn, tài liệu dùng đúng hai tên này; trong mã `handler` là Hướng dẫn viên, `banHang` / `dsp_sales_*` là Người phụ trách.
+- **Thêm quyền mà người phụ trách được cộng:** chỉ thêm tên ô vào DANH SÁCH TRẮNG `duocGiaoTheoO` (`src/shared/ban-hang-phu-trach.ts`) và route truyền `laBanHangPhuTrach`; sửa bài `src/shared/ban-hang-phu-trach.test.ts`. KHÔNG thêm `order.modify` (huỷ đơn) và KHÔNG nới `isOrderHandler` / `ctx.isAssigned` (đó là Hướng dẫn viên).
+- **Thêm cột cho `orders`:** phải dựng lại trigger `orders_delivered_lock` (migration mới, lấy bản mới nhất `0138`), nếu không đơn «Đã giao» sửa lách được cột mới.
+- **Lệnh ghi:** một `db.batch` theo thứ tự cổng quyền → 404 → thân 400 → 409 trạng thái → câu chính → nhật ký (`changes() > 0`); thua đua 409 `stale`. Nhật ký không ghi tên, mã người, số điện thoại.
+- **Người xét đơn chờ kiểm vé** (`order.confirm.review`): Bán hàng, Quản trị, Toàn quyền. Đừng viết «Kế toán / Hướng dẫn viên bấm Còn vé» ở Hướng dẫn hay bảng tham chiếu.
+- **Bất biến:** `R-DSP-8` … `R-DSP-12` (`scripts/audit-checks.mjs`, bài `src/audit-invariants.test.ts`). Chính sách đổi giờ chỉ bằng dòng mới (bảng chỉ-thêm).
+- **Kiểm:** `node --test src/shared/ban-hang-phu-trach.test.ts src/audit-invariants.test.ts`, `npm run test:e2e -- ban-hang-phu-trach`, kịch bản Chrome `docs/evidence/2026-10-27-ban-hang-phu-trach/kich-ban/ban-hang-phu-trach-smoke.mjs`.
 
 ### Phân định trách nhiệm và cảnh báo trùng (ADR-0116, ADR-0092 Đ6a; migration `0135`)
 - Bên chịu đã nộp một phần trở lên thì không đổi bên chịu, không huỷ khoản (409 `attribution_da_nop`, hai lớp; chưa có đường trả lại: BL-PD-TRA-LAI). Không tự ghi đã nộp khoản của chính mình (409 `attribution_tu_nop`, hai lớp). Khoản phân định không nằm trong «đang giữ»: tách bằng MỘT hàm `tachKhoanPhanDinh` / câu `phan_dinh_theo_ben`. Phải thu hiện hành chỉ đọc qua `phaiThuHienHanhNhieuDon` (bài H1b). Kịch bản Chrome: `docs/evidence/2026-11-02-phan-dinh/kich-ban/phan-dinh-smoke.mjs`.

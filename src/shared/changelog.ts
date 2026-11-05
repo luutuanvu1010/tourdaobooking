@@ -17,6 +17,19 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Bán hàng phụ trách đơn (ADR-0142; migration 0138, 0140; ô quyền mới `dispatch.sales.*`; `order.confirm.review` thu về Bán hàng, Quản trị, Toàn quyền).
+    // Số 2.63 và ngày chỉ là TẠM: bản chính đã có mục 2.62 mà nhánh này chưa có; khi nhập vào main phải đặt lại số (2.62 + 1 trở đi) ở bước A.0 của lần triển khai.
+    version: "2.63",
+    date: "2026-11-05",
+    items: [
+      { kind: "moi", text: "Mỗi đơn có hai người: «Người phụ trách» là Bán hàng chịu trách nhiệm chính; «Hướng dẫn viên» đón, hướng dẫn, gặp khách, thu tiền tại cảng." },
+      { kind: "moi", text: "Lập đơn có thể mời một Bán hàng làm người phụ trách. Người đó bấm «Nhận phụ trách» hoặc «Từ chối» trong thời gian ưu tiên; hết hạn thì Bán hàng nào cũng nhận." },
+      { kind: "moi", text: "Danh sách đơn có dòng «Phụ trách: tên» hoặc «Chờ Bán hàng nhận»; Trang chủ có thẻ «Đơn chưa có người phụ trách». Quản trị, Toàn quyền đổi được người phụ trách." },
+      { kind: "doi", text: "Kế toán và Hướng dẫn viên không còn bấm «Còn vé, xác nhận đơn» nữa: đơn cần kiểm vé do Bán hàng, Quản trị hoặc Toàn quyền xác nhận." },
+      { kind: "doi", text: "Nút «Nhận làm HDV» nay chỉ hiện với tài khoản có quyền Hướng dẫn viên." },
+    ],
+  },
+  {
     // Màn «Cấp độ đại lý» (đặc tả docs/superpowers/specs/2026-11-04-man-cap-dai-ly.md). Không migration, không ô quyền mới, không lệnh ghi mới.
     // Đổi 12 tên nút sau rà soát 4/11 và tách nhãn đơn nháp (ADR-0166). Không migration, không ô quyền; có đổi cách chạy ở «Bỏ ghi đè giá», hộp hỏi «Còn vé, xác nhận đơn», cờ `dangCho` ở danh sách đơn.
     // Số 2.61 và ngày chỉ là tạm cho nhánh: bước A.0 của lần triển khai đặt lại nếu cần.

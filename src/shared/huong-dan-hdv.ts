@@ -98,7 +98,7 @@ Bấm [[Xem đơn]] để mở trang đầy đủ. Ở đó không sửa hay hu�
 
 Thẻ đơn biến khỏi Đơn của tôi; người khác thấy đơn ở Đơn chờ nhận, có chữ "được trả lại". Bạn không mở được đơn đó nữa.
 
-- Chỉ trả được đơn **Đã xác nhận**. Đơn chưa xác nhận: báo người lập đơn đổi người phụ trách.
+- Chỉ trả được đơn **Đã xác nhận**. Đơn chưa xác nhận: báo người lập đơn đổi Hướng dẫn viên.
 - Đơn đi **hôm nay hoặc ngày mai** thì không còn nút này: **gọi văn phòng** để đổi người.
 - **Có giới hạn số lần:** tối đa **2 đơn liên tiếp** và **15 lần mỗi tuần** (thứ Hai – Chủ nhật). Nhận hoặc được giao một đơn khác và giữ đơn đó thì đếm "liên tiếp" lại từ đầu. Huỷ đơn không tính. Khi đang chặn, hộp Từ chối ghi sẵn "Bạn còn được từ chối … đơn liên tiếp, … lần trong tuần này". Hết lượt thì bấm sẽ hiện **"Hãy gọi văn phòng"** — gọi văn phòng để đổi người.
 
@@ -137,7 +137,7 @@ Tin quan trọng có nút [[Đã hiểu]]. Đọc xong thì bấm.
     },
     {
       tieuDe: "Đơn của đối tác chờ xác nhận: kiểm vé",
-      noiDung: `Đơn đối tác gửi lên ở trạng thái [[Chờ xác nhận]]; khối **Xác nhận đơn** có [[Còn vé, xác nhận đơn]], [[Hết vé]] và Huỷ. Mỗi dịch vụ có dòng **Ghi chú** của đối tác và ô **Giờ đón** từng lượt. Đối tác không nhập giờ: lượt đầu ghi **(bắt buộc)**, chọn giờ rồi mới bấm [[Còn vé, xác nhận đơn]]. Hướng dẫn viên nội bộ không có nút Đặt gấp: giờ đã qua hạn chốt thì nhờ Bán hàng hoặc Quản trị bấm [[Còn vé, xác nhận đơn]] kèm đặt gấp. Xác nhận xong, gọi số liên hệ trên đơn để báo giờ; số này là của đối tác khi công tắc ẩn thông tin khách đang bật.`,
+      noiDung: `Đơn đối tác gửi lên ở trạng thái [[Chờ xác nhận]] cần người kiểm vé. Mỗi dịch vụ có dòng **Ghi chú** của đối tác và ô **Giờ đón** từng lượt; Bạn **không** bấm [[Còn vé, xác nhận đơn]] được: việc này do Bán hàng, Quản trị hoặc Toàn quyền làm. Muốn đơn đi tiếp thì báo một trong những người đó. Đơn xác nhận xong thì bạn xem như mọi đơn đã xác nhận.`,
     },
     {
       tieuDe: "Tình huống hay gặp",
