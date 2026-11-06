@@ -18,7 +18,7 @@ const execFileAsync = promisify(execFile);
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, "..", "..");
 // Danh sách kịch bản `ALL`, thứ tự ràng buộc giữa các kịch bản và bảng giờ chia nhóm: tests/e2e/danh-sach.mjs (một nguồn với bảng chia phần của GitHub).
-import { ALL, chiaNhom } from "./danh-sach.mjs";
+import { ALL, chiaNhom, laLoiTrungCong, SO_LAN_BAT_TOI_DA } from "./danh-sach.mjs";
 import { phanE2e } from "../../scripts/kiem-phan.mjs";
 
 // `--phan <k>` (ADR-0176 Đ1.2): chạy ĐÚNG phần k của bảng chia (scripts/kiem-phan.mjs) trên MỘT D1 tạm + MỘT wrangler dev, và VẪN chạy
@@ -102,6 +102,24 @@ async function dungD1(may) {
 // mỗi lần bật, wrangler tự chạy `npm run build:web` ghi đè public/js + public/sw.js — hai lần build chồng nhau, hay một lần build giữa lúc `pwa.mjs` đang
 // đọc sw.js, là đua ghi tệp.
 async function batMayChu(may) {
+  for (let lan = 1; ; lan++) {
+    try {
+      return await batMotLan(may);
+    } catch (e) {
+      if (lan >= SO_LAN_BAT_TOI_DA || !laLoiTrungCong(may.log)) throw e;
+      console.log(`wrangler dev${nhan(may.k)}: trùng cổng (lần ${lan}/${SO_LAN_BAT_TOI_DA}) — tắt, chọn cổng mới, bật lại`);
+      try {
+        if (may.server?.pid) process.kill(-may.server.pid, "SIGKILL");
+      } catch {
+        /* đã tắt */
+      }
+      may.server?.stdout?.destroy();
+      may.server?.stderr?.destroy();
+    }
+  }
+}
+
+async function batMotLan(may) {
   const [port, inspector, openaiPort] = [await freePort(), await freePort(), await freePort()];
   const base = `http://127.0.0.1:${port}`;
   const secret = randomBytes(48).toString("base64url"); // phiên chỉ sống trong lần chạy này
@@ -142,7 +160,7 @@ async function batMayChu(may) {
   for (;;) {
     const r = await fetch(`${base}/api/auth/me`).catch(() => null);
     if (r?.status === 401) break;
-    if (Date.now() > deadline || server.exitCode !== null) throw new Error(`wrangler dev${nhan(may.k)} không lên được:\n${may.log.slice(-3000)}`);
+    if (Date.now() > deadline || server.exitCode !== null || laLoiTrungCong(may.log)) throw new Error(`wrangler dev${nhan(may.k)} không lên được:\n${may.log.slice(-3000)}`);
     await new Promise((res) => setTimeout(res, 500));
   }
   console.log(`wrangler dev${nhan(may.k)}: ${base}`);

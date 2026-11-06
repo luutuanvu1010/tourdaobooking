@@ -14,7 +14,8 @@ type Lib = {
   bangChia: (o?: { tests?: string[]; e2e?: string[]; soPhanTest?: number; soPhanE2e?: number; kichThuoc?: (f: string) => number; thoiGianTest?: Record<string, number> }) => Bang;
   kiemBangChia: (bang: Bang, toanBo: { tests: string[]; e2e: string[] }) => string[];
   phanE2e: (k: number) => string[];
-  gomKetQua: (bang: Bang, baoCao: unknown[], toanBo: { tests: string[]; e2e: string[] }) => { ok: boolean; loi: string[]; baiDo: string[]; tong: { soTep: number; soBai: number; soBoQua: number; soKichBan: number }; giayE2e: Record<string, number>; giayTep: Record<string, number> };
+  gomKetQua: (bang: Bang, baoCao: unknown[], toanBo: { tests: string[]; e2e: string[] }) => { ok: boolean; loi: string[]; baiDo: string[]; tong: { soTep: number; soBai: number; soBoQua: number; soKichBan: number }; giayE2e: Record<string, number>; giayTep: Record<string, number>; giayTuong: Record<string, number> };
+  tepChoLau: (kq: { giayTep: Record<string, number>; giayTuong: Record<string, number> }) => { tep: string; giayTuong: number; giayBai: number }[];
   TEP_DIEU_KHIEN: string[];
 };
 const lib = (await import(new URL("../scripts/kiem-phan.mjs", import.meta.url).href)) as Lib;
@@ -162,7 +163,7 @@ test("run.mjs --phan: VẪN chạy audit-invariants --strict cuối phần (ch�
   assert.match(r, /if \(coAudit\) \{\n\s+console\.log\(`▶ audit-invariants/);
   assert.match(r, /"--persist-to", may\.persist, "--strict"\]/);
   assert.match(r, /kichBan: daChay, audit, ok:/);
-  assert.match(r, /import \{ ALL, chiaNhom \} from "\.\/danh-sach\.mjs";/, "danh sách kịch bản chỉ ở danh-sach.mjs");
+  assert.match(r, /import \{ ALL, chiaNhom[^}]*\} from "\.\/danh-sach\.mjs";/, "danh sách kịch bản chỉ ở danh-sach.mjs");
   assert.doesNotMatch(r, /const ALL = \[/, "run.mjs không tự khai danh sách thứ hai");
 });
 
@@ -183,17 +184,46 @@ test("dem-bai: cộng giây từng TỆP từ bài cấp ngoài cùng (nesting 0
     yield { type: "test:pass", data: { name: "x1", nesting: 1, file: "/k/src/a.test.ts", details: { duration_ms: 1400 } } };
     yield { type: "test:fail", data: { name: "y", nesting: 0, file: "/k/src/a.test.ts", details: { duration_ms: 500 } } };
     yield { type: "test:pass", data: { name: "z", nesting: 0, file: "/k/src/b.test.ts", details: { duration_ms: 250 } } };
+    // Sự kiện CẤP TỆP (dạng THẬT của node 22: tên = đường dẫn tương đối như truyền vào, `file` = đường dẫn đầy đủ): đồng hồ tường cả tệp, gồm lúc tiến trình con còn treo sau bài cuối — không phải một bài.
+    yield { type: "test:complete", data: { name: "src/a.test.ts", nesting: 0, file: "/k/src/a.test.ts", details: { duration_ms: 75250, type: "test" } } };
+    // Bài tên trùng đuôi tệp nhưng không phải sự kiện cấp tệp (tên không kết thúc .test.ts) ⇒ bỏ qua.
+    yield { type: "test:complete", data: { name: "a", nesting: 0, file: "/k/src/a.test.ts", details: { duration_ms: 9 } } };
+    yield { type: "test:complete", data: { name: "z", nesting: 0, file: "/k/src/b.test.ts", details: { duration_ms: 250 } } };
   }
   let ra = "";
   for await (const x of demBai(nguon())) ra += x;
   const d = JSON.parse(ra);
   assert.deepEqual(d.giayTep, { "src/a.test.ts": 2, "src/b.test.ts": 0.25 });
   assert.equal(d.tests, 4);
+  assert.deepEqual(d.giayTuong, { "src/a.test.ts": 75.25 }, "chỉ sự kiện cấp tệp vào giayTuong");
   const bang = bangNho();
   const bc = baoCaoDu(bang);
   bc.find((x) => x.loai === "test").giayTep = { "src/a.test.ts": 2 };
+  bc.find((x) => x.loai === "test").giayTuong = { "src/a.test.ts": 75.25 };
   bc[0].doGio.giayTep = { "src/claude-guard-thoi-gian.test.ts": 9 };
   const r = lib.gomKetQua(bang, bc, toanBo);
   assert.equal(r.giayTep["src/a.test.ts"], 2);
   assert.equal(r.giayTep["src/claude-guard-thoi-gian.test.ts"], 9);
+  assert.equal(r.giayTuong["src/a.test.ts"], 75.25);
+  // Tệp chờ lâu = đồng hồ tường hơn tổng giây các bài từ 15 giây: in tên cho người đọc nhật ký gom.
+  assert.deepEqual(lib.tepChoLau(r), [{ tep: "src/a.test.ts", giayTuong: 75.25, giayBai: 2 }]);
+  const kp = readFileSync(new URL("../scripts/kiem-phan.mjs", import.meta.url), "utf8");
+  assert.match(kp, /giayTuong: r\.dem\?\.giayTuong \?\? \{\}/, "phần test ghi giayTuong vào báo cáo");
+});
+
+test("run.mjs (lượt kiểm 2 trên GitHub, 6/11): wrangler dev va cổng ⇒ tắt, chọn cổng MỚI, bật lại (tối đa 3 lần); lỗi khác ⇒ dừng ngay như cũ", async () => {
+  const ds = (await import(new URL("../tests/e2e/danh-sach.mjs", import.meta.url).href)) as { laLoiTrungCong: (log: string) => boolean; SO_LAN_BAT_TOI_DA: number };
+  // Nguyên văn nhật ký lượt 42180826984 (e2e phần 7).
+  assert.equal(ds.laLoiTrungCong("*** Fatal uncaught kj::Exception: rust/cxx/kj-rs-io/ffi.rs:180: failed: bind(): Address already in use (os error 98)"), true);
+  assert.equal(ds.laLoiTrungCong("Error: listen EADDRINUSE: address already in use 127.0.0.1:8787"), true);
+  assert.equal(ds.laLoiTrungCong("✘ [ERROR] Could not resolve \"./khong-co.ts\""), false, "lỗi mã không được thử lại");
+  assert.equal(ds.laLoiTrungCong(""), false);
+  assert.equal(ds.SO_LAN_BAT_TOI_DA, 3);
+  const r = readFileSync(new URL("../tests/e2e/run.mjs", import.meta.url), "utf8");
+  assert.match(r, /import \{ ALL, chiaNhom, laLoiTrungCong, SO_LAN_BAT_TOI_DA \} from "\.\/danh-sach\.mjs";/);
+  // Mỗi lần thử gọi lại freePort (cổng mới), và chỉ thử lại khi đúng lỗi trùng cổng.
+  assert.match(r, /async function batMotLan\(may\) \{\n\s+const \[port, inspector, openaiPort\] = \[await freePort\(\), await freePort\(\), await freePort\(\)\];/);
+  assert.match(r, /if \(lan >= SO_LAN_BAT_TOI_DA \|\| !laLoiTrungCong\(may\.log\)\) throw e;/);
+  // Trùng cổng thì máy chủ chết ngay: không chờ hết 90 giây mới thử lại.
+  assert.match(r, /laLoiTrungCong\(may\.log\)\) throw new Error/);
 });

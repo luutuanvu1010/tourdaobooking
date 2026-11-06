@@ -87,3 +87,9 @@ export function chiaNhom(list, n) {
   }
   return nhom.map((g) => g.ten.sort((a, b) => ALL.indexOf(a) - ALL.indexOf(b)));
 }
+
+// Bật `wrangler dev` (tests/e2e/run.mjs): `freePort()` hỏi một cổng trống rồi TRẢ LẠI trước khi wrangler mở nó — trong khoảng hở đó tiến trình khác có thể
+// chiếm mất (lượt kiểm 42180826984 trên GitHub, 6/11: workerd "bind(): Address already in use", phần e2e chết sau 69 giây). Chỉ ĐÚNG lỗi này mới thử lại,
+// với bộ cổng mới, tối đa SO_LAN_BAT_TOI_DA lần; lỗi khác (mã hỏng, cấu hình sai) vẫn dừng ngay.
+export const SO_LAN_BAT_TOI_DA = 3;
+export const laLoiTrungCong = (log) => /Address already in use|EADDRINUSE/i.test(String(log ?? ""));
