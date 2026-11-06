@@ -557,6 +557,8 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "GET", path: "/api/tra-sau/han-muc/:partyId/don", access: "office" }, // như trên
   { method: "GET", path: "/api/tra-sau/han-muc/:partyId", access: "office" }, // ADR-0172 Đ1: ô Trả sau ở Cấp độ đại lý — credit.limit.view
   { method: "POST", path: "/api/tra-sau/muc-toi-da", access: "office" }, // ADR-0172: credit.ceiling.write (chỉ Toàn quyền)
+  { method: "GET", path: "/api/kenh-thu-doi-tac", access: "office" }, // ADR-0178 Đ1 mục 1: billing.partner_channel.view (Kế toán, Quản trị, Toàn quyền), không Đối tác
+  { method: "POST", path: "/api/kenh-thu-doi-tac", access: "office" }, // ADR-0178 Đ1 mục 1: billing.partner_channel.write (chỉ Toàn quyền)
   { method: "GET", path: "/api/tra-sau/goi-y", access: "office" }, // ADR-0172 Đ2: credit.limit.view
   { method: "PUT", path: "/api/tra-sau/goi-y/:cap", access: "office" }, // ADR-0172 Đ2: credit.limit.write (Quản trị, Toàn quyền)
   { method: "GET", path: "/api/tra-sau/cua-toi", access: "orders" }, // ADR-0173 Đ3 mục 3: credit.own.view (Đối tác, own)
@@ -742,6 +744,7 @@ test("mức truy cập của 443 route hiện có khớp ảnh chụp đã duy�
   // 2026-11-05 (ADR-0169 Đ5): + GET /api/catalog/quan-ly-ban, PUT /api/catalog/:code/ngung-ban (office; thân hỏi ô, chặn Đối tác) = 451.
   // 2026-11-05 (ADR-0168, Trả sau): thêm năm route hạn mức trả sau của billing = 456.
   // 2026-11-06 (ADR-0172, ADR-0173): + GET /api/tra-sau/han-muc/:partyId, POST /api/tra-sau/muc-toi-da, GET /api/tra-sau/goi-y, PUT /api/tra-sau/goi-y/:cap (office), GET /api/tra-sau/cua-toi (orders; credit.own.view), POST /api/tra-sau/don/:id/an-han (office, ở orders) = 462.
-  assert.equal(actual.length, 462, "số route thực tế lệch 462 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 462, "SNAPSHOT phải có đúng 462 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // 2026-11-06 (ADR-0178 Đ1 mục 1, Task A2): + GET, POST /api/kenh-thu-doi-tac (office; billing.partner_channel.view / .write) = 464.
+  assert.equal(actual.length, 464, "số route thực tế lệch 464 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 464, "SNAPSHOT phải có đúng 464 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

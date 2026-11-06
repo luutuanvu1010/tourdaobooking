@@ -123,7 +123,7 @@ Giờ đón quá sát không chặn bạn gửi đơn: văn phòng chốt giờ 
     {
       tieuDe: "Xem và gửi vé cho khách",
       noiDung: `1. Mở đơn đã xác nhận do bạn lập, kéo xuống khối **Vé điện tử**.
-2. Vé chỉ mở khi tiền của đơn đã về công ty. Khách trả tiền mặt cho bạn thì bạn nộp về công ty, Kế toán ghi nhận xong thì vé mới mở. Chưa mở thì khối báo "Công ty chưa xác nhận đã nhận đủ tiền nên chưa mở được vé." Tiền bạn tự ghi là "Tôi thu" chưa đủ để mở vé.
+2. Vé chỉ mở khi tiền của đơn đã về công ty. Khách trả tiền mặt cho bạn thì bạn nộp về công ty, Kế toán ghi nhận xong thì vé mới mở. Chưa mở thì khối báo "Công ty chưa xác nhận đã nhận đủ tiền nên chưa mở được vé." Tiền bạn tự ghi là "Tôi thu" chưa đủ để mở vé. Đơn khách trả bạn: chỉ có "Tôi thu", không QR.
 3. Khi mở được, bấm [[Cấp vé]] nếu khối báo còn thiếu vé. Vẫn thiếu thì báo văn phòng nhập thêm vé.
 4. Bấm nút **Mở … vé để gửi khách**, rồi bấm [[Gửi Zalo]] và chọn người nhận.
 

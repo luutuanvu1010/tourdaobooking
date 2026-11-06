@@ -20,6 +20,7 @@ import {
 } from "./service";
 import { phaiThuHienHanh, receiptThayDaoStatement, receiptThayMoiStatement } from "./thay-lan-thu-repo";
 import { cauTangChoDon } from "./tra-sau-tang";
+import { kiemNguoiThuKenh } from "./kenh-thu";
 
 /** ADR-0088 đ2: lý do tối thiểu (ký tự, bỏ khoảng trắng hai đầu) — trigger 0083 ép cùng số. */
 export const LY_DO_THAY_TOI_THIEU = 10;
@@ -131,6 +132,9 @@ export async function chuanBiLoThay(db: D1Database, input: { orderId: string; ph
   for (const m of moiRaw) {
     const lt = await docLanThu(db, { ...(m as object), ngayPhatSinh: ngay.value, ...(cuKhai.length > 0 && goDungDau(m) ? { ghiChu: null } : {}) }, input.ai, congTyId, { phan: input.phan, receipts: daCo, kemDaGiao: false, boQua });
     if (!lt.ok) return lt;
+    // ADR-0178 Đ1 mục 2: khoản thay thế (kể cả «Ghi khoản thu đòi được» của phân định — cùng lô này) ở đơn mang dấu Tắt chỉ được là hồ sơ người lập; kiểm TRƯỚC lô.
+    const kenh = await kiemNguoiThuKenh(db, orderId, lt.value.collectorPartyId);
+    if (kenh) return { ok: false, res: kenh };
     daCo.push(lanThuMoiRow(lt.value, `moi-${daCo.length}`));
     // ADR-0092 Đ6a: khoản thu tiền mặt giống nhau — so với khoản còn hiệu lực trừ khoản đang bị thay, và các khoản đã đọc của chính lệnh này.
     const trung = kiemTrungTienMat({ receipts, boQua, moiDaDoc: moi.map((x) => x.lt), lt: lt.value, ai: input.ai, raw: b.boQuaTrung });

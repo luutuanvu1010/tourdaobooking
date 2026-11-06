@@ -3,11 +3,15 @@
 // (lúc MỞ bảng của một hồ sơ, không gọi theo từng dòng), GET /api/pricing/muc-ta (tên cấp đang bật, cho khối gợi ý).
 // Ghi: POST /api/tra-sau/han-muc, POST /api/tra-sau/han-muc/:partyId/ngung, PUT /api/tra-sau/goi-y/:cap, POST /api/tra-sau/muc-toi-da.
 // Ẩn/hiện nút theo cờ máy chủ (`coQuyenSua`, `coQuyenDatMucToiDa`); máy chủ hỏi lại quyền, mức tối đa và luật «không tự đặt cho mình» ở mọi lệnh ghi.
+// Thẻ công tắc «Khách của đối tác trả cho Công ty» (ADR-0178 Đ1 mục 1, Task A5): GET / POST /api/kenh-thu-doi-tac; thẻ hiện theo ô `billing.partner_channel.view`
+// (Toàn quyền, Kế toán, Quản trị), nút Tắt / Bật chỉ theo ô `.write` (Toàn quyền) — cùng bảng quyền với máy chủ.
 // Số gợi ý chỉ điền sẵn bảng bật, không cho ai Trả sau (ADR-0172 Đ2 mục 2). Không confirm / alert / innerHTML; dựng bằng h().
-import { ApiError, api, type Api } from "./api";
+import { ApiError, api, type Api, type Staff } from "./api";
 import { hoiXacNhan, moBangTruot } from "./bang-truot";
 import { h, replaceChildren } from "./dom";
+import { dateTime } from "./format";
 import { hienBaoNgan } from "./toast";
+import { can } from "../src/shared/permissions";
 import { cauGoiYDienSan, cauHanMuc, cauMucToiDa, docGio, docHanMuc, goiYCuaCap, nhanAnHan, nhanQuaHan } from "../src/shared/han-muc-tra-sau-hien-thi";
 import { dongTien } from "../src/shared/tra-sau";
 
@@ -64,7 +68,7 @@ export function oTraSau(ho: { partyId: string; ten: string; capCode: string | nu
   );
 }
 
-/** Bảng bật / đổi / ngừng Trả sau của MỘT hồ sơ. Đọc số đang bật lúc MỞ (không dùng số lúc tải trang); chưa bật thì điền sẵn số gợi ý của cấp. */
+/** Bảng cấp / điều chỉnh / đóng hạn mức trả sau của MỘT hồ sơ (chữ nút theo chủ 2026-11-06: «Cấp hạn mức» khi chưa có, «Điều chỉnh hạn mức» khi đã có). Đọc số đang bật lúc MỞ (không dùng số lúc tải trang); chưa bật thì điền sẵn số gợi ý của cấp. */
 async function moBangTraSau(
   ho: { partyId: string; ten: string; capCode: string | null; tenCap: string | null },
   bc: BoiCanhTraSau,
@@ -88,8 +92,8 @@ async function moBangTraSau(
   const oGio = h("input", { id: "ts-gio-tra", class: "vc-input", type: "text", inputMode: "numeric", autocomplete: "off", maxLength: 4, value: so?.gioTra != null ? String(so.gioTra) : "" });
   const oAn = h("input", { id: "ts-gio-an-han", class: "vc-input", type: "text", inputMode: "numeric", autocomplete: "off", maxLength: 4, value: so ? String(so.gioAnHan ?? 0) : "0" });
   const oLyDo = h("input", { id: "ts-ly-do", class: "vc-input", type: "text", autocomplete: "off", maxLength: 200 });
-  const luu = h("button", { type: "button", class: "btn btn-primary btn-block", "data-action": "dat-han-muc" }, "Đặt hạn mức");
-  const ngung = dangBat ? h("button", { type: "button", class: "btn btn-block", "data-action": "ngung-han-muc" }, "Ngừng hạn mức") : null;
+  const luu = h("button", { type: "button", class: "btn btn-primary btn-block", "data-action": "dat-han-muc" }, dangBat ? "Điều chỉnh hạn mức" : "Cấp hạn mức");
+  const ngung = dangBat ? h("button", { type: "button", class: "btn btn-block", "data-action": "ngung-han-muc" }, "Đóng hạn mức") : null;
   const goiYCau = cauGoiYDienSan(dangBat, gy ? ho.tenCap : null);
   const mucCau = cauMucToiDa(bc.mucToiDa, bc.coQuyenDatMucToiDa);
   const bang = moBangTruot({
@@ -98,7 +102,7 @@ async function moBangTraSau(
       h(
         "div",
         { class: "vc-gt" },
-        h("div", { class: "vc-hint" }, dangBat ? `Đang bật: ${cauHanMuc(r)} · đang nợ ${dongTien(r.dangNo)}` : r.dangNo > 0 ? `Chưa bật · còn nợ ${dongTien(r.dangNo)}` : "Chưa bật Trả sau."),
+        h("div", { class: "vc-hint" }, dangBat ? `Đang bật: ${cauHanMuc(r)} · đang nợ ${dongTien(r.dangNo)}` : r.dangNo > 0 ? `Chưa cấp · còn nợ ${dongTien(r.dangNo)}` : "Chưa cấp hạn mức trả sau."),
         goiYCau && h("div", { class: "vc-hint" }, goiYCau),
         mucCau && h("div", { class: "vc-hint" }, mucCau),
         h("div", { class: "vc-field" }, h("label", { for: "ts-han-muc" }, "Hạn mức (đồng)"), oHan),
@@ -132,16 +136,16 @@ async function moBangTraSau(
     }
     bang.setBusy(false);
     bang.close(false);
-    hienBaoNgan(`Đã đặt hạn mức cho ${ho.ten}.`);
+    hienBaoNgan(dangBat ? `Đã điều chỉnh hạn mức của ${ho.ten}.` : `Đã cấp hạn mức cho ${ho.ten}.`);
     await lamMoi(ho.partyId);
   });
   ngung?.addEventListener("click", async () => {
     // Hộp hỏi không mở được khi đang có bảng: đóng bảng trước, rồi hỏi.
     bang.close(false);
     const dongY = await hoiXacNhan({
-      tieuDe: `Ngừng hạn mức của ${ho.ten}?`,
+      tieuDe: `Đóng hạn mức của ${ho.ten}?`,
       hauQua: "Từ lúc này đối tác không đặt thêm đơn trả sau được. Các đơn trả sau đã xác nhận vẫn giữ nguyên, nợ vẫn phải thu.",
-      nhanNguyHiem: "Ngừng hạn mức",
+      nhanNguyHiem: "Đóng hạn mức",
       nhanGiu: "Giữ hạn mức",
       opener,
     });
@@ -151,7 +155,7 @@ async function moBangTraSau(
     } catch (err) {
       return baoLoi(loiO, lyDoLoi(err));
     }
-    hienBaoNgan(`Đã ngừng hạn mức của ${ho.ten}.`);
+    hienBaoNgan(`Đóng hạn mức của ${ho.ten} xong.`);
     await lamMoi(ho.partyId);
   });
   oHan.focus();
@@ -217,8 +221,8 @@ export async function khoiCaiDatTraSau(bc: BoiCanhTraSau | null, veLai: () => Pr
   return h(
     "section",
     { class: "card card-col", id: "ts-cai-dat", "aria-labelledby": "ts-cai-dat-tieu-de" },
-    h("h2", { id: "ts-cai-dat-tieu-de" }, "Cài đặt Trả sau"),
-    h("p", { class: "muted" }, "Số gợi ý theo cấp chỉ điền sẵn khi bật Trả sau cho một đối tác; không cho ai Trả sau. Đổi số gợi ý không đổi Trả sau đã bật."),
+    h("h2", { id: "ts-cai-dat-tieu-de" }, "Hạn mức trả sau"),
+    h("p", { class: "muted" }, "Số gợi ý theo cấp chỉ điền sẵn khi cấp hạn mức cho một đối tác; không tự cấp cho ai. Đổi số gợi ý không đổi hạn mức đã cấp."),
     loiChung,
     ds,
     muc,
@@ -271,4 +275,66 @@ function moBangGoiY(c: { code: string; ten: string }, g: Api.GoiYTraSauDto | nul
     await veLai();
   });
   oHan.focus();
+}
+
+/**
+ * Thẻ công tắc «Khách của đối tác trả cho Công ty» (ADR-0178 Đ1 mục 1). null = người xem không có ô xem, hoặc không đọc được (màn vẫn dùng được, không vỡ).
+ * Tắt hỏi lại trước (hậu quả lớn: Công ty thôi nhận tiền khách của đơn Đối tác lập từ lúc đó); Bật thì đổi ngay. Vẽ lại theo đúng DTO máy chủ trả.
+ */
+export async function khoiKenhThuDoiTac(staff: Staff): Promise<HTMLElement | null> {
+  if (!can(staff, "billing.partner_channel.view")) return null;
+  let s: Api.KenhThuDoiTacDto;
+  try {
+    s = await api<Api.KenhThuDoiTacDto>("/api/kenh-thu-doi-tac");
+  } catch {
+    return null;
+  }
+  const doiDuoc = can(staff, "billing.partner_channel.write");
+  const the = h("section", { class: "card card-col", id: "kenh-thu-doi-tac", "aria-labelledby": "kenh-thu-tieu-de" });
+  const ve = (s: Api.KenhThuDoiTacDto): void => {
+    const loi = h("div", { class: "vc-field-error", role: "alert", hidden: true });
+    let nut: HTMLButtonElement | null = null;
+    if (doiDuoc) {
+      const n = h("button", { type: "button", class: s.congTyThu ? "btn" : "btn btn-primary", id: "kenh-thu-doi" }, s.congTyThu ? "Tắt" : "Bật") as HTMLButtonElement;
+      n.addEventListener("click", async () => {
+        loi.hidden = true;
+        if (s.congTyThu) {
+          const dongY = await hoiXacNhan({
+            tieuDe: "Tắt «Khách của đối tác trả cho Công ty»?",
+            hauQua: "Đơn do tài khoản Đối tác lập từ lúc này chỉ do chính đối tác đó ghi khoản thu: Công ty, nhân viên, hướng dẫn viên không thu tiền khách của các đơn đó, và đơn không có mã QR vào tài khoản công ty. Đơn đã lập giữ nguyên.",
+            nhanNguyHiem: "Tắt",
+            opener: n,
+          });
+          if (!dongY) return;
+        }
+        n.disabled = true;
+        try {
+          ve(await api<Api.KenhThuDoiTacDto>("/api/kenh-thu-doi-tac", { method: "POST", body: { congTyThu: !s.congTyThu } }));
+          hienBaoNgan(s.congTyThu ? "Đã tắt «Khách của đối tác trả cho Công ty»." : "Đã bật «Khách của đối tác trả cho Công ty».");
+        } catch (err) {
+          n.disabled = false;
+          loi.textContent = lyDoLoi(err);
+          loi.hidden = false;
+        }
+      });
+      nut = n;
+    }
+    const lichSu = s.lichSu.slice(0, 5);
+    replaceChildren(
+      the,
+      h("h2", { id: "kenh-thu-tieu-de" }, "Khách của đối tác trả cho Công ty"),
+      h("p", { id: "kenh-thu-trang-thai" }, h("strong", null, s.congTyThu ? "Bật" : "Tắt"), s.tuLuc ? ` · từ ${dateTime(s.tuLuc)}` : " · mặc định"),
+      h(
+        "p",
+        { class: "muted" },
+        "Bật: khách của đơn do tài khoản Đối tác lập trả được cho Công ty (chuyển khoản, mã QR, nhân viên hoặc hướng dẫn viên thu). ",
+        "Tắt: đơn Đối tác lập từ lúc tắt chỉ do chính đối tác đó ghi khoản thu, không có mã QR công ty; đối tác nộp tiền về công ty như hôm nay. Mỗi đơn giữ cách thu của lúc lập, đổi công tắc không đổi đơn đã lập.",
+      ),
+      lichSu.length > 0 && h("ul", { class: "muted", "data-khoi": "kenh-thu-lich-su" }, ...lichSu.map((d) => h("li", null, `${d.congTyThu ? "Bật" : "Tắt"} · ${dateTime(d.tuLuc)} · ${d.nguoiDoi}`))),
+      loi,
+      nut && h("div", { class: "handler-actions" }, nut),
+    );
+  };
+  ve(s);
+  return the;
 }

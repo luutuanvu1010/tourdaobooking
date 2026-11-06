@@ -184,6 +184,9 @@ export const MATRIX = {
   "credit.limit.view": row("none", "any", "any", "none", "none", "any", "none", "none", "none", "none"),
   // ADR-0173 Đ1 mục 1: đặt mức tối đa Quản trị được cấp — chỉ Toàn quyền.
   "credit.ceiling.write": chiToanQuyen(),
+  // ADR-0178 Đ1 mục 1: công tắc «Khách của đối tác trả cho Công ty» — đổi chỉ Toàn quyền; xem: Kế toán, Quản trị, Toàn quyền (khuôn credit.limit.view). Route: /api/kenh-thu-doi-tac (module billing).
+  "billing.partner_channel.write": chiToanQuyen(),
+  "billing.partner_channel.view": row("none", "any", "any", "none", "none", "any", "none", "none", "none", "none"),
   // ADR-0173 Đ1 mục 3: lùi hạn trả của MỘT đơn Trả sau đã xác nhận (bắt buộc lý do) — Quản trị, Toàn quyền.
   "credit.due.extend": quanTri(),
   // ADR-0173 Đ3 mục 3: đại lý xem Trả sau của CHÍNH hồ sơ mình (hạn mức, đang nợ, còn được dùng, từng đơn nợ) — Đối tác phạm vi `own`; hồ sơ lấy từ phiên, không nhận từ trình duyệt.

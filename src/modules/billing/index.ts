@@ -4,7 +4,7 @@
 // Mỗi route hỏi `can()` với ô của MATRIX TRƯỚC khi đọc thân / ghi (cổng router chỉ lọc thô — ADR-0019). Bảng tin (ADR-0022, ADR-0025 đ8): route ghi dưới
 // /api/orders/* báo `baoThayDoi` ĐÚNG MỘT lần, chỉ ở nhánh thành công, sau khi lô ghi xong (hàng rào src/bang-tin-guard.test.ts phủ tệp này).
 import type {
-  CocDemResponse, CocDoiChieuResponse, CocListResponse, ConDuocDungTraSauResponse, DonNoTraSauResponse, GoiYTraSauResponse, HanMucTraSauListResponse, TraSauCuaToiResponse, TraSauHoSoResponse, KySoResponse, LedgerBalancesResponse, NhapKeToanResponse, OrderPaymentsResponse, ReceiptDto, SoCongNoBenResponse, SoCongNoResponse, SoCuaToiResponse,
+  KenhThuDoiTacDto, CocDemResponse, CocDoiChieuResponse, CocListResponse, ConDuocDungTraSauResponse, DonNoTraSauResponse, GoiYTraSauResponse, HanMucTraSauListResponse, TraSauCuaToiResponse, TraSauHoSoResponse, KySoResponse, LedgerBalancesResponse, NhapKeToanResponse, OrderPaymentsResponse, ReceiptDto, SoCongNoBenResponse, SoCongNoResponse, SoCuaToiResponse,
   TaoYeuCauDieuChinhResponse, UnpaidSummaryResponse, YeuCauDieuChinhListResponse,
 } from "../../shared/contracts";
 import { UUID_RE, error, json, kemLocation, readJson, trangDon } from "../../shared/http";
@@ -25,6 +25,8 @@ import { daTraTheoThuCho } from "./rules";
 import { GIO_TOI_DA, kiemSoGio } from "../../shared/tra-sau";
 import { benCoLienQuanTraSau, cauTangPhienBan, hanMucHieuLuc, hanMucMoiBen, homQua, noCacBenDat, noCuaBenDat } from "./tra-sau";
 import { dongHanMucStatement, ghiGoiYStatement, goiYTheoCap, hanMucDangMo, mucToiDaQuanTri, themHanMucStatement, themMucToiDaStatement } from "./tra-sau-repo";
+import { dongKenhThuStatement, themKenhThuStatement } from "./kenh-thu-repo";
+import { kenhThuDto, kenhThuHienTai as kenhThuDangBat } from "./kenh-thu";
 import { cocChoBienNhan, cocCuaDon, danhSachCoc, demCoc, doiChieuCoc, ghiChiHoan, ghiChuyen, ghiDuyet, ghiHoanNgoai, ghiHuyDuyet, xacNhanHoanNgoai } from "./coc";
 import {
   MAX_SO_TIEN, PARTY_ID_RE, docLyDo, loiTrigger,
@@ -695,6 +697,29 @@ export const billingModule: AppModule = {
       }
       return json({ ok: true });
     }),
+    // ---- Công tắc «Khách của đối tác trả cho Công ty» (ADR-0178 Đ1 mục 1). Xem: `billing.partner_channel.view` (Kế toán, Quản trị, Toàn quyền); đổi: `billing.partner_channel.write` (chỉ Toàn quyền).
+    // Mỗi lần đổi đóng dòng cũ + thêm dòng mới + nhật ký trong MỘT lô; đổi sang đúng giá trị đang có thì không làm gì (200, không thêm dòng). Tài khoản giữ quyền Đối tác không vào (khuôn Trả sau).
+    route("GET", "/api/kenh-thu-doi-tac", "office", async ({ env, staff }) => {
+      if (!can(staff, "billing.partner_channel.view") || holdsPartner(staff)) return error(403, "forbidden", "Chỉ Kế toán, Quản trị hoặc Toàn quyền mới xem được công tắc «Khách của đối tác trả cho Công ty».");
+      const res: KenhThuDoiTacDto = await kenhThuDto(env.DB);
+      return json(res);
+    }),
+    route("POST", "/api/kenh-thu-doi-tac", "office", async ({ env, request, staff }) => {
+      if (!can(staff, "billing.partner_channel.write") || holdsPartner(staff)) return error(403, "forbidden", "Chỉ Toàn quyền mới đổi được công tắc «Khách của đối tác trả cho Công ty».");
+      const b = ((await readJson(request)) ?? {}) as Record<string, unknown>;
+      if (typeof b.congTyThu !== "boolean") return error(400, "invalid_input", "Chọn Bật hoặc Tắt cho «Khách của đối tác trả cho Công ty».");
+      const muon: 0 | 1 = b.congTyThu ? 1 : 0;
+      if ((await kenhThuDangBat(env.DB)) !== muon) {
+        const at = new Date().toISOString();
+        await env.DB.batch([
+          dongKenhThuStatement(env.DB, at, staff.id),
+          themKenhThuStatement(env.DB, { id: crypto.randomUUID(), congTyThu: muon, at, by: staff.id }),
+          auditStatement(env.DB, { staffId: staff.id, action: "partner_channel_set", at, targetType: "ledger", targetId: "kenh-thu-doi-tac", detail: muon === 1 ? "Bật" : "Tắt" }, "changes() > 0"),
+        ]);
+      }
+      const res: KenhThuDoiTacDto = await kenhThuDto(env.DB);
+      return json(res);
+    }),
     // «Trả sau của tôi» (ADR-0173 Đ3 mục 3): ô `credit.own.view` phạm vi own; hồ sơ LẤY TỪ PHIÊN (`staff.partyId`), không nhận tham số nào từ trình duyệt — đại lý A không đọc được B.
     route("GET", "/api/tra-sau/cua-toi", "orders", async ({ env, staff }) => {
       if (!can(staff, "credit.own.view", { ownerId: staff.id })) return error(403, "forbidden", "Tài khoản này không có mục Trả sau.");
@@ -783,3 +808,4 @@ export { cauDatCocKhiXacNhan, chanKhaiCocLai, tienDonVe } from "./dat-coc";
 // Trả sau theo hạn mức (ADR-0168): hàm công bố cho gốc lắp ráp tiêm vào `ctx` của orders / ve-dien-tu (orders không import billing).
 export { cauGacPhienBan, cauTangPhienBan, hanMucHieuLuc, kiemTraSau, noCuaBenDat, traSauCuaDon } from "./tra-sau";
 export { nhacHanTraSau, nhacHanTraSauAnToan } from "./tra-sau-nhac";
+export { congTyNhanTienKhach, kenhThuHienTai } from "./kenh-thu";

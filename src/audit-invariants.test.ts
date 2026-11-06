@@ -4503,3 +4503,45 @@ test("R-CRD-4: đơn Trả sau đã xác nhận phải đủ hai mốc giờ, h�
   don("PREPAID", false, "2026-11-20T03:00:00.000Z", "2026-11-20T03:00:00.000Z");
   assert.equal(violations(db, c), 3, "đơn Trả trước có mốc giờ");
 });
+
+// ---------------------------------------------------------------------------------------------------------------------------------------------------
+// R-KT-1 (ADR-0178 Đ1 mục 3; migration 0144): đơn mang dấu Tắt chỉ có khoản khách trả còn hiệu lực do hồ sơ người lập thu.
+// ---------------------------------------------------------------------------------------------------------------------------------------------------
+test("R-KT-1: đơn dấu Tắt có khoản khách trả còn hiệu lực với người thu khác người lập → vi phạm; đơn dấu Bật / không dấu, khoản đã đảo, khoản hoàn → 0", () => {
+  const db = build();
+  const c = one("R-KT-1");
+  assert.equal(c.level, "fail");
+  assert.equal(violations(db, c), 0, "dữ liệu sạch");
+  // Dựng ca vi phạm: gỡ trigger đường ghi (bất biến là lưới cho dữ liệu cũ / SQL tay) và khoá dấu (chụp NULL → 0 sau khi tạo đơn).
+  db.exec("DROP TRIGGER bil_receipt_partner_channel; DROP TRIGGER orders_company_collects_locked;");
+  const don = (dau: number | null): string => {
+    const { order } = donKhach(db, [{ adult: 1 }]);
+    if (dau !== null) db.prepare("UPDATE orders SET company_collects_snapshot = ? WHERE id = ?").run(dau, order);
+    return order;
+  };
+  const tat = don(0);
+  const bat = don(1);
+  const khong = don(null);
+  // Hồ sơ người lập (s-an) thu ở đơn Tắt: hợp lệ.
+  lanThuBil(db, { id: "kt-ok", order: tat, amount: 100000 });
+  // Công ty / người khác thu ở đơn Bật và đơn không dấu: hợp lệ.
+  lanThuBil(db, { id: "kt-bat", order: bat, amount: 100000, role: "COMPANY", party: chuCongTy(db) });
+  lanThuBil(db, { id: "kt-khong", order: khong, amount: 100000, role: "COMPANY", party: chuCongTy(db) });
+  assert.equal(violations(db, c), 0, "người lập thu ở đơn Tắt; người khác thu ở đơn Bật / không dấu");
+  // Khoản hoàn cho khách ở đơn Tắt, người thu khác: miễn (tiền ra).
+  lanThuBil(db, { id: "kt-hoan", order: tat, amount: 50000, kind: "CUSTOMER_REFUND", role: "COMPANY", party: chuCongTy(db) });
+  assert.equal(violations(db, c), 0, "khoản hoàn không tính");
+  // Công ty thu ở đơn Tắt ⇒ vi phạm đúng đơn đó.
+  lanThuBil(db, { id: "kt-sai", order: tat, amount: 70000, role: "COMPANY", party: chuCongTy(db) });
+  assert.equal(violations(db, c), 1);
+  const dong = db.prepare(c.sql.replace(/\s+/g, " ").trim()).all() as Record<string, unknown>[];
+  assert.ok(JSON.stringify(dong).includes(tat), "kết quả nêu mã đơn vi phạm");
+  // Người thu trống ở đơn Tắt cũng là vi phạm (NULL-safe).
+  const tat2 = don(0);
+  lanThuBil(db, { id: "kt-null", order: tat2, amount: 10000, role: "UNKNOWN" });
+  assert.equal(violations(db, c), 2, "người thu trống ở một đơn Tắt khác (mỗi đơn một dòng, dù nhiều khoản sai)");
+  // Khoản vi phạm bị đảo ⇒ hết báo (dòng đảo chép người thu của gốc, không tính).
+  lanThuBil(db, { id: "kt-sai-dao", order: tat, amount: 70000, kind: "CUSTOMER_PAYMENT", role: "COMPANY", party: chuCongTy(db), reverses: "kt-sai" });
+  lanThuBil(db, { id: "kt-null-dao", order: tat2, amount: 10000, role: "UNKNOWN", reverses: "kt-null" });
+  assert.equal(violations(db, c), 0, "khoản đã đảo không còn hiệu lực");
+});

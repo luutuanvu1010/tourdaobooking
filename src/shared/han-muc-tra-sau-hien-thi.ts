@@ -16,10 +16,10 @@ export function canhBaoVuotHanMuc(d: { hanMuc: number | null; dangNo: number }):
 /** «36 giờ»; tròn ngày thì kèm số ngày cho dễ hình dung: «48 giờ (2 ngày)». */
 export const cauGio = (gio: number): string => (gio >= 24 && gio % 24 === 0 ? `${gio} giờ (${gio / 24} ngày)` : `${gio} giờ`);
 
-/** Tóm tắt Trả sau của một đại lý: «50.000.000 ₫ · trả trong 36 giờ · ân hạn 12 giờ»; chưa bật → «Chưa bật». */
+/** Tóm tắt Trả sau của một đại lý: «50.000.000 ₫ · trả trong 36 giờ · ân hạn 12 giờ»; chưa có hạn mức → «Chưa cấp» (chủ 2026-11-06). */
 export const cauHanMuc = (d: { hanMuc: number | null; gioTra: number | null; gioAnHan: number | null }): string =>
   d.hanMuc === null || d.gioTra === null
-    ? "Chưa bật"
+    ? "Chưa cấp"
     : `${dongTien(d.hanMuc)} · trả trong ${cauGio(d.gioTra)} · ${d.gioAnHan ? `ân hạn ${cauGio(d.gioAnHan)}` : "không ân hạn"}`;
 
 export const nhanQuaHan = (soDon: number): string | null => (soDon > 0 ? `${soDon} đơn quá hạn` : null);
@@ -75,7 +75,7 @@ export const giaTriOGioVn = (iso: string): string => {
 /** Khối chọn hình thức ở màn đặt đơn: ẩn khi bên đặt không có hạn mức; khoá (kèm lý do) khi còn đơn quá hạn. */
 export function cauChonTraSau(r: { coHanMuc: boolean; conDuocDung: number; coDonQuaHan: boolean }): { hien: boolean; khoa: string | null; cau: string } {
   if (!r.coHanMuc) return { hien: false, khoa: null, cau: "" };
-  return { hien: true, khoa: r.coDonQuaHan ? CAU_KHOA_QUA_HAN : null, cau: `Còn được dùng ${dongTien(r.conDuocDung)}` };
+  return { hien: true, khoa: r.coDonQuaHan ? CAU_KHOA_QUA_HAN : null, cau: `Hạn mức khả dụng ${dongTien(r.conDuocDung)}` };
 }
 
 const HAN_MUC_TOI_DA = 10_000_000_000; // cùng trần `MAX_SO_TIEN` của máy chủ (billing/service.ts)
@@ -98,7 +98,7 @@ export function quyetHinhThuc(i: { dangChon: HinhThucThanhToan; c: ReturnType<ty
 }
 
 /**
- * Danh sách hồ sơ để chọn ở biểu mẫu «Đặt hạn mức»: lọc theo tên không phân biệt dấu và hoa thường (ô tìm chung của Danh bạ dùng LIKE của SQLite,
+ * Danh sách hồ sơ để chọn ở bảng cấp hạn mức: lọc theo tên không phân biệt dấu và hoa thường (ô tìm chung của Danh bạ dùng LIKE của SQLite,
  * nên «đại lý» không ra «Đại Lý»), xếp theo tên tiếng Việt, hiện tối đa `toiDa` dòng; `conLai` = số hồ sơ khớp chưa hiện, để màn nhắc gõ thêm.
  */
 export function locHoSoTraSau<T extends { ten: string }>(ds: readonly T[], tu: string, toiDa = 20): { hien: T[]; conLai: number } {

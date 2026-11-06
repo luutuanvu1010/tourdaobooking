@@ -16,6 +16,8 @@ import {
   conLaiCuaKhoan, hoanNgoaiTrangThai, kiemChi, kiemDuyet, kiemGhiHoanNgoai, kiemHuyDuyet, kiemXacNhanHoanNgoai, METHOD_CODES, nhacCoc, nhacDoiChieu, sinhDongHoanKhach, sinhDongLanThu,
   soDuTheoBen, soTienCoc, type DuyetRow, type HoanNgoaiRow, type KiemCoc, type SoTienCoc,
 } from "./rules";
+import { cauTangChoDon } from "./tra-sau-tang";
+import { kiemNguoiThuKenh } from "./kenh-thu";
 import { CHUA_CO_CONG_TY, PARTY_ID_RE, loaiCho, docLyDo, docNgay, docSoTien, layKyDaKhoa, lineOf, loi, loiKhoaKy, toDoiChieuRow, toLineRow, toReceiptRow, type KetQua, type NguoiGoi } from "./service";
 
 /** Kiểm độc lập vòng 2 CAO-1: đơn nhận đổi trạng thái giữa lúc duyệt chuyển và lúc chuyển. */
@@ -317,6 +319,9 @@ export async function ghiChuyen(db: D1Database, input: { orderId: string; raw: u
   if (await coKhoanLoiKhai(db, goc.targetOrderId)) return DON_NHAN_CO_LOI_KHAI();
   const giu = await docBen(db, b.nguoiGiu, d.congTyId, "Chọn ai đang cầm khoản tiền này (Công ty, hoặc nhân viên chưa nộp về công ty).");
   if (!giu.ok) return giu;
+  // ADR-0178 Đ1 mục 2: nửa «thu» ở đơn nhận là khoản khách trả mới — đơn nhận mang dấu Tắt chỉ qua khi người đang giữ là hồ sơ người lập đơn nhận (có chủ ý).
+  const kenh = await kiemNguoiThuKenh(db, goc.targetOrderId, giu.value);
+  if (kenh) return { ok: false, res: kenh };
   // ADR-0171 Đ3 mục 2: «Công ty giữ» chỉ hợp lệ khi KHÔNG còn ai chưa nộp trên đơn cũ — giao diện tự chọn đúng người, máy chủ vẫn chặn khi gọi API trực tiếp.
   if (giu.value === d.congTyId && [...d.soDu].some(([id, v]) => id !== d.congTyId && v > 0)) return loi(409, "coc_con_nguoi_giu", CAU_CON_NGUOI_GIU);
   const tc = tuChoi(kiemChi({
@@ -347,6 +352,9 @@ export async function ghiChuyen(db: D1Database, input: { orderId: string; raw: u
     stmts.push(postingIfReceiptStatement(db, { id: p, kind: "RECEIPT", orderId: goc.targetOrderId, reason: null, reversesPostingId: null, occurredDate: ngay.value, dueSnapshot: null, at, by: input.ai.staffId }, vaoId));
     for (const x of vao) stmts.push(lineIfPostingStatement(db, lineOf(x, p, goc.targetOrderId, vaoId, at, input.ai.staffId)));
   }
+  // ADR-0168 Đ2 mục 4 (kế hoạch 2026-11-05 Task 2, nợ 1): đơn NHẬN là Trả sau ⇒ tăng phiên bản bên đặt của nó trong cùng lô (lệnh xác nhận / sửa tăng đang chờ thua).
+  // Chỉ đơn nhận: đơn huỷ đã hết nợ; hai đơn cùng bên đặt cũng chỉ tăng một lần.
+  stmts.push(...(await cauTangChoDon(db, goc.targetOrderId, at)));
   const lo = await chayLo(db, stmts, [ngay.value]);
   if (!lo.ok) return lo;
   if ((lo.kq[1]!.meta.changes ?? 0) === 0) {

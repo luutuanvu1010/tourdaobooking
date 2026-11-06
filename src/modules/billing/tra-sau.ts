@@ -94,12 +94,12 @@ export async function benCoLienQuanTraSau(db: D1Database, ngay: string = vnToday
  * Cổng hạn mức (ADR-0168 Đ2 mục 3): có hạn mức hiệu lực, không đơn quá hạn còn nợ, nợ + đơn này không vượt hạn mức. Đọc PHIÊN BẢN TRƯỚC khi tính nợ: mọi lệnh làm tăng nợ
  * sau đó đều tăng phiên bản, nên lô gác `cauGacPhienBan` của lệnh này sẽ hỏng nếu có ai chen vào. `boQuaDon` = đơn đang xét (khỏi tính nợ của chính nó hai lần).
  */
-export async function kiemTraSau(db: D1Database, i: { benDat: string; soTienDon: number; boQuaDon?: string; bayGio?: string }): Promise<KetQuaKiemTraSau> {
+export async function kiemTraSau(db: D1Database, i: { benDat: string; soTienDon: number; boQuaDon?: string; bayGio?: string; loai?: "sua_tang" }): Promise<KetQuaKiemTraSau> {
   const bayGio = i.bayGio ?? bayGioMacDinh();
   const version = await phienBanHienTai(db, i.benDat);
   const [hanMuc, no] = await Promise.all([hanMucHieuLuc(db, i.benDat, vnToday(new Date(bayGio))), noCuaBenDat(db, i.benDat, bayGio)]);
   const cuaDon = i.boQuaDon ? no.don.find((d) => d.orderId === i.boQuaDon)?.no ?? 0 : 0;
-  const ly = lyDoKhongTraSau({ hanMuc, noHienTai: no.tong - cuaDon, soTienDon: i.soTienDon, coDonQuaHan: no.coDonQuaHan });
+  const ly = lyDoKhongTraSau({ hanMuc, noHienTai: no.tong - cuaDon, soTienDon: i.soTienDon, coDonQuaHan: no.coDonQuaHan, ...(i.loai ? { loai: i.loai } : {}) });
   if (ly) return { ok: false, ma: ly.ma, cau: ly.cau };
   return { ok: true, hanMuc: hanMuc!, version };
 }

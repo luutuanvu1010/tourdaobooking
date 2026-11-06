@@ -17,13 +17,22 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Công tắc «Khách của đối tác trả cho Công ty» (ADR-0178 Phần A). Migration 0144. Số và ngày tạm: bước A.0 đặt lại nếu cần.
+    version: "2.71",
+    date: "2026-11-06",
+    items: [
+      { kind: "moi", text: "Công tắc «Khách của đối tác trả cho Công ty» ở màn Cấp độ đại lý: Toàn quyền bật, tắt; Kế toán, Quản trị xem. Mặc định Bật, như trước." },
+      { kind: "doi", text: "Đơn Đối tác lập lúc công tắc Tắt: chỉ đối tác đó ghi khoản thu («Tôi thu»), không có QR thanh toán. Đơn đã lập giữ cách thu của lúc lập." },
+    ],
+  },
+  {
     // Trả sau theo giờ và luật vận hành công nợ (ADR-0172, ADR-0173). Migration 0143. Số và ngày tạm: bước A.0 đặt lại nếu cần.
     version: "2.70",
     date: "2026-11-06",
     items: [
-      { kind: "doi", text: "Trả sau nay đặt ở màn Cấp độ đại lý, cột «Trả sau»: Quản trị và Toàn quyền bật, đổi, ngừng; Kế toán xem. Màn Hạn mức trả sau chỉ còn để xem ai đang nợ.", bai: { id: "viec/han-muc-tra-sau", ten: "Bật Trả sau cho đối tác" } },
+      { kind: "doi", text: "Trả sau nay đặt ở màn Cấp độ đại lý, cột «Trả sau»: Quản trị, Toàn quyền cấp, điều chỉnh, đóng hạn mức; Kế toán xem. Màn Hạn mức trả sau chỉ để xem ai đang nợ.", bai: { id: "viec/han-muc-tra-sau", ten: "Cấp hạn mức trả sau cho đối tác" } },
       { kind: "doi", text: "Thời hạn trả tính bằng giờ từ lúc đơn được xác nhận, có thêm số giờ ân hạn. Trong ân hạn chỉ báo; hết ân hạn mà còn nợ mới chặn đơn trả sau mới và vé chưa mở." },
-      { kind: "moi", text: "Mỗi Cấp độ đại lý có số gợi ý Trả sau, tự điền sẵn khi bật cho một đối tác. Toàn quyền đặt mức tối đa Quản trị được cấp." },
+      { kind: "moi", text: "Mỗi Cấp độ đại lý có số gợi ý Trả sau, tự điền sẵn khi cấp hạn mức cho một đối tác. Toàn quyền đặt mức tối đa Quản trị được cấp." },
       { kind: "moi", text: "Nút «Ân hạn» trên đơn trả sau còn nợ: Quản trị, Toàn quyền lùi hạn trả kèm lý do." },
       { kind: "moi", text: "Đối tác xem mục «Trả sau của tôi» ở trang Tôi: hạn mức, số đang nợ và từng đơn còn nợ." },
       { kind: "moi", text: "Hộp thư nhắc đối tác trước hạn trả 6 giờ và khi đơn quá hạn; Kế toán cũng được báo khi quá hạn." },
@@ -59,7 +68,7 @@ export const CHANGELOG: readonly ReleaseNote[] = [
     date: "2026-11-05",
     items: [
       { kind: "moi", text: "Đối tác có hạn mức được chọn «Trả sau» khi lập đơn: vé mở trước, tiền thu sau trong số ngày được nợ." },
-      { kind: "moi", text: "Toàn quyền có màn Hạn mức trả sau để cấp hoặc ngừng hạn mức cho từng đối tác; Kế toán xem được số nợ và đơn quá hạn.", bai: { id: "viec/han-muc-tra-sau", ten: "Bật Trả sau cho đối tác" } },
+      { kind: "moi", text: "Toàn quyền có màn Hạn mức trả sau để cấp hoặc ngừng hạn mức cho từng đối tác; Kế toán xem được số nợ và đơn quá hạn.", bai: { id: "viec/han-muc-tra-sau", ten: "Cấp hạn mức trả sau cho đối tác" } },
       { kind: "moi", text: "Đơn trả sau vượt hạn mức, hoặc của đối tác còn đơn quá hạn, không xác nhận được; chi tiết đơn ghi hình thức thanh toán và hạn trả." },
     ],
   },
