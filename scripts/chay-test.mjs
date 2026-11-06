@@ -4,14 +4,14 @@
 // Thoát ≠ 0 nếu một trong hai bước đỏ (bước 2 vẫn chạy khi bước 1 đỏ — thấy đủ kết quả). Không bỏ qua bài nào: tệp đo giờ phải CÓ trong glob (đổi tên /
 // xoá mà quên sửa ở đây → dừng với lỗi, không lặng lẽ chạy thiếu). Kịch bản phát hành (scripts/release-lib.mjs) gọi `npm test` nên tự hưởng thay đổi.
 import { spawnSync } from "node:child_process";
-import { globSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
-const TEP_DO_GIO = "src/claude-guard-thoi-gian.test.ts";
+// Danh sách tệp kiểm và tên bài đo giờ: MỘT nguồn với bảng chia phần của lượt kiểm trên GitHub (scripts/kiem-phan.mjs, ADR-0176 Đ1.3).
+import { danhSachTest, TEP_DO_GIO } from "./kiem-phan.mjs";
 
-const tatCa = globSync("src/**/*.test.ts", { cwd: ROOT }).map((f) => f.split("\\").join("/")).sort();
+const tatCa = danhSachTest(ROOT);
 if (!tatCa.includes(TEP_DO_GIO)) {
   console.error(`✘ Không thấy ${TEP_DO_GIO} trong glob "src/**/*.test.ts" — sửa scripts/chay-test.mjs (không chạy thiếu bài đo giờ).`);
   process.exit(2);
