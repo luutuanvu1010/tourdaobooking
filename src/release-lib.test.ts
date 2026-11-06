@@ -9,17 +9,19 @@ import { readdirSync, readFileSync } from "node:fs";
 
 type RunResult = { code: number; stdout: string; stderr: string };
 type RunOpts = { env?: Record<string, string>; stream?: boolean; tee?: boolean };
+type Kho = { docBanGhi: (sha: string) => Promise<any>; ghiBanGhi: (sha: string, b: any) => Promise<void>; taiKetQua: (id: number) => Promise<any> };
 type Deps = {
   run: (cmd: string, args: string[], opts?: RunOpts) => RunResult | Promise<RunResult>;
   ask: (q: string) => Promise<string>;
   isTTY: boolean;
   log: (line: string) => void;
+  kho: Kho;
 };
 type Lib = {
   parsePendingMigrations: (out: string) => { ok: true; names: string[] } | { ok: false; reason: string };
   parseBookmark: (out: string) => string | null;
   parseVersionId: (out: string) => string | null;
-  dayLen: (deps: Deps & { target?: string }) => Promise<number>;
+  dayLen: (deps: Deps & { target?: string; now?: () => Date; sleep?: (ms: number) => Promise<void> }) => Promise<number>;
   trienKhai: (deps: Deps & { now?: () => Date; sleep?: (ms: number) => Promise<void>; version?: string; docMocTinDoi?: () => Promise<string>; docCacKho?: () => Promise<{ binding: string; ten: string }[] | null> }) => Promise<number>;
   DUOI_MIGRATION_TIN_DOI: string;
   coMigrationTinDoi: (pending: string[]) => boolean;
@@ -57,12 +59,27 @@ const FAIL: RunResult = { code: 1, stdout: "", stderr: "lỗi giả" };
 const key = (cmd: string, args: string[], opts?: RunOpts) =>
   `${opts?.env ? Object.entries(opts.env).map(([k, v]) => `${k}=${v} `).join("") : ""}${cmd} ${args.join(" ")}`.trim();
 
+const HEAD = "c".repeat(40);
+/** Bản ghi kết luận day-len hợp lệ cho HEAD (ADR-0176 Đ2.2) — mặc định của kho giả; từng ca sửa đúng một chỗ. */
+const BAN_GHI_XANH = { sha: HEAD, luc: "2026-09-23T02:05:00.000Z", runId: 4242, runUrl: "https://github.com/luutuanvu1010/tourdaobooking/actions/runs/4242", ketQua: "xanh", xanhLuc: "2026-09-23T02:00:00Z", choQua: null, quyTrinh: null, soLieu: null, chang: [{ ten: "chờ GitHub kiểm", giay: 360 }], giayDayLen: 400 };
+/** Kho bản ghi / kết quả tổng GIẢ (không đụng đĩa): `banGhi` theo sha, `ketQua` theo id lượt kiểm; ghi lại mọi lần ghi. */
+function khoGia(banGhi: Record<string, any> = { [HEAD]: BAN_GHI_XANH }, ketQua: Record<number, any> = {}) {
+  const daGhi: { sha: string; banGhi: any }[] = [];
+  const kho: Kho = {
+    docBanGhi: async (sha) => (sha in banGhi ? structuredClone(banGhi[sha]) : null),
+    ghiBanGhi: async (sha, b) => void daGhi.push({ sha, banGhi: b }),
+    taiKetQua: async (id) => (id in ketQua ? structuredClone(ketQua[id]) : null),
+  };
+  return { kho, daGhi };
+}
+
 /** Bộ chạy lệnh giả: kịch bản = bảng "chuỗi lệnh → kết quả"; lệnh lạ → ném lỗi (không cho lọt lệnh chưa lường). */
-function harness(script: Record<string, RunResult | RunResult[]>, answers: string[] = [], isTTY = true) {
+function harness(script: Record<string, RunResult | RunResult[]>, answers: string[] = [], isTTY = true, kho: Kho = khoGia().kho) {
   const calls: string[] = [];
   const lines: string[] = [];
   const questions: string[] = [];
   const deps: Deps = {
+    kho,
     isTTY,
     log: (l) => lines.push(l),
     ask: async (q) => {
@@ -83,7 +100,8 @@ function harness(script: Record<string, RunResult | RunResult[]>, answers: strin
   return { deps, calls, lines, questions, text: () => lines.join("\n") };
 }
 
-const DANGEROUS = /(?:^|\s)(?:git push|wrangler deploy|migrations apply)(?:\s|$)|--force|(?:^|\s)-f(?:\s|$)/;
+// Đẩy nhánh chờ kiểm `cho-kiem/<sha>` (ADR-0176 Đ2.1) là bước BÌNH THƯỜNG trước câu c/k — không tính là nguy hiểm; đẩy main / deploy / áp migration thì có.
+const DANGEROUS = /(?:^|\s)(?:git push origin main|wrangler deploy|migrations apply)(?:\s|$)|--force|(?:^|\s)-f(?:\s|$)/;
 function assertNothingDangerous(calls: string[]) {
   const bad = calls.filter((c) => DANGEROUS.test(c) || /git reset|git merge(?![-\w])(?! --ff-only)/.test(c));
   assert.deepEqual(bad, [], `không được gọi lệnh nguy hiểm trên đường từ chối: ${bad.join(" | ")}`);
@@ -130,24 +148,49 @@ test("parseBookmark / parseVersionId: đọc được JSON của time-travel inf
   assert.equal(lib.parseVersionId("lỗi"), null);
 });
 
-// ─────────────────────────── day-len ───────────────────────────
+// ─────────────────────────── day-len (ADR-0176: chờ kiểm đủ bộ trên GitHub rồi mới đẩy main) ───────────────────────────
 
+const { TEP_DIEU_KHIEN } = (await import(new URL("../scripts/kiem-phan.mjs", import.meta.url).href)) as { TEP_DIEU_KHIEN: string[] };
 const OLD = "a".repeat(40);
-/** Kịch bản day-len mà mọi bước đều đạt; từng ca sửa đúng một dòng. */
-function dayLenScript(over: Record<string, RunResult> = {}): Record<string, RunResult> {
+const NEW = "b".repeat(40);
+const GOC = "e".repeat(40);
+const R = "luutuanvu1010/tourdaobooking";
+const RUN_FIELDS = "databaseId,headSha,status,conclusion,url,attempt,event,createdAt,updatedAt";
+const RUNLIST = (sha: string) => `gh run list -R ${R} --workflow kiem.yml --commit ${sha} --limit 20 --json ${RUN_FIELDS}`;
+const RUNVIEW = (id: number) => `gh run view ${id} -R ${R} --json ${RUN_FIELDS},jobs`;
+const RERUN = (id: number) => `gh run rerun ${id} -R ${R} --failed`;
+const PUSH_CHO = `git push origin ${NEW}:refs/heads/cho-kiem/${NEW}`;
+const CTRL_DIFF = `git diff --name-only --no-renames origin/main main -- ${TEP_DIEU_KHIEN.filter((t) => t !== "package.json").join(" ")}`;
+const PKG = JSON.stringify({ scripts: { test: "node scripts/chay-test.mjs", typecheck: "tsc", "test:e2e": "node tests/e2e/run.mjs", "build:web": "esbuild a" }, devDependencies: { wrangler: "^4" } });
+const luot = (o: Record<string, unknown> = {}) => ({ databaseId: 4242, headSha: NEW, status: "completed", conclusion: "success", url: "https://github.com/x/actions/runs/4242", attempt: 1, event: "push", createdAt: "2026-09-23T01:55:00Z", updatedAt: "2026-09-23T02:00:00Z", ...o });
+const viewOf = (o: Record<string, unknown> = {}, jobs = [{ name: "npm test phần 1", status: "completed", conclusion: "success" }, { name: "Gom kết quả kiểm", status: "completed", conclusion: "success" }]) => out(JSON.stringify({ ...luot(o), jobs }));
+const TONG = (o: Record<string, number> = {}) => ({ ok: true, baiDo: [], tong: { soTep: 833, soBai: 8033, soBoQua: 2, soKichBan: 79, ...o } });
+const LUOT_GOC = { databaseId: 4100, headSha: GOC, status: "completed", conclusion: "success", createdAt: "2026-09-22T01:00:00Z" };
+const DUNG_HONG = { "gh run list": 0 };
+void DUNG_HONG;
+
+/** Kịch bản day-len mà mọi bước đều đạt; từng ca sửa đúng một dòng. `coNhanh` = có tên nhánh (git rev-parse main gọi hai lần: mã cũ, rồi mã mới). */
+function dayLenScript(over: Record<string, RunResult | RunResult[]> = {}, coNhanh = true): Record<string, RunResult | RunResult[]> {
   return {
     "git rev-parse --abbrev-ref HEAD": out("main\n"),
     "git status --porcelain": out(""),
     "git fetch origin": OK,
     "git merge-base --is-ancestor origin/main main": OK,
     "git merge-base --is-ancestor main worktree-x": OK,
-    "git rev-parse main": out(`${OLD}\n`),
+    "git rev-parse main": coNhanh ? [out(`${OLD}\n`), out(`${NEW}\n`)] : [out(`${NEW}\n`)],
     "git merge --ff-only worktree-x": OK,
-    "npm test": OK,
-    "npm run typecheck": OK,
     "git rev-list --count origin/main..main": out("2\n"),
     "git log --oneline --no-decorate origin/main..main": out("b1 Thêm Face ID\nb2 Nhật ký\n"),
     "git diff --name-only --no-renames --diff-filter=A origin/main main -- migrations/": out("migrations/0023_auth_passkey.sql\n"),
+    "git rev-parse origin/main": out(`${GOC}\n`),
+    [CTRL_DIFF]: out(""),
+    "git show origin/main:package.json": out(PKG),
+    "git show main:package.json": out(PKG),
+    "gh auth status": OK,
+    [PUSH_CHO]: OK,
+    [RUNLIST(NEW)]: out(JSON.stringify([luot()])),
+    [RUNVIEW(4242)]: viewOf(),
+    [RUNLIST(GOC)]: out(JSON.stringify([LUOT_GOC])),
     "git push origin main": OK,
     "git log -1 --oneline --no-decorate origin/main": out("b1 Thêm Face ID\n"),
     ...over,
@@ -161,46 +204,77 @@ const DAYLEN_HAPPY = [
   "git merge-base --is-ancestor main worktree-x",
   "git rev-parse main",
   "git merge --ff-only worktree-x",
-  "npm test",
-  "npm run typecheck",
   "git rev-list --count origin/main..main",
   "git log --oneline --no-decorate origin/main..main",
   "git diff --name-only --no-renames --diff-filter=A origin/main main -- migrations/",
+  "git rev-parse main",
+  "git rev-parse origin/main",
+  CTRL_DIFF,
+  "git show origin/main:package.json",
+  "git show main:package.json",
+  "gh auth status",
+  PUSH_CHO,
+  RUNLIST(NEW),
+  RUNVIEW(4242),
+  RUNLIST(GOC),
   "git push origin main",
   "git log -1 --oneline --no-decorate origin/main",
 ];
+/** Đồng hồ giả: sleep(ms) làm đồng hồ tiến đúng ms (để thử hết giờ chờ mà không chờ thật). */
+function dongHoGia(batDau = Date.parse("2026-09-23T02:00:00Z")) {
+  let t = batDau;
+  const waits: number[] = [];
+  return { now: () => new Date(t), sleep: async (ms: number) => void (waits.push(ms), (t += ms)), waits, tien: (ms: number) => void (t += ms) };
+}
+function dl(script: Record<string, RunResult | RunResult[]>, answers: string[] = [], { tty = true, ketQua = { 4242: TONG(), 4100: TONG() } as Record<number, any> } = {}) {
+  const k = khoGia({}, ketQua);
+  const h = harness(script, answers, tty, k.kho);
+  const d = dongHoGia();
+  return { ...h, daGhi: k.daGhi, deps: { ...h.deps, now: d.now, sleep: d.sleep }, waits: d.waits };
+}
 
-test("day-len (tiêu chí 2): mọi thứ đạt + trả lời c → ff-only rồi push, không --force; tóm tắt nêu đúng migration mới", async () => {
-  const h = harness(dayLenScript(), ["c"]);
-  const code = await lib.dayLen({ ...h.deps, target: "worktree-x" });
-  assert.equal(code, 0);
+test("day-len (ADR-0176 Đ2.1): mọi thứ đạt + c → đẩy cho-kiem/<sha> (không --force), chờ lượt đúng sha, ghi bản ghi XANH, rồi mới đẩy main", async () => {
+  const h = dl(dayLenScript(), ["c"]);
+  assert.equal(await lib.dayLen({ ...h.deps, target: "worktree-x" }), 0);
   assert.deepEqual(h.calls, DAYLEN_HAPPY);
   assert.ok(!h.calls.some((c) => /--force|(?:^|\s)-f(?:\s|$)/.test(c)));
+  assert.ok(!h.calls.some((c) => /^npm (test|run typecheck)$/.test(c)), "không còn chạy npm test / typecheck ở máy (Đ1.5)");
+  assert.ok(h.calls.indexOf(PUSH_CHO) < h.calls.indexOf("git push origin main"));
   assert.match(h.text(), /0023_auth_passkey\.sql/);
   assert.match(h.text(), /PHẢI áp các migration này trước; dùng `npm run trien-khai`/);
   assert.match(h.text(), /2 commit/);
+  assert.match(h.text(), /lần đẩy phụ/);
   assert.deepEqual(h.questions, ["Đẩy lên GitHub? (c/k) "]);
+  assert.equal(h.daGhi.length, 1);
+  const b = h.daGhi[0]!.banGhi;
+  assert.equal(h.daGhi[0]!.sha, NEW);
+  assert.equal(b.sha, NEW);
+  assert.equal(b.ketQua, "xanh");
+  assert.equal(b.runId, 4242);
+  assert.equal(b.choQua, null);
+  assert.equal(b.quyTrinh, null);
+  assert.equal(b.xanhLuc, "2026-09-23T02:00:00Z");
+  assert.ok(Number.isInteger(b.giayDayLen) && Array.isArray(b.chang));
 });
 
 test("day-len: không có tên nhánh → bỏ bước gộp; không có migration mới → nói rõ 'không có'", async () => {
-  const script = dayLenScript({ "git diff --name-only --no-renames --diff-filter=A origin/main main -- migrations/": out("") });
-  const h = harness(script, ["c"]);
+  const script = dayLenScript({ "git diff --name-only --no-renames --diff-filter=A origin/main main -- migrations/": out("") }, false);
+  const h = dl(script, ["c"]);
   assert.equal(await lib.dayLen(h.deps), 0);
-  assert.deepEqual(
-    h.calls,
-    DAYLEN_HAPPY.filter((c) => !/worktree-x|git rev-parse main/.test(c)),
-  );
+  const ky = DAYLEN_HAPPY.filter((c) => !/worktree-x/.test(c));
+  ky.splice(ky.indexOf("git rev-parse main"), 1);
+  assert.deepEqual(h.calls, ky);
   assert.match(h.text(), /Migration mới: không có/);
 });
 
-test("day-len: không có commit nào để đẩy → dừng êm, không hỏi, không push", async () => {
-  const h = harness(dayLenScript({ "git rev-list --count origin/main..main": out("0\n") }));
-  assert.equal(await lib.dayLen(h.deps), 0);
-  assertNothingDangerous(h.calls);
+test("day-len: không có commit nào để đẩy → dừng êm, không hỏi, không đẩy gì (kể cả nhánh chờ kiểm)", async () => {
+  const h = dl(dayLenScript({ "git rev-list --count origin/main..main": out("0\n") }));
+  assert.equal(await lib.dayLen({ ...h.deps, target: "worktree-x" }), 0);
+  assert.ok(!h.calls.some((c) => c.startsWith("git push")));
   assert.deepEqual(h.questions, []);
 });
 
-const DAYLEN_REFUSALS: { name: string; over?: Record<string, RunResult>; answers?: string[]; tty?: boolean; target?: string; reason: RegExp; lastCall?: string }[] = [
+const DAYLEN_REFUSALS: { name: string; over?: Record<string, RunResult | RunResult[]>; answers?: string[]; tty?: boolean; reason: RegExp; lastCall?: string; khongDayPhu?: boolean }[] = [
   { name: "không có TTY", tty: false, reason: /terminal thật/ },
   { name: "không ở main", over: { "git rev-parse --abbrev-ref HEAD": out("worktree-x\n") }, reason: /nhánh `main`/, lastCall: "git rev-parse --abbrev-ref HEAD" },
   { name: "cây bẩn", over: { "git status --porcelain": out(" M src/index.ts\n") }, reason: /chưa commit/, lastCall: "git status --porcelain" },
@@ -208,37 +282,49 @@ const DAYLEN_REFUSALS: { name: string; over?: Record<string, RunResult>; answers
   { name: "origin/main không phải tổ tiên", over: { "git merge-base --is-ancestor origin/main main": FAIL }, reason: /đã có người đẩy/, lastCall: "git merge-base --is-ancestor origin/main main" },
   { name: "nhánh không tiến thẳng được", over: { "git merge-base --is-ancestor main worktree-x": FAIL }, reason: /không tiến thẳng/, lastCall: "git merge-base --is-ancestor main worktree-x" },
   { name: "ff-only lỗi", over: { "git merge --ff-only worktree-x": FAIL }, reason: /gộp/, lastCall: "git merge --ff-only worktree-x" },
-  { name: "test đỏ", over: { "npm test": FAIL }, reason: /npm test/, lastCall: "npm test" },
-  { name: "typecheck đỏ", over: { "npm run typecheck": FAIL }, reason: /typecheck/, lastCall: "npm run typecheck" },
-  { name: "chủ trả lời k", answers: ["k"], reason: /Không đẩy/, lastCall: "git diff --name-only --no-renames --diff-filter=A origin/main main -- migrations/" },
+  { name: "chủ trả lời k", answers: ["k"], reason: /Không đẩy/, lastCall: RUNLIST(GOC) },
   { name: "chủ trả lời 'có' (không đúng c)", answers: ["có"], reason: /Không đẩy/ },
   { name: "chủ trả lời 'C' hoa", answers: ["C"], reason: /Không đẩy/ },
   { name: "chủ bấm Enter", answers: [""], reason: /Không đẩy/ },
-  // Sửa vòng 2: mọi lệnh git đọc trạng thái mà lỗi thì DỪNG, không bao giờ đoán (không bỏ sót).
+  // Mọi lệnh đọc trạng thái mà lỗi thì DỪNG, không bao giờ đoán (không bỏ sót).
   { name: "git rev-parse main lỗi (trước khi gộp)", over: { "git rev-parse main": FAIL }, reason: /không đọc được mã hiện tại của `main`/, lastCall: "git rev-parse main" },
   { name: "git rev-parse main trả rỗng", over: { "git rev-parse main": out("") }, reason: /không đọc được mã hiện tại của `main`/, lastCall: "git rev-parse main" },
   { name: "git rev-list --count lỗi", over: { "git rev-list --count origin/main..main": FAIL }, reason: /không đếm được số commit/, lastCall: "git rev-list --count origin/main..main" },
   { name: "git rev-list --count trả chữ lạ", over: { "git rev-list --count origin/main..main": out("abc\n") }, reason: /không đếm được số commit/, lastCall: "git rev-list --count origin/main..main" },
   { name: "git log danh sách commit lỗi", over: { "git log --oneline --no-decorate origin/main..main": FAIL }, reason: /không đọc được danh sách commit/, lastCall: "git log --oneline --no-decorate origin/main..main" },
   { name: "git diff migration lỗi", over: { "git diff --name-only --no-renames --diff-filter=A origin/main main -- migrations/": FAIL }, reason: /không liệt kê được migration mới/, lastCall: "git diff --name-only --no-renames --diff-filter=A origin/main main -- migrations/" },
+  { name: "không đọc được sha origin/main", over: { "git rev-parse origin/main": FAIL }, reason: /không đọc được mã commit/, lastCall: "git rev-parse origin/main", khongDayPhu: true },
+  { name: "so tệp điều khiển kiểm lỗi", over: { [CTRL_DIFF]: FAIL }, reason: /tệp điều khiển việc kiểm/, lastCall: CTRL_DIFF, khongDayPhu: true },
+  { name: "chưa đăng nhập gh", over: { "gh auth status": FAIL }, reason: /gh auth login/, lastCall: "gh auth status", khongDayPhu: true },
+  { name: "đẩy nhánh chờ kiểm lỗi", over: { [PUSH_CHO]: FAIL }, reason: /nhánh chờ kiểm/, lastCall: PUSH_CHO },
+  { name: "không đọc được danh sách lượt kiểm", over: { [RUNLIST(NEW)]: FAIL }, reason: /gh run list/, lastCall: RUNLIST(NEW) },
+  { name: "lượt kiểm thuộc commit khác", over: { [RUNVIEW(4242)]: viewOf({ headSha: GOC }) }, reason: /thuộc commit/, lastCall: RUNVIEW(4242) },
+  { name: "lượt kiểm đỏ + chủ chọn dừng (d)", over: { [RUNVIEW(4242)]: viewOf({ conclusion: "failure" }) }, answers: ["d"], reason: /lượt kiểm đỏ — dừng/, lastCall: RUNVIEW(4242) },
+  { name: "lượt kiểm đỏ + trả lời lạ (coi là dừng)", over: { [RUNVIEW(4242)]: viewOf({ conclusion: "failure" }) }, answers: ["c"], reason: /lượt kiểm đỏ — dừng/ },
+  { name: "lượt kiểm đỏ + cho qua mà không gõ lý do", over: { [RUNVIEW(4242)]: viewOf({ conclusion: "failure" }) }, answers: ["q", "  "], reason: /không có lý do cho qua/ },
+  { name: "lượt kiểm đỏ + lý do quá ngắn", over: { [RUNVIEW(4242)]: viewOf({ conclusion: "failure" }) }, answers: ["q", "ok"], reason: /không có lý do cho qua/ },
+  { name: "chạy lại phần đỏ lỗi", over: { [RUNVIEW(4242)]: viewOf({ conclusion: "failure" }), [RERUN(4242)]: FAIL }, answers: ["r"], reason: /gh run rerun/, lastCall: RERUN(4242) },
+  { name: "đổi quy trình kiểm mà không gõ lý do", over: { [CTRL_DIFF]: out(".github/workflows/kiem.yml\n"), "git diff --stat origin/main main -- .github/workflows/kiem.yml": out(" kiem.yml | 2 +-\n") }, answers: [""], reason: /không có lý do đổi quy trình kiểm/ },
 ];
 
 for (const c of DAYLEN_REFUSALS) {
-  test(`day-len (tiêu chí 1): từ chối và KHÔNG push khi ${c.name}`, async () => {
-    const h = harness(dayLenScript(c.over), c.answers ?? [], c.tty ?? true);
-    const code = await lib.dayLen({ ...h.deps, target: c.target ?? "worktree-x" });
+  test(`day-len (tiêu chí 1): từ chối và KHÔNG đẩy main khi ${c.name}`, async () => {
+    const h = dl(dayLenScript(c.over), c.answers ?? [], { tty: c.tty ?? true });
+    const code = await lib.dayLen({ ...h.deps, target: "worktree-x" });
     assert.notEqual(code, 0);
     assertNothingDangerous(h.calls);
     assert.ok(!h.calls.includes("git push origin main"));
+    assert.equal(h.daGhi.length, 0, "không ghi bản ghi kết luận khi không đẩy");
     assert.match(h.text(), c.reason);
     if (c.tty === false) assert.deepEqual(h.calls, [], "ngoài TTY: không được gọi lệnh nào");
     if (c.lastCall) assert.equal(h.calls.at(-1), c.lastCall, "phải dừng NGAY ở bước hỏng");
+    if (c.khongDayPhu) assert.ok(!h.calls.includes(PUSH_CHO), "hỏng trước bước đẩy phụ ⇒ không đẩy gì lên GitHub");
   });
 }
 
-test("day-len: đã gộp rồi mà test đỏ / trả lời k → in lệnh quay main về chỗ cũ, KHÔNG tự chạy", async () => {
-  for (const [over, answers] of [[{ "npm test": FAIL }, []], [{ "npm run typecheck": FAIL }, []], [{}, ["k"]]] as const) {
-    const h = harness(dayLenScript(over), [...answers]);
+test("day-len: đã gộp rồi mà lượt kiểm đỏ / trả lời k → in lệnh quay main về chỗ cũ, KHÔNG tự chạy", async () => {
+  for (const [over, answers] of [[{ [RUNVIEW(4242)]: viewOf({ conclusion: "failure" }) }, ["d"]], [{}, ["k"]]] as const) {
+    const h = dl(dayLenScript(over), [...answers]);
     assert.notEqual(await lib.dayLen({ ...h.deps, target: "worktree-x" }), 0);
     assert.ok(h.text().includes(`git reset --hard ${OLD}`), "phải in lệnh quay lại");
     assert.ok(!h.calls.some((c) => c.startsWith("git reset")), "không được tự chạy git reset");
@@ -247,21 +333,156 @@ test("day-len: đã gộp rồi mà test đỏ / trả lời k → in lệnh qua
 
 test("day-len: tên nhánh dạng tuỳ chọn (bắt đầu bằng '-') hoặc có ký tự lạ → từ chối trước khi gọi git", async () => {
   for (const target of ["--force", "-f", "a b", "x;rm", ""]) {
-    const h = harness(dayLenScript());
+    const h = dl(dayLenScript());
     assert.notEqual(await lib.dayLen({ ...h.deps, target }), 0, target);
     assert.deepEqual(h.calls, [], `không gọi lệnh nào với tên nhánh ${JSON.stringify(target)}`);
   }
 });
 
-test("day-len: push lỗi → thoát khác 0, báo rõ", async () => {
-  const h = harness(dayLenScript({ "git push origin main": FAIL }), ["c"]);
+test("day-len: push main lỗi → thoát khác 0, báo rõ", async () => {
+  const h = dl(dayLenScript({ "git push origin main": FAIL }), ["c"]);
   assert.notEqual(await lib.dayLen({ ...h.deps, target: "worktree-x" }), 0);
-  assert.match(h.text(), /git push/);
+  assert.match(h.text(), /git push origin main/);
+});
+
+test("day-len: lượt kiểm chưa hiện / đang chạy → chờ (sleep), in tiến độ từng phần, nhận khi xong; chỉ nhận lượt có head_sha đúng", async () => {
+  const dangChay = out(JSON.stringify({ ...luot({ status: "in_progress", conclusion: "" }), jobs: [{ name: "npm test phần 1", status: "completed", conclusion: "success" }, { name: "e2e phần 1", status: "in_progress", conclusion: "" }] }));
+  const h = dl(dayLenScript({ [RUNLIST(NEW)]: [out("[]"), out(JSON.stringify([luot({ headSha: GOC, databaseId: 1 })])), out(JSON.stringify([luot({ headSha: GOC, databaseId: 1 }), luot()]))], [RUNVIEW(4242)]: [dangChay, viewOf()] }), ["c"]);
+  assert.equal(await lib.dayLen({ ...h.deps, target: "worktree-x" }), 0);
+  assert.equal(h.calls.filter((c) => c === RUNLIST(NEW)).length, 3);
+  assert.equal(h.calls.filter((c) => c === RUNVIEW(4242)).length, 2);
+  assert.ok(!h.calls.includes(RUNVIEW(1)), "không bao giờ đọc lượt của commit khác");
+  assert.equal(h.waits.length, 3);
+  assert.match(h.text(), /đang kiểm: 1\/2 phần xong/);
+  assert.match(h.text(), /xong: 2\/2 phần xong/);
+});
+
+test("day-len: GitHub không có lượt kiểm sau 5 phút / lượt chạy quá 45 phút → DỪNG (không treo mãi), không đẩy main", async () => {
+  const h1 = dl(dayLenScript({ [RUNLIST(NEW)]: out("[]") }));
+  assert.notEqual(await lib.dayLen({ ...h1.deps, target: "worktree-x" }), 0);
+  assert.match(h1.text(), /chưa có lượt kiểm/);
+  assert.ok(!h1.calls.includes("git push origin main"));
+  const h2 = dl(dayLenScript({ [RUNVIEW(4242)]: viewOf({ status: "in_progress", conclusion: "" }) }));
+  assert.notEqual(await lib.dayLen({ ...h2.deps, target: "worktree-x" }), 0);
+  assert.match(h2.text(), /chưa xong/);
+  assert.ok(!h2.calls.includes("git push origin main"));
+});
+
+test("day-len (Đ3.1): lượt kiểm đỏ → nêu TÊN bài đỏ (từ tệp gom), hỏi r/d/q", async () => {
+  const h = dl(dayLenScript({ [RUNVIEW(4242)]: viewOf({ conclusion: "failure" }) }), ["d"], { ketQua: { 4242: { ...TONG(), ok: false, baiDo: ["e2e catalog", "src/x.test.ts: ca giả"] }, 4100: TONG() } });
+  assert.notEqual(await lib.dayLen({ ...h.deps, target: "worktree-x" }), 0);
+  assert.match(h.text(), /✘ e2e catalog/);
+  assert.match(h.text(), /✘ src\/x\.test\.ts: ca giả/);
+  assert.match(h.questions[0] ?? "", /Chạy lại phần đỏ \(r/);
+});
+
+test("day-len (Đ3.1): đỏ mà không đọc được tệp gom → nêu tên PHẦN đỏ từ GitHub", async () => {
+  const h = dl(dayLenScript({ [RUNVIEW(4242)]: viewOf({ conclusion: "failure" }, [{ name: "e2e phần 3", status: "completed", conclusion: "failure" }, { name: "Gom kết quả kiểm", status: "completed", conclusion: "failure" }]) }), ["d"], { ketQua: {} });
+  assert.notEqual(await lib.dayLen({ ...h.deps, target: "worktree-x" }), 0);
+  assert.match(h.text(), /✘ phần e2e phần 3/);
+});
+
+test("day-len (Đ3.1): đỏ + cho qua có lý do → bản ghi ghi lý do, tên bài đỏ; vẫn hỏi c/k rồi mới đẩy main", async () => {
+  const h = dl(dayLenScript({ [RUNVIEW(4242)]: viewOf({ conclusion: "failure" }) }), ["q", "giá Sheet thật vừa đổi", "c"], { ketQua: { 4242: { ...TONG(), ok: false, baiDo: ["e2e catalog"] }, 4100: TONG() } });
+  assert.equal(await lib.dayLen({ ...h.deps, target: "worktree-x" }), 0);
+  assert.ok(h.calls.includes("git push origin main"));
+  const b = h.daGhi[0]!.banGhi;
+  assert.equal(b.ketQua, "do");
+  assert.equal(b.choQua.lyDo, "giá Sheet thật vừa đổi");
+  assert.deepEqual(b.choQua.baiDo, ["e2e catalog"]);
+  assert.equal(b.xanhLuc, null);
+  assert.equal(h.questions.at(-1), "Đẩy lên GitHub? (c/k) ");
+  assert.match(h.text(), /chủ cho qua: giá Sheet thật vừa đổi/);
+});
+
+test("day-len (Đ3.1): đỏ + chạy lại phần đỏ (r) → gh run rerun --failed, chờ lượt chạy lại (attempt mới) xanh rồi đi tiếp như xanh thường", async () => {
+  const h = dl(dayLenScript({ [RUNVIEW(4242)]: [viewOf({ conclusion: "failure" }), viewOf({ conclusion: "failure" }), viewOf({ attempt: 2 })], [RERUN(4242)]: OK }), ["r", "c"]);
+  assert.equal(await lib.dayLen({ ...h.deps, target: "worktree-x" }), 0);
+  assert.ok(h.calls.includes(RERUN(4242)));
+  assert.equal(h.calls.filter((c) => c === RUNVIEW(4242)).length, 3, "lần đọc ngay sau rerun vẫn là lượt cũ (attempt 1) — phải chờ attempt 2");
+  assert.equal(h.daGhi[0]!.banGhi.ketQua, "xanh");
+  assert.equal(h.daGhi[0]!.banGhi.choQua, null);
+});
+
+test("day-len (Đ2.3 + Đ3.2): tệp điều khiển việc kiểm đổi (dù lượt kiểm XANH) → in tệp + khác biệt, đòi lý do, bản ghi ghi 'đổi quy trình kiểm'", async () => {
+  const h = dl(dayLenScript({ [CTRL_DIFF]: out(".github/workflows/kiem.yml\nscripts/kiem-phan.mjs\n"), "git diff --stat origin/main main -- .github/workflows/kiem.yml scripts/kiem-phan.mjs": out(" 2 files changed\n") }), ["bỏ phần e2e số 6 vì gộp", "c"]);
+  assert.equal(await lib.dayLen({ ...h.deps, target: "worktree-x" }), 0);
+  const t = h.text();
+  assert.match(t, /ĐỔI QUY TRÌNH KIỂM/);
+  assert.match(t, /\.github\/workflows\/kiem\.yml/);
+  assert.match(t, /2 files changed/);
+  const b = h.daGhi[0]!.banGhi;
+  assert.equal(b.ketQua, "xanh");
+  assert.equal(b.quyTrinh.lyDo, "bỏ phần e2e số 6 vì gộp");
+  assert.ok(b.quyTrinh.doi.some((x: string) => /kiem\.yml/.test(x)));
+});
+
+test("day-len (Đ2.3): package.json đổi lệnh test → đổi quy trình; đổi danh sách trang build:web → KHÔNG phải đổi quy trình", async () => {
+  const pk = JSON.parse(PKG);
+  const doiTest = JSON.stringify({ ...pk, scripts: { ...pk.scripts, test: "node --test src/a.test.ts" } });
+  const h1 = dl(dayLenScript({ "git show main:package.json": out(doiTest), "git diff --stat origin/main main -- package.json": out(" package.json | 2 +-\n") }), ["bớt bài cho nhanh, chủ biết", "c"]);
+  assert.equal(await lib.dayLen({ ...h1.deps, target: "worktree-x" }), 0);
+  assert.ok(h1.daGhi[0]!.banGhi.quyTrinh.doi.some((x: string) => /package\.json \(scripts\.test\)/.test(x)));
+  const doiBuild = JSON.stringify({ ...pk, scripts: { ...pk.scripts, "build:web": "esbuild a b" } });
+  const h2 = dl(dayLenScript({ "git show main:package.json": out(doiBuild) }), ["c"]);
+  assert.equal(await lib.dayLen({ ...h2.deps, target: "worktree-x" }), 0);
+  assert.equal(h2.daGhi[0]!.banGhi.quyTrinh, null);
+});
+
+test("day-len (Đ2.3): số tệp / bài / kịch bản giảm, số bài bỏ qua tăng, hay origin/main KHÔNG có lượt kiểm để so (lần đầu) → đòi lý do", async () => {
+  const ca: [string, Record<number, any>, Record<string, RunResult>, RegExp][] = [
+    ["số bài giảm", { 4242: TONG({ soBai: 8000 }), 4100: TONG() }, {}, /số bài kiểm giảm: 8033 → 8000/],
+    ["số tệp giảm", { 4242: TONG({ soTep: 832 }), 4100: TONG() }, {}, /số tệp kiểm giảm/],
+    ["số kịch bản giảm", { 4242: TONG({ soKichBan: 78 }), 4100: TONG() }, {}, /số kịch bản e2e giảm/],
+    ["bỏ qua tăng", { 4242: TONG({ soBoQua: 3 }), 4100: TONG() }, {}, /bỏ qua \(skip\/todo\) tăng: 2 → 3/],
+    ["không có lượt của origin/main", { 4242: TONG() }, { [RUNLIST(GOC)]: out("[]") }, /không có lượt kiểm của origin\/main/],
+    ["không tải được tệp gom của lượt này", { 4100: TONG() }, {}, /không đọc được số tệp/],
+  ];
+  for (const [ten, ketQua, over, re] of ca) {
+    const h = dl(dayLenScript(over), ["", "c"], { ketQua });
+    assert.notEqual(await lib.dayLen({ ...h.deps, target: "worktree-x" }), 0, `${ten}: không lý do ⇒ dừng`);
+    assert.match(h.text(), re, ten);
+    assert.ok(!h.calls.includes("git push origin main"), ten);
+    const h2 = dl(dayLenScript(over), ["chủ đã biết và đồng ý", "c"], { ketQua });
+    assert.equal(await lib.dayLen({ ...h2.deps, target: "worktree-x" }), 0, `${ten}: có lý do ⇒ đi tiếp`);
+    assert.equal(h2.daGhi[0]!.banGhi.quyTrinh.lyDo, "chủ đã biết và đồng ý");
+  }
+});
+
+test("day-len: số liệu tăng / bằng (thêm bài) → xanh thường, không hỏi lý do", async () => {
+  const h = dl(dayLenScript(), ["c"], { ketQua: { 4242: TONG({ soBai: 8040, soTep: 834 }), 4100: TONG() } });
+  assert.equal(await lib.dayLen({ ...h.deps, target: "worktree-x" }), 0);
+  assert.deepEqual(h.questions, ["Đẩy lên GitHub? (c/k) "]);
+});
+
+test("day-len: ghi bản ghi kết luận lỗi → KHÔNG đẩy main (trien-khai sẽ thiếu bản ghi)", async () => {
+  const k = khoGia({}, { 4242: TONG(), 4100: TONG() });
+  k.kho.ghiBanGhi = async () => {
+    throw new Error("đĩa đầy");
+  };
+  const h = harness(dayLenScript(), ["c"], true, k.kho);
+  const d = dongHoGia();
+  assert.notEqual(await lib.dayLen({ ...h.deps, now: d.now, sleep: d.sleep, target: "worktree-x" }), 0);
+  assert.ok(!h.calls.includes("git push origin main"));
+  assert.match(h.text(), /không ghi được bản ghi kết luận kiểm \(đĩa đầy\)/);
+});
+
+test("day-len: thời gian từng chặng KHÔNG tính lúc chờ chủ trả lời (Đ1.1)", async () => {
+  const k = khoGia({}, { 4242: TONG(), 4100: TONG() });
+  const d = dongHoGia();
+  const h = harness(dayLenScript({ [RUNVIEW(4242)]: [viewOf({ status: "in_progress", conclusion: "" }), viewOf()] }), [], true, k.kho);
+  h.deps.ask = async () => {
+    d.tien(30 * 60e3); // chủ suy nghĩ 30 phút ở câu c/k
+    return "c";
+  };
+  assert.equal(await lib.dayLen({ ...h.deps, now: d.now, sleep: d.sleep, target: "worktree-x" }), 0);
+  const b = k.daGhi[0]!.banGhi;
+  assert.equal(b.giayDayLen, 15, "chỉ 15 giây chờ GitHub (một nhịp hỏi); 30 phút suy nghĩ không tính");
+  assert.ok(b.chang.some((c: any) => c.ten === "chờ GitHub kiểm" && c.giay === 15));
 });
 
 // ─────────────────────────── trien-khai ───────────────────────────
 
-const HEAD = "c".repeat(40);
 const WHOAMI = "CI=1 npx wrangler whoami";
 const WHOAMI_OK = out("👋 You are logged in with an OAuth Token, associated with the email x@y.z.\n");
 /** ADR-0094 đ4 (L13): cổng chỉ-đọc kiểm TÊN khoá bí mật đã đặt (không đọc giá trị). Đầu ra mẫu theo dạng `--format json` của wrangler 4. */
@@ -278,7 +499,13 @@ const TT = "CI=1 npx wrangler d1 time-travel info tourdao-sales-db --json";
 const APPLY = "CI=1 npx wrangler d1 migrations apply tourdao-sales-db --remote";
 const DEPLOY = "CI=1 npx wrangler deploy";
 const AUDIT = "node scripts/audit-invariants.mjs --db remote";
-const E2E = "npm run test:e2e";
+/** ADR-0176 Đ2.2: trien-khai ĐỌC check-run của đúng commit main (một lần, chỉ đọc) thay cho npm test / typecheck / e2e. */
+const CHECKS = `gh api repos/luutuanvu1010/tourdaobooking/commits/${HEAD}/check-runs?per_page=100`;
+const checkRun = (o: Record<string, unknown> = {}) => ({ name: "npm test phần 1", status: "completed", conclusion: "success", head_sha: HEAD, completed_at: "2026-09-23T01:58:00Z", app: { slug: "github-actions" }, ...o });
+const GOM = (o: Record<string, unknown> = {}) => checkRun({ name: "Gom kết quả kiểm", completed_at: "2026-09-23T02:00:00Z", ...o });
+const checksOut = (runs: unknown[], total = runs.length) => out(JSON.stringify({ total_count: total, check_runs: runs }));
+const KHAC_SHA = "d".repeat(40);
+const CHECKS_OK = checksOut([checkRun(), checkRun({ name: "e2e phần 1" }), GOM()]);
 const GATE_PRE = "node scripts/kiem-phien-ban.mjs";
 const GATE_POST = "node scripts/kiem-phien-ban.mjs --sau-deploy";
 function tkScript(over: Record<string, RunResult | RunResult[]> = {}): Record<string, RunResult | RunResult[]> {
@@ -295,10 +522,8 @@ function tkScript(over: Record<string, RunResult | RunResult[]> = {}): Record<st
     [KHO]: KHO_OK,
     [LIST]: out(LIST_0023),
     [GATE_PRE]: out("ĐẠT: bản ở máy 1.4 mới hơn production 1.3.\n"),
-    "npm test": OK,
-    "npm run typecheck": OK,
     "npm run build:web": OK,
-    [E2E]: out("▶ platform\n✔ platform (1.0s)\n\nE2E: 17/17 kịch bản xanh\n"),
+    [CHECKS]: CHECKS_OK,
     [TT]: out('{\n  "bookmark": "00000085-0000024c-00004e3f-abc"\n}\n'),
     [APPLY]: OK,
     [DEPLOY]: out("Uploaded tourdao-sales\nCurrent Version ID: 3245256e-1111-2222-3333-444455556666\n"),
@@ -309,7 +534,7 @@ function tkScript(over: Record<string, RunResult | RunResult[]> = {}): Record<st
 }
 /** So lại mã trong thư mục với mã lúc bắt đầu (HEAD + cây sạch): sau e2e, ngay trước áp migration, ngay trước deploy (sự cố 2026-10-08). */
 const CHECK = ["git rev-parse HEAD", "git status --porcelain"];
-const TK_PREFIX = ["git rev-parse --abbrev-ref HEAD", "git status --porcelain", "git fetch origin", "git rev-parse main", "git rev-parse origin/main", "git log -1 --oneline --no-decorate main", WHOAMI, SECRETS, KHO, LIST, GATE_PRE, "npm test", "npm run typecheck", "npm run build:web", E2E, ...CHECK];
+const TK_PREFIX = ["git rev-parse --abbrev-ref HEAD", "git status --porcelain", "git fetch origin", "git rev-parse main", "git rev-parse origin/main", "git log -1 --oneline --no-decorate main", WHOAMI, SECRETS, KHO, LIST, GATE_PRE, "npm run build:web", CHECKS, ...CHECK];
 const NOW = () => new Date("2026-09-23T03:04:05.000Z");
 /** Lệnh in cho chủ tự chạy khi migration ĐÃ áp mà Worker chưa deploy: (kiểm cây sạch → về đúng mã đã kiểm → kiểm lại → deploy) → kiểm dữ liệu → cổng sau → về main. */
 function assertLenhDeployDungMa(t: string) {
@@ -398,8 +623,6 @@ const TK_REFUSALS: { name: string; over?: Record<string, RunResult>; tty?: boole
   { name: "main khác origin/main", over: { "git rev-parse origin/main": out(`${"d".repeat(40)}\n`) }, reason: /chưa đẩy|khác `origin\/main`/, lastCall: "git rev-parse origin/main" },
   { name: "migrations list lỗi", over: { [LIST]: FAIL }, reason: /migrations list/, lastCall: LIST },
   { name: "migrations list không đọc được", over: { [LIST]: out("Something new\n") }, reason: /không đọc được/, lastCall: LIST },
-  { name: "test đỏ", over: { "npm test": FAIL }, reason: /npm test/, lastCall: "npm test" },
-  { name: "typecheck đỏ", over: { "npm run typecheck": FAIL }, reason: /typecheck/, lastCall: "npm run typecheck" },
   { name: "build đỏ", over: { "npm run build:web": FAIL }, reason: /build:web/, lastCall: "npm run build:web" },
   { name: "không lấy được điểm Time Travel", over: { [TT]: out("Error: lỗi mạng") }, reason: /Time Travel/, lastCall: TT },
 ];
@@ -455,48 +678,113 @@ test("trien-khai: lệnh dài chạy dạng hiện trực tiếp cho chủ xem (
     return run(cmd, args, opts);
   };
   await lib.trienKhai({ ...h.deps, now: NOW });
-  for (const k of ["npm test", "npm run typecheck", "npm run build:web", APPLY, AUDIT, GATE_PRE, GATE_POST]) assert.equal(seen[k]?.stream, true, `${k} phải stream`);
+  for (const k of ["npm run build:web", APPLY, AUDIT, GATE_PRE, GATE_POST]) assert.equal(seen[k]?.stream, true, `${k} phải stream`);
   assert.equal(seen[DEPLOY]?.tee, true, "deploy phải vừa hiện vừa bắt đầu ra (để lấy Version ID)");
-  assert.equal(seen[E2E]?.tee, true, "e2e phải vừa hiện vừa bắt đầu ra (để nêu kịch bản đỏ)");
-  assert.ok(!seen[LIST]?.stream && !seen[TT]?.stream, "lệnh đọc phải bắt đầu ra để phân tích");
+  assert.ok(!seen[LIST]?.stream && !seen[TT]?.stream && !seen[CHECKS]?.stream, "lệnh đọc phải bắt đầu ra để phân tích");
 });
 
-// ─────────────── e2e ĐỦ BỘ trong trien-khai (sửa vòng 1, ruling của điều phối) ───────────────
-const E2E_RED: RunResult = { code: 1, stdout: "▶ platform\n✔ platform (1.0s)\n\n▶ catalog\n✘ catalog\n\n▶ orders\n✘ orders\n\nE2E: 2/17 kịch bản LỖI\n", stderr: "" };
-const E2E_Q = "Có kịch bản e2e đỏ. Vẫn tiếp tục? (c/k) ";
+// ─────────────── ADR-0176 Đ2.2 + Đ3 (tiêu chí 3): trien-khai chỉ ĐỌC kết quả kiểm đủ bộ trên GitHub + bản ghi kết luận của day-len ───────────────
 
-test("trien-khai (e2e): e2e đỏ + trả lời k (hoặc khác đúng c) → dừng, KHÔNG áp, KHÔNG deploy, nêu kịch bản đỏ", async () => {
-  for (const ans of ["k", "", "C", "có"]) {
-    const h = harness(tkScript({ [E2E]: E2E_RED }), [ans]);
+/** trien-khai với kho bản ghi giả `banGhi` (mặc định: bản ghi xanh hợp lệ cho HEAD). */
+function tk(over: Record<string, RunResult | RunResult[]> = {}, answers: string[] = [], banGhi: Record<string, any> = { [HEAD]: BAN_GHI_XANH }) {
+  return harness(tkScript(over), answers, true, khoGia(banGhi).kho);
+}
+const DEN_CHECKS = TK_PREFIX.slice(0, TK_PREFIX.indexOf(CHECKS) + 1);
+
+test("trien-khai (ADR-0176 Đ1.5): KHÔNG chạy npm test / typecheck / e2e; build:web rồi MỘT lần đọc check-run của đúng commit; tóm tắt ghi lượt kiểm + lúc xanh", async () => {
+  const h = tk({ [LIST]: out(LIST_NONE) }, ["c"]);
+  assert.equal(await lib.trienKhai({ ...h.deps, now: NOW }), 0);
+  assert.ok(!h.calls.some((c) => /^npm (test|run typecheck|run test:e2e)$/.test(c)));
+  assert.equal(h.calls.filter((c) => c === CHECKS).length, 1);
+  assert.ok(h.calls.indexOf("npm run build:web") < h.calls.indexOf(CHECKS));
+  const t = h.text();
+  assert.match(t, /Kiểm đủ bộ \(GitHub\): XANH lúc 2026-09-23T02:00:00Z/);
+  assert.match(t, /Lượt kiểm: https:\/\/github\.com\/luutuanvu1010\/tourdaobooking\/actions\/runs\/4242/);
+});
+
+const DOC_KQ_REFUSALS: { name: string; over?: Record<string, RunResult | RunResult[]>; banGhi?: Record<string, any>; reason: RegExp; khongGoiGh?: boolean }[] = [
+  { name: "không có bản ghi của day-len (commit không qua day-len)", banGhi: {}, reason: /không có bản ghi kết luận kiểm/, khongGoiGh: true },
+  { name: "bản ghi của commit khác", banGhi: { [HEAD]: { ...BAN_GHI_XANH, sha: KHAC_SHA } }, reason: /không khớp commit/, khongGoiGh: true },
+  { name: "đổi quy trình kiểm mà bản ghi không có lý do (Đ3.2)", banGhi: { [HEAD]: { ...BAN_GHI_XANH, quyTrinh: { doi: ["tệp điều khiển việc kiểm đổi: .github/workflows/kiem.yml"], lyDo: "" } } }, reason: /quy trình kiểm đã đổi mà không có lý do/, khongGoiGh: true },
+  { name: "gh api lỗi", over: { [CHECKS]: FAIL }, reason: /không đọc được kết quả kiểm trên GitHub/ },
+  { name: "gh api trả JSON lạ", over: { [CHECKS]: out("<html>") }, reason: /không đọc được kết quả kiểm trên GitHub/ },
+  { name: "thiếu kết quả (không check-run nào)", over: { [CHECKS]: checksOut([]) }, reason: /không có kết quả kiểm nào do GitHub Actions tạo/ },
+  { name: "không do GitHub Actions tạo (ứng dụng khác / ai đó đăng)", over: { [CHECKS]: checksOut([GOM({ app: { slug: "ai-do" } })]) }, reason: /không có kết quả kiểm nào do GitHub Actions tạo/ },
+  { name: "sai commit", over: { [CHECKS]: checksOut([GOM({ head_sha: KHAC_SHA })]) }, reason: /thuộc commit khác/ },
+  { name: "thiếu việc gom", over: { [CHECKS]: checksOut([checkRun()]) }, reason: /thiếu kết quả "Gom kết quả kiểm"/ },
+  { name: "đang chạy", over: { [CHECKS]: checksOut([checkRun({ status: "in_progress", conclusion: null }), GOM()]) }, reason: /còn đang chạy/ },
+  { name: "việc gom đang chạy", over: { [CHECKS]: checksOut([GOM({ status: "queued", conclusion: null, completed_at: null })]) }, reason: /còn đang chạy/ },
+  { name: "quá 24 giờ", over: { [CHECKS]: checksOut([GOM({ completed_at: "2026-09-22T03:00:00Z" })]) }, reason: /cũ hơn 24 giờ/ },
+  { name: "đỏ mà không có bản ghi cho qua", over: { [CHECKS]: checksOut([checkRun({ name: "e2e phần 2", conclusion: "failure" }), GOM({ conclusion: "failure" })]) }, reason: /ĐỎ \(e2e phần 2, Gom kết quả kiểm\) và chủ chưa cho qua/ },
+  { name: "một phần đỏ dù việc gom xanh", over: { [CHECKS]: checksOut([checkRun({ conclusion: "cancelled" }), GOM()]) }, reason: /ĐỎ \(npm test phần 1\)/ },
+  { name: "đỏ, bản ghi có cho qua nhưng lý do rỗng", over: { [CHECKS]: checksOut([GOM({ conclusion: "failure" })]) }, banGhi: { [HEAD]: { ...BAN_GHI_XANH, ketQua: "do", choQua: { lyDo: " ", baiDo: [] } } }, reason: /chủ chưa cho qua/ },
+  { name: "quá một trang kết quả", over: { [CHECKS]: checksOut([GOM()], 150) }, reason: /quá một trang/ },
+];
+for (const c of DOC_KQ_REFUSALS) {
+  test(`trien-khai (ADR-0176 tiêu chí 3): DỪNG trước migration / deploy khi ${c.name}`, async () => {
+    const h = tk(c.over ?? {}, ["c", "c"], c.banGhi ?? { [HEAD]: BAN_GHI_XANH });
     assert.notEqual(await lib.trienKhai({ ...h.deps, now: NOW }), 0);
-    assert.deepEqual(h.calls, TK_PREFIX);
     assertNothingDangerous(h.calls);
-    assert.deepEqual(h.questions, [E2E_Q]);
-    assert.match(h.text(), /catalog, orders/);
-  }
-});
+    assert.deepEqual(h.questions, [], "không hỏi áp / deploy khi kết quả kiểm không đạt");
+    assert.match(h.text(), c.reason);
+    assert.match(h.text(), /CHƯA có gì bị đổi trên production/);
+    assert.deepEqual(h.calls, c.khongGoiGh ? DEN_CHECKS.slice(0, -1) : DEN_CHECKS, "dừng NGAY ở bước đọc kết quả");
+  });
+}
 
-test("trien-khai (e2e): e2e đỏ + trả lời c → đi tiếp đúng thứ tự: Time Travel → áp → deploy → kiểm dữ liệu", async () => {
-  const h = harness(tkScript({ [E2E]: E2E_RED }), ["c", "c", "c"]);
+test("trien-khai (Đ3.1): lượt kiểm ĐỎ + bản ghi cho qua của ĐÚNG commit → đi tiếp; tóm tắt in lý do và bài đỏ để chép vào HANDOFF", async () => {
+  const banGhi = { [HEAD]: { ...BAN_GHI_XANH, ketQua: "do", xanhLuc: null, choQua: { lyDo: "giá Sheet thật vừa đổi", baiDo: ["e2e catalog"], luc: "2026-09-23T02:01:00Z" } } };
+  const h = tk({ [CHECKS]: checksOut([checkRun({ name: "e2e phần 2", conclusion: "failure" }), GOM({ conclusion: "failure" })]) }, ["c", "c"], banGhi);
   assert.equal(await lib.trienKhai({ ...h.deps, now: NOW }), 0);
   assert.deepEqual(h.calls, [...TK_PREFIX, TT, ...CHECK, APPLY, ...CHECK, DEPLOY, AUDIT, GATE_POST]);
-  assert.equal(h.questions[0], E2E_Q);
-  assert.match(h.questions[1] ?? "", /Áp 1 migration/);
-  assert.match(h.text(), /e2e: ĐỎ \(chủ chọn tiếp tục\): catalog, orders/, "khối tóm tắt ghi rõ e2e đỏ mà vẫn triển khai");
+  const t = h.text();
+  assert.match(t, /Kiểm đủ bộ \(GitHub\): ĐỎ \(e2e phần 2, Gom kết quả kiểm\) — chủ cho qua ở day-len, lý do: giá Sheet thật vừa đổi/);
+  assert.match(t, /Cho qua lượt kiểm đỏ — lý do của chủ: giá Sheet thật vừa đổi \(bài đỏ: e2e catalog\)/);
 });
 
-test("trien-khai (e2e): e2e xanh → không có câu hỏi thêm", async () => {
-  const h = harness(tkScript({ [LIST]: out(LIST_NONE) }), ["c"]);
+test("trien-khai (Đ3.2): bản ghi có 'đổi quy trình kiểm' KÈM lý do → đi tiếp; tóm tắt in lý do", async () => {
+  const banGhi = { [HEAD]: { ...BAN_GHI_XANH, quyTrinh: { doi: ["tệp điều khiển việc kiểm đổi: scripts/kiem-phan.mjs"], lyDo: "chia lại phần e2e" } } };
+  const h = tk({ [LIST]: out(LIST_NONE) }, ["c"], banGhi);
   assert.equal(await lib.trienKhai({ ...h.deps, now: NOW }), 0);
-  assert.deepEqual(h.questions, ["Triển khai Worker lên production? (c/k) "]);
-  assert.match(h.text(), /e2e: xanh/);
+  assert.match(h.text(), /Đổi quy trình kiểm — lý do của chủ: chia lại phần e2e \(tệp điều khiển việc kiểm đổi: scripts\/kiem-phan\.mjs\)/);
 });
 
-test("trien-khai (e2e): e2e đỏ mà không đọc được tên kịch bản → vẫn hỏi, nói rõ 'không đọc được tên'", async () => {
-  const h = harness(tkScript({ [E2E]: { code: 1, stdout: "lỗi lạ\n", stderr: "" } }), ["k"]);
-  assert.notEqual(await lib.trienKhai({ ...h.deps, now: NOW }), 0);
-  assert.deepEqual(h.questions, [E2E_Q]);
-  assert.match(h.text(), /không đọc được tên/);
+test("trien-khai (Đ2.5): tóm tắt ghi thời gian từng chặng, KHÔNG tính lúc chờ chủ trả lời; cộng day-len từ bản ghi; vượt 10 phút thì cảnh báo, không chặn", async () => {
+  let t = Date.parse("2026-09-23T03:00:00Z");
+  const now = () => new Date(t);
+  const h = tk({ [LIST]: out(LIST_NONE) });
+  const run = h.deps.run;
+  h.deps.run = (cmd, args, opts) => {
+    t += 20_000; // mỗi lệnh 20 giây
+    return run(cmd, args, opts);
+  };
+  h.deps.ask = async () => {
+    t += 3600_000; // chủ suy nghĩ một giờ
+    return "c";
+  };
+  assert.equal(await lib.trienKhai({ ...h.deps, now }), 0);
+  const txt = h.text();
+  assert.match(txt, /day-len 6 phút 40 giây \(chờ GitHub kiểm 6 phút 00 giây\)/);
+  const m = /trien-khai (\d+) phút (\d+) giây/.exec(txt);
+  assert.ok(m, "phải có thời gian trien-khai");
+  assert.ok(Number(m![1]) < 10, "một giờ chủ suy nghĩ không được tính");
+  assert.match(txt, /cổng chỉ-đọc .*; build và đọc kết quả kiểm .*; migration .*; deploy .*; kiểm sau deploy/);
+  assert.match(txt, /CẢNH BÁO:.*vượt mục tiêu khoảng 10 phút/);
+  const h2 = tk({ [LIST]: out(LIST_NONE) }, ["c"]);
+  assert.equal(await lib.trienKhai({ ...h2.deps, now: NOW }), 0);
+  assert.doesNotMatch(h2.text(), /vượt mục tiêu/);
+});
+
+test("trien-khai: quy trình .github/workflows/kiem.yml có việc gom ĐÚNG tên lib đọc, chỉ chạy khi đẩy cho-kiem/** (không chạy khi đẩy main — không kiểm hai lần)", () => {
+  const yml = readFileSync(new URL("../.github/workflows/kiem.yml", import.meta.url), "utf8");
+  const libX = lib as unknown as { VIEC_GOM: string; WORKFLOW: string };
+  assert.equal(libX.WORKFLOW, "kiem.yml");
+  assert.ok(yml.includes(`name: ${libX.VIEC_GOM}\n`), "tên việc gom phải khớp VIEC_GOM");
+  assert.match(yml, /push:\n\s+branches: \["cho-kiem\/\*\*"\]/);
+  assert.doesNotMatch(yml, /branches:.*\bmain\b/);
+  assert.match(yml, /tests\/e2e\/run\.mjs --phan \$\{\{ matrix\.phan \}\}/, "phần e2e chạy bằng --phan (có audit-invariants cuối phần)");
+  assert.match(yml, /kiem-phan\.mjs gom/);
+  assert.match(yml, /needs: \[chia, rieng, test, e2e\]\n\s+if: always\(\)/, "việc gom chạy cả khi phần khác đỏ, và đợi mọi phần");
 });
 
 // ─────────────── cổng số phiên bản trong trien-khai (chủ quyết 2026-09-23) ───────────────
@@ -522,11 +810,11 @@ function withPostSeq(h: ReturnType<typeof harness>, seq: RunResult[]) {
   };
 }
 
-test("trien-khai (cổng trước): chạy NGAY sau bước đọc migration, TRƯỚC npm test", async () => {
+test("trien-khai (cổng trước): chạy NGAY sau bước đọc migration, TRƯỚC build và đọc kết quả kiểm", async () => {
   const h = harness(tkScript({ [LIST]: out(LIST_NONE) }), ["c"]);
   await lib.trienKhai({ ...h.deps, now: NOW });
   assert.equal(h.calls.indexOf(GATE_PRE), h.calls.indexOf(LIST) + 1);
-  assert.ok(h.calls.indexOf(GATE_PRE) < h.calls.indexOf("npm test"));
+  assert.ok(h.calls.indexOf(GATE_PRE) < h.calls.indexOf("npm run build:web"));
 });
 
 test("trien-khai (cổng trước): mã 1 + trả lời k (hoặc khác đúng c) → dừng, KHÔNG áp, KHÔNG deploy", async () => {
@@ -593,7 +881,7 @@ test("trien-khai (cổng sau): hỏng cả hai lần → audit vẫn chạy trư
     const t = h.text();
     assert.ok(t.includes(label), t);
     assert.match(t, /node scripts\/kiem-phien-ban\.mjs --sau-deploy/);
-    for (const line of [/- Ngày giờ:/, /- Commit:/, /- e2e:/, /- Migration đã áp:/, /- Worker Version ID:/, /- Kiểm dữ liệu \(audit-invariants --db remote\): ĐẠT/, /- Phiên bản: 1\.4/, /- Cổng phiên bản trước deploy: ĐẠT/]) {
+    for (const line of [/- Ngày giờ:/, /- Commit:/, /- Kiểm đủ bộ \(GitHub\):/, /- Thời gian /, /- Migration đã áp:/, /- Worker Version ID:/, /- Kiểm dữ liệu \(audit-invariants --db remote\): ĐẠT/, /- Phiên bản: 1\.4/, /- Cổng phiên bản trước deploy: ĐẠT/]) {
       assert.match(t, line);
     }
   }
@@ -827,14 +1115,14 @@ test("trien-khai (mốc tin đổi): 0086 chờ áp + mốc đúng lúc phát h�
 });
 
 // ─────────── mã trong thư mục đổi giữa chừng (sự cố 2026-10-08: `day-len` của phiên khác gộp vào CÙNG checkout lúc e2e đang chạy) ───────────
-// Tiêu chí: mã đã qua kiểm phải là mã được áp migration / deploy. So lại HEAD + cây sạch ở ba chỗ: ngay sau e2e (trước câu hỏi e2e đỏ), ngay trước
+// Tiêu chí: mã đã qua kiểm phải là mã được áp migration / deploy. So lại HEAD + cây sạch ở ba chỗ: ngay sau build + đọc kết quả kiểm, ngay trước
 // áp migration, ngay trước deploy (hai chỗ sau nằm SAU câu hỏi — chủ có thể để câu hỏi chờ lâu). Lệch ⇒ dừng, không hỏi; lệnh git lỗi ⇒ coi là lệch.
 const KHAC = "d".repeat(40);
 const DEN_E2E = TK_PREFIX.slice(0, -CHECK.length);
 
-test("trien-khai (mã đổi): HEAD đổi trong lúc kiểm → dừng NGAY sau e2e, không hỏi gì (kể cả khi e2e đỏ), không Time Travel / áp / deploy", async () => {
-  for (const e2e of [undefined, E2E_RED]) {
-    const h = harness(tkScript({ "git rev-parse HEAD": out(`${KHAC}\n`), ...(e2e ? { [E2E]: e2e } : {}) }), ["c", "c", "c"]);
+test("trien-khai (mã đổi): HEAD đổi trong lúc build / đọc kết quả → dừng NGAY sau bước đọc, không hỏi gì, không Time Travel / áp / deploy", async () => {
+  {
+    const h = harness(tkScript({ "git rev-parse HEAD": out(`${KHAC}\n`) }), ["c", "c", "c"]);
     assert.notEqual(await lib.trienKhai({ ...h.deps, now: NOW }), 0);
     assert.deepEqual(h.calls, [...DEN_E2E, "git rev-parse HEAD"]);
     assert.deepEqual(h.questions, [], "mã đã đổi thì không hỏi c/k nào");
@@ -845,7 +1133,7 @@ test("trien-khai (mã đổi): HEAD đổi trong lúc kiểm → dừng NGAY sau
   }
 });
 
-test("trien-khai (mã đổi): cây làm việc có thay đổi chưa commit sau e2e → dừng, không hỏi, không áp / deploy", async () => {
+test("trien-khai (mã đổi): cây làm việc có thay đổi chưa commit sau bước đọc kết quả → dừng, không hỏi, không áp / deploy", async () => {
   const h = harness(tkScript({ "git status --porcelain": [out(""), out(" M src/index.ts\n")] }), ["c", "c"]);
   assert.notEqual(await lib.trienKhai({ ...h.deps, now: NOW }), 0);
   assert.deepEqual(h.calls, TK_PREFIX);
