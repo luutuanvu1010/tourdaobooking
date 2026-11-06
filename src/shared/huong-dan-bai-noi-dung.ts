@@ -142,7 +142,7 @@ export const BAI_VIEC: readonly BaiViec[] = [
     moDau: "Đối tác có hạn mức thì đặt được đơn trả sau: vé mở trước, tiền thu sau trong số ngày được nợ (ADR-0168).",
     noiDung: `### Các bước
 1. Mở **Hạn mức trả sau**.
-2. Ở ô **Hồ sơ đối tác**, gõ tên rồi chọn đúng hồ sơ.
+2. Bấm tên đối tác trong danh sách hiện sẵn. Danh sách dài thì gõ vài chữ của tên để lọc, có dấu hay không dấu đều được.
 3. Gõ **Hạn mức (đồng)** và **Số ngày được nợ**.
 4. Bấm [[Đặt hạn mức]].
 

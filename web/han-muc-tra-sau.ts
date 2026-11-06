@@ -147,7 +147,7 @@ function veForm(ben: { id: string; ten: string } | null, hienTai: Api.HanMucTraS
     }
     if (ds.length === 0) {
       replaceChildren(ketQua);
-      ghiChu.textContent = "Chưa có hồ sơ nào mang loại đối tác được hưởng. Gán loại đối tác cho hồ sơ ở Danh bạ trước.";
+      ghiChu.textContent = "Chưa có hồ sơ nào mang Vai người dùng của đối tác. Gán Vai người dùng cho hồ sơ ở Danh bạ trước.";
       return;
     }
     const r = locHoSoTraSau(ds.map((x) => ({ id: x.partyId, ten: x.ten, vai: x.vaiTro.map((v) => v.ten).join(", ") })), oTim.value);
