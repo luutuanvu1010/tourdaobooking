@@ -1,4 +1,4 @@
-// ADR-0178 Đ1 mục 3 (Task A3): bài QUÉT nơi gọi — mọi đường ghi khoản thu của khách ở đơn mang dấu Tắt phải đi qua cổng `kiemNguoiThuKenh` TRƯỚC khi dựng lô.
+// ADR-0178 Đ1 mục 2 (Task A3): bài QUÉT nơi gọi — mọi đường ghi khoản thu của khách ở đơn mang dấu Tắt phải đi qua cổng `kiemNguoiThuKenh` TRƯỚC khi dựng lô.
 // (1) Mọi câu chèn `bil_payment_receipt` trong src/ (trừ bài) phải nằm trong một hàm dựng câu ĐÃ PHÂN LOẠI (CHẶN hoặc MIỄN có tên) — thêm câu chèn mới mà không phân loại ⇒ đỏ.
 // (2) Mỗi HÀM cấp cao nhất (không chỉ mỗi tệp) gọi một hàm dựng câu CHẶN phải gọi `kiemNguoiThuKenh(` ở trước lời gọi đó trong cùng hàm.
 // Bản đồ phân loại: .superpowers/sdd/2026-11-06-thu-tien-doi-tac-va-tra-sau-theo-dich-vu/progress.md «Bản đồ nơi chèn bil_payment_receipt»; bảng «Từng đường ghi tiền» của đặc tả.
@@ -58,7 +58,7 @@ test("(1) mọi câu chèn bil_payment_receipt nằm trong một hàm dựng câ
   }
   const ten = [...hamChen].map((x) => x.split(":")[1]!);
   const chuaPhanLoai = ten.filter((x) => !daPhanLoai.has(x));
-  assert.deepEqual(chuaPhanLoai, [], "hàm chèn khoản thu mới chưa phân loại CHẶN / MIỄN (ADR-0178 Đ1 mục 3) — thêm vào CHAN hoặc MIEN kèm lý do");
+  assert.deepEqual(chuaPhanLoai, [], "hàm chèn khoản thu mới chưa phân loại CHẶN / MIỄN (ADR-0178 Đ1 mục 2) — thêm vào CHAN hoặc MIEN kèm lý do");
   assert.deepEqual([...new Set(ten)].sort(), [...daPhanLoai].sort(), "danh sách phân loại khớp đúng các hàm chèn đang có (bỏ tên chết)");
   assert.equal(soCau, 11, "số câu chèn bil_payment_receipt trong src/ đổi — soát lại bản đồ CHẶN / MIỄN rồi sửa số này");
 });

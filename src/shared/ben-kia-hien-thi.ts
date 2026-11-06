@@ -3,7 +3,7 @@
 //
 // Nguồn dữ liệu: `OrderPaymentsResponse.benKia` (máy chủ tính bằng CÙNG `benDatHuong` / `nhaCungCapCuaDon` mà lệnh ghi khoản thu dùng; null với tài khoản giữ
 // quyền Đối tác, đơn nháp, đơn chưa chụp, đơn đã giao) — giao diện KHÔNG tự suy đơn có đại lý / quầy nhà cung cấp hay không.
-import type { BenKiaLuaChonDto, ChoChupBuDto, LanThuInput, ThuongMaiVanPhongDto } from "./contracts.ts";
+import type { BenKiaLuaChonDto, ChoChupBuDto, LanThuInput, OrderPaymentsResponse, ThuongMaiVanPhongDto } from "./contracts.ts";
 import { can, holdsPartner, type PermissionHolder } from "./permissions.ts";
 
 export interface LuaChon {
@@ -13,11 +13,22 @@ export interface LuaChon {
 
 const TIEN_TO_NCC = "ncc:";
 
+/** Câu thay form «Ghi khoản thu» khi văn phòng mở đơn mang dấu Tắt mà không có lựa chọn người thu nào (ADR-0178 Đ1 mục 2). */
+export const CAU_DOI_TAC_TU_GHI = "Đối tác lập đơn tự ghi khoản thu của đơn này.";
+
 /**
  * Ô «Người thu tiền» của form «Ghi khoản thu»: luôn có Công ty và «Tôi thu»; thêm «Khách trả cho đại lý <tên>» khi đơn có đại lý được hưởng, và mỗi quầy nhà cung cấp
  * của đơn một dòng «Khách trả tại quầy <tên>». `benKia` null (khách lẻ, nháp, chưa chụp, Đối tác) ⇒ chỉ hai dòng đầu.
+ * Đơn mang dấu «Khách của đối tác trả cho Công ty» = Tắt (`kenhThu.congTyThu === false`, ADR-0178 Đ1 mục 2): người thu chỉ là hồ sơ của tài khoản Đối tác đã lập đơn —
+ * Đối tác ⇒ chỉ «Tôi thu»; văn phòng ⇒ «Khách trả cho đại lý <tên người lập>» khi hồ sơ người lập là bên đặt được hưởng, không thì rỗng (nơi gọi hiện `CAU_DOI_TAC_TU_GHI`).
+ * Máy chủ vẫn kiểm lại (`kiemNguoiThuKenh`, trigger 0144).
  */
-export function luaChonNguoiThu(benKia: BenKiaLuaChonDto | null): LuaChon[] {
+export function luaChonNguoiThu(benKia: BenKiaLuaChonDto | null, kenhThu?: OrderPaymentsResponse["kenhThu"], laDoiTac = false): LuaChon[] {
+  if (kenhThu?.congTyThu === false) {
+    if (laDoiTac) return [{ value: "toi", nhan: "Tôi thu" }];
+    if (kenhThu.nguoiLapLaBenDatHuong) return [{ value: "ben_dat", nhan: `Khách trả cho đại lý ${kenhThu.nguoiLapTen ?? benKia?.benDat?.ten ?? ""}`.trim() }];
+    return [];
+  }
   const ds: LuaChon[] = [{ value: "cong_ty", nhan: "Công ty (vào tài khoản công ty)" }, { value: "toi", nhan: "Tôi thu" }];
   if (benKia?.benDat) ds.push({ value: "ben_dat", nhan: `Khách trả cho đại lý ${benKia.benDat.ten}` });
   for (const n of benKia?.nhaCungCap ?? []) ds.push({ value: `${TIEN_TO_NCC}${n.partyId}`, nhan: `Khách trả tại quầy ${n.ten}` });

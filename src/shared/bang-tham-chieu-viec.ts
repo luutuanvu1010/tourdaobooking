@@ -1586,6 +1586,22 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     nguonTen: "chữ dùng chung «Lưu»; tên «Mức tối đa Quản trị được cấp» chủ chọn 2026-11-06 trong hộp hỏi (ADR-0172)",
   },
   {
+    nhom: "Công tắc «Khách của đối tác trả cho Công ty»",
+    manHinh: "Cấp độ đại lý › thẻ «Khách của đối tác trả cho Công ty» (nút đổi và nút trong hộp hỏi lại khi tắt)",
+    ten: "Tắt · Bật",
+    thatSuLam: "Toàn quyền đổi công tắc chung cho cả Nền tảng (thêm một dòng mới, dòng cũ giữ làm lịch sử, có nhật ký). Tắt: đơn tài khoản Đối tác lập từ lúc đó chỉ do chính đối tác đó ghi khoản thu, Công ty, nhân viên, hướng dẫn viên không thu tiền khách và đơn không có mã QR công ty. Bật: như trước. Đơn đã lập giữ cách thu của lúc lập. Kế toán, Quản trị chỉ xem thẻ, không có nút.",
+    hoiLai: "có khi tắt: hộp «Tắt «Khách của đối tác trả cho Công ty»?» với nút «Tắt» và «Giữ nguyên»; bật thì đổi ngay",
+    hoanTac: "một phần: bấm nút ngược lại; đơn đã lập lúc tắt vẫn giữ dấu Tắt",
+    duongLenh: ["/api/kenh-thu-doi-tac"],
+    maNhatKy: ["partner_channel_set"],
+    noiDat: [
+      { tep: "web/o-tra-sau.ts", chu: "Tắt / Bật" },
+      { tep: "web/o-tra-sau.ts", chu: "Tắt" },
+    ],
+    trangThai: "da-chot",
+    nguonTen: "ADR-0178 (chủ 2026-11-06 chọn tên công tắc «Khách của đối tác trả cho Công ty», hai trạng thái Bật / Tắt); chữ nút dùng chung «Tắt» / «Bật» vì tiêu đề thẻ đã nói tên",
+  },
+  {
     nhom: "Trả sau: lùi hạn trả một đơn",
     manHinh: "Chi tiết đơn › khối Thanh toán của đơn trả sau còn nợ (nút mở bảng và nút trong bảng)",
     ten: "Ân hạn",

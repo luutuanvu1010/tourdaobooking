@@ -319,7 +319,7 @@ export async function ghiChuyen(db: D1Database, input: { orderId: string; raw: u
   if (await coKhoanLoiKhai(db, goc.targetOrderId)) return DON_NHAN_CO_LOI_KHAI();
   const giu = await docBen(db, b.nguoiGiu, d.congTyId, "Chọn ai đang cầm khoản tiền này (Công ty, hoặc nhân viên chưa nộp về công ty).");
   if (!giu.ok) return giu;
-  // ADR-0178 Đ1 mục 3: nửa «thu» ở đơn nhận là khoản khách trả mới — đơn nhận mang dấu Tắt chỉ qua khi người đang giữ là hồ sơ người lập đơn nhận (có chủ ý).
+  // ADR-0178 Đ1 mục 2: nửa «thu» ở đơn nhận là khoản khách trả mới — đơn nhận mang dấu Tắt chỉ qua khi người đang giữ là hồ sơ người lập đơn nhận (có chủ ý).
   const kenh = await kiemNguoiThuKenh(db, goc.targetOrderId, giu.value);
   if (kenh) return { ok: false, res: kenh };
   // ADR-0171 Đ3 mục 2: «Công ty giữ» chỉ hợp lệ khi KHÔNG còn ai chưa nộp trên đơn cũ — giao diện tự chọn đúng người, máy chủ vẫn chặn khi gọi API trực tiếp.

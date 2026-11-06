@@ -36,7 +36,7 @@ const KENH_THU_LICH_SU = defineSql(
 );
 export const kenhThuLichSu = async (db: D1Database): Promise<KenhThuLichSuRow[]> => (await db.prepare(KENH_THU_LICH_SU).all<KenhThuLichSuRow>()).results;
 
-// ---- Cổng người thu của đơn mang dấu Tắt (ADR-0178 Đ1 mục 3): dấu của đơn + hồ sơ người lập, đọc qua view công bố (không đọc bảng orders/staff thô) ----
+// ---- Cổng người thu của đơn mang dấu Tắt (ADR-0178 Đ1 mục 2): dấu của đơn + hồ sơ người lập, đọc qua view công bố (không đọc bảng orders/staff thô) ----
 // Cùng nguồn với trigger `bil_receipt_partner_channel` (0144) và `hoSoNhanVien` (coc-repo.ts). `undefined` = không có đơn.
 const KENH_THU_CUA_DON = defineSql(
   "billing",

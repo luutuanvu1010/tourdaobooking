@@ -52,6 +52,7 @@ Mỗi khái niệm một tên, mỗi tên một nghĩa, tra từ một nguồn. 
 | **Tính bằng và Áp cho** | Hai ô trong hộp nhập hoa hồng. «Tính bằng» chọn phần trăm hay số tiền. «Áp cho» chọn mọi khách như nhau hay riêng từng loại khách. |  | Cách tính |  | đã chốt | 2026-11-03 (ADR-0161) |
 | **Ngừng** | Đặt ngày cuối cho một dòng đã có hiệu lực (mức, cấp, điều kiện, điều khoản): từ sau ngày đó dòng không áp dụng nữa. Dòng không bị xoá, nhưng đã ngừng thì không mở lại được, muốn áp lại phải thêm dòng mới. | Trạng thái đi cùng: «Đang áp dụng», «Sắp áp dụng», «Đã ngừng». Chữ «Đóng» không còn dùng cho nghĩa này, «Đóng» chỉ còn nghĩa gập khung. | Đóng mức; Kết thúc gắn | `valid_to` | đã chốt | 2026-10-25 (lượt 3); 2026-11-04 (ADR-0166 câu 9) |
 | **Hạn mức trả sau** | Số tiền tối đa một đối tác được nợ công ty qua các đơn trả sau, kèm thời hạn trả và ân hạn tính bằng giờ. Quản trị hoặc Toàn quyền cấp, điều chỉnh hay đóng hạn mức ở ô «Trả sau» của màn Cấp độ đại lý; khối cùng tên cuối màn đó giữ số gợi ý theo cấp và «Mức tối đa Quản trị được cấp». | Trùng tên với màn chỉ xem «Hạn mức trả sau» ở Thiết lập (danh sách đối tác đang nợ): cùng chủ đề nên chủ chọn dùng chung tên. Nút đóng hạn mức là «Đóng hạn mức» (chủ chọn), khác chữ «Đóng» dùng chung chỉ để gập khung. |  | `bil_credit_limit` `credit.limit.write` `khoiCaiDatTraSau` `ts-cai-dat` | đã chốt | 2026-11-06 (chủ, hộp hỏi: tên theo chữ ngân hàng; thay tiêu đề khối «Cài đặt Trả sau») |
+| **Khách của đối tác trả cho Công ty** | Công tắc chung cho cả Nền tảng, mặc định Bật, chỉ Toàn quyền đổi ở màn Cấp độ đại lý. Đơn tài khoản Đối tác lập mang trạng thái công tắc lúc lập. Đơn mang dấu Tắt: chỉ chính đối tác đã lập đơn ghi khoản thu («Tôi thu»), Công ty, nhân viên, hướng dẫn viên không thu tiền khách, và đơn không có mã QR vào tài khoản công ty. | Khác «Khách trả cho đại lý ‹tên›» (lựa chọn người thu của văn phòng khi bên đặt là đại lý được hưởng): công tắc quyết cả đơn, lựa chọn chỉ là một khoản thu. |  | `bil_partner_channel_setting` `company_collects_snapshot` `billing.partner_channel.write` `/api/kenh-thu-doi-tac` | đã chốt | 2026-11-06 (ADR-0178, chủ chọn tên; hai trạng thái Bật / Tắt) |
 | **Hạn mức khả dụng** | Phần hạn mức trả sau đối tác còn dùng được: hạn mức trừ số đang nợ của các đơn trả sau. Đơn trả sau mới hay phần tăng thêm của một đơn phải nằm trong số này. | Khác «Hạn mức trả sau»: đó là con số được cấp, còn hạn mức khả dụng là phần chưa dùng tới. |  | `conDuocDung` `/api/tra-sau/con-duoc-dung` | đã chốt | 2026-11-06 (chủ, hộp hỏi: tên theo chữ ngân hàng; thay «Còn được dùng») |
 | **Chưa cấp** | Đối tác chưa có hạn mức trả sau đang hiệu lực, nên chỉ đặt được đơn trả trước. Hiện ở ô «Trả sau» của màn Cấp độ đại lý. | Chỉ dùng cho hạn mức trả sau. «Chưa bật» vẫn là chữ của Face ID và xác thực hai lớp. |  | `cauHanMuc` `data-tra-sau=chua-bat` | đã chốt | 2026-11-06 (chủ, hộp hỏi: tên theo chữ ngân hàng; thay «Chưa bật» ở Trả sau) |
 | **Trong hạn** | Đơn trả sau còn nợ nhưng chưa tới hạn trả. Đối tác vẫn đặt đơn trả sau mới được nếu còn hạn mức khả dụng. | Khác «Quá hạn, đang trong ân hạn» và «Quá hạn»: hai nhãn đó chỉ hiện khi đã qua hạn trả. |  | `trong_han` `NHAN_TRANG_THAI_HAN` | đã chốt | 2026-11-06 (chủ, hộp hỏi: giữ ba nhãn tình trạng hạn trả) |
@@ -281,7 +282,7 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 | Lưu bộ não | `web/tro-ly-cai-dat.ts`: Lưu bộ não | Cài đặt Trợ lý: bộ não và lời dặn | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Lưu thành bản mới | `web/tro-ly-cai-dat.ts`: Lưu thành bản mới | Cài đặt Trợ lý: bộ não và lời dặn | rà soát 2026-11-04: chưa rõ, chờ chủ |
 
-## Việc quan trọng (311)
+## Việc quan trọng (312)
 
 ### Kiểm vé đơn chờ
 
@@ -699,6 +700,12 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 | Tên | Màn hình | Thật sự làm gì | Hỏi lại | Hoàn tác | Đường lệnh, nhật ký | Nơi đặt nút | Trạng thái |
 |---|---|---|---|---|---|---|---|
 | **Lưu** | Cấp độ đại lý › khối «Hạn mức trả sau» (ô «Mức tối đa Quản trị được cấp», bảng số gợi ý của một cấp) | Ở ô mức tối đa: Toàn quyền đặt số tiền lớn nhất Quản trị được cấp cho một đối tác (thêm dòng mới, dòng cũ giữ làm lịch sử). Ở bảng số gợi ý: Quản trị hoặc Toàn quyền lưu hạn mức, thời hạn trả, ân hạn gợi ý của một cấp; số này chỉ điền sẵn khi cấp hạn mức, không tự cấp cho ai và không đổi hạn mức đã cấp. | không | được: lưu lại số cũ | `/api/tra-sau/muc-toi-da`<br>`/api/tra-sau/goi-y/:x`<br>nhật ký `credit_ceiling_set`<br>nhật ký `credit_tier_default_set` | `web/o-tra-sau.ts`: Lưu | tên hiện tại, chủ chưa chọn riêng (chữ dùng chung «Lưu»; tên «Mức tối đa Quản trị được cấp» chủ chọn 2026-11-06 trong hộp hỏi (ADR-0172)) |
+
+### Công tắc «Khách của đối tác trả cho Công ty»
+
+| Tên | Màn hình | Thật sự làm gì | Hỏi lại | Hoàn tác | Đường lệnh, nhật ký | Nơi đặt nút | Trạng thái |
+|---|---|---|---|---|---|---|---|
+| **Tắt · Bật** | Cấp độ đại lý › thẻ «Khách của đối tác trả cho Công ty» (nút đổi và nút trong hộp hỏi lại khi tắt) | Toàn quyền đổi công tắc chung cho cả Nền tảng (thêm một dòng mới, dòng cũ giữ làm lịch sử, có nhật ký). Tắt: đơn tài khoản Đối tác lập từ lúc đó chỉ do chính đối tác đó ghi khoản thu, Công ty, nhân viên, hướng dẫn viên không thu tiền khách và đơn không có mã QR công ty. Bật: như trước. Đơn đã lập giữ cách thu của lúc lập. Kế toán, Quản trị chỉ xem thẻ, không có nút. | có khi tắt: hộp «Tắt «Khách của đối tác trả cho Công ty»?» với nút «Tắt» và «Giữ nguyên»; bật thì đổi ngay | một phần: bấm nút ngược lại; đơn đã lập lúc tắt vẫn giữ dấu Tắt | `/api/kenh-thu-doi-tac`<br>nhật ký `partner_channel_set` | `web/o-tra-sau.ts`: Tắt / Bật<br>`web/o-tra-sau.ts`: Tắt | đã chốt (ADR-0178 (chủ 2026-11-06 chọn tên công tắc «Khách của đối tác trả cho Công ty», hai trạng thái Bật / Tắt); chữ nút dùng chung «Tắt» / «Bật» vì tiêu đề thẻ đã nói tên) |
 
 ### Trả sau: lùi hạn trả một đơn
 

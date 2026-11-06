@@ -1,4 +1,4 @@
-// ADR-0178 Đ1 mục 3 (Task A3): đơn mang dấu «Khách của đối tác trả cho Công ty» = Tắt (0) — người thu của mọi khoản khách trả mới chỉ được là hồ sơ người lập đơn.
+// ADR-0178 Đ1 mục 2 (Task A3): đơn mang dấu «Khách của đối tác trả cho Công ty» = Tắt (0) — người thu của mọi khoản khách trả mới chỉ được là hồ sơ người lập đơn.
 // Chạy CẢ ứng dụng trên khung thử thật (tests/audit/harness.mjs: SQLite với đủ migration; lô `db.batch()` là một giao dịch như D1). Tên, SĐT là GIẢ.
 // Đơn dựng bằng SQL mang thẳng dấu (cột chỉ khoá ở UPDATE); đường chụp dấu lúc lập có bài riêng (src/modules/orders, Task A1) và bài Review Focus 1 ở cuối tệp.
 import { test } from "node:test";

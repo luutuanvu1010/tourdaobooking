@@ -374,6 +374,15 @@ export const KHAI_NIEM: readonly KhaiNiem[] = [
     chuChon: "2026-11-06 (chủ, hộp hỏi: tên theo chữ ngân hàng; thay tiêu đề khối «Cài đặt Trả sau»)",
   }),
   KN({
+    ten: "Khách của đối tác trả cho Công ty",
+    giaiNghia: "Công tắc chung cho cả Nền tảng, mặc định Bật, chỉ Toàn quyền đổi ở màn Cấp độ đại lý. Đơn tài khoản Đối tác lập mang trạng thái công tắc lúc lập. Đơn mang dấu Tắt: chỉ chính đối tác đã lập đơn ghi khoản thu («Tôi thu»), Công ty, nhân viên, hướng dẫn viên không thu tiền khách, và đơn không có mã QR vào tài khoản công ty.",
+    khacVoi: "Khác «Khách trả cho đại lý ‹tên›» (lựa chọn người thu của văn phòng khi bên đặt là đại lý được hưởng): công tắc quyết cả đơn, lựa chọn chỉ là một khoản thu.",
+    chuDaLoai: [],
+    maNoiBo: ["bil_partner_channel_setting", "company_collects_snapshot", "billing.partner_channel.write", "/api/kenh-thu-doi-tac"],
+    trangThai: "da-chot",
+    chuChon: "2026-11-06 (ADR-0178, chủ chọn tên; hai trạng thái Bật / Tắt)",
+  }),
+  KN({
     ten: "Hạn mức khả dụng",
     giaiNghia: "Phần hạn mức trả sau đối tác còn dùng được: hạn mức trừ số đang nợ của các đơn trả sau. Đơn trả sau mới hay phần tăng thêm của một đơn phải nằm trong số này.",
     khacVoi: "Khác «Hạn mức trả sau»: đó là con số được cấp, còn hạn mức khả dụng là phần chưa dùng tới.",

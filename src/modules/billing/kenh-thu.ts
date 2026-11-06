@@ -18,7 +18,7 @@ export async function kenhThuDto(db: D1Database): Promise<KenhThuDoiTacDto> {
 }
 
 /**
- * Cổng người thu (ADR-0178 Đ1 mục 3): đơn mang dấu Tắt (0) chỉ nhận khoản khách trả có người thu = hồ sơ của tài khoản đã lập đơn. `null` = qua; 409 `kenh_thu_chi_nguoi_lap` /
+ * Cổng người thu (ADR-0178 Đ1 mục 2): đơn mang dấu Tắt (0) chỉ nhận khoản khách trả có người thu = hồ sơ của tài khoản đã lập đơn. `null` = qua; 409 `kenh_thu_chi_nguoi_lap` /
  * `kenh_thu_chua_gan_ho_so`. Mọi đường ghi khoản thu của khách (trừ đảo khoản và tiền ra) gọi hàm này TRƯỚC khi dựng lô — bài quét `src/kenh-thu-noi-goi.test.ts`.
  * Lớp CSDL cùng luật: trigger `bil_receipt_partner_channel` (0144). Đơn không đọc được ⇒ qua ở đây (nơi gọi tự trả 404 / lính gác của câu; trigger vẫn canh).
  */
@@ -29,7 +29,7 @@ export async function kiemNguoiThuKenh(db: D1Database, orderId: string, collecto
   return v.ok ? null : error(409, v.ma, v.cau);
 }
 
-/** QR vào tài khoản công ty (ADR-0178 Đ1 mục 4): đơn mang dấu Tắt ⇒ false (Công ty không nhận tiền khách của đơn đó). Đơn dấu Bật / không dấu / không đọc được ⇒ true (nơi gọi đã đọc đơn). */
+/** QR vào tài khoản công ty (ADR-0178 Đ1 mục 2): đơn mang dấu Tắt ⇒ false (Công ty không nhận tiền khách của đơn đó). Đơn dấu Bật / không dấu / không đọc được ⇒ true (nơi gọi đã đọc đơn). */
 export async function congTyNhanTienKhach(db: D1Database, orderId: string): Promise<boolean> {
   return (await kenhThuCuaDon(db, orderId))?.dau !== 0;
 }

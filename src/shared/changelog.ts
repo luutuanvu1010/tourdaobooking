@@ -17,6 +17,15 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Công tắc «Khách của đối tác trả cho Công ty» (ADR-0178 Phần A). Migration 0144. Số và ngày tạm: bước A.0 đặt lại nếu cần.
+    version: "2.71",
+    date: "2026-11-06",
+    items: [
+      { kind: "moi", text: "Công tắc «Khách của đối tác trả cho Công ty» ở màn Cấp độ đại lý: Toàn quyền bật, tắt; Kế toán, Quản trị xem. Mặc định Bật, như trước." },
+      { kind: "doi", text: "Đơn Đối tác lập lúc công tắc Tắt: chỉ đối tác đó ghi khoản thu («Tôi thu»), không có QR thanh toán. Đơn đã lập giữ cách thu của lúc lập." },
+    ],
+  },
+  {
     // Trả sau theo giờ và luật vận hành công nợ (ADR-0172, ADR-0173). Migration 0143. Số và ngày tạm: bước A.0 đặt lại nếu cần.
     version: "2.70",
     date: "2026-11-06",

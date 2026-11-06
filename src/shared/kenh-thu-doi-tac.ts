@@ -1,4 +1,4 @@
-// Luật thuần «Khách của đối tác trả cho Công ty» (ADR-0178 Đ1 mục 3): ở đơn mang dấu Tắt (0), người thu của mọi khoản khách trả mới chỉ được là hồ sơ của
+// Luật thuần «Khách của đối tác trả cho Công ty» (ADR-0178 Đ1 mục 2): ở đơn mang dấu Tắt (0), người thu của mọi khoản khách trả mới chỉ được là hồ sơ của
 // tài khoản Đối tác đã lập đơn. Dấu Bật (1) hoặc không dấu (null — đơn văn phòng lập) ⇒ không xét gì thêm. Dùng chung máy chủ (cổng billing) và giao diện.
 // Lớp CSDL cùng luật: trigger `bil_receipt_partner_channel` (migration 0144).
 

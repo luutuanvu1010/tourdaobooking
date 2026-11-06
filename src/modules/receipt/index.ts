@@ -54,7 +54,7 @@ export const receiptModule: AppModule = {
       if (!can(staff, "money.view", scope)) return FORBIDDEN_VIEW();
       // ADR-0135 Đ8: QR chỉ cho đơn ĐÃ XÁC NHẬN (mọi đơn); đặt sau kiểm quyền xem để người không xem được vẫn nhận 404/403.
       if (order.status !== "confirmed") return error(409, "qr_requires_confirmed", "Đơn chưa xác nhận, chưa có mã QR thanh toán.");
-      // ADR-0178 Đ1 mục 4: đơn mang dấu Tắt (khách trả cho đối tác đã lập đơn) ⇒ không có QR vào tài khoản công ty. Trước mọi đọc số tiền / tài khoản.
+      // ADR-0178 Đ1 mục 2: đơn mang dấu Tắt (khách trả cho đối tác đã lập đơn) ⇒ không có QR vào tài khoản công ty. Trước mọi đọc số tiền / tài khoản.
       if (!(await congTyNhanTienKhach(env.DB, id))) return json({ coQr: false } satisfies QrKhongCoResponse);
       const tien = await soTienChoQr(env.DB, id);
       if (!tien) return error(503, "money_unavailable", "Chưa đọc được số tiền của đơn — tải lại rồi thử lại.");

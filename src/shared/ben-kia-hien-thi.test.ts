@@ -147,3 +147,30 @@ test("câu «Bên kia đã nhận»: người xem không được biết tên ng
   assert.match(c, /bên nhận tiền xác nhận đã nhận 500\.000 ₫ của khách\?/);
   assert.match(B.cauBenKiaDaNhan("Lê Thu Hà", "500.000 ₫"), /Lê Thu Hà xác nhận đã nhận 500\.000 ₫ của khách\? Từ lúc này khoản này là nợ của Lê Thu Hà với Tour Đảo\./);
 });
+
+// ADR-0178 Đ1 mục 2 (Task A5): đơn mang dấu «Khách của đối tác trả cho Công ty» = Tắt — người thu chỉ là hồ sơ của tài khoản Đối tác đã lập đơn.
+const TAT = { congTyThu: false, nguoiLapTen: "Đại Lý B", nguoiLapLaBenDatHuong: false };
+test("dấu Tắt: tài khoản Đối tác (người lập) chỉ có một lựa chọn «Tôi thu» — không Công ty, không bên kia", () => {
+  assert.deepEqual(B.luaChonNguoiThu(null, TAT, true), [{ value: "toi", nhan: "Tôi thu" }]);
+  assert.deepEqual(B.luaChonNguoiThu(DL, TAT, true), [{ value: "toi", nhan: "Tôi thu" }]);
+});
+
+test("dấu Tắt: văn phòng, hồ sơ người lập là bên đặt được hưởng ⇒ đúng một lựa chọn «Khách trả cho đại lý <tên người lập>», không quầy nhà cung cấp", () => {
+  const k = { ...TAT, nguoiLapLaBenDatHuong: true };
+  assert.deepEqual(B.luaChonNguoiThu(DL, k, false), [{ value: "ben_dat", nhan: "Khách trả cho đại lý Đại Lý B" }]);
+  assert.deepEqual(B.luaChonNguoiThu(null, k, false), [{ value: "ben_dat", nhan: "Khách trả cho đại lý Đại Lý B" }]);
+});
+
+test("dấu Tắt: văn phòng, người lập không phải bên đặt được hưởng ⇒ không lựa chọn nào (khối ghi khoản thu nói đối tác tự ghi)", () => {
+  assert.deepEqual(B.luaChonNguoiThu(DL, TAT, false), []);
+  assert.deepEqual(B.luaChonNguoiThu(null, TAT, false), []);
+  assert.equal(B.CAU_DOI_TAC_TU_GHI, "Đối tác lập đơn tự ghi khoản thu của đơn này.");
+});
+
+test("dấu Bật / không dấu (kenhThu null hoặc congTyThu true) ⇒ giữ nguyên lựa chọn như trước", () => {
+  for (const k of [null, undefined, { congTyThu: true, nguoiLapTen: "Đại Lý B", nguoiLapLaBenDatHuong: true }]) {
+    assert.deepEqual(giaTri(B.luaChonNguoiThu(null, k, false)), ["cong_ty", "toi"]);
+    assert.deepEqual(giaTri(B.luaChonNguoiThu(DL, k, false)), ["cong_ty", "toi", "ben_dat", "ncc:pty-ncc"]);
+    assert.deepEqual(giaTri(B.luaChonNguoiThu(null, k, true)), ["cong_ty", "toi"]);
+  }
+});

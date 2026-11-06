@@ -2285,6 +2285,12 @@ export interface OrderPaymentsResponse {
    * người xem không ghi khoản thu được, đơn không còn ghi khoản thu được (nháp, chưa chụp, đã giao, huỷ), hoặc đơn không có bên nào.
    */
   benKia: BenKiaLuaChonDto | null;
+  /**
+   * ADR-0178 Đ1 mục 2 (Task A5): đơn mang dấu «Khách của đối tác trả cho Công ty» = Tắt. null = đơn không mang dấu Tắt (dấu Bật hoặc đơn văn phòng lập) — giữ như cũ.
+   * Không gác theo quyền ghi (khác `benKia`): người chỉ xem tiền cũng phải biết đơn không có QR công ty. `nguoiLapTen` = tên hồ sơ của tài khoản đã lập đơn (null khi chưa
+   * gắn hồ sơ); `nguoiLapLaBenDatHuong` = hồ sơ đó đúng là bên đặt được hưởng của đơn (CÙNG `benDatHuong` của lựa chọn «Khách trả cho đại lý ‹tên›», ADR-0132).
+   */
+  kenhThu: { congTyThu: boolean; nguoiLapTen: string | null; nguoiLapLaBenDatHuong: boolean } | null;
 }
 
 /** Bên đặt (đại lý được hưởng — chỉ tên; máy chủ tự lấy hồ sơ khi nhận `"ben_dat"`) và các quầy nhà cung cấp (id + tên, cho `{ nhaCungCapPartyId }` và «thu cho»). */
@@ -2688,7 +2694,7 @@ export interface QrThanhToanDto {
 export interface QrThanhToanResponse {
   qr: QrThanhToanDto;
 }
-/** `GET /api/orders/:id/qr-thanh-toan` của đơn mang dấu «Khách của đối tác trả cho Công ty» = Tắt (ADR-0178 Đ1 mục 4): không có QR vào tài khoản công ty. Đơn khác giữ `QrThanhToanResponse`. */
+/** `GET /api/orders/:id/qr-thanh-toan` của đơn mang dấu «Khách của đối tác trả cho Công ty» = Tắt (ADR-0178 Đ1 mục 2): không có QR vào tài khoản công ty. Đơn khác giữ `QrThanhToanResponse`. */
 export interface QrKhongCoResponse {
   coQr: false;
 }

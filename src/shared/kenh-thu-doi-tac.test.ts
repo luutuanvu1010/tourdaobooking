@@ -1,4 +1,4 @@
-// ADR-0178 Đ1 mục 3: luật thuần người thu hợp lệ của đơn mang dấu «Khách của đối tác trả cho Công ty» = Tắt (0).
+// ADR-0178 Đ1 mục 2: luật thuần người thu hợp lệ của đơn mang dấu «Khách của đối tác trả cho Công ty» = Tắt (0).
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { CAU_KENH_THU_CHI_NGUOI_LAP, CAU_KENH_THU_CHUA_GAN_HO_SO, nguoiThuHopLeKenhTat } from "./kenh-thu-doi-tac.ts";

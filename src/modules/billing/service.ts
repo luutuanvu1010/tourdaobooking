@@ -19,6 +19,7 @@ import { docGiaoDich, kiemMaGiaoDich, type GiaoDich } from "./ma-giao-dich";
 import { phaiThuHienHanh, phaiThuHienHanhNhieuDon } from "./thay-lan-thu-repo";
 import { cauTangChoDon } from "./tra-sau-tang";
 import { kiemNguoiThuKenh } from "./kenh-thu";
+import { kenhThuCuaDon } from "./kenh-thu-repo";
 import { donTraSauTheoId } from "./tra-sau-repo";
 import { CAU_HOAN_SAU_GIAO } from "../../shared/phan-dinh";
 import { MA_LOI_TRUNG, kiemTrung, type UngVienTrung } from "../../shared/luat-trung";
@@ -499,7 +500,19 @@ export async function tienCuaDon(db: D1Database, info: ThongTinGiaoDon, phan: Ph
       : null,
     coc,
     benKia: quyen.laDoiTac || !quyen.coTheGhiThu || info.deliveredAt !== null ? null : await luaChonBenKia(db, phan),
+    kenhThu: await kenhThuChoTrang(db, info.orderId, phan),
   };
+}
+
+/**
+ * ADR-0178 Đ1 mục 2 (Task A5): khối «người thu» của trang đơn mang dấu Tắt. Chỉ đơn dấu 0 có khối; dấu 1 / không dấu ⇒ null (giữ như cũ). Không gác theo quyền ghi: người chỉ
+ * xem tiền cũng phải biết đơn không có QR công ty. «Người lập là bên đặt được hưởng» = CÙNG `benDatHuong` mà lựa chọn «Khách trả cho đại lý ‹tên›» và lệnh ghi dùng.
+ */
+async function kenhThuChoTrang(db: D1Database, orderId: string, phan: PhanThuongMai | null): Promise<OrderPaymentsResponse["kenhThu"]> {
+  const k = await kenhThuCuaDon(db, orderId);
+  if (!k || k.dau !== 0) return null;
+  const ten = k.nguoiLap ? (await partyLabels(db, [k.nguoiLap])).get(k.nguoiLap)?.label ?? null : null;
+  return { congTyThu: false, nguoiLapTen: ten, nguoiLapLaBenDatHuong: k.nguoiLap !== null && benDatHuong(phan) === k.nguoiLap };
 }
 
 /**
@@ -554,7 +567,7 @@ export async function ghiLanThu(db: D1Database, input: { orderId: string; delive
   const daCo = receiptsDb.map(toReceiptRow);
   const lt = await docLanThu(db, input.raw, input.ai, congTyId, { phan: input.phan, receipts: daCo, kemDaGiao: false });
   if (!lt.ok) return lt;
-  // ADR-0178 Đ1 mục 3: đơn mang dấu Tắt chỉ nhận người thu = hồ sơ người lập — kiểm TRƯỚC khi dựng lô (trigger 0144 là lớp sau).
+  // ADR-0178 Đ1 mục 2: đơn mang dấu Tắt chỉ nhận người thu = hồ sơ người lập — kiểm TRƯỚC khi dựng lô (trigger 0144 là lớp sau).
   const kenh = await kiemNguoiThuKenh(db, input.orderId, lt.value.collectorPartyId);
   if (kenh) return { ok: false, res: kenh };
   const boQuaTrung = (input.raw as { boQuaTrung?: unknown } | null | undefined)?.boQuaTrung;
@@ -606,7 +619,7 @@ export async function daGiao(
     const doc = await docLanThu(db, input.rawLanThu, ai, congTyId, { phan: input.phan, receipts: receiptsDb.map(toReceiptRow), kemDaGiao: true });
     if (!doc.ok) return doc;
     lt = doc.value;
-    // ADR-0178 Đ1 mục 3: khoản thu kèm «Xong và đủ tiền» của đơn mang dấu Tắt — kiểm TRƯỚC lô (đơn không sang «Xong và đủ tiền»).
+    // ADR-0178 Đ1 mục 2: khoản thu kèm «Xong và đủ tiền» của đơn mang dấu Tắt — kiểm TRƯỚC lô (đơn không sang «Xong và đủ tiền»).
     const kenh = await kiemNguoiThuKenh(db, input.orderId, lt.collectorPartyId);
     if (kenh) return { ok: false, res: kenh };
   }
