@@ -409,6 +409,14 @@ const buildDt = (o: DonMau, handler: string | null | typeof HANDLER_HIDDEN = "L�
   buildConfirmation(dungBienNhan({ ...o, bookerLaDoiTac: true }, COMPANY, { daTra: o.paid, conLai: o.remaining }, null, false), handler);
 const labels = (rows: { label: string }[]): string[] => rows.map((r) => r.label);
 /** Đơn một dịch vụ giá khớp danh mục (không giá bị sửa), tổng 2.700.000. */
+/** Đọc số từ chuỗi tiền đã định dạng ("-1.350.000 ₫" → -1350000): bỏ "₫", dấu chấm, khoảng trắng; giữ dấu trừ. */
+const soTien = (v: string | undefined): number => Number((v ?? "0").replace(/[₫.\s]/g, ""));
+/** Dòng đầu − Giảm giá − Giảm sau khi giao − dòng đã trả − Phải thu, tính từ các dòng của mô hình (dòng giảm mang dấu âm sẵn ⇒ cộng); 0 = khớp. */
+function soDu(rows: { label: string; value: string }[]): number {
+  const daTra = rows.find((r) => r.label === "Đã thu" || r.label === "Khách đã trả trước");
+  const giam = (l: string): number => soTien(value(rows, l));
+  return soTien(rows[0]!.value) + giam("Giảm giá") + giam("Giảm sau khi giao") - soTien(daTra?.value) - soTien(value(rows, "Phải thu"));
+}
 const donKhop = (o: Partial<DonMau> = {}): DonMau => order({ services: [svc({ items: [item()] })], subtotal: 2_700_000, discount: 0, giamGiaHieuLuc: 0, total: 2_700_000, paid: 0, remaining: 2_700_000, ...o });
 
 test("HD-02-DT: phần đầu không logo, có mã mẫu, thương hiệu, khẩu hiệu, Hotline; không MST, không địa chỉ công ty", () => {
@@ -484,8 +492,8 @@ test("HD-02-DT: tổng — Tổng giá công bố, Giảm giá (khác 0), Khách
   assert.deepEqual(labels(b), ["Tổng giá công bố", "Giảm giá", "Khách đã trả trước", "Phải thu"]);
   assert.equal(value(b, "Phải thu"), "1.600.000 ₫");
   assert.deepEqual(b.filter((r) => r.emphasis).map((r) => r.label), ["Phải thu"]);
-  // giá công bố − giảm − đã trả = phải thu
-  assert.equal(2_700_000 - 100_000 - 1_000_000, 1_600_000);
+  // cộng khớp tính từ CHÍNH các dòng của mô hình: dòng đầu − Giảm giá − Giảm sau khi giao − dòng đã trả = Phải thu
+  assert.equal(soDu(b), 0, "ca (b): các dòng của mô hình cộng khớp Phải thu");
   const c = one(buildDt(donKhop({ paid: -50_000, remaining: 2_650_000 })), "summary").rows;
   assert.deepEqual(labels(c), ["Tổng giá công bố", "Khách đã trả trước", "Phải thu"]);
   assert.equal(value(c, "Khách đã trả trước"), "-50.000 ₫");
@@ -495,6 +503,15 @@ test("HD-02-DT: đã giao ⇒ dòng Đã thu thay Khách đã trả trước", (
   const rows = one(buildDt(donKhop({ status: "confirmed", deliveredAt: "2026-10-01T00:00:00.000Z", paid: 3_500_000, remaining: 0 })), "summary").rows;
   assert.ok(labels(rows).includes("Đã thu") && !labels(rows).includes("Khách đã trả trước"), JSON.stringify(labels(rows)));
   assert.equal(value(rows, "Phải thu"), "0 ₫");
+});
+
+test("HD-02-DT: đơn đã giao có giảm sau khi giao ⇒ dòng «Giảm sau khi giao» mang dấu âm, dòng đã trả là «Đã thu», các dòng cộng khớp Phải thu", () => {
+  const o = donKhop({ status: "confirmed", deliveredAt: "2026-10-01T00:00:00.000Z", discount: 100_000, giamGiaHieuLuc: 100_000, total: 2_600_000, paid: 1_000_000, remaining: 1_600_000 });
+  const rows = one(buildConfirmation(dungBienNhan({ ...o, bookerLaDoiTac: true }, COMPANY, { daTra: 1_000_000, conLai: 1_000_000, giamTru: 600_000 }, null, false), null), "summary").rows;
+  assert.deepEqual(labels(rows), ["Tổng giá công bố", "Giảm giá", "Giảm sau khi giao", "Đã thu", "Phải thu"]);
+  assert.equal(value(rows, "Giảm sau khi giao"), "-600.000 ₫");
+  assert.equal(value(rows, "Phải thu"), "1.000.000 ₫");
+  assert.equal(soDu(rows), 0, "2.700.000 − 100.000 − 600.000 − 1.000.000 = 1.000.000");
 });
 
 test("HD-02-DT: đơn huỷ ⇒ thân giống hệt thông báo huỷ của mẫu nội bộ, chỉ khác phần đầu", () => {
