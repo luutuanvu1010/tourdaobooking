@@ -2,7 +2,16 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.68 ĐÃ LÊN PRODUCTION (nhận hoặc đổi người phụ trách đúng lúc đơn vừa bị huỷ, nợ T4 của ADR-0142 Phần 1) — không migration — triển khai 2026-11-05 21:34 giờ Việt Nam
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.69 ĐÃ LÊN PRODUCTION (đối tác xem và gửi vé ADR-0170, 0171; số nợ Trả sau đúng khi nộp một phần; màn Hạn mức trả sau chọn đối tác từ danh sách) — không migration — triển khai 2026-11-06 11:35 giờ Việt Nam
+
+Ghi từ khối tóm tắt của `npm run trien-khai` (chủ tự chạy):
+- Commit `origin/main`: `2c4b9339`. Worker Version ID: `4367ee7a-0977-4b5c-ae42-9c3ada8b051c`. Cổng phiên bản trước và sau deploy: ĐẠT. GET công khai `/api/auth/config` sau deploy: `version` 2.69.
+- **e2e: ĐỎ hai kịch bản trong bộ lớn, chủ chọn tiếp tục:** `coc-don-huy`, `tu-choi-bao-ban`. Chạy lại riêng hai kịch bản trên đúng commit `2c4b9339` lúc máy rảnh: 5/5 xanh (32 giây). Cùng kiểu đỏ chập chờn như 2.60, 2.62, 2.65; lần đỏ không lưu lý do vì đầu ra trôi khỏi Terminal.
+- **`audit-invariants --db remote`: ĐẠT, ba cảnh báo như 2.68:** `R-VC-14` 7 xe thiếu giấy tờ là điều kiện xuất bến; `R-CTL-1` 8 dịch vụ chưa phân nhóm; `R-DSP-2b` một người phụ trách đã ngưng hoạt động. `R-CRD-1`, `R-CRD-2` (Trả sau) đạt.
+- **Chưa kiểm:** iPhone thật; chưa thao tác ghi thử trên production.
+- **Kế tiếp:** bản công nợ ADR-0172, 0173 (nhánh `claude/cong-no-0172-0173-372c0c`, CÓ migration `0143`) chờ chủ nhập rồi triển khai. Chủ chưa cấp Trả sau thật cho đối tác nào; chưa nên cấp tới khi các cổng huỷ đơn, đổi bên, sửa tăng tiền (Task 2, 3 của kế hoạch Trả sau) lên.
+
+## (Cũ) TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.68 ĐÃ LÊN PRODUCTION (nhận hoặc đổi người phụ trách đúng lúc đơn vừa bị huỷ, nợ T4 của ADR-0142 Phần 1) — không migration — triển khai 2026-11-05 21:34 giờ Việt Nam
 
 Ghi từ khối tóm tắt của `npm run trien-khai` (chủ tự chạy) và lệnh chỉ đọc của phiên làm bản sửa:
 - Commit `origin/main`: `757673a1`. Worker Version ID: `b1b8e2c6-db2a-4d20-b0c5-47107074600c`. e2e: xanh. Cổng phiên bản trước và sau deploy: ĐẠT. GET công khai sau deploy: `version` 2.68, `maintenance.on` false.
