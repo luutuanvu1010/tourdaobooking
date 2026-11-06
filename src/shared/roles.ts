@@ -137,6 +137,10 @@ export const tatHaiLopDuoc = (actor: PermissionHolder, target: PermissionHolder)
 const QUYEN_TIEN_RIENG: readonly PermissionCode[] = MA_QUYEN_TIEN.filter((p) => !SUPER_ADMIN_GRANTED.includes(p));
 const TIEN_PROBLEM: RoleProblem = { forbidden: true, message: TIEN_CHI_TOAN_QUYEN_MESSAGE };
 
+/** ADR-0176: Quản trị gán / gỡ được mọi vai trừ vai sinh Toàn quyền (hôm nay: IT). MỘT nguồn cho máy chủ (roleAssignmentProblem) và giao diện (web/role-picker.ts). */
+export const vaiQuanTriGanDuoc = (r: RoleCode): boolean => !ROLES[r].defaults.includes("SUPER_ADMIN");
+const TOAN_QUYEN_PROBLEM: RoleProblem = { forbidden: true, message: "Chỉ người phụ trách hệ thống mới gán vai trò IT." };
+
 /** Lời 403 khi gán / gỡ vai chỉ Toàn quyền được gán — liệt kê đúng các vai đó (đọc từ ROLES, không chép tay). */
 const VAI_QUAN_LY_MESSAGE = `Chỉ người phụ trách hệ thống mới gán hoặc gỡ vai trò ${ROLE_CODES.filter((r) => ROLES[r].superAdminOnly).map((r) => ROLES[r].name).join(", ")}.`;
 /** Lời 403 khi cấp / gỡ quyền chỉ Toàn quyền được cấp: nhắc Quản trị khi đụng Quản trị/Toàn quyền, nhắc Nhân sự khi chỉ đụng Nhân sự. */
@@ -228,6 +232,8 @@ export interface RoleProblem {
 /** LC-4 cho MỌI đường đổi quyền (gán vai, route cũ PUT …/permissions, tạo tài khoản): chỉ Toàn quyền cấp hoặc gỡ Quản trị/Toàn quyền/Nhân sự. */
 export function highPermissionProblem(actorIsSuper: boolean, current: readonly PermissionCode[], next: readonly PermissionCode[], actorLaQuanTri = false): RoleProblem | null {
   if (actorIsSuper) return null;
+  // ADR-0176: Quản trị đổi được mọi quyền trừ Toàn quyền (kể cả Quản trị, Nhân sự, quyền tiền).
+  if (actorLaQuanTri) return current.includes("SUPER_ADMIN") !== next.includes("SUPER_ADMIN") ? TOAN_QUYEN_PROBLEM : null;
   const changed = SUPER_ADMIN_GRANTED.filter((p) => current.includes(p) !== next.includes(p));
   if (changed.length) return { forbidden: true, message: capCaoMessage(changed) };
   // ADR-0090 đ1(ii), (iii): cấp hoặc gỡ quyền tiền (gồm tạo tài khoản mang quyền tiền — current rỗng) chỉ Toàn quyền.
@@ -263,6 +269,11 @@ export function roleAssignmentProblem(a: {
   if (!a.actorIsSuper) {
     const touched = [...a.next.roles.filter((r) => !a.currentRoles.includes(r)), ...a.currentRoles.filter((r) => !a.next.roles.includes(r))];
     // ADR-0090 đ1(ii): gán / gỡ vai mang quyền tiền, hoặc ĐỔI dòng chỉnh tay quyền tiền (kể cả "ngủ" — như I-1 bên dưới) — câu đ1, TRƯỚC câu vai chung.
+    if (a.actorLaQuanTri) {
+      // ADR-0176: Quản trị chỉ bị chặn vai sinh Toàn quyền và dòng chỉnh tay Toàn quyền (kể cả «ngủ»).
+      const tayToanQuyen = a.next.adds.includes("SUPER_ADMIN") !== a.currentAdjustments.adds.includes("SUPER_ADMIN") || a.next.removes.includes("SUPER_ADMIN") !== a.currentAdjustments.removes.includes("SUPER_ADMIN");
+      if (tayToanQuyen || touched.some((r) => !vaiQuanTriGanDuoc(r))) return TOAN_QUYEN_PROBLEM;
+    } else {
     const vaiTien = touched.some((r) => ROLES[r].defaults.some((p) => QUYEN_TIEN_RIENG.includes(p)));
     const chinhTayTien = QUYEN_TIEN_RIENG.some(
       (p) => a.next.adds.includes(p) !== a.currentAdjustments.adds.includes(p) || a.next.removes.includes(p) !== a.currentAdjustments.removes.includes(p),
@@ -281,6 +292,7 @@ export function roleAssignmentProblem(a: {
       (p) => a.next.adds.includes(p) !== a.currentAdjustments.adds.includes(p) || a.next.removes.includes(p) !== a.currentAdjustments.removes.includes(p),
     );
     if (adjustmentChanged.length) return { forbidden: true, message: capCaoMessage(adjustmentChanged) };
+    }
   }
   const next = effectivePermissions(a.next.roles, a.next).permissions;
   const high = highPermissionProblem(a.actorIsSuper, a.currentPermissions, next, a.actorLaQuanTri);
