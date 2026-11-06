@@ -192,3 +192,11 @@ test("ô người thu của Kế toán, dấu Bật / không dấu ⇒ giữ ngu
 test("dấu Tắt: câu thay form «Ghi khoản thu đòi được»", () => {
   assert.equal(B.CAU_KHONG_GHI_DOI_DUOC, "Đơn này chỉ nhận tiền khách trả cho đối tác đã lập đơn nên Công ty không ghi khoản thu đòi được.");
 });
+
+test("«Ghi sổ theo phân định», phần sửa khoản thu: Bật / không dấu ⇒ Công ty; Tắt ⇒ { partyId người lập }; Tắt mà người lập chưa gắn hồ sơ ⇒ null (ẩn phần sửa)", () => {
+  const k = { congTyThu: false, nguoiLapTen: "Đại Lý B", nguoiLapLaBenDatHuong: false, nguoiLapPartyId: "pty-dl-b" };
+  assert.equal(B.nguoiThuSuaPhanDinh(null), "cong_ty");
+  assert.equal(B.nguoiThuSuaPhanDinh({ ...k, congTyThu: true }), "cong_ty");
+  assert.deepEqual(B.nguoiThuSuaPhanDinh(k), { partyId: "pty-dl-b" });
+  assert.equal(B.nguoiThuSuaPhanDinh({ ...k, nguoiLapPartyId: null }), null);
+});

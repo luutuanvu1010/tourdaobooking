@@ -44,6 +44,12 @@ export function luaChonNguoiThuSoKeToan(kenhThu: OrderPaymentsResponse["kenhThu"
   return kenhThu.nguoiLapPartyId ? [{ value: kenhThu.nguoiLapPartyId, nhan: `${kenhThu.nguoiLapTen ?? "Hồ sơ"} (người lập đơn)` }] : [];
 }
 
+/** Người thu của khoản thu đúng trong «Ghi sổ theo phân định» (phần sửa khoản thu): cùng luật `luaChonNguoiThuSoKeToan` — Bật ⇒ Công ty; Tắt ⇒ hồ sơ người lập; Tắt mà chưa gắn hồ sơ ⇒ null (ẩn phần sửa). */
+export function nguoiThuSuaPhanDinh(kenhThu: OrderPaymentsResponse["kenhThu"] | undefined): "cong_ty" | { partyId: string } | null {
+  const v = luaChonNguoiThuSoKeToan(kenhThu, [{ value: "cong_ty", nhan: "Công ty" }])[0]?.value;
+  return v === undefined ? null : v === "cong_ty" ? "cong_ty" : { partyId: v };
+}
+
 /** Câu thay form «Ghi khoản thu đòi được» (phân định) ở đơn mang dấu Tắt: ADR-0178 Hệ quả — Kế toán không dùng được đường này cho đơn đó. */
 export const CAU_KHONG_GHI_DOI_DUOC = "Đơn này chỉ nhận tiền khách trả cho đối tác đã lập đơn nên Công ty không ghi khoản thu đòi được.";
 
