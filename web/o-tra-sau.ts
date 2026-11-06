@@ -218,7 +218,7 @@ export async function khoiCaiDatTraSau(bc: BoiCanhTraSau | null, veLai: () => Pr
     "section",
     { class: "card card-col", id: "ts-cai-dat", "aria-labelledby": "ts-cai-dat-tieu-de" },
     h("h2", { id: "ts-cai-dat-tieu-de" }, "Hạn mức trả sau"),
-    h("p", { class: "muted" }, "Số gợi ý theo cấp chỉ điền sẵn khi bật Trả sau cho một đối tác; không cho ai Trả sau. Đổi số gợi ý không đổi Trả sau đã bật."),
+    h("p", { class: "muted" }, "Số gợi ý theo cấp chỉ điền sẵn khi cấp hạn mức cho một đối tác; không tự cấp cho ai. Đổi số gợi ý không đổi hạn mức đã cấp."),
     loiChung,
     ds,
     muc,

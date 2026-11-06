@@ -1574,7 +1574,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     nhom: "Trả sau: cài đặt chung",
     manHinh: "Cấp độ đại lý › khối «Hạn mức trả sau» (ô «Mức tối đa Quản trị được cấp», bảng số gợi ý của một cấp)",
     ten: "Lưu",
-    thatSuLam: "Ở ô mức tối đa: Toàn quyền đặt số tiền lớn nhất Quản trị được cấp cho một đối tác (thêm dòng mới, dòng cũ giữ làm lịch sử). Ở bảng số gợi ý: Quản trị hoặc Toàn quyền lưu hạn mức, thời hạn trả, ân hạn gợi ý của một cấp; số này chỉ điền sẵn khi bật Trả sau, không cho ai Trả sau và không đổi Trả sau đã bật.",
+    thatSuLam: "Ở ô mức tối đa: Toàn quyền đặt số tiền lớn nhất Quản trị được cấp cho một đối tác (thêm dòng mới, dòng cũ giữ làm lịch sử). Ở bảng số gợi ý: Quản trị hoặc Toàn quyền lưu hạn mức, thời hạn trả, ân hạn gợi ý của một cấp; số này chỉ điền sẵn khi cấp hạn mức, không tự cấp cho ai và không đổi hạn mức đã cấp.",
     hoiLai: "không",
     hoanTac: "được: lưu lại số cũ",
     duongLenh: ["/api/tra-sau/muc-toi-da", "/api/tra-sau/goi-y/:x"],

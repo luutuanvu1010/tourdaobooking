@@ -698,7 +698,7 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 
 | Tên | Màn hình | Thật sự làm gì | Hỏi lại | Hoàn tác | Đường lệnh, nhật ký | Nơi đặt nút | Trạng thái |
 |---|---|---|---|---|---|---|---|
-| **Lưu** | Cấp độ đại lý › khối «Hạn mức trả sau» (ô «Mức tối đa Quản trị được cấp», bảng số gợi ý của một cấp) | Ở ô mức tối đa: Toàn quyền đặt số tiền lớn nhất Quản trị được cấp cho một đối tác (thêm dòng mới, dòng cũ giữ làm lịch sử). Ở bảng số gợi ý: Quản trị hoặc Toàn quyền lưu hạn mức, thời hạn trả, ân hạn gợi ý của một cấp; số này chỉ điền sẵn khi bật Trả sau, không cho ai Trả sau và không đổi Trả sau đã bật. | không | được: lưu lại số cũ | `/api/tra-sau/muc-toi-da`<br>`/api/tra-sau/goi-y/:x`<br>nhật ký `credit_ceiling_set`<br>nhật ký `credit_tier_default_set` | `web/o-tra-sau.ts`: Lưu | tên hiện tại, chủ chưa chọn riêng (chữ dùng chung «Lưu»; tên «Mức tối đa Quản trị được cấp» chủ chọn 2026-11-06 trong hộp hỏi (ADR-0172)) |
+| **Lưu** | Cấp độ đại lý › khối «Hạn mức trả sau» (ô «Mức tối đa Quản trị được cấp», bảng số gợi ý của một cấp) | Ở ô mức tối đa: Toàn quyền đặt số tiền lớn nhất Quản trị được cấp cho một đối tác (thêm dòng mới, dòng cũ giữ làm lịch sử). Ở bảng số gợi ý: Quản trị hoặc Toàn quyền lưu hạn mức, thời hạn trả, ân hạn gợi ý của một cấp; số này chỉ điền sẵn khi cấp hạn mức, không tự cấp cho ai và không đổi hạn mức đã cấp. | không | được: lưu lại số cũ | `/api/tra-sau/muc-toi-da`<br>`/api/tra-sau/goi-y/:x`<br>nhật ký `credit_ceiling_set`<br>nhật ký `credit_tier_default_set` | `web/o-tra-sau.ts`: Lưu | tên hiện tại, chủ chưa chọn riêng (chữ dùng chung «Lưu»; tên «Mức tối đa Quản trị được cấp» chủ chọn 2026-11-06 trong hộp hỏi (ADR-0172)) |
 
 ### Trả sau: lùi hạn trả một đơn
 
