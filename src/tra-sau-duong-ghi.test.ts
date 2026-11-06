@@ -5,7 +5,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { seedStaff } from "../tests/audit/harness.mjs";
-import { A, ACC, ADM, H, SUP, inDays, setup, svc } from "../tests/audit/xac-nhan-khung.mjs";
+import { A, ACC, ADM, H, PARTNER, SUP, inDays, setup, svc } from "../tests/audit/xac-nhan-khung.mjs";
+import { canhBaoVuotHanMuc } from "./shared/han-muc-tra-sau-hien-thi.ts";
 
 const AT = "2026-10-01T00:00:00.000Z";
 const DT = "88888888-8888-4888-8888-888888888801"; // bên đặt có hạn mức
@@ -15,8 +16,8 @@ const BEN2 = `pty-${DT2}`;
 const T_ZB1 = 600_000; // 2 người lớn × 300.000
 
 type W = ReturnType<typeof setup>;
-function dung(): W {
-  const w = setup();
+function dung(tuyChon: Record<string, unknown> = {}): W {
+  const w = setup(tuyChon);
   for (const [id, phone, ten] of [[DT, "0900000021", "Đối Tác Hưởng"], [DT2, "0900000022", "Đối Tác Khác"]] as const) {
     seedStaff(w.sqlite, { id, phone, name: ten, perms: ["PARTNER"] });
     w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES (?, ?, 'TRAVEL_AGENCY', '2026-01-01', ?, ?)").run(`r-${id}`, `pty-${id}`, AT, AT);
@@ -49,7 +50,7 @@ test("sửa số khách của văn phòng: tăng vượt hạn mức 409, tăng 
   const v0 = phienBan(w);
   const vuot = await suaVP(w, d.id, 4); // 1.200.000
   assert.deepEqual([vuot.status, vuot.json.error.code], [409, "vuot_han_muc"], vuot.text);
-  assert.match(vuot.json.error.message, /1\.200\.000/, "câu báo có số tiền");
+  assert.match(vuot.json.error.message, /^Số tiền tăng thêm 600\.000 ₫ vượt hạn mức: bên đặt còn được dùng 400\.000 ₫/, "câu báo nói phần tăng và phần còn được dùng (Task 3)");
   assert.equal(soDongDieuChinh(w, d.id), 0, "không để lại dòng điều chỉnh nào");
   assert.equal(phienBan(w), v0, "lô bị từ chối không tăng phiên bản");
   const duoc = await suaVP(w, d.id, 3); // 900.000 ≤ 1.000.000
@@ -412,6 +413,95 @@ for (const dg of DUONG_GHI) {
     assert.equal(phienBan(w), v0! + 1);
   });
 }
+
+// ---- Kế hoạch 2026-11-05 Task 3 (nợ 3): sửa tăng tính theo nợ CỦA ĐƠN + phần tăng, không coi cả tổng mới là nợ ----
+/** Dịch vụ 200.000 ₫ / người lớn để 3, 4, 5 người lớn = 600.000, 800.000, 1.000.000. */
+const svc200 = (adult: number) => ({ kind: "catalog", pickupChoice: "KHONG_DON", catalogCode: "ZC2", pax: { adult, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 200_000 }, departDate: inDays(3), legs: [] });
+async function don600DaThu400(w: W): Promise<string> {
+  w.sqlite.exec("INSERT INTO catalog_item (code, name, unit, price_adult, in_sheet, first_seen_at, updated_at) VALUES ('ZC2', 'Tour hai trăm', 'perPax', 200000, 1, '2026-01-01', '2026-01-01')");
+  assert.equal((await hanMuc(w, 1_000_000)).status, 201);
+  const r = await w.call("POST", "/api/orders", { as: A, body: { customerName: "Khách Thử", customerPhone: "0912345678", bookerPartyId: BEN, paymentTerm: "CREDIT", services: [svc200(3)] } });
+  assert.equal(r.status, 201, r.text);
+  const id = r.json.order.id as string;
+  assert.equal((await w.call("POST", `/api/orders/${id}/status`, { as: A, body: { status: "confirmed" } })).status, 200);
+  assert.equal((await thu(w, id, 400_000)).status, 201);
+  assert.equal(await no(w), 200_000);
+  assert.equal((await hanMuc(w, 500_000)).status, 201, "hạ hạn mức còn 500.000 (đang nợ 200.000)");
+  return id;
+}
+
+test("Task 3: hạn mức 500.000, đơn 600.000 đã về công ty 400.000 (nợ 200.000) — tăng lên 1.000.000 thì 409 nói đúng phần còn được dùng; tăng lên 800.000 thì được, nợ mới 400.000", async () => {
+  const w = dung();
+  const id = await don600DaThu400(w);
+  const v0 = phienBan(w)!;
+  const vuot = await suaVP(w, id, 5); // 1.000.000: phần tăng 400.000 > còn được dùng 300.000
+  assert.deepEqual([vuot.status, vuot.json.error?.code], [409, "vuot_han_muc"], vuot.text);
+  assert.equal(vuot.json.error.message, "Số tiền tăng thêm 400.000 ₫ vượt hạn mức: bên đặt còn được dùng 300.000 ₫ (hạn mức 500.000 ₫, đang nợ 200.000 ₫).");
+  assert.equal(soDongDieuChinh(w, id), 0);
+  assert.equal(phienBan(w), v0);
+  const duoc = await suaVP(w, id, 4); // 800.000: phần tăng 200.000 ≤ 300.000
+  assert.equal(duoc.status, 200, duoc.text);
+  assert.equal(await no(w), 400_000, "nợ mới = 200.000 + 200.000");
+  assert.equal(phienBan(w), v0 + 1);
+});
+
+test("Task 3: không đọc được nợ của đơn (hàm tiêm vắng) khi sửa tăng ⇒ 503 tra_sau_chua_dung_duoc, không ghi gì", async () => {
+  const w = dung({ khongTiemTraSauCuaDon: true });
+  assert.equal((await hanMuc(w, 5_000_000)).status, 201);
+  const d = await donTS(w);
+  const r = await suaVP(w, d.id, 3);
+  assert.deepEqual([r.status, r.json.error?.code], [503, "tra_sau_chua_dung_duoc"], r.text);
+  assert.equal(soDongDieuChinh(w, d.id), 0);
+  assert.equal((await suaVP(w, d.id, 1)).status, 200, "giảm tiền không cần đọc nợ");
+});
+
+test("Task 3 (nợ 7): gộp hồ sơ — đọc nợ Trả sau LỖI thì xem trước và lệnh gộp đều không ghi gì; hồ sơ và đơn giữ nguyên", async () => {
+  const w = dung();
+  const TEN = "Đại Lý Không Tài Khoản";
+  const B = await w.call("POST", "/api/staff", { as: SUP, body: { fullName: "Hồ Sơ Chính", phone: "0900000066", roles: ["SALES_STAFF"], taoHoSoMoi: true } });
+  assert.equal(B.status, 201, B.text);
+  const bId = B.json.staff.partyId as string;
+  const P = await w.call("POST", "/api/parties", { as: ADM, body: { kind: "PERSON", fullName: TEN, contacts: [{ kind: "PHONE", value: "0912000222" }] } });
+  assert.equal(P.status, 201, P.text);
+  const aId = P.json.party.id as string;
+  // Làm hỏng nguồn đọc nợ (view công bố đơn Trả sau) — chỉ hàm đọc nợ dùng nó trên đường gộp.
+  w.sqlite.exec("DROP VIEW v_ord_don_tra_sau");
+  const truoc = [w.q("SELECT count(*) AS n FROM audit_log")[0].n, w.q("SELECT active FROM pty_party WHERE id = ?", aId)[0].active];
+  const xem = await w.call("POST", `/api/parties/${aId}/merge/preview`, { as: ADM, body: { intoPartyId: bId } });
+  assert.ok(xem.status >= 500, `xem trước không được coi như «không nợ»: ${xem.status} ${xem.text}`);
+  const gop = await w.call("POST", `/api/parties/${aId}/merge`, { as: ADM, body: { intoPartyId: bId, xacNhan: TEN } });
+  assert.ok(gop.status >= 500, `lệnh gộp không chạy: ${gop.status} ${gop.text}`);
+  assert.deepEqual([w.q("SELECT count(*) AS n FROM audit_log")[0].n, w.q("SELECT active FROM pty_party WHERE id = ?", aId)[0].active], truoc, "không dòng nhật ký, hồ sơ phụ còn nguyên");
+});
+
+test("Task 3 (ghim nợ 6): đường hẹp con-duoc-dung — đúng ba khoá; Đối tác gửi benDat người khác vẫn nhận số của mình; Hướng dẫn viên 403", async () => {
+  const w = dung();
+  assert.equal((await hanMuc(w, 1_000_000)).status, 201);
+  assert.equal((await hanMuc(w, 3_000_000, BEN2)).status, 201);
+  const cua = (as: string, ben: string) => w.call("GET", `/api/tra-sau/con-duoc-dung?benDat=${ben}`, { as });
+  const r = await cua(DT, BEN2);
+  assert.equal(r.status, 200, r.text);
+  assert.deepEqual(Object.keys(r.json).sort(), ["coDonQuaHan", "coHanMuc", "conDuocDung"]);
+  assert.equal(r.json.conDuocDung, 1_000_000, "số của chính Đối tác (hồ sơ phiên), không phải 3.000.000 của người khác");
+  assert.equal((await cua(A, BEN2)).json.conDuocDung, 3_000_000, "văn phòng hỏi bên đặt đã chọn");
+  assert.equal((await cua(H, BEN)).status, 403);
+  assert.equal((await cua(PARTNER, BEN2)).json.coHanMuc, false, "Đối tác chưa có hạn mức: không thấy hạn mức người khác");
+});
+
+test("Task 3 (ghim nợ 5): hạ hạn mức xuống dưới số đang nợ — màn danh sách có cảnh báo, đơn Trả sau mới bị chặn, đơn cũ không đổi", async () => {
+  const w = dung();
+  assert.equal((await hanMuc(w, 1_000_000)).status, 201);
+  const cu = await donTS(w);
+  assert.equal((await hanMuc(w, 500_000)).status, 201);
+  const dong = ((await w.call("GET", "/api/tra-sau/han-muc", { as: SUP })).json.danhSach as { partyId: string; hanMuc: number | null; dangNo: number }[]).find((d) => d.partyId === BEN)!;
+  assert.deepEqual([dong.hanMuc, dong.dangNo], [500_000, T_ZB1]);
+  assert.equal(canhBaoVuotHanMuc(dong), "Đang nợ 600.000 ₫, vượt hạn mức hiện hành 500.000 ₫.");
+  const moi = await w.call("POST", "/api/orders", { as: A, body: { customerName: "Khách Thử", customerPhone: "0912345678", bookerPartyId: BEN, paymentTerm: "CREDIT", services: [svc("ZB1", inDays(3))] } });
+  assert.equal(moi.status, 409, moi.text);
+  assert.equal(moi.json.error.code, "vuot_han_muc");
+  assert.deepEqual({ ...w.q("SELECT status, total FROM orders WHERE id = ?", cu.id)[0] }, { status: "confirmed", total: T_ZB1 }, "đơn cũ không đổi");
+  assert.equal(await no(w), T_ZB1);
+});
 
 // Bốn bài QUÉT chữ cũ (soanHuyDon / changeBooker / soanSuaSoKhach phải có cổng đứng trước; đếm cauTangChoDon) đã XOÁ theo kế hoạch 2026-11-05 Task 2:
 // ba hàm ghi nay đòi kiểu mang nhãn chỉ cổng tạo được (`npm run typecheck` buộc), và bảng ĐƯỜNG GHI ở trên chạy thật từng đường. Sổ: docs/SO-HANG-RAO.md.

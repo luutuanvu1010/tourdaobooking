@@ -12,7 +12,7 @@ export const KHONG_TRA_SAU: KemTraSau = () => [];
 
 /** Hai hàm do gốc lắp ráp tiêm (xem `ctx.kiemTraSau`, `ctx.cauGacPhienBanTraSau` ở src/shared/router.ts). */
 export interface HamTraSau {
-  kiemTraSau: (i: { benDat: string; soTienDon: number; boQuaDon?: string }) => Promise<KetQuaKiemTraSau | null>;
+  kiemTraSau: (i: { benDat: string; soTienDon: number; boQuaDon?: string; loai?: "sua_tang" }) => Promise<KetQuaKiemTraSau | null>;
   cauGacPhienBanTraSau: (partyId: string, version: number, at: string) => D1PreparedStatement[];
 }
 
@@ -88,16 +88,24 @@ export interface HamNoTraSau {
   veDaMoCuaDon: (orderId: string) => Promise<boolean | null>;
 }
 
-/** Sửa số khách (văn phòng và hướng dẫn viên — MỘT hàm `soanSuaSoKhach`): chỉ đơn Trả sau ĐÃ xác nhận mà tiền TĂNG mới qua cổng hạn mức; giảm hoặc y nguyên thì không gác. */
+/**
+ * Sửa số khách (văn phòng và hướng dẫn viên — MỘT hàm `soanSuaSoKhach`): chỉ đơn Trả sau ĐÃ xác nhận mà tiền TĂNG mới qua cổng hạn mức; giảm hoặc y nguyên thì không gác.
+ * Nợ mới của đơn = nợ hiện tại CỦA ĐƠN + phần tăng (Task 3, nợ 3: không coi cả tổng mới là nợ, phần đã về công ty vẫn được tính). Cổng so PHẦN TĂNG với phần hạn mức còn được dùng
+ * của bên đặt (gồm cả nợ của chính đơn này), câu báo nói đúng hai số đó. Gác phiên bản bằng số `traSauCuaDon` đọc TRƯỚC khi tính nợ: có ai làm nợ đổi sau lúc đọc thì lô thua.
+ */
 export async function congSuaTangTraSau(
   h: HamTraSau & Pick<HamNoTraSau, "traSauCuaDon">,
   order: { id: string; paymentTerm: HinhThucThanhToan; status: string; bookerPartyId: string | null; total: number },
   tongMoi: number,
 ): Promise<{ loi: Response } | { qua: QuaCongSuaTang }> {
   if (order.paymentTerm !== "CREDIT" || order.status !== "confirmed" || tongMoi <= order.total) return quaSuaTang([]);
-  const r = await kiemDon(h, { id: order.id, paymentTerm: "CREDIT", bookerPartyId: order.bookerPartyId, total: tongMoi, declaredDeposit: 0 });
-  if ("loi" in r) return r;
-  return quaSuaTang(h.cauGacPhienBanTraSau(r.benDat, r.kq.version, new Date().toISOString()));
+  if (order.bookerPartyId === null) return { loi: error(409, "tra_sau_thieu_ben_dat", CAU_TRA_SAU_THIEU_BEN_DAT) };
+  const t = await h.traSauCuaDon(order.id);
+  if (!t || t.version === undefined || t.benDat !== order.bookerPartyId) return { loi: CHUA_DUNG_DUOC() };
+  const kq = await h.kiemTraSau({ benDat: order.bookerPartyId, soTienDon: tongMoi - order.total, loai: "sua_tang" });
+  if (!kq) return { loi: CHUA_DUNG_DUOC() };
+  if (!kq.ok) return { loi: error(409, kq.ma, kq.cau) };
+  return quaSuaTang(h.cauGacPhienBanTraSau(order.bookerPartyId, t.version, new Date().toISOString()));
 }
 
 export const CAU_HUY_CON_NO = (no: number): string => `Đơn trả sau còn nợ ${dongTien(no)} mà vé đã mở cho khách nên chưa huỷ được. Hãy thu đủ tiền, hoặc nhờ Kế toán xử lý.`;
