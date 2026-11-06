@@ -1,6 +1,6 @@
 # Quy trình phát hành phiên bản mới — Tour Đảo Booking
 
-> Tài liệu cho **chủ dự án**, viết bằng lời thường. Cập nhật 2026-09-24 (sau lần phát hành bản 1.4).
+> Tài liệu cho **chủ dự án**, viết bằng lời thường. Cập nhật 2026-09-24 (sau lần phát hành bản 1.4); bước 5–6 viết lại 2026-11-06 theo ADR-0176 (kiểm đủ bộ chuyển lên máy GitHub, mục tiêu cả lần phát hành khoảng 10 phút).
 > Chi tiết kỹ thuật cho AI và lập trình viên: `docs/HANDOFF-N1.md` (mục "HAI LỆNH" và "bước A.0"), `docs/CHANGE-GUIDE.md` (công thức s và t).
 
 ## Tóm tắt một trang
@@ -11,7 +11,7 @@
 | 2 | AI | Thêm mục nhật ký (số mới, ví dụ 1.5), kiểm, báo **tên nhánh** | — |
 | 3 | Bạn | Đọc lướt mấy dòng nhật ký, đồng ý hoặc bảo sửa | Trong Claude |
 | 4 | Bạn | `cd …tourdao-sales` → `git checkout main` → `git pull --ff-only` | Ứng dụng **Terminal** |
-| 5 | Bạn | `npm run day-len -- <tên-nhánh>` → gõ `c` | Terminal |
+| 5 | Bạn | `npm run day-len -- <tên-nhánh>` → chờ GitHub kiểm (~6 phút) → gõ `c` | Terminal |
 | 6 | Bạn | `npm run trien-khai` → trả lời các câu hỏi | Terminal |
 | 7 | Bạn | Báo AI: **"Đã chạy xong"** | Trong Claude |
 | 8 | AI | Kiểm production, ghi trạng thái, báo tên nhánh ghi chép | — |
@@ -77,10 +77,15 @@ Thay `<tên-nhánh>` bằng tên AI báo ở bước 2. Nếu nhánh chính đã
 **Lệnh tự làm theo thứ tự, và dừng ngay khi có gì sai:**
 1. Kiểm bạn đang ở Terminal thật, đang ở nhánh `main`, không còn thay đổi chưa lưu.
 2. Kiểm GitHub không có thứ gì mới hơn máy bạn. Nếu có, lệnh dừng và bảo bạn chạy `git pull --ff-only`.
-3. Gộp nhánh vào `main`. Chỉ gộp khi nối thẳng được; không bao giờ trộn hay ghi đè.
-4. Chạy test và kiểm lỗi. Nếu đỏ, lệnh dừng và in lệnh để bạn tự quay lại nếu muốn.
-5. In danh sách những gì sắp đẩy. Nếu có **thay đổi dữ liệu mới (migration)** thì in cảnh báo.
-6. Hỏi **"Đẩy lên GitHub? (c/k)"**. Gõ `c` để đẩy.
+3. Gộp nhánh vào `main` trên máy bạn. Chỉ gộp khi nối thẳng được; không bao giờ trộn hay ghi đè.
+4. **Đẩy đúng bản vừa gộp lên một nhánh phụ trên GitHub** tên `cho-kiem/<mã bản>`. Đây là **lần đẩy phụ**: nhánh chính trên GitHub chưa đổi, nhưng nhánh phụ này công khai như mọi nhánh khác của kho.
+5. **Chờ GitHub kiểm đủ bộ** (toàn bộ bài kiểm và kiểm thử đầu-cuối, chia nhiều máy chạy cùng lúc, khoảng 6 phút). Lệnh in tiến độ, ví dụ "đang kiểm: 7/13 phần xong".
+6. Nếu kiểm **đỏ**, lệnh nêu tên bài đỏ và hỏi: chạy lại phần đỏ (`r`, nên chọn trước, vì kiểm thử đầu-cuối từng đỏ giả rồi chạy lại xanh), dừng (`d`), hay cho qua (`q`). Cho qua thì phải **gõ lý do**, ví dụ "giá Sheet thật vừa đổi". Lý do được ghi lại và in ra lúc phát hành.
+7. Nếu lần này **đổi cách kiểm** (sửa tệp điều khiển việc kiểm, hoặc số bài kiểm ít đi, hoặc số bài bị bỏ qua nhiều lên), lệnh in danh sách và đòi bạn **gõ lý do**, dù kiểm vẫn xanh. Lần đầu dùng cách mới cũng hỏi câu này, vì chưa có lần kiểm cũ để so.
+8. In danh sách những gì sắp đẩy. Nếu có **thay đổi dữ liệu mới (migration)** thì in cảnh báo.
+9. Hỏi **"Đẩy lên GitHub? (c/k)"**. Gõ `c` để đẩy nhánh chính. Lệnh ghi một bản ghi kết luận trên máy bạn (trong thư mục ẩn `.git`), bước 6 sẽ đọc lại bản ghi này.
+
+Lệnh **không còn chạy kiểm ở máy bạn** nữa: kiểm chạy một lần trên GitHub, kết quả nằm trên GitHub nên không ai trên máy (kể cả AI) làm giả được.
 
 **Vì sao:** chỉ phát hành mã **đã có trên GitHub**. Như vậy luôn có bản lưu và luôn biết chính xác đang chạy bản nào.
 
@@ -91,7 +96,7 @@ Thay `<tên-nhánh>` bằng tên AI báo ở bước 2. Nếu nhánh chính đã
 ```
 npm run trien-khai
 ```
-Lệnh chạy vài phút, vì nó tự chạy toàn bộ kiểm thử, kể cả kiểm thử cần mạng. Phần lâu nhất là kiểm thử đầu-cuối (bước 3b): từ 30/9 chạy song song 3 nhóm, khoảng **5–7 phút** (trước đó chạy lần lượt khoảng 12 phút) — vẫn đủ mọi bài kiểm.
+Lệnh chạy khoảng **3 phút**. Từ ADR-0176 nó **không chạy lại kiểm thử**: nó đọc kết quả GitHub đã kiểm ở bước 5 cho đúng bản đang phát hành (chỉ nhận kết quả do GitHub tạo, không cũ quá 24 giờ) cùng bản ghi kết luận bước 5 để lại.
 
 **Lệnh tự làm theo thứ tự:**
 
@@ -105,20 +110,19 @@ Lệnh chạy vài phút, vì nó tự chạy toàn bộ kiểm thử, kể cả
 | 2 | Đọc xem hệ thống thật còn **thay đổi dữ liệu** nào chưa áp | Phát hành mã cần dữ liệu mới khi dữ liệu chưa có là hỏng app |
 | 2a | **Chỉ lần phát hành đầu mang migration `…_aud_order_change.sql`** (hôm nay số `0086`; lệnh nhận theo đuôi tên nên đổi số lúc gộp vẫn kiểm): kiểm mốc `MOC_TIN_DOI` (trong `src/shared/thong-bao.ts`) lệch không quá 24 giờ so với lúc chạy | Trước lần phát hành đó phải đặt `MOC_TIN_DOI` = thời điểm phát hành; mốc cũ thì mọi lần sửa đơn của tháng trước hiện thành thông báo hàng loạt. Các lần phát hành sau không kiểm nữa |
 | 2b | **So số phiên bản**: bản trên máy phải **mới hơn** bản đang chạy | Bắt lỗi quên ghi nhật ký |
-| 3 | Chạy test, kiểm lỗi, dựng giao diện | Không phát hành mã hỏng |
-| 3b | Chạy **toàn bộ kiểm thử đầu-cuối** (cần mạng) | Thử app như người dùng thật, trên dữ liệu tạm |
+| 3 | Dựng giao diện (1 giây) | Sản phẩm để phát hành |
+| 3b | **Đọc kết quả kiểm đủ bộ trên GitHub** cho đúng bản này, cùng bản ghi của bước 5. Thiếu, đang chạy, đỏ mà bạn chưa cho qua, cũ quá 24 giờ, hay không có bản ghi (bản lên nhánh chính không qua `day-len`) thì **dừng** | Không phát hành mã chưa qua kiểm |
 | 4 | Nếu có thay đổi dữ liệu: tạo **điểm khôi phục**, rồi hỏi có áp không | Có đường quay lại nếu dữ liệu hỏng |
 | 5–6 | Hỏi, rồi **phát hành** | — |
 | 7 | **Kiểm dữ liệu thật** (chỉ đọc) | Chắc dữ liệu không bị vi phạm quy tắc |
 | 7b | **So số phiên bản lần nữa**: hệ thống thật phải chạy **đúng** số mới (không đạt thì chờ 20 giây rồi thử lại một lần) | Chắc bản mới đã thực sự lên |
-| 8 | In **khối tóm tắt** | Để ghi lại |
+| 8 | In **khối tóm tắt**, gồm đường dẫn lượt kiểm, lý do cho qua hay đổi cách kiểm (nếu có), và **thời gian từng chặng** của cả hai lệnh (không tính lúc bạn suy nghĩ). Tổng vượt 10 phút thì in cảnh báo, không chặn | Để ghi lại và đo mục tiêu 10 phút |
 
 **Các câu lệnh có thể hỏi, và cách trả lời:**
 
 | Câu hỏi | Trả lời |
 |---|---|
 | "Bản ở máy không mới hơn production (quên thêm mục nhật ký thay đổi?)… Vẫn tiếp tục? (c/k)" | Gõ `c` **chỉ khi** bạn đã chọn "không lên số". Nếu không, gõ `k` rồi báo AI (tức là quên thêm mục nhật ký). |
-| "Có kịch bản e2e đỏ. Vẫn tiếp tục? (c/k)" | **Chép phần chữ đỏ gửi AI trước khi trả lời.** Có khi đỏ vì lý do bên ngoài (ví dụ giá trên Google Sheet vừa đổi), có khi là lỗi thật. |
 | "Áp N migration này lên production? (c/k)" | Gõ `c` **chỉ khi AI đã báo trước** là lần này có thay đổi dữ liệu. Nếu không được báo, gõ `k` rồi hỏi AI. |
 | "Triển khai Worker lên production? (c/k)" | Gõ `c`. (Nếu vừa áp thay đổi dữ liệu thì **phải** gõ `c` ngay, vì mã cũ không chạy đúng trên dữ liệu mới.) |
 
@@ -129,9 +133,9 @@ Lệnh chạy vài phút, vì nó tự chạy toàn bộ kiểm thử, kể cả
 **Nếu lệnh dừng ở bước 1e ("Chưa có kho tệp hồ sơ …")**: chưa có gì bị đổi. Chạy đúng dòng `npx wrangler r2 bucket create …` nó in ra (ở thư mục `tourdao-sales`, trong Terminal), kiểm lại bằng `npx wrangler r2 bucket list` (phải thấy dòng `name: tourdao-sales-ho-so`), rồi chạy lại `npm run trien-khai`. Chỉ làm một lần. Nếu nó báo "không đọc được đầu ra của `wrangler r2 bucket list`" thì tự chạy `npx wrangler r2 bucket list` xem: không có dòng `name: tourdao-sales-ho-so` thì tạo kho như trên; CÓ dòng đó mà lệnh vẫn dừng thì báo AI (dạng chữ của wrangler đã đổi). Nếu bước này báo "`wrangler r2 bucket list` lỗi" thì chạy lại `npm run trien-khai` một lần; vẫn lỗi thì chép thông báo gửi AI. Nếu nó báo "không đọc được tên kho … trong wrangler.jsonc" thì báo AI (lỗi tệp cấu hình, không phải lỗi của bạn).
 
 **Nếu lệnh dừng ở bước 2a ("MOC_TIN_DOI … cũ hơn 24 giờ" hoặc "xa hơn 24 giờ về sau")**: chưa có gì bị đổi. Báo AI đặt lại mốc bằng thời điểm phát hành (một dòng trong `src/shared/thong-bao.ts`), gộp vào `main` như mọi lần, rồi chạy lại `npm run trien-khai`.
-**Trong lúc `npm run trien-khai` đang chạy, đừng chạy `npm run day-len` (hay lệnh git nào) ở cùng thư mục `tourdao-sales`**, kể cả khi một phiên AI khác nhờ. Ngày 8/10 đã xảy ra: phần mã mới nhập vào giữa chừng làm kiểm thử đỏ giả. Từ 8/10 lệnh tự so lại mã ở ba lúc: sau kiểm thử, trước khi áp thay đổi dữ liệu, và trước khi phát hành (hai lúc sau nằm ngay sau câu hỏi, nên dù bạn gõ `c` lệnh vẫn không đi tiếp). Mã đã đổi thì lệnh **dừng** và in câu "mã trong thư mục đã đổi". Khi đó chờ việc kia xong rồi chạy lại `npm run trien-khai` từ đầu. Nếu lệnh dừng kiểu này **sau khi đã áp thay đổi dữ liệu**, nó in một khối chữ đỏ gồm ba bước lệnh để phát hành đúng bản đã kiểm. Làm theo **ngay**, từng dòng thụt vào, vì mã cũ đang chạy trên dữ liệu mới. Dòng đầu tự dừng nếu thư mục chưa sạch, nếu không đổi được về bản đã kiểm, hoặc nếu phát hành lỗi: nếu nó in "DỪNG", hoặc bất kỳ lệnh nào báo lỗi, thì ngừng, chép khối chữ đỏ cùng các dòng lỗi phía trên gửi AI, rồi chạy `git switch main` để về lại nhánh chính.
+**Trong lúc `npm run trien-khai` đang chạy, đừng chạy `npm run day-len` (hay lệnh git nào) ở cùng thư mục `tourdao-sales`**, kể cả khi một phiên AI khác nhờ. Ngày 8/10 đã xảy ra: phần mã mới nhập vào giữa chừng làm kiểm thử đỏ giả. Từ 8/10 lệnh tự so lại mã ở ba lúc: sau bước đọc kết quả kiểm, trước khi áp thay đổi dữ liệu, và trước khi phát hành (hai lúc sau nằm ngay sau câu hỏi, nên dù bạn gõ `c` lệnh vẫn không đi tiếp). Mã đã đổi thì lệnh **dừng** và in câu "mã trong thư mục đã đổi". Khi đó chờ việc kia xong rồi chạy lại `npm run trien-khai` từ đầu. Nếu lệnh dừng kiểu này **sau khi đã áp thay đổi dữ liệu**, nó in một khối chữ đỏ gồm ba bước lệnh để phát hành đúng bản đã kiểm. Làm theo **ngay**, từng dòng thụt vào, vì mã cũ đang chạy trên dữ liệu mới. Dòng đầu tự dừng nếu thư mục chưa sạch, nếu không đổi được về bản đã kiểm, hoặc nếu phát hành lỗi: nếu nó in "DỪNG", hoặc bất kỳ lệnh nào báo lỗi, thì ngừng, chép khối chữ đỏ cùng các dòng lỗi phía trên gửi AI, rồi chạy `git switch main` để về lại nhánh chính.
 
-**Nếu lệnh dừng giữa chừng** ở bước 1–3b: chưa có gì bị đổi trên hệ thống thật. Chép thông báo gửi AI. Hay gặp nhất: một test đo tốc độ báo đỏ khi máy đang bận. Khi đó đóng bớt ứng dụng nặng rồi chạy lại `npm run trien-khai`.
+**Nếu lệnh dừng giữa chừng** ở bước 1–3b: chưa có gì bị đổi trên hệ thống thật. Chép thông báo gửi AI. Nếu nó báo kết quả kiểm cũ quá 24 giờ hay thiếu, chạy đúng lệnh `gh run rerun …` nó in, chờ xanh, rồi chạy lại `npm run trien-khai` (không cần chạy lại `day-len`: bản ghi của bước 5 vẫn dùng được).
 
 **Nếu gặp lỗi Cloudflare 7403** ("The given account is not valid or is not authorized to access this service"), đã gặp 26/9, 29/9, 1/10:
 - **Nguyên nhân rất có thể:** vé đăng nhập Cloudflare của máy chỉ sống 1 giờ. Lời gọi đầu tiên sau khi vé hết hạn bị từ chối; chạy lại thì qua. Tài khoản và quyền vẫn đúng.
@@ -140,8 +144,6 @@ Lệnh chạy vài phút, vì nó tự chạy toàn bộ kiểm thử, kể cả
   1. Chạy lại `npm run trien-khai`.
   2. Vẫn lỗi thì chạy `npx wrangler logout`, rồi `npx wrangler login`, chọn đúng tài khoản **Lưu Tuấn Vũ**, rồi chạy lại.
   3. Vẫn lỗi thì chép thông báo gửi AI.
-
-**Nếu không thấy chữ nào hiện ra** sau câu hỏi kiểm thử đầu-cuối (đã từng xảy ra): cứ chờ lệnh chạy xong. Sau đó AI sẽ kiểm lại bằng lệnh chỉ đọc.
 
 **Nếu cần quay lại bản cũ:** lệnh **không tự quay lại**. Hãy báo AI; AI sẽ đưa bạn đúng lệnh quay lại và bản cần quay về (ghi ở mục "TRẠNG THÁI TRIỂN KHAI" của `docs/HANDOFF-N1.md`).
 

@@ -595,8 +595,9 @@ export async function dayLen({ run, ask: askGoc, isTTY, log, target, now = () =>
  */
 export async function docKetQuaKiem({ run, kho, sha, nowMs }) {
   const banGhi = await kho.docBanGhi(sha).catch(() => null);
-  const chayLai = (id) => [`Chạy lại lượt kiểm: ${LENH_CHAY_LAI(id)}`, "rồi chạy lại `npm run day-len` (để có bản ghi kết luận) và `npm run trien-khai`."];
-  if (!banGhi || typeof banGhi !== "object") return { ok: false, ly: `không có bản ghi kết luận kiểm của \`npm run day-len\` cho commit ${sha.slice(0, 8)} (commit lên main không qua day-len?).`, huongDan: ["Đẩy bằng `npm run day-len` rồi chạy lại `npm run trien-khai`."] };
+  // Bản ghi của day-len vẫn dùng được sau khi chạy lại lượt kiểm (bản ghi gắn với commit, không gắn với giờ) — chỉ cần chạy lại trien-khai.
+  const chayLai = (id) => [`Chạy lại lượt kiểm: ${LENH_CHAY_LAI(id)}`, "chờ lượt đó xanh rồi chạy lại `npm run trien-khai`. Vẫn đỏ thì báo người phụ trách kỹ thuật (muốn cho qua phải đi qua `npm run day-len` với một lần lưu mới)."];
+  if (!banGhi || typeof banGhi !== "object") return { ok: false, ly: `không có bản ghi kết luận kiểm của \`npm run day-len\` cho commit ${sha.slice(0, 8)} (commit lên main không qua day-len trên máy này?).`, huongDan: ["Báo người phụ trách kỹ thuật tạo một lần lưu mới, đưa lên bằng `npm run day-len`, rồi chạy lại `npm run trien-khai`."] };
   if (banGhi.sha !== sha) return { ok: false, ly: `bản ghi kết luận kiểm không khớp commit (${String(banGhi.sha).slice(0, 8)} ≠ ${sha.slice(0, 8)}).`, huongDan: ["Chạy lại `npm run day-len`."] };
   if (Array.isArray(banGhi.quyTrinh?.doi) && banGhi.quyTrinh.doi.length && !String(banGhi.quyTrinh.lyDo ?? "").trim()) return { ok: false, ly: "bản ghi nói quy trình kiểm đã đổi mà không có lý do của chủ.", huongDan: ["Chạy lại `npm run day-len`."] };
   const r = await run("gh", ["api", `repos/${REPO}/commits/${sha}/check-runs?per_page=100`]);
