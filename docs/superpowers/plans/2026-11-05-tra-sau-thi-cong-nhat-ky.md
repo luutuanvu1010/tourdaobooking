@@ -32,8 +32,16 @@ Kế hoạch: `2026-11-05-tra-sau-han-muc-ke-hoach.md`. Đặc tả: `docs/super
 - Câu gác phiên bản của lô huỷ (đơn Trả sau hết nợ) đứng ĐẦU lô, không sau nhật ký: câu ABORT của dispatch (`chen_abort_sau`) đọc `changes()` của câu ngay trước nên câu gác đứng sau nhật ký làm ABORT ghi cả khi huỷ thua (bài đỏ rồi sửa). `daHuy` bỏ, thay bằng `huy.thang`. Hệ quả: huỷ thua vẫn tăng phiên bản bên đặt.
 - Thêm `cauTangChoDon` ở duyệt điều chỉnh sổ — ngoài danh sách của kế hoạch, theo ADR-0168 Đ2 mục 4 («mọi đường làm nợ tăng»), do bảng chạy thật tìm ra.
 
+## Ruling thi công Task 5 Step 1–4 (2026-11-06)
+
+- **Việc B (lỗi 500):** `ctx.traVeKhiHuy` trả `null` (thay vì NÉM) khi lô huỷ phải mang câu bảo vệ mà soạn câu trả vé lỗi; bốn nơi gọi trả 503 `tra_sau_chua_dung_duoc` «Chưa kiểm được vé của đơn nên chưa huỷ được. Thử lại sau ít phút.» trước khi dựng lô. Câu không nói hạn mức vì cờ có thể đến từ tài khoản Đối tác với đơn Trả trước. Commit 299576cb, bài đỏ trước (500) ở `src/tra-sau-duong-ghi.test.ts` («Task 5: /status», «Task 5: handler-cancel»).
+- **Việc A (tên chủ chọn 6/11, hộp hỏi «tên theo chữ ngân hàng»):** «Cấp hạn mức» / «Điều chỉnh hạn mức» (một nút đổi chữ theo việc đã có hạn mức hiệu lực hay chưa), «Đóng hạn mức» + hộp hỏi «Đóng hạn mức» / «Giữ hạn mức», khối «Hạn mức trả sau», «Chưa cấp», «Hạn mức khả dụng». Commit 32dfbabc. Câu 409 sửa tăng ở ruling Task 2, 3 nay là «Số tiền tăng thêm … vượt hạn mức khả dụng của bên đặt là … (hạn mức …, đang nợ …)».
+  - Giả định bề mặt, ghi lại: dòng nhắc trong bảng vẫn ghi «Đang bật: …» khi đã có hạn mức (chủ không nói); nhãn nhật ký `credit_limit_set` «Đặt hạn mức trả sau», `credit_limit_stopped` «Ngừng hạn mức trả sau» giữ nguyên theo lệnh — chờ chủ quyết có đổi theo không.
+  - Báo một lần: «Đóng hạn mức» dùng chữ «Đóng» mà khái niệm «Ngừng» của bảng từ nói «Đóng» chỉ còn nghĩa gập khung; tiêu đề khối «Hạn mức trả sau» trùng tên màn chỉ xem ở Thiết lập. Chủ đã chọn, đã ghi ở khái niệm «Hạn mức trả sau».
+- **Task 5 Step 2:** `node --test src/bang-tham-chieu.test.ts` xanh (25/25 trước khi đổi chữ); chỗ lệch cũ `web/hoa-hong-cap.ts:149` không còn.
+
 ## Điều chưa làm
 
 - e2e vé của đơn Trả sau (cần gieo kho vé): chỉ có bài đơn vị `src/tra-sau-ve.test.ts`.
 - `audit-invariants` chạy cuối bộ e2e đủ bộ của `run.mjs`, không chạy riêng trong `tests/e2e/tra-sau.mjs`.
-- Bài `src/bang-tham-chieu.test.ts` có một chỗ lệch có từ trước (`web/hoa-hong-cap.ts:149`), không thuộc việc này.
+- ~~Bài `src/bang-tham-chieu.test.ts` có một chỗ lệch có từ trước (`web/hoa-hong-cap.ts:149`)~~ — không còn (kiểm 2026-11-06).
