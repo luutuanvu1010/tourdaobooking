@@ -318,6 +318,7 @@ test("ADR-0030 L1-12: MỌI ô của Đối tác (PARTNER) giữ nguyên — ghi
     "credit.limit.write": "none", // ADR-0168: hạn mức trả sau do Toàn quyền đặt
     "credit.limit.view": "none",
     "credit.ceiling.write": "none", // ADR-0172: chỉ Toàn quyền
+    "billing.partner_channel.write": "none", "billing.partner_channel.view": "none", // ADR-0178 Đ1 mục 1: công tắc kênh thu không phải việc của Đối tác
     "credit.due.extend": "none", // ADR-0173 Đ1 mục 3: Ân hạn là việc của Quản trị, Toàn quyền
     "credit.own.view": "own", // ADR-0173 Đ3 mục 3: «Trả sau của tôi» — chỉ hồ sơ của phiên
     "sales.block.write": "none", // ADR-0146 Đ5: Đối tác không đặt / gỡ luật bán (luật chặn chính họ)

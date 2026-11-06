@@ -112,6 +112,8 @@ export const TEN_THAO_TAC: Readonly<Record<OperationCode, TenLoiThuong>> = {
   "sales.block.write": { ten: "đặt và kết thúc luật bán theo vai người dùng", moTa: "Thêm luật «vai trò này không được đặt dịch vụ, nhóm hoặc đặc điểm này», đặt ngày kết thúc luật (không sửa, không xoá)." },
   "credit.limit.write": { ten: "bật, đổi và ngừng Trả sau của đại lý", moTa: "Bật, đổi hoặc ngừng Trả sau của một đối tác: hạn mức, thời hạn trả và ân hạn tính bằng giờ, cả số gợi ý. Quản trị chỉ tới mức tối đa Toàn quyền đặt." },
   "credit.ceiling.write": { ten: "đặt mức tối đa Quản trị được cấp", moTa: "Đặt con số hạn mức lớn nhất mà Quản trị được bật cho một đại lý; cao hơn thì Toàn quyền tự đặt." },
+  "billing.partner_channel.write": { ten: "đổi công tắc «Khách của đối tác trả cho Công ty»", moTa: "Bật hoặc tắt công tắc chung cho cả Nền tảng: Bật thì khách của đối tác trả thẳng cho Công ty như trước, Tắt thì đơn lập sau đó do đối tác tự thu. Chỉ Toàn quyền đổi." },
+  "billing.partner_channel.view": { ten: "xem công tắc «Khách của đối tác trả cho Công ty»", moTa: "Xem công tắc đang Bật hay Tắt, từ lúc nào và ai đã đổi." },
   "credit.due.extend": { ten: "ân hạn đơn trả sau", moTa: "Lùi hạn trả của một đơn trả sau đã xác nhận về sau, bắt buộc ghi lý do; không rút ngắn được." },
   "credit.own.view": { ten: "xem Trả sau của mình", moTa: "Đại lý xem hạn mức, số đang nợ, hạn mức khả dụng và từng đơn nợ kèm hạn trả của chính hồ sơ mình." },
   "credit.limit.view": { ten: "xem hạn mức trả sau và nợ", moTa: "Xem hạn mức, số đang nợ, hạn mức khả dụng và các đơn trả sau còn nợ của từng đối tác." },

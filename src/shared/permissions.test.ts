@@ -124,6 +124,8 @@ const ADR: Record<string, [Scope, Scope, Scope, Scope, Scope, Scope, Scope, Scop
   "partner.commission.write": ["none", "any", "any", "none", "none", "any", "none", "none", "none", "none", "none"],
   "credit.limit.write": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "none", "none"], // ADR-0172 Đ1: đặt Trả sau — Quản trị (tới mức tối đa), Toàn quyền
   "credit.limit.view": ["none", "any", "any", "none", "none", "any", "none", "none", "none", "none", "none"], // ADR-0172 trang ghép (2): xem hạn mức và nợ — Kế toán, Quản trị, Toàn quyền
+  "billing.partner_channel.write": ["none", "none", "none", "none", "none", "any", "none", "none", "none", "none", "none"], // ADR-0178 Đ1 mục 1: đổi công tắc «Khách của đối tác trả cho Công ty» — chỉ Toàn quyền
+  "billing.partner_channel.view": ["none", "any", "any", "none", "none", "any", "none", "none", "none", "none", "none"], // ADR-0178 Đ1 mục 1: xem công tắc — Kế toán, Quản trị, Toàn quyền
   "credit.ceiling.write": ["none", "none", "none", "none", "none", "any", "none", "none", "none", "none", "none"], // ADR-0173 Đ1 mục 1: mức tối đa Quản trị được cấp — chỉ Toàn quyền
   "credit.due.extend": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "none", "none"], // ADR-0173 Đ1 mục 3: lùi hạn trả một đơn — Quản trị, Toàn quyền
   "credit.own.view": ["none", "none", "none", "none", "own", "any", "none", "none", "none", "none", "none"], // ADR-0173 Đ3 mục 3: đại lý xem Trả sau của chính mình
@@ -309,6 +311,7 @@ const ADMIN_NONE_OPS: readonly OperationCode[] = [
   "accounting.entry.mark", // ADR-0060: ghi dấu "đã nhập phần mềm kế toán" chỉ Kế toán, Toàn quyền (lời chủ)
   "deposit.outside.record", // ADR-0089 đ16, X-4: ghi "đã hoàn ngoài hệ thống" chỉ Toàn quyền — Quản trị là người XÁC NHẬN (deposit.refund.approve)
   "auth.session.viewAll", "auth.session.revoke", "auth.session.policy", // ADR-0075 điều 7: sổ phiên của mọi người, gỡ phiên — chỉ Toàn quyền (Quản trị không giữ Toàn quyền → 403)
+  "billing.partner_channel.write", // ADR-0178 Đ1 mục 1: đổi công tắc «Khách của đối tác trả cho Công ty» chỉ Toàn quyền (Quản trị không có)
   "credit.ceiling.write", // ADR-0173 Đ1 mục 1: mức tối đa Quản trị được cấp chỉ Toàn quyền đặt (Quản trị không tự nâng trần của mình)
   "credit.own.view", // ADR-0173 Đ3 mục 3: chỉ đại lý xem Trả sau của chính mình — Quản trị xem mọi đại lý qua credit.limit.view
   "party.document.reveal", // ADR-0083 điều 2: xem đủ số giấy tờ chỉ Toàn quyền — Quản trị chỉ thấy số đã che
@@ -430,7 +433,7 @@ test("ADR-0040 D3 + ADR-0049 D3: MỌI ô của Tài xế (DRIVER) — ghim nguy
     "auth.session.viewAll": "none", "auth.session.revoke": "none", "auth.session.policy": "none", // ADR-0075 điều 7: chỉ Toàn quyền
     "partner.commission.view": "none", "partner.commission.write": "none", "supply.terms.view": "none", "supply.terms.write": "none", // sổ đại lý đợt 1: tài xế không xem bảng mức, người bán
     "sales.block.write": "none", // ADR-0146 Đ5: luật bán chỉ Bán hàng, Quản trị, Toàn quyền
-    "credit.limit.write": "none", "credit.limit.view": "none", "credit.ceiling.write": "none", "credit.due.extend": "none", "credit.own.view": "none", // ADR-0168, ADR-0172, ADR-0173: Trả sau không phải việc của vai này
+    "credit.limit.write": "none", "credit.limit.view": "none", "credit.ceiling.write": "none", "credit.due.extend": "none", "credit.own.view": "none", "billing.partner_channel.write": "none", "billing.partner_channel.view": "none", // ADR-0168, ADR-0172, ADR-0173: Trả sau không phải việc của vai này
     "catalog.attribute.assign": "none", // ADR-0152 Đ3: gắn đặc điểm chỉ Bán hàng, Quản trị, Toàn quyền
     "catalog.confirm_flag.write": "none", "catalog.hidden.write": "none", // ADR-0169 Đ1: chỉ Quản lý bán hàng, Quản trị, Toàn quyền
     "order.terms.view": "none", "order.terms.override": "none", // Task 5: tài xế không xem phần đối tác của đơn
@@ -491,7 +494,7 @@ test("ADR-0048 D2: MỌI ô của Tài xế đối tác (DRIVER_PARTNER) — ghi
     "auth.session.viewAll": "none", "auth.session.revoke": "none", "auth.session.policy": "none", // ADR-0075 điều 7: chỉ Toàn quyền
     "partner.commission.view": "none", "partner.commission.write": "none", "supply.terms.view": "none", "supply.terms.write": "none", // sổ đại lý đợt 1: tài xế đối tác không thấy mọi con số hoa hồng
     "sales.block.write": "none", // ADR-0146 Đ5: luật bán chỉ Bán hàng, Quản trị, Toàn quyền
-    "credit.limit.write": "none", "credit.limit.view": "none", "credit.ceiling.write": "none", "credit.due.extend": "none", "credit.own.view": "none", // ADR-0168, ADR-0172, ADR-0173: Trả sau không phải việc của vai này
+    "credit.limit.write": "none", "credit.limit.view": "none", "credit.ceiling.write": "none", "credit.due.extend": "none", "credit.own.view": "none", "billing.partner_channel.write": "none", "billing.partner_channel.view": "none", // ADR-0168, ADR-0172, ADR-0173: Trả sau không phải việc của vai này
     "catalog.attribute.assign": "none", // ADR-0152 Đ3: gắn đặc điểm chỉ Bán hàng, Quản trị, Toàn quyền
     "catalog.confirm_flag.write": "none", "catalog.hidden.write": "none", // ADR-0169 Đ1: chỉ Quản lý bán hàng, Quản trị, Toàn quyền
     "order.terms.view": "none", "order.terms.override": "none", // Task 5: tài xế đối tác không thấy phần đối tác của đơn
@@ -546,7 +549,7 @@ test("ADR-0071: MỌI ô của Nhân sự (HR) — ghim nguyên dòng, chỉ ba 
     "auth.session.viewAll": "none", "auth.session.revoke": "none", "auth.session.policy": "none", // ADR-0075 điều 7: chỉ Toàn quyền
     "partner.commission.view": "none", "partner.commission.write": "none", "supply.terms.view": "none", "supply.terms.write": "none", // sổ đại lý đợt 1 (ADR-0071: Nhân sự chỉ ba ô tài khoản)
     "sales.block.write": "none", // ADR-0146 Đ5: luật bán chỉ Bán hàng, Quản trị, Toàn quyền
-    "credit.limit.write": "none", "credit.limit.view": "none", "credit.ceiling.write": "none", "credit.due.extend": "none", "credit.own.view": "none", // ADR-0168, ADR-0172, ADR-0173: Trả sau không phải việc của vai này
+    "credit.limit.write": "none", "credit.limit.view": "none", "credit.ceiling.write": "none", "credit.due.extend": "none", "credit.own.view": "none", "billing.partner_channel.write": "none", "billing.partner_channel.view": "none", // ADR-0168, ADR-0172, ADR-0173: Trả sau không phải việc của vai này
     "catalog.attribute.assign": "none", // ADR-0152 Đ3: gắn đặc điểm chỉ Bán hàng, Quản trị, Toàn quyền
     "catalog.confirm_flag.write": "none", "catalog.hidden.write": "none", // ADR-0169 Đ1: chỉ Quản lý bán hàng, Quản trị, Toàn quyền
     "order.terms.view": "none", "order.terms.override": "none", // Task 5: Nhân sự không thấy phần đối tác của đơn
