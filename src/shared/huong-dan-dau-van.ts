@@ -5,6 +5,6 @@ export const DAU_VAN: Readonly<Record<string, DauVanBai>> = {
   "cai-dat-ve": {"neo":"a231b660153582bd","chu":"78895cd744fbcb8b","ban":"2.58","ngay":"2026-11-03"},
   "dich-vu-can-kiem-ve": {"neo":"f097e777f431dcf1","chu":"b41fe0afa23fe41f","ban":"2.64","ngay":"2026-11-05"},
   "gioi-han-nhap-hoa-hong": {"neo":"5be668561a80de9f","chu":"f2fe829bae2aff80","ban":"2.58","ngay":"2026-11-03"},
-  "han-muc-tra-sau": {"neo":"5b02c0bddf23461e","chu":"b045afebd2955379","ban":"2.65","ngay":"2026-11-05"},
+  "han-muc-tra-sau": {"neo":"125dc7354a5f3df0","chu":"9f91ed6be184354b","ban":"2.69","ngay":"2026-11-06"},
   "giao-dien": {"neo":"19ec67016422d82d","chu":"8d315591cb3389c0","ban":"2.58","ngay":"2026-11-03"},
 };
