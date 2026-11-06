@@ -1,6 +1,6 @@
 # ADR-0176 — Phát hành trọn vòng trong khoảng 10 phút: kiểm đủ bộ một lần trên máy GitHub
 
-- **Trạng thái:** **proposed** — chưa có hiệu lực, chờ chủ dự án duyệt. Lời chủ 2026-11-06, nguyên văn: *«ok vậy giữ nguyên quyết định, yêu cầu mỗi lần phát hành chỉ khoảng 10 phút cho tổng thời gian, soạn đi»*; câu đó là lệnh soạn, không phải lời duyệt ADR này.
+- **Trạng thái:** **accepted** 2026-11-06 — chủ dự án duyệt trong phiên soạn, nguyên văn: *«Duyệt ADR-0176»*. Lệnh soạn trước đó, nguyên văn: *«ok vậy giữ nguyên quyết định, yêu cầu mỗi lần phát hành chỉ khoảng 10 phút cho tổng thời gian, soạn đi»*. Chưa thi công: luật phát hành hiện hành (`CLAUDE.md` §8, `docs/HANDOFF-N1.md`) vẫn áp tới khi mã mới qua tiêu chí nghiệm thu bên dưới.
 - **Ngày:** 2026-11-06   **Loại:** việc lớn (triển khai, luật phát hành, hàng rào).
 - **Cửa:** hai chiều. Quay lại cách cũ = trả hai bước kiểm về `day-len`/`trien-khai` như trước (mã cũ còn trong lịch sử git); không đụng dữ liệu production.
 - **Số:** 0176, đã soát mọi nhánh 6/11 (số lớn nhất `0175` ở nhánh `claude/ve-tour-dao-nghien-cuu`).
