@@ -154,6 +154,8 @@ export const AUDIT_ACTIONS = {
   // `detail` = «hạn mức 50.000.000 ₫ · 7 ngày» / «ngừng hạn mức» (số tiền và số ngày, KHÔNG tên, SĐT, email, MST, lý do tự do).
   credit_limit_set: { label: "Đặt hạn mức trả sau", group: "ledger" },
   credit_limit_stopped: { label: "Ngừng hạn mức trả sau", group: "ledger" },
+  // ADR-0178 Đ1 mục 1: Toàn quyền đổi công tắc «Khách của đối tác trả cho Công ty» (POST /api/kenh-thu-doi-tac) — `target_type = 'ledger'`, `target_id` = 'kenh-thu-doi-tac'; `detail` = «Bật» / «Tắt».
+  partner_channel_set: { label: "Đổi «Khách của đối tác trả cho Công ty»", group: "ledger" },
   credit_ceiling_set: { label: "Đặt mức tối đa Quản trị được cấp", group: "ledger" },
   credit_tier_default_set: { label: "Đặt số gợi ý trả sau theo cấp", group: "ledger" },
   credit_due_extended: { label: "Ân hạn đơn trả sau", group: "order" },

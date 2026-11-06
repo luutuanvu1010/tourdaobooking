@@ -2270,6 +2270,20 @@ export const CHECKS = [
       OR (payment_term = 'PREPAID' AND (credit_due_at IS NOT NULL OR credit_grace_until IS NOT NULL))`,
     level: "fail",
   },
+  // R-KT-1 (ADR-0178 Đ1 mục 3; migration 0144): «khoản thu giùm = 0». Đơn mang dấu Tắt (company_collects_snapshot = 0) chỉ có khoản khách trả còn hiệu lực do hồ sơ người lập thu.
+  // CÙNG định nghĩa với trigger `bil_receipt_partner_channel` (CUSTOMER_PAYMENT, không phải dòng đảo; so NULL-safe với hồ sơ của người lập qua `v_stf_staff_label`); «còn hiệu lực» =
+  // chưa có dòng đảo trỏ tới (khoản thay bằng «Thay lần thu» cũng đảo khoản cũ). Chỉ đọc. Trả mã đơn, không in số tiền hay người thu.
+  {
+    code: "R-KT-1",
+    what: "đơn mang dấu Tắt (Khách của đối tác trả cho Công ty) có khoản khách trả còn hiệu lực với người thu khác hồ sơ người lập đơn",
+    sql: `SELECT DISTINCT r.order_id FROM bil_payment_receipt r JOIN v_ord_kenh_thu k ON k.id = r.order_id
+     WHERE k.company_collects_snapshot = 0 AND r.kind_code = 'CUSTOMER_PAYMENT' AND r.reverses_id IS NULL
+       AND NOT EXISTS (SELECT 1 FROM bil_payment_receipt x WHERE x.reverses_id = r.id)
+       AND (r.collector_party_id IS NULL OR r.collector_party_id IS NOT (SELECT s.party_id FROM v_stf_staff_label s WHERE s.id = k.staff_id))`,
+    mode: "rows",
+    level: "fail",
+    note: "tiền khách của đối tác đã vào tay Công ty hoặc người khác dù công tắc đang Tắt (đường ghi tiền lọt cổng, hoặc SQL chạy tay): đối chiếu từng đơn nêu mã, đảo khoản và nhờ Kế toán ghi lại đúng người thu",
+  },
 ];
 
 /**

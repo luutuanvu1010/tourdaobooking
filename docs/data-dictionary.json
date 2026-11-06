@@ -282,7 +282,7 @@
       "kind": "table",
       "legacy": true,
       "deprecatedColumns": ["deposit_amount", "deposit_method", "remaining_amount"],
-      "note": "payment_term (0139, ADR-0168): hình thức thanh toán PREPAID (mặc định, đơn cũ) hoặc CREDIT (Trả sau), chỉ đổi được khi đơn còn nháp (orders_payment_term_locked); credit_due_date: hạn trả = ngày xác nhận + số ngày đang áp, chụp một lần lúc xác nhận đơn CREDIT, NULL ở đơn PREPAID; cả hai cột nằm trong danh sách khoá sau «Đã giao». declared_deposit (0136, ADR-0159): LỜI KHAI «Khách đặt cọc trước» của tài khoản Đối tác — chỉ có nghĩa khi đơn còn nháp, không phải khoản thu; xác nhận thì billing sinh khoản thu cùng lô; sau đó đọc từ sổ, không đọc cột. Ba cột cọc KHÔNG DÙNG NỮA — xem ADR-0026 điều 9 (đơn mới ghi 0 / NULL / total để thoả trigger 0007; số đã thu, còn lại lấy từ billing). Cột mốc delivered_at/_by, completed_at/_by từ 0044 (ADR-0024 điều 3) Cột manifest_exempt từ 0133 (ADR-0154 Đ3.1): dấu «miễn danh sách khách» 0/1, chụp một lần lúc lập đơn khi công tắc ẩn thông tin khách BẬT và người lập giữ quyền Đối tác; trigger cấm đổi sau khi chèn; đơn cũ = 0; từ migration 0143 (ADR-0172): credit_due_at (hạn trả, ISO UTC = giờ xác nhận + giờ được nợ) và credit_grace_until (hết ân hạn = hạn trả + giờ ân hạn) là nguồn đúng, credit_due_date chỉ ghi kép (ngày giờ Việt Nam của hạn trả); hai mốc chỉ lùi về sau (orders_credit_due_forward_only) và chỉ lệnh Ân hạn đổi được"
+      "note": "payment_term (0139, ADR-0168): hình thức thanh toán PREPAID (mặc định, đơn cũ) hoặc CREDIT (Trả sau), chỉ đổi được khi đơn còn nháp (orders_payment_term_locked); credit_due_date: hạn trả = ngày xác nhận + số ngày đang áp, chụp một lần lúc xác nhận đơn CREDIT, NULL ở đơn PREPAID; cả hai cột nằm trong danh sách khoá sau «Đã giao». declared_deposit (0136, ADR-0159): LỜI KHAI «Khách đặt cọc trước» của tài khoản Đối tác — chỉ có nghĩa khi đơn còn nháp, không phải khoản thu; xác nhận thì billing sinh khoản thu cùng lô; sau đó đọc từ sổ, không đọc cột. Ba cột cọc KHÔNG DÙNG NỮA — xem ADR-0026 điều 9 (đơn mới ghi 0 / NULL / total để thoả trigger 0007; số đã thu, còn lại lấy từ billing). Cột mốc delivered_at/_by, completed_at/_by từ 0044 (ADR-0024 điều 3) Cột manifest_exempt từ 0133 (ADR-0154 Đ3.1): dấu «miễn danh sách khách» 0/1, chụp một lần lúc lập đơn khi công tắc ẩn thông tin khách BẬT và người lập giữ quyền Đối tác; trigger cấm đổi sau khi chèn; đơn cũ = 0; từ migration 0143 (ADR-0172): credit_due_at (hạn trả, ISO UTC = giờ xác nhận + giờ được nợ) và credit_grace_until (hết ân hạn = hạn trả + giờ ân hạn) là nguồn đúng, credit_due_date chỉ ghi kép (ngày giờ Việt Nam của hạn trả); hai mốc chỉ lùi về sau (orders_credit_due_forward_only) và chỉ lệnh Ân hạn đổi được; từ migration 0144 (ADR-0178 Đ1): company_collects_snapshot = trạng thái công tắc «Khách của đối tác trả cho Công ty» lúc LẬP đơn của tài khoản Đối tác (1 Bật, 0 Tắt; NULL = đơn không do tài khoản Đối tác lập); ghi một lần, trigger orders_company_collects_locked cấm đổi (kể cả NULL sang 0/1), nằm trong danh sách khoá sau «Đã giao»"
     },
     {
       "name": "ord_transfer_leg",
@@ -737,7 +737,7 @@
       "name": "bil_payment_receipt",
       "module": "billing",
       "kind": "table",
-      "note": "lần thu (ADR-0026 đ2), CHỈ-THÊM, dòng đảo trỏ reverses_id; migration 0045 chứa câu MỘT LẦN chép cọc cũ (orders.deposit_amount > 0) thành lần thu người thu CHƯA RÕ (ADR-0026 đ9, Q3). 0079 (ADR-0089): approval_id = khoản duyệt hoàn cọc của lần trả lại khách (lần chi hoàn / nửa chi của lệnh chuyển); transfer_of_id (UNIQUE) = nửa thu ở đơn nhận trỏ nửa chi ở đơn huỷ (trigger coc_transfer_mismatch: cùng đơn nhận, số, người giữ). Trigger 0079: đơn huỷ chỉ hoàn qua khoản duyệt; không vượt phần còn lại của khoản; người chi ≠ người duyệt; đảo lần thu không làm đã duyệt vượt tiền còn giữ lúc huỷ (đ15); nửa thu chỉ vào đơn nhận còn hiệu lực, chưa Đã giao (coc_transfer_target_invalid — RAISE huỷ cả lô); không đảo riêng một nửa của lệnh chuyển đã ghép đôi (coc_transfer_locked). Trigger 0082 (ADR-0092): đảo lần thu không làm đã thu ròng < 0 (net_paid_negative); lần trả lại khách do người không phải công ty chủ trả ≤ số người đó đang giữ trên đơn (refund_exceeds_held). 0083 (ADR-0088): cột replacement_id = id phiếu đánh dấu REPLACEMENT của lô \"Thay lần thu\" (lần thu mới + dòng đảo của lô; NULL = mọi lần thu khác); đơn đã có phiếu Đã giao thì không ghi / đảo lần thu, không ghi lần trả lại khách ngoài lô Thay (receipt_after_delivered)"
+      "note": "lần thu (ADR-0026 đ2), CHỈ-THÊM, dòng đảo trỏ reverses_id; migration 0045 chứa câu MỘT LẦN chép cọc cũ (orders.deposit_amount > 0) thành lần thu người thu CHƯA RÕ (ADR-0026 đ9, Q3). 0079 (ADR-0089): approval_id = khoản duyệt hoàn cọc của lần trả lại khách (lần chi hoàn / nửa chi của lệnh chuyển); transfer_of_id (UNIQUE) = nửa thu ở đơn nhận trỏ nửa chi ở đơn huỷ (trigger coc_transfer_mismatch: cùng đơn nhận, số, người giữ). Trigger 0079: đơn huỷ chỉ hoàn qua khoản duyệt; không vượt phần còn lại của khoản; người chi ≠ người duyệt; đảo lần thu không làm đã duyệt vượt tiền còn giữ lúc huỷ (đ15); nửa thu chỉ vào đơn nhận còn hiệu lực, chưa Đã giao (coc_transfer_target_invalid — RAISE huỷ cả lô); không đảo riêng một nửa của lệnh chuyển đã ghép đôi (coc_transfer_locked). Trigger 0082 (ADR-0092): đảo lần thu không làm đã thu ròng < 0 (net_paid_negative); lần trả lại khách do người không phải công ty chủ trả ≤ số người đó đang giữ trên đơn (refund_exceeds_held). 0083 (ADR-0088): cột replacement_id = id phiếu đánh dấu REPLACEMENT của lô \"Thay lần thu\" (lần thu mới + dòng đảo của lô; NULL = mọi lần thu khác); đơn đã có phiếu Đã giao thì không ghi / đảo lần thu, không ghi lần trả lại khách ngoài lô Thay (receipt_after_delivered); từ migration 0144 (ADR-0178 Đ1 mục 2): trigger bil_receipt_partner_channel chặn khoản khách trả mới (CUSTOMER_PAYMENT, không phải dòng đảo) ở đơn mang dấu Tắt (orders.company_collects_snapshot = 0) khi người thu khác hồ sơ người lập đơn (đọc qua v_ord_kenh_thu, v_stf_staff_label); máy chủ kiểm trước lô bằng kiemNguoiThuKenh"
     },
     {
       "name": "bil_audit_cutoff",
@@ -810,6 +810,12 @@
       "module": "billing",
       "kind": "table",
       "note": "mức tối đa Quản trị được cấp hạn mức Trả sau (ADR-0172 Đ3; migration 0143): admin_limit_ceiling INTEGER VNĐ; chỉ thêm, chặn sửa/xoá; bản hiện hành = dòng mới nhất; chỉ Toàn quyền ghi (credit.ceiling.write). Chưa có dòng nghĩa là Quản trị chưa được đặt hạn mức"
+    },
+    {
+      "name": "bil_partner_channel_setting",
+      "module": "billing",
+      "kind": "table",
+      "note": "công tắc chung «Khách của đối tác trả cho Công ty» (ADR-0178 Đ1; migration 0144): company_collects 1 = Bật (mặc định, như trước), 0 = Tắt; chỉ thêm, chỉ đóng một lần (valid_to), chặn xoá; hiệu lực = dòng đang mở tại thời điểm hỏi, không có dòng nào nghĩa là Bật; chỉ Toàn quyền đổi (route ở Task A2)"
     },
     {
       "name": "bil_credit_tier_default",
@@ -1283,6 +1289,15 @@
       ]
     },
     {
+      "name": "v_ord_kenh_thu",
+      "module": "orders",
+      "columns": [
+        "id",
+        "staff_id",
+        "company_collects_snapshot"
+      ]
+    },
+    {
       "name": "v_ord_don_tra_sau",
       "module": "orders",
       "columns": [
@@ -1580,6 +1595,7 @@
     "bil_collector_role": { "code": "N1", "name": "N1", "sort_order": "N1", "active": "N1" },
     "bil_credit_guard": { "party_id": "N1", "version": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "bil_credit_reminder": { "order_id": "N1", "kind": "N1", "due_at": "N1", "party_id": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "bil_partner_channel_setting": { "id": "N1", "company_collects": "N1", "valid_from": "N1", "valid_to": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "bil_credit_setting": { "id": "N1", "admin_limit_ceiling": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "bil_credit_tier_default": { "tier_code": "N1", "limit_amount": "N1", "term_hours": "N1", "grace_hours": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "bil_credit_limit": { "id": "N1", "party_id": "N1", "limit_amount": "N1", "term_days": "N1", "term_hours": "N1", "grace_hours": "N1", "valid_from_date": "N1", "valid_to_date": "N1", "reason": "N2", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
@@ -1654,7 +1670,7 @@
     "order_item": { "id": "N1", "order_id": "N1", "description": "N1", "detail": "N1", "quantity": "N1", "unit_price": "N1", "line_total": "N1", "sort_order": "N1", "catalog_code": "N1", "service_id": "N1", "catalog_price": "N1", "pax_code": "N1" },
     "order_money_adjustment": { "id": "N1", "order_id": "N1", "seq": "N1", "before_json": "N1", "after_json": "N1", "subtotal_before": "N1", "subtotal_after": "N1" },
     "order_service": { "id": "N1", "order_id": "N1", "sort_order": "N1", "catalog_code": "N1", "name": "N1", "unit": "N1", "pax_adult": "N1", "pax_child": "N1", "pax_senior": "N1", "pax_infant": "N1", "depart_date": "N1", "depart_time": "N1", "pickup_time": "N1", "pickup_place": "N2", "checkin_date": "N1", "checkin_time": "N1", "checkin_place": "N2", "note": "N2", "pickup_choice": "N1" },
-    "orders": { "id": "N1", "order_code": "N1", "staff_id": "N1", "status": "N1", "customer_name": "N2", "customer_phone": "N2", "customer_email": "N2", "customer_note": "N2", "subtotal": "N1", "discount": "N1", "total": "N1", "declared_deposit": "N1", "deposit_amount": "N1", "deposit_method": "N1", "remaining_amount": "N1", "payment_note": "N2", "created_at": "N1", "updated_at": "N1", "confirmed_at": "N1", "booker_party_id": "N1", "delivered_at": "N1", "delivered_by": "N1", "completed_at": "N1", "completed_by": "N1", "manifest_exempt": "N1", "sales_invitee_party_id": "N1", "payment_term": "N1", "credit_due_date": "N1", "credit_due_at": "N1", "credit_grace_until": "N1" },
+    "orders": { "id": "N1", "order_code": "N1", "staff_id": "N1", "status": "N1", "customer_name": "N2", "customer_phone": "N2", "customer_email": "N2", "customer_note": "N2", "subtotal": "N1", "discount": "N1", "total": "N1", "declared_deposit": "N1", "deposit_amount": "N1", "deposit_method": "N1", "remaining_amount": "N1", "payment_note": "N2", "created_at": "N1", "updated_at": "N1", "confirmed_at": "N1", "booker_party_id": "N1", "delivered_at": "N1", "delivered_by": "N1", "completed_at": "N1", "completed_by": "N1", "manifest_exempt": "N1", "sales_invitee_party_id": "N1", "payment_term": "N1", "credit_due_date": "N1", "credit_due_at": "N1", "credit_grace_until": "N1", "company_collects_snapshot": "N1" },
     "prc_beneficiary_role": { "role_type_code": "N1", "active": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "prc_commission_rule": { "id": "N1", "target_party_id": "N1", "target_role_code": "N1", "scope": "N1", "catalog_code": "N1", "group_code": "N1", "kind": "N1", "rate_bp": "N1", "per_pax_amount": "N1", "valid_from_date": "N1", "valid_to_date": "N1", "note": "N2", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "target_tier_code": "N1", "voided_at": "N1", "voided_by": "N1", "replaces_id": "N1", "change_reason": "N2" },
     "prc_commission_rule_pax": { "rule_id": "N1", "adult_amount": "N1", "child_amount": "N1", "senior_amount": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
@@ -1742,6 +1758,7 @@
     "v_ord_order_owner": { "id": "N1", "staff_id": "N1" },
     "v_ord_order_state": { "id": "N1", "status": "N1", "delivered_at": "N1", "completed_at": "N1" },
     "v_ord_passenger_key": { "person_key": "N2", "order_id": "N1", "has_current_row": "N1" },
+    "v_ord_kenh_thu": { "id": "N1", "staff_id": "N1", "company_collects_snapshot": "N1" },
     "v_ord_don_tra_sau": { "id": "N1", "order_code": "N1", "booker_party_id": "N1", "status": "N1", "delivered_at": "N1", "credit_due_date": "N1", "credit_due_at": "N1", "credit_grace_until": "N1" },
     "v_ord_passenger_row": { "id": "N1", "person_key": "N2", "order_id": "N1", "is_current": "N1" },
     "v_ord_terms_missing": { "order_id": "N1" },

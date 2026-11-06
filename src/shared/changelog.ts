@@ -18,10 +18,19 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // Biên nhận mẫu HD-02-DT cho đơn đối tác. Không migration. Số và ngày tạm: bước A.0 đặt lại nếu cần.
+    version: "2.72",
+    date: "2026-11-07",
+    items: [
+      { kind: "doi", text: "Ảnh gửi khách của đơn đối tác có mẫu riêng: đầu ảnh là thương hiệu Tour Đảo Nha Trang và câu khẩu hiệu, có giá công bố và dòng Phải thu.", bai: { id: "doi-tac/gui-bien-nhan-cho-khach", ten: "Gửi biên nhận cho khách" } },
+    ],
+  },
+  {
+    // Công tắc «Khách của đối tác trả cho Công ty» (ADR-0178 Phần A). Migration 0144. Số và ngày tạm: bước A.0 đặt lại nếu cần.
     version: "2.71",
     date: "2026-11-06",
     items: [
-      { kind: "doi", text: "Ảnh gửi khách của đơn đối tác có mẫu riêng: đầu ảnh là thương hiệu Tour Đảo Nha Trang và câu khẩu hiệu, có giá công bố và dòng Phải thu.", bai: { id: "doi-tac/gui-bien-nhan-cho-khach", ten: "Gửi biên nhận cho khách" } },
+      { kind: "moi", text: "Công tắc «Khách của đối tác trả cho Công ty» ở màn Cấp độ đại lý: Toàn quyền bật, tắt; Kế toán, Quản trị xem. Mặc định Bật, như trước." },
+      { kind: "doi", text: "Đơn Đối tác lập lúc công tắc Tắt: chỉ đối tác đó ghi khoản thu («Tôi thu»), không có QR thanh toán. Đơn đã lập giữ cách thu của lúc lập." },
     ],
   },
   {

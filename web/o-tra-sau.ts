@@ -3,11 +3,15 @@
 // (lúc MỞ bảng của một hồ sơ, không gọi theo từng dòng), GET /api/pricing/muc-ta (tên cấp đang bật, cho khối gợi ý).
 // Ghi: POST /api/tra-sau/han-muc, POST /api/tra-sau/han-muc/:partyId/ngung, PUT /api/tra-sau/goi-y/:cap, POST /api/tra-sau/muc-toi-da.
 // Ẩn/hiện nút theo cờ máy chủ (`coQuyenSua`, `coQuyenDatMucToiDa`); máy chủ hỏi lại quyền, mức tối đa và luật «không tự đặt cho mình» ở mọi lệnh ghi.
+// Thẻ công tắc «Khách của đối tác trả cho Công ty» (ADR-0178 Đ1 mục 1, Task A5): GET / POST /api/kenh-thu-doi-tac; thẻ hiện theo ô `billing.partner_channel.view`
+// (Toàn quyền, Kế toán, Quản trị), nút Tắt / Bật chỉ theo ô `.write` (Toàn quyền) — cùng bảng quyền với máy chủ.
 // Số gợi ý chỉ điền sẵn bảng bật, không cho ai Trả sau (ADR-0172 Đ2 mục 2). Không confirm / alert / innerHTML; dựng bằng h().
-import { ApiError, api, type Api } from "./api";
+import { ApiError, api, type Api, type Staff } from "./api";
 import { hoiXacNhan, moBangTruot } from "./bang-truot";
 import { h, replaceChildren } from "./dom";
+import { dateTime } from "./format";
 import { hienBaoNgan } from "./toast";
+import { can } from "../src/shared/permissions";
 import { cauGoiYDienSan, cauHanMuc, cauMucToiDa, docGio, docHanMuc, goiYCuaCap, nhanAnHan, nhanQuaHan } from "../src/shared/han-muc-tra-sau-hien-thi";
 import { dongTien } from "../src/shared/tra-sau";
 
@@ -271,4 +275,66 @@ function moBangGoiY(c: { code: string; ten: string }, g: Api.GoiYTraSauDto | nul
     await veLai();
   });
   oHan.focus();
+}
+
+/**
+ * Thẻ công tắc «Khách của đối tác trả cho Công ty» (ADR-0178 Đ1 mục 1). null = người xem không có ô xem, hoặc không đọc được (màn vẫn dùng được, không vỡ).
+ * Tắt hỏi lại trước (hậu quả lớn: Công ty thôi nhận tiền khách của đơn Đối tác lập từ lúc đó); Bật thì đổi ngay. Vẽ lại theo đúng DTO máy chủ trả.
+ */
+export async function khoiKenhThuDoiTac(staff: Staff): Promise<HTMLElement | null> {
+  if (!can(staff, "billing.partner_channel.view")) return null;
+  let s: Api.KenhThuDoiTacDto;
+  try {
+    s = await api<Api.KenhThuDoiTacDto>("/api/kenh-thu-doi-tac");
+  } catch {
+    return null;
+  }
+  const doiDuoc = can(staff, "billing.partner_channel.write");
+  const the = h("section", { class: "card card-col", id: "kenh-thu-doi-tac", "aria-labelledby": "kenh-thu-tieu-de" });
+  const ve = (s: Api.KenhThuDoiTacDto): void => {
+    const loi = h("div", { class: "vc-field-error", role: "alert", hidden: true });
+    let nut: HTMLButtonElement | null = null;
+    if (doiDuoc) {
+      const n = h("button", { type: "button", class: s.congTyThu ? "btn" : "btn btn-primary", id: "kenh-thu-doi" }, s.congTyThu ? "Tắt" : "Bật") as HTMLButtonElement;
+      n.addEventListener("click", async () => {
+        loi.hidden = true;
+        if (s.congTyThu) {
+          const dongY = await hoiXacNhan({
+            tieuDe: "Tắt «Khách của đối tác trả cho Công ty»?",
+            hauQua: "Đơn do tài khoản Đối tác lập từ lúc này chỉ do chính đối tác đó ghi khoản thu: Công ty, nhân viên, hướng dẫn viên không thu tiền khách của các đơn đó, và đơn không có mã QR vào tài khoản công ty. Đơn đã lập giữ nguyên.",
+            nhanNguyHiem: "Tắt",
+            opener: n,
+          });
+          if (!dongY) return;
+        }
+        n.disabled = true;
+        try {
+          ve(await api<Api.KenhThuDoiTacDto>("/api/kenh-thu-doi-tac", { method: "POST", body: { congTyThu: !s.congTyThu } }));
+          hienBaoNgan(s.congTyThu ? "Đã tắt «Khách của đối tác trả cho Công ty»." : "Đã bật «Khách của đối tác trả cho Công ty».");
+        } catch (err) {
+          n.disabled = false;
+          loi.textContent = lyDoLoi(err);
+          loi.hidden = false;
+        }
+      });
+      nut = n;
+    }
+    const lichSu = s.lichSu.slice(0, 5);
+    replaceChildren(
+      the,
+      h("h2", { id: "kenh-thu-tieu-de" }, "Khách của đối tác trả cho Công ty"),
+      h("p", { id: "kenh-thu-trang-thai" }, h("strong", null, s.congTyThu ? "Bật" : "Tắt"), s.tuLuc ? ` · từ ${dateTime(s.tuLuc)}` : " · mặc định"),
+      h(
+        "p",
+        { class: "muted" },
+        "Bật: khách của đơn do tài khoản Đối tác lập trả được cho Công ty (chuyển khoản, mã QR, nhân viên hoặc hướng dẫn viên thu). ",
+        "Tắt: đơn Đối tác lập từ lúc tắt chỉ do chính đối tác đó ghi khoản thu, không có mã QR công ty; đối tác nộp tiền về công ty như hôm nay. Mỗi đơn giữ cách thu của lúc lập, đổi công tắc không đổi đơn đã lập.",
+      ),
+      lichSu.length > 0 && h("ul", { class: "muted", "data-khoi": "kenh-thu-lich-su" }, ...lichSu.map((d) => h("li", null, `${d.congTyThu ? "Bật" : "Tắt"} · ${dateTime(d.tuLuc)} · ${d.nguoiDoi}`))),
+      loi,
+      nut && h("div", { class: "handler-actions" }, nut),
+    );
+  };
+  ve(s);
+  return the;
 }

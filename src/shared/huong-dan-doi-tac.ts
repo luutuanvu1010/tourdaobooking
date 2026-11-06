@@ -105,7 +105,7 @@ Giờ đón quá sát không chặn bạn gửi đơn: văn phòng chốt giờ 
       tieuDe: "Gửi biên nhận cho khách",
       noiDung: `1. Mở đơn.
 2. Bấm [[Xem ảnh gửi khách]].
-3. Hộp **Ảnh gửi khách** hiện ảnh theo mẫu của đối tác: có giá công bố và dòng **Phải thu** là số khách còn phải trả, không có dòng người phụ trách.
+3. Hộp **Ảnh gửi khách** hiện ảnh theo mẫu đối tác: giá công bố, dòng **Phải thu** (số khách còn phải trả), không có dòng người phụ trách.
 4. Bấm [[Chia sẻ]] để gửi qua Zalo, hoặc [[Tải ảnh về máy]] để lưu lại.
 
 > Ví dụ: Sau khi xác nhận đơn cho gia đình khách, chị Hoa bấm Xem ảnh gửi khách rồi Chia sẻ, chọn Zalo, gửi ảnh cho khách.`,
@@ -123,7 +123,7 @@ Giờ đón quá sát không chặn bạn gửi đơn: văn phòng chốt giờ 
     {
       tieuDe: "Xem và gửi vé cho khách",
       noiDung: `1. Mở đơn đã xác nhận do bạn lập, kéo xuống khối **Vé điện tử**.
-2. Vé chỉ mở khi tiền của đơn đã về công ty. Khách trả tiền mặt cho bạn thì bạn nộp về công ty, Kế toán ghi nhận xong thì vé mới mở. Chưa mở thì khối báo "Công ty chưa xác nhận đã nhận đủ tiền nên chưa mở được vé." Tiền bạn tự ghi là "Tôi thu" chưa đủ để mở vé.
+2. Vé chỉ mở khi tiền của đơn đã về công ty. Khách trả tiền mặt cho bạn thì bạn nộp về công ty, Kế toán ghi nhận xong thì vé mới mở. Chưa mở thì khối báo "Công ty chưa xác nhận đã nhận đủ tiền nên chưa mở được vé." Tiền bạn tự ghi là "Tôi thu" chưa đủ để mở vé. Đơn khách trả bạn: chỉ có "Tôi thu", không QR.
 3. Khi mở được, bấm [[Cấp vé]] nếu khối báo còn thiếu vé. Vẫn thiếu thì báo văn phòng nhập thêm vé.
 4. Bấm nút **Mở … vé để gửi khách**, rồi bấm [[Gửi Zalo]] và chọn người nhận.
 

@@ -52,7 +52,8 @@ const CHO_PHEP_NHAT_KY = new Set(["web/help.ts"]);
 // Nới 105.100 → 105.363 (ADR-0169 ghép trên ADR-0142, 5/11/2026): mã quyền, vai, hai ô vào bản đồ (dữ liệu quyền, không mã giao diện). Đo thật 105.263 byte, trần = số đo + 100.
 // Nới 105.363 → 105.546 (ADR-0168, ghép Trả sau với bản chính 5/11/2026): trang /han-muc-tra-sau vào `TRANG`/`THANH_BEN`/`TRANG_TOI` và hai ô quyền credit.limit.* (chỉ dữ liệu); đo thật 105.446 byte, trần = số đo + 100. Không mã giao diện nghiệp vụ nào vào gói Đơn hàng. CHƯA có lời duyệt riêng của chủ dự án cho con số này.
 // Nới 105.546 → 105.667 (ADR-0172, ADR-0173, 6/11/2026): ba ô quyền mới credit.ceiling.write, credit.due.extend, credit.own.view vào bản đồ quyền dùng chung (chỉ dữ liệu, +21 byte đo thật 105.567). Không mã giao diện Trả sau nào vào gói Đơn hàng (khối Trả sau ở trang đơn chi tiết, nút Ân hạn ở web/an-han-tra-sau.ts). Trần = số đo + 100. CHƯA có lời duyệt riêng của chủ dự án cho con số này.
-const TRAN_ORDERS = 105_667;
+// Nới 105.667 → 105.804 (ADR-0178 Đ1 mục 1, Task A2, 6/11/2026): hai ô quyền mới billing.partner_channel.write / .view vào bản đồ quyền dùng chung (chỉ dữ liệu, +37 byte đo thật 105.704). Không mã giao diện nào vào gói Đơn hàng. Trần = số đo + 100. CHƯA có lời duyệt riêng của chủ dự án cho con số này.
+const TRAN_ORDERS = 105_804;
 
 function dung(trang: string) {
   const r = buildSync({

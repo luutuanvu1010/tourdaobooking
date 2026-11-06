@@ -1,12 +1,12 @@
 // Module receipt — BIÊN NHẬN / ảnh xác nhận gửi khách (ADR-0024 đ1, ADR-0026 đ11; kế hoạch sổ tiền lượt 1 Task 8). Hạng KHONG_BANG: không bảng, không câu
 // SQL — chỉ chuyển tay cầm `env.DB` cho HÀM CÔNG BỐ của module mình phụ thuộc (orders: chi tiết đơn; billing: đã trả / còn lại; company: hồ sơ công ty chủ)
 // rồi dựng `ReceiptDto` theo danh sách trắng (`rules.ts`); sổ đại lý đợt 2: chia phần theo người bán (bản chụp của orders). Chiều phụ thuộc: receipt → orders, billing, parties, company.
-import type { QrThanhToanResponse, ReceiptResponse } from "../../shared/contracts";
+import type { QrKhongCoResponse, QrThanhToanResponse, ReceiptResponse } from "../../shared/contracts";
 import { UUID_RE, error, json } from "../../shared/http";
 import { can, seesOnlyAssignedOrders } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
 import { ketQuaXemDon } from "../../shared/xem-don-nhap";
-import { soTienBienNhan, soTienChoQr } from "../billing";
+import { congTyNhanTienKhach, soTienBienNhan, soTienChoQr } from "../billing";
 import { congTyChoBienNhan } from "../company";
 import { donChoBienNhan, nguoiLapDoiTacThuan, phanThuongMaiCuaDon } from "../orders";
 import { taiKhoanNhanTienHienHanh } from "../parties";
@@ -54,6 +54,8 @@ export const receiptModule: AppModule = {
       if (!can(staff, "money.view", scope)) return FORBIDDEN_VIEW();
       // ADR-0135 Đ8: QR chỉ cho đơn ĐÃ XÁC NHẬN (mọi đơn); đặt sau kiểm quyền xem để người không xem được vẫn nhận 404/403.
       if (order.status !== "confirmed") return error(409, "qr_requires_confirmed", "Đơn chưa xác nhận, chưa có mã QR thanh toán.");
+      // ADR-0178 Đ1 mục 2: đơn mang dấu Tắt (khách trả cho đối tác đã lập đơn) ⇒ không có QR vào tài khoản công ty. Trước mọi đọc số tiền / tài khoản.
+      if (!(await congTyNhanTienKhach(env.DB, id))) return json({ coQr: false } satisfies QrKhongCoResponse);
       const tien = await soTienChoQr(env.DB, id);
       if (!tien) return error(503, "money_unavailable", "Chưa đọc được số tiền của đơn — tải lại rồi thử lại.");
       const so = kiemSoTienQr({ daGiao: tien.daGiao, conLai: tien.conLai, soTienRaw: url.searchParams.get("soTien") });

@@ -147,3 +147,56 @@ test("câu «Bên kia đã nhận»: người xem không được biết tên ng
   assert.match(c, /bên nhận tiền xác nhận đã nhận 500\.000 ₫ của khách\?/);
   assert.match(B.cauBenKiaDaNhan("Lê Thu Hà", "500.000 ₫"), /Lê Thu Hà xác nhận đã nhận 500\.000 ₫ của khách\? Từ lúc này khoản này là nợ của Lê Thu Hà với Tour Đảo\./);
 });
+
+// ADR-0178 Đ1 mục 2 (Task A5): đơn mang dấu «Khách của đối tác trả cho Công ty» = Tắt — người thu chỉ là hồ sơ của tài khoản Đối tác đã lập đơn.
+const TAT = { congTyThu: false, nguoiLapTen: "Đại Lý B", nguoiLapLaBenDatHuong: false };
+test("dấu Tắt: tài khoản Đối tác (người lập) chỉ có một lựa chọn «Tôi thu» — không Công ty, không bên kia", () => {
+  assert.deepEqual(B.luaChonNguoiThu(null, TAT, true), [{ value: "toi", nhan: "Tôi thu" }]);
+  assert.deepEqual(B.luaChonNguoiThu(DL, TAT, true), [{ value: "toi", nhan: "Tôi thu" }]);
+});
+
+test("dấu Tắt: văn phòng, hồ sơ người lập là bên đặt được hưởng ⇒ đúng một lựa chọn «Khách trả cho đại lý <tên người lập>», không quầy nhà cung cấp", () => {
+  const k = { ...TAT, nguoiLapLaBenDatHuong: true };
+  assert.deepEqual(B.luaChonNguoiThu(DL, k, false), [{ value: "ben_dat", nhan: "Khách trả cho đại lý Đại Lý B" }]);
+  assert.deepEqual(B.luaChonNguoiThu(null, k, false), [{ value: "ben_dat", nhan: "Khách trả cho đại lý Đại Lý B" }]);
+});
+
+test("dấu Tắt: văn phòng, người lập không phải bên đặt được hưởng ⇒ không lựa chọn nào (khối ghi khoản thu nói đối tác tự ghi)", () => {
+  assert.deepEqual(B.luaChonNguoiThu(DL, TAT, false), []);
+  assert.deepEqual(B.luaChonNguoiThu(null, TAT, false), []);
+  assert.equal(B.CAU_DOI_TAC_TU_GHI, "Đối tác lập đơn tự ghi khoản thu của đơn này.");
+});
+
+test("dấu Bật / không dấu (kenhThu null hoặc congTyThu true) ⇒ giữ nguyên lựa chọn như trước", () => {
+  for (const k of [null, undefined, { congTyThu: true, nguoiLapTen: "Đại Lý B", nguoiLapLaBenDatHuong: true }]) {
+    assert.deepEqual(giaTri(B.luaChonNguoiThu(null, k, false)), ["cong_ty", "toi"]);
+    assert.deepEqual(giaTri(B.luaChonNguoiThu(DL, k, false)), ["cong_ty", "toi", "ben_dat", "ncc:pty-ncc"]);
+    assert.deepEqual(giaTri(B.luaChonNguoiThu(null, k, true)), ["cong_ty", "toi"]);
+  }
+});
+
+// Vòng sửa cuối Phần A (kiểm độc lập I-1): ô người thu của Kế toán («Sửa khoản thu đã ghi», «Ghi bù khoản thu») ở đơn dấu Tắt — đúng một lựa chọn là hồ sơ người lập,
+// không «Công ty», kể cả khi danh sách người đang giữ tiền không còn người lập (đối tác đã nộp hết).
+const THUONG = [{ value: "cong_ty", nhan: "Công ty" }, { value: "pty-nv", nhan: "Nhân Viên Giữ" }];
+test("ô người thu của Kế toán, dấu Tắt: đúng một lựa chọn = hồ sơ người lập (value = partyId), không Công ty, không người giữ khác", () => {
+  const k = { congTyThu: false, nguoiLapTen: "Đại Lý B", nguoiLapLaBenDatHuong: false, nguoiLapPartyId: "pty-dl-b" };
+  assert.deepEqual(B.luaChonNguoiThuSoKeToan(k, THUONG), [{ value: "pty-dl-b", nhan: "Đại Lý B (người lập đơn)" }]);
+  assert.deepEqual(B.luaChonNguoiThuSoKeToan(k, []), [{ value: "pty-dl-b", nhan: "Đại Lý B (người lập đơn)" }], "người lập đã nộp hết vẫn có lựa chọn");
+  assert.deepEqual(B.luaChonNguoiThuSoKeToan({ ...k, nguoiLapPartyId: null, nguoiLapTen: null }, THUONG), [], "người lập chưa gắn hồ sơ ⇒ không lựa chọn nào");
+});
+
+test("ô người thu của Kế toán, dấu Bật / không dấu ⇒ giữ nguyên danh sách thường", () => {
+  for (const k of [null, undefined, { congTyThu: true, nguoiLapTen: "Đại Lý B", nguoiLapLaBenDatHuong: true, nguoiLapPartyId: "pty-dl-b" }]) assert.deepEqual(B.luaChonNguoiThuSoKeToan(k, THUONG), THUONG);
+});
+
+test("dấu Tắt: câu thay form «Ghi khoản thu đòi được»", () => {
+  assert.equal(B.CAU_KHONG_GHI_DOI_DUOC, "Đơn này chỉ nhận tiền khách trả cho đối tác đã lập đơn nên Công ty không ghi khoản thu đòi được.");
+});
+
+test("«Ghi sổ theo phân định», phần sửa khoản thu: Bật / không dấu ⇒ Công ty; Tắt ⇒ { partyId người lập }; Tắt mà người lập chưa gắn hồ sơ ⇒ null (ẩn phần sửa)", () => {
+  const k = { congTyThu: false, nguoiLapTen: "Đại Lý B", nguoiLapLaBenDatHuong: false, nguoiLapPartyId: "pty-dl-b" };
+  assert.equal(B.nguoiThuSuaPhanDinh(null), "cong_ty");
+  assert.equal(B.nguoiThuSuaPhanDinh({ ...k, congTyThu: true }), "cong_ty");
+  assert.deepEqual(B.nguoiThuSuaPhanDinh(k), { partyId: "pty-dl-b" });
+  assert.equal(B.nguoiThuSuaPhanDinh({ ...k, nguoiLapPartyId: null }), null);
+});

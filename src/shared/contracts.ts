@@ -2285,6 +2285,13 @@ export interface OrderPaymentsResponse {
    * người xem không ghi khoản thu được, đơn không còn ghi khoản thu được (nháp, chưa chụp, đã giao, huỷ), hoặc đơn không có bên nào.
    */
   benKia: BenKiaLuaChonDto | null;
+  /**
+   * ADR-0178 Đ1 mục 2 (Task A5): đơn mang dấu «Khách của đối tác trả cho Công ty» = Tắt. null = đơn không mang dấu Tắt (dấu Bật hoặc đơn văn phòng lập) — giữ như cũ.
+   * Không gác theo quyền ghi (khác `benKia`): người chỉ xem tiền cũng phải biết đơn không có QR công ty. `nguoiLapTen` = tên hồ sơ của tài khoản đã lập đơn (null khi chưa
+   * gắn hồ sơ); `nguoiLapLaBenDatHuong` = hồ sơ đó đúng là bên đặt được hưởng của đơn (CÙNG `benDatHuong` của lựa chọn «Khách trả cho đại lý ‹tên›», ADR-0132).
+   * `nguoiLapPartyId` = id hồ sơ đó (null khi chưa gắn) — giá trị duy nhất của ô người thu «Sửa khoản thu đã ghi» / «Ghi bù khoản thu» của Kế toán ở đơn này.
+   */
+  kenhThu: { congTyThu: boolean; nguoiLapTen: string | null; nguoiLapLaBenDatHuong: boolean; nguoiLapPartyId: string | null } | null;
 }
 
 /** Bên đặt (đại lý được hưởng — chỉ tên; máy chủ tự lấy hồ sơ khi nhận `"ben_dat"`) và các quầy nhà cung cấp (id + tên, cho `{ nhaCungCapPartyId }` và «thu cho»). */
@@ -2693,6 +2700,10 @@ export interface QrThanhToanDto {
 }
 export interface QrThanhToanResponse {
   qr: QrThanhToanDto;
+}
+/** `GET /api/orders/:id/qr-thanh-toan` của đơn mang dấu «Khách của đối tác trả cho Công ty» = Tắt (ADR-0178 Đ1 mục 2): không có QR vào tài khoản công ty. Đơn khác giữ `QrThanhToanResponse`. */
+export interface QrKhongCoResponse {
+  coQr: false;
 }
 
 // ---- Trợ lý Hỗ trợ (ADR-0066, module tro-ly) ----
@@ -3251,3 +3262,5 @@ export interface TheDonDto {
 export interface ChuaCoBanHangResponse { don: TheDonDto[]; soDonChoXacNhanAn: number }
 /** `GET`/`POST /api/cai-dat/ban-hang-phu-trach`: dòng chính sách hiện hành. `doiDuoc` = người gọi giữ `settings.ops`. */
 export interface BanHangChinhSachResponse { phutUuTien: number; tuPhut: number; denPhut: number; mocPhatHanh: string | null; doiDuoc: boolean }
+/** `GET`/`POST /api/kenh-thu-doi-tac` (ADR-0178 Đ1 mục 1): công tắc «Khách của đối tác trả cho Công ty». `congTyThu` = Bật; `tuLuc` = lúc dòng hiện hành có hiệu lực (null = chưa ai đổi, mặc định Bật). `lichSu` mới nhất trước. */
+export interface KenhThuDoiTacDto { congTyThu: boolean; tuLuc: string | null; lichSu: { congTyThu: boolean; tuLuc: string; nguoiDoi: string }[] }

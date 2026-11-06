@@ -3,7 +3,7 @@
 // Ô vai mang data-kind="role", ô chỉnh tay data-kind="add"/"remove": mã INTERN vừa là mã vai vừa là mã quyền, chọn phần tử phải kèm data-kind.
 import { MA_QUYEN_TIEN, PERMISSION_CODES, PERMISSION_LABEL, isExternalPermission, type PermissionCode } from "../src/shared/permissions";
 import {
-  ROLES, ROLE_CODES, ROLE_GROUP_LABEL, QUAN_TRI_GRANTED, SUPER_ADMIN_GRANTED, effectivePermissions, groupOf, laiNoiBoBenNgoaiProblem, permissionsLabel, taiKhoanLaiProblem, vaiTaiXeDoiTacXungDot,
+  ROLES, ROLE_CODES, ROLE_GROUP_LABEL, QUAN_TRI_GRANTED, SUPER_ADMIN_GRANTED, effectivePermissions, groupOf, laiNoiBoBenNgoaiProblem, permissionsLabel, taiKhoanLaiProblem, vaiQuanTriGanDuoc, vaiTaiXeDoiTacXungDot,
   type RoleCode, type RoleGroup,
 } from "../src/shared/roles";
 import { h } from "./dom";
@@ -20,9 +20,9 @@ export function rolePicker(opts: { initial: RolePickerValue; actorIsSuperAdmin: 
   const removeBoxes = new Map<PermissionCode, HTMLInputElement>();
   const reason = h("input", { type: "text", maxLength: 200, placeholder: "Vì sao chỉnh riêng cho người này" });
   const preview = h("p", { class: "muted", "aria-live": "polite", "data-role-preview": "" });
-  const roleLocked = (c: RoleCode) => (ROLES[c].superAdminOnly && !opts.actorIsSuperAdmin) || (ROLES[c].chiQuanTriGan === true && !opts.actorLaQuanTri); // LC-4, ADR-0169 Đ3
+  const roleLocked = (c: RoleCode) => (ROLES[c].superAdminOnly && !opts.actorIsSuperAdmin && !(opts.actorLaQuanTri && vaiQuanTriGanDuoc(c))) || (ROLES[c].chiQuanTriGan === true && !opts.actorLaQuanTri); // LC-4, ADR-0169 Đ3
   // LC-4 + ADR-0090 đ1(ii): quyền tiền (MA_QUYEN_TIEN — suy từ bảng quyền) cũng chỉ Toàn quyền cộng/bớt tay. Máy chủ vẫn kiểm lại.
-  const permLocked = (p: PermissionCode) => ((SUPER_ADMIN_GRANTED.includes(p) || MA_QUYEN_TIEN.includes(p)) && !opts.actorIsSuperAdmin) || (QUAN_TRI_GRANTED.includes(p) && !opts.actorLaQuanTri);
+  const permLocked = (p: PermissionCode) => ((SUPER_ADMIN_GRANTED.includes(p) || MA_QUYEN_TIEN.includes(p)) && !opts.actorIsSuperAdmin && !(opts.actorLaQuanTri && p !== "SUPER_ADMIN")) || (QUAN_TRI_GRANTED.includes(p) && !opts.actorLaQuanTri);
 
   const value = (): RolePickerValue => ({
     roles: ROLE_CODES.filter((c) => roleBoxes.get(c)!.checked),

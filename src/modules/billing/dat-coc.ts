@@ -9,6 +9,7 @@ import { linesOfOrder, nguoiLapGiuDoiTac, orderOwners, ownerCompanyId, receiptOn
 import { cauLanThu, tienNhieuDon, toDoiChieuRow, toLineRow, toReceiptRow } from "./service";
 import { traSauCuaDon } from "./tra-sau";
 import { phanKhaiCuaDon } from "./khoan-khai";
+import { kiemNguoiThuKenh } from "./kenh-thu";
 
 const dong = (n: number): string => `${n.toLocaleString("vi-VN")} ₫`;
 
@@ -66,6 +67,12 @@ export async function cauDatCocKhiXacNhan(db: D1Database, i: VaoCauCoc): Promise
   const [congTyId, partyId] = await Promise.all([ownerCompanyId(db), hoSoNhanVien(db, i.nguoiLapId)]);
   if (!congTyId) return { ok: false, status: 503, code: "owner_company_missing", message: "Chưa có hồ sơ công ty chủ — báo người phụ trách hệ thống." };
   if (!partyId) return { ok: false, status: 409, code: "partner_no_party", message: CAU_CHUA_GAN_HO_SO };
+  // ADR-0178 Đ1 mục 2: người thu luôn là người lập (cùng nguồn hồ sơ) nên hợp lệ; vẫn gọi cùng cổng TRƯỚC lô — sai thì 409, đơn không xác nhận, không bỏ âm thầm khoản cọc.
+  const kenh = await kiemNguoiThuKenh(db, i.orderId, partyId);
+  if (kenh) {
+    const b = (await kenh.json()) as { error: { code: string; message: string } };
+    return { ok: false, status: 409, code: b.error.code, message: b.error.message };
+  }
   const chan = await chanKhaiCocLai(db, i.nguoiLapId);
   if (chan) return { ok: false, ...chan, ...(i.nguoiBamId === i.nguoiLapId ? {} : { message: CAU_KHAI_LAI_NGUOI_XET }) };
   // Bản chụp của chính lô: `duKien`/`chuaChup` = false và các trường còn lại không dùng tới ở hàm này.
