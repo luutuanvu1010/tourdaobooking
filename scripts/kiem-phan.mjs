@@ -314,7 +314,7 @@ async function dongLenh(argv) {
     console.log(`Giây thật từng kịch bản e2e (chép vào tests/e2e/thoi-gian.json khi cần chia lại):\n${JSON.stringify(kq.giayE2e)}`);
     const choLau = tepChoLau(kq);
     if (choLau.length) console.log(`Tệp chờ lâu (đồng hồ tường hơn giây các bài ≥ 15 giây):\n${choLau.map((x) => `  ${x.tep}: ${x.giayTuong} giây tường, ${x.giayBai} giây bài`).join("\n")}`);
-    console.log(`Giây thật từng tệp kiểm (chép vào scripts/thoi-gian-test.json khi cần chia lại): có trong tệp ket-qua-tong, khoá giayTep (${Object.keys(kq.giayTep).length} tệp).`);
+    console.log(`Giây thật từng tệp kiểm (chép vào scripts/thoi-gian-test.json khi cần chia lại): có trong tệp ket-qua-tong, khoá giayTuong — đồng hồ tường cả tệp, gồm việc làm ngoài bài (${Object.keys(kq.giayTuong).length} tệp).`);
     return kq.ok ? 0 : 1;
   }
   console.error("Dùng: node scripts/kiem-phan.mjs ma-tran | rieng --ket-qua <tệp> | test <k> --ket-qua <tệp> | gom <thư mục> --ket-qua <tệp>");

@@ -227,3 +227,15 @@ test("run.mjs (lượt kiểm 2 trên GitHub, 6/11): wrangler dev va cổng ⇒ 
   // Trùng cổng thì máy chủ chết ngay: không chờ hết 90 giây mới thử lại.
   assert.match(r, /laLoiTrungCong\(may\.log\)\) throw new Error/);
 });
+
+test("bảng giây npm test là ĐỒNG HỒ TƯỜNG cả tệp đo trên GitHub (lượt kiểm 3, 6/11): tệp làm việc nặng NGOÀI bài (cấp tệp) không bị tính 0 giây", () => {
+  // muc-hien-mo-duoc-1/2/3 gọi hàng trăm đường × mọi tập quyền TRƯỚC khi khai bài: giây các bài ≈ 0 nhưng đồng hồ tường 67–93 giây trên GitHub.
+  // Bảng cũ (giây các bài, đo ở máy) coi chúng là 0 ⇒ dồn vào cùng phần ⇒ phần 9 chạy 12 phút.
+  const tg = JSON.parse(readFileSync(new URL("../scripts/thoi-gian-test.json", import.meta.url), "utf8")) as Record<string, number>;
+  for (const k of [1, 2, 3]) assert.ok((tg[`src/muc-hien-mo-duoc-${k}.test.ts`] ?? 0) >= 30, `muc-hien-mo-duoc-${k}: ${tg[`src/muc-hien-mo-duoc-${k}.test.ts`]}`);
+  // Mọi tệp kiểm đang có đều có số đo (không tệp nào rơi về ước lượng theo cỡ tệp), trừ bài đo giờ (chạy ở phần riêng).
+  const thieu = lib.danhSachTest().filter((t) => t !== lib.TEP_DO_GIO && !(t in tg));
+  assert.deepEqual(thieu, []);
+  // Bước gom gợi ý chép ĐỒNG HỒ TƯỜNG (giayTuong), không phải giây các bài.
+  assert.match(readFileSync(new URL("../scripts/kiem-phan.mjs", import.meta.url), "utf8"), /chép vào scripts\/thoi-gian-test\.json khi cần chia lại\): có trong tệp ket-qua-tong, khoá giayTuong/);
+});
