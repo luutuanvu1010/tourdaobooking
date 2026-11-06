@@ -144,7 +144,10 @@ try {
     await p.ev("document.querySelector('[data-action=luu-han-muc]').click(); true");
     await p.waitFor("(() => { const e = document.querySelector('#hm-form .alert'); return !!e && !e.hidden && e.textContent === 'Chọn hồ sơ đối tác trước.'; })()", "câu chưa chọn hồ sơ");
     assert.equal(await p.ev("window.__ghi.length"), 0, "chưa chọn hồ sơ: không gọi máy chủ");
-    await p.ev(setInput("document.getElementById('hm-tim')", "Công Ty Mới"));
+    // Danh sách đối tác được hưởng hiện sẵn; gõ thường, không dấu vẫn lọc ra (ô tìm cũ của Danh bạ không ra khi khác dấu / hoa thường).
+    await p.waitFor("document.querySelectorAll('#hm-ds-ho-so button').length > 0", "danh sách đối tác hiện sẵn khi chưa gõ");
+    await p.ev(setInput("document.getElementById('hm-tim')", "cong ty moi"));
+    await p.waitFor("[...document.querySelectorAll('#hm-ds-ho-so button')].length === 1 && document.querySelector('#hm-ds-ho-so button').textContent.startsWith('Công Ty Mới Thử')", "lọc không dấu ra đúng một hồ sơ");
     await p.waitFor("document.querySelectorAll('#hm-form .card-list button').length > 0", "kết quả tìm hồ sơ");
     await p.ev("document.querySelector('#hm-form .card-list button').click(); true");
     await p.ev("document.querySelector('[data-action=luu-han-muc]').click(); true");

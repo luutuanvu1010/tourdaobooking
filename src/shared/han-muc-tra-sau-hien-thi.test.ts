@@ -1,7 +1,7 @@
 // Luật hiển thị của màn «Hạn mức trả sau» và khối Thanh toán trên đơn (ADR-0168; kế hoạch Task 6). Thay R-CRD-3 (bộ kiểm dữ liệu không tính được phải thu).
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { CAU_VE_TRA_TRUOC, cauChonTraSau, cauHanMuc, canhBaoVuotHanMuc, docHanMuc, docSoNgay, nhanHinhThucDon, nhanQuaHan, quyetHinhThuc } from "./han-muc-tra-sau-hien-thi.ts";
+import { CAU_VE_TRA_TRUOC, cauChonTraSau, cauHanMuc, canhBaoVuotHanMuc, locHoSoTraSau, docHanMuc, docSoNgay, nhanHinhThucDon, nhanQuaHan, quyetHinhThuc } from "./han-muc-tra-sau-hien-thi.ts";
 
 test("cảnh báo khi nợ vượt hạn mức hiện hành; vừa bằng thì chưa cảnh báo", () => {
   assert.equal(canhBaoVuotHanMuc({ hanMuc: 50_000_000, dangNo: 50_000_000 }), null);
@@ -65,4 +65,25 @@ test("bên đặt CHƯA nạp xong (đang mở nháp): không đổi lựa chọ
   assert.deepEqual(quyetHinhThuc({ dangChon: "PREPAID", c: chuaCo, benDatChuaNap: true }), { chon: "PREPAID", bao: null });
   // đã nạp xong mà không có bên đặt / không hạn mức: về Trả trước kèm câu báo
   assert.deepEqual(quyetHinhThuc({ dangChon: "CREDIT", c: chuaCo, benDatChuaNap: false }), { chon: "PREPAID", bao: CAU_VE_TRA_TRUOC });
+});
+
+test("chọn hồ sơ ở màn hạn mức: lọc không phân biệt dấu và hoa thường, xếp theo tên, giới hạn số dòng", () => {
+  const ds = [
+    { partyId: "p3", ten: "Đại Lý Biển Xanh" },
+    { partyId: "p1", ten: "Công Ty Mới Thử" },
+    { partyId: "p2", ten: "Ánh Dương Travel" },
+  ];
+  // Ô tìm cũ của Danh bạ không ra «Đại Lý» khi gõ «đại lý» hay «dai ly» (chữ hoa có dấu): danh sách mới phải ra.
+  assert.deepEqual(locHoSoTraSau(ds, "đại lý").hien.map((x) => x.partyId), ["p3"]);
+  assert.deepEqual(locHoSoTraSau(ds, "dai ly").hien.map((x) => x.partyId), ["p3"]);
+  assert.deepEqual(locHoSoTraSau(ds, "anh duong").hien.map((x) => x.partyId), ["p2"]);
+  assert.deepEqual(locHoSoTraSau(ds, "  CÔNG ty ").hien.map((x) => x.partyId), ["p1"]);
+  // Chưa gõ gì: hiện cả danh sách theo tên (không chờ gõ đủ hai chữ).
+  assert.deepEqual(locHoSoTraSau(ds, "").hien.map((x) => x.ten), ["Ánh Dương Travel", "Công Ty Mới Thử", "Đại Lý Biển Xanh"]);
+  assert.equal(locHoSoTraSau(ds, "").conLai, 0);
+  assert.deepEqual(locHoSoTraSau(ds, "không có").hien, []);
+  const nhieu = Array.from({ length: 25 }, (_, i) => ({ partyId: `x${i}`, ten: `Đối tác ${String(i).padStart(2, "0")}` }));
+  const r = locHoSoTraSau(nhieu, "", 20);
+  assert.equal(r.hien.length, 20);
+  assert.equal(r.conLai, 5);
 });

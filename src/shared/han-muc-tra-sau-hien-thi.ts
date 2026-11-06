@@ -1,6 +1,7 @@
 // Chữ hiện của màn «Hạn mức trả sau» và khối Thanh toán trên đơn (ADR-0168). Thuần, không DOM. Lý do khoá lấy từ `CAU_KHOA_QUA_HAN` — cùng ý với câu máy chủ (`lyDoKhongTraSau`).
 import { NHAN_HINH_THUC, dongTien, type HinhThucThanhToan } from "./tra-sau.ts";
 import { ngayDayDu } from "./vn-date.ts";
+import { boDau } from "./so-cong-no-hien-thi.ts";
 
 const CAU_KHOA_QUA_HAN = "Bên đặt còn đơn trả sau quá hạn chưa thanh toán nên chưa đặt thêm đơn trả sau được.";
 
@@ -47,4 +48,14 @@ export const CAU_VE_TRA_TRUOC = "Bên đặt không còn hạn mức trả sau d
 export function quyetHinhThuc(i: { dangChon: HinhThucThanhToan; c: ReturnType<typeof cauChonTraSau>; benDatChuaNap?: boolean }): { chon: HinhThucThanhToan; bao: string | null } {
   if (i.dangChon === "PREPAID" || i.benDatChuaNap) return { chon: i.dangChon, bao: null }; // bên đặt chưa nạp xong (đang mở nháp): chưa đủ căn cứ để đổi lựa chọn của người dùng
   return i.c.hien && i.c.khoa === null ? { chon: "CREDIT", bao: null } : { chon: "PREPAID", bao: CAU_VE_TRA_TRUOC };
+}
+
+/**
+ * Danh sách hồ sơ để chọn ở biểu mẫu «Đặt hạn mức»: lọc theo tên không phân biệt dấu và hoa thường (ô tìm chung của Danh bạ dùng LIKE của SQLite,
+ * nên «đại lý» không ra «Đại Lý»), xếp theo tên tiếng Việt, hiện tối đa `toiDa` dòng; `conLai` = số hồ sơ khớp chưa hiện, để màn nhắc gõ thêm.
+ */
+export function locHoSoTraSau<T extends { ten: string }>(ds: readonly T[], tu: string, toiDa = 20): { hien: T[]; conLai: number } {
+  const q = boDau(tu.trim());
+  const khop = ds.filter((x) => q === "" || boDau(x.ten).includes(q)).sort((a, b) => a.ten.localeCompare(b.ten, "vi"));
+  return { hien: khop.slice(0, toiDa), conLai: Math.max(0, khop.length - toiDa) };
 }

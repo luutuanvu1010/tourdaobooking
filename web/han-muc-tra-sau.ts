@@ -6,7 +6,7 @@ import { ApiError, api, type Api } from "./api";
 import { hoiXacNhan } from "./bang-truot";
 import { byId, h, replaceChildren } from "./dom";
 import { initShell, showError } from "./shell";
-import { canhBaoVuotHanMuc, cauHanMuc, docHanMuc, docSoNgay, nhanQuaHan } from "../src/shared/han-muc-tra-sau-hien-thi";
+import { canhBaoVuotHanMuc, cauHanMuc, docHanMuc, docSoNgay, locHoSoTraSau, nhanQuaHan } from "../src/shared/han-muc-tra-sau-hien-thi";
 import { dongTien } from "../src/shared/tra-sau";
 import { moTrang } from "../src/shared/muc-giao-dien";
 
@@ -119,27 +119,47 @@ function ve(): void {
   khungEl.hidden = false;
 }
 
-/** Biểu mẫu «Đặt hạn mức» (Toàn quyền): chọn hồ sơ bằng ô tìm theo tên, nhập hạn mức, số ngày, lý do (không bắt buộc). Đặt lại hồ sơ đã có hạn mức = đóng dòng cũ, mở dòng mới. */
+/**
+ * Hồ sơ chọn được = mọi hồ sơ đang mang loại đối tác được hưởng (cùng danh sách màn «Cấp độ đại lý», `GET /api/pricing/cap-dai-ly`; Toàn quyền giữ ô
+ * `partner.commission.write`). Nạp một lần, lọc ở trình duyệt bằng `locHoSoTraSau` (không phân biệt dấu): ô tìm chung của Danh bạ dùng LIKE nên «đại lý» không ra «Đại Lý».
+ */
+let hoSoChon: Promise<Api.CapDaiLyDongDto[]> | null = null;
+const napHoSoChon = (): Promise<Api.CapDaiLyDongDto[]> =>
+  (hoSoChon ??= api<Api.CapDaiLyResponse>("/api/pricing/cap-dai-ly").then((r) => r.hoSo, (err: unknown) => { hoSoChon = null; throw err; }));
+
+/** Biểu mẫu «Đặt hạn mức» (Toàn quyền): chọn hồ sơ từ danh sách đối tác được hưởng (lọc theo tên), nhập hạn mức, số ngày, lý do (không bắt buộc). Đặt lại hồ sơ đã có hạn mức = đóng dòng cũ, mở dòng mới. */
 function veForm(ben: { id: string; ten: string } | null, hienTai: Api.HanMucTraSauDto | null): void {
   chonBen = ben;
-  const oTim = h("input", { type: "search", class: "o", id: "hm-tim", autocomplete: "off", enterkeyhint: "search", placeholder: "Tìm hồ sơ theo tên", "aria-label": "Tìm hồ sơ theo tên" });
-  const ketQua = h("div", { class: "card-list" });
+  const oTim = h("input", { type: "search", class: "o", id: "hm-tim", autocomplete: "off", enterkeyhint: "search", placeholder: "Lọc theo tên", "aria-label": "Lọc hồ sơ đối tác theo tên" });
+  const ketQua = h("div", { class: "card-list", id: "hm-ds-ho-so" });
+  const ghiChu = h("p", { class: "muted", id: "hm-ds-ghi-chu" });
   const dangChon = h("p", { class: "muted", id: "hm-dang-chon" });
   const veChon = (): void => { dangChon.textContent = chonBen ? `Hồ sơ đã chọn: ${chonBen.ten}` : "Chưa chọn hồ sơ."; };
   veChon();
+  const veDanhSach = async (): Promise<void> => {
+    let ds: Api.CapDaiLyDongDto[];
+    try {
+      ds = await napHoSoChon();
+    } catch (err) {
+      replaceChildren(ketQua);
+      ghiChu.textContent = `Không tải được danh sách đối tác: ${lyDoLoi(err)}`;
+      return;
+    }
+    if (ds.length === 0) {
+      replaceChildren(ketQua);
+      ghiChu.textContent = "Chưa có hồ sơ nào mang loại đối tác được hưởng. Gán loại đối tác cho hồ sơ ở Danh bạ trước.";
+      return;
+    }
+    const r = locHoSoTraSau(ds.map((x) => ({ id: x.partyId, ten: x.ten, vai: x.vaiTro.map((v) => v.ten).join(", ") })), oTim.value);
+    replaceChildren(ketQua, ...r.hien.map((x) => h("button", { type: "button", class: "btn", "aria-pressed": String(chonBen?.id === x.id), onclick: () => { chonBen = { id: x.id, ten: x.ten }; veChon(); void veDanhSach(); } },
+      x.ten, x.vai ? h("span", { class: "muted" }, ` · ${x.vai}`) : null)));
+    ghiChu.textContent = r.hien.length === 0 ? "Không có hồ sơ nào khớp tên đã gõ." : r.conLai > 0 ? `Còn ${r.conLai} hồ sơ nữa, gõ tên để lọc.` : "";
+  };
+  void veDanhSach();
   let tre: ReturnType<typeof setTimeout> | undefined;
   oTim.addEventListener("input", () => {
     if (tre !== undefined) clearTimeout(tre);
-    tre = setTimeout(async () => {
-      const q = oTim.value.trim();
-      if (q.length < 2) return replaceChildren(ketQua);
-      try {
-        const r = await api<Api.PartyListResponse>(`/api/parties?limit=8&q=${encodeURIComponent(q)}`);
-        replaceChildren(ketQua, ...r.parties.map((p) => h("button", { type: "button", class: "btn", onclick: () => { chonBen = { id: p.id, ten: p.displayName }; veChon(); replaceChildren(ketQua); } }, p.displayName)));
-      } catch (err) {
-        hienLoi(lyDoLoi(err));
-      }
-    }, 200);
+    tre = setTimeout(() => void veDanhSach(), 150);
   });
   const oHan = h("input", { type: "text", class: "o", id: "hm-han-muc", inputMode: "numeric", autocomplete: "off", maxLength: 14, required: true, value: hienTai?.hanMuc != null ? String(hienTai.hanMuc) : "" });
   const oNgay = h("input", { type: "text", class: "o", id: "hm-so-ngay", inputMode: "numeric", autocomplete: "off", maxLength: 3, required: true, value: hienTai?.soNgay != null ? String(hienTai.soNgay) : "" });
@@ -148,7 +168,7 @@ function veForm(ben: { id: string; ten: string } | null, hienTai: Api.HanMucTraS
   const nut = h("button", { type: "submit", class: "btn btn-primary", "data-action": "luu-han-muc" }, "Đặt hạn mức");
   const form = h("form", { id: "hm-form" },
     h("h2", null, "Đặt hạn mức"),
-    h("div", { class: "lb-truong" }, h("label", { class: "nhan", for: "hm-tim" }, "Hồ sơ đối tác"), oTim), ketQua, dangChon,
+    h("div", { class: "lb-truong" }, h("label", { class: "nhan", for: "hm-tim" }, "Hồ sơ đối tác"), oTim), ketQua, ghiChu, dangChon,
     h("div", { class: "lb-truong" }, h("label", { class: "nhan", for: "hm-han-muc" }, "Hạn mức (đồng)"), oHan),
     h("div", { class: "lb-truong" }, h("label", { class: "nhan", for: "hm-so-ngay" }, "Số ngày được nợ"), oNgay),
     h("div", { class: "lb-truong" }, h("label", { class: "nhan", for: "hm-ly-do" }, "Lý do (không bắt buộc)"), oLyDo),

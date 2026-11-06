@@ -27,6 +27,7 @@ export const CHANGELOG: readonly ReleaseNote[] = [
       { kind: "doi", text: "Đường dẫn gửi khách: vé đã mở vẫn xem được, vé chưa mở chỉ hiện khi đơn đủ tiền." },
       { kind: "doi", text: "Chuyển tiền sang đơn mới: phải ghi đúng người chưa nộp tiền; đơn của Đối tác chỉ mở vé sau khi người đó nộp." },
       { kind: "sua", text: "Đơn trả sau: số nợ tính đúng khi mới nộp một phần tiền." },
+      { kind: "sua", text: "Màn Hạn mức trả sau: danh sách đối tác hiện sẵn để chọn, lọc theo tên gõ có dấu hay không đều ra." },
     ],
   },
   {
