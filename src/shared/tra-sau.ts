@@ -105,11 +105,11 @@ export type KetQuaKiemTraSau = { ok: true; hanMuc: HanMucHieuLuc; version: numbe
 /** Lý do một đơn không được xác nhận theo Trả sau (ADR-0168 Đ2 mục 3); `null` = được. */
 /** `loai: "sua_tang"` (kế hoạch 2026-11-05 Task 3): `soTienDon` là PHẦN TĂNG của một lần sửa số khách đơn đã xác nhận, `noHienTai` gồm cả nợ của chính đơn đó — câu nói «số tiền tăng thêm». */
 export function lyDoKhongTraSau(i: { hanMuc: HanMucHieuLuc | null; noHienTai: number; soTienDon: number; coDonQuaHan: boolean; loai?: "sua_tang" }): { ma: MaKhongTraSau; cau: string } | null {
-  if (!i.hanMuc) return { ma: "khong_co_han_muc", cau: "Bên đặt chưa có hạn mức trả sau còn hiệu lực. Hãy chọn trả trước, hoặc nhờ Quản trị hay Toàn quyền bật Trả sau cho bên đặt." };
+  if (!i.hanMuc) return { ma: "khong_co_han_muc", cau: "Bên đặt chưa có hạn mức trả sau còn hiệu lực. Hãy chọn trả trước, hoặc nhờ Quản trị hay Toàn quyền cấp hạn mức trả sau cho bên đặt." };
   if (i.coDonQuaHan) return { ma: "co_don_qua_han", cau: "Bên đặt còn đơn trả sau quá hạn chưa thanh toán. Cần thanh toán đủ các đơn đó trước khi đặt thêm đơn trả sau." };
   const conLai = Math.max(0, i.hanMuc.hanMuc - i.noHienTai);
   if (i.soTienDon > conLai) {
-    return { ma: "vuot_han_muc", cau: `${i.loai === "sua_tang" ? "Số tiền tăng thêm" : "Đơn trả sau"} ${dongTien(i.soTienDon)} vượt hạn mức: bên đặt còn được dùng ${dongTien(conLai)} (hạn mức ${dongTien(i.hanMuc.hanMuc)}, đang nợ ${dongTien(i.noHienTai)}).` };
+    return { ma: "vuot_han_muc", cau: `${i.loai === "sua_tang" ? "Số tiền tăng thêm" : "Đơn trả sau"} ${dongTien(i.soTienDon)} vượt hạn mức khả dụng của bên đặt là ${dongTien(conLai)} (hạn mức ${dongTien(i.hanMuc.hanMuc)}, đang nợ ${dongTien(i.noHienTai)}).` };
   }
   return null;
 }

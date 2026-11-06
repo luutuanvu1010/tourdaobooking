@@ -1,4 +1,4 @@
-// Kịch bản Chrome — Trả sau (ADR-0168; cập nhật 2026-11-06 cho ADR-0172, ADR-0173): ô «Trả sau» và khối «Cài đặt Trả sau» ở màn Cấp độ đại lý (Toàn quyền đặt, điền sẵn số gợi ý;
+// Kịch bản Chrome — Trả sau (ADR-0168; cập nhật 2026-11-06 cho ADR-0172, ADR-0173): ô «Trả sau» và khối «Hạn mức trả sau» ở màn Cấp độ đại lý (Toàn quyền đặt, điền sẵn số gợi ý;
 // Quản trị bị mức tối đa chặn; Kế toán chỉ xem), màn «Hạn mức trả sau» chỉ xem (giờ Việt Nam), khối Trả sau + nút «Ân hạn» trên đơn, mục «Trả sau của tôi» của Đối tác; 1440 và 390.
 // Môi trường: D1 tạm + wrangler dev + Chrome headless qua CDP (docs/evidence/2026-09-20-a2/kich-ban/a2-cdp.mjs) — Turnstile TẮT, KHÔNG --remote.
 // Quy tắc ADR-0074/0075: đăng nhập MỚI của cùng tài khoản đá phiên trang đang mở ⇒ mọi lời gọi API gieo dữ liệu làm TRƯỚC khi mở trang của tài khoản đó.
@@ -133,18 +133,18 @@ try {
 
   // ---------------- Cấp độ đại lý: Toàn quyền, 1440 ----------------
   let p = await moTrang(ACCOUNTS.chu, KHO_1440, "/cap-dai-ly");
-  await buoc("C1", "[1440] Cấp độ đại lý có cột «Trả sau» (giờ, ân hạn, nợ), khối «Cài đặt Trả sau» có số gợi ý của cấp và ô mức tối đa; không tràn; axe", async () => {
+  await buoc("C1", "[1440] Cấp độ đại lý có cột «Trả sau» (giờ, ân hạn, nợ), khối «Hạn mức trả sau» có số gợi ý của cấp và ô mức tối đa; không tràn; axe", async () => {
     await choCap(p);
     const t = await chuMain(p);
     assert.ok(t.includes("1.000.000 ₫ · trả trong 36 giờ · ân hạn 12 giờ"), `ô Trả sau đối tác 1: ${t.slice(0, 600)}`);
     assert.ok(t.includes("Đang nợ 1.350.000 ₫"), "nợ dưới ô");
-    assert.ok(t.includes("Cài đặt Trả sau") && t.includes("20.000.000 ₫ · trả trong 48 giờ (2 ngày) · ân hạn 6 giờ"), "số gợi ý của cấp");
+    assert.ok(t.includes("Hạn mức trả sau") && t.includes("20.000.000 ₫ · trả trong 48 giờ (2 ngày) · ân hạn 6 giờ"), "số gợi ý của cấp");
     assert.equal(await p.ev("!!document.getElementById('ts-muc-toi-da')"), true, "Toàn quyền có ô mức tối đa");
     await bocucSach(p, "[1440 cấp]");
     await chup(p, "cap-dai-ly-tra-sau-1440");
     await axeKiem(p, "[1440 cấp]");
   });
-  await buoc("C2", "[1440] bấm ô Trả sau của đối tác chưa bật: bảng điền sẵn số gợi ý của cấp; bấm «Đặt hạn mức» ⇒ 201, ô hiện số mới", async () => {
+  await buoc("C2", "[1440] bấm ô Trả sau của đối tác chưa bật: bảng điền sẵn số gợi ý của cấp; bấm «Cấp hạn mức» ⇒ 201, ô hiện số mới", async () => {
     await p.ev("window.__ghi.length = 0; true");
     await moO(p, BEN2);
     await choBangTruot(p);
@@ -214,13 +214,12 @@ try {
 
   // ---------------- Hạn mức trả sau: chỉ xem ----------------
   p = await moTrang(ACCOUNTS.accounting, KHO_1440);
-  await buoc("H1", "[1440] Hạn mức trả sau chỉ xem: dòng, cảnh báo vượt, không «Đặt hạn mức» / «Ngừng hạn mức»; «Xem đơn nợ» hiện hạn trả giờ Việt Nam; axe", async () => {
+  await buoc("H1", "[1440] Hạn mức trả sau chỉ xem: dòng, cảnh báo vượt, không «Cấp hạn mức» / «Điều chỉnh hạn mức» / «Đóng hạn mức»; «Xem đơn nợ» hiện hạn trả giờ Việt Nam; axe", async () => {
     await choBang(p);
     const t = await chuMain(p);
     assert.ok(t.includes(TEN) && t.includes("1.000.000 ₫ · trả trong 36 giờ · ân hạn 12 giờ"), "dòng");
     assert.ok(t.includes("Đang nợ 1.350.000 ₫, vượt hạn mức hiện hành 1.000.000 ₫."), "cảnh báo vượt");
-    assert.equal(await nutCoChu(p, "Đặt hạn mức"), false);
-    assert.equal(await nutCoChu(p, "Ngừng hạn mức"), false);
+    for (const chu of ["Cấp hạn mức", "Điều chỉnh hạn mức", "Đóng hạn mức"]) assert.equal(await nutCoChu(p, chu), false, chu);
     assert.equal(await p.ev("!!document.querySelector('main a[href=\"/cap-dai-ly\"]')"), true, "trỏ sang màn Cấp độ đại lý");
     await p.ev(`[...document.querySelectorAll('#hm-bang tr')].find((tr) => tr.textContent.includes(${JSON.stringify(TEN)})).querySelector('[data-action=xem-don-no]').click(); true`);
     await p.waitFor("!document.getElementById('hm-don').hidden", "danh sách đơn nợ hiện");
@@ -236,7 +235,7 @@ try {
   await buoc("H2", "[390] Quản trị xem được Hạn mức trả sau dạng thẻ; không tràn; vùng chạm; axe", async () => {
     await p.waitFor("document.querySelectorAll('#hm-the .card').length > 0", "thẻ hiện");
     const t = await p.ev("document.getElementById('hm-the').innerText");
-    assert.ok(t.includes(TEN) && t.includes("Còn được dùng") && t.includes("vượt hạn mức hiện hành"), `thẻ: ${t}`);
+    assert.ok(t.includes(TEN) && t.includes("Hạn mức khả dụng") && t.includes("vượt hạn mức hiện hành"), `thẻ: ${t}`);
     await bocucSach(p, "[390 hạn mức]");
     await chup(p, "han-muc-390");
     await axeKiem(p, "[390 hạn mức]");
@@ -295,12 +294,12 @@ try {
 
   // ---------------- Trả sau của tôi (Đối tác) ----------------
   for (const [nhan, kho] of [["1440", KHO_1440], ["390", KHO_390]]) {
-    await buoc(`P1-${nhan}`, `[${nhan}] Đối tác thấy mục «Trả sau của tôi» ở trang Tôi với hạn mức theo giờ và số còn được dùng; axe`, async () => {
+    await buoc(`P1-${nhan}`, `[${nhan}] Đối tác thấy mục «Trả sau của tôi» ở trang Tôi với hạn mức theo giờ và hạn mức khả dụng; axe`, async () => {
       const q = await moTrang(DT, kho, "/account");
       try {
         await q.waitFor("!document.getElementById('tra-sau-cua-toi').hidden", "mục Trả sau của tôi hiện");
         const t = await q.ev("document.getElementById('tra-sau-cua-toi').innerText");
-        assert.ok(t.includes("Trả sau của tôi") && t.includes("3.000.000 ₫ · trả trong 36 giờ · không ân hạn") && t.includes("Còn được dùng 3.000.000 ₫"), t);
+        assert.ok(t.includes("Trả sau của tôi") && t.includes("3.000.000 ₫ · trả trong 36 giờ · không ân hạn") && t.includes("Hạn mức khả dụng 3.000.000 ₫"), t);
         await bocucSach(q, `[${nhan} Tôi]`);
         await chup(q, `tra-sau-cua-toi-${nhan}`);
         await axeKiem(q, `[${nhan} Tôi]`);
@@ -327,13 +326,13 @@ try {
   };
   const nhap = await lapNhap(BEN2, "CREDIT");
   for (const [nhan, kho] of [["1440", KHO_1440], ["390", KHO_390]]) {
-    await buoc(`F1-${nhan}`, `[${nhan}] mở nháp Trả sau của bên có hạn mức: thấy ô Trả sau đang chọn và «Còn được dùng 20.000.000 ₫»; vùng chạm, không tràn ngang`, async () => {
+    await buoc(`F1-${nhan}`, `[${nhan}] mở nháp Trả sau của bên có hạn mức: thấy ô Trả sau đang chọn và «Hạn mức khả dụng 20.000.000 ₫»; vùng chạm, không tràn ngang`, async () => {
       const q = await moTrang(ACCOUNTS.salesA, kho, `/order-form?id=${encodeURIComponent(nhap.id)}`);
       try {
         await q.waitFor("(() => { const k = document.getElementById('tra-sau-khoi'); return !!k && !k.hidden && document.getElementById('tra-sau-cau').textContent.length > 0; })()", "khối Trả sau hiện");
         const k = await khoiHien(q);
         assert.equal(k.credit, true, "Trả sau đang chọn");
-        assert.ok(k.cau.includes("Còn được dùng 20.000.000"), k.cau);
+        assert.ok(k.cau.includes("Hạn mức khả dụng 20.000.000"), k.cau);
         await chup(q, `lap-don-tra-sau-${nhan}`);
       } finally { q.close(); trangHienTai = null; }
     });

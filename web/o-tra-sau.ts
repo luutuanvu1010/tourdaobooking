@@ -64,7 +64,7 @@ export function oTraSau(ho: { partyId: string; ten: string; capCode: string | nu
   );
 }
 
-/** Bảng bật / đổi / ngừng Trả sau của MỘT hồ sơ. Đọc số đang bật lúc MỞ (không dùng số lúc tải trang); chưa bật thì điền sẵn số gợi ý của cấp. */
+/** Bảng cấp / điều chỉnh / đóng hạn mức trả sau của MỘT hồ sơ (chữ nút theo chủ 2026-11-06: «Cấp hạn mức» khi chưa có, «Điều chỉnh hạn mức» khi đã có). Đọc số đang bật lúc MỞ (không dùng số lúc tải trang); chưa bật thì điền sẵn số gợi ý của cấp. */
 async function moBangTraSau(
   ho: { partyId: string; ten: string; capCode: string | null; tenCap: string | null },
   bc: BoiCanhTraSau,
@@ -88,8 +88,8 @@ async function moBangTraSau(
   const oGio = h("input", { id: "ts-gio-tra", class: "vc-input", type: "text", inputMode: "numeric", autocomplete: "off", maxLength: 4, value: so?.gioTra != null ? String(so.gioTra) : "" });
   const oAn = h("input", { id: "ts-gio-an-han", class: "vc-input", type: "text", inputMode: "numeric", autocomplete: "off", maxLength: 4, value: so ? String(so.gioAnHan ?? 0) : "0" });
   const oLyDo = h("input", { id: "ts-ly-do", class: "vc-input", type: "text", autocomplete: "off", maxLength: 200 });
-  const luu = h("button", { type: "button", class: "btn btn-primary btn-block", "data-action": "dat-han-muc" }, "Đặt hạn mức");
-  const ngung = dangBat ? h("button", { type: "button", class: "btn btn-block", "data-action": "ngung-han-muc" }, "Ngừng hạn mức") : null;
+  const luu = h("button", { type: "button", class: "btn btn-primary btn-block", "data-action": "dat-han-muc" }, dangBat ? "Điều chỉnh hạn mức" : "Cấp hạn mức");
+  const ngung = dangBat ? h("button", { type: "button", class: "btn btn-block", "data-action": "ngung-han-muc" }, "Đóng hạn mức") : null;
   const goiYCau = cauGoiYDienSan(dangBat, gy ? ho.tenCap : null);
   const mucCau = cauMucToiDa(bc.mucToiDa, bc.coQuyenDatMucToiDa);
   const bang = moBangTruot({
@@ -98,7 +98,7 @@ async function moBangTraSau(
       h(
         "div",
         { class: "vc-gt" },
-        h("div", { class: "vc-hint" }, dangBat ? `Đang bật: ${cauHanMuc(r)} · đang nợ ${dongTien(r.dangNo)}` : r.dangNo > 0 ? `Chưa bật · còn nợ ${dongTien(r.dangNo)}` : "Chưa bật Trả sau."),
+        h("div", { class: "vc-hint" }, dangBat ? `Đang bật: ${cauHanMuc(r)} · đang nợ ${dongTien(r.dangNo)}` : r.dangNo > 0 ? `Chưa cấp · còn nợ ${dongTien(r.dangNo)}` : "Chưa cấp hạn mức trả sau."),
         goiYCau && h("div", { class: "vc-hint" }, goiYCau),
         mucCau && h("div", { class: "vc-hint" }, mucCau),
         h("div", { class: "vc-field" }, h("label", { for: "ts-han-muc" }, "Hạn mức (đồng)"), oHan),
@@ -132,16 +132,16 @@ async function moBangTraSau(
     }
     bang.setBusy(false);
     bang.close(false);
-    hienBaoNgan(`Đã đặt hạn mức cho ${ho.ten}.`);
+    hienBaoNgan(dangBat ? `Đã điều chỉnh hạn mức của ${ho.ten}.` : `Đã cấp hạn mức cho ${ho.ten}.`);
     await lamMoi(ho.partyId);
   });
   ngung?.addEventListener("click", async () => {
     // Hộp hỏi không mở được khi đang có bảng: đóng bảng trước, rồi hỏi.
     bang.close(false);
     const dongY = await hoiXacNhan({
-      tieuDe: `Ngừng hạn mức của ${ho.ten}?`,
+      tieuDe: `Đóng hạn mức của ${ho.ten}?`,
       hauQua: "Từ lúc này đối tác không đặt thêm đơn trả sau được. Các đơn trả sau đã xác nhận vẫn giữ nguyên, nợ vẫn phải thu.",
-      nhanNguyHiem: "Ngừng hạn mức",
+      nhanNguyHiem: "Đóng hạn mức",
       nhanGiu: "Giữ hạn mức",
       opener,
     });
@@ -151,7 +151,7 @@ async function moBangTraSau(
     } catch (err) {
       return baoLoi(loiO, lyDoLoi(err));
     }
-    hienBaoNgan(`Đã ngừng hạn mức của ${ho.ten}.`);
+    hienBaoNgan(`Đã đóng hạn mức của ${ho.ten}.`);
     await lamMoi(ho.partyId);
   });
   oHan.focus();
@@ -217,7 +217,7 @@ export async function khoiCaiDatTraSau(bc: BoiCanhTraSau | null, veLai: () => Pr
   return h(
     "section",
     { class: "card card-col", id: "ts-cai-dat", "aria-labelledby": "ts-cai-dat-tieu-de" },
-    h("h2", { id: "ts-cai-dat-tieu-de" }, "Cài đặt Trả sau"),
+    h("h2", { id: "ts-cai-dat-tieu-de" }, "Hạn mức trả sau"),
     h("p", { class: "muted" }, "Số gợi ý theo cấp chỉ điền sẵn khi bật Trả sau cho một đối tác; không cho ai Trả sau. Đổi số gợi ý không đổi Trả sau đã bật."),
     loiChung,
     ds,

@@ -21,9 +21,9 @@ export const CHANGELOG: readonly ReleaseNote[] = [
     version: "2.70",
     date: "2026-11-06",
     items: [
-      { kind: "doi", text: "Trả sau nay đặt ở màn Cấp độ đại lý, cột «Trả sau»: Quản trị và Toàn quyền bật, đổi, ngừng; Kế toán xem. Màn Hạn mức trả sau chỉ còn để xem ai đang nợ.", bai: { id: "viec/han-muc-tra-sau", ten: "Bật Trả sau cho đối tác" } },
+      { kind: "doi", text: "Trả sau nay đặt ở màn Cấp độ đại lý, cột «Trả sau»: Quản trị, Toàn quyền cấp, điều chỉnh, đóng hạn mức; Kế toán xem. Màn Hạn mức trả sau chỉ để xem ai đang nợ.", bai: { id: "viec/han-muc-tra-sau", ten: "Cấp hạn mức trả sau cho đối tác" } },
       { kind: "doi", text: "Thời hạn trả tính bằng giờ từ lúc đơn được xác nhận, có thêm số giờ ân hạn. Trong ân hạn chỉ báo; hết ân hạn mà còn nợ mới chặn đơn trả sau mới và vé chưa mở." },
-      { kind: "moi", text: "Mỗi Cấp độ đại lý có số gợi ý Trả sau, tự điền sẵn khi bật cho một đối tác. Toàn quyền đặt mức tối đa Quản trị được cấp." },
+      { kind: "moi", text: "Mỗi Cấp độ đại lý có số gợi ý Trả sau, tự điền sẵn khi cấp hạn mức cho một đối tác. Toàn quyền đặt mức tối đa Quản trị được cấp." },
       { kind: "moi", text: "Nút «Ân hạn» trên đơn trả sau còn nợ: Quản trị, Toàn quyền lùi hạn trả kèm lý do." },
       { kind: "moi", text: "Đối tác xem mục «Trả sau của tôi» ở trang Tôi: hạn mức, số đang nợ và từng đơn còn nợ." },
       { kind: "moi", text: "Hộp thư nhắc đối tác trước hạn trả 6 giờ và khi đơn quá hạn; Kế toán cũng được báo khi quá hạn." },
@@ -59,7 +59,7 @@ export const CHANGELOG: readonly ReleaseNote[] = [
     date: "2026-11-05",
     items: [
       { kind: "moi", text: "Đối tác có hạn mức được chọn «Trả sau» khi lập đơn: vé mở trước, tiền thu sau trong số ngày được nợ." },
-      { kind: "moi", text: "Toàn quyền có màn Hạn mức trả sau để cấp hoặc ngừng hạn mức cho từng đối tác; Kế toán xem được số nợ và đơn quá hạn.", bai: { id: "viec/han-muc-tra-sau", ten: "Bật Trả sau cho đối tác" } },
+      { kind: "moi", text: "Toàn quyền có màn Hạn mức trả sau để cấp hoặc ngừng hạn mức cho từng đối tác; Kế toán xem được số nợ và đơn quá hạn.", bai: { id: "viec/han-muc-tra-sau", ten: "Cấp hạn mức trả sau cho đối tác" } },
       { kind: "moi", text: "Đơn trả sau vượt hạn mức, hoặc của đối tác còn đơn quá hạn, không xác nhận được; chi tiết đơn ghi hình thức thanh toán và hạn trả." },
     ],
   },

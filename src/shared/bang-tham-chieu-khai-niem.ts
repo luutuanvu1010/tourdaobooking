@@ -364,6 +364,33 @@ export const KHAI_NIEM: readonly KhaiNiem[] = [
     trangThai: "da-chot",
     chuChon: "2026-10-25 (lượt 3); 2026-11-04 (ADR-0166 câu 9)",
   }),
+  KN({
+    ten: "Hạn mức trả sau",
+    giaiNghia: "Số tiền tối đa một đối tác được nợ công ty qua các đơn trả sau, kèm thời hạn trả và ân hạn tính bằng giờ. Quản trị hoặc Toàn quyền cấp, điều chỉnh hay đóng hạn mức ở ô «Trả sau» của màn Cấp độ đại lý; khối cùng tên cuối màn đó giữ số gợi ý theo cấp và «Mức tối đa Quản trị được cấp».",
+    khacVoi: "Trùng tên với màn chỉ xem «Hạn mức trả sau» ở Thiết lập (danh sách đối tác đang nợ): cùng chủ đề nên chủ chọn dùng chung tên. Nút đóng hạn mức là «Đóng hạn mức» (chủ chọn), khác chữ «Đóng» dùng chung chỉ để gập khung.",
+    chuDaLoai: [],
+    maNoiBo: ["bil_credit_limit", "credit.limit.write", "khoiCaiDatTraSau", "ts-cai-dat"],
+    trangThai: "da-chot",
+    chuChon: "2026-11-06 (chủ, hộp hỏi: tên theo chữ ngân hàng; thay tiêu đề khối «Cài đặt Trả sau»)",
+  }),
+  KN({
+    ten: "Hạn mức khả dụng",
+    giaiNghia: "Phần hạn mức trả sau đối tác còn dùng được: hạn mức trừ số đang nợ của các đơn trả sau. Đơn trả sau mới hay phần tăng thêm của một đơn phải nằm trong số này.",
+    khacVoi: "Khác «Hạn mức trả sau»: đó là con số được cấp, còn hạn mức khả dụng là phần chưa dùng tới.",
+    chuDaLoai: [],
+    maNoiBo: ["conDuocDung", "/api/tra-sau/con-duoc-dung"],
+    trangThai: "da-chot",
+    chuChon: "2026-11-06 (chủ, hộp hỏi: tên theo chữ ngân hàng; thay «Còn được dùng»)",
+  }),
+  KN({
+    ten: "Chưa cấp",
+    giaiNghia: "Đối tác chưa có hạn mức trả sau đang hiệu lực, nên chỉ đặt được đơn trả trước. Hiện ở ô «Trả sau» của màn Cấp độ đại lý.",
+    khacVoi: "Chỉ dùng cho hạn mức trả sau. «Chưa bật» vẫn là chữ của Face ID và xác thực hai lớp.",
+    chuDaLoai: [],
+    maNoiBo: ["cauHanMuc", "data-tra-sau=chua-bat"],
+    trangThai: "da-chot",
+    chuChon: "2026-11-06 (chủ, hộp hỏi: tên theo chữ ngân hàng; thay «Chưa bật» ở Trả sau)",
+  }),
   // ---- Dịch vụ, giá, đơn ----
   KN({
     ten: "Đơn",

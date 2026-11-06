@@ -1,7 +1,7 @@
 // Màn «Hạn mức trả sau» (ADR-0168; ADR-0172 Đ1 mục 3): CHỈ XEM danh sách đối tác đang bật Trả sau hoặc còn nợ, kèm đơn còn nợ của từng đối tác.
 // Bật / đổi / ngừng Trả sau nay ở màn «Cấp độ đại lý» (web/o-tra-sau.ts). Kế toán, Quản trị, Toàn quyền xem; máy chủ hỏi lại quyền ở mọi lời gọi.
 //   GET /api/tra-sau/han-muc → { danhSach, ... }        GET /api/tra-sau/han-muc/:partyId/don → { partyId, ten, don }
-// Số nợ, còn được dùng, trạng thái hạn của từng đơn do máy chủ tính; trang chỉ hiện, giờ theo giờ Việt Nam (`cauDonNo`). Không innerHTML.
+// Số nợ, hạn mức khả dụng, trạng thái hạn của từng đơn do máy chủ tính; trang chỉ hiện, giờ theo giờ Việt Nam (`cauDonNo`). Không innerHTML.
 import { ApiError, api, type Api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
 import { initShell, showError } from "./shell";
@@ -72,7 +72,7 @@ const the = (d: Api.HanMucTraSauDto): HTMLElement =>
   h("div", { class: "card card-col" },
     h("div", null, h("strong", null, d.ten)),
     h("div", { class: "muted" }, cauHanMuc(d)),
-    h("div", null, `Đang nợ ${dongTien(d.dangNo)} · Còn được dùng ${conDuoc(d)}`),
+    h("div", null, `Đang nợ ${dongTien(d.dangNo)} · Hạn mức khả dụng ${conDuoc(d)}`),
     cauHan(d) !== "—" ? h("div", { class: "muted" }, cauHan(d)) : null,
     canhBao(d),
     h("div", { class: "handler-actions" }, nutXem(d)),

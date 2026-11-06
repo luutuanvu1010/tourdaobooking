@@ -50,7 +50,7 @@ test("sửa số khách của văn phòng: tăng vượt hạn mức 409, tăng 
   const v0 = phienBan(w);
   const vuot = await suaVP(w, d.id, 4); // 1.200.000
   assert.deepEqual([vuot.status, vuot.json.error.code], [409, "vuot_han_muc"], vuot.text);
-  assert.match(vuot.json.error.message, /^Số tiền tăng thêm 600\.000 ₫ vượt hạn mức: bên đặt còn được dùng 400\.000 ₫/, "câu báo nói phần tăng và phần còn được dùng (Task 3)");
+  assert.match(vuot.json.error.message, /^Số tiền tăng thêm 600\.000 ₫ vượt hạn mức khả dụng của bên đặt là 400\.000 ₫/, "câu báo nói phần tăng và hạn mức khả dụng (Task 3; chữ «hạn mức khả dụng» chủ chọn 2026-11-06)");
   assert.equal(soDongDieuChinh(w, d.id), 0, "không để lại dòng điều chỉnh nào");
   assert.equal(phienBan(w), v0, "lô bị từ chối không tăng phiên bản");
   const duoc = await suaVP(w, d.id, 3); // 900.000 ≤ 1.000.000
@@ -473,7 +473,7 @@ test("Task 3: hạn mức 500.000, đơn 600.000 đã về công ty 400.000 (n�
   const v0 = phienBan(w)!;
   const vuot = await suaVP(w, id, 5); // 1.000.000: phần tăng 400.000 > còn được dùng 300.000
   assert.deepEqual([vuot.status, vuot.json.error?.code], [409, "vuot_han_muc"], vuot.text);
-  assert.equal(vuot.json.error.message, "Số tiền tăng thêm 400.000 ₫ vượt hạn mức: bên đặt còn được dùng 300.000 ₫ (hạn mức 500.000 ₫, đang nợ 200.000 ₫).");
+  assert.equal(vuot.json.error.message, "Số tiền tăng thêm 400.000 ₫ vượt hạn mức khả dụng của bên đặt là 300.000 ₫ (hạn mức 500.000 ₫, đang nợ 200.000 ₫).");
   assert.equal(soDongDieuChinh(w, id), 0);
   assert.equal(phienBan(w), v0);
   const duoc = await suaVP(w, id, 4); // 800.000: phần tăng 200.000 ≤ 300.000
