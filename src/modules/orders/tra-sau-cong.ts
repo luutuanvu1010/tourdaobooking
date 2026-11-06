@@ -1,6 +1,7 @@
 // Cổng Trả sau của `orders` (ADR-0168 Đ2): hình thức thanh toán nằm trên đơn, còn HẠN MỨC và SỐ NỢ thuộc `billing` — `orders` chỉ nhận hàm do gốc lắp ráp tiêm vào `ctx`
 // (khuôn `cocChoXacNhan`, ADR-0159). Hai cửa: `congTraSauKhiLuu` (lưu đơn — báo sớm) và `traSauChoXacNhan` (lô xác nhận — chốt thật, kèm câu gác phiên bản và hạn trả).
 // KHÔNG tự kiểm quyền người gọi (route đã làm). Không nhắc bảng `bil_`, không import `billing` (bài src/architecture.test.ts, src/dat-coc-noi-goi.test.ts).
+import { chanVeDaMoTrongLo, laLoiVeDaMoTrongLo } from "../../shared/chan-doi-tac-huy";
 import { error } from "../../shared/http";
 import { dongTien, hanTraTu, hetAnHanTu, ngayCuaMoc, type HinhThucThanhToan, type KetQuaKiemTraSau } from "../../shared/tra-sau";
 
@@ -62,52 +63,89 @@ export async function traSauChoXacNhan(h: HamTraSau, db: D1Database, i: { order:
   };
 }
 
-// ---- Đường làm TĂNG hoặc TRƯỢT nợ sau xác nhận (ADR-0168 Đ2 mục 5–6, Đ3 mục 3; kế hoạch Task 4) --------------------------------------------------------------------------
+// ---- Đường làm TĂNG hoặc TRƯỢT nợ sau xác nhận (ADR-0168 Đ2 mục 5–6, Đ3 mục 3; kế hoạch 2026-11-05 Task 2, 3) --------------------------------------------------------------
+//
+// BA KIỂU MANG NHÃN (`unique symbol` chỉ khai trong tệp này): `QuaCongHuy`, `QuaCongDoiBen`, `QuaCongSuaTang`. Hàm soạn câu ghi (`soanHuyDon`, `changeBooker`, `insertMoneyAdjustment`)
+// BẮT BUỘC nhận kiểu tương ứng, mà chỉ cổng ở đây tạo được giá trị mang nhãn ⇒ quên gọi cổng thì `npm run typecheck` đỏ. GIỚI HẠN: chặn NHẦM / QUÊN, không chặn ép kiểu `as` cố ý
+// (docs/SO-HANG-RAO.md). Không nhãn nào mở thêm quyền: kết quả cổng chỉ mang câu gác của chính lô.
+declare const NHAN_HUY: unique symbol;
+declare const NHAN_DOI_BEN: unique symbol;
+declare const NHAN_SUA_TANG: unique symbol;
+/** Qua cổng huỷ. `chanVeDaMo`: lô huỷ phải mang câu bảo vệ «vé vừa mở» (đơn Trả sau còn nợ, vé CHƯA mở lúc kiểm); `no` để dịch lỗi câu bảo vệ; `kem(at)`: câu gác phiên bản bên đặt (khi hết nợ lúc kiểm). */
+export type QuaCongHuy = { readonly [NHAN_HUY]: true; readonly chanVeDaMo: boolean; readonly no: number; readonly kem: (at: string) => D1PreparedStatement[] };
+/** Qua cổng đổi bên đặt. `kem(at)`: câu gác phiên bản của bên đặt CŨ (đơn Trả sau đã xác nhận hết nợ). */
+export type QuaCongDoiBen = { readonly [NHAN_DOI_BEN]: true; readonly kem: (at: string) => D1PreparedStatement[] };
+/** Qua cổng sửa số khách. `kem`: câu gác phiên bản (chỉ khi đơn Trả sau đã xác nhận mà tiền TĂNG). */
+export type QuaCongSuaTang = { readonly [NHAN_SUA_TANG]: true; readonly kem: D1PreparedStatement[] };
+const quaHuy = (q: { chanVeDaMo: boolean; no: number; kem: (at: string) => D1PreparedStatement[] }) => ({ qua: q as QuaCongHuy });
+const quaDoiBen = (kem: (at: string) => D1PreparedStatement[]) => ({ qua: { kem } as QuaCongDoiBen });
+const quaSuaTang = (kem: D1PreparedStatement[]) => ({ qua: { kem } as QuaCongSuaTang });
+const KHONG_CAU = (): D1PreparedStatement[] => [];
 
-/** Sửa số khách (văn phòng và hướng dẫn viên — MỘT hàm `soanSuaSoKhach`): chỉ đơn Trả sau ĐÃ xác nhận mà tiền TĂNG mới qua cổng hạn mức; giảm hoặc y nguyên thì không gác. */
-export async function congSuaTangTraSau(
-  h: HamTraSau,
-  order: { id: string; paymentTerm: HinhThucThanhToan; status: string; bookerPartyId: string | null; total: number },
-  tongMoi: number,
-): Promise<{ loi: Response } | { kem: D1PreparedStatement[] }> {
-  if (order.paymentTerm !== "CREDIT" || order.status !== "confirmed" || tongMoi <= order.total) return { kem: [] };
-  const r = await kiemDon(h, { id: order.id, paymentTerm: "CREDIT", bookerPartyId: order.bookerPartyId, total: tongMoi, declaredDeposit: 0 });
-  if ("loi" in r) return r;
-  return { kem: h.cauGacPhienBanTraSau(r.benDat, r.kq.version, new Date().toISOString()) };
-}
-
-/** Hai hàm do gốc lắp ráp tiêm cho huỷ đơn và đổi bên đặt (xem `ctx.traSauCuaDon`, `ctx.veDaMoCuaDon` ở src/shared/router.ts). Không tiêm ⇒ hàm trả null ⇒ cổng chặn 503 (không đoán). */
+/** Hai hàm do gốc lắp ráp tiêm cho huỷ đơn, đổi bên đặt, sửa tăng (xem `ctx.traSauCuaDon`, `ctx.veDaMoCuaDon` ở src/shared/router.ts). Không tiêm ⇒ hàm trả null ⇒ cổng chặn 503 (không đoán). */
 export interface HamNoTraSau {
   traSauCuaDon: (orderId: string) => Promise<{ hanTra: string | null; hetAnHan?: string | null; no: number; benDat?: string | null; version?: number } | null>;
   veDaMoCuaDon: (orderId: string) => Promise<boolean | null>;
 }
+
+/** Sửa số khách (văn phòng và hướng dẫn viên — MỘT hàm `soanSuaSoKhach`): chỉ đơn Trả sau ĐÃ xác nhận mà tiền TĂNG mới qua cổng hạn mức; giảm hoặc y nguyên thì không gác. */
+export async function congSuaTangTraSau(
+  h: HamTraSau & Pick<HamNoTraSau, "traSauCuaDon">,
+  order: { id: string; paymentTerm: HinhThucThanhToan; status: string; bookerPartyId: string | null; total: number },
+  tongMoi: number,
+): Promise<{ loi: Response } | { qua: QuaCongSuaTang }> {
+  if (order.paymentTerm !== "CREDIT" || order.status !== "confirmed" || tongMoi <= order.total) return quaSuaTang([]);
+  const r = await kiemDon(h, { id: order.id, paymentTerm: "CREDIT", bookerPartyId: order.bookerPartyId, total: tongMoi, declaredDeposit: 0 });
+  if ("loi" in r) return r;
+  return quaSuaTang(h.cauGacPhienBanTraSau(r.benDat, r.kq.version, new Date().toISOString()));
+}
+
 export const CAU_HUY_CON_NO = (no: number): string => `Đơn trả sau còn nợ ${dongTien(no)} mà vé đã mở cho khách nên chưa huỷ được. Hãy thu đủ tiền, hoặc nhờ Kế toán xử lý.`;
 export const CAU_DOI_BEN_CON_NO = (no: number): string => `Đơn trả sau còn nợ ${dongTien(no)} nên chưa đổi được bên đặt. Hãy thu đủ tiền trước.`;
 
-/** Huỷ đơn (mọi nơi gọi `soanHuyDon`): đơn Trả sau ĐÃ xác nhận còn nợ mà đã có vé mở thì 409. Chưa mở vé thì huỷ như thường (đơn huỷ hết nợ). `null` = qua. */
-export async function congHuyTraSau(h: Pick<HamNoTraSau, "traSauCuaDon" | "veDaMoCuaDon">, d: { id: string; paymentTerm: HinhThucThanhToan; status: string }): Promise<Response | null> {
-  if (d.paymentTerm !== "CREDIT" || d.status !== "confirmed") return null;
+/**
+ * Huỷ đơn (mọi nơi gọi `soanHuyDon`): đơn Trả sau ĐÃ xác nhận còn nợ mà đã có vé mở thì 409. Còn nợ, vé chưa mở ⇒ qua với `chanVeDaMo` (lô mang câu bảo vệ: vé mở chen giữa lúc kiểm
+ * và lúc ghi làm cả lô lui — Task 2, nợ 2). Hết nợ ⇒ qua với câu gác phiên bản bên đặt (khoản thu bị đảo chen giữa làm nợ lại có thì lô thua). Đơn khác ⇒ qua, không câu nào.
+ */
+export async function congHuyTraSau(
+  h: Pick<HamNoTraSau, "traSauCuaDon" | "veDaMoCuaDon"> & Pick<HamTraSau, "cauGacPhienBanTraSau">,
+  d: { id: string; paymentTerm: HinhThucThanhToan; status: string },
+): Promise<{ loi: Response } | { qua: QuaCongHuy }> {
+  if (d.paymentTerm !== "CREDIT" || d.status !== "confirmed") return quaHuy({ chanVeDaMo: false, no: 0, kem: KHONG_CAU });
   const t = await h.traSauCuaDon(d.id);
-  if (!t) return CHUA_DUNG_DUOC();
-  if (t.no <= 0) return null;
+  if (!t) return { loi: CHUA_DUNG_DUOC() };
+  if (t.no <= 0) {
+    if (t.benDat === undefined || t.version === undefined) return { loi: CHUA_DUNG_DUOC() };
+    const { benDat, version } = t;
+    return quaHuy({ chanVeDaMo: false, no: 0, kem: benDat === null ? KHONG_CAU : (at) => h.cauGacPhienBanTraSau(benDat, version, at) });
+  }
   const mo = await h.veDaMoCuaDon(d.id);
-  if (mo === null) return CHUA_DUNG_DUOC();
-  return mo ? error(409, "tra_sau_con_no_da_mo_ve", CAU_HUY_CON_NO(t.no)) : null;
+  if (mo === null) return { loi: CHUA_DUNG_DUOC() };
+  if (mo) return { loi: error(409, "tra_sau_con_no_da_mo_ve", CAU_HUY_CON_NO(t.no)) };
+  return quaHuy({ chanVeDaMo: true, no: t.no, kem: KHONG_CAU });
 }
 
-/** Đổi bên đặt (mọi nơi gọi `changeBooker`): đơn Trả sau ĐÃ xác nhận còn nợ thì 409; chỉ xét khi bên đặt ĐỔI THẬT. `null` = qua. */
+/**
+ * Lô huỷ thua vì câu bảo vệ «vé vừa mở» hoặc câu gác phiên bản: dịch ra câu cho người bấm. Người giữ quyền Đối tác ⇒ câu của ADR-0170 Đ3 (luật của họ rộng hơn: đã mở vé là không tự huỷ);
+ * văn phòng ⇒ câu Trả sau còn nợ (cùng câu với lúc kiểm). `null` ⇒ không phải lỗi của hai câu này, nơi gọi ném tiếp.
+ */
+export function dichLoiLoHuy(e: unknown, qua: QuaCongHuy, laDoiTac: boolean): Response | null {
+  if (laLoiVeDaMoTrongLo(e)) return laDoiTac || !qua.chanVeDaMo ? chanVeDaMoTrongLo() : error(409, "tra_sau_con_no_da_mo_ve", CAU_HUY_CON_NO(qua.no));
+  return dichLoiTraSau(e);
+}
+
+/** Đổi bên đặt (mọi nơi gọi `changeBooker`): đơn Trả sau ĐÃ xác nhận còn nợ thì 409; chỉ xét khi bên đặt ĐỔI THẬT. */
 export async function congDoiBenDatTraSau(
-  h: Pick<HamNoTraSau, "traSauCuaDon"> & Partial<Pick<HamTraSau, "cauGacPhienBanTraSau">>,
+  h: Pick<HamNoTraSau, "traSauCuaDon"> & Pick<HamTraSau, "cauGacPhienBanTraSau">,
   d: { id: string; paymentTerm: HinhThucThanhToan; status: string; doiThat: boolean },
-): Promise<{ loi: Response } | { kem: (at: string) => D1PreparedStatement[] }> {
-  const KHONG = { kem: () => [] as D1PreparedStatement[] };
-  if (!d.doiThat || d.paymentTerm !== "CREDIT" || d.status !== "confirmed") return KHONG;
+): Promise<{ loi: Response } | { qua: QuaCongDoiBen }> {
+  if (!d.doiThat || d.paymentTerm !== "CREDIT" || d.status !== "confirmed") return quaDoiBen(KHONG_CAU);
   const t = await h.traSauCuaDon(d.id);
-  if (!t || t.benDat === undefined || t.version === undefined || !h.cauGacPhienBanTraSau) return { loi: CHUA_DUNG_DUOC() };
+  if (!t || t.benDat === undefined || t.version === undefined) return { loi: CHUA_DUNG_DUOC() };
   if (t.no > 0) return { loi: error(409, "tra_sau_con_no_doi_ben_dat", CAU_DOI_BEN_CON_NO(t.no)) };
   // Hết nợ lúc kiểm: gác phiên bản của bên đặt CŨ trong chính lô đổi — khoản thu đảo chen giữa (làm nợ lại có) thì lô thua cả lô, nợ không dời sang bên mới.
   const { benDat, version } = t;
-  return benDat === null ? KHONG : { kem: (at) => h.cauGacPhienBanTraSau!(benDat, version, at) };
+  return quaDoiBen(benDat === null ? KHONG_CAU : (at) => h.cauGacPhienBanTraSau(benDat, version, at));
 }
 
 /** Lô có câu gác phiên bản mà thua (có lệnh khác vừa làm tăng nợ của cùng bên đặt) ⇒ cả lô huỷ; dịch thành 409 cho mọi đường sửa. */

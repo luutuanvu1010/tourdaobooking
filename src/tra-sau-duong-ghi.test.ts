@@ -1,10 +1,8 @@
 // Các đường làm TĂNG hoặc TRƯỢT nợ của đơn Trả sau (ADR-0168 Đ2 mục 5–6, Đ3 mục 3; kế hoạch 2026-11-05 Task 4): sửa số khách (văn phòng và hướng dẫn viên) chung MỘT cổng,
-// đổi bên đặt, gộp hồ sơ, huỷ đơn khi vé đã mở, và đảo / sửa khoản thu (không bị chặn, chỉ tăng phiên bản). Cuối tệp là bài QUÉT mã nguồn: mọi nơi gọi
-// `soanHuyDon`, `changeBooker`, `soanSuaSoKhach` phải đi qua cổng. Khung thử thật (tests/audit/harness.mjs). Tên, SĐT là GIẢ.
+// đổi bên đặt, gộp hồ sơ, huỷ đơn khi vé đã mở (kể cả vé mở chen giữa lúc kiểm và lúc ghi), và bảng ĐƯỜNG GHI chạy thật (mỗi đường làm nợ đổi tăng phiên bản đúng 1).
+// Cổng bắt buộc của `soanHuyDon`, `changeBooker`, `insertMoneyAdjustment` do kiểu mang nhãn ép (typecheck), không còn bài quét chữ. Khung thử thật (tests/audit/harness.mjs). Tên, SĐT là GIẢ.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync, readdirSync, statSync } from "node:fs";
-import { join } from "node:path";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { seedStaff } from "../tests/audit/harness.mjs";
 import { A, ACC, ADM, H, SUP, inDays, setup, svc } from "../tests/audit/xac-nhan-khung.mjs";
@@ -252,62 +250,168 @@ test("sửa (thay) khoản thu của đơn Trả sau: nợ tăng đúng số và
   assert.equal(phienBan(w), v0 + 1);
 });
 
-// ---- Bài QUÉT mã nguồn: đường mới không lọt (tiêu chí 9) ----
-const goc = new URL("../", import.meta.url).pathname;
-function tep(dir: string, out: string[] = []): string[] {
-  for (const t of readdirSync(join(goc, dir))) {
-    const p = join(dir, t);
-    if (statSync(join(goc, p)).isDirectory()) tep(p, out);
-    else if (t.endsWith(".ts") && !t.endsWith(".test.ts")) out.push(p);
-  }
-  return out;
+// ---- Kế hoạch 2026-11-05 Task 2 (nợ 2): vé mở CHEN GIỮA lúc kiểm và lúc huỷ — người bấm là văn phòng (không giữ quyền Đối tác) ----
+const demBil = (w: W): string => JSON.stringify(["bil_payment_receipt", "bil_posting", "bil_debt_line", "bil_credit_guard"].map((t) => w.q(`SELECT count(*) AS n FROM ${t}`)[0].n));
+const demNhatKy = (w: W, id: string): number => w.q("SELECT count(*) AS n FROM audit_log WHERE order_id = ?", id)[0].n;
+const laLoHuy = (stmts: { sql: string }[]) => stmts.some((s) => /ord_cancel_reason/.test(s.sql));
+
+test("Task 2: /status — văn phòng huỷ đơn Trả sau còn nợ, vé được mở đúng lúc giữa kiểm và ghi ⇒ 409 tra_sau_con_no_da_mo_ve; đơn còn confirmed, sổ và nhật ký không đổi", async () => {
+  const w = dung();
+  assert.equal((await hanMuc(w, 2_000_000)).status, 201);
+  const d = await donTS(w);
+  const truoc = [demBil(w), demNhatKy(w, d.id)];
+  w.chenTruocLo(laLoHuy, () => moVe(w, d.id));
+  const r = await huy(w, d.id);
+  assert.deepEqual([r.status, r.json.error?.code], [409, "tra_sau_con_no_da_mo_ve"], r.text);
+  assert.match(r.json.error.message, /600\.000/, "câu nói số còn nợ");
+  assert.equal(w.q("SELECT status FROM orders WHERE id = ?", d.id)[0].status, "confirmed");
+  assert.deepEqual([demBil(w), demNhatKy(w, d.id)], truoc, "không dòng sổ, không dòng nhật ký nào");
+});
+
+test("Task 2: handler-cancel — cùng ca chen giữa ⇒ 409 tra_sau_con_no_da_mo_ve; đơn còn confirmed, sổ và nhật ký không đổi", async () => {
+  const w = dung();
+  assert.equal((await hanMuc(w, 2_000_000)).status, 201);
+  const d = await donTS(w);
+  assert.equal((await w.call("PUT", `/api/orders/${d.id}/handler`, { as: A, body: { staffId: H } })).status, 200);
+  const truoc = [demBil(w), demNhatKy(w, d.id)];
+  w.chenTruocLo(laLoHuy, () => moVe(w, d.id));
+  const r = await w.call("POST", `/api/orders/${d.id}/handler-cancel`, { as: H, body: { reason: "customer_requested" } });
+  assert.deepEqual([r.status, r.json.error?.code], [409, "tra_sau_con_no_da_mo_ve"], r.text);
+  assert.equal(w.q("SELECT status FROM orders WHERE id = ?", d.id)[0].status, "confirmed");
+  assert.deepEqual([demBil(w), demNhatKy(w, d.id)], truoc);
+});
+
+test("Task 2: huỷ lúc đã hết nợ cũng gác phiên bản — khoản thu bị đảo chen giữa (nợ lại có, vé đã mở) ⇒ 409 credit_version_stale, đơn không huỷ", async () => {
+  const w = dung();
+  assert.equal((await hanMuc(w, 2_000_000)).status, 201);
+  const d = await donTS(w);
+  assert.equal((await thu(w, d.id, T_ZB1)).status, 201);
+  moVe(w, d.id);
+  w.chenTruocLo(laLoHuy, () => { w.sqlite.prepare("UPDATE bil_credit_guard SET version = version + 1 WHERE party_id = ?").run(BEN); });
+  const r = await huy(w, d.id);
+  assert.deepEqual([r.status, r.json.error?.code], [409, "credit_version_stale"], r.text);
+  assert.equal(w.q("SELECT status FROM orders WHERE id = ?", d.id)[0].status, "confirmed");
+});
+
+// ---- Kế hoạch Task 2 (nợ 1, 4): bảng ĐƯỜNG GHI chạy thật — mỗi đường làm nợ đơn Trả sau có thể đổi phải tăng phiên bản bên đặt ĐÚNG 1 trong chính lô ----
+const congTy = (w: W): string => String(w.q("SELECT party_id FROM v_pty_owner_company")[0].party_id);
+const khoanThu = (w: W, id: string): string => String(w.q("SELECT id FROM bil_payment_receipt WHERE order_id = ? AND reverses_id IS NULL AND kind_code = 'CUSTOMER_PAYMENT' ORDER BY rowid LIMIT 1", id)[0].id);
+/** Đơn đã thu đủ, «Xong và đủ tiền», có phân định 100.000 do Hướng Dẫn chịu (Quản trị quyết, có trả khách). Trả id phân định (bước RULING). */
+async function giaoVaQuyet(w: W, id: string): Promise<string> {
+  assert.equal((await thu(w, id, T_ZB1)).status, 201);
+  w.sqlite.prepare("UPDATE order_service SET depart_date = ? WHERE order_id = ?").run(inDays(0), id); // «Xong và đủ tiền» chỉ từ ngày đi
+  const g = await w.call("POST", `/api/orders/${id}/delivered`, { as: SUP, body: {} });
+  assert.equal(g.status, 200, g.text);
+  const q = await w.call("POST", "/api/ledger/phan-dinh", { as: ACC, body: { orderId: id, soTien: 100_000, lyDo: "Khách phản ánh quên đón" } });
+  assert.equal(q.status, 201, q.text);
+  const r = await w.call("POST", `/api/ledger/phan-dinh/${q.json.id}/quyet`, { as: ADM, body: { soTien: 100_000, truongHop: "T6", coTienRa: true, lyDo: "Đã nghe hai bên trình bày", benChiuPartyId: `pty-${H}` } });
+  assert.equal(r.status, 201, r.text);
+  return r.json.id as string;
 }
-const MA_NGUON = tep("src").map((p) => ({ p, s: readFileSync(join(goc, p), "utf8") }));
-/** Mọi lời gọi `ten(` trong mã nguồn (trừ dòng khai hàm và chú thích), kèm tệp. */
-function noiGoi(ten: string): { p: string; i: number; s: string }[] {
-  const re = new RegExp(`(?<![\\w.])${ten}\\(`, "g");
-  const out: { p: string; i: number; s: string }[] = [];
-  for (const { p, s } of MA_NGUON) {
-    for (const m of s.matchAll(re)) {
-      const dau = s.lastIndexOf("\n", m.index!) + 1;
-      const dong = s.slice(dau, s.indexOf("\n", m.index!));
-      if (/^\s*(\/\/|\*|\/\*)/.test(dong) || /\b(export\s+)?(async\s+)?function\s/.test(dong)) continue;
-      out.push({ p, i: m.index!, s });
-    }
-  }
-  return out;
+const ghiPD = (w: W, ruling: string) => w.call("POST", `/api/ledger/phan-dinh/${ruling}/ghi`, { as: ACC, body: { hinhThuc: "CASH" } });
+
+const DUONG_GHI: { ten: string; truoc: (w: W, id: string) => Promise<unknown>; lam: (w: W, id: string, x: any) => Promise<{ status: number; text: string }> }[] = [
+  {
+    ten: "hoàn tiền cho khách",
+    truoc: async (w, id) => assert.equal((await thu(w, id, T_ZB1)).status, 201),
+    lam: (w, id) => w.call("POST", "/api/ledger/refunds", { as: ACC, body: { orderId: id, soTien: 100_000, hinhThuc: "CASH", nguoiTra: "cong_ty" } }),
+  },
+  {
+    ten: "đảo (huỷ) khoản thu",
+    truoc: async (w, id) => assert.equal((await thu(w, id, T_ZB1)).status, 201),
+    lam: (w, id) => w.call("POST", "/api/ledger/adjustments", { as: ACC, body: { loai: "dao_lan_thu", receiptId: khoanThu(w, id), lyDo: "ghi nhầm số tiền khách đưa" } }),
+  },
+  {
+    ten: "sửa khoản thu",
+    truoc: async (w, id) => assert.equal((await thu(w, id, T_ZB1)).status, 201),
+    lam: (w, id) => w.call("POST", "/api/ledger/receipt-replacements", { as: ACC, body: { orderId: id, cu: [khoanThu(w, id)], moi: [{ soTien: 400_000, hinhThuc: "CASH", nguoiThu: "cong_ty" }], lyDo: "khách đưa thiếu, sửa lại cho đúng" } }),
+  },
+  {
+    ten: "huỷ dòng giữ hộ (dòng giữ hộ của điều chỉnh đã duyệt)",
+    truoc: async (w, id) => {
+      const y = await w.call("POST", "/api/ledger/adjustments", { as: ACC, body: { loai: "dieu_chinh", orderId: id, benNo: `pty-${A}`, benDuocNo: congTy(w), soTien: 100_000, loaiDong: "HELD", lyDo: "nhân viên giữ hộ tiền khách đưa" } });
+      assert.equal(y.status, 201, y.text);
+      const duyet = await w.call("POST", `/api/ledger/adjustment-requests/${y.json.yeuCauId}/approve`, { as: SUP, body: {} });
+      assert.ok(duyet.status === 200 || duyet.status === 201, duyet.text);
+      return String(w.q("SELECT id FROM bil_debt_line WHERE order_id = ? AND kind_code = 'HELD' AND reverses_line_id IS NULL", id)[0].id);
+    },
+    lam: (w, _id, dong) => w.call("POST", "/api/ledger/adjustments", { as: ACC, body: { loai: "dao_dong", lineId: dong, lyDo: "ghi nhầm dòng giữ hộ" } }),
+  },
+  {
+    ten: "duyệt điều chỉnh sổ (người thứ hai duyệt)",
+    truoc: async (w, id) => {
+      const y = await w.call("POST", "/api/ledger/adjustments", { as: ACC, body: { loai: "dieu_chinh", orderId: id, benNo: `pty-${A}`, benDuocNo: congTy(w), soTien: 100_000, loaiDong: "HELD", lyDo: "nhân viên giữ hộ tiền khách đưa" } });
+      assert.equal(y.status, 201, y.text);
+      return y.json.yeuCauId as string;
+    },
+    lam: (w, _id, yc) => w.call("POST", `/api/ledger/adjustment-requests/${yc}/approve`, { as: SUP, body: {} }),
+  },
+  {
+    ten: "huỷ dòng nộp",
+    truoc: async (w, id) => {
+      assert.equal((await w.call("POST", `/api/orders/${id}/payments`, { as: A, body: { soTien: 200_000, hinhThuc: "CASH", nguoiThu: "toi" } })).status, 201);
+      assert.equal((await w.call("POST", "/api/ledger/settlements", { as: ACC, body: { chieu: "nop", partyId: `pty-${A}`, phanBo: [{ orderId: id, soTien: 100_000 }] } })).status, 201);
+      return String(w.q("SELECT id FROM bil_debt_line WHERE order_id = ? AND kind_code = 'SETTLEMENT' AND reverses_line_id IS NULL", id)[0].id);
+    },
+    lam: (w, _id, dong) => w.call("POST", "/api/ledger/adjustments", { as: ACC, body: { loai: "dao_dong", lineId: dong, lyDo: "ghi nhầm lần nộp" } }),
+  },
+  {
+    ten: "chuyển cọc từ đơn huỷ sang đơn Trả sau",
+    truoc: async (w, id) => {
+      const r = await w.call("POST", "/api/orders", { as: DT2, body: { customerName: "Khách Hai", customerPhone: "0912345679", services: [svc("ZB1", inDays(3))], declaredDeposit: 200_000 } });
+      assert.equal(r.status, 201, r.text);
+      const cu = r.json.order.id as string;
+      assert.equal((await w.call("POST", `/api/orders/${cu}/gui-don`, { as: DT2, body: {} })).status, 200);
+      const don = (await w.call("GET", `/api/orders/${cu}`, { as: DT2 })).json.order;
+      assert.equal((await w.call("POST", `/api/orders/${cu}/status`, { as: DT2, body: { status: "cancelled", lyDo: "SAI_THONG_TIN", updatedAt: don.updatedAt } })).status, 200);
+      const ma = String(w.q("SELECT order_code AS c FROM orders WHERE id = ?", id)[0].c);
+      const d = await w.call("POST", `/api/orders/${cu}/coc/duyet`, { as: ADM, body: { loai: "chuyen", soTien: 200_000, lyDo: "Lập lại đơn cho khách", donNhan: ma } });
+      assert.ok(d.status === 200 || d.status === 201, d.text);
+      return { cu, duyetId: d.json.duyetId };
+    },
+    lam: (w, _id, x) => w.call("POST", `/api/orders/${x.cu}/coc/chuyen`, { as: ACC, body: { duyetId: x.duyetId, soTien: 200_000, ngayPhatSinh: inDays(0), nguoiGiu: { partyId: BEN2 } } }),
+  },
+  {
+    ten: "ghi sổ theo phân định (có trả khách)",
+    truoc: (w, id) => giaoVaQuyet(w, id),
+    lam: (w, _id, ruling) => ghiPD(w, ruling),
+  },
+  {
+    ten: "ghi sổ phân định đổi bên chịu",
+    truoc: async (w, id) => {
+      assert.equal((await ghiPD(w, await giaoVaQuyet(w, id))).status, 201);
+      const goc = String(w.q("SELECT id FROM bil_attribution WHERE order_id = ? AND step_code = 'POSTED'", id)[0].id);
+      const d = await w.call("POST", `/api/ledger/phan-dinh/${goc}/doi-ben-chiu`, { as: ADM, body: { truongHop: "T6", benChiuPartyId: `pty-${A}`, lyDo: "Phân định nhầm người, đổi bên chịu" } });
+      assert.equal(d.status, 201, d.text);
+      return d.json.id as string;
+    },
+    lam: (w, _id, ruling) => ghiPD(w, ruling),
+  },
+  {
+    ten: "huỷ khoản theo phân định (đòi được khách)",
+    truoc: async (w, id) => {
+      assert.equal((await ghiPD(w, await giaoVaQuyet(w, id))).status, 201);
+      return String(w.q("SELECT id FROM bil_attribution WHERE order_id = ? AND step_code = 'POSTED'", id)[0].id);
+    },
+    lam: (w, _id, goc) => w.call("POST", `/api/ledger/phan-dinh/${goc}/huy`, { as: ACC, body: { soTien: 100_000, lyDo: "Khách đã trả lại một phần", moi: [{ soTien: 100_000, hinhThuc: "CASH", nguoiThu: "cong_ty" }] } }),
+  },
+];
+
+for (const dg of DUONG_GHI) {
+  test(`ĐƯỜNG GHI (chạy thật): ${dg.ten} — phiên bản bên đặt tăng đúng 1`, async () => {
+    const w = dung();
+    assert.equal((await hanMuc(w, 5_000_000)).status, 201);
+    // Bên đặt mang vai được hưởng: «Xong và đủ tiền» (hai dòng phân định) đòi có mức hoa hồng lúc xác nhận.
+    assert.equal((await w.call("POST", "/api/pricing/hoa-hong", { as: ACC, body: { doiTuong: { loai: "VAI", code: "TRAVEL_AGENCY" }, phamVi: "ALL", kieu: "PER_PAX", moiKhach: 50_000, tuNgay: "2026-01-01" } })).status, 201);
+    const d = await donTS(w);
+    const x = await dg.truoc(w, d.id);
+    const v0 = phienBan(w);
+    assert.notEqual(v0, null, "chống bài rỗng: bên đặt đã có dòng phiên bản trước lệnh");
+    const r = await dg.lam(w, d.id, x);
+    assert.ok(r.status === 200 || r.status === 201, r.text);
+    assert.equal(phienBan(w), v0! + 1);
+  });
 }
-/** Thân hàm bao quanh vị trí `i` (từ lần khai `function`/`route(` gần nhất ngay trước tới hết lời gọi): đủ để tìm cổng đứng TRƯỚC lời gọi. */
-const truocLoiGoi = (n: { s: string; i: number }, doDai = 6000): string => n.s.slice(Math.max(0, n.i - doDai), n.i);
 
-test("QUÉT: mọi nơi gọi soanHuyDon đi qua congHuyTraSau (trừ cancelOrder của repository — hàm không còn nơi gọi)", () => {
-  const cho = noiGoi("soanHuyDon").filter((n) => n.p !== "src/modules/orders/repository.ts");
-  assert.ok(cho.length >= 3, `chống bài rỗng: thấy ${cho.length} nơi gọi`);
-  for (const n of cho) assert.match(truocLoiGoi(n, 2500), /congHuyTraSau\(/, `${n.p}: gọi soanHuyDon mà không có congHuyTraSau đứng trước`);
-  assert.equal(noiGoi("cancelOrder").length, 0, "cancelOrder (không qua cổng) không được có nơi gọi mới");
-});
-
-test("QUÉT: changeBooker chỉ được gọi sau congDoiBenDatTraSau", () => {
-  const cho = noiGoi("changeBooker").filter((n) => !n.p.endsWith("repository.ts"));
-  assert.ok(cho.length >= 1, "chống bài rỗng");
-  for (const n of cho) assert.match(truocLoiGoi(n, 3500), /congDoiBenDatTraSau\(/, `${n.p}: changeBooker không có cổng`);
-});
-
-test("QUÉT: soanSuaSoKhach (đường chung của hai route sửa số khách) gọi congSuaTangTraSau, và cả hai nơi gọi truyền cổng", () => {
-  const ORDERS = MA_NGUON.find((x) => x.p === "src/modules/orders/index.ts")!.s;
-  const tu = ORDERS.indexOf("async function soanSuaSoKhach(");
-  assert.ok(tu > 0);
-  const than = ORDERS.slice(tu, ORDERS.indexOf("\n}\n", tu));
-  assert.match(than, /congSuaTangTraSau\(/, "thân soanSuaSoKhach phải gọi congSuaTangTraSau");
-  const cho = noiGoi("soanSuaSoKhach");
-  assert.equal(cho.length, 2, "hai nơi gọi: editMoneyAsHandler và route money-edit");
-  for (const n of cho) assert.match(n.s.slice(n.i, n.i + 400), /traSau/i, "nơi gọi truyền cổng Trả sau");
-});
-
-test("QUÉT: các đường đảo / sửa / hoàn khoản thu của billing đều nối cauTangChoDon vào lô", () => {
-  const SV = MA_NGUON.find((x) => x.p === "src/modules/billing/service.ts")!.s;
-  const TL = MA_NGUON.find((x) => x.p === "src/modules/billing/thay-lan-thu.ts")!.s;
-  const dem = (s: string) => (s.match(/cauTangChoDon\(/g) ?? []).length;
-  assert.ok(dem(SV) >= 3, `service.ts: hoàn, đảo lần thu, đảo dòng — thấy ${dem(SV)}`);
-  assert.ok(dem(TL) >= 1, `thay-lan-thu.ts — thấy ${dem(TL)}`);
-});
+// Bốn bài QUÉT chữ cũ (soanHuyDon / changeBooker / soanSuaSoKhach phải có cổng đứng trước; đếm cauTangChoDon) đã XOÁ theo kế hoạch 2026-11-05 Task 2:
+// ba hàm ghi nay đòi kiểu mang nhãn chỉ cổng tạo được (`npm run typecheck` buộc), và bảng ĐƯỜNG GHI ở trên chạy thật từng đường. Sổ: docs/SO-HANG-RAO.md.

@@ -16,6 +16,7 @@ import {
   conLaiCuaKhoan, hoanNgoaiTrangThai, kiemChi, kiemDuyet, kiemGhiHoanNgoai, kiemHuyDuyet, kiemXacNhanHoanNgoai, METHOD_CODES, nhacCoc, nhacDoiChieu, sinhDongHoanKhach, sinhDongLanThu,
   soDuTheoBen, soTienCoc, type DuyetRow, type HoanNgoaiRow, type KiemCoc, type SoTienCoc,
 } from "./rules";
+import { cauTangChoDon } from "./tra-sau-tang";
 import { CHUA_CO_CONG_TY, PARTY_ID_RE, loaiCho, docLyDo, docNgay, docSoTien, layKyDaKhoa, lineOf, loi, loiKhoaKy, toDoiChieuRow, toLineRow, toReceiptRow, type KetQua, type NguoiGoi } from "./service";
 
 /** Kiểm độc lập vòng 2 CAO-1: đơn nhận đổi trạng thái giữa lúc duyệt chuyển và lúc chuyển. */
@@ -347,6 +348,9 @@ export async function ghiChuyen(db: D1Database, input: { orderId: string; raw: u
     stmts.push(postingIfReceiptStatement(db, { id: p, kind: "RECEIPT", orderId: goc.targetOrderId, reason: null, reversesPostingId: null, occurredDate: ngay.value, dueSnapshot: null, at, by: input.ai.staffId }, vaoId));
     for (const x of vao) stmts.push(lineIfPostingStatement(db, lineOf(x, p, goc.targetOrderId, vaoId, at, input.ai.staffId)));
   }
+  // ADR-0168 Đ2 mục 4 (kế hoạch 2026-11-05 Task 2, nợ 1): đơn NHẬN là Trả sau ⇒ tăng phiên bản bên đặt của nó trong cùng lô (lệnh xác nhận / sửa tăng đang chờ thua).
+  // Chỉ đơn nhận: đơn huỷ đã hết nợ; hai đơn cùng bên đặt cũng chỉ tăng một lần.
+  stmts.push(...(await cauTangChoDon(db, goc.targetOrderId, at)));
   const lo = await chayLo(db, stmts, [ngay.value]);
   if (!lo.ok) return lo;
   if ((lo.kq[1]!.meta.changes ?? 0) === 0) {

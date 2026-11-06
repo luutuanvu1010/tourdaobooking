@@ -264,8 +264,11 @@ const APP_OPTIONS: AppOptions = {
     capVeSauXacNhan: async (env, actor, orderId) => {
       try { await capVeChoDon(env.DB, await dichVuChoVe(env.DB, orderId), actor.id, nhatKyThat(env.DB), new Date().toISOString()); } catch (e) { console.error("ve_cap_loi", orderId, e instanceof Error ? e.name : "loi"); }
     },
-    traVeKhiHuy: async (env, actor, orderId, lyDo) => {
-      try { return await soanTraVeKhiHuy(env.DB, { orderId, lyDo, by: actor.id, at: new Date().toISOString(), homNay: vnToday(new Date()), chanVeDaMo: holdsPartner(actor) }, nhatKyThat(env.DB)); } catch (e) { console.error("ve_tra_loi", orderId, e instanceof Error ? e.name : "loi"); return []; }
+    // Cờ câu bảo vệ «vé vừa mở» (ADR-0170 Đ3; kế hoạch 2026-11-05 Task 2): người giữ quyền Đối tác HOẶC cổng huỷ Trả sau đòi. Có cờ mà soạn lỗi thì NÉM (lô huỷ không chạy) —
+    // nuốt lỗi ở đây sẽ bỏ mất câu bảo vệ (mở cửa); không cờ thì nuốt như cũ (thiếu câu trả vé chỉ để lại vé giữ thừa, suy ra lúc đọc).
+    traVeKhiHuy: async (env, actor, orderId, lyDo, chanVeDaMoTraSau) => {
+      const chanVeDaMo = holdsPartner(actor) || chanVeDaMoTraSau;
+      try { return await soanTraVeKhiHuy(env.DB, { orderId, lyDo, by: actor.id, at: new Date().toISOString(), homNay: vnToday(new Date()), chanVeDaMo }, nhatKyThat(env.DB)); } catch (e) { console.error("ve_tra_loi", orderId, e instanceof Error ? e.name : "loi"); if (chanVeDaMo) throw e; return []; }
     },
     canBangVeSauSuaKhach: async (env, actor, orderId) => {
       try { await canBangVeTheoSoKhach(env.DB, await dichVuChoVe(env.DB, orderId), actor.id, nhatKyThat(env.DB), new Date().toISOString(), vnToday(new Date())); } catch (e) { console.error("ve_can_bang_loi", orderId, e instanceof Error ? e.name : "loi"); }
