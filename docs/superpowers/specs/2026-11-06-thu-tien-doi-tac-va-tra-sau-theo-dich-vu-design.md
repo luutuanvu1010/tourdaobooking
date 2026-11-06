@@ -1,6 +1,6 @@
 # Công tắc «Khách của đối tác trả cho Công ty» và «Trả sau theo dịch vụ»
 
-Trạng thái: **bản soạn 2026-11-06, đã qua một vòng người kiểm độc lập, chờ chủ duyệt.** Quyết định kiến trúc: `docs/adr/ADR-0178-cong-tac-khach-doi-tac-tra-cong-ty-va-tra-sau-theo-dich-vu.md` (proposed). Lệch giữa hai nơi: ADR thắng.
+Trạng thái: **đã duyệt 2026-11-06** (chủ: «Duyệt ADR-0178»). Người kiểm độc lập đã đọc bản thứ nhất; phần viết lại ở bản thứ hai chưa ai kiểm độc lập. Quyết định kiến trúc: `docs/adr/ADR-0178-cong-tac-khach-doi-tac-tra-cong-ty-va-tra-sau-theo-dich-vu.md` (accepted). Lệch giữa hai nơi: ADR thắng.
 
 ## Lời chủ
 
@@ -97,7 +97,7 @@ Chủ chọn ở hai lượt hộp hỏi cùng ngày (nguyên văn nhãn đã ch
 - Việc 2 viết trên mã Trả sau (`src/shared/tra-sau.ts`, `src/modules/orders/tra-sau-cong.ts`, `src/modules/billing/tra-sau*.ts`). Phiên khác đang sửa cùng chỗ: `claude/festive-payne-7371a2` (ADR-0177, proposed). Thi công Việc 2 sau khi nhánh đó nhập hoặc bị bỏ.
 - Cảnh báo «vé hãng ngoài» ở Việc 2 mục 3 cần biết dịch vụ có vé và vé do ai phát: ADR-0174 (đã duyệt, đang thi công trên `claude/interesting-hodgkin-cde2fd`) và ADR-0175 (proposed). Chưa có thì cảnh báo nói chung «dịch vụ này có thể có vé hãng ngoài».
 - Số migration: các nhánh chưa nhập đã dùng tới `0142`, `0143`; người thi công soát lại theo `CLAUDE.md` §10.
-- **Xây trên lỗ đang hở:** `TNV-G1` (đơn huỷ còn tiền), `HC-5.19` (chưa diễn tập khôi phục), `HC-4.2` (bút toán điều chỉnh chưa có người duyệt riêng). Chủ cho xây và cho **lên trước diễn tập** (lời chủ ở bảng trên), giống ADR-0172. Lời này có hiệu lực khi chủ duyệt ADR-0178; lúc đó dòng `xay_tren_cho_phep` ở `docs/quyen-hoan.json` được thêm và chủ duyệt bằng diff.
+- **Xây trên lỗ đang hở:** `TNV-G1` (đơn huỷ còn tiền), `HC-5.19` (chưa diễn tập khôi phục), `HC-4.2` (bút toán điều chỉnh chưa có người duyệt riêng). Chủ cho xây và cho **lên trước diễn tập** (lời chủ ở bảng trên), giống ADR-0172. Đã ghi dòng `xay_tren_cho_phep_adr_0178` ở ba mục của `docs/quyen-hoan.json` ngày duyệt.
 
 ## Tiêu chí nghiệm thu (đỏ trước, xanh sau)
 

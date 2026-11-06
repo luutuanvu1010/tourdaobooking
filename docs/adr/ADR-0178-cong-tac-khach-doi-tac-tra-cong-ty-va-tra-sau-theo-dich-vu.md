@@ -1,10 +1,10 @@
 # ADR-0178 — Công tắc «Khách của đối tác trả cho Công ty» và «Trả sau theo dịch vụ»
 
-- **Trạng thái:** **proposed** 2026-11-06 — chờ chủ dự án duyệt. Tám lựa chọn chủ đã chọn cùng ngày nằm trong đặc tả; các lựa chọn đó không phải lời duyệt ADR này. Người kiểm độc lập đã đọc một vòng, các phát hiện đã đưa vào bản này.
+- **Trạng thái:** **accepted** 2026-11-06 — chủ dự án, nguyên văn: *«Duyệt ADR-0178»* (nút ở khung bước tiếp theo, trả lời câu «Bạn duyệt ADR-0178 để giao thi công chứ?»), sau khi được báo: phần viết lại ở bản thứ hai chưa có người kiểm độc lập; nên đọc lại bảng «Chủ chọn» ở đặc tả vì các hàng về tiền trùng phương án khuyến nghị; ca rủi ro lớn nhất ở mục Hệ quả. Người ghi chép ghi lại lời chủ; không tự duyệt (Hiến pháp N3). Tám lựa chọn chủ đã chọn cùng ngày nằm trong đặc tả. Người kiểm độc lập đã đọc bản thứ nhất, các phát hiện đã đưa vào bản này.
 - **Nguồn:** `docs/superpowers/specs/2026-11-06-thu-tien-doi-tac-va-tra-sau-theo-dich-vu-design.md` (lời chủ, bảng từng đường ghi tiền, tiêu chí nghiệm thu, trang ghép). Lệch giữa hai nơi: ADR này thắng.
 - **Loại:** việc lớn (tiền, dữ liệu, quyền). **Cửa:** hai chiều về hành vi (Bật lại công tắc, gỡ dấu); dữ liệu chụp trên đơn ở lại.
 - **Số quyết định chạm quyền/dữ liệu trong lượt duyệt: 3** (Đ1, Đ2, Đ3). Trang ghép ở đặc tả.
-- **Xây trên lỗ đang hở:** `TNV-G1`, `HC-5.19`, `HC-4.2`. Chủ đã trả lời, nguyên văn: *«không, câu cuối là cho xây, lên trước diễn tập»*, tức cho xây và cho phát hành trước diễn tập khôi phục, giống ADR-0172. Có hiệu lực khi ADR này được duyệt; dòng `xay_tren_cho_phep` ở `docs/quyen-hoan.json` chủ duyệt bằng diff.
+- **Xây trên lỗ đang hở:** `TNV-G1`, `HC-5.19`, `HC-4.2`. Chủ đã trả lời, nguyên văn: *«không, câu cuối là cho xây, lên trước diễn tập»*, tức cho xây và cho phát hành trước diễn tập khôi phục, giống ADR-0172. Đã ghi dòng `xay_tren_cho_phep_adr_0178` ở ba mục của `docs/quyen-hoan.json` cùng ngày duyệt; chủ nói khác thì bỏ dòng đó.
 - **Quan hệ với ADR cũ:**
   - **Sửa** ADR-0173 Đ1 mục 2 («không cho vượt hạn mức, không có ngoại lệ theo đơn»), ADR-0168 Đ1 mục 4 («không có dòng hiệu lực thì chỉ trả trước») và Đ2 mục 3 (từ chối khi không có hạn mức): đơn Trả sau theo dịch vụ đứng ngoài hạn mức.
   - **Đổi nghĩa** ADR-0058 Đ3 (Quản trị gán nhóm dịch vụ bằng `admin.manage`): gán dịch vụ vào nhóm có dấu là cho dịch vụ đó Trả sau theo dịch vụ. Chủ đã chọn điều này.
