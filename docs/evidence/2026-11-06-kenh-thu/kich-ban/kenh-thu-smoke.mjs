@@ -4,7 +4,7 @@
 //   CHROME_BIN=docs/evidence/2026-09-20-a2/kich-ban/chrome-wrap.sh OUT=docs/evidence/2026-11-06-kenh-thu node docs/evidence/2026-11-06-kenh-thu/kich-ban/kenh-thu-smoke.mjs
 // Ca: Quản trị thấy thẻ công tắc, không nút; Toàn quyền thấy nút và TẮT (hộp hỏi lại); Đối tác lập đơn lúc Tắt; văn phòng (Kế toán) mở đơn của Đối tác không hưởng ⇒ không
 // lựa chọn người thu, câu «Đối tác lập đơn tự ghi khoản thu của đơn này.»; mở đơn của Đối tác là bên đặt được hưởng ⇒ đúng một lựa chọn «Khách trả cho đại lý ‹tên›»;
-// Đối tác mở đơn mình ⇒ đúng một lựa chọn «Tôi thu». Không trang nào có nút «QR thanh toán».
+// Đối tác mở đơn mình ⇒ đúng một lựa chọn «Tôi thu». Không trang nào có nút «QR thanh toán». Kế toán bấm «Sửa khoản thu đã ghi» ở đơn Tắt ⇒ chỉ người lập đơn.
 // Trang dùng chung kho cookie: mỗi bước đăng nhập đúng một tài khoản, mở trang của tài khoản đó sau cùng (bước của Đối tác ở cuối mỗi khổ).
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -104,6 +104,8 @@ const buoc = async (khung, hau) => {
     assert.equal((await call(CHU, "GET", "/api/kenh-thu-doi-tac")).json.congTyThu, false, "máy chủ ghi Tắt");
     donLe = await lapVaGui(DT_LE);
     donHuong = await lapVaGui(DT_HUONG);
+    // Một khoản «Tôi thu» của Đối tác không hưởng ⇒ Kế toán có nút «Sửa khoản thu đã ghi» ở bước 3 (vòng sửa cuối: ô người thu của Kế toán theo dấu Tắt).
+    dung(await call(DT_LE, "POST", `/api/orders/${donLe}/payments`, { soTien: 100000, hinhThuc: "CASH", nguoiThu: "toi" }), 201, "Đối tác ghi «Tôi thu»");
     const tLe = (await call(KT, "GET", `/api/orders/${donLe}/payments`)).json.kenhThu;
     const tHuong = (await call(KT, "GET", `/api/orders/${donHuong}/payments`)).json.kenhThu;
     console.log(`kenhThu đơn không hưởng: ${JSON.stringify(tLe)} · đơn được hưởng: ${JSON.stringify(tHuong)}`);
@@ -117,6 +119,14 @@ const buoc = async (khung, hau) => {
     assert.equal(await p.ev(noOverflowX), true);
     await chup(p, `04-van-phong-doi-tac-tu-ghi-${hau}`, khung);
     await axe(p, `đơn không hưởng ${hau}`);
+  });
+  await b.step(`${hau}-3b`, `${hau}: Kế toán bấm «Sửa khoản thu đã ghi» ở đơn dấu Tắt ⇒ ô người thu đúng một lựa chọn là người lập đơn, không «Công ty»${axeNote()}`, async () => {
+    await p.ev(`document.querySelector('[data-action="thay-lan-thu"]').click()`);
+    await p.waitFor(`!!document.querySelector('[data-khoi="sua-nguoi-thu"]')`, "form sửa khoản thu");
+    const ds = await p.ev(`[...document.querySelectorAll('[data-khoi="sua-nguoi-thu"] option')].map((o) => o.textContent.trim())`);
+    assert.deepEqual(ds, ["Đối Tác Không Hưởng (người lập đơn)"]);
+    await chup(p, `04b-ke-toan-sua-khoan-thu-${hau}`, khung);
+    await axe(p, `sửa khoản thu đơn Tắt ${hau}`);
   });
   p.close();
   // ---- 4. Văn phòng mở đơn của Đối tác là bên đặt được hưởng ----

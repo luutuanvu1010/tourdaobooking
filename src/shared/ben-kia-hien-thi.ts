@@ -35,6 +35,18 @@ export function luaChonNguoiThu(benKia: BenKiaLuaChonDto | null, kenhThu?: Order
   return ds;
 }
 
+/**
+ * Ô người thu của Kế toán ở «Sửa khoản thu đã ghi» và «Ghi bù khoản thu» (giá trị `cong_ty` hoặc id hồ sơ → `{ partyId }`). Đơn mang dấu Tắt (ADR-0178 Đ1 mục 2): đúng một
+ * lựa chọn là hồ sơ người lập, kể cả khi người đó không còn trong danh sách đang giữ tiền; người lập chưa gắn hồ sơ ⇒ rỗng (nơi gọi ẩn thao tác). Còn lại: `thuong` nguyên vẹn.
+ */
+export function luaChonNguoiThuSoKeToan(kenhThu: OrderPaymentsResponse["kenhThu"] | undefined, thuong: readonly LuaChon[]): LuaChon[] {
+  if (kenhThu?.congTyThu !== false) return [...thuong];
+  return kenhThu.nguoiLapPartyId ? [{ value: kenhThu.nguoiLapPartyId, nhan: `${kenhThu.nguoiLapTen ?? "Hồ sơ"} (người lập đơn)` }] : [];
+}
+
+/** Câu thay form «Ghi khoản thu đòi được» (phân định) ở đơn mang dấu Tắt: ADR-0178 Hệ quả — Kế toán không dùng được đường này cho đơn đó. */
+export const CAU_KHONG_GHI_DOI_DUOC = "Đơn này chỉ nhận tiền khách trả cho đối tác đã lập đơn nên Công ty không ghi khoản thu đòi được.";
+
 /** Giá trị ô chọn → trường `nguoiThu` của thân `POST /api/orders/:id/payments`. */
 export function nguoiThuTuGiaTri(v: string): LanThuInput["nguoiThu"] {
   if (v.startsWith(TIEN_TO_NCC)) return { nhaCungCapPartyId: v.slice(TIEN_TO_NCC.length) };

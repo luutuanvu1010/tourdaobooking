@@ -512,7 +512,7 @@ async function kenhThuChoTrang(db: D1Database, orderId: string, phan: PhanThuong
   const k = await kenhThuCuaDon(db, orderId);
   if (!k || k.dau !== 0) return null;
   const ten = k.nguoiLap ? (await partyLabels(db, [k.nguoiLap])).get(k.nguoiLap)?.label ?? null : null;
-  return { congTyThu: false, nguoiLapTen: ten, nguoiLapLaBenDatHuong: k.nguoiLap !== null && benDatHuong(phan) === k.nguoiLap };
+  return { congTyThu: false, nguoiLapTen: ten, nguoiLapLaBenDatHuong: k.nguoiLap !== null && benDatHuong(phan) === k.nguoiLap, nguoiLapPartyId: k.nguoiLap };
 }
 
 /**

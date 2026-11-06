@@ -40,7 +40,7 @@ import { GHI_CHU_HUY_TOI_DA, NHOM_HUY_NHAN, luaChonLyDo, nhanNhomHuy } from "../
 import { nhanTienDaTra as nhanTienLuat } from "../src/shared/nhan-tien";
 import { ngayDayDu } from "../src/shared/vn-date";
 import { cauNhacKhoan, quaHanDoiChieu, soNgayCho } from "../src/shared/doi-chieu-hien-thi";
-import { CAU_DOI_TAC_TU_GHI, NHAN_O_THU_CHO, cauBenKiaDaNhan, cauCanhBaoGiamGia, cauChoKeToan, laBenKia, luaChonNguoiThu, luaChonThuCho, lyDoCanTaiLai, nguoiThuTuGiaTri, oThuCho } from "../src/shared/ben-kia-hien-thi";
+import { CAU_DOI_TAC_TU_GHI, NHAN_O_THU_CHO, luaChonNguoiThuSoKeToan, cauBenKiaDaNhan, cauCanhBaoGiamGia, cauChoKeToan, laBenKia, luaChonNguoiThu, luaChonThuCho, lyDoCanTaiLai, nguoiThuTuGiaTri, oThuCho } from "../src/shared/ben-kia-hien-thi";
 import { cauMoc, changDuoiMoc, tomTatChanXacNhan, type ChangCanDatGap } from "../src/shared/dat-gap-hien-thi";
 import { NO_BOOKER_VALUE } from "../src/shared/booker";
 import { coODatQuaDoiTac, coXemNguoiBan, coXemPhanDoiTac, duocGhiTay, nhanBenDat } from "../src/shared/phan-doi-tac-hien-thi";
@@ -992,22 +992,22 @@ function nutKeToanLanThu(order: Order, t: Api.OrderPaymentsResponse, l: Api.LanT
   // ADR-0088 đ2, đ3: "Sửa khoản thu đã ghi" — đường sửa sai của khoản thu (sau Đã giao là đường DUY NHẤT; "Đảo" đơn lẻ bị máy chủ chặn nên ẩn). Một khoản thu cũ → một
   // khoản thu đúng (API nhận N → M; màn này làm ca hay gặp). Đơn huỷ đi qua khối cọc.
   // Người kiểm I-1 (19/10): tài khoản giữ quyền Đối tác không thấy «Sửa khoản thu» — máy chủ chặn cùng luật (`ghiSoNoiBo`).
-  if (ghiSoNoiBo(staff!, "ledger.write") && hienNutSuaKhoanThu(l, { choXacNhan: t.keToan!.choXacNhan, donDaHuy: order.status === "cancelled" })) {
+  // ADR-0178 Đ1 mục 2: đơn mang dấu Tắt — ô người thu chỉ có hồ sơ người lập (`luaChonNguoiThuSoKeToan`); người lập chưa gắn hồ sơ ⇒ không có lựa chọn ⇒ ẩn thao tác.
+  const laCongTy = l.nguoiThu === "Công ty";
+  const chonSua = luaChonNguoiThuSoKeToan(t.kenhThu, [
+    { value: "cong_ty", nhan: "Công ty" },
+    ...(!laCongTy && l.nguoiThuPartyId ? [{ value: l.nguoiThuPartyId, nhan: `${l.nguoiThu} (người thu tiền cũ)` }] : []),
+    ...t.keToan!.dangGiu.filter((d) => d.partyId !== l.nguoiThuPartyId).map((d) => ({ value: d.partyId, nhan: d.ten })),
+  ]);
+  if (chonSua.length > 0 && ghiSoNoiBo(staff!, "ledger.write") && hienNutSuaKhoanThu(l, { choXacNhan: t.keToan!.choXacNhan, donDaHuy: order.status === "cancelled" })) {
     const so = h("input", { type: "text", inputmode: "numeric", autocomplete: "off", value: String(l.soTien) }) as HTMLInputElement;
     regroupMoney(so);
     so.addEventListener("input", () => regroupMoney(so));
     // Kiểm độc lập vòng 3: mặc định ĐÚNG hình thức và người thu của khoản thu cũ — chỉ sửa số tiền thì không vô tình đổi người thu (đổi sang "Công ty" xoá khoản
     // nhân viên đang giữ).
     const hinhThuc = h("select", null, ...(["CASH", "BANK_TRANSFER", "OTHER"] as const).map((m) => h("option", { value: m, selected: METHOD_LABEL[m] === l.hinhThuc }, METHOD_LABEL[m]))) as HTMLSelectElement;
-    const laCongTy = l.nguoiThu === "Công ty";
-    const nguoiKhac = t.keToan!.dangGiu.filter((d) => d.partyId !== l.nguoiThuPartyId);
-    const nguoiThu = h(
-      "select",
-      null,
-      h("option", { value: "cong_ty", selected: laCongTy }, "Công ty"),
-      !laCongTy && l.nguoiThuPartyId ? h("option", { value: l.nguoiThuPartyId, selected: true }, `${l.nguoiThu} (người thu tiền cũ)`) : null,
-      ...nguoiKhac.map((d) => h("option", { value: d.partyId }, d.ten)),
-    ) as HTMLSelectElement;
+    const macDinh = laCongTy ? "cong_ty" : (l.nguoiThuPartyId ?? "");
+    const nguoiThu = h("select", { "data-khoi": "sua-nguoi-thu" }, ...chonSua.map((c) => h("option", { value: c.value, selected: c.value === macDinh }, c.nhan))) as HTMLSelectElement;
     const lyDoThay = h("input", { type: "text", autocomplete: "off", maxlength: "500", placeholder: "Vì sao sửa (ít nhất 10 ký tự)" }) as HTMLInputElement;
     // ADR-0092 Đ6: khoản thu mới CK – Công ty thu cần mã — điền sẵn mã + số thực chuyển của khoản thu cũ (thay một-đổi-một); máy chủ không tự chép.
     const maThay = oMaGiaoDich({ ma: l.maGiaoDich, soThucChuyen: l.soThucChuyen });
@@ -1119,12 +1119,13 @@ function khoiKeToan(order: Order, t: Api.OrderPaymentsResponse): HTMLElement | n
   }
   // ADR-0088 đ2 + kiểm độc lập vòng 3: đơn đã ở bước Đã giao mà đã thu < phải thu (dữ liệu lệch từ trước bản vá) — ghi bù bằng lệnh sửa khoản thu KHÔNG khoản thu cũ.
   let bu: HTMLElement | null = null;
-  if (t.deliveredAt && t.conLai > 0 && order.status !== "cancelled" && ghiSoNoiBo(staff!, "ledger.write")) {
+  const chonBu = luaChonNguoiThuSoKeToan(t.kenhThu, [{ value: "cong_ty", nhan: "Công ty" }, ...kt.dangGiu.map((d) => ({ value: d.partyId, nhan: d.ten }))]); // ADR-0178 Đ1 mục 2
+  if (t.deliveredAt && t.conLai > 0 && order.status !== "cancelled" && ghiSoNoiBo(staff!, "ledger.write") && chonBu.length > 0) {
     const so = h("input", { type: "text", inputmode: "numeric", autocomplete: "off", value: String(t.conLai) }) as HTMLInputElement;
     regroupMoney(so);
     so.addEventListener("input", () => regroupMoney(so));
     const hinhThuc = h("select", null, ...(["CASH", "BANK_TRANSFER", "OTHER"] as const).map((m) => h("option", { value: m }, METHOD_LABEL[m]))) as HTMLSelectElement;
-    const nguoiThu = h("select", null, h("option", { value: "cong_ty" }, "Công ty"), ...kt.dangGiu.map((d) => h("option", { value: d.partyId }, d.ten))) as HTMLSelectElement;
+    const nguoiThu = h("select", { "data-khoi": "bu-nguoi-thu" }, ...chonBu.map((c) => h("option", { value: c.value }, c.nhan))) as HTMLSelectElement;
     const lyDo = h("input", { type: "text", autocomplete: "off", maxlength: "500", placeholder: "Vì sao thiếu (ít nhất 10 ký tự)" }) as HTMLInputElement;
     // ADR-0092 Đ6: khoản thu bù CK – Công ty thu cũng cần mã (cùng đường Thay, không có khoản thu cũ để điền sẵn).
     const maBu = oMaGiaoDich();

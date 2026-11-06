@@ -124,7 +124,7 @@ test("kenhThu: đơn Đối tác lập dấu Tắt, người lập là bên đ�
   const w = await setup();
   const id = nhap(w, { owner: PT, dau: 0, iresort: false });
   await xacNhan(w, id);
-  for (const as of [HDV, KT, SUPER, PT]) assert.deepEqual((await tien(w, id, as)).json.kenhThu, { congTyThu: false, nguoiLapTen: "Đại Lý A", nguoiLapLaBenDatHuong: true }, as);
+  for (const as of [HDV, KT, SUPER, PT]) assert.deepEqual((await tien(w, id, as)).json.kenhThu, { congTyThu: false, nguoiLapTen: "Đại Lý A", nguoiLapLaBenDatHuong: true, nguoiLapPartyId: `pty-${PT}` }, as);
   const a = await w.call("POST", `/api/orders/${id}/payments`, { as: HDV, body: { soTien: 100_000, hinhThuc: "CASH", nguoiThu: "ben_dat" } });
   assert.equal(a.status, 201, a.text);
 });
@@ -133,7 +133,7 @@ test("kenhThu: đơn Đối tác lập dấu Tắt cho khách lẻ ⇒ người 
   const w = await setup();
   const le = nhap(w, { owner: PT, booker: null, dau: 0, iresort: false });
   await xacNhan(w, le);
-  assert.deepEqual((await tien(w, le, KT)).json.kenhThu, { congTyThu: false, nguoiLapTen: "Đại Lý A", nguoiLapLaBenDatHuong: false });
+  assert.deepEqual((await tien(w, le, KT)).json.kenhThu, { congTyThu: false, nguoiLapTen: "Đại Lý A", nguoiLapLaBenDatHuong: false, nguoiLapPartyId: `pty-${PT}` });
   const bat = nhap(w, { owner: PT, dau: 1, iresort: false });
   await xacNhan(w, bat);
   assert.equal((await tien(w, bat, KT)).json.kenhThu, null);

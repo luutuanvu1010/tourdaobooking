@@ -7,6 +7,7 @@ import { METHOD_LABEL, dateTime, parseMoney, vnd } from "./format";
 import { regroupMoney, setMoneyValue } from "./money-input";
 import { initShell, showError } from "./shell";
 import { can, holdsPartner } from "../src/shared/permissions";
+import { CAU_KHONG_GHI_DOI_DUOC } from "../src/shared/ben-kia-hien-thi";
 import { CAU_MAN_HINH, MA_TRUONG_HOP, NHAN_TRANG_THAI_PHIEU, TONG_TRANG_THAI_PHIEU, TRUONG_HOP, laMaTruongHop, type MaTruongHop } from "../src/shared/phan-dinh";
 
 const errorEl = byId("error");
@@ -202,7 +203,10 @@ function formDoiBen(p: Api.PhieuPhanDinhDto): HTMLElement {
 /** Ghi khoản thu đòi được (khách trả phần đã giảm trừ): ghi khoản thu mới và huỷ giảm trừ, nợ trong cùng lần ghi; được huỷ một phần. */
 function formHuy(p: Api.PhieuPhanDinhDto): HTMLElement {
   const g = p.ghi!;
-  return khoiMo("Ghi khoản thu đòi được", "huy-khoan", () => {
+  return khoiMo("Ghi khoản thu đòi được", "huy-khoan", async () => {
+    // ADR-0178 (Hệ quả): đơn mang dấu Tắt — Công ty không nhận tiền khách nên đường này luôn bị máy chủ từ chối; nói ra thay vì để form chắc chắn 409.
+    const t = await api<Api.OrderPaymentsResponse>(`/api/orders/${encodeURIComponent(p.orderId)}/payments`);
+    if (t.kenhThu?.congTyThu === false) return [h("p", { class: "muted", "data-khoi": "khong-ghi-doi-duoc" }, CAU_KHONG_GHI_DOI_DUOC)];
     const so = oTien(g.conHieuLuc, "Số đòi được (₫)");
     const ht = oHinhThuc();
     const ma = oMa(ht.o);

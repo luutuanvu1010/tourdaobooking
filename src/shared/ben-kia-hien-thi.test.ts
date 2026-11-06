@@ -174,3 +174,21 @@ test("dấu Bật / không dấu (kenhThu null hoặc congTyThu true) ⇒ giữ 
     assert.deepEqual(giaTri(B.luaChonNguoiThu(null, k, true)), ["cong_ty", "toi"]);
   }
 });
+
+// Vòng sửa cuối Phần A (kiểm độc lập I-1): ô người thu của Kế toán («Sửa khoản thu đã ghi», «Ghi bù khoản thu») ở đơn dấu Tắt — đúng một lựa chọn là hồ sơ người lập,
+// không «Công ty», kể cả khi danh sách người đang giữ tiền không còn người lập (đối tác đã nộp hết).
+const THUONG = [{ value: "cong_ty", nhan: "Công ty" }, { value: "pty-nv", nhan: "Nhân Viên Giữ" }];
+test("ô người thu của Kế toán, dấu Tắt: đúng một lựa chọn = hồ sơ người lập (value = partyId), không Công ty, không người giữ khác", () => {
+  const k = { congTyThu: false, nguoiLapTen: "Đại Lý B", nguoiLapLaBenDatHuong: false, nguoiLapPartyId: "pty-dl-b" };
+  assert.deepEqual(B.luaChonNguoiThuSoKeToan(k, THUONG), [{ value: "pty-dl-b", nhan: "Đại Lý B (người lập đơn)" }]);
+  assert.deepEqual(B.luaChonNguoiThuSoKeToan(k, []), [{ value: "pty-dl-b", nhan: "Đại Lý B (người lập đơn)" }], "người lập đã nộp hết vẫn có lựa chọn");
+  assert.deepEqual(B.luaChonNguoiThuSoKeToan({ ...k, nguoiLapPartyId: null, nguoiLapTen: null }, THUONG), [], "người lập chưa gắn hồ sơ ⇒ không lựa chọn nào");
+});
+
+test("ô người thu của Kế toán, dấu Bật / không dấu ⇒ giữ nguyên danh sách thường", () => {
+  for (const k of [null, undefined, { congTyThu: true, nguoiLapTen: "Đại Lý B", nguoiLapLaBenDatHuong: true, nguoiLapPartyId: "pty-dl-b" }]) assert.deepEqual(B.luaChonNguoiThuSoKeToan(k, THUONG), THUONG);
+});
+
+test("dấu Tắt: câu thay form «Ghi khoản thu đòi được»", () => {
+  assert.equal(B.CAU_KHONG_GHI_DOI_DUOC, "Đơn này chỉ nhận tiền khách trả cho đối tác đã lập đơn nên Công ty không ghi khoản thu đòi được.");
+});
