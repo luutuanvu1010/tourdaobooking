@@ -207,15 +207,17 @@ console.log("✓ 4) Huỷ đơn nợ ⇒ nợ về 0; ngừng hạn mức ⇒ đ
   assert.equal((await sqlRows(`SELECT status FROM orders WHERE id = '${don.id}'`))[0].status, "confirmed");
 
   // «Xong và đủ tiền» xét tiền ĐÃ GHI đủ phải thu (ADR-0168 Đ3 mục 2 giữ nguyên luật cũ), không xét tiền đã về công ty: đối tác ghi đủ
-  // thì qua. Nợ vẫn đếm sau bước này vì ADR-0168 Đ2 mục 2 tính «kể cả đơn đã Đã giao còn tiền ở tay đối tác».
+  // thì qua. Nợ vẫn đếm sau bước này (ADR-0168 Đ2 mục 2), nhưng dòng hoa hồng ghi lúc đó được bù vào phần đối tác đang giữ như sổ đại lý
+  // đã làm từ đợt 2 (chủ chọn «Khớp sổ đại lý» 2026-11-06, ADR-0177): 199.000 − 20.000 = 179.000, và sổ chỉ nhận nộp đúng số đó.
   const hdv = (await call(F, "GET", "/api/auth/me")).body.staff;
   r = await call(ADM, "PUT", `/api/orders/${don.id}/handler`, { staffId: hdv.id });
   assert.equal(r.status, 200, JSON.stringify(r.body));
   r = await call(F, "POST", `/api/orders/${don.id}/delivered`, {});
   assert.equal(r.status, 200, `đã ghi đủ phải thu thì «Xong và đủ tiền»: ${JSON.stringify(r.body)}`);
   assert.ok((await call(ADM, "GET", `/api/orders/${don.id}`)).body.order.deliveredAt, "đơn đã ở bước Xong và đủ tiền");
-  assert.deepEqual(await noDon(), [[don.id, 199_000]], "sau «Xong và đủ tiền» nợ vẫn còn phần tiền ở tay đối tác");
-  assert.equal((await nop(199_000)).status, 201);
+  assert.deepEqual(await noDon(), [[don.id, 179_000]], "sau «Xong và đủ tiền» nợ còn phần đối tác giữ trừ hoa hồng của họ");
+  assert.equal((await nop(179_001)).status, 409, "sổ không nhận nộp quá phần còn giữ");
+  { const x = await nop(179_000); assert.equal(x.status, 201, JSON.stringify(x.body)); }
   assert.deepEqual(await noDon(), [], "nộp đủ: hết nợ");
-  console.log("✓ 5) Vé đơn Trả sau: gửi đơn ⇒ xác nhận + giữ vé; đối tác mở và gửi khi chưa thu; nộp một phần còn nợ 199.000; khách thấy đủ vé; huỷ 409; Xong và đủ tiền qua khi ghi đủ, nợ vẫn đếm tới khi nộp đủ");
+  console.log("✓ 5) Vé đơn Trả sau: gửi đơn ⇒ xác nhận + giữ vé; đối tác mở và gửi khi chưa thu; nộp một phần còn nợ 199.000; khách thấy đủ vé; huỷ 409; Xong và đủ tiền qua khi ghi đủ, nợ còn 179.000 (trừ hoa hồng) tới khi nộp đủ");
 }

@@ -40,8 +40,14 @@ Kế hoạch: `2026-11-05-tra-sau-han-muc-ke-hoach.md`. Đặc tả: `docs/super
   - Báo một lần: «Đóng hạn mức» dùng chữ «Đóng» mà khái niệm «Ngừng» của bảng từ nói «Đóng» chỉ còn nghĩa gập khung; tiêu đề khối «Hạn mức trả sau» trùng tên màn chỉ xem ở Thiết lập. Chủ đã chọn, đã ghi ở khái niệm «Hạn mức trả sau».
 - **Task 5 Step 2:** `node --test src/bang-tham-chieu.test.ts` xanh (25/25 trước khi đổi chữ); chỗ lệch cũ `web/hoa-hong-cap.ts:149` không còn.
 
+## Phát hiện của e2e Task 5 Step 1 (2026-11-06, CHỜ CHỦ — chạm tiền, không tự sửa)
+
+- `tests/e2e/tra-sau.mjs` mục 5 (commit c4272e31) chạy trên D1 local thật: mọi bước tới «Xong và đủ tiền» đạt (gửi đơn ⇒ xác nhận + giữ 2 vé; đối tác mở ảnh, tạo đường dẫn khi chưa trả đồng nào; ghi «Công ty thu» đủ + Kế toán nộp 1.000 ⇒ nợ 199.000, hạn mức khả dụng 801.000; khách thấy đủ 2 vé; Quản trị huỷ ⇒ 409 `tra_sau_con_no_da_mo_ve`; «Xong và đủ tiền» qua vì tiền đã GHI đủ phải thu).
+- **Đỏ có chủ ý ở dòng «sau Xong và đủ tiền nợ vẫn còn»:** nợ của đơn tụt từ 199.000 xuống 179.000, đúng bằng dòng hoa hồng 10% × 200.000 sinh ở bước «Xong và đủ tiền». Nghi gốc: `soChuaVeCongTy` trừ dòng hoa hồng vào phần đối tác đang giữ, mà ADR-0168 Đ2 mục 2 ghi «Tính trên toàn bộ tiền phải thu, không trừ hoa hồng». Hệ quả: hạn mức khả dụng của đối tác trống ra thêm đúng số hoa hồng trước khi tiền về công ty. Chưa đọc kỹ mã để chắc gốc; chưa có bài đơn vị.
+- Chủ cần chọn: (a) nợ Trả sau không trừ hoa hồng (theo chữ ADR, sửa `noTheoDon`, bài đơn vị đỏ trước); (b) trừ hoa hồng là đúng nghiệp vụ (đối tác giữ lại phần hoa hồng của mình) ⇒ cần ADR mới sửa Đ2 mục 2, bài e2e đổi số kỳ vọng. Khuyến nghị (a) vì ADR đã duyệt thắng mã. Lời cấm «chưa cấp hạn mức thật» vẫn giữ.
+
 ## Điều chưa làm
 
-- e2e vé của đơn Trả sau (cần gieo kho vé): chỉ có bài đơn vị `src/tra-sau-ve.test.ts`.
+- ~~e2e vé của đơn Trả sau~~ — có từ 6/11 (`tests/e2e/tra-sau.mjs` mục 5), đang đỏ ở chỗ nợ sau «Xong và đủ tiền», xem mục phát hiện ở trên.
 - `audit-invariants` chạy cuối bộ e2e đủ bộ của `run.mjs`, không chạy riêng trong `tests/e2e/tra-sau.mjs`.
 - ~~Bài `src/bang-tham-chieu.test.ts` có một chỗ lệch có từ trước (`web/hoa-hong-cap.ts:149`)~~ — không còn (kiểm 2026-11-06).
