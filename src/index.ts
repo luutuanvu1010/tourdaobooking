@@ -17,7 +17,7 @@ import { accountsModule } from "./modules/accounts";
 import { auditModule } from "./modules/audit";
 import { anDanhPhienCuaTaiKhoanStatement, authModule, checkAuthConfig, currentStaff } from "./modules/auth";
 import { bangtinModule, dongCua, phatChuyen, phatDon, xepHangDay } from "./modules/bangtin";
-import { billingModule, nhacHanTraSauAnToan, cauDatCocKhiXacNhan, cauGacPhienBan, chanKhaiCocLai, daThuCuaDon, kiemTraSau, tienDonVe, nhapKeToanCuaDon, soDongNoCuaNguoi, noCuaBenDat, traSauCuaDon } from "./modules/billing";
+import { billingModule, nhacHanTraSauAnToan, cauDatCocKhiXacNhan, cauGacPhienBan, chanKhaiCocLai, daThuCuaDon, kiemTraSau, tienDonVe, nhapKeToanCuaDon, soDongNoCuaNguoi, noCuaBenDat, traSauCuaDon, kenhThuHienTai } from "./modules/billing";
 import { receiptModule } from "./modules/receipt";
 import { catalogModule, runScheduledSync } from "./modules/catalog";
 import { companyModule } from "./modules/company";
@@ -256,6 +256,8 @@ const APP_OPTIONS: AppOptions = {
     cauGacPhienBanTraSau: (env, partyId, version, at) => cauGacPhienBan(env.DB, partyId, version, at),
     traSauCuaDon: (env, id) => traSauCuaDon(env.DB, id),
     veDaMoCuaDon: (env, id) => veDaMoCuaDon(env.DB, id),
+    // KÊNH THU ĐỐI TÁC (ADR-0178 Đ1): `orders` không import billing — gốc lắp ráp tiêm hàm đọc công tắc «Khách của đối tác trả cho Công ty» (chụp lên đơn lúc lập).
+    kenhThuHienTai: (env) => kenhThuHienTai(env.DB),
     chanKhaiCocLai: (env, staffId) => chanKhaiCocLai(env.DB, staffId),
     // KHO VÉ ĐIỆN TỬ (ADR-0153 Đ1 mục 4): `orders` và `ve-dien-tu` không import nhau — gốc lắp ráp đọc dịch vụ qua hàm công bố của orders (số khách hiệu lực) rồi đưa sang kho vé.
     // Cấp / cân bằng chạy SAU lô của lệnh và NUỐT lỗi (lệnh đã thắng; thiếu vé là suy ra lúc đọc); câu trả vé khi huỷ nối vào CHÍNH lô huỷ. Log chỉ ghi mã đơn lỗi, không mã vé.

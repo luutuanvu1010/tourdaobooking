@@ -292,6 +292,8 @@ export interface Ctx<A extends Access = Access> {
   traSauCuaDon: (orderId: string) => Promise<{ hanTra: string | null; hetAnHan?: string | null; no: number; benDat?: string | null; version?: number } | null>;
   /** ADR-0168 Đ3 mục 3: đơn đã có vé bị mở (lộ) cho khách chưa — `ve-dien-tu` trả lời, `orders` không import nó. `null` = không tiêm / không đọc được ⇒ cổng huỷ đơn Trả sau còn nợ chặn 503. */
   veDaMoCuaDon: (orderId: string) => Promise<boolean | null>;
+  /** ADR-0178 Đ1: công tắc «Khách của đối tác trả cho Công ty» hiện hành (1 = Bật, 0 = Tắt). Gốc lắp ráp KHÔNG tiêm ⇒ 1 (như trước khi có công tắc); đã tiêm mà đọc lỗi ⇒ `null` ⇒ route lập đơn của tài khoản Đối tác trả 503 (không đoán). */
+  kenhThuHienTai: () => Promise<0 | 1 | null>;
   /** ADR-0089 đ7 + ADR-0159: người lập còn giữ tiền của đơn huỷ để lập lại ⇒ không khai lại. Không tiêm ⇒ câu chặn 503 (không đoán «không có»). */
   chanKhaiCocLai: (nguoiLapId: string) => Promise<ChanKhaiLai>;
   /**
@@ -467,6 +469,8 @@ export interface AppOptions {
     traSauCuaDon: (env: Env, orderId: string) => Promise<{ hanTra: string | null; hetAnHan?: string | null; no: number; benDat?: string | null; version?: number } | null>;
     /** ADR-0168 Đ3 mục 3, ADR-0170 Đ3: BẮT BUỘC trong mã chạy thật (`src/index.ts`: `ve-dien-tu`); `null` = không đọc được ⇒ người giữ quyền Đối tác KHÔNG huỷ / sửa số khách được (chặn, không đoán). */
     veDaMoCuaDon: (env: Env, orderId: string) => Promise<boolean | null>;
+    /** ADR-0178 Đ1. Mã chạy thật (`src/index.ts`: billing) PHẢI tiêm (bài `src/modules/orders/kenh-thu-chup.test.ts` ca «đường thật»); thiếu (khung thử) → router trả 1; ném lỗi → `null`. */
+    kenhThuHienTai: (env: Env) => Promise<0 | 1>;
     chanKhaiCocLai: (env: Env, nguoiLapId: string) => Promise<ChanKhaiLai>;
     /** ADR-0153 Đ1 mục 4. BẮT BUỘC trong mã chạy thật (`src/index.ts`: `ve-dien-tu` + `dichVuChoVe` của orders); thiếu (khung thử cố ý) → router không cấp / không trả vé. Tự nuốt lỗi. */
     capVeSauXacNhan: (env: Env, actor: StaffProfile, orderId: string) => Promise<void>;
@@ -651,6 +655,15 @@ export function createApp(opts: AppOptions) {
       kiemTraSau: (i) => (typeof opts.injected.kiemTraSau !== "function" ? Promise.resolve(null) : opts.injected.kiemTraSau(envH, i)),
       cauGacPhienBanTraSau: (partyId, version, at) => (typeof opts.injected.cauGacPhienBanTraSau !== "function" ? [] : opts.injected.cauGacPhienBanTraSau(envH, partyId, version, at)),
       traSauCuaDon: (id) => (typeof opts.injected.traSauCuaDon !== "function" ? Promise.resolve(null) : opts.injected.traSauCuaDon(envH, id)),
+      kenhThuHienTai: async () => {
+        if (typeof opts.injected.kenhThuHienTai !== "function") return 1;
+        try {
+          const v = await opts.injected.kenhThuHienTai(envH);
+          return v === 0 || v === 1 ? v : null;
+        } catch {
+          return null;
+        }
+      },
       veDaMoCuaDon: (id) => (typeof opts.injected.veDaMoCuaDon !== "function" ? Promise.resolve(null) : opts.injected.veDaMoCuaDon(envH, id)),
       chanKhaiCocLai: (id) =>
         typeof opts.injected.chanKhaiCocLai !== "function"

@@ -193,6 +193,7 @@ export function khoR2Gia() {
  *   `mocToiThieu` — lách hàng rào N-9) → ném lỗi; dùng chung với tuỳ chọn khác → ném lỗi (không lặng lẽ bỏ). Không nới luật cho môi trường thử.
  * - `khongTiemNhan: true` — bỏ hàm tiêm nhãn người bấm (ruling R-P20: route để trống nhãn, không đoán). `demNhan: true` — nhãn GIẢ có ĐẾM số lần gọi
  *   (`w.soLanGoiNhan()`, mỗi lần một mảng id) — "một lần mỗi request cho cả danh sách".
+ * - `kenhThuGia: async () => 0|1` — ADR-0178 Đ1: hàm tiêm GIẢ cho công tắc «Khách của đối tác trả cho Công ty» (ném lỗi ⇒ route lập đơn của Đối tác trả 503). `khongTiemKenhThu: true` — bỏ hàm tiêm ⇒ router trả 1.
  * - `khongTiemDaThu: true` — ADR-0136 Đ3: bỏ hàm tiêm «số đã thu của đơn» ⇒ route gửi xác nhận PHẢI trả 503 `khoan_thu_chua_kiem` (từ chối kín, không đoán). `daThuGia: <số VNĐ>` — hàm tiêm GIẢ
  *   trả số cố định, CHỈ để kiểm nhánh «đơn đã có khoản thu» (từ L2 nháp không ghi thu được qua API).
  * - `khongTiemAnDanhPhien: true` — ADR-0126 đ8 (lát H-5 Gói 2): bỏ hàm tiêm câu ẩn danh sổ phiên của auth ⇒ route Thực hiện phiếu xoá của chủ có tài khoản PHẢI trả 503 `erasure_unavailable`,
@@ -259,6 +260,10 @@ export function world(tuyChon = {}) {
     ungDung = app.taoAppChoKhungThu({ kiemTraSau: undefined }); // ADR-0168: gốc lắp ráp không tiêm cổng hạn mức ⇒ đơn Trả sau bị chặn 503
   } else if (tuyChon.khongTiemTraSauCuaDon) {
     ungDung = app.taoAppChoKhungThu({ traSauCuaDon: undefined }); // Kế hoạch Trả sau 2026-11-05 Task 3: không đọc được nợ của đơn ⇒ cổng sửa tăng / huỷ / đổi bên đặt chặn 503
+  } else if (tuyChon.kenhThuGia) {
+    ungDung = app.taoAppChoKhungThu({ kenhThuHienTai: tuyChon.kenhThuGia }); // ADR-0178 Đ1: hàm tiêm GIẢ trả 0/1 hoặc ném lỗi (⇒ 503); mặc định: hàm thật của gốc lắp ráp
+  } else if (tuyChon.khongTiemKenhThu) {
+    ungDung = app.taoAppChoKhungThu({ kenhThuHienTai: undefined }); // router trả 1 (Bật) khi KHÔNG tiêm — các bài route cũ giữ hành vi
   } else if (tuyChon.khongTiemCoc) {
     ungDung = app.taoAppChoKhungThu({ cauCocKhiXacNhan: undefined }); // ADR-0159: gốc lắp ráp không dựng được câu ⇒ 503
   } else if (tuyChon.chenTruocLoCoc) {
