@@ -157,7 +157,8 @@ export const AUDIT_ACTIONS = {
   credit_ceiling_set: { label: "Đặt mức tối đa Quản trị được cấp", group: "ledger" },
   credit_tier_default_set: { label: "Đặt số gợi ý trả sau theo cấp", group: "ledger" },
   credit_due_extended: { label: "Ân hạn đơn trả sau", group: "order" },
-  credit_reminder_sent: { label: "Nhắc hạn trả sau", group: "ledger" },
+  credit_due_soon_reminded: { label: "Nhắc đơn trả sau sắp tới hạn", group: "ledger" },
+  credit_overdue_reminded: { label: "Nhắc đơn trả sau quá hạn", group: "ledger" },
   // Khoá sổ tháng (ADR-0080 D1; module ky-so — route ở billing): `order_id` NULL; `detail` = "Khoá sổ tháng MM/YYYY" (không tiền, không SĐT).
   ledger_period_closed: { label: "Khoá sổ tháng", group: "ledger" },
   order_handler_changed: { label: "Đổi Hướng dẫn viên", group: "order" },

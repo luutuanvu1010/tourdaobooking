@@ -782,3 +782,4 @@ export const daThuCuaDon = async (db: D1Database, orderId: string): Promise<numb
 export { cauDatCocKhiXacNhan, chanKhaiCocLai, tienDonVe } from "./dat-coc";
 // Trả sau theo hạn mức (ADR-0168): hàm công bố cho gốc lắp ráp tiêm vào `ctx` của orders / ve-dien-tu (orders không import billing).
 export { cauGacPhienBan, cauTangPhienBan, hanMucHieuLuc, kiemTraSau, noCuaBenDat, traSauCuaDon } from "./tra-sau";
+export { nhacHanTraSau, nhacHanTraSauAnToan } from "./tra-sau-nhac";

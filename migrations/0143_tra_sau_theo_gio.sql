@@ -98,3 +98,12 @@ WHEN OLD.delivered_at IS NOT NULL
     AND NEW.payment_term IS OLD.payment_term AND NEW.credit_due_date IS OLD.credit_due_date
     AND NEW.credit_due_at IS OLD.credit_due_at AND NEW.credit_grace_until IS OLD.credit_grace_until)
 BEGIN SELECT RAISE(ABORT, 'order_delivered: đơn đã tới bước Xong và đủ tiền, không sửa được'); END;
+
+-- 8. View hộp thư của `audit` (nguồn: 0135): thêm hai tin nhắc hạn trả sau (ADR-0173 Đ3 mục 2). Cùng cột, chỉ khoá. Dòng do Cron ghi: một dòng cho MỖI tài khoản
+--    của bên đặt (target_type 'staff') và, lúc quá hạn, một dòng cho Kế toán (target_type 'ledger'); bảng `bil_credit_reminder` chống gửi lặp.
+DROP VIEW v_aud_ledger_event;
+CREATE VIEW v_aud_ledger_event AS
+  SELECT id, order_id, target_type, target_id, staff_id, action, created_at FROM audit_log
+  WHERE action IN ('ledger_adjustment_requested', 'ledger_adjustment_approved', 'ledger_adjustment_rejected', 'ledger_adjustment_withdrawn', 'ledger_adjustment_affected',
+    'attribution_requested', 'attribution_ruled', 'attribution_posted', 'attribution_reassigned', 'attribution_reversed', 'attribution_responded', 'ledger_receipt_collector_changed',
+    'credit_due_soon_reminded', 'credit_overdue_reminded');

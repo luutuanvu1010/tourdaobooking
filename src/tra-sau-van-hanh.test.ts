@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
-import { seedStaff } from "../tests/audit/harness.mjs";
+import { app, seedStaff } from "../tests/audit/harness.mjs";
 import { A, ACC, ADM, PARTNER, SUP, inDays, setup, svc } from "../tests/audit/xac-nhan-khung.mjs";
 import { cachBayGio, datMocTraSau, datQuaHan } from "../tests/audit/tra-sau-moc.mjs";
 
@@ -102,4 +102,38 @@ test("ADR-0173 tiêu chí 4, Đ2 mục 3–4: hết ân hạn — đơn trả tr
   // Trong ân hạn thì đơn Trả sau mới vẫn qua (chưa chặn).
   datMocTraSau(w.sqlite, id, cachBayGio(-1), cachBayGio(11));
   await donXacNhan(w);
+});
+
+// ---- ADR-0173 Đ3 mục 2, tiêu chí 6: tin nhắc ----------------------------------------------------------------------------------------------------------
+const nhacHanTraSau = (db: unknown, bayGio: string): Promise<number> => app.nhacHanTraSau(db, bayGio);
+const tinNhac = async (w: W, as: string): Promise<string[]> =>
+  ((await w.call("GET", "/api/thong-bao?ngan=cua-toi", { as })).json.tin as { cau: string }[]).map((t) => t.cau).filter((c) => /trả sau/.test(c));
+
+test("ADR-0173 tiêu chí 6: nhắc đúng mốc (trước hạn 6 giờ, sau hạn trả), đúng người (đại lý; Kế toán chỉ lúc quá hạn), không gửi lặp; đơn đã trả đủ không nhắc; lùi hạn thì nhắc theo mốc mới", async () => {
+  const w = dung();
+  assert.equal((await hanMuc(w, 10_000_000)).status, 201);
+  const id = await donXacNhan(w);
+  const daTra = await donXacNhan(w);
+  assert.equal((await w.call("POST", `/api/orders/${daTra}/payments`, { as: ACC, body: { soTien: T_ZB1, hinhThuc: "CASH", nguoiThu: "cong_ty" } })).status, 201);
+  const han = moc(w, id).h;
+  assert.equal(await nhacHanTraSau(w.env.DB, congGio(han, -7)), 0, "chưa tới mốc 6 giờ");
+  assert.equal(await nhacHanTraSau(w.env.DB, congGio(han, -5)), 1, "trước hạn 6 giờ: một tin (đơn đã trả đủ không nhắc)");
+  assert.equal(await nhacHanTraSau(w.env.DB, congGio(han, -4)), 0, "không gửi lặp");
+  const maDon = w.q("SELECT order_code AS m FROM orders WHERE id = ?", id)[0].m as string;
+  assert.deepEqual(await tinNhac(w, DT), [`Đơn trả sau ${maDon} còn nợ, sắp tới hạn trả (còn dưới 6 giờ). Hãy thanh toán cho công ty trước hạn.`]);
+  assert.deepEqual(await tinNhac(w, ACC), [], "Kế toán không nhận tin trước hạn");
+  assert.deepEqual(await tinNhac(w, A), [], "người lập không nhận");
+  assert.equal(await nhacHanTraSau(w.env.DB, congGio(han, 1)), 1, "sau hạn trả: tin quá hạn");
+  assert.equal(await nhacHanTraSau(w.env.DB, congGio(han, 30)), 0, "không gửi lặp tin quá hạn");
+  assert.equal((await tinNhac(w, DT)).length, 2);
+  assert.deepEqual(await tinNhac(w, ACC), [`Đơn trả sau ${maDon} đã quá hạn trả mà còn nợ.`]);
+  assert.deepEqual(await tinNhac(w, PARTNER), [], "đối tác khác không nhận");
+  assert.equal(w.q("SELECT count(*) AS n FROM bil_credit_reminder")[0].n, 2);
+  // Lùi hạn: mốc mới ⇒ nhắc lại theo hạn mới.
+  const moi = congGio(han, 48);
+  assert.equal((await anHan(w, ADM, id, { hanMoi: moi, lyDo: "Đại lý hẹn trả" })).status, 200);
+  assert.equal(await nhacHanTraSau(w.env.DB, congGio(moi, -3)), 1);
+  // Thu đủ: không nhắc nữa.
+  assert.equal((await w.call("POST", `/api/orders/${id}/payments`, { as: ACC, body: { soTien: T_ZB1, hinhThuc: "CASH", nguoiThu: "cong_ty" } })).status, 201);
+  assert.equal(await nhacHanTraSau(w.env.DB, congGio(moi, 2)), 0, "đơn đã trả đủ không nhắc");
 });

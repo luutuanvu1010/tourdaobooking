@@ -20,7 +20,7 @@ export interface NoBenDat { tong: number; don: DonNo[]; coDonQuaHan: boolean }
 const bayGioMacDinh = (): string => new Date().toISOString();
 
 /** Nợ từng đơn Trả sau đã xác nhận (ADR-0168 Đ2 mục 2): phải thu − số đã về công ty, trong đó số đã về công ty không gồm khoản đang đối chiếu và khoản bên đặt tự thu mà chưa nộp. */
-async function noTheoDon(db: D1Database, dons: readonly DonTraSauRow[]): Promise<Map<string, number>> {
+export async function noTheoDon(db: D1Database, dons: readonly DonTraSauRow[]): Promise<Map<string, number>> {
   const out = new Map<string, number>();
   if (dons.length === 0) return out;
   const ids = dons.map((d) => d.id);

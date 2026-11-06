@@ -148,3 +148,11 @@ const DON_CO_HAN = defineSql(
    WHERE status = 'confirmed' AND delivered_at IS NULL AND credit_due_at IS NOT NULL AND booker_party_id IS NOT NULL ORDER BY credit_due_at`,
 );
 export const donCoHanTra = async (db: D1Database): Promise<DonTraSauRow[]> => (await db.prepare(DON_CO_HAN).all<DonTraSauRow>()).results;
+/** Tài khoản ĐANG HOẠT ĐỘNG của các hồ sơ bên đặt (người nhận tin nhắc) — view công bố của staff, một câu cho nhiều hồ sơ. */
+const TAI_KHOAN_CUA_BEN = defineSql(
+  "billing",
+  "credit_reminder_accounts",
+  `SELECT id, party_id FROM v_stf_staff_label WHERE active = 1 AND party_id IN (SELECT value FROM json_each(?1))`,
+);
+export const taiKhoanCuaBen = async (db: D1Database, partyIds: readonly string[]): Promise<{ id: string; party_id: string }[]> =>
+  partyIds.length === 0 ? [] : (await db.prepare(TAI_KHOAN_CUA_BEN).bind(JSON.stringify([...new Set(partyIds)])).all<{ id: string; party_id: string }>()).results;
