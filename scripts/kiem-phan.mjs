@@ -22,8 +22,12 @@ import { ALL, chiaNhom } from "../tests/e2e/danh-sach.mjs";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 export const TEP_DO_GIO = "src/claude-guard-thoi-gian.test.ts";
 export const BUOC_RIENG = ["buoc-0", "typecheck", TEP_DO_GIO];
-export const SO_PHAN_TEST = 4;
-export const SO_PHAN_E2E = 6;
+// Số phần chỉnh theo số đo (ADR-0176 Đ1.2). Lượt đầu 6/11 (4 + 6 phần, chia theo cỡ tệp): 19 phút, phần npm test chậm nhất 17,5 phút ⇒ 10 + 8 phần,
+// chia theo giây thật. Mức tối thiểu ADR (≥ 4, ≥ 6) do MIN_* canh. Kho công khai: mỗi lượt ≤ 20 việc chạy cùng lúc (giới hạn gói miễn phí).
+export const SO_PHAN_TEST = 10;
+export const SO_PHAN_E2E = 8;
+const MIN_PHAN_TEST = 4;
+const MIN_PHAN_E2E = 6;
 
 /**
  * Tệp điều khiển việc kiểm (ADR-0176 Đ2.3): nằm trong chính commit được kiểm nên đổi chúng có thể làm lượt kiểm bỏ bài mà vẫn "xanh". day-len so băm git của
@@ -50,6 +54,7 @@ export const TEP_DIEU_KHIEN = [
   "tests/e2e/run.mjs",
   "tests/e2e/danh-sach.mjs",
   "tests/e2e/thoi-gian.json",
+  "scripts/thoi-gian-test.json",
   "scripts/audit-invariants.mjs",
   "scripts/audit-checks.mjs",
   "scripts/audit-thuong-mai.mjs",
@@ -84,11 +89,26 @@ const coTep = (root) => (f) => {
   }
 };
 
+/** Giây thật từng tệp kiểm (chép từ dòng «Giây thật từng tệp kiểm» của việc gom). Thiếu tệp ⇒ {}. */
+function docThoiGianTest() {
+  try {
+    return JSON.parse(readFileSync(join(ROOT, "scripts", "thoi-gian-test.json"), "utf8"));
+  } catch {
+    return {};
+  }
+}
+/** Trọng số chia phần: giây thật nếu có; tệp chưa có số (tệp mới) thì cỡ tệp × (trung vị giây/byte của các tệp đã đo). Tất định. */
+function trongSoTest(tests, kichThuoc, tg) {
+  const tiLe = tests.filter((t) => typeof tg[t] === "number" && kichThuoc(t) > 0).map((t) => tg[t] / kichThuoc(t)).sort((a, b) => a - b);
+  const heSo = tiLe.length ? tiLe[Math.floor(tiLe.length / 2)] : 1;
+  return (t) => (typeof tg[t] === "number" ? tg[t] : kichThuoc(t) * heSo);
+}
+
 /** Bảng chia: { rieng, test: [[tệp…]…], e2e: [[kịch bản…]…] }. Mỗi phần e2e là DÃY CON của ALL (chiaNhom giữ thứ tự ràng buộc). */
-export function bangChia({ tests = danhSachTest(), e2e = ALL, soPhanTest = SO_PHAN_TEST, soPhanE2e = SO_PHAN_E2E, kichThuoc = coTep(ROOT) } = {}) {
+export function bangChia({ tests = danhSachTest(), e2e = ALL, soPhanTest = SO_PHAN_TEST, soPhanE2e = SO_PHAN_E2E, kichThuoc = coTep(ROOT), thoiGianTest = docThoiGianTest() } = {}) {
   return {
     rieng: [...BUOC_RIENG],
-    test: chiaTheoCo(tests.filter((t) => t !== TEP_DO_GIO), soPhanTest, kichThuoc),
+    test: chiaTheoCo(tests.filter((t) => t !== TEP_DO_GIO), soPhanTest, trongSoTest(tests, kichThuoc, thoiGianTest)),
     e2e: chiaNhom(e2e, soPhanE2e),
   };
 }
@@ -98,8 +118,8 @@ export function kiemBangChia(bang, { tests, e2e }) {
   const loi = [];
   for (const b of BUOC_RIENG) if (!bang.rieng?.includes(b)) loi.push(`phần riêng thiếu bước ${b}`);
   if (!tests.includes(TEP_DO_GIO)) loi.push(`không thấy bài đo giờ ${TEP_DO_GIO} trong glob src/**/*.test.ts`);
-  if ((bang.test?.length ?? 0) < SO_PHAN_TEST) loi.push(`phần npm test: cần ít nhất ${SO_PHAN_TEST} phần, có ${bang.test?.length ?? 0}`);
-  if ((bang.e2e?.length ?? 0) < SO_PHAN_E2E) loi.push(`phần e2e: cần ít nhất ${SO_PHAN_E2E} phần, có ${bang.e2e?.length ?? 0}`);
+  if ((bang.test?.length ?? 0) < MIN_PHAN_TEST) loi.push(`phần npm test: cần ít nhất ${MIN_PHAN_TEST} phần, có ${bang.test?.length ?? 0}`);
+  if ((bang.e2e?.length ?? 0) < MIN_PHAN_E2E) loi.push(`phần e2e: cần ít nhất ${MIN_PHAN_E2E} phần, có ${bang.e2e?.length ?? 0}`);
   const soi = (ten, cacPhan, toan) => {
     const gap = new Map();
     cacPhan.forEach((p, i) => p.forEach((x) => gap.set(x, [...(gap.get(x) ?? []), i + 1])));
@@ -130,6 +150,10 @@ export function gomKetQua(bang, baoCao, toanBo) {
   const loi = [...kiemBangChia(bang, toanBo)];
   const baiDo = [];
   const giayE2e = {};
+  const giayTep = {};
+  const congGiay = (m) => {
+    if (m && typeof m === "object") for (const [k, v] of Object.entries(m)) if (typeof v === "number") giayTep[k] = v;
+  };
   let soBai = 0;
   let soBoQua = 0;
   const hop = (x) => x && typeof x === "object" && ["rieng", "test", "e2e"].includes(x.loai);
@@ -143,6 +167,7 @@ export function gomKetQua(bang, baoCao, toanBo) {
     if (r.buoc0?.ok !== true) loi.push(`Bước 0 (sinh lại kho trợ lý) đỏ${r.buoc0?.doi?.length ? `: tệp sinh đổi ${r.buoc0.doi.join(", ")} — commit các tệp này` : ""}`);
     if (r.typecheck?.ok !== true) loi.push("typecheck đỏ");
     if (r.doGio?.ok !== true || !giongNhau(r.doGio?.tep, [TEP_DO_GIO]) || !laDem(r.doGio?.dem)) loi.push(`bài đo giờ của hook (${TEP_DO_GIO}) đỏ hoặc không báo số bài`);
+    congGiay(r.doGio?.giayTep);
     if (laDem(r.doGio?.dem)) {
       soBai += r.doGio.dem.tests;
       soBoQua += r.doGio.dem.skipped + r.doGio.dem.todo;
@@ -166,6 +191,7 @@ export function gomKetQua(bang, baoCao, toanBo) {
     for (const x of bc) if (!(Number.isInteger(x.phan) && x.phan >= 1 && x.phan <= cacPhan.length)) loi.push(`${nhan}: báo cáo phần lạ (${x.phan})`);
   };
   soiPhan("test", "npm test", bang.test, (x) => x.tep, (x, k) => {
+    congGiay(x.giayTep);
     if (!laDem(x.dem)) loi.push(`npm test phần ${k} không báo số bài`);
     else {
       soBai += x.dem.tests;
@@ -192,7 +218,7 @@ export function gomKetQua(bang, baoCao, toanBo) {
     }
   });
 
-  return { ok: loi.length === 0, loi, baiDo, tong: { soTep: toanBo.tests.length, soBai, soBoQua, soKichBan: toanBo.e2e.length }, giayE2e };
+  return { ok: loi.length === 0, loi, baiDo, tong: { soTep: toanBo.tests.length, soBai, soBoQua, soKichBan: toanBo.e2e.length }, giayE2e, giayTep };
 }
 
 // ─────────────────────────────── dòng lệnh (máy GitHub) ───────────────────────────────
@@ -245,7 +271,7 @@ async function dongLenh(argv) {
     const tc = spawnSync("npm", ["run", "typecheck"], { cwd: ROOT, stdio: "inherit" });
     console.log(`▶ bài đo giờ của hook, MỘT MÌNH (${TEP_DO_GIO}, --test-concurrency=1)`);
     const dg = chayNodeTest([TEP_DO_GIO], `${tepKq}.dem`, ["--test-concurrency=1"]);
-    const bc = { loai: "rieng", buoc0, typecheck: { ok: tc.status === 0 }, doGio: { ok: dg.ok, tep: [TEP_DO_GIO], dem: dg.dem } };
+    const bc = { loai: "rieng", buoc0, typecheck: { ok: tc.status === 0 }, doGio: { ok: dg.ok, tep: [TEP_DO_GIO], dem: dg.dem, giayTep: dg.dem?.giayTep ?? {} } };
     ghi(tepKq, bc);
     return bc.buoc0.ok && bc.typecheck.ok && bc.doGio.ok ? 0 : 1;
   }
@@ -255,7 +281,7 @@ async function dongLenh(argv) {
     if (!tep) throw new Error(`Phần npm test phải là 1…${bang.test.length}`);
     console.log(`▶ npm test phần ${k}/${bang.test.length}: ${tep.length} tệp`);
     const r = chayNodeTest(tep, `${tepKq}.dem`);
-    ghi(tepKq, { loai: "test", phan: k, tep, ok: r.ok, dem: r.dem, baiDo: r.dem?.baiDo ?? [] });
+    ghi(tepKq, { loai: "test", phan: k, tep, ok: r.ok, dem: r.dem, baiDo: r.dem?.baiDo ?? [], giayTep: r.dem?.giayTep ?? {} });
     return r.ok ? 0 : 1;
   }
   if (lenh === "gom") {
@@ -274,6 +300,7 @@ async function dongLenh(argv) {
     for (const l of kq.loi) console.log(`✘ ${l}`);
     console.log(kq.ok ? "✔ KIỂM ĐỦ BỘ: XANH" : `✘ KIỂM ĐỦ BỘ: ĐỎ (${kq.loi.length} lỗi)`);
     console.log(`Giây thật từng kịch bản e2e (chép vào tests/e2e/thoi-gian.json khi cần chia lại):\n${JSON.stringify(kq.giayE2e)}`);
+    console.log(`Giây thật từng tệp kiểm (chép vào scripts/thoi-gian-test.json khi cần chia lại): có trong tệp ket-qua-tong, khoá giayTep (${Object.keys(kq.giayTep).length} tệp).`);
     return kq.ok ? 0 : 1;
   }
   console.error("Dùng: node scripts/kiem-phan.mjs ma-tran | rieng --ket-qua <tệp> | test <k> --ket-qua <tệp> | gom <thư mục> --ket-qua <tệp>");

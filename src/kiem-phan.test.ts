@@ -11,10 +11,10 @@ type Lib = {
   SO_PHAN_TEST: number;
   SO_PHAN_E2E: number;
   danhSachTest: () => string[];
-  bangChia: (o?: { tests?: string[]; e2e?: string[]; soPhanTest?: number; soPhanE2e?: number; kichThuoc?: (f: string) => number }) => Bang;
+  bangChia: (o?: { tests?: string[]; e2e?: string[]; soPhanTest?: number; soPhanE2e?: number; kichThuoc?: (f: string) => number; thoiGianTest?: Record<string, number> }) => Bang;
   kiemBangChia: (bang: Bang, toanBo: { tests: string[]; e2e: string[] }) => string[];
   phanE2e: (k: number) => string[];
-  gomKetQua: (bang: Bang, baoCao: unknown[], toanBo: { tests: string[]; e2e: string[] }) => { ok: boolean; loi: string[]; baiDo: string[]; tong: { soTep: number; soBai: number; soBoQua: number; soKichBan: number }; giayE2e: Record<string, number> };
+  gomKetQua: (bang: Bang, baoCao: unknown[], toanBo: { tests: string[]; e2e: string[] }) => { ok: boolean; loi: string[]; baiDo: string[]; tong: { soTep: number; soBai: number; soBoQua: number; soKichBan: number }; giayE2e: Record<string, number>; giayTep: Record<string, number> };
   TEP_DIEU_KHIEN: string[];
 };
 const lib = (await import(new URL("../scripts/kiem-phan.mjs", import.meta.url).href)) as Lib;
@@ -164,4 +164,36 @@ test("run.mjs --phan: VẪN chạy audit-invariants --strict cuối phần (ch�
   assert.match(r, /kichBan: daChay, audit, ok:/);
   assert.match(r, /import \{ ALL, chiaNhom \} from "\.\/danh-sach\.mjs";/, "danh sách kịch bản chỉ ở danh-sach.mjs");
   assert.doesNotMatch(r, /const ALL = \[/, "run.mjs không tự khai danh sách thứ hai");
+});
+
+test("bảng chia npm test theo GIÂY THẬT (scripts/thoi-gian-test.json): tệp nặng đứng riêng; tệp chưa có số ước theo cỡ tệp quy ra giây", () => {
+  const tests = ["src/a.test.ts", "src/b.test.ts", "src/c.test.ts", "src/d.test.ts", "src/e.test.ts", "src/claude-guard-thoi-gian.test.ts"];
+  const b = lib.bangChia({ tests, e2e: E2E, soPhanTest: 4, soPhanE2e: 6, kichThuoc: () => 1000, thoiGianTest: { "src/a.test.ts": 300, "src/b.test.ts": 100, "src/c.test.ts": 100, "src/d.test.ts": 100 } });
+  assert.deepEqual(b.test.find((p) => p.includes("src/a.test.ts")), ["src/a.test.ts"], "tệp 300 giây đứng một mình");
+  assert.deepEqual(lib.kiemBangChia(b, { tests, e2e: E2E }), []);
+  // Bảng giây THẬT của kho: mọi khoá là tệp kiểm có thật hoặc đã bị xoá (không chặn), mọi giá trị là số giây ≥ 0.
+  const tg = JSON.parse(readFileSync(new URL("../scripts/thoi-gian-test.json", import.meta.url), "utf8")) as Record<string, number>;
+  for (const [k, v] of Object.entries(tg)) assert.ok(/^src\/.*\.test\.ts$/.test(k) && typeof v === "number" && v >= 0, k);
+});
+
+test("dem-bai: cộng giây từng TỆP từ bài cấp ngoài cùng (nesting 0); gom gộp giây từng tệp của mọi phần", async () => {
+  const { default: demBai } = (await import(new URL("../scripts/dem-bai.mjs", import.meta.url).href)) as { default: (s: AsyncIterable<unknown>) => AsyncGenerator<string> };
+  async function* nguon() {
+    yield { type: "test:pass", data: { name: "x", nesting: 0, file: "/k/src/a.test.ts", details: { duration_ms: 1500 } } };
+    yield { type: "test:pass", data: { name: "x1", nesting: 1, file: "/k/src/a.test.ts", details: { duration_ms: 1400 } } };
+    yield { type: "test:fail", data: { name: "y", nesting: 0, file: "/k/src/a.test.ts", details: { duration_ms: 500 } } };
+    yield { type: "test:pass", data: { name: "z", nesting: 0, file: "/k/src/b.test.ts", details: { duration_ms: 250 } } };
+  }
+  let ra = "";
+  for await (const x of demBai(nguon())) ra += x;
+  const d = JSON.parse(ra);
+  assert.deepEqual(d.giayTep, { "src/a.test.ts": 2, "src/b.test.ts": 0.25 });
+  assert.equal(d.tests, 4);
+  const bang = bangNho();
+  const bc = baoCaoDu(bang);
+  bc.find((x) => x.loai === "test").giayTep = { "src/a.test.ts": 2 };
+  bc[0].doGio.giayTep = { "src/claude-guard-thoi-gian.test.ts": 9 };
+  const r = lib.gomKetQua(bang, bc, toanBo);
+  assert.equal(r.giayTep["src/a.test.ts"], 2);
+  assert.equal(r.giayTep["src/claude-guard-thoi-gian.test.ts"], 9);
 });
