@@ -275,7 +275,7 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 | Lưu bộ não | `web/tro-ly-cai-dat.ts`: Lưu bộ não | Cài đặt Trợ lý: bộ não và lời dặn | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Lưu thành bản mới | `web/tro-ly-cai-dat.ts`: Lưu thành bản mới | Cài đặt Trợ lý: bộ não và lời dặn | rà soát 2026-11-04: chưa rõ, chờ chủ |
 
-## Việc quan trọng (309)
+## Việc quan trọng (311)
 
 ### Kiểm vé đơn chờ
 
@@ -685,8 +685,20 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 
 | Tên | Màn hình | Thật sự làm gì | Hỏi lại | Hoàn tác | Đường lệnh, nhật ký | Nơi đặt nút | Trạng thái |
 |---|---|---|---|---|---|---|---|
-| **Đặt hạn mức** | Hạn mức trả sau › biểu mẫu «Đặt hạn mức» và nút ở từng dòng đối tác | Toàn quyền đặt hạn mức tiền và số ngày được nợ cho một đối tác; dòng hạn mức cũ (nếu có) đóng lại, dòng mới có hiệu lực từ hôm nay. Từ lúc này đối tác đặt được đơn trả sau trong hạn mức đó. Đơn trả sau đã xác nhận không đổi. | không | được: đặt lại số cũ hoặc bấm «Ngừng hạn mức» | `/api/tra-sau/han-muc`<br>nhật ký `credit_limit_set` | `web/han-muc-tra-sau.ts`: Đặt hạn mức | tên hiện tại, chủ chưa chọn riêng (Trả sau 2026-11-05: dùng chữ đã có ở ADR-0168, chủ chưa chọn riêng) |
-| **Ngừng hạn mức** | Hạn mức trả sau › nút ở từng dòng đối tác đang có hạn mức | Toàn quyền ngừng hạn mức trả sau của một đối tác: từ lúc này đối tác không đặt thêm đơn trả sau được. Đơn trả sau đã xác nhận vẫn giữ nguyên và nợ vẫn phải thu. | có: hộp «Ngừng hạn mức của …?» với nút «Ngừng hạn mức» và «Giữ hạn mức» | được: đặt lại hạn mức mới | `/api/tra-sau/han-muc/:x/ngung`<br>nhật ký `credit_limit_stopped` | `web/han-muc-tra-sau.ts`: Ngừng hạn mức | tên hiện tại, chủ chưa chọn riêng (Trả sau 2026-11-05: dùng chữ đã có ở ADR-0168, chủ chưa chọn riêng) |
+| **Đặt hạn mức** | Cấp độ đại lý › cột «Trả sau» › bảng của một đối tác | Quản trị hoặc Toàn quyền bật hay đổi Trả sau cho một đối tác: hạn mức tiền, thời hạn trả (giờ, tính từ lúc đơn xác nhận) và ân hạn (giờ). Dòng cũ (nếu có) đóng lại, dòng mới có hiệu lực ngay. Quản trị chỉ đặt tới «Mức tối đa Quản trị được cấp»; không ai tự đặt cho hồ sơ của chính mình. Đơn trả sau đã xác nhận giữ hạn trả cũ. | không | được: đặt lại số cũ hoặc bấm «Ngừng hạn mức» | `/api/tra-sau/han-muc`<br>nhật ký `credit_limit_set` | `web/o-tra-sau.ts`: Đặt hạn mức | tên hiện tại, chủ chưa chọn riêng (Trả sau 2026-11-05: dùng chữ đã có ở ADR-0168, chủ chưa chọn riêng; chuyển sang màn Cấp độ đại lý theo ADR-0172 Đ1 (2026-11-06)) |
+| **Ngừng hạn mức** | Cấp độ đại lý › cột «Trả sau» › bảng của một đối tác đang bật | Quản trị hoặc Toàn quyền ngừng Trả sau của một đối tác: từ lúc này đối tác không đặt thêm đơn trả sau được. Đơn trả sau đã xác nhận vẫn giữ nguyên và nợ vẫn phải thu. | có: hộp «Ngừng hạn mức của …?» với nút «Ngừng hạn mức» và «Giữ hạn mức» | được: đặt lại hạn mức mới | `/api/tra-sau/han-muc/:x/ngung`<br>nhật ký `credit_limit_stopped` | `web/o-tra-sau.ts`: Ngừng hạn mức | tên hiện tại, chủ chưa chọn riêng (Trả sau 2026-11-05: dùng chữ đã có ở ADR-0168, chủ chưa chọn riêng; chuyển sang màn Cấp độ đại lý theo ADR-0172 Đ1 (2026-11-06)) |
+
+### Trả sau: cài đặt chung
+
+| Tên | Màn hình | Thật sự làm gì | Hỏi lại | Hoàn tác | Đường lệnh, nhật ký | Nơi đặt nút | Trạng thái |
+|---|---|---|---|---|---|---|---|
+| **Lưu** | Cấp độ đại lý › khối «Cài đặt Trả sau» (ô «Mức tối đa Quản trị được cấp», bảng số gợi ý của một cấp) | Ở ô mức tối đa: Toàn quyền đặt số tiền lớn nhất Quản trị được cấp cho một đối tác (thêm dòng mới, dòng cũ giữ làm lịch sử). Ở bảng số gợi ý: Quản trị hoặc Toàn quyền lưu hạn mức, thời hạn trả, ân hạn gợi ý của một cấp; số này chỉ điền sẵn khi bật Trả sau, không cho ai Trả sau và không đổi Trả sau đã bật. | không | được: lưu lại số cũ | `/api/tra-sau/muc-toi-da`<br>`/api/tra-sau/goi-y/:x`<br>nhật ký `credit_ceiling_set`<br>nhật ký `credit_tier_default_set` | `web/o-tra-sau.ts`: Lưu | tên hiện tại, chủ chưa chọn riêng (chữ dùng chung «Lưu»; tên «Mức tối đa Quản trị được cấp» chủ chọn 2026-11-06 trong hộp hỏi (ADR-0172)) |
+
+### Trả sau: lùi hạn trả một đơn
+
+| Tên | Màn hình | Thật sự làm gì | Hỏi lại | Hoàn tác | Đường lệnh, nhật ký | Nơi đặt nút | Trạng thái |
+|---|---|---|---|---|---|---|---|
+| **Ân hạn** | Chi tiết đơn › khối Thanh toán của đơn trả sau còn nợ (nút mở bảng và nút trong bảng) | Quản trị hoặc Toàn quyền lùi hạn trả của một đơn trả sau còn nợ tới ngày giờ mới (giờ Việt Nam), bắt buộc ghi lý do. Hạn mới phải sau hạn cũ; khoảng ân hạn sau hạn trả giữ nguyên. Nếu đơn đang bị chặn vì quá hạn thì hết chặn ngay. Nhật ký ghi hạn cũ, hạn mới và lý do. | có: bảng chọn hạn mới và lý do, bấm «Ân hạn» lần nữa mới ghi | không: hạn trả chỉ lùi về sau, không đưa về hạn cũ được | `/api/tra-sau/don/:x/an-han`<br>nhật ký `credit_due_extended` | `web/an-han-tra-sau.ts`: Ân hạn | đã chốt (chủ 2026-11-06 chọn trong hộp hỏi lúc thi công ADR-0173 Đ1 mục 3) |
 
 ### Hoa hồng: tra mức nào thắng (chỉ đọc)
 

@@ -678,7 +678,7 @@ export const billingModule: AppModule = {
     route("PUT", "/api/tra-sau/goi-y/:cap", "office", async ({ env, request, params, staff }) => {
       if (!can(staff, "credit.limit.write") || holdsPartner(staff)) return error(403, "forbidden", "Chỉ Quản trị, Toàn quyền mới đặt được số gợi ý Trả sau theo cấp.");
       const cap = params.cap!;
-      if (!/^[A-Za-z0-9_-]{1,40}$/.test(cap)) return error(404, "not_found", "Không tìm thấy cấp đại lý.");
+      if (!/^[A-Za-z0-9_-]{1,40}$/.test(cap)) return error(404, "not_found", "Không tìm thấy Cấp độ đại lý này.");
       const b = ((await readJson(request)) ?? {}) as Record<string, unknown>;
       if (typeof b.hanMuc !== "number" || !Number.isInteger(b.hanMuc) || b.hanMuc <= 0 || b.hanMuc > MAX_SO_TIEN) return error(400, "invalid_input", "Hạn mức phải là số tiền nguyên dương (đồng).");
       if (!kiemSoGio(b.gioTra, 1)) return error(400, "invalid_input", `Thời hạn trả là số giờ nguyên từ 1 đến ${GIO_TOI_DA}.`);
@@ -690,7 +690,7 @@ export const billingModule: AppModule = {
           auditStatement(env.DB, { staffId: staff.id, action: "credit_tier_default_set", at, targetType: "ledger", targetId: cap, detail: `gợi ý ${dongTien(b.hanMuc)} · thời hạn trả ${b.gioTra} giờ · ân hạn ${b.gioAnHan} giờ` }),
         ]);
       } catch (e) {
-        if (e instanceof Error && /FOREIGN KEY/.test(e.message)) return error(404, "not_found", "Không tìm thấy cấp đại lý.");
+        if (e instanceof Error && /FOREIGN KEY/.test(e.message)) return error(404, "not_found", "Không tìm thấy Cấp độ đại lý này.");
         throw e;
       }
       return json({ ok: true });
