@@ -27,7 +27,7 @@
 1. **Phần đầu** (không logo): dòng nhỏ mờ góc phải «Mẫu HD-02-DT»; «Tour Đảo Nha Trang» (chữ lớn); «Trải nghiệm biển đảo tuyệt vời tại Khánh Hòa»; «Hotline: <hotline công ty chủ>». Tên thương hiệu và khẩu hiệu là hằng số ở MỘT nơi (`src/shared/order-confirmation.ts`); Hotline vẫn đọc hồ sơ công ty chủ.
 2. **Tiêu đề**: «XÁC NHẬN ĐƠN DỊCH VỤ» + huy hiệu trạng thái; Mã đơn, Ngày lập; dòng người phụ trách giữ đúng luật hiện nay (ba trạng thái, đối tác không thấy).
 3. **Thông tin khách hàng**: Họ tên khách, Số điện thoại, Địa chỉ, Ghi chú (ghi chú khách của đơn). Dòng trống thì bỏ.
-4. **Mỗi dịch vụ**: tên; Số lượng («2 người lớn, 1 trẻ em»); Khởi hành; Giờ đón (khi đã có); bảng Loại khách | SL | **Giá công bố** | Thành tiền; «Cộng dịch vụ» khi có từ hai dòng tiền.
+4. **Mỗi dịch vụ**: tên; Số lượng («2 người lớn, 1 trẻ em»); Khởi hành; Giờ đón (khi đã có); Khách có mặt (khi có, như hôm nay); bảng Loại khách | SL | **Giá công bố** | Thành tiền; «Cộng dịch vụ» khi có từ hai dòng tiền. Dịch vụ tính theo nhóm hoặc nhập tay: cột đầu giữ chữ «Mô tả» (dòng tiền không phải loại khách).
 5. **Tổng**: «Tổng giá công bố» → «Giảm giá» (chỉ khi > 0) → «Giảm sau khi giao» (chỉ khi có, như hôm nay) → «Khách đã trả trước» (chỉ khi > 0) → **«Phải thu»** (nổi bật). Đơn nhiều người bán: giữ các dòng «Phần …» như hôm nay.
 6. **Chân trang**: như hôm nay (điều khoản huỷ kèm đường dẫn, câu giảm sau khi giao, câu vai từng phần, lời cảm ơn, hotline).
 
@@ -59,7 +59,9 @@ Mẫu nội bộ (không đổi, không đặt mã); QR thanh toán; thêm ô «
 
 ## 7. Điều người soạn tự quyết (chủ xem khi duyệt)
 
-- Giữ «Khởi hành», «Giờ đón» dù chủ không liệt kê, vì thiếu ngày đi thì phiếu vô nghĩa.
+- Giữ «Khởi hành», «Giờ đón», «Khách có mặt» dù chủ không liệt kê, vì thiếu ngày đi, nơi đến thì phiếu vô nghĩa (tour khách tự tới bến chỉ có dòng «Khách có mặt»). «Địa chỉ» vẫn chỉ lấy điểm đón, không lấy nơi khách có mặt.
+- Không in email khách (chủ không liệt kê).
+- Sau khi giao: dòng «Khách đã trả trước» đổi thành «Đã thu» như luật ADR-0089 đ3 hiện nay.
 - Chữ in mã mẫu: «Mẫu HD-02-DT», góc phải trên, cỡ 11, màu chữ phụ.
 - Dòng 0 ₫ (Giảm giá, Đã trả trước) không in.
 - Đơn đổi bên đặt hoặc đối tác thôi vai sau khi lập: biên nhận đi theo hiện trạng lúc mở (không chụp lại).
