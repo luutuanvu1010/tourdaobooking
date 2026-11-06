@@ -153,3 +153,13 @@ test("TEP_DIEU_KHIEN (Đ2.3): có quy trình GitHub, bảng chia, bộ chạy, d
   assert.ok(seen.size >= 3, "phải thấy ít nhất audit-invariants, audit-checks, audit-thuong-mai");
   for (const t of [...seen].filter((x) => x.startsWith("scripts/"))) assert.ok(lib.TEP_DIEU_KHIEN.includes(t), `tệp ${t} (audit-invariants nạp) phải có trong TEP_DIEU_KHIEN`);
 });
+
+test("run.mjs --phan: VẪN chạy audit-invariants --strict cuối phần (chạy lẻ theo tên thì không); ghi báo cáo kèm audit", () => {
+  const r = readFileSync(new URL("../tests/e2e/run.mjs", import.meta.url), "utf8");
+  assert.match(r, /const coAudit = phan !== null \|\| !picked\.length;/);
+  assert.match(r, /if \(coAudit\) \{\n\s+console\.log\(`▶ audit-invariants/);
+  assert.match(r, /"--persist-to", may\.persist, "--strict"\]/);
+  assert.match(r, /kichBan: daChay, audit, ok:/);
+  assert.match(r, /import \{ ALL, chiaNhom \} from "\.\/danh-sach\.mjs";/, "danh sách kịch bản chỉ ở danh-sach.mjs");
+  assert.doesNotMatch(r, /const ALL = \[/, "run.mjs không tự khai danh sách thứ hai");
+});

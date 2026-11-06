@@ -97,6 +97,23 @@ test("guard-tep: sửa thẳng ở checkout gốc bị chặn (tệp có sẵn, 
   }
 });
 
+test("guard-tep (ADR-0176 Đ3.1): công cụ sửa tệp không ghi được bản ghi kết luận kiểm `<.git dùng chung>/tourdao-kiem/` — từ worktree lẫn từ gốc", () => {
+  const k = khoGia();
+  try {
+    for (const [p, cwd] of [[join(k.khoChung, "tourdao-kiem", "abc.json"), k.wt], [join(k.goc, ".git/tourdao-kiem/abc.json"), k.goc], [join(k.khoChung, "tourdao-kiem"), k.wt]] as const) {
+      const v = danhGiaSuaTep(p, { cwd, khoChung: k.khoChung });
+      assert.equal(v.deny, true, `phải chặn: ${p}`);
+      if (v.deny) {
+        assert.equal(v.rule, "ban-ghi-kiem");
+        assert.match(v.reason, /npm run day-len/);
+      }
+    }
+    assert.equal(danhGiaSuaTep(join(k.khoChung, "info", "exclude"), { cwd: k.wt, khoChung: k.khoChung }).deny, false, "tệp khác trong .git: không phán như cũ");
+  } finally {
+    k.don();
+  }
+});
+
 test("guard-tep: tệp ngoài kho, tệp của kho KHÁC, đầu vào thiếu — không phán", () => {
   const k = khoGia();
   const khac = khoGia();

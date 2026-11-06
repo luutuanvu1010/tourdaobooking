@@ -63,6 +63,13 @@ export function danhGiaSuaTep(filePath, { cwd = null, khoChung = null } = {}) {
   const abs = resolve(typeof cwd === "string" && cwd ? cwd : "/", filePath);
   const dir = thuMucCoThat(dirname(abs));
   if (!dir || khoChungCua(dir) !== khoChung) return { deny: false }; // ngoài kho, hoặc kho khác
+  // 4. ban-ghi-kiem (ADR-0176 Đ3.1): bản ghi kết luận kiểm `<.git dùng chung>/tourdao-kiem/` chỉ `npm run day-len` (chủ gõ) ghi; trien-khai tin nó. Phải xét
+  // TRƯỚC dòng "bên trong .git/ ⇒ không phán" ngay dưới. So theo đường thật (realpath của thư mục có thật gần nhất + phần còn lại).
+  const thatAbs = resolve(that(dir), relative(dir, abs));
+  const goc = `${khoChung}/tourdao-kiem`;
+  if (thatAbs === goc || thatAbs.startsWith(`${goc}/`)) {
+    return chan("ban-ghi-kiem", `\`${thatAbs}\` là bản ghi kết luận kiểm — chỉ \`npm run day-len\` (chủ dự án gõ trong terminal) ghi; \`npm run trien-khai\` tin bản ghi này (ADR-0176 Đ3.1). AI không ghi, không sửa nó.`);
+  }
   if (git(dir, ["rev-parse", "--is-inside-work-tree"]) !== "true") return { deny: false }; // bên trong .git/
   const top = git(dir, ["rev-parse", "--show-toplevel"]);
   const prefix = git(dir, ["rev-parse", "--show-prefix"]);

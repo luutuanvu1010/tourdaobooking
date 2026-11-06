@@ -193,7 +193,9 @@ test("guard-remote: bài đo giờ chạy RIÊNG trong npm test (chủ lần 15)
   const pkg = JSON.parse(read("package.json")) as { scripts: Record<string, string> };
   assert.equal(pkg.scripts.test, "node scripts/chay-test.mjs", "npm test phải đi qua kịch bản tách bài đo giờ");
   const kb = read("scripts/chay-test.mjs");
-  assert.match(kb, /const TEP_DO_GIO = "src\/claude-guard-thoi-gian\.test\.ts";/);
+  // Tên tệp đo giờ: MỘT nguồn ở scripts/kiem-phan.mjs (dùng chung với bảng chia phần trên GitHub, ADR-0176).
+  assert.match(kb, /import \{ danhSachTest, TEP_DO_GIO \} from "\.\/kiem-phan\.mjs";/);
+  assert.match(read("scripts/kiem-phan.mjs"), /export const TEP_DO_GIO = "src\/claude-guard-thoi-gian\.test\.ts";/);
   assert.match(kb, /\["--test", "--test-concurrency=1", TEP_DO_GIO\]/, "bước 2 chạy tệp đo giờ một mình");
   assert.match(kb, /process\.exit\(ma\(b1\) !== 0 \? ma\(b1\) : ma\(b2\)\)/, "một trong hai bước đỏ ⇒ thoát ≠ 0");
   const doGio = read("src/claude-guard-thoi-gian.test.ts");
