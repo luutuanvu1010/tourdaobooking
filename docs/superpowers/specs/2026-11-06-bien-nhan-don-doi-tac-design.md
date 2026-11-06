@@ -1,6 +1,6 @@
 # Biên nhận cho đơn của đối tác (mẫu HD-02-DT) — đặc tả
 
-- Ngày: 2026-11-06. Trạng thái: **chờ chủ duyệt**.
+- Ngày: 2026-11-06. Trạng thái: **đã duyệt** — chủ dự án 2026-11-06, nguyên văn: «Duyệt đặc tả».
 - Ảnh duyệt (dựng bằng bộ vẽ thật `web/confirmation-image.ts`, dữ liệu mẫu): `docs/evidence/2026-11-06-bien-nhan-doi-tac/so-sanh-mau-de-xuat.png` (trái: hiện tại; phải: mẫu mới).
 - Cỡ việc: **việc lớn** (CLAUDE.md §3), vì đổi hợp đồng `ReceiptDto` (danh sách trắng ADR-0026 đ11) và đổi cách in tiền gửi khách. Thi công xong phải có người kiểm độc lập chỉ đọc.
 
