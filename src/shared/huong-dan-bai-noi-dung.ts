@@ -152,6 +152,7 @@ export const BAI_VIEC: readonly BaiViec[] = [
 - Quản trị chỉ đặt được hạn mức tới **Mức tối đa Quản trị được cấp** do Toàn quyền đặt ở khối **Hạn mức trả sau** cuối màn. Chưa có mức này thì Quản trị chưa cấp được cho ai.
 - Không ai tự cấp hạn mức trả sau cho hồ sơ của chính mình.
 - Bấm [[Đóng hạn mức]] (rồi xác nhận ở hộp hỏi) thì đối tác không đặt thêm đơn trả sau được, nhưng nợ cũ vẫn phải thu. Muốn giữ thì bấm «Giữ hạn mức». Đối tác còn nợ thì chưa ngừng tài khoản hay gỡ vai trò đối tác được.
+- Ngay dưới khối **Hạn mức trả sau** có thẻ **Khách của đối tác trả cho Công ty**: chỉ Toàn quyền bật, tắt. Tắt thì đơn đối tác lập từ lúc đó chỉ do chính đối tác ghi khoản thu và không có QR thanh toán; đơn đã lập giữ nguyên.
 
 ### Lùi hạn trả một đơn
 Khách xin thêm thời gian: mở đơn, ở khối Thanh toán bấm [[Ân hạn]], chọn hạn trả mới (giờ Việt Nam), ghi lý do rồi bấm [[Ân hạn]] trong bảng. Hạn mới phải sau hạn cũ; khoảng ân hạn sau hạn trả giữ nguyên.`,
