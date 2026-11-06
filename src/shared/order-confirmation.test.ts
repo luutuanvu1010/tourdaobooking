@@ -58,7 +58,7 @@ test("đủ trường: khối theo thứ tự đầu trang → tiêu đề → k
   assert.equal(m.orderCode, "TD-20260921-0007");
   assert.equal(m.fileName, "xac-nhan-TD-20260921-0007.png");
   assert.deepEqual(m.blocks, [
-    { kind: "header", companyName: "CÔNG TY TNHH TOUR ĐẢO", lines: ["MST: 4201969169", COMPANY.address, "Hotline: 0845 256 256 · Email: Tourdaotravel@gmail.com"] },
+    { kind: "header", logo: true, maMau: null, companyName: "CÔNG TY TNHH TOUR ĐẢO", lines: ["MST: 4201969169", COMPANY.address, "Hotline: 0845 256 256 · Email: Tourdaotravel@gmail.com"] },
     {
       kind: "title", title: "XÁC NHẬN ĐƠN DỊCH VỤ", status: { code: "draft", text: "Chờ xác nhận" },
       rows: [{ label: "Mã đơn", value: "TD-20260921-0007" }, { label: "Ngày lập", value: "21/09/2026" }, { label: "Nhân viên phụ trách", value: "Lê Minh Tuấn" }],
@@ -402,4 +402,114 @@ test("biên nhận hai phần: tổng kết in từng phần theo người bán;
   // Một phần ⇒ không dòng «Phần …».
   const motPhan = one(buildConfirmation({ ...goc, phan: [hai.phan[0]!] }, "Lê Minh Tuấn"), "summary").rows;
   assert.ok(!motPhan.some((r) => r.label.startsWith("Phần ")));
+});
+
+// ---- HD-02-DT: biên nhận cho đơn của đối tác (đặc tả 2026-11-06-bien-nhan-don-doi-tac §3, §4) — máy chủ quyết mẫu (`ReceiptDto.mau`), bộ dựng chỉ rẽ nhánh theo đó ----
+const buildDt = (o: DonMau, handler: string | null | typeof HANDLER_HIDDEN = "Lê Minh Tuấn"): ConfirmationModel =>
+  buildConfirmation(dungBienNhan({ ...o, bookerLaDoiTac: true }, COMPANY, { daTra: o.paid, conLai: o.remaining }, null, false), handler);
+const labels = (rows: { label: string }[]): string[] => rows.map((r) => r.label);
+/** Đơn một dịch vụ giá khớp danh mục (không giá bị sửa), tổng 2.700.000. */
+const donKhop = (o: Partial<DonMau> = {}): DonMau => order({ services: [svc({ items: [item()] })], subtotal: 2_700_000, discount: 0, giamGiaHieuLuc: 0, total: 2_700_000, paid: 0, remaining: 2_700_000, ...o });
+
+test("HD-02-DT: phần đầu không logo, có mã mẫu, thương hiệu, khẩu hiệu, Hotline; không MST, không địa chỉ công ty", () => {
+  const m = buildDt(order());
+  assert.deepEqual(one(m, "header"), {
+    kind: "header", logo: false, maMau: "Mẫu HD-02-DT", companyName: "Tour Đảo Nha Trang",
+    lines: ["Trải nghiệm biển đảo tuyệt vời tại Khánh Hòa", "Hotline: 0845 256 256"],
+  });
+  const text = JSON.stringify(m);
+  for (const banned of ["4201969169", "Vĩnh Điềm Trung", "CÔNG TY TNHH"]) assert.ok(!text.includes(banned), `không được có "${banned}"`);
+});
+
+test("mẫu nội bộ: phần đầu giữ logo, không mã mẫu", () => {
+  const h = one(build(order()), "header");
+  assert.equal(h.logo, true);
+  assert.equal(h.maMau, null);
+});
+
+test("HD-02-DT: khối khách — Họ tên khách, Số điện thoại, Địa chỉ (một điểm đón), Ghi chú; không email", () => {
+  const c = one(buildDt(order()), "customer");
+  assert.deepEqual(labels(c.rows), ["Họ tên khách", "Số điện thoại", "Địa chỉ", "Ghi chú"]);
+  assert.equal(value(c.rows, "Địa chỉ"), "Khách sạn Sunrise");
+  assert.ok(!JSON.stringify(c).includes("binh.tran@example.com"));
+});
+
+test("HD-02-DT: hai điểm đón khác nhau ⇒ khối khách không Địa chỉ, mỗi dịch vụ có Địa chỉ đón; « KS A » và «KS A» là một nơi", () => {
+  const hai = buildDt(order({ services: [svc({ pickupPlace: "KS A" }), svc({ id: "svc_INTERNAL_2", pickupPlace: "KS B" })] }));
+  assert.ok(!labels(one(hai, "customer").rows).includes("Địa chỉ"));
+  const dv = blocksOf(hai, "service");
+  assert.deepEqual(dv.map((s) => value(s.details, "Địa chỉ đón")), ["KS A", "KS B"]);
+  assert.deepEqual(labels(dv[0]!.details), ["Số lượng", "Khởi hành", "Giờ đón", "Địa chỉ đón", "Khách có mặt"]);
+  // một dịch vụ có điểm đón, dịch vụ kia không ⇒ vẫn một nơi
+  const mot = buildDt(order({ services: [svc({ pickupPlace: "KS A" }), svc({ id: "svc_INTERNAL_2", ...NO_TRIP })] }));
+  assert.equal(value(one(mot, "customer").rows, "Địa chỉ"), "KS A");
+  // khác khoảng trắng hai đầu vẫn là một nơi
+  const cung = buildDt(order({ services: [svc({ pickupPlace: " KS A " }), svc({ id: "svc_INTERNAL_2", pickupPlace: "KS A" })] }));
+  assert.equal(value(one(cung, "customer").rows, "Địa chỉ"), "KS A");
+  assert.ok(blocksOf(cung, "service").every((s) => value(s.details, "Địa chỉ đón") === undefined));
+});
+
+test("HD-02-DT: dịch vụ — Số lượng, Khởi hành, Giờ đón, Khách có mặt; cột Loại khách | SL | Giá công bố | Thành tiền", () => {
+  const s = one(buildDt(donKhop()), "service");
+  assert.deepEqual(labels(s.details), ["Số lượng", "Khởi hành", "Giờ đón", "Khách có mặt"]);
+  assert.equal(value(s.details, "Giờ đón"), "07:00");
+  assert.deepEqual(s.columns, { description: "Loại khách", quantity: "SL", unitPrice: "Giá công bố", lineTotal: "Thành tiền" });
+});
+
+test("HD-02-DT: dịch vụ có giá bị sửa ⇒ cột Đơn giá, dòng tổng đầu Tạm tính; dịch vụ theo nhóm / nhập tay ⇒ cột Mô tả", () => {
+  const m = buildDt(order());
+  assert.equal(one(m, "service").columns.unitPrice, "Đơn giá");
+  assert.equal(one(m, "summary").rows[0]!.label, "Tạm tính");
+  assert.equal(one(buildDt(donKhop({ services: [svc({ unit: "per4Pax", items: [item()] })] })), "service").columns.description, "Mô tả");
+  assert.equal(one(buildDt(donKhop({ services: [svc({ kind: "manual", catalogCode: null, unit: "manual", items: [item({ catalogCode: null, paxCode: null, catalogPrice: null })] })] })), "service").columns.description, "Mô tả");
+});
+
+test("HD-02-DT: tổng — Tổng giá công bố, Giảm giá (khác 0), Khách đã trả trước (khác 0), Phải thu = conLai; cộng khớp", () => {
+  const a = one(buildDt(donKhop()), "summary").rows;
+  assert.deepEqual(labels(a), ["Tổng giá công bố", "Phải thu"]);
+  assert.equal(value(a, "Phải thu"), "2.700.000 ₫");
+  const b = one(buildDt(donKhop({ discount: 100_000, giamGiaHieuLuc: 100_000, total: 2_600_000, paid: 1_000_000, remaining: 1_600_000 })), "summary").rows;
+  assert.deepEqual(labels(b), ["Tổng giá công bố", "Giảm giá", "Khách đã trả trước", "Phải thu"]);
+  assert.equal(value(b, "Phải thu"), "1.600.000 ₫");
+  assert.deepEqual(b.filter((r) => r.emphasis).map((r) => r.label), ["Phải thu"]);
+  // giá công bố − giảm − đã trả = phải thu
+  assert.equal(2_700_000 - 100_000 - 1_000_000, 1_600_000);
+  const c = one(buildDt(donKhop({ paid: -50_000, remaining: 2_650_000 })), "summary").rows;
+  assert.deepEqual(labels(c), ["Tổng giá công bố", "Khách đã trả trước", "Phải thu"]);
+  assert.equal(value(c, "Khách đã trả trước"), "-50.000 ₫");
+});
+
+test("HD-02-DT: đã giao ⇒ dòng Đã thu thay Khách đã trả trước", () => {
+  const rows = one(buildDt(donKhop({ status: "confirmed", deliveredAt: "2026-10-01T00:00:00.000Z", paid: 3_500_000, remaining: 0 })), "summary").rows;
+  assert.ok(labels(rows).includes("Đã thu") && !labels(rows).includes("Khách đã trả trước"), JSON.stringify(labels(rows)));
+  assert.equal(value(rows, "Phải thu"), "0 ₫");
+});
+
+test("HD-02-DT: đơn huỷ ⇒ thân giống hệt thông báo huỷ của mẫu nội bộ, chỉ khác phần đầu", () => {
+  const huy = { nhom: "KHACH_HUY" as const, daTra: 300_000, dangDoiChieu: 0, hoanTruocHuy: 0, daDuyet: 0, daChi: 0, daChuyen: 0, daDuyetChuyen: 0, han: "2026-10-01" };
+  const dung = (doiTac: boolean) => buildConfirmation(dungBienNhan({ ...order(), status: "cancelled", bookerLaDoiTac: doiTac }, COMPANY, { daTra: 300_000, conLai: 0, huy }, null, false), null);
+  const noiBo = dung(false);
+  const doiTac = dung(true);
+  assert.deepEqual(doiTac.blocks.slice(1), noiBo.blocks.slice(1));
+  assert.notDeepEqual(doiTac.blocks[0], noiBo.blocks[0]);
+  assert.equal((doiTac.blocks[0] as { maMau: string | null }).maMau, "Mẫu HD-02-DT");
+});
+
+test("HD-02-DT: nhiều người bán ⇒ giữ các dòng Phần … và câu vai từng phần", () => {
+  const goc = dungBienNhan({ ...order({ status: "confirmed" }), bookerLaDoiTac: true }, COMPANY, { daTra: 1_000_000, conLai: 2_500_000 }, null, false);
+  const hai: ReceiptDto = {
+    ...goc,
+    phan: [
+      { nguoiBan: "CÔNG TY TNHH TOUR ĐẢO", vaiTourDao: "nguoi_ban", dichVu: ["Tour 4 đảo Nha Trang"], tong: 2_900_000, giamGia: 100_000, daTra: 1_000_000, conLai: 1_900_000, traTaiQuay: false },
+      { nguoiBan: "i-resort", vaiTourDao: "doi_tac_dat_ve", dichVu: ["Vé tắm bùn"], tong: 600_000, giamGia: 0, daTra: 0, conLai: 600_000, traTaiQuay: true },
+    ],
+  };
+  const dt = buildConfirmation(hai, "Lê Minh Tuấn");
+  const nb = buildConfirmation({ ...hai, mau: "noi_bo" }, "Lê Minh Tuấn");
+  const sauDt = one(dt, "summary").rows;
+  const sauNb = one(nb, "summary").rows;
+  assert.deepEqual(sauDt.slice(sauDt.findIndex((r) => r.label === "Phải thu") + 1), sauNb.slice(sauNb.findIndex((r) => r.label === "Còn lại") + 1));
+  assert.ok(sauDt.some((r) => r.label === "Phần 2 · i-resort") && sauDt.some((r) => r.label === "Trả tại quầy i-resort"));
+  assert.deepEqual(one(dt, "footer"), one(nb, "footer"));
+  assert.match(one(dt, "footer").lines.join("\n"), /Phần 2 do i-resort bán; Tour Đảo là đối tác đặt vé\./);
 });

@@ -26,6 +26,10 @@ export interface LabelValue { label: string; value: string }
 
 export interface HeaderBlock {
   kind: "header";
+  /** Có vẽ logo không (mẫu nội bộ: true; HD-02-DT: false). */
+  logo: boolean;
+  /** Mã mẫu in góc phải phần đầu ("Mẫu HD-02-DT"); null = không in (mẫu nội bộ). */
+  maMau: string | null;
   companyName: string;
   /** Mỗi phần tử một dòng logic (MST; địa chỉ; hotline · email); dòng dài do bộ vẽ tự ngắt. */
   lines: string[];
@@ -89,6 +93,10 @@ export type HandlerInput = string | null | typeof HANDLER_HIDDEN;
 
 const COLUMNS: ServiceColumns = { description: "Mô tả", quantity: "SL", unitPrice: "Đơn giá", lineTotal: "Thành tiền" };
 const SUBTOTAL_LABEL = "Cộng dịch vụ";
+/** Mẫu biên nhận cho đơn của đối tác (đặc tả 2026-11-06-bien-nhan-don-doi-tac §3). */
+export const MA_MAU_DOI_TAC = "Mẫu HD-02-DT";
+export const THUONG_HIEU = "Tour Đảo Nha Trang";
+export const KHAU_HIEU = "Trải nghiệm biển đảo tuyệt vời tại Khánh Hòa";
 
 // ---- định dạng chữ ----------------------------------------------------------------------------------------------------
 
@@ -161,9 +169,16 @@ function headerBlock(company: CompanyDto): HeaderBlock {
   const contact = joinDot([labelled("Hotline", company.hotline), labelled("Email", company.email)]);
   return {
     kind: "header",
+    logo: true,
+    maMau: null,
     companyName: clean(company.name),
     lines: [labelled("MST", company.taxCode) ?? "", clean(company.address), contact].filter((l) => l !== ""),
   };
+}
+
+/** Phần đầu mẫu HD-02-DT: không logo, không MST/địa chỉ/email; thương hiệu + khẩu hiệu + Hotline (thiếu Hotline thì bỏ dòng). */
+function headerDoiTac(company: CompanyDto): HeaderBlock {
+  return { kind: "header", logo: false, maMau: MA_MAU_DOI_TAC, companyName: THUONG_HIEU, lines: [KHAU_HIEU, labelled("Hotline", company.hotline) ?? ""].filter((l) => l !== "") };
 }
 
 function titleBlock(order: ReceiptDto, handler: HandlerInput): TitleBlock {
@@ -188,6 +203,50 @@ function customerBlock(order: ReceiptDto): CustomerBlock {
     heading: "Thông tin khách hàng",
     rows: rowsOf([["Họ tên", order.customerName], ["Số điện thoại", order.customerPhone], ["Email", order.customerEmail], ["Ghi chú / yêu cầu", order.customerNote]]),
   };
+}
+
+// ---- mẫu HD-02-DT (đơn của đối tác) ----
+/** Các điểm đón khác rỗng của mọi dịch vụ, mỗi nơi một lần (so sau khi làm sạch). */
+const diemDon = (order: ReceiptDto): string[] => [...new Set(order.services.map((s) => clean(s.pickupPlace)).filter((p) => p !== ""))];
+
+function customerDoiTac(order: ReceiptDto): CustomerBlock {
+  const noi = diemDon(order);
+  return {
+    kind: "customer",
+    heading: "Thông tin khách hàng",
+    rows: rowsOf([["Họ tên khách", order.customerName], ["Số điện thoại", order.customerPhone], ["Địa chỉ", noi.length === 1 ? noi[0] : null], ["Ghi chú", order.customerNote]]),
+  };
+}
+
+function serviceDoiTac(s: ReceiptServiceDto, index: number, nhieuDiemDon: boolean): ServiceBlock {
+  return {
+    kind: "service",
+    index,
+    name: clean(s.name),
+    details: rowsOf([
+      ["Số lượng", guestText(s.pax, s.unit)], ["Khởi hành", departureText(s)], ["Giờ đón", s.pickupTime],
+      ["Địa chỉ đón", nhieuDiemDon ? s.pickupPlace : null], ["Khách có mặt", checkinText(s)],
+    ]),
+    columns: { description: parseUnit(s.unit).kind === "perPax" ? "Loại khách" : "Mô tả", quantity: "SL", unitPrice: s.giaKhacCongBo ? "Đơn giá" : "Giá công bố", lineTotal: "Thành tiền" },
+    lines: s.items.map((it) => ({
+      description: clean(it.description),
+      detail: clean(it.detail) === "" ? null : clean(it.detail),
+      quantity: String(it.quantity),
+      unitPrice: money(it.unitPrice),
+      lineTotal: money(it.lineTotal),
+    })),
+    subtotal: s.items.length >= 2 ? { label: SUBTOTAL_LABEL, value: money(s.items.reduce((sum, it) => sum + it.lineTotal, 0)) } : null,
+  };
+}
+
+function summaryDoiTac(order: ReceiptDto): SummaryBlock {
+  const daGiao = order.status.khoa === "delivered" || order.status.khoa === "completed";
+  const rows: SummaryRow[] = [{ label: order.services.some((s) => s.giaKhacCongBo) ? "Tạm tính" : "Tổng giá công bố", value: money(order.subtotal), emphasis: false }];
+  if (order.discount !== 0) rows.push({ label: "Giảm giá", value: money(order.discount > 0 ? -order.discount : order.discount), emphasis: false });
+  if (order.giamTru) rows.push({ label: "Giảm sau khi giao", value: money(-order.giamTru), emphasis: false });
+  if (order.daTra !== 0) rows.push({ label: daGiao ? "Đã thu" : "Khách đã trả trước", value: money(order.daTra), emphasis: false }); // khác 0 (không chỉ > 0) để các dòng luôn cộng khớp khi hoàn nhiều hơn thu
+  rows.push({ label: "Phải thu", value: money(order.conLai), emphasis: true }, ...dongPhan(order));
+  return { kind: "summary", rows };
 }
 
 function serviceBlock(s: ReceiptServiceDto, index: number): ServiceBlock {
@@ -297,16 +356,16 @@ function fileNameOf(orderCode: string): string {
 export function buildConfirmation(receipt: ReceiptDto, handlerName: HandlerInput): ConfirmationModel {
   const order = receipt;
   const company = receipt.company;
+  const doiTac = receipt.mau === "doi_tac";
+  const dau = doiTac ? headerDoiTac(company) : headerBlock(company);
+  // Đơn huỷ: thân = thông báo huỷ của mẫu nội bộ cho cả hai mẫu; chỉ phần đầu khác.
+  const thanNoiBo = !doiTac || order.status.khoa === "cancelled";
+  const nhieuDiemDon = diemDon(order).length >= 2;
   return {
     orderCode: clean(order.orderCode),
     fileName: fileNameOf(order.orderCode),
-    blocks: [
-      headerBlock(company),
-      titleBlock(order, handlerName),
-      customerBlock(order),
-      ...order.services.map((s, i) => serviceBlock(s, i + 1)),
-      summaryBlock(order),
-      footerBlock(company, order),
-    ],
+    blocks: thanNoiBo
+      ? [dau, titleBlock(order, handlerName), customerBlock(order), ...order.services.map((s, i) => serviceBlock(s, i + 1)), summaryBlock(order), footerBlock(company, order)]
+      : [dau, titleBlock(order, handlerName), customerDoiTac(order), ...order.services.map((s, i) => serviceDoiTac(s, i + 1, nhieuDiemDon)), summaryDoiTac(order), footerBlock(company, order)],
   };
 }
