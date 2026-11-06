@@ -17,6 +17,101 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Đối tác xem và gửi vé (ADR-0170), siết ba đường (ADR-0171), sửa số nợ Trả sau khi nộp một phần. Không migration. Số và ngày tạm: bước A.0 đặt lại nếu cần.
+    version: "2.69",
+    date: "2026-11-05",
+    items: [
+      { kind: "moi", text: "Đối tác xem và gửi được vé của đơn mình lập, khi tiền của đơn đã về công ty." },
+      { kind: "doi", text: "Đơn do Đối tác lập: khoản Đối tác tự ghi chỉ tính sau khi đã nộp về công ty hoặc Kế toán xác nhận, nên vé mở sau bước đó." },
+      { kind: "doi", text: "Đối tác không tự huỷ hoặc tự sửa số khách trên đơn đã mở vé; cần thì liên hệ văn phòng." },
+      { kind: "doi", text: "Đường dẫn gửi khách: vé đã mở vẫn xem được, vé chưa mở chỉ hiện khi đơn đủ tiền." },
+      { kind: "doi", text: "Chuyển tiền sang đơn mới: phải ghi đúng người chưa nộp tiền; đơn của Đối tác chỉ mở vé sau khi người đó nộp." },
+      { kind: "sua", text: "Đơn trả sau: số nợ tính đúng khi mới nộp một phần tiền." },
+    ],
+  },
+  {
+    // Sửa khe đua ADR-0142 (nợ T4): nhận / đổi người phụ trách đúng lúc đơn bị huỷ. Không migration. Số và ngày tạm cho nhánh: bước A.0 đặt lại nếu cần.
+    version: "2.68",
+    date: "2026-11-05",
+    items: [
+      { kind: "sua", text: "Bấm nhận hoặc đổi người phụ trách đúng lúc đơn vừa bị huỷ: Nền tảng báo đơn đã huỷ và không ghi tên người lên đơn đó nữa." },
+    ],
+  },
+  {
+    // Thanh toán trả sau theo hạn mức (ADR-0168): migration 0141, ô quyền credit.limit.view / credit.limit.write.
+    // Số 2.67 và ngày chỉ là tạm cho nhánh: bước A.0 của lần triển khai đặt lại nếu cần.
+    version: "2.67",
+    date: "2026-11-05",
+    items: [
+      { kind: "moi", text: "Đối tác có hạn mức được chọn «Trả sau» khi lập đơn: vé mở trước, tiền thu sau trong số ngày được nợ." },
+      { kind: "moi", text: "Toàn quyền có màn Hạn mức trả sau để cấp hoặc ngừng hạn mức cho từng đối tác; Kế toán xem được số nợ và đơn quá hạn.", bai: { id: "viec/han-muc-tra-sau", ten: "Cấp hạn mức trả sau cho đối tác" } },
+      { kind: "moi", text: "Đơn trả sau vượt hạn mức, hoặc của đối tác còn đơn quá hạn, không xác nhận được; chi tiết đơn ghi hình thức thanh toán và hạn trả." },
+    ],
+  },
+  {
+    // Đổi chữ trạng thái đơn (chủ 2026-11-05, «chốt hướng»): chỉ đổi chữ người dùng thấy, mã và CSDL giữ tên cũ; không có migration.
+    version: "2.66",
+    date: "2026-11-05",
+    items: [
+      { kind: "doi", text: "Trạng thái Đã giao đổi tên thành Xong và đủ tiền để khỏi nhầm với giao vé; nút ghi Xác nhận xong và đủ tiền. Cách làm việc không đổi." },
+    ],
+  },
+  {
+    // ADR-0169: vai Quản lý bán hàng, công tắc kiểm vé về Dịch vụ & giá. Migration 0140_quan_ly_ban_hang (khác tệp 0140_hop_thu_ban_hang của mục 2.64).
+    version: "2.65",
+    date: "2026-11-05",
+    items: [
+      { kind: "moi", text: "Có vai mới Quản lý bán hàng: làm mọi việc của Bán hàng, thêm bật, tắt cần kiểm vé và Ngừng bán, Mở bán lại. Quản trị, Giám đốc, Toàn quyền gán được vai này." },
+      { kind: "doi", text: "Công tắc Cần kiểm vé nay nằm ngay trong Dịch vụ & giá, theo từng vé và cả nhóm. Trang Dịch vụ cần kiểm vé không còn nữa. Quản trị cũng gạt được.", bai: { id: "viec/dich-vu-can-kiem-ve", ten: "Đánh dấu vé cần kiểm vé" } },
+    ],
+  },
+  {
+    // Bán hàng phụ trách đơn (ADR-0142; migration 0138, 0140; ô quyền mới `dispatch.sales.*`; `order.confirm.review` thu về Bán hàng, Quản trị, Toàn quyền).
+    version: "2.64",
+    date: "2026-11-05",
+    items: [
+      { kind: "moi", text: "Mỗi đơn có hai người: «Người phụ trách» là Bán hàng chịu trách nhiệm chính; «Hướng dẫn viên» đón, hướng dẫn, gặp khách, thu tiền tại cảng." },
+      { kind: "moi", text: "Lập đơn có thể mời một Bán hàng làm người phụ trách. Người đó bấm «Nhận phụ trách» hoặc «Từ chối» trong thời gian ưu tiên; hết hạn thì Bán hàng nào cũng nhận." },
+      { kind: "moi", text: "Danh sách đơn có dòng «Phụ trách: tên» hoặc «Chờ Bán hàng nhận»; Trang chủ có thẻ «Đơn chưa có người phụ trách». Quản trị, Toàn quyền đổi được người phụ trách." },
+      { kind: "doi", text: "Kế toán và Hướng dẫn viên không còn bấm «Còn vé, xác nhận đơn» nữa: đơn cần kiểm vé do Bán hàng, Quản trị hoặc Toàn quyền xác nhận." },
+      { kind: "doi", text: "Nút «Nhận làm HDV» nay chỉ hiện với tài khoản có quyền Hướng dẫn viên." },
+    ],
+  },
+  {
+    // Bảng tham chiếu ngôn ngữ đợt 2 (ADR-0167): 16 tên nút đổi theo lời chủ 2026-11-05. Không migration, không ô quyền, không lệnh ghi mới.
+    version: "2.63",
+    date: "2026-11-05",
+    items: [
+      { kind: "doi", text: "Đổi chữ trên một số nút cho dễ hiểu hơn, ví dụ «Tải ảnh về máy», «Xem ảnh gửi khách», «Bỏ khỏi danh sách», «Đổi giờ dự kiến». Việc nút làm không đổi." },
+      { kind: "doi", text: "Nút «Sửa giá» trong đơn nay là «Sửa giá đơn này»; ở màn Dịch vụ & giá là «Ghi đè giá», để hai việc khác nhau không trùng tên." },
+    ],
+  },
+  {
+    // Màn «Dịch vụ cần kiểm vé» (ADR-0136 Đ1, Đ5) và sửa máy chủ: vé tắt riêng trong nhóm đang bật. Không migration, không ô quyền mới.
+    version: "2.62",
+    date: "2026-11-04",
+    items: [
+      { kind: "moi", text: "Toàn quyền có màn Dịch vụ cần kiểm vé: đánh dấu vé phải chờ người kiểm vé báo còn vé rồi đơn mới được xác nhận, theo từng vé hoặc cả nhóm.", bai: { id: "viec/dich-vu-can-kiem-ve", ten: "Đánh dấu vé cần kiểm vé" } },
+    ],
+  },
+  {
+    // Màn «Cấp độ đại lý» (đặc tả docs/superpowers/specs/2026-11-04-man-cap-dai-ly.md). Không migration, không ô quyền mới, không lệnh ghi mới.
+    // Đổi 12 tên nút sau rà soát 4/11 và tách nhãn đơn nháp (ADR-0166). Không migration, không ô quyền; có đổi cách chạy ở «Bỏ ghi đè giá», hộp hỏi «Còn vé, xác nhận đơn», cờ `dangCho` ở danh sách đơn.
+    // Số 2.61 và ngày chỉ là tạm cho nhánh: bước A.0 của lần triển khai đặt lại nếu cần.
+    version: "2.61",
+    date: "2026-11-04",
+    items: [
+      { kind: "moi", text: "Có màn Cấp độ đại lý: gán cấp hoa hồng nhanh cho mọi đối tác, kể cả công ty chưa có tài khoản, không cần vào trang Hoa hồng đối tác." },
+      { kind: "doi", text: "Đơn chưa gửi kiểm vé nay ghi «Chưa xác nhận»; đơn đã gửi và đang chờ người kiểm vé ghi «Chờ xác nhận». Ảnh gửi khách không đổi." },
+      { kind: "doi", text: "Bấm «Còn vé, xác nhận đơn» nay được hỏi lại và nói rõ việc gì sẽ xảy ra, vì bước này không hoàn tác được." },
+      { kind: "moi", text: "Hoa hồng đối tác: trong một cấp đại lý có hai nút «Gán cho vai trò» và «Gán cho đối tác»." },
+      { kind: "sua", text: "Dịch vụ & giá: «Bỏ ghi đè giá» chỉ đưa giá về theo Sheet, dịch vụ đang ngừng bán vẫn ngừng bán." },
+      { kind: "doi", text: "Đổi tên nút cho đúng việc: «Gửi kiểm vé», «Lưu đơn (chưa xác nhận)», «Ghi khoản thu này», «Ghi khoản thu đòi được», «Mở vé để gửi khách»." },
+      { kind: "doi", text: "Đổi tên nút cho đúng việc: «Ngừng bán», «Mở bán lại», «Kết thúc gián đoạn (xe hỏng)», «Đặt ngày kết thúc», «Ngừng dùng»." },
+      { kind: "sua", text: "Điện thoại: khung «Xác nhận đơn» trải đủ bề ngang, chữ không còn tràn khỏi viền." },
+    ],
+  },
+  {
     // Hồ sơ chưa có tài khoản (cả tổ chức) mang năm vai đối tác ở Danh bạ và hưởng hoa hồng theo cấp (ADR-0155 Đ1, C3, C4, C6). Không migration, không ô quyền mới.
     // Số 2.60 và ngày chỉ là tạm cho nhánh: bước A.0 của lần triển khai đặt lại nếu cần.
     version: "2.60",

@@ -64,6 +64,12 @@ const HANH_DONG_CUA_THAY_DOI: Record<ThayDoiDon, string | null> = {
   chot_giao: null, // ADR-0025 điều 8 + ADR-0045: "Đã giao" / "Hoàn thành" không gõ cửa màn hình khoá (bản làm mới §3.14)
   hoan_thanh: null,
   cho_xac_nhan: "order_confirm_requested", // ADR-0136 Đ10: tin cho người xét duyệt lúc Gửi xác nhận / Gửi đơn (nhánh A)
+  // ADR-0142 L9 (người soạn, theo brief Task 6): báo đẩy CHỈ cho lời mời (→ X) và «có Bán hàng phụ trách» (→ người lập). Còn lại không gõ cửa — người không có dòng hộp thư mà bị đẩy sẽ thấy chữ của tin khác (lỗi 2.36).
+  moi_ban_hang: "sales_invited",
+  ban_hang_nhan: "sales_owner_claimed",
+  ban_hang_tu_choi: null,
+  cho_ban_hang: null,
+  doi_ban_hang: null,
   tu_choi: null, // ADR-0030 điều 1 + Q4 (a) chủ 2026-10-23: chỉ thông báo nổi Bảng tin — hộp thông báo / màn hình khoá không có tin "được trả lại"
 };
 export function hanhDongCuaThayDoi(t: ThayDoiDon): string | null {

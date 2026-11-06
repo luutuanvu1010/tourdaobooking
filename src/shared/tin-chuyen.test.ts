@@ -96,7 +96,7 @@ test("khách vắng → người lập / người phụ trách CÓ trip.view; HD
   assert.match(tinChuyenCho(nguoi("lap", ["SALES"]), d)!.cau, /DH-0001/);
 });
 
-// Mọi tập con quyền (1024): bất biến suy từ can(), không chép tay bảng.
+// Mọi tập con quyền (2048): bất biến suy từ can(), không chép tay bảng.
 function moiTapCon<T>(m: readonly T[]): T[][] {
   if (m.length === 0) return [[]];
   const [dau, ...con] = m;
@@ -105,7 +105,7 @@ function moiTapCon<T>(m: readonly T[]): T[][] {
 }
 test("mọi tập con quyền × mọi hành động × cờ khẩn cấp: nhận ⇒ qua can(trip.view) (tài xế: assigned + có dòng lái lúc đó); tin khẩn cấp chỉ cho tài xế đang lái; người nhận CHỈ qua nhánh tài xế không bao giờ thấy mã đơn (A4 NT-14)", () => {
   const tap = moiTapCon(PERMISSION_CODES as readonly PermissionCode[]);
-  assert.equal(tap.length, 1024);
+  assert.equal(tap.length, 2048);
   for (const permissions of tap) {
     // ADR-0104 Đ1 mục 6: "trip_allocated" nay TRONG danh sách (sinh tin có điều kiện) — hành động ngoài danh sách thử bằng "trip_departed" + một mã lạ.
     for (const action of [...HANH_DONG_TIN_CHUYEN, "trip_departed", "trip_khong_co_that"]) {

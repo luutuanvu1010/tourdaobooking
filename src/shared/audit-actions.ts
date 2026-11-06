@@ -45,8 +45,13 @@ export const AUDIT_ACTIONS = {
   order_passenger_changed: { label: "Sửa danh sách hành khách", group: "order" },
   confirmed: { label: "Xác nhận đơn", group: "order" },
   // ADR-0136 Đ3: gửi / rút lại yêu cầu xác nhận — `detail` là khuôn cố định ("Gửi xác nhận · cần: dịch vụ cần xác nhận / đặt gấp"), không dữ liệu khách.
-  order_confirm_requested: { label: "Gửi xác nhận đơn", group: "order" },
+  order_confirm_requested: { label: "Gửi kiểm vé", group: "order" },
   order_confirm_withdrawn: { label: "Rút lại yêu cầu xác nhận", group: "order" },
+  // ADR-0142: Bán hàng phụ trách. `detail` KHÔNG tên, mã người hay SĐT (chỉ chữ cố định); người mời / người nhận nằm ở cột người làm của dòng nhật ký.
+  sales_invited: { label: "Mời người phụ trách", group: "order" },
+  sales_owner_claimed: { label: "Nhận phụ trách", group: "order" },
+  sales_owner_changed: { label: "Đổi người phụ trách", group: "order" },
+  sales_invite_refused: { label: "Từ chối phụ trách đơn", group: "order" },
   cancelled: { label: "Huỷ đơn", group: "order" },
   order_cancelled_by_field: { label: "Huỷ đơn (hướng dẫn viên đang phụ trách)", group: "order" },
   order_cancel_reason_classified: { label: "Phân loại lý do huỷ", group: "order" },
@@ -63,7 +68,7 @@ export const AUDIT_ACTIONS = {
   // không tỷ lệ, không tiền, không tên đối tác). Tiền tố `ord_terms_` thuộc nhóm hành động thương mại (`laHanhDongThuongMai`); ẩn khỏi lịch sử đơn của Đối tác.
   ord_terms_backfilled: { label: "Chụp bù mức hoa hồng", group: "order" },
   // Sổ tiền lượt 1 (ADR-0025, ADR-0026) — `detail` không SĐT, không số tiền chi tiết (kế hoạch §3.4).
-  order_delivered: { label: "Đã giao – đã thu đủ", group: "order" },
+  order_delivered: { label: "Xong và đủ tiền", group: "order" },
   order_completed: { label: "Hoàn thành", group: "order" },
   payment_recorded: { label: "Ghi khoản thu", group: "order" },
   // ADR-0060: dấu "đã nhập phần mềm kế toán" (bảng chỉ-thêm bil_accounting_entry) — detail = moTaDauNhap (số hoá đơn nguyên văn; lý do đã chặn dãy số dài).
@@ -135,7 +140,7 @@ export const AUDIT_ACTIONS = {
   prc_rate_tier_note: { label: "Sửa ghi chú cấp độ đại lý", group: "ledger" },
   prc_role_tier_set: { label: "Áp dụng cấp độ đại lý cho vai trò", group: "ledger" },
   prc_role_tier_closed: { label: "Ngừng áp dụng cấp độ đại lý cho vai trò", group: "ledger" },
-  prc_party_tier_set: { label: "Áp dụng cấp riêng cho đối tác", group: "ledger" },
+  prc_party_tier_set: { label: "Chọn cấp riêng cho đối tác", group: "ledger" },
   prc_party_tier_closed: { label: "Ngừng áp dụng cấp riêng của đối tác", group: "ledger" },
   // ADR-0148 Đ1: nút «Sửa» huỷ dòng chưa đơn nào chụp và thay hẳn bằng dòng mới (đi cùng `_added` / `_set` của dòng mới). `detail` = «sửa · dòng <cũ> → <mới> · huỷ dòng cũ» —
   // KHÔNG chép lý do sửa (lý do ở cột `change_reason` của dòng mới). Sửa dòng ĐÃ có đơn chụp đóng dòng cũ ⇒ đi qua `_closed`.
@@ -145,10 +150,14 @@ export const AUDIT_ACTIONS = {
   // ADR-0161 Đ3: Toàn quyền đổi GIỚI HẠN NHẬP mức hoa hồng (trần phần trăm, bước số tiền; POST /api/pricing/gioi-han-nhap) — `target_type = 'ledger'`, không gắn đơn;
   // `detail` = «trần 50% → 60% · bước 1.000đ → 1.000đ» (hai con số, không dữ liệu cá nhân). Đổi giới hạn không đổi dòng mức đã có hay đơn đã chụp.
   prc_entry_limit_changed: { label: "Đổi giới hạn nhập hoa hồng", group: "ledger" },
+  // ADR-0168 Đ1: Toàn quyền đặt / ngừng hạn mức Trả sau của một đối tác (route /api/tra-sau/han-muc*) — `target_type = 'ledger'`, `target_id` = mã hồ sơ, không gắn đơn.
+  // `detail` = «hạn mức 50.000.000 ₫ · 7 ngày» / «ngừng hạn mức» (số tiền và số ngày, KHÔNG tên, SĐT, email, MST, lý do tự do).
+  credit_limit_set: { label: "Đặt hạn mức trả sau", group: "ledger" },
+  credit_limit_stopped: { label: "Ngừng hạn mức trả sau", group: "ledger" },
   // Khoá sổ tháng (ADR-0080 D1; module ky-so — route ở billing): `order_id` NULL; `detail` = "Khoá sổ tháng MM/YYYY" (không tiền, không SĐT).
   ledger_period_closed: { label: "Khoá sổ tháng", group: "ledger" },
-  order_handler_changed: { label: "Đổi người phụ trách", group: "order" },
-  order_claimed: { label: "Tự nhận phụ trách đơn", group: "order" },
+  order_handler_changed: { label: "Đổi Hướng dẫn viên", group: "order" },
+  order_claimed: { label: "Hướng dẫn viên tự nhận đơn", group: "order" },
   // ADR-0030 điều 1 (nút Từ chối): người phụ trách tự trả đơn. `detail` = CHỈ nhãn lý do (danh sách đóng `ly-do-tu-choi.ts`) — không tên (Q2 (a), chủ 2026-10-23).
   order_handler_refused: { label: "Trả đơn (Từ chối)", group: "order" },
   // ADR-0032 (hạn mức Từ chối): `detail` CHỈ là số (chuỗi / tuần / mức / chế độ) — không tên, không SĐT. Ẩn ở cả hai lớp lịch sử rút gọn (G3 kế hoạch
@@ -227,7 +236,7 @@ export const AUDIT_ACTIONS = {
   // danh mục; không order_id, không target (khuôn expiry_policy_changed).
   dispatch_policy_changed: { label: "Đổi chính sách điều phối", group: "trip" },
   departure_rule_added: { label: "Thêm điều kiện cho xe chạy", group: "trip" },
-  departure_rule_closed: { label: "Đóng điều kiện cho xe chạy", group: "trip" },
+  departure_rule_closed: { label: "Ngừng điều kiện cho xe chạy", group: "trip" },
   license_capacity_changed: { label: "Đổi số khách theo hạng bằng", group: "trip" },
   trip_reason_added: { label: "Thêm lý do điều phối", group: "trip" },
   trip_reason_updated: { label: "Sửa lý do điều phối", group: "trip" },
@@ -300,6 +309,8 @@ export const AUDIT_ACTIONS = {
   // ADR-0136 Đ1, Đ5: cờ «cần xác nhận» theo dịch vụ / nhóm, công tắc «nội bộ tự xác nhận» — `detail` ghi mã dịch vụ / nhóm (không dữ liệu khách).
   confirm_flag_changed: { label: "Đổi cờ cần xác nhận", group: "system" },
   confirm_policy_changed: { label: "Đổi công tắc tự xác nhận", group: "system" },
+  // ADR-0142 Đ5: ba con số giờ hành chính của Bán hàng phụ trách (POST /api/cai-dat/ban-hang-phu-trach) — không gắn đơn; detail chỉ số.
+  sales_policy_changed: { label: "Đổi cài đặt người phụ trách", group: "system" },
   // ADR-0154 Đ2.1: Toàn quyền bật / tắt «Ẩn thông tin khách khi đối tác đặt vé» (POST /api/cai-dat/an-thong-tin-khach) — không gắn đơn; detail «Bật …» / «Tắt …», không dữ liệu khách.
   partner_customer_policy_changed: { label: "Đổi công tắc ẩn thông tin khách", group: "system" },
   // ADR-0069 điều 5 + Hiến chương 5.12: ai đổi cài đặt trợ lý Hỗ trợ lúc nào — detail chỉ nêu PHẦN đã đổi, KHÔNG nội dung lời dặn / ngữ cảnh.
@@ -310,9 +321,9 @@ export const AUDIT_ACTIONS = {
   client_outdated_body: { label: "Máy dùng Nền tảng bản cũ", group: "system" },
   catalog_synced: { label: "Đồng bộ dịch vụ từ Sheet", group: "catalog" },
   catalog_overridden: { label: "Ghi đè giá dịch vụ", group: "catalog" },
-  catalog_override_cleared: { label: "Bỏ ghi đè dịch vụ", group: "catalog" },
-  catalog_hidden: { label: "Ẩn dịch vụ", group: "catalog" },
-  catalog_unhidden: { label: "Hiện lại dịch vụ", group: "catalog" },
+  catalog_override_cleared: { label: "Bỏ ghi đè giá dịch vụ", group: "catalog" },
+  catalog_hidden: { label: "Ngừng bán dịch vụ", group: "catalog" },
+  catalog_unhidden: { label: "Mở bán lại dịch vụ", group: "catalog" },
   // ADR-0058 Đ3: nhóm dịch vụ — targetType "catalog". Nhóm: targetId NULL (mã nhóm máy sinh không lên trang Nhật ký), detail = tên / trước → sau.
   // Gán: targetId = mã dịch vụ, detail "Tour đảo → Thể thao biển" (tên; "Chưa phân loại" khi không nhóm), mỗi dịch vụ một dòng cùng lô.
   catalog_group_created: { label: "Thêm nhóm dịch vụ", group: "catalog" },

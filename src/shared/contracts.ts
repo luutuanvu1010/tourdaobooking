@@ -5,6 +5,7 @@ import type { CatalogService, PaxCode, PaxCounts, Prices } from "./order-lines.t
 import type { FeedbackKind, FeedbackStatus } from "./feedback-catalog.ts";
 import type { Priority, TeamRole } from "./ve-ho-tro.ts";
 import type { LyDoSuaSai } from "./giay-to.ts";
+import type { HinhThucThanhToan } from "./tra-sau.ts";
 import type { NhomLyDo } from "./dieu-phoi-kieu.ts";
 import type { PermissionCode } from "./permissions.ts";
 import type { RoleCode } from "./roles.ts";
@@ -344,6 +345,10 @@ export interface OrderDto {
    * Lời khai «Khách đặt cọc trước» của người lập (ADR-0159): chỉ có nghĩa khi đơn còn NHÁP, không phải khoản thu. Đơn đã rời nháp luôn là 0 — tiền đã thu đọc từ sổ, không đọc cột.
    */
   declaredDeposit: number;
+  /** Hình thức thanh toán (ADR-0168): `PREPAID` (mặc định) hoặc `CREDIT` (Trả sau). Nhãn hiện cho người dùng: `NHAN_HINH_THUC` (src/shared/tra-sau.ts). */
+  paymentTerm: HinhThucThanhToan;
+  /** Hạn trả của đơn Trả sau đã xác nhận (YYYY-MM-DD, giờ Việt Nam); `null` ở đơn Trả trước hoặc đơn chưa xác nhận. */
+  hanTra: string | null;
   createdAt: string;
   updatedAt: string;
   confirmedAt: string | null;
@@ -386,6 +391,11 @@ export type OrderSummaryDto = Pick<
    * đó; mọi trường hợp khác VẮNG khoá (không gửi false — người không được xem không suy ra được gì).
    */
   nhapKeToan?: true;
+  /**
+   * ADR-0166 câu 5: đơn NHÁP đã gửi đi kiểm vé và chưa ai quyết (có dòng `ord_confirm_request` còn mở) → thẻ ghi «Chờ xác nhận»; đơn nháp chưa gửi ghi «Chưa xác nhận».
+   * CHỈ có (true) khi đúng; mọi trường hợp khác VẮNG khoá (không gửi false). Hết sau Rút lại và sau mọi quyết định (Còn vé, Hết vé, Huỷ).
+   */
+  dangCho?: true;
 };
 
 /** Thông tin chuyến client gửi lên: "" = chưa có. */
@@ -443,6 +453,8 @@ export interface OrderInput {
   paymentNote: string;
   /** ADR-0159: lời khai «Khách đặt cọc trước», chỉ tài khoản giữ quyền Đối tác gửi; vắng = giữ số đang lưu. */
   declaredDeposit?: number;
+  /** ADR-0168: hình thức thanh toán; vắng = giữ hình thức đang lưu (đơn mới: Trả trước). Trả sau chỉ nhận được khi bên đặt có hạn mức còn hiệu lực. */
+  paymentTerm?: HinhThucThanhToan;
   /** Gắn hồ sơ có sẵn (id `pty_party`, chỉ cá nhân đang hoạt động); null/vắng = không gắn. Không gửi kèm `newBooker`. */
   bookerPartyId?: string | null;
   /** Tạo hồ sơ cá nhân mới + vai CUSTOMER cùng lúc lưu đơn (ADR-0011 điều 1). Không gửi kèm `bookerPartyId`. */
@@ -655,6 +667,12 @@ export interface OrderDetailResponse {
    * (không phải người lập, không xét duyệt được). Vắng khoá = máy chủ cũ.
    */
   xacNhan?: XacNhanTrenDonDto | null;
+  /** ADR-0142: người xem là Bán hàng phụ trách ĐANG MỞ của đơn (không phải người phụ trách HDV). Giao diện dùng cho nút sửa chuyến / hành khách / đổi người; máy chủ vẫn kiểm lại ở từng route. */
+  laBanHangPhuTrach: boolean;
+  /** ADR-0142: Bán hàng người lập đã MỜI trên đơn NHÁP (chỉ người lập thấy, chỉ khi còn là Bán hàng mời được); null = chưa mời. Vắng khoá = máy chủ cũ / không phải nháp của người xem. */
+  banHangMoi?: { staffId: string; name: string } | null;
+  /** ADR-0170 Đ3: đơn có vé đã mở (hoặc không đọc được). CHỈ có khi người xem giữ quyền Đối tác (kể cả lai); giao diện ẩn nút Huỷ theo cờ này, máy chủ vẫn chặn. */
+  coVeDaMo?: boolean;
 }
 /**
  * `yeuCau` = yêu cầu xác nhận ĐANG MỞ của đơn (null = chưa gửi / đã rút). `canXacNhan` = đơn thuộc diện phải qua bước xác nhận (chỉ tính cho người lập; người khác false).
@@ -804,6 +822,11 @@ export interface CatalogGroupAssignResponse { doi: number; boQua: number }
 /** `GET /api/catalog/:code/group-history` — mới nhất trước; `createdBy` là id tài khoản (`null` = Hệ thống gieo); `nhom` là tên (`null` = Chưa phân loại). */
 export interface CatalogGroupHistoryResponse { items: { luc: string; createdBy: string | null; nhom: string | null }[] }
 export interface CatalogItemResponse { item: CatalogAdminItemDto }
+/** `GET /api/catalog/quan-ly-ban` (ADR-0169 Đ5): màn hẹp của Quản lý bán hàng. Không có giá, không có dữ liệu nhà cung cấp. `dangBan` = false là đã ngừng bán. */
+export interface CatalogQuanLyBanResponse { dichVu: { code: string; ten: string; dangBan: boolean; groupCode: string | null }[]; nhom: { code: string; ten: string }[] }
+/** `PUT /api/catalog/:code/ngung-ban` (ADR-0169 Đ5). */
+export interface CatalogNgungBanInput { ngungBan: boolean }
+export interface CatalogNgungBanResponse { code: string; ngungBan: boolean }
 export interface CatalogSyncResponse {
   ok: true;
   added: number;
@@ -1469,8 +1492,9 @@ export interface FeedbackMyOrdersResponse { orders: { id: string; orderCode: str
 // ---- Thông báo hệ thống (ADR-0034) --------------------------------------------
 // "chuyen": tin chuyến xe (ADR-0052 D6, kể cả MQ-07 "giờ hẹn chặng đổi khi đã xếp"); "tai_khoan": ngưng tài khoản giữ tiền — chỉ Toàn quyền nhận (ADR-0090 đ3);
 // "doi_sau_xac_nhan": đơn đã xác nhận đổi giờ / nơi đón / số khách / chặng (ADR-0062);
+// "moi_ban_hang" / "ban_hang_nhan" / "ban_hang_tu_choi" / "doi_ban_hang" / "hoan_thanh": Bán hàng phụ trách đơn (ADR-0142 Đ7)
 // "dieu_chinh": yêu cầu điều chỉnh công nợ — có yêu cầu mới / đã duyệt / bị từ chối / được rút / số dư của bạn đổi (ADR-0115)
-export type LoaiTin = "thu_cong" | "lap" | "cho_nhan" | "nhan" | "giao" | "xac_nhan" | "huy" | "chuyen" | "tai_khoan" | "doi_sau_xac_nhan" | "dieu_chinh" | "cho_xac_nhan" | "duyet_hoan";
+export type LoaiTin = "thu_cong" | "lap" | "cho_nhan" | "nhan" | "giao" | "xac_nhan" | "huy" | "chuyen" | "tai_khoan" | "doi_sau_xac_nhan" | "dieu_chinh" | "cho_xac_nhan" | "duyet_hoan" | "moi_ban_hang" | "ban_hang_nhan" | "ban_hang_tu_choi" | "doi_ban_hang" | "hoan_thanh";
 export interface TinDto {
   id: string;
   loai: LoaiTin;
@@ -2315,7 +2339,7 @@ export interface CocDonDto {
   choChi: number;
   khoanDuyet: KhoanDuyetDto[];
   hoanNgoaiDong: HoanNgoaiDto[];
-  nguoiGiu: { ten: string; soTien: number }[] | null;
+  nguoiGiu: { partyId: string; ten: string; soTien: number }[] | null;
   coThePhanLoai: boolean;
   /** Nút duyệt HOÀN cho khách / huỷ duyệt khoản hoàn (ô `deposit.refund.approve`). */
   coTheDuyet: boolean;
@@ -2962,6 +2986,20 @@ export interface CapHienHanhDto {
 }
 export interface CapHienHanhResponse { homNay: string; hoSo: CapHienHanhDto[] }
 /**
+ * Một dòng của màn «Cấp độ đại lý» (`GET /api/pricing/cap-dai-ly`, đặc tả 2026-11-04-man-cap-dai-ly): hồ sơ đang mở mang vai trò được hưởng, có hay chưa có tài khoản. `vaiTro` chỉ gồm vai trò được hưởng đang bật.
+ * `coTaiKhoan` tính cả tài khoản đã ngưng. Danh sách trắng: không SĐT, email, mã số thuế, địa chỉ. `cap` là nguyên `CapHienHanhDto` của cột ở Quản lý tài khoản.
+ */
+export interface CapDaiLyDongDto {
+  partyId: string;
+  ten: string;
+  loaiHoSo: "PERSON" | "ORGANIZATION";
+  vaiTro: { code: string; ten: string }[];
+  coTaiKhoan: boolean;
+  cap: CapHienHanhDto;
+}
+/** `soCapDangBat` = số cấp đang bật; 0 ⇒ màn nói rõ và trỏ sang trang Hoa hồng đối tác để tạo tên cấp. */
+export interface CapDaiLyResponse { homNay: string; soCapDangBat: number; hoSo: CapDaiLyDongDto[] }
+/**
  * ADR-0148 Đ1: xem trước «Sửa» một dòng có ngày (mức, gắn loại, gắn đối tác — `GET …/:id/sua`). HUY_THAY = chưa đơn nào dùng dòng này: sửa sẽ huỷ dòng cũ và thay hẳn. TU_NGAY = đã có
  * đơn dùng: phần sửa áp từ `tuNgaySomNhat`, bắt đầu không sau `denNgayToiDa` (ngày kết thúc của dòng cũ; null = không thời hạn); đơn cũ giữ mức cũ.
  */
@@ -3082,3 +3120,82 @@ export interface CaiDatXacNhanResponse {
   tuXacNhanNoiBo: boolean;
 }
 export type CaiDatXacNhanInput = { pham: "SERVICE" | "GROUP"; ma: string; canXacNhan: boolean } | { tuXacNhanNoiBo: boolean };
+
+// ---- Trả sau theo hạn mức (ADR-0168; billing) ----
+/** Một hồ sơ trên màn «Hạn mức trả sau». `coHanMuc` false = hồ sơ còn đơn Trả sau đang nợ nhưng hạn mức đã ngừng. Số tiền VNĐ, tính ở máy chủ. */
+export interface HanMucTraSauDto {
+  partyId: string;
+  ten: string;
+  coHanMuc: boolean;
+  hanMuc: number | null;
+  soNgay: number | null;
+  tuNgay: string | null;
+  dangNo: number;
+  conDuocDung: number | null;
+  soDonNo: number;
+  soDonQuaHan: number;
+}
+export interface HanMucTraSauListResponse {
+  danhSach: HanMucTraSauDto[];
+  /** Toàn quyền sửa được; Kế toán chỉ xem. */
+  coQuyenSua: boolean;
+}
+export interface DonNoTraSauDto {
+  orderId: string;
+  maDon: string;
+  /** Ngày hạn trả (YYYY-MM-DD, giờ Việt Nam). */
+  hanTra: string | null;
+  no: number;
+  quaHan: boolean;
+}
+export interface DonNoTraSauResponse {
+  partyId: string;
+  ten: string;
+  don: DonNoTraSauDto[];
+}
+export interface DatHanMucTraSauInput {
+  partyId: string;
+  hanMuc: number;
+  soNgay: number;
+  lyDo?: string;
+}
+/** Đường đọc hẹp cho người lập đơn: chỉ số còn được dùng của đúng bên đặt, không kèm danh sách đơn. */
+export interface ConDuocDungTraSauResponse {
+  coHanMuc: boolean;
+  conDuocDung: number;
+  coDonQuaHan: boolean;
+}
+// ---- Bán hàng phụ trách đơn (ADR-0142) ------------------------------------------------------------------------------------------------------------------
+/** `GET /api/dispatch/ban-hang-moi`: người mời được làm Bán hàng phụ trách — CHỈ mã tài khoản + tên (không SĐT, không email). */
+export interface BanHangMoiResponse { banHang: { staffId: string; name: string }[] }
+/**
+ * `GET /api/dispatch/ban-hang?orderIds=…` — một phần tử cho MỖI đơn người gọi xem được. Đối tác / Thực tập chỉ nhận TÊN Bán hàng phụ trách (không `staffId`, `loiMoi` luôn null).
+ * `loiMoi.conPhut` = phút giờ hành chính còn lại của ưu tiên (đã hết ưu tiên hoặc người được mời mất quyền ⇒ `loiMoi` = null).
+ */
+export interface BanHangDonDto {
+  banHang: { staffId?: string | null; name: string } | null;
+  loiMoi: { staffId: string | null; name: string; conPhut: number } | null;
+  laBanHangPhuTrach: boolean;
+}
+export type BanHangCuaDonResponse = Record<string, BanHangDonDto>;
+/** Trả lời của `POST /api/orders/:id/ban-hang/nhan`, `…/tu-choi`, `PUT …/ban-hang`. */
+export interface BanHangGhiResponse { ok: true; banHang: { staffId: string | null; name: string } | null }
+/** `PUT /api/orders/:id/ban-hang`: `staffId` null = bỏ trống ô. */
+export interface DoiBanHangBody { staffId: string | null }
+/** Thẻ «Đơn chưa có Bán hàng phụ trách» của Trang chủ (ADR-0142 Đ6). Không tên khách, không SĐT. */
+export interface TheDonDto {
+  orderId: string;
+  orderCode: string;
+  /** Lúc đơn được ghi nhận (xác nhận, hoặc lúc gửi yêu cầu xác nhận). */
+  ghiNhanLuc: string;
+  /** Đơn còn chờ xác nhận (nháp có yêu cầu mở). */
+  choXacNhan: boolean;
+  ngayDi: string | null;
+  dichVu: string[];
+  /** Người xem là người lập đơn này (thẻ hiện chữ «đang chờ văn phòng nhận»). */
+  laCuaToi: boolean;
+}
+/** `GET /api/orders/chua-co-ban-hang`. `soDonChoXacNhanAn` = đơn chờ xác nhận mà người xem (Kế toán) chỉ được biết SỐ LƯỢNG. */
+export interface ChuaCoBanHangResponse { don: TheDonDto[]; soDonChoXacNhanAn: number }
+/** `GET`/`POST /api/cai-dat/ban-hang-phu-trach`: dòng chính sách hiện hành. `doiDuoc` = người gọi giữ `settings.ops`. */
+export interface BanHangChinhSachResponse { phutUuTien: number; tuPhut: number; denPhut: number; mocPhatHanh: string | null; doiDuoc: boolean }

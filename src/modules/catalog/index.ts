@@ -2,9 +2,10 @@
 // Sheet là nguồn chính; Admin có thể ghi đè giá/ẩn dịch vụ (ghi đè không bị lần đồng bộ sau đè mất). App KHÔNG BAO GIỜ ghi ngược vào Sheet.
 import { auditStatement, type AuditAction } from "../audit";
 import { error, json, readJson } from "../../shared/http";
-import { can, isOffice } from "../../shared/permissions";
+import { can, holdsPartner, isOffice } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
 import type {
+  CatalogNgungBanResponse,
   CatalogAdminGroupDto, CatalogAdminItemDto, CatalogAdminResponse, CatalogConflictCountResponse, CatalogGroupAssignResponse, CatalogGroupHistoryResponse, CatalogGroupResponse,
   CatalogGroupsResponse, CatalogItemResponse, CatalogPublicResponse, CatalogServiceDto, CatalogSyncResponse,
 } from "../../shared/contracts";
@@ -418,6 +419,19 @@ export const catalogModule: AppModule = {
       return json({ item: await adminItemKemNhom(env.DB, (await loadOne(env.DB, item.code))!) } satisfies CatalogItemResponse);
     }),
 
+    // ADR-0169 Đ5: Ngừng bán, Mở bán lại cho Quản lý bán hàng. Tuyến riêng để không phải mở PATCH trên (PATCH còn sửa giá, chỉ admin.manage).
+    route("PUT", "/api/catalog/:code/ngung-ban", "office", async ({ env, request, params, staff }) => {
+      if (!can(staff, "catalog.hidden.write") || holdsPartner(staff)) return error(403, "forbidden", "Tài khoản này không ngừng bán được dịch vụ.");
+      const item = await loadByParam(env.DB, params.code);
+      if (!item) return NOT_FOUND();
+      const ngungBan = ((await readJson(request)) as { ngungBan?: unknown } | null)?.ngungBan;
+      if (typeof ngungBan !== "boolean") return error(400, "invalid_input", "Chọn ngừng bán hoặc mở bán lại.");
+      if (applyOverride(item.prices, item.override).hidden !== ngungBan) {
+        await saveOverride(env.DB, item.code, patchOverride(item.prices, item.override, { hidden: ngungBan }), staff.id, new Date().toISOString(), [{ action: ngungBan ? "catalog_hidden" : "catalog_unhidden" }]);
+      }
+      return json({ code: item.code, ngungBan } satisfies CatalogNgungBanResponse);
+    }),
+
     // "Giữ ghi đè": đã xem Sheet đổi giá, xác nhận giữ giá ghi đè
     route("POST", "/api/catalog/:code/ack", "admin", async ({ env, params, staff }) => {
       if (!can(staff, "admin.manage")) return error(403, "forbidden", "Chỉ quản trị viên được thực hiện thao tác này.");
@@ -432,13 +446,16 @@ export const catalogModule: AppModule = {
       return json({ item: await adminItemKemNhom(env.DB, (await loadOne(env.DB, item.code))!) } satisfies CatalogItemResponse);
     }),
 
-    // Bỏ toàn bộ ghi đè (giá + ẩn), quay về theo Sheet
+    // Bỏ ghi đè GIÁ, quay về giá theo Sheet (ADR-0166 câu 2). Dấu «Ngừng bán» (hidden) được GIỮ: dịch vụ đang ngừng bán vẫn ngừng bán.
+    // Không còn gì để giữ (không ngừng bán) thì dòng ghi đè bị xoá hẳn như trước (`patchOverride` trả null).
     route("DELETE", "/api/catalog/:code/override", "admin", async ({ env, params, staff }) => {
       if (!can(staff, "admin.manage")) return error(403, "forbidden", "Chỉ quản trị viên được thực hiện thao tác này.");
       const item = await loadByParam(env.DB, params.code);
       if (!item) return NOT_FOUND();
-      if (!item.override) return json({ item: await adminItemKemNhom(env.DB, item) } satisfies CatalogItemResponse);
-      await saveOverride(env.DB, item.code, null, staff.id, new Date().toISOString(), [{ action: "catalog_override_cleared", detail: "quay về giá theo Sheet" }]);
+      if (!item.override || Object.keys(item.override.prices).length === 0) return json({ item: await adminItemKemNhom(env.DB, item) } satisfies CatalogItemResponse); // không có giá ghi đè nào: không đổi gì
+      const conNgungBan = item.override.hidden;
+      const next = patchOverride(item.prices, item.override, { prices: Object.fromEntries(PAX_ORDER.map((c) => [c, null])) });
+      await saveOverride(env.DB, item.code, next, staff.id, new Date().toISOString(), [{ action: "catalog_override_cleared", detail: `bỏ ghi đè giá, quay về giá theo Sheet${conNgungBan ? " (dịch vụ vẫn ngừng bán)" : ""}` }]);
       return json({ item: await adminItemKemNhom(env.DB, (await loadOne(env.DB, item.code))!) } satisfies CatalogItemResponse);
     }),
   ],

@@ -32,6 +32,7 @@ const TU_DOI_QUYEN_TOAN_QUYEN =
   "Vai trò vừa chọn làm đổi quyền của chính bạn — không ai tự đổi quyền của mình được (chống tự khoá). Toàn quyền đã làm được mọi việc của mọi vai trò, nên không cần tự gán thêm. Chưa lưu gì.";
 const sameAssignment = (a: RolePickerValue, b: RolePickerValue): boolean => sameSet(a.roles, b.roles) && sameSet(a.adds, b.adds) && sameSet(a.removes, b.removes);
 let meSuper = false;
+let meQuanTri = false; // ADR-0169 Đ3
 // ADR-0042 + ADR-0071 điều 1e: đặt lại PIN, gỡ Face ID, mở khoá — Quản trị + Toàn quyền (ô account.access.manage); HCNS không thấy nút (máy chủ vẫn chặn 403).
 let canAccessManage = false;
 
@@ -312,7 +313,7 @@ async function openEdit(s: StaffAccount): Promise<void> {
   const name = h("input", { type: "text", value: s.fullName, maxLength: 200 });
   const phone = h("input", { type: "tel", value: s.phone });
   const isMe = s.id === me.id;
-  const picker = rolePicker({ initial: saved, actorIsSuperAdmin: meSuper, current: s.permissions, tenVai });
+  const picker = rolePicker({ initial: saved, actorIsSuperAdmin: meSuper, actorLaQuanTri: meQuanTri, current: s.permissions, tenVai });
   const boxes = new Map<PermissionCode, HTMLInputElement>();
   const permissionBoxes = PERMISSION_CODES.map((code) => {
     const box = h("input", { type: "checkbox", checked: s.permissions.includes(code), disabled: isMe, style: "width:auto;display:inline;margin:0 6px 0 0" });
@@ -411,7 +412,7 @@ const addPhone = byId<HTMLInputElement>("add-phone");
 const existingNote = h("div", { id: "add-khop", class: "muted", hidden: true });
 
 function setupAddForm(): void {
-  addPicker = rolePicker({ initial: EMPTY, actorIsSuperAdmin: meSuper, current: null, tenVai });
+  addPicker = rolePicker({ initial: EMPTY, actorIsSuperAdmin: meSuper, actorLaQuanTri: meQuanTri, current: null, tenVai });
   replaceChildren(byId("add-perms"), addPicker.el, existingNote);
 }
 
@@ -546,8 +547,10 @@ byId<HTMLFormElement>("add-form").addEventListener("submit", async (e) => {
 
 const staff = await initShell();
 me = staff;
+meQuanTri = can(staff, "admin.manage");
 meSuper = can(staff, "admin.manage.superadmin"); // ADR-0072 mục 4a: hỏi bảng quyền (ô gán/gỡ Toàn quyền), không hỏi mã
 canAccessManage = can(staff, "account.access.manage");
+byId("lien-ket-cap-dai-ly").hidden = !suaDuocCot(me); // lối sang màn gom (đặc tả 2026-11-04-man-cap-dai-ly): cùng cổng với route đọc của màn
 hienCotCap = thayCotCap(staff); // ADR-0155 Đ2.2: hỏi bảng quyền (ô xem hoa hồng đối tác, không giữ Đối tác), không hỏi mã vai
 cotCapEl.hidden = !hienCotCap;
 // ADR-0071 điều 1b: cổng trang theo ô account.view (Quản trị, Toàn quyền, Hành chính nhân sự — cùng đối tượng với cổng "accounts" của API); khung "Thêm tài khoản"

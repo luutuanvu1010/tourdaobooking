@@ -94,6 +94,7 @@ const ai = (...permissions: PermissionCode[]) => ({ id: "u1", permissions });
 test("ADR-0061 bảng quyền: công tắc BẬT — chỉ Bán hàng, Kế toán, Quản trị, Toàn quyền; HDV, Đối tác, Thực tập, Tài xế, Tài xế đối tác KHÔNG", () => {
   const bat: Record<PermissionCode, boolean> = {
     SALES: true, ACCOUNTING: true, ADMIN: true, FIELD: false, PARTNER: false, SUPER_ADMIN: true, INTERN: false, DRIVER: false, DRIVER_PARTNER: false, HR: false, // ADR-0071: Nhân sự không lập / sửa đơn
+    SALES_MANAGER: false, // ADR-0169 Đ1: mã này chỉ cộng hai ô danh mục; người giữ vai có thêm SALES nên được nhờ SALES
   };
   for (const p of PERMISSION_CODES) assert.equal(duocNhapTay(ai(p), true), bat[p], `${p}, công tắc BẬT`);
 });
@@ -118,7 +119,7 @@ test("ADR-0061: thứ tự lý do — Đối tác TRƯỚC công tắc, công t�
   assert.equal(lyDoKhongNhapTay(ai("SALES"), true), null);
 });
 
-test("ADR-0061: MỌI tập con của 10 quyền (1024) — được nhập tay ⇔ công tắc bật && có một quyền nội bộ được phép && KHÔNG có PARTNER", () => {
+test("ADR-0061: MỌI tập con của 11 quyền (2048) — được nhập tay ⇔ công tắc bật && có một quyền nội bộ được phép && KHÔNG có PARTNER", () => {
   let n = 0;
   for (let mask = 0; mask < 1 << PERMISSION_CODES.length; mask++) {
     const perms = PERMISSION_CODES.filter((_, i) => mask & (1 << i));
@@ -127,7 +128,7 @@ test("ADR-0061: MỌI tập con của 10 quyền (1024) — được nhập tay 
     assert.equal(duocNhapTay(ai(...perms), false), false, `${perms.join("+") || "(không quyền)"}, TẮT`);
     n++;
   }
-  assert.equal(n, 1024); // 10 mã (ADR-0071 thêm HR)
+  assert.equal(n, 2048); // 11 mã (ADR-0169 thêm SALES_MANAGER)
 });
 
 test("holdsPartner: CÓ quyền PARTNER là áp luật giá Đối tác, kể cả khi kèm quyền khác (chủ dự án chốt 2026-09-26)", () => {

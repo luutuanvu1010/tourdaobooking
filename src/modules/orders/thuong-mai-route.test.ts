@@ -247,7 +247,7 @@ test("(3d) tài khoản lai Bán hàng + Đối tác KHÔNG mở được phần
 });
 
 test("(3d2) MỌI tài khoản lai — Bán hàng / Kế toán / Quản trị / Toàn quyền / HDV được giao đơn / Thực tập + Đối tác — đọc phần đối tác đơn của đại lý B (xác nhận, nháp) ⇒ 404, thân không có số của B; Thực tập + Đối tác trên đơn CỦA MÌNH mà bên đặt là B ⇒ 404", async () => {
-  // M2 của người kiểm Task 5 (Ruling 23): bài route nối hàm `cheDoThuongMai` với route cho cả sáu loại tài khoản lai — bài 1024 tập quyền chỉ thử hàm thuần.
+  // M2 của người kiểm Task 5 (Ruling 23): bài route nối hàm `cheDoThuongMai` với route cho cả sáu loại tài khoản lai — bài 2048 tập quyền chỉ thử hàm thuần.
   const w = setup();
   noiGioiHanNhap(w); // ADR-0161 Đ3: dấu «số lạ» để dò rò rỉ KHÔNG chia hết 1.000 — nới giới hạn nhập, giữ nguyên số và đáp án.
   const LAI_QT = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa3"; // ADMIN + PARTNER
@@ -365,7 +365,7 @@ test("(4b) Thực tập (không giữ quyền Đối tác): đơn của người
   const cuaNguoiKhac = await xem(w, cuaSales, TTS);
   assert.equal(cuaNguoiKhac.status, 403, cuaNguoiKhac.text);
   assert.equal(cuaNguoiKhac.json.error.code, "forbidden");
-  assert.equal(cuaNguoiKhac.json.error.message,"Chỉ người lập đơn, người phụ trách đơn hoặc quản trị viên mới được thay đổi đơn này.", "câu 403 có sẵn của khuôn chi tiết đơn (nợ Task 14: đổi câu)");
+  assert.equal(cuaNguoiKhac.json.error.message,"Chỉ người lập đơn, Hướng dẫn viên của đơn hoặc quản trị viên mới được thay đổi đơn này.", "câu 403 có sẵn của khuôn chi tiết đơn (nợ Task 14: đổi câu)");
   const minh = await xem(w, cuaMinh, TTS);
   assert.equal(minh.status, 200, minh.text);
   assert.deepEqual(Object.keys(minh.json), ["vanPhong"]);
@@ -492,7 +492,7 @@ test("(6) kiểm hợp lệ: thiếu lý do 400; đơn nháp 409; đã giao 409;
   const g = await ghi(w, id, dv(id), KT, tay15);
   assert.equal(g.status, 409, g.text);
   assert.equal(g.json.error.code, "order_delivered");
-  assert.match(g.json.error.message, /^Đơn đã ở bước Đã giao – đã thu đủ/);
+  assert.match(g.json.error.message, /^Đơn đã ở bước Xong và đủ tiền/);
   assert.equal(bangChup(w, id).length, truoc);
 });
 

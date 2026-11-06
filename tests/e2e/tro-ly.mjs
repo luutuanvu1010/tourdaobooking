@@ -69,7 +69,7 @@ const hoi = (cookie, cauHoi) => call(cookie, "POST", "/api/tro-ly/hoi", { cauHoi
 const caiDat = (cookie, body) => call(cookie, "POST", "/api/tro-ly/cai-dat", body);
 const soDong = async () => (await sqlRows("SELECT count(*) AS n FROM tl_luot_hoi"))[0].n;
 const MAC_DINH = { bat: true, tranThangUsd: 5, tranNgay: 30 };
-const PERMS = ["SALES", "ACCOUNTING", "ADMIN", "FIELD", "PARTNER", "SUPER_ADMIN", "INTERN", "DRIVER", "DRIVER_PARTNER", "HR"]; // HR: ADR-0071
+const PERMS = ["SALES", "ACCOUNTING", "ADMIN", "FIELD", "PARTNER", "SUPER_ADMIN", "INTERN", "DRIVER", "DRIVER_PARTNER", "HR", "SALES_MANAGER"]; // HR: ADR-0071; SALES_MANAGER: ADR-0169
 const tatCaVai = (bat) => Object.fromEntries(PERMS.map((p) => [p, bat]));
 const datVai = (vai) => call(OWNER, "POST", "/api/tro-ly/vai", { vai });
 const loiDanDau = (await call(OWNER, "GET", "/api/tro-ly/loi-dan")).body.hienHanh;
@@ -326,7 +326,7 @@ try {
   r = await call(OWNER, "POST", "/api/tro-ly/thu-khoa", {});
   assert.equal(r.status, 200);
   assert.equal(r.body.ma, "sai_khoa", JSON.stringify(r.body));
-  assert.match(r.body.cau, /^Sai key/);
+  assert.match(r.body.cau, /^Sai khoá/);
   chu.push(JSON.stringify(r.body));
   cheDo = "429q";
   r = await call(OWNER, "POST", "/api/tro-ly/thu-khoa", {});

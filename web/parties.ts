@@ -299,7 +299,7 @@ async function openDetail(id: string): Promise<void> {
 
   // -- liên hệ
   const contactRows = p.contacts.map((c) =>
-    h("tr", { class: c.validTo ? "row-off" : "" }, h("td", null, nhanLoaiLienHe(c.kind)), h("td", null, c.value, c.isPrimary && !c.validTo && h("span", { class: "badge" }, "chính")), h("td", { class: "muted" }, c.label ?? ""), h("td", { class: "muted" }, period(c.validFrom, c.validTo)), h("td", null, p.editable && !c.validTo && button("Đóng", (b) => void act(async () => { await api(`/api/parties/${id}/contacts/${c.id}/end`, { method: "POST", body: {} }); await reload(); }, b)))),
+    h("tr", { class: c.validTo ? "row-off" : "" }, h("td", null, nhanLoaiLienHe(c.kind)), h("td", null, c.value, c.isPrimary && !c.validTo && h("span", { class: "badge" }, "chính")), h("td", { class: "muted" }, c.label ?? ""), h("td", { class: "muted" }, period(c.validFrom, c.validTo)), h("td", null, p.editable && !c.validTo && button("Ngừng dùng", (b) => void act(async () => { await api(`/api/parties/${id}/contacts/${c.id}/end`, { method: "POST", body: {} }); await reload(); }, b)))),
   );
   const cKind = select([{ value: "PHONE", label: "Điện thoại" }, { value: "EMAIL", label: "Email" }]);
   const cValue = input("", { maxLength: 200 });
@@ -433,7 +433,7 @@ function moHopGop(nguon: { id: string; displayName: string }, dichSan: { id: str
   const chon = h("select", { "aria-label": "Hồ sơ chính" });
   const bang = h("div", { "aria-live": "polite" });
   const xacNhan = input("", { placeholder: nguon.displayName, "aria-label": "Gõ lại tên hồ sơ phụ để xác nhận", autocomplete: "off" });
-  const nutGop = h("button", { type: "button", class: "btn btn-danger", disabled: true }, "Gộp");
+  const nutGop = h("button", { type: "button", class: "btn btn-danger", disabled: true }, "Gộp hồ sơ");
   let chan = true;
   let lanXem = 0; // chỉ nhận kết quả xem trước MỚI NHẤT (đổi hồ sơ chính nhanh)
   const capNhatNut = () => { nutGop.disabled = chan || !dich || chuanHoaTen(xacNhan.value) !== chuanHoaTen(nguon.displayName); };
@@ -454,7 +454,7 @@ function moHopGop(nguon: { id: string; displayName: string }, dichSan: { id: str
       h("p", null, "Hồ sơ chính: ", h("strong", null, r.target.displayName)), // luôn nêu tên hồ sơ sẽ gộp vào, ngay trên bảng
       ...r.chan.map((c) => h("div", { class: "alert", role: "alert" }, c.message)),
       h("div", { class: "grid three" }, cot("Chuyển sang hồ sơ chính", r.chuyen), cot("Giữ ở hồ sơ này", r.giu), cot("Bỏ vì đã có", r.bo)),
-      h("p", { class: "muted" }, `Đơn đổi người đặt sang hồ sơ chính: ${r.donDoi}. Đơn giữ ở hồ sơ này (đã giao, đã huỷ): ${r.donGiu}. Dòng công nợ giữ ở hồ sơ này: ${r.dongNoGiu}.`),
+      h("p", { class: "muted" }, `Đơn đổi người đặt sang hồ sơ chính: ${r.donDoi}. Đơn giữ ở hồ sơ này (đã xong và đủ tiền, đã huỷ): ${r.donGiu}. Dòng công nợ giữ ở hồ sơ này: ${r.dongNoGiu}.`),
     );
     capNhatNut();
   };
@@ -518,7 +518,7 @@ function moHopGop(nguon: { id: string; displayName: string }, dichSan: { id: str
   replaceChildren(
     mergeEl,
     h("h2", { id: "merge-title" }, `Gộp “${nguon.displayName}” vào hồ sơ khác`),
-    h("p", { class: "muted" }, "Hồ sơ này sẽ ẩn khỏi Danh bạ; liên hệ, công việc, quan hệ, giấy tờ còn hiệu lực và đơn chưa giao chuyển sang hồ sơ chính. Không tách lại được."),
+    h("p", { class: "muted" }, "Hồ sơ này sẽ ẩn khỏi Danh bạ; liên hệ, công việc, quan hệ, giấy tờ còn hiệu lực và đơn chưa tới bước Xong và đủ tiền chuyển sang hồ sơ chính. Không tách lại được."),
     dichSan ? null : h("div", { class: "grid three" }, field("Tìm hồ sơ chính", tim), field("Hồ sơ chính", chon)), // điền sẵn: tên hồ sơ chính hiện ở đầu bảng xem trước
     bang,
     field(`Gõ lại tên “${nguon.displayName}” để xác nhận`, xacNhan),
@@ -815,7 +815,7 @@ async function veHoaHongHienHanh(sec: HTMLElement, p: Api.PartyDto, tin?: string
     if (bat.length === 0) return baoLoi("Chưa có cấp độ đại lý nào đang mở — tạo cấp độ đại lý ở trang Hoa hồng đối tác trước.");
     const oMuc = select([{ value: "", label: "Chọn cấp độ đại lý" }, ...bat.map((m) => ({ value: m.code, label: m.ten }))], "");
     const oTu = input(r.homNay, { type: "date" }) as HTMLInputElement;
-    const luu = button("Lưu cấp riêng", (b) => {
+    const luu = button("Lưu", (b) => {
       if (!oMuc.value) return baoLoi("Chọn cấp độ đại lý.");
       guiLenh(b, `/api/pricing/ho-so/${encodeURIComponent(p.id)}/muc-rieng`, { muc: oMuc.value, tuNgay: oTu.value }, "Đã áp dụng cấp riêng cho đại lý này.");
     }, "btn btn-primary");
@@ -873,7 +873,7 @@ async function veHoaHongHienHanh(sec: HTMLElement, p: Api.PartyDto, tin?: string
   const nutSuaRieng = rieng && coQuyenSua(me) && nutSua(rieng, r.homNay) ? button("Sửa", () => void moSua(rieng), "btn") : null;
   const nut: HTMLElement[] = !duocGhi ? []
     : rieng ? [nutNgung, nutSuaRieng].filter((x): x is HTMLButtonElement => x !== null)
-    : [button("Áp dụng cấp riêng", () => void moGan(), "btn")];
+    : [button("Chọn cấp riêng cho đối tác", () => void moGan(), "btn")];
   // N5 (R3): lần gắn riêng đang áp vẫn đọc từ `mucRieng` (câu tra, nút như trên); `ganRieng` (lịch sử) chỉ cho lần sắp áp và nút «Xem lịch sử».
   const lan = chiaLanGan(r.ganRieng, r.homNay);
   const nutSuaSap = (g: Api.GanRiengLichSuDto): HTMLButtonElement => {
@@ -924,7 +924,7 @@ async function veTaiKhoanNhanTien(sec: HTMLElement, p: Api.PartyDto, tin?: TinTa
   const nh = select([...(coSan ? [] : [{ value: "", label: "Chọn ngân hàng" }]), ...r.nganHang.map((b) => ({ value: b.ma, label: b.ten }))], coSan ? r.hienTai!.maNganHang : "");
   const so = input("", { inputmode: "numeric", autocomplete: "off", maxlength: "23", id: "tknt-so" }) as HTMLInputElement;
   const ten = input("", { autocomplete: "off", maxlength: "100", id: "tknt-ten", placeholder: "Như ngân hàng in, vd CONG TY TNHH TOUR DAO" }) as HTMLInputElement;
-  const luu = button(r.hienTai ? "Đổi tài khoản" : "Lưu tài khoản", (b) => {
+  const luu = button(r.hienTai ? "Đổi tài khoản nhận tiền" : "Lưu tài khoản nhận tiền", (b) => {
     if (b.disabled) return;
     datTin(null);
     if (!nh.value) return datTin({ kieu: "loi", chu: "Chọn ngân hàng nhận tiền." });

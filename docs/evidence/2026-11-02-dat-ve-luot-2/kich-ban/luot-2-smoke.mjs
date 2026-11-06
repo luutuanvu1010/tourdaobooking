@@ -147,6 +147,8 @@ try {
     await p.waitFor(`document.getElementById('cx-gio-${legY}').options.length > 2`, "các khung giờ nạp xong", 12000);
     await p.ev(chonOption(`#cx-gio-${legY}`, 1));
     await p.ev(click('[data-action="quyet-dinh-con-ve"]'));
+    await p.waitFor(`!!document.querySelector('.sheet-foot-xac-nhan .btn-danger')`, "hộp hỏi lại trước Còn vé, xác nhận đơn (ADR-0166)", 8000);
+    await p.ev(click('.sheet-foot-xac-nhan .btn-danger'));
     await p.waitFor(`!document.querySelector('[data-action="quyet-dinh-con-ve"]')`, "bảng quyết định biến mất", 15000);
     const r = await fetchTrang(p, "GET", `/api/orders/${dY}`);
     assert.equal(r.json.order.status, "confirmed", r.text.slice(0, 300));
@@ -165,6 +167,8 @@ try {
     assert.equal(await p.ev(shown('[data-action="mo-dat-gap"]')), false, "Kế toán không có nút «Đặt gấp»");
     const giaTri = await p.ev(`document.getElementById('cx-gio-${legW}').value`);
     await p.ev(click('[data-action="quyet-dinh-con-ve"]'));
+    await p.waitFor(`!!document.querySelector('.sheet-foot-xac-nhan .btn-danger')`, "hộp hỏi lại trước Còn vé, xác nhận đơn (ADR-0166)", 8000);
+    await p.ev(click('.sheet-foot-xac-nhan .btn-danger'));
     await p.waitFor(`!!document.querySelector('main .alert, main .banner[role="alert"], main [role="alert"]:not([hidden])')`, "câu từ chối của máy chủ", 12000);
     assert.equal(await p.ev(`!!document.querySelector('[data-action="quyet-dinh-con-ve"]')`), true, "bảng còn nguyên (không tải lại đơn)");
     assert.equal(await p.ev(`document.getElementById('cx-gio-${legW}').value`), giaTri, "giờ đã chọn còn giữ");
@@ -193,6 +197,8 @@ try {
     await shotView(p, "4-ban-hang-dat-gap-1040.png");
     await axe(p, "Bán hàng đặt gấp 1040");
     await p.ev(click('[data-action="quyet-dinh-con-ve"]'));
+    await p.waitFor(`!!document.querySelector('.sheet-foot-xac-nhan .btn-danger')`, "hộp hỏi lại trước Còn vé, xác nhận đơn (ADR-0166)", 8000);
+    await p.ev(click('.sheet-foot-xac-nhan .btn-danger'));
     await p.waitFor(`!document.querySelector('[data-action="quyet-dinh-con-ve"]')`, "bảng quyết định biến mất", 15000);
     const r = await fetchTrang(p, "GET", `/api/orders/${dZ}`);
     assert.equal(r.json.order.status, "confirmed", r.text.slice(0, 300));

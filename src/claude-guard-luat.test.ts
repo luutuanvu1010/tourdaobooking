@@ -16,6 +16,14 @@ const WT = "/repo/.claude/worktrees/x";
 const danhGia = (cmd: string, cwd = ROOT) => danhGiaGhiLuat(cmd, { cwd, root: ROOT });
 
 const PHAI_CHAN: [string, string?][] = [
+  // Bảng tham chiếu ngôn ngữ (ADR-0167): thêm hay đổi tên chỉ khi chủ đã chọn, nên sửa bằng công cụ để chủ được hỏi.
+  ["sed -i '' 's/a/b/' src/shared/bang-tham-chieu-viec.ts"],
+  ["echo x > src/shared/bang-tham-chieu-khai-niem.ts"],
+  ["cp /tmp/x.ts src/shared/bang-tham-chieu.ts"],
+  // Máy canh của bảng: nới nó mà chủ không được hỏi thì bảng không còn được canh.
+  ["sed -i '' 's/a/b/' scripts/quet-nut-lib.mjs"],
+  ["echo x > scripts/bang-tham-chieu-lib.mjs"],
+  ["cp /tmp/x.ts src/bang-tham-chieu.test.ts"],
   ["sed -i '' 's/a/b/' CLAUDE.md"],
   ["sed -i.bak -e 's/a/b/' src/CLAUDE.md"],
   ["sed -E -i '' 's/a/b/' \"web/CLAUDE.md\""],
@@ -65,6 +73,13 @@ const PHAI_CHAN: [string, string?][] = [
 ];
 
 const PHAI_CHO_QUA: [string, string?][] = [
+  ["cat src/shared/bang-tham-chieu-viec.ts"],
+  ["cat scripts/quet-nut-lib.mjs"],
+  ["node --test src/bang-tham-chieu.test.ts"],
+  ["node scripts/gen-bang-tham-chieu.mjs"],
+  ["npm run tham-chieu"],
+  ["git add src/shared/bang-tham-chieu-viec.ts"],
+  ["echo x > docs/BANG-THAM-CHIEU.md"],
   ["cat CLAUDE.md"],
   ["sed -n 1,40p CLAUDE.md"],
   ["sed -n '/Điều/p' playbook/CONSTITUTION.md"],

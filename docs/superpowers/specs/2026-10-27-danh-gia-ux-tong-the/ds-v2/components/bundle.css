@@ -229,6 +229,7 @@ body.tabbar-an .vc-bottom-bar, body.tabbar-dinh .vc-bottom-bar { bottom: 0; }
 @media (max-width: 640px) {
   .thanh-cong-cu-don, .thanh-cong-cu-don > .actions { display: grid; grid-template-columns: minmax(0, 1fr); width: 100%; }
   .thanh-cong-cu-don > #actions { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; }
+  .thanh-cong-cu-don > #actions > .cx-bang, .thanh-cong-cu-don > #actions > p { grid-column: 1 / -1; } /* lưới hai cột dành cho NÚT: khối «Xác nhận đơn» và câu cảnh báo phải trải hết bề ngang, không chữ tràn viền */
   .thanh-cong-cu-don .actions > .btn, .thanh-cong-cu-don .huy-don > .btn { width: 100%; height: 100%; margin: 0; }
   .thanh-cong-cu-don .huy-don { margin-left: 0; }
 }
@@ -372,6 +373,24 @@ main select { max-width: 100%; }
 .dd-dinh-nghia { display: grid; gap: var(--s3); margin-top: var(--s3); }
 .dd-gia-tri { display: grid; gap: var(--s2); margin: 0; padding: 0; list-style: none; }
 .dd-gia-tri > li { display: grid; gap: var(--s2); padding: var(--s2) 0; border-top: 1px solid var(--c-border); }
+
+/* Màn «Dịch vụ cần kiểm vé» (ADR-0136 Đ1, Đ5). Chỉ token. */
+#kv-noi-dung, .kv-ds { display: flex; flex-direction: column; gap: var(--s3); }
+.kv-nhom { padding-block: var(--s2); }
+.kv-dau { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--s1) var(--s3); min-height: var(--tap-min); padding-block: var(--s2); cursor: pointer; }
+.kv-dau h2 { margin: 0; font-size: var(--fs-ui); font-weight: var(--fw-bold); }
+.kv-dong { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); min-height: var(--tap-min); padding-block: var(--s2); }
+.kv-nhom .kv-dong { border-top: 1px solid var(--c-border); }
+.kv-chu { display: flex; flex-direction: column; gap: var(--s1); min-width: 0; }
+.kv-ten { font-size: var(--fs-ui); font-weight: var(--fw-semibold); color: var(--c-text); overflow-wrap: anywhere; }
+/* Công tắc giữ nguyên hình, vùng chạm đủ --tap-min: phần đệm trong suốt trên dưới. */
+.kv-dong .dp-switch, .kv-o .dp-switch, .nhom-dua-don .dp-switch { box-sizing: border-box; height: var(--tap-min); padding-block: calc((var(--tap-min) - var(--h-switch)) / 2); background-clip: content-box; }
+.kv-dong .dp-switch-knob, .kv-o .dp-switch-knob, .nhom-dua-don .dp-switch-knob { top: calc((var(--tap-min) - var(--h-switch)) / 2 + var(--switch-inset)); }
+/* ADR-0169 Đ4: công tắc kiểm vé ở màn Dịch vụ & giá; khối đặt riêng trống thì ẩn */
+.kv-tu-kiem-the:empty { display: none; }
+.kv-o { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0 var(--s2); }
+.kv-the { border-top: 1px solid var(--c-border); }
+.kv-viec { display: flex; flex: none; align-items: center; gap: var(--s2); }
 /* ===== CHÉP TỪ MÃ — hết ===== */
 
 /* ===== RIÊNG CỦA BỘ (1) — lớp xem trước ===== */

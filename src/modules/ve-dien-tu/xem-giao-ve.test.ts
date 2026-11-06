@@ -72,7 +72,7 @@ test("nhatKyGhiTruocKhiDocKho: nhật ký xem ảnh chỉ có số thứ tự v�
   } finally { tat(); }
 });
 
-test("veCuaDonKhacKhongDocDuoc: người không phải chủ / người phụ trách đơn, hoặc không có quyền gửi vé, không đọc được", async () => {
+test("veCuaDonKhacKhongDocDuoc (đơn của đối tác khác thuộc doi-tac-mo-ve.test.ts): người không phải chủ / người phụ trách đơn, hoặc không có quyền gửi vé, không đọc được", async () => {
   const tat = batDongHo();
   try {
     const w = setup();
@@ -80,7 +80,7 @@ test("veCuaDonKhacKhongDocDuoc: người không phải chủ / người phụ tr
     await thu(w, d.id, d.phaiThu);
     const [a] = phanBo(w, d.id);
     assert.equal((await w.call("GET", `/api/ve/anh/${a!.id}`, { as: ACC })).status, 403, "Kế toán không có ve.cap.send");
-    assert.equal((await w.call("GET", `/api/ve/anh/${a!.id}`, { as: PARTNER })).status, 403);
+    assert.equal((await w.call("GET", `/api/ve/anh/${a!.id}`, { as: PARTNER })).status, 403, "Đối tác chỉ mở vé đơn do chính mình lập (ADR-0170 Đ1); đây là đơn Bán hàng lập");
     assert.equal((await w.call("GET", `/api/ve/anh/${"0".repeat(32)}`, { as: SALES })).status, 404);
     assert.equal((await w.call("GET", `/api/ve/anh/${a!.id}`, { as: ADM })).status, 200, "Quản trị mọi đơn");
   } finally { tat(); }
@@ -140,12 +140,15 @@ test("thuDuRoiDaoKhoanThu_veDaLoKhongTraVeKho: vé đã lộ giữ nguyên khi k
   } finally { tat(); }
 });
 
-test("hàng rào tĩnh: route đọc ảnh theo thứ tự quyền → thu đủ → nhật ký → đọc kho", () => {
+test("hàng rào tĩnh: route đọc ảnh theo thứ tự quyền → mở được vé (veMoDuoc → moVeDuoc, ADR-0168) → nhật ký → đọc kho", () => {
   const src = readFileSync(new URL("./index.ts", import.meta.url), "utf8").split("\n").filter((l) => !l.trim().startsWith("//")).join("\n");
   const i = src.indexOf('route("GET", "/api/ve/anh/:allocationId"');
   assert.ok(i !== -1);
   const than = src.slice(i, src.indexOf("route(", i + 10));
   const vi = (re: RegExp) => than.search(re);
-  assert.ok(vi(/can\(staff, "ve\.cap\.send"/) !== -1 && vi(/thuDu\(/) !== -1 && vi(/auditStatement|nhatKy/) !== -1 && vi(/kho\.get\(/) !== -1);
-  assert.ok(vi(/can\(staff, "ve\.cap\.send"/) < vi(/thuDu\(/) && vi(/thuDu\(/) < vi(/auditStatement|nhatKy/) && vi(/auditStatement|nhatKy/) < vi(/kho\.get\(/));
+  assert.ok(vi(/can\(staff, "ve\.cap\.send"/) !== -1 && vi(/veMoDuoc\(/) !== -1 && vi(/auditStatement|nhatKy/) !== -1 && vi(/kho\.get\(/) !== -1);
+  assert.ok(vi(/can\(staff, "ve\.cap\.send"/) < vi(/veMoDuoc\(/) && vi(/veMoDuoc\(/) < vi(/auditStatement|nhatKy/) && vi(/auditStatement|nhatKy/) < vi(/kho\.get\(/));
+  // MỘT cửa: bốn route vé không so `thuDu(` trực tiếp, chỉ `veMoDuoc` (bọc `moVeDuoc`) — đường vé mới không lách được luật Trả sau.
+  assert.equal([...src.matchAll(/\bthuDu\(/g)].length, 1, "thuDu( chỉ còn trong thân veMoDuoc");
+  assert.match(src, /const veMoDuoc = [^\n]*moVeDuoc\(/);
 });

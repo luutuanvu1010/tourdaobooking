@@ -4,7 +4,7 @@
 import { auditStatement } from "../audit";
 import { chupDon, docBangChoChup, soKhachTinhHoaHong, type BanChup } from "../pricing";
 import type { DongBoChuyenDto, IncompleteTripBody, LyDoCanXacNhan, OrderDetailDto, OrderStatus, PaxCounts, ShortNoticeRequiredBody, StaffProfile, XacNhanTrenDonDto } from "../../shared/contracts";
-import { can, holdsIntern, holdsPartner } from "../../shared/permissions";
+import { can, holdsIntern, holdsPartner, passesAdminGate } from "../../shared/permissions";
 import { error, json } from "../../shared/http";
 import { vnToday } from "../../shared/vn-date";
 import { maskLongDigits } from "../../shared/text-guards";
@@ -14,6 +14,8 @@ import { CAU_THIEU_NGUOI_LON, donThieuNguoiLon } from "../../shared/nguoi-di-kem
 import { cauThieuChonDon, thieuChonDon } from "../../shared/cong-chon-don";
 import type { MocToiThieu } from "../../shared/moc-toi-thieu";
 import { canXacNhan, duocQuyetDinh, quaHanXacNhan } from "../../shared/xac-nhan-don";
+import { trangThaiLoiMoi } from "../../shared/ban-hang-phu-trach";
+import type { BanHangNoi } from "../../shared/router";
 import { thieuGioChangDau } from "../../shared/chang-dua-don";
 import { canhBaoMocCua } from "./dat-gap";
 import { coHienHanh, nhomTheoMa, tuXacNhanNoiBo, yeuCauMoCuaDon, type YeuCauRow } from "./xac-nhan-repo";
@@ -27,6 +29,7 @@ import { donChoTran, dongGhiTuChup, moTaChup } from "./thuong-mai";
 import { confirmGaps, summarizeDeviations } from "./service-rules";
 import { kiemNhomChoPhepDuaDon } from "./service";
 import { congLuatBan } from "./cong-ban";
+import { traSauChoXacNhan, type HamTraSau, type KemTraSau } from "./tra-sau-cong";
 import { dichVuCanHoiDuaDon, type CuaDuaDon } from "./rules";
 
 /** Đơn đã nạp đầy đủ (dịch vụ, chặng, dòng tiền) — kết quả `findOrder`. */
@@ -87,13 +90,16 @@ export async function chayLoNoiChuyen(db: D1Database, dong: DongBoTheoDon, thang
  */
 export async function kiemCongXacNhan(
   db: D1Database,
-  i: { actor: StaffProfile; order: DonXacNhan; kiemMoc: boolean; mocToiThieu: MocToiThieu | null; cuaDuaDon?: CuaDuaDon },
-): Promise<{ loi: Response } | { ok: true; chup: BanChup[]; detail: string | undefined; today: string }> {
+  i: { actor: StaffProfile; order: DonXacNhan; kiemMoc: boolean; mocToiThieu: MocToiThieu | null; cuaDuaDon?: CuaDuaDon; traSau: HamTraSau },
+): Promise<{ loi: Response } | { ok: true; chup: BanChup[]; detail: string | undefined; today: string; traSau: KemTraSau }> {
   const { actor, order } = i;
   const today = vnToday(new Date());
   // ADR-0146 Đ3 + R-7 (Q-8 (a) của chủ): luật bán đứng ĐẦU mọi cổng xác nhận — đơn vừa bị chặn bán vừa vướng cổng khác luôn nhận `sales_blocked` (sửa cổng kia cũng vô ích).
   const chanBan = await congLuatBan(db, { bookerPartyId: order.bookerPartyId, dong: order.services });
   if (chanBan) return { loi: chanBan };
+  // ADR-0168 Đ2 mục 3, 4: cổng hạn mức Trả sau đứng ngay sau luật bán — MỘT chỗ cho cả ba đường xác nhận (`/status`, `quyet-dinh` Còn vé, `gui-don` nhánh B). Đơn Trả trước: không tốn một câu đọc.
+  const traSau = await traSauChoXacNhan(i.traSau, db, { order: { id: order.id, paymentTerm: order.paymentTerm, bookerPartyId: order.bookerPartyId, total: order.total, declaredDeposit: order.declaredDeposit }, today });
+  if ("loi" in traSau) return { loi: traSau.loi };
   // DK-T3-01 R2: xác nhận là bước phát phiếu gửi khách mang tên/MST công ty → tài khoản có quyền Đối tác HOẶC Thực tập (ADR-0100) chỉ xác nhận được đơn
   // mà MỌI dòng đúng giá danh mục (bắt cả đơn nháp CŨ lập trước bản vá, và dòng nhập tay cũ — không có giá danh mục). R3 (trần giảm giá ĐÃ LƯU) kiểm SAU khi tính bản chụp (Task 7).
   const giaLoi = viPhamGiaDanhMuc(actor, order.services.flatMap((s) => s.items));
@@ -119,7 +125,7 @@ export async function kiemCongXacNhan(
   const tien = order.services.map((s) => ({ id: s.id, ...tienChoHoaHong(s) }));
   const tranLoi = viPhamTranGiamGia(actor, order.discount, donChoTran(chup, tien)); // I-1: Đối tác trên đơn đại lý KHÁC ⇒ luật cũ, không nêu số
   if (tranLoi) return { loi: TRAN_GIAM_GIA(tranLoi) };
-  return { ok: true, chup, detail, today };
+  return { ok: true, chup, detail, today, traSau: traSau.traSau };
 }
 
 /** Câu kèm của lô xác nhận: bản chụp mức hoa hồng + nhật ký `order_terms_captured`, cùng mốc `at` của lô (`soanXacNhan`/`confirmOrder` truyền `at`). */
@@ -161,6 +167,8 @@ export function dichLoiXacNhan(e: unknown): Response | null {
   const loi = e instanceof Error ? e.message : String(e);
   // ADR-0159: lớp CSDL của lời khai và khoá tháng của câu khoản thu đặt cọc — cả lô rơi, đơn ở lại nháp.
   if (/\bdeclared_deposit_exceeds_total:/.test(loi)) return error(409, "declared_deposit_exceeds_total", CAU_VUOT_TONG);
+  // ADR-0168 Đ2 mục 4: hai lệnh cùng làm tăng nợ của một bên đặt — lệnh thua cả lô huỷ, đơn ở lại nháp.
+  if (/\bcredit_version_stale:/.test(loi)) return error(409, "credit_version_stale", "Hạn mức vừa thay đổi, mở lại đơn rồi thử lại.");
   if (/\bperiod_closed:/.test(loi)) return error(409, "period_closed", "Tháng này đã khoá sổ nên chưa ghi được khoản khách đặt cọc trước — báo Kế toán.");
   if (/\bterms_(rule|term)_stale:/.test(loi)) return error(409, "bang_muc_doi", "Bảng mức vừa đổi — thử lại");
   if (/\bterms_service_mismatch:/.test(loi)) return STALE();
@@ -190,7 +198,7 @@ export async function chanDoanXacNhan(db: D1Database, i: { id: string; today: st
 }
 
 // ---- Bước xác nhận đơn (Task 3.3, ADR-0136) — phần dùng chung giữa `index.ts` (`/status`, khoá khi chờ) và `xac-nhan-route.ts` ------------------------------------------
-export const CAN_YEU_CAU = () => error(409, "confirm_request_required", "Đơn có dịch vụ cần xác nhận, hãy bấm Gửi xác nhận.");
+export const CAN_YEU_CAU = () => error(409, "confirm_request_required", "Đơn có dịch vụ cần xác nhận, hãy bấm Gửi kiểm vé.");
 export const KHOA_KHI_CHO = () => error(409, "confirm_pending_locked", "Đơn đang chờ xác nhận, hãy Rút lại trước khi sửa.");
 
 /**
@@ -254,7 +262,7 @@ export const catChoXetDuyet = (o: OrderDetailDto, tuyChon: { cheGhiChu: boolean 
  * (`tinhCanXacNhan`, `duocQuyetDinh`, `tuXacNhanNoiBo`). Chỉ cho đơn NHÁP và chỉ người liên quan (người lập; hoặc người giữ ô xét duyệt khi đơn đang chờ); còn lại null.
  * `canXacNhan` chỉ tính cho người lập. Không chứa dữ liệu khách.
  */
-export async function xacNhanTrenDon(db: D1Database, i: { staff: StaffProfile; order: { id: string; staffId: string; status: OrderStatus }; moc: MocToiThieu | null; nowMs: number }): Promise<XacNhanTrenDonDto | null> {
+export async function xacNhanTrenDon(db: D1Database, i: { staff: StaffProfile; order: { id: string; staffId: string; status: OrderStatus }; moc: MocToiThieu | null; nowMs: number; banHang: Pick<BanHangNoi, "loiMoiMoCua"> }): Promise<XacNhanTrenDonDto | null> {
   if (i.order.status !== "draft") return null;
   const laNguoiLap = i.order.staffId === i.staff.id;
   const coQuyenXetDuyet = can(i.staff, "order.confirm.review");
@@ -268,9 +276,14 @@ export async function xacNhanTrenDon(db: D1Database, i: { staff: StaffProfile; o
     vi = y ? viCuaYeuCau(y, kq.vi) : kq.vi;
     canXN = laNguoiLap && (kq.can || canChotGioCuaNguoiLap(i.staff, don.services)); // ADR-0154 Đ1.2: cùng luật với route Gửi đơn
   }
+  // ADR-0142: cùng phép tính «lời mời còn ưu tiên của người KHÁC» với route `quyet-dinh` (một lần đọc, chỉ khi có yêu cầu mở).
+  const loiMoi = y !== null ? await i.banHang.loiMoiMoCua(i.order.id) : null;
+  const uuTienCuaNguoiKhac = loiMoi !== null && loiMoi.staffId !== i.staff.id && trangThaiLoiMoi({ hanIso: loiMoi.hanIso, nowMs: i.nowMs, xConHopLe: loiMoi.xConHopLe, daKhep: false }) === "UU_TIEN";
   const quyetDinhDuoc = y !== null && duocQuyetDinh({
     laNguoiLap, laNoiBo: !holdsPartner(i.staff) && !holdsIntern(i.staff), coQuyenXetDuyet,
     choTuXacNhan: laNguoiLap ? await tuXacNhanNoiBo(db, new Date(i.nowMs).toISOString()) : false,
+    uuTienCuaNguoiKhac,
+    laQuanTriHoacToanQuyen: passesAdminGate(i.staff), giuDoiTac: holdsPartner(i.staff),
   });
   return { yeuCau: y ? { id: y.id, guiLuc: y.submitted_at, hanLuc: y.deadline_at, quaHan: quaHanXacNhan(y.deadline_at, i.nowMs), vi } : null, canXacNhan: canXN, quyetDinhDuoc };
 }

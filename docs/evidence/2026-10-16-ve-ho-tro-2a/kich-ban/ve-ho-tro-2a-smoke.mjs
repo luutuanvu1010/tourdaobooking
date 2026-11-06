@@ -3,7 +3,7 @@
 // đơn liên quan, «Giao cho người khác». Khuôn: docs/evidence/2026-10-15-ve-ho-tro/kich-ban/ve-ho-tro-smoke.mjs.
 //   0. Dữ liệu bằng API TRƯỚC khi mở trang (luật một máy ADR-0075): Toàn quyền thêm Kế toán (Thành viên) + Bán hàng Hai (Trưởng nhóm) vào nhóm Kế toán;
 //      Bán hàng Một lập một đơn.
-//   1. Bán hàng Một (390): form có ô «Đơn liên quan» (mã đơn + «Chờ xác nhận», không mã thô); gửi tới Kế toán kèm đơn → luồng có «Đơn liên quan: <mã>» là liên kết
+//   1. Bán hàng Một (390): form có ô «Đơn liên quan» (mã đơn + «Chưa xác nhận», không mã thô); gửi tới Kế toán kèm đơn → luồng có «Đơn liên quan: <mã>» là liên kết
 //      mở đơn; «Mức ưu tiên: Thường» chỉ đọc; không ô chọn mức, không nút giao việc. Tin của mình là bong bóng bên phải.
 //   2. HAI NGƯỜI cùng lúc: trang Bán hàng Một để mở; Kế toán ghi từ Node (phiên đăng nhập MỘT lần, không mở trang Kế toán lúc này):
 //      a. trả lời ⇒ hiện ở trang kia ≤ 10 giây, không tải lại trang; bản nháp đang gõ + con trỏ trong ô trả lời còn nguyên; bong bóng người khác bên trái;
@@ -86,7 +86,7 @@ try {
   await p.waitFor("!document.getElementById('new-card').hidden && !document.getElementById('new-order-label').hidden && document.querySelectorAll('#new-order option').length >= 2", "1. form mở, có ô Đơn liên quan");
   const luaChon = await p.ev("[...document.querySelectorAll('#new-order option')].map((o) => o.textContent)");
   assert.equal(luaChon[0], "Không gắn đơn", "1. lựa chọn đầu: không gắn đơn");
-  assert.ok(luaChon.includes(`${donMa} · Chờ xác nhận`), `1. dòng đơn = mã + trạng thái tiếng Việt: ${JSON.stringify(luaChon)}`);
+  assert.ok(luaChon.includes(`${donMa} · Chưa xác nhận`), `1. dòng đơn = mã + trạng thái tiếng Việt: ${JSON.stringify(luaChon)}`);
   assert.ok(!luaChon.some((x) => /draft|confirmed|cancelled/.test(x)), "1. không lộ mã trạng thái thô");
   assert.ok(p.requests.some((r) => r.url.endsWith("/api/feedback/my-orders")), "1. danh sách lấy từ my-orders");
   await p.ev(setInput("document.getElementById('new-team')", KE_TOAN));
@@ -107,7 +107,7 @@ try {
   assert.equal(await p.ev("document.getElementById('fb-uu-tien-nhan')?.textContent"), "Mức ưu tiên: Thường", "1. người gửi chỉ thấy nhãn mức");
   assert.equal(await p.ev("!!document.getElementById('fb-uu-tien') || !!document.querySelector('[data-giao]')"), false, "1. không ô chọn mức, không nút giao việc");
   assert.equal(await p.ev("document.querySelectorAll('#fb-tin-ds .fb-tin.is-minh').length"), 1, "1. tin đầu là của mình (bong bóng phải)");
-  ok(`1. Bán hàng Một: ô Đơn liên quan «${donMa} · Chờ xác nhận», gửi kèm orderId; luồng có liên kết mở đơn; mức ưu tiên chỉ đọc`);
+  ok(`1. Bán hàng Một: ô Đơn liên quan «${donMa} · Chưa xác nhận», gửi kèm orderId; luồng có liên kết mở đơn; mức ưu tiên chỉ đọc`);
 
   // ---- 2. hai người cùng lúc (trang Bán hàng Một vẫn mở; Kế toán ghi từ Node bằng MỘT phiên)
   const kt = await env.login(ACCOUNTS.accounting);

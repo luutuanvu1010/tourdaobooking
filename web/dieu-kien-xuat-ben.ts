@@ -78,9 +78,9 @@ function veDieuKien(): void {
   const daDong = rules.filter((r) => !r.active);
   const dong = (r: Api.DepartureRuleDto): HTMLElement => {
     const nhan = nhanDieuKien(r, tenNguoi);
-    const nut = r.active ? h("button", { type: "button", class: "vc-btn vc-btn-text", "data-action": "dong-dieu-kien", "aria-label": `Đóng điều kiện ${nhan}` }, "Đóng") : null;
+    const nut = r.active ? h("button", { type: "button", class: "vc-btn vc-btn-text", "data-action": "dong-dieu-kien", "aria-label": `Ngừng điều kiện ${nhan}` }, "Ngừng điều kiện") : null;
     nut?.addEventListener("click", async () => {
-      if (!(await hoiXacNhan({ tieuDe: `Đóng điều kiện “${nhan}”`, hauQua: "Từ lúc này xe không còn phải có giấy này mới được chạy. Không mở lại được — muốn áp lại thì thêm điều kiện mới.", nhanNguyHiem: "Đóng điều kiện", opener: nut }))) return;
+      if (!(await hoiXacNhan({ tieuDe: `Ngừng điều kiện “${nhan}”`, hauQua: "Từ lúc này xe không còn phải có giấy này mới được chạy. Không mở lại được — muốn áp lại thì thêm điều kiện mới.", nhanNguyHiem: "Ngừng điều kiện", opener: nut }))) return;
       void ghi(async () => {
         rules = (await api<Api.DepartureRuleListResponse>(`/api/van-chuyen/dieu-kien/${encodeURIComponent(r.id)}/dong`, { method: "POST" })).rules;
         return `Đã ngừng điều kiện “${nhan}”.`;

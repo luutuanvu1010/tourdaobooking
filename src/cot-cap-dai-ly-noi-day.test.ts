@@ -1,7 +1,7 @@
 // ADR-0155 Đ2 — kế hoạch lượt 2 Task 4.2, bài (e3) «nối dây»: cột «Cấp độ đại lý» ở Quản lý tài khoản phải được NỐI đúng chỗ, vì giao diện thật cần trình duyệt (kịch bản Chrome, ngoài npm test).
 //   (1) `public/staff.html` có `<th id="cot-cap" hidden>` cạnh «Vai trò / quyền» — mặc định ẨN, chỉ trang bật khi `thayCotCap`;
 //   (2) `web/staff.ts` chỉ gọi route đọc sau khi hỏi `thayCotCap` (Hành chính nhân sự không có ô xem thì không gọi), và hỏi `suaDuocCot` cho quyền sửa;
-//   (3) không tệp nào ngoài `web/staff.ts` nhập `web/cot-cap-dai-ly.ts`; tệp luật thuần chỉ do tệp đó nhập;
+//   (3) chỉ `web/staff.ts` và `web/cap-dai-ly.ts` (màn gom, đặc tả 2026-11-04-man-cap-dai-ly) nhập `web/cot-cap-dai-ly.ts`; tệp luật thuần chỉ do `web/cot-cap-dai-ly.ts`, `web/staff.ts` nhập;
 //   (4) gói của trang Đơn hàng KHÔNG kéo hai tệp này (ADR-0035 — mã cột không được làm nặng trang bán hàng); gói của trang Quản lý tài khoản CÓ kéo (chống bài rỗng);
 //   (5) tệp cột không dùng `confirm(`, `alert(`, `innerHTML`; lỗi đọc không chặn bảng (nuốt lỗi, trả null).
 import { test } from "node:test";
@@ -90,10 +90,10 @@ test("(e3-6) nạp cấp SONG SONG với danh sách tài khoản, bảng không 
   assert.match(cot, /tabindex: -1/, "ô không có nút vẫn nhận được tiêu điểm");
 });
 
-test("(e3-3) chỉ web/staff.ts nhập web/cot-cap-dai-ly.ts; tệp luật thuần chỉ do tệp cột nhập (ngoài bài kiểm)", () => {
+test("(e3-3) chỉ web/staff.ts và web/cap-dai-ly.ts nhập web/cot-cap-dai-ly.ts; tệp luật thuần chỉ do tệp cột nhập (ngoài bài kiểm)", () => {
   const nguon = [...moiTep("web"), ...moiTep("src")].filter((p) => !p.endsWith(".test.ts"));
   const nhapCot = nguon.filter((p) => /from "(\.\/|\.\.\/web\/)cot-cap-dai-ly(\.ts)?"/.test(doc(p)));
-  assert.deepEqual(nhapCot, ["web/staff.ts"], "tệp nhập web/cot-cap-dai-ly");
+  assert.deepEqual(nhapCot.sort(), ["web/cap-dai-ly.ts", "web/staff.ts"], "tệp nhập web/cot-cap-dai-ly");
   const nhapLuat = nguon.filter((p) => /cap-hien-hanh-hien-thi(\.ts)?"/.test(doc(p))).sort();
   assert.deepEqual(nhapLuat, ["web/cot-cap-dai-ly.ts", "web/staff.ts"], "tệp nhập luật hiển thị của cột (staff.ts chỉ lấy thayCotCap / suaDuocCot)");
   assert.ok(nguon.includes("web/cot-cap-dai-ly.ts"), "tệp cột tồn tại");
@@ -137,8 +137,83 @@ test("(e3-5) tệp cột: không confirm / alert / innerHTML; lỗi đọc khôn
   assert.match(doc1, /\.homNay/, "lấy homNay của máy chủ");
   assert.match(doc1, /catch\s*\{\s*return null/, "không đọc được ⇒ null (hàm thuần sẽ không gửi)");
   // R13: câu cố định cạnh nút
-  assert.match(ma, /dung,\s*h\("div",\s*\{\s*class:\s*"vc-hint"\s*\},\s*CHU_CAP\.dungTheoVaiTroLuuY\)/, "câu «Có hiệu lực từ ngày mai. Nếu vai trò chưa có cấp…» nằm ngay cạnh nút");
+  assert.match(ma, /dung,\s*h\("div",\s*\{\s*class:\s*"vc-hint"\s*\},\s*cauDungTheoVaiTro\(coTaiKhoan\)\)/, "câu «Có hiệu lực từ ngày mai. Nếu vai trò chưa có cấp…» nằm ngay cạnh nút (chữ hai trường hợp ghim ở cap-hien-hanh-hien-thi.test.ts)");
   assert.ok(!/\/api\/pricing\/muc-rieng\/\$\{[^}]*\}\/(doi|ket-thuc)|ho-so\/\$\{[^}]*\}\/muc-rieng/.test(ma), "địa chỉ ba route chỉ ở hàm thuần yeuCauGhiCap, không chép tay");
   for (const o of ma.matchAll(/h\("(input|select)",\s*\{([^}]*)\}/g)) assert.match(o[2]!, /vc-input/, `ô gõ thiếu lớp vc-input: ${o[0].slice(0, 60)}`);
   assert.ok([...ma.matchAll(/h\("(input|select)"/g)].length >= 2, "chống bài rỗng: có ô chọn cấp và ô ngày");
+});
+
+// Đặc tả 2026-11-04-man-cap-dai-ly: màn gom hồ sơ. Giao diện thật cần trình duyệt; đây chỉ canh chỗ nối dây.
+const moMan = (): string => boChuThich(doc("web/cap-dai-ly.ts"));
+
+test("(man-1) hồ sơ chưa có tài khoản đi đường riêng oCapHoSo, không giả quyền: tệp cột có oCapHoSo gọi oCapCuaHoSo; màn không nhắc permissions, không gọi oCap(", () => {
+  const cot = boChuThich(doc("web/cot-cap-dai-ly.ts"));
+  const ham = cot.slice(cot.indexOf("export function oCapHoSo"), cot.indexOf("async function moBangDatCap"));
+  assert.match(ham, /oCapCuaHoSo\(v\)/, "chữ trong ô của hồ sơ lấy từ hàm thuần không hỏi quyền");
+  assert.ok(!/permissions/.test(ham), "oCapHoSo không giả quyền");
+  const man = moMan();
+  assert.match(man, /\boCapHoSo\(/, "màn dùng ô của hồ sơ");
+  assert.ok(!/\boCap\(/.test(man) && !/permissions/.test(man), "màn không dùng ô của dòng tài khoản, không dựng quyền giả");
+});
+
+test("(man-2) màn gọi đúng route đọc mới và chỉ sau khi hỏi coQuyenSua; không tự có lệnh ghi; không confirm, alert, innerHTML", () => {
+  const man = moMan();
+  assert.match(man, /import \{[^}]*\bcoQuyenSua\b[^}]*\} from "\.\.\/src\/shared\/hoa-hong-hien-thi"/);
+  assert.equal([...man.matchAll(/\/api\/pricing\/cap-dai-ly/g)].length, 1, "một chỗ gọi route đọc");
+  const chay = man.slice(man.indexOf("const staff = await initShell()"));
+  assert.ok(chay.indexOf("coQuyenSua(staff)") >= 0 && chay.indexOf("coQuyenSua(staff)") < chay.indexOf("await nap("), "hỏi cổng trước lần nạp đầu");
+  assert.ok(!/method:/.test(man), "màn không tự gửi lệnh ghi: ba lệnh có sẵn đi qua bảng đặt cấp");
+  assert.ok(!/\bconfirm\(|\balert\(|innerHTML/.test(man));
+  for (const o of man.matchAll(/h\("(input|select)",\s*\{([^}]*)\}/g)) assert.match(o[2]!, /class: "o"/, `ô gõ phải dùng lớp .o (16px): ${o[0].slice(0, 60)}`);
+});
+
+test("(man-3) không có cấp đang bật: màn nói rõ, trỏ sang /hoa-hong và ô không còn là nút mở bảng", () => {
+  const man = moMan();
+  assert.match(man, /soCapDangBat === 0/);
+  assert.match(man, /CHU_MAN\.khongCoCap/);
+  assert.match(man, /href: "\/hoa-hong"/);
+  assert.match(man, /oCapHoSo\(.*suaDuocDong\(coCapBat, d\)/, "mở bảng khi còn cấp đang bật, hoặc hồ sơ đang có cấp riêng (luật ở suaDuocDong)");
+  const cot = boChuThich(doc("web/cot-cap-dai-ly.ts"));
+  assert.match(cot, /if \(bat\.length === 0 && !m\.dungTheoVaiDuoc\) return baoLoi/, "không cấp và không lối theo vai trò ⇒ báo trong ô, không mở bảng");
+  assert.match(cot, /conCap \? h\("div", \{ class: "vc-field" \}, h\("label", \{ for: "cap-chon" \}/, "ô chọn cấp chỉ dựng khi còn cấp đang bật: không có ô chọn rỗng");
+  assert.match(cot, /foot: conCap \? \[luu\] : \[\]/, "hết cấp thì không có nút Lưu");
+});
+
+test("(man-4) vẽ theo từng phím không dựng lại cả bảng: ô tìm có độ trễ, mỗi lần chỉ vẽ một phần danh sách", () => {
+  const man = moMan();
+  assert.match(man, /setTimeout\(/);
+  assert.match(man, /clearTimeout\(/);
+  assert.match(man, /\.slice\(0, soHien\)/);
+  assert.match(man, /SO_DONG_MOI_LAN/);
+});
+
+test("(man-5) Quản lý tài khoản có đường dẫn sang màn, chỉ hiện cho người sửa được (cùng hàm suaDuocCot)", () => {
+  assert.match(doc("public/staff.html"), /<p id="lien-ket-cap-dai-ly" hidden><a href="\/cap-dai-ly">/);
+  assert.match(boChuThich(doc("web/staff.ts")), /byId\("lien-ket-cap-dai-ly"\)\.hidden = !suaDuocCot\(me\)/);
+});
+
+test("(man-6) gói Đơn hàng không kéo màn; gói màn có tệp cột, không kéo bảng tài khoản", () => {
+  const don = dauVaoGoi("web/orders.ts");
+  assert.ok(!don.some((t) => /cap-dai-ly/.test(t)), "gói Đơn hàng không chứa mã màn");
+  const man = dauVaoGoi("web/cap-dai-ly.ts");
+  assert.ok(man.some((t) => t.endsWith("web/cot-cap-dai-ly.ts")));
+  assert.ok(!man.some((t) => t.endsWith("web/staff.ts")));
+});
+
+test("(man-7) mọi lỗi của màn đi qua hienLoi và vào tầm nhìn; nạp lại lỗi thì không đặt tiêu điểm về ô (kẻo cuộn mất câu lỗi); #error có khoảng chừa thanh trên", () => {
+  const man = moMan();
+  assert.match(man, /function hienLoi\(cau: string\): void \{\s*showError\(errorEl, cau\);\s*errorEl\.scrollIntoView\(/);
+  const goi = [...man.matchAll(/showError\(errorEl, ([^)]*)\)/g)].map((m) => m[1]);
+  assert.deepEqual(goi.sort(), ["cau", "null"], "ngoài hienLoi chỉ còn lần xoá lỗi");
+  const lamMoi = man.slice(man.indexOf("async function lamMoi("), man.indexOf("const oCuaDong"));
+  assert.ok(lamMoi.indexOf("return") >= 0 && lamMoi.indexOf("return") < lamMoi.indexOf("datTieuDiemODongCap("), "nạp lại lỗi thì dừng trước khi đặt tiêu điểm");
+  assert.match(doc("public/app.css"), /#error \{ scroll-margin-top: calc\(var\(--bar-h\)/);
+});
+
+test("(man-8) chữ bảng đặt cấp: cột ở Quản lý tài khoản luôn là dòng có tài khoản; màn truyền đúng cờ của hồ sơ", () => {
+  const cot = boChuThich(doc("web/cot-cap-dai-ly.ts"));
+  assert.match(cot, /return dungO\(o, dong\.partyId, dong\.fullName, true, v, suaDuoc, lamMoi\)/);
+  assert.match(cot, /ho\.coTaiKhoan, v, suaDuoc, lamMoi\)/);
+  assert.match(cot, /cauNgayMacDinh\(m, v, homNay, xem, coTaiKhoan\)/);
+  assert.match(moMan(), /coTaiKhoan: d\.coTaiKhoan/);
 });

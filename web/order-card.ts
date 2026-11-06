@@ -53,6 +53,8 @@ export interface OrderCardData {
   index?: number;
   /** ADR-0060 A-12: máy chủ chỉ gửi `true` khi đơn đã nhập phần mềm kế toán VÀ người xem qua ô xem dấu — vắng = không hiện gì. */
   nhapKeToan?: true;
+  /** ADR-0166 câu 5: máy chủ chỉ gửi `true` khi đơn nháp đã gửi đi kiểm vé và chưa ai quyết → nhãn «Chờ xác nhận»; vắng = đơn nháp ghi «Chưa xác nhận». */
+  dangCho?: true | undefined;
 }
 
 export type OrderCardMoneyMode = "full" | "no-total" | "none";

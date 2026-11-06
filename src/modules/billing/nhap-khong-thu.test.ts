@@ -77,7 +77,8 @@ async function duyetChuyenSangDonNhan(w: any) {
   const maB = w.q("SELECT order_code FROM orders WHERE id = ?", b)[0].order_code as string;
   const d = await w.call("POST", `/api/orders/${a}/coc/duyet`, { as: QTKT, body: { loai: "chuyen", soTien: 500_000, lyDo: "Dời lịch do thời tiết", donNhan: maB } });
   assert.equal(d.status, 201, d.text);
-  const nguoiGiu = { partyId: w.q("SELECT party_id FROM v_pty_owner_company LIMIT 1")[0].party_id };
+  // ADR-0171 Đ3: khoản «Tôi thu» của Kế toán còn nằm ở tay Kế toán (chưa nộp) ⇒ máy chủ không nhận «Công ty giữ»; ghi đúng người đang giữ.
+  const nguoiGiu = { partyId: `pty-${KT}` };
   return { a, b, chuyen: { duyetId: d.json.duyetId, soTien: 500_000, nguoiGiu } };
 }
 
@@ -93,7 +94,7 @@ test("chuyển cọc mà đơn NHẬN là nháp ⇒ 409 order_draft_no_payment �
   assert.equal(r.json.error.code, "order_draft_no_payment");
   assert.equal(soLanThu(w, a, b), truoc);
   w.sqlite.prepare("UPDATE orders SET status = 'confirmed' WHERE id = ?").run(b);
-  assert.equal((await w.call("POST", `/api/orders/${a}/coc/chuyen`, { as: KT, body: chuyen })).status, 201);
+  { const r2 = await w.call("POST", `/api/orders/${a}/coc/chuyen`, { as: KT, body: chuyen }); assert.equal(r2.status, 201, r2.text); }
 });
 
 test("duyệt chuyển cọc sang MÃ của đơn nháp người khác ⇒ như không tìm thấy (billing không lộ mã đơn nháp)", async () => {

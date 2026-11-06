@@ -38,7 +38,7 @@ async function bundle(entry) {
 export const app = (await bundle(
   'export { default, taoAppChoKhungThu } from "./index"; export { createSessionToken } from "./modules/auth/session"; export { listAll } from "./modules/audit/repository"; export { xoaBoNhoVanNghia } from "./modules/tro-ly/van-nghia";' +
     ' export { isSingleDevice } from "./modules/auth/session-ledger"; export { accountRoleCodesOf, getActiveStaff } from "./modules/staff"; export { docTapNhieuMay } from "./modules/auth";' +
-    ' export { chuyenChoTinTheoId, dongBoChuyenChoDon, suKienTheoYeuCau } from "./modules/van-chuyen"; export { cauDatCocKhiXacNhan } from "./modules/billing"; export { dongChuyenTheoId } from "./modules/thongbao";',
+    ' export { chuyenChoTinTheoId, dongBoChuyenChoDon, suKienTheoYeuCau } from "./modules/van-chuyen"; export { cauDatCocKhiXacNhan, tienDonVe } from "./modules/billing"; export { dongChuyenTheoId } from "./modules/thongbao";',
 ));
 
 const isRead = (sql) => /^\s*(SELECT|WITH|PRAGMA|EXPLAIN)\b/i.test(sql);
@@ -254,6 +254,8 @@ export function world(tuyChon = {}) {
         return d;
       },
     });
+  } else if (tuyChon.khongTiemTraSau) {
+    ungDung = app.taoAppChoKhungThu({ kiemTraSau: undefined }); // ADR-0168: gốc lắp ráp không tiêm cổng hạn mức ⇒ đơn Trả sau bị chặn 503
   } else if (tuyChon.khongTiemCoc) {
     ungDung = app.taoAppChoKhungThu({ cauCocKhiXacNhan: undefined }); // ADR-0159: gốc lắp ráp không dựng được câu ⇒ 503
   } else if (tuyChon.chenTruocLoCoc) {

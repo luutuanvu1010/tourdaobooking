@@ -107,7 +107,9 @@ export function dungBienNhan(order: OrderDetailDto, company: CompanyDto, tien: T
   return {
     company: { name: company.name, taxCode: company.taxCode, address: company.address, hotline: company.hotline, email: company.email },
     orderCode: order.orderCode,
-    status: trangThaiHienThi({ status: order.status, deliveredAt: order.deliveredAt, completedAt: order.completedAt }),
+    // Chữ KHÁCH đọc (biên nhận, ảnh gửi khách): đơn nháp luôn «Chờ xác nhận», KHÔNG đi theo nhãn nội bộ «Chưa xác nhận» (ADR-0166 câu 5) — khách không cần biết
+    // đơn đã qua bước kiểm vé hay chưa. Cờ `true` cố định; bài `bien-nhan.test.ts` khoá.
+    status: trangThaiHienThi({ status: order.status, deliveredAt: order.deliveredAt, completedAt: order.completedAt, dangCho: true }),
     createdAt: order.createdAt,
     customerName: order.customerName,
     customerPhone: order.customerPhone,
@@ -148,7 +150,7 @@ export type KiemSoTienQr = { ok: true; soTien: number } | { ok: false; status: 4
 
 /** Thứ tự: đơn đã giao (kể cả đơn lệch cũ còn lại > 0) → hết tiền cần thu → số gõ. Thiếu số ⇒ bằng còn lại. */
 export function kiemSoTienQr(i: { daGiao: boolean; conLai: number; soTienRaw: string | null }): KiemSoTienQr {
-  if (i.daGiao) return { ok: false, status: 409, ma: "order_delivered", cau: "Đơn đã giao — không thu thêm." };
+  if (i.daGiao) return { ok: false, status: 409, ma: "order_delivered", cau: "Đơn đã xong và đủ tiền — không thu thêm." };
   if (i.conLai <= 0) return { ok: false, status: 409, ma: "nothing_due", cau: "Đơn không còn tiền cần thu." };
   if (i.soTienRaw === null || i.soTienRaw === "") return { ok: true, soTien: i.conLai };
   if (!SO_TIEN_QR_RE.test(i.soTienRaw)) return { ok: false, status: 400, ma: "invalid_input", cau: "Số tiền phải là số nguyên dương (đồng)." };

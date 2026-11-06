@@ -1,11 +1,14 @@
+// GHI CHÚ 5/11 (ADR-0142, Task 7): từ bản Bán hàng phụ trách chỉ Bán hàng, Quản trị, Toàn quyền xét duyệt đơn chờ — Kế toán và Hướng dẫn viên MẤT ô `order.confirm.review`.
+//   Bước 2, 2c, 3 đổi người xét sang Quản trị (ACCOUNTS.admin); bước 6 (HDV vào /cho-xac-nhan) bị thay bằng ban-hang-phu-trach-smoke.mjs (bước 7) và KHÔNG chạy lại; bước 7 giữ.
+//   Chưa chạy lại tệp này sau khi sửa (giới hạn của Task 7); kịch bản mới thay phần đổi nhãn.
 // Bước xác nhận đơn + «Gửi đơn» của Đối tác (ADR-0136, Task 3.5, lần giao L6) trên Chrome thật, D1 tạm, 390 + 1040. Dữ liệu đi đường thật (route API); tên, SĐT GIẢ.
-//   1) Đối tác (PARTNER thuần) lập nháp CÓ dịch vụ cờ «cần xác nhận» → trang đơn nháp có «Gửi đơn», KHÔNG có «Gửi xác nhận» / «Xác nhận đơn» → bấm → câu A nguyên văn, dải «Chờ xác nhận», nút «Rút lại».
+//   1) Đối tác (PARTNER thuần) lập nháp CÓ dịch vụ cờ «cần xác nhận» → trang đơn nháp có «Gửi đơn», KHÔNG có «Gửi kiểm vé» / «Xác nhận đơn» → bấm → câu A nguyên văn, dải «Chờ xác nhận», nút «Rút lại».
 //   2) Kế toán (người xét duyệt): Trang chủ có thẻ «Đơn chờ xác nhận»; trang /cho-xac-nhan có thẻ đơn (không tên khách / SĐT); mở đơn → bảng «Xác nhận đơn» có Còn vé / Hết vé / Huỷ; không ảnh, không biên nhận.
 //   3) Kế toán bấm «Còn vé» → đơn đã xác nhận; Đối tác mở lại thấy đã xác nhận, ảnh «XÁC NHẬN ĐƠN DỊCH VỤ» mở được (Đ11).
 //   4) Đối tác lập đơn thường → «Gửi đơn» → nhánh B: câu B nguyên văn rồi hộp ảnh tự mở (Đ13.7).
-//   5) Bán hàng (KHÔNG giữ Đối tác): đơn có dịch vụ cờ → nút «Gửi xác nhận» (không «Xác nhận đơn»), đơn thường vẫn «Xác nhận đơn»; «Gửi xác nhận» → dải chờ + «Rút lại».
+//   5) Bán hàng (KHÔNG giữ Đối tác): đơn có dịch vụ cờ → nút «Gửi kiểm vé» (không «Xác nhận đơn»), đơn thường vẫn «Xác nhận đơn»; «Gửi kiểm vé» → dải chờ + «Rút lại».
 //   6) HDV (FIELD, người xét duyệt nhưng không lập): thấy thẻ Trang chủ và trang /cho-xac-nhan; trang đơn chờ có bảng quyết định, không nút lập đơn.
-//   7) Điều phối: ô đếm đổi chữ thành «CHỜ XÁC NHẬN».
+//   7) Điều phối: ô đếm đổi chữ thành «CHƯA XÁC NHẬN».
 // Trình duyệt dùng chung kho cookie: dựng dữ liệu bằng API XONG mới mở trang; tài khoản mở SAU CÙNG là tài khoản trang cần.
 // Chạy từ GỐC repo, sau `npm run build:web`:
 //   AXE_JS=<…/axe.min.js> CHROME_BIN=docs/evidence/2026-09-20-a2/kich-ban/chrome-wrap.sh OUT=docs/evidence/2026-10-26-xac-nhan-don node docs/evidence/2026-10-26-xac-nhan-don/kich-ban/xac-nhan-smoke.mjs
@@ -65,10 +68,10 @@ try {
 
   // ---- 1) Đối tác ---------------------------------------------------------------------------------------------------------------------------------------------
   let p = await env.as(DOITAC, `/order?id=${dA}`, MOB);
-  await b.step("1", `390 Đối tác, nháp có dịch vụ cờ: «Gửi đơn» (không «Gửi xác nhận» / «Xác nhận đơn») → câu A nguyên văn, dải «Chờ xác nhận», «Rút lại»${axeNote()}`, async () => {
+  await b.step("1", `390 Đối tác, nháp có dịch vụ cờ: «Gửi đơn» (không «Gửi kiểm vé» / «Xác nhận đơn») → câu A nguyên văn, dải «Chờ xác nhận», «Rút lại»${axeNote()}`, async () => {
     await p.waitFor(nut("Gửi đơn"), "nút Gửi đơn");
     await chup(p, "1-doi-tac-nhap-390", MOB);
-    assert.equal(await p.ev(nut("Gửi xác nhận")), false, "Đối tác không thấy «Gửi xác nhận»");
+    assert.equal(await p.ev(nut("Gửi kiểm vé")), false, "Đối tác không thấy «Gửi kiểm vé»");
     assert.equal(await p.ev(nut("Xác nhận đơn")), false, "Đối tác không thấy «Xác nhận đơn»");
     assert.equal(await p.ev(noCode), "");
     await axe(p, "Đối tác nháp 390");
@@ -108,8 +111,8 @@ try {
 
   // ---- 5) Bán hàng --------------------------------------------------------------------------------------------------------------------------------------------
   p = await env.as(ACCOUNTS.salesA, `/order?id=${dS}`, MOB);
-  await b.step("5", `390 Bán hàng: đơn có dịch vụ cờ → «Gửi xác nhận» (không «Xác nhận đơn») → dải chờ + «Rút lại»; đơn thường vẫn «Xác nhận đơn"${axeNote()}`, async () => {
-    await p.waitFor(nut("Gửi xác nhận"), "nút Gửi xác nhận");
+  await b.step("5", `390 Bán hàng: đơn có dịch vụ cờ → «Gửi kiểm vé» (không «Xác nhận đơn») → dải chờ + «Rút lại»; đơn thường vẫn «Xác nhận đơn"${axeNote()}`, async () => {
+    await p.waitFor(nut("Gửi kiểm vé"), "nút Gửi kiểm vé");
     assert.equal(await p.ev(nut("Xác nhận đơn")), false, "đơn có dịch vụ cờ: không «Xác nhận đơn»");
     assert.equal(await p.ev(nut("Gửi đơn")), false, "Bán hàng thuần không thấy «Gửi đơn»");
     await chup(p, "5-ban-hang-gui-xac-nhan-390", MOB);
@@ -120,13 +123,13 @@ try {
     await chup(p, "5b-ban-hang-cho-390", MOB);
     await p.send("Page.navigate", { url: `${env.base}/order?id=${dT}` });
     await p.waitFor(`location.search.includes('${dT}') && ${nut("Xác nhận đơn")}`, "đơn thường có «Xác nhận đơn»");
-    assert.equal(await p.ev(nut("Gửi xác nhận")), false, "đơn thường: không «Gửi xác nhận»");
+    assert.equal(await p.ev(nut("Gửi kiểm vé")), false, "đơn thường: không «Gửi kiểm vé»");
     loiConsole(p, "Bán hàng");
   });
   p.close();
 
   // ---- 2) Kế toán ---------------------------------------------------------------------------------------------------------------------------------------------
-  p = await env.as(ACCOUNTS.accounting, "/", DESK);
+  p = await env.as(ACCOUNTS.admin, "/", DESK); // 5/11: Quản trị thay Kế toán (Kế toán mất ô xét duyệt)
   await b.step("2", `1040 Kế toán: Trang chủ có thẻ «Đơn chờ xác nhận»; trang /cho-xac-nhan có thẻ đơn, không lộ tên / SĐT khách${axeNote()}`, async () => {
     await p.waitFor(`!!document.querySelector('[data-khoa="donCho"]')`, "thẻ Trang chủ donCho", 12000);
     await chup(p, "2-ke-toan-trang-chu-1040", DESK);
@@ -152,8 +155,10 @@ try {
     await axe(p, "Kế toán bảng 390");
     loiConsole(p, "Kế toán");
   });
-  await b.step("3", "Kế toán bấm «Còn vé» → đơn đã xác nhận", async () => {
+  await b.step("3", "Quản trị bấm «Còn vé» → đơn đã xác nhận", async () => {
     await p.ev(click('[data-action="quyet-dinh-con-ve"]'));
+    await p.waitFor(`!!document.querySelector('.sheet-foot-xac-nhan .btn-danger')`, "hộp hỏi lại trước Còn vé, xác nhận đơn (ADR-0166)", 8000);
+    await p.ev(click('.sheet-foot-xac-nhan .btn-danger'));
     await p.waitFor(`!document.querySelector('[data-action="quyet-dinh-con-ve"]')`, "bảng quyết định biến mất", 12000);
     const r = await fetchTrang(p, "GET", `/api/orders/${dA}`);
     assert.equal(r.json.order.status, "confirmed", r.text.slice(0, 300));
@@ -162,7 +167,8 @@ try {
 
   // ---- 6) HDV -------------------------------------------------------------------------------------------------------------------------------------------------
   p = await env.as(HDV, "/cho-xac-nhan", MOB);
-  await b.step("6", `390 HDV (FIELD): trang /cho-xac-nhan mở được, thấy đơn chờ của Bán hàng và nút Kiểm vé; không lộ tên / SĐT khách${axeNote()}`, async () => {
+  // 5/11: thay bằng ban-hang-phu-trach-smoke.mjs bước 7 — HDV không còn xét duyệt, bước dưới KHÔNG chạy lại.
+  if (false) await b.step("6", `390 HDV (FIELD): trang /cho-xac-nhan mở được, thấy đơn chờ của Bán hàng và nút Kiểm vé; không lộ tên / SĐT khách${axeNote()}`, async () => {
     await p.waitFor(`document.querySelectorAll('.cx-the').length >= 1`, "thẻ đơn chờ cho HDV", 12000);
     await chup(p, "6-hdv-danh-sach-390", MOB);
     khongLo(await p.ev("document.querySelector('main').innerText"), "HDV");
@@ -189,8 +195,8 @@ try {
 
   // ---- 7) Điều phối -------------------------------------------------------------------------------------------------------------------------------------------
   p = await env.as(ACCOUNTS.admin, "/dieu-phoi", DESK);
-  await b.step("7", "1040 Quản trị, Điều phối: ô đếm đơn nháp đổi chữ thành «CHỜ XÁC NHẬN»", async () => {
-    await p.waitFor(`document.body.innerText.includes('CHỜ XÁC NHẬN')`, "ô CHỜ XÁC NHẬN", 12000);
+  await b.step("7", "1040 Quản trị, Điều phối: ô đếm đơn nháp đổi chữ thành «CHƯA XÁC NHẬN»", async () => {
+    await p.waitFor(`document.body.innerText.includes('CHƯA XÁC NHẬN')`, "ô CHƯA XÁC NHẬN", 12000);
     assert.equal(await p.ev(`document.body.innerText.includes('ĐƠN NHÁP')`), false);
     await chup(p, "7-dieu-phoi-1040", DESK);
     loiConsole(p, "Điều phối");

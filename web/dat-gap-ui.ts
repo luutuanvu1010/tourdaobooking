@@ -98,12 +98,12 @@ export function taoKhungDatGap(o: { onDuyet: (than: { lyDo: LyDoDatGap; ghiChu: 
 
 /**
  * Dải cảnh báo dưới mốc (khung 7a / 7b) + (người được đặt gấp) nút "Đặt gấp" mở khung. `dongPhu` là dòng dưới tiêu đề (ADR-0107): 7a "Chọn lý do đặt gấp thì xác
- * nhận và xếp xe được.", 7b "Lưu nháp được. Xác nhận cần văn phòng đặt gấp.". `datCau` đổi câu mốc tại chỗ (biểu mẫu gõ giờ) — khung đang mở và chữ đã gõ trong
+ * nhận và xếp xe được.", 7b "Lưu đơn được. Xác nhận cần văn phòng đặt gấp.". `datCau` đổi câu mốc tại chỗ (biểu mẫu gõ giờ) — khung đang mở và chữ đã gõ trong
  * khung giữ nguyên.
  * `nutDuyetPhu`: chuyển cho `taoKhungDatGap` (form Tạo đơn).
  */
 export function khoiCanhBaoMoc(o: { cau: string; duocDatGap: boolean; onDuyet?: (than: { lyDo: LyDoDatGap; ghiChu: string | null }) => Promise<void>; nutDuyetPhu?: boolean }): { root: HTMLElement; datCau(cau: string): void } {
-  const dongPhu = o.duocDatGap ? "Chọn lý do đặt gấp thì xác nhận và xếp xe được." : "Lưu nháp được. Xác nhận cần văn phòng đặt gấp.";
+  const dongPhu = o.duocDatGap ? "Chọn lý do đặt gấp thì xác nhận và xếp xe được." : "Lưu đơn được. Xác nhận cần văn phòng đặt gấp.";
   const tieuDe = h("div", { class: "banner-title" }, o.cau);
   const dai = h("div", { class: "banner banner-warning dg-warn", "data-moc": "duoi" }, tieuDe, h("div", { class: "dg-warn-sub" }, dongPhu));
   const root = h("div", { class: "dg-block" }, dai);

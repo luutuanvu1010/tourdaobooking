@@ -34,7 +34,11 @@
       "Edit(web/CLAUDE.md)",
       "Edit(.claude/**)",
       "Edit(playbook/**)",
-      "Edit(docs/adr/**)"
+      "Edit(docs/adr/**)",
+      "Edit(src/shared/bang-tham-chieu*.ts)",
+      "Edit(scripts/bang-tham-chieu-lib.mjs)",
+      "Edit(scripts/quet-nut-lib.mjs)",
+      "Edit(src/bang-tham-chieu.test.ts)"
     ]
   },
   "hooks": {

@@ -7,13 +7,15 @@
 // Danh sách lấy từ `GET /api/dispatch/assignees` KHI MỞ bảng (không gọi trước); ô "Tìm theo tên" lọc CỤC BỘ (không gọi lại API mỗi lần gõ) — luật thuần
 // bỏ dấu + gom nhóm theo `roleLabel` ở src/shared/assignee-pick.ts (có test). Bằng chứng giao diện: kịch bản Chrome
 // docs/evidence/2026-09-27-tu-choi-huy-hdv/kich-ban/chon-hdv-lap-don-smoke.mjs.
-import { groupAssignees } from "../src/shared/assignee-pick";
-import type { AssigneeDto } from "../src/shared/contracts";
+import { groupAssignees, laNhomHdv } from "../src/shared/assignee-pick";
+import type { AssigneeDto, BanHangMoiResponse } from "../src/shared/contracts";
 import { api, type Api } from "./api";
 import { h, replaceChildren } from "./dom";
 import { icon } from "./icons";
 
 export interface AssigneePickerOptions {
+  /** "hdv" (mặc định) = Hướng dẫn viên, chỉ nhóm Hướng dẫn viên; "ban-hang" = người phụ trách mời lúc lập (ADR-0142, chủ 5/11) — danh sách từ GET /api/dispatch/ban-hang-moi, chỉ tên. */
+  kieu?: "hdv" | "ban-hang";
   /** Người đang được chọn trong form (null = chưa chọn ai): hàng đó có dấu ✓ và nền nhấn. */
   current: AssigneeDto | null;
   /** Người dùng bấm một hàng: bảng ĐÃ đóng (không trả focus — nơi gọi dựng lại khối rồi tự đặt focus). `null` = "Chưa chọn ai". */
@@ -26,6 +28,10 @@ export function openAssigneePicker(o: AssigneePickerOptions, opener: HTMLElement
   let loadSeq = 0;
   let list: readonly AssigneeDto[] | null = null; // null = chưa tải xong / tải lỗi
 
+  const bh = o.kieu === "ban-hang";
+  const chu = bh
+    ? { tieuDe: "Chọn người phụ trách", chip: "Chờ Bán hàng nhận", rong: "Chưa có Bán hàng nào để mời.", ten: "Bán hàng" }
+    : { tieuDe: "Chọn Hướng dẫn viên", chip: "Chờ nhận", rong: "Chưa có Hướng dẫn viên nào có thể nhận.", ten: "nhân viên" };
   const closeBtn = h("button", { type: "button", class: "assignee-close", "aria-label": "Đóng" }, icon("close", 18));
   const search = h("input", { type: "search", class: "assignee-search", placeholder: "Tìm theo tên", "aria-label": "Tìm theo tên", autocomplete: "off", enterkeyhint: "search" });
   const listSlot = h("div", { class: "assignee-list" });
@@ -36,7 +42,7 @@ export function openAssigneePicker(o: AssigneePickerOptions, opener: HTMLElement
     h(
       "div",
       { class: "assignee-head" },
-      h("div", { class: "assignee-head-row" }, h("h2", { id: "assignee-sheet-title", class: "assignee-title" }, "Chọn người phụ trách"), closeBtn),
+      h("div", { class: "assignee-head-row" }, h("h2", { id: "assignee-sheet-title", class: "assignee-title" }, chu.tieuDe), closeBtn),
       search,
     ),
     h("div", { class: "sheet-body assignee-body" }, listSlot),
@@ -70,7 +76,7 @@ export function openAssigneePicker(o: AssigneePickerOptions, opener: HTMLElement
     const btn = h(
       "button",
       { type: "button", class: "assignee-none", "aria-pressed": String(selected), "data-staff-id": "" },
-      h("span", { class: "assignee-none-text" }, h("span", { class: "chip hdv-chip chip-warn" }, "Chờ nhận"), " ", "Chưa chọn ai"), // " ": trình đọc màn hình không đọc dính "Chờ nhậnChưa chọn ai" (flex bỏ qua khoảng trắng khi vẽ)
+      h("span", { class: "assignee-none-text" }, h("span", { class: "chip hdv-chip chip-warn" }, chu.chip), " ", "Chưa chọn ai"), // " ": trình đọc màn hình không đọc dính "Chờ nhậnChưa chọn ai" (flex bỏ qua khoảng trắng khi vẽ)
       selected ? check() : null,
     );
     btn.addEventListener("click", () => pick(null));
@@ -99,7 +105,7 @@ export function openAssigneePicker(o: AssigneePickerOptions, opener: HTMLElement
       rows.push(h("div", { class: "assignee-group", role: "group", "aria-labelledby": id }, h("h3", { id, class: "assignee-group-label" }, g.label), ...g.people.map(personRow)));
     });
     if (groups.length === 0) {
-      rows.push(h("p", { class: "assignee-empty", role: "status" }, query.trim() === "" ? "Chưa có nhân viên nào có thể nhận phụ trách." : `Không tìm thấy ai tên “${query.trim()}”.`));
+      rows.push(h("p", { class: "assignee-empty", role: "status" }, query.trim() === "" ? chu.rong : `Không tìm thấy ai tên “${query.trim()}”.`));
     }
     replaceChildren(listSlot, ...rows);
   }
@@ -112,7 +118,7 @@ export function openAssigneePicker(o: AssigneePickerOptions, opener: HTMLElement
       h(
         "div",
         { class: "banner banner-danger", role: "alert" },
-        h("div", { class: "banner-title" }, "Chưa tải được danh sách nhân viên."),
+        h("div", { class: "banner-title" }, `Chưa tải được danh sách ${chu.ten}.`),
         h("p", { class: "pick-error-text" }, "Kiểm tra kết nối mạng rồi bấm “Thử lại”."),
         h("div", { class: "banner-actions" }, retry),
       ),
@@ -125,12 +131,14 @@ export function openAssigneePicker(o: AssigneePickerOptions, opener: HTMLElement
     list = null;
     // Focus đang ở nút "Thử lại" (sắp bị gỡ khỏi DOM) → giữ focus trong bảng, không để rơi ra `body`.
     const focusWasThere = listSlot.contains(document.activeElement);
-    replaceChildren(listSlot, h("p", { class: "pick-status", role: "status" }, "Đang tải danh sách nhân viên…"));
+    replaceChildren(listSlot, h("p", { class: "pick-status", role: "status" }, `Đang tải danh sách ${chu.ten}…`));
     if (focusWasThere) dialog.focus();
     try {
-      const { assignees } = await api<Api.AssigneesResponse>("/api/dispatch/assignees");
+      const ds = bh
+        ? (await api<BanHangMoiResponse>("/api/dispatch/ban-hang-moi")).banHang.map((x): AssigneeDto => ({ staffId: x.staffId, partyId: "", name: x.name, roleLabel: "Bán hàng" }))
+        : (await api<Api.AssigneesResponse>("/api/dispatch/assignees")).assignees.filter(laNhomHdv); // chỉ nhóm Hướng dẫn viên (chủ 5/11); máy chủ vẫn nhận mọi người hợp lệ
       if (closed || mine !== loadSeq) return;
-      list = assignees;
+      list = ds;
       render();
     } catch {
       if (closed || mine !== loadSeq) return;

@@ -4,7 +4,7 @@
 // Mỗi route hỏi `can()` với ô của MATRIX TRƯỚC khi đọc thân / ghi (cổng router chỉ lọc thô — ADR-0019). Bảng tin (ADR-0022, ADR-0025 đ8): route ghi dưới
 // /api/orders/* báo `baoThayDoi` ĐÚNG MỘT lần, chỉ ở nhánh thành công, sau khi lô ghi xong (hàng rào src/bang-tin-guard.test.ts phủ tệp này).
 import type {
-  CocDemResponse, CocDoiChieuResponse, CocListResponse, KySoResponse, LedgerBalancesResponse, NhapKeToanResponse, OrderPaymentsResponse, ReceiptDto, SoCongNoBenResponse, SoCongNoResponse, SoCuaToiResponse,
+  CocDemResponse, CocDoiChieuResponse, CocListResponse, ConDuocDungTraSauResponse, DonNoTraSauResponse, HanMucTraSauListResponse, KySoResponse, LedgerBalancesResponse, NhapKeToanResponse, OrderPaymentsResponse, ReceiptDto, SoCongNoBenResponse, SoCongNoResponse, SoCuaToiResponse,
   TaoYeuCauDieuChinhResponse, UnpaidSummaryResponse, YeuCauDieuChinhListResponse,
 } from "../../shared/contracts";
 import { UUID_RE, error, json, kemLocation, readJson, trangDon } from "../../shared/http";
@@ -13,15 +13,21 @@ import { duocHuyKhoanSo, ghiSoNoiBo } from "../../shared/nut-khoan-thu";
 import { can, holdsPartner, seesOnlyAssignedOrders, type PermissionHolder } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
 import { vnToday } from "../../shared/vn-date";
+import { dongTien } from "../../shared/tra-sau";
 import { docGhiChuKy, khoaKyStatements, kiemKhoaKy, thangDaKhoa } from "../ky-so";
+import { auditStatement } from "../audit";
 import { donDangThuTien, phanThuongMaiCuaDon, thongTinGiaoDon } from "../orders";
 import { danhSachYeuCau, duyetYeuCau, ruYeuCau, taoYeuCau, tuChoiYeuCau } from "./dieu-chinh";
 import { donChoNhapKeToan, docNhapKeToan, ghiNhapKeToan } from "./nhap-ke-toan";
 import { chiNguoiLapGhiNhap, ketQuaXemDon } from "../../shared/xem-don-nhap";
-import { accountingEnteredAmong, earliestLedgerMonth, orderOwners, orderStatuses, receiptsOfOrder, soDongNoCuaNguoiRow } from "./repository";
+import { accountingEnteredAmong, earliestLedgerMonth, orderOwners, orderStatuses, partyLabels, receiptsOfOrder, soDongNoCuaNguoiRow } from "./repository";
 import { daTraTheoThuCho } from "./rules";
+import { quaHan } from "../../shared/tra-sau";
+import { benCoLienQuanTraSau, cauTangPhienBan, hanMucHieuLuc, hanMucMoiBen, homQua, noCacBenDat, noCuaBenDat } from "./tra-sau";
+import { dongHanMucStatement, hanMucDangMo, themHanMucStatement } from "./tra-sau-repo";
 import { cocChoBienNhan, cocCuaDon, danhSachCoc, demCoc, doiChieuCoc, ghiChiHoan, ghiChuyen, ghiDuyet, ghiHoanNgoai, ghiHuyDuyet, xacNhanHoanNgoai } from "./coc";
 import {
+  MAX_SO_TIEN, PARTY_ID_RE, docLyDo, loiTrigger,
   daGiao, ghiDieuChinh, ghiHoanKhach, ghiLanThu, ghiQuyetToan, hoanThanh, kySoResponse, soCongNo, soCongNoBen, soCuaToi, tienCuaDon, tienNhieuDon, toReceiptRow, xacNhanBenKia, xacNhanCongTyNhan, type NguoiGoi,
 } from "./service";
 import { ghiThayLanThu } from "./thay-lan-thu";
@@ -33,7 +39,7 @@ const FORBIDDEN_VIEW = () => error(403, "forbidden", "Tài khoản này không �
 const DRAFT_NO_PAYMENT = () => error(409, "order_draft_no_payment", "Đơn chưa xác nhận, chưa ghi thu được.");
 const CANNOT_RECEIVE = () => error(403, "forbidden", "Tài khoản này không được ghi tiền cho đơn này.");
 const CANNOT_RECEIVE_CANCELLED = () => error(403, "forbidden", "Đơn đã huỷ — chỉ Kế toán hoặc Toàn quyền ghi được khoản thu (khách chuyển khoản muộn).");
-const CANNOT_HANDOVER = () => error(403, "forbidden", "Chỉ hướng dẫn viên đang phụ trách đơn, Quản trị hoặc Toàn quyền mới bấm được Đã giao – đã thu đủ.");
+const CANNOT_HANDOVER = () => error(403, "forbidden", "Chỉ hướng dẫn viên đang phụ trách đơn, Quản trị hoặc Toàn quyền mới bấm được Xác nhận xong và đủ tiền.");
 const CANNOT_COMPLETE = () => error(403, "forbidden", "Chỉ Kế toán hoặc Toàn quyền mới bấm được Hoàn thành.");
 const CANNOT_LEDGER = () => error(403, "forbidden", "Chỉ Kế toán hoặc Toàn quyền mới ghi được sổ công nợ.");
 /** Ruling R-P18 (người kiểm Task 6 I-2): tài khoản giữ quyền Đối tác (kể cả lai Kế toán + Đối tác) không xem / tạo / duyệt / từ chối / rút yêu cầu điều chỉnh công nợ —
@@ -48,6 +54,7 @@ const CANNOT_OUTSIDE = () => error(403, "forbidden", "Chỉ Toàn quyền mới 
 const CANNOT_REFUND = () => error(403, "forbidden", "Chỉ Kế toán hoặc Toàn quyền mới ghi được hoàn tiền cho khách.");
 const CANNOT_VIEW_REQUESTS = () => error(403, "forbidden", "Chỉ Kế toán, Quản trị hoặc Toàn quyền mới xem được yêu cầu điều chỉnh công nợ.");
 const CANNOT_APPROVE_ADJUSTMENT = () => error(403, "forbidden", "Chỉ Kế toán, Quản trị hoặc Toàn quyền mới duyệt được điều chỉnh công nợ.");
+const FORBIDDEN_CREDIT_VIEW = () => error(403, "forbidden", "Chỉ Kế toán hoặc Toàn quyền mới xem được hạn mức trả sau.");
 const CANNOT_CLOSE_PERIOD = () => error(403, "forbidden", "Chỉ Kế toán hoặc Toàn quyền mới khoá được sổ tháng.");
 
 /**
@@ -547,6 +554,83 @@ export const billingModule: AppModule = {
 
     // ---- KHOÁ SỔ THÁNG (ADR-0080 phần D1; module ky-so giữ bảng, route ở đây vì cần sổ của billing). Tiền tố tĩnh `/api/ledger/ky`, không nuốt route nào khác.
     // Xem kỳ: ô `ledger.view` KHÔNG ngữ cảnh (= any — Kế toán, Toàn quyền): tháng đã khoá, tháng khoá được kế tiếp, bảng kiểm của tháng đó (chỉ mã đơn, số tiền, ngày).
+    // ---- Trả sau theo hạn mức (ADR-0168). Hạn mức: Toàn quyền đặt / ngừng (`credit.limit.write`), Kế toán + Toàn quyền xem (`credit.limit.view`); tài khoản giữ quyền Đối tác không vào
+    // (khuôn «có quyền Đối tác là áp»). Số nợ tính ở máy chủ (`tra-sau.ts`); đường đọc hẹp `con-duoc-dung` cho người lập đơn.
+    route("GET", "/api/tra-sau/han-muc", "office", async ({ env, staff }) => {
+      if (!can(staff, "credit.limit.view") || holdsPartner(staff)) return FORBIDDEN_CREDIT_VIEW();
+      const homNay = vnToday(new Date());
+      const ids = await benCoLienQuanTraSau(env.DB, homNay);
+      const [han, no, ten] = await Promise.all([hanMucMoiBen(env.DB, homNay), noCacBenDat(env.DB, ids, homNay), partyLabels(env.DB, ids)]);
+      const danhSach = ids.map((partyId) => {
+        const h = han.get(partyId) ?? null;
+        const n = no.get(partyId)!;
+        return {
+          partyId, ten: ten.get(partyId)?.label ?? "Hồ sơ chưa có tên", coHanMuc: h !== null, hanMuc: h?.hanMuc ?? null, soNgay: h?.soNgay ?? null, tuNgay: h?.tuNgay ?? null, dangNo: n.tong,
+          conDuocDung: h ? Math.max(0, h.hanMuc - n.tong) : null, soDonNo: n.don.length, soDonQuaHan: n.don.filter((d) => quaHan(d.hanTra, homNay, d.no)).length,
+        };
+      }).sort((a, b) => a.ten.localeCompare(b.ten, "vi"));
+      const res: HanMucTraSauListResponse = { danhSach, coQuyenSua: can(staff, "credit.limit.write") };
+      return json(res);
+    }),
+    route("GET", "/api/tra-sau/han-muc/:partyId/don", "office", async ({ env, params, staff }) => {
+      if (!can(staff, "credit.limit.view") || holdsPartner(staff)) return FORBIDDEN_CREDIT_VIEW();
+      const partyId = params.partyId!;
+      const ten = PARTY_ID_RE.test(partyId) ? (await partyLabels(env.DB, [partyId])).get(partyId) : undefined;
+      if (!ten) return error(404, "not_found", "Không tìm thấy hồ sơ.");
+      const homNay = vnToday(new Date());
+      const no = await noCuaBenDat(env.DB, partyId, homNay);
+      const res: DonNoTraSauResponse = { partyId, ten: ten.label, don: no.don.map((d) => ({ ...d, quaHan: quaHan(d.hanTra, homNay, d.no) })).sort((a, b) => b.no - a.no || a.maDon.localeCompare(b.maDon)) };
+      return json(res);
+    }),
+    route("POST", "/api/tra-sau/han-muc", "office", async ({ env, request, staff }) => {
+      if (!can(staff, "credit.limit.write") || holdsPartner(staff)) return error(403, "forbidden", "Chỉ Toàn quyền mới đặt được hạn mức trả sau.");
+      const b = ((await readJson(request)) ?? {}) as Record<string, unknown>;
+      if (typeof b.partyId !== "string" || !PARTY_ID_RE.test(b.partyId)) return error(400, "invalid_input", "Chọn hồ sơ đối tác.");
+      if (typeof b.hanMuc !== "number" || !Number.isInteger(b.hanMuc) || b.hanMuc <= 0 || b.hanMuc > MAX_SO_TIEN) return error(400, "invalid_input", "Hạn mức phải là số tiền nguyên dương (đồng).");
+      if (typeof b.soNgay !== "number" || !Number.isInteger(b.soNgay) || b.soNgay < 1 || b.soNgay > 365) return error(400, "invalid_input", "Số ngày được nợ là số nguyên từ 1 đến 365.");
+      const lyDo = docLyDo(b.lyDo, false);
+      if (!lyDo.ok) return lyDo.res;
+      if (!(await partyLabels(env.DB, [b.partyId])).has(b.partyId)) return error(404, "not_found", "Không tìm thấy hồ sơ.");
+      const homNay = vnToday(new Date());
+      const at = new Date().toISOString();
+      try {
+        await env.DB.batch([
+          dongHanMucStatement(env.DB, b.partyId, homQua(homNay), at, staff.id),
+          themHanMucStatement(env.DB, { id: crypto.randomUUID(), partyId: b.partyId, hanMuc: b.hanMuc, soNgay: b.soNgay, tuNgay: homNay, lyDo: lyDo.value, at, by: staff.id }),
+          ...cauTangPhienBan(env.DB, b.partyId, at),
+          auditStatement(env.DB, { staffId: staff.id, action: "credit_limit_set", at, targetType: "ledger", targetId: b.partyId, detail: `hạn mức ${dongTien(b.hanMuc)} · ${b.soNgay} ngày` }),
+        ]);
+      } catch (e) {
+        if (loiTrigger(e, "bil_credit_not_beneficiary")) return error(409, "not_beneficiary", "Hồ sơ này chưa mang Vai người dùng của đối tác nên chưa cấp được hạn mức trả sau.");
+        throw e;
+      }
+      return json({ ok: true }, 201, { location: "/han-muc-tra-sau" });
+    }),
+    route("POST", "/api/tra-sau/han-muc/:partyId/ngung", "office", async ({ env, params, staff }) => {
+      if (!can(staff, "credit.limit.write") || holdsPartner(staff)) return error(403, "forbidden", "Chỉ Toàn quyền mới ngừng được hạn mức trả sau.");
+      const partyId = params.partyId!;
+      if (!PARTY_ID_RE.test(partyId) || !(await hanMucDangMo(env.DB, partyId))) return error(404, "not_found", "Hồ sơ này chưa có hạn mức trả sau đang hiệu lực.");
+      const at = new Date().toISOString();
+      await env.DB.batch([
+        dongHanMucStatement(env.DB, partyId, homQua(vnToday(new Date())), at, staff.id),
+        auditStatement(env.DB, { staffId: staff.id, action: "credit_limit_stopped", at, targetType: "ledger", targetId: partyId, detail: "ngừng hạn mức" }, "changes() > 0"),
+        ...cauTangPhienBan(env.DB, partyId, at),
+      ]);
+      return json({ ok: true });
+    }),
+    // Đường đọc HẸP cho người lập đơn (ADR-0168 Đ1 mục 3): chỉ «còn được dùng» của đúng bên đặt, không danh sách đơn. Tài khoản Đối tác bị ÉP về hồ sơ của phiên (bỏ qua `benDat`).
+    route("GET", "/api/tra-sau/con-duoc-dung", "orders", async ({ env, request, staff }) => {
+      if (!can(staff, "order.create")) return error(403, "forbidden", "Tài khoản này không lập đơn nên không xem được hạn mức trả sau.");
+      const q = new URL(request.url).searchParams.get("benDat");
+      const benDat = holdsPartner(staff) ? staff.partyId : q;
+      if (benDat !== null && !PARTY_ID_RE.test(benDat)) return error(400, "invalid_input", "Mã bên đặt không hợp lệ.");
+      if (benDat === null) return json({ coHanMuc: false, conDuocDung: 0, coDonQuaHan: false } satisfies ConDuocDungTraSauResponse);
+      const homNay = vnToday(new Date());
+      const [h, no] = await Promise.all([hanMucHieuLuc(env.DB, benDat, homNay), noCuaBenDat(env.DB, benDat, homNay)]);
+      const res: ConDuocDungTraSauResponse = { coHanMuc: h !== null, conDuocDung: h ? Math.max(0, h.hanMuc - no.tong) : 0, coDonQuaHan: no.coDonQuaHan };
+      return json(res);
+    }),
+
     route("GET", "/api/ledger/ky", "office", async ({ env, staff }) => {
       if (!can(staff, "ledger.view")) return FORBIDDEN_VIEW();
       return json((await kySoResponse(env.DB, { homNay: vnToday(new Date()), coQuyenKhoa: can(staff, "ledger.period.close") })) satisfies KySoResponse);
@@ -608,3 +692,5 @@ export const nhapKeToanCuaDon = (db: D1Database, orderIds: readonly string[]): P
 export const daThuCuaDon = async (db: D1Database, orderId: string): Promise<number | null> => (await tienNhieuDon(db, [orderId])).get(orderId)?.daThu ?? null;
 
 export { cauDatCocKhiXacNhan, chanKhaiCocLai, tienDonVe } from "./dat-coc";
+// Trả sau theo hạn mức (ADR-0168): hàm công bố cho gốc lắp ráp tiêm vào `ctx` của orders / ve-dien-tu (orders không import billing).
+export { cauGacPhienBan, cauTangPhienBan, hanMucHieuLuc, kiemTraSau, noCuaBenDat, traSauCuaDon } from "./tra-sau";

@@ -151,7 +151,7 @@ test("chính sách khung giờ: GET (người lập đơn, người xét duyệt
   assert.equal(g.json.luuY, "Giờ đón thực tế có thể điều chỉnh cho phù hợp tình hình hoạt động.");
   assert.equal(g.json.doiDuoc, false);
   assert.equal((await w.call("GET", "/api/cai-dat/khung-gio-don", { as: PARTNER })).status, 200, "Đối tác lập đơn → đọc được");
-  assert.equal((await w.call("GET", "/api/cai-dat/khung-gio-don", { as: FIELD })).status, 200, "HDV nội bộ giữ ô xét duyệt → đọc được khung (ADR-0154 Đ1.5; trước là 403)");
+  assert.equal((await w.call("GET", "/api/cai-dat/khung-gio-don", { as: FIELD })).status, 403, "HDV nội bộ không lập đơn và (ADR-0142 QĐ2(a)) không còn ô xét duyệt → 403 như trước ADR-0154");
   assert.equal((await w.call("GET", "/api/cai-dat/khung-gio-don", { as: "66666666-6666-4666-8666-666666666661" })).status, 403, "Tài xế công ty: không lập đơn, không xét duyệt");
   const moi = { khung: [{ tu: "06:00", den: "06:30" }, { tu: "06:30", den: "07:00" }], luuY: "Giờ có thể đổi." };
   assert.equal((await w.call("POST", "/api/cai-dat/khung-gio-don", { as: SALES, body: moi })).status, 403);

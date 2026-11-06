@@ -8,15 +8,22 @@
 // máy không chia sẻ được tệp thì có «Tải ảnh về» và «Sao chép đường dẫn». Không innerHTML.
 import { ApiError, api } from "./api";
 import { h, replaceChildren } from "./dom";
+import { CAU_VE_QUA_HAN_TRA_SAU, CAU_VE_QUA_HAN_TRA_SAU_DOI_TAC } from "../src/shared/tra-sau";
 
 interface NhomVe { nhom: string; nhan: string; can: number; giu: number; thieu: number }
 interface VeDonRes {
   dichVu: { serviceId: string; catalogCode: string; nhom: NhomVe[] }[];
   thuDu: boolean;
   choDoiTacNop?: boolean;
+  /** ADR-0170 Đ2 mục 5: người xem giữ quyền Đối tác — nói câu «Công ty chưa xác nhận…». */
+  nguoiXemLaDoiTac?: boolean;
+  /** ADR-0168 Đ3 mục 1: đơn Trả sau quá hạn còn nợ — vé chưa mở chưa xem được, vé đã mở (trong `veXem`) vẫn xem. */
+  traSauQuaHan?: boolean;
   duongDan: { id: string; hetHan: string; daThuHoi: boolean; luotMo: number }[];
   veXem: { id: string; stt: number }[];
 }
+/** ADR-0166 câu 3: nói trước khi bấm — mở vé hoặc tạo đường dẫn là coi mọi vé của đơn đã lộ, vé đã lộ không về lại kho. */
+const CAU_VE_KHONG_VE_KHO = "Bấm là coi như vé đã giao cho khách: vé của đơn này sẽ không quay về kho nữa, kể cả khi khách huỷ. Chưa chắc khách lấy thì đừng bấm.";
 export interface VeDonVao { orderId: string; coQuyenGui: boolean }
 
 const ngayVn = (iso: string): string => new Date(new Date(iso).getTime() + 7 * 3600 * 1000).toISOString().slice(0, 10).split("-").reverse().join("/");
@@ -54,14 +61,15 @@ function veKhoi(el: HTMLElement, vao: VeDonVao, res: VeDonRes, dong: VeDonRes["d
     nutCap.disabled = true; hien(null);
     try { await api("/api/ve/cap", { method: "POST", body: { orderId: vao.orderId } }); await initVeDon(el, vao); } catch (err) { hien(lyDoLoi(err), true); nutCap.disabled = false; }
   });
-  const khoi: (Node | null)[] = [h("h2", null, "Vé điện tử"), tongThieu > 0 ? h("p", { class: "muted" }, `Còn thiếu ${tongThieu} vé. Nhập thêm vé vào kho rồi bấm Cấp vé.`) : null, danhSach, nutCap ? h("div", { class: "handler-actions" }, nutCap) : null];
+  const khoi: (Node | null)[] = [h("h2", null, "Vé điện tử"), tongThieu > 0 ? h("p", { class: "muted" }, res.nguoiXemLaDoiTac ? `Còn thiếu ${tongThieu} vé. Bấm Cấp vé; nếu vẫn thiếu, báo văn phòng.` : `Còn thiếu ${tongThieu} vé. Nhập thêm vé vào kho rồi bấm Cấp vé.`) : null, danhSach, nutCap ? h("div", { class: "handler-actions" }, nutCap) : null];
 
-  if (!res.thuDu) {
-    khoi.push(h("p", { class: "muted" }, res.choDoiTacNop ? "Đang chờ đối tác nộp tiền về công ty nên chưa xem hoặc gửi được vé." : "Đơn chưa thu đủ tiền nên chưa xem hoặc gửi được vé."));
+  if (!res.thuDu && res.veXem.length === 0) {
+    khoi.push(h("p", { class: "muted" }, res.traSauQuaHan ? (res.nguoiXemLaDoiTac ? CAU_VE_QUA_HAN_TRA_SAU_DOI_TAC : CAU_VE_QUA_HAN_TRA_SAU) : res.choDoiTacNop ? (res.nguoiXemLaDoiTac ? "Công ty chưa xác nhận đã nhận đủ tiền nên chưa mở được vé." : "Đang chờ đối tác nộp tiền về công ty nên chưa xem hoặc gửi được vé.") : "Đơn chưa thu đủ tiền nên chưa xem hoặc gửi được vé."));
   } else if (vao.coQuyenGui && res.veXem.length > 0) {
     // ---- Gửi Zalo / tải ảnh -------------------------------------------------------------------------------------------------------------------------------
     let tep: File[] = [];
-    const nutChuanBi = h("button", { type: "button", class: "btn btn-primary", "data-action": "chuan-bi-ve" }, `Chuẩn bị ${res.veXem.length} vé để gửi`);
+    const nutChuanBi = h("button", { type: "button", class: "btn btn-primary", "data-action": "chuan-bi-ve" }, `Mở ${res.veXem.length} vé để gửi khách`);
+    const canhBaoMo = h("p", { class: "muted", "data-khoi": "ve-khong-ve-kho" }, CAU_VE_KHONG_VE_KHO);
     const nutGui = h("button", { type: "button", class: "btn btn-primary", "data-action": "gui-zalo", hidden: true }, "Gửi Zalo");
     const khuTai = h("div", { class: "handler-actions", hidden: true });
     const ghiLanGiao = async (): Promise<void> => {
@@ -77,7 +85,7 @@ function veKhoi(el: HTMLElement, vao: VeDonVao, res: VeDonRes, dong: VeDonRes["d
           return new File([blob], `ve-${v.stt}.${blob.type === "image/jpeg" ? "jpg" : "png"}`, { type: blob.type || "image/png" });
         }));
       } catch (err) { hien(err instanceof Error ? err.message : lyDoLoi(err), true); nutChuanBi.disabled = false; return; }
-      nutChuanBi.hidden = true; hien(`Đã chuẩn bị ${tep.length} vé.`);
+      nutChuanBi.hidden = true; canhBaoMo.hidden = true; hien(`Đã mở ${tep.length} vé. Các vé này sẽ không quay về kho nữa, kể cả khi khách huỷ.`);
       const chiaSeDuoc = typeof navigator.canShare === "function" && typeof navigator.share === "function" && navigator.canShare({ files: tep });
       nutGui.hidden = !chiaSeDuoc;
       khuTai.hidden = false;
@@ -91,7 +99,7 @@ function veKhoi(el: HTMLElement, vao: VeDonVao, res: VeDonRes, dong: VeDonRes["d
       // GỌI NGAY trong lần bấm (không await trước đó) — iOS chỉ cho phép bảng chia sẻ trong cử chỉ của người dùng.
       navigator.share({ files: tep, title: "Vé tham quan" }).then(() => ghiLanGiao()).catch(() => { /* người dùng đóng bảng chia sẻ: không ghi lần giao */ });
     });
-    khoi.push(h("div", { class: "handler-actions" }, nutChuanBi, nutGui), khuTai);
+    khoi.push(h("div", { class: "handler-actions" }, nutChuanBi, nutGui), canhBaoMo, khuTai);
 
     // ---- Đường dẫn riêng cho khách -------------------------------------------------------------------------------------------------------------------------
     const khuLink = h("div", { "data-khoi": "duong-dan" });
@@ -119,7 +127,7 @@ function veKhoi(el: HTMLElement, vao: VeDonVao, res: VeDonRes, dong: VeDonRes["d
       } catch (err) { hien(lyDoLoi(err), true); }
       nutLink.disabled = false;
     });
-    khoi.push(h("div", { class: "handler-actions" }, nutLink), oLink, khuLink);
+    khoi.push(h("div", { class: "handler-actions" }, nutLink), h("p", { class: "muted", "data-khoi": "ve-khong-ve-kho-link" }, CAU_VE_KHONG_VE_KHO), oLink, khuLink);
   }
   replaceChildren(el, ...khoi, thongBao, loi);
 }

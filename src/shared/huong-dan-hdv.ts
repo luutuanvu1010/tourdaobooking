@@ -7,7 +7,7 @@ export const HD_HDV: NhomHuongDan = {
   tieuDe: "Hướng dẫn viên",
   quyen: ["FIELD"],
   gioiThieu:
-    "Bạn là hướng dẫn viên. Trong Nền tảng, bạn nhận đơn đang chờ người lo, gọi khách, xem thông tin chuyến và tiền của đơn mình lo, ghi tiền đã thu và bấm Đã giao khi xong; khi cần thì sửa số khách hoặc huỷ đơn, luôn kèm lý do.",
+    "Bạn là hướng dẫn viên. Trong Nền tảng, bạn nhận đơn đang chờ người lo, gọi khách, xem thông tin chuyến và tiền của đơn mình lo, ghi tiền đã thu và bấm Xác nhận xong và đủ tiền khi xong; khi cần thì sửa số khách hoặc huỷ đơn, luôn kèm lý do.",
   batDauNhanh: `1. Bấm [[Tôi]] ở thanh dưới đáy.
 2. Kéo tới mục **Việc của tôi**. Có hai ô: **Chờ nhận** và **Đơn của tôi**.
 3. Ở khối **Đơn chờ nhận**, xem ngày đi, giờ đón, số khách.
@@ -48,7 +48,7 @@ Không nhận được đơn **đã huỷ** hay **đã qua ngày đi**.`,
       tieuDe: "Xem và lo đơn của mình",
       noiDung: `Mỗi thẻ ở **Đơn của tôi** có:
 - Ngày đi, mã đơn, nhãn ngày như "Hôm nay", "Ngày mai".
-- Trạng thái: **Chờ xác nhận**, **Đã xác nhận** hoặc **Đã đi tour**.
+- Trạng thái: **Chưa xác nhận**, **Đã xác nhận** hoặc **Đã đi tour**.
 - Tên khách, số điện thoại và nút [[Gọi]]. Bấm là điện thoại quay số.
 - Từng dịch vụ: giờ đón, số khách, nơi đón, giờ khởi hành, khách có mặt, ghi chú.
 - Ba ô tiền: **Tổng tiền**, **Đã thu**, **Còn lại**.
@@ -56,7 +56,7 @@ Không nhận được đơn **đã huỷ** hay **đã qua ngày đi**.`,
 
 Đơn sắp đi ở trên. Đơn đã đi tour ở dưới cùng, sau dòng **Đã đi tour**.
 
-Bấm [[Xem đơn]] để mở trang đầy đủ. Ở đó không sửa hay huỷ được (làm ở **Việc của tôi**), nhưng có khối **Thanh toán** để ghi tiền và bấm Đã giao (xem mục dưới).
+Bấm [[Xem đơn]] để mở trang đầy đủ. Ở đó không sửa hay huỷ được (làm ở **Việc của tôi**), nhưng có khối **Thanh toán** để ghi tiền và bấm Xác nhận xong và đủ tiền (xem mục dưới).
 
 > Ví dụ: Tối trước ngày đi, chị Lan bấm Gọi để hẹn khách 07:30 ở sảnh khách sạn. Chị xem ô Còn lại để biết có phải thu thêm không.`,
     },
@@ -98,14 +98,14 @@ Bấm [[Xem đơn]] để mở trang đầy đủ. Ở đó không sửa hay hu�
 
 Thẻ đơn biến khỏi Đơn của tôi; người khác thấy đơn ở Đơn chờ nhận, có chữ "được trả lại". Bạn không mở được đơn đó nữa.
 
-- Chỉ trả được đơn **Đã xác nhận**. Đơn chờ xác nhận: báo người lập đơn đổi người phụ trách.
+- Chỉ trả được đơn **Đã xác nhận**. Đơn chưa xác nhận: báo người lập đơn đổi Hướng dẫn viên.
 - Đơn đi **hôm nay hoặc ngày mai** thì không còn nút này: **gọi văn phòng** để đổi người.
 - **Có giới hạn số lần:** tối đa **2 đơn liên tiếp** và **15 lần mỗi tuần** (thứ Hai – Chủ nhật). Nhận hoặc được giao một đơn khác và giữ đơn đó thì đếm "liên tiếp" lại từ đầu. Huỷ đơn không tính. Khi đang chặn, hộp Từ chối ghi sẵn "Bạn còn được từ chối … đơn liên tiếp, … lần trong tuần này". Hết lượt thì bấm sẽ hiện **"Hãy gọi văn phòng"** — gọi văn phòng để đổi người.
 
 > Ví dụ: Anh Tâm nhận đơn đi thứ Sáu rồi bị ốm. Thứ Tư anh bấm Từ chối đơn, chọn Ốm / việc riêng, bấm Xác nhận từ chối. Đơn về Chờ nhận cho người khác.`,
     },
     {
-      tieuDe: "Thu tiền và bấm Đã giao",
+      tieuDe: "Thu tiền và bấm Xác nhận xong và đủ tiền",
       noiDung: `Làm trên trang đơn (bấm [[Xem đơn]]), khối **Thanh toán**. Khối này ghi **Đã thu**, **Còn lại** và từng khoản thu.
 
 **Ghi tiền khách trả:**
@@ -113,11 +113,11 @@ Thẻ đơn biến khỏi Đơn của tôi; người khác thấy đơn ở Đơ
 2. Gõ số tiền, chọn hình thức, chọn người thu tiền: [[Tôi thu]] (tiền mặt bạn cầm) hoặc [[Công ty (vào tài khoản công ty)]].
 3. Bấm [[Ghi]].
 
-**Khách trả cho đại lý hoặc trả tại quầy nhà cung cấp** (bạn không cầm tiền): ở ô người thu tiền chọn "Khách trả cho đại lý …" hoặc "Khách trả tại quầy …"; đơn có dịch vụ của nhà cung cấp thì chọn thêm **Phần tiền này cho**. Khoản này chờ Kế toán xác nhận với bên kia; trong lúc chờ, đơn chưa Đã giao được.
+**Khách trả cho đại lý hoặc trả tại quầy nhà cung cấp** (bạn không cầm tiền): ở ô người thu tiền chọn "Khách trả cho đại lý …" hoặc "Khách trả tại quầy …"; đơn có dịch vụ của nhà cung cấp thì chọn thêm **Phần tiền này cho**. Khoản này chờ Kế toán xác nhận với bên kia; trong lúc chờ, đơn chưa xác nhận xong và đủ tiền được.
 
-**Xong tour, khách đã trả đủ:** bấm [[Đã giao – đã thu đủ]] rồi đồng ý. Nút chỉ bấm được khi đơn đã xác nhận, từ ngày đi trở đi, và số đã thu **bằng đúng** số phải thu. Nút bị mờ thì dòng **Đang giữ đơn** ghi lý do và ai xử lý.
+**Xong tour, khách đã trả đủ:** bấm [[Xác nhận xong và đủ tiền]] rồi đồng ý. Nút chỉ bấm được khi đơn đã xác nhận, từ ngày đi trở đi, và số đã thu **bằng đúng** số phải thu. Nút bị mờ thì dòng **Đang giữ đơn** ghi lý do và ai xử lý.
 
-Sau Đã giao, đơn **bị khoá**: không sửa số khách, không huỷ, không ghi thêm khoản thu. Thẻ ghi "Đã giao – đã thu đủ: đơn đã khoá." Bạn đang cầm tiền mặt của công ty thì nhớ nộp về; Kế toán ghi đã nộp rồi bấm **Hoàn thành**.`,
+Sau bước Xong và đủ tiền, đơn **bị khoá**: không sửa số khách, không huỷ, không ghi thêm khoản thu. Thẻ ghi "Xong và đủ tiền: đơn đã khoá." Bạn đang cầm tiền mặt của công ty thì nhớ nộp về; Kế toán ghi đã nộp rồi bấm **Hoàn thành**.`,
     },
     {
       tieuDe: "Thông báo",
@@ -125,7 +125,7 @@ Sau Đã giao, đơn **bị khoá**: không sửa số khách, không huỷ, kh�
 - [[Của tôi]]: tin công ty gửi bạn, tin về đơn bạn lo, đơn mới đang chờ nhận.
 - [[Tất cả]]: thêm các tin khác.
 
-Khi văn phòng xác nhận một đơn chưa có ai lo, bạn nhận tin "Có đơn mới …, chưa có người phụ trách". Bấm vào tin là Nền tảng mở trang [[Tôi]].
+Khi văn phòng xác nhận một đơn chưa có ai lo, bạn nhận tin "Có đơn mới …, chưa có Hướng dẫn viên". Bấm vào tin là Nền tảng mở trang [[Tôi]].
 
 Tin quan trọng có nút [[Đã hiểu]]. Đọc xong thì bấm.
 
@@ -136,18 +136,18 @@ Tin quan trọng có nút [[Đã hiểu]]. Đọc xong thì bấm.
 4. Muốn tắt: bấm [[Tắt]] ở cùng mục.`,
     },
     {
-      tieuDe: "Đơn của đối tác chờ xác nhận: bảng Còn vé",
-      noiDung: `Đơn đối tác gửi lên ở trạng thái [[Chờ xác nhận]]; khối **Xác nhận đơn** có [[Còn vé]], [[Hết vé]] và Huỷ. Mỗi dịch vụ có dòng **Ghi chú** của đối tác và ô **Giờ đón** từng lượt. Đối tác không nhập giờ: lượt đầu ghi **(bắt buộc)**, chọn giờ rồi mới bấm [[Còn vé]]. Hướng dẫn viên nội bộ không có nút Đặt gấp: giờ đã qua hạn chốt thì nhờ Bán hàng hoặc Quản trị bấm [[Còn vé]] kèm đặt gấp. Xác nhận xong, gọi số liên hệ trên đơn để báo giờ; số này là của đối tác khi công tắc ẩn thông tin khách đang bật.`,
+      tieuDe: "Đơn của đối tác chờ xác nhận: kiểm vé",
+      noiDung: `Đơn đối tác gửi lên ở trạng thái [[Chờ xác nhận]] cần người kiểm vé. Mỗi dịch vụ có dòng **Ghi chú** của đối tác và ô **Giờ đón** từng lượt; Bạn **không** bấm [[Còn vé, xác nhận đơn]] được: việc này do Bán hàng, Quản trị hoặc Toàn quyền làm. Muốn đơn đi tiếp thì báo một trong những người đó. Đơn xác nhận xong thì bạn xem như mọi đơn đã xác nhận.`,
     },
     {
       tieuDe: "Tình huống hay gặp",
-      noiDung: `- **Nhận đơn Chờ xác nhận:** vẫn nhận được, nhưng chưa sửa hay huỷ được. Thẻ ghi "Đơn đang chờ xác nhận — chưa thể huỷ hay sửa số khách." Đợi văn phòng xác nhận.
+      noiDung: `- **Nhận đơn Chưa xác nhận:** vẫn nhận được, nhưng chưa sửa hay huỷ được. Thẻ ghi "Đơn chưa xác nhận — chưa thể huỷ hay sửa số khách." Đợi văn phòng xác nhận.
 - **Nhận nhầm, bận không đi được:** bấm [[Từ chối đơn]] ở thẻ đơn (xem mục Trả đơn). Đơn đi hôm nay hoặc ngày mai thì gọi văn phòng giao cho người khác.
 - **Đơn đã qua ngày đi:** không còn nút [[Huỷ đơn]] và [[Sửa số khách]]. Cần huỷ hay sửa số khách thì nhờ văn phòng (người lập đơn, Kế toán hoặc Quản trị).
 - **Đang sửa thì văn phòng cũng sửa đơn đó:** Nền tảng đóng bảng, hiện dòng báo màu vàng rồi tải lại. Bạn xem lại rồi làm lại.
 - **Mất mạng:** Nền tảng báo chưa tải được đơn. Có mạng thì tải lại trang.
 - **Không thấy khối Đơn chờ nhận:** tài khoản có thêm quyền Đối tác. Hỏi Quản trị.
-- **Không bấm được Đã giao:** đọc dòng **Đang giữ đơn** trên trang đơn. Còn thiếu tiền thì ghi thêm khoản thu; khách trả dư hay khoản thu chưa rõ người thu tiền thì chờ Kế toán.`,
+- **Không bấm được Xác nhận xong và đủ tiền:** đọc dòng **Đang giữ đơn** trên trang đơn. Còn thiếu tiền thì ghi thêm khoản thu; khách trả dư hay khoản thu chưa rõ người thu tiền thì chờ Kế toán.`,
     },
     {
       tieuDe: "Điều bạn không làm được — hỏi ai",

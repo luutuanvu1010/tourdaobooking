@@ -1,4 +1,4 @@
-// Cột «Cấp độ đại lý» ở Quản lý tài khoản (ADR-0155 Đ2; kế hoạch lượt 2 Task 4.2). CHỈ web/staff.ts nhập tệp này (bài src/cot-cap-dai-ly-noi-day.test.ts) — mã cột không vào gói trang khác.
+// Cột «Cấp độ đại lý» ở Quản lý tài khoản (ADR-0155 Đ2; kế hoạch lượt 2 Task 4.2) và ô cấp của màn gom (đặc tả 2026-11-04-man-cap-dai-ly). CHỈ web/staff.ts, web/cap-dai-ly.ts nhập tệp này (bài src/cot-cap-dai-ly-noi-day.test.ts) — mã cột không vào gói trang khác.
 // Gọi: GET /api/pricing/cap-hien-hanh (CapHienHanhResponse, một lần cho mọi hồ sơ), GET /api/pricing/muc-ta (cấp đang bật), GET /api/pricing/muc-rieng/:id/sua (ngày sớm nhất khi đã có đơn chụp)
 // và ĐÚNG ba route ghi có sẵn của trang Hoa hồng (đặt, đổi, ngừng cấp riêng) — địa chỉ do `yeuCauGhiCap` (src/shared/cap-hien-hanh-hien-thi.ts) dựng, qua `thucHienLenhGhiCap`, không chép tay ở đây.
 // Ngày «hôm nay» KHÔNG giữ từ lúc tải trang (trang mở xuyên nửa đêm sẽ cũ một ngày — kiểm độc lập N-1, ruling R12): bảng đặt / đổi lấy ngày máy chủ lúc MỞ (`ngayMayLucMo`), «Dùng cấp theo vai trò» đọc lại ngày máy chủ lúc BẤM.
@@ -8,7 +8,7 @@ import { ApiError, api, type Api, type StaffAccount } from "./api";
 import { moBangTruot } from "./bang-truot";
 import { h } from "./dom";
 import { hienBaoNgan } from "./toast";
-import { CHU_CAP, cauNgayMacDinh, macDinhBangCap, nhanTheoVaiTu, ngayMayLucMo, nutMoBang, oCapCuaDong, thucHienLenhGhiCap, type DuongGhiCap, type YDinhGhiCap } from "../src/shared/cap-hien-hanh-hien-thi";
+import { CHU_CAP, cauDungTheoVaiTro, cauNgayMacDinh, macDinhBangCap, nhanTheoVaiTu, ngayMayLucMo, nutMoBang, oCapCuaDong, oCapCuaHoSo, thucHienLenhGhiCap, type OCap, type DuongGhiCap, type YDinhGhiCap } from "../src/shared/cap-hien-hanh-hien-thi";
 import type { CapHienHanhDto } from "../src/shared/contracts";
 
 type DongTaiKhoan = Pick<StaffAccount, "permissions" | "partyId" | "fullName">;
@@ -57,18 +57,30 @@ export function datTieuDiemODongCap(partyId: string): void {
 export function oCap(dong: DongTaiKhoan, v: CapHienHanhDto | undefined, suaDuoc: boolean, lamMoi: (partyId: string) => Promise<void>): HTMLElement | null {
   const o = oCapCuaDong(dong, v);
   if (o === null) return null;
+  return dungO(o, dong.partyId, dong.fullName, true, v, suaDuoc, lamMoi);
+}
+
+/**
+ * Ô cấp của MỘT hồ sơ ở màn «Cấp độ đại lý» (có cả hồ sơ chưa có tài khoản): cùng ô và cùng bảng đặt cấp với dòng tài khoản, nhưng không hỏi quyền của hồ sơ. Máy chủ đã chỉ trả hồ sơ đang mang vai trò được hưởng.
+ */
+export function oCapHoSo(ho: { partyId: string; ten: string; coTaiKhoan: boolean }, v: CapHienHanhDto, suaDuoc: boolean, lamMoi: (partyId: string) => Promise<void>): HTMLElement {
+  return dungO(oCapCuaHoSo(v), ho.partyId, ho.ten, ho.coTaiKhoan, v, suaDuoc, lamMoi);
+}
+
+/** Phần dựng chung của ô: chữ, nút mở bảng, nhãn phụ. `ten` chỉ để đọc cho người dùng (nhãn nút, tiêu đề bảng). */
+function dungO(o: OCap, partyId: string | null, ten: string, coTaiKhoan: boolean, v: CapHienHanhDto | undefined, suaDuoc: boolean, lamMoi: (partyId: string) => Promise<void>): HTMLElement {
   const loi = h("div", { class: "vc-field-error", role: "alert", hidden: true });
   let chinh: HTMLElement;
   if (v !== undefined && nutMoBang(o, suaDuoc)) {
-    const nut = h("button", { type: "button", class: "btn btn-link", "aria-label": `${CHU_CAP.nhanCot} của ${dong.fullName}: ${o.chu}` }, o.chu);
-    nut.addEventListener("click", () => void moBangDatCap(dong, v, nut, loi, lamMoi));
+    const nut = h("button", { type: "button", class: "btn btn-link", "aria-label": `${CHU_CAP.chonCapRieng}: ${ten} — ${o.chu}` }, o.chu);
+    nut.addEventListener("click", () => void moBangDatCap(ten, coTaiKhoan, v, nut, loi, lamMoi));
     chinh = nut;
   } else {
     chinh = h("span", o.moBang ? null : { class: "muted" }, o.chu);
   }
   return h(
     "div",
-    { class: "cot-cap", tabindex: -1, "data-party": dong.partyId ?? "", "data-nguon": v?.nguon ?? "CHUA_CO_VAI_TRO" },
+    { class: "cot-cap", tabindex: -1, "data-party": partyId ?? "", "data-nguon": v?.nguon ?? "CHUA_CO_VAI_TRO" },
     h("div", null, chinh),
     o.coMucRieng && h("div", null, h("a", { class: "badge badge-draft", href: TRANG_HOA_HONG }, CHU_CAP.coMucRieng)),
     o.theoVaiTu !== null && h("div", { class: "muted" }, nhanTheoVaiTu(o.theoVaiTu)),
@@ -78,7 +90,7 @@ export function oCap(dong: DongTaiKhoan, v: CapHienHanhDto | undefined, suaDuoc:
 }
 
 /** Mở bảng bấm: chọn cấp + «Từ ngày» (+ «Dùng cấp theo vai trò» khi máy chủ nhận). Mọi dữ liệu của bảng tải ở đây; lỗi tải hiện ngay trong ô, không mở bảng. */
-async function moBangDatCap(dong: DongTaiKhoan, v: CapHienHanhDto, opener: HTMLElement, loiO: HTMLElement, lamMoi: (partyId: string) => Promise<void>): Promise<void> {
+async function moBangDatCap(ten: string, coTaiKhoan: boolean, v: CapHienHanhDto, opener: HTMLElement, loiO: HTMLElement, lamMoi: (partyId: string) => Promise<void>): Promise<void> {
   loiO.hidden = true;
   let mt: Api.MucTaListResponse;
   let xem: Api.SuaXemTruocResponse | null;
@@ -96,24 +108,25 @@ async function moBangDatCap(dong: DongTaiKhoan, v: CapHienHanhDto, opener: HTMLE
   const bat = mt.muc.filter((c) => c.dangBat);
   if (bat.length === 0 && !m.dungTheoVaiDuoc) return baoLoi(loiO, CHU_CAP.khongCoCapNaoBat);
 
+  const conCap = bat.length > 0; // hết cấp đang bật mà còn «Dùng cấp theo vai trò»: bảng chỉ còn nút đó, không có ô chọn rỗng
   const loi = h("div", { class: "vc-field-error", role: "alert", hidden: true });
   const oMuc = h("select", { id: "cap-chon", class: "vc-input" }, h("option", { value: "" }, CHU_CAP.chonCap), ...bat.map((c) => h("option", { value: c.code }, c.ten)));
   const oTu = h("input", { id: "cap-tu-ngay", class: "vc-input", type: "date", value: m.tuNgay, min: m.tuNgay });
   const luu = h("button", { type: "button", class: "btn btn-primary btn-block" }, CHU_CAP.luu);
   const dung = m.dungTheoVaiDuoc ? h("button", { type: "button", class: "btn", id: "cap-dung-theo-vai-tro" }, CHU_CAP.dungTheoVaiTro) : null;
   const bang = moBangTruot({
-    title: `${CHU_CAP.nhanCot}: ${dong.fullName}`,
+    title: `${CHU_CAP.chonCapRieng}: ${ten}`,
     body: [
       h(
         "div",
         { class: "vc-gt" },
-        h("div", { class: "vc-field" }, h("label", { for: "cap-chon" }, CHU_CAP.nhanCot), oMuc),
-        h("div", { class: "vc-field" }, h("label", { for: "cap-tu-ngay" }, CHU_CAP.tuNgay), oTu, h("div", { class: "vc-hint" }, cauNgayMacDinh(m, v, homNay, xem))),
-        dung && h("div", { class: "vc-field" }, dung, h("div", { class: "vc-hint" }, CHU_CAP.dungTheoVaiTroLuuY)),
+        conCap ? h("div", { class: "vc-field" }, h("label", { for: "cap-chon" }, CHU_CAP.nhanCot), oMuc) : h("div", { class: "vc-hint" }, CHU_CAP.khongCoCapNaoBat),
+        conCap && h("div", { class: "vc-field" }, h("label", { for: "cap-tu-ngay" }, CHU_CAP.tuNgay), oTu, h("div", { class: "vc-hint" }, cauNgayMacDinh(m, v, homNay, xem, coTaiKhoan))),
+        dung && h("div", { class: "vc-field" }, dung, h("div", { class: "vc-hint" }, cauDungTheoVaiTro(coTaiKhoan))),
         loi,
       ),
     ],
-    foot: [luu],
+    foot: conCap ? [luu] : [],
     opener,
   });
   if (!bang) return;
@@ -155,5 +168,5 @@ async function moBangDatCap(dong: DongTaiKhoan, v: CapHienHanhDto, opener: HTMLE
   };
   luu.addEventListener("click", () => void gui({ kieu: m.kieu, muc: oMuc.value, tuNgay: oTu.value }));
   dung?.addEventListener("click", () => void gui({ kieu: "DUNG_THEO_VAI_TRO" }));
-  oMuc.focus();
+  (conCap ? oMuc : dung)?.focus();
 }

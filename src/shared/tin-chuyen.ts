@@ -242,7 +242,10 @@ export function tinChuyenCho(n: NguoiNhanChuyen, d: DongChuyen): { loai: LoaiTin
 export const HANH_DONG_TIN_GIO_HEN = ["order_leg_updated"] as const;
 /** Một lần sửa chặng đã xếp: KHOÁ (người làm, lúc, đơn, người lập, người phụ trách) + chuyến giữ suất mở lúc sự kiện. Không tên, SĐT, nơi. */
 export interface DongGioHen {
-  actorId: string | null; luc: string; maDon: string; ownerId: string; handlerStaffId: string | null; chuyen: readonly ChuyenCuaChang[];
+  actorId: string | null; luc: string; maDon: string; ownerId: string; handlerStaffId: string | null;
+  /** ADR-0142: Bán hàng phụ trách HIỆN TẠI của đơn (ô `trip.call_ack` — người gọi báo khách). Vắng = chưa có. */
+  banHangStaffId?: string | null;
+  chuyen: readonly ChuyenCuaChang[];
 }
 
 /** Chuyến giữ suất KHÁCH mở của chặng `legId` lúc `luc` (mở ≤ t và còn mở hoặc đóng ≥ t — so CHUỖI ISO), mỗi chuyến một lần, sắp theo mã. Thiếu dữ kiện → bỏ. */
@@ -265,7 +268,7 @@ export function tinGioHenCho(n: NguoiNhanChuyen, d: DongGioHen): { cau: string; 
     const c = d.chuyen.find((x) => laiLucSuKien(x.lai, pid, d.luc) !== null);
     if (c) return { cau: `Văn phòng vừa đổi giờ đón ở ${moTaChuyen(c.ma, c.ngayChay, d.luc)} — mở để xem`, lienKet: `/cuoc-chuyen?id=${encodeURIComponent(c.tripId)}` };
   }
-  const assigned = d.handlerStaffId === n.id;
+  const assigned = d.handlerStaffId === n.id || (d.banHangStaffId ?? null) === n.id; // ADR-0142: Bán hàng phụ trách cũng là người gọi báo khách
   if (!(d.ownerId === n.id || assigned) || !can(n, "trip.view") || !can(n, "trip.call_ack", { ownerId: d.ownerId, assigned })) return null;
   const c = d.chuyen[0]!;
   return { cau: `Đơn ${d.maDon}: giờ hẹn đổi ở ${moTaChuyen(c.ma, c.ngayChay, d.luc)} — gọi báo khách`, lienKet: `/chuyen?id=${encodeURIComponent(c.tripId)}` };

@@ -34,6 +34,22 @@ const YC_MO_TAT_CA = defineSql(
 );
 export const yeuCauMoTatCa = async (db: D1Database): Promise<YeuCauRow[]> => (await db.prepare(YC_MO_TAT_CA).all<YeuCauRow>()).results;
 
+/**
+ * Trong danh sách id đưa vào, những đơn NHÁP đang có yêu cầu còn mở (ADR-0166 câu 5: nhãn «Chờ xác nhận»). `json_each(?1)` nhận mảng JSON các id nên câu vẫn TĨNH;
+ * lọc `status = 'draft'` để đơn đã quyết xong (xác nhận / huỷ) không bao giờ mang cờ, kể cả nếu dòng yêu cầu bị kẹt mở.
+ */
+const YC_MO_TRONG_DANH_SACH = defineSql(
+  "orders",
+  "confirm_request_open_among",
+  `SELECT DISTINCT r.order_id FROM ord_confirm_request r JOIN orders o ON o.id = r.order_id
+   WHERE r.order_id IN (SELECT value FROM json_each(?1)) AND r.decided_at IS NULL AND o.status = 'draft'`,
+);
+export async function donDangChoXacNhan(db: D1Database, orderIds: readonly string[]): Promise<Set<string>> {
+  if (orderIds.length === 0) return new Set();
+  const { results } = await db.prepare(YC_MO_TRONG_DANH_SACH).bind(JSON.stringify(orderIds)).all<{ order_id: string }>();
+  return new Set(results.map((r) => r.order_id));
+}
+
 // ---- Mở / rút lại (Đ3) ---------------------------------------------------------------------------------------------------------------------------
 
 /**
@@ -218,3 +234,41 @@ export const nhomDangDung = async (db: D1Database, ma: string): Promise<boolean>
 const LOI_KHAI_DANG_LUU = defineSql("orders", "loi_khai_dang_luu", `SELECT declared_deposit FROM orders WHERE id = ?1`);
 export const loiKhaiDangLuu = async (db: D1Database, orderId: string): Promise<number> =>
   (await db.prepare(LOI_KHAI_DANG_LUU).bind(orderId).first<{ declared_deposit: number }>())?.declared_deposit ?? 0;
+
+// ---- ADR-0142: Bán hàng phụ trách — ý định mời trên đơn nháp, nguồn của thẻ cảnh báo --------------------------------------------------------------
+/**
+ * Ghi HỒ SƠ người được mời trên đơn NHÁP VỪA TẠO (cùng lô tạo đơn, nên không cần lính gác). KHÔNG đụng `updated_at`. Lô LƯU nháp không dùng câu này: nó ghi cột ngay trong câu UPDATE chính của
+ * `updateDraftOrder` (một câu, cùng khoá lạc quan — không cần đọc `audit_log`, không thêm ngoại lệ vào bài kiến trúc).
+ */
+const GHI_NGUOI_MOI = defineSql("orders", "order_sales_invitee_write", `UPDATE orders SET sales_invitee_party_id = ?1 WHERE id = ?2 AND status = 'draft'`);
+export const cauGhiNguoiMoi = (db: D1Database, x: { orderId: string; partyId: string | null }): D1PreparedStatement => db.prepare(GHI_NGUOI_MOI).bind(x.partyId, x.orderId);
+
+const NGUOI_MOI_CUA_DON = defineSql("orders", "order_sales_invitee_read", `SELECT sales_invitee_party_id FROM orders WHERE id = ?1`);
+/** Hồ sơ người được mời đang ghi trên đơn (null = chưa mời). Chỉ trả khi nơi gọi đã qua cổng quyền của đơn. */
+export const nguoiDuocMoiCuaDon = async (db: D1Database, orderId: string): Promise<string | null> =>
+  (await db.prepare(NGUOI_MOI_CUA_DON).bind(orderId).first<{ sales_invitee_party_id: string | null }>())?.sales_invitee_party_id ?? null;
+
+export interface UngVienTheBanHang { id: string; order_code: string; staff_id: string; ghi_nhan_luc: string; cho_xac_nhan: number }
+/**
+ * Đơn có thể vào thẻ «chưa có Bán hàng phụ trách» (chưa lọc theo Bán hàng phụ trách / giờ / ngày đi — nơi gọi lọc bằng luật thuần): đơn đã xác nhận chưa Đã giao / Hoàn thành, hoặc đơn
+ * nháp có yêu cầu xác nhận đang mở. `?1` = mốc phát hành: chặn ngay ở câu hỏi để thẻ không đọc lại cả lịch sử đơn cũ.
+ */
+const UNG_VIEN_THE = defineSql(
+  "orders",
+  "order_sales_card_candidates",
+  `SELECT o.id AS id, o.order_code AS order_code, o.staff_id AS staff_id, o.confirmed_at AS ghi_nhan_luc, 0 AS cho_xac_nhan
+     FROM orders o WHERE o.status = 'confirmed' AND o.delivered_at IS NULL AND o.completed_at IS NULL AND o.confirmed_at >= ?1
+   UNION ALL
+   SELECT o.id, o.order_code, o.staff_id, r.submitted_at, 1
+     FROM ord_confirm_request r JOIN orders o ON o.id = r.order_id
+    WHERE r.decided_at IS NULL AND o.status = 'draft' AND r.submitted_at >= ?1
+   ORDER BY 4, 1`,
+);
+export const ungVienTheBanHang = async (db: D1Database, mocPhatHanh: string): Promise<UngVienTheBanHang[]> => (await db.prepare(UNG_VIEN_THE).bind(mocPhatHanh).all<UngVienTheBanHang>()).results;
+
+/** Lúc ghi nhận của MỘT đơn đã xác nhận (`confirmed_at`), và đã Đã giao / Hoàn thành chưa — cho cổng Nhận phụ trách của `dispatch` (đơn cũ). */
+const GHI_NHAN_CUA_DON = defineSql("orders", "order_sales_recorded_at", `SELECT confirmed_at, status FROM orders WHERE id = ?1`);
+export const ghiNhanCuaDon = async (db: D1Database, orderId: string): Promise<{ confirmedAt: string | null; status: string } | null> => {
+  const r = await db.prepare(GHI_NHAN_CUA_DON).bind(orderId).first<{ confirmed_at: string | null; status: string }>();
+  return r ? { confirmedAt: r.confirmed_at, status: r.status } : null;
+};

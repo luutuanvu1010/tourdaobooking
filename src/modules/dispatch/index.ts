@@ -15,19 +15,24 @@ import type {
   HanMucCaiDatResponse, HanMucDatLaiResponse, HanMucTuChoiNguoiDto, HanMucTuChoiResponse, MyAssignmentsResponse, SetHandlerResponse, StaffAccount, TuChoiTruocResponse,
 } from "../../shared/contracts";
 import { assigneeRoleLabel } from "../../shared/assignee-pick";
+import { duocGiaoTheoO } from "../../shared/ban-hang-phu-trach";
 import { thayDoiCuaHandler, type TrangThaiPhuTrach } from "../../shared/bang-tin";
 import { UUID_RE, error, json, readJson } from "../../shared/http";
 import { can, hasPermission, holdsPartner, MATRIX } from "../../shared/permissions";
+import { chanDoiTacHuy, chanDoiTacSuaSoKhach, chanVeDaMoTrongLo, laLoiVeDaMoTrongLo } from "../../shared/chan-doi-tac-huy";
 import { lyDoHuyCuaHdv } from "../../shared/ly-do-huy";
 import { docLyDoTuChoi } from "../../shared/ly-do-tu-choi";
 import { chiNguoiLapGhiNhap } from "../../shared/xem-don-nhap";
-import { route, type AppModule, type NewOrderHandler } from "../../shared/router";
+import { route, type AppModule, type BanHangNoi, type NewOrderHandler } from "../../shared/router";
 import { tripDeparted, tuChoiQuaMuon } from "../../shared/trip-rules";
 import { vnToday } from "../../shared/vn-date";
 import { findHandledOrderIds, findHandlerOf, findHandlersOf, guardHandlerStatement, isHandler, orderDelivered, soDonDangPhuTrach, type HandlerRow } from "./repository";
 import {
   CANCEL_REASON_LABEL, checkAssignee, handlerChangeVerdict, isDeliveredLock, isOpenHandlerCollision, parseCancelReason, parseOrderIds, parseSetHandler,
 } from "./rules";
+import * as banHang from "./ban-hang";
+import { banHangRoutes } from "./ban-hang-route";
+import * as banHangMoi from "./ban-hang-moi";
 import { handlerChangeStatements, ketQuaTuChoi, newOrderHandlerStatements, refuseStatements } from "./service";
 import {
   caiDatHienHanh, chenAbortSauStatement, chenCaiDatStatement, chenResetStatement, demTheoNguoi, demTuChoiCua, mocCaiDatMoiNhat, tuChoiCuaDon,
@@ -41,18 +46,18 @@ const toDto = (r: HandlerRow): HandlerDto => ({ partyId: r.party_id, staffId: r.
 
 const NOT_FOUND = () => error(404, "not_found", "Không tìm thấy đơn.");
 const FORBIDDEN = () =>
-  error(403, "forbidden", "Chỉ người lập đơn, người phụ trách hiện tại hoặc quản trị viên mới được đổi người phụ trách. Đơn chưa có người phụ trách thì nhân viên bán hàng hoặc hướng dẫn viên nhận cho chính mình được.");
+  error(403, "forbidden", "Chỉ người lập đơn, Hướng dẫn viên hiện tại hoặc quản trị viên mới được đổi Hướng dẫn viên. Đơn chưa có Hướng dẫn viên thì nhân viên bán hàng hoặc hướng dẫn viên nhận cho chính mình được.");
 /** Từ chối XEM (người phụ trách của mọi đơn, liên hệ khách của "Việc của tôi" — ADR-0019 điều 2). */
 const VIEW_FORBIDDEN = () => error(403, "forbidden", "Tài khoản này không được xem thông tin này.");
 const NO_CHANGE = () => error(409, "no_change", "Người này đang phụ trách đơn rồi.");
-const STALE = () => error(409, "stale", "Người phụ trách đơn vừa được người khác đổi, hãy tải lại rồi thử lại.");
+const STALE = () => error(409, "stale", "Hướng dẫn viên của đơn vừa được người khác đổi, hãy tải lại rồi thử lại.");
 const CANCEL_FORBIDDEN = () => error(403, "forbidden", "Chỉ hướng dẫn viên đang phụ trách đơn mới huỷ được đơn theo cách này.");
-const NOT_CONFIRMED = () => error(409, "not_editable", "Chỉ huỷ được đơn đã xác nhận qua đường này; đơn chờ xác nhận hoặc đã huỷ không dùng được.");
+const NOT_CONFIRMED = () => error(409, "not_editable", "Chỉ huỷ được đơn đã xác nhận qua đường này; đơn chưa xác nhận hoặc đã huỷ không dùng được.");
 const DEPARTED = () => error(409, "departed", "Tour đã qua ngày đi — hướng dẫn viên không huỷ được nữa. Nhờ văn phòng huỷ nếu cần.");
 const MONEY_EDIT_DEPARTED = () => error(409, "departed", "Đơn đã qua ngày đi — không sửa số khách được nữa. Cần sửa, nhờ tài khoản Toàn quyền.");
 const HANDLER_RACED = () => error(409, "stale", "Đơn vừa được người khác đổi, hãy tải lại rồi thử lại.");
 /** Chốt "Nhận" (ADR-0030 S20-5, lệch có chủ ý 5.1 — `docs/SYSTEM-DESIGN.md` §16): áp CHỈ cho tự nhận đơn chưa có người, không áp cho "giao". */
-const CLAIM_PARTNER_FORBIDDEN = () => error(403, "forbidden", "Tài khoản có quyền Đối tác không làm người phụ trách được.");
+const CLAIM_PARTNER_FORBIDDEN = () => error(403, "forbidden", "Tài khoản có quyền Đối tác không làm Hướng dẫn viên được.");
 const CLAIM_CANCELLED = () => error(409, "cancelled", "Đơn đã huỷ, không nhận được.");
 const CLAIM_DEPARTED = () => error(409, "departed", "Tour đã qua ngày đi, không nhận được.");
 const MONEY_EDIT_FORBIDDEN = () => error(403, "forbidden", "Chỉ hướng dẫn viên đang phụ trách đơn mới sửa được số khách theo cách này.");
@@ -61,14 +66,14 @@ const MONEY_EDIT_STALE = () => error(409, "stale", "Đơn vừa được sửa b
 /** Sổ tiền lượt 1 (ADR-0025 đ5, bản làm mới §3 mục 12): đơn đã "Đã giao – đã thu đủ" — không đổi / nhận người phụ trách, không huỷ, không sửa số khách. */
 /** Nút «Từ chối» (ADR-0030 điều 1). */
 const REFUSE_FORBIDDEN = () => error(403, "forbidden", "Chỉ người đang phụ trách đơn mới trả được đơn này.");
-const REFUSE_NOT_CONFIRMED = () => error(409, "order_not_confirmed", "Đơn chưa xác nhận — báo người lập đơn đổi người phụ trách.");
+const REFUSE_NOT_CONFIRMED = () => error(409, "order_not_confirmed", "Đơn chưa xác nhận — báo người lập đơn đổi Hướng dẫn viên.");
 const REFUSE_CANCELLED = () => error(409, "cancelled", "Đơn đã huỷ, không cần trả đơn.");
 const REFUSE_TOO_LATE = () => error(409, "too_late", "Đơn đi hôm nay hoặc ngày mai — không trả được nữa. Gọi văn phòng để đổi người.");
 /** ADR-0032 điều 5: hết lượt Từ chối — câu nguyên văn ADR. */
 const REFUSE_LIMIT = () => error(409, "refuse_limit", CAU_HET_LUOT);
 /** ADR-0032 (G6): không có dòng cài đặt hạn mức hiệu lực — không đoán con số (khuôn mốc 6 giờ). Thực tế không xảy ra (dòng gieo + trigger cấm xoá + R-DSP-7). */
 const REFUSE_POLICY_MISSING = () => error(503, "refuse_policy_missing", "Chưa có cài đặt hạn mức Từ chối — báo Toàn quyền.");
-const DA_GIAO = () => error(409, "order_delivered", "Đơn đã ở bước Đã giao – đã thu đủ: không sửa, huỷ hay đổi người phụ trách được nữa. Sai sót thì Kế toán dùng “Sửa khoản thu đã ghi”.");
+const DA_GIAO = () => error(409, "order_delivered", "Đơn đã ở bước Xong và đủ tiền: không sửa, huỷ hay đổi Hướng dẫn viên được nữa. Sai sót thì Kế toán dùng “Sửa khoản thu đã ghi”.");
 
 /**
  * Nhật ký `refuse_limit_hit` (ADR-0032 điều 5, 6) — LÔ RIÊNG một câu, sau khi đã biết lý do. `detail` chỉ số + chế độ (không tên, không SĐT).
@@ -151,9 +156,34 @@ export const cauBaoVeNguoiPhuTrach = (db: D1Database, orderId: string, partyId: 
  * tài khoản nên không được giao mới (checkAssignee đòi tài khoản) — khe giữa kiểm và ghi chấp nhận được, R-PTY-MERGE-4 bắt nếu lọt. */
 export const soDonDangPhuTrachCua = (db: D1Database, partyId: string): Promise<number> => soDonDangPhuTrach(db, partyId);
 
+/**
+ * BÁN HÀNG PHỤ TRÁCH (ADR-0142) — gốc lắp ráp tiêm vào `ctx.banHang` / `ctx.isSalesOwner` (`orders` không import `dispatch`). Mọi hàm đã bọc `db`; câu lệnh
+ * trả CHƯA CHẠY để người gọi gộp vào `db.batch()` của mình. Chi tiết luật lô: `ban-hang.ts`.
+ */
+export const banHangNoi = (db: D1Database): BanHangNoi => ({
+  laBanHangPhuTrach: (staffId, orderId) => banHang.laBanHangPhuTrach(db, staffId, orderId),
+  kiemBanHangMoi: (staffId) => banHangMoi.kiemBanHangMoi(db, staffId),
+  kiemBanHangMoiTheoHoSo: (partyId) => banHangMoi.kiemBanHangMoiTheoHoSo(db, partyId),
+  danhSachBanHangMoi: () => banHangMoi.danhSachBanHangMoi(db),
+  gioHanhChinh: () => banHang.khungGioHanhChinh(db),
+  loiMoiMoCua: (orderId) => banHangMoi.loiMoiMoCua(db, orderId),
+  banHangCuaDon: (orderIds) => banHang.banHangCuaDon(db, orderIds),
+  cauMoLoiMoi: (x) => banHang.cauMoLoiMoi(db, x),
+  cauMoBanHangBatBuoc: (x) => banHang.cauMoBanHangBatBuoc(db, x),
+  cauKhepLoiMoiSauLenhDon: (x) => banHang.cauKhepLoiMoiSauLenhDon(db, x),
+  cauMoBanHangNeuTrong: (x) => banHang.cauMoBanHangNeuTrong(db, x),
+  cauKhepLoiMoiSauNhan: (x) => banHang.cauKhepLoiMoiSauNhan(db, x),
+  cauTuChoiLoiMoi: (x) => banHang.cauTuChoiLoiMoi(db, x),
+  cauDoiBanHang: (x) => banHang.cauDoiBanHang(db, x),
+});
+
+/** Câu thứ `viTri` của lô Bán hàng phụ trách có ghi dòng nào không (thắng thua đua). */
+export { banHangThang } from "./ban-hang";
+
 export const dispatchModule: AppModule = {
   name: "dispatch",
   routes: [
+    ...banHangRoutes, // ADR-0142: Bán hàng phụ trách (nhận / từ chối / đổi, danh sách, cài đặt giờ hành chính)
     // Người phụ trách của các đơn đang hiện ở danh sách (một lời gọi mỗi trang). Mọi id gửi lên đều có mặt trong kết quả; đơn chưa có người → null.
     // ADR-0019: cổng "orders" (màn đơn) chỉ lọc thô; route nhận id BẤT KỲ nên thân hỏi `order.view` KHÔNG ngữ cảnh (= xem được mọi đơn) TRƯỚC khi
     // đọc tham số — Đối tác/Thực tập (`own`) → 403.
@@ -211,11 +241,11 @@ export const dispatchModule: AppModule = {
     // hôm nay SALES/ADMIN/SUPER_ADMIN và — từ ADR-0030 S20-6/S20-12 — FIELD, cả bốn đều `dispatch.claim` = any ⇒ luôn qua sàng; FIELD không có
     // `dispatch.assign` nên chỉ tự Nhận được, giao cho người khác → 403); ai không có cả hai (kế toán, Đối tác, Thực tập) vốn chỉ nhận "forbidden" — nay
     // nhận sớm hơn, trước mọi đọc CSDL/thân yêu cầu.
-    route("PUT", "/api/orders/:id/handler", "orders", async ({ env, request, params, staff, baoThayDoi }) => {
+    route("PUT", "/api/orders/:id/handler", "orders", async ({ env, request, params, staff, baoThayDoi, isSalesOwner }) => {
       if (!can(staff, "dispatch.claim") && !can(staff, "dispatch.assign", { ownerId: staff.id })) return FORBIDDEN();
       const orderId = params.id!;
       if (!UUID_RE.test(orderId)) return NOT_FOUND();
-      const [order, current] = await Promise.all([findOrderOwner(env.DB, orderId), findHandlerOf(env.DB, orderId)]);
+      const [order, current, laBanHang] = await Promise.all([findOrderOwner(env.DB, orderId), findHandlerOf(env.DB, orderId), isSalesOwner(orderId)]);
       if (!order) return NOT_FOUND();
       // ADR-0135 Đ2: đơn NHÁP là vùng riêng của người lập — người khác (kể cả Toàn quyền, người được chọn sẵn) nhận 404, trước mọi đọc thân; người lập đổi người trên nháp của mình thì đi tiếp.
       if (!chiNguoiLapGhiNhap({ status: order.status, laNguoiLap: order.staffId === staff.id })) return NOT_FOUND();
@@ -228,7 +258,7 @@ export const dispatchModule: AppModule = {
       const input = parseSetHandler(await readJson(request));
       if (!input.ok) return error(400, "invalid_input", input.message);
       // "Nhận" đơn ĐÃ có người phụ trách (người có quyền nhận thua đua) là 409 stale để giao diện tải lại — không phải 403 (xem `handlerChangeVerdict`).
-      const verdict = handlerChangeVerdict(staff, { ownerId: order.staffId }, current ? { staffId: current.staff_id } : null, input.staffId);
+      const verdict = handlerChangeVerdict(staff, { ownerId: order.staffId }, current ? { staffId: current.staff_id } : null, input.staffId, laBanHang);
       if (verdict === "stale") return STALE();
       if (verdict === "forbidden") return FORBIDDEN();
       if (await orderDelivered(env.DB, orderId)) return DA_GIAO();
@@ -275,13 +305,14 @@ export const dispatchModule: AppModule = {
     // = ngày khởi hành lớn nhất trong các dịch vụ, đã qua ⇔ < hôm nay giờ VN; ngay trong ngày đi vẫn huỷ được; từ hôm sau chỉ văn phòng huỷ qua
     // /status) → 400 (lý do) → ghi. Đổi ngày giữa lúc đọc và lúc ghi (PUT /trip) làm đổi `updated_at` (KHÔNG đổi `status`) → khoá lạc quan của
     // cancelOrderByHandler (khoá theo CẢ `status` VÀ `updated_at`, T1d) thua → 409.
-    route("POST", "/api/orders/:id/handler-cancel", "staff", async ({ env, request, params, staff, isAssigned, baoThayDoi, dongBoChuyen, traVeKhiHuy }) => {
+    route("POST", "/api/orders/:id/handler-cancel", "staff", async ({ env, request, params, staff, isAssigned, baoThayDoi, dongBoChuyen, traVeKhiHuy, traSauCuaDon, veDaMoCuaDon }) => {
       const orderId = params.id!;
       if (!UUID_RE.test(orderId)) return NOT_FOUND();
       const [order, assigned] = await Promise.all([findOrderOwner(env.DB, orderId), isAssigned(orderId)]);
       if (!order) return NOT_FOUND();
       if (!chiNguoiLapGhiNhap({ status: order.status, laNguoiLap: order.staffId === staff.id })) return NOT_FOUND(); // ADR-0135: nháp của người khác (kể cả HDV chọn sẵn, Toàn quyền) → 404
       if (!can(staff, "order.cancel", { assigned })) return CANCEL_FORBIDDEN();
+      { const chan = await chanDoiTacHuy(staff, orderId, veDaMoCuaDon); if (chan) return chan; } // ADR-0170 Đ3: người giữ quyền Đối tác (kể cả lai) không tự huỷ đơn đã mở vé
       if (await orderDelivered(env.DB, orderId)) return DA_GIAO();
       if (order.status !== "confirmed") return NOT_CONFIRMED();
       if (tripDeparted(await findOrderDepartDates(env.DB, orderId), vnToday(new Date()))) return DEPARTED();
@@ -295,8 +326,11 @@ export const dispatchModule: AppModule = {
       // ADR-0032 điều 1 (Q-P2 — chỉ thống kê): sự kiện ABORT chỉ khi người gọi ĐANG là người phụ trách (Toàn quyền huỷ hộ qua route này thì không); câu còn tự
       // hỏi lại dòng phụ trách mở lúc GHI (đổi người giữa lúc đọc và lúc ghi).
       const cauAbort = assigned && staff.partyId ? [chenAbortSauStatement(env.DB, { id: crypto.randomUUID(), partyId: staff.partyId, orderId, at: new Date().toISOString(), actorId: staff.id })] : [];
-      const cauSauHuy = [...cauAbort, ...(await traVeKhiHuy(orderId, "DON_HUY"))]; // ADR-0153: trả vé cùng nguyên tử với việc huỷ (cổng: đơn đã `cancelled` trong lô)
-      const r = await cancelOrderByHandler(env.DB, orderId, staff.id, order.updatedAt, lyDoHuyCuaHdv(input.reason, input.note), label, cauSauHuy, (x) => dongBoChuyen(x));
+      const sauHuy = [...cauAbort, ...(await traVeKhiHuy(orderId, "DON_HUY"))]; // ADR-0153: trả vé cùng nguyên tử với việc huỷ (cổng: đơn đã `cancelled` trong lô)
+      // ADR-0142: lời mời Bán hàng đang mở (nếu có) khép «đơn huỷ» cùng lô, gác theo id dòng nhật ký huỷ (sinh bên trong `soanHuyDon`, nên câu dựng bằng hàm nhận id).
+      const cauSauHuy = (auditId: string): D1PreparedStatement[] => [...sauHuy, banHang.cauKhepLoiMoiSauLenhDon(env.DB, { orderId, outcome: "HUY_DON", at: new Date().toISOString(), actorId: staff.id, auditId })];
+      let r: Awaited<ReturnType<typeof cancelOrderByHandler>>;
+      try { r = await cancelOrderByHandler(env.DB, orderId, staff.id, order.updatedAt, lyDoHuyCuaHdv(input.reason, input.note), label, { traSauCuaDon, veDaMoCuaDon }, cauSauHuy, (x) => dongBoChuyen(x)); } catch (e) { if (laLoiVeDaMoTrongLo(e)) return chanVeDaMoTrongLo(); throw e; } // ADR-0170 Đ3: vé vừa mở xen giữa ⇒ cả lô lui
       if (r.kq === "loi") return r.res;
       if (r.kq === "thua") {
         const now = await findOrderOwner(env.DB, orderId);
@@ -311,7 +345,7 @@ export const dispatchModule: AppModule = {
     // giao → 409 `departed` (qua ngày đi — chủ dự án duyệt 2026-09-30 "Cho sửa đến hết ngày đi": cùng `tripDeparted` + `vnToday` với huỷ đơn,
     // DK-T4-02; ĐÚNG ngày đi vẫn sửa được; Toàn quyền KHÔNG bị chặn) → 409/400 do editMoneyAsHandler tự kiểm (không phải đơn đã xác nhận; thân yêu
     // cầu sai/thiếu/thừa dịch vụ; lý do có SĐT — `hasLongDigitRun`) → 409 stale nếu thua khoá lạc quan.
-    route("POST", "/api/orders/:id/handler-money-edit", "staff", async ({ env, request, params, staff, isAssigned, baoThayDoi, dongBoChuyen, canBangVeSauSuaKhach }) => {
+    route("POST", "/api/orders/:id/handler-money-edit", "staff", async ({ env, request, params, staff, isAssigned, baoThayDoi, dongBoChuyen, canBangVeSauSuaKhach, kiemTraSau, cauGacPhienBanTraSau, veDaMoCuaDon }) => {
       const orderId = params.id!;
       if (!UUID_RE.test(orderId)) return NOT_FOUND();
       const [order, assigned] = await Promise.all([findOrderOwner(env.DB, orderId), isAssigned(orderId)]);
@@ -325,8 +359,9 @@ export const dispatchModule: AppModule = {
       if (!narrowEligible && !hasPermission(staff, "SUPER_ADMIN")) return MONEY_EDIT_FORBIDDEN();
       if (await orderDelivered(env.DB, orderId)) return DA_GIAO();
       if (!hasPermission(staff, "SUPER_ADMIN") && tripDeparted(await findOrderDepartDates(env.DB, orderId), vnToday(new Date()))) return MONEY_EDIT_DEPARTED();
+      { const chan = await chanDoiTacSuaSoKhach(staff, orderId, veDaMoCuaDon); if (chan) return chan; } // ADR-0171 Đ1: như route văn phòng
       // ADR-0104 Đ2 (điểm gọi 7): máy đồng bộ chuyến nối vào CHÍNH lô sửa số khách (HDV không có trip.view — phản hồi chỉ câu cố định + cờ, Đ2.13).
-      const result = await editMoneyAsHandler(env.DB, orderId, staff.id, await readJson(request), (x) => dongBoChuyen(x));
+      const result = await editMoneyAsHandler(env.DB, orderId, staff.id, await readJson(request), { kiemTraSau, cauGacPhienBanTraSau }, (x) => dongBoChuyen(x));
       if (!result.ok) {
         if (result.code === "trip_rule") return result.res;
         if (result.code === "not_found") return NOT_FOUND();
@@ -477,12 +512,13 @@ export const dispatchModule: AppModule = {
 
     // Bảng chọn người khi văn phòng giao đơn (điều 10): lần Từ chối MỚI NHẤT của CHÍNH đơn này, mỗi người một mục. Nguồn = sổ sự kiện (không nhật ký — ADR-0131).
     // Ai gọi được = ai mở được bảng chọn người của đơn (`dispatch.assign` với người lập + đang phụ trách — đúng `handlerControls`).
-    route("GET", "/api/orders/:id/tu-choi-truoc", "orders", async ({ env, params, staff, isAssigned }) => {
+    route("GET", "/api/orders/:id/tu-choi-truoc", "orders", async ({ env, params, staff, isAssigned, isSalesOwner }) => {
       const orderId = params.id!;
       if (!UUID_RE.test(orderId)) return NOT_FOUND();
-      const [order, assigned] = await Promise.all([findOrderOwner(env.DB, orderId), isAssigned(orderId)]);
+      const [order, dangPhuTrach, laBanHang] = await Promise.all([findOrderOwner(env.DB, orderId), isAssigned(orderId), isSalesOwner(orderId)]);
       if (!order) return NOT_FOUND();
       if (!chiNguoiLapGhiNhap({ status: order.status, laNguoiLap: order.staffId === staff.id })) return NOT_FOUND(); // ADR-0135 Đ2
+      const assigned = duocGiaoTheoO("dispatch.assign", { laNguoiPhuTrach: dangPhuTrach, laBanHangPhuTrach: laBanHang }); // ADR-0142: danh sách trắng
       if (!can(staff, "dispatch.assign", { ownerId: order.staffId, assigned })) return FORBIDDEN();
       const tuChoi: TuChoiTruocResponse["tuChoi"] = {};
       for (const r of await tuChoiCuaDon(env.DB, orderId)) tuChoi[r.party_id] ??= { luc: r.occurred_at, lyDo: r.reason_code as MaLyDoTuChoi };

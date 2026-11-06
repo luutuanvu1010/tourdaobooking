@@ -32,7 +32,7 @@ export const BAI_VIEC: readonly BaiViec[] = [
     tieuDe: "Kho vé điện tử",
     nhomViec: "Gửi cho khách",
     trang: "veKho",
-    o: ["ve.kho.manage", "ve.cap.send"],
+    o: ["ve.kho.manage"], // bài này là của màn Kho vé; ADR-0170 mở ve.cap.send cho Đối tác nhưng Đối tác không vào kho, nên không tính ô này (bài riêng của Đối tác ở huong-dan-doi-tac.ts)
     gioiHan: [
       `Mỗi lô mặc định tối đa ${TRAN_LO_MAC_DINH} vé; Toàn quyền đổi được từ ${TRAN_LO_NHO_NHAT} đến ${TRAN_LO_LON_NHAT}`,
       `Mỗi ảnh tối đa ${SO_MB_ANH} MB, ảnh JPG hoặc PNG`,
@@ -45,12 +45,12 @@ export const BAI_VIEC: readonly BaiViec[] = [
 1. **Tải vé từ nhà cung cấp.** Mỗi lần chỉ tải đúng một sản phẩm, một loại khách, một khoảng ngày dùng. Giữ nguyên ảnh gốc, vì ảnh nén quá nhỏ có thể không đọc được QR.
 2. **Nhập vào kho.** Chọn dịch vụ và loại khách, gõ tên sản phẩm, chọn ngày dùng, chọn các ảnh vé rồi bấm [[Nhập lô vé]]. Giữ nguyên trang này cho tới khi gửi xong. Ảnh hỏng hoặc trùng bị loại kèm tên tệp, các ảnh còn lại vẫn vào kho.
 3. **Máy giữ vé cho đơn.** Máy tự giữ vé theo số khách khi đơn được xác nhận; em bé không có vé. Máy lấy lô đúng loại khách trước, rồi đến lô «Mọi loại khách»; trong mỗi nhóm, vé sắp hết hạn ra trước. Kho thiếu thì đơn báo còn thiếu vé: nhập thêm lô, mở đơn rồi bấm [[Cấp vé]].
-4. **Giao vé.** Vé chỉ mở khi đơn đã thu đủ. Bấm nút **Chuẩn bị … vé để gửi** (có số vé của đơn), rồi bấm [[Gửi Zalo]] và tự chọn người nhận. Máy không có nút này thì bấm các nút **Tải vé** để lưu ảnh rồi tự gửi. Hoặc bấm [[Tạo đường dẫn cho khách]] để khách tự mở và lưu vé; đường dẫn chỉ hiện một lần, nên chép gửi ngay.
+4. **Giao vé.** Vé chỉ mở khi đơn đã thu đủ; đơn trả sau thì vé mở trước, trừ khi đơn đã quá hạn còn nợ; với đơn do đối tác lập, chỉ tính tiền đã về công ty (đối tác tự ghi «Tôi thu» chưa đủ để mở). Bấm nút **Mở … vé để gửi khách** (có số vé của đơn; màn hình nhắc vé sẽ không về kho nữa), rồi bấm [[Gửi Zalo]] và tự chọn người nhận. Máy không có nút này thì bấm các nút **Tải vé** để lưu ảnh rồi tự gửi. Hoặc bấm [[Tạo đường dẫn cho khách]] để khách tự mở và lưu vé; đường dẫn chỉ hiện một lần, nên chép gửi ngay. Khi đơn tăng số khách, vé thêm chỉ hiện cho khách sau khi đơn thu đủ; vé khách đã mở rồi thì vẫn xem được.
 
 ### Điều dễ sai
 - Đừng trộn loại vé trong một lô: vé trẻ em lẫn vào lô người lớn sẽ tới tay khách người lớn.
 - Chỉ chọn «Mọi loại khách» khi vé thật sự dùng chung, như vé Harbour tiêu chuẩn.
-- Chưa chắc khách lấy thì đừng bấm nút chuẩn bị vé hay tạo đường dẫn: mọi vé của đơn bị coi là đã lộ, và vé đã lộ không về lại kho, kể cả khi đơn huỷ.
+- Chưa chắc khách lấy thì đừng bấm nút mở vé hay tạo đường dẫn: mọi vé của đơn bị coi là đã lộ, và vé đã lộ không về lại kho, kể cả khi đơn huỷ.
 - Không chụp màn hình vé hay gửi mã vé vào nhóm chat chung, vì mã QR có giá trị như tiền.
 
 ### Khi gặp sự cố
@@ -95,6 +95,24 @@ export const BAI_VIEC: readonly BaiViec[] = [
 - Lô càng lớn thì khai sai càng tốn công sửa, vì lô đã có vé được giữ thì không huỷ được. Chỉ nâng số khi thật cần.`,
   },
   {
+    id: "dich-vu-can-kiem-ve",
+    tieuDe: "Đánh dấu vé cần kiểm vé",
+    nhomViec: "Cài đặt",
+    trang: "dichVu",
+    o: ["catalog.confirm_flag.write"],
+    gioiHan: [],
+    neo: ["web/catalog-kiem-ve.ts", "src/shared/dich-vu-kiem-ve.ts"],
+    moDau: "Vé được bật phải chờ người kiểm vé báo còn vé rồi đơn mới được xác nhận. Vé không bật thì xác nhận như thường. Đơn đã xác nhận không đổi (ADR-0136).",
+    noiDung: `### Các bước
+1. Mở **Dịch vụ & giá**.
+2. Tìm vé ở ô tìm, ví dụ gõ «buffet».
+3. Gạt công tắc **Cần kiểm vé** ở dòng vé đó. Muốn áp cho mọi vé của một nhóm thì gạt công tắc **Cần kiểm vé** ở dòng nhóm.
+
+### Điều dễ sai
+- Vé đã gạt riêng không đổi theo nhóm nữa. Ví dụ nhóm đang bật mà một vé gạt tắt thì vé đó không cần kiểm vé.
+- Công tắc **Nhân viên tự kiểm vé đơn mình lập** chỉ Toàn quyền đổi được. Đang bật thì người kiểm vé tự quyết được đơn do chính mình lập. Đối tác và Thực tập luôn chờ người khác.`,
+  },
+  {
     id: "gioi-han-nhap-hoa-hong",
     tieuDe: "Đổi giới hạn nhập hoa hồng",
     nhomViec: "Cài đặt",
@@ -112,6 +130,27 @@ export const BAI_VIEC: readonly BaiViec[] = [
 - Hạ giới hạn không sửa các mức đã nhập. Muốn sửa mức cũ thì bấm Đổi ở trang Hoa hồng đối tác.
 - Số **0** luôn được nhận, nên loại khách không hưởng thì gõ 0.
 - Nâng giới hạn rồi quên hạ lại thì mức gõ nhầm dễ lọt hơn.`,
+  },
+  {
+    id: "han-muc-tra-sau",
+    tieuDe: "Cấp hạn mức trả sau cho đối tác",
+    nhomViec: "Cài đặt",
+    trang: "hanMucTraSau",
+    o: ["credit.limit.write"],
+    gioiHan: [],
+    neo: ["web/han-muc-tra-sau.ts", "src/shared/han-muc-tra-sau-hien-thi.ts"],
+    moDau: "Đối tác có hạn mức thì đặt được đơn trả sau: vé mở trước, tiền thu sau trong số ngày được nợ (ADR-0168).",
+    noiDung: `### Các bước
+1. Mở **Hạn mức trả sau**.
+2. Ở ô **Hồ sơ đối tác**, gõ tên rồi chọn đúng hồ sơ.
+3. Gõ **Hạn mức (đồng)** và **Số ngày được nợ**.
+4. Bấm [[Đặt hạn mức]].
+
+### Điều dễ sai
+- Chỉ hồ sơ đang mang Vai người dùng của đối tác mới cấp được hạn mức.
+- Đặt lại số mới thì hạn mức cũ đóng lại; đơn trả sau đã xác nhận giữ nguyên hạn trả cũ.
+- Bấm [[Ngừng hạn mức]] thì đối tác không đặt thêm đơn trả sau được, nhưng nợ cũ vẫn phải thu.
+- Đối tác còn đơn trả sau quá hạn chưa thanh toán thì không đặt thêm đơn trả sau được.`,
   },
   {
     id: "giao-dien",

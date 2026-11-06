@@ -30,6 +30,7 @@ function build(staff: StaffProfile | null, block: (staff: StaffProfile) => Respo
     currentStaff: async () => phien(staff),
     injected: {
       isAssigned: async () => false,
+      banHang: () => ({}) as never, // ADR-0142: khung thử không dùng Bán hàng phụ trách; ctx gọi lười
       newOrderHandler: async () => ({ ok: false, message: "không dùng" }),
       ordersWithHandler: async () => new Set<string>(),
       handledOrderIdsOf: async () => [],
@@ -133,6 +134,7 @@ test("ADR-0013 điều 4: ctx.partyAccount chuyển đúng người đang đăng
     currentStaff: async (req) => (new URL(req.url).pathname === "/api/pa-open" ? null : phien(who)),
     injected: {
       isAssigned: async () => false,
+      banHang: () => ({}) as never, // ADR-0142: khung thử không dùng Bán hàng phụ trách; ctx gọi lười
       newOrderHandler: async () => ({ ok: false, message: "không dùng" }),
       ordersWithHandler: async () => new Set<string>(),
       handledOrderIdsOf: async () => [],
@@ -167,6 +169,7 @@ test("ADR-0030 S20-13: ctx.myHandledOrderIds() hỏi đúng người đang đăn
     currentStaff: async (req) => (new URL(req.url).pathname === "/api/mine-open" ? null : phien(who)),
     injected: {
       isAssigned: async () => false,
+      banHang: () => ({}) as never, // ADR-0142: khung thử không dùng Bán hàng phụ trách; ctx gọi lười
       newOrderHandler: async () => ({ ok: false, message: "không dùng" }),
       ordersWithHandler: async (_env, orderIds) => { seenIds.push([...orderIds]); return new Set(["o2"]); },
       handledOrderIdsOf: async (_env, staffId) => { seenMine.push(staffId); return ["o9"]; },
@@ -203,6 +206,7 @@ test("ADR-0030 S20-4: ctx.newOrderHandler(staffId) chuyển NGƯỜI ĐANG ĐĂN
     currentStaff: async (req) => (new URL(req.url).pathname === "/api/pick-open" ? null : phien(who)),
     injected: {
       isAssigned: async () => false,
+      banHang: () => ({}) as never, // ADR-0142: khung thử không dùng Bán hàng phụ trách; ctx gọi lười
       newOrderHandler: async (_env, actor, staffId) => {
         seen.push(`${actor.id}→${staffId}`);
         return { ok: true, statements: (orderId, at) => { seen.push(`câu:${orderId}@${at}`); return []; } };
@@ -251,6 +255,7 @@ function buildBangTin(staff: StaffProfile, overrides: BangTinOverrides = {}) {
     currentStaff: async () => phien(staff),
     injected: {
       isAssigned: async () => false,
+      banHang: () => ({}) as never, // ADR-0142: khung thử không dùng Bán hàng phụ trách; ctx gọi lười
       newOrderHandler: async () => ({ ok: false, message: "không dùng" }),
       ordersWithHandler: async () => new Set<string>(),
       handledOrderIdsOf: async () => [],
@@ -286,6 +291,7 @@ function buildPublicBao(baoThayDoi: () => Promise<void> | void) {
     currentStaff: async () => null,
     injected: {
       isAssigned: async () => false,
+      banHang: () => ({}) as never, // ADR-0142: khung thử không dùng Bán hàng phụ trách; ctx gọi lười
       newOrderHandler: async () => ({ ok: false, message: "không dùng" }),
       ordersWithHandler: async () => new Set<string>(),
       handledOrderIdsOf: async () => [],
@@ -359,6 +365,7 @@ test("ctx.baoThayDoi: batDau truyền cho hàm tiêm là mốc chụp TRƯỚC h
       currentStaff: async () => phien(staffOf(["SALES"])),
       injected: {
         isAssigned: async () => false,
+        banHang: () => ({}) as never, // ADR-0142: khung thử không dùng Bán hàng phụ trách; ctx gọi lười
         newOrderHandler: async () => ({ ok: false, message: "không dùng" }),
         ordersWithHandler: async () => new Set<string>(),
         handledOrderIdsOf: async () => [],
@@ -479,6 +486,7 @@ test("ctx.giaoLoDay: chuyển env + danh sách tới hàm tiêm và trả nguyê
     currentStaff: async () => phien(staffOf(["SALES"])),
     injected: {
       isAssigned: async () => false,
+      banHang: () => ({}) as never, // ADR-0142: khung thử không dùng Bán hàng phụ trách; ctx gọi lười
       defaultHandlerStatement: () => null,
       maintenanceBlock: async () => null,
       partyAccount: async () => ({ linked: false }),
@@ -508,6 +516,7 @@ test("ctx.mocToiThieu: chuyển env tới hàm tiêm và trả nguyên kết qu�
   };
   const injected = {
     isAssigned: async () => false,
+    banHang: () => ({}) as never, // ADR-0142: khung thử không dùng Bán hàng phụ trách; ctx gọi lười
     defaultHandlerStatement: () => null,
     maintenanceBlock: async () => null,
     partyAccount: async () => ({ linked: false }),
@@ -538,6 +547,7 @@ test("ctx.nhanNhanVien (R-P20): chuyển env + id tới hàm tiêm; mảng rỗn
   const base = { modules: [mod], currentStaff: async () => phien(staffOf(["SALES"])) };
   const injected = {
     isAssigned: async () => false,
+    banHang: () => ({}) as never, // ADR-0142: khung thử không dùng Bán hàng phụ trách; ctx gọi lười
     defaultHandlerStatement: () => null,
     maintenanceBlock: async () => null,
     partyAccount: async () => ({ linked: false }),
@@ -570,6 +580,7 @@ test("ctx.benDatCuaToi (Ruling 21): chuyển env + người gọi tới hàm ti�
   };
   const injected = {
     isAssigned: async () => false,
+    banHang: () => ({}) as never, // ADR-0142: khung thử không dùng Bán hàng phụ trách; ctx gọi lười
     defaultHandlerStatement: () => null,
     maintenanceBlock: async () => null,
     partyAccount: async () => ({ linked: false }),
@@ -603,6 +614,7 @@ test("ctx.dichVuBiChanChoToi (ADR-0146 Đ4): chuyển env + người gọi + mã
   const mod: AppModule = { name: "chan-ban-gia", routes: [route("GET", "/api/cb", "staff", tra), route("GET", "/api/cb-cong-khai", "public", tra)] };
   const injected = {
     isAssigned: async () => false,
+    banHang: () => ({}) as never, // ADR-0142: khung thử không dùng Bán hàng phụ trách; ctx gọi lười
     defaultHandlerStatement: () => null,
     maintenanceBlock: async () => null,
     partyAccount: async () => ({ linked: false }),
@@ -641,6 +653,7 @@ function buildThrowing(err: unknown) {
     currentStaff: async () => phien(staffOf(["SALES"])),
     injected: {
       isAssigned: async () => false,
+      banHang: () => ({}) as never, // ADR-0142: khung thử không dùng Bán hàng phụ trách; ctx gọi lười
       newOrderHandler: async () => ({ ok: false, message: "không dùng" }),
       ordersWithHandler: async () => new Set<string>(),
       handledOrderIdsOf: async () => [],
@@ -665,7 +678,7 @@ test("T-1: lỗi trigger 'order_delivered:' / 'order_completed:' trong lô ghi �
       assert.equal(r.status, 409, msg);
       const b = (await r.json()) as { error: { code: string; message: string } };
       assert.equal(b.error.code, "order_delivered");
-      assert.match(b.error.message, /Đã giao – đã thu đủ/);
+      assert.match(b.error.message, /Xong và đủ tiền/);
       assert.doesNotMatch(b.error.message, /SQLITE|D1_ERROR|order_delivered:/);
     }
     const khac = await buildThrowing(new Error("D1_ERROR: something else"));
@@ -689,6 +702,7 @@ test("ADR-0075: route cần đăng nhập nhận ctx.sessionId từ currentStaff
     currentStaff: async () => ({ staff: staffOf(["SALES"]), sessionId: "phien-42" }),
     injected: {
       isAssigned: async () => false,
+      banHang: () => ({}) as never, // ADR-0142: khung thử không dùng Bán hàng phụ trách; ctx gọi lười
       newOrderHandler: async () => ({ ok: false, message: "không dùng" }),
       ordersWithHandler: async () => new Set<string>(),
       handledOrderIdsOf: async () => [],
@@ -710,6 +724,7 @@ test("ctx.nguongHetHan: khung thử không tiêm → 30 (NGUONG_MAC_DINH, chỉ 
   const mod: AppModule = { name: "giả", routes: [route("GET", "/api/moc", "staff", async ({ nguongHetHan }) => json({ moc: await nguongHetHan() }))] };
   const goc = {
     isAssigned: async () => false,
+    banHang: () => ({}) as never, // ADR-0142: khung thử không dùng Bán hàng phụ trách; ctx gọi lười
     newOrderHandler: async () => ({ ok: false as const, message: "không dùng" }),
     ordersWithHandler: async () => new Set<string>(),
     handledOrderIdsOf: async () => [],
@@ -733,6 +748,7 @@ test("ctx.huongDanVien: khung thử không tiêm → [] (mặc định TỪ CH�
   const mod: AppModule = { name: "giả", routes: [route("GET", "/api/hdv", "staff", async ({ huongDanVien }) => json({ ds: await huongDanVien() }))] };
   const goc = {
     isAssigned: async () => false,
+    banHang: () => ({}) as never, // ADR-0142: khung thử không dùng Bán hàng phụ trách; ctx gọi lười
     newOrderHandler: async () => ({ ok: false as const, message: "không dùng" }),
     ordersWithHandler: async () => new Set<string>(),
     handledOrderIdsOf: async () => [],
@@ -775,6 +791,7 @@ function buildLanGui(lanGui: unknown) {
   };
   const injected: Record<string, unknown> = {
     isAssigned: async () => false,
+    banHang: () => ({}) as never, // ADR-0142: khung thử không dùng Bán hàng phụ trách; ctx gọi lười
     newOrderHandler: async () => ({ ok: false, message: "không dùng" }),
     ordersWithHandler: async () => new Set<string>(),
     handledOrderIdsOf: async () => [],

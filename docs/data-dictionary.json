@@ -122,6 +122,24 @@
       "note": "ADR-0032 điều 1: loại sự kiện phân công — CLAIM, ASSIGN, REFUSE, ABORT, RESET"
     },
     {
+      "name": "dsp_sales_owner",
+      "module": "dispatch",
+      "kind": "table",
+      "note": "ADR-0142: Bán hàng phụ trách đơn — ô RIÊNG, không phải người phụ trách (dsp_assignment HANDLE). Mỗi đơn tối đa MỘT dòng mở (chỉ mục duy nhất có điều kiện dsp_sales_owner_open_uq); đổi người = khép dòng cũ (valid_to_at, closed_by — đúng một lần, trigger) rồi mở dòng mới; không xoá. Đơn đã Đã giao: không nhận, không khép (đọc v_ord_order_state). Không tên: tên đọc qua v_dsp_sales_owner"
+    },
+    {
+      "name": "dsp_sales_invite",
+      "module": "dispatch",
+      "kind": "table",
+      "note": "ADR-0142: lời mời một Bán hàng nhận đơn, có ưu tiên đến priority_until_at (giờ hành chính). Mỗi đơn tối đa MỘT lời mời mở; khép đúng một lần (closed_at, closed_by, outcome cùng có, trigger) với outcome thuộc tập đóng NHAN / TU_CHOI / NGUOI_KHAC / HUY_DON / RUT_LAI; không xoá. recorded_at = lúc đơn được ghi nhận, gốc của đồng hồ ưu tiên"
+    },
+    {
+      "name": "dsp_sales_policy",
+      "module": "dispatch",
+      "kind": "table",
+      "note": "ADR-0142: chính sách Bán hàng phụ trách, CHỈ THÊM (trigger cấm sửa/xoá), dòng đang dùng = valid_from_at lớn nhất. priority_minutes 1–120 (phút ưu tiên), work_start_minute / work_end_minute là phút trong ngày giờ Việt Nam (0 ≤ bắt đầu < kết thúc ≤ 1440). Dòng gieo id 'gieo-ban-hang' (15, 420, 1020): created_at của nó là MỐC PHÁT HÀNH (đơn ghi nhận trước đó không vào thẻ cảnh báo), thêm dòng mới không đổi mốc. updated_* luôn bằng created_*"
+    },
+    {
       "name": "dsp_assignment_status",
       "module": "dispatch",
       "kind": "lookup"
@@ -264,7 +282,7 @@
       "kind": "table",
       "legacy": true,
       "deprecatedColumns": ["deposit_amount", "deposit_method", "remaining_amount"],
-      "note": "declared_deposit (0136, ADR-0159): LỜI KHAI «Khách đặt cọc trước» của tài khoản Đối tác — chỉ có nghĩa khi đơn còn nháp, không phải khoản thu; xác nhận thì billing sinh khoản thu cùng lô; sau đó đọc từ sổ, không đọc cột. Ba cột cọc KHÔNG DÙNG NỮA — xem ADR-0026 điều 9 (đơn mới ghi 0 / NULL / total để thoả trigger 0007; số đã thu, còn lại lấy từ billing). Cột mốc delivered_at/_by, completed_at/_by từ 0044 (ADR-0024 điều 3) Cột manifest_exempt từ 0133 (ADR-0154 Đ3.1): dấu «miễn danh sách khách» 0/1, chụp một lần lúc lập đơn khi công tắc ẩn thông tin khách BẬT và người lập giữ quyền Đối tác; trigger cấm đổi sau khi chèn; đơn cũ = 0"
+      "note": "payment_term (0139, ADR-0168): hình thức thanh toán PREPAID (mặc định, đơn cũ) hoặc CREDIT (Trả sau), chỉ đổi được khi đơn còn nháp (orders_payment_term_locked); credit_due_date: hạn trả = ngày xác nhận + số ngày đang áp, chụp một lần lúc xác nhận đơn CREDIT, NULL ở đơn PREPAID; cả hai cột nằm trong danh sách khoá sau «Đã giao». declared_deposit (0136, ADR-0159): LỜI KHAI «Khách đặt cọc trước» của tài khoản Đối tác — chỉ có nghĩa khi đơn còn nháp, không phải khoản thu; xác nhận thì billing sinh khoản thu cùng lô; sau đó đọc từ sổ, không đọc cột. Ba cột cọc KHÔNG DÙNG NỮA — xem ADR-0026 điều 9 (đơn mới ghi 0 / NULL / total để thoả trigger 0007; số đã thu, còn lại lấy từ billing). Cột mốc delivered_at/_by, completed_at/_by từ 0044 (ADR-0024 điều 3) Cột manifest_exempt từ 0133 (ADR-0154 Đ3.1): dấu «miễn danh sách khách» 0/1, chụp một lần lúc lập đơn khi công tắc ẩn thông tin khách BẬT và người lập giữ quyền Đối tác; trigger cấm đổi sau khi chèn; đơn cũ = 0"
     },
     {
       "name": "ord_transfer_leg",
@@ -782,6 +800,18 @@
       "note": "nối lần thu ↔ mã giao dịch ngân hàng + số tiền thực chuyển theo sao kê (ADR-0092 Đ6, ADR-0108 đ4 T2; migration 0088), CHỈ-THÊM, receipt_id duy nhất. Chỉ lần thu chuyển khoản – Công ty thu. Ba luật ở trigger (trùng cùng đơn, số thực chuyển lệch, tổng vượt) theo vị từ hieuLuc. Chỉ người có ledger.write thấy mã; nhật ký không chép mã"
     },
     {
+      "name": "bil_credit_limit",
+      "module": "billing",
+      "kind": "table",
+      "note": "hạn mức Trả sau riêng của một hồ sơ đối tác (ADR-0168 Đ1; migration 0141): tổng hạn mức (INTEGER VNĐ, > 0) và số ngày được nợ của mỗi đơn (1–365), theo khoảng ngày; chỉ thêm, chỉ đóng một lần (đổi hoặc ngừng = đóng dòng cũ, thêm dòng mới; dòng đóng ngay trong ngày bắt đầu là khoảng rỗng); hai dòng cùng hồ sơ không chồng ngày (bil_credit_limit_overlap); hồ sơ phải đang mở vai bên ngoài hoặc loại đối tác (bil_credit_not_beneficiary, đọc v_pty_open_role + v_pty_role_type; hồ sơ nội bộ bị từ chối). Không có dòng hiệu lực nghĩa là chỉ Trả trước"
+    },
+    {
+      "name": "bil_credit_guard",
+      "module": "billing",
+      "kind": "table",
+      "note": "dòng phiên bản của từng bên đặt (ADR-0168 Đ2 mục 4; migration 0141): lệnh làm tăng nợ đọc phiên bản, tính, rồi trong lô có câu UPDATE version = đã đọc + 1; sai phiên bản thì trigger bil_credit_guard_version huỷ cả lô (credit_version_stale). Không chứa tiền"
+    },
+    {
       "name": "tl_luot_hoi",
       "module": "tro-ly",
       "kind": "table",
@@ -954,6 +984,38 @@
         "staff_id",
         "label",
         "since"
+      ]
+    },
+    {
+      "name": "v_dsp_sales_owner",
+      "module": "dispatch",
+      "columns": [
+        "order_id",
+        "staff_id",
+        "party_id",
+        "name"
+      ]
+    },
+    {
+      "name": "v_dsp_sales_invite_open",
+      "module": "dispatch",
+      "columns": [
+        "order_id",
+        "staff_id",
+        "party_id",
+        "name",
+        "recorded_at",
+        "priority_until_at"
+      ]
+    },
+    {
+      "name": "v_dsp_sales_policy_current",
+      "module": "dispatch",
+      "columns": [
+        "priority_minutes",
+        "work_start_minute",
+        "work_end_minute",
+        "release_cutoff_at"
       ]
     },
     {
@@ -1178,6 +1240,14 @@
       ]
     },
     {
+      "name": "v_aud_order_ban_hang",
+      "module": "audit",
+      "columns": [
+        "id",
+        "order_id"
+      ]
+    },
+    {
       "name": "v_ord_order_owner",
       "module": "orders",
       "columns": [
@@ -1192,6 +1262,18 @@
         "id",
         "is_confirmed",
         "is_cancelled"
+      ]
+    },
+    {
+      "name": "v_ord_don_tra_sau",
+      "module": "orders",
+      "columns": [
+        "id",
+        "order_code",
+        "booker_party_id",
+        "status",
+        "delivered_at",
+        "credit_due_date"
       ]
     },
     {
@@ -1471,6 +1553,8 @@
     "bil_adjustment_request": { "id": "N1", "kind_code": "N1", "order_id": "N1", "debtor_party_id": "N1", "creditor_party_id": "N1", "amount": "N1", "line_kind_code": "N1", "occurred_date": "N1", "direction": "N1", "cap_snapshot": "N1", "reason": "N2", "target_id": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "bil_audit_cutoff": { "code": "N1", "cutoff_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "bil_collector_role": { "code": "N1", "name": "N1", "sort_order": "N1", "active": "N1" },
+    "bil_credit_guard": { "party_id": "N1", "version": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "bil_credit_limit": { "id": "N1", "party_id": "N1", "limit_amount": "N1", "term_days": "N1", "valid_from_date": "N1", "valid_to_date": "N1", "reason": "N2", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "bil_debt_kind": { "code": "N1", "name": "N1", "sort_order": "N1", "active": "N1" },
     "bil_debt_line": { "id": "N1", "posting_id": "N1", "debtor_party_id": "N1", "creditor_party_id": "N1", "amount": "N1", "kind_code": "N1", "order_id": "N1", "trip_id": "N1", "order_service_id": "N1", "receipt_id": "N1", "reverses_line_id": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "bil_deposit_approval": { "id": "N1", "order_id": "N1", "kind_code": "N1", "amount": "N1", "target_order_id": "N1", "reason": "N2", "approved_date": "N1", "voids_id": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
@@ -1498,6 +1582,9 @@
     "dsp_refuse_policy": { "id": "N1", "mode": "N1", "max_consecutive": "N1", "max_per_week": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "dsp_release_event": { "id": "N1", "seq": "N1", "party_id": "N1", "order_id": "N1", "kind_code": "N1", "reason_code": "N1", "occurred_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "dsp_release_kind": { "code": "N1", "name": "N1", "sort_order": "N1", "active": "N1" },
+    "dsp_sales_owner": { "id": "N1", "order_id": "N1", "party_id": "N1", "valid_from_at": "N1", "valid_to_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "closed_by": "N1" },
+    "dsp_sales_invite": { "id": "N1", "order_id": "N1", "invitee_party_id": "N1", "invited_by": "N1", "recorded_at": "N1", "priority_until_at": "N1", "closed_at": "N1", "closed_by": "N1", "outcome": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "dsp_sales_policy": { "id": "N1", "valid_from_at": "N1", "priority_minutes": "N1", "work_start_minute": "N1", "work_end_minute": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "dsp_task_kind": { "code": "N1", "name": "N1", "sort_order": "N1", "active": "N1" },
     "fbk_attachment": {
       "id": "N1", "message_id": "N1", "storage_key": "N3", "content_kind": "N1", "byte_size": "N1", "content_hash": "N3", "stored_at": "N1",
@@ -1539,7 +1626,7 @@
     "order_item": { "id": "N1", "order_id": "N1", "description": "N1", "detail": "N1", "quantity": "N1", "unit_price": "N1", "line_total": "N1", "sort_order": "N1", "catalog_code": "N1", "service_id": "N1", "catalog_price": "N1", "pax_code": "N1" },
     "order_money_adjustment": { "id": "N1", "order_id": "N1", "seq": "N1", "before_json": "N1", "after_json": "N1", "subtotal_before": "N1", "subtotal_after": "N1" },
     "order_service": { "id": "N1", "order_id": "N1", "sort_order": "N1", "catalog_code": "N1", "name": "N1", "unit": "N1", "pax_adult": "N1", "pax_child": "N1", "pax_senior": "N1", "pax_infant": "N1", "depart_date": "N1", "depart_time": "N1", "pickup_time": "N1", "pickup_place": "N2", "checkin_date": "N1", "checkin_time": "N1", "checkin_place": "N2", "note": "N2", "pickup_choice": "N1" },
-    "orders": { "id": "N1", "order_code": "N1", "staff_id": "N1", "status": "N1", "customer_name": "N2", "customer_phone": "N2", "customer_email": "N2", "customer_note": "N2", "subtotal": "N1", "discount": "N1", "total": "N1", "declared_deposit": "N1", "deposit_amount": "N1", "deposit_method": "N1", "remaining_amount": "N1", "payment_note": "N2", "created_at": "N1", "updated_at": "N1", "confirmed_at": "N1", "booker_party_id": "N1", "delivered_at": "N1", "delivered_by": "N1", "completed_at": "N1", "completed_by": "N1", "manifest_exempt": "N1" },
+    "orders": { "id": "N1", "order_code": "N1", "staff_id": "N1", "status": "N1", "customer_name": "N2", "customer_phone": "N2", "customer_email": "N2", "customer_note": "N2", "subtotal": "N1", "discount": "N1", "total": "N1", "declared_deposit": "N1", "deposit_amount": "N1", "deposit_method": "N1", "remaining_amount": "N1", "payment_note": "N2", "created_at": "N1", "updated_at": "N1", "confirmed_at": "N1", "booker_party_id": "N1", "delivered_at": "N1", "delivered_by": "N1", "completed_at": "N1", "completed_by": "N1", "manifest_exempt": "N1", "sales_invitee_party_id": "N1", "payment_term": "N1", "credit_due_date": "N1" },
     "prc_beneficiary_role": { "role_type_code": "N1", "active": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "prc_commission_rule": { "id": "N1", "target_party_id": "N1", "target_role_code": "N1", "scope": "N1", "catalog_code": "N1", "group_code": "N1", "kind": "N1", "rate_bp": "N1", "per_pax_amount": "N1", "valid_from_date": "N1", "valid_to_date": "N1", "note": "N2", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "target_tier_code": "N1", "voided_at": "N1", "voided_by": "N1", "replaces_id": "N1", "change_reason": "N2" },
     "prc_commission_rule_pax": { "rule_id": "N1", "adult_amount": "N1", "child_amount": "N1", "senior_amount": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
@@ -1601,6 +1688,7 @@
     "v_aud_ledger_event": { "id": "N1", "order_id": "N1", "target_type": "N1", "target_id": "N1", "staff_id": "N1", "action": "N1", "created_at": "N1" },
     "v_aud_order_change": { "id": "N1", "order_id": "N1", "staff_id": "N1", "action": "N1", "detail": "N2", "created_at": "N1", "leg_id": "N1" },
     "v_aud_order_cmd": { "id": "N1", "order_id": "N1", "action": "N1" },
+    "v_aud_order_ban_hang": { "id": "N1", "order_id": "N1" },
     "v_aud_order_event": { "id": "N1", "order_id": "N1", "staff_id": "N1", "action": "N1", "created_at": "N1" },
     "v_aud_trip_event": { "id": "N1", "trip_id": "N1", "staff_id": "N1", "action": "N1", "created_at": "N1" },
     "v_bil_coc_don": { "order_id": "N1", "da_tra": "N1", "dang_doi_chieu": "N1", "hoan_truoc_huy": "N1", "da_duyet": "N1", "da_chi": "N1", "da_chuyen": "N1", "hoan_ngoai": "N1", "con_giu_luc_huy": "N1", "con_giu": "N1", "cho_chi": "N1" },
@@ -1612,6 +1700,9 @@
     "v_ctl_attribute_value": { "attribute_code": "N1", "code": "N1", "active": "N1", "attribute_active": "N1" },
     "v_dsp_first_handler": { "order_id": "N1", "first_at": "N1" },
     "v_dsp_order_handler": { "order_id": "N1", "party_id": "N1", "staff_id": "N1", "label": "N2", "since": "N1" },
+    "v_dsp_sales_owner": { "order_id": "N1", "staff_id": "N1", "party_id": "N1", "name": "N2" },
+    "v_dsp_sales_invite_open": { "order_id": "N1", "staff_id": "N1", "party_id": "N1", "name": "N2", "recorded_at": "N1", "priority_until_at": "N1" },
+    "v_dsp_sales_policy_current": { "priority_minutes": "N1", "work_start_minute": "N1", "work_end_minute": "N1", "release_cutoff_at": "N1" },
     "v_ky_closed_period": { "period": "N1" },
     "v_loc_location_dia_chi": { "id": "N1", "address": "N1", "active": "N1" },
     "v_loc_location_label": { "id": "N1", "code": "N1", "name": "N1", "location_type_code": "N1", "active": "N1" },
@@ -1623,6 +1714,7 @@
     "v_ord_order_owner": { "id": "N1", "staff_id": "N1" },
     "v_ord_order_state": { "id": "N1", "status": "N1", "delivered_at": "N1", "completed_at": "N1" },
     "v_ord_passenger_key": { "person_key": "N2", "order_id": "N1", "has_current_row": "N1" },
+    "v_ord_don_tra_sau": { "id": "N1", "order_code": "N1", "booker_party_id": "N1", "status": "N1", "delivered_at": "N1", "credit_due_date": "N1" },
     "v_ord_passenger_row": { "id": "N1", "person_key": "N2", "order_id": "N1", "is_current": "N1" },
     "v_ord_terms_missing": { "order_id": "N1" },
     "v_ord_terms_uncaptured": { "order_id": "N1", "order_service_id": "N1" },

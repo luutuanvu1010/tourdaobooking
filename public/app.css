@@ -236,7 +236,7 @@
   --z-tl-khung: var(--z-phu);  /* khung Trợ lý nổi `.tl-khung` (không modal): bậc "phủ" (đợt 0: 36 → 40) */
   --tl-cham-co: 6px;           /* chấm nhấp nháy của bong bóng "Mai đang trả lời…" (khung Hỗ trợ) */
   --tl-cham-nhip: 1.2s;        /* một nhịp nhấp nháy của ba chấm */
-  --tl-nhay: 0.7s;             /* nháy viền khung Hỗ trợ khi bấm "Về góc" (báo nút đã nhận, kể cả khi khung đã ở góc) */
+  --tl-nhay: 0.7s;             /* nháy viền khung Hỗ trợ khi bấm "Đặt lại khung" (báo nút đã nhận, kể cả khi khung đã ở góc) */
   --tl-cham-tre: 0.2s;         /* chấm sau trễ hơn chấm trước chừng này */
   /* Vị trí / cỡ khung Hỗ trợ (--tl-x, --tl-y, --tl-w, --tl-h) do web/tro-ly.ts đặt lúc chạy (src/shared/tro-ly-khung.ts tính, kẹp trong khung nhìn). */
   --w-tl-tin: 88%;             /* bong bóng tin tối đa ~9/10 bề rộng khung */
@@ -353,7 +353,7 @@
   --w-hk-so: 28px;             /* bảng hành khách máy tính: cột # */
   --w-hk-nam: 112px;           /* cột Năm sinh */
   --w-hk-loai: 176px;          /* cột Loại khách */
-  --w-hk-xoa: 96px;            /* cột nút Xoá */
+  --w-hk-xoa: 150px;           /* cột nút «Bỏ khỏi danh sách» (chữ dài hơn «Xoá» cũ) */
   --w-sheet-hk: 640px;         /* bảng trượt "Sửa danh sách hành khách" ở máy tính (bản vẽ M5) */
   /* Đưa đón — danh mục (bản vẽ M7 docs/design/2026-10-01-dua-don-hanh-khach/) */
   --w-dd-che-do: 150px;        /* bề rộng gốc một thẻ chọn "Không / Một / Hai chiều" (xuống dòng khi hẹp) */
@@ -814,7 +814,7 @@ h3 { font-size: var(--fs-step-5); margin: var(--s4) 0 var(--s2); color: var(--c-
 .price-cell .sheet { display: block; font-size: var(--fs-old-badge); color: var(--c-muted); text-decoration: line-through; }
 .price-cell .mark { color: var(--c-accent); font-weight: var(--fw-bold); }
 /* Màn Danh mục — nhóm dịch vụ (ADR-0058 Đ4, Đ8 — Task A7, khuôn sẵn của /catalog): khối "Nhóm dịch vụ", ô chọn nhiều (nhãn bọc ô là vùng bấm ≥ --tap-min),
-   thanh "Chuyển N dịch vụ" nằm TRONG dòng chảy trang (không cố định — thanh tab 390px không che), phần nhóm + lịch sử trong hộp "Sửa giá". */
+   thanh "Chuyển N dịch vụ" nằm TRONG dòng chảy trang (không cố định — thanh tab 390px không che), phần nhóm + lịch sử trong hộp "Ghi đè giá". */
 .nhom-ds { margin: 0 0 var(--s2); padding: 0; list-style: none; }
 .nhom-dong { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s1) var(--s3); padding: var(--s1) 0; border-bottom: 1px solid var(--c-line); }
 .nhom-dong .nhom-ten { flex: 1 1 10rem; min-width: 0; font-weight: var(--fw-bold); overflow-wrap: anywhere; }
@@ -1448,7 +1448,7 @@ body.login-page::before { content: ""; display: block; height: env(safe-area-ins
 .mline .btn-link { min-height: var(--tap-min); } /* `.btn:not(.btn-link)` ở điện thoại bỏ qua nút dạng liên kết → "Xoá dòng" phải tự đủ 44px */
 /* Lưới số khách + dòng tiền của thẻ trong FORM (Task 6, thiết kế lại 18/10/2026; bản vẽ khung 4–6). Chỉ trong `.svc-the` — thẻ ở trang đơn (`.svc-view`, web/order-services.ts) dùng chung
    `.svc-lines` / `.svc-sum` / `.line-*` nhưng không đổi. Lưới hai cột (một loại có giá → một cột); ô: tên, dòng phụ "giá · điều kiện", bộ đếm dồn đáy để hai ô cùng hàng thẳng nhau dù dòng
-   phụ xuống hai dòng. Dòng tiền là chữ canh phải; ô đơn giá trong khối gập "Sửa giá" (dòng `.line` canh phải như dòng chữ); dòng "Thành tiền dịch vụ" chỉ khi từ hai dòng (thuộc tính hidden). */
+   phụ xuống hai dòng. Dòng tiền là chữ canh phải; ô đơn giá trong khối gập "Sửa giá đơn này" (dòng `.line` canh phải như dòng chữ); dòng "Thành tiền dịch vụ" chỉ khi từ hai dòng (thuộc tính hidden). */
 .svc-the .svc-luoi-khach { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s3); margin-top: var(--s2); }
 .svc-the .svc-luoi-khach.mot-o { grid-template-columns: minmax(0, 1fr); }
 .svc-the .o-khach { display: flex; flex-direction: column; align-items: flex-start; gap: var(--s1); min-width: 0; }
@@ -2174,7 +2174,7 @@ body.login-page main.login { display: flex; flex-direction: column; flex: 1; min
   .dash-tc-so { display: flex; flex: none; }
   .dash-tc-so .dash-o-so { position: static; border: 0; font-variant-numeric: tabular-nums; }
 
-  /* Dải việc gấp (Phương án A): chỉ khi có đơn chờ xác nhận gấp (src/shared/viec-gap.ts). Nền cát (luật khung 8: nhắc nhở màu cát); nút «Xác nhận ngay» là nút san hô DUY NHẤT của màn (luật 7). */
+  /* Dải việc gấp (Phương án A): chỉ khi có đơn chờ xác nhận gấp (src/shared/viec-gap.ts). Nền cát (luật khung 8: nhắc nhở màu cát); nút «Xem đơn chờ xác nhận» là nút san hô DUY NHẤT của màn (luật 7). */
   .dash-gap { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s3) var(--s4); min-width: 0; padding: var(--s3) var(--s4); background: var(--c-sand-soft); border: 1px solid var(--c-sand-border); border-radius: var(--radius-lg); }
   .dash-gap-chu { display: flex; flex: 1 1 var(--home-greet-basis); flex-direction: column; gap: var(--s1); min-width: 0; }
   .dash-gap-cau { margin: 0; font-size: var(--fs-step-6); font-weight: var(--fw-heading); line-height: var(--lh-24); color: var(--c-text); text-wrap: pretty; }
@@ -4380,6 +4380,7 @@ body.tabbar-an .vc-bottom-bar, body.tabbar-dinh .vc-bottom-bar { bottom: 0; }
 @media (max-width: 640px) {
   .thanh-cong-cu-don, .thanh-cong-cu-don > .actions { display: grid; grid-template-columns: minmax(0, 1fr); width: 100%; }
   .thanh-cong-cu-don > #actions { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; }
+  .thanh-cong-cu-don > #actions > .cx-bang, .thanh-cong-cu-don > #actions > p { grid-column: 1 / -1; } /* lưới hai cột dành cho NÚT: khối «Xác nhận đơn» và câu cảnh báo phải trải hết bề ngang, không chữ tràn viền */
   .thanh-cong-cu-don .actions > .btn, .thanh-cong-cu-don .huy-don > .btn { width: 100%; height: 100%; margin: 0; }
   .thanh-cong-cu-don .huy-don { margin-left: 0; }
 }
@@ -4523,3 +4524,21 @@ main select { max-width: 100%; }
 .dd-dinh-nghia { display: grid; gap: var(--s3); margin-top: var(--s3); }
 .dd-gia-tri { display: grid; gap: var(--s2); margin: 0; padding: 0; list-style: none; }
 .dd-gia-tri > li { display: grid; gap: var(--s2); padding: var(--s2) 0; border-top: 1px solid var(--c-border); }
+
+/* Màn «Dịch vụ cần kiểm vé» (ADR-0136 Đ1, Đ5). Chỉ token. */
+#kv-noi-dung, .kv-ds { display: flex; flex-direction: column; gap: var(--s3); }
+.kv-nhom { padding-block: var(--s2); }
+.kv-dau { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--s1) var(--s3); min-height: var(--tap-min); padding-block: var(--s2); cursor: pointer; }
+.kv-dau h2 { margin: 0; font-size: var(--fs-ui); font-weight: var(--fw-bold); }
+.kv-dong { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); min-height: var(--tap-min); padding-block: var(--s2); }
+.kv-nhom .kv-dong { border-top: 1px solid var(--c-border); }
+.kv-chu { display: flex; flex-direction: column; gap: var(--s1); min-width: 0; }
+.kv-ten { font-size: var(--fs-ui); font-weight: var(--fw-semibold); color: var(--c-text); overflow-wrap: anywhere; }
+/* Công tắc giữ nguyên hình, vùng chạm đủ --tap-min: phần đệm trong suốt trên dưới. */
+.kv-dong .dp-switch, .kv-o .dp-switch, .nhom-dua-don .dp-switch { box-sizing: border-box; height: var(--tap-min); padding-block: calc((var(--tap-min) - var(--h-switch)) / 2); background-clip: content-box; }
+.kv-dong .dp-switch-knob, .kv-o .dp-switch-knob, .nhom-dua-don .dp-switch-knob { top: calc((var(--tap-min) - var(--h-switch)) / 2 + var(--switch-inset)); }
+/* ADR-0169 Đ4: công tắc kiểm vé ở màn Dịch vụ & giá; khối đặt riêng trống thì ẩn */
+.kv-tu-kiem-the:empty { display: none; }
+.kv-o { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0 var(--s2); }
+.kv-the { border-top: 1px solid var(--c-border); }
+.kv-viec { display: flex; flex: none; align-items: center; gap: var(--s2); }

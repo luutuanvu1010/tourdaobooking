@@ -20,7 +20,7 @@ test("người lập (Bán hàng) trước khi gửi: canXacNhan đúng theo c�
   assert.deepEqual((await xem(w, khong.id, A)).json.xacNhan, { yeuCau: null, canXacNhan: false, quyetDinhDuoc: false });
 });
 
-test("đang chờ: người lập thấy yêu cầu (id, hạn); Bán hàng lập + công tắc bật tự quyết được; Kế toán / HDV chưa phụ trách / Bán hàng khác thấy cùng yêu cầu và quyết được", async () => {
+test("đang chờ: người lập thấy yêu cầu (id, hạn); Bán hàng lập + công tắc bật tự quyết được; Bán hàng khác thấy cùng yêu cầu và quyết được; Kế toán / HDV (ADR-0142) không còn thấy", async () => {
   const w = setup();
   datCo(w, "SERVICE", "ZA1", true);
   const o = await lap(w, A);
@@ -33,7 +33,8 @@ test("đang chờ: người lập thấy yêu cầu (id, hạn); Bán hàng lậ
   assert.equal(lapNguoi.yeuCau.quaHan, false);
   assert.deepEqual(lapNguoi.yeuCau.vi, ["DICH_VU"]);
   assert.equal(lapNguoi.quyetDinhDuoc, true, "công tắc tự xác nhận mặc định BẬT");
-  for (const ai of [ACC, H, B]) {
+  for (const ai of [ACC, H]) assert.equal((await xem(w, o.id, ai)).status, 404, `${ai}: không còn ô xét duyệt`);
+  for (const ai of [B]) {
     const x = (await xem(w, o.id, ai)).json.xacNhan;
     assert.equal(x.yeuCau.id, yid, ai);
     assert.equal(x.quyetDinhDuoc, true, ai);
@@ -52,7 +53,7 @@ test("Đối tác / tài khoản lai lập: đang chờ vẫn thấy yêu cầu 
   const l = await lap(w, LAI);
   assert.equal((await w.call("POST", `/api/orders/${l.id}/gui-don`, { as: LAI, body: {} })).status, 201);
   assert.equal((await xem(w, l.id, LAI)).json.xacNhan.quyetDinhDuoc, false);
-  assert.equal((await xem(w, l.id, ACC)).json.xacNhan.quyetDinhDuoc, true);
+  assert.equal((await xem(w, l.id, B)).json.xacNhan.quyetDinhDuoc, true);
   // công tắc tắt
   const luc = new Date().toISOString();
   w.sqlite.prepare("INSERT INTO ord_confirm_policy (id, self_confirm_internal, valid_from_at, created_at, updated_at) VALUES (?, 0, ?, ?, ?)").run(crypto.randomUUID(), new Date(Date.now() + 1).toISOString(), luc, luc);
@@ -77,6 +78,6 @@ test("đơn đã xác nhận: xacNhan null; khối xacNhan không chứa tên / 
   datCo(w, "SERVICE", "ZA1", true);
   const c = await lap(w, A, [svc("ZA1", inDays(3), [leg(inDays(3), "07:00")])], { customerEmail: "khach@example.com" });
   assert.equal((await gui(w, c.id, A)).status, 201);
-  const r = await xem(w, c.id, ACC);
+  const r = await xem(w, c.id, B);
   assert.ok(!JSON.stringify(r.json.xacNhan).match(/0912345678|khach@example|Khách Thử/));
 });

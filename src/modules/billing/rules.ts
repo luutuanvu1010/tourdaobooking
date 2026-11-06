@@ -10,6 +10,7 @@ import { chiaPhanNguoiBan, nguoiBanCuaDong } from "../../shared/chia-phan-nguoi-
 import { tinhDongDoiTac, type BanChup } from "../../shared/hoa-hong-dong.ts";
 import { cauKyKhoa, kyCua } from "../../shared/ky-khoa.ts";
 import type { NhomHuy } from "../../shared/ly-do-huy.ts";
+import { cauChoDoiTacThanhToan } from "../../shared/tra-sau.ts";
 
 export type ReceiptKind = "CUSTOMER_PAYMENT" | "CUSTOMER_REFUND";
 export type CollectorRole = "COMPANY" | "STAFF" | "BOOKER" | "SUPPLIER" | "UNKNOWN";
@@ -144,6 +145,52 @@ export function soKhaiChuaNop(
   }
   for (const [nguoi, khai] of theoNguoi) so += Math.min(khai, Math.max(0, soDuCap(lines, nguoi, congTyId)));
   return so;
+}
+
+/**
+ * ADR-0170 Đ2: tiền của một đơn do tài khoản giữ quyền Đối tác lập mà CHƯA về công ty — HÀM DUY NHẤT để mở vé (ADR-0168 Đ2 mục 2 dùng chung, không viết hai bản). Tiêu chí là tình trạng của
+ * tiền, không phải ai ghi khoản (Kế toán sửa khoản thì người ghi đổi mà dòng giữ hộ vẫn nằm trên người lập). Hai phần, không cộng trùng:
+ *  - `choXacNhan`: khoản còn hiệu lực nằm trong `khoanChoXacNhan` (Công ty thu tiền mặt còn dòng giữ hộ, Công ty thu chuyển khoản DECLARED, lời khai bên đặt / quầy nhà cung cấp);
+ *  - `nguoiLapGiu`: khoản không nằm ở trên mà người thu là chính người lập (`toi`, `ben_dat` tự ghi), tính như `soKhaiChuaNop`; số nợ của người lập đã bị khoản chờ chiếm thì không tính lần nữa.
+ * Tổng hai phần không vượt tổng khoản thu còn hiệu lực. Tiền nhân viên khác cầm hộ (người thu khác người lập) tính là đã về, có chủ ý (ADR-0170 Đ2 mục 2).
+ */
+export function soChuaVeCongTy(i: {
+  receipts: readonly ReceiptRow[];
+  lines: readonly LineRow[];
+  doiChieu: readonly DoiChieuRow[];
+  nguoiLapPartyId: string;
+  congTyId: string;
+  /** Khoản khai đặt cọc (ADR-0159) và phần chuyển từ đơn huỷ, mỗi khoản kèm id khoản thu của đơn này: gộp vào CÙNG một lượt tính, khoản trùng id chỉ tính một lần, người cầm có thể khác người lập. */
+  khaiThem?: readonly { receiptId: string; collectorPartyId: string | null; soTien: number }[];
+}): { nguoiLapGiu: number; choXacNhan: number } {
+  const cho = khoanChoXacNhan(i.receipts, i.lines, i.doiChieu);
+  const thu = hieuLuc(i.receipts).filter((r) => r.kind === "CUSTOMER_PAYMENT");
+  const choXacNhan = thu.filter((r) => cho.has(r.id)).reduce((s, r) => s + r.amount, 0);
+  const daoDong = new Set(i.lines.flatMap((l) => (l.reversesLineId ? [l.reversesLineId] : [])));
+  // Nợ của từng người mà một khoản đang chờ xác nhận đã chiếm: không để nó tính thêm lần nữa ở phần «đang giữ».
+  const linesDaTru: Pick<LineRow, "debtorPartyId" | "creditorPartyId" | "amount">[] = [...i.lines];
+  for (const l of i.lines) {
+    if (l.kind === "HELD" && l.reversesLineId === null && !daoDong.has(l.id) && l.receiptId !== null && cho.has(l.receiptId) && l.creditorPartyId === i.congTyId) {
+      linesDaTru.push({ debtorPartyId: i.congTyId, creditorPartyId: l.debtorPartyId, amount: l.amount });
+    }
+  }
+  // Một danh sách khoản, không trùng, mỗi khoản gắn với NGƯỜI ĐANG CẦM tiền: người nợ của dòng giữ hộ gốc chưa đảo (khoản «Công ty thu» tiền mặt do ai ghi thì người đó cầm, dù người thu là Công ty),
+  // không có dòng giữ hộ thì người thu. Khoản vừa rời diện chờ xác nhận (nộp MỘT PHẦN) vẫn còn nợ thật nên phải được trừ theo số dư thực ở đây, không được rơi lọt cả hai phần.
+  // Miễn: nhân viên cầm hộ (vai STAFF, khác người lập) — tin nhân viên, có chủ ý (ADR-0170 Đ2 mục 2). Bên đặt / quầy nhà cung cấp khác người lập KHÔNG được miễn: tiền ở tay họ chưa về công ty.
+  const khaiId = new Set((i.khaiThem ?? []).map((k) => k.receiptId));
+  const nguoiCam = (r: ReceiptRow): string | null =>
+    i.lines.find((l) => l.kind === "HELD" && l.reversesLineId === null && !daoDong.has(l.id) && l.receiptId === r.id && l.creditorPartyId === i.congTyId)?.debtorPartyId ?? r.collectorPartyId;
+  const khoan = new Map<string, { collectorPartyId: string | null; soTien: number }>();
+  for (const r of thu) {
+    if (cho.has(r.id)) continue;
+    const cam = nguoiCam(r);
+    if (r.collectorRole === "STAFF" && cam !== i.nguoiLapPartyId && !khaiId.has(r.id)) continue;
+    khoan.set(r.id, { collectorPartyId: cam, soTien: r.amount });
+  }
+  for (const k of i.khaiThem ?? []) if (!khoan.has(k.receiptId) && !cho.has(k.receiptId)) khoan.set(k.receiptId, { collectorPartyId: k.collectorPartyId, soTien: k.soTien });
+  const tong = thu.reduce((s, r) => s + r.amount, 0);
+  const nguoiLapGiu = Math.min(soKhaiChuaNop([...khoan.values()], linesDaTru, i.congTyId), Math.max(0, tong - choXacNhan));
+  return { nguoiLapGiu, choXacNhan };
 }
 
 /**
@@ -908,9 +955,11 @@ export function lyDoChuaGiaoDuoc(input: {
   soKhoanDoiChieu: number;
   /** Cụm lời thường của từng khoản đang đối chiếu (`cumDoiChieu`). Vắng, hoặc mọi khoản là «Công ty thu» ⇒ câu cũ của ADR-0120 giữ nguyên chữ. */
   cumDoiChieu?: readonly string[];
+  /** ADR-0168 Đ3 mục 2: đơn Trả sau — còn nợ thì cùng mã `underpaid` nhưng câu khác và Kế toán xử lý. Vắng / false = đơn Trả trước, giữ nguyên chữ. */
+  traSau?: boolean;
   so: SoTienDon;
 }): LyDoGiu | null {
-  if (input.deliveredAt) return { ma: "already_delivered", cau: "Đơn đã ở bước Đã giao – đã thu đủ.", aiXuLy: "Văn phòng" };
+  if (input.deliveredAt) return { ma: "already_delivered", cau: "Đơn đã ở bước Xong và đủ tiền.", aiXuLy: "Văn phòng" };
   if (input.status === "cancelled") return { ma: "cancelled", cau: "Đơn đã huỷ.", aiXuLy: "Văn phòng" };
   if (input.status !== "confirmed") return { ma: "not_confirmed", cau: "Đơn chưa xác nhận — xác nhận đơn trước.", aiXuLy: "Người lập đơn" };
   if (input.dichVuThieuNgay.length > 0 || input.ngayDi.length === 0 || input.ngayDi.some((d) => d === null)) {
@@ -926,12 +975,15 @@ export function lyDoChuaGiaoDuoc(input: {
   if (input.soKhoanDoiChieu > 0) {
     const cum = [...new Set(input.cumDoiChieu ?? [])];
     if (cum.length > 0 && cum.some((c) => c !== cumDoiChieu({ collectorRole: "COMPANY", ten: null, anTen: true }))) {
-      return { ma: "reconciling", cau: `Còn khoản ${cum.join(", ")} đang chờ Kế toán xác nhận — Kế toán xác nhận xong mới bấm Đã giao được.`, aiXuLy: "Kế toán" };
+      return { ma: "reconciling", cau: `Còn khoản ${cum.join(", ")} đang chờ Kế toán xác nhận — Kế toán xác nhận xong mới bấm Xác nhận xong và đủ tiền được.`, aiXuLy: "Kế toán" };
     }
-    return { ma: "reconciling", cau: "Còn khoản chuyển khoản “Công ty thu” đang chờ Kế toán đối chiếu — Kế toán bấm “Xác nhận đã nhận” rồi mới bấm Đã giao được.", aiXuLy: "Kế toán" };
+    return { ma: "reconciling", cau: "Còn khoản chuyển khoản “Công ty thu” đang chờ Kế toán đối chiếu — Kế toán bấm “Xác nhận đã nhận” rồi mới bấm Xác nhận xong và đủ tiền được.", aiXuLy: "Kế toán" };
   }
   if (input.so.chuaRo > 0) {
     return { ma: "unknown_collector", cau: "Còn tiền trả trước chưa rõ người thu tiền — Kế toán xác nhận lại người thu tiền trước.", aiXuLy: "Kế toán" };
+  }
+  if (input.so.conLai > 0 && input.traSau) {
+    return { ma: "underpaid", cau: cauChoDoiTacThanhToan(input.so.conLai), aiXuLy: "Kế toán" };
   }
   if (input.so.conLai > 0) {
     return { ma: "underpaid", cau: `Còn thiếu ${dong(input.so.conLai)} — ghi thêm khoản thu hoặc sửa đơn trước.`, aiXuLy: "Hướng dẫn viên" };
@@ -971,7 +1023,7 @@ export function lyDoChuaHoanThanh(input: {
   /** Task 9: người xem thấy tới đâu. Nơi gọi trong máy chủ luôn truyền (vắng chỉ ở bài luật cũ = thấy đủ). */
   che?: CheSoDu;
 }): { ma: MaLyDoHoanThanh; cau: string; aiXuLy: AiXuLy } | null {
-  if (!input.deliveredAt) return { ma: "not_delivered", cau: "Đơn chưa Đã giao – đã thu đủ.", aiXuLy: "Hướng dẫn viên" };
+  if (!input.deliveredAt) return { ma: "not_delivered", cau: "Đơn chưa tới bước Xong và đủ tiền.", aiXuLy: "Hướng dẫn viên" };
   if (input.completedAt) return { ma: "already_completed", cau: "Đơn đã Hoàn thành.", aiXuLy: "Kế toán" };
   const no = [...input.soDu.entries()].filter(([, so]) => so > 0);
   if (no.length > 0) {
@@ -985,7 +1037,7 @@ export function lyDoChuaHoanThanh(input: {
   if (input.phaiThuLucGiao !== null && input.daThu !== input.phaiThuLucGiao) {
     return {
       ma: "due_mismatch", aiXuLy: "Kế toán",
-      cau: `Số đã thu (${dong(input.daThu)}) khác phải thu lúc Đã giao (${dong(input.phaiThuLucGiao)}) — Kế toán dùng “Sửa khoản thu đã ghi” trước khi Hoàn thành.`,
+      cau: `Số đã thu (${dong(input.daThu)}) khác phải thu lúc xác nhận xong và đủ tiền (${dong(input.phaiThuLucGiao)}) — Kế toán dùng “Sửa khoản thu đã ghi” trước khi Hoàn thành.`,
     };
   }
   return null;

@@ -7,7 +7,7 @@
 // Thẻ có lỗi chặn Lưu đang hiện thì luôn mở (`mustStayOpen`); "chỉ một thẻ mở" do trang quyết (web/order-form.ts). Luật chữ dòng gập: src/shared/dong-gap-the.ts.
 // Số khách + tiền (Task 6, cùng đặc tả): loại khách có giá xếp LƯỚI hai cột (mỗi ô: tên, "giá · điều kiện", bộ đếm); dịch vụ theo nhóm một ô "Số khách" kèm "7 khách = 2 lượt".
 // Dòng tiền là CHỮ "2 người lớn × 1.350.000 = 2.700.000" ghép từ previewLines (một công thức — không tính lại ở đây); "Thành tiền dịch vụ" chỉ khi từ hai dòng. Ô đơn giá nằm
-// trong khối gập "Sửa giá" (`taoKhoiGap` — chỉ ẩn bằng `hidden`; Lưu bị từ chối / 400 mở được như mọi khối gập); `retailOnly` không có "Sửa giá": khối chỉ mở khi có dòng lệch
+// trong khối gập "Sửa giá đơn này" (`taoKhoiGap` — chỉ ẩn bằng `hidden`; Lưu bị từ chối / 400 mở được như mọi khối gập); `retailOnly` không có "Sửa giá đơn này": khối chỉ mở khi có dòng lệch
 // giá cũ (để đưa về đúng giá), về đúng giá rồi rời ô thì tự đóng, mọi lối mở khác bị trả lại (họ không có nút đóng).
 import { PAX_LABEL, thanhTienDong, type PaxCode } from "../src/shared/order-lines";
 import {
@@ -91,7 +91,7 @@ export interface ServiceCard {
   datChipNgoai(chips: readonly string[]): void;
 }
 
-/** Một loại khách có dòng tiền: dòng CHỮ (`xem`, đang xem) và dòng SỬA (`row` = `.line` có ô đơn giá, trong khối gập "Sửa giá"); cả hai ẩn khi loại đó không có khách. */
+/** Một loại khách có dòng tiền: dòng CHỮ (`xem`, đang xem) và dòng SỬA (`row` = `.line` có ô đơn giá, trong khối gập "Sửa giá đơn này"); cả hai ẩn khi loại đó không có khách. */
 interface LineRefs {
   row: HTMLElement;
   qty: HTMLElement;
@@ -231,11 +231,11 @@ export function createServiceCard(o: CardOptions): ServiceCard {
   let nameInput: HTMLInputElement | null = null;
   let manualRefs: ManualRefs[] = [];
   let addLineBtn: HTMLButtonElement | null = null;
-  /** Khối gập "Sửa giá" (ô đơn giá từng dòng) và nút của nó; trạng thái mở giữ qua các lần dựng lại thân (`suaGiaMo`). */
+  /** Khối gập "Sửa giá đơn này" (ô đơn giá từng dòng) và nút của nó; trạng thái mở giữ qua các lần dựng lại thân (`suaGiaMo`). */
   let gapGia: KhoiGap | null = null;
   let nutSuaGia: HTMLButtonElement | null = null;
   let suaGiaMo = false;
-  /** Có dòng đang lệch giá danh mục (lần `refresh` gần nhất). `retailOnly` chỉ được mở khối "Sửa giá" khi có dòng lệch (đưa về đúng giá) — mọi lối mở khác (Lưu bị từ chối, 400) bị trả lại. */
+  /** Có dòng đang lệch giá danh mục (lần `refresh` gần nhất). `retailOnly` chỉ được mở khối "Sửa giá đơn này" khi có dòng lệch (đưa về đúng giá) — mọi lối mở khác (Lưu bị từ chối, 400) bị trả lại. */
   let coLechGia = false;
   const khongDuocMoGia = (): boolean => Boolean(o.retailOnly) && !coLechGia;
 
@@ -275,7 +275,7 @@ export function createServiceCard(o: CardOptions): ServiceCard {
       lockedNote = h("div", { class: "svc-locked" }, h("p", { class: "muted" }, d.repick ? "Dịch vụ này không còn trong danh mục và dòng đã lưu thiếu giá danh mục nên chưa lưu được. Chọn lại từ danh mục, hoặc xoá thẻ này." : "Dịch vụ này không còn trong danh mục nên không đổi được số khách. Vẫn sửa được đơn giá và thông tin chuyến."), repick);
     }
     emptyHint = h("p", { class: "svc-empty" }, "Nhập số khách để xem dòng tiền.");
-    // Dòng tiền: dòng CHỮ (canh phải) trong `xem`; dòng SỬA `.line` (ô đơn giá — aria-label như cũ, kịch bản và bài kiểm dùng) trong `sua` = khối gập "Sửa giá".
+    // Dòng tiền: dòng CHỮ (canh phải) trong `xem`; dòng SỬA `.line` (ô đơn giá — aria-label như cũ, kịch bản và bài kiểm dùng) trong `sua` = khối gập "Sửa giá đơn này".
     const xem = h("div", { class: "svc-tien-xem" });
     const sua = h("div", { class: "svc-tien-sua" });
     for (const code of codes) {
@@ -298,13 +298,13 @@ export function createServiceCard(o: CardOptions): ServiceCard {
       xem.append(xemRow);
       sua.append(row);
     }
-    const nut = h("button", { type: "button", class: "btn btn-link svc-sua-gia", "data-action": "sua-gia" }, "Sửa giá");
+    const nut = h("button", { type: "button", class: "btn btn-link svc-sua-gia", "data-action": "sua-gia" }, "Sửa giá đơn này");
     nutSuaGia = nut;
-    // `retailOnly` (Đối tác, Thực tập — nút "Sửa giá" ẩn): khối chỉ mở khi có dòng lệch giá cũ. Lưu bị từ chối / máy chủ 400 mở MỌI khối gập (`moMoiKhoiGap`) — khối này
+    // `retailOnly` (Đối tác, Thực tập — nút "Sửa giá đơn này" ẩn): khối chỉ mở khi có dòng lệch giá cũ. Lưu bị từ chối / máy chủ 400 mở MỌI khối gập (`moMoiKhoiGap`) — khối này
     // trả lại ngay, vì họ không có nút để đóng (trước đây kẹt mở tới khi tải lại trang). Về đúng giá: đóng khi rời ô (không đóng lúc đang gõ — ô biến mất dưới ngón tay).
     let khoi: KhoiGap | null = null;
     khoi = taoKhoiGap({
-      ma: `gia-${d.key}`, nhan: "Sửa giá", than: sua, nut, mo: suaGiaMo && !khongDuocMoGia(),
+      ma: `gia-${d.key}`, nhan: "Sửa giá đơn này", than: sua, nut, mo: suaGiaMo && !khongDuocMoGia(),
       khiDoi: (mo) => {
         if (mo && khongDuocMoGia() && khoi) {
           khoi.dong();
@@ -312,7 +312,7 @@ export function createServiceCard(o: CardOptions): ServiceCard {
         }
         suaGiaMo = mo;
         xem.hidden = mo; // đang sửa: dòng chữ nhường chỗ cho dòng có ô đơn giá
-        nut.textContent = mo ? "Xong sửa giá" : "Sửa giá";
+        nut.textContent = mo ? "Xong sửa giá đơn này" : "Sửa giá đơn này";
       },
     });
     gapGia = khoi;
@@ -471,8 +471,8 @@ export function createServiceCard(o: CardOptions): ServiceCard {
       }
       if (emptyHint) emptyHint.hidden = visible > 0;
       if (groupHint) groupHint.textContent = chuLuot(g);
-      // "Sửa giá": không có cho Đối tác / Thực tập (giá luôn là giá danh mục) và khi chưa có dòng tiền. Dòng lệch giá CŨ của họ (đơn lập trước đây) thì khối tự mở:
-      // ô đơn giá sửa được để đưa về đúng giá — như trước khi ô nằm sau "Sửa giá" (máy chủ từ chối mọi giá khác).
+      // "Sửa giá đơn này": không có cho Đối tác / Thực tập (giá luôn là giá danh mục) và khi chưa có dòng tiền. Dòng lệch giá CŨ của họ (đơn lập trước đây) thì khối tự mở:
+      // ô đơn giá sửa được để đưa về đúng giá — như trước khi ô nằm sau "Sửa giá đơn này" (máy chủ từ chối mọi giá khác).
       if (nutSuaGia) nutSuaGia.hidden = Boolean(o.retailOnly) || visible === 0;
       coLechGia = coLech;
       if (o.retailOnly && gapGia) {
@@ -552,7 +552,7 @@ export function createServiceCard(o: CardOptions): ServiceCard {
     else if ((loi.code === "line_description" || loi.code === "line_quantity") && draft.kind === "manual") {
       const i = draft.lines.findIndex((l) => (loi.code === "line_description" ? l.description.trim() === "" : l.quantity < 1));
       o = loi.code === "line_description" ? manualRefs[i]?.desc : manualRefs[i]?.qty.input;
-    } else if ((loi.code === "preview" || loi.code === "amount") && !khongDuocMoGia()) o = body.querySelector<HTMLElement>(".line:not([hidden]) .price-field") ?? body.querySelector<HTMLElement>(".price-field"); // trong khối gập "Sửa giá": trang mở khối (`moKhoiChua`) trước khi đặt tiêu điểm; `retailOnly` không mở được khối đó → ô đầu tiên của thẻ
+    } else if ((loi.code === "preview" || loi.code === "amount") && !khongDuocMoGia()) o = body.querySelector<HTMLElement>(".line:not([hidden]) .price-field") ?? body.querySelector<HTMLElement>(".price-field"); // trong khối gập "Sửa giá đơn này": trang mở khối (`moKhoiChua`) trước khi đặt tiêu điểm; `retailOnly` không mở được khối đó → ô đầu tiên của thẻ
     const dungDuoc = (e: HTMLElement | null | undefined): e is HTMLElement => !!e && !(e as HTMLInputElement).disabled;
     return dungDuoc(o) ? o : body.querySelector<HTMLElement>("input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled])");
   }

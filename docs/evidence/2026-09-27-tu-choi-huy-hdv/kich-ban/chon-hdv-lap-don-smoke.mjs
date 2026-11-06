@@ -1,3 +1,6 @@
+// GHI CHÚ 5/11 (ADR-0142, Task 7; chủ dự án: hai vai khác nhau trên mỗi đơn): khối này ở form nay tên «Hướng dẫn viên» (nút «Chọn Hướng dẫn viên», aria «Đổi Hướng dẫn viên, đang chọn …»,
+//   bảng «Chọn Hướng dẫn viên» CHỈ nhóm Hướng dẫn viên); khối «Người phụ trách» (#ban-hang-card, mời Bán hàng) là khối mới, thay bằng ban-hang-phu-trach-smoke.mjs bước 1. Các chữ trong tệp này
+//   đã sửa theo nhãn mới nhưng CHƯA chạy lại (giới hạn của Task 7). Các bước kiểm nhóm Bán hàng / Quản trị trong bảng chọn (bước 3, 4) không còn đúng: bảng chỉ còn nhóm Hướng dẫn viên.
 // Kịch bản Chrome (bằng chứng giao diện) cho Task 1.8 phần b ADR-0030 — chọn người phụ trách (hướng dẫn viên) NGAY TRONG FORM LẬP ĐƠN, dựng theo bản
 // thiết kế của chủ dự án "Nguoi phu trach - Form lap don.dc.html" (Claude Design 2026-09-28), phương án 1b (chủ dự án tự ghi trong bản thiết kế: "Đề xuất:
 // 1b"): khối "Người phụ trách" ở CUỐI form, ngay trước vùng nút Lưu; bảng chọn web/assignee-picker.ts (tìm theo tên bỏ dấu, gom nhóm theo `roleLabel`,
@@ -214,11 +217,11 @@ try {
     // Thiết kế lại 18/10 (Việc 8, sửa CÓ CHỦ ĐÍCH): dải lỗi lưu nay nằm TRONG vùng nút Lưu (ngay trên nút Lưu) — khối đứng ngay trước vùng đó (trước: ngay trước #save-error rồi mới tới vùng nút).
     assert.match(s.nextLop ?? "", /form-actions/, `ngay trước vùng nút Lưu — ${s.nextLop}`);
     assert.equal(s.loiTrongThanh, true, "dải lỗi lưu nằm trong vùng nút Lưu");
-    assert.equal(s.title, "Người phụ trách");
+    assert.equal(s.title, "Hướng dẫn viên");
     assert.equal(s.chip, "Chờ nhận");
     assert.match(s.chipClass, /chip-warn/);
     assert.equal(s.text, "Chưa chọn ai — hướng dẫn viên nào cũng bấm Nhận được.");
-    assert.deepEqual(s.buttons.map((b) => [b.text, b.type]), [["Chọn người phụ trách", "button"]]);
+    assert.deepEqual(s.buttons.map((b) => [b.text, b.type]), [["Chọn Hướng dẫn viên", "button"]]);
     assert.equal(s.border, "2px");
     // Thiết kế lại 18/10 (Việc 8, sửa CÓ CHỦ ĐÍCH): điện thoại không còn khối Tóm tắt (tiền ở thanh dính cuối trang) — kiểm "Tóm tắt không hiện" thay cho "khối đứng sau Tóm tắt".
     const order = await p.ev("(() => { const o = document.getElementById('owner-card').getBoundingClientRect(); const pay = [...document.querySelectorAll('.form-main > .card')].at(-1).getBoundingClientRect(); return { afterPay: o.top >= pay.bottom, tomTatAn: document.querySelector('.summary-card').getClientRects().length === 0 }; })()");
@@ -250,7 +253,7 @@ try {
     assert.equal(assigneeCalls(p), 1, "gọi /api/dispatch/assignees khi mở bảng");
     const s = await sheetState(p);
     assert.equal(s.ariaModal, "true");
-    assert.equal(s.title, "Chọn người phụ trách");
+    assert.equal(s.title, "Chọn Hướng dẫn viên");
     assert.equal(s.bgInert, true, "phần nền inert");
     assert.equal(s.focusIn, true, "focus ở trong bảng");
     assert.equal(s.placeholder, "Tìm theo tên");
@@ -313,7 +316,7 @@ try {
     assert.equal(s.name, `HDV: ${HDV1.name}`);
     assert.equal(s.role, "Hướng dẫn viên");
     assert.deepEqual(s.buttons.map((b) => [b.text, b.type]), [[`HDV: ${HDV1.name} Hướng dẫn viên Đổi`, "button"], ["Bỏ chọn — để Chờ nhận", "button"]]);
-    assert.equal(s.buttons[0].label, `Đổi người phụ trách, đang chọn ${HDV1.name}`);
+    assert.equal(s.buttons[0].label, `Đổi Hướng dẫn viên, đang chọn ${HDV1.name}`);
     assert.equal(s.focus, "pick-handler", "focus vào nút “Đổi” vừa dựng");
     assert.deepEqual(writeCalls(p), [], "chọn trong form KHÔNG gọi API ghi");
     await p.ev("document.getElementById('owner-card').scrollIntoView({ block: 'center' }); true");
@@ -334,7 +337,7 @@ try {
     await p.ev(`${CLEAR}.click(); true`);
     let s = await ownerState(p);
     assert.deepEqual([s.chip, s.name, s.focus], ["Chờ nhận", null, "pick-handler"]);
-    assert.deepEqual(s.buttons.map((b) => b.text), ["Chọn người phụ trách"]);
+    assert.deepEqual(s.buttons.map((b) => b.text), ["Chọn Hướng dẫn viên"]);
     await openSheet(p);
     await p.ev(`${personBtn(hdv2.id)}.click(); true`);
     await waitClosed(p);
@@ -458,7 +461,7 @@ try {
   // ==================================================================================================
   await step("11", "Đối tác thuần (390): khối “Người phụ trách” KHÔNG hiện (không phải hiện rồi báo lỗi), không gọi /api/dispatch/assignees; form vẫn dùng được", async () => {
     const q = await openAs(PARTNER, "/order-form", MOB);
-    await q.waitFor("!!document.getElementById('catalog-q') && document.getElementById('save').textContent === 'Lưu, chờ xác nhận'", "form Đối tác dựng xong", 10000);
+    await q.waitFor("!!document.getElementById('catalog-q') && document.getElementById('save').textContent === 'Lưu đơn (chưa xác nhận)'", "form Đối tác dựng xong", 10000);
     await sleep(500);
     const s = await ownerState(q);
     assert.deepEqual([s.hidden, s.shown, s.buttons.length], [true, false, 0], JSON.stringify(s));
@@ -470,7 +473,7 @@ try {
 
   await step("12", "Thực tập (390, trang mở SAU CÙNG): khối “Người phụ trách” KHÔNG hiện, không gọi /api/dispatch/assignees" + axeNote(), async () => {
     const q = await openAs(INTERN, "/order-form", MOB);
-    await q.waitFor("!!document.getElementById('catalog-q') && document.getElementById('save').textContent === 'Lưu, chờ xác nhận'", "form Thực tập dựng xong", 10000);
+    await q.waitFor("!!document.getElementById('catalog-q') && document.getElementById('save').textContent === 'Lưu đơn (chưa xác nhận)'", "form Thực tập dựng xong", 10000);
     await sleep(500);
     const s = await ownerState(q);
     assert.deepEqual([s.hidden, s.shown, s.buttons.length], [true, false, 0], JSON.stringify(s));

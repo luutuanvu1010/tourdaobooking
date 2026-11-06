@@ -16,8 +16,8 @@ const ORDER = { staffId: "a" }; // đơn do A lập
 const handler = (staffId: string | null, name = "Sales Hai"): HandlerDto => ({ partyId: `p-${staffId ?? "x"}`, staffId, name });
 
 /** [nút đổi, nút nhận] của `staff` với người phụ trách `h` của đơn do A lập. */
-const buttons = (staff: ReturnType<typeof who>, h: HandlerDto | null | undefined): [boolean, boolean] => {
-  const c = handlerControls(staff, ORDER, h);
+const buttons = (staff: ReturnType<typeof who>, h: HandlerDto | null | undefined, banHang = false): [boolean, boolean] => {
+  const c = handlerControls(staff, ORDER, h, banHang);
   return [c.assign, c.claim];
 };
 
@@ -31,13 +31,13 @@ test("handlerControls: đơn đã có người phụ trách — người lập, 
   assert.deepEqual(buttons(FIELD, handler("b")), [false, false]);
 });
 
-test("handlerControls: đơn CHƯA có người phụ trách — mọi SALES/ADMIN/hướng dẫn viên nhận được; chỉ người lập và quản trị còn thêm nút giao; kế toán không có gì", () => {
-  assert.deepEqual(buttons(C, null), [false, true], "SALES khác: chỉ có 'Nhận phụ trách'");
-  assert.deepEqual(buttons(B, null), [false, true]);
-  assert.deepEqual(buttons(A, null), [true, true], "người lập: nhận cho mình hoặc giao người khác");
-  assert.deepEqual(buttons(ADMIN, null), [true, true]);
+test("handlerControls: đơn CHƯA có người phụ trách — chỉ tài khoản giữ quyền Hướng dẫn viên có nút «Nhận làm HDV» (chủ 5/11); chỉ người lập và quản trị có nút giao; kế toán không có gì", () => {
+  assert.deepEqual(buttons(C, null), [false, false], "SALES khác: không có nút nhận (nút này chỉ cho Hướng dẫn viên)");
+  assert.deepEqual(buttons(B, null), [false, false]);
+  assert.deepEqual(buttons(A, null), [true, false], "người lập: chỉ có nút giao");
+  assert.deepEqual(buttons(ADMIN, null), [true, false], "Quản trị, Toàn quyền không thấy «Nhận làm HDV»");
   assert.deepEqual(buttons(ACC, null), [false, false]);
-  assert.deepEqual(buttons(FIELD, null), [false, true], "ADR-0030 S20-6: hướng dẫn viên có nút 'Nhận phụ trách', không có nút giao");
+  assert.deepEqual(buttons(FIELD, null), [false, true], "ADR-0030 S20-6: hướng dẫn viên có nút «Nhận làm HDV», không có nút giao");
 });
 
 test("handlerControls: người phụ trách là hồ sơ chưa có tài khoản (staffId null) không làm ai thành 'được giao'; chưa biết người phụ trách (undefined) thì KHÔNG nút nào — không đoán 'chưa có' rồi mời nhận", () => {
@@ -46,9 +46,9 @@ test("handlerControls: người phụ trách là hồ sơ chưa có tài khoản
   for (const s of [A, B, C, ADMIN, ACC, FIELD]) assert.deepEqual(buttons(s, undefined), [false, false], `chưa biết người phụ trách: ${s.id}`);
 });
 
-test("handlerControls: nhãn nút giao — 'Đổi người phụ trách' khi đã có người, 'Chọn người phụ trách' khi chưa có", () => {
-  assert.equal(handlerControls(A, ORDER, handler("a")).assignLabel, "Đổi người phụ trách");
-  assert.equal(handlerControls(A, ORDER, null).assignLabel, "Chọn người phụ trách");
+test("handlerControls: nhãn nút giao — «Đổi Hướng dẫn viên» khi đã có người, «Chọn Hướng dẫn viên» khi chưa có", () => {
+  assert.equal(handlerControls(A, ORDER, handler("a")).assignLabel, "Đổi Hướng dẫn viên");
+  assert.equal(handlerControls(A, ORDER, null).assignLabel, "Chọn Hướng dẫn viên");
 });
 
 test("chữ hiển thị: 'HDV: <tên>' và chip 'Chờ nhận' (ADR-0030 điều 3, Q-A2 — thay 'Phụ trách: <tên>'/'Chưa có người phụ trách')", () => {
@@ -60,13 +60,13 @@ test("handlerFailure: 409 stale (đổi) → cảnh báo + tải lại; 409 stal
   const stale = handlerFailure({ status: 409, code: "stale", message: "Người phụ trách đơn vừa được người khác đổi, hãy tải lại rồi thử lại." }, "assign");
   assert.equal(stale.reload, true);
   assert.equal(stale.banner.tone, "warning");
-  assert.match(stale.banner.title, /^Người phụ trách của đơn vừa được đổi ở nơi khác\./);
+  assert.match(stale.banner.title, /^Hướng dẫn viên của đơn vừa được đổi ở nơi khác\./);
   const claim = handlerFailure({ status: 409, code: "stale", message: "x" }, "claim");
   assert.equal(claim.reload, true);
-  assert.match(claim.banner.title, /^Đơn này vừa có người khác nhận phụ trách\./);
+  assert.match(claim.banner.title, /^Đơn này vừa có người khác nhận làm Hướng dẫn viên\./);
   const same = handlerFailure({ status: 409, code: "no_change", message: "Người này đang phụ trách đơn rồi." }, "assign");
   assert.deepEqual([same.reload, same.banner.tone], [true, "info"]);
-  assert.match(same.banner.title, /^Người này đang phụ trách đơn rồi\./);
+  assert.match(same.banner.title, /^Người này đang là Hướng dẫn viên của đơn rồi\./);
   const forbidden = handlerFailure({ status: 403, code: "forbidden", message: "…" }, "assign");
   assert.deepEqual([forbidden.reload, forbidden.banner.tone], [true, "danger"]);
   assert.match(forbidden.banner.title, /^Bạn không còn quyền/);
@@ -92,9 +92,9 @@ test("handlerFailure: không lộ mã lỗi thô ra người dùng (mọi banner
 });
 
 test("handlerSaved: câu báo sau khi lưu — nhận, đổi người, giao lần đầu", () => {
-  assert.equal(handlerSaved("claim", "Sales Một", false), "Bạn đã nhận phụ trách đơn này.");
-  assert.equal(handlerSaved("assign", "Sales Hai", true), "Đã đổi người phụ trách sang Sales Hai.");
-  assert.equal(handlerSaved("assign", "Sales Hai", false), "Đã giao đơn cho Sales Hai phụ trách.");
+  assert.equal(handlerSaved("claim", "Sales Một", false), "Bạn đã nhận làm Hướng dẫn viên của đơn này.");
+  assert.equal(handlerSaved("assign", "Sales Hai", true), "Đã đổi Hướng dẫn viên sang Sales Hai.");
+  assert.equal(handlerSaved("assign", "Sales Hai", false), "Đã giao đơn cho Sales Hai làm Hướng dẫn viên.");
 });
 
 test("myJobActions (ADR-0030 S23-8, lượt 1; chủ duyệt 2026-09-30 \"Cho sửa đến hết ngày đi\"): nháp → ẩn cả hai; đã xác nhận còn ngày đi → đủ cả hai; đã xác nhận qua ngày đi → ẩn cả hai", () => {
@@ -133,10 +133,10 @@ test("nguoiPhuTrachTuPhien: người xem mọi đơn / Đối tác / Thực tậ
   }
 });
 
-test("nguoiPhuTrachTuPhien: 1024 tập con quyền — có giá trị KHI VÀ CHỈ KHI máy chủ chỉ trả đơn đang phụ trách (nhánh (3) của GET /api/orders: không 'mọi đơn', không 'mình lập', có 'mình phụ trách')", () => {
+test("nguoiPhuTrachTuPhien: 2048 tập con quyền — có giá trị KHI VÀ CHỈ KHI máy chủ chỉ trả đơn đang phụ trách (nhánh (3) của GET /api/orders: không 'mọi đơn', không 'mình lập', có 'mình phụ trách')", () => {
   const moiTapCon = <T,>(mang: readonly T[]): T[][] => (mang.length === 0 ? [[]] : ((con) => [...con, ...con.map((t) => [mang[0] as T, ...t])])(moiTapCon(mang.slice(1))));
   const tapCon = moiTapCon(PERMISSION_CODES as readonly PermissionCode[]);
-  assert.equal(tapCon.length, 1024); // 10 mã quyền (ADR-0040 D3 thêm DRIVER, ADR-0048 D2 thêm DRIVER_PARTNER, ADR-0071 thêm HR)
+  assert.equal(tapCon.length, 2048); // 11 mã quyền (ADR-0040 D3 thêm DRIVER, ADR-0048 D2 thêm DRIVER_PARTNER, ADR-0071 thêm HR, ADR-0169 thêm SALES_MANAGER)
   let soCaTuPhien = 0;
   for (const permissions of tapCon) {
     const s = phien(permissions);
@@ -197,10 +197,10 @@ test("handlerControls.refuse: ẩn khi đơn nháp (Q1 (a)), đã huỷ, Đã gi
   assert.equal(handlerControls(B, ORDER, b).refuse, false);
 });
 
-test("handlerControls.refuse: 1024 tập con quyền — không ai ngoài người đang phụ trách thấy nút; người đang phụ trách thấy ⇔ can(dispatch.refuse, {assigned:true})", () => {
+test("handlerControls.refuse: 2048 tập con quyền — không ai ngoài người đang phụ trách thấy nút; người đang phụ trách thấy ⇔ can(dispatch.refuse, {assigned:true})", () => {
   const moiTapCon = <T,>(mang: readonly T[]): T[][] => (mang.length === 0 ? [[]] : ((con) => [...con, ...con.map((t) => [mang[0] as T, ...t])])(moiTapCon(mang.slice(1))));
   const tapCon = moiTapCon(PERMISSION_CODES as readonly PermissionCode[]);
-  assert.equal(tapCon.length, 1024);
+  assert.equal(tapCon.length, 2048);
   let coNut = 0;
   for (const permissions of tapCon) {
     const s = { id: "x", permissions };
@@ -220,10 +220,10 @@ test("handlerFailure 'refuse': 409 too_late / cancelled / order_not_confirmed / 
   assert.deepEqual(handlerFailure({ status: 400, code: "invalid_input", message: "Hãy chọn một lý do." }, "refuse").reload, false);
   const stale = handlerFailure({ status: 409, code: "stale", message: "x" }, "refuse");
   assert.equal(stale.reload, true);
-  assert.match(stale.banner.title, /^Người phụ trách của đơn vừa được đổi ở nơi khác/);
+  assert.match(stale.banner.title, /^Hướng dẫn viên của đơn vừa được đổi ở nơi khác/);
   const cam = handlerFailure({ status: 403, code: "forbidden", message: "x" }, "refuse");
   assert.equal(cam.reload, true);
-  assert.match(cam.banner.title, /^Bạn không còn phụ trách đơn này/);
+  assert.match(cam.banner.title, /^Bạn không còn là Hướng dẫn viên của đơn này/);
   for (const c of [{ status: 409, code: "stale", message: "" }, { status: 403, code: "forbidden", message: "" }]) {
     const b = handlerFailure(c, "refuse").banner;
     assert.doesNotMatch(b.title, /stale|forbidden|too_late/i);
@@ -245,4 +245,12 @@ test("dongTuChoiTruoc: «Đã từ chối đơn này lúc HH:MM DD/MM/YYYY — <
   assert.equal(dongTuChoiTruoc({ luc: "2026-10-23T03:05:00.000Z", lyDo: "BAN_LICH" }), "Đã từ chối đơn này lúc 10:05 23/10/2026 — Bận lịch khác");
   assert.equal(dongTuChoiTruoc({ luc: "2026-10-23T03:05:00.000Z", lyDo: "OTHER" }), "Đã từ chối đơn này lúc 10:05 23/10/2026 — Khác");
   assert.equal(dongTuChoiTruoc(undefined), null);
+});
+
+// ADR-0142: Bán hàng phụ trách (không phải người lập, không phụ trách HDV) có nút đổi người (danh sách trắng ô dispatch.assign); KHÔNG có nút nhận / từ chối thêm.
+test("handlerControls: Bán hàng phụ trách đổi được người phụ trách; không phải Bán hàng phụ trách thì vẫn không", () => {
+  assert.deepEqual(buttons(C, handler("b")), [false, false]);
+  assert.deepEqual(buttons(C, handler("b"), true), [true, false]);
+  assert.deepEqual(buttons(C, null, true), [true, false], "đơn chưa có HDV: chọn được; «Nhận làm HDV» chỉ cho tài khoản giữ quyền Hướng dẫn viên");
+  assert.equal(handlerControls(C, { staffId: "a", status: "confirmed", daGiao: false, quaMuon: false }, handler("b"), true).refuse, false, "không phải người phụ trách HDV ⇒ không Từ chối");
 });

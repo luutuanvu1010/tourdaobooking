@@ -6,19 +6,25 @@ import { auditStatement } from "../audit";
 import { clearAttempts, reserveAttempts } from "../auth";
 import { getEffectiveServices } from "../catalog";
 import { UUID_RE, error, json, kemLocation, readJson } from "../../shared/http";
-import { can } from "../../shared/permissions";
+import { MATRIX, can, holdsPartner, isOffice } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
 import { LOAI_NOI_DUNG, bamSha256, dauPhanHoiTepChung, giaiBase64, nhanLoaiTep, taoKhoaNgauNhien, type LoaiTep } from "../../shared/tep-dinh-kem";
 import { vnToday } from "../../shared/vn-date";
+import { CAU_VE_QUA_HAN_TRA_SAU, CAU_VE_QUA_HAN_TRA_SAU_DOI_TAC, moVeDuoc } from "../../shared/tra-sau";
 import { canVe, choDoiTacNop, thuDu } from "./rules.ts";
 import { DANG_TOKEN, bamToken, hanDuongDan, soSanhHangThoiGian, taoToken, trangVeKhach } from "./duong-dan-khach.ts";
 import { NHAN_NHOM, NHAN_NHOM_LO, soanCapVe, soanTraVe, veDangGiu, type GhiNhatKy, type NhatKyVe } from "./cap-ve.ts";
 import { NGAY_LUU_ANH_LO_HUY, TOI_DA_BYTE_ANH, TOI_DA_VE_MOI_DOT, TRAN_LO_MAC_DINH, tranLoHopLe } from "../../shared/ve-nhap-lo";
 import { datVeVaoKho, donHangChoXoa, type VeChuanBi } from "./kho-tep.ts";
 import { che4SoCuoi, kiemLo, kiemVeMoi } from "./nhap-lo.ts";
-import { bamDaCo, cauBoLo, cauChenLink, cauDemMoLink, cauDoiTranLo, cauRutVeCuaLo, cauThuHoiLink, docCaiDatVe, docHanCuoiCuaDon, docLinkCuaDon, docLinkTheoBam, docLinkTheoId, docVeCuaLink, dsLoBoDuoc, dsLoDaHuy, bamDaMo, cauMoAnhVe, docVeLoHuy, maVeDaMo, type LinkKhach, cauChenGiao, cauChenLo, cauChenVe, cauDanhDauLo, docChuDon, docTrangThaiDon, docPhanBoDeXem, docPhanBoMoCuaDon, cauKichHoatLo, cauSuaMaTour, demVeCuaLo, docLo, maVeDaCo, thongKeKho } from "./repository.ts";
+import { bamDaCo, cauBoLo, cauChenLink, cauDemMoLink, cauDoiTranLo, cauRutVeCuaLo, cauThuHoiLink, docCaiDatVe, docHanCuoiCuaDon, docLinkCuaDon, docLinkTheoBam, docLinkTheoId, docVeCuaLink, dsLoBoDuoc, dsLoDaHuy, bamDaMo, cauMoAnhVe, docVeLoHuy, maVeDaMo, type LinkKhach, cauChenGiao, cauChenLo, cauChenVe, cauDanhDauLo, docChuDon, docTrangThaiDon, docPhanBoDeXem, docPhanBoMoCuaDon, docPhanBoMoKemLo, phanBoConGiu, cauKichHoatLo, cauSuaMaTour, demVeCuaLo, docLo, maVeDaCo, thongKeKho } from "./repository.ts";
 
 export { demVeTheoTrangThai } from "./repository.ts";
+import { veDaMoCuaDon as docVeDaMoCuaDon } from "./repository.ts";
+/** ADR-0170 Đ3: «đơn có vé đã mở không» cho gốc lắp ráp tiêm. Không đọc được ⇒ `null` (bên gọi CHẶN, không đoán «chưa mở»). */
+export const veDaMoCuaDon = async (db: D1Database, orderId: string): Promise<boolean | null> => {
+  try { return await docVeDaMoCuaDon(db, orderId); } catch (e) { console.error("ve_da_mo_loi", orderId, e instanceof Error ? e.name : "loi"); return null; }
+};
 
 /** Nối nhật ký thật (module audit) vào các hàm soạn câu của cap-ve.ts. Gốc lắp ráp dùng khi tiêm (Task 5). */
 export const nhatKyThat = (db: D1Database): GhiNhatKy => (e: NhatKyVe, onlyIf: string) => auditStatement(db, e, onlyIf);
@@ -63,7 +69,21 @@ async function mocDuongDanKhach(env: Env, request: Request, token: string): Prom
 const DON_KHONG_THAY = () => error(404, "not_found", "Không tìm thấy đơn.");
 const VE_KHONG_THAY = () => error(404, "not_found", "Không tìm thấy vé.");
 const KHONG_QUYEN_GUI = () => error(403, "forbidden", "Bạn không có quyền xem hoặc gửi vé của đơn này.");
-const CHUA_THU_DU = (t: Parameters<typeof choDoiTacNop>[0]) => error(403, "chua_thu_du", choDoiTacNop(t) ? "Đang chờ đối tác nộp tiền về công ty nên chưa xem hoặc gửi được vé." : "Đơn chưa thu đủ tiền nên chưa xem hoặc gửi được vé.");
+/** ADR-0170 Đ2 mục 5: người giữ quyền Đối tác nghe «Công ty chưa xác nhận…»; nhân viên giữ câu cũ. Chữ dùng chung với `web/ve-don.ts` (cùng nội dung, hai nơi vì giao diện không import module). */
+const CAU_CHO_CONG_TY_XAC_NHAN = "Công ty chưa xác nhận đã nhận đủ tiền nên chưa mở được vé.";
+const CHUA_THU_DU = (t: Parameters<typeof choDoiTacNop>[0], nguoiXemLaDoiTac: boolean) =>
+  error(403, "chua_thu_du", choDoiTacNop(t) ? (nguoiXemLaDoiTac ? CAU_CHO_CONG_TY_XAC_NHAN : "Đang chờ đối tác nộp tiền về công ty nên chưa xem hoặc gửi được vé.") : "Đơn chưa thu đủ tiền nên chưa xem hoặc gửi được vé.");
+/**
+ * ADR-0170 Đ1: sáu route vé qua cổng `orders` nên Hướng dẫn viên, Thực tập vào được cổng; tài khoản KHÔNG có ô `ve.cap.send` nào khác `none` nhận 403 NGAY, trước khi tra đơn
+ * (cùng một mã dù mã đơn có tồn tại hay không — như cổng `office` trước đây). `GET /api/ve/don` còn cho văn phòng (Kế toán xem số lượng, không có ô gửi).
+ */
+const coOGuiVe = (staff: { permissions: readonly string[] }): boolean => staff.permissions.some((p) => (MATRIX["ve.cap.send"] as Record<string, string>)[p] !== undefined && (MATRIX["ve.cap.send"] as Record<string, string>)[p] !== "none");
+const chanNeuKhongCoO = (staff: Parameters<typeof isOffice>[0], choVanPhong = false): Response | null => (coOGuiVe(staff) || (choVanPhong && isOffice(staff)) ? null : KHONG_QUYEN_GUI());
+type TienVe = { daThu: number; phaiThu: number; choNop?: number; choXacNhan?: number; traSau?: { hanTra: string | null; no: number } | null } | null;
+/** ADR-0168 Đ3 mục 1: MỘT cửa quyết vé có mở được không — đơn Trả trước phải thu đủ; đơn Trả sau mở trước, trừ khi quá hạn còn nợ mà vé CHƯA mở (`veDaMo`). Mọi route vé, KỂ CẢ hai route công khai của đường dẫn khách (ADR-0171 Đ2), chỉ hỏi hàm này. */
+const veMoDuoc = (tien: TienVe, veDaMo: boolean): boolean => moVeDuoc({ thuDu: thuDu(tien), traSau: tien?.traSau ?? null, veDaMo, homNay: vnToday(new Date()) });
+/** Câu khoá: đơn Trả sau quá hạn có câu riêng; đơn Trả trước giữ câu cũ (và ca chờ đối tác nộp, câu riêng cho đối tác). */
+const CHUA_MO_VE = (t: TienVe, nguoiXemLaDoiTac: boolean) => (t?.traSau ? error(403, "tra_sau_qua_han", nguoiXemLaDoiTac ? CAU_VE_QUA_HAN_TRA_SAU_DOI_TAC : CAU_VE_QUA_HAN_TRA_SAU) : CHUA_THU_DU(t, nguoiXemLaDoiTac));
 const mocLoHuy = (): string => new Date(Date.now() - NGAY_LUU_ANH_LO_HUY * 864e5).toISOString();
 const VE_DA_NHAP_LAI = () => error(409, "ve_da_nhap_lai", "Vé này đã được nhập lại vào kho nên không mở được ảnh cũ.");
 const KHO_CHUA_BAT = () => error(503, "storage_unavailable", "Kho vé điện tử chưa được bật. Vui lòng báo người phụ trách hệ thống.");
@@ -364,11 +384,14 @@ export const veDienTuModule: AppModule = {
 
     // DANH SÁCH VÉ CỦA ĐƠN (ADR-0153 Đ3): CHỈ số lượng theo nhóm khách (cần / đang giữ / thiếu) và cờ «đã thu đủ» — không ảnh, không mã. Theo ô `order.view` nên Kế toán cũng thấy.
     // Thứ tự: mã đơn → chủ đơn (view công bố của orders; không có ⇒ 404) → `can` (không đủ quyền ⇒ cùng 404, không lộ đơn có tồn tại) → dịch vụ + số khách hiệu lực → đếm vé giữ.
-    route("GET", "/api/ve/don/:orderId", "office", async ({ env, staff, params, isAssigned, dichVuChoVe, tienDonVe }) => {
+    route("GET", "/api/ve/don/:orderId", "orders", async ({ env, staff, params, isAssigned, dichVuChoVe, tienDonVe }) => {
+      { const chan = chanNeuKhongCoO(staff, true); if (chan) return chan; }
       const orderId = params.orderId!;
       if (!UUID_RE.test(orderId)) return DON_KHONG_THAY();
       const [chu, assigned] = await Promise.all([docChuDon(env.DB, orderId), isAssigned(orderId)]);
       if (chu === null || !can(staff, "order.view", { ownerId: chu, assigned })) return DON_KHONG_THAY();
+      // ADR-0170 Đ1 mục 4: cổng `orders` cho cả FIELD, INTERN đi qua và `order.view` của họ ≠ none — chỉ văn phòng hoặc người có ô gửi vé trên đơn này được xem tiếp.
+      if (!isOffice(staff) && !can(staff, "ve.cap.send", { ownerId: chu, assigned })) return KHONG_QUYEN_GUI();
       const dv = await dichVuChoVe(orderId);
       const dichVu = [];
       for (const d of dv) {
@@ -379,15 +402,17 @@ export const veDienTuModule: AppModule = {
       }
       const duongDan = (await docLinkCuaDon(env.DB, orderId)).map((l) => ({ id: l.id, hetHan: l.expires_at, daThuHoi: l.revoked_at !== null, luotMo: l.opened_count })); // KHÔNG token (chỉ lưu băm)
       const tien = await tienDonVe(orderId);
-      const du = thuDu(tien);
-      // Mã phân bổ (KHÔNG phải mã vé) để giao diện gọi route ảnh — chỉ khi người xem có ô gửi vé VÀ đơn thu đủ; route ảnh vẫn kiểm lại cả hai.
-      const veXem = du && can(staff, "ve.cap.send", { ownerId: chu, assigned }) ? (await docPhanBoMoCuaDon(env.DB, orderId, null)).map((id, i) => ({ id, stt: i + 1 })) : [];
-      return json({ dichVu, thuDu: du, choDoiTacNop: choDoiTacNop(tien), duongDan, veXem });
+      const du = veMoDuoc(tien, false); // mở được MỌI vé (đơn Trả sau quá hạn còn nợ ⇒ false, chỉ vé đã mở xem được)
+      // Mã phân bổ (KHÔNG phải mã vé) để giao diện gọi route ảnh — chỉ khi người xem có ô gửi vé VÀ vé mở được; route ảnh vẫn kiểm lại cả hai.
+      const coQuyenGui = can(staff, "ve.cap.send", { ownerId: chu, assigned });
+      const veXem = coQuyenGui && (du || veMoDuoc(tien, true)) ? (await docPhanBoMoKemLo(env.DB, orderId, null)).filter((p) => du || p.lo).map((p, i) => ({ id: p.id, stt: i + 1 })) : [];
+      return json({ dichVu, thuDu: du, choDoiTacNop: choDoiTacNop(tien), nguoiXemLaDoiTac: holdsPartner(staff), traSauQuaHan: !!tien?.traSau && !du, duongDan, veXem });
     }),
 
     // ẢNH VÉ (ADR-0153 Đ3): chỉ khi đơn THU ĐỦ. Thứ tự cố định (bài khoá thứ tự ở xem-giao-ve.test.ts): sec-fetch-site → kho → mã → phân bổ → chủ đơn → `can(ve.cap.send)` → thu đủ
     // → NHẬT KÝ + đóng dấu «đã lộ» (một lô) → mới đọc kho. Mọi cách hỏng trước nhật ký ⇒ không đọc kho. Đóng dấu `revealed_at` ngay lần đầu để vé đã lộ không bao giờ về kho (Đ1 mục 6).
-    route("GET", "/api/ve/anh/:allocationId", "office", async ({ request, env, staff, params, isAssigned, tienDonVe }) => {
+    route("GET", "/api/ve/anh/:allocationId", "orders", async ({ request, env, staff, params, isAssigned, tienDonVe }) => {
+      { const chan = chanNeuKhongCoO(staff); if (chan) return chan; }
       const sfs = request.headers.get("sec-fetch-site");
       if (sfs !== null && sfs !== "same-origin" && sfs !== "none") return error(403, "forbidden", "Không mở ảnh vé từ trang khác.");
       const kho = env.VE_DIEN_TU;
@@ -400,12 +425,14 @@ export const veDienTuModule: AppModule = {
       if (chu === null) return VE_KHONG_THAY();
       if (!can(staff, "ve.cap.send", { ownerId: chu, assigned })) return KHONG_QUYEN_GUI();
       const tien = await tienDonVe(pb.order_id);
-      if (!thuDu(tien)) return CHUA_THU_DU(tien);
+      if (!veMoDuoc(tien, pb.revealed_at !== null)) return CHUA_MO_VE(tien, holdsPartner(staff));
       const at = new Date().toISOString();
       await env.DB.batch([
         auditStatement(env.DB, { staffId: staff.id, action: "ve_xem_anh", at, orderId: pb.order_id, targetType: "ve", targetId: pb.order_service_id, detail: `Xem ảnh vé số ${pb.slot_no}` }),
         cauDanhDauLo(env.DB, pb.id, at, staff.id),
       ]);
+      // Lệnh huỷ có thể chen vào giữa lúc đọc phân bổ và lúc đóng dấu: đã trả về kho thì dấu không ghi được và vé sẽ cấp cho khách khác — KHÔNG đọc kho, 404.
+      if (!(await phanBoConGiu(env.DB, pb.id))) return VE_KHONG_THAY();
       const obj = await kho.get(pb.storage_key);
       if (!obj) {
         console.error(JSON.stringify({ level: "error", event: "ve_dien_tu_thieu_doi_tuong", allocId: pb.id }));
@@ -416,7 +443,8 @@ export const veDienTuModule: AppModule = {
 
     // GIAO VÉ (kênh Zalo; ADR-0153 Đ3): ghi MỖI vé một lần giao + đóng dấu «đã lộ» + một dòng nhật ký (số lượng). `requestId` do giao diện sinh mỗi lần bấm: bấm đúp cùng mã thì
     // `INSERT OR IGNORE` bỏ qua và nhật ký (gác `changes() > 0`) không ghi lần hai. Phản hồi chỉ có SỐ vé, không mã. Việc gửi tin Zalo là của nhân viên (ảnh lấy từ route ảnh).
-    route("POST", "/api/ve/giao", "office", async ({ env, request, staff, isAssigned, tienDonVe }) => {
+    route("POST", "/api/ve/giao", "orders", async ({ env, request, staff, isAssigned, tienDonVe }) => {
+      { const chan = chanNeuKhongCoO(staff); if (chan) return chan; }
       const raw = await readJson(request);
       const orderId = typeof raw?.orderId === "string" ? raw.orderId : "";
       const requestId = typeof raw?.requestId === "string" ? raw.requestId : "";
@@ -426,8 +454,9 @@ export const veDienTuModule: AppModule = {
       if (chu === null) return DON_KHONG_THAY();
       if (!can(staff, "ve.cap.send", { ownerId: chu, assigned })) return KHONG_QUYEN_GUI();
       const tien = await tienDonVe(orderId);
-      if (!thuDu(tien)) return CHUA_THU_DU(tien);
-      const ds = await docPhanBoMoCuaDon(env.DB, orderId, serviceId);
+      const dsLo = await docPhanBoMoKemLo(env.DB, orderId, serviceId);
+      if (!veMoDuoc(tien, dsLo.length > 0 && dsLo.every((p) => p.lo))) return CHUA_MO_VE(tien, holdsPartner(staff));
+      const ds = dsLo.map((p) => p.id);
       if (ds.length === 0) return json({ daGiao: 0 });
       const at = new Date().toISOString();
       const cau: D1PreparedStatement[] = [];
@@ -442,7 +471,8 @@ export const veDienTuModule: AppModule = {
 
     // CẤP BÙ BẰNG TAY (ADR-0153 Đ1 mục 3, đường «nhân viên bấm Cấp vé»): đơn bị thiếu vé (kho cạn lúc xác nhận, hoặc tiến trình chết giữa chừng) được giữ lại theo số khách hiệu lực.
     // Cùng hàm cấp sau xác nhận (chạy lại bao nhiêu lần cũng không giữ thừa; lỗi nuốt). Cần ô `ve.cap.send` trên đơn; chỉ đơn đã xác nhận (view trạng thái của orders).
-    route("POST", "/api/ve/cap", "office", async ({ env, request, staff, isAssigned, capVeSauXacNhan }) => {
+    route("POST", "/api/ve/cap", "orders", async ({ env, request, staff, isAssigned, capVeSauXacNhan }) => {
+      { const chan = chanNeuKhongCoO(staff); if (chan) return chan; }
       const raw = await readJson(request);
       const orderId = typeof raw?.orderId === "string" ? raw.orderId : "";
       if (!UUID_RE.test(orderId)) return BAD_JSON();
@@ -456,7 +486,8 @@ export const veDienTuModule: AppModule = {
 
     // TẠO ĐƯỜNG DẪN CHO KHÁCH (ADR-0153 Đ2): chỉ khi đơn thu đủ và đã có vé. Token trả ĐÚNG MỘT LẦN, D1 chỉ lưu băm. Hạn = ngày dùng cuối của vé + 7 ngày. Đường dẫn là lộ vé ra ngoài
     // vĩnh viễn nên đóng dấu «đã lộ» cho mọi vé của đơn ngay lúc tạo (vé đã lộ không bao giờ về kho). Một lô: đường dẫn → nhật ký (chỉ số vé + hạn) → dấu lộ từng vé.
-    route("POST", "/api/ve/duong-dan", "office", async ({ env, request, staff, isAssigned, tienDonVe }) => {
+    route("POST", "/api/ve/duong-dan", "orders", async ({ env, request, staff, isAssigned, tienDonVe }) => {
+      { const chan = chanNeuKhongCoO(staff); if (chan) return chan; }
       const raw = await readJson(request);
       const orderId = typeof raw?.orderId === "string" ? raw.orderId : "";
       if (!UUID_RE.test(orderId)) return BAD_JSON();
@@ -464,8 +495,9 @@ export const veDienTuModule: AppModule = {
       if (chu === null) return DON_KHONG_THAY();
       if (!can(staff, "ve.cap.send", { ownerId: chu, assigned })) return KHONG_QUYEN_GUI();
       const tien = await tienDonVe(orderId);
-      if (!thuDu(tien)) return CHUA_THU_DU(tien);
-      const [den, ds] = await Promise.all([docHanCuoiCuaDon(env.DB, orderId), docPhanBoMoCuaDon(env.DB, orderId, null)]);
+      const [den, dsLo] = await Promise.all([docHanCuoiCuaDon(env.DB, orderId), docPhanBoMoKemLo(env.DB, orderId, null)]);
+      if (!veMoDuoc(tien, dsLo.length > 0 && dsLo.every((p) => p.lo))) return CHUA_MO_VE(tien, holdsPartner(staff));
+      const ds = dsLo.map((p) => p.id);
       if (den === null || ds.length === 0) return error(409, "chua_co_ve", "Đơn chưa được giữ vé nào nên chưa tạo được đường dẫn cho khách.");
       const token = taoToken();
       const hetHan = hanDuongDan(den);
@@ -479,7 +511,8 @@ export const veDienTuModule: AppModule = {
       return json({ id, duongDan: `/ve/${token}`, hetHan });
     }),
 
-    route("POST", "/api/ve/duong-dan/:id/thu-hoi", "office", async ({ env, staff, params, isAssigned }) => {
+    route("POST", "/api/ve/duong-dan/:id/thu-hoi", "orders", async ({ env, staff, params, isAssigned }) => {
+      { const chan = chanNeuKhongCoO(staff); if (chan) return chan; }
       const id = params.id!;
       if (!UUID_RE.test(id)) return VE_KHONG_THAY();
       const link = await docLinkTheoId(env.DB, id);
@@ -497,19 +530,22 @@ export const veDienTuModule: AppModule = {
 
     // HAI ROUTE CÔNG KHAI CHỈ ĐỌC (ADR-0153 Đ2). Cùng một khuôn: giới hạn tốc độ (đặt chỗ TRƯỚC khi tra; thành công thì trả chỗ nên chỉ lần SAI mới tính) → tra theo BĂM token
     // → so băm hằng thời gian → hạn / thu hồi. Sai, hết hạn, thu hồi, vé ngoài khoảng: CÙNG một 404 (cùng thân, cùng đầu). Trang không script, không tên khách / mã đơn / giá / mã vé.
-    route("GET", "/ve/:token", "public", async ({ env, request, params }) => {
+    // ADR-0171 Đ2: vé ĐÃ có dấu lộ thì khách vẫn xem như cũ (không tắt đường dẫn đã gửi); vé CHƯA có dấu chỉ hiện và chỉ trả ảnh khi cổng tiền của đơn đạt (`veMoDuoc` trên `tienDonVe`: Trả trước phải thu đủ, Trả sau trong hạn mở trước). Không đọc được tiền ⇒ chưa đạt. SỐ THỨ TỰ vé (`slot`) tính trên DANH SÁCH ĐỦ vé đang giữ rồi mới lọc: lọc không được làm dồn số, vé hiện thêm không làm đổi số vé cũ.
+    route("GET", "/ve/:token", "public", async ({ env, request, params, tienDonVe }) => {
       const kq = await mocDuongDanKhach(env, request, params.token!);
       if (kq.loi) return kq.loi;
       const ve = await docVeCuaLink(env.DB, kq.link.order_id);
       if (ve.length === 0) return khongThayDuongDan();
+      const duTien = ve.some((v) => v.revealed_at === null) ? veMoDuoc(await tienDonVe(kq.link.order_id), false) : true;
+      const hien = ve.map((v, i) => ({ v, slot: i + 1 })).filter((x) => duTien || x.v.revealed_at !== null);
       const at = new Date().toISOString();
-      await env.DB.batch([cauDemMoLink(env.DB, kq.link.id, at), ...ve.map((v) => cauDanhDauLo(env.DB, v.id, at, null))]);
+      await env.DB.batch([cauDemMoLink(env.DB, kq.link.id, at), ...hien.map((x) => cauDanhDauLo(env.DB, x.v.id, at, null))]);
       await kq.tra();
-      const html = trangVeKhach(params.token!, ve.map((v, i) => ({ slot: i + 1, nhom: v.pax_group as "ADULT" | "CHILD" | "SENIOR", tuNgay: v.valid_from, denNgay: v.valid_to })));
+      const html = trangVeKhach(params.token!, hien.map((x) => ({ slot: x.slot, nhom: x.v.pax_group as "ADULT" | "CHILD" | "SENIOR", tuNgay: x.v.valid_from, denNgay: x.v.valid_to })), ve.length - hien.length);
       return new Response(html, { status: 200, headers: { ...DAU_KHACH, "content-type": "text/html; charset=utf-8", "content-security-policy": "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'" } });
     }),
 
-    route("GET", "/api/ve-khach/:token/anh/:slot", "public", async ({ env, request, params }) => {
+    route("GET", "/api/ve-khach/:token/anh/:slot", "public", async ({ env, request, params, tienDonVe }) => {
       const kho = env.VE_DIEN_TU;
       if (!kho) return khongThayDuongDan();
       const kq = await mocDuongDanKhach(env, request, params.token!);
@@ -518,6 +554,7 @@ export const veDienTuModule: AppModule = {
       const ve = await docVeCuaLink(env.DB, kq.link.order_id);
       const v = slot >= 1 ? ve[slot - 1] : undefined;
       if (!v) return khongThayDuongDan();
+      if (v.revealed_at === null && !veMoDuoc(await tienDonVe(kq.link.order_id), false)) return khongThayDuongDan(); // ADR-0171 Đ2: vé chưa mở + cổng tiền chưa đạt ⇒ 404 TRƯỚC nhật ký, dấu lộ và kho
       const at = new Date().toISOString();
       await env.DB.batch([cauDanhDauLo(env.DB, v.id, at, null)]);
       const obj = await kho.get(v.storage_key);

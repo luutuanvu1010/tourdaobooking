@@ -8,7 +8,7 @@
 // chạy song song. Phần 1 chạy thêm các kiểm tĩnh (không gọi máy chủ). Đặt ở tests/audit/ (không ở src/) vì nó nhập khung thử .mjs và node:* — `tsc` của src
 // không có khai kiểu cho hai thứ đó.
 //
-// CHẶN (trên ĐỦ 1024 tập quyền = mọi tập con của PERMISSION_CODES; mỗi tập một tài khoản thật trong CSDL thử, gọi route THẬT qua khung thử harness.mjs — router,
+// CHẶN (trên ĐỦ 2048 tập quyền = mọi tập con của PERMISSION_CODES; mỗi tập một tài khoản thật trong CSDL thử, gọi route THẬT qua khung thử harness.mjs — router,
 // cổng, `can()`, CSDL dựng từ migrations/):
 //   (1) mục điều hướng HIỆN mà ĐƯỜNG GỌI CHÍNH của trang bị máy chủ TỪ CHỐI với chính tài khoản đó ⇒ ĐỎ;
 //   (1b) mục HIỆN mà chính trang TỰ CHẶN ở trình duyệt (`moTrang` của bảng mục là sai) ⇒ ĐỎ;
@@ -223,7 +223,7 @@ const HIEN = Object.fromEntries(Object.entries(NOI).map(([noi, { hien }]) => [no
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------
 
-/** Đăng ký các bài của phần `phan` (0-based): dựng CSDL thử, 1024 tài khoản, gọi các đường của phần này bằng mọi tài khoản, rồi kiểm. */
+/** Đăng ký các bài của phần `phan` (0-based): dựng CSDL thử, 2048 tài khoản, gọi các đường của phần này bằng mọi tài khoản, rồi kiểm. */
 export async function kiemPhan(phan) {
   const batDau = Date.now();
   const goiPhan = goiCuaPhan(phan);

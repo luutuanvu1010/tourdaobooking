@@ -12,7 +12,7 @@ export const HD_KE_TOAN: NhomHuongDan = {
 3. Bấm [[Đơn hàng]] để xem danh sách đơn.
 4. Gõ tên khách, số điện thoại hoặc mã đơn vào ô tìm kiếm của danh sách.
 5. Bấm vào một đơn, xem khối **Thanh toán** để biết tổng tiền, đã thu và còn lại.
-6. Cần gửi phiếu cho khách: trong đơn, bấm [[Xem biên nhận]].`,
+6. Cần gửi phiếu cho khách: trong đơn, bấm [[Xem ảnh gửi khách]].`,
   muc: [
     {
       tieuDe: "Menu của bạn",
@@ -51,9 +51,9 @@ Thanh tab dưới đáy có [[Trang chủ]], [[Đơn hàng]] và [[Tôi]]. Các 
       tieuDe: "Tìm và lọc đơn",
       noiDung: `1. Bấm [[Đơn hàng]].
 2. Gõ vào ô tìm kiếm của danh sách: mã đơn, tên hoặc số điện thoại. Danh sách tự lọc sau khi bạn ngừng gõ.
-3. Muốn lọc thì bấm nút **Lọc**: chọn cùng lúc ngày đi (có nút nhanh [[Hôm nay]], [[Ngày mai]], [[3 ngày tới]], [[Tuần này]]), dịch vụ, trạng thái (**Chờ xác nhận**, **Đã xác nhận**, **Đã huỷ**) và người lập (gõ tên để chọn từng người đã lập đơn), rồi bấm [[Áp dụng]]. Ô **Nhập phần mềm kế toán** lọc đơn chưa nhập / đã nhập, cần chọn cả Từ ngày và Đến ngày. Bấm × trên nhãn để bỏ từng điều kiện, [[Xoá lọc]] để bỏ hết; máy nhớ bộ lọc cho lần sau.
+3. Muốn lọc thì bấm nút **Lọc**: chọn cùng lúc ngày đi (có nút nhanh [[Hôm nay]], [[Ngày mai]], [[3 ngày tới]], [[Tuần này]]), dịch vụ, trạng thái (**Chưa xác nhận**, **Đã xác nhận**, **Đã huỷ**) và người lập (gõ tên để chọn từng người đã lập đơn), rồi bấm [[Áp dụng]]. Ô **Nhập phần mềm kế toán** lọc đơn chưa nhập / đã nhập, cần chọn cả Từ ngày và Đến ngày. Bấm × trên nhãn để bỏ từng điều kiện, [[Xoá lọc]] để bỏ hết; máy nhớ bộ lọc cho lần sau.
 4. Cuối danh sách có nút [[Tải thêm]] nếu còn đơn.
-5. Mỗi thẻ đơn ghi **Còn thu**; nút xổ xuống cho xem thêm **Đã trả**, **Tổng**, người phụ trách. Đơn đã nhập phần mềm kế toán có nhãn riêng.`,
+5. Mỗi thẻ đơn ghi **Còn thu**; nút xổ xuống cho xem thêm **Đã trả**, **Tổng**, Hướng dẫn viên. Đơn đã nhập phần mềm kế toán có nhãn riêng.`,
     },
     {
       tieuDe: "Xem tiền của một đơn",
@@ -70,7 +70,7 @@ Thanh tab dưới đáy có [[Trang chủ]], [[Đơn hàng]] và [[Tôi]]. Các 
     },
     {
       tieuDe: "Sửa số khách đơn đã xác nhận",
-      noiDung: `Bạn sửa được số khách của mọi đơn **Đã xác nhận** chưa **Đã giao**, kể cả sau ngày đi:
+      noiDung: `Bạn sửa được số khách của mọi đơn **Đã xác nhận** chưa **Xong và đủ tiền**, kể cả sau ngày đi:
 
 1. Trên trang đơn, bấm [[Sửa số khách dịch vụ]].
 2. Bấm **+** và **−** để đổi số khách từng loại của từng dịch vụ. Dịch vụ nhập tay chỉ để xem, không sửa ở đây.
@@ -79,7 +79,7 @@ Thanh tab dưới đáy có [[Trang chủ]], [[Đơn hàng]] và [[Tôi]]. Các 
 
 Bớt khách sau khi khách đã trả: khối **Thanh toán** hiện **Khách trả dư** — hoàn cho khách bằng [[Ghi hoàn cho khách]] như thường lệ.
 
-Nếu giảm giá lớn hơn tiền dịch vụ còn lại, vẫn lưu và tính **Tổng cộng** bằng 0; phần giảm giá vượt không dùng tới. Khối **Thanh toán** hiện câu cảnh báo, và toàn bộ tiền khách đã trả hiện ở **Khách trả dư**. Hoàn bằng [[Ghi hoàn cho khách]] như thường lệ; hoàn xong thì đơn không còn bị giữ **Đã giao** vì khách trả dư.
+Nếu giảm giá lớn hơn tiền dịch vụ còn lại, vẫn lưu và tính **Tổng cộng** bằng 0; phần giảm giá vượt không dùng tới. Khối **Thanh toán** hiện câu cảnh báo, và toàn bộ tiền khách đã trả hiện ở **Khách trả dư**. Hoàn bằng [[Ghi hoàn cho khách]] như thường lệ; hoàn xong thì đơn không còn bị giữ ở bước **Xong và đủ tiền** vì khách trả dư.
 
 Bớt khách mà đơn có giảm giá: khối **Thanh toán** hiện thêm một câu màu đỏ nhắc bạn xem lại khuyến mại. Chỉ nhắc, không đổi số tiền và không chặn; câu nhắc còn cho tới khi số khách đủ lại như lúc xác nhận.
 
@@ -90,9 +90,9 @@ Không bớt hết người lớn được: đơn luôn cần ít nhất một n
     {
       tieuDe: "Mở biên nhận để gửi khách",
       noiDung: `1. Mở trang **Chi tiết đơn**.
-2. Bấm [[Xem biên nhận]].
-3. Hộp **Xác nhận đơn để gửi khách** hiện ra. Ảnh xác nhận được vẽ sẵn.
-4. Bấm [[Tải ảnh PNG]] để lưu ảnh về máy, hoặc bấm [[Chia sẻ]] (có trên điện thoại) để gửi qua Zalo.
+2. Bấm [[Xem ảnh gửi khách]].
+3. Hộp **Ảnh gửi khách** hiện ra. Ảnh xác nhận được vẽ sẵn.
+4. Bấm [[Tải ảnh về máy]] để lưu ảnh về máy, hoặc bấm [[Chia sẻ]] (có trên điện thoại) để gửi qua Zalo.
 5. Thấy dòng báo lỗi thì bấm [[Thử lại]].`,
     },
     {
@@ -143,7 +143,7 @@ Gắn vai trò cho hồ sơ ở Danh bạ là việc của Quản trị hoặc T
 
 1. [[＋ Thêm cấp độ đại lý]], gõ tên.
 2. Mở cấp, bấm [[＋ Thêm hoa hồng cho dịch vụ]]: chọn dịch vụ và mức.
-3. [[Chọn cấp cho vai trò này]] hoặc [[Thêm vai trò vào cấp này]]: chọn vai trò, ngày bắt đầu.
+3. [[Chọn cấp cho vai trò này]], [[Gán cho vai trò]], [[Gán cho đối tác]]: chọn người nhận, ngày bắt đầu.
 4. Đổi tên, ghi chú: [[Sửa]].
 
 Cấp của vai trò xét sau cùng. Đổi sang cấp khác: [[Đổi cấp]]. Ngừng chi: [[Thôi theo cấp này]]. [[Khoá cấp]] chặn thêm vai trò và mức mới, vai trò đang theo vẫn tính; dùng lại: [[Mở lại cấp]].
@@ -152,7 +152,7 @@ Cấp riêng: khối **Người có cấp riêng**, bấm [[Chọn cấp riêng 
     },
     {
       tieuDe: "Chụp bù, ghi mức tay cho một đơn",
-      noiDung: `Đơn đặt qua đại lý có khối **Phần đối tác**: người hưởng hoa hồng, và với từng dịch vụ là mức, hoa hồng, giá đại lý. Đơn thiếu mức thì chưa **Đã giao** được.
+      noiDung: `Đơn đặt qua đại lý có khối **Phần đối tác**: người hưởng hoa hồng, và với từng dịch vụ là mức, hoa hồng, giá đại lý. Đơn thiếu mức thì chưa **xác nhận xong và đủ tiền** được.
 
 **Đơn xác nhận trước khi có bảng mức** (chưa có bản chụp mức):
 1. Bấm [[Chụp bù mức]] (điện thoại: trang [[Tôi]]) để xem các đơn chờ, hoặc mở đơn rồi bấm [[Chụp bù]] ở khối **Phần đối tác**.
@@ -160,7 +160,7 @@ Cấp riêng: khối **Người có cấp riêng**, bấm [[Chọn cấp riêng 
 
 **Đơn đã có bản chụp mà một dòng thiếu mức** (kể cả dịch vụ nhập tay): cài mức mới không gỡ được. Ở dòng đó bấm [[Ghi mức tay]], chọn mức và người bán, ghi lý do (ít nhất 10 ký tự), bấm [[Ghi mức]].
 
-> Đơn đã **Đã giao** thì không chụp bù, không ghi tay được.`,
+> Đơn **Xong và đủ tiền** thì không chụp bù, không ghi tay được.`,
     },
     {
       tieuDe: "Khoá sổ tháng",
@@ -190,8 +190,8 @@ Cần biết:
 > Lưu ý: Chỉ lệnh điều chỉnh cần người khác duyệt. Việc khác như [[Huỷ khoản thu]] vẫn làm như trước.`,
     },
     {
-      tieuDe: "Đơn của đối tác chờ xác nhận: bảng Còn vé",
-      noiDung: `Đơn đối tác gửi lên ở trạng thái [[Chờ xác nhận]]; khối **Xác nhận đơn** có [[Còn vé]], [[Hết vé]] và Huỷ. Mỗi dịch vụ có dòng **Ghi chú** của đối tác và ô **Giờ đón** từng lượt. Đối tác không nhập giờ: lượt đầu ghi **(bắt buộc)**, chọn giờ rồi mới bấm [[Còn vé]]. Bạn không có nút Đặt gấp: giờ đã qua hạn chốt thì nhờ Bán hàng hoặc Quản trị. Xác nhận xong, gọi số liên hệ trên đơn để báo giờ; số này là của đối tác khi công tắc ẩn thông tin khách đang bật.`,
+      tieuDe: "Đơn của đối tác chờ xác nhận: kiểm vé",
+      noiDung: `Đơn đối tác gửi lên ở trạng thái [[Chờ xác nhận]] cần người kiểm vé. Bạn **không** bấm [[Còn vé, xác nhận đơn]] được: việc này do Bán hàng, Quản trị hoặc Toàn quyền làm. Muốn đơn đi tiếp thì báo một trong những người đó. Đơn xác nhận xong thì bạn xem như mọi đơn đã xác nhận.`,
     },
     {
       tieuDe: "Tình huống hay gặp",
@@ -201,21 +201,21 @@ Bạn không sửa được. Ghi lại mã đơn rồi báo người lập hoặ
 
 ### Khách đã trả thêm tiền, muốn ghi vào đơn
 
-Trong khối **Thanh toán**, bấm [[Ghi khoản thu]]: số tiền, hình thức, người thu tiền; riêng Kế toán chọn được **Ngày phát sinh**. Bấm [[Ghi]]. Sau khi đơn **Đã giao – đã thu đủ** thì không ghi thêm khoản thu được.
+Trong khối **Thanh toán**, bấm [[Ghi khoản thu]]: số tiền, hình thức, người thu tiền; riêng Kế toán chọn được **Ngày phát sinh**. Bấm [[Ghi]]. Sau khi đơn **Xong và đủ tiền** thì không ghi thêm khoản thu được.
 
 ### Đối chiếu tiền trên trang đơn
 
 Trên trang đơn:
 - Khoản thu người khác khai là tiền vào công ty: đối chiếu tài khoản, bấm [[Xác nhận đã nhận]] rồi [[Công ty đã nhận]].
 - Khách trả cho đại lý hoặc tại quầy nhà cung cấp (người khác khai): hỏi bên kia, bấm [[Bên kia đã nhận]]. Bên kia báo không nhận thì [[Huỷ khoản thu]].
-- Sai số tiền, hình thức hay người thu tiền: [[Sửa khoản thu đã ghi]] → [[Lưu khoản thu đúng]] (đơn đã giao chỉ sửa được cách này).
-- Ghi nhầm hẳn, đơn chưa giao: [[Huỷ khoản thu]], ghi lý do → [[Huỷ khoản này]]. Sổ giữ dòng cũ, thêm dòng trừ.
+- Sai số tiền, hình thức hay người thu tiền: [[Sửa khoản thu đã ghi]] → [[Lưu khoản thu đúng]] (đơn đã xong và đủ tiền chỉ sửa được cách này).
+- Ghi nhầm hẳn, đơn chưa tới bước Xong và đủ tiền: [[Huỷ khoản thu]], ghi lý do → [[Huỷ khoản này]]. Sổ giữ dòng cũ, thêm dòng trừ.
 - Khối **Kế toán** ghi ai chưa nộp tiền về công ty: nhận tiền rồi bấm [[Đã nộp về công ty]].
 - Khách trả dư: bấm [[Ghi hoàn cho khách]].
 
 ### Hoàn thành đơn
 
-Khi đơn **Đã giao – đã thu đủ** và mọi người đã nộp tiền về công ty, bấm [[Hoàn thành]] rồi đồng ý. **Không mở lại được.** Nút mờ thì dòng **Đang giữ đơn** ghi lý do.
+Khi đơn **Xong và đủ tiền** và mọi người đã nộp tiền về công ty, bấm [[Hoàn thành]] rồi đồng ý. **Không mở lại được.** Nút mờ thì dòng **Đang giữ đơn** ghi lý do.
 
 ### Đánh dấu đã nhập phần mềm kế toán
 
@@ -225,17 +225,17 @@ Nền tảng **không xuất hoá đơn**. Khi đã nhập đơn vào phần m�
     {
       tieuDe: "Điều bạn không làm được — hỏi ai",
       noiDung: `- Lập đơn mới: không. Nhờ nhân viên bán hàng.
-- Sửa, xác nhận, huỷ đơn: không. Nhờ người lập đơn, người phụ trách đơn hoặc Quản trị.
+- Sửa, xác nhận, huỷ đơn: không. Nhờ người lập đơn, Hướng dẫn viên của đơn hoặc Quản trị.
 - Thêm dịch vụ, đổi giá sau khi xác nhận: chưa có cách sửa, kể cả tài khoản Toàn quyền — báo Quản trị. Số khách thì bạn sửa được (mục "Sửa số khách đơn đã xác nhận").
 - Nhận phụ trách, giao đơn cho người khác: không. Nhờ nhân viên bán hàng hoặc Quản trị.
 - Tự duyệt yêu cầu điều chỉnh công nợ của chính mình: không. Nhờ Quản trị, Toàn quyền hoặc một Kế toán khác.
 - Xếp xe, tạo chuyến, bấm tiến độ chuyến: không, bạn chỉ xem. Nhờ nhân viên bán hàng hoặc Quản trị.
-- Bấm **Đã giao – đã thu đủ**: không. Hướng dẫn viên đang phụ trách đơn hoặc Quản trị bấm.
+- Bấm **Xác nhận xong và đủ tiền**: không. Hướng dẫn viên đang phụ trách đơn hoặc Quản trị bấm.
 - Sửa bảng giá dịch vụ, quản lý tài khoản nhân viên: không. Nhờ Quản trị.`,
     },
     {
       tieuDe: "Câu hỏi thường gặp",
-      noiDung: `### Trang đơn ghi "Chỉ … (người lập đơn), người phụ trách đơn hoặc quản trị viên mới được sửa, xác nhận hoặc huỷ đơn này." Có phải lỗi không?
+      noiDung: `### Trang đơn ghi "Chỉ … (người lập đơn), Hướng dẫn viên của đơn hoặc quản trị viên mới được sửa, xác nhận hoặc huỷ đơn này." Có phải lỗi không?
 
 Không. Dòng này giải thích vì sao bạn không có nút sửa.
 

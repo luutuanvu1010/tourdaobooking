@@ -83,7 +83,7 @@ export const LICH_SU_DOI_TAC_AN = [
   "trip_driver_refused", "trip_appt_called", "trip_appt_call_undone", "trip_cost_adjusted", "trip_cost_reversed", "trip_cost_snapshot", "trip_cost_agreed",
   "rental_rate_added", "rental_rate_closed", "route_saved", "vehicle_size_saved",
   // Địa điểm, danh mục, hệ thống, góp ý, thông báo
-  "location_created", "location_updated", "maintenance_changed", "manual_service_policy_changed", "pickup_slot_policy_changed", "confirm_flag_changed", "confirm_policy_changed", "partner_customer_policy_changed", "order_confirm_requested", "order_confirm_withdrawn", "tro_ly_settings_changed", "giao_dien_changed", "client_outdated_body",
+  "location_created", "location_updated", "maintenance_changed", "manual_service_policy_changed", "pickup_slot_policy_changed", "confirm_flag_changed", "confirm_policy_changed", "sales_policy_changed", "sales_invited", "sales_owner_claimed", "sales_owner_changed", "sales_invite_refused", "partner_customer_policy_changed", "order_confirm_requested", "order_confirm_withdrawn", "tro_ly_settings_changed", "giao_dien_changed", "client_outdated_body",
   "catalog_synced", "catalog_overridden", "catalog_override_cleared", "catalog_hidden", "catalog_unhidden", "catalog_group_created", "catalog_group_updated",
   "catalog_group_assigned", "catalog_groups_seeded", "catalog_service_transfer_set", "ctl_attribute_created", "ctl_attribute_updated", "ctl_attribute_value_created", "ctl_attribute_value_updated", "ctl_service_attribute_set", "ctl_group_attribute_set", "feedback_created", "feedback_replied", "feedback_status_changed", "feedback_assigned",
   "feedback_claimed", "feedback_team_changed", "feedback_priority_changed", "feedback_team_created", "feedback_team_updated", "feedback_team_member_changed", "notice_sent", "notice_revoked",
@@ -93,6 +93,8 @@ export const LICH_SU_DOI_TAC_AN = [
   "refuse_limit_hit", "refuse_policy_changed", "refuse_counter_reset",
   // ADR-0153 (đề xuất): giữ chỗ / trả vé điện tử — loại dòng MỚI nên mặc định ẩn cho tới khi chủ xếp loại. Trang Nhật ký (Toàn quyền) vẫn đọc được.
   "ve_giu_cho", "ve_tra_ve", "ve_xem_anh", "ve_mo_anh_lo_huy", "ve_giao", "ve_tao_duong_dan", "ve_thu_hoi_duong_dan", "ve_nhap_lo", "ve_xac_nhan_lo", "ve_sua_ma_tour", "ve_bo_lo", "ve_doi_tran_lo",
+  // ADR-0168: hạn mức Trả sau — việc nội bộ của Toàn quyền, ẩn khỏi lịch sử Đối tác.
+  "credit_limit_set", "credit_limit_stopped",
 ] as const satisfies readonly AuditAction[];
 
 /** Hành động mới trong `AUDIT_ACTIONS` chưa có ở danh sách nào ⇒ kiểu này khác `never` và dòng ngay dưới không biên dịch (`npm run typecheck` đỏ). */

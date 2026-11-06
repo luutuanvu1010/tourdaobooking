@@ -1,4 +1,4 @@
-import { can } from "../src/shared/permissions";
+import { can, dungManHepDichVu } from "../src/shared/permissions";
 import { ApiError, api, type CatalogAdminItem, type CatalogSyncState, type PaxCode, type Api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
 import { dateTime, grouped, parseMoney, vnd } from "./format";
@@ -9,7 +9,10 @@ import { CHE_DO_DUA_DON, type CheDoDuaDon } from "../src/shared/chang-mac-dinh";
 import { QUY_TAC_DUA_DON, type QuyTacDuaDon } from "../src/shared/dua-don-dich-vu";
 import { dongLichSuMauChang, nhanCheDoCua } from "../src/shared/lich-su-mau-chang";
 import { canhBaoDoiNhom } from "../src/shared/dac-diem-hien-thi";
+import { CAU_HOI_BO_GHI_DE_GIA } from "../src/shared/catalog-nut";
+import { caNhomCanKiem, kiemVeCua } from "../src/shared/dich-vu-kiem-ve";
 import { hoiXacNhan, moBangTruot } from "./bang-truot";
+import { taoKiemVe, veManHep } from "./catalog-kiem-ve";
 import { initShell, showError } from "./shell";
 
 const errorEl = byId("error");
@@ -23,6 +26,20 @@ const filterEl = byId<HTMLSelectElement>("filter");
 const pullBtn = byId<HTMLButtonElement>("pull");
 const nhomEl = byId("nhom-dv");
 const chonBarEl = byId("chon-bar");
+
+const kiemVe = taoKiemVe(errorEl, () => {
+  renderTuKiem();
+  renderNhom();
+  render();
+});
+/** Công tắc «Cần kiểm vé» của một dòng dịch vụ (ADR-0169 Đ4): vé đặt riêng hay đang theo nhóm thì câu phụ nói rõ. */
+const oKiemVe = (it: CatalogAdminItem): HTMLElement => {
+  const kv = kiemVeCua(it.code, it.groupCode, kiemVe.dongCo());
+  return h("div", { class: "kv-o" }, h("span", { class: "hint" }, `Cần kiểm vé · ${kv.rieng ? "Đặt riêng" : it.groupCode === null ? "Chưa đặt" : "Theo nhóm"}`), kiemVe.congTacVe(it.code, it.name, kv.can));
+};
+function renderTuKiem(): void {
+  if (can(staff, "settings.ops")) replaceChildren(byId("kv-tu-kiem"), kiemVe.khoiTuKiem());
+}
 
 let items: CatalogAdminItem[] = [];
 let sync: CatalogSyncState;
@@ -108,18 +125,18 @@ function row(it: CatalogAdminItem): HTMLElement {
     { class: it.hidden || !it.inSheet ? "row-off" : "", "data-code": it.code },
     h("td", { class: "chon-td" }, oChon(it)),
     h("td", null, it.code),
-    h("td", null, it.name, chipDuaDon(it, "dd-chip-dong"), chipQuyTac(it), it.hidden && h("span", { class: "badge badge-cancelled" }, "Đã ẩn"), !it.inSheet && h("span", { class: "badge badge-draft" }, "Không còn trong Sheet"), !it.supported && h("span", { class: "badge badge-draft", title: "Chỉ nhập tay được" }, `Đơn vị ${it.unit} chưa hỗ trợ`), it.conflicts.length > 0 && h("div", { class: "alert warn", style: "margin:6px 0 0" }, `Sheet đã đổi giá kể từ khi ghi đè — ${conflicts}. Giá đang bán vẫn là giá ghi đè.`)),
+    h("td", null, it.name, chipDuaDon(it, "dd-chip-dong"), chipQuyTac(it), it.hidden && h("span", { class: "badge badge-cancelled" }, "Đã ngừng bán"), !it.inSheet && h("span", { class: "badge badge-draft" }, "Không còn trong Sheet"), !it.supported && h("span", { class: "badge badge-draft", title: "Chỉ nhập tay được" }, `Đơn vị ${it.unit} chưa hỗ trợ`), it.conflicts.length > 0 && h("div", { class: "alert warn", style: "margin:6px 0 0" }, `Sheet đã đổi giá kể từ khi ghi đè — ${conflicts}. Giá đang bán vẫn là giá ghi đè.`), oKiemVe(it)),
     h("td", { class: "nhom-o" }, tenNhomCua(it)),
     h("td", { class: "muted" }, unitLabel(it.unit)),
     ...PAX_ORDER.map((c) => priceCell(it, c)),
     h(
       "td",
       { class: "row-actions" },
-      btn("Sửa giá", () => openEdit(it)),
+      btn("Ghi đè giá", () => openEdit(it)),
       duocSuaDuaDon && nutDuaDon(btn("Đưa đón", () => moDuaDon(it, nutDuaDonCua(it.code, "bang"))), it.code, "bang"),
       it.conflicts.length > 0 && btn("Giữ ghi đè", () => update(`/api/catalog/${encodeURIComponent(it.code)}/ack`, { method: "POST" })),
-      it.overridden.length > 0 && btn("Bỏ ghi đè", () => confirm(`Quay ${it.code} về giá theo Sheet?`) && update(`/api/catalog/${encodeURIComponent(it.code)}/override`, { method: "DELETE" })),
-      btn(it.hidden ? "Hiện lại" : "Ẩn", () => update(`/api/catalog/${encodeURIComponent(it.code)}`, { method: "PATCH", body: { hidden: !it.hidden } }), it.hidden ? "btn btn-link" : "btn btn-link danger"),
+      it.overridden.length > 0 && btn("Bỏ ghi đè giá", () => confirm(CAU_HOI_BO_GHI_DE_GIA(it.code, it.hidden)) && update(`/api/catalog/${encodeURIComponent(it.code)}/override`, { method: "DELETE" })),
+      btn(it.hidden ? "Mở bán lại" : "Ngừng bán", () => update(`/api/catalog/${encodeURIComponent(it.code)}`, { method: "PATCH", body: { hidden: !it.hidden } }), it.hidden ? "btn btn-link" : "btn btn-link danger"),
     ),
   );
 }
@@ -149,18 +166,19 @@ function card(it: CatalogAdminItem): HTMLElement {
     "div",
     { class: it.hidden || !it.inSheet ? "card card-col row-off" : "card card-col", "data-code": it.code },
     h("div", { class: "the-dau" }, oChon(it), h("span", { class: "muted" }, it.code, " · ", unitLabel(it.unit))),
-    h("div", { class: "dd-ten-dong" }, h("strong", null, it.name), chipDuaDon(it), chipQuyTac(it), it.hidden && h("span", { class: "badge badge-cancelled" }, " Đã ẩn"), !it.inSheet && h("span", { class: "badge badge-draft" }, " Không còn trong Sheet"), !it.supported && h("span", { class: "badge badge-draft", title: "Chỉ nhập tay được" }, ` Đơn vị ${it.unit} chưa hỗ trợ`)),
+    h("div", { class: "dd-ten-dong" }, h("strong", null, it.name), chipDuaDon(it), chipQuyTac(it), it.hidden && h("span", { class: "badge badge-cancelled" }, " Đã ngừng bán"), !it.inSheet && h("span", { class: "badge badge-draft" }, " Không còn trong Sheet"), !it.supported && h("span", { class: "badge badge-draft", title: "Chỉ nhập tay được" }, ` Đơn vị ${it.unit} chưa hỗ trợ`)),
     h("div", { class: "nhom-o muted" }, `Nhóm: ${tenNhomCua(it)}`),
+    h("div", { class: "kv-the" }, oKiemVe(it)),
     h("div", null, priceLine(it), it.overridden.length > 0 && h("span", { class: "mark", style: "color:var(--c-accent);font-weight:var(--fw-bold)", title: "Có giá ghi đè" }, " ✎")),
     it.conflicts.length > 0 && h("div", { class: "alert warn" }, `Sheet đã đổi giá kể từ khi ghi đè — ${conflicts}. Giá đang bán vẫn là giá ghi đè.`),
     h(
       "div",
       { style: "display:flex;flex-wrap:wrap;gap:var(--s2);margin-top:var(--s1)" },
-      btn("Sửa giá", () => openEdit(it)),
+      btn("Ghi đè giá", () => openEdit(it)),
       duocSuaDuaDon && nutDuaDon(btn("Đưa đón", () => moDuaDon(it, nutDuaDonCua(it.code, "the"))), it.code, "the"),
       it.conflicts.length > 0 && btn("Giữ ghi đè", () => update(`/api/catalog/${encodeURIComponent(it.code)}/ack`, { method: "POST" })),
-      it.overridden.length > 0 && btn("Bỏ ghi đè", () => confirm(`Quay ${it.code} về giá theo Sheet?`) && update(`/api/catalog/${encodeURIComponent(it.code)}/override`, { method: "DELETE" })),
-      btn(it.hidden ? "Hiện lại" : "Ẩn", () => update(`/api/catalog/${encodeURIComponent(it.code)}`, { method: "PATCH", body: { hidden: !it.hidden } }), !it.hidden),
+      it.overridden.length > 0 && btn("Bỏ ghi đè giá", () => confirm(CAU_HOI_BO_GHI_DE_GIA(it.code, it.hidden)) && update(`/api/catalog/${encodeURIComponent(it.code)}/override`, { method: "DELETE" })),
+      btn(it.hidden ? "Mở bán lại" : "Ngừng bán", () => update(`/api/catalog/${encodeURIComponent(it.code)}`, { method: "PATCH", body: { hidden: !it.hidden } }), !it.hidden),
     ),
   );
 }
@@ -170,6 +188,7 @@ function render(): void {
   const f = filterEl.value;
   const shown = items.filter((it) => {
     if (q && !it.code.toLowerCase().includes(q) && !it.name.toLowerCase().includes(q)) return false;
+    if (f === "kiem-ve") return kiemVeCua(it.code, it.groupCode, kiemVe.dongCo()).can;
     if (f === "overridden") return it.overridden.length > 0;
     if (f === "conflict") return it.conflicts.length > 0;
     if (f === "hidden") return it.hidden;
@@ -348,6 +367,7 @@ function dongNhom(g: Nhom, i: number): HTMLElement {
     h("span", { class: "nhom-so" }, `${g.soDichVu} dịch vụ`),
     !g.active && h("span", { class: "badge badge-cancelled" }, "Đã tắt"),
     congTacDuaDon(g),
+    h("div", { class: "nhom-dua-don" }, h("span", { class: "nhom-so" }, "Cần kiểm vé"), kiemVe.congTacNhom(g.code, g.name, caNhomCanKiem(g.code, kiemVe.dongCo())), h("span", { class: "nhom-so", "aria-hidden": "true" }, caNhomCanKiem(g.code, kiemVe.dongCo()) ? "Bật" : "Tắt")),
     h(
       "div",
       { class: "nhom-nut" },
@@ -407,7 +427,7 @@ function renderNhom(): void {
     h("p", { class: "muted" }, "Nhóm giúp người lập đơn lọc nhanh dịch vụ. Nhóm không xoá được: không dùng nữa thì chuyển hết dịch vụ sang nhóm khác rồi tắt."),
     h("div", { id: "nhom-loi", class: "alert", role: "alert", hidden: !nhomLoi }, nhomLoi),
     h("ul", { class: "nhom-ds" }, ...nhoms.map(dongNhom)),
-    h("p", { id: "nhom-chua", class: "muted" }, `Chưa phân loại (kể cả dịch vụ ẩn): ${chuaPhanLoai} dịch vụ`),
+    h("p", { id: "nhom-chua", class: "muted" }, `Chưa phân loại (kể cả dịch vụ đã ngừng bán): ${chuaPhanLoai} dịch vụ`),
     them,
   );
 }
@@ -507,7 +527,7 @@ function openEdit(it: CatalogAdminItem): void {
   const nhomKhoi = h("div", { class: "nhom-sua" });
   replaceChildren(
     editEl,
-    h("h2", null, `Sửa giá: ${it.code} — ${it.name}`),
+    h("h2", null, `Ghi đè giá: ${it.code} — ${it.name}`),
     h("p", { class: "muted" }, "Giá ghi đè chỉ có hiệu lực trong hệ thống này (không ghi ngược vào Google Sheet) và không bị lần đồng bộ sau đè mất. Để trống hoặc nhập đúng giá Sheet để bỏ ghi đè loại đó."),
     unit,
     h("div", { class: "grid three" }, ...PAX_ORDER.map((c) => h("label", null, `${PAX_LABEL[c]} (₫)`, fields.get(c)!))),
@@ -579,7 +599,7 @@ function renderNhomSua(khoi: HTMLElement, it: CatalogAdminItem): void {
   })();
 }
 
-// ---- Khung "Đưa đón" của một dịch vụ (bản vẽ M7). Máy tính (≥900px — cùng mốc bảng ↔ thẻ): khung ở đúng chỗ khung "Sửa giá" (#edit). Hẹp hơn: bảng trượt
+// ---- Khung "Đưa đón" của một dịch vụ (bản vẽ M7). Máy tính (≥900px — cùng mốc bảng ↔ thẻ): khung ở đúng chỗ khung "Ghi đè giá" (#edit). Hẹp hơn: bảng trượt
 // dùng chung (web/bang-truot.ts). Mỗi lần lưu = MỘT BẢN ĐẦY ĐỦ (thân luôn mang đủ `mode`, `returnTimeHint`, `noiTraMacDinhId` — không dựa vào luật "khoá vắng =
 // chép" của máy chủ dành cho màn cũ). Cột "Người đổi": `createdBy` (id tài khoản) ghép tên qua `GET /api/staff` như lịch sử nhóm (`tenNguoi`).
 const rong = (): boolean => window.matchMedia("(min-width: 900px)").matches;
@@ -646,7 +666,7 @@ function moDuaDon(it: CatalogAdminItem, opener: HTMLElement | null): void {
   const truongTra = h("div", { class: "dd-o" }, h("label", { for: oNoiTra.id }, "Nơi trả gợi ý"), oNoiTra, h("div", { id: `dd-tra-${luot}-goi-y`, class: "dd-goi-y" }, "Để trống nếu không gợi ý"), ghiNgung);
   const apDung = h("p", { class: "dd-ghi muted" }, "Áp dụng cho đơn lập từ bây giờ; đơn đã có không đổi.");
   const lichSuEl = h("div", { class: "dd-lich-su" }, h("p", { class: "muted" }, "Đang tải…"));
-  const luu = h("button", { type: "button", class: mayTinh ? "btn btn-primary btn-chinh" : "btn btn-primary btn-chinh dd-luu-day", "data-action": "dd-luu", disabled: true }, "Lưu bản mới");
+  const luu = h("button", { type: "button", class: mayTinh ? "btn btn-primary btn-chinh" : "btn btn-primary btn-chinh dd-luu-day", "data-action": "dd-luu", disabled: true }, "Lưu thành bản mới");
   function ve(): void {
     for (const [m, o] of radio) {
       o.checked = m === mode;
@@ -859,8 +879,14 @@ qEl.addEventListener("input", render);
 filterEl.addEventListener("change", render);
 
 const staff = await initShell();
-if (!can(staff, "admin.manage")) showError(errorEl, "Chỉ quản trị viên được vào trang này.");
-else {
+if (!can(staff, "admin.manage")) {
+  // ADR-0169 Đ4: Quản lý bán hàng dùng màn hẹp; còn lại máy chủ từ chối, trang báo lỗi.
+  byId("man-du").hidden = true;
+  if (dungManHepDichVu(staff)) await veManHep(byId("man-hep"), errorEl);
+  else showError(errorEl, "Tài khoản này không vào được trang này.");
+} else {
+  await kiemVe.tai().catch((err) => fail(err));
+  renderTuKiem();
   duocSuaDuaDon = can(staff, "admin.manage");
   tenNguoi = api<Api.StaffListResponse>("/api/staff")
     .then((r) => new Map(r.staff.map((s) => [s.id, s.fullName])))
