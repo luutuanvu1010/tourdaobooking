@@ -104,3 +104,19 @@ test("CSDL: không xoá, không sửa giá trị dòng đã ghi", async () => {
   assert.throws(() => w.sqlite.prepare("DELETE FROM bil_partner_channel_setting").run(), /bil_append_only/);
   assert.throws(() => w.sqlite.prepare("UPDATE bil_partner_channel_setting SET company_collects = 1").run(), /bil_append_only/);
 });
+
+// Mô phỏng người ghi thứ hai chen vào GIỮA câu đóng và câu chèn (hai tab cùng đọc trạng thái cũ): trigger tạm chèn một dòng đang mở ngay sau khi dòng cũ bị đóng.
+// Câu gác của câu chèn phải thấy dòng đó và nhường; câu nhật ký (changes() > 0) cũng không được ghi. Đột biến «bỏ NOT EXISTS» ⇒ hai dòng đang mở; «bỏ changes() > 0» ⇒ nhật ký thừa.
+test("đua: người ghi khác chen giữa câu đóng và câu chèn ⇒ vẫn đúng một dòng đang mở, không ghi nhật ký thừa", async () => {
+  const w = setup();
+  await doi(w, SA, { congTyThu: false }); // có một dòng đang mở để câu đóng chạm vào
+  const truoc = nhatKy(w);
+  w.sqlite.exec(`CREATE TEMP TRIGGER chen_giua AFTER UPDATE OF valid_to ON bil_partner_channel_setting
+    BEGIN INSERT INTO bil_partner_channel_setting (id, company_collects, valid_from, valid_to, created_at, created_by, updated_at, updated_by)
+      VALUES ('chen-giua', 0, NEW.valid_to, NULL, NEW.valid_to, NULL, NEW.valid_to, NULL); END`);
+  const r = await doi(w, SA, { congTyThu: true });
+  assert.equal(r.status, 200, r.text);
+  assert.equal(dangMo(w), 1, "không bao giờ hai dòng cùng hiệu lực");
+  assert.equal(String(w.q("SELECT id FROM bil_partner_channel_setting WHERE valid_to IS NULL")[0].id), "chen-giua", "người chen vào thắng, câu chèn nhường");
+  assert.equal(nhatKy(w), truoc, "câu chèn không ghi ⇒ không có nhật ký");
+});
