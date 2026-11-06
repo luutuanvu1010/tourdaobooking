@@ -2,14 +2,15 @@
 // Module NGHIÊM: mọi câu qua `defineSql` (câu TĨNH, tham số ?N), chịu bài EXPLAIN. Hạn mức chỉ-thêm; chỉ câu đóng dòng mới UPDATE bảng này.
 // Import kèm đuôi .ts (bài kiểm kiến trúc nạp tệp này thẳng bằng Node).
 import { defineSql } from "../../shared/sql-registry.ts";
+import { soNgayTuongThich } from "../../shared/tra-sau.ts";
 
-export interface HanMucRow { id: string; party_id: string; limit_amount: number; term_days: number; valid_from_date: string; valid_to_date: string | null }
+export interface HanMucRow { id: string; party_id: string; limit_amount: number; term_days: number; term_hours: number | null; grace_hours: number; valid_from_date: string; valid_to_date: string | null }
 
 // ---- Hạn mức ----
 const HAN_MUC_TAI = defineSql(
   "billing",
   "credit_limit_at",
-  `SELECT id, party_id, limit_amount, term_days, valid_from_date, valid_to_date FROM bil_credit_limit
+  `SELECT id, party_id, limit_amount, term_days, term_hours, grace_hours, valid_from_date, valid_to_date FROM bil_credit_limit
    WHERE party_id = ?1 AND valid_from_date <= ?2 AND (valid_to_date IS NULL OR valid_to_date >= ?2) ORDER BY valid_from_date DESC LIMIT 1`,
 );
 export const hanMucRowTai = (db: D1Database, partyId: string, ngay: string): Promise<HanMucRow | null> => db.prepare(HAN_MUC_TAI).bind(partyId, ngay).first<HanMucRow>();
@@ -17,7 +18,7 @@ export const hanMucRowTai = (db: D1Database, partyId: string, ngay: string): Pro
 const HAN_MUC_MOI_BEN = defineSql(
   "billing",
   "credit_limit_all_at",
-  `SELECT id, party_id, limit_amount, term_days, valid_from_date, valid_to_date FROM bil_credit_limit
+  `SELECT id, party_id, limit_amount, term_days, term_hours, grace_hours, valid_from_date, valid_to_date FROM bil_credit_limit
    WHERE valid_from_date <= ?1 AND (valid_to_date IS NULL OR valid_to_date >= ?1) ORDER BY party_id`,
 );
 export const hanMucRowMoiBen = async (db: D1Database, ngay: string): Promise<HanMucRow[]> => (await db.prepare(HAN_MUC_MOI_BEN).bind(ngay).all<HanMucRow>()).results;
@@ -35,11 +36,12 @@ export const dongHanMucStatement = (db: D1Database, partyId: string, denNgay: st
 const HAN_MUC_THEM = defineSql(
   "billing",
   "credit_limit_insert",
-  `INSERT INTO bil_credit_limit (id, party_id, limit_amount, term_days, valid_from_date, valid_to_date, reason, created_at, created_by, updated_at, updated_by)
-   VALUES (?1, ?2, ?3, ?4, ?5, NULL, ?6, ?7, ?8, ?7, ?8)`,
+  `INSERT INTO bil_credit_limit (id, party_id, limit_amount, term_days, term_hours, grace_hours, valid_from_date, valid_to_date, reason, created_at, created_by, updated_at, updated_by)
+   VALUES (?1, ?2, ?3, ?4, ?9, ?10, ?5, NULL, ?6, ?7, ?8, ?7, ?8)`,
 );
-export const themHanMucStatement = (db: D1Database, v: { id: string; partyId: string; hanMuc: number; soNgay: number; tuNgay: string; lyDo: string | null; at: string; by: string }) =>
-  db.prepare(HAN_MUC_THEM).bind(v.id, v.partyId, v.hanMuc, v.soNgay, v.tuNgay, v.lyDo, v.at, v.by);
+/** `term_days` vẫn ghi (= trần giờ/24) để lùi về bản trước an toàn (migration 0143 chỉ mở rộng). */
+export const themHanMucStatement = (db: D1Database, v: { id: string; partyId: string; hanMuc: number; gioTra: number; gioAnHan: number; tuNgay: string; lyDo: string | null; at: string; by: string }) =>
+  db.prepare(HAN_MUC_THEM).bind(v.id, v.partyId, v.hanMuc, soNgayTuongThich(v.gioTra), v.tuNgay, v.lyDo, v.at, v.by, v.gioTra, v.gioAnHan);
 
 // ---- Dòng phiên bản (chống ghi trùng — ADR-0168 Đ2 mục 4) ----
 const GUARD_DOC = defineSql("billing", "credit_guard_read", `SELECT version FROM bil_credit_guard WHERE party_id = ?1`);
@@ -58,18 +60,20 @@ export const guardGacStatement = (db: D1Database, partyId: string, daDoc: number
 export const guardTangStatement = (db: D1Database, partyId: string, at: string) => db.prepare(GUARD_TANG).bind(partyId, at);
 
 // ---- Đơn Trả sau (view công bố của orders) ----
-export interface DonTraSauRow { id: string; order_code: string; booker_party_id: string | null; status: "draft" | "confirmed" | "cancelled"; delivered_at: string | null; credit_due_date: string | null }
+export interface DonTraSauRow {
+  id: string; order_code: string; booker_party_id: string | null; status: "draft" | "confirmed" | "cancelled"; delivered_at: string | null; credit_due_at: string | null; credit_grace_until: string | null;
+}
 const DON_CUA_BEN = defineSql(
   "billing",
   "credit_orders_of_parties",
-  `SELECT id, order_code, booker_party_id, status, delivered_at, credit_due_date FROM v_ord_don_tra_sau
+  `SELECT id, order_code, booker_party_id, status, delivered_at, credit_due_at, credit_grace_until FROM v_ord_don_tra_sau
    WHERE status = 'confirmed' AND booker_party_id IN (SELECT value FROM json_each(?1)) ORDER BY order_code`,
 );
 export async function donTraSauCuaCacBen(db: D1Database, partyIds: readonly string[]): Promise<DonTraSauRow[]> {
   if (partyIds.length === 0) return [];
   return (await db.prepare(DON_CUA_BEN).bind(JSON.stringify(partyIds)).all<DonTraSauRow>()).results;
 }
-const DON_THEO_ID = defineSql("billing", "credit_order_by_id", `SELECT id, order_code, booker_party_id, status, delivered_at, credit_due_date FROM v_ord_don_tra_sau WHERE id = ?1`);
+const DON_THEO_ID = defineSql("billing", "credit_order_by_id", `SELECT id, order_code, booker_party_id, status, delivered_at, credit_due_at, credit_grace_until FROM v_ord_don_tra_sau WHERE id = ?1`);
 export const donTraSauTheoId = (db: D1Database, orderId: string): Promise<DonTraSauRow | null> => db.prepare(DON_THEO_ID).bind(orderId).first<DonTraSauRow>();
 const BEN_CO_DON = defineSql("billing", "credit_parties_with_orders", `SELECT DISTINCT booker_party_id AS party_id FROM v_ord_don_tra_sau WHERE status = 'confirmed' AND booker_party_id IS NOT NULL`);
 export const benCoDonTraSau = async (db: D1Database): Promise<string[]> => (await db.prepare(BEN_CO_DON).all<{ party_id: string }>()).results.map((r) => r.party_id);
@@ -97,3 +101,50 @@ export async function doiChieuCuaCacDon(db: D1Database, orderIds: readonly strin
   if (orderIds.length === 0) return [];
   return (await db.prepare(DOI_CHIEU_CUA_CAC_DON).bind(JSON.stringify(orderIds)).all<DoiChieuDonRow>()).results;
 }
+
+// ---- Mức tối đa Quản trị được cấp (ADR-0173 Đ1 mục 1; bảng chỉ thêm, dòng mới nhất là hiệu lực) ----
+const MUC_TOI_DA_DOC = defineSql("billing", "credit_setting_current", `SELECT admin_limit_ceiling FROM bil_credit_setting ORDER BY created_at DESC, rowid DESC LIMIT 1`);
+export const mucToiDaQuanTri = async (db: D1Database): Promise<number | null> => (await db.prepare(MUC_TOI_DA_DOC).first<{ admin_limit_ceiling: number }>())?.admin_limit_ceiling ?? null;
+const MUC_TOI_DA_THEM = defineSql(
+  "billing",
+  "credit_setting_insert",
+  `INSERT INTO bil_credit_setting (id, admin_limit_ceiling, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?4, ?3, ?4)`,
+);
+export const themMucToiDaStatement = (db: D1Database, v: { id: string; so: number; at: string; by: string }) => db.prepare(MUC_TOI_DA_THEM).bind(v.id, v.so, v.at, v.by);
+
+// ---- Số gợi ý theo cấp (ADR-0172 Đ2): CHỈ để điền sẵn — không cổng nào đọc (bài src/tra-sau-goi-y-khong-cong.test.ts) ----
+export interface GoiYCapRow { tier_code: string; limit_amount: number; term_hours: number; grace_hours: number }
+const GOI_Y_DOC = defineSql("billing", "credit_tier_default_all", `SELECT tier_code, limit_amount, term_hours, grace_hours FROM bil_credit_tier_default ORDER BY tier_code`);
+export const goiYTheoCap = async (db: D1Database): Promise<GoiYCapRow[]> => (await db.prepare(GOI_Y_DOC).all<GoiYCapRow>()).results;
+const GOI_Y_GHI = defineSql(
+  "billing",
+  "credit_tier_default_upsert",
+  `INSERT INTO bil_credit_tier_default (tier_code, limit_amount, term_hours, grace_hours, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?5, ?6)
+   ON CONFLICT (tier_code) DO UPDATE SET limit_amount = excluded.limit_amount, term_hours = excluded.term_hours, grace_hours = excluded.grace_hours, updated_at = excluded.updated_at, updated_by = excluded.updated_by`,
+);
+export const ghiGoiYStatement = (db: D1Database, v: { cap: string; hanMuc: number; gioTra: number; gioAnHan: number; at: string; by: string }) =>
+  db.prepare(GOI_Y_GHI).bind(v.cap, v.hanMuc, v.gioTra, v.gioAnHan, v.at, v.by);
+
+// ---- Tin nhắc đã gửi (ADR-0173 Đ3 mục 2): khoá chính (đơn, loại, mốc) chặn gửi lặp ----
+const NHAC_DA_GUI = defineSql(
+  "billing",
+  "credit_reminder_sent",
+  `SELECT order_id, kind, due_at FROM bil_credit_reminder WHERE order_id IN (SELECT value FROM json_each(?1))`,
+);
+export const nhacDaGui = async (db: D1Database, orderIds: readonly string[]): Promise<{ order_id: string; kind: string; due_at: string }[]> =>
+  orderIds.length === 0 ? [] : (await db.prepare(NHAC_DA_GUI).bind(JSON.stringify(orderIds)).all<{ order_id: string; kind: string; due_at: string }>()).results;
+const NHAC_GHI = defineSql(
+  "billing",
+  "credit_reminder_insert",
+  `INSERT OR IGNORE INTO bil_credit_reminder (order_id, kind, due_at, party_id, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?4, ?5, NULL, ?5, NULL)`,
+);
+export const ghiNhacStatement = (db: D1Database, v: { orderId: string; loai: string; moc: string; partyId: string; at: string }) =>
+  db.prepare(NHAC_GHI).bind(v.orderId, v.loai, v.moc, v.partyId, v.at);
+/** Đơn Trả sau đã xác nhận còn mốc hạn trả (ứng viên nhắc) — lọc nợ ở JS bằng cùng hàm tính nợ. */
+const DON_CO_HAN = defineSql(
+  "billing",
+  "credit_orders_with_due",
+  `SELECT id, order_code, booker_party_id, status, delivered_at, credit_due_at, credit_grace_until FROM v_ord_don_tra_sau
+   WHERE status = 'confirmed' AND delivered_at IS NULL AND credit_due_at IS NOT NULL AND booker_party_id IS NOT NULL ORDER BY credit_due_at`,
+);
+export const donCoHanTra = async (db: D1Database): Promise<DonTraSauRow[]> => (await db.prepare(DON_CO_HAN).all<DonTraSauRow>()).results;

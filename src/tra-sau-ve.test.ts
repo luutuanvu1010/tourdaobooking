@@ -7,6 +7,7 @@ import { readFileSync } from "node:fs";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { ACC, SALES, SUP, batDongHo, don, setup } from "../tests/audit/dieu-phoi-khung.mjs";
 import { seedStaff } from "../tests/audit/harness.mjs";
+import { cachBayGio, datMocTraSau, datQuaHan } from "../tests/audit/tra-sau-moc.mjs";
 
 const DT = "88888888-8888-4888-8888-888888888801";
 const BEN = `pty-${DT}`;
@@ -30,7 +31,7 @@ function dung() {
 }
 /** Đơn Trả sau đã xác nhận: 2 người lớn ZA1 (777.000 × 2 = 1.554.000), bên đặt BEN, hạn mức đủ rộng. */
 async function donTraSau(w: any): Promise<{ id: string; phaiThu: number }> {
-  const hm = await w.call("POST", "/api/tra-sau/han-muc", { as: SUP, body: { partyId: BEN, hanMuc: 10_000_000, soNgay: 7, lyDo: "thử" } });
+  const hm = await w.call("POST", "/api/tra-sau/han-muc", { as: SUP, body: { partyId: BEN, hanMuc: 10_000_000, gioTra: 168, gioAnHan: 0, lyDo: "thử" } });
   assert.equal(hm.status, 201, hm.text);
   const r = await w.call("POST", "/api/orders", {
     as: SALES,
@@ -50,7 +51,7 @@ const anh = (w: any, a: string) => w.call("GET", `/api/ve/anh/${a}`, { as: SALES
 const giao = (w: any, orderId: string) => w.call("POST", "/api/ve/giao", { as: SALES, body: { orderId, requestId: crypto.randomUUID() } });
 const duongDan = (w: any, orderId: string) => w.call("POST", "/api/ve/duong-dan", { as: SALES, body: { orderId } });
 const lietKe = (w: any, orderId: string) => w.call("GET", `/api/ve/don/${orderId}`, { as: SALES });
-const dayHanQuaKhu = (w: any, id: string) => w.sqlite.prepare("UPDATE orders SET credit_due_date = '2027-03-01' WHERE id = ?").run(id);
+const dayHanQuaKhu = (w: any, id: string) => datQuaHan(w.sqlite, id); // hết ân hạn từ hai ngày trước (theo đồng hồ giả của bài)
 
 test("đơn Trả sau đã xác nhận, chưa thu đồng nào: xem ảnh, giao vé, tạo đường dẫn, danh sách vé đều mở", async () => {
   const tat = batDongHo();
@@ -104,13 +105,13 @@ test("đơn Trả sau quá hạn còn nợ: vé CHƯA mở bị chặn ở cả 
   } finally { tat(); }
 });
 
-test("đúng ngày hạn trả chưa quá hạn: vé chưa mở vẫn mở được", async () => {
+test("ADR-0172 Đ3 mục 3: qua hạn trả nhưng còn trong ân hạn thì chưa chặn — vé chưa mở vẫn mở được", async () => {
   const tat = batDongHo();
   try {
     const w = dung();
     await nhapKho(w, 3);
     const d = await donTraSau(w);
-    w.sqlite.prepare("UPDATE orders SET credit_due_date = ? WHERE id = ?").run(NGAY, d.id);
+    datMocTraSau(w.sqlite, d.id, cachBayGio(-1), cachBayGio(11));
     assert.equal((await anh(w, phanBo(w, d.id)[0]!.id)).status, 200);
   } finally { tat(); }
 });

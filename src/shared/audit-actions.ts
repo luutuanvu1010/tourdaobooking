@@ -154,6 +154,10 @@ export const AUDIT_ACTIONS = {
   // `detail` = «hạn mức 50.000.000 ₫ · 7 ngày» / «ngừng hạn mức» (số tiền và số ngày, KHÔNG tên, SĐT, email, MST, lý do tự do).
   credit_limit_set: { label: "Đặt hạn mức trả sau", group: "ledger" },
   credit_limit_stopped: { label: "Ngừng hạn mức trả sau", group: "ledger" },
+  credit_ceiling_set: { label: "Đặt mức tối đa Quản trị được cấp", group: "ledger" },
+  credit_tier_default_set: { label: "Đặt số gợi ý trả sau theo cấp", group: "ledger" },
+  credit_due_extended: { label: "Ân hạn đơn trả sau", group: "order" },
+  credit_reminder_sent: { label: "Nhắc hạn trả sau", group: "ledger" },
   // Khoá sổ tháng (ADR-0080 D1; module ky-so — route ở billing): `order_id` NULL; `detail` = "Khoá sổ tháng MM/YYYY" (không tiền, không SĐT).
   ledger_period_closed: { label: "Khoá sổ tháng", group: "ledger" },
   order_handler_changed: { label: "Đổi Hướng dẫn viên", group: "order" },

@@ -28,7 +28,7 @@ function toChuc(db: DatabaseSync, id: string, vai?: string) {
   if (vai) run(db, "INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES (?, ?, ?, '2026-01-01', ?, ?)", `vai-${id}`, id, vai, AT, AT);
 }
 const moHanMuc = (db: DatabaseSync, id: string, party: string, tu: string, den: string | null = null, hanMuc = 50_000_000, ngay = 7) =>
-  run(db, "INSERT INTO bil_credit_limit (id, party_id, limit_amount, term_days, valid_from_date, valid_to_date, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", id, party, hanMuc, ngay, tu, den, AT, AT);
+  run(db, "INSERT INTO bil_credit_limit (id, party_id, limit_amount, term_days, term_hours, valid_from_date, valid_to_date, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", id, party, hanMuc, ngay, ngay * 24, tu, den, AT, AT);
 function donMau(db: DatabaseSync, id: string, status: "draft" | "confirmed" = "draft") {
   run(db, `INSERT INTO orders (id, order_code, staff_id, status, customer_name, customer_phone, subtotal, total, remaining_amount, created_at, updated_at)
     VALUES (?, ?, 's1', 'draft', 'Khách Giả', '0900000009', 100000, 100000, 100000, ?, ?)`, id, `TD-${id}`, AT, AT);
@@ -45,8 +45,8 @@ test("hạn mức: chỉ cấp cho hồ sơ mang loại được hưởng; nội
   toChuc(db, "dl-1", "TRAVEL_AGENCY");
   toChuc(db, "khong-vai");
   moHanMuc(db, "h1", "dl-1", "2026-11-01");
-  fails(db, "INSERT INTO bil_credit_limit (id, party_id, limit_amount, term_days, valid_from_date, created_at, updated_at) VALUES ('h2', 'khong-vai', 1000, 7, '2026-11-01', ?, ?)", /bil_credit_not_beneficiary/, AT, AT);
-  fails(db, "INSERT INTO bil_credit_limit (id, party_id, limit_amount, term_days, valid_from_date, created_at, updated_at) VALUES ('h3', 'pty-s1', 1000, 7, '2026-11-01', ?, ?)", /bil_credit_not_beneficiary/, AT, AT);
+  fails(db, "INSERT INTO bil_credit_limit (id, party_id, limit_amount, term_days, term_hours, valid_from_date, created_at, updated_at) VALUES ('h2', 'khong-vai', 1000, 7, 168, '2026-11-01', ?, ?)", /bil_credit_not_beneficiary/, AT, AT);
+  fails(db, "INSERT INTO bil_credit_limit (id, party_id, limit_amount, term_days, term_hours, valid_from_date, created_at, updated_at) VALUES ('h3', 'pty-s1', 1000, 7, 168, '2026-11-01', ?, ?)", /bil_credit_not_beneficiary/, AT, AT);
 });
 
 test("hạn mức: số tiền > 0, số ngày 1–365, không chồng ngày, không xoá, chỉ đóng một lần", () => {
@@ -116,11 +116,11 @@ test("orders: hình thức khoá khi đã rời nháp; sau «Đã giao» cả ha
   run(db, "UPDATE orders SET completed_at = ?, completed_by = 's1' WHERE id = 'o2'", AT);
 });
 
-test("v_ord_don_tra_sau: chỉ đơn CREDIT, đúng sáu cột", () => {
+test("v_ord_don_tra_sau: chỉ đơn CREDIT, đúng tám cột (0143 thêm hai mốc giờ)", () => {
   const db = fresh();
   donMau(db, "o1");
   donMau(db, "o2");
   run(db, "UPDATE orders SET payment_term = 'CREDIT' WHERE id = 'o2'");
-  assert.deepEqual(db.prepare("PRAGMA table_info(v_ord_don_tra_sau)").all().map((c) => c.name), ["id", "order_code", "booker_party_id", "status", "delivered_at", "credit_due_date"]);
+  assert.deepEqual(db.prepare("PRAGMA table_info(v_ord_don_tra_sau)").all().map((c) => c.name), ["id", "order_code", "booker_party_id", "status", "delivered_at", "credit_due_date", "credit_due_at", "credit_grace_until"]);
   assert.deepEqual(db.prepare("SELECT id FROM v_ord_don_tra_sau").all().map((r) => r.id), ["o2"]);
 });

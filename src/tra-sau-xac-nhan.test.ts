@@ -6,6 +6,7 @@ import assert from "node:assert/strict";
 import { seedStaff } from "../tests/audit/harness.mjs";
 import { A, ACC, ADM, PARTNER, SUP, datCo, inDays, setup, svc } from "../tests/audit/xac-nhan-khung.mjs";
 import { addDays, vnToday } from "./shared/vn-date.ts";
+import { cachBayGio, datMocTraSau, datQuaHan } from "../tests/audit/tra-sau-moc.mjs";
 
 const AT = "2026-10-01T00:00:00.000Z";
 const DT = "88888888-8888-4888-8888-888888888801"; // Đối tác có hồ sơ mang vai được hưởng ⇒ bên đặt = chính hồ sơ này
@@ -22,7 +23,8 @@ function dung(): W {
   datCo(w, "SERVICE", "ZA1", true);
   return w;
 }
-const hanMuc = (w: W, hanMuc: number, soNgay = 7) => w.call("POST", "/api/tra-sau/han-muc", { as: SUP, body: { partyId: BEN, hanMuc, soNgay, lyDo: "thử" } });
+const hanMuc = (w: W, hanMuc: number, gioTra = 168, gioAnHan = 0) => w.call("POST", "/api/tra-sau/han-muc", { as: SUP, body: { partyId: BEN, hanMuc, gioTra, gioAnHan, lyDo: "thử" } });
+const congGio = (iso: string, gio: number) => new Date(Date.parse(iso) + gio * 3_600_000).toISOString();
 const coBen = (extra: Record<string, unknown> = {}) => ({ customerName: "Khách Thử", customerPhone: "0912345678", ...extra });
 /** Lập đơn nháp. `as` = DT thì bên đặt tự là hồ sơ của DT; văn phòng thì truyền bookerPartyId. */
 async function lap(w: W, as: string, o: { ma?: string; term?: "PREPAID" | "CREDIT"; booker?: string | null; coc?: number } = {}) {
@@ -57,13 +59,15 @@ const DUONG = [
       return w.call("POST", `/api/orders/${o.id}/quyet-dinh`, { as: ADM, body: { ketQua: "CON_VE", yeuCauId: xem.xacNhan.yeuCau.id, updatedAt: xem.order.updatedAt } });
     } },
 ] as const;
-const trangThai = (w: W, id: string) => w.q("SELECT status, payment_term AS t, credit_due_date AS h FROM orders WHERE id = ?", id)[0] as { status: string; t: string; h: string | null };
+const trangThai = (w: W, id: string) => w.q("SELECT status, payment_term AS t, credit_due_at AS h FROM orders WHERE id = ?", id)[0] as { status: string; t: string; h: string | null };
+/** Hai mốc, ngày cũ và giờ xác nhận của đơn (ADR-0172 Đ3 mục 2). */
+const moc = (w: W, id: string) => w.q("SELECT confirmed_at AS c, credit_due_at AS h, credit_grace_until AS g, credit_due_date AS n FROM orders WHERE id = ?", id)[0] as { c: string; h: string; g: string; n: string };
 const phienBan = (w: W) => w.q("SELECT version FROM bil_credit_guard WHERE party_id = ?", BEN)[0]?.version ?? null;
 
 for (const d of DUONG) {
-  test(`(${d.ten}) hạn mức đủ thì xác nhận được và ghi hạn trả = hôm nay + số ngày; vượt thì 409 có số tiền, đơn ở lại nháp, không dòng nào của lô`, async () => {
+  test(`(${d.ten}) hạn mức đủ thì xác nhận được và chụp hạn trả = giờ xác nhận + thời hạn, hết ân hạn = hạn trả + ân hạn; vượt thì 409 có số tiền, đơn ở lại nháp, không dòng nào của lô`, async () => {
     const w = dung();
-    assert.equal((await hanMuc(w, Math.floor(d.tong * 1.5), 10)).status, 201);
+    assert.equal((await hanMuc(w, Math.floor(d.tong * 1.5), 36, 12)).status, 201);
     const d1 = await nhapTS(w, d.as, d.ma);
     const d2 = await nhapTS(w, d.as, d.ma); // lưu được vì lúc lưu nợ còn 0
     if ("truoc" in d) {
@@ -72,7 +76,11 @@ for (const d of DUONG) {
     }
     const r1 = await d.xn(w, d1);
     assert.equal(r1.status, 200, r1.text);
-    assert.deepEqual({ ...trangThai(w, d1.id) }, { status: "confirmed", t: "CREDIT", h: addDays(HOM_NAY(), 10) });
+    const m = moc(w, d1.id);
+    assert.equal(m.h, congGio(m.c, 36), "hạn trả = giờ xác nhận (cùng mốc của lô) + 36 giờ");
+    assert.equal(m.g, congGio(m.c, 48), "hết ân hạn = hạn trả + 12 giờ");
+    assert.equal(m.n, vnToday(new Date(m.h)), "cột ngày cũ = ngày Việt Nam của hạn trả (lùi bản an toàn)");
+    assert.deepEqual([trangThai(w, d1.id).status, trangThai(w, d1.id).t], ["confirmed", "CREDIT"]);
     assert.equal(phienBan(w), 2, "một lần đặt hạn mức + một lần xác nhận");
     const truoc = w.q("SELECT count(*) AS n FROM audit_log WHERE order_id = ?", d2.id)[0].n;
     const r2 = await d.xn(w, d2);
@@ -127,7 +135,7 @@ test("đơn Trả trước đi đường cũ: không câu nào chạm dòng phi�
   w.chenTruocLo((stmts: { sql: string }[]) => (thay.push(...stmts.map((s) => s.sql)), false), () => undefined, 99);
   assert.equal((await w.call("POST", `/api/orders/${r.json.order.id}/status`, { as: A, body: { status: "confirmed" } })).status, 200);
   assert.ok(thay.length > 0, "chống bài rỗng: có thấy lô xác nhận");
-  assert.ok(!thay.some((s) => /bil_credit_guard|credit_due_date/.test(s)), "lô của đơn Trả trước không có câu Trả sau");
+  assert.ok(!thay.some((s) => /bil_credit_guard|credit_due_date|credit_due_at/.test(s)), "lô của đơn Trả trước không có câu Trả sau");
   assert.equal(phienBan(w), null);
 });
 
@@ -149,19 +157,24 @@ test("hai lệnh cùng lúc: lô thứ hai thua phiên bản, đơn thứ hai �
   assert.equal((await w.call("POST", `/api/orders/${d1.id}/status`, { as: A, body: { status: "confirmed" } })).status, 200, "đọc lại phiên bản mới thì qua");
 });
 
-test("đơn quá hạn còn nợ chặn đơn Trả sau mới của bên đó (co_don_qua_han); đơn Trả trước vẫn qua; trả hết thì Trả sau mở lại", async () => {
+test("ADR-0172 tiêu chí 4: trong ân hạn chưa chặn; hết ân hạn còn nợ chặn đơn Trả sau mới (co_don_qua_han); đơn Trả trước vẫn qua (ADR-0173 Đ2 mục 3); trả hết thì Trả sau mở lại", async () => {
   const w = dung();
   assert.equal((await hanMuc(w, 10_000_000)).status, 201);
   const cu = await nhapTS(w, A);
   assert.equal((await w.call("POST", `/api/orders/${cu.id}/status`, { as: A, body: { status: "confirmed" } })).status, 200);
+  const anHan = await nhapTS(w, A);
   const moi = await nhapTS(w, A);
-  w.sqlite.prepare("UPDATE orders SET credit_due_date = ? WHERE id = ?").run(addDays(HOM_NAY(), -1), cu.id);
+  datMocTraSau(w.sqlite, cu.id, cachBayGio(-1), cachBayGio(11)); // T+37 của ví dụ ADR: qua hạn trả, còn trong ân hạn
+  assert.equal((await w.call("POST", `/api/orders/${anHan.id}/status`, { as: A, body: { status: "confirmed" } })).status, 200, "trong ân hạn: chưa chặn");
+  datQuaHan(w.sqlite, cu.id); // T+49: hết ân hạn mà còn nợ
+  datMocTraSau(w.sqlite, anHan.id, cachBayGio(100));
   const r = await w.call("POST", `/api/orders/${moi.id}/status`, { as: A, body: { status: "confirmed" } });
   assert.deepEqual([r.status, r.json.error.code], [409, "co_don_qua_han"]);
   const tra = await lap(w, A);
   assert.equal((await w.call("POST", `/api/orders/${tra.json.order.id}/status`, { as: A, body: { status: "confirmed" } })).status, 200, "Trả trước qua");
   const thu = await w.call("POST", `/api/orders/${cu.id}/payments`, { as: ACC, body: { soTien: T_ZB1, hinhThuc: "CASH", nguoiThu: "cong_ty" } });
   assert.equal(thu.status, 201, thu.text);
+  assert.equal(trangThai(w, cu.id).status, "confirmed", "ADR-0173 Đ2 mục 4: máy không tự huỷ đơn quá hạn");
   assert.equal((await w.call("POST", `/api/orders/${moi.id}/status`, { as: A, body: { status: "confirmed" } })).status, 200, "hết nợ thì mở lại");
 });
 
@@ -180,15 +193,20 @@ test("Trả sau không nhận lời khai đặt cọc: 409 lúc lưu; đơn nhá
   assert.equal(sai.status, 400);
 });
 
-test("hạn trả chụp một lần: đổi số ngày của hạn mức sau đó không đổi hạn của đơn cũ; đơn đã xác nhận không đổi hình thức được", async () => {
+test("ADR-0172 tiêu chí 5: hạn trả chụp một lần — đổi thời hạn sau đó không đổi mốc của đơn cũ, đơn mới theo số mới; đơn đã xác nhận không đổi hình thức được", async () => {
   const w = dung();
-  assert.equal((await hanMuc(w, 10_000_000, 7)).status, 201);
+  assert.equal((await hanMuc(w, 10_000_000, 36, 12)).status, 201);
   const o = await nhapTS(w, A);
   assert.equal((await w.call("POST", `/api/orders/${o.id}/status`, { as: A, body: { status: "confirmed" } })).status, 200);
-  assert.equal((await hanMuc(w, 10_000_000, 30)).status, 201);
-  assert.equal(trangThai(w, o.id).h, addDays(HOM_NAY(), 7));
+  const cu = moc(w, o.id);
+  assert.equal((await hanMuc(w, 10_000_000, 72, 0)).status, 201);
+  assert.deepEqual(moc(w, o.id), cu, "đơn đã xác nhận giữ mốc cũ");
+  const o2 = await nhapTS(w, A);
+  assert.equal((await w.call("POST", `/api/orders/${o2.id}/status`, { as: A, body: { status: "confirmed" } })).status, 200);
+  const m2 = moc(w, o2.id);
+  assert.deepEqual([m2.h, m2.g], [congGio(m2.c, 72), congGio(m2.c, 72)], "đơn mới theo số mới");
   const xem = (await w.call("GET", `/api/orders/${o.id}`, { as: A })).json.order;
-  assert.deepEqual([xem.paymentTerm, xem.hanTra], ["CREDIT", addDays(HOM_NAY(), 7)]);
+  assert.deepEqual([xem.paymentTerm, xem.hanTra, xem.hetAnHan], ["CREDIT", cu.h, cu.g]);
   const sua = await w.call("PUT", `/api/orders/${o.id}`, { as: A, body: coBen({ services: [svc("ZB1", inDays(3))], paymentTerm: "PREPAID", expectedUpdatedAt: xem.updatedAt }) });
   assert.equal(sua.status, 409, sua.text);
   assert.throws(() => w.sqlite.prepare("UPDATE orders SET payment_term = 'PREPAID' WHERE id = ?").run(o.id), /payment_term_locked/);
@@ -241,7 +259,7 @@ test("quét nơi gọi: mọi lời gọi `soanXacNhan` / `confirmOrder` ngoài 
 
 test("«Đã giao» đơn Trả sau còn nợ đi qua ROUTE THẬT: 409 «Đơn trả sau còn nợ … — chờ đối tác thanh toán»; thu đủ thì qua (tiêu chí 8, không chỉ quét chữ trong mã)", async () => {
   const w = dung();
-  assert.equal((await hanMuc(w, 10_000_000, 7)).status, 201);
+  assert.equal((await hanMuc(w, 10_000_000, 168)).status, 201);
   // Bên đặt mang vai được hưởng nên «Đã giao» đòi có mức hoa hồng: đặt một mức để lý do «còn nợ» là lý do duy nhất còn lại.
   assert.equal((await w.call("POST", "/api/pricing/hoa-hong", { as: ACC, body: { doiTuong: { loai: "VAI", code: "TRAVEL_AGENCY" }, phamVi: "ALL", kieu: "PER_PAX", moiKhach: 50_000, tuNgay: "2026-01-01" } })).status, 201);
   const o = await nhapTS(w, A);
