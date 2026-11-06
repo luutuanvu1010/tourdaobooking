@@ -460,6 +460,18 @@ test("HD-02-DT: dịch vụ có giá bị sửa ⇒ cột Đơn giá, dòng tổ
   const m = buildDt(order());
   assert.equal(one(m, "service").columns.unitPrice, "Đơn giá");
   assert.equal(one(m, "summary").rows[0]!.label, "Tạm tính");
+  // Ca hỗn hợp: «Đơn giá»/«Tạm tính» cũng là chữ của mẫu nội bộ nên chưa phân biệt được hai mẫu; đi kèm dấu riêng của mẫu đối tác («Loại khách», mã mẫu) và so với mẫu nội bộ.
+  const hon = order({ services: [svc({ items: [item()] }), svc({ id: "svc_INTERNAL_2" })], subtotal: 6_300_000, discount: 0, giamGiaHieuLuc: 0, total: 6_300_000, paid: 0, remaining: 6_300_000 });
+  const dt = buildDt(hon);
+  const [khop, sua] = blocksOf(dt, "service");
+  assert.equal(one(dt, "header").maMau, "Mẫu HD-02-DT");
+  assert.deepEqual([khop!.columns.description, khop!.columns.unitPrice], ["Loại khách", "Giá công bố"]);
+  assert.deepEqual([sua!.columns.description, sua!.columns.unitPrice], ["Loại khách", "Đơn giá"]);
+  assert.equal(one(dt, "summary").rows[0]!.label, "Tạm tính");
+  // cùng đơn, mẫu nội bộ: không «Giá công bố», cột đầu «Mô tả», không mã mẫu
+  const nb = build(hon);
+  assert.ok(blocksOf(nb, "service").every((x) => x.columns.unitPrice === "Đơn giá" && x.columns.description === "Mô tả"));
+  assert.equal(one(nb, "header").maMau, null);
   assert.equal(one(buildDt(donKhop({ services: [svc({ unit: "per4Pax", items: [item()] })] })), "service").columns.description, "Mô tả");
   assert.equal(one(buildDt(donKhop({ services: [svc({ kind: "manual", catalogCode: null, unit: "manual", items: [item({ catalogCode: null, paxCode: null, catalogPrice: null })] })] })), "service").columns.description, "Mô tả");
 });
