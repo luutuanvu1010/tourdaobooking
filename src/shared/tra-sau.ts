@@ -122,3 +122,13 @@ export function moVeDuoc(i: { thuDu: boolean; traSau: { hanTra: string | null; h
   if (i.veDaMo) return true;
   return !quaHan({ ...i.traSau, bayGio: i.bayGio });
 }
+
+/**
+ * ADR-0173 Đ3 mục 5: không ngừng được hồ sơ đại lý còn đơn Trả sau chưa trả — MỘT câu cho mọi đường ngừng (ngưng tài khoản, bỏ quyền Đối tác, gỡ vai được hưởng cuối cùng,
+ * thực hiện phiếu xoá, gộp hồ sơ). Nêu mã đơn (tối đa 5, còn lại đếm).
+ */
+export function cauConNoTraSau(maDon: readonly string[]): string {
+  const dau = maDon.slice(0, 5).join(", ");
+  const them = maDon.length > 5 ? ` và ${maDon.length - 5} đơn khác` : "";
+  return `Hồ sơ này còn đơn trả sau chưa trả (${dau}${them}) nên chưa ngừng được. Thu đủ các đơn đó trước.`;
+}

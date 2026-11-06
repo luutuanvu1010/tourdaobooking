@@ -137,3 +137,33 @@ test("ADR-0173 tiêu chí 6: nhắc đúng mốc (trước hạn 6 giờ, sau h�
   assert.equal((await w.call("POST", `/api/orders/${id}/payments`, { as: ACC, body: { soTien: T_ZB1, hinhThuc: "CASH", nguoiThu: "cong_ty" } })).status, 201);
   assert.equal(await nhacHanTraSau(w.env.DB, congGio(moi, 2)), 0, "đơn đã trả đủ không nhắc");
 });
+
+// ---- ADR-0173 Đ3 mục 5, tiêu chí 8: không ngừng được hồ sơ đại lý còn đơn Trả sau chưa trả --------------------------------------------------------------
+test("ADR-0173 tiêu chí 8: ngưng tài khoản đại lý còn nợ 409 nêu mã đơn; gỡ vai đại lý cuối cùng của hồ sơ chưa có tài khoản còn nợ 409; hết nợ thì ngừng được", async () => {
+  const w = dung();
+  assert.equal((await hanMuc(w, 10_000_000)).status, 201);
+  const id = await donXacNhan(w);
+  const maDon = w.q("SELECT order_code AS m FROM orders WHERE id = ?", id)[0].m as string;
+  const ngung = await w.call("PATCH", `/api/staff/${DT}`, { as: ADM, body: { active: false } });
+  assert.deepEqual([ngung.status, ngung.json.error.code], [409, "con_no_tra_sau"], ngung.text);
+  assert.ok(ngung.json.error.message.includes(maDon), "câu nêu mã đơn");
+  assert.equal(w.q("SELECT active FROM staff WHERE id = ?", DT)[0].active, 1, "tài khoản chưa bị ngưng");
+  // Hồ sơ đại lý chưa có tài khoản: gỡ vai được hưởng cuối cùng.
+  const KTK = "pty-12121212-1212-4121-8121-121212121212";
+  w.sqlite.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES (?, 'ORGANIZATION', 'Đại Lý Không Tài Khoản', 1, ?, ?)").run(KTK, AT, AT);
+  w.sqlite.prepare("INSERT INTO pty_organization (party_id, created_at, updated_at) VALUES (?, ?, ?)").run(KTK, AT, AT);
+  w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES ('11111111-2222-4333-8444-555555555555', ?, 'TRAVEL_AGENCY', '2026-01-01', ?, ?)").run(KTK, AT, AT);
+  assert.equal((await w.call("POST", "/api/tra-sau/han-muc", { as: SUP, body: { partyId: KTK, hanMuc: 10_000_000, gioTra: 36, gioAnHan: 0 } })).status, 201);
+  const r = await w.call("POST", "/api/orders", { as: A, body: { customerName: "Khách Thử", customerPhone: "0912345678", bookerPartyId: KTK, paymentTerm: "CREDIT", services: [svc("ZB1", inDays(3))] } });
+  assert.equal(r.status, 201, r.text);
+  assert.equal((await w.call("POST", `/api/orders/${r.json.order.id}/status`, { as: A, body: { status: "confirmed" } })).status, 200);
+  const go = await w.call("POST", `/api/parties/${KTK}/roles/11111111-2222-4333-8444-555555555555/end`, { as: ADM, body: {} });
+  assert.deepEqual([go.status, go.json?.error?.code], [409, "con_no_tra_sau"], go.text);
+  // Thu đủ: ngừng được.
+  assert.equal((await w.call("POST", `/api/orders/${r.json.order.id}/payments`, { as: ACC, body: { soTien: T_ZB1, hinhThuc: "CASH", nguoiThu: "cong_ty" } })).status, 201);
+  const go2 = await w.call("POST", `/api/parties/${KTK}/roles/11111111-2222-4333-8444-555555555555/end`, { as: ADM, body: {} });
+  assert.notEqual(go2.json?.error?.code, "con_no_tra_sau", go2.text);
+  assert.equal((await w.call("POST", `/api/orders/${id}/payments`, { as: ACC, body: { soTien: T_ZB1, hinhThuc: "CASH", nguoiThu: "cong_ty" } })).status, 201);
+  const ngung2 = await w.call("PATCH", `/api/staff/${DT}`, { as: ADM, body: { active: false } });
+  assert.equal(ngung2.status, 200, ngung2.text);
+});

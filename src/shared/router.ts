@@ -106,7 +106,8 @@ export interface GopHoSoNoi {
   viecCua: (partyId: string) => Promise<ViecCuaHoSo>;
   donNguoiDat: (partyId: string) => Promise<DonCuaNguoiDatTom>;
   /** ADR-0168 Đ2 mục 6: mã các đơn Trả sau còn nợ của hồ sơ — `orders` không biết nợ (billing tính), gốc lắp ráp điền. Tách khỏi `donNguoiDat` để hàng chờ phiếu xoá không tốn thêm truy vấn mỗi dòng. */
-  conNoTraSau?: (partyId: string) => Promise<string[]>;
+  /** BẮT BUỘC (ADR-0173 Đ3 mục 5, trang ghép (3)): không đọc được nợ thì hàm NÉM — mọi đường ngừng hồ sơ chặn theo (không đoán «hết nợ»). */
+  conNoTraSau: (partyId: string) => Promise<string[]>;
   cauDoiDon: (tuPartyId: string, sangPartyId: string, at: string) => D1PreparedStatement;
   soDongNo: (partyId: string) => Promise<number>;
   soDangNhap: () => Promise<{ partyId: string; phone: string }[]>;
@@ -635,7 +636,7 @@ export function createApp(opts: AppOptions) {
       gopHoSo: {
         viecCua: (id) => opts.injected.gopHoSo(envH).viecCua(id),
         donNguoiDat: (id) => opts.injected.gopHoSo(envH).donNguoiDat(id),
-        conNoTraSau: (id) => opts.injected.gopHoSo(envH).conNoTraSau?.(id) ?? Promise.resolve([]),
+        conNoTraSau: (id) => opts.injected.gopHoSo(envH).conNoTraSau(id),
         cauDoiDon: (tu, sang, at) => opts.injected.gopHoSo(envH).cauDoiDon(tu, sang, at),
         soDongNo: (id) => opts.injected.gopHoSo(envH).soDongNo(id),
         soDangNhap: () => opts.injected.gopHoSo(envH).soDangNhap(),

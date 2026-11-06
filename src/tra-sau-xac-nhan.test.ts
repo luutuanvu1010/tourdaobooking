@@ -269,7 +269,11 @@ test("«Đã giao» đơn Trả sau còn nợ đi qua ROUTE THẬT: 409 «Đơn 
   assert.equal(chua.status, 409, chua.text);
   assert.ok(String(chua.json.error.message).includes(`Đơn trả sau còn nợ ${T_ZB1.toLocaleString("vi-VN")} ₫ — chờ đối tác thanh toán.`), chua.text);
   assert.equal(w.q("SELECT delivered_at FROM orders WHERE id = ?", o.id)[0].delivered_at, null, "đơn chưa sang Đã giao");
+  // ADR-0173 Đ3 mục 1, tiêu chí 5: còn nợ thì chưa có dòng hoa hồng nào trong sổ — không vào kỳ trả, không đối trừ được.
+  const hoaHong = () => Number(w.q("SELECT count(*) AS n FROM bil_debt_line WHERE order_id = ? AND kind_code = 'HOA_HONG'", o.id)[0].n);
+  assert.equal(hoaHong(), 0, "còn nợ: chưa có hoa hồng");
   assert.equal((await w.call("POST", `/api/orders/${o.id}/payments`, { as: ACC, body: { soTien: T_ZB1, hinhThuc: "CASH", nguoiThu: "cong_ty" } })).status, 201);
   const du = await w.call("POST", `/api/orders/${o.id}/delivered`, { as: SUP, body: {} });
   assert.equal(du.status, 200, du.text);
+  assert.equal(hoaHong(), 1, "thu đủ rồi bấm Xong và đủ tiền: hoa hồng mới vào sổ");
 });

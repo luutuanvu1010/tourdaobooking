@@ -1764,6 +1764,7 @@ export const ordersModule: AppModule = {
       const id = params.id!;
       const d = UUID_RE.test(id) ? await mocTraSauCuaDon(env.DB, id) : null;
       if (!d) return NOT_FOUND();
+      if (d.delivered_at) return DA_GIAO(); // NT-F7: đơn đã Xong và đủ tiền thì mọi lệnh ghi của orders bị chặn sớm
       if (d.payment_term !== "CREDIT" || d.status !== "confirmed" || d.credit_due_at === null || d.credit_grace_until === null) {
         return error(409, "khong_phai_don_tra_sau", "Chỉ lùi được hạn trả của đơn trả sau đã xác nhận.");
       }

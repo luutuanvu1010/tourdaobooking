@@ -818,12 +818,12 @@ export async function nguoiDaLapDon(db: D1Database): Promise<NguoiDaLapDonRow[]>
 // ---- Trả sau: hai mốc hạn trả của đơn (ADR-0172 Đ3, ADR-0173 Đ1 mục 3; migration 0143) ------------------------------------------------------------
 
 export interface DonTraSauMocRow {
-  id: string; order_code: string; status: string; payment_term: "PREPAID" | "CREDIT"; booker_party_id: string | null; credit_due_at: string | null; credit_grace_until: string | null;
+  id: string; order_code: string; status: string; payment_term: "PREPAID" | "CREDIT"; booker_party_id: string | null; delivered_at: string | null; credit_due_at: string | null; credit_grace_until: string | null;
 }
 const ORDER_CREDIT_MOC = defineSql(
   "orders",
   "order_credit_moc",
-  `SELECT id, order_code, status, payment_term, booker_party_id, credit_due_at, credit_grace_until FROM orders WHERE id = ?1`,
+  `SELECT id, order_code, status, payment_term, booker_party_id, delivered_at, credit_due_at, credit_grace_until FROM orders WHERE id = ?1`,
 );
 export const mocTraSauCuaDon = (db: D1Database, orderId: string): Promise<DonTraSauMocRow | null> => db.prepare(ORDER_CREDIT_MOC).bind(orderId).first<DonTraSauMocRow>();
 /**
