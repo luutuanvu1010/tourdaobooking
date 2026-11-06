@@ -17,7 +17,7 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
-    // Biên nhận mẫu HD-02-DT cho đơn đối tác. Không migration. Số và ngày tạm: bước A.0 đặt lại nếu cần.
+    // Biên nhận mẫu HD-02-DT cho đơn đối tác. Không migration. Bước A.0 ngày 7/11: 2.70, 2.71, 2.72 lên cùng một lần triển khai, giữ ba mục riêng (tiền lệ 2.55–2.57).
     version: "2.72",
     date: "2026-11-07",
     items: [
@@ -25,18 +25,19 @@ export const CHANGELOG: readonly ReleaseNote[] = [
     ],
   },
   {
-    // Công tắc «Khách của đối tác trả cho Công ty» (ADR-0178 Phần A). Migration 0144. Số và ngày tạm: bước A.0 đặt lại nếu cần.
+    // Công tắc «Khách của đối tác trả cho Công ty» (ADR-0178 Phần A, migration 0144) và Quản trị gán mọi vai trò trừ IT (ADR-0176, không migration). Ngày đặt ở bước A.0 7/11.
     version: "2.71",
-    date: "2026-11-06",
+    date: "2026-11-07",
     items: [
       { kind: "moi", text: "Công tắc «Khách của đối tác trả cho Công ty» ở màn Cấp độ đại lý: Toàn quyền bật, tắt; Kế toán, Quản trị xem. Mặc định Bật, như trước." },
       { kind: "doi", text: "Đơn Đối tác lập lúc công tắc Tắt: chỉ đối tác đó ghi khoản thu («Tôi thu»), không có QR thanh toán. Đơn đã lập giữ cách thu của lúc lập." },
+      { kind: "doi", text: "Quản trị gán được mọi vai trò cho tài khoản, kể cả Kế toán, Giám đốc, Điều hành chung, Hành chính nhân sự; riêng vai trò IT thì không." },
     ],
   },
   {
-    // Trả sau theo giờ và luật vận hành công nợ (ADR-0172, ADR-0173). Migration 0143. Số và ngày tạm: bước A.0 đặt lại nếu cần.
+    // Trả sau theo giờ và luật vận hành công nợ (ADR-0172, ADR-0173), kèm phần làm hết nợ Trả sau (Task 2, 3). Migration 0143. Ngày đặt ở bước A.0 7/11.
     version: "2.70",
-    date: "2026-11-06",
+    date: "2026-11-07",
     items: [
       { kind: "doi", text: "Trả sau nay đặt ở màn Cấp độ đại lý, cột «Trả sau»: Quản trị, Toàn quyền cấp, điều chỉnh, đóng hạn mức; Kế toán xem. Màn Hạn mức trả sau chỉ để xem ai đang nợ.", bai: { id: "viec/han-muc-tra-sau", ten: "Cấp hạn mức trả sau cho đối tác" } },
       { kind: "doi", text: "Thời hạn trả tính bằng giờ từ lúc đơn được xác nhận, có thêm số giờ ân hạn. Trong ân hạn chỉ báo; hết ân hạn mà còn nợ mới chặn đơn trả sau mới và vé chưa mở." },
@@ -45,6 +46,7 @@ export const CHANGELOG: readonly ReleaseNote[] = [
       { kind: "moi", text: "Đối tác xem mục «Trả sau của tôi» ở trang Tôi: hạn mức, số đang nợ và từng đơn còn nợ." },
       { kind: "moi", text: "Hộp thư nhắc đối tác trước hạn trả 6 giờ và khi đơn quá hạn; Kế toán cũng được báo khi quá hạn." },
       { kind: "doi", text: "Đối tác còn nợ Trả sau thì chưa ngừng tài khoản, gỡ vai trò đối tác hay xoá hồ sơ được." },
+      { kind: "sua", text: "Sửa đơn trả sau làm tăng tiền: Nền tảng so phần tăng với hạn mức khả dụng, không còn báo vượt hạn mức nhầm khi đơn đã thu một phần." },
     ],
   },
   {
