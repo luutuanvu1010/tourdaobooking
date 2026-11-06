@@ -1,6 +1,6 @@
 // Màn «Cấp độ đại lý» (đặc tả docs/superpowers/specs/2026-11-04-man-cap-dai-ly.md): mọi hồ sơ đang mang vai trò được hưởng, có hay chưa có tài khoản; bấm ô cấp mở đúng bảng đặt cấp của cột ở Quản lý tài khoản.
 // Gọi: GET /api/pricing/cap-dai-ly (một lần cho cả danh sách). Trang không tự có lệnh ghi: đặt, đổi, ngừng cấp riêng đi qua bảng ở web/cot-cap-dai-ly.ts. Cấp do máy chủ trả; trang chỉ lọc và vẽ.
-// Cột «Trả sau» và khối «Cài đặt Trả sau» (ADR-0172 Đ1, Đ2): web/o-tra-sau.ts, nạp một lần cho cả màn (GET /api/tra-sau/han-muc, /api/tra-sau/goi-y); lỗi ⇒ ô hiện «—», bảng cấp vẫn dùng được.
+// Cột «Trả sau» và khối «Hạn mức trả sau» (ADR-0172 Đ1, Đ2): web/o-tra-sau.ts, nạp một lần cho cả màn (GET /api/tra-sau/han-muc, /api/tra-sau/goi-y); lỗi ⇒ ô hiện «—», bảng cấp vẫn dùng được.
 // Máy chủ hỏi lại cổng ở mọi lời gọi; hỏi ở đây chỉ để không gọi và nói câu rõ ràng.
 import { ApiError, api, type Api } from "./api";
 import { datTieuDiemODongCap, oCapHoSo } from "./cot-cap-dai-ly";

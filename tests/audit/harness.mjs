@@ -197,6 +197,7 @@ export function khoR2Gia() {
  *   trả số cố định, CHỈ để kiểm nhánh «đơn đã có khoản thu» (từ L2 nháp không ghi thu được qua API).
  * - `khongTiemAnDanhPhien: true` — ADR-0126 đ8 (lát H-5 Gói 2): bỏ hàm tiêm câu ẩn danh sổ phiên của auth ⇒ route Thực hiện phiếu xoá của chủ có tài khoản PHẢI trả 503 `erasure_unavailable`,
  *   không thực hiện thiếu phần sổ phiên. Cùng khuôn `khongTiemNhan` (bỏ đúng MỘT hàm tiêm, không nới luật nào).
+ * - `khongTiemTraSauCuaDon: true` — bỏ ĐÚNG MỘT hàm tiêm «nợ của một đơn Trả sau» (kế hoạch 2026-11-05 Task 3): cổng sửa tăng / huỷ / đổi bên đặt phải trả 503, không đoán.
  * - `khongDongBoChuyen: true` — ADR-0104 Đ2 (kế hoạch N9 "đổi cách dựng, không nới luật"): bỏ hàm tiêm máy đồng bộ chuyến ⇒ router dùng `dongBoDiThang` (lô = câu
  *   đơn, phản hồi `capNhatTay`). CHỈ cho bài cần TRẠNG THÁI GIỮ (suất của đơn huỷ / khách đã đổi còn trên chuyến) để kiểm lý do giữ hay nút tay — bài đó vẫn phải
  *   thấy lý do giữ.
@@ -256,6 +257,8 @@ export function world(tuyChon = {}) {
     });
   } else if (tuyChon.khongTiemTraSau) {
     ungDung = app.taoAppChoKhungThu({ kiemTraSau: undefined }); // ADR-0168: gốc lắp ráp không tiêm cổng hạn mức ⇒ đơn Trả sau bị chặn 503
+  } else if (tuyChon.khongTiemTraSauCuaDon) {
+    ungDung = app.taoAppChoKhungThu({ traSauCuaDon: undefined }); // Kế hoạch Trả sau 2026-11-05 Task 3: không đọc được nợ của đơn ⇒ cổng sửa tăng / huỷ / đổi bên đặt chặn 503
   } else if (tuyChon.khongTiemCoc) {
     ungDung = app.taoAppChoKhungThu({ cauCocKhiXacNhan: undefined }); // ADR-0159: gốc lắp ráp không dựng được câu ⇒ 503
   } else if (tuyChon.chenTruocLoCoc) {

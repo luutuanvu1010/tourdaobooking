@@ -15,6 +15,7 @@ import { CAU_DA_NOP_PHAN_DINH, CAU_KHACH_CHUA_TRA_DONG_NAO, METHOD_CODES, conLai
 import { CHUA_CO_CONG_TY, PARTY_ID_RE, docLyDo, docNgay, docSoTien, layKyDaKhoa, lineOf, loi, loiKhoaKy, loiTrigger, toLineRow, toReceiptRow, type KetQua, type NguoiGoi } from "./service";
 import { chuanBiLoThay, kiemNgayThay, loiLoThay, phaiThuSauThay } from "./thay-lan-thu";
 import { phaiThuHienHanh } from "./thay-lan-thu-repo";
+import { cauTangChoDon } from "./tra-sau-tang";
 
 const NOT_FOUND = () => loi(404, "not_found", "Không tìm thấy phiếu phân định.");
 const CUNG_NGUOI = () => loi(409, "attribution_same_person", "Bạn là người đã phân định khoản này — cần một người khác ghi sổ (tách nhiệm vụ).");
@@ -236,6 +237,7 @@ export async function ghiTheoPhanDinh(db: D1Database, input: { rulingId: string;
       auditStatement(db, { orderId: r.order_id, staffId: by, action: "attribution_posted", at, targetType: "ledger", targetId: r.root_id ?? r.id, detail: `đổi bên chịu · ${r.case_code} · ${dong(amount)}` }),
       ...await cauTinBenChiu(db, [k.benChiu], congTyId, { orderId: r.order_id, by, at, detail: "Bạn không còn chịu khoản này", action: "attribution_reassigned" }),
       ...await cauTinBenChiu(db, [r.liable_party_id], congTyId, { orderId: r.order_id, by, at, detail: "Bạn được phân định chịu một khoản trên đơn" }),
+      ...(await cauTangChoDon(db, r.order_id, at)), // ADR-0168 Đ2 mục 4: dòng nợ đổi người ⇒ đơn Trả sau tăng phiên bản bên đặt (Task 2, nợ 1)
     ];
     return chayLo(db, stmts, ngay.value, r.order_id);
   }
@@ -286,6 +288,8 @@ export async function ghiTheoPhanDinh(db: D1Database, input: { rulingId: string;
   for (const d of dongNo(r.liable_party_id, congTyId, amount, false)) stmts.push(lineIfPostingStatement(db, lineOf(d, postingId, r.order_id, null, at, by)));
   stmts.push(auditStatement(db, { orderId: r.order_id, staffId: by, action: "attribution_posted", at, targetType: "ledger", targetId: attrId, detail: `${r.case_code} · giảm trừ ${dong(amount)}${moneyOut ? " · có trả khách" : ""}` }));
   stmts.push(...await cauTinBenChiu(db, [r.liable_party_id], congTyId, { orderId: r.order_id, by, at, detail: "Bạn được phân định chịu một khoản trên đơn" }));
+  // ADR-0168 Đ2 mục 4 (Task 2, nợ 1): giảm trừ / trả khách đổi nợ của đơn Trả sau ⇒ tăng phiên bản bên đặt. Lô Thay đã tự mang câu này (`chuanBiLoThay`) — không tăng hai lần.
+  if (!thay?.ok) stmts.push(...(await cauTangChoDon(db, r.order_id, at)));
   return chayLo(db, stmts, ngay.value, r.order_id);
 }
 

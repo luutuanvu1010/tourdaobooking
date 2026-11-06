@@ -20,7 +20,7 @@ test("nhãn hạn mức và nhãn quá hạn", () => {
   // ADR-0172 Đ3: thời hạn trả và ân hạn tính bằng GIỜ.
   assert.equal(cauHanMuc({ hanMuc: 50_000_000, gioTra: 36, gioAnHan: 12 }), "50.000.000 ₫ · trả trong 36 giờ · ân hạn 12 giờ");
   assert.equal(cauHanMuc({ hanMuc: 50_000_000, gioTra: 48, gioAnHan: 0 }), "50.000.000 ₫ · trả trong 48 giờ (2 ngày) · không ân hạn");
-  assert.equal(cauHanMuc({ hanMuc: null, gioTra: null, gioAnHan: null }), "Chưa bật");
+  assert.equal(cauHanMuc({ hanMuc: null, gioTra: null, gioAnHan: null }), "Chưa cấp");
   assert.equal(cauGio(1), "1 giờ");
   assert.equal(cauGio(720), "720 giờ (30 ngày)");
   assert.equal(nhanQuaHan(0), null);
@@ -65,9 +65,9 @@ test("số gợi ý của cấp (ADR-0172 Đ2): chỉ lấy đúng cấp hiện 
   assert.equal(goiYCuaCap(goiY, null), null);
 });
 
-test("khối chọn hình thức: không hạn mức thì ẩn; có hạn mức hiện «Còn được dùng»; quá hạn thì khoá kèm lý do", () => {
+test("khối chọn hình thức: không hạn mức thì ẩn; có hạn mức hiện «Hạn mức khả dụng»; quá hạn thì khoá kèm lý do", () => {
   assert.deepEqual(cauChonTraSau({ coHanMuc: false, conDuocDung: 0, coDonQuaHan: false }), { hien: false, khoa: null, cau: "" });
-  assert.deepEqual(cauChonTraSau({ coHanMuc: true, conDuocDung: 12_000_000, coDonQuaHan: false }), { hien: true, khoa: null, cau: "Còn được dùng 12.000.000 ₫" });
+  assert.deepEqual(cauChonTraSau({ coHanMuc: true, conDuocDung: 12_000_000, coDonQuaHan: false }), { hien: true, khoa: null, cau: "Hạn mức khả dụng 12.000.000 ₫" });
   const q = cauChonTraSau({ coHanMuc: true, conDuocDung: 12_000_000, coDonQuaHan: true });
   assert.equal(q.hien, true);
   assert.ok(q.khoa && q.khoa.includes("quá hạn"), String(q.khoa));

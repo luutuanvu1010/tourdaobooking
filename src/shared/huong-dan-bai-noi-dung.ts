@@ -133,25 +133,25 @@ export const BAI_VIEC: readonly BaiViec[] = [
   },
   {
     id: "han-muc-tra-sau",
-    tieuDe: "Bật Trả sau cho đối tác",
+    tieuDe: "Cấp hạn mức trả sau cho đối tác",
     nhomViec: "Cài đặt",
     trang: "capDaiLy",
     o: ["credit.limit.write"],
     gioiHan: [],
     neo: ["web/o-tra-sau.ts", "web/an-han-tra-sau.ts", "src/shared/han-muc-tra-sau-hien-thi.ts"],
-    moDau: "Đối tác được bật Trả sau thì đặt được đơn trả sau: vé mở trước, tiền thu sau trong thời hạn trả tính bằng giờ (ADR-0172). Quản trị và Toàn quyền bật; Kế toán chỉ xem.",
+    moDau: "Đối tác được cấp hạn mức trả sau thì đặt được đơn trả sau: vé mở trước, tiền thu sau trong thời hạn trả tính bằng giờ (ADR-0172). Quản trị và Toàn quyền cấp, điều chỉnh, đóng hạn mức; Kế toán chỉ xem.",
     noiDung: `### Các bước
-1. Mở **Cấp độ đại lý**, tìm đối tác, bấm chữ ở cột **Trả sau** của dòng đó.
+1. Mở **Cấp độ đại lý**, tìm đối tác, bấm chữ ở cột **Trả sau** của dòng đó (đối tác chưa có hạn mức thì ô ghi «Chưa cấp»).
 2. Bảng mở ra đã điền sẵn số gợi ý của cấp (nếu có). Sửa **Hạn mức (đồng)**, **Thời hạn trả (giờ)** và **Ân hạn (giờ)** nếu cần.
-3. Bấm [[Đặt hạn mức]].
+3. Bấm [[Cấp hạn mức]]. Đối tác đã có hạn mức thì nút ghi [[Điều chỉnh hạn mức]]: bấm để lưu số mới.
 
 ### Điều dễ sai
 - Thời hạn trả tính từ lúc đơn được xác nhận. Ví dụ 36 giờ: đơn xác nhận 8 giờ sáng thứ Hai thì hạn trả là 8 giờ tối thứ Ba.
 - Trong ân hạn, Nền tảng chỉ báo «Quá hạn, đang trong ân hạn», chưa chặn gì. Hết ân hạn mà còn nợ thì đối tác không đặt thêm đơn trả sau được, vé chưa mở cũng không mở được.
 - Đổi số mới chỉ áp cho đơn xác nhận sau đó; đơn đã xác nhận giữ hạn trả cũ.
-- Quản trị chỉ đặt được hạn mức tới **Mức tối đa Quản trị được cấp** do Toàn quyền đặt ở khối **Cài đặt Trả sau** cuối màn. Chưa có mức này thì Quản trị chưa bật được cho ai.
-- Không ai tự bật Trả sau cho hồ sơ của chính mình.
-- Bấm [[Ngừng hạn mức]] thì đối tác không đặt thêm đơn trả sau được, nhưng nợ cũ vẫn phải thu. Đối tác còn nợ thì chưa ngừng tài khoản hay gỡ vai trò đối tác được.
+- Quản trị chỉ đặt được hạn mức tới **Mức tối đa Quản trị được cấp** do Toàn quyền đặt ở khối **Hạn mức trả sau** cuối màn. Chưa có mức này thì Quản trị chưa cấp được cho ai.
+- Không ai tự cấp hạn mức trả sau cho hồ sơ của chính mình.
+- Bấm [[Đóng hạn mức]] (rồi xác nhận ở hộp hỏi) thì đối tác không đặt thêm đơn trả sau được, nhưng nợ cũ vẫn phải thu. Muốn giữ thì bấm «Giữ hạn mức». Đối tác còn nợ thì chưa ngừng tài khoản hay gỡ vai trò đối tác được.
 
 ### Lùi hạn trả một đơn
 Khách xin thêm thời gian: mở đơn, ở khối Thanh toán bấm [[Ân hạn]], chọn hạn trả mới (giờ Việt Nam), ghi lý do rồi bấm [[Ân hạn]] trong bảng. Hạn mới phải sau hạn cũ; khoảng ân hạn sau hạn trả giữ nguyên.`,
@@ -164,7 +164,7 @@ Khách xin thêm thời gian: mở đơn, ở khối Thanh toán bấm [[Ân h�
     o: ["credit.limit.view"],
     gioiHan: [],
     neo: ["web/han-muc-tra-sau.ts", "public/han-muc-tra-sau.html"],
-    moDau: "Màn này chỉ để xem. Bật, đổi, ngừng Trả sau làm ở màn Cấp độ đại lý.",
+    moDau: "Màn này chỉ để xem. Cấp, điều chỉnh, đóng hạn mức trả sau làm ở màn Cấp độ đại lý.",
     noiDung: `### Các bước
 1. Mở **Hạn mức trả sau**: danh sách đối tác đang bật Trả sau hoặc còn nợ, kèm số đơn quá hạn và số đơn đang trong ân hạn.
 2. Bấm **Xem đơn nợ** để xem từng đơn còn nợ, hạn trả (giờ Việt Nam) và trạng thái; bấm mã đơn để mở đơn.
