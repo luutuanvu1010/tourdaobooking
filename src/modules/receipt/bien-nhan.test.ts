@@ -126,7 +126,7 @@ test("HD-02-DT (route thật): mẫu theo người lập và bên đặt; văn p
 });
 
 // ---- ADR-0109 QĐ4: biên nhận gửi khách in GIẢM GIÁ HIỆU LỰC (= min(giảm giá, tạm tính hiện hành) — số máy chủ tính bằng `effectiveMoney`, đọc khoá
-// `OrderDto.giamGiaHieuLuc`), để ba dòng Tạm tính − Giảm giá = Tổng cộng luôn cân. `ReceiptDto` giữ đúng 16 khoá (bài NT-B1 ở trên; khoá thứ 16 `phan` — sổ đại lý đợt 2 Task 8).
+// `OrderDto.giamGiaHieuLuc`), để ba dòng Tạm tính − Giảm giá = Tổng cộng luôn cân. `ReceiptDto` giữ đúng 17 khoá (bài NT-B1 ở trên; khoá thứ 16 `phan` — sổ đại lý đợt 2 Task 8; khoá thứ 17 `mau` — HD-02-DT).
 test("ADR-0109 (luật): biên nhận in giảm giá hiệu lực — đơn âm 500.000 / giảm 800.000 → [500.000, 500.000, 0]; bất biến tạm tính − giảm giá = tổng trên ba mẫu", () => {
   const am = dungBienNhan({ ...donBiMat(), subtotal: 500_000, discount: 800_000, total: 0, giamGiaHieuLuc: 500_000 }, COMPANY, { daTra: 200_000, conLai: 0 }, null);
   assert.deepEqual([am.subtotal, am.discount, am.total], [500_000, 500_000, 0]);

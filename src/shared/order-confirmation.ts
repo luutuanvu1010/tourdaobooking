@@ -2,7 +2,7 @@
 // CÁCH BỘ VẼ (web/confirmation-image.ts) ĐỌC: đi qua `blocks` theo thứ tự và `switch (block.kind)`. Mọi chuỗi đã sẵn sàng để vẽ (tiền "1.350.000 ₫", ngày
 // "dd/mm/yyyy", giờ "HH:MM", số khách "2 người lớn, 1 trẻ em") và dòng rỗng đã bị bỏ lúc dựng — bộ vẽ chỉ đo chữ, ngắt dòng, vẽ; KHÔNG tự định dạng hay tự lọc.
 // Chuỗi có thể chứa "\n" (ghi chú nhiều dòng): tách theo "\n" rồi mới ngắt theo chiều rộng. `SummaryRow.emphasis` chỉ nói "nổi bật" (Tổng cộng, Còn lại →
-// bộ vẽ tô `--c-accent`); mô hình không mang màu. `title.status.code` để bộ vẽ chọn màu huy hiệu. Logo do bộ vẽ tự vẽ ở đầu khối "header".
+// bộ vẽ tô `--c-accent`); mô hình không mang màu. `title.status.code` để bộ vẽ chọn màu huy hiệu. Logo do bộ vẽ tự vẽ ở đầu khối "header" CHỈ KHI `HeaderBlock.logo` có (mẫu nội bộ); mẫu đối tác HD-02-DT (`ReceiptDto.mau === "doi_tac"`) không có logo, thay bằng thương hiệu + khẩu hiệu + mã mẫu.
 // Bảng dịch vụ: bốn cột cố định description | quantity | unitPrice | lineTotal (tiêu đề ở `columns`; ba cột sau căn phải); `detail` là dòng phụ nhỏ dưới mô tả.
 // `ServiceBlock.subtotal` (chỉ khi dịch vụ có ≥ 2 dòng tiền) mang cả NHÃN ("Cộng dịch vụ") lẫn giá trị: bộ vẽ vẽ MỌI dịch vụ có `subtotal` giống hệt nhau — nhãn
 // căn phải ngay trái giá trị, giá trị thẳng cột "Thành tiền" — không tự đặt nhãn riêng, không tự cộng.
@@ -10,7 +10,8 @@
 // hồ sơ công ty) đã bỏ ký tự điều khiển, NUL, DEL, ký tự bidi (U+202A–202E, U+2066–2069), tab → dấu cách, dấu ngắt dòng lạ (VT, FF, NEL, U+2028, U+2029) → "\n", và gộp dấu
 // gõ rời về dạng dựng sẵn (NFC). Bộ vẽ có thể đưa thẳng vào canvas; nó chỉ cần tách theo "\n".
 // Đơn nháp CHƯA có ngày khởi hành thì dịch vụ đó KHÔNG có dòng "Khởi hành" (ảnh gửi khách không mang cảnh báo nội bộ "Chưa có ngày khởi hành" của trang đơn).
-// CỐ Ý KHÔNG có trong mô hình (đặc tả "Nội dung"): ghi chú vận hành của dịch vụ, nhãn khác giá danh mục, mã danh mục, giá danh mục, id, đơn vị thô, ghi chú thanh toán, cách cọc.
+// CỐ Ý KHÔNG có trong mô hình (đặc tả "Nội dung"): ghi chú vận hành của dịch vụ, mã danh mục, giá danh mục, id, đơn vị thô, ghi chú thanh toán, cách cọc.
+// Giá danh mục KHÔNG BAO GIỜ in; mẫu đối tác báo giá bị sửa khác giá công bố CHỈ qua nhãn cột «Đơn giá» (thay «Giá công bố»; chủ dự án Q6, 2026-11-06), mẫu nội bộ không có tín hiệu nào.
 // Tiền lấy NGUYÊN từ biên nhận máy chủ dựng (ReceiptDto — danh sách trắng, sổ tiền lượt 1); chỉ "tổng dịch vụ" được cộng ở đây.
 // NGƯỜI LẬP ĐƠN (`order.staffName`) KHÔNG BAO GIỜ được in trong vai "Nhân viên phụ trách" (quyết định chủ dự án 2026-09-28, sửa lỗi hiển thị sai sự thật khi đơn do
 // Đối tác/HDV lập chưa có ai phụ trách — cùng gốc với ADR-0020 điều 9/ADR-0030 S20-4: đơn mới không tự gắn người lập làm người phụ trách): đơn CHƯA có
