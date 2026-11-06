@@ -141,6 +141,7 @@ test("ADR-0173 tiêu chí 6: nhắc đúng mốc (trước hạn 6 giờ, sau h�
   const maDon = w.q("SELECT order_code AS m FROM orders WHERE id = ?", id)[0].m as string;
   assert.deepEqual(await tinNhac(w, DT), [`Đơn trả sau ${maDon} còn nợ, sắp tới hạn trả (còn dưới 6 giờ). Hãy thanh toán cho công ty trước hạn.`]);
   assert.deepEqual(await tinNhac(w, ACC), [], "Kế toán không nhận tin trước hạn");
+  assert.equal(w.q("SELECT count(*) AS n FROM audit_log WHERE target_type = 'ledger' AND action = 'credit_due_soon_reminded'")[0].n, 0, "lớp ghi: tin trước hạn không có dòng cho Kế toán (không dựa vào lớp lọc của hộp thư)");
   assert.deepEqual(await tinNhac(w, A), [], "người lập không nhận");
   assert.equal(await nhacHanTraSau(w.env.DB, congGio(han, 1)), 1, "sau hạn trả: tin quá hạn");
   assert.equal(await nhacHanTraSau(w.env.DB, congGio(han, 30)), 0, "không gửi lặp tin quá hạn");

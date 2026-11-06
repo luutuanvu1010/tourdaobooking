@@ -70,6 +70,9 @@ BEGIN SELECT RAISE(ABORT, 'bil_append_only: tin nhắc trả sau đã gửi khô
 -- 5. orders: hai mốc giờ của đơn Trả sau (ADR-0172 Đ3 mục 2). Đơn cũ: hạn trả = 23:59:59.999 giờ VN của ngày hạn (đúng nghĩa cũ «quá hạn từ ngày hôm sau»), ân hạn 0.
 ALTER TABLE orders ADD COLUMN credit_due_at TEXT;
 ALTER TABLE orders ADD COLUMN credit_grace_until TEXT;
+-- Gỡ khoá «Xong và đủ tiền» của 0141 TRƯỚC khi điền (kiểm độc lập 2026-11-06): khoá cũ chặn mọi sửa trên đơn đã giao nên đơn Trả sau cũ đã giao làm migration đỏ giữa chừng.
+-- Khoá mới (thêm hai cột) dựng lại ở mục 7, vẫn trong cùng lần áp migration.
+DROP TRIGGER orders_delivered_lock;
 UPDATE orders SET credit_due_at = credit_due_date || 'T16:59:59.999Z', credit_grace_until = credit_due_date || 'T16:59:59.999Z'
   WHERE payment_term = 'CREDIT' AND credit_due_date IS NOT NULL;
 -- Hai mốc chỉ đi về SAU, khoảng ân hạn của đơn giữ nguyên (ADR-0173 Đ1 mục 3: chỉ nới, không rút ngắn; số giờ ân hạn của đơn giữ nguyên). Lần chụp đầu (từ NULL) tự do.
@@ -83,8 +86,7 @@ DROP VIEW v_ord_don_tra_sau;
 CREATE VIEW v_ord_don_tra_sau AS
   SELECT id, order_code, booker_party_id, status, delivered_at, credit_due_date, credit_due_at, credit_grace_until FROM orders WHERE payment_term = 'CREDIT';
 
--- 7. Trigger khoá «Xong và đủ tiền» liệt kê MỌI cột của orders (bài NT-R6, src/migrations-orders-da-giao.test.ts). Thân y hệt 0141, thêm credit_due_at, credit_grace_until.
-DROP TRIGGER orders_delivered_lock;
+-- 7. Trigger khoá «Xong và đủ tiền» liệt kê MỌI cột của orders (bài NT-R6, src/migrations-orders-da-giao.test.ts). Thân y hệt 0141, thêm credit_due_at, credit_grace_until. (Bản cũ đã gỡ ở mục 5.)
 CREATE TRIGGER orders_delivered_lock BEFORE UPDATE ON orders
 WHEN OLD.delivered_at IS NOT NULL
   AND NOT (OLD.completed_at IS NULL AND NEW.completed_at IS NOT NULL
