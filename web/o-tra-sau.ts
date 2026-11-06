@@ -151,7 +151,7 @@ async function moBangTraSau(
     } catch (err) {
       return baoLoi(loiO, lyDoLoi(err));
     }
-    hienBaoNgan(`Đã đóng hạn mức của ${ho.ten}.`);
+    hienBaoNgan(`Đóng hạn mức của ${ho.ten} xong.`);
     await lamMoi(ho.partyId);
   });
   oHan.focus();

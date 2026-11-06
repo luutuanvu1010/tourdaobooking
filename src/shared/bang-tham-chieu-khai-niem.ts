@@ -391,6 +391,33 @@ export const KHAI_NIEM: readonly KhaiNiem[] = [
     trangThai: "da-chot",
     chuChon: "2026-11-06 (chủ, hộp hỏi: tên theo chữ ngân hàng; thay «Chưa bật» ở Trả sau)",
   }),
+  KN({
+    ten: "Trong hạn",
+    giaiNghia: "Đơn trả sau còn nợ nhưng chưa tới hạn trả. Đối tác vẫn đặt đơn trả sau mới được nếu còn hạn mức khả dụng.",
+    khacVoi: "Khác «Quá hạn, đang trong ân hạn» và «Quá hạn»: hai nhãn đó chỉ hiện khi đã qua hạn trả.",
+    chuDaLoai: [],
+    maNoiBo: ["trong_han", "NHAN_TRANG_THAI_HAN"],
+    trangThai: "da-chot",
+    chuChon: "2026-11-06 (chủ, hộp hỏi: giữ ba nhãn tình trạng hạn trả)",
+  }),
+  KN({
+    ten: "Quá hạn, đang trong ân hạn",
+    giaiNghia: "Đơn trả sau đã qua hạn trả mà còn nợ, nhưng chưa hết ân hạn. Nền tảng chỉ cảnh báo, chưa chặn đơn mới.",
+    khacVoi: "Khác «Quá hạn»: hết ân hạn mới là «Quá hạn» và lúc đó đơn trả sau mới bị chặn.",
+    chuDaLoai: [],
+    maNoiBo: ["an_han", "NHAN_TRANG_THAI_HAN"],
+    trangThai: "da-chot",
+    chuChon: "2026-11-06 (chủ, hộp hỏi: giữ ba nhãn tình trạng hạn trả)",
+  }),
+  KN({
+    ten: "Quá hạn",
+    giaiNghia: "Đơn trả sau còn nợ và đã hết ân hạn. Đối tác không đặt được đơn trả sau mới; vé chưa mở của đơn đó bị chặn.",
+    khacVoi: "Khác «Quá hạn, đang trong ân hạn»: lúc đó mới cảnh báo, chưa chặn.",
+    chuDaLoai: [],
+    maNoiBo: ["qua_han", "NHAN_TRANG_THAI_HAN"],
+    trangThai: "da-chot",
+    chuChon: "2026-11-06 (chủ, hộp hỏi: giữ ba nhãn tình trạng hạn trả)",
+  }),
   // ---- Dịch vụ, giá, đơn ----
   KN({
     ten: "Đơn",

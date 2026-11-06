@@ -3,7 +3,7 @@
 - **Trạng thái:** **proposed** 2026-11-06 — chủ chọn hướng «Khớp sổ đại lý» trong chat (hộp hỏi, phiên `claude/festive-payne-7371a2`); chờ chủ duyệt văn bản.
 - **Loại:** việc lớn (tiền). **Cửa:** hai chiều (không đổi dữ liệu, không migration).
 - **Số quyết định chạm quyền/dữ liệu trong lượt duyệt:** 1.
-- **Quan hệ với ADR cũ:** **làm rõ** ADR-0168 Đ2 mục 2, câu «Tính trên toàn bộ tiền phải thu, không trừ hoa hồng». Trả lời câu treo «nợ đơn Trả sau có được trừ vào hoa hồng không». Không đổi ADR-0168 Đ3, ADR-0170, ADR-0172, ADR-0173.
+- **Quan hệ với ADR cũ:** **làm rõ** ADR-0168 Đ2 mục 2, câu «Tính trên toàn bộ tiền phải thu, không trừ hoa hồng». **Làm rõ nghĩa «thu đủ»** ở ADR-0173 Đ3 mục 1 và tiêu chí 5 («đơn công nợ còn nợ thì hoa hồng chưa được trả hay đối trừ; thu đủ thì vào»): «thu đủ» là **đã ghi đủ phải thu** (cổng «Xong và đủ tiền» như cũ), kể cả khi tiền còn ở tay đối tác, chứ không phải đã nộp về công ty. Trả lời câu treo «nợ đơn Trả sau có được trừ vào hoa hồng không». Không đổi ADR-0168 Đ3, ADR-0170, ADR-0172.
 
 ## Bối cảnh
 
@@ -23,7 +23,8 @@ Người thi công thử sửa cho nợ giữ 199.000 ₫. Sổ đại lý (đ�
 
 ## Hệ quả
 
-- Hạn mức khả dụng của đối tác trống ra thêm đúng phần hoa hồng ngay khi đơn sang «Xong và đủ tiền», dù tiền chưa nộp.
+- Hạn mức khả dụng của đối tác trống ra thêm đúng phần hoa hồng ngay khi đơn sang «Xong và đủ tiền», dù tiền chưa nộp. Đây là «đối trừ» mà ADR-0173 tiêu chí 5 nói tới, nay được phép từ bước «Xong và đủ tiền»; trước bước đó vẫn cấm (bài `src/tra-sau-xac-nhan.test.ts` ca chưa ghi đồng nào, e2e mục 5 ca đã ghi đủ chưa nộp).
+- Đường ngược lại: dòng hoa hồng bị huỷ hay điều chỉnh sau «Xong và đủ tiền» (phân định, điều chỉnh sổ) làm nợ của đơn tăng trở lại và có thể vượt hạn mức. Các đường đó đã gác phiên bản bên đặt (`cauTangChoDon`) nhưng không có cổng hạn mức; chỉ có cảnh báo R-CRD-3 (dựa vào người xem). Giữ như vậy: người duyệt điều chỉnh sổ là Kế toán / Toàn quyền, thấy cảnh báo.
 - Hàng rào: phần 5 của `tests/e2e/tra-sau.mjs` khoá con số 179.000 ₫ sau «Xong và đủ tiền», nộp 179.001 ₫ bị 409, nộp 179.000 ₫ thì hết nợ.
 
 ## Trang ghép
