@@ -30,6 +30,8 @@ import {
   legById, legDatGapByOrder, legLichChungNhapRows, legLichChungRows, legShortNotice, legTripRows, manualPolicy, manualPolicyInsert, slotPolicy, slotPolicyInsert, openLegsByOrders, orderContactRows, passengerRowsByOrders,
   servicePaxByIds, servicePaxByOrder, serviceChoVe, passengerInsertDriver, nguoiDaLapDon, type DauChepNhap, type DauDatGapMoi,
 } from "./chang-hanh-khach-repo";
+import { mocTraSauCuaDon, noiHanTraSauStatement } from "./chang-hanh-khach-repo";
+import { kiemNoiHan, ngayCuaMoc, trangThaiHan } from "../../shared/tra-sau";
 import { khoaNoi } from "../../shared/khoa-noi";
 import { CHIEU_LABEL, LY_DO_DAT_GAP, type LyDoDatGap } from "../../shared/chang-dua-don";
 import { duoiMocKhiSua, nguongMocVn, type MocToiThieu } from "../../shared/moc-toi-thieu";
@@ -856,6 +858,18 @@ async function banHangMoiCuaNhap(db: D1Database, banHang: BanHangNoi, orderId: s
   return x.ok ? { staffId: x.staffId, name: x.name } : null;
 }
 
+/** ADR-0172 Đ3 mục 3 / ADR-0173 Đ1 mục 3: khối Trả sau trên màn đơn (đơn Trả sau đã xác nhận). Không đọc được nợ ⇒ null (giao diện không vẽ, máy chủ vẫn chặn ở cổng). */
+async function traSauTrenDon(
+  traSauCuaDon: HamNoTraSau["traSauCuaDon"], staff: StaffProfile, order: { id: string; hanTra: string | null; hetAnHan: string | null },
+): Promise<NonNullable<OrderDetailResponse["traSau"]> | null> {
+  const t = await traSauCuaDon(order.id);
+  if (!t) return null;
+  return {
+    no: t.no, trangThai: trangThaiHan({ hanTra: order.hanTra, hetAnHan: order.hetAnHan, bayGio: new Date().toISOString(), no: t.no }),
+    coQuyenAnHan: can(staff, "credit.due.extend") && !holdsPartner(staff) && t.no > 0,
+  };
+}
+
 export const ordersModule: AppModule = {
   name: "orders",
   routes: [
@@ -1249,7 +1263,7 @@ export const ordersModule: AppModule = {
       return json({ order: taoXong, ...(await phanHoiMoc(env.DB, id, taoXong, moc)) } satisfies OrderResponse, 201, { location: trangDon(id) });
     }),
 
-    route("GET", "/api/orders/:id", "orders", async ({ env, params, staff, isAssigned, isSalesOwner, mocToiThieu, banHang, veDaMoCuaDon }) => {
+    route("GET", "/api/orders/:id", "orders", async ({ env, params, staff, isAssigned, isSalesOwner, mocToiThieu, banHang, veDaMoCuaDon, traSauCuaDon }) => {
       if (!UUID_RE.test(params.id!)) return NOT_FOUND();
       // ADR-0049 I31: kèm mốc tối thiểu đang hiệu lực (biểu mẫu cảnh báo trước khi xác nhận) — đọc không bị chặn khi chưa có mốc (null).
       const [order, assigned, laBanHang, moc] = await Promise.all([loadOrderView(env.DB, params.id!, xemDuDatGap(staff)), isAssigned(params.id!), isSalesOwner(params.id!), mocToiThieu()]);
@@ -1321,6 +1335,7 @@ export const ordersModule: AppModule = {
         // ADR-0114 D2: lịch sử số khách CHỈ cho người qua `order.history.view` với đơn này (cùng điều kiện khối `history` ở trên), còn lại null — không đổi ai được xem gì.
         lichSuSoKhach: can(staff, "order.history.view", scopeDuocGiao) ? await lichSuSoKhachCuaDon(env.DB, order) : null,
         canhBaoGiamGia: await canhBaoGiamGiaCuaDon(), xacNhan, laBanHangPhuTrach: laBanHang,
+        ...(order.paymentTerm === "CREDIT" && order.status === "confirmed" ? { traSau: await traSauTrenDon(traSauCuaDon, staff, order) } : {}),
         ...(holdsPartner(staff) ? await coVeDaMoTrenDon(veDaMoCuaDon, order.id) : {}), // ADR-0170 Đ3: chỉ để giao diện ẩn nút Huỷ (không đọc được ⇒ bỏ khoá, nút còn và máy chủ nói «chưa kiểm tra được»); máy chủ vẫn chặn ở hai đường huỷ
         // ADR-0142: Bán hàng người lập đã mời — CHỈ người lập đơn nháp thấy (tên + mã tài khoản để chọn lại), và chỉ khi người đó còn mời được.
         ...(order.status === "draft" && order.staffId === staff.id ? { banHangMoi: await banHangMoiCuaNhap(env.DB, banHang, order.id) } : {}),
@@ -1741,6 +1756,43 @@ export const ordersModule: AppModule = {
     }),
 
     // Đổi khách (hồ sơ người đặt + tên/SĐT trên đơn) — đơn nháp HOẶC đã xác nhận: coi như thông tin vận hành, cùng quyền với sửa chuyến (ADR-0011 điều 2).
+    // ADR-0173 Đ1 mục 3 — nút «Ân hạn» (chủ chọn tên 2026-11-06): Quản trị, Toàn quyền lùi hạn trả của MỘT đơn Trả sau đã xác nhận còn nợ. Thân { hanMoi (mốc ISO), lyDo }.
+    // Thiếu lý do 400; rút ngắn / bằng hạn cũ 409; hết ân hạn mới = hạn mới + số giờ ân hạn CỦA ĐƠN. Lô: câu lùi hạn đứng đầu (gác hạn cũ) → nhật ký (`changes() > 0`, ghi mốc cũ,
+    // mốc mới, lý do; người nới = dòng nhật ký) → gác phiên bản bên đặt (khoản thu chen giữa ⇒ 409). Câu ghi nằm ở `orders` vì cột thuộc `orders`; nợ đọc qua hàm tiêm của `billing`.
+    route("POST", "/api/tra-sau/don/:id/an-han", "office", async ({ env, request, params, staff, traSauCuaDon, cauGacPhienBanTraSau }) => {
+      if (!can(staff, "credit.due.extend") || holdsPartner(staff)) return error(403, "forbidden", "Chỉ Quản trị, Toàn quyền mới lùi được hạn trả của đơn trả sau.");
+      const id = params.id!;
+      const d = UUID_RE.test(id) ? await mocTraSauCuaDon(env.DB, id) : null;
+      if (!d) return NOT_FOUND();
+      if (d.payment_term !== "CREDIT" || d.status !== "confirmed" || d.credit_due_at === null || d.credit_grace_until === null) {
+        return error(409, "khong_phai_don_tra_sau", "Chỉ lùi được hạn trả của đơn trả sau đã xác nhận.");
+      }
+      const t = await traSauCuaDon(id);
+      if (!t || t.version === undefined) return error(503, "tra_sau_chua_dung_duoc", "Chưa đọc được số nợ của đơn nên chưa lùi được hạn trả — thử lại sau ít phút.");
+      if (t.no <= 0) return error(409, "da_het_no", "Đơn này đã hết nợ nên không cần lùi hạn trả.");
+      const b = ((await readJson(request)) ?? {}) as Record<string, unknown>;
+      const at = new Date().toISOString();
+      const kq = kiemNoiHan({ hanCu: d.credit_due_at, hetAnHanCu: d.credit_grace_until, hanMoi: b.hanMoi, lyDo: b.lyDo, bayGio: at });
+      if (!kq.ok) return error(kq.status, kq.ma, kq.cau);
+      const lyDo = String(b.lyDo).trim();
+      let results: D1Result[];
+      try {
+        results = await env.DB.batch([
+          noiHanTraSauStatement(env.DB, { orderId: id, hanMoi: kq.hanMoi, hetAnHanMoi: kq.hetAnHanMoi, ngayMoi: ngayCuaMoc(kq.hanMoi), at, hanCu: d.credit_due_at }),
+          auditStatement(env.DB, {
+            staffId: staff.id, action: "credit_due_extended", at, targetType: "order", targetId: id, orderId: id,
+            detail: `hạn trả ${d.credit_due_at} → ${kq.hanMoi} · hết ân hạn ${d.credit_grace_until} → ${kq.hetAnHanMoi} · lý do: ${lyDo}`,
+          }, "changes() > 0"),
+          ...(d.booker_party_id ? cauGacPhienBanTraSau(d.booker_party_id, t.version, at) : []),
+        ]);
+      } catch (e) {
+        const thua = dichLoiTraSau(e);
+        if (thua) return thua;
+        throw e;
+      }
+      if ((results[0]!.meta.changes ?? 0) === 0) return error(409, "han_vua_doi", "Hạn trả vừa được người khác đổi. Mở lại đơn rồi thử lại.");
+      return json({ ok: true, hanTra: kq.hanMoi, hetAnHan: kq.hetAnHanMoi, trangThai: trangThaiHan({ hanTra: kq.hanMoi, hetAnHan: kq.hetAnHanMoi, bayGio: at, no: t.no }) });
+    }),
     route("PUT", "/api/orders/:id/booker", "orders", async ({ env, request, params, staff, isAssigned, isSalesOwner, baoThayDoi, traSauCuaDon, cauGacPhienBanTraSau }) => {
       const id = params.id!;
       if (!UUID_RE.test(id)) return NOT_FOUND();

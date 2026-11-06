@@ -664,7 +664,7 @@ export const billingModule: AppModule = {
         themMucToiDaStatement(env.DB, { id: crypto.randomUUID(), so: b.so, at, by: staff.id }),
         auditStatement(env.DB, { staffId: staff.id, action: "credit_ceiling_set", at, targetType: "ledger", targetId: "muc-toi-da", detail: `mức tối đa ${dongTien(b.so)}` }),
       ]);
-      return json({ ok: true, mucToiDa: b.so }, 201);
+      return json({ ok: true, mucToiDa: b.so }, 201, { location: "/cap-dai-ly" });
     }),
     // Số gợi ý theo cấp (ADR-0172 Đ2): CHỈ để điền sẵn bảng bật Trả sau — không cổng nào đọc (bài src/tra-sau-goi-y-khong-cong.test.ts).
     route("GET", "/api/tra-sau/goi-y", "office", async ({ env, staff }) => {

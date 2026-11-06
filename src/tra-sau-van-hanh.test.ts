@@ -1,0 +1,105 @@
+// Luật vận hành Trả sau (ADR-0173 Đ1 mục 3, Đ2, tiêu chí 2–4). Khung thử thật (tests/audit/xac-nhan-khung.mjs). Tên người, SĐT là GIẢ.
+import { test } from "node:test";
+import assert from "node:assert/strict";
+// tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
+import { seedStaff } from "../tests/audit/harness.mjs";
+import { A, ACC, ADM, PARTNER, SUP, inDays, setup, svc } from "../tests/audit/xac-nhan-khung.mjs";
+import { cachBayGio, datMocTraSau, datQuaHan } from "../tests/audit/tra-sau-moc.mjs";
+
+const AT = "2026-10-01T00:00:00.000Z";
+const DT = "88888888-8888-4888-8888-888888888801";
+const BEN = `pty-${DT}`;
+const T_ZB1 = 600_000;
+type W = ReturnType<typeof setup>;
+
+function dung(): W {
+  const w = setup();
+  seedStaff(w.sqlite, { id: DT, phone: "0900000021", name: "Đối Tác Hưởng", perms: ["PARTNER"] });
+  w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES (?, ?, 'TRAVEL_AGENCY', '2026-01-01', ?, ?)").run(`r-${DT}`, BEN, AT, AT);
+  return w;
+}
+const hanMuc = (w: W, so: number, gioTra = 36, gioAnHan = 12) => w.call("POST", "/api/tra-sau/han-muc", { as: SUP, body: { partyId: BEN, hanMuc: so, gioTra, gioAnHan, lyDo: "thử" } });
+async function donXacNhan(w: W, term: "CREDIT" | "PREPAID" = "CREDIT"): Promise<string> {
+  const r = await w.call("POST", "/api/orders", { as: A, body: { customerName: "Khách Thử", customerPhone: "0912345678", bookerPartyId: BEN, paymentTerm: term, services: [svc("ZB1", inDays(3))] } });
+  assert.equal(r.status, 201, r.text);
+  const xn = await w.call("POST", `/api/orders/${r.json.order.id}/status`, { as: A, body: { status: "confirmed" } });
+  assert.equal(xn.status, 200, xn.text);
+  return r.json.order.id;
+}
+const moc = (w: W, id: string) => w.q("SELECT credit_due_at AS h, credit_grace_until AS g, status FROM orders WHERE id = ?", id)[0] as { h: string; g: string; status: string };
+const anHan = (w: W, as: string, id: string, body: unknown) => w.call("POST", `/api/tra-sau/don/${id}/an-han`, { as, body });
+const congGio = (iso: string, gio: number) => new Date(Date.parse(iso) + gio * 3_600_000).toISOString();
+
+test("ADR-0173 tiêu chí 2: Quản trị, Toàn quyền lùi được hạn trả; thiếu lý do 400; rút ngắn 409; Kế toán, Bán hàng, Đối tác 403; số giờ ân hạn của đơn giữ nguyên; nhật ký có mốc cũ, mốc mới, người lùi", async () => {
+  const w = dung();
+  assert.equal((await hanMuc(w, 10_000_000)).status, 201);
+  const id = await donXacNhan(w);
+  const cu = moc(w, id);
+  for (const as of [ACC, A, DT, PARTNER]) {
+    const r = await anHan(w, as, id, { hanMoi: congGio(cu.h, 24), lyDo: "khách xin thêm" });
+    assert.equal(r.status, 403, `${as}: ${r.text}`);
+  }
+  assert.equal((await anHan(w, ADM, id, { hanMoi: congGio(cu.h, 24) })).status, 400, "thiếu lý do");
+  assert.equal((await anHan(w, ADM, id, { hanMoi: congGio(cu.h, 24), lyDo: "   " })).status, 400, "lý do rỗng");
+  const ngan = await anHan(w, ADM, id, { hanMoi: congGio(cu.h, -1), lyDo: "nhầm" });
+  assert.deepEqual([ngan.status, ngan.json.error.code], [409, "han_moi_khong_sau_han_cu"]);
+  assert.deepEqual(moc(w, id), cu, "chưa ai lùi được: mốc không đổi");
+  const r = await anHan(w, ADM, id, { hanMoi: congGio(cu.h, 24), lyDo: "Đại lý xin thêm một ngày" });
+  assert.equal(r.status, 200, r.text);
+  const moi = moc(w, id);
+  assert.deepEqual([moi.h, moi.g], [congGio(cu.h, 24), congGio(cu.g, 24)], "hết ân hạn tính lại theo hạn mới, giữ 12 giờ ân hạn");
+  assert.equal((await anHan(w, SUP, id, { hanMoi: congGio(moi.h, 2), lyDo: "Toàn quyền cho thêm" })).status, 200, "Toàn quyền lùi được");
+  const nk = w.q("SELECT staff_id, detail, order_id FROM audit_log WHERE action = 'credit_due_extended' ORDER BY rowid");
+  assert.deepEqual(nk.map((x) => x.staff_id), [ADM, SUP], "người lùi");
+  assert.ok(String(nk[0]!.detail).includes(cu.h) && String(nk[0]!.detail).includes(moi.h), "mốc cũ và mốc mới");
+  assert.match(String(nk[0]!.detail), /Đại lý xin thêm một ngày/);
+  assert.equal(nk[0]!.order_id, id);
+  // Đơn trả trước, đơn hết nợ: không lùi được.
+  const tt = await donXacNhan(w, "PREPAID");
+  assert.equal((await anHan(w, ADM, tt, { hanMoi: cachBayGio(100), lyDo: "x" })).status, 409);
+  const thu = await w.call("POST", `/api/orders/${id}/payments`, { as: ACC, body: { soTien: T_ZB1, hinhThuc: "CASH", nguoiThu: "cong_ty" } });
+  assert.equal(thu.status, 201, thu.text);
+  const het = await anHan(w, ADM, id, { hanMoi: congGio(moc(w, id).h, 24), lyDo: "x" });
+  assert.deepEqual([het.status, het.json.error.code], [409, "da_het_no"]);
+});
+
+test("ADR-0173 tiêu chí 2: đơn đang quá hạn được lùi hạn thì mở lại đơn Trả sau mới; màn đơn có cờ «Ân hạn» cho Quản trị, không cho Kế toán", async () => {
+  const w = dung();
+  assert.equal((await hanMuc(w, 10_000_000)).status, 201);
+  const id = await donXacNhan(w);
+  datQuaHan(w.sqlite, id);
+  const xem = async (as: string) => (await w.call("GET", `/api/orders/${id}`, { as })).json.traSau;
+  assert.deepEqual(await xem(ADM), { no: T_ZB1, trangThai: "qua_han", coQuyenAnHan: true });
+  assert.equal((await xem(ACC)).coQuyenAnHan, false);
+  const chan = await w.call("GET", `/api/tra-sau/con-duoc-dung?benDat=${BEN}`, { as: A });
+  assert.equal(chan.json.coDonQuaHan, true);
+  const r = await anHan(w, ADM, id, { hanMoi: cachBayGio(24), lyDo: "Đã hẹn ngày trả" });
+  assert.equal(r.status, 200, r.text);
+  assert.equal(r.json.trangThai, "trong_han");
+  assert.equal((await w.call("GET", `/api/tra-sau/con-duoc-dung?benDat=${BEN}`, { as: A })).json.coDonQuaHan, false, "hết chặn");
+  await donXacNhan(w); // đơn Trả sau mới xác nhận được
+});
+
+test("ADR-0173 tiêu chí 3, Đ2 mục 2: trả một phần không đổi hạn trả; số còn được dùng tăng đúng phần đã về công ty", async () => {
+  const w = dung();
+  assert.equal((await hanMuc(w, 1_000_000)).status, 201);
+  const id = await donXacNhan(w);
+  const cu = moc(w, id);
+  const conDung = async () => (await w.call("GET", `/api/tra-sau/con-duoc-dung?benDat=${BEN}`, { as: A })).json.conDuocDung as number;
+  assert.equal(await conDung(), 400_000);
+  assert.equal((await w.call("POST", `/api/orders/${id}/payments`, { as: ACC, body: { soTien: 250_000, hinhThuc: "CASH", nguoiThu: "cong_ty" } })).status, 201);
+  assert.equal(await conDung(), 650_000);
+  assert.deepEqual(moc(w, id), cu, "hạn trả giữ nguyên");
+});
+
+test("ADR-0173 tiêu chí 4, Đ2 mục 3–4: hết ân hạn — đơn trả trước của bên đặt vẫn xác nhận được; đơn quá hạn không tự huỷ", async () => {
+  const w = dung();
+  assert.equal((await hanMuc(w, 10_000_000)).status, 201);
+  const id = await donXacNhan(w);
+  datQuaHan(w.sqlite, id);
+  await donXacNhan(w, "PREPAID");
+  assert.equal(moc(w, id).status, "confirmed");
+  // Trong ân hạn thì đơn Trả sau mới vẫn qua (chưa chặn).
+  datMocTraSau(w.sqlite, id, cachBayGio(-1), cachBayGio(11));
+  await donXacNhan(w);
+});

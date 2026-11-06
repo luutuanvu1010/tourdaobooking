@@ -814,3 +814,27 @@ export interface NguoiDaLapDonRow {
 export async function nguoiDaLapDon(db: D1Database): Promise<NguoiDaLapDonRow[]> {
   return (await db.prepare(NGUOI_DA_LAP_DON).all<NguoiDaLapDonRow>()).results;
 }
+
+// ---- Trả sau: hai mốc hạn trả của đơn (ADR-0172 Đ3, ADR-0173 Đ1 mục 3; migration 0143) ------------------------------------------------------------
+
+export interface DonTraSauMocRow {
+  id: string; order_code: string; status: string; payment_term: "PREPAID" | "CREDIT"; booker_party_id: string | null; credit_due_at: string | null; credit_grace_until: string | null;
+}
+const ORDER_CREDIT_MOC = defineSql(
+  "orders",
+  "order_credit_moc",
+  `SELECT id, order_code, status, payment_term, booker_party_id, credit_due_at, credit_grace_until FROM orders WHERE id = ?1`,
+);
+export const mocTraSauCuaDon = (db: D1Database, orderId: string): Promise<DonTraSauMocRow | null> => db.prepare(ORDER_CREDIT_MOC).bind(orderId).first<DonTraSauMocRow>();
+/**
+ * Lùi hạn trả (lệnh «Ân hạn»): ĐỨNG ĐẦU lô, chỉ áp khi hạn trả vẫn là số đã đọc (?6 — hai người bấm cùng lúc thì người sau 0 dòng). Cột ngày cũ ghi theo (lùi bản an toàn).
+ * Trigger `orders_credit_due_forward_only` là lưới CSDL: hạn chỉ đi về sau, khoảng ân hạn giữ nguyên.
+ */
+const ORDER_CREDIT_EXTEND = defineSql(
+  "orders",
+  "order_credit_extend",
+  `UPDATE orders SET credit_due_at = ?2, credit_grace_until = ?3, credit_due_date = ?4, updated_at = ?5
+   WHERE id = ?1 AND credit_due_at = ?6 AND payment_term = 'CREDIT' AND status = 'confirmed'`,
+);
+export const noiHanTraSauStatement = (db: D1Database, v: { orderId: string; hanMoi: string; hetAnHanMoi: string; ngayMoi: string; at: string; hanCu: string }) =>
+  db.prepare(ORDER_CREDIT_EXTEND).bind(v.orderId, v.hanMoi, v.hetAnHanMoi, v.ngayMoi, v.at, v.hanCu);

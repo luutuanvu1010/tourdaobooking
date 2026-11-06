@@ -105,6 +105,21 @@ test("đơn Trả sau quá hạn còn nợ: vé CHƯA mở bị chặn ở cả 
   } finally { tat(); }
 });
 
+test("ADR-0173 tiêu chí 2: đơn quá hạn được «Ân hạn» thì vé chưa mở mở lại", async () => {
+  const tat = batDongHo();
+  try {
+    const w = dung();
+    await nhapKho(w, 3);
+    const d = await donTraSau(w);
+    dayHanQuaKhu(w, d.id);
+    const a = phanBo(w, d.id)[0]!;
+    assert.equal((await anh(w, a.id)).status, 403, "quá hạn: vé chưa mở bị chặn");
+    const r = await w.call("POST", `/api/tra-sau/don/${d.id}/an-han`, { as: SUP, body: { hanMoi: cachBayGio(24), lyDo: "Đại lý hẹn trả mai" } });
+    assert.equal(r.status, 200, r.text);
+    assert.equal((await anh(w, a.id)).status, 200, "lùi hạn xong: vé mở lại");
+  } finally { tat(); }
+});
+
 test("ADR-0172 Đ3 mục 3: qua hạn trả nhưng còn trong ân hạn thì chưa chặn — vé chưa mở vẫn mở được", async () => {
   const tat = batDongHo();
   try {

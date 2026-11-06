@@ -675,6 +675,11 @@ export interface OrderDetailResponse {
   banHangMoi?: { staffId: string; name: string } | null;
   /** ADR-0170 Đ3: đơn có vé đã mở (hoặc không đọc được). CHỈ có khi người xem giữ quyền Đối tác (kể cả lai); giao diện ẩn nút Huỷ theo cờ này, máy chủ vẫn chặn. */
   coVeDaMo?: boolean;
+  /**
+   * ADR-0172 Đ3 mục 3, ADR-0173 Đ1 mục 3: Trả sau của đơn đã xác nhận — số còn nợ, trạng thái hạn tại lúc đọc, và người xem có bấm «Ân hạn» được không (cờ máy chủ).
+   * Chỉ có ở đơn Trả sau đã xác nhận (người xem đã qua `money.view`); null = không đọc được số nợ.
+   */
+  traSau?: { no: number; trangThai: TrangThaiHanTraSau; coQuyenAnHan: boolean } | null;
 }
 /**
  * `yeuCau` = yêu cầu xác nhận ĐANG MỞ của đơn (null = chưa gửi / đã rút). `canXacNhan` = đơn thuộc diện phải qua bước xác nhận (chỉ tính cho người lập; người khác false).
