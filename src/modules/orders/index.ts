@@ -71,7 +71,7 @@ import { PHAI_GUI_DON, phaiGuiDon, xacNhanRoutes } from "./xac-nhan-route";
 import { congLuatBan } from "./cong-ban";
 import { congDoiBenDatTraSau, congHuyTraSau, congSuaTangTraSau, congTraSauKhiLuu, dichLoiTraSau, type HamNoTraSau, type HamTraSau } from "./tra-sau-cong";
 import { thanLapDonKhiAn, thanNhapKhiAn } from "./an-thong-tin-khach";
-import { anKhachBat, cauGhiNguoiMoi, loiKhaiDangLuu, nguoiDuocMoiCuaDon, nguoiLapGiuDoiTac, thongTinKhachDangLuu, yeuCauMoCuaDon } from "./xac-nhan-repo";
+import { anKhachBat, cauGhiNguoiMoi, loiKhaiDangLuu, nguoiDuocMoiCuaDon, nguoiLapGiuDoiTac, quyenMoCuaNguoiLap, thongTinKhachDangLuu, yeuCauMoCuaDon } from "./xac-nhan-repo";
 import { cauKhepLoiMoi, docKhungGio, soanGhiNhan } from "./ban-hang-ghi-nhan";
 import { describeTripUpdates, giaiOPhuNhap, validateTripUpdate } from "./service-rules";
 
@@ -2065,6 +2065,13 @@ export const ordersModule: AppModule = {
   ],
 };
 export type { PhanThuongMai } from "./thuong-mai";
+/**
+ * HD-02-DT: người lập đơn HIỆN LÀ Đối tác thuần (giữ quyền Đối tác và không giữ quyền nào ngoài nhóm bên ngoài) — cùng luật `apCongTacAnKhach` của công tắc ẩn khách. Chỉ để CHỌN MẪU IN biên
+ * nhận (mã quyền là điều kiện DỮ LIỆU, không phải điều kiện cho phép); đọc hiện trạng, không chụp lúc lập. Không tự kiểm quyền: chỉ gọi trong thân route SAU `can(` (src/orders-cong-bo.test.ts).
+ */
+export async function nguoiLapDoiTacThuan(db: D1Database, staffId: string): Promise<boolean> {
+  return apCongTacAnKhach({ permissions: (await quyenMoCuaNguoiLap(db, staffId)) as PermissionHolder["permissions"] });
+}
 // ADR-0068 Đ1 bước 5: CHỈ gốc lắp ráp gọi (ctx.gopHoSo của route gộp hồ sơ) — bài siết ở src/architecture.test.ts.
 export { cauDoiNguoiDat, donChuaXacNhanCua, donCuaNguoiDat } from "./nguoi-dat-gop-repo";
 // ADR-0142: `dispatch` hỏi đơn có yêu cầu xác nhận đang mở không, và lúc ghi nhận của đơn (đơn cũ). Chỉ trả kết luận / mốc, không dữ liệu khách.

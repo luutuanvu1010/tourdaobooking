@@ -214,6 +214,13 @@ const NGUOI_LAP_GIU_DOI_TAC = defineSql(
 );
 export const nguoiLapGiuDoiTac = async (db: D1Database, staffId: string): Promise<boolean> => (await db.prepare(NGUOI_LAP_GIU_DOI_TAC).bind(staffId).first()) !== null;
 
+/**
+ * Mã quyền HIỆN HÀNH của người lập đơn (view công bố `v_stf_quyen_mo`). Mã quyền là điều kiện DỮ LIỆU chọn mẫu in biên nhận, không phải điều kiện cho phép; đọc hiện trạng, không chụp lúc lập.
+ */
+const QUYEN_MO_NGUOI_LAP = defineSql("orders", "order_creator_open_permissions", `SELECT permission_code FROM v_stf_quyen_mo WHERE staff_id = ?1`);
+export const quyenMoCuaNguoiLap = async (db: D1Database, staffId: string): Promise<string[]> =>
+  ((await db.prepare(QUYEN_MO_NGUOI_LAP).bind(staffId).all<{ permission_code: string }>()).results ?? []).map((r) => r.permission_code);
+
 /** Nhóm HIỆN HÀNH của các mã dịch vụ (mảng JSON ở ?1) qua view công bố `v_ctl_service_group`; mã chưa phân nhóm / không có trong danh mục: vắng khỏi kết quả. */
 const NHOM_THEO_MA = defineSql(
   "orders",
