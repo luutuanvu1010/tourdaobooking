@@ -2,7 +2,16 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.68 ĐÃ LÊN PRODUCTION (nhận hoặc đổi người phụ trách đúng lúc đơn vừa bị huỷ, nợ T4 của ADR-0142 Phần 1) — không migration — triển khai 2026-11-05 21:34 giờ Việt Nam
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.69 ĐÃ LÊN PRODUCTION (đối tác xem và gửi vé ADR-0170, 0171; số nợ Trả sau đúng khi nộp một phần; màn Hạn mức trả sau chọn đối tác từ danh sách) — không migration — triển khai 2026-11-06 11:35 giờ Việt Nam
+
+Ghi từ khối tóm tắt của `npm run trien-khai` (chủ tự chạy):
+- Commit `origin/main`: `2c4b9339`. Worker Version ID: `4367ee7a-0977-4b5c-ae42-9c3ada8b051c`. Cổng phiên bản trước và sau deploy: ĐẠT. GET công khai `/api/auth/config` sau deploy: `version` 2.69.
+- **e2e: ĐỎ hai kịch bản trong bộ lớn, chủ chọn tiếp tục:** `coc-don-huy`, `tu-choi-bao-ban`. Chạy lại riêng hai kịch bản trên đúng commit `2c4b9339` lúc máy rảnh: 5/5 xanh (32 giây). Cùng kiểu đỏ chập chờn như 2.60, 2.62, 2.65; lần đỏ không lưu lý do vì đầu ra trôi khỏi Terminal.
+- **`audit-invariants --db remote`: ĐẠT, ba cảnh báo như 2.68:** `R-VC-14` 7 xe thiếu giấy tờ là điều kiện xuất bến; `R-CTL-1` 8 dịch vụ chưa phân nhóm; `R-DSP-2b` một người phụ trách đã ngưng hoạt động. `R-CRD-1`, `R-CRD-2` (Trả sau) đạt.
+- **Chưa kiểm:** iPhone thật; chưa thao tác ghi thử trên production.
+- **Kế tiếp:** bản công nợ ADR-0172, 0173 (nhánh `claude/cong-no-0172-0173-372c0c`, CÓ migration `0143`) chờ chủ nhập rồi triển khai. Chủ chưa cấp Trả sau thật cho đối tác nào; chưa nên cấp tới khi các cổng huỷ đơn, đổi bên, sửa tăng tiền (Task 2, 3 của kế hoạch Trả sau) lên.
+
+## (Cũ) TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.68 ĐÃ LÊN PRODUCTION (nhận hoặc đổi người phụ trách đúng lúc đơn vừa bị huỷ, nợ T4 của ADR-0142 Phần 1) — không migration — triển khai 2026-11-05 21:34 giờ Việt Nam
 
 Ghi từ khối tóm tắt của `npm run trien-khai` (chủ tự chạy) và lệnh chỉ đọc của phiên làm bản sửa:
 - Commit `origin/main`: `757673a1`. Worker Version ID: `b1b8e2c6-db2a-4d20-b0c5-47107074600c`. e2e: xanh. Cổng phiên bản trước và sau deploy: ĐẠT. GET công khai sau deploy: `version` 2.68, `maintenance.on` false.
@@ -93,7 +102,7 @@ Ghi 29/10/2026 từ khối tóm tắt của `npm run trien-khai` (chủ chạy `
 
 ## ĐANG CHỜ PHÁT HÀNH: Trả sau theo giờ, ân hạn, luật vận hành công nợ (ADR-0172, ADR-0173; mục nhật ký 2.70 là số TẠM, bước A.0 đặt lại nếu cần)
 
-Ghi 6/11/2026, nhánh `claude/cong-no-0172-0173-372c0c` (đứng trên bản chính có mục 2.69 chưa triển khai — lên cùng lúc hoặc sau mục 2.69). **CÓ migration `0143_tra_sau_theo_gio`** (chỉ mở rộng): hai cột giờ ở `bil_credit_limit`, hai mốc giờ ở `orders` (điền cho đơn cũ = cuối ngày hạn trả cũ giờ Việt Nam), ba bảng `bil_credit_setting`, `bil_credit_tier_default`, `bil_credit_reminder`, trigger hạn chỉ lùi, dựng lại `v_ord_don_tra_sau`, `orders_delivered_lock`, `v_aud_ledger_event`. Số `0142` thuộc nhánh «Có vé» (`claude/interesting-hodgkin-cde2fd`) chưa gộp — hai tệp khác tên nên áp được theo bất kỳ thứ tự nào; phiên phát hành vẫn kiểm `ls migrations` mọi nhánh. Cần `npm run trien-khai` theo `docs/QUY-TRINH-PHAT-HANH.md`. Không chờ diễn tập khôi phục (ADR-0172 «Phát hành»; diễn tập dời 2026-12-31, mục `HC-5.19`).
+Ghi 6/11/2026, nhánh `claude/cong-no-0172-0173-372c0c` (đứng trên bản chính có bản 2.69 đã lên production 6/11 — điều kiện «lên sau 2.69» đã thoả). **CÓ migration `0143_tra_sau_theo_gio`** (chỉ mở rộng): hai cột giờ ở `bil_credit_limit`, hai mốc giờ ở `orders` (điền cho đơn cũ = cuối ngày hạn trả cũ giờ Việt Nam), ba bảng `bil_credit_setting`, `bil_credit_tier_default`, `bil_credit_reminder`, trigger hạn chỉ lùi, dựng lại `v_ord_don_tra_sau`, `orders_delivered_lock`, `v_aud_ledger_event`. Số `0142` thuộc nhánh «Có vé» (`claude/interesting-hodgkin-cde2fd`) chưa gộp — hai tệp khác tên nên áp được theo bất kỳ thứ tự nào; phiên phát hành vẫn kiểm `ls migrations` mọi nhánh. Cần `npm run trien-khai` theo `docs/QUY-TRINH-PHAT-HANH.md`. Không chờ diễn tập khôi phục (ADR-0172 «Phát hành»; diễn tập dời 2026-12-31, mục `HC-5.19`).
 - **Hoàn tác:** `wrangler rollback` về bản ngay trước được, vì mã mới vẫn GHI KÉP `term_days` và `credit_due_date` nên mã cũ đọc đúng hạn mức và hạn trả. **Hai giới hạn khi đang chạy bản cũ:** (1) **đặt hạn mức mới bị lỗi** — trigger `bil_credit_limit_hours_required` của `0143` đòi cột giờ mà mã cũ không gửi (chủ chưa cấp hạn mức cho ai nên hiện không ảnh hưởng ai; muốn đặt thì lên lại bản mới); (2) đơn Trả sau xác nhận bằng mã cũ thiếu hai mốc giờ ⇒ R-CRD-4 báo; lên lại bản mới rồi điền mốc bằng SQL như phần điền của `0143`.
 - **Lần phát hành sau (contract):** bỏ `bil_credit_limit.term_days` và `orders.credit_due_date` (migration mới, sau khi bản này chạy ổn); đổi R-CRD-1, R-CRD-2 sang hai mốc giờ.
 - **Sau phát hành, việc của chủ:** Toàn quyền đặt «Mức tối đa Quản trị được cấp» và số gợi ý theo cấp ở màn Cấp độ đại lý trước khi Quản trị cấp hạn mức trả sau cho ai. Tin nhắc chạy theo Cron 15 phút sẵn có.
