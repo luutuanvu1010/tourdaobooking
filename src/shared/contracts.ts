@@ -2688,6 +2688,10 @@ export interface QrThanhToanDto {
 export interface QrThanhToanResponse {
   qr: QrThanhToanDto;
 }
+/** `GET /api/orders/:id/qr-thanh-toan` của đơn mang dấu «Khách của đối tác trả cho Công ty» = Tắt (ADR-0178 Đ1 mục 4): không có QR vào tài khoản công ty. Đơn khác giữ `QrThanhToanResponse`. */
+export interface QrKhongCoResponse {
+  coQr: false;
+}
 
 // ---- Trợ lý Hỗ trợ (ADR-0066, module tro-ly) ----
 /** Thân `POST /api/tro-ly/hoi`. Máy chủ che SĐT / email / số giấy tờ và cắt 500 ký tự trước khi gửi đi. `cuocTroChuyen` (ADR-0073 Đ4): mã ngẫu nhiên khung sinh —

@@ -35,3 +35,16 @@ const KENH_THU_LICH_SU = defineSql(
   `SELECT c.company_collects, c.valid_from, s.label AS nguoi_doi FROM bil_partner_channel_setting c LEFT JOIN v_stf_staff_label s ON s.id = c.created_by ORDER BY c.valid_from DESC, c.rowid DESC LIMIT 50`,
 );
 export const kenhThuLichSu = async (db: D1Database): Promise<KenhThuLichSuRow[]> => (await db.prepare(KENH_THU_LICH_SU).all<KenhThuLichSuRow>()).results;
+
+// ---- Cổng người thu của đơn mang dấu Tắt (ADR-0178 Đ1 mục 3): dấu của đơn + hồ sơ người lập, đọc qua view công bố (không đọc bảng orders/staff thô) ----
+// Cùng nguồn với trigger `bil_receipt_partner_channel` (0144) và `hoSoNhanVien` (coc-repo.ts). `undefined` = không có đơn.
+const KENH_THU_CUA_DON = defineSql(
+  "billing",
+  "partner_channel_of_order",
+  `SELECT k.company_collects_snapshot AS dau, s.party_id AS nguoi_lap FROM v_ord_kenh_thu k LEFT JOIN v_stf_staff_label s ON s.id = k.staff_id WHERE k.id = ?1`,
+);
+export const kenhThuCuaDon = async (db: D1Database, orderId: string): Promise<{ dau: 0 | 1 | null; nguoiLap: string | null } | undefined> => {
+  const r = await db.prepare(KENH_THU_CUA_DON).bind(orderId).first<{ dau: number | null; nguoi_lap: string | null }>();
+  if (!r) return undefined;
+  return { dau: r.dau === 0 ? 0 : r.dau === 1 ? 1 : null, nguoiLap: r.nguoi_lap ?? null };
+};

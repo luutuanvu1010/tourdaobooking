@@ -18,6 +18,7 @@ import { GHI_CHU_KHOAN_LOI_KHAI, transferInOf } from "./coc-repo";
 import { docGiaoDich, kiemMaGiaoDich, type GiaoDich } from "./ma-giao-dich";
 import { phaiThuHienHanh, phaiThuHienHanhNhieuDon } from "./thay-lan-thu-repo";
 import { cauTangChoDon } from "./tra-sau-tang";
+import { kiemNguoiThuKenh } from "./kenh-thu";
 import { donTraSauTheoId } from "./tra-sau-repo";
 import { CAU_HOAN_SAU_GIAO } from "../../shared/phan-dinh";
 import { MA_LOI_TRUNG, kiemTrung, type UngVienTrung } from "../../shared/luat-trung";
@@ -553,6 +554,9 @@ export async function ghiLanThu(db: D1Database, input: { orderId: string; delive
   const daCo = receiptsDb.map(toReceiptRow);
   const lt = await docLanThu(db, input.raw, input.ai, congTyId, { phan: input.phan, receipts: daCo, kemDaGiao: false });
   if (!lt.ok) return lt;
+  // ADR-0178 Đ1 mục 3: đơn mang dấu Tắt chỉ nhận người thu = hồ sơ người lập — kiểm TRƯỚC khi dựng lô (trigger 0144 là lớp sau).
+  const kenh = await kiemNguoiThuKenh(db, input.orderId, lt.value.collectorPartyId);
+  if (kenh) return { ok: false, res: kenh };
   const boQuaTrung = (input.raw as { boQuaTrung?: unknown } | null | undefined)?.boQuaTrung;
   const trung = kiemTrungTienMat({ receipts: receiptsDb, lt: lt.value, ai: input.ai, raw: boQuaTrung });
   if (!trung.ok) return trung;
@@ -602,6 +606,9 @@ export async function daGiao(
     const doc = await docLanThu(db, input.rawLanThu, ai, congTyId, { phan: input.phan, receipts: receiptsDb.map(toReceiptRow), kemDaGiao: true });
     if (!doc.ok) return doc;
     lt = doc.value;
+    // ADR-0178 Đ1 mục 3: khoản thu kèm «Xong và đủ tiền» của đơn mang dấu Tắt — kiểm TRƯỚC lô (đơn không sang «Xong và đủ tiền»).
+    const kenh = await kiemNguoiThuKenh(db, input.orderId, lt.collectorPartyId);
+    if (kenh) return { ok: false, res: kenh };
   }
   let gd: GiaoDich | null = null;
   const boQuaGhi: { ma: string; lyDo: string }[] = [];

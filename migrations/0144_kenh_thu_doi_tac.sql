@@ -47,3 +47,13 @@ WHEN OLD.delivered_at IS NOT NULL
     AND NEW.credit_due_at IS OLD.credit_due_at AND NEW.credit_grace_until IS OLD.credit_grace_until
     AND NEW.company_collects_snapshot IS OLD.company_collects_snapshot)
 BEGIN SELECT RAISE(ABORT, 'order_delivered: đơn đã tới bước Xong và đủ tiền, không sửa được'); END;
+
+-- 5. Lớp CSDL của cổng người thu (ADR-0178 Đ1 mục 3; Task A3): đơn mang dấu Tắt (0) chỉ nhận khoản KHÁCH TRẢ MỚI (CUSTOMER_PAYMENT, không phải dòng đảo) có người thu =
+-- hồ sơ của tài khoản đã lập đơn. Người lập chưa gắn hồ sơ (hoặc không còn nhãn) ⇒ so với NULL ⇒ mọi khoản bị chặn. Tiền ra (CUSTOMER_REFUND) và dòng đảo
+-- (reverses_id ≠ NULL, chép người thu của dòng gốc) miễn. Đọc qua view công bố (v_ord_kenh_thu, v_stf_staff_label), không đọc bảng orders/staff thô.
+-- Máy chủ kiểm trước lô (`kiemNguoiThuKenh`, billing/kenh-thu.ts); trigger là lớp sau: RAISE huỷ cả lô.
+CREATE TRIGGER bil_receipt_partner_channel BEFORE INSERT ON bil_payment_receipt
+WHEN NEW.kind_code = 'CUSTOMER_PAYMENT' AND NEW.reverses_id IS NULL
+  AND EXISTS (SELECT 1 FROM v_ord_kenh_thu k WHERE k.id = NEW.order_id AND k.company_collects_snapshot = 0
+    AND (NEW.collector_party_id IS NULL OR NEW.collector_party_id IS NOT (SELECT s.party_id FROM v_stf_staff_label s WHERE s.id = k.staff_id)))
+BEGIN SELECT RAISE(ABORT, 'partner_channel_collector: đơn này chỉ nhận tiền khách trả cho đối tác đã lập đơn'); END;
