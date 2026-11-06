@@ -63,6 +63,25 @@ test("ADR-0173 tiêu chí 2: Quản trị, Toàn quyền lùi được hạn tr�
   assert.deepEqual([het.status, het.json.error.code], [409, "da_het_no"]);
 });
 
+test("ADR-0173 Đ1 mục 3: hai người cùng bấm «Ân hạn» — người sau gặp hạn vừa đổi ⇒ 409 han_vua_doi, không ghi đè, không có dòng nhật ký thừa", async () => {
+  const w = dung();
+  assert.equal((await hanMuc(w, 10_000_000)).status, 201);
+  const id = await donXacNhan(w);
+  const cu = moc(w, id);
+  // Người kia lùi hạn thêm 48 giờ NGAY TRƯỚC lô của người này (khuôn chen trước lô): người này đã đọc hạn cũ, định lùi 24 giờ.
+  const goc = w.env.DB.batch;
+  w.env.DB.batch = async (stmts: unknown[]) => {
+    w.env.DB.batch = goc;
+    w.sqlite.prepare("UPDATE orders SET credit_due_at = ?, credit_grace_until = ? WHERE id = ?").run(congGio(cu.h, 48), congGio(cu.g, 48), id);
+    return goc(stmts);
+  };
+  const r = await anHan(w, ADM, id, { hanMoi: congGio(cu.h, 24), lyDo: "khách xin thêm" });
+  w.env.DB.batch = goc;
+  assert.deepEqual([r.status, r.json?.error?.code], [409, "han_vua_doi"], r.text);
+  assert.deepEqual([moc(w, id).h, moc(w, id).g], [congGio(cu.h, 48), congGio(cu.g, 48)], "hạn của người kia giữ nguyên, không bị ghi đè");
+  assert.equal(w.q("SELECT COUNT(*) AS n FROM audit_log WHERE action = 'credit_due_extended' AND order_id = ?", id)[0].n, 0, "lệnh thua không ghi nhật ký");
+});
+
 test("ADR-0173 tiêu chí 2: đơn đang quá hạn được lùi hạn thì mở lại đơn Trả sau mới; màn đơn có cờ «Ân hạn» cho Quản trị, không cho Kế toán", async () => {
   const w = dung();
   assert.equal((await hanMuc(w, 10_000_000)).status, 201);
@@ -136,6 +155,25 @@ test("ADR-0173 tiêu chí 6: nhắc đúng mốc (trước hạn 6 giờ, sau h�
   // Thu đủ: không nhắc nữa.
   assert.equal((await w.call("POST", `/api/orders/${id}/payments`, { as: ACC, body: { soTien: T_ZB1, hinhThuc: "CASH", nguoiThu: "cong_ty" } })).status, 201);
   assert.equal(await nhacHanTraSau(w.env.DB, congGio(moi, 2)), 0, "đơn đã trả đủ không nhắc");
+});
+
+test("ADR-0173 tiêu chí 6 (đua): hai lượt Cron chồng nhau — lượt kia ghi sổ nhắc ngay trước lô của lượt này ⇒ lượt này không ghi thêm tin nào", async () => {
+  const w = dung();
+  assert.equal((await hanMuc(w, 10_000_000)).status, 201);
+  const id = await donXacNhan(w);
+  const han = moc(w, id).h;
+  const bayGio = congGio(han, 1);
+  // Lượt này đã đọc «chưa gửi»; lượt kia chen vào ghi sổ và tin của nó trước lô của lượt này (khuôn chen trước lô).
+  const goc = w.env.DB.batch;
+  w.env.DB.batch = async (stmts: unknown[]) => {
+    w.env.DB.batch = goc;
+    w.sqlite.prepare("INSERT INTO bil_credit_reminder (order_id, kind, due_at, party_id, created_at, updated_at) VALUES (?, 'QUA_HAN', ?, ?, ?, ?)").run(id, han, BEN, bayGio, bayGio);
+    return goc(stmts);
+  };
+  const so = await nhacHanTraSau(w.env.DB, bayGio);
+  w.env.DB.batch = goc;
+  assert.equal(so, 0, "lượt thua không đếm tin nào");
+  assert.equal(w.q("SELECT count(*) AS n FROM audit_log WHERE action = 'credit_overdue_reminded'")[0].n, 0, "lượt thua không ghi tin (dòng nhật ký) nào");
 });
 
 // ---- ADR-0173 Đ3 mục 5, tiêu chí 8: không ngừng được hồ sơ đại lý còn đơn Trả sau chưa trả --------------------------------------------------------------
