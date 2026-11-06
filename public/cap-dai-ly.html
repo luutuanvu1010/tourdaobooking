@@ -3,9 +3,9 @@
 <body data-title="Cấp độ đại lý" data-back="/account">
 <header id="topbar"></header>
 <main>
-  <!-- Màn gom hồ sơ đang mang vai trò được hưởng (đặc tả 2026-11-04-man-cap-dai-ly). Ô partner.commission.write, không giữ quyền Đối tác. web/cap-dai-ly.ts dựng nội dung. -->
+  <!-- Màn gom hồ sơ đang mang vai trò được hưởng (đặc tả 2026-11-04-man-cap-dai-ly). Ô partner.commission.write, không giữ quyền Đối tác. Cột «Trả sau» và khối «Cài đặt Trả sau» (ADR-0172 Đ1): web/o-tra-sau.ts. web/cap-dai-ly.ts dựng nội dung. -->
   <h1>Cấp độ đại lý</h1>
-  <p class="muted">Đặt cấp cho mọi đối tác đang được hưởng hoa hồng, gồm cả hồ sơ chưa có tài khoản.</p>
+  <p class="muted">Đặt cấp và Trả sau cho mọi đối tác đang được hưởng hoa hồng, gồm cả hồ sơ chưa có tài khoản.</p>
   <div id="error" class="alert" role="alert" hidden></div>
   <div id="cdl-khong-cap" class="alert" role="status" hidden></div>
   <div id="cdl-khung" hidden>
@@ -16,13 +16,14 @@
     <p id="cdl-dem" class="muted" role="status"></p>
     <section id="cdl-bang-wrap" class="card table-wrap">
       <table class="items">
-        <thead><tr><th>Tên</th><th>Loại hồ sơ</th><th>Vai trò</th><th>Tài khoản</th><th>Cấp độ đại lý</th></tr></thead>
+        <thead><tr><th>Tên</th><th>Loại hồ sơ</th><th>Vai trò</th><th>Tài khoản</th><th>Cấp độ đại lý</th><th>Trả sau</th></tr></thead>
         <tbody id="cdl-bang"></tbody>
       </table>
     </section>
     <div id="cdl-the" class="card-list"></div>
     <p id="cdl-rong" class="muted" hidden></p>
     <button id="cdl-them" class="btn" type="button" hidden>Xem thêm</button>
+    <div id="cdl-tra-sau"></div>
   </div>
 </main>
 <script type="module" src="/js/cap-dai-ly.js"></script>

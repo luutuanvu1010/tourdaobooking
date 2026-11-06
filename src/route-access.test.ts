@@ -553,9 +553,15 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/ve/lo/:id/bo", access: "office" }, // ADR-0156 Đ2 mục 3: Bỏ lô; thân hỏi ve.kho.manage
   { method: "GET", path: "/api/ve/cai-dat", access: "admin" }, // ADR-0156 Đ3: trần lô; thân hỏi settings.ops (chỉ Toàn quyền)
   { method: "PUT", path: "/api/ve/cai-dat", access: "admin" }, // ADR-0156 Đ3: như trên
-  { method: "GET", path: "/api/tra-sau/han-muc", access: "office" }, // ADR-0168 Đ1: credit.limit.view (Kế toán, Toàn quyền), không Đối tác
+  { method: "GET", path: "/api/tra-sau/han-muc", access: "office" }, // ADR-0168 Đ1: credit.limit.view (Kế toán, Quản trị, Toàn quyền — ADR-0172), không Đối tác
   { method: "GET", path: "/api/tra-sau/han-muc/:partyId/don", access: "office" }, // như trên
-  { method: "POST", path: "/api/tra-sau/han-muc", access: "office" }, // credit.limit.write (chỉ Toàn quyền)
+  { method: "GET", path: "/api/tra-sau/han-muc/:partyId", access: "office" }, // ADR-0172 Đ1: ô Trả sau ở Cấp độ đại lý — credit.limit.view
+  { method: "POST", path: "/api/tra-sau/muc-toi-da", access: "office" }, // ADR-0172: credit.ceiling.write (chỉ Toàn quyền)
+  { method: "GET", path: "/api/tra-sau/goi-y", access: "office" }, // ADR-0172 Đ2: credit.limit.view
+  { method: "PUT", path: "/api/tra-sau/goi-y/:cap", access: "office" }, // ADR-0172 Đ2: credit.limit.write (Quản trị, Toàn quyền)
+  { method: "GET", path: "/api/tra-sau/cua-toi", access: "orders" }, // ADR-0173 Đ3 mục 3: credit.own.view (Đối tác, own)
+  { method: "POST", path: "/api/tra-sau/don/:id/an-han", access: "office" }, // ADR-0173 Đ1 mục 3: credit.due.extend (Quản trị, Toàn quyền), không giữ quyền Đối tác
+  { method: "POST", path: "/api/tra-sau/han-muc", access: "office" }, // credit.limit.write (Quản trị, Toàn quyền — ADR-0172)
   { method: "POST", path: "/api/tra-sau/han-muc/:partyId/ngung", access: "office" }, // như trên
   { method: "GET", path: "/api/tra-sau/con-duoc-dung", access: "orders" }, // đường đọc hẹp cho người lập đơn: order.create; Đối tác bị ép về hồ sơ của phiên
   { method: "GET", path: "/api/ve/don/:orderId", access: "orders" }, // ADR-0153 Đ3 (Task 6); thân hỏi order.view rồi isOffice hoặc ve.cap.send (ADR-0170 Đ1: cổng orders mở cho Đối tác; FIELD, INTERN vẫn 403)
@@ -735,6 +741,7 @@ test("mức truy cập của 443 route hiện có khớp ảnh chụp đã duy�
   // 2026-11-05 (ADR-0142, Task 5): + GET /api/orders/chua-co-ban-hang, POST /api/orders/:id/ban-hang/nhan, POST …/ban-hang/tu-choi, PUT /api/orders/:id/ban-hang (orders; dispatch.sales.*), GET /api/dispatch/ban-hang-moi, GET /api/dispatch/ban-hang (orders), GET, POST /api/cai-dat/ban-hang-phu-trach (admin; settings.ops) = 451.
   // 2026-11-05 (ADR-0169 Đ5): + GET /api/catalog/quan-ly-ban, PUT /api/catalog/:code/ngung-ban (office; thân hỏi ô, chặn Đối tác) = 451.
   // 2026-11-05 (ADR-0168, Trả sau): thêm năm route hạn mức trả sau của billing = 456.
-  assert.equal(actual.length, 456, "số route thực tế lệch 456 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 456, "SNAPSHOT phải có đúng 456 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // 2026-11-06 (ADR-0172, ADR-0173): + GET /api/tra-sau/han-muc/:partyId, POST /api/tra-sau/muc-toi-da, GET /api/tra-sau/goi-y, PUT /api/tra-sau/goi-y/:cap (office), GET /api/tra-sau/cua-toi (orders; credit.own.view), POST /api/tra-sau/don/:id/an-han (office, ở orders) = 462.
+  assert.equal(actual.length, 462, "số route thực tế lệch 462 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 462, "SNAPSHOT phải có đúng 462 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

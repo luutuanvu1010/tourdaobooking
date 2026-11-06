@@ -347,8 +347,10 @@ export interface OrderDto {
   declaredDeposit: number;
   /** Hình thức thanh toán (ADR-0168): `PREPAID` (mặc định) hoặc `CREDIT` (Trả sau). Nhãn hiện cho người dùng: `NHAN_HINH_THUC` (src/shared/tra-sau.ts). */
   paymentTerm: HinhThucThanhToan;
-  /** Hạn trả của đơn Trả sau đã xác nhận (YYYY-MM-DD, giờ Việt Nam); `null` ở đơn Trả trước hoặc đơn chưa xác nhận. */
+  /** Hạn trả của đơn Trả sau đã xác nhận (mốc ISO UTC, hiện theo giờ Việt Nam — ADR-0172 Đ3); `null` ở đơn Trả trước hoặc đơn chưa xác nhận. */
   hanTra: string | null;
+  /** Hết ân hạn (mốc ISO UTC); `null` như `hanTra`. */
+  hetAnHan: string | null;
   createdAt: string;
   updatedAt: string;
   confirmedAt: string | null;
@@ -673,6 +675,11 @@ export interface OrderDetailResponse {
   banHangMoi?: { staffId: string; name: string } | null;
   /** ADR-0170 Đ3: đơn có vé đã mở (hoặc không đọc được). CHỈ có khi người xem giữ quyền Đối tác (kể cả lai); giao diện ẩn nút Huỷ theo cờ này, máy chủ vẫn chặn. */
   coVeDaMo?: boolean;
+  /**
+   * ADR-0172 Đ3 mục 3, ADR-0173 Đ1 mục 3: Trả sau của đơn đã xác nhận — số còn nợ, trạng thái hạn tại lúc đọc, và người xem có bấm «Ân hạn» được không (cờ máy chủ).
+   * Chỉ có ở đơn Trả sau đã xác nhận (người xem đã qua `money.view`); null = không đọc được số nợ.
+   */
+  traSau?: { no: number; trangThai: TrangThaiHanTraSau; coQuyenAnHan: boolean } | null;
 }
 /**
  * `yeuCau` = yêu cầu xác nhận ĐANG MỞ của đơn (null = chưa gửi / đã rút). `canXacNhan` = đơn thuộc diện phải qua bước xác nhận (chỉ tính cho người lập; người khác false).
@@ -3121,43 +3128,70 @@ export interface CaiDatXacNhanResponse {
 }
 export type CaiDatXacNhanInput = { pham: "SERVICE" | "GROUP"; ma: string; canXacNhan: boolean } | { tuXacNhanNoiBo: boolean };
 
-// ---- Trả sau theo hạn mức (ADR-0168; billing) ----
-/** Một hồ sơ trên màn «Hạn mức trả sau». `coHanMuc` false = hồ sơ còn đơn Trả sau đang nợ nhưng hạn mức đã ngừng. Số tiền VNĐ, tính ở máy chủ. */
+// ---- Trả sau theo hạn mức (ADR-0168, ADR-0172, ADR-0173; billing) ----
+/** Trạng thái hạn của một đơn Trả sau còn nợ (ADR-0172 Đ3 mục 3): trong hạn, trong ân hạn (chỉ báo), quá hạn (hết ân hạn — chặn). Nhãn: `NHAN_TRANG_THAI_HAN`. */
+export type TrangThaiHanTraSau = "trong_han" | "an_han" | "qua_han";
+/** Một hồ sơ trên danh sách đang nợ. `coHanMuc` false = hồ sơ còn đơn Trả sau đang nợ nhưng Trả sau đã ngừng. Số tiền VNĐ, tính ở máy chủ. Giờ: số giờ. */
 export interface HanMucTraSauDto {
   partyId: string;
   ten: string;
   coHanMuc: boolean;
   hanMuc: number | null;
-  soNgay: number | null;
+  gioTra: number | null;
+  gioAnHan: number | null;
   tuNgay: string | null;
   dangNo: number;
   conDuocDung: number | null;
   soDonNo: number;
+  /** Đơn đang trong ân hạn (chỉ báo). */
+  soDonAnHan: number;
+  /** Đơn đã hết ân hạn còn nợ (đang chặn). */
   soDonQuaHan: number;
 }
 export interface HanMucTraSauListResponse {
   danhSach: HanMucTraSauDto[];
-  /** Toàn quyền sửa được; Kế toán chỉ xem. */
+  /** Quản trị, Toàn quyền đặt được (ở màn Cấp độ đại lý); Kế toán chỉ xem. */
   coQuyenSua: boolean;
+  /** Mức tối đa Quản trị được cấp hiện hành; null = chưa đặt (Quản trị chưa bật được Trả sau). */
+  mucToiDa: number | null;
+  /** Người xem đặt được mức tối đa (chỉ Toàn quyền) — cũng là người không bị mức tối đa giới hạn. */
+  coQuyenDatMucToiDa: boolean;
 }
 export interface DonNoTraSauDto {
   orderId: string;
   maDon: string;
-  /** Ngày hạn trả (YYYY-MM-DD, giờ Việt Nam). */
+  /** Hạn trả, mốc ISO UTC (hiện theo giờ Việt Nam). */
   hanTra: string | null;
+  /** Hết ân hạn, mốc ISO UTC. */
+  hetAnHan: string | null;
   no: number;
-  quaHan: boolean;
+  trangThai: TrangThaiHanTraSau;
 }
 export interface DonNoTraSauResponse {
   partyId: string;
   ten: string;
   don: DonNoTraSauDto[];
 }
+/** Bật / đổi Trả sau cho một đại lý (ADR-0172 Đ1, Đ3). `gioTra` ≥ 1, `gioAnHan` ≥ 0, tối đa 8760 giờ mỗi số. */
 export interface DatHanMucTraSauInput {
   partyId: string;
   hanMuc: number;
-  soNgay: number;
+  gioTra: number;
+  gioAnHan: number;
   lyDo?: string;
+}
+/** Số gợi ý theo cấp (ADR-0172 Đ2): chỉ điền sẵn bảng bật, không cho ai Trả sau. */
+export interface GoiYTraSauDto { cap: string; hanMuc: number; gioTra: number; gioAnHan: number }
+export interface GoiYTraSauResponse { goiY: GoiYTraSauDto[]; coQuyenSua: boolean }
+/** Trả sau của MỘT hồ sơ (ô ở màn Cấp độ đại lý): hạn mức đang bật (null = chưa bật), số gợi ý của cấp hiện hành để điền sẵn. */
+export interface TraSauHoSoResponse {
+  partyId: string;
+  hanMuc: number | null;
+  gioTra: number | null;
+  gioAnHan: number | null;
+  dangNo: number;
+  conDuocDung: number | null;
+  coQuyenSua: boolean;
 }
 /** Đường đọc hẹp cho người lập đơn: chỉ số còn được dùng của đúng bên đặt, không kèm danh sách đơn. */
 export interface ConDuocDungTraSauResponse {
@@ -3165,6 +3199,18 @@ export interface ConDuocDungTraSauResponse {
   conDuocDung: number;
   coDonQuaHan: boolean;
 }
+/** «Trả sau của tôi» (ADR-0173 Đ3 mục 3): chỉ hồ sơ của phiên. */
+export interface TraSauCuaToiResponse {
+  coHanMuc: boolean;
+  hanMuc: number | null;
+  gioTra: number | null;
+  gioAnHan: number | null;
+  dangNo: number;
+  conDuocDung: number | null;
+  don: DonNoTraSauDto[];
+}
+/** Lùi hạn trả một đơn (ADR-0173 Đ1 mục 3): `hanMoi` mốc ISO; `lyDo` bắt buộc. */
+export interface NoiHanTraSauInput { hanMoi: string; lyDo: string }
 // ---- Bán hàng phụ trách đơn (ADR-0142) ------------------------------------------------------------------------------------------------------------------
 /** `GET /api/dispatch/ban-hang-moi`: người mời được làm Bán hàng phụ trách — CHỈ mã tài khoản + tên (không SĐT, không email). */
 export interface BanHangMoiResponse { banHang: { staffId: string; name: string }[] }

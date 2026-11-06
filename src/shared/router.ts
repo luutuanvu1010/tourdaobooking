@@ -106,7 +106,8 @@ export interface GopHoSoNoi {
   viecCua: (partyId: string) => Promise<ViecCuaHoSo>;
   donNguoiDat: (partyId: string) => Promise<DonCuaNguoiDatTom>;
   /** ADR-0168 Đ2 mục 6: mã các đơn Trả sau còn nợ của hồ sơ — `orders` không biết nợ (billing tính), gốc lắp ráp điền. Tách khỏi `donNguoiDat` để hàng chờ phiếu xoá không tốn thêm truy vấn mỗi dòng. */
-  conNoTraSau?: (partyId: string) => Promise<string[]>;
+  /** BẮT BUỘC (ADR-0173 Đ3 mục 5, trang ghép (3)): không đọc được nợ thì hàm NÉM — mọi đường ngừng hồ sơ chặn theo (không đoán «hết nợ»). */
+  conNoTraSau: (partyId: string) => Promise<string[]>;
   cauDoiDon: (tuPartyId: string, sangPartyId: string, at: string) => D1PreparedStatement;
   soDongNo: (partyId: string) => Promise<number>;
   soDangNhap: () => Promise<{ partyId: string; phone: string }[]>;
@@ -288,7 +289,7 @@ export interface Ctx<A extends Access = Access> {
    */
   kiemTraSau: (i: { benDat: string; soTienDon: number; boQuaDon?: string }) => Promise<KetQuaKiemTraSau | null>;
   cauGacPhienBanTraSau: (partyId: string, version: number, at: string) => D1PreparedStatement[];
-  traSauCuaDon: (orderId: string) => Promise<{ hanTra: string | null; no: number; benDat?: string | null; version?: number } | null>;
+  traSauCuaDon: (orderId: string) => Promise<{ hanTra: string | null; hetAnHan?: string | null; no: number; benDat?: string | null; version?: number } | null>;
   /** ADR-0168 Đ3 mục 3: đơn đã có vé bị mở (lộ) cho khách chưa — `ve-dien-tu` trả lời, `orders` không import nó. `null` = không tiêm / không đọc được ⇒ cổng huỷ đơn Trả sau còn nợ chặn 503. */
   veDaMoCuaDon: (orderId: string) => Promise<boolean | null>;
   /** ADR-0089 đ7 + ADR-0159: người lập còn giữ tiền của đơn huỷ để lập lại ⇒ không khai lại. Không tiêm ⇒ câu chặn 503 (không đoán «không có»). */
@@ -303,7 +304,7 @@ export interface Ctx<A extends Access = Access> {
   /** Các dịch vụ của đơn có thể giữ vé + số khách HIỆU LỰC (`orders.dichVuChoVe`) — cho route xem vé của `ve-dien-tu`. KHÔNG tự kiểm quyền: route hỏi `can(` trước. Không tiêm ⇒ rỗng. */
   dichVuChoVe: (orderId: string) => Promise<{ serviceId: string; catalogCode: string; ngayDi: string; pax: { adult: number; child: number; senior: number; infant: number } }[]>;
   /** {số tính «thu đủ», phải thu, số khai chưa nộp, số chờ Kế toán xác nhận, thông tin Trả sau} (`billing.tienDonVe`; `daThu` đã trừ `choNop`, ADR-0159 Đ2, và `choXacNhan`, ADR-0170 Đ2) — để so ở một hàm thuần. Không tiêm / không đọc được ⇒ `null` (KHÔNG mở khoá). */
-  tienDonVe: (orderId: string) => Promise<{ daThu: number; phaiThu: number; choNop?: number; choXacNhan?: number; traSau?: { hanTra: string | null; no: number } | null } | null>;
+  tienDonVe: (orderId: string) => Promise<{ daThu: number; phaiThu: number; choNop?: number; choXacNhan?: number; traSau?: { hanTra: string | null; hetAnHan: string | null; no: number } | null } | null>;
   traVeKhiHuy: (orderId: string, lyDo: "DON_HUY" | "RUT_XAC_NHAN") => Promise<D1PreparedStatement[]>;
   canBangVeSauSuaKhach: (orderId: string) => Promise<void>;
   /**
@@ -461,7 +462,7 @@ export interface AppOptions {
     /** ADR-0168. BẮT BUỘC trong mã chạy thật (`src/index.ts`: billing); thiếu (khung thử cố ý) → `null` (đơn Trả sau bị chặn 503) / câu gác rỗng. */
     kiemTraSau: (env: Env, i: { benDat: string; soTienDon: number; boQuaDon?: string }) => Promise<KetQuaKiemTraSau>;
     cauGacPhienBanTraSau: (env: Env, partyId: string, version: number, at: string) => D1PreparedStatement[];
-    traSauCuaDon: (env: Env, orderId: string) => Promise<{ hanTra: string | null; no: number; benDat?: string | null; version?: number } | null>;
+    traSauCuaDon: (env: Env, orderId: string) => Promise<{ hanTra: string | null; hetAnHan?: string | null; no: number; benDat?: string | null; version?: number } | null>;
     /** ADR-0168 Đ3 mục 3, ADR-0170 Đ3: BẮT BUỘC trong mã chạy thật (`src/index.ts`: `ve-dien-tu`); `null` = không đọc được ⇒ người giữ quyền Đối tác KHÔNG huỷ / sửa số khách được (chặn, không đoán). */
     veDaMoCuaDon: (env: Env, orderId: string) => Promise<boolean | null>;
     chanKhaiCocLai: (env: Env, nguoiLapId: string) => Promise<ChanKhaiLai>;
@@ -471,7 +472,7 @@ export interface AppOptions {
     canBangVeSauSuaKhach: (env: Env, actor: StaffProfile, orderId: string) => Promise<void>;
     /** ADR-0153 Đ3. BẮT BUỘC trong mã chạy thật (`src/index.ts`: `orders.dichVuChoVe`, `billing.tienDonVe`); thiếu (khung thử cố ý) → rỗng / null. */
     dichVuChoVe: (env: Env, orderId: string) => Promise<{ serviceId: string; catalogCode: string; ngayDi: string; pax: { adult: number; child: number; senior: number; infant: number } }[]>;
-    tienDonVe: (env: Env, orderId: string) => Promise<{ daThu: number; phaiThu: number; choNop?: number; choXacNhan?: number; traSau?: { hanTra: string | null; no: number } | null } | null>;
+    tienDonVe: (env: Env, orderId: string) => Promise<{ daThu: number; phaiThu: number; choNop?: number; choXacNhan?: number; traSau?: { hanTra: string | null; hetAnHan: string | null; no: number } | null } | null>;
     /** ADR-0148 Đ1. BẮT BUỘC trong mã chạy thật (`src/index.ts`: `ngayChupGanNhat` của orders); thiếu (khung thử cố ý) → router trả `null` (route Sửa / Đổi / Ngừng của pricing 503). */
     hoiDaChup: (env: Env, q: HoiDaChup) => Promise<string | null>;
     /** TIN CHUYẾN (ADR-0052 D6.3). BẮT BUỘC trong mã chạy thật (`src/index.ts`: `chuyenChoTinTheoId` của van-chuyen); thiếu (khung thử cố ý) → router trả `null`. */
@@ -635,7 +636,7 @@ export function createApp(opts: AppOptions) {
       gopHoSo: {
         viecCua: (id) => opts.injected.gopHoSo(envH).viecCua(id),
         donNguoiDat: (id) => opts.injected.gopHoSo(envH).donNguoiDat(id),
-        conNoTraSau: (id) => opts.injected.gopHoSo(envH).conNoTraSau?.(id) ?? Promise.resolve([]),
+        conNoTraSau: (id) => opts.injected.gopHoSo(envH).conNoTraSau(id),
         cauDoiDon: (tu, sang, at) => opts.injected.gopHoSo(envH).cauDoiDon(tu, sang, at),
         soDongNo: (id) => opts.injected.gopHoSo(envH).soDongNo(id),
         soDangNhap: () => opts.injected.gopHoSo(envH).soDangNhap(),

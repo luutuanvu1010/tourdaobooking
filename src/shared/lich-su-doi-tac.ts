@@ -95,6 +95,8 @@ export const LICH_SU_DOI_TAC_AN = [
   "ve_giu_cho", "ve_tra_ve", "ve_xem_anh", "ve_mo_anh_lo_huy", "ve_giao", "ve_tao_duong_dan", "ve_thu_hoi_duong_dan", "ve_nhap_lo", "ve_xac_nhan_lo", "ve_sua_ma_tour", "ve_bo_lo", "ve_doi_tran_lo",
   // ADR-0168: hạn mức Trả sau — việc nội bộ của Toàn quyền, ẩn khỏi lịch sử Đối tác.
   "credit_limit_set", "credit_limit_stopped",
+  // ADR-0172, ADR-0173: mức tối đa, số gợi ý, ân hạn đơn, tin nhắc — loại dòng MỚI nên mặc định ẩn cho tới khi chủ xếp loại; trang Nhật ký (Toàn quyền) vẫn đọc được.
+  "credit_ceiling_set", "credit_tier_default_set", "credit_due_extended", "credit_due_soon_reminded", "credit_overdue_reminded",
 ] as const satisfies readonly AuditAction[];
 
 /** Hành động mới trong `AUDIT_ACTIONS` chưa có ở danh sách nào ⇒ kiểu này khác `never` và dòng ngay dưới không biên dịch (`npm run typecheck` đỏ). */

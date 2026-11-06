@@ -70,6 +70,8 @@ const CA: Record<string, unknown> = {
   "POST /api/orders/:id/ban-hang/nhan": {},
   "POST /api/orders/:id/ban-hang/tu-choi": {},
   "PUT /api/orders/:id/ban-hang": { staffId: HDV },
+  // ADR-0173 Đ2: «Ân hạn» lùi hạn trả của đơn Trả sau — đơn Đã giao ⇒ 409 order_delivered TRƯỚC bước kiểm hình thức thanh toán.
+  "POST /api/tra-sau/don/:id/an-han": { hanMoi: "2026-12-01T00:00:00.000Z", lyDo: "khách xin thêm hai ngày" },
 };
 /** Route mà Toàn quyền KHÔNG qua được chốt riêng của route (không phải ô quyền) — gọi bằng người duy nhất qua được chốt; kỳ vọng vẫn là 409 order_delivered. */
 const NGUOI_GOI: Record<string, string> = { "POST /api/orders/:id/handler-refuse": HDV };

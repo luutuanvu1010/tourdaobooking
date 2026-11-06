@@ -4481,3 +4481,25 @@ test("R-CRD-1 / R-CRD-2: Trả sau đã xác nhận thiếu hạn trả, hoặc 
   don("PREPAID", false, "2026-11-20");
   assert.equal(violations(db, c2), 1, "đơn Trả trước mà có hạn trả");
 });
+
+test("R-CRD-4: đơn Trả sau đã xác nhận phải đủ hai mốc giờ, hết ân hạn không trước hạn trả; đơn Trả trước không có mốc giờ", () => {
+  const db = build();
+  const c = one("R-CRD-4");
+  assert.equal(c.level, "fail");
+  const don = (term: string, xacNhan: boolean, han: string | null, het: string | null): string => {
+    const { order } = donKhach(db, [{ adult: 1 }], "draft");
+    db.prepare("UPDATE orders SET payment_term = ? WHERE id = ?").run(term, order);
+    if (xacNhan) db.prepare("UPDATE orders SET status = 'confirmed', confirmed_at = ? WHERE id = ?").run(T1, order);
+    db.prepare("UPDATE orders SET credit_due_at = ?, credit_grace_until = ? WHERE id = ?").run(han, het, order);
+    return order;
+  };
+  don("CREDIT", true, "2026-11-20T03:00:00.000Z", "2026-11-20T15:00:00.000Z");
+  don("CREDIT", false, null, null);
+  assert.equal(violations(db, c), 0, "đủ cặp; nháp chưa cần mốc");
+  don("CREDIT", true, "2026-11-20T03:00:00.000Z", null);
+  assert.equal(violations(db, c), 1, "thiếu hết ân hạn");
+  don("CREDIT", true, "2026-11-20T03:00:00.000Z", "2026-11-19T03:00:00.000Z");
+  assert.equal(violations(db, c), 2, "hết ân hạn trước hạn trả");
+  don("PREPAID", false, "2026-11-20T03:00:00.000Z", "2026-11-20T03:00:00.000Z");
+  assert.equal(violations(db, c), 3, "đơn Trả trước có mốc giờ");
+});
