@@ -53,7 +53,7 @@ Mỗi dòng đã có bài ở task sở hữu.
 - [x] **Step 4: Viết** (đã làm 5/11, commit 66618a26). `noTheoDon` lấy `dangDoiChieu`, `benDatDangGiu` từ `soChuaVeCongTy` với `nguoiLapPartyId` = bên đặt, bỏ phép tính riêng; `noMotDon` giữ chữ ký. Cổng đường dẫn khách đổi sang `moVeDuoc`.
 - [x] **Step 5: Chạy, xanh** gồm `src/modules/billing/*.test.ts`, `src/modules/ve-dien-tu/*.test.ts`, `src/tra-sau-*.test.ts`, `src/architecture.test.ts`, `npm run typecheck`. Commit. (Đã chạy xanh 5/11, commit 66618a26 và các commit sau trên nhánh.)
 
-### Task 2: Huỷ đơn và đường làm nợ tăng — XONG 2026-11-06 (nhánh `claude/festive-payne-7371a2`, commit 93176bfb; chưa có người kiểm độc lập)
+### Task 2: Huỷ đơn và đường làm nợ tăng — THI CÔNG XONG 2026-11-06, CHỜ KIỂM ĐỘC LẬP (nhánh `claude/festive-payne-7371a2`, commit 93176bfb và bản sửa thứ tự câu gác ở lô huỷ)
 
 Đóng nợ 1, 2, 4.
 
@@ -71,7 +71,7 @@ Mỗi dòng đã có bài ở task sở hữu.
 - [x] **Step 4: Xoá ba bài `QUÉT` đọc chữ** cho `soanHuyDon`, `changeBooker`, `soanSuaSoKhach` vì `npm run typecheck` đã buộc; xoá bài đếm `cauTangChoDon` vì bảng đã chạy thật. Thử phá: gọi `soanHuyDon` không kiểu nhãn thì typecheck đỏ; bỏ `cauTangChoDon` ở `ghiChuyen` thì bảng đỏ; hoàn nguyên. Ghi `docs/SO-HANG-RAO.md`.
 - [x] **Step 5: Chạy, xanh** gồm `src/tra-sau-*.test.ts`, `npm run typecheck`. Commit.
 
-### Task 3: Cổng sửa tăng, gộp hồ sơ, hai mục ghim — XONG 2026-11-06 (commit c3725654; chặn gộp hồ sơ còn nợ đã có ở Task 4b; chưa có người kiểm độc lập)
+### Task 3: Cổng sửa tăng, gộp hồ sơ, hai mục ghim — THI CÔNG XONG 2026-11-06, CHỜ KIỂM ĐỘC LẬP (commit c3725654; chặn gộp hồ sơ còn nợ đã có ở Task 4b)
 
 Đóng nợ 3, 5, 6, 7.
 

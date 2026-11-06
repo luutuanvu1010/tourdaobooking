@@ -24,7 +24,7 @@ import { canhBaoMocCua, type XetDatGapSua } from "./dat-gap";
 import { getEffectiveServices } from "../catalog";
 import { anKhachBat, anKhachMoiNhat, cauDoiGioChang, cauDoiNgayChang, cauDoiNgayDichVu, cauGhiKepGio, cauKhepYeuCau, cauMoYeuCau, cauThemAnKhach, cauThemChinhSach, cauThemCo, chinhSachMoiNhat, coHienHanh, coMoiNhat, nhomDangDung, nhomTheoMa, orderTouchDraft, tuXacNhanNoiBo, ungVienTheBanHang, yeuCauMoCuaDon, yeuCauMoTatCa, yeuCauTheoId, type YeuCauRow } from "./xac-nhan-repo";
 import { legDatGapByOrder, legShortNoticeConVe, slotPolicy, type DauDatGapMoi } from "./chang-hanh-khach-repo";
-import { daHuy, daXacNhan, findOrder, getMeta, nextStamp, soanHuyDon, soanXacNhan } from "./repository";
+import { daXacNhan, findOrder, getMeta, nextStamp, soanHuyDon, soanXacNhan } from "./repository";
 import { congHuyTraSau } from "./tra-sau-cong";
 import { CAU_VUOT_TONG_NGUOI_XET } from "../../shared/dat-coc-truoc";
 import { MOC_CHUA_CO, RACED, STALE, canChotGioCuaNguoiLap, chanDoanXacNhan, chayLoNoiChuyen, cocChoXacNhan, congNhomTatDuaDon, dichLoiXacNhan, kemChupXacNhan, kiemCongXacNhan, tinhCanXacNhan, viCuaYeuCau } from "./xac-nhan-chung";
@@ -334,7 +334,7 @@ export const xacNhanRoutes = (xetDatGap: XetDatGapSua) => [
       const khep = cauKhepYeuCau(env.DB, { id: y.id, at: atHuy, by: staff.id, outcome: "HUY", ticket: ketQua === "HET_VE" ? "HET_VE" : "HUY", note: null, auditId: huy.auditId });
       const khepMoi = banHang.cauKhepLoiMoiSauLenhDon({ orderId: id, outcome: "HUY_DON", at: atHuy, actorId: staff.id, auditId: huy.auditId }); // ADR-0142: lời mời mở (nếu có) khép «đơn huỷ», gác theo dòng nhật ký huỷ
       const dong = await dongBoChuyen({ orderId: id, auditIdDon: huy.auditId, bayGioMs: Date.now(), sau: { trangThai: "cancelled" }, cauDon: [...huy.cau, ...(await traVeKhiHuy(id, "DON_HUY", cong.qua.chanVeDaMo)), khep, khepMoi] }); // ADR-0153: trả vé cùng nguyên tử với việc huỷ
-      const r = await chayLoNoiChuyen(env.DB, dong, daHuy);
+      const r = await chayLoNoiChuyen(env.DB, dong, huy.thang);
       if (r.kq === "loi") return r.res;
       if (r.kq === "thua") return RACED();
       baoThayDoi({ orderId: id, thayDoi: "huy" });

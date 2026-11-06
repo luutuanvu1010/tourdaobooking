@@ -23,7 +23,7 @@ import { maDonTuNoiDung } from "../../shared/noi-dung-chuyen-khoan";
 import { dungLichSuSoKhach } from "../../shared/lich-su-so-khach";
 import { editablePaxCodesOf, effectiveMoney, effectiveSubtotal, planMoneyEdit, type AdjustmentEntry } from "./money-adjustment";
 import {
-  addLeg, changeBooker, daHuy, daXacNhan, soanDoiKhach, soanHuyDon, soanXacNhan, soanSuaChang, soanThayChang, thangCauDau, changeLeg, cocCuNhap, countDrafts, createOrder, effectivePax, findOrder, getDashboard, getDepartDates, getGiamGia, getLatestAdjustment, getMeta, getOrderRef, nextStamp,
+  addLeg, changeBooker, daXacNhan, soanDoiKhach, soanHuyDon, soanXacNhan, soanSuaChang, soanThayChang, thangCauDau, changeLeg, cocCuNhap, countDrafts, createOrder, effectivePax, findOrder, getDashboard, getDepartDates, getGiamGia, getLatestAdjustment, getMeta, getOrderRef, nextStamp,
   chayLoSuaSoKhach, demThanCu, getServicesForSubtotal, getStoredPax, getStoredServices, insertMoneyAdjustment, listAdjustments, listOrderIds, listOrders, listPoolSources, updateDraftOrder, updateTrip,
 } from "./repository";
 import {
@@ -608,7 +608,7 @@ export async function cancelOrderByHandler(
   // ADR-0104 Đ2 (điểm gọi 2): route dispatch truyền `noiChuyen` = ctx.dongBoChuyen (orders không xuất hàm soạn, không import van-chuyen). MỘT lô: câu huỷ đứng
   // đầu, khúc chuyến sau.
   // ADR-0032 điều 1 (kế hoạch 2026-10-23 mục 4c): `cauSauHuy` = câu CHƯA CHẠY do route của dispatch dựng (sự kiện ABORT, `changes() > 0` sau câu nhật ký huỷ) —
-  // nối NGAY sau câu nhật ký, TRƯỚC khúc chuyến; `orders` không đọc chỉ số của chúng (`daHuy` vẫn đọc kq[1]). Tham số đứng TRƯỚC `noiChuyen` (bài NT-6 bóc thân hàm
+  // nối NGAY sau câu nhật ký, TRƯỚC khúc chuyến; `orders` không đọc chỉ số của chúng (`huy.thang` biết chỗ câu đổi trạng thái). Tham số đứng TRƯỚC `noiChuyen` (bài NT-6 bóc thân hàm
   // theo `noiChuyen: NoiChuyen` rồi dấu `)` kế tiếp).
   // ADR-0168 Đ3 mục 3: đơn Trả sau còn nợ mà vé đã mở thì không huỷ được (cổng đứng trước câu soạn lô huỷ).
   // Kế hoạch 2026-11-05 Task 2: `cauSauHuy` nhận cờ `qua.chanVeDaMo` để câu trả vé mang câu bảo vệ «vé vừa mở»; lỗi của câu đó / câu gác phiên bản dịch ở đây (`laDoiTac` chọn câu).
@@ -620,7 +620,7 @@ export async function cancelOrderByHandler(
   const cauDon = [...huy.cau, ...(await cauSauHuy(huy.auditId, cong.qua.chanVeDaMo))]; // ADR-0142: nơi gọi nhận id dòng nhật ký huỷ để gác câu khép lời mời
   const dong = await noiChuyen({ orderId: id, auditIdDon: huy.auditId, bayGioMs: Date.now(), sau: { trangThai: "cancelled" }, cauDon });
   try {
-    return await chayLoNoiChuyen(db, dong, daHuy);
+    return await chayLoNoiChuyen(db, dong, huy.thang);
   } catch (e) {
     const res = dichLoiLoHuy(e, cong.qua, laDoiTac);
     if (res) return { kq: "loi", res };
@@ -1917,7 +1917,7 @@ export const ordersModule: AppModule = {
         const dong = await dongBoChuyen({ orderId: id, auditIdDon: huy.auditId, bayGioMs: Date.now(), sau: { trangThai: "cancelled" }, cauDon: [...huy.cau, ...(await traVeKhiHuy(id, "DON_HUY", congHuy.qua.chanVeDaMo)), khepMoi] }); // ADR-0153: trả vé cùng nguyên tử với việc huỷ
         let r: KetQuaLenhDon;
         // ADR-0170 Đ3 + kế hoạch 2026-11-05 Task 2: vé vừa mở xen giữa (người giữ quyền Đối tác, hoặc đơn Trả sau còn nợ) ⇒ câu bảo vệ trong lô làm cả lô lui; câu gác phiên bản thua ⇒ 409.
-        try { r = await chayLoNoiChuyen(env.DB, dong, daHuy); } catch (e) { const res = dichLoiLoHuy(e, congHuy.qua, holdsPartner(staff)); if (res) return res; throw e; }
+        try { r = await chayLoNoiChuyen(env.DB, dong, huy.thang); } catch (e) { const res = dichLoiLoHuy(e, congHuy.qua, holdsPartner(staff)); if (res) return res; throw e; }
         if (r.kq === "loi") return r.res;
         if (r.kq === "thua") return RACED();
         dongBo = r.dongBoChuyen;

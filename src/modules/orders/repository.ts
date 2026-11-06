@@ -1155,31 +1155,34 @@ export const daXacNhan = (kq: readonly D1Result[]): boolean => (kq[1]?.meta.chan
 
 /**
  * SOẠN (chưa chạy) lô huỷ đơn — cho điểm gọi nối máy đồng bộ chuyến (ADR-0104 Đ2, điểm gọi 1 và 2): `auditId` = id dòng nhật ký của câu cổng
- * đơn (sinh trước — câu cổng chuyến hỏi "dòng này đã có"), `cau` = [dòng lý do] → [đổi trạng thái] → [nhật ký changes() > 0] → [câu gác Trả sau của cổng]. Chạy MỘT `db.batch` với câu
- * đơn ĐỨNG ĐẦU rồi đọc thắng bằng `daHuy(kq)` (chỉ số câu đổi trạng thái không đổi khi nối khúc chuyến phía sau).
+ * đơn (sinh trước — câu cổng chuyến hỏi "dòng này đã có"), `cau` = [câu gác Trả sau của cổng, nếu có] → [dòng lý do] → [đổi trạng thái] → [nhật ký changes() > 0]. Chạy MỘT
+ * `db.batch` với phần câu đơn ĐỨNG ĐẦU rồi đọc thắng bằng `thang(kq)` (biết chỗ câu đổi trạng thái; chỉ số không đổi khi nối khúc chuyến phía sau).
+ * Câu gác ĐỨNG ĐẦU, không đứng sau nhật ký: câu nối sau (sự kiện ABORT của dispatch, `changes() > 0`) đọc số dòng của câu NGAY TRƯỚC — câu gác luôn đổi một dòng nên sẽ làm
+ * sự kiện ghi cả khi huỷ thua. Hệ quả có chủ ý: huỷ thua khoá lạc quan vẫn tăng phiên bản bên đặt (lệnh Trả sau cùng lúc phải bấm lại).
  * Huỷ có điều kiện `status = from` VÀ `updated_at = prevUpdatedAt` (khoá lạc quan T1d: kể cả khi người kia chỉ đổi `updated_at` — vd `PUT /trip` chen giữa); thua thì không đổi gì,
  * không nhật ký, không dòng lý do. `lyDo` BẮT BUỘC (ADR-0089 đ8). `opts`: đường huỷ hẹp của FIELD (ADR-0014 điều 11) ghi hành động nhật ký riêng.
  * `qua` BẮT BUỘC (kế hoạch 2026-11-05 Task 2): chỉ `congHuyTraSau` tạo được — quên cổng Trả sau thì typecheck đỏ (chặn nhầm, không chặn ép kiểu `as` cố ý).
  */
 export function soanHuyDon(
   db: D1Database, id: string, staffId: string, from: OrderStatus, prevUpdatedAt: string, lyDo: LyDoHuy, qua: QuaCongHuy, opts?: { action?: AuditAction; detail?: string },
-): { auditId: string; cau: D1PreparedStatement[] } {
+): { auditId: string; cau: D1PreparedStatement[]; thang: (kq: readonly D1Result[]) => boolean } {
   const at = nextStamp(prevUpdatedAt);
   const auditId = crypto.randomUUID();
+  const gac = qua.kem(at);
   // ADR-0089 đ8 (H-C6): lô huỷ = [dòng lý do (cùng điều kiện khoá lạc quan)] → [đổi trạng thái] → [nhật ký changes() > 0] — câu SQL ở tệp nửa nghiêm.
   // Nhật ký ghi NHÃN lý do (không mã thô); "Khác" ghi chính ghi chú đã kiểm (khuôn HDV — ADR-0030 điều 2).
   const nhan = lyDo.ma === "OTHER" ? `${lyDo.ghiChu} (${nhanNhomHuy(lyDo.nhom)})` : `${nhanLyDoHuy(lyDo.ma)} (${nhanNhomHuy(lyDo.nhom)})`;
   return {
     auditId,
     cau: [
+      ...gac,
       ...cauHuyCoLyDo(db, { orderId: id, staffId, from, prevUpdatedAt, at, homNay: vnToday(new Date()), lyDo }),
       auditStatement(db, { id: auditId, orderId: id, staffId, action: opts?.action ?? "cancelled", at, detail: opts?.detail ?? nhan }, "changes() > 0"),
-      ...qua.kem(at),
     ],
+    // Lô huỷ đã thắng ⇔ câu đổi trạng thái (sau câu gác và dòng lý do) đổi một dòng.
+    thang: (kq) => (kq[gac.length + 1]?.meta.changes ?? 0) > 0,
   };
 }
-/** Lô huỷ (do `soanHuyDon` soạn, câu đơn đứng đầu) đã thắng ⇔ câu đổi trạng thái (thứ 2) đổi một dòng. */
-export const daHuy = (kq: readonly D1Result[]): boolean => (kq[1]?.meta.changes ?? 0) > 0;
 
 interface LatestAdjustment {
   id: string;

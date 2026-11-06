@@ -294,6 +294,21 @@ test("Task 2: huỷ lúc đã hết nợ cũng gác phiên bản — khoản thu
   assert.equal(w.q("SELECT status FROM orders WHERE id = ?", d.id)[0].status, "confirmed");
 });
 
+test("Task 2: handler-cancel đơn Trả sau đã hết nợ thua khoá lạc quan (đơn vừa bị sửa) ⇒ 409, không sự kiện ABORT nào (câu gác không làm lệch `changes()` của câu nối sau nhật ký)", async () => {
+  const w = dung();
+  assert.equal((await hanMuc(w, 2_000_000)).status, 201);
+  const d = await donTS(w);
+  assert.equal((await thu(w, d.id, T_ZB1)).status, 201); // hết nợ ⇒ lô huỷ mang câu gác phiên bản
+  assert.equal((await w.call("PUT", `/api/orders/${d.id}/handler`, { as: A, body: { staffId: H } })).status, 200);
+  const abort = () => w.q("SELECT count(*) AS n FROM dsp_release_event WHERE order_id = ? AND kind_code = 'ABORT'", d.id)[0].n;
+  const a0 = abort();
+  w.chenTruocLo(laLoHuy, () => { w.sqlite.prepare("UPDATE orders SET updated_at = ? WHERE id = ?").run(new Date(Date.now() + 60_000).toISOString(), d.id); });
+  const r = await w.call("POST", `/api/orders/${d.id}/handler-cancel`, { as: H, body: { reason: "customer_requested" } });
+  assert.deepEqual([r.status, r.json.error?.code], [409, "stale"], r.text);
+  assert.equal(w.q("SELECT status FROM orders WHERE id = ?", d.id)[0].status, "confirmed");
+  assert.equal(abort(), a0, "huỷ thua thì không ghi sự kiện ABORT");
+});
+
 // ---- Kế hoạch Task 2 (nợ 1, 4): bảng ĐƯỜNG GHI chạy thật — mỗi đường làm nợ đơn Trả sau có thể đổi phải tăng phiên bản bên đặt ĐÚNG 1 trong chính lô ----
 const congTy = (w: W): string => String(w.q("SELECT party_id FROM v_pty_owner_company")[0].party_id);
 const khoanThu = (w: W, id: string): string => String(w.q("SELECT id FROM bil_payment_receipt WHERE order_id = ? AND reverses_id IS NULL AND kind_code = 'CUSTOMER_PAYMENT' ORDER BY rowid LIMIT 1", id)[0].id);

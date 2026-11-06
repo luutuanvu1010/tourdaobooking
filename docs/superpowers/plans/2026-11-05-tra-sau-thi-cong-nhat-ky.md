@@ -29,6 +29,7 @@ Kế hoạch: `2026-11-05-tra-sau-han-muc-ke-hoach.md`. Đặc tả: `docs/super
 - Kiểu nhãn của đường sửa số khách đặt ở `insertMoneyAdjustment` (câu ghi duy nhất, gọi trong `soanSuaSoKhach`), không ở tham số `soanSuaSoKhach`: tổng mới chỉ biết bên trong hàm đó; bài `src/so-khach-mot-luat-tien.test.ts` siết thành 11 đối số, đối số cuối `cong.qua`.
 - Lô huỷ thua vì câu bảo vệ: người giữ quyền Đối tác nhận câu ADR-0170 (`don_da_mo_ve`), văn phòng nhận `tra_sau_con_no_da_mo_ve` (`dichLoiLoHuy`). Gốc lắp ráp không nuốt lỗi soạn câu trả vé khi có cờ (trước đây nuốt ⇒ mất câu bảo vệ của cả ADR-0170).
 - Câu 409 sửa tăng (chữ mới, đảo ngược được, chưa vào bảng từ): «Số tiền tăng thêm … vượt hạn mức: bên đặt còn được dùng … (hạn mức …, đang nợ …)».
+- Câu gác phiên bản của lô huỷ (đơn Trả sau hết nợ) đứng ĐẦU lô, không sau nhật ký: câu ABORT của dispatch (`chen_abort_sau`) đọc `changes()` của câu ngay trước nên câu gác đứng sau nhật ký làm ABORT ghi cả khi huỷ thua (bài đỏ rồi sửa). `daHuy` bỏ, thay bằng `huy.thang`. Hệ quả: huỷ thua vẫn tăng phiên bản bên đặt.
 - Thêm `cauTangChoDon` ở duyệt điều chỉnh sổ — ngoài danh sách của kế hoạch, theo ADR-0168 Đ2 mục 4 («mọi đường làm nợ tăng»), do bảng chạy thật tìm ra.
 
 ## Điều chưa làm

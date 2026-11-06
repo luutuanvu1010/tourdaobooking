@@ -29,7 +29,7 @@ async function loadModule(): Promise<Mod> {
   const code = Buffer.from(built.outputFiles[0]!.text).toString("base64");
   return (await import(`data:text/javascript;base64,${code}`)) as Mod;
 }
-const { soanHuyDon, daHuy, congHuyTraSau } = await loadModule();
+const { soanHuyDon, congHuyTraSau } = await loadModule();
 /**
  * Lô huỷ như mọi route chạy: qua cổng Trả sau (`congHuyTraSau` — đơn Trả trước nên không đọc gì, `soanHuyDon` đòi kiểu `QuaCongHuy` mà chỉ cổng tạo được — kế hoạch 2026-11-05 Task 2),
  * soạn rồi chạy MỘT lô. Hàm `cancelOrder` cũ (không qua cổng, không còn nơi gọi) đã xoá; bài này giữ nguyên trọng tâm: khoá lạc quan của lô huỷ.
@@ -38,7 +38,8 @@ const KHONG_GOI = async (): Promise<never> => { throw new Error("đơn Trả tr�
 async function cancelOrder(db: D1Database, id: string, staffId: string, from: "confirmed", prev: string, lyDo: typeof LY_DO, opts?: { action?: "order_cancelled_by_field"; detail?: string }): Promise<boolean> {
   const cong = await congHuyTraSau({ traSauCuaDon: KHONG_GOI, veDaMoCuaDon: KHONG_GOI, cauGacPhienBanTraSau: () => { throw new Error("không gác"); } }, { id, paymentTerm: "PREPAID", status: from });
   assert.ok("qua" in cong);
-  return daHuy(await db.batch(soanHuyDon(db, id, staffId, from, prev, lyDo, cong.qua, opts).cau));
+  const huy = soanHuyDon(db, id, staffId, from, prev, lyDo, cong.qua, opts);
+  return huy.thang(await db.batch(huy.cau));
 }
 
 /** D1 giả: `prepare().bind()` ghi lại câu + tham số; `batch()` chạy tuần tự trong MỘT giao dịch như D1 thật — đúng khuôn dispatch/service.test.ts. */
