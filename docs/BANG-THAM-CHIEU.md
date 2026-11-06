@@ -99,6 +99,8 @@ Mỗi khái niệm một tên, mỗi tên một nghĩa, tra từ một nguồn. 
 | **Hạng bằng và số khách** | Bảng cho biết mỗi hạng bằng lái chở được tối đa bao nhiêu khách. |  |  | `vc_license_capacity` | chờ chọn |  |
 | **Lý do điều phối** | Danh sách lý do để chọn khi làm các việc của Điều phối cần ghi lý do. |  |  | `vc_reason` | chờ chọn |  |
 | **Giá đại lý** | Số tiền đại lý phải trả công ty cho một đơn, bằng thành tiền của đơn trừ hoa hồng. | Khác giá bán lẻ (giá trong Dịch vụ & giá). |  | `hoaHongDong` `tinhDongDoiTac` | chờ chọn |  |
+| **Giá công bố** | Giá danh mục, tức giá bán lẻ, in trên biên nhận mẫu HD-02-DT của đơn đối tác. | Khác «Giá đại lý». |  |  | đã chốt | 2026-11-06 (đặc tả biên nhận đơn đối tác) |
+| **Phải thu (biên nhận HD-02-DT)** | Dòng «Phải thu» trên biên nhận mẫu HD-02-DT: số tiền khách còn phải trả sau giảm giá và phần đã trả. | Ở sổ của Kế toán, «phải thu» là tổng đơn phải thu. |  |  | đã chốt | 2026-11-06 (đặc tả biên nhận đơn đối tác) |
 | **Người bán dịch vụ** | Bên cung ứng dịch vụ cho công ty, kèm điều khoản công ty mua lại dịch vụ đó. | Khác «Đối tác» (bên đưa khách đến và hưởng hoa hồng). |  | `prc_supply_term` | chờ chọn |  |
 
 ## Thuật ngữ trong mã

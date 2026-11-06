@@ -105,7 +105,7 @@ Giờ đón quá sát không chặn bạn gửi đơn: văn phòng chốt giờ 
       tieuDe: "Gửi biên nhận cho khách",
       noiDung: `1. Mở đơn.
 2. Bấm [[Xem ảnh gửi khách]].
-3. Hộp **Ảnh gửi khách** hiện ảnh xác nhận. Ảnh của đối tác không có dòng người phụ trách.
+3. Hộp **Ảnh gửi khách** hiện ảnh xác nhận theo mẫu của đối tác (mã HD-02-DT): đầu ảnh là thương hiệu Tour Đảo Nha Trang, có giá công bố và dòng **Phải thu** là số khách còn phải trả. Ảnh của đối tác không có dòng người phụ trách.
 4. Bấm [[Chia sẻ]] để gửi qua Zalo, hoặc [[Tải ảnh về máy]] để lưu lại.
 
 > Ví dụ: Sau khi xác nhận đơn cho gia đình khách, chị Hoa bấm Xem ảnh gửi khách rồi Chia sẻ, chọn Zalo, gửi ảnh cho khách.`,

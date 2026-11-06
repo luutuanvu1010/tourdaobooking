@@ -17,6 +17,14 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Biên nhận mẫu HD-02-DT cho đơn đối tác. Không migration. Số và ngày tạm: bước A.0 đặt lại nếu cần.
+    version: "2.71",
+    date: "2026-11-06",
+    items: [
+      { kind: "doi", text: "Ảnh gửi khách của đơn đối tác có mẫu riêng: đầu ảnh là thương hiệu Tour Đảo Nha Trang và câu khẩu hiệu, có giá công bố và dòng Phải thu.", bai: { id: "doi-tac/gui-bien-nhan-cho-khach", ten: "Gửi biên nhận cho khách" } },
+    ],
+  },
+  {
     // Trả sau theo giờ và luật vận hành công nợ (ADR-0172, ADR-0173). Migration 0143. Số và ngày tạm: bước A.0 đặt lại nếu cần.
     version: "2.70",
     date: "2026-11-06",
