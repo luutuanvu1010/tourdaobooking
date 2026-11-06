@@ -784,6 +784,10 @@ test("trien-khai: quy trình .github/workflows/kiem.yml có việc gom ĐÚNG t�
   assert.doesNotMatch(yml, /branches:.*\bmain\b/);
   assert.match(yml, /tests\/e2e\/run\.mjs --phan \$\{\{ matrix\.phan \}\}/, "phần e2e chạy bằng --phan (có audit-invariants cuối phần)");
   assert.match(yml, /kiem-phan\.mjs gom/);
+  // Chạy lại phần đỏ (Đ3.1): artifact cùng tên của lượt trước phải được GHI ĐÈ, không thì việc tải lên báo trùng tên và gom đọc báo cáo cũ (kiểm độc lập C1).
+  const soTai = (yml.match(/uses: actions\/upload-artifact@v4/g) ?? []).length;
+  assert.equal(soTai, 4);
+  assert.equal((yml.match(/^\s+overwrite: true$/gm) ?? []).length, soTai, "mọi bước tải báo cáo phải có overwrite: true");
   assert.match(yml, /needs: \[chia, rieng, test, e2e\]\n\s+if: always\(\)/, "việc gom chạy cả khi phần khác đỏ, và đợi mọi phần");
 });
 
@@ -1307,4 +1311,18 @@ test("docCacKhoTuCauHinh: chỉ bỏ chú thích CẢ DÒNG; mọi kho theo th�
 test("parseR2BucketNames: bỏ mã màu, lấy mọi dòng 'name: <tên>'; không lấy dòng khác", () => {
   assert.deepEqual(lib.parseR2BucketNames("Listing buckets...\nname:   a-b\ncreation_date: x\n\n\x1b[2mname:\x1b[22m   c-d\nnamex: e\n"), ["a-b", "c-d"]);
   assert.deepEqual(lib.parseR2BucketNames(""), []);
+});
+
+test("day-len (kiểm độc lập N3): mốc so số liệu chỉ lấy lượt XANH của origin/main (lượt đỏ dù được cho qua không làm mốc)", async () => {
+  const doGoc = { ...LUOT_GOC, databaseId: 4101, conclusion: "failure", createdAt: "2026-09-22T02:00:00Z" };
+  const h = dl(dayLenScript({ [RUNLIST(GOC)]: out(JSON.stringify([doGoc, LUOT_GOC])) }), ["c"], { ketQua: { 4242: TONG(), 4100: TONG(), 4101: TONG({ soBai: 9999 }) } });
+  assert.equal(await lib.dayLen({ ...h.deps, target: "worktree-x" }), 0, "so với lượt xanh 4100 (bằng số) ⇒ xanh thường, không hỏi lý do");
+  assert.deepEqual(h.questions, ["Đẩy lên GitHub? (c/k) "]);
+});
+
+test("day-len (kiểm độc lập N4): lượt kiểm nhận được đã cũ hơn 24 giờ → cảnh báo sớm (trien-khai sẽ dừng), kèm lệnh chạy lại", async () => {
+  const h = dl(dayLenScript({ [RUNVIEW(4242)]: viewOf({ updatedAt: "2026-09-21T01:00:00Z" }) }), ["c"]);
+  assert.equal(await lib.dayLen({ ...h.deps, target: "worktree-x" }), 0);
+  assert.match(h.text(), /cũ hơn 24 giờ/);
+  assert.match(h.text(), /gh run rerun 4242/);
 });

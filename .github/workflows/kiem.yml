@@ -2,6 +2,8 @@
 # hỏi đẩy main; `npm run trien-khai` chỉ ĐỌC kết quả (check-run của ứng dụng GitHub Actions, đúng commit, việc "Gom kết quả kiểm" xanh, ≤ 24 giờ).
 # KHÔNG chạy khi đẩy main (cùng commit đã kiểm ở nhánh cho-kiem — không kiểm hai lần, Đ1.5). Bảng chia + máy gom: scripts/kiem-phan.mjs.
 # Tệp LUẬT + tệp điều khiển việc kiểm (Đ2.3, Đ2.6): chỉ sửa bằng công cụ sửa tệp để chủ được hỏi; đổi nó thì day-len đòi chủ gõ lý do.
+# Mọi bước tải báo cáo có `overwrite: true`: "chạy lại phần đỏ" (gh run rerun --failed) tải lại cùng tên artifact; không ghi đè thì báo trùng tên và gom
+# đọc báo cáo cũ (kiểm độc lập C1, 2026-11-06 — CHƯA quan sát trên GitHub).
 name: Kiểm đủ bộ
 
 on:
@@ -56,6 +58,7 @@ jobs:
           name: bao-cao-rieng
           path: bao-cao/rieng.json
           if-no-files-found: ignore
+          overwrite: true
 
   test:
     name: npm test phần ${{ matrix.phan }}
@@ -80,6 +83,7 @@ jobs:
           name: bao-cao-test-${{ matrix.phan }}
           path: bao-cao/test-${{ matrix.phan }}.json
           if-no-files-found: ignore
+          overwrite: true
 
   e2e:
     name: e2e phần ${{ matrix.phan }}
@@ -105,6 +109,7 @@ jobs:
           name: bao-cao-e2e-${{ matrix.phan }}
           path: bao-cao/e2e-${{ matrix.phan }}.json
           if-no-files-found: ignore
+          overwrite: true
 
   gom:
     # TÊN việc này là hợp đồng với scripts/release-lib.mjs (VIEC_GOM) — đổi tên ở cả hai nơi.
@@ -131,3 +136,4 @@ jobs:
           name: ket-qua-tong
           path: ket-qua-tong.json
           if-no-files-found: ignore
+          overwrite: true

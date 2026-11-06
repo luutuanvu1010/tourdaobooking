@@ -522,11 +522,17 @@ export async function dayLen({ run, ask: askGoc, isTTY, log, target, now = () =>
     }
   }
   dh.moc("chờ GitHub kiểm");
+  // Lượt nhận được có thể là lượt CŨ của cùng commit (chạy lại day-len sau khi trả lời k): quá 24 giờ thì trien-khai sẽ dừng — báo sớm (kiểm độc lập N4).
+  const xongLuc = Date.parse(luot.updatedAt ?? "");
+  if (Number.isFinite(xongLuc) && now().getTime() - xongLuc > HAN_KET_QUA_MS) {
+    log(`${RED}${BOLD}CẢNH BÁO:${RESET} lượt kiểm này xong lúc ${luot.updatedAt}, cũ hơn 24 giờ — \`npm run trien-khai\` sẽ dừng. Chạy lại trước khi triển khai: ${LENH_CHAY_LAI(luot.databaseId)}`);
+  }
 
   // Đ2.3 + Đ3.2 — tệp điều khiển việc kiểm đổi, hay số tệp/bài giảm, số bỏ qua tăng (so với lượt kiểm của origin/main) ⇒ không phải xanh thường: đòi lý do.
   let tongGoc = null;
   const dsGoc = await cacLuot(run, goc);
-  const luotGoc = (dsGoc ?? []).filter((l) => l?.headSha === goc && l.status === "completed").sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))[0];
+  // Mốc so chỉ là lượt XANH của origin/main (lượt đỏ dù được cho qua không làm mốc — kiểm độc lập N3).
+  const luotGoc = (dsGoc ?? []).filter((l) => l?.headSha === goc && l.status === "completed" && l.conclusion === "success").sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))[0];
   if (luotGoc) tongGoc = await kk.taiKetQua(luotGoc.databaseId);
   const canhBao = [...doiQuyTrinh.map((t) => `tệp điều khiển việc kiểm đổi: ${t}`), ...soSanhSoLieu(tongGoc, tong)];
   let quyTrinh = null;

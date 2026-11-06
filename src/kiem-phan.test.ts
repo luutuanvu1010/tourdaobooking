@@ -2,7 +2,7 @@
 // Đột biến đã quan sát (sổ hàng rào): bỏ một tệp khỏi phần ⇒ đỏ; bỏ audit ở một phần e2e ⇒ đỏ.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 
 type Bang = { rieng: string[]; test: string[][]; e2e: string[][] };
 type Lib = {
@@ -134,14 +134,15 @@ test("gomKetQua: kết quả đỏ nêu TÊN bài / kịch bản đỏ để day
 });
 
 test("TEP_DIEU_KHIEN (Đ2.3): có quy trình GitHub, bảng chia, bộ chạy, danh sách e2e, audit; chứa TRỌN chuỗi nhập của audit-invariants.mjs", () => {
-  for (const t of [".github/workflows", "package.json", "scripts/chay-test.mjs", "scripts/kiem-phan.mjs", "scripts/dem-bai.mjs", "tests/e2e/run.mjs", "tests/e2e/danh-sach.mjs", "tests/e2e/thoi-gian.json", "scripts/audit-invariants.mjs", "src/claude-guard-thoi-gian.test.ts", "scripts/release-lib.mjs"]) {
+  for (const t of ["package-lock.json", "tsconfig.json", "web/tsconfig.json", "web/sw/tsconfig.json", "tests/e2e/lib.mjs", ".github/workflows", "package.json", "scripts/chay-test.mjs", "scripts/kiem-phan.mjs", "scripts/dem-bai.mjs", "tests/e2e/run.mjs", "tests/e2e/danh-sach.mjs", "tests/e2e/thoi-gian.json", "scripts/audit-invariants.mjs", "src/claude-guard-thoi-gian.test.ts", "scripts/release-lib.mjs"]) {
     assert.ok(lib.TEP_DIEU_KHIEN.includes(t), t);
   }
   // Đi chuỗi nhập tương đối (import "./x.mjs" / import("./x.mjs")) từ audit-invariants.mjs: mọi tệp CÂU KIỂM (scripts/) chạm tới phải nằm trong danh sách.
   // Luật nghiệp vụ ở src/ mà câu kiểm dùng lại (audit-thuong-mai.mjs nhập src/shared/…) là MÃ SẢN PHẨM, đã có npm test canh — không phải tệp điều khiển.
   const seen = new Set<string>();
   const di = (rel: string) => {
-    if (seen.has(rel)) return;
+    // Bỏ qua đường dẫn không phải tệp có thật (chuỗi "./x.ts" nằm trong mẫu chữ mà bộ sinh in ra, không phải lệnh nhập).
+    if (seen.has(rel) || !existsSync(new URL(`../${rel}`, import.meta.url))) return;
     seen.add(rel);
     const src = readFileSync(new URL(`../${rel}`, import.meta.url), "utf8");
     for (const m of src.matchAll(/(?:from\s+|import\(\s*)["'](\.\.?\/[^"']+)["']/g)) {
@@ -150,6 +151,7 @@ test("TEP_DIEU_KHIEN (Đ2.3): có quy trình GitHub, bảng chia, bộ chạy, d
     }
   };
   di("scripts/audit-invariants.mjs");
+  di("scripts/sinh-so-do-trang.mjs"); // Bước 0 của phần riêng: bộ sinh kho trợ lý và mọi tệp scripts/ nó nạp
   assert.ok(seen.size >= 3, "phải thấy ít nhất audit-invariants, audit-checks, audit-thuong-mai");
   for (const t of [...seen].filter((x) => x.startsWith("scripts/"))) assert.ok(lib.TEP_DIEU_KHIEN.includes(t), `tệp ${t} (audit-invariants nạp) phải có trong TEP_DIEU_KHIEN`);
 });

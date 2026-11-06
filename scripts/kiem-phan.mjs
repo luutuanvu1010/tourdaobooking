@@ -33,6 +33,17 @@ export const SO_PHAN_E2E = 6;
 export const TEP_DIEU_KHIEN = [
   ".github/workflows",
   "package.json",
+  // Gói cài trên máy GitHub (npm ci: phiên bản tsc, wrangler) và phạm vi typecheck (kiểm độc lập N2, 2026-11-06).
+  "package-lock.json",
+  "tsconfig.json",
+  "web/tsconfig.json",
+  "web/sw/tsconfig.json",
+  // Bước 0 của phần riêng: bộ sinh kho trợ lý và các tệp scripts/ nó nạp (bài khoá chuỗi nhập ở src/kiem-phan.test.ts).
+  "scripts/sinh-so-do-trang.mjs",
+  "scripts/source-mask-lib.mjs",
+  "scripts/tro-ly-cau-truc-lib.mjs",
+  // Khung chung của e2e (đăng nhập, tài khoản thử).
+  "tests/e2e/lib.mjs",
   "scripts/chay-test.mjs",
   "scripts/kiem-phan.mjs",
   "scripts/dem-bai.mjs",
