@@ -6,6 +6,7 @@ import assert from "node:assert/strict";
 import { app, seedStaff } from "../tests/audit/harness.mjs";
 import { ACC, ADM, SUP, inDays, setup, svc } from "../tests/audit/xac-nhan-khung.mjs";
 import { addDays, vnToday } from "./shared/vn-date.ts";
+import { datQuaHan } from "../tests/audit/tra-sau-moc.mjs";
 
 const AT = "2026-10-01T00:00:00.000Z";
 const DT = "88888888-8888-4888-8888-888888888801";
@@ -23,7 +24,7 @@ function dung(): W {
   w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES (?, ?, 'TRAVEL_AGENCY', '2026-01-01', ?, ?)").run(`r-${DT2}`, BEN2, AT, AT);
   return w;
 }
-const hanMuc = (w: W, so: number) => w.call("POST", "/api/tra-sau/han-muc", { as: SUP, body: { partyId: BEN, hanMuc: so, soNgay: 7, lyDo: "thử" } });
+const hanMuc = (w: W, so: number) => w.call("POST", "/api/tra-sau/han-muc", { as: SUP, body: { partyId: BEN, hanMuc: so, gioTra: 168, gioAnHan: 0, lyDo: "thử" } });
 async function nhapTS(w: W): Promise<string> {
   const r = await w.call("POST", "/api/orders", { as: DT, body: { customerName: "Khách Thử", customerPhone: "0912345678", services: [svc("ZB1", inDays(3))], paymentTerm: "CREDIT" } });
   assert.equal(r.status, 201, r.text);
@@ -57,7 +58,7 @@ test("C-A: đối tác ghi «Công ty thu» đủ, Kế toán nộp 1.000 ⇒ n�
   assert.equal(r2.status, 409, r2.text);
   assert.equal(r2.json.error.code, "vuot_han_muc", "đơn thứ hai không xác nhận được");
   // quá hạn: vé chưa mở bị chặn; vé đã mở vẫn xem; huỷ đơn đã mở vé bị chặn
-  w.sqlite.prepare("UPDATE orders SET credit_due_date = ? WHERE id = ?").run(addDays(vnToday(new Date()), -1), a);
+  datQuaHan(w.sqlite, a);
   assert.equal((await veDon(w, a)).traSauQuaHan, true);
   moVe(w, a);
   const huy = await w.call("POST", `/api/orders/${a}/status`, { as: ADM, body: { status: "cancelled", lyDo: "KHACH_DOI_Y" } });

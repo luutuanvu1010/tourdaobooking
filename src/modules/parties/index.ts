@@ -20,6 +20,7 @@ import { UUID_RE, error, intParam, mauLikeChua, json, kemLocation, readJson } fr
 import { can, holdsPartner, type PermissionCode } from "../../shared/permissions";
 import { normalizePhone } from "../../shared/phone";
 import { route, type AppModule, type Ctx } from "../../shared/router";
+import { cauConNoTraSau } from "../../shared/tra-sau";
 import type { DonCuaNguoiDatTom, GopHoSoNoi, PartyAccountVerdict, TaiKhoanXacMinh, ViecDoKhiThoiVai } from "../../shared/router";
 import { vnToday } from "../../shared/vn-date";
 import { gioiTinhHopLe } from "../../shared/xung-ho";
@@ -423,7 +424,7 @@ async function tinhGop(ctx: Ctx<"admin">, aId: string, bId: string, homNay: stri
   if (!A || !B) return NOT_FOUND();
   // G12: hồ sơ chính gắn tài khoản mà người gộp không quản được (Quản trị khác / Toàn quyền) → 403 — luật cấp bậc có sẵn (staff tính qua ctx.partyAccount).
   if (B.acc.linked && !B.acc.manageable) return MERGE_FORBIDDEN();
-  const [viec, don, soNo, conNo] = await Promise.all([ctx.gopHoSo.viecCua(aId), ctx.gopHoSo.donNguoiDat(aId), ctx.gopHoSo.soDongNo(aId), ctx.gopHoSo.conNoTraSau?.(aId) ?? Promise.resolve([])]);
+  const [viec, don, soNo, conNo] = await Promise.all([ctx.gopHoSo.viecCua(aId), ctx.gopHoSo.donNguoiDat(aId), ctx.gopHoSo.soDongNo(aId), ctx.gopHoSo.conNoTraSau(aId)]);
   const ke = keHoachGop(A.hs, B.hs, { ...viec, donLechTien: don.lechTien, donConNoTraSau: conNo }, homNay);
   // ADR-0126 (ruling R16): hồ sơ đang có / đã thực hiện phiếu xoá thì không gộp (hồ sơ phụ gộp vào hồ sơ đã ẩn danh sẽ mang dữ liệu thật vào hồ sơ "đã xoá"). Đứng ĐẦU danh sách
   // chặn để câu trả lời của route là câu này, kể cả khi hồ sơ đã xoá là hồ sơ phụ có tài khoản.
@@ -1320,6 +1321,9 @@ export const partiesModule: AppModule = {
       if (anPhieu(kl.lyDo)) return ERASURE_NOT_FOUND();
       if (p.status !== "CHO_XU_LY") return ERASURE_NOT_PENDING();
       if (kl.lyDo !== null) return error(409, MA_LOI_XU_LY[kl.lyDo as keyof typeof MA_LOI_XU_LY], NHAN_LY_DO_KHONG_XU_LY[kl.lyDo]);
+      // ADR-0173 Đ3 mục 5: hồ sơ còn đơn Trả sau chưa trả thì không thực hiện phiếu xoá (hàm đọc nợ ném ⇒ 500, không đoán hết nợ).
+      const conNoXoa = await gopHoSo.conNoTraSau(p.party_id);
+      if (conNoXoa.length > 0) return error(409, "con_no_tra_sau", cauConNoTraSau(conNoXoa));
       const at = new Date().toISOString();
       const cauPhien = chuPhieu ? cauAnDanhPhien(chuPhieu.id, at, staff.id) : null;
       if (chuPhieu && !cauPhien) return error(503, "erasure_unavailable", "Chưa thực hiện được: thiếu phần xoá thông tin máy đăng nhập. Hãy báo quản trị viên.");
@@ -2226,13 +2230,16 @@ export const partiesModule: AppModule = {
       }
       // ADR-0155 C3: gỡ vai được hưởng CUỐI CÙNG của hồ sơ chưa có tài khoản khi còn đơn chưa xác nhận đứng tên, cấp riêng hoặc mức riêng ⇒ hoa hồng mất lặng lẽ
       // (đơn nháp thành «không hoa hồng», cấp riêng thành dòng mồ côi `R-PRC-5`), nên chặn và nói lối ra. Chỉ năm vai; loại tự thêm và đường Quản lý tài khoản giữ nguyên.
-      if (moKTK && row) {
+      // ADR-0173 Đ3 mục 5: hồ sơ còn đơn Trả sau chưa trả thì không gỡ được vai được hưởng CUỐI CÙNG (ngừng làm đại lý) — mọi loại vai, có hay không tài khoản.
+      const conNo = row ? await ctx.gopHoSo.conNoTraSau(id) : [];
+      if ((moKTK || conNo.length > 0) && row) {
         const conLai = (await vaiDangMo(env.DB, id)).map((r) => r.code);
         const viTri = conLai.indexOf(row.code);
         if (viTri >= 0) conLai.splice(viTri, 1);
         const viec = await ctx.viecDoKhiThoiVai(id, conLai);
         if (viec === null) return error(503, "unavailable", "Chưa kiểm được việc còn dở của hồ sơ này nên chưa gỡ vai trò được. Thử lại sau ít phút.");
-        const chan = viec.conVaiHuong ? null : cauViecDoKhiThoiVai(viec);
+        if (!viec.conVaiHuong && conNo.length > 0) return error(409, "con_no_tra_sau", cauConNoTraSau(conNo));
+        const chan = moKTK && !viec.conVaiHuong ? cauViecDoKhiThoiVai(viec) : null;
         if (chan) return error(409, "role_end_has_open_work", chan);
       }
       const at = now.toISOString();

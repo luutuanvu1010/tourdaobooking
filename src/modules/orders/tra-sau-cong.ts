@@ -2,7 +2,7 @@
 // (khuôn `cocChoXacNhan`, ADR-0159). Hai cửa: `congTraSauKhiLuu` (lưu đơn — báo sớm) và `traSauChoXacNhan` (lô xác nhận — chốt thật, kèm câu gác phiên bản và hạn trả).
 // KHÔNG tự kiểm quyền người gọi (route đã làm). Không nhắc bảng `bil_`, không import `billing` (bài src/architecture.test.ts, src/dat-coc-noi-goi.test.ts).
 import { error } from "../../shared/http";
-import { dongTien, hanTraTu, type HinhThucThanhToan, type KetQuaKiemTraSau } from "../../shared/tra-sau";
+import { dongTien, hanTraTu, hetAnHanTu, ngayCuaMoc, type HinhThucThanhToan, type KetQuaKiemTraSau } from "../../shared/tra-sau";
 
 /** Phần «câu gác phiên bản và hạn trả» của lô xác nhận. Nơi gọi chỉ lấy từ `traSauChoXacNhan` (bài src/tra-sau-duong-ghi.test.ts). */
 export type KemTraSau = (i: { at: string; auditId: string }) => D1PreparedStatement[];
@@ -40,19 +40,25 @@ export async function congTraSauKhiLuu(h: Pick<HamTraSau, "kiemTraSau">, d: DonT
 
 /**
  * Xác nhận đơn: cổng hạn mức + câu của lô. Đơn Trả trước ⇒ `KHONG_TRA_SAU` (không câu nào, lô không đổi một câu). Đơn Trả sau ⇒ kiểm lại hạn mức NGAY LÚC XÁC NHẬN rồi trả câu:
- * gác phiên bản của bên đặt (đã đọc trước khi tính nợ — hai lệnh cùng lúc chỉ một lệnh qua, lệnh thua cả lô huỷ `credit_version_stale`) và ghi hạn trả = ngày xác nhận + số ngày đang áp,
- * chỉ khi dòng nhật ký `confirmed` của CHÍNH lô đã ghi (lính gác `auditId`, khuôn câu khoản thu đặt cọc).
+ * gác phiên bản của bên đặt (đã đọc trước khi tính nợ — hai lệnh cùng lúc chỉ một lệnh qua, lệnh thua cả lô huỷ `credit_version_stale`) và chụp HAI MỐC GIỜ (ADR-0172 Đ3 mục 2):
+ * hạn trả = `at` của CHÍNH lô (bằng `confirmed_at`) + thời hạn trả; hết ân hạn = hạn trả + ân hạn. Cột ngày cũ `credit_due_date` vẫn ghi (ngày VN của hạn trả) để lùi bản an toàn.
+ * Chỉ ghi khi dòng nhật ký `confirmed` của CHÍNH lô đã ghi (lính gác `auditId`, khuôn câu khoản thu đặt cọc).
  */
-export async function traSauChoXacNhan(h: HamTraSau, db: D1Database, i: { order: DonTraSau & { id: string }; today: string }): Promise<{ loi: Response } | { traSau: KemTraSau }> {
+export async function traSauChoXacNhan(h: HamTraSau, db: D1Database, i: { order: DonTraSau & { id: string } }): Promise<{ loi: Response } | { traSau: KemTraSau }> {
   if (i.order.paymentTerm !== "CREDIT") return { traSau: KHONG_TRA_SAU };
   const r = await kiemDon(h, i.order);
   if ("loi" in r) return r;
-  const han = hanTraTu(i.today, r.kq.hanMuc.soNgay);
+  const { gioTra, gioAnHan } = r.kq.hanMuc;
   return {
-    traSau: ({ at, auditId }) => [
-      ...h.cauGacPhienBanTraSau(r.benDat, r.kq.version, at),
-      db.prepare("UPDATE orders SET credit_due_date = ?1 WHERE id = ?2 AND payment_term = 'CREDIT' AND EXISTS (SELECT 1 FROM audit_log WHERE id = ?3)").bind(han, i.order.id, auditId),
-    ],
+    traSau: ({ at, auditId }) => {
+      const han = hanTraTu(at, gioTra);
+      return [
+        ...h.cauGacPhienBanTraSau(r.benDat, r.kq.version, at),
+        db.prepare(
+          "UPDATE orders SET credit_due_at = ?1, credit_grace_until = ?2, credit_due_date = ?3 WHERE id = ?4 AND payment_term = 'CREDIT' AND EXISTS (SELECT 1 FROM audit_log WHERE id = ?5)",
+        ).bind(han, hetAnHanTu(han, gioAnHan), ngayCuaMoc(han), i.order.id, auditId),
+      ];
+    },
   };
 }
 
@@ -72,7 +78,7 @@ export async function congSuaTangTraSau(
 
 /** Hai hàm do gốc lắp ráp tiêm cho huỷ đơn và đổi bên đặt (xem `ctx.traSauCuaDon`, `ctx.veDaMoCuaDon` ở src/shared/router.ts). Không tiêm ⇒ hàm trả null ⇒ cổng chặn 503 (không đoán). */
 export interface HamNoTraSau {
-  traSauCuaDon: (orderId: string) => Promise<{ hanTra: string | null; no: number; benDat?: string | null; version?: number } | null>;
+  traSauCuaDon: (orderId: string) => Promise<{ hanTra: string | null; hetAnHan?: string | null; no: number; benDat?: string | null; version?: number } | null>;
   veDaMoCuaDon: (orderId: string) => Promise<boolean | null>;
 }
 export const CAU_HUY_CON_NO = (no: number): string => `Đơn trả sau còn nợ ${dongTien(no)} mà vé đã mở cho khách nên chưa huỷ được. Hãy thu đủ tiền, hoặc nhờ Kế toán xử lý.`;

@@ -38,6 +38,7 @@ import {
   rolesLabelTheo, taiKhoanLaiProblem, laiNoiBoBenNgoaiProblem, type RoleCode, type RoleProblem,
 } from "../../shared/roles";
 import { vnDateTimeText, vnToday } from "../../shared/vn-date";
+import { cauConNoTraSau } from "../../shared/tra-sau";
 
 const isUniqueViolation = (e: unknown) => e instanceof Error && /UNIQUE constraint failed: staff\.phone/.test(e.message);
 // A-1: trùng khoá passkey là một ràng buộc UNIQUE KHÁC (aut_passkey.credential_id) — isUniqueViolation ở trên KHÔNG khớp, nên phải kiểm riêng.
@@ -589,6 +590,11 @@ export const accountsModule: AppModule = {
 
       const problem = checkAccountChange(admin.id, t, { active: patch.active }, await countActiveAdmins(db));
       if (problem) return error(409, "account_rule", problem);
+      // ADR-0173 Đ3 mục 5: ngưng tài khoản của hồ sơ còn đơn Trả sau chưa trả ⇒ 409 nêu mã đơn (hàm đọc nợ ném ⇒ không ngưng).
+      if (patch.active === false && t.partyId) {
+        const conNo = await ctx.gopHoSo.conNoTraSau(t.partyId);
+        if (conNo.length > 0) return error(409, "con_no_tra_sau", cauConNoTraSau(conNo));
+      }
       const losesAdmin = t.permissions.includes("ADMIN") && t.active && patch.active === false;
 
       const now = Date.now(); // MỘT mốc cho cả lần sửa: `at` (ISO) và, khi ngưng tài khoản, `credentials_changed_at` = Date.parse(at) = now
@@ -709,6 +715,11 @@ export const accountsModule: AppModule = {
       if (noiBo) return error(409, "account_rule", noiBo);
       const accountProblem = checkAccountChange(admin.id, t, { permissions: change.next }, await countActiveAdmins(db));
       if (accountProblem) return error(409, "account_rule", accountProblem);
+      // ADR-0173 Đ3 mục 5: bỏ quyền Đối tác của hồ sơ còn đơn Trả sau chưa trả ⇒ 409 nêu mã đơn.
+      if (t.permissions.includes("PARTNER") && !change.next.includes("PARTNER")) {
+        const conNo = await ctx.gopHoSo.conNoTraSau(t.partyId);
+        if (conNo.length > 0) return error(409, "con_no_tra_sau", cauConNoTraSau(conNo));
+      }
       if (!change.changed) return json({ staff: await one(db, t.id) } satisfies StaffResponse);
       const tenVai = await tenVaiTaiKhoan(db); // Task 3b: tên hiện hành của vai cho nhật ký mới
       const detail = [

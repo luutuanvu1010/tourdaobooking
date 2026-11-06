@@ -46,6 +46,8 @@ interface OrderRow {
   /** ADR-0168 (0141): hình thức thanh toán và hạn trả (chụp lúc xác nhận đơn Trả sau). */
   payment_term: "PREPAID" | "CREDIT";
   credit_due_date: string | null;
+  credit_due_at: string | null;
+  credit_grace_until: string | null;
   created_at: string;
   updated_at: string;
   confirmed_at: string | null;
@@ -195,7 +197,8 @@ function toDto(r: OrderRow): OrderDto {
     // ADR-0159 Đ1 mục 6: sau xác nhận đọc từ sổ, không đọc cột — nên chỉ đơn nháp mang số này.
     declaredDeposit: r.status === "draft" ? r.declared_deposit : 0,
     paymentTerm: r.payment_term,
-    hanTra: r.payment_term === "CREDIT" ? r.credit_due_date : null,
+    hanTra: r.payment_term === "CREDIT" ? r.credit_due_at : null,
+    hetAnHan: r.payment_term === "CREDIT" ? r.credit_grace_until : null,
     createdAt: r.created_at,
     updatedAt: r.updated_at,
     confirmedAt: r.confirmed_at,

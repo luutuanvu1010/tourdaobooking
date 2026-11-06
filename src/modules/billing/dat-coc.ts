@@ -36,7 +36,7 @@ export async function chanKhaiCocLai(db: D1Database, nguoiLapId: string): Promis
  * Đơn do người HIỆN giữ quyền Đối tác lập (ADR-0170): chỉ tính tiền ĐÃ VỀ công ty — trừ thêm khoản người lập còn giữ và khoản đang chờ Kế toán xác nhận (`soChuaVeCongTy`), áp cho mọi người xem.
  * Đơn của nhân viên văn phòng đi nhánh cũ nguyên vẹn. `null` khi không đọc được (kể cả quyền / hồ sơ người lập): không mở vé. `choNop` / `choXacNhan` để giao diện nói đúng câu.
  */
-export async function tienDonVe(db: D1Database, orderId: string): Promise<{ daThu: number; phaiThu: number; choNop: number; choXacNhan: number; traSau: { hanTra: string | null; no: number } | null } | null> {
+export async function tienDonVe(db: D1Database, orderId: string): Promise<{ daThu: number; phaiThu: number; choNop: number; choXacNhan: number; traSau: { hanTra: string | null; hetAnHan: string | null; no: number } | null } | null> {
   const t = (await tienNhieuDon(db, [orderId])).get(orderId);
   if (!t) return null;
   // ADR-0168 Đ3 mục 1: đơn Trả sau mở vé không cần thu đủ — hạn trả và nợ đi kèm để route vé hỏi MỘT hàm `moVeDuoc`. `null` = đơn Trả trước.

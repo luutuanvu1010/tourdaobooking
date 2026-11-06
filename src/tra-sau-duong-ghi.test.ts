@@ -25,7 +25,7 @@ function dung(): W {
   }
   return w;
 }
-const hanMuc = (w: W, soTien: number, ben = BEN) => w.call("POST", "/api/tra-sau/han-muc", { as: SUP, body: { partyId: ben, hanMuc: soTien, soNgay: 7, lyDo: "thử" } });
+const hanMuc = (w: W, soTien: number, ben = BEN) => w.call("POST", "/api/tra-sau/han-muc", { as: SUP, body: { partyId: ben, hanMuc: soTien, gioTra: 168, gioAnHan: 0, lyDo: "thử" } });
 const phienBan = (w: W): number | null => w.q("SELECT version FROM bil_credit_guard WHERE party_id = ?", BEN)[0]?.version ?? null;
 const no = async (w: W) => ((await w.call("GET", `/api/tra-sau/han-muc/${BEN}/don`, { as: SUP })).json.don as { no: number }[]).reduce((s, d) => s + d.no, 0);
 /** Đơn Trả sau đã xác nhận (2 người lớn × 300.000 = 600.000) của BEN, do A lập. */

@@ -2262,6 +2262,14 @@ export const CHECKS = [
     sql: `SELECT count(*) FROM orders WHERE payment_term = 'PREPAID' AND credit_due_date IS NOT NULL`,
     level: "fail",
   },
+  // R-CRD-4 (ADR-0172 Đ3 mục 2; migration 0143): đơn Trả sau đã xác nhận có ĐỦ hai mốc giờ, hết ân hạn không trước hạn trả; đơn Trả trước không có mốc giờ.
+  {
+    code: "R-CRD-4",
+    what: "hai mốc giờ của đơn Trả sau sai cặp (thiếu mốc, hết ân hạn trước hạn trả, hoặc đơn Trả trước có mốc)",
+    sql: `SELECT count(*) FROM orders WHERE (payment_term = 'CREDIT' AND status = 'confirmed' AND (credit_due_at IS NULL OR credit_grace_until IS NULL OR credit_grace_until < credit_due_at))
+      OR (payment_term = 'PREPAID' AND (credit_due_at IS NOT NULL OR credit_grace_until IS NOT NULL))`,
+    level: "fail",
+  },
 ];
 
 /**

@@ -3,16 +3,15 @@
 <body data-title="Hạn mức trả sau" data-back="/account">
 <header id="topbar"></header>
 <main>
-  <!-- Hạn mức trả sau theo từng đối tác (ADR-0168). Ô credit.limit.view (Kế toán, Toàn quyền), không Đối tác; ghi chỉ Toàn quyền (credit.limit.write). web/han-muc-tra-sau.ts dựng nội dung. -->
+  <!-- Danh sách Trả sau đang bật / đang nợ (ADR-0168, ADR-0172 Đ1 mục 3: màn này CHỈ XEM). Ô credit.limit.view (Kế toán, Quản trị, Toàn quyền), không Đối tác. Bật / đổi / ngừng ở màn Cấp độ đại lý. web/han-muc-tra-sau.ts dựng nội dung. -->
   <h1>Hạn mức trả sau</h1>
-  <p class="muted">Đối tác được đặt đơn trả sau trong hạn mức và số ngày được nợ do Toàn quyền cấp.</p>
+  <p class="muted">Đối tác đang được Trả sau hoặc còn nợ. Bật, đổi, ngừng Trả sau ở màn <a href="/cap-dai-ly">Cấp độ đại lý</a>.</p>
   <div id="error" class="alert" role="alert" hidden></div>
   <div id="ok" class="alert ok" role="status" hidden></div>
-  <section id="hm-dat" class="card" hidden></section>
   <div id="hm-khung" hidden>
     <section id="hm-bang-wrap" class="card table-wrap">
       <table class="items">
-        <thead><tr><th>Đối tác</th><th>Hạn mức</th><th>Đang nợ</th><th>Còn được dùng</th><th>Đơn quá hạn</th><th></th></tr></thead>
+        <thead><tr><th>Đối tác</th><th>Trả sau</th><th>Đang nợ</th><th>Còn được dùng</th><th>Quá hạn</th><th></th></tr></thead>
         <tbody id="hm-bang"></tbody>
       </table>
     </section>

@@ -263,26 +263,34 @@ console.log("✓ nhiều quyền + hiệu lực ngay");
   assert.equal((await call(ADMIN, "PATCH", `/api/catalog/dac-diem/${X}`, { expectedUpdatedAt: dd.capNhatLuc, dangDung: false })).status, 200, "tắt đặc điểm thử (dọn)");
   console.log("✓ ADR-0146 Đ5 + ADR-0152 Đ3: Bán hàng thêm luật 201 / kết thúc 200 / gắn đặc điểm cho dịch vụ 200; Kế toán, Đối tác, Thực tập, Nhân sự 403 cả hai ô; Bán hàng định nghĩa đặc điểm / gắn theo nhóm 403; chưa đăng nhập 401");
 }
-// --- ADR-0168 Đ1 (ô credit.limit.view / credit.limit.write), kế hoạch Trả sau Task 6: Toàn quyền xem + ghi hạn mức; Kế toán chỉ xem (ghi 403); Bán hàng, Quản trị, Hướng dẫn viên, Đối tác 403 ở màn hạn mức
+// --- ADR-0168 Đ1 + ADR-0172 Đ1 (ô credit.limit.view / credit.limit.write): Quản trị, Toàn quyền xem + ghi hạn mức; Kế toán chỉ xem (ghi 403); Bán hàng, Hướng dẫn viên, Đối tác 403 ở màn hạn mức
 // (tài khoản Đối tác dùng đường hẹp `con-duoc-dung` bị ÉP về hồ sơ của phiên); chưa đăng nhập 401. Đường hẹp: Bán hàng (có order.create) 200, Hướng dẫn viên 403.
 {
   const duoi = String(Date.now()).slice(-6).replace(/\d/g, (d) => "ABCDEGHKLM"[d]);
   const x = await call(TAO_TK, "POST", "/api/staff", { taoHoSoMoi: true, fullName: `Đối Tác Hạn Mức ${duoi}`, phone: randomPhone(), permissions: ["PARTNER"] });
   assert.equal(x.status, 201, JSON.stringify(x.body));
   const DT = (await login(x.body.staff.phone, x.body.pin)).cookie;
-  const khongXem = [[SALES, "Bán hàng"], [ADMIN, "Quản trị"], [FIELD, "Hướng dẫn viên"], [DT, "Đối tác"]];
+  const khongXem = [[SALES, "Bán hàng"], [FIELD, "Hướng dẫn viên"], [DT, "Đối tác"]];
   for (const [cookie, nhan] of khongXem) {
     assert.equal((await call(cookie, "GET", "/api/tra-sau/han-muc")).status, 403, `${nhan}: xem màn hạn mức`);
-    assert.equal((await call(cookie, "POST", "/api/tra-sau/han-muc", { partyId: "x", hanMuc: 1, soNgay: 1 })).status, 403, `${nhan}: đặt hạn mức`);
+    assert.equal((await call(cookie, "POST", "/api/tra-sau/han-muc", { partyId: "x", hanMuc: 1, gioTra: 1, gioAnHan: 0 })).status, 403, `${nhan}: đặt hạn mức`);
     assert.equal((await call(cookie, "POST", "/api/tra-sau/han-muc/x/ngung", {})).status, 403, `${nhan}: ngừng hạn mức`);
   }
   assert.equal((await call(ACC, "GET", "/api/tra-sau/han-muc")).status, 200, "Kế toán xem");
   assert.equal((await call(TAO_TK, "GET", "/api/tra-sau/han-muc")).status, 200, "Toàn quyền xem");
-  assert.equal((await call(ACC, "POST", "/api/tra-sau/han-muc", { partyId: "x", hanMuc: 1, soNgay: 1 })).status, 403, "Kế toán không ghi");
+  assert.equal((await call(ADMIN, "GET", "/api/tra-sau/han-muc")).status, 200, "Quản trị xem (ADR-0172)");
+  assert.equal((await call(ADMIN, "POST", "/api/tra-sau/muc-toi-da", { so: 1 })).status, 403, "Quản trị không đặt mức tối đa (chỉ Toàn quyền)");
+  for (const [cookie, nhan] of [[SALES, "Bán hàng"], [ACC, "Kế toán"], [DT, "Đối tác"]]) {
+    assert.equal((await call(cookie, "POST", "/api/tra-sau/don/x/an-han", { hanMoi: "2026-12-01T00:00:00.000Z", lyDo: "x" })).status, 403, `${nhan}: Ân hạn`);
+    assert.equal((await call(cookie, "PUT", "/api/tra-sau/goi-y/TA1", { hanMuc: 1, gioTra: 1, gioAnHan: 0 })).status, 403, `${nhan}: số gợi ý`);
+  }
+  assert.equal((await call(DT, "GET", "/api/tra-sau/cua-toi")).status, 200, "Đối tác xem Trả sau của mình");
+  assert.equal((await call(SALES, "GET", "/api/tra-sau/cua-toi")).status, 403, "Bán hàng không có mục Trả sau của tôi");
+  assert.equal((await call(ACC, "POST", "/api/tra-sau/han-muc", { partyId: "x", hanMuc: 1, gioTra: 1, gioAnHan: 0 })).status, 403, "Kế toán không ghi");
   assert.equal((await call(ACC, "POST", "/api/tra-sau/han-muc/x/ngung", {})).status, 403, "Kế toán không ngừng");
   assert.equal((await call(null, "GET", "/api/tra-sau/han-muc")).status, 401);
   assert.equal((await call(SALES, "GET", "/api/tra-sau/con-duoc-dung")).status, 200, "Bán hàng đọc đường hẹp");
   assert.equal((await call(FIELD, "GET", "/api/tra-sau/con-duoc-dung")).status, 403, "Hướng dẫn viên không lập đơn nên không đọc đường hẹp");
-  console.log("✓ ADR-0168 Đ1: hạn mức trả sau — Toàn quyền xem + ghi, Kế toán chỉ xem; Bán hàng, Quản trị, Hướng dẫn viên, Đối tác 403 ở màn hạn mức; đường hẹp: Bán hàng 200, Hướng dẫn viên 403");
+  console.log("✓ ADR-0168 Đ1 + ADR-0172/0173: hạn mức trả sau — Quản trị, Toàn quyền xem + ghi, Kế toán chỉ xem; Bán hàng, Hướng dẫn viên, Đối tác 403 ở màn hạn mức; Ân hạn, số gợi ý 403 cho Bán hàng/Kế toán/Đối tác; mức tối đa chỉ Toàn quyền; Trả sau của tôi chỉ Đối tác; đường hẹp: Bán hàng 200, Hướng dẫn viên 403");
 }
 console.log("E2E PERMISSIONS OK");
