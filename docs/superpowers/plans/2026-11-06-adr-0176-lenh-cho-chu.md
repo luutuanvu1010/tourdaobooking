@@ -24,7 +24,7 @@ git push origin claude/xenodochial-mclaren-12ef4f:refs/heads/cho-kiem/$(git rev-
 gh run list -R luutuanvu1010/tourdaobooking --workflow kiem.yml --limit 3
 ```
 
-3. Theo dõi tới khi xong. Khi xong, ghi lại tổng thời gian GitHub hiện.
+3. Theo dõi tới khi xong. Khi xong, ghi lại tổng thời gian GitHub hiện, và báo AI để AI đọc nhật ký lượt chạy (xem bước tải báo cáo có cảnh báo «Unexpected input» không — dấu hiệu tuỳ chọn ghi đè chưa có tác dụng).
 
 ```bash
 gh run watch <số lượt> -R luutuanvu1010/tourdaobooking
@@ -48,14 +48,14 @@ npm run day-len -- claude/xenodochial-mclaren-12ef4f
 
 ## C. Lần phát hành đầu theo cách mới, rồi hai lần quan sát chặn (tiêu chí 4)
 
-1. Lần phát hành kế tiếp (một lần lưu mới do AI chuẩn bị) chạy `npm run day-len -- <tên nhánh AI báo>`. Lần đầu lệnh sẽ hỏi **lý do đổi quy trình kiểm** vì chưa có lượt kiểm cũ để so — đúng thiết kế; gõ ví dụ «lần đầu dùng kiểm trên GitHub». Rồi `npm run trien-khai`. Khối tóm tắt in thời gian từng chặng: gửi AI để đối chiếu mục tiêu 10 phút (cần ba lần liên tiếp).
+1. Lần phát hành kế tiếp (một lần lưu mới do AI chuẩn bị) chạy `npm run day-len -- <tên nhánh AI báo>`. Lệnh có thể hỏi **lý do đổi quy trình kiểm** (nếu lần lưu đó đổi tệp điều khiển việc kiểm, hoặc bản chính chưa có lượt kiểm xanh để so) — hỏi hay không đều đúng thiết kế; nếu hỏi, gõ ví dụ «lần đầu dùng kiểm trên GitHub». Rồi `npm run trien-khai`. Khối tóm tắt in thời gian từng chặng: gửi AI để đối chiếu mục tiêu 10 phút (cần ba lần liên tiếp).
 2. **Bài đỏ cố ý** (nhánh `claude/adr-0176-thu-do`, một bài luôn đỏ): chạy lệnh dưới. Phải thấy lượt kiểm ĐỎ và câu hỏi r/d/q; gõ `d`. Lệnh dừng, không đẩy `main`, và in một dòng `git reset --hard …` — chạy đúng dòng đó để trả `main` về chỗ cũ.
 
 ```bash
 npm run day-len -- claude/adr-0176-thu-do
 ```
 
-3. **Bớt một tệp kiểm** (nhánh `claude/adr-0176-thu-bot-bai`) — chỉ làm SAU bước C.1, vì cần một lượt kiểm XANH của bản chính để so. Lượt kiểm sẽ xanh nhưng lệnh phải dừng ở «ĐỔI QUY TRÌNH KIỂM» và đòi lý do; để trống rồi Enter. Lệnh dừng, không đẩy `main`; chạy dòng `git reset --hard …` nó in.
+3. **Bớt một tệp kiểm** (nhánh `claude/adr-0176-thu-bot-bai`) — chỉ làm khi bản chính trên GitHub đã có một lượt kiểm XANH để so (sau bước A + B là có, nếu A xanh). Lượt kiểm sẽ xanh nhưng lệnh phải dừng ở «ĐỔI QUY TRÌNH KIỂM» và đòi lý do; để trống rồi Enter. Lệnh dừng, không đẩy `main`; chạy dòng `git reset --hard …` nó in.
 
 ```bash
 npm run day-len -- claude/adr-0176-thu-bot-bai
