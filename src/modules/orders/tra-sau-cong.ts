@@ -18,6 +18,11 @@ export interface HamTraSau {
 
 export const CAU_TRA_SAU_KHONG_COC = "Đơn trả sau không nhận tiền khách đặt cọc trước. Hãy để trống ô đặt cọc hoặc chọn trả trước.";
 export const CAU_TRA_SAU_THIEU_BEN_DAT = "Đơn trả sau cần chọn bên đặt là đối tác có hạn mức trả sau.";
+/**
+ * Lô huỷ phải mang câu bảo vệ «vé vừa mở» mà gốc lắp ráp không soạn được câu trả vé (`ctx.traVeKhiHuy` trả null) ⇒ không chạy lô, 503 (kế hoạch 2026-11-05 Task 5 việc B).
+ * Cờ có thể đến từ người giữ quyền Đối tác (đơn Trả trước) nên câu chỉ nói chuyện vé, không nói hạn mức.
+ */
+export const VE_CHUA_SOAN_DUOC = () => error(503, "tra_sau_chua_dung_duoc", "Chưa kiểm được vé của đơn nên chưa huỷ được. Thử lại sau ít phút.");
 const CHUA_DUNG_DUOC = () => error(503, "tra_sau_chua_dung_duoc", "Chưa kiểm được hạn mức trả sau nên chưa dùng được hình thức này — báo người phụ trách hệ thống.");
 
 /** Đơn đủ thông tin cho cổng. `declaredDeposit` là số SẼ LƯU / đang lưu của lời khai đặt cọc. */

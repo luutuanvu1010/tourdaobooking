@@ -445,6 +445,28 @@ async function don600DaThu400(w: W): Promise<string> {
   return id;
 }
 
+// Task 5 (việc B): có cờ «vé vừa mở» mà soạn câu trả vé lỗi ⇒ 503 câu tiếng Việt, không ghi gì (trước đây NÉM ra 500 thô). Hỏng ĐÚNG bước soạn trả vé: đổi tên cột
+// `pax_group` mà câu đếm trả vé (DEM_TRA) đọc còn câu cổng «vé đã mở» (VE_DA_MO) không đọc — cổng vẫn đọc được, chỉ bước soạn lỗi.
+const hongSoanTraVe = (w: W) => w.sqlite.exec("PRAGMA legacy_alter_table = ON; ALTER TABLE vdt_allocation RENAME COLUMN pax_group TO pax_group_hong");
+for (const [ten, goi] of [
+  ["/status", (w: W, id: string) => huy(w, id)],
+  ["handler-cancel", (w: W, id: string) => w.call("POST", `/api/orders/${id}/handler-cancel`, { as: H, body: { reason: "customer_requested" } })],
+] as const) {
+  test(`Task 5: ${ten} — đơn Trả sau còn nợ, soạn câu trả vé lỗi ⇒ 503 tra_sau_chua_dung_duoc, đơn còn confirmed, sổ và nhật ký không đổi`, async () => {
+    const w = dung();
+    assert.equal((await hanMuc(w, 2_000_000)).status, 201);
+    const d = await donTS(w);
+    if (ten === "handler-cancel") assert.equal((await w.call("PUT", `/api/orders/${d.id}/handler`, { as: A, body: { staffId: H } })).status, 200);
+    const truoc = [demBil(w), demNhatKy(w, d.id), phienBan(w)];
+    hongSoanTraVe(w);
+    const r = await goi(w, d.id);
+    assert.deepEqual([r.status, r.json.error?.code], [503, "tra_sau_chua_dung_duoc"], r.text);
+    assert.match(r.json.error.message, /vé/, "câu tiếng Việt nói chuyện vé");
+    assert.equal(w.q("SELECT status FROM orders WHERE id = ?", d.id)[0].status, "confirmed");
+    assert.deepEqual([demBil(w), demNhatKy(w, d.id), phienBan(w)], truoc, "không dòng sổ, nhật ký, phiên bản nào");
+  });
+}
+
 test("Task 3: hạn mức 500.000, đơn 600.000 đã về công ty 400.000 (nợ 200.000) — tăng lên 1.000.000 thì 409 nói đúng phần còn được dùng; tăng lên 800.000 thì được, nợ mới 400.000", async () => {
   const w = dung();
   const id = await don600DaThu400(w);

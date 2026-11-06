@@ -328,8 +328,11 @@ export const dispatchModule: AppModule = {
       const cauAbort = assigned && staff.partyId ? [chenAbortSauStatement(env.DB, { id: crypto.randomUUID(), partyId: staff.partyId, orderId, at: new Date().toISOString(), actorId: staff.id })] : [];
       // ADR-0153: trả vé cùng nguyên tử với việc huỷ (cổng: đơn đã `cancelled` trong lô). ADR-0142: lời mời Bán hàng đang mở (nếu có) khép «đơn huỷ» cùng lô, gác theo id dòng nhật ký
       // huỷ (sinh bên trong `soanHuyDon`, nên câu dựng bằng hàm nhận id). Kế hoạch 2026-11-05 Task 2: cờ câu bảo vệ «vé vừa mở» của cổng Trả sau đi vào câu trả vé.
-      const cauSauHuy = async (auditId: string, chanVeDaMoTraSau: boolean): Promise<D1PreparedStatement[]> =>
-        [...cauAbort, ...(await traVeKhiHuy(orderId, "DON_HUY", chanVeDaMoTraSau)), banHang.cauKhepLoiMoiSauLenhDon(env.DB, { orderId, outcome: "HUY_DON", at: new Date().toISOString(), actorId: staff.id, auditId })];
+      // Câu trả vé null (lô phải mang câu bảo vệ mà không soạn được) ⇒ trả null để orders báo 503, không chạy lô (Task 5 việc B).
+      const cauSauHuy = async (auditId: string, chanVeDaMoTraSau: boolean): Promise<D1PreparedStatement[] | null> => {
+        const traVe = await traVeKhiHuy(orderId, "DON_HUY", chanVeDaMoTraSau);
+        return traVe === null ? null : [...cauAbort, ...traVe, banHang.cauKhepLoiMoiSauLenhDon(env.DB, { orderId, outcome: "HUY_DON", at: new Date().toISOString(), actorId: staff.id, auditId })];
+      };
       // ADR-0170 Đ3: vé vừa mở xen giữa ⇒ cả lô lui; hàm của orders tự dịch lỗi câu bảo vệ / câu gác Trả sau (câu Đối tác khi người bấm giữ quyền Đối tác).
       const r = await cancelOrderByHandler(env.DB, orderId, staff.id, order.updatedAt, lyDoHuyCuaHdv(input.reason, input.note), label, { traSauCuaDon, veDaMoCuaDon, cauGacPhienBanTraSau }, holdsPartner(staff), cauSauHuy, (x) => dongBoChuyen(x));
       if (r.kq === "loi") return r.res;

@@ -297,7 +297,7 @@ export interface Ctx<A extends Access = Access> {
   /**
    * KHO VÉ ĐIỆN TỬ (ADR-0153 Đ1 mục 4) — ba hàm do gốc lắp ráp tiêm (`ve-dien-tu` ghép với `orders.dichVuChoVe`; `orders` KHÔNG import `ve-dien-tu`, khuôn `daThuCuaDon`).
    * `capVeSauXacNhan`: gọi SAU lô xác nhận ở cả ba đường (`/status`, `quyet-dinh` CON_VE, `gui-don` nhánh B), KHÔNG nằm trong lô xác nhận và KHÔNG qua `baoThayDoi`; lỗi bị nuốt
-   * (xác nhận đã thắng — thiếu vé là suy ra lúc đọc). `traVeKhiHuy`: trả CÂU chưa chạy để nối vào lô huỷ / rút xác nhận (cùng nguyên tử); lỗi → mảng rỗng. `canBangVeSauSuaKhach`:
+   * (xác nhận đã thắng — thiếu vé là suy ra lúc đọc). `traVeKhiHuy`: trả CÂU chưa chạy để nối vào lô huỷ / rút xác nhận (cùng nguyên tử); lỗi → mảng rỗng, trừ khi lô huỷ phải mang câu bảo vệ «vé vừa mở» thì → null (nơi gọi trả 503). `canBangVeSauSuaKhach`:
    * gọi SAU lô sửa số khách (`money-edit`, `handler-money-edit`) — trả bớt vé chưa lộ, cấp thêm; lỗi bị nuốt. Môi trường không tiêm (khung thử cố ý) → không làm gì (an toàn: không cấp).
    */
   capVeSauXacNhan: (orderId: string) => Promise<void>;
@@ -306,7 +306,8 @@ export interface Ctx<A extends Access = Access> {
   /** {số tính «thu đủ», phải thu, số khai chưa nộp, số chờ Kế toán xác nhận, thông tin Trả sau} (`billing.tienDonVe`; `daThu` đã trừ `choNop`, ADR-0159 Đ2, và `choXacNhan`, ADR-0170 Đ2) — để so ở một hàm thuần. Không tiêm / không đọc được ⇒ `null` (KHÔNG mở khoá). */
   tienDonVe: (orderId: string) => Promise<{ daThu: number; phaiThu: number; choNop?: number; choXacNhan?: number; traSau?: { hanTra: string | null; hetAnHan: string | null; no: number } | null } | null>;
   /** `chanVeDaMoTraSau` (BẮT BUỘC, kế hoạch 2026-11-05 Task 2): `qua.chanVeDaMo` của cổng huỷ Trả sau — lô mang câu bảo vệ «vé vừa mở» kể cả khi người bấm không giữ quyền Đối tác. */
-  traVeKhiHuy: (orderId: string, lyDo: "DON_HUY" | "RUT_XAC_NHAN", chanVeDaMoTraSau: boolean) => Promise<D1PreparedStatement[]>;
+  /** `null` (Task 5 việc B): lô huỷ phải mang câu bảo vệ mà không soạn được câu trả vé ⇒ nơi gọi trả 503 `VE_CHUA_SOAN_DUOC`, KHÔNG chạy lô (bỏ câu bảo vệ = mở cửa). */
+  traVeKhiHuy: (orderId: string, lyDo: "DON_HUY" | "RUT_XAC_NHAN", chanVeDaMoTraSau: boolean) => Promise<D1PreparedStatement[] | null>;
   canBangVeSauSuaKhach: (orderId: string) => Promise<void>;
   /**
    * «DÒNG NÀY ĐÃ ĐƯỢC CHỤP CHƯA» (ADR-0148 Đ1) — do gốc lắp ráp tiêm (`orders.ngayChupGanNhat`; `pricing` KHÔNG đọc bảng `ord_`, không phụ thuộc `orders` — sẽ thành vòng; khuôn
@@ -469,7 +470,7 @@ export interface AppOptions {
     chanKhaiCocLai: (env: Env, nguoiLapId: string) => Promise<ChanKhaiLai>;
     /** ADR-0153 Đ1 mục 4. BẮT BUỘC trong mã chạy thật (`src/index.ts`: `ve-dien-tu` + `dichVuChoVe` của orders); thiếu (khung thử cố ý) → router không cấp / không trả vé. Tự nuốt lỗi. */
     capVeSauXacNhan: (env: Env, actor: StaffProfile, orderId: string) => Promise<void>;
-    traVeKhiHuy: (env: Env, actor: StaffProfile, orderId: string, lyDo: "DON_HUY" | "RUT_XAC_NHAN", chanVeDaMoTraSau: boolean) => Promise<D1PreparedStatement[]>;
+    traVeKhiHuy: (env: Env, actor: StaffProfile, orderId: string, lyDo: "DON_HUY" | "RUT_XAC_NHAN", chanVeDaMoTraSau: boolean) => Promise<D1PreparedStatement[] | null>;
     canBangVeSauSuaKhach: (env: Env, actor: StaffProfile, orderId: string) => Promise<void>;
     /** ADR-0153 Đ3. BẮT BUỘC trong mã chạy thật (`src/index.ts`: `orders.dichVuChoVe`, `billing.tienDonVe`); thiếu (khung thử cố ý) → rỗng / null. */
     dichVuChoVe: (env: Env, orderId: string) => Promise<{ serviceId: string; catalogCode: string; ngayDi: string; pax: { adult: number; child: number; senior: number; infant: number } }[]>;

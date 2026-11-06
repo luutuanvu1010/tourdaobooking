@@ -25,7 +25,7 @@ import { getEffectiveServices } from "../catalog";
 import { anKhachBat, anKhachMoiNhat, cauDoiGioChang, cauDoiNgayChang, cauDoiNgayDichVu, cauGhiKepGio, cauKhepYeuCau, cauMoYeuCau, cauThemAnKhach, cauThemChinhSach, cauThemCo, chinhSachMoiNhat, coHienHanh, coMoiNhat, nhomDangDung, nhomTheoMa, orderTouchDraft, tuXacNhanNoiBo, ungVienTheBanHang, yeuCauMoCuaDon, yeuCauMoTatCa, yeuCauTheoId, type YeuCauRow } from "./xac-nhan-repo";
 import { legDatGapByOrder, legShortNoticeConVe, slotPolicy, type DauDatGapMoi } from "./chang-hanh-khach-repo";
 import { daXacNhan, findOrder, getMeta, nextStamp, soanHuyDon, soanXacNhan } from "./repository";
-import { congHuyTraSau } from "./tra-sau-cong";
+import { congHuyTraSau, VE_CHUA_SOAN_DUOC } from "./tra-sau-cong";
 import { CAU_VUOT_TONG_NGUOI_XET } from "../../shared/dat-coc-truoc";
 import { MOC_CHUA_CO, RACED, STALE, canChotGioCuaNguoiLap, chanDoanXacNhan, chayLoNoiChuyen, cocChoXacNhan, congNhomTatDuaDon, dichLoiXacNhan, kemChupXacNhan, kiemCongXacNhan, tinhCanXacNhan, viCuaYeuCau } from "./xac-nhan-chung";
 import { confirmGaps, confirmWindow } from "./service-rules";
@@ -266,7 +266,7 @@ export const xacNhanRoutes = (xetDatGap: XetDatGapSua) => [
       orderTouchDraft(env.DB, id, at, meta.updatedAt),
       auditStatement(env.DB, { id: auditId, orderId: id, staffId: staff.id, action: "order_confirm_withdrawn", at, detail: "Rút lại yêu cầu xác nhận" }, "changes() > 0"),
       cauKhepYeuCau(env.DB, { id: y.id, at, by: staff.id, outcome: "RUT_LAI", ticket: null, note: null, auditId }),
-      ...(await traVeKhiHuy(id, "RUT_XAC_NHAN", false)), // ADR-0153: phòng thủ — đơn nháp không giữ vé; nếu có thì trả cùng nguyên tử (cổng: đơn còn nháp)
+      ...((await traVeKhiHuy(id, "RUT_XAC_NHAN", false)) ?? []), // RUT_XAC_NHAN không mang câu bảo vệ nên gốc lắp ráp không trả null (Task 5 việc B). ADR-0153: phòng thủ — đơn nháp không giữ vé; nếu có thì trả cùng nguyên tử (cổng: đơn còn nháp)
       banHang.cauKhepLoiMoiSauLenhDon({ orderId: id, outcome: "RUT_LAI", at, actorId: staff.id, auditId }), // ADR-0142: khép lời mời đang mở (nếu có); gửi lại là lời mời MỚI. Nối CUỐI: chỉ số kq[0], kq[2] giữ nguyên
     ]);
     if ((kq[0]!.meta.changes ?? 0) === 0 || (kq[2]!.meta.changes ?? 0) === 0) {
@@ -333,7 +333,9 @@ export const xacNhanRoutes = (xetDatGap: XetDatGapSua) => [
       const atHuy = nextStamp(meta.updatedAt);
       const khep = cauKhepYeuCau(env.DB, { id: y.id, at: atHuy, by: staff.id, outcome: "HUY", ticket: ketQua === "HET_VE" ? "HET_VE" : "HUY", note: null, auditId: huy.auditId });
       const khepMoi = banHang.cauKhepLoiMoiSauLenhDon({ orderId: id, outcome: "HUY_DON", at: atHuy, actorId: staff.id, auditId: huy.auditId }); // ADR-0142: lời mời mở (nếu có) khép «đơn huỷ», gác theo dòng nhật ký huỷ
-      const dong = await dongBoChuyen({ orderId: id, auditIdDon: huy.auditId, bayGioMs: Date.now(), sau: { trangThai: "cancelled" }, cauDon: [...huy.cau, ...(await traVeKhiHuy(id, "DON_HUY", cong.qua.chanVeDaMo)), khep, khepMoi] }); // ADR-0153: trả vé cùng nguyên tử với việc huỷ
+      const traVe = await traVeKhiHuy(id, "DON_HUY", cong.qua.chanVeDaMo);
+      if (traVe === null) return VE_CHUA_SOAN_DUOC(); // Task 5 việc B
+      const dong = await dongBoChuyen({ orderId: id, auditIdDon: huy.auditId, bayGioMs: Date.now(), sau: { trangThai: "cancelled" }, cauDon: [...huy.cau, ...traVe, khep, khepMoi] }); // ADR-0153: trả vé cùng nguyên tử với việc huỷ
       const r = await chayLoNoiChuyen(env.DB, dong, huy.thang);
       if (r.kq === "loi") return r.res;
       if (r.kq === "thua") return RACED();
