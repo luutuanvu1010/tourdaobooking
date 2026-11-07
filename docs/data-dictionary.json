@@ -28,7 +28,8 @@
       "name": "audit_log",
       "module": "audit",
       "kind": "table",
-      "legacy": true
+      "legacy": true,
+      "note": "acting_role (ADR-0180, migration 0145): mã vai đang đóng lúc ghi dòng, rỗng ngoài đóng vai; chỉ mã vai, không dữ liệu cá nhân"
     },
     {
       "name": "catalog_item",
@@ -225,7 +226,7 @@
       "name": "aut_session",
       "module": "auth",
       "kind": "table",
-      "note": "sổ phiên đăng nhập (ADR-0075, migration 0065): mỗi lần cấp phiên là một dòng, KHÔNG xoá (kết thúc = ended_at + end_reason đi cặp). single = 1: tài khoản chịu luật một máy, chỉ mục duy nhất aut_session_one_live chặn hai phiên sống cùng lúc. ip và user_agent là DỮ LIỆU CÁ NHÂN, ẩn danh khi thực hiện phiếu xoá và theo thời hạn giữ của chính sách (ADR-0126 đ8), chỉ IT/Toàn quyền và chính chủ tài khoản xem, KHÔNG vào nhật ký"
+      "note": "sổ phiên đăng nhập (ADR-0075, migration 0065): mỗi lần cấp phiên là một dòng, KHÔNG xoá (kết thúc = ended_at + end_reason đi cặp). single = 1: tài khoản chịu luật một máy, chỉ mục duy nhất aut_session_one_live chặn hai phiên sống cùng lúc. ip và user_agent là DỮ LIỆU CÁ NHÂN, ẩn danh khi thực hiện phiếu xoá và theo thời hạn giữ của chính sách (ADR-0126 đ8), chỉ IT/Toàn quyền và chính chủ tài khoản xem, KHÔNG vào nhật ký. acting_role (ADR-0180, migration 0145): mã quyền đang «xem như» của phiên Toàn quyền, rỗng khi không đóng vai; hết hạn xét ở máy chủ theo last_seen_at"
     },
     {
       "name": "aut_session_policy",
@@ -1580,12 +1581,12 @@
     }
   ],
   "hangDuLieu": {
-    "audit_log": { "id": "N1", "order_id": "N1", "staff_id": "N1", "action": "N1", "target_type": "N1", "target_id": "N1", "detail": "N2", "created_at": "N1" },
+    "audit_log": { "id": "N1", "order_id": "N1", "staff_id": "N1", "action": "N1", "target_type": "N1", "target_id": "N1", "detail": "N2", "created_at": "N1", "acting_role": "N1" },
     "aut_mfa_email_code": { "id": "N1", "staff_id": "N1", "purpose": "N1", "email_hash": "N2", "code_hash": "N4", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "expires_at": "N1", "attempts": "N1", "used_at": "N1", "revoked_at": "N1" },
     "aut_mfa_factor": { "id": "N1", "staff_id": "N1", "kind": "N1", "secret_enc": "N4", "email": "N2", "last_totp_step": "N1", "valid_from_at": "N1", "valid_to_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "aut_mfa_recovery_code": { "id": "N1", "staff_id": "N1", "batch_id": "N1", "code_hash": "N4", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "used_at": "N1", "revoked_at": "N1" },
     "aut_passkey": { "id": "N1", "staff_id": "N1", "credential_id": "N1", "public_key": "N1", "algorithm": "N1", "user_handle": "N1", "sign_count": "N1", "label": "N2", "last_used_at": "N1", "valid_from_at": "N1", "valid_to_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
-    "aut_session": { "id": "N1", "staff_id": "N1", "method": "N1", "single": "N1", "trusted_device_id": "N1", "device_label": "N2", "user_agent": "N2", "ip": "N2", "created_at": "N1", "last_seen_at": "N1", "expires_at": "N1", "ended_at": "N1", "end_reason": "N1", "ended_by": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "aut_session": { "id": "N1", "staff_id": "N1", "method": "N1", "single": "N1", "trusted_device_id": "N1", "device_label": "N2", "user_agent": "N2", "ip": "N2", "created_at": "N1", "last_seen_at": "N1", "expires_at": "N1", "ended_at": "N1", "end_reason": "N1", "ended_by": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "acting_role": "N1" },
     "aut_session_policy": { "id": "N1", "permission_code": "N1", "multi": "N1", "valid_from_at": "N1", "valid_to_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "aut_trusted_device": { "id": "N1", "staff_id": "N1", "token_hash": "N4", "label": "N2", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "last_used_at": "N1", "expires_at": "N1", "revoked_at": "N1", "revoke_reason": "N1" },
     "bil_accounting_entry": { "id": "N1", "order_id": "N1", "entered": "N1", "invoice_number": "N1", "reason": "N2", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
