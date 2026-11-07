@@ -100,6 +100,16 @@ Ghi 29/10/2026 từ khối tóm tắt của `npm run trien-khai` (chủ chạy `
 - Nghiệm thu: phiên kế hoạch tự chạy lại 132 bài N5 + typecheck trên nhánh; người kiểm độc lập ĐẠT. Chưa bấm «Sửa» trên production (bấm là ghi thật), chưa thử iPhone thật. Còn chờ chủ: NO-N5-4 (chữ «Chưa áp dụng cho loại nào» cạnh dòng «Sắp áp dụng»), nợ NO-N5-1…3.
 - **Hoàn tác:** `wrangler rollback` về `ba3d7b56` (2.45) an toàn — 2.46 không đổi dữ liệu.
 
+## ĐANG CHỜ PHÁT HÀNH: Toàn quyền xem như vai trò khác (ADR-0180; migration `0145_xem_nhu_vai.sql`) — CHƯA gộp `main`, CHƯA lên production
+
+Ghi 7/11/2026, nhánh `claude/multi-role-admin-view-8030d2`. Chưa có số phiên bản và chưa có mục nhật ký thay đổi (bước A.0 làm khi phát hành). Chưa làm bước nào trên production: không áp migration remote, không triển khai.
+- **Migration `0145_xem_nhu_vai` (chỉ mở rộng):** thêm cột `aut_session.acting_role` và `audit_log.acting_role`, cột phiên có ràng buộc `CHECK` chỉ nhận mười mã chọn được (không nhận `SUPER_ADMIN`). Số có thể phải đổi lúc gộp: quy tắc = số lớn nhất trên `main` lúc gộp + 1 (lúc ghi, `main` có đến `0144`).
+- **Điều nhân viên thấy:** không ai thấy khác, trừ Toàn quyền: ở trang Tôi có mục «Xem như vai khác»; bật thì cả phiên đó chỉ còn quyền của vai chọn (tối đa 60 phút không thao tác), có thanh báo kèm nút «Thoát vai». Phiên khác của cùng tài khoản không đổi. Nhật ký có dòng bật / thoát và mọi dòng ghi lúc đang đóng vai mang dấu vai.
+- **Kiểm đã có:** bài quét «xem như vai khác không lọt Toàn quyền» (mọi route × 10 vai), bài ma trận mười vai, bài phiên / route / nhật ký, e2e `tests/e2e/xem-nhu-vai.mjs` (xanh trên D1 local tạm). Chi tiết hàng rào: `docs/SO-HANG-RAO.md` (các dòng ADR-0180). Việc lớn (quyền): cần người kiểm độc lập đọc cả nhánh trước khi gộp.
+- **Hoàn tác:** cột mới nullable, mã cũ không đọc nên lùi `wrangler rollback` an toàn; phiên đang đóng vai khi lùi mã sẽ chạy như quyền Toàn quyền thật (cột bị bỏ qua) — chủ tự gỡ vai bằng cách thoát trước khi lùi.
+- **Việc của chủ khi phát hành** (AI không chạy): `npm run day-len` rồi `npm run trien-khai` theo mục «Khi chạy `trien-khai`» của đợt hiện hành; câu «Áp 1 migration này lên production?» gõ `c`.
+- **Chưa kiểm:** thanh báo và mục chọn chưa xem bằng Chrome / iPhone thật; sổ riêng của module khác (`bil_*`, `fbk_*`…) không mang dấu vai — câu hỏi chờ chủ ở nhật ký thi công.
+
 ## ĐANG CHỜ PHÁT HÀNH — ĐỢT CHUNG 2.70 + 2.71 + 2.72 (một lần `npm run trien-khai`; HAI migration `0143_tra_sau_theo_gio`, `0144_kenh_thu_doi_tac`) — chuẩn bị 2026-11-07
 
 Ghi 7/11/2026, nhánh `claude/cool-cray-c2ef4e` (đứng trên `main` `a6c2688a`, đã có trên GitHub). Ba phần của ba phiên lên chung một lần:
@@ -1546,6 +1556,7 @@ Ba phương án, chủ dự án chọn một (chưa chọn thay):
 **(c) ADR-0005 mục Quyết định 2 lệch DDL đã duyệt — ghi errata.** ADR viết `stf_permission(staff_id, permission_type_code, created_at, created_by)`, khoá duy nhất `(staff_id, permission_type_code)`; DDL đã duyệt và `0012` thực tế có `id`, `valid_from_at`/`valid_to_at`, đủ bốn cột kiểm toán và chỉ mục duy nhất MỘT PHẦN `stf_permission_open_uq … WHERE valid_to_at IS NULL` (đóng/mở lại quyền giữ lịch sử, đúng "không xoá cứng" của ADR-0003 điều 8). Mã theo DDL; chỉ cần chủ dự án đồng ý ghi errata vào ADR-0005 (chi phí: chỉ tài liệu).
 
 ## Việc còn treo / nợ
+- **Xem như vai trò khác (ADR-0180) chờ gộp và phát hành:** xem mục «ĐANG CHỜ PHÁT HÀNH: Toàn quyền xem như vai trò khác» ở đầu tệp; còn chờ chủ: dấu vai ở sổ riêng của module khác, và xem hình thật (Chrome, iPhone).
 - **CHƯƠNG TRÌNH KHẮC PHỤC KIỂM TOÁN 1–2/10 (lập kế hoạch 2026-10-02, CHƯA thi công) — ưu tiên cao nhất, có hạn sổ dừng dây chuyền.**
   - **Kiểm lại trên `main` @`fc268abe`:**
     - 8/9 phát hiện CAO của đánh giá kiến trúc xác nhận;
