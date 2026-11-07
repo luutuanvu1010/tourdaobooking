@@ -268,6 +268,8 @@ export interface KhoiChuyen {
   diem: ("PICKUP" | "DROPOFF")[];
   /** Đang khoá theo mốc — cờ `khoaMoc.dangKhoa` của máy chủ (R-P13), không tự tính. */
   khoa: boolean;
+  /** ADR-0184: chuyến có nhãn vàng «Xe thiếu … — đã cho chạy» (cờ `choChayThieu` không rỗng của máy chủ). */
+  choChayThieu: boolean;
 }
 export interface HangXe { xeId: string; bienSo: string; soCho: string; taiXe: string; thieuTaiXe: boolean; khoi: KhoiChuyen[] }
 export interface HinhDongThoiGian {
@@ -310,7 +312,7 @@ export function hinhDongThoiGian(l: Pick<LichChungResponse, "ngay" | "chuyen" | 
         const k = kieuChuyen(c);
         return {
           id: c.id, ma: c.ma, maNgan: c.ma.split("-").at(-1) ?? c.ma, trai: x(c.batDauMs), dai: r4((c.ketThucMs - c.batDauMs) / GIO), kieu: k.kieu, nhan: k.nhan,
-          tai: `${c.tai}/${c.xe.soCho}`, gio: `${gioHien(c.batDau, l.ngay)}–${gioHien(c.ketThuc, l.ngay)}`, diem: c.diem.map((d) => d.loai), khoa: c.khoaMoc.dangKhoa,
+          tai: `${c.tai}/${c.xe.soCho}`, gio: `${gioHien(c.batDau, l.ngay)}–${gioHien(c.ketThuc, l.ngay)}`, diem: c.diem.map((d) => d.loai), khoa: c.khoaMoc.dangKhoa, choChayThieu: (c.choChayThieu ?? []).length > 0,
         };
       }),
     };

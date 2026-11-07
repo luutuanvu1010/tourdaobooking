@@ -8,7 +8,7 @@
 // Kho cookie của Chrome dùng CHUNG: Bán hàng → Quản trị → Kế toán (trang mở sau cùng là của Kế toán).
 import { randomUUID } from "node:crypto";
 import {
-  ACCOUNTS, CHU, DESK, LOC_BEN_TAU, MOB, apiCalls, assert, axe, axeNote, boDem, click, dungDuLieuDieuPhoi, dungMoiTruong, noCode, noOverflowX, shotFull, shotView, shown, sleep, txt,
+  ACCOUNTS, CHU, DESK, LOC_BEN_TAU, MOB, apiCalls, assert, axe, axeNote, boDem, click, dungDuLieuDieuPhoi, dungMoiTruong, noCode, noOverflowX, shotFull, shotView, shown, sleep, txt, typeInto,
 } from "./dp-lib.mjs";
 
 // Hướng dẫn viên (Task 8 Đợt 1 — người đi kèm): tài khoản FIELD đang hoạt động; tên + SĐT giả để kiểm "tên có, SĐT không".
@@ -32,7 +32,8 @@ const donT5 = async (gio, noiDon, ten, sdt) => {
     passengers: ten.map((fullName, i) => ({ fullName, birthYear: 1985 + i, paxCode: null })),
   });
   assert.equal(r.status, 201, `lập đơn ${noiDon}: ${r.text}`);
-  const c = await call(ACCOUNTS.admin, "POST", `/api/orders/${r.json.order.id}/status`, { status: "confirmed" });
+  // ADR-0135: nháp là của riêng người lập — chính người lập xác nhận (Quản trị nhận 404; sửa 8/11 cùng dp-lib.mjs).
+  const c = await call(ACCOUNTS.salesA, "POST", `/api/orders/${r.json.order.id}/status`, { status: "confirmed" });
   assert.equal(c.status, 200, `xác nhận đơn ${noiDon}: ${c.text}`);
   return c.json.order.services[0].legs[0].id;
 };
@@ -245,7 +246,7 @@ try {
     assert.equal(await pm.ev(txt(".dp-stop[data-diem] .dp-stop-noi strong")), "Đón · Amiana Resort");
     const dk = (await pm.ev(dieuKien)).filter((x) => !x.dat && x.nhan !== "Trong giờ được cho xe chạy"); // NGAY_XA ngoài cửa sổ xuất bến (ADR-0096 Đ2) — bước 1 kiểm câu
     assert.deepEqual(dk, [
-      { dat: false, nhan: "Giấy tờ xe", sub: "Xe thiếu hoặc hết hạn giấy tờ bắt buộc: 79A-222.22 · Ai xử lý: Quản trị" },
+      { dat: false, nhan: "Giấy tờ xe", sub: "Xe thiếu hoặc hết hạn giấy tờ bắt buộc: 79A-222.22 · Ai xử lý: Toàn quyền" },
       { dat: false, nhan: "Đủ tên khách", sub: `Chưa đủ tên khách: ${d.O2.ma} thiếu 1 tên · Ai xử lý: Văn phòng` },
     ]);
     assert.equal(await pm.ev(shown(".dp-ct-actions")), false);
@@ -315,6 +316,135 @@ try {
   });
   await q.close();
 
+  // ---- ADR-0184 việc 4: «Cho chạy dù thiếu giấy tờ». Mỗi trang mở và đóng ngay trong lượt của mình (kho cookie dùng CHUNG: Bán hàng → Quản trị → Kế toán). ----------------
+  const CCC = "Cho chạy dù thiếu giấy tờ";
+  const hangCcc = `[...document.querySelectorAll('.sheet .dp-ccc-hang')].map((x) => x.innerText.replace(/\\s+/g, ' ').trim())`;
+  const goiYCcc = `((el) => (el && !el.hidden ? el.innerText.trim() : ''))(document.querySelector('.sheet [data-khoi="goi-y"]'))`;
+  const guiCcc = `document.querySelector('[data-action="cho-chay-thieu-gui"]').disabled`;
+  const chipVang = `[...document.querySelectorAll('[data-khoi="cho-chay-thieu"]')].map((x) => x.innerText.replace(/\\s+/g, ' ').trim())`;
+  await b.step("9", `ADR-0184 Bán hàng ${d.T2.ma} (xe thiếu Bảo hiểm): KHÔNG có nút «${CCC}», không nhãn vàng`, async () => {
+    const ps = await env.as(ACCOUNTS.salesA, `/chuyen?id=${d.T2.id}`, DESK);
+    await cho(ps);
+    assert.ok(!(await ps.ev(nut)).includes(CCC), "Bán hàng không có ô trip.override");
+    assert.deepEqual(await ps.ev(chipVang), []);
+    assert.equal(await ps.ev(noCode), "");
+    await ps.close();
+  });
+  // Dữ liệu cho bước sau (đường thật): điều kiện «Đăng ký xe» (loại thường, mọi xe từ 1 chỗ) + chuyến T6 của XE_A (đủ Kiểm định, Bảo hiểm; thiếu Đăng ký xe).
+  const dk6 = await call(CHU, "POST", "/api/van-chuyen/dieu-kien", { minCapacity: 1, subject: "VEHICLE", documentTypeCode: "REGISTRATION" });
+  assert.equal(dk6.status, 201, `thêm điều kiện Đăng ký xe: ${dk6.text}`);
+  // Đăng nhập lại Quản trị làm phiên cũ trong `call` hết hiệu lực (mỗi tài khoản một phiên) — lấy cookie mới cho lệnh này.
+  const ckAdm = await env.login(ACCOUNTS.admin);
+  const t6r = await fetch(`${env.base}/api/van-chuyen/chuyen`, {
+    method: "POST", headers: { "content-type": "application/json", origin: env.base, cookie: `${ckAdm.name}=${ckAdm.value}` },
+    body: JSON.stringify({ requestId: randomUUID(), xeId: d.XE_A.id, taiXePartyId: d.AN.partyId, batDau: { ngay: d.NGAY_XA, gio: "17:30" }, ketThuc: { ngay: d.NGAY_XA, gio: "19:00" } }),
+  });
+  const t6j = await t6r.json();
+  assert.equal(t6r.status, 201, `tạo T6: ${JSON.stringify(t6j)}`);
+  const T6 = t6j.chuyen;
+
+  const qm = await env.as(ACCOUNTS.admin, `/chuyen?id=${d.T2.id}`, MOB);
+  await cho(qm);
+  await b.step("9b", `ADR-0184 390 Quản trị ${d.T2.ma} (xe thiếu Bảo hiểm): nút «${CCC}» ở cuối trang → hộp: Bảo hiểm KHOÁ kèm «Chỉ Toàn quyền» và không chọn; Đăng ký xe chọn sẵn; chưa chọn lý do thì nút xác nhận khoá${axeNote()}`, async () => {
+    assert.ok((await qm.ev(`[...document.querySelectorAll('#ct-bottom button')].map((x) => x.textContent.trim())`)).includes(CCC));
+    await qm.ev(click(`#ct-bottom [data-action="cho-chay-thieu"]`));
+    await qm.waitFor(`!!document.querySelector('.sheet [data-action="cho-chay-thieu-gui"]')`, "hộp mở");
+    assert.equal(await qm.ev(txt(".sheet .sheet-title")), `${CCC} — ${d.T2.ma}`);
+    // Điều kiện «Đăng ký xe» vừa thêm (bước 9) nên xe cũng thiếu loại thường: Bảo hiểm khoá + không chọn; Đăng ký xe chọn sẵn.
+    assert.deepEqual(await qm.ev(hangCcc), ["Bảo hiểm trách nhiệm dân sự chưa có Chỉ Toàn quyền", "Đăng ký xe chưa có"]);
+    assert.deepEqual(await qm.ev(`[...document.querySelectorAll('.sheet .dp-ccc-hang input')].map((x) => [x.dataset.loai, x.disabled, x.checked])`), [["TPL_INSURANCE", true, false], ["REGISTRATION", false, true]]);
+    assert.equal(await qm.ev(guiCcc), true, "chưa chọn lý do → khoá");
+    assert.equal(await qm.ev(goiYCcc), "Chọn một lý do.");
+    assert.equal(await qm.ev(`getComputedStyle(document.querySelector('#ccc-ghi-chu')).fontSize`), "16px", "ô gõ 16px");
+    assert.ok(await qm.ev(noOverflowX));
+    await axe(qm, "hộp cho chạy dù thiếu giấy tờ 390 (Bảo hiểm khoá)");
+    await shotView(qm, "adr0184-hop-bao-hiem-khoa-dien-thoai.png");
+    await qm.ev(`[...document.querySelectorAll('.sheet button')].find((x) => x.textContent.trim() === 'Quay lại').click()`);
+    await qm.waitFor(`!document.querySelector('.sheet')`, "đóng hộp");
+    assert.equal(ghi(qm).filter((r) => r.path.endsWith("/cho-chay-thieu-giay")).length, 0, "đóng không gửi lệnh");
+    assert.equal(await qm.ev(noCode), "");
+  });
+  await qm.close();
+
+  const qd = await env.as(ACCOUNTS.admin, `/chuyen?id=${T6.id}`, DESK);
+  await cho(qd);
+  await b.step("9c", `ADR-0184 1040 Quản trị ${T6.ma} (thiếu Đăng ký xe): hộp; «Khác» đòi ghi chú ≥ 10 ký tự; «Giấy đang gia hạn» → gửi → nhãn vàng «Xe thiếu Đăng ký xe — đã cho chạy», nút biến mất, nhật ký có dòng${axeNote()}`, async () => {
+    assert.deepEqual(await qd.ev(chipVang), [], "chưa cho chạy: chưa nhãn");
+    assert.ok((await qd.ev(dieuKien)).some((x) => x.nhan === "Giấy tờ xe" && !x.dat), "đang bị giữ vì giấy tờ xe");
+    await qd.ev(click(`.dp-ct-actions [data-action="cho-chay-thieu"]`));
+    await qd.waitFor(`!!document.querySelector('.sheet [data-action="cho-chay-thieu-gui"]')`, "hộp mở");
+    assert.deepEqual(await qd.ev(hangCcc), ["Đăng ký xe chưa có"]);
+    assert.equal(await qd.ev(`document.querySelector('.sheet .dp-ccc-hang input').checked`), true, "loại được phép đã chọn sẵn");
+    assert.equal(await qd.ev(txt(".sheet #ccc-ly-do")), "Lý do", "Quản trị: lý do bắt buộc");
+    assert.deepEqual(await qd.ev(`[...document.querySelectorAll('.sheet .vc-reason')].map((x) => x.innerText.trim())`), ["Giấy đang gia hạn", "Xe thay thế khẩn cấp", "Khác"]);
+    assert.equal(await qd.ev(guiCcc), true);
+    assert.equal(await qd.ev(goiYCcc), "Chọn một lý do.");
+    await qd.ev(click('.sheet .vc-reason[data-code="THIEU_GIAY_KHAC"]'));
+    assert.equal(await qd.ev(guiCcc), true, "«Khác» chưa ghi chú → khoá");
+    assert.equal(await qd.ev(goiYCcc), "Ghi chú dài từ 10 đến 200 ký tự.");
+    await qd.ev(typeInto("#ccc-ghi-chu", "ngắn"));
+    assert.equal(await qd.ev(guiCcc), true, "ghi chú 4 ký tự → khoá");
+    await qd.ev(typeInto("#ccc-ghi-chu", "Đang chờ cấp lại giấy đăng ký"));
+    assert.equal(await qd.ev(guiCcc), false, "«Khác» + ghi chú đủ dài → mở");
+    await qd.ev(click('.sheet .vc-reason[data-code="THIEU_GIAY_GIA_HAN"]'));
+    assert.equal(await qd.ev(guiCcc), false);
+    assert.equal(await qd.ev(txt('[data-action="cho-chay-thieu-gui"]')), CCC);
+    assert.ok(await qd.ev(noOverflowX));
+    await axe(qd, "hộp cho chạy dù thiếu giấy tờ 1040");
+    await shotView(qd, "adr0184-hop-cho-chay-may-tinh.png");
+    await qd.ev(click('[data-action="cho-chay-thieu-gui"]'));
+    await qd.waitFor(`document.querySelector('.banner .banner-title')?.innerText === ${JSON.stringify(`Đã cho chạy dù thiếu giấy tờ ${T6.ma}`)}`, "dải đã cho chạy");
+    const goi = ghi(qd).filter((r) => r.path.endsWith("/cho-chay-thieu-giay")).map((r) => JSON.parse(r.body));
+    assert.equal(goi.length, 1);
+    assert.deepEqual([goi[0].loaiGiayTo, goi[0].lyDo, goi[0].ghiChu], [["REGISTRATION"], "THIEU_GIAY_GIA_HAN", "Đang chờ cấp lại giấy đăng ký"]);
+    assert.deepEqual(await qd.ev(chipVang), ["Xe thiếu Đăng ký xe — đã cho chạy"]);
+    assert.ok(!(await qd.ev(nut)).includes(CCC), "đã cho chạy hết loại thiếu → không còn nút");
+    assert.ok((await qd.ev(dieuKien)).find((x) => x.nhan === "Giấy tờ xe").dat, "dòng Giấy tờ xe đạt");
+    const nk = await qd.ev(nhatKy);
+    assert.deepEqual(nk.at(-1), { ai: "Quản Trị", may: false, text: `${CCC} · 1 loại giấy tờ` });
+    assert.equal(await qd.ev(noCode), "");
+    assert.ok(await qd.ev(noOverflowX));
+    await axe(qd, "chi tiết chuyến có nhãn vàng 1040");
+    await shotFull(qd, "adr0184-chi-tiet-nhan-vang-may-tinh.png");
+  });
+  await qd.close();
+
+  const qm2 = await env.as(ACCOUNTS.admin, `/chuyen?id=${T6.id}`, MOB);
+  await cho(qm2);
+  await b.step("9d", `ADR-0184 390 Quản trị ${T6.ma}: nhãn vàng không tràn ngang, không nút «${CCC}»${axeNote()}`, async () => {
+    assert.deepEqual(await qm2.ev(chipVang), ["Xe thiếu Đăng ký xe — đã cho chạy"]);
+    assert.ok(!(await qm2.ev(`[...document.querySelectorAll('main button')].map((x) => x.textContent.trim())`)).includes(CCC));
+    assert.ok(await qm2.ev(noOverflowX));
+    assert.equal(await qm2.ev(noCode), "");
+    await axe(qm2, "chi tiết chuyến có nhãn vàng 390");
+    await shotFull(qm2, "adr0184-chi-tiet-nhan-vang-dien-thoai.png");
+  });
+  await qm2.close();
+
+  const ql = await env.as(ACCOUNTS.admin, `/dieu-phoi?ngay=${d.NGAY_XA}`, DESK);
+  await ql.waitFor(`!!document.querySelector('#dp-cot-can-xu-ly .dp-cxl') || !!document.querySelector('.dp-khoi')`, "điều phối dựng xong");
+  await b.step("9e", `ADR-0184 1040 Điều phối xe của Quản trị: «Cần xử lý» có nút «${CCC}» (→ trang chuyến mở hộp); khối ${T6.ma} có dấu cảnh báo; thẻ chuyến đang chọn có nhãn vàng`, async () => {
+    const lien = await ql.ev(`[...document.querySelectorAll('#dp-cot-can-xu-ly a.dp-cxl-btn')].filter((a) => a.textContent.trim() === ${JSON.stringify(CCC)}).map((a) => a.getAttribute('href'))`);
+    assert.ok(lien.includes(`/chuyen?id=${d.T2.id}&mo=cho-chay-thieu`), JSON.stringify(lien));
+    assert.equal(await ql.ev(`!!document.querySelector('.dp-khoi[data-chuyen="${T6.id}"] svg')`), true, "dấu cảnh báo trên khối");
+    assert.match(await ql.ev(`document.querySelector('.dp-khoi[data-chuyen="${T6.id}"]').getAttribute('aria-label')`), /Xe thiếu Đăng ký xe — đã cho chạy/);
+    await ql.ev(click(`.dp-khoi[data-chuyen="${T6.id}"]`));
+    await ql.waitFor(`!!document.querySelector('.dp-chon .dp-chip-warn')`, "thẻ chuyến đang chọn");
+    assert.ok((await ql.ev(`[...document.querySelectorAll('.dp-chon .chip')].map((x) => x.innerText.trim())`)).includes("Xe thiếu Đăng ký xe — đã cho chạy"));
+    assert.ok(await ql.ev(noOverflowX));
+    assert.equal(await ql.ev(noCode), "");
+    await axe(ql, "điều phối xe 1040 có nhãn vàng");
+    await shotFull(ql, "adr0184-dieu-phoi-nhan-vang-may-tinh.png");
+  });
+  await ql.close();
+  // Liên kết từ «Cần xử lý» mở thẳng hộp (mo=cho-chay-thieu).
+  const qn = await env.as(ACCOUNTS.admin, `/chuyen?id=${d.T2.id}&mo=cho-chay-thieu`, DESK);
+  await qn.waitFor(`!!document.querySelector('.sheet [data-action="cho-chay-thieu-gui"]')`, "hộp tự mở theo liên kết");
+  await b.step("9f", "ADR-0184 liên kết «&mo=cho-chay-thieu» từ Cần xử lý mở thẳng hộp", async () => {
+    assert.equal(await qn.ev(txt(".sheet .sheet-title")), `${CCC} — ${d.T2.ma}`);
+  });
+  await qn.close();
+
   // ---- Kế toán (chỉ xem) ---------------------------------------------------------------------------------------------------------------------------------------
   const k = await env.as(ACCOUNTS.accounting, `/chuyen?id=${d.T2.id}`, DESK);
   await cho(k);
@@ -332,7 +462,7 @@ try {
   await k.close();
 
   await b.step("8", "không lỗi console ở mọi trang đã mở", async () => {
-    for (const pg of [p, pm, q, k]) assert.deepEqual(pg.consoleErrors, []);
+    for (const pg of [p, pm, q, k, qm, qd, qm2, ql, qn]) assert.deepEqual(pg.consoleErrors, []);
   });
 } finally {
   b.xong();

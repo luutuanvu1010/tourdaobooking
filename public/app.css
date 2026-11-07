@@ -3036,6 +3036,10 @@ body:has(.buoc-thanh) .toast-vung { bottom: auto; top: calc(var(--toast-tren, va
 .dp-cxl-khoa, .dp-cxl-actions { margin-top: var(--s1); }
 .dp-cxl-btn { font-size: var(--fs-label); }
 .dp-radio-text { display: flex; flex-direction: column; }
+/* ADR-0184: hộp «Cho chạy dù thiếu giấy tờ» — danh sách loại giấy (ô chọn + tên + hạn; «Chỉ Toàn quyền» dồn phải); nhãn vàng ở đầu chuyến xếp icon + chữ cùng dòng. */
+.dp-ccc-ds { display: flex; flex-direction: column; }
+.dp-ccc-hang .chip { margin-left: auto; }
+.chip.dp-chip-warn[data-khoi="cho-chay-thieu"] { display: inline-flex; align-items: center; gap: var(--s1); white-space: normal; }
 .dp-radio-sub { font-size: var(--fs-badge); font-weight: var(--fw-semibold); color: var(--c-sand-text); }
 .dp-sheet-xep .vc-reason { min-height: var(--h-dp-row); }
 @media (max-width: 640px) {

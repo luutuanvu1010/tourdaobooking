@@ -22,6 +22,7 @@ import { NHAN_KHAN_CAP, NUT_VUOT, cauKhoaMoc, thanPhaLe, chuyenXepDuoc, dieuKien
 import { NHAN_TU_CHOI_GOI_BAO, type MaTuChoiGoiBao } from "../src/shared/goi-bao";
 import { ApiError } from "./api";
 import type { CapNhatDiemResponse, CapNhatKhachResponse, ChuyenChiTietResponse, CuuHoResponse, DeNghiLenhResponse, DeNghiNgayResponse, DiemChuyenDto, HuongDanVienListResponse, LichChungResponse, XeNhanResponse } from "../src/shared/contracts";
+import { GHI_CHU_TOI_DA, GHI_CHU_TOI_THIEU, MA_LY_DO_THIEU_GIAY_KHAC, NHOM_LY_DO_THIEU_GIAY, NUT_CHO_CHAY_THIEU_GIAY, kiemChoChayThieu, nhanChoChayThieu, type MaLoiChoChayThieu } from "../src/shared/cho-chay-thieu-giay";
 import { NUT_CAP_NHAT_KHACH, giuCapNhatKhach } from "../src/shared/ly-do-giu";
 import { canHienDoan, cauDoan, doanTaiDiem } from "../src/shared/dieu-phoi-loc";
 import { can } from "../src/shared/permissions";
@@ -61,6 +62,9 @@ const coKhanCap = can(staff, "trip.urgent_adjust");
 const coTienDo = can(staff, "trip.progress");
 /** Gói A5: duyệt / bác đề nghị chuyển khách leo thang (ô trip.override — Quản trị, Toàn quyền) — link sang màn "Đề nghị chuyển khách". */
 const coDuyetDeNghi = can(staff, "trip.override");
+/** ADR-0184: «Cho chạy dù thiếu giấy tờ» — ô trip.override (Quản trị, Toàn quyền); ô trip.override.giay_to_cung (chỉ Toàn quyền) mở Kiểm định / Bảo hiểm và bỏ trống lý do. */
+const coChoChayThieu = coDuyetDeNghi;
+const coToanQuyenGiay = can(staff, "trip.override.giay_to_cung");
 
 let duLieu: ChuyenChiTietResponse | null = null;
 /** Khối "Chi phí chuyến" (Đợt 4 G2): CHỈ có khi ô transport.cost.view; sau lệnh ghi chi phí đọc lại chuyến (lý do giữ "thiếu giá" có thể vừa hết). */
@@ -134,6 +138,15 @@ function ve(): void {
     b.addEventListener("click", () => moThuHoi(b));
     return b;
   };
+  // ADR-0184: loại giấy xe thiếu mà chuyến CHƯA được cho chạy (so theo tên loại — nhãn vàng chỉ có tên).
+  const daChoTen = new Set(c.choChayThieu.map((x) => x.ten));
+  const conThieu = r.giayToThieu.filter((g) => !daChoTen.has(g.ten));
+  const nutChoChay = (lop: string) => {
+    if (!(keHoach && coChoChayThieu && conThieu.length > 0)) return null;
+    const b = h("button", { type: "button", class: `vc-btn ${lop}`, "data-action": "cho-chay-thieu" }, NUT_CHO_CHAY_THIEU_GIAY) as HTMLButtonElement;
+    b.addEventListener("click", () => moChoChayThieu(b, conThieu));
+    return b;
+  };
   const nutHuy = (lop: string) => {
     if (!(keHoach && coDieuPhoi)) return null;
     const b = h("button", { type: "button", class: `vc-btn ${lop}`, "data-action": "huy-chuyen" }, "Huỷ chuyến");
@@ -146,8 +159,9 @@ function ve(): void {
     h("h1", { class: "dp-ct-title" }, c.ma),
     chip(k.nhan, k.kieu === "held" ? "danger" : k.kieu === "nodrv" ? "warn" : k.kieu === "run" ? "navy" : k.kieu === "done" ? "ok" : k.kieu === "cancel" ? "muted" : "unit"),
     c.khanCap ? chip(NHAN_KHAN_CAP, "warn") : null, // ADR-0104 Đ1 mục 5
+    c.choChayThieu.length ? h("span", { class: "chip dp-chip-warn", "data-khoi": "cho-chay-thieu" }, icon("alert", 14, 2), nhanChoChayThieu(c.choChayThieu.map((x) => x.ten))) : null, // ADR-0184
     h("span", { class: "dp-ct-when" }, `${thuNgay(ngay)} · ${gioHien(c.batDau, ngay)}–${gioHien(c.ketThuc, ngay)}`),
-    h("div", { class: "dp-ct-actions" }, nutSua, nutXuatBen("vc-btn-ghost-primary"), nutThuHoi("vc-btn-ghost-primary"), nutHuy("vc-btn-danger")),
+    h("div", { class: "dp-ct-actions" }, nutSua, nutChoChay("vc-btn-ghost-primary"), nutXuatBen("vc-btn-ghost-primary"), nutThuHoi("vc-btn-ghost-primary"), nutHuy("vc-btn-danger")),
   );
   // Mốc tiến độ đã có (thành phần B): xuất bến / kết thúc — một giờ, hoặc hai giờ khi văn phòng khai.
   const moc = c.xuatBen || c.ketThucThat
@@ -318,8 +332,9 @@ function ve(): void {
   const huyDay = nutHuy("vc-btn-danger");
   const xbDay = nutXuatBen("vc-btn-ghost-primary");
   const thDay = nutThuHoi("vc-btn-ghost-primary");
-  replaceChildren(bottomEl, nutSua ? h("a", { class: "vc-btn vc-btn-ghost-primary", href: nutSua.getAttribute("href")!, "data-action": "sua-chuyen" }, "Sửa chuyến") : null, xbDay, thDay, huyDay);
-  bottomEl.hidden = !(nutSua || huyDay || xbDay || thDay);
+  const ccDay = nutChoChay("vc-btn-ghost-primary");
+  replaceChildren(bottomEl, nutSua ? h("a", { class: "vc-btn vc-btn-ghost-primary", href: nutSua.getAttribute("href")!, "data-action": "sua-chuyen" }, "Sửa chuyến") : null, ccDay, xbDay, thDay, huyDay);
+  bottomEl.hidden = !(nutSua || huyDay || xbDay || thDay || ccDay);
   const khoaCp = `${c.id}:${c.version}:${c.trangThai}`;
   if (chiPhi.el && khoaCp !== khoaChiPhi) {
     khoaChiPhi = khoaCp;
@@ -485,6 +500,92 @@ function moThuHoi(opener: HTMLButtonElement): void {
       duLieu = await docLai(await l.gui<ChuyenChiTietResponse>(url, "POST", { version: duLieu!.chuyen.version, lyDo: code }));
       bang.close(false);
       xong(dai("ok", `Đã thu hồi lệnh cho xe chạy ${c.ma}`, ["Chuyến về chưa chạy — tài xế bấm lại Cho xe chạy khi xe thật sự lăn bánh."]));
+    } catch (e) {
+      replaceChildren(loi, icon("alert", 16, 2), loiTrongHop(e));
+      loi.hidden = false;
+      gui.disabled = false;
+    } finally {
+      bang.setBusy(false);
+    }
+  });
+}
+
+const lenhChoChay = taoLenh();
+const CAU_CHO_CHAY: Partial<Record<MaLoiChoChayThieu, string>> = {
+  trong: "Chọn ít nhất một loại giấy tờ.",
+  thieu_ly_do: "Chọn một lý do.",
+  thieu_ghi_chu: `Ghi chú dài từ ${GHI_CHU_TOI_THIEU} đến ${GHI_CHU_TOI_DA} ký tự.`,
+};
+const ngayDayDuVn = (d: string): string => `${d.slice(8, 10)}/${d.slice(5, 7)}/${d.slice(0, 4)}`;
+/**
+ * ADR-0184: hộp «Cho chạy dù thiếu giấy tờ» — chọn loại giấy (loại chỉ Toàn quyền khoá với người thiếu ô `trip.override.giay_to_cung`), lý do nhóm
+ * CHO_CHAY_THIEU_GIAY (Toàn quyền không bắt buộc), ghi chú (bắt buộc khi «Khác»). Luật kiểm ở src/shared/cho-chay-thieu-giay.ts (`kiemChoChayThieu`, cùng hàm máy
+ * chủ); máy chủ vẫn là cổng — câu lỗi của máy chủ hiện nguyên trong hộp.
+ */
+function moChoChayThieu(opener: HTMLButtonElement, thieu: ChuyenChiTietResponse["giayToThieu"]): void {
+  const c = duLieu!.chuyen;
+  const lyDoDs = duLieu!.lyDo.filter((l) => l.nhom === NHOM_LY_DO_THIEU_GIAY);
+  const chon = new Set(thieu.filter((g) => coToanQuyenGiay || !g.chiToanQuyen).map((g) => g.documentTypeCode));
+  let lyDo: string | null = null;
+  const loi = h("div", { class: "vc-field-error", role: "alert", hidden: true });
+  const goiY = h("div", { class: "dp-note", "data-khoi": "goi-y" });
+  const gui = h("button", { type: "button", class: "vc-btn btn btn-accent", disabled: true, "data-action": "cho-chay-thieu-gui" }, NUT_CHO_CHAY_THIEU_GIAY) as HTMLButtonElement;
+  const quay = h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary" }, "Quay lại");
+  const ghiChu = h("textarea", { id: "ccc-ghi-chu", class: "vc-input", maxLength: GHI_CHU_TOI_DA, rows: 3, "aria-describedby": "ccc-ghi-chu-goi-y" }) as HTMLTextAreaElement;
+  const kiem = () => kiemChoChayThieu({
+    thieu: thieu.map((g) => ({ documentTypeCode: g.documentTypeCode, expiryDate: g.expiryDate, ruleId: "" })), yeuCau: [...chon], coOToanQuyen: coToanQuyenGiay,
+    lyDo, lyDoHopLe: lyDo !== null, ghiChu: ghiChu.value,
+  });
+  const capNhat = () => {
+    const k = kiem();
+    gui.disabled = !k.ok;
+    goiY.textContent = k.ok ? "" : (CAU_CHO_CHAY[k.ma] ?? "");
+    goiY.hidden = k.ok;
+  };
+  const hangGiay = thieu.map((g) => {
+    const khoa = g.chiToanQuyen && !coToanQuyenGiay;
+    const o = h("input", { type: "checkbox", id: `ccc-${g.documentTypeCode}`, checked: chon.has(g.documentTypeCode), disabled: khoa, "data-loai": g.documentTypeCode }) as HTMLInputElement;
+    o.addEventListener("change", () => {
+      if (o.checked) chon.add(g.documentTypeCode);
+      else chon.delete(g.documentTypeCode);
+      capNhat();
+    });
+    return h("label", { class: "vc-check dp-ccc-hang", for: `ccc-${g.documentTypeCode}` }, o,
+      h("span", { class: "dp-radio-text" }, g.ten, h("span", { class: "dp-radio-sub" }, g.expiryDate ? `hết hạn ${ngayDayDuVn(g.expiryDate)}` : "chưa có")),
+      khoa ? chip("Chỉ Toàn quyền", "muted") : null);
+  });
+  const nhomLyDo = nhomChon("ccc-ly-do", coToanQuyenGiay ? "Lý do (không bắt buộc)" : "Lý do", lyDoDs.map((l) => ({ code: l.code, nhan: l.nhan })), (x) => { lyDo = x; capNhat(); });
+  ghiChu.addEventListener("input", capNhat);
+  const bang = moBangTruot({
+    title: `${NUT_CHO_CHAY_THIEU_GIAY} — ${c.ma}`,
+    body: [
+      dai("warning", `Xe ${c.xe.bienSo} đang thiếu giấy tờ`, ["Chuyến này được cho xe chạy một lần. Tài xế nhận tin báo. Nhãn vàng ở chuyến cho mọi người thấy xe chạy dù thiếu giấy."]),
+      h("div", { class: "vc-field" }, h("div", { class: "vc-label" }, "Loại giấy tờ cho chạy"), h("div", { class: "dp-ccc-ds" }, ...hangGiay)),
+      nhomLyDo,
+      h("div", { class: "vc-field" },
+        h("label", { class: "vc-label", for: "ccc-ghi-chu" }, "Ghi chú"),
+        ghiChu,
+        h("div", { id: "ccc-ghi-chu-goi-y", class: "dp-note" }, `Bắt buộc khi chọn lý do “${lyDoDs.find((l) => l.code === MA_LY_DO_THIEU_GIAY_KHAC)?.nhan ?? "Khác"}” (từ ${GHI_CHU_TOI_THIEU} ký tự). Tối đa ${GHI_CHU_TOI_DA} ký tự. Không ghi số giấy tờ.`)),
+      goiY,
+      loi,
+    ],
+    foot: [quay, gui],
+    footClass: "vc-foot-2",
+    opener,
+  });
+  if (!bang) return;
+  capNhat();
+  quay.addEventListener("click", () => bang.close());
+  gui.addEventListener("click", async () => {
+    const k = kiem();
+    if (!k.ok) return;
+    bang.setBusy(true);
+    gui.disabled = true;
+    loi.hidden = true;
+    try {
+      duLieu = await docLai(await lenhChoChay.gui<ChuyenChiTietResponse>(`${goc()}/cho-chay-thieu-giay`, "POST", { version: duLieu!.chuyen.version, loaiGiayTo: [...chon], lyDo, ghiChu: k.ghiChu }));
+      bang.close(false);
+      xong(dai("ok", `Đã cho chạy dù thiếu giấy tờ ${c.ma}`, [nhanChoChayThieu(duLieu.chuyen.choChayThieu.map((x) => x.ten)) + ". Tài xế nhận tin báo."]));
     } catch (e) {
       replaceChildren(loi, icon("alert", 16, 2), loiTrongHop(e));
       loi.hidden = false;
@@ -1298,6 +1399,8 @@ async function main(): Promise<void> {
     return showError(errorEl, loiCua(e));
   }
   ve();
+  // ADR-0184: nút «Cho chạy dù thiếu giấy tờ» ở Cần xử lý của Điều phối xe dẫn về đây kèm `mo=cho-chay-thieu` — mở thẳng hộp.
+  if (new URLSearchParams(location.search).get("mo") === "cho-chay-thieu") document.querySelector<HTMLButtonElement>('[data-action="cho-chay-thieu"]')?.click();
 }
 await main();
 

@@ -14,7 +14,7 @@ const O = (truong) => `#cs-${truong}`;
 const loiO = (truong) => txt(`#cs-${truong}-error`);
 const lichSu = `[...document.querySelectorAll('#cs-lich-su .dp-hist-row')].map((r) => r.innerText.replace(/\\s+/g, ' ').trim())`;
 // + nhóm BAN_XE (ADR-0055, Đợt 3 — 0071 gieo 4 lý do); + nhóm BAO_HUY_DIEM (ADR-0052 D5.2, Đợt 5 — 0076 gieo 4 lý do); Đợt 4 (migration 0073, ADR-0057 T2): nhóm "Chi phí xe thuê" ở cuối — do máy chủ gieo, màn Lý do tự hiện. Gói A1 (migration 0085, ADR-0097 Đ2.5): + nhóm "Điều chỉnh chuyến đang chạy" ở cuối.
-const NHOM_BAN_VE = ["Điều chỉnh khẩn cấp, phá lệ", /* ADR-0104 Đ1 mục 9: tên nhóm PHA_LE */ "Huỷ chuyến", "Kết thúc gián đoạn", "Bỏ qua điểm", "Đổi giờ xe tới", "Báo huỷ điểm đón", "Không nhận chuyển điểm" /* gói A5: nhóm TU_CHOI_NHAN, 0093 */, "Lý do xe bận", "Chi phí xe thuê", "Điều chỉnh chuyến đang chạy", "Tài xế từ chối chuyến", "Tài xế báo bận"]; // A4 (migration 0092, ADR-0053 D8, D9): + hai nhóm cuối
+const NHOM_BAN_VE = ["Điều chỉnh khẩn cấp, phá lệ", /* ADR-0104 Đ1 mục 9: tên nhóm PHA_LE */ "Huỷ chuyến", "Kết thúc gián đoạn", "Bỏ qua điểm", "Đổi giờ xe tới", "Báo huỷ điểm đón", "Không nhận chuyển điểm" /* gói A5: nhóm TU_CHOI_NHAN, 0093 */, "Cho chạy dù thiếu giấy tờ" /* ADR-0184 (0147): nhóm CHO_CHAY_THIEU_GIAY */, "Lý do xe bận", "Chi phí xe thuê", "Điều chỉnh chuyến đang chạy", "Tài xế từ chối chuyến", "Tài xế báo bận"]; // A4 (migration 0092, ADR-0053 D8, D9): + hai nhóm cuối
 
 try {
   // ---- Toàn quyền, máy tính ----------------------------------------------------------------------------------------------------------------------------------
