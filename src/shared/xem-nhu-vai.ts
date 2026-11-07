@@ -33,3 +33,11 @@ export function quyenHieuLuc(real: readonly PermissionCode[], acting: Permission
 export function quyenThat(staff: { readonly permissions: readonly PermissionCode[]; readonly realPermissions?: readonly PermissionCode[] }): readonly PermissionCode[] {
   return staff.realPermissions ?? staff.permissions;
 }
+
+/**
+ * Lớp thứ hai của cổng bật / thoát "xem như vai khác" (ADR-0180 Đ3): quyền THẬT có mã SUPER_ADMIN. Route đòi CẢ ô `settings.ops` của bảng quyền LẪN điều này,
+ * để cổng không đổi nghĩa nếu một ngày ô đó được mở cho quyền khác.
+ */
+export function laToanQuyenThat(staff: { readonly permissions: readonly PermissionCode[]; readonly realPermissions?: readonly PermissionCode[] }): boolean {
+  return quyenThat(staff).includes("SUPER_ADMIN");
+}

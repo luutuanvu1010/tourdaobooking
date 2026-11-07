@@ -70,6 +70,15 @@ test("(c) phiên đóng vai đã quá 60 phút không thao tác → NULL; còn t
   assert.equal(await ghi(w, CHU), "HR");
 });
 
+test("(c'') sát mép 60 phút: khoảng nới 10 giây của nhật ký — 60 phút + 5 giây vẫn có dấu, 60 phút + 30 giây thì NULL", async () => {
+  const w = dung();
+  phien(w, CHU, "SALES", 60 + 5 / 60);
+  assert.equal(await ghi(w, CHU), "SALES");
+  const w2 = dung();
+  phien(w2, CHU, "SALES", 60 + 30 / 60);
+  assert.equal(await ghi(w2, CHU), null);
+});
+
 test("(c') phiên đã kết thúc hoặc mốc last_seen_at hỏng → NULL", async () => {
   const w = dung();
   const id = phien(w, CHU, "SALES", 1);
@@ -141,12 +150,30 @@ function tep(dir: string): string[] {
   }
   return out;
 }
-test("(e) không có `INSERT INTO audit_log` nào ngoài tệp của insertStatement (src/, web/, scripts/ — trừ bài kiểm)", () => {
-  const MAU = /\bINSERT\s+(?:OR\s+\w+\s+)?INTO\s+audit_log\b/i;
+/** Câu ghi vào audit_log: INSERT (kể cả INSERT OR …) hoặc REPLACE INTO, tên bảng trần / có ngoặc kép, ngoặc vuông, dấu huyền / có tiền tố `main.`. */
+const MAU = /\b(?:INSERT(?:\s+OR\s+\w+)?|REPLACE)\s+INTO\s+(?:["`\[]?main["`\]]?\s*\.\s*)?["`\[]?audit_log(?![\w])/gi;
+/** Migration ĐÃ ÁP có câu ghi nhật ký (lịch sử, không được sửa). Migration / trigger MỚI ghi audit_log phải làm bài này đỏ. */
+const MIGRATION_DA_AP = new Set(["0005_admin_and_login_throttle.sql", "0006_catalog.sql", "0007_audit_open_actions_catalog_code_money_guards.sql", "0055_nhom_dich_vu.sql"]);
+const soLan = (text: string): number => [...text.matchAll(MAU)].length;
+
+test("(e0) mẫu của bài khoá bắt đủ các dạng viết, không bắt nhầm bảng khác", () => {
+  for (const c of ["INSERT INTO audit_log (id)", "insert or ignore into audit_log", "REPLACE INTO audit_log", 'INSERT INTO "audit_log"', "INSERT INTO [audit_log]",
+    "INSERT INTO `audit_log`", "INSERT INTO main.audit_log", 'INSERT INTO "main"."audit_log"', "INSERT\n  INTO audit_log"]) assert.equal(soLan(c), 1, c);
+  for (const c of ["INSERT INTO audit_log_new (id)", "SELECT * FROM audit_log", "INSERT INTO aut_session"]) assert.equal(soLan(c), 0, c);
+});
+
+test("(e) không đường ghi nhật ký nào bỏ qua insertStatement (src/, web/, scripts/ trừ bài kiểm; migrations/ trừ bốn tệp đã áp)", () => {
   const lech = [...tep(join(ROOT, "src")), ...tep(join(ROOT, "web")), ...tep(join(ROOT, "scripts"))]
     .map((p) => relative(ROOT, p))
-    .filter((r) => r !== HAM_GHI && MAU.test(readFileSync(join(ROOT, r), "utf8")));
+    .filter((r) => r !== HAM_GHI && soLan(readFileSync(join(ROOT, r), "utf8")) > 0);
+  for (const ten of readdirSync(join(ROOT, "migrations")))
+    if (!MIGRATION_DA_AP.has(ten) && soLan(readFileSync(join(ROOT, "migrations", ten), "utf8")) > 0) lech.push(`migrations/${ten}`);
   assert.deepEqual(lech, [], "ghi nhật ký phải đi qua insertStatement / auditStatement để có dấu vai (ADR-0180 Đ2)");
-  // Bài tự kiểm: mẫu phải bắt được chính câu của hàm ghi (không thì bài khoá rỗng).
-  assert.match(readFileSync(join(ROOT, HAM_GHI), "utf8"), MAU);
+  // Tệp của hàm ghi: đúng MỘT câu ghi, và câu đó nằm trong thân insertStatement (không phải câu thứ hai lọt vào cùng tệp).
+  const goc = readFileSync(join(ROOT, HAM_GHI), "utf8");
+  assert.equal(soLan(goc), 1, "repository.ts chỉ được có một câu ghi audit_log (trong insertStatement)");
+  const dau = goc.indexOf("export function insertStatement(");
+  const cuoi = goc.indexOf("\n}\n", dau);
+  assert.ok(dau >= 0 && cuoi > dau, "không tìm thấy thân insertStatement");
+  assert.equal(soLan(goc.slice(dau, cuoi)), 1, "câu ghi audit_log phải nằm trong thân insertStatement");
 });

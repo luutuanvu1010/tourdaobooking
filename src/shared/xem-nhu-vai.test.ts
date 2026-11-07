@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { HAN_XEM_NHU_VAI_PHUT, VAI_CHON_DUOC, laVaiChonDuoc, daHetHan, quyenHieuLuc, quyenThat } from "./xem-nhu-vai.ts";
+import { HAN_XEM_NHU_VAI_PHUT, VAI_CHON_DUOC, laToanQuyenThat, laVaiChonDuoc, daHetHan, quyenHieuLuc, quyenThat } from "./xem-nhu-vai.ts";
+import { readFileSync } from "node:fs";
 
 test("hạn xem như vai khác là 60 phút", () => {
   assert.equal(HAN_XEM_NHU_VAI_PHUT, 60);
@@ -56,4 +57,21 @@ test("quyenHieuLuc: đóng vai Quản lý bán hàng thì kèm Bán hàng (ADR-0
 test("quyenThat: có realPermissions thì lấy nó, không thì lấy permissions", () => {
   assert.deepEqual(quyenThat({ permissions: ["SALES"], realPermissions: ["SUPER_ADMIN"] }), ["SUPER_ADMIN"]);
   assert.deepEqual(quyenThat({ permissions: ["SALES"] }), ["SALES"]);
+});
+
+test("laToanQuyenThat: xét quyền THẬT, không xét bộ hiệu lực", () => {
+  assert.equal(laToanQuyenThat({ permissions: ["SUPER_ADMIN"] }), true);
+  assert.equal(laToanQuyenThat({ permissions: ["SALES"], realPermissions: ["SUPER_ADMIN"] }), true); // đang đóng Bán hàng vẫn thoát được
+  assert.equal(laToanQuyenThat({ permissions: ["ADMIN"] }), false);
+  assert.equal(laToanQuyenThat({ permissions: ["SUPER_ADMIN"], realPermissions: ["ADMIN"] }), false); // bộ hiệu lực có SUPER_ADMIN cũng không tính
+});
+
+test("cả hai route bật / thoát đòi laToanQuyenThat bên cạnh ô settings.ops (không phụ thuộc một ô của bảng quyền)", () => {
+  const src = readFileSync(new URL("../modules/accounts/index.ts", import.meta.url), "utf8");
+  for (const m of ["POST", "DELETE"]) {
+    const dau = src.indexOf(`route("${m}", "/api/auth/xem-nhu-vai"`);
+    assert.ok(dau >= 0, `không thấy route ${m}`);
+    const than = src.slice(dau, src.indexOf("\n    }),", dau));
+    assert.match(than, /can\(\{ id: ctx\.staff\.id, permissions: \[\.\.\.quyenThat\(ctx\.staff\)\] \}, "settings\.ops"\) \|\| !laToanQuyenThat\(ctx\.staff\)\) return NOT_ACTING_ROLE\(\)/, m);
+  }
 });

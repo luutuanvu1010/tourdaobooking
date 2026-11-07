@@ -24,7 +24,7 @@ import {
 import type {
   AccountMfaResponse, MfaEmailStartResponse, MfaRecoveryCodesResponse, MfaTotpConfirmResponse, MfaTotpStartResponse, PartyMatchResponse, PasskeyCreationOptionsResponse, PasskeyListResponse, PasskeyResponse, PasskeyRequestOptionsResponse, SessionListResponse, SessionPolicyPreviewResponse,
   PhienCuAnDanhKetQua, PhienCuAnDanhResponse,
-  SessionPolicyResponse, SessionPolicyRowDto, SessionPolicySaveResponse, StaffAccountDto, StaffProfile, StaffListResponse, StaffResponse, StaffRolesResponse, StaffSessionListResponse, StaffWithPinResponse,
+  SessionPolicyResponse, SessionPolicyRowDto, SessionPolicySaveResponse, StaffAccountDto, StaffListResponse, StaffResponse, StaffRolesResponse, StaffSessionListResponse, StaffWithPinResponse,
 } from "../../shared/contracts";
 import { toBase64Url } from "../../shared/encoding";
 import { UUID_RE, error, json, readJson } from "../../shared/http";
@@ -34,7 +34,7 @@ import {
 } from "../../shared/chinh-sach-dang-nhap";
 import { PERMISSION_CODES, PERMISSION_LABEL, can, isPermissionCode, type PermissionCode, quyenHienThi } from "../../shared/permissions";
 import { route, type AppModule, type Ctx } from "../../shared/router";
-import { laVaiChonDuoc, quyenHieuLuc, quyenThat } from "../../shared/xem-nhu-vai";
+import { laToanQuyenThat, laVaiChonDuoc, quyenHieuLuc, quyenThat } from "../../shared/xem-nhu-vai";
 import {
   TIEN_CHI_TOAN_QUYEN_MESSAGE, chamTaiKhoanTienDuoc, chanTatHaiLop, datLaiPinDuoc as datLaiPinDuocTheoDong, highPermissionProblem, tatHaiLopDuoc, parseRoleAssignment, permissionsLabel, roleAssignmentProblem,
   rolesLabelTheo, taiKhoanLaiProblem, laiNoiBoBenNgoaiProblem, type RoleCode, type RoleProblem,
@@ -54,8 +54,6 @@ const NOT_FOUND = () => error(404, "not_found", "Không tìm thấy nhân viên.
 const LAST_ADMIN = () => error(409, "account_rule", "Hệ thống phải còn ít nhất một quản trị viên đang hoạt động.");
 // ADR-0019 điều 2: lời cổng `admin` của router, nhắc lại ở thân handler khi ô `admin.manage` của bảng quyền không cho.
 const NOT_ACTING_ROLE = () => error(403, "forbidden", "Chỉ người phụ trách hệ thống mới dùng được chức năng này.");
-/** Lớp thứ hai của cổng bật / thoát "xem như vai khác" (ADR-0180 Đ3): quyền THẬT phải có mã SUPER_ADMIN, để cổng không đổi nghĩa nếu ô `settings.ops` một ngày mở cho quyền khác. */
-const thatLaToanQuyen = (staff: StaffProfile): boolean => quyenThat(staff).includes("SUPER_ADMIN");
 const NOT_ADMIN = () => error(403, "forbidden", "Chỉ quản trị viên được thực hiện thao tác này.");
 // ADR-0071 điều 1b: lời từ chối của ba ô Quản lý tài khoản (cổng "accounts").
 const NOT_ACCOUNT_VIEW = () => error(403, "forbidden", "Tài khoản này không quản lý được tài khoản.");
@@ -875,7 +873,7 @@ export const accountsModule: AppModule = {
     // không thoát ra được. Thứ tự lô: cổng (ở trên) → nhật ký → trạng thái (câu đặt vai). `detail` chỉ là mã vai.
     route("POST", "/api/auth/xem-nhu-vai", "staff", async (ctx) => {
       // Quyền THẬT (không phải bộ hiệu lực), cả hai điều kiện: ô settings.ops của bảng quyền VÀ mã SUPER_ADMIN.
-      if (!can({ id: ctx.staff.id, permissions: [...quyenThat(ctx.staff)] }, "settings.ops") || !thatLaToanQuyen(ctx.staff)) return NOT_ACTING_ROLE();
+      if (!can({ id: ctx.staff.id, permissions: [...quyenThat(ctx.staff)] }, "settings.ops") || !laToanQuyenThat(ctx.staff)) return NOT_ACTING_ROLE();
       const vai: unknown = (await readJson(ctx.request))?.role;
       if (!laVaiChonDuoc(vai)) return error(400, "invalid_role", "Vai trò này không chọn được để xem.");
       const phien = ctx.sessionId;
@@ -893,7 +891,7 @@ export const accountsModule: AppModule = {
 
     route("DELETE", "/api/auth/xem-nhu-vai", "staff", async (ctx) => {
       // Quyền THẬT (không phải bộ hiệu lực), cả hai điều kiện: ô settings.ops của bảng quyền VÀ mã SUPER_ADMIN.
-      if (!can({ id: ctx.staff.id, permissions: [...quyenThat(ctx.staff)] }, "settings.ops") || !thatLaToanQuyen(ctx.staff)) return NOT_ACTING_ROLE();
+      if (!can({ id: ctx.staff.id, permissions: [...quyenThat(ctx.staff)] }, "settings.ops") || !laToanQuyenThat(ctx.staff)) return NOT_ACTING_ROLE();
       const phien = ctx.sessionId;
       if (!phien) return error(401, "unauthorized", "Máy đang đăng nhập này không còn hiệu lực. Đăng nhập lại.");
       // Không đang đóng vai: thoát là việc không làm gì — không ghi nhật ký, không chạm phiên, trả hồ sơ như thường.
