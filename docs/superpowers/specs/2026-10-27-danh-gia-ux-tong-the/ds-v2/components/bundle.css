@@ -391,6 +391,11 @@ main select { max-width: 100%; }
 .kv-o { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0 var(--s2); }
 .kv-the { border-top: 1px solid var(--c-border); }
 .kv-viec { display: flex; flex: none; align-items: center; gap: var(--s2); }
+
+/* ---------- ADR-0180: thanh «Đang xem như vai trò …» dính khi cuộn (chỉ token; dải chung `.dai` ở web/dai.ts) ---------- */
+#strips:has(> .dai[data-loai="xem-nhu-vai"]) { position: sticky; top: 0; z-index: var(--z-dinh); }
+@media (max-width: 899px) { #strips:has(> .dai[data-loai="xem-nhu-vai"]) { top: calc(var(--bar-h) + env(safe-area-inset-top)); } body.trang-chu #strips:has(> .dai[data-loai="xem-nhu-vai"]) { top: env(safe-area-inset-top); } }
+#xem-nhu-chon { margin-bottom: var(--s3); }
 /* ===== CHÉP TỪ MÃ — hết ===== */
 
 /* ===== RIÊNG CỦA BỘ (1) — lớp xem trước ===== */

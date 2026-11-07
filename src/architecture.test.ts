@@ -119,6 +119,7 @@ const STRICT: readonly { module: string; file: string }[] = [
 /**
  * NGOẠI LỆ CÓ HẠN (ADR-0002 điều 8(b)): SQL của module cũ chưa đăng ký — còn JOIN thẳng bảng module khác.
  * Hạn: `audit` và `orders` đã bỏ JOIN thẳng bảng (đọc qua view công bố) ở N1-B nhưng SQL của chúng chưa đăng ký — chuyển STRICT khi được chạm ở N2;
+ * riêng `audit`, từ ADR-0180 Đ2, `insertStatement` lại đọc THẲNG bảng `aut_session` của auth (gắn dấu vai đang xem như) — nợ có tên, ghi ở docs/SYSTEM-DESIGN.md §16;
  * `wonGuard` của orders (đọc audit_log) ở lại tới N2; `accounts` chưa có SQL riêng đáng kể — chuyển STRICT khi có SQL mới. `catalog`: SQL mới (nhóm dịch vụ) đã ở tệp nửa nghiêm `nhom-repo.ts`; SQL cũ của `repository.ts` còn LEGACY tới hạn CATALOG_LEGACY_HAN (ADR-0058 Đ6).
  */
 const LEGACY = ["accounts", "audit", "catalog", "orders"] as const;

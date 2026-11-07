@@ -13,6 +13,7 @@ import {
   trustedRevokeOfSessionStatement, trustedRevokeOnEmailLossStatement, trustedRevokeOnPinStatement,
   anDanhPhienCuStatement, demPhienCanAnDanh,
   EMAIL_VAI_LON, batEmailStatements, factorEndKindStatement, guiMaBatEmail, kiemMaBatEmail, normalizeEmail,
+  dungMeResponse, setActingRoleStatement,
 } from "../auth";
 import {
   KHONG_NHAN_VAI_NOI_BO, accountRoleCodes, canManageAccount, checkAccountChange, chuPhienTheoId, hoSoCoNhanDoiTac, moNoiBoChoHoSoCoNhanProblem, checkStaffName, countActiveAdmins, createAccountStatements, createAccountWithRolesStatements, findStaffByPhone, hoSoKhopKhiTaoTaiKhoan,
@@ -33,6 +34,7 @@ import {
 } from "../../shared/chinh-sach-dang-nhap";
 import { PERMISSION_CODES, PERMISSION_LABEL, can, isPermissionCode, type PermissionCode, quyenHienThi } from "../../shared/permissions";
 import { route, type AppModule, type Ctx } from "../../shared/router";
+import { laToanQuyenThat, laVaiChonDuoc, quyenHieuLuc, quyenThat } from "../../shared/xem-nhu-vai";
 import {
   TIEN_CHI_TOAN_QUYEN_MESSAGE, chamTaiKhoanTienDuoc, chanTatHaiLop, datLaiPinDuoc as datLaiPinDuocTheoDong, highPermissionProblem, tatHaiLopDuoc, parseRoleAssignment, permissionsLabel, roleAssignmentProblem,
   rolesLabelTheo, taiKhoanLaiProblem, laiNoiBoBenNgoaiProblem, type RoleCode, type RoleProblem,
@@ -51,6 +53,7 @@ const PHONE_TAKEN = () => error(409, "phone_taken", "Số điện thoại này �
 const NOT_FOUND = () => error(404, "not_found", "Không tìm thấy nhân viên.");
 const LAST_ADMIN = () => error(409, "account_rule", "Hệ thống phải còn ít nhất một quản trị viên đang hoạt động.");
 // ADR-0019 điều 2: lời cổng `admin` của router, nhắc lại ở thân handler khi ô `admin.manage` của bảng quyền không cho.
+const NOT_ACTING_ROLE = () => error(403, "forbidden", "Chỉ người phụ trách hệ thống mới dùng được chức năng này.");
 const NOT_ADMIN = () => error(403, "forbidden", "Chỉ quản trị viên được thực hiện thao tác này.");
 // ADR-0071 điều 1b: lời từ chối của ba ô Quản lý tài khoản (cổng "accounts").
 const NOT_ACCOUNT_VIEW = () => error(403, "forbidden", "Tài khoản này không quản lý được tài khoản.");
@@ -868,6 +871,44 @@ export const accountsModule: AppModule = {
       return json({ staff: await one(db, t.id) } satisfies StaffResponse);
     }),
 
+    // ---- Toàn quyền xem như vai khác (ADR-0180 Đ1, Đ3). Ở module accounts vì việc bật/thoát ghi nhật ký trong cùng lô (auth không import audit); đường dẫn vẫn nằm dưới /api/auth
+    // cạnh /me. Cổng xét quyền THẬT (`quyenThat`, hỏi ô `settings.ops` — chỉ Toàn quyền): lúc đang đóng vai `ctx.staff.permissions` chỉ còn bộ của vai nên không dùng nó — nếu không, Toàn quyền đang xem như Bán hàng
+    // không thoát ra được. Thứ tự lô: cổng (ở trên) → nhật ký → trạng thái (câu đặt vai). `detail` chỉ là mã vai.
+    route("POST", "/api/auth/xem-nhu-vai", "staff", async (ctx) => {
+      // Quyền THẬT (không phải bộ hiệu lực), cả hai điều kiện: ô settings.ops của bảng quyền VÀ mã SUPER_ADMIN.
+      if (!can({ id: ctx.staff.id, permissions: [...quyenThat(ctx.staff)] }, "settings.ops") || !laToanQuyenThat(ctx.staff)) return NOT_ACTING_ROLE();
+      const vai: unknown = (await readJson(ctx.request))?.role;
+      if (!laVaiChonDuoc(vai)) return error(400, "invalid_role", "Vai trò này không chọn được để xem.");
+      const phien = ctx.sessionId;
+      if (!phien) return error(401, "unauthorized", "Máy đang đăng nhập này không còn hiệu lực. Đăng nhập lại.");
+      const db = ctx.env.DB;
+      const at = new Date().toISOString();
+      await db.batch([
+        auditStatement(db, { staffId: ctx.staff.id, action: "acting_role_set", at, targetType: "staff", targetId: ctx.staff.id, detail: PERMISSION_LABEL[vai] }), // detail = tên tiếng Việt (trang Nhật ký in nguyên); cột audit_log.acting_role giữ mã
+        setActingRoleStatement(db, phien, vai, at),
+      ]);
+      const that = quyenThat(ctx.staff);
+      const { realPermissions: _a, actingRole: _b, ...goc } = ctx.staff;
+      return dungMeResponse(ctx, { ...goc, permissions: quyenHieuLuc(that, vai), actingRole: vai, realPermissions: [...that] });
+    }),
+
+    route("DELETE", "/api/auth/xem-nhu-vai", "staff", async (ctx) => {
+      // Quyền THẬT (không phải bộ hiệu lực), cả hai điều kiện: ô settings.ops của bảng quyền VÀ mã SUPER_ADMIN.
+      if (!can({ id: ctx.staff.id, permissions: [...quyenThat(ctx.staff)] }, "settings.ops") || !laToanQuyenThat(ctx.staff)) return NOT_ACTING_ROLE();
+      const phien = ctx.sessionId;
+      if (!phien) return error(401, "unauthorized", "Máy đang đăng nhập này không còn hiệu lực. Đăng nhập lại.");
+      // Không đang đóng vai: thoát là việc không làm gì — không ghi nhật ký, không chạm phiên, trả hồ sơ như thường.
+      if (!ctx.staff.actingRole) return dungMeResponse(ctx, ctx.staff);
+      const db = ctx.env.DB;
+      const at = new Date().toISOString();
+      await db.batch([
+        auditStatement(db, { staffId: ctx.staff.id, action: "acting_role_cleared", at, targetType: "staff", targetId: ctx.staff.id, detail: PERMISSION_LABEL[ctx.staff.actingRole] }),
+        setActingRoleStatement(db, phien, null, at),
+      ]);
+      const { realPermissions: _a, actingRole: _b, ...goc } = ctx.staff;
+      return dungMeResponse(ctx, { ...goc, permissions: [...quyenThat(ctx.staff)] });
+    }),
+
     // ---- Sổ phiên đăng nhập (ADR-0075 điều 7–8). Ở module accounts vì gỡ phiên ghi nhật ký trong cùng lô (auth không import audit). ----
     // Tự phục vụ: 30 phiên gần nhất của CHÍNH MÌNH (id lấy từ phiên, không nhận tham số) — IP của chính mình được xem (từ điển dữ liệu aut_session).
     route("GET", "/api/account/sessions", "staff", async ({ env, staff, sessionId }) => {
@@ -886,13 +927,14 @@ export const accountsModule: AppModule = {
         sessionId ? getSession(env.DB, sessionId) : Promise.resolve(null),
       ]);
       // Dòng EMAIL lệch của vai lớn không tính là có yếu tố (daBatHaiLop — như cổng đăng nhập; vòng sửa 2 Minor 3); vẫn liệt kê ở `factors` để tự gỡ.
-      const coYeuTo = daBatHaiLop(staff.permissions, factors.map((f) => f.kind));
-      const banner = mfaBanner({ perms: staff.permissions, hasFactor: coYeuTo, trusted: false, graceUntil: han.graceUntil, enrollUntil: han.enrollUntil, nowIso });
+      const quyenTk = quyenThat(staff); // ADR-0180 Đ3: chính sách hai lớp theo quyền THẬT, không theo vai đang "xem như"
+      const coYeuTo = daBatHaiLop(quyenTk, factors.map((f) => f.kind));
+      const banner = mfaBanner({ perms: quyenTk, hasFactor: coYeuTo, trusted: false, graceUntil: han.graceUntil, enrollUntil: han.enrollUntil, nowIso });
       const mayNay = phien?.staff_id === staff.id ? phien.trusted_device_id : null;
       return json({
         required: banner.required, graceUntil: banner.graceUntil,
         factors: factors.map((f) => ({ kind: f.kind, createdAt: f.createdAt, emailMask: f.emailMask })), // email chỉ dạng che (ADR-0074 điều 8)
-        allowed: allowedFactors(staff.permissions), recoveryLeft,
+        allowed: allowedFactors(quyenTk), recoveryLeft,
         trustedDevices: devices.map((d) => ({ id: d.id, label: d.label, createdAt: d.createdAt, lastUsedAt: d.lastUsedAt, thisDevice: mayNay !== null && d.id === mayNay })),
       } satisfies AccountMfaResponse);
     }),
@@ -942,7 +984,7 @@ export const accountsModule: AppModule = {
     // Bước 1: 409 vai lớn (TRƯỚC mọi ghi) → địa chỉ đúng khuôn → [đã có yếu tố: mã của yếu tố hiện có (ứng dụng xác thực hoặc mã dự phòng), có hạn mức] → hạn
     // mức gửi 3 thư / 15 phút (chung với bước đăng nhập) → ghi dòng mã → gửi thư → (mã dự phòng) mới tiêu mã. Không lô ghi mang vé (guiMaBatEmail — ngoài vé có tên).
     route("POST", "/api/account/mfa/email/start", "staff", async ({ request, env, staff }) => {
-      if (!allowedFactors(staff.permissions).includes("EMAIL")) return EMAIL_VAI_LON();
+      if (!allowedFactors(quyenThat(staff)).includes("EMAIL")) return EMAIL_VAI_LON(); // ADR-0180 Đ3: theo quyền THẬT
       const body = await readJson(request);
       const email = normalizeEmail(body?.email);
       if (!email) return error(400, "invalid_input", "Địa chỉ email chưa đúng (dạng ten@vidu.com).");
@@ -961,7 +1003,7 @@ export const accountsModule: AppModule = {
     // phát được sau khi đưa mã hiện có), hạn mức chung `mfa:<id>` → MỘT lô: kết thúc EMAIL cũ (nếu đổi địa chỉ) → chèn EMAIL mới → (yếu tố đầu tiên) thu hồi mã cũ
     // + 10 mã dự phòng mới → nhật ký mfa_enabled (chi tiết chỉ "EMAIL").
     route("POST", "/api/account/mfa/email/confirm", "staff", async ({ request, env, staff }) => {
-      if (!allowedFactors(staff.permissions).includes("EMAIL")) return EMAIL_VAI_LON();
+      if (!allowedFactors(quyenThat(staff)).includes("EMAIL")) return EMAIL_VAI_LON(); // ADR-0180 Đ3: theo quyền THẬT
       const body = await readJson(request);
       const email = normalizeEmail(body?.email);
       const code = typeof body?.code === "string" ? body.code.trim().slice(0, 32) : "";
@@ -1010,11 +1052,12 @@ export const accountsModule: AppModule = {
       const song = await yeuToSong(env.DB, staff.id);
       const f = song.find((x) => x.kind === kind);
       if (!f) return error(404, "not_found", "Chưa bật cách xác thực này.");
-      const noiBo = isInternal(staff.permissions);
+      const quyenTk = quyenThat(staff); // ADR-0180 Đ3: theo quyền THẬT
+      const noiBo = isInternal(quyenTk);
       // "Yếu tố cuối" tính theo yếu tố CÒN LẠI mà quyền hiện tại cho dùng (daBatHaiLop — như cổng đăng nhập): Quản trị có TOTP + dòng EMAIL lệch gỡ TOTP thì
       // không còn gì dùng được ở bước hai → 409 (trước vòng sửa 3: 200 rồi tự khoá 403 ở lần đăng nhập sau). Lưới SQL giuMot vẫn đếm mọi loại khi chạy đua.
       const conLai = song.filter((x) => x.id !== f.id).map((x) => x.kind);
-      if (noiBo && !daBatHaiLop(staff.permissions, conLai)) return MFA_LAST_FACTOR();
+      if (noiBo && !daBatHaiLop(quyenTk, conLai)) return MFA_LAST_FACTOR();
       const now = Date.now();
       const at = new Date(now).toISOString();
       const chan = await kiemMaHienCo(env, staff.id, body?.code, now, "TOTP_HOAC_DU_PHONG");

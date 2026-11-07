@@ -199,7 +199,7 @@ Cùng một việc có nhiều lối vào, hoặc khác việc và đang chờ c
 | Dùng bản này | cùng một việc | Cùng một việc ở hai khối của trang cài đặt Trợ lý. |
 | Gửi yêu cầu | chờ chủ | Một nơi mở hộp gửi yêu cầu hỗ trợ, một nơi là nút chốt của hộp xin xoá dữ liệu cá nhân. Hộp xoá có câu hỏi riêng nói rõ, nhưng hai việc khác nhau xa; chờ chủ xem có đổi không. |
 
-## Việc chờ chọn (78)
+## Việc chờ chọn (79)
 
 Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ chọn tên mới thì sửa bảng và nút trong cùng một lần lưu.
 
@@ -254,6 +254,7 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 | Ngưng dùng / Dùng lại · (cỡ xe còn giá đang áp) xác nhận «Vẫn ngưng» | `web/bang-gia-xe.ts`: Ngưng dùng / Dùng lại<br>`web/bang-gia-xe.ts`: Vẫn ngưng | Bảng giá thuê xe: ngưng dùng / dùng lại tuyến, cỡ xe | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Sửa (dòng) · Lưu (trong khung «Sửa: <mã>») | `web/danh-muc-giay-to-khoi.ts`: Lưu<br>`web/danh-muc-giay-to-khoi.ts`: Sửa | Danh mục loại giấy tờ: sửa, ngưng dùng | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Đăng xuất | `web/account.ts`: Đăng xuất<br>`web/maintenance-screen.ts`: Đăng xuất | Đăng xuất | rà soát 2026-11-04: chưa rõ, chờ chủ |
+| Xem · Thoát | `web/account.ts`: Xem | Xem như vai trò khác | ADR-0180 (6/11): chủ chọn «Xem như vai khác» / «Đang xem như vai khác» / «Thoát vai»; đã đổi thành «vai trò» để theo ADR-0130, chờ chủ xem lại |
 | Xác nhận bằng Face ID | `web/account.ts`: Xác nhận bằng Face ID | Đặt PIN mới bằng Face ID | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Gỡ | `web/account.ts`: Gỡ | Gỡ Face ID một máy | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Quên máy này | `web/account.ts`: Quên máy này | Máy được tin | rà soát 2026-11-04: chưa rõ, chờ chủ |
@@ -284,7 +285,7 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 | Lưu bộ não | `web/tro-ly-cai-dat.ts`: Lưu bộ não | Cài đặt Trợ lý: bộ não và lời dặn | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Lưu thành bản mới | `web/tro-ly-cai-dat.ts`: Lưu thành bản mới | Cài đặt Trợ lý: bộ não và lời dặn | rà soát 2026-11-04: chưa rõ, chờ chủ |
 
-## Việc quan trọng (312)
+## Việc quan trọng (313)
 
 ### Kiểm vé đơn chờ
 
@@ -1216,6 +1217,12 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 | Tên | Màn hình | Thật sự làm gì | Hỏi lại | Hoàn tác | Đường lệnh, nhật ký | Nơi đặt nút | Trạng thái |
 |---|---|---|---|---|---|---|---|
 | **Đăng xuất** | Trang Tôi (dòng cuối danh sách và mục Máy đang đăng nhập của tôi); thanh bên máy tính; màn «Đang bảo trì» | Đăng xuất chỉ máy đang dùng: tắt thông báo điện thoại của máy này, đăng xuất máy này, xoá khung nhớ rồi về trang đăng nhập. Các máy khác của cùng người vẫn đăng nhập. | không | được: đăng nhập lại | `/api/auth/logout` | `web/account.ts`: Đăng xuất<br>`web/maintenance-screen.ts`: Đăng xuất | chờ chọn (rà soát 2026-11-04: chưa rõ, chờ chủ) |
+
+### Xem như vai trò khác
+
+| Tên | Màn hình | Thật sự làm gì | Hỏi lại | Hoàn tác | Đường lệnh, nhật ký | Nơi đặt nút | Trạng thái |
+|---|---|---|---|---|---|---|---|
+| **Xem · Thoát** | Tôi › Xem như vai trò khác (chỉ Toàn quyền); thanh «Đang xem như vai trò …» trên mọi trang có khung, nút «Thoát» | «Xem» đưa phiên của Toàn quyền vào chế độ xem như người giữ quyền đã chọn: menu, trang và thao tác theo đúng quyền đó, dữ liệu ghi là dữ liệu thật tính cho tài khoản Toàn quyền. «Thoát» (ở thanh báo) trả phiên về quyền thật. Phiên tự thoát khi quá 60 phút không hoạt động. | không | được: bấm «Thoát», hoặc đợi phiên hết hạn | `/api/auth/xem-nhu-vai`<br>nhật ký `acting_role_set`<br>nhật ký `acting_role_cleared` | `web/account.ts`: Xem | chờ chọn (ADR-0180 (6/11): chủ chọn «Xem như vai khác» / «Đang xem như vai khác» / «Thoát vai»; đã đổi thành «vai trò» để theo ADR-0130, chờ chủ xem lại) |
 
 ### Đặt PIN mới bằng Face ID
 

@@ -12,7 +12,7 @@ import type {
 } from "../../shared/contracts";
 import { error, getCookie, json, readJson } from "../../shared/http";
 import { dbNgoaiVe } from "../../shared/lan-gui-boc";
-import { route, type AppModule } from "../../shared/router";
+import { route, type AppModule, type Ctx } from "../../shared/router";
 import { newTrustedToken, sha256Hex } from "./mfa-crypto";
 import {
   MFA_LIMIT, TRUSTED_COOKIE, TRUSTED_TTL_SECONDS, checkRecoveryCode, clearMfaAttemptsStatement, lockedMfaStaffIds, mfaKey, mfaKeyReady, trustedCookie, unlockLogin, unlockLoginStatements,
@@ -29,10 +29,11 @@ import { PASSKEY_ERRORS, checkPasskeyAssertion, clearChallengeCookie, issuePassk
 import {
   endAllButNewestStatement, endAllSessionsIfSuspendedStatement as endAllIfSuspendedRow, endExpiredSessionsStatement, endOtherSessionsStatement, endSessionStatement, findLiveSession,
   getSession, insertSessionStatement, listPolicyRows, markSessionReissuedStatement, markSingleStatement, touchSessionStatement,
-  closePolicyStatement, danhDauMotMayTheoTapStatement, endExpiredAllStatement, insertPolicyAfterCloseStatement, insertPolicyNewStatement, sietTheoTapStatement,
+  clearExpiredActingRoleStatement, closePolicyStatement, danhDauMotMayTheoTapStatement, endExpiredAllStatement, insertPolicyAfterCloseStatement, insertPolicyNewStatement, sietTheoTapStatement,
 } from "./repository";
 import { isQuyenDatDuoc, type QuyenDatDuoc } from "../../shared/chinh-sach-dang-nhap";
 import type { PermissionCode } from "../../shared/permissions";
+import { HAN_XEM_NHU_VAI_PHUT, daHetHan, laVaiChonDuoc, quyenHieuLuc } from "../../shared/xem-nhu-vai";
 import type { RoleCode } from "../../shared/roles";
 import { SESSION_COOKIE, SESSION_TTL_SECONDS, clearedSessionCookie, createSessionToken, isSecure, sessionCookie, verifySessionToken } from "./session";
 import { SESSION_TOUCH_MS, isSingleDevice, sessionDeviceLabel, trimIp, trimUserAgent, END_REASON_LABEL, type EndReason, type TapNhieuMay } from "./session-ledger";
@@ -65,6 +66,8 @@ export { lockedMfaStaffIds, factorKindsByStaff, unlockLogin, unlockLoginStatemen
 export { PASSKEY_ERRORS, checkPasskeyAssertion, clearChallengeCookie, issuePasskeyChallenge, limitChallenge, passkeyRp, readPasskeyChallenge };
 export { verifyRegistration } from "./webauthn";
 export { deviceLabel } from "./device-label";
+// ADR-0180: câu đặt/gỡ vai đang đóng của phiên (chưa chạy) — route đóng vai ở module accounts gộp với dòng nhật ký trong một lô (auth không import audit).
+export { setActingRoleStatement } from "./repository";
 
 /** Độ dài tối thiểu của SESSION_SECRET (khoá ký phiên). */
 export const MIN_SECRET_LENGTH = 32;
@@ -93,15 +96,27 @@ export async function currentStaff(request: Request, env: Env, exec?: ExecutionC
     findLiveSession(env.DB, t.sessionId, t.staffId, nowIso), getActiveStaff(env.DB, t.staffId, t.issuedAt), getMaintenanceState(env.DB),
   ]);
   if (!row || !staff) return null;
-  if (Date.parse(row.last_seen_at) < now - SESSION_TOUCH_MS) {
+  // ADR-0180 Đ1: NƠI DUY NHẤT tính bộ quyền hiệu lực. Chỉ nhận vai khi tài khoản THẬT giữ SUPER_ADMIN, mã nằm trong danh sách chọn được và chưa quá 60 phút
+  // không thao tác (tính theo last_seen_at TRƯỚC lần chạm dưới đây). Dòng phiên của người không giữ Toàn quyền mà có cột vai (dữ liệu hỏng) ⇒ bỏ qua cột.
+  const coVai = row.acting_role !== null && row.acting_role !== undefined;
+  const hetHan = coVai && daHetHan(row.last_seen_at, now);
+  const vai = coVai && !hetHan && staff.permissions.includes("SUPER_ADMIN") && laVaiChonDuoc(row.acting_role) ? row.acting_role as PermissionCode : null;
+  const hieuLuc: StaffProfile = vai === null ? staff : { ...staff, permissions: quyenHieuLuc(staff.permissions, vai), actingRole: vai, realPermissions: [...staff.permissions] };
+  const canCham = Date.parse(row.last_seen_at) < now - SESSION_TOUCH_MS;
+  if (canCham || hetHan) {
     // Ghi mốc hoạt động Ở NỀN (không chặn phản hồi): câu có điều kiện `last_seen_at < ?` nên lặp hay chậm đều vô hại; phiên đã bị lưới `credentials_changed_at` giết
     // không bao giờ tới đây (đã bị từ chối ở getActiveStaff). Không có `exec` (bài kiểm gọi thẳng) thì chờ như cũ.
-    const ghi = touchSessionStatement(env.DB, row.id, nowIso, new Date(now - SESSION_TOUCH_MS).toISOString()).run().catch((e: unknown) =>
+    // Vai đã hết hạn (ADR-0180 Đ1.3): xoá cột trong CÙNG lô, ĐỨNG TRƯỚC câu chạm — chạm thành công mà xoá hỏng thì lần sau vai sống lại; một lô thì cả hai cùng thành hoặc cùng hỏng.
+    // Mốc last_seen_at hỏng (không bao giờ vào nhánh chạm) vẫn xoá vai. Xoá hỏng cũng không sao: hạn xét lại ở mỗi lần đọc.
+    const cham = canCham ? [touchSessionStatement(env.DB, row.id, nowIso, new Date(now - SESSION_TOUCH_MS).toISOString())] : [];
+    const xoa = hetHan ? [clearExpiredActingRoleStatement(env.DB, row.id, nowIso, new Date(now - HAN_XEM_NHU_VAI_PHUT * 60 * 1000).toISOString())] : [];
+    const lo = [...xoa, ...cham];
+    const ghi = (lo.length === 1 ? lo[0]!.run() : env.DB.batch(lo)).catch((e: unknown) =>
       console.error(JSON.stringify({ level: "error", event: "session_touch_failed", message: e instanceof Error ? e.message : String(e) })));
     if (exec) exec.waitUntil(ghi);
     else await ghi;
   }
-  return { staff, sessionId: t.sessionId, baoTri };
+  return { staff: hieuLuc, sessionId: t.sessionId, baoTri };
 }
 
 /**
@@ -484,6 +499,25 @@ async function congBatLai(request: Request, env: Env, nowMs: number): Promise<{ 
   return { profile };
 }
 
+/**
+ * Thân `MeResponse` của người đang gọi (dùng chung cho `GET /api/auth/me` và hai route đóng vai ở module accounts — ADR-0180). `staff` truyền vào để route vừa đổi vai
+ * dựng phản hồi theo bộ quyền MỚI mà không đọc lại phiên. `actingRole` (cùng giá trị với `staff.actingRole`) chỉ có khi đang đóng vai.
+ * `benDatCuaToi` chỉ để HIỂN THỊ (máy chủ vẫn ép bên đặt lúc lập đơn) mà /me đi qua MỌI trang: câu đọc hỏng (kể cả ném ngay trước khi có lời hứa) thì trả null và log một dòng
+ * (chỉ tên sự kiện + câu lỗi — không SĐT, không tên) thay vì kéo cả /me thành 500. Chỉ bọc đúng câu này; việc đọc trạng thái bảo trì giữ nguyên (hỏng thì vẫn là lỗi thật).
+ */
+export async function dungMeResponse({ env, baoTri, benDatCuaToi }: Pick<Ctx<"staff">, "env" | "baoTri" | "benDatCuaToi">, staff: StaffProfile): Promise<Response> {
+  const docBenDat = async (): Promise<Awaited<ReturnType<typeof benDatCuaToi>>> => {
+    try {
+      return await benDatCuaToi();
+    } catch (e) {
+      console.error(JSON.stringify({ level: "error", event: "ben_dat_cua_toi_failed", message: e instanceof Error ? e.message : String(e) }));
+      return null;
+    }
+  };
+  const [trangThaiBaoTri, benDat] = await Promise.all([(baoTri as MaintenanceState | undefined) ?? getMaintenanceState(env.DB), docBenDat()]);
+  return json({ staff, maintenance: toStatus(trangThaiBaoTri), benDatCuaToi: benDat, ...(staff.actingRole ? { actingRole: staff.actingRole } : {}) } satisfies MeResponse);
+}
+
 export const authModule: AppModule = {
   name: "auth",
   routes: [
@@ -744,19 +778,8 @@ export const authModule: AppModule = {
 
     // `maintenance` ở đây chỉ tới được Toàn quyền khi đang bảo trì (router chặn người khác trước — ADR-0071) — giao diện dùng để hiện dải "Đang ở chế độ bảo trì".
     // `benDatCuaToi` (sổ đại lý đợt 1, Task 11 — Ruling 21): bên đặt máy chủ SẼ ép cho tài khoản này (chỉ Đối tác có hồ sơ được hưởng), để form lập đơn hiện dòng chỉ đọc mà không tự suy luật. Hai việc đọc chạy song song.
-    route("GET", "/api/auth/me", "staff", async ({ env, staff, baoTri, benDatCuaToi }) => {
-      // `benDatCuaToi` chỉ để HIỂN THỊ (máy chủ vẫn ép bên đặt lúc lập đơn) mà /me đi qua MỌI trang: câu đọc hỏng (kể cả ném ngay trước khi có lời hứa) thì trả null và log một dòng
-      // (chỉ tên sự kiện + câu lỗi — không SĐT, không tên) thay vì kéo cả /me thành 500. Chỉ bọc đúng câu này; việc đọc trạng thái bảo trì giữ nguyên (hỏng thì vẫn là lỗi thật).
-      const docBenDat = async (): Promise<Awaited<ReturnType<typeof benDatCuaToi>>> => {
-        try {
-          return await benDatCuaToi();
-        } catch (e) {
-          console.error(JSON.stringify({ level: "error", event: "ben_dat_cua_toi_failed", message: e instanceof Error ? e.message : String(e) }));
-          return null;
-        }
-      };
-      const [trangThaiBaoTri, benDat] = await Promise.all([(baoTri as MaintenanceState | undefined) ?? getMaintenanceState(env.DB), docBenDat()]);
-      return json({ staff, maintenance: toStatus(trangThaiBaoTri), benDatCuaToi: benDat } satisfies MeResponse);
+    route("GET", "/api/auth/me", "staff", async (ctx) => {
+      return dungMeResponse(ctx, ctx.staff);
     }),
 
     // Đăng xuất kết thúc dòng phiên (ADR-0075): cookie bị xoá VÀ cookie đã chép đi nơi khác cũng hết dùng được. Token rác/hết hạn → chỉ xoá cookie.

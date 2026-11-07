@@ -27,6 +27,12 @@ export interface StaffProfile {
   partyId: string | null;
   /** Quyền trong app (ADR-0005), đọc từ stf_permission — KHÔNG phải vai trò hồ sơ (HDV, tài xế…). */
   permissions: PermissionCode[];
+  /**
+   * ADR-0180 Đ1: mã quyền Toàn quyền đang "xem như" ở phiên này. Chỉ có khi đang đóng vai; lúc đó `permissions` = `[actingRole]` (bộ hiệu lực, do
+   * `currentStaff` tính ở MỘT chỗ) và `realPermissions` = quyền thật của tài khoản (cổng bảo trì, route thoát đóng vai xét bộ này).
+   */
+  actingRole?: PermissionCode;
+  realPermissions?: PermissionCode[];
 }
 
 /** Hồ sơ đầy đủ cho màn hình quản trị. */
@@ -58,7 +64,9 @@ export interface StaffRolesResponse { roles: RoleCode[]; adds: PermissionCode[];
  * `benDatCuaToi` chỉ có ở `GET /api/auth/me` (sổ đại lý đợt 1, Task 11; Ruling 21): khác null khi và chỉ khi máy chủ SẼ ép bên đặt của đơn mới về chính hồ sơ của tài khoản này — tài khoản giữ quyền
  * Đối tác, có hồ sơ, và hồ sơ đang mang ít nhất một vai trong danh sách được hưởng hoa hồng (cùng điều kiện `benDatChoTaiKhoan`). Giao diện chỉ ĐỌC trường này để hiện dòng "Bên đặt: <tên>"; chỉ id + tên, không liên hệ.
  */
-export interface MeResponse { staff: StaffProfile; maintenance?: MaintenanceStatusDto; benDatCuaToi?: { partyId: string; ten: string } | null }
+export interface MeResponse { staff: StaffProfile; maintenance?: MaintenanceStatusDto; benDatCuaToi?: { partyId: string; ten: string } | null;
+  /** ADR-0180: vai đang đóng của phiên này (chỉ có khi Toàn quyền đang xem như vai khác); cùng giá trị `staff.actingRole`. */
+  actingRole?: PermissionCode }
 /**
  * `POST /api/auth/login` khi PIN đúng nhưng CHƯA cấp phiên (ADR-0074 điều 2–3): kèm cookie chờ `td_mfa_pending` (5 phút, chỉ mở `/api/auth/mfa/*`).
  * - `next: "mfa"`: nhập mã ở bước hai (`POST /api/auth/mfa/verify`); `factors` = các cách đang có (luôn kèm "RECOVERY" — mã dự phòng); `emailMask` = email đã che
