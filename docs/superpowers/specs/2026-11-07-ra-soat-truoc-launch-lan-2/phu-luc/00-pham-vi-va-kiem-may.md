@@ -7,7 +7,7 @@
 | Mục | Giá trị | Cách kiểm |
 |---|---|---|
 | Giờ bắt đầu | 21:56 giờ Việt Nam, 7/11/2026 | `TZ=Asia/Ho_Chi_Minh date` |
-| Bản đang chạy lúc bắt đầu | `version` 2.73 | GET công khai `https://booking.tourdao.vn/api/auth/config` (21:57 và khoảng 22:12, cả hai lần 2.73, `maintenance.on` false) |
+| Bản đang chạy lúc bắt đầu | `version` 2.73 | GET công khai `https://booking.tourdao.vn/api/auth/config` (21:57, khoảng 22:12 và 22:54, cả ba lần 2.73, `maintenance.on` false; lần 22:54 còn thấy có khoá site Turnstile, có tên công ty và MST của công ty chủ — không chép số vào đây) |
 | Commit của 2.73 | `41f63f04` | mục trạng thái của `docs/HANDOFF-N1.md`; `git show 41f63f04:src/shared/changelog.ts` mục đầu là 2.73; `41f63f04` là tổ tiên của `origin/main` |
 | Bản được rà | `origin/main` ghim ở `5f641781` (đẩy lên 21:53) | `git fetch origin` rồi `git rev-parse origin/main` (22:00 và lại khoảng 22:12: không đổi) |
 | Phần chênh `41f63f04..5f641781` trong `src web migrations` | chỉ «Xem như vai trò khác» (ADR-0180) + migration `0145_xem_nhu_vai.sql`, 34 tệp | `git log --stat 41f63f04..origin/main -- src web migrations` |
@@ -30,9 +30,10 @@ Có lần lưu chưa vào `origin/main` lúc khoảng 22:12: `claude/interesting
 |---|---|---|
 | `npm run typecheck` | thoát 0, không lỗi (server, `web/`, `web/sw/`); chạy hết khoảng 1 giây vì dự án dùng TypeScript 7.0.2 (trình kiểm viết lại bằng Go) — đo lại riêng `tsc --noEmit -p web/sw` mất 0,17 giây | 22:03:05–22:03:06 |
 | `npm test` (`scripts/chay-test.mjs`) | bước 1: 8.319 bài, **8.315 đạt, 0 đỏ**, 0 huỷ, 0 bỏ qua, 4 `todo`; bước 2 (bài đo giờ của hook, chạy một mình): 1/1 đạt; thoát 0 | 22:03:06–22:12:33 |
-| `npm run test:e2e` (kèm `audit-invariants --strict` trên D1 tạm của từng nhóm) | xem mục 6 (chạy sau khi trợ lý giao diện tắt máy chủ, để hai việc không giành máy) | — |
+| `npm run test:e2e` (kèm `audit-invariants --strict` trên D1 tạm của từng nhóm) | **85/85 kịch bản xanh**, 3 nhóm, 763 giây; bốn lần `audit-invariants --db local --strict`: «Mọi bất biến đạt» với 2, 7, 2, 8 cảnh báo (của dữ liệu thử, ví dụ R-CTL-1, R-ORD-8, R-ORD-12, R-VC-30); các phép soi log cuối cùng đều đạt (không `day_loi`, không lỗi lạ chạm bảng vé, không nội dung câu hỏi trợ lý trong log Worker); thoát 0. Chạy sau khi trợ lý giao diện đã tắt máy chủ của mình (đếm lại: không còn `workerd`, không còn `wrangler`), để hai việc không giành máy | 22:39:41–22:52:24 |
+| 14 tệp bài kiểm có quét thư mục tài liệu (`standards`, `bang-tham-chieu`, `bang-tu-giao-dien`, `huong-dan-may-canh`, `bo-v2-khop-ma`, `so-do-kien-truc`, `don-may`, `khoi-gap-noi-day`, `chup-bu`, `dac-diem-khong-lo-ma`, `dung-tai-san-dev`, `goi-ma-tro-ly-may`, `tat-thong-bao-dung-may`, `bang-su-kien-van-chuyen`) | chạy lại SAU khi đã lưu hồ sơ và ảnh của đợt này, để chắc tệp mới không làm bộ kiểm của lệnh nhập bản chính đỏ: 165/165 đạt, thoát 0 | 22:48 |
 
-Đầu ra đầy đủ lưu ngoài kho (thư mục tạm của phiên), không đưa vào kho vì dài 71.000 dòng.
+Đầu ra đầy đủ lưu ngoài kho (thư mục tạm của phiên), không đưa vào kho vì dài (riêng `npm test` 71.000 dòng).
 
 ## 5. Điều phiên điều phối tự xác nhận trong mã (không qua trợ lý)
 
