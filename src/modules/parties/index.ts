@@ -713,9 +713,15 @@ const XM_PROCESSED = () => error(403, "submission_processed", "Phiếu đã đư
 const XM_TRANG_LA = () => error(400, "invalid_input", "Trang xác minh không đúng.");
 const TRAN_HANG_CHO = 50;
 const TRAN_DOC_DA_XU_LY = 200;
-/** Người đang xét: dòng trong danh sách tài khoản nếu có (quyền hiện hiệu lực), không thì dựng từ phiên. */
-const nguoiXetCuaPhien = (staff: StaffProfile, ds: readonly TaiKhoanTom[]): TaiKhoanTom =>
-  ds.find((t) => t.id === staff.id) ?? { id: staff.id, permissions: staff.permissions, active: true, partyId: staff.partyId ?? null };
+/**
+ * Người đang xét: trạng thái hoạt động và hồ sơ lấy từ dòng trong danh sách tài khoản nếu có, nhưng QUYỀN luôn lấy từ PHIÊN (`staff.permissions` — bộ hiệu lực).
+ * ADR-0180 Đ1.4: danh sách đọc quyền THẬT từ CSDL, nên Toàn quyền đang "xem như" Quản trị / Nhân sự từng được xét như Toàn quyền (bỏ qua cấp bậc, tách nhiệm vụ).
+ * Bài khoá: src/xem-nhu-vai-khong-lo-toan-quyen.test.ts (ca "xác minh phiếu tự khai").
+ */
+const nguoiXetCuaPhien = (staff: StaffProfile, ds: readonly TaiKhoanTom[]): TaiKhoanTom => {
+  const dong = ds.find((t) => t.id === staff.id);
+  return dong ? { ...dong, permissions: staff.permissions } : { id: staff.id, permissions: staff.permissions, active: true, partyId: staff.partyId ?? null };
+};
 const lyDoKhongXacMinh = (lyDo: string | null): string | null => (lyDo === null ? null : NHAN_LY_DO_CHAN[lyDo] ?? null);
 /** Phiếu phải như KHÔNG TỒN TẠI với người xét: ngoài cấp bậc, hoặc mất gắn tài khoản mà người xét không phải Toàn quyền (vòng sửa 1, m-7 — đóng cửa an toàn; xetNguoiXacMinh chỉ trả `khong_tai_khoan` cho người không phải Toàn quyền). */
 const anPhieu = (lyDo: string | null): boolean => lyDo === "cap_bac" || lyDo === "khong_tai_khoan";
