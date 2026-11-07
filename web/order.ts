@@ -30,6 +30,7 @@ import type { DiemChon } from "./khoi-dua-don";
 import { openSheetDuaDon } from "./sheet-dua-don";
 import { openSheetHanhKhach } from "./sheet-hanh-khach";
 import { openSheetSoKhach } from "./sheet-so-khach";
+import { canhBaoQuaTen } from "../src/shared/hanh-khach";
 import { CAU_CAN_NOI_TRA, canhBaoXacNhan, cauThieuTen, thieuNoiTra } from "../src/shared/canh-bao-xac-nhan";
 import { dongThongTinQr } from "../src/shared/qr-thong-tin";
 import { PAX_LABEL } from "../src/shared/order-lines";
@@ -290,12 +291,14 @@ function khoiDuaDonDon(order: Order, vanPhong: boolean, nut: HTMLElement | null)
 function khoiHanhKhachDon(ds: Api.PassengerListResponse, nut: HTMLElement | null, khongCan: boolean): HTMLElement {
   const du = ds.soNguoiCoTen;
   const mau = ds.soKhachDoan;
+  const quaTen = canhBaoQuaTen(du, mau);
   return h(
     "section",
     { class: "card hk-card-don", "data-khoi": "hanh-khach" },
     h("h2", null, "Hành khách"),
     h("div", { class: "hk-dem" }, h("span", { class: "hk-dem-icon" }, icon("guests", 18)), h("span", { class: "hk-dem-so" }, `${du}/${mau}`), h("span", { class: "hk-dem-chu" }, "khách đã có tên")),
     du > 0 && du < mau ? h("p", { class: "alert warn hk-nhac-don" }, icon("alert", 16), cauThieuTen(mau - du, khongCan)) : null,
+    quaTen ? h("p", { class: "alert warn hk-nhac-don", "data-canh-bao": "qua-ten" }, icon("alert", 16), quaTen) : null,
     du === 0 ? h("p", { class: "muted" }, "Chưa có hành khách nào.") : null,
     du > 0
       ? h(

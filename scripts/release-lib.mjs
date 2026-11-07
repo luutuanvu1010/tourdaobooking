@@ -1,6 +1,7 @@
 // Logic thuần của hai lệnh CHỦ DỰ ÁN tự gõ (đặc tả docs/superpowers/specs/2026-09-23-lenh-day-trien-khai-an-toan.md):
-//   `npm run day-len [-- <nhánh>]`  → scripts/day-len.mjs    (gộp tiến thẳng vào main, kiểm, hỏi, rồi git push origin main)
-//   `npm run trien-khai`            → scripts/trien-khai.mjs (cổng chỉ-đọc gồm khoá bí mật và kho tệp hồ sơ, cổng số phiên bản, kiểm, Time Travel, áp migration, deploy, kiểm dữ liệu, cổng số phiên bản sau deploy)
+//   `npm run day-len [-- <nhánh>]`  → scripts/day-len.mjs    (gộp tiến thẳng vào main, đẩy nhánh chờ kiểm, chờ GitHub kiểm đủ bộ, hỏi, rồi git push origin main)
+//   `npm run trien-khai`            → scripts/trien-khai.mjs (cổng chỉ-đọc gồm khoá bí mật và kho tệp hồ sơ, cổng số phiên bản, build, ĐỌC kết quả kiểm trên GitHub, Time Travel, áp migration, deploy, kiểm dữ liệu, cổng số phiên bản sau deploy)
+// Từ ADR-0179 (2026-11-06): npm test / typecheck / e2e chạy MỘT lần trên máy GitHub (.github/workflows/kiem.yml), không chạy lại ở máy khi phát hành.
 // AI KHÔNG được chạy hai lệnh này (CLAUDE.md §8; hook .claude/hooks/guard-remote-lib.mjs + permissions.deny chặn). Lớp thứ hai: tự từ chối khi không có TTY.
 //
 // Mọi hàm nhận "bộ chạy lệnh" tiêm vào để test được bằng bộ chạy giả (src/release-lib.test.ts):
@@ -149,11 +150,6 @@ export function parseVersionId(output) {
   return m ? m[1] : null;
 }
 
-/** Tên kịch bản e2e đỏ từ đầu ra tests/e2e/run.mjs (dòng "✘ <tên>"; gồm cả "✘ audit-invariants"). Không đọc được → []. */
-export function parseE2eFailures(output) {
-  return [...String(output ?? "").replace(ANSI, "").matchAll(/^✘ (\S+)/gm)].map((m) => m[1]);
-}
-
 /** Tên nhánh an toàn để đưa vào git: không bắt đầu bằng '-' (tránh bị hiểu là tuỳ chọn như --force), chỉ ký tự thường gặp. */
 export const isSafeBranchName = (name) => typeof name === "string" && /^[A-Za-z0-9][A-Za-z0-9._\/-]*$/.test(name) && !name.includes("..");
 
@@ -230,12 +226,201 @@ function inLenhDeployDungMa(log, ma) {
   }
 }
 
+// ─────────────────────────────── kiểm đủ bộ trên GitHub (ADR-0179) ───────────────────────────────
+
+/** Kho GitHub (công khai — Actions miễn phí, ADR-0179 Bối cảnh). Mọi lệnh `gh` nêu tường minh `-R` để không phụ thuộc thư mục đang đứng. */
+export const REPO = "luutuanvu1010/tourdaobooking";
+export const WORKFLOW = "kiem.yml";
+/** Tên việc gom trong .github/workflows/kiem.yml — hợp đồng (bài src/release-lib.test.ts đọc tệp quy trình để khoá). */
+export const VIEC_GOM = "Gom kết quả kiểm";
+/** Ứng dụng GitHub tạo check-run khi Actions chạy. Chỉ nhận check-run của ứng dụng này (không nhận "commit status" ai có khoá API cũng đăng được — Đ2.2). */
+export const UNG_DUNG_ACTIONS = "github-actions";
+export const HAN_KET_QUA_MS = 24 * 3600e3;
+/** Mục tiêu tổng thời gian một lần phát hành (Đ1.1) — vượt thì cảnh báo, không chặn. */
+export const MUC_TIEU_GIAY = 600;
+const CHO_LUOT_HIEN_MS = 5 * 60e3;
+const CHO_LUOT_XONG_MS = 45 * 60e3;
+const NHIP_HOI_MS = 15e3;
+const LY_DO_TOI_THIEU = 5;
+const isSha = (s) => typeof s === "string" && /^[0-9a-f]{40}$/.test(s);
+export const nhanhChoKiem = (sha) => `cho-kiem/${sha}`;
+const LENH_CHAY_LAI = (runId) => (runId ? `gh run rerun ${runId} -R ${REPO}` : `gh workflow run ${WORKFLOW} -R ${REPO} --ref <nhánh cho-kiem/…>`);
+
+/**
+ * Bản ghi kết luận của day-len cho MỘT commit (Đ2.2, Đ3): `<git-common-dir>/tourdao-kiem/<sha>.json` — trong `.git` (ngoài cây mã, không commit), dùng chung
+ * giữa checkout gốc và mọi worktree. Chỉ day-len (chủ gõ, TTY) ghi; trien-khai đọc. Nằm trên máy nên chỉ chặn nhầm/quên, không chống cố ý làm giả; hook chặn
+ * AI ghi thư mục này. taiKetQua(runId) tải tệp tổng của việc gom (`ket-qua-tong`) — số tệp / bài / bỏ qua để so (Đ2.3). Test truyền kho giả.
+ */
+export function khoKiemThat(run) {
+  const thuMuc = async () => {
+    const r = await run("git", ["rev-parse", "--path-format=absolute", "--git-common-dir"]);
+    if (r.code !== 0 || !trimOut(r)) throw new Error("không tìm được thư mục .git dùng chung (`git rev-parse --git-common-dir` lỗi)");
+    const { join } = await import("node:path");
+    return join(trimOut(r), "tourdao-kiem");
+  };
+  return {
+    async docBanGhi(sha) {
+      const { readFile } = await import("node:fs/promises");
+      const { join } = await import("node:path");
+      try {
+        return JSON.parse(await readFile(join(await thuMuc(), `${sha}.json`), "utf8"));
+      } catch {
+        return null;
+      }
+    },
+    async ghiBanGhi(sha, banGhi) {
+      const { mkdir, writeFile } = await import("node:fs/promises");
+      const { join } = await import("node:path");
+      const d = await thuMuc();
+      await mkdir(d, { recursive: true });
+      await writeFile(join(d, `${sha}.json`), `${JSON.stringify(banGhi, null, 1)}\n`);
+    },
+    async taiKetQua(runId) {
+      const { mkdtemp, readFile, rm } = await import("node:fs/promises");
+      const { tmpdir } = await import("node:os");
+      const { join } = await import("node:path");
+      const tmp = await mkdtemp(join(tmpdir(), "tourdao-ket-qua-"));
+      try {
+        const r = await run("gh", ["run", "download", String(runId), "-R", REPO, "-n", "ket-qua-tong", "-D", tmp]);
+        if (r.code !== 0) return null;
+        return JSON.parse(await readFile(join(tmp, "ket-qua-tong.json"), "utf8"));
+      } catch {
+        return null;
+      } finally {
+        await rm(tmp, { recursive: true, force: true }).catch(() => {});
+      }
+    },
+  };
+}
+
+const parseJson = (r) => {
+  if (r.code !== 0) return null;
+  try {
+    return JSON.parse(String(r.stdout ?? ""));
+  } catch {
+    return null;
+  }
+};
+const RUN_FIELDS = "databaseId,headSha,status,conclusion,url,attempt,event,createdAt,updatedAt";
+async function cacLuot(run, sha) {
+  return parseJson(await run("gh", ["run", "list", "-R", REPO, "--workflow", WORKFLOW, "--commit", sha, "--limit", "20", "--json", RUN_FIELDS]));
+}
+async function xemLuot(run, id) {
+  return parseJson(await run("gh", ["run", "view", String(id), "-R", REPO, "--json", `${RUN_FIELDS},jobs`]));
+}
+
+/** Đồng hồ chặng: thời gian mỗi chặng KHÔNG tính lúc chờ chủ trả lời (Đ1.1). `ask` bọc lại để cộng thời gian chờ. */
+function dongHo(now, ask) {
+  let moc = now().getTime();
+  let choChu = 0;
+  const chang = [];
+  return {
+    ask: async (q) => {
+      const a = now().getTime();
+      try {
+        return await ask(q);
+      } finally {
+        choChu += now().getTime() - a;
+      }
+    },
+    moc(ten) {
+      const t = now().getTime();
+      chang.push({ ten, giay: Math.max(0, Math.round((t - moc - choChu) / 1000)) });
+      moc = t;
+      choChu = 0;
+    },
+    chang,
+    tong: () => chang.reduce((s, c) => s + c.giay, 0),
+  };
+}
+const phut = (giay) => `${Math.floor(giay / 60)} phút ${String(giay % 60).padStart(2, "0")} giây`;
+
+/** Chờ lượt kiểm của đúng sha hiện lên rồi chạy xong (hoặc lượt chạy lại `attemptToiThieu`). In tiến độ từng phần khi đổi. Trả { luot } hoặc { loi }. */
+async function choLuot(run, log, sleep, now, sha, { id = null, attemptToiThieu = 1 } = {}) {
+  const batDau = now().getTime();
+  let luotId = id;
+  while (luotId === null) {
+    const ds = await cacLuot(run, sha);
+    if (ds === null) return { loi: "không đọc được danh sách lượt kiểm (`gh run list` lỗi — mất mạng hay chưa đăng nhập gh?)" };
+    const dung = ds.filter((l) => l?.headSha === sha).sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
+    if (dung.length) luotId = dung[0].databaseId;
+    else {
+      if (now().getTime() - batDau > CHO_LUOT_HIEN_MS) return { loi: `quá ${CHO_LUOT_HIEN_MS / 60e3} phút mà GitHub chưa có lượt kiểm cho commit ${sha.slice(0, 8)} (quy trình ${WORKFLOW} có trên commit đó không?)` };
+      await sleep(NHIP_HOI_MS);
+    }
+  }
+  let inCu = "";
+  for (;;) {
+    const l = await xemLuot(run, luotId);
+    if (l === null) return { loi: `không đọc được lượt kiểm ${luotId} (\`gh run view\` lỗi)` };
+    if (l.headSha !== sha) return { loi: `lượt kiểm ${luotId} thuộc commit ${String(l.headSha).slice(0, 8)}, không phải ${sha.slice(0, 8)}` };
+    const jobs = Array.isArray(l.jobs) ? l.jobs : [];
+    const xong = jobs.filter((j) => j.status === "completed").length;
+    const do_ = jobs.filter((j) => j.status === "completed" && j.conclusion !== "success" && j.conclusion !== "skipped").map((j) => j.name);
+    const dong = `  ${l.status === "completed" ? "xong" : "đang kiểm"}: ${xong}/${jobs.length} phần xong${do_.length ? `, ĐỎ: ${do_.join(", ")}` : ""}`;
+    if (dong !== inCu) {
+      log(dong);
+      inCu = dong;
+    }
+    if (l.status === "completed" && (l.attempt ?? 1) >= attemptToiThieu) return { luot: l };
+    if (now().getTime() - batDau > CHO_LUOT_XONG_MS) return { loi: `quá ${CHO_LUOT_XONG_MS / 60e3} phút mà lượt kiểm ${luotId} chưa xong (${l.url ?? ""})` };
+    await sleep(NHIP_HOI_MS);
+  }
+}
+
+/** Đ2.3: các tệp điều khiển việc kiểm khác nhau giữa origin/main và main (băm git). package.json chỉ so KHOA_PACKAGE. Trả mảng tên, hoặc null khi lệnh lỗi. */
+async function tepDieuKhienDoi(run) {
+  const { TEP_DIEU_KHIEN, KHOA_PACKAGE } = await import("./kiem-phan.mjs");
+  const khac = TEP_DIEU_KHIEN.filter((t) => t !== "package.json");
+  const d = await run("git", ["diff", "--name-only", "--no-renames", "origin/main", "main", "--", ...khac]);
+  if (d.code !== 0) return null;
+  const doi = trimOut(d).split("\n").filter(Boolean);
+  const pk = await Promise.all(["origin/main", "main"].map((r) => run("git", ["show", `${r}:package.json`])));
+  if (pk.some((r) => r.code !== 0)) return null;
+  let cu;
+  let moi;
+  try {
+    [cu, moi] = pk.map((r) => JSON.parse(String(r.stdout)));
+  } catch {
+    return null;
+  }
+  // Khoá "scripts.<tên>" = một lệnh trong mục scripts (tên có thể chứa ":" như test:e2e); khoá khác = mục cấp đầu (engines, devDependencies).
+  const layKhoa = (o, k) => (k.startsWith("scripts.") ? o?.scripts?.[k.slice("scripts.".length)] : o?.[k]);
+  for (const k of KHOA_PACKAGE) if (JSON.stringify(layKhoa(cu, k)) !== JSON.stringify(layKhoa(moi, k))) doi.push(`package.json (${k})`);
+  return doi;
+}
+
+/** Đ2.3: số tệp / bài / kịch bản giảm hay số bài bỏ qua tăng so với lượt kiểm của origin/main. Thiếu một bên ⇒ một dòng "không so được". */
+export function soSanhSoLieu(cu, moi) {
+  const so = (x) => x?.tong && ["soTep", "soBai", "soBoQua", "soKichBan"].every((k) => Number.isInteger(x.tong[k]));
+  if (!so(moi)) return ["không đọc được số tệp / số bài của lượt kiểm này (tệp ket-qua-tong)"];
+  if (!so(cu)) return ["không có lượt kiểm của origin/main để so số tệp / số bài (lần đầu dùng quy trình mới, hoặc origin/main chưa qua day-len mới)"];
+  const ra = [];
+  for (const [k, ten] of [["soTep", "số tệp kiểm"], ["soBai", "số bài kiểm"], ["soKichBan", "số kịch bản e2e"]]) if (moi.tong[k] < cu.tong[k]) ra.push(`${ten} giảm: ${cu.tong[k]} → ${moi.tong[k]}`);
+  if (moi.tong.soBoQua > cu.tong.soBoQua) ra.push(`số bài bỏ qua (skip/todo) tăng: ${cu.tong.soBoQua} → ${moi.tong.soBoQua}`);
+  return ra;
+}
+
+async function hoiLyDo(ask, cau) {
+  const a = String((await ask(cau)) ?? "").trim();
+  return a.replace(/\s/g, "").length >= LY_DO_TOI_THIEU ? a : null;
+}
+
 // ─────────────────────────────── day-len ───────────────────────────────
 
-export async function dayLen({ run, ask, isTTY, log, target }) {
+/**
+ * ADR-0179 Đ2.1: gộp tiến thẳng → đẩy ĐÚNG commit lên `cho-kiem/<sha>` (không --force, không đẩy main) → chờ lượt kiểm của đúng sha → đỏ thì hỏi chạy lại /
+ * dừng / cho qua (gõ lý do, Đ3.1) → so tệp điều khiển kiểm + số liệu với origin/main (Đ2.3; khác thì đòi lý do, Đ3.2) → hỏi c/k → ghi bản ghi kết luận →
+ * đẩy main. Không còn chạy npm test / typecheck ở máy (đã chạy MỘT lần trên GitHub, Đ1.5).
+ * @param kho docBanGhi / ghiBanGhi / taiKetQua (mặc định khoKiemThat(run)); test truyền kho giả. @param sleep, now tiêm cho test.
+ */
+export async function dayLen({ run, ask: askGoc, isTTY, log, target, now = () => new Date(), sleep = realSleep, kho }) {
   const stop = makeStop(log);
   if (!isTTY) return stop(NOT_TTY);
   if (target !== undefined && !isSafeBranchName(target)) return stop(`tên nhánh không hợp lệ: ${JSON.stringify(target)}. Không dùng tên bắt đầu bằng '-' hay có dấu cách.`);
+  const kk = kho ?? khoKiemThat(run);
+  const dh = dongHo(now, askGoc);
+  const ask = dh.ask;
 
   const pre = await checkMainCleanFetched(run, stop);
   if (pre !== null) return pre;
@@ -265,12 +450,6 @@ export async function dayLen({ run, ask, isTTY, log, target }) {
   }
   const undo = () => (oldMain ? [`\`main\` đã được gộp tiến thẳng nhưng CHƯA đẩy. Muốn quay \`main\` về chỗ cũ thì tự chạy (lệnh này KHÔNG tự chạy):`, `  git reset --hard ${oldMain}`] : []);
 
-  for (const [args, label] of [[["test"], "npm test"], [["run", "typecheck"], "npm run typecheck"]]) {
-    log(`\n▶ ${label}`);
-    const r = await run("npm", args, { stream: true });
-    if (r.code !== 0) return stop(`\`${label}\` đỏ — không đẩy.`, ...undo());
-  }
-
   // Mọi lệnh đọc dưới đây mà lỗi thì DỪNG — không bao giờ đoán "không có gì để đẩy" hay "không có migration mới".
   const countRun = await run("git", ["rev-list", "--count", "origin/main..main"]);
   const countText = trimOut(countRun);
@@ -292,6 +471,85 @@ export async function dayLen({ run, ask, isTTY, log, target }) {
     .map((s) => s.trim())
     .filter((s) => s.endsWith(".sql"));
 
+  const shaRun = await run("git", ["rev-parse", "main"]);
+  const sha = trimOut(shaRun);
+  const goc = trimOut(await run("git", ["rev-parse", "origin/main"]));
+  if (!isSha(sha) || !isSha(goc)) return stop("không đọc được mã commit của `main` / `origin/main` (`git rev-parse` lỗi) — không đẩy.", ...undo());
+
+  // Đ2.3 — so TRƯỚC khi đẩy gì: chỉ day-len có mốc so đúng (origin/main trước khi đẩy).
+  const doiQuyTrinh = await tepDieuKhienDoi(run);
+  if (doiQuyTrinh === null) return stop("không so được các tệp điều khiển việc kiểm với `origin/main` (`git diff` / `git show` lỗi) — không đẩy.", ...undo());
+
+  const gh = await run("gh", ["auth", "status"]);
+  if (gh.code !== 0) return stop("chưa đăng nhập GitHub CLI (`gh auth status` lỗi) — không đọc được kết quả kiểm trên GitHub.", "Chạy: gh auth login (chọn GitHub.com, tài khoản luutuanvu1010), rồi chạy lại.", ...undo());
+  dh.moc("chuẩn bị ở máy");
+
+  // Đ2.1 — MỘT lần đẩy phụ: đúng commit lên nhánh chờ kiểm (công khai như mọi nhánh của kho). Không --force; KHÔNG đẩy main ở bước này.
+  const nhanh = nhanhChoKiem(sha);
+  log(`\n▶ Đẩy commit ${sha.slice(0, 8)} lên nhánh chờ kiểm \`${nhanh}\` (lần đẩy phụ, chưa đụng \`main\` trên GitHub) để GitHub kiểm đủ bộ`);
+  const dayPhu = await run("git", ["push", "origin", `${sha}:refs/heads/${nhanh}`], { stream: true });
+  if (dayPhu.code !== 0) return stop(`đẩy nhánh chờ kiểm \`${nhanh}\` lỗi — GitHub chưa kiểm. \`main\` trên GitHub chưa đổi.`, ...undo());
+
+  log("▶ Chờ GitHub kiểm đủ bộ (npm test, typecheck, e2e — chia nhiều máy chạy cùng lúc)");
+  let w = await choLuot(run, log, sleep, now, sha);
+  if (w.loi) return stop(`${w.loi} — không đẩy \`main\`.`, ...undo());
+  let luot = w.luot;
+  let ketQua = luot.conclusion === "success" ? "xanh" : "do";
+  let choQua = null;
+  let tong = await kk.taiKetQua(luot.databaseId);
+  // Đ3.1 — đỏ: nêu tên bài / kịch bản đỏ; chạy lại phần đỏ (khuyến nghị) / dừng / cho qua có lý do.
+  while (ketQua === "do") {
+    const baiDo = Array.isArray(tong?.baiDo) && tong.baiDo.length ? tong.baiDo : (luot.jobs ?? []).filter((j) => j.conclusion && j.conclusion !== "success" && j.conclusion !== "skipped").map((j) => `phần ${j.name}`);
+    log(`${RED}${BOLD}Lượt kiểm ĐỎ${RESET} (${luot.url ?? ""}):`);
+    for (const b of baiDo.length ? baiDo : ["không đọc được tên bài đỏ — mở đường dẫn ở trên để xem"]) log(`  ✘ ${b}`);
+    const tl = String((await ask("Chạy lại phần đỏ (r — khuyến nghị: e2e từng đỏ giả rồi chạy lại xanh) / dừng (d) / cho qua (q)? ")) ?? "").trim();
+    if (tl === "r") {
+      const rr = await run("gh", ["run", "rerun", String(luot.databaseId), "-R", REPO, "--failed"]);
+      if (rr.code !== 0) return stop(`không chạy lại được lượt kiểm (\`gh run rerun\` lỗi). Tự chạy: ${LENH_CHAY_LAI(luot.databaseId)} --failed rồi chạy lại \`npm run day-len\`.`, ...undo());
+      log("▶ Đã yêu cầu chạy lại phần đỏ — chờ kết quả");
+      w = await choLuot(run, log, sleep, now, sha, { id: luot.databaseId, attemptToiThieu: (luot.attempt ?? 1) + 1 });
+      if (w.loi) return stop(`${w.loi} — không đẩy \`main\`.`, ...undo());
+      luot = w.luot;
+      ketQua = luot.conclusion === "success" ? "xanh" : "do";
+      tong = await kk.taiKetQua(luot.databaseId);
+    } else if (tl === "q") {
+      const lyDo = await hoiLyDo(ask, `Gõ LÝ DO cho qua (ít nhất ${LY_DO_TOI_THIEU} chữ, ví dụ "giá Sheet thật vừa đổi"); để trống = dừng: `);
+      if (!lyDo) return stop("không có lý do cho qua — không đẩy `main`.", ...undo());
+      choQua = { lyDo, baiDo, luc: now().toISOString() };
+      break;
+    } else {
+      return stop("lượt kiểm đỏ — dừng, không đẩy `main`.", `Sửa xong thì chạy lại \`npm run day-len\`; hay chạy lại riêng lượt kiểm: ${LENH_CHAY_LAI(luot.databaseId)} --failed`, ...undo());
+    }
+  }
+  dh.moc("chờ GitHub kiểm");
+  // Lượt nhận được có thể là lượt CŨ của cùng commit (chạy lại day-len sau khi trả lời k): quá 24 giờ thì trien-khai sẽ dừng — báo sớm (kiểm độc lập N4).
+  const xongLuc = Date.parse(luot.updatedAt ?? "");
+  if (Number.isFinite(xongLuc) && now().getTime() - xongLuc > HAN_KET_QUA_MS) {
+    log(`${RED}${BOLD}CẢNH BÁO:${RESET} lượt kiểm này xong lúc ${luot.updatedAt}, cũ hơn 24 giờ — \`npm run trien-khai\` sẽ dừng. Chạy lại trước khi triển khai: ${LENH_CHAY_LAI(luot.databaseId)}`);
+  }
+
+  // Đ2.3 + Đ3.2 — tệp điều khiển việc kiểm đổi, hay số tệp/bài giảm, số bỏ qua tăng (so với lượt kiểm của origin/main) ⇒ không phải xanh thường: đòi lý do.
+  let tongGoc = null;
+  const dsGoc = await cacLuot(run, goc);
+  // Mốc so chỉ là lượt XANH của origin/main (lượt đỏ dù được cho qua không làm mốc — kiểm độc lập N3).
+  const luotGoc = (dsGoc ?? []).filter((l) => l?.headSha === goc && l.status === "completed" && l.conclusion === "success").sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))[0];
+  if (luotGoc) tongGoc = await kk.taiKetQua(luotGoc.databaseId);
+  const canhBao = [...doiQuyTrinh.map((t) => `tệp điều khiển việc kiểm đổi: ${t}`), ...soSanhSoLieu(tongGoc, tong)];
+  let quyTrinh = null;
+  if (canhBao.length) {
+    log(`\n${RED}${BOLD}ĐỔI QUY TRÌNH KIỂM (không coi là xanh thường):${RESET}`);
+    for (const c of canhBao) log(`  • ${c}`);
+    const tepThat = doiQuyTrinh.map((t) => t.replace(/ \(.*\)$/, ""));
+    if (tepThat.length) {
+      const df = await run("git", ["diff", "--stat", "origin/main", "main", "--", ...new Set(tepThat)]);
+      if (df.code === 0 && trimOut(df)) log(trimOut(df));
+      log(`Xem đủ khác biệt: git diff origin/main main -- ${[...new Set(tepThat)].join(" ")}`);
+    }
+    const lyDo = await hoiLyDo(ask, `Gõ LÝ DO đổi quy trình kiểm (ít nhất ${LY_DO_TOI_THIEU} chữ); để trống = dừng: `);
+    if (!lyDo) return stop("không có lý do đổi quy trình kiểm — không đẩy `main`.", ...undo());
+    quyTrinh = { doi: canhBao, lyDo };
+  }
+
   log("\n══════════ SẮP ĐẨY LÊN GITHUB ══════════");
   log(`${count} commit (origin/main..main):`);
   for (const l of commits.split("\n").filter(Boolean)) log(`  ${l}`);
@@ -302,15 +560,73 @@ export async function dayLen({ run, ask, isTTY, log, target }) {
   } else {
     log("Migration mới: không có.");
   }
+  log(`Kiểm đủ bộ trên GitHub: ${ketQua === "xanh" ? "XANH" : `ĐỎ — chủ cho qua: ${choQua?.lyDo}`} (${luot.url ?? ""})`);
+  if (quyTrinh) log(`Đổi quy trình kiểm — lý do: ${quyTrinh.lyDo}`);
   log("════════════════════════════════════════");
+  dh.moc("so sánh và tóm tắt");
 
   if (!yes(await ask("Đẩy lên GitHub? (c/k) "))) return stop("Không đẩy (chỉ trả lời đúng `c` mới đẩy).", ...undo());
+
+  // Bản ghi kết luận ghi TRƯỚC khi đẩy main: trien-khai đòi bản ghi của đúng commit (Đ2.2). Ghi lỗi ⇒ không đẩy (trien-khai sẽ dừng vì thiếu bản ghi).
+  const banGhi = {
+    sha,
+    luc: now().toISOString(),
+    runId: luot.databaseId,
+    runUrl: luot.url ?? null,
+    ketQua,
+    xanhLuc: ketQua === "xanh" ? (luot.updatedAt ?? null) : null,
+    choQua,
+    quyTrinh,
+    soLieu: tong?.tong ?? null,
+    chang: dh.chang,
+    giayDayLen: dh.tong(),
+  };
+  try {
+    await kk.ghiBanGhi(sha, banGhi);
+  } catch (e) {
+    return stop(`không ghi được bản ghi kết luận kiểm (${e instanceof Error ? e.message : String(e)}) — không đẩy \`main\`.`, ...undo());
+  }
 
   const push = await run("git", ["push", "origin", "main"], { stream: true });
   if (push.code !== 0) return stop("`git push origin main` lỗi — GitHub CHƯA nhận. Đọc lỗi ở trên.");
   const last = trimOut(await run("git", ["log", "-1", "--oneline", "--no-decorate", "origin/main"]));
   log(`Đã đẩy. GitHub (origin/main) giờ là: ${last}`);
+  log(`Thời gian day-len (không tính lúc chờ trả lời): ${phut(dh.tong())} — ${dh.chang.map((c) => `${c.ten} ${phut(c.giay)}`).join("; ")}.`);
   return 0;
+}
+
+/**
+ * trien-khai bước 3b (ADR-0179 Đ2.2, Đ3): đọc check-run của ĐÚNG sha qua `gh api` (chỉ đọc) + bản ghi kết luận của day-len. Trả { ok: true, ketQuaText, banGhi }
+ * hoặc { ok: false, ly, huongDan }. Chỉ nhận check-run của ứng dụng GitHub Actions; việc gom phải xong, xanh (hoặc đỏ CÓ bản ghi cho qua), ≤ 24 giờ.
+ */
+export async function docKetQuaKiem({ run, kho, sha, nowMs }) {
+  const banGhi = await kho.docBanGhi(sha).catch(() => null);
+  // Bản ghi của day-len vẫn dùng được sau khi chạy lại lượt kiểm (bản ghi gắn với commit, không gắn với giờ) — chỉ cần chạy lại trien-khai.
+  const chayLai = (id) => [`Chạy lại lượt kiểm: ${LENH_CHAY_LAI(id)}`, "chờ lượt đó xanh rồi chạy lại `npm run trien-khai`. Vẫn đỏ thì báo người phụ trách kỹ thuật (muốn cho qua phải đi qua `npm run day-len` với một lần lưu mới)."];
+  if (!banGhi || typeof banGhi !== "object") return { ok: false, ly: `không có bản ghi kết luận kiểm của \`npm run day-len\` cho commit ${sha.slice(0, 8)} (commit lên main không qua day-len trên máy này?).`, huongDan: ["Báo người phụ trách kỹ thuật tạo một lần lưu mới, đưa lên bằng `npm run day-len`, rồi chạy lại `npm run trien-khai`."] };
+  if (banGhi.sha !== sha) return { ok: false, ly: `bản ghi kết luận kiểm không khớp commit (${String(banGhi.sha).slice(0, 8)} ≠ ${sha.slice(0, 8)}).`, huongDan: ["Chạy lại `npm run day-len`."] };
+  if (Array.isArray(banGhi.quyTrinh?.doi) && banGhi.quyTrinh.doi.length && !String(banGhi.quyTrinh.lyDo ?? "").trim()) return { ok: false, ly: "bản ghi nói quy trình kiểm đã đổi mà không có lý do của chủ.", huongDan: ["Chạy lại `npm run day-len`."] };
+  const r = await run("gh", ["api", `repos/${REPO}/commits/${sha}/check-runs?per_page=100`]);
+  const j = parseJson(r);
+  if (!j || !Array.isArray(j.check_runs)) return { ok: false, ly: "không đọc được kết quả kiểm trên GitHub (`gh api … check-runs` lỗi — mất mạng hay chưa đăng nhập gh?).", huongDan: ["Kiểm `gh auth status` rồi chạy lại `npm run trien-khai`."] };
+  if (Number(j.total_count) > j.check_runs.length) return { ok: false, ly: `commit có ${j.total_count} kết quả kiểm, quá một trang đọc (100) — không đọc đủ thì không kết luận.`, huongDan: ["Báo người phụ trách kỹ thuật."] };
+  const cua = j.check_runs.filter((c) => c?.app?.slug === UNG_DUNG_ACTIONS);
+  if (!cua.length) return { ok: false, ly: `commit ${sha.slice(0, 8)} không có kết quả kiểm nào do GitHub Actions tạo.`, huongDan: chayLai(banGhi.runId) };
+  if (cua.some((c) => c.head_sha !== sha)) return { ok: false, ly: "kết quả kiểm GitHub trả về thuộc commit khác.", huongDan: chayLai(banGhi.runId) };
+  const gom = cua.filter((c) => c.name === VIEC_GOM);
+  if (gom.length !== 1) return { ok: false, ly: gom.length ? `có ${gom.length} kết quả "${VIEC_GOM}" cho cùng commit — không kết luận được.` : `thiếu kết quả "${VIEC_GOM}" (lượt kiểm chưa chạy hết, hoặc quy trình không có việc gom).`, huongDan: chayLai(banGhi.runId) };
+  const dangChay = cua.filter((c) => c.status !== "completed");
+  if (dangChay.length) return { ok: false, ly: `lượt kiểm còn đang chạy (${dangChay.map((c) => c.name).join(", ")}).`, huongDan: ["Chờ lượt kiểm xong rồi chạy lại `npm run trien-khai`."] };
+  const xong = Date.parse(gom[0].completed_at);
+  if (!Number.isFinite(xong)) return { ok: false, ly: `không đọc được giờ xong của "${VIEC_GOM}".`, huongDan: chayLai(banGhi.runId) };
+  if (nowMs - xong > HAN_KET_QUA_MS) return { ok: false, ly: `kết quả kiểm cũ hơn 24 giờ (xong lúc ${gom[0].completed_at}).`, huongDan: chayLai(banGhi.runId) };
+  const do_ = cua.filter((c) => c.conclusion !== "success" && c.conclusion !== "skipped").map((c) => c.name);
+  if (gom[0].conclusion !== "success" && !do_.includes(VIEC_GOM)) do_.push(VIEC_GOM);
+  if (do_.length) {
+    if (!banGhi.choQua || !String(banGhi.choQua.lyDo ?? "").trim()) return { ok: false, ly: `lượt kiểm ĐỎ (${do_.join(", ")}) và chủ chưa cho qua ở \`npm run day-len\`.`, huongDan: chayLai(banGhi.runId) };
+    return { ok: true, banGhi, ketQuaText: `ĐỎ (${do_.join(", ")}) — chủ cho qua ở day-len, lý do: ${banGhi.choQua.lyDo}` };
+  }
+  return { ok: true, banGhi, ketQuaText: `XANH lúc ${gom[0].completed_at}${banGhi.quyTrinh ? " (có đổi quy trình kiểm — xem lý do bên dưới)" : ""}` };
 }
 
 // ─────────────────────────────── trien-khai ───────────────────────────────
@@ -342,9 +658,12 @@ const RETRY_7403_MS = 5_000;
  * @param sleep chờ trước khi thử lại cổng sau; test truyền hàm tức thì.
  * @param docCacKho đọc các kho R2 khai trong wrangler.jsonc; test truyền hàm giả.
  */
-export async function trienKhai({ run, ask, isTTY, log, now = () => new Date(), sleep = realSleep, version, docMocTinDoi = docMocTinDoiMacDinh, docCacKho = docCacKhoMacDinh }) {
+export async function trienKhai({ run, ask: askGoc, isTTY, log, now = () => new Date(), sleep = realSleep, version, docMocTinDoi = docMocTinDoiMacDinh, docCacKho = docCacKhoMacDinh, kho }) {
   const stop = makeStop(log);
   if (!isTTY) return stop(NOT_TTY);
+  const kk = kho ?? khoKiemThat(run);
+  const dh = dongHo(now, askGoc);
+  const ask = dh.ask;
 
   // 1. main, sạch, đúng bằng origin/main
   const pre = await checkMainCleanFetched(run, stop);
@@ -401,23 +720,23 @@ export async function trienKhai({ run, ask, isTTY, log, now = () => new Date(), 
   if (!cacKho || cacKho.length === 0) {
     return stop("không đọc được tên kho tệp (mục r2_buckets) trong wrangler.jsonc — CHƯA có gì bị đổi trên production.", "Báo AI kiểm lại wrangler.jsonc rồi chạy lại `npm run trien-khai`.");
   }
-  const kho = await run("npx", ["wrangler", "r2", "bucket", "list"], { env: CI });
-  if (kho.code !== 0) {
-    return stop("`wrangler r2 bucket list` lỗi — chưa kiểm được các kho tệp nên KHÔNG đi tiếp. CHƯA có gì bị đổi trên production.", String(kho.stderr ?? "").trim().slice(0, 400));
+  const khoR2 = await run("npx", ["wrangler", "r2", "bucket", "list"], { env: CI });
+  if (khoR2.code !== 0) {
+    return stop("`wrangler r2 bucket list` lỗi — chưa kiểm được các khoR2 tệp nên KHÔNG đi tiếp. CHƯA có gì bị đổi trên production.", String(khoR2.stderr ?? "").trim().slice(0, 400));
   }
-  const tenCacKho = parseR2BucketNames(String(kho.stdout ?? ""));
-  // Không đọc ra tên kho nào (đầu ra lạ — wrangler đổi dạng — hoặc tài khoản chưa có kho nào): câu RIÊNG, không khẳng định "chưa có kho" (m2 vòng sửa cuối H-2).
+  const tenCacKho = parseR2BucketNames(String(khoR2.stdout ?? ""));
+  // Không đọc ra tên khoR2 nào (đầu ra lạ — wrangler đổi dạng — hoặc tài khoản chưa có khoR2 nào): câu RIÊNG, không khẳng định "chưa có khoR2" (m2 vòng sửa cuối H-2).
   if (tenCacKho.length === 0) {
     const ten = cacKho.map((k) => k.ten);
     return stop(
-      "không đọc được đầu ra của `wrangler r2 bucket list` (không thấy dòng \"name: …\" nào — dạng đầu ra lạ, hoặc tài khoản chưa có kho nào) — chưa kiểm được các kho tệp nên KHÔNG đi tiếp. CHƯA có gì bị đổi trên production.",
-      `Chạy trong Terminal, ở thư mục tourdao-sales, để xem tận mắt:\n  npx wrangler r2 bucket list\nThiếu dòng "name: …" của kho nào thì tạo kho đó:\n${ten.map((t) => `  npx wrangler r2 bucket create ${t}`).join("\n")}\nrồi chạy lại \`npm run trien-khai\`. CÓ đủ các dòng đó mà lệnh vẫn dừng ở đây thì báo AI (dạng đầu ra của wrangler đã đổi).\n` +
-        String(kho.stdout ?? "").slice(0, 400),
+      "không đọc được đầu ra của `wrangler r2 bucket list` (không thấy dòng \"name: …\" nào — dạng đầu ra lạ, hoặc tài khoản chưa có khoR2 nào) — chưa kiểm được các khoR2 tệp nên KHÔNG đi tiếp. CHƯA có gì bị đổi trên production.",
+      `Chạy trong Terminal, ở thư mục tourdao-sales, để xem tận mắt:\n  npx wrangler r2 bucket list\nThiếu dòng "name: …" của khoR2 nào thì tạo khoR2 đó:\n${ten.map((t) => `  npx wrangler r2 bucket create ${t}`).join("\n")}\nrồi chạy lại \`npm run trien-khai\`. CÓ đủ các dòng đó mà lệnh vẫn dừng ở đây thì báo AI (dạng đầu ra của wrangler đã đổi).\n` +
+        String(khoR2.stdout ?? "").slice(0, 400),
     );
   }
   const thieu = cacKho.find((k) => !tenCacKho.includes(k.ten));
   if (thieu) {
-    const hauQua = HAU_QUA_THIEU_KHO[thieu.binding] ?? "tệp của kho này không lưu hay mở được";
+    const hauQua = HAU_QUA_THIEU_KHO[thieu.binding] ?? "tệp của khoR2 này không lưu hay mở được";
     return stop(
       `Chưa có ${nhanKho(thieu.binding)} ${thieu.ten} trên Cloudflare — triển khai lúc này thì ${hauQua}. CHƯA có gì bị đổi trên production.`,
       `Chạy trong Terminal, ở thư mục tourdao-sales:\n  npx wrangler r2 bucket create ${thieu.ten}\nKiểm lại (phải thấy dòng "name: ${thieu.ten}"):\n  npx wrangler r2 bucket list\nrồi chạy lại \`npm run trien-khai\`.`,
@@ -473,28 +792,23 @@ export async function trienKhai({ run, ask, isTTY, log, now = () => new Date(), 
     return stop(`cổng phiên bản KHÔNG CHẠY ĐƯỢC (mã ${preGate.code}) — không phải đạt; không áp migration, không deploy.`, `Kiểm lại bằng: node ${GATE}`);
   }
 
-  // 3. kiểm mã
-  for (const [args, label] of [[["test"], "npm test"], [["run", "typecheck"], "npm run typecheck"], [["run", "build:web"], "npm run build:web"]]) {
-    log(`\n▶ ${label}`);
-    const r = await run("npm", args, { stream: true });
-    if (r.code !== 0) return stop(`\`${label}\` đỏ — không áp migration, không deploy.`);
-  }
+  dh.moc("cổng chỉ-đọc");
 
-  // 3b. e2e ĐỦ BỘ (như runbook cũ). Đỏ thì KHÔNG tự chặn cũng KHÔNG tự cho qua: nêu kịch bản đỏ và để chủ phán (vd kịch bản
-  // catalog đỏ vì giá trên Google Sheet thật vừa đổi, không phải lỗi mã). Chỉ trả lời đúng `c` mới đi tiếp.
-  log("\n▶ npm run test:e2e (đủ bộ, cần mạng, vài phút)");
-  const e2e = await run("npm", ["run", "test:e2e"], { tee: true });
-  // 3c. mã trong thư mục còn đúng mã lúc bắt đầu không — TRƯỚC câu hỏi e2e đỏ: mã đã đổi thì kết quả kiểm (xanh hay đỏ) đều không còn nghĩa.
+  // 3. sản phẩm để deploy (1 giây). npm test / typecheck / e2e KHÔNG chạy lại ở đây (ADR-0179 Đ1.5): đã chạy MỘT lần trên GitHub cho đúng commit này.
+  log("\n▶ npm run build:web");
+  const build = await run("npm", ["run", "build:web"], { stream: true });
+  if (build.code !== 0) return stop("`npm run build:web` đỏ — không áp migration, không deploy.");
+
+  // 3b. ĐỌC kết quả kiểm đủ bộ trên GitHub cho ĐÚNG commit main (Đ2.2) + bản ghi kết luận của day-len (Đ3). Thiếu / đang chạy / đỏ không có cho qua /
+  // quá 24 giờ / sai commit / không do GitHub Actions tạo / đổi quy trình kiểm mà không có lý do ⇒ DỪNG, chưa đổi gì trên production.
+  log("\n▶ Đọc kết quả kiểm đủ bộ trên GitHub (chỉ đọc)");
+  const kq = await docKetQuaKiem({ run, kho: kk, sha: local, nowMs: now().getTime() });
+  if (!kq.ok) return stop(`${kq.ly} CHƯA có gì bị đổi trên production.`, ...(kq.huongDan ?? []));
+  log(`Kiểm đủ bộ: ${kq.ketQuaText}`);
+  // 3c. mã trong thư mục còn đúng mã lúc bắt đầu không (build:web có thể chạy lâu; phiên khác có thể gộp vào cùng thư mục — sự cố 2026-10-08).
   const doiSauKiem = await maDaDoi(run, local);
   if (doiSauKiem) return stop(`mã trong thư mục đã đổi trong lúc kiểm (${doiSauKiem}) — kết quả kiểm không còn đúng cho mã sắp đưa lên; không áp migration, không deploy.`, MA_DOI_HUONG_DAN);
-  let e2eText = "xanh";
-  if (e2e.code !== 0) {
-    const red = parseE2eFailures(e2e.stdout);
-    const which = red.length ? red.join(", ") : "không đọc được tên kịch bản (xem đầu ra ở trên)";
-    log(`${RED}${BOLD}e2e ĐỎ:${RESET} ${which}`);
-    if (!yes(await ask("Có kịch bản e2e đỏ. Vẫn tiếp tục? (c/k) "))) return stop("e2e đỏ — không áp migration, không deploy.");
-    e2eText = `ĐỎ (chủ chọn tiếp tục): ${which}`;
-  }
+  dh.moc("build và đọc kết quả kiểm");
 
   // 4. migration
   let applied = [];
@@ -521,6 +835,7 @@ export async function trienKhai({ run, ask, isTTY, log, now = () => new Date(), 
     }
     applied = pending;
   }
+  dh.moc("migration");
 
   // 5. deploy
   const q = applied.length ? `Migration đã áp — PHẢI deploy ngay. Triển khai Worker lên production? (c/k) ` : "Triển khai Worker lên production? (c/k) ";
@@ -544,6 +859,7 @@ export async function trienKhai({ run, ask, isTTY, log, now = () => new Date(), 
   const dep = await run("npx", ["wrangler", "deploy"], { env: CI, tee: true });
   if (dep.code !== 0) return stop("`wrangler deploy` LỖI — Worker có thể CHƯA đổi. Đọc lỗi ở trên; không rollback tự động.");
   const versionId = parseVersionId(dep.stdout);
+  dh.moc("deploy");
 
   // 7. kiểm dữ liệu
   log("\n▶ Kiểm bất biến dữ liệu (chỉ đọc)");
@@ -576,11 +892,18 @@ export async function trienKhai({ run, ask, isTTY, log, now = () => new Date(), 
   log(`Cổng phiên bản sau deploy: ${postGateText}`);
   if (postCode !== 0) log(`${RED}${BOLD}Kiểm lại tay sau vài phút:${RESET} ${GATE_POST_CMD}`);
 
+  dh.moc("kiểm sau deploy");
+
   // 8. khối tóm tắt
+  const giayDayLen = Number.isInteger(kq.banGhi?.giayDayLen) ? kq.banGhi.giayDayLen : null;
+  const tongGiay = (giayDayLen ?? 0) + dh.tong();
   log("\n══════════ DÁN VÀO docs/HANDOFF-N1.md (TRẠNG THÁI TRIỂN KHAI) ══════════");
   log(`- Ngày giờ: ${vnDateTime(now())}`);
   log(`- Commit: ${commit}`);
-  log(`- e2e: ${e2eText}`);
+  log(`- Kiểm đủ bộ (GitHub): ${kq.ketQuaText}`);
+  log(`- Lượt kiểm: ${kq.banGhi?.runUrl ?? "không rõ"}`);
+  if (kq.banGhi?.choQua) log(`- Cho qua lượt kiểm đỏ — lý do của chủ: ${kq.banGhi.choQua.lyDo} (bài đỏ: ${(kq.banGhi.choQua.baiDo ?? []).join("; ") || "không rõ"})`);
+  if (kq.banGhi?.quyTrinh) log(`- Đổi quy trình kiểm — lý do của chủ: ${kq.banGhi.quyTrinh.lyDo} (${(kq.banGhi.quyTrinh.doi ?? []).join("; ")})`);
   log(`- Migration đã áp: ${applied.length ? applied.join(", ") : "không có"}`);
   if (bookmark) log(`- Điểm khôi phục Time Travel trước khi áp: ${bookmark}`);
   log(`- Worker Version ID: ${versionId ?? "chưa lấy được (xem đầu ra deploy ở trên hoặc `npx wrangler deployments list`)"}`);
@@ -589,6 +912,9 @@ export async function trienKhai({ run, ask, isTTY, log, now = () => new Date(), 
   log(`- Cổng phiên bản trước deploy: ${preGateText}`);
   log(`- Cổng phiên bản sau deploy: ${postGateText}`);
   if (postCode !== 0) log(`  (kiểm lại tay: ${GATE_POST_CMD})`);
+  const changDayLen = Array.isArray(kq.banGhi?.chang) ? kq.banGhi.chang.filter((c) => typeof c?.ten === "string" && Number.isInteger(c?.giay)) : [];
+  log(`- Thời gian (không tính lúc chờ chủ trả lời): day-len ${giayDayLen === null ? "không rõ" : phut(giayDayLen)}${changDayLen.length ? ` (${changDayLen.map((c) => `${c.ten} ${phut(c.giay)}`).join("; ")})` : ""}; trien-khai ${phut(dh.tong())} (${dh.chang.map((c) => `${c.ten} ${phut(c.giay)}`).join("; ")}); TỔNG ${phut(tongGiay)}`);
+  if (tongGiay > MUC_TIEU_GIAY) log(`${RED}${BOLD}CẢNH BÁO:${RESET} tổng ${phut(tongGiay)} vượt mục tiêu khoảng ${MUC_TIEU_GIAY / 60} phút (ADR-0179 Đ1.1) — báo người phụ trách kỹ thuật kèm các số đo trên (không chặn).`);
   log("═════════════════════════════════════════════════════════════════════");
   return audit.code === 0 && postCode === 0 ? 0 : 1;
 }
