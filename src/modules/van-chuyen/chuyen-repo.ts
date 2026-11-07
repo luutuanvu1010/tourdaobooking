@@ -327,6 +327,24 @@ const DIEU_KIEN_HIEN_HANH = defineSql(
 export async function dieuKienHienHanh(db: D1Database, nowIso: string): Promise<{ id: string; min_capacity: number; subject: "VEHICLE" | "DRIVER"; vehicle_document_type_code: string | null; person_document_type_code: string | null }[]> {
   return (await db.prepare(DIEU_KIEN_HIEN_HANH).bind(nowIso).all<{ id: string; min_capacity: number; subject: "VEHICLE" | "DRIVER"; vehicle_document_type_code: string | null; person_document_type_code: string | null }>()).results;
 }
+/**
+ * ADR-0184: dòng cho phép chạy thiếu giấy tờ CHƯA DÙNG (chưa dòng con bản chụp nào trỏ tới) của chuyến CHƯA CHẠY. Dùng một lần: thu hồi xuất bến đưa chuyến về
+ * PLANNED nhưng dòng đã dùng không hiện lại. Kèm tên loại giấy (cho nhãn / nhật ký). Không số giấy tờ, không ghi chú tự do.
+ */
+const CHO_PHEP_THIEU_CHUA_DUNG = defineSql(
+  "van-chuyen",
+  "cho_phep_thieu_chua_dung",
+  `SELECT w.id, w.trip_id, w.vehicle_id, w.document_type_code, t.name AS type_name
+   FROM vc_trip_departure_waiver w
+   JOIN vc_trip tr ON tr.id = w.trip_id AND tr.status = 'PLANNED'
+   LEFT JOIN vc_vehicle_document_type t ON t.code = w.document_type_code
+   WHERE NOT EXISTS (SELECT 1 FROM vc_trip_departure_check_item i WHERE i.waiver_id = w.id)
+   ORDER BY w.created_at, w.id`,
+);
+export interface ChoPhepThieuRow { id: string; trip_id: string; vehicle_id: string; document_type_code: string; type_name: string | null }
+export async function choPhepThieuChuaDung(db: D1Database): Promise<ChoPhepThieuRow[]> {
+  return (await db.prepare(CHO_PHEP_THIEU_CHUA_DUNG).all<ChoPhepThieuRow>()).results;
+}
 /** Lý do ĐANG DÙNG (mã + nhãn + nhóm) — đi kèm phản hồi lịch / chi tiết chuyến (I5). */
 const LY_DO_DANG_DUNG = defineSql("van-chuyen", "ly_do_dang_dung", "SELECT code, reason_group, label FROM vc_reason WHERE active = 1 ORDER BY reason_group, sort_order, code");
 export async function lyDoDangDung(db: D1Database): Promise<{ code: string; reason_group: string; label: string }[]> {
@@ -690,14 +708,14 @@ export const CHECK_INSERT = defineSql(
 );
 /**
  * Dòng con bản chụp (không số giấy tờ). ?1 id, ?2 bản chụp, ?3 loại dòng, ?4 giấy tờ xe, ?5 giấy tờ người, ?6 mã loại giấy tờ, ?7 hạng, ?8 hạn, ?9 điều kiện,
- * ?10 lúc, ?11 người, ?12 chuyến, ?13 dấu lệnh.
+ * ?10 lúc, ?11 người, ?12 chuyến, ?13 dấu lệnh, ?14 dòng cho phép chạy thiếu giấy tờ (ADR-0184; NULL ở mọi dòng khác).
  */
 export const CHECK_ITEM_INSERT = defineSql(
   "van-chuyen",
   "check_item_insert",
   `INSERT INTO vc_trip_departure_check_item (id, check_id, item_kind, vehicle_document_id, person_document_id, document_type_code, license_class_code, expiry_date,
-     rule_id, created_at, created_by, updated_at, updated_by)
-   SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?10, ?11 WHERE EXISTS (SELECT 1 FROM vc_trip WHERE id = ?12 AND last_cmd_id = ?13)`,
+     rule_id, created_at, created_by, updated_at, updated_by, waiver_id)
+   SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?10, ?11, ?14 WHERE EXISTS (SELECT 1 FROM vc_trip WHERE id = ?12 AND last_cmd_id = ?13)`,
 );
 /** Bản chốt danh sách lúc xuất bến — trỏ DÒNG hành khách đã dùng (không chép tên). ?1 id, ?2 chuyến, ?3 bản chụp, ?4 suất, ?5 dòng hành khách, ?6 người đi kèm, ?7 lúc, ?8 người, ?9 dấu lệnh. */
 export const MANIFEST_INSERT = defineSql(

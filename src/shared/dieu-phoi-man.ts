@@ -194,7 +194,7 @@ export function viecCanXuLy(l: LichChungResponse, co: { dieuPhoi: boolean; khanC
     const hanhDong: HanhDong[] = [];
     if (ma.has("NOI_HEN_DOI") && co.dieuPhoi) hanhDong.push({ nhan: "Cập nhật điểm theo đơn", kieu: "cap-nhat-diem", tripId: c.id });
     if (giuCapNhatKhach(c.lyDoGiu).length > 0 && co.dieuPhoi) hanhDong.push({ nhan: NUT_CAP_NHAT_KHACH, kieu: "cap-nhat-khach", tripId: c.id }); // ADR-0104 Đ2.11
-    if (ma.has("DIEU_KIEN_GIAY_TO_XE") && co.quanLyXe) hanhDong.push({ nhan: "Mở giấy tờ xe", kieu: "link", href: `/xe-chi-tiet?id=${encodeURIComponent(c.xe.id)}` });
+    if ((ma.has("DIEU_KIEN_GIAY_TO_XE") || ma.has("DIEU_KIEN_GIAY_TO_XE_TOAN_QUYEN")) && co.quanLyXe) hanhDong.push({ nhan: "Mở giấy tờ xe", kieu: "link", href: `/xe-chi-tiet?id=${encodeURIComponent(c.xe.id)}` });
     if (ma.has("CHUA_CO_TAI_XE") && co.dieuPhoi) hanhDong.push({ nhan: "Chọn tài xế", kieu: "link", href: `/chuyen-sua?id=${encodeURIComponent(c.id)}` });
     out.push({
       loai: k.kieu === "nodrv" ? "Chưa có tài xế" : "Chuyến bị giữ",
@@ -321,7 +321,7 @@ export function hinhDongThoiGian(l: Pick<LichChungResponse, "ngay" | "chuyen" | 
 /** ADR-0154 Đ3: mã lời nhắc của cổng xuất bến cho dòng «Đủ tên khách» — đơn mang dấu miễn danh sách đang thiếu tên (`NhacXuatBen` ở dieu-phoi-kieu.ts). */
 const MA_NHAC_KHONG_CAN = "KHONG_CAN_DANH_SACH";
 const NHOM_DIEU_KIEN: readonly { nhan: string; ma: readonly string[]; nhac?: string }[] = [
-  { nhan: "Giấy tờ xe", ma: ["DIEU_KIEN_GIAY_TO_XE", "XE_KHONG_DUNG"] },
+  { nhan: "Giấy tờ xe", ma: ["DIEU_KIEN_GIAY_TO_XE", "DIEU_KIEN_GIAY_TO_XE_TOAN_QUYEN", "XE_KHONG_DUNG"] },
   { nhan: "Giấy phép lái xe", ma: ["GPLX_THIEU", "GPLX_THIEU_HANG", "GPLX_HET_HAN", "HANG_BANG_KHONG_DU", "KHONG_CO_HANG_BANG", "DIEU_KIEN_GIAY_TO_TAI_XE", "CHUA_CO_TAI_XE", "CHEO_XE_TAI_XE"] },
   { nhan: "Đủ tên khách", ma: ["THIEU_TEN", "KHACH_DA_DOI"], nhac: MA_NHAC_KHONG_CAN }, // KHACH_DA_DOI: vòng 5e — điều phối duyệt xếp vào dòng này
   { nhan: "Không có đơn đã huỷ", ma: ["DON_DA_HUY", "CHANG_DA_DONG", "CHANG_KHONG_HOP_LE"] },
@@ -386,7 +386,7 @@ export function dongNhatKy(n: NhatKyChuyenDto, ngayXem: string): { gio: string; 
 }
 
 // ---- tạo / sửa chuyến ----------------------------------------------------------------------------------------------------------------------------------------
-const O_XE = new Set(["VUOT_SO_CHO", "XE_KHONG_DUNG", "DIEU_KIEN_GIAY_TO_XE"]);
+const O_XE = new Set(["VUOT_SO_CHO", "XE_KHONG_DUNG", "DIEU_KIEN_GIAY_TO_XE", "DIEU_KIEN_GIAY_TO_XE_TOAN_QUYEN"]);
 const O_TAI_XE = new Set(["HANG_BANG_KHONG_DU", "KHONG_CO_HANG_BANG", "GPLX_THIEU", "GPLX_THIEU_HANG", "GPLX_HET_HAN", "CHEO_XE_TAI_XE", "TRUNG_GIO_TAI_XE", "DIEU_KIEN_GIAY_TO_TAI_XE", "CHUA_CO_TAI_XE"]);
 const O_GIO_BAT_DAU = new Set(["KHOANG_NGHI", "NGHI_THIEU"]);
 const O_GIO_KET_THUC = new Set(["TRUNG_GIO_XE", "GIO_CHUYEN_KHONG_HOP_LE"]);

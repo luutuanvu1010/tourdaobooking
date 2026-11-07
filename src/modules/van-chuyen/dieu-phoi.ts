@@ -681,7 +681,7 @@ export function loXuatBen(db: D1Database, l: LenhXuatBen): CauCoNhan[] {
     ...l.ganTen.map((g) => ghi(db.prepare(ALLOC_GAN_TEN).bind(g.suatId, g.personKey, l.cmd, l.lucIso, l.nguoiId, l.tripId))),
     ghi(db.prepare(CHECK_INSERT).bind(c.id, l.tripId, l.cmd, l.policyId, c.xeId, c.bienSo, c.soCho, c.chuXePartyId, c.taiXePartyId, c.nghiDaDung, l.lucIso, l.nguoiId)),
     ...l.muc.map((m) => ghi(db.prepare(CHECK_ITEM_INSERT).bind(
-      crypto.randomUUID(), c.id, m.loai, m.vehicleDocumentId, m.personDocumentId, m.documentTypeCode, m.licenseClassCode, m.expiryDate, m.ruleId, l.lucIso, l.nguoiId, l.tripId, l.cmd,
+      crypto.randomUUID(), c.id, m.loai, m.vehicleDocumentId, m.personDocumentId, m.documentTypeCode, m.licenseClassCode, m.expiryDate, m.ruleId, l.lucIso, l.nguoiId, l.tripId, l.cmd, m.waiverId,
     ))),
     ...l.chot.map((m) => ghi(db.prepare(MANIFEST_INSERT).bind(crypto.randomUUID(), l.tripId, c.id, m.allocationId, m.passengerRowId, m.crewPartyId, l.lucIso, l.nguoiId, l.cmd))),
     ...cauCamKet(db, l, l.tripId, l.xoaCamKet ? { lyDo: null, khoa: null } : null),

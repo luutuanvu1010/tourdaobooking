@@ -752,7 +752,7 @@ export async function dungLichNgay(
     suat: [...allocs.map(suatVao), ...moCuaChang.filter((a) => !ids.includes(a.trip_id)).map(suatVao)],
     diem: stops.map(diemVao),
     chuyenKhac: khacNgoai.map(khungChuyen),
-    chinhSach: chinhSachVao(chung.chinhSach), hangBang: chung.hangBang, dieuKien: chung.dieuKien, bayGioMs,
+    chinhSach: chinhSachVao(chung.chinhSach), hangBang: chung.hangBang, dieuKien: chung.dieuKien, choPhepThieu: chung.choPhepThieu, bayGioMs,
   });
   const nhan = await nhanNhanVien([...new Set(events.flatMap((e) => (e.created_by && e.occurred_source === "VAN_PHONG_KHAI" ? [e.created_by] : [])))]);
   const legDonHuy = new Set(flags.filter((f) => f.is_cancelled === 1).map((f) => f.id));

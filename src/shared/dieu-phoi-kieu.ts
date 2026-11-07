@@ -11,7 +11,7 @@ import type { LyDoGiu } from "./ly-do-giu.ts";
 
 // ---- Danh sách mở (kiểm ở mã) -------------------------------------------------------------------------------------------------------------------------------
 /** Nhóm lý do ([TK] §1.9). Máy chỉ rẽ nhánh theo NHÓM; từng lý do là dữ liệu `vc_reason` (Quản trị sửa). Lượt 1 dùng năm nhóm; BAO_HUY_DIEM, TU_CHOI_NHAN từ lượt 2. */
-export const NHOM_LY_DO = ["DOI_GIO_XE", "BAO_HUY_DIEM", "PHA_LE", "TU_CHOI_NHAN", "KET_THUC_GIAN_DOAN", "HUY_CHUYEN", "BO_QUA_DIEM", "BAN_XE", "CHI_PHI_XE", "DIEU_CHINH", "TU_CHOI_CHUYEN", "BAN_TAI_XE"] as const;
+export const NHOM_LY_DO = ["DOI_GIO_XE", "BAO_HUY_DIEM", "PHA_LE", "TU_CHOI_NHAN", "KET_THUC_GIAN_DOAN", "HUY_CHUYEN", "BO_QUA_DIEM", "BAN_XE", "CHI_PHI_XE", "DIEU_CHINH", "TU_CHOI_CHUYEN", "BAN_TAI_XE", "CHO_CHAY_THIEU_GIAY"] as const;
 export type NhomLyDo = (typeof NHOM_LY_DO)[number];
 export const NHAN_NHOM_LY_DO: Readonly<Record<NhomLyDo, string>> = {
   DOI_GIO_XE: "Đổi giờ xe tới",
@@ -26,6 +26,7 @@ export const NHAN_NHOM_LY_DO: Readonly<Record<NhomLyDo, string>> = {
   DIEU_CHINH: "Điều chỉnh chuyến đang chạy", // ADR-0097 Đ2.5 (0085): lý do sửa kết quả một khách / thu hồi xuất bến — danh sách đóng, không ô chữ tự do
   TU_CHOI_CHUYEN: "Tài xế từ chối chuyến", // ADR-0053 D8.1 (0092): lý do tài xế nhà xe đối tác từ chối chuyến trước hạn
   BAN_TAI_XE: "Tài xế báo bận", // ADR-0053 D9.1 (0092): lý do khung bận của tài xế nhà xe đối tác — văn phòng KHÔNG thấy lý do (lời chủ 6.2)
+  CHO_CHAY_THIEU_GIAY: "Cho chạy dù thiếu giấy tờ", // ADR-0184 (0147): lý do Quản trị / Toàn quyền cho xe thiếu giấy tờ xuất bến — cùng chữ với nút (P8)
 };
 export const isNhomLyDo = (v: unknown): v is NhomLyDo => typeof v === "string" && (NHOM_LY_DO as readonly string[]).includes(v);
 /**
@@ -190,6 +191,18 @@ export interface GiayToXeVao {
   rowId: string;
   typeCode: string;
   expiryDate: string | null;
+}
+/** ADR-0184: một loại giấy tờ XE đang thiếu (chưa có dòng hiện hành, hoặc hết hạn trước giờ kết thúc chuyến) — kết quả `giayToXeConThieu`; `expiryDate` null = xe chưa có giấy. KHÔNG số giấy. */
+export interface GiayToXeThieu {
+  documentTypeCode: string;
+  expiryDate: string | null;
+  ruleId: string;
+}
+/** ADR-0184: dòng cho phép chạy thiếu giấy tờ CHƯA DÙNG của chuyến (`vc_trip_departure_waiver`, chưa dòng con nào trỏ tới) — chỉ khoá, xe, loại giấy. */
+export interface ChoPhepThieuVao {
+  id: string;
+  xeId: string;
+  documentTypeCode: string;
 }
 export interface XeVao {
   id: string;
@@ -357,6 +370,8 @@ export interface MucChup {
   licenseClassCode: string | null;
   expiryDate: string | null;
   ruleId: string | null;
+  /** ADR-0184: dòng cho phép chạy thiếu giấy tờ mà dòng con `DIEU_KIEN` này trỏ tới (`vc_trip_departure_check_item.waiver_id`); null ở mọi loại khác. */
+  waiverId: string | null;
 }
 /** Bản chụp điều kiện xuất bến (`vc_trip_departure_check` + dòng con) — lưu khoá trước, chỉ chép giá trị còn sửa tại chỗ (biển số, số chỗ, hạng, hạn). */
 export interface BanChup {
@@ -392,4 +407,6 @@ export interface KetQuaXuatBen {
   ganTen: GanTen[];
   /** Lời nhắc không chặn (ADR-0154 Đ3) — luôn có, rỗng khi không có chặng được miễn mà thiếu tên. */
   nhac: NhacXuatBen[];
+  /** ADR-0184: các loại giấy xe thiếu mà cổng cho qua nhờ dòng cho phép (một phần tử mỗi loại giấy; rỗng = không ai được cho chạy thiếu). */
+  choChayThieu: { documentTypeCode: string; waiverId: string }[];
 }

@@ -23,7 +23,7 @@ import {
   banChupDto, canhBaoDto, chuoiDichCuaDiem, chuyenTomTat, diemChuyenDto, gioVn, lyDoDangDung, lyDoGiuCuaChuyen, lyDoGiuDto, nhatKyChuyenDto, suatChuyenDto, taiXeChon,
   xeChon,
 } from "./dieu-phoi-dto";
-import { boSungXe, chinhSachVao, docChung, docNguCanh, type DuLieuChung, type NenChuyen, type NguCanhChuyen } from "./dieu-phoi-doc";
+import { boSungXe, chinhSachVao, choPhepCuaChuyen, docChung, docNguCanh, type DuLieuChung, type NenChuyen, type NguCanhChuyen } from "./dieu-phoi-doc";
 import { gioSomNhatKhaiDto, ketThucTruoc } from "./dieu-phoi-gio";
 import { cuocChiTietDto, cuocCuaToiItem, type KhungTaiXe } from "./tai-xe-dto";
 import { loiRangBuocChuyen } from "./rules";
@@ -375,7 +375,7 @@ export async function chiTietChuyen(
   const lyDoGiu = du.lyDo;
   const lichRa = dungLichChung({
     chang: [...nc.chang.values()], changNgoai: nc.changNgoai, nhap: [], chuyen: [nc.chuyen], suat: [...nc.suat, ...nc.suatMoCuaChang.filter((s) => s.tripId !== t.id)],
-    diem: nc.diem, chuyenKhac: nc.chuyenKhac, chinhSach: cs, hangBang: c.hangBang, dieuKien: c.dieuKien, bayGioMs,
+    diem: nc.diem, chuyenKhac: nc.chuyenKhac, chinhSach: cs, hangBang: c.hangBang, dieuKien: c.dieuKien, choPhepThieu: c.choPhepThieu, bayGioMs,
   });
   const legCua = new Set(nen.legIds);
   const canhBao = lichRa.canhBao.filter((x) => x.tripId === t.id || (x.legId !== null && legCua.has(x.legId) && x.loai !== "CHUYEN_GIU"));
@@ -441,7 +441,7 @@ function duPhongXuatBen(t: TripRow, nc: NguCanhChuyen, c: DuLieuChung, bayGioMs:
   if (t.status !== "PLANNED") return { lyDo: [], nhac: [] };
   const vao: KiemXuatBenVao = {
     chuyen: nc.chuyen, suat: nc.suat, chang: [...nc.chang.values()], changNgoai: nc.changNgoai, suatMoCuaChang: nc.suatMoCuaChang, diem: nc.diem, chuyenKhac: nc.chuyenKhac,
-    chinhSach: chinhSachVao(c.chinhSach), hangBang: c.hangBang, dieuKien: c.dieuKien, bayGioMs: Math.max(bayGioMs, t.planned_start_ms), xuatBenMs: Math.max(bayGioMs, t.planned_start_ms),
+    chinhSach: chinhSachVao(c.chinhSach), hangBang: c.hangBang, dieuKien: c.dieuKien, choPhepThieu: choPhepCuaChuyen(c, t.id), bayGioMs: Math.max(bayGioMs, t.planned_start_ms), xuatBenMs: Math.max(bayGioMs, t.planned_start_ms),
     ...(xetCuaSo ? { cuaSoXetMs: bayGioMs } : {}),
   };
   const kq = kiemXuatBen(vao);

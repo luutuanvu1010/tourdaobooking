@@ -375,7 +375,7 @@
       "mo_ta": "ADR-0050 VK1-C: xe 45 chỗ của nhà xe Minh Phát có Kiểm định nhưng CHƯA nhập Bảo hiểm trách nhiệm dân sự → Xuất bến bị GIỮ 'xe thiếu giấy tờ bắt buộc', Quản trị xử lý",
       "ham": "kiemXuatBen",
       "dau_vao": {"chuyen": {"id": "cx-3009-08", "ma": "CX-3009-08", "ngayChay": "2026-09-30", "batDauMs": "2026-09-30 09:00", "ketThucMs": "2026-09-30 11:00", "ketThucThatMs": null, "trangThai": "PLANNED", "xe": "$nen.xe.MP_THIEU_BH", "taiXe": "$nen.taiXe.MP", "nghiChup": 30, "nghiPhaLe": false, "camKetPhaLeKhoa": null, "thue": false, "coNguonGia": false}, "suat": [], "chang": [], "suatMoCuaChang": [], "diem": [], "chuyenKhac": [], "chinhSach": "$nen.chinhSach", "hangBang": "$nen.hangBang", "dieuKien": "$nen.dieuKien", "bayGioMs": "2026-09-30 08:55", "xuatBenMs": "2026-09-30 08:55"},
-      "dap_an": {"quyet_dinh": "GIU", "ma_luat": ["DIEU_KIEN_GIAY_TO_XE"], "ai_xu_ly": ["QUAN_TRI"], "so_gan_ten": 0}
+      "dap_an": {"quyet_dinh": "GIU", "ma_luat": ["DIEU_KIEN_GIAY_TO_XE_TOAN_QUYEN"], "ai_xu_ly": ["TOAN_QUYEN"], "so_gan_ten": 0}
     }
   ]
 }

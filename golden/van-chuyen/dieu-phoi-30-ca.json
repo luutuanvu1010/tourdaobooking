@@ -594,10 +594,10 @@
      "ky_vong": {
       "quyet_dinh": "GIU",
       "ma_luat": [
-       "DIEU_KIEN_GIAY_TO_XE"
+       "DIEU_KIEN_GIAY_TO_XE_TOAN_QUYEN"
       ],
       "ai_xu_ly": [
-       "QUAN_TRI"
+       "TOAN_QUYEN"
       ]
      }
     }

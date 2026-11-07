@@ -58,6 +58,8 @@ export const MA_GIU = {
   GPLX_THIEU_HANG: { loiNhan: "Giấy phép lái xe chưa ghi hạng", aiXuLy: "QUAN_TRI" },
   GPLX_HET_HAN: { loiNhan: "Giấy phép lái xe hết hạn trước khi chuyến kết thúc", aiXuLy: "QUAN_TRI" },
   DIEU_KIEN_GIAY_TO_XE: { loiNhan: "Xe thiếu hoặc hết hạn giấy tờ bắt buộc", aiXuLy: "QUAN_TRI" },
+  // ADR-0184 (P3): xe thiếu Kiểm định / Bảo hiểm trách nhiệm dân sự — chỉ Toàn quyền cho chạy được (D1=b); bốn loại còn lại giữ mã trên (Quản trị). Cùng lời nhắn.
+  DIEU_KIEN_GIAY_TO_XE_TOAN_QUYEN: { loiNhan: "Xe thiếu hoặc hết hạn giấy tờ bắt buộc", aiXuLy: "TOAN_QUYEN" },
   DIEU_KIEN_GIAY_TO_TAI_XE: { loiNhan: "Tài xế thiếu hoặc hết hạn giấy tờ bắt buộc", aiXuLy: "QUAN_TRI" },
   // ADR-0057 C5 (chủ lần 18 "chưa có giá thì không được chạy"): chuyến xe thuê chưa có giá bảng đã chụp / giá thoả thuận — KHÔNG ai phá lệ (không thuộc
   // MA_LUAT_PHA_LE). aiXuLy giữ tập đóng AI_XU_LY (G-T5): Quản trị; lời nhắn nói rõ Kế toán cũng làm được. Không kèm số tiền (G-T4).
