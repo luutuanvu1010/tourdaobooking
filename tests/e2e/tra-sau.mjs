@@ -6,7 +6,7 @@
 //  4) Huỷ đơn đang nợ ⇒ nợ về 0, hạn mức trống ra; ngừng hạn mức ⇒ đơn Trả sau mới không xác nhận được (409), đơn Trả trước vẫn qua.
 //  5) Vé của đơn Trả sau (kế hoạch 2026-11-05 Task 5 Step 1; ADR-0168 Đ3, ADR-0170 Đ2 mục 6, ADR-0171 Đ2): đối tác gửi đơn Trả sau ⇒ xác nhận, giữ vé; đối tác mở
 //     và gửi đường dẫn khi chưa trả đồng nào; ghi «Công ty thu» đủ rồi Kế toán nộp một phần ⇒ vẫn còn nợ đúng số; đường dẫn khách thấy đủ vé; Quản trị không huỷ được
-//     (còn nợ, vé đã mở); «Xong và đủ tiền» qua khi đã ghi đủ phải thu, nợ vẫn đếm tới khi nộp đủ. Gieo kho vé theo `moLo` / `themVe` của tests/e2e/ve-dien-tu.mjs, mã danh mục RIÊNG ZTS1.
+//     (còn nợ, vé đã mở); bước «Khách đã trả đủ» qua khi đã ghi đủ phải thu, nợ vẫn đếm tới khi nộp đủ. Gieo kho vé theo `moLo` / `themVe` của tests/e2e/ve-dien-tu.mjs, mã danh mục RIÊNG ZTS1.
 // Hạn mức dùng số nhỏ (500.000) vì đơn thử ZE1 chỉ 100.000 mỗi người lớn; luật không đổi theo cỡ số. Luật vé chi tiết (quá hạn, ân hạn) nằm ở src/tra-sau-ve.test.ts.
 // Dùng salesA / accountant / superAdmin / field / admin (không đổi tài khoản dùng chung). Hồ sơ đối tác tạo mới mỗi lần chạy.
 import assert from "node:assert/strict";
@@ -148,7 +148,7 @@ console.log("✓ 4) Huỷ đơn nợ ⇒ nợ về 0; ngừng hạn mức ⇒ đ
   assert.equal((await themVe(lo, [veThu(1), veThu(2)])).body?.themDuoc, 2);
   assert.equal((await call(A, "POST", `/api/ve/lo/${lo}/xac-nhan`, {})).status, 200);
 
-  // Đối tác (vai «Công ty lữ hành» ⇒ quyền Đối tác), có cấp hoa hồng riêng TRƯỚC khi xác nhận (bản chụp lúc xác nhận; thiếu mức thì «Xong và đủ tiền» bị giữ vì lý do khác).
+  // Đối tác (vai «Công ty lữ hành» ⇒ quyền Đối tác), có cấp hoa hồng riêng TRƯỚC khi xác nhận (bản chụp lúc xác nhận; thiếu mức thì «Khách đã trả đủ» bị giữ vì lý do khác).
   const tk = await call(SA, "POST", "/api/staff", { taoHoSoMoi: true, fullName: `Đại Lý Vé Trả Sau ${CHU}`, phone: randomPhone(), roles: ["TRAVEL_AGENCY"] });
   assert.equal(tk.status, 201, JSON.stringify(tk.body));
   const DT = (await login(tk.body.staff.phone, tk.body.pin)).cookie;
@@ -161,7 +161,7 @@ console.log("✓ 4) Huỷ đơn nợ ⇒ nợ về 0; ngừng hạn mức ⇒ đ
   r = await call(SA, "POST", "/api/tra-sau/han-muc", { partyId: BEN5, hanMuc: 1_000_000, gioTra: 168, gioAnHan: 0 });
   assert.equal(r.status, 201, JSON.stringify(r.body));
 
-  // Đối tác gửi đơn Trả sau 2 người lớn, đi hôm nay (để «Xong và đủ tiền» bấm được ngay)
+  // Đối tác gửi đơn Trả sau 2 người lớn, đi hôm nay (để «Xác nhận khách đã trả đủ» bấm được ngay)
   r = await call(DT, "POST", "/api/orders", orderInput({ customerName: `Khách Vé Trả Sau ${CHU}`, customerPhone: "0913571360", paymentTerm: "CREDIT", services: [catalogService({ catalogCode: "ZTS1", catalogPriceSeen: { adult: 100000 }, pax: { adult: 2 }, departDate: vnDate(0) })] }));
   assert.equal(r.status, 201, JSON.stringify(r.body));
   const don = { id: r.body.order.id, total: r.body.order.total };
@@ -206,18 +206,27 @@ console.log("✓ 4) Huỷ đơn nợ ⇒ nợ về 0; ngừng hạn mức ⇒ đ
   assert.doesNotMatch(thongBao(r), MA_THO);
   assert.equal((await sqlRows(`SELECT status FROM orders WHERE id = '${don.id}'`))[0].status, "confirmed");
 
-  // «Xong và đủ tiền» xét tiền ĐÃ GHI đủ phải thu (ADR-0168 Đ3 mục 2 giữ nguyên luật cũ), không xét tiền đã về công ty: đối tác ghi đủ
+  // «Khách đã trả đủ» xét tiền ĐÃ GHI đủ phải thu (ADR-0168 Đ3 mục 2 giữ nguyên luật cũ), không xét tiền đã về công ty: đối tác ghi đủ
   // thì qua. Nợ vẫn đếm sau bước này (ADR-0168 Đ2 mục 2), nhưng dòng hoa hồng ghi lúc đó được bù vào phần đối tác đang giữ như sổ đại lý
   // đã làm từ đợt 2 (chủ chọn «Khớp sổ đại lý» 2026-11-06, ADR-0177): 199.000 − 20.000 = 179.000, và sổ chỉ nhận nộp đúng số đó.
   const hdv = (await call(F, "GET", "/api/auth/me")).body.staff;
   r = await call(ADM, "PUT", `/api/orders/${don.id}/handler`, { staffId: hdv.id });
   assert.equal(r.status, 200, JSON.stringify(r.body));
   r = await call(F, "POST", `/api/orders/${don.id}/delivered`, {});
-  assert.equal(r.status, 200, `đã ghi đủ phải thu thì «Xong và đủ tiền»: ${JSON.stringify(r.body)}`);
-  assert.ok((await call(ADM, "GET", `/api/orders/${don.id}`)).body.order.deliveredAt, "đơn đã ở bước Xong và đủ tiền");
-  assert.deepEqual(await noDon(), [[don.id, 179_000]], "sau «Xong và đủ tiền» nợ còn phần đối tác giữ trừ hoa hồng của họ");
+  assert.equal(r.status, 200, `đã ghi đủ phải thu thì «Khách đã trả đủ»: ${JSON.stringify(r.body)}`);
+  assert.ok((await call(ADM, "GET", `/api/orders/${don.id}`)).body.order.deliveredAt, "đơn đã ở bước Khách đã trả đủ");
+  assert.deepEqual(await noDon(), [[don.id, 179_000]], "sau «Khách đã trả đủ» nợ còn phần đối tác giữ trừ hoa hồng của họ");
+  // ADR-0181 Đ1 (migration 0146 trên D1 thật): đơn đã xong còn nợ 179.000 vẫn «Ân hạn» được; chỉ hạn trả đổi, khoá «đơn đã xong» giữ mọi cột khác.
+  {
+    const truoc = (await sqlRows(`SELECT credit_due_at AS h, credit_grace_until AS g, total, delivered_at AS d FROM orders WHERE id = '${don.id}'`))[0];
+    const hanMoi = new Date(Date.parse(truoc.h) + 24 * 3_600_000).toISOString();
+    const ah = await call(ADM, "POST", `/api/tra-sau/don/${don.id}/an-han`, { hanMoi, lyDo: "Đối tác hẹn nộp tiền" });
+    assert.equal(ah.status, 200, `«Ân hạn» đơn đã xong còn nợ: ${JSON.stringify(ah.body)}`);
+    const sau = (await sqlRows(`SELECT credit_due_at AS h, credit_grace_until AS g, total, delivered_at AS d FROM orders WHERE id = '${don.id}'`))[0];
+    assert.deepEqual([sau.h, sau.total, sau.d], [hanMoi, truoc.total, truoc.d], "chỉ hạn trả đổi");
+  }
   assert.equal((await nop(179_001)).status, 409, "sổ không nhận nộp quá phần còn giữ");
   { const x = await nop(179_000); assert.equal(x.status, 201, JSON.stringify(x.body)); }
   assert.deepEqual(await noDon(), [], "nộp đủ: hết nợ");
-  console.log("✓ 5) Vé đơn Trả sau: gửi đơn ⇒ xác nhận + giữ vé; đối tác mở và gửi khi chưa thu; nộp một phần còn nợ 199.000; khách thấy đủ vé; huỷ 409; Xong và đủ tiền qua khi ghi đủ, nợ còn 179.000 (trừ hoa hồng) tới khi nộp đủ");
+  console.log("✓ 5) Vé đơn Trả sau: gửi đơn ⇒ xác nhận + giữ vé; đối tác mở và gửi khi chưa thu; nộp một phần còn nợ 199.000; khách thấy đủ vé; huỷ 409; bước Khách đã trả đủ qua khi ghi đủ, nợ còn 179.000 (trừ hoa hồng) tới khi nộp đủ");
 }

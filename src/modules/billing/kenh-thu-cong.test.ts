@@ -67,7 +67,7 @@ function chan(r: { status: number; text: string; json: any }, maLoi = "kenh_thu_
   assert.deepEqual([r.status, ma(r)], [409, maLoi], r.text);
 }
 
-test("ghi khoản thu trước «Xong và đủ tiền»: Công ty, quầy nhà cung cấp, nhân viên khác, hướng dẫn viên ⇒ 409; Đối tác «Tôi thu» ⇒ 201", async () => {
+test("ghi khoản thu trước «Khách đã trả đủ»: Công ty, quầy nhà cung cấp, nhân viên khác, hướng dẫn viên ⇒ 409; Đối tác «Tôi thu» ⇒ 201", async () => {
   const w = setup();
   await ganNcc(w);
   const id = await don(w);
@@ -115,7 +115,7 @@ test("Review Focus 2: văn phòng đổi bên đặt sau xác nhận, Đối tá
   assert.deepEqual(viPham(), truoc, "không bất biến nào đỏ thêm");
 });
 
-test("/delivered kèm khoản thu Công ty ⇒ 409, đơn không sang «Xong và đủ tiền», không khoản thu", async () => {
+test("/delivered kèm khoản thu Công ty ⇒ 409, đơn không sang «Khách đã trả đủ», không khoản thu", async () => {
   const w = setup();
   const id = await don(w);
   const truoc = soKhoan(w, id);

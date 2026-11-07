@@ -742,6 +742,9 @@ export const accountsModule: AppModule = {
       // ADR-0074 điều 1 (kế hoạch Task 6, nhóm (a)) + điều 7 (Phần C Task 3): xem haiLopSauDoiQuyen. TRƯỚC câu phiên (ketQua đọc vị trí cuối lô); nhánh chốt (gỡ
       // ADMIN): đi cùng lô vai, sau khi câu chốt thắng.
       const haiLop = await haiLopSauDoiQuyen(db, t, change.next, at, admin.id);
+      // ADR-0181 Đ2 (b): lần đổi vai có đóng vai và hồ sơ đang có hạn mức Trả sau ⇒ câu đóng hạn mức của billing đi NGAY SAU câu vai (cùng lô với câu vai ở cả hai nhánh).
+      // Câu tự kiểm «không còn vai được hưởng» (định nghĩa trigger 0141) nên đổi sang vai đối tác khác thì không đóng. Không đọc được ⇒ hàm NÉM (500, chưa ghi gì).
+      const dongHanMuc = change.roleStatements.length > 0 && (await ctx.gopHoSo.coHanMucTraSauMo(t.partyId)) ? ctx.gopHoSo.cauDongHanMucKhiHetVai(t.partyId, at, admin.id) : [];
       try {
         if (change.permissions.guarded) {
           // Gỡ ADMIN: câu chốt "còn quản trị viên khác" ĐẦU batch; nhật ký + quyền + chỉnh tay mang cùng điều kiện. Vai (module parties) không mang được
@@ -753,12 +756,12 @@ export const accountsModule: AppModule = {
             ...change.adjustmentStatements,
           ]);
           if ((results[0]!.meta.changes ?? 0) === 0) return LAST_ADMIN();
-          const loHai = [...change.roleStatements, ...haiLop.statements, ...phien.statements];
+          const loHai = [...change.roleStatements, ...dongHanMuc, ...haiLop.statements, ...phien.statements];
           if (loHai.length) cuoi = await db.batch(loHai);
         } else {
           cuoi = await db.batch([
             ...change.roleStatements, ...change.adjustmentStatements, ...change.permissions.rest, adminAudit(db, admin.id, "account_roles_changed", t.id, detail),
-            ...haiLop.statements, ...phien.statements,
+            ...dongHanMuc, ...haiLop.statements, ...phien.statements,
           ]);
         }
       } catch (e) {

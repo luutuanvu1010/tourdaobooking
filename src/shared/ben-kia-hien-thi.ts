@@ -77,7 +77,7 @@ export const luaChonThuCho = (benKia: BenKiaLuaChonDto): LuaChon[] => [{ value: 
 /** Câu dưới ô người thu tiền khi người KHÔNG ghi sổ chọn hai lựa chọn mới (ADR-0132 điều 1): lời khai chờ Kế toán, chưa ai nợ. Kế toán ghi thẳng ⇒ null. */
 export function cauChoKeToan(nguoiThu: string, laKeToan: boolean): string | null {
   if (laKeToan || !laBenKia(nguoiThu)) return null;
-  return "Khoản này chờ Kế toán xác nhận với bên nhận tiền; trong lúc chờ, đơn chưa xác nhận xong và đủ tiền được.";
+  return "Khoản này chờ Kế toán xác nhận với bên nhận tiền; trong lúc chờ, chưa bấm Xác nhận khách đã trả đủ được.";
 }
 
 /** Nhãn lời thường của ba lý do ở danh sách chờ «Chụp bù» (Ruling R-52, R-P19). */

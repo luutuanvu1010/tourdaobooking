@@ -58,7 +58,7 @@ export async function taoDeNghi(db: D1Database, input: { raw: unknown; ai: Nguoi
   if (!lyDo.ok) return lyDo;
   const owners = await orderOwners(db, [b.orderId]);
   if (!owners.has(b.orderId)) return loi(404, "not_found", "Không tìm thấy đơn.");
-  if ((await phaiThuHienHanh(db, b.orderId)) === null) return loi(409, "not_delivered", "Đơn chưa tới bước Xong và đủ tiền — trước bước Xong và đủ tiền, khoản thu và hoàn khách đi đường thường.");
+  if ((await phaiThuHienHanh(db, b.orderId)) === null) return loi(409, "not_delivered", "Đơn chưa tới bước Khách đã trả đủ — trước bước Khách đã trả đủ, khoản thu và hoàn khách đi đường thường.");
   const id = crypto.randomUUID();
   const at = new Date().toISOString();
   await db.batch([
@@ -100,7 +100,7 @@ export async function phanDinh(db: D1Database, input: { requestId: string; raw: 
   const ben = await docBenChiu(db, b.benChiuPartyId, b.truongHop, congTyId);
   if (!ben.ok) return ben;
   const [hh, receipts] = await Promise.all([phaiThuHienHanh(db, q.order_id), receiptsOfOrder(db, q.order_id)]);
-  if (hh === null) return loi(409, "not_delivered", "Đơn chưa tới bước Xong và đủ tiền.");
+  if (hh === null) return loi(409, "not_delivered", "Đơn chưa tới bước Khách đã trả đủ.");
   // Trần báo sớm cho người phân định; lúc ghi kiểm lại theo số khi đó.
   if (so.value > hh) return loi(409, "attribution_over_due", `Số giảm trừ vượt phải thu còn lại của đơn (${dong(hh)}).`);
   // Chủ quyết 2026-11-02 (BL-PD-T4-TOAN-PHAN): chặn ngay ở đây để phiếu không nằm chờ ghi mãi; bước ghi vẫn kiểm vì số có thể đổi sau đó.
@@ -246,7 +246,7 @@ export async function ghiTheoPhanDinh(db: D1Database, input: { rulingId: string;
   if (moneyOut && !input.quyenHoan) return loi(403, "forbidden", "Lần ghi này có trả tiền cho khách — cần quyền ghi hoàn khách.");
   if (moneyOut && b.thay) return loi(400, "invalid_input", "Lần ghi có trả tiền cho khách không kèm sửa khoản thu.");
   const [hh, receipts, lines] = await Promise.all([phaiThuHienHanh(db, r.order_id), receiptsOfOrder(db, r.order_id), linesOfOrder(db, r.order_id)]);
-  if (hh === null) return loi(409, "not_delivered", "Đơn chưa tới bước Xong và đủ tiền.");
+  if (hh === null) return loi(409, "not_delivered", "Đơn chưa tới bước Khách đã trả đủ.");
   const daThu = conLai(receipts.map(toReceiptRow), 0, "confirmed").daThu;
   if (!moneyOut && amount === hh && daThu > 0) return loi(409, "attribution_i1", CAU_KHACH_CHUA_TRA_DONG_NAO);
   // Lô Thay (khách thật sự chưa trả — T4): câu lệnh của "Sửa khoản thu đã ghi", cùng một hàm, I1 đích = phải thu hiện hành − số giảm trừ của lô này.
@@ -330,7 +330,7 @@ export async function daoKhoan(db: D1Database, input: { rootId: string; phan: Ph
   if (!congTyId) return CHUA_CO_CONG_TY();
   if (await daNopKhoan(db, goc.order_id, k.benChiu, congTyId)) return DA_NOP();
   const hh = await phaiThuHienHanh(db, goc.order_id);
-  if (hh === null) return loi(409, "not_delivered", "Đơn chưa tới bước Xong và đủ tiền.");
+  if (hh === null) return loi(409, "not_delivered", "Đơn chưa tới bước Khách đã trả đủ.");
   const thay = await chuanBiLoThay(db, { orderId: goc.order_id, phan: input.phan, raw: { cu: [], moi: b.moi, lyDo: lyDo.value, ngayPhatSinh: ngay.value, boQuaTrung: b.boQuaTrung }, ai: input.ai, phaiThuDich: hh + so.value });
   if (!thay.ok) return thay;
   const at = new Date().toISOString();

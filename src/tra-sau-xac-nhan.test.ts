@@ -275,5 +275,5 @@ test("«Đã giao» đơn Trả sau còn nợ đi qua ROUTE THẬT: 409 «Đơn 
   assert.equal((await w.call("POST", `/api/orders/${o.id}/payments`, { as: ACC, body: { soTien: T_ZB1, hinhThuc: "CASH", nguoiThu: "cong_ty" } })).status, 201);
   const du = await w.call("POST", `/api/orders/${o.id}/delivered`, { as: SUP, body: {} });
   assert.equal(du.status, 200, du.text);
-  assert.equal(hoaHong(), 1, "thu đủ rồi bấm Xong và đủ tiền: hoa hồng mới vào sổ");
+  assert.equal(hoaHong(), 1, "thu đủ rồi bấm Xác nhận khách đã trả đủ: hoa hồng mới vào sổ");
 });

@@ -2249,11 +2249,15 @@ export const partiesModule: AppModule = {
         if (chan) return error(409, "role_end_has_open_work", chan);
       }
       const at = now.toISOString();
+      // ADR-0181 Đ2 (b): hồ sơ có hạn mức Trả sau đang mở ⇒ nối câu đóng hạn mức của billing SAU câu đóng vai (cùng lô). Câu đóng tự kiểm «không còn vai được hưởng» theo
+      // đúng định nghĩa trigger 0141, nên gỡ một vai khi còn vai khác, hoặc vai đã đóng trước đó (câu đầu 0 dòng), thì không đóng gì. Không đọc được ⇒ hàm NÉM (500, không ghi gì).
+      const dongHanMuc = row && (await ctx.gopHoSo.coHanMucTraSauMo(id)) ? ctx.gopHoSo.cauDongHanMucKhiHetVai(id, at, staff.id) : [];
       let results: D1Result[];
       try {
         results = await env.DB.batch([
           endRoleStatement(env.DB, id, rid, to.value, staff.id, at),
           auditStatement(env.DB, { staffId: staff.id, action: "party_role_ended", at, targetType: "party", targetId: id }, "changes() > 0"),
+          ...dongHanMuc,
         ]);
       } catch (e) {
         // Không lộ lỗi SQLite thô (trigger của vai "Công ty chủ" nếu lớp route bị vượt).

@@ -34,7 +34,7 @@ import { congLuatBan } from "./cong-ban";
 const NHAN_VI: Record<LyDoCanXacNhan, string> = { DICH_VU: "dịch vụ cần xác nhận", DAT_GAP: "lượt đón dưới hạn chốt, cần đặt gấp", CHOT_GIO: "có lượt đưa đón chưa có giờ đón" };
 const dtoYeuCau = (y: YeuCauRow, vi: LyDoCanXacNhan[], nowMs: number): YeuCauXacNhanDto => ({ id: y.id, guiLuc: y.submitted_at, hanLuc: y.deadline_at, quaHan: quaHanXacNhan(y.deadline_at, nowMs), vi });
 const NOT_FOUND_DON = () => error(404, "not_found", "Không tìm thấy đơn.");
-const DA_GIAO_DON = () => error(409, "order_delivered", "Đơn đã ở bước Xong và đủ tiền: không sửa, huỷ hay đổi người phụ trách được nữa.");
+const DA_GIAO_DON = () => error(409, "order_delivered", "Đơn đã ở bước Khách đã trả đủ: không sửa, huỷ hay đổi người phụ trách được nữa.");
 export const PHAI_GUI_DON = () => error(409, "partner_submit_required", "Đơn của tài khoản Đối tác được gửi bằng nút Gửi đơn.");
 /** Đ13.5: người gọi VỪA là người lập đơn VÀ giữ quyền Đối tác (kể cả tài khoản lai) ⇒ đường xác nhận cũ đóng. Luật ở route vì `can()` lấy HỢP các ô; chỉ chặn NGƯỜI LẬP. */
 export const phaiGuiDon = (staff: StaffProfile, meta: { staffId: string; status: string }): boolean => meta.status === "draft" && meta.staffId === staff.id && holdsPartner(staff);

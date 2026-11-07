@@ -959,7 +959,7 @@ export function lyDoChuaGiaoDuoc(input: {
   traSau?: boolean;
   so: SoTienDon;
 }): LyDoGiu | null {
-  if (input.deliveredAt) return { ma: "already_delivered", cau: "Đơn đã ở bước Xong và đủ tiền.", aiXuLy: "Văn phòng" };
+  if (input.deliveredAt) return { ma: "already_delivered", cau: "Đơn đã ở bước Khách đã trả đủ.", aiXuLy: "Văn phòng" };
   if (input.status === "cancelled") return { ma: "cancelled", cau: "Đơn đã huỷ.", aiXuLy: "Văn phòng" };
   if (input.status !== "confirmed") return { ma: "not_confirmed", cau: "Đơn chưa xác nhận — xác nhận đơn trước.", aiXuLy: "Người lập đơn" };
   if (input.dichVuThieuNgay.length > 0 || input.ngayDi.length === 0 || input.ngayDi.some((d) => d === null)) {
@@ -975,9 +975,9 @@ export function lyDoChuaGiaoDuoc(input: {
   if (input.soKhoanDoiChieu > 0) {
     const cum = [...new Set(input.cumDoiChieu ?? [])];
     if (cum.length > 0 && cum.some((c) => c !== cumDoiChieu({ collectorRole: "COMPANY", ten: null, anTen: true }))) {
-      return { ma: "reconciling", cau: `Còn khoản ${cum.join(", ")} đang chờ Kế toán xác nhận — Kế toán xác nhận xong mới bấm Xác nhận xong và đủ tiền được.`, aiXuLy: "Kế toán" };
+      return { ma: "reconciling", cau: `Còn khoản ${cum.join(", ")} đang chờ Kế toán xác nhận — Kế toán xác nhận xong mới bấm Xác nhận khách đã trả đủ được.`, aiXuLy: "Kế toán" };
     }
-    return { ma: "reconciling", cau: "Còn khoản chuyển khoản “Công ty thu” đang chờ Kế toán đối chiếu — Kế toán bấm “Xác nhận đã nhận” rồi mới bấm Xác nhận xong và đủ tiền được.", aiXuLy: "Kế toán" };
+    return { ma: "reconciling", cau: "Còn khoản chuyển khoản “Công ty thu” đang chờ Kế toán đối chiếu — Kế toán bấm “Xác nhận đã nhận” rồi mới bấm Xác nhận khách đã trả đủ được.", aiXuLy: "Kế toán" };
   }
   if (input.so.chuaRo > 0) {
     return { ma: "unknown_collector", cau: "Còn tiền trả trước chưa rõ người thu tiền — Kế toán xác nhận lại người thu tiền trước.", aiXuLy: "Kế toán" };
@@ -1023,7 +1023,7 @@ export function lyDoChuaHoanThanh(input: {
   /** Task 9: người xem thấy tới đâu. Nơi gọi trong máy chủ luôn truyền (vắng chỉ ở bài luật cũ = thấy đủ). */
   che?: CheSoDu;
 }): { ma: MaLyDoHoanThanh; cau: string; aiXuLy: AiXuLy } | null {
-  if (!input.deliveredAt) return { ma: "not_delivered", cau: "Đơn chưa tới bước Xong và đủ tiền.", aiXuLy: "Hướng dẫn viên" };
+  if (!input.deliveredAt) return { ma: "not_delivered", cau: "Đơn chưa tới bước Khách đã trả đủ.", aiXuLy: "Hướng dẫn viên" };
   if (input.completedAt) return { ma: "already_completed", cau: "Đơn đã Hoàn thành.", aiXuLy: "Kế toán" };
   const no = [...input.soDu.entries()].filter(([, so]) => so > 0);
   if (no.length > 0) {
@@ -1037,7 +1037,7 @@ export function lyDoChuaHoanThanh(input: {
   if (input.phaiThuLucGiao !== null && input.daThu !== input.phaiThuLucGiao) {
     return {
       ma: "due_mismatch", aiXuLy: "Kế toán",
-      cau: `Số đã thu (${dong(input.daThu)}) khác phải thu lúc xác nhận xong và đủ tiền (${dong(input.phaiThuLucGiao)}) — Kế toán dùng “Sửa khoản thu đã ghi” trước khi Hoàn thành.`,
+      cau: `Số đã thu (${dong(input.daThu)}) khác phải thu lúc xác nhận khách đã trả đủ (${dong(input.phaiThuLucGiao)}) — Kế toán dùng “Sửa khoản thu đã ghi” trước khi Hoàn thành.`,
     };
   }
   return null;
