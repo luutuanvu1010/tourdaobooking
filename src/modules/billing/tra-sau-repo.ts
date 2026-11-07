@@ -7,19 +7,28 @@ import { soNgayTuongThich } from "../../shared/tra-sau.ts";
 export interface HanMucRow { id: string; party_id: string; limit_amount: number; term_days: number; term_hours: number | null; grace_hours: number; valid_from_date: string; valid_to_date: string | null }
 
 // ---- Hạn mức ----
+// ADR-0181 Đ2 (a): hạn mức CHỈ có hiệu lực khi hồ sơ đang mang loại đối tác được hưởng — đúng định nghĩa trigger `bil_credit_limit_party_ok` (migration 0141): có vai đang mở
+// (`v_pty_open_role`) thuộc nhóm EXTERNAL, hoặc nhóm OTHER có nhãn đối tác. Áp ở MỌI câu đọc hạn mức hiệu lực (cổng xác nhận, Cấp độ đại lý, «Trả sau của tôi», con-duoc-dung,
+// màn danh sách) để dòng hạn mức còn mở trên hồ sơ đã thôi vai (đường gộp hồ sơ, dữ liệu cũ) không bao giờ dùng được. Đọc parties chỉ qua view công bố.
 const HAN_MUC_TAI = defineSql(
   "billing",
   "credit_limit_at",
-  `SELECT id, party_id, limit_amount, term_days, term_hours, grace_hours, valid_from_date, valid_to_date FROM bil_credit_limit
-   WHERE party_id = ?1 AND valid_from_date <= ?2 AND (valid_to_date IS NULL OR valid_to_date >= ?2) ORDER BY valid_from_date DESC LIMIT 1`,
+  `SELECT l.id, l.party_id, l.limit_amount, l.term_days, l.term_hours, l.grace_hours, l.valid_from_date, l.valid_to_date FROM bil_credit_limit l
+   WHERE l.party_id = ?1 AND l.valid_from_date <= ?2 AND (l.valid_to_date IS NULL OR l.valid_to_date >= ?2)
+     AND EXISTS (SELECT 1 FROM v_pty_open_role r JOIN v_pty_role_type t ON t.code = r.role_type_code
+                 WHERE r.party_id = l.party_id AND (t.role_group = 'EXTERNAL' OR (t.role_group = 'OTHER' AND t.is_partner_label = 1)))
+   ORDER BY l.valid_from_date DESC LIMIT 1`,
 );
 export const hanMucRowTai = (db: D1Database, partyId: string, ngay: string): Promise<HanMucRow | null> => db.prepare(HAN_MUC_TAI).bind(partyId, ngay).first<HanMucRow>();
 
 const HAN_MUC_MOI_BEN = defineSql(
   "billing",
   "credit_limit_all_at",
-  `SELECT id, party_id, limit_amount, term_days, term_hours, grace_hours, valid_from_date, valid_to_date FROM bil_credit_limit
-   WHERE valid_from_date <= ?1 AND (valid_to_date IS NULL OR valid_to_date >= ?1) ORDER BY party_id`,
+  `SELECT l.id, l.party_id, l.limit_amount, l.term_days, l.term_hours, l.grace_hours, l.valid_from_date, l.valid_to_date FROM bil_credit_limit l
+   WHERE l.valid_from_date <= ?1 AND (l.valid_to_date IS NULL OR l.valid_to_date >= ?1)
+     AND EXISTS (SELECT 1 FROM v_pty_open_role r JOIN v_pty_role_type t ON t.code = r.role_type_code
+                 WHERE r.party_id = l.party_id AND (t.role_group = 'EXTERNAL' OR (t.role_group = 'OTHER' AND t.is_partner_label = 1)))
+   ORDER BY l.party_id`,
 );
 export const hanMucRowMoiBen = async (db: D1Database, ngay: string): Promise<HanMucRow[]> => (await db.prepare(HAN_MUC_MOI_BEN).bind(ngay).all<HanMucRow>()).results;
 
@@ -32,6 +41,19 @@ const HAN_MUC_DONG = defineSql(
   `UPDATE bil_credit_limit SET valid_to_date = ?2, updated_at = ?3, updated_by = ?4 WHERE party_id = ?1 AND valid_to_date IS NULL`,
 );
 export const dongHanMucStatement = (db: D1Database, partyId: string, denNgay: string, at: string, by: string) => db.prepare(HAN_MUC_DONG).bind(partyId, denNgay, at, by);
+/**
+ * ADR-0181 Đ2 (b): đóng hạn mức KHI VÀ CHỈ KHI hồ sơ không còn vai được hưởng nào — điều kiện nằm NGAY TRONG câu (cùng định nghĩa trigger 0141), nên câu đặt SAU câu đóng vai
+ * trong cùng lô: lô đóng vai không đổi dòng nào (vai đã đóng trước đó) hoặc hồ sơ còn vai được hưởng khác ⇒ câu này không đổi dòng nào, câu nhật ký đi sau (`changes() > 0`) không ghi.
+ */
+const HAN_MUC_DONG_KHI_HET_VAI = defineSql(
+  "billing",
+  "credit_limit_close_no_role",
+  `UPDATE bil_credit_limit SET valid_to_date = ?2, updated_at = ?3, updated_by = ?4 WHERE party_id = ?1 AND valid_to_date IS NULL
+     AND NOT EXISTS (SELECT 1 FROM v_pty_open_role r JOIN v_pty_role_type t ON t.code = r.role_type_code
+                     WHERE r.party_id = ?1 AND (t.role_group = 'EXTERNAL' OR (t.role_group = 'OTHER' AND t.is_partner_label = 1)))`,
+);
+export const dongHanMucKhiHetVaiStatement = (db: D1Database, partyId: string, denNgay: string, at: string, by: string) =>
+  db.prepare(HAN_MUC_DONG_KHI_HET_VAI).bind(partyId, denNgay, at, by);
 
 const HAN_MUC_THEM = defineSql(
   "billing",

@@ -17,6 +17,16 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // ADR-0181 (chủ duyệt 7/11): đơn trả sau đã xong còn nợ được nhắc và «Ân hạn»; thôi làm đối tác thì hết hạn mức. Migration 0146. Ngày đặt lại ở bước A.0 của lần triển khai.
+    version: "2.73",
+    date: "2026-11-07",
+    items: [
+      { kind: "sua", text: "Đơn trả sau đã «Xong và đủ tiền» mà đối tác chưa nộp tiền về công ty: hộp thư vẫn nhắc trước hạn trả 6 giờ và khi quá hạn, như đơn chưa xong." },
+      { kind: "sua", text: "Quản trị, Toàn quyền bấm «Ân hạn» được cả trên đơn trả sau đã «Xong và đủ tiền» còn nợ. Ngoài hạn trả, đơn đó vẫn khoá như cũ." },
+      { kind: "doi", text: "Gỡ vai trò đối tác cuối cùng của một hồ sơ (ở Danh bạ hay ở Tài khoản) thì hạn mức trả sau của hồ sơ đó đóng luôn. Gán lại vai trò thì phải cấp lại hạn mức." },
+    ],
+  },
+  {
     // Biên nhận mẫu HD-02-DT cho đơn đối tác. Không migration. Bước A.0 ngày 7/11: 2.70, 2.71, 2.72 lên cùng một lần triển khai, giữ ba mục riêng (tiền lệ 2.55–2.57).
     version: "2.72",
     date: "2026-11-07",

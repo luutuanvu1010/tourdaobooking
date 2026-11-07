@@ -216,6 +216,15 @@ console.log("✓ 4) Huỷ đơn nợ ⇒ nợ về 0; ngừng hạn mức ⇒ đ
   assert.equal(r.status, 200, `đã ghi đủ phải thu thì «Xong và đủ tiền»: ${JSON.stringify(r.body)}`);
   assert.ok((await call(ADM, "GET", `/api/orders/${don.id}`)).body.order.deliveredAt, "đơn đã ở bước Xong và đủ tiền");
   assert.deepEqual(await noDon(), [[don.id, 179_000]], "sau «Xong và đủ tiền» nợ còn phần đối tác giữ trừ hoa hồng của họ");
+  // ADR-0181 Đ1 (migration 0146 trên D1 thật): đơn đã xong còn nợ 179.000 vẫn «Ân hạn» được; chỉ hạn trả đổi, khoá «đơn đã xong» giữ mọi cột khác.
+  {
+    const truoc = (await sqlRows(`SELECT credit_due_at AS h, credit_grace_until AS g, total, delivered_at AS d FROM orders WHERE id = '${don.id}'`))[0];
+    const hanMoi = new Date(Date.parse(truoc.h) + 24 * 3_600_000).toISOString();
+    const ah = await call(ADM, "POST", `/api/tra-sau/don/${don.id}/an-han`, { hanMoi, lyDo: "Đối tác hẹn nộp tiền" });
+    assert.equal(ah.status, 200, `«Ân hạn» đơn đã xong còn nợ: ${JSON.stringify(ah.body)}`);
+    const sau = (await sqlRows(`SELECT credit_due_at AS h, credit_grace_until AS g, total, delivered_at AS d FROM orders WHERE id = '${don.id}'`))[0];
+    assert.deepEqual([sau.h, sau.total, sau.d], [hanMoi, truoc.total, truoc.d], "chỉ hạn trả đổi");
+  }
   assert.equal((await nop(179_001)).status, 409, "sổ không nhận nộp quá phần còn giữ");
   { const x = await nop(179_000); assert.equal(x.status, 201, JSON.stringify(x.body)); }
   assert.deepEqual(await noDon(), [], "nộp đủ: hết nợ");
