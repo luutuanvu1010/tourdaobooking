@@ -139,3 +139,74 @@ test("phiên khác của cùng tài khoản (máy B) không bị ảnh hưởng 
   assert.equal(vaiPhien(w, cu), null);
   assert.equal(vaiPhien(w, moi), null);
 });
+
+// ---- Sửa sau lần kiểm Task 4 (ADR-0180) ----
+const BINH = "22222222-2222-4222-8222-222222222222";
+const dongPhien = (w: any, id: string) => JSON.stringify(w.q("SELECT * FROM aut_session WHERE id = ?", id));
+const demNhatKy = (w: any) => w.q("SELECT count(*) AS n FROM audit_log")[0].n;
+
+test("tài khoản chỉ giữ Quản trị (ADMIN) gọi POST lẫn DELETE → 403, không đổi phiên, không ghi nhật ký", async () => {
+  const w = dung();
+  seedStaff(w.sqlite, { id: BINH, phone: "0900000002", name: "Bình", perms: ["ADMIN"] });
+  await w.token(BINH);
+  const id = phienMoiNhat(w, BINH);
+  const truoc = dongPhien(w, id);
+  const n0 = demNhatKy(w);
+  assert.equal((await bat(w, BINH, "SALES")).status, 403);
+  assert.equal((await w.call("DELETE", DUONG, { as: BINH })).status, 403);
+  assert.equal(dongPhien(w, id), truoc);
+  assert.equal(demNhatKy(w), n0);
+});
+
+test("dòng phiên của người không giữ Toàn quyền có cột vai (dữ liệu hỏng): DELETE → 403, phiên nguyên, không thêm dòng nhật ký", async () => {
+  const w = dung();
+  await w.token(AN);
+  const id = phienMoiNhat(w, AN);
+  w.sqlite.prepare("UPDATE aut_session SET acting_role = 'SALES' WHERE id = ?").run(id);
+  const truoc = dongPhien(w, id);
+  const n0 = demNhatKy(w);
+  assert.equal((await w.call("DELETE", DUONG, { as: AN })).status, 403);
+  assert.equal(dongPhien(w, id), truoc);
+  assert.equal(demNhatKy(w), n0);
+});
+
+test("đang đóng Bán hàng → DELETE ghi ĐÚNG một dòng nhật ký (dòng thoát), không thêm dòng nào khác", async () => {
+  const w = dung();
+  await w.token(CHU);
+  assert.equal((await bat(w, CHU, "SALES")).status, 200);
+  const n0 = demNhatKy(w);
+  assert.equal((await w.call("DELETE", DUONG, { as: CHU })).status, 200);
+  assert.equal(demNhatKy(w), n0 + 1);
+  assert.equal(nhatKy(w, "acting_role_cleared").length, 1);
+});
+
+test("Toàn quyền không đóng vai gọi DELETE → 200 hồ sơ thường, không ghi nhật ký, dòng phiên nguyên", async () => {
+  const w = dung();
+  await w.token(CHU);
+  const id = phienMoiNhat(w, CHU);
+  const truoc = dongPhien(w, id);
+  const n0 = demNhatKy(w);
+  const r = await w.call("DELETE", DUONG, { as: CHU });
+  assert.equal(r.status, 200, r.text);
+  assert.deepEqual(r.json.staff.permissions, ["SUPER_ADMIN"]);
+  assert.equal("actingRole" in r.json, false);
+  assert.equal(demNhatKy(w), n0);
+  assert.equal(dongPhien(w, id), truoc);
+});
+
+test("POST thân rỗng hoặc không phải JSON → 400, phiên không đổi", async () => {
+  const w = dung();
+  const tk = await w.token(CHU);
+  const id = phienMoiNhat(w, CHU);
+  const exec = { waitUntil() {}, passThroughOnException() {} };
+  for (const body of [undefined, "", "không phải json", "[1,2]"]) {
+    const req = new Request(`https://booking.tourdao.vn${DUONG}`, {
+      method: "POST", body,
+      headers: { cookie: `td_session=${tk}`, origin: "https://booking.tourdao.vn", "content-type": "application/json" },
+    });
+    const res = await app.default.fetch(req, w.env, exec);
+    assert.equal(res.status, 400, `${String(body)} → ${await res.text()}`);
+  }
+  assert.equal(vaiPhien(w, id), null);
+  assert.equal(nhatKy(w, "acting_role_set").length, 0);
+});

@@ -24,7 +24,7 @@ import {
 import type {
   AccountMfaResponse, MfaEmailStartResponse, MfaRecoveryCodesResponse, MfaTotpConfirmResponse, MfaTotpStartResponse, PartyMatchResponse, PasskeyCreationOptionsResponse, PasskeyListResponse, PasskeyResponse, PasskeyRequestOptionsResponse, SessionListResponse, SessionPolicyPreviewResponse,
   PhienCuAnDanhKetQua, PhienCuAnDanhResponse,
-  SessionPolicyResponse, SessionPolicyRowDto, SessionPolicySaveResponse, StaffAccountDto, StaffListResponse, StaffResponse, StaffRolesResponse, StaffSessionListResponse, StaffWithPinResponse,
+  SessionPolicyResponse, SessionPolicyRowDto, SessionPolicySaveResponse, StaffAccountDto, StaffProfile, StaffListResponse, StaffResponse, StaffRolesResponse, StaffSessionListResponse, StaffWithPinResponse,
 } from "../../shared/contracts";
 import { toBase64Url } from "../../shared/encoding";
 import { UUID_RE, error, json, readJson } from "../../shared/http";
@@ -54,6 +54,12 @@ const NOT_FOUND = () => error(404, "not_found", "Không tìm thấy nhân viên.
 const LAST_ADMIN = () => error(409, "account_rule", "Hệ thống phải còn ít nhất một quản trị viên đang hoạt động.");
 // ADR-0019 điều 2: lời cổng `admin` của router, nhắc lại ở thân handler khi ô `admin.manage` của bảng quyền không cho.
 const NOT_ACTING_ROLE = () => error(403, "forbidden", "Chỉ người phụ trách hệ thống mới dùng được chức năng này.");
+/**
+ * Cổng bật / thoát "xem như vai khác" (ADR-0180 Đ3): xét quyền THẬT, không xét bộ hiệu lực (đang đóng Bán hàng vẫn phải thoát được). Hai điều kiện cùng phải đúng:
+ * ô `settings.ops` của bảng quyền VÀ quyền thật có mã SUPER_ADMIN — để cổng không đổi nghĩa nếu một ngày ô đó được mở cho quyền khác.
+ */
+const duocXemNhuVai = (staff: StaffProfile): boolean =>
+  can({ id: staff.id, permissions: [...quyenThat(staff)] }, "settings.ops") && quyenThat(staff).includes("SUPER_ADMIN");
 const NOT_ADMIN = () => error(403, "forbidden", "Chỉ quản trị viên được thực hiện thao tác này.");
 // ADR-0071 điều 1b: lời từ chối của ba ô Quản lý tài khoản (cổng "accounts").
 const NOT_ACCOUNT_VIEW = () => error(403, "forbidden", "Tài khoản này không quản lý được tài khoản.");
@@ -872,7 +878,7 @@ export const accountsModule: AppModule = {
     // cạnh /me. Cổng xét quyền THẬT (`quyenThat`, hỏi ô `settings.ops` — chỉ Toàn quyền): lúc đang đóng vai `ctx.staff.permissions` chỉ còn bộ của vai nên không dùng nó — nếu không, Toàn quyền đang xem như Bán hàng
     // không thoát ra được. Thứ tự lô: cổng (ở trên) → nhật ký → trạng thái (câu đặt vai). `detail` chỉ là mã vai.
     route("POST", "/api/auth/xem-nhu-vai", "staff", async (ctx) => {
-      if (!can({ id: ctx.staff.id, permissions: [...quyenThat(ctx.staff)] }, "settings.ops")) return NOT_ACTING_ROLE(); // quyền THẬT, qua bảng quyền (ô chỉ Toàn quyền)
+      if (!duocXemNhuVai(ctx.staff)) return NOT_ACTING_ROLE();
       const vai: unknown = (await readJson(ctx.request))?.role;
       if (!laVaiChonDuoc(vai)) return error(400, "invalid_role", "Vai trò này không chọn được để xem.");
       const phien = ctx.sessionId;
@@ -889,9 +895,11 @@ export const accountsModule: AppModule = {
     }),
 
     route("DELETE", "/api/auth/xem-nhu-vai", "staff", async (ctx) => {
-      if (!can({ id: ctx.staff.id, permissions: [...quyenThat(ctx.staff)] }, "settings.ops")) return NOT_ACTING_ROLE(); // quyền THẬT, qua bảng quyền (ô chỉ Toàn quyền)
+      if (!duocXemNhuVai(ctx.staff)) return NOT_ACTING_ROLE();
       const phien = ctx.sessionId;
       if (!phien) return error(401, "unauthorized", "Máy đang đăng nhập này không còn hiệu lực. Đăng nhập lại.");
+      // Không đang đóng vai: thoát là việc không làm gì — không ghi nhật ký, không chạm phiên, trả hồ sơ như thường.
+      if (!ctx.staff.actingRole) return dungMeResponse(ctx, ctx.staff);
       const db = ctx.env.DB;
       const at = new Date().toISOString();
       await db.batch([
