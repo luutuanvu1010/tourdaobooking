@@ -2,7 +2,7 @@
 
 > Hồ sơ có ngày, viết xong là đóng băng. Lần trước: `docs/superpowers/specs/2026-10-17-ket-qua-ra-soat-truoc-launch.md`.
 > Người rà: một phiên AI vai Giám đốc dự án, chỉ đọc mã, cùng bốn trợ lý chỉ đọc. Đây là ý kiến đầu vào; chủ dự án quyết.
-> Bản được rà chính là bản đang chạy trên bản thật (mã «Xem như vai trò khác» triển khai 22:04 cùng ngày, số bản vẫn hiện 2.73). Bằng chứng: `phu-luc/` (00 phạm vi và bộ kiểm, 01 tiền, 02 quyền và Đối tác, 03 giao diện, 04 vận hành, 05 sổ việc cũ); ảnh: `docs/evidence/2026-11-07-ra-soat-truoc-launch-lan-2/`.
+> Bản được rà chính là bản đang chạy trên bản thật: lệnh chỉ đọc của Cloudflare lúc 23:02 cho thấy bản triển khai 22:04 (có mã «Xem như vai trò khác») đang chạy 100%, và sổ phát hành ghi bản đó dựng đúng từ mã được rà; số bản vẫn hiện 2.73. Bằng chứng: `phu-luc/` (00 phạm vi và bộ kiểm, 01 tiền, 02 quyền và Đối tác, 03 giao diện, 04 vận hành, 05 sổ việc cũ); ảnh: `docs/evidence/2026-11-07-ra-soat-truoc-launch-lan-2/`.
 
 ## Kết luận
 
