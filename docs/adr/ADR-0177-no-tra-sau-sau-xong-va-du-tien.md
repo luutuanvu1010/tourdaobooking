@@ -1,6 +1,6 @@
 # ADR-0177 — Nợ Trả sau sau «Xong và đủ tiền»: khớp sổ đại lý
 
-- **Trạng thái:** **proposed** 2026-11-06 — chủ chọn hướng «Khớp sổ đại lý» trong chat (hộp hỏi, phiên `claude/festive-payne-7371a2`); chờ chủ duyệt văn bản.
+- **Trạng thái:** **accepted** 2026-11-07 — chủ bấm «Theo khuyến nghị» trong chat (phiên `claude/partner-type-ta-oracle-18-efd687`) sau báo cáo kiểm độc lập toàn phần Trả sau ngày 7/11; khuyến nghị điểm 1 của báo cáo là «bạn duyệt ADR-0177». Trước đó: **proposed** 2026-11-06 — chủ chọn hướng «Khớp sổ đại lý» trong chat (hộp hỏi, phiên `claude/festive-payne-7371a2`).
 - **Loại:** việc lớn (tiền). **Cửa:** hai chiều (không đổi dữ liệu, không migration).
 - **Số quyết định chạm quyền/dữ liệu trong lượt duyệt:** 1.
 - **Quan hệ với ADR cũ:** **làm rõ** ADR-0168 Đ2 mục 2, câu «Tính trên toàn bộ tiền phải thu, không trừ hoa hồng». **Làm rõ nghĩa «thu đủ»** ở ADR-0173 Đ3 mục 1 và tiêu chí 5 («đơn công nợ còn nợ thì hoa hồng chưa được trả hay đối trừ; thu đủ thì vào»): «thu đủ» là **đã ghi đủ phải thu** (cổng «Xong và đủ tiền» như cũ), kể cả khi tiền còn ở tay đối tác, chứ không phải đã nộp về công ty. Trả lời câu treo «nợ đơn Trả sau có được trừ vào hoa hồng không». Không đổi ADR-0168 Đ3, ADR-0170, ADR-0172.
