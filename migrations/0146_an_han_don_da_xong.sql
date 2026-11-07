@@ -1,4 +1,4 @@
--- Migration 0146 — ADR-0181 Đ1: «Ân hạn» được trên đơn Trả sau đã «Xong và đủ tiền» mà còn nợ (đối tác ghi đủ tiền, chưa nộp — ADR-0177). Ngoại lệ CÓ TÊN duy nhất của khoá
+-- Migration 0146 — ADR-0181 Đ1: «Ân hạn» được trên đơn Trả sau đã tới bước «Khách đã trả đủ» (tên cũ «Xong và đủ tiền») mà còn nợ (đối tác ghi đủ tiền, chưa nộp — ADR-0177). Ngoại lệ CÓ TÊN duy nhất của khoá
 -- «đơn đã xong» (ADR-0025 H6): chỉ ba cột hạn trả (`credit_due_at`, `credit_grace_until`, `credit_due_date`) cùng giờ sửa `updated_at` được đổi; mọi cột khác vẫn khoá.
 -- Số 0146: 0145 thuộc nhánh khác chưa gộp (claude/multi-role-admin-view-8030d2). Không đổi dữ liệu, chỉ tạo lại trigger. Tệp KHÔNG tự mở/đóng giao dịch. Không `CASE … END)` trong trigger.
 --
@@ -32,4 +32,4 @@ WHEN OLD.delivered_at IS NOT NULL
     AND NEW.manifest_exempt IS OLD.manifest_exempt AND NEW.declared_deposit IS OLD.declared_deposit AND NEW.sales_invitee_party_id IS OLD.sales_invitee_party_id
     AND NEW.payment_term IS OLD.payment_term
     AND NEW.company_collects_snapshot IS OLD.company_collects_snapshot)
-BEGIN SELECT RAISE(ABORT, 'order_delivered: đơn đã tới bước Xong và đủ tiền, không sửa được'); END;
+BEGIN SELECT RAISE(ABORT, 'order_delivered: đơn đã tới bước Khách đã trả đủ, không sửa được'); END;
