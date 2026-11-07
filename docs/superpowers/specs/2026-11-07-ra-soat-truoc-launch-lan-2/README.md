@@ -6,7 +6,7 @@
 
 ## Kết luận
 
-Nhân viên bắt đầu nhận đơn thật và thu tiền thật được, với điều kiện làm xong danh sách «dữ liệu phải có trước ngày dùng thật» ở dưới; quan trọng nhất là mọi tài khoản nội bộ còn đăng nhập được (bảo mật hai lớp) và Kế toán nhập Cấp độ đại lý cùng mức hoa hồng trước đơn đại lý đầu tiên. Chỉ có một lỗi chặn, và nó chặn việc mở cho Đối tác chứ không chặn nhân viên: tài khoản Đối tác tạo theo kiểu cũ tự lập đơn thì hoa hồng về 0 mà không ai được báo; soát danh sách tài khoản và gán đúng vai trò là hết. Bộ kiểm của máy đều xanh (kiểm kiểu; 8.315 bài kiểm thường; bộ kiểm toàn luồng 85/85 kịch bản, kèm bốn lần kiểm bất biến dữ liệu đều đạt). Còn khoảng mười việc nên sửa trong tuần đầu; dùng đúng quy trình thì không việc nào làm sai tiền, trừ một đường hiếm ở Trả sau (T-03) hiện chưa dùng tới.
+Nhân viên bắt đầu nhận đơn thật và thu tiền thật được, với điều kiện làm xong danh sách «dữ liệu phải có trước ngày dùng thật» ở dưới; quan trọng nhất là mọi tài khoản nội bộ còn đăng nhập được (bảo mật hai lớp) và Kế toán nhập Cấp độ đại lý cùng mức hoa hồng trước đơn đại lý đầu tiên. Chỉ có một lỗi chặn, và nó chặn việc mở cho Đối tác chứ không chặn nhân viên: tài khoản Đối tác tạo theo kiểu cũ tự lập đơn thì hoa hồng về 0 mà không ai được báo; soát danh sách tài khoản và gán đúng vai trò là hết. Bộ kiểm của máy đều xanh (kiểm kiểu; 8.315 bài kiểm thường; bộ kiểm toàn luồng 85/85 kịch bản, kèm bốn lần kiểm bất biến trên dữ liệu thử của máy đều đạt; dữ liệu bản thật thì đợt này không được kiểm). Còn khoảng mười việc nên sửa trong tuần đầu; dùng đúng quy trình thì không việc nào làm sai tiền, trừ một đường hiếm ở Trả sau (T-03) hiện chưa dùng tới.
 
 ## Chặn ngày dùng thật
 
@@ -21,11 +21,9 @@ Nhân viên bắt đầu nhận đơn thật và thu tiền thật được, v�
 | T-02 | Đơn đại lý xác nhận lúc chưa có mức hoa hồng bị giữ ở «Khách đã trả đủ»; nhập mức sau không sửa đơn cũ, phải ghi tay từng dòng. Tiền không sai, chỉ tắc. | 01, T-02 | Nhập mức trước (danh sách dưới); câu báo nói rõ · nhỏ |
 | T-03 | Đơn Trả sau đã thu đủ đổi được bên đặt sang đối tác chưa có hạn mức, rồi đảo khoản thu làm đối tác đó mang nợ (hiếm) | 01, T-03 | Đòi bên mới có hạn mức · vừa, chạm tiền |
 | G-03 | Hết phiên giữa lúc lập đơn: về trang đăng nhập không lời giải thích, chữ đã gõ mất (mục cũ T-1) | 03, G-03 | Giữ nháp trên máy, báo «đăng nhập lại để tiếp tục» · vừa |
-| G-02 | Quên chọn Đón/Không đón: đơn bị lưu nháp và chuyển trang, trang đó ghi «Không đưa đón» | 03, G-02 | Chặn ngay trên form · nhỏ |
-| G-04, G-05 | Quản lý bán hàng trên iPhone không tới được «Dịch vụ & giá»; công tắc «Cần kiểm vé» không có chữ; «Ngừng bán» không hỏi lại | 03 | Lối tắt, nhãn, hộp hỏi lại · nhỏ |
-| G-06 | Tám chỗ chữ khó hiểu, ví dụ nút «Duyệt đặt gấp» cho chính người lập, «2,8tr ₫», bài Hướng dẫn Đối tác nói sai menu | 03, G-06 | Sửa theo bảng tham chiếu · nhỏ |
+| G-02, G-04 – G-06 | Quên chọn Đón/Không đón thì đơn bị lưu nháp và chuyển trang; Quản lý bán hàng trên iPhone không tới được «Dịch vụ & giá», ở đó công tắc không có chữ và «Ngừng bán» không hỏi lại; tám chỗ chữ khó hiểu (ví dụ «Duyệt đặt gấp», «2,8tr ₫») | 03 | Sửa theo phụ lục 03 · nhỏ |
 | Q-05 | Chuyến quên bấm «Kết thúc» thì tài xế còn thấy tên, năm sinh, SĐT liên hệ của khách nhiều ngày (mục cũ E-1) | 02, Q-05 | Hạn cuối hết ngày hôm sau hoặc tự kết thúc · vừa |
-| Q-07 | Công tắc thu tiền Đối tác ở Tắt (hiện đang Bật): câu báo vé khoá chỉ sai việc phải làm | 02, Q-07 | Đổi câu · nhỏ |
+| Q-07 | Công tắc thu tiền Đối tác ở Tắt (theo sổ, hiện đang Bật): câu báo vé khoá chỉ sai việc phải làm | 02, Q-07 | Đổi câu · nhỏ |
 | V-01 | Lỗi máy chủ bảo «báo kèm mã này» nhưng không hiện mã | 04, V-01 | Ghép mã vào câu · nhỏ |
 | R3d | Bán hàng ngưng được hồ sơ khách dùng chung, đơn nháp của đồng nghiệp báo lỗi; nhật ký không ghi | 02, Q-04 | Chủ quyết ai được ngưng · vừa |
 
@@ -33,20 +31,20 @@ Nhân viên bắt đầu nhận đơn thật và thu tiền thật được, v�
 
 ## Dữ liệu phải có trước ngày dùng thật
 
-1. **Mọi tài khoản nội bộ đăng nhập được.** Chủ hoặc Quản trị xem nhãn hai lớp ở Quản lý tài khoản. Ân hạn chung đã hết từ cuối tháng 10, nên ai chưa bật và quá hạn thì đã bị chặn đăng nhập; bấm «Tắt bảo mật hai lớp» để mở 24 giờ cho họ tự bật. Khoá cấu hình hai lớp gần như chắc đã có (lệnh triển khai tự dừng khi thiếu, hai lần triển khai hôm nay đều qua — SUY LUẬN), nhưng nên có một người bật thử trọn vòng trên iPhone.
+1. **Mọi tài khoản nội bộ đăng nhập được.** Chủ hoặc Quản trị xem nhãn hai lớp ở Quản lý tài khoản. Theo sổ phát hành, ân hạn chung đã hết từ cuối tháng 10, nên ai chưa bật và quá hạn thì đã bị chặn đăng nhập; bấm «Tắt bảo mật hai lớp» để mở 24 giờ cho họ tự bật. Khoá cấu hình hai lớp gần như chắc đã có (lệnh triển khai tự dừng khi thiếu, hai lần triển khai hôm nay đều qua — SUY LUẬN), nhưng nên có một người bật thử trọn vòng trên iPhone.
 2. **Tài khoản Đối tác đều có vai trò đối tác** (chủ soát, T-01). Thiếu: hoa hồng 0 mà không ai biết.
 3. **Cấp độ đại lý, gán cấp, mức hoa hồng** (Kế toán), trước đơn đại lý đầu tiên. Thiếu: đơn bị giữ, ghi tay (T-02); trang Hoa hồng có khung vàng báo vai trò thiếu mức.
 4. **Hồ sơ công ty chủ** đủ tên, MST, địa chỉ, liên hệ «Hotline» (Toàn quyền). Thiếu: biên nhận báo «Chưa có thông tin công ty». Trang công khai lúc 22:54 cho thấy đã có tên và MST; Hotline chưa kiểm.
 5. **Tài khoản ngân hàng nhận tiền** (Kế toán hoặc Toàn quyền). Thiếu: không hiện mã QR, có câu báo.
 6. **Chính sách điều phối (mốc 6 giờ)**. Thiếu: đơn có đưa đón không lập, không xác nhận được, có câu báo.
-7. **Xe đủ kiểm định và bảo hiểm** (Quản trị). Thiếu: xe bị chặn ở bước cho xe chạy; cảnh báo kiểm bất biến đang nêu bảy xe như vậy. Quyết định cho xe thiếu giấy tờ vẫn chạy (ADR-0184) chưa có mã.
+7. **Xe đủ kiểm định và bảo hiểm** (Quản trị). Thiếu: xe bị chặn ở bước cho xe chạy; theo sổ phát hành, lần kiểm bất biến bản thật của chủ lúc 19:38 nêu bảy xe như vậy. Quyết định cho xe thiếu giấy tờ vẫn chạy (ADR-0184) chưa có mã.
 8. **Hạn mức Trả sau** chỉ cần khi gỡ lời cấm; chưa có thì đơn Trả sau bị chặn có câu.
 
 Tình trạng thật của các mục trên bản thật: CHƯA KIỂM, trừ một phần mục 4.
 
 ## Sổ «đã biết, đã quyết» (phụ lục 05)
 
-Đã đối chiếu khoảng bốn mươi mục cũ. Đã xong: bảo trì đang tắt, câu thông báo giao đơn, sổ triển khai có điểm khôi phục, dọn dữ liệu thử 2/11, Bán hàng tự «Đặt gấp». Còn nguyên: hết phiên mất chữ (G-03); không cảnh báo khi Nền tảng hỏng ban đêm, không lịch kiểm bất biến hằng ngày; số điện thoại gõ vào tiêu đề Góp ý nằm vĩnh viễn trong nhật ký; Nhân sự tạo được tài khoản Bán hàng (chờ chủ); Bán hàng đặt giá 0 đồng hay giảm 100% vẫn xác nhận được (BACKLOG); diễn tập khôi phục chưa làm (chủ đã quyết phát hành trước); ba cảnh báo kiểm bất biến như cũ.
+Trong khoảng bốn mươi mục cũ, đã xong phần lớn điều kiện chặn của đợt 17/10 (bảo trì đang tắt; dọn dữ liệu thử ngày 2/11 theo sổ). Còn nguyên: hết phiên mất chữ, không cảnh báo khi Nền tảng hỏng ban đêm và không lịch kiểm bất biến hằng ngày, số điện thoại gõ vào tiêu đề Góp ý nằm vĩnh viễn trong nhật ký, Nhân sự tạo được tài khoản Bán hàng (chờ chủ), Bán hàng đặt giá 0 đồng vẫn xác nhận được (BACKLOG), diễn tập khôi phục chưa làm (chủ đã quyết phát hành trước).
 
 ## Việc theo lịch
 
