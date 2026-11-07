@@ -68,4 +68,23 @@ Bảng ghi tên tệp và tên hàm, không ghi số dòng (số dòng đổi th
 - **Số route trong bài quét:** mỗi lần thêm route phải tăng tay con số trong bài quét, cùng lúc với SNAPSHOT của `src/route-access.test.ts`.
 - **Hai phán quyết suy diễn từ Đ3, chưa có chữ trong ADR:** luật một máy / nhiều máy theo quyền thật; báo đẩy chọn máy theo quyền thật của tài khoản nhận.
 
+## Chờ chủ quyết trước hoặc lúc nhập (bổ sung lúc đóng phiên 2026-11-07)
+- **Số ADR-0180 trùng:** nhánh `claude/adr-0180-xe-thieu-giay-to` cũng dùng số 0180 (0181–0183 đã dùng nơi khác). Chủ chọn bên nào giữ 0180, bên kia đổi số.
+- **Dấu vai trong nhật ký tính theo TÀI KHOẢN, không theo phiên** (cửa sổ 60 phút + 10 giây đệm): đóng vai ở máy A, thao tác ở máy B trong cùng cửa sổ vẫn có dấu. ADR viết «bối cảnh yêu cầu». Chủ nhận giới hạn bằng điều sửa đổi ADR, hoặc đổi cách làm.
+- **Module audit đọc thẳng `aut_session`:** lệch kiến trúc chưa duyệt (ghi ở `docs/SYSTEM-DESIGN.md` §16). Chủ duyệt tiền tố view `v_aut_*` hoặc ngoại lệ có hạn.
+- **Trang Nhật ký có hiện dấu vai không:** chưa làm, cột đã có.
+- **Chữ giao diện:** chủ chọn «Xem như vai khác» / «Thoát vai», bảng từ (ADR-0130) đã bỏ chữ «vai» đứng một mình nên mã dùng «Xem như vai trò khác» / «Đang xem như vai trò X» / «Thoát». Chủ xác nhận hoặc đổi ba chuỗi ở bảng tham chiếu.
+- **Trần gói Đơn hàng nâng 105804 → 106223 (+419 byte):** đuôi « · Đang bảo trì» ở thanh báo tốn 41 byte. Muốn giữ mức cũ thì bỏ đuôi đó.
+- **Sổ riêng** (`bil_*`, `fbk_*`…) không mang dấu vai; chỉ `audit_log` mang.
+- **Chưa ai xem bằng mắt:** thanh báo có dính ở đầu trang máy tính và Trang chủ iPhone (vùng an toàn) không.
+- **Dòng đồng tác giả** của hai lần lưu b5fdbaac, 09ee8837 ghi «Opus 5.5», không viết lại lịch sử.
+- **Số migration 0145:** đã kiểm lúc nhập, main có 0144 và 0146, không trùng.
+
 ## Ruling của người điều phối
+- Quyền hiệu lực của `SALES_MANAGER` khi đóng vai = [SALES_MANAGER, SALES], vì tài khoản thật luôn mang cả hai. Sai thì chỉ lệch chữ «đúng bộ quyền của mã đó» trong ADR; đảo ngược được.
+- Tên chữ: chốt «Xem như vai trò khác», «Đang xem như vai trò X», «Thoát» (lý do ở mục trên).
+- Chi tiết cơ chế nhật ký (Task 5) ghi vào đặc tả và sổ này, không sửa ADR-0180 đã duyệt (N9).
+- Bảng rà nơi đọc quyền để ở sổ này (có theo dõi trong git), không sửa ADR (N9).
+- Trần dung lượng gói Đơn hàng: thử bớt byte trước, không được mới nâng; nâng đến 106223 (+419) và ghi lý do.
+- Báo của người kiểm Task 8 «§16 không có mục audit→aut» là báo nhầm: dòng có ở `docs/SYSTEM-DESIGN.md` §16, không làm gì.
+- Đồng tác giả «Opus 5.5» ở hai lần lưu: giữ nguyên, không viết lại lịch sử.
