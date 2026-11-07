@@ -489,3 +489,19 @@ test("Đ2.10: trip_order_synced thuộc nhóm tin THƯỜNG (hộp đọc trần
   assert.equal(thayDoiCoTheCoTin("cap_nhat", true), true, "máy có quyền Tài xế gọi lại chuông");
   assert.equal(thayDoiCoTheCoTin("cap_nhat", false), false, "máy văn phòng không gọi lại (khuôn CAO-3)");
 });
+
+test("ADR-0184 (chủ quyết 2026-11-08): cho chạy dù thiếu giấy tờ → tài xế đang được giao (công ty lẫn đối tác) nhận đúng câu, người khác không nhận; câu không số giấy, không tên", () => {
+  const d = dong({ action: "trip_departure_waived", actorId: "sup", luc: T2, lai: [{ partyId: "p-b", tu: T0, den: null }], thieuGiay: ["Kiểm định", "Bảo hiểm trách nhiệm dân sự"] });
+  const tin = tinChuyenCho(TX_B, d);
+  assert.equal(tin?.loai, "cho_chay_thieu");
+  assert.equal(tin?.cau, "Chuyến CX-1103-02: Xe thiếu Kiểm định, Bảo hiểm trách nhiệm dân sự — đã cho chạy");
+  assert.deepEqual(tinChuyenCho(TX_DT, d), tin, "tài xế đối tác đang lái nhận cùng câu");
+  assert.equal(tinChuyenCho(TX_A, d), null, "tài xế không lái chuyến này (dòng lái không bao mốc)");
+  assert.equal(tinChuyenCho(nguoi("tx-dt2", ["DRIVER_PARTNER"], "p-z"), d), null, "tài xế đối tác không lái chuyến này");
+  for (const p of ["SALES", "ADMIN", "SUPER_ADMIN", "ACCOUNTING"] as const) assert.equal(tinChuyenCho(nguoi("x", [p]), d), null, `${p} không nhận`);
+  assert.equal(tinChuyenCho(nguoi("sup", ["DRIVER"], "p-b"), dong({ ...d, actorId: "sup" })), null, "người làm không tự nhận (E3)");
+  assert.equal(tinChuyenCho(nguoi("sup", ["DRIVER"], "p-b"), d), null);
+  assert.ok(dongCoTheSinhTin(d), "dòng có thể sinh tin");
+  assert.equal(thayDoiCuaHanhDongChuyen("trip_departure_waived", false), "sua");
+  assert.equal(tinChuyenCho(TX_B, dong({ ...d, thieuGiay: undefined }))?.cau, "Chuyến CX-1103-02: Xe thiếu giấy tờ — đã cho chạy", "thiếu dữ kiện loại giấy → câu chung, không đoán");
+});

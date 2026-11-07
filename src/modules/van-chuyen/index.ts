@@ -2361,8 +2361,8 @@ export const vanChuyenModule: AppModule = {
       return json(body, lap ? 200 : 201, { location: `/chuyen?id=${nen2.trip.id}` });
     }),
     // ADR-0184: «Cho chạy dù thiếu giấy tờ» — ô đầu `trip.override` (Quản trị, Toàn quyền); ô `trip.override.giay_to_cung` (chỉ Toàn quyền) hỏi tiếp ở lệnh cho Kiểm định /
-    // Bảo hiểm và cho bỏ trống lý do. Chuyến chưa chạy; không gửi tin, không Bảng tin (chỉ ghi dòng cho phép — màn đọc lại ở chi tiết chuyến).
-    route("POST", "/api/van-chuyen/chuyen/:id/cho-chay-thieu-giay", "office", async ({ env, request, params, staff, nhanNhanVien, isAssigned, isSalesOwner }) => {
+    // Bảo hiểm và cho bỏ trống lý do. Chuyến chưa chạy; báo tài xế đang được giao chuyến (chủ quyết 2026-11-08, QT1).
+    route("POST", "/api/van-chuyen/chuyen/:id/cho-chay-thieu-giay", "office", async ({ env, request, params, staff, nhanNhanVien, isAssigned, isSalesOwner, baoThayDoiChuyen }) => {
       if (!can(staff, "trip.override")) return CAN_CHO_CHAY_THIEU();
       const than = docChoChayThieu(await readJson(request));
       if (!than.ok) return error(400, "invalid_input", than.message);
@@ -2375,6 +2375,7 @@ export const vanChuyenModule: AppModule = {
       if (!lap) {
         const r = await lenhChoChayThieu(env.DB, nen, b, nguoiBamVanPhong(staff, nen), bayGioMs, can(staff, "trip.override.giay_to_cung"));
         if (r) return r;
+        baoThayDoiChuyen({ tripId: nen.trip.id, requestId: b.requestId }); // ADR-0184 (chủ quyết 2026-11-08): tin cho tài xế đang được giao chuyến (tin-chuyen.ts)
       }
       const nen2 = (await docNen(env.DB, nen.trip.id))!;
       const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);

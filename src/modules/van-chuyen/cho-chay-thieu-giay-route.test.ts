@@ -5,7 +5,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
-import { ADM, SALES, SUP, NGAY, batDongHo, chiTiet, chuyenSan, denGio, setup, tienDo, uuid } from "../../../tests/audit/dieu-phoi-khung.mjs";
+import { ADM, DRIVER, SALES, SUP, ACC, NGAY, batDongHo, chiTiet, chuyenSan, denGio, setup, tienDo, uuid } from "../../../tests/audit/dieu-phoi-khung.mjs";
 
 const AT = "2026-09-01T00:00:00.000Z";
 let so = 700;
@@ -281,6 +281,52 @@ test("phiên bản chuyến cũ → 409 (cổng version), không ghi gì; thân 
     assert.equal((await choChay(w, t.id, ADM, { loaiGiayTo: [] })).status, 400);
     assert.equal((await choChay(w, t.id, ADM, { loaiGiayTo: ["registration; DROP"] })).status, 400);
     khongGhiGi(w, t.id);
+  } finally {
+    tat();
+  }
+});
+
+test("báo tài xế: lệnh thắng gọi baoThayDoiChuyen đúng MỘT lần cho đúng chuyến; 403 / 400 / 409 / gửi lại cùng requestId thì không", async () => {
+  const tat = batDongHo();
+  try {
+    const goi: { tripId: string; requestId: string }[] = [];
+    const w = setup({ ghiDe: { baoThayDoiChuyen: async (_env: unknown, _a: unknown, e: { tripId: string; requestId: string }) => void goi.push(e) } });
+    themDieuKienDangKy(w);
+    const { t } = await chuyenXe(w, ["INSPECTION", "TPL_INSURANCE"]);
+    await new Promise((r) => setImmediate(r));
+    const truoc = goi.length; // tạo + xếp chuyến đã báo
+    assert.equal((await choChay(w, t.id, ADM, { loaiGiayTo: ["REGISTRATION"] })).status, 400);
+    assert.equal((await choChay(w, t.id, SALES, { loaiGiayTo: ["REGISTRATION"], lyDo: "THIEU_GIAY_GIA_HAN" })).status, 403);
+    assert.equal((await choChay(w, t.id, ADM, { loaiGiayTo: ["INSPECTION"], lyDo: "THIEU_GIAY_GIA_HAN" })).status, 409);
+    await new Promise((r) => setImmediate(r));
+    assert.equal(goi.length, truoc, "lỗi không bắn tin");
+    const version = (await chiTiet(w, t.id, ADM)).chuyen.version;
+    const body = { version, requestId: uuid(), loaiGiayTo: ["REGISTRATION"], lyDo: "THIEU_GIAY_GIA_HAN", ghiChu: null };
+    assert.equal((await w.call("POST", `/api/van-chuyen/chuyen/${t.id}/cho-chay-thieu-giay`, { as: ADM, body })).status, 201);
+    assert.equal((await w.call("POST", `/api/van-chuyen/chuyen/${t.id}/cho-chay-thieu-giay`, { as: ADM, body })).status, 200);
+    await new Promise((r) => setImmediate(r));
+    assert.deepEqual(goi.slice(truoc), [{ tripId: t.id, requestId: body.requestId }], "một tin cho đúng chuyến, lần lặp không bắn thêm");
+  } finally {
+    tat();
+  }
+});
+
+test("hộp thông báo thật: tài xế đang được giao chuyến nhận đúng câu «Chuyến <mã>: Xe thiếu … — đã cho chạy» (không số giấy, không ghi chú, không tên người cho phép); người cho phép, Bán hàng, Kế toán không nhận", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    themDieuKienDangKy(w);
+    const { t } = await chuyenXe(w, ["INSPECTION", "TPL_INSURANCE"]);
+    w.sqlite.prepare("UPDATE vc_vehicle_document SET document_number = 'SOGIAY-DANHDAU-55' WHERE document_type_code = 'INSPECTION'").run();
+    const tinCua = async (as: string) => (await w.call("GET", "/api/thong-bao", { as })).json.tin.filter((x: any) => x.loai === "chuyen" && /đã cho chạy/.test(x.cau));
+    assert.equal((await tinCua(DRIVER)).length, 0);
+    const r = await choChay(w, t.id, ADM, { loaiGiayTo: ["REGISTRATION"], lyDo: "THIEU_GIAY_GIA_HAN", ghiChu: "GHICHU-DANHDAU-0905123456" });
+    assert.ok(r.status === 200 || r.status === 201, r.text);
+    const tin = await tinCua(DRIVER);
+    assert.equal(tin.length, 1, JSON.stringify(tin));
+    assert.equal(tin[0].cau, `Chuyến ${t.ma}: Xe thiếu Đăng ký xe — đã cho chạy`);
+    assert.doesNotMatch(JSON.stringify(tin), /DANHDAU|0905123456|Quản Trị/);
+    for (const as of [ADM, SALES, ACC, SUP]) assert.equal((await tinCua(as)).length, 0, `${as} không nhận`);
   } finally {
     tat();
   }
