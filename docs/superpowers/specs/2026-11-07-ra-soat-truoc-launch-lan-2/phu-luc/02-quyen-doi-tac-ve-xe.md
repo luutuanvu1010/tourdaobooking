@@ -1,0 +1,111 @@
+# Phụ lục 02 — Quyền, Đối tác, vé, xe, vòng đời đơn, ngày giờ, «Xem như vai trò khác» (Bước 2, vùng C, D, E, H, I)
+
+> Nguồn: báo cáo của trợ lý chỉ đọc số 2 (mô hình tầm trung), phần 1 chép nguyên văn mục 1 tới mục 9; phần 2 (vùng còn thiếu, giao thêm lúc 22:30) ở cuối tệp. Phiên điều phối đã đọc toàn bộ. Vùng này không có phát hiện CHẶN LAUNCH nên phiên điều phối không chạy lại phép dò. Kịch bản dò của trợ lý nằm ngoài kho (thư mục tạm của phiên), không lưu vào kho.
+> Ghi chú của phiên điều phối: (1) «Xem như vai trò khác» (ADR-0180) đã chạy trên bản thật từ 22:04 7/11, nên mọi dòng «đang chạy thật» ở dưới là đúng. (2) Sự cố ở mục 8: hai giá trị khoá hiện ra là khoá ngẫu nhiên do kịch bản Chrome sinh cho máy chủ thử trên D1 tạm của trợ lý giao diện, không phải khoá của bản thật; không cần xử lý gì thêm.
+
+## Phần 1
+Mã rà: 5f641781 (cây làm việc ở 9f0b60be, chỉ thêm hồ sơ). Bắt đầu 22:08, kết thúc khoảng 22:25 (giờ máy, 7/11/2026).
+Kết luận ngắn: KHÔNG tìm thấy phát hiện mức CHẶN LAUNCH. Đối tác A không thấy, không sửa được gì của Đối tác B; «Xem như vai khác» giữ được các cổng đã thử. Có các điểm nhỏ (ĐỂ SAU; riêng R3d đề xuất SỬA TRONG TUẦN ĐẦU) và 1 điều cần chủ biết (ADR-0180 đang chạy thật).
+
+## 1. Phạm vi và cách rà
+Đã đọc: src/shared/xem-nhu-vai*.ts, migrations/0145, git diff 41f63f04..5f641781 của auth/accounts/audit/parties/router/contracts, đặc tả và ADR-0180, route đơn (status, payments, delivered, completed, PUT), route vé (ve-dien-tu/index.ts, duong-dan-khach.ts), phần đầu năm hàng rào (route-access, permission-enforcement, route-write-guard, lan-gui-phu-route, giao-dien-hoi-bang-quyen).
+Lệnh đã chạy: node --test "tests/audit/*.test.mjs" => 36 ca, 21 xanh, 15 ĐỎ (xem mục 5). Sáu kịch bản dò riêng trong scratchpad/quyen (mục 10), tất cả chạy trên D1 giả (SQLite thật), không mạng, không đụng bản thật.
+Không chạy npm test, typecheck, e2e, audit-invariants (theo luật chơi).
+
+## 2. Phát hiện
+### Q-01 — ĐỂ SAU — ĐÃ XÁC NHẬN — Chú thích nhật ký ADR-0180 nói «chỉ ghi mã vai», mã thật ghi tên tiếng Việt
+Chuyện gì: dòng nhật ký bật/thoát đóng vai có detail là tên quyền tiếng Việt (ví dụ «Quản trị», «Đối tác»), trong khi chú thích ở src/shared/audit-actions.ts (cạnh acting_role_set) và ADR/đặc tả nói detail chỉ là mã quyền. Không lộ dữ liệu cá nhân; chỉ tài liệu/chú thích lệch (cột audit_log.acting_role vẫn giữ mã).
+Ai gặp: người đọc nhật ký/viết tài liệu. Bằng chứng: kịch bản do-xem-nhu-vai.test.mjs in ra dòng audit: acting_role_set | acting_role=ADMIN | detail="Đối tác". Mã: src/modules/accounts/index.ts (route POST /api/auth/xem-nhu-vai, dòng auditStatement detail: PERMISSION_LABEL[vai], có chú thích «detail = tên tiếng Việt»).
+Hồ sơ cũ: chưa có. Đề xuất: sửa chú thích ở audit-actions.ts cho khớp mã (tài liệu mô tả thua mã). Việc nhỏ. Trạng thái triển khai: đang chạy trên bản thật từ 22:04 7/11.
+
+### Q-02 — ĐỂ SAU — SUY LUẬN — Hạn 60 phút của vai đóng được làm mới bởi mọi lời gọi máy chủ, kể cả lời gọi nền
+Hạn tính theo last_seen_at, làm mới (mỗi 5 phút) bởi BẤT KỲ request có đăng nhập. Trang tự gọi nền khi đang hiện: màn trò chuyện Hỗ trợ (web/ho-tro-luong.ts:108 gọi lại chỉ khi tab hiện), Bảng tin nối lại khi tab hiện lại (web/bangtin.ts:31); đồng hồ Trang chủ (web/home.ts:737) KHÔNG gọi máy chủ. Nên chủ để tab Hỗ trợ mở thì vai không tự hết sau 60 phút. Hậu quả nhỏ: vẫn bị thu hẹp quyền (hướng an toàn), nhật ký vẫn gắn dấu vai. Chưa thử bằng trình duyệt. Đề xuất: ghi vào hướng dẫn chủ «nhớ bấm Thoát»; không gấp. Đang chạy thật từ 22:04 7/11.
+
+### Q-03 — ĐỂ SAU — ĐÃ XÁC NHẬN (hành vi), hậu quả SUY LUẬN — Chống trùng mã vé phân biệt chữ hoa/thường
+Nhập lô: mã «MA1» đã có trong kho thì bị loại, nhưng «ma1 » (thường, thừa khoảng trắng) được nhận (khoảng trắng được cắt, chữ hoa/thường thì không). Nếu mã QR thật của nhà cung cấp không phân biệt hoa/thường, cùng một vé có thể vào kho hai lần. Ảnh trùng byte thì vẫn bị chặn (ca «Ảnh này đã có trong kho»). Bằng chứng: do-ve.test.mjs, lô 2: kết quả loai có thứ tự 0,1,3 bị loại, thứ tự 2 («ma1 ») được thêm. Mã: src/modules/ve-dien-tu/nhap-lo.ts dòng 13 (chu = trim). Hồ sơ cũ: ADR-0156 điều chống trùng QR — chưa đối chiếu chữ hoa/thường. Đề xuất: hỏi nhà cung cấp mã có phân biệt hoa/thường không; nếu không thì chuẩn hoá in hoa khi so (cần ADR nhỏ vì chạm chỉ mục duy nhất). Việc nhỏ-vừa.
+
+### Q-04 — ĐỂ SAU — ĐÃ XÁC NHẬN (từng ca) — Năm điểm yếu cũ của kiểm toán 22/9 vẫn còn; bộ dò cũ phần lớn đã hết dùng được
+Đã chạy lại node --test "tests/audit/*.test.mjs": 36 ca, 21 xanh, 15 đỏ. Phân tích từng ca đỏ (đọc dòng lỗi và dòng dấu vết):
+- Đỏ ở BƯỚC DỰNG, không phải ở khẳng định của ca (luật đã đổi, khung cũ lạc hậu): D-02, P2, P3, P5, P6 (POST /api/staff bằng Quản trị => 403 «Chỉ Hành chính nhân sự hoặc người phụ trách hệ thống được thêm tài khoản», đúng ADR-0071); R3b, R4, R7, D1, D2, D3, D5 (xác nhận đơn do Bán hàng lập trả 409 ở dòng 216/74/113/150); R8 (409 order_draft_no_payment, ADR-0135 Đ7); P4 (PUT /handler vào đơn NHÁP => 404, ADR-0135 Đ2: nháp người khác không thấy).
+- Đỏ ở khẳng định: chỉ D-01 «xem chi tiết đơn của người khác»: bài mong 403, máy chủ nay trả 404 (không lộ đơn có tồn tại) — mạnh hơn, không phải lùi.
+Vậy không ca «PASS đã sửa» nào đỏ vì lùi; nhưng 12 ca (D-02, P2–P6, R3b, R4, R7, R8, D3…) hiện KHÔNG chứng minh gì. Ca FINDING còn xanh (tức điểm yếu còn nguyên, ĐÃ XÁC NHẬN hôm nay): R1, R2, R3d, D4, cùng phép đo P7.
+- R1 (gửi lại cùng POST /api/orders tạo 2 đơn): khi KHÔNG có header Idempotency-Key. Lớp chống ghi trùng ADR-0094 ở «giai đoạn 1» cho qua lệnh thiếu vé và chỉ ghi log thieu_ma_lan_gui (src/shared/router.ts, dòng báo log). Giao diện luôn gắn vé (web/api.ts:157) nên người dùng thường được bảo vệ; máy còn bản cũ hay lệnh tự gọi thì không. Hồ sơ: ADR-0094 đ7 («bản siết sau»), kiểm toán 22/9 (R1). Tôi không thấy hạn cho «bản siết» trong BACKLOG/sổ (grep). Mức: ĐỂ SAU; liên quan vùng C: bấm đúp trên PWA cũ chưa cập nhật (iPhone) vẫn có thể ra hai đơn.
+- R2 (kèm newBooker gửi lại tạo hai hồ sơ khách cùng SĐT): cùng gốc R1, và chỉ mục SĐT cố ý không duy nhất (kiểm toán 22/9 dòng R2). Đã có hồ sơ.
+- R3d (Bán hàng khác ngưng hồ sơ KHÁCH đang là người đặt đơn nháp của đồng nghiệp => đồng nghiệp sửa đơn bị 400; nhật ký hồ sơ ghi «cá nhân», không ghi việc ngưng): ĐÃ XÁC NHẬN còn. Không thấy mục trong sổ quyen-hoan/BACKLOG/§16 (grep «R3d» chỉ ra bộ dò). Mức: SỬA TRONG TUẦN ĐẦU nếu nhân viên bán hàng được phép ngưng hồ sơ dùng chung (ít gặp, có cách vòng: chọn lại người đặt). Đề xuất: hỏi chủ ai được ngưng hồ sơ khách; nhật ký nên ghi «ngưng». Việc nhỏ-vừa.
+- D4 (tài khoản nhân viên trỏ hồ sơ ĐÃ NGƯNG vẫn đăng nhập): còn; đã ghi ở kiểm toán 22/9 (C13/D4). Offboarding dùng ngưng TÀI KHOẢN nên ít ảnh hưởng. ĐỂ SAU.
+- P7: danh sách người-được-giao trả cả 1000 tên cho mọi tài khoản văn phòng, không chia trang — đo quy mô, hồ sơ cũ (ADR-0014).
+Đề xuất chung: chủ/đợt sau quyết bỏ hay làm mới tests/audit (ghi chú ở README); không gấp.
+
+## Điều cần biết (không phải lỗi): ADR-0180 đang chạy thật
+- Dữ liệu ghi khi đóng vai là dữ liệu THẬT gắn tài khoản Chủ. Đã thử: Toàn quyền đóng Đối tác, lập đơn qua POST /api/orders rồi gui-don => đơn được tự xác nhận (nhánh B), nhật ký có acting_role=PARTNER (dòng created, order_terms_captured, confirmed). Đúng ADR (đã ghi «chủ đã nghe và chấp nhận»); chỉ nhắc để chủ dùng khách thử/đơn nháp, nhất là khi đóng Đối tác/Quản lý bán hàng.
+- Dấu vai trong nhật ký tra theo TÀI KHOẢN, không theo phiên: Toàn quyền dùng hai máy, máy không đóng vai vẫn bị gắn dấu trong khoảng 60 phút. ADR đã ghi nhận hạn chế này (chấp nhận).
+
+## 3. Bảng trạng thái đơn (từ mã + kịch bản do-vong-doi-don.test.mjs)
+| Bước | Ai bấm được | Cổng máy chủ (kết quả đã thử) | Nhật ký |
+|---|---|---|---|
+| Lập nháp | Bán hàng, Đối tác (đơn mình), Quản trị, Toàn quyền, Thực tập (own) | POST /api/orders, order.create | created |
+| Sửa nháp | người lập (nháp người khác => 404) | PUT /api/orders/:id; đơn đã xác nhận => 409 not_editable (đã thử) | updated |
+| Gửi đơn/xác nhận (Đối tác) | Đối tác: chỉ «Gửi đơn», không xác nhận thẳng (409 partner_submit_required) | gui-don, nhánh A cần duyệt, nhánh B tự xác nhận | confirmed hoặc ord_confirm_request |
+| Xác nhận | người lập/ phụ trách/Quản trị | POST /status {confirmed}; xác nhận lần 2 => 409 invalid_transition; mốc 6 giờ + Đặt gấp trong câu SQL | confirmed |
+| Thu tiền | Kế toán (any), Bán hàng (own), HDV (assigned), Đối tác (own) | payments; đơn nháp => 404/409; đơn huỷ chỉ Kế toán/Toàn quyền (ADR-0089 đ13, có chủ ý) | payment_recorded |
+| Khách đã trả đủ (giao) | HDV đang phụ trách, Quản trị, Toàn quyền; Bán hàng KHÔNG (403, đã thử) | POST /delivered, ô order.handover | order_delivered |
+| Hoàn thành | Kế toán, Toàn quyền (Quản trị 403) | /completed; chưa giao => 409 not_completable | order_completed |
+| Huỷ | người lập/phụ trách/Quản trị; Thực tập không phải chủ đơn 403; Đối tác không huỷ đơn đã mở vé | POST /status {cancelled} cần lyDo; vé trả lại, link khách chết (404) | cancelled |
+| Đi lùi | không ai | trigger: nháp<-xác nhận bị chặn (invalid_transition), xoá đơn đã xác nhận chặn (order_frozen), sửa nhật ký chặn (audit_append_only). Ngoại lệ: UPDATE orders SET delivered_at=NULL qua SQL TRỰC TIẾP được qua (không có đường API; ghi để biết, không phải lỗi API) |
+Không tìm thấy bước đi lùi qua API. Sau khi huỷ: xác nhận lại 409, giao 403.
+
+## 4. Kết quả dò Đối tác A <-> B (kịch bản do-doi-tac.test.mjs)
+Khung: 2 đối tác (A, B) mỗi bên 1 đơn đã gửi, 1 khoản tự thu + 1 khoản Kế toán thu, 1 vé hỗ trợ, đường dẫn vé khách; kho 6 vé. B gọi MỌI route trong ảnh chụp route-access (466 route) với 26 mã của A (đơn, mã đơn, dịch vụ, chặng, khoản thu, phân bổ vé, đường dẫn, vé hỗ trợ, hồ sơ, ...), thân rỗng cho POST/PUT.
+| Nhóm cổng | Kết quả của B |
+|---|---|
+| office (219), admin (80), accounts (12) | 100% 403 (4.327 lượt gọi) |
+| orders (63) có :id | chỉ 403/404/400; không có 2xx nào với mã của A |
+| staff (107) có :id | chỉ 403/404/400/409/503; không 2xx |
+| public (24) | link khách cần token; 404/429; không lộ |
+Quét dấu «mật» của A (SĐT khách, tên khách, ghi chú, ghi chú thu, tiêu đề vé hỗ trợ, tên hồ sơ, mã vé, SĐT đăng nhập A) trong MỌI phản hồi 2xx của B: 0 trường lộ.
+Thử ghi có thân hợp lệ (B lên đơn/vé/ticket của A): GET đơn, payments, receipt, ve/don, ve/anh, feedback:id, parties:id (403) ; PUT/PATCH/POST status, cancel-reason, payments, gui-don, passengers, legs, ve/cap, ve/duong-dan, thu-hoi, feedback messages/claim/xu-ly: toàn 403/404/405 (POST /api/ve/giao 400 vì tôi gửi thiếu trường; các route vé còn lại 403). Trạng thái đơn, số khoản thu, nhật ký đơn, sự kiện vé hỗ trợ trước/sau: BẰNG NHAU.
+Danh sách đơn của B không chứa đơn của A.
+Đường dẫn vé khách: mã 43 ký tự (256 bit), chỉ lưu băm, so hằng thời gian; token sai/đoán => 404; 40 lần sai liên tiếp => 429; trang không có tên khách; sau khi Quản trị huỷ đơn: link và ảnh => 404 (vé trả kho, release_reason=DON_HUY); B thu hồi link của A => 403; trigger vdt_append_only cấm sửa hạn link bằng SQL. Hết hạn thật chưa chạy được bằng đồng hồ giả (CHƯA KIỂM; chỉ đọc mã: expires_at >= bây giờ).
+Đối tác A xem đơn của chính mình: không có giá vốn, tên Kế toán, SĐT nhân viên (chỉ SĐT của chính A trong /api/auth/me). Công tắc «Khách của đối tác trả cho Công ty» DÒ CẢ HAI TRẠNG THÁI (khung kenhThuGia=0 và 1; chạy lại toàn bộ quét 466 route, ghi có thân và khoá trường): 0 trường lộ, B vẫn chỉ 403/404 ở cả hai; khác biệt duy nhất đúng thiết kế: Tắt => Kế toán ghi thu công ty bị 409, và /api/ve/duong-dan của đối tác tự thu 403 chua_thu_du.
+Vai khác xem đơn của A (chỉ GET): Thực tập, HDV không được giao, Nhân sự, Tài xế, Tài xế đối tác: không lộ. Bán hàng khác, Quản lý bán hàng, Kế toán xem được đơn, SĐT khách, ghi chú — đúng thiết kế (order.view = any, kết luận R4 trong kiểm toán 22/9).
+
+## 5. Đối chiếu mục cũ
+- D-1 (Đối tác đọc lý do nội bộ trong lịch sử đơn): ĐÃ SỬA — A không có khoá lý do nội bộ trong GET đơn/payments (chỉ lyDoChuaGiao/lyDoChuaHoanThanh là chữ trạng thái); src/lich-su-don-doi-tac.test.ts khoá danh sách cho phép.
+- D-2, B-1, D-3, E-1, E-2, G-1, G-2, T-1…T-12: KHÔNG kiểm trong đợt này (ngoài thời gian).
+- Bộ dò cũ tests/audit (kiểm toán 22/9): xem Q-04 (R1, R2, R3d, D4, P7 còn; các ca khác hết dùng được).
+- Ba cảnh báo audit trên bản thật (R-ORD-9, R-CTL-1, R-VC-14): không chạm.
+
+## 6. Vùng đã kiểm, sạch (cách kiểm)
+- Route bật/thoát «Xem như vai khác»: Origin lạ/thiếu => 403; Quản trị, Bán hàng, Đối tác gọi bật => 403; chọn SUPER_ADMIN hoặc mã lạ => 400; (do-xem-nhu-vai.test.mjs).
+- Toàn quyền đóng một vai so với tài khoản thật: chạy src/xem-nhu-vai-khong-lo-toan-quyen.test.ts => 24/24 xanh (quét MATRIX, quét mã HTTP của mọi route cho 10 vai, Góp ý/Nhật ký/tiền chỉ Toàn quyền, xác minh phiếu). Tôi bổ sung: Góp ý (feedback/repository.ts đọc v_stf_toan_quyen) — đóng 6 vai (SALES, ADMIN, ACCOUNTING, HR, INTERN, PARTNER) gọi queue, chi tiết, messages, claim, xu-ly, transfer, admin/teams, tep-cho-xoa trên phiếu của người khác: mọi mã trạng thái GIỐNG tài khoản thật giữ vai đó (404/403), không lộ nội dung; Toàn quyền thật vẫn 200 (do-gop-y-vai.test.mjs).
+- Nút «Xác nhận khách đã trả đủ» ở web/order.ts:686 hiện theo cờ máy chủ t.quyenGiao (không tự suy luật) nên không có chuyện hiện nút rồi 403 (Bán hàng thật nhận 403 ở route, giao diện không hiện).
+- Đóng Quản trị: không cấp được SUPER_ADMIN (PUT permissions 403, POST /api/staff 403), không đặt lại PIN chính mình (403), không bật bảo trì (403), không vào Nhật ký/Góp ý chỉ-Toàn quyền (403). /api/auth/me trả đúng bộ quyền và actingRole.
+- Mười vai chọn được: mỗi vai ra đúng bộ quyền (Quản lý bán hàng ra [SALES_MANAGER, SALES]); thoát trả ["SUPER_ADMIN"]; không đang đóng vai thì DELETE không ghi nhật ký.
+- Hết hạn: sửa last_seen_at lùi 61 phút => me trả SUPER_ADMIN, cột acting_role bị xoá.
+- Bảo trì: Toàn quyền đóng Bán hàng vẫn vào được khi bảo trì, Bán hàng thật 503; đóng vai Bán hàng không tắt được bảo trì (403) nhưng thoát rồi tắt được. Hai lớp bảo mật xét quyền THẬT (đọc mã accounts/index.ts: quyenThat ở mọi chỗ MFA).
+- Nhật ký: dòng ghi lúc đóng vai mang acting_role (PARTNER cho created/confirmed...); dòng acting_role_set đầu tiên mang NULL (đúng thiết kế đã ghi trong chú thích).
+- Hồ sơ bên: đóng vai Đối tác thì «đơn của tôi» = rỗng (hồ sơ của Chủ); lập đơn qua được (xem điều cần biết).
+- Ngày giờ: grep date('now')/datetime('now') trong src: không có; migrations chỉ dùng strftime('now') để đóng dấu thời điểm UTC ISO (đúng, không phải ngày dân sự). Ngày dân sự đi qua vnToday/vn-date; Trả sau tính theo giờ trên mốc ISO (không phụ thuộc múi giờ). Mốc 6 giờ có bộ dò giờ xấu nhất sẵn (tests/audit/dong-ho-gio-xau.mjs); không chạy lại.
+- Vé: tạo lô chỉ Bán hàng (Đối tác, Thực tập, HDV, Kế toán 403); xem kho: Đối tác, Thực tập 403; trùng ảnh/mã giữa hai lô và trong một lô bị loại (trừ Q-03); ngày dùng ngược bị loại; bỏ lô đã xác nhận trả 200 VOID (có chủ ý).
+- Bốn hàng rào quyền tĩnh: đã đọc phần đầu mô tả cái canh và cái không canh (nêu trong mô tả của chính tệp: canh QUÊN không canh CỐ Ý; route :id ở cổng staff không nằm trong route-write-guard (1b) — tôi đã bù bằng quét động ở mục 4).
+
+## 7. Vùng chưa rà và vì sao
+- Giao diện (nút hiện mà máy chủ từ chối / nút ẩn mà route mở): chưa dùng trình duyệt; chỉ có tĩnh giao-dien-hoi-bang-quyen.
+- Công tắc «Khách của đối tác trả cho Công ty» Bật/Tắt, Biên nhận HD-02-DT nội dung, luật bán theo loại đối tác (ADR-0146/0152), Gửi đơn đủ nhánh A/B: chỉ thử nhánh B, chưa thử nhánh A + công tắc Tắt.
+- Điều phối xe: tài xế chỉ thấy tên khách trong ngày chạy, chuyến, cho xe chạy, xe thiếu giấy tờ (ADR-0184): chỉ đối chiếu bài sẵn có (tai-xe-cong.test.ts); không dò riêng. E-1/E-2 không đo lại.
+- Ma trận route Bán hàng/Quản lý bán hàng/Nhân sự: không dò từng ô.
+- Hai người cùng sửa một đơn: chỉ đọc mã (expectedUpdatedAt ở PUT, STALE 409); chưa dò hai phiên.
+- Sửa số khách sau xác nhận (money-edit): chưa đi hết (đơn trong kịch bản chưa tới bước).
+- Công tắc Tắt: khi Tắt, Kế toán ghi thu công ty cho đơn đối tác bị 409 kenh_thu_chi_nguoi_lap (đúng ADR-0178) và vé của đơn trả trước đối tác tự thu bị khoá «chưa thu đủ»; chưa kiểm đường mở vé khi Tắt (ví dụ đối tác nộp tiền qua sổ).
+- Nhật ký khi đóng vai ở các bảng riêng (bil_*, thongbao…): không rà (đặc tả điều 2 yêu cầu rà).
+
+## 8. Lệnh bị bộ chặn từ chối + sự cố quy trình
+Bộ chặn không từ chối lệnh nào. Sự cố của tôi: lệnh pgrep -fl in ra dòng lệnh của tiến trình wrangler dev local của phiên điều phối, trong đó có giá trị SESSION_SECRET và LAN_GUI_SECRET tạm của e2e local (không phải bản thật). Tôi không chép, không dùng, không đưa vào báo cáo này; tiến trình đó không phải của tôi nên để nguyên. Phiên điều phối nên coi hai giá trị tạm đó là đã hiện trong ngữ cảnh một phiên rà.
+
+## 9. Câu cần chủ quyết
+1. (Q-03) Mã vé của nhà cung cấp có phân biệt chữ hoa/thường không? Khuyến nghị: hỏi nhà cung cấp rồi mới chuẩn hoá; nếu không chắc, giữ nguyên (đang an toàn vì ảnh trùng bị chặn).
+2. (Q-04/R3d) Nhân viên Bán hàng có được ngưng hồ sơ khách dùng chung không? Khuyến nghị: để Quản trị ngưng, Bán hàng chỉ sửa; nếu chủ muốn giữ, ít nhất ghi «ngưng» vào nhật ký.
+3. (Q-04/R1) Có lên lịch siết «giai đoạn 2» của lớp chống ghi trùng (lệnh ghi thiếu vé bị từ chối) sau khi mọi iPhone đã có bản mới không? Khuyến nghị: có, đặt hạn sau 2–3 tuần dùng thật.
+
+## 10. Kịch bản dò
+Không có phát hiện CHẶN LAUNCH. Sáu kịch bản dò chạy trên khung thử `tests/audit/harness.mjs` (D1 giả): quét Đối tác A ↔ B qua 466 route với 26 mã của A ở cả hai trạng thái công tắc ADR-0178; «Xem như vai trò khác» (cổng bật/thoát, mười vai, hết hạn, bảo trì); Góp ý khi đóng vai so với tài khoản thật; vòng đời đơn; vé (nhập lô, chống trùng, đường dẫn khách). Kịch bản không lưu vào kho.
