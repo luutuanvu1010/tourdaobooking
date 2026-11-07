@@ -30,6 +30,11 @@ P1–P8 ghi ở mục «Phán quyết của điều phối» của kế hoạch 
   - **Chờ chủ duyệt (gộp báo cáo cuối):** `lop-vuot.test.ts` nới N3 — route mới hỏi thẳng ô `trip.override` (không qua tầng hạn chốt 6 giờ). Hệ quả trực tiếp của ADR (trang ghép dùng lại `trip.override` cho bốn loại giấy).
   - Phát sinh nhỏ đã chấp nhận: số lý do trong `chinh-sach-route.test.ts` 44 → 47 (từ migration 0147); `trip_departure_waived` xếp vào danh sách ẩn của lịch sử đơn (nhật ký `trip_*` không lộ cho Đối tác); sinh lại `tro-ly-cau-truc.ts`.
 
+- Việc 4 — xong `1108e402` (DTO `giayToThieu`, `choChayThieu`; hàm đọc `choChayThieuDaDung(db, tripIds)` ở `chuyen-repo.ts`, `choChayThieuDangAp` ở `dieu-phoi-dto.ts`; nút ở «Cần xử lý»; dòng nhật ký chuyến) và `ac60bca1` (màn chi tiết chuyến, Điều phối xe, CSS, bảng tham chiếu, `chuyen-smoke` 16 bước xanh có `AXE_JS`, 5 ảnh) (≈ 50 phút, phần lớn là kịch bản Chrome). Điều phối đã sửa lại lần lưu cuối để bỏ 19 ảnh phụ (≈ 5 MB) của bước cũ và của kịch bản vốn đỏ, chỉ giữ 5 ảnh `adr0184-*`.
+  - `chinh-sach-dieu-phoi-smoke` đỏ 6/14 **từ trước** việc này (thanh bên, chữ «Đang áp dụng», quyền xem chính sách) — không sửa ở đây, ghi nợ; chỉ thêm nhóm lý do mới vào danh sách kỳ vọng.
+  - Điều phối xem ảnh thật, thấy hai chỗ nên sửa (giao việc 5): khung «Điều kiện cho xe chạy» vẫn hiện dấu xanh ở «Giấy tờ xe» khi xe đang chạy nhờ cho phép (dễ hiểu là đủ giấy); dòng nhật ký chuyến chỉ ghi «1 loại giấy tờ», chưa có tên loại. Thêm: `dieu-phoi-smoke` dòng kỳ vọng «Ai xử lý: Quản trị» của T2 phải đổi theo P3.
+  - Chữ do trợ lý viết, chờ chủ xem (gửi ảnh 8/11): hộp chọn có khung vàng «Xe <biển số> đang thiếu giấy tờ» + «Chuyến này được cho xe chạy một lần. Tài xế nhận tin báo. Nhãn vàng ở chuyến cho mọi người thấy xe chạy dù thiếu giấy.»; gợi ý ghi chú «Bắt buộc khi chọn lý do "Khác" (từ 10 ký tự). Tối đa 200 ký tự. Không ghi số giấy tờ.»; thông báo xong «Đã cho chạy dù thiếu giấy tờ <mã chuyến>».
+
 ## Nợ (không chặn phát hành)
 
 - Chưa có nút «bỏ cho phép» trước giờ chạy.
