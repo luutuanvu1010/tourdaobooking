@@ -102,7 +102,7 @@ Bốn câu dưới đây dựa trên trang tổng hợp, chưa đọc được v
 
 ### Thứ tự làm
 
-Tất cả làm **sau khi** phần đối tác xem vé nhập vào bản chính, vì phần đó viết lại đúng chỗ quyết định mở vé, và sau khi ô «Có vé» (ADR-0174, chưa duyệt) đã có. Phát hành sau diễn tập khôi phục và sau khi kế toán trả lời câu 1; thi công không phải chờ câu đó (lựa chọn của người viết).
+Tất cả làm **sau khi** phần đối tác xem vé nhập vào bản chính, vì phần đó viết lại đúng chỗ quyết định mở vé, và sau khi ô «Có vé» (ADR-0174, chủ duyệt cách (a) 5/11, chưa nhập bản chính) đã có. Phát hành sau diễn tập khôi phục và sau khi kế toán trả lời câu 1; thi công không phải chờ câu đó (lựa chọn của người viết).
 
 - **Bước 0:** thử camera trên iPhone thật (khoảng một giờ, chủ dự án cầm máy). Hỏng thì đổi cách quét trước khi làm tiếp.
 - **Đợt 1:** ô «Vé do ai phát», tạo vé vào kho, cho phép mở vé từ lúc xác nhận, gửi khách, báo thiếu.
@@ -150,7 +150,7 @@ Trong phần này, «lộ» nghĩa là `revealed_at` có giá trị, tức vé �
 - Hàm duy nhất `veMoDuoc` (ADR-0168) hôm nay chỉ nhận tiền và một cờ, không biết vé do ai phát, trạng thái đơn hay đối tác; `/giao` và `/duong-dan` gọi một lần cho cả yêu cầu. Việc này là đổi chữ ký hàm và các điểm gọi, không phải thêm một nhánh. Luật mới: vé `TOUR_DAO` của đơn đã xác nhận thì mở được; nếu đơn thuộc **diện đối tác** thì đi luật như vé thường (đơn người giữ quyền Đối tác lập theo ADR-0170 Đ2; đơn nhân viên lập mà bên đặt là đối tác thì thu đủ mới mở, trừ Trả sau trong hạn mức). Nhận biết bên đặt là đối tác bằng cờ `bookerLaDoiTac` (vai được hưởng hoa hồng), cần hàm do gốc lắp ráp tiêm vì module vé không đọc `orders`. Đơn huỷ thì không mở.
 - Việc quyết định phải **theo từng vé**, không theo đơn. Đơn có cả vé Vinpearl và vé Tour Đảo: chỉ vé Tour Đảo mở.
 - **Bẫy lớn nhất:** `POST /api/ve/duong-dan`, `/giao`, `/api/ve/anh`, `veXem` ở `GET /api/ve/don`, và ảnh trang khách quyết theo đơn, rồi lặp `cauDanhDauLo` trên từng vé (nhánh ADR-0171 đã lọc một phần theo `revealed_at`). Tạo đường dẫn lúc chưa thu đủ mà không lọc thì vé Vinpearl bị đóng dấu đã lộ và không về kho được. Phải có bài đỏ trước, xanh sau cho đơn có cả hai loại vé.
-- Vé `TOUR_DAO` đã mở **không tính** vào luật chặn huỷ, chặn sửa số khách của ADR-0168 Đ3 mục 3, ADR-0170 Đ3, ADR-0171 Đ1, vì luật đó bảo vệ vé không lấy lại được. Phải sửa hai câu thật là `veDaMoCuaDon` và `cauChanVeDaMo` (nối `vdt_batch` để biết nguồn); `coVeDaMo` chỉ là cờ giao diện. Thay vào đó là chặn theo vé đã dùng (2.5).
+- **Đã bị ADR-0175 Đ2 mục 6 thay:** chỉ ADR-0168 Đ3 mục 3 bỏ vé Tour Đảo; ADR-0170 Đ3 và ADR-0171 Đ1 **vẫn tính** vé Tour Đảo đã mở, nên đối tác vẫn không tự huỷ, không sửa số khách. Câu gốc giữ dưới đây để đối chiếu, đừng thi công theo nó. ~~Vé `TOUR_DAO` đã mở **không tính** vào luật chặn huỷ, chặn sửa số khách của ADR-0168 Đ3 mục 3, ADR-0170 Đ3, ADR-0171 Đ1, vì luật đó bảo vệ vé không lấy lại được. Phải sửa hai câu thật là `veDaMoCuaDon` và `cauChanVeDaMo` (nối `vdt_batch` để biết nguồn); `coVeDaMo` chỉ là cờ giao diện. Thay vào đó là chặn theo vé đã dùng (2.5).~~
 - Huỷ đơn: vé đã lộ thành `VOID` như hiện nay, nên quét ra đỏ. Giảm số khách: giữ cách hiện tại, trả vé chưa lộ trước; vé đã lộ còn thừa bắt ở bước quét bằng cảnh báo vượt số khách.
 
 ### 2.5 Quét
@@ -224,7 +224,7 @@ Bảng dùng chung `vdt_batch`, `vdt_ticket` nhận thêm vé Tour Đảo, nên 
 | Trang khách `/ve/:token` | Mã đường dẫn + hàm mở vé theo từng vé | Khách có thể thấy vé Tour Đảo mà chưa thấy vé Vinpearl cùng đơn |
 | Quét | `ve.quet.tinh` hoặc `ve.quet.xem` | Mục mới «Quét vé» cho Hướng dẫn viên, Tài xế công ty, Kế toán và văn phòng |
 | Đối chiếu | `ve.doi-chieu.view` | Màn mới |
-| Huỷ đơn, sửa số khách | Cổng cũ + chặn khi có vé đã dùng; `veDaMoCuaDon`, `cauChanVeDaMo` bỏ vé Tour Đảo | Nút huỷ của đối tác có thể hiện lại trên đơn chỉ có vé Tour Đảo đã mở |
+| Huỷ đơn, sửa số khách | Cổng cũ + chặn khi có vé đã dùng; `veDaMoCuaDon`, `cauChanVeDaMo` bỏ vé Tour Đảo | ~~Nút huỷ của đối tác có thể hiện lại trên đơn chỉ có vé Tour Đảo đã mở~~ Đã bị ADR-0175 Đ2 mục 6 thay: nút huỷ của đối tác vẫn ẩn khi đơn có vé đã mở, kể cả vé Tour Đảo |
 
 ### 2.11 Tên trên giao diện
 
