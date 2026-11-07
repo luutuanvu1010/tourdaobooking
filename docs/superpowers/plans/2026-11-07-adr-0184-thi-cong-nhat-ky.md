@@ -6,6 +6,7 @@ Nhánh `claude/adr-0184-thi-cong`, tách từ `main` 5f641781 (đã có ADR-0184
 
 - «thi công ADR-0184».
 - Ba câu hỏi chữ giao diện, chủ chọn cả ba phương án khuyến nghị: nút «Cho chạy dù thiếu giấy tờ»; nhãn vàng «Xe thiếu <giấy> — đã cho chạy»; lý do «Giấy đang gia hạn / Xe thay thế khẩn cấp / Khác (gõ rõ ít nhất 10 chữ cái)».
+- Ba câu hỏi hành vi người dùng thấy (hỏi trước khi giao việc 3–5), chủ chọn cả ba phương án khuyến nghị: cho chạy **từng loại giấy** (P4); ghi chú «Khác» **chỉ lưu ở chuyến**, không vào nhật ký hệ thống (P5); **chưa cần** nút rút lại sự cho phép — ghi `docs/BACKLOG.md` ở việc 6.
 
 ## Phán quyết
 
@@ -17,7 +18,8 @@ P1–P8 ghi ở mục «Phán quyết của điều phối» của kế hoạch 
 
 ## Mốc
 
-- (chưa có)
+- Việc 1 — xong `0bb96c3d` (≈ 10 phút). Migration 0147 đúng kế hoạch; 15 bài CSDL xanh; năm phép phá mỗi phép làm đúng một bài đỏ rồi hoàn nguyên (2026-11-07). Khác kế hoạch: `created_by` để NULL được (bài ADR-0003 cấm cột WHO NOT NULL), trigger dùng `NOT EXISTS` nên người ghi NULL không lọt — chấp nhận.
+  - **Chờ chủ duyệt (gộp vào báo cáo cuối):** `src/architecture.test.ts` thêm cạnh `van-chuyen → staff` và view `v_stf_toan_quyen` vào danh sách view trigger Vận chuyển được đọc. Đây là nới hàng rào (Điều 9.4) dù đi đúng lối «đọc xuyên module qua view công bố». Không duyệt thì đổi sang: máy chủ chặn + R-VC-17 bắt sau (trigger không còn biết ai là Toàn quyền).
 
 ## Nợ (không chặn phát hành)
 
