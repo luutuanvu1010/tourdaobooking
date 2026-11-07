@@ -2282,7 +2282,7 @@ export const CHECKS = [
                        WHERE r.party_id = l.party_id AND (t.role_group = 'EXTERNAL' OR (t.role_group = 'OTHER' AND t.is_partner_label = 1)))`,
     mode: "rows",
     level: "warn",
-    note: "Quản trị bấm «Ngừng» Trả sau của hồ sơ đó (máy đã không cho dùng hạn mức này); nếu hồ sơ vẫn là đối tác thì gán lại vai rồi bật Trả sau mới",
+    note: "máy đã không cho dùng hạn mức này; đóng dòng hạn mức bằng route POST /api/tra-sau/han-muc/<hồ sơ>/ngung (giao diện không hiện hồ sơ hết vai trò) — chờ chủ quyết cách làm trên màn",
   },
   // R-KT-1 (ADR-0178 Đ1 mục 3; migration 0144): «khoản thu giùm = 0». Đơn mang dấu Tắt (company_collects_snapshot = 0) chỉ có khoản khách trả còn hiệu lực do hồ sơ người lập thu.
   // CÙNG định nghĩa với trigger `bil_receipt_partner_channel` (CUSTOMER_PAYMENT, không phải dòng đảo; so NULL-safe với hồ sơ của người lập qua `v_stf_staff_label`); «còn hiệu lực» =
