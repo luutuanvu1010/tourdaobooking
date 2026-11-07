@@ -49,6 +49,8 @@ export const LOAI_SU_KIEN_CHUYEN = [
   // ADR-0097 (gói A1, V3-B): văn phòng sửa kết quả MỘT suất bằng sự kiện điều chỉnh có lý do (Đ2 — đóng suất cũ REMOVED, mở suất thay thế); thu hồi xuất bến
   // nhầm (Đ3 — RUNNING → PLANNED khi chưa có tiến độ). Lý do ở cột `reason_code` (nhóm DIEU_CHINH — trigger 0085).
   "CORRECTION", "DEPARTURE_REVOKED",
+  // ADR-0184: văn phòng cho xe chạy dù thiếu giấy tờ xe (dòng cho phép ở vc_trip_departure_waiver) — chuyến chưa chạy.
+  "DOCS_WAIVED",
   // ADR-0104 Đ2.9: máy cập nhật chuyến theo đơn — lô của lệnh đơn (huỷ đơn, bỏ chặng, sửa khách / số khách) đóng / mở suất trên chuyến chưa chạy.
   "ALLOCATION_ORDER_SYNCED",
   // ADR-0111 (gói A5 — thi hành ADR-0052 D4): đề nghị chuyển khách giữa hai xe — ghi ở chuyến ĐÍCH, chuyến nguồn ở related_trip_id (G-A5-25).
@@ -80,6 +82,7 @@ export const NHAN_SU_KIEN_CHUYEN: Readonly<Record<LoaiSuKienChuyen, string>> = {
   PASSENGER_NAMED: "Tài xế bổ sung tên khách",
   CORRECTION: "Văn phòng điều chỉnh kết quả khách",
   DEPARTURE_REVOKED: "Văn phòng thu hồi lệnh cho xe chạy",
+  DOCS_WAIVED: "Cho chạy dù thiếu giấy tờ",
   ALLOCATION_ORDER_SYNCED: "Máy cập nhật chuyến theo đơn",
   TRANSFER_SENT: "Gửi đề nghị chuyển khách",
   TRANSFER_WITHDRAWN: "Rút đề nghị chuyển khách",

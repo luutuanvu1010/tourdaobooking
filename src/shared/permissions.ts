@@ -303,11 +303,14 @@ export const MATRIX = {
   // ADR-0049 D3 (Task A13): CHUYẾN XE. `trip.view` — xem lịch chung, chi tiết chuyến (văn phòng: Bán hàng, Kế toán, Quản trị, Toàn quyền; Tài xế công ty:
   // CHỈ chuyến mình đang lái — `assigned` = dòng lái mở trên chuyến, tính trong van-chuyen, route tài xế A15). NỚI bài ghim hàng DRIVER — ĐÃ DUYỆT 2026-09-30 (lần 17)
   // (đề xuất luật mục 2). `trip.dispatch` — tạo / sửa / xếp / rút / dời / huỷ chuyến, cập nhật điểm theo đơn (Bán hàng, Quản trị, Toàn quyền). `trip.override`
-  // — phá lệ luật CẤU HÌNH (khoảng nghỉ, cam kết KHI chuyến ngoài mốc — ADR-0104 Đ1 thay ĐP3) — chỉ Quản trị, Toàn quyền. Luật lõi LC-01…21 không ai vượt.
+  // — phá lệ luật CẤU HÌNH (khoảng nghỉ, cam kết KHI chuyến ngoài mốc — ADR-0104 Đ1 thay ĐP3) HOẶC cho chạy dù thiếu giấy tờ xe khác Kiểm định / Bảo hiểm, kèm lý do
+  // (ADR-0184) — chỉ Quản trị, Toàn quyền. `trip.override.giay_to_cung` (ADR-0184, chủ chọn D1=b, D2): cho chạy dù thiếu Kiểm định / Bảo hiểm trách nhiệm dân sự
+  // và được bỏ trống lý do — CHỈ Toàn quyền. Luật lõi LC-01…21 không ai vượt.
   // ADR-0053 D7.1 (kế hoạch A4 T6): tài xế đối tác `assigned` — chỉ chuyến mình có dòng lái mở (route tài xế), như tài xế công ty.
   "trip.view": row("any", "any", "any", "none", "none", "any", "none", "assigned", "assigned", "none"),
   "trip.dispatch": banHangQuanTri(),
   "trip.override": quanTri(),
+  "trip.override.giay_to_cung": chiToanQuyen(),
   // ADR-0104 Đ1 (accepted 2026-10-08, Q-1 b): "Điều chỉnh khẩn cấp" — vượt mốc ở MỌI lệnh bị khoá (xếp, rút, dời, thêm khách khi xe chạy, đổi xe, đổi tài
   // xế, huỷ chuyến còn khách); vượt khoảng nghỉ, cam kết KHI chuyến dưới mốc (ngoài mốc vẫn `trip.override`). Bán hàng, Quản trị, Toàn quyền — bằng
   // `trip.dispatch`; bài ghim: không rộng hơn `trip.dispatch` ở mọi cột. Lớp quyết ở `src/shared/moc-toi-thieu.ts` (lopVuotMoc / lopVuotNghiCamKet).

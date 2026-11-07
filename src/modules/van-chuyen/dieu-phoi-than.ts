@@ -209,6 +209,24 @@ export function docCapNhatDiem(body: Record<string, unknown> | null): KetQua<{ v
   return { ok: true, value: { version: v.value, requestId: rid.value } };
 }
 
+// ---- Cho chạy dù thiếu giấy tờ (ADR-0184) -------------------------------------------------------------------------------------------------------------
+// Chỉ MÃ loại giấy và MÃ lý do (route tra danh mục); ghi chú tự do (≤ 200 ký tự, độ dài và «Khác» kiểm ở `kiemChoChayThieu`) CHỈ ở dòng cho phép.
+export interface ChoChayThieuThan { version: number; requestId: string; loaiGiayTo: string[]; lyDo: string | null; ghiChu: string | null }
+export function docChoChayThieu(body: Record<string, unknown> | null): KetQua<ChoChayThieuThan> {
+  if (!body) return fail("Dữ liệu không hợp lệ.");
+  const v = docVersion(body);
+  if (!v.ok) return v;
+  const rid = docRequestId(body);
+  if (!rid.ok) return rid;
+  const ds = body.loaiGiayTo;
+  if (!Array.isArray(ds) || ds.length === 0 || ds.length > 10 || ds.some((c) => typeof c !== "string" || !MA_RE.test(c))) return fail("Chọn loại giấy tờ cho chạy.");
+  const lyDo = body.lyDo === undefined || body.lyDo === null ? null : body.lyDo;
+  if (lyDo !== null && (typeof lyDo !== "string" || !MA_RE.test(lyDo))) return fail("Chọn lý do trong danh mục.");
+  const ghiChu = body.ghiChu === undefined || body.ghiChu === null ? null : body.ghiChu;
+  if (ghiChu !== null && (typeof ghiChu !== "string" || ghiChu.length > 2000)) return fail("Ghi chú dài tối đa 200 ký tự.");
+  return { ok: true, value: { version: v.value, requestId: rid.value, loaiGiayTo: [...new Set(ds as string[])], lyDo, ghiChu } };
+}
+
 // ---- Sự kiện điều chỉnh có lý do (ADR-0097 — gói A1, V3-B) --------------------------------------------------------------------------------------------
 // Không nhận giờ xảy ra (giờ ghi = lúc bấm), không nhận chữ tự do (Đ2.5 — chỉ MÃ lý do nhóm DIEU_CHINH; route kiểm nhóm + đang dùng — sai 400).
 const TRANG_THAI_DICH = ["WAITING", "BOARDED", "NO_SHOW", "CANCELLED_AT_STOP"] as const;

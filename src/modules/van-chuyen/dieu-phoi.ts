@@ -12,7 +12,7 @@ import {
   ALLOC_OFFICE_CANCEL, MANIFEST_THEM_SAU, TRIP_CHOT, TRIP_GATE_DANG_CHAY_VERSION, ALLOC_DIEU_CHINH_INSERT, EVENT_DIEU_CHINH_INSERT, TRIP_THU_HOI_XUAT_BEN,
   TRANSFER_DONG, TRANSFER_INSERT, TRIP_GATE_CHAY_HOAC_CHO, TRIP_GATE_DE_NGHI, TRIP_GATE_DOI_CHAY, TRANSFER_QUYET, TRANSFER_DUYET, TRANSFER_CHECK_INSERT,
   TRANSFERS_VOID_KHAC, ALLOC_CLOSE_TRANSFER, ALLOC_OPEN_TRANSFER, STOP_SET_MOVED, MANIFEST_CHUYEN_KHACH, TRANSFERS_VOID_BY_STOP, TRANSFERS_VOID_BY_SUAT, TRANSFERS_VOID_BY_TRIP, TRANSFERS_VOID_BY_DOI_DIEM,
-  DRIVER_REFUSE, TRIP_GATE_TU_CHOI,
+  DRIVER_REFUSE, TRIP_GATE_TU_CHOI, WAIVER_INSERT,
 } from "./chuyen-repo";
 import { cauChiPhi, type KeHoachChiPhi } from "./tien-xe-lo";
 import {
@@ -552,6 +552,31 @@ export function loThuHoiXuatBen(db: D1Database, l: LenhThuHoiXuatBen): CauCoNhan
     suKienDieuChinh(db, l, l.tripId, "DEPARTURE_REVOKED", null, l.lyDo),
     tuHuyDeNghi(db, l, "CHUYEN", l.tripId, l.tripId),
     { nhan: "TRANG_THAI_CUOI", stmt: db.prepare(TRIP_THU_HOI_XUAT_BEN).bind(l.tripId, l.cmd, l.lucIso, l.nguoiId) },
+  ];
+}
+
+export interface LenhChoChayThieu extends LenhChung {
+  tripId: string;
+  version: number;
+  /** Xe HIỆN TẠI của chuyến lúc lệnh chạy (trigger waiver_vehicle_mismatch giữ cùng luật). */
+  xeId: string;
+  /** Mỗi loại giấy một dòng cho phép: hạn = hạn dòng giấy gần nhất hoặc null (xe chưa có giấy). */
+  dong: { id: string; documentTypeCode: string; expiryDate: string | null }[];
+  lyDo: string | null;
+  /** Ghi chú tự do ĐÃ TRIM (null = không có) — chỉ ở dòng cho phép, KHÔNG vào `detail` (P5). */
+  ghiChu: string | null;
+  detail: string;
+}
+/**
+ * ADR-0184 — «Cho chạy dù thiếu giấy tờ» trên chuyến CHƯA chạy: cổng (version + PLANNED; chuyến vẫn PLANNED sau lệnh) → nhật ký → sự kiện DOCS_WAIVED → mỗi loại một dòng
+ * cho phép (gác dấu lệnh). Không câu trạng thái cuối: chuyến không đổi trạng thái. Người ghi = người bấm (trigger xét quyền Toàn quyền THẬT theo cột này).
+ */
+export function loChoChayThieu(db: D1Database, l: LenhChoChayThieu): CauCoNhan[] {
+  return [
+    cong(db, l, l.tripId, l.version),
+    nhatKy(db, l, "trip_departure_waived", l.tripId, l.detail),
+    suKien(db, l, { tripId: l.tripId, loai: "DOCS_WAIVED", soNguoi: l.dong.length }),
+    ...l.dong.map((d) => ghi(db.prepare(WAIVER_INSERT).bind(d.id, l.tripId, l.cmd, l.xeId, d.documentTypeCode, d.expiryDate, l.lyDo, l.ghiChu, l.lucIso, l.nguoiId))),
   ];
 }
 

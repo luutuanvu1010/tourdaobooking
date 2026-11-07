@@ -499,6 +499,7 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/van-chuyen/chuyen/:id/phan-bo/:aid/bao-huy", access: "office" }, // Đợt 5 ADR-0052 D5.2 — văn phòng báo khách huỷ (trip.dispatch)
   { method: "POST", path: "/api/van-chuyen/chuyen/:id/phan-bo/:aid/dieu-chinh", access: "office" }, // ADR-0097 Đ2 (gói A1) — văn phòng điều chỉnh kết quả một khách (trip.progress)
   { method: "POST", path: "/api/van-chuyen/chuyen/:id/thu-hoi-xuat-ben", access: "office" }, // ADR-0097 Đ3 (gói A1) — văn phòng thu hồi xuất bến nhầm (trip.progress)
+  { method: "POST", path: "/api/van-chuyen/chuyen/:id/cho-chay-thieu-giay", access: "office" }, // ADR-0184 — Quản trị / Toàn quyền cho chạy dù thiếu giấy tờ xe (trip.override; Kiểm định, Bảo hiểm: trip.override.giay_to_cung)
   { method: "GET", path: "/api/van-chuyen/cuoc-cua-toi", access: "staff" }, // ADR-0049 Task A15 route 19 — tài xế (ô trip.view assigned)
   { method: "GET", path: "/api/van-chuyen/cuoc-cua-toi/:id", access: "staff" }, // route 20
   { method: "POST", path: "/api/van-chuyen/cuoc-cua-toi/:id/hanh-khach", access: "staff" }, // Đợt 5 A-1b ADR-0052 D5b — tài xế bổ sung tên (trip.passenger.add) — chủ duyệt 5/10
@@ -748,6 +749,7 @@ test("mức truy cập của 443 route hiện có khớp ảnh chụp đã duy�
   // 2026-11-06 (ADR-0172, ADR-0173): + GET /api/tra-sau/han-muc/:partyId, POST /api/tra-sau/muc-toi-da, GET /api/tra-sau/goi-y, PUT /api/tra-sau/goi-y/:cap (office), GET /api/tra-sau/cua-toi (orders; credit.own.view), POST /api/tra-sau/don/:id/an-han (office, ở orders) = 462.
   // 2026-11-06 (ADR-0178 Đ1 mục 1, Task A2): + GET, POST /api/kenh-thu-doi-tac (office; billing.partner_channel.view / .write) = 464.
   // 2026-11-07 (ADR-0180 Đ1): + POST, DELETE /api/auth/xem-nhu-vai (staff; module accounts; thân hỏi ô settings.ops theo quyền THẬT) = 466.
-  assert.equal(actual.length, 466, "số route thực tế lệch 466 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 466, "SNAPSHOT phải có đúng 466 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // 2026-11-07 (ADR-0184 việc 3): + POST /api/van-chuyen/chuyen/:id/cho-chay-thieu-giay (office; trip.override, thân hỏi thêm trip.override.giay_to_cung) = 467.
+  assert.equal(actual.length, 467, "số route thực tế lệch 467 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 467, "SNAPSHOT phải có đúng 467 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

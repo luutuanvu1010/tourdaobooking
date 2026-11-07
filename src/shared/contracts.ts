@@ -1951,6 +1951,12 @@ export interface XepRequest {
   /** ADR-0056 VK3-A: phá lệ cam kết xe riêng / số chỗ (cũng dùng cho thêm điểm khi xe đang chạy). */
   camKetPhaLe?: PhaLeRequest;
 }
+/**
+ * ADR-0184: «Cho chạy dù thiếu giấy tờ» — `loaiGiayTo` = mã loại giấy xe đang thiếu (mỗi loại một dòng cho phép); `lyDo` = mã nhóm CHO_CHAY_THIEU_GIAY (Quản trị bắt
+ * buộc, Toàn quyền được null); `ghiChu` = chữ tự do ≤ 200 ký tự (chỉ ở dòng cho phép, KHÔNG vào nhật ký; chọn «Khác» thì ≥ 10 ký tự). Phản hồi: `ChuyenChiTietResponse`.
+ * Lỗi: 403 chỉ Toàn quyền (Kiểm định / Bảo hiểm); 400 thiếu / sai lý do, ghi chú; 409 chuyến không còn chưa chạy, xe không còn thiếu loại đó, đã cho chạy.
+ */
+export interface ChoChayThieuGiayRequest { version: number; requestId: string; loaiGiayTo: string[]; lyDo: string | null; ghiChu: string | null }
 export interface RutRequest { version: number; requestId: string; suatIds: string[]; phaLe?: PhaLeRequest }
 export interface DoiRequest { version: number; requestId: string; denChuyenId: string; denVersion: number; suatIds: string[]; phaLe?: PhaLeRequest; camKetPhaLe?: PhaLeRequest }
 export interface HuyChuyenRequest { version: number; requestId: string; lyDo: string; phaLe?: PhaLeRequest }

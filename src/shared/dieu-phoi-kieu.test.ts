@@ -41,6 +41,8 @@ test("LOAI_SU_KIEN_CHUYEN: đủ 17 loại tương ứng các hành động trip
     "PASSENGER_NAMED",
     // ADR-0097 (gói A1, V3-B): văn phòng điều chỉnh kết quả một khách; thu hồi xuất bến nhầm
     "CORRECTION", "DEPARTURE_REVOKED",
+    // ADR-0184: văn phòng cho xe chạy dù thiếu giấy tờ xe — danh sách mở (0042:157)
+    "DOCS_WAIVED",
     // ADR-0104 Đ2.9: máy cập nhật chuyến theo đơn (lệnh đơn nối khúc chuyến vào cùng lô) — danh sách mở (0042:157), không dựng lại bảng
     "ALLOCATION_ORDER_SYNCED",
     // ADR-0111 (gói A5): đề nghị chuyển khách giữa hai xe (G-A5-25)

@@ -668,6 +668,17 @@ export const TRIP_THU_HOI_XUAT_BEN = defineSql(
   "trip_thu_hoi_xuat_ben",
   "UPDATE vc_trip SET status = 'PLANNED', departed_at = NULL, departed_ms = NULL, updated_at = ?3, updated_by = ?4 WHERE id = ?1 AND last_cmd_id = ?2",
 );
+/**
+ * ADR-0184: một DÒNG CHO PHÉP chạy thiếu giấy tờ (mỗi loại giấy một dòng) — đứng sau câu cổng, gác dấu lệnh của lô. ?1 id, ?2 chuyến, ?3 dấu lệnh (= `cmd_id` của dòng),
+ * ?4 xe HIỆN TẠI, ?5 loại giấy, ?6 hạn dòng giấy gần nhất (hoặc NULL), ?7 mã lý do (hoặc NULL — chỉ Toàn quyền), ?8 ghi chú đã trim (hoặc NULL), ?9 lúc, ?10 người
+ * (trigger 0147 xét quyền THẬT của người này qua v_stf_toan_quyen).
+ */
+export const WAIVER_INSERT = defineSql(
+  "van-chuyen",
+  "waiver_insert",
+  `INSERT INTO vc_trip_departure_waiver (id, trip_id, cmd_id, vehicle_id, document_type_code, expiry_date, reason_code, note, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?9, ?10 WHERE EXISTS (SELECT 1 FROM vc_trip WHERE id = ?2 AND last_cmd_id = ?3)`,
+);
 /** Câu CHUYỂN "xe đã tới điểm" — đứng ĐẦU lô, tự gác: điểm PENDING của chuyến đang chạy. ?1 điểm, ?2 chuyến, ?3 giờ xảy ra (chuỗi), ?4 lúc, ?5 người. */
 export const STOP_DA_TOI = defineSql(
   "van-chuyen",

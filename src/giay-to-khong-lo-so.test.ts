@@ -443,3 +443,49 @@ test("ADR-0068 G8/G10: gộp hồ sơ — xem trước, phản hồi gộp, câu
   const xem = await w.call("POST", `/api/parties/${B}/documents/${cccdB}/reveal`, { as: SUP, body: {} });
   assert.equal(xem.json.number, SO_CCCD, "chống bài rỗng: số thật đã sang hồ sơ chính");
 });
+
+// ADR-0184 việc 3: route «Cho chạy dù thiếu giấy tờ» — số giấy tờ xe (Kiểm định) có số đánh dấu, ghi chú tự do có đánh dấu: thân trả về (200 và các câu lỗi 400 / 403 / 409),
+// nhật ký, sự kiện chuyến KHÔNG chứa số giấy tờ; ghi chú tự do chỉ ở dòng cho phép — KHÔNG vào nhật ký, sự kiện, bản chụp (phán quyết P5).
+test("ADR-0184: cho chạy dù thiếu giấy tờ — thân trả về, câu lỗi, nhật ký, sự kiện không chứa số giấy tờ xe; ghi chú tự do chỉ ở dòng cho phép", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const SO_KD = "KD-DANHDAU-777";
+    const GHI_CHU = "GHICHU-DANHDAU-0905123456";
+    const xeId = xe(w);
+    w.sqlite.prepare("UPDATE vc_vehicle_document SET document_number = ? WHERE vehicle_id = ? AND document_type_code = 'INSPECTION'").run(SO_KD, xeId);
+    w.sqlite.prepare("UPDATE vc_vehicle_document SET expiry_date = '2027-03-01' WHERE vehicle_id = ?").run(xeId); // Kiểm định + Bảo hiểm hết hạn trước ngày chạy ⇒ thiếu cả hai
+    const d = await don(w, { soNguoi: 2, gio: "13:00" });
+    const T = await taoChuyen(w, { xe: xeId, taiXe: `pty-${DRIVER}` });
+    await xepHet(w, T, d, 2);
+    const id = T.chuyen.id as string;
+    const version = (await w.call("GET", `/api/van-chuyen/chuyen/${id}`, { as: SUP })).json.chuyen.version;
+    const goi = (as: string, body: Record<string, unknown>) => w.call("POST", `/api/van-chuyen/chuyen/${id}/cho-chay-thieu-giay`, { as, body: { version, requestId: uuid(), lyDo: null, ghiChu: null, ...body } });
+    const than: string[] = [];
+    const a = await goi(ADM, { loaiGiayTo: ["TPL_INSURANCE"], lyDo: "THIEU_GIAY_GIA_HAN" });
+    assert.equal(a.status, 403, a.text);
+    than.push(a.text);
+    const b = await goi(ADM, { loaiGiayTo: ["INSPECTION"] });
+    assert.equal(b.status, 403, b.text);
+    than.push(b.text);
+    const c = await goi(SUP, { loaiGiayTo: ["REGISTRATION"] });
+    assert.equal(c.status, 409, c.text); // không có điều kiện Đăng ký xe ⇒ không thiếu
+    than.push(c.text);
+    const ok = await goi(SUP, { loaiGiayTo: ["TPL_INSURANCE"], ghiChu: GHI_CHU });
+    assert.ok(ok.status === 200 || ok.status === 201, ok.text);
+    than.push(ok.text);
+    const lai = await goi(SUP, { loaiGiayTo: ["TPL_INSURANCE"], ghiChu: GHI_CHU, version: version + 1 });
+    assert.equal(lai.status, 409, lai.text);
+    than.push(lai.text);
+    for (const t of than) for (const s of [SO_KD, GHI_CHU, "DANHDAU", "0905123456"]) assert.ok(!t.includes(s), `thân trả về lộ "${s}"`);
+    assert.equal(w.q("SELECT note FROM vc_trip_departure_waiver WHERE trip_id = ?", id)[0].note, GHI_CHU, "chống bài rỗng: ghi chú có ở dòng cho phép");
+    const nk = w.q("SELECT detail FROM audit_log WHERE action = 'trip_departure_waived'");
+    assert.equal(nk.length, 1, "chống bài rỗng: có nhật ký");
+    for (const [ten, dl] of [["nhật ký", w.q("SELECT * FROM audit_log")], ["sự kiện chuyến", w.q("SELECT * FROM vc_trip_event")]] as const) {
+      const txt = JSON.stringify(dl);
+      for (const s of [SO_KD, GHI_CHU, "DANHDAU", "0905123456"]) assert.ok(!txt.includes(s), `${ten} lộ "${s}"`);
+    }
+  } finally {
+    tat();
+  }
+});

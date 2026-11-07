@@ -48,6 +48,9 @@ test("NT-3 (a): bảy route nhận cờ vượt — mỗi route đúng MỘT bi�
 /** Nới N2 (ADR-0111): hai route duyệt / bác đề nghị chuyển khách hỏi THẲNG ô trip.override, đúng một dòng mỗi route, đúng câu này. */
 const N2_ROUTE: [string, string][] = [["POST", "/api/van-chuyen/de-nghi/:rid/duyet"], ["POST", "/api/van-chuyen/de-nghi/:rid/bac"]];
 const N2_DONG = 'if (!can(staff, "trip.override")) return CAN_DUYET_DE_NGHI();';
+/** Nới N3 (ADR-0184): route «Cho chạy dù thiếu giấy tờ» hỏi THẲNG ô trip.override (không phải luật cấu hình có lớp mốc), đúng một dòng, đúng câu này; ô `trip.override.giay_to_cung` hỏi riêng ở lệnh. */
+const N3_ROUTE: [string, string] = ["POST", "/api/van-chuyen/chuyen/:id/cho-chay-thieu-giay"];
+const N3_DONG = 'if (!can(staff, "trip.override")) return CAN_CHO_CHAY_THIEU();';
 /** Khoảng dòng (đánh số từ 1) của thân route `m duong` trong index.ts đã che chú thích. */
 function dongCuaRoute(src: string, m: string, duong: string): [number, number] {
   const dau = src.indexOf(`route("${m}", "${duong}",`);
@@ -61,8 +64,10 @@ test("NT-3 (b): ngoài bảy dòng đổi lớp, không tệp nào của module 
   const thay: string[] = [];
   let tong = 0;
   let n2 = 0;
+  let n3 = 0;
   const idx = khongChuThich(join(DIR, "index.ts"));
   const khoangN2 = N2_ROUTE.map(([m, d]) => dongCuaRoute(idx, m, d));
+  const khoangN3 = dongCuaRoute(idx, N3_ROUTE[0], N3_ROUTE[1]);
   for (const f of tepMa) {
     khongChuThich(join(DIR, f)).split("\n").forEach((dong, i) => {
       if (!/"trip\.(override|urgent_adjust)"/.test(dong)) return;
@@ -74,13 +79,18 @@ test("NT-3 (b): ngoài bảy dòng đổi lớp, không tệp nào của module 
         n2++;
         return;
       }
+      if (f === "index.ts" && dong.trim() === N3_DONG && i + 1 > khoangN3[0] && i + 1 < khoangN3[1]) {
+        n3++;
+        return;
+      }
       thay.push(`${f}:${i + 1}`);
     });
   }
   assert.deepEqual(thay, [], "chuỗi ô vượt luật ngoài biểu thức đổi lớp");
   assert.equal(tong, BAY_ROUTE.length, "chống bài rỗng: đủ bảy dòng đổi lớp");
   assert.equal(n2, N2_ROUTE.length, "nới N2: đúng một dòng hỏi thẳng trip.override ở MỖI route duyệt / bác (không hơn, không thiếu)");
-  for (const [a, b] of khoangN2) {
+  assert.equal(n3, 1, "nới N3 (ADR-0184): đúng một dòng hỏi thẳng trip.override ở route cho chạy dù thiếu giấy tờ");
+  for (const [a, b] of [...khoangN2, khoangN3]) {
     const than = idx.split("\n").slice(a - 1, b - 1).join("\n");
     assert.equal(demChuoi(than, '"trip.urgent_adjust"'), 0, "nới N2 không kèm ô điều chỉnh khẩn cấp");
     assert.equal(demChuoi(than, '"trip.override"'), 1, "nới N2: thân route duyệt / bác hỏi trip.override đúng một lần");
