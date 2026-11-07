@@ -109,3 +109,61 @@ Bộ chặn không từ chối lệnh nào. Sự cố của tôi: lệnh pgrep -
 
 ## 10. Kịch bản dò
 Không có phát hiện CHẶN LAUNCH. Sáu kịch bản dò chạy trên khung thử `tests/audit/harness.mjs` (D1 giả): quét Đối tác A ↔ B qua 466 route với 26 mã của A ở cả hai trạng thái công tắc ADR-0178; «Xem như vai trò khác» (cổng bật/thoát, mười vai, hết hạn, bảo trì); Góp ý khi đóng vai so với tài khoản thật; vòng đời đơn; vé (nhập lô, chống trùng, đường dẫn khách). Kịch bản không lưu vào kho.
+
+## Phần 2 — vé và xe, vòng đời đơn, mục cũ, nhật ký khi đóng vai, Gửi đơn nhánh A
+
+> Nguồn: báo cáo phần 2 của cùng trợ lý (22:28–khoảng 22:50), chép nguyên văn trừ mục 7 (đường dẫn kịch bản trong thư mục tạm, thay bằng mô tả). Phần này không có phát hiện CHẶN LAUNCH nên phiên điều phối không chạy lại; chỉ đọc lại một chỗ: `src/shared/dieu-phoi-kiem.ts`, hàm `trongNgayChay` — vế thứ hai cho chuyến `RUNNING` không có cận trên, khớp Q-05. Vế đó có chủ ý để chuyến chạy qua nửa đêm vẫn thấy khách (khung xem khách theo ADR-0053 D7.2); thiếu là cận trên khi quên bấm «Kết thúc». Mã phát hiện tiếp nối từ Q-05.
+
+Mã rà 5f641781 (ADR-0180 đang chạy thật từ 22:04 7/11). Bắt đầu 22:28, kết thúc khoảng 22:50. Tất cả chạy trên D1 giả (khung thử), không mạng, không wrangler, không ghi vào repo. Tệp cũ bao-cao-quyen.md giữ nguyên; mã phát hiện tiếp từ Q-05.
+Kết luận: không có CHẶN LAUNCH. Còn nguyên một mục cũ đáng sửa sớm (E-1), hai mục cũ cần chủ quyết (D-2, D-3), hai câu báo lỗi chưa nói rõ việc phải làm.
+
+## 2. Phát hiện
+### Q-05 — SỬA TRONG TUẦN ĐẦU — ĐÃ XÁC NHẬN — (mục cũ E-1) Chuyến quên bấm «Kết thúc»: tài xế công ty còn thấy tên khách và SĐT liên hệ nhiều ngày sau
+Chuyện gì: hạn «trong ngày chạy» của chuyến đang chạy không có cận trên. Mã: src/shared/dieu-phoi-kiem.ts, hàm trongNgayChay (nhánh RUNNING và ngày giờ xuất bến ≥ ngày chạy). Cron 15 phút (wrangler.jsonc, src/index.ts scheduled) chỉ đồng bộ Sheet, dọn vé, nhắc Trả sau; không có tác vụ tự kết thúc chuyến.
+Ai gặp: tài xế của chính chuyến đó (không phải người khác); lộ họ tên, năm sinh, tên và SĐT người liên hệ của đơn lâu hơn cần thiết.
+Bằng chứng (do-xe.test.mjs, đồng hồ giả): chuyến công ty xuất bến 12:35 ngày 11/3 rồi không kết thúc; GET /api/van-chuyen/cuoc-cua-toi/:id bằng tài xế đó: hôm sau trongNgayChay=true, có «Khách Dò Tìm 1» và SĐT; 9 ngày sau (20/3) vẫn y nguyên; DB vc_trip.status = RUNNING.
+Hồ sơ cũ: kiểm toán 13/10 phụ lục E (E-1, ghi «chưa dựng lại bằng khung thử») — nay đã dựng lại: CÒN. Không thấy trong BACKLOG/quyen-hoan.
+Đề xuất: đặt cận trên (ví dụ hết ngày hôm sau của ngày chạy) hoặc tự kết thúc chuyến quá hạn bằng cron; nhắc tài xế/văn phòng kết thúc. Việc nhỏ-vừa (chạm luật khung xem khách, cần ADR/ chủ duyệt vì chạm dữ liệu cá nhân).
+
+### Q-06 — SỬA TRONG TUẦN ĐẦU (cần chủ quyết) — ĐÃ XÁC NHẬN — (mục cũ D-2) Nhân sự tạo được tài khoản Bán hàng rồi tài khoản đó xem đơn kèm SĐT khách
+Bằng chứng (do-cu.test.mjs): HR POST /api/staff với permissions ["SALES"] => 201 (cũng qua đường roles ["SALES_STAFF"] => 201); tài khoản mới GET /api/orders/:id => 200, có SĐT khách; HR tự GET /api/orders => 403. Mã: src/modules/accounts/index.ts route POST /api/staff (can account.create). Hồ sơ cũ: kiểm toán 13/10 D-2 «Chủ quyết» (khuyến nghị: HR chỉ gán vai không mở đơn/tiền, hoặc PIN tạm ADR-0093); tôi không thấy quyết định trong sổ/BACKLOG. Đề xuất: chủ chọn một trong hai cách đã nêu. Việc vừa (ADR).
+
+### Q-07 — SỬA TRONG TUẦN ĐẦU — ĐÃ XÁC NHẬN — Câu báo vé bị khoá không nói đối tác phải làm gì khi công tắc «Khách của đối tác trả cho Công ty» đang Tắt
+Khi Tắt, đối tác tự thu rồi bấm tạo đường dẫn vé nhận: «Công ty chưa xác nhận đã nhận đủ tiền nên chưa mở được vé.» (403 chua_thu_du); nhưng khi Tắt, Công ty không nhận tiền khách (đối tác khai «Công ty thu» => 409 kenh_thu_chi_nguoi_lap) nên câu «chờ Công ty xác nhận» dẫn người dùng tới ngõ cụt. Đường thật (đã thử, cả Bật và Tắt): Kế toán ghi «đối tác nộp tiền» ở sổ (POST /api/ledger/settlements chieu "nop") => vé mở (200). Nhánh A (dịch vụ cần kiểm vé): Gửi đơn => Quản trị «Còn vé, xác nhận» => tự thu => vé khoá => Kế toán ghi nộp => vé mở; cùng kết quả ở hai trạng thái. Đề xuất: đổi câu cho trường hợp Tắt: «Tiền khách ở tay bạn; nộp về Công ty để mở vé». Chữ cần chủ chọn (bảng tham chiếu). Việc nhỏ.
+
+### Q-08 — ĐỂ SAU — ĐÃ XÁC NHẬN — Câu chặn «xe thiếu giấy tờ» (luật chặn cứng, ADR-0184 chưa có mã) nói ai xử lý nhưng không nói giấy tờ nào thiếu hay phải làm gì
+Bằng chứng (do-xe-giay-to.test.mjs): xe không có giấy tờ nào, và xe có kiểm định hết hạn: tài xế bấm Xuất bến => 409 chua_du_dieu_kien_xuat_ben, lyDo DIEU_KIEN_GIAY_TO_XE, «Xe thiếu hoặc hết hạn giấy tờ bắt buộc: 79C99999», aiXuLy «Quản trị». Quản trị bấm thay cũng 409. Có người xử lý nhưng không có «giấy tờ nào» (kiểm định hay bảo hiểm) và «làm gì» (gia hạn ở màn Xe). Xe đủ giấy tờ => 200. Đề xuất: bổ sung tên giấy tờ + việc cần làm khi làm ADR-0184. Việc nhỏ.
+
+### Mục cũ còn lại (không phải phát hiện mới)
+- D-3 (gõ sai PIN khoá người khác): CÒN. 5 lần sai từ 5 IP khác nhau với cùng SĐT => lần 6 trả 429 «Nhập sai quá nhiều lần. Thử lại sau 15 phút» (do-cu.test.mjs). Khung thử không bật Turnstile; production có Turnstile hay không: chưa kiểm. Hồ sơ cũ: ADR-0014 D-04, kiểm toán 13/10 D-3.
+- B-1 (mốc giờ): ĐÃ SỬA PHẦN LỚN. Ngày đón nay bị khoá trong khoảng quanh ngày đi (400 «ngày đón phải từ … đến …») cho đón sau khởi hành 10 ngày, đón trước 30 ngày, đón năm 2001; giờ 25:61 và «9h» bị 400. Ngày ĐI lạ (2001, 2099, hôm qua) vẫn lưu được ở đơn NHÁP (201) nhưng xác nhận bị 409 incomplete_trip; ngày đi hôm nay xác nhận được. Còn lại: nháp mang ngày đi vô lý, không hại.
+- E-2 (tài xế đối tác thấy chuyến công ty): KHÔNG TÁI HIỆN. Đối tác lái chuyến của nhà xe cùng ngày với một chuyến công ty: danh sách cuốc chỉ 1 chuyến của mình; GET chi tiết chuyến công ty => 404; chi tiết chuyến của mình và phản hồi xe-nhan không chứa mã đơn, điểm đón, tên tài xế hay biển số xe của chuyến công ty; /api/van-chuyen/lich và chuyen/:id => 403.
+
+## 3. Vùng đã kiểm, sạch (cách kiểm)
+- Tên/SĐT khách chỉ trong ngày chạy: tài xế công ty ngày chạy thấy tên và SĐT; tài xế đối tác ngoài khung (trước hạn Từ chối) không có mã đơn, tên, liên hệ — bài sẵn có src/modules/van-chuyen/tai-xe-doi-tac-cuoc.test.ts đối chiếu; tôi đọc mã khungCuaNguoiGoi/trongKhungXemKhach (một hàm duy nhất). Riêng chuyến RUNNING: xem Q-05.
+- Cho xe chạy: thiếu giấy tờ chặn cứng cả đường tài xế và đường văn phòng (Q-08).
+- Khách vắng/huỷ giữa chừng: vắng/huỷ trước khi xe «Đã tới» điểm => 409 diem_chua_toi; sau «Đã tới» => 200; kết thúc thường khi còn khách/điểm chưa xong => 409 con_khach_chua_xong kèm gợi ý «Kết thúc gián đoạn»; đón lại khách đã đón => 409 suat_da_co_ket_qua; khách đã vắng vẫn đón được sau (cố ý: luật DA_DON cho từ Chờ hoặc Vắng — dieu-phoi.ts).
+- Sửa số khách sau xác nhận (đơn 4 người lớn 1.200.000, đã thu đủ): bớt 4→3→1 (Bán hàng chủ đơn, Kế toán) 200; tiền hiệu lực đúng (total 300.000, phiếu thu giữ 1.200.000, payments trả daThu 1.200.000, phaiThu 300.000, conLai 0, có trường «du» cho phần thừa); dòng điều chỉnh chỉ-thêm (cột gốc order_service/orders không đổi, hiệu lực tính qua điều chỉnh); bớt về 0 người lớn => 409 thieu_nguoi_lon; thêm lại => cấp lại vé; vé đã lộ giữ lại (giữ 1/lộ 1 sau bớt còn 1), vé chưa lộ trả bớt.
+- Huỷ đơn khi vé đã lộ: Quản trị huỷ 200, phân bổ vé vô hiệu (release_reason DON_HUY), vé đã lộ KHÔNG về kho chung (trigger vdt_ticket_one_way: ALLOCATED→AVAILABLE bị chặn khi từng lộ); Đối tác không tự huỷ đơn đã mở vé (ADR-0170 Đ3, đọc mã chanDoiTacHuy). Chưa có khái niệm vé «đã dùng» ngoài «đã lộ».
+- Hai phiên cùng sửa: PUT đơn nháp hai lần cùng expectedUpdatedAt tuần tự và song song => 200 rồi 409 stale (tên cuối của phiên 1, không ghi đè im lặng); money-edit đua thật (chen một lần sửa giữa lúc đọc và lúc ghi bằng w.chenTruocLo) => người sau 409 stale, dòng điều chỉnh seq 1,2. Lưu ý: money-edit không nhận expectedUpdatedAt trong thân; việc chống đua nằm ở seq duy nhất + gác trong lô (đúng thiết kế, đã thử).
+- Công tắc ADR-0178 + nhánh A: xem Q-07.
+
+## 4. Nhật ký bảng riêng khi Toàn quyền đóng vai (mô tả hiện trạng, việc chủ còn chờ)
+- ADR-0180 Đ2: chỉ cột audit_log.acting_role bắt buộc mang dấu; câu «Nhật ký riêng của module khác (nếu có) phải được rà». Sổ thi công 7/11 («Chờ chủ quyết»): «Sổ riêng (bil_*, fbk_*…) không mang dấu vai; chỉ audit_log mang.»
+- Đã thử (do-nhat-ky-vai.test.mjs): Toàn quyền đóng Kế toán ghi khoản thu => audit_log dòng payment_recorded mang acting_role=ACCOUNTING; đóng Bán hàng lập đơn => dòng created mang SALES. Bảng bil_payment_receipt: created_by = tài khoản Chủ, KHÔNG có cột dấu vai (chỉ có collector_role_code, nghĩa khác). Trong 11 bảng kiểu nhật ký/sự kiện (audit_log, order_money_adjustment, vc_trip_event, fbk_ticket_event, bil_adjustment_request, dsp_release_event, stf_permission_adjustment…) CHỈ audit_log có cột acting_role.
+- Hậu quả: người điều tra sổ tiền/chuyến chỉ biết «do Chủ làm»; muốn biết có đang đóng vai phải đối chiếu dòng audit_log cùng lô (có dấu). Dấu vai tra theo tài khoản, không theo phiên (đã ghi). Trang Nhật ký chưa hiện dấu vai (sổ thi công). Không phải lỗi an ninh; việc chủ còn chờ.
+
+## 5. Vùng chưa rà
+- Nhật ký bảng riêng khi đóng vai với đường tiền dài (hoàn cọc, đối soát): chỉ thử khoản thu.
+- Khách vắng/huỷ ảnh hưởng đồng bộ chuyến–đơn (vc_* ↔ orders) ở ca nhiều chặng.
+- Xe: giấy tờ hết hạn của bảo hiểm riêng (trigger chặn chèn dòng thứ hai nên không dựng được bằng SQL; chỉ thử không có giấy tờ và kiểm định hết hạn).
+- Production có Turnstile (D-3) và bản thật dữ liệu: không kiểm (cấm).
+- Không chạy wrangler, không chạy pgrep/ps; không lệnh nào bị bộ chặn từ chối.
+
+## 6. Câu cần chủ quyết (tối đa 3; phương án khuyến nghị đứng đầu)
+1. (Q-05) Cận trên của «trong ngày chạy» cho chuyến chưa kết thúc: (a) hết ngày hôm sau và tự kết thúc bằng cron (khuyến nghị); (b) chỉ nhắc, không đổi.
+2. (Q-06) HR tạo tài khoản Bán hàng: (a) HR chỉ gán vai không mở đơn/tiền (khuyến nghị); (b) giữ, thêm PIN tạm.
+3. (Q-07) Chữ khi Tắt công tắc và vé khoá: chủ chọn giữa «Tiền khách ở tay bạn. Hãy nộp về Công ty để mở vé.» (khuyến nghị) và «Vé mở sau khi Công ty ghi nhận bạn đã nộp tiền.»
+
+## 7. Kịch bản dò
+Bảy kịch bản dò chạy trên khung thử `tests/audit/harness.mjs` (D1 giả, đồng hồ giả), không mạng, không wrangler; không lưu vào kho. Nhóm: chuyến quên kết thúc và tài xế đối tác so với chuyến công ty; xe thiếu giấy tờ và khách vắng/huỷ; sửa số khách, huỷ đơn khi vé đã lộ, hai phiên cùng sửa; Nhân sự tạo tài khoản Bán hàng, khoá PIN, mốc giờ; nhật ký bảng riêng khi đóng vai; Gửi đơn nhánh A ở hai trạng thái công tắc ADR-0178.
