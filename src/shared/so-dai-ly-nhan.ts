@@ -8,7 +8,7 @@ export const NHAN_LY_DO_THIEU = {
 } as const;
 /** Đuôi câu của mọi cảnh báo thiếu mức (dòng đơn và «Thử tra»): nói rõ vì sao và hậu quả. */
 export const CAU_THIEU_MUC = "cần cài mức (cấp) thì mới tính được hoa hồng";
-export const CAU_DON_BI_GIU = "đơn bị giữ ở bước Xong và đủ tiền";
+export const CAU_DON_BI_GIU = "đơn bị giữ ở bước Khách đã trả đủ";
 /** Luật X3 (đặc tả Phần A điểm 2): dịch vụ đưa đón / nhóm Thuê xe không ghi nhà cung cấp mua lại. MỘT câu cho trigger `prc_supply_term_x3` (route điều khoản) và cho đường ghi mức tay của đơn. */
 export const NHOM_THUE_XE = "TXE";
 export const CAU_X3_THUE_XE = "Dịch vụ nhóm Thuê xe không ghi nhà cung cấp mua lại (để khỏi tính tiền xe hai lần).";

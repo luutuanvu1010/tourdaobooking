@@ -20,6 +20,7 @@ import {
 } from "./service";
 import { phaiThuHienHanh, receiptThayDaoStatement, receiptThayMoiStatement } from "./thay-lan-thu-repo";
 import { cauTangChoDon } from "./tra-sau-tang";
+import { kiemNguoiThuKenh } from "./kenh-thu";
 
 /** ADR-0088 đ2: lý do tối thiểu (ký tự, bỏ khoảng trắng hai đầu) — trigger 0083 ép cùng số. */
 export const LY_DO_THAY_TOI_THIEU = 10;
@@ -37,7 +38,7 @@ export function kiemI1SauThay(input: { daThuTruoc: number; tongCu: number; tongM
   if (input.phaiThuLucGiao === null) return { ok: true };
   const sau = input.daThuTruoc - input.tongCu + input.tongMoi;
   if (sau !== input.phaiThuLucGiao) {
-    return { ok: false, cau: `Sau khi thay, số đã thu (${dong(sau)}) phải bằng phải thu của đơn lúc xác nhận xong và đủ tiền (${dong(input.phaiThuLucGiao)}).` };
+    return { ok: false, cau: `Sau khi thay, số đã thu (${dong(sau)}) phải bằng phải thu của đơn lúc xác nhận khách đã trả đủ (${dong(input.phaiThuLucGiao)}).` };
   }
   return { ok: true };
 }
@@ -102,7 +103,7 @@ export async function chuanBiLoThay(db: D1Database, input: { orderId: string; ph
   const [st, receipts, hienHanh, dongDon] = await Promise.all([orderState(db, orderId), receiptsOfOrder(db, orderId), phaiThuHienHanh(db, orderId), linesOfOrder(db, orderId)]);
   const due = hienHanh === null ? null : input.phaiThuDich ?? hienHanh;
   if (!st) return loi(404, "not_found", "Không tìm thấy đơn.");
-  if (cu.length === 0 && due === null) return loi(400, "invalid_input", "Đơn chưa tới bước Xong và đủ tiền — chọn khoản thu cần thay, hoặc ghi khoản thu như thường.");
+  if (cu.length === 0 && due === null) return loi(400, "invalid_input", "Đơn chưa tới bước Khách đã trả đủ — chọn khoản thu cần thay, hoặc ghi khoản thu như thường.");
   // ADR-0088 đ4 (i) + kiểm độc lập vòng 3 (CAO): khoản "Công ty thu – CK" do người khác khai còn CHỜ XÁC NHẬN thì KHÔNG đảo — dòng giữ hộ trên người khai còn
   // nguyên tới khi Kế toán xác nhận đã nhận hoặc người khai nộp (một khoản thu mới do Kế toán ghi "Công ty thu" sẽ xoá khoản người khai đang giữ).
   const choXacNhan = khoanChoXacNhan(receipts.map(toReceiptRow), dongDon.map(toLineRow), (await reconOfOrder(db, orderId)).map(toDoiChieuRow));
@@ -131,6 +132,9 @@ export async function chuanBiLoThay(db: D1Database, input: { orderId: string; ph
   for (const m of moiRaw) {
     const lt = await docLanThu(db, { ...(m as object), ngayPhatSinh: ngay.value, ...(cuKhai.length > 0 && goDungDau(m) ? { ghiChu: null } : {}) }, input.ai, congTyId, { phan: input.phan, receipts: daCo, kemDaGiao: false, boQua });
     if (!lt.ok) return lt;
+    // ADR-0178 Đ1 mục 2: khoản thay thế (kể cả «Ghi khoản thu đòi được» của phân định — cùng lô này) ở đơn mang dấu Tắt chỉ được là hồ sơ người lập; kiểm TRƯỚC lô.
+    const kenh = await kiemNguoiThuKenh(db, orderId, lt.value.collectorPartyId);
+    if (kenh) return { ok: false, res: kenh };
     daCo.push(lanThuMoiRow(lt.value, `moi-${daCo.length}`));
     // ADR-0092 Đ6a: khoản thu tiền mặt giống nhau — so với khoản còn hiệu lực trừ khoản đang bị thay, và các khoản đã đọc của chính lệnh này.
     const trung = kiemTrungTienMat({ receipts, boQua, moiDaDoc: moi.map((x) => x.lt), lt: lt.value, ai: input.ai, raw: b.boQuaTrung });

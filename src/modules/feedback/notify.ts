@@ -1,7 +1,7 @@
-// Email báo admin. Mọi email đi qua notifyAdmins(); CHỈ trong đây mới đụng bộ gửi (env.EMAIL, Cloudflare Email Service — đang beta).
+// Email báo admin. Mọi email đi qua notifyAdmins(); CHỈ trong đây mới đụng bộ gửi (binding EMAIL của Cloudflare Email Service — đang beta, đọc qua cauHinhThu).
 // Chạy trong ctx.exec.waitUntil nên tự bắt mọi lỗi và tự ghi kết quả (notified_at): lỗi gửi KHÔNG bao giờ làm hỏng yêu cầu đã lưu.
 
-import type { Mailer } from "../../shared/gui-thu.ts";
+import { cauHinhThu, type Mailer } from "../../shared/gui-thu.ts";
 // Kiểu bộ gửi dùng chung với `auth` (mã email hai lớp — ADR-0074) ở src/shared/gui-thu.ts; giữ tên xuất cũ cho các tệp đang import từ đây.
 export type { Mailer };
 
@@ -29,8 +29,9 @@ export interface MailDeps {
 
 /** Đọc cấu hình từ môi trường. EMAIL là binding; hai địa chỉ là secret/biến (`wrangler secret put FEEDBACK_NOTIFY_EMAIL|FEEDBACK_MAIL_FROM`). Thiếu thì tính năng email tự tắt. */
 export function mailConfig(env: Env): { mailer?: Mailer; to?: string; from?: string } {
-  const e = env as unknown as { EMAIL?: Mailer; FEEDBACK_NOTIFY_EMAIL?: string; FEEDBACK_MAIL_FROM?: string };
-  return { mailer: e.EMAIL, to: e.FEEDBACK_NOTIFY_EMAIL || undefined, from: e.FEEDBACK_MAIL_FROM || undefined };
+  const e = env as unknown as { FEEDBACK_NOTIFY_EMAIL?: string; FEEDBACK_MAIL_FROM?: string };
+  // Bộ gửi đi qua cauHinhThu để bản Development (MOI_TRUONG) bị lọc theo THU_CHO_PHEP — không đọc binding trực tiếp ở đây.
+  return { mailer: cauHinhThu(env as unknown as Record<string, unknown>).mailer, to: e.FEEDBACK_NOTIFY_EMAIL || undefined, from: e.FEEDBACK_MAIL_FROM || undefined };
 }
 
 const ESC: Record<string, string> = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };

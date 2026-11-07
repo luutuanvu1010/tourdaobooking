@@ -108,10 +108,10 @@ const b64u = (b: ArrayBuffer | Uint8Array) => btoa(String.fromCharCode(...new Ui
 const b64uChu = (s: string) => b64u(new TextEncoder().encode(s));
 
 /** JWT ES256 cho VAPID. `khoaBiMat` = JSON JWK P-256 (kty, crv, x, y, d) — đúng dạng lệnh tạo khoá ở Task 5 in ra. */
-export async function taoJwtVapid(khoaBiMat: string, aud: string, nowSec: number): Promise<string> {
+export async function taoJwtVapid(khoaBiMat: string, aud: string, nowSec: number, sub: string = VAPID_SUB): Promise<string> {
   const { kty, crv, x, y, d } = JSON.parse(khoaBiMat) as JsonWebKey; // bỏ key_ops/ext: importKey sẽ ném nếu key_ops lệch usages
   const key = await crypto.subtle.importKey("jwk", { kty, crv, x, y, d }, { name: "ECDSA", namedCurve: "P-256" }, false, ["sign"]);
-  const dau = `${b64uChu(JSON.stringify({ typ: "JWT", alg: "ES256" }))}.${b64uChu(JSON.stringify({ aud, exp: nowSec + 12 * 3600, sub: VAPID_SUB }))}`;
+  const dau = `${b64uChu(JSON.stringify({ typ: "JWT", alg: "ES256" }))}.${b64uChu(JSON.stringify({ aud, exp: nowSec + 12 * 3600, sub }))}`;
   const chuKy = await crypto.subtle.sign({ name: "ECDSA", hash: "SHA-256" }, key, new TextEncoder().encode(dau));
   return `${dau}.${b64u(chuKy)}`; // Web Crypto trả r‖s 64 byte (IEEE P1363) = đúng dạng JWS ES256 — KHÔNG đổi sang DER
 }
@@ -137,30 +137,32 @@ function khopCapKhoa(congKhai: string, biMatJwk: string): boolean {
   }
 }
 
-export interface KhoaVapid { congKhai: string; biMat: string }
+export interface KhoaVapid { congKhai: string; biMat: string; sub: string }
 /**
  * Cả hai khoá VAPID có mặt VÀ khớp nhau (bẫy 47, `docs/CHANGE-GUIDE.md`): khoá công khai (`vars`) và khoá bí mật (`wrangler secret`)
  * do CHỦ đặt ở hai lệnh/hai lượt deploy khác nhau — lệch cặp (vd chạy lệnh tạo khoá quá một lần) làm mọi lần gửi bị dịch vụ đẩy từ
  * chối (403) mà không có dấu hiệu nào khác ngoài log `day_loi`. Bắt lệch NGAY ở đây (trả `null`, tắt tính năng, không throw) thay vì
  * để lộ ra bằng gửi thật — một dòng log `vapid_khoa_lech` (không có giá trị khoá) để chủ dò khi cần.
  */
-export const khoaVapid = (env: { VAPID_PUBLIC_KEY?: string; VAPID_PRIVATE_KEY?: string }): KhoaVapid | null => {
+export const khoaVapid = (env: { VAPID_PUBLIC_KEY?: string; VAPID_PRIVATE_KEY?: string; VAPID_SUB?: string }): KhoaVapid | null => {
   if (!env.VAPID_PUBLIC_KEY || !env.VAPID_PRIVATE_KEY) return null;
   if (!khopCapKhoa(env.VAPID_PUBLIC_KEY, env.VAPID_PRIVATE_KEY)) {
     console.warn(JSON.stringify({ level: "warn", event: "vapid_khoa_lech" }));
     return null;
   }
-  return { congKhai: env.VAPID_PUBLIC_KEY, biMat: env.VAPID_PRIVATE_KEY };
+  // `sub` theo môi trường (bản Development đặt VAPID_SUB riêng); vắng/trắng = hằng cũ của bản chính thức.
+  const sub = typeof env.VAPID_SUB === "string" && env.VAPID_SUB.trim() ? env.VAPID_SUB.trim() : VAPID_SUB;
+  return { congKhai: env.VAPID_PUBLIC_KEY, biMat: env.VAPID_PRIVATE_KEY, sub };
 };
 
 /** Nhớ JWT trong isolate tối đa 1 giờ theo (`aud`, khoá) — JWT còn hiệu lực 12 giờ nhưng ký lại sớm hơn nhiều để không bao giờ ký một
  * JWT gần hết hạn (đồng hồ Worker/dịch vụ đẩy lệch). Không giữ qua nhiều isolate: mất khi Worker tái tạo, không phải bug. */
 const nhoJwt = new Map<string, { jwt: string; hetLuc: number }>();
-async function layJwt(khoaBiMat: string, aud: string, nowMs: number): Promise<string> {
-  const khoaNho = `${aud}\u0000${khoaBiMat}`;
+async function layJwt(khoaBiMat: string, aud: string, nowMs: number, sub: string = VAPID_SUB): Promise<string> {
+  const khoaNho = `${aud}\u0000${sub}\u0000${khoaBiMat}`;
   const c = nhoJwt.get(khoaNho);
   if (c && nowMs < c.hetLuc) return c.jwt;
-  const jwt = await taoJwtVapid(khoaBiMat, aud, Math.floor(nowMs / 1000));
+  const jwt = await taoJwtVapid(khoaBiMat, aud, Math.floor(nowMs / 1000), sub);
   nhoJwt.set(khoaNho, { jwt, hetLuc: nowMs + 3600_000 });
   return jwt;
 }
@@ -171,7 +173,7 @@ export async function guiLo(ds: string[], khoa: KhoaVapid, nowMs: number, goi: t
   for (const nhom of chiaLo(ds, 6)) {
     await Promise.all(nhom.map(async (ep) => {
       try {
-        const jwt = await layJwt(khoa.biMat, new URL(ep).origin, nowMs);
+        const jwt = await layJwt(khoa.biMat, new URL(ep).origin, nowMs, khoa.sub);
         // Thân rỗng: KHÔNG đặt Content-Length/Content-Encoding bằng tay (Apple: thân rỗng thì bỏ Content-Encoding). Phải thử máy thật.
         // Hạn giờ 10 giây: một dịch vụ đẩy treo không được giữ cả lô (và waitUntil) — hết giờ = lỗi thường (vào catch), không phải 410.
         const r = await goi(ep, {

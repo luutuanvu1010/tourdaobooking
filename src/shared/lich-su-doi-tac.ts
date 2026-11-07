@@ -62,7 +62,7 @@ export const LICH_SU_DOI_TAC_AN = [
   // Không gắn đơn: tài khoản, hồ sơ
   "staff_created", "staff_updated", "staff_suspended", "staff_reactivated", "staff_role_changed", "pin_reset", "pin_changed", "passkey_added", "passkey_removed",
   "pin_set_by_passkey", "login_unlocked", "staff_synced", "permission_changed", "account_roles_changed", "session_policy_changed", "session_revoked",
-  "mfa_enabled", "mfa_removed", "mfa_recovery_regenerated", "mfa_reset", "mfa_grace_reopened", "mfa_exception_set",
+  "acting_role_set", "acting_role_cleared", "mfa_enabled", "mfa_removed", "mfa_recovery_regenerated", "mfa_reset", "mfa_grace_reopened", "mfa_exception_set",
   "party_created", "party_updated", "party_contact_changed", "party_role_added", "party_role_ended", "party_relationship_changed", "party_merged", "party_document_added",
   "party_document_renewed", "party_document_corrected", "party_document_number_viewed", "party_document_catalog_changed", "party_bank_account_changed",
   "party_attachment_added", "party_attachment_viewed", "party_attachment_purged", "party_attachment_purge_retried", // ADR-0123: ảnh giấy tờ — không gắn đơn
@@ -95,6 +95,8 @@ export const LICH_SU_DOI_TAC_AN = [
   "ve_giu_cho", "ve_tra_ve", "ve_xem_anh", "ve_mo_anh_lo_huy", "ve_giao", "ve_tao_duong_dan", "ve_thu_hoi_duong_dan", "ve_nhap_lo", "ve_xac_nhan_lo", "ve_sua_ma_tour", "ve_bo_lo", "ve_doi_tran_lo",
   // ADR-0168: hạn mức Trả sau — việc nội bộ của Toàn quyền, ẩn khỏi lịch sử Đối tác.
   "credit_limit_set", "credit_limit_stopped",
+  // ADR-0172, ADR-0173: mức tối đa, số gợi ý, ân hạn đơn, tin nhắc — loại dòng MỚI nên mặc định ẩn cho tới khi chủ xếp loại; trang Nhật ký (Toàn quyền) vẫn đọc được.
+  "partner_channel_set", "credit_ceiling_set", "credit_tier_default_set", "credit_due_extended", "credit_due_soon_reminded", "credit_overdue_reminded",
 ] as const satisfies readonly AuditAction[];
 
 /** Hành động mới trong `AUDIT_ACTIONS` chưa có ở danh sách nào ⇒ kiểu này khác `never` và dòng ngay dưới không biên dịch (`npm run typecheck` đỏ). */

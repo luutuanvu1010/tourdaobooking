@@ -1,6 +1,7 @@
 import { ApiError, api, datNguoiDangNhap, type Staff, type Api } from "./api";
 import { BO_CHON_THANH_DINH, boTheoDoi, thanhDinhHien } from "../src/shared/thanh-dinh-day";
 import { PERMISSION_LABEL, can } from "../src/shared/permissions";
+import { hienThanhXemNhu } from "../src/shared/xem-nhu-vai-thanh";
 import {
   THANH_BEN,
   THANH_TAB,
@@ -139,6 +140,12 @@ async function tatThongBaoMayNay(): Promise<void> {
   } catch {
     // bất kỳ lỗi nào (mạng, trình duyệt lạ…): bỏ qua, đăng xuất vẫn tiếp tục ngay sau đây.
   }
+}
+
+/** Thanh báo xem như vai trò khác + nút Thoát (ADR-0180): chữ và luật hiện lấy từ MỘT nơi (src/shared/xem-nhu-vai-thanh.ts). Thoát = DELETE rồi tải lại thật (`taiLai`, không `location.replace(href)`: địa chỉ có #mảnh thì đó chỉ là nhảy mảnh, không tải lại). */
+function ganThanhXemNhu(me: Api.MeResponse): void {
+  const t = hienThanhXemNhu(me);
+  if (t) datDai("xem-nhu-vai", { cau: t.cau, nut: { nhan: t.nutThoat, khiBam: () => void api("/api/auth/xem-nhu-vai", { method: "DELETE" }).finally(taiLai) } });
 }
 
 export async function logout(): Promise<void> {
@@ -509,6 +516,7 @@ export async function initShell(): Promise<Staff> {
   const { staff } = me;
   benDatMayChuEp = me.benDatCuaToi ?? null;
   datNguoiDangNhap(staff.id); // ADR-0094: vé chống ghi trùng giữ qua "tải lại trang" theo ngăn của tài khoản này
+  ganThanhXemNhu(me);
   if (me.maintenance?.on) setMaintenanceStrip(true, me.maintenance.endsAt);
   // Bốn cờ của bản nhớ khung hỏi CÙNG bảng quyền với máy chủ (ADR-0072 mục 4a: `admin` là ô admin.manage, không hỏi mã Quản trị) — `coKhungNho` của bảng mục.
   luuKhungNho({ tat: initials(staff.fullName), ...coKhungNho(staff) });

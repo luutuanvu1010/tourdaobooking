@@ -24,6 +24,8 @@ export const CHAM_TAI_KHOAN = {
     mfa_enabled: "Chính chủ tự bật lớp hai.",
     mfa_removed: "Chính chủ tự gỡ lớp hai của mình.",
     mfa_recovery_regenerated: "Chính chủ tự tạo mã dự phòng.",
+    acting_role_set: "Toàn quyền tự bật chế độ xem như vai trò khác (ADR-0180); chỉ đổi giao diện của chính máy đó, không trao quyền đăng nhập cho ai.",
+    acting_role_cleared: "Toàn quyền tự thoát chế độ xem như vai trò khác (ADR-0180); chỉ thu hẹp lại về quyền thật.",
     refuse_counter_reset: "Đặt lại số lần Từ chối (ADR-0032) chỉ đổi bộ đếm hạn mức, không trao hay lấy quyền đăng nhập.",
   },
 } as const satisfies {

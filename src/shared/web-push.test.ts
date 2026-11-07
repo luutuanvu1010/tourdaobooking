@@ -179,7 +179,7 @@ const congKhaiThat = async (pair: CryptoKeyPair) => b64uEncode(await crypto.subt
 test("khoaVapid: khoá công khai KHỚP khoá bí mật → trả cặp; thiếu một trong hai → null", async () => {
   const { pair, jwkBiMat } = await sinhKhoaThu();
   const congKhai = await congKhaiThat(pair);
-  assert.deepEqual(khoaVapid({ VAPID_PUBLIC_KEY: congKhai, VAPID_PRIVATE_KEY: jwkBiMat }), { congKhai, biMat: jwkBiMat });
+  assert.deepEqual(khoaVapid({ VAPID_PUBLIC_KEY: congKhai, VAPID_PRIVATE_KEY: jwkBiMat }), { congKhai, biMat: jwkBiMat, sub: "https://booking.tourdao.vn" });
   assert.equal(khoaVapid({}), null);
   assert.equal(khoaVapid({ VAPID_PUBLIC_KEY: congKhai }), null);
   assert.equal(khoaVapid({ VAPID_PRIVATE_KEY: jwkBiMat }), null);
@@ -298,4 +298,37 @@ test("nguoiNhanDay { don: dòng đổi }: người lập + HDV phụ trách + Đ
     chuyenCuaChang: [{ tripId: "t1", ma: "CX-1", ngayChay: now.slice(0, 10), lai: [{ partyId: "p-tx", tu: "2020-01-01T00:00:00.000Z", den: null }] }],
   });
   assert.deepEqual(nguoiNhanDay(tk, { don: chang }, now).sort(), [hdv.id, lap.id, "tx"].sort(), "MQ-07: người lập (Bán hàng) + tài xế đang lái; HDV tin đơn đổi; tài xế khác không");
+});
+
+test("VAPID_SUB: vắng → khoaVapid.sub là hằng cũ; có → mang giá trị đó; chuỗi trắng → hằng cũ", async () => {
+  const { pair, jwkBiMat } = await sinhKhoaThu();
+  const congKhai = await congKhaiThat(pair);
+  const base = { VAPID_PUBLIC_KEY: congKhai, VAPID_PRIVATE_KEY: jwkBiMat };
+  assert.equal(khoaVapid(base)?.sub, "https://booking.tourdao.vn");
+  assert.equal(khoaVapid({ ...base, VAPID_SUB: "https://dev.tourdao.vn" })?.sub, "https://dev.tourdao.vn");
+  assert.equal(khoaVapid({ ...base, VAPID_SUB: "  " })?.sub, "https://booking.tourdao.vn");
+});
+
+test("taoJwtVapid: tham số sub đưa vào claims; bỏ trống thì dùng hằng cũ", async () => {
+  const { jwkBiMat } = await sinhKhoaThu();
+  const claims = async (sub?: string) => decodeJson((await taoJwtVapid(jwkBiMat, "https://fcm.googleapis.com", 1_000_000, sub)).split(".")[1]!) as { sub: string };
+  assert.equal((await claims()).sub, "https://booking.tourdao.vn");
+  assert.equal((await claims("https://dev.tourdao.vn")).sub, "https://dev.tourdao.vn");
+});
+
+test("guiLo: hai sub khác nhau (cùng khoá, cùng nơi nhận) không dùng chung JWT đã nhớ", async () => {
+  const { pair, jwkBiMat } = await sinhKhoaThu();
+  const congKhai = await congKhaiThat(pair);
+  const subDaGui: string[] = [];
+  const goi = (async (_u: string, init: RequestInit) => {
+    const jwt = /t=([^,]+),/.exec((init.headers as Record<string, string>).Authorization!)![1]!;
+    subDaGui.push((decodeJson(jwt.split(".")[1]!) as { sub: string }).sub);
+    return new Response(null, { status: 201 });
+  }) as unknown as typeof fetch;
+  const ep = ["https://fcm.googleapis.com/a"];
+  const now = Date.now();
+  await guiLo(ep, { congKhai, biMat: jwkBiMat, sub: "https://booking.tourdao.vn" }, now, goi);
+  await guiLo(ep, { congKhai, biMat: jwkBiMat, sub: "https://dev.tourdao.vn" }, now, goi);
+  await guiLo(ep, { congKhai, biMat: jwkBiMat, sub: "https://booking.tourdao.vn" }, now, goi);
+  assert.deepEqual(subDaGui, ["https://booking.tourdao.vn", "https://dev.tourdao.vn", "https://booking.tourdao.vn"]);
 });

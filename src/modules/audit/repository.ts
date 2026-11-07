@@ -1,6 +1,7 @@
 import { AUDIT_ACTIONS, SILENT_AUDIT_ACTIONS, isAuditAction, laHanhDongThuongMai, type AuditAction, type AuditTargetType } from "../../shared/audit-actions";
 import type { AuditEntryDto, AuditListResponse, AuditRecordDto } from "../../shared/contracts";
 import { mauLikeChua } from "../../shared/http";
+import { HAN_XEM_NHU_VAI_PHUT } from "../../shared/xem-nhu-vai";
 
 export { isAuditAction, type AuditAction, type AuditTargetType };
 
@@ -25,17 +26,49 @@ export interface AuditInput {
 export type AuditEntry = AuditEntryDto;
 export type AuditRecord = AuditRecordDto;
 
+/**
+ * ADR-0180 Đ2 — dấu vai: dòng nhật ký ghi lúc Toàn quyền đang "xem như" vai khác mang mã vai đó ở `acting_role`. Worker không bật nodejs_compat (không có
+ * AsyncLocalStorage) và ~44 tệp gọi hàm này, nên cột được điền NGAY TRONG câu chèn bằng truy vấn con theo `staff_id` (?3): phiên còn sống, có vai, hoạt động
+ * gần nhất trong HAN_XEM_NHU_VAI_PHUT phút + AN_HAN_NHAT_KY_MS (cùng dạng điều kiện với câu xoá vai hết hạn ở auth — hết hạn = `last_seen_at < mốc` hoặc `julianday` NULL —
+ * chỉ lùi mốc thêm khoảng nới), và tài khoản
+ * THẬT đang giữ Toàn quyền (`v_stf_toan_quyen` — như currentStaff bỏ qua cột vai của người không giữ Toàn quyền). Không có người thao tác (hệ thống):
+ * `staff_id = NULL` không khớp dòng nào ⇒ NULL.
+ *
+ * HẠN CHẾ ĐÃ BIẾT (chấp nhận): tra theo TÀI KHOẢN, không theo phiên. Toàn quyền dùng nhiều máy: máy B không đóng vai vẫn có thể bị gắn dấu khi máy A đang đóng
+ * vai trong 60 phút đó (sai về phía gắn thừa). Sát mép 60 phút: currentStaff xét hạn bằng đồng hồ lúc request BẮT ĐẦU, câu này tính mốc lúc dựng câu ghi (muộn
+ * hơn) — nên cửa sổ của nhật ký nới thêm AN_HAN_NHAT_KY_MS để thao tác vừa được chạy với vai không bị ghi thiếu dấu. Thiếu dấu vẫn có thể xảy ra nếu request kéo dài
+ * quá khoảng nới đó (hiếm); thừa dấu xảy ra trong khoảng nới sau khi vai đã hết hạn. Trong lô bật / thoát: câu nhật ký đứng TRƯỚC câu đổi trạng thái nên dòng `acting_role_set`
+ * mang vai ĐANG có trước đó (NULL nếu chưa đóng vai), dòng `acting_role_cleared` mang vai vừa rời.
+ *
+ * Nợ có tên (docs/SYSTEM-DESIGN.md §16): module audit (LEGACY) đọc thẳng `aut_session` của auth — chưa có view `v_aut_*` (VIEW_PREFIX của bài kiến trúc chưa
+ * có `aut`, thêm là nới, cần chủ duyệt). Khi có view thì chỉ đổi tên nguồn trong truy vấn con.
+ */
+/**
+ * Khoảng nới (mili-giây) CHỈ cho cửa sổ gắn dấu của nhật ký, cộng vào HAN_XEM_NHU_VAI_PHUT: bù độ trễ giữa lúc currentStaff xét hạn và lúc câu ghi nhật ký được dựng.
+ * Không đổi luật hết hạn của phiên (`daHetHan`, câu xoá vai của auth giữ nguyên) — chỉ làm nhật ký nghiêng về phía gắn thừa.
+ */
+export const AN_HAN_NHAT_KY_MS = 10_000;
+
+const ACTING_ROLE_SUBQUERY =
+  `(SELECT s.acting_role FROM aut_session s
+     WHERE s.staff_id = ?3 AND s.ended_at IS NULL AND s.acting_role IS NOT NULL
+       AND s.last_seen_at >= ?9 AND julianday(s.last_seen_at) IS NOT NULL
+       AND EXISTS (SELECT 1 FROM v_stf_toan_quyen t WHERE t.staff_id = ?3)
+     ORDER BY s.last_seen_at DESC LIMIT 1)`;
+
 export function insertStatement(db: D1Database, e: AuditInput, onlyIf?: string): D1PreparedStatement {
   // SQL không còn CHECK liệt kê (0007) → chốt ở đây để giá trị lạ không bao giờ vào nhật ký.
   if (!isAuditAction(e.action)) throw new Error(`Hành động nhật ký không hợp lệ: ${String(e.action)}`);
   const targetType = e.targetType ?? (e.orderId ? "order" : null);
   const targetId = e.targetId ?? e.orderId ?? null;
+  // Mốc hạn tính theo đồng hồ máy chủ lúc dựng câu, cùng cách currentStaff tính mốc xoá vai hết hạn, lùi thêm khoảng nới AN_HAN_NHAT_KY_MS.
+  const mocHan = new Date(Date.now() - HAN_XEM_NHU_VAI_PHUT * 60 * 1000 - AN_HAN_NHAT_KY_MS).toISOString();
   return db
     .prepare(
-      `INSERT INTO audit_log (id, order_id, staff_id, action, target_type, target_id, detail, created_at)
-       SELECT ?, ?, ?, ?, ?, ?, ?, ? ${onlyIf ? `WHERE ${onlyIf}` : ""}`,
+      `INSERT INTO audit_log (id, order_id, staff_id, action, target_type, target_id, detail, created_at, acting_role)
+       SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ${ACTING_ROLE_SUBQUERY} ${onlyIf ? `WHERE ${onlyIf}` : ""}`,
     )
-    .bind(e.id ?? crypto.randomUUID(), e.orderId ?? null, e.staffId ?? null, e.action, targetType, targetId, e.detail ?? null, e.at);
+    .bind(e.id ?? crypto.randomUUID(), e.orderId ?? null, e.staffId ?? null, e.action, targetType, targetId, e.detail ?? null, e.at, mocHan);
 }
 
 export const SYSTEM_ACTOR_NAME = "Hệ thống (tự động)";

@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { world, seedStaff } from "../../../tests/audit/harness.mjs";
 import { addDays, vnToday } from "../../shared/vn-date.ts";
+import { cachBayGio, datMocTraSau } from "../../../tests/audit/tra-sau-moc.mjs";
 
 const SALES = "11111111-1111-4111-8111-111111111111";
 const SUPER = "33333333-3333-4333-8333-333333333333";
@@ -32,14 +33,14 @@ async function setup(): Promise<W> {
   }
   return w;
 }
-const datHanMuc = (w: W, partyId: string, hanMuc = 50_000_000, soNgay = 7, as = SUPER) =>
-  w.call("POST", "/api/tra-sau/han-muc", { as, body: { partyId, hanMuc, soNgay, lyDo: "đại lý lâu năm" } });
-const danhSach = async (w: W, as = KT) => (await w.call("GET", "/api/tra-sau/han-muc", { as })).json.danhSach as { partyId: string; hanMuc: number | null; dangNo: number; conDuocDung: number | null; soDonQuaHan: number; soDonNo: number }[];
+const datHanMuc = (w: W, partyId: string, hanMuc = 50_000_000, gioTra = 168, as = SUPER, gioAnHan = 0) =>
+  w.call("POST", "/api/tra-sau/han-muc", { as, body: { partyId, hanMuc, gioTra, gioAnHan, lyDo: "đại lý lâu năm" } });
+const danhSach = async (w: W, as = KT) => (await w.call("GET", "/api/tra-sau/han-muc", { as })).json.danhSach as { partyId: string; hanMuc: number | null; dangNo: number; conDuocDung: number | null; soDonQuaHan: number; soDonAnHan: number; soDonNo: number }[];
 const dongCua = async (w: W, partyId: string) => (await danhSach(w)).find((d) => d.partyId === partyId);
-const donNo = async (w: W, partyId: string) => (await w.call("GET", `/api/tra-sau/han-muc/${partyId}/don`, { as: KT })).json.don as { orderId: string; maDon: string; hanTra: string | null; no: number; quaHan: boolean }[];
+const donNo = async (w: W, partyId: string) => (await w.call("GET", `/api/tra-sau/han-muc/${partyId}/don`, { as: KT })).json.don as { orderId: string; maDon: string; hanTra: string | null; no: number; trangThai: string }[];
 
-/** Đơn Trả sau đã xác nhận của `booker`: tổng `tong`, hạn trả `han`. */
-async function donTraSau(w: W, o: { booker?: string; tong?: number; han?: string; chuDon?: string } = {}): Promise<string> {
+/** Đơn Trả sau đã xác nhận của `booker`: tổng `tong`, hạn trả `han`, hết ân hạn `het` (mốc ISO; mặc định 7 ngày nữa, ân hạn 0). */
+async function donTraSau(w: W, o: { booker?: string; tong?: number; han?: string; het?: string; chuDon?: string } = {}): Promise<string> {
   const id = uuid();
   const tong = o.tong ?? 1_000_000;
   const booker = o.booker ?? `pty-${PT}`;
@@ -50,21 +51,23 @@ async function donTraSau(w: W, o: { booker?: string; tong?: number; han?: string
     .run(`${id}-i`, id, `${id}-s`, tong, tong, tong);
   const xn = await w.xacNhanDon(id, SALES);
   assert.equal(xn.status, 200, xn.text);
-  w.sqlite.prepare("UPDATE orders SET credit_due_date = ? WHERE id = ?").run(o.han ?? addDays(HOM_NAY(), 7), id);
+  const han = o.han ?? cachBayGio(168);
+  datMocTraSau(w.sqlite, id, han, o.het ?? han);
   if (o.chuDon) w.sqlite.prepare("UPDATE orders SET staff_id = ? WHERE id = ?").run(o.chuDon, id); // đơn của đối tác: để đối tác tự ghi «Tôi thu»
   return id;
 }
 const thu = (w: W, as: string, orderId: string, body: unknown) => w.call("POST", `/api/orders/${orderId}/payments`, { as, body });
 
-test("quyền: Toàn quyền đặt hạn mức; Kế toán xem được nhưng không đặt; Bán hàng, Quản trị, Nhân sự, Thực tập, Đối tác không đặt và không xem", async () => {
+test("quyền (ADR-0172 Đ1): Toàn quyền đặt; Quản trị chưa có mức tối đa thì không đặt; Kế toán, Quản trị xem được; Bán hàng, Nhân sự, Thực tập, Đối tác không đặt và không xem", async () => {
   const w = await setup();
   assert.equal((await datHanMuc(w, `pty-${PT}`)).status, 201);
   const d = await dongCua(w, `pty-${PT}`);
   assert.deepEqual([d?.hanMuc, d?.dangNo, d?.conDuocDung], [50_000_000, 0, 50_000_000]);
-  for (const as of [KT, SALES, ADMIN, HR, INTERN, PT]) assert.equal((await datHanMuc(w, `pty-${PT2}`, 1_000_000, 3, as)).status, 403, `đặt: ${as}`);
+  for (const as of [KT, SALES, ADMIN, HR, INTERN, PT]) assert.equal((await datHanMuc(w, `pty-${PT2}`, 1_000_000, 72, as)).status, 403, `đặt: ${as}`);
   assert.equal(await dongCua(w, `pty-${PT2}`), undefined, "chống bài rỗng: không ai trong số bị từ chối đặt được");
   assert.equal((await w.call("GET", "/api/tra-sau/han-muc", { as: SUPER })).status, 200);
-  for (const as of [SALES, ADMIN, HR, INTERN, PT]) {
+  assert.equal((await w.call("GET", "/api/tra-sau/han-muc", { as: ADMIN })).status, 200, "Quản trị xem được (ADR-0172 trang ghép (2))");
+  for (const as of [SALES, HR, INTERN, PT]) {
     const r = await w.call("GET", "/api/tra-sau/han-muc", { as });
     assert.equal(r.status, 403, `xem: ${as}`);
     assert.doesNotMatch(r.text, /50000000/);
@@ -77,8 +80,11 @@ test("hồ sơ nội bộ bị từ chối 409; đầu vào sai 400; hồ sơ l�
   const w = await setup();
   assert.equal((await datHanMuc(w, `pty-${SALES}`)).status, 409);
   assert.equal((await datHanMuc(w, `pty-${PT}`, 0)).status, 400);
-  assert.equal((await datHanMuc(w, `pty-${PT}`, 1000, 366)).status, 400);
-  assert.equal((await datHanMuc(w, `pty-${PT}`, 1000, 0)).status, 400);
+  assert.equal((await datHanMuc(w, `pty-${PT}`, 1000, 8761)).status, 400, "thời hạn quá 365 ngày");
+  assert.equal((await datHanMuc(w, `pty-${PT}`, 1000, 0)).status, 400, "thời hạn 0 giờ");
+  assert.equal((await datHanMuc(w, `pty-${PT}`, 1000, 36, SUPER, -1)).status, 400, "ân hạn âm");
+  assert.equal((await datHanMuc(w, `pty-${PT}`, 1000, 36, SUPER, 8761)).status, 400, "ân hạn quá 365 ngày");
+  assert.equal((await w.call("POST", "/api/tra-sau/han-muc", { as: SUPER, body: { partyId: `pty-${PT}`, hanMuc: 1000, gioTra: 36 } })).status, 400, "thiếu ân hạn");
   assert.equal((await datHanMuc(w, `pty-${PT}`, 1.5)).status, 400);
   assert.equal((await datHanMuc(w, "khong-co-ho-so")).status, 404);
   assert.equal(w.q("SELECT count(*) AS n FROM bil_credit_limit")[0].n, 0);
@@ -86,8 +92,8 @@ test("hồ sơ nội bộ bị từ chối 409; đầu vào sai 400; hồ sơ l�
 
 test("đổi hạn mức trong cùng ngày: dòng cũ đóng, dòng mới áp; ngừng thì hết hạn mức; nhật ký không có số điện thoại", async () => {
   const w = await setup();
-  assert.equal((await datHanMuc(w, `pty-${PT}`, 50_000_000, 7)).status, 201);
-  assert.equal((await datHanMuc(w, `pty-${PT}`, 20_000_000, 3)).status, 201);
+  assert.equal((await datHanMuc(w, `pty-${PT}`, 50_000_000, 168)).status, 201);
+  assert.equal((await datHanMuc(w, `pty-${PT}`, 20_000_000, 36, SUPER, 12)).status, 201);
   assert.deepEqual([(await dongCua(w, `pty-${PT}`))?.hanMuc], [20_000_000]);
   assert.equal(w.q("SELECT count(*) AS n FROM bil_credit_limit")[0].n, 2, "chỉ thêm, không ghi đè");
   assert.equal((await w.call("POST", `/api/tra-sau/han-muc/pty-${PT}/ngung`, { as: SUPER, body: {} })).status, 200);
@@ -142,15 +148,19 @@ test("đơn đã giao mà tiền còn ở tay đối tác vẫn tính nợ", asy
   assert.equal((await dongCua(w, `pty-${PT}`))?.dangNo, 1_000_000);
 });
 
-test("quá hạn: đúng ngày hạn chưa tính; sau ngày hạn tính vào số đơn quá hạn", async () => {
+test("quá hạn theo giờ (ADR-0172 Đ3 mục 3): trong hạn và trong ân hạn không tính quá hạn; hết ân hạn còn nợ mới tính", async () => {
   const w = await setup();
   await datHanMuc(w, `pty-${PT}`);
-  await donTraSau(w, { han: HOM_NAY() });
+  await donTraSau(w, { han: cachBayGio(1), het: cachBayGio(13) });
   assert.deepEqual([(await dongCua(w, `pty-${PT}`))?.soDonQuaHan], [0]);
-  await donTraSau(w, { han: addDays(HOM_NAY(), -1) });
-  const d = await dongCua(w, `pty-${PT}`);
-  assert.deepEqual([d?.soDonQuaHan, d?.soDonNo], [1, 2]);
-  assert.deepEqual((await donNo(w, `pty-${PT}`)).map((x) => x.quaHan).sort(), [false, true]);
+  await donTraSau(w, { han: cachBayGio(-1), het: cachBayGio(11) }); // qua hạn trả 1 giờ, còn 11 giờ ân hạn
+  let d = await dongCua(w, `pty-${PT}`);
+  assert.deepEqual([d?.soDonAnHan, d?.soDonQuaHan, d?.soDonNo], [1, 0, 2]);
+  await donTraSau(w, { han: cachBayGio(-13), het: cachBayGio(-1) }); // hết ân hạn 1 giờ trước
+  d = await dongCua(w, `pty-${PT}`);
+  assert.deepEqual([d?.soDonAnHan, d?.soDonQuaHan, d?.soDonNo], [1, 1, 3]);
+  assert.deepEqual((await donNo(w, `pty-${PT}`)).map((x) => x.trangThai).sort(), ["an_han", "qua_han", "trong_han"]);
+  assert.match((await donNo(w, `pty-${PT}`))[0]!.hanTra!, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/, "hạn trả là mốc giờ đầy đủ");
 });
 
 test("đường đọc hẹp con-duoc-dung: Đối tác luôn bị ép về hồ sơ của mình; Kế toán và Nhân sự không dùng; không kèm danh sách đơn", async () => {

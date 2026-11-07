@@ -7,6 +7,7 @@ import { METHOD_LABEL, dateTime, parseMoney, vnd } from "./format";
 import { regroupMoney, setMoneyValue } from "./money-input";
 import { initShell, showError } from "./shell";
 import { can, holdsPartner } from "../src/shared/permissions";
+import { CAU_KHONG_GHI_DOI_DUOC, nguoiThuSuaPhanDinh } from "../src/shared/ben-kia-hien-thi";
 import { CAU_MAN_HINH, MA_TRUONG_HOP, NHAN_TRANG_THAI_PHIEU, TONG_TRANG_THAI_PHIEU, TRUONG_HOP, laMaTruongHop, type MaTruongHop } from "../src/shared/phan-dinh";
 
 const errorEl = byId("error");
@@ -162,6 +163,11 @@ function formGhi(p: Api.PhieuPhanDinhDto): HTMLElement {
       ];
     }
     const t = await api<Api.OrderPaymentsResponse>(`/api/orders/${encodeURIComponent(p.orderId)}/payments`);
+    // ADR-0178 Đ1 mục 2: đơn mang dấu Tắt ⇒ khoản thu đúng do hồ sơ người lập thu; người lập chưa gắn hồ sơ ⇒ không sửa được ở đây (ghi sổ không kèm sửa vẫn chạy).
+    const nguoiThuDung = nguoiThuSuaPhanDinh(t.kenhThu);
+    if (nguoiThuDung === null) {
+      return [ngayThatEl, nutChot("Ghi sổ", "chot-ghi", (n) => void chay(() => api(`/api/ledger/phan-dinh/${pd.id}/ghi`, { method: "POST", body: thanNgay() }), "Đã ghi sổ.", n))];
+    }
     const conHieuLuc = t.lanThu.filter((l) => !l.traLai && !l.daDao && !l.laDongDao);
     const chon = conHieuLuc.map((l) => ({ l, o: h("input", { type: "checkbox" }) as HTMLInputElement }));
     const moi = oTien(Math.max(0, t.daThu - pd.soTien), "Số khách thật sự đã trả (₫)");
@@ -176,7 +182,7 @@ function formGhi(p: Api.PhieuPhanDinhDto): HTMLElement {
       const cu = chon.filter((c) => c.o.checked).map((c) => c.l.id);
       void chay(() => guiCoCanhBaoTrung((boQua) => api(`/api/ledger/phan-dinh/${pd.id}/ghi`, {
         method: "POST",
-        body: { ...thanNgay(), ...(cu.length > 0 ? { thay: { cu, lyDo: lyDo.doc(), moi: [{ soTien: moi.doc(), hinhThuc: ht.doc(), nguoiThu: "cong_ty", ...ma.than() }], ...(boQua ? { boQuaTrung: boQua } : {}) } } : {}) },
+        body: { ...thanNgay(), ...(cu.length > 0 ? { thay: { cu, lyDo: lyDo.doc(), moi: [{ soTien: moi.doc(), hinhThuc: ht.doc(), nguoiThu: nguoiThuDung, ...ma.than() }], ...(boQua ? { boQuaTrung: boQua } : {}) } } : {}) },
       }), n), "Đã ghi sổ.", n);
     })];
   });
@@ -202,7 +208,10 @@ function formDoiBen(p: Api.PhieuPhanDinhDto): HTMLElement {
 /** Ghi khoản thu đòi được (khách trả phần đã giảm trừ): ghi khoản thu mới và huỷ giảm trừ, nợ trong cùng lần ghi; được huỷ một phần. */
 function formHuy(p: Api.PhieuPhanDinhDto): HTMLElement {
   const g = p.ghi!;
-  return khoiMo("Ghi khoản thu đòi được", "huy-khoan", () => {
+  return khoiMo("Ghi khoản thu đòi được", "huy-khoan", async () => {
+    // ADR-0178 (Hệ quả): đơn mang dấu Tắt — Công ty không nhận tiền khách nên đường này luôn bị máy chủ từ chối; nói ra thay vì để form chắc chắn 409.
+    const t = await api<Api.OrderPaymentsResponse>(`/api/orders/${encodeURIComponent(p.orderId)}/payments`);
+    if (t.kenhThu?.congTyThu === false) return [h("p", { class: "muted", "data-khoi": "khong-ghi-doi-duoc" }, CAU_KHONG_GHI_DOI_DUOC)];
     const so = oTien(g.conHieuLuc, "Số đòi được (₫)");
     const ht = oHinhThuc();
     const ma = oMa(ht.o);
@@ -225,7 +234,7 @@ function thePhieu(p: Api.PhieuPhanDinhDto): HTMLElement {
     h("div", { class: "dc-dau" },
       h("a", { href: `/order?id=${encodeURIComponent(p.orderId)}` }, h("strong", null, p.maDon || "—")),
       h("span", { class: "huy-hieu", "data-tong": TONG_TRANG_THAI_PHIEU[p.trangThai] }, NHAN_TRANG_THAI_PHIEU[p.trangThai]),
-      p.quaHanNhac ? h("span", { class: "huy-hieu", "data-tong": "cat" }, "Đơn đã xong và đủ tiền quá 60 ngày") : null,
+      p.quaHanNhac ? h("span", { class: "huy-hieu", "data-tong": "cat" }, "Quá 60 ngày sau bước Khách đã trả đủ") : null,
       p.t11QuaHan ? h("span", { class: "huy-hieu", "data-tong": "do", "data-khoi": "t11-qua-han" }, "Quá 7 ngày chưa rõ ai chịu") : null),
     h("p", { class: "dc-tien" }, `Đề nghị ${vnd(p.soTienDeNghi)}`),
     h("p", { class: "muted" }, `${p.nguoiDeNghi} · ${dateTime(p.luc)} · ${p.lyDoDeNghi}`),
@@ -264,7 +273,7 @@ async function taiLai(): Promise<void> {
   replaceChildren(byId("pd-phieu-ds"), ...ds.phieu.map(thePhieu));
   const rong = byId("pd-phieu-rong");
   rong.hidden = ds.phieu.length > 0;
-  rong.textContent = ds.phieu.length > 0 ? "" : "Chưa có phiếu nào. Mở đề nghị ở trang đơn đã xong và đủ tiền.";
+  rong.textContent = ds.phieu.length > 0 ? "" : "Chưa có phiếu nào. Mở đề nghị ở trang đơn đã tới bước Khách đã trả đủ.";
 }
 
 try {

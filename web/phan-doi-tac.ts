@@ -133,7 +133,7 @@ export async function initPhanDoiTac(host: HTMLElement, v: PhanDoiTacVao): Promi
     return h(
       "div",
       { class: "pdt-chup-bu", "data-khoi": "chup-bu" },
-      h("p", { class: "muted" }, "Đơn chưa có bản chụp mức nên chưa xác nhận xong và đủ tiền được. Chụp bù lấy mức đang áp ở ngày xác nhận; dịch vụ nhập tay ghi mức tay sau đó."),
+      h("p", { class: "muted" }, "Đơn chưa có bản chụp mức nên chưa bấm được «Xác nhận khách đã trả đủ». Chụp bù lấy mức đang áp ở ngày xác nhận; dịch vụ nhập tay ghi mức tay sau đó."),
       nut,
       loi,
     );

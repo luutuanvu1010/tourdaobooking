@@ -18,7 +18,15 @@
       "Bash(node scripts/day-len.mjs)",
       "Bash(node scripts/day-len.mjs *)",
       "Bash(node scripts/trien-khai.mjs)",
-      "Bash(node scripts/trien-khai.mjs *)"
+      "Bash(node scripts/trien-khai.mjs *)",
+      "Bash(npm run len-chinh-thuc)",
+      "Bash(npm run len-chinh-thuc *)",
+      "Bash(node scripts/len-chinh-thuc.mjs)",
+      "Bash(node scripts/len-chinh-thuc.mjs *)",
+      "Bash(npm run lam-moi-dev)",
+      "Bash(npm run lam-moi-dev *)",
+      "Bash(node scripts/lam-moi-dev.mjs)",
+      "Bash(node scripts/lam-moi-dev.mjs *)"
     ],
     "ask": [
       "Edit(CLAUDE.md)",
@@ -30,7 +38,8 @@
       "Edit(src/shared/bang-tham-chieu*.ts)",
       "Edit(scripts/bang-tham-chieu-lib.mjs)",
       "Edit(scripts/quet-nut-lib.mjs)",
-      "Edit(src/bang-tham-chieu.test.ts)"
+      "Edit(src/bang-tham-chieu.test.ts)",
+      "Edit(.github/workflows/**)"
     ]
   },
   "hooks": {

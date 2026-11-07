@@ -32,7 +32,7 @@ export const BAI_VIEC: readonly BaiViec[] = [
     tieuDe: "Kho vé điện tử",
     nhomViec: "Gửi cho khách",
     trang: "veKho",
-    o: ["ve.kho.manage", "ve.cap.send"],
+    o: ["ve.kho.manage"], // bài này là của màn Kho vé; ADR-0170 mở ve.cap.send cho Đối tác nhưng Đối tác không vào kho, nên không tính ô này (bài riêng của Đối tác ở huong-dan-doi-tac.ts)
     gioiHan: [
       `Mỗi lô mặc định tối đa ${TRAN_LO_MAC_DINH} vé; Toàn quyền đổi được từ ${TRAN_LO_NHO_NHAT} đến ${TRAN_LO_LON_NHAT}`,
       `Mỗi ảnh tối đa ${SO_MB_ANH} MB, ảnh JPG hoặc PNG`,
@@ -45,7 +45,7 @@ export const BAI_VIEC: readonly BaiViec[] = [
 1. **Tải vé từ nhà cung cấp.** Mỗi lần chỉ tải đúng một sản phẩm, một loại khách, một khoảng ngày dùng. Giữ nguyên ảnh gốc, vì ảnh nén quá nhỏ có thể không đọc được QR.
 2. **Nhập vào kho.** Chọn dịch vụ và loại khách, gõ tên sản phẩm, chọn ngày dùng, chọn các ảnh vé rồi bấm [[Nhập lô vé]]. Giữ nguyên trang này cho tới khi gửi xong. Ảnh hỏng hoặc trùng bị loại kèm tên tệp, các ảnh còn lại vẫn vào kho.
 3. **Máy giữ vé cho đơn.** Máy tự giữ vé theo số khách khi đơn được xác nhận; em bé không có vé. Máy lấy lô đúng loại khách trước, rồi đến lô «Mọi loại khách»; trong mỗi nhóm, vé sắp hết hạn ra trước. Kho thiếu thì đơn báo còn thiếu vé: nhập thêm lô, mở đơn rồi bấm [[Cấp vé]].
-4. **Giao vé.** Vé chỉ mở khi đơn đã thu đủ; đơn trả sau thì vé mở trước, trừ khi đơn đã quá hạn còn nợ. Bấm nút **Mở … vé để gửi khách** (có số vé của đơn; màn hình nhắc vé sẽ không về kho nữa), rồi bấm [[Gửi Zalo]] và tự chọn người nhận. Máy không có nút này thì bấm các nút **Tải vé** để lưu ảnh rồi tự gửi. Hoặc bấm [[Tạo đường dẫn cho khách]] để khách tự mở và lưu vé; đường dẫn chỉ hiện một lần, nên chép gửi ngay.
+4. **Giao vé.** Vé chỉ mở khi đơn đã thu đủ; đơn trả sau thì vé mở trước, trừ khi đơn đã quá hạn còn nợ; với đơn do đối tác lập, chỉ tính tiền đã về công ty (đối tác tự ghi «Tôi thu» chưa đủ để mở). Bấm nút **Mở … vé để gửi khách** (có số vé của đơn; màn hình nhắc vé sẽ không về kho nữa), rồi bấm [[Gửi Zalo]] và tự chọn người nhận. Máy không có nút này thì bấm các nút **Tải vé** để lưu ảnh rồi tự gửi. Hoặc bấm [[Tạo đường dẫn cho khách]] để khách tự mở và lưu vé; đường dẫn chỉ hiện một lần, nên chép gửi ngay. Khi đơn tăng số khách, vé thêm chỉ hiện cho khách sau khi đơn thu đủ; vé khách đã mở rồi thì vẫn xem được.
 
 ### Điều dễ sai
 - Đừng trộn loại vé trong một lô: vé trẻ em lẫn vào lô người lớn sẽ tới tay khách người lớn.
@@ -135,22 +135,43 @@ export const BAI_VIEC: readonly BaiViec[] = [
     id: "han-muc-tra-sau",
     tieuDe: "Cấp hạn mức trả sau cho đối tác",
     nhomViec: "Cài đặt",
-    trang: "hanMucTraSau",
+    trang: "capDaiLy",
     o: ["credit.limit.write"],
     gioiHan: [],
-    neo: ["web/han-muc-tra-sau.ts", "src/shared/han-muc-tra-sau-hien-thi.ts"],
-    moDau: "Đối tác có hạn mức thì đặt được đơn trả sau: vé mở trước, tiền thu sau trong số ngày được nợ (ADR-0168).",
+    neo: ["web/o-tra-sau.ts", "web/an-han-tra-sau.ts", "src/shared/han-muc-tra-sau-hien-thi.ts"],
+    moDau: "Đối tác được cấp hạn mức trả sau thì đặt được đơn trả sau: vé mở trước, tiền thu sau trong thời hạn trả tính bằng giờ (ADR-0172). Quản trị và Toàn quyền cấp, điều chỉnh, đóng hạn mức; Kế toán chỉ xem.",
     noiDung: `### Các bước
-1. Mở **Hạn mức trả sau**.
-2. Ở ô **Hồ sơ đối tác**, gõ tên rồi chọn đúng hồ sơ.
-3. Gõ **Hạn mức (đồng)** và **Số ngày được nợ**.
-4. Bấm [[Đặt hạn mức]].
+1. Mở **Cấp độ đại lý**, tìm đối tác, bấm chữ ở cột **Trả sau** của dòng đó (đối tác chưa có hạn mức thì ô ghi «Chưa cấp»).
+2. Bảng mở ra đã điền sẵn số gợi ý của cấp (nếu có). Sửa **Hạn mức (đồng)**, **Thời hạn trả (giờ)** và **Ân hạn (giờ)** nếu cần.
+3. Bấm [[Cấp hạn mức]]. Đối tác đã có hạn mức thì nút ghi [[Điều chỉnh hạn mức]]: bấm để lưu số mới.
 
 ### Điều dễ sai
-- Chỉ hồ sơ đang mang Vai người dùng của đối tác mới cấp được hạn mức.
-- Đặt lại số mới thì hạn mức cũ đóng lại; đơn trả sau đã xác nhận giữ nguyên hạn trả cũ.
-- Bấm [[Ngừng hạn mức]] thì đối tác không đặt thêm đơn trả sau được, nhưng nợ cũ vẫn phải thu.
-- Đối tác còn đơn trả sau quá hạn chưa thanh toán thì không đặt thêm đơn trả sau được.`,
+- Thời hạn trả tính từ lúc đơn được xác nhận. Ví dụ 36 giờ: đơn xác nhận 8 giờ sáng thứ Hai thì hạn trả là 8 giờ tối thứ Ba.
+- Trong ân hạn, Nền tảng chỉ báo «Quá hạn, đang trong ân hạn», chưa chặn gì. Hết ân hạn mà còn nợ thì đối tác không đặt thêm đơn trả sau được, vé chưa mở cũng không mở được.
+- Đổi số mới chỉ áp cho đơn xác nhận sau đó; đơn đã xác nhận giữ hạn trả cũ.
+- Quản trị chỉ đặt được hạn mức tới **Mức tối đa Quản trị được cấp** do Toàn quyền đặt ở khối **Hạn mức trả sau** cuối màn. Chưa có mức này thì Quản trị chưa cấp được cho ai.
+- Không ai tự cấp hạn mức trả sau cho hồ sơ của chính mình.
+- Bấm [[Đóng hạn mức]] (rồi xác nhận ở hộp hỏi) thì đối tác không đặt thêm đơn trả sau được, nhưng nợ cũ vẫn phải thu. Muốn giữ thì bấm «Giữ hạn mức». Đối tác còn nợ thì chưa ngừng tài khoản hay gỡ vai trò đối tác được.
+- Ngay dưới khối **Hạn mức trả sau** có thẻ **Khách của đối tác trả cho Công ty**: chỉ Toàn quyền bật, tắt. Tắt thì đơn đối tác lập từ lúc đó chỉ do chính đối tác ghi khoản thu và không có QR thanh toán; đơn đã lập giữ nguyên.
+
+### Lùi hạn trả một đơn
+Khách xin thêm thời gian: mở đơn, ở khối Thanh toán bấm [[Ân hạn]], chọn hạn trả mới (giờ Việt Nam), ghi lý do rồi bấm [[Ân hạn]] trong bảng. Hạn mới phải sau hạn cũ; khoảng ân hạn sau hạn trả giữ nguyên.`,
+  },
+  {
+    id: "xem-no-tra-sau",
+    tieuDe: "Xem đối tác đang nợ Trả sau",
+    nhomViec: "Cài đặt",
+    trang: "hanMucTraSau",
+    o: ["credit.limit.view"],
+    gioiHan: [],
+    neo: ["web/han-muc-tra-sau.ts", "public/han-muc-tra-sau.html"],
+    moDau: "Màn này chỉ để xem. Cấp, điều chỉnh, đóng hạn mức trả sau làm ở màn Cấp độ đại lý.",
+    noiDung: `### Các bước
+1. Mở **Hạn mức trả sau**: danh sách đối tác đang bật Trả sau hoặc còn nợ, kèm số đơn quá hạn và số đơn đang trong ân hạn.
+2. Bấm **Xem đơn nợ** để xem từng đơn còn nợ, hạn trả (giờ Việt Nam) và trạng thái; bấm mã đơn để mở đơn.
+
+### Điều dễ sai
+- «Quá hạn, đang trong ân hạn» chỉ là lời báo, chưa chặn gì. «Quá hạn» nghĩa là đã hết ân hạn: đối tác không đặt thêm đơn trả sau được cho tới khi thu đủ.`,
   },
   {
     id: "giao-dien",

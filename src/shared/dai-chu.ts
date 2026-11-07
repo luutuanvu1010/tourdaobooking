@@ -1,8 +1,9 @@
 // Dải trên trang: MỘT chủ sở hữu (web/dai.ts), một dải hiện một lúc (đặc tả đợt 0, §5.6). Thuần: không DOM.
-export type LoaiDai = "bao-tri" | "ngoai-mang" | "thong-bao" | "bao-mat";
+export type LoaiDai = "xem-nhu-vai" | "bao-tri" | "ngoai-mang" | "thong-bao" | "bao-mat";
 
 /** Thứ tự ưu tiên, trước thắng. */
-export const UU_TIEN: readonly LoaiDai[] = ["bao-tri", "ngoai-mang", "thong-bao", "bao-mat"];
+// «xem-nhu-vai» (ADR-0180) đứng đầu: đang đóng vai thì phải luôn thấy nút Thoát.
+export const UU_TIEN: readonly LoaiDai[] = ["xem-nhu-vai", "bao-tri", "ngoai-mang", "thong-bao", "bao-mat"];
 
 export function chonDai(coMat: ReadonlySet<LoaiDai> | readonly LoaiDai[]): LoaiDai | null {
   const co = new Set<LoaiDai>(coMat);
@@ -10,6 +11,7 @@ export function chonDai(coMat: ReadonlySet<LoaiDai> | readonly LoaiDai[]): LoaiD
 }
 
 export const TONG_DAI: Record<LoaiDai, { tong: "bien" | "cat" | "do"; hinh: "history" | "clock" | "alertCircle" }> = {
+  "xem-nhu-vai": { tong: "cat", hinh: "alertCircle" },
   "bao-tri": { tong: "bien", hinh: "history" },
   "ngoai-mang": { tong: "cat", hinh: "clock" },
   "thong-bao": { tong: "cat", hinh: "clock" },

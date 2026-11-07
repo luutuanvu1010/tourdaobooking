@@ -17,6 +17,80 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // ADR-0180 (chủ duyệt 7/11): Toàn quyền xem như vai trò khác. Migration 0145. Bước A.0 ngày 7/11.
+    version: "2.74",
+    date: "2026-11-07",
+    items: [
+      { kind: "moi", text: "Toàn quyền chọn «Xem như vai trò khác» ở trang Tôi để dùng Nền tảng như một vai trò khác; bấm «Thoát» hoặc sau 60 phút không thao tác thì trở lại như cũ." },
+    ],
+  },
+  {
+    // ADR-0181 (chủ duyệt 7/11): đơn trả sau đã xong còn nợ được nhắc và «Ân hạn»; thôi làm đối tác thì hết hạn mức. Migration 0146. Ngày đặt lại ở bước A.0 của lần triển khai.
+    version: "2.73",
+    date: "2026-11-07",
+    items: [
+      { kind: "doi", text: "Bước «Xong và đủ tiền» đổi tên thành «Khách đã trả đủ», nút ghi «Xác nhận khách đã trả đủ», cho khỏi hiểu nhầm là tiền đã về công ty. Cách làm việc không đổi." },
+      { kind: "sua", text: "Đơn trả sau đã tới bước «Khách đã trả đủ» mà đối tác chưa nộp tiền về công ty: hộp thư vẫn nhắc trước hạn trả 6 giờ và khi quá hạn, như đơn chưa xong." },
+      { kind: "sua", text: "Quản trị, Toàn quyền bấm «Ân hạn» được cả trên đơn trả sau đã tới bước «Khách đã trả đủ» mà còn nợ. Ngoài hạn trả, đơn đó vẫn khoá như cũ." },
+      { kind: "doi", text: "Gỡ vai trò đối tác cuối cùng của một hồ sơ (ở Danh bạ hay ở Tài khoản) thì hạn mức trả sau của hồ sơ đó đóng luôn. Gán lại vai trò thì phải cấp lại hạn mức." },
+    ],
+  },
+  {
+    // Biên nhận mẫu HD-02-DT cho đơn đối tác. Không migration. Bước A.0 ngày 7/11: 2.70, 2.71, 2.72 lên cùng một lần triển khai, giữ ba mục riêng (tiền lệ 2.55–2.57).
+    version: "2.72",
+    date: "2026-11-07",
+    items: [
+      { kind: "doi", text: "Ảnh gửi khách của đơn đối tác có mẫu riêng: đầu ảnh là thương hiệu Tour Đảo Nha Trang và câu khẩu hiệu, có giá công bố và dòng Phải thu.", bai: { id: "doi-tac/gui-bien-nhan-cho-khach", ten: "Gửi biên nhận cho khách" } },
+    ],
+  },
+  {
+    // Công tắc «Khách của đối tác trả cho Công ty» (ADR-0178 Phần A, migration 0144) và Quản trị gán mọi vai trò trừ IT (ADR-0176, không migration). Ngày đặt ở bước A.0 7/11.
+    version: "2.71",
+    date: "2026-11-07",
+    items: [
+      { kind: "moi", text: "Công tắc «Khách của đối tác trả cho Công ty» ở màn Cấp độ đại lý: Toàn quyền bật, tắt; Kế toán, Quản trị xem. Mặc định Bật, như trước." },
+      { kind: "doi", text: "Đơn Đối tác lập lúc công tắc Tắt: chỉ đối tác đó ghi khoản thu («Tôi thu»), không có QR thanh toán. Đơn đã lập giữ cách thu của lúc lập." },
+      { kind: "doi", text: "Quản trị gán được mọi vai trò cho tài khoản, kể cả Kế toán, Giám đốc, Điều hành chung, Hành chính nhân sự; riêng vai trò IT thì không." },
+    ],
+  },
+  {
+    // Trả sau theo giờ và luật vận hành công nợ (ADR-0172, ADR-0173), kèm phần làm hết nợ Trả sau (Task 2, 3). Migration 0143. Ngày đặt ở bước A.0 7/11.
+    version: "2.70",
+    date: "2026-11-07",
+    items: [
+      { kind: "doi", text: "Trả sau nay đặt ở màn Cấp độ đại lý, cột «Trả sau»: Quản trị, Toàn quyền cấp, điều chỉnh, đóng hạn mức; Kế toán xem. Màn Hạn mức trả sau chỉ để xem ai đang nợ.", bai: { id: "viec/han-muc-tra-sau", ten: "Cấp hạn mức trả sau cho đối tác" } },
+      { kind: "doi", text: "Thời hạn trả tính bằng giờ từ lúc đơn được xác nhận, có thêm số giờ ân hạn. Trong ân hạn chỉ báo; hết ân hạn mà còn nợ mới chặn đơn trả sau mới và vé chưa mở." },
+      { kind: "moi", text: "Mỗi Cấp độ đại lý có số gợi ý Trả sau, tự điền sẵn khi cấp hạn mức cho một đối tác. Toàn quyền đặt mức tối đa Quản trị được cấp." },
+      { kind: "moi", text: "Nút «Ân hạn» trên đơn trả sau còn nợ: Quản trị, Toàn quyền lùi hạn trả kèm lý do." },
+      { kind: "moi", text: "Đối tác xem mục «Trả sau của tôi» ở trang Tôi: hạn mức, số đang nợ và từng đơn còn nợ." },
+      { kind: "moi", text: "Hộp thư nhắc đối tác trước hạn trả 6 giờ và khi đơn quá hạn; Kế toán cũng được báo khi quá hạn." },
+      { kind: "doi", text: "Đối tác còn nợ Trả sau thì chưa ngừng tài khoản, gỡ vai trò đối tác hay xoá hồ sơ được." },
+      { kind: "sua", text: "Sửa đơn trả sau làm tăng tiền: Nền tảng so phần tăng với hạn mức khả dụng, không còn báo vượt hạn mức nhầm khi đơn đã thu một phần." },
+    ],
+  },
+  {
+    // Đối tác xem và gửi vé (ADR-0170), siết ba đường (ADR-0171), sửa số nợ Trả sau khi nộp một phần. Không migration. Số và ngày tạm: bước A.0 đặt lại nếu cần.
+    version: "2.69",
+    date: "2026-11-05",
+    items: [
+      { kind: "moi", text: "Đối tác xem và gửi được vé của đơn mình lập, khi tiền của đơn đã về công ty." },
+      { kind: "doi", text: "Đơn do Đối tác lập: khoản Đối tác tự ghi chỉ tính sau khi đã nộp về công ty hoặc Kế toán xác nhận, nên vé mở sau bước đó." },
+      { kind: "doi", text: "Đối tác không tự huỷ hoặc tự sửa số khách trên đơn đã mở vé; cần thì liên hệ văn phòng." },
+      { kind: "doi", text: "Đường dẫn gửi khách: vé đã mở vẫn xem được, vé chưa mở chỉ hiện khi đơn đủ tiền." },
+      { kind: "doi", text: "Chuyển tiền sang đơn mới: phải ghi đúng người chưa nộp tiền; đơn của Đối tác chỉ mở vé sau khi người đó nộp." },
+      { kind: "sua", text: "Đơn trả sau: số nợ tính đúng khi mới nộp một phần tiền." },
+      { kind: "sua", text: "Màn Hạn mức trả sau: danh sách đối tác hiện sẵn để chọn, lọc theo tên gõ có dấu hay không đều ra." },
+    ],
+  },
+  {
+    // Sửa khe đua ADR-0142 (nợ T4): nhận / đổi người phụ trách đúng lúc đơn bị huỷ. Không migration. Số và ngày tạm cho nhánh: bước A.0 đặt lại nếu cần.
+    version: "2.68",
+    date: "2026-11-05",
+    items: [
+      { kind: "sua", text: "Bấm nhận hoặc đổi người phụ trách đúng lúc đơn vừa bị huỷ: Nền tảng báo đơn đã huỷ và không ghi tên người lên đơn đó nữa." },
+    ],
+  },
+  {
     // Thanh toán trả sau theo hạn mức (ADR-0168): migration 0141, ô quyền credit.limit.view / credit.limit.write.
     // Số 2.67 và ngày chỉ là tạm cho nhánh: bước A.0 của lần triển khai đặt lại nếu cần.
     version: "2.67",

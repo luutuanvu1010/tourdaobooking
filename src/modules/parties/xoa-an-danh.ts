@@ -55,7 +55,7 @@ export const NHAN_LY_DO_KHONG_XU_LY: Readonly<Record<LyDoKhongXuLy, string>> = {
   cap_bac: "Không tìm thấy yêu cầu này.",
   khong_tai_khoan: "Không tìm thấy yêu cầu này.",
   cong_ty_chu: "Hồ sơ công ty chủ không xoá được.",
-  dang_ban: "Người này còn việc đang mở (đơn chưa tới bước Xong và đủ tiền, chuyến, xe hoặc phụ trách đơn) — chưa xoá được.",
+  dang_ban: "Người này còn việc đang mở (đơn chưa tới bước Khách đã trả đủ, chuyến, xe hoặc phụ trách đơn) — chưa xoá được.",
 };
 
 /** Giữ tên (R8): quyền nào ngoài PARTNER (tên là nhãn trên đơn / lệnh / nhật ký — ngoại lệ 5.20), hoặc đơn đã giao / đã huỷ, hoặc dòng nợ. */

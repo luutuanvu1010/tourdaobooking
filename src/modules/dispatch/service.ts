@@ -127,5 +127,5 @@ export function ketQuaTuChoi(kq: readonly D1Result[], coVuotLucGhi: boolean): "t
   return coVuotLucGhi && (kq.at(-1)?.meta.changes ?? 0) > 0 ? "han_muc" : "thua";
 }
 
-/** Lô Từ chối đã THẮNG chưa — route chỉ hỏi hàm này, không đọc thẳng chỉ số (khuôn `daHuy`): câu đóng dòng (thứ 2) đổi một dòng. */
+/** Lô Từ chối đã THẮNG chưa — route chỉ hỏi hàm này, không đọc thẳng chỉ số (khuôn `thang` của `soanHuyDon`): câu đóng dòng (thứ 2) đổi một dòng. */
 export const tuChoiThang = (kq: readonly D1Result[]): boolean => (kq[1]?.meta.changes ?? 0) > 0;

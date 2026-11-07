@@ -68,7 +68,7 @@ export const AUDIT_ACTIONS = {
   // không tỷ lệ, không tiền, không tên đối tác). Tiền tố `ord_terms_` thuộc nhóm hành động thương mại (`laHanhDongThuongMai`); ẩn khỏi lịch sử đơn của Đối tác.
   ord_terms_backfilled: { label: "Chụp bù mức hoa hồng", group: "order" },
   // Sổ tiền lượt 1 (ADR-0025, ADR-0026) — `detail` không SĐT, không số tiền chi tiết (kế hoạch §3.4).
-  order_delivered: { label: "Xong và đủ tiền", group: "order" },
+  order_delivered: { label: "Khách đã trả đủ", group: "order" },
   order_completed: { label: "Hoàn thành", group: "order" },
   payment_recorded: { label: "Ghi khoản thu", group: "order" },
   // ADR-0060: dấu "đã nhập phần mềm kế toán" (bảng chỉ-thêm bil_accounting_entry) — detail = moTaDauNhap (số hoá đơn nguyên văn; lý do đã chặn dãy số dài).
@@ -154,6 +154,13 @@ export const AUDIT_ACTIONS = {
   // `detail` = «hạn mức 50.000.000 ₫ · 7 ngày» / «ngừng hạn mức» (số tiền và số ngày, KHÔNG tên, SĐT, email, MST, lý do tự do).
   credit_limit_set: { label: "Đặt hạn mức trả sau", group: "ledger" },
   credit_limit_stopped: { label: "Ngừng hạn mức trả sau", group: "ledger" },
+  // ADR-0178 Đ1 mục 1: Toàn quyền đổi công tắc «Khách của đối tác trả cho Công ty» (POST /api/kenh-thu-doi-tac) — `target_type = 'ledger'`, `target_id` = 'kenh-thu-doi-tac'; `detail` = «Bật» / «Tắt».
+  partner_channel_set: { label: "Đổi «Khách của đối tác trả cho Công ty»", group: "ledger" },
+  credit_ceiling_set: { label: "Đặt mức tối đa Quản trị được cấp", group: "ledger" },
+  credit_tier_default_set: { label: "Đặt số gợi ý trả sau theo cấp", group: "ledger" },
+  credit_due_extended: { label: "Ân hạn đơn trả sau", group: "order" },
+  credit_due_soon_reminded: { label: "Nhắc đơn trả sau sắp tới hạn", group: "ledger" },
+  credit_overdue_reminded: { label: "Nhắc đơn trả sau quá hạn", group: "ledger" },
   // Khoá sổ tháng (ADR-0080 D1; module ky-so — route ở billing): `order_id` NULL; `detail` = "Khoá sổ tháng MM/YYYY" (không tiền, không SĐT).
   ledger_period_closed: { label: "Khoá sổ tháng", group: "ledger" },
   order_handler_changed: { label: "Đổi Hướng dẫn viên", group: "order" },
@@ -371,6 +378,9 @@ export const AUDIT_ACTIONS = {
   mfa_recovery_regenerated: { label: "Tạo bộ mã dự phòng mới", group: "staff" },
   // ADR-0074 điều 5 (kế hoạch Task 6): Quản trị/Toàn quyền tắt lớp hai của người khác — chỉ người làm (staff_id) + người bị tắt (target); KHÔNG email, mã, chi tiết.
   // KHÔNG thuộc SILENT_AUDIT_ACTIONS (vòng sửa 1: chưa có ADR duyệt cho nó im lặng) — hiện như mọi thao tác thường.
+  // ADR-0180 Đ1: Toàn quyền bật / thoát chế độ "xem như vai khác". `detail` CHỈ là mã quyền của vai (ví dụ "SALES") — không SĐT, email, tên.
+  acting_role_set: { label: "Bắt đầu xem như vai trò khác", group: "staff" },
+  acting_role_cleared: { label: "Thoát chế độ xem như vai trò khác", group: "staff" },
   mfa_reset: { label: "Tắt bảo mật hai lớp của tài khoản", group: "staff" },
   // ADR-0121 đ4, đ7 + ADR-0125 đ5: TÊN đặt trước ở lát H-4 (chưa route nào ghi). Lát ADR-0121 PHẢI ghi đúng hai tên này, target_type 'staff', target_id = tài khoản,
   // staff_id = người làm, CÙNG LÔ với thay đổi — nếu không, vế "vĩnh viễn" của luật tách nhiệm vụ xác minh hở (view v_aud_cham_tai_khoan). KHÔNG chi tiết.

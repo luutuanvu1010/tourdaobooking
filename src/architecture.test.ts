@@ -89,6 +89,7 @@ const STRICT: readonly { module: string; file: string }[] = [
   { module: "billing", file: "modules/billing/thay-lan-thu-repo.ts" }, // ADR-0088 đ2, đ6 (thay lần thu, migration 0083) — SIẾT theo K-A-1: SQL tiền này từng đứng ngoài bài EXPLAIN / ranh giới
   { module: "billing", file: "modules/billing/phan-dinh-repo.ts" }, // ADR-0116 (phân định trách nhiệm, migration 0135) — nghiêm từ ngày đầu
   { module: "billing", file: "modules/billing/dieu-chinh-repo.ts" }, // ADR-0115 đợt 1 (điều chỉnh công nợ cần duyệt, migration 0094) — nghiêm từ ngày đầu: SQL tiền đi qua defineSql + EXPLAIN
+  { module: "billing", file: "modules/billing/kenh-thu-repo.ts" }, // ADR-0178 (công tắc kênh thu đối tác, migration 0144) — nghiêm từ ngày đầu
   { module: "billing", file: "modules/billing/tra-sau-repo.ts" }, // ADR-0168 (trả sau theo hạn mức, migration 0141) — nghiêm từ ngày đầu
   { module: "company", file: "modules/company/repository.ts" },
   { module: "dispatch", file: "modules/dispatch/repository.ts" },
@@ -118,6 +119,7 @@ const STRICT: readonly { module: string; file: string }[] = [
 /**
  * NGOẠI LỆ CÓ HẠN (ADR-0002 điều 8(b)): SQL của module cũ chưa đăng ký — còn JOIN thẳng bảng module khác.
  * Hạn: `audit` và `orders` đã bỏ JOIN thẳng bảng (đọc qua view công bố) ở N1-B nhưng SQL của chúng chưa đăng ký — chuyển STRICT khi được chạm ở N2;
+ * riêng `audit`, từ ADR-0180 Đ2, `insertStatement` lại đọc THẲNG bảng `aut_session` của auth (gắn dấu vai đang xem như) — nợ có tên, ghi ở docs/SYSTEM-DESIGN.md §16;
  * `wonGuard` của orders (đọc audit_log) ở lại tới N2; `accounts` chưa có SQL riêng đáng kể — chuyển STRICT khi có SQL mới. `catalog`: SQL mới (nhóm dịch vụ) đã ở tệp nửa nghiêm `nhom-repo.ts`; SQL cũ của `repository.ts` còn LEGACY tới hạn CATALOG_LEGACY_HAN (ADR-0058 Đ6).
  */
 const LEGACY = ["accounts", "audit", "catalog", "orders"] as const;

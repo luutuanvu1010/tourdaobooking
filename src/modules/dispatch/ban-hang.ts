@@ -50,20 +50,22 @@ const MO_BAT_BUOC = defineSql(
    SELECT ?1, ?2, ?3, ?4, ?4, ?5, ?4, ?5
    WHERE EXISTS (SELECT 1 FROM v_aud_order_ban_hang WHERE id = ?6 AND order_id = ?2)`,
 );
-// ?1 id, ?2 đơn, ?3 hồ sơ, ?4 lúc, ?5 người thao tác. Chính câu mở là câu chốt: chỉ chèn khi lúc ghi chưa có dòng mở (chỉ mục duy nhất là lưới cuối).
+// ?1 id, ?2 đơn, ?3 hồ sơ, ?4 lúc, ?5 người thao tác. Chính câu mở là câu chốt: chỉ chèn khi lúc ghi chưa có dòng mở (chỉ mục duy nhất là lưới cuối) và đơn còn «đã xác nhận» (route đọc rồi mới ghi, đơn có thể vừa bị huỷ giữa hai bước).
 const MO_NEU_TRONG = defineSql(
   "dispatch",
   "mo_ban_hang_neu_trong",
   `INSERT INTO dsp_sales_owner (${COT_O})
    SELECT ?1, ?2, ?3, ?4, ?4, ?5, ?4, ?5
-   WHERE NOT EXISTS (SELECT 1 FROM dsp_sales_owner WHERE order_id = ?2 AND valid_to_at IS NULL)`,
+   WHERE NOT EXISTS (SELECT 1 FROM dsp_sales_owner WHERE order_id = ?2 AND valid_to_at IS NULL)
+     AND EXISTS (SELECT 1 FROM v_ord_order_state WHERE id = ?2 AND status = 'confirmed')`,
 );
-// Đổi người, câu 1: khép dòng mở đúng ?2 (khoá lạc quan theo giá trị party_id — cùng lý lẽ CLOSE_HANDLER). ?1 đơn, ?2 hồ sơ cũ, ?3 lúc, ?4 người thao tác.
+// Đổi người, câu 1: khép dòng mở đúng ?2 (khoá lạc quan theo giá trị party_id — cùng lý lẽ CLOSE_HANDLER). Đơn vừa bị huỷ ⇒ 0 dòng, người cũ giữ nguyên, không khép nửa chừng. ?1 đơn, ?2 hồ sơ cũ, ?3 lúc, ?4 người thao tác.
 const KHEP_O = defineSql(
   "dispatch",
   "khep_ban_hang",
   `UPDATE dsp_sales_owner SET valid_to_at = max(?3, valid_from_at), updated_at = ?3, updated_by = ?4, closed_by = ?4
-   WHERE order_id = ?1 AND valid_to_at IS NULL AND party_id = ?2`,
+   WHERE order_id = ?1 AND valid_to_at IS NULL AND party_id = ?2
+     AND EXISTS (SELECT 1 FROM v_ord_order_state WHERE id = ?1 AND status = 'confirmed')`,
 );
 // Đổi người, câu 2: mở dòng ?1 nếu ?3 khác NULL và (sau câu khép) không còn dòng mở. ?1 id mới, ?2 đơn, ?3 hồ sơ mới, ?4 lúc, ?5 người thao tác.
 const MO_SAU_DOI = defineSql(
@@ -71,7 +73,8 @@ const MO_SAU_DOI = defineSql(
   "mo_ban_hang_sau_doi",
   `INSERT INTO dsp_sales_owner (${COT_O})
    SELECT ?1, ?2, ?3, ?4, ?4, ?5, ?4, ?5
-   WHERE ?3 IS NOT NULL AND NOT EXISTS (SELECT 1 FROM dsp_sales_owner WHERE order_id = ?2 AND valid_to_at IS NULL)`,
+   WHERE ?3 IS NOT NULL AND NOT EXISTS (SELECT 1 FROM dsp_sales_owner WHERE order_id = ?2 AND valid_to_at IS NULL)
+     AND EXISTS (SELECT 1 FROM v_ord_order_state WHERE id = ?2 AND status = 'confirmed')`,
 );
 
 // ---- Ghi: lời mời ---------------------------------------------------------------------------------------------------------------------------------

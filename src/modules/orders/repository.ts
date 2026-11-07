@@ -24,6 +24,7 @@ import { cauHuyCoLyDo } from "./huy-don-repo";
 import { nhanLyDoHuy, nhanNhomHuy, type LyDoHuy } from "../../shared/ly-do-huy";
 import { donDangChoXacNhan } from "./xac-nhan-repo";
 import { confirmWindow, summarizeDeviations, type StoredService, type ValidService, type ValidTrip } from "./service-rules";
+import type { QuaCongDoiBen, QuaCongHuy, QuaCongSuaTang } from "./tra-sau-cong";
 
 interface OrderRow {
   id: string;
@@ -46,6 +47,8 @@ interface OrderRow {
   /** ADR-0168 (0141): hình thức thanh toán và hạn trả (chụp lúc xác nhận đơn Trả sau). */
   payment_term: "PREPAID" | "CREDIT";
   credit_due_date: string | null;
+  credit_due_at: string | null;
+  credit_grace_until: string | null;
   created_at: string;
   updated_at: string;
   confirmed_at: string | null;
@@ -195,7 +198,8 @@ function toDto(r: OrderRow): OrderDto {
     // ADR-0159 Đ1 mục 6: sau xác nhận đọc từ sổ, không đọc cột — nên chỉ đơn nháp mang số này.
     declaredDeposit: r.status === "draft" ? r.declared_deposit : 0,
     paymentTerm: r.payment_term,
-    hanTra: r.payment_term === "CREDIT" ? r.credit_due_date : null,
+    hanTra: r.payment_term === "CREDIT" ? r.credit_due_at : null,
+    hetAnHan: r.payment_term === "CREDIT" ? r.credit_grace_until : null,
     createdAt: r.created_at,
     updatedAt: r.updated_at,
     confirmedAt: r.confirmed_at,
@@ -987,6 +991,8 @@ export async function createOrder(
   booker: BookerWrite = NO_BOOKER,
   /** Dấu «miễn danh sách khách» (ADR-0154 Đ3.1): route đã quyết lúc lập (tài khoản Đối tác thuần + công tắc BẬT); chụp một lần, trigger 0133 cấm đổi sau đó. */
   manifestExempt = false,
+  /** Dấu «Khách của đối tác trả cho Công ty» (ADR-0178 Đ1 mục 2): route đọc công tắc MỘT lần khi người lập giữ quyền Đối tác (1 Bật / 0 Tắt); người khác NULL. Chụp một lần, trigger 0144 cấm đổi. */
+  kenhThu: 0 | 1 | null = null,
 ): Promise<string> {
   const MAX_ATTEMPTS = 3;
   for (let attempt = 1; ; attempt++) {
@@ -1005,15 +1011,15 @@ export async function createOrder(
         db
           .prepare(
             `INSERT INTO orders (id, order_code, staff_id, status, customer_name, customer_phone, customer_email, customer_note,
-               subtotal, discount, total, deposit_amount, deposit_method, remaining_amount, payment_note, created_at, updated_at, booker_party_id, manifest_exempt, declared_deposit, payment_term)
+               subtotal, discount, total, deposit_amount, deposit_method, remaining_amount, payment_note, created_at, updated_at, booker_party_id, manifest_exempt, declared_deposit, payment_term, company_collects_snapshot)
              SELECT ?, ? || printf('%04d', COALESCE((SELECT MAX(CAST(substr(order_code, length(?) + 1) AS INTEGER)) FROM orders WHERE order_code LIKE ?), 0) + 1),
-               ?, 'draft', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ${BOOKER_VALUE}, ?, ?, ?`,
+               ?, 'draft', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ${BOOKER_VALUE}, ?, ?, ?, ?`,
           )
           .bind(
             id, prefix, prefix, `${prefix}%`, staffId, order.customerName, order.customerPhone, order.customerEmail, order.customerNote,
             // Ba cột cọc cũ KHÔNG mang nghĩa nữa (ADR-0026 đ9): đơn mới ghi 0 / NULL / total — chỉ để thoả trigger 0007 (không ai đọc).
             order.subtotal, order.discount, order.total, 0, null, order.total, order.paymentNote, at, at,
-            booker.partyId, manifestExempt ? 1 : 0, order.declaredDeposit ?? 0, order.paymentTerm ?? "PREPAID",
+            booker.partyId, manifestExempt ? 1 : 0, order.declaredDeposit ?? 0, order.paymentTerm ?? "PREPAID", kenhThu,
           ),
         ...services.stmts,
         ...legs,
@@ -1150,41 +1156,35 @@ export function soanXacNhan(
 export const daXacNhan = (kq: readonly D1Result[]): boolean => (kq[1]?.meta.changes ?? 0) > 0;
 
 /**
- * Huỷ đơn có điều kiện `status = from` VÀ `updated_at = prevUpdatedAt` (khoá lạc quan, chống hai người đổi cùng lúc — kể cả khi người kia chỉ đổi
- * `updated_at` mà KHÔNG đổi `status`, ví dụ `PUT /trip` chen giữa lúc route đọc và lúc gọi hàm này). Trả false nếu điều kiện không còn đúng — KHÔNG
- * đổi gì, KHÔNG ghi nhật ký (T1d, điều kiện tiên quyết ADR-0030 lượt 1: trước bản sửa này câu UPDATE chỉ khoá theo `status`, để lọt ca chen giữa
- * trên). Mốc `updated_at` mới = `nextStamp(prevUpdatedAt)` (xem `confirmOrder`). `lyDo` BẮT BUỘC (ADR-0089 đ8). `opts` cho phép đường huỷ hẹp của FIELD
- * (ADR-0014 điều 11) ghi hành động nhật ký riêng + nhãn lý do cũ của nó; mặc định `cancelled` kèm nhãn lý do (nhóm).
- */
-export async function cancelOrder(
-  db: D1Database, id: string, staffId: string, from: OrderStatus, prevUpdatedAt: string, lyDo: LyDoHuy, opts?: { action?: AuditAction; detail?: string },
-): Promise<boolean> {
-  return daHuy(await db.batch(soanHuyDon(db, id, staffId, from, prevUpdatedAt, lyDo, opts).cau));
-}
-
-/**
- * SOẠN (chưa chạy) lô huỷ đơn của `cancelOrder` — cho điểm gọi nối máy đồng bộ chuyến (ADR-0104 Đ2, điểm gọi 1 và 2): `auditId` = id dòng nhật ký của câu cổng
- * đơn (sinh trước — câu cổng chuyến hỏi "dòng này đã có"), `cau` = [dòng lý do] → [đổi trạng thái] → [nhật ký changes() > 0]. Chạy MỘT `db.batch` với câu
- * đơn ĐỨNG ĐẦU rồi đọc thắng bằng `daHuy(kq)` (chỉ số câu đổi trạng thái không đổi khi nối khúc chuyến phía sau).
+ * SOẠN (chưa chạy) lô huỷ đơn — cho điểm gọi nối máy đồng bộ chuyến (ADR-0104 Đ2, điểm gọi 1 và 2): `auditId` = id dòng nhật ký của câu cổng
+ * đơn (sinh trước — câu cổng chuyến hỏi "dòng này đã có"), `cau` = [câu gác Trả sau của cổng, nếu có] → [dòng lý do] → [đổi trạng thái] → [nhật ký changes() > 0]. Chạy MỘT
+ * `db.batch` với phần câu đơn ĐỨNG ĐẦU rồi đọc thắng bằng `thang(kq)` (biết chỗ câu đổi trạng thái; chỉ số không đổi khi nối khúc chuyến phía sau).
+ * Câu gác ĐỨNG ĐẦU, không đứng sau nhật ký: câu nối sau (sự kiện ABORT của dispatch, `changes() > 0`) đọc số dòng của câu NGAY TRƯỚC — câu gác luôn đổi một dòng nên sẽ làm
+ * sự kiện ghi cả khi huỷ thua. Hệ quả có chủ ý: huỷ thua khoá lạc quan vẫn tăng phiên bản bên đặt (lệnh Trả sau cùng lúc phải bấm lại).
+ * Huỷ có điều kiện `status = from` VÀ `updated_at = prevUpdatedAt` (khoá lạc quan T1d: kể cả khi người kia chỉ đổi `updated_at` — vd `PUT /trip` chen giữa); thua thì không đổi gì,
+ * không nhật ký, không dòng lý do. `lyDo` BẮT BUỘC (ADR-0089 đ8). `opts`: đường huỷ hẹp của FIELD (ADR-0014 điều 11) ghi hành động nhật ký riêng.
+ * `qua` BẮT BUỘC (kế hoạch 2026-11-05 Task 2): chỉ `congHuyTraSau` tạo được — quên cổng Trả sau thì typecheck đỏ (chặn nhầm, không chặn ép kiểu `as` cố ý).
  */
 export function soanHuyDon(
-  db: D1Database, id: string, staffId: string, from: OrderStatus, prevUpdatedAt: string, lyDo: LyDoHuy, opts?: { action?: AuditAction; detail?: string },
-): { auditId: string; cau: D1PreparedStatement[] } {
+  db: D1Database, id: string, staffId: string, from: OrderStatus, prevUpdatedAt: string, lyDo: LyDoHuy, qua: QuaCongHuy, opts?: { action?: AuditAction; detail?: string },
+): { auditId: string; cau: D1PreparedStatement[]; thang: (kq: readonly D1Result[]) => boolean } {
   const at = nextStamp(prevUpdatedAt);
   const auditId = crypto.randomUUID();
+  const gac = qua.kem(at);
   // ADR-0089 đ8 (H-C6): lô huỷ = [dòng lý do (cùng điều kiện khoá lạc quan)] → [đổi trạng thái] → [nhật ký changes() > 0] — câu SQL ở tệp nửa nghiêm.
   // Nhật ký ghi NHÃN lý do (không mã thô); "Khác" ghi chính ghi chú đã kiểm (khuôn HDV — ADR-0030 điều 2).
   const nhan = lyDo.ma === "OTHER" ? `${lyDo.ghiChu} (${nhanNhomHuy(lyDo.nhom)})` : `${nhanLyDoHuy(lyDo.ma)} (${nhanNhomHuy(lyDo.nhom)})`;
   return {
     auditId,
     cau: [
+      ...gac,
       ...cauHuyCoLyDo(db, { orderId: id, staffId, from, prevUpdatedAt, at, homNay: vnToday(new Date()), lyDo }),
       auditStatement(db, { id: auditId, orderId: id, staffId, action: opts?.action ?? "cancelled", at, detail: opts?.detail ?? nhan }, "changes() > 0"),
     ],
+    // Lô huỷ đã thắng ⇔ câu đổi trạng thái (sau câu gác và dòng lý do) đổi một dòng.
+    thang: (kq) => (kq[gac.length + 1]?.meta.changes ?? 0) > 0,
   };
 }
-/** Lô huỷ (do `soanHuyDon` soạn, câu đơn đứng đầu) đã thắng ⇔ câu đổi trạng thái (thứ 2) đổi một dòng. */
-export const daHuy = (kq: readonly D1Result[]): boolean => (kq[1]?.meta.changes ?? 0) > 0;
 
 interface LatestAdjustment {
   id: string;
@@ -1369,6 +1369,8 @@ export function insertMoneyAdjustment(
   action: HanhDongDoiSoKhach,
   /** ADR-0062 Đ2: "số khách: <phần đổi> · lý do: <lý do>" — nơi gọi dựng bằng doanSoKhach + ghepLyDo (src/shared/tin-doi-don.ts). */
   detail: string,
+  /** Kế hoạch 2026-11-05 Task 2: BẮT BUỘC, chỉ `congSuaTangTraSau` tạo được; câu gác phiên bản (đơn Trả sau tăng tiền) nối CUỐI. */
+  qua: QuaCongSuaTang,
 ): { auditId: string; cau: D1PreparedStatement[] } {
   const id = crypto.randomUUID();
   const at = new Date().toISOString();
@@ -1379,6 +1381,7 @@ export function insertMoneyAdjustment(
         .prepare(`INSERT INTO order_money_adjustment (id, order_id, seq, before_json, after_json, subtotal_before, subtotal_after) VALUES (?, ?, ?, ?, ?, ?, ?)`)
         .bind(id, orderId, expectedSeq, JSON.stringify(before), JSON.stringify(after), subtotalBefore, subtotalAfter),
       auditStatement(db, { id, orderId, staffId, action, at, detail }),
+      ...qua.kem,
     ],
   };
 }
@@ -1628,6 +1631,8 @@ export async function changeBooker(
   change: { customerName: string; customerPhone: string; expectedUpdatedAt: string },
   booker: BookerWrite,
   detail: string,
+  /** Kế hoạch 2026-11-05 Task 2: BẮT BUỘC, chỉ `congDoiBenDatTraSau` tạo được; câu gác của nó nối CUỐI lô. */
+  qua: QuaCongDoiBen,
   alsoChange?: (at: string) => D1PreparedStatement[],
 ): Promise<boolean> {
   const at = nextStamp(change.expectedUpdatedAt);
@@ -1641,6 +1646,7 @@ export async function changeBooker(
       .bind(change.customerName, change.customerPhone, booker.partyId, at, orderId, change.expectedUpdatedAt, booker.partyId, booker.partyId),
     auditStatement(db, { orderId, staffId, action: "booker_changed", at, detail }, "changes() > 0"),
     ...(alsoChange?.(at) ?? []),
+    ...qua.kem(at),
   ]);
   return (results[booker.before.length]!.meta.changes ?? 0) > 0;
 }

@@ -20,7 +20,7 @@ import { parseOrderIds } from "./rules";
 const TOI_DA_TRA_BAN_HANG = 30;
 
 const NOT_FOUND = () => error(404, "not_found", "Không tìm thấy đơn.");
-const DA_GIAO = () => error(409, "order_delivered", "Đơn đã ở bước Xong và đủ tiền: không đổi hay nhận người phụ trách được nữa.");
+const DA_GIAO = () => error(409, "order_delivered", "Đơn đã ở bước Khách đã trả đủ: không đổi hay nhận người phụ trách được nữa.");
 const GIO_CHUA_CO = () => error(503, "gio_hanh_chinh_chua_co", "Chưa có cài đặt giờ hành chính của người phụ trách — báo Toàn quyền.");
 const STALE_NHAN = () => error(409, "stale", "Đơn vừa có người phụ trách, hãy tải lại.");
 const KHONG_HO_SO = () => error(409, "khong_co_ho_so", "Tài khoản này chưa có hồ sơ nên chưa làm người phụ trách được — báo Quản trị.");
@@ -131,7 +131,7 @@ export const banHangRoutes = [
       if (/order_delivered/.test(String((e as Error)?.message ?? e))) return DA_GIAO();
       throw e;
     }
-    if (!banHangThang(ket, 0)) return STALE_NHAN();
+    if (!banHangThang(ket, 0)) return (await findOrderOwner(env.DB, orderId))?.status === "cancelled" ? LOI_NHAN.don_huy() : STALE_NHAN();
     baoThayDoi({ orderId, thayDoi: "ban_hang_nhan", nguoiMoi: laX ? null : (loiMoi?.staffId ?? null) }); // X bị người khác nhận thay chỉ nhận ở Bảng tin (lời mời đã khép, hộp thư không biết)
     return json({ ok: true, banHang: { staffId: staff.id, name: staff.fullName } } satisfies BanHangGhiResponse);
   }),
@@ -195,7 +195,10 @@ export const banHangRoutes = [
       if (/order_delivered/.test(String((e as Error)?.message ?? e))) return DA_GIAO();
       throw e;
     }
-    if (!banHangThang(ket, partyMoi === null ? 0 : 1)) return error(409, "stale", "Người phụ trách vừa được đổi, hãy tải lại.");
+    if (!banHangThang(ket, partyMoi === null ? 0 : 1)) {
+      if ((await findOrderOwner(env.DB, orderId))?.status === "cancelled") return error(409, "cancelled", "Đơn đã huỷ, không đổi người phụ trách được.");
+      return error(409, "stale", "Người phụ trách vừa được đổi, hãy tải lại.");
+    }
     const moi = (await banHangCuaDon(env.DB, [orderId])).get(orderId) ?? null;
     baoThayDoi({ orderId, thayDoi: "doi_ban_hang", banHangTruoc: hien?.staffId ?? null }); // người cũ nhận ở Bảng tin lúc sự kiện, không có dòng hộp thư
     return json({ ok: true, banHang: moi ? { staffId: moi.staffId, name: moi.name } : null } satisfies BanHangGhiResponse);

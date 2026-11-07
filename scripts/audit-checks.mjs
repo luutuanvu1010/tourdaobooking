@@ -2262,6 +2262,42 @@ export const CHECKS = [
     sql: `SELECT count(*) FROM orders WHERE payment_term = 'PREPAID' AND credit_due_date IS NOT NULL`,
     level: "fail",
   },
+  // R-CRD-4 (ADR-0172 Đ3 mục 2; migration 0143): đơn Trả sau đã xác nhận có ĐỦ hai mốc giờ, hết ân hạn không trước hạn trả; đơn Trả trước không có mốc giờ.
+  {
+    code: "R-CRD-4",
+    what: "hai mốc giờ của đơn Trả sau sai cặp (thiếu mốc, hết ân hạn trước hạn trả, hoặc đơn Trả trước có mốc)",
+    sql: `SELECT count(*) FROM orders WHERE (payment_term = 'CREDIT' AND status = 'confirmed' AND (credit_due_at IS NULL OR credit_grace_until IS NULL OR credit_grace_until < credit_due_at))
+      OR (payment_term = 'PREPAID' AND (credit_due_at IS NOT NULL OR credit_grace_until IS NOT NULL))`,
+    level: "fail",
+  },
+  // R-CRD-5 (ADR-0181 Đ2 (c)): lưới cuối cho «thôi làm đối tác thì hết hạn mức». Dòng hạn mức còn mở (valid_to_date IS NULL) trên hồ sơ KHÔNG còn vai được hưởng — CÙNG định nghĩa
+  // trigger `bil_credit_limit_party_ok` (0141) và lớp đọc `HAN_MUC_TAI`: vai đang mở nhóm EXTERNAL, hoặc OTHER có nhãn đối tác. Đường gỡ vai ở Danh bạ / Tài khoản tự đóng; còn lọt
+  // là đường gộp hồ sơ hoặc SQL chạy tay. Lớp đọc đã coi như «không có hạn mức» nên chỉ cảnh báo. Trả mã hồ sơ, không in số tiền.
+  {
+    code: "R-CRD-5",
+    what: "hạn mức Trả sau còn mở trên hồ sơ không còn vai đối tác được hưởng",
+    sql: `SELECT DISTINCT l.party_id FROM bil_credit_limit l
+     WHERE l.valid_to_date IS NULL
+       AND NOT EXISTS (SELECT 1 FROM v_pty_open_role r JOIN v_pty_role_type t ON t.code = r.role_type_code
+                       WHERE r.party_id = l.party_id AND (t.role_group = 'EXTERNAL' OR (t.role_group = 'OTHER' AND t.is_partner_label = 1)))`,
+    mode: "rows",
+    level: "warn",
+    note: "máy đã không cho dùng hạn mức này; đóng dòng hạn mức bằng route POST /api/tra-sau/han-muc/<hồ sơ>/ngung (giao diện không hiện hồ sơ hết vai trò) — chờ chủ quyết cách làm trên màn",
+  },
+  // R-KT-1 (ADR-0178 Đ1 mục 3; migration 0144): «khoản thu giùm = 0». Đơn mang dấu Tắt (company_collects_snapshot = 0) chỉ có khoản khách trả còn hiệu lực do hồ sơ người lập thu.
+  // CÙNG định nghĩa với trigger `bil_receipt_partner_channel` (CUSTOMER_PAYMENT, không phải dòng đảo; so NULL-safe với hồ sơ của người lập qua `v_stf_staff_label`); «còn hiệu lực» =
+  // chưa có dòng đảo trỏ tới (khoản thay bằng «Thay lần thu» cũng đảo khoản cũ). Chỉ đọc. Trả mã đơn, không in số tiền hay người thu.
+  {
+    code: "R-KT-1",
+    what: "đơn mang dấu Tắt (Khách của đối tác trả cho Công ty) có khoản khách trả còn hiệu lực với người thu khác hồ sơ người lập đơn",
+    sql: `SELECT DISTINCT r.order_id FROM bil_payment_receipt r JOIN v_ord_kenh_thu k ON k.id = r.order_id
+     WHERE k.company_collects_snapshot = 0 AND r.kind_code = 'CUSTOMER_PAYMENT' AND r.reverses_id IS NULL
+       AND NOT EXISTS (SELECT 1 FROM bil_payment_receipt x WHERE x.reverses_id = r.id)
+       AND (r.collector_party_id IS NULL OR r.collector_party_id IS NOT (SELECT s.party_id FROM v_stf_staff_label s WHERE s.id = k.staff_id))`,
+    mode: "rows",
+    level: "fail",
+    note: "tiền khách của đối tác đã vào tay Công ty hoặc người khác dù công tắc đang Tắt (đường ghi tiền lọt cổng, hoặc SQL chạy tay): đối chiếu từng đơn nêu mã, đảo khoản và nhờ Kế toán ghi lại đúng người thu",
+  },
 ];
 
 /**

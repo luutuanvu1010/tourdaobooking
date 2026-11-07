@@ -19,7 +19,7 @@ const RECEIPTS_OF_ORDER = defineSql("billing", "receipts_of_order", `SELECT ${RE
 const RECEIPTS_OF_ORDERS = defineSql(
   "billing",
   "receipts_of_orders",
-  `SELECT r.id, r.order_id, r.kind_code, r.amount, r.collector_party_id, r.collector_role_code, r.reverses_id, r.approval_id FROM bil_payment_receipt r
+  `SELECT r.id, r.order_id, r.kind_code, r.amount, r.collector_party_id, r.collector_role_code, r.reverses_id, r.approval_id, r.note, r.transfer_of_id FROM bil_payment_receipt r
    WHERE r.order_id IN (SELECT value FROM json_each(?1)) ORDER BY r.rowid`,
 );
 const RECEIPT_BY_ID = defineSql("billing", "receipt_by_id", `SELECT ${RECEIPT_COLS} ${RECEIPT_JOIN} WHERE r.id = ?1`);
@@ -49,7 +49,7 @@ export interface ReceiptDbRow {
 }
 export const receiptsOfOrder = async (db: D1Database, orderId: string): Promise<ReceiptDbRow[]> =>
   (await db.prepare(RECEIPTS_OF_ORDER).bind(orderId).all<ReceiptDbRow>()).results;
-export async function receiptsOfOrders(db: D1Database, orderIds: readonly string[]): Promise<Pick<ReceiptDbRow, "id" | "order_id" | "kind_code" | "amount" | "collector_party_id" | "collector_role_code" | "reverses_id" | "approval_id">[]> {
+export async function receiptsOfOrders(db: D1Database, orderIds: readonly string[]): Promise<Pick<ReceiptDbRow, "id" | "order_id" | "kind_code" | "amount" | "collector_party_id" | "collector_role_code" | "reverses_id" | "approval_id" | "note" | "transfer_of_id">[]> {
   if (orderIds.length === 0) return [];
   return (await db.prepare(RECEIPTS_OF_ORDERS).bind(JSON.stringify(orderIds)).all<ReceiptDbRow>()).results;
 }
@@ -247,6 +247,13 @@ export async function orderOwners(db: D1Database, ids: readonly string[]): Promi
   if (ids.length === 0) return new Map();
   return new Map((await db.prepare(ORDER_OWNERS).bind(JSON.stringify(ids)).all<{ id: string; staff_id: string }>()).results.map((r) => [r.id, r.staff_id]));
 }
+
+/**
+ * ADR-0170 Đ2 mục 3: tài khoản `staffId` HIỆN GIỮ quyền Đối tác không — đọc lúc xét qua view công bố `v_stf_quyen_mo` của `staff` (khuôn `orders/xac-nhan-repo.ts`, billing tự khai câu của mình),
+ * gồm cả tài khoản lai. Mã `PARTNER` là điều kiện DỮ LIỆU của luật tiền, không phải điều kiện cho phép.
+ */
+const NGUOI_LAP_GIU_DOI_TAC = defineSql("billing", "order_creator_holds_partner", `SELECT 1 AS co FROM v_stf_quyen_mo WHERE staff_id = ?1 AND permission_code = 'PARTNER' LIMIT 1`);
+export const nguoiLapGiuDoiTac = async (db: D1Database, staffId: string): Promise<boolean> => (await db.prepare(NGUOI_LAP_GIU_DOI_TAC).bind(staffId).first()) !== null;
 
 /** Trạng thái của các đơn (view công bố v_ord_order_state) — để áp luật «ai đọc được đơn nháp» (ADR-0135 Đ1) cho lời gọi nhiều đơn như `POST /api/ledger/balances`. */
 const ORDER_STATUSES = defineSql("billing", "order_statuses", `SELECT id, status FROM v_ord_order_state WHERE id IN (SELECT value FROM json_each(?1))`);

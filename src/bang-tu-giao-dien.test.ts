@@ -8,6 +8,7 @@ import { join } from "node:path";
 import { test } from "node:test";
 import { CAM_THEO_TEP, CHO_PHEP_THEO_TEP, NGHIA_HON_DAO, TU_DA_LOAI } from "./shared/bang-tu-giao-dien.ts";
 import { CAU_O_TRONG, CAU_THU_TU_AP_MUC } from "./shared/hoa-hong-hien-thi.ts";
+import { KHAU_HIEU } from "./shared/order-confirmation.ts";
 
 const ROOT = new URL("..", import.meta.url).pathname;
 
@@ -86,6 +87,8 @@ const CHUOI_GIU_NGUYEN = new Set([
   CAU_THU_TU_AP_MUC,
   // Đặc tả hoa-hong-cap-dai-ly §5.4 ghim nguyên văn câu dưới ma trận; «dòng riêng» ở đây là «dòng của cấp riêng cho ô này», không phải nghĩa «mức riêng của loại» mà luật cấm.
   CAU_O_TRONG,
+  // Đặc tả biên nhận đơn đối tác (2026-11-06) §3 ghim nguyên văn khẩu hiệu chủ đưa; «đảo» ở đây là hòn đảo, không phải bút toán đảo.
+  KHAU_HIEU,
 ]);
 const TEP = [
   ...tepTs("web"),

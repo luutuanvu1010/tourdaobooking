@@ -181,6 +181,66 @@ test("NT-R6: trigger khoá orders phủ MỌI cột của orders (thử đổi t
   assert.deepEqual(cotLotKhoa(db), ["cot_them_sau"]);
 });
 
+/**
+ * NT-R6b (ADR-0181 Đ1, migration 0146): trường hợp được phép THỨ HAI của khoá — đơn Trả sau đã Đã giao lùi hạn trả (ba cột hạn trả + giờ sửa). Với MỖI cột khác của `orders`
+ * (đọc PRAGMA), câu lùi hạn hợp lệ kèm đổi thêm cột đó phải bị chặn. Trả danh sách cột LỌT. Như NT-R6: thử hành vi, không đọc chữ trong thân trigger.
+ */
+const H1 = "2026-11-20T03:00:00.000Z";
+const H2 = "2026-11-21T03:00:00.000Z";
+const G1 = "2026-11-20T15:00:00.000Z";
+const G2 = "2026-11-21T15:00:00.000Z";
+function donTraSauDaGiao(db: DatabaseSync, id: string) {
+  seedOrder(db, id, "draft");
+  run(db, "UPDATE orders SET payment_term = 'CREDIT' WHERE id = ?", id);
+  run(db, "UPDATE orders SET status = 'confirmed', confirmed_at = ?, credit_due_date = '2026-11-20', credit_due_at = ?, credit_grace_until = ?, updated_at = ? WHERE id = ?", AT, H1, G1, AT, id);
+  deliver(db, id);
+}
+function cotLotLuiHan(db: DatabaseSync): string[] {
+  db.exec("DROP TRIGGER IF EXISTS orders_money_frozen"); // như NT-R6: đo RIÊNG trigger khoá Đã giao
+  const cols = rows(db, "PRAGMA table_info(orders)").map((c) => String(c.name));
+  const lot: string[] = [];
+  for (const c of cols.filter((x) => !["credit_due_at", "credit_grace_until", "credit_due_date", "updated_at"].includes(x))) {
+    db.exec("SAVEPOINT thu");
+    try {
+      run(db, `UPDATE orders SET credit_due_at = ?, credit_grace_until = ?, credit_due_date = '2026-11-21', updated_at = ?, ${c} = CASE WHEN ${c} IS NULL THEN 'z' ELSE NULL END WHERE id = 'ts'`, H2, G2, AT);
+      lot.push(c);
+    } catch (e) {
+      if (!/order_delivered:/.test(String(e))) lot.push(`${c} (lỗi khác: ${String(e).slice(0, 80)})`);
+    } finally {
+      db.exec("ROLLBACK TO thu");
+      db.exec("RELEASE thu");
+    }
+  }
+  return lot;
+}
+
+test("NT-R6b (ADR-0181 Đ1): đơn Trả sau đã Đã giao — lùi hạn trả (ba cột hạn trả + giờ sửa) được; kèm đổi BẤT KỲ cột nào khác bị chặn; tự kiểm: cột thêm tạm → lọt", () => {
+  const db = fresh();
+  donTraSauDaGiao(db, "ts");
+  assert.deepEqual(cotLotLuiHan(db), [], "cột lọt khoá khi đi kèm câu lùi hạn — thêm cột vào orders thì PHẢI tạo lại trigger orders_delivered_lock liệt kê cột đó ở CẢ HAI trường hợp được phép");
+  db.exec("ALTER TABLE orders ADD COLUMN cot_them_sau TEXT");
+  assert.deepEqual(cotLotLuiHan(db), ["cot_them_sau"]);
+});
+
+test("NT-R6b (ADR-0181 Đ1): ngoại lệ hẹp — chỉ đổi credit_due_date, chỉ đổi updated_at, xoá hạn trả, lùi hạn về trước, đổi khoảng ân hạn, đơn Trả trước: đều bị chặn; câu lùi hạn đúng thì qua", () => {
+  const db = fresh();
+  donTraSauDaGiao(db, "ts");
+  fails(db, "UPDATE orders SET credit_due_date = '2026-11-21' WHERE id = 'ts'", /order_delivered:/);
+  fails(db, "UPDATE orders SET updated_at = ? WHERE id = 'ts'", /order_delivered:/, "2026-11-01T00:00:00.000Z");
+  fails(db, "UPDATE orders SET credit_due_at = NULL, credit_grace_until = NULL WHERE id = 'ts'", /order_delivered:|credit_due_forward_only/);
+  fails(db, "UPDATE orders SET credit_due_at = ?, credit_grace_until = ? WHERE id = 'ts'", /credit_due_forward_only|order_delivered:/, "2026-11-19T03:00:00.000Z", "2026-11-19T15:00:00.000Z");
+  fails(db, "UPDATE orders SET credit_due_at = ?, credit_grace_until = ? WHERE id = 'ts'", /credit_due_forward_only/, H2, "2026-11-22T15:00:00.000Z"); // ân hạn 12 giờ thành 36 giờ
+  fails(db, "UPDATE orders SET credit_due_at = ?, credit_grace_until = ?, completed_at = ?, completed_by = 's1' WHERE id = 'ts'", /order_delivered:|order_completed:/, H2, G2, AT); // không gộp với Hoàn thành
+  // Đơn Trả trước đã Đã giao: không có ngoại lệ (cột hạn trả của nó phải trống — 0141 cũng chặn).
+  seedOrder(db, "tt", "confirmed");
+  deliver(db, "tt");
+  fails(db, "UPDATE orders SET credit_due_at = ?, credit_grace_until = ? WHERE id = 'tt'", /order_delivered:|payment_term|credit/, H2, G2);
+  run(db, "UPDATE orders SET credit_due_at = ?, credit_grace_until = ?, credit_due_date = '2026-11-21', updated_at = ? WHERE id = 'ts'", H2, G2, AT);
+  assert.deepEqual(rows(db, "SELECT credit_due_at, credit_grace_until, credit_due_date FROM orders WHERE id = 'ts'")[0], { credit_due_at: H2, credit_grace_until: G2, credit_due_date: "2026-11-21" });
+  // Đơn đã Hoàn thành vẫn chịu khoá cột khác.
+  fails(db, "UPDATE orders SET customer_note = 'x' WHERE id = 'ts'", /order_delivered:/);
+});
+
 test("luồng hợp lệ không bị chặn trước Đã giao: xác nhận, sửa chuyến, thêm điều chỉnh, đổi người phụ trách, huỷ đơn đã xác nhận", () => {
   const db = fresh();
   seedOrder(db, "o1", "confirmed");

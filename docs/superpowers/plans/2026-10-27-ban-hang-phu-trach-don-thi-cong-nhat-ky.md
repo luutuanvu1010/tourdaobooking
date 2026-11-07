@@ -57,3 +57,5 @@ Chủ duyệt 5/11: nâng TRAN_ORDERS lên 105_100. Nhánh đã nhập main f379
 Người kiểm độc lập: ĐẠT CÓ ĐIỀU KIỆN, không lỗi Cao. V2 (bài canh + thử phá) xong, V3 và T1 xong (8d0aa38f), V1 ghi HANDOFF, báo chủ. T2 (người giữ ô mất quyền Bán hàng), T3, T4 (đua huỷ đúng lúc nhận), T6 để lại — ghi nợ.
 Ruling: HDV mất đọc GET /api/cai-dat/khung-gio-don — ADR-0154 Đ1.5 mở theo ô order.confirm.review, ô đã thu về; trước ADR-0154 HDV cũng 403, form HDV dùng bộ mặc định khi lỗi — nếu sai: mở lại riêng cho FIELD.
 Ruling: tin phụ cho_ban_hang ở /status là đúng L9; sửa bài bangtin 5d.
+
+Bổ sung 5/11, sau nghiệm thu độc lập: đóng nợ T4 theo lệnh chủ. Câu mở ô (`mo_ban_hang_neu_trong`, `mo_ban_hang_sau_doi`) và câu khép ô (`khep_ban_hang`) thêm điều kiện đơn còn `confirmed` qua `v_ord_order_state`; route đọc lại trạng thái khi thua và trả 409 `cancelled`. Ba bài đua trong `ban-hang-route.test.ts` dùng `chenTruocLo` chạy lệnh huỷ thật giữa cổng và lô: trước khi sửa đỏ (200, tái hiện được lỗi), sau khi sửa xanh. Đơn đã huỷ mà người phụ trách có từ trước vẫn giữ dòng ô: không đổi, ngoài phạm vi. Còn T2. T3, T6 nhật ký chỉ ghi tên, không tìm được nội dung trong tài liệu.

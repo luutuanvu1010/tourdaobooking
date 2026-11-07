@@ -296,6 +296,12 @@ const PHAN_BO_DE_XEM = defineSql(
   `SELECT a.id, a.order_id, a.order_service_id, a.slot_no, a.revealed_at, t.storage_key, t.content_kind FROM vdt_allocation a JOIN vdt_ticket t ON t.id = a.ticket_id
    WHERE a.id = ?1 AND a.released_at IS NULL AND t.stored_at IS NOT NULL AND t.purged_at IS NULL`,
 );
+// Câu bảo vệ NỐI VÀO lô huỷ của người giữ quyền Đối tác (ADR-0170 Đ3): có vé đã mở thì `json_extract` với đường dẫn hỏng ném lỗi ⇒ cả lô lui. Đường dẫn là dấu nhận ra lỗi (`DAU_LOI_VE_DA_MO`).
+const CHAN_VE_DA_MO = defineSql("ve-dien-tu", "chan_ve_da_mo", "SELECT json_extract('{}', 'don_da_mo_ve') WHERE EXISTS (SELECT 1 FROM vdt_allocation WHERE order_id = ?1 AND revealed_at IS NOT NULL)");
+export const cauChanVeDaMo = (db: D1Database, orderId: string): D1PreparedStatement => db.prepare(CHAN_VE_DA_MO).bind(orderId);
+const PHAN_BO_CON_GIU = defineSql("ve-dien-tu", "phan_bo_con_giu", "SELECT 1 AS co FROM vdt_allocation WHERE id = ?1 AND released_at IS NULL");
+/** Phân bổ còn được đơn giữ (chưa trả về kho). Đọc LẠI sau khi đóng dấu lộ để biết lệnh huỷ có chen vào giữa không. */
+export const phanBoConGiu = async (db: D1Database, allocId: string): Promise<boolean> => (await db.prepare(PHAN_BO_CON_GIU).bind(allocId).first()) !== null;
 const CHU_DON = defineSql("ve-dien-tu", "chu_don", "SELECT staff_id FROM v_ord_order_owner WHERE id = ?1");
 const PHAN_BO_MO_CUA_DON = defineSql(
   "ve-dien-tu",
@@ -343,7 +349,7 @@ const HAN_CUOI_CUA_DON = defineSql(
 const VE_CUA_LINK = defineSql(
   "ve-dien-tu",
   "ve_cua_link",
-  `SELECT a.id, a.pax_group, t.valid_from, t.valid_to, t.storage_key, t.content_kind FROM vdt_allocation a JOIN vdt_ticket t ON t.id = a.ticket_id
+  `SELECT a.id, a.pax_group, a.revealed_at, t.valid_from, t.valid_to, t.storage_key, t.content_kind FROM vdt_allocation a JOIN vdt_ticket t ON t.id = a.ticket_id
    WHERE a.order_id = ?1 AND a.released_at IS NULL AND t.stored_at IS NOT NULL AND t.purged_at IS NULL ORDER BY a.order_service_id, a.pax_group, a.slot_no`,
 );
 
@@ -357,7 +363,7 @@ export const cauDemMoLink = (db: D1Database, id: string, at: string): D1Prepared
 export const docLinkCuaDon = async (db: D1Database, orderId: string): Promise<{ id: string; expires_at: string; revoked_at: string | null; opened_count: number }[]> =>
   (await db.prepare(DS_LINK_CUA_DON).bind(orderId).all<{ id: string; expires_at: string; revoked_at: string | null; opened_count: number }>()).results;
 export const docHanCuoiCuaDon = async (db: D1Database, orderId: string): Promise<string | null> => (await db.prepare(HAN_CUOI_CUA_DON).bind(orderId).first<{ den: string | null }>())?.den ?? null;
-export interface VeCuaLink { id: string; pax_group: string; valid_from: string; valid_to: string; storage_key: string; content_kind: string }
+export interface VeCuaLink { id: string; pax_group: string; revealed_at: string | null; valid_from: string; valid_to: string; storage_key: string; content_kind: string }
 export const docVeCuaLink = async (db: D1Database, orderId: string): Promise<VeCuaLink[]> => (await db.prepare(VE_CUA_LINK).bind(orderId).all<VeCuaLink>()).results;
 
 const TRANG_THAI_DON = defineSql("ve-dien-tu", "trang_thai_don", "SELECT status FROM v_ord_order_state WHERE id = ?1");

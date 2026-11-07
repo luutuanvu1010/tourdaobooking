@@ -36,9 +36,11 @@ const thoat = (s: string): string => s.replace(/[&<>"']/g, (c) => THOAT[c]!);
 export interface VeTrang { slot: number; nhom: Nhom; tuNgay: string; denNgay: string }
 
 /** Trang HTML công khai. Chữ đều được thoát; ảnh trỏ về route ảnh cùng token (token ở đây chỉ gồm [A-Za-z0-9_-]). Không script. */
-export function trangVeKhach(token: string, ve: readonly VeTrang[]): string {
+export function trangVeKhach(token: string, ve: readonly VeTrang[], conCho = 0): string {
+  // ADR-0171 Đ2 mục 5: chỉ nói còn vé chưa sẵn sàng, KHÔNG nói chuyện tiền của đơn.
+  const cho = conCho > 0 ? `<p class="cho">Còn ${Math.floor(conCho)} vé chưa sẵn sàng. Bạn liên hệ người đặt giúp.</p>` : "";
   const the = ve.map((v) => `<figure><img src="/api/ve-khach/${thoat(token)}/anh/${v.slot}" alt="Vé ${v.slot}"><figcaption>Vé ${v.slot} · ${thoat(NHAN_NHOM[v.nhom])} · dùng từ ${NGAY_VN(v.tuNgay)} đến ${NGAY_VN(v.denNgay)}</figcaption></figure>`).join("");
   return `<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Vé của bạn</title>`
     + `<style>body{margin:0;padding:16px;font:16px/1.5 system-ui,sans-serif;background:#fff;color:#111}h1{font-size:20px;margin:0 0 12px}figure{margin:0 0 20px}img{display:block;max-width:100%;height:auto;border:1px solid #ddd;border-radius:8px}figcaption{margin-top:6px;color:#444}</style></head>`
-    + `<body><h1>Vé của bạn</h1>${the}</body></html>`;
+    + `<body><h1>Vé của bạn</h1>${the}${cho}</body></html>`;
 }

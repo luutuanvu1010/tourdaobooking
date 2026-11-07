@@ -178,9 +178,19 @@ export const MATRIX = {
   "partner.commission.write": row("none", "any", "any", "none", "none", "any", "none", "none", "none", "none"),
   // ADR-0146 Đ5 (bổ sung 28/10): đặt / kết thúc LUẬT BÁN theo loại đối tác (route /api/pricing/luat-ban*, cổng office) — Bán hàng, Quản trị, Toàn quyền `any` (luật không có người sở hữu).
   "sales.block.write": banHangQuanTri(),
-  // ADR-0168 Đ1 mục 3 (trả sau theo hạn mức): đặt / ngừng hạn mức — chỉ Toàn quyền; xem hạn mức và nợ của mọi đối tác — Kế toán, Toàn quyền. Cột Đối tác không có ô nào (số của mình đọc qua đường hẹp theo phiên).
-  "credit.limit.write": chiToanQuyen(),
-  "credit.limit.view": row("none", "any", "none", "none", "none", "any", "none", "none", "none", "none"),
+  // ADR-0168 Đ1 mục 3, sửa bởi ADR-0172 Đ1: đặt / đổi / ngừng Trả sau của đại lý và số gợi ý theo cấp — Quản trị, Toàn quyền (Quản trị bị giới hạn bởi mức tối đa — ADR-0173 Đ1,
+  // so ở máy chủ). Xem hạn mức và nợ của mọi đối tác — Kế toán, Quản trị, Toàn quyền (ADR-0172 trang ghép (2)).
+  "credit.limit.write": quanTri(),
+  "credit.limit.view": row("none", "any", "any", "none", "none", "any", "none", "none", "none", "none"),
+  // ADR-0173 Đ1 mục 1: đặt mức tối đa Quản trị được cấp — chỉ Toàn quyền.
+  "credit.ceiling.write": chiToanQuyen(),
+  // ADR-0178 Đ1 mục 1: công tắc «Khách của đối tác trả cho Công ty» — đổi chỉ Toàn quyền; xem: Kế toán, Quản trị, Toàn quyền (khuôn credit.limit.view). Route: /api/kenh-thu-doi-tac (module billing).
+  "billing.partner_channel.write": chiToanQuyen(),
+  "billing.partner_channel.view": row("none", "any", "any", "none", "none", "any", "none", "none", "none", "none"),
+  // ADR-0173 Đ1 mục 3: lùi hạn trả của MỘT đơn Trả sau đã xác nhận (bắt buộc lý do) — Quản trị, Toàn quyền.
+  "credit.due.extend": quanTri(),
+  // ADR-0173 Đ3 mục 3: đại lý xem Trả sau của CHÍNH hồ sơ mình (hạn mức, đang nợ, còn được dùng, từng đơn nợ) — Đối tác phạm vi `own`; hồ sơ lấy từ phiên, không nhận từ trình duyệt.
+  "credit.own.view": row("none", "none", "none", "none", "own", "any", "none", "none", "none", "none"), // Toàn quyền `any` theo luật ADR-0014 điều 2; route vẫn chỉ đọc hồ sơ của phiên
   // ADR-0152 Đ3: gắn / đổi / bỏ giá trị ĐẶC ĐIỂM cho MỘT dịch vụ (route PUT /api/catalog/:code/dac-diem/:attr, cổng office) và xem màn Đặc điểm dịch vụ (cùng admin.manage) —
   // Bán hàng, Quản trị, Toàn quyền. Không rộng hơn sales.block.write ở cột nào (hàng rào (i), permissions.test.ts). Định nghĩa đặc điểm, gắn theo nhóm: admin.manage.
   "catalog.attribute.assign": banHangQuanTri(),
@@ -230,7 +240,7 @@ export const MATRIX = {
   // Kế toán không). `ve.cap.send` = nút Cấp vé, xem ảnh vé, gửi Zalo, tạo / thu hồi đường dẫn khách: Bán hàng chỉ đơn của mình hoặc được giao, Quản trị, Toàn quyền. Danh sách vé của đơn
   // (số lượng, không ảnh, không mã) đi theo quyền xem đơn `order.view` nên Kế toán thấy. Xem ảnh còn bị cổng thu đủ chặn ở máy chủ, không chỉ ô này.
   "ve.kho.manage": row("any", "none", "any", "none", "none", "any", "none", "none", "none", "none"),
-  "ve.cap.send": row("ownOrAssigned", "none", "any", "none", "none", "any", "none", "none", "none", "none"),
+  "ve.cap.send": row("ownOrAssigned", "none", "any", "none", "own", "any", "none", "none", "none", "none"), // ADR-0170 Đ1: Đối tác chỉ đơn do chính tài khoản lập (`orders.staff_id`); mở vé còn qua cổng tiền Đ2
   "settings.ops": chiToanQuyen(), // cài đặt vận hành: chế độ bảo trì (ADR-0019); thời hạn nhận, giờ làm việc (giai đoạn 5 mô hình vai — đặc tả §5, §9)
   // hàng chờ nhận — PHẦN HẸP của đơn chưa có người phụ trách (ADR-0030 S23-1, S23-2; route GET /api/orders/pool, module orders, còn chặn tài khoản có quyền
   // Đối tác). ADMIN "none": Quản trị đã thấy đủ mọi đơn qua order.view. Nơi đón/giờ đón ở phần hẹp là NGOẠI LỆ CÓ TÊN của chú thích ô contact.view (không

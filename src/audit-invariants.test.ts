@@ -4481,3 +4481,94 @@ test("R-CRD-1 / R-CRD-2: Trả sau đã xác nhận thiếu hạn trả, hoặc 
   don("PREPAID", false, "2026-11-20");
   assert.equal(violations(db, c2), 1, "đơn Trả trước mà có hạn trả");
 });
+
+test("R-CRD-4: đơn Trả sau đã xác nhận phải đủ hai mốc giờ, hết ân hạn không trước hạn trả; đơn Trả trước không có mốc giờ", () => {
+  const db = build();
+  const c = one("R-CRD-4");
+  assert.equal(c.level, "fail");
+  const don = (term: string, xacNhan: boolean, han: string | null, het: string | null): string => {
+    const { order } = donKhach(db, [{ adult: 1 }], "draft");
+    db.prepare("UPDATE orders SET payment_term = ? WHERE id = ?").run(term, order);
+    if (xacNhan) db.prepare("UPDATE orders SET status = 'confirmed', confirmed_at = ? WHERE id = ?").run(T1, order);
+    db.prepare("UPDATE orders SET credit_due_at = ?, credit_grace_until = ? WHERE id = ?").run(han, het, order);
+    return order;
+  };
+  don("CREDIT", true, "2026-11-20T03:00:00.000Z", "2026-11-20T15:00:00.000Z");
+  don("CREDIT", false, null, null);
+  assert.equal(violations(db, c), 0, "đủ cặp; nháp chưa cần mốc");
+  don("CREDIT", true, "2026-11-20T03:00:00.000Z", null);
+  assert.equal(violations(db, c), 1, "thiếu hết ân hạn");
+  don("CREDIT", true, "2026-11-20T03:00:00.000Z", "2026-11-19T03:00:00.000Z");
+  assert.equal(violations(db, c), 2, "hết ân hạn trước hạn trả");
+  don("PREPAID", false, "2026-11-20T03:00:00.000Z", "2026-11-20T03:00:00.000Z");
+  assert.equal(violations(db, c), 3, "đơn Trả trước có mốc giờ");
+});
+
+// ---------------------------------------------------------------------------------------------------------------------------------------------------
+// R-CRD-5 (ADR-0181 Đ2 (c)): hạn mức Trả sau còn mở trên hồ sơ không còn vai được hưởng.
+// ---------------------------------------------------------------------------------------------------------------------------------------------------
+test("R-CRD-5: hạn mức còn mở trên hồ sơ đã hết vai được hưởng → cảnh báo, nêu hồ sơ; còn vai được hưởng (kể cả vai khác), hạn mức đã đóng, vai nội bộ không có hạn mức → 0", () => {
+  const db = build();
+  const c = one("R-CRD-5");
+  assert.deepEqual([c.level, c.mode], ["warn", "rows"]);
+  const hoSo = (id: string, vai: string[]): void => {
+    db.exec(`INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES ('${id}', 'ORGANIZATION', 'Đại lý ${id}', 1, '${T1}', '${T1}')`);
+    vai.forEach((v, i) => db.exec(`INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES ('${id}-r${i}', '${id}', '${v}', '2026-01-01', '${T1}', '${T1}')`));
+    // Thêm hạn mức lúc vai còn mở (trigger 0141 đòi vai được hưởng).
+    db.exec(`INSERT INTO bil_credit_limit (id, party_id, limit_amount, term_days, term_hours, grace_hours, valid_from_date, valid_to_date, reason, created_at, created_by, updated_at, updated_by)
+             VALUES ('hm-${id}', '${id}', 1000000, 2, 36, 0, '2026-09-01', NULL, NULL, '${T1}', NULL, '${T1}', NULL)`);
+  };
+  const thoiVai = (rid: string): void => { db.exec(`UPDATE pty_party_role SET valid_to_date = '2026-09-20', updated_at = '${T2}' WHERE id = '${rid}'`); };
+  hoSo("pty-a", ["TRAVEL_AGENCY"]);
+  hoSo("pty-b", ["TRAVEL_AGENCY", "COLLABORATOR"]);
+  hoSo("pty-c", ["TRAVEL_AGENCY"]);
+  assert.equal(violations(db, c), 0, "mọi hồ sơ còn vai được hưởng");
+  thoiVai("pty-a-r0");
+  thoiVai("pty-b-r0"); // còn Cộng tác viên
+  thoiVai("pty-c-r0");
+  db.exec(`UPDATE bil_credit_limit SET valid_to_date = '2026-09-19', updated_at = '${T2}' WHERE id = 'hm-pty-c'`); // đã đóng đúng
+  assert.deepEqual(db.prepare(c.sql).all().map((r) => (r as { party_id: string }).party_id), ["pty-a"]);
+  assert.equal(violations(db, c), 1, "chỉ hồ sơ hết vai mà hạn mức còn mở");
+});
+
+// ---------------------------------------------------------------------------------------------------------------------------------------------------
+// R-KT-1 (ADR-0178 Đ1 mục 3; migration 0144): đơn mang dấu Tắt chỉ có khoản khách trả còn hiệu lực do hồ sơ người lập thu.
+// ---------------------------------------------------------------------------------------------------------------------------------------------------
+test("R-KT-1: đơn dấu Tắt có khoản khách trả còn hiệu lực với người thu khác người lập → vi phạm; đơn dấu Bật / không dấu, khoản đã đảo, khoản hoàn → 0", () => {
+  const db = build();
+  const c = one("R-KT-1");
+  assert.equal(c.level, "fail");
+  assert.equal(violations(db, c), 0, "dữ liệu sạch");
+  // Dựng ca vi phạm: gỡ trigger đường ghi (bất biến là lưới cho dữ liệu cũ / SQL tay) và khoá dấu (chụp NULL → 0 sau khi tạo đơn).
+  db.exec("DROP TRIGGER bil_receipt_partner_channel; DROP TRIGGER orders_company_collects_locked;");
+  const don = (dau: number | null): string => {
+    const { order } = donKhach(db, [{ adult: 1 }]);
+    if (dau !== null) db.prepare("UPDATE orders SET company_collects_snapshot = ? WHERE id = ?").run(dau, order);
+    return order;
+  };
+  const tat = don(0);
+  const bat = don(1);
+  const khong = don(null);
+  // Hồ sơ người lập (s-an) thu ở đơn Tắt: hợp lệ.
+  lanThuBil(db, { id: "kt-ok", order: tat, amount: 100000 });
+  // Công ty / người khác thu ở đơn Bật và đơn không dấu: hợp lệ.
+  lanThuBil(db, { id: "kt-bat", order: bat, amount: 100000, role: "COMPANY", party: chuCongTy(db) });
+  lanThuBil(db, { id: "kt-khong", order: khong, amount: 100000, role: "COMPANY", party: chuCongTy(db) });
+  assert.equal(violations(db, c), 0, "người lập thu ở đơn Tắt; người khác thu ở đơn Bật / không dấu");
+  // Khoản hoàn cho khách ở đơn Tắt, người thu khác: miễn (tiền ra).
+  lanThuBil(db, { id: "kt-hoan", order: tat, amount: 50000, kind: "CUSTOMER_REFUND", role: "COMPANY", party: chuCongTy(db) });
+  assert.equal(violations(db, c), 0, "khoản hoàn không tính");
+  // Công ty thu ở đơn Tắt ⇒ vi phạm đúng đơn đó.
+  lanThuBil(db, { id: "kt-sai", order: tat, amount: 70000, role: "COMPANY", party: chuCongTy(db) });
+  assert.equal(violations(db, c), 1);
+  const dong = db.prepare(c.sql.replace(/\s+/g, " ").trim()).all() as Record<string, unknown>[];
+  assert.ok(JSON.stringify(dong).includes(tat), "kết quả nêu mã đơn vi phạm");
+  // Người thu trống ở đơn Tắt cũng là vi phạm (NULL-safe).
+  const tat2 = don(0);
+  lanThuBil(db, { id: "kt-null", order: tat2, amount: 10000, role: "UNKNOWN" });
+  assert.equal(violations(db, c), 2, "người thu trống ở một đơn Tắt khác (mỗi đơn một dòng, dù nhiều khoản sai)");
+  // Khoản vi phạm bị đảo ⇒ hết báo (dòng đảo chép người thu của gốc, không tính).
+  lanThuBil(db, { id: "kt-sai-dao", order: tat, amount: 70000, kind: "CUSTOMER_PAYMENT", role: "COMPANY", party: chuCongTy(db), reverses: "kt-sai" });
+  lanThuBil(db, { id: "kt-null-dao", order: tat2, amount: 10000, role: "UNKNOWN", reverses: "kt-null" });
+  assert.equal(violations(db, c), 0, "khoản đã đảo không còn hiệu lực");
+});

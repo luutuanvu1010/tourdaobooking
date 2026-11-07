@@ -99,8 +99,9 @@ test("(2) insertMoneyAdjustment chỉ được gọi trong soanSuaSoKhach, hai s
     else if ((c === ")" || c === "]" || c === "}") && d-- === 0) { doi.push(src.slice(tu, j).trim()); break; }
     else if (c === "," && d === 0) { doi.push(src.slice(tu, j).trim()); tu = j + 1; }
   }
-  assert.equal(doi.length, 10, `insertMoneyAdjustment nhận 10 đối số: ${doi.join(" | ")}`);
-  assert.deepEqual([doi[6], doi[7]], ["plan.subtotalBefore", "plan.subtotalAfter"], doi.join(" | "));
+  // Đối số thứ 11 (kế hoạch 2026-11-05 Task 2): kết quả cổng Trả sau `cong.qua` (kiểu mang nhãn `QuaCongSuaTang`) — câu ghi chỉ soạn được sau cổng.
+  assert.equal(doi.length, 11, `insertMoneyAdjustment nhận 11 đối số: ${doi.join(" | ")}`);
+  assert.deepEqual([doi[6], doi[7], doi[10]], ["plan.subtotalBefore", "plan.subtotalAfter", "cong.qua"], doi.join(" | "));
 });
 
 test("(3) route văn phòng: can(order.money.edit, { ownerId }) KHÔNG assigned; soạn soanSuaSoKhach rồi chạy MỘT lần chayLoSuaSoKhach; không tự gọi .batch(", () => {

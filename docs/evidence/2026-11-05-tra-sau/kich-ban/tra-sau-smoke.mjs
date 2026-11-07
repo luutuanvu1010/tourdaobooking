@@ -1,5 +1,5 @@
-// Kịch bản Chrome — màn «Hạn mức trả sau» và nhãn Trả sau ở chi tiết đơn (ADR-0168; kế hoạch docs/superpowers/plans/2026-11-05-tra-sau-han-muc-ke-hoach.md, Task 6).
-// Toàn quyền: bảng + cảnh báo «nợ vượt hạn mức hiện hành» + «Xem đơn nợ» + «Đặt hạn mức» (biểu mẫu thật) ở 1440 và 390; Kế toán: thấy dòng, KHÔNG có nút ghi; Bán hàng: bị chặn; chi tiết đơn Trả sau có nhãn hình thức + hạn trả.
+// Kịch bản Chrome — Trả sau (ADR-0168; cập nhật 2026-11-06 cho ADR-0172, ADR-0173): ô «Trả sau» và khối «Hạn mức trả sau» ở màn Cấp độ đại lý (Toàn quyền đặt, điền sẵn số gợi ý;
+// Quản trị bị mức tối đa chặn; Kế toán chỉ xem), màn «Hạn mức trả sau» chỉ xem (giờ Việt Nam), khối Trả sau + nút «Ân hạn» trên đơn, mục «Trả sau của tôi» của Đối tác; 1440 và 390.
 // Môi trường: D1 tạm + wrangler dev + Chrome headless qua CDP (docs/evidence/2026-09-20-a2/kich-ban/a2-cdp.mjs) — Turnstile TẮT, KHÔNG --remote.
 // Quy tắc ADR-0074/0075: đăng nhập MỚI của cùng tài khoản đá phiên trang đang mở ⇒ mọi lời gọi API gieo dữ liệu làm TRƯỚC khi mở trang của tài khoản đó.
 // Chạy (sau `npm run build:web`, từ GỐC repo):
@@ -72,36 +72,45 @@ const GHI_FETCH = `{ window.__ghi = []; const f0 = window.fetch.bind(window);
   window.fetch = async (u, o) => { const r = await f0(u, o); const m = (o && o.method) || 'GET'; if (m !== 'GET') window.__ghi.push({ m, u: String(u), s: r.status }); return r; }; }`;
 
 
-const CAU_CHI_KE_TOAN = "Trang này chỉ Kế toán và Toàn quyền dùng được.";
+const CAU_CHI_KE_TOAN = "Trang này chỉ Kế toán, Quản trị và Toàn quyền dùng được.";
+/** Mốc ISO → «HH:MM dd/mm/yyyy» giờ Việt Nam (cùng khuôn `vnDateTimeText` của src/shared/vn-date.ts). */
+const gioVn = (iso) => { const [d, t] = new Date(Date.parse(iso) + 7 * 3600e3).toISOString().split("T"); return `${t.slice(0, 5)} ${d.split("-").reverse().join("/")}`; };
+/** Mốc ISO → giá trị ô datetime-local theo giờ Việt Nam. */
+const oGioVn = (iso) => new Date(Date.parse(iso) + 7 * 3600e3).toISOString().slice(0, 16);
 const env = await startEnv();
 try {
   const { call } = goiApi(env);
-  // ---- Gieo dữ liệu bằng API (TRƯỚC khi mở trang): hồ sơ đối tác, hạn mức 5.000.000, một đơn Trả sau 1.350.000, rồi hạ hạn mức còn 1.000.000 ⇒ nợ vượt hạn mức.
+  const phai = (x, st, nhan) => { assert.equal(x.status, st, `${nhan}: ${JSON.stringify(x.json)}`); return x.json; };
+  // ---- Gieo dữ liệu bằng API (TRƯỚC khi mở trang).
+  // (a) Mức tối đa Quản trị được cấp 10.000.000. (b) Cấp «Cấp Thử TS», loại Công ty lữ hành xếp vào cấp này, số gợi ý 20.000.000 · 48 giờ · ân hạn 6 giờ.
+  // (c) Đối tác 1: Trả sau 5.000.000 · 36 giờ · ân hạn 12 giờ, một đơn 1.350.000 đã xác nhận, rồi hạ còn 1.000.000 ⇒ nợ vượt hạn mức. (d) Đối tác 2 chưa bật.
+  // (e) Một tài khoản Đối tác có hồ sơ riêng, bật Trả sau 3.000.000 — để xem mục «Trả sau của tôi».
+  phai(await call(ACCOUNTS.chu, "POST", "/api/tra-sau/muc-toi-da", { so: 10_000_000 }), 201, "mức tối đa");
+  const CAP = phai(await call(ACCOUNTS.accounting, "POST", "/api/pricing/muc-ta", { ten: "Cấp Thử TS" }), 201, "cấp").muc;
+  phai(await call(ACCOUNTS.accounting, "POST", `/api/pricing/muc-ta/${CAP.code}/dong`, { tuNgay: "2026-01-01", phamVi: "ALL", kieu: "RATE", tyLeBp: 1000 }), 201, "dòng cấp");
+  phai(await call(ACCOUNTS.accounting, "POST", "/api/pricing/muc-ta/gan", { loai: "TRAVEL_AGENCY", muc: CAP.code, tuNgay: "2026-01-01" }), 201, "xếp loại vào cấp");
+  phai(await call(ACCOUNTS.chu, "PUT", `/api/tra-sau/goi-y/${CAP.code}`, { hanMuc: 20_000_000, gioTra: 48, gioAnHan: 6 }), 200, "số gợi ý");
   const TEN = "Đại Lý Trả Sau Thử";
-  let r = await call(ACCOUNTS.accounting, "POST", "/api/parties", { kind: "PERSON", fullName: TEN, contacts: [{ kind: "PHONE", value: "0912000111" }] });
-  assert.equal(r.status, 201, JSON.stringify(r.json));
-  const BEN = r.json.party.id;
-  r = await call(ACCOUNTS.admin, "POST", `/api/parties/${BEN}/roles`, { roleTypeCode: "TRAVEL_AGENCY" });
-  assert.equal(r.status, 201, JSON.stringify(r.json));
-  r = await call(ACCOUNTS.chu, "POST", "/api/tra-sau/han-muc", { partyId: BEN, hanMuc: 5_000_000, soNgay: 7 });
-  assert.equal(r.status, 201, JSON.stringify(r.json));
-  r = await call(ACCOUNTS.salesA, "POST", "/api/orders", {
+  const BEN = phai(await call(ACCOUNTS.accounting, "POST", "/api/parties", { kind: "PERSON", fullName: TEN, contacts: [{ kind: "PHONE", value: "0912000111" }] }), 201, "hồ sơ 1").party.id;
+  phai(await call(ACCOUNTS.admin, "POST", `/api/parties/${BEN}/roles`, { roleTypeCode: "TRAVEL_AGENCY" }), 201, "vai 1");
+  phai(await call(ACCOUNTS.chu, "POST", "/api/tra-sau/han-muc", { partyId: BEN, hanMuc: 5_000_000, gioTra: 36, gioAnHan: 12 }), 201, "bật 1");
+  let r = await call(ACCOUNTS.salesA, "POST", "/api/orders", {
     customerName: "Khách Thử", customerPhone: "0901234567", customerEmail: "", customerNote: "", discount: 0, paymentNote: "", bookerPartyId: BEN, paymentTerm: "CREDIT",
     services: [{ kind: "catalog", pickupChoice: "DON", catalogCode: "TD101", pax: { adult: 1, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 1350000, child: 950000, senior: 1200000, infant: 0 },
       departDate: vnDate(3), departTime: "07:30", pickupTime: "07:00", pickupPlace: "Khách sạn Sunrise", checkinDate: "", checkinTime: "", checkinPlace: "", note: "" }],
   });
-  assert.equal(r.status, 201, JSON.stringify(r.json));
-  const DON = r.json.order;
-  r = await call(ACCOUNTS.salesA, "POST", `/api/orders/${DON.id}/status`, { status: "confirmed" });
-  assert.equal(r.status, 200, JSON.stringify(r.json));
-  r = await call(ACCOUNTS.chu, "POST", "/api/tra-sau/han-muc", { partyId: BEN, hanMuc: 1_000_000, soNgay: 7 });
-  assert.equal(r.status, 201, JSON.stringify(r.json));
-  // Hồ sơ thứ hai chưa có hạn mức: dùng để thử biểu mẫu «Đặt hạn mức».
-  r = await call(ACCOUNTS.accounting, "POST", "/api/parties", { kind: "PERSON", fullName: "Công Ty Mới Thử", contacts: [{ kind: "PHONE", value: "0912000222" }] });
-  assert.equal(r.status, 201, JSON.stringify(r.json));
-  const BEN2 = r.json.party.id;
-  r = await call(ACCOUNTS.admin, "POST", `/api/parties/${BEN2}/roles`, { roleTypeCode: "TRAVEL_AGENCY" });
-  assert.equal(r.status, 201, JSON.stringify(r.json));
+  const DON = phai(r, 201, "đơn").order;
+  phai(await call(ACCOUNTS.salesA, "POST", `/api/orders/${DON.id}/status`, { status: "confirmed" }), 200, "xác nhận");
+  phai(await call(ACCOUNTS.chu, "POST", "/api/tra-sau/han-muc", { partyId: BEN, hanMuc: 1_000_000, gioTra: 36, gioAnHan: 12 }), 201, "hạ hạn mức 1");
+  const HAN_TRA = phai(await call(ACCOUNTS.salesA, "GET", `/api/orders/${DON.id}`), 200, "đọc đơn").order.hanTra;
+  const TEN2 = "Công Ty Mới Thử";
+  const BEN2 = phai(await call(ACCOUNTS.accounting, "POST", "/api/parties", { kind: "PERSON", fullName: TEN2, contacts: [{ kind: "PHONE", value: "0912000222" }] }), 201, "hồ sơ 2").party.id;
+  phai(await call(ACCOUNTS.admin, "POST", `/api/parties/${BEN2}/roles`, { roleTypeCode: "TRAVEL_AGENCY" }), 201, "vai 2");
+  const tk = phai(await call(ACCOUNTS.chu, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Đối Tác Xem Nợ", phone: "0912000333", permissions: ["PARTNER"] }), 201, "tài khoản Đối tác");
+  const DT = { name: "Đối Tác Xem Nợ", phone: tk.staff.phone, pin: tk.pin, permissions: ["PARTNER"] };
+  // Vai của hồ sơ có tài khoản chỉ gán ở Quản lý tài khoản (role_via_account): gán vai «Công ty lữ hành» cho tài khoản.
+  phai(await call(ACCOUNTS.chu, "PUT", `/api/staff/${tk.staff.id}/roles`, { roles: ["TRAVEL_AGENCY"] }), 200, "vai Đối tác");
+  phai(await call(ACCOUNTS.chu, "POST", "/api/tra-sau/han-muc", { partyId: tk.staff.partyId, hanMuc: 3_000_000, gioTra: 36, gioAnHan: 0 }), 201, "bật Đối tác");
 
   const moTrang = async (account, vp, duong = "/han-muc-tra-sau") => {
     const p = await env.openPage(vp);
@@ -114,87 +123,125 @@ try {
     return p;
   };
   const choBang = (p) => p.waitFor("!document.getElementById('hm-khung').hidden && document.querySelectorAll('#hm-bang tr').length > 0", "bảng hạn mức hiện");
+  const choCap = (p) => p.waitFor("!document.getElementById('cdl-khung').hidden && document.querySelectorAll('.cot-tra-sau').length > 0 && !!document.getElementById('ts-cai-dat')", "màn cấp có cột Trả sau và khối cài đặt");
   const chuMain = (p) => p.ev("document.querySelector('main').innerText");
-  const nutCoChu = (p, chu) => p.ev(`[...document.querySelectorAll('main button')].some((b) => b.textContent.trim() === ${JSON.stringify(chu)})`);
+  const nutCoChu = (p, chu) => p.ev(`[...document.querySelectorAll('main button, .sheet button')].some((b) => b.textContent.trim() === ${JSON.stringify(chu)})`);
+  /** Bấm nút trong ô Trả sau ĐANG HIỆN của hồ sơ (bảng máy tính hoặc thẻ điện thoại). */
+  const moO = (p, ben) => p.ev(`[...document.querySelectorAll('.cot-tra-sau[data-party="${ben}"]')].find((x) => x.getClientRects().length > 0).querySelector('button').click(), true`);
+  const choBangTruot = (p) => p.waitFor("!!document.querySelector('.sheet-root.open') || !!document.querySelector('.sheet')", "bảng trượt mở");
+  const dongBangTruot = (p) => p.ev("document.querySelector('.sheet-close')?.click(); true");
 
-  // ---------------- Toàn quyền, 1440 ----------------
-  let p = await moTrang(ACCOUNTS.chu, KHO_1440);
-  await buoc("T1", "[1440] Toàn quyền thấy dòng đối tác, cảnh báo nợ vượt hạn mức, ba nút; không tràn ngang; axe", async () => {
+  // ---------------- Cấp độ đại lý: Toàn quyền, 1440 ----------------
+  let p = await moTrang(ACCOUNTS.chu, KHO_1440, "/cap-dai-ly");
+  await buoc("C1", "[1440] Cấp độ đại lý có cột «Trả sau» (giờ, ân hạn, nợ), khối «Hạn mức trả sau» có số gợi ý của cấp và ô mức tối đa; không tràn; axe", async () => {
+    await choCap(p);
+    const t = await chuMain(p);
+    assert.ok(t.includes("1.000.000 ₫ · trả trong 36 giờ · ân hạn 12 giờ"), `ô Trả sau đối tác 1: ${t.slice(0, 600)}`);
+    assert.ok(t.includes("Đang nợ 1.350.000 ₫"), "nợ dưới ô");
+    assert.ok(t.includes("Hạn mức trả sau") && t.includes("20.000.000 ₫ · trả trong 48 giờ (2 ngày) · ân hạn 6 giờ"), "số gợi ý của cấp");
+    assert.equal(await p.ev("!!document.getElementById('ts-muc-toi-da')"), true, "Toàn quyền có ô mức tối đa");
+    await bocucSach(p, "[1440 cấp]");
+    await chup(p, "cap-dai-ly-tra-sau-1440");
+    await axeKiem(p, "[1440 cấp]");
+  });
+  await buoc("C2", "[1440] bấm ô Trả sau của đối tác chưa bật: bảng điền sẵn số gợi ý của cấp; bấm «Cấp hạn mức» ⇒ 201, ô hiện số mới", async () => {
+    await p.ev("window.__ghi.length = 0; true");
+    await moO(p, BEN2);
+    await choBangTruot(p);
+    await p.waitFor("!!document.getElementById('ts-han-muc')", "ô hạn mức trong bảng");
+    assert.deepEqual(await p.ev("['ts-han-muc', 'ts-gio-tra', 'ts-gio-an-han'].map((i) => document.getElementById(i).value)"), ["20000000", "48", "6"], "điền sẵn số gợi ý");
+    assert.ok((await p.ev("document.querySelector('.sheet').innerText")).includes("Đã điền sẵn số gợi ý của cấp Cấp Thử TS"), "câu nhắc gợi ý");
+    await bocucSach(p, "[1440 bảng Trả sau]");
+    await chup(p, "cap-dai-ly-bang-tra-sau-1440");
+    await axeKiem(p, "[1440 bảng Trả sau]");
+    await p.ev("document.querySelector('[data-action=dat-han-muc]').click(); true");
+    await p.waitFor(`[...document.querySelectorAll('.cot-tra-sau[data-party="${BEN2}"]')].some((x) => x.textContent.includes('20.000.000 ₫ · trả trong 48 giờ'))`, "ô hiện số mới");
+    assert.deepEqual(await p.ev("window.__ghi.filter((x) => x.m === 'POST')"), [{ m: "POST", u: "/api/tra-sau/han-muc", s: 201 }]);
+  });
+  p.close();
+  trangHienTai = null;
+
+  // ---------------- Cấp độ đại lý: Toàn quyền, 390 ----------------
+  p = await moTrang(ACCOUNTS.chu, KHO_390, "/cap-dai-ly");
+  await buoc("C3", "[390] thẻ có dòng «Trả sau», khối cài đặt, bảng Trả sau mở được; không tràn; vùng chạm ≥ 44px; axe", async () => {
+    await choCap(p);
+    assert.ok((await p.ev("document.getElementById('cdl-the').innerText")).includes("Trả sau:"), "thẻ có dòng Trả sau");
+    await bocucSach(p, "[390 cấp]");
+    await chup(p, "cap-dai-ly-tra-sau-390");
+    await axeKiem(p, "[390 cấp]");
+    await moO(p, BEN);
+    await choBangTruot(p);
+    await p.waitFor("!!document.getElementById('ts-han-muc') && !!document.querySelector('[data-action=ngung-han-muc]')", "bảng của đối tác đang bật có nút Ngừng");
+    await bocucSach(p, "[390 bảng Trả sau]");
+    await chup(p, "cap-dai-ly-bang-tra-sau-390");
+    await axeKiem(p, "[390 bảng Trả sau]");
+    await dongBangTruot(p);
+  });
+  p.close();
+  trangHienTai = null;
+
+  // ---------------- Cấp độ đại lý: Quản trị bị mức tối đa chặn ----------------
+  p = await moTrang(ACCOUNTS.admin, KHO_1440, "/cap-dai-ly");
+  await buoc("A1", "[1440] Quản trị: bảng nói mức tối đa 10.000.000; đặt 20.000.000 ⇒ câu từ chối trong bảng, số không đổi; không có ô mức tối đa", async () => {
+    await choCap(p);
+    assert.equal(await p.ev("!!document.getElementById('ts-muc-toi-da')"), false, "Quản trị không có ô mức tối đa");
+    assert.ok((await chuMain(p)).includes("Mức tối đa Quản trị được cấp: 10.000.000 ₫"));
+    await moO(p, BEN2);
+    await choBangTruot(p);
+    await p.waitFor("!!document.getElementById('ts-han-muc')", "ô hạn mức");
+    assert.ok((await p.ev("document.querySelector('.sheet').innerText")).includes("Quản trị đặt được hạn mức tới 10.000.000 ₫."), "câu mức tối đa");
+    await p.ev("window.__ghi.length = 0; true");
+    await p.ev("document.querySelector('[data-action=dat-han-muc]').click(); true");
+    await p.waitFor("(() => { const e = document.querySelector('.sheet .vc-field-error'); return !!e && !e.hidden && e.textContent.length > 0; })()", "câu từ chối trong bảng");
+    assert.deepEqual(await p.ev("window.__ghi.map((x) => x.s)"), [403]);
+    assert.doesNotMatch(await p.ev("document.querySelector('.sheet .vc-field-error').textContent"), /vuot_muc|forbidden|credit/);
+    await chup(p, "cap-dai-ly-quan-tri-vuot-1440");
+    await dongBangTruot(p);
+  });
+  p.close();
+  trangHienTai = null;
+
+  // ---------------- Cấp độ đại lý: Kế toán chỉ xem ----------------
+  p = await moTrang(ACCOUNTS.accounting, KHO_1440, "/cap-dai-ly");
+  await buoc("K1", "[1440] Kế toán thấy chữ Trả sau nhưng không có nút mở bảng, không có nút Lưu ở khối cài đặt", async () => {
+    await choCap(p);
+    assert.ok((await chuMain(p)).includes("1.000.000 ₫ · trả trong 36 giờ"));
+    assert.equal(await p.ev("document.querySelectorAll('.cot-tra-sau button').length"), 0, "không nút trong ô");
+    assert.equal(await p.ev("document.querySelectorAll('#ts-cai-dat button').length"), 0, "không nút ở khối cài đặt");
+  });
+  p.close();
+  trangHienTai = null;
+
+  // ---------------- Hạn mức trả sau: chỉ xem ----------------
+  p = await moTrang(ACCOUNTS.accounting, KHO_1440);
+  await buoc("H1", "[1440] Hạn mức trả sau chỉ xem: dòng, cảnh báo vượt, không «Cấp hạn mức» / «Điều chỉnh hạn mức» / «Đóng hạn mức»; «Xem đơn nợ» hiện hạn trả giờ Việt Nam; axe", async () => {
     await choBang(p);
     const t = await chuMain(p);
-    assert.ok(t.includes(TEN) && t.includes("1.000.000 ₫ · 7 ngày"), "dòng hạn mức");
-    assert.ok(t.includes("Đang nợ 1.350.000 ₫, vượt hạn mức hiện hành 1.000.000 ₫."), `cảnh báo vượt: ${t.slice(0, 400)}`);
-    for (const nhan of ["Xem đơn nợ", "Đặt hạn mức", "Ngừng hạn mức"]) assert.equal(await nutCoChu(p, nhan), true, nhan);
-    assert.equal(await p.ev("!!document.querySelector('a[href=\"/han-muc-tra-sau\"]')"), true, "mục ở thanh bên");
-    await bocucSach(p, "[1440]");
-    await chup(p, "han-muc-1440");
-    await axeKiem(p, "[1440]");
-  });
-  await buoc("T2", "[1440] «Xem đơn nợ» mở danh sách đơn còn nợ có mã đơn và số nợ", async () => {
-    await p.ev("[...document.querySelectorAll('#hm-bang [data-action=xem-don-no]')][0].click(); true");
+    assert.ok(t.includes(TEN) && t.includes("1.000.000 ₫ · trả trong 36 giờ · ân hạn 12 giờ"), "dòng");
+    assert.ok(t.includes("Đang nợ 1.350.000 ₫, vượt hạn mức hiện hành 1.000.000 ₫."), "cảnh báo vượt");
+    for (const chu of ["Cấp hạn mức", "Điều chỉnh hạn mức", "Đóng hạn mức"]) assert.equal(await nutCoChu(p, chu), false, chu);
+    assert.equal(await p.ev("!!document.querySelector('main a[href=\"/cap-dai-ly\"]')"), true, "trỏ sang màn Cấp độ đại lý");
+    await p.ev(`[...document.querySelectorAll('#hm-bang tr')].find((tr) => tr.textContent.includes(${JSON.stringify(TEN)})).querySelector('[data-action=xem-don-no]').click(); true`);
     await p.waitFor("!document.getElementById('hm-don').hidden", "danh sách đơn nợ hiện");
-    const t = await p.ev("document.getElementById('hm-don').innerText");
-    assert.ok(t.includes(DON.code ?? DON.orderCode ?? "") && t.includes("nợ 1.350.000 ₫"), `đơn nợ: ${t}`);
-    await chup(p, "han-muc-1440-don-no");
-  });
-  await buoc("T3", "[1440] biểu mẫu «Đặt hạn mức»: thiếu hồ sơ báo ngay (không gọi máy chủ); chọn hồ sơ, gõ số, lưu ⇒ 201 và dòng mới", async () => {
-    await p.ev("window.__ghi.length = 0; true");
-    await p.ev(setInput("document.getElementById('hm-han-muc')", "20.000.000"));
-    await p.ev(setInput("document.getElementById('hm-so-ngay')", "30"));
-    await p.ev("document.querySelector('[data-action=luu-han-muc]').click(); true");
-    await p.waitFor("(() => { const e = document.querySelector('#hm-form .alert'); return !!e && !e.hidden && e.textContent === 'Chọn hồ sơ đối tác trước.'; })()", "câu chưa chọn hồ sơ");
-    assert.equal(await p.ev("window.__ghi.length"), 0, "chưa chọn hồ sơ: không gọi máy chủ");
-    await p.ev(setInput("document.getElementById('hm-tim')", "Công Ty Mới"));
-    await p.waitFor("document.querySelectorAll('#hm-form .card-list button').length > 0", "kết quả tìm hồ sơ");
-    await p.ev("document.querySelector('#hm-form .card-list button').click(); true");
-    await p.ev("document.querySelector('[data-action=luu-han-muc]').click(); true");
-    await p.waitFor("!document.getElementById('ok').hidden", "câu Đã đặt hạn mức");
-    assert.deepEqual(await p.ev("window.__ghi.filter((x) => x.m === 'POST')"), [{ m: "POST", u: "/api/tra-sau/han-muc", s: 201 }]);
-    await p.waitFor("[...document.querySelectorAll('#hm-bang tr')].some((tr) => tr.textContent.includes('Công Ty Mới Thử') && tr.textContent.includes('20.000.000 ₫ · 30 ngày'))", "dòng hạn mức mới");
-    await chup(p, "han-muc-1440-da-dat");
+    const d = await p.ev("document.getElementById('hm-don').innerText");
+    assert.ok(d.includes(`nợ 1.350.000 ₫ · hạn trả ${gioVn(HAN_TRA)}`), `đơn nợ: ${d}`);
+    await bocucSach(p, "[1440 hạn mức]");
+    await chup(p, "han-muc-1440");
+    await axeKiem(p, "[1440 hạn mức]");
   });
   p.close();
   trangHienTai = null;
-
-  // ---------------- Chi tiết đơn Trả sau (Bán hàng) ----------------
-  p = await moTrang(ACCOUNTS.salesA, KHO_1440, `/order?id=${encodeURIComponent(DON.id)}`);
-  await buoc("D1", "[1440] chi tiết đơn Trả sau ghi «Hình thức thanh toán: Trả sau · hạn trả …» (hạn = hôm nay + 7 ngày)", async () => {
-    await p.waitFor("document.body.innerText.includes('Hình thức thanh toán')", "dòng hình thức");
-    const t = await p.ev("document.body.innerText");
-    const han = vnDate(7).split("-").reverse().join("/");
-    assert.ok(t.includes(`Trả sau · hạn trả ${han}`), `nhãn: ${t.slice(t.indexOf("Hình thức"), t.indexOf("Hình thức") + 80)}`);
-    await chup(p, "don-tra-sau-1440");
-  });
-  p.close();
-  trangHienTai = null;
-
-  // ---------------- Toàn quyền, 390 ----------------
-  p = await moTrang(ACCOUNTS.chu, KHO_390);
-  await buoc("T4", "[390] thẻ đối tác hiện đủ (hạn mức, đang nợ, còn được dùng, cảnh báo, nút); không tràn ngang; vùng chạm ≥ 44px; axe", async () => {
+  p = await moTrang(ACCOUNTS.admin, KHO_390);
+  await buoc("H2", "[390] Quản trị xem được Hạn mức trả sau dạng thẻ; không tràn; vùng chạm; axe", async () => {
     await p.waitFor("document.querySelectorAll('#hm-the .card').length > 0", "thẻ hiện");
     const t = await p.ev("document.getElementById('hm-the').innerText");
-    assert.ok(t.includes(TEN) && t.includes("Còn được dùng") && t.includes("vượt hạn mức hiện hành"), `thẻ: ${t}`);
-    await bocucSach(p, "[390]");
+    assert.ok(t.includes(TEN) && t.includes("Hạn mức khả dụng") && t.includes("vượt hạn mức hiện hành"), `thẻ: ${t}`);
+    await bocucSach(p, "[390 hạn mức]");
     await chup(p, "han-muc-390");
-    await axeKiem(p, "[390]");
+    await axeKiem(p, "[390 hạn mức]");
   });
   p.close();
   trangHienTai = null;
-
-  // ---------------- Kế toán: chỉ xem ----------------
-  p = await moTrang(ACCOUNTS.accounting, KHO_1440);
-  await buoc("K1", "[1440] Kế toán thấy dòng và cảnh báo, KHÔNG có «Đặt hạn mức», «Ngừng hạn mức», không có biểu mẫu", async () => {
-    await choBang(p);
-    assert.ok((await chuMain(p)).includes(TEN));
-    assert.equal(await nutCoChu(p, "Đặt hạn mức"), false);
-    assert.equal(await nutCoChu(p, "Ngừng hạn mức"), false);
-    assert.equal(await p.ev("!!document.getElementById('hm-form')"), false, "không dựng biểu mẫu");
-    assert.equal(await nutCoChu(p, "Xem đơn nợ"), true);
-  });
-  p.close();
-  trangHienTai = null;
-
-  // ---------------- Bán hàng: bị chặn ----------------
   await buoc("B1", "[1440] Bán hàng: câu chặn, không bảng, không mục ở thanh bên", async () => {
     const q = await moTrang(ACCOUNTS.salesA, KHO_1440);
     try {
@@ -207,6 +254,58 @@ try {
       trangHienTai = null;
     }
   });
+
+  // ---------------- Chi tiết đơn Trả sau ----------------
+  p = await moTrang(ACCOUNTS.salesA, KHO_1440, `/order?id=${encodeURIComponent(DON.id)}`);
+  await buoc("D1", "[1440] Bán hàng: «Trả sau · hạn trả HH:MM dd/mm/yyyy» theo giờ Việt Nam và dòng «Hạn trả: Trong hạn · còn nợ …»; KHÔNG có nút «Ân hạn»", async () => {
+    await p.waitFor("!!document.querySelector('[data-tra-sau]')", "dòng hạn trả");
+    const t = await p.ev("document.body.innerText");
+    assert.ok(t.includes(`Trả sau · hạn trả ${gioVn(HAN_TRA)}`), `nhãn: ${t.slice(t.indexOf("Hình thức"), t.indexOf("Hình thức") + 80)}`);
+    assert.ok(t.includes("Trong hạn · còn nợ 1.350.000 ₫"), "trạng thái");
+    assert.equal(await nutCoChu(p, "Ân hạn"), false, "Bán hàng không có nút Ân hạn");
+    await chup(p, "don-tra-sau-1440");
+  });
+  p.close();
+  trangHienTai = null;
+  p = await moTrang(ACCOUNTS.chu, KHO_390, `/order?id=${encodeURIComponent(DON.id)}`);
+  await buoc("D2", "[390] Toàn quyền: nút «Ân hạn» mở bảng (ô ngày giờ đặt sẵn hạn cũ); thiếu lý do báo ngay, không gọi máy chủ; có lý do ⇒ 200, hạn trả mới +24 giờ hiện trên đơn; vùng chạm; axe", async () => {
+    await p.waitFor("!!document.querySelector('[data-action=an-han]')", "nút Ân hạn");
+    await p.ev("document.querySelector('[data-action=an-han]').click(); true");
+    await choBangTruot(p);
+    await p.waitFor("!!document.getElementById('an-han-moi')", "ô hạn mới");
+    assert.equal(await p.ev("document.getElementById('an-han-moi').value"), oGioVn(HAN_TRA), "đặt sẵn hạn cũ theo giờ Việt Nam");
+    await bocucSach(p, "[390 bảng Ân hạn]");
+    await chup(p, "an-han-390");
+    await axeKiem(p, "[390 bảng Ân hạn]");
+    const moi = new Date(Date.parse(HAN_TRA) + 24 * 3600e3).toISOString();
+    await p.ev(setInput("document.getElementById('an-han-moi')", oGioVn(moi)));
+    await p.ev("window.__ghi.length = 0; document.querySelector('[data-action=luu-an-han]').click(); true");
+    await p.waitFor("(() => { const e = document.querySelector('.sheet .vc-field-error'); return !!e && !e.hidden && e.textContent === 'Ghi lý do lùi hạn trả.'; })()", "câu thiếu lý do");
+    assert.equal(await p.ev("window.__ghi.length"), 0, "thiếu lý do: không gọi máy chủ");
+    await p.ev(setInput("document.getElementById('an-han-ly-do')", "Khách xin thêm một ngày"));
+    await p.ev("document.querySelector('[data-action=luu-an-han]').click(); true");
+    const moiPhut = new Date(Date.parse(moi) - (Date.parse(moi) % 60000)).toISOString();
+    await p.waitFor(`document.body.innerText.includes(${JSON.stringify(`Trả sau · hạn trả ${gioVn(moiPhut)}`)})`, "đơn hiện hạn trả mới");
+    assert.deepEqual(await p.ev("window.__ghi.map((x) => [x.m, x.u, x.s])"), [["POST", `/api/tra-sau/don/${DON.id}/an-han`, 200]]);
+    await chup(p, "an-han-xong-390");
+  });
+  p.close();
+  trangHienTai = null;
+
+  // ---------------- Trả sau của tôi (Đối tác) ----------------
+  for (const [nhan, kho] of [["1440", KHO_1440], ["390", KHO_390]]) {
+    await buoc(`P1-${nhan}`, `[${nhan}] Đối tác thấy mục «Trả sau của tôi» ở trang Tôi với hạn mức theo giờ và hạn mức khả dụng; axe`, async () => {
+      const q = await moTrang(DT, kho, "/account");
+      try {
+        await q.waitFor("!document.getElementById('tra-sau-cua-toi').hidden", "mục Trả sau của tôi hiện");
+        const t = await q.ev("document.getElementById('tra-sau-cua-toi').innerText");
+        assert.ok(t.includes("Trả sau của tôi") && t.includes("3.000.000 ₫ · trả trong 36 giờ · không ân hạn") && t.includes("Hạn mức khả dụng 3.000.000 ₫"), t);
+        await bocucSach(q, `[${nhan} Tôi]`);
+        await chup(q, `tra-sau-cua-toi-${nhan}`);
+        await axeKiem(q, `[${nhan} Tôi]`);
+      } finally { q.close(); trangHienTai = null; }
+    });
+  }
 
   // ---------------- Màn lập đơn: khối «Hình thức thanh toán» (I-1) ----------------
   const dichVuTD101 = { kind: "catalog", pickupChoice: "DON", catalogCode: "TD101", pax: { adult: 1, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 1350000, child: 950000, senior: 1200000, infant: 0 },
@@ -227,13 +326,13 @@ try {
   };
   const nhap = await lapNhap(BEN2, "CREDIT");
   for (const [nhan, kho] of [["1440", KHO_1440], ["390", KHO_390]]) {
-    await buoc(`F1-${nhan}`, `[${nhan}] mở nháp Trả sau của bên có hạn mức: thấy ô Trả sau đang chọn và «Còn được dùng 20.000.000 ₫»; vùng chạm, không tràn ngang`, async () => {
+    await buoc(`F1-${nhan}`, `[${nhan}] mở nháp Trả sau của bên có hạn mức: thấy ô Trả sau đang chọn và «Hạn mức khả dụng 20.000.000 ₫»; vùng chạm, không tràn ngang`, async () => {
       const q = await moTrang(ACCOUNTS.salesA, kho, `/order-form?id=${encodeURIComponent(nhap.id)}`);
       try {
         await q.waitFor("(() => { const k = document.getElementById('tra-sau-khoi'); return !!k && !k.hidden && document.getElementById('tra-sau-cau').textContent.length > 0; })()", "khối Trả sau hiện");
         const k = await khoiHien(q);
         assert.equal(k.credit, true, "Trả sau đang chọn");
-        assert.ok(k.cau.includes("Còn được dùng 20.000.000"), k.cau);
+        assert.ok(k.cau.includes("Hạn mức khả dụng 20.000.000"), k.cau);
         await chup(q, `lap-don-tra-sau-${nhan}`);
       } finally { q.close(); trangHienTai = null; }
     });
