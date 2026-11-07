@@ -881,7 +881,7 @@ export const accountsModule: AppModule = {
       const db = ctx.env.DB;
       const at = new Date().toISOString();
       await db.batch([
-        auditStatement(db, { staffId: ctx.staff.id, action: "acting_role_set", at, targetType: "staff", targetId: ctx.staff.id, detail: vai }),
+        auditStatement(db, { staffId: ctx.staff.id, action: "acting_role_set", at, targetType: "staff", targetId: ctx.staff.id, detail: PERMISSION_LABEL[vai] }), // detail = tên tiếng Việt (trang Nhật ký in nguyên); cột audit_log.acting_role giữ mã
         setActingRoleStatement(db, phien, vai, at),
       ]);
       const that = quyenThat(ctx.staff);
@@ -899,7 +899,7 @@ export const accountsModule: AppModule = {
       const db = ctx.env.DB;
       const at = new Date().toISOString();
       await db.batch([
-        auditStatement(db, { staffId: ctx.staff.id, action: "acting_role_cleared", at, targetType: "staff", targetId: ctx.staff.id, detail: ctx.staff.actingRole ?? undefined }),
+        auditStatement(db, { staffId: ctx.staff.id, action: "acting_role_cleared", at, targetType: "staff", targetId: ctx.staff.id, detail: PERMISSION_LABEL[ctx.staff.actingRole] }),
         setActingRoleStatement(db, phien, null, at),
       ]);
       const { realPermissions: _a, actingRole: _b, ...goc } = ctx.staff;

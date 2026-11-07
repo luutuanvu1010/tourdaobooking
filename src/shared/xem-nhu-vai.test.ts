@@ -75,3 +75,8 @@ test("cả hai route bật / thoát đòi laToanQuyenThat bên cạnh ô setting
     assert.match(than, /can\(\{ id: ctx\.staff\.id, permissions: \[\.\.\.quyenThat\(ctx\.staff\)\] \}, "settings\.ops"\) \|\| !laToanQuyenThat\(ctx\.staff\)\) return NOT_ACTING_ROLE\(\)/, m);
   }
 });
+
+test("daHetHan: last_seen_at ở TƯƠNG LAI (đồng hồ lệch) thì chưa hết hạn — hành vi hiện tại, được chấp nhận vì `now` luôn lấy từ máy chủ", () => {
+  const now = Date.parse("2026-11-07T01:00:00.000Z");
+  assert.equal(daHetHan("2026-11-07T05:00:00.000Z", now), false);
+});

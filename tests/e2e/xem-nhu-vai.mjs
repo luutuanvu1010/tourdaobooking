@@ -54,10 +54,10 @@ assert.deepEqual(r.body.staff.permissions, ["SUPER_ADMIN"]);
 assert.equal((await call(DUNG, "GET", "/api/auth/me")).body.actingRole, undefined);
 assert.equal((await call(DUNG, "POST", "/api/orders", orderInput())).status, 201, "Toàn quyền thật lập đơn được");
 
-// 6. Nhật ký: dòng bật + thoát, mã vai ở detail, không dữ liệu cá nhân; dòng ghi lúc đang đóng vai có dấu (đọc SQL — API nhật ký không trả cột dấu).
+// 6. Nhật ký: dòng bật + thoát, tên vai tiếng Việt ở detail, không dữ liệu cá nhân; dòng ghi lúc đang đóng vai có dấu (đọc SQL — API nhật ký không trả cột dấu).
 const dong = await sqlRows(`SELECT action, detail, acting_role FROM audit_log WHERE staff_id = '${SA.id}' AND action IN ('acting_role_set','acting_role_cleared') ORDER BY rowid`);
 assert.ok(dong.filter((d) => d.action === "acting_role_set").length >= 1 && dong.filter((d) => d.action === "acting_role_cleared").length >= 1, JSON.stringify(dong));
-assert.ok(dong.every((d) => d.detail === "ACCOUNTING"), JSON.stringify(dong));
+assert.ok(dong.every((d) => d.detail === "Kế toán"), JSON.stringify(dong));
 assert.doesNotMatch(JSON.stringify(dong), new RegExp(SA.phone));
 const daDanh = await sqlRows(`SELECT COUNT(*) AS n FROM audit_log WHERE staff_id = '${SA.id}' AND acting_role = 'ACCOUNTING'`);
 assert.ok(Number(daDanh[0].n) >= 1, "có dòng nhật ký mang dấu vai");

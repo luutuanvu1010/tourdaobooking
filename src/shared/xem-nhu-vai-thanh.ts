@@ -1,4 +1,4 @@
-// Thanh báo "Đang xem như vai trò …" (ADR-0180 Đ2): tệp nhỏ riêng vì đi vào gói của MỌI trang có khung (web/shell.ts); phần mục chọn ở xem-nhu-vai-hien-thi.ts.
+// Thanh báo "Đang xem như vai trò …" (ADR-0180; đặc tả 2026-11-07-xem-nhu-vai-khac-design): tệp nhỏ riêng vì đi vào gói của MỌI trang có khung (web/shell.ts); phần mục chọn ở xem-nhu-vai-hien-thi.ts.
 import { cauBaoTri } from "./dai-chu.ts";
 import { PERMISSION_LABEL, type PermissionCode } from "./permissions.ts";
 

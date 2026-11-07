@@ -66,7 +66,7 @@ test("Toàn quyền POST ACCOUNTING → 200, dòng phiên và GET /me cùng cho 
   const dong = nhatKy(w, "acting_role_set");
   assert.equal(dong.length, 1);
   assert.equal(dong[0].staff_id, CHU);
-  assert.equal(dong[0].detail, "ACCOUNTING");
+  assert.equal(dong[0].detail, "Kế toán", "detail là tên tiếng Việt của vai, không phải mã thô (CLAUDE.md §7)");
   assert.doesNotMatch(JSON.stringify(dong), /0900000007|@/);
 });
 
@@ -81,7 +81,7 @@ test("đang đóng Bán hàng → DELETE vẫn 200 (quyền thật Toàn quyền
   assert.equal("actingRole" in r.json, false);
   assert.equal("actingRole" in r.json.staff, false);
   assert.equal(vaiPhien(w, id), null);
-  assert.deepEqual(nhatKy(w, "acting_role_cleared").map((d: any) => d.detail), ["SALES"]);
+  assert.deepEqual(nhatKy(w, "acting_role_cleared").map((d: any) => d.detail), ["Bán hàng"]);
   const m = await w.call("GET", "/api/auth/me", { as: CHU });
   assert.deepEqual(m.json.staff.permissions, ["SUPER_ADMIN"]);
 });

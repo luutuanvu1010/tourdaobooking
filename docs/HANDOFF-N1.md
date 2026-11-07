@@ -104,11 +104,19 @@ Ghi 29/10/2026 từ khối tóm tắt của `npm run trien-khai` (chủ chạy `
 
 Ghi 7/11/2026, nhánh `claude/multi-role-admin-view-8030d2`. Chưa có số phiên bản và chưa có mục nhật ký thay đổi (bước A.0 làm khi phát hành). Chưa làm bước nào trên production: không áp migration remote, không triển khai.
 - **Migration `0145_xem_nhu_vai` (chỉ mở rộng):** thêm cột `aut_session.acting_role` và `audit_log.acting_role`, cột phiên có ràng buộc `CHECK` chỉ nhận mười mã chọn được (không nhận `SUPER_ADMIN`). Số có thể phải đổi lúc gộp: quy tắc = số lớn nhất trên `main` lúc gộp + 1 (lúc ghi, `main` có đến `0144`).
-- **Điều nhân viên thấy:** không ai thấy khác, trừ Toàn quyền: ở trang Tôi có mục «Xem như vai khác»; bật thì cả phiên đó chỉ còn quyền của vai chọn (tối đa 60 phút không thao tác), có thanh báo kèm nút «Thoát vai». Phiên khác của cùng tài khoản không đổi. Nhật ký có dòng bật / thoát và mọi dòng ghi lúc đang đóng vai mang dấu vai.
+- **Điều nhân viên thấy:** không ai thấy khác, trừ Toàn quyền: ở trang Tôi có mục «Xem như vai trò khác»; bật thì phiên đó chỉ còn quyền của vai chọn (tự thoát sau 60 phút không thao tác), có thanh «Đang xem như vai trò X» kèm nút «Thoát» (thêm đuôi « · Đang bảo trì» khi chế độ bảo trì đang bật). Chữ này là phán quyết của người điều phối, chủ có thể đổi lại: ban đầu chủ chọn các tên ngắn hơn («Xem như vai khác», «Đang xem như vai khác», «Thoát vai»).
+- **Quyền và dấu vai — hai điều khác nhau, nói đúng:** (1) QUYỀN đổi theo từng PHIÊN: máy khác của cùng tài khoản vẫn là Toàn quyền thật. (2) DẤU vai trên nhật ký (`audit_log.acting_role`) được tra theo TÀI KHOẢN trong khoảng 60 phút (cộng 10 giây nới): một máy khác của cùng tài khoản có thể nhận dấu thừa, và hai máy đang đóng hai vai khác nhau có thể ghi nhầm dấu cho nhau. Chữ của ADR-0180 nói khác (dấu theo phiên); không sửa ADR, chủ quyết định. Cột `detail` của hai dòng bật / thoát ghi tên vai tiếng Việt, mã nằm ở cột `acting_role`.
 - **Kiểm đã có:** bài quét «xem như vai khác không lọt Toàn quyền» (mọi route × 10 vai), bài ma trận mười vai, bài phiên / route / nhật ký, e2e `tests/e2e/xem-nhu-vai.mjs` (xanh trên D1 local tạm). Chi tiết hàng rào: `docs/SO-HANG-RAO.md` (các dòng ADR-0180). Việc lớn (quyền): cần người kiểm độc lập đọc cả nhánh trước khi gộp.
 - **Hoàn tác:** cột mới nullable, mã cũ không đọc nên lùi `wrangler rollback` an toàn; phiên đang đóng vai khi lùi mã sẽ chạy như quyền Toàn quyền thật (cột bị bỏ qua) — chủ tự gỡ vai bằng cách thoát trước khi lùi.
 - **Việc của chủ khi phát hành** (AI không chạy): `npm run day-len` rồi `npm run trien-khai` theo mục «Khi chạy `trien-khai`» của đợt hiện hành; câu «Áp 1 migration này lên production?» gõ `c`.
 - **Chưa kiểm:** thanh báo và mục chọn chưa xem bằng Chrome / iPhone thật; sổ riêng của module khác (`bil_*`, `fbk_*`…) không mang dấu vai — câu hỏi chờ chủ ở nhật ký thi công.
+- **Việc của chủ (không chặn phát hành, mỗi việc một dòng):**
+  - Số ADR 0180 trùng với nhánh `claude/adr-0180-xe-thieu-giay-to` (cũng có ADR-0180; 0181–0183 đã dùng ở nơi khác): chủ quyết bên nào giữ 0180, bên kia đánh số lại kể cả mọi chỗ trích dẫn.
+  - Module `audit` đọc thẳng bảng `aut_session` để gắn dấu: chủ duyệt tiền tố view `v_aut_*` (nới `architecture.test.ts`) hoặc một ngoại lệ có thời hạn (đang ghi ở `docs/SYSTEM-DESIGN.md` §16).
+  - Dấu vai chưa hiện ở trang Nhật ký (hiện không nơi nào hiển thị cột này): chủ quyết có hiện hay không.
+  - Bảng tin (WebSocket) mở trước khi đóng vai vẫn mang quyền cũ tới khi nối lại.
+  - Sổ riêng `bil_*`, `fbk_*` không mang dấu vai (chưa kiểm từng lệnh có dòng `audit_log` cùng lô).
+  - Số migration phải kiểm lại lúc gộp: một nhánh khác đã có `0146`.
 
 ## ĐANG CHỜ PHÁT HÀNH — ĐỢT CHUNG 2.70 + 2.71 + 2.72 (một lần `npm run trien-khai`; HAI migration `0143_tra_sau_theo_gio`, `0144_kenh_thu_doi_tac`) — chuẩn bị 2026-11-07
 
@@ -1556,7 +1564,7 @@ Ba phương án, chủ dự án chọn một (chưa chọn thay):
 **(c) ADR-0005 mục Quyết định 2 lệch DDL đã duyệt — ghi errata.** ADR viết `stf_permission(staff_id, permission_type_code, created_at, created_by)`, khoá duy nhất `(staff_id, permission_type_code)`; DDL đã duyệt và `0012` thực tế có `id`, `valid_from_at`/`valid_to_at`, đủ bốn cột kiểm toán và chỉ mục duy nhất MỘT PHẦN `stf_permission_open_uq … WHERE valid_to_at IS NULL` (đóng/mở lại quyền giữ lịch sử, đúng "không xoá cứng" của ADR-0003 điều 8). Mã theo DDL; chỉ cần chủ dự án đồng ý ghi errata vào ADR-0005 (chi phí: chỉ tài liệu).
 
 ## Việc còn treo / nợ
-- **Xem như vai trò khác (ADR-0180) chờ gộp và phát hành:** xem mục «ĐANG CHỜ PHÁT HÀNH: Toàn quyền xem như vai trò khác» ở đầu tệp; còn chờ chủ: dấu vai ở sổ riêng của module khác, và xem hình thật (Chrome, iPhone).
+- **Xem như vai trò khác (ADR-0180) chờ gộp và phát hành:** xem mục «ĐANG CHỜ PHÁT HÀNH: Toàn quyền xem như vai trò khác» ở đầu tệp; còn chờ chủ: dấu vai ở sổ riêng của module khác, và xem hình thật (Chrome, iPhone). Danh sách việc của chủ (trùng số ADR 0180, view `v_aut_*`, hiện dấu ở trang Nhật ký, Bảng tin, sổ riêng, số migration, chữ «vai trò»/«Thoát»): ở mục chờ phát hành đó.
 - **CHƯƠNG TRÌNH KHẮC PHỤC KIỂM TOÁN 1–2/10 (lập kế hoạch 2026-10-02, CHƯA thi công) — ưu tiên cao nhất, có hạn sổ dừng dây chuyền.**
   - **Kiểm lại trên `main` @`fc268abe`:**
     - 8/9 phát hiện CAO của đánh giá kiến trúc xác nhận;
