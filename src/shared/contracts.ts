@@ -27,6 +27,12 @@ export interface StaffProfile {
   partyId: string | null;
   /** Quyền trong app (ADR-0005), đọc từ stf_permission — KHÔNG phải vai trò hồ sơ (HDV, tài xế…). */
   permissions: PermissionCode[];
+  /**
+   * ADR-0180 Đ1: mã quyền Toàn quyền đang "xem như" ở phiên này. Chỉ có khi đang đóng vai; lúc đó `permissions` = `[actingRole]` (bộ hiệu lực, do
+   * `currentStaff` tính ở MỘT chỗ) và `realPermissions` = quyền thật của tài khoản (cổng bảo trì, route thoát đóng vai xét bộ này).
+   */
+  actingRole?: PermissionCode;
+  realPermissions?: PermissionCode[];
 }
 
 /** Hồ sơ đầy đủ cho màn hình quản trị. */

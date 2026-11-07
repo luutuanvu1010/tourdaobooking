@@ -575,7 +575,9 @@ export function createApp(opts: AppOptions) {
       staff = cur.staff;
       sessionId = cur.sessionId;
       baoTri = cur.baoTri;
-      const maintenance = await opts.injected.maintenanceBlock(env, staff, baoTri);
+      // ADR-0180 Đ3: cổng bảo trì xét quyền THẬT — Toàn quyền đang "xem như" vai khác vẫn được miễn (không bao giờ tự khoá mình). Các cổng dưới theo bộ HIỆU LỰC.
+      const staffThat: StaffProfile = { ...staff, permissions: staff.realPermissions ?? staff.permissions };
+      const maintenance = await opts.injected.maintenanceBlock(env, staffThat, baoTri);
       if (maintenance) return maintenance;
       // ADR-0014 điều 2: SUPER_ADMIN = any ở mọi thao tác, kể cả admin.manage — không thay thế ADMIN, nên tài khoản chỉ giữ SUPER_ADMIN (không giữ ADMIN)
       // vẫn phải dùng được route access "admin" (bản đồ quyền — MATRIX — đã cho phép; cổng thô này chỉ đi theo, không siết chặt hơn).

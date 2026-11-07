@@ -29,10 +29,11 @@ import { PASSKEY_ERRORS, checkPasskeyAssertion, clearChallengeCookie, issuePassk
 import {
   endAllButNewestStatement, endAllSessionsIfSuspendedStatement as endAllIfSuspendedRow, endExpiredSessionsStatement, endOtherSessionsStatement, endSessionStatement, findLiveSession,
   getSession, insertSessionStatement, listPolicyRows, markSessionReissuedStatement, markSingleStatement, touchSessionStatement,
-  closePolicyStatement, danhDauMotMayTheoTapStatement, endExpiredAllStatement, insertPolicyAfterCloseStatement, insertPolicyNewStatement, sietTheoTapStatement,
+  clearExpiredActingRoleStatement, closePolicyStatement, danhDauMotMayTheoTapStatement, endExpiredAllStatement, insertPolicyAfterCloseStatement, insertPolicyNewStatement, sietTheoTapStatement,
 } from "./repository";
 import { isQuyenDatDuoc, type QuyenDatDuoc } from "../../shared/chinh-sach-dang-nhap";
 import type { PermissionCode } from "../../shared/permissions";
+import { HAN_XEM_NHU_VAI_PHUT, daHetHan, laVaiChonDuoc, quyenHieuLuc } from "../../shared/xem-nhu-vai";
 import type { RoleCode } from "../../shared/roles";
 import { SESSION_COOKIE, SESSION_TTL_SECONDS, clearedSessionCookie, createSessionToken, isSecure, sessionCookie, verifySessionToken } from "./session";
 import { SESSION_TOUCH_MS, isSingleDevice, sessionDeviceLabel, trimIp, trimUserAgent, END_REASON_LABEL, type EndReason, type TapNhieuMay } from "./session-ledger";
@@ -93,15 +94,26 @@ export async function currentStaff(request: Request, env: Env, exec?: ExecutionC
     findLiveSession(env.DB, t.sessionId, t.staffId, nowIso), getActiveStaff(env.DB, t.staffId, t.issuedAt), getMaintenanceState(env.DB),
   ]);
   if (!row || !staff) return null;
+  // ADR-0180 Đ1: NƠI DUY NHẤT tính bộ quyền hiệu lực. Chỉ nhận vai khi tài khoản THẬT giữ SUPER_ADMIN, mã nằm trong danh sách chọn được và chưa quá 60 phút
+  // không thao tác (tính theo last_seen_at TRƯỚC lần chạm dưới đây). Dòng phiên của người không giữ Toàn quyền mà có cột vai (dữ liệu hỏng) ⇒ bỏ qua cột.
+  const coVai = row.acting_role !== null && row.acting_role !== undefined;
+  const hetHan = coVai && daHetHan(row.last_seen_at, now);
+  const vai = coVai && !hetHan && staff.permissions.includes("SUPER_ADMIN") && laVaiChonDuoc(row.acting_role) ? row.acting_role as PermissionCode : null;
+  const hieuLuc: StaffProfile = vai === null ? staff : { ...staff, permissions: quyenHieuLuc(staff.permissions, vai), actingRole: vai, realPermissions: [...staff.permissions] };
   if (Date.parse(row.last_seen_at) < now - SESSION_TOUCH_MS) {
     // Ghi mốc hoạt động Ở NỀN (không chặn phản hồi): câu có điều kiện `last_seen_at < ?` nên lặp hay chậm đều vô hại; phiên đã bị lưới `credentials_changed_at` giết
     // không bao giờ tới đây (đã bị từ chối ở getActiveStaff). Không có `exec` (bài kiểm gọi thẳng) thì chờ như cũ.
-    const ghi = touchSessionStatement(env.DB, row.id, nowIso, new Date(now - SESSION_TOUCH_MS).toISOString()).run().catch((e: unknown) =>
+    // Vai đã hết hạn (ADR-0180 Đ1.3): xoá cột trong CÙNG lô, ĐỨNG TRƯỚC câu chạm — chạm thành công mà xoá hỏng thì lần sau vai sống lại; một lô thì cả hai cùng thành hoặc cùng hỏng.
+    const cham = touchSessionStatement(env.DB, row.id, nowIso, new Date(now - SESSION_TOUCH_MS).toISOString());
+    const ghi = (hetHan
+      ? env.DB.batch([clearExpiredActingRoleStatement(env.DB, row.id, nowIso, new Date(now - HAN_XEM_NHU_VAI_PHUT * 60 * 1000).toISOString()), cham])
+      : cham.run()
+    ).catch((e: unknown) =>
       console.error(JSON.stringify({ level: "error", event: "session_touch_failed", message: e instanceof Error ? e.message : String(e) })));
     if (exec) exec.waitUntil(ghi);
     else await ghi;
   }
-  return { staff, sessionId: t.sessionId, baoTri };
+  return { staff: hieuLuc, sessionId: t.sessionId, baoTri };
 }
 
 /**

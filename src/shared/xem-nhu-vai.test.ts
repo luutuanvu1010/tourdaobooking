@@ -36,3 +36,14 @@ test("quyenHieuLuc: không xem như ai thì giữ nguyên (và là bản sao)", 
   assert.deepEqual(out, ["SUPER_ADMIN", "ADMIN"]);
   assert.notEqual(out, real);
 });
+
+test("daHetHan: ngày hỏng hoặc rỗng thì coi là đã hết hạn", () => {
+  const now = Date.parse("2026-11-07T01:00:00.000Z");
+  assert.equal(daHetHan("hỏng", now), true);
+  assert.equal(daHetHan("", now), true);
+});
+
+test("daHetHan: đúng 60'00\" thì chưa hết hạn", () => {
+  const t0 = Date.parse("2026-11-07T01:00:00.000Z");
+  assert.equal(daHetHan("2026-11-07T01:00:00.000Z", t0 + 60 * 60 * 1000), false);
+});
