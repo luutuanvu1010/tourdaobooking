@@ -24,7 +24,7 @@ import { accountingEnteredAmong, earliestLedgerMonth, orderOwners, orderStatuses
 import { daTraTheoThuCho } from "./rules";
 import { GIO_TOI_DA, kiemSoGio } from "../../shared/tra-sau";
 import { benCoLienQuanTraSau, cauTangPhienBan, hanMucHieuLuc, hanMucMoiBen, homQua, noCacBenDat, noCuaBenDat } from "./tra-sau";
-import { dongHanMucStatement, ghiGoiYStatement, goiYTheoCap, hanMucDangMo, mucToiDaQuanTri, themHanMucStatement, themMucToiDaStatement } from "./tra-sau-repo";
+import { dongHanMucKhiHetVaiStatement, dongHanMucStatement, ghiGoiYStatement, goiYTheoCap, hanMucDangMo, mucToiDaQuanTri, themHanMucStatement, themMucToiDaStatement } from "./tra-sau-repo";
 import { dongKenhThuStatement, themKenhThuStatement } from "./kenh-thu-repo";
 import { kenhThuDto, kenhThuHienTai as kenhThuDangBat } from "./kenh-thu";
 import { cocChoBienNhan, cocCuaDon, danhSachCoc, demCoc, doiChieuCoc, ghiChiHoan, ghiChuyen, ghiDuyet, ghiHoanNgoai, ghiHuyDuyet, xacNhanHoanNgoai } from "./coc";
@@ -41,7 +41,7 @@ const FORBIDDEN_VIEW = () => error(403, "forbidden", "Tài khoản này không �
 const DRAFT_NO_PAYMENT = () => error(409, "order_draft_no_payment", "Đơn chưa xác nhận, chưa ghi thu được.");
 const CANNOT_RECEIVE = () => error(403, "forbidden", "Tài khoản này không được ghi tiền cho đơn này.");
 const CANNOT_RECEIVE_CANCELLED = () => error(403, "forbidden", "Đơn đã huỷ — chỉ Kế toán hoặc Toàn quyền ghi được khoản thu (khách chuyển khoản muộn).");
-const CANNOT_HANDOVER = () => error(403, "forbidden", "Chỉ hướng dẫn viên đang phụ trách đơn, Quản trị hoặc Toàn quyền mới bấm được Xác nhận xong và đủ tiền.");
+const CANNOT_HANDOVER = () => error(403, "forbidden", "Chỉ hướng dẫn viên đang phụ trách đơn, Quản trị hoặc Toàn quyền mới bấm được Xác nhận khách đã trả đủ.");
 const CANNOT_COMPLETE = () => error(403, "forbidden", "Chỉ Kế toán hoặc Toàn quyền mới bấm được Hoàn thành.");
 const CANNOT_LEDGER = () => error(403, "forbidden", "Chỉ Kế toán hoặc Toàn quyền mới ghi được sổ công nợ.");
 /** Ruling R-P18 (người kiểm Task 6 I-2): tài khoản giữ quyền Đối tác (kể cả lai Kế toán + Đối tác) không xem / tạo / duyệt / từ chối / rút yêu cầu điều chỉnh công nợ —
@@ -808,4 +808,16 @@ export { cauDatCocKhiXacNhan, chanKhaiCocLai, tienDonVe } from "./dat-coc";
 // Trả sau theo hạn mức (ADR-0168): hàm công bố cho gốc lắp ráp tiêm vào `ctx` của orders / ve-dien-tu (orders không import billing).
 export { cauGacPhienBan, cauTangPhienBan, hanMucHieuLuc, kiemTraSau, noCuaBenDat, traSauCuaDon } from "./tra-sau";
 export { nhacHanTraSau, nhacHanTraSauAnToan } from "./tra-sau-nhac";
+/** ADR-0181 Đ2 (b): hồ sơ có dòng hạn mức ĐANG MỞ (không xét vai) — gốc lắp ráp tiêm cho đường gỡ vai (parties, accounts) để chỉ nối câu đóng khi cần. */
+export const coHanMucTraSauMo = (db: D1Database, partyId: string): Promise<boolean> => hanMucDangMo(db, partyId);
+/**
+ * ADR-0181 Đ2 (b): câu CHƯA CHẠY đóng hạn mức khi gỡ vai được hưởng cuối cùng — parties / accounts không ghi bảng bil_, nối vào CÙNG lô SAU câu đóng vai. Câu đóng tự kiểm
+ * «không còn vai được hưởng» (cùng định nghĩa trigger 0141) nên lô đóng vai thua hoặc còn vai khác thì không đổi gì; nhật ký `credit_limit_stopped` chỉ ghi khi câu đóng có đổi
+ * (người gỡ vai là người ghi); phiên bản bên đặt tăng để lệnh xác nhận đang chờ thua (khuôn route «ngừng hạn mức»). Hạn mức hết hiệu lực từ hôm nay (đóng tới hôm qua).
+ */
+export const cauDongHanMucKhiHetVai = (db: D1Database, partyId: string, at: string, by: string): D1PreparedStatement[] => [
+  dongHanMucKhiHetVaiStatement(db, partyId, homQua(vnToday(new Date(at))), at, by),
+  auditStatement(db, { staffId: by, action: "credit_limit_stopped", at, targetType: "ledger", targetId: partyId, detail: "đóng hạn mức vì gỡ vai trò đối tác cuối cùng" }, "changes() > 0"),
+  ...cauTangPhienBan(db, partyId, at),
+];
 export { congTyNhanTienKhach, kenhThuHienTai } from "./kenh-thu";

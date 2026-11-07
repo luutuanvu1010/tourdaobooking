@@ -3,6 +3,7 @@
 // danh sách tay. Mỗi route có MỘT dòng ở bảng CA (thân gửi để đi tới đúng bước kiểm — route kiểm thân trước thì thân phải hợp lệ); route mới không có dòng →
 // đỏ; miễn trừ có tên + lý do (khuôn `MIEN` của src/bang-tin-guard.test.ts), mục miễn trừ trỏ route không tồn tại → đỏ. Route của `billing` (Hoàn thành, sổ)
 // KHÔNG thuộc danh sách này (chạy được sau Đã giao). SQL chạy tay bị trigger 0044 chặn: src/migrations-orders-da-giao.test.ts (NT-D3).
+// Ngoại lệ CÓ TÊN duy nhất của orders: «Ân hạn» đơn Trả sau đã xong còn nợ (ADR-0181 Đ1) — danh sách `NGOAI_LE`, khác `MIEN` vì route có ghi đơn đã có.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { join } from "node:path";
@@ -70,9 +71,19 @@ const CA: Record<string, unknown> = {
   "POST /api/orders/:id/ban-hang/nhan": {},
   "POST /api/orders/:id/ban-hang/tu-choi": {},
   "PUT /api/orders/:id/ban-hang": { staffId: HDV },
-  // ADR-0173 Đ2: «Ân hạn» lùi hạn trả của đơn Trả sau — đơn Đã giao ⇒ 409 order_delivered TRƯỚC bước kiểm hình thức thanh toán.
-  "POST /api/tra-sau/don/:id/an-han": { hanMoi: "2026-12-01T00:00:00.000Z", lyDo: "khách xin thêm hai ngày" },
 };
+/**
+ * NGOẠI LỆ CÓ TÊN (khác `MIEN`: route này CÓ ghi một đơn đã có): route ghi được phép chạy sau «Khách đã trả đủ». Mỗi mục nêu ADR chủ duyệt và mã lỗi mong đợi trên đơn
+ * mẫu của bài dưới (đơn Trả trước đã Đã giao) — mã đó KHÔNG được là `order_delivered`, và đơn vẫn không đổi. Thêm mục mới phải có ADR; mục trỏ route không tồn tại → đỏ.
+ */
+const NGOAI_LE: { route: string; lyDo: string; than: unknown; maMongDoi: string }[] = [
+  {
+    route: "POST /api/tra-sau/don/:id/an-han",
+    lyDo: "ADR-0181 Đ1: «Ân hạn» đơn Trả sau đã xong còn nợ — chỉ ba cột hạn trả đổi (trigger 0146); đơn mẫu là Trả trước nên route dừng ở bước hình thức thanh toán",
+    than: { hanMoi: "2026-12-01T00:00:00.000Z", lyDo: "khách xin thêm hai ngày" },
+    maMongDoi: "khong_phai_don_tra_sau",
+  },
+];
 /** Route mà Toàn quyền KHÔNG qua được chốt riêng của route (không phải ô quyền) — gọi bằng người duy nhất qua được chốt; kỳ vọng vẫn là 409 order_delivered. */
 const NGUOI_GOI: Record<string, string> = { "POST /api/orders/:id/handler-refuse": HDV };
 const khoa = (r: { method: string; path: string }) => `${r.method} ${r.path}`;
@@ -82,7 +93,10 @@ test("NT-F7: danh sách route ghi của orders + dispatch (sinh từ module th�
   const that = ROUTES.map(khoa).sort();
   for (const m of MIEN) assert.ok(that.includes(m.route), `mục miễn trừ trỏ route không tồn tại: ${m.route}`);
   for (const k of Object.keys(CA)) assert.ok(that.includes(k), `dòng CA trỏ route không tồn tại: ${k}`);
-  const thieu = that.filter((k) => !(k in CA) && !MIEN.some((m) => m.route === k));
+  for (const n of NGOAI_LE) assert.ok(that.includes(n.route), `mục ngoại lệ trỏ route không tồn tại: ${n.route}`);
+  for (const n of NGOAI_LE) assert.ok(!(n.route in CA) && !MIEN.some((m) => m.route === n.route), `route vừa là ngoại lệ vừa ở CA/MIEN: ${n.route}`);
+  assert.deepEqual(NGOAI_LE.map((n) => n.route), ["POST /api/tra-sau/don/:id/an-han"], "ngoại lệ sau «Khách đã trả đủ» chỉ có đúng route «Ân hạn» (ADR-0181) — thêm mục phải có ADR chủ duyệt");
+  const thieu = that.filter((k) => !(k in CA) && !MIEN.some((m) => m.route === k) && !NGOAI_LE.some((n) => n.route === k));
   assert.deepEqual(thieu, [], "route ghi mới của orders/dispatch phải có dòng ở CA (quyết định: bị khoá sau Đã giao) hoặc miễn trừ có lý do");
 });
 
@@ -105,12 +119,17 @@ test("NT-F7: sau Đã giao, MỌI route ghi của orders + dispatch (Toàn quy�
     VALUES ('a-khoa', ?, 'HANDLE', ?, 'PENDING', ?, ?, NULL, ?, NULL)`).run(id, `pty-${HDV}`, AT, AT, AT);
   w.sqlite.prepare(`UPDATE orders SET delivered_at = ?, delivered_by = ?, updated_at = ? WHERE id = ?`).run(AT, SA, AT, id);
   const truoc = JSON.stringify(w.q("SELECT * FROM orders WHERE id = ?", id));
-  for (const r of ROUTES.filter((x) => !MIEN.some((m) => m.route === khoa(x)))) {
+  for (const n of NGOAI_LE) {
+    const [method, path] = n.route.split(" ") as [string, string];
+    const res = await w.call(method, path.replace(":id", id), { as: SA, body: n.than });
+    assert.equal(res.json?.error?.code, n.maMongDoi, `${n.route} (ngoại lệ ADR): ${res.text}`);
+  }
+  for (const r of ROUTES.filter((x) => !MIEN.some((m) => m.route === khoa(x)) && !NGOAI_LE.some((n) => n.route === khoa(x)))) {
     const path = r.path.replace(":id", id).replace(":legId", legId);
     const res = await w.call(r.method, path, { as: NGUOI_GOI[khoa(r)] ?? SA, body: CA[khoa(r)] });
     assert.equal(res.status, 409, `${khoa(r)} (${r.module}): ${res.text}`);
     assert.equal(res.json?.error?.code, "order_delivered", `${khoa(r)}: ${res.text}`);
-    assert.match(res.json.error.message, /^Đơn đã ở bước Xong và đủ tiền/, khoa(r));
+    assert.match(res.json.error.message, /^Đơn đã ở bước Khách đã trả đủ/, khoa(r));
   }
   assert.equal(JSON.stringify(w.q("SELECT * FROM orders WHERE id = ?", id)), truoc, "đơn không đổi");
   const chiTiet = await w.call("GET", `/api/orders/${id}`, { as: SA });
@@ -148,7 +167,7 @@ test("T-1 (kiểm độc lập): ĐUA — route đọc 'chưa Đã giao', ngư�
   assert.equal(daChen, true, "route đi qua db.batch (ca đua thật sự xảy ra)");
   assert.equal(res.status, 409, res.text);
   assert.equal(res.json?.error?.code, "order_delivered", res.text);
-  assert.match(res.json.error.message, /^Đơn đã ở bước Xong và đủ tiền/);
+  assert.match(res.json.error.message, /^Đơn đã ở bước Khách đã trả đủ/);
   assert.doesNotMatch(res.text, /SQLITE|D1_ERROR/);
   assert.equal(w.q("SELECT status FROM orders WHERE id = ?", id)[0].status, "confirmed", "lô huỷ: đơn không bị huỷ");
 });

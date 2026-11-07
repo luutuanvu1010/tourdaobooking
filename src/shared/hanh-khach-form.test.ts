@@ -25,7 +25,7 @@ test("lỗi dòng đúng chữ bản vẽ (1906–2026 khi năm nay 2026)", () =
 test("dòng đếm và câu nhắc: 3/4 thiếu; 5 người / 4 khách; trống", () => {
   const ba = [d("An", "1985"), d("Bình", "1988"), d("Khôi", "2015")];
   assert.deepEqual(tomTatKhach(ba, 4, HOM_NAY), { dem: "3/4", thieu: "Còn 1 khách chưa có tên — cần đủ trước khi xe chạy", qua: null });
-  assert.deepEqual(tomTatKhach([...ba, d("Hồng", "1952"), d("Nam", "1990")], 4, HOM_NAY), { dem: "5/4", thieu: null, qua: "Danh sách có 5 người, đơn có 4 khách" });
+  assert.deepEqual(tomTatKhach([...ba, d("Hồng", "1952"), d("Nam", "1990")], 4, HOM_NAY), { dem: "5/4", thieu: null, qua: "Đang có 5 tên cho 4 khách. Kiểm tra lại số khách hoặc xoá dòng nhập nhầm." });
   assert.deepEqual(tomTatKhach([], 4, HOM_NAY), { dem: "0/4", thieu: null, qua: null });
   assert.deepEqual(tomTatKhach([dongTrong("x")], 4, HOM_NAY), { dem: "0/4", thieu: null, qua: null }, "dòng mới trống không tính");
 });

@@ -1,4 +1,4 @@
-// Kiểm migration 0144 (ADR-0178 Phần A, Task A1): bảng công tắc chỉ-thêm, dấu `company_collects_snapshot` trên đơn khoá ở CSDL, khoá «Xong và đủ tiền» có cột mới.
+// Kiểm migration 0144 (ADR-0178 Phần A, Task A1): bảng công tắc chỉ-thêm, dấu `company_collects_snapshot` trên đơn khoá ở CSDL, khoá «Khách đã trả đủ» có cột mới.
 // Chèn/sửa THẲNG bằng SQL: chứng minh khoá nằm ở CSDL. Tên, SĐT là GIẢ.
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -44,7 +44,7 @@ test("dấu chụp: giá trị ngoài 0/1/NULL bị CHECK chặn", () => {
   assert.throws(() => don(db, "o2", 2), /CHECK/i);
 });
 
-test("sau «Xong và đủ tiền» cột dấu cũng khoá (trigger liệt kê cột mới)", () => {
+test("sau «Khách đã trả đủ» cột dấu cũng khoá (trigger liệt kê cột mới)", () => {
   const db = fresh();
   don(db, "od", 0);
   run(db, `INSERT INTO order_service (id, order_id, name, unit, pax_adult, depart_date) VALUES ('od-svc', 'od', 'Tour', 'perPax', 1, '2026-11-10')`);

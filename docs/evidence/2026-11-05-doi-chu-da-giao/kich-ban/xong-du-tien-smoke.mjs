@@ -41,28 +41,28 @@ try {
   for (const { ten, vp } of KHO) {
     const p = await env.as(ACCOUNTS.admin, `/order?id=${o.id}`, vp);
     await p.waitFor("!!document.querySelector('[data-action=\"da-giao\"]')", "nút chốt");
-    assert.equal(await p.ev("document.querySelector('[data-action=\"da-giao\"]').textContent"), "Xác nhận xong và đủ tiền");
+    assert.equal(await p.ev("document.querySelector('[data-action=\"da-giao\"]').textContent"), "Xác nhận khách đã trả đủ");
     assert.equal(await p.ev(nutTron), true, `nút không tràn ${ten}`);
     assert.equal(await p.ev(khongTran), true, `trang không tràn ${ten}`);
     assert.equal(await p.ev(chuCu), false, `không còn chữ cũ ${ten}`);
     await p.ev("document.querySelector('[data-action=\"da-giao\"]').scrollIntoView({ block: 'center' }); true");
     await p.shot(`${OUT}/1-nut-${ten}.png`);
     p.close();
-    ok(`Trang đơn ${ten}: nút Xác nhận xong và đủ tiền`);
+    ok(`Trang đơn ${ten}: nút Xác nhận khách đã trả đủ`);
   }
 
   // 2) Bấm nút thật: hộp hỏi đúng chữ, đơn khoá, huy hiệu tên đầy đủ
   const q = await env.as(ACCOUNTS.admin, `/order?id=${o.id}`);
   await q.waitFor("document.querySelector('[data-action=\"da-giao\"]') && !document.querySelector('[data-action=\"da-giao\"]').disabled", "nút bật");
   await q.ev("window.__hoi = ''; window.confirm = (c) => { window.__hoi = c; return true; }; document.querySelector('[data-action=\"da-giao\"]').click(); true");
-  await q.waitFor("[...document.querySelectorAll('.lock-note')].some((n) => /Đơn đã ở bước Xong và đủ tiền/.test(n.textContent))", "câu khoá");
-  assert.match(await q.ev("window.__hoi"), /^Xác nhận xong và đủ tiền\? /, "hộp hỏi đúng chữ, không lặp «Xác nhận»");
+  await q.waitFor("[...document.querySelectorAll('.lock-note')].some((n) => /Đơn đã ở bước Khách đã trả đủ/.test(n.textContent))", "câu khoá");
+  assert.match(await q.ev("window.__hoi"), /^Xác nhận khách đã trả đủ\? /, "hộp hỏi đúng chữ, không lặp «Xác nhận»");
   q.close();
 
   for (const { ten, vp } of KHO) {
     const p = await env.as(ACCOUNTS.admin, `/order?id=${o.id}`, vp);
     await p.waitFor("!!document.querySelector('.badge-delivered')", "huy hiệu");
-    assert.equal(await p.ev("document.querySelector('.badge-delivered').textContent"), "Xong và đủ tiền");
+    assert.equal(await p.ev("document.querySelector('.badge-delivered').textContent"), "Khách đã trả đủ");
     assert.equal(await p.ev("(() => { const b = document.querySelector('.badge-delivered'); return b.getBoundingClientRect().right <= innerWidth && b.getBoundingClientRect().height < 44; })()"), true, `huy hiệu đơn gọn ${ten}`);
     assert.equal(await p.ev(khongTran), true, `trang đơn không tràn ${ten}`);
     assert.equal(await p.ev(chuCu), false, `trang đơn không còn chữ cũ ${ten}`);
@@ -71,13 +71,13 @@ try {
 
     const l = await env.as(ACCOUNTS.admin, "/orders", vp);
     await l.waitFor("!!document.querySelector('.order-row-top .badge-delivered')", "thẻ trong danh sách");
-    assert.equal(await l.ev("document.querySelector('.order-row-top .badge-delivered').textContent"), "Xong và đủ tiền");
+    assert.equal(await l.ev("document.querySelector('.order-row-top .badge-delivered').textContent"), "Khách đã trả đủ");
     assert.equal(await l.ev("(() => { const b = document.querySelector('.order-row-top .badge-delivered'); const t = b.closest('.order-card').getBoundingClientRect(); const r = b.getBoundingClientRect(); return r.right <= t.right + 1 && r.height < 34 && b.scrollWidth <= b.clientWidth + 1; })()"), true, `huy hiệu trên thẻ gọn ${ten}`);
     assert.equal(await l.ev(khongTran), true, `danh sách không tràn ${ten}`);
     assert.equal(await l.ev(chuCu), false, `danh sách không còn chữ cũ ${ten}`);
     await l.shot(`${OUT}/3-danh-sach-${ten}.png`);
     l.close();
-    ok(`${ten}: trang đơn và thẻ danh sách ghi Xong và đủ tiền, không tràn`);
+    ok(`${ten}: trang đơn và thẻ danh sách ghi Khách đã trả đủ, không tràn`);
   }
 
   // 3) Ảnh gửi khách của đơn đã thu đủ: máy chủ gửi tên đầy đủ, ảnh vẽ được
@@ -98,9 +98,9 @@ try {
       await c.ev(`document.querySelectorAll('.scn-ben')[${i}].click(); true`);
       await c.waitFor("document.querySelectorAll('.scn-don').length > 0 || /không|Chưa/.test(document.body.innerText)", "chi tiết bên");
       await new Promise((k) => setTimeout(k, 700));
-      thay = await c.ev("[...document.querySelectorAll('.scn-don-tt')].some((x) => x.textContent === 'Xong và đủ tiền')");
+      thay = await c.ev("[...document.querySelectorAll('.scn-don-tt')].some((x) => x.textContent === 'Khách đã trả đủ')");
     }
-    assert.equal(thay, true, `Sổ công nợ có dòng Xong và đủ tiền ${ten}`);
+    assert.equal(thay, true, `Sổ công nợ có dòng Khách đã trả đủ ${ten}`);
     assert.equal(await c.ev(khongTran), true, `Sổ công nợ không tràn ${ten}`);
     assert.equal(await c.ev(chuCu), false, `Sổ công nợ không còn chữ cũ ${ten}`);
     await c.shot(`${OUT}/5-so-cong-no-${ten}.png`);
@@ -108,7 +108,7 @@ try {
 
     // 5) Việc của tôi của Hướng dẫn viên (thẻ điện thoại)
     const v = await env.as(HDV, "/account", vp);
-    await v.waitFor("[...document.querySelectorAll('.hdv-card .hdv-note')].some((n) => n.textContent === 'Xong và đủ tiền: đơn đã khoá.')", "câu khoá trên thẻ Việc của tôi", 15000);
+    await v.waitFor("[...document.querySelectorAll('.hdv-card .hdv-note')].some((n) => n.textContent === 'Khách đã trả đủ: đơn đã khoá.')", "câu khoá trên thẻ Việc của tôi", 15000);
     assert.equal(await v.ev(khongTran), true, `Việc của tôi không tràn ${ten}`);
     assert.equal(await v.ev(chuCu), false, `Việc của tôi không còn chữ cũ ${ten}`);
     await v.ev("document.querySelector('.hdv-card .hdv-note').scrollIntoView({ block: 'center' }); true");

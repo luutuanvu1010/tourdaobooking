@@ -58,11 +58,11 @@ test("0143: đơn Trả sau cũ có hạn ngày ⇒ hai mốc = 23:59:59.999 gi�
   assert.deepEqual({ ...get(db, "SELECT credit_due_at, credit_grace_until FROM v_ord_don_tra_sau WHERE id = 'o1'") }, { credit_due_at: "2026-11-10T16:59:59.999Z", credit_grace_until: "2026-11-10T16:59:59.999Z" });
 });
 
-test("0143 (kiểm độc lập 2026-11-06): đơn Trả sau cũ đã «Xong và đủ tiền» vẫn được điền hai mốc — migration không đỏ giữa chừng vì khoá đơn đã giao", () => {
+test("0143 (kiểm độc lập 2026-11-06): đơn Trả sau cũ đã tới bước «Khách đã trả đủ» vẫn được điền hai mốc — migration không đỏ giữa chừng vì khoá đơn đã giao", () => {
   const db = open(files.filter((f) => f < FILE));
   gieo(db);
   don(db, "o2");
-  // Đơn khớp tiền (một dòng 100.000) để xác nhận được, rồi đặt «Xong và đủ tiền» như đơn thật đã đi hết luồng trước 0143.
+  // Đơn khớp tiền (một dòng 100.000) để xác nhận được, rồi đặt «Khách đã trả đủ» như đơn thật đã đi hết luồng trước 0143.
   run(db, "INSERT INTO order_service (pickup_choice, id, order_id, name, unit, pax_adult, depart_date) VALUES ('KHONG_DON', 'svc-o2', 'o2', 'Vé', 'perPax', 1, '2026-11-09')");
   run(db, "INSERT INTO order_item (id, order_id, service_id, description, quantity, unit_price, line_total) VALUES ('it-o2', 'o2', 'svc-o2', 'Người lớn', 1, 100000, 100000)");
   run(db, "UPDATE orders SET credit_due_date = '2026-11-10', status = 'confirmed', confirmed_at = ? WHERE id = 'o2'", AT);

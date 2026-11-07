@@ -103,7 +103,7 @@ const FORBIDDEN_CHUP_BU = () => error(403, "forbidden", "Chỉ Kế toán, Quả
 const NOT_EDITABLE = () => error(409, "not_editable", "Chỉ sửa được đơn chưa xác nhận. Muốn đổi đơn đã xác nhận, hãy huỷ và tạo đơn mới.");
 const CANCELLED = () => error(409, "not_editable", "Đơn đã huỷ, không sửa được.");
 /** Sổ tiền lượt 1 (ADR-0025 đ5): đơn đã "Đã giao – đã thu đủ" bị khoá — mọi route ghi từ chối SỚM bằng câu tiếng Việt (trigger 0044 là lưới cuối). */
-const DA_GIAO = () => error(409, "order_delivered", "Đơn đã ở bước Xong và đủ tiền: không sửa, huỷ hay đổi người phụ trách được nữa. Sai sót thì Kế toán dùng “Sửa khoản thu đã ghi”.");
+const DA_GIAO = () => error(409, "order_delivered", "Đơn đã ở bước Khách đã trả đủ: không sửa, huỷ hay đổi người phụ trách được nữa. Sai sót thì Kế toán dùng “Sửa khoản thu đã ghi”.");
 /** ADR-0063 D1: văn phòng sửa số khách — ô `order.money.edit` KHÔNG ngữ cảnh "đang phụ trách" (Bán hàng chỉ đơn mình lập; HDV dùng "Việc của tôi"). */
 const MONEY_EDIT_FORBIDDEN = () => error(403, "forbidden", "Chỉ người lập đơn (Bán hàng), Kế toán, Quản trị hoặc Toàn quyền mới sửa được số khách của đơn này.");
 const MONEY_EDIT_DRAFT = () => error(409, "use_order_form", "Đơn nháp: sửa số khách ngay trong form đơn.");
@@ -1778,7 +1778,8 @@ export const ordersModule: AppModule = {
       const id = params.id!;
       const d = UUID_RE.test(id) ? await mocTraSauCuaDon(env.DB, id) : null;
       if (!d) return NOT_FOUND();
-      if (d.delivered_at) return DA_GIAO(); // NT-F7: đơn đã Xong và đủ tiền thì mọi lệnh ghi của orders bị chặn sớm
+      // ADR-0181 Đ1: NGOẠI LỆ CÓ TÊN duy nhất của NT-F7 — đơn đã tới bước «Khách đã trả đủ» mà còn nợ (đối tác chưa nộp, ADR-0177) vẫn «Ân hạn» được. KHÔNG chặn sớm theo
+      // `delivered_at` ở route này; chỉ ba cột hạn trả đổi, lớp CSDL (trigger `orders_delivered_lock`, migration 0146) cho đúng trường hợp đó. Bài: sau-da-giao.test.ts (NGOAI_LE).
       if (d.payment_term !== "CREDIT" || d.status !== "confirmed" || d.credit_due_at === null || d.credit_grace_until === null) {
         return error(409, "khong_phai_don_tra_sau", "Chỉ lùi được hạn trả của đơn trả sau đã xác nhận.");
       }
