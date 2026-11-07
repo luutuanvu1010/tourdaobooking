@@ -2,7 +2,19 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.72 ĐÃ LÊN PRODUCTION (đợt chung 2.70 Trả sau theo giờ ADR-0172, 0173; 2.71 công tắc «Khách của đối tác trả cho Công ty» ADR-0178 Phần A và Quản trị gán mọi vai trò trừ IT ADR-0176; 2.72 biên nhận mẫu HD-02-DT) — migration `0143`, `0144` — triển khai 2026-11-07 08:03 giờ Việt Nam
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.73 ĐÃ LÊN PRODUCTION (Trả sau: đơn «Khách đã trả đủ» còn nợ được nhắc và Ân hạn, gỡ vai đối tác cuối cùng thì đóng hạn mức — ADR-0181; ADR-0177 accepted; đổi tên bước «Xong và đủ tiền» thành «Khách đã trả đủ») — migration `0146` — triển khai 2026-11-07 19:38 giờ Việt Nam
+
+Ghi 7/11/2026 từ đầu ra `npm run trien-khai` do chủ chạy (phiên `claude/partner-type-ta-oracle-18-efd687` đọc ô Terminal) và lệnh chỉ đọc sau đó.
+- Commit `origin/main`: `41f63f04`. Worker Version ID: `9a8d9923-89df-41c3-98ab-286587cd4305`. GET công khai `/api/auth/config`: `version` 2.73. Cổng phiên bản trước và sau deploy: ĐẠT.
+- Kiểm đủ bộ (GitHub): XANH lúc 2026-11-07T10:47:37Z, lượt https://github.com/luutuanvu1010/tourdaobooking/actions/runs/42364860582. Có đổi quy trình kiểm; lý do của chủ: thêm kiểm `R-CRD-5` theo ADR-0181 đã duyệt (tệp `scripts/audit-checks.mjs`).
+- Migration đã áp: `0146_an_han_don_da_xong.sql` (tạo lại trigger `orders_delivered_lock`, thêm đúng một trường hợp được phép: ba cột hạn trả; không đổi dữ liệu).
+- Điểm khôi phục Time Travel trước khi áp: `000024ea-00000000-0000511c-03b6dd3231ff6be884e60ad4cc794948`.
+- `audit-invariants --db remote`: mọi bất biến đạt, ba cảnh báo (`R-ORD-9` một đơn, `R-CTL-1` 9 dịch vụ chưa phân nhóm, `R-VC-14` 7 xe thiếu giấy tờ là điều kiện xuất bến — cùng ba cảnh báo như 2.72). Bất biến mới `R-CRD-5` đạt.
+- **Điểm quay lại:** Worker `a93afb65` (2.72). Mã 2.72 chạy được trên trigger mới vì trigger chỉ nới thêm một trường hợp.
+- **Chưa kiểm:** iPhone thật; chưa thao tác ghi thử trên production; chưa chụp màn có chữ «Khách đã trả đủ».
+- **Kế tiếp:** lời cấm «chưa cấp hạn mức Trả sau thật» nay **chủ có thể gỡ** (hai phát hiện TRUNG-1, TRUNG-2 của báo cáo kiểm 7/11 đã sửa ở bản này) — chủ quyết. ADR-0182, ADR-0183 (công nợ đại lý theo giá đại lý, đặt cọc thu hộ) đang proposed, chờ chủ duyệt. Hạn `HC-5.11` ở `docs/quyen-hoan.json` là 2026-11-15.
+
+## (Cũ) TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.72 ĐÃ LÊN PRODUCTION (đợt chung 2.70 Trả sau theo giờ ADR-0172, 0173; 2.71 công tắc «Khách của đối tác trả cho Công ty» ADR-0178 Phần A và Quản trị gán mọi vai trò trừ IT ADR-0176; 2.72 biên nhận mẫu HD-02-DT) — migration `0143`, `0144` — triển khai 2026-11-07 08:03 giờ Việt Nam
 
 Ghi 7/11/2026 08:50 từ lệnh chỉ đọc của phiên chuẩn bị (nhánh `claude/cool-cray-c2ef4e`). Chủ tự chạy `npm run trien-khai`; **phiên ghi chép không đọc được đầu ra của lần chạy đó**, nên kết quả e2e lúc phát hành và dấu Time Travel lấy lúc đó không ghi được ở đây.
 - Commit `origin/main` lúc phát hành: `f776fda9`. Worker Version ID: `a93afb65-782a-4342-a497-73d98a5f50ba` (tạo 2026-11-07 01:03 UTC, `wrangler deployments list`). GET công khai `/api/auth/config`: `version` 2.72. `node scripts/kiem-phien-ban.mjs --sau-deploy`: ĐẠT.
