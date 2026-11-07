@@ -508,3 +508,23 @@ test("nối dây ADR-0154 Đ3.3: trang đơn không còn chép tay câu thiếu 
   assert.match(od, /khoiHanhKhachDon\([^;]*manifestExempt\)/, "khối Hành khách nhận dấu miễn của đơn");
   assert.match(od, /canhBaoXacNhan\([^;]*manifestExempt\)/, "cảnh báo lúc xác nhận cũng theo dấu của đơn");
 });
+
+test("ADR-0184: Cần xử lý — nút «Cho chạy dù thiếu giấy tờ» chỉ khi chuyến bị giữ vì giấy tờ xe (Quản trị hoặc Toàn quyền) và người xem có ô trip.override", () => {
+  const L = lich({
+    chuyen: [
+      chuyen({ lyDoGiu: [ly("DIEU_KIEN_GIAY_TO_XE", "Xe thiếu Đăng ký xe", "QUAN_TRI")] }),
+      chuyen({ id: "t2", ma: "CX-3009-08", lyDoGiu: [ly("DIEU_KIEN_GIAY_TO_XE_TOAN_QUYEN", "Xe thiếu Bảo hiểm", "TOAN_QUYEN")] }),
+      chuyen({ id: "t3", ma: "CX-3009-09", lyDoGiu: [ly("THIEU_TEN", "Thiếu tên")] }),
+    ],
+  });
+  const nut = (co: Parameters<typeof viecCanXuLy>[1]) => viecCanXuLy(L, co).map((x) => x.hanhDong.filter((h) => h.nhan === "Cho chạy dù thiếu giấy tờ").map((h) => (h as { href: string }).href));
+  assert.deepEqual(nut({ dieuPhoi: true, khanCap: false, quanLyXe: true, choChayThieu: true }), [["/chuyen?id=t1&mo=cho-chay-thieu"], ["/chuyen?id=t2&mo=cho-chay-thieu"], []]);
+  assert.deepEqual(nut({ dieuPhoi: true, khanCap: true, quanLyXe: true }), [[], [], []], "thiếu ô trip.override (Bán hàng) → không nút");
+  assert.deepEqual(nut({ dieuPhoi: true, khanCap: true, quanLyXe: true, choChayThieu: false }), [[], [], []]);
+});
+
+test("ADR-0184: dongNhatKy — «Cho chạy dù thiếu giấy tờ» đếm LOẠI giấy, không đếm khách", () => {
+  const n = (o: Partial<NhatKyChuyenDto>): NhatKyChuyenDto => ({ id: "e", loai: "DOCS_WAIVED", nhan: "Cho chạy dù thiếu giấy tờ", gioXayRa: g("06:10"), gioGhiNhan: g("06:10"), vanPhongKhai: false, nguoiBam: "Hoa", may: false, soNguoi: 2, phaLe: null, chuyenKhac: false, ...o });
+  assert.equal(dongNhatKy(n({}), NGAY).noiDung, "Cho chạy dù thiếu giấy tờ · 2 loại giấy tờ");
+  assert.equal(dongNhatKy(n({ soNguoi: null }), NGAY).noiDung, "Cho chạy dù thiếu giấy tờ");
+});

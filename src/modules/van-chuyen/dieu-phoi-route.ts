@@ -5,7 +5,8 @@ import type { ChangChoChuyen, ChangLichChung, LienHeTaiXe } from "../orders";
 import { sdtChinhCuaHoSo } from "../parties";
 import type { ChuyenChiTietResponse, CuocChiTietResponse, CuocCuaToiItemDto, GoiBaoChangDto, LenhChuyenLoiBody } from "../../shared/contracts";
 import { docGoiBao, goiBaoChang, nguoiBamGoiBao, type QuyenGoiBao } from "./goi-bao-lenh";
-import { kiemXuatBen, type KiemXuatBenVao } from "../../shared/dieu-phoi-kiem";
+import { giayToXeConThieu, kiemXuatBen, type KiemXuatBenVao } from "../../shared/dieu-phoi-kiem";
+import { laGiayToChiToanQuyen } from "../../shared/cho-chay-thieu-giay";
 import type { KetQuaKiem, LoaiSuKienChuyen, MaLuatPhaLe, NhacXuatBen, TrangThaiChuyen } from "../../shared/dieu-phoi-kieu";
 import { dungLichChung } from "../../shared/dieu-phoi-lich-chung";
 import { error, json } from "../../shared/http";
@@ -16,17 +17,18 @@ import { daoMoiSauDoi, diemDonChuaToiCuaDiemTra, sapDonTruocTra } from "../../sh
 import { msToVnLocal, ngayNgan } from "../../shared/vn-date";
 import { findRoute } from "./tien-xe-repo";
 import {
-  allocsByTrips, banChupCuoi, eventByRequest, eventsByTrips, legFlags, stopsByTrips, tenNguoiDiKem, type AllocRow, type StopRow, type SuKienYeuCauRow, type TripRow,
+  allocsByTrips, banChupCuoi, choChayThieuDaDung, eventByRequest, eventsByTrips, legFlags, stopsByTrips, tenNguoiDiKem, type AllocRow, type StopRow, type SuKienYeuCauRow, type TripRow, type XeDieuPhoiRow,
 } from "./chuyen-repo";
 import type { CauCoNhan, DiemMoi, SuKienCuaLo } from "./dieu-phoi";
 import {
   banChupDto, canhBaoDto, chuoiDichCuaDiem, chuyenTomTat, diemChuyenDto, gioVn, lyDoDangDung, lyDoGiuCuaChuyen, lyDoGiuDto, nhatKyChuyenDto, suatChuyenDto, taiXeChon,
   xeChon,
 } from "./dieu-phoi-dto";
-import { boSungXe, chinhSachVao, choPhepCuaChuyen, docChung, docNguCanh, type DuLieuChung, type NenChuyen, type NguCanhChuyen } from "./dieu-phoi-doc";
+import { boSungXe, chinhSachVao, choPhepCuaChuyen, docChung, docNguCanh, xeVao, type DuLieuChung, type NenChuyen, type NguCanhChuyen } from "./dieu-phoi-doc";
 import { gioSomNhatKhaiDto, ketThucTruoc } from "./dieu-phoi-gio";
 import { cuocChiTietDto, cuocCuaToiItem, type KhungTaiXe } from "./tai-xe-dto";
 import { loiRangBuocChuyen } from "./rules";
+import { listVehicleDocumentTypes } from "./repository";
 import { tuChoiCuaChuyen } from "./han-tu-choi-repo";
 
 // ---- Lỗi ----------------------------------------------------------------------------------------------------------------------------------------------------
@@ -389,6 +391,7 @@ export async function chiTietChuyen(
   if (kemTen) for (const ch of hk) for (const n of ch.nguoi) ten.set(n.personKey, { fullName: n.fullName, birthYear: n.birthYear });
   const lyDoNhan = new Map(c.lyDo.map((r) => [r.code, r.label]));
   const xeRow = c.xe.find((x) => x.id === t.vehicle_id);
+  const daChay = t.status === "PLANNED" ? new Map<string, { ten: string }[]>() : await choChayThieuDaDung(db, [t.id]); // ADR-0184
   // Đợt 4 G3: TÊN tuyến (kể cả đã ngưng dùng) để form sửa chuyến điền sẵn — chỉ tên, không giá.
   const tuyenRow = t.route_code ? await findRoute(db, t.route_code) : null;
   return {
@@ -396,6 +399,7 @@ export async function chiTietChuyen(
       ...chuyenTomTat(t, {
         xe: xeRow, chung: c, stops: nen.stops, allocs: nen.allocs, events: nen.events, lyDoGiu, nhan, bayGioMs,
         legDonHuy: new Set(nc.changNgoai.filter((x) => x.lyDo === "DON_DA_HUY").map((x) => x.legId)), // ADR-0104 Đ2.7 — cùng nguồn lý do giữ DON_DA_HUY
+        choChayThieuDaChay: daChay,
       }),
       nghiPhaLe: t.rest_override_reason_code !== null,
       lyDoHuy: t.cancel_reason_code ? (lyDoNhan.get(t.cancel_reason_code) ?? null) : null,
@@ -423,7 +427,17 @@ export async function chiTietChuyen(
       luc: gioVn(Date.parse(r.valid_to_at)),
       ...(xemLyDoTuChoi ? { lyDo: r.reason_label ?? "Lý do khác" } : {}),
     })),
+    giayToThieu: await giayToThieuDto(db, t, xeRow, c),
   };
+}
+
+/** ADR-0184: loại giấy tờ XE đang thiếu của chuyến CHƯA chạy (tên loại từ danh mục; không số giấy) — cho hộp «Cho chạy dù thiếu giấy tờ». Khác PLANNED: rỗng. */
+async function giayToThieuDto(db: D1Database, t: TripRow, xe: XeDieuPhoiRow | undefined, c: DuLieuChung): Promise<ChuyenChiTietResponse["giayToThieu"]> {
+  if (t.status !== "PLANNED" || !xe) return [];
+  const thieu = giayToXeConThieu(xeVao(xe, c.giayToXe), c.dieuKien, t.planned_end_ms);
+  if (thieu.length === 0) return [];
+  const ten = new Map((await listVehicleDocumentTypes(db)).map((r) => [r.code, r.name]));
+  return thieu.map((g) => ({ documentTypeCode: g.documentTypeCode, ten: ten.get(g.documentTypeCode) ?? g.documentTypeCode, expiryDate: g.expiryDate, chiToanQuyen: laGiayToChiToanQuyen(g.documentTypeCode) }));
 }
 
 /**

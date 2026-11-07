@@ -56,7 +56,7 @@ const nutMoi = byId<HTMLAnchorElement>("dp-moi");
 
 const staff = await initShell();
 // ADR-0104 Đ1 mục 9: khoá theo mốc chỉ hỏi ô điều chỉnh khẩn cấp (vượt mốc luôn thuộc lớp này); lớp phá lệ do 409 `lop` quyết.
-const co = { dieuPhoi: can(staff, "trip.dispatch"), khanCap: can(staff, "trip.urgent_adjust"), quanLyXe: can(staff, "vehicle.manage") };
+const co = { dieuPhoi: can(staff, "trip.dispatch"), khanCap: can(staff, "trip.urgent_adjust"), quanLyXe: can(staff, "vehicle.manage"), choChayThieu: can(staff, "trip.override") };
 const homNay = vnToday(new Date());
 const tu = new URLSearchParams(location.search).get("ngay");
 let ngay = tu && isISODate(tu) ? tu : homNay;

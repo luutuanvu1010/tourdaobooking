@@ -345,6 +345,31 @@ export interface ChoPhepThieuRow { id: string; trip_id: string; vehicle_id: stri
 export async function choPhepThieuChuaDung(db: D1Database): Promise<ChoPhepThieuRow[]> {
   return (await db.prepare(CHO_PHEP_THIEU_CHUA_DUNG).all<ChoPhepThieuRow>()).results;
 }
+/**
+ * ADR-0184: loại giấy đã được cho chạy dù thiếu của chuyến ĐÃ chạy / kết thúc = dòng con `DIEU_KIEN` có `waiver_id` trong bản chụp ĐẠT MỚI NHẤT của mỗi chuyến
+ * (nhận nhiều chuyến một lần — danh sách điều phối, Trang chủ, cuốc tài xế). Mỗi (chuyến, loại) một dòng; chỉ mã + tên loại, không số giấy / ghi chú / lý do.
+ */
+const CHO_CHAY_THIEU_DA_DUNG = defineSql(
+  "van-chuyen",
+  "cho_chay_thieu_da_dung",
+  `SELECT c.trip_id, i.document_type_code, t.name AS type_name
+   FROM vc_trip_departure_check_item i
+   JOIN vc_trip_departure_check c ON c.id = i.check_id
+   LEFT JOIN vc_vehicle_document_type t ON t.code = i.document_type_code
+   WHERE i.waiver_id IS NOT NULL AND c.ket_qua = 'DAT' AND c.trip_id IN (SELECT value FROM json_each(?1))
+     AND c.id = (SELECT c2.id FROM vc_trip_departure_check c2 WHERE c2.trip_id = c.trip_id AND c2.ket_qua = 'DAT' ORDER BY c2.checked_at DESC, c2.id DESC LIMIT 1)
+   GROUP BY c.trip_id, i.document_type_code
+   ORDER BY c.trip_id, i.document_type_code`,
+);
+export interface ChoChayThieuDaDungRow { trip_id: string; document_type_code: string; type_name: string | null }
+/** `tripId` → danh sách `{ ten }` (tên loại giấy; thiếu tên danh mục thì dùng mã). Chuyến không có dòng nào: không có khoá. */
+export async function choChayThieuDaDung(db: D1Database, tripIds: readonly string[]): Promise<Map<string, { ten: string }[]>> {
+  const out = new Map<string, { ten: string }[]>();
+  if (tripIds.length === 0) return out;
+  const rows = (await db.prepare(CHO_CHAY_THIEU_DA_DUNG).bind(JSON.stringify(tripIds)).all<ChoChayThieuDaDungRow>()).results;
+  for (const r of rows) out.set(r.trip_id, [...(out.get(r.trip_id) ?? []), { ten: r.type_name ?? r.document_type_code }]);
+  return out;
+}
 /** Lý do ĐANG DÙNG (mã + nhãn + nhóm) — đi kèm phản hồi lịch / chi tiết chuyến (I5). */
 const LY_DO_DANG_DUNG = defineSql("van-chuyen", "ly_do_dang_dung", "SELECT code, reason_group, label FROM vc_reason WHERE active = 1 ORDER BY reason_group, sort_order, code");
 export async function lyDoDangDung(db: D1Database): Promise<{ code: string; reason_group: string; label: string }[]> {

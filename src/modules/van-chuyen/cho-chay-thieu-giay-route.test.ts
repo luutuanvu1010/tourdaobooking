@@ -331,3 +331,38 @@ test("hộp thông báo thật: tài xế đang được giao chuyến nhận đ
     tat();
   }
 });
+
+test("ADR-0184 việc 4 — DTO màn: chi tiết chuyến có giayToThieu (không số giấy) + choChayThieu; trước lệnh nhãn rỗng, sau lệnh có nhãn (chi tiết VÀ lịch chung); sau xuất bến nhãn còn, giayToThieu rỗng", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    themDieuKienDangKy(w);
+    const { t } = await chuyenXe(w, ["TPL_INSURANCE"]); // thiếu Kiểm định (chỉ Toàn quyền) + Đăng ký xe
+    const truoc = await chiTiet(w, t.id, ADM);
+    assert.deepEqual(truoc.giayToThieu.map((g: any) => [g.documentTypeCode, g.ten, g.expiryDate, g.chiToanQuyen]), [["INSPECTION", "Kiểm định", null, true], ["REGISTRATION", "Đăng ký xe", null, false]]);
+    assert.deepEqual(truoc.chuyen.choChayThieu, []);
+    assert.ok(truoc.lyDo.some((l: any) => l.nhom === "CHO_CHAY_THIEU_GIAY"), "danh sách lý do kèm nhóm mới cho hộp chọn");
+    assert.doesNotMatch(JSON.stringify(truoc), /KHUNGV|chassis/i);
+    const r = await choChay(w, t.id, ADM, { loaiGiayTo: ["REGISTRATION"], lyDo: "THIEU_GIAY_GIA_HAN" });
+    assert.ok(r.status === 200 || r.status === 201, r.text);
+    assert.deepEqual(r.json.chuyen.choChayThieu, [{ ten: "Đăng ký xe" }], "phản hồi lệnh đã có nhãn");
+    const sau = await chiTiet(w, t.id, ADM);
+    assert.deepEqual(sau.chuyen.choChayThieu, [{ ten: "Đăng ký xe" }]);
+    assert.deepEqual(sau.giayToThieu.map((g: any) => g.documentTypeCode), ["INSPECTION", "REGISTRATION"], "loại đã cho phép vẫn là «thiếu» tới khi giấy được bổ sung");
+    const lich = (await w.call("GET", `/api/van-chuyen/lich?ngay=${NGAY}`, { as: ADM })).json;
+    assert.deepEqual(lich.chuyen.find((c: any) => c.id === t.id).choChayThieu, [{ ten: "Đăng ký xe" }], "dòng chuyến của lịch điều phối");
+    // Toàn quyền cho nốt Kiểm định → xe chạy được; sau xuất bến nhãn lấy từ bản chụp ĐẠT, giayToThieu rỗng.
+    const r2 = await choChay(w, t.id, SUP, { loaiGiayTo: ["INSPECTION"] });
+    assert.ok(r2.status === 200 || r2.status === 201, r2.text);
+    denGio("12:40");
+    assert.equal((await tienDo(w, "tai-xe", t.id, "xuat-ben")).status, 200);
+    const chay = await chiTiet(w, t.id, ADM);
+    assert.equal(chay.chuyen.trangThai, "RUNNING");
+    assert.deepEqual(chay.giayToThieu, []);
+    assert.deepEqual(chay.chuyen.choChayThieu.map((x: any) => x.ten).sort(), ["Kiểm định", "Đăng ký xe"].sort());
+    const lich2 = (await w.call("GET", `/api/van-chuyen/lich?ngay=${NGAY}`, { as: ADM })).json;
+    assert.equal(lich2.chuyen.find((c: any) => c.id === t.id).choChayThieu.length, 2);
+  } finally {
+    tat();
+  }
+});

@@ -16,7 +16,7 @@ import { addDays, msToVnLocal, vnLocalToMs } from "../../shared/vn-date";
 import { khungBanXeTrongKhoang } from "./khung-ban-repo";
 import { khungTaiXeTrongKhoang } from "./khung-ban-tai-xe-repo";
 import type { LichChungResponse } from "../../shared/contracts";
-import { allocsByTrips, allocsOpenByLegs, eventsByTrips, legFlags, stopsByTrips, tenDiem, tripsTouching, type TripRow } from "./chuyen-repo";
+import { allocsByTrips, allocsOpenByLegs, choChayThieuDaDung, eventsByTrips, legFlags, stopsByTrips, tenDiem, tripsTouching, type TripRow } from "./chuyen-repo";
 import {
   loBaoHuy, loBoSungTen, loCapNhatDiem, loCapNhatKhach, loDoi, loHuy, loRut, loSuaChuyen, loThemDiemDangChay, loXep, type CamKetLo, type CauCoNhan, type DiemMoi, type PhaLe, type SuatMoi,
 } from "./dieu-phoi";
@@ -756,6 +756,7 @@ export async function dungLichNgay(
   });
   const nhan = await nhanNhanVien([...new Set(events.flatMap((e) => (e.created_by && e.occurred_source === "VAN_PHONG_KHAI" ? [e.created_by] : [])))]);
   const legDonHuy = new Set(flags.filter((f) => f.is_cancelled === 1).map((f) => f.id));
+  const choChayThieuDaChay = await choChayThieuDaDung(db, trips.filter((t) => t.status !== "PLANNED").map((t) => t.id)); // ADR-0184: nhãn vàng của chuyến đã chạy
   const tripTheoId = new Map([...trips, ...khacNgoai].map((t) => [t.id, t]));
   const moTatCa = [...allocs, ...moCuaChang.filter((a) => !ids.includes(a.trip_id))];
   return {
@@ -766,6 +767,7 @@ export async function dungLichNgay(
     chuyen: trips.map((t) => chuyenTomTat(t, {
       xe: chung.xe.find((x) => x.id === t.vehicle_id), chung, stops, allocs, events, lyDoGiu: ra.chuyen.find((c) => c.id === t.id)?.lyDoGiu ?? [], nhan, bayGioMs,
       legDonHuy, // chặng có suất mà rơi khỏi lịch (lịch chỉ chứa đơn đã xác nhận, chưa huỷ) — cờ của view công bố
+      choChayThieuDaChay,
     })),
     soNhap: ra.soNhap,
     nhapChoDatGap: xemNhapChoDatGap ? ra.nhapChoDatGap.map((n) => ({ legId: n.legId, orderId: n.orderId, maDon: n.orderCode, ngayDon: n.ngayDon ?? ngay, gioDon: n.gioDon })) : [],

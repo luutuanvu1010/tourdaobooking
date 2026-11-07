@@ -7,6 +7,7 @@
 import { nhanThoiLuong } from "./chinh-sach-hien-thi.ts";
 import type { CanhBaoLichDto, ChangLichDto, ChuyenTomTatDto, DiemChuyenDto, GioHenDto, GioVnDto, GoiBaoChangDto, LichChungResponse, LyDoGiuDto, MucNhacGoiDto, NhatKyChuyenDto } from "./contracts.ts";
 import { AI_XU_LY_GIO_HEN_DOI, NHAN_GIO_HEN_DOI, moTaDoiGio } from "./goi-bao.ts";
+import { NUT_CHO_CHAY_THIEU_GIAY } from "./cho-chay-thieu-giay.ts";
 import { NUT_CAP_NHAT_KHACH, giuCapNhatKhach } from "./ly-do-giu.ts";
 import type { LopVuot } from "./moc-toi-thieu.ts";
 import { can, type PermissionHolder } from "./permissions.ts";
@@ -183,7 +184,7 @@ const ICON_CANH_BAO: Readonly<Record<string, ViecCanXuLy["bieuTuong"]>> = {
  * nhãn NHAN_CANH_BAO_LICH, KHÔNG nút (không "Gọi tài xế" — H7; không "Đã gọi báo" — Q2 / ADR-0051 làm sau; Q-GB-1 = b); chặng quá mốc chưa đặt gấp: Bán hàng
  * thấy dòng khoá (đặt gấp thì không cần phá lệ — 2.1; không có nút "Phá lệ" riêng — 2.13); (3) đơn nháp chờ duyệt đặt gấp — không tên người lập (H8).
  */
-export function viecCanXuLy(l: LichChungResponse, co: { dieuPhoi: boolean; khanCap: boolean; quanLyXe: boolean }, nhacGoi: readonly MucNhacGoiDto[] = []): ViecCanXuLy[] {
+export function viecCanXuLy(l: LichChungResponse, co: { dieuPhoi: boolean; khanCap: boolean; quanLyXe: boolean; choChayThieu?: boolean }, nhacGoi: readonly MucNhacGoiDto[] = []): ViecCanXuLy[] {
   const out: ViecCanXuLy[] = [];
   const chuyenTheoId = new Map(l.chuyen.map((c) => [c.id, c]));
   const changTheoId = new Map(l.chang.map((c) => [c.legId, c]));
@@ -195,6 +196,8 @@ export function viecCanXuLy(l: LichChungResponse, co: { dieuPhoi: boolean; khanC
     if (ma.has("NOI_HEN_DOI") && co.dieuPhoi) hanhDong.push({ nhan: "Cập nhật điểm theo đơn", kieu: "cap-nhat-diem", tripId: c.id });
     if (giuCapNhatKhach(c.lyDoGiu).length > 0 && co.dieuPhoi) hanhDong.push({ nhan: NUT_CAP_NHAT_KHACH, kieu: "cap-nhat-khach", tripId: c.id }); // ADR-0104 Đ2.11
     if ((ma.has("DIEU_KIEN_GIAY_TO_XE") || ma.has("DIEU_KIEN_GIAY_TO_XE_TOAN_QUYEN")) && co.quanLyXe) hanhDong.push({ nhan: "Mở giấy tờ xe", kieu: "link", href: `/xe-chi-tiet?id=${encodeURIComponent(c.xe.id)}` });
+    // ADR-0184: nút mở hộp «Cho chạy dù thiếu giấy tờ» ở trang chuyến (ô `trip.override` — Quản trị / Toàn quyền; máy chủ kiểm lại từng loại giấy).
+    if ((ma.has("DIEU_KIEN_GIAY_TO_XE") || ma.has("DIEU_KIEN_GIAY_TO_XE_TOAN_QUYEN")) && co.choChayThieu === true) hanhDong.push({ nhan: NUT_CHO_CHAY_THIEU_GIAY, kieu: "link", href: `/chuyen?id=${encodeURIComponent(c.id)}&mo=cho-chay-thieu` });
     if (ma.has("CHUA_CO_TAI_XE") && co.dieuPhoi) hanhDong.push({ nhan: "Chọn tài xế", kieu: "link", href: `/chuyen-sua?id=${encodeURIComponent(c.id)}` });
     out.push({
       loai: k.kieu === "nodrv" ? "Chưa có tài xế" : "Chuyến bị giữ",
@@ -381,7 +384,9 @@ export function dongNhatKy(n: NhatKyChuyenDto, ngayXem: string): { gio: string; 
   const laMay = n.may || n.nguoiBam === null;
   // ADR-0104 Đ1 mục 5: vượt MỐC luôn là điều chỉnh khẩn cấp; vượt khoảng nghỉ / cam kết hiện "phá lệ" (sự kiện không lưu lớp — lệch đã biết Đ1.5).
   const vuot = n.phaLe ? `${n.phaLe.luat === "MOC_TOI_THIEU" ? "điều chỉnh khẩn cấp" : "phá lệ"}: ${n.phaLe.lyDoNhan}` : null;
-  const noiDung = [n.nhan, n.soNguoi !== null ? `${n.soNguoi} khách` : null, vuot].filter((x) => x !== null).join(" · ");
+  // ADR-0184: với «Cho chạy dù thiếu giấy tờ» cột `count` là SỐ LOẠI giấy (không phải số khách).
+  const dem = n.soNguoi === null ? null : n.loai === "DOCS_WAIVED" ? `${n.soNguoi} loại giấy tờ` : `${n.soNguoi} khách`;
+  const noiDung = [n.nhan, dem, vuot].filter((x) => x !== null).join(" · ");
   return { gio, ai: laMay ? "máy" : maskLongDigits(n.nguoiBam!), laMay, noiDung, vanPhongKhai: n.vanPhongKhai };
 }
 

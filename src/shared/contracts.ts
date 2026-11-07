@@ -1725,6 +1725,11 @@ export interface ChuyenTomTatDto {
    * `legFlags`). Chuyến không chạy → false. Chỉ cờ — không mã đơn, không tên.
    */
   coKhachDonHuy: boolean;
+  /**
+   * ADR-0184: nhãn vàng «Xe thiếu <loại> — đã cho chạy» — chuyến CHƯA chạy: các loại xe hiện tại còn thiếu thật VÀ đang có dòng cho phép áp; chuyến đã chạy /
+   * kết thúc: các loại có dòng con `waiver_id` trong bản chụp ĐẠT mới nhất. Chỉ tên loại giấy — không số giấy, không ghi chú, không lý do. Chỉ DTO văn phòng.
+   */
+  choChayThieu: { ten: string }[];
 }
 export interface ChangLichDto {
   legId: string;
@@ -1877,6 +1882,11 @@ export interface ChuyenChiTietResponse {
    * không lý do). Không SĐT, không id hồ sơ.
    */
   tuChoi: TuChoiChuyenDto[];
+  /**
+   * ADR-0184: loại giấy tờ XE đang thiếu của chuyến CHƯA chạy (cùng định nghĩa `giayToXeConThieu` với cổng xuất bến); chuyến khác trạng thái: rỗng. Cho hộp «Cho chạy
+   * dù thiếu giấy tờ». `chiToanQuyen` = Kiểm định / Bảo hiểm (chỉ Toàn quyền cho chạy được). `expiryDate` null = xe chưa có giấy. KHÔNG số giấy tờ.
+   */
+  giayToThieu: { documentTypeCode: string; ten: string; expiryDate: string | null; chiToanQuyen: boolean }[];
   /**
    * CHỈ ở phản hồi lệnh xếp (`POST …/chuyen/:id/phan-bo`) khi có: cảnh báo sớm CHUA_CO_NOI_TRA / THIEU_TEN của chặng vừa xếp (cùng luật cổng xuất bến —
    * `lyDoNoiTra` / `lyDoThieuTen` ở src/shared/dieu-phoi-kiem.ts). Chỉ nhắc — lệnh đã chạy. Mã đơn + số tên thiếu, không tên khách.
