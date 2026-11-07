@@ -1,4 +1,4 @@
-// E2E ADR-0090 — tài khoản có quyền tiền chỉ Toàn quyền chạm (kịch bản gốc QT04 + biến thể + GD-P-01 của đánh giá UX 1/10, ngoài kho:
+// E2E ADR-0090 (đ1(ii) sửa bởi ADR-0176: Quản trị gán / gỡ vai Kế toán được) — đặt lại PIN tài khoản có quyền tiền chỉ Toàn quyền (kịch bản gốc QT04 + biến thể + GD-P-01 của đánh giá UX 1/10, ngoài kho:
 // ~/Documents/danh-gia-ux/2026-10-01/kich-ban/vai-qt.mjs:405). Trên API THẬT (wrangler dev + D1 tạm). Chạy qua tests/e2e/run.mjs.
 // Không đổi tài khoản dùng chung: mọi ca bị chặn không ghi gì (khẳng định lại); ca gán vai dùng tài khoản Bán hàng tạo mới.
 import assert from "node:assert/strict";
@@ -26,19 +26,31 @@ assert.equal(await coCua(ADMIN), false, "cờ datLaiPinDuoc của Quản trị �
 assert.equal(await coCua(SUPER), true, "cờ datLaiPinDuoc của Toàn quyền ở dòng Kế toán");
 console.log("✓ QT04: Quản trị đặt lại PIN Kế toán → 403 (câu đ1), không ghi gì; cờ theo dòng khớp");
 
-// ---- QT04 biến thể: Quản trị (và Nhân sự) gán vai Kế toán / cộng tay Kế toán cho một Bán hàng → 403.
+// ---- QT04 biến thể: Nhân sự gán vai Kế toán / cộng tay Kế toán cho một Bán hàng → 403. Quản trị thì được (ADR-0176 sửa đ1(ii)),
+// nhưng đặt lại PIN tài khoản vừa giữ tiền vẫn 403 (ADR-0176 Đ3, ADR-0090 đ1(i)).
 r = await call(HR, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Bán Hàng Quyền Tiền", phone: rnd(), roles: ["SALES_STAFF"] });
 assert.equal(r.status, 201, JSON.stringify(r.body));
 const bh = r.body.staff;
-for (const [ten, cookie] of [["Quản trị", ADMIN], ["Nhân sự", HR]]) {
-  for (const body of [{ roles: ["SALES_STAFF", "ACCOUNTANT"] }, { roles: ["SALES_STAFF"], adds: ["ACCOUNTING"], reason: "kiêm nhiệm" }]) {
-    r = await call(cookie, "PUT", `/api/staff/${bh.id}/roles`, body);
-    assert.equal(r.status, 403, `${ten} ${JSON.stringify(body)}: ${JSON.stringify(r.body)}`);
-    assert.equal(r.body.error.message, TIEN);
-  }
+const GAN_TIEN = [{ roles: ["SALES_STAFF", "ACCOUNTANT"] }, { roles: ["SALES_STAFF"], adds: ["ACCOUNTING"], reason: "kiêm nhiệm" }];
+for (const body of GAN_TIEN) {
+  r = await call(HR, "PUT", `/api/staff/${bh.id}/roles`, body);
+  assert.equal(r.status, 403, `Nhân sự ${JSON.stringify(body)}: ${JSON.stringify(r.body)}`);
+  assert.equal(r.body.error.message, TIEN);
 }
 assert.deepEqual((await call(SUPER, "GET", `/api/staff/${bh.id}/roles`)).body, { roles: ["SALES_STAFF"], adds: [], removes: [], reason: null }, "vai không đổi");
-console.log("✓ QT04 biến thể: Quản trị / Nhân sự gán vai hoặc cộng tay Kế toán → 403");
+for (const body of GAN_TIEN) {
+  r = await call(ADMIN, "PUT", `/api/staff/${bh.id}/roles`, body);
+  assert.equal(r.status, 200, `Quản trị ${JSON.stringify(body)}: ${JSON.stringify(r.body)}`);
+  assert.deepEqual(r.body.staff.permissions, ["SALES", "ACCOUNTING"]);
+  r = await call(ADMIN, "POST", `/api/staff/${bh.id}/reset-pin`, {});
+  assert.equal(r.status, 403, `Quản trị đặt lại PIN tài khoản vừa giữ tiền: ${JSON.stringify(r.body)}`);
+  assert.equal(r.body.error.message, TIEN);
+  assert.equal(r.body.pin, undefined, "không trả PIN");
+}
+r = await call(ADMIN, "PUT", `/api/staff/${bh.id}/roles`, { roles: ["SALES_STAFF"] });
+assert.equal(r.status, 200, `Quản trị gỡ quyền tiền: ${JSON.stringify(r.body)}`);
+assert.deepEqual(r.body.staff.permissions, ["SALES"]);
+console.log("✓ QT04 biến thể: Nhân sự gán vai hoặc cộng tay Kế toán → 403; Quản trị gán, gỡ được (ADR-0176) nhưng không đặt lại PIN tài khoản giữ tiền");
 
 // ---- GD-P-01: Nhân sự tạo tài khoản mang vai Kế toán / quyền Kế toán (cả hai đường) → 403, không tạo.
 for (const body of [
