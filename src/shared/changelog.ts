@@ -21,8 +21,9 @@ export const CHANGELOG: readonly ReleaseNote[] = [
     version: "2.73",
     date: "2026-11-07",
     items: [
-      { kind: "sua", text: "Đơn trả sau đã «Xong và đủ tiền» mà đối tác chưa nộp tiền về công ty: hộp thư vẫn nhắc trước hạn trả 6 giờ và khi quá hạn, như đơn chưa xong." },
-      { kind: "sua", text: "Quản trị, Toàn quyền bấm «Ân hạn» được cả trên đơn trả sau đã «Xong và đủ tiền» còn nợ. Ngoài hạn trả, đơn đó vẫn khoá như cũ." },
+      { kind: "doi", text: "Bước «Xong và đủ tiền» đổi tên thành «Khách đã trả đủ», nút ghi «Xác nhận khách đã trả đủ», cho khỏi hiểu nhầm là tiền đã về công ty. Cách làm việc không đổi." },
+      { kind: "sua", text: "Đơn trả sau đã tới bước «Khách đã trả đủ» mà đối tác chưa nộp tiền về công ty: hộp thư vẫn nhắc trước hạn trả 6 giờ và khi quá hạn, như đơn chưa xong." },
+      { kind: "sua", text: "Quản trị, Toàn quyền bấm «Ân hạn» được cả trên đơn trả sau đã tới bước «Khách đã trả đủ» mà còn nợ. Ngoài hạn trả, đơn đó vẫn khoá như cũ." },
       { kind: "doi", text: "Gỡ vai trò đối tác cuối cùng của một hồ sơ (ở Danh bạ hay ở Tài khoản) thì hạn mức trả sau của hồ sơ đó đóng luôn. Gán lại vai trò thì phải cấp lại hạn mức." },
     ],
   },

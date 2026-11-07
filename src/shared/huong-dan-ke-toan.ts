@@ -70,7 +70,7 @@ Thanh tab dưới đáy có [[Trang chủ]], [[Đơn hàng]] và [[Tôi]]. Các 
     },
     {
       tieuDe: "Sửa số khách đơn đã xác nhận",
-      noiDung: `Bạn sửa được số khách của mọi đơn **Đã xác nhận** chưa **Xong và đủ tiền**, kể cả sau ngày đi:
+      noiDung: `Bạn sửa được số khách của mọi đơn **Đã xác nhận** chưa tới bước **Khách đã trả đủ**, kể cả sau ngày đi:
 
 1. Trên trang đơn, bấm [[Sửa số khách dịch vụ]].
 2. Bấm **+** và **−** để đổi số khách từng loại của từng dịch vụ. Dịch vụ nhập tay chỉ để xem, không sửa ở đây.
@@ -79,7 +79,7 @@ Thanh tab dưới đáy có [[Trang chủ]], [[Đơn hàng]] và [[Tôi]]. Các 
 
 Bớt khách sau khi khách đã trả: khối **Thanh toán** hiện **Khách trả dư** — hoàn cho khách bằng [[Ghi hoàn cho khách]] như thường lệ.
 
-Nếu giảm giá lớn hơn tiền dịch vụ còn lại, vẫn lưu và tính **Tổng cộng** bằng 0; phần giảm giá vượt không dùng tới. Khối **Thanh toán** hiện câu cảnh báo, và toàn bộ tiền khách đã trả hiện ở **Khách trả dư**. Hoàn bằng [[Ghi hoàn cho khách]] như thường lệ; hoàn xong thì đơn không còn bị giữ ở bước **Xong và đủ tiền** vì khách trả dư.
+Nếu giảm giá lớn hơn tiền dịch vụ còn lại, vẫn lưu và tính **Tổng cộng** bằng 0; phần giảm giá vượt không dùng tới. Khối **Thanh toán** hiện câu cảnh báo, và toàn bộ tiền khách đã trả hiện ở **Khách trả dư**. Hoàn bằng [[Ghi hoàn cho khách]] như thường lệ; hoàn xong thì đơn không còn bị giữ ở bước **Khách đã trả đủ** vì khách trả dư.
 
 Bớt khách mà đơn có giảm giá: khối **Thanh toán** hiện thêm một câu màu đỏ nhắc bạn xem lại khuyến mại. Chỉ nhắc, không đổi số tiền và không chặn; câu nhắc còn cho tới khi số khách đủ lại như lúc xác nhận.
 
@@ -152,7 +152,7 @@ Cấp riêng: khối **Người có cấp riêng**, bấm [[Chọn cấp riêng 
     },
     {
       tieuDe: "Chụp bù, ghi mức tay cho một đơn",
-      noiDung: `Đơn đặt qua đại lý có khối **Phần đối tác**: người hưởng hoa hồng, và với từng dịch vụ là mức, hoa hồng, giá đại lý. Đơn thiếu mức thì chưa **xác nhận xong và đủ tiền** được.
+      noiDung: `Đơn đặt qua đại lý có khối **Phần đối tác**: người hưởng hoa hồng, và với từng dịch vụ là mức, hoa hồng, giá đại lý. Đơn thiếu mức thì chưa bấm được **Xác nhận khách đã trả đủ**.
 
 **Đơn xác nhận trước khi có bảng mức** (chưa có bản chụp mức):
 1. Bấm [[Chụp bù mức]] (điện thoại: trang [[Tôi]]) để xem các đơn chờ, hoặc mở đơn rồi bấm [[Chụp bù]] ở khối **Phần đối tác**.
@@ -160,7 +160,7 @@ Cấp riêng: khối **Người có cấp riêng**, bấm [[Chọn cấp riêng 
 
 **Đơn đã có bản chụp mà một dòng thiếu mức** (kể cả dịch vụ nhập tay): cài mức mới không gỡ được. Ở dòng đó bấm [[Ghi mức tay]], chọn mức và người bán, ghi lý do (ít nhất 10 ký tự), bấm [[Ghi mức]].
 
-> Đơn **Xong và đủ tiền** thì không chụp bù, không ghi tay được.`,
+> Đơn đã tới bước **Khách đã trả đủ** thì không chụp bù, không ghi tay được.`,
     },
     {
       tieuDe: "Khoá sổ tháng",
@@ -201,21 +201,21 @@ Bạn không sửa được. Ghi lại mã đơn rồi báo người lập hoặ
 
 ### Khách đã trả thêm tiền, muốn ghi vào đơn
 
-Trong khối **Thanh toán**, bấm [[Ghi khoản thu]]: số tiền, hình thức, người thu tiền; riêng Kế toán chọn được **Ngày phát sinh**. Bấm [[Ghi]]. Sau khi đơn **Xong và đủ tiền** thì không ghi thêm khoản thu được.
+Trong khối **Thanh toán**, bấm [[Ghi khoản thu]]: số tiền, hình thức, người thu tiền; riêng Kế toán chọn được **Ngày phát sinh**. Bấm [[Ghi]]. Sau bước **Khách đã trả đủ** thì không ghi thêm khoản thu được.
 
 ### Đối chiếu tiền trên trang đơn
 
 Trên trang đơn:
 - Khoản thu người khác khai là tiền vào công ty: đối chiếu tài khoản, bấm [[Xác nhận đã nhận]] rồi [[Công ty đã nhận]].
 - Khách trả cho đại lý hoặc tại quầy nhà cung cấp (người khác khai): hỏi bên kia, bấm [[Bên kia đã nhận]]. Bên kia báo không nhận thì [[Huỷ khoản thu]].
-- Sai số tiền, hình thức hay người thu tiền: [[Sửa khoản thu đã ghi]] → [[Lưu khoản thu đúng]] (đơn đã xong và đủ tiền chỉ sửa được cách này).
-- Ghi nhầm hẳn, đơn chưa tới bước Xong và đủ tiền: [[Huỷ khoản thu]], ghi lý do → [[Huỷ khoản này]]. Sổ giữ dòng cũ, thêm dòng trừ.
+- Sai số tiền, hình thức hay người thu tiền: [[Sửa khoản thu đã ghi]] → [[Lưu khoản thu đúng]] (đơn đã tới bước Khách đã trả đủ chỉ sửa được cách này).
+- Ghi nhầm hẳn, đơn chưa tới bước Khách đã trả đủ: [[Huỷ khoản thu]], ghi lý do → [[Huỷ khoản này]]. Sổ giữ dòng cũ, thêm dòng trừ.
 - Khối **Kế toán** ghi ai chưa nộp tiền về công ty: nhận tiền rồi bấm [[Đã nộp về công ty]].
 - Khách trả dư: bấm [[Ghi hoàn cho khách]].
 
 ### Hoàn thành đơn
 
-Khi đơn **Xong và đủ tiền** và mọi người đã nộp tiền về công ty, bấm [[Hoàn thành]] rồi đồng ý. **Không mở lại được.** Nút mờ thì dòng **Đang giữ đơn** ghi lý do.
+Khi đơn đã qua bước **Khách đã trả đủ** và mọi người đã nộp tiền về công ty, bấm [[Hoàn thành]] rồi đồng ý. **Không mở lại được.** Nút mờ thì dòng **Đang giữ đơn** ghi lý do.
 
 ### Đánh dấu đã nhập phần mềm kế toán
 
@@ -230,7 +230,7 @@ Nền tảng **không xuất hoá đơn**. Khi đã nhập đơn vào phần m�
 - Nhận phụ trách, giao đơn cho người khác: không. Nhờ nhân viên bán hàng hoặc Quản trị.
 - Tự duyệt yêu cầu điều chỉnh công nợ của chính mình: không. Nhờ Quản trị, Toàn quyền hoặc một Kế toán khác.
 - Xếp xe, tạo chuyến, bấm tiến độ chuyến: không, bạn chỉ xem. Nhờ nhân viên bán hàng hoặc Quản trị.
-- Bấm **Xác nhận xong và đủ tiền**: không. Hướng dẫn viên đang phụ trách đơn hoặc Quản trị bấm.
+- Bấm **Xác nhận khách đã trả đủ**: không. Hướng dẫn viên đang phụ trách đơn hoặc Quản trị bấm.
 - Sửa bảng giá dịch vụ, quản lý tài khoản nhân viên: không. Nhờ Quản trị.`,
     },
     {

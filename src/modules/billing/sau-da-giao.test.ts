@@ -73,7 +73,7 @@ const CA: Record<string, unknown> = {
   "PUT /api/orders/:id/ban-hang": { staffId: HDV },
 };
 /**
- * NGOẠI LỆ CÓ TÊN (khác `MIEN`: route này CÓ ghi một đơn đã có): route ghi được phép chạy sau «Xong và đủ tiền». Mỗi mục nêu ADR chủ duyệt và mã lỗi mong đợi trên đơn
+ * NGOẠI LỆ CÓ TÊN (khác `MIEN`: route này CÓ ghi một đơn đã có): route ghi được phép chạy sau «Khách đã trả đủ». Mỗi mục nêu ADR chủ duyệt và mã lỗi mong đợi trên đơn
  * mẫu của bài dưới (đơn Trả trước đã Đã giao) — mã đó KHÔNG được là `order_delivered`, và đơn vẫn không đổi. Thêm mục mới phải có ADR; mục trỏ route không tồn tại → đỏ.
  */
 const NGOAI_LE: { route: string; lyDo: string; than: unknown; maMongDoi: string }[] = [
@@ -95,7 +95,7 @@ test("NT-F7: danh sách route ghi của orders + dispatch (sinh từ module th�
   for (const k of Object.keys(CA)) assert.ok(that.includes(k), `dòng CA trỏ route không tồn tại: ${k}`);
   for (const n of NGOAI_LE) assert.ok(that.includes(n.route), `mục ngoại lệ trỏ route không tồn tại: ${n.route}`);
   for (const n of NGOAI_LE) assert.ok(!(n.route in CA) && !MIEN.some((m) => m.route === n.route), `route vừa là ngoại lệ vừa ở CA/MIEN: ${n.route}`);
-  assert.deepEqual(NGOAI_LE.map((n) => n.route), ["POST /api/tra-sau/don/:id/an-han"], "ngoại lệ sau «Xong và đủ tiền» chỉ có đúng route «Ân hạn» (ADR-0181) — thêm mục phải có ADR chủ duyệt");
+  assert.deepEqual(NGOAI_LE.map((n) => n.route), ["POST /api/tra-sau/don/:id/an-han"], "ngoại lệ sau «Khách đã trả đủ» chỉ có đúng route «Ân hạn» (ADR-0181) — thêm mục phải có ADR chủ duyệt");
   const thieu = that.filter((k) => !(k in CA) && !MIEN.some((m) => m.route === k) && !NGOAI_LE.some((n) => n.route === k));
   assert.deepEqual(thieu, [], "route ghi mới của orders/dispatch phải có dòng ở CA (quyết định: bị khoá sau Đã giao) hoặc miễn trừ có lý do");
 });
@@ -129,7 +129,7 @@ test("NT-F7: sau Đã giao, MỌI route ghi của orders + dispatch (Toàn quy�
     const res = await w.call(r.method, path, { as: NGUOI_GOI[khoa(r)] ?? SA, body: CA[khoa(r)] });
     assert.equal(res.status, 409, `${khoa(r)} (${r.module}): ${res.text}`);
     assert.equal(res.json?.error?.code, "order_delivered", `${khoa(r)}: ${res.text}`);
-    assert.match(res.json.error.message, /^Đơn đã ở bước Xong và đủ tiền/, khoa(r));
+    assert.match(res.json.error.message, /^Đơn đã ở bước Khách đã trả đủ/, khoa(r));
   }
   assert.equal(JSON.stringify(w.q("SELECT * FROM orders WHERE id = ?", id)), truoc, "đơn không đổi");
   const chiTiet = await w.call("GET", `/api/orders/${id}`, { as: SA });
@@ -167,7 +167,7 @@ test("T-1 (kiểm độc lập): ĐUA — route đọc 'chưa Đã giao', ngư�
   assert.equal(daChen, true, "route đi qua db.batch (ca đua thật sự xảy ra)");
   assert.equal(res.status, 409, res.text);
   assert.equal(res.json?.error?.code, "order_delivered", res.text);
-  assert.match(res.json.error.message, /^Đơn đã ở bước Xong và đủ tiền/);
+  assert.match(res.json.error.message, /^Đơn đã ở bước Khách đã trả đủ/);
   assert.doesNotMatch(res.text, /SQLITE|D1_ERROR/);
   assert.equal(w.q("SELECT status FROM orders WHERE id = ?", id)[0].status, "confirmed", "lô huỷ: đơn không bị huỷ");
 });

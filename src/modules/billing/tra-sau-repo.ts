@@ -163,7 +163,7 @@ const NHAC_GHI = defineSql(
 export const ghiNhacStatement = (db: D1Database, v: { orderId: string; loai: string; moc: string; partyId: string; at: string }) =>
   db.prepare(NHAC_GHI).bind(v.orderId, v.loai, v.moc, v.partyId, v.at);
 /**
- * Đơn Trả sau đã xác nhận còn mốc hạn trả (ứng viên nhắc) — lọc nợ ở JS bằng cùng hàm tính nợ. GỒM CẢ đơn đã «Xong và đủ tiền» (ADR-0181 Đ1): đối tác ghi đủ tiền mà chưa nộp
+ * Đơn Trả sau đã xác nhận còn mốc hạn trả (ứng viên nhắc) — lọc nợ ở JS bằng cùng hàm tính nợ. GỒM CẢ đơn đã tới bước «Khách đã trả đủ» (ADR-0181 Đ1): đối tác ghi đủ tiền mà chưa nộp
  * thì đơn vẫn còn nợ (ADR-0177) và vẫn được nhắc; ADR-0173 Đ3 mục 2 chỉ bỏ đơn ĐÃ TRẢ ĐỦ. Danh sách lớn dần theo mọi đơn Trả sau đã xong (ADR-0181 Hệ quả, xem lại khi lớn).
  */
 const DON_CO_HAN = defineSql(

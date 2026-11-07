@@ -1,5 +1,5 @@
-// ADR-0181 Đ1: đơn Trả sau đã «Xong và đủ tiền» mà còn nợ (đối tác đã ghi đủ tiền nhưng chưa nộp về công ty — ADR-0177) vẫn được NHẮC hạn trả và được «Ân hạn».
-// Đơn dựng bằng đường thật: đối tác gửi đơn Trả sau, ghi «Tôi thu» đủ, có mức hoa hồng, ngày đi hôm nay, Toàn quyền bấm «Xong và đủ tiền». Khung thử thật
+// ADR-0181 Đ1: đơn Trả sau đã tới bước «Khách đã trả đủ» mà còn nợ (đối tác đã ghi đủ tiền nhưng chưa nộp về công ty — ADR-0177) vẫn được NHẮC hạn trả và được «Ân hạn».
+// Đơn dựng bằng đường thật: đối tác gửi đơn Trả sau, ghi «Tôi thu» đủ, có mức hoa hồng, ngày đi hôm nay, Toàn quyền bấm «Xác nhận khách đã trả đủ». Khung thử thật
 // (tests/audit/xac-nhan-khung.mjs). Tên người, SĐT là GIẢ.
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -22,16 +22,16 @@ function dung(): W {
 }
 async function chuanBi(w: W): Promise<void> {
   assert.equal((await w.call("POST", "/api/tra-sau/han-muc", { as: SUP, body: { partyId: BEN, hanMuc: 10_000_000, gioTra: 168, gioAnHan: 12, lyDo: "thử" } })).status, 201);
-  // Bên đặt mang vai được hưởng nên «Xong và đủ tiền» đòi có mức hoa hồng (bản chụp lúc xác nhận) — đặt TRƯỚC khi xác nhận.
+  // Bên đặt mang vai được hưởng nên «Khách đã trả đủ» đòi có mức hoa hồng (bản chụp lúc xác nhận) — đặt TRƯỚC khi xác nhận.
   const m = await w.call("POST", "/api/pricing/hoa-hong", { as: ACC, body: { doiTuong: { loai: "VAI", code: "TRAVEL_AGENCY" }, phamVi: "ALL", kieu: "PER_PAX", moiKhach: 50_000, tuNgay: "2026-01-01" } });
   assert.equal(m.status, 201, m.text);
 }
 const xongVaDuTien = async (w: W, id: string): Promise<void> => {
-  w.sqlite.prepare("UPDATE order_service SET depart_date = ? WHERE order_id = ?").run(inDays(0), id); // «Xong và đủ tiền» chỉ từ ngày đi
+  w.sqlite.prepare("UPDATE order_service SET depart_date = ? WHERE order_id = ?").run(inDays(0), id); // «Khách đã trả đủ» chỉ từ ngày đi
   const g = await w.call("POST", `/api/orders/${id}/delivered`, { as: SUP, body: {} });
   assert.equal(g.status, 200, g.text);
 };
-/** Đối tác gửi đơn Trả sau, ghi «Tôi thu» đủ (tiền ở tay đối tác), rồi «Xong và đủ tiền» ⇒ đơn đã xong còn nợ (phần đối tác giữ trừ hoa hồng của họ — ADR-0177). */
+/** Đối tác gửi đơn Trả sau, ghi «Tôi thu» đủ (tiền ở tay đối tác), rồi «Khách đã trả đủ» ⇒ đơn đã xong còn nợ (phần đối tác giữ trừ hoa hồng của họ — ADR-0177). */
 async function donDaXongConNo(w: W): Promise<string> {
   const r = await w.call("POST", "/api/orders", { as: DT, body: { customerName: "Khách Thử", customerPhone: "0912345678", services: [svc("ZB1", inDays(3))], paymentTerm: "CREDIT" } });
   assert.equal(r.status, 201, r.text);
@@ -41,7 +41,7 @@ async function donDaXongConNo(w: W): Promise<string> {
   await xongVaDuTien(w, id);
   return id;
 }
-/** Văn phòng lập đơn Trả sau cho đối tác, Kế toán ghi Công ty thu đủ, rồi «Xong và đủ tiền» ⇒ đơn đã xong HẾT nợ. */
+/** Văn phòng lập đơn Trả sau cho đối tác, Kế toán ghi Công ty thu đủ, rồi «Khách đã trả đủ» ⇒ đơn đã xong HẾT nợ. */
 async function donDaXongHetNo(w: W): Promise<string> {
   const r = await w.call("POST", "/api/orders", { as: A, body: { customerName: "Khách Hai", customerPhone: "0912345679", bookerPartyId: BEN, paymentTerm: "CREDIT", services: [svc("ZB1", inDays(3))] } });
   assert.equal(r.status, 201, r.text);
@@ -60,12 +60,12 @@ const nhacHanTraSau = (db: unknown, bayGio: string): Promise<number> => app.nhac
 const tinNhac = async (w: W, as: string): Promise<string[]> =>
   ((await w.call("GET", "/api/thong-bao?ngan=cua-toi", { as })).json.tin as { cau: string }[]).map((t) => t.cau).filter((c) => /trả sau/.test(c));
 
-test("ADR-0181 tiêu chí 1: đơn đã Xong và đủ tiền còn nợ — trước hạn 6 giờ đúng một tin, lúc quá hạn đúng một tin (Kế toán cũng nhận); đơn đã xong hết nợ không có tin", async () => {
+test("ADR-0181 tiêu chí 1: đơn đã tới bước Khách đã trả đủ còn nợ — trước hạn 6 giờ đúng một tin, lúc quá hạn đúng một tin (Kế toán cũng nhận); đơn đã xong hết nợ không có tin", async () => {
   const w = dung();
   await chuanBi(w);
   const id = await donDaXongConNo(w);
   const het = await donDaXongHetNo(w);
-  assert.ok(moc(w, id).d && moc(w, het).d, "cả hai đơn đã ở bước Xong và đủ tiền");
+  assert.ok(moc(w, id).d && moc(w, het).d, "cả hai đơn đã ở bước Khách đã trả đủ");
   assert.deepEqual(await noDon(w), [[id, TONG - HOA_HONG]], "đơn đã xong còn nợ phần đối tác giữ trừ hoa hồng; đơn kia hết nợ");
   const han = moc(w, id).h;
   assert.ok(moc(w, het).h >= han, "hạn của đơn hết nợ không sớm hơn — nếu bị nhắc thì lượt dưới đây đếm 2");
@@ -83,7 +83,7 @@ test("ADR-0181 tiêu chí 1: đơn đã Xong và đủ tiền còn nợ — trư
   assert.deepEqual(w.q("SELECT order_id FROM bil_credit_reminder").map((r: { order_id: string }) => r.order_id), [id, id], "sổ nhắc chỉ có đơn còn nợ");
 });
 
-test("ADR-0181 tiêu chí 2: «Ân hạn» đơn đã Xong và đủ tiền còn nợ — 200, nhật ký có mốc cũ, mốc mới, lý do; giữ số giờ ân hạn; mọi cột khác giữ nguyên; màn đơn có nút cho Quản trị", async () => {
+test("ADR-0181 tiêu chí 2: «Ân hạn» đơn đã tới bước Khách đã trả đủ còn nợ — 200, nhật ký có mốc cũ, mốc mới, lý do; giữ số giờ ân hạn; mọi cột khác giữ nguyên; màn đơn có nút cho Quản trị", async () => {
   const w = dung();
   await chuanBi(w);
   const id = await donDaXongConNo(w);
@@ -112,7 +112,7 @@ test("ADR-0181 tiêu chí 2: «Ân hạn» đơn đã Xong và đủ tiền còn
   for (const as of [ACC, A, DT]) assert.equal((await anHan(w, as, id, { hanMoi: congGio(moi.h, 24), lyDo: "x" })).status, 403, as);
 });
 
-test("ADR-0181 tiêu chí 2: «Ân hạn» đơn đã Xong và đủ tiền hết nợ ⇒ 409 da_het_no, hạn không đổi", async () => {
+test("ADR-0181 tiêu chí 2: «Ân hạn» đơn đã tới bước Khách đã trả đủ hết nợ ⇒ 409 da_het_no, hạn không đổi", async () => {
   const w = dung();
   await chuanBi(w);
   const het = await donDaXongHetNo(w);
@@ -122,7 +122,7 @@ test("ADR-0181 tiêu chí 2: «Ân hạn» đơn đã Xong và đủ tiền hế
   assert.deepEqual(moc(w, het), cu);
 });
 
-test("ADR-0181 tiêu chí 2 (lớp CSDL, khung thử thật): đơn đã Xong và đủ tiền — đổi cột khác bị chặn; đổi hạn trả kèm một cột khác bị chặn; lùi hạn về trước bị chặn", async () => {
+test("ADR-0181 tiêu chí 2 (lớp CSDL, khung thử thật): đơn đã tới bước Khách đã trả đủ — đổi cột khác bị chặn; đổi hạn trả kèm một cột khác bị chặn; lùi hạn về trước bị chặn", async () => {
   const w = dung();
   await chuanBi(w);
   const id = await donDaXongConNo(w);
