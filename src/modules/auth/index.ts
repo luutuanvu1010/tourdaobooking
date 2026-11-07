@@ -12,7 +12,7 @@ import type {
 } from "../../shared/contracts";
 import { error, getCookie, json, readJson } from "../../shared/http";
 import { dbNgoaiVe } from "../../shared/lan-gui-boc";
-import { route, type AppModule } from "../../shared/router";
+import { route, type AppModule, type Ctx } from "../../shared/router";
 import { newTrustedToken, sha256Hex } from "./mfa-crypto";
 import {
   MFA_LIMIT, TRUSTED_COOKIE, TRUSTED_TTL_SECONDS, checkRecoveryCode, clearMfaAttemptsStatement, lockedMfaStaffIds, mfaKey, mfaKeyReady, trustedCookie, unlockLogin, unlockLoginStatements,
@@ -66,6 +66,8 @@ export { lockedMfaStaffIds, factorKindsByStaff, unlockLogin, unlockLoginStatemen
 export { PASSKEY_ERRORS, checkPasskeyAssertion, clearChallengeCookie, issuePasskeyChallenge, limitChallenge, passkeyRp, readPasskeyChallenge };
 export { verifyRegistration } from "./webauthn";
 export { deviceLabel } from "./device-label";
+// ADR-0180: câu đặt/gỡ vai đang đóng của phiên (chưa chạy) — route đóng vai ở module accounts gộp với dòng nhật ký trong một lô (auth không import audit).
+export { setActingRoleStatement } from "./repository";
 
 /** Độ dài tối thiểu của SESSION_SECRET (khoá ký phiên). */
 export const MIN_SECRET_LENGTH = 32;
@@ -497,6 +499,25 @@ async function congBatLai(request: Request, env: Env, nowMs: number): Promise<{ 
   return { profile };
 }
 
+/**
+ * Thân `MeResponse` của người đang gọi (dùng chung cho `GET /api/auth/me` và hai route đóng vai ở module accounts — ADR-0180). `staff` truyền vào để route vừa đổi vai
+ * dựng phản hồi theo bộ quyền MỚI mà không đọc lại phiên. `actingRole` (cùng giá trị với `staff.actingRole`) chỉ có khi đang đóng vai.
+ * `benDatCuaToi` chỉ để HIỂN THỊ (máy chủ vẫn ép bên đặt lúc lập đơn) mà /me đi qua MỌI trang: câu đọc hỏng (kể cả ném ngay trước khi có lời hứa) thì trả null và log một dòng
+ * (chỉ tên sự kiện + câu lỗi — không SĐT, không tên) thay vì kéo cả /me thành 500. Chỉ bọc đúng câu này; việc đọc trạng thái bảo trì giữ nguyên (hỏng thì vẫn là lỗi thật).
+ */
+export async function dungMeResponse({ env, baoTri, benDatCuaToi }: Pick<Ctx<"staff">, "env" | "baoTri" | "benDatCuaToi">, staff: StaffProfile): Promise<Response> {
+  const docBenDat = async (): Promise<Awaited<ReturnType<typeof benDatCuaToi>>> => {
+    try {
+      return await benDatCuaToi();
+    } catch (e) {
+      console.error(JSON.stringify({ level: "error", event: "ben_dat_cua_toi_failed", message: e instanceof Error ? e.message : String(e) }));
+      return null;
+    }
+  };
+  const [trangThaiBaoTri, benDat] = await Promise.all([(baoTri as MaintenanceState | undefined) ?? getMaintenanceState(env.DB), docBenDat()]);
+  return json({ staff, maintenance: toStatus(trangThaiBaoTri), benDatCuaToi: benDat, ...(staff.actingRole ? { actingRole: staff.actingRole } : {}) } satisfies MeResponse);
+}
+
 export const authModule: AppModule = {
   name: "auth",
   routes: [
@@ -757,19 +778,8 @@ export const authModule: AppModule = {
 
     // `maintenance` ở đây chỉ tới được Toàn quyền khi đang bảo trì (router chặn người khác trước — ADR-0071) — giao diện dùng để hiện dải "Đang ở chế độ bảo trì".
     // `benDatCuaToi` (sổ đại lý đợt 1, Task 11 — Ruling 21): bên đặt máy chủ SẼ ép cho tài khoản này (chỉ Đối tác có hồ sơ được hưởng), để form lập đơn hiện dòng chỉ đọc mà không tự suy luật. Hai việc đọc chạy song song.
-    route("GET", "/api/auth/me", "staff", async ({ env, staff, baoTri, benDatCuaToi }) => {
-      // `benDatCuaToi` chỉ để HIỂN THỊ (máy chủ vẫn ép bên đặt lúc lập đơn) mà /me đi qua MỌI trang: câu đọc hỏng (kể cả ném ngay trước khi có lời hứa) thì trả null và log một dòng
-      // (chỉ tên sự kiện + câu lỗi — không SĐT, không tên) thay vì kéo cả /me thành 500. Chỉ bọc đúng câu này; việc đọc trạng thái bảo trì giữ nguyên (hỏng thì vẫn là lỗi thật).
-      const docBenDat = async (): Promise<Awaited<ReturnType<typeof benDatCuaToi>>> => {
-        try {
-          return await benDatCuaToi();
-        } catch (e) {
-          console.error(JSON.stringify({ level: "error", event: "ben_dat_cua_toi_failed", message: e instanceof Error ? e.message : String(e) }));
-          return null;
-        }
-      };
-      const [trangThaiBaoTri, benDat] = await Promise.all([(baoTri as MaintenanceState | undefined) ?? getMaintenanceState(env.DB), docBenDat()]);
-      return json({ staff, maintenance: toStatus(trangThaiBaoTri), benDatCuaToi: benDat } satisfies MeResponse);
+    route("GET", "/api/auth/me", "staff", async (ctx) => {
+      return dungMeResponse(ctx, ctx.staff);
     }),
 
     // Đăng xuất kết thúc dòng phiên (ADR-0075): cookie bị xoá VÀ cookie đã chép đi nơi khác cũng hết dùng được. Token rác/hết hạn → chỉ xoá cookie.

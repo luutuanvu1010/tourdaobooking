@@ -13,6 +13,7 @@ import {
   trustedRevokeOfSessionStatement, trustedRevokeOnEmailLossStatement, trustedRevokeOnPinStatement,
   anDanhPhienCuStatement, demPhienCanAnDanh,
   EMAIL_VAI_LON, batEmailStatements, factorEndKindStatement, guiMaBatEmail, kiemMaBatEmail, normalizeEmail,
+  dungMeResponse, setActingRoleStatement,
 } from "../auth";
 import {
   KHONG_NHAN_VAI_NOI_BO, accountRoleCodes, canManageAccount, checkAccountChange, chuPhienTheoId, hoSoCoNhanDoiTac, moNoiBoChoHoSoCoNhanProblem, checkStaffName, countActiveAdmins, createAccountStatements, createAccountWithRolesStatements, findStaffByPhone, hoSoKhopKhiTaoTaiKhoan,
@@ -32,8 +33,8 @@ import {
   QUYEN_DAT_DUOC, docTapNhieuMayThamSo, kiemThayDoiChinhSach, moTaThayDoiChinhSach, tapNhieuMaySau, type QuyenDatDuoc,
 } from "../../shared/chinh-sach-dang-nhap";
 import { PERMISSION_CODES, PERMISSION_LABEL, can, isPermissionCode, type PermissionCode, quyenHienThi } from "../../shared/permissions";
-import { quyenThat } from "../../shared/xem-nhu-vai";
 import { route, type AppModule, type Ctx } from "../../shared/router";
+import { laVaiChonDuoc, quyenHieuLuc, quyenThat } from "../../shared/xem-nhu-vai";
 import {
   TIEN_CHI_TOAN_QUYEN_MESSAGE, chamTaiKhoanTienDuoc, chanTatHaiLop, datLaiPinDuoc as datLaiPinDuocTheoDong, highPermissionProblem, tatHaiLopDuoc, parseRoleAssignment, permissionsLabel, roleAssignmentProblem,
   rolesLabelTheo, taiKhoanLaiProblem, laiNoiBoBenNgoaiProblem, type RoleCode, type RoleProblem,
@@ -52,6 +53,7 @@ const PHONE_TAKEN = () => error(409, "phone_taken", "Số điện thoại này �
 const NOT_FOUND = () => error(404, "not_found", "Không tìm thấy nhân viên.");
 const LAST_ADMIN = () => error(409, "account_rule", "Hệ thống phải còn ít nhất một quản trị viên đang hoạt động.");
 // ADR-0019 điều 2: lời cổng `admin` của router, nhắc lại ở thân handler khi ô `admin.manage` của bảng quyền không cho.
+const NOT_ACTING_ROLE = () => error(403, "forbidden", "Chỉ người phụ trách hệ thống mới dùng được chức năng này.");
 const NOT_ADMIN = () => error(403, "forbidden", "Chỉ quản trị viên được thực hiện thao tác này.");
 // ADR-0071 điều 1b: lời từ chối của ba ô Quản lý tài khoản (cổng "accounts").
 const NOT_ACCOUNT_VIEW = () => error(403, "forbidden", "Tài khoản này không quản lý được tài khoản.");
@@ -864,6 +866,40 @@ export const accountsModule: AppModule = {
       ]);
       ctx.dongBangTin({ staffId: t.id, tatThongBao: true }); // BẢNG TIN (KN-2): mọi phiên của người bị tắt vừa kết thúc.
       return json({ staff: await one(db, t.id) } satisfies StaffResponse);
+    }),
+
+    // ---- Toàn quyền xem như vai khác (ADR-0180 Đ1, Đ3). Ở module accounts vì việc bật/thoát ghi nhật ký trong cùng lô (auth không import audit); đường dẫn vẫn nằm dưới /api/auth
+    // cạnh /me. Cổng xét quyền THẬT (`quyenThat`, hỏi ô `settings.ops` — chỉ Toàn quyền): lúc đang đóng vai `ctx.staff.permissions` chỉ còn bộ của vai nên không dùng nó — nếu không, Toàn quyền đang xem như Bán hàng
+    // không thoát ra được. Thứ tự lô: cổng (ở trên) → nhật ký → trạng thái (câu đặt vai). `detail` chỉ là mã vai.
+    route("POST", "/api/auth/xem-nhu-vai", "staff", async (ctx) => {
+      if (!can({ id: ctx.staff.id, permissions: [...quyenThat(ctx.staff)] }, "settings.ops")) return NOT_ACTING_ROLE(); // quyền THẬT, qua bảng quyền (ô chỉ Toàn quyền)
+      const vai: unknown = (await readJson(ctx.request))?.role;
+      if (!laVaiChonDuoc(vai)) return error(400, "invalid_role", "Vai trò này không chọn được để xem.");
+      const phien = ctx.sessionId;
+      if (!phien) return error(401, "unauthorized", "Máy đang đăng nhập này không còn hiệu lực. Đăng nhập lại.");
+      const db = ctx.env.DB;
+      const at = new Date().toISOString();
+      await db.batch([
+        auditStatement(db, { staffId: ctx.staff.id, action: "acting_role_set", at, targetType: "staff", targetId: ctx.staff.id, detail: vai }),
+        setActingRoleStatement(db, phien, vai, at),
+      ]);
+      const that = quyenThat(ctx.staff);
+      const { realPermissions: _a, actingRole: _b, ...goc } = ctx.staff;
+      return dungMeResponse(ctx, { ...goc, permissions: quyenHieuLuc(that, vai), actingRole: vai, realPermissions: [...that] });
+    }),
+
+    route("DELETE", "/api/auth/xem-nhu-vai", "staff", async (ctx) => {
+      if (!can({ id: ctx.staff.id, permissions: [...quyenThat(ctx.staff)] }, "settings.ops")) return NOT_ACTING_ROLE(); // quyền THẬT, qua bảng quyền (ô chỉ Toàn quyền)
+      const phien = ctx.sessionId;
+      if (!phien) return error(401, "unauthorized", "Máy đang đăng nhập này không còn hiệu lực. Đăng nhập lại.");
+      const db = ctx.env.DB;
+      const at = new Date().toISOString();
+      await db.batch([
+        auditStatement(db, { staffId: ctx.staff.id, action: "acting_role_cleared", at, targetType: "staff", targetId: ctx.staff.id, detail: ctx.staff.actingRole ?? undefined }),
+        setActingRoleStatement(db, phien, null, at),
+      ]);
+      const { realPermissions: _a, actingRole: _b, ...goc } = ctx.staff;
+      return dungMeResponse(ctx, { ...goc, permissions: [...quyenThat(ctx.staff)] });
     }),
 
     // ---- Sổ phiên đăng nhập (ADR-0075 điều 7–8). Ở module accounts vì gỡ phiên ghi nhật ký trong cùng lô (auth không import audit). ----

@@ -102,6 +102,8 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/auth/logout", access: "public" },
   { method: "POST", path: "/api/auth/session-ended", access: "public" }, // lý do máy này vừa bị đăng xuất (ADR-0075) — chỉ trả khi chữ ký token đúng
   { method: "GET", path: "/api/auth/me", access: "staff" },
+  { method: "POST", path: "/api/auth/xem-nhu-vai", access: "staff" }, // ADR-0180: Toàn quyền bật xem như vai trò khác — cổng xét quyền THẬT trong handler (module accounts)
+  { method: "DELETE", path: "/api/auth/xem-nhu-vai", access: "staff" }, // ADR-0180: thoát chế độ đó
   { method: "POST", path: "/api/auth/passkey/login", access: "public" }, // đăng nhập bằng Face ID (ADR-0016) — tự gọi maintenanceBlock, không qua cổng bảo trì của router
   { method: "POST", path: "/api/auth/passkey/options", access: "public" }, // xin thách thức WebAuthn để đăng nhập
   { method: "POST", path: "/api/auth/mfa/verify", access: "public" }, // bước hai của đăng nhập PIN (ADR-0074) — cổng là cookie chờ td_mfa_pending (khoá ký riêng, 5 phút); tự gọi maintenanceBlock
@@ -745,6 +747,7 @@ test("mức truy cập của 443 route hiện có khớp ảnh chụp đã duy�
   // 2026-11-05 (ADR-0168, Trả sau): thêm năm route hạn mức trả sau của billing = 456.
   // 2026-11-06 (ADR-0172, ADR-0173): + GET /api/tra-sau/han-muc/:partyId, POST /api/tra-sau/muc-toi-da, GET /api/tra-sau/goi-y, PUT /api/tra-sau/goi-y/:cap (office), GET /api/tra-sau/cua-toi (orders; credit.own.view), POST /api/tra-sau/don/:id/an-han (office, ở orders) = 462.
   // 2026-11-06 (ADR-0178 Đ1 mục 1, Task A2): + GET, POST /api/kenh-thu-doi-tac (office; billing.partner_channel.view / .write) = 464.
-  assert.equal(actual.length, 464, "số route thực tế lệch 464 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 464, "SNAPSHOT phải có đúng 464 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // 2026-11-07 (ADR-0180 Đ1): + POST, DELETE /api/auth/xem-nhu-vai (staff; module accounts; thân hỏi ô settings.ops theo quyền THẬT) = 466.
+  assert.equal(actual.length, 466, "số route thực tế lệch 466 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 466, "SNAPSHOT phải có đúng 466 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });
