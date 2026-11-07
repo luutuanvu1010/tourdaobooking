@@ -2,7 +2,18 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.73 ĐÃ LÊN PRODUCTION (Trả sau: đơn «Khách đã trả đủ» còn nợ được nhắc và Ân hạn, gỡ vai đối tác cuối cùng thì đóng hạn mức — ADR-0181; ADR-0177 accepted; đổi tên bước «Xong và đủ tiền» thành «Khách đã trả đủ») — migration `0146` — triển khai 2026-11-07 19:38 giờ Việt Nam
+## TRẠNG THÁI TRIỂN KHAI — Mã «Toàn quyền xem như vai trò khác» (ADR-0180) ĐÃ LÊN PRODUCTION, số phiên bản còn hiện 2.73 — migration `0145` — triển khai 2026-11-07 22:04 giờ Việt Nam
+
+Ghi 7/11/2026 từ đầu ra `npm run trien-khai` do chủ chạy (phiên `claude/multi-role-admin-view-8030d2` đọc ô Terminal) và lệnh chỉ đọc sau đó (`wrangler d1 migrations list --remote`: không còn migration chờ; `wrangler deployments list`: 100% bản dưới).
+- Commit `origin/main`: `5f641781`. Worker Version ID: `0b880fc7-af45-48fd-9e99-f1c10ff79667`.
+- Kiểm đủ bộ (GitHub): XANH lúc 2026-11-07T14:52:10Z, lượt https://github.com/luutuanvu1010/tourdaobooking/actions/runs/42382977548. Có đổi quy trình kiểm; lý do của chủ: thêm kịch bản e2e `xem-nhu-vai` vào danh sách chạy và thời gian dự kiến, không bỏ bài nào.
+- Migration đã áp: `0145_xem_nhu_vai.sql`. Điểm khôi phục Time Travel trước khi áp: `00002519-00000000-0000511c-b63318689e0332e65978464e318459aa`.
+- `audit-invariants --db remote`: mọi bất biến đạt, ba cảnh báo.
+- **Cổng phiên bản trước deploy: KHÔNG ĐẠT, chủ chọn tiếp tục** — quên bước A.0 (mục nhật ký thay đổi). Cổng sau deploy ĐẠT ở 2.73. Mục 2.74 thêm sau trên cùng nhánh, lên ở lượt `day-len` + `trien-khai` kế tiếp (không migration).
+- **Điểm quay lại:** Worker `9a8d9923` (2.73). Cột mới nullable, mã cũ không đọc.
+- **Chưa kiểm:** chưa bấm thử «Xem như vai trò khác» trên Chrome / iPhone thật.
+
+## (Cũ) TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.73 ĐÃ LÊN PRODUCTION (Trả sau: đơn «Khách đã trả đủ» còn nợ được nhắc và Ân hạn, gỡ vai đối tác cuối cùng thì đóng hạn mức — ADR-0181; ADR-0177 accepted; đổi tên bước «Xong và đủ tiền» thành «Khách đã trả đủ») — migration `0146` — triển khai 2026-11-07 19:38 giờ Việt Nam
 
 Ghi 7/11/2026 từ đầu ra `npm run trien-khai` do chủ chạy (phiên `claude/partner-type-ta-oracle-18-efd687` đọc ô Terminal) và lệnh chỉ đọc sau đó.
 - Commit `origin/main`: `41f63f04`. Worker Version ID: `9a8d9923-89df-41c3-98ab-286587cd4305`. GET công khai `/api/auth/config`: `version` 2.73. Cổng phiên bản trước và sau deploy: ĐẠT.
@@ -124,7 +135,7 @@ Ghi 29/10/2026 từ khối tóm tắt của `npm run trien-khai` (chủ chạy `
 - Nghiệm thu: phiên kế hoạch tự chạy lại 132 bài N5 + typecheck trên nhánh; người kiểm độc lập ĐẠT. Chưa bấm «Sửa» trên production (bấm là ghi thật), chưa thử iPhone thật. Còn chờ chủ: NO-N5-4 (chữ «Chưa áp dụng cho loại nào» cạnh dòng «Sắp áp dụng»), nợ NO-N5-1…3.
 - **Hoàn tác:** `wrangler rollback` về `ba3d7b56` (2.45) an toàn — 2.46 không đổi dữ liệu.
 
-## ĐANG CHỜ PHÁT HÀNH: Toàn quyền xem như vai trò khác (ADR-0180; migration `0145_xem_nhu_vai.sql`) — CHƯA gộp `main`, CHƯA lên production
+## ĐÃ PHÁT HÀNH 7/11/2026 22:04 (mục nhật ký 2.74 lên ở lượt sau): Toàn quyền xem như vai trò khác (ADR-0180; migration `0145_xem_nhu_vai.sql`) — đoạn dưới viết lúc chờ phát hành
 
 Ghi 7/11/2026, nhánh `claude/multi-role-admin-view-8030d2`. Chưa có số phiên bản và chưa có mục nhật ký thay đổi (bước A.0 làm khi phát hành). Chưa làm bước nào trên production: không áp migration remote, không triển khai.
 - **Migration `0145_xem_nhu_vai` (chỉ mở rộng):** thêm cột `aut_session.acting_role` và `audit_log.acting_role`, cột phiên có ràng buộc `CHECK` chỉ nhận mười mã chọn được (không nhận `SUPER_ADMIN`). Số có thể phải đổi lúc gộp: quy tắc = số lớn nhất trên `main` lúc gộp + 1 (lúc ghi, `main` có đến `0144`).
@@ -135,12 +146,12 @@ Ghi 7/11/2026, nhánh `claude/multi-role-admin-view-8030d2`. Chưa có số phi�
 - **Việc của chủ khi phát hành** (AI không chạy): `npm run day-len` rồi `npm run trien-khai` theo mục «Khi chạy `trien-khai`» của đợt hiện hành; câu «Áp 1 migration này lên production?» gõ `c`.
 - **Chưa kiểm:** thanh báo và mục chọn chưa xem bằng Chrome / iPhone thật; sổ riêng của module khác (`bil_*`, `fbk_*`…) không mang dấu vai — câu hỏi chờ chủ ở nhật ký thi công.
 - **Việc của chủ (không chặn phát hành, mỗi việc một dòng):**
-  - Số ADR 0180 trùng với nhánh `claude/adr-0180-xe-thieu-giay-to` (cũng có ADR-0180; 0181–0183 đã dùng ở nơi khác): chủ quyết bên nào giữ 0180, bên kia đánh số lại kể cả mọi chỗ trích dẫn.
+  - ~~Số ADR 0180 trùng~~ — đã xong: nhánh xe thiếu giấy tờ đổi số của họ thành ADR-0184 (main `ec1a4856`).
   - Module `audit` đọc thẳng bảng `aut_session` để gắn dấu: chủ duyệt tiền tố view `v_aut_*` (nới `architecture.test.ts`) hoặc một ngoại lệ có thời hạn (đang ghi ở `docs/SYSTEM-DESIGN.md` §16).
   - Dấu vai chưa hiện ở trang Nhật ký (hiện không nơi nào hiển thị cột này): chủ quyết có hiện hay không.
   - Bảng tin (WebSocket) mở trước khi đóng vai vẫn mang quyền cũ tới khi nối lại.
   - Sổ riêng `bil_*`, `fbk_*` không mang dấu vai (chưa kiểm từng lệnh có dòng `audit_log` cùng lô).
-  - Số migration phải kiểm lại lúc gộp: một nhánh khác đã có `0146`.
+  - ~~Số migration phải kiểm lại lúc gộp~~ — đã kiểm: `0145` không trùng (main có `0144`, `0146`), đã áp production.
 
 ## ĐANG CHỜ NHẬP: Phát hành ~10 phút, kiểm đủ bộ trên GitHub (ADR-0179) — đổi chính hai lệnh phát hành, không đổi mã Nền tảng
 
