@@ -2,7 +2,19 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.69 ĐÃ LÊN PRODUCTION (đối tác xem và gửi vé ADR-0170, 0171; số nợ Trả sau đúng khi nộp một phần; màn Hạn mức trả sau chọn đối tác từ danh sách) — không migration — triển khai 2026-11-06 11:35 giờ Việt Nam
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.72 ĐÃ LÊN PRODUCTION (đợt chung 2.70 Trả sau theo giờ ADR-0172, 0173; 2.71 công tắc «Khách của đối tác trả cho Công ty» ADR-0178 Phần A và Quản trị gán mọi vai trò trừ IT ADR-0176; 2.72 biên nhận mẫu HD-02-DT) — migration `0143`, `0144` — triển khai 2026-11-07 08:03 giờ Việt Nam
+
+Ghi 7/11/2026 08:50 từ lệnh chỉ đọc của phiên chuẩn bị (nhánh `claude/cool-cray-c2ef4e`). Chủ tự chạy `npm run trien-khai`; **phiên ghi chép không đọc được đầu ra của lần chạy đó**, nên kết quả e2e lúc phát hành và dấu Time Travel lấy lúc đó không ghi được ở đây.
+- Commit `origin/main` lúc phát hành: `f776fda9`. Worker Version ID: `a93afb65-782a-4342-a497-73d98a5f50ba` (tạo 2026-11-07 01:03 UTC, `wrangler deployments list`). GET công khai `/api/auth/config`: `version` 2.72. `node scripts/kiem-phien-ban.mjs --sau-deploy`: ĐẠT.
+- `wrangler d1 migrations list --remote`: không còn migration nào chưa áp (đã áp `0143_tra_sau_theo_gio`, `0144_kenh_thu_doi_tac`).
+- **`audit-invariants --db remote` (8:45): mọi bất biến đạt, ba cảnh báo:** `R-VC-14` 7 xe thiếu giấy tờ là điều kiện xuất bến; `R-CTL-1` 8 dịch vụ chưa phân nhóm; `R-ORD-9` một đơn có danh sách tên nhiều hơn số khách (cờ cho văn phòng). `R-DSP-2b` của 2.69 không còn. Hai bất biến mới `R-CRD-4` (2.70) và `R-KT-1` (2.71) đạt.
+- **e2e:** `main` `f776fda9` chưa có bản sửa `tests/e2e/chinh-sach-phien.mjs` theo ADR-0176 (lần lưu `dc9a6a19` trên nhánh này), nên theo mã thì kịch bản đó phải đỏ ở lần phát hành (chưa xem được đầu ra); mã chạy thật không đổi vì đây chỉ là bài kiểm. Bản sửa đã chạy riêng xanh 4/4 trước lúc phát hành.
+- **Điểm quay lại:** Worker `4367ee7a` (2.69); giới hạn khi chạy mã cũ trên hai migration mới ghi ở mục «ĐÃ PHÁT HÀNH ở bản 2.72» bên dưới (tóm lại: an toàn chừng nào công tắc chưa bị Tắt lần nào).
+- **Lúc 8:42 chủ chạy lại `trien-khai` lần thứ hai** (cổng phiên bản báo 2.72 không mới hơn 2.72, chủ chọn tiếp tục). Lần này là phát hành lại đúng bản đang chạy; nếu nó đi tới cuối thì Version ID ở trên đổi, mã không đổi.
+- **Chưa kiểm:** iPhone thật; chưa thao tác ghi thử trên production; Toàn quyền chưa bấm công tắc lần nào.
+- **Kế tiếp:** nhắc nhân viên mở lại Nền tảng một lần. Lời cấm «chưa cấp hạn mức Trả sau thật» vẫn còn (xem mục đợt chung bên dưới). Hạn `HC-5.11` ở `docs/quyen-hoan.json` là 2026-11-15. Nhánh `claude/interesting-hodgkin-cde2fd` («Có vé», migration `0142`) chờ chủ nhập.
+
+## (Cũ) TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.69 ĐÃ LÊN PRODUCTION (đối tác xem và gửi vé ADR-0170, 0171; số nợ Trả sau đúng khi nộp một phần; màn Hạn mức trả sau chọn đối tác từ danh sách) — không migration — triển khai 2026-11-06 11:35 giờ Việt Nam
 
 Ghi từ khối tóm tắt của `npm run trien-khai` (chủ tự chạy):
 - Commit `origin/main`: `2c4b9339`. Worker Version ID: `4367ee7a-0977-4b5c-ae42-9c3ada8b051c`. Cổng phiên bản trước và sau deploy: ĐẠT. GET công khai `/api/auth/config` sau deploy: `version` 2.69.
@@ -100,7 +112,7 @@ Ghi 29/10/2026 từ khối tóm tắt của `npm run trien-khai` (chủ chạy `
 - Nghiệm thu: phiên kế hoạch tự chạy lại 132 bài N5 + typecheck trên nhánh; người kiểm độc lập ĐẠT. Chưa bấm «Sửa» trên production (bấm là ghi thật), chưa thử iPhone thật. Còn chờ chủ: NO-N5-4 (chữ «Chưa áp dụng cho loại nào» cạnh dòng «Sắp áp dụng»), nợ NO-N5-1…3.
 - **Hoàn tác:** `wrangler rollback` về `ba3d7b56` (2.45) an toàn — 2.46 không đổi dữ liệu.
 
-## ĐANG CHỜ PHÁT HÀNH — ĐỢT CHUNG 2.70 + 2.71 + 2.72 (một lần `npm run trien-khai`; HAI migration `0143_tra_sau_theo_gio`, `0144_kenh_thu_doi_tac`) — chuẩn bị 2026-11-07
+## ĐÃ PHÁT HÀNH ở bản 2.72 (7/11/2026) — ĐỢT CHUNG 2.70 + 2.71 + 2.72 (đoạn dưới viết lúc chờ phát hành; một lần `npm run trien-khai`; HAI migration `0143_tra_sau_theo_gio`, `0144_kenh_thu_doi_tac`) — chuẩn bị 2026-11-07
 
 Ghi 7/11/2026, nhánh `claude/cool-cray-c2ef4e` (đứng trên `main` `a6c2688a`, đã có trên GitHub). Ba phần của ba phiên lên chung một lần:
 - **2.70** Trả sau theo giờ (ADR-0172, 0173) và phần làm hết nợ Trả sau (Task 2, 3 của kế hoạch `docs/superpowers/plans/2026-11-05-tra-sau-lam-het-no.md`, nhánh `claude/festive-payne-7371a2`): migration `0143`. Chi tiết và hoàn tác: mục «Trả sau theo giờ» bên dưới.
@@ -116,7 +128,7 @@ Ghi 7/11/2026, nhánh `claude/cool-cray-c2ef4e` (đứng trên `main` `a6c2688a`
 - **Khi chạy `trien-khai`:** câu «Áp 2 migration này lên production?» gõ `c` (đã báo trước); «Triển khai Worker?» gõ `c` ngay. e2e có thể đỏ chập chờn như 2.60, 2.62, 2.65, 2.69 (`coc-don-huy`, `tu-choi-bao-ban`): chép phần chữ đỏ trước khi trả lời.
 - **Sau khi lên:** ghi khối tóm tắt vào mục TRẠNG THÁI TRIỂN KHAI mới ở đầu tệp; kỳ vọng `version` 2.72; `audit-invariants --db remote` nay có thêm `R-CRD-4` (2.70) và `R-KT-1` (2.71). Nhắc nhân viên mở lại Nền tảng một lần.
 
-## ĐANG CHỜ PHÁT HÀNH: Công tắc «Khách của đối tác trả cho Công ty» (ADR-0178 Phần A; mục nhật ký 2.71) + Quản trị gán mọi vai trò trừ IT (ADR-0176)
+## ĐÃ PHÁT HÀNH ở bản 2.72 (7/11/2026): Công tắc «Khách của đối tác trả cho Công ty» (ADR-0178 Phần A; mục nhật ký 2.71) + Quản trị gán mọi vai trò trừ IT (ADR-0176)
 
 Ghi 7/11/2026 (phiên chuẩn bị đợt chung), đọc từ ADR-0178, đặc tả `docs/superpowers/specs/2026-11-06-thu-tien-doi-tac-va-tra-sau-theo-dich-vu-design.md`, kế hoạch `docs/superpowers/plans/2026-11-06-thu-tien-doi-tac-va-tra-sau-theo-dich-vu.md` và bàn giao của phiên thi công (nhánh `claude/modest-lovelace-09b5ba`, đã nhập `main`). Chỉ Phần A đi đợt này; **Phần B «Trả sau theo dịch vụ» chưa có mã** (chờ ADR-0177). Kế hoạch không có sổ thi công riêng, ô đánh dấu chưa tích; kết quả kiểm lấy từ bàn giao: người kiểm độc lập ĐẠT (Critical 0, High 0, Important 0, Minor 10; báo cáo nằm trong thư mục `.superpowers/` bị gitignore của worktree đó), e2e xanh và `audit-invariants` đạt ở `946e576a`, `npm test` 8132/0 và typecheck 0 lỗi ở `8eeb3732`.
 
@@ -128,7 +140,7 @@ Ghi 7/11/2026 (phiên chuẩn bị đợt chung), đọc từ ADR-0178, đặc t
 - **Chờ chủ (không chặn):** câu chữ phiên thi công tự đặt (chữ giải thích thẻ công tắc, hộp hỏi khi tắt, câu ở bảng QR, nhãn «‹tên› (người lập đơn)», câu thay form «Ghi khoản thu đòi được», câu thêm ở bài «Cấp hạn mức trả sau» và hướng dẫn Đối tác); trần gói trang Đơn hàng nới thêm 137 byte (105.667 → 105.804, `TRAN_ORDERS` ở `src/goi-trang-nhe.test.ts`); đề xuất một dòng bảng kịch bản Chrome ở `web/CLAUDE.md` (tệp luật, chủ sửa).
 - **Chưa kiểm:** axe (thiếu `AXE_JS`), iPhone thật, Chrome cho «Ghi bù», «Ghi khoản thu đòi được» và form ghi; `a2-smoke-order.mjs` đỏ ở chữ cũ «người phụ trách đơn» (nghi không do nhánh, chưa kiểm trên `main`). Minor M1–M10 còn mở theo bàn giao.
 
-## ĐANG CHỜ PHÁT HÀNH: Trả sau theo giờ, ân hạn, luật vận hành công nợ (ADR-0172, ADR-0173; mục nhật ký 2.70 — đi trong đợt chung 2.70–2.72 ở trên)
+## ĐÃ PHÁT HÀNH ở bản 2.72 (7/11/2026): Trả sau theo giờ, ân hạn, luật vận hành công nợ (ADR-0172, ADR-0173; mục nhật ký 2.70 — đi trong đợt chung 2.70–2.72 ở trên)
 
 Ghi 6/11/2026, nhánh `claude/cong-no-0172-0173-372c0c` (đứng trên bản chính có bản 2.69 đã lên production 6/11 — điều kiện «lên sau 2.69» đã thoả). **CÓ migration `0143_tra_sau_theo_gio`** (chỉ mở rộng): hai cột giờ ở `bil_credit_limit`, hai mốc giờ ở `orders` (điền cho đơn cũ = cuối ngày hạn trả cũ giờ Việt Nam), ba bảng `bil_credit_setting`, `bil_credit_tier_default`, `bil_credit_reminder`, trigger hạn chỉ lùi, dựng lại `v_ord_don_tra_sau`, `orders_delivered_lock`, `v_aud_ledger_event`. Số `0142` thuộc nhánh «Có vé» (`claude/interesting-hodgkin-cde2fd`) chưa gộp — hai tệp khác tên nên áp được theo bất kỳ thứ tự nào; phiên phát hành vẫn kiểm `ls migrations` mọi nhánh. Cần `npm run trien-khai` theo `docs/QUY-TRINH-PHAT-HANH.md`. Không chờ diễn tập khôi phục (ADR-0172 «Phát hành»; diễn tập dời 2026-12-31, mục `HC-5.19`).
 - **Hoàn tác:** `wrangler rollback` về bản ngay trước được, vì mã mới vẫn GHI KÉP `term_days` và `credit_due_date` nên mã cũ đọc đúng hạn mức và hạn trả. **Hai giới hạn khi đang chạy bản cũ:** (1) **đặt hạn mức mới bị lỗi** — trigger `bil_credit_limit_hours_required` của `0143` đòi cột giờ mà mã cũ không gửi (chủ chưa cấp hạn mức cho ai nên hiện không ảnh hưởng ai; muốn đặt thì lên lại bản mới); (2) đơn Trả sau xác nhận bằng mã cũ thiếu hai mốc giờ ⇒ R-CRD-4 báo; lên lại bản mới rồi điền mốc bằng SQL như phần điền của `0143`.
