@@ -112,7 +112,7 @@ Không có phát hiện CHẶN LAUNCH. Sáu kịch bản dò chạy trên khung 
 
 ## Phần 2 — vé và xe, vòng đời đơn, mục cũ, nhật ký khi đóng vai, Gửi đơn nhánh A
 
-> Nguồn: báo cáo phần 2 của cùng trợ lý (22:28–khoảng 22:50), chép nguyên văn trừ mục 7 (đường dẫn kịch bản trong thư mục tạm, thay bằng mô tả). Phần này không có phát hiện CHẶN LAUNCH nên phiên điều phối không chạy lại; chỉ đọc lại một chỗ: `src/shared/dieu-phoi-kiem.ts`, hàm `trongNgayChay` — vế thứ hai cho chuyến `RUNNING` không có cận trên, khớp Q-05. Vế đó có chủ ý để chuyến chạy qua nửa đêm vẫn thấy khách (khung xem khách theo ADR-0053 D7.2); thiếu là cận trên khi quên bấm «Kết thúc». Mã phát hiện tiếp nối từ Q-05.
+> Nguồn: báo cáo phần 2 của cùng trợ lý (22:28 tới khi nộp báo cáo khoảng 22:38; trợ lý tự ghi «khoảng 22:50» là giờ ước), chép nguyên văn trừ mục 7 (đường dẫn kịch bản trong thư mục tạm, thay bằng mô tả). Phần này không có phát hiện CHẶN LAUNCH nên phiên điều phối không chạy lại; chỉ đọc lại một chỗ: `src/shared/dieu-phoi-kiem.ts`, hàm `trongNgayChay` — vế thứ hai cho chuyến `RUNNING` không có cận trên, khớp Q-05. Vế đó có chủ ý để chuyến chạy qua nửa đêm vẫn thấy khách (khung xem khách theo ADR-0053 D7.2); thiếu là cận trên khi quên bấm «Kết thúc». Mã phát hiện tiếp nối từ Q-05.
 
 Mã rà 5f641781 (ADR-0180 đang chạy thật từ 22:04 7/11). Bắt đầu 22:28, kết thúc khoảng 22:50. Tất cả chạy trên D1 giả (khung thử), không mạng, không wrangler, không ghi vào repo. Tệp cũ bao-cao-quyen.md giữ nguyên; mã phát hiện tiếp từ Q-05.
 Kết luận: không có CHẶN LAUNCH. Còn nguyên một mục cũ đáng sửa sớm (E-1), hai mục cũ cần chủ quyết (D-2, D-3), hai câu báo lỗi chưa nói rõ việc phải làm.
