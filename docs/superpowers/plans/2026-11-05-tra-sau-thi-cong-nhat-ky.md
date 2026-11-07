@@ -52,3 +52,11 @@ Kế hoạch: `2026-11-05-tra-sau-han-muc-ke-hoach.md`. Đặc tả: `docs/super
 - ~~e2e vé của đơn Trả sau~~ — có từ 6/11 (`tests/e2e/tra-sau.mjs` mục 5), đang đỏ ở chỗ nợ sau «Xong và đủ tiền», xem mục phát hiện ở trên.
 - `audit-invariants` chạy cuối bộ e2e đủ bộ của `run.mjs`, không chạy riêng trong `tests/e2e/tra-sau.mjs`.
 - ~~Bài `src/bang-tham-chieu.test.ts` có một chỗ lệch có từ trước (`web/hoa-hong-cap.ts:149`)~~ — không còn (kiểm 2026-11-06).
+
+## ADR-0181 (accepted 7/11) — thi công 2026-11-07 (nhánh `claude/tra-sau-sau-kiem-7-11`, sau kiểm độc lập TRUNG-1, TRUNG-2)
+
+- **Đ1a nhắc:** câu `credit_orders_with_due` bỏ lọc `delivered_at IS NULL`; nợ vẫn lọc bằng `noTheoDon` lúc gửi.
+- **Đ1b Ân hạn:** route bỏ chặn sớm theo `delivered_at` (chỉ route này); NT-F7 nhận route vào danh sách `NGOAI_LE` có tên (khác `MIEN`). Migration `0146_an_han_don_da_xong.sql` tạo lại `orders_delivered_lock`: thêm một trường hợp — đơn CREDIT, `credit_due_at` đổi sang mốc khác NULL, chỉ ba cột hạn trả + `updated_at` khác, `completed_at/_by` phải giữ. Bài NT-R6b quét từng cột. Giao diện không sửa (cờ `coQuyenAnHan` và `web/an-han-tra-sau.ts` không xét `deliveredAt`; bài kiểm cờ ở màn đơn).
+- **Đ2:** (a) `credit_limit_at`, `credit_limit_all_at` đòi vai đang mở được hưởng (định nghĩa trigger 0141). (b) Câu đóng mới `credit_limit_close_no_role` TỰ KIỂM «không còn vai được hưởng», đặt SAU câu đóng vai trong cùng lô; billing công bố `cauDongHanMucKhiHetVai` (đóng + nhật ký `credit_limit_stopped` nối `changes() > 0` + tăng phiên bản), gốc lắp ráp tiêm qua `gopHoSo` (`coHanMucTraSauMo`, `cauDongHanMucKhiHetVai`) vào route gỡ vai Danh bạ và `PUT /api/staff/:id/roles` (cả hai nhánh lô). (c) R-CRD-5 (cảnh báo, liệt kê hồ sơ).
+- **Ruling thi công (giả định ghi lại):** dùng câu đóng có điều kiện thay cho `dongHanMucStatement` trần — lô đóng vai thua (0 dòng) hoặc còn vai khác thì không đóng, không cần tính `conVaiHuong` (khái niệm của hoa hồng, khác định nghĩa trigger). Màn danh sách hạn mức cũng áp lớp đọc nên hồ sơ hết vai chỉ còn hạn mức mở (không nợ) không hiện; R-CRD-5 báo. Trường hợp được phép của trigger không đòi `completed_at IS NULL` (đơn đã Hoàn thành không còn nợ theo luật Hoàn thành; route vẫn đòi nợ > 0).
+- **Nhật ký thay đổi:** mục 2.73 (migration 0146).

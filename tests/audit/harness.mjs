@@ -32,7 +32,10 @@ async function bundle(entry) {
     bundle: true, format: "esm", platform: "neutral", target: "es2022", write: false, logLevel: "silent",
     plugins: [cloudflareWorkersGia],
   });
-  return import(`data:text/javascript;base64,${Buffer.from(built.outputFiles[0].text).toString("base64")}`);
+  // Tên ngắn cho khối mã gói: thiếu dòng này, MỖI khung dấu vết lỗi chép cả URL data: ~4,5 MB — một lỗi chưa bắt in dòng nhật ký hàng chục MB, máy chạy
+  // GitHub nghẽn và «npm test» treo tới hết giờ (sự cố 2026-11-07). Bài giữ: src/khung-thu-dau-vet-ngan.test.ts.
+  const ma = `${built.outputFiles[0].text}\n//# sourceURL=khung-thu-app.mjs\n`;
+  return import(`data:text/javascript;base64,${Buffer.from(ma).toString("base64")}`);
 }
 // listAll: bộ lọc thao tác im lặng (ADR-0038) chỉ kiểm được ở tầng truy vấn — trang Nhật ký nay chỉ Toàn quyền gọi được.
 export const app = (await bundle(

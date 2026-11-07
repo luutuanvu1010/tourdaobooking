@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  MAX_HANH_KHACH_MOI_DON, dongHienHanh, keHoachHanhKhach, kiemDanhSachHanhKhach, kiemHanhKhach, moTaDanhSachNhap, moTaThayDoiKhach, soKhachDoan, vuotSoKhach,
+  MAX_HANH_KHACH_MOI_DON, dongHienHanh, keHoachHanhKhach, kiemDanhSachHanhKhach, kiemHanhKhach, moTaDanhSachNhap, moTaThayDoiKhach, soKhachDoan, vuotSoKhach, canhBaoQuaTen,
   type DongHanhKhach,
 } from "./hanh-khach.ts";
 
@@ -116,4 +116,16 @@ test("moTaThayDoiKhach: ĐÚNG khuôn 'thêm N, sửa N, huỷ N khách' — ch�
   assert.equal(moTaThayDoiKhach({ them: 2, sua: 0, huy: 1 }), "thêm 2, sửa 0, huỷ 1 khách");
   assert.match(moTaThayDoiKhach({ them: 10, sua: 3, huy: 0 }), /^thêm \d+, sửa \d+, huỷ \d+ khách$/);
   assert.equal(moTaDanhSachNhap(3), "danh sách khách: 3 người");
+});
+
+test("canhBaoQuaTen (L-A1, cùng nghĩa R-ORD-9): chỉ cảnh báo khi số tên > số khách của dịch vụ ĐÔNG NHẤT; không chặn", () => {
+  const CAU = "Đang có 5 tên cho 3 khách. Kiểm tra lại số khách hoặc xoá dòng nhập nhầm.";
+  assert.equal(canhBaoQuaTen(5, 3), CAU);
+  assert.equal(canhBaoQuaTen(3, 3), null);
+  assert.equal(canhBaoQuaTen(2, 3), null);
+  assert.equal(canhBaoQuaTen(0, 0), null);
+  const pax = (adult: number) => ({ adult, child: 0, senior: 0, infant: 0 });
+  // đơn nhiều dịch vụ: mẫu số = dịch vụ đông nhất (không cộng dồn) → 4 tên cho dịch vụ 3 + 4 khách không cảnh báo, 5 tên thì có
+  assert.equal(canhBaoQuaTen(4, soKhachDoan([pax(3), pax(4)])), null);
+  assert.equal(canhBaoQuaTen(5, soKhachDoan([pax(3), pax(4)])), "Đang có 5 tên cho 4 khách. Kiểm tra lại số khách hoặc xoá dòng nhập nhầm.");
 });

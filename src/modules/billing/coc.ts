@@ -21,7 +21,7 @@ import { kiemNguoiThuKenh } from "./kenh-thu";
 import { CHUA_CO_CONG_TY, PARTY_ID_RE, loaiCho, docLyDo, docNgay, docSoTien, layKyDaKhoa, lineOf, loi, loiKhoaKy, toDoiChieuRow, toLineRow, toReceiptRow, type KetQua, type NguoiGoi } from "./service";
 
 /** Kiểm độc lập vòng 2 CAO-1: đơn nhận đổi trạng thái giữa lúc duyệt chuyển và lúc chuyển. */
-const CAU_DON_NHAN_HONG = "Đơn nhận đã huỷ hoặc đã xong và đủ tiền — huỷ khoản duyệt chuyển rồi duyệt lại sang đơn khác.";
+const CAU_DON_NHAN_HONG = "Đơn nhận đã huỷ hoặc đã tới bước Khách đã trả đủ — huỷ khoản duyệt chuyển rồi duyệt lại sang đơn khác.";
 
 /**
  * Tự quyết (ADR-0159 Hệ quả «chưa kiểm», ADR-0089 đ7): đơn nhận đã có khoản «Khách đặt cọc trước» do đối tác khai thì không nhận thêm tiền chuyển — rất có thể cùng một số tiền, chuyển sang là tính hai lần
@@ -40,7 +40,7 @@ const CAU_TRIGGER: [string, string][] = [
   ["coc_unclassified", "Lý do huỷ chưa được phân loại — Quản trị phân loại lý do trước khi duyệt hoàn thu trước."],
   ["coc_deadline", "Đã quá hạn hoàn thu trước."],
   ["coc_exceeds_paid", "Vượt số tiền còn giữ của đơn — số tiền vừa thay đổi, tải lại rồi thử lại."],
-  ["coc_bad_target", "Đơn nhận phải còn hiệu lực và chưa tới bước Xong và đủ tiền."],
+  ["coc_bad_target", "Đơn nhận phải còn hiệu lực và chưa tới bước Khách đã trả đủ."],
   ["coc_void_exceeds_unspent", "Chỉ huỷ được phần chưa chi của khoản duyệt — tải lại rồi thử lại."],
   ["coc_void_mismatch", "Khoản duyệt không thuộc đơn này."],
   ["coc_needs_approval", "Đơn huỷ: hoàn qua “Duyệt hoàn thu trước” rồi “Ghi chi hoàn”."],
@@ -203,7 +203,7 @@ export async function ghiDuyet(db: D1Database, input: { orderId: string; raw: un
     if (!nhan) return loi(400, "invalid_input", "Không tìm thấy đơn nhận tiền.");
     // ADR-0135 Đ1: mã đơn NHÁP không lộ qua billing — đơn nháp coi như không tìm thấy (ở lệnh chuyển, đơn nhận nháp bị chặn riêng, xem `ghiChuyen`).
     if (nhan.status === "draft") return loi(400, "invalid_input", "Không tìm thấy đơn nhận tiền.");
-    if (nhan.id === input.orderId || nhan.status === "cancelled" || nhan.delivered_at) return loi(409, "coc_bad_target", "Đơn nhận phải là đơn khác, còn hiệu lực và chưa tới bước Xong và đủ tiền.");
+    if (nhan.id === input.orderId || nhan.status === "cancelled" || nhan.delivered_at) return loi(409, "coc_bad_target", "Đơn nhận phải là đơn khác, còn hiệu lực và chưa tới bước Khách đã trả đủ.");
     if (await coKhoanLoiKhai(db, nhan.id)) return DON_NHAN_CO_LOI_KHAI();
     donNhanId = nhan.id;
   }

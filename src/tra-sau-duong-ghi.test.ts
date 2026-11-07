@@ -312,10 +312,10 @@ test("Task 2: handler-cancel đơn Trả sau đã hết nợ thua khoá lạc qu
 // ---- Kế hoạch Task 2 (nợ 1, 4): bảng ĐƯỜNG GHI chạy thật — mỗi đường làm nợ đơn Trả sau có thể đổi phải tăng phiên bản bên đặt ĐÚNG 1 trong chính lô ----
 const congTy = (w: W): string => String(w.q("SELECT party_id FROM v_pty_owner_company")[0].party_id);
 const khoanThu = (w: W, id: string): string => String(w.q("SELECT id FROM bil_payment_receipt WHERE order_id = ? AND reverses_id IS NULL AND kind_code = 'CUSTOMER_PAYMENT' ORDER BY rowid LIMIT 1", id)[0].id);
-/** Đơn đã thu đủ, «Xong và đủ tiền», có phân định 100.000 do Hướng Dẫn chịu (Quản trị quyết, có trả khách). Trả id phân định (bước RULING). */
+/** Đơn đã thu đủ, «Khách đã trả đủ», có phân định 100.000 do Hướng Dẫn chịu (Quản trị quyết, có trả khách). Trả id phân định (bước RULING). */
 async function giaoVaQuyet(w: W, id: string): Promise<string> {
   assert.equal((await thu(w, id, T_ZB1)).status, 201);
-  w.sqlite.prepare("UPDATE order_service SET depart_date = ? WHERE order_id = ?").run(inDays(0), id); // «Xong và đủ tiền» chỉ từ ngày đi
+  w.sqlite.prepare("UPDATE order_service SET depart_date = ? WHERE order_id = ?").run(inDays(0), id); // «Khách đã trả đủ» chỉ từ ngày đi
   const g = await w.call("POST", `/api/orders/${id}/delivered`, { as: SUP, body: {} });
   assert.equal(g.status, 200, g.text);
   const q = await w.call("POST", "/api/ledger/phan-dinh", { as: ACC, body: { orderId: id, soTien: 100_000, lyDo: "Khách phản ánh quên đón" } });
@@ -417,7 +417,7 @@ for (const dg of DUONG_GHI) {
   test(`ĐƯỜNG GHI (chạy thật): ${dg.ten} — phiên bản bên đặt tăng đúng 1`, async () => {
     const w = dung();
     assert.equal((await hanMuc(w, 5_000_000)).status, 201);
-    // Bên đặt mang vai được hưởng: «Xong và đủ tiền» (hai dòng phân định) đòi có mức hoa hồng lúc xác nhận.
+    // Bên đặt mang vai được hưởng: «Khách đã trả đủ» (hai dòng phân định) đòi có mức hoa hồng lúc xác nhận.
     assert.equal((await w.call("POST", "/api/pricing/hoa-hong", { as: ACC, body: { doiTuong: { loai: "VAI", code: "TRAVEL_AGENCY" }, phamVi: "ALL", kieu: "PER_PAX", moiKhach: 50_000, tuNgay: "2026-01-01" } })).status, 201);
     const d = await donTS(w);
     const x = await dg.truoc(w, d.id);

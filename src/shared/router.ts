@@ -108,6 +108,10 @@ export interface GopHoSoNoi {
   /** ADR-0168 Đ2 mục 6: mã các đơn Trả sau còn nợ của hồ sơ — `orders` không biết nợ (billing tính), gốc lắp ráp điền. Tách khỏi `donNguoiDat` để hàng chờ phiếu xoá không tốn thêm truy vấn mỗi dòng. */
   /** BẮT BUỘC (ADR-0173 Đ3 mục 5, trang ghép (3)): không đọc được nợ thì hàm NÉM — mọi đường ngừng hồ sơ chặn theo (không đoán «hết nợ»). */
   conNoTraSau: (partyId: string) => Promise<string[]>;
+  /** ADR-0181 Đ2 (b): hồ sơ có dòng hạn mức Trả sau đang mở. BẮT BUỘC — không đọc được thì NÉM (route gỡ vai chặn, không bỏ qua bước đóng hạn mức). */
+  coHanMucTraSauMo: (partyId: string) => Promise<boolean>;
+  /** ADR-0181 Đ2 (b): câu chưa chạy của billing đóng hạn mức khi hồ sơ hết vai được hưởng — nối SAU câu đóng vai trong cùng `db.batch()`. Câu tự kiểm điều kiện. */
+  cauDongHanMucKhiHetVai: (partyId: string, at: string, by: string) => D1PreparedStatement[];
   cauDoiDon: (tuPartyId: string, sangPartyId: string, at: string) => D1PreparedStatement;
   soDongNo: (partyId: string) => Promise<number>;
   soDangNhap: () => Promise<{ partyId: string; phone: string }[]>;
@@ -643,6 +647,8 @@ export function createApp(opts: AppOptions) {
         viecCua: (id) => opts.injected.gopHoSo(envH).viecCua(id),
         donNguoiDat: (id) => opts.injected.gopHoSo(envH).donNguoiDat(id),
         conNoTraSau: (id) => opts.injected.gopHoSo(envH).conNoTraSau(id),
+        coHanMucTraSauMo: (id) => opts.injected.gopHoSo(envH).coHanMucTraSauMo(id),
+        cauDongHanMucKhiHetVai: (id, at, by) => opts.injected.gopHoSo(envH).cauDongHanMucKhiHetVai(id, at, by),
         cauDoiDon: (tu, sang, at) => opts.injected.gopHoSo(envH).cauDoiDon(tu, sang, at),
         soDongNo: (id) => opts.injected.gopHoSo(envH).soDongNo(id),
         soDangNhap: () => opts.injected.gopHoSo(envH).soDangNhap(),
@@ -772,7 +778,7 @@ export function createApp(opts: AppOptions) {
         const msg = e instanceof Error ? e.message : String(e);
         if (/\border_(delivered|completed):/.test(msg)) {
           console.warn(JSON.stringify({ level: "warn", event: "order_delivered_race", requestId, method: request.method, path: new URL(request.url).pathname }));
-          return json({ error: { code: "order_delivered", message: "Đơn đã ở bước Xong và đủ tiền (vừa có người bấm) — không sửa được nữa. Tải lại để xem đơn mới nhất." } }, 409);
+          return json({ error: { code: "order_delivered", message: "Đơn đã ở bước Khách đã trả đủ (vừa có người bấm) — không sửa được nữa. Tải lại để xem đơn mới nhất." } }, 409);
         }
         const err = e instanceof Error ? { name: e.name, message: e.message, stack: e.stack } : { message: String(e) };
         console.error(JSON.stringify({ level: "error", event: "unhandled", requestId, method: request.method, path: new URL(request.url).pathname, error: err }));

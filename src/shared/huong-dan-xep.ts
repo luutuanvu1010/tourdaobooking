@@ -30,7 +30,7 @@ export const XEP: Readonly<Record<string, XepNhom>> = {
     "Bắt đầu": [["Menu của bạn", null], ["Thông báo", null]],
     "Đơn của tôi": [
       ["Nhận một đơn đang chờ", "donHang"], ["Xem và lo đơn của mình", "donHang"], ["Sửa số khách", DON], ["Huỷ đơn", DON], ["Trả đơn (Từ chối)", DON],
-      ["Thu tiền và bấm Xác nhận xong và đủ tiền", DON], ["Đơn của đối tác chờ xác nhận: kiểm vé", "choXacNhan"],
+      ["Thu tiền và bấm Xác nhận khách đã trả đủ", DON], ["Đơn của đối tác chờ xác nhận: kiểm vé", "choXacNhan"],
     ],
     "Khi vướng": VUONG("Tình huống hay gặp", "Điều bạn không làm được — hỏi ai", "Câu hỏi thường gặp"),
     "Bảo mật": [["Bật bảo mật hai lớp", "toi"], ["Nhận mã đăng nhập qua email", "toi"]],

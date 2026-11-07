@@ -4505,6 +4505,33 @@ test("R-CRD-4: đơn Trả sau đã xác nhận phải đủ hai mốc giờ, h�
 });
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------
+// R-CRD-5 (ADR-0181 Đ2 (c)): hạn mức Trả sau còn mở trên hồ sơ không còn vai được hưởng.
+// ---------------------------------------------------------------------------------------------------------------------------------------------------
+test("R-CRD-5: hạn mức còn mở trên hồ sơ đã hết vai được hưởng → cảnh báo, nêu hồ sơ; còn vai được hưởng (kể cả vai khác), hạn mức đã đóng, vai nội bộ không có hạn mức → 0", () => {
+  const db = build();
+  const c = one("R-CRD-5");
+  assert.deepEqual([c.level, c.mode], ["warn", "rows"]);
+  const hoSo = (id: string, vai: string[]): void => {
+    db.exec(`INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES ('${id}', 'ORGANIZATION', 'Đại lý ${id}', 1, '${T1}', '${T1}')`);
+    vai.forEach((v, i) => db.exec(`INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES ('${id}-r${i}', '${id}', '${v}', '2026-01-01', '${T1}', '${T1}')`));
+    // Thêm hạn mức lúc vai còn mở (trigger 0141 đòi vai được hưởng).
+    db.exec(`INSERT INTO bil_credit_limit (id, party_id, limit_amount, term_days, term_hours, grace_hours, valid_from_date, valid_to_date, reason, created_at, created_by, updated_at, updated_by)
+             VALUES ('hm-${id}', '${id}', 1000000, 2, 36, 0, '2026-09-01', NULL, NULL, '${T1}', NULL, '${T1}', NULL)`);
+  };
+  const thoiVai = (rid: string): void => { db.exec(`UPDATE pty_party_role SET valid_to_date = '2026-09-20', updated_at = '${T2}' WHERE id = '${rid}'`); };
+  hoSo("pty-a", ["TRAVEL_AGENCY"]);
+  hoSo("pty-b", ["TRAVEL_AGENCY", "COLLABORATOR"]);
+  hoSo("pty-c", ["TRAVEL_AGENCY"]);
+  assert.equal(violations(db, c), 0, "mọi hồ sơ còn vai được hưởng");
+  thoiVai("pty-a-r0");
+  thoiVai("pty-b-r0"); // còn Cộng tác viên
+  thoiVai("pty-c-r0");
+  db.exec(`UPDATE bil_credit_limit SET valid_to_date = '2026-09-19', updated_at = '${T2}' WHERE id = 'hm-pty-c'`); // đã đóng đúng
+  assert.deepEqual(db.prepare(c.sql).all().map((r) => (r as { party_id: string }).party_id), ["pty-a"]);
+  assert.equal(violations(db, c), 1, "chỉ hồ sơ hết vai mà hạn mức còn mở");
+});
+
+// ---------------------------------------------------------------------------------------------------------------------------------------------------
 // R-KT-1 (ADR-0178 Đ1 mục 3; migration 0144): đơn mang dấu Tắt chỉ có khoản khách trả còn hiệu lực do hồ sơ người lập thu.
 // ---------------------------------------------------------------------------------------------------------------------------------------------------
 test("R-KT-1: đơn dấu Tắt có khoản khách trả còn hiệu lực với người thu khác người lập → vi phạm; đơn dấu Bật / không dấu, khoản đã đảo, khoản hoàn → 0", () => {
