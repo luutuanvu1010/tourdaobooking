@@ -9,7 +9,7 @@
 //  (c) ca có dữ liệu thật cho chỗ quyết định đọc quyền ngoài bộ hiệu lực: xác minh phiếu tự khai (parties — đã sửa), Góp ý / Kỹ thuật chỉ Toàn quyền (ADR-0038),
 //      quyền tiền chỉ Toàn quyền (ADR-0090) khi đóng Quản trị, admin.manage khi đóng Bán hàng, tự chọn mình làm người phụ trách khi đóng Thực tập / Đối tác.
 // Giới hạn đã biết (không quét ở đây): đóng Đối tác / Tài xế đối tác vẫn dùng hồ sơ nội bộ của chủ (`staff.partyId`) — ADR-0180 Đ1.5.
-// Bảng rà từng chỗ: .superpowers/sdd/2026-11-07-xem-nhu-vai-khac/task-7-report.md.
+// Bảng rà từng chỗ và điều chưa phủ: docs/superpowers/plans/2026-11-07-xem-nhu-vai-khac-thi-cong-nhat-ky.md.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import * as esbuild from "esbuild";
@@ -86,10 +86,8 @@ const MIEN: readonly { khoa: string; vai: readonly PermissionCode[] | null; lyDo
   { khoa: `POST ${DUONG_VAI}`, vai: null, lyDo: "Đ3: route bật xét quyền THẬT — chủ đổi vai được dù đang đóng vai không có quyền; tài khoản thật thì 403" },
   { khoa: `DELETE ${DUONG_VAI}`, vai: null, lyDo: "Đ3: route thoát xét quyền THẬT — chủ không bao giờ bị kẹt; tài khoản thật thì 403" },
   // Đ3 câu cuối: chính sách hai lớp theo quyền THẬT (accounts/index.ts dùng quyenThat) — Toàn quyền không dùng được email làm yếu tố (409), dù đang đóng vai cho phép email.
-  { khoa: "GET /api/account/mfa", vai: null, lyDo: "Đ3: yếu tố được phép / bắt buộc hai lớp tính theo quyền THẬT" },
   { khoa: "POST /api/account/mfa/email/start", vai: null, lyDo: "Đ3: email chỉ cho vai nhỏ — xét theo quyền THẬT (Toàn quyền 409)" },
   { khoa: "POST /api/account/mfa/email/confirm", vai: null, lyDo: "Đ3: như trên" },
-  { khoa: "POST /api/account/mfa/remove", vai: null, lyDo: "Đ3: yếu tố cuối cùng của người bắt buộc hai lớp — xét theo quyền THẬT" },
 ];
 
 async function quet(vai: PermissionCode, dongVai: boolean, routes: readonly R[]): Promise<Map<string, string>> {
@@ -126,11 +124,11 @@ test("(b) bảng route đủ số và mọi dòng MIỄN còn route thật", asy
   for (const m of MIEN) assert.ok(co.has(m.khoa), `miễn chết: ${m.khoa}`);
 });
 
-test("(b) danh sách MODULES của bài quét đủ mọi thư mục module có khai `...Module: AppModule` (module mới không lặng lẽ thoát khỏi bài quét)", () => {
+test("(b) danh sách MODULES của bài quét đủ mọi thư mục module có khai `...Module: AppModule` (khai kiểu `: AppModule` hoặc `satisfies AppModule`; module mới không lặng lẽ thoát khỏi bài quét)", () => {
   const goc = join(fileURLToPath(new URL(".", import.meta.url)), "modules");
   const coRoute = readdirSync(goc)
     .filter((d) => statSync(join(goc, d)).isDirectory())
-    .filter((d) => /export const \w+Module\s*:\s*AppModule/.test(readFileSync(join(goc, d, "index.ts"), "utf8")))
+    .filter((d) => /export const \w+Module\s*(?::\s*AppModule\b|=[\s\S]*?satisfies\s+AppModule\b)/.test(readFileSync(join(goc, d, "index.ts"), "utf8")))
     .sort();
   assert.deepEqual(coRoute, MODULES.map(([d]) => d).sort(), "có module có route chưa vào MODULES của bài quét này");
 });
@@ -138,6 +136,7 @@ test("(b) danh sách MODULES của bài quét đủ mọi thư mục module có 
 // Cổng router riêng (không qua handler): route giả LUÔN trả 200, nên chỉ cổng quyết định. Lớp (b) không bắt được cổng lệch vì handler thật tự hỏi can() lần nữa.
 test("(b) cổng router (admin, accounts, office, orders, staff) với route giả luôn 200: chủ đang đóng vai = tài khoản thật giữ đúng vai, ở cả 10 vai", async () => {
   const ok = async () => new Response("ok");
+  const quyenCongBaoTri: string[][] = []; // bộ quyền router đưa cho cổng bảo trì ở từng yêu cầu
   const mod: AppModule = {
     name: "giả",
     routes: [route("GET", "/x/staff", "staff", ok), route("GET", "/x/admin", "admin", ok), route("GET", "/x/accounts", "accounts", ok), route("GET", "/x/office", "office", ok), route("GET", "/x/orders", "orders", ok)],
@@ -147,7 +146,7 @@ test("(b) cổng router (admin, accounts, office, orders, staff) với route gi�
     currentStaff: async () => ({ staff, sessionId: "phien-thu" }),
     injected: {
       isAssigned: async () => false, banHang: () => ({}) as never, newOrderHandler: async () => ({ ok: false, message: "không dùng" }), ordersWithHandler: async () => new Set<string>(),
-      handledOrderIdsOf: async () => [], maintenanceBlock: async () => null, partyAccount: async () => ({ linked: false }), baoThayDoi: async () => {}, dongBangTin: async () => {},
+      handledOrderIdsOf: async () => [], maintenanceBlock: async (_e: unknown, s: StaffProfile) => (quyenCongBaoTri.push([...s.permissions]), null), partyAccount: async () => ({ linked: false }), baoThayDoi: async () => {}, dongBangTin: async () => {},
       giaoLoDay: async () => [], mocToiThieu: async () => ({ phut: 360, policyId: "moc-gia", canhBaoPhut: 120 }),
     } as never,
   });
@@ -165,6 +164,11 @@ test("(b) cổng router (admin, accounts, office, orders, staff) với route gi�
     }
   }
   assert.ok(soChan >= 20, `cổng chặn quá ít (${soChan}) — bài không phân biệt được`);
+  // Ghim Đ3: cổng bảo trì nhận quyền THẬT (Toàn quyền) dù phiên đang đóng vai — ngược với các cổng trên. Hành vi đầu-cuối khoá thêm ở src/modules/auth/xem-nhu-vai-phien.test.ts.
+  quyenCongBaoTri.length = 0;
+  for (const vai of VAI_CHON_DUOC) await goi({ ...goc, permissions: quyenHieuLuc(["SUPER_ADMIN"], vai), actingRole: vai, realPermissions: ["SUPER_ADMIN"] }, "/x/staff");
+  assert.equal(quyenCongBaoTri.length, VAI_CHON_DUOC.length);
+  for (const q of quyenCongBaoTri) assert.deepEqual(q, ["SUPER_ADMIN"], "cổng bảo trì phải nhận quyền THẬT khi đang đóng vai");
 });
 
 for (const vai of VAI_CHON_DUOC) {
