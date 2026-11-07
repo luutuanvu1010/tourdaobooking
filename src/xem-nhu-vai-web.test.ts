@@ -56,7 +56,7 @@ test("chữ: dùng «vai trò», không «vai» đứng một mình (ADR-0130)",
 test("thanh báo nằm trong khung chung (shell) và mục chọn ở trang Tôi, chỉ hỏi qua hàm thuần", () => {
   const shell = readFileSync(new URL("../web/shell.ts", import.meta.url), "utf8");
   const account = readFileSync(new URL("../web/account.ts", import.meta.url), "utf8");
-  assert.match(shell, /hienThanhXemNhu\(me\)/);
+  assert.match(shell, /ganThanhXemNhu\(me\.actingRole\)/);
   assert.match(account, /hienMucXemNhuVai\(staff\)/);
   for (const t of [shell, account]) assert.doesNotMatch(t, /realPermissions/);
 });

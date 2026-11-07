@@ -1,7 +1,6 @@
 import { ApiError, api, datNguoiDangNhap, type Staff, type Api } from "./api";
 import { BO_CHON_THANH_DINH, boTheoDoi, thanhDinhHien } from "../src/shared/thanh-dinh-day";
 import { PERMISSION_LABEL, can, type PermissionCode } from "../src/shared/permissions";
-import { hienThanhXemNhu } from "../src/shared/xem-nhu-vai-hien-thi";
 import {
   THANH_BEN,
   THANH_TAB,
@@ -142,35 +141,9 @@ async function tatThongBaoMayNay(): Promise<void> {
   }
 }
 
-/**
- * Bật (`ma`) hoặc thoát (`null`) "xem như vai trò khác" (ADR-0180) rồi tải lại trang bằng `location.replace`, để menu / tab dựng lại từ `/api/auth/me` mới.
- * Lỗi: trả câu tiếng Việt của máy chủ (hết phiên thì api.ts đã đưa về trang đăng nhập). Dùng chung cho nút Xem (trang Tôi) và nút Thoát (thanh báo).
- */
-export async function doiXemNhuVai(ma: PermissionCode | null): Promise<string | null> {
-  try {
-    await api<Api.MeResponse>("/api/auth/xem-nhu-vai", ma ? { method: "POST", body: { role: ma } } : { method: "DELETE" });
-  } catch (err) {
-    return err instanceof ApiError ? err.message : "Không đổi được. Kiểm tra mạng rồi thử lại.";
-  }
-  location.replace(location.pathname + location.search);
-  return null;
-}
-
-/** Thanh báo "Đang xem như vai trò …" + nút Thoát: dải chung của khung (web/dai.ts), mọi trang có khung. Không hứa thời hạn: phiên tự thoát khi hết hạn thì trang chỉ hiện đúng trạng thái thật. */
-function ganThanhXemNhu(me: Api.MeResponse): void {
-  const t = hienThanhXemNhu(me);
-  if (!t) return;
-  datDai("xem-nhu-vai", {
-    cau: t.cau,
-    nut: {
-      nhan: t.nutThoat,
-      khiBam: () => {
-        void doiXemNhuVai(null).then((loi) => {
-          if (loi) window.alert(loi);
-        });
-      },
-    },
-  });
+/** Thanh báo "Đang xem như vai trò …" + nút Thoát (ADR-0180): dải chung của khung. Gọn có chủ ý (gói mọi trang có trần dung lượng); không hứa thời hạn, phiên tự thoát thì trang hiện đúng trạng thái thật. */
+function ganThanhXemNhu(r?: PermissionCode): void {
+  if (r) datDai("xem-nhu-vai", { cau: "Đang xem như vai trò " + PERMISSION_LABEL[r], nut: { nhan: "Thoát", khiBam: () => void api("/api/auth/xem-nhu-vai", { method: "DELETE" }).finally(() => location.replace(location.href)) } });
 }
 
 export async function logout(): Promise<void> {
@@ -541,7 +514,7 @@ export async function initShell(): Promise<Staff> {
   const { staff } = me;
   benDatMayChuEp = me.benDatCuaToi ?? null;
   datNguoiDangNhap(staff.id); // ADR-0094: vé chống ghi trùng giữ qua "tải lại trang" theo ngăn của tài khoản này
-  ganThanhXemNhu(me);
+  ganThanhXemNhu(me.actingRole);
   if (me.maintenance?.on) setMaintenanceStrip(true, me.maintenance.endsAt);
   // Bốn cờ của bản nhớ khung hỏi CÙNG bảng quyền với máy chủ (ADR-0072 mục 4a: `admin` là ô admin.manage, không hỏi mã Quản trị) — `coKhungNho` của bảng mục.
   luuKhungNho({ tat: initials(staff.fullName), ...coKhungNho(staff) });

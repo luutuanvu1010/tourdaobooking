@@ -1,6 +1,6 @@
 import { ApiError, api, type Api } from "./api";
 import { chipHan, coMucGiayToCuaToi, ngayVN, tenGiayTo } from "../src/shared/giay-to-hien-thi";
-import { PERMISSION_LABEL, can, hasPermission } from "../src/shared/permissions";
+import { PERMISSION_LABEL, can, hasPermission, type PermissionCode } from "../src/shared/permissions";
 import { initTraSauCuaToi } from "./tra-sau-cua-toi";
 import { CAU_CHI_UNG_DUNG_XAC_THUC } from "../src/shared/hai-lop-hien-thi";
 import { coPhanTaiXe } from "../src/shared/start-page";
@@ -17,7 +17,7 @@ import { ganCaiDatNhapTay } from "./nhap-tay-cai-dat";
 import { ganCaiDatAnKhach } from "./an-khach-cai-dat";
 import { enableFlow, getAssertion, passkeyErrorMessage, platformAuthenticatorAvailable } from "./passkey";
 import { b64uSangBytes, thietBiTu } from "./push-ui";
-import { doiXemNhuVai, feedbackBadge, initShell, logout, setMaintenanceStrip, showError, xoaDaiNhacHaiLop } from "./shell";
+import { feedbackBadge, initShell, logout, setMaintenanceStrip, showError, xoaDaiNhacHaiLop } from "./shell";
 import { datKieuO, khoiBatTotp, khoiMaDuPhong, loiGuiThu, loiHaiLop, oMaSau } from "./hai-lop-ui";
 import { chipEl } from "./giay-to-ui";
 import { demSapHetHan } from "./vc-dem";
@@ -394,6 +394,17 @@ async function renderPush(): Promise<void> {
 }
 void renderPush();
 
+/** Bật "xem như vai trò khác" rồi tải lại trang bằng `location.replace` (menu / tab dựng lại từ /api/auth/me mới). Lỗi: câu tiếng Việt của máy chủ. */
+async function doiXemNhuVai(ma: PermissionCode): Promise<string | null> {
+  try {
+    await api<Api.MeResponse>("/api/auth/xem-nhu-vai", { method: "POST", body: { role: ma } });
+  } catch (err) {
+    return err instanceof ApiError ? err.message : "Không đổi được. Kiểm tra mạng rồi thử lại.";
+  }
+  location.replace(location.pathname + location.search);
+  return null;
+}
+
 // ---- Xem như vai trò khác (ADR-0180 Đ2): chỉ Toàn quyền THẬT (kể cả lúc đang xem như vai trò khác, để còn đổi / thoát). Máy chủ vẫn là cổng thật (route đòi Toàn quyền thật).
 if (hienMucXemNhuVai(staff)) {
   const chon = h("select", { id: "xem-nhu-chon", "aria-label": NHAN_CHON_XEM_NHU }, ...luaChonXemNhu().map((x) => h("option", { value: x.ma }, x.nhan)));
@@ -401,7 +412,7 @@ if (hienMucXemNhuVai(staff)) {
   const xem = h("button", { id: "xem-nhu-xem", class: "btn btn-primary", type: "button" }, NHAN_XEM_NHU);
   xem.addEventListener("click", () => {
     xem.disabled = true;
-    void doiXemNhuVai((chon as HTMLSelectElement).value as Parameters<typeof doiXemNhuVai>[0]).then((e) => {
+    void doiXemNhuVai((chon as HTMLSelectElement).value as PermissionCode).then((e) => {
       if (e) {
         showError(loi, e);
         xem.disabled = false;
