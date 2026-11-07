@@ -1778,7 +1778,8 @@ export const ordersModule: AppModule = {
       const id = params.id!;
       const d = UUID_RE.test(id) ? await mocTraSauCuaDon(env.DB, id) : null;
       if (!d) return NOT_FOUND();
-      if (d.delivered_at) return DA_GIAO(); // NT-F7: đơn đã Xong và đủ tiền thì mọi lệnh ghi của orders bị chặn sớm
+      // ADR-0181 Đ1: NGOẠI LỆ CÓ TÊN duy nhất của NT-F7 — đơn đã «Xong và đủ tiền» mà còn nợ (đối tác chưa nộp, ADR-0177) vẫn «Ân hạn» được. KHÔNG chặn sớm theo
+      // `delivered_at` ở route này; chỉ ba cột hạn trả đổi, lớp CSDL (trigger `orders_delivered_lock`, migration 0146) cho đúng trường hợp đó. Bài: sau-da-giao.test.ts (NGOAI_LE).
       if (d.payment_term !== "CREDIT" || d.status !== "confirmed" || d.credit_due_at === null || d.credit_grace_until === null) {
         return error(409, "khong_phai_don_tra_sau", "Chỉ lùi được hạn trả của đơn trả sau đã xác nhận.");
       }

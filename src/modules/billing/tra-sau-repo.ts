@@ -140,12 +140,15 @@ const NHAC_GHI = defineSql(
 );
 export const ghiNhacStatement = (db: D1Database, v: { orderId: string; loai: string; moc: string; partyId: string; at: string }) =>
   db.prepare(NHAC_GHI).bind(v.orderId, v.loai, v.moc, v.partyId, v.at);
-/** Đơn Trả sau đã xác nhận còn mốc hạn trả (ứng viên nhắc) — lọc nợ ở JS bằng cùng hàm tính nợ. */
+/**
+ * Đơn Trả sau đã xác nhận còn mốc hạn trả (ứng viên nhắc) — lọc nợ ở JS bằng cùng hàm tính nợ. GỒM CẢ đơn đã «Xong và đủ tiền» (ADR-0181 Đ1): đối tác ghi đủ tiền mà chưa nộp
+ * thì đơn vẫn còn nợ (ADR-0177) và vẫn được nhắc; ADR-0173 Đ3 mục 2 chỉ bỏ đơn ĐÃ TRẢ ĐỦ. Danh sách lớn dần theo mọi đơn Trả sau đã xong (ADR-0181 Hệ quả, xem lại khi lớn).
+ */
 const DON_CO_HAN = defineSql(
   "billing",
   "credit_orders_with_due",
   `SELECT id, order_code, booker_party_id, status, delivered_at, credit_due_at, credit_grace_until FROM v_ord_don_tra_sau
-   WHERE status = 'confirmed' AND delivered_at IS NULL AND credit_due_at IS NOT NULL AND booker_party_id IS NOT NULL ORDER BY credit_due_at`,
+   WHERE status = 'confirmed' AND credit_due_at IS NOT NULL AND booker_party_id IS NOT NULL ORDER BY credit_due_at`,
 );
 export const donCoHanTra = async (db: D1Database): Promise<DonTraSauRow[]> => (await db.prepare(DON_CO_HAN).all<DonTraSauRow>()).results;
 /** Tài khoản ĐANG HOẠT ĐỘNG của các hồ sơ bên đặt (người nhận tin nhắc) — view công bố của staff, một câu cho nhiều hồ sơ. */
