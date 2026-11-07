@@ -4545,5 +4545,5 @@ main select { max-width: 100%; }
 
 /* ---------- ADR-0180: thanh «Đang xem như vai trò …» dính khi cuộn (chỉ token; dải chung `.dai` ở web/dai.ts) ---------- */
 #strips:has(> .dai[data-loai="xem-nhu-vai"]) { position: sticky; top: 0; z-index: var(--z-dinh); }
-@media (max-width: 899px) { #strips:has(> .dai[data-loai="xem-nhu-vai"]) { top: calc(var(--bar-h) + env(safe-area-inset-top)); } body.trang-chu #strips:has(> .dai[data-loai="xem-nhu-vai"]) { top: 0; } }
+@media (max-width: 899px) { #strips:has(> .dai[data-loai="xem-nhu-vai"]) { top: calc(var(--bar-h) + env(safe-area-inset-top)); } body.trang-chu #strips:has(> .dai[data-loai="xem-nhu-vai"]) { top: env(safe-area-inset-top); } }
 #xem-nhu-chon { margin-bottom: var(--s3); }

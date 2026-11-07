@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { PERMISSION_LABEL, type PermissionCode } from "./shared/permissions.ts";
-import { VAI_CHON_DUOC } from "./shared/xem-nhu-vai.ts";
+import { VAI_CHON_DUOC, laToanQuyenThat } from "./shared/xem-nhu-vai.ts";
 import { CAU_GOI_Y_XEM_NHU, NHAN_THOAT_XEM_NHU, NHAN_XEM_NHU, TIEU_DE_XEM_NHU, cauThanhXemNhu, hienMucXemNhuVai, hienThanhXemNhu, luaChonXemNhu } from "./shared/xem-nhu-vai-hien-thi.ts";
 
 const staff = (permissions: PermissionCode[], realPermissions?: PermissionCode[]) => ({ permissions, ...(realPermissions ? { realPermissions } : {}) });
@@ -53,10 +53,27 @@ test("chữ: dùng «vai trò», không «vai» đứng một mình (ADR-0130)",
   assert.ok(CAU_GOI_Y_XEM_NHU.length > 20);
 });
 
-test("thanh báo nằm trong khung chung (shell) và mục chọn ở trang Tôi, chỉ hỏi qua hàm thuần", () => {
+test("thanh báo: bảo trì đang bật thì thêm « · Đang bảo trì»; không thì không có", () => {
+  assert.equal(hienThanhXemNhu({ actingRole: "SALES", maintenance: { on: true } })!.cau, `${cauThanhXemNhu("SALES")} · Đang bảo trì`);
+  assert.equal(hienThanhXemNhu({ actingRole: "SALES", maintenance: { on: false } })!.cau, cauThanhXemNhu("SALES"));
+  assert.equal(hienThanhXemNhu({ maintenance: { on: true } }), null);
+});
+
+test("hienMucXemNhuVai chính là laToanQuyenThat (không viết lại)", () => {
+  assert.equal(hienMucXemNhuVai, laToanQuyenThat);
+});
+
+// Nguồn: không dựng được DOM của initShell trong bài thuần, nên khoá ở mức MÃ NGUỒN của khung chung (web/shell.ts) — chọn cách này, nói rõ.
+test("khung chung: thanh báo dùng đúng hàm chung, Thoát = DELETE rồi tải lại thật, không chép chữ", () => {
   const shell = readFileSync(new URL("../web/shell.ts", import.meta.url), "utf8");
   const account = readFileSync(new URL("../web/account.ts", import.meta.url), "utf8");
-  assert.match(shell, /ganThanhXemNhu\(me\.actingRole\)/);
+  assert.match(shell, /import \{ hienThanhXemNhu \} from "\.\.\/src\/shared\/xem-nhu-vai-thanh"/);
+  assert.match(shell, /const t = hienThanhXemNhu\(me\);\s*\n\s*if \(t\) datDai\("xem-nhu-vai", \{ cau: t\.cau, nut: \{ nhan: t\.nutThoat,/);
+  assert.match(shell, /"\/api\/auth\/xem-nhu-vai", \{ method: "DELETE" \}\)\.finally\(taiLai\)/);
+  assert.match(shell, /ganThanhXemNhu\(me\);/);
+  assert.doesNotMatch(shell, /location\.replace\(location\.href\)/);
+  assert.doesNotMatch(shell, /"Đang xem như vai trò|`Đang xem như vai trò/);
+  assert.doesNotMatch(shell, /nhan: "Thoát"/);
   assert.match(account, /hienMucXemNhuVai\(staff\)/);
   for (const t of [shell, account]) assert.doesNotMatch(t, /realPermissions/);
 });
