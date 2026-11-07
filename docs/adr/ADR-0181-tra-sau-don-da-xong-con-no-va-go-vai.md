@@ -1,6 +1,6 @@
 # ADR-0181 — Trả sau: đơn đã «Xong và đủ tiền» còn nợ được nhắc và nới hạn; thôi làm đối tác thì hết hạn mức
 
-- **Trạng thái:** **proposed** 2026-11-07 — chủ bấm «Theo khuyến nghị» trong chat (phiên `claude/partner-type-ta-oracle-18-efd687`) cho hai hướng dưới đây, sau báo cáo kiểm độc lập toàn phần Trả sau ngày 7/11 (phát hiện TRUNG-1, TRUNG-2); chờ chủ duyệt văn bản.
+- **Trạng thái:** **accepted** 2026-11-07 — chủ bấm «Duyệt ADR-0181» trong chat (phiên `claude/partner-type-ta-oracle-18-efd687`) sau khi đọc bản giải thích ba điểm bằng ví dụ đại lý A. Trước đó: **proposed** 2026-11-07 — chủ bấm «Theo khuyến nghị» cho hai hướng dưới đây, sau báo cáo kiểm độc lập toàn phần Trả sau ngày 7/11 (phát hiện TRUNG-1, TRUNG-2).
 - **Loại:** việc lớn (tiền, dữ liệu). **Cửa:** hai chiều về hành vi; Đ1 cần một migration tạo lại trigger khoá (thêm một trường hợp được phép, không đổi dữ liệu).
 - **Số quyết định chạm quyền/dữ liệu trong lượt duyệt:** 2 (cùng lượt với ADR-0177 đã duyệt sáng 7/11 — tổng 3).
 - **Quan hệ với ADR cũ:** **thêm một ngoại lệ có tên** cho ADR-0025 H6 («đơn đã Đã giao khoá tất cả»). **Áp** ADR-0168 Đ1 mục 2 («chỉ cấp cho hồ sơ đang mang loại đối tác được hưởng») vào lúc vai kết thúc. Không đổi ADR-0172, ADR-0173, ADR-0177.
