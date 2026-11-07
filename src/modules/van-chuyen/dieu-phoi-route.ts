@@ -17,11 +17,11 @@ import { daoMoiSauDoi, diemDonChuaToiCuaDiemTra, sapDonTruocTra } from "../../sh
 import { msToVnLocal, ngayNgan } from "../../shared/vn-date";
 import { findRoute } from "./tien-xe-repo";
 import {
-  allocsByTrips, banChupCuoi, choChayThieuDaDung, eventByRequest, eventsByTrips, legFlags, stopsByTrips, tenNguoiDiKem, type AllocRow, type StopRow, type SuKienYeuCauRow, type TripRow, type XeDieuPhoiRow,
+  allocsByTrips, banChupCuoi, choChayThieuDaDung, eventByRequest, eventsByTrips, legFlags, stopsByTrips, tenGiayCuaSuKien, tenNguoiDiKem, tripsByDate, type AllocRow, type StopRow, type SuKienYeuCauRow, type TripRow, type XeDieuPhoiRow,
 } from "./chuyen-repo";
 import type { CauCoNhan, DiemMoi, SuKienCuaLo } from "./dieu-phoi";
 import {
-  banChupDto, canhBaoDto, chuoiDichCuaDiem, chuyenTomTat, diemChuyenDto, gioVn, lyDoDangDung, lyDoGiuCuaChuyen, lyDoGiuDto, nhatKyChuyenDto, suatChuyenDto, taiXeChon,
+  banChupDto, canhBaoDto, choChayThieuDangAp, chuoiDichCuaDiem, chuyenTomTat, diemChuyenDto, gioVn, lyDoDangDung, lyDoGiuCuaChuyen, lyDoGiuDto, nhatKyChuyenDto, suatChuyenDto, taiXeChon,
   xeChon,
 } from "./dieu-phoi-dto";
 import { boSungXe, chinhSachVao, choPhepCuaChuyen, docChung, docNguCanh, xeVao, type DuLieuChung, type NenChuyen, type NguCanhChuyen } from "./dieu-phoi-doc";
@@ -409,7 +409,7 @@ export async function chiTietChuyen(
     diem: nen.stops.map((s) => diemChuyenDto(s, { allocs: nen.allocs, chang: nc.chang, stops: nen.stops, events: nen.events, nhan })),
     suat: nen.allocs.filter((a) => a.valid_to_at === null).map((a) => suatChuyenDto(a, { changLich: nc.changLich, changNgoai: nc.changNgoai, ten, events: nen.events, nhan, tenDiKem, lyDoNhan })),
     canhBao: canhBao.map(canhBaoDto),
-    nhatKy: nhatKyChuyenDto(nen.events, nhan, lyDoNhan, nen.trip.id),
+    nhatKy: nhatKyChuyenDto(nen.events, nhan, lyDoNhan, nen.trip.id, await tenGiayCuaSuKien(db, nen.events.filter((e) => e.kind === "DOCS_WAIVED").map((e) => e.id))),
     banChup: banChupDto(await banChupCuoi(db, t.id)),
     lyDo: lyDoDangDung(c),
     xe: xeChon(c),
@@ -502,7 +502,9 @@ export async function cuocChiTiet(
     trip: t, xe: c.xe.find((x) => x.id === t.vehicle_id), events: nen.events,
     diem: nen.stops.map((s) => diemChuyenDto(s, { allocs: nen.allocs, chang: nc.chang, stops: nen.stops, events: nen.events, nhan })),
     suat: nen.allocs.filter((a) => a.valid_to_at === null).map((a) => suatChuyenDto(a, { changLich: nc.changLich, changNgoai: nc.changNgoai, ten, events: nen.events, nhan, tenDiKem, lyDoNhan })),
-    lienHe, conThieu: lyDoGiuCuaChuyen(t, lyDoGiuDuPhong(t, nc, c, bayGioMs, true), bayGioMs, c.chinhSach?.min_lead_minutes ?? null), lyDo: c.lyDo.filter((r) => r.reason_group === "KET_THUC_GIAN_DOAN"), nhan, trongNgay,
+    lienHe, conThieu: lyDoGiuCuaChuyen(t, lyDoGiuDuPhong(t, nc, c, bayGioMs, true), bayGioMs, c.chinhSach?.min_lead_minutes ?? null),
+    choChayThieu: t.status === "PLANNED" ? choChayThieuDangAp(t, c.xe.find((x) => x.id === t.vehicle_id), c) : ((await choChayThieuDaDung(db, [t.id])).get(t.id) ?? []), // ADR-0184
+    lyDo: c.lyDo.filter((r) => r.reason_group === "KET_THUC_GIAN_DOAN"), nhan, trongNgay,
     chiDuong,
     khung,
     lyDoTuChoi: khung.tuChoiDuoc ? c.lyDo.filter((r) => r.reason_group === "TU_CHOI_CHUYEN") : [],
@@ -520,6 +522,7 @@ export async function danhSachCuoc(db: D1Database, trips: readonly TripRow[], li
   const ids = trips.map((t) => t.id);
   const [stops, allocs, events] = await Promise.all([stopsByTrips(db, ids), allocsByTrips(db, ids), eventsByTrips(db, ids)]);
   await boSungXe(db, c, trips.map((t) => t.vehicle_id));
+  const daChay = await choChayThieuDaDung(db, trips.filter((t) => t.status !== "PLANNED").map((t) => t.id)); // ADR-0184: một lượt cho mọi chuyến đã chạy
   const ra: CuocCuaToiItemDto[] = [];
   for (const t of trips) {
     const a = allocs.filter((x) => x.trip_id === t.id);
@@ -530,7 +533,22 @@ export async function danhSachCuoc(db: D1Database, trips: readonly TripRow[], li
     const conThieu = t.status === "PLANNED"
       ? lyDoGiuCuaChuyen(t, lyDoGiuDuPhong(t, await docNguCanh(db, nen, lich, c, [], bayGioMs), c, bayGioMs, false), bayGioMs, c.chinhSach?.min_lead_minutes ?? null)
       : [];
-    ra.push(cuocCuaToiItem(t, { xe: c.xe.find((x) => x.id === t.vehicle_id), stops: nen.stops, allocs: a, conThieu, chiCauGoc }));
+    ra.push(cuocCuaToiItem(t, { xe: c.xe.find((x) => x.id === t.vehicle_id), stops: nen.stops, allocs: a, conThieu, chiCauGoc,
+      choChayThieu: t.status === "PLANNED" ? choChayThieuDangAp(t, c.xe.find((x) => x.id === t.vehicle_id), c) : (daChay.get(t.id) ?? []) }));
   }
   return ra;
+}
+
+/**
+ * ADR-0184 — số cho thẻ «Xe thiếu giấy tờ — đã cho chạy» ở Trang chủ Quản trị: chuyến HÔM NAY (giờ Việt Nam) chưa kết thúc (chưa chạy hoặc đang chạy) mà nhãn vàng
+ * đang hiện — CÙNG hàm đọc với nhãn ở chuyến (`choChayThieuDangAp` cho chuyến chưa chạy, `choChayThieuDaDung` cho chuyến đang chạy), nên số khớp nhãn.
+ */
+export async function demChoChayThieuHomNay(db: D1Database, bayGioMs: number): Promise<number> {
+  const homNay = msToVnLocal(bayGioMs).date;
+  const trips = (await tripsByDate(db, homNay)).filter((t) => t.status === "PLANNED" || t.status === "RUNNING");
+  if (trips.length === 0) return 0;
+  const dangChay = trips.filter((t) => t.status === "RUNNING");
+  const [c, daChay] = await Promise.all([docChung(db, new Date(bayGioMs).toISOString(), homNay), choChayThieuDaDung(db, dangChay.map((t) => t.id))]);
+  await boSungXe(db, c, trips.map((t) => t.vehicle_id));
+  return trips.filter((t) => (t.status === "PLANNED" ? choChayThieuDangAp(t, c.xe.find((x) => x.id === t.vehicle_id), c).length > 0 : (daChay.get(t.id)?.length ?? 0) > 0)).length;
 }

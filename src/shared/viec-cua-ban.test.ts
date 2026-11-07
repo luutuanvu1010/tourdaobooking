@@ -148,7 +148,7 @@ test("conLaiThe: phần dồn theo thứ tự ưu tiên; cauConLai viết nhãn 
 test("nhãn phạm vi: mỗi khoá thẻ có phạm vi trong bảng chung (điều chỉnh và đơn nháp = Của tôi — ADR-0135; còn lại Toàn công ty)", () => {
   assert.deepEqual(
     Object.entries(KHOA_PHAM_VI).map(([k, v]) => [k, PHAM_VI_O_TRANG_CHU[v]]),
-    [["xemLai", "TOAN_CONG_TY"], ["dieuChinh", "CUA_TOI"], ["nhap", "CUA_TOI"], ["conThieu", "TOAN_CONG_TY"], ["chuaPhuTrach", "TOAN_CONG_TY"], ["chuaBanHang", "TOAN_CONG_TY"], ["chuyenHomNay", "TOAN_CONG_TY"], ["gopY", "TOAN_CONG_TY"], ["donCho", "TOAN_CONG_TY"], ["doiChieu", "TOAN_CONG_TY"], ["thuTruoc", "TOAN_CONG_TY"]],
+    [["xemLai", "TOAN_CONG_TY"], ["dieuChinh", "CUA_TOI"], ["nhap", "CUA_TOI"], ["conThieu", "TOAN_CONG_TY"], ["chuaPhuTrach", "TOAN_CONG_TY"], ["chuaBanHang", "TOAN_CONG_TY"], ["chuyenHomNay", "TOAN_CONG_TY"], ["gopY", "TOAN_CONG_TY"], ["donCho", "TOAN_CONG_TY"], ["doiChieu", "TOAN_CONG_TY"], ["thuTruoc", "TOAN_CONG_TY"], ["choChayThieu", "TOAN_CONG_TY"]],
   );
 });
 
@@ -165,4 +165,19 @@ test("R-P18: mọi tập quyền có PARTNER (kể cả lai Kế toán / Toàn q
   }
   assert.equal(soTap, 1024);
   assert.ok(viecCuaBan(who("ACCOUNTING"), day).the.some((t) => t.khoa === "dieuChinh"), "Kế toán thường vẫn có thẻ");
+});
+
+// ADR-0184 việc 5: thẻ «Xe thiếu giấy tờ — đã cho chạy» — chỉ người có ô trip.override (Quản trị, Toàn quyền), bấm tới Điều phối xe; số 0 thì không thẻ; nguồn lỗi hiện «—».
+test("thẻ choChayThieu: Quản trị / Toàn quyền thấy, Bán hàng và Kế toán không; số 0 → vắng; lỗi → «—»", () => {
+  for (const p of ["ADMIN", "SUPER_ADMIN"] as const) {
+    const t = viecCuaBan(who(p), { choChayThieu: 2 }).the.find((x) => x.khoa === "choChayThieu");
+    assert.deepEqual([t?.nhan, t?.so, t?.href, t?.nut], ["Xe thiếu giấy tờ — đã cho chạy", 2, "/dieu-phoi", "Xem chuyến"], p);
+    assert.ok(nguonCanTai(who(p)).includes("choChayThieu"), p);
+  }
+  for (const p of ["SALES", "ACCOUNTING"] as const) {
+    assert.ok(!viecCuaBan(who(p), { choChayThieu: 2 }).the.some((x) => x.khoa === "choChayThieu"), p);
+    assert.ok(!nguonCanTai(who(p)).includes("choChayThieu"), p);
+  }
+  assert.ok(!viecCuaBan(who("ADMIN"), { choChayThieu: 0 }).the.some((x) => x.khoa === "choChayThieu"));
+  assert.equal(viecCuaBan(who("ADMIN"), { choChayThieu: null }).the.find((x) => x.khoa === "choChayThieu")?.so, null);
 });

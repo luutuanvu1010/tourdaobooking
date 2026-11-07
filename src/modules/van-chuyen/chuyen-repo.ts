@@ -370,6 +370,13 @@ export async function choChayThieuDaDung(db: D1Database, tripIds: readonly strin
   for (const r of rows) out.set(r.trip_id, [...(out.get(r.trip_id) ?? []), { ten: r.type_name ?? r.document_type_code }]);
   return out;
 }
+/** ADR-0184: id sự kiện `DOCS_WAIVED` (= dấu lệnh của dòng cho phép) → tên các loại giấy đã cho chạy thiếu, theo thứ tự danh mục. Chỉ tên loại. */
+export async function tenGiayCuaSuKien(db: D1Database, suKienIds: readonly string[]): Promise<Map<string, string[]>> {
+  const out = new Map<string, string[]>();
+  if (suKienIds.length === 0) return out;
+  for (const r of (await db.prepare(THIEU_GIAY_CHO_TIN).bind(JSON.stringify([...new Set(suKienIds)])).all<{ id: string; ten: string }>()).results) out.set(r.id, [...(out.get(r.id) ?? []), r.ten]);
+  return out;
+}
 /** Lý do ĐANG DÙNG (mã + nhãn + nhóm) — đi kèm phản hồi lịch / chi tiết chuyến (I5). */
 const LY_DO_DANG_DUNG = defineSql("van-chuyen", "ly_do_dang_dung", "SELECT code, reason_group, label FROM vc_reason WHERE active = 1 ORDER BY reason_group, sort_order, code");
 export async function lyDoDangDung(db: D1Database): Promise<{ code: string; reason_group: string; label: string }[]> {

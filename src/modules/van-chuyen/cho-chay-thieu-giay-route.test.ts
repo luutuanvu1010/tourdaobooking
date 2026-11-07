@@ -366,3 +366,52 @@ test("ADR-0184 việc 4 — DTO màn: chi tiết chuyến có giayToThieu (khôn
     tat();
   }
 });
+
+test("ADR-0184 việc 5 — tài xế đang lái thấy nhãn (danh sách cuốc VÀ chi tiết, trước và sau xuất bến) chỉ gồm tên loại; số trên Trang chủ đếm đúng chuyến chưa kết thúc, chỉ người có ô trip.override", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    themDieuKienDangKy(w);
+    const { t } = await chuyenXe(w, ["INSPECTION", "TPL_INSURANCE"]); // thiếu Đăng ký xe
+    const dem = async (as: string) => w.call("GET", "/api/van-chuyen/cho-chay-thieu/dem", { as });
+    const cuoc = async () => (await w.call("GET", `/api/van-chuyen/cuoc-cua-toi?tu=${NGAY}&den=${NGAY}`, { as: DRIVER })).json.chuyen.find((c: any) => c.id === t.id);
+    const ct = async () => (await w.call("GET", `/api/van-chuyen/cuoc-cua-toi/${t.id}`, { as: DRIVER })).json;
+    assert.deepEqual((await cuoc()).choChayThieu, []);
+    assert.deepEqual((await ct()).choChayThieu, []);
+    assert.equal((await dem(ADM)).json.count, 0);
+    const r = await choChay(w, t.id, ADM, { loaiGiayTo: ["REGISTRATION"], lyDo: "THIEU_GIAY_GIA_HAN", ghiChu: "Đang chờ cấp lại cà vẹt tại đăng kiểm" });
+    assert.ok(r.status === 200 || r.status === 201, r.text);
+    assert.deepEqual((await cuoc()).choChayThieu, [{ ten: "Đăng ký xe" }], "danh sách cuốc");
+    const chiTietTx = await ct();
+    assert.deepEqual(chiTietTx.choChayThieu, [{ ten: "Đăng ký xe" }], "chi tiết cuốc");
+    assert.doesNotMatch(JSON.stringify(chiTietTx.choChayThieu), /cà vẹt|đăng kiểm|KHUNGV|Quản Trị/);
+    // Số Trang chủ: Quản trị và Toàn quyền thấy 1; Bán hàng, Kế toán 403.
+    assert.equal((await dem(ADM)).json.count, 1);
+    assert.equal((await dem(SUP)).json.count, 1);
+    for (const as of [SALES, ACC]) assert.equal((await dem(as)).status, 403, as);
+    // Sau xuất bến (đang chạy): nhãn lấy từ bản chụp ĐẠT; số vẫn tính (chưa kết thúc).
+    denGio("12:40");
+    assert.equal((await tienDo(w, "tai-xe", t.id, "xuat-ben")).status, 200);
+    assert.deepEqual((await cuoc()).choChayThieu, [{ ten: "Đăng ký xe" }]);
+    assert.deepEqual((await ct()).choChayThieu, [{ ten: "Đăng ký xe" }]);
+    assert.equal((await dem(ADM)).json.count, 1);
+    // Nhật ký chuyến của văn phòng: sự kiện DOCS_WAIVED kèm tên loại.
+    const nk = (await chiTiet(w, t.id, ADM)).nhatKy.find((e: any) => e.loai === "DOCS_WAIVED");
+    assert.deepEqual(nk.loaiGiayTo, ["Đăng ký xe"]);
+  } finally {
+    tat();
+  }
+});
+
+test("ADR-0184 việc 5 — chuyến không có cho phép: số Trang chủ bằng 0 và cuốc tài xế không có nhãn", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const { t } = await chuyenXe(w, ["INSPECTION", "TPL_INSURANCE"]);
+    assert.equal((await w.call("GET", "/api/van-chuyen/cho-chay-thieu/dem", { as: ADM })).json.count, 0);
+    const c = (await w.call("GET", `/api/van-chuyen/cuoc-cua-toi?tu=${NGAY}&den=${NGAY}`, { as: DRIVER })).json.chuyen.find((x: any) => x.id === t.id);
+    assert.deepEqual(c.choChayThieu, []);
+  } finally {
+    tat();
+  }
+});

@@ -442,6 +442,7 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/van-chuyen/loai-giay-to-xe", access: "admin" }, // danh mục loại giấy tờ xe — admin.manage viết thẳng (luật 4)
   { method: "PUT", path: "/api/van-chuyen/loai-giay-to-xe/:code", access: "admin" }, // như trên
   { method: "POST", path: "/api/van-chuyen/nguong-het-han", access: "admin" }, // ngưỡng "sắp hết hạn" (dòng chính sách mới) — CHỈ settings.ops (Toàn quyền), viết thẳng (luật 4)
+  { method: "GET", path: "/api/van-chuyen/cho-chay-thieu/dem", access: "office" }, // ADR-0184: số chuyến hôm nay có nhãn «đã cho chạy dù thiếu giấy tờ» (thẻ Trang chủ Quản trị); thân hỏi trip.override
   { method: "GET", path: "/api/van-chuyen/sap-het-han", access: "office" }, // danh sách giấy tờ sắp hết hạn (xe + tài xế, KHÔNG số) + count (R15); thân hỏi vehicle.manage
   { method: "GET", path: "/api/van-chuyen/nha-xe", access: "office" }, // ADR-0048 D1: nhà xe đang hợp tác + công ty chủ + số xe, số tài xế; thân hỏi vehicle.manage
   // ADR-0057 T1 (kế hoạch Đợt 4 Task 4): bảng giá thuê xe — thân hỏi transport.rate.view / transport.rate.manage; tuyến, cỡ xe: đọc trip.dispatch HOẶC rate.view.
@@ -750,6 +751,7 @@ test("mức truy cập của 443 route hiện có khớp ảnh chụp đã duy�
   // 2026-11-06 (ADR-0178 Đ1 mục 1, Task A2): + GET, POST /api/kenh-thu-doi-tac (office; billing.partner_channel.view / .write) = 464.
   // 2026-11-07 (ADR-0180 Đ1): + POST, DELETE /api/auth/xem-nhu-vai (staff; module accounts; thân hỏi ô settings.ops theo quyền THẬT) = 466.
   // 2026-11-07 (ADR-0184 việc 3): + POST /api/van-chuyen/chuyen/:id/cho-chay-thieu-giay (office; trip.override, thân hỏi thêm trip.override.giay_to_cung) = 467.
-  assert.equal(actual.length, 467, "số route thực tế lệch 467 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 467, "SNAPSHOT phải có đúng 467 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // 2026-11-08 (ADR-0184 việc 5): + GET /api/van-chuyen/cho-chay-thieu/dem (office; thân hỏi trip.override — số cho thẻ Trang chủ) = 468.
+  assert.equal(actual.length, 468, "số route thực tế lệch 468 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 468, "SNAPSHOT phải có đúng 468 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

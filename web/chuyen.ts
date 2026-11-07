@@ -264,17 +264,19 @@ function ve(): void {
   // Điều kiện xuất bến (chuyến lên kế hoạch) / bản chụp lúc xuất bến (sau khi xuất bến).
   let dieuKien: HTMLElement;
   if (keHoach) {
-    const dk = dieuKienXuatBen(c.lyDoGiu, r.nhacDieuKien);
+    const dk = dieuKienXuatBen(c.lyDoGiu, r.nhacDieuKien, c.choChayThieu);
     const soChua = dk.filter((x) => !x.dat && !x.khongCan).length;
     dieuKien = h(
       "section",
       { class: "vc-card dp-side-card", "aria-labelledby": "ct-dk-title" },
       h("div", { class: "dp-card-head" }, h("h2", { id: "ct-dk-title", class: "dp-card-title" }, "Điều kiện cho xe chạy"), soChua ? chip(`${soChua} chưa đạt`, "danger") : chip("Đạt hết", "ok")),
       // ADR-0154 Đ3.3: dòng «không cần» (đơn mang dấu miễn danh sách khách) có dấu riêng — không ✓, không ✕, không tính «chưa đạt».
-      ...dk.map((x) => h("div", { class: "dp-cond", "data-dat": String(x.dat), ...(x.khongCan ? { "data-khong-can": "true" } : {}) },
+      ...dk.map((x) => h("div", { class: "dp-cond", "data-dat": String(x.dat), ...(x.choChay ? { "data-canh-bao": "true" } : {}), ...(x.khongCan ? { "data-khong-can": "true" } : {}) },
         x.khongCan
           ? h("span", { class: "dp-cond-mark is-khong-can", "aria-label": "Không cần" }, "–")
-          : h("span", { class: x.dat ? "dp-cond-mark is-dat" : "dp-cond-mark is-chua", "aria-label": x.dat ? "Đạt" : "Chưa đạt" }, x.dat ? "✓" : "✕"),
+          : x.choChay
+            ? h("span", { class: "dp-cond-mark is-canh-bao", "aria-label": "Cảnh báo" }, icon("alert", 12, 2))
+            : h("span", { class: x.dat ? "dp-cond-mark is-dat" : "dp-cond-mark is-chua", "aria-label": x.dat ? "Đạt" : "Chưa đạt" }, x.dat ? "✓" : "✕"),
         h("span", { class: "dp-cond-text" }, h("span", { class: "dp-cond-nhan" }, x.nhan), x.chiTiet ? h("span", { class: "dp-cond-sub" }, x.chiTiet) : null))),
     );
   } else if (r.banChup) {

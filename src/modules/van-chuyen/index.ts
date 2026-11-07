@@ -9,6 +9,7 @@ import type {
 } from "../../shared/contracts";
 import { MA_LOAI_GIAY_TO_RE, TRANG_THAI_XE, kiemLoaiGiayToMoi, kiemSuaLoaiGiayTo, soNgayConLai } from "../../shared/giay-to";
 import { UUID_RE, error, json, kemLocation, readJson } from "../../shared/http";
+import { thaySoChoChayThieu } from "../../shared/cho-chay-thieu-giay";
 import { PARTY_ID_RE } from "../../shared/party-id";
 import { can } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
@@ -41,7 +42,7 @@ import {
 
 // ADR-0049 D1–D3 (Task A13): chuyến xe — hàm hẹp của orders (chỉ gọi trong THÂN route, sau can() — bài src/orders-cong-bo.test.ts), đọc / dựng lô / DTO.
 import { cauThemHanhKhachTaiXe, hanhKhachChoChuyen, kiemHanhKhachTaiXe, lichChungChang, lienHeChoTaiXe } from "../orders";
-import type { CapNhatDiemResponse, CuuHoResponse, HuongDanVienListResponse, CapNhatKhachResponse, ChuyenChiTietResponse, CuocChiTietResponse, CuocCuaToiResponse, StaffProfile, TuChoiResponse } from "../../shared/contracts";
+import type { CapNhatDiemResponse, CuuHoResponse, HuongDanVienListResponse, CapNhatKhachResponse, ChoChayThieuDemResponse, ChuyenChiTietResponse, CuocChiTietResponse, CuocCuaToiResponse, StaffProfile, TuChoiResponse } from "../../shared/contracts";
 import { kiemTaoSuaChuyen, mocMoKhung, trongKhungXemKhach } from "../../shared/dieu-phoi-kiem";
 import { coSuatChuyenVao, hanTuChoiCuaCap } from "./han-tu-choi-repo";
 import type { KhungTaiXe } from "./tai-xe-dto";
@@ -53,7 +54,7 @@ import { cuuHoTu } from "./cuu-ho";
 import { chinhSachVao, docChung, docNen, khungChuyen, taiXeVao, xeVao, type NenChuyen } from "./dieu-phoi-doc";
 import { CAU_LY_DO_VUOT_LA, dungLichNgay, lenhBaoHuy, lenhBoSungTen, lenhCapNhatDiem, lenhCapNhatKhach, lenhDoi, lenhHuy, lenhRut, lenhSuaChuyen, lenhThemDiemDangChay, lenhXep } from "./dieu-phoi-lenh";
 import {
-  CAN_DIEU_PHOI, CAN_XEM_CHUYEN, KHONG_CO_CHUYEN, chanCoVuot, chayLo, chiTietChuyen, cuocChiTiet, danhSachCuoc, gioNgan, loi409, loiKiem, lyDoHopLe, nhanLyDo, phaLeNhatKy,
+  CAN_DIEU_PHOI, CAN_XEM_CHUYEN, KHONG_CO_CHUYEN, chanCoVuot, chayLo, chiTietChuyen, cuocChiTiet, danhSachCuoc, demChoChayThieuHomNay, gioNgan, loi409, loiKiem, lyDoHopLe, nhanLyDo, phaLeNhatKy,
   gioKhanCapNhatKy, traLenhLap, vuotLenh, type QuyenVuot, MA_LENH_DUNG_LAI,
 } from "./dieu-phoi-route";
 import { lenhTuChoi } from "./tu-choi";
@@ -1070,6 +1071,12 @@ export const vanChuyenModule: AppModule = {
         ownerCompany: congTy ? { partyId: congTy.partyId, name: congTy.displayName } : null,
         carriers: nhaXe.map((c) => ({ partyId: c.partyId, name: c.displayName, kind: c.kind, vehicleCount: soXe.get(c.partyId) ?? 0, driverCount: c.driverCount })),
       } satisfies CarrierListResponse);
+    }),
+
+    // ADR-0184 — số cho thẻ Trang chủ «Xe thiếu giấy tờ — đã cho chạy»: chuyến hôm nay chưa kết thúc mà nhãn vàng đang hiện. Chỉ ô `trip.override`; không tên, không số giấy.
+    route("GET", "/api/van-chuyen/cho-chay-thieu/dem", "office", async ({ env, staff }) => {
+      if (!thaySoChoChayThieu(staff)) return FORBIDDEN();
+      return json({ count: await demChoChayThieuHomNay(env.DB, Date.now()) } satisfies ChoChayThieuDemResponse);
     }),
 
     route("GET", "/api/van-chuyen/sap-het-han", "office", async ({ env, staff }) => {

@@ -1330,6 +1330,8 @@ export interface ExpiringItemDto {
   ownerLabel: string | null;
 }
 /** GET /api/van-chuyen/sap-het-han — `count` = số dòng (đã hết + sắp hết) cho huy hiệu trên menu (R15 điểm 2). */
+/** GET /api/van-chuyen/cho-chay-thieu/dem (ADR-0184) — số chuyến hôm nay (giờ Việt Nam) chưa kết thúc mà nhãn «Xe thiếu giấy tờ — đã cho chạy» đang hiện; chỉ ô trip.override. */
+export interface ChoChayThieuDemResponse { count: number }
 export interface ExpiringListResponse { warnDays: number; count: number; items: ExpiringItemDto[] }
 /** ADR-0048 D1: một nhà xe đang hợp tác — tên, loại hồ sơ, số xe CHƯA NGỪNG, số tài xế "thuộc". Không liên hệ, không MST. */
 export interface CarrierDto { partyId: string; name: string; kind: "PERSON" | "ORGANIZATION"; vehicleCount: number; driverCount: number }
@@ -1843,6 +1845,8 @@ export interface NhatKyChuyenDto {
   phaLe: { luat: string; lyDoNhan: string } | null;
   /** Sự kiện ghi ở CHUYẾN KHÁC mà chuyến này là chuyến liên quan (dời / chuyển khách đi — ADR-0111 Đ5; luật "đã có tiến độ sau xuất bến"). */
   chuyenKhac: boolean;
+  /** ADR-0184: với sự kiện `DOCS_WAIVED` — tên các loại giấy tờ xe đã cho chạy thiếu (chỉ tên loại); các sự kiện khác vắng. */
+  loaiGiayTo?: string[];
 }
 export interface BanChupDto {
   ketQua: "DAT" | "KHONG_DAT";
@@ -2117,6 +2121,8 @@ export interface CuocCuaToiItemDto {
   soDiemDon: number;
   soDiemTra: number;
   dieuKienConThieu: DieuKienConThieuDto[];
+  /** ADR-0184: loại giấy tờ xe đã được cho chạy dù thiếu (chỉ tên loại — không số giấy, không người cho phép); rỗng = không có nhãn vàng. */
+  choChayThieu: { ten: string }[];
 }
 export interface CuocCuaToiResponse { tu: string; den: string; chuyen: CuocCuaToiItemDto[] }
 /**
@@ -2136,6 +2142,8 @@ export interface XeCuaDonChangDto { legId: string; xe: XeCuaDonXeDto[] }
 export interface XeCuaDonResponse { chang: XeCuaDonChangDto[] }
 /** Route 20 (và phản hồi lệnh tiến độ của tài xế) — chi tiết một chuyến mình đang lái. */
 export interface CuocChiTietResponse {
+  /** ADR-0184: như `CuocCuaToiItemDto.choChayThieu`. */
+  choChayThieu: { ten: string }[];
   chuyen: {
     id: string;
     ma: string;

@@ -7,7 +7,7 @@
 import { nhanThoiLuong } from "./chinh-sach-hien-thi.ts";
 import type { CanhBaoLichDto, ChangLichDto, ChuyenTomTatDto, DiemChuyenDto, GioHenDto, GioVnDto, GoiBaoChangDto, LichChungResponse, LyDoGiuDto, MucNhacGoiDto, NhatKyChuyenDto } from "./contracts.ts";
 import { AI_XU_LY_GIO_HEN_DOI, NHAN_GIO_HEN_DOI, moTaDoiGio } from "./goi-bao.ts";
-import { NUT_CHO_CHAY_THIEU_GIAY } from "./cho-chay-thieu-giay.ts";
+import { NUT_CHO_CHAY_THIEU_GIAY, nhanChoChayThieu } from "./cho-chay-thieu-giay.ts";
 import { NUT_CAP_NHAT_KHACH, giuCapNhatKhach } from "./ly-do-giu.ts";
 import type { LopVuot } from "./moc-toi-thieu.ts";
 import { can, type PermissionHolder } from "./permissions.ts";
@@ -345,13 +345,15 @@ const chiTietLoi = (ds: readonly LyDoGiuDto[]): string => `${ds.map((d) => d.loi
  * chi tiết «Không cần danh sách khách: <mã đơn>» — không chữ «đạt», «Đủ». Mã nhắc lạ bị bỏ qua.
  */
 export function dieuKienXuatBen(
-  lyDoGiu: readonly LyDoGiuDto[], nhac: readonly { ma: string; maDon: string }[] = [],
-): { nhan: string; dat: boolean; chiTiet: string; khongCan: boolean }[] {
+  lyDoGiu: readonly LyDoGiuDto[], nhac: readonly { ma: string; maDon: string }[] = [], choChayThieu: readonly { ten: string }[] = [],
+): { nhan: string; dat: boolean; chiTiet: string; khongCan: boolean; choChay?: true }[] {
   const out = NHOM_DIEU_KIEN.map((n) => {
     const ds = lyDoGiu.filter((l) => n.ma.includes(l.ma));
     const mien = n.nhac === undefined ? [] : [...new Set(nhac.filter((x) => x.ma === n.nhac).map((x) => x.maDon))];
     const cauMien = mien.length ? `Không cần danh sách khách: ${mien.join(", ")}` : "";
     if (ds.length === 0 && mien.length > 0) return { nhan: n.nhan, dat: false, chiTiet: cauMien, khongCan: true };
+    // ADR-0184: «Giấy tờ xe» chỉ qua vì Quản trị / Toàn quyền đã cho chạy dù thiếu → KHÔNG dấu xanh «đạt» mà dấu cảnh báo vàng kèm nhãn «Xe thiếu …».
+    if (n.ma.includes("DIEU_KIEN_GIAY_TO_XE") && ds.length === 0 && choChayThieu.length > 0) return { nhan: n.nhan, dat: true, chiTiet: nhanChoChayThieu(choChayThieu.map((x) => x.ten)), khongCan: false, choChay: true as const };
     return { nhan: n.nhan, dat: ds.length === 0, chiTiet: ds.length ? [chiTietLoi(ds), cauMien].filter(Boolean).join(" · ") : "", khongCan: false };
   });
   const khac = lyDoGiu.filter((l) => !NHOM_DIEU_KIEN.some((n) => n.ma.includes(l.ma)));
@@ -387,7 +389,7 @@ export function dongNhatKy(n: NhatKyChuyenDto, ngayXem: string): { gio: string; 
   // ADR-0104 Đ1 mục 5: vượt MỐC luôn là điều chỉnh khẩn cấp; vượt khoảng nghỉ / cam kết hiện "phá lệ" (sự kiện không lưu lớp — lệch đã biết Đ1.5).
   const vuot = n.phaLe ? `${n.phaLe.luat === "MOC_TOI_THIEU" ? "điều chỉnh khẩn cấp" : "phá lệ"}: ${n.phaLe.lyDoNhan}` : null;
   // ADR-0184: với «Cho chạy dù thiếu giấy tờ» cột `count` là SỐ LOẠI giấy (không phải số khách).
-  const dem = n.soNguoi === null ? null : n.loai === "DOCS_WAIVED" ? `${n.soNguoi} loại giấy tờ` : `${n.soNguoi} khách`;
+  const dem = n.loai === "DOCS_WAIVED" && n.loaiGiayTo?.length ? n.loaiGiayTo.join(", ") : n.soNguoi === null ? null : n.loai === "DOCS_WAIVED" ? `${n.soNguoi} loại giấy tờ` : `${n.soNguoi} khách`;
   const noiDung = [n.nhan, dem, vuot].filter((x) => x !== null).join(" · ");
   return { gio, ai: laMay ? "máy" : maskLongDigits(n.nguoiBam!), laMay, noiDung, vanPhongKhai: n.vanPhongKhai };
 }

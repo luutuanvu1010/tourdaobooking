@@ -3,10 +3,14 @@
 // Toàn quyền được bỏ trống. Giấy tờ của TÀI XẾ không nằm trong luật này (vẫn chặn cứng).
 // Lớp CSDL giữ cùng luật: migrations/0147_cho_chay_thieu_giay.sql (các trigger waiver_*).
 import type { GiayToXeThieu } from "./dieu-phoi-kieu.ts";
+import { can, type PermissionHolder } from "./permissions.ts";
 
 /** Loại giấy tờ xe CHỈ Toàn quyền được cho chạy thiếu (Kiểm định, Bảo hiểm trách nhiệm dân sự). Khớp trigger `waiver_toan_quyen_only` (0147). */
 export const GIAY_TO_XE_CHI_TOAN_QUYEN = ["INSPECTION", "TPL_INSURANCE"] as const;
 export const laGiayToChiToanQuyen = (code: string): boolean => (GIAY_TO_XE_CHI_TOAN_QUYEN as readonly string[]).includes(code);
+
+/** Ai thấy số chuyến «đã cho chạy dù thiếu giấy tờ» ở Trang chủ: người giữ ô `trip.override` (Quản trị, Toàn quyền) — cùng ô với nút «Cho chạy dù thiếu giấy tờ». Một hàm cho thẻ Trang chủ và route đếm. */
+export const thaySoChoChayThieu = (who: PermissionHolder): boolean => can(who, "trip.override");
 
 /** Nhóm lý do (`vc_reason.reason_group`) của việc cho chạy thiếu giấy tờ. */
 export const NHOM_LY_DO_THIEU_GIAY = "CHO_CHAY_THIEU_GIAY";
