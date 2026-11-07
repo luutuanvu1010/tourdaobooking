@@ -15,10 +15,13 @@ import { basename, resolve } from "node:path";
 import { candidates } from "./guard-remote-lib.mjs";
 
 /** Tệp luật, tính theo đường dẫn tương đối từ gốc một cây làm việc (checkout gốc hoặc một worktree). Khớp danh sách `ask` ở .claude/settings.json. */
-const LUAT = [/(?:^|\/)CLAUDE\.md$/, /^\.claude\/?$/, /^\.claude\/(?:settings(?:\.local)?\.json$|hooks(?:\/|$)|agents(?:\/|$))/, /^playbook(?:\/|$)/, /^docs\/adr(?:\/|$)/, /^src\/shared\/bang-tham-chieu(?:-[a-z-]+)?\.ts$/, /^scripts\/(?:bang-tham-chieu-lib|quet-nut-lib)\.mjs$/, /^src\/bang-tham-chieu\.test\.ts$/];
+// `.github/workflows/` (ADR-0179 Đ2.6): quy trình kiểm đủ bộ trên GitHub — sửa nó đổi được việc kiểm, nên là tệp luật như các tệp trên.
+const LUAT = [/(?:^|\/)CLAUDE\.md$/, /^\.claude\/?$/, /^\.claude\/(?:settings(?:\.local)?\.json$|hooks(?:\/|$)|agents(?:\/|$))/, /^playbook(?:\/|$)/, /^docs\/adr(?:\/|$)/, /^src\/shared\/bang-tham-chieu(?:-[a-z-]+)?\.ts$/, /^scripts\/(?:bang-tham-chieu-lib|quet-nut-lib)\.mjs$/, /^src\/bang-tham-chieu\.test\.ts$/, /^\.github\/workflows(?:\/|$)/];
+/** Bản ghi kết luận kiểm của day-len (ADR-0179 Đ3.1) trong thư mục .git dùng chung: AI KHÔNG ghi bằng bất kỳ cách nào (công cụ sửa tệp cũng bị guard-tep chặn). */
+const BAN_GHI_KIEM = /^\.git\/tourdao-kiem(?:\/|$)/;
 // Lệnh không nhắc gì tới luật VÀ thư mục hiện tại không nằm trong/cạnh thư mục luật thì khỏi phân tích (nhanh; lệnh dị dạng không tốn giờ của móc).
-const TU_KHOA = /CLAUDE\.md|\.claude|playbook|adr|bang-tham-chieu|quet-nut-lib/;
-const CWD_GAN_LUAT = /^(?:\.claude|playbook|docs)(?:\/|$)/;
+const TU_KHOA = /CLAUDE\.md|\.claude|playbook|adr|bang-tham-chieu|quet-nut-lib|\.github|tourdao-kiem/;
+const CWD_GAN_LUAT = /^(?:\.claude|playbook|docs|\.github|\.git)(?:\/|$)/;
 const TIEN_TO_WORKTREE = /^\.claude\/worktrees\/[^/]+\//;
 const MAX_DOAN = 2000;
 
@@ -36,7 +39,7 @@ function tepLuat(p, cwd, root) {
   const abs = resolve(cwd, p);
   if (!abs.startsWith(`${root}/`)) return null;
   const rel = abs.slice(root.length + 1).replace(TIEN_TO_WORKTREE, "");
-  return LUAT.some((re) => re.test(rel)) ? rel : null;
+  return LUAT.some((re) => re.test(rel)) || BAN_GHI_KIEM.test(rel) ? rel : null;
 }
 
 /** Tách chuỗi lệnh thành các đoạn (ngăn bởi ; & | && || xuống dòng và ngoặc tròn). Mỗi đoạn: `tu` = các từ đã gỡ nháy, `ghi` = đích của `>`, `>>`, `&>`, `2>`.
@@ -216,6 +219,13 @@ export function danhGiaGhiLuat(command, { cwd = null, root = null } = {}) {
     const nc = { cwd };
     for (const doan of tachDoan(raw)) {
       const rel = dungTepLuat(doan, nc, goc);
+      if (rel && BAN_GHI_KIEM.test(rel)) {
+        return {
+          deny: true,
+          rule: "ghi-ban-ghi-kiem",
+          reason: `Bị chặn: ghi/xoá \`${rel}\` — bản ghi kết luận kiểm chỉ do \`npm run day-len\` (chủ dự án gõ trong terminal) ghi; trien-khai tin bản ghi này (ADR-0179 Đ3.1). AI không ghi, không sửa, không xoá nó bằng bất kỳ cách nào. Hook không có công tắc tạm.`,
+        };
+      }
       if (rel) {
         return {
           deny: true,
