@@ -1,4 +1,4 @@
-# Lượt kiểm ĐỦ BỘ trên máy GitHub (ADR-0176). `npm run day-len` đẩy đúng commit sắp lên main vào nhánh `cho-kiem/<mã commit>`, chờ lượt này xanh rồi mới
+# Lượt kiểm ĐỦ BỘ trên máy GitHub (ADR-0179). `npm run day-len` đẩy đúng commit sắp lên main vào nhánh `cho-kiem/<mã commit>`, chờ lượt này xanh rồi mới
 # hỏi đẩy main; `npm run trien-khai` chỉ ĐỌC kết quả (check-run của ứng dụng GitHub Actions, đúng commit, việc "Gom kết quả kiểm" xanh, ≤ 24 giờ).
 # KHÔNG chạy khi đẩy main (cùng commit đã kiểm ở nhánh cho-kiem — không kiểm hai lần, Đ1.5). Bảng chia + máy gom: scripts/kiem-phan.mjs.
 # Tệp LUẬT + tệp điều khiển việc kiểm (Đ2.3, Đ2.6): chỉ sửa bằng công cụ sửa tệp để chủ được hỏi; đổi nó thì day-len đòi chủ gõ lý do.

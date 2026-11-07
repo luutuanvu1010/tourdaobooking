@@ -180,7 +180,7 @@ test("guard-remote: script móc thật chặn sửa tệp luật bằng dòng l�
   }
 });
 
-test("guard-luat (ADR-0176 Đ2.6): .github/workflows/ là TỆP LUẬT (sửa bằng dòng lệnh bị chặn); .git/tourdao-kiem/ (bản ghi kết luận kiểm) AI không ghi được", () => {
+test("guard-luat (ADR-0179 Đ2.6): .github/workflows/ là TỆP LUẬT (sửa bằng dòng lệnh bị chặn); .git/tourdao-kiem/ (bản ghi kết luận kiểm) AI không ghi được", () => {
   for (const [cmd, cwd] of [["sed -i '' 's/a/b/' .github/workflows/kiem.yml"], ["echo x > .github/workflows/kiem.yml"], ["rm .github/workflows/kiem.yml", WT], ["cp /tmp/x.yml .github/workflows/"], ["git checkout -- .github/workflows/kiem.yml"]] as [string, string?][]) {
     const v = danhGia(cmd, cwd);
     assert.equal(v.deny, true, `phải CHẶN: ${cmd}`);

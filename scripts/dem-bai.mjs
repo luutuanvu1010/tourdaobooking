@@ -1,4 +1,4 @@
-// Bộ báo cáo của `node --test` chỉ để ĐẾM (ADR-0176 Đ2.3): số bài, đạt, đỏ, bỏ qua (skip), để làm (todo), tên bài đỏ — ghi MỘT dòng JSON ra đích
+// Bộ báo cáo của `node --test` chỉ để ĐẾM (ADR-0179 Đ2.3): số bài, đạt, đỏ, bỏ qua (skip), để làm (todo), tên bài đỏ — ghi MỘT dòng JSON ra đích
 // (`--test-reporter-destination=<tệp>`). Dùng cạnh bộ báo cáo spec (in cho người xem). scripts/kiem-phan.mjs đọc tệp này; tệp điều khiển việc kiểm.
 // Không đếm "suite" (describe) — chỉ bài thật; tệp hỏng không chạy được thì node báo một bài đỏ mang tên tệp, nên vẫn đếm là đỏ.
 export default async function* demBai(source) {

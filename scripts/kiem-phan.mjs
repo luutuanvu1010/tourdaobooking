@@ -1,4 +1,4 @@
-// Bảng chia phần + máy gom của lượt kiểm đủ bộ trên GitHub (ADR-0176 Đ1.2–Đ1.4). Quy trình: .github/workflows/kiem.yml. Bài: src/kiem-phan.test.ts.
+// Bảng chia phần + máy gom của lượt kiểm đủ bộ trên GitHub (ADR-0179 Đ1.2–Đ1.4). Quy trình: .github/workflows/kiem.yml. Bài: src/kiem-phan.test.ts.
 //
 // MỘT nguồn danh sách: tệp kiểm = glob "src/**/*.test.ts" (cùng hàm scripts/chay-test.mjs dùng), kịch bản e2e = `ALL` của tests/e2e/danh-sach.mjs.
 // Bảng chia: một PHẦN RIÊNG (Bước 0 sinh lại kho trợ lý, typecheck, bài đo giờ của hook chạy một mình), `npm test` còn lại chia SO_PHAN_TEST phần, e2e chia
@@ -22,7 +22,7 @@ import { ALL, chiaNhom } from "../tests/e2e/danh-sach.mjs";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 export const TEP_DO_GIO = "src/claude-guard-thoi-gian.test.ts";
 export const BUOC_RIENG = ["buoc-0", "typecheck", TEP_DO_GIO];
-// Số phần chỉnh theo số đo (ADR-0176 Đ1.2). Lượt đầu 6/11 (4 + 6 phần, chia theo cỡ tệp): 19 phút, phần npm test chậm nhất 17,5 phút ⇒ 10 + 8 phần,
+// Số phần chỉnh theo số đo (ADR-0179 Đ1.2). Lượt đầu 6/11 (4 + 6 phần, chia theo cỡ tệp): 19 phút, phần npm test chậm nhất 17,5 phút ⇒ 10 + 8 phần,
 // chia theo giây thật. Mức tối thiểu ADR (≥ 4, ≥ 6) do MIN_* canh. Kho công khai: mỗi lượt ≤ 20 việc chạy cùng lúc (giới hạn gói miễn phí).
 export const SO_PHAN_TEST = 10;
 export const SO_PHAN_E2E = 8;
@@ -30,7 +30,7 @@ const MIN_PHAN_TEST = 4;
 const MIN_PHAN_E2E = 6;
 
 /**
- * Tệp điều khiển việc kiểm (ADR-0176 Đ2.3): nằm trong chính commit được kiểm nên đổi chúng có thể làm lượt kiểm bỏ bài mà vẫn "xanh". day-len so băm git của
+ * Tệp điều khiển việc kiểm (ADR-0179 Đ2.3): nằm trong chính commit được kiểm nên đổi chúng có thể làm lượt kiểm bỏ bài mà vẫn "xanh". day-len so băm git của
  * các đường dẫn này giữa commit mới và origin/main (thư mục = mọi tệp bên dưới). `package.json` chỉ so các khoá ở KHOA_PACKAGE (đổi danh sách trang build
  * không phải đổi quy trình kiểm). Bài src/kiem-phan.test.ts khoá: danh sách chứa trọn chuỗi nhập của audit-invariants.mjs.
  */

@@ -97,7 +97,7 @@ test("guard-tep: sửa thẳng ở checkout gốc bị chặn (tệp có sẵn, 
   }
 });
 
-test("guard-tep (ADR-0176 Đ3.1): công cụ sửa tệp không ghi được bản ghi kết luận kiểm `<.git dùng chung>/tourdao-kiem/` — từ worktree lẫn từ gốc", () => {
+test("guard-tep (ADR-0179 Đ3.1): công cụ sửa tệp không ghi được bản ghi kết luận kiểm `<.git dùng chung>/tourdao-kiem/` — từ worktree lẫn từ gốc", () => {
   const k = khoGia();
   try {
     for (const [p, cwd] of [[join(k.khoChung, "tourdao-kiem", "abc.json"), k.wt], [join(k.goc, ".git/tourdao-kiem/abc.json"), k.goc], [join(k.khoChung, "tourdao-kiem"), k.wt]] as const) {

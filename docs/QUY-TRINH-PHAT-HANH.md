@@ -1,6 +1,6 @@
 # Quy trình phát hành phiên bản mới — Tour Đảo Booking
 
-> Tài liệu cho **chủ dự án**, viết bằng lời thường. Cập nhật 2026-09-24 (sau lần phát hành bản 1.4); bước 5–6 viết lại 2026-11-06 theo ADR-0176 (kiểm đủ bộ chuyển lên máy GitHub, mục tiêu cả lần phát hành khoảng 10 phút).
+> Tài liệu cho **chủ dự án**, viết bằng lời thường. Cập nhật 2026-09-24 (sau lần phát hành bản 1.4); bước 5–6 viết lại 2026-11-06 theo ADR-0179 (kiểm đủ bộ chuyển lên máy GitHub, mục tiêu cả lần phát hành khoảng 10 phút).
 > Chi tiết kỹ thuật cho AI và lập trình viên: `docs/HANDOFF-N1.md` (mục "HAI LỆNH" và "bước A.0"), `docs/CHANGE-GUIDE.md` (công thức s và t).
 
 ## Tóm tắt một trang
@@ -96,7 +96,7 @@ Lệnh **không còn chạy kiểm ở máy bạn** nữa: kiểm chạy một l
 ```
 npm run trien-khai
 ```
-Lệnh chạy khoảng **3 phút**. Từ ADR-0176 nó **không chạy lại kiểm thử**: nó đọc kết quả GitHub đã kiểm ở bước 5 cho đúng bản đang phát hành (chỉ nhận kết quả do GitHub tạo, không cũ quá 24 giờ) cùng bản ghi kết luận bước 5 để lại.
+Lệnh chạy khoảng **3 phút**. Từ ADR-0179 nó **không chạy lại kiểm thử**: nó đọc kết quả GitHub đã kiểm ở bước 5 cho đúng bản đang phát hành (chỉ nhận kết quả do GitHub tạo, không cũ quá 24 giờ) cùng bản ghi kết luận bước 5 để lại.
 
 **Lệnh tự làm theo thứ tự:**
 

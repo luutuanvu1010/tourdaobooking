@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // `npm run trien-khai` — CHỦ DỰ ÁN tự gõ trong terminal (AI không được chạy: CLAUDE.md §8, hook guard-remote chặn).
 // Theo runbook docs/HANDOFF-N1.md: main = origin/main → cổng chỉ-đọc migration → cổng số phiên bản (1 thì hỏi, 2 thì dừng) → build
-// → ĐỌC kết quả kiểm đủ bộ trên GitHub + bản ghi của day-len (ADR-0176; thiếu / đỏ không có cho qua ⇒ dừng) → Time Travel + áp migration (hỏi) → deploy (hỏi) → audit-invariants --db remote → cổng số phiên bản sau deploy
+// → ĐỌC kết quả kiểm đủ bộ trên GitHub + bản ghi của day-len (ADR-0179; thiếu / đỏ không có cho qua ⇒ dừng) → Time Travel + áp migration (hỏi) → deploy (hỏi) → audit-invariants --db remote → cổng số phiên bản sau deploy
 // (thử lại một lần) → khối tóm tắt. Đặc tả: docs/superpowers/specs/2026-09-23-lenh-day-trien-khai-an-toan.md (phụ lục cổng số phiên bản).
 import { APP_VERSION } from "../src/shared/app-info.ts";
 import { trienKhai } from "./release-lib.mjs";

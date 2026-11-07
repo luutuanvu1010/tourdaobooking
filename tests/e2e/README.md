@@ -18,7 +18,7 @@ E2E_SONG_SONG=4 npm run test:e2e    # 4 nhóm (mặc định: min(3, số CPU / 
 
 - Máy chủ bật **lần lượt** trước khi chạy kịch bản nào (mỗi lần bật, wrangler tự `build:web` ghi đè `public/js`); D1 các nhóm dựng đồng thời.
 - Nhiều nhóm: đầu ra mỗi kịch bản in **liền một khối** khi nó xong (không xen giữa các nhóm), rồi dòng `✔/✘ <tên> (giây) · nhóm k`.
-- Các bước kiểm cuối không nới: `audit-invariants --strict` chạy trên D1 của **mọi** nhóm (chạy đủ bộ); "không có `day_loi`" soi log **mọi** máy chủ; "không có nội dung câu hỏi trợ lý" chạy trên máy chủ của nhóm có `tro-ly`. Mỗi bước gộp thành **một** dòng tóm tắt (tên đứng đầu, nhóm đỏ ghi sau), nên tổng số dòng tóm tắt và dòng `E2E: x/y kịch bản …` giữ như cũ (dòng `✘ <tên>` để người đọc dò; từ ADR-0176 lệnh phát hành không đọc đầu ra này nữa — trên GitHub mỗi phần ghi báo cáo máy đọc bằng `--ket-qua`).
+- Các bước kiểm cuối không nới: `audit-invariants --strict` chạy trên D1 của **mọi** nhóm (chạy đủ bộ); "không có `day_loi`" soi log **mọi** máy chủ; "không có nội dung câu hỏi trợ lý" chạy trên máy chủ của nhóm có `tro-ly`. Mỗi bước gộp thành **một** dòng tóm tắt (tên đứng đầu, nhóm đỏ ghi sau), nên tổng số dòng tóm tắt và dòng `E2E: x/y kịch bản …` giữ như cũ (dòng `✘ <tên>` để người đọc dò; từ ADR-0179 lệnh phát hành không đọc đầu ra này nữa — trên GitHub mỗi phần ghi báo cáo máy đọc bằng `--ket-qua`).
 - Một nhóm có máy chủ chết: nhóm đó dừng, kịch bản còn lại của nhóm ghi "chưa chạy" (tính đỏ); nhóm khác chạy tiếp.
 - Thời gian (máy 10 CPU, 30/9, máy đang bận việc khác): tuần tự 713–738 giây; 3 nhóm 282–398 giây (4 lượt: 366, 311, 398, 282 — lượt 398 giây máy tải 46); 4 nhóm 344 giây (một lượt); `E2E_SONG_SONG=1` 674 giây (một lượt, xanh). `E2E_SONG_SONG=2` chưa chạy thử. Đường găng là `dispatch.mjs` (~150–230 giây một mình — nhiều lần gọi `sql()` qua `npx wrangler d1 execute`), nên thêm nhóm quá 3 không nhanh hơn bao nhiêu.
 
@@ -82,5 +82,5 @@ Không nằm trong `npm run test:e2e` (cần Chrome; riêng `a2-evidence.mjs` c�
 
 **Vé điện tử: đọc QR, trần lô, Huỷ lô và khối Lô đã huỷ gần đây (ADR-0156)** — `ve-qr-smoke.mjs` ở `docs/evidence/2026-11-02-ve-qr-tran-lo/kich-ban/` (10 bước, 390 + 1040, cần `AXE_JS`, không cần mạng ngoài). `LB_PHA=qr-gia` phá thử bước 6; `VE_ANH_THAT=<thư mục>` thêm khối đọc ảnh thật trên máy, ảnh và mã không rời trình duyệt.
 
-## Chạy theo PHẦN trên máy GitHub (ADR-0176)
+## Chạy theo PHẦN trên máy GitHub (ADR-0179)
 `node tests/e2e/run.mjs --phan <k> --ket-qua <tệp>`: chạy đúng phần k của bảng chia (`scripts/kiem-phan.mjs`, 6 phần) trên MỘT D1 tạm + MỘT `wrangler dev`, VẪN chạy `audit-invariants --strict` cuối phần, và ghi báo cáo (giây thật từng kịch bản, kết quả audit). Danh sách kịch bản và thứ tự ràng buộc nằm ở `tests/e2e/danh-sach.mjs`; giây dùng để chia ở `tests/e2e/thoi-gian.json` (chép từ dòng «Giây thật từng kịch bản» của việc gom khi cần chia lại — đổi tệp này là đổi quy trình kiểm, day-len sẽ hỏi lý do). Thêm kịch bản mới: thêm vào `ALL` ở `danh-sach.mjs`.

@@ -60,7 +60,7 @@ const key = (cmd: string, args: string[], opts?: RunOpts) =>
   `${opts?.env ? Object.entries(opts.env).map(([k, v]) => `${k}=${v} `).join("") : ""}${cmd} ${args.join(" ")}`.trim();
 
 const HEAD = "c".repeat(40);
-/** Bản ghi kết luận day-len hợp lệ cho HEAD (ADR-0176 Đ2.2) — mặc định của kho giả; từng ca sửa đúng một chỗ. */
+/** Bản ghi kết luận day-len hợp lệ cho HEAD (ADR-0179 Đ2.2) — mặc định của kho giả; từng ca sửa đúng một chỗ. */
 const BAN_GHI_XANH = { sha: HEAD, luc: "2026-09-23T02:05:00.000Z", runId: 4242, runUrl: "https://github.com/luutuanvu1010/tourdaobooking/actions/runs/4242", ketQua: "xanh", xanhLuc: "2026-09-23T02:00:00Z", choQua: null, quyTrinh: null, soLieu: null, chang: [{ ten: "chờ GitHub kiểm", giay: 360 }], giayDayLen: 400 };
 /** Kho bản ghi / kết quả tổng GIẢ (không đụng đĩa): `banGhi` theo sha, `ketQua` theo id lượt kiểm; ghi lại mọi lần ghi. */
 function khoGia(banGhi: Record<string, any> = { [HEAD]: BAN_GHI_XANH }, ketQua: Record<number, any> = {}) {
@@ -100,7 +100,7 @@ function harness(script: Record<string, RunResult | RunResult[]>, answers: strin
   return { deps, calls, lines, questions, text: () => lines.join("\n") };
 }
 
-// Đẩy nhánh chờ kiểm `cho-kiem/<sha>` (ADR-0176 Đ2.1) là bước BÌNH THƯỜNG trước câu c/k — không tính là nguy hiểm; đẩy main / deploy / áp migration thì có.
+// Đẩy nhánh chờ kiểm `cho-kiem/<sha>` (ADR-0179 Đ2.1) là bước BÌNH THƯỜNG trước câu c/k — không tính là nguy hiểm; đẩy main / deploy / áp migration thì có.
 const DANGEROUS = /(?:^|\s)(?:git push origin main|wrangler deploy|migrations apply)(?:\s|$)|--force|(?:^|\s)-f(?:\s|$)/;
 function assertNothingDangerous(calls: string[]) {
   const bad = calls.filter((c) => DANGEROUS.test(c) || /git reset|git merge(?![-\w])(?! --ff-only)/.test(c));
@@ -148,7 +148,7 @@ test("parseBookmark / parseVersionId: đọc được JSON của time-travel inf
   assert.equal(lib.parseVersionId("lỗi"), null);
 });
 
-// ─────────────────────────── day-len (ADR-0176: chờ kiểm đủ bộ trên GitHub rồi mới đẩy main) ───────────────────────────
+// ─────────────────────────── day-len (ADR-0179: chờ kiểm đủ bộ trên GitHub rồi mới đẩy main) ───────────────────────────
 
 const { TEP_DIEU_KHIEN } = (await import(new URL("../scripts/kiem-phan.mjs", import.meta.url).href)) as { TEP_DIEU_KHIEN: string[] };
 const OLD = "a".repeat(40);
@@ -233,7 +233,7 @@ function dl(script: Record<string, RunResult | RunResult[]>, answers: string[] =
   return { ...h, daGhi: k.daGhi, deps: { ...h.deps, now: d.now, sleep: d.sleep }, waits: d.waits };
 }
 
-test("day-len (ADR-0176 Đ2.1): mọi thứ đạt + c → đẩy cho-kiem/<sha> (không --force), chờ lượt đúng sha, ghi bản ghi XANH, rồi mới đẩy main", async () => {
+test("day-len (ADR-0179 Đ2.1): mọi thứ đạt + c → đẩy cho-kiem/<sha> (không --force), chờ lượt đúng sha, ghi bản ghi XANH, rồi mới đẩy main", async () => {
   const h = dl(dayLenScript(), ["c"]);
   assert.equal(await lib.dayLen({ ...h.deps, target: "worktree-x" }), 0);
   assert.deepEqual(h.calls, DAYLEN_HAPPY);
@@ -499,7 +499,7 @@ const TT = "CI=1 npx wrangler d1 time-travel info tourdao-sales-db --json";
 const APPLY = "CI=1 npx wrangler d1 migrations apply tourdao-sales-db --remote";
 const DEPLOY = "CI=1 npx wrangler deploy";
 const AUDIT = "node scripts/audit-invariants.mjs --db remote";
-/** ADR-0176 Đ2.2: trien-khai ĐỌC check-run của đúng commit main (một lần, chỉ đọc) thay cho npm test / typecheck / e2e. */
+/** ADR-0179 Đ2.2: trien-khai ĐỌC check-run của đúng commit main (một lần, chỉ đọc) thay cho npm test / typecheck / e2e. */
 const CHECKS = `gh api repos/luutuanvu1010/tourdaobooking/commits/${HEAD}/check-runs?per_page=100`;
 const checkRun = (o: Record<string, unknown> = {}) => ({ name: "npm test phần 1", status: "completed", conclusion: "success", head_sha: HEAD, completed_at: "2026-09-23T01:58:00Z", app: { slug: "github-actions" }, ...o });
 const GOM = (o: Record<string, unknown> = {}) => checkRun({ name: "Gom kết quả kiểm", completed_at: "2026-09-23T02:00:00Z", ...o });
@@ -683,7 +683,7 @@ test("trien-khai: lệnh dài chạy dạng hiện trực tiếp cho chủ xem (
   assert.ok(!seen[LIST]?.stream && !seen[TT]?.stream && !seen[CHECKS]?.stream, "lệnh đọc phải bắt đầu ra để phân tích");
 });
 
-// ─────────────── ADR-0176 Đ2.2 + Đ3 (tiêu chí 3): trien-khai chỉ ĐỌC kết quả kiểm đủ bộ trên GitHub + bản ghi kết luận của day-len ───────────────
+// ─────────────── ADR-0179 Đ2.2 + Đ3 (tiêu chí 3): trien-khai chỉ ĐỌC kết quả kiểm đủ bộ trên GitHub + bản ghi kết luận của day-len ───────────────
 
 /** trien-khai với kho bản ghi giả `banGhi` (mặc định: bản ghi xanh hợp lệ cho HEAD). */
 function tk(over: Record<string, RunResult | RunResult[]> = {}, answers: string[] = [], banGhi: Record<string, any> = { [HEAD]: BAN_GHI_XANH }) {
@@ -691,7 +691,7 @@ function tk(over: Record<string, RunResult | RunResult[]> = {}, answers: string[
 }
 const DEN_CHECKS = TK_PREFIX.slice(0, TK_PREFIX.indexOf(CHECKS) + 1);
 
-test("trien-khai (ADR-0176 Đ1.5): KHÔNG chạy npm test / typecheck / e2e; build:web rồi MỘT lần đọc check-run của đúng commit; tóm tắt ghi lượt kiểm + lúc xanh", async () => {
+test("trien-khai (ADR-0179 Đ1.5): KHÔNG chạy npm test / typecheck / e2e; build:web rồi MỘT lần đọc check-run của đúng commit; tóm tắt ghi lượt kiểm + lúc xanh", async () => {
   const h = tk({ [LIST]: out(LIST_NONE) }, ["c"]);
   assert.equal(await lib.trienKhai({ ...h.deps, now: NOW }), 0);
   assert.ok(!h.calls.some((c) => /^npm (test|run typecheck|run test:e2e)$/.test(c)));
@@ -721,7 +721,7 @@ const DOC_KQ_REFUSALS: { name: string; over?: Record<string, RunResult | RunResu
   { name: "quá một trang kết quả", over: { [CHECKS]: checksOut([GOM()], 150) }, reason: /quá một trang/ },
 ];
 for (const c of DOC_KQ_REFUSALS) {
-  test(`trien-khai (ADR-0176 tiêu chí 3): DỪNG trước migration / deploy khi ${c.name}`, async () => {
+  test(`trien-khai (ADR-0179 tiêu chí 3): DỪNG trước migration / deploy khi ${c.name}`, async () => {
     const h = tk(c.over ?? {}, ["c", "c"], c.banGhi ?? { [HEAD]: BAN_GHI_XANH });
     assert.notEqual(await lib.trienKhai({ ...h.deps, now: NOW }), 0);
     assertNothingDangerous(h.calls);

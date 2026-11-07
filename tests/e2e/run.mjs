@@ -21,7 +21,7 @@ const ROOT = join(HERE, "..", "..");
 import { ALL, chiaNhom, laLoiTrungCong, SO_LAN_BAT_TOI_DA } from "./danh-sach.mjs";
 import { phanE2e } from "../../scripts/kiem-phan.mjs";
 
-// `--phan <k>` (ADR-0176 Đ1.2): chạy ĐÚNG phần k của bảng chia (scripts/kiem-phan.mjs) trên MỘT D1 tạm + MỘT wrangler dev, và VẪN chạy
+// `--phan <k>` (ADR-0179 Đ1.2): chạy ĐÚNG phần k của bảng chia (scripts/kiem-phan.mjs) trên MỘT D1 tạm + MỘT wrangler dev, và VẪN chạy
 // `audit-invariants --strict` cuối phần như chạy đủ bộ (chạy lẻ theo tên thì không). `--ket-qua <tệp>`: ghi báo cáo máy đọc (giây thật từng kịch bản, kết quả
 // audit) cho bước gom của GitHub. Không có hai cờ này thì y như cũ.
 const argv = process.argv.slice(2);
@@ -51,7 +51,7 @@ const coAudit = phan !== null || !picked.length;
 // `E2E_SONG_SONG=<số nhóm>`; `E2E_SONG_SONG=1` = chạy tuần tự như cũ trên MỘT máy chủ (đầu ra kịch bản in thẳng, để dò lỗi). Mặc định theo số CPU.
 const cpu = availableParallelism();
 const MAC_DINH = Math.max(1, Math.min(3, Math.floor(cpu / 3)));
-// Một PHẦN (--phan) = đúng một D1 tạm + một wrangler dev (ADR-0176 Đ1.2): ép một nhóm.
+// Một PHẦN (--phan) = đúng một D1 tạm + một wrangler dev (ADR-0179 Đ1.2): ép một nhóm.
 const songSong = phan !== null ? "1" : (process.env.E2E_SONG_SONG ?? String(MAC_DINH));
 if (!/^[1-9]\d*$/.test(songSong)) throw new Error(`E2E_SONG_SONG phải là số nguyên ≥ 1 (đang là "${songSong}")`);
 const soNhom = Math.min(Number(songSong), scripts.length);
@@ -324,7 +324,7 @@ console.log(`Thời gian e2e: ${((Date.now() - batDau) / 1000).toFixed(0)} giây
 console.log(failed ? `E2E: ${failed}/${total} kịch bản LỖI` : `E2E: ${total}/${total} kịch bản xanh`);
 // KHÔNG `process.exit()`: khi đầu ra đi qua ống (vd `npm run trien-khai` đọc bằng tee), stdout của Node trên macOS ghi bất đồng bộ — thoát ngay có thể
 // cắt mất phần đuôi (tóm tắt + dòng "E2E:") sau khi vừa chuyển hàng trăm KB đầu ra kịch bản. Đặt mã thoát rồi để tiến trình tự kết thúc khi ghi xong.
-// Báo cáo máy đọc cho bước gom của GitHub (ADR-0176 Đ1.3–Đ1.4): danh sách kịch bản ĐÃ CHẠY kèm giây thật, kết quả audit (null = không chạy), tổng xanh/đỏ.
+// Báo cáo máy đọc cho bước gom của GitHub (ADR-0179 Đ1.3–Đ1.4): danh sách kịch bản ĐÃ CHẠY kèm giây thật, kết quả audit (null = không chạy), tổng xanh/đỏ.
 if (tepKetQua) {
   const daChay = cacMay.flatMap((m) => m.ketQua).map((x) => ({ ten: x.name, ok: x.ok === true, giay: x.giay ?? null }));
   const audit = cacMay.every((m) => m.audit === undefined) ? null : cacMay.every((m) => m.audit === true);

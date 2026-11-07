@@ -1,7 +1,7 @@
 // Logic thuần của hai lệnh CHỦ DỰ ÁN tự gõ (đặc tả docs/superpowers/specs/2026-09-23-lenh-day-trien-khai-an-toan.md):
 //   `npm run day-len [-- <nhánh>]`  → scripts/day-len.mjs    (gộp tiến thẳng vào main, đẩy nhánh chờ kiểm, chờ GitHub kiểm đủ bộ, hỏi, rồi git push origin main)
 //   `npm run trien-khai`            → scripts/trien-khai.mjs (cổng chỉ-đọc gồm khoá bí mật và kho tệp hồ sơ, cổng số phiên bản, build, ĐỌC kết quả kiểm trên GitHub, Time Travel, áp migration, deploy, kiểm dữ liệu, cổng số phiên bản sau deploy)
-// Từ ADR-0176 (2026-11-06): npm test / typecheck / e2e chạy MỘT lần trên máy GitHub (.github/workflows/kiem.yml), không chạy lại ở máy khi phát hành.
+// Từ ADR-0179 (2026-11-06): npm test / typecheck / e2e chạy MỘT lần trên máy GitHub (.github/workflows/kiem.yml), không chạy lại ở máy khi phát hành.
 // AI KHÔNG được chạy hai lệnh này (CLAUDE.md §8; hook .claude/hooks/guard-remote-lib.mjs + permissions.deny chặn). Lớp thứ hai: tự từ chối khi không có TTY.
 //
 // Mọi hàm nhận "bộ chạy lệnh" tiêm vào để test được bằng bộ chạy giả (src/release-lib.test.ts):
@@ -226,9 +226,9 @@ function inLenhDeployDungMa(log, ma) {
   }
 }
 
-// ─────────────────────────────── kiểm đủ bộ trên GitHub (ADR-0176) ───────────────────────────────
+// ─────────────────────────────── kiểm đủ bộ trên GitHub (ADR-0179) ───────────────────────────────
 
-/** Kho GitHub (công khai — Actions miễn phí, ADR-0176 Bối cảnh). Mọi lệnh `gh` nêu tường minh `-R` để không phụ thuộc thư mục đang đứng. */
+/** Kho GitHub (công khai — Actions miễn phí, ADR-0179 Bối cảnh). Mọi lệnh `gh` nêu tường minh `-R` để không phụ thuộc thư mục đang đứng. */
 export const REPO = "luutuanvu1010/tourdaobooking";
 export const WORKFLOW = "kiem.yml";
 /** Tên việc gom trong .github/workflows/kiem.yml — hợp đồng (bài src/release-lib.test.ts đọc tệp quy trình để khoá). */
@@ -409,7 +409,7 @@ async function hoiLyDo(ask, cau) {
 // ─────────────────────────────── day-len ───────────────────────────────
 
 /**
- * ADR-0176 Đ2.1: gộp tiến thẳng → đẩy ĐÚNG commit lên `cho-kiem/<sha>` (không --force, không đẩy main) → chờ lượt kiểm của đúng sha → đỏ thì hỏi chạy lại /
+ * ADR-0179 Đ2.1: gộp tiến thẳng → đẩy ĐÚNG commit lên `cho-kiem/<sha>` (không --force, không đẩy main) → chờ lượt kiểm của đúng sha → đỏ thì hỏi chạy lại /
  * dừng / cho qua (gõ lý do, Đ3.1) → so tệp điều khiển kiểm + số liệu với origin/main (Đ2.3; khác thì đòi lý do, Đ3.2) → hỏi c/k → ghi bản ghi kết luận →
  * đẩy main. Không còn chạy npm test / typecheck ở máy (đã chạy MỘT lần trên GitHub, Đ1.5).
  * @param kho docBanGhi / ghiBanGhi / taiKetQua (mặc định khoKiemThat(run)); test truyền kho giả. @param sleep, now tiêm cho test.
@@ -596,7 +596,7 @@ export async function dayLen({ run, ask: askGoc, isTTY, log, target, now = () =>
 }
 
 /**
- * trien-khai bước 3b (ADR-0176 Đ2.2, Đ3): đọc check-run của ĐÚNG sha qua `gh api` (chỉ đọc) + bản ghi kết luận của day-len. Trả { ok: true, ketQuaText, banGhi }
+ * trien-khai bước 3b (ADR-0179 Đ2.2, Đ3): đọc check-run của ĐÚNG sha qua `gh api` (chỉ đọc) + bản ghi kết luận của day-len. Trả { ok: true, ketQuaText, banGhi }
  * hoặc { ok: false, ly, huongDan }. Chỉ nhận check-run của ứng dụng GitHub Actions; việc gom phải xong, xanh (hoặc đỏ CÓ bản ghi cho qua), ≤ 24 giờ.
  */
 export async function docKetQuaKiem({ run, kho, sha, nowMs }) {
@@ -794,7 +794,7 @@ export async function trienKhai({ run, ask: askGoc, isTTY, log, now = () => new 
 
   dh.moc("cổng chỉ-đọc");
 
-  // 3. sản phẩm để deploy (1 giây). npm test / typecheck / e2e KHÔNG chạy lại ở đây (ADR-0176 Đ1.5): đã chạy MỘT lần trên GitHub cho đúng commit này.
+  // 3. sản phẩm để deploy (1 giây). npm test / typecheck / e2e KHÔNG chạy lại ở đây (ADR-0179 Đ1.5): đã chạy MỘT lần trên GitHub cho đúng commit này.
   log("\n▶ npm run build:web");
   const build = await run("npm", ["run", "build:web"], { stream: true });
   if (build.code !== 0) return stop("`npm run build:web` đỏ — không áp migration, không deploy.");
@@ -914,7 +914,7 @@ export async function trienKhai({ run, ask: askGoc, isTTY, log, now = () => new 
   if (postCode !== 0) log(`  (kiểm lại tay: ${GATE_POST_CMD})`);
   const changDayLen = Array.isArray(kq.banGhi?.chang) ? kq.banGhi.chang.filter((c) => typeof c?.ten === "string" && Number.isInteger(c?.giay)) : [];
   log(`- Thời gian (không tính lúc chờ chủ trả lời): day-len ${giayDayLen === null ? "không rõ" : phut(giayDayLen)}${changDayLen.length ? ` (${changDayLen.map((c) => `${c.ten} ${phut(c.giay)}`).join("; ")})` : ""}; trien-khai ${phut(dh.tong())} (${dh.chang.map((c) => `${c.ten} ${phut(c.giay)}`).join("; ")}); TỔNG ${phut(tongGiay)}`);
-  if (tongGiay > MUC_TIEU_GIAY) log(`${RED}${BOLD}CẢNH BÁO:${RESET} tổng ${phut(tongGiay)} vượt mục tiêu khoảng ${MUC_TIEU_GIAY / 60} phút (ADR-0176 Đ1.1) — báo người phụ trách kỹ thuật kèm các số đo trên (không chặn).`);
+  if (tongGiay > MUC_TIEU_GIAY) log(`${RED}${BOLD}CẢNH BÁO:${RESET} tổng ${phut(tongGiay)} vượt mục tiêu khoảng ${MUC_TIEU_GIAY / 60} phút (ADR-0179 Đ1.1) — báo người phụ trách kỹ thuật kèm các số đo trên (không chặn).`);
   log("═════════════════════════════════════════════════════════════════════");
   return audit.code === 0 && postCode === 0 ? 0 : 1;
 }

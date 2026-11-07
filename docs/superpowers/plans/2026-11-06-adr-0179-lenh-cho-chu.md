@@ -1,4 +1,4 @@
-# Lệnh cho chủ: thử lượt kiểm đầu trên GitHub, nhập, và quan sát hai lần chặn (ADR-0176, 2026-11-06)
+# Lệnh cho chủ: thử lượt kiểm đầu trên GitHub, nhập, và quan sát hai lần chặn (ADR-0179, 2026-11-06)
 
 Mọi lệnh chạy trong ứng dụng Terminal, ở thư mục gốc dự án:
 

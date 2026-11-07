@@ -8,7 +8,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
-// Danh sách tệp kiểm và tên bài đo giờ: MỘT nguồn với bảng chia phần của lượt kiểm trên GitHub (scripts/kiem-phan.mjs, ADR-0176 Đ1.3).
+// Danh sách tệp kiểm và tên bài đo giờ: MỘT nguồn với bảng chia phần của lượt kiểm trên GitHub (scripts/kiem-phan.mjs, ADR-0179 Đ1.3).
 import { danhSachTest, TEP_DO_GIO } from "./kiem-phan.mjs";
 
 const tatCa = danhSachTest(ROOT);

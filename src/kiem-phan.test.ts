@@ -1,4 +1,4 @@
-// ADR-0176 Đ1.2–Đ1.3: bảng chia phần của lượt kiểm trên GitHub và máy gom "không bỏ bài nào". Hàm THUẦN (không chạy node --test hay wrangler).
+// ADR-0179 Đ1.2–Đ1.3: bảng chia phần của lượt kiểm trên GitHub và máy gom "không bỏ bài nào". Hàm THUẦN (không chạy node --test hay wrangler).
 // Đột biến đã quan sát (sổ hàng rào): bỏ một tệp khỏi phần ⇒ đỏ; bỏ audit ở một phần e2e ⇒ đỏ.
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -91,7 +91,7 @@ test("gomKetQua: đủ và xanh ⇒ ok, tổng số tệp / bài / bỏ qua / k�
   assert.equal(r.giayE2e.s1, 2);
 });
 
-test("gomKetQua (ADR-0176 tiêu chí 2): thiếu báo cáo / phần chạy thiếu tệp / thiếu audit / audit đỏ / một phần đỏ / báo cáo trùng / thiếu phần riêng ⇒ ĐỎ, nêu lý do", () => {
+test("gomKetQua (ADR-0179 tiêu chí 2): thiếu báo cáo / phần chạy thiếu tệp / thiếu audit / audit đỏ / một phần đỏ / báo cáo trùng / thiếu phần riêng ⇒ ĐỎ, nêu lý do", () => {
   const bang = bangNho();
   const hong: [string, (bc: any[]) => any[], RegExp][] = [
     ["thiếu báo cáo một phần test", (bc) => bc.filter((x) => !(x.loai === "test" && x.phan === 2)), /npm test phần 2/],

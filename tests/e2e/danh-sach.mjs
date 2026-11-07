@@ -1,4 +1,4 @@
-// MỘT nguồn danh sách kịch bản e2e (ADR-0176 Đ1.3): tests/e2e/run.mjs (chạy) và scripts/kiem-phan.mjs (chia phần trên GitHub, máy kiểm "hợp các phần =
+// MỘT nguồn danh sách kịch bản e2e (ADR-0179 Đ1.3): tests/e2e/run.mjs (chạy) và scripts/kiem-phan.mjs (chia phần trên GitHub, máy kiểm "hợp các phần =
 // toàn bộ") cùng đọc ở đây. Tệp KHÔNG có tác dụng phụ (không dựng D1, không bật máy chủ) để nhập được từ bài kiểm. Tệp điều khiển việc kiểm (Đ2.3).
 
 // "feedback" đứng TRƯỚC "maintenance": cổng bảo trì của router chặn mọi route cần đăng nhập, nên kịch bản Góp ý không được chạy khi chế độ bảo trì còn đang bật dở.
@@ -71,7 +71,7 @@
 export const ALL = ["platform", "pwa", "orders", "nhap-rieng-tu", "trip", "chang-hanh-khach", "chon-don", "xac-nhan-don", "ban-hang-phu-trach", "gui-don", "dat-coc", "nhap-tay-va-gia-doi-tac", "admin", "turnstile", "catalog", "mau-chang", "dispatch", "han-muc-tu-choi", "admin-race", "locations", "dua-don-theo-nhom", "parties", "gop-ho-so", "ho-so-rieng-tu", "ho-so-tep", "tu-khai", "xac-minh", "xoa-an-danh", "booker", "permissions", "feedback", "ve-ho-tro-tep", "company", "bangtin", "thongbao", "tro-ly", "giao-dien", "maintenance", "roles", "quyen-tien", "van-chuyen", "tai-xe-doi-tac", "chinh-sach-dieu-phoi", "dieu-phoi", "khung-ban-xe", "cam-ket-xe", "dieu-chinh-khan-cap", "dong-bo-chuyen", "tien-xe-thue", "dua-don-dau-cuoi", "tai-xe-cuoc", "tin-chuyen", "tu-choi-bao-ban", "xe-tren-don", "xe-dang-chay", "chuyen-khach", "dieu-phoi-chay-dua", "so-tien", "dieu-chinh-duyet", "phan-dinh", "coc-don-huy", "qr-thanh-toan", "so-dai-ly", "loai-doi-tac", "luat-ban", "muc-ta", "sua-muc", "so-dai-ly-dot-2", "chong-ghi-trung", "nhap-ke-toan", "chinh-sach-phien", "phien", "sua-so-khach", "ve-dien-tu", "khoa-thang", "tra-sau", "hai-lop", "hai-lop-email", "passkey"];
 
 // Thời gian từng kịch bản (giây) — chỉ để CHIA cho cân, không phải cổng. Nguồn: tests/e2e/thoi-gian.json (giây THẬT đo trên máy GitHub, lượt kiểm ghi lại
-// ở tệp kết quả gom — ADR-0176 Đ1.4); kịch bản chưa có số: 15. Sai số chỉ làm phần lệch nhau (chậm hơn), không làm bỏ sót kịch bản nào.
+// ở tệp kết quả gom — ADR-0179 Đ1.4); kịch bản chưa có số: 15. Sai số chỉ làm phần lệch nhau (chậm hơn), không làm bỏ sót kịch bản nào.
 import THOI_GIAN from "./thoi-gian.json" with { type: "json" };
 export { THOI_GIAN };
 export const nang = (name) => THOI_GIAN[name] ?? 15;
