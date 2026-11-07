@@ -13,6 +13,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import * as esbuild from "esbuild";
+import { readFileSync, readdirSync, statSync } from "node:fs";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+import type { StaffProfile } from "./shared/contracts.ts";
+import { createApp, route, type AppModule } from "./shared/router.ts";
 import { MATRIX, PERMISSION_CODES, can, canAccessOrders, isOffice, passesAccountsGate, passesAdminGate, type OperationCode, type PermissionCode } from "./shared/permissions.ts";
 import { VAI_CHON_DUOC, quyenHieuLuc } from "./shared/xem-nhu-vai.ts";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
@@ -119,6 +124,47 @@ test("(b) bảng route đủ số và mọi dòng MIỄN còn route thật", asy
   assert.equal(routes.length, SO_ROUTE, "số route lệch route-access.test.ts — cập nhật SO_ROUTE cùng SNAPSHOT");
   const co = new Set(routes.map(khoa));
   for (const m of MIEN) assert.ok(co.has(m.khoa), `miễn chết: ${m.khoa}`);
+});
+
+test("(b) danh sách MODULES của bài quét đủ mọi thư mục module có khai `...Module: AppModule` (module mới không lặng lẽ thoát khỏi bài quét)", () => {
+  const goc = join(fileURLToPath(new URL(".", import.meta.url)), "modules");
+  const coRoute = readdirSync(goc)
+    .filter((d) => statSync(join(goc, d)).isDirectory())
+    .filter((d) => /export const \w+Module\s*:\s*AppModule/.test(readFileSync(join(goc, d, "index.ts"), "utf8")))
+    .sort();
+  assert.deepEqual(coRoute, MODULES.map(([d]) => d).sort(), "có module có route chưa vào MODULES của bài quét này");
+});
+
+// Cổng router riêng (không qua handler): route giả LUÔN trả 200, nên chỉ cổng quyết định. Lớp (b) không bắt được cổng lệch vì handler thật tự hỏi can() lần nữa.
+test("(b) cổng router (admin, accounts, office, orders, staff) với route giả luôn 200: chủ đang đóng vai = tài khoản thật giữ đúng vai, ở cả 10 vai", async () => {
+  const ok = async () => new Response("ok");
+  const mod: AppModule = {
+    name: "giả",
+    routes: [route("GET", "/x/staff", "staff", ok), route("GET", "/x/admin", "admin", ok), route("GET", "/x/accounts", "accounts", ok), route("GET", "/x/office", "office", ok), route("GET", "/x/orders", "orders", ok)],
+  };
+  const dung = (staff: StaffProfile) => createApp({
+    modules: [mod],
+    currentStaff: async () => ({ staff, sessionId: "phien-thu" }),
+    injected: {
+      isAssigned: async () => false, banHang: () => ({}) as never, newOrderHandler: async () => ({ ok: false, message: "không dùng" }), ordersWithHandler: async () => new Set<string>(),
+      handledOrderIdsOf: async () => [], maintenanceBlock: async () => null, partyAccount: async () => ({ linked: false }), baoThayDoi: async () => {}, dongBangTin: async () => {},
+      giaoLoDay: async () => [], mocToiThieu: async () => ({ phut: 360, policyId: "moc-gia", canhBaoPhut: 120 }),
+    } as never,
+  });
+  const goi = async (staff: StaffProfile, p: string) => (await dung(staff).fetch(new Request(`http://x${p}`), {} as Env, {} as ExecutionContext)).status;
+  const goc: StaffProfile = { id: CHU, fullName: "Chủ", phone: SDT, partyId: null, permissions: ["SUPER_ADMIN"] };
+  for (const p of ["/x/staff", "/x/admin", "/x/accounts", "/x/office", "/x/orders"]) assert.equal(await goi(goc, p), 200, `Toàn quyền không đóng vai bị chặn ở ${p}`);
+  let soChan = 0;
+  for (const vai of VAI_CHON_DUOC) {
+    const dongVai: StaffProfile = { ...goc, permissions: quyenHieuLuc(["SUPER_ADMIN"], vai), actingRole: vai, realPermissions: ["SUPER_ADMIN"] };
+    const that: StaffProfile = { ...goc, permissions: boThat(vai) };
+    for (const p of ["/x/staff", "/x/admin", "/x/accounts", "/x/office", "/x/orders"]) {
+      const a = await goi(dongVai, p);
+      assert.equal(a, await goi(that, p), `đóng vai ${vai}: cổng ${p}`);
+      if (a === 403) soChan++;
+    }
+  }
+  assert.ok(soChan >= 20, `cổng chặn quá ít (${soChan}) — bài không phân biệt được`);
 });
 
 for (const vai of VAI_CHON_DUOC) {
