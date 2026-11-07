@@ -6,7 +6,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { CompanyDto, OrderDetailDto } from "../../shared/contracts.ts";
-import { dungBienNhan } from "./rules.ts";
+import { dungBienNhan, mauBienNhan } from "./rules.ts";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { world, seedStaff, noiGioiHanNhap } from "../../../tests/audit/harness.mjs";
 
@@ -31,9 +31,9 @@ test("NT-B1 (luật): số lạ 480017 ở mọi ô KHÔNG được phép của 
   const r = dungBienNhan(donBiMat(), COMPANY, { daTra: 300_000, conLai: 700_000 }, null);
   assert.equal(coLo(JSON.stringify(r)), false, JSON.stringify(r));
   assert.deepEqual(Object.keys(r).sort(), [
-    "company", "conLai", "createdAt", "customerEmail", "customerName", "customerNote", "customerPhone", "daTra", "discount", "huy", "orderCode", "phan", "services", "status", "subtotal", "total",
+    "company", "conLai", "createdAt", "customerEmail", "customerName", "customerNote", "customerPhone", "daTra", "discount", "huy", "mau", "orderCode", "phan", "services", "status", "subtotal", "total",
   ]);
-  assert.deepEqual(Object.keys(r.services[0]!).sort(), ["checkinDate", "checkinPlace", "checkinTime", "departDate", "departTime", "items", "name", "pax", "pickupPlace", "pickupTime", "unit"]);
+  assert.deepEqual(Object.keys(r.services[0]!).sort(), ["checkinDate", "checkinPlace", "checkinTime", "departDate", "departTime", "giaKhacCongBo", "items", "name", "pax", "pickupPlace", "pickupTime", "unit"]);
   assert.deepEqual(Object.keys(r.services[0]!.items[0]!).sort(), ["description", "detail", "lineTotal", "quantity", "unitPrice"]);
   assert.deepEqual([r.daTra, r.conLai, r.status.nhan], [300_000, 700_000, "Đã xác nhận"]);
   assert.equal(dungBienNhan({ ...donBiMat(), deliveredAt: "x" }, COMPANY, { daTra: 1, conLai: 0 }, null).status.nhan, "Xong và đủ tiền");
@@ -74,8 +74,59 @@ test("NT-B1 (route thật): GET /api/orders/:id/receipt — số lạ ở ô bí
   assert.equal((await w.call("GET", `/api/orders/${id}/receipt`, { as: HDV })).status, 200, "HDV đang phụ trách");
 });
 
+test("HD-02-DT (luật): mauBienNhan — bên đặt là đối tác HOẶC người lập là Đối tác thuần ⇒ doi_tac", () => {
+  assert.equal(mauBienNhan({ bookerLaDoiTac: false, nguoiLapDoiTacThuan: false }), "noi_bo");
+  assert.equal(mauBienNhan({ bookerLaDoiTac: true, nguoiLapDoiTacThuan: false }), "doi_tac");
+  assert.equal(mauBienNhan({ bookerLaDoiTac: false, nguoiLapDoiTacThuan: true }), "doi_tac");
+});
+test("HD-02-DT (luật): giaKhacCongBo — đơn giá ≠ giá danh mục hoặc dòng không có giá danh mục ⇒ true; khớp mọi dòng ⇒ false; DTO không mang giá danh mục", () => {
+  const khop = { ...donBiMat(), services: [{ ...donBiMat().services[0]!, items: [{ ...donBiMat().services[0]!.items[0]!, unitPrice: 500_000, catalogPrice: 500_000 }] }] };
+  assert.equal(dungBienNhan(khop, COMPANY, { daTra: 0, conLai: 1_000_000 }, null, false).services[0]!.giaKhacCongBo, false);
+  assert.equal(dungBienNhan(donBiMat(), COMPANY, { daTra: 0, conLai: 1_000_000 }, null, false).services[0]!.giaKhacCongBo, true); // catalogPrice = 480017
+  const tay = { ...khop, services: [{ ...khop.services[0]!, items: [{ ...khop.services[0]!.items[0]!, catalogPrice: null }] }] };
+  assert.equal(dungBienNhan(tay, COMPANY, { daTra: 0, conLai: 1_000_000 }, null, false).services[0]!.giaKhacCongBo, true);
+  assert.equal(coLo(JSON.stringify(dungBienNhan(donBiMat(), COMPANY, { daTra: 0, conLai: 1 }, null, true))), false);
+  assert.equal(dungBienNhan({ ...donBiMat(), bookerLaDoiTac: false }, COMPANY, { daTra: 0, conLai: 1 }, null, false).mau, "noi_bo");
+});
+
+test("HD-02-DT (route thật): mẫu theo người lập và bên đặt; văn phòng và đối tác mở cùng đơn ra cùng mẫu", async () => {
+  const w = world();
+  const SALES = "11111111-1111-4111-8111-111111111111";
+  const DT = "66666666-6666-4666-8666-666666666666";
+  const LAI = "66666666-6666-4666-8666-666666666669";
+  const DLA = "dda00000-0000-4000-8000-000000000001";
+  const AT = "2026-09-01T00:00:00.000Z";
+  seedStaff(w.sqlite, { id: SALES, phone: "0900000001", name: "An Bán", perms: ["SALES"] });
+  seedStaff(w.sqlite, { id: DT, phone: "0900000007", name: "Đối Tác", perms: ["PARTNER"] });
+  seedStaff(w.sqlite, { id: LAI, phone: "0900000009", name: "Lai", perms: ["SALES", "PARTNER"] });
+  w.sqlite.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES (?, 'ORGANIZATION', 'Đại lý A', 1, ?, ?)").run(DLA, AT, AT);
+  w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES (?, ?, 'TRAVEL_AGENCY', '2026-01-01', ?, ?)").run(`r-${DLA}`, DLA, AT, AT);
+  const them = (n: number, staff: string, booker: string | null): string => {
+    const id = `99999999-9999-4999-8999-00000000010${n}`;
+    w.sqlite.prepare(`INSERT INTO orders (id, order_code, staff_id, booker_party_id, status, customer_name, customer_phone, subtotal, total, remaining_amount, created_at, updated_at)
+      VALUES (?, ?, ?, ?, 'draft', 'Khách Giả', '0900000099', 1000000, 1000000, 1000000, ?, ?)`).run(id, `TD-DT-${n}`, staff, booker, AT, AT);
+    w.sqlite.prepare(`INSERT INTO order_service (pickup_choice, id, order_id, name, unit, pax_adult, depart_date) VALUES ('KHONG_DON', ?, ?, 'Vé', 'perPax', 2, '2026-10-01')`).run(`svc-dt${n}`, id);
+    w.sqlite.prepare(`INSERT INTO order_item (id, order_id, service_id, description, quantity, unit_price, line_total, catalog_code, catalog_price, pax_code)
+      VALUES (?, ?, ?, 'Người lớn', 2, 500000, 1000000, 'ZX1', 500000, 'adult')`).run(`it-dt${n}`, id, `svc-dt${n}`);
+    w.sqlite.prepare(`UPDATE orders SET status = 'confirmed', confirmed_at = ?, updated_at = ? WHERE id = ?`).run(AT, AT, id);
+    return id;
+  };
+  const a = them(1, DT, null), b = them(2, SALES, null), c = them(3, LAI, null), d = them(4, SALES, DLA);
+  const mau = async (id: string, as: string) => {
+    const r = await w.call("GET", `/api/orders/${id}/receipt`, { as });
+    assert.equal(r.status, 200, r.text);
+    assert.equal(r.json.receipt.services[0].giaKhacCongBo, false);
+    return r.json.receipt.mau;
+  };
+  assert.equal(await mau(a, DT), "doi_tac");
+  assert.equal(await mau(a, SALES), "doi_tac", "văn phòng mở đơn của Đối tác thuần ra cùng mẫu");
+  assert.equal(await mau(b, SALES), "noi_bo");
+  assert.equal(await mau(c, SALES), "noi_bo", "tài khoản lai SALES+PARTNER không phải Đối tác thuần");
+  assert.equal(await mau(d, SALES), "doi_tac", "bên đặt là đại lý");
+});
+
 // ---- ADR-0109 QĐ4: biên nhận gửi khách in GIẢM GIÁ HIỆU LỰC (= min(giảm giá, tạm tính hiện hành) — số máy chủ tính bằng `effectiveMoney`, đọc khoá
-// `OrderDto.giamGiaHieuLuc`), để ba dòng Tạm tính − Giảm giá = Tổng cộng luôn cân. `ReceiptDto` giữ đúng 16 khoá (bài NT-B1 ở trên; khoá thứ 16 `phan` — sổ đại lý đợt 2 Task 8).
+// `OrderDto.giamGiaHieuLuc`), để ba dòng Tạm tính − Giảm giá = Tổng cộng luôn cân. `ReceiptDto` giữ đúng 17 khoá (bài NT-B1 ở trên; khoá thứ 16 `phan` — sổ đại lý đợt 2 Task 8; khoá thứ 17 `mau` — HD-02-DT).
 test("ADR-0109 (luật): biên nhận in giảm giá hiệu lực — đơn âm 500.000 / giảm 800.000 → [500.000, 500.000, 0]; bất biến tạm tính − giảm giá = tổng trên ba mẫu", () => {
   const am = dungBienNhan({ ...donBiMat(), subtotal: 500_000, discount: 800_000, total: 0, giamGiaHieuLuc: 500_000 }, COMPANY, { daTra: 200_000, conLai: 0 }, null);
   assert.deepEqual([am.subtotal, am.discount, am.total], [500_000, 500_000, 0]);

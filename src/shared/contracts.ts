@@ -2582,6 +2582,8 @@ export interface ReceiptLineDto {
   unitPrice: number;
   lineTotal: number;
 }
+/** Mẫu in biên nhận do MÁY CHỦ quyết (HD-02-DT): «noi_bo» hay «doi_tac» (đơn của Đối tác — bên đặt là đối tác hoặc người lập là Đối tác thuần). */
+export type MauBienNhan = "noi_bo" | "doi_tac";
 export interface ReceiptServiceDto {
   name: string;
   /** Đơn vị (để in số khách "2 người lớn" hay "N khách"); "manual" = nhập tay. */
@@ -2594,9 +2596,13 @@ export interface ReceiptServiceDto {
   checkinDate: string | null;
   checkinTime: string | null;
   checkinPlace: string | null;
+  /** Máy chủ so đơn giá với giá danh mục rồi chỉ gửi CỜ này (đúng = có dòng khác giá công bố hoặc không có giá danh mục); không mang số giá danh mục. */
+  giaKhacCongBo: boolean;
   items: ReceiptLineDto[];
 }
 export interface ReceiptDto {
+  /** Mẫu in do máy chủ quyết (`mauBienNhan`); giao diện chỉ đọc, không tự suy. */
+  mau: MauBienNhan;
   company: CompanyDto;
   orderCode: string;
   /** Khoá (chọn màu huy hiệu) + nhãn tiếng Việt (`trangThaiHienThi`). */
