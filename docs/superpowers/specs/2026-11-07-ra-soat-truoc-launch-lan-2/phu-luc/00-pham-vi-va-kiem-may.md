@@ -46,3 +46,8 @@ Có lần lưu chưa vào `origin/main` lúc khoảng 22:12: `claude/interesting
 ## 6. Lệnh bị bộ chặn từ chối
 
 - Khoảng 22:10: một lệnh gộp gồm GET công khai `/api/auth/config` cùng các lệnh `git log/fetch/show` bị hook `guard-remote` chặn với lý do «yêu cầu ghi (POST/PUT/PATCH/DELETE/dữ liệu) tới booking.tourdao.vn». Lệnh không ghi gì; có vẻ hook đọc nhầm một cờ của `git` trong cùng dòng. Phiên tách phần `git` ra chạy riêng; GET công khai chạy lại đúng như lần đầu (21:57) và đi qua. Ghi lại để chủ biết hook có thể chặn nhầm lệnh gộp; không có lệnh cấm nào bị lách.
+- Khoảng 23:00: lệnh dọn các thư mục tạm `tourdao-dev-*` trong thư mục tạm chung của máy (chỉ những thư mục sinh ra trong giờ phiên này chạy bộ kiểm) bị bộ phân loại của chế độ tự động từ chối với lý do «quét thư mục tạm dùng chung». Phiên không thử lại bằng cách khác. Các thư mục đó vẫn còn; chúng do bài `src/dung-tai-san-dev.test.ts` tạo bằng `mkdtempSync` mà không xoá sau khi chạy, nên mỗi lần chạy bộ kiểm thường để lại khoảng mười thư mục (đếm lúc 22:58: 360 thư mục từ 06:05 cùng ngày, của mọi phiên). Đây là việc dọn nhỏ cho bài kiểm, ngoài phạm vi đợt rà; chủ có thể tự xoá `$TMPDIR/tourdao-dev-*` khi không phiên nào đang chạy bộ kiểm.
+
+## 7. Dọn dẹp
+
+Đã tắt và đếm lại: không còn `workerd`, không còn tiến trình `wrangler`, không còn Chrome không màn hình của đợt rà (22:39 và 22:58). Bản chép mã dùng cho phép thử phá cổng phiên bản Trả sau (trong thư mục tạm riêng của phiên) đã xoá. Kịch bản dò, nhật ký đầu ra và báo cáo gốc của trợ lý còn trong thư mục tạm riêng của phiên, ngoài kho.
