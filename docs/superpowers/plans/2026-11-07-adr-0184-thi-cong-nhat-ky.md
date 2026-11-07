@@ -24,6 +24,12 @@ P1–P8 ghi ở mục «Phán quyết của điều phối» của kế hoạch 
 - Việc 2 — xong `699e9901` (≈ 9 phút). Chữ ký cuối: `docChung` đọc một lần mọi dòng cho phép chưa dùng của chuyến `PLANNED` (dòng hiếm), `choPhepCuaChuyen(chung, tripId)` lọc; `LichChungVao.choPhepThieu` bắt buộc. Mẫu vàng B23 (thiếu Bảo hiểm) và VC-12 (Kiểm định hết hạn) đổi kỳ vọng sang mã giữ `DIEU_KIEN_GIAY_TO_XE_TOAN_QUYEN` — đúng P3, người kiểm xem lại.
   - **P9 (điều phối, 7/11):** luật chuyển khách giữa hai xe (`src/shared/chuyen-khach.ts`, dòng kiểm `GIAY_TO_DICH`) KHÔNG nối dòng cho phép: chuyển khách sang xe thiếu giấy tờ vẫn bị chặn như cũ, kể cả xe đang chạy nhờ «Cho chạy dù thiếu giấy tờ». Lý do: ADR ghi hiệu lực «một chuyến, một lần xuất bến — không "xe này được miễn"»; nhận thêm khách là rủi ro mới. Hành vi người dùng không đổi so với hôm nay. Cái giá nếu sai: một lệnh nhỏ nối thêm sau.
 
+- Việc 3 — xong `40e46b64` (mã + bài, 14 bài route) và `3377ecf6` (e2e `cho-chay-thieu-giay`: 5 bước, 4/4 xanh, một lần) (≈ 22 phút). Ba phép phá ở máy chủ làm đỏ đúng chỗ; bài 403/400 thường vẫn xanh khi gỡ lớp máy chủ vì trigger 0147 bắt — đúng thiết kế hai lớp, có bài riêng gỡ trigger.
+  - **Chủ quyết (chat 2026-11-08): CÓ báo tài xế** («Có, báo tài xế»). Kế hoạch ghi «không gửi tin» bị thay; trợ lý việc 3 đã mở hai ngoại lệ QT1 (bài quét `baoThayDoiChuyen` + mục `CHO_LECH` `N-CHO-CHAY-THIEU` khai nhầm `DA_DUYET`) — giao gỡ cả hai, làm tin cho tài xế đang giao theo QT1.
+  - Sửa thêm `8a7fce7c` (≈ 5 phút): gỡ hai ngoại lệ QT1; tài xế đang giao nhận tin loại mới `cho_chay_thieu` («Chuyến <mã>: Xe thiếu <tên loại> — đã cho chạy»); Bảng tin dùng loại có sẵn `sua`; tên loại giấy cho tin đọc theo `cmd_id` của dòng cho phép (chỉ tên, không số, không ghi chú). e2e chạy lại 4/4 xanh.
+  - **Chờ chủ duyệt (gộp báo cáo cuối):** `lop-vuot.test.ts` nới N3 — route mới hỏi thẳng ô `trip.override` (không qua tầng hạn chốt 6 giờ). Hệ quả trực tiếp của ADR (trang ghép dùng lại `trip.override` cho bốn loại giấy).
+  - Phát sinh nhỏ đã chấp nhận: số lý do trong `chinh-sach-route.test.ts` 44 → 47 (từ migration 0147); `trip_departure_waived` xếp vào danh sách ẩn của lịch sử đơn (nhật ký `trip_*` không lộ cho Đối tác); sinh lại `tro-ly-cau-truc.ts`.
+
 ## Nợ (không chặn phát hành)
 
 - Chưa có nút «bỏ cho phép» trước giờ chạy.
