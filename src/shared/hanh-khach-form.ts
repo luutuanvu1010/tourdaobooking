@@ -2,7 +2,7 @@
 // Mô hình THUẦN: dòng nhập, lỗi dòng (chữ của bản vẽ), dòng đếm "3/4", câu nhắc thiếu / quá, thân gửi lên (nháp: `passengers`; đã xác nhận: them/sua/huy).
 // Luật hành khách thật ở hanh-khach.ts (máy chủ quyết). Đoạn "Số khách đi xe" (ADR-0065) KHÔNG làm — mẫu số = số khách dịch vụ (D2, Tweaks tắt).
 import type { PassengerChangeInput, PassengerDto, PassengerInput, PaxCode } from "./contracts.ts";
-import { TUOI_TOI_DA } from "./hanh-khach.ts";
+import { TUOI_TOI_DA, canhBaoQuaTen } from "./hanh-khach.ts";
 import { PAX_LABEL, PAX_ORDER } from "./order-lines.ts";
 
 export interface DongKhach {
@@ -65,7 +65,7 @@ export function tomTatKhach(rows: readonly DongKhach[], soKhach: number, today: 
   return {
     dem: `${du}/${soKhach}`,
     thieu: coDong.length > 0 && coDong.length <= soKhach && thieu > 0 ? `Còn ${thieu} khách chưa có tên — cần đủ trước khi xe chạy` : null,
-    qua: coDong.length > soKhach ? `Danh sách có ${coDong.length} người, đơn có ${soKhach} khách` : null,
+    qua: canhBaoQuaTen(coDong.length, soKhach),
   };
 }
 
