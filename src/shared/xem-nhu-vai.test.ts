@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { HAN_XEM_NHU_VAI_PHUT, VAI_CHON_DUOC, laVaiChonDuoc, daHetHan, quyenHieuLuc } from "./xem-nhu-vai.ts";
+import { HAN_XEM_NHU_VAI_PHUT, VAI_CHON_DUOC, laVaiChonDuoc, daHetHan, quyenHieuLuc, quyenThat } from "./xem-nhu-vai.ts";
 
 test("hạn xem như vai khác là 60 phút", () => {
   assert.equal(HAN_XEM_NHU_VAI_PHUT, 60);
@@ -46,4 +46,14 @@ test("daHetHan: ngày hỏng hoặc rỗng thì coi là đã hết hạn", () =>
 test("daHetHan: đúng 60'00\" thì chưa hết hạn", () => {
   const t0 = Date.parse("2026-11-07T01:00:00.000Z");
   assert.equal(daHetHan("2026-11-07T01:00:00.000Z", t0 + 60 * 60 * 1000), false);
+});
+
+test("quyenHieuLuc: đóng vai Quản lý bán hàng thì kèm Bán hàng (ADR-0169 Đ1); mã khác vẫn một mã", () => {
+  assert.deepEqual(quyenHieuLuc(["SUPER_ADMIN"], "SALES_MANAGER"), ["SALES_MANAGER", "SALES"]);
+  for (const ma of VAI_CHON_DUOC.filter((m) => m !== "SALES_MANAGER")) assert.deepEqual(quyenHieuLuc(["SUPER_ADMIN"], ma), [ma]);
+});
+
+test("quyenThat: có realPermissions thì lấy nó, không thì lấy permissions", () => {
+  assert.deepEqual(quyenThat({ permissions: ["SALES"], realPermissions: ["SUPER_ADMIN"] }), ["SUPER_ADMIN"]);
+  assert.deepEqual(quyenThat({ permissions: ["SALES"] }), ["SALES"]);
 });

@@ -125,8 +125,9 @@ const SS_END_ALL_IF_SUSPENDED = defineSql("auth", "session_end_all_if_suspended"
     "AND EXISTS (SELECT 1 FROM v_stf_staff_label WHERE id = ?1 AND active = 0)");
 // (2c) phiên được GIỮ khi người dùng tự đổi PIN / gỡ Face ID (ADR-0075 điều 5): last_seen_at = đúng mốc ghi vào credentials_changed_at, để màn sổ phiên
 // (sessionStatus, so max(created_at, last_seen_at)) không coi phiên đang dùng là "Đã đổi thông tin đăng nhập".
+// ADR-0180: cấp lại phiên = đổi thông tin đăng nhập ⇒ LUÔN bỏ vai đang đóng (không thì làm mới last_seen_at sẽ làm sống lại vai đã quá hạn mà cột chưa kịp xoá).
 const SS_MARK_REISSUED = defineSql("auth", "session_mark_reissued",
-  "UPDATE aut_session SET last_seen_at = ?2, updated_at = ?2, updated_by = ?3 WHERE id = ?1 AND ended_at IS NULL");
+  "UPDATE aut_session SET last_seen_at = ?2, acting_role = NULL, updated_at = ?2, updated_by = ?3 WHERE id = ?1 AND ended_at IS NULL");
 // (2d) Một tài khoản MẤT nhiều máy khi đổi quyền / vai (ADR-0085 Q2 điều 7, thay ADR-0075 điều 3): [dọn hạn (1) → kết thúc mọi phiên trừ phiên còn sống mới nhất
 // → đánh dấu phiên còn lại single = 1]. Thứ tự giữ chỉ mục aut_session_one_live không vỡ. KHÔNG còn tự kiểm "không giữ Toàn quyền" trong SQL: route đặt hai câu
 // này ở lô THỨ HAI, chỉ chạy khi lô đổi quyền/vai đã thắng câu chốt "quản trị viên cuối" (bài accounts/mat-mien-route.test.ts, đột biến ở sổ hàng rào).
@@ -151,9 +152,10 @@ const SS_FIND_LIVE = defineSql("auth", "session_find_live",
 const SS_SET_ACTING_ROLE = defineSql("auth", "session_set_acting_role",
   "UPDATE aut_session SET acting_role = ?2, last_seen_at = ?3, updated_at = ?3 WHERE id = ?1 AND ended_at IS NULL AND expires_at > ?3");
 // ADR-0180 Đ1.3: vai đã quá 60 phút không thao tác ⇒ xoá cột (chạy nền, CÙNG lô và TRƯỚC câu chạm last_seen_at — không thì lần gọi sau thấy mốc mới và vai sống lại).
-// Điều kiện `last_seen_at < ?3` (mốc hết hạn): phiên vừa được đặt vai mới (last_seen_at mới) thì không đụng.
+// Điều kiện `last_seen_at < ?3` (mốc hết hạn) hoặc mốc hỏng (`julianday` NULL — `daHetHan` coi là đã hết): phiên vừa được đặt vai mới (last_seen_at mới) thì không đụng.
 const SS_CLEAR_EXPIRED_ACTING = defineSql("auth", "session_clear_expired_acting_role",
-  "UPDATE aut_session SET acting_role = NULL, updated_at = ?2 WHERE id = ?1 AND ended_at IS NULL AND acting_role IS NOT NULL AND last_seen_at < ?3");
+  "UPDATE aut_session SET acting_role = NULL, updated_at = ?2 WHERE id = ?1 AND ended_at IS NULL AND acting_role IS NOT NULL " +
+    "AND (last_seen_at < ?3 OR julianday(last_seen_at) IS NULL)");
 const SS_TOUCH = defineSql("auth", "session_touch",
   "UPDATE aut_session SET last_seen_at = ?2, updated_at = ?2 WHERE id = ?1 AND ended_at IS NULL AND last_seen_at < ?3");
 const SS_LIST_MINE = defineSql("auth", "session_list_mine",

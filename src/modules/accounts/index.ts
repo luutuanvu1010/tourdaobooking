@@ -32,6 +32,7 @@ import {
   QUYEN_DAT_DUOC, docTapNhieuMayThamSo, kiemThayDoiChinhSach, moTaThayDoiChinhSach, tapNhieuMaySau, type QuyenDatDuoc,
 } from "../../shared/chinh-sach-dang-nhap";
 import { PERMISSION_CODES, PERMISSION_LABEL, can, isPermissionCode, type PermissionCode, quyenHienThi } from "../../shared/permissions";
+import { quyenThat } from "../../shared/xem-nhu-vai";
 import { route, type AppModule, type Ctx } from "../../shared/router";
 import {
   TIEN_CHI_TOAN_QUYEN_MESSAGE, chamTaiKhoanTienDuoc, chanTatHaiLop, datLaiPinDuoc as datLaiPinDuocTheoDong, highPermissionProblem, tatHaiLopDuoc, parseRoleAssignment, permissionsLabel, roleAssignmentProblem,
@@ -883,13 +884,14 @@ export const accountsModule: AppModule = {
         sessionId ? getSession(env.DB, sessionId) : Promise.resolve(null),
       ]);
       // Dòng EMAIL lệch của vai lớn không tính là có yếu tố (daBatHaiLop — như cổng đăng nhập; vòng sửa 2 Minor 3); vẫn liệt kê ở `factors` để tự gỡ.
-      const coYeuTo = daBatHaiLop(staff.permissions, factors.map((f) => f.kind));
-      const banner = mfaBanner({ perms: staff.permissions, hasFactor: coYeuTo, trusted: false, graceUntil: han.graceUntil, enrollUntil: han.enrollUntil, nowIso });
+      const quyenTk = quyenThat(staff); // ADR-0180 Đ3: chính sách hai lớp theo quyền THẬT, không theo vai đang "xem như"
+      const coYeuTo = daBatHaiLop(quyenTk, factors.map((f) => f.kind));
+      const banner = mfaBanner({ perms: quyenTk, hasFactor: coYeuTo, trusted: false, graceUntil: han.graceUntil, enrollUntil: han.enrollUntil, nowIso });
       const mayNay = phien?.staff_id === staff.id ? phien.trusted_device_id : null;
       return json({
         required: banner.required, graceUntil: banner.graceUntil,
         factors: factors.map((f) => ({ kind: f.kind, createdAt: f.createdAt, emailMask: f.emailMask })), // email chỉ dạng che (ADR-0074 điều 8)
-        allowed: allowedFactors(staff.permissions), recoveryLeft,
+        allowed: allowedFactors(quyenTk), recoveryLeft,
         trustedDevices: devices.map((d) => ({ id: d.id, label: d.label, createdAt: d.createdAt, lastUsedAt: d.lastUsedAt, thisDevice: mayNay !== null && d.id === mayNay })),
       } satisfies AccountMfaResponse);
     }),
@@ -939,7 +941,7 @@ export const accountsModule: AppModule = {
     // Bước 1: 409 vai lớn (TRƯỚC mọi ghi) → địa chỉ đúng khuôn → [đã có yếu tố: mã của yếu tố hiện có (ứng dụng xác thực hoặc mã dự phòng), có hạn mức] → hạn
     // mức gửi 3 thư / 15 phút (chung với bước đăng nhập) → ghi dòng mã → gửi thư → (mã dự phòng) mới tiêu mã. Không lô ghi mang vé (guiMaBatEmail — ngoài vé có tên).
     route("POST", "/api/account/mfa/email/start", "staff", async ({ request, env, staff }) => {
-      if (!allowedFactors(staff.permissions).includes("EMAIL")) return EMAIL_VAI_LON();
+      if (!allowedFactors(quyenThat(staff)).includes("EMAIL")) return EMAIL_VAI_LON(); // ADR-0180 Đ3: theo quyền THẬT
       const body = await readJson(request);
       const email = normalizeEmail(body?.email);
       if (!email) return error(400, "invalid_input", "Địa chỉ email chưa đúng (dạng ten@vidu.com).");
@@ -958,7 +960,7 @@ export const accountsModule: AppModule = {
     // phát được sau khi đưa mã hiện có), hạn mức chung `mfa:<id>` → MỘT lô: kết thúc EMAIL cũ (nếu đổi địa chỉ) → chèn EMAIL mới → (yếu tố đầu tiên) thu hồi mã cũ
     // + 10 mã dự phòng mới → nhật ký mfa_enabled (chi tiết chỉ "EMAIL").
     route("POST", "/api/account/mfa/email/confirm", "staff", async ({ request, env, staff }) => {
-      if (!allowedFactors(staff.permissions).includes("EMAIL")) return EMAIL_VAI_LON();
+      if (!allowedFactors(quyenThat(staff)).includes("EMAIL")) return EMAIL_VAI_LON(); // ADR-0180 Đ3: theo quyền THẬT
       const body = await readJson(request);
       const email = normalizeEmail(body?.email);
       const code = typeof body?.code === "string" ? body.code.trim().slice(0, 32) : "";
@@ -1007,11 +1009,12 @@ export const accountsModule: AppModule = {
       const song = await yeuToSong(env.DB, staff.id);
       const f = song.find((x) => x.kind === kind);
       if (!f) return error(404, "not_found", "Chưa bật cách xác thực này.");
-      const noiBo = isInternal(staff.permissions);
+      const quyenTk = quyenThat(staff); // ADR-0180 Đ3: theo quyền THẬT
+      const noiBo = isInternal(quyenTk);
       // "Yếu tố cuối" tính theo yếu tố CÒN LẠI mà quyền hiện tại cho dùng (daBatHaiLop — như cổng đăng nhập): Quản trị có TOTP + dòng EMAIL lệch gỡ TOTP thì
       // không còn gì dùng được ở bước hai → 409 (trước vòng sửa 3: 200 rồi tự khoá 403 ở lần đăng nhập sau). Lưới SQL giuMot vẫn đếm mọi loại khi chạy đua.
       const conLai = song.filter((x) => x.id !== f.id).map((x) => x.kind);
-      if (noiBo && !daBatHaiLop(staff.permissions, conLai)) return MFA_LAST_FACTOR();
+      if (noiBo && !daBatHaiLop(quyenTk, conLai)) return MFA_LAST_FACTOR();
       const now = Date.now();
       const at = new Date(now).toISOString();
       const chan = await kiemMaHienCo(env, staff.id, body?.code, now, "TOTP_HOAC_DU_PHONG");

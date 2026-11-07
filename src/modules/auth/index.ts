@@ -100,15 +100,16 @@ export async function currentStaff(request: Request, env: Env, exec?: ExecutionC
   const hetHan = coVai && daHetHan(row.last_seen_at, now);
   const vai = coVai && !hetHan && staff.permissions.includes("SUPER_ADMIN") && laVaiChonDuoc(row.acting_role) ? row.acting_role as PermissionCode : null;
   const hieuLuc: StaffProfile = vai === null ? staff : { ...staff, permissions: quyenHieuLuc(staff.permissions, vai), actingRole: vai, realPermissions: [...staff.permissions] };
-  if (Date.parse(row.last_seen_at) < now - SESSION_TOUCH_MS) {
+  const canCham = Date.parse(row.last_seen_at) < now - SESSION_TOUCH_MS;
+  if (canCham || hetHan) {
     // Ghi mốc hoạt động Ở NỀN (không chặn phản hồi): câu có điều kiện `last_seen_at < ?` nên lặp hay chậm đều vô hại; phiên đã bị lưới `credentials_changed_at` giết
     // không bao giờ tới đây (đã bị từ chối ở getActiveStaff). Không có `exec` (bài kiểm gọi thẳng) thì chờ như cũ.
     // Vai đã hết hạn (ADR-0180 Đ1.3): xoá cột trong CÙNG lô, ĐỨNG TRƯỚC câu chạm — chạm thành công mà xoá hỏng thì lần sau vai sống lại; một lô thì cả hai cùng thành hoặc cùng hỏng.
-    const cham = touchSessionStatement(env.DB, row.id, nowIso, new Date(now - SESSION_TOUCH_MS).toISOString());
-    const ghi = (hetHan
-      ? env.DB.batch([clearExpiredActingRoleStatement(env.DB, row.id, nowIso, new Date(now - HAN_XEM_NHU_VAI_PHUT * 60 * 1000).toISOString()), cham])
-      : cham.run()
-    ).catch((e: unknown) =>
+    // Mốc last_seen_at hỏng (không bao giờ vào nhánh chạm) vẫn xoá vai. Xoá hỏng cũng không sao: hạn xét lại ở mỗi lần đọc.
+    const cham = canCham ? [touchSessionStatement(env.DB, row.id, nowIso, new Date(now - SESSION_TOUCH_MS).toISOString())] : [];
+    const xoa = hetHan ? [clearExpiredActingRoleStatement(env.DB, row.id, nowIso, new Date(now - HAN_XEM_NHU_VAI_PHUT * 60 * 1000).toISOString())] : [];
+    const lo = [...xoa, ...cham];
+    const ghi = (lo.length === 1 ? lo[0]!.run() : env.DB.batch(lo)).catch((e: unknown) =>
       console.error(JSON.stringify({ level: "error", event: "session_touch_failed", message: e instanceof Error ? e.message : String(e) })));
     if (exec) exec.waitUntil(ghi);
     else await ghi;
