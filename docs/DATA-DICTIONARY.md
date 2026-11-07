@@ -265,7 +265,8 @@
 | `vc_transfer_check` | bảng | BẰNG CHỨNG KIỂM của đề nghị chuyển khách (0093, ADR-0052 D4.1 + ADR-0111 Đ1, Đ3 (b)): một dòng mỗi điều kiện đang dùng mỗi lần kiểm (cmd_id = dấu lệnh của lần bấm Nhận / Duyệt; UNIQUE (transfer_id, cmd_id, rule_code)). rule_code → vc_transfer_rule; rule_tier phải bằng tầng của danh mục; ket_qua DAT / KHONG_DAT / CANH_BAO; gia_tri / gioi_han số nguyên (số chỗ, số phút, ngày yyyymmdd) — không tên, không số giấy tờ; policy_row_id = dòng chính sách hiện hành lúc kiểm. Chỉ thêm (trigger chặn sửa / xoá); chỉ ghi trong lô của xe nhận khi đề nghị còn Chờ / Leo thang (trigger vc_transfer_check_rule). |
 | `vc_trip_event` | bảng | sự kiện của chuyến, chỉ thêm. reason_code (0085, ADR-0097): lý do nhóm DIEU_CHINH của sự kiện điều chỉnh — chỉ kind CORRECTION (văn phòng sửa kết quả một suất khách đang mở của chính chuyến, allocation_id = suất cũ) và DEPARTURE_REVOKED (văn phòng thu hồi xuất bến) mang và phải mang; chỉ trên chuyến RUNNING (trigger vc_trip_event_dieu_chinh_scope). Mỗi lô điều chỉnh / thu hồi đúng một sự kiện, cùng dấu lệnh với nhật ký trip_allocation_corrected / trip_departure_revoked. Nhóm lý do DIEU_CHINH (vc_reason, 0085 gieo — danh sách đóng): Bấm nhầm, Khách đổi ý tại điểm, Khác |
 | `vc_trip_departure_check` | bảng |  |
-| `vc_trip_departure_check_item` | bảng |  |
+| `vc_trip_departure_check_item` | bảng | dòng con bản chụp. Từ 0147 (ADR-0184): cột waiver_id trỏ dòng cho phép chạy thiếu giấy tờ; chỉ dòng DIEU_KIEN mới có (waiver_item_kind); dòng DIEU_KIEN dưới bản chụp ĐẠT bắt buộc trỏ dòng cho phép khớp chuyến, xe, loại giấy, và điều kiện phải của xe (lc05_thieu_giay_chua_cho_phep); dòng cho phép đã dùng ở bản chụp khác thì không dùng lại (waiver_da_dung) |
+| `vc_trip_departure_waiver` | bảng | dòng cho phép chạy thiếu giấy tờ (ADR-0184; migration 0147), chỉ thêm: mỗi loại giấy một dòng, gắn chuyến chưa chạy và đúng xe hiện tại của chuyến; hiệu lực một chuyến, một lần xuất bến. Kiểm định và Bảo hiểm trách nhiệm dân sự chỉ Toàn quyền cấp; Quản trị bắt buộc có lý do (nhóm CHO_CHAY_THIEU_GIAY: Giấy đang gia hạn, Xe thay thế khẩn cấp, Khác); ghi chú tự do 10–200 ký tự, không vào nhật ký. Không có cột số giấy tờ |
 | `vc_trip_manifest` | bảng | tham chiếu logic `passenger_row_id` → `ord_passenger` qua view `v_ord_passenger_row`, không khoá ngoại (id dòng đã dùng — trigger vc_trip_manifest_scope lúc chốt + kiểm định kỳ R-VC-10 — R-P19) |
 | `vc_leg_appt_ack` | bảng | tham chiếu logic `leg_id` → `ord_transfer_leg` qua view `v_ord_leg_key`, không khoá ngoại (mốc giờ hẹn của chặng (ADR-0051, 0043) — dòng XEP chỉ sinh trong lô mở suất (đã qua LC-09); dòng người bấm đòi chặng còn suất khách chờ đón + kiểm định kỳ R-VC-19 — R-P19) |
 
@@ -400,6 +401,7 @@
 | `vc_transfer_request` |  | `meet_place_text` |  |  |
 | `vc_trip_allocation` |  | `passenger_key` |  |  |
 | `vc_trip_cost_line` |  | `note` |  |  |
+| `vc_trip_departure_waiver` |  | `note` |  |  |
 | `vc_trip_stop` |  | `place_text` |  |  |
 | `vdt_guest_link` |  | `token_hash` |  |  |
 | `vdt_ticket` |  | `ticket_code`, `storage_key`, `content_hash` |  |  |
