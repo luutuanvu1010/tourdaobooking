@@ -55,7 +55,7 @@ test("ADR-0181 tiêu chí 3 (Danh bạ): gỡ một vai khi còn vai được h�
   const nk = nhatKyDong(w, KTK);
   assert.equal(nk.length, 1, "một dòng nhật ký đóng hạn mức");
   assert.equal(nk[0]!.staff_id, ADM, "người gỡ vai là người ghi nhật ký");
-  assert.match(nk[0]!.detail, /gỡ vai đối tác cuối cùng/);
+  assert.match(nk[0]!.detail, /gỡ vai trò đối tác cuối cùng/);
   assert.equal(await hanMucXem(w, KTK), null);
   const lai = await w.call("POST", `/api/parties/${KTK}/roles`, { as: ADM, body: { roleTypeCode: "TRAVEL_AGENCY" } });
   assert.equal(lai.status, 201, lai.text);
@@ -76,7 +76,7 @@ test("ADR-0181 tiêu chí 3 (Tài khoản): đổi sang vai đối tác khác �
   const nk = nhatKyDong(w, BEN);
   assert.equal(nk.length, 1);
   assert.equal(nk[0]!.staff_id, ADM);
-  assert.match(nk[0]!.detail, /gỡ vai đối tác cuối cùng/);
+  assert.match(nk[0]!.detail, /gỡ vai trò đối tác cuối cùng/);
   const d3 = await doiVaiTaiKhoan(w, ["TRAVEL_AGENCY"]);
   assert.equal(d3.status, 200, d3.text);
   assert.equal(await hanMucXem(w, BEN), null, "mang vai lại: chưa có Trả sau");

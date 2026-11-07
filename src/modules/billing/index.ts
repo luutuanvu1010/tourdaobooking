@@ -817,7 +817,7 @@ export const coHanMucTraSauMo = (db: D1Database, partyId: string): Promise<boole
  */
 export const cauDongHanMucKhiHetVai = (db: D1Database, partyId: string, at: string, by: string): D1PreparedStatement[] => [
   dongHanMucKhiHetVaiStatement(db, partyId, homQua(vnToday(new Date(at))), at, by),
-  auditStatement(db, { staffId: by, action: "credit_limit_stopped", at, targetType: "ledger", targetId: partyId, detail: "đóng hạn mức vì gỡ vai đối tác cuối cùng" }, "changes() > 0"),
+  auditStatement(db, { staffId: by, action: "credit_limit_stopped", at, targetType: "ledger", targetId: partyId, detail: "đóng hạn mức vì gỡ vai trò đối tác cuối cùng" }, "changes() > 0"),
   ...cauTangPhienBan(db, partyId, at),
 ];
 export { congTyNhanTienKhach, kenhThuHienTai } from "./kenh-thu";
