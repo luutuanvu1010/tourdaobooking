@@ -58,10 +58,10 @@ test("gomLoChoChayThieu (ADR-0184 P12): mỗi lô (cmd) một mục — tên lo�
   assert.deepEqual(gomLoChoChayThieu([]), []);
   assert.deepEqual(
     gomLoChoChayThieu([
-      { cmdId: "a", tenLoai: "Đăng ký xe", lyDoNhan: "Giấy đang gia hạn", ghiChu: "chờ cấp lại" },
-      { cmdId: "a", tenLoai: "Bảo hiểm", lyDoNhan: "Giấy đang gia hạn", ghiChu: "chờ cấp lại" },
-      { cmdId: "a", tenLoai: "Bảo hiểm", lyDoNhan: "Giấy đang gia hạn", ghiChu: "chờ cấp lại" },
-      { cmdId: "b", tenLoai: "Kiểm định", lyDoNhan: null, ghiChu: null },
+      { cmdId: "a", tenLoai: "Đăng ký xe", thuTu: 1, lyDoNhan: "Giấy đang gia hạn", ghiChu: "chờ cấp lại" },
+      { cmdId: "a", tenLoai: "Bảo hiểm", thuTu: 3, lyDoNhan: "Giấy đang gia hạn", ghiChu: "chờ cấp lại" },
+      { cmdId: "a", tenLoai: "Bảo hiểm", thuTu: 3, lyDoNhan: "Giấy đang gia hạn", ghiChu: "chờ cấp lại" },
+      { cmdId: "b", tenLoai: "Kiểm định", thuTu: 2, lyDoNhan: null, ghiChu: null },
     ]),
     [{ ten: ["Đăng ký xe", "Bảo hiểm"], lyDo: "Giấy đang gia hạn", ghiChu: "chờ cấp lại" }, { ten: ["Kiểm định"], lyDo: null, ghiChu: null }],
   );
