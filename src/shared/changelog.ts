@@ -17,6 +17,15 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // ADR-0187 Đ3 mức (a) (chủ duyệt 8/11 «Duyệt, mức a»): tách nhiệm vụ — đánh dấu, không chặn. Migration 0150. Ngày đặt lại ở bước A.0 của lần triển khai.
+    version: "2.76",
+    date: "2026-11-08",
+    items: [
+      { kind: "moi", text: "Người vừa lập đơn vừa ghi tiền cho đơn đó vẫn ghi được, nhưng dòng tiền mang dấu «Tự ghi đơn mình lập» để người thứ hai soát." },
+      { kind: "moi", text: "Sổ công nợ có bộ lọc «Cần người thứ hai soát»; Kế toán khác hoặc Toàn quyền bấm «Đã soát». Trang chủ của người soát được có thẻ số dòng chưa soát." },
+    ],
+  },
+  {
     // Chủ dự án 8/11: «Xem như vai trò khác» chuyển từ trang Tôi vào menu tên tài khoản. Không migration.
     version: "2.75",
     date: "2026-11-08",

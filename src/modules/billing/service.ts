@@ -56,6 +56,8 @@ export interface NguoiGoi {
   partyId: string | null;
   laKeToan: boolean;
   laDoiTac: boolean;
+  /** ADR-0187 Đ3 mức (a): lệnh đi qua route của nhóm ghi tiền O_GHI_TIEN — phiếu sổ tạo trong lệnh này mang dấu «tự ghi đơn mình lập» khi người gọi là người lập đơn (câu chèn tự quyết). */
+  ghiTien: boolean;
 }
 
 export type KetQua<T> = { ok: true; value: T } | { ok: false; res: Response };
@@ -356,7 +358,7 @@ export function cauLanThu(
   }
   if (dong.length > 0) {
     const postingId = crypto.randomUUID();
-    out.push(postingIfReceiptStatement(db, { id: postingId, kind: "RECEIPT", orderId: input.orderId, reason: null, reversesPostingId: null, occurredDate: input.lt.ngayPhatSinh, dueSnapshot: null, at: input.at, by: input.ai.staffId }, receiptId));
+    out.push(postingIfReceiptStatement(db, { id: postingId, kind: "RECEIPT", orderId: input.orderId, reason: null, reversesPostingId: null, occurredDate: input.lt.ngayPhatSinh, dueSnapshot: null, at: input.at, by: input.ai.staffId, ghiTien: input.ai.ghiTien }, receiptId));
     for (const d of dong) out.push(lineIfPostingStatement(db, lineOf(d, postingId, input.orderId, receiptId, input.at, input.ai.staffId)));
   }
   return out;
@@ -669,7 +671,7 @@ export async function daGiao(
   if (lt) stmts.push(...cauLanThu(db, { orderId: input.orderId, lt, stage: "AT_DELIVERY", ai, congTyId, at, giaoDich: gd }, (r) => receiptAtDeliveryStatement(db, r, at)));
   const postingId = crypto.randomUUID();
   // R-P8: MỌI phiếu Đã giao mới mang `gross_snapshot` (kể cả đơn khách lẻ không dòng thương mại) — chữ ký `postingIfDeliveredAtStatement` bắt buộc trường này.
-  stmts.push(postingIfDeliveredAtStatement(db, { id: postingId, kind: "DELIVERED", orderId: input.orderId, reason: null, reversesPostingId: null, occurredDate: homNay, dueSnapshot: info.phaiThu, grossSnapshot: tm.gross, at, by: ai.staffId }, at));
+  stmts.push(postingIfDeliveredAtStatement(db, { id: postingId, kind: "DELIVERED", orderId: input.orderId, reason: null, reversesPostingId: null, occurredDate: homNay, dueSnapshot: info.phaiThu, grossSnapshot: tm.gross, at, by: ai.staffId, ghiTien: ai.ghiTien }, at));
   // Dòng thương mại NGAY sau phiếu (lính gác "phiếu đã chèn" của LINE_IF_POSTING): phiếu thua ⇒ không dòng nào. Mỗi dòng > 0 nên câu áp đổi đúng 1 dòng.
   for (const d of dongTm) stmts.push(lineIfPostingStatement(db, lineOf(d, postingId, input.orderId, null, at, ai.staffId)));
   // Nhật ký LUÔN cuối lô: `changes() > 0` của câu ngay trước (phiếu, hoặc dòng thương mại cuối — chỉ áp khi phiếu đã chèn) — bên thua không để lại dòng nào.
@@ -722,7 +724,7 @@ export async function hoanThanh(db: D1Database, input: { orderId: string; info: 
   const at = new Date().toISOString();
   const stmts = [
     hoanThanhStatement(db, input.orderId, at, ai.staffId),
-    postingIfCompletedAtStatement(db, { id: crypto.randomUUID(), kind: "COMPLETED", orderId: input.orderId, reason: null, reversesPostingId: null, occurredDate: vnToday(new Date()), dueSnapshot: null, at, by: ai.staffId }, at),
+    postingIfCompletedAtStatement(db, { id: crypto.randomUUID(), kind: "COMPLETED", orderId: input.orderId, reason: null, reversesPostingId: null, occurredDate: vnToday(new Date()), dueSnapshot: null, at, by: ai.staffId, ghiTien: ai.ghiTien }, at),
     auditStatement(db, { orderId: input.orderId, staffId: ai.staffId, action: "order_completed", at }, "changes() > 0"),
   ];
   try {
@@ -812,7 +814,7 @@ export async function xacNhanCongTyNhan(db: D1Database, input: { receiptId: stri
     const postingId = crypto.randomUUID();
     stmts = [
       ...ganMa,
-      postingPlainStatement(db, { id: postingId, kind: "COMPANY_RECEIVED", orderId: rc.order_id, reason: null, reversesPostingId: null, occurredDate: ngay.value, dueSnapshot: null, at, by: input.ai.staffId }),
+      postingPlainStatement(db, { id: postingId, kind: "COMPANY_RECEIVED", orderId: rc.order_id, reason: null, reversesPostingId: null, occurredDate: ngay.value, dueSnapshot: null, at, by: input.ai.staffId, ghiTien: input.ai.ghiTien }),
       ...cho.map((l) => lineIfPostingStatement(db, lineOf(sinhDongXacNhanCongTy(toLineRow(l)), postingId, rc.order_id, rc.id, at, input.ai.staffId))),
       auditStatement(db, { orderId: rc.order_id, staffId: input.ai.staffId, action: "ledger_company_received", at }),
     ];
@@ -862,7 +864,7 @@ export async function xacNhanBenKia(db: D1Database, input: { receiptId: string; 
   const dongGiu: LineDraft = { debtorPartyId: rc.collector_party_id, creditorPartyId: congTyId, amount: rc.amount, kind: "HELD", reversesLineId: null };
   const stmts = [
     reconInsertStatement(db, { id: crypto.randomUUID(), receiptId: rc.id, kind: "CONFIRMED", occurredDate: ngay.value, at, by }),
-    postingPlainStatement(db, { id: postingId, kind: "COUNTERPARTY_CONFIRMED", orderId: rc.order_id, reason: null, reversesPostingId: null, occurredDate: ngay.value, dueSnapshot: null, at, by }),
+    postingPlainStatement(db, { id: postingId, kind: "COUNTERPARTY_CONFIRMED", orderId: rc.order_id, reason: null, reversesPostingId: null, occurredDate: ngay.value, dueSnapshot: null, at, by, ghiTien: input.ai.ghiTien }),
     lineIfPostingStatement(db, lineOf(dongGiu, postingId, rc.order_id, rc.id, at, by)),
     auditStatement(db, { orderId: rc.order_id, staffId: by, action: "ledger_counterparty_confirmed", at }, "changes() > 0"),
   ];
@@ -920,7 +922,7 @@ export async function ghiQuyetToan(db: D1Database, input: { raw: unknown; ai: Ng
     ? sinhDongQuyetToan({ nguoiNopPartyId: b.partyId, congTyId, phanBo })
     : phanBo.map((p) => ({ debtorPartyId: b.partyId as string, creditorPartyId: congTyId, amount: p.amount, kind: "SETTLEMENT" as const, reversesLineId: null, orderId: p.orderId }));
   const stmts = [
-    postingPlainStatement(db, { id: postingId, kind: "SETTLEMENT", orderId: phanBo.length === 1 ? phanBo[0]!.orderId : null, reason: ghiChu.value, reversesPostingId: null, occurredDate: ngay.value, dueSnapshot: null, at, by: input.ai.staffId }),
+    postingPlainStatement(db, { id: postingId, kind: "SETTLEMENT", orderId: phanBo.length === 1 ? phanBo[0]!.orderId : null, reason: ghiChu.value, reversesPostingId: null, occurredDate: ngay.value, dueSnapshot: null, at, by: input.ai.staffId, ghiTien: input.ai.ghiTien }),
     ...drafts.map((d) => lineIfPostingStatement(db, lineOf(d, postingId, d.orderId, null, at, input.ai.staffId))),
     auditStatement(db, { staffId: input.ai.staffId, action: "ledger_settlement", at, targetType: "party", targetId: b.partyId, detail: `${b.chieu === "nop" ? "nộp về công ty" : "công ty trả"} · ${phanBo.length} đơn` }),
   ];
@@ -981,7 +983,7 @@ export async function ghiHoanKhach(db: D1Database, input: { raw: unknown; ai: Ng
   const dong = sinhDongHoanKhach({ nguoiTraPartyId: nguoiTra, congTyId, so: so.value });
   if (dong.length > 0) {
     const postingId = crypto.randomUUID();
-    stmts.push(postingIfReceiptStatement(db, { id: postingId, kind: "REFUND", orderId: b.orderId, reason: ghiChu.value, reversesPostingId: null, occurredDate: ngay.value, dueSnapshot: null, at, by: input.ai.staffId }, receiptId));
+    stmts.push(postingIfReceiptStatement(db, { id: postingId, kind: "REFUND", orderId: b.orderId, reason: ghiChu.value, reversesPostingId: null, occurredDate: ngay.value, dueSnapshot: null, at, by: input.ai.staffId, ghiTien: input.ai.ghiTien }, receiptId));
     for (const d of dong) stmts.push(lineIfPostingStatement(db, lineOf(d, postingId, b.orderId, receiptId, at, input.ai.staffId)));
   }
   stmts.push(...(await cauTangChoDon(db, b.orderId, at))); // ADR-0168 Đ2 mục 4: hoàn tiền làm nợ của đơn Trả sau tăng ⇒ tăng phiên bản
@@ -1045,7 +1047,7 @@ export async function ghiDieuChinh(db: D1Database, input: { raw: unknown; ai: Ng
     ];
     if (dongDao.length > 0) {
       // Phiếu chỉ áp khi dòng đảo lần thu đã chèn (lính gác cả chuỗi: phiếu → dòng `lineIfPosting`).
-      stmts.push(postingIfReceiptStatement(db, { id: postingId, kind: "REVERSAL", orderId: rc.order_id, reason: lyDo.value, reversesPostingId: null, occurredDate: ngay.value, dueSnapshot: null, at, by }, daoId));
+      stmts.push(postingIfReceiptStatement(db, { id: postingId, kind: "REVERSAL", orderId: rc.order_id, reason: lyDo.value, reversesPostingId: null, occurredDate: ngay.value, dueSnapshot: null, at, by, ghiTien: input.ai.ghiTien }, daoId));
       for (const l of dongDao) stmts.push(lineIfPostingStatement(db, lineOf(sinhDongDao(toLineRow(l)), postingId, rc.order_id, rc.id, at, by)));
     }
     stmts.push(...(await cauTangChoDon(db, rc.order_id, at))); // ADR-0168 Đ2 mục 4–5: đảo khoản thu KHÔNG bị chặn nhưng làm nợ tăng ⇒ tăng phiên bản (chỉ đơn Trả sau)
@@ -1080,7 +1082,7 @@ export async function ghiDieuChinh(db: D1Database, input: { raw: unknown; ai: Ng
     // ADR-0092 Đ4: không đảo riêng dòng giữ hộ khi khoản thu sinh ra nó còn hiệu lực (lớp CSDL: trigger bil_held_no_single_reversal, 0082).
     if (l.kind_code === "HELD" && l.receipt_id !== null && !(await receiptsOfOrder(db, l.order_id)).some((r) => r.reverses_id === l.receipt_id)) return HELD_DON_LE();
     const stmts = [
-      postingPlainStatement(db, { id: postingId, kind: "REVERSAL", orderId: l.order_id, reason: lyDo.value, reversesPostingId: null, occurredDate: ngay.value, dueSnapshot: null, at, by }),
+      postingPlainStatement(db, { id: postingId, kind: "REVERSAL", orderId: l.order_id, reason: lyDo.value, reversesPostingId: null, occurredDate: ngay.value, dueSnapshot: null, at, by, ghiTien: input.ai.ghiTien }),
       lineIfPostingStatement(db, lineOf(sinhDongDao(toLineRow(l)), postingId, l.order_id, l.receipt_id, at, by)),
       auditStatement(db, { orderId: l.order_id, staffId: by, action: "ledger_reversal", at, detail: lyDo.value ?? undefined }),
       ...(await cauTangChoDon(db, l.order_id, at)), // ADR-0168 Đ2 mục 4: huỷ dòng nộp / giữ hộ có thể làm nợ tăng ⇒ tăng phiên bản

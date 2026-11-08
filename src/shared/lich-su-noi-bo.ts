@@ -112,6 +112,8 @@ export const LICH_SU_NOI_BO_AN = [
   "refuse_limit_hit", "refuse_policy_changed", "refuse_counter_reset",
   // ADR-0153 (đề xuất): giữ chỗ / trả vé điện tử — loại dòng MỚI nên mặc định ẩn cho tới khi chủ xếp loại. Trang Nhật ký (Toàn quyền) vẫn đọc được.
   "ve_giu_cho", "ve_tra_ve", "ve_xem_anh", "ve_mo_anh_lo_huy", "ve_giao", "ve_tao_duong_dan", "ve_thu_hoi_duong_dan", "ve_nhap_lo", "ve_xac_nhan_lo", "ve_sua_ma_tour", "ve_bo_lo", "ve_doi_tran_lo",
+  // ADR-0187 Đ3 mức (a): soát dòng tiền tự ghi đơn mình lập — loại dòng MỚI, mặc định ẩn khỏi lịch sử đơn cho tới khi chủ xếp loại; Sổ công nợ và trang Nhật ký (Toàn quyền) vẫn đọc được.
+  "ledger_self_write_reviewed",
 ] as const satisfies readonly AuditAction[];
 
 /** Hành động mới trong `AUDIT_ACTIONS` chưa có ở danh sách nội bộ nào ⇒ kiểu này khác `never` và dòng ngay dưới không biên dịch (`npm run typecheck` đỏ). */

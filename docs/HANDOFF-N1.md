@@ -2,7 +2,17 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Mã «Toàn quyền xem như vai trò khác» (ADR-0180) ĐÃ LÊN PRODUCTION, số phiên bản còn hiện 2.73 — migration `0145` — triển khai 2026-11-07 22:04 giờ Việt Nam
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.75 ĐÃ LÊN PRODUCTION (menu tên tài khoản: «Xem như vai trò khác» chuyển từ trang Tôi vào menu, ngay trên «Đăng xuất» — chủ dự án 8/11) — không migration — triển khai 2026-11-08 08:25 giờ Việt Nam
+
+- Commit: `27c77e759` Nhật ký thay đổi 2.75: menu tên tài khoản (bước A.0); mã ở `5ce36e3eb`.
+- Kiểm đủ bộ (GitHub): XANH lúc 2026-11-08T01:21:43Z — https://github.com/luutuanvu1010/tourdaobooking/actions/runs/42433253174
+- Migration đã áp: không có. Worker Version ID: `995dcad9-f9a9-4dca-8059-4fc6163044a4`. Kiểm dữ liệu (audit-invariants --db remote): ĐẠT.
+- Cổng phiên bản trước deploy: ĐẠT; sau deploy: ĐẠT. Kiểm lại chỉ đọc 8/11: `GET /api/auth/config` trả `2.75`; gói trang có menu mới, trang Tôi không còn thẻ cũ.
+- Thời gian: day-len 9 phút 29 giây, trien-khai 0 phút 58 giây, tổng 10 phút 27 giây — vượt mục tiêu ~10 phút (ADR-0179 Đ1.1), chủ yếu chờ GitHub kiểm 9 phút 23 giây; không chặn.
+- Lần lên 2.74 (chỉ thêm mục nhật ký thay đổi cho mã ADR-0180) không ghi riêng: Cloudflare ghi một lần triển khai 2026-11-07T22:55Z (05:55 sáng 8/11 giờ Việt Nam), Worker `52201158-037e-48c6-ba24-752d4bc85d3a`; đoạn in của lần đó không được dán lại.
+- Điểm quay lại: Worker `52201158…` (2.74). Chưa thử trên iPhone thật.
+
+## (Cũ) TRẠNG THÁI TRIỂN KHAI — Mã «Toàn quyền xem như vai trò khác» (ADR-0180) ĐÃ LÊN PRODUCTION, số phiên bản còn hiện 2.73 — migration `0145` — triển khai 2026-11-07 22:04 giờ Việt Nam
 
 Ghi 7/11/2026 từ đầu ra `npm run trien-khai` do chủ chạy (phiên `claude/multi-role-admin-view-8030d2` đọc ô Terminal) và lệnh chỉ đọc sau đó (`wrangler d1 migrations list --remote`: không còn migration chờ; `wrangler deployments list`: 100% bản dưới).
 - Commit `origin/main`: `5f641781`. Worker Version ID: `0b880fc7-af45-48fd-9e99-f1c10ff79667`.

@@ -232,7 +232,7 @@ export async function ghiTheoPhanDinh(db: D1Database, input: { rulingId: string;
     if (await daNopKhoan(db, r.order_id, k.benChiu, congTyId)) return DA_NOP();
     const stmts = [
       chenPhanDinhStatement(db, { id: crypto.randomUUID(), orderId: r.order_id, buoc: "REASSIGNED", targetId: r.id, rootId: r.root_id, caseCode: r.case_code, liable: r.liable_party_id, amount, moneyOut: 0, reason: r.reason, postingId, at, by }),
-      postingPlainStatement(db, { id: postingId, kind: "ATTRIBUTION", orderId: r.order_id, reason: ghiChu.value, reversesPostingId: null, occurredDate: ngay.value, dueSnapshot: null, at, by }),
+      postingPlainStatement(db, { id: postingId, kind: "ATTRIBUTION", orderId: r.order_id, reason: ghiChu.value, reversesPostingId: null, occurredDate: ngay.value, dueSnapshot: null, at, by, ghiTien: input.ai.ghiTien }),
       ...[...dongNo(k.benChiu, congTyId, amount, true), ...dongNo(r.liable_party_id, congTyId, amount, false)].map((d) => lineIfPostingStatement(db, lineOf(d, postingId, r.order_id, null, at, by))),
       auditStatement(db, { orderId: r.order_id, staffId: by, action: "attribution_posted", at, targetType: "ledger", targetId: r.root_id ?? r.id, detail: `đổi bên chịu · ${r.case_code} · ${dong(amount)}` }),
       ...await cauTinBenChiu(db, [k.benChiu], congTyId, { orderId: r.order_id, by, at, detail: "Bạn không còn chịu khoản này", action: "attribution_reassigned" }),
@@ -280,11 +280,11 @@ export async function ghiTheoPhanDinh(db: D1Database, input: { rulingId: string;
     const dongHoan = sinhDongHoanKhach({ nguoiTraPartyId: nguoiTra, congTyId, so: amount });
     if (dongHoan.length > 0) {
       const p = crypto.randomUUID();
-      stmts.push(postingIfReceiptStatement(db, { id: p, kind: "REFUND", orderId: r.order_id, reason: ghiChu.value, reversesPostingId: null, occurredDate: ngay.value, dueSnapshot: null, at, by }, rid));
+      stmts.push(postingIfReceiptStatement(db, { id: p, kind: "REFUND", orderId: r.order_id, reason: ghiChu.value, reversesPostingId: null, occurredDate: ngay.value, dueSnapshot: null, at, by, ghiTien: input.ai.ghiTien }, rid));
       for (const d of dongHoan) stmts.push(lineIfPostingStatement(db, lineOf(d, p, r.order_id, rid, at, by)));
     }
   }
-  stmts.push(postingPlainStatement(db, { id: postingId, kind: "ATTRIBUTION", orderId: r.order_id, reason: ghiChu.value, reversesPostingId: null, occurredDate: ngay.value, dueSnapshot: null, at, by }));
+  stmts.push(postingPlainStatement(db, { id: postingId, kind: "ATTRIBUTION", orderId: r.order_id, reason: ghiChu.value, reversesPostingId: null, occurredDate: ngay.value, dueSnapshot: null, at, by, ghiTien: input.ai.ghiTien }));
   for (const d of dongNo(r.liable_party_id, congTyId, amount, false)) stmts.push(lineIfPostingStatement(db, lineOf(d, postingId, r.order_id, null, at, by)));
   stmts.push(auditStatement(db, { orderId: r.order_id, staffId: by, action: "attribution_posted", at, targetType: "ledger", targetId: attrId, detail: `${r.case_code} · giảm trừ ${dong(amount)}${moneyOut ? " · có trả khách" : ""}` }));
   stmts.push(...await cauTinBenChiu(db, [r.liable_party_id], congTyId, { orderId: r.order_id, by, at, detail: "Bạn được phân định chịu một khoản trên đơn" }));
@@ -339,7 +339,7 @@ export async function daoKhoan(db: D1Database, input: { rootId: string; phan: Ph
   return chayLo(db, [
     chenPhanDinhStatement(db, { id: crypto.randomUUID(), orderId: goc.order_id, buoc: "REVERSAL", targetId: goc.id, rootId: goc.id, caseCode: null, liable: k.benChiu, amount: so.value, moneyOut: 0, reason: lyDo.value, postingId, at, by }),
     ...thay.value.stmts,
-    postingPlainStatement(db, { id: postingId, kind: "ATTRIBUTION", orderId: goc.order_id, reason: lyDo.value, reversesPostingId: null, occurredDate: ngay.value, dueSnapshot: null, at, by }),
+    postingPlainStatement(db, { id: postingId, kind: "ATTRIBUTION", orderId: goc.order_id, reason: lyDo.value, reversesPostingId: null, occurredDate: ngay.value, dueSnapshot: null, at, by, ghiTien: input.ai.ghiTien }),
     ...dongNo(k.benChiu, congTyId, so.value, true).map((d) => lineIfPostingStatement(db, lineOf(d, postingId, goc.order_id, null, at, by))),
     auditStatement(db, { orderId: goc.order_id, staffId: by, action: "attribution_posted", at, targetType: "ledger", targetId: goc.id, detail: `huỷ khoản ${dong(so.value)} · ${lyDo.value}` }),
     ...await cauTinBenChiu(db, [k.benChiu], congTyId, { orderId: goc.order_id, by, at, detail: "Khoản bạn chịu trên đơn vừa được huỷ hoặc giảm", action: "attribution_reversed" }),
