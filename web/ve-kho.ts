@@ -236,9 +236,11 @@ if (!can(staff, "ve.kho.manage")) {
             await Promise.all([taiCacLo(), taiLoDaHuy()]);
             return;
           }
-          const xn = await api<{ dichVuKhongVe: boolean }>(`/api/ve/lo/${encodeURIComponent(lo.loId)}/xac-nhan`, { method: "POST", body: {} });
+          const xn = await api<{ dichVuKhongVe: boolean; canhBaoNguon?: boolean }>(`/api/ve/lo/${encodeURIComponent(lo.loId)}/xac-nhan`, { method: "POST", body: {} });
           trangThai.hidden = true;
-          hienOk(xn.dichVuKhongVe ? `Đã nhập ${them} vé vào kho. Dịch vụ này đang tắt ô «Có vé» nên máy chưa giữ vé cho đơn. Hãy báo Quản trị bật ô này ở màn Dịch vụ & giá.` : `Đã nhập ${them} vé vào kho.`);
+          // ADR-0175 Đ1.5a: dịch vụ đang dùng vé của nguồn khác ⇒ lô chưa được cấp cho ai tới khi Quản trị đổi ô «Vé do ai phát».
+          hienOk(xn.dichVuKhongVe ? `Đã nhập ${them} vé vào kho. Dịch vụ này đang tắt ô «Có vé» nên máy chưa giữ vé cho đơn. Hãy báo Quản trị bật ô này ở màn Dịch vụ & giá.`
+            : xn.canhBaoNguon ? `Đã nhập ${them} vé vào kho. Lô chưa được cấp cho ai tới khi Quản trị đổi ô «Vé do ai phát» ở màn Dịch vụ & giá.` : `Đã nhập ${them} vé vào kho.`);
           form.reset();
           await Promise.all([taiKho(), taiCacLo(), taiLoDaHuy()]);
         } catch (err) {
