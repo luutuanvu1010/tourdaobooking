@@ -5,13 +5,15 @@
 // Trang KHÔNG cộng trừ tiền — chỉ định dạng, lọc, xếp, đếm. Ẩn/hiện hỏi `can(staff, "ledger.view")` — cùng ô máy chủ hỏi. Chữ ở src/shared/so-cong-no-hien-thi.ts (có bài kiểm).
 // Máy tính rộng: danh sách trái + ngăn chi tiết phải; điện thoại / máy tính bảng: chi tiết là «trang con» (thay danh sách, nút Quay lại, nút Back của trình duyệt cũng về).
 import { ApiError, api, type Api } from "./api";
-import { can } from "../src/shared/permissions";
+import { can, holdsPartner } from "../src/shared/permissions";
+import { CAU_CHUA_CO_DONG, NHAN_CAN_SOAT, NUT_DA_SOAT, cauTrangThaiSoat } from "../src/shared/tach-nhiem-vu";
 import {
   BEN_MOI_LAN, CAU_LECH, DON_MOI_LAN, NHAN_LOC, NHAN_XEP, cauSoDu, khopTen, qua, xepBen, type LocSoCongNo, type XepSoCongNo,
 } from "../src/shared/so-cong-no-hien-thi";
 import { ngayDayDu } from "../src/shared/vn-date";
 import { byId, h, replaceChildren } from "./dom";
-import { vnd } from "./format";
+import { dateTime, vnd } from "./format";
+import { hienBaoNgan } from "./toast";
 import { ganDaiTrangAnhEm } from "./dai-trang-anh-em";
 import { initShell, showError } from "./shell";
 
@@ -47,6 +49,12 @@ if (!can(staff, "ledger.view")) {
   // Luật khung 30/10 [8]: màn rộng tự mở bên đầu danh sách (trước: ngăn chi tiết trống chiếm nửa màn). Cờ này nhớ «máy tự chọn» để khi thu về khổ hẹp
   // thì trả lại danh sách, không bày «trang con» mà người dùng chưa bấm.
   let tuDongChon = false;
+  // ADR-0187 Đ3 mức (a): bộ lọc «Cần người thứ hai soát» — dòng tiền do CHÍNH người lập đơn ghi; Kế toán KHÁC / Toàn quyền bấm «Đã soát». Chỉ người có ô ledger.view,
+  // không Đối tác (cùng cổng với máy chủ). `cheDoSoat` thay danh sách bên bằng danh sách dòng; `#tu-ghi` mở thẳng từ thẻ Trang chủ.
+  const soatDuoc = !holdsPartner(staff);
+  let cheDoSoat = soatDuoc && location.hash === "#tu-ghi";
+  let tuGhi: Api.TuGhiListResponse | null = null;
+  let tuGhiLoi: string | null = null;
   const soDonHien = { dangGiu: DON_MOI_LAN, congTyNo: DON_MOI_LAN, khoanPhanDinh: DON_MOI_LAN };
 
   for (const k of Object.keys(NHAN_XEP) as XepSoCongNo[]) xepEl.append(h("option", { value: k }, NHAN_XEP[k]));
@@ -64,15 +72,57 @@ if (!can(staff, "ledger.view")) {
   }
 
   function veLoc(s: Api.SoCongNoResponse): void {
+    const nutSoat = soatDuoc && h("button", { type: "button", class: "scn-loc-nut", "aria-pressed": String(cheDoSoat), "data-loc": "tu-ghi" }, `${NHAN_CAN_SOAT} (${tuGhi ? tuGhi.soChuaSoat : "…"})`);
+    if (nutSoat) nutSoat.addEventListener("click", () => { cheDoSoat = true; veLoc(s); veDanhSach(); });
     replaceChildren(locEl, ...(Object.keys(NHAN_LOC) as LocSoCongNo[]).map((k) => {
       const dem = s.soDu.filter((b) => qua(k, b.dangGiu)).length;
-      const b = h("button", { type: "button", class: "scn-loc-nut", "aria-pressed": String(loc === k) }, `${NHAN_LOC[k]} (${dem})`);
-      b.addEventListener("click", () => { loc = k; soBenHien = BEN_MOI_LAN; veLoc(s); veDanhSach(); });
+      const b = h("button", { type: "button", class: "scn-loc-nut", "aria-pressed": String(!cheDoSoat && loc === k) }, `${NHAN_LOC[k]} (${dem})`);
+      b.addEventListener("click", () => { loc = k; cheDoSoat = false; soBenHien = BEN_MOI_LAN; veLoc(s); veDanhSach(); });
       return b;
-    }));
+    }), nutSoat);
+  }
+
+  async function taiTuGhi(): Promise<void> {
+    try {
+      tuGhi = await api<Api.TuGhiListResponse>("/api/ledger/tu-ghi");
+      tuGhiLoi = null;
+    } catch (err) {
+      tuGhiLoi = reasonOf(err);
+    }
+    if (so) veLoc(so);
+    if (cheDoSoat) veSoat();
+  }
+
+  /** Danh sách dòng «tự ghi đơn mình lập»: chưa soát trước, rồi đã soát 30 ngày gần nhất. Nút «Đã soát» chỉ cho người có ô ledger.write và KHÁC người ghi (máy chủ kiểm lại: 403 tu_soat). */
+  function veSoat(): void {
+    if (!tuGhi) { replaceChildren(dsEl, tuGhiLoi ? h("div", { class: "alert", role: "alert" }, `Không tải được danh sách: ${tuGhiLoi}`) : h("p", { class: "muted" }, "Đang tải…")); return; }
+    if (tuGhi.dong.length === 0) { replaceChildren(dsEl, h("p", { class: "muted" }, CAU_CHUA_CO_DONG)); return; }
+    replaceChildren(dsEl, h("ul", { class: "scn-ds" }, ...tuGhi.dong.map((d) => {
+      const nut = can(staff, "ledger.write") && d.nguoiSoat === null && d.nguoiGhiId !== staff.id
+        && h("button", { type: "button", class: "nut", "data-cap": "phu", "data-soat": d.auditId }, NUT_DA_SOAT);
+      if (nut) nut.addEventListener("click", () => void daSoat(d.auditId, nut));
+      return h("li", { class: "scn-soat-dong", "data-trang-thai": d.nguoiSoat ? "da-soat" : "chua-soat" },
+        h("div", { class: "scn-soat-than" },
+          h("span", { class: "scn-soat-ma" }, d.orderId ? h("a", { href: `/order?id=${encodeURIComponent(d.orderId)}` }, d.maDon ?? "—") : (d.maDon ?? "—"), " · ", d.hanhDong),
+          h("span", { class: "muted" }, `${d.nguoiGhi} ghi lúc ${dateTime(d.luc)}`),
+          h("span", { class: d.nguoiSoat ? "muted" : "scn-soat-cho" }, cauTrangThaiSoat(d, dateTime))),
+        nut);
+    })));
+  }
+
+  async function daSoat(auditId: string, nut: HTMLButtonElement): Promise<void> {
+    nut.disabled = true;
+    try {
+      await api(`/api/ledger/tu-ghi/${encodeURIComponent(auditId)}/da-soat`, { method: "POST", body: {} });
+      hienBaoNgan("Đã ghi nhận bạn soát dòng này.", { tong: "la" });
+    } catch (err) {
+      hienBaoNgan(reasonOf(err), { tong: "do" });
+    }
+    await taiTuGhi();
   }
 
   function veDanhSach(): void {
+    if (cheDoSoat) { veSoat(); return; }
     if (!so) return;
     const tim = timEl.value;
     const loc2 = xepBen(so.soDu.filter((b) => qua(loc, b.dangGiu) && (!tim.trim() || khopTen(b.ten, tim))), xep);
@@ -172,6 +222,7 @@ if (!can(staff, "ledger.view")) {
     return m ? decodeURIComponent(m[1]!) : null;
   };
   window.addEventListener("popstate", () => {
+    if (soatDuoc && location.hash === "#tu-ghi") { cheDoSoat = true; if (so) veLoc(so); veDanhSach(); return; }
     const p = tuHash();
     if (p) void chon(p, true);
     else { dangChon = null; ct = null; veBo(); }
@@ -187,6 +238,7 @@ if (!can(staff, "ledger.view")) {
     veCanhBao(so);
     veTong(so);
     veLoc(so);
+    if (soatDuoc) void taiTuGhi(); // số cho chip «Cần người thứ hai soát» (và danh sách khi mở bằng #tu-ghi)
   } catch (err) {
     replaceChildren(dsEl, h("div", { class: "alert", role: "alert" }, `Không tải được sổ: ${reasonOf(err)}`));
   }

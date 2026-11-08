@@ -13,6 +13,8 @@ export const dauTuGhiThan = (tuGhi: boolean): { tuGhiDonMinhLap?: true } => (tuG
 export const NHAN_TU_GHI = "Tự ghi đơn mình lập";
 export const NHAN_CAN_SOAT = "Cần người thứ hai soát";
 export const NUT_DA_SOAT = "Đã soát";
+/** Chữ nút của thẻ Trang chủ (chỉ mở Sổ công nợ ở bộ lọc soát; CHƯA CHỐT — chủ chọn, Bảng tham chiếu ghi cho-chon). */
+export const NUT_SOAT = "Soát";
 /** Dòng phụ của thẻ Trang chủ. */
 export const PHU_CAN_SOAT = "Tiền do chính người lập đơn ghi — cần người thứ hai soát";
 /** Mã lỗi khi người ghi tự bấm «Đã soát». */
