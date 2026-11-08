@@ -229,7 +229,7 @@ BEGIN SELECT RAISE(ABORT, 'lc1c_partner_needs_role: tài khoản Đối tác ph�
 - Create: `docs/superpowers/specs/2026-11-08-de-xuat-src-claude-md-adr-0185.md` — diff ĐỀ XUẤT dòng thứ ba «chỉ siết» cho `src/CLAUDE.md` (cổng ADR-0185 xét kết quả người hưởng của `pricing`, không đọc bảng vai), chủ duyệt mới sửa (N9)
 - Không đụng `docs/BANG-THAM-CHIEU.md`: câu báo dùng tên nút đã có (Gửi đơn, Sửa, Lưu thay đổi, Rút lại, Còn vé, Quản lý tài khoản); không thêm nút, nhãn mới.
 
-- [ ] **Step 1:** viết; `npm run dict` nếu có đổi từ điển. Commit «ADR-0185 Task 6: tài liệu và sổ hàng rào».
+- [x] **Step 1:** viết; `npm run dict` nếu có đổi từ điển. Commit «ADR-0185 Task 6: tài liệu và sổ hàng rào». *Đã làm 8/11: SYSTEM-DESIGN (bảng trigger, bảng migration 0149, luồng Gửi đơn, trần giảm giá, ba route tài khoản, ô `order.submit`, đoạn LC-1c); SO-HANG-RAO bốn dòng H1–H4 (ngày thấy chặn thật chép từ Task 1–4); CHANGE-GUIDE bẫy 95 (đã ở Task 5); từ điển dữ liệu không có mục trigger, không đổi. Lệch kế hoạch: ADR-0185 mục «Kế hoạch thi công» ý 4 có nêu bảng tham chiếu — tệp bảng thuộc diện máy hỏi chủ (`.claude/settings.json` mục `ask`) nên không sửa thẳng; câu bổ sung cột «Thật sự làm gì» của nút Gửi đơn và Còn vé đưa vào tệp đề xuất, cùng dòng «chỉ siết» thứ ba cho `src/CLAUDE.md`.*
 
 ### Task 7: Kiểm cuối + người kiểm độc lập
 
