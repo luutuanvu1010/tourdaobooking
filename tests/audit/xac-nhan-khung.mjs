@@ -32,6 +32,8 @@ export function setup(tuyChon = {}) {
   seedStaff(w.sqlite, { id: INTERN, phone: "0900000009", name: "Thực tập", perms: ["INTERN"] });
   w.sqlite.exec("INSERT INTO catalog_item (code, name, unit, price_adult, in_sheet, first_seen_at, updated_at) VALUES ('ZA1', 'Tour đảo', 'perPax', 500000, 1, '2026-01-01', '2026-01-01')");
   w.sqlite.exec("INSERT INTO catalog_item (code, name, unit, price_adult, in_sheet, first_seen_at, updated_at) VALUES ('ZB1', 'Tour thường', 'perPax', 300000, 1, '2026-01-01', '2026-01-01')");
+  // ADR-0174: ZA1 mặc định Có vé (như dieu-phoi-khung) để các bài vé không phải tự khai; ZB1 chưa khai là Không vé. Bài cần ZA1 chưa khai truyền `chuaKhaiCoVe`.
+  if (!tuyChon.chuaKhaiCoVe) w.sqlite.exec("INSERT INTO ctl_service_ticket_flag (id, scope, code, has_ticket, valid_from_at, created_at, updated_at) VALUES ('co-ve-za1', 'SERVICE', 'ZA1', 1, '2026-01-01T00:00:00.000Z', '2026-01-01', '2026-01-01')");
   return w;
 }
 /** Đánh dấu «cần xác nhận» thẳng CSDL (route cài đặt có bài riêng ở xac-nhan-cai-dat.test.ts). */
