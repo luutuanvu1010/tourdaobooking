@@ -4,7 +4,7 @@
 // Bước: 1 Bán hàng thường: không lối vào, mở thẳng bị từ chối. 2 Quản lý: màn hẹp, không giá, không đồng bộ, tìm. 3 Gạt một vé. 4 Ngừng bán, Mở bán lại. 5 Cả nhóm hỏi lại.
 //       6 Quản trị: màn đủ, công tắc ở dòng vé và nhóm, lọc «Cần kiểm vé», không có công tắc tự kiểm. 7 Toàn quyền: công tắc tự kiểm.
 import assert from "node:assert/strict";
-import { ACCOUNTS, KHO, setInput, axeKiem, bam, bocucSach, buoc, choDongHop, choHop, chup, diToi, goiApi, ketThuc, sleep, startEnv, taoMoTrang } from "../../2026-10-30-luat-ban-dac-diem/kich-ban/lb-chung.mjs";
+import { ACCOUNTS, KHO, setInput, axeKiem, bam, bocucSach, buoc, choDongHop, coLoiVao, choHop, chup, diToi, goiApi, ketThuc, sleep, startEnv, taoMoTrang } from "../../2026-10-30-luat-ban-dac-diem/kich-ban/lb-chung.mjs";
 
 ACCOUNTS.quanLy = { name: "Quản Lý Bán", phone: "0900000288", pin: "246820", permissions: ["SALES", "SALES_MANAGER"] };
 
@@ -45,7 +45,17 @@ try {
     try {
       await buoc(`2${kho}`, "Quản lý: có lối vào, màn hẹp, không giá, không đồng bộ, tìm vé", async () => {
         await cho(q);
-        assert.equal(await q.ev(`!!document.querySelector('a[href="/catalog"]')`), true); // nhóm Thiết lập đang gập nên không dùng coLoiVao
+        // G-04 (9/11/2026): bước này từng «đạt giả» vì tìm liên kết trong thanh bên đang ẩn ở khổ hẹp và không kiểm ở trang Trang chủ. Nay: khổ 390 mở Trang chủ, ô «Dịch vụ & giá» phải HIỆN thật
+        // (Quản lý bán hàng không có tab nào dẫn tới nó); khổ 1040 mở nhóm Thiết lập của thanh bên rồi hỏi liên kết có hiện không. Không kiểm ở /account.
+        if (tenKho === "390") {
+          await diToi(q, env, "/");
+          await q.waitFor("document.querySelectorAll('a[href]').length > 3", "Trang chủ đã vẽ");
+          await sleep(500);
+        } else {
+          await q.ev(`(() => { const n = document.querySelector('button[aria-controls="nhom-thiet-lap"]'); if (n && n.getAttribute('aria-expanded') !== 'true') n.click(); return !!n; })()`);
+          await sleep(300);
+        }
+        assert.equal(await coLoiVao(q, "/catalog"), true, "lối vào «Dịch vụ & giá» hiện thật ở khổ này");
         await diToi(q, env, "/catalog");
         await choHep(q);
         assert.equal(await q.ev("document.getElementById('pull').offsetParent"), null, "đồng bộ ẩn");
