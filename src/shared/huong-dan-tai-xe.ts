@@ -20,13 +20,15 @@ export const HD_TAI_XE: NhomHuongDan = {
   muc: [
     {
       tieuDe: "Menu của bạn",
-      noiDung: `Trên điện thoại, thanh dưới đáy có: [[Trang chủ]], [[Cuốc của tôi]], [[Tôi]]. Tài xế nhà xe đối tác có thêm [[Báo bận của tôi]].
+      noiDung: `Thanh tab dưới đáy: [[Trang chủ]], [[Cuốc của tôi]], [[Hỗ trợ]], [[Tôi]]. Tài xế nhà xe đối tác có thêm [[Báo bận của tôi]].
 - [[Trang chủ]]: lời chào và hai giấy tờ sắp hết hạn nhất.
 - [[Cuốc của tôi]]: các chuyến hôm nay, ngày mai và ngày kia.
 - [[Báo bận của tôi]]: ghi giờ bạn bận để văn phòng không xếp chuyến.
 - [[Tôi]]: đủ **Giấy tờ của tôi**, đổi PIN, bật thông báo.
 
-Trên máy tính, menu bên trái có các mục trên, cùng [[Của tôi]], [[Hỗ trợ]], [[Hướng dẫn]].`,
+Trên máy tính, menu bên trái có:
+- Đầu menu: [[Trang chủ]], [[Cuốc của tôi]]. Tài xế nhà xe đối tác có thêm [[Báo bận của tôi]].
+- Chân menu: [[Của tôi]], [[Hỗ trợ]], [[Nhật ký thay đổi]].`,
     },
     {
       tieuDe: "Xem cuốc và chuẩn bị",
