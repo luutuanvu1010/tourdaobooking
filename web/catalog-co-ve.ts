@@ -53,11 +53,10 @@ export function taoCoVe(errorEl: HTMLElement, coQuyen: boolean, sauKhiDoi: () =>
   /** Hai lựa chọn «Vé hãng ngoài» / «Vé Tour Đảo» của một dịch vụ (radiogroup, phím ← → đổi lựa chọn). Chưa đặt là vé hãng ngoài. */
   const oNguonVe = (ma: string, ten: string): HTMLElement => {
     const dang = nguonVe.dichVu.find((x) => x.ma === ma)?.nguon ?? "HANG_NGOAI";
-    const idNhan = `nguon-ve-${ma}`;
     const lua = (["HANG_NGOAI", "TOUR_DAO"] as const).map((v) => {
       const nut = h("button", { type: "button", role: "radio", "aria-checked": String(dang === v), tabindex: dang === v ? 0 : -1, "data-action": "nguon-ve" }, NHAN_NGUON_VE[v]) as HTMLButtonElement;
       nut.addEventListener("click", () => {
-        if (v !== dang) void luuNguonVe(nut, { ma, nguon: v }, `${ten}: ${NHAN_NGUON_VE[v].toLowerCase()}.`);
+        if (v !== dang) void luuNguonVe(nut, { ma, nguon: v }, v === "TOUR_DAO" ? `${ten}: Vé Tour Đảo.` : `${ten}: Vé hãng ngoài.`);
       });
       nut.addEventListener("keydown", (e: KeyboardEvent) => {
         if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
@@ -68,7 +67,7 @@ export function taoCoVe(errorEl: HTMLElement, coQuyen: boolean, sauKhiDoi: () =>
       });
       return nut;
     });
-    return h("div", { class: "kv-nguon-ve" }, h("span", { id: idNhan, class: "hint" }, "Vé do ai phát"), h("div", { class: "vc-seg", role: "radiogroup", "aria-labelledby": idNhan }, ...lua));
+    return h("div", { class: "kv-nguon-ve" }, h("span", { class: "hint", "aria-hidden": "true" }, "Vé do ai phát"), h("div", { class: "vc-seg", role: "radiogroup", "aria-label": `Vé do ai phát: ${ten}` }, ...lua));
   };
   const congTac = (nhan: string, bat: boolean, action: string, khiBam: (nut: HTMLButtonElement) => void): HTMLButtonElement => {
     const nut = h("button", { type: "button", role: "switch", class: "dp-switch", "aria-checked": String(bat), "aria-label": nhan, "data-action": action }, h("span", { class: "dp-switch-knob", "aria-hidden": "true" })) as HTMLButtonElement;
