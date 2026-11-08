@@ -816,12 +816,13 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     manHinh: "Dịch vụ & giá › dòng dịch vụ đang «Có vé» › ô «Vé do ai phát»",
     ten: "Vé hãng ngoài · Vé Tour Đảo",
     thatSuLam: "Chọn vé của dịch vụ này do hãng ngoài phát (công ty nhập ảnh vé vào kho) hay do Tour Đảo tự phát. Chỉ đổi lô mà máy dùng để giữ vé từ lúc đổi; vé đơn đã giữ không đổi. Chỉ hiện khi dịch vụ đang «Có vé»; chưa chọn là vé hãng ngoài. Chỉ Quản trị, Toàn quyền.",
-    hoiLai: "không",
+    hoiLai: "có khi chọn «Vé Tour Đảo»: hộp nói rõ hậu quả; chọn «Vé hãng ngoài» thì không hỏi",
     hoanTac: "được: bấm lựa chọn kia",
     duongLenh: ["/api/catalog/nguon-ve"],
     maNhatKy: ["ticket_source_changed"],
     noiDat: [
       { tep: "web/catalog-co-ve.ts", chu: "⟪NHAN_NGUON_VE[v]⟫" }, // hai chữ «Vé hãng ngoài», «Vé Tour Đảo» ở hằng NHAN_NGUON_VE cùng tệp
+      { tep: "web/catalog-co-ve.ts", chu: "Chuyển sang Vé Tour Đảo" }, // nút xác nhận của hộp hỏi (9/11/2026, tạm: nhắc lại tên đã chốt «Vé Tour Đảo»)
     ],
     trangThai: "da-chot",
     nguonTen: "ADR-0175, chủ duyệt tám thuật ngữ vé Tour Đảo 2026-11-08",
