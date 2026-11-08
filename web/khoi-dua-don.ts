@@ -566,7 +566,7 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
         b.addEventListener("click", () => cd.dat(v));
         return b;
       };
-      nhomChon = h("div", { class: "dd-chon-don", role: "group", "aria-labelledby": `${o.ma}-dd-nhan` }, nut("DON"), nut("KHONG_DON"));
+      nhomChon = h("div", { class: "dd-chon-don", role: "group", tabindex: "-1", "aria-labelledby": `${o.ma}-dd-nhan` }, nut("DON"), nut("KHONG_DON"));
       loiChon = h("p", { class: "field-error", role: "alert", id: `${o.ma}-dd-loi-chon` });
       items.push(nhomChon, loiChon);
       datThieuChon();
