@@ -16,7 +16,7 @@
   2. Nhãn tiền, ảnh thông báo huỷ, ô đếm Trang chủ: đã lên ở 2.42.
   3. Người kiểm độc lập: ĐẠT 28/10 (ghi ở sổ).
   4. Sổ vàng: `node --test src/so-vang-don-huy.test.ts` 9/11 xanh; 7 ca đã xác nhận khớp từng đồng; 6 ca chờ (01, 02, 04, 07, 08, 13) đều «khớp mã». Ca 07 còn vướng đặc tả phiếu chi (bản nháp 28/10, chưa duyệt).
-  5. Chạy lại tám tình huống G1 trên `main` hiện tại: giao trợ lý chạy nền (bản chép kịch bản 28/10 đã mất, dựng lại từ bản gốc ngoài kho). Kết quả: _(điền khi có)_.
+  5. Chạy lại tám tình huống G1 trên `main` hiện tại: giao trợ lý chạy nền (bản chép kịch bản 28/10 đã mất, dựng lại từ bản gốc ngoài kho). **Kết quả 9/11 00:29–00:40: cả tám ca «hết» như 28/10**, `audit-invariants --strict` thoát 0 trên bảy D1 tạm (mỗi D1 một cảnh báo R-CTL-1 không liên quan); mã ADR-0174/0181/0185/0186 không làm hỏng ca nào. Bằng chứng: `docs/evidence/2026-11-09-dot-4-g1-chay-lai/README.md` (bảng, chỗ sửa bản chép, điều ngoài G1); bản chép kịch bản cất ngoài kho ở thư mục ghi chú chung của nhóm phiên, thư mục con `g1-chay-lai-2026-11-09/`. Lẫn dữ liệu ở máy thử `hd` (một lần chạy hỏng tạo thêm 4 đơn, đã bỏ kết quả lần đó; chỉ làm «Sổ của tôi» HDV A 80.000 → 160.000). Chỉ tầng API, không Chrome. Người kiểm thứ hai: _(điền khi có)_.
 
 ## 4.2 HC-4.2
 
