@@ -158,6 +158,45 @@ test("T1 (đợt sửa 1): hai chuyến CÙNG XE thiếu Kiểm định — cho 
   }
 });
 
+test("L3b (đợt sửa 2, Thấp 5): cho phép trên xe X → đổi sang Y (không nhãn, cổng giữ) → đổi VỀ X trước giờ chạy → nhãn vàng hiện lại, xuất bến 200", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    w.sqlite.prepare(`INSERT INTO vc_departure_rule (id, min_capacity, subject, vehicle_document_type_code, valid_from_at, created_at, updated_at) VALUES (?, 1, 'VEHICLE', 'REGISTRATION', ?, ?, ?)`).run(uuid(), AT, AT, AT);
+    const xeDu2 = (): string => {
+      const id = xeThieuKiemDinh(w);
+      w.sqlite.prepare("INSERT INTO vc_vehicle_document (id, vehicle_id, document_type_code, expiry_date, created_at, updated_at) VALUES (?, ?, 'INSPECTION', '2030-12-31', ?, ?)").run(uuid(), id, AT, AT);
+      return id; // Bảo hiểm + Kiểm định, thiếu Đăng ký xe
+    };
+    const xeX = xeDu2();
+    const xeY = xeDu2();
+    const t = await chuyenSan(w, { xe: xeX });
+    denGio("06:01"); // mỗi bước một phút riêng để mốc thời gian của dòng cho phép và của chuyến khác nhau
+    const cho = await w.call("POST", `/api/van-chuyen/chuyen/${t.id}/cho-chay-thieu-giay`, {
+      as: ADM, body: { version: (await chiTiet(w, t.id, ADM)).chuyen.version, requestId: uuid(), loaiGiayTo: ["REGISTRATION"], lyDo: "THIEU_GIAY_GIA_HAN", ghiChu: null },
+    });
+    assert.ok(cho.status === 200 || cho.status === 201, cho.text);
+    const doiXe = async (xeId: string) => {
+      const r = await w.call("PUT", `/api/van-chuyen/chuyen/${t.id}`, { as: SALES, body: { version: (await chiTiet(w, t.id, ADM)).chuyen.version, requestId: uuid(), xeId } });
+      assert.equal(r.status, 200, r.text);
+    };
+    denGio("06:02");
+    await doiXe(xeY);
+    const choY = (await chiTiet(w, t.id, ADM)).chuyen;
+    assert.deepEqual(choY.choChayThieu, [], "xe Y: không nhãn vàng");
+    assert.deepEqual(choY.lyDoGiu.map((l: any) => l.ma), ["DIEU_KIEN_GIAY_TO_XE"], "xe Y: cổng xuất bến giữ vì thiếu Đăng ký xe (L3 ghim thêm xuất bến 409 bằng route)");
+    denGio("06:03");
+    await doiXe(xeX);
+    assert.deepEqual((await chiTiet(w, t.id, ADM)).chuyen.choChayThieu, [{ ten: "Đăng ký xe" }], "về xe X: nhãn vàng hiện lại");
+    denGio("12:40");
+    const x = await tienDo(w, "van-phong", t.id, "xuat-ben");
+    assert.equal(x.status, 200, x.text);
+    assert.equal(w.q("SELECT status s FROM vc_trip WHERE id = ?", t.id)[0].s, "RUNNING");
+  } finally {
+    tat();
+  }
+});
+
 test("L3 (đợt sửa 1): cho phép Đăng ký xe cho xe X, ĐỔI sang xe Y (cũng thiếu Đăng ký xe) bằng route đổi chuyến thật → xuất bến bằng route thật bị 409, không nhãn vàng", async () => {
   const tat = batDongHo();
   try {
