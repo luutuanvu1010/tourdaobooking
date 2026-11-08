@@ -1,9 +1,11 @@
 // Kịch bản Chrome (bằng chứng giao diện) cho ADR-0058 Đ4, Đ8 — Task A7 lượt 1: màn Danh mục (/catalog, chỉ Quản trị / Toàn quyền) quản lý nhóm dịch vụ
 // theo khuôn có sẵn của web/catalog.ts: khối "Nhóm dịch vụ" đầu trang (thêm, đổi tên, lên / xuống, tắt / bật; 409 hiện đúng câu máy chủ), cột / dòng "Nhóm",
-// ô lọc "Nhóm: …" / "Chưa phân loại", chọn nhiều → "Chuyển N dịch vụ" (≤ 50 một lần), hộp "Sửa giá" có ô chọn nhóm + lịch sử nhóm (tên người ghép từ
+// ô lọc "Nhóm: …" / "Chưa phân loại", chọn nhiều → "Chuyển N dịch vụ" (≤ 50 một lần), hộp "Ghi đè giá" có ô chọn nhóm + lịch sử nhóm (tên người ghép từ
 // GET /api/staff tải MỘT lần; id không còn → "Người dùng cũ"; null → "Hệ thống").
 // Dùng lại cơ chế CDP của A2 (startEnv()/ACCOUNTS từ ../../2026-09-20-a2/kich-ban/a2-cdp.mjs). startEnv() chèn 3 dịch vụ giả (TD101/TTB03/TTB06) SAU migration gieo
-// nhóm nên cả ba ở "Chưa phân loại"; kịch bản chèn thêm 52 dịch vụ NDV01…NDV52 (để thử > 50), một dịch vụ ẨN chưa phân loại ZZH1 (để thấy "kể cả dịch vụ ẩn" — nợ N-2)
+// nhóm nên cả ba ở "Chưa phân loại"; kịch bản chèn thêm 52 dịch vụ NDV01…NDV52 (để thử > 50), một dịch vụ ẨN chưa phân loại ZZH1 (để thấy "kể cả dịch vụ đã ngừng bán" — nợ N-2)
+// 2026-11-08: chữ "ẩn" trên màn và hai nút "Ẩn" / "Hiện lại" đã đổi theo ADR-0166 câu 12 (chủ duyệt 4/11) thành "đã ngừng bán" và "Ngừng bán" / "Mở bán lại";
+// nút "Sửa giá" đổi thành "Ghi đè giá" ở đợt 2 của bảng tham chiếu (chủ chọn 5/11). Kịch bản đổi chữ theo, không đổi điều kiện kiểm nào.
 // và hai dòng lịch sử nhóm của TD101 (người ghi NULL → "Hệ thống", id không có → "Người dùng cũ").
 // Chỉ đụng D1 tạm. Chạy từ GỐC repo (worktree), sau `npm run build:web` (không cần mạng ngoài):
 //   node docs/evidence/2026-09-30-nhom-dich-vu/kich-ban/danh-muc-nhom-smoke.mjs
@@ -101,13 +103,13 @@ try {
   const d = await env.as(ACCOUNTS.admin, "/catalog", DESK);
   trangApi = d;
 
-  await step("1", "1040: khối 'Nhóm dịch vụ' ở đầu trang — 14 nhóm theo thứ tự, số dịch vụ mỗi nhóm, dòng 'Chưa phân loại (kể cả dịch vụ ẩn): 55 dịch vụ' khớp máy chủ", async () => {
+  await step("1", "1040: khối 'Nhóm dịch vụ' ở đầu trang — 14 nhóm theo thứ tự, số dịch vụ mỗi nhóm, dòng 'Chưa phân loại (kể cả dịch vụ đã ngừng bán): 55 dịch vụ' khớp máy chủ", async () => {
     await d.waitFor("!!document.getElementById('nhom-dv') && document.querySelectorAll('#nhom-dv .nhom-dong').length > 0", "không thấy khối Nhóm dịch vụ", 10000);
     assert.equal(await d.ev("document.querySelector('#nhom-dv h2').textContent"), "Nhóm dịch vụ");
     assert.deepEqual(await d.ev(tenNhom), TEN14, "thứ tự nhóm = sortOrder của máy chủ");
     assert.equal(await d.ev(soNhom("Long Phú")), "1 dịch vụ");
     assert.equal(await d.ev(soNhom("Tour đảo")), "0 dịch vụ");
-    assert.equal(await d.ev("document.getElementById('nhom-chua').textContent"), `Chưa phân loại (kể cả dịch vụ ẩn): ${g0.chuaPhanLoai} dịch vụ`);
+    assert.equal(await d.ev("document.getElementById('nhom-chua').textContent"), `Chưa phân loại (kể cả dịch vụ đã ngừng bán): ${g0.chuaPhanLoai} dịch vụ`);
     await d.waitFor(`${hangBang}.length === 56`, "bảng đủ 56 dịch vụ");
     assert.equal(await d.ev("[...document.querySelectorAll('table.items thead th')].map((t) => t.textContent.trim()).join('|')"), "Chọn|Mã|Dịch vụ|Nhóm|Đơn vị|Người lớn|Trẻ em|Người cao tuổi|Em bé|");
     assert.equal(await d.ev("document.querySelector('#list tr[data-code=\"TD101\"] .nhom-o').textContent"), "Long Phú");
@@ -204,16 +206,16 @@ try {
     const put = d.requests.filter((r) => r.method === "PUT" && r.url.includes("/api/catalog/group-assignments")).at(-1);
     assert.deepEqual(JSON.parse(put.postData), { codes: ["NDV01", "NDV02", "NDV03"], groupCode: "TTB" });
     assert.equal(await d.ev("document.getElementById('notice').textContent"), "Đã chuyển 3 dịch vụ sang nhóm Thể thao biển.");
-    assert.equal(await d.ev("document.getElementById('nhom-chua').textContent"), "Chưa phân loại (kể cả dịch vụ ẩn): 52 dịch vụ");
+    assert.equal(await d.ev("document.getElementById('nhom-chua').textContent"), "Chưa phân loại (kể cả dịch vụ đã ngừng bán): 52 dịch vụ");
     assert.equal(await d.ev("document.getElementById('chon-dem').textContent"), "", "hết chọn");
     await d.waitFor(`${hangBang}.length === 52`, "lọc Chưa phân loại còn 52");
     assert.equal((await nhomApi()).chuaPhanLoai, 52, "máy chủ 52");
   });
 
-  await step("8", "1040: hộp 'Sửa giá' TD101 — ô 'Nhóm dịch vụ' = Long Phú, lịch sử 'Người dùng cũ' / 'Hệ thống'; đổi sang Hòn Tằm → dòng mới 'Quản Trị: Long Phú → Hòn Tằm'; /api/staff chỉ tải MỘT lần", async () => {
+  await step("8", "1040: hộp 'Ghi đè giá' TD101 — ô 'Nhóm dịch vụ' = Long Phú, lịch sử 'Người dùng cũ' / 'Hệ thống'; đổi sang Hòn Tằm → dòng mới 'Quản Trị: Long Phú → Hòn Tằm'; /api/staff chỉ tải MỘT lần", async () => {
     assert.ok(await d.ev(chonLoc("")), "bỏ lọc");
     await d.waitFor(`${hangBang}.length === 56`, "bảng đủ");
-    await d.ev("[...document.querySelectorAll('#list tr[data-code=\"TD101\"] button')].find((b) => b.textContent === 'Sửa giá').click(); true");
+    await d.ev("[...document.querySelectorAll('#list tr[data-code=\"TD101\"] button')].find((b) => b.textContent === 'Ghi đè giá').click(); true");
     await d.waitFor("!document.getElementById('edit').hidden && !!document.getElementById('sua-nhom')", "hộp sửa có ô nhóm");
     assert.equal(await d.ev("document.getElementById('sua-nhom').value"), "LPH");
     assert.ok(await d.ev("[...document.getElementById('sua-nhom').options].some((o) => o.value === '' && o.textContent === 'Chưa phân loại')"), "ô nhóm có Chưa phân loại");
@@ -225,22 +227,22 @@ try {
     assert.match((await d.ev(lichSu))[0], /^\d\d\/\d\d \d\d:\d\d — Quản Trị: Long Phú → Hòn Tằm$/);
     await d.waitFor("document.querySelector('#list tr[data-code=\"TD101\"] .nhom-o').textContent === 'Hòn Tằm'", "cột Nhóm của TD101 đổi");
     assert.equal(await d.ev(soNhom("Hòn Tằm")), "1 dịch vụ");
-    // Route một dịch vụ (PATCH /api/catalog/:code — Ẩn / Hiện lại) trả `item` thay vào danh sách: cột Nhóm phải giữ nhóm thật, không rơi về "Chưa phân loại".
-    await d.ev("[...document.querySelectorAll('#list tr[data-code=\"TD101\"] button')].find((b) => b.textContent === 'Ẩn').click(); true");
-    await d.waitFor("[...document.querySelectorAll('#list tr[data-code=\"TD101\"] button')].some((b) => b.textContent === 'Hiện lại')", "TD101 đã ẩn");
-    assert.equal(await d.ev("document.querySelector('#list tr[data-code=\"TD101\"] .nhom-o').textContent"), "Hòn Tằm", "ẩn xong vẫn đúng nhóm");
-    await d.ev("[...document.querySelectorAll('#list tr[data-code=\"TD101\"] button')].find((b) => b.textContent === 'Hiện lại').click(); true");
-    await d.waitFor("[...document.querySelectorAll('#list tr[data-code=\"TD101\"] button')].some((b) => b.textContent === 'Ẩn')", "TD101 hiện lại");
-    assert.equal(await d.ev("document.querySelector('#list tr[data-code=\"TD101\"] .nhom-o').textContent"), "Hòn Tằm", "hiện lại vẫn đúng nhóm");
+    // Route một dịch vụ (PATCH /api/catalog/:code — Ngừng bán / Mở bán lại) trả `item` thay vào danh sách: cột Nhóm phải giữ nhóm thật, không rơi về "Chưa phân loại".
+    await d.ev("[...document.querySelectorAll('#list tr[data-code=\"TD101\"] button')].find((b) => b.textContent === 'Ngừng bán').click(); true");
+    await d.waitFor("[...document.querySelectorAll('#list tr[data-code=\"TD101\"] button')].some((b) => b.textContent === 'Mở bán lại')", "TD101 đã ngừng bán");
+    assert.equal(await d.ev("document.querySelector('#list tr[data-code=\"TD101\"] .nhom-o').textContent"), "Hòn Tằm", "ngừng bán xong vẫn đúng nhóm");
+    await d.ev("[...document.querySelectorAll('#list tr[data-code=\"TD101\"] button')].find((b) => b.textContent === 'Mở bán lại').click(); true");
+    await d.waitFor("[...document.querySelectorAll('#list tr[data-code=\"TD101\"] button')].some((b) => b.textContent === 'Ngừng bán')", "TD101 mở bán lại");
+    assert.equal(await d.ev("document.querySelector('#list tr[data-code=\"TD101\"] .nhom-o').textContent"), "Hòn Tằm", "mở bán lại vẫn đúng nhóm");
     await d.ev(bamNhom("Long Phú", "tat")); // nay rỗng → tắt được
     await d.waitFor(`(${dongNhom("Long Phú")}).querySelector('.badge')?.textContent === 'Đã tắt'`, "Long Phú rỗng → tắt được");
     await d.ev(bamNhom("Long Phú", "bat"));
     await d.waitFor(`!(${dongNhom("Long Phú")}).querySelector('.badge')`, "bật lại Long Phú");
-    await d.ev("[...document.querySelectorAll('#list tr[data-code=\"TTB06\"] button')].find((b) => b.textContent === 'Sửa giá').click(); true");
+    await d.ev("[...document.querySelectorAll('#list tr[data-code=\"TTB06\"] button')].find((b) => b.textContent === 'Ghi đè giá').click(); true");
     await d.waitFor("document.querySelector('#edit h2').textContent.includes('TTB06')", "hộp sửa TTB06");
     await d.waitFor(`${lichSu}.length === 0 && /Chưa có lần đổi nhóm/.test(document.getElementById('edit').textContent)`, "TTB06 chưa có lịch sử");
     assert.equal(soStaff(d), 1, `GET /api/staff đúng một lần — là ${soStaff(d)}`);
-    await d.ev("[...document.querySelectorAll('#list tr[data-code=\"TD101\"] button')].find((b) => b.textContent === 'Sửa giá').click(); true");
+    await d.ev("[...document.querySelectorAll('#list tr[data-code=\"TD101\"] button')].find((b) => b.textContent === 'Ghi đè giá').click(); true");
     await d.waitFor(`${lichSu}.length === 3`, "mở lại TD101: 3 dòng");
     await shot(d, "danh-muc-nhom-1040-sua-lich-su.png", "#edit");
   });
@@ -302,7 +304,7 @@ try {
     await m.waitFor(`${DONG}.length === 15 && ${theThe}.length === 56`, "khối + 56 thẻ", 10000);
     assert.equal(await m.ev("document.querySelector('#list-cards [data-code=\"TD101\"].card .nhom-o').textContent"), "Nhóm: Hòn Tằm");
     assert.equal(await m.ev("document.querySelector('#list-cards [data-code=\"NDV04\"].card .nhom-o').textContent"), "Nhóm: Chưa phân loại");
-    assert.equal(await m.ev("document.getElementById('nhom-chua').textContent"), "Chưa phân loại (kể cả dịch vụ ẩn): 52 dịch vụ");
+    assert.equal(await m.ev("document.getElementById('nhom-chua').textContent"), "Chưa phân loại (kể cả dịch vụ đã ngừng bán): 52 dịch vụ");
     for (const c of ["NDV04", "NDV05"]) await m.ev(`document.querySelector('#list-cards input.chon-dv[data-code="${c}"]').click(); true`);
     await m.waitFor("document.getElementById('chon-dem').textContent === 'Đã chọn 2 dịch vụ'", "đếm 2");
     assert.equal(await m.ev("document.getElementById('chuyen-nut').textContent"), "Chuyển 2 dịch vụ");
