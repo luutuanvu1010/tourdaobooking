@@ -1858,9 +1858,9 @@ export interface BanChupDto {
   muc: { loai: string; loaiGiayTo: string | null; hang: string | null; hetHan: string | null }[];
   soNguoiChot: number;
 }
-/** GET /api/van-chuyen/chuyen/:id (và phản hồi mọi lệnh ghi của văn phòng). */
-/** ADR-0184 (P12): một lô cho phép chạy thiếu giấy tờ ở chi tiết chuyến của văn phòng. */
+/** ADR-0184 (P12): một lô cho phép chạy thiếu giấy tờ ở chi tiết chuyến của văn phòng. Ghi chú hiện qua `maskLongDigits` (dãy từ 8 chữ số bị che lúc hiện; dữ liệu đã ghi không đổi). */
 export interface ChoChayThieuLoDto { ten: string[]; lyDo: string | null; ghiChu: string | null }
+/** GET /api/van-chuyen/chuyen/:id (và phản hồi mọi lệnh ghi của văn phòng). */
 export interface ChuyenChiTietResponse {
   /** `tuyen` (Đợt 4 G3 — trường đọc thêm cho form sửa chuyến): mã + TÊN tuyến đang gắn (kể cả tuyến đã ngưng dùng), null = chưa chọn. Không có tiền. */
   chuyen: ChuyenTomTatDto & { nghiPhaLe: boolean; lyDoHuy: string | null; lyDoKetThuc: string | null; tuyen: { ma: string; ten: string } | null };

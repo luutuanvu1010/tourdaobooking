@@ -442,7 +442,7 @@ async function choChayThieuChiTietDto(db: D1Database, t: TripRow, xe: XeDieuPhoi
   if (dong.length === 0) return [];
   const conThieu = t.status === "PLANNED" && xe ? new Set(giayToXeConThieu(xeVao(xe, c.giayToXe), c.dieuKien, t.planned_end_ms).map((g) => g.documentTypeCode)) : null;
   const ap = dong.filter((r) => (t.status === "PLANNED" ? conThieu !== null && r.da_dung === 0 && r.vehicle_id === t.vehicle_id && conThieu.has(r.document_type_code) : r.trong_ban_chup_cuoi > 0));
-  return gomLoChoChayThieu(ap.map((r) => ({ cmdId: r.cmd_id, tenLoai: r.type_name ?? r.document_type_code, lyDoNhan: r.reason_label, ghiChu: r.note, thuTu: c.thuTuLoai.get(r.document_type_code) ?? Number.MAX_SAFE_INTEGER })));
+  return gomLoChoChayThieu(ap.map((r) => ({ cmdId: r.cmd_id, tenLoai: r.type_name ?? r.document_type_code, lyDoNhan: r.reason_label, ghiChu: maskLongDigits(r.note), thuTu: c.thuTuLoai.get(r.document_type_code) ?? Number.MAX_SAFE_INTEGER })));
 }
 
 /** ADR-0184: loại giấy tờ XE đang thiếu của chuyến CHƯA chạy (tên loại từ danh mục; không số giấy) — cho hộp «Cho chạy dù thiếu giấy tờ». Khác PLANNED: rỗng. */

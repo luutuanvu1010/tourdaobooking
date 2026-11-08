@@ -180,7 +180,7 @@ const ICON_CANH_BAO: Readonly<Record<string, ViecCanXuLy["bieuTuong"]>> = {
 };
 
 /**
- * Cột "Cần xử lý" (bản vẽ dp-can-xu-ly, sửa theo đối chiếu): (1) chuyến bị giữ — lý do nguyên câu, ai xử lý theo NHAN_AI_XU_LY, nút theo cờ; (2) cảnh báo lịch —
+ * Cột "Cần xử lý" (bản vẽ dp-can-xu-ly, sửa theo đối chiếu): (1) chuyến bị giữ — lý do nguyên câu, ai xử lý theo `nhanAiXuLy` (chữ ghép theo vai), nút theo cờ; (2) cảnh báo lịch —
  * nhãn NHAN_CANH_BAO_LICH, KHÔNG nút (không "Gọi tài xế" — H7; không "Đã gọi báo" — Q2 / ADR-0051 làm sau; Q-GB-1 = b); chặng quá mốc chưa đặt gấp: Bán hàng
  * thấy dòng khoá (đặt gấp thì không cần phá lệ — 2.1; không có nút "Phá lệ" riêng — 2.13); (3) đơn nháp chờ duyệt đặt gấp — không tên người lập (H8).
  */
