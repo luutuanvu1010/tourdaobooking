@@ -2485,6 +2485,26 @@ export interface SoCongNoResponse {
   chuaRo: { receiptId: string; orderId: string; maDon: string | null; soTien: number; ngay: string }[];
 }
 
+/** ADR-0187 Đ3 mức (a): một dòng tiền do CHÍNH người lập đơn ghi (dấu «tự ghi đơn mình lập» ở nhật ký) — chờ hoặc đã có người thứ hai soát. Không số tiền, không SĐT. */
+export interface TuGhiDongDto {
+  /** id dòng nhật ký mang dấu — khoá của lệnh «Đã soát». */
+  auditId: string;
+  orderId: string | null;
+  maDon: string | null;
+  /** Tài khoản đã ghi (giao diện ẩn nút «Đã soát» khi là chính người xem; máy chủ vẫn kiểm). */
+  nguoiGhiId: string | null;
+  nguoiGhi: string;
+  /** Nhãn tiếng Việt của hành động (ví dụ «Hoàn thành», «Xác nhận công ty đã nhận»). */
+  hanhDong: string;
+  luc: string;
+  nguoiSoat: string | null;
+  soatLuc: string | null;
+}
+/** `GET /api/ledger/tu-ghi` (ledger.view, không Đối tác): dòng chưa soát (hết) + dòng đã soát 30 ngày gần nhất. */
+export interface TuGhiListResponse { dong: TuGhiDongDto[]; soChuaSoat: number }
+/** `GET /api/ledger/tu-ghi/dem` — số dòng chưa soát cho thẻ Trang chủ. */
+export interface TuGhiDemResponse { chuaSoat: number }
+
 /** Một đơn trong chi tiết một bên của màn «Sổ công nợ» — `soTien` luôn DƯƠNG, dấu nói bằng nhóm chứa nó; đơn cộng ra 0 không có mặt. */
 export interface SoCongNoDonDto {
   /** null = dòng sổ không gắn đơn. */

@@ -70,17 +70,17 @@ export const AUDIT_ACTIONS = {
   ord_terms_backfilled: { label: "Chụp bù mức hoa hồng", group: "order" },
   // Sổ tiền lượt 1 (ADR-0025, ADR-0026) — `detail` không SĐT, không số tiền chi tiết (kế hoạch §3.4).
   order_delivered: { label: "Khách đã trả đủ", group: "order" },
-  order_completed: { label: "Hoàn thành", group: "order" },
+  order_completed: { label: "Hoàn thành", group: "order", ghiTien: true },
   payment_recorded: { label: "Ghi khoản thu", group: "order" },
   // ADR-0060: dấu "đã nhập phần mềm kế toán" (bảng chỉ-thêm bil_accounting_entry) — detail = moTaDauNhap (số hoá đơn nguyên văn; lý do đã chặn dãy số dài).
   // Lịch sử đơn BỎ hai hành động này với người không qua ô accounting.entry.view; không vào hộp thông báo (v_aud_order_event là danh sách cho phép).
-  order_accounting_entry_marked: { label: "Đánh dấu đã nhập phần mềm kế toán", group: "order" },
-  order_accounting_entry_unmarked: { label: "Bỏ đánh dấu đã nhập phần mềm kế toán", group: "order" },
-  ledger_company_received: { label: "Xác nhận công ty đã nhận", group: "ledger" },
+  order_accounting_entry_marked: { label: "Đánh dấu đã nhập phần mềm kế toán", group: "order", ghiTien: true },
+  order_accounting_entry_unmarked: { label: "Bỏ đánh dấu đã nhập phần mềm kế toán", group: "order", ghiTien: true },
+  ledger_company_received: { label: "Xác nhận công ty đã nhận", group: "ledger", ghiTien: true },
   // Sổ đại lý đợt 2 (ADR-0132 điều 2): Kế toán xác nhận khoản khách trả cho bên đặt / tại quầy nhà cung cấp — không detail (không tên bên kia, không số).
-  ledger_counterparty_confirmed: { label: "Xác nhận bên kia đã nhận", group: "ledger" },
-  ledger_settlement: { label: "Ghi nộp / trả tiền", group: "ledger" },
-  ledger_refund: { label: "Ghi hoàn khách", group: "ledger" },
+  ledger_counterparty_confirmed: { label: "Xác nhận bên kia đã nhận", group: "ledger", ghiTien: true },
+  ledger_settlement: { label: "Ghi nộp / trả tiền", group: "ledger", ghiTien: true },
+  ledger_refund: { label: "Ghi hoàn khách", group: "ledger", ghiTien: true },
   ledger_adjustment: { label: "Ghi điều chỉnh sổ", group: "ledger" },
   // ADR-0115 đợt 1 (migration 0094): điều chỉnh công nợ cần người thứ hai duyệt. `ledger_adjustment` (trên) vẫn là dòng ghi SỐ DƯ TRƯỚC / SAU lúc DUYỆT. Các dòng dưới là
   // nguồn tin báo (ADR-0034; view v_aud_ledger_event — chỉ khoá, KHÔNG detail): `target` là khoá NGƯỜI NHẬN (yêu cầu mới / rút = ('ledger', mã yêu cầu), người nhận tính lúc
@@ -90,16 +90,16 @@ export const AUDIT_ACTIONS = {
   ledger_adjustment_rejected: { label: "Từ chối yêu cầu điều chỉnh sổ", group: "ledger" },
   ledger_adjustment_withdrawn: { label: "Rút yêu cầu điều chỉnh sổ", group: "ledger" },
   ledger_adjustment_affected: { label: "Điều chỉnh đổi số dư của một người có tài khoản", group: "ledger" },
-  ledger_receipt_replaced: { label: "Sửa khoản thu đã ghi", group: "ledger" },
+  ledger_receipt_replaced: { label: "Sửa khoản thu đã ghi", group: "ledger", ghiTien: true },
   ledger_receipt_collector_changed: { label: "Báo người thu tiền: khoản thu đã được sửa", group: "ledger" }, // ADR-0088 đ2: nguồn tin, khoá = tài khoản nhận
   ledger_duplicate_overridden: { label: "Vẫn ghi dù có cảnh báo trùng", group: "ledger" }, // ADR-0092 đ6, đ6a: detail = lý do của người bỏ qua
   attribution_requested: { label: "Đề nghị phân định trách nhiệm", group: "ledger" }, // ADR-0116
   attribution_ruled: { label: "Phân định trách nhiệm", group: "ledger" },
-  attribution_posted: { label: "Ghi sổ theo phân định trách nhiệm", group: "ledger" },
+  attribution_posted: { label: "Ghi sổ theo phân định trách nhiệm", group: "ledger", ghiTien: true },
   attribution_reassigned: { label: "Khoản phân định chuyển sang bên khác", group: "ledger" },
-  attribution_reversed: { label: "Huỷ hoặc giảm khoản phân định", group: "ledger" },
+  attribution_reversed: { label: "Huỷ hoặc giảm khoản phân định", group: "ledger", ghiTien: true },
   attribution_responded: { label: "Bên chịu phản hồi phân định", group: "ledger" },
-  ledger_reversal: { label: "Huỷ một dòng sổ tiền", group: "ledger" },
+  ledger_reversal: { label: "Huỷ một dòng sổ tiền", group: "ledger", ghiTien: true },
   // ADR-0092 Đ6 (migration 0088): gắn mã giao dịch ngân hàng vào khoản thu — target = khoản thu (`ledger`, id khoản thu); `detail` = "gắn mã giao dịch ngân hàng"
   // (chữ cố định); KHÔNG chép mã giao dịch, không số tài khoản.
   ledger_bank_txn_linked: { label: "Gắn mã giao dịch ngân hàng", group: "ledger" },
@@ -107,9 +107,9 @@ export const AUDIT_ACTIONS = {
   deposit_refund_approved: { label: "Duyệt hoàn thu trước", group: "ledger" },
   deposit_transfer_approved: { label: "Duyệt chuyển tiền sang đơn mới", group: "ledger" },
   deposit_approval_voided: { label: "Huỷ duyệt hoàn thu trước", group: "ledger" },
-  deposit_refund_paid: { label: "Ghi chi hoàn thu trước", group: "ledger" },
-  deposit_transferred_out: { label: "Chuyển tiền sang đơn mới", group: "ledger" },
-  deposit_transferred_in: { label: "Nhận tiền chuyển từ đơn huỷ", group: "ledger" },
+  deposit_refund_paid: { label: "Ghi chi hoàn thu trước", group: "ledger", ghiTien: true },
+  deposit_transferred_out: { label: "Chuyển tiền sang đơn mới", group: "ledger", ghiTien: true },
+  deposit_transferred_in: { label: "Nhận tiền chuyển từ đơn huỷ", group: "ledger", ghiTien: true },
   deposit_outside_recorded: { label: "Ghi đã hoàn ngoài hệ thống", group: "ledger" },
   deposit_outside_confirmed: { label: "Xác nhận đã hoàn ngoài hệ thống", group: "ledger" },
   deposit_outside_rejected: { label: "Từ chối dòng đã hoàn ngoài hệ thống", group: "ledger" },
@@ -164,6 +164,8 @@ export const AUDIT_ACTIONS = {
   credit_overdue_reminded: { label: "Nhắc đơn trả sau quá hạn", group: "ledger" },
   // Khoá sổ tháng (ADR-0080 D1; module ky-so — route ở billing): `order_id` NULL; `detail` = "Khoá sổ tháng MM/YYYY" (không tiền, không SĐT).
   ledger_period_closed: { label: "Khoá sổ tháng", group: "ledger" },
+  // ADR-0187 Đ3 mức (a): Kế toán khác / Toàn quyền bấm «Đã soát» một dòng tiền có dấu «tự ghi đơn mình lập». target = ('ledger', id dòng nhật ký được soát); detail = nhãn hành động gốc.
+  ledger_self_write_reviewed: { label: "Đã soát dòng tiền tự ghi đơn mình lập", group: "ledger" },
   order_handler_changed: { label: "Đổi Hướng dẫn viên", group: "order" },
   order_claimed: { label: "Hướng dẫn viên tự nhận đơn", group: "order" },
   // ADR-0030 điều 1 (nút Từ chối): người phụ trách tự trả đơn. `detail` = CHỈ nhãn lý do (danh sách đóng `ly-do-tu-choi.ts`) — không tên (Q2 (a), chủ 2026-10-23).
@@ -387,7 +389,7 @@ export const AUDIT_ACTIONS = {
   // staff_id = người làm, CÙNG LÔ với thay đổi — nếu không, vế "vĩnh viễn" của luật tách nhiệm vụ xác minh hở (view v_aud_cham_tai_khoan). KHÔNG chi tiết.
   mfa_grace_reopened: { label: "Mở lại đăng nhập 24 giờ khi chưa bật bảo mật hai lớp", group: "staff" },
   mfa_exception_set: { label: "Đặt ngoại lệ tạm bảo mật hai lớp", group: "staff" },
-} as const satisfies Record<string, { label: string; group: AuditGroup; doiSoKhach?: true }>;
+} as const satisfies Record<string, { label: string; group: AuditGroup; doiSoKhach?: true; ghiTien?: true }>;
 
 export type AuditAction = keyof typeof AUDIT_ACTIONS;
 
@@ -397,6 +399,16 @@ export type HanhDongDoiSoKhach = { [K in AuditAction]: (typeof AUDIT_ACTIONS)[K]
 // làm gói trang Đơn hàng vượt trần (bài src/goi-trang-nhe.test.ts). Có chú thích: trang không dùng hằng thì bỏ được cả lời gọi lẫn bảng.
 export const HANH_DONG_DOI_SO_KHACH: readonly HanhDongDoiSoKhach[] = /* @__PURE__ */ (() => (Object.keys(AUDIT_ACTIONS) as AuditAction[]).filter(
   (a): a is HanhDongDoiSoKhach => (AUDIT_ACTIONS[a] as { doiSoKhach?: true }).doiSoKhach === true,
+))();
+
+/**
+ * ADR-0187 Đ3 mức (a): hành động mang cờ `ghiTien` — dòng nhật ký do các route của nhóm `O_GHI_TIEN` (ledger.write, payment.refund, order.complete,
+ * accounting.entry.mark) ghi. `insertStatement` của audit tự gắn dấu «tự ghi đơn mình lập» khi hành động thuộc tập này VÀ người làm là người lập đơn.
+ * KHÔNG gồm `payment_recorded` (dùng chung với luồng Bán hàng khai khoản thu đơn mình — không thuộc O_GHI_TIEN). Bài: src/shared/tach-nhiem-vu.test.ts.
+ */
+export type HanhDongGhiTien = { [K in AuditAction]: (typeof AUDIT_ACTIONS)[K] extends { ghiTien: true } ? K : never }[AuditAction];
+export const HANH_DONG_GHI_TIEN: readonly HanhDongGhiTien[] = /* @__PURE__ */ (() => (Object.keys(AUDIT_ACTIONS) as AuditAction[]).filter(
+  (a): a is HanhDongGhiTien => (AUDIT_ACTIONS[a] as { ghiTien?: true }).ghiTien === true,
 ))();
 
 /** Loại đối tượng của một dòng nhật ký — trùng với nhóm hành động. */

@@ -24,4 +24,5 @@ export const PHAM_VI_O_TRANG_CHU = {
   donCho: "TOAN_CONG_TY", // ADR-0136 Đ9: đơn đang chờ xác nhận của cả công ty
   doiChieu: "TOAN_CONG_TY", // Trang chủ Phương án A (31/10): khoản chờ đối chiếu / thu trước của đơn huỷ là sổ của cả công ty
   thuTruoc: "TOAN_CONG_TY",
+  tuGhi: "TOAN_CONG_TY", // ADR-0187 Đ3 mức (a): dòng tiền tự ghi đơn mình lập chờ soát — sổ của cả công ty
 } as const satisfies Record<string, PhamVi>;

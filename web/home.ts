@@ -466,7 +466,7 @@ let soXemLaiGanNhat: number | null = 0;
 /** Tín hiệu quá hạn của hai khối chi tiết (lần tải đầy đủ gần nhất) — đưa vào phụ đề «Đang chờ bạn» (vòng 2). */
 let quaHanGanNhat: { doiChieu: number | null; thuTruoc: { canChi: number; qua7Ngay: number; sapHetHan: number; conNguoiGiu: number } | null } = { doiChieu: null, thuTruoc: null };
 /** Hai nguồn ngoài (điều chỉnh công nợ, góp ý) lần tải gần nhất; chỉ tải khi khối "Việc của bạn" thật sự hiện (điện thoại ẩn nó) và chưa có số, làm mới lặng lẽ dùng lại. */
-let soNgoaiGanNhat: { dieuChinh?: number | null; gopY?: number | null } = {};
+let soNgoaiGanNhat: { dieuChinh?: number | null; gopY?: number | null; tuGhi?: number | null } = {};
 let ngoaiDaTai = false;
 /** Khối máy tính có đang hiện không — hỏi chính trình duyệt (`offsetParent` null khi CSS ẩn), cùng cách web/shell.ts nạp huy hiệu thanh bên; không chép mốc 641px sang JS. */
 const khoiHien = (): boolean => byId("dash-dai").offsetParent !== null;
@@ -925,6 +925,8 @@ async function taiDashboard(staff: Staff, lamMoi = false, taiMoi = false): Promi
             canTai.includes("dieuChinh") ? api<Api.YeuCauDieuChinhListResponse>("/api/ledger/adjustment-requests").then((r) => r.choDuyetChoToi) : undefined,
             // Trùng một lời gọi với feedbackBadge() của shell.ts (nó trả mine+queue, không export queue; đổi sẽ động byte gói orders) — chấp nhận, chỉ Toàn quyền.
             canTai.includes("gopY") ? api<Api.FeedbackBadgeResponse>("/api/feedback/badge").then((r) => r.queue) : undefined,
+            // ADR-0187 Đ3 mức (a): số dòng tiền tự ghi đơn mình lập chưa soát — chỉ người soát được (`nguonCanTai`).
+            canTai.includes("tuGhi") ? api<Api.TuGhiDemResponse>("/api/ledger/tu-ghi/dem").then((r) => r.chuaSoat) : undefined,
           ])
         : null,
       layDonCho,
@@ -947,13 +949,13 @@ async function taiDashboard(staff: Staff, lamMoi = false, taiMoi = false): Promi
       quaHanGanNhat = { doiChieu: review.alerts?.doiChieu?.count ?? null, thuTruoc: review.alerts?.thuTruoc ?? null };
     }
     if (ngoai) {
-      soNgoaiGanNhat = { dieuChinh: soTuKetQua(ngoai[0]), gopY: soTuKetQua(ngoai[1]) };
-      ngoaiDaTai = soNgoaiGanNhat.dieuChinh !== null && soNgoaiGanNhat.gopY !== null; // có nguồn lỗi thì lần làm mới sau thử lại
+      soNgoaiGanNhat = { dieuChinh: soTuKetQua(ngoai[0]), gopY: soTuKetQua(ngoai[1]), tuGhi: soTuKetQua(ngoai[2]) };
+      ngoaiDaTai = soNgoaiGanNhat.dieuChinh !== null && soNgoaiGanNhat.gopY !== null && soNgoaiGanNhat.tuGhi !== null; // có nguồn lỗi thì lần làm mới sau thử lại
     }
     // Dựng khối "Việc của bạn" SAU renderReview (thẻ "Cần xem lại" cuộn tới khối đó nên khối phải hiện cùng nguồn) và TRƯỚC dòng tóm tắt (nó lấy câu từ thẻ).
     const nguon: NguonSo = {
       nhap: data.draftCount, chuaPhuTrach: data.unassignedCount, chuaBanHang: soChuaBanHang, conThieu: unpaid, xemLai: soXemLaiGanNhat,
-      dieuChinh: soNgoaiGanNhat.dieuChinh, gopY: soNgoaiGanNhat.gopY, donCho, doiChieu: soDoiChieu, thuTruoc: soThuTruoc, doiChieuQuaHan: quaHanGanNhat.doiChieu, thuTruocChiTiet: quaHanGanNhat.thuTruoc,
+      dieuChinh: soNgoaiGanNhat.dieuChinh, gopY: soNgoaiGanNhat.gopY, tuGhi: soNgoaiGanNhat.tuGhi, donCho, doiChieu: soDoiChieu, thuTruoc: soThuTruoc, doiChieuQuaHan: quaHanGanNhat.doiChieu, thuTruocChiTiet: quaHanGanNhat.thuTruoc,
     }; // `chuyenHomNay` không còn nguồn: «Đơn đi hôm nay» là chính thẻ Chuyến đón (Phương án A)
     // Dải lỗi chung (thiếu số "Còn thiếu"): máy tính mà thẻ "Đơn còn thiếu tiền" đang hiện "—" + Thử lại thì thẻ là chỗ thử lại DUY NHẤT (không cộng nút ở dải); điện thoại (thẻ ẩn) vẫn dùng dải.
     baoLoi(unpaid || (khoiHien() && dongCuaBan(staff, nguon).some((t) => t.khoa === "conThieu")) ? null : LOI_SO_LIEU);

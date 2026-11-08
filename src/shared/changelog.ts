@@ -18,13 +18,22 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // ADR-0186 (chủ duyệt 8/11, đóng HC-5.11): ba việc định giờ chạy dưới tác nhân có định danh riêng; Quản lý bán hàng được đồng bộ danh mục. Migration 0148.
-    // Bước A.0 ngày 8/11 trên nhánh claude/pensive-keller-274010. SỐ TẠM: nhánh menu tên tài khoản nhập trước, lấy 2.75; 2.74, 2.75 chưa lên production thì đi
-    // cùng lần triển khai này, giữ các mục riêng (tiền lệ 2.70–2.72); nhánh khác nhập trước mà cũng lấy 2.76 thì phiên phát hành đánh lại số.
-    version: "2.76",
+    // Bước A.0 ngày 8/11 trên nhánh claude/pensive-keller-274010. SỐ TẠM: 2.75 đã lên production; 2.76 (ADR-0187 Đ3) nhập trước — chưa lên thì đi cùng lần
+    // triển khai này, giữ các mục riêng (tiền lệ 2.70–2.72); nhánh khác nhập trước mà cũng lấy 2.77 thì phiên phát hành đánh lại số.
+    version: "2.77",
     date: "2026-11-08",
     items: [
       { kind: "moi", text: "Quản lý bán hàng có nút «Đồng bộ ngay từ Google Sheet» ở màn Dịch vụ & giá để lấy giá mới ngay, không phải nhờ Quản trị. Nền tảng vẫn tự đồng bộ mỗi 15 phút.", bai: { id: "quan-ly-ban-hang/lay-bang-gia-moi-tu-google-sheet", ten: "Lấy bảng giá mới từ Google Sheet" } },
       { kind: "doi", text: "Toàn quyền thấy thêm dòng «Xoá ảnh vé hết hạn lưu» ở trang Nhật ký mỗi lần Nền tảng tự xoá ảnh vé của lô đã huỷ khi quá hạn lưu; dòng chỉ ghi số ảnh." },
+    ],
+  },
+  {
+    // ADR-0187 Đ3 mức (a) (chủ duyệt 8/11 «Duyệt, mức a»): tách nhiệm vụ — đánh dấu, không chặn. Migration 0150. Ngày đặt lại ở bước A.0 của lần triển khai.
+    version: "2.76",
+    date: "2026-11-08",
+    items: [
+      { kind: "moi", text: "Người vừa lập đơn vừa ghi tiền cho đơn đó vẫn ghi được, nhưng dòng tiền mang dấu «Tự ghi đơn mình lập» để người thứ hai soát." },
+      { kind: "moi", text: "Sổ công nợ có bộ lọc «Cần người thứ hai soát»; Kế toán khác hoặc Toàn quyền bấm «Đã soát». Trang chủ của người soát được có thẻ số dòng chưa soát." },
     ],
   },
   {
