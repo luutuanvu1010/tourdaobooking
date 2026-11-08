@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Trạng thái:** đề xuất, chờ chủ duyệt (soạn 2026-11-08, phiên lập kế hoạch — phiên này không thi công, P15). Đây là **kế hoạch điều phối**: Đợt 1 có việc chi tiết tới từng bước; Đợt 3 có việc chi tiết nhưng chữ chờ chủ chọn; các đợt cần ADR chỉ ghi phạm vi, điều kiện và chỗ phải kiểm, phần việc chi tiết viết **sau khi** ADR được duyệt (`CLAUDE.md` §9).
+**Trạng thái:** CHỦ ĐÃ DUYỆT 2026-11-09, nguyên văn: «Duyệt, mở thi công toàn bộ , lần lượt từng đợt cho tới khi hoàn thành». Cách hiểu ghi lại (chủ sửa được bằng một câu): Phần I điều 1 duyệt; điều 3 theo khuyến nghị (Q-05 làm khoá xem trước, tự kết thúc tách sau); phiếu chữ Phụ lục B dùng phương án (1) ở mọi mục cho tới khi chủ nói khác; điều 2 (người kiểm buổi sáng) chưa có tên — vẫn chờ chủ. Duyệt kế hoạch KHÔNG thay cho duyệt từng ADR lượt A, B, C (mỗi ADR vẫn trình chủ). Soạn 2026-11-08, phiên lập kế hoạch — phiên này không thi công, P15. Đây là **kế hoạch điều phối**: Đợt 1 có việc chi tiết tới từng bước; Đợt 3 có việc chi tiết nhưng chữ chờ chủ chọn; các đợt cần ADR chỉ ghi phạm vi, điều kiện và chỗ phải kiểm, phần việc chi tiết viết **sau khi** ADR được duyệt (`CLAUDE.md` §9).
 
 **Goal:** Đưa các việc tuần đầu của báo cáo rà soát 7/11 và bảy yêu cầu mới của chủ (8/11) lên production theo từng đợt nhỏ, mỗi đợt có kiểm độc lập và kiểm sau triển khai, và không để sổ quyền hoãn làm `npm test` đỏ từ 0 giờ 1/12.
 
