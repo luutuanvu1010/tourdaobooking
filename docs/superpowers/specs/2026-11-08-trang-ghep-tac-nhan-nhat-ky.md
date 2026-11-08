@@ -1,6 +1,6 @@
 # Trang ghép — ADR-0186 (tác nhân tự động trong bảng nhật ký dùng chung; Quản lý bán hàng được đồng bộ)
 
-> **Trạng thái:** đề xuất 2026-11-08 (bản sửa lần 1), đi cùng lượt duyệt ADR-0186 (2 quyết định, dưới trần 3). Bắt buộc theo `CLAUDE.md` §9 vì bảng dùng chung `audit_log` nhận thêm một loại người làm mới, và một chỗ ẩn/hiện trên giao diện đổi nghĩa. Hồ sơ có ngày.
+> **Trạng thái:** **ĐÃ DUYỆT 2026-11-08** cùng ADR-0186 (chủ dự án, hộp hỏi: «Duyệt ADR-0186»; lượt duyệt 2 quyết định, dưới trần 3). Bắt buộc theo `CLAUDE.md` §9 vì bảng dùng chung `audit_log` nhận thêm một loại người làm mới, và một chỗ ẩn/hiện trên giao diện đổi nghĩa. Hồ sơ có ngày.
 
 ## (1) Bảng `audit_log` chứa những loại người làm nào
 

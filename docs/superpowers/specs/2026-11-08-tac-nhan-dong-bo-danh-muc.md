@@ -1,6 +1,6 @@
 # Đặc tả — Tác vụ tự động có định danh riêng (đóng HC-5.11)
 
-> **Trạng thái:** đề xuất 2026-11-08 (bản sửa lần 1 theo hai câu trả lời của chủ, ghi nguyên văn ở ADR-0186), chờ chủ duyệt ADR-0186. Chưa thi công phần chạm mã chạy thật. Hồ sơ có ngày: duyệt xong thì không sửa lại cho khớp hiện trạng.
+> **Trạng thái:** **ĐÃ DUYỆT 2026-11-08** cùng ADR-0186 (chủ dự án, hộp hỏi: «Duyệt ADR-0186», bản sửa lần 1; tên dòng nhật ký «Xoá ảnh vé hết hạn lưu»). Hồ sơ có ngày: duyệt xong thì không sửa lại cho khớp hiện trạng.
 > **Nguồn việc:** mục `HC-5.11` (mức HIGH, hạn 2026-11-15) trong `docs/quyen-hoan.json`. Chủ dự án 2026-11-08 chọn «Sửa trước hạn», rồi chọn làm luôn hai tác vụ tự động còn lại và cho Quản lý bán hàng bấm được nút đồng bộ.
 > **Đi kèm:** `docs/adr/ADR-0186-tac-nhan-tu-dong-co-dinh-danh-rieng.md` (quyết định), `2026-11-08-trang-ghep-tac-nhan-nhat-ky.md` (trang ghép, `CLAUDE.md` §9).
 

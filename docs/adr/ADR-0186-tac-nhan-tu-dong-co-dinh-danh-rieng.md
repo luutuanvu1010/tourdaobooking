@@ -1,13 +1,13 @@
 # ADR-0186 — Tác nhân tự động có định danh riêng, đi qua cùng cổng quyền; Quản lý bán hàng được đồng bộ danh mục
 
-- **Trạng thái:** **proposed** 2026-11-08 (bản sửa lần 1, theo hai câu trả lời của chủ ở dòng dưới) — chờ chủ dự án duyệt. Chưa có hiệu lực; ADR-0010 điều 3 (chừa Cron đồng bộ danh mục) và ADR-0169 Đ4 (màn hẹp không đồng bộ) vẫn áp tới khi ADR này được duyệt và mã mới qua tiêu chí nghiệm thu.
+- **Trạng thái:** **accepted** 2026-11-08 — chủ dự án duyệt trong hộp hỏi, nguyên văn: «Duyệt ADR-0186», trả lời câu «Tôi đã sửa ADR-0186 đúng theo hai câu trả lời của bạn … Bạn có duyệt bản sửa này không?» (bản sửa lần 1). Tên dòng nhật ký ở Đ4, chủ chọn cùng lượt: «Xoá ảnh vé hết hạn lưu». Luật cũ (ADR-0010 điều 3 chừa Cron đồng bộ danh mục; ADR-0169 Đ4 màn hẹp không đồng bộ) còn áp tới khi mã mới qua tiêu chí nghiệm thu. (Trước đó: proposed 2026-11-08, bản đầu và bản sửa lần 1.)
 - **Chủ đã chọn (hộp hỏi 2026-11-08, nguyên văn):** câu «duyệt ADR-0186?» — «Để cho nút Đồng Bộ hiển thị và hoạt động với Quản lý bán hàng, Quản trị và Toàn quyền. Để khi cần thì chủ động đồng bộ bảng giá từ Sheet»; câu «hai tác vụ còn lại làm luôn hay để sau?» — «Làm luôn trong đợt này». Đây là câu trả lời, chưa phải lệnh «Duyệt». AI hiểu như sau (chủ sửa nếu sai): (1) Quản lý bán hàng bấm được «Đồng bộ ngay từ Google Sheet» ở màn hẹp, nút làm y như của Quản trị, kể cả hộp hỏi khi Sheet sắp làm ẩn hơn nửa dịch vụ; (2) đợt này làm cả ba tác vụ tự động.
 - **Ngày:** 2026-11-08. **Loại:** việc lớn (quyền, nhật ký, migration, giao diện) — thi công xong cần người kiểm độc lập chỉ đọc (`CLAUDE.md` §3).
 - **Cửa:** hai chiều về hành vi; một chiều ở chỗ cột mới của nhật ký và các dòng nhật ký đã ghi ở lại (nhật ký chỉ-thêm).
 - **Thay / sửa:** câu «Ngoại lệ đã có, giữ nguyên» của ADR-0010 điều 3; chữ «đồng bộ» trong câu «Không có giá ghi đè, đồng bộ, sửa nhóm» của ADR-0169 Đ4; câu «route `POST /api/catalog/sync` hỏi `admin.manage`» (hiện trạng mã). Không sửa nguyên văn các ADR đó.
 - **Liên quan:** Hiến chương 5.11, 5.12, 5.15 (Phần I `docs/ARCHITECTURE.md`; bản chung ở kho luật gốc); ADR-0007, ADR-0014 điều 2, ADR-0019, ADR-0156, ADR-0169, ADR-0173; mục `HC-5.11` của `docs/quyen-hoan.json`; đặc tả và trang ghép cùng ngày ở `docs/superpowers/specs/`.
 - **Xây trên lỗ đang hở:** không. Các mục còn mở (`TNV-G1`, `HC-4.2`, `HC-5.19`, các ô hoãn) không thuộc vùng định danh, nhật ký; tác vụ nhắc hạn chỉ đổi người làm trong nhật ký, không đổi cách tính nợ.
-- **Số quyết định chủ cần chốt:** 2 — duyệt bản sửa này; chọn tên dòng nhật ký mới của việc dọn ảnh vé (Đ4).
+- **Số quyết định chủ cần chốt:** 2 — duyệt bản sửa này; chọn tên dòng nhật ký mới của việc dọn ảnh vé (Đ4). **Đã chốt cả hai** (xem dòng Trạng thái).
 
 ## Bối cảnh
 
