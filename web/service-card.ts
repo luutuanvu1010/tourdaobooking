@@ -192,6 +192,8 @@ export function createServiceCard(o: CardOptions): ServiceCard {
     : null;
   if (oGhiChuGon) oGhiChuGon.addEventListener("input", () => commit({ ...draft, trip: { ...draft.trip, note: oGhiChuGon.value } }));
   const dongGhiChuGon = oGhiChuGon ? h("label", { class: "o-noi" }, khungNhanNoi(NHAN_GHI_CHU_DOI_TAC, oGhiChuGon, { khungClass: "o-hien-goi-y" })) : null;
+  // N7a: dịch vụ không có đưa đón thì dòng «Ghi chú — Thời gian đón» không còn nghĩa → ẩn (chữ đã gõ vẫn giữ trong bản nháp và vẫn gửi lên nguyên).
+  if (dongGhiChuGon) dongGhiChuGon.hidden = o.duaDon.coDuaDon?.() === false;
 
   const than = h(
     "div",
@@ -571,6 +573,7 @@ export function createServiceCard(o: CardOptions): ServiceCard {
       if (structKey(d, o.duocNhapTay === true) !== before) rebuildBody();
       if (legsDoi) duaDon.update(d.legs, d.taoSan);
       duaDon.root.hidden = o.duaDon.coDuaDon?.() === false; // cờ nhóm có thể vừa đổi (form tải lại danh mục sau 409 `transfer_disabled`)
+      if (dongGhiChuGon) dongGhiChuGon.hidden = o.duaDon.coDuaDon?.() === false;
       refresh();
       refreshLimits(); // thân có thể vừa được dựng lại: nút "+ Thêm dòng" mới mặc định bật
     },
