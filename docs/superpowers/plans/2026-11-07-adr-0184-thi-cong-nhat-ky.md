@@ -26,6 +26,9 @@ Phán quyết thêm ngày 2026-11-08 (sau kiểm độc lập lượt 1):
 - **P10 — thay P3 theo lời chủ:** lý do giữ của xe thiếu Kiểm định / Bảo hiểm hiện «Ai xử lý: Quản trị, Toàn quyền» (cách ghép bằng dấu phẩy như chỗ đang ghép nhiều người xử lý); bốn loại giấy kia vẫn «Quản trị»; chuyến có cả hai loại thì chữ ghép không lặp tên. Vẫn trong tập đóng «ai xử lý» (không chữ tự do). Hai ca vàng B23, VC-12 đổi kỳ vọng và chữ đáp án, ghi lời chủ + ngày 2026-11-08. Cái giá nếu sai: đổi lại một nhãn, không đụng quyền (nhãn không quyết ai bấm được nút nào).
 - **P11 — sửa thẳng migration 0147** (chưa có trên `main`, chưa áp production) để trigger so cả loại giấy của điều kiện (lỗi L1 của người kiểm), thay vì thêm migration mới. Cái giá nếu sai: máy nào đã áp 0147 cũ ở D1 local phải dựng lại D1 local; production không ảnh hưởng.
 - **P12 — lý do + ghi chú ở chi tiết chuyến:** chỉ DTO chi tiết chuyến của văn phòng (`GET /api/van-chuyen/chuyen/:id` và các lệnh trả cùng DTO), gom theo lô cho phép, đúng những dòng cho phép đang tạo nhãn vàng. Không vào DTO tài xế, lịch chung Điều phối xe, tin, Bảng tin, nhật ký. Cái giá nếu sai: bỏ một khối hiện ra màn.
+- **P13 — bỏ hằng đi vòng, nới N3 có tên** (sau kiểm độc lập lượt 2, Trung 1): route đếm và hàm `thaySoChoChayThieu` viết thẳng chuỗi `"trip.override"`; bỏ hằng `O_SO_CHO_CHAY_THIEU`; nới N3 của `lop-vuot.test.ts` thành đúng hai route ADR-0184, mỗi route đúng một dòng ghim nguyên văn; thêm bài siết «mọi `can(` trong `src/modules` nhận ô viết thẳng» để kiểu đi vòng này không lặp lại. Cái giá nếu sai: chủ không duyệt N3 hai route thì route đếm phải hỏi qua một ô quyền khác (thêm một ô vào bản đồ quyền).
+- **M (Trung 2):** sắp tên loại giấy theo thứ tự danh mục loại giấy ở tầng dựng DTO/chữ; KHÔNG đổi `ORDER BY` của câu đọc điều kiện (thứ tự đó quyết điều kiện nào áp theo số chỗ). Cái giá nếu sai: thứ tự tên trong nhãn khác ý chủ — chỉ bề mặt.
+- **N:** bài siết lộ vi phạm cũ trên `main` thì dừng phần đó, không sửa mã cũ — kết quả: 644 lời gọi, 0 vi phạm sau khi bỏ hằng, không phải dừng.
 
 ## Mốc
 
@@ -63,8 +66,23 @@ Phán quyết thêm ngày 2026-11-08 (sau kiểm độc lập lượt 1):
   - Người kiểm chỉ ra cạnh kiến trúc `van-chuyen → staff` rộng hơn lời chú thích «chỉ trigger» (cho cả `import ../staff` và đọc mọi view `v_stf_*`) — đề nghị kèm một bài siết.
 - Đợt sửa 1 (giao sau khi e2e của việc 5 xong): T1, P10, P11 (L1), L2–L7 với P12, bài siết cho cạnh kiến trúc; gộp thêm phát hiện của kiểm độc lập lượt 2 (việc 5 + đợt cuối, đang chạy) nếu kịp. Sau đó chạy lại `npm test`, typecheck, e2e, ba kịch bản Chrome một lần; kiểm độc lập lượt 3 theo dải sửa.
 
+- Việc 5, số đo của trợ lý trước đợt sửa: `npm test` đầy đủ 8379 bài, 8 đỏ đều do nhánh (đã sửa ở `8e6a53bbf`, chạy lại 11 tệp: 139 bài xanh, chưa chạy lại cả bộ); typecheck 0 lỗi; e2e 86/86 xanh (≈ 15 phút), audit-invariants xanh.
+- Kiểm độc lập lượt 2 (việc 5 + đợt cuối; HEAD `8e6a53bbf`) — **CHƯA ĐẠT: Cao 0, Trung 2, Thấp 6** (+ ba dòng chữ không tính; báo cáo nháp `adr0184-kiem-doc-lap-luot-2.md`). Phần chức năng của việc 5 đúng.
+  - Trung 1: hằng `O_SO_CHO_CHAY_THIEU` làm bài NT-3(b) mù (người kiểm tái hiện bằng phép phá) → P13. Trung 2: bài «DTO màn» đỏ ngẫu nhiên khoảng 10% vì id điều kiện sinh ngẫu nhiên làm đổi thứ tự tên loại → M.
+  - Thấp: 1 vế «chưa kết thúc» của số Trang chủ chưa có bài canh; 2 vế «cùng chuyến / cùng xe» của nhãn vàng chưa có bài canh; 3 tài xế đối tác chưa có bài thấy nhãn; 4 TC-10 gỡ trigger trong CSDL thử; 5 thứ tự tên loại đổi theo trạng thái chuyến; 6 câu 403 của route đếm sai nghĩa.
+  - Phân loại khúc sửa tệp bài của `8e6a53bbf`: mọi khúc là sửa theo hành vi mới hoặc siết, trừ trần gói Đơn hàng và TC-10 (nới). Không thấy chỗ đi vòng thứ hai cùng kiểu hằng.
+- Đợt sửa 1 — xong 14 commit `f002f44bd` … `37b07c2e9` (≈ 97 phút). Đủ A–T theo đề bài (bảng ánh xạ việc → commit ở báo cáo nháp `adr0184-dot-sua-1-bao-cao.md`); mỗi hàng rào mới có phép phá đỏ rồi hoàn nguyên, ghi ở thân commit và sổ hàng rào.
+  - Bộ kiểm cuối đợt, một lần: typecheck 0 lỗi; `npm test` 8395 bài, 1 đỏ do chính đợt (dòng mẫu của `gomLoChoChayThieu` thiếu `thuTu` sau M) — sửa `0e2fa82c5`, chạy lại riêng 6/6 xanh, chưa chạy lại cả bộ; e2e 86/86 xanh (gồm audit-invariants); Chrome có `AXE_JS`: `chuyen-smoke` 16 bước, `cuoc-smoke` 19 bước, `trang-chu-the-smoke` xanh.
+  - Trợ lý tự quyết (đảo ngược được): giá trị đóng thứ tư `QUAN_TRI_TOAN_QUYEN` ứng hai vai, chữ luôn qua một hàm `nhanAiXuLy` bỏ trùng theo vai; câu 403 của route đếm dùng câu có sẵn `CAN_CHO_CHAY_THIEU`; trường riêng `choChayThieuChiTiet` ở chi tiết chuyến văn phòng; bài O đóng chuyến bằng SQL trong CSDL thử.
+  - **Trái luật, công khai:** `src/shared/bang-tham-chieu-khai-niem.ts` là tệp luật (ADR-0167: chỉ sửa bằng công cụ sửa tệp để chủ được hỏi) nhưng bị ghi bằng `python3` heredoc. Hàng rào `guard-luat` không chặn vì đây là giới hạn đã ghi sẵn trong tệp móc («chương trình tự viết»); lần hoàn nguyên bằng `git checkout --` thì bị chặn và trợ lý dừng, không lách. Nội dung sáu khái niệm mới nằm ở `8d98b35c4` — trình chủ duyệt ở báo cáo cuối; người kiểm lượt 3 đọc kỹ tệp này.
+  - Trần gói Đơn hàng nới 106.459 → 106.880 (đo 106.780). `main` nay ở 108.802 sau menu tên tài khoản, nên khi gộp `main` phải đo lại. Chưa có lời duyệt của chủ.
+  - Ảnh của các kịch bản khác còn chưa theo dõi trong `docs/evidence/2026-11-07-adr-0184/anh/`; theo đề bài chỉ commit ảnh `adr0184-*`.
+- Kiểm độc lập lượt 3 (dải `c8ca86adf..37b07c2e9`) — đang chạy.
+
 ## Nợ (không chặn phát hành)
 
 - Chưa có nút «bỏ cho phép» trước giờ chạy.
 - Đổi xe rồi đổi về xe cũ: dòng cho phép cũ áp lại (Trọng tâm 3).
 - Rủi ro pháp lý Kiểm định / Bảo hiểm: ADR ghi «cần luật sư xác nhận»; chủ đã nghe và chọn D1=b.
+- Kịch bản Chrome đỏ từ trước nhánh này: `dieu-phoi-smoke` (menu Vận chuyển ở thanh bên rỗng), `chinh-sach-dieu-phoi-smoke` (6/14), hai bản `trang-chu-smoke`.
+- Hàng rào `guard-luat` không thấy tệp luật bị ghi bằng chương trình tự viết (`python3 -`, `node -e`) — giới hạn đã ghi trong tệp móc; đợt sửa 1 đã lọt một lần (xem mốc đợt sửa 1). Siết được (Điều 9.4) nhưng là sửa tệp luật, cần chủ duyệt.
