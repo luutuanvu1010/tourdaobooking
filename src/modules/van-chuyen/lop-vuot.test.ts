@@ -124,6 +124,20 @@ test("NT-3 (d, ADR-0184 L2): chuỗi ô \"trip.override.giay_to_cung\" xuất hi
   assert.ok(dong > a && dong < b, `nằm trong thân route cho chạy (dòng ${a}–${b}), thấy dòng ${dong}`);
 });
 
+test("NT-3 (e, ADR-0184 đợt sửa 2, Thấp 2): không tệp mã nào của src/modules/** nhắc hàm bọc thaySoChoChayThieu — hàm bọc ở src/shared không được thành đường vòng quanh bài quét ô vượt luật", () => {
+  const goc = fileURLToPath(new URL("../", import.meta.url)); // src/modules/
+  const thay: string[] = [];
+  const duyet = (dir: string) => {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      const p = join(dir, e.name);
+      if (e.isDirectory()) duyet(p);
+      else if (e.name.endsWith(".ts") && !e.name.endsWith(".test.ts") && khongChuThich(p).includes("thaySoChoChayThieu")) thay.push(p.slice(goc.length));
+    }
+  };
+  duyet(goc);
+  assert.deepEqual(thay, [], "hàm bọc thaySoChoChayThieu không được gọi trong mã của module");
+});
+
 test("NT-3 (c): mọi lời gọi quyenVuot(…) nhận đối số là hàm lớp (lopVuotMoc / lopVuotNghiCamKet / lopCuaLuat); lopCuaLuat dựng từ hai hàm lớp", () => {
   const sai: string[] = [];
   let soGoi = 0;
