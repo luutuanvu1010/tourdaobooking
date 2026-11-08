@@ -322,6 +322,7 @@ try {
   const hangCcc = `[...document.querySelectorAll('.sheet .dp-ccc-hang')].map((x) => x.innerText.replace(/\\s+/g, ' ').trim())`;
   const goiYCcc = `((el) => (el && !el.hidden ? el.innerText.trim() : ''))(document.querySelector('.sheet [data-khoi="goi-y"]'))`;
   const guiCcc = `document.querySelector('[data-action="cho-chay-thieu-gui"]').disabled`;
+  const lyDoGhiChu = `[...document.querySelectorAll('[data-khoi="cho-chay-thieu-ly-do"] .dp-ct-cho-chay-lo > div')].map((x) => x.innerText.replace(/\\s+/g, ' ').trim())`;
   const chipVang = `[...document.querySelectorAll('[data-khoi="cho-chay-thieu"]')].map((x) => x.innerText.replace(/\\s+/g, ' ').trim())`;
   await b.step("9", `ADR-0184 Bán hàng ${d.T2.ma} (xe thiếu Bảo hiểm): KHÔNG có nút «${CCC}», không nhãn vàng`, async () => {
     const ps = await env.as(ACCOUNTS.salesA, `/chuyen?id=${d.T2.id}`, DESK);
@@ -410,8 +411,12 @@ try {
     assert.deepEqual(nk.at(-1), { ai: "Quản Trị", may: false, text: `${CCC} · Đăng ký xe` }); // ADR-0184 việc 5 (3b): tên loại, không «1 loại giấy tờ'
     assert.equal(await qd.ev(noCode), "");
     assert.ok(await qd.ev(noOverflowX));
+    // ADR-0184 đợt sửa 1 (P12): dưới nhãn vàng có «Lý do: …» và «Ghi chú: …» (chỉ chi tiết chuyến của văn phòng), dựng bằng h(), không tràn ngang.
+    assert.deepEqual(await qd.ev(lyDoGhiChu), ["Lý do: Giấy đang gia hạn", "Ghi chú: Đang chờ cấp lại giấy đăng ký"], "lý do + ghi chú hiện dưới nhãn vàng");
+    assert.equal(await qd.ev(`document.querySelector('.dp-ct-head').nextElementSibling?.getAttribute('data-khoi')`), "cho-chay-thieu-ly-do", "khối nằm ngay dưới đầu trang chứa nhãn vàng");
     await axe(qd, "chi tiết chuyến có nhãn vàng 1040");
     await shotFull(qd, "adr0184-chi-tiet-nhan-vang-may-tinh.png");
+    await shotFull(qd, "adr0184-chi-tiet-ly-do-ghi-chu-may-tinh.png");
   });
   await qd.close();
 
@@ -422,8 +427,10 @@ try {
     assert.ok(!(await qm2.ev(`[...document.querySelectorAll('main button')].map((x) => x.textContent.trim())`)).includes(CCC));
     assert.ok(await qm2.ev(noOverflowX));
     assert.equal(await qm2.ev(noCode), "");
+    assert.deepEqual(await qm2.ev(lyDoGhiChu), ["Lý do: Giấy đang gia hạn", "Ghi chú: Đang chờ cấp lại giấy đăng ký"], "390: lý do + ghi chú hiện dưới nhãn vàng");
     await axe(qm2, "chi tiết chuyến có nhãn vàng 390");
     await shotFull(qm2, "adr0184-chi-tiet-nhan-vang-dien-thoai.png");
+    await shotFull(qm2, "adr0184-chi-tiet-ly-do-ghi-chu-dien-thoai.png");
   });
   await qm2.close();
 

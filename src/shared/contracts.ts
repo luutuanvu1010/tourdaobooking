@@ -1329,9 +1329,9 @@ export interface ExpiringItemDto {
   /** ADR-0048 D1: tên nhà xe (xe của nhà xe; tài xế đối tác: tên các nhà xe nối ", "); null = của công ty chủ hiện tại / tài xế công ty. Chỉ tên. */
   ownerLabel: string | null;
 }
-/** GET /api/van-chuyen/sap-het-han — `count` = số dòng (đã hết + sắp hết) cho huy hiệu trên menu (R15 điểm 2). */
 /** GET /api/van-chuyen/cho-chay-thieu/dem (ADR-0184) — số chuyến hôm nay (giờ Việt Nam) chưa kết thúc mà nhãn «Xe thiếu giấy tờ — đã cho chạy» đang hiện; chỉ ô trip.override. */
 export interface ChoChayThieuDemResponse { count: number }
+/** GET /api/van-chuyen/sap-het-han — `count` = số dòng (đã hết + sắp hết) cho huy hiệu trên menu (R15 điểm 2). */
 export interface ExpiringListResponse { warnDays: number; count: number; items: ExpiringItemDto[] }
 /** ADR-0048 D1: một nhà xe đang hợp tác — tên, loại hồ sơ, số xe CHƯA NGỪNG, số tài xế "thuộc". Không liên hệ, không MST. */
 export interface CarrierDto { partyId: string; name: string; kind: "PERSON" | "ORGANIZATION"; vehicleCount: number; driverCount: number }
