@@ -56,19 +56,28 @@ export function kiemChoChayThieu(v: {
   return { ok: true, ghiChu };
 }
 
-/** Một dòng cho phép của chuyến, đủ để gom lô (câu `cho_phep_thieu_cua_chuyen`). */
-export interface DongChoPhepDoc { cmdId: string; tenLoai: string; lyDoNhan: string | null; ghiChu: string | null }
+/**
+ * MỘT thứ tự duy nhất cho mọi chỗ dựng danh sách / tên loại giấy xe cho người xem (nhãn vàng, hộp «Cho chạy dù thiếu giấy tờ», mục lý do + ghi chú, nhật ký, tin):
+ * theo `sort_order` của danh mục loại giấy (`thuTu`: mã loại → thứ hạng), bằng nhau hoặc loại lạ thì theo mã loại. Chỉ sắp ở tầng dựng DTO / chữ — KHÔNG đổi thứ tự
+ * câu đọc điều kiện xuất bến (cổng và bản chụp dùng thứ tự đó). Trả mảng mới.
+ */
+export function sapTheoThuTuLoai<T>(ds: readonly T[], maLoai: (x: T) => string, thuTu: ReadonlyMap<string, number>): T[] {
+  const hang = (x: T): number => thuTu.get(maLoai(x)) ?? Number.MAX_SAFE_INTEGER;
+  return [...ds].sort((a, b) => hang(a) - hang(b) || (maLoai(a) < maLoai(b) ? -1 : maLoai(a) > maLoai(b) ? 1 : 0));
+}
+/** Một dòng cho phép của chuyến, đủ để gom lô (câu `cho_phep_thieu_cua_chuyen`). `thuTu` = thứ hạng loại giấy theo danh mục (xem `sapTheoThuTuLoai`). */
+export interface DongChoPhepDoc { cmdId: string; tenLoai: string; thuTu: number; lyDoNhan: string | null; ghiChu: string | null }
 /**
  * ADR-0184 (P12): gom các dòng cho phép ĐANG TẠO NHÃN VÀNG thành MỖI LÔ (`cmd_id`) một mục — tên các loại giấy (bỏ trùng, giữ thứ tự), nhãn lý do, ghi chú (null = trống).
  * Việc chọn dòng nào đang áp (chuyến chưa chạy: chưa dùng, đúng xe, loại còn thiếu; đã chạy: dòng đã dùng ở bản chụp cuối) do nơi gọi làm; hàm này thuần.
  */
 export function gomLoChoChayThieu(dong: readonly DongChoPhepDoc[]): { ten: string[]; lyDo: string | null; ghiChu: string | null }[] {
-  const lo = new Map<string, { ten: string[]; lyDo: string | null; ghiChu: string | null }>();
+  const lo = new Map<string, { loai: { ten: string; thuTu: number }[]; lyDo: string | null; ghiChu: string | null }>();
   for (const d of dong) {
     const cu = lo.get(d.cmdId);
     if (cu) {
-      if (!cu.ten.includes(d.tenLoai)) cu.ten.push(d.tenLoai);
-    } else lo.set(d.cmdId, { ten: [d.tenLoai], lyDo: d.lyDoNhan, ghiChu: d.ghiChu });
+      if (!cu.loai.some((x) => x.ten === d.tenLoai)) cu.loai.push({ ten: d.tenLoai, thuTu: d.thuTu });
+    } else lo.set(d.cmdId, { loai: [{ ten: d.tenLoai, thuTu: d.thuTu }], lyDo: d.lyDoNhan, ghiChu: d.ghiChu });
   }
-  return [...lo.values()];
+  return [...lo.values()].map((l) => ({ ten: [...l.loai].sort((a, b) => a.thuTu - b.thuTu || (a.ten < b.ten ? -1 : a.ten > b.ten ? 1 : 0)).map((x) => x.ten), lyDo: l.lyDo, ghiChu: l.ghiChu }));
 }

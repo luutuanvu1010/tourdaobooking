@@ -14,7 +14,7 @@ import type { NguoiBam } from "./dieu-phoi-tien-do";
 import { chinhSachHienHanh } from "./repository";
 import { lyDoGiu } from "../../shared/ly-do-giu";
 import { giayToXeConThieu } from "../../shared/dieu-phoi-kiem";
-import { kiemChoChayThieu, MA_LY_DO_THIEU_GIAY_KHAC, NHOM_LY_DO_THIEU_GIAY } from "../../shared/cho-chay-thieu-giay";
+import { kiemChoChayThieu, MA_LY_DO_THIEU_GIAY_KHAC, NHOM_LY_DO_THIEU_GIAY, sapTheoThuTuLoai } from "../../shared/cho-chay-thieu-giay";
 import { msToVnLocal, ngayDayDu } from "../../shared/vn-date";
 import { boSungXe, docChung, xeVao } from "./dieu-phoi-doc";
 import { CAU_CHI_TOAN_QUYEN_GIAY_TO } from "./rules";
@@ -140,7 +140,7 @@ export async function lenhChoChayThieu(
       return loi409("da_cho_chay_thieu", [], {}, `Chuyến này đã được cho chạy dù thiếu ${tenLoai(code)}.`);
     }
   }
-  const dong = b.loaiGiayTo.map((code) => ({ id: crypto.randomUUID(), documentTypeCode: code, expiryDate: thieu.find((x) => x.documentTypeCode === code)?.expiryDate ?? null }));
+  const dong = sapTheoThuTuLoai(b.loaiGiayTo, (code) => code, chung.thuTuLoai).map((code) => ({ id: crypto.randomUUID(), documentTypeCode: code, expiryDate: thieu.find((x) => x.documentTypeCode === code)?.expiryDate ?? null }));
   const loai = dong.map((d) => `${tenLoai(d.documentTypeCode)} (${d.documentTypeCode}, hạn ${d.expiryDate === null ? "chưa có" : ngayVn(d.expiryDate)})`).join(", ");
   const l = lenh(b.requestId, nguoi, bayGioMs);
   const lo = loChoChayThieu(db, {

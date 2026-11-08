@@ -6,7 +6,7 @@ import { sdtChinhCuaHoSo } from "../parties";
 import type { ChuyenChiTietResponse, CuocChiTietResponse, CuocCuaToiItemDto, GoiBaoChangDto, LenhChuyenLoiBody } from "../../shared/contracts";
 import { docGoiBao, goiBaoChang, nguoiBamGoiBao, type QuyenGoiBao } from "./goi-bao-lenh";
 import { giayToXeConThieu, kiemXuatBen, type KiemXuatBenVao } from "../../shared/dieu-phoi-kiem";
-import { gomLoChoChayThieu, laGiayToChiToanQuyen } from "../../shared/cho-chay-thieu-giay";
+import { gomLoChoChayThieu, laGiayToChiToanQuyen, sapTheoThuTuLoai } from "../../shared/cho-chay-thieu-giay";
 import type { KetQuaKiem, LoaiSuKienChuyen, MaLuatPhaLe, NhacXuatBen, TrangThaiChuyen } from "../../shared/dieu-phoi-kieu";
 import { dungLichChung } from "../../shared/dieu-phoi-lich-chung";
 import { error, json } from "../../shared/http";
@@ -442,13 +442,13 @@ async function choChayThieuChiTietDto(db: D1Database, t: TripRow, xe: XeDieuPhoi
   if (dong.length === 0) return [];
   const conThieu = t.status === "PLANNED" && xe ? new Set(giayToXeConThieu(xeVao(xe, c.giayToXe), c.dieuKien, t.planned_end_ms).map((g) => g.documentTypeCode)) : null;
   const ap = dong.filter((r) => (t.status === "PLANNED" ? conThieu !== null && r.da_dung === 0 && r.vehicle_id === t.vehicle_id && conThieu.has(r.document_type_code) : r.trong_ban_chup_cuoi > 0));
-  return gomLoChoChayThieu(ap.map((r) => ({ cmdId: r.cmd_id, tenLoai: r.type_name ?? r.document_type_code, lyDoNhan: r.reason_label, ghiChu: r.note })));
+  return gomLoChoChayThieu(ap.map((r) => ({ cmdId: r.cmd_id, tenLoai: r.type_name ?? r.document_type_code, lyDoNhan: r.reason_label, ghiChu: r.note, thuTu: c.thuTuLoai.get(r.document_type_code) ?? Number.MAX_SAFE_INTEGER })));
 }
 
 /** ADR-0184: loại giấy tờ XE đang thiếu của chuyến CHƯA chạy (tên loại từ danh mục; không số giấy) — cho hộp «Cho chạy dù thiếu giấy tờ». Khác PLANNED: rỗng. */
 async function giayToThieuDto(db: D1Database, t: TripRow, xe: XeDieuPhoiRow | undefined, c: DuLieuChung): Promise<ChuyenChiTietResponse["giayToThieu"]> {
   if (t.status !== "PLANNED" || !xe) return [];
-  const thieu = giayToXeConThieu(xeVao(xe, c.giayToXe), c.dieuKien, t.planned_end_ms);
+  const thieu = sapTheoThuTuLoai(giayToXeConThieu(xeVao(xe, c.giayToXe), c.dieuKien, t.planned_end_ms), (g) => g.documentTypeCode, c.thuTuLoai);
   if (thieu.length === 0) return [];
   const ten = new Map((await listVehicleDocumentTypes(db)).map((r) => [r.code, r.name]));
   return thieu.map((g) => ({ documentTypeCode: g.documentTypeCode, ten: ten.get(g.documentTypeCode) ?? g.documentTypeCode, expiryDate: g.expiryDate, chiToanQuyen: laGiayToChiToanQuyen(g.documentTypeCode) }));

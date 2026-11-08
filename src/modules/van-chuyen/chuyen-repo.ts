@@ -7,6 +7,7 @@
 //   điểm danh mục, CHỈ cho chuỗi đích "Chỉ đường" của DTO tài xế, ADR-0105).
 // - Câu GHI sau câu cổng đều mang `EXISTS (SELECT 1 FROM vc_trip WHERE id = ?T AND last_cmd_id = ?cmd)` (bài thứ tự lô — Task A14). Mỗi suất MỘT câu INSERT
 //   (trigger sức chứa theo dòng — kế hoạch mục 4 điểm 3). Không câu DELETE nào (không xoá cứng).
+import { sapTheoThuTuLoai } from "../../shared/cho-chay-thieu-giay.ts";
 import { defineSql } from "../../shared/sql-registry.ts";
 import type { ChuyenChoTin, HoiChuyenChoTin } from "../../shared/tin-chuyen.ts";
 
@@ -377,7 +378,7 @@ export async function choPhepThieuCuaChuyen(db: D1Database, tripId: string): Pro
 const CHO_CHAY_THIEU_DA_DUNG = defineSql(
   "van-chuyen",
   "cho_chay_thieu_da_dung",
-  `SELECT c.trip_id, i.document_type_code, t.name AS type_name
+  `SELECT c.trip_id, i.document_type_code, t.name AS type_name, t.sort_order AS type_sort
    FROM vc_trip_departure_check_item i
    JOIN vc_trip_departure_check c ON c.id = i.check_id
    LEFT JOIN vc_vehicle_document_type t ON t.code = i.document_type_code
@@ -386,13 +387,14 @@ const CHO_CHAY_THIEU_DA_DUNG = defineSql(
    GROUP BY c.trip_id, i.document_type_code
    ORDER BY c.trip_id, i.document_type_code`,
 );
-export interface ChoChayThieuDaDungRow { trip_id: string; document_type_code: string; type_name: string | null }
+export interface ChoChayThieuDaDungRow { trip_id: string; document_type_code: string; type_name: string | null; type_sort: number | null }
 /** `tripId` → danh sách `{ ten }` (tên loại giấy; thiếu tên danh mục thì dùng mã). Chuyến không có dòng nào: không có khoá. */
 export async function choChayThieuDaDung(db: D1Database, tripIds: readonly string[]): Promise<Map<string, { ten: string }[]>> {
   const out = new Map<string, { ten: string }[]>();
   if (tripIds.length === 0) return out;
   const rows = (await db.prepare(CHO_CHAY_THIEU_DA_DUNG).bind(JSON.stringify(tripIds)).all<ChoChayThieuDaDungRow>()).results;
-  for (const r of rows) out.set(r.trip_id, [...(out.get(r.trip_id) ?? []), { ten: r.type_name ?? r.document_type_code }]);
+  const thuTu = new Map(rows.map((r) => [r.document_type_code, r.type_sort ?? Number.MAX_SAFE_INTEGER]));
+  for (const r of sapTheoThuTuLoai(rows, (x) => x.document_type_code, thuTu)) out.set(r.trip_id, [...(out.get(r.trip_id) ?? []), { ten: r.type_name ?? r.document_type_code }]); // thứ tự danh mục, như chuyến chưa chạy (M)
   return out;
 }
 /** ADR-0184: id sự kiện `DOCS_WAIVED` (= dấu lệnh của dòng cho phép) → tên các loại giấy đã cho chạy thiếu, theo thứ tự danh mục. Chỉ tên loại. */

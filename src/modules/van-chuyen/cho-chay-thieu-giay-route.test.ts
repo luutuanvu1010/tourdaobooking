@@ -19,8 +19,10 @@ function xeCo(w: any, con: string[]): string {
   for (const loai of con) w.sqlite.prepare("INSERT INTO vc_vehicle_document (id, vehicle_id, document_type_code, expiry_date, created_at, updated_at) VALUES (?, ?, ?, '2030-12-31', ?, ?)").run(uuid(), id, loai, AT, AT);
   return id;
 }
-function themDieuKienDangKy(w: any): void {
-  w.sqlite.prepare(`INSERT INTO vc_departure_rule (id, min_capacity, subject, vehicle_document_type_code, valid_from_at, created_at, updated_at) VALUES (?, 1, 'VEHICLE', 'REGISTRATION', ?, ?, ?)`).run(uuid(), AT, AT, AT);
+/** `id` CỐ ĐỊNH (không uuid ngẫu nhiên): thứ tự điều kiện theo id từng làm bài đỏ ngẫu nhiên ~10% (so với điều kiện Kiểm định gieo sẵn `1a6f3c52-…`). */
+const ID_DK_DANG_KY = "0aaaaaaa-0000-4000-8000-000000000001";
+function themDieuKienDangKy(w: any, id: string = ID_DK_DANG_KY): void {
+  w.sqlite.prepare(`INSERT INTO vc_departure_rule (id, min_capacity, subject, vehicle_document_type_code, valid_from_at, created_at, updated_at) VALUES (?, 1, 'VEHICLE', 'REGISTRATION', ?, ?, ?)`).run(id, AT, AT, AT);
 }
 const DU = ["INSPECTION", "TPL_INSURANCE", "REGISTRATION"];
 async function chuyenXe(w: any, con: string[]) {
@@ -339,7 +341,7 @@ test("ADR-0184 việc 4 — DTO màn: chi tiết chuyến có giayToThieu (khôn
     themDieuKienDangKy(w);
     const { t } = await chuyenXe(w, ["TPL_INSURANCE"]); // thiếu Kiểm định (chỉ Toàn quyền) + Đăng ký xe
     const truoc = await chiTiet(w, t.id, ADM);
-    assert.deepEqual(truoc.giayToThieu.map((g: any) => [g.documentTypeCode, g.ten, g.expiryDate, g.chiToanQuyen]), [["INSPECTION", "Kiểm định", null, true], ["REGISTRATION", "Đăng ký xe", null, false]]);
+    assert.deepEqual(truoc.giayToThieu.map((g: any) => [g.documentTypeCode, g.ten, g.expiryDate, g.chiToanQuyen]), [["REGISTRATION", "Đăng ký xe", null, false], ["INSPECTION", "Kiểm định", null, true]]);
     assert.deepEqual(truoc.chuyen.choChayThieu, []);
     assert.ok(truoc.lyDo.some((l: any) => l.nhom === "CHO_CHAY_THIEU_GIAY"), "danh sách lý do kèm nhóm mới cho hộp chọn");
     assert.doesNotMatch(JSON.stringify(truoc), /KHUNGV|chassis/i);
@@ -348,7 +350,7 @@ test("ADR-0184 việc 4 — DTO màn: chi tiết chuyến có giayToThieu (khôn
     assert.deepEqual(r.json.chuyen.choChayThieu, [{ ten: "Đăng ký xe" }], "phản hồi lệnh đã có nhãn");
     const sau = await chiTiet(w, t.id, ADM);
     assert.deepEqual(sau.chuyen.choChayThieu, [{ ten: "Đăng ký xe" }]);
-    assert.deepEqual(sau.giayToThieu.map((g: any) => g.documentTypeCode), ["INSPECTION", "REGISTRATION"], "loại đã cho phép vẫn là «thiếu» tới khi giấy được bổ sung");
+    assert.deepEqual(sau.giayToThieu.map((g: any) => g.documentTypeCode), ["REGISTRATION", "INSPECTION"], "loại đã cho phép vẫn là «thiếu» tới khi giấy được bổ sung (thứ tự danh mục)");
     const lich = (await w.call("GET", `/api/van-chuyen/lich?ngay=${NGAY}`, { as: ADM })).json;
     assert.deepEqual(lich.chuyen.find((c: any) => c.id === t.id).choChayThieu, [{ ten: "Đăng ký xe" }], "dòng chuyến của lịch điều phối");
     // Toàn quyền cho nốt Kiểm định → xe chạy được; sau xuất bến nhãn lấy từ bản chụp ĐẠT, giayToThieu rỗng.
@@ -359,7 +361,7 @@ test("ADR-0184 việc 4 — DTO màn: chi tiết chuyến có giayToThieu (khôn
     const chay = await chiTiet(w, t.id, ADM);
     assert.equal(chay.chuyen.trangThai, "RUNNING");
     assert.deepEqual(chay.giayToThieu, []);
-    assert.deepEqual(chay.chuyen.choChayThieu.map((x: any) => x.ten).sort(), ["Kiểm định", "Đăng ký xe"].sort());
+    assert.deepEqual(chay.chuyen.choChayThieu.map((x: any) => x.ten), ["Đăng ký xe", "Kiểm định"], "đã chạy: CÙNG thứ tự danh mục với lúc chưa chạy");
     const lich2 = (await w.call("GET", `/api/van-chuyen/lich?ngay=${NGAY}`, { as: ADM })).json;
     assert.equal(lich2.chuyen.find((c: any) => c.id === t.id).choChayThieu.length, 2);
   } finally {
@@ -477,5 +479,31 @@ test("P12 / L7 (đợt sửa 1): lý do + ghi chú của dòng cho phép CHỈ h
     assert.deepEqual((await chiTiet(w, t.id, ADM)).choChayThieuChiTiet, mong, "chuyến kia không bị lẫn");
   } finally {
     tat();
+  }
+});
+
+test("M (đợt sửa 1): thứ tự tên loại giấy theo danh mục (sort_order), KHÔNG theo id điều kiện — id điều kiện Đăng ký xe ở HAI phía của id điều kiện Kiểm định gieo sẵn cho cùng kết quả; chuyến chưa chạy và đã chạy cùng thứ tự", async () => {
+  for (const id of ["0aaaaaaa-0000-4000-8000-000000000002", "faaaaaaa-0000-4000-8000-000000000003"]) {
+    const tat = batDongHo();
+    try {
+      const w = setup();
+      themDieuKienDangKy(w, id);
+      const { t } = await chuyenXe(w, ["TPL_INSURANCE"]); // thiếu Đăng ký xe (sort 1) + Kiểm định (sort 2)
+      denGio("12:40");
+      const truoc = (await chiTiet(w, t.id, ADM)).giayToThieu.map((g: any) => g.ten);
+      assert.deepEqual(truoc, ["Đăng ký xe", "Kiểm định"], `id điều kiện ${id}: hộp chọn loại giấy`);
+      const r = await choChay(w, t.id, SUP, { loaiGiayTo: ["INSPECTION", "REGISTRATION"], lyDo: null, ghiChu: null }); // gửi ngược thứ tự
+      assert.ok(r.status === 200 || r.status === 201, r.text);
+      assert.deepEqual(r.json.chuyen.choChayThieu.map((x: any) => x.ten), ["Đăng ký xe", "Kiểm định"], "nhãn vàng chuyến chưa chạy");
+      assert.deepEqual(r.json.choChayThieuChiTiet.map((x: any) => x.ten), [["Đăng ký xe", "Kiểm định"]], "mục lô");
+      assert.match(w.q("SELECT detail FROM audit_log WHERE action = 'trip_departure_waived'")[0].detail, /Đăng ký xe \(REGISTRATION[^)]*\), Kiểm định \(INSPECTION/, "nhật ký lệnh cho phép");
+      assert.equal((await tienDo(w, "tai-xe", t.id, "xuat-ben")).status, 200);
+      assert.deepEqual((await chiTiet(w, t.id, ADM)).chuyen.choChayThieu.map((x: any) => x.ten), ["Đăng ký xe", "Kiểm định"], "đã chạy: cùng thứ tự");
+      const cuoc = (await w.call("GET", `/api/van-chuyen/cuoc-cua-toi/${t.id}`, { as: DRIVER })).json;
+      assert.deepEqual((cuoc.choChayThieu ?? cuoc.chuyen.choChayThieu).map((x: any) => x.ten), ["Đăng ký xe", "Kiểm định"], "cuốc tài xế");
+      assert.match(w.q("SELECT detail FROM audit_log WHERE action = 'trip_departed' ORDER BY rowid DESC LIMIT 1")[0].detail, /Đăng ký xe, Kiểm định/, "nhật ký xuất bến");
+    } finally {
+      tat();
+    }
   }
 });

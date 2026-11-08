@@ -13,7 +13,7 @@ import {
   allocsByTrips, allocsOpenByLegs, choPhepThieuChuaDung, dieuKienHienHanh, eventsByTrips, giayToXeHienHanh, hangBangHienHanh, legFlags, lyDoDangDung, stopsByTrips, tripById,
   tripsEndedBetween, tripsTouching, xeDieuPhoi, xeTheoId, type AllocRow, type EventRow, type LegFlagRow, type StopRow, type TripRow, type XeDieuPhoiRow,
 } from "./chuyen-repo";
-import { chinhSachHienHanh, type DispatchPolicyRow } from "./repository";
+import { chinhSachHienHanh, listVehicleDocumentTypes, type DispatchPolicyRow } from "./repository";
 import { CUA_SO_XUAT_BEN_TOI_DA_PHUT, NGHI_TOI_DA_PHUT } from "./chinh-sach";
 
 const NGAY_MS = 86_400_000;
@@ -29,10 +29,13 @@ export interface DuLieuChung {
   taiXe: TaiXeDieuPhoi[];
   /** ADR-0184: dòng cho phép chạy thiếu giấy tờ CHƯA DÙNG của mọi chuyến chưa chạy (lọc theo `tripId` ở nơi dùng); `ten` = tên loại giấy (không số giấy). */
   choPhepThieu: (ChoPhepThieuVao & { tripId: string; ten: string })[];
+  /** ADR-0184 (đợt sửa 1, M): mã loại giấy xe → thứ hạng theo `sort_order` danh mục — dùng `sapTheoThuTuLoai` ở mọi chỗ dựng danh sách / tên loại cho người xem. */
+  thuTuLoai: ReadonlyMap<string, number>;
 }
 export async function docChung(db: D1Database, nowIso: string, homNay: string): Promise<DuLieuChung> {
-  const [chinhSach, hangBang, dieuKien, lyDo, xe, taiXe, choPhep] = await Promise.all([
+  const [chinhSach, hangBang, dieuKien, lyDo, xe, taiXe, choPhep, loaiGiay] = await Promise.all([
     chinhSachHienHanh(db), hangBangHienHanh(db, nowIso), dieuKienHienHanh(db, nowIso), lyDoDangDung(db), xeDieuPhoi(db), taiXeChoDieuPhoi(db, { today: homNay }), choPhepThieuChuaDung(db),
+    listVehicleDocumentTypes(db),
   ]);
   return {
     chinhSach,
@@ -45,6 +48,7 @@ export async function docChung(db: D1Database, nowIso: string, homNay: string): 
     xe,
     giayToXe: await docGiayToXe(db, xe.map((x) => x.id)),
     taiXe,
+    thuTuLoai: new Map(loaiGiay.map((r, i) => [r.code, i])), // câu đọc đã ORDER BY sort_order, code
     choPhepThieu: choPhep.map((w) => ({ id: w.id, tripId: w.trip_id, xeId: w.vehicle_id, documentTypeCode: w.document_type_code, ten: w.type_name ?? w.document_type_code })),
   };
 }

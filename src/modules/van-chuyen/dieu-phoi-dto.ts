@@ -7,6 +7,7 @@ import type {
   SuatChuyenDto, TaiXeChonDto, XeChonDto, XeCuaDonResponse,
 } from "../../shared/contracts";
 import { NHAN_SU_KIEN_CHUYEN, NHAN_TRANG_THAI_CHUYEN, isNhomLyDo, type ChangVao, type LoaiSuKienChuyen } from "../../shared/dieu-phoi-kieu";
+import { sapTheoThuTuLoai } from "../../shared/cho-chay-thieu-giay";
 import { giayToXeConThieu, noiLechCuaSuat } from "../../shared/dieu-phoi-kiem";
 import { NHAN_CANH_BAO_LICH, type CanhBaoLich } from "../../shared/dieu-phoi-lich-chung";
 import { NHAN_TRANG_THAI_CHANG, type TrangThaiChangRa } from "../../shared/dieu-phoi-trang-thai";
@@ -77,7 +78,7 @@ export const lyDoDangDung = (chung: DuLieuChung): LyDoDangDungDto[] =>
  */
 export function choChayThieuDangAp(t: TripRow, xe: XeDieuPhoiRow | undefined, chung: DuLieuChung): { ten: string }[] {
   if (t.status !== "PLANNED" || !xe) return [];
-  return giayToXeConThieu(xeVao(xe, chung.giayToXe), chung.dieuKien, t.planned_end_ms).flatMap((g) => {
+  return sapTheoThuTuLoai(giayToXeConThieu(xeVao(xe, chung.giayToXe), chung.dieuKien, t.planned_end_ms), (g) => g.documentTypeCode, chung.thuTuLoai).flatMap((g) => {
     const w = chung.choPhepThieu.find((x) => x.tripId === t.id && x.xeId === t.vehicle_id && x.documentTypeCode === g.documentTypeCode);
     return w ? [{ ten: w.ten }] : [];
   });

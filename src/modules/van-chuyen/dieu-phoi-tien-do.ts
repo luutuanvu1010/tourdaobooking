@@ -4,6 +4,7 @@
 // 31–38 — thân route đã chặn chỗ khác); làm MỌI kiểm (trạng thái, điểm đã tới, `kiemGioXayRa`, `kiemXuatBen`, `kiemKetThuc`), dựng lô (dieu-phoi.ts), chạy.
 // Trả `Response` khi từ chối, `null` khi đã ghi (hoặc không có gì để ghi). KHÔNG gọi hàm hẹp của orders: chặng + tên khách do thân route đọc sau `can()`.
 import type { ChangChoChuyen, ChangLichChung } from "../orders";
+import { sapTheoThuTuLoai } from "../../shared/cho-chay-thieu-giay";
 import { kiemKetThuc, kiemXuatBen } from "../../shared/dieu-phoi-kiem";
 import { error } from "../../shared/http";
 import { lyDoGiu, MA_GIU, type LyDoGiu } from "../../shared/ly-do-giu";
@@ -116,7 +117,7 @@ export async function lenhXuatBen(
   const soKhach = mo.filter((a) => a.kind === "PASSENGER").length;
   const c = kq.chup;
   // ADR-0184: loại giấy xe thiếu mà cổng cho qua nhờ dòng cho phép — tên loại (không số giấy) vào câu nhật ký.
-  const tenThieu = kq.choChayThieu.map((w) => chung.choPhepThieu.find((x) => x.id === w.waiverId)?.ten ?? w.documentTypeCode);
+  const tenThieu = sapTheoThuTuLoai(kq.choChayThieu, (w) => w.documentTypeCode, chung.thuTuLoai).map((w) => chung.choPhepThieu.find((x) => x.id === w.waiverId)?.ten ?? w.documentTypeCode);
   // ADR-0056 VK3-A (C7): cổng đạt mà HẾT vi phạm cam kết (vd. đơn tắt xe riêng sau khi đã phá lệ) và chuyến còn cột phá lệ → xoá trong cùng lô, có nhật ký.
   const xoaCamKet = kq.camKet.khoa === null && t.commitment_override_key !== null;
   const lo = loXuatBen(db, {
